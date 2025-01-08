@@ -116,13 +116,13 @@ public:
 	 * @param external_pitch_setpoint Externally commanded pitch angle setpoint (usually from TECS) [rad]
 	 * @return Pitch angle setpoint (limited while plane is on runway) [rad]
 	 */
-	float getPitch(float external_pitch_setpoint);
+	float getPitch();
 
 	/**
 	 * @param external_roll_setpoint Externally commanded roll angle setpoint (usually from path navigation) [rad]
 	 * @return Roll angle setpoint [rad]
 	 */
-	float getRoll(float external_roll_setpoint);
+	float getRoll();
 
 	/**
 	 * @brief Returns the appropriate yaw angle setpoint.
@@ -145,7 +145,7 @@ public:
 	 * @param external_throttle_setpoint Externally commanded throttle setpoint (usually from TECS), normalized [0,1]
 	 * @return Throttle setpoint, normalized [0,1]
 	 */
-	float getThrottle(const float idle_throttle, const float external_throttle_setpoint) const;
+	float getThrottle(const float idle_throttle) const;
 
 	/**
 	 * @param min_pitch_in_climbout Minimum pitch angle during climbout [rad]

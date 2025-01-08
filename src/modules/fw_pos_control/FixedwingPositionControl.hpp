@@ -56,8 +56,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <lib/atmosphere/atmosphere.h>
-#include <lib/npfg/npfg.hpp>
-#include <lib/tecs/TECS.hpp>
+#include <lib/npfg/DirectionalGuidance.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/slew_rate/SlewRate.hpp>
@@ -98,6 +97,10 @@
 #include <uORB/topics/wind.h>
 #include <uORB/topics/orbit_status.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/fw_lateral_control_setpoint.h>
+#include <uORB/topics/fw_longitudinal_control_setpoint.h>
+#include <uORB/topics/longitudinal_control_limits.h>
+#include <uORB/topics/lateral_control_limits.h>
 
 #ifdef CONFIG_FIGURE_OF_EIGHT
 #include "figure_eight/FigureEight.hpp"
@@ -114,12 +117,6 @@ using matrix::Vector2f;
 
 // [m] initial distance of waypoint in front of plane in heading hold mode
 static constexpr float HDG_HOLD_DIST_NEXT = 3000.0f;
-
-// [m] distance (plane to waypoint in front) at which waypoints are reset in heading hold mode
-static constexpr float HDG_HOLD_REACHED_DIST = 1000.0f;
-
-// [m] distance by which previous waypoint is set behind the plane
-static constexpr float HDG_HOLD_SET_BACK_DIST = 100.0f;
 
 // [rad/s] max yawrate at which plane locks yaw for heading hold mode
 static constexpr float HDG_HOLD_YAWRATE_THRESH = 0.15f;
@@ -169,14 +166,7 @@ static constexpr float POST_TOUCHDOWN_CLAMP_TIME = 0.5f;
 // [m/s] maximum reference altitude rate threshhold
 static constexpr float MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT = 0.1f;
 
-// [s] Timeout that has to pass in roll-constraining failsafe before warning is triggered
-static constexpr uint64_t ROLL_WARNING_TIMEOUT = 2_s;
 
-// [-] Can-run threshold needed to trigger the roll-constraining failsafe warning
-static constexpr float ROLL_WARNING_CAN_RUN_THRESHOLD = 0.9f;
-
-// [s] slew rate with which we change altitude time constant
-static constexpr float TECS_ALT_TIME_CONST_SLEW_RATE = 1.0f;
 
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
@@ -217,18 +207,19 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
-	uORB::Publication<vehicle_attitude_setpoint_s> _attitude_sp_pub;
 	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};
-	uORB::Publication<npfg_status_s> _npfg_status_pub{ORB_ID(npfg_status)};
 	uORB::Publication<position_controller_status_s>	_pos_ctrl_status_pub{ORB_ID(position_controller_status)};
 	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};
-	uORB::Publication<tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
 	uORB::Publication<launch_detection_status_s> _launch_detection_status_pub{ORB_ID(launch_detection_status)};
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
 	uORB::Publication<landing_gear_s> _landing_gear_pub {ORB_ID(landing_gear)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _flaps_setpoint_pub{ORB_ID(flaps_setpoint)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
-	uORB::PublicationData<flight_phase_estimation_s> _flight_phase_estimation_pub{ORB_ID(flight_phase_estimation)};
+	uORB::PublicationData<fw_lateral_control_setpoint_s> _lateral_ctrl_sp_pub{ORB_ID(fw_lateral_control_setpoint)};
+	uORB::PublicationData<fw_lateral_control_setpoint_s> _lateral_ctrl_status_pub{ORB_ID(fw_lateral_control_status)};
+	uORB::PublicationData<lateral_control_limits_s> _lateral_ctrl_limits_pub{ORB_ID(lateral_control_limits)};
+	uORB::PublicationData<fw_longitudinal_control_setpoint_s> _longitudinal_ctrl_sp_pub{ORB_ID(fw_longitudinal_control_setpoint)};
+	uORB::PublicationData<longitudinal_control_limits_s> _longitudinal_ctrl_limits_pub{ORB_ID(longitudinal_control_limits)};
 
 	manual_control_setpoint_s _manual_control_setpoint{};
 	position_setpoint_triplet_s _pos_sp_triplet{};
@@ -276,8 +267,6 @@ private:
 	double _current_longitude{0};
 	float _current_altitude{0.f};
 
-	float _roll{0.f};
-	float _pitch{0.0f};
 	float _yaw{0.0f};
 	float _yawrate{0.0f};
 
@@ -397,24 +386,12 @@ private:
 
 	hrt_abstime _time_wind_last_received{0}; // [us]
 
-	// TECS
-
-	// total energy control system - airspeed / altitude control
-	TECS _tecs;
-
-	bool _tecs_is_running{false};
-
-	// Smooths changes in the altitude tracking error time constant value
-	SlewRate<float> _tecs_alt_time_const_slew_rate;
-
 	// VTOL / TRANSITION
-	bool _is_vtol_tailsitter{false};
 	matrix::Vector2d _transition_waypoint{(double)NAN, (double)NAN};
 	float _backtrans_heading{NAN};	// used to lock the initial heading for backtransition with no position control
 
 	// ESTIMATOR RESET COUNTERS
 	uint8_t _xy_reset_counter{0};
-	uint8_t _z_reset_counter{0};
 	uint64_t _time_last_xy_reset{0};
 
 	// LATERAL-DIRECTIONAL GUIDANCE
@@ -423,10 +400,7 @@ private:
 	matrix::Vector2f _closest_point_on_path;
 
 	// nonlinear path following guidance - lateral-directional position control
-	NPFG _npfg;
-	bool _need_report_npfg_uncertain_condition{false}; ///< boolean if reporting of uncertain npfg output condition is needed
-	hrt_abstime _time_since_first_reduced_roll{0U}; ///< absolute time since start when entering reduced roll angle for the first time
-	hrt_abstime _time_since_last_npfg_call{0U}; 	///< absolute time since start when the npfg reduced roll angle calculations was last performed
+	DirectionalGuidance _directional_guidance;
 
 	PerformanceModel _performance_model;
 
@@ -439,7 +413,6 @@ private:
 
 	hrt_abstime _time_in_fixed_bank_loiter{0}; // [us]
 	float _min_current_sp_distance_xy{FLT_MAX};
-	float _target_bearing{0.0f}; // [rad]
 
 #ifdef CONFIG_FIGURE_OF_EIGHT
 	/* Loitering */
@@ -465,27 +438,18 @@ private:
 
 	// Update subscriptions
 	void airspeed_poll();
-	void control_update();
+
 	void manual_control_setpoint_poll();
 	void vehicle_attitude_poll();
 	void vehicle_command_poll();
 	void vehicle_control_mode_poll();
-	void vehicle_status_poll();
+
 	void wind_poll();
 
-	void status_publish();
 	void landing_status_publish();
-	void tecs_status_publish(float alt_sp, float equivalent_airspeed_sp, float true_airspeed_derivative_raw,
-				 float throttle_trim);
-	void publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);
-	float getLoadFactor();
 
-	/**
-	 * @brief Get the NPFG roll setpoint with mitigation strategy if npfg is not certain about its output
-	 *
-	 * @return roll setpoint
-	 */
-	float getCorrectedNpfgRollSetpoint();
+	void publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);
+	float getLoadFactor() const;
 
 	/**
 	 * @brief Sets the landing abort status and publishes landing status.
@@ -504,24 +468,6 @@ private:
 	bool checkLandingAbortBitMask(const uint8_t automatic_abort_criteria_bitmask, uint8_t landing_abort_criterion);
 
 	/**
-	 * @brief Get a new waypoint based on heading and distance from current position
-	 *
-	 * @param heading the heading to fly to
-	 * @param distance the distance of the generated waypoint
-	 * @param waypoint_prev the waypoint at the current position
-	 * @param waypoint_next the waypoint in the heading direction
-	 */
-	void get_waypoint_heading_distance(float heading, position_setpoint_s &waypoint_prev,
-					   position_setpoint_s &waypoint_next, bool flag_init);
-
-	/**
-	 * @brief Return the terrain estimate during takeoff or takeoff_alt if terrain estimate is not available
-	 *
-	 * @param takeoff_alt Altitude AMSL at launch or when runway takeoff is detected [m]
-	 */
-	float get_terrain_altitude_takeoff(float takeoff_alt);
-
-	/**
 	 * @brief Maps the manual control setpoint (pilot sticks) to height rate commands
 	 *
 	 * @return Manual height rate setpoint [m/s]
@@ -534,13 +480,6 @@ private:
 	 * Criteria include passing an airspeed threshold and not being in a landed state. VTOL airframes always pass.
 	 */
 	void updateManualTakeoffStatus();
-
-	/**
-	 * @brief Update desired altitude base on user pitch stick input
-	 *
-	 * @param dt Time step
-	 */
-	void update_desired_altitude(float dt);
 
 	/**
 	 * @brief Updates timing information for landed and in-air states.
@@ -724,9 +663,6 @@ private:
 	void control_backtransition_line_follow(const Vector2f &ground_speed,
 						const position_setpoint_s &pos_sp_curr);
 
-	float get_tecs_pitch();
-	float get_tecs_thrust();
-
 	float get_manual_airspeed_setpoint();
 
 	/**
@@ -759,38 +695,8 @@ private:
 	void publishOrbitStatus(const position_setpoint_s pos_sp);
 
 	SlewRate<float> _airspeed_slew_rate_controller;
-	SlewRate<float> _roll_slew_rate;
 
-	/**
-	 * @brief A wrapper function to call the TECS implementation
-	 *
-	 * @param control_interval Time since the last position control update [s]
-	 * @param alt_sp Altitude setpoint, AMSL [m]
-	 * @param airspeed_sp Calibrated airspeed setpoint [m/s]
-	 * @param pitch_min_rad Nominal pitch angle command minimum [rad]
-	 * @param pitch_max_rad Nominal pitch angle command maximum [rad]
-	 * @param throttle_min Minimum throttle command [0,1]
-	 * @param throttle_max Maximum throttle command [0,1]
-	 * @param desired_max_sink_rate The desired max sink rate commandable when altitude errors are large [m/s]
-	 * @param desired_max_climb_rate The desired max climb rate commandable when altitude errors are large [m/s]
-	 * @param is_low_height Define whether we are in low-height flight for tighter altitude tracking
-	 * @param disable_underspeed_detection True if underspeed detection should be disabled
-	 * @param hgt_rate_sp Height rate setpoint [m/s]
-	 */
-	void tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp, float pitch_min_rad,
-					float pitch_max_rad, float throttle_min, float throttle_max,
-					const float desired_max_sink_rate, const float desired_max_climb_rate, const bool is_low_height,
-					bool disable_underspeed_detection = false, float hgt_rate_sp = NAN);
-
-	/**
-	 * @brief Constrains the roll angle setpoint near ground to avoid wingtip strike.
-	 *
-	 * @param roll_setpoint Unconstrained roll angle setpoint [rad]
-	 * @param altitude Vehicle altitude (AMSL) [m]
-	 * @param terrain_altitude Terrain altitude (AMSL) [m]
-	 * @return Constrained roll angle setpoint [rad]
-	 */
-	float constrainRollNearGround(const float roll_setpoint, const float altitude, const float terrain_altitude) const;
+	float getMaxRollAngleNearGround(const float altitude, const float terrain_altitude) const;
 
 	/**
 	 * @brief Calculates the touchdown position for landing with optional manual lateral adjustments.
@@ -839,21 +745,6 @@ private:
 				   const float land_point_alt, const Vector2f &local_position, const Vector2f &local_land_point);
 
 	/*
-	 * Checks if the vehicle satisfies conditions for low-height flight
-	 *
-	 * @return bool True if conditions are satisfied, false otherwise
-	 */
-	bool checkLowHeightConditions();
-
-	/*
-	 * Updates TECS altitude time constant according to the is_low_height parameter.
-	 *
-	 * @param is_low_height Boolean flag defining whether we are in low-height flight
-	 * @param dt Update time step [s]
-	 */
-	void updateTECSAltitudeTimeConstant(const bool is_low_height, const float dt);
-
-	/*
 	 * Waypoint handling logic following closely to the ECL_L1_Pos_Controller
 	 * method of the same name. Takes two waypoints, steering the vehicle to track
 	 * the line segment between them.
@@ -864,9 +755,10 @@ private:
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateWaypoints(const matrix::Vector2f &start_waypoint, const matrix::Vector2f &end_waypoint,
-			       const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &ground_vel,
-			       const matrix::Vector2f &wind_vel);
+	DirectionalGuidanceOutput navigateWaypoints(const matrix::Vector2f &start_waypoint,
+			const matrix::Vector2f &end_waypoint,
+			const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &ground_vel,
+			const matrix::Vector2f &wind_vel);
 
 	/*
 	 * Takes one waypoint and steers the vehicle towards this.
@@ -879,8 +771,8 @@ private:
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateWaypoint(const matrix::Vector2f &waypoint_pos, const matrix::Vector2f &vehicle_pos,
-			      const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel);
+	DirectionalGuidanceOutput navigateWaypoint(const matrix::Vector2f &waypoint_pos, const matrix::Vector2f &vehicle_pos,
+			const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel);
 
 	/*
 	 * Line (infinite) following logic. Two points on the line are used to define the
@@ -893,8 +785,9 @@ private:
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateLine(const Vector2f &point_on_line_1, const Vector2f &point_on_line_2, const Vector2f &vehicle_pos,
-			  const Vector2f &ground_vel, const Vector2f &wind_vel);
+	DirectionalGuidanceOutput navigateLine(const Vector2f &point_on_line_1, const Vector2f &point_on_line_2,
+					       const Vector2f &vehicle_pos,
+					       const Vector2f &ground_vel, const Vector2f &wind_vel);
 
 	/*
 	 * Line (infinite) following logic. One point on the line and a line bearing are used to define
@@ -907,8 +800,9 @@ private:
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateLine(const Vector2f &point_on_line, const float line_bearing, const Vector2f &vehicle_pos,
-			  const Vector2f &ground_vel, const Vector2f &wind_vel);
+	DirectionalGuidanceOutput navigateLine(const Vector2f &point_on_line, const float line_bearing,
+					       const Vector2f &vehicle_pos,
+					       const Vector2f &ground_vel, const Vector2f &wind_vel);
 
 	/*
 	 * Loitering (unlimited) logic. Takes loiter center, radius, and direction and
@@ -922,9 +816,9 @@ private:
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateLoiter(const matrix::Vector2f &loiter_center, const matrix::Vector2f &vehicle_pos,
-			    float radius, bool loiter_direction_counter_clockwise, const matrix::Vector2f &ground_vel,
-			    const matrix::Vector2f &wind_vel);
+	DirectionalGuidanceOutput navigateLoiter(const matrix::Vector2f &loiter_center, const matrix::Vector2f &vehicle_pos,
+			float radius, bool loiter_direction_counter_clockwise, const matrix::Vector2f &ground_vel,
+			const matrix::Vector2f &wind_vel);
 
 	/*
 	 * Path following logic. Takes poisiton, path tangent, curvature and
@@ -939,9 +833,10 @@ private:
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 * @param[in] curvature of the path setpoint [1/m]
 	 */
-	void navigatePathTangent(const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &position_setpoint,
-				 const matrix::Vector2f &tangent_setpoint,
-				 const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel, const float &curvature);
+	DirectionalGuidanceOutput navigatePathTangent(const matrix::Vector2f &vehicle_pos,
+			const matrix::Vector2f &position_setpoint,
+			const matrix::Vector2f &tangent_setpoint,
+			const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel, const float &curvature);
 
 	/*
 	 * Navigate on a fixed bearing.
@@ -954,10 +849,12 @@ private:
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateBearing(const matrix::Vector2f &vehicle_pos, float bearing, const matrix::Vector2f &ground_vel,
-			     const matrix::Vector2f &wind_vel);
+	DirectionalGuidanceOutput navigateBearing(const matrix::Vector2f &vehicle_pos, float bearing,
+			const matrix::Vector2f &ground_vel,
+			const matrix::Vector2f &wind_vel);
 
 	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
 		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _param_fw_gnd_spd_min,
 
 		(ParamFloat<px4::params::FW_PN_R_SLEW_MAX>) _param_fw_pn_r_slew_max,
@@ -980,7 +877,6 @@ private:
 		(ParamFloat<px4::params::FW_LND_FL_PMAX>) _param_fw_lnd_fl_pmax,
 		(ParamFloat<px4::params::FW_LND_FL_PMIN>) _param_fw_lnd_fl_pmin,
 		(ParamFloat<px4::params::FW_LND_FLALT>) _param_fw_lnd_flalt,
-		(ParamFloat<px4::params::FW_LND_THRTC_SC>) _param_fw_thrtc_sc,
 		(ParamFloat<px4::params::FW_T_THR_LOW_HGT>) _param_fw_t_thr_low_hgt,
 		(ParamBool<px4::params::FW_LND_EARLYCFG>) _param_fw_lnd_earlycfg,
 		(ParamInt<px4::params::FW_LND_USETER>) _param_fw_lnd_useter,
@@ -988,30 +884,14 @@ private:
 		(ParamFloat<px4::params::FW_P_LIM_MAX>) _param_fw_p_lim_max,
 		(ParamFloat<px4::params::FW_P_LIM_MIN>) _param_fw_p_lim_min,
 
-		(ParamFloat<px4::params::FW_T_HRATE_FF>) _param_fw_t_hrate_ff,
-		(ParamFloat<px4::params::FW_T_ALT_TC>) _param_fw_t_h_error_tc,
-		(ParamFloat<px4::params::FW_T_F_ALT_ERR>) _param_fw_t_fast_alt_err,
-		(ParamFloat<px4::params::FW_T_THR_INTEG>) _param_fw_t_thr_integ,
-		(ParamFloat<px4::params::FW_T_I_GAIN_PIT>) _param_fw_t_I_gain_pit,
-		(ParamFloat<px4::params::FW_T_PTCH_DAMP>) _param_fw_t_ptch_damp,
-		(ParamFloat<px4::params::FW_T_RLL2THR>) _param_fw_t_rll2thr,
-		(ParamFloat<px4::params::FW_T_SINK_MAX>) _param_fw_t_sink_max,
-		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_fw_t_spdweight,
-		(ParamFloat<px4::params::FW_T_TAS_TC>) _param_fw_t_tas_error_tc,
-		(ParamFloat<px4::params::FW_T_THR_DAMPING>) _param_fw_t_thr_damping,
-		(ParamFloat<px4::params::FW_T_VERT_ACC>) _param_fw_t_vert_acc,
-		(ParamFloat<px4::params::FW_T_STE_R_TC>) _param_ste_rate_time_const,
-		(ParamFloat<px4::params::FW_T_SEB_R_FF>) _param_seb_rate_ff,
 		(ParamFloat<px4::params::FW_T_CLMB_R_SP>) _param_climbrate_target,
 		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_sinkrate_target,
-		(ParamFloat<px4::params::FW_T_SPD_STD>) _param_speed_standard_dev,
-		(ParamFloat<px4::params::FW_T_SPD_DEV_STD>) _param_speed_rate_standard_dev,
-		(ParamFloat<px4::params::FW_T_SPD_PRC_STD>) _param_process_noise_standard_dev,
+		(ParamFloat<px4::params::FW_T_SINK_MAX>) _param_fw_t_sink_max,
+		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_fw_t_spdweight,
 
 		(ParamFloat<px4::params::FW_THR_IDLE>) _param_fw_thr_idle,
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
 		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,
-		(ParamFloat<px4::params::FW_THR_SLEW_MAX>) _param_fw_thr_slew_max,
 
 		(ParamFloat<px4::params::FW_FLAPS_LND_SCL>) _param_fw_flaps_lnd_scl,
 		(ParamFloat<px4::params::FW_FLAPS_TO_SCL>) _param_fw_flaps_to_scl,
@@ -1024,8 +904,6 @@ private:
 
 		// external parameters
 		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
-
-		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
 
 		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,
 
@@ -1054,6 +932,11 @@ private:
 		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on
 	)
 
+	void control_idle();
+
+	void setDefaultLongControlLimits(longitudinal_control_limits_s &longitudinal_control_limits) const;
+
+	float rollAngleToLateralAccel(float roll_body) const;
 };
 
 #endif // FIXEDWINGPOSITIONCONTROL_HPP_
