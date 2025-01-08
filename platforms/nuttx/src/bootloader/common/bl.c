@@ -130,6 +130,10 @@
 #define PROTO_DEVICE_BOARD_REV      3 // board revision
 #define PROTO_DEVICE_FW_SIZE        4 // size of flashable area
 #define PROTO_DEVICE_VEC_AREA       5 // contents of reserved vectors 7-10
+#define PROTO_DEVICE_RESERVED_6     6 // Reserved
+#define PROTO_DEVICE_RESERVED_7     7 // bootloader software info bits
+#define PROTO_DEVICE_RESERVED_8     8 // bootloader software build
+#define PROTO_DEVICE_RESERVED_9     9 // application software build
 
 // State
 #define STATE_PROTO_GET_SYNC        0x1     // Have Seen NOP for re-establishing sync
@@ -690,6 +694,9 @@ bootloader(unsigned timeout)
 		// BOARD_REV reply: <board rev:4>/INSYNC/EOC
 		// FW_SIZE reply: <firmware size:4>/INSYNC/EOC
 		// VEC_AREA reply <vectors 7-10:16>/INSYNC/EOC
+		// Reserved (BL_OPTS) reply:   <bootloader options:4>/INSYNC/EOC
+        	// Reserved (BL_SOFTWARE) reply: <bootloader software:8>/INSYNC/EOC
+        	// Reserved (APP_SOFTWARE) reply: <application software:8>/INSYNC/EOC
 		// bad arg reply: INSYNC/INVALID
 		//
 		case PROTO_GET_DEVICE:
