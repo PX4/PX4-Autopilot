@@ -29,7 +29,7 @@ flight_mode_manager start
 mc_pos_control start vtol
 mc_att_control start vtol
 mc_rate_control start vtol
-fw_pos_control start vtol
+fw_pos_control start
 fw_att_control start vtol
 airspeed_selector start
 
