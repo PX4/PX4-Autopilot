@@ -122,6 +122,8 @@ void LoadMon::Run()
 
 void LoadMon::cpuload()
 {
+	cpuload_s cpuload{};
+
 #if defined(__PX4_LINUX)
 	tms spent_time_stamp_struct;
 	clock_t total_time_stamp = times(&spent_time_stamp_struct);
@@ -137,33 +139,11 @@ void LoadMon::cpuload()
 	// compute system load
 	const float interval = total_time_stamp - _last_total_time_stamp;
 	const float interval_spent_time = spent_time_stamp - _last_spent_time_stamp;
-#elif defined(__PX4_NUTTX)
 
-	if (_last_idle_time == 0) {
-		irqstate_t irqstate = px4_enter_critical_section();
-		// Just get the time in the first iteration */
-		_last_idle_time = system_load.tasks[0].total_runtime;
-		_last_idle_time_sample = system_load.tasks[0].curr_start_time;
-		px4_leave_critical_section(irqstate);
-		return;
-	}
+	// store for next iteration
+	_last_total_time_stamp = total_time_stamp;
+	_last_spent_time_stamp = spent_time_stamp;
 
-	irqstate_t irqstate = px4_enter_critical_section();
-	const hrt_abstime now = system_load.tasks[0].curr_start_time;
-	const hrt_abstime total_runtime = system_load.tasks[0].total_runtime;
-	px4_leave_critical_section(irqstate);
-
-	if ((now == _last_idle_time_sample) || (total_runtime == _last_idle_time)) {
-		return;
-	}
-
-	// compute system load
-	const float interval = now - _last_idle_time_sample;
-	const float interval_idletime = total_runtime - _last_idle_time;
-#endif
-
-	cpuload_s cpuload{};
-#if defined(__PX4_LINUX)
 	/* following calculation is based on free(1)
 	 * https://gitlab.com/procps-ng/procps/-/blob/master/proc/sysinfo.c */
 	char line[256];
@@ -225,23 +205,62 @@ void LoadMon::cpuload()
 
 	cpuload.load = interval_spent_time / interval;
 #elif defined(__PX4_NUTTX)
+	hrt_abstime run_times[CONFIG_SMP_NCPUS];
+	hrt_abstime now, slice;
+
+	// Get the current slice
+	irqstate_t flags = px4_enter_critical_section();
+
+	// Gather the current period from all idle tasks
+	for (int i = 0; i < CONFIG_SMP_NCPUS; i++) {
+		run_times[i] = system_load.tasks[i].total_runtime;
+	}
+
+	// Synchronize sampling to CPU0 idle task
+	now = system_load.tasks[0].curr_start_time;
+
+	px4_leave_critical_section(flags);
+
+	// Time slice length
+	slice = now - _last_idle_time_sample;
+	_last_idle_time_sample = now;
+
+	if (slice == 0) {
+		return;
+	}
+
+	// compute system load
+	float idle_load = 0.f;
+
+	for (int i = 0; i < CONFIG_SMP_NCPUS; i++) {
+		const hrt_abstime run_time = run_times[i] - _last_idle_time[i];
+		float load;
+
+		if (run_time == 0) {
+			load = 1.f; // CPU was 100% idle during last period
+
+		} else {
+			load = run_time / (float)slice;
+		}
+
+		if (load > 1.f) {
+			load = 1.f;
+		}
+
+		idle_load += load;
+
+		_last_idle_time[i] = run_times[i];
+	}
+
 	// get ram usage
 	struct mallinfo mem = mallinfo();
 	cpuload.ram_usage = (float)mem.uordblks / mem.arena;
-	cpuload.load = 1.f - interval_idletime / interval;
+	cpuload.load = 1.f - idle_load / CONFIG_SMP_NCPUS;
 #endif
+
 	cpuload.timestamp = hrt_absolute_time();
 
 	_cpuload_pub.publish(cpuload);
-
-	// store for next iteration
-#if defined(__PX4_LINUX)
-	_last_total_time_stamp = total_time_stamp;
-	_last_spent_time_stamp = spent_time_stamp;
-#elif defined(__PX4_NUTTX)
-	_last_idle_time = total_runtime;
-	_last_idle_time_sample = now;
-#endif
 }
 
 #if defined(__PX4_NUTTX)

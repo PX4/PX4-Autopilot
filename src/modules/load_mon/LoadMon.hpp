@@ -98,7 +98,7 @@ private:
 	clock_t _last_total_time_stamp{};
 	clock_t _last_spent_time_stamp{};
 #elif defined(__PX4_NUTTX)
-	hrt_abstime _last_idle_time {0};
+	hrt_abstime _last_idle_time[CONFIG_SMP_NCPUS] {0};
 	hrt_abstime _last_idle_time_sample{0};
 #endif
 
