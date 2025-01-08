@@ -71,9 +71,13 @@ bool FixedwingLandDetector::_get_landed_state()
 
 	} else if (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 1_s) {
 
-		// Horizontal velocity complimentary filter.
-		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicle_local_position.vx * _vehicle_local_position.vx +
-				_vehicle_local_position.vy * _vehicle_local_position.vy);
+		float val = 0.0f;
+
+		if (_vehicle_local_position.v_xy_valid) {
+			// Horizontal velocity complimentary filter.
+			val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicle_local_position.vx * _vehicle_local_position.vx +
+					_vehicle_local_position.vy * _vehicle_local_position.vy);
+		}
 
 		if (PX4_ISFINITE(val)) {
 			_velocity_xy_filtered = val;
