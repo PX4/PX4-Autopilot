@@ -303,7 +303,7 @@ void Sih::read_motors(const float dt)
 	if (_actuator_out_sub.update(&actuators_out)) {
 		_last_actuator_output_time = actuators_out.timestamp;
 
-		for (int i = 0; i < NB_MOTORS; i++) { // saturate the motor signals
+		for (int i = 0; i < NUM_ACTUATORS_MAX; i++) { // saturate the motor signals
 			if ((_vehicle == VehicleType::FW && i < 3) || (_vehicle == VehicleType::TS && i > 3)) {
 				_u[i] = actuators_out.output[i];
 
@@ -352,7 +352,7 @@ void Sih::generate_force_and_torques()
 	}
 }
 
-void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust)
+void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float throttle_cmd)
 {
 	const Vector3f v_B = _q_E.rotateVectorInverse(_v_E);
 	const float &alt = _lla.altitude();
@@ -360,8 +360,8 @@ void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, 
 	_wing_l.update_aero(v_B, _w_B, alt, roll_cmd * FLAP_MAX);
 	_wing_r.update_aero(v_B, _w_B, alt, -roll_cmd * FLAP_MAX);
 
-	_tailplane.update_aero(v_B, _w_B, alt, pitch_cmd * FLAP_MAX, _T_MAX * thrust);
-	_fin.update_aero(v_B, _w_B, alt, yaw_cmd * FLAP_MAX, _T_MAX * thrust);
+	_tailplane.update_aero(v_B, _w_B, alt, pitch_cmd * FLAP_MAX, _T_MAX * throttle_cmd);
+	_fin.update_aero(v_B, _w_B, alt, yaw_cmd * FLAP_MAX, _T_MAX * throttle_cmd);
 	_fuselage.update_aero(v_B, _w_B, alt);
 
 	// sum of aerodynamic forces
