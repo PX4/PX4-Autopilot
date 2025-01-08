@@ -39,7 +39,6 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC gz-transport12::gz-transport12
     PUBLIC ${OpenCV_LIBS}
     PUBLIC ${OpticalFlow_LIBS}
-    # PUBLIC ${PROTOBUF_LIBRARIES}
 )
 
 target_include_directories(${PROJECT_NAME}
