@@ -118,7 +118,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		build-essential \
 		flex \
 		g++-multilib \
-		gcc-arm-none-eabi \
+		gcc-arm-none-eabi=15:13.2.rel1-2 \
 		gcc-multilib \
 		gdb-multiarch \
 		genromfs \
