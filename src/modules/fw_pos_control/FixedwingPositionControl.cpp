@@ -764,8 +764,8 @@ const
 	longitudinal_control_limits.pitch_max = radians(_param_fw_p_lim_max.get());
 	longitudinal_control_limits.throttle_min = _param_fw_thr_min.get();
 	longitudinal_control_limits.throttle_max = _param_fw_thr_max.get();
-	longitudinal_control_limits.climb_rate_max = _param_climbrate_target.get();
-	longitudinal_control_limits.sink_rate_max = _param_sinkrate_target.get();
+	longitudinal_control_limits.climb_rate_target = _param_climbrate_target.get();
+	longitudinal_control_limits.sink_rate_target = _param_sinkrate_target.get();
 	longitudinal_control_limits.disable_underspeed_protection = false;
 	longitudinal_control_limits.enforce_low_height_condition = false;
 	longitudinal_control_limits.speed_weight = _param_fw_t_spdweight.get();
@@ -1406,7 +1406,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		longitudinal_control_limits.pitch_min = pitch_min;
 		longitudinal_control_limits.pitch_max = pitch_max;
-		longitudinal_control_limits.climb_rate_max = _performance_model.getMaximumClimbRate(_air_density);
+		longitudinal_control_limits.climb_rate_target = _performance_model.getMaximumClimbRate(_air_density);
 		longitudinal_control_limits.disable_underspeed_protection = true;
 
 		_flaps_setpoint = _param_fw_flaps_to_scl.get();
@@ -1494,7 +1494,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 			longitudinal_control_limits.pitch_min = radians(_takeoff_pitch_min.get());
 			longitudinal_control_limits.throttle_max = max_takeoff_throttle;
-			longitudinal_control_limits.climb_rate_max = _performance_model.getMaximumClimbRate(_air_density);
+			longitudinal_control_limits.climb_rate_target = _performance_model.getMaximumClimbRate(_air_density);
 			longitudinal_control_limits.disable_underspeed_protection = true;
 
 			//float yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
@@ -1745,7 +1745,7 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 		longitudinal_control_limits.throttle_min = _param_fw_thr_idle.get();
 		longitudinal_control_limits.throttle_max = _landed ? _param_fw_thr_idle.get() : _param_fw_thr_max.get();
-		longitudinal_control_limits.sink_rate_max = desired_max_sinkrate;
+		longitudinal_control_limits.sink_rate_target = desired_max_sinkrate;
 
 		// enable direct yaw control using rudder/wheel
 		_att_sp.fw_control_yaw_wheel = false;
@@ -1938,7 +1938,7 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 
 		longitudinal_control_limits.throttle_min = _param_fw_thr_idle.get();
 		longitudinal_control_limits.throttle_max = _landed ? _param_fw_thr_idle.get() : _param_fw_thr_max.get();
-		longitudinal_control_limits.sink_rate_max = desired_max_sinkrate;
+		longitudinal_control_limits.sink_rate_target = desired_max_sinkrate;
 		_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
 	}
 

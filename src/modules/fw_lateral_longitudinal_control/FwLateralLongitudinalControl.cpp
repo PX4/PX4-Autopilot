@@ -192,8 +192,8 @@ void FwLateralLongitudinalControl::Run()
 						   _long_control_limits_sub.get().pitch_max,
 						   _long_control_limits_sub.get().throttle_min,
 						   _long_control_limits_sub.get().throttle_max,
-						   _long_control_limits_sub.get().sink_rate_max,
-						   _long_control_limits_sub.get().climb_rate_max,
+						   _long_control_limits_sub.get().sink_rate_target,
+						   _long_control_limits_sub.get().climb_rate_target,
 						   _long_control_limits_sub.get().disable_underspeed_protection,
 						   longitudinal_sp.height_rate_setpoint
 						  );
