@@ -566,7 +566,7 @@ parameters:
           default: 0.0
         CA_MAX_SVO_THROW:
           description:
-            short:  Defines max/min throw of servo for linearization. Set to zero to disable.
+            short:  Defines max/min throw of servo for linearization
             long: |
               Defines min/max throw of servo. Used to linearize mechanical output of servo attached to a 4-servo swashplate. Setting to zero disables feature.
           type: float
