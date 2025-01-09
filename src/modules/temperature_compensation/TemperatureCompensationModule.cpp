@@ -193,6 +193,8 @@ void TemperatureCompensationModule::Run()
 {
 	perf_begin(_loop_perf);
 
+	ScheduleDelayed(100);
+
 	// Check if user has requested to run the calibration routine
 	int vehicle_command_updates = 0;
 
@@ -297,7 +299,8 @@ int TemperatureCompensationModule::task_spawn(int argc, char *argv[])
 
 bool TemperatureCompensationModule::init()
 {
-	ScheduleOnInterval(1_s);
+	parameters_update();
+	ScheduleNow();
 	return true;
 }
 

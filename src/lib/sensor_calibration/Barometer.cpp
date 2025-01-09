@@ -184,7 +184,7 @@ void Barometer::Reset()
 {
 	_offset = 0;
 
-	_thermal_offset = 0;
+	// _thermal_offset = 0;
 
 	_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
 
