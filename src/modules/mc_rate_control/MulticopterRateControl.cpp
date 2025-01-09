@@ -96,7 +96,7 @@ MulticopterRateControl::parameters_updated()
 	_acro_rate_max = Vector3f(radians(_param_mc_acro_r_max.get()), radians(_param_mc_acro_p_max.get()),
 				  radians(_param_mc_acro_y_max.get()));
 
-	_output_lpf_yaw.setCutoffFreq(_param_mc_yawrate_fc.get());
+	_output_lpf_yaw.setCutoffFreq(_param_mc_yaw_tq_cutoff.get());
 }
 
 void
