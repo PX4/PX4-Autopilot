@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,19 +31,17 @@
  *
  ****************************************************************************/
 
-#include "ActuatorEffectivenessFixedWing.hpp"
-#include <ControlAllocation/ControlAllocation.hpp>
+#include "ActuatorEffectivenessStandardVTOL.hpp"
 
 using namespace matrix;
 
-ActuatorEffectivenessFixedWing::ActuatorEffectivenessFixedWing(ModuleParams *parent)
-	: ModuleParams(parent), _rotors(this, ActuatorEffectivenessRotors::AxisConfiguration::FixedForward),
-	  _control_surfaces(this)
+ActuatorEffectivenessStandardVTOL::ActuatorEffectivenessStandardVTOL(ModuleParams *parent)
+	: ModuleParams(parent), _rotors(this), _control_surfaces(this)
 {
 }
 
 bool
-ActuatorEffectivenessFixedWing::getEffectivenessMatrix(Configuration &configuration,
+ActuatorEffectivenessStandardVTOL::getEffectivenessMatrix(Configuration &configuration,
 		EffectivenessUpdateReason external_update)
 {
 	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
@@ -51,38 +49,67 @@ ActuatorEffectivenessFixedWing::getEffectivenessMatrix(Configuration &configurat
 	}
 
 	// Motors
-	_rotors.enablePropellerTorque(false);
-	const bool rotors_added_successfully = _rotors.addActuators(configuration);
+	configuration.selected_matrix = 0;
+	_rotors.enablePropellerTorqueNonUpwards(false);
+	const bool mc_rotors_added_successfully = _rotors.addActuators(configuration);
+	_upwards_motors_mask = _rotors.getUpwardsMotors();
 	_forwards_motors_mask = _rotors.getForwardsMotors();
 
 	// Control Surfaces
-	_first_control_surface_idx = configuration.num_actuators_matrix[0];
+	configuration.selected_matrix = 1;
+	_first_control_surface_idx = configuration.num_actuators_matrix[configuration.selected_matrix];
 	const bool surfaces_added_successfully = _control_surfaces.addActuators(configuration);
 
-	return (rotors_added_successfully && surfaces_added_successfully);
+	return (mc_rotors_added_successfully && surfaces_added_successfully);
 }
 
-void ActuatorEffectivenessFixedWing::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
+void ActuatorEffectivenessStandardVTOL::allocateAuxilaryControls(const float dt, int matrix_index,
+		ActuatorVector &actuator_sp)
+{
+	if (matrix_index == 1) {
+		// apply flaps
+		normalized_unsigned_setpoint_s flaps_setpoint;
+
+		if (_flaps_setpoint_sub.copy(&flaps_setpoint)) {
+			_control_surfaces.applyFlaps(flaps_setpoint.normalized_setpoint, _first_control_surface_idx, dt, actuator_sp);
+		}
+
+		// apply spoilers
+		normalized_unsigned_setpoint_s spoilers_setpoint;
+
+		if (_spoilers_setpoint_sub.copy(&spoilers_setpoint)) {
+			_control_surfaces.applySpoilers(spoilers_setpoint.normalized_setpoint, _first_control_surface_idx, dt, actuator_sp);
+		}
+	}
+}
+
+void ActuatorEffectivenessStandardVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
 		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
 		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
 {
-	stopMaskedMotorsWithZeroThrust(_forwards_motors_mask, actuator_sp);
+	if (matrix_index == 0) {
+		stopMaskedMotorsWithZeroThrust(_forwards_motors_mask, actuator_sp);
+	}
 }
 
-void ActuatorEffectivenessFixedWing::allocateAuxilaryControls(const float dt, int matrix_index,
-		ActuatorVector &actuator_sp)
+void ActuatorEffectivenessStandardVTOL::setFlightPhase(const FlightPhase &flight_phase)
 {
-	// apply flaps
-	normalized_unsigned_setpoint_s flaps_setpoint;
-
-	if (_flaps_setpoint_sub.copy(&flaps_setpoint)) {
-		_control_surfaces.applyFlaps(flaps_setpoint.normalized_setpoint, _first_control_surface_idx, dt, actuator_sp);
+	if (_flight_phase == flight_phase) {
+		return;
 	}
 
-	// apply spoilers
-	normalized_unsigned_setpoint_s spoilers_setpoint;
+	ActuatorEffectiveness::setFlightPhase(flight_phase);
 
-	if (_spoilers_setpoint_sub.copy(&spoilers_setpoint)) {
-		_control_surfaces.applySpoilers(spoilers_setpoint.normalized_setpoint, _first_control_surface_idx, dt, actuator_sp);
+	// update stopped motors
+	switch (flight_phase) {
+	case FlightPhase::FORWARD_FLIGHT:
+		_stopped_motors_mask |= _upwards_motors_mask;
+		break;
+
+	case FlightPhase::HOVER_FLIGHT:
+	case FlightPhase::TRANSITION_FF_TO_HF:
+	case FlightPhase::TRANSITION_HF_TO_FF:
+		_stopped_motors_mask &= ~_upwards_motors_mask;
+		break;
 	}
 }
