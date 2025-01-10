@@ -8,7 +8,8 @@
 #
 # Start Control Allocator
 #
-control_allocator start
+# control_allocator start
+metric_allocator start
 
 #
 # Start Multicopter Rate Controller.

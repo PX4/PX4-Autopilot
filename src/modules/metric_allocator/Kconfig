@@ -1,0 +1,12 @@
+menuconfig MODULES_METRIC_ALLOCATOR
+	bool "metric_allocator"
+	default n
+	---help---
+		Enable support for metric_allocator
+
+menuconfig USER_METRIC_ALLOCATOR
+	bool "metric_allocator running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_METRIC_ALLOCATOR
+	---help---
+		Put metric_allocator in userspace memory
