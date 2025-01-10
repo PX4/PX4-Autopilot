@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,36 +33,35 @@
 
 #pragma once
 
-#include "ActuatorEffectiveness.hpp"
+#include "actuator_effectiveness/ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
-#include "ActuatorEffectivenessControlSurfaces.hpp"
 
-#include <uORB/topics/normalized_unsigned_setpoint.h>
-
-class ActuatorEffectivenessFixedWing : public ModuleParams, public ActuatorEffectiveness
+class ActuatorEffectivenessUUV : public ModuleParams, public ActuatorEffectiveness
 {
 public:
-	ActuatorEffectivenessFixedWing(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessFixedWing() = default;
+	ActuatorEffectivenessUUV(ModuleParams *parent);
+	virtual ~ActuatorEffectivenessUUV() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
-	const char *name() const override { return "Fixed Wing"; }
+	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
+	{
+		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
+	}
 
-	void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) override;
+	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
+	{
+		normalize[0] = true;
+	}
 
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
 			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
 
-private:
+	const char *name() const override { return "UUV"; }
+
+protected:
 	ActuatorEffectivenessRotors _rotors;
-	ActuatorEffectivenessControlSurfaces _control_surfaces;
 
-	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
-	uORB::Subscription _spoilers_setpoint_sub{ORB_ID(spoilers_setpoint)};
-
-	int _first_control_surface_idx{0}; ///< applies to matrix 1
-
-	uint32_t _forwards_motors_mask{};
+	uint32_t _motors_mask{};
 };

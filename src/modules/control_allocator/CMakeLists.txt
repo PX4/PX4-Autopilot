@@ -32,6 +32,7 @@
 ############################################################################
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+add_subdirectory(VehicleActuatorEffectiveness)
 
 px4_add_module(
 	MODULE modules__control_allocator
@@ -48,6 +49,7 @@ px4_add_module(
 	DEPENDS
 		mathlib
 		ActuatorEffectiveness
+		VehicleActuatorEffectiveness
 		ControlAllocation
 		px4_work_queue
 		SlewRate

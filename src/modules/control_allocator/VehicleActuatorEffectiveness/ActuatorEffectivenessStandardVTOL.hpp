@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include "ActuatorEffectiveness.hpp"
+#include "actuator_effectiveness/ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
 #include "ActuatorEffectivenessControlSurfaces.hpp"
 
