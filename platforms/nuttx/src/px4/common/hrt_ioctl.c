@@ -184,6 +184,7 @@ void hrt_usr_call(void *arg)
 
 	// Make sure the event is not already in flight
 	if (!entry_inlist(&callout_inflight, (sq_entry_t *)e)) {
+		sq_rem(&e->list_item, &callout_queue);
 		sq_addfirst(&e->list_item, &callout_inflight);
 		px4_sem_post(e->entry.callout_sem);
 	}
@@ -241,9 +242,10 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 				// If the period is 0, the callout is no longer queued by hrt driver
 				// move it back to freelist
 				if (e->entry.period == 0) {
-					sq_rem((sq_entry_t *)e, &callout_queue);
 					sq_addfirst((sq_entry_t *)e, &callout_freelist);
 
+				} else {
+					sq_addfirst((sq_entry_t *)e, &callout_queue);
 				}
 
 			} else {
@@ -293,8 +295,18 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 
 			if (e) {
 				hrt_cancel(&e->entry);
+
+			} else {
+				/* If the HRT already triggered, it is in inflight queue */
+
+				e = pop_entry(&callout_inflight, h->handle, h->entry);
+			}
+
+			if (e) {
 				sq_addfirst((sq_entry_t *)e, &callout_freelist);
 
+			} else {
+				PX4_ERR("HRT_CANCEL called with invalid entry\n");
 			}
 
 			spin_unlock_irqrestore_wo_note(&g_hrt_ioctl_lock, flags);
@@ -336,18 +348,35 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 
 	case HRT_UNREGISTER: {
 			px4_sem_t *callback_sem = *(px4_sem_t **)arg;
+			sq_entry_t *queued;
+			void *deleted = NULL;
 			struct usr_hrt_call *e;
 			irqstate_t flags;
 
 			flags = spin_lock_irqsave_wo_note(&g_hrt_ioctl_lock);
 
-			while ((e = (void *)sq_remfirst(&callout_queue))) {
+			sq_for_every(&callout_queue, queued) {
+				if (deleted) {
+					kmm_free(deleted);
+					deleted = NULL;
+				}
+
+				e = (struct usr_hrt_call *)queued;
+
 				if (callback_sem == e->entry.callout_sem) {
+					sq_rem(&e->list_item, &callout_queue);
 					hrt_cancel(&e->entry);
+
 					/* Remove potential inflight entry as well */
 					sq_rem(&e->list_item, &callout_inflight);
-					kmm_free(e);
+
+					/* Delete on the next round */
+					deleted = queued;
 				}
+			}
+
+			if (deleted) {
+				kmm_free(deleted);
 			}
 
 			px4_sem_destroy(callback_sem);
