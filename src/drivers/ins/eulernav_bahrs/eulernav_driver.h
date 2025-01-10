@@ -5,9 +5,9 @@
 #include <px4_platform_common/Serial.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/sensor_selection.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+#include <uORB/topics/sensor_baro.h>
 #include <Ringbuffer.hpp>
 #include <containers/Array.hpp>
 #include "CSerialProtocol.h"
@@ -108,6 +108,14 @@ private:
 	/// @param messsage_id Message ID
 	void decodeMessageAndPublishData(const uint8_t* data, CSerialProtocol::EMessageIds messsage_id);
 
+	/// @brief Decode and publish IMU data.
+	/// @param data Inertial message data bytes
+	void handleInertialDataMessage(const uint8_t* data);
+
+	/// @brief Decode and publish vehicle attitude and pressure height.
+	/// @param data Navigation message data bytes
+	void handleNavigationDataMessage(const uint8_t* data);
+
 	/// @brief Get message length by message ID
 	/// @param messsage_id Query message ID
 	/// @return Message length, or -1 if the message ID is unknown or not supported.
@@ -120,7 +128,7 @@ private:
 	static uint32_t crc32(const uint32_t* buf, size_t len);
 
 	using VehicleAttitude = px4::msg::VehicleAttitude;
-	using SensorSelection = px4::msg::SensorSelection;
+	using PressureData = px4::msg::SensorBaro;
 
 	device::Serial _serial_port; ///< Serial port object to read data from
 	Ringbuffer _data_buffer; ///< A buffer for RX data stream
@@ -129,9 +137,9 @@ private:
 	NextMessageInfo _next_message_info{}; ///< Attributes of the next message detected in the data buffer
 	Statistics _statistics{}; ///< Driver performance indicators
 	bool _is_initialized{false}; ///< Initialization flag
-	PX4Accelerometer _px4_accel;
-	PX4Gyroscope _px4_gyro;
-	uORB::PublicationMulti<VehicleAttitude> _attitude_pub;
-	uORB::Publication<SensorSelection> _sensor_selection_pub;
+	PX4Accelerometer _px4_accel; ///< Accelerometer sensor object for publishing acceleration data
+	PX4Gyroscope _px4_gyro; ///< Gyroscope sensor object for publishing angular rate data
+	uORB::PublicationMulti<VehicleAttitude> _attitude_pub; ///< Vehicle attitude publisher
+	uORB::PublicationMulti<PressureData> _barometer_pub; ///< Pressure data publisher
 };
 
