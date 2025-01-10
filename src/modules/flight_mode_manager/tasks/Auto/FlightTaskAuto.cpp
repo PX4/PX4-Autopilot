@@ -159,11 +159,6 @@ bool FlightTaskAuto::update()
 	_checkEmergencyBraking();
 	Vector3f waypoints[] = {_prev_wp, _position_setpoint, _next_wp};
 
-	if (isTargetModified()) {
-		// In case object avoidance has injected a new setpoint, we take this as the next waypoints
-		waypoints[2] = _position_setpoint;
-	}
-
 	const bool should_wait_for_yaw_align = _param_mpc_yaw_mode.get() == int32_t(yaw_mode::towards_waypoint_yaw_first)
 					       && !_yaw_sp_aligned;
 	const bool force_zero_velocity_setpoint = should_wait_for_yaw_align || _is_emergency_braking_active;
@@ -762,15 +757,6 @@ bool FlightTaskAuto::_generateHeadingAlongTraj()
 	}
 
 	return res;
-}
-
-bool FlightTaskAuto::isTargetModified() const
-{
-	const bool xy_modified = (_target - _position_setpoint).xy().longerThan(FLT_EPSILON);
-	const bool z_valid = PX4_ISFINITE(_position_setpoint(2));
-	const bool z_modified =  z_valid && std::fabs((_target - _position_setpoint)(2)) > FLT_EPSILON;
-
-	return xy_modified || z_modified;
 }
 
 void FlightTaskAuto::_updateTrajConstraints()
