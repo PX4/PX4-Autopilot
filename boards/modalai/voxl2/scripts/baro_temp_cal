@@ -1,0 +1,325 @@
+#!/usr/bin/python3
+
+import math
+import random
+import multiprocessing
+import subprocess
+import argparse
+import signal
+import os
+import sys
+import time
+import csv
+import numpy as np
+
+keep_going = 1
+
+def handler(signum, frame):
+    global keep_going
+    keep_going = 0
+    print('\nCtrl+C was pressed. Exiting gracefully...')
+
+def hogcpu():
+    while True:
+        math.sqrt(random.randint(1, 10))
+
+def get_px4_baro():
+    cmd = 'px4-listener sensor_baro'
+    #cmd = 'px4-listener vehicle_air_data'
+
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    timestamp   = None
+    pressure    = None
+    temperature = None
+    device_id   = None
+
+    for line in p.stdout.readlines():
+        l=str(line)
+        #print(l)
+        if 'timestamp' in l:
+            ll = l.split(':')[1].split()[0]
+            timestamp = float(ll)
+        if 'pressure' in l:
+            ll = l.split(':')[-1][:-3]
+            pressure = float(ll)
+        if 'temp' in l:
+            ll = l.split(':')[-1][:-3]
+            temperature = float(ll)
+        if 'device_id' in l:
+            ll = l.split(':')[1].split()[0]
+            device_id = int(ll)
+
+        retval = p.wait()
+
+    return (timestamp,device_id,pressure,temperature)
+
+if __name__ == '__main__':
+
+    print('Barometer temperature calibration process starting')
+
+    parser = argparse.ArgumentParser(description='Barometer Test Script')
+    parser.add_argument('-n','--num-samples',   type=int, required=False, default=1250)
+    parser.add_argument('-p','--path',   type=str, required=False, default='.')
+    parser.add_argument('-c','--num-cpus',   type=int, required=False, default=4)
+    parser.add_argument('-i','--num-iter',   type=int, required=False, default=1)
+    parser.add_argument('-s','--sleep-interval',   type=int, required=False, default=300)
+    parser.add_argument('-t','--enable-plots',   type=int, required=False, default=0)
+    args = parser.parse_args()
+
+    log_path = args.path
+    if log_path != '.':
+            try:
+                os.mkdir(log_path)
+            except Exception as e:
+                print(f'Error: Could not create log directory: {e}')
+                sys.exit(1)
+
+    max_sample_count = args.num_samples
+    num_iterations = args.num_iter
+    num_cpu_stress = args.num_cpus
+    sleep_between_iterations = args.sleep_interval #5*60 #seconds
+    enable_plots = args.enable_plots == 1
+
+    signal.signal(signal.SIGINT, handler)
+
+    for i in range(num_iterations):
+        if keep_going==0:
+            print('Exiting')
+            sys.exit(0)
+        print(f'Starting iteration #{i}')
+
+        tlast = 0
+        sample_count = 0
+        time_start = time.time()
+        ts = []
+        ps = []
+        temps = []
+        procs = []
+
+        fname = log_path + '/baro_log_%d_%d.txt' % (i,time_start)
+        f     = open(fname, 'w')
+
+        # Create and start CPU hog processes
+        if num_cpu_stress:
+            print('Starting stress tasks')
+            for j in range(num_cpu_stress):
+                proc = multiprocessing.Process(target=hogcpu)
+                procs.append(proc)
+                proc.start()
+
+        print('Starting data capture')
+
+        # Start the data collection loop
+        while (sample_count < max_sample_count and keep_going==1):
+            (timestamp, device_id, pressure, temperature) = get_px4_baro()
+
+            #make sure we got new data
+            if timestamp != tlast and timestamp is not None:
+                if device_id == 12018473:  #icp10100
+                    sample_count += 1
+                    ts.append(timestamp)
+                    ps.append(pressure)
+                    temps.append(temperature)
+                    print(f'({sample_count})[{timestamp}] ID: {device_id} P: {pressure}, T: {temperature}')
+                    f.write(f'{sample_count}, {int(timestamp)}, {device_id}, {pressure}, {temperature}\n')
+                else:
+                    print(f'Incorrect baro device id: {device_id}')
+                    break
+
+            tlast=timestamp
+            time.sleep(0.01)
+
+        print('Finished collecting data')
+
+        print(f'Closing log file {fname}..')
+        f.close()
+
+        # Stop all CPU hog processes
+        if len(procs):
+            print('Stopping stress tasks')
+            for proc in procs:
+                proc.terminate()
+                proc.join()
+
+        if enable_plots:
+            print('Generating plots..')
+                
+            try:
+                import plotly.graph_objects as go
+                from plotly.subplots import make_subplots
+            except:
+                print('WARNING: In order to plot the results, install the Python "plotly" module: pip3 install plotly --upgrade')
+                sys.exit(0)
+
+            fig = make_subplots(rows=4, cols=1, start_cell="top-left")
+
+            ts_plot  = np.array(ts)
+            ts_plot -= ts_plot[0]
+            ts_plot *= 0.000001 #convert from us to s
+
+            # calculate approximate height from start
+            dh       = np.array(ps)
+            dh      -= dh[0] # subtract the first value
+            dh      /= 12.0  # about 12 Pascals per meter at standard pressure and temperature
+            dh      *= -1.0  # positive pressure increase means lower height
+
+            t_plot = np.array(temps)
+            p_plot = np.array(ps)
+
+            fig.add_trace(go.Scatter(x=ts_plot, y=np.array(ps), name='Pressure (Pa)'), row=1, col=1)
+            fig.add_trace(go.Scatter(x=ts_plot, y=t_plot, name='Temperature (deg C)'), row=2, col=1)
+            fig.add_trace(go.Scatter(x=ts_plot, y=dh, name='Approx Height Change (m)'), row=3, col=1)
+            fig.add_trace(go.Scatter(x=t_plot, y=p_plot, name='Pressure (Pa) vs Temperature'), row=4, col=1)
+
+            fig.update_layout(title_text='Barometer Test Results')
+            fig.update_xaxes(title_text='Time (s)',row=1, col=1)
+            fig.update_yaxes(title_text='Pressure (Pa)',row=1, col=1)
+            fig.update_xaxes(title_text='Time (s)',row=2, col=1)
+            fig.update_yaxes(title_text='Temperature (deg C)',row=2, col=1)
+            fig.update_xaxes(title_text='Time (s)',row=3, col=1)
+            fig.update_yaxes(title_text='Approx Height Change (m)',row=3, col=1)
+            fig.update_xaxes(title_text='Temperature (deg C)',row=4, col=1)
+            fig.update_yaxes(title_text='Pressure (Pa)',row=4, col=1)
+
+            #fig.update_xaxes(matches='x')
+
+            fig.write_html(log_path + '/barometer_test_results_%d_%d.html' % (i,time_start),include_plotlyjs='cdn')
+            #fig.show()  #the figure will not show on VOXL because there is no display / browser
+
+        # Figure out PX4 parameters only for first iteration
+        enable_reference = False
+        poly_fit_order = 1
+        baro_sensor_id = int(12018473)
+        if i == 0:
+            with open(fname, 'r') as fp:
+                nlines = len(fp.readlines())
+            #print(f'File has {nlines} lines')
+
+            data = np.zeros((4,nlines),dtype=float)
+            data2 = np.zeros((4,nlines),dtype=float)
+
+            ndata = 0
+            ndata2 = 0
+            with open(fname) as csvfile:
+                reader = csv.reader(csvfile, delimiter=',')
+                for row in reader:
+                    #print(', '.join(row))
+                    vals = [float(v.strip()) for v in row]
+                    nvals = np.asarray(vals)
+                    nvals = nvals[[0,1,3,4]]
+                    #print(nvals)
+
+                    if vals[2] == baro_sensor_id:
+                        data[:,ndata] = nvals
+                        ndata += 1
+                    else: # secondary barometer
+                        data2[:,ndata2] = nvals
+                        ndata2 += 1
+                        #enable_reference = True
+
+            data   = data[:,0:ndata]
+
+            ts_plot  = data[1,:]
+            t_off    = ts_plot[0]
+
+            ts_plot -= t_off
+            ts_plot *= 0.000001 #convert from us to s
+            t_plot   = data[3,:]
+            p_plot   = data[2,:]
+            p_comp   = p_plot.copy() #-p_plot[i_ref]
+            
+            #print(i_ref)
+
+            if enable_reference:
+                data2 = data2[:,0:ndata2]
+
+                ts_plot2 = data2[1,:]
+                ts_plot2 -= t_off  #same offset as main baro
+                ts_plot2 *= 0.000001 #convert from us to s
+                t_plot2   = data2[3,:]
+                p_plot2  = data2[2,:]
+                #p_plot2  = moving_average(p_plot2,5)
+                p_comp2 = p_plot2 - np.mean(p_plot2)
+
+                for pi in range(p_comp.size):
+                    #print(pi)
+                    try:
+                        ii = np.where(ts_plot2 > ts_plot[pi])[0][0]
+                    except:
+                        ii = p_comp2.size-1
+                    p_comp[pi] -= p_plot2[ii]
+
+            #t_ref = np.mean(t_plot)
+            t_min = np.min(t_plot)
+            t_max = np.max(t_plot)
+            t_ref = (t_max+t_min)/2
+            #i_ref = np.where(t_plot > ref_temp)[0][0]
+            i_ref = np.where(t_plot > t_ref)[0][0]
+            
+            p_comp = p_comp-p_comp[i_ref]
+
+            #p_plot -= p_plot[i_ref]
+
+            # fig.add_trace(go.Scatter(x=ts_plot,  y=p_plot,  name=f'[{log_cntr}] Pressure Raw (Pa)'),  row=1, col=1)
+            # fig.add_trace(go.Scatter(x=t_plot,   y=p_plot,  name=f'[{log_cntr}] Pressure Raw (Pa)'),  row=2, col=1)
+            # fig.add_trace(go.Scatter(x=t_plot ,  y=p_comp,  name=f'[{log_cntr}] Pressure Comp (Pa)'), row=3, col=1)
+
+            xx = t_plot -t_ref  #- 50.0
+            yy = p_comp
+
+            # if log_cntr == 1:
+                # p = np.polyfit(xx, yy, poly_fit_order)
+            p = np.polyfit(xx, yy, poly_fit_order)
+
+            zz = np.polyval(p,xx)
+            # fig.add_trace(go.Scatter(x=t_plot ,  y=zz,  name=f'[{log_cntr}] Pressure Fit (Pa)'), row=3, col=1)
+
+            print('Poly Fit:')
+            print(p)
+
+            # fig.add_trace(go.Scatter(x=t_plot ,  y=p_comp-zz,  name=f'[{log_cntr}] Fit Error (Pa)'), row=4, col=1)
+            # 
+            # if enable_reference:
+            #     fig.add_trace(go.Scatter(x=ts_plot2 , y=p_plot2, name=f'[{log_cntr}] Pressure Ref (Pa)'),  row=5, col=1)
+            #     fig.add_trace(go.Scatter(x=ts_plot2 , y=t_plot2, name=f'[{log_cntr}] Temperature Ref (Pa)'),  row=6, col=1)
+
+            # print the PX4 params
+            print('param set TC_B_ENABLE 1')
+            print('param set TC_B0_ID    %d' % baro_sensor_id)
+            print('param set TC_B0_TREF  %.2f' % t_ref)
+            print('param set TC_B0_TMIN  %.2f' % t_min)
+            print('param set TC_B0_TMAX  %.2f' % t_max)
+            for i in range(poly_fit_order+1):
+                print('param set TC_B0_X%d    %.5f' % (i,p[poly_fit_order-i]))
+            for i in range(poly_fit_order+1,6):
+                print('param set TC_B0_X%d    %.5f' % (i,0.0))
+
+            # Backup the parameters
+            cal_param_file_name = '/data/px4/param/parameters_baro_tc.cal'
+            if os.path.exists(cal_param_file_name):
+                print(f'Parameter file {cal_param_file_name} already exists, overwriting with new data')
+            cal_file = open(cal_param_file_name, 'w')
+            cal_file.write('1\t1\tTC_B_ENABLE\t1\t6\n')
+            cal_file.write('1\t1\tTC_B0_ID\t%d\t6\n' % baro_sensor_id)
+            cal_file.write('1\t1\tTC_B0_TREF\t%.2f\t9\n' % t_ref)
+            cal_file.write('1\t1\tTC_B0_TMIN\t%.2f\t9\n' % t_min)
+            cal_file.write('1\t1\tTC_B0_TMAX\t%.2f\t9\n' % t_max)
+            for k in range(poly_fit_order+1):
+                cal_file.write('1\t1\tTC_B0_X%d\t%.6f\t9\n' % (k,p[poly_fit_order-k]))
+            for k in range(poly_fit_order+1,6):
+                cal_file.write('1\t1\tTC_B0_X%d\t%.6f\t9\n' % (k,0.0))
+            cal_file.close()
+
+        if (i < (num_iterations-1) ):
+            print('sleeping..')
+            nsleep = sleep_between_iterations
+            for s in range(nsleep):
+                time.sleep(1.0)
+                if keep_going==0:
+                    print('Exiting')
+                    sys.exit(0)
+
+            print('done sleeping')
+
+    print('Barometer temperature calibration process ending')
