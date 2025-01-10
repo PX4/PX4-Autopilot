@@ -181,6 +181,7 @@ void hrt_usr_call(void *arg)
 {
 	// This is called from hrt interrupt
 	struct usr_hrt_call *e = (struct usr_hrt_call *)arg;
+	irqstate_t flags = spin_lock_irqsave_wo_note(&g_hrt_ioctl_lock);
 
 	// Make sure the event is not already in flight
 	if (!entry_inlist(&callout_inflight, (sq_entry_t *)e)) {
@@ -188,6 +189,8 @@ void hrt_usr_call(void *arg)
 		sq_addfirst(&e->list_item, &callout_inflight);
 		px4_sem_post(e->entry.callout_sem);
 	}
+
+	spin_unlock_irqrestore_wo_note(&g_hrt_ioctl_lock, flags);
 }
 
 int hrt_ioctl(unsigned int cmd, unsigned long arg);
