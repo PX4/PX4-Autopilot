@@ -34,6 +34,10 @@
 px4_add_library(ActuatorEffectiveness
 	ActuatorEffectiveness.cpp
 	ActuatorEffectiveness.hpp
+	ActuatorEffectivenessRotors.cpp
+	ActuatorEffectivenessRotors.hpp
+	ActuatorEffectivenessThrusters.cpp
+	ActuatorEffectivenessThrusters.hpp
 )
 
 target_compile_options(ActuatorEffectiveness PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
@@ -42,3 +46,6 @@ target_link_libraries(ActuatorEffectiveness
 	PRIVATE
 		mathlib
 )
+
+px4_add_functional_gtest(SRC ActuatorEffectivenessRotorsTest.cpp LINKLIBS ActuatorEffectiveness)
+px4_add_functional_gtest(SRC ActuatorEffectivenessThrustersTest.cpp LINKLIBS ActuatorEffectiveness)

@@ -51,12 +51,13 @@ enum class AllocationMethod {
 	PSEUDO_INVERSE = 0,
 	SEQUENTIAL_DESATURATION = 1,
 	AUTO = 2,
+	METRIC = 3,
 };
 
 enum class ActuatorType {
 	MOTORS = 0,
 	SERVOS,
-
+	THRUSTERS,
 	COUNT
 };
 
