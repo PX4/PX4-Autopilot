@@ -2840,6 +2840,13 @@ void Commander::dataLinkCheck()
 				     "Connection to ground control station lost");
 
 			_status_changed = true;
+
+			if (_param_com_dll_gnss_ctl.get() && _actuator_armed.armed) {
+				// Reset GPS control setting to parameter default if link is lost
+				_param_ekf2_gps_ctrl.reset();
+				_param_ekf2_gps_ctrl.commit();
+				PX4_INFO("Link loss, reset EKF2_GPS_CTRL");
+			}
 		}
 	}
 

@@ -1018,3 +1018,15 @@ PARAM_DEFINE_FLOAT(COM_THROW_SPEED, 5);
  * @increment 1
  */
 PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 3);
+
+/**
+ * Reset GNSS control setting on link loss
+ *
+ * When losing the data link connection to the vehicle,
+ * it may be desirable to re-enable GNSS fusion such that
+ * the vehicle can continue fully autonomously.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_DLL_GNSS_CTL, 0);
