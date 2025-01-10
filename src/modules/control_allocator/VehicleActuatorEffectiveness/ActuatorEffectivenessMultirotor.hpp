@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,27 +33,29 @@
 
 #pragma once
 
-#include "ActuatorEffectiveness.hpp"
+#include "actuator_effectiveness/ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
-#include "ActuatorEffectivenessControlSurfaces.hpp"
 
-class ActuatorEffectivenessCustom : public ModuleParams, public ActuatorEffectiveness
+class ActuatorEffectivenessMultirotor : public ModuleParams, public ActuatorEffectiveness
 {
 public:
-	ActuatorEffectivenessCustom(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessCustom() = default;
+	ActuatorEffectivenessMultirotor(ModuleParams *parent);
+	virtual ~ActuatorEffectivenessMultirotor() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
-	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
-			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
+	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
+	{
+		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
+	}
 
-	const char *name() const override { return "Custom"; }
+	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
+	{
+		normalize[0] = true;
+	}
+
+	const char *name() const override { return "Multirotor"; }
 
 protected:
-	ActuatorEffectivenessRotors _motors;
-	ActuatorEffectivenessControlSurfaces _torque;
-
-	uint32_t _motors_mask{};
+	ActuatorEffectivenessRotors _mc_rotors;
 };

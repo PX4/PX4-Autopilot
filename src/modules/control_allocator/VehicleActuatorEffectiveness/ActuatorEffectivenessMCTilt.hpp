@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,69 +33,46 @@
 
 #pragma once
 
-#include "ActuatorEffectiveness.hpp"
+#include "actuator_effectiveness/ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
+#include "ActuatorEffectivenessTilts.hpp"
 
-#include <px4_platform_common/module_params.h>
-
-class ActuatorEffectivenessTilts : public ModuleParams, public ActuatorEffectiveness
+class ActuatorEffectivenessMCTilt : public ModuleParams, public ActuatorEffectiveness
 {
 public:
+	ActuatorEffectivenessMCTilt(ModuleParams *parent);
+	virtual ~ActuatorEffectivenessMCTilt() = default;
 
-	static constexpr int MAX_COUNT = 4;
+	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
-	enum class Control : int32_t {
-		// This matches with the parameter
-		None = 0,
-		Yaw = 1,
-		Pitch = 2,
-		YawAndPitch = 3,
-	};
-	enum class TiltDirection : int32_t {
-		// This matches with the parameter
-		TowardsFront = 0,
-		TowardsRight = 90,
-	};
+	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
+	{
+		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
+	}
 
-	struct Params {
-		Control control;
-		float min_angle;
-		float max_angle;
-		TiltDirection tilt_direction;
-	};
+	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
+	{
+		normalize[0] = true;
+	}
 
-	ActuatorEffectivenessTilts(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessTilts() = default;
+	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
+			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
 
-	bool addActuators(Configuration &configuration);
+	const char *name() const override { return "MC Tilt"; }
 
-	const char *name() const override { return "Tilts"; }
+	void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
 
-	int count() const { return _count; }
+protected:
+	ActuatorVector _tilt_offsets;
+	ActuatorEffectivenessRotors _mc_rotors;
+	ActuatorEffectivenessTilts _tilts;
+	int _first_tilt_idx{0};
 
-	const Params &config(int idx) const { return _params[idx]; }
-
-	void updateTorqueSign(const ActuatorEffectivenessRotors::Geometry &geometry, bool disable_pitch = false);
-
-	bool hasYawControl() const;
-
-	float getYawTorqueOfTilt(int tilt_index) const { return _torque[tilt_index](2); }
-
-private:
-	void updateParams() override;
-
-	struct ParamHandles {
-		param_t control;
-		param_t min_angle;
-		param_t max_angle;
-		param_t tilt_direction;
+	struct YawTiltSaturationFlags {
+		bool tilt_yaw_pos;
+		bool tilt_yaw_neg;
 	};
 
-	ParamHandles _param_handles[MAX_COUNT];
-	param_t _count_handle;
-
-	Params _params[MAX_COUNT] {};
-	int _count{0};
-
-	matrix::Vector3f _torque[MAX_COUNT] {};
+	YawTiltSaturationFlags _yaw_tilt_saturation_flags{};
 };

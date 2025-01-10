@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,32 +32,26 @@
  ****************************************************************************/
 
 /**
- * @file ActuatorEffectivenessTiltrotorVTOL.hpp
+ * @file ActuatorEffectivenessTailsitterVTOL.hpp
  *
- * Actuator effectiveness for tiltrotor VTOL
- *
- * @author Julien Lecoeur <julien.lecoeur@gmail.com>
+ * Actuator effectiveness for tailsitter VTOL
  */
 
 #pragma once
 
-#include "ActuatorEffectiveness.hpp"
+#include "actuator_effectiveness/ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
 #include "ActuatorEffectivenessControlSurfaces.hpp"
-#include "ActuatorEffectivenessTilts.hpp"
-
-#include <px4_platform_common/module_params.h>
 
 #include <uORB/topics/normalized_unsigned_setpoint.h>
-#include <uORB/topics/tiltrotor_extra_controls.h>
-#include <uORB/topics/vehicle_status.h>
+
 #include <uORB/Subscription.hpp>
 
-class ActuatorEffectivenessTiltrotorVTOL : public ModuleParams, public ActuatorEffectiveness
+class ActuatorEffectivenessTailsitterVTOL : public ModuleParams, public ActuatorEffectiveness
 {
 public:
-	ActuatorEffectivenessTiltrotorVTOL(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessTiltrotorVTOL() = default;
+	ActuatorEffectivenessTailsitterVTOL(ModuleParams *parent);
+	virtual ~ActuatorEffectivenessTailsitterVTOL() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
@@ -76,59 +70,25 @@ public:
 		normalize[1] = false;
 	}
 
-	void setFlightPhase(const FlightPhase &flight_phase) override;
-
 	void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) override;
 
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
 			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
 
-	const char *name() const override { return "VTOL Tiltrotor"; }
 
-	void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
+	void setFlightPhase(const FlightPhase &flight_phase) override;
+
+	const char *name() const override { return "VTOL Tailsitter"; }
 
 protected:
-	bool _collective_tilt_updated{true};
 	ActuatorEffectivenessRotors _mc_rotors;
 	ActuatorEffectivenessControlSurfaces _control_surfaces;
-	ActuatorEffectivenessTilts _tilts;
 
-	uint32_t _motors{};
-	uint32_t _untiltable_motors{};
+	uint32_t _forwards_motors_mask{};
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
-	int _first_tilt_idx{0}; ///< applies to matrix 0
-
-	float _last_collective_tilt_control{NAN};
 
 	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
 	uORB::Subscription _spoilers_setpoint_sub{ORB_ID(spoilers_setpoint)};
-
-	struct YawTiltSaturationFlags {
-		bool tilt_yaw_pos;
-		bool tilt_yaw_neg;
-	};
-
-	YawTiltSaturationFlags _yaw_tilt_saturation_flags{};
-
-	uORB::Subscription _tiltrotor_extra_controls_sub{ORB_ID(tiltrotor_extra_controls)};
-
-private:
-
-	void updateParams() override;
-
-	struct ParamHandles {
-		param_t com_spoolup_time;
-	};
-
-	ParamHandles _param_handles{};
-
-	float _param_spoolup_time{1.f};
-
-	// Tilt handling during motor spoolup: leave the tilts in their disarmed position unitil 1s after arming
-	bool throttleSpoolupFinished();
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	bool _armed{false};
-	uint64_t _armed_time{0};
 };
