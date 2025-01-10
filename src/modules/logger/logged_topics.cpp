@@ -335,8 +335,6 @@ void LoggedTopics::add_vision_and_avoidance_topics()
 	add_topic("obstacle_distance_fused");
 	add_topic("obstacle_distance");
 	add_topic("vehicle_mocap_odometry", 30);
-	add_topic("vehicle_trajectory_waypoint", 200);
-	add_topic("vehicle_trajectory_waypoint_desired", 200);
 	add_topic("vehicle_visual_odometry", 30);
 }
 

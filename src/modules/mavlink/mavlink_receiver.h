@@ -110,8 +110,6 @@
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_trajectory_bezier.h>
-#include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/velocity_limits.h>
 
 #if !defined(CONSTRAINED_FLASH)
@@ -201,8 +199,6 @@ private:
 	void handle_message_set_position_target_local_ned(mavlink_message_t *msg);
 	void handle_message_statustext(mavlink_message_t *msg);
 	void handle_message_tunnel(mavlink_message_t *msg);
-	void handle_message_trajectory_representation_bezier(mavlink_message_t *msg);
-	void handle_message_trajectory_representation_waypoints(mavlink_message_t *msg);
 	void handle_message_utm_global_position(mavlink_message_t *msg);
 #if defined(MAVLINK_MSG_ID_SET_VELOCITY_LIMITS) // For now only defined if development.xml is used
 	void handle_message_set_velocity_limits(mavlink_message_t *msg);
@@ -329,8 +325,6 @@ private:
 	uORB::Publication<vehicle_odometry_s>			_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
 	uORB::Publication<vehicle_odometry_s>			_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
-	uORB::Publication<vehicle_trajectory_bezier_s>		_trajectory_bezier_pub{ORB_ID(vehicle_trajectory_bezier)};
-	uORB::Publication<vehicle_trajectory_waypoint_s>	_trajectory_waypoint_pub{ORB_ID(vehicle_trajectory_waypoint)};
 
 #if !defined(CONSTRAINED_FLASH)
 	uORB::Publication<debug_array_s>			_debug_array_pub {ORB_ID(debug_array)};

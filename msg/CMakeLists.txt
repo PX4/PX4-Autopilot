@@ -214,8 +214,6 @@ set(msg_files
 	TelemetryStatus.msg
 	TiltrotorExtraControls.msg
 	TimesyncStatus.msg
-	TrajectoryBezier.msg
-	TrajectoryWaypoint.msg
 	TransponderReport.msg
 	TuneControl.msg
 	UavcanParameterRequest.msg
@@ -235,8 +233,6 @@ set(msg_files
 	VehicleRoi.msg
 	VehicleThrustSetpoint.msg
 	VehicleTorqueSetpoint.msg
-	VehicleTrajectoryBezier.msg
-	VehicleTrajectoryWaypoint.msg
 	VelocityLimits.msg
 	WheelEncoders.msg
 	Wind.msg

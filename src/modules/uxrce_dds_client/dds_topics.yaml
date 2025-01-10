@@ -71,9 +71,6 @@ publications:
   - topic: /fmu/out/vehicle_status
     type: px4_msgs::msg::VehicleStatus
 
-  - topic: /fmu/out/vehicle_trajectory_waypoint_desired
-    type: px4_msgs::msg::VehicleTrajectoryWaypoint
-
   - topic: /fmu/out/airspeed_validated
     type: px4_msgs::msg::AirspeedValidated
 
@@ -144,12 +141,6 @@ subscriptions:
 
   - topic: /fmu/in/vehicle_command_mode_executor
     type: px4_msgs::msg::VehicleCommand
-
-  - topic: /fmu/in/vehicle_trajectory_bezier
-    type: px4_msgs::msg::VehicleTrajectoryBezier
-
-  - topic: /fmu/in/vehicle_trajectory_waypoint
-    type: px4_msgs::msg::VehicleTrajectoryWaypoint
 
   - topic: /fmu/in/vehicle_thrust_setpoint
     type: px4_msgs::msg::VehicleThrustSetpoint
