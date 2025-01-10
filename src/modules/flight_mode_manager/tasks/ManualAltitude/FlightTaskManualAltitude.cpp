@@ -225,19 +225,20 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 {
 	if (PX4_ISFINITE(_dist_to_bottom)) {
 
-		if ((-_position_setpoint(2) + _position(2) > _max_distance_to_ground - _dist_to_bottom
-		     || -_velocity_setpoint(2) > _max_distance_to_ground - _dist_to_bottom
-		     || _dist_to_bottom > _max_distance_to_ground)
-		    && _velocity_setpoint(2) <= 0.f) {
+		float vel_constrained = _param_mpc_z_p.get() * (_max_distance_to_ground - _dist_to_bottom);
 
-			_position_setpoint(2) = _position(2) - _max_distance_to_ground + _dist_to_bottom;
-			_velocity_setpoint(2) = NAN;
+		if (PX4_ISFINITE(_max_distance_to_ground)) {
+			_constraints.speed_up = math::constrain(vel_constrained, -_param_mpc_z_vel_max_dn.get(), _param_mpc_z_vel_max_up.get());
 
-			if (_dist_to_bottom > _max_distance_to_ground) {
-				_velocity_setpoint(2) = math::constrain(_param_mpc_z_p.get() * (_dist_to_bottom - _max_distance_to_ground),
-									0.f, _param_mpc_z_vel_max_dn.get());
-			}
+		} else {
+			_constraints.speed_up = _param_mpc_z_vel_max_up.get();
 		}
+
+		if (_dist_to_bottom > _max_distance_to_ground && !(_sticks.getThrottleZeroCenteredExpo() < FLT_EPSILON)) {
+			_velocity_setpoint(2) = math::constrain(-vel_constrained, 0.f, _param_mpc_z_vel_max_dn.get());
+		}
+
+		_constraints.speed_down = _param_mpc_z_vel_max_dn.get();
 	}
 }
 
