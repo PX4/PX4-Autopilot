@@ -741,10 +741,6 @@ menu "Zenoh publishers/subscribers"
 		bool "timesync_status"
 		default n
 
-	config ZENOH_PUBSUB_TRAJECTORY_BEZIER
-		bool "trajectory_bezier"
-		default n
-
 	config ZENOH_PUBSUB_TRAJECTORY_SETPOINT
 		bool "trajectory_setpoint"
 		default n
@@ -879,14 +875,6 @@ menu "Zenoh publishers/subscribers"
 
 	config ZENOH_PUBSUB_VEHICLE_TORQUE_SETPOINT
 		bool "vehicle_torque_setpoint"
-		default n
-
-	config ZENOH_PUBSUB_VEHICLE_TRAJECTORY_BEZIER
-		bool "vehicle_trajectory_bezier"
-		default n
-
-	config ZENOH_PUBSUB_VEHICLE_TRAJECTORY_WAYPOINT
-		bool "vehicle_trajectory_waypoint"
 		default n
 
 	config ZENOH_PUBSUB_VELOCITY_LIMITS
@@ -1099,7 +1087,6 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_TELEMETRY_STATUS
 	select ZENOH_PUBSUB_TILTROTOR_EXTRA_CONTROLS
 	select ZENOH_PUBSUB_TIMESYNC_STATUS
-	select ZENOH_PUBSUB_TRAJECTORY_BEZIER
 	select ZENOH_PUBSUB_TRAJECTORY_SETPOINT
 	select ZENOH_PUBSUB_TRAJECTORY_WAYPOINT
 	select ZENOH_PUBSUB_TRANSPONDER_REPORT
@@ -1134,8 +1121,6 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_VEHICLE_STATUS
 	select ZENOH_PUBSUB_VEHICLE_THRUST_SETPOINT
 	select ZENOH_PUBSUB_VEHICLE_TORQUE_SETPOINT
-	select ZENOH_PUBSUB_VEHICLE_TRAJECTORY_BEZIER
-	select ZENOH_PUBSUB_VEHICLE_TRAJECTORY_WAYPOINT
 	select ZENOH_PUBSUB_VELOCITY_LIMITS
 	select ZENOH_PUBSUB_VTOL_VEHICLE_STATUS
 	select ZENOH_PUBSUB_WHEEL_ENCODERS

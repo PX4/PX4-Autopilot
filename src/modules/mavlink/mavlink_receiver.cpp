@@ -256,14 +256,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_tunnel(msg);
 		break;
 
-	case MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER:
-		handle_message_trajectory_representation_bezier(msg);
-		break;
-
-	case MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_WAYPOINTS:
-		handle_message_trajectory_representation_waypoints(msg);
-		break;
-
 	case MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS:
 		handle_message_onboard_computer_status(msg);
 		break;
@@ -1986,64 +1978,6 @@ MavlinkReceiver::handle_message_tunnel(mavlink_message_t *msg)
 
 	_mavlink_tunnel_pub.publish(tunnel);
 
-}
-
-void
-MavlinkReceiver::handle_message_trajectory_representation_bezier(mavlink_message_t *msg)
-{
-	mavlink_trajectory_representation_bezier_t trajectory;
-	mavlink_msg_trajectory_representation_bezier_decode(msg, &trajectory);
-
-	vehicle_trajectory_bezier_s trajectory_bezier{};
-
-	trajectory_bezier.timestamp =  _mavlink_timesync.sync_stamp(trajectory.time_usec);
-
-	for (int i = 0; i < vehicle_trajectory_bezier_s::NUMBER_POINTS; ++i) {
-		trajectory_bezier.control_points[i].position[0] = trajectory.pos_x[i];
-		trajectory_bezier.control_points[i].position[1] = trajectory.pos_y[i];
-		trajectory_bezier.control_points[i].position[2] = trajectory.pos_z[i];
-
-		trajectory_bezier.control_points[i].delta = trajectory.delta[i];
-		trajectory_bezier.control_points[i].yaw = trajectory.pos_yaw[i];
-	}
-
-	trajectory_bezier.bezier_order = math::min(trajectory.valid_points, vehicle_trajectory_bezier_s::NUMBER_POINTS);
-	_trajectory_bezier_pub.publish(trajectory_bezier);
-}
-
-void
-MavlinkReceiver::handle_message_trajectory_representation_waypoints(mavlink_message_t *msg)
-{
-	mavlink_trajectory_representation_waypoints_t trajectory;
-	mavlink_msg_trajectory_representation_waypoints_decode(msg, &trajectory);
-
-	vehicle_trajectory_waypoint_s trajectory_waypoint{};
-
-	const int number_valid_points = math::min(trajectory.valid_points, vehicle_trajectory_waypoint_s::NUMBER_POINTS);
-
-	for (int i = 0; i < number_valid_points; ++i) {
-		trajectory_waypoint.waypoints[i].position[0] = trajectory.pos_x[i];
-		trajectory_waypoint.waypoints[i].position[1] = trajectory.pos_y[i];
-		trajectory_waypoint.waypoints[i].position[2] = trajectory.pos_z[i];
-
-		trajectory_waypoint.waypoints[i].velocity[0] = trajectory.vel_x[i];
-		trajectory_waypoint.waypoints[i].velocity[1] = trajectory.vel_y[i];
-		trajectory_waypoint.waypoints[i].velocity[2] = trajectory.vel_z[i];
-
-		trajectory_waypoint.waypoints[i].acceleration[0] = trajectory.acc_x[i];
-		trajectory_waypoint.waypoints[i].acceleration[1] = trajectory.acc_y[i];
-		trajectory_waypoint.waypoints[i].acceleration[2] = trajectory.acc_z[i];
-
-		trajectory_waypoint.waypoints[i].yaw = trajectory.pos_yaw[i];
-		trajectory_waypoint.waypoints[i].yaw_speed = trajectory.vel_yaw[i];
-
-		trajectory_waypoint.waypoints[i].point_valid = true;
-
-		trajectory_waypoint.waypoints[i].type = UINT8_MAX;
-	}
-
-	trajectory_waypoint.timestamp = hrt_absolute_time();
-	_trajectory_waypoint_pub.publish(trajectory_waypoint);
 }
 
 void
