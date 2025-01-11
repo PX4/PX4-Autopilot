@@ -432,6 +432,15 @@ void EulerNavDriver::handleNavigationDataMessage(const uint8_t* data)
 			PressureData pressure{};
 
 			pressure.pressure = atmosphere::getPressureFromAltitude(height);
+
+			// EULER-NAV Baro-Inertial AHRS provides height estimate from a Kalman filter. It has got low noise and resolution
+			// of about 17 cm. It causes PX4 autopilot to mistakenly report that pressure signal is stale. In order to prevent
+			// the false alarms we add a small noise to the received height data.
+			if (_statistics._navigation_message_counter % 2U == 0)
+			{
+				pressure.pressure += 0.01F;
+			}
+
 			pressure.timestamp = time;
 			pressure.timestamp_sample = time;
 			pressure.device_id = DRV_INS_DEVTYPE_BAHRS;
