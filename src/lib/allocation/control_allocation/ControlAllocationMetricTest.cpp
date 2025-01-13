@@ -48,111 +48,111 @@ using namespace matrix;
 
 namespace
 {
-	// Creates a 2D spacecraft with 8 thrusters (one in each corner of the axis, NED Frame):
-	//           1 <--> 0
-	//               x
-	//		 |
-	//      ^6 v7    +----y  ^4 v5
-	//
-	//
-	//           3 <--> 2
-	ActuatorEffectivenessThrusters::Geometry make_spacecraft_x_geometry()
-	{
-		ActuatorEffectivenessThrusters::Geometry geometry = {};
-		geometry.thrusters[0].position(0) = 1.0f;
-		geometry.thrusters[0].position(1) = 0.0f;
-		geometry.thrusters[0].position(2) = 0.0f;
-		geometry.thrusters[0].axis(0) = 0.0f;
-		geometry.thrusters[0].axis(1) = 1.0f;
-		geometry.thrusters[0].axis(2) = 0.0f;
-		geometry.thrusters[0].thrust_coef = 2.0f;
+// Creates a 2D spacecraft with 8 thrusters (one in each corner of the axis, NED Frame):
+//           1 <--> 0
+//               x
+//		 |
+//      ^6 v7    +----y  ^4 v5
+//
+//
+//           3 <--> 2
+ActuatorEffectivenessThrusters::Geometry make_spacecraft_x_geometry()
+{
+	ActuatorEffectivenessThrusters::Geometry geometry = {};
+	geometry.thrusters[0].position(0) = 1.0f;
+	geometry.thrusters[0].position(1) = 0.0f;
+	geometry.thrusters[0].position(2) = 0.0f;
+	geometry.thrusters[0].axis(0) = 0.0f;
+	geometry.thrusters[0].axis(1) = 1.0f;
+	geometry.thrusters[0].axis(2) = 0.0f;
+	geometry.thrusters[0].thrust_coef = 2.0f;
 
-		geometry.thrusters[1].position(0) = 1.0f;
-		geometry.thrusters[1].position(1) = 0.0f;
-		geometry.thrusters[1].position(2) = 0.0f;
-		geometry.thrusters[1].axis(0) = 0.0f;
-		geometry.thrusters[1].axis(1) = -1.0f;
-		geometry.thrusters[1].axis(2) = 0.0f;
-		geometry.thrusters[1].thrust_coef = 2.0f;
+	geometry.thrusters[1].position(0) = 1.0f;
+	geometry.thrusters[1].position(1) = 0.0f;
+	geometry.thrusters[1].position(2) = 0.0f;
+	geometry.thrusters[1].axis(0) = 0.0f;
+	geometry.thrusters[1].axis(1) = -1.0f;
+	geometry.thrusters[1].axis(2) = 0.0f;
+	geometry.thrusters[1].thrust_coef = 2.0f;
 
-		geometry.thrusters[2].position(0) = -1.0f;
-		geometry.thrusters[2].position(1) = 0.0f;
-		geometry.thrusters[2].position(2) = 0.0f;
-		geometry.thrusters[2].axis(0) = 0.0f;
-		geometry.thrusters[2].axis(1) = 1.0f;
-		geometry.thrusters[2].axis(2) = 0.0f;
-		geometry.thrusters[2].thrust_coef = 2.0f;
+	geometry.thrusters[2].position(0) = -1.0f;
+	geometry.thrusters[2].position(1) = 0.0f;
+	geometry.thrusters[2].position(2) = 0.0f;
+	geometry.thrusters[2].axis(0) = 0.0f;
+	geometry.thrusters[2].axis(1) = 1.0f;
+	geometry.thrusters[2].axis(2) = 0.0f;
+	geometry.thrusters[2].thrust_coef = 2.0f;
 
-		geometry.thrusters[3].position(0) = -1.0f;
-		geometry.thrusters[3].position(1) = 0.0f;
-		geometry.thrusters[3].position(2) = 0.0f;
-		geometry.thrusters[3].axis(0) = 0.0f;
-		geometry.thrusters[3].axis(1) = -1.0f;
-		geometry.thrusters[3].axis(2) = 0.0f;
-		geometry.thrusters[3].thrust_coef = 2.0f;
+	geometry.thrusters[3].position(0) = -1.0f;
+	geometry.thrusters[3].position(1) = 0.0f;
+	geometry.thrusters[3].position(2) = 0.0f;
+	geometry.thrusters[3].axis(0) = 0.0f;
+	geometry.thrusters[3].axis(1) = -1.0f;
+	geometry.thrusters[3].axis(2) = 0.0f;
+	geometry.thrusters[3].thrust_coef = 2.0f;
 
-		geometry.thrusters[4].position(0) = 0.0f;
-		geometry.thrusters[4].position(1) = 1.0f;
-		geometry.thrusters[4].position(2) = 0.0f;
-		geometry.thrusters[4].axis(0) = 1.0f;
-		geometry.thrusters[4].axis(1) = 0.0f;
-		geometry.thrusters[4].axis(2) = 0.0f;
-		geometry.thrusters[4].thrust_coef = 2.0f;
+	geometry.thrusters[4].position(0) = 0.0f;
+	geometry.thrusters[4].position(1) = 1.0f;
+	geometry.thrusters[4].position(2) = 0.0f;
+	geometry.thrusters[4].axis(0) = 1.0f;
+	geometry.thrusters[4].axis(1) = 0.0f;
+	geometry.thrusters[4].axis(2) = 0.0f;
+	geometry.thrusters[4].thrust_coef = 2.0f;
 
-		geometry.thrusters[5].position(0) = 0.0f;
-		geometry.thrusters[5].position(1) = 1.0f;
-		geometry.thrusters[5].position(2) = 0.0f;
-		geometry.thrusters[5].axis(0) = -1.0f;
-		geometry.thrusters[5].axis(1) = 0.0f;
-		geometry.thrusters[5].axis(2) = 0.0f;
-		geometry.thrusters[5].thrust_coef = 2.0f;
+	geometry.thrusters[5].position(0) = 0.0f;
+	geometry.thrusters[5].position(1) = 1.0f;
+	geometry.thrusters[5].position(2) = 0.0f;
+	geometry.thrusters[5].axis(0) = -1.0f;
+	geometry.thrusters[5].axis(1) = 0.0f;
+	geometry.thrusters[5].axis(2) = 0.0f;
+	geometry.thrusters[5].thrust_coef = 2.0f;
 
-		geometry.thrusters[6].position(0) = 0.0f;
-		geometry.thrusters[6].position(1) = -1.0f;
-		geometry.thrusters[6].position(2) = 0.0f;
-		geometry.thrusters[6].axis(0) = 1.0f;
-		geometry.thrusters[6].axis(1) = 0.0f;
-		geometry.thrusters[6].axis(2) = 0.0f;
-		geometry.thrusters[6].thrust_coef = 2.0f;
+	geometry.thrusters[6].position(0) = 0.0f;
+	geometry.thrusters[6].position(1) = -1.0f;
+	geometry.thrusters[6].position(2) = 0.0f;
+	geometry.thrusters[6].axis(0) = 1.0f;
+	geometry.thrusters[6].axis(1) = 0.0f;
+	geometry.thrusters[6].axis(2) = 0.0f;
+	geometry.thrusters[6].thrust_coef = 2.0f;
 
-		geometry.thrusters[7].position(0) = 0.0f;
-		geometry.thrusters[7].position(1) = -1.0f;
-		geometry.thrusters[7].position(2) = 0.0f;
-		geometry.thrusters[7].axis(0) = -1.0f;
-		geometry.thrusters[7].axis(1) = 0.0f;
-		geometry.thrusters[7].axis(2) = 0.0f;
-		geometry.thrusters[7].thrust_coef = 2.0f;
+	geometry.thrusters[7].position(0) = 0.0f;
+	geometry.thrusters[7].position(1) = -1.0f;
+	geometry.thrusters[7].position(2) = 0.0f;
+	geometry.thrusters[7].axis(0) = -1.0f;
+	geometry.thrusters[7].axis(1) = 0.0f;
+	geometry.thrusters[7].axis(2) = 0.0f;
+	geometry.thrusters[7].thrust_coef = 2.0f;
 
-		geometry.num_thrusters = 8;
+	geometry.num_thrusters = 8;
 
-		return geometry;
-	}
+	return geometry;
+}
 
-	ActuatorEffectiveness::EffectivenessMatrix make_spacecraft_x_effectiveness()
-	{
-		ActuatorEffectiveness::EffectivenessMatrix effectiveness;
-		effectiveness.setZero();
-		const auto geometry = make_spacecraft_x_geometry();
-		ActuatorEffectivenessThrusters::computeEffectivenessMatrix(geometry, effectiveness);
-		PX4_INFO("Effectiveness matrix (transposed): ");
-		effectiveness.T().print();
-		return effectiveness;
-	}
+ActuatorEffectiveness::EffectivenessMatrix make_spacecraft_x_effectiveness()
+{
+	ActuatorEffectiveness::EffectivenessMatrix effectiveness;
+	effectiveness.setZero();
+	const auto geometry = make_spacecraft_x_geometry();
+	ActuatorEffectivenessThrusters::computeEffectivenessMatrix(geometry, effectiveness);
+	PX4_INFO("Effectiveness matrix (transposed): ");
+	effectiveness.T().print();
+	return effectiveness;
+}
 
-	void setup_spacecraft_allocator(ControlAllocationMetric &allocator)
-	{
-		const auto effectiveness = make_spacecraft_x_effectiveness();
-		matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> actuator_trim;
-		matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> linearization_point;
-		constexpr bool UPDATE_NORMALIZATION_SCALE{false};
-		allocator.setEffectivenessMatrix(
-			effectiveness,
-			actuator_trim,
-			linearization_point,
-			ActuatorEffectiveness::NUM_ACTUATORS,
-			UPDATE_NORMALIZATION_SCALE
-		);
-	}
+void setup_spacecraft_allocator(ControlAllocationMetric &allocator)
+{
+	const auto effectiveness = make_spacecraft_x_effectiveness();
+	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> actuator_trim;
+	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> linearization_point;
+	constexpr bool UPDATE_NORMALIZATION_SCALE{false};
+	allocator.setEffectivenessMatrix(
+		effectiveness,
+		actuator_trim,
+		linearization_point,
+		ActuatorEffectiveness::NUM_ACTUATORS,
+		UPDATE_NORMALIZATION_SCALE
+	);
+}
 } // namespace
 
 
