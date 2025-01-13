@@ -80,7 +80,6 @@ if(gazebo_FOUND)
 		iris_dual_gps
 		iris_foggy_lidar
 		iris_irlock
-		iris_obs_avoid
 		iris_depth_camera
 		iris_downward_depth_camera
 		iris_opt_flow
