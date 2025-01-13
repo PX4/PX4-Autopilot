@@ -394,7 +394,6 @@ private:
 	hrt_abstime _heartbeat_component_telemetry_radio{0};
 	hrt_abstime _heartbeat_component_log{0};
 	hrt_abstime _heartbeat_component_osd{0};
-	hrt_abstime _heartbeat_component_obstacle_avoidance{0};
 	hrt_abstime _heartbeat_component_visual_inertial_odometry{0};
 	hrt_abstime _heartbeat_component_pairing_manager{0};
 	hrt_abstime _heartbeat_component_udp_bridge{0};
