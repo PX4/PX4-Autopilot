@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include "actuator_effectiveness/ActuatorEffectiveness.hpp"
+#include "allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
 
 #include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
