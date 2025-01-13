@@ -53,7 +53,7 @@ if(PX4_PLATFORM MATCHES "posix")
 		airplane
 		quadx
 		xvert
-		standard_vtol
+		svtol
 	)
 
 	# find corresponding airframes
