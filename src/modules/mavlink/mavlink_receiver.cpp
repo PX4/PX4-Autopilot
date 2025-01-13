@@ -2193,11 +2193,6 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 				_heartbeat_component_osd = now;
 				break;
 
-			case MAV_COMP_ID_OBSTACLE_AVOIDANCE:
-				_heartbeat_component_obstacle_avoidance = now;
-				_mavlink.telemetry_status().avoidance_system_healthy = (hb.system_status == MAV_STATE_ACTIVE);
-				break;
-
 			case MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY:
 				_heartbeat_component_visual_inertial_odometry = now;
 				break;
@@ -2910,7 +2905,6 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		tstatus.heartbeat_component_telemetry_radio    = (t <= TIMEOUT + _heartbeat_component_telemetry_radio);
 		tstatus.heartbeat_component_log                = (t <= TIMEOUT + _heartbeat_component_log);
 		tstatus.heartbeat_component_osd                = (t <= TIMEOUT + _heartbeat_component_osd);
-		tstatus.heartbeat_component_obstacle_avoidance = (t <= TIMEOUT + _heartbeat_component_obstacle_avoidance);
 		tstatus.heartbeat_component_vio                = (t <= TIMEOUT + _heartbeat_component_visual_inertial_odometry);
 		tstatus.heartbeat_component_pairing_manager    = (t <= TIMEOUT + _heartbeat_component_pairing_manager);
 		tstatus.heartbeat_component_udp_bridge         = (t <= TIMEOUT + _heartbeat_component_udp_bridge);
