@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 #include "ActuatorEffectivenessRoverAckermann.hpp"
-#include <ControlAllocation/ControlAllocation.hpp>
 
 using namespace matrix;
 
