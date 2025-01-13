@@ -134,11 +134,6 @@ void MulticopterHoverThrustEstimator::Run()
 		}
 	}
 
-	// new local position setpoint needed every iteration
-	if (!_vehicle_local_position_setpoint_sub.updated()) {
-		return;
-	}
-
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
 		// clear update
@@ -166,10 +161,25 @@ void MulticopterHoverThrustEstimator::Run()
 
 		_hover_thrust_ekf.predict(dt);
 
-		vehicle_local_position_setpoint_s local_pos_sp;
+		vehicle_attitude_s vehicle_attitude{};
+		_vehicle_attitude_sub.copy(&vehicle_attitude);
 
-		if (_vehicle_local_position_setpoint_sub.copy(&local_pos_sp)) {
-			if (PX4_ISFINITE(local_pos_sp.thrust[2])) {
+		vehicle_thrust_setpoint_s vehicle_thrust_setpoint;
+		control_allocator_status_s control_allocator_status;
+
+		if (_vehicle_thrust_setpoint_sub.update(&vehicle_thrust_setpoint)
+		    && _control_allocator_status_sub.update(&control_allocator_status)
+		    && (hrt_elapsed_time(&vehicle_thrust_setpoint.timestamp) < 20_ms)
+		    && (hrt_elapsed_time(&vehicle_attitude.timestamp) < 20_ms)
+		   ) {
+			matrix::Vector3f thrust_body_sp(vehicle_thrust_setpoint.xyz);
+			matrix::Vector3f thrust_body_unallocated(control_allocator_status.unallocated_thrust);
+			matrix::Vector3f thrust_body_allocated = thrust_body_sp - thrust_body_unallocated;
+
+			const matrix::Quatf q_att{vehicle_attitude.q};
+			matrix::Vector3f thrust_allocated = q_att.rotateVector(thrust_body_allocated);
+
+			if (PX4_ISFINITE(thrust_allocated(2))) {
 				// Inform the hover thrust estimator about the measured vertical
 				// acceleration (positive acceleration is up) and the current thrust (positive thrust is up)
 				// Guard against fast up and down motions biasing the estimator due to large drag and prop wash effects
@@ -179,7 +189,7 @@ void MulticopterHoverThrustEstimator::Run()
 									1.f);
 
 				_hover_thrust_ekf.setMeasurementNoiseScale(fmaxf(meas_noise_coeff_xy, meas_noise_coeff_z));
-				_hover_thrust_ekf.fuseAccZ(-local_pos.az, -local_pos_sp.thrust[2]);
+				_hover_thrust_ekf.fuseAccZ(-local_pos.az, -thrust_allocated(2));
 
 				bool valid = (_hover_thrust_ekf.getHoverThrustEstimateVar() < 0.001f);
 
@@ -191,7 +201,7 @@ void MulticopterHoverThrustEstimator::Run()
 				_valid_hysteresis.set_state_and_update(valid, local_pos.timestamp);
 				_valid = _valid_hysteresis.get_state();
 
-				publishStatus(local_pos.timestamp);
+				publishStatus(vehicle_thrust_setpoint.timestamp);
 			}
 		}
 
