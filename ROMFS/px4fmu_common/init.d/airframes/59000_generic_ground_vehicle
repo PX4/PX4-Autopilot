@@ -8,8 +8,6 @@
 # @output Motor1 throttle
 # @output Servo1 steering
 #
-# @maintainer
-#
 # @board bitcraze_crazyflie exclude
 #
 
