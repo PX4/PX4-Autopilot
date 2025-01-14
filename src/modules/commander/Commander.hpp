@@ -277,6 +277,7 @@ private:
 
 	bool _is_throttle_above_center{false};
 	bool _is_throttle_low{false};
+	bool _is_throttle_near_center{false};
 
 	bool _arm_tune_played{false};
 	bool _have_taken_off_since_arming{false};

@@ -572,9 +572,12 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 				return TRANSITION_DENIED;
 			}
 
-			if (!_vehicle_control_mode.flag_control_climb_rate_enabled &&
-			    !_failsafe_flags.manual_control_signal_lost && !_is_throttle_low
-			    && _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROVER) {
+			if ((!_failsafe_flags.manual_control_signal_lost) &&
+			    ((!_vehicle_control_mode.flag_control_climb_rate_enabled &&
+			     !_is_throttle_low) ||
+			    ((_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER ||
+			     _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_BOAT) &&
+			     !_is_throttle_near_center))) {
 
 				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: high throttle\t");
 				events::send(events::ID("commander_arm_denied_throttle_high"), {events::Log::Critical, events::LogInternal::Info},
@@ -2932,6 +2935,7 @@ void Commander::manualControlCheck()
 
 		_is_throttle_above_center = (manual_control_setpoint.throttle > 0.2f);
 		_is_throttle_low = (manual_control_setpoint.throttle < -0.8f);
+		_is_throttle_near_center = (fabsf(manual_control_setpoint.throttle) < 0.05f);
 
 		if (isArmed()) {
 			// Abort autonomous mode and switch to position mode if sticks are moved significantly
