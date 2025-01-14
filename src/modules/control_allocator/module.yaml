@@ -33,6 +33,9 @@ parameters:
                 13: Rover (Mecanum)
                 14: Spacecraft 2D
                 15: Spacecraft 3D
+                16: Boat (Single engine)
+                17: Boat (Differential)
+                18: Boat (Twin engine)
             default: 0
 
         CA_METHOD:
@@ -1191,3 +1194,38 @@ mixer:
                         position: [ -1, 1, 0 ]
                       - name: 'Left Motor Back'
                         position: [ -1, -1, 0 ]
+            16: # Boat (Single engine)
+                title: 'Boat (Single engine)'
+                actuators:
+                  - actuator_type: 'motor'
+                    instances:
+                      - name: 'Throttle'
+                        position: [ -1., 0, 0 ]
+                  - actuator_type: 'servo'
+                    instances:
+                      - name: 'Steering'
+                        position: [ -1., 0, 0 ]
+            17: # Boat (Differential)
+                title: 'Boat (Differential)'
+                actuators:
+                  - actuator_type: 'motor'
+                    instances:
+                      - name: 'Left motor'
+                        position: [ -1., 0, 0 ]
+                      - name: 'Right motor'
+                        position: [ 1., 0, 0 ]
+            18: # Boat (Twin engine)
+                title: 'Boat (Twin engine)'
+                actuators:
+                  - actuator_type: 'motor'
+                    instances:
+                      - name: 'Left motor'
+                        position: [ -1., 0, 0 ]
+                      - name: 'Right motor'
+                        position: [ 1., 0, 0 ]
+                  - actuator_type: 'servo'
+                    instances:
+                      - name: 'Left steering'
+                        position: [ -1., 0, 0 ]
+                      - name: 'Right steering'
+                        position: [ 1., 0, 0 ]
