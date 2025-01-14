@@ -52,3 +52,5 @@ param set-default CA_ROTOR7_KM -0.05
 param set-default CA_ROTOR7_PX -0.35
 param set-default CA_ROTOR7_PY -0.35
 param set-default CA_ROTOR7_PZ 0.05
+
+param set-default NAV_USE_WP_RAD 1
