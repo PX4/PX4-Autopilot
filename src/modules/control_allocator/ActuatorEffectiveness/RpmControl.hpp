@@ -1,6 +1,6 @@
-/***************************************************************************
+/****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,52 +30,48 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file rtl_mission_fast_reverse.h
+ * @file RpmControl.hpp
  *
- * Helper class for RTL
+ * Control rpm of a helicopter rotor.
+ * Input: PWM input pulse period from an rpm sensor
+ * Output: Duty cycle command for the ESC
  *
- * @author Julian Oes <julian@oes.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Matthias Grob <maetugr@gmail.com>
  */
 
 #pragma once
 
-#include "rtl_base.h"
-
+#include <lib/pid/PID.hpp>
+#include <px4_platform_common/module_params.h>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/rtl_time_estimate.h>
+#include <uORB/topics/rpm.h>
 
-class Navigator;
-
-class RtlMissionFastReverse : public RtlBase
+class RpmControl : public ModuleParams
 {
 public:
-	RtlMissionFastReverse(Navigator *navigator, mission_s mission);
-	~RtlMissionFastReverse() = default;
+	RpmControl(ModuleParams *parent);
+	~RpmControl() = default;
 
-	void on_activation() override;
-	void on_active() override;
-	void on_inactive() override;
-	void on_inactivation() override;
-
-	bool isLanding() override {return _in_landing_phase;};
-
-	rtl_time_estimate_s calc_rtl_time_estimate() override;
+	void setSpoolupProgress(float spoolup_progress);
+	float getActuatorCorrection();
 
 private:
-	bool setNextMissionItem() override;
-	void setActiveMissionItems() override;
-	void handleLanding(WorkItemType &new_work_item_type);
+	static constexpr float SPOOLUP_PROGRESS_WITH_CONTROLLER_ENGAGED = .8f; // [0,1]
+	static constexpr float PID_OUTPUT_LIMIT = .5f; // [0,1]
 
-	int _mission_index_prior_rtl{-1};
+	uORB::Subscription _rpm_sub{ORB_ID(rpm)};
+	bool _rpm_invalid{true};
+	PID _pid;
+	float _spoolup_progress{0.f}; // [0,1]
+	hrt_abstime _timestamp_last_measurement{0}; // for dt and timeout
+	float _actuator_correction{0.f};
 
-	bool _in_landing_phase{false};
-
-	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
-	DEFINE_PARAMETERS_CUSTOM_PARENT(
-		RtlBase,
-		(ParamInt<px4::params::RTL_PLD_MD>)       _param_rtl_pld_md
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::CA_HELI_RPM_SP>) _param_ca_heli_rpm_sp,
+		(ParamFloat<px4::params::CA_HELI_RPM_P>) _param_ca_heli_rpm_p,
+		(ParamFloat<px4::params::CA_HELI_RPM_I>) _param_ca_heli_rpm_i
 	)
 };

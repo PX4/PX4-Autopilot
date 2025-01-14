@@ -326,6 +326,8 @@ extern void fmurt1062_timer_initialize(void);
 
 #include <px4_platform_common/board_common.h>
 
+int imxrt_flexspi_storage_initialize(void);
+
 #endif /* __ASSEMBLY__ */
 
 __END_DECLS

@@ -1,6 +1,6 @@
-/***************************************************************************
+/****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,52 +30,56 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-/**
- * @file rtl_mission_fast_reverse.h
- *
- * Helper class for RTL
- *
- * @author Julian Oes <julian@oes.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
- */
 
-#pragma once
+#include "RpmControl.hpp"
 
-#include "rtl_base.h"
+#include <drivers/drv_hrt.h>
 
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/rtl_time_estimate.h>
+using namespace time_literals;
 
-class Navigator;
-
-class RtlMissionFastReverse : public RtlBase
+RpmControl::RpmControl(ModuleParams *parent) : ModuleParams(parent)
 {
-public:
-	RtlMissionFastReverse(Navigator *navigator, mission_s mission);
-	~RtlMissionFastReverse() = default;
-
-	void on_activation() override;
-	void on_active() override;
-	void on_inactive() override;
-	void on_inactivation() override;
-
-	bool isLanding() override {return _in_landing_phase;};
-
-	rtl_time_estimate_s calc_rtl_time_estimate() override;
-
-private:
-	bool setNextMissionItem() override;
-	void setActiveMissionItems() override;
-	void handleLanding(WorkItemType &new_work_item_type);
-
-	int _mission_index_prior_rtl{-1};
-
-	bool _in_landing_phase{false};
-
-	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
-	DEFINE_PARAMETERS_CUSTOM_PARENT(
-		RtlBase,
-		(ParamInt<px4::params::RTL_PLD_MD>)       _param_rtl_pld_md
-	)
+	_pid.setOutputLimit(PID_OUTPUT_LIMIT);
+	_pid.setIntegralLimit(PID_OUTPUT_LIMIT);
 };
+
+void RpmControl::setSpoolupProgress(float spoolup_progress)
+{
+	_spoolup_progress = spoolup_progress;
+	_pid.setSetpoint(_spoolup_progress * _param_ca_heli_rpm_sp.get());
+
+	if (_spoolup_progress < SPOOLUP_PROGRESS_WITH_CONTROLLER_ENGAGED) {
+		_pid.resetIntegral();
+	}
+}
+
+float RpmControl::getActuatorCorrection()
+{
+	hrt_abstime now = hrt_absolute_time();
+
+	// RPM measurement update
+	if (_rpm_sub.updated()) {
+		rpm_s rpm{};
+
+		if (_rpm_sub.copy(&rpm)) {
+			const float dt = math::min((now - _timestamp_last_measurement) * 1e-6f, 1.f);
+			_timestamp_last_measurement = rpm.timestamp;
+
+			const float gain_scale = math::interpolate(_spoolup_progress, .8f, 1.f, 0.f, 1e-3f);
+			_pid.setGains(_param_ca_heli_rpm_p.get() * gain_scale, _param_ca_heli_rpm_i.get() * gain_scale, 0.f);
+			_actuator_correction = _pid.update(rpm.rpm_estimate, dt, true);
+
+			_rpm_invalid = rpm.rpm_estimate < 1.f;
+		}
+	}
+
+	// Timeout
+	const bool timeout = now > _timestamp_last_measurement + 1_s;
+
+	if (_rpm_invalid || timeout) {
+		_pid.resetIntegral();
+		_actuator_correction = 0.f;
+	}
+
+	return _actuator_correction;
+}

@@ -97,7 +97,6 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 			_aid_src_airspeed.innovation_rejected; // TODO: remove this redundant flag
 
 		const bool continuing_conditions_passing = _control_status.flags.in_air
-				&& _control_status.flags.fixed_wing
 				&& !_control_status.flags.fake_pos;
 
 		const bool is_airspeed_significant = airspeed_sample.true_airspeed > _params.arsp_thr;

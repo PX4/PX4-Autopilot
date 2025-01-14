@@ -12,6 +12,7 @@ param set-default MAV_TYPE 4
 
 param set-default COM_PREARM_MODE 2
 param set-default COM_SPOOLUP_TIME 10
+param set-default COM_DISARM_PRFLT 60
 
 # No need for minimum collective pitch (or airmode) to keep torque authority
 param set-default MPC_MANTHR_MIN 0
