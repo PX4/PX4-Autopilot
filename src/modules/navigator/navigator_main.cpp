@@ -1139,7 +1139,8 @@ float Navigator::get_altitude_acceptance_radius()
 
 	} else if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
 		return INFINITY;
-
+	} else if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_BOAT) {
+		return INFINITY;
 	} else {
 		float alt_acceptance_radius = _param_nav_mc_alt_rad.get();
 

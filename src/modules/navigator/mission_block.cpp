@@ -206,8 +206,9 @@ MissionBlock::is_mission_item_reached_or_completed()
 				_waypoint_position_reached = true;
 			}
 
-		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
-			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF &&
+			   (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER ||
+			    _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_BOAT)) {
 			// Accept takeoff waypoint to be reached if the distance in 2D plane is within acceptance radius
 			if (dist_xy >= 0.0f && dist_xy <= _navigator->get_acceptance_radius()) {
 				_waypoint_position_reached = true;
