@@ -2938,7 +2938,8 @@ void Commander::manualControlCheck()
 			// but only if actually in air.
 			if (manual_control_setpoint.sticks_moving
 			    && !_vehicle_control_mode.flag_control_manual_enabled
-			    && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
+			    && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING ||
+			        _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_BOAT)
 			   ) {
 				bool override_enabled = false;
 
