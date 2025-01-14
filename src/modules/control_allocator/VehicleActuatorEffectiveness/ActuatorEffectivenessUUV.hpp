@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
+#include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
 
 class ActuatorEffectivenessUUV : public ModuleParams, public ActuatorEffectiveness
