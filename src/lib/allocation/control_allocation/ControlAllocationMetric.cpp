@@ -42,6 +42,12 @@
 #include "ControlAllocationMetric.hpp"
 #include <px4_platform_common/log.h>
 
+/*
+ * ControlAllocationMetric
+ *
+ * Note that the effectiveness matrix is in metric units and that
+ * 'update_normalization_scale' is ignored.
+ */
 void
 ControlAllocationMetric::setEffectivenessMatrix(
 	const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &effectiveness,
@@ -49,7 +55,7 @@ ControlAllocationMetric::setEffectivenessMatrix(
 	bool update_normalization_scale)
 {
 	ControlAllocation::setEffectivenessMatrix(effectiveness, actuator_trim, linearization_point, num_actuators,
-			update_normalization_scale);
+			false);
 	_mix_update_needed = true;
 }
 
