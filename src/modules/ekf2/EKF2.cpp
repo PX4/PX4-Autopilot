@@ -1850,6 +1850,8 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 			    status.mag_strength_ref_gs);
 #endif // CONFIG_EKF2_MAGNETOMETER
 
+	status.hgt_ref = (uint8_t)_ekf.getHeightSensorRef();
+
 	status.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_status_pub.publish(status);
 }

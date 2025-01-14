@@ -121,3 +121,5 @@ float32 mag_inclination_deg
 float32 mag_inclination_ref_deg
 float32 mag_strength_gs
 float32 mag_strength_ref_gs
+
+uint8 hgt_ref	# enum to indicate the current source of the height reference

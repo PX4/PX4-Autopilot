@@ -57,6 +57,10 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/estimator_status.h>
+#include <parameters/param.h>
+#include <ekf2/EKF/common.h>
 
 using namespace matrix;
 using namespace time_literals;
@@ -75,7 +79,8 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 	float gps_altitude_sum = NAN;
 	int gps_altitude_sum_count = 0;
 
-
+	uORB::Subscription vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
+	uORB::Subscription estimator_status_sub(ORB_ID(estimator_status));
 	uORB::SubscriptionMultiArray<sensor_baro_s, MAX_SENSOR_COUNT> sensor_baro_subs{ORB_ID::sensor_baro};
 	calibration::Barometer calibration[MAX_SENSOR_COUNT] {};
 
@@ -128,72 +133,116 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 		px4_usleep(100_ms);
 	}
 
+	estimator_status_s estimator_status;
+	estimator_status_sub.update(&estimator_status);
+	bool use_gps = estimator_status.hgt_ref == static_cast<uint8_t>(estimator::HeightSensor::GNSS);
+	bool param_save = false;
+
 	float gps_altitude = NAN;
 
 	if (PX4_ISFINITE(gps_altitude_sum) && (gps_altitude_sum_count > 0)) {
 		gps_altitude = gps_altitude_sum / gps_altitude_sum_count;
+		use_gps &= true;
+
+	} else {
+		use_gps = false;
 	}
 
-	if (!PX4_ISFINITE(gps_altitude)) {
-		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "GPS required for baro cal");
-		return PX4_ERROR;
-	}
+	if (use_gps) {
 
-	bool param_save = false;
+		float qnh = 1013.25f;
+		param_t param_qnh = param_find("SENS_BARO_QNH");
 
-	for (int instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
-		if ((calibration[instance].device_id() != 0) && (data_sum_count[instance] > 0)) {
+		if (param_qnh != PARAM_INVALID) {
+			param_get(param_qnh, &qnh);
+		}
 
-			const float pressure_pa = data_sum[instance] / data_sum_count[instance];
-			const float temperature = temperature_sum[instance] / data_sum_count[instance];
+		const float pressure_sealevel = 100.f * qnh;
 
-			float pressure_altitude = getAltitudeFromPressure(pressure_pa, temperature);
+		for (int instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
+			if ((calibration[instance].device_id() != 0) && (data_sum_count[instance] > 0)) {
 
-			// Use GPS altitude as a reference to compute the baro bias measurement
-			const float baro_bias = pressure_altitude - gps_altitude;
+				const float pressure_pa = data_sum[instance] / data_sum_count[instance];
+				float pressure_altitude = getAltitudeFromPressure(pressure_pa, pressure_sealevel);
 
-			float altitude = pressure_altitude - baro_bias;
+				// Use GPS altitude as a reference to compute the baro bias measurement
+				const float baro_bias = pressure_altitude - gps_altitude;
+				float altitude = pressure_altitude - baro_bias;
 
-			// find pressure offset that aligns baro altitude with GPS via binary search
-			float front = -10000.f;
-			float middle = NAN;
-			float last = 10000.f;
+				// find pressure offset that aligns baro altitude with GPS via binary search
+				float front = -10000.f;
+				float middle = NAN;
+				float last = 10000.f;
+				float bias = NAN;
 
-			float bias = NAN;
+				// perform a binary search
+				while (front <= last) {
+					middle = front + (last - front) / 2;
+					float altitude_calibrated = getAltitudeFromPressure(pressure_pa - middle, pressure_sealevel);
 
-			// perform a binary search
-			while (front <= last) {
-				middle = front + (last - front) / 2;
-				float altitude_calibrated = getAltitudeFromPressure(pressure_pa - middle, temperature);
+					if (altitude_calibrated > altitude + 0.1f) {
+						last = middle;
 
-				if (altitude_calibrated > altitude + 0.1f) {
-					last = middle;
+					} else if (altitude_calibrated < altitude - 0.1f) {
+						front = middle;
 
-				} else if (altitude_calibrated < altitude - 0.1f) {
-					front = middle;
+					} else {
+						bias = middle;
+						break;
+					}
+				}
 
-				} else {
-					bias = middle;
+				if (PX4_ISFINITE(bias)) {
+					float offset = calibration[instance].BiasCorrectedSensorOffset(bias);
+
+					calibration[instance].set_offset(offset);
+
+					if (calibration[instance].ParametersSave(instance, true)) {
+						calibration[instance].PrintStatus();
+						param_save = true;
+					}
+				}
+			}
+		}
+
+	} else {
+		vehicle_air_data_s vehicle_baro;
+		int selected_sensor_sub_index = MAX_SENSOR_COUNT;
+
+		if (vehicle_air_data_sub.update(&vehicle_baro)) {
+
+			for (int instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
+				if (calibration[instance].device_id() == vehicle_baro.baro_device_id) {
+					selected_sensor_sub_index = instance;
 					break;
 				}
 			}
+		}
 
-			if (PX4_ISFINITE(bias)) {
-				float offset = calibration[instance].BiasCorrectedSensorOffset(bias);
+		if (selected_sensor_sub_index < MAX_SENSOR_COUNT) {
 
-				calibration[instance].set_offset(offset);
+			const float selected_baro_pressure = data_sum[selected_sensor_sub_index] / data_sum_count[selected_sensor_sub_index];
 
-				if (calibration[instance].ParametersSave(instance, true)) {
-					calibration[instance].PrintStatus();
+			for (int instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
+				if ((calibration[instance].device_id() != 0) && (data_sum_count[instance] > 0)
+				    && (instance != selected_sensor_sub_index)) {
+
+					const float pressure = data_sum[instance] / data_sum_count[instance];
+					const float offset = pressure - selected_baro_pressure + calibration[instance].offset();
+
+					calibration[instance].set_offset(offset);
+					calibration[instance].ParametersSave(instance);
 					param_save = true;
 				}
 			}
 		}
 	}
 
-	if (param_save) {
-		param_notify_changes();
+	if (!param_save) {
+		return PX4_ERROR;
 	}
+
+	param_notify_changes();
 
 	calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
 	return PX4_OK;
