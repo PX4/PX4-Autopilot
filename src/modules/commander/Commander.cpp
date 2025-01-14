@@ -1725,7 +1725,8 @@ void Commander::updateParameters()
 			       && _vtol_vehicle_status.vehicle_vtol_state != vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 	const bool is_fixed = is_fixed_wing(_vehicle_status) || (is_vtol(_vehicle_status)
 			      && _vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-	const bool is_ground = is_ground_vehicle(_vehicle_status);
+	const bool is_rover = is_rover_type(_vehicle_status);
+	const bool is_boat = is_boat_type(_vehicle_status);
 
 	/* disable manual override for all systems that rely on electronic stabilization */
 	if (is_rotary) {
@@ -1734,9 +1735,12 @@ void Commander::updateParameters()
 	} else if (is_fixed) {
 		_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
-	} else if (is_ground) {
+	} else if (is_rover) {
 		_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROVER;
+	} else if (is_boat) {
+		_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_BOAT;
 	}
+
 
 	_vehicle_status.is_vtol = is_vtol(_vehicle_status);
 	_vehicle_status.is_vtol_tailsitter = is_vtol_tailsitter(_vehicle_status);
