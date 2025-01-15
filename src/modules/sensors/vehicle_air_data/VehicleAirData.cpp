@@ -37,6 +37,7 @@
 #include <px4_platform_common/events.h>
 #include <lib/geo/geo.h>
 #include <lib/atmosphere/atmosphere.h>
+#include <uORB/topics/vehicle_command.h>
 
 namespace sensors
 {
@@ -291,6 +292,26 @@ void VehicleAirData::Run()
 					_temperature_sum[instance] = 0;
 					_data_sum_count[instance] = 0;
 				}
+			}
+		}
+
+		if (!_calibration_done) {
+			// allow all drivers to start up
+			_calibration_delay = _calibration_delay == 0 ? time_now_us : _calibration_delay;
+
+			if (time_now_us - _calibration_delay > 1_s) {
+				_calibration_done = true;
+				uORB::Publication<vehicle_command_s> _vehicle_command_sub{ORB_ID(vehicle_command)};
+				vehicle_command_s vcmd{};
+				vcmd.command = vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION;
+				vcmd.param1 = 0;
+				vcmd.param2 = 0;
+				vcmd.param3 = 1;
+				vcmd.param4 = 0;
+				vcmd.param5 = 0;
+				vcmd.param6 = 0;
+				vcmd.param7 = 0;
+				_vehicle_command_sub.publish(vcmd);
 			}
 		}
 	}
