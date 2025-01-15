@@ -52,6 +52,8 @@ ActuatorEffectivenessTilts::ActuatorEffectivenessTilts(ModuleParams *parent)
 		_param_handles[i].max_angle = param_find(buffer);
 		snprintf(buffer, sizeof(buffer), "CA_SV_TL%u_TD", i);
 		_param_handles[i].tilt_direction = param_find(buffer);
+		snprintf(buffer, sizeof(buffer), "CA_SV_TL%u_TRIM", i);
+		_param_handles[i].trim = param_find(buffer);
 	}
 
 	_count_handle = param_find("CA_SV_TL_COUNT");
@@ -76,6 +78,7 @@ void ActuatorEffectivenessTilts::updateParams()
 		param_get(_param_handles[i].tilt_direction, (int32_t *)&_params[i].tilt_direction);
 		param_get(_param_handles[i].min_angle, &_params[i].min_angle);
 		param_get(_param_handles[i].max_angle, &_params[i].max_angle);
+		param_get(_param_handles[i].trim, &_params[i].trim);
 
 		_params[i].min_angle = math::radians(_params[i].min_angle);
 		_params[i].max_angle = math::radians(_params[i].max_angle);
@@ -87,7 +90,11 @@ void ActuatorEffectivenessTilts::updateParams()
 bool ActuatorEffectivenessTilts::addActuators(Configuration &configuration)
 {
 	for (int i = 0; i < _count; i++) {
-		configuration.addActuator(ActuatorType::SERVOS, _torque[i], Vector3f{});
+		int actuator_idx = configuration.addActuator(ActuatorType::SERVOS, _torque[i], Vector3f{});
+
+		if (actuator_idx >= 0) {
+			configuration.trim[configuration.selected_matrix](actuator_idx) = _params[i].trim;
+		}
 	}
 
 	return true;

@@ -62,6 +62,7 @@ public:
 		float min_angle;
 		float max_angle;
 		TiltDirection tilt_direction;
+		float trim;
 	};
 
 	ActuatorEffectivenessTilts(ModuleParams *parent);
@@ -89,6 +90,7 @@ private:
 		param_t min_angle;
 		param_t max_angle;
 		param_t tilt_direction;
+		param_t trim;
 	};
 
 	ParamHandles _param_handles[MAX_COUNT];
