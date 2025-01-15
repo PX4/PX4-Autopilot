@@ -1,0 +1,43 @@
+px4_add_library(VehicleActuatorEffectiveness
+	ActuatorEffectivenessUUV.cpp
+	ActuatorEffectivenessUUV.hpp
+	ActuatorEffectivenessControlSurfaces.cpp
+	ActuatorEffectivenessControlSurfaces.hpp
+	ActuatorEffectivenessCustom.cpp
+	ActuatorEffectivenessCustom.hpp
+	ActuatorEffectivenessFixedWing.cpp
+	ActuatorEffectivenessFixedWing.hpp
+	ActuatorEffectivenessHelicopter.cpp
+	ActuatorEffectivenessHelicopter.hpp
+	ActuatorEffectivenessHelicopterCoaxial.cpp
+	ActuatorEffectivenessHelicopterCoaxial.hpp
+	ActuatorEffectivenessMCTilt.cpp
+	ActuatorEffectivenessMCTilt.hpp
+	ActuatorEffectivenessMultirotor.cpp
+	ActuatorEffectivenessMultirotor.hpp
+	ActuatorEffectivenessTilts.cpp
+	ActuatorEffectivenessTilts.hpp
+	ActuatorEffectivenessRotors.cpp
+	ActuatorEffectivenessRotors.hpp
+	ActuatorEffectivenessStandardVTOL.cpp
+	ActuatorEffectivenessStandardVTOL.hpp
+	ActuatorEffectivenessTiltrotorVTOL.cpp
+	ActuatorEffectivenessTiltrotorVTOL.hpp
+	ActuatorEffectivenessTailsitterVTOL.cpp
+	ActuatorEffectivenessTailsitterVTOL.hpp
+	ActuatorEffectivenessRoverAckermann.hpp
+	ActuatorEffectivenessRoverAckermann.cpp
+	RpmControl.hpp
+	RpmControl.cpp
+)
+
+target_compile_options(VehicleActuatorEffectiveness PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_include_directories(VehicleActuatorEffectiveness PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(VehicleActuatorEffectiveness
+	PRIVATE
+		mathlib
+		ActuatorEffectiveness
+)
+
+px4_add_functional_gtest(SRC ActuatorEffectivenessHelicopterTest.cpp LINKLIBS VehicleActuatorEffectiveness)
+px4_add_functional_gtest(SRC ActuatorEffectivenessRotorsTest.cpp LINKLIBS VehicleActuatorEffectiveness)
