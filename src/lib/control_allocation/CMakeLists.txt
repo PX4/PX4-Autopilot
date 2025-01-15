@@ -1,6 +1,10 @@
 ############################################################################
 #
+<<<<<<< HEAD
 #   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+=======
+#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+>>>>>>> origin
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -48,3 +52,5 @@ target_link_libraries(ControlAllocation PRIVATE mathlib)
 px4_add_unit_gtest(SRC ControlAllocationPseudoInverseTest.cpp LINKLIBS ControlAllocation)
 px4_add_unit_gtest(SRC ControlAllocationMetric.cpp LINKLIBS ControlAllocation)
 # px4_add_functional_gtest(SRC ControlAllocationSequentialDesaturationTest.cpp LINKLIBS ControlAllocation ActuatorEffectiveness)
+add_subdirectory(control_allocation)
+add_subdirectory(actuator_effectiveness)

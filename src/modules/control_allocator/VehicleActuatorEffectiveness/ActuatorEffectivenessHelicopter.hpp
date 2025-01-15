@@ -33,13 +33,15 @@
 
 #pragma once
 
-#include "actuator_effectiveness/ActuatorEffectiveness.hpp"
+#include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
 
 #include <px4_platform_common/module_params.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/manual_control_switches.h>
+
+#include "RpmControl.hpp"
 
 class ActuatorEffectivenessHelicopter : public ModuleParams, public ActuatorEffectiveness
 {
@@ -131,4 +133,6 @@ private:
 	bool _main_motor_engaged{true};
 
 	const ActuatorType _tail_actuator_type;
+
+	RpmControl _rpm_control{this};
 };

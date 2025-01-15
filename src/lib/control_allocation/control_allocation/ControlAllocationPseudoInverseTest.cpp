@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,48 +31,39 @@
  *
  ****************************************************************************/
 
-#pragma once
+/**
+ * @file ControlAllocationPseudoInverseTest.cpp
+ *
+ * Tests for Control Allocation Algorithms
+ *
+ * @author Julien Lecoeur <julien.lecoeur@gmail.com>
+ */
 
-#include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
-#include "ActuatorEffectivenessRotors.hpp"
-#include "ActuatorEffectivenessTilts.hpp"
+#include <gtest/gtest.h>
+#include <ControlAllocationPseudoInverse.hpp>
 
-class ActuatorEffectivenessMCTilt : public ModuleParams, public ActuatorEffectiveness
+using namespace matrix;
+
+TEST(ControlAllocationTest, AllZeroCase)
 {
-public:
-	ActuatorEffectivenessMCTilt(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessMCTilt() = default;
+	ControlAllocationPseudoInverse method;
 
-	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
+	matrix::Vector<float, 6> control_sp;
+	matrix::Vector<float, 6> control_allocated;
+	matrix::Vector<float, 6> control_allocated_expected;
+	matrix::Matrix<float, 6, 16> effectiveness;
+	matrix::Vector<float, 16> actuator_sp;
+	matrix::Vector<float, 16> actuator_trim;
+	matrix::Vector<float, 16> linearization_point;
+	matrix::Vector<float, 16> actuator_sp_expected;
 
-	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
-	{
-		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
-	}
+	method.setEffectivenessMatrix(effectiveness, actuator_trim, linearization_point, 16, false);
+	method.setControlSetpoint(control_sp);
+	method.allocate();
+	method.clipActuatorSetpoint();
+	actuator_sp = method.getActuatorSetpoint();
+	control_allocated_expected = method.getAllocatedControl();
 
-	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
-	{
-		normalize[0] = true;
-	}
-
-	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
-			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
-
-	const char *name() const override { return "MC Tilt"; }
-
-	void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
-
-protected:
-	ActuatorVector _tilt_offsets;
-	ActuatorEffectivenessRotors _mc_rotors;
-	ActuatorEffectivenessTilts _tilts;
-	int _first_tilt_idx{0};
-
-	struct YawTiltSaturationFlags {
-		bool tilt_yaw_pos;
-		bool tilt_yaw_neg;
-	};
-
-	YawTiltSaturationFlags _yaw_tilt_saturation_flags{};
-};
+	EXPECT_EQ(actuator_sp, actuator_sp_expected);
+	EXPECT_EQ(control_allocated, control_allocated_expected);
+}

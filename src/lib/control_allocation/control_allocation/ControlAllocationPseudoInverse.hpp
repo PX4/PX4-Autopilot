@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,48 +31,46 @@
  *
  ****************************************************************************/
 
+/**
+ * @file ControlAllocationPseudoInverse.hpp
+ *
+ * Simple Control Allocation Algorithm
+ *
+ * It computes the pseudo-inverse of the effectiveness matrix
+ * Actuator saturation is handled by simple clipping, do not
+ * expect good performance in case of actuator saturation.
+ *
+ * @author Julien Lecoeur <julien.lecoeur@gmail.com>
+ */
+
 #pragma once
 
-#include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
-#include "ActuatorEffectivenessRotors.hpp"
-#include "ActuatorEffectivenessTilts.hpp"
+#include "ControlAllocation.hpp"
 
-class ActuatorEffectivenessMCTilt : public ModuleParams, public ActuatorEffectiveness
+class ControlAllocationPseudoInverse: public ControlAllocation
 {
 public:
-	ActuatorEffectivenessMCTilt(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessMCTilt() = default;
+	ControlAllocationPseudoInverse() = default;
+	virtual ~ControlAllocationPseudoInverse() = default;
 
-	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
-
-	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
-	{
-		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
-	}
-
-	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
-	{
-		normalize[0] = true;
-	}
-
-	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
-			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
-
-	const char *name() const override { return "MC Tilt"; }
-
-	void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
+	void allocate() override;
+	void setEffectivenessMatrix(const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness,
+				    const ActuatorVector &actuator_trim, const ActuatorVector &linearization_point, int num_actuators,
+				    bool update_normalization_scale) override;
 
 protected:
-	ActuatorVector _tilt_offsets;
-	ActuatorEffectivenessRotors _mc_rotors;
-	ActuatorEffectivenessTilts _tilts;
-	int _first_tilt_idx{0};
+	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _mix;
 
-	struct YawTiltSaturationFlags {
-		bool tilt_yaw_pos;
-		bool tilt_yaw_neg;
-	};
+	bool _mix_update_needed{false};
 
-	YawTiltSaturationFlags _yaw_tilt_saturation_flags{};
+	/**
+	 * Recalculate pseudo inverse if required.
+	 *
+	 */
+	void updatePseudoInverse();
+
+private:
+	void normalizeControlAllocationMatrix();
+	void updateControlAllocationMatrixScale();
+	bool _normalization_needs_update{false};
 };

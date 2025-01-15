@@ -31,28 +31,23 @@
 #
 ############################################################################
 
-px4_add_library(ActuatorEffectiveness
-	ActuatorEffectiveness.cpp
-	ActuatorEffectiveness.hpp
-<<<<<<<< HEAD:src/lib/actuator_effectiveness/CMakeLists.txt
-	ActuatorEffectivenessRotors.cpp
-	ActuatorEffectivenessRotors.hpp
-	ActuatorEffectivenessThrusters.cpp
-	ActuatorEffectivenessThrusters.hpp
-========
->>>>>>>> origin:src/lib/control_allocation/actuator_effectiveness/CMakeLists.txt
+px4_add_library(ControlAllocation
+	ControlAllocation.cpp
+	ControlAllocation.hpp
+	ControlAllocationMetric.cpp
+	ControlAllocationMetric.hpp
+	ControlAllocationPseudoInverse.cpp
+	ControlAllocationPseudoInverse.hpp
+	ControlAllocationSequentialDesaturation.cpp
+	ControlAllocationSequentialDesaturation.hpp
 )
+target_compile_options(ControlAllocation PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_include_directories(ControlAllocation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(ControlAllocation PRIVATE mathlib)
 
-target_compile_options(ActuatorEffectiveness PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
-target_include_directories(ActuatorEffectiveness PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ActuatorEffectiveness
-	PRIVATE
-		mathlib
-		PID
-)
-<<<<<<<< HEAD:src/lib/actuator_effectiveness/CMakeLists.txt
-
-px4_add_functional_gtest(SRC ActuatorEffectivenessRotorsTest.cpp LINKLIBS ActuatorEffectiveness)
-px4_add_functional_gtest(SRC ActuatorEffectivenessThrustersTest.cpp LINKLIBS ActuatorEffectiveness)
+px4_add_unit_gtest(SRC ControlAllocationPseudoInverseTest.cpp LINKLIBS ControlAllocation)
+<<<<<<<< HEAD:src/lib/control_allocation/CMakeLists.txt
+px4_add_unit_gtest(SRC ControlAllocationMetric.cpp LINKLIBS ControlAllocation)
 ========
->>>>>>>> origin:src/lib/control_allocation/actuator_effectiveness/CMakeLists.txt
+>>>>>>>> origin:src/lib/control_allocation/control_allocation/CMakeLists.txt
+# px4_add_functional_gtest(SRC ControlAllocationSequentialDesaturationTest.cpp LINKLIBS ControlAllocation ActuatorEffectiveness)
