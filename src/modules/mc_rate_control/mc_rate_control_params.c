@@ -292,3 +292,17 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_K, 1.0f);
  * @group Multicopter Rate Control
  */
 PARAM_DEFINE_INT32(MC_BAT_SCALE_EN, 0);
+
+/**
+ * Low pass filter cutoff frequency for yaw torque setpoint
+ *
+ * Reduces vibrations by lowering high frequency torque caused by rotor acceleration.
+ * 0 disables the filter
+ *
+ * @min 0
+ * @max 10
+ * @unit Hz
+ * @decimal 3
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(MC_YAW_TQ_CUTOFF, 2.f);
