@@ -457,6 +457,40 @@ class Tester:
                     px4_runner.env[env_key] = str(test['env'][env_key])
                 self.active_runners.append(px4_runner)
 
+            elif self.config['simulator'] == 'sih':
+
+                # import ipdb; ipdb.set_trace()
+
+                # only run px4.
+                px4_runner = ph.Px4Runner(
+                    os.getcwd(),
+                    log_dir,
+                    test['model'],
+                    case,
+                    self.get_max_speed_factor(test),
+                    self.debugger,
+                    self.verbose,
+                    self.build_dir)
+                for env_key in test.get('env', []):
+                    px4_runner.env[env_key] = str(test['env'][env_key])
+                self.active_runners.append(px4_runner)
+
+                # overwrite these env vars which were already set in Px4Runner.__init__
+                # maybe there is a cleaner way to do this?
+                px4_runner.env['PX4_SIMULATOR'] = 'sihsim'
+                # running
+                #     diff 10015_gazebo-classic_iris 10016_none_iris
+                # literally only gives comment changes. therefore we should be good there...
+
+                # so we make another copy here, adapting the iris file for sihsim.
+                px4_runner.env["PX4_SIM_MODEL"] = "sihsim_" + test['model']
+
+                # import ipdb; ipdb.set_trace()
+
+
+        # import ipdb; ipdb.set_trace()
+
+
         mavsdk_tests_runner = ph.TestRunner(
             os.getcwd(),
             log_dir,
