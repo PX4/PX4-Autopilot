@@ -11,6 +11,7 @@
 # @output Motor4 MC motor back right
 # @output Motor5 Forward thrust motor
 # @output Servo1 Ailerons (single channel)
+# @output Servo1 Aileron
 # @output Servo2 Elevator
 # @output Servo3 Rudder
 #
