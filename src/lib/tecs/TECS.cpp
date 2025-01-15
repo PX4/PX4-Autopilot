@@ -417,6 +417,15 @@ void TECSControl::_calcPitchControl(float dt, const Input &input, const Specific
 	const SpecificEnergyWeighting weight{_updateSpeedAltitudeWeights(param, flag)};
 	ControlValues seb_rate{_calcPitchControlSebRate(weight, specific_energy_rates)};
 
+	// Store the pitch integrator value when entering fast descend and reset when leaving fast descend
+	if ((param.fast_descend > FLT_EPSILON) && !PX4_ISFINITE(_pitch_integ_reset_val)) {
+		_pitch_integ_reset_val = _pitch_integ_state;
+
+	} else if (fabsf(param.fast_descend) <= FLT_EPSILON && PX4_ISFINITE(_pitch_integ_reset_val)) {
+		_pitch_integ_state = _pitch_integ_reset_val;
+		_pitch_integ_reset_val = NAN;
+	}
+
 	_calcPitchControlUpdate(dt, input, seb_rate, param);
 	const float pitch_setpoint{_calcPitchControlOutput(input, seb_rate, param, flag)};
 
@@ -506,7 +515,16 @@ float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValu
 	// a) The climb angle follows pitch angle with a lag that is small enough not to destabilise the control loop.
 	// b) The offset between climb angle and pitch angle (angle of attack) is constant, excluding the effect of
 	// pitch transients due to control action or turbulence.
-	const float pitch_setpoint_unc = SEB_rate_correction / climb_angle_to_SEB_rate + _pitch_integ_state;
+
+	float pitch_setpoint_unc{0.f};
+
+	if (param.fast_descend > FLT_EPSILON && PX4_ISFINITE(_pitch_integ_reset_val)) {
+		pitch_setpoint_unc = SEB_rate_correction / climb_angle_to_SEB_rate + lerp(_pitch_integ_reset_val, _pitch_integ_state,
+				     param.fast_descend);
+
+	} else {
+		pitch_setpoint_unc = SEB_rate_correction / climb_angle_to_SEB_rate + _pitch_integ_state;
+	}
 
 	return constrain(pitch_setpoint_unc, param.pitch_min, param.pitch_max);
 }
@@ -654,6 +672,10 @@ void TECSControl::resetIntegrals()
 {
 	_pitch_integ_state = 0.0f;
 	_throttle_integ_state = 0.0f;
+
+	if (!PX4_ISFINITE(_pitch_integ_reset_val)) {
+		_pitch_integ_reset_val = NAN;
+	}
 }
 
 void TECS::initControlParams(float target_climbrate, float target_sinkrate, float eas_to_tas, float pitch_limit_max,
