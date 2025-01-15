@@ -572,16 +572,25 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 				return TRANSITION_DENIED;
 			}
 
-			if ((!_failsafe_flags.manual_control_signal_lost) &&
-			    ((!_vehicle_control_mode.flag_control_climb_rate_enabled &&
-			      !_is_throttle_low) ||
-			     ((_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER ||
-			       _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_BOAT) &&
-			      !_is_throttle_near_center))) {
+			if (!_vehicle_control_mode.flag_control_climb_rate_enabled &&
+			    !_failsafe_flags.manual_control_signal_lost && !_is_throttle_low
+			    && _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROVER
+			    && _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_BOAT) {
 
 				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: high throttle\t");
 				events::send(events::ID("commander_arm_denied_throttle_high"), {events::Log::Critical, events::LogInternal::Info},
 					     "Arming denied: high throttle");
+				tune_negative(true);
+				return TRANSITION_DENIED;
+			}
+
+			if ((_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER
+			     || _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_BOAT)
+			    && !_failsafe_flags.manual_control_signal_lost && !_is_throttle_near_center) {
+
+				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: throttle not centered\t");
+				events::send(events::ID("commander_arm_denied_throttle_not_centered"), {events::Log::Critical, events::LogInternal::Info},
+					     "Arming denied: throttle not centered");
 				tune_negative(true);
 				return TRANSITION_DENIED;
 			}
@@ -1728,8 +1737,6 @@ void Commander::updateParameters()
 			       && _vtol_vehicle_status.vehicle_vtol_state != vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 	const bool is_fixed = is_fixed_wing(_vehicle_status) || (is_vtol(_vehicle_status)
 			      && _vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-	const bool is_rover = is_rover_type(_vehicle_status);
-	const bool is_boat = is_boat_type(_vehicle_status);
 
 	/* disable manual override for all systems that rely on electronic stabilization */
 	if (is_rotary) {
@@ -1738,13 +1745,12 @@ void Commander::updateParameters()
 	} else if (is_fixed) {
 		_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
-	} else if (is_rover) {
+	} else if (is_rover_type(_vehicle_status)) {
 		_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROVER;
 
-	} else if (is_boat) {
+	} else if (is_boat_type(_vehicle_status)) {
 		_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_BOAT;
 	}
-
 
 	_vehicle_status.is_vtol = is_vtol(_vehicle_status);
 	_vehicle_status.is_vtol_tailsitter = is_vtol_tailsitter(_vehicle_status);
@@ -2943,8 +2949,8 @@ void Commander::manualControlCheck()
 			// but only if actually in air.
 			if (manual_control_setpoint.sticks_moving
 			    && !_vehicle_control_mode.flag_control_manual_enabled
-			    && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING ||
-				_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_BOAT)
+			    && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+				|| _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_BOAT)
 			   ) {
 				bool override_enabled = false;
 
