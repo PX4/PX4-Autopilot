@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,85 +33,36 @@
 
 #pragma once
 
-#include "ActuatorEffectiveness.hpp"
+#include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
+#include "ActuatorEffectivenessRotors.hpp"
+#include "ActuatorEffectivenessControlSurfaces.hpp"
 
-#include <px4_platform_common/module_params.h>
+#include <uORB/topics/normalized_unsigned_setpoint.h>
 
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/manual_control_switches.h>
-
-class ActuatorEffectivenessHelicopterCoaxial : public ModuleParams, public ActuatorEffectiveness
+class ActuatorEffectivenessFixedWing : public ModuleParams, public ActuatorEffectiveness
 {
 public:
-
-	static constexpr int NUM_SWASH_PLATE_SERVOS_MAX = 4;
-
-	struct SwashPlateGeometry {
-		float angle;
-		float arm_length;
-		float trim;
-	};
-
-	struct Geometry {
-		SwashPlateGeometry swash_plate_servos[NUM_SWASH_PLATE_SERVOS_MAX];
-		int num_swash_plate_servos{0};
-		float spoolup_time;
-	};
-
-	ActuatorEffectivenessHelicopterCoaxial(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessHelicopterCoaxial() = default;
+	ActuatorEffectivenessFixedWing(ModuleParams *parent);
+	virtual ~ActuatorEffectivenessFixedWing() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
-	const char *name() const override { return "Helicopter"; }
+	const char *name() const override { return "Fixed Wing"; }
 
-
-	const Geometry &geometry() const { return _geometry; }
+	void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) override;
 
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
 			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
 
-	void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
 private:
-	float throttleSpoolupProgress();
+	ActuatorEffectivenessRotors _rotors;
+	ActuatorEffectivenessControlSurfaces _control_surfaces;
 
-	void updateParams() override;
+	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
+	uORB::Subscription _spoilers_setpoint_sub{ORB_ID(spoilers_setpoint)};
 
-	struct SaturationFlags {
-		bool roll_pos;
-		bool roll_neg;
-		bool pitch_pos;
-		bool pitch_neg;
-		bool yaw_pos;
-		bool yaw_neg;
-		bool thrust_pos;
-		bool thrust_neg;
-	};
-	static void setSaturationFlag(float coeff, bool &positive_flag, bool &negative_flag);
+	int _first_control_surface_idx{0}; ///< applies to matrix 1
 
-	struct ParamHandlesSwashPlate {
-		param_t angle;
-		param_t arm_length;
-		param_t trim;
-	};
-	struct ParamHandles {
-		ParamHandlesSwashPlate swash_plate_servos[NUM_SWASH_PLATE_SERVOS_MAX];
-		param_t num_swash_plate_servos;
-		param_t spoolup_time;
-	};
-	ParamHandles _param_handles{};
-
-	Geometry _geometry{};
-
-	int _first_swash_plate_servo_index{};
-	SaturationFlags _saturation_flags;
-
-	// Throttle spoolup state
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	bool _armed{false};
-	uint64_t _armed_time{0};
-
-	uORB::Subscription _manual_control_switches_sub{ORB_ID(manual_control_switches)};
+	uint32_t _forwards_motors_mask{};
 };

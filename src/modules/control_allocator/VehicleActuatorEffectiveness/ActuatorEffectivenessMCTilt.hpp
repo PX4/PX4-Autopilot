@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,27 +33,46 @@
 
 #pragma once
 
-#include "ActuatorEffectiveness.hpp"
+#include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
-#include "ActuatorEffectivenessControlSurfaces.hpp"
+#include "ActuatorEffectivenessTilts.hpp"
 
-class ActuatorEffectivenessCustom : public ModuleParams, public ActuatorEffectiveness
+class ActuatorEffectivenessMCTilt : public ModuleParams, public ActuatorEffectiveness
 {
 public:
-	ActuatorEffectivenessCustom(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessCustom() = default;
+	ActuatorEffectivenessMCTilt(ModuleParams *parent);
+	virtual ~ActuatorEffectivenessMCTilt() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
+
+	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
+	{
+		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
+	}
+
+	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
+	{
+		normalize[0] = true;
+	}
 
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
 			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
 
-	const char *name() const override { return "Custom"; }
+	const char *name() const override { return "MC Tilt"; }
+
+	void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
 
 protected:
-	ActuatorEffectivenessRotors _motors;
-	ActuatorEffectivenessControlSurfaces _torque;
+	ActuatorVector _tilt_offsets;
+	ActuatorEffectivenessRotors _mc_rotors;
+	ActuatorEffectivenessTilts _tilts;
+	int _first_tilt_idx{0};
 
-	uint32_t _motors_mask{};
+	struct YawTiltSaturationFlags {
+		bool tilt_yaw_pos;
+		bool tilt_yaw_neg;
+	};
+
+	YawTiltSaturationFlags _yaw_tilt_saturation_flags{};
 };
