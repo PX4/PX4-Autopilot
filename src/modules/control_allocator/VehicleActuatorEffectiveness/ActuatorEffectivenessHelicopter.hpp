@@ -134,5 +134,7 @@ private:
 
 	const ActuatorType _tail_actuator_type;
 
-	RpmControl _rpm_control{this};
+#if CONTROL_ALLOCATOR_RPM_CONTROL
+	RpmControl _rpm_control {this};
+#endif // CONTROL_ALLOCATOR_RPM_CONTROL
 };
