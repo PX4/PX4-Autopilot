@@ -41,7 +41,7 @@ parameters:
                   If set to Automtic, the selection is based on the airframe (CA_AIRFRAME).
             type: enum
             values:
-                0: Pseudo-inverse with output clipping
+                0: Pseudo-inverse without any desaturation
                 1: Pseudo-inverse with sequential desaturation technique
                 2: Automatic
             default: 2
@@ -576,6 +576,98 @@ parameters:
                 0: Ignore
                 1: Remove first failed motor from effectiveness
             default: 0
+
+        CA_FW_DTHR_SC_R:
+            description:
+                short: Fixed-wing differential thrust roll scale
+            type: float
+            decimal: 2
+            increment: 0.1
+            min: 0
+            max: 10
+            default: 1
+
+        CA_FW_DTHR_SC_P:
+            description:
+                short: Fixed-wing differential thrust pitch scale
+            type: float
+            decimal: 2
+            increment: 0.1
+            min: 0
+            max: 10
+            default: 1
+
+        CA_FW_DTHR_SC_Y:
+            description:
+                short: Fixed-wing differential thrust yaw scale
+            type: float
+            decimal: 2
+            increment: 0.1
+            min: 0
+            max: 10
+            default: 1
+
+        CA_FW_DTHR_WGT_R:
+            description:
+                short: Fixed-wing differential thrust roll weight
+                long: |
+                    Weight of torque allocated through differential thrust vs control surface.
+            type: float
+            decimal: 2
+            increment: 0.1
+            min: 0
+            max: 1
+            default: 0
+
+        CA_FW_DTHR_WGT_P:
+            description:
+                short: Pitch weight of differential thrust in fixed-wing
+                long: |
+                    Weight of torque allocated through differential thrust vs control surface.
+            type: float
+            decimal: 2
+            increment: 0.1
+            min: 0
+            max: 1
+            default: 0
+
+        CA_FW_DTHR_WGT_Y:
+            description:
+                short: Yaw weight of differential thrust in fixed-wing
+                long: |
+                    Weight of torque allocated through differential thrust vs control surface.
+            type: float
+            decimal: 2
+            increment: 0.1
+            min: 0
+            max: 1
+            default: 0
+
+        CA_FW_DTHR_AIRMD:
+            description:
+                short: Enable airmode for fixed-wing differential thrust
+                long: |
+                    If enabeld it allows the allocator to increase collective thrust to achieve
+                    thorque setpoints.
+            type: enum
+            values:
+                0: Disabled
+                1: Roll/Pitch
+                2: Roll/Pitch/Yaw
+            default: 0
+
+        CA_FW_DTHR_FB_EN:
+            description:
+                short: Enable fallback to differential thrust for control in fixed-wing
+                long: |
+                    Enable fallback to differential thrust for rate control around axes that have
+                    0 effectiveness in the servo matrix after the detected servo failure.
+            type: boolean
+            values:
+                0: Disabled
+                1: Enabled
+            default: 1
+
 
 # Mixer
 mixer:

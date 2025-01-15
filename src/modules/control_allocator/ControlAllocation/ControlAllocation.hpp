@@ -99,15 +99,6 @@ public:
 	virtual void allocate() = 0;
 
 	/**
-	 * Set actuator failure flag
-	 * This prevents a change of the scaling in the matrix normalization step
-	 * in case of a motor failure.
-	 *
-	 * @param failure  Motor failure flag
-	 */
-	void setHadActuatorFailure(bool failure) { _had_actuator_failure = failure; }
-
-	/**
 	 * Set the control effectiveness matrix
 	 *
 	 * @param B Effectiveness matrix
@@ -150,7 +141,7 @@ public:
 	 *
 	 * @return Effectiveness matrix
 	 */
-	const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &getEffectivenessMatrix() const { return _effectiveness; }
+	const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &getEffectivenessMatrixAllocation() const { return _effectiveness; }
 
 	/**
 	 * Set the minimum actuator values
@@ -226,7 +217,11 @@ public:
 
 	int numConfiguredActuators() const { return _num_actuators; }
 
-	void setNormalizeRPY(bool normalize_rpy) { _normalize_rpy = normalize_rpy; }
+	void setNormalizeAsPlanarMC(bool normalize_as_mc) { _normalize_matrix_as_planar_mc = normalize_as_mc; }
+	void setAirmode(const int airmode) {_airmode = airmode; }
+
+	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> getMixMatrix() {return _mix; }
+	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> getNormalizedMixMatrix() {return _normalized_mix; }
 
 protected:
 	friend class ControlAllocator; // for _actuator_sp
@@ -242,6 +237,8 @@ protected:
 	matrix::Vector<float, NUM_AXES> _control_sp;   		///< Control setpoint
 	matrix::Vector<float, NUM_AXES> _control_trim; 		///< Control at trim actuator values
 	int _num_actuators{0};
-	bool _normalize_rpy{false};				///< if true, normalize roll, pitch and yaw columns
-	bool _had_actuator_failure{false};
+	bool _normalize_matrix_as_planar_mc{false};		///< if true, normalize roll, pitch and yaw columns optimized for planar MC
+	int _airmode{0};					///< 0: disabled, 1: RP airmode, 2: RPY airmode
+	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _mix;
+	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _normalized_mix;
 };

@@ -76,12 +76,6 @@ enum VtolForwardActuationMode {
 	ENABLE_ABOVE_MPC_LAND_ALT2_WITHOUT_LAND
 };
 
-// enum for bitmask of VT_FW_DIFTHR_EN parameter options
-enum class VtFwDifthrEnBits : int32_t {
-	YAW_BIT = (1 << 0),
-	ROLL_BIT = (1 << 1),
-	PITCH_BIT = (1 << 2),
-};
 
 enum class QuadchuteReason {
 	None = 0,
@@ -343,10 +337,6 @@ protected:
 					(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
 					(ParamFloat<px4::params::VT_TRANS_TIMEOUT>) _param_vt_trans_timeout,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
-					(ParamInt<px4::params::VT_FW_DIFTHR_EN>) _param_vt_fw_difthr_en,
-					(ParamFloat<px4::params::VT_FW_DIFTHR_S_Y>) _param_vt_fw_difthr_s_y,
-					(ParamFloat<px4::params::VT_FW_DIFTHR_S_P>) _param_vt_fw_difthr_s_p,
-					(ParamFloat<px4::params::VT_FW_DIFTHR_S_R>) _param_vt_fw_difthr_s_r,
 					(ParamFloat<px4::params::VT_B_DEC_I>) _param_vt_b_dec_i,
 					(ParamFloat<px4::params::VT_B_DEC_MSS>) _param_vt_b_dec_mss,
 

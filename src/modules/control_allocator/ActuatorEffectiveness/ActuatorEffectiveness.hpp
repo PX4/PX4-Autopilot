@@ -63,7 +63,7 @@ enum class ActuatorType {
 enum class EffectivenessUpdateReason {
 	NO_EXTERNAL_UPDATE = 0,
 	CONFIGURATION_UPDATE = 1,
-	MOTOR_ACTIVATION_UPDATE = 2,
+	ACTUATOR_ACTIVATION_UPDATE = 2,
 };
 
 
@@ -135,6 +135,17 @@ public:
 	}
 
 	/**
+	 * Set flag to enable/disable auxiliary motors (effectiveness-type specific)
+	 *
+	 * Auxiliary motors are switched off (stopped) by default, but can be enabled
+	 * in certain cases (e.g. MC motors on a Standard VTOL in forward flight for
+	 * attitude control support).
+	 *
+	 * @param enable True to enable auxiliary motors, false to disable them.
+	 */
+	virtual void setEnableAuxiliaryMotors(bool enable) {}
+
+	/**
 	 * Get the number of effectiveness matrices. Must be <= MAX_NUM_MATRICES.
 	 * This is expected to stay constant.
 	 */
@@ -153,7 +164,7 @@ public:
 	/**
 	 * Query if the roll, pitch and yaw columns of the mixing matrix should be normalized
 	 */
-	virtual void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const
+	virtual void getNormalizeAsPlanarMC(bool normalize[MAX_NUM_MATRICES]) const
 	{
 		for (int i = 0; i < MAX_NUM_MATRICES; ++i) {
 			normalize[i] = false;
@@ -201,9 +212,19 @@ public:
 				    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) {}
 
 	/**
-	 * Get a bitmask of motors to be stopped
+	 * Get a bitmask of motors to be stopped.
+	 * Stopped motors are by definition NOT to be removed from the control allocation matrix,
+	 * but their output is to be stopped (setpoint=NAN).
+	 * Usually is used to not have motors spinning at 0 thrust.
 	 */
 	virtual uint32_t getStoppedMotors() const { return _stopped_motors_mask; }
+
+	/**
+	 * Get a bitmask of motors to be disabled.
+	 * Disabled motors are by definition to be removed from the control allocation matrix and
+	 * their output is to be stopped (setpoint=NAN).
+	 */
+	virtual uint32_t getDisabledMotors() const { return _disabled_motors_mask; }
 
 	/**
 	 * Fill in the unallocated torque and thrust, customized by effectiveness type.
@@ -222,4 +243,5 @@ public:
 protected:
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};
 	uint32_t _stopped_motors_mask{0};
+	uint32_t _disabled_motors_mask{0};
 };

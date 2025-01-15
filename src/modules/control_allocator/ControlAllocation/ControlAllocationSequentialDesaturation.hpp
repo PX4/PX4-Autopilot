@@ -125,8 +125,4 @@ private:
 	 * but yaw is decreased as much as required.
 	 */
 	void mixYaw();
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode   ///< air-mode
-	);
 };

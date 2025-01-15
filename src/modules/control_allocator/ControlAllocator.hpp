@@ -132,7 +132,7 @@ private:
 
 	void update_effectiveness_matrix_if_needed(EffectivenessUpdateReason reason);
 
-	void check_for_motor_failures();
+	bool check_for_actuator_activation_update();
 
 	void publish_control_allocator_status(int matrix_index);
 
@@ -198,6 +198,9 @@ private:
 	// Reflects motor failures that are currently handled, not motor failures that are reported.
 	// For example, the system might report two motor failures, but only the first one is handled by CA
 	uint16_t _handled_motor_failure_bitmask{0};
+	uint16_t _handled_servo_failure_bitmask{0};
+
+	uint16_t _handled_motor_disabled_bitmask{0};
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
@@ -209,12 +212,24 @@ private:
 	ParamHandles _param_handles{};
 	Params _params{};
 	bool _has_slew_rate{false};
+	ActuatorEffectiveness::FlightPhase _flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
+
+	bool _has_control_authority[2][6] = {false};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,
 		(ParamInt<px4::params::CA_METHOD>) _param_ca_method,
 		(ParamInt<px4::params::CA_FAILURE_MODE>) _param_ca_failure_mode,
-		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
+		(ParamInt<px4::params::CA_R_REV>) _param_r_rev,
+		(ParamFloat<px4::params::CA_FW_DTHR_SC_R>) _param_ca_fw_dthr_sc_r,
+		(ParamFloat<px4::params::CA_FW_DTHR_SC_P>) _param_ca_fw_dthr_sc_p,
+		(ParamFloat<px4::params::CA_FW_DTHR_SC_Y>) _param_ca_fw_dthr_sc_y,
+		(ParamFloat<px4::params::CA_FW_DTHR_WGT_R>) _param_ca_fw_dthr_wgt_r,
+		(ParamFloat<px4::params::CA_FW_DTHR_WGT_P>) _param_ca_fw_dthr_wgt_p,
+		(ParamFloat<px4::params::CA_FW_DTHR_WGT_Y>) _param_ca_fw_dthr_wgt_y,
+		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,
+		(ParamInt<px4::params::CA_FW_DTHR_AIRMD>) _param_ca_fw_dthr_airmd,
+		(ParamBool<px4::params::CA_FW_DTHR_FB_EN>) _param_ca_fw_dthr_fb_en
 	)
 
 };

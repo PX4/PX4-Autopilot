@@ -86,6 +86,8 @@ int ActuatorEffectiveness::Configuration::totalNumActuators() const
 
 void ActuatorEffectiveness::stopMaskedMotorsWithZeroThrust(uint32_t stoppable_motors_mask, ActuatorVector &actuator_sp)
 {
+	_stopped_motors_mask = 0; // TODO: as we have to reset here every iteration, there is no need to store this in the class
+
 	for (int actuator_idx = 0; actuator_idx < NUM_ACTUATORS; actuator_idx++) {
 		const uint32_t motor_mask = (1u << actuator_idx);
 

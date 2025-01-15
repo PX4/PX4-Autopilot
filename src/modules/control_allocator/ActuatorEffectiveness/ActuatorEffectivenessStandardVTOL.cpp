@@ -100,16 +100,26 @@ void ActuatorEffectivenessStandardVTOL::setFlightPhase(const FlightPhase &flight
 
 	ActuatorEffectiveness::setFlightPhase(flight_phase);
 
-	// update stopped motors
+	// update disabled motors
 	switch (flight_phase) {
 	case FlightPhase::FORWARD_FLIGHT:
-		_stopped_motors_mask |= _upwards_motors_mask;
+		_disabled_motors_mask |= _upwards_motors_mask;
 		break;
 
 	case FlightPhase::HOVER_FLIGHT:
 	case FlightPhase::TRANSITION_FF_TO_HF:
 	case FlightPhase::TRANSITION_HF_TO_FF:
-		_stopped_motors_mask &= ~_upwards_motors_mask;
+		_disabled_motors_mask &= ~_upwards_motors_mask;
 		break;
+	}
+}
+
+void ActuatorEffectivenessStandardVTOL::setEnableAuxiliaryMotors(bool enable)
+{
+	if (enable) {
+		_disabled_motors_mask = 0;
+
+	} else {
+		_disabled_motors_mask = _upwards_motors_mask;
 	}
 }
