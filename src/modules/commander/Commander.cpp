@@ -574,10 +574,10 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 
 			if ((!_failsafe_flags.manual_control_signal_lost) &&
 			    ((!_vehicle_control_mode.flag_control_climb_rate_enabled &&
-			     !_is_throttle_low) ||
-			    ((_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER ||
-			     _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_BOAT) &&
-			     !_is_throttle_near_center))) {
+			      !_is_throttle_low) ||
+			     ((_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER ||
+			       _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_BOAT) &&
+			      !_is_throttle_near_center))) {
 
 				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: high throttle\t");
 				events::send(events::ID("commander_arm_denied_throttle_high"), {events::Log::Critical, events::LogInternal::Info},
@@ -1740,6 +1740,7 @@ void Commander::updateParameters()
 
 	} else if (is_rover) {
 		_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROVER;
+
 	} else if (is_boat) {
 		_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_BOAT;
 	}
@@ -2943,7 +2944,7 @@ void Commander::manualControlCheck()
 			if (manual_control_setpoint.sticks_moving
 			    && !_vehicle_control_mode.flag_control_manual_enabled
 			    && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING ||
-			        _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_BOAT)
+				_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_BOAT)
 			   ) {
 				bool override_enabled = false;
 
