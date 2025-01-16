@@ -65,6 +65,7 @@ private:
 	enum class BatteryDataType {
 		Raw, // data from BatteryInfo message only
 		RawAux, // data combination from BatteryInfo and BatteryInfoAux messages
+		RawAuxCBAT, // data combination from BatteryInfo, BatteryInfoAux, and CBAT messages
 		Filter, // filter data from BatteryInfo message with Battery library
 	};
 
@@ -114,10 +115,10 @@ private:
 
 	static_assert(battery_status_s::MAX_INSTANCES <= BATTERY_INDEX_4, "Battery array too big");
 
-	Battery battery1 = {BATTERY_INDEX_1, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_EXTERNAL};
-	Battery battery2 = {BATTERY_INDEX_2, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_EXTERNAL};
-	Battery battery3 = {BATTERY_INDEX_3, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_EXTERNAL};
-	Battery battery4 = {BATTERY_INDEX_4, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_EXTERNAL};
+	Battery battery1 = {BATTERY_INDEX_1, this, SAMPLE_INTERVAL_US, battery_status_s::EXTERNAL};
+	Battery battery2 = {BATTERY_INDEX_2, this, SAMPLE_INTERVAL_US, battery_status_s::EXTERNAL};
+	Battery battery3 = {BATTERY_INDEX_3, this, SAMPLE_INTERVAL_US, battery_status_s::EXTERNAL};
+	Battery battery4 = {BATTERY_INDEX_4, this, SAMPLE_INTERVAL_US, battery_status_s::EXTERNAL};
 
 	Battery *_battery[battery_status_s::MAX_INSTANCES] = { &battery1, &battery2, &battery3, &battery4 };
 };

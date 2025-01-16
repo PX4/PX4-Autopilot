@@ -78,7 +78,7 @@ const char *sht_state_names[] = {"General error", "Readout error", "Initializati
 
 
 struct sht_info {
-	uint32_t serial_number;
+	char[32] serial_number;
 };
 
 

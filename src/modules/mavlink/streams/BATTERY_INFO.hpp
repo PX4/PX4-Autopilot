@@ -82,17 +82,17 @@ private:
 					uint16_t day = battery_status.manufacture_date % 32;
 					uint16_t month = (battery_status.manufacture_date >> 5) % 16;
 					uint16_t year = (80 + (battery_status.manufacture_date >> 9));
-					uint16_t year2dig = year % 100;
+					//uint16_t year2dig = year % 100;
 
 					//Formatted as 'ddmmyyyy' (maxed 9 chars)
 					snprintf(msg.manufacture_date, sizeof(msg.manufacture_date), "%d%d%d", day, month, year);
 					//Formatted as 'dd/mm/yy-123456' (maxed 15 + 1 chars)
-					snprintf(msg.serial_number, sizeof(msg.serial_number), "%d/%d/%d-%d", day, month, year2dig,
-						 battery_status.serial_number);
+					//snprintf(msg.serial_number, sizeof(msg.serial_number), "%d/%d/%d-%d", day, month, year2dig,
+					//	 battery_status.serial_number);
 
 				} else {
 
-					snprintf(msg.serial_number, sizeof(msg.serial_number), "%d", battery_status.serial_number);
+					//snprintf(msg.serial_number, sizeof(msg.serial_number), "%d", battery_status.serial_number);
 				}
 
 				// Not supported by PX4 (not in battery_status uorb topic)
