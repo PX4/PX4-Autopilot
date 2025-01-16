@@ -91,4 +91,3 @@ TEST(ControlAllocationMetricTest, AllZeroCase)
 	EXPECT_EQ(actuator_sp, actuator_sp_expected);
 	EXPECT_EQ(control_allocated, control_allocated_expected);
 }
-
