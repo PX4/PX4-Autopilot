@@ -1,0 +1,12 @@
+menuconfig MODULES_SC_CONTROL_ALLOCATOR
+	bool "sc_control_allocator"
+	default n
+	---help---
+		Enable support for control_allocator
+
+menuconfig USER_SC_CONTROL_ALLOCATOR
+	bool "control_allocator running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_SC_CONTROL_ALLOCATOR
+	---help---
+		Put sc_control_allocator in userspace memory
