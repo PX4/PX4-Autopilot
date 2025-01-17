@@ -2622,6 +2622,7 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 			// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
 			flags.is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+			flags.in_transition_to_fw = vehicle_status.in_transition_to_fw;
 
 #if defined(CONFIG_EKF2_SIDESLIP)
 
