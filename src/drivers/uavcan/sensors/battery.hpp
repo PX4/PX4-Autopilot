@@ -106,7 +106,10 @@ private:
 	battery_status_s _battery_status[battery_status_s::MAX_INSTANCES] {};
 	BatteryDataType _batt_update_mod[battery_status_s::MAX_INSTANCES] {};
 
-	static constexpr int FILTER_DATA = 2;
+	static constexpr int RAW_DATA = 1;
+	static constexpr int RAW_AUX_DATA = 2;
+	static constexpr int RAW_AUX_CBAT_DATA = 3;
+	static constexpr int FILTER_DATA = 4;
 	static constexpr int BATTERY_INDEX_1 = 1;
 	static constexpr int BATTERY_INDEX_2 = 2;
 	static constexpr int BATTERY_INDEX_3 = 3;

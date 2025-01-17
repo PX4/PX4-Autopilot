@@ -57,11 +57,17 @@ int UavcanBatteryBridge::init()
 
 	for (uint8_t instance = 0; instance < battery_status_s::MAX_INSTANCES; instance++) {
 
-		if (uavcan_sub_bat == FILTER_DATA) {
-			_batt_update_mod[instance] = BatteryDataType::Filter;
-
-		} else {
+		if (uavcan_sub_bat == RAW_DATA) {
 			_batt_update_mod[instance] = BatteryDataType::Raw;
+
+		} else if (uavcan_sub_bat == RAW_AUX_DATA) {
+			_batt_update_mod[instance] = BatteryDataType::RawAux;
+
+		} else if (uavcan_sub_bat == RAW_AUX_CBAT_DATA) {
+			_batt_update_mod[instance] = BatteryDataType::RawAuxCBAT;
+
+		} else if (uavcan_sub_bat == FILTER_DATA) {
+			_batt_update_mod[instance] = BatteryDataType::Filter;
 		}
 	}
 
@@ -94,6 +100,8 @@ int UavcanBatteryBridge::init()
 void
 UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg)
 {
+	PX4_INFO("Battery Sub Cb called");
+
 	uint8_t instance = 0;
 
 	for (instance = 0; instance < battery_status_s::MAX_INSTANCES; instance++) {
@@ -155,6 +163,8 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
 		publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+		PX4_INFO("Battery Sub Cb published");
+
 	}
 }
 
@@ -162,6 +172,8 @@ void
 UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::equipment::power::BatteryInfoAux>
 					&msg)
 {
+	PX4_INFO("Battery Aux Sub Cb called");
+
 	uint8_t instance = 0;
 
 	for (instance = 0; instance < battery_status_s::MAX_INSTANCES; instance++) {
@@ -177,8 +189,6 @@ UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardu
 	if (_batt_update_mod[instance] == BatteryDataType::Filter) {
 		return;
 	}
-
-	_batt_update_mod[instance] = BatteryDataType::RawAux;
 
 	_battery_status[instance].discharged_mah = (_battery_status[instance].full_charge_capacity_wh -
 			_battery_status[instance].remaining_capacity_wh) / msg.nominal_voltage *
@@ -196,14 +206,18 @@ UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardu
 		_battery_status[instance].voltage_cell_v[i] = msg.voltage_cell[i];
 	}
 
-	publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+	if (_batt_update_mod[instance] == BatteryDataType::RawAux) {
+		publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+		PX4_INFO("Battery Aux Sub Cb published");
+	}
+
 }
 
 
 void
 UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::equipment::power::CBAT> &msg)
 {
-
+	/*
 	if (msg.serial_number != 0){
 		PX4_ERR("CBAT message received");
 	}
@@ -211,14 +225,18 @@ UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::equip
 	else{
 		PX4_ERR("No CBAT message received");
 	}
+	*/
+
+	PX4_INFO("Battery CBAT Sub Cb called");
 
 	uint8_t instance = 0;
 
 	for (instance = 0; instance < battery_status_s::MAX_INSTANCES; instance++) {
-		if (_battery_status[instance].id == msg.getSrcNodeID().get() || _battery_status[instance].id == 0) {
+		if (_battery_status[instance].id == msg.getSrcNodeID().get()) {
 			break;
 		}
 	}
+
 
 	if (instance >= battery_status_s::MAX_INSTANCES) {
 		return;
@@ -232,8 +250,16 @@ UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::equip
 	_battery_status[instance].warning = _warning;
 
 	if (_batt_update_mod[instance] == BatteryDataType::RawAuxCBAT) {
-		snprintf(_battery_status[instance].serial_number, 32, "%hu", msg.serial_number);
+		// char ser_num[32] = {0};
+		// snprintf(ser_num, 32, "%hu", msg.serial_number);
+		// strncpy(_battery_status[instance].serial_number, ser_num, sizeof(_battery_status[instance].serial_number) - 1);
+		strncpy(_battery_status[instance].serial_number, "123456", sizeof(_battery_status[instance].serial_number));
+
+		_battery_status[instance].serial_number[sizeof(_battery_status[instance].serial_number) - 1] = '\0';
+
 		publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+		PX4_INFO("CBAT Sub Cb published");
+
 	}
 }
 
