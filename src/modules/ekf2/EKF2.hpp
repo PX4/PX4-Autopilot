@@ -573,12 +573,9 @@ private:
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_SIDESLIP)
-		(ParamExtFloat<px4::params::EKF2_BETA_GATE>)
-		_param_ekf2_beta_gate, ///< synthetic sideslip innovation consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_BETA_NOISE>) _param_ekf2_beta_noise, ///< synthetic sideslip noise (rad)
-
-		(ParamExtInt<px4::params::EKF2_FUSE_BETA>)
-		_param_ekf2_fuse_beta, ///< Controls synthetic sideslip fusion, 0 disables, 1 enables
+		(ParamExtFloat<px4::params::EKF2_BETA_GATE>) _param_ekf2_beta_gate,
+		(ParamExtFloat<px4::params::EKF2_BETA_NOISE>) _param_ekf2_beta_noise,
+		(ParamExtInt<px4::params::EKF2_FUSE_BETA>) _param_ekf2_fuse_beta,
 #endif // CONFIG_EKF2_SIDESLIP
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
