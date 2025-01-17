@@ -102,9 +102,6 @@ param set-default BAT2_SOURCE 0
 param set-default BAT2_R_INTERNAL 0.0050
 param set-default BAT2_CAPACITY 22000
 
-# Disable internal magnetometer
-param set CAL_MAG0_PRIO 0
-
 # Return mode return altitude
 param set-default RTL_RETURN_ALT 30.0
 
