@@ -302,7 +302,7 @@ void MultirotorMixer::mix_yaw(float yaw, float *outputs)
 	}
 
 	// Change yaw acceleration to unsaturate the outputs if needed (do not change roll/pitch),
-	// Currently, never prioritize thrust over yaw.
+	// Currently, never prioritize yaw over thrust.
 	// (Max value can be set >1 to allow some yaw response at maximum thrust)
 	minimize_saturation(_tmp_array, outputs, _saturation_status, 0.f, 1.f);
 
