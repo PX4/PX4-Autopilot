@@ -46,16 +46,15 @@ using matrix::Vector3f;
 using matrix::Vector2f;
 
 struct VehicleDynamicLimits {
-	float z_accept_rad;
-	float xy_accept_rad;
+	float accept_rad;
 
-	float max_acc_xy;
+	float max_acc;
 	float max_jerk;
 
-	float max_speed_xy;
+	float max_speed;
 
 	// TODO: remove this
-	float max_acc_xy_radius_scale;
+	float max_acc_radius_scale;
 };
 
 /*
@@ -68,12 +67,12 @@ struct VehicleDynamicLimits {
  *
  */
 inline float computeStartXYSpeedFromWaypoints(const Vector3f &start_position, const Vector3f &target,
-		const Vector3f &next_target, float exit_speed, const VehicleDynamicLimits &config)
+		const Vector3f &next_target, float exit_speed, const VehicleDynamicLimits &config_xy)
 {
 	const float distance_target_next = (target - next_target).xy().norm();
 
 	const bool target_next_different = distance_target_next  > 0.001f;
-	const bool waypoint_overlap = distance_target_next < config.xy_accept_rad;
+	const bool waypoint_overlap = distance_target_next < config_xy.accept_rad;
 
 	float speed_at_target = 0.0f;
 
@@ -83,15 +82,15 @@ inline float computeStartXYSpeedFromWaypoints(const Vector3f &start_position, co
 		const float alpha = acosf(Vector2f((target - start_position).xy()).unit_or_zero().dot(
 						  Vector2f((target - next_target).xy()).unit_or_zero()));
 		const float safe_alpha = constrain(alpha, 0.f, M_PI_F - FLT_EPSILON);
-		float accel_tmp = config.max_acc_xy_radius_scale * config.max_acc_xy;
-		float max_speed_in_turn = computeMaxSpeedInWaypoint(safe_alpha, accel_tmp, config.xy_accept_rad);
-		speed_at_target = min(max_speed_in_turn, exit_speed, config.max_speed_xy);
+		float accel_tmp = config_xy.max_acc_radius_scale * config_xy.max_acc;
+		float max_speed_in_turn = computeMaxSpeedInWaypoint(safe_alpha, accel_tmp, config_xy.accept_rad);
+		speed_at_target = min(max_speed_in_turn, exit_speed, config_xy.max_speed);
 	}
 
 	float start_to_target = (start_position - target).xy().norm();
-	float max_speed = computeMaxSpeedFromDistance(config.max_jerk, config.max_acc_xy, start_to_target, speed_at_target);
+	float max_speed = computeMaxSpeedFromDistance(config_xy.max_jerk, config_xy.max_acc, start_to_target, speed_at_target);
 
-	return min(config.max_speed_xy, max_speed);
+	return min(config_xy.max_speed, max_speed);
 }
 
 /*
@@ -105,7 +104,7 @@ inline float computeStartXYSpeedFromWaypoints(const Vector3f &start_position, co
  * @return the maximum speed at waypoint[0] which allows it to follow the trajectory while respecting the dynamic limits
  */
 template <int N>
-float computeXYSpeedFromWaypoints(const Vector3f waypoints[N], const VehicleDynamicLimits &config)
+float computeXYSpeedFromWaypoints(const Vector3f waypoints[N], const VehicleDynamicLimits &config_xy)
 {
 	static_assert(N >= 2, "Need at least 2 points to compute speed");
 
@@ -116,7 +115,34 @@ float computeXYSpeedFromWaypoints(const Vector3f waypoints[N], const VehicleDyna
 		max_speed = computeStartXYSpeedFromWaypoints(waypoints[i],
 				waypoints[i + 1],
 				waypoints[min(i + 2, N - 1)],
-				max_speed, config);
+				max_speed, config_xy);
+	}
+
+	return max_speed;
+}
+
+inline float computeStartZSpeedFromWaypoints(const Vector3f &start_position, const Vector3f &target,
+		float exit_speed, const VehicleDynamicLimits &config_z)
+{
+	const float start_to_target = fabsf(target(2) - start_position(2));
+	const float accel_tmp = config_z.max_acc_radius_scale * config_z.max_acc;
+	const float max_speed = computeMaxSpeedFromDistance(config_z.max_jerk, accel_tmp, start_to_target, exit_speed);
+
+	return min(config_z.max_speed, max_speed);
+}
+
+template <int N>
+float computeZSpeedFromWaypoints(const Vector3f waypoints[N], const VehicleDynamicLimits &config_z)
+{
+	static_assert(N >= 2, "Need at least 2 points to compute speed");
+
+	float max_speed = 0.f;
+
+	// go backwards through the waypoints
+	for (int i = (N - 2); i >= 0; i--) {
+		max_speed = computeStartZSpeedFromWaypoints(waypoints[i],
+				waypoints[i + 1],
+				max_speed, config_z);
 	}
 
 	return max_speed;

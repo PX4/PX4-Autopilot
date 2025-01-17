@@ -84,59 +84,42 @@ bool PositionSmoothing::_isTurning(const Vector3f &target) const
 
 float PositionSmoothing::_getMaxXYSpeed(const Vector3f(&waypoints)[3]) const
 {
-	Vector3f pos_traj(_trajectory[0].getCurrentPosition(),
-			  _trajectory[1].getCurrentPosition(),
-			  _trajectory[2].getCurrentPosition());
+	const Vector3f pos_traj(_trajectory[0].getCurrentPosition(),
+				_trajectory[1].getCurrentPosition(),
+				_trajectory[2].getCurrentPosition());
 
-	math::trajectory::VehicleDynamicLimits config;
-	config.z_accept_rad = _vertical_acceptance_radius;
-	config.xy_accept_rad = _target_acceptance_radius;
-	config.max_acc_xy = _trajectory[0].getMaxAccel();
-	config.max_jerk = _trajectory[0].getMaxJerk();
-	config.max_speed_xy = _cruise_speed;
-	config.max_acc_xy_radius_scale = _horizontal_trajectory_gain;
+	math::trajectory::VehicleDynamicLimits config_xy;
+	config_xy.accept_rad = _target_acceptance_radius;
+	config_xy.max_acc = _trajectory[0].getMaxAccel();
+	config_xy.max_jerk = _trajectory[0].getMaxJerk();
+	config_xy.max_speed = _cruise_speed;
+	config_xy.max_acc_radius_scale = _horizontal_trajectory_gain;
 
 	// constrain velocity to go to the position setpoint first if the position setpoint has been modified by an external source
 	// (eg. Obstacle Avoidance)
 
 	Vector3f pos_to_waypoints[3] = {pos_traj, waypoints[1], waypoints[2]};
 
-	return math::trajectory::computeXYSpeedFromWaypoints<3>(pos_to_waypoints, config);
+	return math::trajectory::computeXYSpeedFromWaypoints<3>(pos_to_waypoints, config_xy);
 }
 
 float PositionSmoothing::_getMaxZSpeed(const Vector3f(&waypoints)[3]) const
 {
-	const Vector3f &start_position = {_trajectory[0].getCurrentPosition(),
-					  _trajectory[1].getCurrentPosition(),
-					  _trajectory[2].getCurrentPosition()
-					 };
-	const Vector3f &target = waypoints[1];
-	const Vector3f &next_target = waypoints[2];
+	const Vector3f pos_traj = {_trajectory[0].getCurrentPosition(),
+				   _trajectory[1].getCurrentPosition(),
+				   _trajectory[2].getCurrentPosition()
+				  };
 
-	const Vector2f start_position_xy_z = {start_position.xy().norm(), start_position(2)};
-	const Vector2f target_xy_z = {target.xy().norm(), target(2)};
-	const Vector2f next_target_xy_z = {next_target.xy().norm(), next_target(2)};
+	math::trajectory::VehicleDynamicLimits config_z;
+	config_z.accept_rad = _vertical_acceptance_radius;
+	config_z.max_acc = _trajectory[2].getMaxAccel();
+	config_z.max_jerk = _trajectory[2].getMaxJerk();
+	config_z.max_speed = _trajectory[2].getMaxVel();
+	config_z.max_acc_radius_scale = 1.f; // no scaling for Z
 
-	float arrival_z_speed = 0.0f;
-	const bool target_next_different = fabsf(target(2) - next_target(2)) > 0.001f;
+	Vector3f pos_to_waypoints[3] = {pos_traj, waypoints[1], waypoints[2]};
 
-	if (target_next_different) {
-		const float alpha = acosf(Vector2f((target_xy_z - start_position_xy_z)).unit_or_zero().dot(
-						  Vector2f((target_xy_z - next_target_xy_z)).unit_or_zero()));
-
-		const float safe_alpha = math::constrain(alpha, 0.f, M_PI_F - FLT_EPSILON);
-		float accel_tmp = _trajectory[2].getMaxAccel();
-		float max_speed_in_turn = math::trajectory::computeMaxSpeedInWaypoint(safe_alpha, accel_tmp,
-					  _vertical_acceptance_radius);
-		arrival_z_speed = math::min(max_speed_in_turn, _trajectory[2].getMaxVel());
-	}
-
-	const float distance_start_target = fabs(target(2) - start_position(2));
-	float max_speed = math::min(_trajectory[2].getMaxVel(), math::trajectory::computeMaxSpeedFromDistance(
-					    _trajectory[2].getMaxJerk(), _trajectory[2].getMaxAccel(),
-					    distance_start_target, arrival_z_speed));
-
-	return max_speed;
+	return math::trajectory::computeZSpeedFromWaypoints<3>(pos_to_waypoints, config_z);
 }
 
 const Vector3f PositionSmoothing::_getCrossingPoint(const Vector3f &position, const Vector3f(&waypoints)[3]) const
