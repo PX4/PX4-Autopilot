@@ -66,7 +66,6 @@ private:
 		Raw, // data from BatteryInfo message only
 		RawAux, // data combination from BatteryInfo and BatteryInfoAux messages
 		RawAuxCBAT, // data combination from BatteryInfo, BatteryInfoAux, and CBAT messages
-		Filter, // filter data from BatteryInfo message with Battery library
 	};
 
 	void battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg);
@@ -74,7 +73,6 @@ private:
 	void cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::equipment::power::CBAT> &msg);
 	void sumDischarged(hrt_abstime timestamp, float current_a);
 	void determineWarning(float remaining);
-	void filterData(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg, uint8_t instance);
 
 	typedef uavcan::MethodBinder < UavcanBatteryBridge *,
 		void (UavcanBatteryBridge::*)
@@ -109,19 +107,5 @@ private:
 	static constexpr int RAW_DATA = 1;
 	static constexpr int RAW_AUX_DATA = 2;
 	static constexpr int RAW_AUX_CBAT_DATA = 3;
-	static constexpr int FILTER_DATA = 4;
-	static constexpr int BATTERY_INDEX_1 = 1;
-	static constexpr int BATTERY_INDEX_2 = 2;
-	static constexpr int BATTERY_INDEX_3 = 3;
-	static constexpr int BATTERY_INDEX_4 = 4;
 	static constexpr int SAMPLE_INTERVAL_US = 20_ms; // assume higher frequency UAVCAN feedback than 50Hz
-
-	static_assert(battery_status_s::MAX_INSTANCES <= BATTERY_INDEX_4, "Battery array too big");
-
-	Battery battery1 = {BATTERY_INDEX_1, this, SAMPLE_INTERVAL_US, battery_status_s::EXTERNAL};
-	Battery battery2 = {BATTERY_INDEX_2, this, SAMPLE_INTERVAL_US, battery_status_s::EXTERNAL};
-	Battery battery3 = {BATTERY_INDEX_3, this, SAMPLE_INTERVAL_US, battery_status_s::EXTERNAL};
-	Battery battery4 = {BATTERY_INDEX_4, this, SAMPLE_INTERVAL_US, battery_status_s::EXTERNAL};
-
-	Battery *_battery[battery_status_s::MAX_INSTANCES] = { &battery1, &battery2, &battery3, &battery4 };
 };

@@ -302,7 +302,6 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_BARO, 0);
  * @value 1 Raw data
  * @value 2 Raw and auxiliary data
  * @value 3 Raw, auxiliary, and CBAT-specific data
- * @value 4 Filter data
  * @reboot_required true
  * @group UAVCAN
  */
