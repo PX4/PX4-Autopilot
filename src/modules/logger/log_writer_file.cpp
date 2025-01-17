@@ -391,16 +391,15 @@ void LogWriterFile::run()
 
 					size_t out = available;
 
-					if (_algorithm != CRYPTO_NONE) {
-						_mac_size = sizeof(_mac);
+					if (_algorithm == CRYPTO_XCHACHA20) {
 						_crypto.encrypt_data(
 							_key_idx,
 							(uint8_t *)read_ptr,
 							available,
 							(uint8_t *)read_ptr,
 							&out,
-							_mac,
-							&_mac_size);
+							NULL,
+							0);
 
 						if (out != available) {
 							PX4_ERR("Encryption output size mismatch, logfile corrupted");

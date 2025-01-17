@@ -71,6 +71,9 @@ libtomcrypt_wrappers.c
 	libtomcrypt/src/misc/crypt/crypt_ltc_mp_descriptor.c
 	libtomcrypt/src/misc/crypt/crypt_hash_is_valid.c
 	libtomcrypt/src/misc/crypt/crypt_prng_is_valid.c
+	libtomcrypt/src/misc/crypt/crypt_register_hash.c
+	libtomcrypt/src/misc/crypt/crypt_find_hash.c
+	libtomcrypt/src/misc/mem_neq.c
 	libtomcrypt/src/misc/zeromem.c
 )
 
