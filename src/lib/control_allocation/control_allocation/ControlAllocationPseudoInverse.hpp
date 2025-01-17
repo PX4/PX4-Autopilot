@@ -46,7 +46,6 @@
 #pragma once
 
 #include "ControlAllocation.hpp"
-#include <px4_platform_common/log.h>
 
 class ControlAllocationPseudoInverse: public ControlAllocation
 {
