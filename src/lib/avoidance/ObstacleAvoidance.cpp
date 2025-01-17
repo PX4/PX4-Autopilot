@@ -220,12 +220,13 @@ void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector
 	Vector2f prev_to_target = Vector2f(_curr_wp - prev_wp);
 	// vector from previous triplet to the vehicle projected position on the line previous-target triplet
 	Vector2f prev_to_closest_pt = closest_pt - Vector2f(prev_wp);
-	// fraction of the previous-tagerget line that has been flown
-	const float prev_curr_travelled = prev_to_closest_pt.length() / prev_to_target.length();
+	// check if vehicle overpassed target waypoint
+	const bool should_skip_target_wp = prev_to_closest_pt.length() / prev_to_target.length() > 1.0f
+					   && prev_to_closest_pt.dot(prev_to_target) > 0.f;
 
 	Vector2f pos_to_target = Vector2f(_curr_wp - _position);
 
-	if (prev_curr_travelled > 1.0f) {
+	if (should_skip_target_wp) {
 		// if the vehicle projected position on the line previous-target is past the target waypoint,
 		// increase the target acceptance radius such that navigator will update the triplets
 		pos_control_status.acceptance_radius = pos_to_target.length() + 0.5f;
