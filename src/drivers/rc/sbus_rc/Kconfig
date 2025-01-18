@@ -1,0 +1,5 @@
+menuconfig DRIVERS_RC_SBUS_RC
+	bool "sbus_rc"
+	default n
+	---help---
+		Enable support for sbus_rc

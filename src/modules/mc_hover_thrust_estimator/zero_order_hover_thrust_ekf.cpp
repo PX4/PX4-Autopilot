@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file zero_order_thrust_ekf.cpp
+ * @file zero_order_hover_thrust_ekf.cpp
  *
  * @author Mathieu Bresciani 	<brescianimathieu@gmail.com>
  */

@@ -226,6 +226,7 @@ void VehicleOpticalFlow::Run()
 			vehicle_optical_flow.timestamp_sample = sensor_optical_flow.timestamp_sample;
 			vehicle_optical_flow.device_id = sensor_optical_flow.device_id;
 
+			_flow_integral *= _param_sens_flow_scale.get();
 			_flow_integral.copyTo(vehicle_optical_flow.pixel_flow);
 			_delta_angle.copyTo(vehicle_optical_flow.delta_angle);
 

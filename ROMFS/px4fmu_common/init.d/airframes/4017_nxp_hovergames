@@ -6,6 +6,7 @@
 # @class Copter
 #
 # @board px4_fmu-v2 exclude
+# @board px4_fmu-v5x exclude
 # @board bitcraze_crazyflie exclude
 #
 # @maintainer Iain Galloway <iain.galloway@nxp.com>

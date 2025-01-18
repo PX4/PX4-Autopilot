@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file tecs.cpp
+ * @file TECS.hpp
  *
  * @author Paul Riseborough
  */
@@ -49,6 +49,8 @@
 #include <uORB/uORB.h>
 #include <motion_planning/VelocitySmoothing.hpp>
 #include <motion_planning/ManualVelocitySmoothingZ.hpp>
+
+using namespace time_literals;
 
 class TECSAirspeedFilter
 {
@@ -203,8 +205,8 @@ public:
 		float equivalent_airspeed_trim;		///< Equivalent cruise airspeed for airspeed less mode [m/s].
 		float tas_min;				///< True airspeed demand lower limit [m/s].
 		float tas_max;				///< True airspeed demand upper limit [m/s].
-		float pitch_max;			///< Maximum pitch angle allowed in [rad].
-		float pitch_min;			///< Minimal pitch angle allowed in [rad].
+		float pitch_max;			///< Maximum pitch angle above trim allowed in [rad].
+		float pitch_min;			///< Minimal pitch angle below trim allowed in [rad].
 		float throttle_trim;		///< Normalized throttle required to fly level at calibrated airspeed setpoint [0,1]
 		float throttle_max;			///< Normalized throttle upper limit.
 		float throttle_min;			///< Normalized throttle lower limit.
@@ -320,7 +322,7 @@ public:
 	/**
 	 * @brief Get the pitch setpoint.
 	 *
-	 * @return THe commanded pitch angle in [rad].
+	 * @return The commanded pitch angle above trim in [rad].
 	 */
 	float getPitchSetpoint() const {return _pitch_setpoint;};
 	/**
@@ -478,7 +480,7 @@ private:
 	 * @param seb_rate is the specific energy balance rate in [m²/s³].
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
-	 * @return pitch setpoint angle [rad].
+	 * @return pitch setpoint angle above trim [rad].
 	 */
 	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param,
 				      const Flag &flag) const;
@@ -537,7 +539,7 @@ private:
 
 	// Output
 	DebugOutput _debug_output;				///< Debug output.
-	float _pitch_setpoint{0.0f};				///< Controlled pitch setpoint [rad].
+	float _pitch_setpoint{0.0f};				///< Controlled pitch setpoint above trim [rad].
 	float _throttle_setpoint{0.0f};				///< Controlled throttle setpoint [0,1].
 	float _ratio_undersped{0.0f};				///< A continuous representation of how "undersped" the TAS is [0,1]
 };
@@ -547,11 +549,13 @@ class TECS
 public:
 	struct DebugOutput {
 		TECSControl::DebugOutput control;
+		float true_airspeed_sp;
 		float true_airspeed_filtered;
 		float true_airspeed_derivative;
 		float altitude_reference;
 		float height_rate_reference;
 		float height_rate_direct;
+		float fast_descend;
 	};
 public:
 	TECS() = default;
@@ -647,6 +651,14 @@ public:
 	float get_pitch_setpoint() {return _control.getPitchSetpoint();}
 	float get_throttle_setpoint() {return _control.getThrottleSetpoint();}
 
+	/**
+	 * Returns the altitude tracking time constant
+	 */
+	float get_altitude_error_time_constant() const
+	{
+		return 1.0f / math::max(_control_param.altitude_error_gain, 0.01f);
+	}
+
 	uint64_t timestamp() { return _update_timestamp; }
 	float get_underspeed_ratio() { return _control.getRatioUndersped(); }
 
@@ -657,6 +669,17 @@ private:
 	 */
 	void initControlParams(float target_climbrate, float target_sinkrate, float eas_to_tas, float pitch_limit_max,
 			       float pitch_limit_min, float throttle_min, float throttle_setpoint_max, float throttle_trim);
+
+	/**
+	 * @brief calculate true airspeed setpoint
+	 *
+	 * Calculate true airspeed setpoint based on input and fast descend ratio
+	 *
+	 * @param eas_to_tas is the eas to tas conversion factor
+	 * @param eas_setpoint is the desired equivalent airspeed setpoint [m/s]
+	 * @return true airspeed setpoint[m/s]
+	 */
+	float calcTrueAirspeedSetpoint(float eas_to_tas, float eas_setpoint);
 
 	/**
 	 * @brief Initialize the control loop
@@ -675,9 +698,11 @@ private:
 	float _equivalent_airspeed_max{20.0f};				///< equivalent airspeed demand upper limit (m/sec)
 	float _fast_descend_alt_err{-1.f};	 				///< Altitude difference between current altitude to altitude setpoint needed to descend with higher airspeed [m].
 	float _fast_descend{0.f};					///< Value for fast descend in [0,1]. continuous value used to flatten the high speed value out when close to target altitude.
+	hrt_abstime _enabled_fast_descend_timestamp{0U};		///< timestamp at activation of fast descend mode
 
 	static constexpr float DT_MIN = 0.001f;				///< minimum allowed value of _dt (sec)
 	static constexpr float DT_MAX = 1.0f;				///< max value of _dt allowed before a filter state reset is performed (sec)
+	static constexpr hrt_abstime FAST_DESCEND_RAMP_UP_TIME = 2_s; 	///< Ramp up time until fast descend is fully engaged
 
 	DebugOutput _debug_status{};
 
@@ -742,4 +767,3 @@ private:
 	 */
 	void _setFastDescend(float alt_setpoint, float alt);
 };
-

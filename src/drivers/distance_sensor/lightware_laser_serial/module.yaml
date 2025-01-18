@@ -4,4 +4,3 @@ serial_config:
       port_config_param:
         name: SENS_SF0X_CFG
         group: Sensors
-

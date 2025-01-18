@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file ecl_l1_pos_control.h
+ * @file ECL_L1_Pos_Controller.hpp
  * Implementation of L1 position control.
  *
  *

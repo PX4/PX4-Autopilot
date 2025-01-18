@@ -63,12 +63,12 @@ public:
 	~RtlTimeEstimator() = default;
 
 	void update();
-	void reset() { _time_estimate = 0.f; _is_valid = false;};
+	void reset() { _time_estimate = 0.f; _is_valid = false; };
 	rtl_time_estimate_s getEstimate() const;
 	void addDistance(float hor_dist, const matrix::Vector2f &hor_direction, float vert_dist);
 	void addVertDistance(float alt);
 	void addWait(float time_s);
-	void addDescendMCLand(float alt);
+	void setVehicleType(uint8_t vehicle_type) { _vehicle_type = vehicle_type; };
 
 private:
 	/**
@@ -107,21 +107,16 @@ private:
 	float getCruiseSpeed();
 
 	/**
-	 * @brief Get the Hover Land Speed
-	 *
-	 * @return Hover land speed [m/s]
-	 */
-	float getHoverLandSpeed();
-
-	/**
 	 * @brief Get the horizontal wind velocity
 	 *
 	 * @return horizontal wind velocity.
 	 */
 	matrix::Vector2f get_wind();
 
-	float _time_estimate; 		/**< Accumulated time estimate [s] */
+	float _time_estimate{0.f}; 		/**< Accumulated time estimate [s] */
 	bool _is_valid{false};		/**< Checks if time estimate is valid */
+
+	uint8_t _vehicle_type{vehicle_status_s::VEHICLE_TYPE_UNKNOWN}; /**< the defined vehicle type to use for the calculation*/
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RTL_TIME_FACTOR>) _param_rtl_time_factor,  /**< Safety factory for safe time estimate */
@@ -130,7 +125,6 @@ private:
 
 	param_t		_param_mpc_z_v_auto_up{PARAM_INVALID}; 	/**< MC climb velocity parameter */
 	param_t		_param_mpc_z_v_auto_dn{PARAM_INVALID};  /**< MC descend velocity parameter */
-	param_t		_param_mpc_land_speed{PARAM_INVALID};   /**< MC land descend speed parameter */
 	param_t		_param_fw_climb_rate{PARAM_INVALID};    /**< FW climb speed parameter */
 	param_t		_param_fw_sink_rate{PARAM_INVALID};     /**< FW descend speed parameter */
 
@@ -139,7 +133,6 @@ private:
 	param_t 	_param_rover_cruise_speed{PARAM_INVALID}; /**< Rover cruise speed parameter */
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s}; /**< Parameter update topic */
-	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};	/**< vehicle status subscription */
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};		/**< wind topic */
 };
 

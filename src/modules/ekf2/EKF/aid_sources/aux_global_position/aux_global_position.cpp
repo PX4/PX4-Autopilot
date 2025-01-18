@@ -73,30 +73,31 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 			return;
 		}
 
-		estimator_aid_source2d_s aid_src{};
-		Vector2f position;
+		estimator_aid_source2d_s &aid_src = _aid_src_aux_global_position;
+		const LatLonAlt position(sample.latitude, sample.longitude, sample.altitude_amsl);
+		const Vector2f innovation = (ekf.getLatLonAlt() - position).xy(); // altitude measurements are not used
 
-		if (ekf.global_origin_valid()) {
-			position = ekf.global_origin().project(sample.latitude, sample.longitude);
-			//const float hgt = ekf.getEkfGlobalOriginAltitude() - (float)sample.altitude;
-			// relax the upper observation noise limit which prevents bad measurements perturbing the position estimate
-			float pos_noise = math::max(sample.eph, _param_ekf2_agp_noise.get());
-			const float pos_var = sq(pos_noise);
-			const Vector2f pos_obs_var(pos_var, pos_var);
-			ekf.updateHorizontalPositionAidSrcStatus(sample.time_us,
-					position,                                   // observation
-					pos_obs_var,                                // observation variance
-					math::max(_param_ekf2_agp_gate.get(), 1.f), // innovation gate
-					aid_src);
-		}
+		// relax the upper observation noise limit which prevents bad measurements perturbing the position estimate
+		float pos_noise = math::max(sample.eph, _param_ekf2_agp_noise.get(), 0.01f);
+		const float pos_var = sq(pos_noise);
+		const Vector2f pos_obs_var(pos_var, pos_var);
+
+		ekf.updateAidSourceStatus(aid_src,
+					  sample.time_us,                                      // sample timestamp
+					  matrix::Vector2d(sample.latitude, sample.longitude), // observation
+					  pos_obs_var,                                         // observation variance
+					  innovation,                                          // innovation
+					  Vector2f(ekf.getPositionVariance()) + pos_obs_var,   // innovation variance
+					  math::max(_param_ekf2_agp_gate.get(), 1.f));         // innovation gate
 
 		const bool starting_conditions = PX4_ISFINITE(sample.latitude) && PX4_ISFINITE(sample.longitude)
-						   && ekf.control_status_flags().yaw_align;
+						 && ekf.control_status_flags().yaw_align;
 		const bool continuing_conditions = starting_conditions
 						   && ekf.global_origin_valid();
 
 		switch (_state) {
 		case State::stopped:
+
 		/* FALLTHROUGH */
 		case State::starting:
 			if (starting_conditions) {
@@ -109,13 +110,16 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 
 				} else {
 					// Try to initialize using measurement
-					if (ekf.setEkfGlobalOrigin(sample.latitude, sample.longitude, sample.altitude_amsl, sample.eph, sample.epv)) {
+					if (ekf.resetGlobalPositionTo(sample.latitude, sample.longitude, sample.altitude_amsl, pos_var,
+								      sq(sample.epv))) {
+						ekf.resetAidSourceStatusZeroInnovation(aid_src);
 						ekf.enableControlStatusAuxGpos();
 						_reset_counters.lat_lon = sample.lat_lon_reset_counter;
 						_state = State::active;
 					}
 				}
 			}
+
 			break;
 
 		case State::active:
@@ -124,8 +128,11 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 
 				if (isTimedOut(aid_src.time_last_fuse, imu_delayed.time_us, ekf._params.no_aid_timeout_max)
 				    || (_reset_counters.lat_lon != sample.lat_lon_reset_counter)) {
-					ekf.resetHorizontalPositionTo(Vector2f(aid_src.observation), Vector2f(aid_src.observation_variance));
-					aid_src.time_last_fuse = imu_delayed.time_us;
+
+					ekf.resetHorizontalPositionTo(sample.latitude, sample.longitude, Vector2f(aid_src.observation_variance));
+
+					ekf.resetAidSourceStatusZeroInnovation(aid_src);
+
 					_reset_counters.lat_lon = sample.lat_lon_reset_counter;
 				}
 
@@ -133,6 +140,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 				ekf.disableControlStatusAuxGpos();
 				_state = State::stopped;
 			}
+
 			break;
 
 		default:
@@ -142,7 +150,10 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 #if defined(MODULE_NAME)
 		aid_src.timestamp = hrt_absolute_time();
 		_estimator_aid_src_aux_global_position_pub.publish(aid_src);
+
+		_test_ratio_filtered = math::max(fabsf(aid_src.test_ratio_filtered[0]), fabsf(aid_src.test_ratio_filtered[1]));
 #endif // MODULE_NAME
+
 	} else if ((_state != State::stopped) && isTimedOut(_time_last_buffer_push, imu_delayed.time_us, (uint64_t)5e6)) {
 		ekf.disableControlStatusAuxGpos();
 		_state = State::stopped;

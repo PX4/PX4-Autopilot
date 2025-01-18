@@ -73,8 +73,6 @@ param set-default SENS_EN_PX4FLOW 1
 param set-default SENS_EN_LL40LS 2
 param set-default SENS_FLOW_ROT 2
 
-#
-param set-default CBRK_IO_SAFETY 22027
 param set-default COM_DISARM_LAND 3
 
 # Battery
@@ -123,4 +121,3 @@ param set-default PWM_MAIN_FUNC6 106
 param set-default PWM_MAIN_TIM0 -1
 param set-default PWM_MAIN_TIM1 -1
 param set-default PWM_MAIN_TIM2 -1
-

@@ -224,8 +224,8 @@ void CrsfRc::Run()
 				battery_status_s battery_status;
 
 				if (_battery_status_sub.update(&battery_status)) {
-					uint16_t voltage = battery_status.voltage_filtered_v * 10;
-					uint16_t current = battery_status.current_filtered_a * 10;
+					uint16_t voltage = battery_status.voltage_v * 10;
+					uint16_t current = battery_status.current_a * 10;
 					int fuel = battery_status.discharged_mah;
 					uint8_t remaining = battery_status.remaining * 100;
 					this->SendTelemetryBattery(voltage, current, fuel, remaining);
@@ -241,7 +241,7 @@ void CrsfRc::Run()
 					int32_t longitude = static_cast<int32_t>(round(sensor_gps.longitude_deg * 1e7));
 					uint16_t groundspeed = sensor_gps.vel_d_m_s / 3.6f * 10.f;
 					uint16_t gps_heading = math::degrees(sensor_gps.cog_rad) * 100.f;
-					uint16_t altitude = static_cast<int16_t>(sensor_gps.altitude_msl_m * 1e3) + 1000;
+					uint16_t altitude = static_cast<int16_t>(sensor_gps.altitude_msl_m) + 1000;
 					uint8_t num_satellites = sensor_gps.satellites_used;
 					this->SendTelemetryGps(latitude, longitude, groundspeed, gps_heading, altitude, num_satellites);
 				}

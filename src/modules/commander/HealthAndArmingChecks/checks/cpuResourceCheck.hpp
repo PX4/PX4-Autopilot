@@ -54,6 +54,7 @@ private:
 	systemlib::Hysteresis _high_cpu_load_hysteresis{false};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamFloat<px4::params::COM_CPU_MAX>) _param_com_cpu_max
+					(ParamFloat<px4::params::COM_CPU_MAX>) _param_com_cpu_max,
+					(ParamFloat<px4::params::COM_RAM_MAX>) _param_com_ram_max
 				       )
 };

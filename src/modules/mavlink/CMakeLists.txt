@@ -44,8 +44,6 @@ add_custom_command(
 	COMMAND
 		${PYTHON_EXECUTABLE} ${MAVLINK_GIT_DIR}/pymavlink/tools/mavgen.py
 			--lang C --wire-protocol 2.0
-			#--no-validate
-			#--strict-units
 			--output ${MAVLINK_LIBRARY_DIR}
 			${MAVLINK_GIT_DIR}/message_definitions/v1.0/${MAVLINK_DIALECT_UAVIONIX}.xml > ${CMAKE_CURRENT_BINARY_DIR}/mavgen_${MAVLINK_DIALECT_UAVIONIX}.log
 	DEPENDS
@@ -64,8 +62,6 @@ add_custom_command(
 	COMMAND
 		${PYTHON_EXECUTABLE} ${MAVLINK_GIT_DIR}/pymavlink/tools/mavgen.py
 			--lang C --wire-protocol 2.0
-			#--no-validate
-			#--strict-units
 			--output ${MAVLINK_LIBRARY_DIR}
 			${MAVLINK_GIT_DIR}/message_definitions/v1.0/${CONFIG_MAVLINK_DIALECT}.xml > ${CMAKE_CURRENT_BINARY_DIR}/mavgen_${CONFIG_MAVLINK_DIALECT}.log
 	DEPENDS
@@ -124,6 +120,7 @@ px4_add_module(
 		mavlink_timesync.cpp
 		mavlink_ulog.cpp
 		MavlinkStatustextHandler.cpp
+		open_drone_id_translations.cpp
 		tune_publisher.cpp
 	MODULE_CONFIG
 		module.yaml

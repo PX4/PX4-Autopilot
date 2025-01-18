@@ -36,6 +36,7 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		mmc5983ma_i2c.cpp
+		mmc5983ma_spi.cpp
 		mmc5983ma_main.cpp
 		mmc5983ma.cpp
 	DEPENDS

@@ -33,16 +33,20 @@
 
 #include "ekf.h"
 
-void Ekf::controlAuxVelFusion()
+void Ekf::controlAuxVelFusion(const imuSample &imu_sample)
 {
 	if (_auxvel_buffer) {
-		auxVelSample auxvel_sample_delayed;
+		auxVelSample sample;
 
-		if (_auxvel_buffer->pop_first_older_than(_time_delayed_us, &auxvel_sample_delayed)) {
+		if (_auxvel_buffer->pop_first_older_than(imu_sample.time_us, &sample)) {
 
-			resetEstimatorAidStatus(_aid_src_aux_vel);
-
-			updateHorizontalVelocityAidSrcStatus(auxvel_sample_delayed.time_us, auxvel_sample_delayed.vel, auxvel_sample_delayed.velVar, fmaxf(_params.auxvel_gate, 1.f), _aid_src_aux_vel);
+			updateAidSourceStatus(_aid_src_aux_vel,
+					      sample.time_us,                                           // sample timestamp
+					      sample.vel,                                               // observation
+					      sample.velVar,                                            // observation variance
+					      Vector2f(_state.vel.xy()) - sample.vel,                   // innovation
+					      Vector2f(getStateVariance<State::vel>()) + sample.velVar, // innovation variance
+					      math::max(_params.auxvel_gate, 1.f));                     // innovation gate
 
 			if (isHorizontalAidingActive()) {
 				fuseHorizontalVelocity(_aid_src_aux_vel);
@@ -55,5 +59,4 @@ void Ekf::stopAuxVelFusion()
 {
 	ECL_INFO("stopping aux vel fusion");
 	//_control_status.flags.aux_vel = false;
-	resetEstimatorAidStatus(_aid_src_aux_vel);
 }

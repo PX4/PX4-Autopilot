@@ -76,7 +76,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_V_AUTO_DN, 1.5f);
 /**
  * Acceleration for autonomous and for manual modes
  *
- * When piloting manually, this parameter is only used in MPC_POS_MODE 4.
+ * When piloting manually, this parameter is only used in MPC_POS_MODE Acceleration based.
  *
  * @unit m/s^2
  * @min 2

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file hello_start_posix.cpp
+ * @file hello_start.cpp
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
  * @author Mark Charlebois <mcharleb@gmail.com>

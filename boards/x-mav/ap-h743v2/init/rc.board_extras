@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# board specific extras init
+#------------------------------------------------------------------------------
+
+# NxtV1 does not have OSD
+# if ! param compare OSD_ATXXXX_CFG 0
+# then
+# 	atxxxx start -s
+# fi
+
+# DShot telemetry is always on UART7
+# dshot telemetry /dev/ttyS5

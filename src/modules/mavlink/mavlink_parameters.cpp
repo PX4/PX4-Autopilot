@@ -292,10 +292,6 @@ MavlinkParametersManager::send()
 		param_find("BAT_CRIT_THR");
 		param_find("BAT_EMERGEN_THR");
 		param_find("BAT_LOW_THR");
-		param_find("BAT_N_CELLS");     // deprecated
-		param_find("BAT_V_CHARGED");   // deprecated
-		param_find("BAT_V_EMPTY");     // deprecated
-		param_find("BAT_V_LOAD_DROP"); // deprecated
 		param_find("CAL_ACC0_ID");
 		param_find("CAL_GYRO0_ID");
 		param_find("CAL_MAG0_ID");
@@ -313,6 +309,9 @@ MavlinkParametersManager::send()
 		param_find("SENS_DPRES_OFF");
 		param_find("TRIG_MODE");
 		param_find("UAVCAN_ENABLE");
+
+		// parameter only used in startup script but should show on ground station
+		param_find("SYS_PARAM_VER");
 
 		_first_send = true;
 	}

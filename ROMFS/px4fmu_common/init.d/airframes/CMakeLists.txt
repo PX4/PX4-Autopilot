@@ -48,6 +48,7 @@ if(CONFIG_MODULES_SIMULATION_PWM_OUT_SIM)
 		1100_rc_quad_x_sih.hil
 		1101_rc_plane_sih.hil
 		1102_tailsitter_duo_sih.hil
+		1103_standard_vtol_sih.hil
 	)
 endif()
 
@@ -129,29 +130,39 @@ if(CONFIG_MODULES_VTOL_ATT_CONTROL)
 		# [13000, 13999] VTOL
 		13000_generic_vtol_standard
 		13100_generic_vtol_tiltrotor
-		13013_deltaquad
-		13014_vtol_babyshark
 		13030_generic_vtol_quad_tiltrotor
 		13200_generic_vtol_tailsitter
 	)
 endif()
 
-if(CONFIG_MODULES_ROVER_POS_CONTROL)
+if(CONFIG_MODULES_ROVER_DIFFERENTIAL)
 	px4_add_romfs_files(
-		50000_generic_ground_vehicle
-		50004_nxpcup_car_dfrobot_gpx
-	)
-endif()
-
-if(CONFIG_MODULES_DIFFERENTIAL_DRIVE)
-	px4_add_romfs_files(
-		50003_aion_robotics_r1_rover
+		# [50000, 50999] Differential rovers
+		50000_generic_rover_differential
+		50001_aion_robotics_r1_rover
 	)
 endif()
 
 if(CONFIG_MODULES_ROVER_ACKERMANN)
 	px4_add_romfs_files(
-		50010_ackermann_rover_generic
+		# [51000, 51999] Ackermann rovers
+		51000_generic_rover_ackermann
+		51001_axial_scx10_2_trail_honcho
+	)
+endif()
+
+if(CONFIG_MODULES_ROVER_MECANUM)
+	px4_add_romfs_files(
+		# [52000, 52999] Mecanum rovers
+		52000_generic_rover_mecanum
+	)
+endif()
+
+if(CONFIG_MODULES_ROVER_POS_CONTROL)
+	px4_add_romfs_files(
+		# [59000, 59999] Rover position control (deprecated)
+		59000_generic_ground_vehicle
+		59001_nxpcup_car_dfrobot_gpx
 	)
 endif()
 

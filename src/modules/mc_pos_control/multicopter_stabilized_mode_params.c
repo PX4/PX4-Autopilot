@@ -75,18 +75,16 @@ PARAM_DEFINE_FLOAT(MPC_MANTHR_MIN, 0.08f);
 /**
  * Thrust curve mapping in Stabilized Mode
  *
- * This parameter defines how the throttle stick input is mapped to collective thrust
- * in Stabilized mode.
+ * Defines how the throttle stick is mapped to collective thrust in Stabilized mode.
  *
- * In case the default is used ('Rescale to hover thrust'), the stick input is linearly
- * rescaled, such that a centered stick corresponds to the hover throttle (see MPC_THR_HOVER).
+ * Rescale to hover thrust:
+ *   Stick input is linearly rescaled, such that a centered stick corresponds to the hover throttle (see MPC_THR_HOVER).
  *
- * Select 'No Rescale' to directly map the stick 1:1 to the output. This can be useful
- * in case the hover thrust is very low and the default would lead to too much distortion
- * (e.g. if hover thrust is set to 20%, then 80% of the upper thrust range is squeezed into the
- * upper half of the stick range).
+ * No Rescale:
+ *   Directly map the stick 1:1 to the output.
+ *   Can be useful with very low hover thrust which leads to much distortion and the upper half getting sensitive.
  *
- * Note: In case MPC_THR_HOVER is set to 50%, the modes 0 and 1 are the same.
+ * With MPC_THR_HOVER 0.5 both modes are the same.
  *
  * @value 0 Rescale to hover thrust
  * @value 1 No Rescale

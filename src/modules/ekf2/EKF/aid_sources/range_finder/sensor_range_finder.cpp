@@ -84,8 +84,9 @@ void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 
 			if (isTiltOk() && isDataInRange()) {
 				updateStuckCheck();
+				updateFogCheck(getDistBottom(), _sample.time_us);
 
-				if (!_is_stuck) {
+				if (!_is_stuck && !_is_blocked) {
 					_is_sample_valid = true;
 					_time_last_valid_us = _sample.time_us;
 				}
@@ -143,6 +144,24 @@ void SensorRangeFinder::updateStuckCheck()
 
 			_is_stuck = true;
 		}
+	}
+}
+
+void SensorRangeFinder::updateFogCheck(const float dist_bottom, const uint64_t time_us)
+{
+	if (_max_fog_dist > 0.f && time_us - _time_last_valid_us < 1e6) {
+
+		const float median_dist = _median_dist.apply(dist_bottom);
+		const float factor = 2.f; // magic hardcoded factor
+
+		if (!_is_blocked && median_dist < _max_fog_dist && _prev_median_dist - median_dist > factor * _max_fog_dist) {
+			_is_blocked = true;
+
+		} else if (_is_blocked && median_dist > factor * _max_fog_dist) {
+			_is_blocked = false;
+		}
+
+		_prev_median_dist = median_dist;
 	}
 }
 

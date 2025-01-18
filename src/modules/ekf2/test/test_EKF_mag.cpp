@@ -68,6 +68,7 @@ public:
 
 TEST_F(EkfMagTest, fusionStartWithReset)
 {
+	_ekf->set_min_required_gps_health_time(5e6);
 	// GIVEN: some meaningful mag data
 	const float mag_heading = M_PI_F / 3.f;
 	const float incl = 63.1f;
@@ -84,11 +85,10 @@ TEST_F(EkfMagTest, fusionStartWithReset)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
 
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
-
 	// AND WHEN: GNSS fusion starts
 	_ekf_wrapper.enableGpsFusion();
 	_sensor_simulator.startGps();
-	_sensor_simulator.runSeconds(11);
+	_sensor_simulator.runSeconds(6);
 
 	// THEN: the earth mag field is reset to the WMM
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 2);

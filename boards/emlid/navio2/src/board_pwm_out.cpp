@@ -153,4 +153,3 @@ int NavioSysfsPWMOut::pwm_write_sysfs(char *path, int value)
 
 	return 0;
 }
-

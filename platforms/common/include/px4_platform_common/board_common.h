@@ -106,6 +106,13 @@
 #define ADC_V5_SCALE                    (2.0f) // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
 #endif
 
+#if !defined(ADC_PAYLOAD_V_FULL_SCALE)
+#define ADC_PAYLOAD_V_FULL_SCALE        (25.3f)  // Payload volt Rail full scale voltage
+#endif
+#if !defined(ADC_PAYLOAD_SCALE)
+#define ADC_PAYLOAD_SCALE               (7.667f) // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
+#endif
+
 #if !defined(ADC_3V3_V_FULL_SCALE)
 #define ADC_3V3_V_FULL_SCALE             (3.6f)  // 3.3V volt Rail full scale voltage
 #endif
@@ -239,7 +246,7 @@
 #  else
 /*  Use PX4IO FW search paths defaults based on version */
 #    if BOARD_USES_PX4IO_VERSION == 2
-#      define PX4IO_FW_SEARCH_PATHS {"/etc/extras/px4_io-v2_default.bin","/fs/microsd/px4_io-v2_default.bin", "/fs/microsd/px4io2.bin", nullptr }
+#      define PX4IO_FW_SEARCH_PATHS {"/etc/extras/px4_io-v2_default.bin",CONFIG_BOARD_ROOT_PATH "/px4_io-v2_default.bin", CONFIG_BOARD_ROOT_PATH "/px4io2.bin", nullptr }
 #    endif
 #  endif
 #endif

@@ -41,14 +41,154 @@
 #include <systemlib/px4_macros.h>
 
 #include "chip.h"
+#ifdef TONE_ALARM_FLEXPWM
+#include "hardware/imxrt_flexpwm.h"
+#else
 #include "hardware/imxrt_gpt.h"
+#endif
 #include "imxrt_periphclks.h"
+
+#define CAT4_(A, B, C, D)    A##B##C##D
+#define CAT4(A, B, C, D)     CAT4_(A, B, C, D)
 
 #define CAT3_(A, B, C)    A##B##C
 #define CAT3(A, B, C)     CAT3_(A, B, C)
 
 #define CAT2_(A, B)    A##B
 #define CAT2(A, B)     CAT2_(A, B)
+
+#ifdef TONE_ALARM_FLEXPWM
+
+
+/*
+* Period of the free-running counter, in microseconds.
+*/
+#define TONE_ALARM_COUNTER_PERIOD  4294967296
+
+/* Tone Alarm configuration */
+
+#define TONE_ALARM_TIMER_CLOCK  BOARD_GPT_FREQUENCY                       /* The input clock frequency to the GPT block */
+#define TONE_ALARM_TIMER_BASE   CAT3(IMXRT_FLEXPWM, TONE_ALARM_TIMER,_BASE)   /* The Base address of the GPT */
+#define TONE_ALARM_TIMER_VECTOR CAT4(IMXRT_IRQ_FLEXPWM, TONE_ALARM_TIMER, _, TONE_ALARM_CHANNEL)      /* The GPT Interrupt vector */
+
+#if TONE_ALARM_TIMER == 1
+#  define TONE_ALARM_CLOCK_ALL()  imxrt_clockall_pwm1()        /* The Clock Gating macro for this PWM */
+#elif TONE_ALARM_TIMER == 2
+#  define TONE_ALARM_CLOCK_ALL()  imxrt_clockall_pwm2()        /* The Clock Gating macro for this PWM */
+#elif TONE_ALARM_TIMER == 3
+#  define TONE_ALARM_CLOCK_ALL()  imxrt_clockall_pwm3()        /* The Clock Gating macro for this PWM */
+#elif TONE_ALARM_TIMER == 4
+#  define TONE_ALARM_CLOCK_ALL()  imxrt_clockall_pwm4()        /* The Clock Gating macro for this PWM */
+#endif
+
+# define TONE_ALARM_TIMER_FREQ    1000000
+
+#define SM_SPACING (IMXRT_FLEXPWM_SM1CNT_OFFSET-IMXRT_FLEXPWM_SM0CNT_OFFSET)
+
+/* Register accessors */
+#define _REG(_addr)	(*(volatile uint16_t *)(_addr))
+#define _REG16(_base, _reg)	(*(volatile uint16_t *)(_base + _reg))
+#define REG(_tmr, _sm, _reg)		_REG16(TONE_ALARM_TIMER_BASE + ((_sm) * SM_SPACING), (_reg))
+
+
+#define rINIT(_tim, _sm)       REG(_tim, _sm,IMXRT_FLEXPWM_SM0INIT_OFFSET)       /* Initial Count Register */
+#define rCTRL(_tim, _sm)       REG(_tim, _sm,IMXRT_FLEXPWM_SM0CTRL_OFFSET)       /* Control Register */
+#define rCTRL2(_tim, _sm)      REG(_tim, _sm,IMXRT_FLEXPWM_SM0CTRL2_OFFSET)      /* Control 2 Register */
+#define rFSTS0(_tim)           REG(_tim,  0, IMXRT_FLEXPWM_FSTS0_OFFSET)         /* Fault Status Register */
+#define rVAL0(_tim, _sm)       REG(_tim, _sm,IMXRT_FLEXPWM_SM0VAL0_OFFSET)       /* Value Register 0 */
+#define rVAL1(_tim, _sm)       REG(_tim, _sm,IMXRT_FLEXPWM_SM0VAL1_OFFSET)       /* Value Register 1 */
+#define rVAL2(_tim, _sm)       REG(_tim, _sm,IMXRT_FLEXPWM_SM0VAL2_OFFSET)       /* Value Register 2 */
+#define rVAL3(_tim, _sm)       REG(_tim, _sm,IMXRT_FLEXPWM_SM0VAL3_OFFSET)       /* Value Register 3 */
+#define rVAL4(_tim, _sm)       REG(_tim, _sm,IMXRT_FLEXPWM_SM0VAL4_OFFSET)       /* Value Register 4 */
+#define rVAL5(_tim, _sm)       REG(_tim, _sm,IMXRT_FLEXPWM_SM0VAL5_OFFSET)       /* Value Register 5 */
+#define rFFILT0(_tim)          REG(_tim,  0, IMXRT_FLEXPWM_FFILT0_OFFSET)        /* Fault Filter Register */
+#define rDISMAP0(_tim, _sm)    REG(_tim, _sm,IMXRT_FLEXPWM_SM0DISMAP0_OFFSET)    /* Fault Disable Mapping Register 0 */
+#define rDISMAP1(_tim, _sm)    REG(_tim, _sm,IMXRT_FLEXPWM_SM0DISMAP1_OFFSET)    /* Fault Disable Mapping Register 1 */
+#define rOUTEN(_tim)           REG(_tim,  0, IMXRT_FLEXPWM_OUTEN_OFFSET)         /* Output Enable Register */
+#define rDTSRCSEL(_tim)        REG(_tim,  0, IMXRT_FLEXPWM_DTSRCSEL_OFFSET)      /* PWM Source Select Register */
+#define rMCTRL(_tim)           REG(_tim,  0, IMXRT_FLEXPWM_MCTRL_OFFSET)         /* Master Control Register */
+
+namespace ToneAlarmInterface
+{
+
+void init()
+{
+#if defined(TONE_ALARM_TIMER)
+	/* configure the GPIO to the idle state */
+	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
+
+	/* Enable the Module clock */
+
+	TONE_ALARM_CLOCK_ALL();
+
+	/* Clear all Faults */
+	rFSTS0(TONE_ALARM_TIMER) = FSTS_FFLAG_MASK;
+	rMCTRL(TONE_ALARM_TIMER) |= (1 << (TONE_ALARM_CHANNEL + MCTRL_CLDOK_SHIFT));
+
+	rCTRL2(TONE_ALARM_TIMER, TONE_ALARM_CHANNEL) = SMCTRL2_CLK_SEL_EXT_CLK | SMCTRL2_DBGEN | SMCTRL2_INDEP;
+	rCTRL(TONE_ALARM_TIMER, TONE_ALARM_CHANNEL)  = SMCTRL_PRSC_DIV16 | SMCTRL_FULL;
+	/* Edge aligned at 0 */
+	rINIT(TONE_ALARM_TIMER, TONE_ALARM_CHANNEL) = 0;
+	rVAL0(TONE_ALARM_TIMER, TONE_ALARM_CHANNEL) = 0;
+	rVAL2(TONE_ALARM_TIMER, TONE_ALARM_CHANNEL) = 0;
+	rVAL4(TONE_ALARM_TIMER, TONE_ALARM_CHANNEL) = 0;
+	rFFILT0(TONE_ALARM_TIMER) &= ~FFILT_FILT_PER_MASK;
+	rDISMAP0(TONE_ALARM_TIMER, TONE_ALARM_CHANNEL) = 0xf000;
+	rDISMAP1(TONE_ALARM_TIMER, TONE_ALARM_CHANNEL) = 0xf000;
+
+	rOUTEN(TONE_ALARM_TIMER) |= TONE_ALARM_FLEXPWM == PWMA_VAL ? OUTEN_PWMA_EN(1 << TONE_ALARM_CHANNEL)
+				    : OUTEN_PWMB_EN(1 << TONE_ALARM_CHANNEL);
+
+	rDTSRCSEL(TONE_ALARM_TIMER) = 0;
+	rMCTRL(TONE_ALARM_TIMER) |= MCTRL_LDOK(1 << TONE_ALARM_CHANNEL);
+#endif /* TONE_ALARM_TIMER */
+}
+
+hrt_abstime start_note(unsigned frequency)
+{
+	hrt_abstime time_started = 0;
+#if defined(TONE_ALARM_TIMER)
+
+	rMCTRL(TONE_ALARM_TIMER) |= (1 << (TONE_ALARM_CHANNEL + MCTRL_CLDOK_SHIFT));
+
+	rVAL1(TONE_ALARM_TIMER, TONE_ALARM_CHANNEL) = (TONE_ALARM_TIMER_FREQ / frequency) - 1;
+
+	if (TONE_ALARM_FLEXPWM == PWMA_VAL) {
+		rVAL3(TONE_ALARM_TIMER, TONE_ALARM_CHANNEL) = ((TONE_ALARM_TIMER_FREQ / frequency) / 2);
+
+	} else {
+		rVAL5(TONE_ALARM_TIMER, TONE_ALARM_CHANNEL) = ((TONE_ALARM_TIMER_FREQ / frequency) / 2);
+	}
+
+	rMCTRL(TONE_ALARM_TIMER) |= MCTRL_LDOK(1 << TONE_ALARM_CHANNEL) | MCTRL_RUN(1 << TONE_ALARM_CHANNEL);
+
+	// configure the GPIO to enable timer output
+	irqstate_t flags = enter_critical_section();
+	time_started = hrt_absolute_time();
+	px4_arch_configgpio(GPIO_TONE_ALARM);
+	leave_critical_section(flags);
+#endif /* TONE_ALARM_TIMER */
+
+	return time_started;
+}
+
+void stop_note()
+{
+#if defined(TONE_ALARM_TIMER)
+	/* stop the current note */
+
+	rMCTRL(TONE_ALARM_TIMER) &= ~MCTRL_RUN(1 << TONE_ALARM_CHANNEL);
+
+	/*
+	 * Make sure the GPIO is not driving the speaker.
+	 */
+	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
+#endif /* TONE_ALARM_TIMER */
+}
+
+} /* namespace ToneAlarmInterface */
+
+#else
 
 /* Check that tone alarm and HRT timers are different */
 #if defined(TONE_ALARM_TIMER)  && defined(HRT_TIMER)
@@ -134,8 +274,6 @@
 #define CR_OM        CAT3(GPT_CR_OM, TONE_ALARM_CHANNEL,_TOGGLE)  /* Output Compare mode */
 
 
-#define CBRK_BUZZER_KEY 782097
-
 namespace ToneAlarmInterface
 {
 
@@ -215,3 +353,5 @@ void stop_note()
 }
 
 } /* namespace ToneAlarmInterface */
+
+#endif

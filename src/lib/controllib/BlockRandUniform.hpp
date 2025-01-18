@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file blocks.h
+ * @file BlockRandUniform.hpp
  *
  * Controller library code
  */

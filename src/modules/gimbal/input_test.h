@@ -50,12 +50,17 @@ public:
 	int initialize() override;
 	void print_status() const override;
 
-	void set_test_input(int roll_deg, int pitch_deg, int yaw_deg);
+	void set_test_input_angles(
+		float roll_deg, float pitch_deg, float yaw_deg);
+	void set_test_input_angle_rates(float rollrate_deg_s, float pitchrate_deg_s, float yawrate_deg_s);
 
 private:
-	int _roll_deg {0};
-	int _pitch_deg {0};
-	int _yaw_deg {0};
+	float _roll_deg {NAN};
+	float _pitch_deg {NAN};
+	float _yaw_deg {NAN};
+	float _rollrate_deg_s {NAN};
+	float _pitchrate_deg_s {NAN};
+	float _yawrate_deg_s {NAN};
 
 	px4::atomic<bool> _has_been_set {false};
 };

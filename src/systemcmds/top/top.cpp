@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file top.c
+ * @file top.cpp
  * Tool similar to UNIX top command
  * @see http://en.wikipedia.org/wiki/Top_unix
  *

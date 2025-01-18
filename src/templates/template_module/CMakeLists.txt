@@ -37,4 +37,3 @@ px4_add_module(
 	SRCS
 		template_module.cpp
 	)
-

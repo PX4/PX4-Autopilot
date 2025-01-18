@@ -36,7 +36,14 @@
 
 I2CSPIDriverBase *MMC5983MA::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
-	device::Device *interface = MMC5983MA_I2C_interface(config);
+	device::Device *interface = nullptr;
+
+	if (config.bus_type == BOARD_I2C_BUS) {
+		interface = MMC5983MA_I2C_interface(config);
+
+	} else if (config.bus_type == BOARD_SPI_BUS) {
+		interface = MMC5983MA_SPI_interface(config);
+	}
 
 	if (interface == nullptr) {
 		PX4_ERR("alloc failed");
@@ -69,8 +76,9 @@ void MMC5983MA::print_usage()
 	PRINT_MODULE_USAGE_NAME("mmc5983ma", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, true);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x30);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_COMMAND("reset");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
@@ -79,9 +87,10 @@ extern "C" int mmc5983ma_main(int argc, char *argv[])
 {
 	using ThisDriver = MMC5983MA;
 	int ch;
-	BusCLIArguments cli{true, false};
+	BusCLIArguments cli{true, true};
 	cli.i2c_address = 0x30;
 	cli.default_i2c_frequency = 400000;
+	cli.default_spi_frequency = 10 * 1000 * 1000;
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {

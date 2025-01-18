@@ -74,7 +74,7 @@ private:
 				bat_msg.type = MAV_BATTERY_TYPE_LIPO;
 				bat_msg.current_consumed = (battery_status.connected) ? battery_status.discharged_mah : -1;
 				bat_msg.energy_consumed = -1;
-				bat_msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100 : -1;
+				bat_msg.current_battery = (battery_status.connected) ? battery_status.current_a * 100 : -1;
 				bat_msg.battery_remaining = (battery_status.connected) ? roundf(battery_status.remaining * 100.f) : -1;
 				// MAVLink extension: 0 is unsupported, in uORB it's NAN
 				bat_msg.time_remaining = (battery_status.connected && (PX4_ISFINITE(battery_status.time_remaining_s))) ?
@@ -114,20 +114,7 @@ private:
 					break;
 				}
 
-				switch (battery_status.mode) {
-				case (battery_status_s::BATTERY_MODE_AUTO_DISCHARGING):
-					bat_msg.mode = MAV_BATTERY_MODE_AUTO_DISCHARGING;
-					break;
-
-				case (battery_status_s::BATTERY_MODE_HOT_SWAP):
-					bat_msg.mode = MAV_BATTERY_MODE_HOT_SWAP;
-					break;
-
-				default:
-					bat_msg.mode = MAV_BATTERY_MODE_UNKNOWN;
-					break;
-				}
-
+				bat_msg.mode = MAV_BATTERY_MODE_UNKNOWN;
 				bat_msg.fault_bitmask = battery_status.faults;
 
 				// check if temperature valid
@@ -161,10 +148,10 @@ private:
 						// If it doesn't fit, we have to split it into UINT16-1 chunks and the remaining
 						// voltage for the subsequent field.
 						// This won't work for voltages of more than 655 volts.
-						const int num_fields_required = static_cast<int>(battery_status.voltage_filtered_v * 1000.f) / (UINT16_MAX - 1) + 1;
+						const int num_fields_required = static_cast<int>(battery_status.voltage_v * 1000.f) / (UINT16_MAX - 1) + 1;
 
 						if (num_fields_required <= mavlink_cell_slots) {
-							float remaining_voltage = battery_status.voltage_filtered_v * 1000.f;
+							float remaining_voltage = battery_status.voltage_v * 1000.f;
 
 							for (int i = 0; i < num_fields_required - 1; ++i) {
 								bat_msg.voltages[i] = UINT16_MAX - 1;

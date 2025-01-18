@@ -37,8 +37,9 @@
  */
 
 #include "ekf.h"
+#include "aid_sources/external_vision/ev_vel.h"
 
-void Ekf::controlExternalVisionFusion()
+void Ekf::controlExternalVisionFusion(const imuSample &imu_sample)
 {
 	_ev_pos_b_est.predict(_dt_ekf_avg);
 	_ev_hgt_b_est.predict(_dt_ekf_avg);
@@ -46,7 +47,7 @@ void Ekf::controlExternalVisionFusion()
 	// Check for new external vision data
 	extVisionSample ev_sample;
 
-	if (_ext_vision_buffer && _ext_vision_buffer->pop_first_older_than(_time_delayed_us, &ev_sample)) {
+	if (_ext_vision_buffer && _ext_vision_buffer->pop_first_older_than(imu_sample.time_us, &ev_sample)) {
 
 		bool ev_reset = (ev_sample.reset_counter != _ev_sample_prev.reset_counter);
 
@@ -55,22 +56,46 @@ void Ekf::controlExternalVisionFusion()
 
 		const bool starting_conditions_passing = quality_sufficient
 				&& ((ev_sample.time_us - _ev_sample_prev.time_us) < EV_MAX_INTERVAL)
-				&& ((_params.ev_quality_minimum <= 0) || (_ev_sample_prev.quality >= _params.ev_quality_minimum)) // previous quality sufficient
-				&& ((_params.ev_quality_minimum <= 0) || (_ext_vision_buffer->get_newest().quality >= _params.ev_quality_minimum)) // newest quality sufficient
+				&& ((_params.ev_quality_minimum <= 0)
+				    || (_ev_sample_prev.quality >= _params.ev_quality_minimum)) // previous quality sufficient
+				&& ((_params.ev_quality_minimum <= 0)
+				    || (_ext_vision_buffer->get_newest().quality >= _params.ev_quality_minimum)) // newest quality sufficient
 				&& isNewestSampleRecent(_time_last_ext_vision_buffer_push, EV_MAX_INTERVAL);
 
 		updateEvAttitudeErrorFilter(ev_sample, ev_reset);
-		controlEvYawFusion(ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_yaw);
-		controlEvVelFusion(ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
-		controlEvPosFusion(ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_pos);
-		controlEvHeightFusion(ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_hgt);
+
+		controlEvYawFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_yaw);
+
+		switch (ev_sample.vel_frame) {
+		case VelocityFrame::BODY_FRAME_FRD: {
+				EvVelBodyFrameFrd ev_vel_body(*this, ev_sample, _params.ev_vel_noise, imu_sample);
+				controlEvVelFusion(ev_vel_body, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
+				break;
+			}
+
+		case VelocityFrame::LOCAL_FRAME_NED: {
+				EvVelLocalFrameNed ev_vel_ned(*this, ev_sample, _params.ev_vel_noise, imu_sample);
+				controlEvVelFusion(ev_vel_ned, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
+				break;
+			}
+
+		case VelocityFrame::LOCAL_FRAME_FRD: {
+				EvVelLocalFrameFrd ev_vel_frd(*this, ev_sample, _params.ev_vel_noise, imu_sample);
+				controlEvVelFusion(ev_vel_frd, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
+				break;
+			}
+
+		default:
+			return;
+		}
+
+		controlEvPosFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_pos);
+		controlEvHeightFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient,
+				      _aid_src_ev_hgt);
 
 		if (quality_sufficient) {
 			_ev_sample_prev = ev_sample;
 		}
-
-		// record corresponding yaw state for future EV delta heading innovation (logging only)
-		_ev_yaw_pred_prev = getEulerYaw(_state.quat_nominal);
 
 	} else if ((_control_status.flags.ev_pos || _control_status.flags.ev_vel || _control_status.flags.ev_yaw
 		    || _control_status.flags.ev_hgt)
@@ -84,7 +109,6 @@ void Ekf::controlExternalVisionFusion()
 
 		_ev_q_error_initialized = false;
 
-		_warning_events.flags.vision_data_stopped = true;
 		ECL_WARN("vision data stopped");
 	}
 }

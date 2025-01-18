@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file temperature_compensation.cpp
+ * @file TemperatureCompensation.cpp
  *
  * Sensors temperature compensation methods
  *

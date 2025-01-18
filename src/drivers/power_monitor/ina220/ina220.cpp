@@ -56,7 +56,7 @@ INA220::INA220(const I2CSPIDriverConfig &config, int battery_index) :
 {
 	float fvalue = MAX_CURRENT;
 	_max_current = fvalue;
-	param_t ph = (_ch_type == PM_CH_TYPE_VBATT) ? param_find("INA220_CURRENT_BAT") : param_find("INA220_CURRENT_REG");
+	param_t ph = (_ch_type == PM_CH_TYPE_VBATT) ? param_find("INA220_CUR_BAT") : param_find("INA220_CUR_REG");
 
 	if (ph != PARAM_INVALID && param_get(ph, &fvalue) == PX4_OK) {
 		_max_current = fvalue;

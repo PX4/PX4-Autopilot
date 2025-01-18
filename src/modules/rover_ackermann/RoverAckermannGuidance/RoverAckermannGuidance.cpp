@@ -40,30 +40,76 @@ using namespace time_literals;
 
 RoverAckermannGuidance::RoverAckermannGuidance(ModuleParams *parent) : ModuleParams(parent)
 {
+	_rover_ackermann_guidance_status_pub.advertise();
 	updateParams();
-	pid_init(&_pid_throttle, PID_MODE_DERIVATIV_NONE, 0.001f);
 }
 
 void RoverAckermannGuidance::updateParams()
 {
 	ModuleParams::updateParams();
-	pid_set_parameters(&_pid_throttle,
-			   _param_ra_p_speed.get(), // Proportional gain
-			   _param_ra_i_speed.get(), // Integral gain
-			   0, // Derivative gain
-			   1, // Integral limit
-			   1); // Output limit
+
+	if (_param_ra_wheel_base.get() > FLT_EPSILON && _param_ra_max_lat_accel.get() > FLT_EPSILON
+	    && _param_ra_max_steer_angle.get() > FLT_EPSILON) {
+		_min_speed = sqrt(_param_ra_wheel_base.get() * _param_ra_max_lat_accel.get() / tanf(_param_ra_max_steer_angle.get()));
+	}
 }
 
-RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::purePursuit()
+void RoverAckermannGuidance::computeGuidance(const float vehicle_forward_speed,
+		const float vehicle_yaw, const int nav_state, const bool armed)
 {
-	// Initializations
-	float desired_speed{0.f};
-	float desired_steering{0.f};
-	float vehicle_yaw{0.f};
-	float actual_speed{0.f};
+	updateSubscriptions();
 
-	// uORB subscriber updates
+	// Distances to waypoints
+	const float distance_to_prev_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
+					  _prev_wp(0), _prev_wp(1));
+	const float distance_to_curr_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
+					  _curr_wp(0), _curr_wp(1));
+
+	// Catch return to launch
+	if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
+		_mission_finished = distance_to_curr_wp < _param_nav_acc_rad.get();
+	}
+
+	// Guidance logic
+	if (_mission_finished) { // Mission is finished
+		_desired_steering = 0.f;
+		_desired_speed = 0.f;
+
+	} else if (_nav_cmd == 93) { // Catch delay command
+		_desired_speed = 0.f;
+
+	} else { // Regular guidance algorithm
+
+		_desired_speed = calcDesiredSpeed(_cruising_speed, _min_speed, distance_to_prev_wp, distance_to_curr_wp,
+						  _acceptance_radius,
+						  _prev_acceptance_radius, _param_ra_max_decel.get(), _param_ra_max_jerk.get(), nav_state, _waypoint_transition_angle,
+						  _prev_waypoint_transition_angle, _param_ra_max_speed.get());
+
+		_desired_steering = calcDesiredSteering(_pure_pursuit, _curr_wp_ned, _prev_wp_ned, _curr_pos_ned,
+							_param_ra_wheel_base.get(), _desired_speed, vehicle_yaw, _param_ra_max_steer_angle.get(), armed);
+
+	}
+
+	// Publish ackermann controller status (logging)
+	hrt_abstime timestamp = hrt_absolute_time();
+	_rover_ackermann_guidance_status.timestamp = timestamp;
+	_rover_ackermann_guidance_status_pub.publish(_rover_ackermann_guidance_status);
+
+	// Publish speed and steering setpoints
+	rover_ackermann_setpoint_s rover_ackermann_setpoint{};
+	rover_ackermann_setpoint.timestamp = timestamp;
+	rover_ackermann_setpoint.forward_speed_setpoint = _desired_speed;
+	rover_ackermann_setpoint.forward_speed_setpoint_normalized = NAN;
+	rover_ackermann_setpoint.steering_setpoint = NAN;
+	rover_ackermann_setpoint.steering_setpoint_normalized = NAN;
+	rover_ackermann_setpoint.lateral_acceleration_setpoint = powf(vehicle_forward_speed,
+			2.f) * tanf(_desired_steering) / _param_ra_wheel_base.get();
+	_rover_ackermann_setpoint_pub.publish(rover_ackermann_setpoint);
+
+}
+
+void RoverAckermannGuidance::updateSubscriptions()
+{
 	if (_vehicle_global_position_sub.updated()) {
 		vehicle_global_position_s vehicle_global_position{};
 		_vehicle_global_position_sub.copy(&vehicle_global_position);
@@ -74,25 +120,22 @@ RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::purePursuit()
 		vehicle_local_position_s local_position{};
 		_local_position_sub.copy(&local_position);
 
-		if (!_global_local_proj_ref.isInitialized()
-		    || (_global_local_proj_ref.getProjectionReferenceTimestamp() != local_position.ref_timestamp)) {
-			_global_local_proj_ref.initReference(local_position.ref_lat, local_position.ref_lon, local_position.ref_timestamp);
+		if (!_global_ned_proj_ref.isInitialized()
+		    || (_global_ned_proj_ref.getProjectionReferenceTimestamp() != local_position.ref_timestamp)) {
+			_global_ned_proj_ref.initReference(local_position.ref_lat, local_position.ref_lon, local_position.ref_timestamp);
 		}
 
-		_curr_pos_local = Vector2f(local_position.x, local_position.y);
-		const Vector3f rover_velocity = {local_position.vx, local_position.vy, local_position.vz};
-		actual_speed = rover_velocity.norm();
+		_curr_pos_ned = Vector2f(local_position.x, local_position.y);
+	}
+
+	if (_home_position_sub.updated()) {
+		home_position_s home_position{};
+		_home_position_sub.copy(&home_position);
+		_home_position = Vector2d(home_position.lat, home_position.lon);
 	}
 
 	if (_position_setpoint_triplet_sub.updated()) {
-		updateWaypoints();
-	}
-
-	if (_vehicle_attitude_sub.updated()) {
-		vehicle_attitude_s vehicle_attitude{};
-		_vehicle_attitude_sub.copy(&vehicle_attitude);
-		matrix::Quatf vehicle_attitude_quaternion = Quatf(vehicle_attitude.q);
-		vehicle_yaw = matrix::Eulerf(vehicle_attitude_quaternion).psi();
+		updateWaypointsAndAcceptanceRadius();
 	}
 
 	if (_mission_result_sub.updated()) {
@@ -101,117 +144,83 @@ RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::purePursuit()
 		_mission_finished = mission_result.finished;
 	}
 
-	// Guidance logic
-	if (!_mission_finished) {
-		// Calculate desired speed
-		const float distance_to_prev_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
-						  _prev_wp(0),
-						  _prev_wp(1));
-
-		if (distance_to_prev_wp <= _prev_acc_rad) { // Cornering speed
-			const float cornering_speed = _param_ra_miss_vel_gain.get() / _prev_acc_rad;
-			desired_speed = math::constrain(cornering_speed, _param_ra_miss_vel_min.get(), _param_ra_miss_vel_def.get());
-
-		} else { // Default mission speed
-			desired_speed = _param_ra_miss_vel_def.get();
-		}
-
-		// Calculate desired steering
-		desired_steering = calcDesiredSteering(_curr_wp_local, _prev_wp_local, _curr_pos_local, _param_ra_lookahd_gain.get(),
-						       _param_ra_lookahd_min.get(), _param_ra_lookahd_max.get(), _param_ra_wheel_base.get(), desired_speed, vehicle_yaw);
-		desired_steering = math::constrain(desired_steering, -_param_ra_max_steer_angle.get(),
-						   _param_ra_max_steer_angle.get());
+	if (_navigator_mission_item_sub.updated()) {
+		navigator_mission_item_s navigator_mission_item{};
+		_navigator_mission_item_sub.copy(&navigator_mission_item);
+		_nav_cmd = navigator_mission_item.nav_cmd;
 	}
-
-	// Throttle PID
-	hrt_abstime now = hrt_absolute_time();
-	const float dt = math::min((now - _time_stamp_last), 5000_ms) / 1e6f;
-	_time_stamp_last = now;
-	float throttle = 0.f;
-
-	if (desired_speed < FLT_EPSILON) {
-		pid_reset_integral(&_pid_throttle);
-
-	} else {
-		throttle = pid_calculate(&_pid_throttle, desired_speed, actual_speed, 0,
-					 dt);
-	}
-
-	if (_param_ra_max_speed.get() > 0.f) { // Feed-forward term
-		throttle += math::interpolate<float>(desired_speed,
-						     0.f, _param_ra_max_speed.get(),
-						     0.f, 1.f);
-	}
-
-	// Publish ackermann controller status (logging)
-	_rover_ackermann_guidance_status.timestamp = now;
-	_rover_ackermann_guidance_status.actual_speed = actual_speed;
-	_rover_ackermann_guidance_status.desired_speed = desired_speed;
-	_rover_ackermann_guidance_status.pid_throttle_integral = _pid_throttle.integral;
-	_rover_ackermann_guidance_status_pub.publish(_rover_ackermann_guidance_status);
-
-	// Return motor setpoints
-	motor_setpoint motor_setpoint_temp;
-	motor_setpoint_temp.steering = math::interpolate<float>(desired_steering, -_param_ra_max_steer_angle.get(),
-				       _param_ra_max_steer_angle.get(),
-				       -1.f, 1.f);
-	motor_setpoint_temp.throttle = math::constrain(throttle, 0.f, 1.f);
-	return motor_setpoint_temp;
 }
 
-void RoverAckermannGuidance::updateWaypoints()
+void RoverAckermannGuidance::updateWaypointsAndAcceptanceRadius()
 {
 	position_setpoint_triplet_s position_setpoint_triplet{};
 	_position_setpoint_triplet_sub.copy(&position_setpoint_triplet);
 
 	// Global waypoint coordinates
-	_curr_wp = Vector2d(position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon);
+	_prev_wp = _curr_pos.isAllFinite() ? _curr_pos : Vector2d(0, 0); // Fallback if previous waypoint is invalid
+	_curr_wp = _curr_pos.isAllFinite() ? _curr_pos : Vector2d(0, 0); // Fallback if current waypoint is invalid
+	_next_wp = _home_position.isAllFinite() ? _home_position : Vector2d(0, 0); // Enables corner slow down with RTL
 
-	if (position_setpoint_triplet.previous.valid) {
+	if (position_setpoint_triplet.current.valid && PX4_ISFINITE(position_setpoint_triplet.current.lat)
+	    && PX4_ISFINITE(position_setpoint_triplet.current.lon)) {
+		_curr_wp = Vector2d(position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon);
+
+	}
+
+	if (position_setpoint_triplet.previous.valid && PX4_ISFINITE(position_setpoint_triplet.previous.lat)
+	    && PX4_ISFINITE(position_setpoint_triplet.previous.lon)) {
 		_prev_wp = Vector2d(position_setpoint_triplet.previous.lat, position_setpoint_triplet.previous.lon);
 
-	} else {
-		_prev_wp = _curr_pos;
 	}
 
-	if (position_setpoint_triplet.next.valid) {
+	if (position_setpoint_triplet.next.valid && PX4_ISFINITE(position_setpoint_triplet.next.lat)
+	    && PX4_ISFINITE(position_setpoint_triplet.next.lon)) {
 		_next_wp = Vector2d(position_setpoint_triplet.next.lat, position_setpoint_triplet.next.lon);
 
-	} else {
-		_next_wp = _curr_wp;
 	}
 
-	// Local waypoint coordinates
-	_curr_wp_local = _global_local_proj_ref.project(_curr_wp(0), _curr_wp(1));
-	_prev_wp_local = _global_local_proj_ref.project(_prev_wp(0), _prev_wp(1));
-	_next_wp_local = _global_local_proj_ref.project(_next_wp(0), _next_wp(1));
+	// NED waypoint coordinates
+	_curr_wp_ned = _global_ned_proj_ref.project(_curr_wp(0), _curr_wp(1));
+	_prev_wp_ned = _global_ned_proj_ref.project(_prev_wp(0), _prev_wp(1));
+	_next_wp_ned = _global_ned_proj_ref.project(_next_wp(0), _next_wp(1));
+
+	// Distances
+	const Vector2f curr_to_next_wp_ned = _next_wp_ned - _curr_wp_ned;
+	const Vector2f curr_to_prev_wp_ned = _prev_wp_ned - _curr_wp_ned;
+	float cosin = curr_to_prev_wp_ned.unit_or_zero() * curr_to_next_wp_ned.unit_or_zero();
+	cosin = math::constrain<float>(cosin, -1.f, 1.f); // Protect against float precision problem
+	_prev_waypoint_transition_angle = _waypoint_transition_angle;
+	_waypoint_transition_angle = acosf(cosin);
 
 	// Update acceptance radius
-	_prev_acc_rad = _acceptance_radius;
-	_acceptance_radius = updateAcceptanceRadius(_curr_wp_local, _prev_wp_local, _next_wp_local, _param_ra_acc_rad_def.get(),
-			     _param_ra_acc_rad_gain.get(), _param_ra_acc_rad_max.get(), _param_ra_wheel_base.get(), _param_ra_max_steer_angle.get());
+	_prev_acceptance_radius = _acceptance_radius;
+
+	if (_param_ra_acc_rad_max.get() >= _param_nav_acc_rad.get()) {
+		_acceptance_radius = updateAcceptanceRadius(_waypoint_transition_angle, _param_nav_acc_rad.get(),
+				     _param_ra_acc_rad_gain.get(), _param_ra_acc_rad_max.get(), _param_ra_wheel_base.get(), _param_ra_max_steer_angle.get());
+
+	} else {
+		_acceptance_radius = _param_nav_acc_rad.get();
+	}
+
+	// Waypoint cruising speed
+	_cruising_speed = position_setpoint_triplet.current.cruising_speed > 0.f ? math::constrain(
+				  position_setpoint_triplet.current.cruising_speed, 0.f, _param_ra_max_speed.get()) : _param_ra_max_speed.get();
 }
 
-float RoverAckermannGuidance::updateAcceptanceRadius(const Vector2f &curr_wp_local, const Vector2f &prev_wp_local,
-		const Vector2f &next_wp_local, const float &default_acceptance_radius, const float &acceptance_radius_gain,
-		const float &acceptance_radius_max, const float &wheel_base, const float &max_steer_angle)
+float RoverAckermannGuidance::updateAcceptanceRadius(const float waypoint_transition_angle,
+		const float default_acceptance_radius, const float acceptance_radius_gain,
+		const float acceptance_radius_max, const float wheel_base, const float max_steer_angle)
 {
-	// Setup variables
-	const Vector2f curr_to_prev_wp_local = prev_wp_local - curr_wp_local;
-	const Vector2f curr_to_next_wp_local = next_wp_local - curr_wp_local;
-	float acceptance_radius = default_acceptance_radius;
-
 	// Calculate acceptance radius s.t. the rover cuts the corner tangential to the current and next line segment
-	if (curr_to_next_wp_local.norm() > FLT_EPSILON && curr_to_prev_wp_local.norm() > FLT_EPSILON) {
-		const float theta = acosf((curr_to_prev_wp_local * curr_to_next_wp_local) / (curr_to_prev_wp_local.norm() *
-					  curr_to_next_wp_local.norm())) / 2.f;
-		const float min_turning_radius = wheel_base / sinf(max_steer_angle);
-		const float acceptance_radius_temp = min_turning_radius / tanf(theta);
-		const float acceptance_radius_temp_scaled = acceptance_radius_gain *
-				acceptance_radius_temp; // Scale geometric ideal acceptance radius to account for kinematic and dynamic effects
-		acceptance_radius = math::constrain<float>(acceptance_radius_temp_scaled, default_acceptance_radius,
-				    acceptance_radius_max);
-	}
+	float acceptance_radius = default_acceptance_radius;
+	const float theta = waypoint_transition_angle / 2.f;
+	const float min_turning_radius = wheel_base / sinf(max_steer_angle);
+	const float acceptance_radius_temp = min_turning_radius / tanf(theta);
+	const float acceptance_radius_temp_scaled = acceptance_radius_gain *
+			acceptance_radius_temp; // Scale geometric ideal acceptance radius to account for kinematic and dynamic effects
+	acceptance_radius = math::constrain<float>(acceptance_radius_temp_scaled, default_acceptance_radius,
+			    acceptance_radius_max);
 
 	// Publish updated acceptance radius
 	position_controller_status_s pos_ctrl_status{};
@@ -221,101 +230,80 @@ float RoverAckermannGuidance::updateAcceptanceRadius(const Vector2f &curr_wp_loc
 	return acceptance_radius;
 }
 
-float RoverAckermannGuidance::calcDesiredSteering(const Vector2f &curr_wp_local, const Vector2f &prev_wp_local,
-		const Vector2f &curr_pos_local, const float &lookahead_gain, const float &lookahead_min, const float &lookahead_max,
-		const float &wheel_base, const float &desired_speed, const float &vehicle_yaw)
+float RoverAckermannGuidance::calcDesiredSpeed(const float cruising_speed, const float miss_speed_min,
+		const float distance_to_prev_wp, const float distance_to_curr_wp, const float acc_rad,
+		const float prev_acc_rad, const float max_decel, const float max_jerk, const int nav_state,
+		const float waypoint_transition_angle, const float prev_waypoint_transition_angle, const float max_speed)
 {
-	// Calculate crosstrack error
-	const Vector2f prev_wp_to_curr_wp_local = curr_wp_local - prev_wp_local;
-
-	if (prev_wp_to_curr_wp_local.norm() < FLT_EPSILON) { // Avoid division by 0 (this case should not happen)
-		return 0.f;
+	// Catch improper values
+	if (miss_speed_min < -FLT_EPSILON  || miss_speed_min > cruising_speed) {
+		return cruising_speed;
 	}
 
-	const Vector2f prev_wp_to_curr_pos_local = curr_pos_local - prev_wp_local;
-	const Vector2f distance_on_line_segment = ((prev_wp_to_curr_pos_local * prev_wp_to_curr_wp_local) /
-			prev_wp_to_curr_wp_local.norm()) * prev_wp_to_curr_wp_local.normalized();
-	const Vector2f crosstrack_error = (prev_wp_local + distance_on_line_segment) - curr_pos_local;
+	// Cornering slow down effect
+	if (distance_to_prev_wp <= prev_acc_rad && prev_acc_rad > FLT_EPSILON) {
+		const float turning_circle = prev_acc_rad * tanf(prev_waypoint_transition_angle / 2.f);
+		const float cornering_speed = sqrtf(turning_circle * _param_ra_max_lat_accel.get());
+		return math::constrain(cornering_speed, miss_speed_min, cruising_speed);
 
-	// Calculate desired heading towards lookahead point
-	float desired_heading{0.f};
-	float lookahead_distance = math::constrain(lookahead_gain * desired_speed,
-				   lookahead_min, lookahead_max);
+	} else if (distance_to_curr_wp <= acc_rad && acc_rad > FLT_EPSILON) {
+		const float turning_circle = acc_rad * tanf(waypoint_transition_angle / 2.f);
+		const float cornering_speed = sqrtf(turning_circle * _param_ra_max_lat_accel.get());
+		return math::constrain(cornering_speed, miss_speed_min, cruising_speed);
 
-	if (crosstrack_error.longerThan(lookahead_distance)) {
-		if (crosstrack_error.norm() < lookahead_max) {
-			lookahead_distance = crosstrack_error.norm(); // Scale lookahead radius
-			desired_heading = calcDesiredHeading(curr_wp_local, prev_wp_local, curr_pos_local, lookahead_distance);
+	}
 
-		} else { // Excessively large crosstrack error
-			desired_heading = calcDesiredHeading(curr_wp_local, curr_pos_local, curr_pos_local, lookahead_distance);
+	// Straight line speed
+	if (max_decel > FLT_EPSILON && max_jerk > FLT_EPSILON && acc_rad > FLT_EPSILON) {
+		float straight_line_speed{0.f};
+
+		if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
+			straight_line_speed = math::trajectory::computeMaxSpeedFromDistance(max_jerk,
+					      max_decel, distance_to_curr_wp, 0.f);
+
+		} else {
+			const float turning_circle = acc_rad * tanf(waypoint_transition_angle / 2.f);
+			float cornering_speed = sqrtf(turning_circle * _param_ra_max_lat_accel.get());
+			cornering_speed = math::constrain(cornering_speed, miss_speed_min, cruising_speed);
+			straight_line_speed = math::trajectory::computeMaxSpeedFromDistance(max_jerk,
+					      max_decel, distance_to_curr_wp - acc_rad, cornering_speed);
 		}
 
-	} else { // Crosstrack error smaller than lookahead
-		desired_heading = calcDesiredHeading(curr_wp_local, prev_wp_local, curr_pos_local, lookahead_distance);
+		return math::min(straight_line_speed, cruising_speed);
+
+	} else {
+		return cruising_speed;
 	}
 
-	// Calculate desired steering to reach lookahead point
-	const float heading_error = matrix::wrap_pi(desired_heading - vehicle_yaw);
+}
 
+float RoverAckermannGuidance::calcDesiredSteering(PurePursuit &pure_pursuit, const Vector2f &curr_wp_ned,
+		const Vector2f &prev_wp_ned, const Vector2f &curr_pos_ned, const float wheel_base, const float desired_speed,
+		const float vehicle_yaw, const float max_steering, const bool armed)
+{
+	const float desired_heading = pure_pursuit.calcDesiredHeading(curr_wp_ned, prev_wp_ned, curr_pos_ned,
+				      desired_speed);
+	const float lookahead_distance = pure_pursuit.getLookaheadDistance();
+	const float heading_error = matrix::wrap_pi(desired_heading - vehicle_yaw);
 	// For logging
 	_rover_ackermann_guidance_status.lookahead_distance = lookahead_distance;
 	_rover_ackermann_guidance_status.heading_error = (heading_error * 180.f) / (M_PI_F);
-	_rover_ackermann_guidance_status.crosstrack_error = crosstrack_error.norm();
 
-	// Calculate desired steering
+	float desired_steering{0.f};
+
+	if (!armed) {
+		return desired_steering;
+	}
+
 	if (math::abs_t(heading_error) <= M_PI_2_F) {
-		return atanf(2 * wheel_base * sinf(heading_error) / lookahead_distance);
+		desired_steering = atanf(2 * wheel_base * sinf(heading_error) / lookahead_distance);
 
-	} else if (heading_error > FLT_EPSILON) {
-		return atanf(2 * wheel_base * (1.0f + sinf(heading_error - M_PI_2_F)) /
-			     lookahead_distance);
 
 	} else {
-		return atanf(2 * wheel_base * (-1.0f + sinf(heading_error + M_PI_2_F)) /
-			     lookahead_distance);
+		desired_steering = atanf(2 * wheel_base * (sign(heading_error) * 1.0f + sinf(heading_error -
+					 sign(heading_error) * M_PI_2_F)) / lookahead_distance);
 	}
-}
 
-float RoverAckermannGuidance::calcDesiredHeading(const Vector2f &curr_wp_local, const Vector2f &prev_wp_local,
-		const Vector2f &curr_pos_local,
-		const float &lookahead_distance)
-{
-	// Setup variables
-	const float line_segment_slope = (curr_wp_local(1) - prev_wp_local(1)) / (curr_wp_local(0) - prev_wp_local(0));
-	const float line_segment_rover_offset = prev_wp_local(1) - curr_pos_local(1) + line_segment_slope * (curr_pos_local(
-			0) - prev_wp_local(0));
-	const float a = -line_segment_slope;
-	const float c = -line_segment_rover_offset;
-	const float r = lookahead_distance;
-	const float x0 = -a * c / (a * a + 1.0f);
-	const float y0 = -c / (a * a + 1.0f);
+	return math::constrain(desired_steering, -max_steering, max_steering);
 
-	// Calculate intersection points
-	if (c * c > r * r * (a * a + 1.0f) + FLT_EPSILON) { // No intersection points exist
-		return 0.f;
-
-	} else if (abs(c * c - r * r * (a * a + 1.0f)) < FLT_EPSILON) { // One intersection point exists
-		return atan2f(y0, x0);
-
-	} else { // Two intersetion points exist
-		const float d = r * r - c * c / (a * a + 1.0f);
-		const float mult = sqrt(d / (a * a + 1.0f));
-		const float ax = x0 + mult;
-		const float bx = x0 - mult;
-		const float ay = y0 - a * mult;
-		const float by = y0 + a * mult;
-		const Vector2f point1(ax, ay);
-		const Vector2f point2(bx, by);
-		const Vector2f distance1 = (curr_wp_local - curr_pos_local) - point1;
-		const Vector2f distance2 = (curr_wp_local - curr_pos_local) - point2;
-
-		// Return intersection point closer to current waypoint
-		if (distance1.norm_squared() < distance2.norm_squared()) {
-			return atan2f(ay, ax);
-
-		} else {
-			return atan2f(by, bx);
-		}
-	}
 }

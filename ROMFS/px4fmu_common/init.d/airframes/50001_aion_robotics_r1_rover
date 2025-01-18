@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# @name Aion Robotics R1 UGV
+#
+# @url https://www.aionrobotics.com/r1
+#
+# @type Rover
+# @class Rover
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/rc.rover_differential_defaults
+
+param set-default BAT1_N_CELLS 4
+
+# Set geometry & output configration
+param set-default RBCLW_ADDRESS 128
+param set-default RBCLW_FUNC1 101
+param set-default RBCLW_FUNC2 102
+param set-default RBCLW_REV 1 # reverse right wheels
+
+# Rover parameters
+param set-default RD_WHEEL_TRACK 0.3
+param set-default RD_MAX_ACCEL 3
+param set-default RD_MAX_DECEL 4
+param set-default RD_MAX_JERK 5
+param set-default RD_MAX_SPEED 1.6
+param set-default RD_MAX_THR_SPD 1.9
+param set-default RD_MAX_THR_YAW_R 0.7
+param set-default RD_MAX_YAW_ACCEL 600
+param set-default RD_MAX_YAW_RATE 250
+param set-default RD_SPEED_P 0.1
+param set-default RD_SPEED_I 0.01
+param set-default RD_TRANS_DRV_TRN 0.785398
+param set-default RD_TRANS_TRN_DRV 0.139626
+param set-default RD_YAW_P 5
+param set-default RD_YAW_I 0.1
+param set-default RD_YAW_RATE_P 0.1
+param set-default RD_YAW_RATE_I 0.01
+
+# Pure pursuit parameters
+param set-default PP_LOOKAHD_MAX 10
+param set-default PP_LOOKAHD_MIN 1
+param set-default PP_LOOKAHD_GAIN 1

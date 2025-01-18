@@ -51,8 +51,7 @@ void Ekf::controlFakeHgtFusion()
 		const float obs_var = sq(_params.pos_noaid_noise);
 		const float innov_gate = 3.f;
 
-		updateVerticalPositionAidSrcStatus(_time_delayed_us, _last_known_pos(2), obs_var, innov_gate, aid_src);
-
+		updateVerticalPositionAidStatus(aid_src, _time_delayed_us, -_last_known_gpos.altitude(), obs_var, innov_gate);
 
 		const bool continuing_conditions_passing = !isVerticalAidingActive();
 		const bool starting_conditions_passing = continuing_conditions_passing
@@ -64,7 +63,13 @@ void Ekf::controlFakeHgtFusion()
 
 				// always protect against extreme values that could result in a NaN
 				if (aid_src.test_ratio < sq(100.0f / innov_gate)) {
-					fuseVerticalPosition(aid_src);
+					if (!aid_src.innovation_rejected) {
+						fuseDirectStateMeasurement(aid_src.innovation, aid_src.innovation_variance, aid_src.observation_variance,
+									   State::pos.idx + 2);
+
+						aid_src.fused = true;
+						aid_src.time_last_fuse = _time_delayed_us;
+					}
 				}
 
 				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, (uint64_t)4e5);
@@ -93,7 +98,7 @@ void Ekf::controlFakeHgtFusion()
 void Ekf::resetFakeHgtFusion()
 {
 	ECL_INFO("reset fake height fusion");
-	_last_known_pos(2) = _state.pos(2);
+	_last_known_gpos.setAltitude(_gpos.altitude());
 
 	resetVerticalVelocityToZero();
 	resetHeightToLastKnown();
@@ -104,8 +109,8 @@ void Ekf::resetFakeHgtFusion()
 void Ekf::resetHeightToLastKnown()
 {
 	_information_events.flags.reset_pos_to_last_known = true;
-	ECL_INFO("reset height to last known (%.3f)", (double)_last_known_pos(2));
-	resetVerticalPositionTo(_last_known_pos(2), sq(_params.pos_noaid_noise));
+	ECL_INFO("reset height to last known (%.3f)", (double)_last_known_gpos.altitude());
+	resetAltitudeTo(_last_known_gpos.altitude(), sq(_params.pos_noaid_noise));
 }
 
 void Ekf::stopFakeHgtFusion()
@@ -113,7 +118,5 @@ void Ekf::stopFakeHgtFusion()
 	if (_control_status.flags.fake_hgt) {
 		ECL_INFO("stop fake height fusion");
 		_control_status.flags.fake_hgt = false;
-
-		resetEstimatorAidStatus(_aid_src_fake_hgt);
 	}
 }

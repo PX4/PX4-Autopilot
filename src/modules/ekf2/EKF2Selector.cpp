@@ -479,18 +479,32 @@ void EKF2Selector::PublishVehicleLocalPosition()
 				_delta_heading_reset = matrix::wrap_pi(local_position.heading - _local_position_last.heading);
 			}
 
+			// HAGL (dist_bottom) reset
+			if (!instance_change
+			    && (local_position.dist_bottom_reset_counter == _local_position_last.dist_bottom_reset_counter + 1)) {
+				++_hagl_reset_counter;
+				_delta_hagl_reset = local_position.delta_dist_bottom;
+
+			} else if (instance_change
+				   || (local_position.dist_bottom_reset_counter != _local_position_last.dist_bottom_reset_counter)) {
+				++_hagl_reset_counter;
+				_delta_hagl_reset = local_position.dist_bottom - _local_position_last.dist_bottom;
+			}
+
 		} else {
 			_xy_reset_counter = local_position.xy_reset_counter;
 			_z_reset_counter = local_position.z_reset_counter;
 			_vxy_reset_counter = local_position.vxy_reset_counter;
 			_vz_reset_counter = local_position.vz_reset_counter;
 			_heading_reset_counter = local_position.heading_reset_counter;
+			_hagl_reset_counter = local_position.dist_bottom_reset_counter;
 
 			_delta_xy_reset = Vector2f{local_position.delta_xy};
 			_delta_z_reset = local_position.delta_z;
 			_delta_vxy_reset = Vector2f{local_position.delta_vxy};
 			_delta_vz_reset = local_position.delta_vz;
 			_delta_heading_reset = local_position.delta_heading;
+			_delta_hagl_reset = local_position.delta_dist_bottom;
 		}
 
 		bool publish = true;
@@ -513,6 +527,7 @@ void EKF2Selector::PublishVehicleLocalPosition()
 			local_position.vxy_reset_counter = _vxy_reset_counter;
 			local_position.vz_reset_counter = _vz_reset_counter;
 			local_position.heading_reset_counter = _heading_reset_counter;
+			local_position.dist_bottom_reset_counter = _hagl_reset_counter;
 
 			_delta_xy_reset.copyTo(local_position.delta_xy);
 			local_position.delta_z = _delta_z_reset;
@@ -610,6 +625,16 @@ void EKF2Selector::PublishVehicleGlobalPosition()
 			} else if (instance_change || (global_position.alt_reset_counter != _global_position_last.alt_reset_counter)) {
 				++_alt_reset_counter;
 				_delta_alt_reset = global_position.delta_alt - _global_position_last.delta_alt;
+			}
+
+			// terrain reset
+			if (!instance_change && (global_position.terrain_reset_counter == _global_position_last.terrain_reset_counter + 1)) {
+				++_terrain_reset_counter;
+				_delta_terrain_reset = global_position.delta_terrain;
+
+			} else if (instance_change || (global_position.terrain_reset_counter != _global_position_last.terrain_reset_counter)) {
+				++_terrain_reset_counter;
+				_delta_terrain_reset = global_position.delta_terrain - _global_position_last.delta_terrain;
 			}
 
 		} else {

@@ -48,9 +48,11 @@ void Ekf::controlDragFusion(const imuSample &imu_delayed)
 	if ((_params.drag_ctrl > 0) && _drag_buffer) {
 
 		if (!_control_status.flags.wind && !_control_status.flags.fake_pos && _control_status.flags.in_air) {
-			// reset the wind states and covariances when starting drag accel fusion
 			_control_status.flags.wind = true;
-			resetWindToZero();
+
+			if (!_external_wind_init) {
+				resetWindCov();
+			}
 		}
 
 		dragSample drag_sample;
@@ -105,10 +107,13 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 		bcoef_inv(1) = bcoef_inv(0);
 	}
 
-	_aid_src_drag.timestamp_sample = drag_sample.time_us;
-	_aid_src_drag.fused = false;
+	Vector2f observation{};
+	Vector2f observation_variance{R_ACC, R_ACC};
+	Vector2f innovation{};
+	Vector2f innovation_variance{};
 
-	bool fused[] {false, false};
+	// Apply an innovation consistency check with a 5 Sigma threshold
+	const float innov_gate = 5.f;
 
 	VectorState H;
 
@@ -120,16 +125,15 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 		// Drag is modelled as an arbitrary combination of bluff body drag that proportional to
 		// equivalent airspeed squared, and rotor momentum drag that is proportional to true airspeed
 		// parallel to the rotor disc and mass flow through the rotor disc.
-		const float pred_acc = -0.5f * bcoef_inv(axis_index) * rho * rel_wind_body(axis_index) * rel_wind_speed - rel_wind_body(axis_index) * mcoef_corrrected;
+		const float pred_acc = -0.5f * bcoef_inv(axis_index) * rho * rel_wind_body(axis_index) * rel_wind_speed
+				       - rel_wind_body(axis_index) * mcoef_corrrected;
 
-		_aid_src_drag.observation[axis_index] = mea_acc;
-		_aid_src_drag.observation_variance[axis_index] = R_ACC;
-		_aid_src_drag.innovation[axis_index] = pred_acc - mea_acc;
-		_aid_src_drag.innovation_variance[axis_index] = NAN; // reset
+		observation(axis_index) = mea_acc;
+		innovation(axis_index) = pred_acc - mea_acc;
 
 		if (axis_index == 0) {
 			sym::ComputeDragXInnovVarAndH(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON,
-						      &_aid_src_drag.innovation_variance[axis_index], &H);
+						      &innovation_variance(axis_index), &H);
 
 			if (!using_bcoef_x && !using_mcoef) {
 				continue;
@@ -137,37 +141,39 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 
 		} else if (axis_index == 1) {
 			sym::ComputeDragYInnovVarAndH(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON,
-						      &_aid_src_drag.innovation_variance[axis_index], &H);
+						      &innovation_variance(axis_index), &H);
 
 			if (!using_bcoef_y && !using_mcoef) {
 				continue;
 			}
 		}
 
-		if (_aid_src_drag.innovation_variance[axis_index] < R_ACC) {
+		if (innovation_variance(axis_index) < R_ACC) {
 			// calculation is badly conditioned
 			return;
 		}
 
-		// Apply an innovation consistency check with a 5 Sigma threshold
-		const float innov_gate = 5.f;
-		setEstimatorAidStatusTestRatio(_aid_src_drag, innov_gate);
+		const float test_ratio = sq(innovation(axis_index)) / (sq(innov_gate) * innovation_variance(axis_index));
 
 		if (_control_status.flags.in_air && _control_status.flags.wind && !_control_status.flags.fake_pos
-		    && PX4_ISFINITE(_aid_src_drag.innovation_variance[axis_index]) && PX4_ISFINITE(_aid_src_drag.innovation[axis_index])
-		    && (_aid_src_drag.test_ratio[axis_index] < 1.f)
+		    && PX4_ISFINITE(innovation_variance(axis_index)) && PX4_ISFINITE(innovation(axis_index))
+		    && (test_ratio < 1.f)
 		   ) {
 
-			VectorState K = P * H / _aid_src_drag.innovation_variance[axis_index];
+			VectorState K = P * H / innovation_variance(axis_index);
 
-			if (measurementUpdate(K, H, R_ACC, _aid_src_drag.innovation[axis_index])) {
-				fused[axis_index] = true;
-			}
+			measurementUpdate(K, H, R_ACC, innovation(axis_index));
 		}
 	}
 
-	if (fused[0] && fused[1]) {
-		_aid_src_drag.fused = true;
-		_aid_src_drag.time_last_fuse = _time_delayed_us;
-	}
+	updateAidSourceStatus(_aid_src_drag,
+			      drag_sample.time_us,  // sample timestamp
+			      observation,          // observation
+			      observation_variance, // observation variance
+			      innovation,           // innovation
+			      innovation_variance,  // innovation variance
+			      innov_gate);          // innovation gate
+
+	_aid_src_drag.fused = true;
+	_aid_src_drag.time_last_fuse = _time_delayed_us;
 }

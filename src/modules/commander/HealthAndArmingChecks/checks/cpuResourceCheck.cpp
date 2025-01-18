@@ -43,7 +43,10 @@ CpuResourceChecks::CpuResourceChecks()
 
 void CpuResourceChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	if (_param_com_cpu_max.get() < FLT_EPSILON) {
+	const bool cpu_load_check_enabled = _param_com_cpu_max.get() > FLT_EPSILON;
+	const bool ram_usage_check_enabled = _param_com_ram_max.get() > FLT_EPSILON;
+
+	if (!cpu_load_check_enabled && !ram_usage_check_enabled) {
 		return;
 	}
 
@@ -54,15 +57,15 @@ void CpuResourceChecks::checkAndReport(const Context &context, Report &reporter)
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * If the system does not provide any CPU load information, use the parameter <param>COM_CPU_MAX</param>
-		 * to disable the check.
+		 * If the system does not provide any CPU and RAM load information, use the parameters <param>COM_CPU_MAX</param>
+		 * and <param>COM_RAM_MAX</param> to disable the checks.
 		 * </profile>
 		 */
 		reporter.healthFailure(NavModes::All, health_component_t::system, events::ID("check_missing_cpuload"),
-				       events::Log::Error, "No CPU load information");
+				       events::Log::Error, "No CPU and RAM load information");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No CPU load information");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No CPU and RAM load information");
 		}
 
 	} else {
@@ -71,7 +74,7 @@ void CpuResourceChecks::checkAndReport(const Context &context, Report &reporter)
 		_high_cpu_load_hysteresis.set_state_and_update(high_cpu_load, hrt_absolute_time());
 
 		// fail check if CPU load is above the threshold for 2 seconds
-		if (_high_cpu_load_hysteresis.get_state()) {
+		if (cpu_load_check_enabled && _high_cpu_load_hysteresis.get_state()) {
 			/* EVENT
 			 * @description
 			 * The CPU load can be reduced for example by disabling unused modules (e.g. mavlink instances) or reducing the gyro update
@@ -86,6 +89,27 @@ void CpuResourceChecks::checkAndReport(const Context &context, Report &reporter)
 
 			if (reporter.mavlink_log_pub()) {
 				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: CPU load too high: %3.1f%%", (double)cpuload_percent);
+			}
+		}
+
+		const float ram_usage_percent = cpuload.ram_usage * 100.f;
+		const bool high_ram_usage = ram_usage_percent > _param_com_ram_max.get();
+
+		if (ram_usage_check_enabled && high_ram_usage) {
+			/* EVENT
+			 * @description
+			 * The RAM usage can be reduced for example by disabling unused modules (e.g. mavlink instances).
+			 *
+			 * <profile name="dev">
+			 * The threshold can be adjusted via <param>COM_RAM_MAX</param> parameter.
+			 * </profile>
+			 */
+			reporter.healthFailure<float>(NavModes::All, health_component_t::system, events::ID("check_ram_usage_too_high"),
+						      events::Log::Error, "RAM usage too high: {1:.1}%", ram_usage_percent);
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: RAM usage too high: %3.1f%%",
+						     (double)ram_usage_percent);
 			}
 		}
 	}

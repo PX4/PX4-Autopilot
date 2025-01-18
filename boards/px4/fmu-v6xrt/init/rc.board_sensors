@@ -26,6 +26,7 @@ fi
 if param compare -s ADC_ADS1115_EN 1
 then
 	ads1115 start -X
+	board_adc start -n
 else
 	board_adc start
 fi
@@ -82,7 +83,6 @@ else
 			i2c_launcher start -b 2
 		fi
 	fi
-fi
 fi
 
 # Internal SPI bus ICM42686p (hard-mounted)

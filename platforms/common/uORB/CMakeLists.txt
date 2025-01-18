@@ -47,6 +47,7 @@ set(SRCS_COMMON
 	Subscription.cpp
 	Subscription.hpp
 	SubscriptionCallback.hpp
+	SubscriptionInterval.cpp
 	SubscriptionInterval.hpp
 	SubscriptionMultiArray.hpp
 	uORB.cpp

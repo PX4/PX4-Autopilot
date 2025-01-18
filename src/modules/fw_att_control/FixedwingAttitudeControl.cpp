@@ -96,17 +96,16 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 
 				// STABILIZED mode generate the attitude setpoint from manual user inputs
 
-				_att_sp.roll_body = _manual_control_setpoint.roll * radians(_param_fw_man_r_max.get());
+				const float roll_body = _manual_control_setpoint.roll * radians(_param_fw_man_r_max.get());
 
-				_att_sp.pitch_body = -_manual_control_setpoint.pitch * radians(_param_fw_man_p_max.get())
-						     + radians(_param_fw_psp_off.get());
-				_att_sp.pitch_body = constrain(_att_sp.pitch_body,
-							       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
+				float pitch_body = -_manual_control_setpoint.pitch * radians(_param_fw_man_p_max.get())
+						   + radians(_param_fw_psp_off.get());
+				pitch_body = constrain(pitch_body,
+						       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
 
-				_att_sp.yaw_body = yaw_body; // yaw is not controlled, so set setpoint to current yaw
 				_att_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
 
-				Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
+				const Quatf q(Eulerf(roll_body, pitch_body, yaw_body));
 				q.copyTo(_att_sp.q_d);
 
 				_att_sp.reset_integral = false;
@@ -215,9 +214,6 @@ void FixedwingAttitudeControl::Run()
 			_last_run = time_now_us;
 		}
 
-		vehicle_angular_velocity_s angular_velocity{};
-		_vehicle_rates_sub.copy(&angular_velocity);
-
 		if (_vehicle_status.is_vtol_tailsitter) {
 			/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
 			 *
@@ -325,16 +321,22 @@ void FixedwingAttitudeControl::Run()
 			/* Run attitude controllers */
 
 			if (_vcontrol_mode.flag_control_attitude_enabled && _in_fw_or_transition_wo_tailsitter_transition) {
-				if (PX4_ISFINITE(_att_sp.roll_body) && PX4_ISFINITE(_att_sp.pitch_body)) {
-					_roll_ctrl.control_roll(_att_sp.roll_body, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+				const Quatf q_sp(_att_sp.q_d);
+
+				if (q_sp.isAllFinite()) {
+					const Eulerf euler_sp(q_sp);
+					const float roll_sp = euler_sp.phi();
+					const float pitch_sp = euler_sp.theta();
+
+					_roll_ctrl.control_roll(roll_sp, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
 								euler_angles.theta());
-					_pitch_ctrl.control_pitch(_att_sp.pitch_body, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+					_pitch_ctrl.control_pitch(pitch_sp, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
 								  euler_angles.theta());
-					_yaw_ctrl.control_yaw(_att_sp.roll_body, _pitch_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+					_yaw_ctrl.control_yaw(roll_sp, _pitch_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
 							      euler_angles.theta(), get_airspeed_constrained());
 
 					if (wheel_control) {
-						_wheel_ctrl.control_attitude(_att_sp.yaw_body, euler_angles.psi());
+						_wheel_ctrl.control_attitude(euler_sp.psi(), euler_angles.psi());
 
 					} else {
 						_wheel_ctrl.reset_integrator();
@@ -389,10 +391,13 @@ void FixedwingAttitudeControl::Run()
 				wheel_u = _manual_control_setpoint.yaw;
 
 			} else {
+				vehicle_angular_velocity_s angular_velocity{};
+				_vehicle_rates_sub.copy(&angular_velocity);
+
 				// XXX: yaw_sp_move_rate here is an abuse -- used to ferry manual yaw inputs from
 				// position controller during auto modes _manual_control_setpoint.r gets passed
 				// whenever nudging is enabled, otherwise zero
-				const float wheel_controller_output = _wheel_ctrl.control_bodyrate(dt, euler_angles.psi(), _groundspeed,
+				const float wheel_controller_output = _wheel_ctrl.control_bodyrate(dt, angular_velocity.xyz[2], _groundspeed,
 								      groundspeed_scale);
 				wheel_u = wheel_control ? wheel_controller_output +  _att_sp.yaw_sp_move_rate : 0.f;
 			}

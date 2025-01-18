@@ -16,7 +16,6 @@
 . ${R}etc/init.d/rc.airship_defaults
 
 param set-default COM_PREARM_MODE 2
-param set-default CBRK_IO_SAFETY 22027
 
 param set-default CA_AIRFRAME 9
 
@@ -38,4 +37,3 @@ param set-default CA_SV_CS_COUNT 1
 param set-default CA_SV_CS0_TRQ_P 1
 
 param set-default CA_R_REV 7
-

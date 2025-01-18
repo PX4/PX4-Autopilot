@@ -3,6 +3,9 @@ menu "RC"
         bool "Common RC"
         default n
         select DRIVERS_RC_CRSF_RC
+        select DRIVERS_RC_DSM_RC
+        select DRIVERS_RC_GHST_RC
+        select DRIVERS_RC_SBUS_RC
         ---help---
             Enable default set of magnetometer drivers
     rsource "*/Kconfig"

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4_module_params.h
+ * @file module_params.h
  *
  * @class ModuleParams is a C++ base class for modules/classes using configuration parameters.
  */

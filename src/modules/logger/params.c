@@ -59,7 +59,7 @@ PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
  * @value 0 when armed until disarm (default)
  * @value 1 from boot until disarm
  * @value 2 from boot until shutdown
- * @value 3 depending on AUX1 RC channel
+ * @value 3 while manual input AUX1 >30%
  * @value 4 from 1st armed until shutdown
  *
  * @reboot_required true
@@ -184,7 +184,6 @@ PARAM_DEFINE_INT32(SDLOG_UUID, 1);
  *
  * @value 0 Disabled
  * @value 2 XChaCha20
- * @value 3 AES
  *
  * @group SD Logging
  */

@@ -1,0 +1,34 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_TERR_NOISE:
+      description:
+        short: Terrain altitude process noise
+      type: float
+      default: 5.0
+      min: 0.5
+      unit: m/s
+      decimal: 1
+    EKF2_TERR_GRAD:
+      description:
+        short: Magnitude of terrain gradient
+      type: float
+      default: 0.5
+      min: 0.0
+      unit: m/m
+      decimal: 2
+    EKF2_MIN_RNG:
+      description:
+        short: Expected range finder reading when on ground
+        long: If the vehicle is on ground, is not moving as determined by the motion
+          test and the range finder is returning invalid or no data, then an assumed
+          range value of EKF2_MIN_RNG will be used by the terrain estimator so that
+          a terrain height estimate is available at the start of flight in situations
+          where the range finder may be inside its minimum measurements distance when
+          on ground.
+      type: float
+      default: 0.1
+      min: 0.01
+      unit: m
+      decimal: 2

@@ -39,33 +39,11 @@ parameters:
             instance_start: 1
             default: [4.05, 4.05, 4.05]
 
-        BAT${i}_V_LOAD_DROP:
-            description:
-                short: Voltage drop per cell on full throttle
-                long: |
-                    This implicitly defines the internal resistance
-                    to maximum current ratio for the battery and assumes linearity.
-                    A good value to use is the difference between the
-                    5C and 20-25C load. Not used if BAT${i}_R_INTERNAL is
-                    set.
-
-            type: float
-            unit: V
-            min: 0.07
-            max: 0.5
-            decimal: 2
-            increment: 0.01
-            reboot_required: true
-            num_instances: *max_num_config_instances
-            instance_start: 1
-            default: [0.1, 0.1, 0.1]
-
         BAT${i}_R_INTERNAL:
             description:
                 short: Explicitly defines the per cell internal resistance for battery ${i}
                 long: |
-                    If non-negative, then this will be used in place of
-                    BAT${i}_V_LOAD_DROP for all calculations.
+                    If non-negative, then this will be used instead of the online estimated internal resistance.
 
             type: float
             unit: Ohm
@@ -76,7 +54,7 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [0.005, 0.005, 0.005]
+            default: [-1.0, -1.0, -1.0]
 
         BAT${i}_N_CELLS:
             description:
@@ -103,7 +81,6 @@ parameters:
                 14: 14S Battery
                 15: 15S Battery
                 16: 16S Battery
-            reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
             default: [0, 0, 0]
@@ -143,3 +120,61 @@ parameters:
             num_instances: *max_num_config_instances
             instance_start: 1
             default: [0, -1, -1]
+
+        BAT_LOW_THR:
+            description:
+                short: Low threshold.
+                long: |
+                    Sets the threshold when the battery will be reported as low.
+                    This has to be higher than the critical threshold.
+            type: float
+            unit: norm
+            min: 0.12
+            max: 0.5
+            decimal: 2
+            increment: 0.01
+            default: 0.15
+
+        BAT_CRIT_THR:
+            description:
+                short: Critical threshold.
+                long: |
+                    Sets the threshold when the battery will be reported as critically low.
+                    This has to be lower than the low threshold. This threshold commonly
+                    will trigger RTL.
+            type: float
+            unit: norm
+            min: 0.05
+            max: 0.5
+            decimal: 2
+            increment: 0.01
+            default: 0.07
+
+        BAT_EMERGEN_THR:
+            description:
+                short: Emergency threshold.
+                long: |
+                    Sets the threshold when the battery will be reported as dangerously low.
+                    This has to be lower than the critical threshold. This threshold commonly
+                    will trigger landing.
+            type: float
+            unit: norm
+            min: 0.03
+            max: 0.5
+            decimal: 2
+            increment: 0.01
+            default: 0.05
+
+        BAT_AVRG_CURRENT:
+            description:
+                short: Expected battery current in flight.
+                long: |
+                    This value is used to initialize the in-flight average current estimation,
+                    which in turn is used for estimating remaining flight time and RTL triggering.
+            type: float
+            unit: A
+            min: 0
+            max: 500
+            decimal: 2
+            increment: 0.1
+            default: 15

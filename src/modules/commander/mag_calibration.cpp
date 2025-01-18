@@ -905,7 +905,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 		for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 
-			auto &current_cal = worker_data.calibration[cur_mag];
+			calibration::Magnetometer &current_cal = worker_data.calibration[cur_mag];
 
 			if (current_cal.device_id() != 0) {
 				if (worker_data.append_to_existing_calibration) {

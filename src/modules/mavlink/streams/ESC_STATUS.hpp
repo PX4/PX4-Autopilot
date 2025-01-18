@@ -75,10 +75,11 @@ private:
 			for (int batch_number = 0; batch_number < _number_of_batches; batch_number++) {
 				msg.index = batch_number * batch_size;
 
-				for (int esc_index = 0; esc_index < batch_size ; esc_index++) {
-					msg.rpm[esc_index] = esc_status.esc[esc_index].esc_rpm;
-					msg.voltage[esc_index] = esc_status.esc[esc_index].esc_voltage;
-					msg.current[esc_index] = esc_status.esc[esc_index].esc_current;
+				for (int esc_index = 0; esc_index < batch_size
+				     && msg.index + esc_index < esc_status_s::CONNECTED_ESC_MAX; esc_index++) {
+					msg.rpm[esc_index] = esc_status.esc[msg.index + esc_index].esc_rpm;
+					msg.voltage[esc_index] = esc_status.esc[msg.index + esc_index].esc_voltage;
+					msg.current[esc_index] = esc_status.esc[msg.index + esc_index].esc_current;
 				}
 
 				mavlink_msg_esc_status_send_struct(_mavlink->get_channel(), &msg);

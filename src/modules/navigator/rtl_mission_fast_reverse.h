@@ -52,12 +52,15 @@ class Navigator;
 class RtlMissionFastReverse : public RtlBase
 {
 public:
-	RtlMissionFastReverse(Navigator *navigator);
+	RtlMissionFastReverse(Navigator *navigator, mission_s mission);
 	~RtlMissionFastReverse() = default;
 
 	void on_activation() override;
 	void on_active() override;
 	void on_inactive() override;
+	void on_inactivation() override;
+
+	bool isLanding() override {return _in_landing_phase;};
 
 	rtl_time_estimate_s calc_rtl_time_estimate() override;
 
@@ -68,5 +71,11 @@ private:
 
 	int _mission_index_prior_rtl{-1};
 
+	bool _in_landing_phase{false};
+
 	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
+	DEFINE_PARAMETERS_CUSTOM_PARENT(
+		RtlBase,
+		(ParamInt<px4::params::RTL_PLD_MD>)       _param_rtl_pld_md
+	)
 };

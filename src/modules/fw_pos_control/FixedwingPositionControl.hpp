@@ -33,7 +33,7 @@
 
 
 /**
- * @file fw_pos_control_main.hpp
+ * @file FixedwingPositionControl.hpp
  * Implementation of various fixed-wing position level navigation/control modes.
  *
  * The implementation for the controllers is in a separate library. This class only
@@ -175,6 +175,8 @@ static constexpr uint64_t ROLL_WARNING_TIMEOUT = 2_s;
 // [-] Can-run threshold needed to trigger the roll-constraining failsafe warning
 static constexpr float ROLL_WARNING_CAN_RUN_THRESHOLD = 0.9f;
 
+// [s] slew rate with which we change altitude time constant
+static constexpr float TECS_ALT_TIME_CONST_SLEW_RATE = 1.0f;
 
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
@@ -258,7 +260,8 @@ private:
 		FW_POSCTRL_MODE_AUTO_PATH,
 		FW_POSCTRL_MODE_MANUAL_POSITION,
 		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
-		FW_POSCTRL_MODE_TRANSITON,
+		FW_POSCTRL_MODE_TRANSITION_TO_HOVER_LINE_FOLLOW,
+		FW_POSCTRL_MODE_TRANSITION_TO_HOVER_HEADING_HOLD,
 		FW_POSCTRL_MODE_OTHER
 	} _control_mode_current{FW_POSCTRL_MODE_OTHER}; // used to check if the mode has changed
 
@@ -298,7 +301,7 @@ private:
 	bool _hdg_hold_enabled{false}; // heading hold enabled
 	bool _yaw_lock_engaged{false}; // yaw is locked for heading hold
 
-	position_setpoint_s _hdg_hold_position{}; // position where heading hold started
+	Vector2f _hdg_hold_position{}; // position where heading hold started
 
 	// [.] normalized setpoint for manual altitude control [-1,1]; -1,0,1 maps to min,zero,max height rate commands
 	float _manual_control_setpoint_for_height_rate{0.0f};
@@ -401,17 +404,18 @@ private:
 
 	bool _tecs_is_running{false};
 
+	// Smooths changes in the altitude tracking error time constant value
+	SlewRate<float> _tecs_alt_time_const_slew_rate;
+
 	// VTOL / TRANSITION
 	bool _is_vtol_tailsitter{false};
 	matrix::Vector2d _transition_waypoint{(double)NAN, (double)NAN};
+	float _backtrans_heading{NAN};	// used to lock the initial heading for backtransition with no position control
 
 	// ESTIMATOR RESET COUNTERS
-
-	// captures the number of times the estimator has reset the horizontal position
-	uint8_t _pos_reset_counter{0};
-
-	// captures the number of times the estimator has reset the altitude state
-	uint8_t _alt_reset_counter{0};
+	uint8_t _xy_reset_counter{0};
+	uint8_t _z_reset_counter{0};
+	uint64_t _time_last_xy_reset{0};
 
 	// LATERAL-DIRECTIONAL GUIDANCE
 
@@ -706,14 +710,19 @@ private:
 	void control_manual_position(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed);
 
 	/**
+	 * @brief Holds the initial heading during the course of a transition to hover. Used when there is no local
+	 * position to do line following.
+	 */
+	void control_backtransition_heading_hold();
+
+	/**
 	 * @brief Controls flying towards a transition waypoint and then transitioning to MC mode.
 	 *
-	 * @param control_interval Time since last position control call [s]
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
 	 * @param pos_sp_curr current position setpoint
 	 */
-	void control_backtransition(const float control_interval, const Vector2f &ground_speed,
-				    const position_setpoint_s &pos_sp_curr);
+	void control_backtransition_line_follow(const Vector2f &ground_speed,
+						const position_setpoint_s &pos_sp_curr);
 
 	float get_tecs_pitch();
 	float get_tecs_thrust();
@@ -764,12 +773,13 @@ private:
 	 * @param throttle_max Maximum throttle command [0,1]
 	 * @param desired_max_sink_rate The desired max sink rate commandable when altitude errors are large [m/s]
 	 * @param desired_max_climb_rate The desired max climb rate commandable when altitude errors are large [m/s]
+	 * @param is_low_height Define whether we are in low-height flight for tighter altitude tracking
 	 * @param disable_underspeed_detection True if underspeed detection should be disabled
 	 * @param hgt_rate_sp Height rate setpoint [m/s]
 	 */
 	void tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp, float pitch_min_rad,
 					float pitch_max_rad, float throttle_min, float throttle_max,
-					const float desired_max_sink_rate, const float desired_max_climb_rate,
+					const float desired_max_sink_rate, const float desired_max_climb_rate, const bool is_low_height,
 					bool disable_underspeed_detection = false, float hgt_rate_sp = NAN);
 
 	/**
@@ -827,6 +837,21 @@ private:
 	 */
 	void initializeAutoLanding(const hrt_abstime &now, const position_setpoint_s &pos_sp_prev,
 				   const float land_point_alt, const Vector2f &local_position, const Vector2f &local_land_point);
+
+	/*
+	 * Checks if the vehicle satisfies conditions for low-height flight
+	 *
+	 * @return bool True if conditions are satisfied, false otherwise
+	 */
+	bool checkLowHeightConditions();
+
+	/*
+	 * Updates TECS altitude time constant according to the is_low_height parameter.
+	 *
+	 * @param is_low_height Boolean flag defining whether we are in low-height flight
+	 * @param dt Update time step [s]
+	 */
+	void updateTECSAltitudeTimeConstant(const bool is_low_height, const float dt);
 
 	/*
 	 * Waypoint handling logic following closely to the ECL_L1_Pos_Controller
@@ -956,6 +981,7 @@ private:
 		(ParamFloat<px4::params::FW_LND_FL_PMIN>) _param_fw_lnd_fl_pmin,
 		(ParamFloat<px4::params::FW_LND_FLALT>) _param_fw_lnd_flalt,
 		(ParamFloat<px4::params::FW_LND_THRTC_SC>) _param_fw_thrtc_sc,
+		(ParamFloat<px4::params::FW_T_THR_LOW_HGT>) _param_fw_t_thr_low_hgt,
 		(ParamBool<px4::params::FW_LND_EARLYCFG>) _param_fw_lnd_earlycfg,
 		(ParamInt<px4::params::FW_LND_USETER>) _param_fw_lnd_useter,
 
@@ -990,7 +1016,6 @@ private:
 		(ParamFloat<px4::params::FW_FLAPS_LND_SCL>) _param_fw_flaps_lnd_scl,
 		(ParamFloat<px4::params::FW_FLAPS_TO_SCL>) _param_fw_flaps_to_scl,
 		(ParamFloat<px4::params::FW_SPOILERS_LND>) _param_fw_spoilers_lnd,
-		(ParamFloat<px4::params::FW_SPOILERS_DESC>) _param_fw_spoilers_desc,
 
 		(ParamInt<px4::params::FW_POS_STK_CONF>) _param_fw_pos_stk_conf,
 

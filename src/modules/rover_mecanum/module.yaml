@@ -1,0 +1,208 @@
+module_name: Rover Mecanum
+
+parameters:
+  - group: Rover Mecanum
+    definitions:
+
+      RM_WHEEL_TRACK:
+        description:
+          short: Wheel track
+          long: Distance from the center of the right wheels to the center of the left wheels.
+        type: float
+        unit: m
+        min: 0.001
+        max: 100
+        increment: 0.001
+        decimal: 3
+        default: 0.5
+
+      RM_MAX_YAW_RATE:
+        description:
+          short: Maximum allowed yaw rate for the rover.
+          long: |
+            This parameter is used to cap desired yaw rates and map controller inputs to desired yaw rates in acro mode.
+        type: float
+        unit: deg/s
+        min: 0.01
+        max: 1000
+        increment: 0.01
+        decimal: 2
+        default: 90
+
+      RM_MAX_YAW_ACCEL:
+        description:
+          short: Maximum allowed yaw acceleration for the rover
+          long: |
+            This parameter is used to cap desired yaw acceleration. This is used to adjust incoming yaw rate setpoints
+            to a feasible yaw rate setpoint based on the physical limitation on how fast the yaw rate can change.
+            This leads to a smooth setpoint trajectory for the closed loop yaw rate controller to track.
+            Set to -1 to disable.
+        type: float
+        unit: deg/s^2
+        min: -1
+        max: 1000
+        increment: 0.01
+        decimal: 2
+        default: -1
+
+      RM_MAX_THR_YAW_R:
+        description:
+          short: Yaw rate turning left/right wheels at max speed in opposite directions
+          long: |
+            This parameter is used to calculate the feedforward term of the closed loop yaw rate control.
+            The controller first calculates the required speed difference between the left and right motor to achieve the desired yaw rate.
+            This desired speed difference is then linearly mapped to normalized motor commands.
+            A good starting point is twice the speed the rover drives at maximum throttle (RM_MAX_THRTL_SPD)).
+            Increase this parameter if the rover turns faster than the setpoint, and decrease if the rover turns slower.
+        type: float
+        unit: m/s
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 2
+
+      RM_YAW_RATE_P:
+        description:
+          short: Proportional gain for the closed-loop yaw rate controller.
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1
+
+      RM_YAW_RATE_I:
+        description:
+          short: Integral gain for the closed-loop yaw rate controller.
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0
+
+      RM_YAW_P:
+        description:
+          short: Proportional gain for closed loop yaw controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1
+
+      RM_YAW_I:
+        description:
+            short: Integral gain for closed loop yaw controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0.1
+
+      RM_MAX_SPEED:
+        description:
+          short: Maximum speed the rover is allowed to drive
+          long: |
+            This parameter is used cap the maximum speed the rover is allowed to drive
+            and to map stick inputs to desired speeds in position mode.
+        type: float
+        unit: m/s
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 7
+
+      RM_MAX_THR_SPD:
+        description:
+          short: Speed the rover drives at maximum throttle
+          long: |
+            This parameter is used to calculate the feedforward term of the closed loop speed control which linearly
+            maps desired speeds to normalized motor commands [-1. 1].
+            A good starting point is the observed ground speed when the rover drives at maximum throttle in manual mode.
+            Increase this parameter if the rover is faster than the setpoint, and decrease if the rover is slower.
+        type: float
+        unit: m/s
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1
+
+      RM_SPEED_P:
+        description:
+          short: Proportional gain for speed controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 3
+        default: 1
+
+      RM_SPEED_I:
+        description:
+          short: Integral gain for ground speed controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 3
+        default: 0
+
+      RM_MAX_JERK:
+        description:
+          short: Maximum jerk
+          long: Limit for forwards acc/deceleration change.
+        type: float
+        unit: m/s^3
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0.5
+
+      RM_MAX_ACCEL:
+        description:
+          short: Maximum acceleration
+          long: Maximum acceleration is used to limit the acceleration of the rover
+        type: float
+        unit: m/s^2
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0.5
+
+      RM_MAX_DECEL:
+        description:
+          short: Maximum deceleration
+          long: |
+            Maximum decelaration is used to limit the deceleration of the rover.
+            Set to -1 to disable, causing the rover to decelerate as fast as possible.
+            Caution: Disabling the deceleration limit also disables the slow down effect in auto modes.
+        type: float
+        unit: m/s^2
+        min: -1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: -1
+
+      RM_MISS_VEL_GAIN:
+        description:
+          short: Tuning parameter for the velocity reduction during waypoint transition
+          long: |
+            The waypoint transition speed is calculated as:
+            Transition_speed = Maximum_speed * (1 - normalized_transition_angle * RM_MISS_VEL_GAIN)
+            The normalized transition angle is the angle between the line segment from prev-curr WP and curr-next WP
+            interpolated from [0, 180] -> [0, 1].
+            Higher value -> More velocity reduction during cornering.
+        type: float
+        min: 0.05
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1

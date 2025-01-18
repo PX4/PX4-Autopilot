@@ -61,4 +61,3 @@ int stm32_flash_unlock(void);
 int stm32_flash_writeprotect(size_t page, bool enabled);
 
 __END_DECLS
-

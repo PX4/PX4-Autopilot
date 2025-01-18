@@ -44,7 +44,6 @@
 #include "UserModeIntention.hpp"
 #include "worker_thread.hpp"
 
-#include <lib/controllib/blocks.hpp>
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
@@ -200,6 +199,9 @@ private:
 
 	void modeManagementUpdate();
 
+	static void onFailsafeNotifyUserTrampoline(void *arg);
+	void onFailsafeNotifyUser();
+
 	enum class PrearmedMode {
 		DISABLED = 0,
 		SAFETY_BUTTON = 1,
@@ -324,15 +326,12 @@ private:
 	perf_counter_t _preflight_check_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": preflight check")};
 
 	// optional parameters
-	param_t _param_mav_comp_id{PARAM_INVALID};
-	param_t _param_mav_sys_id{PARAM_INVALID};
 	param_t _param_mav_type{PARAM_INVALID};
 	param_t _param_rc_map_fltmode{PARAM_INVALID};
 
 	DEFINE_PARAMETERS(
-
 		(ParamFloat<px4::params::COM_DISARM_LAND>)  _param_com_disarm_land,
-		(ParamFloat<px4::params::COM_DISARM_PRFLT>) _param_com_disarm_preflight,
+		(ParamFloat<px4::params::COM_DISARM_PRFLT>) _param_com_disarm_prflt,
 		(ParamBool<px4::params::COM_DISARM_MAN>)    _param_com_disarm_man,
 		(ParamInt<px4::params::COM_DL_LOSS_T>)      _param_com_dl_loss_t,
 		(ParamInt<px4::params::COM_HLDL_LOSS_T>)    _param_com_hldl_loss_t,
@@ -347,8 +346,9 @@ private:
 		(ParamFloat<px4::params::COM_OBC_LOSS_T>)   _param_com_obc_loss_t,
 		(ParamInt<px4::params::COM_PREARM_MODE>)    _param_com_prearm_mode,
 		(ParamInt<px4::params::COM_RC_OVERRIDE>)    _param_com_rc_override,
-		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_flight_uuid,
-		(ParamInt<px4::params::COM_TAKEOFF_ACT>)    _param_takeoff_finished_action,
+		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
+		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_com_flight_uuid,
+		(ParamInt<px4::params::COM_TAKEOFF_ACT>)    _param_com_takeoff_act,
 		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max
 	)
 };

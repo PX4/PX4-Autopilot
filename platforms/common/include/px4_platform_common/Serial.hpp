@@ -62,7 +62,7 @@ public:
 	bool close();
 
 	ssize_t read(uint8_t *buffer, size_t buffer_size);
-	ssize_t readAtLeast(uint8_t *buffer, size_t buffer_size, size_t character_count = 1, uint32_t timeout_us = 0);
+	ssize_t readAtLeast(uint8_t *buffer, size_t buffer_size, size_t character_count = 1, uint32_t timeout_ms = 0);
 
 	ssize_t write(const void *buffer, size_t buffer_size);
 

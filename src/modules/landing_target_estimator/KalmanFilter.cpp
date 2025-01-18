@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file KalmanFilter.h
+ * @file KalmanFilter.cpp
  * Simple Kalman Filter for variable gain low-passing
  *
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>

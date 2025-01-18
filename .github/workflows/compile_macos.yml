@@ -19,13 +19,11 @@ jobs:
           ]
     steps:
     - name: install Python 3.10
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: "3.10"
 
-    - uses: actions/checkout@v1
-      with:
-        token: ${{secrets.ACCESS_TOKEN}}
+    - uses: actions/checkout@v4
 
     - name: setup
       run: ./Tools/setup/macos.sh; ./Tools/setup/macos.sh
@@ -37,7 +35,7 @@ jobs:
         string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
         message("::set-output name=timestamp::${current_date}")
     - name: ccache cache files
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: ~/.ccache
         key: macos_${{matrix.config}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}

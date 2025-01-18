@@ -63,62 +63,39 @@ void Ekf::controlFakePosFusion()
 			obs_var(0) = obs_var(1) = sq(0.5f);
 		}
 
+		const Vector2f innovation = (_gpos - _last_known_gpos).xy();
+
 		const float innov_gate = 3.f;
 
-		updateHorizontalPositionAidSrcStatus(_time_delayed_us, Vector2f(_last_known_pos), obs_var, innov_gate, aid_src);
+		updateAidSourceStatus(aid_src,
+				      _time_delayed_us,
+				      Vector2f(_gpos.latitude_deg(), _gpos.longitude_deg()), // observation
+				      obs_var,                                               // observation variance
+				      innovation,                       // innovation
+				      Vector2f(getStateVariance<State::pos>()) + obs_var,    // innovation variance
+				      innov_gate);                                           // innovation gate
 
+		const bool enable_valid_fake_pos = _control_status.flags.constant_pos || _control_status.flags.vehicle_at_rest;
+		const bool enable_fake_pos = !enable_valid_fake_pos
+					     && (getTiltVariance() > sq(math::radians(3.f)))
+					     && !(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector))
+					     && _horizontal_deadreckon_time_exceeded;
 
-		const bool continuing_conditions_passing = !isHorizontalAidingActive()
-							   && ((getTiltVariance() > sq(math::radians(3.f))) || _control_status.flags.vehicle_at_rest)
-							   && (!(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector)) || _control_status.flags.vehicle_at_rest);
+		_control_status.flags.fake_pos = runFakePosStateMachine(enable_fake_pos, _control_status.flags.fake_pos, aid_src);
+		_control_status.flags.valid_fake_pos = runFakePosStateMachine(enable_valid_fake_pos,
+						       _control_status.flags.valid_fake_pos, aid_src);
 
-		const bool starting_conditions_passing = continuing_conditions_passing
-				&& _horizontal_deadreckon_time_exceeded;
-
-		if (_control_status.flags.fake_pos) {
-			if (continuing_conditions_passing) {
-
-				// always protect against extreme values that could result in a NaN
-				if ((aid_src.test_ratio[0] < sq(100.0f / innov_gate))
-				    && (aid_src.test_ratio[1] < sq(100.0f / innov_gate))
-				   ) {
-					fuseHorizontalPosition(aid_src);
-				}
-
-				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, (uint64_t)4e5);
-
-				if (is_fusion_failing) {
-					ECL_WARN("fake position fusion failing, resetting");
-					resetFakePosFusion();
-				}
-
-			} else {
-				stopFakePosFusion();
-			}
-
-		} else {
-			if (starting_conditions_passing) {
-				ECL_INFO("start fake position fusion");
-				_control_status.flags.fake_pos = true;
-				resetFakePosFusion();
-
-				if (_control_status.flags.tilt_align) {
-					// The fake position fusion is not started for initial alignement
-					_warning_events.flags.stopping_navigation = true;
-					ECL_WARN("stopping navigation");
-				}
-			}
-		}
-
-	} else if (_control_status.flags.fake_pos && isHorizontalAidingActive()) {
-		stopFakePosFusion();
+	} else if ((_control_status.flags.fake_pos || _control_status.flags.valid_fake_pos) && isHorizontalAidingActive()) {
+		ECL_INFO("stop fake position fusion");
+		_control_status.flags.fake_pos = false;
+		_control_status.flags.valid_fake_pos = false;
 	}
 }
 
 void Ekf::resetFakePosFusion()
 {
 	ECL_INFO("reset fake position fusion");
-	_last_known_pos.xy() = _state.pos.xy();
+	_last_known_gpos.setLatLon(_gpos);
 
 	resetHorizontalPositionToLastKnown();
 	resetHorizontalVelocityToZero();
@@ -126,12 +103,41 @@ void Ekf::resetFakePosFusion()
 	_aid_src_fake_pos.time_last_fuse = _time_delayed_us;
 }
 
-void Ekf::stopFakePosFusion()
+bool Ekf::runFakePosStateMachine(const bool enable_conditions_passing, bool status_flag,
+				 estimator_aid_source2d_s &aid_src)
 {
-	if (_control_status.flags.fake_pos) {
-		ECL_INFO("stop fake position fusion");
-		_control_status.flags.fake_pos = false;
+	if (status_flag) {
+		if (enable_conditions_passing) {
+			if (!aid_src.innovation_rejected) {
+				for (unsigned i = 0; i < 2; i++) {
+					fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i], aid_src.observation_variance[i],
+								   State::pos.idx + i);
+				}
 
-		resetEstimatorAidStatus(_aid_src_fake_pos);
+				aid_src.fused = true;
+				aid_src.time_last_fuse = _time_delayed_us;
+			}
+
+			const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, (uint64_t)4e5);
+
+			if (is_fusion_failing) {
+				ECL_WARN("fake position fusion failing, resetting");
+				resetFakePosFusion();
+			}
+
+		} else {
+			ECL_INFO("stop fake position fusion");
+			status_flag = false;
+		}
+
+	} else {
+		if (enable_conditions_passing) {
+			ECL_INFO("start fake position fusion");
+			status_flag = true;
+
+			resetFakePosFusion();
+		}
 	}
+
+	return status_flag;
 }

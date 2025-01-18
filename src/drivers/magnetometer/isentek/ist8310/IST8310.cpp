@@ -85,10 +85,27 @@ void IST8310::print_status()
 
 int IST8310::probe()
 {
-	const uint8_t WAI = RegisterRead(Register::WAI);
+	uint8_t id = RegisterRead(Register::WAI);
 
-	if (WAI != Device_ID) {
-		DEVICE_DEBUG("unexpected WAI 0x%02x", WAI);
+	if (id != Device_ID) {
+		DEVICE_DEBUG("unexpected WAI 0x%02x", id);
+
+		// Apparently, the IST8310's WHOAMI register is writeable. Presumably,
+		// this can get corrupted by bus noise. It is only reset if powered off
+		// for 30s or by a reset.
+		RegisterWrite(Register::CNTL2, CNTL2_BIT::SRST);
+
+		auto start_time = hrt_absolute_time();
+
+		while (hrt_elapsed_time(&start_time) < 50_ms) {
+			px4_usleep(10'000);
+			id = RegisterRead(Register::WAI);
+
+			if (id == Device_ID) {
+				return PX4_OK;
+			}
+		}
+
 		return PX4_ERROR;
 	}
 

@@ -30,6 +30,7 @@ parameters:
                 10: Helicopter (tail ESC)
                 11: Helicopter (tail Servo)
                 12: Helicopter (Coaxial)
+                13: Rover (Mecanum)
             default: 0
 
         CA_METHOD:
@@ -527,6 +528,41 @@ parameters:
               which is mostly the case when the main rotor turns counter-clockwise.
           type: boolean
           default: 0
+        CA_HELI_RPM_SP:
+          description:
+            short: Setpoint for main rotor rpm
+            long: |
+              Requires rpm feedback for the controller.
+          type: float
+          decimal: 0
+          increment: 1
+          min: 100
+          max: 10000
+          default: 1500
+        CA_HELI_RPM_P:
+          description:
+            short: Proportional gain for rpm control
+            long: |
+              Ratio between rpm error devided by 1000 to how much normalized output gets added to correct for it.
+
+              motor_command = throttle_curve + CA_HELI_RPM_P * (rpm_setpoint - rpm_measurement) / 1000
+          type: float
+          decimal: 3
+          increment: 0.1
+          min: 0
+          max: 10
+          default: 0.0
+        CA_HELI_RPM_I:
+          description:
+            short: Integral gain for rpm control
+            long: |
+              Same definition as the proportional gain but for integral.
+          type: float
+          decimal: 3
+          increment: 0.1
+          min: 0
+          max: 10
+          default: 0.0
 
         # Others
         CA_FAILURE_MODE:
@@ -950,11 +986,11 @@ mixer:
                   - actuator_type: 'motor'
                     instances:
                       - name: 'Throttle'
-                        position: [ -1., 0, 0 ]
+                        position: [ -1, 0, 0 ]
                   - actuator_type: 'servo'
                     instances:
                       - name: 'Steering'
-                        position: [ 1., 0, 0 ]
+                        position: [ 1, 0, 0 ]
 
             6: # Rover (Differential)
                 title: 'Rover (Differential)'
@@ -962,9 +998,9 @@ mixer:
                   - actuator_type: 'motor'
                     instances:
                       - name: 'Right Motor'
-                        position: [ 0, 1., 0 ]
+                        position: [ 0, 1, 0 ]
                       - name: 'Left Motor'
-                        position: [ 0, -1., 0 ]
+                        position: [ 0, -1, 0 ]
 
             7: # Motors (6DOF)
                 actuators:
@@ -1140,3 +1176,17 @@ mixer:
                     parameters:
                       - label: 'Throttle spoolup time'
                         name: COM_SPOOLUP_TIME
+
+            13: # Rover (Mecanum)
+                title: 'Rover (Mecanum)'
+                actuators:
+                  - actuator_type: 'motor'
+                    instances:
+                      - name: 'Right Motor Front'
+                        position: [ 1, 1, 0 ]
+                      - name: 'Left Motor Front'
+                        position: [ 1, -1, 0 ]
+                      - name: 'Right Motor Back'
+                        position: [ -1, 1, 0 ]
+                      - name: 'Left Motor Back'
+                        position: [ -1, -1, 0 ]

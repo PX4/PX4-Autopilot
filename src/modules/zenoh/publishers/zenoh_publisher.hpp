@@ -51,10 +51,10 @@
 class Zenoh_Publisher : public ListNode<Zenoh_Publisher *>
 {
 public:
-	Zenoh_Publisher(bool rostopic = true);
+	Zenoh_Publisher();
 	virtual ~Zenoh_Publisher();
 
-	virtual int declare_publisher(z_session_t s, const char *keyexpr);
+	virtual int declare_publisher(z_owned_session_t s, const char *keyexpr);
 
 	virtual int undeclare_publisher();
 
@@ -66,11 +66,5 @@ protected:
 	int8_t publish(const uint8_t *, int size);
 
 	z_owned_publisher_t _pub;
-
 	char _topic[60]; // The Topic name is somewhere is the Zenoh stack as well but no good api to fetch it.
-
-	// Indicates ROS2 Topic namespace
-	bool _rostopic;
-	const char *_rt_prefix = "rt/";
-	const size_t _rt_prefix_offset = 3; // "rt/" are 3 chars
 };

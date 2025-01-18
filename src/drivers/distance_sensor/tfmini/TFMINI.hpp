@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file tfmini.cpp
+ * @file TFMINI.hpp
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Greg Hulands
  * @author Ayush Gaud <ayush.gaud@gmail.com>

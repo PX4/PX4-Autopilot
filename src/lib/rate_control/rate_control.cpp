@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file RateControl.cpp
+ * @file rate_control.cpp
  */
 
 #include "rate_control.hpp"

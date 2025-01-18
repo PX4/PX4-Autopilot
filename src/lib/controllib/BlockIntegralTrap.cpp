@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file blocks.cpp
+ * @file BlockIntegralTrap.cpp
  *
  * Controller library code
  */

@@ -139,6 +139,7 @@ PARAM_DEFINE_INT32(RTL_CONE_ANG, 45);
  * RTL precision land mode
  *
  * Use precision landing when doing an RTL landing phase.
+ * This setting does not apply for RTL destinations planned as part of a mission.
  *
  * @value 0 No precision landing
  * @value 1 Opportunistic precision landing

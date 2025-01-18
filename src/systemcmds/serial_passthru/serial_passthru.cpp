@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file nshterm.c
+ * @file serial_passthru.cpp
  */
 
 #include <px4_platform_common/px4_config.h>

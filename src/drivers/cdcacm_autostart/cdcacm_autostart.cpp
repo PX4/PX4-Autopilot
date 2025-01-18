@@ -76,6 +76,7 @@ CdcAcmAutostart::~CdcAcmAutostart()
 
 	if (_ttyacm_fd >= 0) {
 		px4_close(_ttyacm_fd);
+		_ttyacm_fd = -1;
 	}
 
 	ScheduleClear();
@@ -344,6 +345,7 @@ void CdcAcmAutostart::state_disconnecting()
 
 	if (_ttyacm_fd > 0) {
 		px4_close(_ttyacm_fd);
+		_ttyacm_fd = -1;
 	}
 
 	// Disconnect serial

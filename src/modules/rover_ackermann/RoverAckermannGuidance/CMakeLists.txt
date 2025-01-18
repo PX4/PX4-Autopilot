@@ -35,5 +35,4 @@ px4_add_library(RoverAckermannGuidance
 	RoverAckermannGuidance.cpp
 )
 
-target_link_libraries(RoverAckermannGuidance PUBLIC pid)
 target_include_directories(RoverAckermannGuidance PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

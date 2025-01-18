@@ -184,6 +184,13 @@ then
 	asp5033 start -X
 fi
 
+# AUAV absolute/differential pressure sensor external I2C
+if param greater -s SENS_EN_AUAVX 0
+then
+	auav start -D -X
+	auav start -A -X
+fi
+
 # SHT3x temperature and hygrometer sensor, external I2C
 if param compare -s SENS_EN_SHT3X 1
 then
@@ -202,6 +209,13 @@ if param compare -s SENS_EN_SPL06 1
 then
 	spl06 -X start
 	spl06 -X -a 0x77 start
+fi
+
+# SPA06 sensor external I2C
+if param compare -s SENS_EN_SPA06 1
+then
+	spa06 -X start
+	spa06 -X -a 0x77 start
 fi
 
 # PCF8583 counter (RPM sensor)

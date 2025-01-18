@@ -78,7 +78,6 @@ public:
 		RTL_MISSION_FAST_REVERSE,
 	};
 
-	void on_inactivation() override;
 	void on_inactive() override;
 	void on_activation() override;
 	void on_active() override;
@@ -88,6 +87,8 @@ public:
 	void set_return_alt_min(bool min) { _enforce_rtl_alt = min; }
 
 	void updateSafePoints(uint32_t new_safe_point_id) { _initiate_safe_points_updated = true; _safe_points_id = new_safe_point_id; }
+
+	bool isLanding();
 
 private:
 	enum class DestinationType {

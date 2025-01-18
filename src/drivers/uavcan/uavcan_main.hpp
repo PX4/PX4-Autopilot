@@ -68,6 +68,10 @@
 
 #include "logmessage.hpp"
 
+#if defined(CONFIG_UAVCAN_REMOTEID_CONTROLLER)
+#include "remoteid.hpp"
+#endif
+
 #if defined(CONFIG_UAVCAN_RGB_CONTROLLER)
 #include "rgbled.hpp"
 #endif
@@ -268,6 +272,9 @@ private:
 #endif
 #if defined(CONFIG_UAVCAN_SAFETY_STATE_CONTROLLER)
 	UavcanSafetyState         	_safety_state_controller;
+#endif
+#if defined(CONFIG_UAVCAN_REMOTEID_CONTROLLER)
+	UavcanRemoteIDController _remoteid_controller;
 #endif
 #if defined(CONFIG_UAVCAN_RGB_CONTROLLER)
 	UavcanRGBController             _rgbled_controller;

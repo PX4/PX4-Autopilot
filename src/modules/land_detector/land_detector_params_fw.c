@@ -102,3 +102,14 @@ PARAM_DEFINE_FLOAT(LNDFW_AIRSPD_MAX, 6.00f);
  * @group Land Detector
  */
 PARAM_DEFINE_FLOAT(LNDFW_TRIG_TIME, 2.f);
+
+/**
+ * Fixed-wing land detector: max rotational speed
+ *
+ * Maximum allowed norm of the angular velocity in the landed state.
+ *
+ * @unit deg/s
+ * @decimal 1
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDFW_ROT_MAX, 0.5f);

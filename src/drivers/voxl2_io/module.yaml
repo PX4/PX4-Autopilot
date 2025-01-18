@@ -10,4 +10,3 @@ actuator_output:
       group_label: 'PWMs'
       channel_label: 'PWM Channel'
       num_channels: 4
-

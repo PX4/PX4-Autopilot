@@ -39,6 +39,18 @@
  * @max 10000.0
  * @increment 0.5
  * @decimal 1
- * @group FlightTaskOrbit
+ * @group Flight Task Orbit
  */
 PARAM_DEFINE_FLOAT(MC_ORBIT_RAD_MAX, 1000.0f);
+
+/**
+ * Yaw behaviour during orbit flight.
+ *
+ * @value 0 Front to Circle Center
+ * @value 1 Hold Initial Heading
+ * @value 2 Uncontrolled
+ * @value 3 Hold Front Tangent to Circle
+ * @value 4 RC Controlled
+ * @group Flight Task Orbit
+ */
+PARAM_DEFINE_INT32(MC_ORBIT_YAW_MOD, 0);

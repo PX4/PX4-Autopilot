@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# CUAV 7-Nano specific board sensors init
+#------------------------------------------------------------------------------
+
+if param compare -s ADC_ADS1115_EN 1
+then
+	ads1115 start -X
+	board_adc start -n
+else
+	board_adc start
+fi
+
+iim42652 -s -R 22 start
+bmi088 -A -R 29 -s start
+bmi088 -G -R 29 -s start
+
+ist8310 -I -R 18 start
+
+bmp581 -s start
+icp201xx -I start
+
+# CUAV pwm voltage 3.3V/5V switch
+pwm_voltage_apply
+
+# External compass on GPS1/I2C1: standard CUAV GPS/compass puck (with lights, safety button, and buzzer)
+ist8310 -X -b 1 -R 10 start
+
+netman update

@@ -226,7 +226,7 @@ if __name__ == '__main__':
 
     # Provide parameter file path and name
     parser.add_argument('logfile', help='Full ulog file path, name and extension', type=str)
-    parser.add_argument('--hpf', help='Cuttoff frequency of high-pass filter on baro error (Hz)', type=float)
+    parser.add_argument('--hpf', help='Cuttoff frequency of high-pass filter on baro error (Hz)', type=float, default=-1)
     args = parser.parse_args()
 
     logfile = os.path.abspath(args.logfile) # Convert to absolute path

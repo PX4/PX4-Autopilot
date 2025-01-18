@@ -125,6 +125,15 @@ UavcanPublisher *PublicationManager::getPublisher(const char *subject_name)
 	return NULL;
 }
 
+void PublicationManager::fillSubjectIdList(uavcan_node_port_SubjectIDList_0_1 &publishers_list)
+{
+	uavcan_node_port_SubjectIDList_0_1_select_sparse_list_(&publishers_list);
+
+	for (auto &dynpub : _dynpublishers) {
+		publishers_list.sparse_list.elements[publishers_list.sparse_list.count].value = dynpub->id();
+		publishers_list.sparse_list.count++;
+	}
+}
 
 void PublicationManager::update()
 {

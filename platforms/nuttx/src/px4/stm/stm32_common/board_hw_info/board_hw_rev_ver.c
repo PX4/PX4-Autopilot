@@ -73,7 +73,7 @@ static char hw_base_info[HW_INFO_SIZE] = {0};
 /****************************************************************************
  * Protected Functions
  ****************************************************************************/
-
+#if !defined(BOARD_HAS_ONLY_EEPROM_VERSIONING)
 static int dn_to_ordinal(uint16_t dn)
 {
 	/* Table is scaled for 12, so if ADC is in 16 bit mode
@@ -111,6 +111,7 @@ static int dn_to_ordinal(uint16_t dn)
 
 	return -1;
 }
+#endif /* BOARD_HAS_ONLY_EEPROM_VERSIONING */
 
 /************************************************************************************
  * Name: read_id_dn
@@ -143,7 +144,7 @@ static int dn_to_ordinal(uint16_t dn)
  *   -EIO  - FAiled to init or read the ADC
  *
  ************************************************************************************/
-
+#if !defined(BOARD_HAS_ONLY_EEPROM_VERSIONING)
 static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc_channel)
 {
 	int rv = -EIO;
@@ -328,9 +329,15 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 	stm32_configgpio(gpio_drive);
 	return rv;
 }
+#endif /* BOARD_HAS_ONLY_EEPROM_VERSIONING */
 
 static int determine_hw_info(int *revision, int *version)
 {
+#if defined(BOARD_HAS_ONLY_EEPROM_VERSIONING)
+	*revision = HW_ID_EEPROM;
+	*version  = HW_ID_EEPROM;
+	return OK;
+#else
 	int dn;
 	int rv = read_id_dn(&dn, GPIO_HW_REV_DRIVE, GPIO_HW_REV_SENSE, ADC_HW_REV_SENSE_CHANNEL);
 
@@ -344,6 +351,7 @@ static int determine_hw_info(int *revision, int *version)
 	}
 
 	return rv;
+#endif
 }
 
 /****************************************************************************

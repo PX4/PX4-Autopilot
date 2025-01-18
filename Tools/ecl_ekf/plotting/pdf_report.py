@@ -160,7 +160,7 @@ def create_pdf_report(ulog: ULog, multi_instance: int, output_plot_filename: str
 
         # plot normalised innovation test levels
         # define variables to plot
-        variables = [['mag_test_ratio'], ['vel_test_ratio', 'pos_test_ratio'], ['hgt_test_ratio']]
+        variables = [['hdg_test_ratio'], ['vel_test_ratio', 'pos_test_ratio'], ['hgt_test_ratio']]
         y_labels = ['mag', 'vel, pos', 'hgt']
         legend = [['mag'], ['vel', 'pos'], ['hgt']]
         if np.amax(estimator_status['hagl_test_ratio']) > 0.0:  # plot hagl test ratio, if applicable
@@ -223,7 +223,7 @@ def create_pdf_report(ulog: ULog, multi_instance: int, output_plot_filename: str
         data_plot.save()
         data_plot.close()
 
-        # plot innovation_check_flags summary
+        # plot innovation flags summary
         data_plot = CheckFlagsPlot(
             status_flags_time, estimator_status_flags, [['reject_hor_vel', 'reject_hor_pos'], ['reject_ver_vel', 'reject_ver_pos',
                                                                                'reject_hagl'],

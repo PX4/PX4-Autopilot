@@ -84,10 +84,6 @@ FixedwingRateControl::parameters_update()
 	_rate_control.setIntegratorLimit(
 		Vector3f(_param_fw_rr_imax.get(), _param_fw_pr_imax.get(), _param_fw_yr_imax.get()));
 
-	_rate_control.setFeedForwardGain(
-		// set FF gains to 0 as we add the FF control outside of the rate controller
-		Vector3f(0.f, 0.f, 0.f));
-
 	if (_handle_param_vt_fw_difthr_en != PARAM_INVALID) {
 		param_get(_handle_param_vt_fw_difthr_en, &_param_vt_fw_difthr_en);
 	}
@@ -354,14 +350,15 @@ void FixedwingRateControl::Run()
 					body_rates_setpoint = Vector3f(-_rates_sp.yaw, _rates_sp.pitch, _rates_sp.roll);
 				}
 
+				const Vector3f gain_ff(_param_fw_rr_ff.get(), _param_fw_pr_ff.get(), _param_fw_yr_ff.get());
+				const Vector3f scaled_gain_ff = gain_ff / _airspeed_scaling;
+				_rate_control.setFeedForwardGain(scaled_gain_ff);
+
 				// Run attitude RATE controllers which need the desired attitudes from above, add trim.
 				const Vector3f angular_acceleration_setpoint = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt,
 						_landed);
 
-				const Vector3f gain_ff(_param_fw_rr_ff.get(), _param_fw_pr_ff.get(), _param_fw_yr_ff.get());
-				const Vector3f feedforward = gain_ff.emult(body_rates_setpoint) * _airspeed_scaling;
-
-				Vector3f control_u = angular_acceleration_setpoint * _airspeed_scaling * _airspeed_scaling + feedforward;
+				Vector3f control_u = angular_acceleration_setpoint * _airspeed_scaling * _airspeed_scaling;
 
 				// Special case yaw in Acro: if the parameter FW_ACRO_YAW_CTL is not set then don't control yaw
 				if (!_vcontrol_mode.flag_control_attitude_enabled && !_param_fw_acro_yaw_en.get()) {

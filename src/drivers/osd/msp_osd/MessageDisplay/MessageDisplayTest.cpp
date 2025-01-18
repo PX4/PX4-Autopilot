@@ -161,4 +161,3 @@ TEST_F(MessageDisplayTest, testMessageDisplayWarning)
 	strncpy(correct, ground_truth, FULL_MSG_LENGTH);
 	EXPECT_STREQ(message, correct);
 }
-

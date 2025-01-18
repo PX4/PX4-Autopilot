@@ -19,3 +19,11 @@ menuconfig MODE_NAVIGATOR_VTOL_TAKEOFF
 		Add VTOL takeoff mode to enable support for MAV_CMD_NAV_VTOL_TAKEOFF.
 		The VTOL takes off in MC mode and transition to FW. The mode ends with
 		an infinite loiter
+
+menuconfig NAVIGATOR_ADSB
+	bool "Include traffic reporting and avoidance"
+	default y
+	depends on MODULES_NAVIGATOR
+	---help---
+		Add support for acting on ADSB transponder_report or ADSB_VEHICLE MAVLink messages.
+		Actions are warnings, Loiter, Land and RTL without climb.

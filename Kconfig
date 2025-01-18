@@ -185,6 +185,17 @@ menu "Serial ports"
         string "EXT2 tty port"
 endmenu
 
+menu "File paths"
+
+    config BOARD_ROOT_PATH
+        string "PX4 Root file path"
+        default "/fs/microsd"
+
+    config BOARD_PARAM_FILE
+        string "Parameter file"
+        default "/fs/mtd_params"
+endmenu
+
 menu "drivers"
 source "src/drivers/Kconfig"
 endmenu

@@ -71,9 +71,13 @@ bool FixedwingLandDetector::_get_landed_state()
 
 	} else if (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 1_s) {
 
-		// Horizontal velocity complimentary filter.
-		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicle_local_position.vx * _vehicle_local_position.vx +
-				_vehicle_local_position.vy * _vehicle_local_position.vy);
+		float val = 0.0f;
+
+		if (_vehicle_local_position.v_xy_valid) {
+			// Horizontal velocity complimentary filter.
+			val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicle_local_position.vx * _vehicle_local_position.vx +
+					_vehicle_local_position.vy * _vehicle_local_position.vy);
+		}
 
 		if (PX4_ISFINITE(val)) {
 			_velocity_xy_filtered = val;
@@ -105,15 +109,26 @@ bool FixedwingLandDetector::_get_landed_state()
 		const float acc_hor = matrix::Vector2f(_acceleration).norm();
 		_xy_accel_filtered = _xy_accel_filtered * 0.8f + acc_hor * 0.18f;
 
+		// Check for angular velocity
+		const float rot_vel_hor = _angular_velocity.norm();
+		val = _velocity_rot_filtered * 0.95f + rot_vel_hor * 0.05f;
+
+		if (PX4_ISFINITE(val)) {
+			_velocity_rot_filtered = val;
+		}
+
 		// make groundspeed threshold tighter if airspeed is invalid
-		const float vel_xy_max_threshold = airspeed_invalid ? 0.7f * _param_lndfw_vel_xy_max.get() :
-						   _param_lndfw_vel_xy_max.get();
+		const float vel_xy_max_threshold   = airspeed_invalid ? 0.7f * _param_lndfw_vel_xy_max.get() :
+						     _param_lndfw_vel_xy_max.get();
+
+		const float max_rotation_threshold = math::radians(_param_lndfw_rot_max.get()) ;
 
 		// Crude land detector for fixedwing.
-		landDetected = _airspeed_filtered       < _param_lndfw_airspd.get()
-			       && _velocity_xy_filtered < vel_xy_max_threshold
-			       && _velocity_z_filtered  < _param_lndfw_vel_z_max.get()
-			       && _xy_accel_filtered    < _param_lndfw_xyaccel_max.get();
+		landDetected = _airspeed_filtered         < _param_lndfw_airspd.get()
+			       && _velocity_xy_filtered   < vel_xy_max_threshold
+			       && _velocity_z_filtered    < _param_lndfw_vel_z_max.get()
+			       && _xy_accel_filtered      < _param_lndfw_xyaccel_max.get()
+			       && _velocity_rot_filtered  < max_rotation_threshold;
 
 	} else {
 		// Control state topic has timed out and we need to assume we're landed.

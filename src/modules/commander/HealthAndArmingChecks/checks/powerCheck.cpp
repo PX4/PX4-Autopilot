@@ -74,16 +74,10 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 		if (!system_power.usb_connected) {
 			float avionics_power_rail_voltage = system_power.voltage5v_v;
 
-			const float low_error_threshold = 4.5f;
-			const float low_warning_threshold = 4.8f;
-			const float high_warning_threshold = 5.4f;
+			const float low_error_threshold = 4.7f;
+			const float high_error_threshold = 5.4f;
 
-			if (avionics_power_rail_voltage < low_warning_threshold) {
-				NavModes affected_groups = NavModes::None;
-
-				if (avionics_power_rail_voltage < low_error_threshold) {
-					affected_groups = NavModes::All;
-				}
+			if (avionics_power_rail_voltage < low_error_threshold) {
 
 				/* EVENT
 				 * @description
@@ -93,16 +87,16 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 				 * This check can be configured via <param>CBRK_SUPPLY_CHK</param> parameter.
 				 * </profile>
 				 */
-				reporter.healthFailure<float, float>(affected_groups, health_component_t::system,
+				reporter.healthFailure<float, float>(NavModes::All, health_component_t::system,
 								     events::ID("check_avionics_power_low"),
-								     events::Log::Error, "Avionics Power low: {1:.2} Volt", avionics_power_rail_voltage, low_warning_threshold);
+								     events::Log::Error, "Avionics Power low: {1:.2} Volt", avionics_power_rail_voltage, low_error_threshold);
 
 				if (reporter.mavlink_log_pub()) {
 					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Avionics Power low: %6.2f Volt",
 							     (double)avionics_power_rail_voltage);
 				}
 
-			} else if (avionics_power_rail_voltage > high_warning_threshold) {
+			} else if (avionics_power_rail_voltage > high_error_threshold) {
 				/* EVENT
 				 * @description
 				 * Check the voltage supply to the FMU, it must be below {2:.2} Volt.
@@ -113,7 +107,7 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 				 */
 				reporter.healthFailure<float, float>(NavModes::All, health_component_t::system,
 								     events::ID("check_avionics_power_high"),
-								     events::Log::Error, "Avionics Power high: {1:.2} Volt", avionics_power_rail_voltage, high_warning_threshold);
+								     events::Log::Error, "Avionics Power high: {1:.2} Volt", avionics_power_rail_voltage, high_error_threshold);
 
 				if (reporter.mavlink_log_pub()) {
 					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Avionics Power high: %6.2f Volt",

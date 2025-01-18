@@ -239,7 +239,7 @@ ControlAllocator::update_effectiveness_source()
 			break;
 
 		case EffectivenessSource::ROVER_DIFFERENTIAL:
-			// differential_drive_control does allocation and publishes directly to actuator_motors topic
+			// rover_differential_control does allocation and publishes directly to actuator_motors topic
 			break;
 
 		case EffectivenessSource::FIXED_WING:
@@ -314,7 +314,7 @@ ControlAllocator::Run()
 #endif
 
 	// Check if parameters have changed
-	if (_parameter_update_sub.updated() && !_armed) {
+	if (_parameter_update_sub.updated()) {
 		// clear update
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);

@@ -18,4 +18,3 @@ if [ ! -f "$version_file" ]; then
 fi
 
 sed -n 's/.*PX4_GIT_TAG_OR_BRANCH_NAME\s*"\(.*\)".*/version=\1/p' "$version_file"
-

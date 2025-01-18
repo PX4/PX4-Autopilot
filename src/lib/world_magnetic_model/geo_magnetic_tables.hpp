@@ -138,5 +138,3 @@ static constexpr const int16_t totalintensity_table[19][37] {
 static constexpr float WMM_TOTALINTENSITY_SCALE_TO_NANOTESLA = 2.04183477f;
 static constexpr float WMM_TOTALINTENSITY_MIN_NANOTESLA = 22226.9f; // latitude: -30, longitude: -60
 static constexpr float WMM_TOTALINTENSITY_MAX_NANOTESLA = 66904.8f; // latitude: -60, longitude: 130
-
-

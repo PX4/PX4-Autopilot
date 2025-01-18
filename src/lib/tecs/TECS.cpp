@@ -44,11 +44,11 @@
 
 #include "matrix/Matrix.hpp"
 #include "matrix/Vector2.hpp"
+#include <mathlib/math/Functions.hpp>
 
 using math::constrain;
 using math::max;
 using math::min;
-using namespace time_literals;
 
 static inline constexpr bool TIMESTAMP_VALID(float dt) { return (PX4_ISFINITE(dt) && dt > FLT_EPSILON);}
 
@@ -524,12 +524,13 @@ void TECSControl::_calcThrottleControl(float dt, const SpecificEnergyRates &spec
 	float throttle_setpoint{param.throttle_min};
 
 	if (1.f - param.fast_descend < FLT_EPSILON) {
-		// During fast descend, we control airspeed over the pitch control loop and give minimal thrust.
+		// During fast descend, we control airspeed over the pitch control loop. Give minimal thrust as soon as we are descending
 		throttle_setpoint = param.throttle_min;
 
 	} else {
 		_calcThrottleControlUpdate(dt, limit, ste_rate, param, flag);
-		throttle_setpoint = _calcThrottleControlOutput(limit, ste_rate, param, flag);
+		throttle_setpoint = (1.f - param.fast_descend) * _calcThrottleControlOutput(limit, ste_rate, param,
+				    flag) + param.fast_descend * param.throttle_min;
 	}
 
 	// Rate limit the throttle demand
@@ -672,6 +673,11 @@ void TECS::initControlParams(float target_climbrate, float target_sinkrate, floa
 	_control_param.throttle_min = throttle_min;
 }
 
+float TECS::calcTrueAirspeedSetpoint(float eas_to_tas, float eas_setpoint)
+{
+	return lerp(eas_to_tas * eas_setpoint, _control_param.tas_max, _fast_descend);
+}
+
 void TECS::initialize(const float altitude, const float altitude_rate, const float equivalent_airspeed,
 		      float eas_to_tas)
 {
@@ -694,6 +700,9 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 						.tas_rate = 0.0f};
 
 	_control.initialize(control_setpoint, control_input, _control_param, _control_flag);
+
+	_fast_descend = 0.f;
+	_enabled_fast_descend_timestamp = 0U;
 }
 
 void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_setpoint, float equivalent_airspeed,
@@ -748,8 +757,7 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 		TECSControl::Setpoint control_setpoint;
 		control_setpoint.altitude_reference = _altitude_reference_model.getAltitudeReference();
 		control_setpoint.altitude_rate_setpoint_direct = _altitude_reference_model.getHeightRateSetpointDirect();
-		control_setpoint.tas_setpoint = _control_param.tas_max * _fast_descend + (1 - _fast_descend) * eas_to_tas *
-						EAS_setpoint;
+		control_setpoint.tas_setpoint = calcTrueAirspeedSetpoint(eas_to_tas, EAS_setpoint);
 
 		const TECSControl::Input control_input{ .altitude = altitude,
 							.altitude_rate = hgt_rate,
@@ -760,11 +768,13 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 	}
 
 	_debug_status.control = _control.getDebugOutput();
+	_debug_status.true_airspeed_sp = calcTrueAirspeedSetpoint(eas_to_tas, EAS_setpoint);
 	_debug_status.true_airspeed_filtered = eas_to_tas * _airspeed_filter.getState().speed;
 	_debug_status.true_airspeed_derivative = eas_to_tas * _airspeed_filter.getState().speed_rate;
 	_debug_status.altitude_reference = _altitude_reference_model.getAltitudeReference().alt;
 	_debug_status.height_rate_reference = _altitude_reference_model.getAltitudeReference().alt_rate;
 	_debug_status.height_rate_direct = _altitude_reference_model.getHeightRateSetpointDirect();
+	_debug_status.fast_descend = _fast_descend;
 
 	_update_timestamp = now;
 }
@@ -773,13 +783,22 @@ void TECS::_setFastDescend(const float alt_setpoint, const float alt)
 {
 	if (_control_flag.airspeed_enabled && (_fast_descend_alt_err > FLT_EPSILON)
 	    && ((alt_setpoint + _fast_descend_alt_err) < alt)) {
-		_fast_descend = 1.f;
+		auto now = hrt_absolute_time();
+
+		if (_enabled_fast_descend_timestamp == 0U) {
+			_enabled_fast_descend_timestamp = now;
+		}
+
+		_fast_descend = constrain(max(_fast_descend, static_cast<float>(now - _enabled_fast_descend_timestamp) /
+					      static_cast<float>(FAST_DESCEND_RAMP_UP_TIME)), 0.f, 1.f);
 
 	} else if ((_fast_descend > FLT_EPSILON) && (_fast_descend_alt_err > FLT_EPSILON)) {
 		// Were in fast descend, scale it down. up until 5m above target altitude
 		_fast_descend = constrain((alt - alt_setpoint - 5.f) / _fast_descend_alt_err, 0.f, 1.f);
+		_enabled_fast_descend_timestamp = 0U;
 
 	} else {
 		_fast_descend = 0.f;
+		_enabled_fast_descend_timestamp = 0U;
 	}
 }

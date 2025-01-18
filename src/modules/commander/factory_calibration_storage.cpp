@@ -130,4 +130,3 @@ void FactoryCalibrationStorage::cleanup()
 		param_control_autosave(true);
 	}
 }
-

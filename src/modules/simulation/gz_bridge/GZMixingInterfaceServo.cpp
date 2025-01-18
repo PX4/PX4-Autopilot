@@ -33,6 +33,74 @@
 
 #include "GZMixingInterfaceServo.hpp"
 
+
+float
+GZMixingInterfaceServo::get_servo_angle_max(const size_t index)
+{
+	float angle;
+
+	switch (index) {
+	case 0: {angle = _servo_max_angle_1.get(); break;}
+
+	case 1: {angle = _servo_max_angle_2.get(); break;}
+
+	case 2: {angle = _servo_max_angle_3.get(); break;}
+
+	case 3: {angle = _servo_max_angle_4.get(); break;}
+
+	case 4: {angle = _servo_max_angle_5.get(); break;}
+
+	case 5: {angle = _servo_max_angle_6.get(); break;}
+
+	case 6: {angle = _servo_max_angle_7.get(); break;}
+
+	case 7: {angle = _servo_max_angle_8.get(); break;}
+
+	default: {angle = NAN; break;}
+	}
+
+	if (!PX4_ISFINITE(angle)) {
+		PX4_ERR("max_angle: index out of range, i= %ld, expected i < 8", index);
+		return NAN;
+	}
+
+	return math::radians(angle);
+}
+
+float
+GZMixingInterfaceServo::get_servo_angle_min(const size_t index)
+{
+	float angle;
+
+	switch (index) {
+	case 0: {angle = _servo_min_angle_1.get(); break;}
+
+	case 1: {angle = _servo_min_angle_2.get(); break;}
+
+	case 2: {angle = _servo_min_angle_3.get(); break;}
+
+	case 3: {angle = _servo_min_angle_4.get(); break;}
+
+	case 4: {angle = _servo_min_angle_5.get(); break;}
+
+	case 5: {angle = _servo_min_angle_6.get(); break;}
+
+	case 6: {angle = _servo_min_angle_7.get(); break;}
+
+	case 7: {angle = _servo_min_angle_8.get(); break;}
+
+	default: {angle = NAN; break;}
+
+	}
+
+	if (!PX4_ISFINITE(angle)) {
+		PX4_ERR("min_angle: index out of range, i= %ld, expected i < 8", index);
+		return NAN;
+	}
+
+	return math::radians(angle);
+}
+
 bool GZMixingInterfaceServo::init(const std::string &model_name)
 {
 	// /model/rascal_110_0/servo_2
@@ -46,6 +114,11 @@ bool GZMixingInterfaceServo::init(const std::string &model_name)
 			PX4_ERR("failed to advertise %s", servo_topic.c_str());
 			return false;
 		}
+
+		double min_val = get_servo_angle_min(i);
+		double max_val = get_servo_angle_max(i);
+		_angle_min_rad.push_back(min_val);
+		_angular_range_rad.push_back(max_val - min_val);
 	}
 
 	ScheduleNow();
@@ -64,8 +137,9 @@ bool GZMixingInterfaceServo::updateOutputs(bool stop_motors, uint16_t outputs[MA
 	for (auto &servo_pub : _servos_pub) {
 		if (_mixing_output.isFunctionSet(i)) {
 			gz::msgs::Double servo_output;
-			///TODO: Normalize output data
-			double output = (outputs[i] - 500) / 500.0;
+
+			double output_range = _mixing_output.maxValue(i) - _mixing_output.minValue(i);
+			double output = _angle_min_rad[i] + _angular_range_rad[i] * (outputs[i] - _mixing_output.minValue(i)) / output_range;
 			// std::cout << "outputs[" << i << "]: " << outputs[i] << std::endl;
 			// std::cout << "  output: " << output << std::endl;
 			servo_output.set_data(output);

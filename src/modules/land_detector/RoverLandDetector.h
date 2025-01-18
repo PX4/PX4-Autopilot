@@ -42,6 +42,9 @@
 #pragma once
 
 #include "LandDetector.h"
+#include <lib/geo/geo.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/home_position.h>
 
 namespace land_detector
 {
@@ -55,7 +58,20 @@ public:
 protected:
 	bool _get_ground_contact_state() override;
 	bool _get_landed_state() override;
-	void _set_hysteresis_factor(const int factor) override {};
+	void _set_hysteresis_factor(const int factor) override;
+	void _update_topics() override;
+
+private:
+	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
+	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
+	matrix::Vector2d _curr_pos{};
+	matrix::Vector2d _home_position{};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad,
+		(ParamFloat<px4::params::RTL_LAND_DELAY>) _param_rtl_land_delay
+	)
+
 };
 
 } // namespace land_detector

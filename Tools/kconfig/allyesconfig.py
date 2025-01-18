@@ -40,6 +40,7 @@ exception_list = [
     'DRIVERS_DISTANCE_SENSOR_SRF05', # Requires hardcoded GPIO_ULTRASOUND
     'DRIVERS_PPS_CAPTURE', # Requires PPS GPIO config
     'DRIVERS_PWM_INPUT', # Requires PWM config
+    'DRIVERS_RPM_CAPTURE', # Requires PPS GPIO config
     'DRIVERS_TEST_PPM', # PIN config not portable
     'DRIVERS_TATTU_CAN', # Broken needs fixing
     'MODULES_REPLAY', # Fails on NuttX targets maybe force POSIX dependency?
