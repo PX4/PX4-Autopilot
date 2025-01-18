@@ -197,11 +197,8 @@ PWMIN::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Measures the PWM input on AUX5 (or MAIN5) via a timer capture ISR and publishes via the uORB 'pwm_input` message.
-
-)DESCR_STR");
+		"### Description\n"
+		"Measures the PWM input on AUX5 (or MAIN5) via a timer capture ISR and publishes via the uORB 'pwm_input` message.");
 
 	PRINT_MODULE_USAGE_NAME("pwm_input", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");

@@ -974,17 +974,14 @@ RCInput::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This module does the RC input parsing and auto-selecting the method. Supported methods are:
-- PPM
-- SBUS
-- DSM
-- SUMD
-- ST24
-- TBS Crossfire (CRSF)
-
-)DESCR_STR");
+		"### Description\n"
+		"This module does the RC input parsing and auto-selecting the method. Supported methods are:\n"
+		"- PPM\n"
+		"- SBUS\n"
+		"- DSM\n"
+		"- SUMD\n"
+		"- ST24\n"
+		"- TBS Crossfire (CRSF)");
 
 	PRINT_MODULE_USAGE_NAME("rc_input", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

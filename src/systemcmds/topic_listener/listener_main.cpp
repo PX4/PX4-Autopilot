@@ -247,11 +247,9 @@ static void
 usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-Utility to listen on uORB topics and print the data to the console.
-
-The listener can be exited any time by pressing Ctrl+C, Esc, or Q.
-)DESCR_STR");
+		"Utility to listen on uORB topics and print the data to the console.\n"
+		"\n"
+		"The listener can be exited any time by pressing Ctrl+C, Esc, or Q.");
 
 	PRINT_MODULE_USAGE_NAME("listener", "command");
 	PRINT_MODULE_USAGE_ARG("<topic_name>", "uORB topic name", false);

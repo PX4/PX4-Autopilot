@@ -399,37 +399,35 @@ static void usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-  ### Description
-  Network configuration manager saves the network settings in non-volatile
-  memory. On boot the `update` option will be run. If a network configuration
-  does not exist. The default setting will be saved in non-volatile and the
-  system rebooted.
-
-  #### update
-
-  `netman update` is run automatically by [a startup script](../concept/system_startup.md#system-startup).
-  When run, the `update` option will check for the existence of `net.cfg` in the root of the SD Card.
-  It then saves the network settings from `net.cfg` in non-volatile memory,
-  deletes the file and reboots the system.
-
-  #### save
-
-  The `save` option will save settings from non-volatile memory to a file named
-  `net.cfg` on the SD Card filesystem for editing. Use this to edit the settings.
-  Save does not immediately apply the network settings; the user must reboot the flight stack.
-  By contrast, the `update` command is run by the start-up script, commits the settings to non-volatile memory,
-  and reboots the flight controller (which will then use the new settings).
-
-  #### show
-
-  The `show` option will display the network settings in `net.cfg` to the console.
-
-  ### Examples
-  $ netman save           # Save the parameters to the SD card.
-  $ netman show           # display current settings.
-  $ netman update -i eth0 # do an update
-)DESCR_STR");
+		"### Description\n"
+		"Network configuration manager saves the network settings in non-volatile\n"
+		"memory. On boot the `update` option will be run. If a network configuration\n"
+		"does not exist. The default setting will be saved in non-volatile and the\n"
+		"system rebooted.\n"
+		"\n"
+		"#### update\n"
+		"\n"
+		"`netman update` is run automatically by [a startup script](../concept/system_startup.md#system-startup).\n"
+		"When run, the `update` option will check for the existence of `net.cfg` in the root of the SD Card.\n"
+		"It then saves the network settings from `net.cfg` in non-volatile memory,\n"
+		"deletes the file and reboots the system.\n"
+		"\n"
+		"#### save\n"
+		"\n"
+		"The `save` option will save settings from non-volatile memory to a file named\n"
+		"`net.cfg` on the SD Card filesystem for editing. Use this to edit the settings.\n"
+		"Save does not immediately apply the network settings; the user must reboot the flight stack.\n"
+		"By contrast, the `update` command is run by the start-up script, commits the settings to non-volatile memory,\n"
+		"and reboots the flight controller (which will then use the new settings).\n"
+		"\n"
+		"#### show\n"
+		"\n"
+		"The `show` option will display the network settings in `net.cfg` to the console.\n"
+		"\n"
+		"### Examples\n"
+		"$ netman save           # Save the parameters to the SD card.\n"
+		"$ netman show           # display current settings.\n"
+		"$ netman update -i eth0 # do an update");
 
 	PRINT_MODULE_USAGE_NAME("netman", "system");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("show", "Display the current persistent network settings to the console.");

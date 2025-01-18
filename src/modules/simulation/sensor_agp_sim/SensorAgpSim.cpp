@@ -183,11 +183,8 @@ int SensorAgpSim::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Module to simulate auxiliary global position measurements with optional failure modes for SIH simulation.
-
-)DESCR_STR");
+		"### Description\n"
+		"Module to simulate auxiliary global position measurements with optional failure modes for SIH simulation.");
 
 	PRINT_MODULE_USAGE_NAME("sensor_agp_sim", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");

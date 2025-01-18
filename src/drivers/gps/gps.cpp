@@ -1317,27 +1317,25 @@ int GPS::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-GPS driver module that handles the communication with the device and publishes the position via uORB.
-It supports multiple protocols (device vendors) and by default automatically selects the correct one.
-
-The module supports a secondary GPS device, specified via `-e` parameter. The position will be published
-on the second uORB topic instance, but it's currently not used by the rest of the system (however the
-data will be logged, so that it can be used for comparisons).
-
-### Implementation
-There is a thread for each device polling for data. The GPS protocol classes are implemented with callbacks
-so that they can be used in other projects as well (eg. QGroundControl uses them too).
-
-### Examples
-
-Starting 2 GPS devices (the main GPS on /dev/ttyS3 and the secondary on /dev/ttyS4):
-$ gps start -d /dev/ttyS3 -e /dev/ttyS4
-
-Initiate warm restart of GPS device
-$ gps reset warm
-)DESCR_STR");
+		"### Description\n"
+		"GPS driver module that handles the communication with the device and publishes the position via uORB.\n"
+		"It supports multiple protocols (device vendors) and by default automatically selects the correct one.\n"
+		"\n"
+		"The module supports a secondary GPS device, specified via `-e` parameter. The position will be published\n"
+		"on the second uORB topic instance, but it's currently not used by the rest of the system (however the\n"
+		"data will be logged, so that it can be used for comparisons).\n"
+		"\n"
+		"### Implementation\n"
+		"There is a thread for each device polling for data. The GPS protocol classes are implemented with callbacks\n"
+		"so that they can be used in other projects as well (eg. QGroundControl uses them too).\n"
+		"\n"
+		"### Examples\n"
+		"\n"
+		"Starting 2 GPS devices (the main GPS on /dev/ttyS3 and the secondary on /dev/ttyS4):\n"
+		"$ gps start -d /dev/ttyS3 -e /dev/ttyS4\n"
+		"\n"
+		"Initiate warm restart of GPS device\n"
+		"$ gps reset warm");
 
 	PRINT_MODULE_USAGE_NAME("gps", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -1365,15 +1363,17 @@ int GPS::task_spawn(int argc, char *argv[])
 int GPS::task_spawn(int argc, char *argv[], Instance instance)
 {
 	px4_main_t entry_point;
+
 	if (instance == Instance::Main) {
 		entry_point = (px4_main_t)&run_trampoline;
+
 	} else {
 		entry_point = (px4_main_t)&run_trampoline_secondary;
 	}
 
 	int task_id = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
-				   SCHED_PRIORITY_SLOW_DRIVER, TASK_STACK_SIZE,
-				   entry_point, (char *const *)argv);
+					 SCHED_PRIORITY_SLOW_DRIVER, TASK_STACK_SIZE,
+					 entry_point, (char *const *)argv);
 
 	if (task_id < 0) {
 		_task_id = -1;
@@ -1394,6 +1394,7 @@ int GPS::run_trampoline_secondary(int argc, char *argv[])
 	argv += 1;
 
 	GPS *gps = instantiate(argc, argv, Instance::Secondary);
+
 	if (gps) {
 		_secondary_instance.store(gps);
 		gps->run();
@@ -1401,6 +1402,7 @@ int GPS::run_trampoline_secondary(int argc, char *argv[])
 		_secondary_instance.store(nullptr);
 		delete gps;
 	}
+
 	return 0;
 }
 GPS *GPS::instantiate(int argc, char *argv[])
@@ -1430,12 +1432,15 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 				PX4_ERR("baudrate parsing failed");
 				error_flag = true;
 			}
+
 			break;
+
 		case 'g':
 			if (px4_get_parameter_value(myoptarg, baudrate_secondary) != 0) {
 				PX4_ERR("baudrate parsing failed");
 				error_flag = true;
 			}
+
 			break;
 
 		case 'd':
@@ -1450,32 +1455,39 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 			if (!strcmp(myoptarg, "uart")) {
 				interface = GPSHelper::Interface::UART;
 #ifdef __PX4_LINUX
+
 			} else if (!strcmp(myoptarg, "spi")) {
 				interface = GPSHelper::Interface::SPI;
 #endif
+
 			} else {
 				PX4_ERR("unknown interface: %s", myoptarg);
 				error_flag = true;
 			}
+
 			break;
 
 		case 'j':
 			if (!strcmp(myoptarg, "uart")) {
 				interface_secondary = GPSHelper::Interface::UART;
 #ifdef __PX4_LINUX
+
 			} else if (!strcmp(myoptarg, "spi")) {
 				interface_secondary = GPSHelper::Interface::SPI;
 #endif
+
 			} else {
 				PX4_ERR("unknown interface for secondary: %s", myoptarg);
 				error_flag = true;
 			}
+
 			break;
 
 		case 'p':
 			if (!strcmp(myoptarg, "ubx")) {
 				mode = gps_driver_mode_t::UBX;
 #ifndef CONSTRAINED_FLASH
+
 			} else if (!strcmp(myoptarg, "mtk")) {
 				mode = gps_driver_mode_t::MTK;
 
@@ -1492,10 +1504,12 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 				mode = gps_driver_mode_t::NMEA;
 
 #endif // CONSTRAINED_FLASH
+
 			} else {
 				PX4_ERR("unknown protocol: %s", myoptarg);
 				error_flag = true;
 			}
+
 			break;
 
 		case '?':
@@ -1514,6 +1528,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 	}
 
 	GPS *gps = nullptr;
+
 	if (instance == Instance::Main) {
 		if (Serial::validatePort(device_name)) {
 			gps = new GPS(device_name, mode, interface, instance, baudrate_main);
@@ -1537,6 +1552,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 				PX4_ERR("Timed out while waiting for thread to start");
 			}
 		}
+
 	} else { // secondary instance
 		if (Serial::validatePort(device_name_secondary)) {
 			gps = new GPS(device_name_secondary, mode, interface_secondary, instance, baudrate_secondary);

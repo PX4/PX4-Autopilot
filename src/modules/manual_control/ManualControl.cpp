@@ -551,11 +551,8 @@ int ManualControl::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Module consuming manual_control_inputs publishing one manual_control_setpoint.
-
-)DESCR_STR");
+		"### Description\n"
+		"Module consuming manual_control_inputs publishing one manual_control_setpoint.");
 
 	PRINT_MODULE_USAGE_NAME("manual_control", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -567,33 +564,56 @@ Module consuming manual_control_inputs publishing one manual_control_setpoint.
 int8_t ManualControl::navStateFromParam(int32_t param_value)
 {
 	// See src/modules/commander/module.yaml COM_FLTMODE${i}
-	switch(param_value) {
-		case 0: return vehicle_status_s::NAVIGATION_STATE_MANUAL;
-		case 1: return vehicle_status_s::NAVIGATION_STATE_ALTCTL;
-		case 2: return vehicle_status_s::NAVIGATION_STATE_POSCTL;
-		case 3: return vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
-		case 4: return vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
-		case 5: return vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
-		case 6: return vehicle_status_s::NAVIGATION_STATE_ACRO;
-		case 7: return vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
-		case 8: return vehicle_status_s::NAVIGATION_STATE_STAB;
-		case 9: return vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW;
-		case 10: return vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF;
-		case 11: return vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-		case 12: return vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET;
-		case 13: return vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
-		case 14: return vehicle_status_s::NAVIGATION_STATE_ORBIT;
-		case 15: return vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF;
+	switch (param_value) {
+	case 0: return vehicle_status_s::NAVIGATION_STATE_MANUAL;
 
-		case 100: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL1;
-		case 101: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL2;
-		case 102: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL3;
-		case 103: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL4;
-		case 104: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL5;
-		case 105: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL6;
-		case 106: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL7;
-		case 107: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL8;
+	case 1: return vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+
+	case 2: return vehicle_status_s::NAVIGATION_STATE_POSCTL;
+
+	case 3: return vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+
+	case 4: return vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+
+	case 5: return vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+
+	case 6: return vehicle_status_s::NAVIGATION_STATE_ACRO;
+
+	case 7: return vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+
+	case 8: return vehicle_status_s::NAVIGATION_STATE_STAB;
+
+	case 9: return vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW;
+
+	case 10: return vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF;
+
+	case 11: return vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+
+	case 12: return vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET;
+
+	case 13: return vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
+
+	case 14: return vehicle_status_s::NAVIGATION_STATE_ORBIT;
+
+	case 15: return vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF;
+
+	case 100: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL1;
+
+	case 101: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL2;
+
+	case 102: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL3;
+
+	case 103: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL4;
+
+	case 104: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL5;
+
+	case 105: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL6;
+
+	case 106: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL7;
+
+	case 107: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL8;
 	}
+
 	return -1;
 }
 

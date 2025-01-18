@@ -498,10 +498,8 @@ VtolAttitudeControl::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-fw_att_control is the fixed wing attitude controller.
-)DESCR_STR");
+		"### Description\n"
+		"fw_att_control is the fixed wing attitude controller.");
 
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_NAME("vtol_att_control", "controller");

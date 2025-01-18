@@ -110,17 +110,15 @@ usage()
 {
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Command-line tool to set and get system time.
-
-### Examples
-
-Set the system time and read it back
-$ system_time set 1600775044
-$ system_time get
-)DESCR_STR");
+		"### Description\n"
+		"\n"
+		"Command-line tool to set and get system time.\n"
+		"\n"
+		"### Examples\n"
+		"\n"
+		"Set the system time and read it back\n"
+		"$ system_time set 1600775044\n"
+		"$ system_time get");
 
 	PRINT_MODULE_USAGE_NAME("system_time", "command");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("set", "Set the system time, provide time in unix epoch time format");

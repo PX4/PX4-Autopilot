@@ -163,24 +163,22 @@ int NEOPIXEL::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This module is responsible for driving interfasing to the Neopixel Serial LED
+		"### Description\n"
+		"This module is responsible for driving interfasing to the Neopixel Serial LED\n"
+		"\n"
+		"### Examples\n"
+		"It is typically started with:\n"
+		"$ neopixel -n 8\n"
+		"To drive all available leds.");
 
-### Examples
-It is typically started with:
-$ neopixel -n 8
-To drive all available leds.
-)DESCR_STR");
-
-PRINT_MODULE_USAGE_NAME("newpixel", "driver");
-PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-return 0;
+	PRINT_MODULE_USAGE_NAME("newpixel", "driver");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+	return 0;
 }
 
 int NEOPIXEL::custom_command(int argc, char *argv[])
 {
-   return print_usage("unrecognized option");
+	return print_usage("unrecognized option");
 }
 
 /**
@@ -188,56 +186,57 @@ int NEOPIXEL::custom_command(int argc, char *argv[])
  */
 void NEOPIXEL::Run()
 {
-  if (should_exit()) {
-      ScheduleClear();
-      exit_and_cleanup();
-      return;
-    }
+	if (should_exit()) {
+		ScheduleClear();
+		exit_and_cleanup();
+		return;
+	}
 
 	LedControlData led_control_data;
 
 	if (_led_controller.update(led_control_data) == 1) {
 
-	    for (unsigned int led = 0; led < math::min(_number_of_packages, arraySize(led_control_data.leds)); led++) {
+		for (unsigned int led = 0; led < math::min(_number_of_packages, arraySize(led_control_data.leds)); led++) {
 
-        uint8_t brightness = led_control_data.leds[led].brightness;
+			uint8_t brightness = led_control_data.leds[led].brightness;
 
-        switch (led_control_data.leds[led].color) {
-          case led_control_s::COLOR_RED:
-            _leds[led].R() = brightness; _leds[led].G() = 0; _leds[led].B() = 0;
-            break;
+			switch (led_control_data.leds[led].color) {
+			case led_control_s::COLOR_RED:
+				_leds[led].R() = brightness; _leds[led].G() = 0; _leds[led].B() = 0;
+				break;
 
-          case led_control_s::COLOR_GREEN:
-            _leds[led].R() = 0; _leds[led].G() = brightness; _leds[led].B() = 0;
-            break;
+			case led_control_s::COLOR_GREEN:
+				_leds[led].R() = 0; _leds[led].G() = brightness; _leds[led].B() = 0;
+				break;
 
-          case led_control_s::COLOR_BLUE:
-            _leds[led].R() = 0; _leds[led].G() = 0; _leds[led].B() = brightness;
-            break;
+			case led_control_s::COLOR_BLUE:
+				_leds[led].R() = 0; _leds[led].G() = 0; _leds[led].B() = brightness;
+				break;
 
-          case led_control_s::COLOR_AMBER: //make it the same as yellow
-          case led_control_s::COLOR_YELLOW:
-            _leds[led].R() = brightness; _leds[led].G() = brightness; _leds[led].B() = 0;
-            break;
+			case led_control_s::COLOR_AMBER: //make it the same as yellow
+			case led_control_s::COLOR_YELLOW:
+				_leds[led].R() = brightness; _leds[led].G() = brightness; _leds[led].B() = 0;
+				break;
 
-          case led_control_s::COLOR_PURPLE:
-            _leds[led].R() = brightness; _leds[led].G() = 0; _leds[led].B() = brightness;
-            break;
+			case led_control_s::COLOR_PURPLE:
+				_leds[led].R() = brightness; _leds[led].G() = 0; _leds[led].B() = brightness;
+				break;
 
-          case led_control_s::COLOR_CYAN:
-            _leds[led].R() = 0; _leds[led].G() = brightness; _leds[led].B() = brightness;
-            break;
+			case led_control_s::COLOR_CYAN:
+				_leds[led].R() = 0; _leds[led].G() = brightness; _leds[led].B() = brightness;
+				break;
 
-          case led_control_s::COLOR_WHITE:
-            _leds[led].R() = brightness; _leds[led].G() = brightness; _leds[led].B() = brightness;
-            break;
+			case led_control_s::COLOR_WHITE:
+				_leds[led].R() = brightness; _leds[led].G() = brightness; _leds[led].B() = brightness;
+				break;
 
-          default: // led_control_s::COLOR_OFF
-            _leds[led].R() = 0; _leds[led].G() = 0; _leds[led].B() = 0;
-            break;
-        }
-	    }
-      neopixel_write(_leds, _number_of_packages);
+			default: // led_control_s::COLOR_OFF
+				_leds[led].R() = 0; _leds[led].G() = 0; _leds[led].B() = 0;
+				break;
+			}
+		}
+
+		neopixel_write(_leds, _number_of_packages);
 	}
 
 	/* re-queue ourselves to run again later */
@@ -246,5 +245,5 @@ void NEOPIXEL::Run()
 
 extern "C" __EXPORT int neopixel_main(int argc, char *argv[])
 {
-  return NEOPIXEL::main(argc, argv);
+	return NEOPIXEL::main(argc, argv);
 }

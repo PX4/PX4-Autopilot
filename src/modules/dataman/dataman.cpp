@@ -868,20 +868,17 @@ static void
 usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Module to provide persistent storage for the rest of the system in form of a simple database through a C API.
-Multiple backends are supported:
-- a file (eg. on the SD card)
-- RAM (this is obviously not persistent)
-
-It is used to store structured data of different types: mission waypoints, mission state and geofence polygons.
-Each type has a specific type and a fixed maximum amount of storage items, so that fast random access is possible.
-
-### Implementation
-Reading and writing a single item is always atomic.
-
-)DESCR_STR");
+		"### Description\n"
+		"Module to provide persistent storage for the rest of the system in form of a simple database through a C API.\n"
+		"Multiple backends are supported:\n"
+		"- a file (eg. on the SD card)\n"
+		"- RAM (this is obviously not persistent)\n"
+		"\n"
+		"It is used to store structured data of different types: mission waypoints, mission state and geofence polygons.\n"
+		"Each type has a specific type and a fixed maximum amount of storage items, so that fast random access is possible.\n"
+		"\n"
+		"### Implementation\n"
+		"Reading and writing a single item is always atomic.");
 
 	PRINT_MODULE_USAGE_NAME("dataman", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -990,10 +987,14 @@ dataman_main(int argc, char *argv[])
 	return 0;
 }
 
-static_assert(sizeof(dataman_request_s::data) == sizeof(dataman_response_s::data), "request and response data are not the same size");
-static_assert(sizeof(dataman_response_s::data) >= MISSION_SAFE_POINT_SIZE, "mission_item_s can't fit in the response data");
-static_assert(sizeof(dataman_response_s::data) >= MISSION_FENCE_POINT_SIZE, "mission_fance_point_s can't fit in the response data");
+static_assert(sizeof(dataman_request_s::data) == sizeof(dataman_response_s::data),
+	      "request and response data are not the same size");
+static_assert(sizeof(dataman_response_s::data) >= MISSION_SAFE_POINT_SIZE,
+	      "mission_item_s can't fit in the response data");
+static_assert(sizeof(dataman_response_s::data) >= MISSION_FENCE_POINT_SIZE,
+	      "mission_fance_point_s can't fit in the response data");
 static_assert(sizeof(dataman_response_s::data) >= MISSION_ITEM_SIZE, "mission_item_s can't fit in the response data");
 static_assert(sizeof(dataman_response_s::data) >= MISSION_SIZE, "mission_s can't fit in the response data");
-static_assert(sizeof(dataman_response_s::data) >= DATAMAN_COMPAT_SIZE, "dataman_compat_s can't fit in the response data");
+static_assert(sizeof(dataman_response_s::data) >= DATAMAN_COMPAT_SIZE,
+	      "dataman_compat_s can't fit in the response data");
 static_assert(sizeof(dataman_response_s::data) >= sizeof(hrt_abstime), "hrt_abstime can't fit in the response data");

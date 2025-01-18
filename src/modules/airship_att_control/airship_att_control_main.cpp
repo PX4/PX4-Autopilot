@@ -185,18 +185,15 @@ int AirshipAttitudeControl::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This implements the airship attitude and rate controller. Ideally it would
-take attitude setpoints (`vehicle_attitude_setpoint`) or rate setpoints (in acro mode
-via `manual_control_setpoint` topic) as inputs and outputs actuator control messages.
-
-Currently it is feeding the `manual_control_setpoint` topic directly to the actuators.
-
-### Implementation
-To reduce control latency, the module directly polls on the gyro topic published by the IMU driver.
-
-)DESCR_STR");
+		"### Description\n"
+		"This implements the airship attitude and rate controller. Ideally it would\n"
+		"take attitude setpoints (`vehicle_attitude_setpoint`) or rate setpoints (in acro mode\n"
+		"via `manual_control_setpoint` topic) as inputs and outputs actuator control messages.\n"
+		"\n"
+		"Currently it is feeding the `manual_control_setpoint` topic directly to the actuators.\n"
+		"\n"
+		"### Implementation\n"
+		"To reduce control latency, the module directly polls on the gyro topic published by the IMU driver.");
 
 	PRINT_MODULE_USAGE_NAME("airship_att_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");

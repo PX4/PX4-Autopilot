@@ -173,17 +173,14 @@ int PWMSim::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Driver for simulated PWM outputs.
-
-Its only function is to take `actuator_control` uORB messages,
-mix them with any loaded mixer and output the result to the
-`actuator_output` uORB topic.
-
-It is used in SITL and HITL.
-
-)DESCR_STR");
+		"### Description\n"
+		"Driver for simulated PWM outputs.\n"
+		"\n"
+		"Its only function is to take `actuator_control` uORB messages,\n"
+		"mix them with any loaded mixer and output the result to the\n"
+		"`actuator_output` uORB topic.\n"
+		"\n"
+		"It is used in SITL and HITL.");
 
 	PRINT_MODULE_USAGE_NAME("pwm_out_sim", "driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the module");

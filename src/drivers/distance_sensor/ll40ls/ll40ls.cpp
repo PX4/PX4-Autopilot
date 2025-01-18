@@ -50,15 +50,13 @@ void
 LidarLiteI2C::print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-I2C bus driver for LidarLite rangefinders.
-
-The sensor/driver must be enabled using the parameter SENS_EN_LL40LS.
-
-Setup/usage information: https://docs.px4.io/main/en/sensor/lidar_lite.html
-)DESCR_STR");
+		"### Description\n"
+		"\n"
+		"I2C bus driver for LidarLite rangefinders.\n"
+		"\n"
+		"The sensor/driver must be enabled using the parameter SENS_EN_LL40LS.\n"
+		"\n"
+		"Setup/usage information: https://docs.px4.io/main/en/sensor/lidar_lite.html");
 
 	PRINT_MODULE_USAGE_NAME("ll40ls", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");

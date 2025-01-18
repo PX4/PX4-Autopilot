@@ -235,22 +235,20 @@ extern "C" __EXPORT int tune_control_main(int argc, char *argv[])
 static void usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Command-line tool to control & test the (external) tunes.
-
-Tunes are used to provide audible notification and warnings (e.g. when the system arms, gets position lock, etc.).
-The tool requires that a driver is running that can handle the tune_control uorb topic.
-
-Information about the tune format and predefined system tunes can be found here:
-https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/tunes/tune_definition.desc
-
-### Examples
-
-Play system tune #2:
-$ tune_control play -t 2
-)DESCR_STR");
+		"### Description\n"
+		"\n"
+		"Command-line tool to control & test the (external) tunes.\n"
+		"\n"
+		"Tunes are used to provide audible notification and warnings (e.g. when the system arms, gets position lock, etc.).\n"
+		"The tool requires that a driver is running that can handle the tune_control uorb topic.\n"
+		"\n"
+		"Information about the tune format and predefined system tunes can be found here:\n"
+		"https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/tunes/tune_definition.desc\n"
+		"\n"
+		"### Examples\n"
+		"\n"
+		"Play system tune #2:\n"
+		"$ tune_control play -t 2");
 
 	PRINT_MODULE_USAGE_NAME("tune_control", "system");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("play", "Play system tune or single note.");

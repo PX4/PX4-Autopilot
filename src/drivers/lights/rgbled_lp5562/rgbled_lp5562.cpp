@@ -259,14 +259,12 @@ void
 RGBLED_LP5562::print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Driver for [LP5562](https://www.ti.com/product/LP5562) LED driver connected via I2C.
-
-This used in some GPS modules by Holybro for [PX4 status notification](../getting_started/led_meanings.md)
-
-The driver is included by default in firmware (KConfig key DRIVERS_LIGHTS_RGBLED_LP5562) and is always enabled.
-)DESCR_STR");
+		"### Description\n"
+		"Driver for [LP5562](https://www.ti.com/product/LP5562) LED driver connected via I2C.\n"
+		"\n"
+		"This used in some GPS modules by Holybro for [PX4 status notification](../getting_started/led_meanings.md)\n"
+		"\n"
+		"The driver is included by default in firmware (KConfig key DRIVERS_LIGHTS_RGBLED_LP5562) and is always enabled.");
 	PRINT_MODULE_USAGE_NAME("rgbled_lp5562", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);

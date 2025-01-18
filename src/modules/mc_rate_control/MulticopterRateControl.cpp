@@ -338,14 +338,11 @@ int MulticopterRateControl::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This implements the multicopter rate controller. It takes rate setpoints (in acro mode
-via `manual_control_setpoint` topic) as inputs and outputs actuator control messages.
-
-The controller has a PID loop for angular rate error.
-
-)DESCR_STR");
+		"### Description\n"
+		"This implements the multicopter rate controller. It takes rate setpoints (in acro mode\n"
+		"via `manual_control_setpoint` topic) as inputs and outputs actuator control messages.\n"
+		"\n"
+		"The controller has a PID loop for angular rate error.");
 
 	PRINT_MODULE_USAGE_NAME("mc_rate_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");

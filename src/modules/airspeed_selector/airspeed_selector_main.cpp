@@ -775,17 +775,14 @@ int AirspeedModule::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This module provides a single airspeed_validated topic, containing indicated (IAS),
-calibrated (CAS), true airspeed (TAS) and the information if the estimation currently
-is invalid and if based sensor readings or on groundspeed minus windspeed.
-Supporting the input of multiple "raw" airspeed inputs, this module automatically switches
-to a valid sensor in case of failure detection. For failure detection as well as for
-the estimation of a scale factor from IAS to CAS, it runs several wind estimators
-and also publishes those.
-
-)DESCR_STR");
+		"### Description\n"
+		"This module provides a single airspeed_validated topic, containing indicated (IAS),\n"
+		"calibrated (CAS), true airspeed (TAS) and the information if the estimation currently\n"
+		"is invalid and if based sensor readings or on groundspeed minus windspeed.\n"
+		"Supporting the input of multiple 'raw' airspeed inputs, this module automatically switches\n"
+		"to a valid sensor in case of failure detection. For failure detection as well as for\n"
+		"the estimation of a scale factor from IAS to CAS, it runs several wind estimators\n"
+		"and also publishes those.");
 
 	PRINT_MODULE_USAGE_NAME("airspeed_estimator", "estimator");
 	PRINT_MODULE_USAGE_COMMAND("start");

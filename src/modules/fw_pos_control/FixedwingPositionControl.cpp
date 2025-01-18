@@ -3350,11 +3350,8 @@ int FixedwingPositionControl::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-fw_pos_control is the fixed-wing position controller.
-
-)DESCR_STR");
+		"### Description\n"
+		"fw_pos_control is the fixed-wing position controller.");
 
 	PRINT_MODULE_USAGE_NAME("fw_pos_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");

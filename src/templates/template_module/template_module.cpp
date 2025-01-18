@@ -195,20 +195,17 @@ int TemplateModule::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Section that describes the provided module functionality.
-
-This is a template for a module running as a task in the background with start/stop/status functionality.
-
-### Implementation
-Section describing the high-level implementation of this module.
-
-### Examples
-CLI usage example:
-$ module start -f -p 42
-
-)DESCR_STR");
+		"### Description\n"
+		"Section that describes the provided module functionality.\n"
+		"\n"
+		"This is a template for a module running as a task in the background with start/stop/status functionality.\n"
+		"\n"
+		"### Implementation\n"
+		"Section describing the high-level implementation of this module.\n"
+		"\n"
+		"### Examples\n"
+		"CLI usage example:\n"
+		"$ module start -f -p 42");
 
 	PRINT_MODULE_USAGE_NAME("module", "template");
 	PRINT_MODULE_USAGE_COMMAND("start");

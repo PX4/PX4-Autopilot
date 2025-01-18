@@ -73,12 +73,9 @@ usage()
 {
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Command-line tool to show work queue status.
-
-)DESCR_STR");
+		"### Description\n"
+		"\n"
+		"Command-line tool to show work queue status.");
 
 	PRINT_MODULE_USAGE_NAME("work_queue", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");

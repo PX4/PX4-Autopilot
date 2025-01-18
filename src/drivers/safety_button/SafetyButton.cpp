@@ -211,12 +211,9 @@ SafetyButton::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This module is responsible for the safety button.
-Pressing the safety button 3 times quickly will trigger a GCS pairing request.
-
-)DESCR_STR");
+		"### Description\n"
+		"This module is responsible for the safety button.\n"
+		"Pressing the safety button 3 times quickly will trigger a GCS pairing request.");
 
 	PRINT_MODULE_USAGE_NAME("safety_button", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

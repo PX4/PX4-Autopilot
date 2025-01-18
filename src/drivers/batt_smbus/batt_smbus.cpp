@@ -510,15 +510,12 @@ int BATT_SMBUS::lifetime_read_block_one()
 void BATT_SMBUS::print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Smart battery driver for the BQ40Z50 fuel gauge IC.
-
-### Examples
-To write to flash to set parameters. address, number_of_bytes, byte0, ... , byteN
-$ batt_smbus -X write_flash 19069 2 27 0
-
-)DESCR_STR");
+		"### Description\n"
+		"Smart battery driver for the BQ40Z50 fuel gauge IC.\n"
+		"\n"
+		"### Examples\n"
+		"To write to flash to set parameters. address, number_of_bytes, byte0, ... , byteN\n"
+		"$ batt_smbus -X write_flash 19069 2 27 0");
 
 	PRINT_MODULE_USAGE_NAME("batt_smbus", "driver");
 
@@ -532,7 +529,8 @@ $ batt_smbus -X write_flash 19069 2 27 0
 	PRINT_MODULE_USAGE_COMMAND_DESCR("suspend", "Suspends the driver from rescheduling the cycle.");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("resume", "Resumes the driver from suspension.");
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("write_flash", "Writes to flash. The device must first be unsealed with the unseal command.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("write_flash",
+					 "Writes to flash. The device must first be unsealed with the unseal command.");
 	PRINT_MODULE_USAGE_ARG("address", "The address to start writing.", true);
 	PRINT_MODULE_USAGE_ARG("number of bytes", "Number of bytes to send.", true);
 	PRINT_MODULE_USAGE_ARG("data[0]...data[n]", "One byte of data at a time separated by spaces.", true);
@@ -542,10 +540,12 @@ $ batt_smbus -X write_flash 19069 2 27 0
 I2CSPIDriverBase *BATT_SMBUS::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
 	SMBus *interface = new SMBus(DRV_BAT_DEVTYPE_SMBUS, config.bus, config.i2c_address);
+
 	if (interface == nullptr) {
 		PX4_ERR("alloc failed");
 		return nullptr;
 	}
+
 	BATT_SMBUS *instance = new BATT_SMBUS(config, interface);
 
 	if (instance == nullptr) {
@@ -568,37 +568,44 @@ I2CSPIDriverBase *BATT_SMBUS::instantiate(const I2CSPIDriverConfig &config, int 
 void
 BATT_SMBUS::custom_method(const BusCLIArguments &cli)
 {
-	switch(cli.custom1) {
-		case 1: {
+	switch (cli.custom1) {
+	case 1: {
 			PX4_INFO("The manufacturer name: %s", _manufacturer_name);
 			PX4_INFO("The manufacturer date: %" PRId16, _manufacture_date);
 			PX4_INFO("The serial number: %d" PRId16, _serial_number);
 		}
-			break;
-		case 2:
-			unseal();
-			break;
-		case 3:
-			seal();
-			break;
-		case 4:
-			suspend();
-			break;
-		case 5:
-			resume();
-			break;
-		case 6:
-			if (cli.custom_data) {
-				unsigned address = cli.custom2;
-				uint8_t *tx_buf = (uint8_t*)cli.custom_data;
-				unsigned length = tx_buf[0];
+		break;
 
-				if (PX4_OK != dataflash_write(address, tx_buf+1, length)) {
-					PX4_ERR("Dataflash write failed: %u", address);
-				}
-				px4_usleep(100_ms);
+	case 2:
+		unseal();
+		break;
+
+	case 3:
+		seal();
+		break;
+
+	case 4:
+		suspend();
+		break;
+
+	case 5:
+		resume();
+		break;
+
+	case 6:
+		if (cli.custom_data) {
+			unsigned address = cli.custom2;
+			uint8_t *tx_buf = (uint8_t *)cli.custom_data;
+			unsigned length = tx_buf[0];
+
+			if (PX4_OK != dataflash_write(address, tx_buf + 1, length)) {
+				PX4_ERR("Dataflash write failed: %u", address);
 			}
-			break;
+
+			px4_usleep(100_ms);
+		}
+
+		break;
 	}
 }
 
@@ -610,6 +617,7 @@ extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[])
 	cli.i2c_address = BATT_SMBUS_ADDR;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
+
 	if (!verb) {
 		ThisDriver::print_usage();
 		return -1;
@@ -633,24 +641,30 @@ extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[])
 		cli.custom1 = 1;
 		return ThisDriver::module_custom_method(cli, iterator, false);
 	}
+
 	if (!strcmp(verb, "unseal")) {
 		cli.custom1 = 2;
 		return ThisDriver::module_custom_method(cli, iterator);
 	}
+
 	if (!strcmp(verb, "seal")) {
 		cli.custom1 = 3;
 		return ThisDriver::module_custom_method(cli, iterator);
 	}
+
 	if (!strcmp(verb, "suspend")) {
 		cli.custom1 = 4;
 		return ThisDriver::module_custom_method(cli, iterator);
 	}
+
 	if (!strcmp(verb, "resume")) {
 		cli.custom1 = 5;
 		return ThisDriver::module_custom_method(cli, iterator);
 	}
+
 	if (!strcmp(verb, "write_flash")) {
 		cli.custom1 = 6;
+
 		if (argc >= 3) {
 			uint16_t address = atoi(argv[1]);
 			unsigned length = atoi(argv[2]);
@@ -663,12 +677,14 @@ extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[])
 			}
 
 			tx_buf[0] = length;
+
 			// Data needs to be fed in 1 byte (0x01) at a time.
 			for (unsigned i = 0; i < length; i++) {
 				if ((unsigned)argc <= 3 + i) {
-					tx_buf[i+1] = atoi(argv[3 + i]);
+					tx_buf[i + 1] = atoi(argv[3 + i]);
 				}
 			}
+
 			cli.custom2 = address;
 			return ThisDriver::module_custom_method(cli, iterator);
 		}

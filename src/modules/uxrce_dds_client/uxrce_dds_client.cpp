@@ -1036,14 +1036,12 @@ int UxrceddsClient::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-UXRCE-DDS Client used to communicate uORB topics with an Agent over serial or UDP.
-
-### Examples
-$ uxrce_dds_client start -t serial -d /dev/ttyS3 -b 921600
-$ uxrce_dds_client start -t udp -h 127.0.0.1 -p 15555
-)DESCR_STR");
+		"### Description\n"
+		"UXRCE-DDS Client used to communicate uORB topics with an Agent over serial or UDP.\n"
+		"\n"
+		"### Examples\n"
+		"$ uxrce_dds_client start -t serial -d /dev/ttyS3 -b 921600\n"
+		"$ uxrce_dds_client start -t udp -h 127.0.0.1 -p 15555");
 
 	PRINT_MODULE_USAGE_NAME("uxrce_dds_client", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -1051,7 +1049,8 @@ $ uxrce_dds_client start -t udp -h 127.0.0.1 -p 15555
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<file:dev>", "serial device", true);
 	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 0, 3000000, "Baudrate (can also be p:<param_name>)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('h', nullptr, "<IP>", "Agent IP. If not provided, defaults to UXRCE_DDS_AG_IP", true);
-	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 0, 65535, "Agent listening port. If not provided, defaults to UXRCE_DDS_PRT", true);
+	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 0, 65535, "Agent listening port. If not provided, defaults to UXRCE_DDS_PRT",
+				     true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Client DDS namespace", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 

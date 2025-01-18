@@ -96,22 +96,20 @@ static int stop()
 static int usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Serial bus driver for the LeddarOne LiDAR.
-
-Most boards are configured to enable/start the driver on a specified UART using the SENS_LEDDAR1_CFG parameter.
-
-Setup/usage information: https://docs.px4.io/main/en/sensor/leddar_one.html
-
-### Examples
-
-Attempt to start driver on a specified serial device.
-$ leddar_one start -d /dev/ttyS1
-Stop driver
-$ leddar_one stop
-)DESCR_STR");
+		"### Description\n"
+		"\n"
+		"Serial bus driver for the LeddarOne LiDAR.\n"
+		"\n"
+		"Most boards are configured to enable/start the driver on a specified UART using the SENS_LEDDAR1_CFG parameter.\n"
+		"\n"
+		"Setup/usage information: https://docs.px4.io/main/en/sensor/leddar_one.html\n"
+		"\n"
+		"### Examples\n"
+		"\n"
+		"Attempt to start driver on a specified serial device.\n"
+		"$ leddar_one start -d /dev/ttyS1\n"
+		"Stop driver\n"
+		"$ leddar_one stop");
 
 	PRINT_MODULE_USAGE_NAME("leddar_one", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");

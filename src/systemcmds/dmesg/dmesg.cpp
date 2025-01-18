@@ -77,17 +77,15 @@ usage()
 {
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Command-line tool to show bootup console messages.
-Note that output from NuttX's work queues and syslog are not captured.
-
-### Examples
-
-Keep printing all messages in the background:
-$ dmesg -f &
-)DESCR_STR");
+		"### Description\n"
+		"\n"
+		"Command-line tool to show bootup console messages.\n"
+		"Note that output from NuttX's work queues and syslog are not captured.\n"
+		"\n"
+		"### Examples\n"
+		"\n"
+		"Keep printing all messages in the background:\n"
+		"$ dmesg -f &");
 
 	PRINT_MODULE_USAGE_NAME("dmesg", "system");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Follow: wait for new messages", true);

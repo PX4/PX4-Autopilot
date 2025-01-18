@@ -855,11 +855,9 @@ int ControlAllocator::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This implements control allocation. It takes torque and thrust setpoints
-as inputs and outputs actuator setpoint messages.
-)DESCR_STR");
+		"### Description\n"
+		"This implements control allocation. It takes torque and thrust setpoints\n"
+		"as inputs and outputs actuator setpoint messages.");
 
 	PRINT_MODULE_USAGE_NAME("control_allocator", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");

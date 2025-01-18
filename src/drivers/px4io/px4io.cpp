@@ -1727,10 +1727,8 @@ int PX4IO::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Output driver communicating with the IO co-processor.
-)DESCR_STR");
+		"### Description\n"
+		"Output driver communicating with the IO co-processor.");
 
 	PRINT_MODULE_USAGE_NAME("px4io", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -1761,5 +1759,6 @@ extern "C" __EXPORT int px4io_main(int argc, char *argv[])
 		PX4_INFO("PX4IO Not Supported");
 		return -1;
 	}
+
 	return PX4IO::main(argc, argv);
 }

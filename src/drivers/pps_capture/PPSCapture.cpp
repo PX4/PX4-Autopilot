@@ -200,11 +200,8 @@ int PPSCapture::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This implements capturing PPS information from the GNSS module and calculates the drift between PPS and Real-time clock.
-
-)DESCR_STR");
+		"### Description\n"
+		"This implements capturing PPS information from the GNSS module and calculates the drift between PPS and Real-time clock.");
 
 	PRINT_MODULE_USAGE_NAME("pps_capture", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

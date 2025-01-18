@@ -98,21 +98,19 @@ static int status()
 static int usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Serial bus driver for the FT Technologies Digital Wind Sensor FT742. This driver is required to operate alongside
-a RS485 to UART signal transfer module.
-
-Most boards are configured to enable/start the driver on a specified UART using the SENS_FTX_CFG parameter.
-
-### Examples
-
-Attempt to start driver on a specified serial device.
-$ ft_technologies_serial start -d /dev/ttyS1
-Stop driver
-$ ft_technologies_serial stop
-)DESCR_STR");
+		"### Description\n"
+		"\n"
+		"Serial bus driver for the FT Technologies Digital Wind Sensor FT742. This driver is required to operate alongside\n"
+		"a RS485 to UART signal transfer module.\n"
+		"\n"
+		"Most boards are configured to enable/start the driver on a specified UART using the SENS_FTX_CFG parameter.\n"
+		"\n"
+		"### Examples\n"
+		"\n"
+		"Attempt to start driver on a specified serial device.\n"
+		"$ ft_technologies_serial start -d /dev/ttyS1\n"
+		"Stop driver\n"
+		"$ ft_technologies_serial stop");
 
 	PRINT_MODULE_USAGE_NAME("ft_technologies_serial", "driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");

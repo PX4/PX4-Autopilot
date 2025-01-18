@@ -730,16 +730,13 @@ int RCUpdate::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-The rc_update module handles RC channel mapping: read the raw input channels (`input_rc`),
-then apply the calibration, map the RC channels to the configured channels & mode switches
-and then publish as `rc_channels` and `manual_control_input`.
-
-### Implementation
-To reduce control latency, the module is scheduled on input_rc publications.
-
-)DESCR_STR");
+		"### Description\n"
+		"The rc_update module handles RC channel mapping: read the raw input channels (`input_rc`),\n"
+		"then apply the calibration, map the RC channels to the configured channels & mode switches\n"
+		"and then publish as `rc_channels` and `manual_control_input`.\n"
+		"\n"
+		"### Implementation\n"
+		"To reduce control latency, the module is scheduled on input_rc publications.");
 
 	PRINT_MODULE_USAGE_NAME("rc_update", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");

@@ -2404,39 +2404,37 @@ int Logger::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-System logger which logs a configurable set of uORB topics and system printf messages
-(`PX4_WARN` and `PX4_ERR`) to ULog files. These can be used for system and flight performance evaluation,
-tuning, replay and crash analysis.
-
-It supports 2 backends:
-- Files: write ULog files to the file system (SD card)
-- MAVLink: stream ULog data via MAVLink to a client (the client must support this)
-
-Both backends can be enabled and used at the same time.
-
-The file backend supports 2 types of log files: full (the normal log) and a mission
-log. The mission log is a reduced ulog file and can be used for example for geotagging or
-vehicle management. It can be enabled and configured via SDLOG_MISSION parameter.
-The normal log is always a superset of the mission log.
-
-### Implementation
-The implementation uses two threads:
-- The main thread, running at a fixed rate (or polling on a topic if started with -p) and checking for
-  data updates
-- The writer thread, writing data to the file
-
-In between there is a write buffer with configurable size (and another fixed-size buffer for
-the mission log). It should be large to avoid dropouts.
-
-### Examples
-Typical usage to start logging immediately:
-$ logger start -e -t
-
-Or if already running:
-$ logger on
-)DESCR_STR");
+		"### Description\n"
+		"System logger which logs a configurable set of uORB topics and system printf messages\n"
+		"(`PX4_WARN` and `PX4_ERR`) to ULog files. These can be used for system and flight performance evaluation,\n"
+		"tuning, replay and crash analysis.\n"
+		"\n"
+		"It supports 2 backends:\n"
+		"- Files: write ULog files to the file system (SD card)\n"
+		"- MAVLink: stream ULog data via MAVLink to a client (the client must support this)\n"
+		"\n"
+		"Both backends can be enabled and used at the same time.\n"
+		"\n"
+		"The file backend supports 2 types of log files: full (the normal log) and a mission\n"
+		"log. The mission log is a reduced ulog file and can be used for example for geotagging or\n"
+		"vehicle management. It can be enabled and configured via SDLOG_MISSION parameter.\n"
+		"The normal log is always a superset of the mission log.\n"
+		"\n"
+		"### Implementation\n"
+		"The implementation uses two threads:\n"
+		"- The main thread, running at a fixed rate (or polling on a topic if started with -p) and checking for\n"
+		"data updates\n"
+		"- The writer thread, writing data to the file\n"
+		"\n"
+		"In between there is a write buffer with configurable size (and another fixed-size buffer for\n"
+		"the mission log). It should be large to avoid dropouts.\n"
+		"\n"
+		"### Examples\n"
+		"Typical usage to start logging immediately:\n"
+		"$ logger start -e -t\n"
+		"\n"
+		"Or if already running:\n"
+		"$ logger on");
 
 	PRINT_MODULE_USAGE_NAME("logger", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -2449,7 +2447,7 @@ $ logger on
 	PRINT_MODULE_USAGE_PARAM_INT('r', 280, 0, 8000, "Log rate in Hz, 0 means unlimited rate", true);
 	PRINT_MODULE_USAGE_PARAM_INT('b', 12, 4, 10000, "Log buffer size in KiB", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "<topic_name>",
-					 "Poll on a topic instead of running with fixed rate (Log rate and topic intervals are ignored if this is set)", true);
+					"Poll on a topic instead of running with fixed rate (Log rate and topic intervals are ignored if this is set)", true);
 	PRINT_MODULE_USAGE_PARAM_FLOAT('c', 1.0, 0.2, 2.0, "Log rate factor (higher is faster)", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("on", "start logging now, override arming (logger must be running)");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("off", "stop logging now, override arming (logger must be running)");

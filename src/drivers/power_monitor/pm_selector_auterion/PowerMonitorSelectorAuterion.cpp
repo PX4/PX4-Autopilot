@@ -196,11 +196,8 @@ int PowerMonitorSelectorAuterion::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Driver for starting and auto-detecting different power monitors.
-
-)DESCR_STR");
+		"### Description\n"
+		"Driver for starting and auto-detecting different power monitors.");
 
 	PRINT_MODULE_USAGE_NAME("pm_selector_auterion", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

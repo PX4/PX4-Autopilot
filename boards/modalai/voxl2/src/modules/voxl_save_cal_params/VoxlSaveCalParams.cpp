@@ -216,11 +216,8 @@ int VoxlSaveCalParams::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This implements autosaving of calibration parameters on VOXL2 platform.
-
-)DESCR_STR");
+		"### Description\n"
+		"This implements autosaving of calibration parameters on VOXL2 platform.");
 
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();

@@ -124,11 +124,9 @@ int FakeMagnetometer::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Publish the earth magnetic field as a fake magnetometer (sensor_mag).
-Requires vehicle_attitude and vehicle_gps_position.
-)DESCR_STR");
+		"### Description\n"
+		"Publish the earth magnetic field as a fake magnetometer (sensor_mag).\n"
+		"Requires vehicle_attitude and vehicle_gps_position.");
 
 	PRINT_MODULE_USAGE_NAME("fake_magnetometer", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

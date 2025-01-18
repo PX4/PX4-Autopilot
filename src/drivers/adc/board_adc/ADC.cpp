@@ -403,11 +403,8 @@ int ADC::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-ADC driver.
-
-)DESCR_STR");
+		"### Description\n"
+		"ADC driver.");
 
 	PRINT_MODULE_USAGE_NAME("adc", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

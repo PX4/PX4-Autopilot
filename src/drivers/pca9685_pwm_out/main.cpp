@@ -246,137 +246,153 @@ int PCA9685Wrapper::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This is a PCA9685 PWM output driver.
+		"### Description\n"
+		"This is a PCA9685 PWM output driver.\n"
+		"\n"
+		"It runs on I2C workqueue which is asynchronous with FC control loop,\n"
+		"fetching the latest mixing result and write them to PCA9685 at its scheduling ticks.\n"
+		"\n"
+		"It can do full 12bits output as duty-cycle mode, while also able to output precious pulse width\n"
+		"that can be accepted by most ESCs and servos.\n"
+		"\n"
+		"### Examples\n"
+		"It is typically started with:\n"
+		"$ pca9685_pwm_out start -a 0x40 -b 1");
 
-It runs on I2C workqueue which is asynchronous with FC control loop,
-fetching the latest mixing result and write them to PCA9685 at its scheduling ticks.
+	PRINT_MODULE_USAGE_NAME("pca9685_pwm_out", "driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
+	PRINT_MODULE_USAGE_PARAM_STRING('a', "0x40", "<addr>", "7-bits I2C address of PCA9685", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 1, 0, 255, "bus that pca9685 is connected to", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
-It can do full 12bits output as duty-cycle mode, while also able to output precious pulse width
-that can be accepted by most ESCs and servos.
-
-### Examples
-It is typically started with:
-$ pca9685_pwm_out start -a 0x40 -b 1
-
-)DESCR_STR");
-
-    PRINT_MODULE_USAGE_NAME("pca9685_pwm_out", "driver");
-    PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
-    PRINT_MODULE_USAGE_PARAM_STRING('a',"0x40","<addr>","7-bits I2C address of PCA9685",true);
-	PRINT_MODULE_USAGE_PARAM_INT('b',1,0,255,"bus that pca9685 is connected to",true);
-    PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
-    return 0;
+	return 0;
 }
 
-int PCA9685Wrapper::print_status() {
-    int ret =  ModuleBase::print_status();
-    PX4_INFO("PCA9685 @I2C Bus %d, address 0x%.2x, real frequency %.2f",
-            pca9685->get_device_bus(),
-            pca9685->get_device_address(),
-             (double)(pca9685->getFreq()));
+int PCA9685Wrapper::print_status()
+{
+	int ret =  ModuleBase::print_status();
+	PX4_INFO("PCA9685 @I2C Bus %d, address 0x%.2x, real frequency %.2f",
+		 pca9685->get_device_bus(),
+		 pca9685->get_device_address(),
+		 (double)(pca9685->getFreq()));
 
-    return ret;
+	return ret;
 }
 
-int PCA9685Wrapper::custom_command(int argc, char **argv) {
-    return PX4_OK;
+int PCA9685Wrapper::custom_command(int argc, char **argv)
+{
+	return PX4_OK;
 }
 
-int PCA9685Wrapper::task_spawn(int argc, char **argv) {
+int PCA9685Wrapper::task_spawn(int argc, char **argv)
+{
 	int ch;
-	int address=PCA9685_DEFAULT_ADDRESS;
-	int iicbus=PCA9685_DEFAULT_IICBUS;
+	int address = PCA9685_DEFAULT_ADDRESS;
+	int iicbus = PCA9685_DEFAULT_IICBUS;
 
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
+
 	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-			case 'a':
-                errno = 0;
-				address = strtol(myoptarg, nullptr, 16);
-                if (errno != 0) {
-                    PX4_WARN("Invalid address");
-                    return PX4_ERROR;
-                }
-				break;
+		case 'a':
+			errno = 0;
+			address = strtol(myoptarg, nullptr, 16);
 
-			case 'b':
-				iicbus = strtol(myoptarg, nullptr, 10);
-                if (errno != 0) {
-                    PX4_WARN("Invalid bus");
-                    return PX4_ERROR;
-                }
-				break;
-
-			case '?':
-				PX4_WARN("Unsupported args");
+			if (errno != 0) {
+				PX4_WARN("Invalid address");
 				return PX4_ERROR;
+			}
 
-			default:
-				break;
+			break;
+
+		case 'b':
+			iicbus = strtol(myoptarg, nullptr, 10);
+
+			if (errno != 0) {
+				PX4_WARN("Invalid bus");
+				return PX4_ERROR;
+			}
+
+			break;
+
+		case '?':
+			PX4_WARN("Unsupported args");
+			return PX4_ERROR;
+
+		default:
+			break;
 		}
 	}
 
-    auto *instance = new PCA9685Wrapper();
+	auto *instance = new PCA9685Wrapper();
 
-    if (instance) {
-        _object.store(instance);
-        _task_id = task_id_is_work_queue;
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
 
-        instance->pca9685 = new PCA9685(iicbus, address);
-        if(instance->pca9685==nullptr){
-            PX4_ERR("alloc failed");
-            goto driverInstanceAllocFailed;
-        }
+		instance->pca9685 = new PCA9685(iicbus, address);
 
-        if (instance->init() == PX4_OK) {
-            return PX4_OK;
-        } else {
-            PX4_ERR("driver init failed");
-            delete instance->pca9685;
-            instance->pca9685=nullptr;
-        }
-    } else {
-        PX4_ERR("alloc failed");
-	    return PX4_ERROR;
-    }
+		if (instance->pca9685 == nullptr) {
+			PX4_ERR("alloc failed");
+			goto driverInstanceAllocFailed;
+		}
 
-    driverInstanceAllocFailed:
-    delete instance;
-    _object.store(nullptr);
-    _task_id = -1;
+		if (instance->init() == PX4_OK) {
+			return PX4_OK;
 
-    return PX4_ERROR;
+		} else {
+			PX4_ERR("driver init failed");
+			delete instance->pca9685;
+			instance->pca9685 = nullptr;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
+		return PX4_ERROR;
+	}
+
+driverInstanceAllocFailed:
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
 }
 
-void PCA9685Wrapper::updateParams() {
-    ModuleParams::updateParams();
+void PCA9685Wrapper::updateParams()
+{
+	ModuleParams::updateParams();
 
-    param_t param = param_find("PCA9685_SCHD_HZ");
-    if (param != PARAM_INVALID) {
-        param_get(param, &param_schd_rate);
-    } else {
-        PX4_ERR("param PCA9685_SCHD_HZ not found");
-    }
+	param_t param = param_find("PCA9685_SCHD_HZ");
 
-    param = param_find("PCA9685_PWM_FREQ");
-    if (param != PARAM_INVALID) {
-        param_get(param, &param_pwm_freq);
-    } else {
-        PX4_ERR("param PCA9685_PWM_FREQ not found");
-    }
+	if (param != PARAM_INVALID) {
+		param_get(param, &param_schd_rate);
 
-    param = param_find("PCA9685_DUTY_EN");
-    if (param != PARAM_INVALID) {
-        param_get(param, (int32_t*)&param_duty_mode);
-    } else {
-        PX4_ERR("param PCA9685_DUTY_EN not found");
-    }
+	} else {
+		PX4_ERR("param PCA9685_SCHD_HZ not found");
+	}
+
+	param = param_find("PCA9685_PWM_FREQ");
+
+	if (param != PARAM_INVALID) {
+		param_get(param, &param_pwm_freq);
+
+	} else {
+		PX4_ERR("param PCA9685_PWM_FREQ not found");
+	}
+
+	param = param_find("PCA9685_DUTY_EN");
+
+	if (param != PARAM_INVALID) {
+		param_get(param, (int32_t *)&param_duty_mode);
+
+	} else {
+		PX4_ERR("param PCA9685_DUTY_EN not found");
+	}
 }
 
-extern "C" __EXPORT int pca9685_pwm_out_main(int argc, char *argv[]){
+extern "C" __EXPORT int pca9685_pwm_out_main(int argc, char *argv[])
+{
 	return PCA9685Wrapper::main(argc, argv);
 }

@@ -143,11 +143,8 @@ int EscBattery::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This implements using information from the ESC status and publish it as battery status.
-
-)DESCR_STR");
+		"### Description\n"
+		"This implements using information from the ESC status and publish it as battery status.");
 
 	PRINT_MODULE_USAGE_NAME("esc_battery", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");

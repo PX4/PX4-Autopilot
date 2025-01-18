@@ -604,25 +604,25 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 static void usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Mount/gimbal Gimbal control driver. It maps several different input methods (eg. RC or MAVLink) to a configured
-output (eg. AUX channels or MAVLink).
-
-Documentation how to use it is on the [gimbal_control](https://docs.px4.io/main/en/advanced/gimbal_control.html) page.
-
-### Examples
-Test the output by setting a angles (all omitted axes are set to 0):
-$ gimbal test pitch -45 yaw 30
-)DESCR_STR");
+		"### Description\n"
+		"Mount/gimbal Gimbal control driver. It maps several different input methods (eg. RC or MAVLink) to a configured\n"
+		"output (eg. AUX channels or MAVLink).\n"
+		"\n"
+		"Documentation how to use it is on the [gimbal_control](https://docs.px4.io/main/en/advanced/gimbal_control.html) page.\n"
+		"\n"
+		"### Examples\n"
+		"Test the output by setting a angles (all omitted axes are set to 0):\n"
+		"$ gimbal test pitch -45 yaw 30");
 
 	PRINT_MODULE_USAGE_NAME("gimbal", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_COMMAND("status");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("primary-control", "Set who is in control of gimbal");
 	PRINT_MODULE_USAGE_ARG("<sysid> <compid>", "MAVLink system ID and MAVLink component ID", false);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test the output: set a fixed angle for one or multiple axes (gimbal must be running)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test",
+					 "Test the output: set a fixed angle for one or multiple axes (gimbal must be running)");
 	PRINT_MODULE_USAGE_ARG("roll|pitch|yaw <angle>", "Specify an axis and an angle in degrees", false);
-	PRINT_MODULE_USAGE_ARG("rollrate|pitchrate|yawrate <angle rate>", "Specify an axis and an angle rate in degrees / second", false);
+	PRINT_MODULE_USAGE_ARG("rollrate|pitchrate|yawrate <angle rate>",
+			       "Specify an axis and an angle rate in degrees / second", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }

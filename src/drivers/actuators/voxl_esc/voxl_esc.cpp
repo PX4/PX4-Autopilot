@@ -1469,18 +1469,15 @@ int VoxlEsc::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This module is responsible for...
-
-### Implementation
-By default the module runs on a work queue with a callback on the uORB actuator_controls topic.
-
-### Examples
-It is typically started with:
-$ todo
-
-)DESCR_STR");
+		"### Description\n"
+		"This module is responsible for...\n"
+		"\n"
+		"### Implementation\n"
+		"By default the module runs on a work queue with a callback on the uORB actuator_controls topic.\n"
+		"\n"
+		"### Examples\n"
+		"It is typically started with:\n"
+		"$ todo");
 
 	PRINT_MODULE_USAGE_NAME("voxl_esc", "driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
@@ -1497,14 +1494,16 @@ $ todo
 	PRINT_MODULE_USAGE_COMMAND_DESCR("rpm", "Closed-Loop RPM test control request");
 	PRINT_MODULE_USAGE_PARAM_INT('i', 0, 0, 3, "ESC ID, 0-3", false);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 0, -32768, 32768, "RPM, -32,768 to 32,768", false);
-	PRINT_MODULE_USAGE_PARAM_INT('n', 100, 0, 1<<31, "Command repeat count, 0 to INT_MAX", false);
-	PRINT_MODULE_USAGE_PARAM_INT('t', 10000, 0, 1<<31, "Delay between repeated commands (microseconds), 0 to INT_MAX", false);
+	PRINT_MODULE_USAGE_PARAM_INT('n', 100, 0, 1 << 31, "Command repeat count, 0 to INT_MAX", false);
+	PRINT_MODULE_USAGE_PARAM_INT('t', 10000, 0, 1 << 31, "Delay between repeated commands (microseconds), 0 to INT_MAX",
+				     false);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("pwm", "Open-Loop PWM test control request");
 	PRINT_MODULE_USAGE_PARAM_INT('i', 0, 0, 3, "ESC ID, 0-3", false);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 0, 0, 800, "Duty Cycle value, 0 to 800", false);
-	PRINT_MODULE_USAGE_PARAM_INT('n', 100, 0, 1<<31, "Command repeat count, 0 to INT_MAX", false);
-	PRINT_MODULE_USAGE_PARAM_INT('t', 10000, 0, 1<<31, "Delay between repeated commands (microseconds), 0 to INT_MAX", false);
+	PRINT_MODULE_USAGE_PARAM_INT('n', 100, 0, 1 << 31, "Command repeat count, 0 to INT_MAX", false);
+	PRINT_MODULE_USAGE_PARAM_INT('t', 10000, 0, 1 << 31, "Delay between repeated commands (microseconds), 0 to INT_MAX",
+				     false);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("tone", "Send tone generation request to ESC");
 	PRINT_MODULE_USAGE_PARAM_INT('i', 0, 0, 3, "ESC ID, 0-3", false);
@@ -1513,7 +1512,8 @@ $ todo
 	PRINT_MODULE_USAGE_PARAM_INT('v', 0, 0, 100, "Power (volume) of sound, 0-100", false);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("led", "Send LED control request");
-	PRINT_MODULE_USAGE_PARAM_INT('l', 0, 0, 4095, "Bitmask 0x0FFF (12 bits) - ESC0 (RGB) ESC1 (RGB) ESC2 (RGB) ESC3 (RGB)", false);
+	PRINT_MODULE_USAGE_PARAM_INT('l', 0, 0, 4095, "Bitmask 0x0FFF (12 bits) - ESC0 (RGB) ESC1 (RGB) ESC2 (RGB) ESC3 (RGB)",
+				     false);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
@@ -1542,12 +1542,12 @@ void VoxlEsc::print_params()
 	PX4_INFO("Params: VOXL_ESC_T_PERC: %" PRId32, _parameters.turtle_motor_percent);
 	PX4_INFO("Params: VOXL_ESC_T_DEAD: %" PRId32, _parameters.turtle_motor_deadband);
 	PX4_INFO("Params: VOXL_ESC_T_EXPO: %" PRId32, _parameters.turtle_motor_expo);
-	PX4_INFO("Params: VOXL_ESC_T_MINF: %f",       (double)_parameters.turtle_stick_minf);
-	PX4_INFO("Params: VOXL_ESC_T_COSP: %f",       (double)_parameters.turtle_cosphi);
+	PX4_INFO("Params: VOXL_ESC_T_MINF: %f", (double)_parameters.turtle_stick_minf);
+	PX4_INFO("Params: VOXL_ESC_T_COSP: %f", (double)_parameters.turtle_cosphi);
 
 	PX4_INFO("Params: VOXL_ESC_VLOG: %" PRId32,    _parameters.verbose_logging);
 	PX4_INFO("Params: VOXL_ESC_PUB_BST: %" PRId32, _parameters.publish_battery_status);
-	
+
 	PX4_INFO("Params: VOXL_ESC_T_WARN: %" PRId32, _parameters.esc_warn_temp_threshold);
 	PX4_INFO("Params: VOXL_ESC_T_OVER: %" PRId32, _parameters.esc_over_temp_threshold);
 }
@@ -1563,7 +1563,7 @@ int VoxlEsc::print_status()
 	print_params();
 	PX4_INFO("");
 
-	for( int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++){
+	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
 		PX4_INFO("-- ID: %i", i);
 		PX4_INFO("   Motor:           %i", _output_map[i].number);
 		PX4_INFO("   Direction:       %i", _output_map[i].direction);
@@ -1583,22 +1583,34 @@ int VoxlEsc::print_status()
 	return 0;
 }
 
-const char * VoxlEsc::board_id_to_name(int board_id)
+const char *VoxlEsc::board_id_to_name(int board_id)
 {
-	switch(board_id){
-		case 31: return "ModalAi 4-in-1 ESC V2 RevB (M0049)";
-		case 32: return "Blheli32 4-in-1 ESC Type A (Tmotor F55A PRO F051)";
-		case 33: return "Blheli32 4-in-1 ESC Type B (Tmotor F55A PRO G071)";
-		case 34: return "ModalAi 4-in-1 ESC (M0117-1)";
-		case 35: return "ModalAi I/O Expander (M0065)";
-		case 36: return "ModalAi 4-in-1 ESC (M0117-3)";
-		case 37: return "ModalAi 4-in-1 ESC (M0134-1)";
-		case 38: return "ModalAi 4-in-1 ESC (M0134-3)";
-		case 39: return "ModalAi 4-in-1 ESC (M0129-1)";
-		case 40: return "ModalAi 4-in-1 ESC (M0129-3)";
-		case 41: return "ModalAi 4-in-1 ESC (M0134-6)";
-		case 42: return "ModalAi 4-in-1 ESC (M0138-1)";
-		default: return "Unknown Board";
+	switch (board_id) {
+	case 31: return "ModalAi 4-in-1 ESC V2 RevB (M0049)";
+
+	case 32: return "Blheli32 4-in-1 ESC Type A (Tmotor F55A PRO F051)";
+
+	case 33: return "Blheli32 4-in-1 ESC Type B (Tmotor F55A PRO G071)";
+
+	case 34: return "ModalAi 4-in-1 ESC (M0117-1)";
+
+	case 35: return "ModalAi I/O Expander (M0065)";
+
+	case 36: return "ModalAi 4-in-1 ESC (M0117-3)";
+
+	case 37: return "ModalAi 4-in-1 ESC (M0134-1)";
+
+	case 38: return "ModalAi 4-in-1 ESC (M0134-3)";
+
+	case 39: return "ModalAi 4-in-1 ESC (M0129-1)";
+
+	case 40: return "ModalAi 4-in-1 ESC (M0129-3)";
+
+	case 41: return "ModalAi 4-in-1 ESC (M0134-6)";
+
+	case 42: return "ModalAi 4-in-1 ESC (M0138-1)";
+
+	default: return "Unknown Board";
 	}
 }
 

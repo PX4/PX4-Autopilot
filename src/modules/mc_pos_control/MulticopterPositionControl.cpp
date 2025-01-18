@@ -750,15 +750,13 @@ int MulticopterPositionControl::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-The controller has two loops: a P loop for position error and a PID loop for velocity error.
-Output of the velocity controller is thrust vector that is split to thrust direction
-(i.e. rotation matrix for multicopter orientation) and thrust scalar (i.e. multicopter thrust itself).
-
-The controller doesn't use Euler angles for its work, they are generated only for more human-friendly control and
-logging.
-)DESCR_STR");
+		"### Description\n"
+		"The controller has two loops: a P loop for position error and a PID loop for velocity error.\n"
+		"Output of the velocity controller is thrust vector that is split to thrust direction\n"
+		"(i.e. rotation matrix for multicopter orientation) and thrust scalar (i.e. multicopter thrust itself).\n"
+		"\n"
+		"The controller doesn't use Euler angles for its work, they are generated only for more human-friendly control and\n"
+		"logging.");
 
 	PRINT_MODULE_USAGE_NAME("mc_pos_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");

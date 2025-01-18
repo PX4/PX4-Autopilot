@@ -218,25 +218,23 @@ int SagetechMXS::custom_command(int argc, char *argv[])
 int SagetechMXS::print_usage(const char *reason)
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-	### Description
-
-	This driver integrates the Sagetech MXS Certified Transponder to send and receive ADSB messages and traffic.
-
-	### Examples
-
-	Attempt to start driver on a specified serial device.
-	$ sagetech_mxs start -d /dev/ttyS1
-	Stop driver
-	$ sagetech_mxs stop
-	Set Flight ID (8 char max)
-	$ sagetech_mxs flight_id MXS12345
-	Set MXS Operating Mode
-	$ sagetech_mxs opmode off/on/stby/alt
-	$ sagetech_mxs opmode 0/1/2/3
-	Set the Squawk Code
-	$ sagetech_mxs squawk 1200
-	)DESCR_STR");
+		"### Description\n"
+		"\n"
+		"This driver integrates the Sagetech MXS Certified Transponder to send and receive ADSB messages and traffic.\n"
+		"\n"
+		"### Examples\n"
+		"\n"
+		"Attempt to start driver on a specified serial device.\n"
+		"$ sagetech_mxs start -d /dev/ttyS1\n"
+		"Stop driver\n"
+		"$ sagetech_mxs stop\n"
+		"Set Flight ID (8 char max)\n"
+		"$ sagetech_mxs flight_id MXS12345\n"
+		"Set MXS Operating Mode\n"
+		"$ sagetech_mxs opmode off/on/stby/alt\n"
+		"$ sagetech_mxs opmode 0/1/2/3\n"
+		"Set the Squawk Code\n"
+		"$ sagetech_mxs squawk 1200");
 
 	PRINT_MODULE_USAGE_NAME("sagetech_mxs", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("transponder");

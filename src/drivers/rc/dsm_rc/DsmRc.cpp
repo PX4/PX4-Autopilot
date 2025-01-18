@@ -392,11 +392,8 @@ int DsmRc::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This module does Spektrum DSM RC input parsing.
-
-)DESCR_STR");
+		"### Description\n"
+		"This module does Spektrum DSM RC input parsing.");
 
 	PRINT_MODULE_USAGE_NAME("dsm_rc", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

@@ -298,26 +298,21 @@ void usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This command is used to read and write GPIOs
-```
-gpio read <PORT><PIN>/<DEVICE> [PULLDOWN|PULLUP] [--force]
-gpio write <PORT><PIN>/<DEVICE> <VALUE> [PUSHPULL|OPENDRAIN] [--force]
-```
-
-### Examples
-Read the value on port H pin 4 configured as pullup, and it is high
-$ gpio read H4 PULLUP
-1 OK
-
-Set the output value on Port E pin 7 to high
-$ gpio write E7 1 --force
-
-Set the output value on device /dev/gpio1 to high
-$ gpio write /dev/gpio1 1
-
-)DESCR_STR");
+		"### Description\n"
+		"This command is used to read and write GPIOs\n"
+		"$ gpio read <PORT><PIN>/<DEVICE> [PULLDOWN|PULLUP] [--force]\n"
+		"$ gpio write <PORT><PIN>/<DEVICE> <VALUE> [PUSHPULL|OPENDRAIN] [--force]\n"
+		"\n"
+		"### Examples\n"
+		"Read the value on port H pin 4 configured as pullup, and it is high\n"
+		"$ gpio read H4 PULLUP\n"
+		"1 OK\n"
+		"\n"
+		"Set the output value on Port E pin 7 to high\n"
+		"$ gpio write E7 1 --force\n"
+		"\n"
+		"Set the output value on device /dev/gpio1 to high\n"
+		"$ gpio write /dev/gpio1 1");
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("gpio", "command");
 

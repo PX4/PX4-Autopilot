@@ -480,19 +480,17 @@ int PGA460::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Ultrasonic range finder driver that handles the communication with the device and publishes the distance via uORB.
-
-### Implementation
-
-This driver is implemented as a NuttX task. This Implementation was chosen due to the need for polling on a message
-via UART, which is not supported in the work_queue. This driver continuously takes range measurements while it is
-running. A simple algorithm to detect false readings is implemented at the driver levelin an attemptto improve
-the quality of data that is being published. The driver will not publish data at all if it deems the sensor data
-to be invalid or unstable.
-)DESCR_STR");
+		"### Description\n"
+		"\n"
+		"Ultrasonic range finder driver that handles the communication with the device and publishes the distance via uORB.\n"
+		"\n"
+		"### Implementation\n"
+		"\n"
+		"This driver is implemented as a NuttX task. This Implementation was chosen due to the need for polling on a message\n"
+		"via UART, which is not supported in the work_queue. This driver continuously takes range measurements while it is\n"
+		"running. A simple algorithm to detect false readings is implemented at the driver levelin an attemptto improve\n"
+		"the quality of data that is being published. The driver will not publish data at all if it deems the sensor data\n"
+		"to be invalid or unstable.");
 
 	PRINT_MODULE_USAGE_NAME("pga460", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
@@ -510,14 +508,15 @@ int PGA460::read_eeprom()
 	unlock_eeprom();
 
 	const int array_size = 43;
-	 uint8_t user_settings[array_size] =
-		{USER_DATA1, USER_DATA2, USER_DATA3, USER_DATA4,
-		 USER_DATA5, USER_DATA6, USER_DATA7, USER_DATA8, USER_DATA9, USER_DATA10,
-		 USER_DATA11, USER_DATA12, USER_DATA13, USER_DATA14, USER_DATA15, USER_DATA16,
-		 USER_DATA17, USER_DATA18, USER_DATA19, USER_DATA20,
-		 TVGAIN0, TVGAIN1, TVGAIN2, TVGAIN3, TVGAIN4, TVGAIN5, TVGAIN6, INIT_GAIN, FREQUENCY, DEADTIME,
-		 PULSE_P1, PULSE_P2, CURR_LIM_P1, CURR_LIM_P2, REC_LENGTH, FREQ_DIAG, SAT_FDIAG_TH, FVOLT_DEC, DECPL_TEMP,
-		 DSP_SCALE, TEMP_TRIM, P1_GAIN_CTRL, P2_GAIN_CTRL};
+	uint8_t user_settings[array_size] = {
+		USER_DATA1, USER_DATA2, USER_DATA3, USER_DATA4,
+		USER_DATA5, USER_DATA6, USER_DATA7, USER_DATA8, USER_DATA9, USER_DATA10,
+		USER_DATA11, USER_DATA12, USER_DATA13, USER_DATA14, USER_DATA15, USER_DATA16,
+		USER_DATA17, USER_DATA18, USER_DATA19, USER_DATA20,
+		TVGAIN0, TVGAIN1, TVGAIN2, TVGAIN3, TVGAIN4, TVGAIN5, TVGAIN6, INIT_GAIN, FREQUENCY, DEADTIME,
+		PULSE_P1, PULSE_P2, CURR_LIM_P1, CURR_LIM_P2, REC_LENGTH, FREQ_DIAG, SAT_FDIAG_TH, FVOLT_DEC, DECPL_TEMP,
+		DSP_SCALE, TEMP_TRIM, P1_GAIN_CTRL, P2_GAIN_CTRL
+	};
 
 
 	int ret = -1;
@@ -541,7 +540,7 @@ int PGA460::read_eeprom()
 
 		total_bytes += ret;
 
-		if(ret < 0) {
+		if (ret < 0) {
 			tcflush(_fd, TCIFLUSH);
 			PX4_ERR("read err2: %d", ret);
 			return ret;
@@ -559,6 +558,7 @@ int PGA460::read_eeprom()
 	if (mismatched_bytes == 0) {
 		PX4_INFO("EEPROM has settings.");
 		return PX4_OK;
+
 	} else {
 		print_diagnostics(buf_rx[0]);
 		PX4_INFO("EEPROM does not have settings.");
@@ -579,7 +579,7 @@ uint8_t PGA460::read_register(const uint8_t reg)
 
 	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
 
-	if(!ret) {
+	if (!ret) {
 		return PX4_ERROR;
 	}
 
@@ -594,7 +594,7 @@ uint8_t PGA460::read_register(const uint8_t reg)
 
 		total_bytes += ret;
 
-		if(ret < 0) {
+		if (ret < 0) {
 			tcflush(_fd, TCIFLUSH);
 			PX4_ERR("read err3: %d", ret);
 			return ret;
@@ -627,7 +627,7 @@ int PGA460::read_threshold_registers()
 
 	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
 
-	if(!ret) {
+	if (!ret) {
 		return PX4_ERROR;
 	}
 
@@ -642,7 +642,7 @@ int PGA460::read_threshold_registers()
 
 		total_bytes += ret;
 
-		if(ret < 0) {
+		if (ret < 0) {
 			tcflush(_fd, TCIFLUSH);
 			PX4_ERR("read err3: %d", ret);
 			return ret;
@@ -674,7 +674,7 @@ int PGA460::request_results()
 	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
 	px4_usleep(10000);
 
-	if(!ret) {
+	if (!ret) {
 		return PX4_ERROR;
 	}
 
@@ -686,13 +686,14 @@ void PGA460::run()
 	open_serial();
 	int ret = initialize_device_settings();
 
-	if(ret != PX4_OK) {
+	if (ret != PX4_OK) {
 		close_serial();
 		PX4_INFO("Could not initialize device settings. Exiting.");
 		return;
 	}
 
 	struct distance_sensor_s report = {};
+
 	_distance_sensor_topic = orb_advertise(ORB_ID(distance_sensor), &report);
 
 	if (_distance_sensor_topic == nullptr) {
@@ -744,7 +745,7 @@ int PGA460::take_measurement(const uint8_t mode)
 
 	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
 
-	if(!ret) {
+	if (!ret) {
 		return PX4_ERROR;
 	}
 
@@ -832,7 +833,7 @@ int PGA460::unlock_eeprom()
 	eeprom_write_buf[4] = checksum;
 	int ret = ::write(_fd, &eeprom_write_buf[0], sizeof(eeprom_write_buf));
 
-	if(!ret) {
+	if (!ret) {
 		return PX4_ERROR;
 	}
 
@@ -855,7 +856,7 @@ int PGA460::write_eeprom()
 
 	int ret = ::write(_fd, &settings_buf[0], sizeof(settings_buf));
 
-	if(!ret) {
+	if (!ret) {
 		return PX4_ERROR;
 	}
 
@@ -898,6 +899,7 @@ int PGA460::write_register(const uint8_t reg, const uint8_t val)
 
 	if (ret != sizeof(buf_tx)) {
 		return PX4_OK;
+
 	} else {
 		return PX4_ERROR;
 	}

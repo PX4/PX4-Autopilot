@@ -115,30 +115,28 @@ int LandDetector::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Module to detect the freefall and landed state of the vehicle, and publishing the `vehicle_land_detected` topic.
-Each vehicle type (multirotor, fixedwing, vtol, ...) provides its own algorithm, taking into account various
-states, such as commanded thrust, arming state and vehicle motion.
-
-### Implementation
-Every type is implemented in its own class with a common base class. The base class maintains a state (landed,
-maybe_landed, ground_contact). Each possible state is implemented in the derived classes. A hysteresis and a fixed
-priority of each internal state determines the actual land_detector state.
-
-#### Multicopter Land Detector
-**ground_contact**: thrust setpoint and velocity in z-direction must be below a defined threshold for time
-GROUND_CONTACT_TRIGGER_TIME_US. When ground_contact is detected, the position controller turns off the thrust setpoint
-in body x and y.
-
-**maybe_landed**: it requires ground_contact together with a tighter thrust setpoint threshold and no velocity in the
-horizontal direction. The trigger time is defined by MAYBE_LAND_TRIGGER_TIME. When maybe_landed is detected, the
-position controller sets the thrust setpoint to zero.
-
-**landed**: it requires maybe_landed to be true for time LAND_DETECTOR_TRIGGER_TIME_US.
-
-The module runs periodically on the HP work queue.
-)DESCR_STR");
+		"### Description\n"
+		"Module to detect the freefall and landed state of the vehicle, and publishing the `vehicle_land_detected` topic.\n"
+		"Each vehicle type (multirotor, fixedwing, vtol, ...) provides its own algorithm, taking into account various\n"
+		"states, such as commanded thrust, arming state and vehicle motion.\n"
+		"\n"
+		"### Implementation\n"
+		"Every type is implemented in its own class with a common base class. The base class maintains a state (landed,\n"
+		"maybe_landed, ground_contact). Each possible state is implemented in the derived classes. A hysteresis and a fixed\n"
+		"priority of each internal state determines the actual land_detector state.\n"
+		"\n"
+		"#### Multicopter Land Detector\n"
+		"**ground_contact**: thrust setpoint and velocity in z-direction must be below a defined threshold for time\n"
+		"GROUND_CONTACT_TRIGGER_TIME_US. When ground_contact is detected, the position controller turns off the thrust setpoint\n"
+		"in body x and y.\n"
+		"\n"
+		"**maybe_landed**: it requires ground_contact together with a tighter thrust setpoint threshold and no velocity in the\n"
+		"horizontal direction. The trigger time is defined by MAYBE_LAND_TRIGGER_TIME. When maybe_landed is detected, the\n"
+		"position controller sets the thrust setpoint to zero.\n"
+		"\n"
+		"**landed**: it requires maybe_landed to be true for time LAND_DETECTOR_TRIGGER_TIME_US.\n"
+		"\n"
+		"The module runs periodically on the HP work queue.");
 
 	PRINT_MODULE_USAGE_NAME("land_detector", "system");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the background task");

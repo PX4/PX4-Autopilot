@@ -136,22 +136,19 @@ void ADS1115::print_usage()
 {
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
+		"### Description\n"
+		"\n"
+		"Driver to enable an external [ADS1115](https://www.adafruit.com/product/1085) ADC connected via I2C.\n"
+		"\n"
+		"The driver is included by default in firmware for boards that do not have an internal analog to digital converter,\n"
+		"such as [PilotPi](../flight_controller/raspberry_pi_pilotpi.md) or [CUAV Nora](../flight_controller/cuav_nora.md)\n"
+		"(search for `CONFIG_DRIVERS_ADC_ADS1115` in board configuration files).\n"
+		"\n"
+		"It is enabled/disabled using the\n"
+		"[ADC_ADS1115_EN](../advanced_config/parameter_reference.md#ADC_ADS1115_EN)\n"
+		"parameter, and is disabled by default.\n"
+		"If enabled, internal ADCs are not used.");
 
-Driver to enable an external [ADS1115](https://www.adafruit.com/product/1085) ADC connected via I2C.
-
-The driver is included by default in firmware for boards that do not have an internal analog to digital converter,
-such as [PilotPi](../flight_controller/raspberry_pi_pilotpi.md) or [CUAV Nora](../flight_controller/cuav_nora.md)
-(search for `CONFIG_DRIVERS_ADC_ADS1115` in board configuration files).
-
-It is enabled/disabled using the
-[ADC_ADS1115_EN](../advanced_config/parameter_reference.md#ADC_ADS1115_EN)
-parameter, and is disabled by default.
-If enabled, internal ADCs are not used.
-
-)DESCR_STR");
-	
 	PRINT_MODULE_USAGE_NAME("ads1115", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);

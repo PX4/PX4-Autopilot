@@ -350,10 +350,8 @@ int RoverMecanum::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Rover Mecanum controller.
-)DESCR_STR");
+		"### Description\n"
+		"Rover Mecanum controller.");
 
 	PRINT_MODULE_USAGE_NAME("rover_mecanum", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");

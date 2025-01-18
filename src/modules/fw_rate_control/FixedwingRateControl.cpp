@@ -552,11 +552,8 @@ int FixedwingRateControl::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-fw_rate_control is the fixed-wing rate controller.
-
-)DESCR_STR");
+		"### Description\n"
+		"fw_rate_control is the fixed-wing rate controller.");
 
 	PRINT_MODULE_USAGE_NAME("fw_rate_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");

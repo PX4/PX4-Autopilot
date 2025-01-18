@@ -765,25 +765,22 @@ int Sensors::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-The sensors module is central to the whole system. It takes low-level output from drivers, turns
-it into a more usable form, and publishes it for the rest of the system.
-
-The provided functionality includes:
-- Read the output from the sensor drivers (`SensorGyro`, etc.).
-  If there are multiple of the same type, do voting and failover handling.
-  Then apply the board rotation and temperature calibration (if enabled). And finally publish the data; one of the
-  topics is `SensorCombined`, used by many parts of the system.
-- Make sure the sensor drivers get the updated calibration parameters (scale & offset) when the parameters change or
-  on startup. The sensor drivers use the ioctl interface for parameter updates. For this to work properly, the
-  sensor drivers must already be running when `sensors` is started.
-- Do sensor consistency checks and publish the `SensorsStatusImu` topic.
-
-### Implementation
-It runs in its own thread and polls on the currently selected gyro topic.
-
-)DESCR_STR");
+		"### Description\n"
+		"The sensors module is central to the whole system. It takes low-level output from drivers, turns\n"
+		"it into a more usable form, and publishes it for the rest of the system.\n"
+		"\n"
+		"The provided functionality includes:\n"
+		"- Read the output from the sensor drivers (`SensorGyro`, etc.).\n"
+		"If there are multiple of the same type, do voting and failover handling.\n"
+		"Then apply the board rotation and temperature calibration (if enabled). And finally publish the data; one of the\n"
+		"topics is `SensorCombined`, used by many parts of the system.\n"
+		"- Make sure the sensor drivers get the updated calibration parameters (scale & offset) when the parameters change or\n"
+		"on startup. The sensor drivers use the ioctl interface for parameter updates. For this to work properly, the\n"
+		"sensor drivers must already be running when `sensors` is started.\n"
+		"- Do sensor consistency checks and publish the `SensorsStatusImu` topic.\n"
+		"\n"
+		"### Implementation\n"
+		"It runs in its own thread and polls on the currently selected gyro topic.");
 
 	PRINT_MODULE_USAGE_NAME("sensors", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");

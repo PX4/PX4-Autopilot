@@ -415,21 +415,18 @@ int MulticopterAttitudeControl::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This implements the multicopter attitude controller. It takes attitude
-setpoints (`vehicle_attitude_setpoint`) as inputs and outputs a rate setpoint.
-
-The controller has a P loop for angular error
-
-Publication documenting the implemented Quaternion Attitude Control:
-Nonlinear Quadrocopter Attitude Control (2013)
-by Dario Brescianini, Markus Hehn and Raffaello D'Andrea
-Institute for Dynamic Systems and Control (IDSC), ETH Zurich
-
-https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth-7387-01.pdf
-
-)DESCR_STR");
+		"### Description\n"
+		"This implements the multicopter attitude controller. It takes attitude\n"
+		"setpoints (`vehicle_attitude_setpoint`) as inputs and outputs a rate setpoint.\n"
+		"\n"
+		"The controller has a P loop for angular error\n"
+		"\n"
+		"Publication documenting the implemented Quaternion Attitude Control:\n"
+		"Nonlinear Quadrocopter Attitude Control (2013)\n"
+		"by Dario Brescianini, Markus Hehn and Raffaello D'Andrea\n"
+		"Institute for Dynamic Systems and Control (IDSC), ETH Zurich\n"
+		"\n"
+		"https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth-7387-01.pdf");
 
 	PRINT_MODULE_USAGE_NAME("mc_att_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");

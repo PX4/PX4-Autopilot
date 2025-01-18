@@ -108,32 +108,30 @@ int
 usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Serial bus driver for the Benewake TFmini LiDAR.
-
-Most boards are configured to enable/start the driver on a specified UART using the SENS_TFMINI_CFG parameter.
-
-Setup/usage information: https://docs.px4.io/main/en/sensor/tfmini.html
-
-### Examples
-
-Attempt to start driver on a specified serial device.
-$ tfmini start -d /dev/ttyS1
-Stop driver
-$ tfmini stop
-)DESCR_STR");
+		"### Description\n"
+		"\n"
+		"Serial bus driver for the Benewake TFmini LiDAR.\n"
+		"\n"
+		"Most boards are configured to enable/start the driver on a specified UART using the SENS_TFMINI_CFG parameter.\n"
+		"\n"
+		"Setup/usage information: https://docs.px4.io/main/en/sensor/tfmini.html\n"
+		"\n"
+		"### Examples\n"
+		"\n"
+		"Attempt to start driver on a specified serial device.\n"
+		"$ tfmini start -d /dev/ttyS1\n"
+		"Stop driver\n"
+		"$ tfmini stop");
 
 	PRINT_MODULE_USAGE_NAME("tfmini", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 0, 25, "Sensor rotation - downward facing by default", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("status","Driver status");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("status","Print driver status");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Driver status");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test driver (basic functional tests)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print driver status");
 	return PX4_OK;
 }
 

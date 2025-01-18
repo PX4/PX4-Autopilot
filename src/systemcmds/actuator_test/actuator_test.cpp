@@ -70,11 +70,9 @@ static void usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-Utility to test actuators.
-
-WARNING: remove all props before using this command.
-)DESCR_STR");
+		"Utility to test actuators.\n"
+		"\n"
+		"WARNING: remove all props before using this command.");
 
 	PRINT_MODULE_USAGE_NAME("actuator_test", "command");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("set", "Set an actuator to a specific output value");
@@ -122,6 +120,7 @@ int actuator_test_main(int argc, char *argv[])
 				usage("value invalid");
 				return 1;
 			}
+
 			break;
 
 		case 't':
@@ -162,27 +161,33 @@ int actuator_test_main(int argc, char *argv[])
 				}
 
 				actuator_test(function, NAN, 0, true);
+
 			} else {
 				actuator_test(function, value, timeout_ms, false);
 			}
+
 			return 0;
 
 		} else if (strcmp("iterate-motors", argv[myoptind]) == 0) {
 			value = 0.15f;
+
 			for (int i = 0; i < actuator_test_s::MAX_NUM_MOTORS; ++i) {
-				PX4_INFO("Motor %i (%.0f%%)", i, (double)(value*100.f));
-				actuator_test(actuator_test_s::FUNCTION_MOTOR1+i, value, 400, false);
+				PX4_INFO("Motor %i (%.0f%%)", i, (double)(value * 100.f));
+				actuator_test(actuator_test_s::FUNCTION_MOTOR1 + i, value, 400, false);
 				px4_usleep(600000);
 			}
+
 			return 0;
 
 		} else if (strcmp("iterate-servos", argv[myoptind]) == 0) {
 			value = 0.3f;
+
 			for (int i = 0; i < actuator_test_s::MAX_NUM_SERVOS; ++i) {
-				PX4_INFO("Servo %i (%.0f%%)", i, (double)(value*100.f));
-				actuator_test(actuator_test_s::FUNCTION_SERVO1+i, value, 800, false);
+				PX4_INFO("Servo %i (%.0f%%)", i, (double)(value * 100.f));
+				actuator_test(actuator_test_s::FUNCTION_SERVO1 + i, value, 800, false);
 				px4_usleep(1000000);
 			}
+
 			return 0;
 		}
 	}

@@ -315,13 +315,10 @@ int PWMOut::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This module is responsible for driving the output pins. For boards without a separate IO chip
-(eg. Pixracer), it uses the main channels. On boards with an IO chip (eg. Pixhawk), it uses the AUX channels, and the
-px4io driver is used for main ones.
-
-)DESCR_STR");
+		"### Description\n"
+		"This module is responsible for driving the output pins. For boards without a separate IO chip\n"
+		"(eg. Pixracer), it uses the main channels. On boards with an IO chip (eg. Pixhawk), it uses the AUX channels, and the\n"
+		"px4io driver is used for main ones.");
 
 	PRINT_MODULE_USAGE_NAME("pwm_out", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

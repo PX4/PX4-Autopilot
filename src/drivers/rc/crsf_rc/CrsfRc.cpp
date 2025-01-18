@@ -519,11 +519,8 @@ int CrsfRc::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This module parses the CRSF RC uplink protocol and generates CRSF downlink telemetry data
-
-)DESCR_STR");
+		"### Description\n"
+		"This module parses the CRSF RC uplink protocol and generates CRSF downlink telemetry data");
 
 	PRINT_MODULE_USAGE_NAME("crsf_rc", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

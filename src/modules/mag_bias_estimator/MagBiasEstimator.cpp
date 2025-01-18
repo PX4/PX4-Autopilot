@@ -280,10 +280,8 @@ int MagBiasEstimator::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Online magnetometer bias estimator.
-)DESCR_STR");
+		"### Description\n"
+		"Online magnetometer bias estimator.");
 
 	PRINT_MODULE_USAGE_NAME("mag_bias_estimator", "system");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the background task");

@@ -40,15 +40,13 @@ void
 TERARANGER::print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-I2C bus driver for TeraRanger rangefinders.
-
-The sensor/driver must be enabled using the parameter SENS_EN_TRANGER.
-
-Setup/usage information: https://docs.px4.io/main/en/sensor/rangefinders.html#teraranger-rangefinders
-)DESCR_STR");
+		"### Description\n"
+		"\n"
+		"I2C bus driver for TeraRanger rangefinders.\n"
+		"\n"
+		"The sensor/driver must be enabled using the parameter SENS_EN_TRANGER.\n"
+		"\n"
+		"Setup/usage information: https://docs.px4.io/main/en/sensor/rangefinders.html#teraranger-rangefinders");
 	PRINT_MODULE_USAGE_NAME("teraranger", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");

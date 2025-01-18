@@ -97,20 +97,18 @@ static int status()
 static int usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Serial bus driver for the Aerotenna uLanding radar.
-
-Setup/usage information: https://docs.px4.io/main/en/sensor/ulanding_radar.html
-
-### Examples
-
-Attempt to start driver on a specified serial device.
-$ ulanding_radar start -d /dev/ttyS1
-Stop driver
-$ ulanding_radar stop
-)DESCR_STR");
+		"### Description\n"
+		"\n"
+		"Serial bus driver for the Aerotenna uLanding radar.\n"
+		"\n"
+		"Setup/usage information: https://docs.px4.io/main/en/sensor/ulanding_radar.html\n"
+		"\n"
+		"### Examples\n"
+		"\n"
+		"Attempt to start driver on a specified serial device.\n"
+		"$ ulanding_radar start -d /dev/ttyS1\n"
+		"Stop driver\n"
+		"$ ulanding_radar stop");
 
 	PRINT_MODULE_USAGE_NAME("ulanding_radar", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");

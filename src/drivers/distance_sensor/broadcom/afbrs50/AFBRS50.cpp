@@ -522,18 +522,16 @@ static int test(const uint8_t rotation)
 static int usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Driver for the Broadcom AFBRS50.
-
-### Examples
-
-Attempt to start driver on a specified serial device.
-$ afbrs50 start
-Stop driver
-$ afbrs50 stop
-)DESCR_STR");
+		"### Description\n"
+		"\n"
+		"Driver for the Broadcom AFBRS50.\n"
+		"\n"
+		"### Examples\n"
+		"\n"
+		"Attempt to start driver on a specified serial device.\n"
+		"$ afbrs50 start\n"
+		"Stop driver\n"
+		"$ afbrs50 stop");
 
 	PRINT_MODULE_USAGE_NAME("afbrs50", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");

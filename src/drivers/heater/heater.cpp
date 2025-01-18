@@ -321,12 +321,10 @@ int Heater::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Background process running periodically on the LP work queue to regulate IMU temperature at a setpoint.
-
-This task can be started at boot from the startup scripts by setting SENS_EN_THERMAL or via CLI.
-)DESCR_STR");
+		"### Description\n"
+		"Background process running periodically on the LP work queue to regulate IMU temperature at a setpoint.\n"
+		"\n"
+		"This task can be started at boot from the startup scripts by setting SENS_EN_THERMAL or via CLI.");
 
 	PRINT_MODULE_USAGE_NAME("heater", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");

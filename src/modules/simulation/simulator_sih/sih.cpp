@@ -789,31 +789,27 @@ int Sih::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This module provides a simulator for quadrotors and fixed-wings running fully
-inside the hardware autopilot.
+		"### Description\n"
+		"This module provides a simulator for quadrotors and fixed-wings running fully\n"
+		"inside the hardware autopilot.\n"
+		"\n"
+		"This simulator subscribes to 'actuator_outputs' which are the actuator pwm\n"
+		"signals given by the control allocation module.\n"
+		"\n"
+		"This simulator publishes the sensors signals corrupted with realistic noise\n"
+		"in order to incorporate the state estimator in the loop.\n"
+		"\n"
+		"### Implementation\n"
+		"The simulator implements the equations of motion using matrix algebra.\n"
+		"Quaternion representation is used for the attitude.\n"
+		"Forward Euler is used for integration.\n"
+		"Most of the variables are declared global in the .hpp file to avoid stack overflow.");
 
-This simulator subscribes to "actuator_outputs" which are the actuator pwm
-signals given by the control allocation module.
+	PRINT_MODULE_USAGE_NAME("simulator_sih", "simulation");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
-This simulator publishes the sensors signals corrupted with realistic noise
-in order to incorporate the state estimator in the loop.
-
-### Implementation
-The simulator implements the equations of motion using matrix algebra.
-Quaternion representation is used for the attitude.
-Forward Euler is used for integration.
-Most of the variables are declared global in the .hpp file to avoid stack overflow.
-
-
-)DESCR_STR");
-
-    PRINT_MODULE_USAGE_NAME("simulator_sih", "simulation");
-    PRINT_MODULE_USAGE_COMMAND("start");
-    PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
-    return 0;
+	return 0;
 }
 
 extern "C" __EXPORT int simulator_sih_main(int argc, char *argv[])

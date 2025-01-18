@@ -152,10 +152,8 @@ int LinuxPWMOut::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Linux PWM output driver with board-specific backend implementation.
-)DESCR_STR");
+		"### Description\n"
+		"Linux PWM output driver with board-specific backend implementation.");
 
 	PRINT_MODULE_USAGE_NAME("linux_pwm_out", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

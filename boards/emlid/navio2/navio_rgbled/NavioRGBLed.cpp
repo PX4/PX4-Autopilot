@@ -155,11 +155,8 @@ int NavioRGBLed::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Emlid Navio2 RGB LED driver.
-
-)DESCR_STR");
+		"### Description\n"
+		"Emlid Navio2 RGB LED driver.");
 
 	PRINT_MODULE_USAGE_NAME("navio_rgbled", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

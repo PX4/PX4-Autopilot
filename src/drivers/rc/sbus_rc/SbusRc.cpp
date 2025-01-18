@@ -295,11 +295,8 @@ int SbusRc::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This module does SBUS RC input parsing.
-
-)DESCR_STR");
+		"### Description\n"
+		"This module does SBUS RC input parsing.");
 
 	PRINT_MODULE_USAGE_NAME("sbus_rc", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

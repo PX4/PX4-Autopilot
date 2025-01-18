@@ -310,14 +310,12 @@ int LoadMon::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Background process running periodically on the low priority work queue to calculate the CPU load and RAM
-usage and publish the `cpuload` topic.
-
-On NuttX it also checks the stack usage of each process and if it falls below 300 bytes, a warning is output,
-which will also appear in the log file.
-)DESCR_STR");
+		"### Description\n"
+		"Background process running periodically on the low priority work queue to calculate the CPU load and RAM\n"
+		"usage and publish the `cpuload` topic.\n"
+		"\n"
+		"On NuttX it also checks the stack usage of each process and if it falls below 300 bytes, a warning is output,\n"
+		"which will also appear in the log file.");
 
 	PRINT_MODULE_USAGE_NAME("load_mon", "system");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the background task");

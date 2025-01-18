@@ -238,29 +238,27 @@ int UUVPOSControl::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Controls the attitude of an unmanned underwater vehicle (UUV).
-Publishes `attitude_setpoint` messages.
-### Implementation
-Currently, this implementation supports only a few modes:
- * Full manual: Roll, pitch, yaw, and throttle controls are passed directly through to the actuators
- * Auto mission: The uuv runs missions
-### Examples
-CLI usage example:
-$ uuv_pos_control start
-$ uuv_pos_control status
-$ uuv_pos_control stop
-)DESCR_STR");
+		"### Description\n"
+		"Controls the attitude of an unmanned underwater vehicle (UUV).\n"
+		"Publishes `attitude_setpoint` messages.\n"
+		"### Implementation\n"
+		"Currently, this implementation supports only a few modes:\n"
+		"* Full manual: Roll, pitch, yaw, and throttle controls are passed directly through to the actuators\n"
+		"* Auto mission: The uuv runs missions\n"
+		"### Examples\n"
+		"CLI usage example:\n"
+		"$ uuv_pos_control start\n"
+		"$ uuv_pos_control status\n"
+		"$ uuv_pos_control stop");
 
-    PRINT_MODULE_USAGE_NAME("uuv_pos_control", "controller");
-    PRINT_MODULE_USAGE_COMMAND("start")
-    PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+	PRINT_MODULE_USAGE_NAME("uuv_pos_control", "controller");
+	PRINT_MODULE_USAGE_COMMAND("start")
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
-    return 0;
+	return 0;
 }
 
 int uuv_pos_control_main(int argc, char *argv[])
 {
-    return UUVPOSControl::main(argc, argv);
+	return UUVPOSControl::main(argc, argv);
 }

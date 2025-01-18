@@ -258,10 +258,8 @@ int RoverAckermann::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Rover ackermann module.
-)DESCR_STR");
+		"### Description\n"
+		"Rover ackermann module.");
 
 	PRINT_MODULE_USAGE_NAME("rover_ackermann", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");

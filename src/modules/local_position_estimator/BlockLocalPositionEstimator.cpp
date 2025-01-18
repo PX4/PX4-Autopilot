@@ -1054,11 +1054,8 @@ BlockLocalPositionEstimator::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Attitude and position estimator using an Extended Kalman Filter.
-
-)DESCR_STR");
+		"### Description\n"
+		"Attitude and position estimator using an Extended Kalman Filter.");
 
 	PRINT_MODULE_USAGE_NAME("local_position_estimator", "estimator");
 	PRINT_MODULE_USAGE_COMMAND("start");

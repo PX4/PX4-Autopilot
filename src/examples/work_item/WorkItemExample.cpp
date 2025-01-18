@@ -169,11 +169,8 @@ int WorkItemExample::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Example of a simple module running out of a work queue.
-
-)DESCR_STR");
+		"### Description\n"
+		"Example of a simple module running out of a work queue.");
 
 	PRINT_MODULE_USAGE_NAME("work_item_example", "template");
 	PRINT_MODULE_USAGE_COMMAND("start");

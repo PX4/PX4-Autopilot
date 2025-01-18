@@ -421,79 +421,77 @@ void
 usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
+		"### Description\n"
+		"\n"
+		"Serial bus driver for the ThoneFlow-3901U optical flow sensor.\n"
+		"\n"
+		"Most boards are configured to enable/start the driver on a specified UART using the SENS_TFLOW_CFG parameter.\n"
+		"\n"
+		"Setup/usage information: https://docs.px4.io/main/en/sensor/pmw3901.html#thone-thoneflow-3901u\n"
+		"\n"
+		"### Examples\n"
+		"\n"
+		"Attempt to start driver on a specified serial device.\n"
+		"$ thoneflow start -d /dev/ttyS1\n"
+		"Stop driver\n"
+		"$ thoneflow stop");
 
-Serial bus driver for the ThoneFlow-3901U optical flow sensor.
-
-Most boards are configured to enable/start the driver on a specified UART using the SENS_TFLOW_CFG parameter.
-
-Setup/usage information: https://docs.px4.io/main/en/sensor/pmw3901.html#thone-thoneflow-3901u
-
-### Examples
-
-Attempt to start driver on a specified serial device.
-$ thoneflow start -d /dev/ttyS1
-Stop driver
-$ thoneflow stop
-)DESCR_STR");
-
-    PRINT_MODULE_USAGE_NAME("thoneflow", "driver");
-    PRINT_MODULE_USAGE_SUBCATEGORY("optical_flow");
-    PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
-    PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
-    PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
-    PRINT_MODULE_USAGE_COMMAND_DESCR("info", "Print driver information");
+	PRINT_MODULE_USAGE_NAME("thoneflow", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("optical_flow");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("info", "Print driver information");
 }
 
 } // namespace
 
 extern "C" __EXPORT int thoneflow_main(int argc, char *argv[])
 {
-    int ch;
-    const char *device_path = "";
-    int myoptind = 1;
-    const char *myoptarg = nullptr;
+	int ch;
+	const char *device_path = "";
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
 
-    while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
-        switch (ch) {
-        case 'd':
-            device_path = myoptarg;
-            break;
+	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'd':
+			device_path = myoptarg;
+			break;
 
-        default:
-            PX4_WARN("Unknown option!");
-            return -1;
-        }
-    }
+		default:
+			PX4_WARN("Unknown option!");
+			return -1;
+		}
+	}
 
-    if (myoptind >= argc) {
-        goto out_error;
-    }
+	if (myoptind >= argc) {
+		goto out_error;
+	}
 
-    /*
-     * Start/load the driver.
-     */
-    if (!strcmp(argv[myoptind], "start")) {
-        if (strcmp(device_path, "") != 0) {
-            return thoneflow::start(device_path);
+	/*
+	 * Start/load the driver.
+	 */
+	if (!strcmp(argv[myoptind], "start")) {
+		if (strcmp(device_path, "") != 0) {
+			return thoneflow::start(device_path);
 
-        } else {
-            PX4_WARN("Please specify device path!");
-            thoneflow::usage();
-            return -1;
-        }
+		} else {
+			PX4_WARN("Please specify device path!");
+			thoneflow::usage();
+			return -1;
+		}
 
-    } else if (!strcmp(argv[myoptind], "stop")) {
-        return thoneflow::stop();
+	} else if (!strcmp(argv[myoptind], "stop")) {
+		return thoneflow::stop();
 
-    } else if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
-        thoneflow::info();
-        return 0;
-    }
+	} else if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
+		thoneflow::info();
+		return 0;
+	}
 
 out_error:
-    PX4_ERR("unrecognized command");
-    thoneflow::usage();
-    return -1;
+	PX4_ERR("unrecognized command");
+	thoneflow::usage();
+	return -1;
 }

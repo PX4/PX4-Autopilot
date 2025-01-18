@@ -511,22 +511,21 @@ int Roboclaw::print_usage(const char *reason)
 		PX4_WARN("%s\n", reason);
 	}
 
-	PRINT_MODULE_DESCRIPTION(R"DESCR_STR(
-### Description
-
-This driver communicates over UART with the [Roboclaw motor driver](https://www.basicmicro.com/motor-controller).
-It performs two tasks:
-
- - Control the motors based on the OutputModuleInterface.
- - Read the wheel encoders and publish the raw data in the `wheel_encoders` uORB topic
-
-In order to use this driver, the Roboclaw should be put into Packet Serial mode (see the linked documentation), and
-your flight controller's UART port should be connected to the Roboclaw as shown in the documentation.
-The driver needs to be enabled using the parameter `RBCLW_SER_CFG`, the baudrate needs to be set correctly and
-the address `RBCLW_ADDRESS` needs to match the ESC configuration.
-
-The command to start this driver is: `$ roboclaw start <UART device> <baud rate>`
-)DESCR_STR");
+	PRINT_MODULE_DESCRIPTION(
+		"### Description\n"
+		"\n"
+		"This driver communicates over UART with the [Roboclaw motor driver](https://www.basicmicro.com/motor-controller).\n"
+		"It performs two tasks:\n"
+		"\n"
+		"- Control the motors based on the OutputModuleInterface.\n"
+		"- Read the wheel encoders and publish the raw data in the `wheel_encoders` uORB topic\n"
+		"\n"
+		"In order to use this driver, the Roboclaw should be put into Packet Serial mode (see the linked documentation), and\n"
+		"your flight controller's UART port should be connected to the Roboclaw as shown in the documentation.\n"
+		"The driver needs to be enabled using the parameter `RBCLW_SER_CFG`, the baudrate needs to be set correctly and\n"
+		"the address `RBCLW_ADDRESS` needs to match the ESC configuration.\n"
+		"\n"
+		"The command to start this driver is: `$ roboclaw start <UART device> <baud rate>`");
 
 	PRINT_MODULE_USAGE_NAME("roboclaw", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

@@ -489,12 +489,10 @@ void
 OSDatxxxx::print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-OSD driver for the ATXXXX chip that is mounted on the OmnibusF4SD board for example.
-
-It can be enabled with the OSD_ATXXXX_CFG parameter.
-)DESCR_STR");
+		"### Description\n"
+		"OSD driver for the ATXXXX chip that is mounted on the OmnibusF4SD board for example.\n"
+		"\n"
+		"It can be enabled with the OSD_ATXXXX_CFG parameter.");
 
 	PRINT_MODULE_USAGE_NAME("atxxxx", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

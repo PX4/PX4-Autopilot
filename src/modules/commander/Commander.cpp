@@ -3025,10 +3025,8 @@ int Commander::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-The commander module contains the state machine for mode switching and failsafe behavior.
-)DESCR_STR");
+		"### Description\n"
+		"The commander module contains the state machine for mode switching and failsafe behavior.");
 
 	PRINT_MODULE_USAGE_NAME("commander", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -3047,7 +3045,7 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("transition", "VTOL transition");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("mode", "Change flight mode");
 	PRINT_MODULE_USAGE_ARG("manual|acro|offboard|stabilized|altctl|posctl|position:slow|auto:mission|auto:loiter|auto:rtl|auto:takeoff|auto:land|auto:precland|ext1",
-			"Flight mode", false);
+			       "Flight mode", false);
 	PRINT_MODULE_USAGE_COMMAND("pair");
 	PRINT_MODULE_USAGE_COMMAND("lockdown");
 	PRINT_MODULE_USAGE_ARG("on|off", "Turn lockdown on or off", false);

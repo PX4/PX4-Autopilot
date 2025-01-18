@@ -825,22 +825,20 @@ int VectorNav::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Serial bus driver for the VectorNav VN-100, VN-200, VN-300.
-
-Most boards are configured to enable/start the driver on a specified UART using the SENS_VN_CFG parameter.
-
-Setup/usage information: https://docs.px4.io/main/en/sensor/vectornav.html
-
-### Examples
-
-Attempt to start driver on a specified serial device.
-$ vectornav start -d /dev/ttyS1
-Stop driver
-$ vectornav stop
-)DESCR_STR");
+		"### Description\n"
+		"\n"
+		"Serial bus driver for the VectorNav VN-100, VN-200, VN-300.\n"
+		"\n"
+		"Most boards are configured to enable/start the driver on a specified UART using the SENS_VN_CFG parameter.\n"
+		"\n"
+		"Setup/usage information: https://docs.px4.io/main/en/sensor/vectornav.html\n"
+		"\n"
+		"### Examples\n"
+		"\n"
+		"Attempt to start driver on a specified serial device.\n"
+		"$ vectornav start -d /dev/ttyS1\n"
+		"Stop driver\n"
+		"$ vectornav stop");
 
 	PRINT_MODULE_USAGE_NAME("vectornav", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("ins");

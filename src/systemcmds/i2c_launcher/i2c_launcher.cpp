@@ -195,11 +195,8 @@ int I2CLauncher::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Daemon that starts drivers based on found I2C devices.
-
-)DESCR_STR");
+		"### Description\n"
+		"Daemon that starts drivers based on found I2C devices.");
 
 	PRINT_MODULE_USAGE_NAME("i2c_launcher", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -213,7 +210,7 @@ extern "C" __EXPORT int i2c_launcher_main(int argc, char *argv[])
 {
 	using ThisDriver = I2CLauncher;
 
-	static I2CLauncher* instances[I2C_BUS_MAX_BUS_ITEMS];
+	static I2CLauncher *instances[I2C_BUS_MAX_BUS_ITEMS];
 	int bus = -1;
 	int myoptind = 1;
 	int ch;

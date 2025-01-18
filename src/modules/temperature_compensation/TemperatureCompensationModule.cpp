@@ -477,18 +477,16 @@ int TemperatureCompensationModule::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-The temperature compensation module allows all of the gyro(s), accel(s), and baro(s) in the system to be temperature
-compensated. The module monitors the data coming from the sensors and updates the associated sensor_correction topic
-whenever a change in temperature is detected. The module can also be configured to perform the coeffecient calculation
-routine at next boot, which allows the thermal calibration coeffecients to be calculated while the vehicle undergoes
-a temperature cycle.
-
-)DESCR_STR");
+		"### Description\n"
+		"The temperature compensation module allows all of the gyro(s), accel(s), and baro(s) in the system to be temperature\n"
+		"compensated. The module monitors the data coming from the sensors and updates the associated sensor_correction topic\n"
+		"whenever a change in temperature is detected. The module can also be configured to perform the coeffecient calculation\n"
+		"routine at next boot, which allows the thermal calibration coeffecients to be calculated while the vehicle undergoes\n"
+		"a temperature cycle.");
 
 	PRINT_MODULE_USAGE_NAME("temperature_compensation", "system");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the module, which monitors the sensors and updates the sensor_correction topic");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start",
+					 "Start the module, which monitors the sensors and updates the sensor_correction topic");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("calibrate", "Run temperature calibration process");
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "calibrate the accel", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('g', "calibrate the gyro", true);

@@ -548,13 +548,11 @@ void LightwareLaser::print_status()
 void LightwareLaser::print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-I2C bus driver for Lightware SFxx series LIDAR rangefinders: SF10/a, SF10/b, SF10/c, SF11/c, SF/LW20.
-
-Setup/usage information: https://docs.px4.io/main/en/sensor/sfxx_lidar.html
-)DESCR_STR");
+		"### Description\n"
+		"\n"
+		"I2C bus driver for Lightware SFxx series LIDAR rangefinders: SF10/a, SF10/b, SF10/c, SF11/c, SF/LW20.\n"
+		"\n"
+		"Setup/usage information: https://docs.px4.io/main/en/sensor/sfxx_lidar.html");
 
 	PRINT_MODULE_USAGE_NAME("lightware_laser_i2c", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");

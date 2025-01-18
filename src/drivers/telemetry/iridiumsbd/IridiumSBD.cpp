@@ -1060,12 +1060,10 @@ int IridiumSBD::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-IridiumSBD driver.
-
-Creates a virtual serial port that another module can use for communication (e.g. mavlink).
-)DESCR_STR");
+		"### Description\n"
+		"IridiumSBD driver.\n"
+		"\n"
+		"Creates a virtual serial port that another module can use for communication (e.g. mavlink).");
 
 	PRINT_MODULE_USAGE_NAME("iridiumsbd", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

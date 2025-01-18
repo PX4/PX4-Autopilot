@@ -97,19 +97,17 @@ static int status()
 static int usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Serial bus driver for the Lightware SF45/b Laser rangefinder.
-
-
-### Examples
-
-Attempt to start driver on a specified serial device.
-$ lightware_sf45_serial start -d /dev/ttyS1
-Stop driver
-$ lightware_sf45_serial stop
-)DESCR_STR");
+		"### Description\n"
+		"\n"
+		"Serial bus driver for the Lightware SF45/b Laser rangefinder.\n"
+		"\n"
+		"\n"
+		"### Examples\n"
+		"\n"
+		"Attempt to start driver on a specified serial device.\n"
+		"$ lightware_sf45_serial start -d /dev/ttyS1\n"
+		"Stop driver\n"
+		"$ lightware_sf45_serial stop");
 
 	PRINT_MODULE_USAGE_NAME("lightware_sf45_serial", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");

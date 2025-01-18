@@ -206,11 +206,8 @@ int TattuCan::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Driver for reading data from the Tattu 12S 16000mAh smart battery.
-
-)DESCR_STR");
+		"### Description\n"
+		"Driver for reading data from the Tattu 12S 16000mAh smart battery.");
 
 	PRINT_MODULE_USAGE_NAME("tattu_can", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");

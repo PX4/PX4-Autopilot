@@ -312,25 +312,22 @@ int UUVAttitudeControl::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Controls the attitude of an unmanned underwater vehicle (UUV).
-
-Publishes `vehicle_thrust_setpont` and `vehicle_torque_setpoint` messages at a constant 250Hz.
-
-### Implementation
-Currently, this implementation supports only a few modes:
-
- * Full manual: Roll, pitch, yaw, and throttle controls are passed directly through to the actuators
- * Auto mission: The uuv runs missions
-
-### Examples
-CLI usage example:
-$ uuv_att_control start
-$ uuv_att_control status
-$ uuv_att_control stop
-
-)DESCR_STR");
+		"### Description\n"
+		"Controls the attitude of an unmanned underwater vehicle (UUV).\n"
+		"\n"
+		"Publishes `vehicle_thrust_setpont` and `vehicle_torque_setpoint` messages at a constant 250Hz.\n"
+		"\n"
+		"### Implementation\n"
+		"Currently, this implementation supports only a few modes:\n"
+		"\n"
+		"* Full manual: Roll, pitch, yaw, and throttle controls are passed directly through to the actuators\n"
+		"* Auto mission: The uuv runs missions\n"
+		"\n"
+		"### Examples\n"
+		"CLI usage example:\n"
+		"$ uuv_att_control start\n"
+		"$ uuv_att_control status\n"
+		"$ uuv_att_control stop");
 
 	PRINT_MODULE_USAGE_NAME("uuv_att_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start")

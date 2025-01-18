@@ -478,12 +478,9 @@ int FlightModeManager::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This implements the setpoint generation for all modes. It takes the current mode state of the vehicle as input
-and outputs setpoints for controllers.
-
-)DESCR_STR");
+		"### Description\n"
+		"This implements the setpoint generation for all modes. It takes the current mode state of the vehicle as input\n"
+		"and outputs setpoints for controllers.");
 
 	PRINT_MODULE_USAGE_NAME("flight_mode_manager", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");

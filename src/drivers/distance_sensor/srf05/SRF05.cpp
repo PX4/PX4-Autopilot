@@ -220,14 +220,11 @@ int SRF05::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-  ### Description
-
-  Driver for HY-SRF05 / HC-SR05 and HC-SR04 rangefinders.
-
-  The sensor/driver must be enabled using the parameter SENS_EN_HXSRX0X.
-
-  )DESCR_STR");
+		"### Description\n"
+		"\n"
+		"Driver for HY-SRF05 / HC-SR05 and HC-SR04 rangefinders.\n"
+		"\n"
+		"The sensor/driver must be enabled using the parameter SENS_EN_HXSRX0X.");
 
 	PRINT_MODULE_USAGE_NAME("srf05", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");

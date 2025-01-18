@@ -640,13 +640,11 @@ int CdcAcmAutostart::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This module listens on USB and auto-configures the protocol depending on the bytes received.
-The supported protocols are: MAVLink, nsh, and ublox serial passthrough. If the parameter SYS_USB_AUTO=2
-the module will only try to start mavlink as long as the USB VBUS is detected. Otherwise it will spin
-and continue to check for VBUS and start mavlink once it is detected.
-)DESCR_STR");
+		"### Description\n"
+		"This module listens on USB and auto-configures the protocol depending on the bytes received.\n"
+		"The supported protocols are: MAVLink, nsh, and ublox serial passthrough. If the parameter SYS_USB_AUTO=2\n"
+		"the module will only try to start mavlink as long as the USB VBUS is detected. Otherwise it will spin\n"
+		"and continue to check for VBUS and start mavlink once it is detected.");
 
 	PRINT_MODULE_USAGE_NAME("cdcacm_autostart", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");

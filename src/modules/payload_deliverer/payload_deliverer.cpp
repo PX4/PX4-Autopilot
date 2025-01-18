@@ -340,12 +340,9 @@ int PayloadDeliverer::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Handles payload delivery with either Gripper or a Winch with an appropriate timeout / feedback sensor setting,
-and communicates back the delivery result as an acknowledgement internally
-
-)DESCR_STR");
+		"### Description\n"
+		"Handles payload delivery with either Gripper or a Winch with an appropriate timeout / feedback sensor setting,\n"
+		"and communicates back the delivery result as an acknowledgement internally");
 
 	PRINT_MODULE_USAGE_NAME("payload_deliverer", "command");
 	PRINT_MODULE_USAGE_COMMAND("start");

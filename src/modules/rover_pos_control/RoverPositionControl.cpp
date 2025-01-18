@@ -520,26 +520,23 @@ int RoverPositionControl::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Controls the position of a ground rover using an L1 controller.
-
-Publishes `vehicle_thrust_setpoint (only in x) and vehicle_torque_setpoint (only yaw)` messages at IMU_GYRO_RATEMAX.
-
-### Implementation
-Currently, this implementation supports only a few modes:
-
- * Full manual: Throttle and yaw controls are passed directly through to the actuators
- * Auto mission: The rover runs missions
- * Loiter: The rover will navigate to within the loiter radius, then stop the motors
-
-### Examples
-CLI usage example:
-$ rover_pos_control start
-$ rover_pos_control status
-$ rover_pos_control stop
-
-)DESCR_STR");
+		"### Description\n"
+		"Controls the position of a ground rover using an L1 controller.\n"
+		"\n"
+		"Publishes `vehicle_thrust_setpoint (only in x) and vehicle_torque_setpoint (only yaw)` messages at IMU_GYRO_RATEMAX.\n"
+		"\n"
+		"### Implementation\n"
+		"Currently, this implementation supports only a few modes:\n"
+		"\n"
+		"* Full manual: Throttle and yaw controls are passed directly through to the actuators\n"
+		"* Auto mission: The rover runs missions\n"
+		"* Loiter: The rover will navigate to within the loiter radius, then stop the motors\n"
+		"\n"
+		"### Examples\n"
+		"CLI usage example:\n"
+		"$ rover_pos_control start\n"
+		"$ rover_pos_control status\n"
+		"$ rover_pos_control stop");
 
 	PRINT_MODULE_USAGE_NAME("rover_pos_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start")

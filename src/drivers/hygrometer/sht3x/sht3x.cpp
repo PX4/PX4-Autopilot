@@ -289,25 +289,22 @@ void SHT3X::print_status()
 void SHT3X::print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-SHT3x Temperature and Humidity Sensor Driver by Senserion.
-
-### Examples
-CLI usage example:
-$ sht3x start -X
-  Start the sensor driver on the external bus
-
-$ sht3x status
-  Print driver status
-
-$ sht3x values
-  Print last measured values
-
-$ sht3x reset
-  Reinitialize senzor, reset flags
-
-)DESCR_STR");
+		"### Description\n"
+		"SHT3x Temperature and Humidity Sensor Driver by Senserion.\n"
+		"\n"
+		"### Examples\n"
+		"CLI usage example:\n"
+		"$ sht3x start -X\n"
+		"Start the sensor driver on the external bus\n"
+		"\n"
+		"$ sht3x status\n"
+		"Print driver status\n"
+		"\n"
+		"$ sht3x values\n"
+		"Print last measured values\n"
+		"\n"
+		"$ sht3x reset\n"
+		"Reinitialize senzor, reset flags");
 
 	PRINT_MODULE_USAGE_NAME("sht3x", "driver");
 
@@ -319,7 +316,7 @@ $ sht3x reset
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("values", "Print actual data");
-    PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reinitialize sensor");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reinitialize sensor");
 
 }
 

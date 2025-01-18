@@ -544,26 +544,24 @@ int SeptentrioDriver::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Driver for Septentrio GNSS receivers.
-It can automatically configure them and make their output available for the rest of the system.
-A secondary receiver is supported for redundancy, logging and dual-receiver heading.
-Septentrio receiver baud rates from 57600 to 1500000 are supported.
-If others are used, the driver will use 230400 and give a warning.
-
-### Examples
-
-Use one receiver on port `/dev/ttyS0` and automatically configure it to use baud rate 230400:
-$ septentrio start -d /dev/ttyS0 -b 230400
-
-Use two receivers, the primary on port `/dev/ttyS3` and the secondary on `/dev/ttyS4`,
-detect baud rate automatically and preserve them:
-$ septentrio start -d /dev/ttyS3 -e /dev/ttyS4
-
-Perform warm reset of the receivers:
-$ gps reset warm
-)DESCR_STR");
+		"### Description\n"
+		"Driver for Septentrio GNSS receivers.\n"
+		"It can automatically configure them and make their output available for the rest of the system.\n"
+		"A secondary receiver is supported for redundancy, logging and dual-receiver heading.\n"
+		"Septentrio receiver baud rates from 57600 to 1500000 are supported.\n"
+		"If others are used, the driver will use 230400 and give a warning.\n"
+		"\n"
+		"### Examples\n"
+		"\n"
+		"Use one receiver on port `/dev/ttyS0` and automatically configure it to use baud rate 230400:\n"
+		"$ septentrio start -d /dev/ttyS0 -b 230400\n"
+		"\n"
+		"Use two receivers, the primary on port `/dev/ttyS3` and the secondary on `/dev/ttyS4`,\n"
+		"detect baud rate automatically and preserve them:\n"
+		"$ septentrio start -d /dev/ttyS3 -e /dev/ttyS4\n"
+		"\n"
+		"Perform warm reset of the receivers:\n"
+		"$ gps reset warm");
 	PRINT_MODULE_USAGE_NAME("septentrio", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<file:dev>", "Primary receiver port", false);
@@ -603,6 +601,7 @@ int SeptentrioDriver::reset(ReceiverResetType type)
 
 	if (res) {
 		return PX4_OK;
+
 	} else {
 		return PX4_ERROR;
 	}
@@ -610,10 +609,11 @@ int SeptentrioDriver::reset(ReceiverResetType type)
 
 int SeptentrioDriver::force_input()
 {
-	ssize_t written = write(reinterpret_cast<const uint8_t*>(k_command_force_input), strlen(k_command_force_input));
+	ssize_t written = write(reinterpret_cast<const uint8_t *>(k_command_force_input), strlen(k_command_force_input));
 
 	if (written < 0) {
 		return PX4_ERROR;
+
 	} else {
 		// The receiver can't receive input right after forcing input. From testing, the duration seems to be 1 ms, so wait 10 ms to be sure.
 		px4_usleep(10000);
@@ -621,7 +621,7 @@ int SeptentrioDriver::force_input()
 	}
 }
 
-int SeptentrioDriver::parse_cli_arguments(int argc, char *argv[], ModuleArguments& arguments)
+int SeptentrioDriver::parse_cli_arguments(int argc, char *argv[], ModuleArguments &arguments)
 {
 	int ch{'\0'};
 	int myoptind{1};
@@ -634,13 +634,17 @@ int SeptentrioDriver::parse_cli_arguments(int argc, char *argv[], ModuleArgument
 				PX4_ERR("Baud rate parsing failed");
 				return PX4_ERROR;
 			}
+
 			break;
+
 		case 'g':
 			if (px4_get_parameter_value(myoptarg, arguments.baud_rate_secondary) != 0) {
 				PX4_ERR("Baud rate parsing failed");
 				return PX4_ERROR;
 			}
+
 			break;
+
 		case 'd':
 			arguments.device_path_main = myoptarg;
 			break;
@@ -684,7 +688,7 @@ int SeptentrioDriver::await_second_instance_shutdown()
 		return PX4_OK;
 	}
 
-	SeptentrioDriver* secondary_instance = _secondary_instance.load();
+	SeptentrioDriver *secondary_instance = _secondary_instance.load();
 
 	if (secondary_instance) {
 		secondary_instance->request_stop();
@@ -699,6 +703,7 @@ int SeptentrioDriver::await_second_instance_shutdown()
 		}
 
 		return _secondary_instance.load() ? PX4_ERROR : PX4_OK;
+
 	} else {
 		return PX4_OK;
 	}
@@ -715,7 +720,8 @@ void SeptentrioDriver::schedule_reset(ReceiverResetType reset_type)
 	}
 }
 
-bool SeptentrioDriver::detect_receiver_baud_rate(const uint32_t &baud_rate, bool forced_input) {
+bool SeptentrioDriver::detect_receiver_baud_rate(const uint32_t &baud_rate, bool forced_input)
+{
 	if (set_baudrate(baud_rate) != PX4_OK) {
 		return false;
 	}
@@ -735,7 +741,8 @@ bool SeptentrioDriver::detect_receiver_baud_rate(const uint32_t &baud_rate, bool
 	return false;
 }
 
-int SeptentrioDriver::detect_serial_port(char* const port_name) {
+int SeptentrioDriver::detect_serial_port(char *const port_name)
+{
 	// Read buffer to get the COM port
 	char buf[k_read_buffer_size];
 	size_t buffer_offset = 0;   // The offset into the string where the next data should be read to.
@@ -749,7 +756,8 @@ int SeptentrioDriver::detect_serial_port(char* const port_name) {
 
 	do {
 		// Read at most the amount of available bytes in the buffer after the current offset, -1 because we need '\0' at the end for a valid string.
-		int read_result = read(reinterpret_cast<uint8_t *>(buf) + buffer_offset, sizeof(buf) - buffer_offset - 1, k_receiver_ack_timeout_fast);
+		int read_result = read(reinterpret_cast<uint8_t *>(buf) + buffer_offset, sizeof(buf) - buffer_offset - 1,
+				       k_receiver_ack_timeout_fast);
 
 		if (read_result < 0) {
 			SEP_WARN("SBF read error");
@@ -768,14 +776,16 @@ int SeptentrioDriver::detect_serial_port(char* const port_name) {
 		// Make sure the current buffer is a valid string.
 		buf[buffer_offset] = '\0';
 
-		char* port_name_address = strstr(buf, ">");
+		char *port_name_address = strstr(buf, ">");
 
 		// Check if we found a port candidate.
 		if (buffer_offset > 4 && port_name_address != nullptr) {
 			size_t port_name_offset = reinterpret_cast<size_t>(port_name_address) - reinterpret_cast<size_t>(buf) - 4;
+
 			for (size_t i = 0; i < 4; i++) {
 				port_name[i] = buf[port_name_offset + i];
 			}
+
 			// NOTE: This limits the ports to serial and USB ports only. Otherwise the detection doesn't work correctly.
 			if (strstr(port_name, "COM") != nullptr || strstr(port_name, "USB") != nullptr) {
 				response_detected = true;
@@ -788,6 +798,7 @@ int SeptentrioDriver::detect_serial_port(char* const port_name) {
 			for (int i = 0; i < 4; i++) {
 				buf[i] = buf[sizeof(buf) - 4 + i];
 			}
+
 			buffer_offset = 3;
 		}
 	} while (timeout_time > hrt_absolute_time());
@@ -795,6 +806,7 @@ int SeptentrioDriver::detect_serial_port(char* const port_name) {
 	if (!response_detected) {
 		SEP_WARN("No valid serial port detected");
 		return PX4_ERROR;
+
 	} else {
 		SEP_INFO("Serial port found: %s", port_name);
 		return PX4_OK;
@@ -854,24 +866,31 @@ SeptentrioDriver::ConfigureResult SeptentrioDriver::configure()
 	// Set up the satellites used in PVT computation.
 	if (_receiver_constellation_usage != static_cast<int32_t>(SatelliteUsage::Default)) {
 		char requested_satellites[40] {};
+
 		if (_receiver_constellation_usage & static_cast<int32_t>(SatelliteUsage::GPS)) {
 			strcat(requested_satellites, "GPS+");
 		}
+
 		if (_receiver_constellation_usage & static_cast<int32_t>(SatelliteUsage::GLONASS)) {
 			strcat(requested_satellites, "GLONASS+");
 		}
+
 		if (_receiver_constellation_usage & static_cast<int32_t>(SatelliteUsage::Galileo)) {
 			strcat(requested_satellites, "GALILEO+");
 		}
+
 		if (_receiver_constellation_usage & static_cast<int32_t>(SatelliteUsage::SBAS)) {
 			strcat(requested_satellites, "SBAS+");
 		}
+
 		if (_receiver_constellation_usage & static_cast<int32_t>(SatelliteUsage::BeiDou)) {
 			strcat(requested_satellites, "BEIDOU+");
 		}
+
 		// Make sure to remove the trailing '+' if any.
 		requested_satellites[math::max(static_cast<int>(strlen(requested_satellites)) - 1, 0)] = '\0';
 		snprintf(msg, sizeof(msg), k_command_set_satellite_usage, requested_satellites);
+
 		// Use a longer timeout as the `setSatelliteUsage` command acknowledges a bit slower on mosaic-H-based receivers.
 		if (!send_message_and_wait_for_ack(msg, k_receiver_ack_timeout_slow)) {
 			SEP_WARN("CONFIG: Failed to configure constellation usage");
@@ -888,31 +907,40 @@ SeptentrioDriver::ConfigureResult SeptentrioDriver::configure()
 		case ReceiverLogFrequency::Hz0_1:
 			frequency = k_frequency_0_1hz;
 			break;
+
 		case ReceiverLogFrequency::Hz0_2:
 			frequency = k_frequency_0_2hz;
 			break;
+
 		case ReceiverLogFrequency::Hz0_5:
 			frequency = k_frequency_0_5hz;
 			break;
+
 		case ReceiverLogFrequency::Hz1_0:
 		default:
 			frequency = k_frequency_1_0hz;
 			break;
+
 		case ReceiverLogFrequency::Hz2_0:
 			frequency = k_frequency_2_0hz;
 			break;
+
 		case ReceiverLogFrequency::Hz5_0:
 			frequency = k_frequency_5_0hz;
 			break;
+
 		case ReceiverLogFrequency::Hz10_0:
 			frequency = k_frequency_10_0hz;
 			break;
+
 		case ReceiverLogFrequency::Hz20_0:
 			frequency = k_frequency_20_0hz;
 			break;
+
 		case ReceiverLogFrequency::Hz25_0:
 			frequency = k_frequency_25_0hz;
 			break;
+
 		case ReceiverLogFrequency::Hz50_0:
 			frequency = k_frequency_50_0hz;
 			break;
@@ -922,22 +950,28 @@ SeptentrioDriver::ConfigureResult SeptentrioDriver::configure()
 		case ReceiverLogLevel::Lite:
 			level = "Comment+ReceiverStatus";
 			break;
+
 		case ReceiverLogLevel::Basic:
 			level = "Comment+ReceiverStatus+PostProcess+Event";
 			break;
+
 		case ReceiverLogLevel::Default:
 		default:
 			level = "Comment+ReceiverStatus+PostProcess+Event+Support";
 			break;
+
 		case ReceiverLogLevel::Full:
 			level = "Comment+ReceiverStatus+PostProcess+Event+Support+BBSamples";
 			break;
 		}
 
-		snprintf(msg, sizeof(msg), k_command_set_sbf_output, _receiver_stream_log, "DSK1", _receiver_logging_overwrite ? "" : "+", level, frequency);
+		snprintf(msg, sizeof(msg), k_command_set_sbf_output, _receiver_stream_log, "DSK1",
+			 _receiver_logging_overwrite ? "" : "+", level, frequency);
+
 		if (!send_message_and_wait_for_ack(msg, k_receiver_ack_timeout_fast)) {
 			result = static_cast<ConfigureResult>(static_cast<int32_t>(result) | static_cast<int32_t>(ConfigureResult::NoLogging));
 		}
+
 	} else if (_receiver_stream_log == _receiver_stream_main) {
 		result = static_cast<ConfigureResult>(static_cast<int32_t>(result) | static_cast<int32_t>(ConfigureResult::NoLogging));
 	}
@@ -950,28 +984,34 @@ SeptentrioDriver::ConfigureResult SeptentrioDriver::configure()
 	}
 
 	// Specify the offsets that the receiver applies to the computed attitude angles.
-	snprintf(msg, sizeof(msg), k_command_set_attitude_offset, static_cast<double>(_heading_offset), static_cast<double>(_pitch_offset));
+	snprintf(msg, sizeof(msg), k_command_set_attitude_offset, static_cast<double>(_heading_offset),
+		 static_cast<double>(_pitch_offset));
 
 	if (!send_message_and_wait_for_ack(msg, k_receiver_ack_timeout_fast)) {
 		return ConfigureResult::FailedCompletely;
 	}
 
 	snprintf(msg, sizeof(msg), k_command_set_dynamics, "high");
+
 	if (!send_message_and_wait_for_ack(msg, k_receiver_ack_timeout_fast)) {
 		return ConfigureResult::FailedCompletely;
 	}
 
 	const char *sbf_frequency {k_frequency_10_0hz};
+
 	switch (_sbf_output_frequency) {
 	case SBFOutputFrequency::Hz5_0:
 		sbf_frequency = k_frequency_5_0hz;
 		break;
+
 	case SBFOutputFrequency::Hz10_0:
 		sbf_frequency = k_frequency_10_0hz;
 		break;
+
 	case SBFOutputFrequency::Hz20_0:
 		sbf_frequency = k_frequency_20_0hz;
 		break;
+
 	case SBFOutputFrequency::Hz25_0:
 		sbf_frequency = k_frequency_25_0hz;
 		break;
@@ -979,6 +1019,7 @@ SeptentrioDriver::ConfigureResult SeptentrioDriver::configure()
 
 	// Output a set of SBF blocks on a given connection at a regular interval.
 	snprintf(msg, sizeof(msg), k_command_sbf_output_pvt, _receiver_stream_main, com_port, sbf_frequency);
+
 	if (!send_message_and_wait_for_ack(msg, k_receiver_ack_timeout_fast)) {
 		SEP_WARN("CONFIG: Failed to configure SBF");
 		return ConfigureResult::FailedCompletely;
@@ -987,17 +1028,22 @@ SeptentrioDriver::ConfigureResult SeptentrioDriver::configure()
 	if (_receiver_setup == ReceiverSetup::MovingBase) {
 		if (_instance == Instance::Secondary) {
 			snprintf(msg, sizeof(msg), k_command_set_data_io, com_port, "+RTCMv3");
+
 			if (!send_message_and_wait_for_ack(msg, k_receiver_ack_timeout_fast)) {
 				SEP_WARN("CONFIG: Failed to configure RTCM output");
 			}
+
 		} else {
 			snprintf(msg, sizeof(msg), k_command_set_gnss_attitude, k_gnss_attitude_source_moving_base);
+
 			if (!send_message_and_wait_for_ack(msg, k_receiver_ack_timeout_fast)) {
 				SEP_WARN("CONFIG: Failed to configure attitude source");
 			}
 		}
+
 	} else {
 		snprintf(msg, sizeof(msg), k_command_set_gnss_attitude, k_gnss_attitude_source_multi_antenna);
+
 		// This fails on single-antenna receivers, which is fine. Therefore don't check for acknowledgement.
 		if (!send_message(msg)) {
 			SEP_WARN("CONFIG: Failed to configure attitude source");
@@ -1016,27 +1062,35 @@ int SeptentrioDriver::parse_char(const uint8_t byte)
 	case DecodingStatus::Searching:
 		if (_sbf_decoder.add_byte(byte) != sbf::Decoder::State::SearchingSync1) {
 			_active_decoder = DecodingStatus::SBF;
+
 		} else if (_rtcm_decoder && _rtcm_decoder->add_byte(byte) != rtcm::Decoder::State::SearchingPreamble) {
 			_active_decoder = DecodingStatus::RTCMv3;
 		}
+
 		break;
+
 	case DecodingStatus::SBF:
 		if (_sbf_decoder.add_byte(byte) == sbf::Decoder::State::Done) {
 			if (process_message() == PX4_OK) {
 				result = 1;
 			}
+
 			_sbf_decoder.reset();
 			_active_decoder = DecodingStatus::Searching;
 		}
+
 		break;
+
 	case DecodingStatus::RTCMv3:
 		if (_rtcm_decoder->add_byte(byte) == rtcm::Decoder::State::Done) {
 			if (process_message() == PX4_OK) {
 				result = 1;
 			}
+
 			_rtcm_decoder->reset();
 			_active_decoder = DecodingStatus::Searching;
 		}
+
 		break;
 	}
 
@@ -1049,252 +1103,277 @@ int SeptentrioDriver::process_message()
 
 	switch (_active_decoder) {
 	case DecodingStatus::Searching: {
-		SEP_ERR("Can't process incomplete message!");
-		result = PX4_ERROR;
-		break;
-	}
+			SEP_ERR("Can't process incomplete message!");
+			result = PX4_ERROR;
+			break;
+		}
+
 	case DecodingStatus::SBF: {
-		using namespace sbf;
+			using namespace sbf;
 
-		switch (_sbf_decoder.id()) {
-		case BlockID::Invalid: {
-			SEP_TRACE_PARSING("Tried to process invalid SBF message");
-			break;
-		}
-		case BlockID::DOP: {
-			SEP_TRACE_PARSING("Processing DOP SBF message");
-			_current_interval_messages.dop = true;
-
-			DOP dop;
-
-			if (_sbf_decoder.parse(&dop) == PX4_OK) {
-				_message_gps_state.hdop = dop.h_dop * 0.01f;
-				_message_gps_state.vdop = dop.v_dop * 0.01f;
-				result = PX4_OK;
-			}
-
-			break;
-		}
-		case BlockID::PVTGeodetic: {
-			using ModeType = PVTGeodetic::ModeType;
-			using Error = PVTGeodetic::Error;
-
-			SEP_TRACE_PARSING("Processing PVTGeodetic SBF message");
-			_current_interval_messages.pvt_geodetic = true;
-
-			Header header;
-			PVTGeodetic pvt_geodetic;
-
-			if (_sbf_decoder.parse(&header) == PX4_OK && _sbf_decoder.parse(&pvt_geodetic) == PX4_OK) {
-				switch (pvt_geodetic.mode_type) {
-				case ModeType::NoPVT:
-					_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_NONE;
-					break;
-				case ModeType::PVTWithSBAS:
-					_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_RTCM_CODE_DIFFERENTIAL;
-					break;
-				case ModeType::RTKFloat:
-				case ModeType::MovingBaseRTKFloat:
-					_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_RTK_FLOAT;
-					break;
-				case ModeType::RTKFixed:
-				case ModeType::MovingBaseRTKFixed:
-					_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_RTK_FIXED;
-					break;
-				default:
-					_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_3D;
+			switch (_sbf_decoder.id()) {
+			case BlockID::Invalid: {
+					SEP_TRACE_PARSING("Tried to process invalid SBF message");
 					break;
 				}
 
-				// Check boundaries and invalidate GPS velocities
-				if (pvt_geodetic.vn <= k_dnu_f4_value || pvt_geodetic.ve <= k_dnu_f4_value || pvt_geodetic.vu <= k_dnu_f4_value) {
-					_message_gps_state.vel_ned_valid = false;
-				}
+			case BlockID::DOP: {
+					SEP_TRACE_PARSING("Processing DOP SBF message");
+					_current_interval_messages.dop = true;
 
-				if (pvt_geodetic.latitude > k_dnu_f8_value && pvt_geodetic.longitude > k_dnu_f8_value && pvt_geodetic.height > k_dnu_f8_value && pvt_geodetic.undulation > k_dnu_f4_value) {
-					_message_gps_state.latitude_deg = pvt_geodetic.latitude * M_RAD_TO_DEG;
-					_message_gps_state.longitude_deg = pvt_geodetic.longitude * M_RAD_TO_DEG;
-					_message_gps_state.altitude_msl_m = pvt_geodetic.height - static_cast<double>(pvt_geodetic.undulation);
-					_message_gps_state.altitude_ellipsoid_m = pvt_geodetic.height;
-				} else {
-					_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_NONE;
-				}
+					DOP dop;
 
-				if (pvt_geodetic.nr_sv != PVTGeodetic::k_dnu_nr_sv) {
-					_message_gps_state.satellites_used = pvt_geodetic.nr_sv;
-
-					if (_message_satellite_info) {
-						// Only fill in the satellite count for now (we could use the ChannelStatus message for the
-						// other data, but it's really large: >800B)
-						_message_satellite_info->timestamp = hrt_absolute_time();
-						_message_satellite_info->count = _message_gps_state.satellites_used;
+					if (_sbf_decoder.parse(&dop) == PX4_OK) {
+						_message_gps_state.hdop = dop.h_dop * 0.01f;
+						_message_gps_state.vdop = dop.v_dop * 0.01f;
+						result = PX4_OK;
 					}
 
-				} else {
-					_message_gps_state.satellites_used = 0;
+					break;
 				}
 
-				/* H and V accuracy are reported in 2DRMS, but based off the u-blox reporting we expect RMS.
-				 * Divide by 100 from cm to m and in addition divide by 2 to get RMS. */
-				_message_gps_state.eph = static_cast<float>(pvt_geodetic.h_accuracy) / 200.0f;
-				_message_gps_state.epv = static_cast<float>(pvt_geodetic.v_accuracy) / 200.0f;
+			case BlockID::PVTGeodetic: {
+					using ModeType = PVTGeodetic::ModeType;
+					using Error = PVTGeodetic::Error;
 
-				// Check fix and error code
-				_message_gps_state.vel_ned_valid = _message_gps_state.fix_type > sensor_gps_s::FIX_TYPE_NONE && pvt_geodetic.error == Error::None;
-				_message_gps_state.vel_n_m_s = pvt_geodetic.vn;
-				_message_gps_state.vel_e_m_s = pvt_geodetic.ve;
-				_message_gps_state.vel_d_m_s = -1.0f * pvt_geodetic.vu;
-				_message_gps_state.vel_m_s = sqrtf(_message_gps_state.vel_n_m_s * _message_gps_state.vel_n_m_s +
-							_message_gps_state.vel_e_m_s * _message_gps_state.vel_e_m_s);
+					SEP_TRACE_PARSING("Processing PVTGeodetic SBF message");
+					_current_interval_messages.pvt_geodetic = true;
 
-				if (pvt_geodetic.cog > k_dnu_f4_value) {
-					_message_gps_state.cog_rad = pvt_geodetic.cog * M_DEG_TO_RAD_F;
-				}
-				_message_gps_state.c_variance_rad = M_DEG_TO_RAD_F;
+					Header header;
+					PVTGeodetic pvt_geodetic;
 
-				_message_gps_state.time_utc_usec = 0;
+					if (_sbf_decoder.parse(&header) == PX4_OK && _sbf_decoder.parse(&pvt_geodetic) == PX4_OK) {
+						switch (pvt_geodetic.mode_type) {
+						case ModeType::NoPVT:
+							_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_NONE;
+							break;
+
+						case ModeType::PVTWithSBAS:
+							_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_RTCM_CODE_DIFFERENTIAL;
+							break;
+
+						case ModeType::RTKFloat:
+						case ModeType::MovingBaseRTKFloat:
+							_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_RTK_FLOAT;
+							break;
+
+						case ModeType::RTKFixed:
+						case ModeType::MovingBaseRTKFixed:
+							_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_RTK_FIXED;
+							break;
+
+						default:
+							_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_3D;
+							break;
+						}
+
+						// Check boundaries and invalidate GPS velocities
+						if (pvt_geodetic.vn <= k_dnu_f4_value || pvt_geodetic.ve <= k_dnu_f4_value || pvt_geodetic.vu <= k_dnu_f4_value) {
+							_message_gps_state.vel_ned_valid = false;
+						}
+
+						if (pvt_geodetic.latitude > k_dnu_f8_value && pvt_geodetic.longitude > k_dnu_f8_value
+						    && pvt_geodetic.height > k_dnu_f8_value && pvt_geodetic.undulation > k_dnu_f4_value) {
+							_message_gps_state.latitude_deg = pvt_geodetic.latitude * M_RAD_TO_DEG;
+							_message_gps_state.longitude_deg = pvt_geodetic.longitude * M_RAD_TO_DEG;
+							_message_gps_state.altitude_msl_m = pvt_geodetic.height - static_cast<double>(pvt_geodetic.undulation);
+							_message_gps_state.altitude_ellipsoid_m = pvt_geodetic.height;
+
+						} else {
+							_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_NONE;
+						}
+
+						if (pvt_geodetic.nr_sv != PVTGeodetic::k_dnu_nr_sv) {
+							_message_gps_state.satellites_used = pvt_geodetic.nr_sv;
+
+							if (_message_satellite_info) {
+								// Only fill in the satellite count for now (we could use the ChannelStatus message for the
+								// other data, but it's really large: >800B)
+								_message_satellite_info->timestamp = hrt_absolute_time();
+								_message_satellite_info->count = _message_gps_state.satellites_used;
+							}
+
+						} else {
+							_message_gps_state.satellites_used = 0;
+						}
+
+						/* H and V accuracy are reported in 2DRMS, but based off the u-blox reporting we expect RMS.
+						 * Divide by 100 from cm to m and in addition divide by 2 to get RMS. */
+						_message_gps_state.eph = static_cast<float>(pvt_geodetic.h_accuracy) / 200.0f;
+						_message_gps_state.epv = static_cast<float>(pvt_geodetic.v_accuracy) / 200.0f;
+
+						// Check fix and error code
+						_message_gps_state.vel_ned_valid = _message_gps_state.fix_type > sensor_gps_s::FIX_TYPE_NONE
+										   && pvt_geodetic.error == Error::None;
+						_message_gps_state.vel_n_m_s = pvt_geodetic.vn;
+						_message_gps_state.vel_e_m_s = pvt_geodetic.ve;
+						_message_gps_state.vel_d_m_s = -1.0f * pvt_geodetic.vu;
+						_message_gps_state.vel_m_s = sqrtf(_message_gps_state.vel_n_m_s * _message_gps_state.vel_n_m_s +
+										   _message_gps_state.vel_e_m_s * _message_gps_state.vel_e_m_s);
+
+						if (pvt_geodetic.cog > k_dnu_f4_value) {
+							_message_gps_state.cog_rad = pvt_geodetic.cog * M_DEG_TO_RAD_F;
+						}
+
+						_message_gps_state.c_variance_rad = M_DEG_TO_RAD_F;
+
+						_message_gps_state.time_utc_usec = 0;
 #ifndef __PX4_QURT // NOTE: Functionality isn't available on Snapdragon yet.
-				if (_time_synced) {
-					struct tm timeinfo;
-					time_t epoch;
 
-					// Convert to unix timestamp
-					memset(&timeinfo, 0, sizeof(timeinfo));
+						if (_time_synced) {
+							struct tm timeinfo;
+							time_t epoch;
 
-					timeinfo.tm_year = 1980 - 1900;
-					timeinfo.tm_mon = 0;
-					timeinfo.tm_mday = 6 + header.wnc * 7;
-					timeinfo.tm_hour = 0;
-					timeinfo.tm_min = 0;
-					timeinfo.tm_sec = header.tow / 1000;
+							// Convert to unix timestamp
+							memset(&timeinfo, 0, sizeof(timeinfo));
 
-					epoch = mktime(&timeinfo);
+							timeinfo.tm_year = 1980 - 1900;
+							timeinfo.tm_mon = 0;
+							timeinfo.tm_mday = 6 + header.wnc * 7;
+							timeinfo.tm_hour = 0;
+							timeinfo.tm_min = 0;
+							timeinfo.tm_sec = header.tow / 1000;
 
-					if (epoch > k_gps_epoch_secs) {
-						// FMUv2+ boards have a hardware RTC, but GPS helps us to configure it
-						// and control its drift. Since we rely on the HRT for our monotonic
-						// clock, updating it from time to time is safe.
+							epoch = mktime(&timeinfo);
 
-						timespec ts;
-						memset(&ts, 0, sizeof(ts));
-						ts.tv_sec = epoch;
-						ts.tv_nsec = (header.tow % 1000) * 1000 * 1000;
-						set_clock(ts);
+							if (epoch > k_gps_epoch_secs) {
+								// FMUv2+ boards have a hardware RTC, but GPS helps us to configure it
+								// and control its drift. Since we rely on the HRT for our monotonic
+								// clock, updating it from time to time is safe.
 
-						_message_gps_state.time_utc_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
-						_message_gps_state.time_utc_usec += (header.tow % 1000) * 1000;
-					}
-				}
+								timespec ts;
+								memset(&ts, 0, sizeof(ts));
+								ts.tv_sec = epoch;
+								ts.tv_nsec = (header.tow % 1000) * 1000 * 1000;
+								set_clock(ts);
+
+								_message_gps_state.time_utc_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
+								_message_gps_state.time_utc_usec += (header.tow % 1000) * 1000;
+							}
+						}
 
 #endif
-				_message_gps_state.timestamp = hrt_absolute_time();
-				result = PX4_OK;
-			}
+						_message_gps_state.timestamp = hrt_absolute_time();
+						result = PX4_OK;
+					}
 
-			break;
-		}
+					break;
+				}
 
-		case BlockID::ReceiverStatus: {
-			SEP_TRACE_PARSING("Processing ReceiverStatus SBF message");
+			case BlockID::ReceiverStatus: {
+					SEP_TRACE_PARSING("Processing ReceiverStatus SBF message");
 
-			ReceiverStatus receiver_status;
+					ReceiverStatus receiver_status;
 
-			if (_sbf_decoder.parse(&receiver_status) == PX4_OK) {
-				_message_gps_state.rtcm_msg_used = receiver_status.rx_state_diff_corr_in ? sensor_gps_s::RTCM_MSG_USED_USED : sensor_gps_s::RTCM_MSG_USED_NOT_USED;
-				_time_synced = receiver_status.rx_state_wn_set && receiver_status.rx_state_tow_set;
-			}
+					if (_sbf_decoder.parse(&receiver_status) == PX4_OK) {
+						_message_gps_state.rtcm_msg_used = receiver_status.rx_state_diff_corr_in ? sensor_gps_s::RTCM_MSG_USED_USED :
+										   sensor_gps_s::RTCM_MSG_USED_NOT_USED;
+						_time_synced = receiver_status.rx_state_wn_set && receiver_status.rx_state_tow_set;
+					}
 
-			break;
-		}
-		case BlockID::QualityInd: {
-			SEP_TRACE_PARSING("Processing QualityInd SBF message");
-			break;
-		}
-		case BlockID::RFStatus: {
-			SEP_TRACE_PARSING("Processing RFStatus SBF message");
-			break;
-		}
-		case BlockID::GALAuthStatus: {
-			SEP_TRACE_PARSING("Processing GALAuthStatus SBF message");
-			break;
-		}
-		case BlockID::EndOfPVT: {
-			SEP_TRACE_PARSING("Processing EndOfPVT SBF message");
+					break;
+				}
 
-			// EndOfPVT guarantees that all PVT blocks for this epoch have been sent, so it's safe to assume the uORB message contains all required data.
-			publish();
-			break;
-		}
-		case BlockID::VelCovGeodetic: {
-			SEP_TRACE_PARSING("Processing VelCovGeodetic SBF message");
-			_current_interval_messages.vel_cov_geodetic = true;
+			case BlockID::QualityInd: {
+					SEP_TRACE_PARSING("Processing QualityInd SBF message");
+					break;
+				}
 
-			VelCovGeodetic vel_cov_geodetic;
+			case BlockID::RFStatus: {
+					SEP_TRACE_PARSING("Processing RFStatus SBF message");
+					break;
+				}
 
-			if (_sbf_decoder.parse(&vel_cov_geodetic) == PX4_OK) {
-				if (vel_cov_geodetic.cov_ve_ve > k_dnu_f4_value && vel_cov_geodetic.cov_vn_vn > k_dnu_f4_value && vel_cov_geodetic.cov_vu_vu > k_dnu_f4_value) {
-					_message_gps_state.s_variance_m_s = math::max(math::max(vel_cov_geodetic.cov_ve_ve, vel_cov_geodetic.cov_vn_vn), vel_cov_geodetic.cov_vu_vu);
+			case BlockID::GALAuthStatus: {
+					SEP_TRACE_PARSING("Processing GALAuthStatus SBF message");
+					break;
+				}
+
+			case BlockID::EndOfPVT: {
+					SEP_TRACE_PARSING("Processing EndOfPVT SBF message");
+
+					// EndOfPVT guarantees that all PVT blocks for this epoch have been sent, so it's safe to assume the uORB message contains all required data.
+					publish();
+					break;
+				}
+
+			case BlockID::VelCovGeodetic: {
+					SEP_TRACE_PARSING("Processing VelCovGeodetic SBF message");
+					_current_interval_messages.vel_cov_geodetic = true;
+
+					VelCovGeodetic vel_cov_geodetic;
+
+					if (_sbf_decoder.parse(&vel_cov_geodetic) == PX4_OK) {
+						if (vel_cov_geodetic.cov_ve_ve > k_dnu_f4_value && vel_cov_geodetic.cov_vn_vn > k_dnu_f4_value
+						    && vel_cov_geodetic.cov_vu_vu > k_dnu_f4_value) {
+							_message_gps_state.s_variance_m_s = math::max(math::max(vel_cov_geodetic.cov_ve_ve, vel_cov_geodetic.cov_vn_vn),
+											    vel_cov_geodetic.cov_vu_vu);
+						}
+					}
+
+					break;
+				}
+
+			case BlockID::GEOIonoDelay: {
+					SEP_TRACE_PARSING("Processing GEOIonoDelay SBF message");
+					break;
+				}
+
+			case BlockID::AttEuler: {
+					using Error = AttEuler::Error;
+
+					SEP_TRACE_PARSING("Processing AttEuler SBF message");
+					_current_interval_messages.att_euler = true;
+
+					AttEuler att_euler;
+
+					if (_sbf_decoder.parse(&att_euler) == PX4_OK &&
+					    !att_euler.error_not_requested &&
+					    att_euler.error_aux1 == Error::None &&
+					    att_euler.error_aux2 == Error::None &&
+					    att_euler.heading > k_dnu_f4_value) {
+						float heading = att_euler.heading * M_PI_F / 180.0f; // Range of degrees to range of radians in [0, 2PI].
+
+						// Ensure range is in [-PI, PI].
+						if (heading > M_PI_F) {
+							heading -= 2.f * M_PI_F;
+						}
+
+						_message_gps_state.heading = heading;
+					}
+
+					break;
+				}
+
+			case BlockID::AttCovEuler: {
+					using Error = AttCovEuler::Error;
+
+					SEP_TRACE_PARSING("Processing AttCovEuler SBF message");
+					_current_interval_messages.att_cov_euler = true;
+
+					AttCovEuler att_cov_euler;
+
+					if (_sbf_decoder.parse(&att_cov_euler) == PX4_OK &&
+					    !att_cov_euler.error_not_requested &&
+					    att_cov_euler.error_aux1 == Error::None &&
+					    att_cov_euler.error_aux2 == Error::None &&
+					    att_cov_euler.cov_headhead > k_dnu_f4_value) {
+						_message_gps_state.heading_accuracy = att_cov_euler.cov_headhead * M_PI_F /
+										      180.0f; // Convert range of degrees to range of radians in [0, 2PI]
+					}
+
+					break;
 				}
 			}
 
 			break;
 		}
-		case BlockID::GEOIonoDelay: {
-			SEP_TRACE_PARSING("Processing GEOIonoDelay SBF message");
-			break;
-		}
-		case BlockID::AttEuler: {
-			using Error = AttEuler::Error;
 
-			SEP_TRACE_PARSING("Processing AttEuler SBF message");
-			_current_interval_messages.att_euler = true;
-
-			AttEuler att_euler;
-
-			if (_sbf_decoder.parse(&att_euler) == PX4_OK &&
-			    !att_euler.error_not_requested &&
-			    att_euler.error_aux1 == Error::None &&
-			    att_euler.error_aux2 == Error::None &&
-			    att_euler.heading > k_dnu_f4_value) {
-				float heading = att_euler.heading * M_PI_F / 180.0f; // Range of degrees to range of radians in [0, 2PI].
-
-				// Ensure range is in [-PI, PI].
-				if (heading > M_PI_F) {
-					heading -= 2.f * M_PI_F;
-				}
-
-				_message_gps_state.heading = heading;
-			}
-
-			break;
-		}
-		case BlockID::AttCovEuler: {
-			using Error = AttCovEuler::Error;
-
-			SEP_TRACE_PARSING("Processing AttCovEuler SBF message");
-			_current_interval_messages.att_cov_euler = true;
-
-			AttCovEuler att_cov_euler;
-
-			if (_sbf_decoder.parse(&att_cov_euler) == PX4_OK &&
-			    !att_cov_euler.error_not_requested &&
-			    att_cov_euler.error_aux1 == Error::None &&
-			    att_cov_euler.error_aux2 == Error::None &&
-			    att_cov_euler.cov_headhead > k_dnu_f4_value) {
-				_message_gps_state.heading_accuracy = att_cov_euler.cov_headhead * M_PI_F / 180.0f; // Convert range of degrees to range of radians in [0, 2PI]
-			}
-
-			break;
-		}
-		}
-
-		break;
-	}
 	case DecodingStatus::RTCMv3: {
-		SEP_TRACE_PARSING("Processing RTCMv3 message");
-		publish_rtcm_corrections(_rtcm_decoder->message(), _rtcm_decoder->received_bytes());
-		break;
-	}
+			SEP_TRACE_PARSING("Processing RTCMv3 message");
+			publish_rtcm_corrections(_rtcm_decoder->message(), _rtcm_decoder->received_bytes());
+			break;
+		}
 	}
 
 	return result;
@@ -1305,7 +1384,7 @@ bool SeptentrioDriver::send_message(const char *msg)
 	PX4_DEBUG("Send MSG: %s", msg);
 	int length = strlen(msg);
 
-	return (write(reinterpret_cast<const uint8_t*>(msg), length) == length);
+	return (write(reinterpret_cast<const uint8_t *>(msg), length) == length);
 }
 
 bool SeptentrioDriver::send_message_and_wait_for_ack(const char *msg, const int timeout)
@@ -1318,7 +1397,7 @@ bool SeptentrioDriver::send_message_and_wait_for_ack(const char *msg, const int 
 	// For all valid set -, get - and exe -commands, the first line of the reply is an exact copy
 	// of the command as entered by the user, preceded with "$R: "
 	char buf[k_read_buffer_size];
-	char expected_response[k_max_command_size+4];
+	char expected_response[k_max_command_size + 4];
 	snprintf(expected_response, sizeof(expected_response), "$R: %s", msg);
 	uint16_t response_check_character = 0;
 	// Length of the message without the newline but including the preceding response part "$R: "
@@ -1326,7 +1405,7 @@ bool SeptentrioDriver::send_message_and_wait_for_ack(const char *msg, const int 
 	hrt_abstime timeout_time = hrt_absolute_time() + 1000 * timeout;
 
 	do {
-		int read_result = read(reinterpret_cast<uint8_t*>(buf), sizeof(buf), 50);
+		int read_result = read(reinterpret_cast<uint8_t *>(buf), sizeof(buf), 50);
 
 		if (read_result < 0) {
 			SEP_WARN("SBF read error");
@@ -1337,11 +1416,14 @@ bool SeptentrioDriver::send_message_and_wait_for_ack(const char *msg, const int 
 			if (response_check_character == response_len) {
 				// We encountered the complete response
 				return true;
+
 			} else if (expected_response[response_check_character] == buf[i]) {
 				++response_check_character;
+
 			} else if (buf[i] == '$') {
 				// Special case makes sure we don't miss start of new response if that happened to be the character we weren't expecting next (e.g., `$R: ge$R: gecm`)
 				response_check_character = 1;
+
 			} else {
 				response_check_character = 0;
 			}
@@ -1395,6 +1477,7 @@ int SeptentrioDriver::read(uint8_t *buf, size_t buf_length, int timeout)
 
 	if (num_read > 0) {
 		_current_interval_bytes_read += num_read;
+
 		if (should_dump_incoming()) {
 			dump_gps_data(buf, num_read, DataDirection::FromReceiver);
 		}
@@ -1410,12 +1493,13 @@ int SeptentrioDriver::poll_or_read(uint8_t *buf, size_t buf_length, int timeout)
 	return _uart.readAtLeast(buf, buf_length, math::min(k_min_receiver_read_bytes, buf_length), read_timeout);
 }
 
-int SeptentrioDriver::write(const uint8_t* buf, size_t buf_length)
+int SeptentrioDriver::write(const uint8_t *buf, size_t buf_length)
 {
 	ssize_t write_result = _uart.write(buf, buf_length);
 
 	if (write_result >= 0) {
 		_current_interval_bytes_written += write_result;
+
 		if (should_dump_outgoing()) {
 			dump_gps_data(buf, write_result, DataDirection::ToReceiver);
 		}
@@ -1436,6 +1520,7 @@ int SeptentrioDriver::initialize_communication_dump(DumpMode mode)
 
 		memset(_message_data_from_receiver, 0, sizeof(*_message_data_from_receiver));
 	}
+
 	if (mode == DumpMode::ToReceiver || mode == DumpMode::Both) {
 		_message_data_to_receiver = new gps_dump_s();
 
@@ -1464,6 +1549,7 @@ void SeptentrioDriver::reset_if_scheduled()
 
 		if (res == PX4_OK) {
 			SEP_INFO("Reset succeeded.");
+
 		} else {
 			SEP_INFO("Reset failed.");
 		}
@@ -1475,6 +1561,7 @@ int SeptentrioDriver::set_baudrate(uint32_t baud)
 	if (_uart.setBaudrate(baud)) {
 		SEP_INFO("baud controller: %lu", baud);
 		return PX4_OK;
+
 	} else {
 		return PX4_ERROR;
 	}
@@ -1520,7 +1607,8 @@ void SeptentrioDriver::handle_inject_data_topic()
 			num_injections++;
 
 			// Prevent injection of data from self or from ground if moving base and this is rover.
-			if ((_instance == Instance::Secondary && msg.device_id != get_device_id()) || (_instance == Instance::Main && msg.device_id == get_device_id()) || _receiver_setup != ReceiverSetup::MovingBase) {
+			if ((_instance == Instance::Secondary && msg.device_id != get_device_id()) || (_instance == Instance::Main
+					&& msg.device_id == get_device_id()) || _receiver_setup != ReceiverSetup::MovingBase) {
 				/* Write the message to the gps device. Note that the message could be fragmented.
 				* But as we don't write anywhere else to the device during operation, we don't
 				* need to assemble the message first.
@@ -1558,7 +1646,7 @@ void SeptentrioDriver::publish()
 
 		if (_message_gps_state.jamming_state > sensor_gps_s::JAMMING_STATE_WARNING) {
 			SEP_WARN("GPS jamming detected! (state: %d) (indicator: %d)", _message_gps_state.jamming_state,
-					(uint8_t)_message_gps_state.jamming_indicator);
+				 (uint8_t)_message_gps_state.jamming_indicator);
 		}
 
 		_jamming_state = _message_gps_state.jamming_state;
@@ -1613,7 +1701,8 @@ void SeptentrioDriver::publish_rtcm_corrections(uint8_t *data, size_t len)
 
 void SeptentrioDriver::dump_gps_data(const uint8_t *data, size_t len, DataDirection data_direction)
 {
-	gps_dump_s *dump_data = data_direction == DataDirection::FromReceiver ? _message_data_from_receiver : _message_data_to_receiver;
+	gps_dump_s *dump_data = data_direction == DataDirection::FromReceiver ? _message_data_from_receiver :
+				_message_data_to_receiver;
 	dump_data->instance = _instance == Instance::Main ? 0 : 1;
 
 	while (len > 0) {
@@ -1681,21 +1770,23 @@ float SeptentrioDriver::rtcm_injection_frequency() const
 
 uint32_t SeptentrioDriver::output_data_rate() const
 {
-	return static_cast<uint32_t>(_last_interval_bytes_written / us_to_s(static_cast<uint64_t>(k_update_monitoring_interval_duration)));
+	return static_cast<uint32_t>(_last_interval_bytes_written / us_to_s(static_cast<uint64_t>
+				     (k_update_monitoring_interval_duration)));
 }
 
 uint32_t SeptentrioDriver::input_data_rate() const
 {
-	return static_cast<uint32_t>(_last_interval_bytes_read / us_to_s(static_cast<uint64_t>(k_update_monitoring_interval_duration)));
+	return static_cast<uint32_t>(_last_interval_bytes_read / us_to_s(static_cast<uint64_t>
+				     (k_update_monitoring_interval_duration)));
 }
 
 bool SeptentrioDriver::receiver_configuration_healthy() const
 {
 	return _last_interval_messages.dop &&
-               _last_interval_messages.pvt_geodetic &&
-               _last_interval_messages.vel_cov_geodetic &&
-               _last_interval_messages.att_euler &&
-               _last_interval_messages.att_cov_euler;
+	       _last_interval_messages.pvt_geodetic &&
+	       _last_interval_messages.vel_cov_geodetic &&
+	       _last_interval_messages.att_euler &&
+	       _last_interval_messages.att_cov_euler;
 }
 
 float SeptentrioDriver::us_to_s(uint64_t us)

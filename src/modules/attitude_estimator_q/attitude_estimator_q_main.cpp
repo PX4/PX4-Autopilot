@@ -619,11 +619,8 @@ int AttitudeEstimatorQ::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Attitude estimator q.
-
-)DESCR_STR");
+		"### Description\n"
+		"Attitude estimator q.");
 
 	PRINT_MODULE_USAGE_NAME("AttitudeEstimatorQ", "estimator");
 	PRINT_MODULE_USAGE_COMMAND("start");

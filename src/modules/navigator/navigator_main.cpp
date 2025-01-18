@@ -1655,20 +1655,17 @@ int Navigator::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Module that is responsible for autonomous flight modes. This includes missions (read from dataman),
-takeoff and RTL.
-It is also responsible for geofence violation checking.
-
-### Implementation
-The different internal modes are implemented as separate classes that inherit from a common base class `NavigatorMode`.
-The member `_navigation_mode` contains the current active mode.
-
-Navigator publishes position setpoint triplets (`position_setpoint_triplet_s`), which are then used by the position
-controller.
-
-)DESCR_STR");
+		"### Description\n"
+		"Module that is responsible for autonomous flight modes. This includes missions (read from dataman),\n"
+		"takeoff and RTL.\n"
+		"It is also responsible for geofence violation checking.\n"
+		"\n"
+		"### Implementation\n"
+		"The different internal modes are implemented as separate classes that inherit from a common base class `NavigatorMode`.\n"
+		"The member `_navigation_mode` contains the current active mode.\n"
+		"\n"
+		"Navigator publishes position setpoint triplets (`position_setpoint_triplet_s`), which are then used by the position\n"
+		"controller.");
 
 	PRINT_MODULE_USAGE_NAME("navigator", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");

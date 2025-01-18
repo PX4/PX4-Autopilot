@@ -97,29 +97,27 @@ static int	do_find(const char *name);
 static void print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Command to access and manipulate parameters via shell or script.
-
-This is used for example in the startup script to set airframe-specific parameters.
-
-Parameters are automatically saved when changed, eg. with `param set`. They are typically stored to FRAM
-or to the SD card. `param select` can be used to change the storage location for subsequent saves (this will
-need to be (re-)configured on every boot).
-
-If the FLASH-based backend is enabled (which is done at compile time, e.g. for the Intel Aero or Omnibus),
-`param select` has no effect and the default is always the FLASH backend. However `param save/load <file>`
-can still be used to write to/read from files.
-
-Each parameter has a 'used' flag, which is set when it's read during boot. It is used to only show relevant
-parameters to a ground control station.
-
-### Examples
-Change the airframe and make sure the airframe's default parameters are loaded:
-$ param set SYS_AUTOSTART 4001
-$ param set SYS_AUTOCONFIG 1
-$ reboot
-)DESCR_STR");
+		"### Description\n"
+		"Command to access and manipulate parameters via shell or script.\n"
+		"\n"
+		"This is used for example in the startup script to set airframe-specific parameters.\n"
+		"\n"
+		"Parameters are automatically saved when changed, eg. with `param set`. They are typically stored to FRAM\n"
+		"or to the SD card. `param select` can be used to change the storage location for subsequent saves (this will\n"
+		"need to be (re-)configured on every boot).\n"
+		"\n"
+		"If the FLASH-based backend is enabled (which is done at compile time, e.g. for the Intel Aero or Omnibus),\n"
+		"`param select` has no effect and the default is always the FLASH backend. However `param save/load <file>`\n"
+		"can still be used to write to/read from files.\n"
+		"\n"
+		"Each parameter has a 'used' flag, which is set when it's read during boot. It is used to only show relevant\n"
+		"parameters to a ground control station.\n"
+		"\n"
+		"### Examples\n"
+		"Change the airframe and make sure the airframe's default parameters are loaded:\n"
+		"$ param set SYS_AUTOSTART 4001\n"
+		"$ param set SYS_AUTOCONFIG 1\n"
+		"$ reboot");
 
 	PRINT_MODULE_USAGE_NAME("param", "command");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("load", "Load params from a file (overwrite all)");
@@ -522,9 +520,11 @@ do_show_for_airframe()
 	param_foreach(do_show_print_for_airframe, nullptr, true, true);
 	int32_t sys_autostart = 0;
 	param_get(param_find("SYS_AUTOSTART"), &sys_autostart);
+
 	if (sys_autostart != 0) {
 		PX4_INFO_RAW("# Make sure to add all params from the current airframe (ID=%" PRId32 ") as well\n", sys_autostart);
 	}
+
 	return 0;
 }
 
@@ -608,8 +608,8 @@ do_show_index(const char *index, bool used_index)
 	}
 
 	PX4_INFO_RAW("index %d: %c %c %s [%d,%d] : ", i, (param_used(param) ? 'x' : ' '),
-		    param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
-		    param_name(param), param_get_used_index(param), param_get_index(param));
+		     param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+		     param_name(param), param_get_used_index(param), param_get_index(param));
 
 	switch (param_type(param)) {
 	case PARAM_TYPE_INT32:
@@ -678,8 +678,8 @@ do_show_print(void *arg, param_t param)
 	}
 
 	PX4_INFO_RAW("%c %c %s [%d,%d] : ", (param_used(param) ? 'x' : ' '),
-		    param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
-		    param_name(param), param_get_used_index(param), param_get_index(param));
+		     param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+		     param_name(param), param_get_used_index(param), param_get_index(param));
 
 	/*
 	 * This case can be expanded to handle printing common structure types.
@@ -786,8 +786,8 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 
 			if (i != newval) {
 				PX4_INFO_RAW("%c %s: ",
-					    param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
-					    param_name(param));
+					     param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+					     param_name(param));
 				PX4_INFO_RAW("curr: %ld", (long)i);
 				param_set(param, &newval);
 				PX4_INFO_RAW(" -> new: %ld\n", (long)newval);
@@ -808,8 +808,8 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 			if (f != newval) {
 #pragma GCC diagnostic pop
 				PX4_INFO_RAW("%c %s: ",
-					    param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
-					    param_name(param));
+					     param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+					     param_name(param));
 				PX4_INFO_RAW("curr: %4.4f", (double)f);
 				param_set(param, &newval);
 				PX4_INFO_RAW(" -> new: %4.4f\n", (double)newval);

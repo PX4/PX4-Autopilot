@@ -1088,13 +1088,10 @@ int Voxl2IO::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This module is responsible for driving the output pins. For boards without a separate IO chip
-(eg. Pixracer), it uses the main channels. On boards with an IO chip (eg. Pixhawk), it uses the AUX channels, and the
-px4io driver is used for main ones.
-
-)DESCR_STR");
+		"### Description\n"
+		"This module is responsible for driving the output pins. For boards without a separate IO chip\n"
+		"(eg. Pixracer), it uses the main channels. On boards with an IO chip (eg. Pixhawk), it uses the AUX channels, and the\n"
+		"px4io driver is used for main ones.");
 
 	PRINT_MODULE_USAGE_NAME("voxl2_io", "driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
@@ -1107,8 +1104,9 @@ px4io driver is used for main ones.
 	PRINT_MODULE_USAGE_COMMAND_DESCR("pwm", "Open-Loop PWM test control request");
 	PRINT_MODULE_USAGE_PARAM_INT('c', 0, 0, 3, "PWM OUTPUT Channel, 0-3", false);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 0, 0, 800, "Duty Cycle value, 0 to 800", false);
-	PRINT_MODULE_USAGE_PARAM_INT('n', 100, 0, 1<<31, "Command repeat count, 0 to INT_MAX", false);
-	PRINT_MODULE_USAGE_PARAM_INT('t', 10000, 0, 1<<31, "Delay between repeated commands (microseconds), 0 to INT_MAX", false);
+	PRINT_MODULE_USAGE_PARAM_INT('n', 100, 0, 1 << 31, "Command repeat count, 0 to INT_MAX", false);
+	PRINT_MODULE_USAGE_PARAM_INT('t', 10000, 0, 1 << 31, "Delay between repeated commands (microseconds), 0 to INT_MAX",
+				     false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

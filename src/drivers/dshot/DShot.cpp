@@ -815,25 +815,23 @@ int DShot::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This is the DShot output driver. It is similar to the fmu driver, and can be used as drop-in replacement
-to use DShot as ESC communication protocol instead of PWM.
-
-On startup, the module tries to occupy all available pins for DShot output.
-It skips all pins already in use (e.g. by a camera trigger module).
-
-It supports:
-- DShot150, DShot300, DShot600, DShot1200
-- telemetry via separate UART and publishing as esc_status message
-- sending DShot commands via CLI
-
-### Examples
-Permanently reverse motor 1:
-$ dshot reverse -m 1
-$ dshot save -m 1
-After saving, the reversed direction will be regarded as the normal one. So to reverse again repeat the same commands.
-)DESCR_STR");
+		"### Description\n"
+		"This is the DShot output driver. It is similar to the fmu driver, and can be used as drop-in replacement\n"
+		"to use DShot as ESC communication protocol instead of PWM.\n"
+		"\n"
+		"On startup, the module tries to occupy all available pins for DShot output.\n"
+		"It skips all pins already in use (e.g. by a camera trigger module).\n"
+		"\n"
+		"It supports:\n"
+		"- DShot150, DShot300, DShot600, DShot1200\n"
+		"- telemetry via separate UART and publishing as esc_status message\n"
+		"- sending DShot commands via CLI\n"
+		"\n"
+		"### Examples\n"
+		"Permanently reverse motor 1:\n"
+		"$ dshot reverse -m 1\n"
+		"$ dshot save -m 1\n"
+		"After saving, the reversed direction will be regarded as the normal one. So to reverse again repeat the same commands.");
 
 	PRINT_MODULE_USAGE_NAME("dshot", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

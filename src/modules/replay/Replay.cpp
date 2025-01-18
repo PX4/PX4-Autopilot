@@ -1226,24 +1226,22 @@ Replay::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This module is used to replay ULog files.
-
-There are 2 environment variables used for configuration: `replay`, which must be set to an ULog file name - it's
-the log file to be replayed. The second is the mode, specified via `replay_mode`:
-- `replay_mode=ekf2`: specific EKF2 replay mode. It can only be used with the ekf2 module, but allows the replay
-  to run as fast as possible.
-- Generic otherwise: this can be used to replay any module(s), but the replay will be done with the same speed as the
-  log was recorded.
-
-The module is typically used together with uORB publisher rules, to specify which messages should be replayed.
-The replay module will just publish all messages that are found in the log. It also applies the parameters from
-the log.
-
-The replay procedure is documented on the [System-wide Replay](https://docs.px4.io/main/en/debug/system_wide_replay.html)
-page.
-)DESCR_STR");
+		"### Description\n"
+		"This module is used to replay ULog files.\n"
+		"\n"
+		"There are 2 environment variables used for configuration: `replay`, which must be set to an ULog file name - it's\n"
+		"the log file to be replayed. The second is the mode, specified via `replay_mode`:\n"
+		"- `replay_mode=ekf2`: specific EKF2 replay mode. It can only be used with the ekf2 module, but allows the replay\n"
+		"to run as fast as possible.\n"
+		"- Generic otherwise: this can be used to replay any module(s), but the replay will be done with the same speed as the\n"
+		"log was recorded.\n"
+		"\n"
+		"The module is typically used together with uORB publisher rules, to specify which messages should be replayed.\n"
+		"The replay module will just publish all messages that are found in the log. It also applies the parameters from\n"
+		"the log.\n"
+		"\n"
+		"The replay procedure is documented on the [System-wide Replay](https://docs.px4.io/main/en/debug/system_wide_replay.html)\n"
+		"page.");
 
 	PRINT_MODULE_USAGE_NAME("replay", "system");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start replay, using log file from ENV variable 'replay'");

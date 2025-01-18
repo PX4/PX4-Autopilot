@@ -291,11 +291,8 @@ int GhstRc::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This module parses the GHST RC uplink protocol and can generate GHST downlink telemetry data
-
-)DESCR_STR");
+		"### Description\n"
+		"This module parses the GHST RC uplink protocol and can generate GHST downlink telemetry data");
 
 	PRINT_MODULE_USAGE_NAME("ghst_rc", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

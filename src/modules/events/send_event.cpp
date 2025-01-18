@@ -137,13 +137,11 @@ int SendEvent::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Background process running periodically on the LP work queue to perform housekeeping tasks.
-It is currently only responsible for tone alarm on RC Loss.
-
-The tasks can be started via CLI or uORB topics (vehicle_command from MAVLink, etc.).
-)DESCR_STR");
+		"### Description\n"
+		"Background process running periodically on the LP work queue to perform housekeeping tasks.\n"
+		"It is currently only responsible for tone alarm on RC Loss.\n"
+		"\n"
+		"The tasks can be started via CLI or uORB topics (vehicle_command from MAVLink, etc.).");
 
 	PRINT_MODULE_USAGE_NAME("send_event", "system");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the background task");

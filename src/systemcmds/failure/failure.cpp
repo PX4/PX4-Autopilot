@@ -88,18 +88,16 @@ static constexpr FailureType failure_types[] = {
 static void print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Inject failures into system.
-
-### Implementation
-This system command sends a vehicle command over uORB to trigger failure.
-
-### Examples
-Test the GPS failsafe by stopping GPS:
-
-failure gps off
-)DESCR_STR");
+		"### Description\n"
+		"Inject failures into system.\n"
+		"\n"
+		"### Implementation\n"
+		"This system command sends a vehicle command over uORB to trigger failure.\n"
+		"\n"
+		"### Examples\n"
+		"Test the GPS failsafe by stopping GPS:\n"
+		"\n"
+		"failure gps off");
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("failure", "command");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("help", "Show this help text");
@@ -108,19 +106,22 @@ failure gps off
 	PRINT_MODULE_USAGE_PARAM_INT('i', 0, 0, 4, "sensor instance (0=all)", true);
 
 	PX4_INFO_RAW("\nComponents:\n");
+
 	for (const auto &failure_unit : failure_units) {
 		PX4_INFO_RAW("- %s\n", failure_unit.key);
 	}
 
 	PX4_INFO_RAW("\nFailure types:\n");
+
 	for (const auto &failure_type : failure_types) {
 		PX4_INFO_RAW("- %s\n", failure_type.key);
 	}
 }
 
-int inject_failure(const FailureUnit& unit, const FailureType& type, uint8_t instance)
+int inject_failure(const FailureUnit &unit, const FailureType &type, uint8_t instance)
 {
-	PX4_WARN("inject failure unit: %s (%d), type: %s (%d), instance: %d", unit.key, unit.value, type.key, type.value, instance);
+	PX4_WARN("inject failure unit: %s (%d), type: %s (%d), instance: %d", unit.key, unit.value, type.key, type.value,
+		 instance);
 
 	uORB::Subscription command_ack_sub{ORB_ID(vehicle_command_ack)};
 

@@ -260,11 +260,8 @@ int ToneAlarm::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This module is responsible for the tone alarm.
-
-)DESCR_STR");
+		"### Description\n"
+		"This module is responsible for the tone alarm.");
 
 	PRINT_MODULE_USAGE_NAME("tone_alarm", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

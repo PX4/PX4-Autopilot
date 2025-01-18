@@ -66,25 +66,23 @@ int uorb_main(int argc, char *argv[])
 void usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-uORB is the internal pub-sub messaging system, used for communication between modules.
-
-### Implementation
-The implementation is asynchronous and lock-free, ie. a publisher does not wait for a subscriber and vice versa.
-This is achieved by having a separate buffer between a publisher and a subscriber.
-
-The code is optimized to minimize the memory footprint and the latency to exchange messages.
-
-Messages are defined in the `/msg` directory. They are converted into C/C++ code at build-time.
-
-If compiled with ORB_USE_PUBLISHER_RULES, a file with uORB publication rules can be used to configure which
-modules are allowed to publish which topics. This is used for system-wide replay.
-
-### Examples
-Monitor topic publication rates. Besides `top`, this is an important command for general system inspection:
-$ uorb top
-)DESCR_STR");
+		"### Description\n"
+		"uORB is the internal pub-sub messaging system, used for communication between modules.\n"
+		"\n"
+		"### Implementation\n"
+		"The implementation is asynchronous and lock-free, ie. a publisher does not wait for a subscriber and vice versa.\n"
+		"This is achieved by having a separate buffer between a publisher and a subscriber.\n"
+		"\n"
+		"The code is optimized to minimize the memory footprint and the latency to exchange messages.\n"
+		"\n"
+		"Messages are defined in the `/msg` directory. They are converted into C/C++ code at build-time.\n"
+		"\n"
+		"If compiled with ORB_USE_PUBLISHER_RULES, a file with uORB publication rules can be used to configure which\n"
+		"modules are allowed to publish which topics. This is used for system-wide replay.\n"
+		"\n"
+		"### Examples\n"
+		"Monitor topic publication rates. Besides `top`, this is an important command for general system inspection:\n"
+		"$ uorb top");
 
 	PRINT_MODULE_USAGE_NAME("uorb", "communication");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print topic statistics");

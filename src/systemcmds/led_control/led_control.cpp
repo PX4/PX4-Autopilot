@@ -239,21 +239,18 @@ static void
 usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Command-line tool to control & test the (external) LED's.
-
-To use it make sure there's a driver running, which handles the led_control uorb topic.
-
-There are different priorities, such that for example one module can set a color with low priority, and another
-module can blink N times with high priority, and the LED's automatically return to the lower priority state
-after the blinking. The `reset` command can also be used to return to a lower priority.
-
-### Examples
-Blink the first LED 5 times in blue:
-$ led_control blink -c blue -l 0 -n 5
-
-)DESCR_STR");
+		"### Description\n"
+		"Command-line tool to control & test the (external) LED's.\n"
+		"\n"
+		"To use it make sure there's a driver running, which handles the led_control uorb topic.\n"
+		"\n"
+		"There are different priorities, such that for example one module can set a color with low priority, and another\n"
+		"module can blink N times with high priority, and the LED's automatically return to the lower priority state\n"
+		"after the blinking. The `reset` command can also be used to return to a lower priority.\n"
+		"\n"
+		"### Examples\n"
+		"Blink the first LED 5 times in blue:\n"
+		"$ led_control blink -c blue -l 0 -n 5");
 
 	PRINT_MODULE_USAGE_NAME("led_control", "command");
 

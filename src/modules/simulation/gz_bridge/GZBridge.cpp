@@ -1071,10 +1071,7 @@ int GZBridge::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-)DESCR_STR");
+		"### Description");
 
 	PRINT_MODULE_USAGE_NAME("gz_bridge", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");

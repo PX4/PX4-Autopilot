@@ -96,15 +96,12 @@ I2CSPIDriverBase *Batmon::instantiate(const I2CSPIDriverConfig &config, int runt
 void Batmon::print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Driver for SMBUS Communication with BatMon enabled smart-battery
-Setup/usage information: https://rotoye.com/batmon-tutorial/
-### Examples
-To start at address 0x0B, on bus 4
-$ batmon start -X -a 11 -b 4
-
-)DESCR_STR");
+		"### Description\n"
+		"Driver for SMBUS Communication with BatMon enabled smart-battery\n"
+		"Setup/usage information: https://rotoye.com/batmon-tutorial/\n"
+		"### Examples\n"
+		"To start at address 0x0B, on bus 4\n"
+		"$ batmon start -X -a 11 -b 4");
 
 	PRINT_MODULE_USAGE_NAME("batmon", "driver");
 
@@ -245,19 +242,21 @@ int Batmon::get_batmon_startup_info()
 
 void Batmon::custom_method(const BusCLIArguments &cli)
 {
-	switch(cli.custom1) {
-		case 1:
-			// TODO: analyze why these statements are not printed
-			PX4_INFO("The manufacturer name: %s", _manufacturer_name);
-			PX4_INFO("The manufacturer date: %d", _manufacture_date);
-			PX4_INFO("The serial number: %d", _serial_number);
-			break;
-		case 4:
-			suspend();
-			break;
-		case 5:
-			resume();
-			break;
+	switch (cli.custom1) {
+	case 1:
+		// TODO: analyze why these statements are not printed
+		PX4_INFO("The manufacturer name: %s", _manufacturer_name);
+		PX4_INFO("The manufacturer date: %d", _manufacture_date);
+		PX4_INFO("The serial number: %d", _serial_number);
+		break;
+
+	case 4:
+		suspend();
+		break;
+
+	case 5:
+		resume();
+		break;
 	}
 }
 
@@ -302,6 +301,7 @@ extern "C" __EXPORT int batmon_main(int argc, char *argv[])
 	cli.i2c_address = batmon_addr_batt1;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
+
 	if (!verb) {
 		ThisDriver::print_usage();
 		return -1;
@@ -325,10 +325,12 @@ extern "C" __EXPORT int batmon_main(int argc, char *argv[])
 		cli.custom1 = 1;
 		return ThisDriver::module_custom_method(cli, iterator);
 	}
+
 	if (!strcmp(verb, "suspend")) {
 		cli.custom1 = 4;
 		return ThisDriver::module_custom_method(cli, iterator);
 	}
+
 	if (!strcmp(verb, "resume")) {
 		cli.custom1 = 5;
 		return ThisDriver::module_custom_method(cli, iterator);

@@ -332,11 +332,8 @@ int GyroCalibration::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Simple online gyroscope calibration.
-
-)DESCR_STR");
+		"### Description\n"
+		"Simple online gyroscope calibration.");
 
 	PRINT_MODULE_USAGE_NAME("gyro_calibration", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");

@@ -498,18 +498,15 @@ int MspOsd::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-MSP telemetry streamer
-
-### Implementation
-Converts uORB messages to MSP telemetry packets
-
-### Examples
-CLI usage example:
-$ msp_osd
-
-)DESCR_STR");
+		"### Description\n"
+		"MSP telemetry streamer\n"
+		"\n"
+		"### Implementation\n"
+		"Converts uORB messages to MSP telemetry packets\n"
+		"\n"
+		"### Examples\n"
+		"CLI usage example:\n"
+		"$ msp_osd");
 
 	PRINT_MODULE_USAGE_NAME("msp_osd", "driver");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();

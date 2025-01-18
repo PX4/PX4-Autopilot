@@ -260,8 +260,7 @@ class ModuleDocumentation(object):
 
         # convert '$ cmd' commands into code blocks (e.g. '$ logger start')
         # use lookahead (?=...) so the multiple consecutive command lines work
-        doc_string = re.sub(r"\n\$ (.*)(?=\n)", r"\n```\n\1\n```", doc_string)
-        # now merge consecutive blocks
+        doc_string = re.sub(r"(?m)^\$ (.*)", r"```\n\1\n```", doc_string)
         doc_string = re.sub(r"\n```\n```\n", r"\n", doc_string)
 
         return doc_string

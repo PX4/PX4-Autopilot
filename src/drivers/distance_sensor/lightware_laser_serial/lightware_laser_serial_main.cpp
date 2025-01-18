@@ -97,22 +97,20 @@ static int status()
 static int usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Serial bus driver for the LightWare SF02/F, SF10/a, SF10/b, SF10/c, SF11/c Laser rangefinders.
-
-Most boards are configured to enable/start the driver on a specified UART using the SENS_SF0X_CFG parameter.
-
-Setup/usage information: https://docs.px4.io/main/en/sensor/sfxx_lidar.html
-
-### Examples
-
-Attempt to start driver on a specified serial device.
-$ lightware_laser_serial start -d /dev/ttyS1
-Stop driver
-$ lightware_laser_serial stop
-)DESCR_STR");
+		"### Description\n"
+		"\n"
+		"Serial bus driver for the LightWare SF02/F, SF10/a, SF10/b, SF10/c, SF11/c Laser rangefinders.\n"
+		"\n"
+		"Most boards are configured to enable/start the driver on a specified UART using the SENS_SF0X_CFG parameter.\n"
+		"\n"
+		"Setup/usage information: https://docs.px4.io/main/en/sensor/sfxx_lidar.html\n"
+		"\n"
+		"### Examples\n"
+		"\n"
+		"Attempt to start driver on a specified serial device.\n"
+		"$ lightware_laser_serial start -d /dev/ttyS1\n"
+		"Stop driver\n"
+		"$ lightware_laser_serial stop");
 
 	PRINT_MODULE_USAGE_NAME("lightware_laser_serial", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");

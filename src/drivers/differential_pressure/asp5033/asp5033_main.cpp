@@ -42,15 +42,13 @@
 void ASP5033::print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Driver to enable an external [ASP5033]
-(https://www.qio-tek.com/index.php/product/qiotek-asp5033-dronecan-airspeed-and-compass-module/)
-TE connected via I2C.
-This is not included by default in firmware. It can be included with terminal command: "make <your_board> boardconfig"
-or in default.px4board with adding the line: "CONFIG_DRIVERS_DIFFERENTIAL_PRESSURE_ASP5033=y"
-It can be enabled with the "SENS_EN_ASP5033" parameter set to 1.
-)DESCR_STR");
+		"### Description\n"
+		"Driver to enable an external [ASP5033]\n"
+		"(https://www.qio-tek.com/index.php/product/qiotek-asp5033-dronecan-airspeed-and-compass-module/)\n"
+		"TE connected via I2C.\n"
+		"This is not included by default in firmware. It can be included with terminal command: 'make <your_board> boardconfig'\n"
+		"or in default.px4board with adding the line: 'CONFIG_DRIVERS_DIFFERENTIAL_PRESSURE_ASP5033=y'\n"
+		"It can be enabled with the 'SENS_EN_ASP5033' parameter set to 1.");
 	PRINT_MODULE_USAGE_NAME("asp5033", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("airspeed_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");

@@ -107,13 +107,10 @@ int TimePersistor::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Writes the RTC time cyclically to a file and reloads this value on startup.
-This allows monotonic time on systems that only have a software RTC (that is not battery powered).
-Explicitly setting the time backwards (e.g. via system_time) is still possible.
-
-)DESCR_STR");
+		"### Description\n"
+		"Writes the RTC time cyclically to a file and reloads this value on startup.\n"
+		"This allows monotonic time on systems that only have a software RTC (that is not battery powered).\n"
+		"Explicitly setting the time backwards (e.g. via system_time) is still possible.");
 
 	PRINT_MODULE_USAGE_NAME("time_persistor", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");

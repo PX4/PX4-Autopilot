@@ -3294,34 +3294,32 @@ static void usage()
 {
 
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This module implements the MAVLink protocol, which can be used on a Serial link or UDP network connection.
-It communicates with the system via uORB: some messages are directly handled in the module (eg. mission
-protocol), others are published via uORB (eg. vehicle_command).
-
-Streams are used to send periodic messages with a specific rate, such as the vehicle attitude.
-When starting the mavlink instance, a mode can be specified, which defines the set of enabled streams with their rates.
-For a running instance, streams can be configured via `mavlink stream` command.
-
-There can be multiple independent instances of the module, each connected to one serial device or network port.
-
-### Implementation
-The implementation uses 2 threads, a sending and a receiving thread. The sender runs at a fixed rate and dynamically
-reduces the rates of the streams if the combined bandwidth is higher than the configured rate (`-r`) or the
-physical link becomes saturated. This can be checked with `mavlink status`, see if `rate mult` is less than 1.
-
-**Careful**: some of the data is accessed and modified from both threads, so when changing code or extend the
-functionality, this needs to be take into account, in order to avoid race conditions and corrupt data.
-
-### Examples
-Start mavlink on ttyS1 serial with baudrate 921600 and maximum sending rate of 80kB/s:
-$ mavlink start -d /dev/ttyS1 -b 921600 -m onboard -r 80000
-
-Start mavlink on UDP port 14556 and enable the HIGHRES_IMU message with 50Hz:
-$ mavlink start -u 14556 -r 1000000
-$ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
-)DESCR_STR");
+		"### Description\n"
+		"This module implements the MAVLink protocol, which can be used on a Serial link or UDP network connection.\n"
+		"It communicates with the system via uORB: some messages are directly handled in the module (eg. mission\n"
+		"protocol), others are published via uORB (eg. vehicle_command).\n"
+		"\n"
+		"Streams are used to send periodic messages with a specific rate, such as the vehicle attitude.\n"
+		"When starting the mavlink instance, a mode can be specified, which defines the set of enabled streams with their rates.\n"
+		"For a running instance, streams can be configured via `mavlink stream` command.\n"
+		"\n"
+		"There can be multiple independent instances of the module, each connected to one serial device or network port.\n"
+		"\n"
+		"### Implementation\n"
+		"The implementation uses 2 threads, a sending and a receiving thread. The sender runs at a fixed rate and dynamically\n"
+		"reduces the rates of the streams if the combined bandwidth is higher than the configured rate (`-r`) or the\n"
+		"physical link becomes saturated. This can be checked with `mavlink status`, see if `rate mult` is less than 1.\n"
+		"\n"
+		"**Careful**: some of the data is accessed and modified from both threads, so when changing code or extend the\n"
+		"functionality, this needs to be take into account, in order to avoid race conditions and corrupt data.\n"
+		"\n"
+		"### Examples\n"
+		"Start mavlink on ttyS1 serial with baudrate 921600 and maximum sending rate of 80kB/s:\n"
+		"$ mavlink start -d /dev/ttyS1 -b 921600 -m onboard -r 80000\n"
+		"\n"
+		"Start mavlink on UDP port 14556 and enable the HIGHRES_IMU message with 50Hz:\n"
+		"$ mavlink start -u 14556 -r 1000000\n"
+		"$ mavlink stream -u 14556 -s HIGHRES_IMU -r 50");
 
 	PRINT_MODULE_USAGE_NAME("mavlink", "communication");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start a new instance");
@@ -3332,13 +3330,16 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_FLAG('p', "Enable Broadcast", true);
 	PRINT_MODULE_USAGE_PARAM_INT('u', 14556, 0, 65536, "Select UDP Network Port (local)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('o', 14550, 0, 65536, "Select UDP Network Port (remote)", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr, "Partner IP (broadcasting can be enabled via -p flag)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr, "Partner IP (broadcasting can be enabled via -p flag)",
+					true);
 #endif
-	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal|uavionix",
+	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal",
+					"custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal|uavionix",
 					"Mode: sets default streams and rates", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, "<interface_name>", "wifi/ethernet interface name", true);
 #if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)
-	PRINT_MODULE_USAGE_PARAM_STRING('c', nullptr, "Multicast address in the range [239.0.0.0,239.255.255.255]", "Multicast address (multicasting can be enabled via MAV_{i}_BROADCAST param)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('c', nullptr, "Multicast address in the range [239.0.0.0,239.255.255.255]",
+					"Multicast address (multicasting can be enabled via MAV_{i}_BROADCAST param)", true);
 #endif
 	PRINT_MODULE_USAGE_PARAM_FLOAT('F', 0.015, 0.0, 50.0, "Sets the transmission frequency for iridium mode", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Enable message forwarding to other Mavlink instances", true);

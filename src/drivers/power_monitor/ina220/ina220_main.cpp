@@ -61,20 +61,17 @@ void
 INA220::print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Driver for the INA220 power monitor.
-
-Multiple instances of this driver can run simultaneously, if each instance has a separate bus OR I2C address.
-
-For example, one instance can run on Bus 2, address 0x41, and one can run on Bus 2, address 0x43.
-
-If the INA220 module is not powered, then by default, initialization of the driver will fail. To change this, use
-the -f flag. If this flag is set, then if initialization fails, the driver will keep trying to initialize again
-every 0.5 seconds. With this flag set, you can plug in a battery after the driver starts, and it will work. Without
-this flag set, the battery must be plugged in before starting the driver.
-
-)DESCR_STR");
+		"### Description\n"
+		"Driver for the INA220 power monitor.\n"
+		"\n"
+		"Multiple instances of this driver can run simultaneously, if each instance has a separate bus OR I2C address.\n"
+		"\n"
+		"For example, one instance can run on Bus 2, address 0x41, and one can run on Bus 2, address 0x43.\n"
+		"\n"
+		"If the INA220 module is not powered, then by default, initialization of the driver will fail. To change this, use\n"
+		"the -f flag. If this flag is set, then if initialization fails, the driver will keep trying to initialize again\n"
+		"every 0.5 seconds. With this flag set, you can plug in a battery after the driver starts, and it will work. Without\n"
+		"this flag set, the battery must be plugged in before starting the driver.");
 
 	PRINT_MODULE_USAGE_NAME("ina220", "driver");
 
@@ -99,11 +96,13 @@ ina220_main(int argc, char *argv[])
 	cli.custom1 = 1;
 
 	cli.custom2 = PM_CH_TYPE_VBATT;
+
 	while ((ch = cli.getOpt(argc, argv, "T:")) != EOF) {
 		switch (ch) {
 		case 't': // battery index
 			cli.custom1 = (int)strtol(cli.optArg(), NULL, 0);
 			break;
+
 		case 'T':
 			if (strcmp(cli.optArg(), "VBATT") == 0) {
 				cli.custom2 = PM_CH_TYPE_VBATT;
@@ -121,6 +120,7 @@ ina220_main(int argc, char *argv[])
 	}
 
 	const char *verb = cli.optArg();
+
 	if (!verb) {
 		ThisDriver::print_usage();
 		return -1;
