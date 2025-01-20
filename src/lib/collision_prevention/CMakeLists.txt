@@ -40,3 +40,4 @@ target_include_directories(CollisionPrevention PUBLIC ${CMAKE_CURRENT_SOURCE_DIR
 target_link_libraries(CollisionPrevention PRIVATE mathlib)
 
 px4_add_functional_gtest(SRC CollisionPreventionTest.cpp LINKLIBS CollisionPrevention)
+px4_add_unit_gtest(SRC ObstacleMathTest.cpp LINKLIBS CollisionPrevention)
