@@ -70,7 +70,7 @@ public:
 		{
 			VehicleOpticalFlow::UpdateDistanceSensor();
 		}
-		bool isDistanceSensorSelected()
+		bool IsDistanceSensorSelected()
 		{
 			return _distance_sensor_selected >= 0;
 
