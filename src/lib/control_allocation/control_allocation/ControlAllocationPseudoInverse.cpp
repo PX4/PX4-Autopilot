@@ -51,6 +51,11 @@ ControlAllocationPseudoInverse::setEffectivenessMatrix(
 			update_normalization_scale);
 	_mix_update_needed = true;
 	_normalization_needs_update = update_normalization_scale;
+
+	if (_metric_allocation && update_normalization_scale) {
+		// adding #include <px4_platform_common/log.h> + PX4_WARN leads to failed linking on test
+		_normalization_needs_update = false;
+	}
 }
 
 void
@@ -59,12 +64,15 @@ ControlAllocationPseudoInverse::updatePseudoInverse()
 	if (_mix_update_needed) {
 		matrix::geninv(_effectiveness, _mix);
 
-		if (_normalization_needs_update && !_had_actuator_failure) {
-			updateControlAllocationMatrixScale();
-			_normalization_needs_update = false;
+		if (!_metric_allocation) {
+			if (_normalization_needs_update && !_had_actuator_failure) {
+				updateControlAllocationMatrixScale();
+				_normalization_needs_update = false;
+			}
+
+			normalizeControlAllocationMatrix();
 		}
 
-		normalizeControlAllocationMatrix();
 		_mix_update_needed = false;
 	}
 }
