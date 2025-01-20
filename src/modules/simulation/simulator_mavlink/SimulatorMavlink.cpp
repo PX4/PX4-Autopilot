@@ -607,7 +607,8 @@ void SimulatorMavlink::handle_message_hil_state_quaternion(const mavlink_message
 		hil_lpos.vxy_max = std::numeric_limits<float>::infinity();
 		hil_lpos.vz_max = std::numeric_limits<float>::infinity();
 		hil_lpos.hagl_min = std::numeric_limits<float>::infinity();
-		hil_lpos.hagl_max = std::numeric_limits<float>::infinity();
+		hil_lpos.hagl_max_z = std::numeric_limits<float>::infinity();
+		hil_lpos.hagl_max_xy = std::numeric_limits<float>::infinity();
 
 		// always publish ground truth attitude message
 		_lpos_ground_truth_pub.publish(hil_lpos);
