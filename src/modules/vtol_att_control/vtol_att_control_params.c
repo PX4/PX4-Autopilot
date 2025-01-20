@@ -354,7 +354,7 @@ PARAM_DEFINE_FLOAT(VT_B_DEC_I, 0.1f);
  * Minimum pitch angle during hover.
  *
  * Any pitch setpoint below this value is translated to a forward force by the fixed-wing forward actuation if
- * VT_FW_TRHUST_EN is set to 1.
+ * VT_FWD_TRHUST_EN is set.
  *
  * @unit deg
  * @min -10.0
