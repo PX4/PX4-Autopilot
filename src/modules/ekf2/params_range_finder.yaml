@@ -158,7 +158,7 @@ parameters:
           If there's a jump from larger than RNG_FOG to smaller than EKF2_RNG_FOG, the
           measurement may gets rejected. 0 - disabled
       type: float
-      default: 1.0
+      default: 3.0
       min: 0.0
       max: 20.0
       unit: m
