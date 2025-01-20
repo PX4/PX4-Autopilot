@@ -49,7 +49,9 @@
 #include <lib/perf/perf_counter.h>
 
 #include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/obstacle_distance.h>
+#include <uORB/topics/vehicle_attitude.h>
 
 #include "sf45_commands.h"
 
@@ -92,7 +94,7 @@ public:
 	void				sf45_get_and_handle_request(const int payload_length, const SF_SERIAL_CMD msg_id);
 	void				sf45_send(uint8_t msg_id, bool r_w, int32_t *data, uint8_t data_len);
 	uint16_t			sf45_format_crc(uint16_t crc, uint8_t data_value);
-	void				sf45_process_replies(float *data);
+	void				sf45_process_replies();
 	uint8_t				sf45_convert_angle(const int16_t yaw);
 	float				sf45_wrap_360(float f);
 
@@ -113,6 +115,7 @@ private:
 
 	void 				_handle_missed_bins(uint8_t current_bin, uint8_t previous_bin, uint16_t measurement, hrt_abstime now);
 	void 				_publish_obstacle_msg(hrt_abstime now);
+	uORB::Subscription 		_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uint64_t			_data_timestamps[BIN_COUNT];
 
 
@@ -141,6 +144,7 @@ private:
 	int32_t				_orient_cfg{0};
 	uint8_t				_previous_bin{0};
 	uint16_t			_current_bin_dist{UINT16_MAX};
+	matrix::Quatf			_vehicle_attitude{};
 
 	// end of SF45/B data members
 
