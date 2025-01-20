@@ -286,14 +286,11 @@ void Sensors::diff_pres_poll()
 
 			air_temperature_celsius = diff_pres.temperature;
 
-		} else {
+		} else if ((air_data.timestamp != 0) && PX4_ISFINITE(air_data.ambient_temperature)
+			   && (air_data.ambient_temperature >= -40.f) && (air_data.ambient_temperature <= 125.f)) {
 			// differential pressure temperature invalid, check barometer
-			if ((air_data.timestamp != 0) && PX4_ISFINITE(air_data.baro_temp_celcius)
-			    && (air_data.baro_temp_celcius >= -40.f) && (air_data.baro_temp_celcius <= 125.f)) {
-
-				// TODO: review PCB_TEMP_ESTIMATE_DEG, ignore for external baro
-				air_temperature_celsius = air_data.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG;
-			}
+			// TODO: review PCB_TEMP_ESTIMATE_DEG, ignore for external baro
+			air_temperature_celsius = air_data.ambient_temperature - PCB_TEMP_ESTIMATE_DEG;
 		}
 
 		// push raw data into validator
@@ -354,7 +351,6 @@ void Sensors::diff_pres_poll()
 				airspeed.timestamp_sample = timestamp_sample;
 				airspeed.indicated_airspeed_m_s = indicated_airspeed_m_s;
 				airspeed.true_airspeed_m_s = true_airspeed_m_s;
-				airspeed.air_temperature_celsius = temperature;
 				airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
 				airspeed.timestamp = hrt_absolute_time();
 				_airspeed_pub.publish(airspeed);

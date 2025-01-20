@@ -77,20 +77,23 @@ void VehicleAirData::Stop()
 	}
 }
 
-void VehicleAirData::AirTemperatureUpdate()
+void VehicleAirData::AirTemperatureUpdate(float &temperature)
 {
+	// use the temperature from the differential pressure sensor if available
+	// otherwise use the temperature from the selected barometer
 	differential_pressure_s differential_pressure;
-
-	static constexpr float temperature_min_celsius = -20.f;
-	static constexpr float temperature_max_celsius = 35.f;
+	static constexpr float temperature_min_celsius = -40.f;
+	static constexpr float temperature_max_celsius = 125.f;
 
 	// update air temperature if data from differential pressure sensor is finite and not exactly 0
 	// limit the range to max 35°C to limt the error due to heated up airspeed sensors prior flight
-	if (_differential_pressure_sub.update(&differential_pressure) && PX4_ISFINITE(differential_pressure.temperature)
-	    && fabsf(differential_pressure.temperature) > FLT_EPSILON) {
+	if (_differential_pressure_sub.copy(&differential_pressure)
+	    && hrt_absolute_time() - differential_pressure.timestamp_sample < 1_s
+	    && PX4_ISFINITE(differential_pressure.temperature)
+	) {
 
-		_air_temperature_celsius = math::constrain(differential_pressure.temperature, temperature_min_celsius,
-					   temperature_max_celsius);
+		temperature = math::constrain(differential_pressure.temperature, temperature_min_celsius,
+					      temperature_max_celsius);
 	}
 }
 
@@ -138,8 +141,6 @@ void VehicleAirData::Run()
 	const hrt_abstime time_now_us = hrt_absolute_time();
 
 	const bool parameter_update = ParametersUpdate();
-
-	AirTemperatureUpdate();
 
 	estimator_status_flags_s estimator_status_flags;
 	const bool estimator_status_flags_updated = _estimator_status_flags_sub.update(&estimator_status_flags);
@@ -272,7 +273,8 @@ void VehicleAirData::Run()
 
 					if (publish) {
 						const float pressure_pa = _data_sum[instance] / _data_sum_count[instance];
-						const float temperature = _temperature_sum[instance] / _data_sum_count[instance];
+						float temperature = _temperature_sum[instance] / _data_sum_count[instance];
+						AirTemperatureUpdate(temperature);
 
 						const float pressure_sealevel_pa = _param_sens_baro_qnh.get() * 100.f;
 						const float altitude = getAltitudeFromPressure(pressure_pa, pressure_sealevel_pa);
@@ -285,10 +287,9 @@ void VehicleAirData::Run()
 						out.timestamp_sample = timestamp_sample;
 						out.baro_device_id = _calibration[instance].device_id();
 						out.baro_alt_meter = altitude;
-						out.baro_temp_celcius = temperature;
+						out.ambient_temperature = temperature;
 						out.baro_pressure_pa = pressure_pa;
 						out.rho = air_density;
-						out.eas2tas = sqrtf(kAirDensitySeaLevelStandardAtmos / math::max(air_density, FLT_EPSILON));
 						out.calibration_count = _calibration[instance].calibration_count();
 						out.timestamp = hrt_absolute_time();
 
