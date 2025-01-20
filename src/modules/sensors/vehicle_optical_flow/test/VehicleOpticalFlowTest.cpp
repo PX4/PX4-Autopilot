@@ -89,24 +89,30 @@ public:
 };
 
 
-TEST_F(VehicleOpticalFlowTest, whenCameraDownFacing_ThenSensorSelected)
+TEST_F(VehicleOpticalFlowTest, CameraFacingDown)
 {
+	// GIVEN: message with sensor camera facing down
 	distance_sensor_s message = createDistanceSensorMessage(distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	orb_advertise(ORB_ID(distance_sensor), &message);
 
+	// WHEN: update distance sensor
 	VehicleOpticalFlowTest::VehicleOpticalFlowTestable testable;
 	testable.UpdateDistanceSensorPublic();
 
-	EXPECT_TRUE(testable.isDistanceSensorSelected());
+	// THEN: sensor selected
+	EXPECT_TRUE(testable.IsDistanceSensorSelected());
 }
 
-TEST_F(VehicleOpticalFlowTest, whenCameraIsNotDown_ThenNoSensor)
+TEST_F(VehicleOpticalFlowTest, CameraFacingForward)
 {
+	// GIVEN: message with sensor camera facing forward
 	distance_sensor_s message = createDistanceSensorMessage(distance_sensor_s::ROTATION_FORWARD_FACING);
 	orb_advertise(ORB_ID(distance_sensor), &message);
 
+	// WHEN: update distance sensor
 	VehicleOpticalFlowTest::VehicleOpticalFlowTestable testable;
 	testable.UpdateDistanceSensorPublic();
 
-	EXPECT_FALSE(testable.isDistanceSensorSelected());
+	// THEN: sensor is not selected
+	EXPECT_FALSE(testable.IsDistanceSensorSelected());
 }
