@@ -411,7 +411,7 @@ void Sih::generate_ts_aerodynamics()
 
 	for (int i = 0; i < NB_TS_SEG; i++) {
 		if (i <= NB_TS_SEG / 2) {
-			_ts[i].update_aero(v_ts, w_ts, altitude, _u[5]*TS_DEF_MAX, _T_MAX * _u[1]);
+			_ts[i].update_aero(v_ts, w_ts, altitude, -_u[5]*TS_DEF_MAX, _T_MAX * _u[1]);
 
 		} else {
 			_ts[i].update_aero(v_ts, w_ts, altitude, -_u[4]*TS_DEF_MAX, _T_MAX * _u[0]);

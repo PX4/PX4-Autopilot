@@ -64,8 +64,3 @@ param set-default PWM_MAIN_FUNC1 101
 param set-default PWM_MAIN_FUNC2 102
 param set-default PWM_MAIN_FUNC5 201
 param set-default PWM_MAIN_FUNC6 202
-
-# param set-default PWM_MAIN_REV 48
-param set-default PWM_MAIN_REV 32
-# param set-default PWM_MAIN_REV 16
-
