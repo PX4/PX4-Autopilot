@@ -1026,7 +1026,8 @@ void MissionBlock::updateMaxHaglFailsafe()
 	const float target_alt = _navigator->get_position_setpoint_triplet()->current.alt;
 
 	if (_navigator->get_global_position()->terrain_alt_valid
-	    && ((target_alt - _navigator->get_global_position()->terrain_alt) > _navigator->get_local_position()->hagl_max)) {
+	    && ((target_alt - _navigator->get_global_position()->terrain_alt)
+		> math::min(_navigator->get_local_position()->hagl_max_z, _navigator->get_local_position()->hagl_max_xy))) {
 		// Handle case where the altitude setpoint is above the maximum HAGL (height above ground level)
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Target altitude higher than max HAGL\t");
 		events::send(events::ID("navigator_fail_max_hagl"), events::Log::Error, "Target altitude higher than max HAGL");

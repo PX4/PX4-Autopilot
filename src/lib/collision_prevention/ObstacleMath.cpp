@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,30 +31,24 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "ObstacleMath.hpp"
+#include <mathlib/math/Limits.hpp>
 
-#include "FlightTaskManualAltitudeSmoothVel.hpp"
-#include "StickAccelerationXY.hpp"
-#include "StickYaw.hpp"
-#include <lib/weather_vane/WeatherVane.hpp>
+using namespace matrix;
 
-class FlightTaskManualAcceleration : public FlightTaskManualAltitudeSmoothVel
+namespace ObstacleMath
 {
-public:
-	FlightTaskManualAcceleration() = default;
-	virtual ~FlightTaskManualAcceleration() = default;
-	bool activate(const trajectory_setpoint_s &last_setpoint) override;
-	bool update() override;
 
-protected:
-	void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) override;
-	void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) override;
+void project_distance_on_horizontal_plane(float &distance, const float yaw, const matrix::Quatf &q_world_vehicle)
+{
+	const Quatf q_vehicle_sensor(Quatf(cosf(yaw / 2.f), 0.f, 0.f, sinf(yaw / 2.f)));
+	const Quatf q_world_sensor = q_world_vehicle * q_vehicle_sensor;
+	const Vector3f forward(1.f, 0.f, 0.f);
+	const Vector3f sensor_direction_in_world = q_world_sensor.rotateVector(forward);
 
-	StickAccelerationXY _stick_acceleration_xy{this};
-	WeatherVane _weathervane{this}; /**< weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
+	float horizontal_projection_scale = sensor_direction_in_world.xy().norm();
+	horizontal_projection_scale = math::constrain(horizontal_projection_scale, FLT_EPSILON, 1.0f);
+	distance *= horizontal_projection_scale;
+}
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
-					(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,
-					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor
-				       )
-};
+} // ObstacleMath

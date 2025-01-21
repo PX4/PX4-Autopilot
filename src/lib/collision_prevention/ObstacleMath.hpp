@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,30 +31,17 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include <matrix/math.hpp>
 
-#include "FlightTaskManualAltitudeSmoothVel.hpp"
-#include "StickAccelerationXY.hpp"
-#include "StickYaw.hpp"
-#include <lib/weather_vane/WeatherVane.hpp>
-
-class FlightTaskManualAcceleration : public FlightTaskManualAltitudeSmoothVel
+namespace ObstacleMath
 {
-public:
-	FlightTaskManualAcceleration() = default;
-	virtual ~FlightTaskManualAcceleration() = default;
-	bool activate(const trajectory_setpoint_s &last_setpoint) override;
-	bool update() override;
 
-protected:
-	void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) override;
-	void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) override;
+/**
+ * Scales a distance measurement taken in the vehicle body horizontal plane onto the world horizontal plane
+ * @param distance measurement which is scaled down
+ * @param yaw orientation of the measurement on the body horizontal plane
+ * @param q_world_vehicle vehicle attitude quaternion
+ */
+void project_distance_on_horizontal_plane(float &distance, const float yaw, const matrix::Quatf &q_world_vehicle);
 
-	StickAccelerationXY _stick_acceleration_xy{this};
-	WeatherVane _weathervane{this}; /**< weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
-
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
-					(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,
-					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor
-				       )
-};
+} // ObstacleMath
