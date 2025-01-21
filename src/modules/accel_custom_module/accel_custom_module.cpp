@@ -63,19 +63,6 @@ int TemplateModule::print_status()
 
 int TemplateModule::custom_command(int argc, char *argv[])
 {
-	/*
-	if (!is_running()) {
-		print_usage("not running");
-		return 1;
-	}
-
-	// additional custom commands can be handled like this:
-	if (!strcmp(argv[0], "do-something")) {
-		get_instance()->do_something();
-		return 0;
-	}
-	 */
-
 	return print_usage("unknown command");
 }
 

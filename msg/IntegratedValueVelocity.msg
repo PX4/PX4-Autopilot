@@ -1,4 +1,4 @@
-# This is similar to the mavlink message ATTITUDE_QUATERNION, but for onboard use
+#  Integrated value of the velocity of the accelerometer
 
 uint64 timestamp                # time since system start (microseconds)
 
