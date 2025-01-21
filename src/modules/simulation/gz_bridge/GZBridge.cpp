@@ -159,7 +159,7 @@ int GZBridge::init()
 
 			while (scene_created == false) {
 				if (!callSceneInfoMsgService(scene_info_service)) {
-					PX4_WARN("Service call timed out as Gazebo has not been detected." Retrying...);
+					PX4_WARN("Service call timed out as Gazebo has not been detected. Retrying...");
 					system_usleep(2000000);
 
 				} else {
