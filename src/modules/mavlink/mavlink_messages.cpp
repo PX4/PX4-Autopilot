@@ -148,6 +148,7 @@
 # include "streams/ODOMETRY.hpp"
 # include "streams/SCALED_PRESSURE2.hpp"
 # include "streams/SCALED_PRESSURE3.hpp"
+# include "streams/TUNNEL.hpp"
 # include "streams/UAVIONIX_ADSB_OUT_CFG.hpp"
 # include "streams/UAVIONIX_ADSB_OUT_DYNAMIC.hpp"
 #endif // !CONSTRAINED_FLASH
@@ -505,6 +506,9 @@ static const StreamListItem streams_list[] = {
 #if defined(CURRENT_MODE_HPP)
 	create_stream_list_item<MavlinkStreamCurrentMode>(),
 #endif // CURRENT_MODE_HPP
+#if defined(TUNNEL_HPP)
+	create_stream_list_item<MavlinkStreamTunnel>()
+#endif // TUNNEL_HPP
 };
 
 const char *get_stream_name(const uint16_t msg_id)
