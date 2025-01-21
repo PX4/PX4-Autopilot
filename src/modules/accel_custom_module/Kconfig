@@ -1,0 +1,5 @@
+menuconfig MODULES_ACCEL_CUSTOM_MODULE
+	bool "accel_custom_module"
+	default n
+	---help---
+		Enable support for accel_custom_module

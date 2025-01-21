@@ -191,6 +191,7 @@ set(msg_files
 	VehicleAngularAccelerationSetpoint.msg
 	VehicleAngularVelocity.msg
 	VehicleAttitude.msg
+	IntegratedValueVelocity.msg
 	VehicleAttitudeSetpoint.msg
 	VehicleCommand.msg
 	VehicleCommandAck.msg

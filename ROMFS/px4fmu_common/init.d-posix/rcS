@@ -288,7 +288,7 @@ if param compare -s PD_GRIPPER_EN 1
 then
 	payload_deliverer start
 fi
-
+accel_custom_module start
 #user defined mavlink streams for instances can be in PATH
 . px4-rc.mavlink
 
