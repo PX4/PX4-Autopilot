@@ -279,19 +279,7 @@ void Sensors::diff_pres_poll()
 		vehicle_air_data_s air_data{};
 		_vehicle_air_data_sub.copy(&air_data);
 
-		float air_temperature_celsius = NAN;
-
-		// assume anything outside of a (generous) operating range of -40C to 125C is invalid
-		if (PX4_ISFINITE(diff_pres.temperature) && (diff_pres.temperature >= -40.f) && (diff_pres.temperature <= 125.f)) {
-
-			air_temperature_celsius = diff_pres.temperature;
-
-		} else if ((air_data.timestamp != 0) && PX4_ISFINITE(air_data.ambient_temperature)
-			   && (air_data.ambient_temperature >= -40.f) && (air_data.ambient_temperature <= 125.f)) {
-			// differential pressure temperature invalid, check barometer
-			// TODO: review PCB_TEMP_ESTIMATE_DEG, ignore for external baro
-			air_temperature_celsius = air_data.ambient_temperature - PCB_TEMP_ESTIMATE_DEG;
-		}
+		const float air_temperature_celsius = air_data.ambient_temperature;
 
 		// push raw data into validator
 		float airspeed_input[3] { diff_pres.differential_pressure_pa, air_temperature_celsius, 0.0f };

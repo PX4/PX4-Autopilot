@@ -77,24 +77,24 @@ void VehicleAirData::Stop()
 	}
 }
 
-void VehicleAirData::AirTemperatureUpdate(float &temperature)
+void VehicleAirData::AirTemperatureUpdate(float &temperature, const bool &external_baro)
 {
 	// use the temperature from the differential pressure sensor if available
-	// otherwise use the temperature from the selected barometer
+	// otherwise use the temperature from the external barometer
+	// internal baros are not precise enough to be used for temperature
+	static constexpr float default_temperature_celsius = 15.f;
+	temperature = external_baro ? temperature : default_temperature_celsius;
+	static constexpr float temperature_min_celsius = -60.f;
+	static constexpr float temperature_max_celsius = 60.f;
 	differential_pressure_s differential_pressure;
-	static constexpr float temperature_min_celsius = -40.f;
-	static constexpr float temperature_max_celsius = 125.f;
 
-	// update air temperature if data from differential pressure sensor is finite and not exactly 0
-	// limit the range to max 35°C to limt the error due to heated up airspeed sensors prior flight
 	if (_differential_pressure_sub.copy(&differential_pressure)
 	    && hrt_absolute_time() - differential_pressure.timestamp_sample < 1_s
-	    && PX4_ISFINITE(differential_pressure.temperature)
-	) {
-
-		temperature = math::constrain(differential_pressure.temperature, temperature_min_celsius,
-					      temperature_max_celsius);
+	    && PX4_ISFINITE(differential_pressure.temperature)) {
+		temperature = differential_pressure.temperature;
 	}
+
+	temperature = math::constrain(temperature, temperature_min_celsius, temperature_max_celsius);
 }
 
 bool VehicleAirData::ParametersUpdate(bool force)
@@ -274,7 +274,8 @@ void VehicleAirData::Run()
 					if (publish) {
 						const float pressure_pa = _data_sum[instance] / _data_sum_count[instance];
 						float temperature = _temperature_sum[instance] / _data_sum_count[instance];
-						AirTemperatureUpdate(temperature);
+						const bool external_baro = _calibration[instance].external();
+						AirTemperatureUpdate(temperature, external_baro);
 
 						const float pressure_sealevel_pa = _param_sens_baro_qnh.get() * 100.f;
 						const float altitude = getAltitudeFromPressure(pressure_pa, pressure_sealevel_pa);
