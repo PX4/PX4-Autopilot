@@ -70,6 +70,7 @@ private:
 	} _takeoff_state;
 
 	float _transition_alt_amsl{0.f};	// absolute altitude at which vehicle will transition to forward flight
+	float _takeoff_alt_msl{0.f};
 	matrix::Vector2d _loiter_location;
 	float _loiter_height{0};
 
