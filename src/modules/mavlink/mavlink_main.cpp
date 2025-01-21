@@ -481,6 +481,12 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 		return;
 	}
 
+	// We don't forward ONBOARD_COMPUTER_STATUS for low bandwidth radio links
+	// This is required for logging only and should go through dds soon
+	if (self->get_mode() == MAVLINK_MODE_LORA && msg->msgid == MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS) {
+		return;
+	}
+
 	LockGuard lg{mavlink_module_mutex};
 
 	for (Mavlink *inst : mavlink_module_instances) {
