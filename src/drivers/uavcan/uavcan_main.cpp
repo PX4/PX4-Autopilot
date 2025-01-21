@@ -1073,8 +1073,6 @@ void UavcanMixingInterfaceServo::Run()
 void
 UavcanNode::print_info()
 {
-	(void)pthread_mutex_lock(&_node_mutex);
-
 	// Memory status
 	printf("Pool allocator status:\n");
 	printf("\tCapacity hard/soft: %" PRIu16 "/%" PRIu16 " blocks\n",
@@ -1112,14 +1110,28 @@ UavcanNode::print_info()
 	printf("\n");
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
-	printf("ESC outputs:\n");
-	_mixing_interface_esc.mixingOutput().printStatus();
 
-	printf("Servo outputs:\n");
-	_mixing_interface_servo.mixingOutput().printStatus();
+	// Print esc status if at least one channel is enabled
+	for (int i = 0; i < OutputModuleInterface::MAX_ACTUATORS; i++) {
+		if (_mixing_interface_esc.mixingOutput().isFunctionSet(i)) {
+			printf("ESC outputs:\n");
+			_mixing_interface_esc.mixingOutput().printStatus();
+			printf("\n");
+			break;
+		}
+	}
+
+	// Print servo status if at least one channel is enabled
+	for (int i = 0; i < OutputModuleInterface::MAX_ACTUATORS; i++) {
+		if (_mixing_interface_servo.mixingOutput().isFunctionSet(i)) {
+			printf("Servo outputs:\n");
+			_mixing_interface_servo.mixingOutput().printStatus();
+			printf("\n");
+			break;
+		}
+	}
+
 #endif
-
-	printf("\n");
 
 	// Sensor bridges
 	for (const auto &br : _sensor_bridges) {
@@ -1140,8 +1152,6 @@ UavcanNode::print_info()
 
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_interval_perf);
-
-	(void)pthread_mutex_unlock(&_node_mutex);
 }
 
 void
