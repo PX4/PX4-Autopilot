@@ -76,8 +76,6 @@ param set UAVCAN_ENABLE 0
 
 
 ###### ROVER/DRONE COMMON PARAMS ######
-# Disable internal magnetometer
-param set-default CAL_MAG0_PRIO 0
 
 # LEDs on TELEMETRY 1
 param set-default SER_TEL1_BAUD 57600

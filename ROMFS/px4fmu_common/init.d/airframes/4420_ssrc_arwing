@@ -61,9 +61,6 @@ param set-default BAT2_V_EMPTY 3.5000
 param set-default BAT2_SOURCE 0
 param set-default BAT2_CAPACITY 1800
 
-# Disable internal magnetometer
-param set CAL_MAG0_PRIO 0
-
 # Launch detection
 param set-default FW_LAUN_DETCN_ON 1
 
