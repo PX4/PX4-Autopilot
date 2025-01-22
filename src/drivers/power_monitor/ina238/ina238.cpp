@@ -160,7 +160,7 @@ int INA238::Reset()
 
 	int ret = PX4_ERROR;
 
-	_retries = 6;
+	_retries = 3;
 
 	if (RegisterWrite(Register::CONFIG, (uint16_t)(ADC_RESET_BIT)) != PX4_OK) {
 		return ret;
