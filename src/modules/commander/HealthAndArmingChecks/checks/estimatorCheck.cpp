@@ -697,7 +697,15 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 
 	// run position and velocity accuracy checks
 	// Check if quality checking of position accuracy and consistency is to be performed
-	const float lpos_eph_threshold = (_param_com_pos_fs_eph.get() < 0) ? INFINITY : _param_com_pos_fs_eph.get();
+	float lpos_eph_threshold = (_param_com_pos_fs_eph.get() < 0) ? INFINITY : _param_com_pos_fs_eph.get();
+
+	// DQ Custom Start: Reduce EPH threshold in hover, as we don't want global navigation modes to engage when
+	// global uncertainty is too high.
+	if (context.status().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		lpos_eph_threshold = 10.0f;
+	}
+
+	// DQ Custom End
 
 	bool xy_valid = lpos.xy_valid;
 	bool v_xy_valid = lpos.v_xy_valid;
