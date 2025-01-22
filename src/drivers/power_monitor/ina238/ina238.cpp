@@ -96,9 +96,7 @@ int INA238::read(uint8_t address, uint16_t &data)
 {
 	// read desired little-endian value via I2C
 	uint16_t received_bytes;
-	int ret = PX4_ERROR;
-
-	ret = transfer(&address, 1, (uint8_t *)&received_bytes, sizeof(received_bytes));
+	const int ret = transfer(&address, 1, (uint8_t *)&received_bytes, sizeof(received_bytes));
 
 	if (ret == PX4_OK) {
 		data = swap16(received_bytes);
