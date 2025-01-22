@@ -46,6 +46,8 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 
 using namespace time_literals;
 
@@ -72,6 +74,8 @@ public:
 
 	bool init();
 
+	void check_failure_injection();
+
 private:
 	void Run() override;
 
@@ -85,8 +89,13 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position_groundtruth)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+
 
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
+	uORB::Publication<vehicle_command_ack_s>        _command_ack_pub{ORB_ID(vehicle_command_ack)};
+
+	bool _arsp_blocked{false};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 

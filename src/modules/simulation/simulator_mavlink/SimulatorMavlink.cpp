@@ -1246,6 +1246,8 @@ void SimulatorMavlink::run()
 
 void SimulatorMavlink::check_failure_injections()
 {
+	PX4_INFO("Entering SimulatorMavlink::check_failure_injections");
+
 	vehicle_command_s vehicle_command;
 
 	while (_vehicle_command_sub.update(&vehicle_command)) {

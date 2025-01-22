@@ -106,9 +106,12 @@ void SensorBaroSim::Run()
 	}
 
 	if (_vehicle_global_position_sub.updated()) {
+
+		check_failure_injection();
+
 		vehicle_global_position_s gpos;
 
-		if (_vehicle_global_position_sub.copy(&gpos)) {
+		if (_vehicle_global_position_sub.copy(&gpos) && !_baro_blocked) {
 
 			const float dt = math::constrain((gpos.timestamp - _last_update_time) * 1e-6f, 0.001f, 0.1f);
 
@@ -176,6 +179,50 @@ void SensorBaroSim::Run()
 	}
 
 	perf_end(_loop_perf);
+}
+
+
+void SensorBaroSim::check_failure_injection()
+{
+	vehicle_command_s vehicle_command;
+
+	while (_vehicle_command_sub.update(&vehicle_command)) {
+		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
+			continue;
+		}
+
+		bool handled = false;
+		bool supported = false;
+
+		const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
+		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
+
+		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_BARO) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				PX4_WARN("CMD_INJECT_FAILURE, BARO off");
+				supported = true;
+				_baro_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				PX4_INFO("CMD_INJECT_FAILURE, BARO ok");
+				supported = true;
+				_baro_blocked = false;
+			}
+		}
+
+		if (handled) {
+			vehicle_command_ack_s ack{};
+			ack.command = vehicle_command.command;
+			ack.from_external = false;
+			ack.result = supported ?
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+			ack.timestamp = hrt_absolute_time();
+			_command_ack_pub.publish(ack);
+		}
+	}
 }
 
 int SensorBaroSim::task_spawn(int argc, char *argv[])

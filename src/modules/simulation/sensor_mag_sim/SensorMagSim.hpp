@@ -45,6 +45,8 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 
 using namespace time_literals;
 
@@ -65,6 +67,8 @@ public:
 
 	bool init();
 
+	void check_failure_injection();
+
 private:
 	void Run() override;
 
@@ -77,10 +81,14 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude_groundtruth)};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 
-	PX4Magnetometer _px4_mag{197388, ROTATION_NONE}; // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 1, ADDR: 3, TYPE: SIMULATION
+	PX4Magnetometer _px4_mag{197388, ROTATION_NONE}; // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	uORB::Publication<vehicle_command_ack_s>        _command_ack_pub{ORB_ID(vehicle_command_ack)};
+
 
 	bool _mag_earth_available{false};
+	bool _mag_blocked{false};
 
 	matrix::Vector3f _mag_earth_pred{};
 
