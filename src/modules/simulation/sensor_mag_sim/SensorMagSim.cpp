@@ -107,19 +107,24 @@ void SensorMagSim::Run()
 	}
 
 	if (_vehicle_global_position_sub.updated()) {
-		vehicle_global_position_s gpos;
 
-		if (_vehicle_global_position_sub.copy(&gpos)) {
-			if (gpos.eph < 1000) {
+		check_failure_injection();
 
-				// magnetic field data returned by the geo library using the current GPS position
-				const float declination_rad = math::radians(get_mag_declination_degrees(gpos.lat, gpos.lon));
-				const float inclination_rad = math::radians(get_mag_inclination_degrees(gpos.lat, gpos.lon));
-				const float field_strength_gauss = get_mag_strength_gauss(gpos.lat, gpos.lon);
+		if (!_mag_blocked) {
+			vehicle_global_position_s gpos;
 
-				_mag_earth_pred = Dcmf(Eulerf(0, -inclination_rad, declination_rad)) * Vector3f(field_strength_gauss, 0, 0);
+			if (_vehicle_global_position_sub.copy(&gpos)) {
+				if (gpos.eph < 1000) {
 
-				_mag_earth_available = true;
+					// magnetic field data returned by the geo library using the current GPS position
+					const float declination_rad = math::radians(get_mag_declination_degrees(gpos.lat, gpos.lon));
+					const float inclination_rad = math::radians(get_mag_inclination_degrees(gpos.lat, gpos.lon));
+					const float field_strength_gauss = get_mag_strength_gauss(gpos.lat, gpos.lon);
+
+					_mag_earth_pred = Dcmf(Eulerf(0, -inclination_rad, declination_rad)) * Vector3f(field_strength_gauss, 0, 0);
+
+					_mag_earth_available = true;
+				}
 			}
 		}
 	}
@@ -141,6 +146,51 @@ void SensorMagSim::Run()
 
 	perf_end(_loop_perf);
 }
+
+
+void SensorMagSim::check_failure_injection()
+{
+	vehicle_command_s vehicle_command;
+
+	while (_vehicle_command_sub.update(&vehicle_command)) {
+		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
+			continue;
+		}
+
+		bool handled = false;
+		bool supported = false;
+
+		const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
+		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
+
+		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_MAG) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				PX4_WARN("CMD_INJECT_FAILURE, MAG off");
+				supported = true;
+				_mag_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				PX4_INFO("CMD_INJECT_FAILURE, MAG ok");
+				supported = true;
+				_mag_blocked = false;
+			}
+		}
+
+		if (handled) {
+			vehicle_command_ack_s ack{};
+			ack.command = vehicle_command.command;
+			ack.from_external = false;
+			ack.result = supported ?
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+			ack.timestamp = hrt_absolute_time();
+			_command_ack_pub.publish(ack);
+		}
+	}
+}
+
 
 int SensorMagSim::task_spawn(int argc, char *argv[])
 {

@@ -45,6 +45,8 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 
 using namespace time_literals;
 
@@ -65,6 +67,8 @@ public:
 
 	bool init();
 
+	void check_failure_injection();
+
 private:
 	void Run() override;
 
@@ -73,15 +77,19 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+
 
 	bool _baro_rnd_use_last{false};
 	double _baro_rnd_y2{0.0};
 	float _baro_drift_pa_per_sec{0.0};
 	float _baro_drift_pa{0.0};
+	bool _baro_blocked{false};
 
 	hrt_abstime _last_update_time{0};
 
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
+	uORB::Publication<vehicle_command_ack_s>        _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
