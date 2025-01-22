@@ -302,6 +302,75 @@ else
 		. $FCONFIG
 	fi
 
+
+	#
+	# Sensors System (start before Commander so Preflight checks are properly run).
+	#
+	if param greater SYS_HITL 0
+	then
+		sensors start -h
+
+		# disable GPS
+		param set GPS_1_CONFIG 0
+
+		# start the simulator in hardware if needed
+		if param compare SYS_HITL 2
+		then
+			simulator_sih start
+			sensor_baro_sim start
+			sensor_mag_sim start
+			sensor_gps_sim start
+			sensor_agp_sim start
+		fi
+
+	else
+		#
+		# board sensors: rc.sensors
+		#
+		set BOARD_RC_SENSORS ${R}etc/init.d/rc.board_sensors
+		if [ -f $BOARD_RC_SENSORS ]
+		then
+			echo "Board sensors: ${BOARD_RC_SENSORS}"
+			. $BOARD_RC_SENSORS
+		fi
+		unset BOARD_RC_SENSORS
+
+		. ${R}etc/init.d/rc.sensors
+
+		if param compare -s BAT1_SOURCE 2
+		then
+			esc_battery start
+		fi
+
+		if ! param compare BAT1_SOURCE 1
+		then
+			battery_status start
+		fi
+
+		sensors start
+	fi
+
+	#
+	# state estimator selection
+	#
+	if param compare -s EKF2_EN 1
+	then
+		ekf2 start &
+	fi
+
+	if param compare -s LPE_EN 1
+	then
+		local_position_estimator start
+	fi
+
+	if param compare -s ATT_EN 1
+	then
+		attitude_estimator_q start
+	fi
+
+	#
+	# px4io
+	#
 	if px4io supported
 	then
 	# Check if PX4IO present and update firmware if needed.
@@ -369,77 +438,22 @@ else
 	fi
 
 	#
-	# Sensors System (start before Commander so Preflight checks are properly run).
-	# Commander needs to be this early for in-air-restarts.
+	# Commander
 	#
 	if param greater SYS_HITL 0
 	then
+		commander start -h
+
 		if ! pwm_out_sim start -m hil
 		then
 			tune_control play error
 		fi
 
-		sensors start -h
-		commander start -h
-		# disable GPS
-		param set GPS_1_CONFIG 0
-
-		# start the simulator in hardware if needed
-		if param compare SYS_HITL 2
-		then
-			simulator_sih start
-			sensor_baro_sim start
-			sensor_mag_sim start
-			sensor_gps_sim start
-			sensor_agp_sim start
-		fi
-
 	else
-		#
-		# board sensors: rc.sensors
-		#
-		set BOARD_RC_SENSORS ${R}etc/init.d/rc.board_sensors
-		if [ -f $BOARD_RC_SENSORS ]
-		then
-			echo "Board sensors: ${BOARD_RC_SENSORS}"
-			. $BOARD_RC_SENSORS
-		fi
-		unset BOARD_RC_SENSORS
-
-		. ${R}etc/init.d/rc.sensors
-
-		if param compare -s BAT1_SOURCE 2
-		then
-			esc_battery start
-		fi
-
-		if ! param compare BAT1_SOURCE 1
-		then
-			battery_status start
-		fi
-
-		sensors start
 		commander start
 
 		dshot start
 		pwm_out start
-	fi
-
-	#
-	# state estimator selection
-	if param compare -s EKF2_EN 1
-	then
-		ekf2 start &
-	fi
-
-	if param compare -s LPE_EN 1
-	then
-		local_position_estimator start
-	fi
-
-	if param compare -s ATT_EN 1
-	then
-		attitude_estimator_q start
 	fi
 
 	#
