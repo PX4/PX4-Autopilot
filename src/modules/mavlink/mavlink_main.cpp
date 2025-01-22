@@ -1318,6 +1318,11 @@ Mavlink::update_rate_mult()
 	/* scale up and down as the link permits */
 	float bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate) / rate;
 
+	/* Reduce rate while sending parameters in low bandwidth mode */
+	if (sending_parameters() && _mode == Mavlink::MAVLINK_MODE_LOW_BANDWIDTH) {
+		bandwidth_mult = fminf(bandwidth_mult, 0.25f);
+	}
+
 	/* if we do not have flow control, limit to the set data rate */
 	if (!get_flow_control_enabled()) {
 		bandwidth_mult = fminf(1.0f, bandwidth_mult);
