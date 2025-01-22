@@ -37,7 +37,10 @@ param set-default SIH_IYY 0.000625
 param set-default SIH_IZZ 0.00300
 param set-default SIH_IXZ 0
 param set-default SIH_KDV 0.2
-param set-default SIH_L_ROLL 0.145
+
+# SIH_L_ROLL = CA_ROTOR0_PX. this is redundant, should in future use CA rotor
+# geometry info in sih...
+param set-default SIH_L_ROLL 1
 
 # sih as tailsitter
 param set-default SIH_VEHICLE_TYPE 2
