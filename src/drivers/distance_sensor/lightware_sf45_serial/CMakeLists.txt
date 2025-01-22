@@ -41,6 +41,7 @@ px4_add_module(
 	DEPENDS
 		drivers_rangefinder
 		px4_work_queue
+		CollisionPrevention
 	MODULE_CONFIG
 		module.yaml
 	)

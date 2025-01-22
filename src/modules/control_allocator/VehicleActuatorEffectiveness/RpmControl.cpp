@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,38 +31,55 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "RpmControl.hpp"
 
-#include "ActuatorEffectiveness.hpp"
-#include "ActuatorEffectivenessRotors.hpp"
-#include "ActuatorEffectivenessControlSurfaces.hpp"
+#include <drivers/drv_hrt.h>
 
-#include <uORB/topics/normalized_unsigned_setpoint.h>
+using namespace time_literals;
 
-class ActuatorEffectivenessFixedWing : public ModuleParams, public ActuatorEffectiveness
+RpmControl::RpmControl(ModuleParams *parent) : ModuleParams(parent)
 {
-public:
-	ActuatorEffectivenessFixedWing(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessFixedWing() = default;
-
-	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
-
-	const char *name() const override { return "Fixed Wing"; }
-
-	void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) override;
-
-	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
-			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
-
-private:
-	ActuatorEffectivenessRotors _rotors;
-	ActuatorEffectivenessControlSurfaces _control_surfaces;
-
-	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
-	uORB::Subscription _spoilers_setpoint_sub{ORB_ID(spoilers_setpoint)};
-
-	int _first_control_surface_idx{0}; ///< applies to matrix 1
-
-	uint32_t _forwards_motors_mask{};
+	_pid.setOutputLimit(PID_OUTPUT_LIMIT);
+	_pid.setIntegralLimit(PID_OUTPUT_LIMIT);
 };
+
+void RpmControl::setSpoolupProgress(float spoolup_progress)
+{
+	_spoolup_progress = spoolup_progress;
+	_pid.setSetpoint(_spoolup_progress * _param_ca_heli_rpm_sp.get());
+
+	if (_spoolup_progress < SPOOLUP_PROGRESS_WITH_CONTROLLER_ENGAGED) {
+		_pid.resetIntegral();
+	}
+}
+
+float RpmControl::getActuatorCorrection()
+{
+	hrt_abstime now = hrt_absolute_time();
+
+	// RPM measurement update
+	if (_rpm_sub.updated()) {
+		rpm_s rpm{};
+
+		if (_rpm_sub.copy(&rpm)) {
+			const float dt = math::min((now - _timestamp_last_measurement) * 1e-6f, 1.f);
+			_timestamp_last_measurement = rpm.timestamp;
+
+			const float gain_scale = math::interpolate(_spoolup_progress, .8f, 1.f, 0.f, 1e-3f);
+			_pid.setGains(_param_ca_heli_rpm_p.get() * gain_scale, _param_ca_heli_rpm_i.get() * gain_scale, 0.f);
+			_actuator_correction = _pid.update(rpm.rpm_estimate, dt, true);
+
+			_rpm_invalid = rpm.rpm_estimate < 1.f;
+		}
+	}
+
+	// Timeout
+	const bool timeout = now > _timestamp_last_measurement + 1_s;
+
+	if (_rpm_invalid || timeout) {
+		_pid.resetIntegral();
+		_actuator_correction = 0.f;
+	}
+
+	return _actuator_correction;
+}

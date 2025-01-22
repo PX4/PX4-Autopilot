@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1592,8 +1592,6 @@ PARAM_DEFINE_INT32(RC_MAP_FLTM_BTN, 0);
 /**
  * AUX1 Passthrough RC channel
  *
- * Default function: Camera pitch
- *
  * @min 0
  * @max 18
  * @group Radio Calibration
@@ -1622,8 +1620,6 @@ PARAM_DEFINE_INT32(RC_MAP_AUX1, 0);
 /**
  * AUX2 Passthrough RC channel
  *
- * Default function: Camera roll
- *
  * @min 0
  * @max 18
  * @group Radio Calibration
@@ -1651,8 +1647,6 @@ PARAM_DEFINE_INT32(RC_MAP_AUX2, 0);
 
 /**
  * AUX3 Passthrough RC channel
- *
- * Default function: Camera azimuth / yaw
  *
  * @min 0
  * @max 18

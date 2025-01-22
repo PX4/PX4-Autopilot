@@ -528,6 +528,41 @@ parameters:
               which is mostly the case when the main rotor turns counter-clockwise.
           type: boolean
           default: 0
+        CA_HELI_RPM_SP:
+          description:
+            short: Setpoint for main rotor rpm
+            long: |
+              Requires rpm feedback for the controller.
+          type: float
+          decimal: 0
+          increment: 1
+          min: 100
+          max: 10000
+          default: 1500
+        CA_HELI_RPM_P:
+          description:
+            short: Proportional gain for rpm control
+            long: |
+              Ratio between rpm error devided by 1000 to how much normalized output gets added to correct for it.
+
+              motor_command = throttle_curve + CA_HELI_RPM_P * (rpm_setpoint - rpm_measurement) / 1000
+          type: float
+          decimal: 3
+          increment: 0.1
+          min: 0
+          max: 10
+          default: 0.0
+        CA_HELI_RPM_I:
+          description:
+            short: Integral gain for rpm control
+            long: |
+              Same definition as the proportional gain but for integral.
+          type: float
+          decimal: 3
+          increment: 0.1
+          min: 0
+          max: 10
+          default: 0.0
 
         # Others
         CA_FAILURE_MODE:

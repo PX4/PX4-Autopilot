@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,37 +31,17 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include <matrix/math.hpp>
 
-#include "ActuatorEffectiveness.hpp"
-#include "ActuatorEffectivenessRotors.hpp"
-
-class ActuatorEffectivenessUUV : public ModuleParams, public ActuatorEffectiveness
+namespace ObstacleMath
 {
-public:
-	ActuatorEffectivenessUUV(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessUUV() = default;
 
-	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
+/**
+ * Scales a distance measurement taken in the vehicle body horizontal plane onto the world horizontal plane
+ * @param distance measurement which is scaled down
+ * @param yaw orientation of the measurement on the body horizontal plane
+ * @param q_world_vehicle vehicle attitude quaternion
+ */
+void project_distance_on_horizontal_plane(float &distance, const float yaw, const matrix::Quatf &q_world_vehicle);
 
-	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
-	{
-		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
-	}
-
-	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
-	{
-		normalize[0] = true;
-	}
-
-	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
-			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
-
-	const char *name() const override { return "UUV"; }
-
-protected:
-	ActuatorEffectivenessRotors _rotors;
-
-	uint32_t _motors_mask{};
-};
+} // ObstacleMath

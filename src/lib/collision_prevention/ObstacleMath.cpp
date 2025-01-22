@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,23 +31,24 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "ObstacleMath.hpp"
+#include <mathlib/math/Limits.hpp>
 
-#include "ActuatorEffectiveness.hpp"
+using namespace matrix;
 
-class ActuatorEffectivenessRoverAckermann : public ActuatorEffectiveness
+namespace ObstacleMath
 {
-public:
-	ActuatorEffectivenessRoverAckermann() = default;
-	virtual ~ActuatorEffectivenessRoverAckermann() = default;
 
-	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
+void project_distance_on_horizontal_plane(float &distance, const float yaw, const matrix::Quatf &q_world_vehicle)
+{
+	const Quatf q_vehicle_sensor(Quatf(cosf(yaw / 2.f), 0.f, 0.f, sinf(yaw / 2.f)));
+	const Quatf q_world_sensor = q_world_vehicle * q_vehicle_sensor;
+	const Vector3f forward(1.f, 0.f, 0.f);
+	const Vector3f sensor_direction_in_world = q_world_sensor.rotateVector(forward);
 
-	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
-			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
+	float horizontal_projection_scale = sensor_direction_in_world.xy().norm();
+	horizontal_projection_scale = math::constrain(horizontal_projection_scale, FLT_EPSILON, 1.0f);
+	distance *= horizontal_projection_scale;
+}
 
-	const char *name() const override { return "Rover (Ackermann)"; }
-private:
-	uint32_t _motors_mask{};
-};
+} // ObstacleMath

@@ -67,3 +67,27 @@ TEST(ControlAllocationTest, AllZeroCase)
 	EXPECT_EQ(actuator_sp, actuator_sp_expected);
 	EXPECT_EQ(control_allocated, control_allocated_expected);
 }
+
+TEST(ControlAllocationMetricTest, AllZeroCase)
+{
+	ControlAllocationPseudoInverse method;
+
+	matrix::Vector<float, 6> control_sp;
+	matrix::Vector<float, 6> control_allocated;
+	matrix::Vector<float, 6> control_allocated_expected;
+	matrix::Matrix<float, 6, 16> effectiveness;
+	matrix::Vector<float, 16> actuator_sp;
+	matrix::Vector<float, 16> actuator_trim;
+	matrix::Vector<float, 16> linearization_point;
+	matrix::Vector<float, 16> actuator_sp_expected;
+
+	method.setMetricAllocation(true);
+	method.setEffectivenessMatrix(effectiveness, actuator_trim, linearization_point, 16, false);
+	method.setControlSetpoint(control_sp);
+	method.allocate();
+	actuator_sp = method.getActuatorSetpoint();
+	control_allocated_expected = method.getAllocatedControl();
+
+	EXPECT_EQ(actuator_sp, actuator_sp_expected);
+	EXPECT_EQ(control_allocated, control_allocated_expected);
+}
