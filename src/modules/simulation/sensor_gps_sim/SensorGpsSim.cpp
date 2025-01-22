@@ -108,79 +108,132 @@ void SensorGpsSim::Run()
 
 	if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated()) {
 
-		vehicle_local_position_s lpos{};
-		_vehicle_local_position_sub.copy(&lpos);
+		check_failure_injection();
 
-		vehicle_global_position_s gpos{};
-		_vehicle_global_position_sub.copy(&gpos);
+		// PX4_INFO("gps blocked: %d", (int) _gps_blocked);
 
-		double latitude = gpos.lat + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
-		double longitude = gpos.lon + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
-		double altitude = (double)(gpos.alt + (generate_wgn() * 0.5f));
+		if (!_gps_blocked) {
 
-		Vector3f gps_vel = Vector3f{lpos.vx, lpos.vy, lpos.vz} + noiseGauss3f(0.06f, 0.077f, 0.158f);
+			vehicle_local_position_s lpos{};
+			_vehicle_local_position_sub.copy(&lpos);
 
-		// device id
-		device::Device::DeviceId device_id;
-		device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-		device_id.devid_s.bus = 0;
-		device_id.devid_s.address = 0;
-		device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+			vehicle_global_position_s gpos{};
+			_vehicle_global_position_sub.copy(&gpos);
 
-		sensor_gps_s sensor_gps{};
+			double latitude = gpos.lat + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
+			double longitude = gpos.lon + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
+			double altitude = (double)(gpos.alt + (generate_wgn() * 0.5f));
 
-		if (_sim_gps_used.get() >= 4) {
-			// fix
-			sensor_gps.fix_type = 3; // 3D fix
-			sensor_gps.s_variance_m_s = 0.4f;
-			sensor_gps.c_variance_rad = 0.1f;
-			sensor_gps.eph = 0.9f;
-			sensor_gps.epv = 1.78f;
-			sensor_gps.hdop = 0.7f;
-			sensor_gps.vdop = 1.1f;
+			Vector3f gps_vel = Vector3f{lpos.vx, lpos.vy, lpos.vz} + noiseGauss3f(0.06f, 0.077f, 0.158f);
 
-		} else {
-			// no fix
-			sensor_gps.fix_type = 0; // No fix
-			sensor_gps.s_variance_m_s = 100.f;
-			sensor_gps.c_variance_rad = 100.f;
-			sensor_gps.eph = 100.f;
-			sensor_gps.epv = 100.f;
-			sensor_gps.hdop = 100.f;
-			sensor_gps.vdop = 100.f;
+			// device id
+			device::Device::DeviceId device_id;
+			device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+			device_id.devid_s.bus = 0;
+			device_id.devid_s.address = 0;
+			device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+
+			sensor_gps_s sensor_gps{};
+
+			if (_sim_gps_used.get() >= 4) {
+				// fix
+				sensor_gps.fix_type = 3; // 3D fix
+				sensor_gps.s_variance_m_s = 0.4f;
+				sensor_gps.c_variance_rad = 0.1f;
+				sensor_gps.eph = 0.9f;
+				sensor_gps.epv = 1.78f;
+				sensor_gps.hdop = 0.7f;
+				sensor_gps.vdop = 1.1f;
+
+			} else {
+				// no fix
+				sensor_gps.fix_type = 0; // No fix
+				sensor_gps.s_variance_m_s = 100.f;
+				sensor_gps.c_variance_rad = 100.f;
+				sensor_gps.eph = 100.f;
+				sensor_gps.epv = 100.f;
+				sensor_gps.hdop = 100.f;
+				sensor_gps.vdop = 100.f;
+			}
+
+			sensor_gps.timestamp_sample = gpos.timestamp_sample;
+			sensor_gps.time_utc_usec = 0;
+			sensor_gps.device_id = device_id.devid;
+			sensor_gps.latitude_deg = latitude; // Latitude in degrees
+			sensor_gps.longitude_deg = longitude; // Longitude in degrees
+			sensor_gps.altitude_msl_m = altitude; // Altitude in meters above MSL
+			sensor_gps.altitude_ellipsoid_m = altitude;
+			sensor_gps.noise_per_ms = 0;
+			sensor_gps.jamming_indicator = 0;
+			sensor_gps.vel_m_s = sqrtf(gps_vel(0) * gps_vel(0) + gps_vel(1) * gps_vel(1)); // GPS ground speed, (metres/sec)
+			sensor_gps.vel_n_m_s = gps_vel(0);
+			sensor_gps.vel_e_m_s = gps_vel(1);
+			sensor_gps.vel_d_m_s = gps_vel(2);
+			sensor_gps.cog_rad = atan2(gps_vel(1),
+						gps_vel(0)); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
+			sensor_gps.timestamp_time_relative = 0;
+			sensor_gps.heading = NAN;
+			sensor_gps.heading_offset = NAN;
+			sensor_gps.heading_accuracy = 0;
+			sensor_gps.automatic_gain_control = 0;
+			sensor_gps.jamming_state = 0;
+			sensor_gps.spoofing_state = 0;
+			sensor_gps.vel_ned_valid = true;
+			sensor_gps.satellites_used = _sim_gps_used.get();
+
+			sensor_gps.timestamp = hrt_absolute_time();
+			_sensor_gps_pub.publish(sensor_gps);
 		}
-
-		sensor_gps.timestamp_sample = gpos.timestamp_sample;
-		sensor_gps.time_utc_usec = 0;
-		sensor_gps.device_id = device_id.devid;
-		sensor_gps.latitude_deg = latitude; // Latitude in degrees
-		sensor_gps.longitude_deg = longitude; // Longitude in degrees
-		sensor_gps.altitude_msl_m = altitude; // Altitude in meters above MSL
-		sensor_gps.altitude_ellipsoid_m = altitude;
-		sensor_gps.noise_per_ms = 0;
-		sensor_gps.jamming_indicator = 0;
-		sensor_gps.vel_m_s = sqrtf(gps_vel(0) * gps_vel(0) + gps_vel(1) * gps_vel(1)); // GPS ground speed, (metres/sec)
-		sensor_gps.vel_n_m_s = gps_vel(0);
-		sensor_gps.vel_e_m_s = gps_vel(1);
-		sensor_gps.vel_d_m_s = gps_vel(2);
-		sensor_gps.cog_rad = atan2(gps_vel(1),
-					   gps_vel(0)); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
-		sensor_gps.timestamp_time_relative = 0;
-		sensor_gps.heading = NAN;
-		sensor_gps.heading_offset = NAN;
-		sensor_gps.heading_accuracy = 0;
-		sensor_gps.automatic_gain_control = 0;
-		sensor_gps.jamming_state = 0;
-		sensor_gps.spoofing_state = 0;
-		sensor_gps.vel_ned_valid = true;
-		sensor_gps.satellites_used = _sim_gps_used.get();
-
-		sensor_gps.timestamp = hrt_absolute_time();
-		_sensor_gps_pub.publish(sensor_gps);
 	}
 
 	perf_end(_loop_perf);
 }
+
+void SensorGpsSim::check_failure_injection()
+{
+	vehicle_command_s vehicle_command;
+	// PX4_INFO("ENTERING check_failure_injection");
+
+	while (_vehicle_command_sub.update(&vehicle_command)) {
+		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
+			continue;
+		}
+
+		bool handled = false;
+		bool supported = false;
+
+		const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
+		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
+		/// const int instance = static_cast<int>(vehicle_command.param3 + 0.5f);
+
+		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_GPS) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				PX4_WARN("CMD_INJECT_FAILURE, GPS off");
+				supported = true;
+				_gps_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				PX4_INFO("CMD_INJECT_FAILURE, GPS ok");
+				supported = true;
+				_gps_blocked = false;
+			}
+		}
+
+		if (handled) {
+			vehicle_command_ack_s ack{};
+			ack.command = vehicle_command.command;
+			ack.from_external = false;
+			ack.result = supported ?
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+			ack.timestamp = hrt_absolute_time();
+			_command_ack_pub.publish(ack);
+		}
+	}
+}
+
 
 int SensorGpsSim::task_spawn(int argc, char *argv[])
 {
