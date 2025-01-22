@@ -98,17 +98,13 @@ int INA238::read(uint8_t address, uint16_t &data)
 	uint16_t received_bytes;
 	int ret = PX4_ERROR;
 
-	for (size_t i = 0; i < 6; i++) {
-		ret = transfer(&address, 1, (uint8_t *)&received_bytes, sizeof(received_bytes));
+	ret = transfer(&address, 1, (uint8_t *)&received_bytes, sizeof(received_bytes));
 
-		if (ret == PX4_OK) {
-			data = swap16(received_bytes);
-			break;
-
-		} else {
-			perf_count(_comms_errors);
-			PX4_DEBUG("i2c::transfer returned %d", ret);
-		}
+	if (ret == PX4_OK) {
+		data = swap16(received_bytes);
+	} else {
+		perf_count(_comms_errors);
+		PX4_DEBUG("i2c::transfer returned %d", ret);
 	}
 
 	return ret;
@@ -164,6 +160,8 @@ int INA238::Reset()
 {
 
 	int ret = PX4_ERROR;
+
+	_retries = 6;
 
 	if (RegisterWrite(Register::CONFIG, (uint16_t)(ADC_RESET_BIT)) != PX4_OK) {
 		return ret;
