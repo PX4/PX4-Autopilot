@@ -164,12 +164,17 @@ void SensorBaroSim::Run()
 			// calculate temperature in Celsius
 			float temperature = temperature_local - 273.0f + _sim_baro_off_t.get();
 
+			if (!_baro_stuck) {
+				_last_baro_pressure = pressure;
+				_last_baro_temperature = temperature;
+			}
+
 			// publish
 			sensor_baro_s sensor_baro{};
 			sensor_baro.timestamp_sample = gpos.timestamp;
 			sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
-			sensor_baro.pressure = pressure;
-			sensor_baro.temperature = temperature;
+			sensor_baro.pressure = _last_baro_pressure;
+			sensor_baro.temperature = _last_baro_temperature;
 			sensor_baro.timestamp = hrt_absolute_time();
 			_sensor_baro_pub.publish(sensor_baro);
 
@@ -203,11 +208,19 @@ void SensorBaroSim::check_failure_injection()
 			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
 				PX4_WARN("CMD_INJECT_FAILURE, BARO off");
 				supported = true;
+				_baro_stuck = false;
 				_baro_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
+				PX4_WARN("CMD_INJECT_FAILURE, baro stuck");
+				supported = true;
+				_baro_stuck = true;
+				_baro_blocked = false;
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
 				PX4_INFO("CMD_INJECT_FAILURE, BARO ok");
 				supported = true;
+				_baro_stuck = false;
 				_baro_blocked = false;
 			}
 		}

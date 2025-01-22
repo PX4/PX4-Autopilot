@@ -85,6 +85,10 @@ private:
 	float _baro_drift_pa_per_sec{0.0};
 	float _baro_drift_pa{0.0};
 	bool _baro_blocked{false};
+	bool _baro_stuck{false};
+
+	float _last_baro_pressure{0.0};
+	float _last_baro_temperature{0.0};
 
 	hrt_abstime _last_update_time{0};
 

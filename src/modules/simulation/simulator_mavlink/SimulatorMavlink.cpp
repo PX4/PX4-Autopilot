@@ -1469,6 +1469,7 @@ void SimulatorMavlink::check_failure_injections()
 				PX4_INFO("CMD_INJECT_FAILURE, baro ok");
 				supported = true;
 				_baro_blocked = false;
+				_baro_stuck = false;
 			}
 
 		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_AIRSPEED) {
