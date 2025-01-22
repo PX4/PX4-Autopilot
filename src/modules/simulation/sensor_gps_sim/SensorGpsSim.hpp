@@ -44,7 +44,9 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_command_ack.h>
 
 using namespace time_literals;
 
@@ -65,6 +67,8 @@ public:
 
 	bool init();
 
+	void check_failure_injection();
+
 private:
 	void Run() override;
 
@@ -77,10 +81,14 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position_groundtruth)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 
 	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+
+	bool _gps_blocked{false};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SIM_GPS_USED>) _sim_gps_used
