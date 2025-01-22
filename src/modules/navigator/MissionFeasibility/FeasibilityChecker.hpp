@@ -77,12 +77,7 @@ public:
 	*/
 	bool someCheckFailed()
 	{
-		return _takeoff_failed ||
-		       _distance_between_waypoints_failed ||
-		       _land_pattern_validity_failed ||
-		       _fixed_wing_land_approach_failed ||
-		       _mission_validity_failed ||
-		       _takeoff_land_available_failed;
+		return _checks_failed.value != 0;
 	}
 
 	/**
@@ -110,14 +105,18 @@ private:
 	matrix::Vector2d _home_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
 	VehicleType _vehicle_type{VehicleType::RotaryWing};
 
-	// internal flags to keep track of which checks failed
-	bool _mission_validity_failed{false};
-	bool _takeoff_failed{false};
-	bool _land_pattern_validity_failed{false};
-	bool _distance_between_waypoints_failed{false};
-	bool _fixed_wing_land_approach_failed{false};
-	bool _takeoff_land_available_failed{false};
-	bool _items_fit_to_vehicle_type_failed{false};
+	union checks_failed_u {
+		struct {
+			bool mission_validity_failed : 1;
+			bool takeoff_failed : 1;
+			bool land_pattern_validity_failed : 1;
+			bool distance_between_waypoints_failed : 1;
+			bool fixed_wing_land_approach_failed : 1;
+			bool takeoff_land_available_failed : 1;
+			bool items_fit_to_vehicle_type_failed : 1;
+		} flags;
+		uint16_t value {0};
+	} _checks_failed{};
 
 	// internal checkTakeoff related variables
 	bool _found_item_with_position{false};
