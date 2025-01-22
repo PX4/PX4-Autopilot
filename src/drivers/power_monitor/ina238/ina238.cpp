@@ -100,6 +100,7 @@ int INA238::read(uint8_t address, uint16_t &data)
 
 	if (ret == PX4_OK) {
 		data = swap16(received_bytes);
+
 	} else {
 		perf_count(_comms_errors);
 		PX4_DEBUG("i2c::transfer returned %d", ret);
