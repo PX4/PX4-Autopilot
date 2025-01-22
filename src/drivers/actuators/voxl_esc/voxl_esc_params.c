@@ -263,6 +263,17 @@ PARAM_DEFINE_INT32(VOXL_ESC_T_WARN, 0);
  */
 PARAM_DEFINE_INT32(VOXL_ESC_T_OVER, 0);
 
+/**
+ * Button mapping for turtle mode on when using manual_control mavlink message
+ *
+ * @reboot_required true
+ *
+ * @group VOXL ESC
+ * @value 0 - Button 1
+ * @min 0
+ * @max 17
+ */
+PARAM_DEFINE_INT32(VOXL_ESC_T_ON, 9);
 
 /**
  * GPIO Control Channel

@@ -105,6 +105,11 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_parameters_manager(parent),
 	_mavlink_timesync(parent)
 {
+	param_get(param_find("VOXL_ESC_T_ON"), &_turtle_button);
+
+	param_get(param_find("MAV_RC_FM1"), &_vfc_fm1_map);
+	param_get(param_find("MAV_RC_FM2"), &_vfc_fm2_map);
+	param_get(param_find("MAV_RC_FM3"), &_vfc_fm3_map);
 }
 
 void
@@ -850,6 +855,10 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 
 	/* copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
 	vcmd.param1 = (float)new_mode.base_mode;
+	// Hack since cannot have 2 buttons be the same flight mode in QGC
+	if (custom_mode.main_mode == PX4_CUSTOM_MAIN_MODE_RATTITUDE_LEGACY) {
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_OFFBOARD;
+	}
 	vcmd.param2 = (float)custom_mode.main_mode;
 	vcmd.param3 = (float)custom_mode.sub_mode;
 
@@ -2057,8 +2066,29 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	manual_control_setpoint.timestamp = manual_control_setpoint.timestamp_sample = hrt_absolute_time();
 
 	// PX4_INFO("Buttons: 0x%x 0x%x", mavlink_manual_control.buttons, mavlink_manual_control.buttons2);
+	float_t _turtle_pwm_value;
 
-	manual_control_setpoint.aux1 = (float) mavlink_manual_control.buttons;
+	if (mavlink_manual_control.buttons & (1 << _turtle_button)) {
+		_turtle_pwm_value = 1.0f; // TODO: Make this a parameter?
+	} else {
+		_turtle_pwm_value = 0.0f;
+	}
+
+	// Turtle mode could be one either aux1 or aux2
+	manual_control_setpoint.aux1 = _turtle_pwm_value;
+	manual_control_setpoint.aux2 = _turtle_pwm_value;
+
+	// Hardcoded VFC flight mode pwm values. Could be parameterized
+	if (mavlink_manual_control.buttons & (1 << _vfc_fm1_map)) {
+		_vfc_pwm_value = 1010.0f;
+	} else if (mavlink_manual_control.buttons & (1 << _vfc_fm2_map)) {
+		_vfc_pwm_value = 1510.0f;
+	} else if (mavlink_manual_control.buttons & (1 << _vfc_fm3_map)) {
+		_vfc_pwm_value = 1910.0f;
+	}
+
+	manual_control_setpoint.aux3 = _vfc_pwm_value;
+	manual_control_setpoint.aux4 = 1000.0f + (_turtle_pwm_value * 1000.0f);
 
 	_manual_control_input_pub.publish(manual_control_setpoint);
 }

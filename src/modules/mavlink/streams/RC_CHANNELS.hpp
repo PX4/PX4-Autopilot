@@ -53,18 +53,30 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamRCChannels(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamRCChannels(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		param_get(param_find("MAV_RC_BRIDGE"), (int32_t*) &_rc_bridge);
+		param_get(param_find("MAV_RC_FM1"), &_vfc_fm1_chan);
+		param_get(param_find("MAV_RC_FM2"), &_vfc_fm2_chan);
+		param_get(param_find("MAV_RC_FM3"), &_vfc_fm3_chan);
+	}
 
 	uORB::Subscription _input_rc_sub{ORB_ID(input_rc)};
+	uORB::Subscription _manual_control_input_sub{ORB_ID(manual_control_input)};
+
+	bool _rc_bridge{false};
+	int32_t _vfc_fm1_chan{0};
+	int32_t _vfc_fm2_chan{0};
+	int32_t _vfc_fm3_chan{0};
 
 	bool send() override
 	{
-		input_rc_s rc;
+		bool send_msg = false;
+		mavlink_rc_channels_t msg{};
 
+		input_rc_s rc;
 		if (_input_rc_sub.update(&rc)) {
 			// send RC channel data and RSSI
-			mavlink_rc_channels_t msg{};
-
 			msg.time_boot_ms = rc.timestamp / 1000;
 			msg.chancount = rc.channel_count;
 			msg.chan1_raw  = (rc.channel_count > 0)  ? rc.values[0]  : UINT16_MAX;
@@ -86,7 +98,41 @@ private:
 			msg.chan17_raw = (rc.channel_count > 16) ? rc.values[16] : UINT16_MAX;
 			msg.chan18_raw = (rc.channel_count > 17) ? rc.values[17] : UINT16_MAX;
 			msg.rssi = (rc.channel_count > 0) ? rc.rssi : 0;
+			send_msg = true;
+		} else if (_rc_bridge) {
+			manual_control_setpoint_s manual_control_input{};
+			if (_manual_control_input_sub.update(&manual_control_input)) {
+				msg.time_boot_ms = hrt_absolute_time() / 1000;
+				msg.chancount = 8;
 
+				// Hardcoded mappings for now. Could be parameterized later
+				msg.chan1_raw  = (uint16_t) ((manual_control_input.roll * 500.0f) + 1500.0f);
+				msg.chan2_raw  = (uint16_t) ((manual_control_input.pitch * 500.0f) + 1500.0f);
+				msg.chan3_raw  = (uint16_t) ((manual_control_input.throttle * 500.0f) + 1500.0f);
+				msg.chan4_raw  = (uint16_t) ((manual_control_input.yaw * 500.0f) + 1500.0f);
+
+				// Map aux channels to next 4 channels for VFC use
+				msg.chan5_raw  = manual_control_input.aux4;
+				msg.chan6_raw  = manual_control_input.aux4;
+				msg.chan7_raw  = manual_control_input.aux3;
+				msg.chan8_raw  = manual_control_input.aux3;
+
+				msg.chan9_raw  = UINT16_MAX;
+				msg.chan10_raw = UINT16_MAX;
+				msg.chan11_raw = UINT16_MAX;
+				msg.chan12_raw = UINT16_MAX;
+				msg.chan13_raw = UINT16_MAX;
+				msg.chan14_raw = UINT16_MAX;
+				msg.chan15_raw = UINT16_MAX;
+				msg.chan16_raw = UINT16_MAX;
+				msg.chan17_raw = UINT16_MAX;
+				msg.chan18_raw = UINT16_MAX;
+				msg.rssi = UINT8_MAX - 1;
+				send_msg = true;
+			}
+		}
+
+		if (send_msg) {
 			mavlink_msg_rc_channels_send_struct(_mavlink->get_channel(), &msg);
 			return true;
 		}
