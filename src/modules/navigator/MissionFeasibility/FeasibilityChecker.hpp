@@ -115,7 +115,7 @@ private:
 			bool takeoff_land_available_failed : 1;
 			bool items_fit_to_vehicle_type_failed : 1;
 		} flags;
-		uint16_t value;
+		uint16_t value {0};
 	} _checks_failed{};
 
 	// internal checkTakeoff related variables
