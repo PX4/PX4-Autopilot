@@ -1017,8 +1017,8 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 		} else if (_control_status.flags.fake_hgt) {
 			is_bias_observable = false;
 
-		} else if (_control_status.flags.fake_pos) {
-			// when using fake position (but not fake height) only consider an accel bias observable if aligned with the gravity vector
+		} else if (_control_status.flags.fake_pos || _control_status.flags.gravity_vector) {
+			// only consider an accel bias observable if aligned with the gravity vector
 			is_bias_observable = (fabsf(_R_to_earth(2, index)) > 0.966f); // cos 15 degrees ~= 0.966
 		}
 
