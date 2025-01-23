@@ -104,10 +104,14 @@ public:
 	void setRollTimeConst(float tc) { roll_time_const_ = tc; }
 
 	/*
+	* Set the switch distance multiplier.
+	*/
+	void setSwitchDistanceMultiplier(float mult) { switch_distance_multiplier_ = math::max(mult, 0.1f); }
+
+	/*
 	 * Set the period safety factor.
 	 */
 	void setPeriodSafetyFactor(float sf) { period_safety_factor_ = math::max(sf, 1.0f); }
-	void setSwitchDistanceMultiplier(float mult) { _switch_distance_multiplier = math::max(mult, 0.1f); }
 	/*
 	 * [Copied directly from ECL_L1_Pos_Controller]
 	 *
@@ -120,33 +124,46 @@ public:
 	 */
 	float switchDistance(float wp_radius) const;
 
-	float getBearing();
-
 private:
-	static constexpr float AIRSPEED_BUFFER = 1.5f; // airspeed buffer [m/s] (must be > 0)
 	static constexpr float NPFG_EPSILON = 1.0e-6; // small number *bigger than machine epsilon
 	static constexpr float MIN_RADIUS = 0.5f; // minimum effective radius (avoid singularities) [m]
+	static constexpr float AIRSPEED_BUFFER = 1.5f; // airspeed buffer [m/s] (must be > 0)
+
 	float period_{10.0f}; // nominal (desired) period -- user defined [s]
 	float damping_{0.7071f}; // nominal (desired) damping ratio -- user defined
-
-	float period_safety_factor_{1.5f}; // multiplied by the minimum period for conservative lower bound
-	bool en_period_lb_{true}; // enables automatic lower bound constraints on controller period
-	bool en_period_ub_{true}; // enables automatic upper bound constraints on controller period (remains disabled if lower bound is disabled)
-	float roll_time_const_{0.0f}; // autopilot roll response time constant [s]
-
-	float _signed_track_error;
-	float _feas_on_track;
-	float _adapted_period;
-	float _time_const{7.0f};
-	float _track_error_bound;
-	float _track_proximity;
-	matrix::Vector2f _bearing_vec;
-	float _feas;
-	float _switch_distance_multiplier{0.32f}; // a value multiplied by the track error boundary resulting in a lower switch distance
+	float _time_const{7.0f}; // time constant (computed from period_ and damping_) [s]
+	float adapted_period_{10.0f}; // auto-adapted period (if stability bounds enabled) [s]
 
 	/*
 	 * user defined guidance settings
 	 */
+
+	// guidance options
+	bool en_period_lb_{true}; // enables automatic lower bound constraints on controller period
+	bool en_period_ub_{true}; // enables automatic upper bound constraints on controller period (remains disabled if lower bound is disabled)
+
+	// guidance settings
+	float roll_time_const_{0.0f}; // autopilot roll response time constant [s]
+
+	// guidance parameters
+	float switch_distance_multiplier_{0.32f}; // a value multiplied by the track error boundary resulting in a lower switch distance
+	// ^as the bearing angle changes quadratically (instead of linearly as in L1), the time constant (automatically calculated for on track stability) proportional track error boundary typically over estimates the required switching distance
+	float period_safety_factor_{1.5f}; // multiplied by the minimum period for conservative lower bound
+
+	/*
+	* internal guidance states
+	*/
+
+	//bearing feasibility
+	float feas_{1.0f}; // continous representation of bearing feasibility in [0,1] (0=infeasible, 1=feasible)
+	float feas_on_track_{1.0f}; // continuous bearing feasibility "on track"
+
+	// track proximity
+	float track_error_bound_{212.13f}; // the current ground speed dependent track error bound [m]
+	float track_proximity_{0.0f}; // value in [0,1] indicating proximity to track, 0 = at track error boundary or beyond, 1 = on track
+	float signed_track_error_{0.0f}; // signed track error [m]
+	matrix::Vector2f bearing_vec_{matrix::Vector2f{1.0f, 0.0f}}; // bearing unit vector
+
 
 	/*
 	 * Cacluates a continuous representation of the bearing feasibility from [0,1].
@@ -179,16 +196,6 @@ private:
 			  const float track_error, const float path_curvature, const matrix::Vector2f &wind_vel,
 			  const matrix::Vector2f &unit_path_tangent, const float feas_on_track) const;
 	/*
-	 * Calculates a ground speed modulated track error bound under which the
-	 * look ahead angle is quadratically transitioned from alignment with the
-	 * track error vector to that of the path tangent vector.
-	 *
-	 * @param[in] ground_speed Vehicle ground speed [m/s]
-	 * @param[in] time_const Controller time constant [s]
-	 * @return Track error boundary [m]
-	 */
-	float trackErrorBound(const float ground_speed, const float time_const) const;
-	/*
 	 * Returns normalized (unitless) and constrained track error [0,1].
 	 *
 	 * @param[in] track_error Track error (magnitude) [m]
@@ -196,14 +203,40 @@ private:
 	 * @return Normalized track error
 	 */
 	float normalizedTrackError(const float track_error, const float track_error_bound) const;
+
 	/*
-	 * Cacluates the look ahead angle as a quadratic function of the normalized
-	 * track error.
+	 * Cacluates an approximation of the wind factor (see [TODO: include citation]).
 	 *
-	 * @param[in] normalized_track_error Normalized track error (track error / track error boundary)
-	 * @return Look ahead angle [rad]
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
+	 * @param[in] wind_speed Wind speed [m/s]
+	 * @return Non-dimensional wind factor approximation
 	 */
-	float lookAheadAngle(const float normalized_track_error) const;
+	float windFactor(const float airspeed, const float wind_speed) const;
+
+	/*
+	 * Calculates a theoretical upper bound on the user defined period to maintain
+	 * track keeping stability.
+	 *
+	 * @param[in] air_turn_rate The turn rate required to track the current path
+	 *            curvature at the current true airspeed, in a no-wind condition [rad/s]
+	 * @param[in] wind_factor Non-dimensional wind factor (see [TODO: include citation])
+	 * @return Period upper bound [s]
+	 */
+	float periodUpperBound(const float air_turn_rate, const float wind_factor, const float feas_on_track) const;
+
+	/*
+	 * Calculates a theoretical lower bound on the user defined period to avoid
+	 * limit cycle oscillations considering an acceleration actuation delay (e.g.
+	 * roll response delay). Note this lower bound defines *marginal stability,
+	 * and a safety factor should be applied in addition to the returned value.
+	 *
+	 * @param[in] air_turn_rate The turn rate required to track the current path
+	 *            curvature at the current true airspeed, in a no-wind condition [rad/s]
+	 * @param[in] wind_factor Non-dimensional wind factor (see [TODO: include citation])
+	 * @return Period lower bound [s]
+	 */
+	float periodLowerBound(const float air_turn_rate, const float wind_factor, const float feas_on_track) const;
+
 	/*
 	 * Computes a continous non-dimensional track proximity [0,1] - 0 when the
 	 * vehicle is at the track error boundary, and 1 when on track.
@@ -213,6 +246,37 @@ private:
 	 * @return Track proximity
 	 */
 	float trackProximity(const float look_ahead_ang) const;
+
+	/*
+	 * Calculates a ground speed modulated track error bound under which the
+	 * look ahead angle is quadratically transitioned from alignment with the
+	 * track error vector to that of the path tangent vector.
+	 *
+	 * @param[in] ground_speed Vehicle ground speed [m/s]
+	 * @param[in] time_const Controller time constant [s]
+	 * @return Track error boundary [m]
+	 */
+	float trackErrorBound(const float ground_speed, const float time_const) const;
+
+	/*
+	 * Calculates the required controller time constant to achieve the desired
+	 * system period and damping ratio. NOTE: actual period and damping will vary
+	 * when following paths with curvature in wind.
+	 *
+	 * @param[in] period Desired system period [s]
+	 * @param[in] damping Desired system damping ratio
+	 * @return Time constant [s]
+	 */
+	float timeConst(const float period, const float damping) const;
+
+	/*
+	 * Cacluates the look ahead angle as a quadratic function of the normalized
+	 * track error.
+	 *
+	 * @param[in] normalized_track_error Normalized track error (track error / track error boundary)
+	 * @return Look ahead angle [rad]
+	 */
+	float lookAheadAngle(const float normalized_track_error) const;
 	/*
 	 * Calculates the bearing vector and track proximity transitioning variable
 	 * from the look-ahead angle mapping.
@@ -227,6 +291,16 @@ private:
 	 */
 	matrix::Vector2f bearingVec(const matrix::Vector2f &unit_path_tangent, const float look_ahead_ang,
 				    const float signed_track_error) const;
+
+	/*
+	 * Projection of the air velocity vector onto the bearing line considering
+	 * a connected wind triangle.
+	 *
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
+	 * @param[in] wind_cross_bearing 2D cross product of wind velocity and bearing vector [m/s]
+	 * @return Projection of air velocity vector on bearing vector [m/s]
+	 */
+	float projectAirspOnBearing(const float airspeed, const float wind_cross_bearing) const;
 	/*
 	 * Calculates an additional feed-forward lateral acceleration demand considering
 	 * the path curvature.
@@ -245,55 +319,6 @@ private:
 	float lateralAccelFF(const matrix::Vector2f &unit_path_tangent, const matrix::Vector2f &ground_vel,
 			     const float wind_dot_upt, const float wind_cross_upt, const float airspeed,
 			     const float wind_speed, const float signed_track_error, const float path_curvature) const;
-	/*
-	 * Cacluates an approximation of the wind factor (see [TODO: include citation]).
-	 *
-	 * @param[in] airspeed Vehicle true airspeed [m/s]
-	 * @param[in] wind_speed Wind speed [m/s]
-	 * @return Non-dimensional wind factor approximation
-	 */
-	float windFactor(const float airspeed, const float wind_speed) const;
-	/*
-	 * Calculates a theoretical lower bound on the user defined period to avoid
-	 * limit cycle oscillations considering an acceleration actuation delay (e.g.
-	 * roll response delay). Note this lower bound defines *marginal stability,
-	 * and a safety factor should be applied in addition to the returned value.
-	 *
-	 * @param[in] air_turn_rate The turn rate required to track the current path
-	 *            curvature at the current true airspeed, in a no-wind condition [rad/s]
-	 * @param[in] wind_factor Non-dimensional wind factor (see [TODO: include citation])
-	 * @return Period lower bound [s]
-	 */
-	float periodLowerBound(const float air_turn_rate, const float wind_factor, const float feas_on_track) const;
-	/*
-	 * Calculates a theoretical upper bound on the user defined period to maintain
-	 * track keeping stability.
-	 *
-	 * @param[in] air_turn_rate The turn rate required to track the current path
-	 *            curvature at the current true airspeed, in a no-wind condition [rad/s]
-	 * @param[in] wind_factor Non-dimensional wind factor (see [TODO: include citation])
-	 * @return Period upper bound [s]
-	 */
-	float periodUpperBound(const float air_turn_rate, const float wind_factor, const float feas_on_track) const;
-	/*
-	 * Calculates the required controller time constant to achieve the desired
-	 * system period and damping ratio. NOTE: actual period and damping will vary
-	 * when following paths with curvature in wind.
-	 *
-	 * @param[in] period Desired system period [s]
-	 * @param[in] damping Desired system damping ratio
-	 * @return Time constant [s]
-	 */
-	float timeConst(const float period, const float damping) const;
-	/*
-	 * Projection of the air velocity vector onto the bearing line considering
-	 * a connected wind triangle.
-	 *
-	 * @param[in] airspeed Vehicle true airspeed [m/s]
-	 * @param[in] wind_cross_bearing 2D cross product of wind velocity and bearing vector [m/s]
-	 * @return Projection of air velocity vector on bearing vector [m/s]
-	 */
-	float projectAirspOnBearing(const float airspeed, const float wind_cross_bearing) const;
 
 };
 
