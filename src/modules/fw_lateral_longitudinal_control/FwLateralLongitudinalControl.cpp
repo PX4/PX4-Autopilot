@@ -62,7 +62,7 @@ static constexpr uint64_t ROLL_WARNING_TIMEOUT = 2_s;
 static constexpr float ROLL_WARNING_CAN_RUN_THRESHOLD = 0.9f;
 
 const fw_lateral_control_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course_setpoint = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration_setpoint = NAN, .roll_sp = NAN};
-const fw_longitudinal_control_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .height_rate_setpoint = NAN, .altitude_setpoint = NAN, .equivalent_airspeed_setpoint = NAN, .pitch_sp = NAN, .thrust_sp = NAN};
+const fw_longitudinal_control_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude_setpoint = NAN, .height_rate_setpoint = NAN, .equivalent_airspeed_setpoint = NAN, .pitch_sp = NAN, .thrust_sp = NAN};
 
 FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 	ModuleParams(nullptr),
@@ -202,8 +202,8 @@ void FwLateralLongitudinalControl::Run()
 
 			fw_longitudinal_control_setpoint_s longitudinal_control_status {
 				.timestamp = hrt_absolute_time(),
-				.height_rate_setpoint = _tecs.getStatus().control.altitude_rate_control,
 				.altitude_setpoint = longitudinal_sp.altitude_setpoint,
+				.height_rate_setpoint = _tecs.getStatus().control.altitude_rate_control,
 				.equivalent_airspeed_setpoint = _tecs.getStatus().true_airspeed_sp / _long_control_state.eas2tas,
 			};
 

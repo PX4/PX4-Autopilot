@@ -49,7 +49,7 @@ using matrix::Vector3f;
 using matrix::wrap_pi;
 
 const fw_lateral_control_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course_setpoint = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration_setpoint = NAN, .roll_sp = NAN, .heading_sp_runway_takeoff = NAN, .reset_integral = false};
-const fw_longitudinal_control_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .height_rate_setpoint = NAN, .altitude_setpoint = NAN, .equivalent_airspeed_setpoint = NAN, .pitch_sp = NAN, .thrust_sp = NAN};
+const fw_longitudinal_control_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude_setpoint = NAN, .height_rate_setpoint = NAN, .equivalent_airspeed_setpoint = NAN, .pitch_sp = NAN, .thrust_sp = NAN};
 FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
@@ -279,7 +279,6 @@ FixedwingPositionControl::vehicle_attitude_poll()
 		}
 
 		const Eulerf euler_angles(R);
-		euler_angles(1);
 		_yaw = euler_angles(2);
 
 		Vector3f body_acceleration = R.transpose() * Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
@@ -776,8 +775,8 @@ FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_i
 {
 	const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
-		.height_rate_setpoint = NAN,
 		.altitude_setpoint = _current_altitude,
+		.height_rate_setpoint = NAN,
 		.equivalent_airspeed_setpoint = _performance_model.getCalibratedTrimAirspeed(),
 		.pitch_sp = NAN,
 		.thrust_sp = NAN
@@ -818,8 +817,8 @@ FixedwingPositionControl::control_auto_descend(const float control_interval)
 
 	const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
-		.height_rate_setpoint = -descend_rate,
 		.altitude_setpoint = _current_altitude,
+		.height_rate_setpoint = -descend_rate,
 		.equivalent_airspeed_setpoint = _performance_model.getCalibratedTrimAirspeed(),
 		.pitch_sp = NAN,
 		.thrust_sp = NAN
@@ -951,8 +950,8 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 
 	const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
-		.height_rate_setpoint = NAN,
 		.altitude_setpoint = position_sp_alt,
+		.height_rate_setpoint = NAN,
 		.equivalent_airspeed_setpoint = target_airspeed,
 		.pitch_sp = NAN,
 		.thrust_sp = NAN
@@ -1018,8 +1017,8 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 
 	const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
-		.height_rate_setpoint = pos_sp_curr.vz,
 		.altitude_setpoint = pos_sp_curr.alt,
+		.height_rate_setpoint = pos_sp_curr.vz,
 		.equivalent_airspeed_setpoint = target_airspeed,
 		.pitch_sp = NAN,
 		.thrust_sp = NAN
@@ -1133,8 +1132,8 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 
 	const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
-		.height_rate_setpoint = NAN,
 		.altitude_setpoint = pos_sp_curr.alt,
+		.height_rate_setpoint = NAN,
 		.equivalent_airspeed_setpoint = target_airspeed,
 		.pitch_sp = NAN,
 		.thrust_sp = NAN
@@ -1194,8 +1193,8 @@ FixedwingPositionControl::controlAutoFigureEight(const float control_interval, c
 
 	const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
-		.height_rate_setpoint = NAN,
 		.altitude_setpoint = pos_sp_curr.alt,
+		.height_rate_setpoint = NAN,
 		.equivalent_airspeed_setpoint = target_airspeed,
 		.pitch_sp = NAN,
 		.thrust_sp = NAN
@@ -1263,8 +1262,8 @@ FixedwingPositionControl::control_auto_path(const float control_interval, const 
 
 	const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
-		.height_rate_setpoint = NAN,
 		.altitude_setpoint = pos_sp_curr.alt,
+		.height_rate_setpoint = NAN,
 		.equivalent_airspeed_setpoint = target_airspeed,
 		.pitch_sp = NAN,
 		.thrust_sp = NAN
@@ -1395,8 +1394,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 			.timestamp = hrt_absolute_time(),
-			.height_rate_setpoint = NAN,
 			.altitude_setpoint = altitude_setpoint_amsl,
+			.height_rate_setpoint = NAN,
 			.equivalent_airspeed_setpoint = target_airspeed,
 			.pitch_sp = _runway_takeoff.getPitch(),
 			.thrust_sp = _runway_takeoff.getThrottle(_param_fw_thr_idle.get())
@@ -1483,8 +1482,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 							   _param_fw_thr_idle.get() : _param_fw_thr_max.get();
 			const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 				.timestamp = hrt_absolute_time(),
-				.height_rate_setpoint = NAN,
 				.altitude_setpoint = altitude_setpoint_amsl,
+				.height_rate_setpoint = NAN,
 				.equivalent_airspeed_setpoint = target_airspeed,
 				.pitch_sp = NAN,
 				.thrust_sp = NAN
@@ -1672,8 +1671,8 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 		const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 			.timestamp = hrt_absolute_time(),
-			.height_rate_setpoint = height_rate_setpoint,
 			.altitude_setpoint = altitude_setpoint,
+			.height_rate_setpoint = height_rate_setpoint,
 			.equivalent_airspeed_setpoint = target_airspeed,
 			.pitch_sp = NAN,
 			.thrust_sp = NAN
@@ -1734,8 +1733,8 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 		const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 			.timestamp = hrt_absolute_time(),
-			.height_rate_setpoint = NAN,
 			.altitude_setpoint = altitude_setpoint,
+			.height_rate_setpoint = NAN,
 			.equivalent_airspeed_setpoint = target_airspeed,
 			.pitch_sp = NAN,
 			.thrust_sp = NAN
@@ -1875,8 +1874,8 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 					   _param_fw_thr_max.get();
 		const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 			.timestamp = hrt_absolute_time(),
-			.height_rate_setpoint = height_rate_setpoint,
 			.altitude_setpoint = _current_altitude,
+			.height_rate_setpoint = height_rate_setpoint,
 			.equivalent_airspeed_setpoint = target_airspeed,
 			.pitch_sp = NAN,
 			.thrust_sp = NAN
@@ -1927,8 +1926,8 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 
 		const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 			.timestamp = hrt_absolute_time(),
-			.height_rate_setpoint = -glide_slope_sink_rate,
 			.altitude_setpoint = _current_altitude,
+			.height_rate_setpoint = -glide_slope_sink_rate,
 			.equivalent_airspeed_setpoint = target_airspeed,
 			.pitch_sp = NAN,
 			.thrust_sp = NAN
@@ -1983,8 +1982,8 @@ FixedwingPositionControl::control_manual_altitude(const float control_interval, 
 
 	const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
-		.height_rate_setpoint = height_rate_sp,
 		.altitude_setpoint = _current_altitude,
+		.height_rate_setpoint = height_rate_sp,
 		.equivalent_airspeed_setpoint = calibrated_airspeed_sp,
 		.pitch_sp = NAN,
 		.thrust_sp = NAN
@@ -2087,8 +2086,8 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 
 	const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
-		.height_rate_setpoint = height_rate_sp,
 		.altitude_setpoint = _current_altitude,
+		.height_rate_setpoint = height_rate_sp,
 		.equivalent_airspeed_setpoint = calibrated_airspeed_sp,
 		.pitch_sp = NAN,
 		.thrust_sp = NAN
