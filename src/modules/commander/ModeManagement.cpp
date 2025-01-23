@@ -370,7 +370,7 @@ void ModeManagement::update(bool armed, uint8_t user_intended_nav_state, bool fa
 	_failsafe_action_active = failsafe_action_active;
 	_external_checks.update();
 
-	bool allow_update_while_armed = false;
+	bool allow_update_while_armed = _external_checks.allowUpdateWhileArmed();
 #if defined(CONFIG_ARCH_BOARD_PX4_SITL)
 	// For simulation, allow registering modes while armed for developer convenience
 	allow_update_while_armed = true;
