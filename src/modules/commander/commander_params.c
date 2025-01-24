@@ -1022,7 +1022,7 @@ PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 3);
 /**
 + * Allow external mode registration while armed.
 + *
-+ *  By default disabled. 0: Mode registration is not allowed while armed. 1: Mode registration is allowed while armed.
++ *  By default disabled for safety reasons
 + *
 + * @group Commander
 + * @value 0 Disabled
