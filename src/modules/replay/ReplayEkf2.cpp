@@ -39,6 +39,7 @@
 
 // for ekf2 replay
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/sensor_combined.h>
@@ -91,6 +92,9 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 	} else if (sub.orb_meta == ORB_ID(airspeed)) {
 		_airspeed_msg_id = msg_id;
 
+	} else if (sub.orb_meta == ORB_ID(airspeed_validated)) {
+		_airspeed_validated_msg_id = msg_id;
+
 	} else if (sub.orb_meta == ORB_ID(distance_sensor)) {
 		_distance_sensor_msg_id = msg_id;
 
@@ -138,6 +142,7 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 	};
 
 	handle_sensor_publication(ekf2_timestamps.airspeed_timestamp_rel, _airspeed_msg_id);
+	handle_sensor_publication(ekf2_timestamps.airspeed_validated_timestamp_rel, _airspeed_validated_msg_id);
 	handle_sensor_publication(ekf2_timestamps.distance_sensor_timestamp_rel, _distance_sensor_msg_id);
 	handle_sensor_publication(ekf2_timestamps.optical_flow_timestamp_rel, _optical_flow_msg_id);
 	handle_sensor_publication(ekf2_timestamps.vehicle_air_data_timestamp_rel, _vehicle_air_data_msg_id);
@@ -225,6 +230,7 @@ ReplayEkf2::onExitMainLoop()
 	PX4_INFO("Topic, Num Published, Num Error (no timestamp match found):");
 
 	print_sensor_statistics(_airspeed_msg_id, "airspeed");
+	print_sensor_statistics(_airspeed_validated_msg_id, "airspeed_validated");
 	print_sensor_statistics(_distance_sensor_msg_id, "distance_sensor");
 	print_sensor_statistics(_optical_flow_msg_id, "vehicle_optical_flow");
 	print_sensor_statistics(_sensor_combined_msg_id, "sensor_combined");
