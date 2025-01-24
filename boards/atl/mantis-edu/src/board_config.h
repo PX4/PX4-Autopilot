@@ -59,7 +59,6 @@
 #define BOARD_ARMED_STATE_LED  LED_BLUE
 
 #define FLASH_BASED_PARAMS
-#define RAM_BASED_MISSIONS
 
 // Hacks for MAVLink RC button input
 #define ATL_MANTIS_RC_INPUT_HACKS
