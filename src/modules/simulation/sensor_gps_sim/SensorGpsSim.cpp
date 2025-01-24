@@ -120,11 +120,12 @@ void SensorGpsSim::Run()
 			vehicle_global_position_s gpos{};
 			_vehicle_global_position_sub.copy(&gpos);
 
-			double latitude = gpos.lat + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
-			double longitude = gpos.lon + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
-			double altitude = (double)(gpos.alt + (generate_wgn() * 0.5f));
+			float _noise_scale = _sih_noise_scale.get();
+			double latitude = gpos.lat + (double) _noise_scale * math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
+			double longitude = gpos.lon + (double) _noise_scale * math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
+			double altitude = (double)(gpos.alt + (_noise_scale * generate_wgn() * 0.5f));
 
-			Vector3f gps_vel = Vector3f{lpos.vx, lpos.vy, lpos.vz} + noiseGauss3f(0.06f, 0.077f, 0.158f);
+			Vector3f gps_vel = Vector3f{lpos.vx, lpos.vy, lpos.vz} + 0.1f * noiseGauss3f(0.06f, 0.077f, 0.158f);
 
 			// device id
 			device::Device::DeviceId device_id;

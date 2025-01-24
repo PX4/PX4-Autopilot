@@ -135,7 +135,8 @@ void SensorAirspeedSim::Run()
 			const float air_density = AIR_DENSITY_MSL / density_ratio;
 
 			// calculate differential pressure + noise in hPa
-			const float diff_pressure_noise = (float)generate_wgn() * 0.01f;
+			float _noise_scale = _sih_noise_scale.get();
+			const float diff_pressure_noise = _noise_scale * (float)generate_wgn() * 0.01f;
 			float diff_pressure = sign(body_velocity(0)) * 0.005f * air_density  * body_velocity(0) * body_velocity(
 						      0) + diff_pressure_noise;
 
