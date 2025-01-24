@@ -93,51 +93,30 @@ ExternalProject_Add(gz
 	BUILD_ALWAYS 1
 )
 
-set(gz_worlds
-	default
-	windy
-	baylands
-	lawn
-	aruco
-	rover
-	walls
-)
-
 # Below we setup the build targets for our worlds and models
 # e.g: gz_x500_flow_aruco --> gz_<model>_<world>
 
-# find corresponding airframes
-file(GLOB gz_airframes
-     RELATIVE ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes
-     ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*
-)
-
-# remove any .post files
-foreach(gz_airframe IN LISTS gz_airframes)
-	if(gz_airframe MATCHES ".post")
-		list(REMOVE_ITEM gz_airframes ${gz_airframe})
-	endif()
-endforeach()
-list(REMOVE_DUPLICATES gz_airframes)
+file(GLOB gz_worlds ${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf)
+file(GLOB gz_airframes ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*)
 
 foreach(gz_airframe IN LISTS gz_airframes)
-	set(model_only)
-	string(REGEX REPLACE ".*_gz_" "" model_only ${gz_airframe})
+	set(model_name)
+	string(REGEX REPLACE ".*_gz_" "" model_name ${gz_airframe})
 
 	foreach(world ${gz_worlds})
 
 		get_filename_component("world_name" ${world} NAME_WE)
 
 		if(world_name STREQUAL "default")
-			add_custom_target(gz_${model_only}
-				COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} $<TARGET_FILE:px4>
+			add_custom_target(gz_${model_name}
+				COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_name} $<TARGET_FILE:px4>
 				WORKING_DIRECTORY ${SITL_WORKING_DIR}
 				USES_TERMINAL
 				DEPENDS px4 OpticalFlowSystem
 			)
 		else()
-			add_custom_target(gz_${model_only}_${world_name}
-				COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} PX4_GZ_WORLD=${world_name} $<TARGET_FILE:px4>
+			add_custom_target(gz_${model_name}_${world_name}
+				COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_name} PX4_GZ_WORLD=${world_name} $<TARGET_FILE:px4>
 				WORKING_DIRECTORY ${SITL_WORKING_DIR}
 				USES_TERMINAL
 				DEPENDS px4 OpticalFlowSystem
