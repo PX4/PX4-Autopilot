@@ -111,6 +111,6 @@ private:
 
 	uORB::Publication<arming_check_request_s> _arming_check_request_pub{ORB_ID(arming_check_request)};
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-		(ParamBool<px4::params::COM_MODE_ARM_CHK>) _param_com_mode_arm_chk
-	);
+					(ParamBool<px4::params::COM_MODE_ARM_CHK>) _param_com_mode_arm_chk
+				       );
 };
