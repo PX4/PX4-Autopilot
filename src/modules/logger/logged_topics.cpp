@@ -294,6 +294,7 @@ void LoggedTopics::add_estimator_replay_topics()
 
 	// current EKF2 subscriptions
 	add_topic("airspeed");
+	add_topic("airspeed_validated");
 	add_topic("vehicle_optical_flow");
 	add_topic("sensor_combined");
 	add_topic("sensor_selection");
