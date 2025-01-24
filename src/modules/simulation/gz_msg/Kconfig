@@ -1,6 +1,0 @@
-menuconfig MODULES_SIMULATION_GZ_MSG
-	bool "gz_msg"
-	default n
-	depends on PLATFORM_POSIX
-	---help---
-		Enable support for gz_msg

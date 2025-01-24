@@ -3,7 +3,7 @@
 #include <gz/sensors/Util.hh>
 
 #include "OpticalFlowSensor.hpp"
-#include "optical_flow.pb.h"
+#include "opticalflow.pb.h"
 
 using namespace custom;
 
@@ -17,7 +17,7 @@ bool OpticalFlowSensor::Load(const sdf::Sensor &_sdf)
 
     gz::sensors::Sensor::Load(_sdf);
 
-    _publisher = _node.Advertise<sensor_msgs::msgs::OpticalFlow>(this->Topic());
+    _publisher = _node.Advertise<px4::msgs::OpticalFlow>(this->Topic());
     gzdbg << "Advertising optical flow data on: " << this->Topic() << std::endl;
 
     // Get camera topic from our sensor config
@@ -107,7 +107,7 @@ bool OpticalFlowSensor::Update(const std::chrono::steady_clock::duration &_now)
 		return true;
 	}
 
-    sensor_msgs::msgs::OpticalFlow msg;
+    px4::msgs::OpticalFlow msg;
     msg.set_time_usec(_last_image_timestamp);
 
     int quality = _optical_flow->calcFlow(_last_image_gray.data, _last_image_timestamp, _integration_time_us, _flow_x, _flow_y);

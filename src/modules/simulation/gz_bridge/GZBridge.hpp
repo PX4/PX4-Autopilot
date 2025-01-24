@@ -78,7 +78,8 @@
 #include <gz/msgs/laserscan.pb.h>
 #include <gz/msgs/stringmsg.pb.h>
 #include <gz/msgs/scene.pb.h>
-#include <optical_flow.pb.h>
+// Custom PX4 proto
+#include <opticalflow.pb.h>
 
 using namespace time_literals;
 
@@ -115,6 +116,7 @@ private:
 	void navSatCallback(const gz::msgs::NavSat &msg);
 	void laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg);
 	void laserScanCallback(const gz::msgs::LaserScan &msg);
+	void opticalFlowCallback(const px4::msgs::OpticalFlow &image_msg);
 
 	static void rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU);
 
