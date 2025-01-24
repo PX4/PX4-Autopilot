@@ -622,7 +622,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	sp->lon = item.lon;
 	sp->alt = get_absolute_altitude_for_item(item);
 	sp->yaw = item.yaw;
-	sp->loiter_radius = (fabsf(item.loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(item.loiter_radius) :
+	sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
 			    _navigator->get_loiter_radius();
 	sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
 
