@@ -626,7 +626,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 			    _navigator->get_loiter_radius();
 	sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
 
-	if (item.acceptance_radius > 0.001f && PX4_ISFINITE(item.acceptance_radius)) {
+	if (item.acceptance_radius > FLT_EPSILON && PX4_ISFINITE(item.acceptance_radius)) {
 		// if the mission item has a specified acceptance radius, overwrite the default one from parameters
 		sp->acceptance_radius = item.acceptance_radius;
 
