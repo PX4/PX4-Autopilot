@@ -98,6 +98,7 @@ private:
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::SIH_NOISE_SCALE>) _sih_noise_scale,
 		(ParamFloat<px4::params::SIM_BARO_OFF_P>) _sim_baro_off_p,
 		(ParamFloat<px4::params::SIM_BARO_OFF_T>) _sim_baro_off_t
 	)

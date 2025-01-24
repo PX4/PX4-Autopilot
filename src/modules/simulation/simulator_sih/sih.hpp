@@ -272,6 +272,7 @@ private:
 	MapProjection _lpos_ref{};
 	float _lpos_ref_alt;
 	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _T_TAU;
+	float _noise_scale;
 	matrix::Matrix3f _I;    // vehicle inertia matrix
 	matrix::Matrix3f _Im1;  // inverse of the inertia matrix
 
@@ -301,6 +302,7 @@ private:
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
 		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
+		(ParamFloat<px4::params::SIH_NOISE_SCALE>) _sih_noise_scale,
 		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype
 	)
 };

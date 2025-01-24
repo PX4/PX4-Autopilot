@@ -282,6 +282,8 @@ void Sih::parameters_updated()
 	_distance_snsr_override = _sih_distance_snsr_override.get();
 
 	_T_TAU = _sih_thrust_tau.get();
+
+	_noise_scale = _sih_noise_scale.get();
 }
 
 void Sih::init_variables()
@@ -359,6 +361,7 @@ void Sih::generate_force_and_torques(const float dt)
 		// _Ma_B = -_KDW * _w_B;   // first order angular damper
 
 	} else if (_vehicle == VehicleType::StandardVTOL) {
+
 
 		_T_B = Vector3f(_T_MAX * 2 * _u[7], 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
@@ -620,13 +623,13 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	Vector3f gyro_noise;
 
 	if (_T_B.longerThan(FLT_EPSILON)) {
-		accel_noise = noiseGauss3f(0.5f, 1.7f, 1.4f);
-		gyro_noise = noiseGauss3f(0.14f, 0.07f, 0.03f);
+		accel_noise = _noise_scale * noiseGauss3f(0.5f, 1.7f, 1.4f);
+		gyro_noise = _noise_scale * noiseGauss3f(0.14f, 0.07f, 0.03f);
 
 	} else {
 		// Lower noise when not armed
-		accel_noise = noiseGauss3f(0.1f, 0.1f, 0.1f);
-		gyro_noise = noiseGauss3f(0.01f, 0.01f, 0.01f);
+		accel_noise = _noise_scale * noiseGauss3f(0.1f, 0.1f, 0.1f);
+		gyro_noise = _noise_scale * noiseGauss3f(0.01f, 0.01f, 0.01f);
 	}
 
 	Vector3f specific_force_B = R_E2B * _specific_force_E;

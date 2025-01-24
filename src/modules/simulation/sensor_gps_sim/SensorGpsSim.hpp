@@ -91,6 +91,7 @@ private:
 	bool _gps_blocked{false};
 
 	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::SIH_NOISE_SCALE>) _sih_noise_scale,
 		(ParamInt<px4::params::SIM_GPS_USED>) _sim_gps_used
 	)
 };
