@@ -76,7 +76,8 @@
 #include <gz/msgs/laserscan.pb.h>
 #include <gz/msgs/stringmsg.pb.h>
 #include <gz/msgs/scene.pb.h>
-#include <optical_flow.pb.h>
+// Custom PX4 proto
+#include <opticalflow.pb.h>
 
 using namespace time_literals;
 
@@ -118,7 +119,7 @@ private:
 	void navSatCallback(const gz::msgs::NavSat &nav_sat);
 	void laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan);
 	void laserScanCallback(const gz::msgs::LaserScan &scan);
-	void opticalFlowCallback(const sensor_msgs::msgs::OpticalFlow &image_msg);
+	void opticalFlowCallback(const px4::msgs::OpticalFlow &image_msg);
 
 	/**
 	 * @brief Call Entityfactory service

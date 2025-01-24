@@ -279,8 +279,7 @@ int GZBridge::init()
 	return OK;
 }
 
-// TODO: change to sensor_msgs::msgs::OpticalFlow
-void GZBridge::opticalFlowCallback(const sensor_msgs::msgs::OpticalFlow &flow)
+void GZBridge::opticalFlowCallback(const px4::msgs::OpticalFlow &flow)
 {
 
 	// Construct SensorOpticalFlow message
