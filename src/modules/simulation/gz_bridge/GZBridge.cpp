@@ -281,8 +281,6 @@ int GZBridge::init()
 
 void GZBridge::opticalFlowCallback(const px4::msgs::OpticalFlow &flow)
 {
-
-	// Construct SensorOpticalFlow message
 	sensor_optical_flow_s msg = {};
 
 	msg.timestamp = hrt_absolute_time();

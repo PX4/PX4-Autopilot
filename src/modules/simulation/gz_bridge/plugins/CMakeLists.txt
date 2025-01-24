@@ -31,7 +31,7 @@ add_library(${PROJECT_NAME} SHARED
 )
 
 target_link_libraries(${PROJECT_NAME}
-    PUBLIC gz_px4_messages
+    PUBLIC px4_msgs
     PUBLIC gz-sensors8::gz-sensors8
     PUBLIC gz-rendering8::gz-rendering8
     PUBLIC gz-plugin2::gz-plugin2
