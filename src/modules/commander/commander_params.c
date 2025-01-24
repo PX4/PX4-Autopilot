@@ -1020,13 +1020,13 @@ PARAM_DEFINE_FLOAT(COM_THROW_SPEED, 5);
 PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 3);
 
 /**
- * Condition to enable external mode registration while armed
++ * Allow external mode registration while armed.
++ *
++ *  By default disabled. 0: Mode registration is not allowed while armed. 1: Mode registration is allowed while armed.
++ *
++ * @group Commander
++ * @value 0 Disabled
++ * @value 1 Enabled
  *
- * By default, mode registration is disabled while armed.
- *
- * @value 0 Disabled
- * @value 1 Enabled
- *
- * @group Commander
  */
 PARAM_DEFINE_INT32(COM_MODE_ARM_CHK, 0);
