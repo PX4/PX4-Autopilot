@@ -21,6 +21,7 @@ using namespace custom;
 
 void OpticalFlowSystem::PreUpdate(const gz::sim::UpdateInfo &, gz::sim::EntityComponentManager &_ecm)
 {
+	// Register each new custom sensor
 	_ecm.EachNew<gz::sim::components::CustomSensor, gz::sim::components::ParentEntity>(
 		[&](const gz::sim::Entity & _entity,
 		    const gz::sim::components::CustomSensor * _custom,

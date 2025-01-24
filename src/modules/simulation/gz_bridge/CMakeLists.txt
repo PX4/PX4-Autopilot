@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,11 +31,31 @@
 #
 ############################################################################
 
-# GZ Harmonic only
+if(NOT DEFINED ENV{GZ_DISTRO})
+    set(GZ_DISTRO "harmonic" CACHE STRING "Gazebo distribution to use")
+else()
+    set(GZ_DISTRO $ENV{GZ_DISTRO})
+endif()
+
+# Define library version combinations for different Gazebo distributions
 # https://github.com/gazebo-tooling/gazebodistro/blob/master/collection-harmonic.yaml
-find_package(gz-cmake3 REQUIRED)
-find_package(gz-msgs10 REQUIRED)
-find_package(gz-transport13 REQUIRED)
+if(GZ_DISTRO STREQUAL "harmonic")
+    set(GZ_CMAKE_VERSION "3")
+    set(GZ_MSGS_VERSION "10")
+    set(GZ_TRANSPORT_VERSION "13")
+    message(STATUS "Using Gazebo Harmonic (cmake:${GZ_CMAKE_VERSION}, msgs:${GZ_MSGS_VERSION}, transport:${GZ_TRANSPORT_VERSION})")
+elseif(GZ_DISTRO STREQUAL "ionic")
+    set(GZ_CMAKE_VERSION "4")
+    set(GZ_MSGS_VERSION "11")
+    set(GZ_TRANSPORT_VERSION "14")
+    message(STATUS "Using Gazebo Ionic (cmake:${GZ_CMAKE_VERSION}, msgs:${GZ_MSGS_VERSION}, transport:${GZ_TRANSPORT_VERSION})")
+else()
+    message(FATAL_ERROR "Unknown Gazebo distribution: ${GZ_DISTRO}. Valid options are: harmonic or ionic")
+endif()
+
+find_package(gz-cmake${GZ_CMAKE_VERSION} REQUIRED)
+find_package(gz-msgs${GZ_MSGS_VERSION} REQUIRED)
+find_package(gz-transport${GZ_TRANSPORT_VERSION} REQUIRED)
 find_package(Protobuf REQUIRED)
 
 # Custom message generation
@@ -68,7 +88,7 @@ px4_add_module(
 	DEPENDS
 		mixer_module
 		px4_work_queue
-		gz-transport13::core
+		gz-transport${GZ_TRANSPORT_VERSION}::core
 		px4_msgs
 	MODULE_CONFIG
 		module.yaml
