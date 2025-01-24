@@ -35,56 +35,20 @@
 # https://github.com/gazebo-tooling/gazebodistro/blob/master/collection-harmonic.yaml
 find_package(gz-cmake3 REQUIRED)
 find_package(gz-msgs10 REQUIRED)
-find_package(gz-transport13)
-
+find_package(gz-transport13 REQUIRED)
 find_package(Protobuf REQUIRED)
 
-# Find all proto files in proto directory
+# Custom message generation
 file(GLOB MSGS_PROTOS "${CMAKE_CURRENT_SOURCE_DIR}/msgs/*.proto")
+PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${MSGS_PROTOS})
+px4_add_library(px4_msgs ${PROTO_SRCS} ${PROTO_HDRS})
+target_include_directories(px4_msgs PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(px4_msgs PUBLIC ${PROTOBUF_LIBRARIES})
 
-PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS
-	${MSGS_PROTOS}
-)
-
-px4_add_library(gz_px4_messages
-    ${PROTO_SRCS}
-    ${PROTO_HDRS}
-)
-
-target_include_directories(gz_px4_messages
-    PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_link_libraries(gz_px4_messages
-    PUBLIC ${PROTOBUF_LIBRARIES}
-)
-
-# TODO: glob every file in proto/
-# set(MSGS_PROTOS
-#      ${CMAKE_CURRENT_SOURCE_DIR}/proto/px4/msgs/opticalflow.proto
-# )
-
-# gz_msgs_generate_messages(
-#   TARGET custom_msgs
-#   PROTO_PACKAGE "px4.msgs"
-#   MSGS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/proto
-#   MSGS_PROTOS ${MSGS_PROTOS}
-#   DEPENDENCIES gz-msgs10::gz-msgs10
-# )
-
+# Build the plugins
 add_subdirectory(plugins)
 
-add_compile_options(-frtti -fexceptions)
-
-# set(GZ_TRANSPORT_VER ${gz-transport_VERSION_MAJOR})
-
-# if(GZ_TRANSPORT_VER GREATER_EQUAL 12)
-# 	set(GZ_TRANSPORT_LIB gz-transport${GZ_TRANSPORT_VER}::core)
-# else()
-# 	set(GZ_TRANSPORT_LIB ignition-transport${GZ_TRANSPORT_VER}::core)
-# endif()
-
+# Add the gz_bridge module
 px4_add_module(
 	MODULE modules__simulation__gz_bridge
 	MAIN gz_bridge
@@ -105,16 +69,16 @@ px4_add_module(
 		mixer_module
 		px4_work_queue
 		gz-transport13::core
-		gz_px4_messages
+		px4_msgs
 	MODULE_CONFIG
 		module.yaml
 )
 
-target_include_directories(modules__simulation__gz_bridge PUBLIC gz_px4_messages)
+# Link custom messages with module
+target_include_directories(modules__simulation__gz_bridge PUBLIC px4_msgs)
+target_link_libraries(modules__simulation__gz_bridge PUBLIC px4_msgs)
 
-# TODO: this doesn't feel right
-target_link_libraries(modules__simulation__gz_bridge PUBLIC gz_px4_messages)
-
+# What are we doing here?
 px4_add_git_submodule(TARGET git_gz PATH "${PX4_SOURCE_DIR}/Tools/simulation/gz")
 include(ExternalProject)
 ExternalProject_Add(gz
@@ -138,6 +102,9 @@ set(gz_worlds
 	rover
 	walls
 )
+
+# Below we setup the build targets for our worlds and models
+# e.g: gz_x500_flow_aruco --> gz_<model>_<world>
 
 # find corresponding airframes
 file(GLOB gz_airframes
@@ -178,6 +145,7 @@ foreach(gz_airframe IN LISTS gz_airframes)
 		endif()
 	endforeach()
 endforeach()
-# PX4_GZ_MODELS, PX4_GZ_WORLDS, GZ_SIM_RESOURCE_PATH
+
+# Setup the environment variables: PX4_GZ_MODELS, PX4_GZ_WORLDS, GZ_SIM_RESOURCE_PATH
 configure_file(gz_env.sh.in ${PX4_BINARY_DIR}/rootfs/gz_env.sh)
 
