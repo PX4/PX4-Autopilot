@@ -56,8 +56,6 @@
 #  define NUM_MISSIONS_SUPPORTED 500
 #endif
 
-#define NAV_EPSILON_POSITION	0.001f	/**< Anything smaller than this is considered zero */
-
 /* compatible to mavlink MAV_CMD */
 enum NAV_CMD {
 	NAV_CMD_IDLE = 0,
