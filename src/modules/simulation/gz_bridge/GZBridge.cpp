@@ -247,7 +247,6 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-	// Camera:
 	std::string flow_topic = "/optical_flow";
 
 	if (!_node.Subscribe(flow_topic, &GZBridge::opticalFlowCallback, this)) {
