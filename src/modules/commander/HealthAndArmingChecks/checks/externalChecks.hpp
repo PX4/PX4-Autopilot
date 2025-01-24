@@ -110,7 +110,7 @@ private:
 	uORB::Subscription _arming_check_reply_sub{ORB_ID(arming_check_reply)};
 
 	uORB::Publication<arming_check_request_s> _arming_check_request_pub{ORB_ID(arming_check_request)};
-	DEFINE_PARAMETERS(
+	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 		(ParamBool<px4::params::COM_MODE_ARM_CHK>) _param_com_mode_arm_chk
 	);
 };
