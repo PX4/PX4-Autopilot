@@ -56,7 +56,8 @@ bool deserialise_msg(
 	const size_t msg_size_pred = MSG_SIZE(naux);
 
 	if (msg_size != msg_size_pred) {
-		PX4_WARN("Message size does not match (%lu != %lu)!", msg_size, msg_size_pred);
+		PX4_WARN("Message size does not match (%" PRIu64 " != %" PRIu64 ")!",
+			 static_cast<uint64_t>(msg_size), static_cast<uint64_t>(msg_size_pred));
 		return false;
 	}
 
@@ -64,7 +65,7 @@ bool deserialise_msg(
 	const uint32_t crc = crc32part(msg.begin(), msg_size - sizeof(uint32_t), 0xffffffff) ^ 0xffffffff;
 
 	if (crc_recv != crc) {
-		PX4_WARN("CRC does not match (%u != %u)!", crc_recv, crc);
+		PX4_WARN("CRC does not match (%" PRIu32 " != %" PRIu32 ")!", crc_recv, crc);
 		return false;
 	}
 
