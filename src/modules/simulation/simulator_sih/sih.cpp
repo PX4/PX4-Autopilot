@@ -361,7 +361,7 @@ void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, 
 	_wing_l.update_aero(v_B, _w_B, alt, roll_cmd * FLAP_MAX);
 	_wing_r.update_aero(v_B, _w_B, alt, -roll_cmd * FLAP_MAX);
 
-	_tailplane.update_aero(v_B, _w_B, alt, pitch_cmd * FLAP_MAX, _T_MAX * throttle_cmd);
+	_tailplane.update_aero(v_B, _w_B, alt, -pitch_cmd * FLAP_MAX, _T_MAX * throttle_cmd);
 	_fin.update_aero(v_B, _w_B, alt, yaw_cmd * FLAP_MAX, _T_MAX * throttle_cmd);
 	_fuselage.update_aero(v_B, _w_B, alt);
 
