@@ -278,17 +278,15 @@ void Sensors::diff_pres_poll()
 
 		vehicle_air_data_s air_data{};
 		_vehicle_air_data_sub.copy(&air_data);
-
-		const float air_temperature_celsius = air_data.ambient_temperature;
+		const float temperature = air_data.ambient_temperature;
 
 		// push raw data into validator
-		float airspeed_input[3] { diff_pres.differential_pressure_pa, air_temperature_celsius, 0.0f };
+		float airspeed_input[3] { diff_pres.differential_pressure_pa, 0.0f, 0.0f };
 		_airspeed_validator.put(diff_pres.timestamp_sample, airspeed_input, diff_pres.error_count, 100); // TODO: real priority?
 
 		// accumulate average for publication
 		_diff_pres_timestamp_sum += diff_pres.timestamp_sample;
 		_diff_pres_pressure_sum += diff_pres.differential_pressure_pa;
-		_diff_pres_temperature_sum += air_temperature_celsius;
 		_baro_pressure_sum += air_data.baro_pressure_pa;
 		_diff_pres_count++;
 
@@ -298,12 +296,10 @@ void Sensors::diff_pres_poll()
 			const uint64_t timestamp_sample = _diff_pres_timestamp_sum / _diff_pres_count;
 			const float differential_pressure_pa = _diff_pres_pressure_sum / _diff_pres_count - _parameters.diff_pres_offset_pa;
 			const float baro_pressure_pa = _baro_pressure_sum / _diff_pres_count;
-			const float temperature = _diff_pres_temperature_sum / _diff_pres_count;
 
 			// reset
 			_diff_pres_timestamp_sum = 0;
 			_diff_pres_pressure_sum = 0;
-			_diff_pres_temperature_sum = 0;
 			_baro_pressure_sum = 0;
 			_diff_pres_count = 0;
 
