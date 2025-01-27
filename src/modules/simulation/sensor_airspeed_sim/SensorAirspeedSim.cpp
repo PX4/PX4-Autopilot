@@ -106,9 +106,12 @@ void SensorAirspeedSim::Run()
 		updateParams();
 	}
 
-	if (_sim_failure.get() == 0) {
-		if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated()
-		    && _vehicle_attitude_sub.updated()) {
+	if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated()
+	    && _vehicle_attitude_sub.updated()) {
+
+		check_failure_injection();
+
+		if (_sim_failure.get() == 0 && !_arsp_blocked) {
 
 			vehicle_local_position_s lpos{};
 			_vehicle_local_position_sub.copy(&lpos);

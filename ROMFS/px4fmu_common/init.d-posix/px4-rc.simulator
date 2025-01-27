@@ -36,10 +36,15 @@ if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0"
 		then
 			sensor_mag_sim start
 		fi
+		if param compare -s SENS_EN_ARSPDSIM 1
+		then
+			sensor_airspeed_sim start
+		fi
 		if param compare -s SENS_EN_AGPSIM 1
 		then
 			sensor_agp_sim start
 		fi
+
 
 	else
 		echo "ERROR [init] simulator_sih failed to start"
