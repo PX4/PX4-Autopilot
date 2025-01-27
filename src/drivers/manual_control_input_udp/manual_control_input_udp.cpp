@@ -76,7 +76,7 @@ private:
 
 	int socketfd;
 
-	std::array<uint8_t, MSG_MAX_SIZE> msg;
+	px4::Array<uint8_t, MSG_MAX_SIZE> msg;
 
 	manual_control_setpoint_s ms;
 
@@ -160,8 +160,8 @@ ManualControlInUDP::ManualControlInUDP(in_port_t port)
 void ManualControlInUDP::run()
 {
 	while (!should_exit()) {
-		msg.fill(0);
-		const ssize_t msg_size = recv(socketfd, msg.data(), msg.size(), 0);
+		msg = {};
+		const ssize_t msg_size = recv(socketfd, msg.begin(), msg.max_size(), 0);
 
 		if (msg_size == -1) {
 			PX4_WARN("Failed to read from socket: %s", strerror(errno));

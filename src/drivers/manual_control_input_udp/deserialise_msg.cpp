@@ -10,20 +10,20 @@ constexpr const T &clamp(const T &v, const T &lo, const T &hi)
 	return (t > hi) ? hi : t;
 }
 
-uint32_t deserialise_u32(const std::array<uint8_t, MSG_MAX_SIZE> &msg, size_t i)
+uint32_t deserialise_u32(const px4::Array<uint8_t, MSG_MAX_SIZE> &msg, size_t i)
 {
 	const size_t offset = sizeof(uint8_t) + i * sizeof(float) + ((i < 4) ? 0 : sizeof(uint8_t));
 	return (msg[offset + 0] << 24) | (msg[offset + 1] << 16) | (msg[offset + 2] << 8) | (msg[offset + 3]);
 }
 
-float deserialise_float(const std::array<uint8_t, MSG_MAX_SIZE> &msg, size_t i)
+float deserialise_float(const px4::Array<uint8_t, MSG_MAX_SIZE> &msg, size_t i)
 {
 	const uint32_t bb = deserialise_u32(msg, i);
 	return *(float *)&bb;
 }
 
 bool deserialise_msg(
-	const std::array<uint8_t, MSG_MAX_SIZE> &msg,
+	const px4::Array<uint8_t, MSG_MAX_SIZE> &msg,
 	const size_t &msg_size,
 	manual_control_setpoint_s &manual_control_setpoint
 )
@@ -61,7 +61,7 @@ bool deserialise_msg(
 	}
 
 	const uint32_t crc_recv = deserialise_u32(msg, 4 + naux);
-	const uint32_t crc = crc32part(msg.data(), msg_size - sizeof(uint32_t), 0xffffffff) ^ 0xffffffff;
+	const uint32_t crc = crc32part(msg.begin(), msg_size - sizeof(uint32_t), 0xffffffff) ^ 0xffffffff;
 
 	if (crc_recv != crc) {
 		PX4_WARN("CRC does not match (%u != %u)!", crc_recv, crc);
