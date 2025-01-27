@@ -83,8 +83,8 @@ void ActuatorEffectivenessThrustVectoring::updateSetpoint(const matrix::Vector<f
 		}
 	}
 
-	constexpr float propeller_coefficient = 1.f / (20000.f * 20000.f); // scale down the thrust
-	float thrust = rpm * rpm * propeller_coefficient;
+	const  float rpm_scaled = rpm / 20000.f; // scale down the thrust to keep values in a reasonable range
+	float thrust = rpm_scaled * rpm_scaled;
 
 	// Use thrust setpoint if there is no ESC telemetry available
 	if (thrust < FLT_EPSILON) {
@@ -95,6 +95,7 @@ void ActuatorEffectivenessThrustVectoring::updateSetpoint(const matrix::Vector<f
 		}
 	}
 
-	const float scale = 1.f / fmaxf(thrust, 0.2f);
-	_control_surfaces.applyScale(scale, _first_control_surface_idx, actuator_sp);
+	const float effectiveness_scale = fmaxf(thrust, 0.2f);
+	_control_surfaces.applyEffectivenessScale(effectiveness_scale, _first_control_surface_idx, actuator_sp,
+			_actuator_effectiveness_scale);
 }

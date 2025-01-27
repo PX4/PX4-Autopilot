@@ -200,6 +200,8 @@ public:
 				    int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
 				    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) {}
 
+	const ActuatorVector &getActuatorEffectivenessScale() { return _actuator_effectiveness_scale; }
+
 	/**
 	 * Get a bitmask of motors to be stopped
 	 */
@@ -222,4 +224,6 @@ public:
 protected:
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};
 	uint32_t _stopped_motors_mask{0};
+
+	ActuatorVector _actuator_effectiveness_scale;
 };

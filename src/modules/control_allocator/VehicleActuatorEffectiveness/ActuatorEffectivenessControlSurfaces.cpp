@@ -187,10 +187,17 @@ void ActuatorEffectivenessControlSurfaces::applySpoilers(float spoilers_control,
 	}
 }
 
-void ActuatorEffectivenessControlSurfaces::applyScale(float scale, int first_actuator_idx,
-		ActuatorVector &actuator_sp) const
+void ActuatorEffectivenessControlSurfaces::applyEffectivenessScale(float effectiveness_scale, int first_actuator_idx,
+		ActuatorVector &actuator_sp, ActuatorVector &applied_effectiveness_scale) const
 {
+	if (!PX4_ISFINITE(effectiveness_scale)) {
+		effectiveness_scale = 1.f;
+	}
+
+	const float actuator_scale = 1.f / fmaxf(effectiveness_scale, FLT_EPSILON);
+
 	for (int i = 0; i < _count; ++i) {
-		actuator_sp(i + first_actuator_idx) *= scale;
+		actuator_sp(i + first_actuator_idx) *= actuator_scale;
+		applied_effectiveness_scale(i + first_actuator_idx) = effectiveness_scale;
 	}
 }
