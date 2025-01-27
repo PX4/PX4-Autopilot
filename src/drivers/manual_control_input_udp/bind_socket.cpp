@@ -1,5 +1,6 @@
 #include "bind_socket.hpp"
 #include <sys/socket.h>
+#include <errno.h>
 #include <string.h>
 #include <string>
 #include <px4_platform_common/log.h>
