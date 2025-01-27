@@ -121,8 +121,10 @@ void SensorGpsSim::Run()
 			_vehicle_global_position_sub.copy(&gpos);
 
 			float _noise_scale = _sih_noise_scale.get();
-			double latitude = gpos.lat + (double) _noise_scale * math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
-			double longitude = gpos.lon + (double) _noise_scale * math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
+			double latitude = gpos.lat + (double) _noise_scale * math::degrees((double)generate_wgn() * 0.2 /
+					  CONSTANTS_RADIUS_OF_EARTH);
+			double longitude = gpos.lon + (double) _noise_scale * math::degrees((double)generate_wgn() * 0.2 /
+					   CONSTANTS_RADIUS_OF_EARTH);
 			double altitude = (double)(gpos.alt + (_noise_scale * generate_wgn() * 0.5f));
 
 			Vector3f gps_vel = Vector3f{lpos.vx, lpos.vy, lpos.vz} + 0.1f * noiseGauss3f(0.06f, 0.077f, 0.158f);
@@ -171,7 +173,7 @@ void SensorGpsSim::Run()
 			sensor_gps.vel_e_m_s = gps_vel(1);
 			sensor_gps.vel_d_m_s = gps_vel(2);
 			sensor_gps.cog_rad = atan2(gps_vel(1),
-						gps_vel(0)); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
+						   gps_vel(0)); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
 			sensor_gps.timestamp_time_relative = 0;
 			sensor_gps.heading = NAN;
 			sensor_gps.heading_offset = NAN;

@@ -149,7 +149,8 @@ void SensorBaroSim::Run()
 				} else {
 					// no need to repeat the calculation - use the second value from last update
 					y1 = _baro_rnd_y2;
-					_baro_rnd_use_last = false; }
+					_baro_rnd_use_last = false;
+				}
 			}
 
 			// Apply noise and drift
