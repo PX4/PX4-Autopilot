@@ -486,8 +486,6 @@ class Tester:
 
             elif self.config['simulator'] == 'sih':
 
-                # import ipdb; ipdb.set_trace()
-
                 # only run px4.
                 px4_runner = ph.Px4Runner(
                     os.getcwd(),
@@ -502,17 +500,14 @@ class Tester:
                     px4_runner.env[env_key] = str(test['env'][env_key])
                 self.active_runners.append(px4_runner)
 
-                # overwrite these env vars which were already set in Px4Runner.__init__
+                # overwrite these env vars which were already hardcoded in Px4Runner.__init__
                 # maybe there is a cleaner way to do this?
                 px4_runner.env['PX4_SIMULATOR'] = 'sihsim'
-                # running
-                #     diff 10015_gazebo-classic_iris 10016_none_iris
-                # literally only gives comment changes. therefore we should be good there...
 
-                # so we make another copy here, adapting the iris file for sihsim.
+                # ofc only works for the specific models for which the
+                # sihsim_model file exists. it would be very cool to simulate
+                # any airframe file in sih...
                 px4_runner.env["PX4_SIM_MODEL"] = "sihsim_" + test['model']
-
-                # import ipdb; ipdb.set_trace()
 
 
         # import ipdb; ipdb.set_trace()
