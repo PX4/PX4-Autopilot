@@ -40,7 +40,6 @@
 
 #include "bind_socket.hpp"
 #include "deserialise_msg.hpp"
-#include <stdexcept>
 
 
 constexpr in_port_t default_port = 51324;
@@ -134,13 +133,11 @@ ManualControlInUDP *ManualControlInUDP::instantiate(int argc, char *argv[])
 		}
 	}
 
-	ManualControlInUDP *instance = nullptr;
+	ManualControlInUDP *instance = new ManualControlInUDP(port);
 
-	try {
-		instance = new ManualControlInUDP(port);
-
-	} catch (const std::runtime_error &e) {
-		PX4_ERR("%s", e.what());
+	if (instance->socketfd < 0) {
+		PX4_ERR("failed to bind socket");
+		return nullptr;
 	}
 
 	return instance;
@@ -151,10 +148,11 @@ ManualControlInUDP::ManualControlInUDP(in_port_t port)
 	socketfd = bind_socket(port);
 
 	if (socketfd < 0) {
-		throw std::runtime_error("failed to bind socket");
-	}
+		PX4_ERR("failed to bind socket");
 
-	PX4_INFO("listening on UDP port %d", port);
+	} else {
+		PX4_INFO("listening on UDP port %d", port);
+	}
 }
 
 void ManualControlInUDP::run()
