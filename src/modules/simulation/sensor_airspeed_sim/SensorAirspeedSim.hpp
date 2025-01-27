@@ -95,7 +95,8 @@ private:
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<vehicle_command_ack_s>        _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
-	bool _arsp_blocked{false};
+	bool _airspeed_disconnected{false};
+	hrt_abstime _airspeed_blocked_timestamp{0};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 

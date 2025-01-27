@@ -111,7 +111,7 @@ void SensorAirspeedSim::Run()
 
 		check_failure_injection();
 
-		if (_sim_failure.get() == 0 && !_arsp_blocked) {
+		if (_sim_failure.get() == 0 && !_airspeed_disconnected) {
 
 			vehicle_local_position_s lpos{};
 			_vehicle_local_position_sub.copy(&lpos);
@@ -144,10 +144,23 @@ void SensorAirspeedSim::Run()
 						      0) + diff_pressure_noise;
 
 
+
+			// airspeed blockage scale. implementation copied from SimulatorMavlink.cpp, update_sensors.
+			const float blockage_fraction = 0.7; // defines max blockage (fully ramped)
+			const float airspeed_blockage_rampup_time = 1_s; // time it takes to go max blockage, linear ramp
+
+			float airspeed_blockage_scale = 1.f;
+
+			if (_airspeed_blocked_timestamp > 0) {
+				airspeed_blockage_scale = math::constrain(1.f - (hrt_absolute_time() - _airspeed_blocked_timestamp) /
+							airspeed_blockage_rampup_time, 1.f - blockage_fraction, 1.f);
+			}
+
+
 			differential_pressure_s differential_pressure{};
 			// report.timestamp_sample = time;
 			differential_pressure.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
-			differential_pressure.differential_pressure_pa = (double)diff_pressure * 100.0; // hPa to Pa;
+			differential_pressure.differential_pressure_pa = diff_pressure * 100.0f * airspeed_blockage_scale; // hPa to Pa;
 			differential_pressure.temperature = temperature_local + ABSOLUTE_ZERO_C; // K to C
 			differential_pressure.timestamp = hrt_absolute_time();
 			_differential_pressure_pub.publish(differential_pressure);
@@ -180,12 +193,17 @@ void SensorAirspeedSim::check_failure_injection()
 			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
 				PX4_WARN("CMD_INJECT_FAILURE, Airspeed off");
 				supported = true;
-				_arsp_blocked = true;
+				_airspeed_disconnected = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_WRONG) {
+				PX4_WARN("CMD_INJECT_FAILURE, airspeed wrong (simulate pitot blockage)");
+				supported = true;
+				_airspeed_blocked_timestamp = hrt_absolute_time();
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
 				PX4_INFO("CMD_INJECT_FAILURE, Airspeed ok");
 				supported = true;
-				_arsp_blocked = false;
+				_airspeed_disconnected = false;
 			}
 		}
 
