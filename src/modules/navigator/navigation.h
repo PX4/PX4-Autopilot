@@ -46,12 +46,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#if defined(__PX4_POSIX)
-#  define NUM_MISSIONS_SUPPORTED (UINT16_MAX-1) // This is allocated as needed.
-#else
-#  define NUM_MISSIONS_SUPPORTED 500
-#endif
-
 /* compatible to mavlink MAV_CMD */
 enum NAV_CMD {
 	NAV_CMD_IDLE = 0,
