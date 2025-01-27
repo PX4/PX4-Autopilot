@@ -174,6 +174,7 @@ void SensorAirspeedSim::check_failure_injection()
 		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
 
 		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_AIRSPEED) {
+
 			handled = true;
 
 			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
