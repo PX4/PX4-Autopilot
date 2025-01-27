@@ -2,7 +2,6 @@
 #include <sys/socket.h>
 #include <errno.h>
 #include <string.h>
-#include <string>
 #include <px4_platform_common/log.h>
 
 
@@ -20,11 +19,12 @@ constexpr struct addrinfo hints = {
 
 int bind_socket(in_port_t port)
 {
-	const std::string port_str = std::to_string(port);
+	char port_str[6]; // maximum 16-bit integer
+	sprintf(port_str, "%" PRIu16, port);
 
 	struct addrinfo *res;
 
-	const int err = getaddrinfo(NULL, port_str.c_str(), &hints, &res);
+	const int err = getaddrinfo(NULL, port_str, &hints, &res);
 
 	if (err != 0) {
 		PX4_ERR("Failed to get address: %s\n", gai_strerror(err));
