@@ -620,6 +620,7 @@ uint64_t mag_heading_consistent  :
 		uint64_t opt_flow_terrain        : 1; ///< 40 - true if we are fusing flow data for terrain
 		uint64_t valid_fake_pos          : 1; ///< 41 - true if a valid constant position is being fused
 		uint64_t constant_pos            : 1; ///< 42 - true if the vehicle is at a constant position
+		uint64_t baro_fault	      : 1; ///< 43 - true when the baro has been declared faulty and is no longer being used
 
 	} flags;
 	uint64_t value;
