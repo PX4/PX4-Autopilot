@@ -217,7 +217,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				}
 
 			} else {
-				ECL_WARN("stoppPing %s fusion, continuing conditions failing", HGT_SRC_NAME);
+				ECL_WARN("stopping %s fusion, continuing conditions failing", HGT_SRC_NAME);
 				stopRngHgtFusion();
 				stopRngTerrFusion();
 			}

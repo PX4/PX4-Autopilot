@@ -79,15 +79,16 @@ private:
 	void update(const float &z, const float &z_var, const float &vz, const float &vz_var, const float &dist_bottom,
 		    const float &dist_bottom_var, const uint64_t &time_us);
 	void init(const float &z, const float &z_var, const float &dist_bottom, const float &dist_bottom_var);
+	void evaluateState(const float &dt, const float &vz, const float &vz_var);
 	matrix::SquareMatrix<float, 2> _P{};
-	matrix::SquareMatrix<float, 2> _H{};
+	matrix::Matrix<float, 1, 2> _Ht{};
 	matrix::Vector2f _x{};
 	bool _initialized{false};
 	float _innov{0.f};
 	float _innov_var{0.f};
 	uint64_t _time_last_update_us{0};
 	AlphaFilter<float> _test_ratio_lpf{};
-	float _gate{1.f};
+	float _gate{1.0f};
 	KinematicState _state{KinematicState::UNKNOWN};
 	float _t_since_first_sample{0.f};
 	uint8_t _last_posD_reset_count{0};
