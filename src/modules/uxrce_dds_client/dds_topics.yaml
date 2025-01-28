@@ -74,8 +74,8 @@ publications:
   - topic: /fmu/out/vehicle_trajectory_waypoint_desired
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
 
-  - topic: /fmu/out/vehicle_thrust_setpoint
-    type: px4_msgs::msg::VehicleThrustSetpoint
+  - topic: /fmu/out/vehicle_rates_setpoint
+    type: px4_msgs::msg::VehicleRatesSetpoint
 
 # Create uORB::Publication
 subscriptions:
