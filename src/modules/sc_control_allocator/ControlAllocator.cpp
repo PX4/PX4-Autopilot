@@ -65,7 +65,7 @@ int ControlAllocator::print_usage(const char *reason)
 	}
 
 	PRINT_MODULE_DESCRIPTION(
-	R"DESCR_STR(
+		R"DESCR_STR(
 	### Description
 	This implements control allocation for spacecraft vehicles.
 	It takes torque and thrust setpoints as inputs and outputs
