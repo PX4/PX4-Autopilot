@@ -721,7 +721,7 @@ def compute_gravity_z_innov_var_and_h(
 
     return (innov_var, H.T)
 
-def range_validation_filter() -> sf.Matrix:
+def range_validation_filter_h() -> sf.Matrix:
 
     state = Values(
         z=sf.Symbol("z"),
@@ -729,9 +729,8 @@ def range_validation_filter() -> sf.Matrix:
     )
     dist_bottom = state["z"] - state["terrain"]
 
-    H = sf.M22()
-    H[0, :] = sf.V1(state["z"]).jacobian(state.to_storage(), tangent_space=False)
-    H[1, :] = sf.V1(dist_bottom).jacobian(state.to_storage(), tangent_space=False)
+    H = sf.M12()
+    H[0, :] = sf.V1(dist_bottom).jacobian(state.to_storage(), tangent_space=False)
 
     return H
 
@@ -766,6 +765,6 @@ generate_px4_function(compute_gravity_z_innov_var_and_h, output_names=["innov_va
 generate_px4_function(compute_body_vel_innov_var_h, output_names=["innov_var", "Hx", "Hy", "Hz"])
 generate_px4_function(compute_body_vel_y_innov_var, output_names=["innov_var"])
 generate_px4_function(compute_body_vel_z_innov_var, output_names=["innov_var"])
-generate_px4_function(range_validation_filter, output_names=None)
+generate_px4_function(range_validation_filter_h, output_names=None)
 
 generate_px4_state(State, tangent_idx)

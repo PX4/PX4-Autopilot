@@ -425,8 +425,8 @@ struct parameters {
 	float ekf2_rng_a_vmax{1.0f};            ///< maximum ground velocity for which we allow to use the range finder as height source (if rng_control == 1)
 	float ekf2_rng_qlty_t{1.0f};            ///< minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
 	float range_cos_max_tilt{0.7071f};      ///< cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data
-	float ekf2_rng_k_gate{1.0f};            ///< gate size used by the range finder kinematic consistency check
-	float ekf2_rng_fog{0.f};                ///< max distance which a blocked range sensor measures (fog, dirt) [m]
+	float range_kin_consistency_gate{0.5f}; ///< gate size used by the range finder kinematic consistency check
+	float rng_fog{0.f};                 	///< max distance which a blocked range sensor measures (fog, dirt) [m]
 
 	Vector3f rng_pos_body{};                ///< xyz position of range sensor in body frame (m)
 #endif // CONFIG_EKF2_RANGE_FINDER
