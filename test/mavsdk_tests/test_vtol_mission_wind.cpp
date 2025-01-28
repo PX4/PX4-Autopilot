@@ -46,7 +46,7 @@ TEST_CASE("Fly VTOL mission with wind change (ramped_up_wind.world)", "[vtol_win
 	tester.load_qgc_mission_raw_and_move_here("test/mavsdk_tests/vtol_mission_straight_south.plan");
 	tester.arm();
 	tester.execute_mission_raw();
-	tester.wait_until_disarmed();
+	tester.wait_until_disarmed(std::chrono::seconds(180));
 
 	tester.check_airspeed_is_valid(); // it's enough to check once after landing, as invalidation is permanent
 }
