@@ -54,6 +54,7 @@
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensors_status.h>
 #include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/estimator_status_flags.h>
 
 using namespace time_literals;
 
@@ -88,6 +89,8 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _differential_pressure_sub{ORB_ID(differential_pressure)};
+
+	uORB::Subscription _estimator_status_flags_sub{ORB_ID(estimator_status_flags)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
 		{this, ORB_ID(sensor_baro), 0},
