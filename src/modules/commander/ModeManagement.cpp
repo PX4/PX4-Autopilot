@@ -404,7 +404,8 @@ void ModeManagement::update(bool armed, uint8_t user_intended_nav_state, bool fa
 			}
 		}
 
-		// As we're disarmed we can use the user intended mode, as no failsafe will be active
+		// As we're disarmed we can use the user intended mode, as no failsafe will be active.
+		// Note that this might not be true if COM_MODE_ARM_CHK is set
 		checkNewRegistrations(update_request);
 		checkUnregistrations(user_intended_nav_state, update_request);
 	}
