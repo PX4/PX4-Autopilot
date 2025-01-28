@@ -422,7 +422,7 @@ struct parameters {
 	float range_aid_innov_gate{1.0f};       ///< gate size used for innovation consistency checks for range aid fusion
 	float range_valid_quality_s{1.0f};      ///< minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
 	float range_cos_max_tilt{0.7071f};      ///< cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data
-	float range_kin_consistency_gate{1.0f}; ///< gate size used by the range finder kinematic consistency check
+	float range_kin_consistency_gate{0.5f}; ///< gate size used by the range finder kinematic consistency check
 	float rng_fog{0.f};                 	///< max distance which a blocked range sensor measures (fog, dirt) [m]
 
 	Vector3f rng_pos_body{};                ///< xyz position of range sensor in body frame (m)
@@ -604,8 +604,7 @@ uint64_t mag_heading_consistent  :
 		uint64_t constant_pos            : 1; ///< 42 - true if the vehicle is at a constant position
 		uint64_t baro_fault              : 1; ///< 43 - true when the baro has been declared faulty and is no longer being used
 		uint64_t gnss_vel                : 1; ///< 44 - true if GNSS velocity measurement fusion is intended
-		uint64_t baro_fault	      : 1; ///< 43 - true when the baro has been declared faulty and is no longer being used
-		uint64_t rng_kin_unknown	 : 1; ///< xx - true when the range finder kinematic consistency check is not running
+		uint64_t rng_kin_unknown	 : 1; ///< 45 - true when the range finder kinematic consistency check is not running
 
 	} flags;
 	uint64_t value;

@@ -259,11 +259,11 @@ TEST_F(EkfTerrainTest, testRngStartInAir)
 
 	const float corr_terrain_vz = P(State::vel.idx + 2,
 					State::terrain.idx) / sqrtf(_ekf->getVelocityVariance()(2) * var_terrain);
-	EXPECT_TRUE(corr_terrain_vz > 0.6f);
+	EXPECT_TRUE(fabsf(corr_terrain_vz) > 0.6f && fabsf(corr_terrain_vz) < 1.f);
 
 	const float corr_terrain_z = P(State::pos.idx + 2,
 				       State::terrain.idx) / sqrtf(_ekf->getPositionVariance()(2) * var_terrain);
-	EXPECT_TRUE(corr_terrain_z > 0.8f);
+	EXPECT_TRUE(fabsf(corr_terrain_z) > 0.8f && fabsf(corr_terrain_z) < 1.f);
 
 	const float corr_terrain_abias_z = P(State::accel_bias.idx + 2,
 					     State::terrain.idx) / sqrtf(_ekf->getAccelBiasVariance()(2) * var_terrain);
