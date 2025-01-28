@@ -47,6 +47,7 @@ bool cs_rng_terrain             # 39 - true if we are fusing range finder data f
 bool cs_opt_flow_terrain        # 40 - true if we are fusing flow data for terrain
 bool cs_valid_fake_pos          # 41 - true if a valid constant position is being fused
 bool cs_constant_pos            # 42 - true if the vehicle is at a constant position
+bool cs_baro_fault	        # 43 - true when the current baro has been declared faulty and is no longer being used
 
 # fault status
 uint32 fault_status_changes   # number of filter fault status (fs) changes
