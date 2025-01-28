@@ -178,6 +178,7 @@ int ManualControlInUDP::print_usage(const char *reason)
 		PX4_WARN("%s\n", reason);
 	}
 
+	PRINT_MODULE_USAGE_NAME("manual_control_input_udp", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_INT('p', default_port, 0, 65535, "UDP port", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
