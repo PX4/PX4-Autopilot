@@ -209,6 +209,10 @@ void Sih::sensor_step()
 	const float dt = (now - _last_run) * 1e-6f;
 	_last_run = now;
 
+	if (fabs(dt - 0.004f) > 1e-6f) {
+		PX4_WARN("weird dt: %f", (double) dt);
+	}
+
 	read_motors(dt);
 
 	generate_force_and_torques(dt);
@@ -370,10 +374,11 @@ void Sih::generate_force_and_torques(const float dt)
 
 		// thrust 0 because it is already contained in _T_B. in
 		// equations_of_motion they are all summed into sum_of_forces_E
-		generate_fw_aerodynamics(_u[4], _u[5], _u[6], 0);
+		generate_fw_aerodynamics(_u[4], _u[5], _u[6], _u[7]);
 
 	} else if (_vehicle == VehicleType::RoverAckermann) {
 		generate_rover_ackermann_dynamics(_u[1], _u[0], dt);
+
 	}
 }
 
