@@ -27,27 +27,27 @@ uint8 MAX_INSTANCES = 4
 
 uint8 warning					# Current battery warning
 uint8 WARNING_NONE = 0				# No battery low voltage warning active
-uint8 WARNING_LOW = 1				# Warning of low voltage
-uint8 WARNING_CRITICAL = 2			# Critical voltage, return / abort immediately
-uint8 WARNING_EMERGENCY = 3			# Immediate landing required
-uint8 WARNING_FAILED = 4			# The battery has failed completely
-uint8 STATE_UNHEALTHY = 6 			# Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field
-uint8 STATE_CHARGING = 7 			# Battery is charging
+uint8 BATTERY_WARNING_LOW = 1			# Warning of low voltage
+uint8 BATTERY_WARNING_CRITICAL = 2		# Critical voltage, return / abort immediately
+uint8 BATTERY_WARNING_EMERGENCY = 3		# Immediate landing required
+uint8 BATTERY_WARNING_FAILED = 4		# The battery has failed completely
+uint8 BATTERY_STATE_UNHEALTHY = 6 		# Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field
+uint8 BATTERY_STATE_CHARGING = 7 		# Battery is charging
 
 
 uint16 faults					# Smart battery supply status/fault flags (bitmask) for health indication
-uint8 DEEP_DISCHARGE = 0 			# Battery has deep discharged
-uint8 SPIKES = 1 				# Voltage spikes
-uint8 CELL_FAIL= 2 				# One or more cells have failed
-uint8 OVER_CURRENT = 3 				# Over-current
-uint8 OVER_TEMPERATURE = 4 			# Over-temperature
-uint8 UNDER_TEMPERATURE = 5 			# Under-temperature fault
-uint8 INCOMPATIBLE_VOLTAGE = 6 			# Vehicle voltage is not compatible with this battery (batteries on same power rail should have similar voltage)
-uint8 INCOMPATIBLE_FIRMWARE = 7 		# Battery firmware is not compatible with current autopilot firmware
-uint8 INCOMPATIBLE_MODEL = 8 			# Battery model is not supported by the system
-uint8 HARDWARE_FAILURE = 9 			# hardware problem
-uint8 FAILED_TO_ARM = 10 			# Battery had a problem while arming
-uint8 COUNT = 11 				# Counter - keep it as last element!
+uint8 BATTERY_FAULT_DEEP_DISCHARGE = 0 		# Battery has deep discharged
+uint8 BATTERY_FAULT_SPIKES = 1 			# Voltage spikes
+uint8 BATTERY_FAULT_CELL_FAIL= 2 		# One or more cells have failed
+uint8 BATTERY_FAULT_OVER_CURRENT = 3 		# Over-current
+uint8 BATTERY_FAULT_OVER_TEMPERATURE = 4 	# Over-temperature
+uint8 BATTERY_FAULT_UNDER_TEMPERATURE = 5 	# Under-temperature fault
+uint8 BATTERY_FAULT_INCOMPATIBLE_VOLTAGE = 6 	# Vehicle voltage is not compatible with this battery (batteries on same power rail should have similar voltage)
+uint8 BATTERY_FAULT_INCOMPATIBLE_FIRMWARE = 7 	# Battery firmware is not compatible with current autopilot firmware
+uint8 BATTERY_FAULT_INCOMPATIBLE_MODEL = 8 	# Battery model is not supported by the system
+uint8 BATTERY_FAULT_HARDWARE_FAILURE = 9 	# hardware problem
+uint8 BATTERY_FAULT_FAILED_TO_ARM = 10 		# Battery had a problem while arming
+uint8 BATTERY_FAULT_COUNT = 11 			# Counter - keep it as last element!
 
 
 float32 ocv_estimate                            # [V] Open circuit voltage estimate
@@ -63,9 +63,9 @@ float32 estimation_covariance_norm		# Norm of the covariance matrix
 uint8 cell_count				# Number of cells, 0 if unknown
 
 uint8 source					# Battery source
-uint8 POWER_MODULE = 0				# Source is a power module
-uint8 EXTERNAL = 1				# Source is external
-uint8 ESCS = 2					# Source is an ESC
+uint8 SOURCE_POWER_MODULE = 0			# Source is a power module
+uint8 SOURCE_EXTERNAL = 1			# Source is external
+uint8 SOURCE_ESCS = 2				# Source is an ESC
 
 uint16 capacity					# Actual capacity of the battery
 uint16 cycle_count				# Number of discharge cycles the battery has experienced

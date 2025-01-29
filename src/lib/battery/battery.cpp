@@ -307,16 +307,16 @@ void Battery::estimateStateOfCharge()
 uint8_t Battery::determineWarning(float state_of_charge)
 {
 	if (state_of_charge < _params.emergen_thr) {
-		return battery_status_s::WARNING_EMERGENCY;
+		return battery_status_s::BATTERY_WARNING_EMERGENCY;
 
 	} else if (state_of_charge < _params.crit_thr) {
-		return battery_status_s::WARNING_CRITICAL;
+		return battery_status_s::BATTERY_WARNING_CRITICAL;
 
 	} else if (state_of_charge < _params.low_thr) {
-		return battery_status_s::WARNING_LOW;
+		return battery_status_s::BATTERY_WARNING_LOW;
 
 	} else {
-		return battery_status_s::WARNING_NONE;
+		return battery_status_s::BATTERY_WARNING_NONE;
 	}
 }
 
