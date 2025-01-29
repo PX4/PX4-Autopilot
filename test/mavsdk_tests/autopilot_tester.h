@@ -283,7 +283,11 @@ private:
 	}
 
 
+<<<<<<< HEAD
 	mavsdk::Mavsdk _mavsdk{Mavsdk::Configuration{ComponentType::GroundStation}};
+=======
+	mavsdk::Mavsdk _mavsdk{};
+>>>>>>> 5a03cfb986e (mavsdk tests: use tester sleep function)
 	std::unique_ptr<mavsdk::Action> _action{};
 	std::unique_ptr<mavsdk::Failure> _failure{};
 	std::unique_ptr<mavsdk::Info> _info{};
