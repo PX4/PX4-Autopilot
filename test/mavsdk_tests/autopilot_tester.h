@@ -164,24 +164,6 @@ public:
 		CHECK(_param->set_param_int(param, value) == Param::Result::Success);
 	}
 
-protected:
-	mavsdk::Param *getParams() const { return _param.get();}
-	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
-	mavsdk::ManualControl *getManualControl() const { return _manual_control.get();}
-	MavlinkPassthrough *getMavlinkPassthrough() const { return _mavlink_passthrough.get();}
-	std::shared_ptr<System> get_system() { return _mavsdk.systems().at(0);}
-	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
-	bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos, float acceptance_radius_m);
-
-	const Telemetry::GroundTruth &getHome()
-	{
-		// Check if home was stored before it is accessed
-		CHECK(_home.absolute_altitude_m != NAN);
-		CHECK(_home.latitude_deg != NAN);
-		CHECK(_home.longitude_deg != NAN);
-		return _home;
-	}
-
 	template<typename Rep, typename Period>
 	void sleep_for(std::chrono::duration<Rep, Period> duration)
 	{
@@ -205,6 +187,24 @@ protected:
 		} else {
 			std::this_thread::sleep_for(duration);
 		}
+	}
+
+protected:
+	mavsdk::Param *getParams() const { return _param.get();}
+	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
+	mavsdk::ManualControl *getManualControl() const { return _manual_control.get();}
+	MavlinkPassthrough *getMavlinkPassthrough() const { return _mavlink_passthrough.get();}
+	std::shared_ptr<System> get_system() { return _mavsdk.systems().at(0);}
+	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
+	bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos, float acceptance_radius_m);
+
+	const Telemetry::GroundTruth &getHome()
+	{
+		// Check if home was stored before it is accessed
+		CHECK(_home.absolute_altitude_m != NAN);
+		CHECK(_home.latitude_deg != NAN);
+		CHECK(_home.longitude_deg != NAN);
+		return _home;
 	}
 
 private:
@@ -280,7 +280,6 @@ private:
 
 		return true;
 	}
-
 
 
 	mavsdk::Mavsdk _mavsdk{};

@@ -153,7 +153,7 @@ void SensorAirspeedSim::Run()
 
 			if (_airspeed_blocked_timestamp > 0) {
 				airspeed_blockage_scale = math::constrain(1.f - (hrt_absolute_time() - _airspeed_blocked_timestamp) /
-							airspeed_blockage_rampup_time, 1.f - blockage_fraction, 1.f);
+							  airspeed_blockage_rampup_time, 1.f - blockage_fraction, 1.f);
 			}
 
 
