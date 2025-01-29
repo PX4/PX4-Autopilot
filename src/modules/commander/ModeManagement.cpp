@@ -370,11 +370,7 @@ void ModeManagement::update(bool armed, uint8_t user_intended_nav_state, bool fa
 	_failsafe_action_active = failsafe_action_active;
 	_external_checks.update();
 
-	bool allow_update_while_armed = false;
-#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
-	// For simulation, allow registering modes while armed for developer convenience
-	allow_update_while_armed = true;
-#endif
+	bool allow_update_while_armed = _external_checks.allowUpdateWhileArmed();
 
 	if (armed && !allow_update_while_armed) {
 		// Reject registration requests
@@ -408,7 +404,8 @@ void ModeManagement::update(bool armed, uint8_t user_intended_nav_state, bool fa
 			}
 		}
 
-		// As we're disarmed we can use the user intended mode, as no failsafe will be active
+		// As we're disarmed we can use the user intended mode, as no failsafe will be active.
+		// Note that this might not be true if COM_MODE_ARM_CHK is set
 		checkNewRegistrations(update_request);
 		checkUnregistrations(user_intended_nav_state, update_request);
 	}
