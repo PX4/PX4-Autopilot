@@ -209,7 +209,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 
 		switch (reporter.failsafeFlags().battery_warning) {
 		default:
-		case battery_status_s::BATTERY_WARNING_LOW:
+		case battery_status_s::WARNING_LOW:
 			/* EVENT
 			* @description
 			* The lowest battery state of charge is below the low threshold.
@@ -227,7 +227,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 
 			break;
 
-		case battery_status_s::BATTERY_WARNING_CRITICAL:
+		case battery_status_s::WARNING_CRITICAL:
 			/* EVENT
 			* @description
 			* The lowest battery state of charge is below the critical threshold.
@@ -245,7 +245,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 
 			break;
 
-		case battery_status_s::BATTERY_WARNING_EMERGENCY:
+		case battery_status_s::WARNING_EMERGENCY:
 			/* EVENT
 			* @description
 			* The lowest battery state of charge is below the emergency threshold.
