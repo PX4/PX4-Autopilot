@@ -307,16 +307,16 @@ void Battery::estimateStateOfCharge()
 uint8_t Battery::determineWarning(float state_of_charge)
 {
 	if (state_of_charge < _params.emergen_thr) {
-		return battery_status_s::BATTERY_WARNING_EMERGENCY;
+		return battery_status_s::WARNING_EMERGENCY;
 
 	} else if (state_of_charge < _params.crit_thr) {
-		return battery_status_s::BATTERY_WARNING_CRITICAL;
+		return battery_status_s::WARNING_CRITICAL;
 
 	} else if (state_of_charge < _params.low_thr) {
-		return battery_status_s::BATTERY_WARNING_LOW;
+		return battery_status_s::WARNING_LOW;
 
 	} else {
-		return battery_status_s::BATTERY_WARNING_NONE;
+		return battery_status_s::WARNING_NONE;
 	}
 }
 
@@ -327,7 +327,7 @@ uint16_t Battery::determineFaults()
 	if ((_params.n_cells > 0)
 	    && (_voltage_v > (_params.n_cells * _params.v_charged * 1.05f))) {
 		// Reported as a "spike" since "over-voltage" does not exist in MAV_BATTERY_FAULT
-		faults |= (1 << battery_status_s::BATTERY_FAULT_SPIKES);
+		faults |= (1 << battery_status_s::FAULT_SPIKES);
 	}
 
 	return faults;
