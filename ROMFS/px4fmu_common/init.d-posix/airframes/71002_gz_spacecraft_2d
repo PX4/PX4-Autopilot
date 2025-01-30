@@ -21,7 +21,7 @@ param set-default SENS_EN_MAGSIM 1
 param set-default COM_ARM_CHK_ESCS 0  # We don't have ESCs
 param set-default FD_ESCS_EN 0 # We don't have ESCs - but maybe we need this later?
 
-param set-default CA_AIRFRAME 13
+param set-default CA_AIRFRAME 14
 param set-default MAV_TYPE 99
 
 param set-default CA_THRUSTER_CNT 8
