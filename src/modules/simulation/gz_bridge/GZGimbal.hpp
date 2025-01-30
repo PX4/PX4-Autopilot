@@ -115,7 +115,7 @@ private:
 	const float _yaw_min = NAN; 		// infinite yaw
 	const float _yaw_max = NAN;		// infinite yaw
 
-	const uint8_t _gimbal_device_id = 154;	// TODO the implementation differs from the protocol
+	const uint8_t _gimbal_device_id = 1;	// Gimbal is implemented by the same component: options are 1..6
 	uint16_t _gimbal_device_flags = 0;  // GIMBAL_DEVICE_FLAGS
 
 	bool init(const std::string &world_name, const std::string &model_name);
