@@ -1,4 +1,5 @@
 __max_num_mc_motors: &max_num_mc_motors 12
+__max_num_sc_thrusters: &max_num_sc_thrusters 12
 __max_num_servos: &max_num_servos 8
 __max_num_tilts: &max_num_tilts 4
 
