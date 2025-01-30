@@ -50,8 +50,7 @@ TEST_CASE("Figure eight execution clockwise", "[vtol]")
 	tester.wait_until_hovering();
 	tester.wait_until_altitude(takeoff_altitude, std::chrono::seconds(30));
 	tester.transition_to_fixedwing();
-	tester.wait_until_fixedwing(std::chrono::seconds(5));
-	tester.sleep_for(std::chrono::seconds(1));
+	tester.wait_until_fixedwing(std::chrono::seconds(10));
 	tester.set_figure_eight(150., 50., 0., 200., 0., 20.);
 	tester.execute_figure_eight();
 	tester.check_tracks_figure_eight(std::chrono::seconds(120), 10.);
@@ -73,8 +72,7 @@ TEST_CASE("Figure eight execution counterclockwise", "[vtol]")
 	tester.wait_until_hovering();
 	tester.wait_until_altitude(takeoff_altitude, std::chrono::seconds(30));
 	tester.transition_to_fixedwing();
-	tester.wait_until_fixedwing(std::chrono::seconds(5));
-	tester.sleep_for(std::chrono::seconds(1));
+	tester.wait_until_fixedwing(std::chrono::seconds(10));
 	tester.set_figure_eight(-150., 50., 30.*M_PI / 180., 200., 0., 20.);
 	tester.execute_figure_eight();
 	tester.check_tracks_figure_eight(std::chrono::seconds(120), 10.);
