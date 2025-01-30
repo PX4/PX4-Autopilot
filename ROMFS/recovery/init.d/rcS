@@ -1,0 +1,41 @@
+#!/bin/sh
+# Un comment and use set +e to ignore and set -e to enable 'exit on error control'
+set +e
+# Un comment the line below to help debug scripts by printing a trace of the script commands
+#set -x
+# PX4FMU startup script.
+#
+# NOTE: environment variable references:
+#    If the dollar sign ('$') is followed by a left bracket ('{') then the
+#    variable name is terminated with the right bracket character ('}').
+#    Otherwise, the variable name goes to the end of the argument.
+#
+#
+# NOTE: COMMENT LINES ARE REMOVED BEFORE STORED IN ROMFS.
+#
+#------------------------------------------------------------------------------
+set R /
+
+#
+# Print full system version.
+#
+ver all
+
+#
+# Try to mount the microSD card.
+#
+mount -t vfat /dev/mmcsd0 /fs/microsd
+if [ $? = 0 ]
+then
+	echo "SD card mounted at /fs/microsd"
+else
+	echo "No SD card found"
+fi
+
+unset R
+
+echo ""
+echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+echo "!!!!!!     This is the RECOVERY firmware! WARNs and ERRORs are expected!      !!!!!"
+echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+echo ""
