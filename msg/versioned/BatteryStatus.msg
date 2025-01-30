@@ -1,4 +1,4 @@
-uint32 MESSAGE_VERSION = 0
+uint32 MESSAGE_VERSION = 1
 
 uint64 timestamp				# time since system start (microseconds)
 bool connected					# Whether or not a battery is connected, based on a voltage threshold
