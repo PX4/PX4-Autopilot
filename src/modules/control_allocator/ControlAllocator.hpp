@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include <ActuatorEffectiveness.hpp>
+#include <lib/control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp>
 #include <ActuatorEffectivenessMultirotor.hpp>
 #include <ActuatorEffectivenessStandardVTOL.hpp>
 #include <ActuatorEffectivenessTiltrotorVTOL.hpp>
@@ -54,9 +54,9 @@
 #include <ActuatorEffectivenessHelicopter.hpp>
 #include <ActuatorEffectivenessHelicopterCoaxial.hpp>
 
-#include <ControlAllocation.hpp>
-#include <ControlAllocationPseudoInverse.hpp>
-#include <ControlAllocationSequentialDesaturation.hpp>
+#include <lib/control_allocation/control_allocation/ControlAllocation.hpp>
+#include <lib/control_allocation/control_allocation/ControlAllocationPseudoInverse.hpp>
+#include <lib/control_allocation/control_allocation/ControlAllocationSequentialDesaturation.hpp>
 
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>

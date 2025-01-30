@@ -40,7 +40,7 @@
 
 #include <gtest/gtest.h>
 #include <ControlAllocationSequentialDesaturation.hpp>
-#include <actuator_effectiveness/ActuatorEffectivenessRotors.hpp>
+#include <control_allocation/actuator_effectiveness/ActuatorEffectivenessRotors.hpp>
 
 using namespace matrix;
 
