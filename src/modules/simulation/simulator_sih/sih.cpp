@@ -209,10 +209,6 @@ void Sih::sensor_step()
 	const float dt = (now - _last_run) * 1e-6f;
 	_last_run = now;
 
-	if (fabs(dt - 0.004f) > 1e-6f) {
-		PX4_WARN("weird dt: %f", (double) dt);
-	}
-
 	read_motors(dt);
 
 	generate_force_and_torques(dt);
