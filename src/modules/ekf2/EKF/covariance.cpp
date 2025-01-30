@@ -226,7 +226,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		// process noise due to terrain gradient
 		terrain_process_noise += sq(imu_delayed.delta_vel_dt * _params.terrain_gradient) * (sq(_state.vel(0)) + sq(_state.vel(
 						 1)));
-		_rng_consistency_check.terrain_process_noise = terrain_process_noise;
+		_rng_consistency_check.set_terrain_process_noise(terrain_process_noise);
 		P(State::terrain.idx, State::terrain.idx) += terrain_process_noise;
 	}
 
