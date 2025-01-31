@@ -57,7 +57,10 @@ int UavcanBatteryBridge::init()
 
 	for (uint8_t instance = 0; instance < battery_status_s::MAX_INSTANCES; instance++) {
 
-		if (uavcan_sub_bat == RAW_DATA) {
+		if (uavcan_sub_bat == FILTER_DATA) {
+			_batt_update_mod[instance] = BatteryDataType::Filter;
+
+		} else if (uavcan_sub_bat == RAW_DATA) {
 			_batt_update_mod[instance] = BatteryDataType::Raw;
 
 		} else if (uavcan_sub_bat == RAW_AUX_DATA) {
@@ -104,6 +107,12 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	}
 
 	if (instance >= battery_status_s::MAX_INSTANCES) {
+		return;
+	}
+
+	if (_batt_update_mod[instance] == BatteryDataType::Filter) {
+
+		filterData(msg, instance);
 		return;
 	}
 
@@ -168,6 +177,12 @@ UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardu
 	if (instance >= battery_status_s::MAX_INSTANCES) {
 		return;
 	}
+
+	if (_batt_update_mod[instance] == BatteryDataType::Filter) {
+		return;
+	}
+
+	_batt_update_mod[instance] = BatteryDataType::RawAux;
 
 	_battery_status[instance].discharged_mah = (_battery_status[instance].full_charge_capacity_wh -
 			_battery_status[instance].remaining_capacity_wh) / msg.nominal_voltage *
@@ -257,4 +272,22 @@ UavcanBatteryBridge::determineWarning(float remaining)
 	} else if (remaining < _param_bat_low_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_LOW)) {
 		_warning = battery_status_s::BATTERY_WARNING_LOW;
 	}
+}
+
+void
+UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg,
+				uint8_t instance)
+{
+	_battery[instance]->setConnected(true);
+	_battery[instance]->updateVoltage(msg.voltage);
+	_battery[instance]->updateCurrent(msg.current);
+	_battery[instance]->updateBatteryStatus(hrt_absolute_time());
+
+	/* Override data that is expected to arrive from UAVCAN msg*/
+	_battery_status[instance] = _battery[instance]->getBatteryStatus();
+	_battery_status[instance].temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
+	_battery_status[instance].serial_number = msg.model_instance_id;
+	_battery_status[instance].id = msg.getSrcNodeID().get(); // overwrite zeroed index from _battery
+
+	publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
 }
