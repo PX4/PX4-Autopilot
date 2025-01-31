@@ -140,8 +140,19 @@ void SensorAirspeedSim::Run()
 			// calculate differential pressure + noise in hPa
 			float _noise_scale = _sih_noise_scale.get();
 			const float diff_pressure_noise = _noise_scale * (float)generate_wgn() * 0.01f;
-			float diff_pressure = sign(body_velocity(0)) * 0.005f * air_density  * body_velocity(0) * body_velocity(
-						      0) + diff_pressure_noise;
+
+			// as before, always body "forward" direction, but that is wrong for TS
+			// float body_speed = body_velocity(0);
+
+			// hacky fix: just take norm of vel.
+			// inaccurate because flying sideways would not give significant pitot tube readings.
+			// but then again fixed wings can't really fly sideways at significant speed.
+			// also, wind is not considered at all here...?
+			float body_speed = body_velocity.norm();
+			// even nicer would be to define the pitot tube direction and do:
+			//   body_speed = pitot_direction.T @ body_velocity
+
+			float diff_pressure = sign(body_speed) * 0.005f * air_density * body_speed * body_speed + diff_pressure_noise;
 
 
 
