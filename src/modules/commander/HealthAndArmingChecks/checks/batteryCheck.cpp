@@ -39,8 +39,8 @@
 using namespace time_literals;
 
 using battery_fault_reason_t = events::px4::enums::battery_fault_reason_t;
-//static_assert(battery_status_s::FAULT_COUNT == (static_cast<uint8_t>(battery_fault_reason_t::_max) + 1)
-//	      , "Battery fault flags mismatch!");
+static_assert(battery_status_s::BATTERY_FAULT_COUNT == (static_cast<uint8_t>(battery_fault_reason_t::_max) + 1)
+	      , "Battery fault flags mismatch!");
 
 static constexpr const char *battery_fault_reason_str(battery_fault_reason_t battery_fault_reason)
 {

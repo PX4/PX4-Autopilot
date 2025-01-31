@@ -327,7 +327,7 @@ uint16_t Battery::determineFaults()
 	if ((_params.n_cells > 0)
 	    && (_voltage_v > (_params.n_cells * _params.v_charged * 1.05f))) {
 		// Reported as a "spike" since "over-voltage" does not exist in MAV_BATTERY_FAULT
-		faults |= (1 << battery_status_s::SPIKES);
+		faults |= (1 << battery_status_s::BATTERY_FAULT_SPIKES);
 	}
 
 	return faults;
