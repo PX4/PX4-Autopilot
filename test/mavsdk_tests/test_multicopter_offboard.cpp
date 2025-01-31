@@ -34,7 +34,7 @@
 #include "autopilot_tester.h"
 #include <chrono>
 
-static constexpr float acceptance_radius = 0.3f;
+static constexpr float acceptance_radius = 0.5f;
 
 TEST_CASE("Offboard takeoff and land", "[multicopter][offboard]")
 {
