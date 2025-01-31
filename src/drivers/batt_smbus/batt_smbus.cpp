@@ -175,7 +175,7 @@ void BATT_SMBUS::RunImpl()
 			new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 
 		} else if (new_report.remaining > _low_thr) {
-			new_report.warning = battery_status_s::WARNING_NONE;
+			new_report.warning = battery_status_s::BATTERY_WARNING_NONE;
 
 		} else if (new_report.remaining > _crit_thr) {
 			new_report.warning = battery_status_s::BATTERY_WARNING_LOW;
