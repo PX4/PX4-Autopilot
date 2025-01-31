@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
+#include <lib/control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp>
 
 #include <px4_platform_common/module_params.h>
 

@@ -41,10 +41,10 @@
 
 #pragma once
 
-#include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
-#include "ActuatorEffectivenessRotors.hpp"
-#include "ActuatorEffectivenessControlSurfaces.hpp"
-#include "ActuatorEffectivenessTilts.hpp"
+#include <lib/control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp>
+#include <lib/control_allocation/actuator_effectiveness/ActuatorEffectivenessRotors.hpp>
+#include <lib/control_allocation/actuator_effectiveness/ActuatorEffectivenessControlSurfaces.hpp>
+#include <lib/control_allocation/actuator_effectiveness/ActuatorEffectivenessTilts.hpp>
 
 #include <px4_platform_common/module_params.h>
 

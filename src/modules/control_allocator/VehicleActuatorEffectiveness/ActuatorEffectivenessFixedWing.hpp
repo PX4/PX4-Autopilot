@@ -33,9 +33,9 @@
 
 #pragma once
 
-#include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
-#include "ActuatorEffectivenessRotors.hpp"
-#include "ActuatorEffectivenessControlSurfaces.hpp"
+#include <lib/control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp>
+#include <lib/control_allocation/actuator_effectiveness/ActuatorEffectivenessRotors.hpp>
+#include <lib/control_allocation/actuator_effectiveness/ActuatorEffectivenessControlSurfaces.hpp>
 
 #include <uORB/topics/normalized_unsigned_setpoint.h>
 
