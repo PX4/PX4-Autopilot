@@ -6,14 +6,14 @@ uint8 id					# ID number of a battery. Should be unique and consistent for the l
 bool connected					# Whether or not a battery is connected, based on a voltage threshold
 float32 voltage_v				# Battery voltage in volts, 0 if unknown
 float32 current_a				# Battery current in amperes, -1 if unknown
-float32 current_average_a			# Battery current average in amperes (for FW average in level flight), -1 if unknown ?
+float32 current_average_a			# Battery current average in amperes (for FW average in level flight), -1 if unknown
 float32 discharged_mah				# Discharged amount in mAh, -1 if unknown
 float32 remaining				# From 1 to 0, -1 if unknown
 float32 scale					# Power scaling factor, >= 1, or -1 if unknown
 float32 time_remaining_s			# Predicted time in seconds remaining until battery is empty under previous averaged load, NAN if unknown
 float32 temperature				# Temperature of the battery in degrees Celcius, NaN if unknown
 
-uint8 priority					# Zero based priority is the connection on the Power Controller V1..Vn AKA BrickN-1 ?
+uint8 priority					# Zero based priority is the connection on the Power Controller V1..Vn AKA BrickN-1
 
 uint16 interface_error				# Interface error counter
 
@@ -23,7 +23,7 @@ float32 max_cell_voltage_delta			# Max difference between individual cell voltag
 bool is_powering_off				# Power off event imminent indication, false if unknown
 bool is_required				# Set if the battery is explicitly required before arming
 
-uint8 MAX_INSTANCES = 4
+uint8 MAX_INSTANCES = 3
 
 uint8 warning					# Current battery warning
 uint8 WARNING_NONE = 0				# No battery low voltage warning active

@@ -2,7 +2,7 @@ uint64 timestamp				# Time since system start (microseconds)
 uint8 id					# ID number of a battery. Should be unique and consistent for the lifetime of a vehicle. 1-indexed
 uint8 cell_count				# Number of cells, 0 if unknown
 
-uint8 source					# Battery source
+uint8 source
 uint8 POWER_MODULE = 0				# Source is a power module
 uint8 EXTERNAL = 1				# Source is external
 uint8 ESCS = 2					# Source is an ESC
