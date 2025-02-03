@@ -124,3 +124,15 @@ void Gimbal::publishGimbalManagerSetAttitude(const uint16_t gimbal_flags,
 	gimbal_setpoint.timestamp = hrt_absolute_time();
 	_gimbal_manager_set_attitude_pub.publish(gimbal_setpoint);
 }
+
+void Gimbal::setNeutral()
+{
+	vehicle_command_s vehicle_command = {};
+	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW;
+	vehicle_command.param1 = NAN;
+	vehicle_command.param2 = NAN;
+	vehicle_command.param3 = NAN;
+	vehicle_command.param4 = NAN;
+	vehicle_command.param5 = gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL;
+	_vehicle_command_pub.publish(vehicle_command);
+}

@@ -33,7 +33,7 @@
 
 /**
  * @file Gimbal.hpp
- * @brief Gimbal interface with flight tasks
+ * @brief Gimbal library to interface with other units
  * @author Pernilla Wikström <pernilla@auterion.com>
  */
 
@@ -47,9 +47,9 @@
 #include <uORB/topics/gimbal_device_attitude_status.h>
 #include <uORB/topics/vehicle_command.h>
 
-#include "Sticks.hpp"
-
-
+/**
+* Fore more information on gimbal v2, see https://mavlink.io/en/services/gimbal_v2.html
+ **/
 class Gimbal : public ModuleParams
 {
 public:
@@ -60,8 +60,19 @@ public:
 	void publishGimbalManagerSetAttitude(const uint16_t gimbal_flags,
 					     const matrix::Quatf &q_gimbal_setpoint,
 					     const matrix::Vector3f &gimbal_rates);
+	/**
+	 * Acquire Gimbal Control Authority to restrict other modules / Ground station
+	 * to control the gimbal until the gimbal is released.
+	 */
 	void acquireGimbalControlIfNeeded();
+
+	/**
+	 * Releases Gimbal Control Authority, to allow other modules / Ground station
+	 * to control the gimbal.
+	 */
 	void releaseGimbalControlIfNeeded();
+
+	void setNeutral();
 	float getTelemetryYaw() { return _telemetry_yaw; }
 	bool allAxesLockedConfirmed() { return _telemetry_flags == FLAGS_ALL_AXES_LOCKED; }
 
