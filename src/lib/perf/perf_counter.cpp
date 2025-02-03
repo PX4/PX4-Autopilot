@@ -178,6 +178,10 @@ static void perf_foreach(perf_callback cb, void *arg = NULL)
 			}
 		}
 	}
+
+	if (dir) {
+		closedir(dir);
+	}
 }
 
 static void perf_print_cb(perf_counter_t handle, void *arg)
@@ -252,6 +256,7 @@ perf_alloc_once(enum perf_counter_type type, const char *name)
 	DIR *dir = opendir(CONFIG_FS_SHMFS_VFS_PATH);
 	struct dirent *perf;
 	char shmname[PERF_SHMNAME_MAX];
+	perf_counter_t counter = nullptr;
 	int ret;
 
 	/* Generate name for shmfs file. Only the first instance of counter is searched */
@@ -259,7 +264,7 @@ perf_alloc_once(enum perf_counter_type type, const char *name)
 
 	if (ret < 0) {
 		PX4_ERR("failed to allocate perf counter %s", name);
-		return nullptr;
+		goto out;
 	}
 
 	while ((perf = readdir(dir)) != nullptr) {
@@ -273,17 +278,25 @@ perf_alloc_once(enum perf_counter_type type, const char *name)
 				/* the file can be closed now */
 				close(fd);
 
-				if (p == MAP_FAILED) {
-					return nullptr;
+				if (p != MAP_FAILED) {
+					counter = (perf_counter_t)p;
 				}
 
-				return (perf_counter_t)p;
+				goto out;
 			}
 		}
 	}
 
 	/* if the execution reaches here, no existing counter of that name was found */
-	return perf_alloc(type, name);
+	counter = perf_alloc(type, name);
+
+out:
+
+	if (dir) {
+		closedir(dir);
+	}
+
+	return counter;
 }
 
 void
