@@ -105,6 +105,7 @@ private:
 				obstacle_distance_s::distances[0]);
 	static constexpr uint64_t 	SF45_MEAS_TIMEOUT{100_ms};
 	static constexpr float 		SF45_SCALE_FACTOR = 0.01f;
+	static constexpr float		SF45_FIELDOF_VIEW = 320.f; // degrees
 
 	void				start();
 	void				stop();
