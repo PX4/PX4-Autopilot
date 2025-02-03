@@ -75,7 +75,7 @@ public:
 private:
 	void Run() override;
 
-	void AirTemperatureUpdate(float &temperature, const bool &external_baro);
+	float AirTemperatureUpdate(const float temperature_baro, const bool baro_is_external, const hrt_abstime time_now_us);
 	void CheckFailover(const hrt_abstime &time_now_us);
 	bool ParametersUpdate(bool force = false);
 	void UpdateStatus();

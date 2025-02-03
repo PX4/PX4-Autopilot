@@ -45,6 +45,9 @@ using namespace matrix;
 using namespace atmosphere;
 
 static constexpr uint32_t SENSOR_TIMEOUT{300_ms};
+static constexpr float DEFAULT_TEMPERATURE_CELSIUS = 15.f;
+static constexpr float TEMPERATURE_MIN_CELSIUS = -60.f;
+static constexpr float TEMPERATURE_MAX_CELSIUS = 60.f;
 
 VehicleAirData::VehicleAirData() :
 	ModuleParams(nullptr),
@@ -77,24 +80,22 @@ void VehicleAirData::Stop()
 	}
 }
 
-void VehicleAirData::AirTemperatureUpdate(float &temperature, const bool &external_baro)
+float VehicleAirData::AirTemperatureUpdate(const float temperature_baro, const bool baro_is_external,
+		const hrt_abstime time_now_us)
 {
 	// use the temperature from the differential pressure sensor if available
 	// otherwise use the temperature from the external barometer
-	// internal baros are not precise enough to be used for temperature
-	static constexpr float default_temperature_celsius = 15.f;
-	temperature = external_baro ? temperature : default_temperature_celsius;
-	static constexpr float temperature_min_celsius = -60.f;
-	static constexpr float temperature_max_celsius = 60.f;
+	// Temperature measurements from internal baros are not used as typically not representative for ambient temperature
+	float temperature = baro_is_external ? temperature_baro : DEFAULT_TEMPERATURE_CELSIUS;
 	differential_pressure_s differential_pressure;
 
 	if (_differential_pressure_sub.copy(&differential_pressure)
-	    && hrt_absolute_time() - differential_pressure.timestamp_sample < 1_s
+	    && time_now_us - differential_pressure.timestamp_sample < 1_s
 	    && PX4_ISFINITE(differential_pressure.temperature)) {
 		temperature = differential_pressure.temperature;
 	}
 
-	temperature = math::constrain(temperature, temperature_min_celsius, temperature_max_celsius);
+	return math::constrain(temperature, TEMPERATURE_MIN_CELSIUS, TEMPERATURE_MAX_CELSIUS);
 }
 
 bool VehicleAirData::ParametersUpdate(bool force)
@@ -273,22 +274,22 @@ void VehicleAirData::Run()
 
 					if (publish) {
 						const float pressure_pa = _data_sum[instance] / _data_sum_count[instance];
-						float temperature = _temperature_sum[instance] / _data_sum_count[instance];
+						const float temperature_baro = _temperature_sum[instance] / _data_sum_count[instance];
 						const bool external_baro = _calibration[instance].external();
-						AirTemperatureUpdate(temperature, external_baro);
+						const float ambient_temperature = AirTemperatureUpdate(temperature_baro, external_baro, time_now_us);
 
 						const float pressure_sealevel_pa = _param_sens_baro_qnh.get() * 100.f;
 						const float altitude = getAltitudeFromPressure(pressure_pa, pressure_sealevel_pa);
 
 						// calculate air density
-						const float air_density = getDensityFromPressureAndTemp(pressure_pa, temperature);
+						const float air_density = getDensityFromPressureAndTemp(pressure_pa, ambient_temperature);
 
 						// populate vehicle_air_data with and publish
 						vehicle_air_data_s out{};
 						out.timestamp_sample = timestamp_sample;
 						out.baro_device_id = _calibration[instance].device_id();
 						out.baro_alt_meter = altitude;
-						out.ambient_temperature = temperature;
+						out.ambient_temperature = ambient_temperature;
 						out.baro_pressure_pa = pressure_pa;
 						out.rho = air_density;
 						out.calibration_count = _calibration[instance].calibration_count();
