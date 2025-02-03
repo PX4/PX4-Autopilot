@@ -664,6 +664,7 @@ void SF45LaserSerial::sf45_process_replies()
 
 				hrt_abstime now = hrt_absolute_time();
 
+				_obstacle_distance.distances[current_bin] = _current_bin_dist;
 				_handle_missed_bins(current_bin, _previous_bin, _current_bin_dist, now);
 
 				_publish_obstacle_msg(now);
@@ -701,42 +702,25 @@ void SF45LaserSerial::_handle_missed_bins(uint8_t current_bin, uint8_t previous_
 {
 	// if the sensor has its cycle delay configured for a low value like 5, it can happen that not every bin gets a measurement.
 	// in this case we assume the measurement to be valid for all bins between the previous and the current bin.
-	uint8_t start;
-	uint8_t end;
 
-	if (abs(current_bin - previous_bin) > BIN_COUNT / 4) {
-		// wrap-around case is assumed to have happend when the distance between the bins is larger than 1/4 of all Bins
-		// THis is simplyfied as we are not considering the scaning direction
-		start = math::max(previous_bin, current_bin);
-		end = math::min(previous_bin, current_bin);
+	// Shift bin indices such that we can never have the wrap-around case.
+	const float    fov_offset_angle    = 360.0f - SF45_FIELDOF_VIEW / 2.f;
+	const uint16_t current_bin_offset  = ObstacleMath::get_offset_bin_index(current_bin,  _obstacle_distance.increment,
+					     fov_offset_angle);
+	const uint16_t previous_bin_offset = ObstacleMath::get_offset_bin_index(previous_bin, _obstacle_distance.increment,
+					     fov_offset_angle);
 
-	} else if (previous_bin < current_bin) {	// Scanning clockwise
-		start = previous_bin + 1;
-		end = current_bin;
+	const uint16_t start = math::min(current_bin_offset, previous_bin_offset) + 1;
+	const uint16_t end   = math::max(current_bin_offset, previous_bin_offset);
 
-	} else { 					// scanning counter-clockwise
-		start = current_bin;
-		end = previous_bin - 1;
-	}
-
-	if (start <= end) {
-		for (uint8_t i = start; i <= end; i++) {
-			_obstacle_distance.distances[i] = measurement;
-			_data_timestamps[i] = now;
-		}
-
-	} else { // wrap-around case
-		for (uint8_t i = start; i < BIN_COUNT; i++) {
-			_obstacle_distance.distances[i] = measurement;
-			_data_timestamps[i] = now;
-		}
-
-		for (uint8_t i = 0; i <= end; i++) {
-			_obstacle_distance.distances[i] = measurement;
-			_data_timestamps[i] = now;
-		}
+	// populate the missed bins with the measurement
+	for (uint16_t i = start; i < end; i++) {
+		uint16_t bin_index = ObstacleMath::get_offset_bin_index(i, _obstacle_distance.increment, -fov_offset_angle);
+		_obstacle_distance.distances[bin_index] = measurement;
+		_data_timestamps[bin_index] = now;
 	}
 }
+
 
 uint8_t SF45LaserSerial::sf45_convert_angle(const int16_t yaw)
 {
