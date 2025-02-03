@@ -1,0 +1,2 @@
+# px4_add_library(drivers_imu_analog_devices_common adis_parameters.c)
+# target_link_libraries(drivers_imu_analog_devices_common PRIVATE px4_platform)

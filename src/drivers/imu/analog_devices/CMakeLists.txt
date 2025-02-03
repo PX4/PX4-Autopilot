@@ -1,0 +1,6 @@
+add_subdirectory(common)
+add_subdirectory(adis16448)
+add_subdirectory(adis16470)
+add_subdirectory(adis16477)
+add_subdirectory(adis16497)
+add_subdirectory(adis16507)
