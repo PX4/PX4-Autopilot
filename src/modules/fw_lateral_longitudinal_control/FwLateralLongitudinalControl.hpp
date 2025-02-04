@@ -79,6 +79,8 @@
 #include <fw_performance_model/PerformanceModel.hpp>
 #include <slew_rate/SlewRate.hpp>
 
+const fw_lateral_control_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course_setpoint = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration_setpoint = NAN, .roll_sp = NAN};
+const fw_longitudinal_control_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude_setpoint = NAN, .height_rate_setpoint = NAN, .equivalent_airspeed_setpoint = NAN, .pitch_sp = NAN, .thrust_sp = NAN};
 
 class FwLateralLongitudinalControl final : public ModuleBase<FwLateralLongitudinalControl>, public ModuleParams,
 	public px4::WorkItem
@@ -119,6 +121,8 @@ private:
 	uORB::SubscriptionData<lateral_control_limits_s> _lateral_control_limits_sub{ORB_ID(lateral_control_limits)};
 
 	vehicle_local_position_s _local_pos{};
+	fw_longitudinal_control_setpoint_s _long_control_sp{empty_longitudinal_control_setpoint};
+	fw_lateral_control_setpoint_s _lat_control_sp{empty_lateral_control_setpoint};
 
 	uORB::Publication <vehicle_attitude_setpoint_s> _attitude_sp_pub;
 	uORB::Publication <tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
