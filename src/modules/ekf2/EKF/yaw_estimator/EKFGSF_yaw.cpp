@@ -167,6 +167,10 @@ void EKFGSF_yaw::fuseVelocity(const Vector2f &vel_NE, const float vel_accuracy, 
 			const float yaw_delta = wrap_pi(_ekf_gsf[model_index].X(2) - _gsf_yaw);
 			_gsf_yaw_variance += _model_weights(model_index) * (_ekf_gsf[model_index].P(2, 2) + yaw_delta * yaw_delta);
 		}
+
+		if (_gsf_yaw_variance <= 0.f || !PX4_ISFINITE(_gsf_yaw_variance)) {
+			reset();
+		}
 	}
 }
 

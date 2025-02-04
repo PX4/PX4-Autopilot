@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,6 +47,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/autotune_attitude_control_status.h>
+#include <uORB/topics/hover_thrust_estimate.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -98,9 +99,11 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
+	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
+	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};
+	uORB::Subscription _v_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _autotune_attitude_control_status_sub{ORB_ID(autotune_attitude_control_status)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
@@ -118,8 +121,10 @@ private:
 
 	matrix::Vector3f _thrust_setpoint_body; /**< body frame 3D thrust vector */
 
-	float _man_yaw_sp{0.f};                 /**< current yaw setpoint in manual mode */
-	float _man_tilt_max;                    /**< maximum tilt allowed for manual flight [rad] */
+	float _hover_thrust{NAN};
+
+	float _man_yaw_sp{0.f};				/**< current yaw setpoint in manual mode */
+	float _man_tilt_max{0.f};			/**< maximum tilt allowed for manual flight [rad] */
 
 	SlewRate<float> _manual_throttle_minimum{0.f}; ///< 0 when landed and ramped to MPC_MANTHR_MIN in air
 	SlewRate<float> _manual_throttle_maximum{0.f}; ///< 0 when disarmed ramped to 1 when spooled up

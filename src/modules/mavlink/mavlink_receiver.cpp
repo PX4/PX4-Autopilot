@@ -2738,7 +2738,8 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_local_pos.vxy_max = INFINITY;
 		hil_local_pos.vz_max = INFINITY;
 		hil_local_pos.hagl_min = INFINITY;
-		hil_local_pos.hagl_max = INFINITY;
+		hil_local_pos.hagl_max_z = INFINITY;
+		hil_local_pos.hagl_max_xy = INFINITY;
 		hil_local_pos.timestamp = hrt_absolute_time();
 		_local_pos_pub.publish(hil_local_pos);
 	}
@@ -3074,12 +3075,7 @@ MavlinkReceiver::handle_message_gimbal_device_information(mavlink_message_t *msg
 	gimbal_information.yaw_max = gimbal_device_info_msg.yaw_max;
 	gimbal_information.yaw_min = gimbal_device_info_msg.yaw_min;
 
-	if (gimbal_device_info_msg.gimbal_device_id == 0) {
-		gimbal_information.gimbal_device_id = msg->compid;
-
-	} else {
-		gimbal_information.gimbal_device_id = gimbal_device_info_msg.gimbal_device_id;
-	}
+	gimbal_information.gimbal_device_id = msg->compid;
 
 	_gimbal_device_information_pub.publish(gimbal_information);
 }

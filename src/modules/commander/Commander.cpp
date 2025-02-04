@@ -2268,7 +2268,8 @@ void Commander::handleAutoDisarm()
 				_auto_disarm_landed.set_state_and_update(_vehicle_land_detected.landed, hrt_absolute_time());
 
 			} else if (_param_com_disarm_prflt.get() > 0 && !_have_taken_off_since_arming) {
-				_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_prflt.get() * 1_s);
+				_auto_disarm_landed.set_hysteresis_time_from(false,
+						(_param_com_spoolup_time.get() + _param_com_disarm_prflt.get()) * 1_s);
 				_auto_disarm_landed.set_state_and_update(true, hrt_absolute_time());
 			}
 

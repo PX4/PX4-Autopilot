@@ -41,8 +41,13 @@ px4_add_library(drivers_board
 	usb.c
 	imxrt_flexspi_nor_boot.c
 	imxrt_flexspi_nor_flash.c
+	imxrt_flexspi_storage.c
+	imxrt_ocram_initialize.c
 )
 
+# Force compiler not to use builtin functions (like memcpy)
+# to optimize for loops in init.c (imxrt_ocram_initialize)
+set_source_files_properties(imxrt_ocram_initialize.c PROPERTIES COMPILE_FLAGS -fno-builtin)
 
 target_link_libraries(drivers_board
 	PRIVATE

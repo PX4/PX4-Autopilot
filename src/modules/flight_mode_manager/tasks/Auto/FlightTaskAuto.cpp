@@ -282,12 +282,6 @@ void FlightTaskAuto::_prepareLandSetpoints()
 			sticks_xy.setZero();
 		}
 
-		// If ground distance estimate valid (distance sensor) during nudging then limit horizontal speed
-		if (PX4_ISFINITE(_dist_to_bottom)) {
-			// Below 50cm no horizontal speed, above allow per meter altitude 0.5m/s speed
-			max_speed = math::max(0.f, math::min(max_speed, (_dist_to_bottom - .5f) * .5f));
-		}
-
 		_stick_acceleration_xy.setVelocityConstraint(max_speed);
 		_stick_acceleration_xy.generateSetpoints(sticks_xy, _yaw, _land_heading, _position,
 				_velocity_setpoint_feedback.xy(), _deltatime);

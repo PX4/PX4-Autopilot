@@ -17,7 +17,7 @@ on:
 jobs:
   build:
     name: Build and Push Container
-    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,12 +52,7 @@ jobs:
             ghcr.io/PX4/px4-dev
             ${{ (github.event_name != 'pull_request') && 'px4io/px4-dev' || '' }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=ref,event=branch,value=${{ steps.px4-tag.outputs.tag }},priority=700
-            type=ref,event=branch,suffix=-{{date 'YYYY-MM-DD'}},priority=600
-            type=ref,event=branch,suffix=,priority=500
+            type=raw,enable=true,value=${{ steps.px4-tag.outputs.tag }},priority=1000
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
