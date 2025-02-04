@@ -61,8 +61,6 @@ static constexpr uint64_t ROLL_WARNING_TIMEOUT = 2_s;
 // [-] Can-run threshold needed to trigger the roll-constraining failsafe warning
 static constexpr float ROLL_WARNING_CAN_RUN_THRESHOLD = 0.9f;
 
-const fw_lateral_control_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course_setpoint = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration_setpoint = NAN, .roll_sp = NAN};
-const fw_longitudinal_control_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude_setpoint = NAN, .height_rate_setpoint = NAN, .equivalent_airspeed_setpoint = NAN, .pitch_sp = NAN, .thrust_sp = NAN};
 
 FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 	ModuleParams(nullptr),
@@ -139,7 +137,6 @@ void FwLateralLongitudinalControl::Run()
 					       0.001f, 0.1f);
 		_last_time_loop_ran = _local_pos.timestamp;
 
-
 		_long_control_limits_sub.update();
 		_lateral_control_limits_sub.update();
 
@@ -174,19 +171,23 @@ void FwLateralLongitudinalControl::Run()
 			}
 		}
 
-		float pitch_sp{NAN};
-		float throttle_sp{NAN};
+		const bool should_run = _control_mode_sub.get().flag_control_position_enabled ||
+					_control_mode_sub.get().flag_control_velocity_enabled ||
+					_control_mode_sub.get().flag_control_acceleration_enabled ||
+					_control_mode_sub.get().flag_control_altitude_enabled ||
+					_control_mode_sub.get().flag_control_climb_rate_enabled;
 
-		bool publish = false;
+		if (should_run) {
+			float pitch_sp{NAN};
+			float throttle_sp{NAN};
 
-		fw_longitudinal_control_setpoint_s longitudinal_sp = {empty_longitudinal_control_setpoint};
-		_fw_longitudinal_ctrl_sub.copy(&longitudinal_sp);
+			if (_fw_longitudinal_ctrl_sub.updated()) {
+				_fw_longitudinal_ctrl_sub.copy(&_long_control_sp);
+			}
 
-		if (longitudinal_sp.timestamp > 0 && hrt_elapsed_time(&longitudinal_sp.timestamp) < 1_s) {
-			publish = true;
-			tecs_update_pitch_throttle(control_interval, longitudinal_sp.altitude_setpoint,
-						   PX4_ISFINITE(longitudinal_sp.equivalent_airspeed_setpoint)
-						   ? longitudinal_sp.equivalent_airspeed_setpoint :
+			tecs_update_pitch_throttle(control_interval, _long_control_sp.altitude_setpoint,
+						   PX4_ISFINITE(_long_control_sp.equivalent_airspeed_setpoint)
+						   ? _long_control_sp.equivalent_airspeed_setpoint :
 						   _performance_model.getCalibratedTrimAirspeed(),
 						   _long_control_limits_sub.get().pitch_min,
 						   _long_control_limits_sub.get().pitch_max,
@@ -195,42 +196,39 @@ void FwLateralLongitudinalControl::Run()
 						   _long_control_limits_sub.get().sink_rate_target,
 						   _long_control_limits_sub.get().climb_rate_target,
 						   _long_control_limits_sub.get().disable_underspeed_protection,
-						   longitudinal_sp.height_rate_setpoint
+						   _long_control_sp.height_rate_setpoint
 						  );
-			pitch_sp = PX4_ISFINITE(longitudinal_sp.pitch_sp) ? longitudinal_sp.pitch_sp : _tecs.get_pitch_setpoint();
-			throttle_sp = PX4_ISFINITE(longitudinal_sp.thrust_sp) ? longitudinal_sp.thrust_sp : _tecs.get_throttle_setpoint();
+			pitch_sp = PX4_ISFINITE(_long_control_sp.pitch_sp) ? _long_control_sp.pitch_sp : _tecs.get_pitch_setpoint();
+			throttle_sp = PX4_ISFINITE(_long_control_sp.thrust_sp) ? _long_control_sp.thrust_sp : _tecs.get_throttle_setpoint();
 
 			fw_longitudinal_control_setpoint_s longitudinal_control_status {
 				.timestamp = hrt_absolute_time(),
-				.altitude_setpoint = longitudinal_sp.altitude_setpoint,
+				.altitude_setpoint = _long_control_sp.altitude_setpoint,
 				.height_rate_setpoint = _tecs.getStatus().control.altitude_rate_control,
 				.equivalent_airspeed_setpoint = _tecs.getStatus().true_airspeed_sp / _long_control_state.eas2tas,
 			};
 
 			_longitudinal_ctrl_status_pub.publish(longitudinal_control_status);
-		}
 
+			float roll_sp {NAN};
+			float yaw_sp {NAN};
 
-		float roll_sp {NAN};
-		float yaw_sp {NAN};
+			if (_fw_lateral_ctrl_sub.updated()) {
+				_fw_lateral_ctrl_sub.copy(&_lat_control_sp);
+			}
 
-		fw_lateral_control_setpoint_s lateral_sp = {empty_lateral_control_setpoint};
-		_fw_lateral_ctrl_sub.copy(&lateral_sp);
-
-		if (lateral_sp.timestamp > 0 && hrt_elapsed_time(&lateral_sp.timestamp) < 1_s) {
-			publish = true;
 			float airspeed_reference_direction{NAN};
 			float lateral_accel_sp {NAN};
 
-			if (PX4_ISFINITE(lateral_sp.course_setpoint)) {
+			if (PX4_ISFINITE(_lat_control_sp.course_setpoint)) {
 				airspeed_reference_direction = _course_to_airspeed.mapCourseSetpointToHeadingSetpoint(
-								       lateral_sp.course_setpoint, _lateral_control_state.wind_speed,
+								       _lat_control_sp.course_setpoint, _lateral_control_state.wind_speed,
 								       _long_control_state.airspeed_eas * _long_control_state.eas2tas);
 			}
 
-			if (PX4_ISFINITE(lateral_sp.airspeed_reference_direction)) {
+			if (PX4_ISFINITE(_lat_control_sp.airspeed_reference_direction)) {
 				airspeed_reference_direction = PX4_ISFINITE(airspeed_reference_direction) ? airspeed_reference_direction +
-							       lateral_sp.airspeed_reference_direction : lateral_sp.airspeed_reference_direction;
+							       _lat_control_sp.airspeed_reference_direction : _lat_control_sp.airspeed_reference_direction;
 			}
 
 			if (PX4_ISFINITE(airspeed_reference_direction)) {
@@ -240,9 +238,9 @@ void FwLateralLongitudinalControl::Run()
 						   _long_control_state.airspeed_eas * _long_control_state.eas2tas);
 			}
 
-			if (PX4_ISFINITE(lateral_sp.lateral_acceleration_setpoint)) {
-				lateral_accel_sp = PX4_ISFINITE(lateral_accel_sp) ? lateral_accel_sp + lateral_sp.lateral_acceleration_setpoint :
-						   lateral_sp.lateral_acceleration_setpoint;
+			if (PX4_ISFINITE(_lat_control_sp.lateral_acceleration_setpoint)) {
+				lateral_accel_sp = PX4_ISFINITE(lateral_accel_sp) ? lateral_accel_sp + _lat_control_sp.lateral_acceleration_setpoint :
+						   _lat_control_sp.lateral_acceleration_setpoint;
 			}
 
 			if (PX4_ISFINITE(lateral_accel_sp)) {
@@ -252,23 +250,20 @@ void FwLateralLongitudinalControl::Run()
 				roll_sp = mapLateralAccelerationToRollAngle(lateral_accel_sp);
 			}
 
-			_att_sp.reset_integral = lateral_sp.reset_integral;
-			_att_sp.fw_control_yaw_wheel = PX4_ISFINITE(lateral_sp.heading_sp_runway_takeoff);
-			yaw_sp = lateral_sp.heading_sp_runway_takeoff;
+			_att_sp.reset_integral = _lat_control_sp.reset_integral;
+			_att_sp.fw_control_yaw_wheel = PX4_ISFINITE(_lat_control_sp.heading_sp_runway_takeoff);
+			yaw_sp = _lat_control_sp.heading_sp_runway_takeoff;
 
 			fw_lateral_control_setpoint_s status = {
-				.timestamp = lateral_sp.timestamp,
-				.course_setpoint = lateral_sp.course_setpoint,
+				.timestamp = _lat_control_sp.timestamp,
+				.course_setpoint = _lat_control_sp.course_setpoint,
 				.airspeed_reference_direction = airspeed_reference_direction,
 				.lateral_acceleration_setpoint = lateral_accel_sp,
 				.roll_sp = roll_sp // TODO: just for logging, can be removed later
 			};
 
 			_lateral_ctrl_status_pub.publish(status);
-		}
 
-
-		if (publish) {
 			float roll_body = PX4_ISFINITE(roll_sp) ? roll_sp : 0.0f;
 			float pitch_body = PX4_ISFINITE(pitch_sp) ? pitch_sp : 0.0f;
 			const float yaw_body = PX4_ISFINITE(yaw_sp) ? yaw_sp : _yaw;
@@ -281,24 +276,16 @@ void FwLateralLongitudinalControl::Run()
 						       radians(_param_fw_p_lim_max.get()));
 			}
 
-			if (_control_mode_sub.get().flag_control_position_enabled ||
-			    _control_mode_sub.get().flag_control_velocity_enabled ||
-			    _control_mode_sub.get().flag_control_acceleration_enabled ||
-			    _control_mode_sub.get().flag_control_altitude_enabled ||
-			    _control_mode_sub.get().flag_control_climb_rate_enabled) {
+			// roll slew rate
+			roll_body = _roll_slew_rate.update(roll_body, control_interval);
 
-				// roll slew rate
-				roll_body = _roll_slew_rate.update(roll_body, control_interval);
+			_att_sp.timestamp = hrt_absolute_time();
+			const Quatf q(Eulerf(roll_body, pitch_body, yaw_body));
+			q.copyTo(_att_sp.q_d);
 
-				_att_sp.timestamp = hrt_absolute_time();
-				const Quatf q(Eulerf(roll_body, pitch_body, yaw_body));
-				q.copyTo(_att_sp.q_d);
+			_att_sp.thrust_body[0] = thrust_body_x;
 
-				_att_sp.thrust_body[0] = thrust_body_x;
-
-				_attitude_sp_pub.publish(_att_sp);
-			}
-
+			_attitude_sp_pub.publish(_att_sp);
 		}
 
 		_z_reset_counter = _local_pos.z_reset_counter;
