@@ -101,3 +101,15 @@
 [submodule "boards/ssrc/common"]
 	path = boards/ssrc/common
 	url = git@github.com:tiiuae/px4_boards_ssrc.git
+[submodule "src/drivers/pfsoc_crypto"]
+	path = src/drivers/pfsoc_crypto
+	url = ../pfsoc_crypto.git
+[submodule "src/drivers/pfsoc_keystore"]
+	path = src/drivers/pfsoc_keystore
+	url = ../pfsoc_keystore.git
+[submodule "platforms/nuttx/NuttX/extern/pf_crypto"]
+	path = platforms/nuttx/NuttX/extern/pf_crypto
+	url = ../pf_crypto.git
+[submodule "src/drivers/imx9_keystore"]
+	path = src/drivers/imx9_keystore
+	url = git@github.com:tiiuae/imx9_keystore.git
