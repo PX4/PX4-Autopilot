@@ -180,6 +180,7 @@ MissionBase::on_inactivation()
 	_navigator->disable_camera_trigger();
 
 	_navigator->stop_capturing_images();
+	_navigator->_gimbal_control.acquireGimbalControlIfNeeded();
 	_navigator->_gimbal_control.setNeutral(); // point forward
 	_navigator->_gimbal_control.releaseGimbalControlIfNeeded();
 
