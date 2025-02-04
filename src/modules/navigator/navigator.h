@@ -60,6 +60,7 @@
 #if CONFIG_NAVIGATOR_ADSB
 #include <lib/adsb/AdsbConflict.h>
 #endif // CONFIG_NAVIGATOR_ADSB
+#include <lib/gimbal_control/Gimbal.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/module.h>
@@ -277,9 +278,7 @@ public:
 
 	bool force_vtol();
 
-	void acquire_gimbal_control();
-	void release_gimbal_control();
-	void set_gimbal_neutral();
+	Gimbal _gimbal_control{this};
 
 	void preproject_stop_point(double &lat, double &lon);
 

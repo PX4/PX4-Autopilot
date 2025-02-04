@@ -73,9 +73,9 @@ Land::on_activation()
 	_navigator->reset_cruising_speed();
 
 	// set gimbal to neutral position (level with horizon) to reduce change of damage on landing
-	_navigator->acquire_gimbal_control();
-	_navigator->set_gimbal_neutral();
-	_navigator->release_gimbal_control();
+	_navigator->_gimbal_control.acquireGimbalControlIfNeeded();
+	_navigator->_gimbal_control.setNeutral();
+	_navigator->_gimbal_control.releaseGimbalControlIfNeeded();
 
 }
 

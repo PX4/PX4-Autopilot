@@ -70,4 +70,5 @@ px4_add_module(
 		motion_planning
 		mission_feasibility_checker
 		rtl_time_estimator
+		gimbal_control
 	)

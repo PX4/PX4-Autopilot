@@ -1543,29 +1543,6 @@ void Navigator::publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_
 	_vehicle_cmd_ack_pub.publish(command_ack);
 }
 
-void Navigator::acquire_gimbal_control()
-{
-	vehicle_command_s vcmd = {};
-	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
-	vcmd.param1 = _vstatus.system_id;
-	vcmd.param2 = _vstatus.component_id;
-	vcmd.param3 = -1.0f; // Leave unchanged.
-	vcmd.param4 = -1.0f; // Leave unchanged.
-	publish_vehicle_cmd(&vcmd);
-}
-
-void Navigator::release_gimbal_control()
-{
-	vehicle_command_s vcmd = {};
-	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
-	vcmd.param1 = -3.0f; // Remove control if it had it.
-	vcmd.param2 = -3.0f; // Remove control if it had it.
-	vcmd.param3 = -1.0f; // Leave unchanged.
-	vcmd.param4 = -1.0f; // Leave unchanged.
-	publish_vehicle_cmd(&vcmd);
-}
-
-
 void
 Navigator::stop_capturing_images()
 {
@@ -1627,18 +1604,6 @@ void Navigator::disable_camera_trigger()
 	cmd.param1 = -1.0f;
 	cmd.param3 = 1.0f;
 	publish_vehicle_cmd(&cmd);
-}
-
-void Navigator::set_gimbal_neutral()
-{
-	vehicle_command_s vcmd = {};
-	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW;
-	vcmd.param1 = NAN;
-	vcmd.param2 = NAN;
-	vcmd.param3 = NAN;
-	vcmd.param4 = NAN;
-	vcmd.param5 = gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL;
-	publish_vehicle_cmd(&vcmd);
 }
 
 void Navigator::sendWarningDescentStoppedDueToTerrain()

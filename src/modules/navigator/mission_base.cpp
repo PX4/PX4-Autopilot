@@ -180,8 +180,8 @@ MissionBase::on_inactivation()
 	_navigator->disable_camera_trigger();
 
 	_navigator->stop_capturing_images();
-	_navigator->set_gimbal_neutral(); // point forward
-	_navigator->release_gimbal_control();
+	_navigator->_gimbal_control.setNeutral(); // point forward
+	_navigator->_gimbal_control.releaseGimbalControlIfNeeded();
 
 	if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
@@ -683,9 +683,9 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 
 			// set gimbal to neutral position (level with horizon) to reduce change of damage on landing
-			_navigator->acquire_gimbal_control();
-			_navigator->set_gimbal_neutral();
-			_navigator->release_gimbal_control();
+			_navigator->_gimbal_control.acquireGimbalControlIfNeeded();
+			_navigator->_gimbal_control.setNeutral();
+			_navigator->_gimbal_control.releaseGimbalControlIfNeeded();
 
 		} else {
 

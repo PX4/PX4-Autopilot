@@ -524,7 +524,7 @@ MissionBlock::issue_command(const mission_item_s &item)
 
 	// This is to support legacy DO_MOUNT_CONTROL as part of a mission.
 	if (item.nav_cmd == NAV_CMD_DO_MOUNT_CONTROL) {
-		_navigator->acquire_gimbal_control();
+		_navigator->_gimbal_control.acquireGimbalControlIfNeeded();
 	}
 
 	// Mission item's NAV_CMD enums directly map to the according vehicle command
