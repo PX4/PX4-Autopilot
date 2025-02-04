@@ -41,7 +41,6 @@
 #define EKF_RANGE_FINDER_CONSISTENCY_CHECK_HPP
 
 #include <mathlib/math/filter/AlphaFilter.hpp>
-#include <ekf_derivation/generated/state.h>
 
 
 class RangeFinderConsistencyCheck final
@@ -62,9 +61,9 @@ public:
 	bool isKinematicallyConsistent() const { return _state == KinematicState::CONSISTENT; }
 	bool isNotKinematicallyInconsistent() const { return _state != KinematicState::INCONSISTENT; }
 	void setGate(const float gate) { _gate = gate; }
-	void run(const float &z, const float &vz, const matrix::SquareMatrix<float, estimator::State::size> &P,
-		 const float &dist_bottom, const float &dist_bottom_var, uint64_t time_us);
-	void set_terrain_process_noise(const float terrain_process_noise) { _terrain_process_noise = terrain_process_noise; }
+	void run(float z, float z_var, float vz, float vz_var,
+		 float dist_bottom, float dist_bottom_var, uint64_t time_us);
+	void set_terrain_process_noise(float terrain_process_noise) { _terrain_process_noise = terrain_process_noise; }
 	void reset()
 	{
 		_state = (_initialized && _state == KinematicState::CONSISTENT) ? KinematicState::UNKNOWN : _state;
@@ -76,10 +75,10 @@ public:
 
 private:
 
-	void update(const float &z, const float &z_var, const float &vz, const float &vz_var, const float &dist_bottom,
-		    const float &dist_bottom_var, const uint64_t &time_us);
-	void init(const float &z, const float &z_var, const float &dist_bottom, const float &dist_bottom_var);
-	void evaluateState(const float &dt, const float &vz, const float &vz_var);
+	void update(float z, float z_var, float vz, float vz_var, float dist_bottom,
+		    float dist_bottom_var, uint64_t time_us);
+	void init(float z, float z_var, float dist_bottom, float dist_bottom_var);
+	void evaluateState(float dt, float vz, float vz_var);
 	float _terrain_process_noise{0.0f};
 	matrix::SquareMatrix<float, 2> _P{};
 	matrix::Vector2f _Ht{};
@@ -98,9 +97,10 @@ private:
 
 namespace RangeFilter
 {
-static constexpr estimator::IdxDof z{0, 1};
-static constexpr estimator::IdxDof terrain{1, 1};
+struct IdxDof { unsigned idx; unsigned dof; };
+static constexpr IdxDof z{0, 1};
+static constexpr IdxDof terrain{1, 1};
 static constexpr uint8_t size{2};
-};
+}
 
 #endif // !EKF_RANGE_FINDER_CONSISTENCY_CHECK_HPP

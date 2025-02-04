@@ -77,7 +77,10 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				}
 
 				_rng_consistency_check.horizontal_motion = updated_horizontal_motion;
-				_rng_consistency_check.run(_gpos.altitude(), _state.vel(2), P, _range_sensor.getRange(), dist_var, imu_sample.time_us);
+				const float z_var = P(State::pos.idx + 2, State::pos.idx + 2);
+				const float vz_var = P(State::vel.idx + 2, State::vel.idx + 2);
+				_rng_consistency_check.run(_gpos.altitude(), z_var, _state.vel(2), vz_var, _range_sensor.getDistBottom(),
+							   dist_var, imu_sample.time_us);
 			}
 
 		} else {

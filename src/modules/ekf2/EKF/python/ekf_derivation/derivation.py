@@ -729,10 +729,28 @@ def range_validation_filter_h() -> sf.Matrix:
     )
     dist_bottom = state["z"] - state["terrain"]
 
-    H = sf.M12()
-    H[0, :] = sf.V1(dist_bottom).jacobian(state.to_storage(), tangent_space=False)
+    H = sf.M21()
+    H[:, 0] = sf.V1(dist_bottom).jacobian(state.to_storage(), tangent_space=False).transpose()
 
     return H
+
+def range_validation_filter_P_init(
+        z_var: sf.Scalar,
+        dist_bottom_var: sf.Scalar
+    ) -> sf.Matrix:
+
+    H = range_validation_filter_h().T
+    # enforce terrain to match the measurement
+    K = sf.V2(0, 1/H[1])
+    R = sf.V1(dist_bottom_var)
+
+    # dist_bottom = z - terrain
+    P = sf.M22.diag([z_var, z_var + dist_bottom_var])
+    I = sf.M22.eye()
+    # Joseph form
+    P = (I - K * H) * P * (I - K * H).T + K * R * K.T
+
+    return P
 
 print("Derive EKF2 equations...")
 generate_px4_function(predict_covariance, output_names=None)
@@ -766,5 +784,6 @@ generate_px4_function(compute_body_vel_innov_var_h, output_names=["innov_var", "
 generate_px4_function(compute_body_vel_y_innov_var, output_names=["innov_var"])
 generate_px4_function(compute_body_vel_z_innov_var, output_names=["innov_var"])
 generate_px4_function(range_validation_filter_h, output_names=None)
+generate_px4_function(range_validation_filter_P_init, output_names=None)
 
 generate_px4_state(State, tangent_idx)

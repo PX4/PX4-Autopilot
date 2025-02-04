@@ -37,20 +37,15 @@
 
 #include <aid_sources/range_finder/range_finder_consistency_check.hpp>
 #include "ekf_derivation/generated/range_validation_filter_h.h"
+#include "ekf_derivation/generated/range_validation_filter_P_init.h"
 
 using namespace matrix;
 
-void RangeFinderConsistencyCheck::init(const float &z, const float &z_var, const float &dist_bottom,
-				       const float &dist_bottom_var)
+void RangeFinderConsistencyCheck::init(const float z, const float z_var, const float dist_bottom,
+				       const float dist_bottom_var)
 {
-	// assume no correlation between z and dist_bottom
-	// values defined with symforce for H[1, -1] , P = [z_var, 0; 0, z_var + dist_bottom_var], K = [0,1/H(1)]
-	_P(RangeFilter::z.idx, RangeFilter::z.idx) = z_var;
-	_P(RangeFilter::z.idx, RangeFilter::terrain.idx) = z_var;
-	_P(RangeFilter::terrain.idx, RangeFilter::z.idx) = z_var;
-	_P(RangeFilter::terrain.idx, RangeFilter::terrain.idx) = dist_bottom_var + z_var;
-
-	_Ht = sym::RangeValidationFilterH<float>().transpose();
+	_P = sym::RangeValidationFilterPInit(z_var, dist_bottom_var);
+	_Ht = sym::RangeValidationFilterH<float>();
 
 	_x(RangeFilter::z.idx) = z;
 	_x(RangeFilter::terrain.idx) = z - dist_bottom;
@@ -60,8 +55,8 @@ void RangeFinderConsistencyCheck::init(const float &z, const float &z_var, const
 	_t_since_first_sample = 0.f;
 }
 
-void RangeFinderConsistencyCheck::update(const float &z, const float &z_var, const float &vz, const float &vz_var,
-		const float &dist_bottom, const float &dist_bottom_var, const uint64_t &time_us)
+void RangeFinderConsistencyCheck::update(const float z, const float z_var, const float vz, const float vz_var,
+		const float dist_bottom, const float dist_bottom_var, const uint64_t time_us)
 {
 	const float dt = static_cast<float>(time_us - _time_last_update_us) * 1e-6f;
 
@@ -139,7 +134,7 @@ void RangeFinderConsistencyCheck::update(const float &z, const float &z_var, con
 	evaluateState(dt, vz, vz_var);
 }
 
-void RangeFinderConsistencyCheck::evaluateState(const float &dt, const float &vz, const float &vz_var)
+void RangeFinderConsistencyCheck::evaluateState(const float dt, const float vz, const float vz_var)
 {
 	// start the consistency check after 1s
 	if (_t_since_first_sample + dt > 1.0f) {
@@ -165,13 +160,9 @@ void RangeFinderConsistencyCheck::evaluateState(const float &dt, const float &vz
 	}
 }
 
-void RangeFinderConsistencyCheck::run(const float &z, const float &vz,
-				      const matrix::SquareMatrix<float, estimator::State::size> &P,
-				      const float &dist_bottom, const float &dist_bottom_var, uint64_t time_us)
+void RangeFinderConsistencyCheck::run(const float z, const float z_var, const float vz, const float vz_var,
+				      const float dist_bottom, const float dist_bottom_var, const uint64_t time_us)
 {
-	const float z_var = P(estimator::State::pos.idx + 2, estimator::State::pos.idx + 2);
-	const float vz_var = P(estimator::State::vel.idx + 2, estimator::State::vel.idx + 2);
-
 	if (!_initialized || current_posD_reset_count != _last_posD_reset_count) {
 		_last_posD_reset_count = current_posD_reset_count;
 		_initialized = false;
