@@ -59,7 +59,7 @@ FlightTaskAutoFollowTarget::FlightTaskAutoFollowTarget() : _sticks(this)
 
 FlightTaskAutoFollowTarget::~FlightTaskAutoFollowTarget()
 {
-	releaseGimbalControl();
+	_gimbal_control.releaseGimbalControlIfNeeded();
 	_target_estimator.Stop();
 }
 
@@ -428,33 +428,8 @@ bool FlightTaskAutoFollowTarget::update()
 	return true;
 }
 
-void FlightTaskAutoFollowTarget::releaseGimbalControl()
-{
-	// NOTE: If other flight tasks start using gimbal control as well
-	// it might be worth moving this release mechanism to a common base
-	// class for gimbal-control flight tasks
-
-	vehicle_command_s vehicle_command = {};
-	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
-	vehicle_command.param1 = -3.0f; // Remove control if it had it.
-	vehicle_command.param2 = -3.0f; // Remove control if it had it.
-	vehicle_command.param3 = -1.0f; // Leave unchanged.
-	vehicle_command.param4 = -1.0f; // Leave unchanged.
-
-	vehicle_command.timestamp = hrt_absolute_time();
-	vehicle_command.source_system = _param_mav_sys_id.get();
-	vehicle_command.source_component = _param_mav_comp_id.get();
-	vehicle_command.target_system = _param_mav_sys_id.get();
-	vehicle_command.target_component = _param_mav_comp_id.get();
-	vehicle_command.confirmation = false;
-	vehicle_command.from_external = false;
-
-	_vehicle_command_pub.publish(vehicle_command);
-}
-
 float FlightTaskAutoFollowTarget::pointGimbalAt(const float xy_distance, const float z_distance)
 {
-	gimbal_manager_set_attitude_s msg{};
 	float pitch_down_angle = 0.0f;
 
 	if (PX4_ISFINITE(z_distance)) {
@@ -465,11 +440,10 @@ float FlightTaskAutoFollowTarget::pointGimbalAt(const float xy_distance, const f
 		pitch_down_angle = 0.0;
 	}
 
-	const Quatf q_gimbal = Quatf(Eulerf(0, -pitch_down_angle, 0));
-	q_gimbal.copyTo(msg.q);
-
-	msg.timestamp = hrt_absolute_time();
-	_gimbal_manager_set_attitude_pub.publish(msg);
+	_gimbal_control.acquireGimbalControlIfNeeded();
+	_gimbal_control.publishGimbalManagerSetAttitude(Gimbal::FLAGS_ROLL_PITCH_LOCKED,
+			Quatf(Eulerf(0, -pitch_down_angle, 0)),
+			Vector3f(NAN, NAN, NAN));
 
 	return pitch_down_angle;
 }

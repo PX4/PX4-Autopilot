@@ -37,5 +37,5 @@ px4_add_library(FlightTaskAutoFollowTarget
 	FlightTaskAutoFollowTarget.cpp
 )
 
-target_link_libraries(FlightTaskAutoFollowTarget PUBLIC FlightTaskAuto follow_target_estimator)
+target_link_libraries(FlightTaskAutoFollowTarget PUBLIC FlightTaskAuto follow_target_estimator gimbal_control)
 target_include_directories(FlightTaskAutoFollowTarget PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

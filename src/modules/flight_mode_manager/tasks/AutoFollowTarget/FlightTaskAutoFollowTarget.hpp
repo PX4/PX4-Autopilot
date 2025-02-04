@@ -53,11 +53,10 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/follow_target_status.h>
 #include <uORB/topics/follow_target_estimator.h>
-#include <uORB/topics/gimbal_manager_set_attitude.h>
-#include <uORB/topics/vehicle_command.h>
 
 #include <lib/mathlib/math/filter/second_order_reference_model.hpp>
 #include <motion_planning/VelocitySmoothing.hpp>
+#include <lib/gimbal_control/Gimbal.hpp>
 
 // << Follow Target Behavior related constants >>
 
@@ -252,14 +251,7 @@ protected:
 	 */
 	float pointGimbalAt(const float xy_distance, const float z_distance);
 
-	/**
-	 * Release Gimbal Control
-	 *
-	 * Releases Gimbal Control Authority of Follow-Target Flight Task, to allow other modules / Ground station
-	 * to control the gimbal when the task exits.
-	 * Fore more information on gimbal v2, see https://mavlink.io/en/services/gimbal_v2.html
-	 */
-	void releaseGimbalControl();
+	Gimbal _gimbal_control{this};
 
 	// Sticks object to read in stick commands from the user
 	Sticks _sticks;
@@ -305,6 +297,4 @@ protected:
 	uORB::Subscription _follow_target_estimator_sub{ORB_ID(follow_target_estimator)};
 
 	uORB::Publication<follow_target_status_s> _follow_target_status_pub{ORB_ID(follow_target_status)};
-	uORB::Publication<gimbal_manager_set_attitude_s> _gimbal_manager_set_attitude_pub{ORB_ID(gimbal_manager_set_attitude)};
-	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
 };
