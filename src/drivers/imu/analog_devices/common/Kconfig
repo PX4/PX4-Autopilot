@@ -1,3 +1,0 @@
-config DRIVERS_IMU_ANALOG_DEVICES_COMMON
-    bool
-    default n
