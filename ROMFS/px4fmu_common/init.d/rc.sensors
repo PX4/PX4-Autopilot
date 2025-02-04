@@ -154,6 +154,12 @@ then
 	fi
 fi
 
+# Microchip MCP9808 temperature sensor external I2C
+if param compare -s SENS_EN_MCP9808 1
+then
+	mcp9808 start -X
+fi
+
 # TE MS4515 differential pressure sensor external I2C
 if param compare -s SENS_EN_MS4515 1
 then
