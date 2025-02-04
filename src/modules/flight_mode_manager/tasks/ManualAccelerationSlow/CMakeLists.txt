@@ -36,4 +36,4 @@ px4_add_library(FlightTaskManualAccelerationSlow
 )
 target_include_directories(FlightTaskManualAccelerationSlow PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_link_libraries(FlightTaskManualAccelerationSlow PUBLIC FlightTaskManualAcceleration FlightTaskUtility)
+target_link_libraries(FlightTaskManualAccelerationSlow PUBLIC FlightTaskManualAcceleration FlightTaskUtility gimbal_control)

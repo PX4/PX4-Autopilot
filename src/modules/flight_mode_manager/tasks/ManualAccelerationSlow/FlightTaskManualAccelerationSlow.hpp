@@ -42,7 +42,7 @@
 
 #include "FlightTaskManualAcceleration.hpp"
 #include "StickAccelerationXY.hpp"
-#include "Gimbal.hpp"
+#include "lib/gimbal_control/Gimbal.hpp"
 
 #include <lib/weather_vane/WeatherVane.hpp>
 #include <uORB/Subscription.hpp>
