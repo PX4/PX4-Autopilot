@@ -80,26 +80,29 @@ void SpacecraftHandler::Run()
 			manual_control_setpoint_s manual_control_setpoint{};
 
 			if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-				rover_differential_setpoint_s rover_differential_setpoint{};
-				rover_differential_setpoint.timestamp = timestamp;
-				rover_differential_setpoint.forward_speed_setpoint = NAN;
-				rover_differential_setpoint.forward_speed_setpoint_normalized = manual_control_setpoint.throttle;
-				rover_differential_setpoint.yaw_setpoint = NAN;
+				_thrust_setpoint(0) = math::constrain((manual_control_setpoint.pitch * _manual_force_max), -1.f, 1.f);
+				_thrust_setpoint(1) = math::constrain((manual_control_setpoint.roll * _manual_force_max), -1.f, 1.f);
+				_thrust_setpoint(2) = 0.0;
 
-				if (_max_yaw_rate > FLT_EPSILON && _param_rd_max_thr_yaw_r.get() > FLT_EPSILON) {
-					const float scaled_yaw_rate_input = math::interpolate<float>(manual_control_setpoint.roll,
-									    -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
-					const float speed_diff = scaled_yaw_rate_input * _param_rd_wheel_track.get() / 2.f;
-					rover_differential_setpoint.speed_diff_setpoint_normalized = math::interpolate<float>(speed_diff,
-							-_param_rd_max_thr_yaw_r.get(), _param_rd_max_thr_yaw_r.get(), -1.f, 1.f);
+				_torque_setpoint(0) = _torque_setpoint(1) = 0.0;
+				_torque_setpoint(2) = math::constrain((manual_control_setpoint.yaw * _manual_torque_max), -1.f, 1.f);
+				// publish thrust and torque setpoints
+				vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
+				vehicle_torque_setpoint_s vehicle_torque_setpoint{};
 
-				} else {
-					rover_differential_setpoint.speed_diff_setpoint_normalized = manual_control_setpoint.roll;
+				_thrust_setpoint.copyTo(vehicle_thrust_setpoint.xyz);
+				_torque_setpoint.copyTo(vehicle_torque_setpoint.xyz);
 
-				}
+				vehicle_thrust_setpoint.timestamp_sample = angular_velocity.timestamp_sample;
+				vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
 
-				rover_differential_setpoint.yaw_rate_setpoint = NAN;
-				_rover_differential_setpoint_pub.publish(rover_differential_setpoint);
+				vehicle_torque_setpoint.timestamp = hrt_absolute_time();
+				vehicle_torque_setpoint.timestamp_sample = angular_velocity.timestamp_sample;
+
+				_vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
+				_vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
+
+				updateActuatorControlsStatus(vehicle_torque_setpoint, dt);
 			}
 		} break;
 
