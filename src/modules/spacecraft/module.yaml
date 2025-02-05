@@ -8,8 +8,35 @@ module_name: Control Allocation
 parameters:
     - group: Geometry
       definitions:
+        CA_AIRFRAME:
+            description:
+                short: Airframe selection
+                long: |
+                  Defines which mixer implementation to use.
+                  Some are generic, while others are specifically fit to a certain vehicle with a fixed set of actuators.
 
-        SC_CA_METHOD:
+                  'Custom' should only be used if noting else can be used.
+            type: enum
+            values:
+                0: Multirotor
+                1: Fixed-wing
+                2: Standard VTOL
+                3: Tiltrotor VTOL
+                4: Tailsitter VTOL
+                5: Rover (Ackermann)
+                6: Rover (Differential)
+                7: Motors (6DOF)
+                8: Multirotor with Tilt
+                9: Custom
+                10: Helicopter (tail ESC)
+                11: Helicopter (tail Servo)
+                12: Helicopter (Coaxial)
+                13: Rover (Mecanum)
+                14: Spacecraft 2D
+                15: Spacecraft 3D
+            default: 14
+
+        CA_METHOD:
             description:
                 short: Control allocation method
                 long: |
@@ -145,7 +172,7 @@ mixer:
             14: # Spacecraft 2D
                 title: 'Spacecraft 2D'
                 actuators:
-                  - actuator_type: 'thruster'
+                  - actuator_type: 'motor'
                     count: 'CA_THRUSTER_CNT'  # count would be too long for 16 max size
                     per_item_parameters:
                         standard:
@@ -167,7 +194,7 @@ mixer:
             15: # Sapcecraft 3D
                 title: 'Spacecraft 3D'
                 actuators:
-                  - actuator_type: 'thruster'
+                  - actuator_type: 'motor'
                     count: 'CA_THRUSTER_CNT'
                     per_item_parameters:
                         standard:

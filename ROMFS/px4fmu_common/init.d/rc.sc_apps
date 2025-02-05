@@ -5,6 +5,9 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
+# Start Spacecraft App
+spacecraft start
+
 # Estimator Group Selection
 # ekf2 start &
 

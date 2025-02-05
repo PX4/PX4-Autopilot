@@ -32,60 +32,56 @@
  ****************************************************************************/
 
 /**
- * @file ControlAllocator.cpp
+ * @file ControlAllocator.hpp
  *
  * Control allocator.
  *
  * @author Julien Lecoeur <julien.lecoeur@gmail.com>
  */
 
-#include "ControlAllocator.hpp"
+#pragma once
 
-int ControlAllocator::task_spawn(int argc, char *argv[])
+#include <lib/matrix/matrix/math.hpp>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/actuator_servos.h>
+#include <uORB/topics/actuator_servos_trim.h>
+#include <uORB/topics/control_allocator_status.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_torque_setpoint.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/failure_detector_status.h>
+
+class SpacecraftHandler : public ModuleBase<SpacecraftHandler>, public ModuleParams, public px4::ScheduledWorkItem
 {
-	return 0;
-}
+public:
 
-int ControlAllocator::print_status()
-{
-	PX4_INFO("Running");
+	SpacecraftHandler();
 
-	return 0;
-}
+	virtual ~SpacecraftHandler();
 
-int ControlAllocator::custom_command(int argc, char *argv[])
-{
-	return print_usage("unknown command");
-}
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-int ControlAllocator::print_usage(const char *reason)
-{
-	if (reason) {
-		PX4_WARN("%s\n", reason);
-	}
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
 
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-	### Description
-	This implements control allocation for spacecraft vehicles.
-	It takes torque and thrust setpoints as inputs and outputs
-	actuator setpoint messages.
-	)DESCR_STR"
-	);
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
 
-	PRINT_MODULE_USAGE_NAME("sc_control_allocator", "controller");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
-	return 0;
-}
+private:		/**< loop duration performance counter */
 
-/**
- * Control Allocator app start / stop handling function
- */
-extern "C" __EXPORT int sc_control_allocator_main(int argc, char *argv[]);
-
-int sc_control_allocator_main(int argc, char *argv[])
-{
-	return ControlAllocator::main(argc, argv);
-}
+};

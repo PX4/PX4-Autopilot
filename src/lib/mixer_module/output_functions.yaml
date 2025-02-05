@@ -10,9 +10,6 @@ functions:
     Motor:
       start: 101
       count: 12
-    Thruster:
-      start: 501
-      count: 12
     Servo:
       start: 201
       count: 8
