@@ -106,34 +106,34 @@ void InternalCombustionEngineControl::Run()
 	const float throttle_in = actuator_motors.control[0];
 
 	switch (_param_ice_on_source.get()) {
-	case 0:
+	case ICESource::None:
 		user_request = UserOnOffRequest::Off;
 		break;
 
-	case 1:
+	case ICESource::ArmingState:
 		user_request = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? UserOnOffRequest::On :
 			       UserOnOffRequest::Off;
 		break;
 
-	case 2:
+	case ICESource::Mavlink:
 		user_request = UserOnOffRequest::Off;
 		break;
 
-	case 3:
+	case ICESource::Aux1:
 		user_request = manual_control_setpoint.aux1 > 0.5f ? UserOnOffRequest::On : UserOnOffRequest::Off;
 		break;
 
-	case 4:
+	case ICESource::Aux2:
 		user_request = manual_control_setpoint.aux2 > 0.5f ? UserOnOffRequest::On : UserOnOffRequest::Off;
 		break;
 
-	case 5:
+	case ICESource::Aux3:
 		user_request = manual_control_setpoint.aux3 > 0.5f ? UserOnOffRequest::On : UserOnOffRequest::Off;
 		break;
 
-	case 6:
+	case ICESource::Aux4:
 		// TODO: remove hack to have it testable with yaw stick
-		user_request = manual_control_setpoint.yaw > 0.5f ? UserOnOffRequest::On : UserOnOffRequest::Off;
+		user_request = manual_control_setpoint.aux4 > 0.5f ? UserOnOffRequest::On : UserOnOffRequest::Off;
 		break;
 	}
 

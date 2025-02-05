@@ -100,6 +100,16 @@ private:
 		On
 	};
 
+	enum class ICESource {
+		None,
+		ArmingState,
+		Mavlink,
+		Aux1,
+		Aux2,
+		Aux3,
+		Aux4,
+	};
+
 	hrt_abstime _state_start_time{0};
 	hrt_abstime _last_time_run{0};
 	int _starting_retry_cycle{0};
