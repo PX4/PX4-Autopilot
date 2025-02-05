@@ -92,7 +92,7 @@ if(CONFIG_MODULES_ROVER_ACKERMANN)
 	)
 endif()
 
-if(CONFIG_MODULES_SC_CONTROL_ALLOCATOR)
+if(CONFIG_MODULES_SPACECRAFT)
 	px4_add_romfs_files(
 		rc.sc_apps
 		rc.sc_defaults

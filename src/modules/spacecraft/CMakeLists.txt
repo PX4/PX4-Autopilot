@@ -34,15 +34,15 @@
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 px4_add_module(
-	MODULE modules__sc_control_allocator
-	MAIN sc_control_allocator
+	MODULE modules__spacecraft
+	MAIN spacecraft
 	COMPILE_FLAGS
 		${MAX_CUSTOM_OPT_LEVEL}
 	STACK_MAIN
 		3000
 	SRCS
-		ControlAllocator.cpp
-		ControlAllocator.hpp
+		SpacecraftHandler.cpp
+		SpacecraftHandler.hpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file ControlAllocator.hpp
+ * @file SpacecraftHandler.hpp
  *
  * Control allocator.
  *
@@ -62,13 +62,20 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/failure_detector_status.h>
 
-class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::ScheduledWorkItem
+// Constants
+static constexpr float STICK_DEADZONE =
+	0.1f; // [0, 1] Percentage of stick input range that will be interpreted as zero around the stick centered value
+static constexpr float YAW_RATE_THRESHOLD =
+	0.02f; // [rad/s] The minimum threshold for the yaw rate measurement not to be interpreted as zero
+static constexpr float SPEED_THRESHOLD =
+	0.1f; // [m/s] The minimum threshold for the speed measurement not to be interpreted as zero
+
+class SpacecraftHandler : public ModuleBase<SpacecraftHandler>, public ModuleParams, public px4::ScheduledWorkItem
 {
+
 public:
-
-	ControlAllocator();
-
-	virtual ~ControlAllocator();
+	SpacecraftHandler();
+	~SpacecraftHandler() override = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -79,9 +86,48 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
+	bool init();
 
-private:		/**< loop duration performance counter */
+protected:
+	void updateParams() override;
+
+private:
+	void Run() override;
+
+	/**
+	 * @brief Update uORB subscriptions.
+	 */
+	void updateSubscriptions();
+
+	// uORB Subscriptions
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+
+	// uORB Publications
+	uORB::Publication<rover_differential_setpoint_s> _rover_differential_setpoint_pub{ORB_ID(rover_differential_setpoint)};
+
+	// Instances
+	SpacecraftHandlerGuidance _rover_differential_guidance{this};
+	SpacecraftHandlerControl _rover_differential_control{this};
+	PurePursuit _posctl_pure_pursuit{this}; // Pure pursuit library
+
+	// Variables
+	Vector2f _curr_pos_ned{};
+	matrix::Quatf _vehicle_attitude_quaternion{};
+	float _vehicle_yaw_rate{0.f};
+	float _vehicle_forward_speed{0.f};
+	float _vehicle_yaw{0.f};
+	float _max_yaw_rate{0.f};
+	int _nav_state{0};
+	bool _armed{false};
+	bool _yaw_ctl{false}; // Indicates if the rover is doing yaw or yaw rate control in Stabilized and Position mode
+	float _stab_desired_yaw{0.f}; // Yaw setpoint for Stabilized mode
+	Vector2f _pos_ctl_course_direction{}; // Course direction for Position mode
+	Vector2f _pos_ctl_start_position_ned{}; // Initial rover position for course control in Position mode
+
 
 };
