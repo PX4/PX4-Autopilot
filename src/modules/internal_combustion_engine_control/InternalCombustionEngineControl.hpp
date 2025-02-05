@@ -113,7 +113,7 @@ private:
 	hrt_abstime _state_start_time{0};
 	hrt_abstime _last_time_run{0};
 	int _starting_retry_cycle{0};
-	bool engine_tried_to_restart{false};
+	bool _engine_tried_to_restart{false};
 
 	SlewRate<float> _throttle_control_slew_rate;
 

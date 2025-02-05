@@ -144,7 +144,7 @@ void InternalCombustionEngineControl::Run()
 
 		controlEngineStop(ice_control);
 
-		if (user_request == UserOnOffRequest::On && !engine_tried_to_restart) {
+		if (user_request == UserOnOffRequest::On && !_engine_tried_to_restart) {
 			_state = State::Starting;
 			instantiateEngineStart();
 			controlEngineStartup(ice_control);
@@ -173,7 +173,7 @@ void InternalCombustionEngineControl::Run()
 					_state = State::Fault;
 					PX4_WARN("ICE: Fault");
 
-					engine_tried_to_restart = true;
+					_engine_tried_to_restart = true;
 				}
 			}
 		}
@@ -206,7 +206,7 @@ void InternalCombustionEngineControl::Run()
 			PX4_INFO("ICE: Stop");
 
 		} else {
-			if (_param_ice_retry_fault.get() && !engine_tried_to_restart) {
+			if (_param_ice_retry_fault.get() && !_engine_tried_to_restart) {
 				_state = State::Starting;
 				instantiateEngineStart();
 				controlEngineStartup(ice_control);
@@ -281,7 +281,7 @@ void InternalCombustionEngineControl::controlEngineRunning(internal_combustion_e
 	ice_control.starter_engine_control = 0.f;
 	ice_control.throttle_control = throttle_in;
 
-	engine_tried_to_restart = false;
+	_engine_tried_to_restart = false;
 }
 
 void InternalCombustionEngineControl::controlEngineStop(internal_combustion_engine_control_s &ice_control)
@@ -292,7 +292,7 @@ void InternalCombustionEngineControl::controlEngineStop(internal_combustion_engi
 	ice_control.throttle_control = 0.f;
 
 	_starting_retry_cycle = 0;
-	engine_tried_to_restart = false;
+	_engine_tried_to_restart = false;
 }
 
 void InternalCombustionEngineControl::controlEngineFault(internal_combustion_engine_control_s &ice_control)
