@@ -105,7 +105,7 @@ void InternalCombustionEngineControl::Run()
 
 	const float throttle_in = actuator_motors.control[0];
 
-	switch (_param_ice_on_source.get()) {
+	switch (static_cast<ICESource>(_param_ice_on_source.get())) {
 	case ICESource::None:
 		user_request = UserOnOffRequest::Off;
 		break;
