@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -132,7 +132,6 @@ void InternalCombustionEngineControl::Run()
 		break;
 
 	case ICESource::Aux4:
-		// TODO: remove hack to have it testable with yaw stick
 		user_request = manual_control_setpoint.aux4 > 0.5f ? UserOnOffRequest::On : UserOnOffRequest::Off;
 		break;
 	}
@@ -328,7 +327,7 @@ void InternalCombustionEngineControl::controlEngineStartup(internal_combustion_e
 
 	if (now > _state_start_time + cycle_timeout_duration) {
 		// reset timer to restart procedure if engine is not running
-		_state_start_time = hrt_absolute_time();
+		instantiateEngineStart();
 		_starting_retry_cycle++;
 		PX4_INFO("ICE: Retry %i finished", _starting_retry_cycle);
 	}
