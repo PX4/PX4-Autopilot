@@ -93,6 +93,24 @@ float speedControl(SlewRate<float> &speed_with_rate_limit, PID &pid_speed, float
 		   float vehicle_speed, float max_accel, float max_decel, float max_thr_speed, float dt);
 
 /**
+ * Applies yaw acceleration slew rate to a yaw rate setpoint and calculates the necessary speed diff setpoint
+ * using a feedforward term and/or a PID controller.
+ * @param adjusted_yaw_rate_setpoint Yaw rate setpoint with applied slew rate [-1, 1] (Updated by this function).
+ * @param pid_yaw_rate Yaw rate PID (Updated by this function).
+ * @param yaw_rate_setpoint Yaw rate setpoint [rad/s].
+ * @param vehicle_yaw_rate Measured vehicle yaw rate [rad/s].
+ * @param max_thr_yaw_r Yaw rate turning left/right wheels at max speed in opposite directions [m/s].
+ * @param max_yaw_accel Maximum allowed yaw acceleration [rad/s^2].
+ * @param max_yaw_decel Maximum allowed yaw deceleration [rad/s^2].
+ * @param wheel_track Distance from the center of the right wheel to the center of the left wheel [m].
+ * @param dt Time since last update [s].
+ * @return Normalized speed difference setpoint [-1, 1].
+ */
+float rateControl(SlewRate<float> &adjusted_yaw_rate_setpoint, PID &pid_yaw_rate,
+		  float yaw_rate_setpoint, float vehicle_yaw_rate, float max_thr_yaw_r, float max_yaw_accel, float max_yaw_decel,
+		  float wheel_track, float dt);
+
+/**
  * Projects positionSetpointTriplet waypoints from global to ned frame.
  * @param curr_wp_ned Current waypoint in NED frame (Updated by this function)
  * @param prev_wp_ned Previous waypoint in NED frame (Updated by this function)

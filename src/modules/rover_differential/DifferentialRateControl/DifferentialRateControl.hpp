@@ -34,52 +34,46 @@
 #pragma once
 
 // PX4 includes
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/events.h>
 
 // Libraries
 #include <lib/rover_control/RoverControl.hpp>
+#include <lib/pid/PID.hpp>
 #include <lib/slew_rate/SlewRate.hpp>
+#include <math.h>
 
 // uORB includes
-#include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/rover_steering_setpoint.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/rover_rate_setpoint.h>
 #include <uORB/topics/rover_throttle_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/rover_steering_setpoint.h>
+#include <uORB/topics/rover_rate_status.h>
+#include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/offboard_control_mode.h>
+#include <uORB/topics/trajectory_setpoint.h>
 
-// Local includes
-#include "DifferentialRateControl/DifferentialRateControl.hpp"
-#include "DifferentialAttControl/DifferentialAttControl.hpp"
-#include "DifferentialPosVelControl/DifferentialPosVelControl.hpp"
-
-class RoverDifferential : public ModuleBase<RoverDifferential>, public ModuleParams,
-	public px4::ScheduledWorkItem
+/**
+ * @brief Class for differential rate control.
+ */
+class DifferentialRateControl : public ModuleParams
 {
 public:
 	/**
-	 * @brief Constructor for RoverDifferential
+	 * @brief Constructor for DifferentialRateControl.
+	 * @param parent The parent ModuleParams object.
 	 */
-	RoverDifferential();
-	~RoverDifferential() override = default;
+	DifferentialRateControl(ModuleParams *parent);
+	~DifferentialRateControl() = default;
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	bool init();
+	/**
+	 * @brief Update rate controller.
+	 */
+	void updateRateControl();
 
 protected:
 	/**
@@ -88,60 +82,63 @@ protected:
 	void updateParams() override;
 
 private:
-	void Run() override;
 
 	/**
-	 * @brief Generate and publish roverSteeringSetpoint from manualControlSetpoint (Manual Mode).
+	 * @brief Generate and publish roverRateSetpoint from manualControlSetpoint (Acro Mode)
+	 * 	  or trajectorySetpoint (Offboard rate control).
+	 */
+	void generateRateSetpoint();
+
+	/**
+	 * @brief Generate and publish roverSteeringSetpoint from RoverRateSetpoint.
 	 */
 	void generateSteeringSetpoint();
 
 	/**
-	 * @brief Generate and publish actuatorMotors setpoints from roverThrottleSetpoint/roverSteeringSetpoint.
+	 * @brief Check if the necessary parameters are set.
+	 * @return True if all checks pass.
 	 */
-	void generateActuatorSetpoint();
-
-	/**
-	 * @brief Compute normalized motor commands based on normalized setpoints.
-	 * @param throttle_body_x Normalized speed in body x direction [-1, 1].
-	 * @param speed_diff_normalized Speed difference between left and right wheels [-1, 1].
-	 * @return Motor speeds for the right and left motors [-1, 1].
-	 */
-	Vector2f computeInverseKinematics(float throttle_body_x, const float speed_diff_normalized);
+	bool runSanityChecks();
 
 	// uORB subscriptions
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription _rover_steering_setpoint_sub{ORB_ID(rover_steering_setpoint)};
-	uORB::Subscription _rover_throttle_setpoint_sub{ORB_ID(rover_throttle_setpoint)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
+	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
+	uORB::Subscription _rover_rate_setpoint_sub{ORB_ID(rover_rate_setpoint)};
+	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 	vehicle_control_mode_s _vehicle_control_mode{};
-	rover_steering_setpoint_s _rover_steering_setpoint{};
-	rover_throttle_setpoint_s _rover_throttle_setpoint{};
+	offboard_control_mode_s _offboard_control_mode{};
+	rover_rate_setpoint_s _rover_rate_setpoint{};
 
 	// uORB publications
-	uORB::PublicationMulti<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
+	uORB::Publication<rover_rate_setpoint_s> _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
 	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
 	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
-
-	// Class instances
-	DifferentialRateControl _differential_rate_control{this};
-	DifferentialAttControl _differential_att_control{this};
-	DifferentialPosVelControl _differential_pos_vel_control{this};
+	uORB::Publication<rover_rate_status_s> _rover_rate_status_pub{ORB_ID(rover_rate_status)};
 
 	// Variables
 	hrt_abstime _timestamp{0};
-	float _dt{0.f};
-	float _current_motor_setpoint{0.f};
+	float _max_yaw_rate{0.f};
+	float _max_yaw_accel{0.f};
+	float _max_yaw_decel{0.f};
+	float _vehicle_yaw_rate{0.f};
+	float _dt{0.f}; // Time since last update [s].
+	bool _prev_param_check_passed{true};
 
 	// Controllers
-	SlewRate<float> _motor_setpoint{0.f};
+	PID _pid_yaw_rate;
+	SlewRate<float> _adjusted_yaw_rate_setpoint{0.f};
 
-	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::CA_R_REV>)           _param_r_rev,
-		(ParamFloat<px4::params::RO_ACCEL_LIM>)     _param_ro_accel_limit,
-		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_limit,
-		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed
+		(ParamFloat<px4::params::RD_WHEEL_TRACK>)   _param_rd_wheel_track,
+		(ParamFloat<px4::params::RD_MAX_THR_YAW_R>) _param_rd_max_thr_yaw_r,
+		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
+		(ParamFloat<px4::params::RO_YAW_RATE_TH>)   _param_ro_yaw_rate_th,
+		(ParamFloat<px4::params::RO_YAW_RATE_P>)    _param_ro_yaw_rate_p,
+		(ParamFloat<px4::params::RO_YAW_RATE_I>)    _param_ro_yaw_rate_i,
+		(ParamFloat<px4::params::RO_YAW_ACCEL_LIM>) _param_ro_yaw_accel_limit,
+		(ParamFloat<px4::params::RO_YAW_DECEL_LIM>) _param_ro_yaw_decel_limit
 	)
 };

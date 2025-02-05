@@ -142,6 +142,19 @@ parameters:
           decimal: 2
           default: -1
 
+        RO_YAW_DECEL_LIM:
+          description:
+            short: Yaw deceleration limit
+            long: |
+              Set to -1 to disable.
+          type: float
+          unit: deg/s^2
+          min: -1
+          max: 10000
+          increment: 0.01
+          decimal: 2
+          default: -1
+
     - group: Rover Attitude Control
       definitions:
         RO_YAW_P:

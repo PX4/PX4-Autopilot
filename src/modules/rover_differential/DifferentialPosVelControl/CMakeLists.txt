@@ -31,22 +31,9 @@
 #
 ############################################################################
 
-add_subdirectory(DifferentialRateControl)
-add_subdirectory(DifferentialAttControl)
-add_subdirectory(DifferentialPosVelControl)
-
-px4_add_module(
-	MODULE modules__rover_differential
-	MAIN rover_differential
-	SRCS
-		RoverDifferential.cpp
-		RoverDifferential.hpp
-	DEPENDS
-		DifferentialRateControl
-		DifferentialAttControl
-		DifferentialPosVelControl
-		px4_work_queue
-		rover_control
-	MODULE_CONFIG
-		module.yaml
+px4_add_library(DifferentialPosVelControl
+	DifferentialPosVelControl.cpp
 )
+
+target_link_libraries(DifferentialPosVelControl PUBLIC PID)
+target_include_directories(DifferentialPosVelControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
