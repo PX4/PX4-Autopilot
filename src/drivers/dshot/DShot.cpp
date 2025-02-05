@@ -125,9 +125,6 @@ void DShot::enable_dshot_outputs(const bool enabled)
 			} else if (tim_config == -3) {
 				dshot_frequency_request = DSHOT600;
 
-			} else if (tim_config == -2) {
-				dshot_frequency_request = DSHOT1200;
-
 			} else {
 				_output_mask &= ~channels; // don't use for dshot
 			}
@@ -824,7 +821,7 @@ On startup, the module tries to occupy all available pins for DShot output.
 It skips all pins already in use (e.g. by a camera trigger module).
 
 It supports:
-- DShot150, DShot300, DShot600, DShot1200
+- DShot150, DShot300, DShot600
 - telemetry via separate UART and publishing as esc_status message
 - sending DShot commands via CLI
 

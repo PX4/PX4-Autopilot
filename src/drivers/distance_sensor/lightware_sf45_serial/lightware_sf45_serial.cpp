@@ -92,6 +92,11 @@ int SF45LaserSerial::init()
 	param_get(param_find("SF45_ORIENT_CFG"), &_orient_cfg);
 	param_get(param_find("SF45_YAW_CFG"), &_yaw_cfg);
 
+	// set the sensor orientation
+	const float yaw_cfg_angle = ObstacleMath::sensor_orientation_to_yaw_offset(static_cast<ObstacleMath::SensorOrientation>
+				    (_yaw_cfg));
+	_obstacle_distance.angle_offset = math::degrees(matrix::wrap_2pi(yaw_cfg_angle));
+
 	start();
 	return PX4_OK;
 }
@@ -594,7 +599,6 @@ void SF45LaserSerial::sf45_process_replies()
 	case SF_DISTANCE_DATA_CM: {
 			const float raw_distance = (rx_field.data[0] << 0) | (rx_field.data[1] << 8);
 			int16_t raw_yaw = ((rx_field.data[2] << 0) | (rx_field.data[3] << 8));
-			int16_t scaled_yaw = 0;
 
 			// The sensor scans from 0 to -160, so extract negative angle from int16 and represent as if a float
 			if (raw_yaw > 32000) {
@@ -607,33 +611,10 @@ void SF45LaserSerial::sf45_process_replies()
 			}
 
 			// SF45/B product guide {Data output bit: 8 Description: "Yaw angle [1/100 deg] size: int16}"
-			scaled_yaw = raw_yaw * SF45_SCALE_FACTOR;
+			float scaled_yaw = raw_yaw * SF45_SCALE_FACTOR;
 
-			switch (_yaw_cfg) {
-			case ROTATION_FORWARD_FACING:
-				break;
-
-			case ROTATION_BACKWARD_FACING:
-				if (scaled_yaw > 180) {
-					scaled_yaw = scaled_yaw - 180;
-
-				} else {
-					scaled_yaw = scaled_yaw + 180; // rotation facing aft
-				}
-
-				break;
-
-			case ROTATION_RIGHT_FACING:
-				scaled_yaw = scaled_yaw + 90; // rotation facing right
-				break;
-
-			case ROTATION_LEFT_FACING:
-				scaled_yaw = scaled_yaw - 90; // rotation facing left
-				break;
-
-			default:
-				break;
-			}
+			// Adjust for sensor orientation
+			scaled_yaw = sf45_wrap_360(scaled_yaw + _obstacle_distance.angle_offset);
 
 			// Convert to meters for the debug message
 			float distance_m = raw_distance * SF45_SCALE_FACTOR;
@@ -642,7 +623,7 @@ void SF45LaserSerial::sf45_process_replies()
 			uint8_t current_bin = sf45_convert_angle(scaled_yaw);
 
 			if (current_bin != _previous_bin) {
-				PX4_DEBUG("scaled_yaw: \t %d, \t current_bin: \t %d, \t distance: \t %8.4f\n", scaled_yaw, current_bin,
+				PX4_DEBUG("scaled_yaw: \t %f, \t current_bin: \t %d, \t distance: \t %8.4f\n", (double)scaled_yaw, current_bin,
 					  (double)distance_m);
 
 				if (_vehicle_attitude_sub.updated()) {
@@ -664,6 +645,7 @@ void SF45LaserSerial::sf45_process_replies()
 
 				hrt_abstime now = hrt_absolute_time();
 
+				_obstacle_distance.distances[current_bin] = _current_bin_dist;
 				_handle_missed_bins(current_bin, _previous_bin, _current_bin_dist, now);
 
 				_publish_obstacle_msg(now);
@@ -701,48 +683,31 @@ void SF45LaserSerial::_handle_missed_bins(uint8_t current_bin, uint8_t previous_
 {
 	// if the sensor has its cycle delay configured for a low value like 5, it can happen that not every bin gets a measurement.
 	// in this case we assume the measurement to be valid for all bins between the previous and the current bin.
-	uint8_t start;
-	uint8_t end;
 
-	if (abs(current_bin - previous_bin) > BIN_COUNT / 4) {
-		// wrap-around case is assumed to have happend when the distance between the bins is larger than 1/4 of all Bins
-		// THis is simplyfied as we are not considering the scaning direction
-		start = math::max(previous_bin, current_bin);
-		end = math::min(previous_bin, current_bin);
+	// Shift bin indices such that we can never have the wrap-around case.
+	const float    fov_offset_angle    = 360.0f - SF45_FIELDOF_VIEW / 2.f;
+	const uint16_t current_bin_offset  = ObstacleMath::get_offset_bin_index(current_bin,  _obstacle_distance.increment,
+					     fov_offset_angle);
+	const uint16_t previous_bin_offset = ObstacleMath::get_offset_bin_index(previous_bin, _obstacle_distance.increment,
+					     fov_offset_angle);
 
-	} else if (previous_bin < current_bin) {	// Scanning clockwise
-		start = previous_bin + 1;
-		end = current_bin;
+	const uint16_t start = math::min(current_bin_offset, previous_bin_offset) + 1;
+	const uint16_t end   = math::max(current_bin_offset, previous_bin_offset);
 
-	} else { 					// scanning counter-clockwise
-		start = current_bin;
-		end = previous_bin - 1;
-	}
-
-	if (start <= end) {
-		for (uint8_t i = start; i <= end; i++) {
-			_obstacle_distance.distances[i] = measurement;
-			_data_timestamps[i] = now;
-		}
-
-	} else { // wrap-around case
-		for (uint8_t i = start; i < BIN_COUNT; i++) {
-			_obstacle_distance.distances[i] = measurement;
-			_data_timestamps[i] = now;
-		}
-
-		for (uint8_t i = 0; i <= end; i++) {
-			_obstacle_distance.distances[i] = measurement;
-			_data_timestamps[i] = now;
-		}
+	// populate the missed bins with the measurement
+	for (uint16_t i = start; i < end; i++) {
+		uint16_t bin_index = ObstacleMath::get_offset_bin_index(i, _obstacle_distance.increment, -fov_offset_angle);
+		_obstacle_distance.distances[bin_index] = measurement;
+		_data_timestamps[bin_index] = now;
 	}
 }
+
 
 uint8_t SF45LaserSerial::sf45_convert_angle(const int16_t yaw)
 {
 	uint8_t mapped_sector = 0;
 	float adjusted_yaw = sf45_wrap_360(yaw - _obstacle_distance.angle_offset);
-	mapped_sector = round(adjusted_yaw / _obstacle_distance.increment);
+	mapped_sector = floor(adjusted_yaw / _obstacle_distance.increment);
 
 	return mapped_sector;
 }

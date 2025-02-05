@@ -206,19 +206,62 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 					  || (configured_arm_threshold_in_use && below_configured_arm_threshold) ? NavModes::All : NavModes::None;
 		events::LogLevel log_level = critical_or_higher || below_configured_arm_threshold
 					     ? events::Log::Critical : events::Log::Warning;
-		/* EVENT
-		 * @description
-		 * The battery state of charge of the worst battery is below the threshold.
-		 *
-		 * <profile name="dev">
-		 * This check can be configured via <param>BAT_LOW_THR</param>, <param>BAT_CRIT_THR</param>, <param>BAT_EMERGEN_THR</param> and <param>COM_ARM_BAT_MIN</param> parameters.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure(affected_modes, health_component_t::battery, events::ID("check_battery_low"), log_level,
-					    "Low battery");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_emergency(reporter.mavlink_log_pub(), "Low battery level\t");
+		switch (reporter.failsafeFlags().battery_warning) {
+		default:
+		case battery_status_s::BATTERY_WARNING_LOW:
+			/* EVENT
+			* @description
+			* The lowest battery state of charge is below the low threshold.
+			*
+			* <profile name="dev">
+			* Can be configured with <param>BAT_LOW_THR</param>.
+			* </profile>
+			*/
+			reporter.armingCheckFailure(affected_modes, health_component_t::battery, events::ID("check_battery_low"),
+						    log_level, "Low battery");
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_emergency(reporter.mavlink_log_pub(), "Low battery\t");
+			}
+
+			break;
+
+		case battery_status_s::BATTERY_WARNING_CRITICAL:
+			/* EVENT
+			* @description
+			* The lowest battery state of charge is below the critical threshold.
+			*
+			* <profile name="dev">
+			* Can be configured with <param>BAT_CRIT_THR</param> and from when to disalow arming with <param>COM_ARM_BAT_MIN</param>.
+			* </profile>
+			*/
+			reporter.armingCheckFailure(affected_modes, health_component_t::battery, events::ID("check_battery_critical"),
+						    log_level, "Critical battery");
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_emergency(reporter.mavlink_log_pub(), "Critical battery\t");
+			}
+
+			break;
+
+		case battery_status_s::BATTERY_WARNING_EMERGENCY:
+			/* EVENT
+			* @description
+			* The lowest battery state of charge is below the emergency threshold.
+			*
+			* <profile name="dev">
+			* Can be configured with <param>BAT_EMERGEN_THR</param>.
+			* </profile>
+			*/
+			reporter.armingCheckFailure(affected_modes, health_component_t::battery, events::ID("check_battery_emergency"),
+						    log_level, "Emergency battery level");
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_emergency(reporter.mavlink_log_pub(), "Emergency battery level\t");
+			}
+
+			break;
 		}
 
 	}

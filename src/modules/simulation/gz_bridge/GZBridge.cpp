@@ -95,12 +95,6 @@ int GZBridge::init()
 				model_pose_v.push_back(0.0);
 			}
 
-			// If model position z is less equal than 0, move above floor to prevent floor glitching
-			if (model_pose_v[2] <= 0.0) {
-				PX4_INFO("Model position z is less or equal 0.0, moving upwards");
-				model_pose_v[2] = 0.5;
-			}
-
 			gz::msgs::Pose *p = req.mutable_pose();
 			gz::msgs::Vector3d *position = p->mutable_position();
 			position->set_x(model_pose_v[0]);
@@ -141,7 +135,7 @@ int GZBridge::init()
 
 				// If Gazebo has not been called, wait 2 seconds and try again.
 				else {
-					PX4_WARN("Service call timed out as Gazebo has not been detected.");
+					PX4_WARN("Service call timed out as Gazebo has not been detected. Retrying...");
 					system_usleep(2000000);
 				}
 			}
@@ -159,7 +153,7 @@ int GZBridge::init()
 
 			while (scene_created == false) {
 				if (!callSceneInfoMsgService(scene_info_service)) {
-					PX4_WARN("Service call timed out as Gazebo has not been detected.");
+					PX4_WARN("Service call timed out as Gazebo has not been detected. Retrying...");
 					system_usleep(2000000);
 
 				} else {
@@ -919,7 +913,7 @@ bool GZBridge::callEntityFactoryService(const std::string &service, const gz::ms
 		}
 
 	} else {
-		PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
+		PX4_WARN("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
 		return false;
 	}
 
@@ -932,7 +926,7 @@ bool GZBridge::callSceneInfoMsgService(const std::string &service)
 	gz::msgs::Empty req;
 	gz::msgs::Scene rep;
 
-	if (_node.Request(service, req, 1000, rep, result)) {
+	if (_node.Request(service, req, 3000, rep, result)) {
 		if (!result) {
 			PX4_ERR("Scene Info service call failed.");
 			return false;
@@ -942,7 +936,7 @@ bool GZBridge::callSceneInfoMsgService(const std::string &service)
 		}
 
 	} else {
-		PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
+		PX4_WARN("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
 		return false;
 	}
 
@@ -955,7 +949,7 @@ bool GZBridge::callStringMsgService(const std::string &service, const gz::msgs::
 
 	gz::msgs::Boolean rep;
 
-	if (_node.Request(service, req, 1000, rep, result)) {
+	if (_node.Request(service, req, 3000, rep, result)) {
 		if (!rep.data() || !result) {
 			PX4_ERR("String service call failed");
 			return false;
@@ -964,7 +958,7 @@ bool GZBridge::callStringMsgService(const std::string &service, const gz::msgs::
 	}
 
 	else {
-		PX4_ERR("Service call timed out: %s", service.c_str());
+		PX4_WARN("Service call timed out: %s", service.c_str());
 		return false;
 	}
 
@@ -977,7 +971,7 @@ bool GZBridge::callVector3dService(const std::string &service, const gz::msgs::V
 
 	gz::msgs::Boolean rep;
 
-	if (_node.Request(service, req, 1000, rep, result)) {
+	if (_node.Request(service, req, 3000, rep, result)) {
 		if (!rep.data() || !result) {
 			PX4_ERR("String service call failed");
 			return false;
@@ -986,7 +980,7 @@ bool GZBridge::callVector3dService(const std::string &service, const gz::msgs::V
 	}
 
 	else {
-		PX4_ERR("Service call timed out: %s", service.c_str());
+		PX4_WARN("Service call timed out: %s", service.c_str());
 		return false;
 	}
 
