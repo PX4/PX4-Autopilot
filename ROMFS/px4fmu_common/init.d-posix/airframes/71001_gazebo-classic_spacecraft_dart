@@ -13,7 +13,7 @@ param set-default CA_AIRFRAME 15
 param set-default MAV_TYPE 99
 
 param set-default CA_THRUSTER_CNT 12
-param set-default CA_R_REV 255
+param set-default CA_R_REV 0
 
 # param set-default FW_ARSP_MODE 1
 

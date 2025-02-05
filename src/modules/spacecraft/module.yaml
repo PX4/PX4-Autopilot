@@ -49,6 +49,27 @@ parameters:
                 2: Automatic
             default: 1
 
+        CA_R_REV:
+            description:
+                short: Bidirectional/Reversible motors
+                long: |
+                  Configure motors to be bidirectional/reversible. Note that the output driver needs to support this as well.
+            type: bitmask
+            bit:
+                0: Motor 1
+                1: Motor 2
+                2: Motor 3
+                3: Motor 4
+                4: Motor 5
+                5: Motor 6
+                6: Motor 7
+                7: Motor 8
+                8: Motor 9
+                9: Motor 10
+                10: Motor 11
+                11: Motor 12
+            default: 0
+
         # (SC) Thrusters
         CA_THRUSTER_CNT:
             description:

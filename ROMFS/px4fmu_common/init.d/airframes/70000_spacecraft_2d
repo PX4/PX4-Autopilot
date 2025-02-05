@@ -14,7 +14,7 @@ param set-default CA_AIRFRAME 13
 param set-default MAV_TYPE 99
 
 param set-default CA_THRUSTER_CNT 8
-param set-default CA_R_REV 255
+param set-default CA_R_REV 0
 
 # Auto to be provided by Custom Airframe
 param set-default CA_METHOD 0
