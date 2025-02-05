@@ -154,8 +154,8 @@ parameters:
 # Mixer
 mixer:
     actuator_types:
-        thruster:
-            functions: 'Thruster'
+        motor:
+            functions: 'Motor'
             actuator_testing_values:
                 min: 0
                 max: 1
