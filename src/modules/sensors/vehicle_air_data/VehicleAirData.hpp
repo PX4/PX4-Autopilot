@@ -73,9 +73,15 @@ public:
 	void PrintStatus();
 
 private:
+	enum TemperatureSource {
+		DEFAULT_TEMP = 0,
+		EXTERNAL_BARO = 1,
+		AIRSPEED = 2,
+	};
+
 	void Run() override;
 
-	float AirTemperatureUpdate(const float temperature_baro, const bool baro_is_external, const hrt_abstime time_now_us);
+	float AirTemperatureUpdate(const float temperature_baro, TemperatureSource &source, const hrt_abstime time_now_us);
 	void CheckFailover(const hrt_abstime &time_now_us);
 	bool ParametersUpdate(bool force = false);
 	void UpdateStatus();
