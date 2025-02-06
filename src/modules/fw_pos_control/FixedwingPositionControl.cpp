@@ -2194,6 +2194,19 @@ FixedwingPositionControl::Run()
 
 	/* only run controller if position changed */
 
+	if (!_control_limits_published_once) {
+		longitudinal_control_limits_s longitudinal_control_limits{.timestamp = hrt_absolute_time()};
+		setDefaultLongControlLimits(longitudinal_control_limits);
+		_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
+
+		lateral_control_limits_s lateral_limits{.timestamp = hrt_absolute_time()};
+		lateral_limits.lateral_accel_max = rollAngleToLateralAccel(radians(_param_fw_r_lim.get()));
+		_lateral_ctrl_limits_pub.publish(lateral_limits);
+
+		_control_limits_published_once = true;
+
+	}
+
 	if (_local_pos_sub.update(&_local_pos)) {
 
 		const float control_interval = math::constrain((_local_pos.timestamp - _last_time_position_control_called) * 1e-6f,
