@@ -149,6 +149,8 @@ void LoggedTopics::add_default_topics()
 	add_topic("fw_lateral_control_status");
 	add_topic("fw_longitudinal_control_setpoint");
 	add_topic("fw_longitudinal_control_status");
+	add_topic("longitudinal_control_limits");
+	add_topic("lateral_control_limits");
 
 	// multi topics
 	add_optional_topic_multi("actuator_outputs", 100, 3);
