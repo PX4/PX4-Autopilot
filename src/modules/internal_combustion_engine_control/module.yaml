@@ -1,3 +1,5 @@
+module_name: Internal Combustion Engine Control
+
 parameters:
   - group: ICE
     definitions:
