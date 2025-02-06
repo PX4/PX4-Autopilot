@@ -71,7 +71,6 @@ DirectionalGuidance::guideToPath(const Vector2f &curr_pos_local, const Vector2f 
 	// must be called before trackErrorBound() as it updates time_const_
 	adapted_period_ = adaptPeriod(ground_speed, airspeed, wind_speed, track_error,
 				      path_curvature, wind_vel, unit_path_tangent, feas_on_track_);
-	//const float p_gain = pGain(adapted_period, damping_);
 	_time_const = timeConst(adapted_period_, damping_);
 
 	// track error bound is dynamic depending on ground speed
