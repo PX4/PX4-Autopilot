@@ -317,8 +317,6 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 	/* No underspeed protection in landing mode */
 	_tecs.set_detect_underspeed_enabled(!disable_underspeed_detection);
 
-	//updateTECSAltitudeTimeConstant(is_low_height, control_interval);
-
 	// HOTFIX: the airspeed rate estimate using acceleration in body-forward direction has shown to lead to high biases
 	// when flying tight turns. It's in this case much safer to just set the estimated airspeed rate to 0.
 	const float airspeed_rate_estimate = 0.f;
