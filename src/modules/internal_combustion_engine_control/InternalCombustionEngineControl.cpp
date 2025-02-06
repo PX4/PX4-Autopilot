@@ -297,7 +297,7 @@ void InternalCombustionEngineControl::controlEngineStop(internal_combustion_engi
 void InternalCombustionEngineControl::controlEngineFault(internal_combustion_engine_control_s &ice_control)
 {
 	ice_control.ignition_on = false;
-	ice_control.choke_control = 0.f;
+	ice_control.choke_control = _param_ice_stop_choke.get() ? 1.f : 0.f;
 	ice_control.starter_engine_control = 0.f;
 	ice_control.throttle_control = 0.f;
 }
