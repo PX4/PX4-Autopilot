@@ -934,8 +934,7 @@ GPS::run()
 						set_device_type(DRV_GPS_DEVTYPE_UBX_9);
 						break;
 
-					case GPSDriverUBX::Board::u_blox9_F9P_L1L2:
-					case GPSDriverUBX::Board::u_blox9_F9P_L1L5:
+					case GPSDriverUBX::Board::u_blox9_F9P:
 						set_device_type(DRV_GPS_DEVTYPE_UBX_F9P);
 						break;
 
