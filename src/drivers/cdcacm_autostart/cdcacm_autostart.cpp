@@ -44,6 +44,7 @@ extern int serdis_main(int c, char **argv);
 __END_DECLS
 
 #include <px4_platform_common/shutdown.h>
+#include <px4_platform_common/posix.h>
 
 #define USB_DEVICE_PATH "/dev/ttyACM0"
 
