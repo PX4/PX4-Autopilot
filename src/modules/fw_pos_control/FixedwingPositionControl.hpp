@@ -228,6 +228,8 @@ private:
 	vehicle_local_position_s _local_pos{};
 	vehicle_status_s _vehicle_status{};
 
+	bool _control_limits_published_once{false};
+
 	Vector2f _lpos_where_backtrans_started;
 
 	bool _position_setpoint_previous_valid{false};
