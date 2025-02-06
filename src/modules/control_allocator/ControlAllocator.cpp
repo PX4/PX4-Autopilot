@@ -270,6 +270,10 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessHelicopterCoaxial(this);
 			break;
 
+		case EffectivenessSource::THRUST_VECTORING:
+			tmp = new ActuatorEffectivenessThrustVectoring(this);
+			break;
+
 		default:
 			PX4_ERR("Unknown airframe");
 			break;
@@ -438,6 +442,7 @@ ControlAllocator::Run()
 			_actuator_effectiveness->allocateAuxilaryControls(dt, i, _control_allocation[i]->_actuator_sp); //flaps and spoilers
 			_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp,
 								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax());
+			_control_allocation[i]->_actuator_effectiveness_scale = _actuator_effectiveness->getActuatorEffectivenessScale();
 
 			if (_has_slew_rate) {
 				_control_allocation[i]->applySlewRateLimit(dt);

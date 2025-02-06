@@ -91,6 +91,7 @@ public:
 
 	void applyFlaps(float flaps_control, int first_actuator_idx, float dt, ActuatorVector &actuator_sp);
 	void applySpoilers(float spoilers_control, int first_actuator_idx, float dt, ActuatorVector &actuator_sp);
+	void applyEffectivenessScale(float scale, int first_actuator_idx, ActuatorVector &actuator_sp, ActuatorVector &applied_effectiveness_scale) const;
 
 private:
 	void updateParams() override;

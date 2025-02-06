@@ -143,7 +143,7 @@ public:
 	 * @return Control vector
 	 */
 	matrix::Vector<float, NUM_AXES> getAllocatedControl() const
-	{ return (_effectiveness * (_actuator_sp - _actuator_trim)).emult(_control_allocation_scale); }
+	{ return (_effectiveness * (_actuator_sp - _actuator_trim).emult(_actuator_effectiveness_scale)).emult(_control_allocation_scale); }
 
 	/**
 	 * Get the control effectiveness matrix
@@ -233,12 +233,15 @@ protected:
 
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness;  ///< Effectiveness matrix
 	matrix::Vector<float, NUM_AXES> _control_allocation_scale;  	///< Scaling applied during allocation
+	matrix::Vector<float, NUM_AXES> _actuator_sp_scale;  	///< Scaling durectly applied to the actuator setpoint
 	matrix::Vector<float, NUM_ACTUATORS> _actuator_trim; 	///< Neutral actuator values
 	matrix::Vector<float, NUM_ACTUATORS> _actuator_min; 	///< Minimum actuator values
 	matrix::Vector<float, NUM_ACTUATORS> _actuator_max; 	///< Maximum actuator values
 	matrix::Vector<float, NUM_ACTUATORS> _actuator_slew_rate_limit; 	///< Slew rate limit
 	matrix::Vector<float, NUM_ACTUATORS> _prev_actuator_sp;  	///< Previous actuator setpoint
 	matrix::Vector<float, NUM_ACTUATORS> _actuator_sp;  	///< Actuator setpoint
+	matrix::Vector<float, NUM_ACTUATORS> _actuator_effectiveness_scale; ///< Scaling applied after inilial
+	///allocation (e.g.: when effectiveness changes due to airspeed or thrust)
 	matrix::Vector<float, NUM_AXES> _control_sp;   		///< Control setpoint
 	matrix::Vector<float, NUM_AXES> _control_trim; 		///< Control at trim actuator values
 	int _num_actuators{0};
