@@ -595,36 +595,37 @@ void SF45LaserSerial::sf45_send(uint8_t msg_id, bool write, int32_t *data, uint8
 
 void SF45LaserSerial::sf45_process_replies()
 {
+	const int16_t YAW_THRESHOLD  = 32000;
+	const int16_t YAW_ADJUSTMENT = 65535;
+
 	switch (rx_field.msg_id) {
 	case SF_DISTANCE_DATA_CM: {
 			const float raw_distance = (rx_field.data[0] << 0) | (rx_field.data[1] << 8);
 			int16_t raw_yaw = ((rx_field.data[2] << 0) | (rx_field.data[3] << 8));
 
 			// The sensor scans from 0 to -160, so extract negative angle from int16 and represent as if a float
-			if (raw_yaw > 32000) {
-				raw_yaw = raw_yaw - 65535;
+			if (raw_yaw > YAW_THRESHOLD) {
+				raw_yaw -= YAW_ADJUSTMENT;
 			}
 
-			// The sensor is facing downward, so the sensor is flipped about it's x-axis -inverse of each yaw angle
+			// Adjust yaw for downward facing sensor
 			if (_orient_cfg == ROTATION_DOWNWARD_FACING) {
-				raw_yaw = raw_yaw * -1;
+				raw_yaw = -raw_yaw;
 			}
 
 			// SF45/B product guide {Data output bit: 8 Description: "Yaw angle [1/100 deg] size: int16}"
-			float scaled_yaw = raw_yaw * SF45_SCALE_FACTOR;
+			float scaled_yaw_sensor_frame = raw_yaw * SF45_SCALE_FACTOR;
+			float scaled_yaw_frd          = ObstacleMath::wrap_360(scaled_yaw_sensor_frame + _obstacle_distance.angle_offset);
+			float distance_m              = raw_distance * SF45_SCALE_FACTOR;
 
-			// Adjust for sensor orientation
-			scaled_yaw = sf45_wrap_360(scaled_yaw + _obstacle_distance.angle_offset);
-
-			// Convert to meters for the debug message
-			float distance_m = raw_distance * SF45_SCALE_FACTOR;
+			// Update the current bin distance
 			_current_bin_dist = ((uint16_t)raw_distance < _current_bin_dist) ? (uint16_t)raw_distance : _current_bin_dist;
 
 			// Find bin index for the current sensor yaw angle (in sensor frame)
 			const int current_bin = ObstacleMath::get_bin_at_angle(_obstacle_distance.increment, scaled_yaw_sensor_frame);
 
 			if (current_bin != _previous_bin) {
-				PX4_DEBUG("scaled_yaw: \t %f, \t current_bin: \t %d, \t distance: \t %8.4f\n", (double)scaled_yaw, current_bin,
+				PX4_DEBUG("scaled_yaw: \t %f, \t current_bin: \t %d, \t distance: \t %8.4f\n", (double)scaled_yaw_frd, current_bin,
 					  (double)distance_m);
 
 				if (_vehicle_attitude_sub.updated()) {
@@ -635,9 +636,10 @@ void SF45LaserSerial::sf45_process_replies()
 					}
 				}
 
+				// Scale distance with vehicle rotation
 				float current_bin_dist = static_cast<float>(_current_bin_dist);
-				float scaled_yaw_rad = math::radians(static_cast<float>(scaled_yaw));
-				ObstacleMath::project_distance_on_horizontal_plane(current_bin_dist, scaled_yaw_rad, _vehicle_attitude);
+				float scaled_yaw_frd_rad = math::radians(static_cast<float>(scaled_yaw_frd));
+				ObstacleMath::project_distance_on_horizontal_plane(current_bin_dist, scaled_yaw_frd_rad, _vehicle_attitude);
 				_current_bin_dist = static_cast<uint16_t>(current_bin_dist);
 
 				if (_current_bin_dist > _obstacle_distance.max_distance) {
