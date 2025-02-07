@@ -95,7 +95,7 @@ private:
 	} _state{State::Stopped};
 
 	enum class UserOnOffRequest {
-		Keep,
+		None,
 		Off,
 		On
 	};

@@ -558,7 +558,6 @@ else
 	if param compare -s ICE_EN 1
 	then
 		internal_combustion_engine_control start
-		echo "****INFO [init] Internal Combustion Engine Control started"
 	fi
 
 	#

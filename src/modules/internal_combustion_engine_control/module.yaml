@@ -7,20 +7,18 @@ parameters:
       ICE_EN:
         description:
           short: Enable internal combustion engine
-          long: TBD
         type: boolean
         default: true
 
       ICE_ON_SOURCE:
         description:
           short: Source of input to activate engine
-          long: TBD
         type: enum
         default: 0
         values:
           0: No activation
           1: On arming - disarming
-          2: Mavlink?
+          2: Mavlink - TODO
           3: Aux1
           4: Aux2
           5: Aux3
@@ -29,7 +27,6 @@ parameters:
       ICE_CHOKE_ST_DUR:
         description:
           short: Duration for choking before startup
-          long: TBD
         type: float
         unit: s
         min: 0
@@ -41,7 +38,8 @@ parameters:
       ICE_STARTING_DUR:
         description:
           short: Duration for starting up (excl. choking)
-          long: TBD
+          long: |
+              Maximum expected time for startup before declaring timeout.
         type: float
         unit: s
         min: 0
@@ -53,7 +51,6 @@ parameters:
       ICE_MIN_RUN_RPM:
         description:
           short: Minimum RPM for engine to be declared running
-          long: TBD
         type: float
         unit: rpm
         min: 0
@@ -65,7 +62,8 @@ parameters:
       ICE_STRT_RETRY:
         description:
           short: Number of retries for starting engine
-          long: TBD
+          long: |
+              Number of accepted retries for restarting the engine before declaring a fault.
         type: int32
         min: 0
         max: 10
@@ -74,9 +72,10 @@ parameters:
       ICE_RETRY_FAULT:
         description:
           short: Try to re-start engine if it stops
-          long: TBD
+          long: |
+              Enables restart if a fault is detected during the running state.
         type: boolean
-        default: false
+        default: true
 
       ICE_STRT_THR:
         description:
@@ -94,9 +93,8 @@ parameters:
       ICE_STOP_CHOKE:
         description:
           short: Apply choke when stopping engine
-          long: TBD
         type: boolean
-        default: false
+        default: true
 
       ICE_THR_SLEW:
         description:
@@ -114,11 +112,12 @@ parameters:
       ICE_IGN_DELAY:
         description:
           short: Cold-start delay after ignition before engaging starter
-          long: TBD
+          long: |
+              In case that the ignition takes a moment to be up and running, this parameter can be set to account for that.
         type: float
         unit: s
         min: 0
         max: 10
         decimal: 1
         increment: 0.1
-        default: 1
+        default: 0
