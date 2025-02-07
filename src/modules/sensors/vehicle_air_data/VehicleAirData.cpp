@@ -200,7 +200,7 @@ void VehicleAirData::Run()
 					}
 
 					if (estimator_status_flags_updated && _selected_sensor_sub_index >= 0 && _selected_sensor_sub_index == uorb_index
-					    && estimator_status_flags.cs_baro_fault) {
+					    && estimator_status_flags.cs_baro_fault && !_last_status_baro_fault) {
 						_priority[uorb_index] = 1; // 1 is min priority while still being enabled
 					}
 
@@ -223,6 +223,10 @@ void VehicleAirData::Run()
 				}
 			}
 		}
+	}
+
+	if (estimator_status_flags_updated) {
+		_last_status_baro_fault = estimator_status_flags.cs_baro_fault;
 	}
 
 	// check for the current best sensor
