@@ -270,6 +270,14 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessHelicopterCoaxial(this);
 			break;
 
+		case EffectivenessSource::SPACECRAFT_2D:
+			// spacecraft_allocation does allocation and publishes directly to actuator_motors topic
+			break;
+
+		case EffectivenessSource::SPACECRAFT_3D:
+			// spacecraft_allocation does allocation and publishes directly to actuator_motors topic
+			break;
+
 		default:
 			PX4_ERR("Unknown airframe");
 			break;
