@@ -620,7 +620,8 @@ void SF45LaserSerial::sf45_process_replies()
 			float distance_m = raw_distance * SF45_SCALE_FACTOR;
 			_current_bin_dist = ((uint16_t)raw_distance < _current_bin_dist) ? (uint16_t)raw_distance : _current_bin_dist;
 
-			uint8_t current_bin = sf45_convert_angle(scaled_yaw);
+			// Find bin index for the current sensor yaw angle (in sensor frame)
+			const int current_bin = ObstacleMath::get_bin_at_angle(_obstacle_distance.increment, scaled_yaw_sensor_frame);
 
 			if (current_bin != _previous_bin) {
 				PX4_DEBUG("scaled_yaw: \t %f, \t current_bin: \t %d, \t distance: \t %8.4f\n", (double)scaled_yaw, current_bin,
@@ -700,21 +701,6 @@ void SF45LaserSerial::_handle_missed_bins(uint8_t current_bin, uint8_t previous_
 		_obstacle_distance.distances[bin_index] = measurement;
 		_data_timestamps[bin_index] = now;
 	}
-}
-
-
-uint8_t SF45LaserSerial::sf45_convert_angle(const int16_t yaw)
-{
-	uint8_t mapped_sector = 0;
-	float adjusted_yaw = sf45_wrap_360(yaw - _obstacle_distance.angle_offset);
-	mapped_sector = floor(adjusted_yaw / _obstacle_distance.increment);
-
-	return mapped_sector;
-}
-
-float SF45LaserSerial::sf45_wrap_360(float f)
-{
-	return matrix::wrap(f, 0.f, 360.f);
 }
 
 uint16_t SF45LaserSerial::sf45_format_crc(uint16_t crc, uint8_t data_val)
