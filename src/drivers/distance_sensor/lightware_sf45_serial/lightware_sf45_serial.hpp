@@ -74,10 +74,6 @@ enum SF45_PARSED_STATE {
 };
 
 enum SensorOrientation {	  // Direction the sensor faces from MAV_SENSOR_ORIENTATION enum
-	ROTATION_FORWARD_FACING = 0,  // MAV_SENSOR_ROTATION_NONE
-	ROTATION_RIGHT_FACING = 2,    // MAV_SENSOR_ROTATION_YAW_90
-	ROTATION_BACKWARD_FACING = 4, // MAV_SENSOR_ROTATION_YAW_180
-	ROTATION_LEFT_FACING = 6,     // MAV_SENSOR_ROTATION_YAW_270
 	ROTATION_UPWARD_FACING = 24,  // MAV_SENSOR_ROTATION_PITCH_90
 	ROTATION_DOWNWARD_FACING = 25 // MAV_SENSOR_ROTATION_PITCH_270
 };
@@ -95,8 +91,6 @@ public:
 	void				sf45_send(uint8_t msg_id, bool r_w, int32_t *data, uint8_t data_len);
 	uint16_t			sf45_format_crc(uint16_t crc, uint8_t data_value);
 	void				sf45_process_replies();
-	uint8_t				sf45_convert_angle(const int16_t yaw);
-	float				sf45_wrap_360(float f);
 
 private:
 	obstacle_distance_s 			_obstacle_distance{};
