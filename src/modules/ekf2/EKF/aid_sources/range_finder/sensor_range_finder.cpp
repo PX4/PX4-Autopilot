@@ -149,7 +149,7 @@ void SensorRangeFinder::updateStuckCheck()
 
 void SensorRangeFinder::updateFogCheck(const float dist_bottom, const uint64_t time_us)
 {
-	if (_max_fog_dist > 0.f && time_us - _time_last_valid_us < 1e6) {
+	if (_max_fog_dist > 0.f) {
 
 		const float median_dist = _median_dist.apply(dist_bottom);
 		const float factor = 2.f; // magic hardcoded factor
