@@ -51,11 +51,11 @@ extern "C" {
 /*!***************************************************************************
  * Set to use hardware division (Cortex-M3/4) over software division (Cortex-M0/1).
  *****************************************************************************/
-#ifndef USE_64BIT_MUL
-#define USE_64BIT_MUL 0
+#ifndef FP_USE_64BIT_MUL
+#define FP_USE_64BIT_MUL 0
 #endif
 
-#if !USE_64BIT_MUL
+#if !FP_USE_64BIT_MUL
 /*!***************************************************************************
  * @brief   Long multiplication of two unsigned 32-bit into an 64-bit value on
  *          32-bit architecture.
@@ -116,7 +116,7 @@ inline void muldwu(uint32_t w[], uint32_t u, uint32_t v)
 inline uint32_t fp_mulu(uint32_t u, uint32_t v, uint_fast8_t shift)
 {
 	assert(shift <= 32);
-#if USE_64BIT_MUL
+#if FP_USE_64BIT_MUL
 	const uint64_t w = (uint64_t)u * (uint64_t)v;
 	return (uint32_t)((w >> shift) + ((w >> (shift - 1)) & 1U));
 #else

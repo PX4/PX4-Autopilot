@@ -51,8 +51,8 @@ extern "C" {
 /*!***************************************************************************
  * Set to use hardware division (Cortex-M3/4) over software division (Cortex-M0/1).
  *****************************************************************************/
-#ifndef USE_HW_DIV
-#define USE_HW_DIV 0
+#ifndef FP_USE_HW_DIV
+#define FP_USE_HW_DIV 0
 #endif
 
 /*!***************************************************************************
@@ -79,7 +79,7 @@ inline int32_t fp_div16(int32_t a, q15_16_t b)
 	//assert(b);
 	if (b == 0) { return a < 0 ? INT32_MIN : INT32_MAX; }
 
-#if USE_HW_DIV
+#if FP_USE_HW_DIV
 	// Tested on Cortex-M4, it takes approx. 75% of the
 	// software algorithm below.
 	int64_t c = ((int64_t) a) << 30U;

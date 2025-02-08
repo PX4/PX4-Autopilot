@@ -74,11 +74,12 @@ typedef struct argus_results_bin_t {
 	q9_22_t Range;
 
 	/*! The 1D amplitude in LSB (Q12.4 format). The (maximum) amplitude obtained
-	 *  by the Pixel Binning Algorithm from the current measurement frame.\n
+	 *  by the Pixel Binning Algorithm from the current measurement frame.
+	 *
 	 *  Special value: 0 == No/Invalid Result. */
 	uq12_4_t Amplitude;
 
-	/*! The current signal quality metric of the 1D range value in percentage:\n
+	/*! The current signal quality metric of the 1D range value in percentage:
 	 *  - 0: n/a,
 	 *  - 1: bad signal,
 	 *  - 100: good signal. */
@@ -141,16 +142,31 @@ typedef struct argus_results_debug_t {
 	/*! The amplitude that is evaluated and used in the DCA module. */
 	uq12_4_t DCAAmplitude;
 
-	/*! Raw x-y-sorted ADC results from the device.\n
+	/*! Raw x-y-sorted ADC results from the device.
+	 *
+	 *  The raw data contains the saturation flag which are the two MSBs which
+	 *  might need to be removed via the `0x3FFFFFU` mask:
+	 *
+	 *  `sample = Data[i] & 0x3FFFFFU;`.
+	 *
+	 *  Additionally, the values may need to be normalized to a single digital
+	 *  integration pattern by dividing with the digital integration depth
+	 *  (see #argus_meas_frame_t.DigitalIntegrationDepth):
+	 *
+	 *  `sample_normalized = Data[i] / res->Frame.DigitalIntegrationDepth;`
+	 *
 	 *  Data is arranged as 32-bit values in following order:
-	 *  index > phase; where index is pixel number n and auxiliary ADC channel.\n
-	 *  Note that disabled pixels are skipped.\n
+	 *  index > phase; where index is pixel number n and auxiliary ADC channel.
+	 *
+	 *  Note that disabled pixels are skipped.
+	 *
 	 *  e.g. [n=0,p=0][n=0,p=1]..[n=0,p=3][n=1,p=0]...[n=1,p=3]...[n=31,p=3] */
 	uint32_t Data[ARGUS_RAW_DATA_VALUES];
 
 	/*! The current crosstalk correction values as determined by the
 	 *  crosstalk predictor algorithm. This is basically the temperature
-	 *  dependent portion of the crosstalk correction.\n
+	 *  dependent portion of the crosstalk correction.
+	 *
 	 *  Note that there are two values for the upper and lower two rows
 	 *  respectively. */
 	xtalk_t XtalkPredictor[ARGUS_PIXELS_Y / 2U];
@@ -158,7 +174,8 @@ typedef struct argus_results_debug_t {
 	/*! The current crosstalk correction values as determined by the
 	 *  crosstalk monitor algorithm. This is a dynamic portion of the
 	 *  crosstalk correction that is determined by monitoring passive
-	 *  pixels.\n
+	 *  pixels.
+	 *
 	 *  Note that the values are valid row-wise. */
 	xtalk_t XtalkMonitor[ARGUS_PIXELS_Y];
 
@@ -207,7 +224,8 @@ typedef struct argus_results_t {
 	argus_meas_frame_t Frame;
 
 	union {
-		/*! Pixel data indexed by channel number n.\n
+		/*! Pixel data indexed by channel number n.
+		 *
 		 *  Contains calibrated range, amplitude and pixel status among others.
 		 *
 		 *  Index n:
@@ -218,15 +236,18 @@ typedef struct argus_results_t {
 		argus_pixel_t Pixels[ARGUS_PIXELS + 1U];
 
 		struct {
-			/*! Pixel data indexed by x-y-indices.\n
+			/*! Pixel data indexed by x-y-indices.
+			 *
 			 *  The pixels are ordered in a two dimensional array that represent
-			 *  the x and y indices of the pixel.\n
-			*   See also \link argus_map ADC Channel Mapping\endlink
+			 *  the x and y indices of the pixel.
+			 *
+			 *  See also \link argus_map ADC Channel Mapping\endlink
 			 *
 			 *  Contains calibrated range, amplitude and pixel status among others. */
 			argus_pixel_t Pixel[ARGUS_PIXELS_X][ARGUS_PIXELS_Y];
 
-			/*! Pixel data of the reference pixel.\n
+			/*! Pixel data of the reference pixel.
+			 *
 			 *  The reference pixel is an additional pixel that is located at the TX
 			 *  side in order to monitor the health state of the laser output source.
 			 *  It is mainly used to verify normal operation of the laser source and

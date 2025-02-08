@@ -89,7 +89,9 @@ typedef enum argus_px_status_t {
 	/*! 0x08: Pixel has invalid data due to miscellaneous reasons, e.g.
 	 *        - Amplitude calculates to 0 (i.e. division by 0)
 	 *        - Golden Pixel is invalid due to other saturated pixel.
-	 *        - Range/distance is negative. */
+	 *        - Range/distance is negative.
+	 *        - Saturation has been detected via uncorrelated noise figure.
+	 *        - Optical disturber has been detected. */
 	PIXEL_INVALID = 1U << 3U,
 
 	/*! 0x10: Pixel is pre-filtered by the static pixel binning pre-filter mask,
@@ -146,6 +148,12 @@ typedef struct argus_pixel_t {
 
 	/*! The raw amplitudes of measured signals in LSB. */
 	uq12_4_t AmplitudeRaw;
+
+	/*! The individual pixel uncorrelated noise (EMA averaged over time). */
+	uq12_4_t UncorrelatedNoise;
+
+	/*! The pixel signal-to-noise ratio. */
+	uq12_4_t SNR;
 
 } argus_pixel_t;
 

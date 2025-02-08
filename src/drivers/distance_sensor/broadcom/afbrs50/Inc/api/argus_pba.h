@@ -131,7 +131,6 @@ extern "C" {
  *                  - #argus_cfg_pba_t::GoldenPixelPriorityAmplitudeInclusion
  *                  - #argus_cfg_pba_t::GoldenPixelPriorityAmplitudeExclusion
  *                  .
- *              .
  *
  *              After filtering is done, there may be more than a single pixel
  *              left to determine the 1D signal. Therefore several averaging

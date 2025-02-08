@@ -201,9 +201,22 @@ enum Status {
 	/*! -105: AFBR-S50 Error: Invalid measurement mode configuration parameter. */
 	ERROR_ARGUS_INVALID_MODE = -105,
 
-	/*! -107: AFBR-S50 Error: The APD bias voltage is reinitializing due to a dropout.
-	 *  The current measurement data set is invalid! */
+	/*! -107: AFBR-S50 Error: The APD bias voltage is re-initializing due to a
+	 *  dropout. This is usually a temporary state and due to harsh ambient
+	 *  light conditions. The devices tries to continuously recover form that
+	 *  state and resumes with measurements once the ambient light is gone. The
+	 *  current measurement data set is invalid! */
 	ERROR_ARGUS_BIAS_VOLTAGE_REINIT = -107,
+
+	/*! -108: AFBR-S50 Error: The laser safety monitoring is currently not
+	 *  active due to a APD bias voltage dropout. This is an escalation of
+	 *  #ERROR_ARGUS_BIAS_VOLTAGE_REINIT that happens when in addition to the
+	 *  bias dropout conditions for a laser failure are met. Note that this is
+	 *  usually a temporary state and due to harsh ambient light conditions and
+	 *  not an actual laser error. The laser is disabled, but the device tries
+	 *  to continuously recover from the bias voltage dropout.
+	 *  \sa #ERROR_ARGUS_LASER_FAILURE for a pure laser failure. */
+	ERROR_ARGUS_LASER_MONITOR_INACTIVE = -108,
 
 	/*! -109: AFBR-S50 Error: The EEPROM readout has failed. The failure is detected
 	 *  by three distinct read attempts, each resulting in invalid data.
@@ -211,9 +224,9 @@ enum Status {
 	 *  such that it is usually temporarily and due to harsh ambient conditions. */
 	ERROR_ARGUS_EEPROM_FAILURE = -109,
 
-	/*! -110: AFBR-S50 Error: The measurement signals of all active pixels are invalid
-	 *  and thus the 1D range is also invalid and stalled.
-	 *  This means the range value is not updated and kept at the previous valid value. */
+	/*! -110: AFBR-S50 Error: The measurement signals of all active pixels are
+	 *  invalid and thus the 1D range is also invalid and stalled. This means
+	 *  the range value is not updated and kept at the previous valid value. */
 	ERROR_ARGUS_STALLED = -110,
 
 	/*! -111: AFBR-S50 Error: The background light is too bright. */
@@ -222,7 +235,11 @@ enum Status {
 	/*! -112: AFBR-S50 Error: The crosstalk vector amplitude is too high. */
 	ERROR_ARGUS_XTALK_AMPLITUDE_EXCEEDANCE = -112,
 
-	/*! -113: AFBR-S50 Error: Laser malfunction! Laser Safety may not be given! */
+	/*! -113: AFBR-S50 Error: Laser malfunction! Laser Safety may not be given!
+	 *  The laser is disabled and the device tries to recover by heeding the
+	 *  worst case laser output possible. This leads to a longer delay (several
+	 *  seconds) between the recovery attemps in order to not exceed the laser
+	 *  safety limits. */
 	ERROR_ARGUS_LASER_FAILURE = -113,
 
 	/*! -114: AFBR-S50 Error: Register data integrity is lost (e.g. due to unexpected
