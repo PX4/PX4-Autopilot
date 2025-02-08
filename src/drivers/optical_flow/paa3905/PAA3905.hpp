@@ -115,6 +115,7 @@ private:
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_publish{0};
 	hrt_abstime _last_motion{0};
+	hrt_abstime _last_challenging_surface_warning{0};
 
 	int16_t _delta_x_raw_prev{0};
 	int16_t _delta_y_raw_prev{0};
