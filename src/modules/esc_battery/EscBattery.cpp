@@ -91,15 +91,21 @@ EscBattery::Run()
 		const uint8_t online_esc_count = math::countSetBits(esc_status.esc_online_flags);
 		float average_voltage_v = 0.0f;
 		float total_current_a = 0.0f;
+		float average_temperature_c = 0.0f;
 
 		for (unsigned i = 0; i < esc_status.esc_count; ++i) {
 			if ((1 << i) & esc_status.esc_online_flags) {
 				average_voltage_v += esc_status.esc[i].esc_voltage;
 				total_current_a += esc_status.esc[i].esc_current;
+
+				if (PX4_ISFINITE(esc_status.esc[i].esc_temperature)) {
+					average_temperature_c += esc_status.esc[i].esc_temperature;
+				}
 			}
 		}
 
 		average_voltage_v /= online_esc_count;
+		total_current_a /= online_esc_count;
 
 		_battery.setConnected(true);
 		_battery.updateVoltage(average_voltage_v);
