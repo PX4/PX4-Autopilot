@@ -63,63 +63,47 @@
 
 #include "commander_helper.h"
 
-#define VEHICLE_TYPE_FIXED_WING 1
-#define VEHICLE_TYPE_QUADROTOR 2
-#define VEHICLE_TYPE_COAXIAL 3
-#define VEHICLE_TYPE_HELICOPTER 4
-#define VEHICLE_TYPE_GROUND_ROVER 10
-#define VEHICLE_TYPE_BOAT 11
-#define VEHICLE_TYPE_SUBMARINE 12
-#define VEHICLE_TYPE_HEXAROTOR 13
-#define VEHICLE_TYPE_OCTOROTOR 14
-#define VEHICLE_TYPE_TRICOPTER 15
-#define VEHICLE_TYPE_VTOL_TAILSITTER_DUOROTOR 19
-#define VEHICLE_TYPE_VTOL_TAILSITTER_QUADROTOR 20
-#define VEHICLE_TYPE_VTOL_TILTROTOR 21
-#define VEHICLE_TYPE_VTOL_FIXEDROTOR 22 // VTOL standard
-#define VEHICLE_TYPE_VTOL_TAILSITTER 23
-
 #define BLINK_MSG_TIME	700000	// 3 fast blinks (in us)
 
 bool is_multirotor(const vehicle_status_s &current_status)
 {
-	return ((current_status.system_type == VEHICLE_TYPE_QUADROTOR) ||
-		(current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
-		(current_status.system_type == VEHICLE_TYPE_OCTOROTOR) ||
-		(current_status.system_type == VEHICLE_TYPE_TRICOPTER));
+	return ((current_status.system_type == MAV_TYPE_QUADROTOR) ||
+		(current_status.system_type == MAV_TYPE_HEXAROTOR) ||
+		(current_status.system_type == MAV_TYPE_OCTOROTOR) ||
+		(current_status.system_type == MAV_TYPE_TRICOPTER));
 }
 
 bool is_rotary_wing(const vehicle_status_s &current_status)
 {
 	return is_multirotor(current_status)
-	       || (current_status.system_type == VEHICLE_TYPE_HELICOPTER)
-	       || (current_status.system_type == VEHICLE_TYPE_COAXIAL);
+	       || (current_status.system_type == MAV_TYPE_HELICOPTER
+	       || (current_status.system_type == MAV_TYPE_COAXIAL));
 }
 
 bool is_vtol(const vehicle_status_s &current_status)
 {
-	return (current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER_DUOROTOR ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER_QUADROTOR ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_TILTROTOR ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_FIXEDROTOR ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER);
+	return (current_status.system_type == MAV_TYPE_VTOL_TAILSITTER_DUOROTOR ||
+		current_status.system_type == MAV_TYPE_VTOL_TAILSITTER_QUADROTOR ||
+		current_status.system_type == MAV_TYPE_VTOL_TILTROTOR ||
+		current_status.system_type == MAV_TYPE_VTOL_FIXEDROTOR ||
+		current_status.system_type == MAV_TYPE_VTOL_TAILSITTER);
 }
 
 bool is_vtol_tailsitter(const vehicle_status_s &current_status)
 {
-	return (current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER_DUOROTOR ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER_QUADROTOR ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER);
+	return (current_status.system_type == MAV_TYPE_VTOL_TAILSITTER_DUOROTOR ||
+		current_status.system_type == MAV_TYPE_VTOL_TAILSITTER_QUADROTOR ||
+		current_status.system_type == MAV_TYPE_VTOL_TAILSITTER);
 }
 
 bool is_fixed_wing(const vehicle_status_s &current_status)
 {
-	return current_status.system_type == VEHICLE_TYPE_FIXED_WING;
+	return current_status.system_type == MAV_TYPE_FIXED_WING;
 }
 
 bool is_ground_vehicle(const vehicle_status_s &current_status)
 {
-	return (current_status.system_type == VEHICLE_TYPE_BOAT || current_status.system_type == VEHICLE_TYPE_GROUND_ROVER);
+	return (current_status.system_type == MAV_TYPE_SURFACE_BOAT || current_status.system_type == MAV_TYPE_GROUND_ROVER);
 }
 
 // End time for currently blinking LED message, 0 if no blink message
