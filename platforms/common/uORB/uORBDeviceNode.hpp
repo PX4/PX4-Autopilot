@@ -196,7 +196,7 @@ public:
 	 * We can get the correct value regardless of wrap-around or not.
 	 * @param generation The generation of subscriber
 	 */
-	unsigned updates_available(unsigned generation) const { return _data_valid ? _generation.load() - generation : 0; }
+	unsigned updates_available(unsigned generation) const { return _data_valid ? _generation - generation : 0; }
 
 	const orb_metadata *get_meta() const { return get_orb_meta(_orb_id); }
 
@@ -265,7 +265,7 @@ private:
 	const ORB_ID _orb_id;
 
 	bool _data_valid{false}; /**< At least one valid data */
-	px4::atomic<unsigned>  _generation{0};  /**< object generation count */
+	unsigned _generation{0};  /**< object generation count */
 
 	struct EventWaitItem {
 		hrt_abstime last_update;

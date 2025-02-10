@@ -397,10 +397,10 @@ bool uORB::DeviceNode::copy(void *dst, orb_advert_t &handle, unsigned &generatio
 
 	if (o_queue == 1) {
 		memcpy(dst, node_data(handle), o_size);
-		generation = _generation.load();
+		generation = _generation;
 
 	} else {
-		const unsigned current_generation = _generation.load();
+		const unsigned current_generation = _generation;
 
 		if (current_generation == generation) {
 			/* The subscriber already read the latest message, but nothing new was published yet.
@@ -436,7 +436,7 @@ uORB::DeviceNode::write(const char *buffer, const orb_metadata *meta, orb_advert
 	lock();
 
 	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
-	unsigned generation = _generation.fetch_add(1);
+	unsigned generation = _generation++;
 
 	memcpy(node_data(handle) + o_size * (generation % o_queue), buffer, o_size);
 
@@ -589,7 +589,7 @@ orb_advert_t uORB::DeviceNode::add_subscriber(ORB_ID orb_id, uint8_t instance,
 
 void uORB::DeviceNode::_add_subscriber(unsigned *initial_generation)
 {
-	*initial_generation = _generation.load() - (_data_valid ? 1 : 0);
+	*initial_generation = _generation - (_data_valid ? 1 : 0);
 	_subscriber_count++;
 
 #ifdef CONFIG_ORB_COMMUNICATOR
@@ -642,7 +642,7 @@ int16_t uORB::DeviceNode::process_add_subscription(orb_advert_t &handle)
 		// Only send the most recent data to initialize the remote end.
 		if (_data_valid) {
 			ch->send_message(meta->o_name, meta->o_size,
-					 node_data(handle) + (meta->o_size * ((_generation.load() - 1) % meta->o_queue)));
+					 node_data(handle) + (meta->o_size * ((_generation - 1) % meta->o_queue)));
 		}
 	}
 

@@ -75,7 +75,7 @@ public:
 	static void set_generation(uORB::DeviceNode &node, unsigned generation)
 	{
 		node._data_valid = true;
-		node._generation.store(generation);
+		node._generation = generation;
 	}
 
 private:
