@@ -61,6 +61,9 @@ uORB::DeviceNode::MappingCache::MappingCacheListItem *uORB::DeviceNode::MappingC
 // This lock protects the subscription cache list from concurrent accesses by the threads in the same process
 px4_sem_t uORB::DeviceNode::MappingCache::g_cache_lock;
 
+const unsigned uORB::DeviceNode::data_alignment_padding = sizeof(uORB::DeviceNode) % PX4_ARCH_DCACHE_ALIGNMENT != 0 ?
+		PX4_ARCH_DCACHE_ALIGNMENT - (sizeof(uORB::DeviceNode) % PX4_ARCH_DCACHE_ALIGNMENT) : 0;
+
 orb_advert_t uORB::DeviceNode::MappingCache::get(ORB_ID orb_id, uint8_t instance)
 {
 	lock();
@@ -393,7 +396,7 @@ bool uORB::DeviceNode::copy(void *dst, orb_advert_t &handle, unsigned &generatio
 	lock();
 
 	if (o_queue == 1) {
-		memcpy(dst, _data, o_size);
+		memcpy(dst, node_data(handle), o_size);
 		generation = _generation.load();
 
 	} else {
@@ -412,7 +415,7 @@ bool uORB::DeviceNode::copy(void *dst, orb_advert_t &handle, unsigned &generatio
 			generation = current_generation - o_queue;
 		}
 
-		memcpy(dst, _data + (o_size * (generation % o_queue)), o_size);
+		memcpy(dst, node_data(handle) + (o_size * (generation % o_queue)), o_size);
 
 		++generation;
 	}
@@ -435,7 +438,7 @@ uORB::DeviceNode::write(const char *buffer, const orb_metadata *meta, orb_advert
 	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
 	unsigned generation = _generation.fetch_add(1);
 
-	memcpy(_data + o_size * (generation % o_queue), buffer, o_size);
+	memcpy(node_data(handle) + o_size * (generation % o_queue), buffer, o_size);
 
 	/* Mark at least one data has been published */
 	_data_valid = true;
@@ -639,7 +642,7 @@ int16_t uORB::DeviceNode::process_add_subscription(orb_advert_t &handle)
 		// Only send the most recent data to initialize the remote end.
 		if (_data_valid) {
 			ch->send_message(meta->o_name, meta->o_size,
-					 _data + (meta->o_size * ((_generation.load() - 1) % meta->o_queue)));
+					 node_data(handle) + (meta->o_size * ((_generation.load() - 1) % meta->o_queue)));
 		}
 	}
 
