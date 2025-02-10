@@ -78,9 +78,7 @@ void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 
 		_time_bad_quality_us = _sample.quality == 0 ? current_time_us : _time_bad_quality_us;
 
-		const bool quality_ok = isQualityOk(current_time_us);
-
-		if (!quality_ok || !isTiltOk() || !isDataInRange()) {
+		if (!isQualityOk(current_time_us) || !isTiltOk() || !isDataInRange()) {
 			return;
 		}
 
@@ -99,8 +97,7 @@ void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 
 bool SensorRangeFinder::isQualityOk(uint64_t current_time_us) const
 {
-	const bool bad_quality = current_time_us - _time_bad_quality_us > _quality_hyst_us;
-	return bad_quality;
+	return current_time_us - _time_bad_quality_us > _quality_hyst_us;
 }
 
 void SensorRangeFinder::updateDtDataLpf(uint64_t current_time_us)
