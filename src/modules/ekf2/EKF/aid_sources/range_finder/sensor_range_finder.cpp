@@ -83,10 +83,7 @@ void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 		}
 
 		updateStuckCheck();
-
-		if (!_is_stuck) {
-			updateFogCheck(getDistBottom(), _sample.time_us);
-		}
+		updateFogCheck(getDistBottom(), _sample.time_us);
 
 		if (!_is_stuck && !_is_blocked) {
 			_is_sample_valid = true;
