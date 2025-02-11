@@ -77,7 +77,7 @@ void DifferentialAttControl::updateAttControl()
 
 	if (_vehicle_control_mode.flag_control_attitude_enabled && _vehicle_control_mode.flag_armed && runSanityChecks()) {
 
-		if (_vehicle_control_mode.flag_control_manual_enabled) {
+		if (_vehicle_control_mode.flag_control_manual_enabled || _vehicle_control_mode.flag_control_offboard_enabled) {
 			generateAttitudeSetpoint();
 		}
 
@@ -144,6 +144,10 @@ void DifferentialAttControl::generateAttitudeSetpoint()
 		trajectory_setpoint_s trajectory_setpoint{};
 		_trajectory_setpoint_sub.copy(&trajectory_setpoint);
 
+		if (_offboard_control_mode_sub.updated()) {
+			_offboard_control_mode_sub.copy(&_offboard_control_mode);
+		}
+
 		bool offboard_att_control = _offboard_control_mode.attitude && !_offboard_control_mode.position
 					    && !_offboard_control_mode.velocity;
 
@@ -172,7 +176,6 @@ void DifferentialAttControl::generateRateSetpoint()
 		return;
 	}
 
-	// Calculate yaw rate limit for slew rate
 	float yaw_rate_setpoint = RoverControl::attitudeControl(_adjusted_yaw_setpoint, _pid_yaw, _max_yaw_rate,
 				  _vehicle_yaw, _rover_attitude_setpoint.yaw_setpoint, _dt);
 

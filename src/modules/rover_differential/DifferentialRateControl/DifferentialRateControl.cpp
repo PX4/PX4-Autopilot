@@ -120,6 +120,10 @@ void DifferentialRateControl::generateRateSetpoint()
 		trajectory_setpoint_s trajectory_setpoint{};
 		_trajectory_setpoint_sub.copy(&trajectory_setpoint);
 
+		if (_offboard_control_mode_sub.updated()) {
+			_offboard_control_mode_sub.copy(&_offboard_control_mode);
+		}
+
 		bool offboard_rate_control = _offboard_control_mode.body_rate && !_offboard_control_mode.position
 					     && !_offboard_control_mode.velocity && !_offboard_control_mode.attitude;
 
