@@ -100,7 +100,7 @@ bool SerialImpl::configure()
 
 	default:
 		speed = _baudrate;
-		PX4_WARN("Using non-standard baudrate: %lu", _baudrate);
+		PX4_WARN("Using non-standard baudrate: %" PRIu32, _baudrate);
 		break;
 	}
 
