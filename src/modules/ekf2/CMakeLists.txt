@@ -236,7 +236,7 @@ px4_add_module(
 	PRIORITY
 		"SCHED_PRIORITY_MAX - 18" # max priority below high priority WQ threads
 	STACK_MAX
-		3600
+		4000
 	SRCS
 		${EKF_SRCS}
 
