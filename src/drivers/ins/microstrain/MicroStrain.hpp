@@ -127,6 +127,8 @@ private:
 
 	mip_cmd_result writeBaudRate(uint32_t baudrate, uint8_t port);
 
+	mip_cmd_result configureImuRange();
+
 	mip_cmd_result getBaseRate(uint8_t descriptor_set, uint16_t *base_rate);
 
 	mip_cmd_result configureImuMessageFormat();
@@ -147,29 +149,6 @@ private:
 	bool init();
 
 	uint32_t _dev_id{0};
-
-	// Sensor types needed for message creation / updating / publishing
-	PX4Accelerometer _px4_accel{0};
-	PX4Gyroscope _px4_gyro{0};
-	PX4Magnetometer _px4_mag{0};
-	sensor_baro_s _sensor_baro{0};
-
-	// Must publish to prevent sensor stale failure (sensors module)
-	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
-	uORB::Publication<sensor_selection_s> _sensor_selection_pub{ORB_ID(sensor_selection)};
-
-	uORB::Publication<vehicle_global_position_s> _vehicle_global_position_pub;
-	uORB::Publication<vehicle_attitude_s> _vehicle_attitude_pub;
-	uORB::Publication<vehicle_local_position_s> _vehicle_local_position_pub;
-	uORB::Publication<vehicle_odometry_s> _vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
-	uORB::Publication<vehicle_angular_velocity_s> _vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
-
-	// Needed for health checks
-	uORB::Publication<estimator_status_s> _estimator_status_pub{ORB_ID(estimator_status)};
-
-	// Subscriptions
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
-	uORB::Subscription                 _sensor_gps_sub{ORB_ID(sensor_gps)};
 
 	// Performance (perf) counters
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
@@ -223,6 +202,8 @@ private:
 		(ParamInt<px4::params::MS_INT_HEAD_EN>) _param_ms_int_heading_en,
 		(ParamInt<px4::params::MS_EXT_HEAD_EN>) _param_ms_ext_heading_en,
 		(ParamInt<px4::params::MS_SVT_EN>) _param_ms_svt_en,
+		(ParamInt<px4::params::MS_ACCEL_RANGE>) _param_ms_accel_range_setting,
+		(ParamInt<px4::params::MS_GYRO_RANGE>) _param_ms_gyro_range_setting,
 		(ParamFloat<px4::params::GNSS_OFFSET1_X>) _param_gnss_offset1_x,
 		(ParamFloat<px4::params::GNSS_OFFSET1_Y>) _param_gnss_offset1_y,
 		(ParamFloat<px4::params::GNSS_OFFSET1_Z>) _param_gnss_offset1_z,
@@ -234,6 +215,26 @@ private:
 		(ParamFloat<px4::params::MS_SENSOR_YAW>) _param_ms_sensor_yaw
 	)
 
+	// Sensor types needed for message creation / updating / publishing
+	PX4Accelerometer _px4_accel{0};
+	PX4Gyroscope _px4_gyro{0};
+	PX4Magnetometer _px4_mag{0};
+	sensor_baro_s _sensor_baro{0};
 
+	// Must publish to prevent sensor stale failure (sensors module)
+	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
+	uORB::Publication<sensor_selection_s> _sensor_selection_pub{ORB_ID(sensor_selection)};
 
+	uORB::Publication<vehicle_global_position_s> _vehicle_global_position_pub;
+	uORB::Publication<vehicle_attitude_s> _vehicle_attitude_pub;
+	uORB::Publication<vehicle_local_position_s> _vehicle_local_position_pub;
+	uORB::Publication<vehicle_odometry_s> _vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
+	uORB::Publication<vehicle_angular_velocity_s> _vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
+
+	// Needed for health checks
+	uORB::Publication<estimator_status_s> _estimator_status_pub{ORB_ID(estimator_status)};
+
+	// Subscriptions
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
+	uORB::Subscription                 _sensor_gps_sub{ORB_ID(sensor_gps)};
 };

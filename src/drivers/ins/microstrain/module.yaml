@@ -115,6 +115,28 @@ parameters:
             type: int32
             default: 0
 
+        MS_ACCEL_RANGE:
+            description:
+                short: Sets the range of the accelerometer
+                long: |
+                    -1 = Will not be configured, and will use the device default range,
+                    Each adjustable range has a corresponding integer setting. Refer to the device's User Manual to check the available adjustment ranges.
+                    https://www.microstrain.com/inertial-sensors/all-sensors
+                    Restart required
+            type: int32
+            default: -1
+
+        MS_GYRO_RANGE:
+            description:
+                short: Sets the range of the gyro
+                long: |
+                    -1 = Will not be configured, and will use the device default range,
+                    Each adjustable range has a corresponding integer setting. Refer to the device's User Manual to check the available adjustment ranges.
+                    https://www.microstrain.com/inertial-sensors/all-sensors
+                    Restart required
+            type: int32
+            default: -1
+
         GNSS_OFFSET1_X:
             description:
                 short: GNSS lever arm offset 1 (X)
@@ -204,4 +226,3 @@ parameters:
                     Restart required
             type: float
             default: 0.0
-

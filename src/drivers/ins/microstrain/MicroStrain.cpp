@@ -106,7 +106,6 @@ MicroStrain::MicroStrain(const char *uart_port) :
 	_vehicle_global_position_pub.advertise();
 	_vehicle_odometry_pub.advertise();
 	_estimator_status_pub.advertise();
-
 }
 
 MicroStrain::~MicroStrain()
@@ -154,7 +153,6 @@ bool mipInterfaceUserRecvFromDevice(mip_interface *device, uint8_t *buffer, size
 
 bool mipInterfaceUserSendToDevice(mip_interface *device, const uint8_t *data, size_t length)
 {
-
 	int res = device_uart.uartWrite(const_cast<uint8_t *>(data), length);
 
 	if (res >= 0) {
@@ -163,7 +161,6 @@ bool mipInterfaceUserSendToDevice(mip_interface *device, const uint8_t *data, si
 
 	PX4_ERR("MicroStrain driver failed to write(%d): %s", errno, strerror(errno));
 	return false;
-
 }
 
 mip_cmd_result MicroStrain::forceIdle()
@@ -306,6 +303,39 @@ mip_cmd_result MicroStrain::writeBaudRate(uint32_t baudrate, uint8_t port)
 	return res;
 }
 
+mip_cmd_result MicroStrain::configureImuRange()
+{
+	mip_cmd_result res = MIP_ACK_OK;
+
+	// Checks if the accel range is to be configured
+	if (_param_ms_accel_range_setting.get() != -1) {
+		if (supportsDescriptor(MIP_3DM_CMD_DESC_SET, MIP_CMD_DESC_3DM_SENSOR_RANGE)) {
+			res = mip_3dm_write_sensor_range(&_device, MIP_SENSOR_RANGE_TYPE_ACCEL, _param_ms_accel_range_setting.get());
+
+		} else {
+			PX4_ERR("Accel sensor range write command is not supported");
+			res = MIP_PX4_ERROR;
+		}
+	}
+
+	if (!mip_cmd_result_is_ack(res)) {
+		return res;
+	}
+
+	// Checks if the gyro range is to be configured
+	if (_param_ms_gyro_range_setting.get() != -1) {
+		if (supportsDescriptor(MIP_3DM_CMD_DESC_SET, MIP_CMD_DESC_3DM_SENSOR_RANGE)) {
+			res = mip_3dm_write_sensor_range(&_device, MIP_SENSOR_RANGE_TYPE_GYRO, _param_ms_gyro_range_setting.get());
+
+		} else {
+			PX4_ERR("Gyro sensor range write command is not supported");
+			res = MIP_PX4_ERROR;
+		}
+	}
+
+	return res;
+}
+
 mip_cmd_result MicroStrain::getBaseRate(uint8_t descriptor_set, uint16_t *base_rate)
 {
 	mip_cmd_result res;
@@ -360,7 +390,6 @@ mip_cmd_result MicroStrain::getBaseRate(uint8_t descriptor_set, uint16_t *base_r
 	}
 
 	return res;
-
 }
 
 mip_cmd_result MicroStrain::writeMessageFormat(uint8_t descriptor_set, uint8_t num_descriptors,
@@ -564,7 +593,6 @@ mip_cmd_result MicroStrain::configureFilterMessageFormat()
 				 filter_descriptors);
 
 	return res;
-
 }
 
 mip_cmd_result MicroStrain::configureAidingMeasurement(uint16_t aiding_source, bool enable)
@@ -750,7 +778,6 @@ mip_cmd_result MicroStrain::writeFilterInitConfig()
 
 bool MicroStrain::initializeIns()
 {
-
 	mip_cmd_result res;
 
 	const uint32_t DESIRED_BAUDRATE = 921600;
@@ -793,6 +820,12 @@ bool MicroStrain::initializeIns()
 		return false;
 	}
 
+	// Configure IMU ranges
+	if (!mip_cmd_result_is_ack(res = configureImuRange())) {
+		MS_PX4_ERROR(res, "Could not configure IMU range");
+		return false;
+	}
+
 	// Configure the IMU message formt based on what descriptors are supported
 	if (!mip_cmd_result_is_ack(res = configureImuMessageFormat())) {
 		MS_PX4_ERROR(res, "Could not write message format");
@@ -803,7 +836,6 @@ bool MicroStrain::initializeIns()
 	mip_interface_register_packet_callback(&_device, &_sensor_data_handler, MIP_SENSOR_DATA_DESC_SET, false,
 					       &sensorCallback,
 					       this);
-
 
 	// Configure the Filter message format based on what descriptors are supported
 	if (!mip_cmd_result_is_ack(res = configureFilterMessageFormat())) {
@@ -942,13 +974,11 @@ void MicroStrain::sensorCallback(void *user, const mip_packet *packet, mip::Time
 	}
 
 	if (baro.updated) {
-		ref->_sensor_baro.timestamp = timestamp;
 		ref->_sensor_baro.timestamp_sample = t;
 		ref->_sensor_baro.pressure = baro.sample.scaled_pressure * 100.f; // convert [Pa] to [mBar]
+		ref->_sensor_baro.timestamp = hrt_absolute_time();
 		ref->_sensor_baro_pub.publish(ref->_sensor_baro);
-
 	}
-
 }
 
 void MicroStrain::filterCallback(void *user, const mip_packet *packet, mip::Timestamp timestamp)
@@ -1178,7 +1208,6 @@ void MicroStrain::filterCallback(void *user, const mip_packet *packet, mip::Time
 
 		vp.timestamp = hrt_absolute_time();
 		ref->_vehicle_local_position_pub.publish(vp);
-
 	}
 
 	if (vehicle_odometry_valid && ref->_param_ms_mode.get()) {
@@ -1367,7 +1396,6 @@ void MicroStrain::sendAidingMeasurements()
 		float heading = gps.heading + gps.heading_offset;
 		mip_aiding_true_heading(&_device, &t, MIP_FILTER_REFERENCE_FRAME_LLH, heading, gps.heading_accuracy, 0xff);
 	}
-
 }
 
 bool MicroStrain::init()
@@ -1417,7 +1445,6 @@ void MicroStrain::Run()
 	if (_ext_aiding) {sendAidingMeasurements();}
 
 	perf_end(_loop_perf);
-
 }
 
 int MicroStrain::task_spawn(int argc, char *argv[])
