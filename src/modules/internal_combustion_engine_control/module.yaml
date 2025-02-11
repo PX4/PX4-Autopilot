@@ -69,11 +69,12 @@ parameters:
         max: 10
         default: 3
 
-      ICE_RETRY_FAULT:
+      ICE_RUN_FAULT_D:
         description:
-          short: Try to re-start engine if it stops
+          short: Fault detection if it stops in running state
           long: |
-              Enables restart if a fault is detected during the running state.
+              Enables restart if a fault is detected during the running state. Otherwise
+              commands continues in running state until given an user request off.
         type: boolean
         default: true
 

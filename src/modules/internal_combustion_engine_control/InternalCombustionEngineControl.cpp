@@ -104,7 +104,10 @@ void InternalCombustionEngineControl::Run()
 
 	const float throttle_in = actuator_motors.control[0];
 
+	const hrt_abstime now = hrt_absolute_time();
+
 	UserOnOffRequest user_request = UserOnOffRequest::None;
+
 	switch (static_cast<ICESource>(_param_ice_on_source.get())) {
 	case ICESource::None:
 		user_request = UserOnOffRequest::Off;
@@ -143,10 +146,11 @@ void InternalCombustionEngineControl::Run()
 
 		controlEngineStop(ice_control);
 
-		if (user_request == UserOnOffRequest::On && !_engine_tried_to_restart) {
+		if (user_request == UserOnOffRequest::On && !maximumRetriesReached() && isPermittedToStart(now)) {
+
 			_state = State::Starting;
-			instantiateEngineStart();
-			controlEngineStartup(ice_control);
+			_state_start_time = now;
+			controlEngineStartup(ice_control, now);
 			PX4_INFO("ICE: Starting");
 		}
 
@@ -156,26 +160,29 @@ void InternalCombustionEngineControl::Run()
 
 		if (user_request == UserOnOffRequest::Off) {
 			_state = State::Stopped;
+			_starting_retry_cycle = 0;
 			controlEngineStop(ice_control);
 			PX4_INFO("ICE: Abort");
 
+		} else if (isEngineRunning(now)) {
+			_state = State::Running;
+			controlEngineRunning(ice_control, throttle_in);
+			PX4_INFO("ICE: Starting finished");
+
 		} else {
-			if (isEngineRunning()) {
-				_state = State::Running;
-				controlEngineRunning(ice_control, throttle_in);
-				PX4_INFO("ICE: Starting finished");
+			controlEngineStartup(ice_control, now);
 
-			} else {
-				controlEngineStartup(ice_control);
+			if (maximumRetriesReached()) {
+				_state = State::Fault;
+				PX4_WARN("ICE: Fault");
 
-				if (_starting_retry_cycle >= _param_ice_strt_retry.get()) {
-					_state = State::Fault;
-					PX4_WARN("ICE: Fault");
-
-					_engine_tried_to_restart = true;
-				}
+			} else if (!isPermittedToStart(now)) {
+				controlEngineStop(ice_control);
+				_state = State::Stopped;
+				PX4_INFO("ICE: Pause Before Restart");
 			}
 		}
+
 
 		break;
 
@@ -185,13 +192,15 @@ void InternalCombustionEngineControl::Run()
 
 		if (user_request == UserOnOffRequest::Off) {
 			_state = State::Stopped;
-			PX4_INFO("ICE: Stop");
+			_starting_retry_cycle = 0;
+			PX4_INFO("ICE: Abort");
 
-		} else {
-			if (!isEngineRunning()) {
-				_state = State::Fault;
-				PX4_WARN("ICE: Fault detected");
-			}
+		} else if (!isEngineRunning(now) && _param_ice_running_fault_detection.get()) {
+			// without RPM feedback we assume the engine is running after the
+			// starting procedure but only switch state if fault detection is enabled
+			_state = State::Fault;
+			_start_rest_time = now;
+			PX4_WARN("ICE: Running Fault detected");
 		}
 
 		break;
@@ -202,24 +211,20 @@ void InternalCombustionEngineControl::Run()
 		if (user_request == UserOnOffRequest::Off) {
 			_state = State::Stopped;
 			controlEngineStop(ice_control);
-			PX4_INFO("ICE: Stop");
+			_starting_retry_cycle = 0;
+			PX4_INFO("ICE: Abort");
+
+		} else if (!maximumRetriesReached()) {
+			controlEngineStop(ice_control);
+			_state = State::Stopped;
+			PX4_INFO("ICE: Pause Before Restart");
 
 		} else {
-			if (_param_ice_retry_fault.get() && !_engine_tried_to_restart) {
-				_state = State::Starting;
-				instantiateEngineStart();
-				controlEngineStartup(ice_control);
-				PX4_INFO("ICE: Restarting");
-
-			} else {
-				controlEngineFault(ice_control);
-			}
+			controlEngineFault(ice_control);
 		}
 
 		break;
 	}
-
-	const hrt_abstime now = hrt_absolute_time();
 
 	const float control_interval = math::constrain(static_cast<float>((now - _last_time_run) * 1e-6f), 0.01f, 0.1f);
 
@@ -243,31 +248,15 @@ void InternalCombustionEngineControl::Run()
 	_internal_combustion_engine_status_pub.publish(ice_status);
 }
 
-bool InternalCombustionEngineControl::isEngineRunning()
+bool InternalCombustionEngineControl::isEngineRunning(const hrt_abstime now)
 {
 	rpm_s rpm;
 	_rpm_sub.copy(&rpm);
 
-	const bool rpm_is_recent = hrt_elapsed_time(&rpm.timestamp) < 2_s;
+	const hrt_abstime rpm_timestamp = rpm.timestamp;
 
-	const bool use_rpm_feedback_for_running = _param_ice_min_run_rpm.get() > FLT_EPSILON && rpm_is_recent;
-
-	if (use_rpm_feedback_for_running) {
-
-		if (rpm.rpm_estimate > _param_ice_min_run_rpm.get()) {
-			return true;
-		}
-
-	} else {
-		// without RPM feedback we assume the engine is running after the starting procedure
-		return _starting_retry_cycle > 0;
-	}
-
-
-void InternalCombustionEngineControl::instantiateEngineStart()
-{
-	_state_start_time = hrt_absolute_time();
-	return false;
+	return (_param_ice_min_run_rpm.get() > FLT_EPSILON && now < rpm_timestamp + 2_s
+		&& rpm.rpm_estimate > _param_ice_min_run_rpm.get());
 }
 
 void InternalCombustionEngineControl::controlEngineRunning(internal_combustion_engine_control_s &ice_control,
@@ -278,7 +267,6 @@ void InternalCombustionEngineControl::controlEngineRunning(internal_combustion_e
 	ice_control.starter_engine_control = 0.f;
 	ice_control.throttle_control = throttle_in;
 
-	_engine_tried_to_restart = false;
 }
 
 void InternalCombustionEngineControl::controlEngineStop(internal_combustion_engine_control_s &ice_control)
@@ -287,9 +275,6 @@ void InternalCombustionEngineControl::controlEngineStop(internal_combustion_engi
 	ice_control.choke_control = _param_ice_stop_choke.get() ? 1.f : 0.f;
 	ice_control.starter_engine_control = 0.f;
 	ice_control.throttle_control = 0.f;
-
-	_starting_retry_cycle = 0;
-	_engine_tried_to_restart = false;
 }
 
 void InternalCombustionEngineControl::controlEngineFault(internal_combustion_engine_control_s &ice_control)
@@ -300,13 +285,12 @@ void InternalCombustionEngineControl::controlEngineFault(internal_combustion_eng
 	ice_control.throttle_control = 0.f;
 }
 
-void InternalCombustionEngineControl::controlEngineStartup(internal_combustion_engine_control_s &ice_control)
+void InternalCombustionEngineControl::controlEngineStartup(internal_combustion_engine_control_s &ice_control,
+		const hrt_abstime now)
 {
 	float ignition_delay = 0.f;
 	float choke_duration = 0.f;
 	const float starter_duration = _param_ice_starting_dur.get();
-
-	const hrt_abstime now = hrt_absolute_time();
 
 	if (_starting_retry_cycle == 0) {
 		ignition_delay = math::max(_param_ice_ign_delay.get(), 0.f);
@@ -320,15 +304,29 @@ void InternalCombustionEngineControl::controlEngineStartup(internal_combustion_e
 	ice_control.throttle_control = _param_ice_strt_thr.get();
 	ice_control.choke_control = now < _state_start_time + (choke_duration + ignition_delay) * 1_s ? 1.f : 0.f;
 	ice_control.starter_engine_control = now > _state_start_time + (ignition_delay * 1_s) ? 1.f : 0.f;
-
 	const hrt_abstime cycle_timeout_duration = (ignition_delay + choke_duration + starter_duration) * 1_s;
 
 	if (now > _state_start_time + cycle_timeout_duration) {
-		// reset timer to restart procedure if engine is not running
-		instantiateEngineStart();
+		// start resting timer if engine is not running
+		_start_rest_time = now;
 		_starting_retry_cycle++;
 		PX4_INFO("ICE: Retry %i finished", _starting_retry_cycle);
 	}
+}
+
+bool InternalCombustionEngineControl::isPermittedToStart(const hrt_abstime now)
+{
+	return now > _start_rest_time + DELAY_BEFORE_RESTARTING * 1_s;
+}
+
+bool InternalCombustionEngineControl::maximumRetriesReached()
+{
+	// First and only attempt
+	if (_param_ice_strt_retry.get() == 0) {
+		return _starting_retry_cycle > 0;
+	}
+
+	return _starting_retry_cycle >= _param_ice_strt_retry.get();
 }
 
 int InternalCombustionEngineControl::print_usage(const char *reason)

@@ -112,17 +112,26 @@ private:
 
 	hrt_abstime _state_start_time{0};
 	hrt_abstime _last_time_run{0};
+	hrt_abstime _start_rest_time{0};
+	static constexpr float DELAY_BEFORE_RESTARTING{1.f};
 	int _starting_retry_cycle{0};
-	bool _engine_tried_to_restart{false};
 
 	SlewRate<float> _throttle_control_slew_rate;
 
-	bool isEngineRunning();
-	void instantiateEngineStart();
+	bool isEngineRunning(const hrt_abstime now);
 	void controlEngineRunning(internal_combustion_engine_control_s &ice_control, float throttle_in);
 	void controlEngineStop(internal_combustion_engine_control_s &ice_control);
-	void controlEngineStartup(internal_combustion_engine_control_s &ice_control);
+	void controlEngineStartup(internal_combustion_engine_control_s &ice_control, const hrt_abstime now);
 	void controlEngineFault(internal_combustion_engine_control_s &ice_control);
+
+	/**
+	 * @brief Currently the ICE is permitted to start after resting
+	 * DELAY_BEFORE_RESTARTING ms to reduce wear on the starter motor.
+	 * @param now current time
+	 * @return if true, otherwise false
+	 */
+	bool isPermittedToStart(const hrt_abstime now);
+	bool maximumRetriesReached();
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::ICE_ON_SOURCE>) _param_ice_on_source,
@@ -130,7 +139,7 @@ private:
 		(ParamFloat<px4::params::ICE_STARTING_DUR>) _param_ice_starting_dur,
 		(ParamFloat<px4::params::ICE_MIN_RUN_RPM>) _param_ice_min_run_rpm,
 		(ParamInt<px4::params::ICE_STRT_RETRY>) _param_ice_strt_retry,
-		(ParamInt<px4::params::ICE_RETRY_FAULT>) _param_ice_retry_fault,
+		(ParamInt<px4::params::ICE_RUN_FAULT_D>) _param_ice_running_fault_detection,
 		(ParamFloat<px4::params::ICE_STRT_THR>) _param_ice_strt_thr,
 		(ParamInt<px4::params::ICE_STOP_CHOKE>) _param_ice_stop_choke,
 		(ParamFloat<px4::params::ICE_THR_SLEW>) _param_ice_thr_slew,
