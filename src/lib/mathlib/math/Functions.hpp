@@ -88,6 +88,14 @@ const T expo(const T &value, const T &e)
 	return (1 - ec) * x + ec * x * x * x;
 }
 
+template<typename T>
+const T expo_x5(const T &value, const T &e)
+{
+	T x = constrain(value, (T) - 1, (T) 1);
+	T ec = constrain(e, (T) 0, (T) 1);
+	return (1 - ec) * x + ec * x * x * x * x * x;
+}
+
 /*
  * So called SuperExpo function implementation.
  * It is a 1/(1-x) function to further shape the rc input curve intuitively.
@@ -105,6 +113,14 @@ const T superexpo(const T &value, const T &e, const T &g)
 	T x = constrain(value, (T) - 1, (T) 1);
 	T gc = constrain(g, (T) 0, (T) 0.99);
 	return expo(x, e) * (1 - gc) / (1 - fabsf(x) * gc);
+}
+
+template<typename T>
+const T superexpo_x5(const T &value, const T &e, const T &g)
+{
+	T x = constrain(value, (T) - 1, (T) 1);
+	T gc = constrain(g, (T) 0, (T) 0.99);
+	return expo_x5(x, e) * (1 - gc) / (1 - fabsf(x) * gc);
 }
 
 /*
@@ -138,6 +154,11 @@ const T expo_deadzone(const T &value, const T &e, const T &dz)
 	return expo(deadzone(value, dz), e);
 }
 
+template<typename T>
+const T expo_x5_deadzone(const T &value, const T &e, const T &dz)
+{
+	return expo_x5(deadzone(value, dz), e);
+}
 
 /*
  * Constant, linear, constant function with the two corner points as parameters

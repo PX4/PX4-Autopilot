@@ -170,6 +170,7 @@ private:
 		(ParamFloat<px4::params::MC_ACRO_R_MAX>) _param_mc_acro_r_max,
 		(ParamFloat<px4::params::MC_ACRO_P_MAX>) _param_mc_acro_p_max,
 		(ParamFloat<px4::params::MC_ACRO_Y_MAX>) _param_mc_acro_y_max,
+		(ParamInt<px4::params::MC_EXPO_X5>) _param_mc_expo_x5,
 		(ParamFloat<px4::params::MC_ACRO_EXPO>) _param_mc_acro_expo,			/**< expo stick curve shape (roll & pitch) */
 		(ParamFloat<px4::params::MC_ACRO_EXPO_Y>) _param_mc_acro_expo_y,				/**< expo stick curve shape (yaw) */
 		(ParamFloat<px4::params::MC_ACRO_SUPEXPO>) _param_mc_acro_supexpo,		/**< superexpo stick curve shape (roll & pitch) */

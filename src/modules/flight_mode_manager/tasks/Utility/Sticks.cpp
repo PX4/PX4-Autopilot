@@ -62,6 +62,24 @@ bool Sticks::checkAndUpdateStickInputs()
 		_positions_expo(2) = math::expo_deadzone(_positions(2), _param_mpc_z_man_expo.get(),  _param_mpc_hold_dz.get());
 		_positions_expo(3) = math::expo_deadzone(_positions(3), _param_mpc_yaw_expo.get(),    _param_mpc_hold_dz.get());
 
+		// Pitch and Roll expo calculated on 2d vector length to maintain direction and provide circular consistency in magnitude. This is more correct and results in a nicer pilot feel.
+		_positions_pr_expo(0) = 0;
+		_positions_pr_expo(1) = 0;
+		Vector2f pr_stick{_positions(0), _positions(1)};
+		float pr_stick_len = pr_stick.length();
+		if (pr_stick_len > 1.0f) {
+			pr_stick.normalize();
+			pr_stick_len = 1.0f;
+		}
+		if (pr_stick_len > FLT_EPSILON) {
+			// Apply expo to magnitude of roll and pitch as a 2d vector for correct direction and scale around the circle
+			if (_param_mc_expo_x5.get()) {
+				_positions_pr_expo = pr_stick.unit() * math::expo_x5_deadzone(pr_stick_len, _param_mpc_xy_man_expo.get(), _param_mpc_hold_dz.get());
+			} else {
+				_positions_pr_expo = pr_stick.unit() * math::expo_deadzone(pr_stick_len, _param_mpc_xy_man_expo.get(), _param_mpc_hold_dz.get());
+			}
+		}
+
 		// valid stick inputs are required
 		_input_available = manual_control_setpoint.valid && _positions.isAllFinite();
 

@@ -348,6 +348,15 @@ PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 720.0f);
 PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 540.0f);
 
 /**
+ * Select x5 Expo in Acro and Other Flight Modes
+ *
+ * @value 0 Standard expo
+ * @value 1 x5 expo
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_INT32(MC_EXPO_X5, 1);
+
+/**
  * Acro mode Expo factor for Roll and Pitch.
  *
  * Exponential factor for tuning the input curve shape.

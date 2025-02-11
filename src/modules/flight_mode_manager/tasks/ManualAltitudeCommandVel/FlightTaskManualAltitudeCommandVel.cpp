@@ -107,7 +107,7 @@ void FlightTaskManualAltitudeCommandVel::_updateSetpoints()
 	// thrust along xy is demanded. The maximum thrust along xy depends on the thrust
 	// setpoint along z-direction, which is computed in PositionControl.cpp.
 
-	Vector2f sp(_sticks.getPosition().slice<2, 1>(0, 0));
+	Vector2f sp = _sticks.getPitchRollExpo();
 
 	_man_input_filter.setParameters(_deltatime, _param_mc_man_tilt_tau.get());
 	_man_input_filter.update(sp);
