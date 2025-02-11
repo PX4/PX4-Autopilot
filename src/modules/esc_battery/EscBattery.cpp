@@ -106,6 +106,7 @@ EscBattery::Run()
 
 		average_voltage_v /= online_esc_count;
 		total_current_a /= online_esc_count;
+		average_temperature_c /= online_esc_count;
 
 		_battery.setConnected(true);
 		_battery.updateVoltage(average_voltage_v);
