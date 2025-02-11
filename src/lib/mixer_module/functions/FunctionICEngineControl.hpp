@@ -55,7 +55,7 @@ public:
 		internal_combustion_engine_control_s internal_combustion_engine_control;
 
 		// map [0, 1] to [-1, 1] which is the interface for non-motor PWM channels
-		if (_topic.update(&internal_combustion_engine_control)) {
+		if (_internal_combustion_engine_control_sub.update(&internal_combustion_engine_control)) {
 			_data[0] = internal_combustion_engine_control.ignition_on * 2.f - 1.f;
 			_data[1] = internal_combustion_engine_control.throttle_control * 2.f - 1.f;
 			_data[2] = internal_combustion_engine_control.choke_control * 2.f - 1.f;
@@ -78,6 +78,6 @@ private:
 	static_assert(num_data_points == (int)OutputFunction::IC_Engine_Starter - (int)OutputFunction::IC_Engine_Ignition + 1,
 		      "number of functions mismatch");
 
-	uORB::Subscription _topic{ORB_ID(internal_combustion_engine_control)};
+	uORB::Subscription _internal_combustion_engine_control_sub{ORB_ID(internal_combustion_engine_control)};
 	float _data[num_data_points] {};
 };
