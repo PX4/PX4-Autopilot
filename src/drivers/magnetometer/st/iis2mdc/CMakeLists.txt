@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2024-2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,15 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
 	MODULE drivers__magnetometer__st__iis2mdc
 	MAIN iis2mdc
 	COMPILE_FLAGS
-		# -DDEBUG_BUILD
 	SRCS
-		iis2mdc_i2c.cpp
+		IIS2MDC.cpp
+		IIS2MDC.hpp
 		iis2mdc_main.cpp
-		iis2mdc.cpp
+		ST_IIS2MDC_registers.hpp
 	DEPENDS
 		drivers_magnetometer
 		px4_work_queue
