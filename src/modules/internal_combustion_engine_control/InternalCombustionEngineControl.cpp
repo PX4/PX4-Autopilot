@@ -141,7 +141,6 @@ void InternalCombustionEngineControl::Run()
 
 	switch (_state) {
 	case State::Stopped:
-
 		controlEngineStop();
 
 		if (user_request == UserOnOffRequest::On && !maximumRetriesReached() && isPermittedToStart(now)) {
@@ -154,6 +153,7 @@ void InternalCombustionEngineControl::Run()
 		break;
 
 	case State::Starting:
+		controlEngineStartup(now);
 
 		if (user_request == UserOnOffRequest::Off) {
 			_state = State::Stopped;
@@ -164,24 +164,19 @@ void InternalCombustionEngineControl::Run()
 			_state = State::Running;
 			PX4_INFO("ICE: Starting finished");
 
-		} else {
-			controlEngineStartup(now);
+		} else if (maximumRetriesReached()) {
+			_state = State::Fault;
+			PX4_WARN("ICE: Fault");
 
-			if (maximumRetriesReached()) {
-				_state = State::Fault;
-				PX4_WARN("ICE: Fault");
-
-			} else if (!isPermittedToStart(now)) {
-				_state = State::Stopped;
-				PX4_INFO("ICE: Pause Before Restart");
-			}
+		} else if (!isPermittedToStart(now)) {
+			_state = State::Stopped;
+			PX4_INFO("ICE: Pause Before Restart");
 		}
 
 
 		break;
 
 	case State::Running:
-
 		controlEngineRunning(throttle_in);
 
 		if (user_request == UserOnOffRequest::Off) {
