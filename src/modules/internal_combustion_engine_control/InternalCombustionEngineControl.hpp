@@ -116,13 +116,18 @@ private:
 	static constexpr float DELAY_BEFORE_RESTARTING{1.f};
 	int _starting_retry_cycle{0};
 
+	bool _ignition_on{false};
+	float _choke_control{1.f};
+	float _starter_engine_control{0.f};
+	float _throttle_control{0.f};
+
 	SlewRate<float> _throttle_control_slew_rate;
 
 	bool isEngineRunning(const hrt_abstime now);
-	void controlEngineRunning(internal_combustion_engine_control_s &ice_control, float throttle_in);
-	void controlEngineStop(internal_combustion_engine_control_s &ice_control);
-	void controlEngineStartup(internal_combustion_engine_control_s &ice_control, const hrt_abstime now);
-	void controlEngineFault(internal_combustion_engine_control_s &ice_control);
+	void controlEngineRunning(float throttle_in);
+	void controlEngineStop();
+	void controlEngineStartup(const hrt_abstime now);
+	void controlEngineFault();
 
 	/**
 	 * @brief Currently the ICE is permitted to start after resting
@@ -132,6 +137,7 @@ private:
 	 */
 	bool isPermittedToStart(const hrt_abstime now);
 	bool maximumRetriesReached();
+	void publishControl(const hrt_abstime now, const UserOnOffRequest user_request);
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::ICE_ON_SOURCE>) _param_ice_on_source,
