@@ -1,0 +1,5 @@
+menuconfig MODULES_LIFETIME_HEALTH_MONITOR
+	bool "lifetime_health_monitor"
+	default n
+	---help---
+		Enable support for lifetime_health_monitor
