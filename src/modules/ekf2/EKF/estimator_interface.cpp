@@ -601,11 +601,31 @@ bool EstimatorInterface::isOtherSourceOfHorizontalAidingThan(const bool aiding_f
 
 int EstimatorInterface::getNumberOfActiveHorizontalAidingSources() const
 {
+	return getNumberOfActiveHorizontalPositionAidingSources() + getNumberOfActiveHorizontalVelocityAidingSources();
+}
+
+bool EstimatorInterface::isOnlyActiveSourceOfHorizontalPositionAiding(const bool aiding_flag) const
+{
+	return aiding_flag && !isOtherSourceOfHorizontalPositionAidingThan(aiding_flag);
+}
+
+bool EstimatorInterface::isOtherSourceOfHorizontalPositionAidingThan(const bool aiding_flag) const
+{
+	const int nb_sources = getNumberOfActiveHorizontalPositionAidingSources();
+	return aiding_flag ? nb_sources > 1 : nb_sources > 0;
+}
+
+int EstimatorInterface::getNumberOfActiveHorizontalPositionAidingSources() const
+{
 	return int(_control_status.flags.gps)
-	       + int(_control_status.flags.opt_flow)
 	       + int(_control_status.flags.ev_pos)
+	       + int(_control_status.flags.aux_gpos);
+}
+
+int EstimatorInterface::getNumberOfActiveHorizontalVelocityAidingSources() const
+{
+	return int(_control_status.flags.opt_flow)
 	       + int(_control_status.flags.ev_vel)
-	       + int(_control_status.flags.aux_gpos)
 	       // Combined airspeed and sideslip fusion allows sustained wind relative dead reckoning
 	       // and so is treated as a single aiding source.
 	       + int(_control_status.flags.fuse_aspd && _control_status.flags.fuse_beta);
