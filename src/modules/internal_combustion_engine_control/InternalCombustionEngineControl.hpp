@@ -94,6 +94,11 @@ private:
 		Fault
 	} _state{State::Stopped};
 
+	enum class SubState {
+		Run,
+		Rest
+	};
+
 	enum class UserOnOffRequest {
 		None,
 		Off,
@@ -110,9 +115,6 @@ private:
 
 	hrt_abstime _state_start_time{0};
 	hrt_abstime _last_time_run{0};
-	hrt_abstime _start_rest_time{0};
-	static constexpr float DELAY_BEFORE_RESTARTING{1.f};
-	int _starting_retry_cycle{0};
 
 	bool _ignition_on{false};
 	float _choke_control{1.f};
@@ -126,16 +128,22 @@ private:
 	void controlEngineStop();
 	void controlEngineStartup(const hrt_abstime now);
 	void controlEngineFault();
+	bool maximumRetriesReached();
+	void publishControl(const hrt_abstime now, const UserOnOffRequest user_request);
+
+	// Starting state specifics
+	static constexpr float DELAY_BEFORE_RESTARTING{1.f};
+	int _starting_retry_cycle{0};
+	hrt_abstime _starting_rest_time{0};
+	SubState _starting_sub_state{SubState::Run};
 
 	/**
-	 * @brief Currently the ICE is permitted to start after resting
-	 * DELAY_BEFORE_RESTARTING ms to reduce wear on the starter motor.
+	 * @brief Currently the ICE starting state is permitted after resting
+	 * DELAY_BEFORE_RESTARTING s to reduce wear on the starter motor.
 	 * @param now current time
 	 * @return if true, otherwise false
 	 */
-	bool isPermittedToStart(const hrt_abstime now);
-	bool maximumRetriesReached();
-	void publishControl(const hrt_abstime now, const UserOnOffRequest user_request);
+	bool isStartingPermitted(const hrt_abstime now);
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::ICE_ON_SOURCE>) _param_ice_on_source,

@@ -135,7 +135,7 @@ void InternalCombustionEngineControl::Run()
 	case State::Stopped: {
 			controlEngineStop();
 
-			if (user_request == UserOnOffRequest::On && !maximumRetriesReached() && isPermittedToStart(now)) {
+			if (user_request == UserOnOffRequest::On && !maximumRetriesReached()) {
 
 				_state = State::Starting;
 				_state_start_time = now;
@@ -145,24 +145,47 @@ void InternalCombustionEngineControl::Run()
 		break;
 
 	case State::Starting: {
-			controlEngineStartup(now);
 
 			if (user_request == UserOnOffRequest::Off) {
 				_state = State::Stopped;
 				_starting_retry_cycle = 0;
 				PX4_INFO("ICE: Abort");
 
-			} else if (isEngineRunning(now)) {
-				_state = State::Running;
-				PX4_INFO("ICE: Starting finished");
+			} else {
 
-			} else if (maximumRetriesReached()) {
-				_state = State::Fault;
-				PX4_WARN("ICE: Fault");
+				switch (_starting_sub_state) {
+				case SubState::Rest: {
+						if (isStartingPermitted(now)) {
+							_state_start_time = now;
+							_starting_sub_state = SubState::Run;
+						}
+					}
+					break;
 
-			} else if (!isPermittedToStart(now)) {
-				_state = State::Stopped;
-				PX4_INFO("ICE: Pause Before Restart");
+				case SubState::Run:
+				default: {
+						controlEngineStartup(now);
+
+						if (isEngineRunning(now)) {
+							_state = State::Running;
+							PX4_INFO("ICE: Starting finished");
+
+						} else {
+
+							if (maximumRetriesReached()) {
+								_state = State::Fault;
+								PX4_WARN("ICE: Fault");
+
+							} else if (!isStartingPermitted(now)) {
+								controlEngineStop();
+								_starting_sub_state = SubState::Rest;
+							}
+						}
+
+						break;
+					}
+
+				}
 			}
 
 		}
@@ -179,8 +202,8 @@ void InternalCombustionEngineControl::Run()
 			} else if (!isEngineRunning(now) && _param_ice_running_fault_detection.get()) {
 				// without RPM feedback we assume the engine is running after the
 				// starting procedure but only switch state if fault detection is enabled
-				_state = State::Fault;
-				_start_rest_time = now;
+				_state = State::Starting;
+				_state_start_time = now;
 				PX4_WARN("ICE: Running Fault detected");
 			}
 		}
@@ -194,10 +217,6 @@ void InternalCombustionEngineControl::Run()
 				_state = State::Stopped;
 				_starting_retry_cycle = 0;
 				PX4_INFO("ICE: Abort");
-
-			} else if (!maximumRetriesReached()) {
-				_state = State::Stopped;
-				PX4_INFO("ICE: Pause Before Restart");
 
 			} else {
 				controlEngineFault();
@@ -247,7 +266,7 @@ bool InternalCombustionEngineControl::isEngineRunning(const hrt_abstime now)
 
 	const hrt_abstime rpm_timestamp = rpm.timestamp;
 
-	return (_param_ice_min_run_rpm.get() > FLT_EPSILON && now < rpm_timestamp + 2_s
+	return (_param_ice_min_run_rpm.get() > FLT_EPSILON && (now < rpm_timestamp + 2_s)
 		&& rpm.rpm_estimate > _param_ice_min_run_rpm.get());
 }
 
@@ -298,15 +317,15 @@ void InternalCombustionEngineControl::controlEngineStartup(const hrt_abstime now
 
 	if (now > _state_start_time + cycle_timeout_duration) {
 		// start resting timer if engine is not running
-		_start_rest_time = now;
+		_starting_rest_time = now;
 		_starting_retry_cycle++;
 		PX4_INFO("ICE: Retry %i finished", _starting_retry_cycle);
 	}
 }
 
-bool InternalCombustionEngineControl::isPermittedToStart(const hrt_abstime now)
+bool InternalCombustionEngineControl::isStartingPermitted(const hrt_abstime now)
 {
-	return now > _start_rest_time + DELAY_BEFORE_RESTARTING * 1_s;
+	return now > _starting_rest_time + DELAY_BEFORE_RESTARTING * 1_s;
 }
 
 bool InternalCombustionEngineControl::maximumRetriesReached()
