@@ -120,16 +120,16 @@ private:
 	bool init();
 	void deinit();
 
-	bool setup_session(uxrSession *session);
-	void delete_session(uxrSession *session);
+	bool setupSession(uxrSession *session);
+	void deleteSession(uxrSession *session);
 
-	bool set_baudrate(int fd, unsigned baud);
+	bool setBaudrate(int fd, unsigned baud);
 
-	void handle_message_format_request();
+	void handleMessageFormatRequest();
 
-	void calculate_tx_rx_rate();
-	void check_connectivity(uxrSession *session);
-	void reset_connectivity_counters();
+	void calculateTxRxRate();
+	void checkConnectivity(uxrSession *session);
+	void resetConnectivityCounters();
 
 	uORB::Publication<message_format_response_s> _message_format_response_pub{ORB_ID(message_format_response)};
 	uORB::Subscription _message_format_request_sub{ORB_ID(message_format_request)};

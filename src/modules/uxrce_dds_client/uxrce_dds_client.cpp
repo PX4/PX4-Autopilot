@@ -139,7 +139,7 @@ bool UxrceddsClient::init()
 		uint8_t local_addr = 1; // Identifier of the Client in the serial connection
 
 		if (_transport_serial
-		    && set_baudrate(fd, _baudrate)
+		    && setBaudrate(fd, _baudrate)
 		    && uxr_init_serial_transport(_transport_serial, fd, remote_addr, local_addr)
 		   ) {
 			PX4_INFO("init serial %s @ %d baud", _device, _baudrate);
@@ -209,7 +209,7 @@ void UxrceddsClient::deinit()
 	_comm = nullptr;
 }
 
-bool UxrceddsClient::setup_session(uxrSession *session)
+bool UxrceddsClient::setupSession(uxrSession *session)
 {
 	_participant_config = static_cast<ParticipantConfig>(_param_uxrce_dds_ptcfg.get());
 	_synchronize_timestamps = (_param_uxrce_dds_synct.get() > 0);
@@ -379,7 +379,7 @@ bool UxrceddsClient::setup_session(uxrSession *session)
 	return true;
 }
 
-void UxrceddsClient::delete_session(uxrSession *session)
+void UxrceddsClient::deleteSession(uxrSession *session)
 {
 	delete_repliers();
 
@@ -422,8 +422,8 @@ UxrceddsClient::~UxrceddsClient()
 #endif // UXRCE_DDS_CLIENT_UDP
 }
 
-static void fill_message_format_response(const message_format_request_s &message_format_request,
-		message_format_response_s &message_format_response)
+static void fillMessageFormatResponse(const message_format_request_s &message_format_request,
+				      message_format_response_s &message_format_response)
 {
 	message_format_response.protocol_version = message_format_request_s::LATEST_PROTOCOL_VERSION;
 	message_format_response.success = false;
@@ -472,7 +472,7 @@ static void fill_message_format_response(const message_format_request_s &message
 	message_format_response.timestamp = hrt_absolute_time();
 }
 
-void UxrceddsClient::calculate_tx_rx_rate()
+void UxrceddsClient::calculateTxRxRate()
 {
 	const hrt_abstime now = hrt_absolute_time();
 
@@ -486,18 +486,18 @@ void UxrceddsClient::calculate_tx_rx_rate()
 	}
 }
 
-void UxrceddsClient::handle_message_format_request()
+void UxrceddsClient::handleMessageFormatRequest()
 {
 	message_format_request_s message_format_request;
 
 	if (_message_format_request_sub.update(&message_format_request)) {
 		message_format_response_s message_format_response;
-		fill_message_format_response(message_format_request, message_format_response);
+		fillMessageFormatResponse(message_format_request, message_format_response);
 		_message_format_response_pub.publish(message_format_response);
 	}
 }
 
-void UxrceddsClient::check_connectivity(uxrSession *session)
+void UxrceddsClient::checkConnectivity(uxrSession *session)
 {
 	// Reset TX zero counter, when data is sent
 	if (_last_payload_tx_rate > 0) {
@@ -566,7 +566,7 @@ void UxrceddsClient::check_connectivity(uxrSession *session)
 	}
 }
 
-void UxrceddsClient::reset_connectivity_counters()
+void UxrceddsClient::resetConnectivityCounters()
 {
 	_last_status_update = hrt_absolute_time();
 	_last_ping = hrt_absolute_time();
@@ -630,8 +630,8 @@ void UxrceddsClient::run()
 				continue;
 			}
 
-			if (!setup_session(&session)) {
-				delete_session(&session);
+			if (!setupSession(&session)) {
+				deleteSession(&session);
 				px4_usleep(1'000'000);
 				PX4_ERR("session setup failed, will retry now");
 				continue;
@@ -648,7 +648,7 @@ void UxrceddsClient::run()
 
 		hrt_abstime last_sync_session = 0;
 		int poll_error_counter = 0;
-		reset_connectivity_counters();
+		resetConnectivityCounters();
 
 		_subs->init();
 		_subs_initialized = true;
@@ -714,7 +714,7 @@ void UxrceddsClient::run()
 				_timesync_converged = _timesync.sync_converged();
 			}
 
-			handle_message_format_request();
+			handleMessageFormatRequest();
 
 			// Check for a ping response
 			/* PONG_IN_SESSION_STATUS */
@@ -723,19 +723,19 @@ void UxrceddsClient::run()
 			}
 
 			// Calculate the payload tx/rx rate for connectivity monitoring
-			calculate_tx_rx_rate();
+			calculateTxRxRate();
 
 			// Check if there is still connectivity with the agent
-			check_connectivity(&session);
+			checkConnectivity(&session);
 
 			perf_end(_loop_perf);
 		}
 
-		delete_session(&session);
+		deleteSession(&session);
 	}
 }
 
-bool UxrceddsClient::set_baudrate(int fd, unsigned baud)
+bool UxrceddsClient::setBaudrate(int fd, unsigned baud)
 {
 	int speed;
 
