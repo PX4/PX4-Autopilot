@@ -129,14 +129,6 @@ void InternalCombustionEngineControl::Run()
 	case ICESource::Aux2:
 		user_request = manual_control_setpoint.aux2 > 0.5f ? UserOnOffRequest::On : UserOnOffRequest::Off;
 		break;
-
-	case ICESource::Aux3:
-		user_request = manual_control_setpoint.aux3 > 0.5f ? UserOnOffRequest::On : UserOnOffRequest::Off;
-		break;
-
-	case ICESource::Aux4:
-		user_request = manual_control_setpoint.aux4 > 0.5f ? UserOnOffRequest::On : UserOnOffRequest::Off;
-		break;
 	}
 
 	switch (_state) {

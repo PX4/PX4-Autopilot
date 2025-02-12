@@ -21,8 +21,6 @@ parameters:
           2: Mavlink - TODO
           3: Aux1
           4: Aux2
-          5: Aux3
-          6: Aux4
 
       ICE_CHOKE_ST_DUR:
         description:

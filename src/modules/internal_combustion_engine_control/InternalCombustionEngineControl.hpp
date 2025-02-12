@@ -106,8 +106,6 @@ private:
 		Mavlink,
 		Aux1,
 		Aux2,
-		Aux3,
-		Aux4,
 	};
 
 	hrt_abstime _state_start_time{0};
