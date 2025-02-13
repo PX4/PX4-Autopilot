@@ -96,6 +96,6 @@ jobs:
           platforms: |
             linux/amd64
           provenance: mode=max
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           cache-from: type=s3,blobs_prefix=cache/${{ github.repository }}/,manifests_prefix=cache/${{ github.repository }}/,region=${{ env.RUNS_ON_AWS_REGION }},bucket=${{ env.RUNS_ON_S3_BUCKET_CACHE }}
           cache-to: type=s3,blobs_prefix=cache/${{ github.repository }}/,manifests_prefix=cache/${{ github.repository }}/,region=${{ env.RUNS_ON_AWS_REGION }},bucket=${{ env.RUNS_ON_S3_BUCKET_CACHE }},mode=max
