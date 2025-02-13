@@ -25,6 +25,7 @@ bool mode_req_local_alt
 bool mode_req_local_position
 bool mode_req_local_position_relaxed
 bool mode_req_global_position
+bool mode_req_global_position_relaxed
 bool mode_req_mission
 bool mode_req_home_position
 bool mode_req_prevent_arming

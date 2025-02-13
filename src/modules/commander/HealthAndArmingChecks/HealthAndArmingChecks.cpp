@@ -45,6 +45,7 @@ HealthAndArmingChecks::HealthAndArmingChecks(ModuleParams *parent, vehicle_statu
 	_failsafe_flags.local_position_invalid_relaxed = true;
 	_failsafe_flags.local_velocity_invalid = true;
 	_failsafe_flags.global_position_invalid = true;
+	_failsafe_flags.global_position_invalid_relaxed = true;
 	_failsafe_flags.auto_mission_missing = true;
 	_failsafe_flags.offboard_control_signal_lost = true;
 	_failsafe_flags.home_position_invalid = true;
