@@ -31,7 +31,7 @@ parameters:
         max: 10
         decimal: 1
         increment: 0.1
-        default: 1
+        default: 5
 
       ICE_STARTING_DUR:
         description:
@@ -44,7 +44,7 @@ parameters:
         max: 10
         decimal: 1
         increment: 0.1
-        default: 2
+        default: 5
 
       ICE_MIN_RUN_RPM:
         description:
@@ -55,7 +55,7 @@ parameters:
         max: 10000
         decimal: 0
         increment: 1
-        default: 1000
+        default: 2000
 
       ICE_STRT_RETRY:
         description:
