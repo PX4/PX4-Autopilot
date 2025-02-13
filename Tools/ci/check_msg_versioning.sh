@@ -26,6 +26,15 @@ do
     # - Incrementing the version
     # - An old .msg version exists
     # - A translation header exists and is included
+
+    # Ignore changes to comments or constants
+    content_a=$(git show "${BASE_COMMIT}:${file}" | grep -o '^[^#]*' | grep -v =)
+    content_b=$(git show "${HEAD_COMMIT}:${file}" | grep -o '^[^#]*' | grep -v =)
+    if [ "${content_a}" == "${content_b}" ]; then
+      echo "No version update required for ${file}"
+      continue
+    fi
+
     diff=$(git --no-pager diff --no-color --diff-filter=M "${BASE_COMMIT}"..."${HEAD_COMMIT}" -- "${file}")
     old_version=$(echo "${diff}" | sed -n 's/^-uint32 MESSAGE_VERSION = \([0-9]*\).*/\1/p')
     new_version=$(echo "${diff}" | sed -n 's/^+uint32 MESSAGE_VERSION = \([0-9]*\).*/\1/p')
