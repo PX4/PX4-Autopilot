@@ -22,6 +22,33 @@ set R /
 ver all
 
 #
+# Set the parameter file the board supports params on
+# MTD device.
+#
+if mft query -q -k MTD -s MTD_PARAMETERS -v /fs/mtd_params
+then
+	set PARAM_FILE /fs/mtd_params
+fi
+
+#
+# Load parameters.
+#
+# if the board has a storage for (factory) calibration data
+if mft query -q -k MTD -s MTD_CALDATA -v /fs/mtd_caldata
+then
+	param load /fs/mtd_caldata
+fi
+
+#
+# Load parameters.
+#
+param select $PARAM_FILE
+if ! param load
+then
+	param reset_all
+fi
+
+#
 # Try to mount the microSD card.
 #
 mount -t vfat /dev/mmcsd0 /fs/microsd
