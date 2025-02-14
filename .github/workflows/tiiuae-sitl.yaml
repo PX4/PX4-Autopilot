@@ -3,6 +3,8 @@ name: tii-px4-sitl
 on:
   push:
     branches: [ main ]
+    tags:
+      - 'v1.14.[0-9]-*'
   pull_request:
   workflow_dispatch:
 
