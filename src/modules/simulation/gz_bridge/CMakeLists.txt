@@ -98,7 +98,6 @@ px4_add_module(
 target_include_directories(modules__simulation__gz_bridge PUBLIC px4_msgs)
 target_link_libraries(modules__simulation__gz_bridge PUBLIC px4_msgs)
 
-# What are we doing here?
 px4_add_git_submodule(TARGET git_gz PATH "${PX4_SOURCE_DIR}/Tools/simulation/gz")
 include(ExternalProject)
 ExternalProject_Add(gz

@@ -300,18 +300,15 @@ void GZBridge::opticalFlowCallback(const px4::msgs::OpticalFlow &flow)
 	// values taken from PAW3902
 	msg.mode = sensor_optical_flow_s::MODE_LOWLIGHT;
 	msg.max_flow_rate = 7.4f;
-	// msg.min_ground_distance = 0.08f;
 	msg.min_ground_distance = 0.f;
 	msg.max_ground_distance = 30.f;
 	msg.error_count = 0;
 
 	// No delta angle
 	// No distance
-
 	// This means that delta angle will come from vehicle gyro
 	// Distance will come from vehicle distance sensor
 
-	// Must publish even if quality is zero to initialize flow fusion
 	_optical_flow_pub.publish(msg);
 }
 
