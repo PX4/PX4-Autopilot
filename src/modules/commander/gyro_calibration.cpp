@@ -253,7 +253,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 		for (unsigned uorb_index = 0; uorb_index < MAX_GYROS; uorb_index++) {
 
-			auto &calibration = worker_data.calibrations[uorb_index];
+			calibration::Gyroscope &calibration = worker_data.calibrations[uorb_index];
 
 			if (calibration.device_id() != 0) {
 				calibration.set_offset(worker_data.offset[uorb_index]);

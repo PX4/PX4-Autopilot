@@ -50,14 +50,15 @@ OutputRC::OutputRC(const Parameters &parameters)
 
 void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id)
 {
+	hrt_abstime now = hrt_absolute_time();
+
 	if (new_setpoints) {
 		_set_angle_setpoints(control_data);
 	}
 
 	_handle_position_update(control_data);
 
-	hrt_abstime t = hrt_absolute_time();
-	_calculate_angle_output(t);
+	_calculate_angle_output(now);
 
 	_stream_device_attitude_status();
 
@@ -81,7 +82,7 @@ void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8
 	gimbal_controls.timestamp = hrt_absolute_time();
 	_gimbal_controls_pub.publish(gimbal_controls);
 
-	_last_update = t;
+	_last_update = now;
 }
 
 void OutputRC::print_status() const
@@ -95,16 +96,29 @@ void OutputRC::_stream_device_attitude_status()
 	attitude_status.timestamp = hrt_absolute_time();
 	attitude_status.target_system = 0;
 	attitude_status.target_component = 0;
-	attitude_status.device_flags = gimbal_device_attitude_status_s::DEVICE_FLAGS_NEUTRAL |
-				       gimbal_device_attitude_status_s::DEVICE_FLAGS_ROLL_LOCK |
-				       gimbal_device_attitude_status_s::DEVICE_FLAGS_PITCH_LOCK |
-				       gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_LOCK;
+	attitude_status.device_flags = 0;
+
+	if (_absolute_angle[0]) {
+		attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_ROLL_LOCK;
+	}
+
+	if (_absolute_angle[1]) {
+		attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_PITCH_LOCK;
+	}
+
+	if (_absolute_angle[2]) {
+		attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_LOCK;
+	}
 
 	matrix::Eulerf euler(_angle_outputs[0], _angle_outputs[1], _angle_outputs[2]);
 	matrix::Quatf q(euler);
 	q.copyTo(attitude_status.q);
 
 	attitude_status.failure_flags = 0;
+
+	// If the output is RC, then we signal this by referring to compid 1.
+	attitude_status.gimbal_device_id = 1;
+
 	_attitude_status_pub.publish(attitude_status);
 }
 

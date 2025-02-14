@@ -75,6 +75,10 @@ static constexpr const char *battery_fault_reason_str(battery_fault_reason_t bat
 void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	if (circuit_breaker_enabled_by_val(_param_cbrk_supply_chk.get(), CBRK_SUPPLY_CHK_KEY)) {
+		// Reset related failsafe flags otherwise failures from before disabling the check cause failsafes without reported reason
+		reporter.failsafeFlags().battery_unhealthy = false;
+		reporter.failsafeFlags().battery_low_remaining_time = false;
+		reporter.failsafeFlags().battery_warning = battery_status_s::BATTERY_WARNING_NONE;
 		return;
 	}
 
@@ -191,44 +195,75 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.failsafeFlags().battery_warning = worst_warning;
 	}
 
-	if (reporter.failsafeFlags().battery_warning > battery_status_s::BATTERY_WARNING_NONE
-	    && reporter.failsafeFlags().battery_warning < battery_status_s::BATTERY_WARNING_FAILED) {
+	const bool battery_warning = reporter.failsafeFlags().battery_warning > battery_status_s::BATTERY_WARNING_NONE
+				     && reporter.failsafeFlags().battery_warning < battery_status_s::BATTERY_WARNING_FAILED;
+	const bool configured_arm_threshold_in_use = !context.isArmed() && (_param_com_arm_bat_min.get() >= -FLT_EPSILON);
+	const bool below_configured_arm_threshold = (worst_battery_remaining < _param_com_arm_bat_min.get());
+
+	if (battery_warning || (configured_arm_threshold_in_use && below_configured_arm_threshold)) {
 		const bool critical_or_higher = reporter.failsafeFlags().battery_warning >= battery_status_s::BATTERY_WARNING_CRITICAL;
-		NavModes affected_modes = critical_or_higher ? NavModes::All : NavModes::None;
-		events::LogLevel log_level = critical_or_higher ? events::Log::Critical : events::Log::Warning;
-		/* EVENT
-		 * @description
-		 * The battery state of charge of the worst battery is below the warning threshold.
-		 *
-		 * <profile name="dev">
-		 * This check can be configured via <param>BAT_LOW_THR</param>, <param>BAT_CRIT_THR</param> and <param>BAT_EMERGEN_THR</param> parameters.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure(affected_modes, health_component_t::battery, events::ID("check_battery_low"), log_level,
-					    "Low battery");
+		NavModes affected_modes = (!configured_arm_threshold_in_use && critical_or_higher)
+					  || (configured_arm_threshold_in_use && below_configured_arm_threshold) ? NavModes::All : NavModes::None;
+		events::LogLevel log_level = critical_or_higher || below_configured_arm_threshold
+					     ? events::Log::Critical : events::Log::Warning;
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_emergency(reporter.mavlink_log_pub(), "Low battery level\t");
+		switch (reporter.failsafeFlags().battery_warning) {
+		default:
+		case battery_status_s::BATTERY_WARNING_LOW:
+			/* EVENT
+			* @description
+			* The lowest battery state of charge is below the low threshold.
+			*
+			* <profile name="dev">
+			* Can be configured with <param>BAT_LOW_THR</param>.
+			* </profile>
+			*/
+			reporter.armingCheckFailure(affected_modes, health_component_t::battery, events::ID("check_battery_low"),
+						    log_level, "Low battery");
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_emergency(reporter.mavlink_log_pub(), "Low battery\t");
+			}
+
+			break;
+
+		case battery_status_s::BATTERY_WARNING_CRITICAL:
+			/* EVENT
+			* @description
+			* The lowest battery state of charge is below the critical threshold.
+			*
+			* <profile name="dev">
+			* Can be configured with <param>BAT_CRIT_THR</param> and from when to disalow arming with <param>COM_ARM_BAT_MIN</param>.
+			* </profile>
+			*/
+			reporter.armingCheckFailure(affected_modes, health_component_t::battery, events::ID("check_battery_critical"),
+						    log_level, "Critical battery");
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_emergency(reporter.mavlink_log_pub(), "Critical battery\t");
+			}
+
+			break;
+
+		case battery_status_s::BATTERY_WARNING_EMERGENCY:
+			/* EVENT
+			* @description
+			* The lowest battery state of charge is below the emergency threshold.
+			*
+			* <profile name="dev">
+			* Can be configured with <param>BAT_EMERGEN_THR</param>.
+			* </profile>
+			*/
+			reporter.armingCheckFailure(affected_modes, health_component_t::battery, events::ID("check_battery_emergency"),
+						    log_level, "Emergency battery level");
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_emergency(reporter.mavlink_log_pub(), "Emergency battery level\t");
+			}
+
+			break;
 		}
 
-	} else if (!context.isArmed() && _param_arm_battery_level_min.get() > FLT_EPSILON
-		   && worst_battery_remaining < _param_arm_battery_level_min.get()) {
-		// if not armed, additionally check if the battery is below the separately configurable preflight threshold
-		/* EVENT
-		 * @description
-		 * The battery state of charge of the worst battery is below the preflight threshold.
-		 *
-		 * <profile name="dev">
-		 * This check can be configured via <param>COM_ARM_BAT_MIN</param> parameter.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure(NavModes::All, health_component_t::battery, events::ID("check_battery_preflight_low"),
-					    events::Log::Critical,
-					    "Low battery");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_emergency(reporter.mavlink_log_pub(), "Low battery level\t");
-		}
 	}
 
 	rtlEstimateCheck(context, reporter, worst_battery_time_s);

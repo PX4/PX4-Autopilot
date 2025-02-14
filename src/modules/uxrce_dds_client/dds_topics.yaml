@@ -74,6 +74,9 @@ publications:
   - topic: /fmu/out/vehicle_trajectory_waypoint_desired
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
 
+  - topic: /fmu/out/airspeed_validated
+    type: px4_msgs::msg::AirspeedValidated
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
@@ -96,6 +99,9 @@ subscriptions:
 
   - topic: /fmu/in/config_control_setpoints
     type: px4_msgs::msg::VehicleControlMode
+
+  - topic: /fmu/in/distance_sensor
+    type: px4_msgs::msg::DistanceSensor
 
   - topic: /fmu/in/manual_control_input
     type: px4_msgs::msg::ManualControlSetpoint

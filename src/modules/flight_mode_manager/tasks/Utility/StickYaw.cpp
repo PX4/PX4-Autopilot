@@ -57,9 +57,8 @@ void StickYaw::ekfResetHandler(const float delta_yaw)
 void StickYaw::generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint, const float stick_yaw,
 				   const float yaw, const float deltatime, const float unaided_yaw)
 {
-	_yaw_error_lpf.setParameters(deltatime, _kYawErrorTimeConstant);
 	const float yaw_correction_prev = _yaw_correction;
-	const bool reset_setpoint = updateYawCorrection(yaw, unaided_yaw);
+	const bool reset_setpoint = updateYawCorrection(yaw, unaided_yaw, deltatime);
 
 	if (reset_setpoint) {
 		yaw_setpoint = NAN;
@@ -71,7 +70,7 @@ void StickYaw::generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint
 	yaw_setpoint = updateYawLock(yaw, yawspeed_setpoint, yaw_setpoint, yaw_correction_prev);
 }
 
-bool StickYaw::updateYawCorrection(const float yaw, const float unaided_yaw)
+bool StickYaw::updateYawCorrection(const float yaw, const float unaided_yaw, const float deltatime)
 {
 	if (!PX4_ISFINITE(unaided_yaw)) {
 		_yaw_correction = 0.f;
@@ -84,7 +83,7 @@ bool StickYaw::updateYawCorrection(const float yaw, const float unaided_yaw)
 
 	// Run it through a high-pass filter to detect transients
 	const float yaw_error_hpf = wrap_pi(yaw_error - _yaw_error_lpf.getState());
-	_yaw_error_lpf.update(yaw_error);
+	_yaw_error_lpf.update(yaw_error, deltatime);
 
 	const bool was_converging = _yaw_estimate_converging;
 	_yaw_estimate_converging = fabsf(yaw_error_hpf) > _kYawErrorChangeThreshold;

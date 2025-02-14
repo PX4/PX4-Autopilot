@@ -271,6 +271,19 @@ void ManualControl::processSwitches(hrt_abstime &now)
 					}
 				}
 
+#if defined(PAYLOAD_POWER_EN)
+
+				if (switches.payload_power_switch != _previous_switches.payload_power_switch) {
+					if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_ON) {
+						PAYLOAD_POWER_EN(true);
+
+					} else if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+						PAYLOAD_POWER_EN(false);
+					}
+				}
+
+#endif // PAYLOAD_POWER_EN
+
 			} else if (!_armed) {
 				// Directly initialize mode using RC switch but only before arming
 				evaluateModeSlot(switches.mode_slot);
@@ -453,7 +466,7 @@ void ManualControl::send_camera_mode_command(CameraMode camera_mode)
 	command.command = vehicle_command_s::VEHICLE_CMD_SET_CAMERA_MODE;
 	command.param2 = static_cast<float>(camera_mode);
 	command.target_system = _system_id;
-	command.target_component = 100; // any camera
+	command.target_component = 100; // MAV_COMP_ID_CAMERA
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
 	command.timestamp = hrt_absolute_time();
@@ -467,7 +480,7 @@ void ManualControl::send_photo_command()
 	command.param3 = 1; // one picture
 	command.param4 = _image_sequence++;
 	command.target_system = _system_id;
-	command.target_component = 100; // any camera
+	command.target_component = 100; // MAV_COMP_ID_CAMERA
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
 	command.timestamp = hrt_absolute_time();

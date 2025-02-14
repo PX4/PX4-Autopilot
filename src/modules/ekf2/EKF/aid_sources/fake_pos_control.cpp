@@ -63,17 +63,17 @@ void Ekf::controlFakePosFusion()
 			obs_var(0) = obs_var(1) = sq(0.5f);
 		}
 
-		const Vector2f position(_last_known_pos);
+		const Vector2f innovation = (_gpos - _last_known_gpos).xy();
 
 		const float innov_gate = 3.f;
 
 		updateAidSourceStatus(aid_src,
 				      _time_delayed_us,
-				      position,                                           // observation
-				      obs_var,                                            // observation variance
-				      Vector2f(_state.pos) - position,                    // innovation
-				      Vector2f(getStateVariance<State::pos>()) + obs_var, // innovation variance
-				      innov_gate);                                        // innovation gate
+				      Vector2f(_gpos.latitude_deg(), _gpos.longitude_deg()), // observation
+				      obs_var,                                               // observation variance
+				      innovation,                       // innovation
+				      Vector2f(getStateVariance<State::pos>()) + obs_var,    // innovation variance
+				      innov_gate);                                           // innovation gate
 
 		const bool enable_valid_fake_pos = _control_status.flags.constant_pos || _control_status.flags.vehicle_at_rest;
 		const bool enable_fake_pos = !enable_valid_fake_pos
@@ -95,7 +95,7 @@ void Ekf::controlFakePosFusion()
 void Ekf::resetFakePosFusion()
 {
 	ECL_INFO("reset fake position fusion");
-	_last_known_pos.xy() = _state.pos.xy();
+	_last_known_gpos.setLatLon(_gpos);
 
 	resetHorizontalPositionToLastKnown();
 	resetHorizontalVelocityToZero();

@@ -44,6 +44,7 @@ px4_add_module(
 		mathlib
 		drivers_accelerometer
 		drivers_gyroscope
+		geo
 	)
 
 if(PX4_PLATFORM MATCHES "posix")
@@ -52,6 +53,7 @@ if(PX4_PLATFORM MATCHES "posix")
 		airplane
 		quadx
 		xvert
+		standard_vtol
 	)
 
 	# find corresponding airframes

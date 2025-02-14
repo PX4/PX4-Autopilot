@@ -326,6 +326,7 @@ px4io_update:
 bootloaders_update: \
 	3dr_ctrl-zero-h7-oem-revg_bootloader \
 	ark_fmu-v6x_bootloader \
+	ark_fpv_bootloader \
 	ark_pi6x_bootloader \
 	cuav_nora_bootloader \
 	cuav_x7pro_bootloader \
@@ -342,6 +343,8 @@ bootloaders_update: \
 	matek_h743-mini_bootloader \
 	matek_h743-slim_bootloader \
         micoair_h743_bootloader \
+        micoair_h743-aio_bootloader \
+	micoair_h743-v2_bootloader \
 	modalai_fc-v2_bootloader \
 	mro_ctrl-zero-classic_bootloader \
 	mro_ctrl-zero-h7_bootloader \

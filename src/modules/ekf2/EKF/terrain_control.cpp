@@ -43,7 +43,7 @@
 void Ekf::initTerrain()
 {
 	// assume a ground clearance
-	_state.terrain = _state.pos(2) + _params.rng_gnd_clearance;
+	_state.terrain = -_gpos.altitude() + _params.rng_gnd_clearance;
 
 	// use the ground clearance value as our uncertainty
 	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.rng_gnd_clearance));
@@ -53,7 +53,7 @@ void Ekf::controlTerrainFakeFusion()
 {
 	// If we are on ground, store the local position and time to use as a reference
 	if (!_control_status.flags.in_air) {
-		_last_on_ground_posD = _state.pos(2);
+		_last_on_ground_posD = -_gpos.altitude();
 		_control_status.flags.rng_fault = false;
 
 	} else if (!_control_status_prev.flags.in_air) {
@@ -63,13 +63,12 @@ void Ekf::controlTerrainFakeFusion()
 		initTerrain();
 	}
 
-	if (!_control_status.flags.in_air
-	    && !_control_status.flags.rng_terrain
-	    && !_control_status.flags.opt_flow_terrain) {
+	if (!_control_status.flags.in_air) {
+		bool no_terrain_aiding = !_control_status.flags.rng_terrain
+					 && !_control_status.flags.opt_flow_terrain
+					 && isTimedOut(_time_last_terrain_fuse, (uint64_t)1e6);
 
-		bool recent_terrain_aiding = isRecent(_time_last_terrain_fuse, (uint64_t)1e6);
-
-		if (_control_status.flags.vehicle_at_rest || !recent_terrain_aiding) {
+		if (no_terrain_aiding && (_height_sensor_ref != HeightSensor::RANGE)) {
 			initTerrain();
 		}
 	}
@@ -79,7 +78,8 @@ void Ekf::updateTerrainValidity()
 {
 	bool valid_opt_flow_terrain = false;
 	bool valid_rng_terrain = false;
-	bool valid_hagl_var = false;
+	bool positive_hagl_var = false;
+	bool small_relative_hagl_var = false;
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
@@ -106,21 +106,29 @@ void Ekf::updateTerrainValidity()
 		float hagl_var = INFINITY;
 		sym::ComputeHaglInnovVar(P, 0.f, &hagl_var);
 
-		if (hagl_var < fmaxf(sq(0.1f * getHagl()), 0.2f)) {
-			valid_hagl_var = true;
+		positive_hagl_var = hagl_var > 0.f;
+
+		if (positive_hagl_var
+		    && (hagl_var < sq(fmaxf(0.1f * getHagl(), 0.5f)))
+		   ) {
+			small_relative_hagl_var = true;
 		}
 	}
 
+	const bool positive_hagl = getHagl() >= 0.f;
+
 	if (!_terrain_valid) {
 		// require valid RNG or optical flow (+valid variance) to initially consider terrain valid
-		if (valid_rng_terrain
-		    || (valid_opt_flow_terrain && valid_hagl_var)
+		if (positive_hagl
+		    && positive_hagl_var
+		    && (valid_rng_terrain
+			|| (valid_opt_flow_terrain && small_relative_hagl_var))
 		   ) {
 			_terrain_valid = true;
 		}
 
 	} else {
 		// terrain was previously valid, continue considering valid if variance is good
-		_terrain_valid = valid_hagl_var;
+		_terrain_valid = positive_hagl && positive_hagl_var && small_relative_hagl_var;
 	}
 }

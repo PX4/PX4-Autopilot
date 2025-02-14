@@ -224,10 +224,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_adsb_vehicle(msg);
 		break;
 
-	case MAVLINK_MSG_ID_COLLISION:
-		handle_message_collision(msg);
-		break;
-
 	case MAVLINK_MSG_ID_GPS_RTCM_DATA:
 		handle_message_gps_rtcm_data(msg);
 		break;
@@ -566,10 +562,10 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 	uint8_t progress = 0; // TODO: should be 255, 0 for backwards compatibility
 
 	if (!target_ok) {
-		// Reject alien commands only if there is no forwarding or we've never seen target component before
 		if (!_mavlink.get_forwarding_on()
 		    || !_mavlink.component_was_seen(cmd_mavlink.target_system, cmd_mavlink.target_component, _mavlink)) {
-			acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);
+			PX4_INFO("Ignore command %d from %d/%d to %d/%d",
+				 cmd_mavlink.command, msg->sysid, msg->compid, cmd_mavlink.target_system, cmd_mavlink.target_component);
 		}
 
 		return;
@@ -593,12 +589,13 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		result = handle_request_message_command(MAVLINK_MSG_ID_STORAGE_INFORMATION);
 
 	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
-		if (set_message_interval((int)roundf(cmd_mavlink.param1), cmd_mavlink.param2, cmd_mavlink.param3)) {
+		if (set_message_interval(
+			    (int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3, cmd_mavlink.param4, vehicle_command.param7)) {
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 		}
 
 	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
-		get_message_interval((int)roundf(cmd_mavlink.param1));
+		get_message_interval((int)(cmd_mavlink.param1 + 0.5f));
 
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_MESSAGE) {
 
@@ -801,6 +798,16 @@ MavlinkReceiver::handle_message_command_ack(mavlink_message_t *msg)
 {
 	mavlink_command_ack_t ack;
 	mavlink_msg_command_ack_decode(msg, &ack);
+
+	// We should not clog the command_ack queue with acks that are not for us.
+	// Therefore, we drop them early and move on.
+	bool target_ok = evaluate_target_ok(0, ack.target_system, ack.target_component);
+
+	if (!target_ok) {
+		PX4_DEBUG("Drop ack %d for %d from %d/%d to %d/%d\n",
+			  ack.result, ack.command, msg->sysid, msg->compid, ack.target_system, ack.target_component);
+		return;
+	}
 
 	MavlinkCommandSender::instance().handle_mavlink_command_ack(ack, msg->sysid, msg->compid, _mavlink.get_channel());
 
@@ -2138,25 +2145,36 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	}
 
 	manual_control_setpoint_s manual_control_setpoint{};
-	manual_control_setpoint.pitch = mavlink_manual_control.x / 1000.f;
-	manual_control_setpoint.roll = mavlink_manual_control.y / 1000.f;
+
+	if (math::isInRange((int)mavlink_manual_control.x, -1000, 1000)) { manual_control_setpoint.pitch = mavlink_manual_control.x / 1000.f; }
+
+	if (math::isInRange((int)mavlink_manual_control.y, -1000, 1000)) { manual_control_setpoint.roll = mavlink_manual_control.y / 1000.f; }
+
 	// For backwards compatibility at the moment interpret throttle in range [0,1000]
-	manual_control_setpoint.throttle = ((mavlink_manual_control.z / 1000.f) * 2.f) - 1.f;
-	manual_control_setpoint.yaw = mavlink_manual_control.r / 1000.f;
+	if (math::isInRange((int)mavlink_manual_control.z, 0, 1000)) { manual_control_setpoint.throttle = ((mavlink_manual_control.z / 1000.f) * 2.f) - 1.f; }
+
+	if (math::isInRange((int)mavlink_manual_control.r, -1000, 1000)) { manual_control_setpoint.yaw = mavlink_manual_control.r / 1000.f; }
+
 	// Pass along the button states
 	manual_control_setpoint.buttons = mavlink_manual_control.buttons;
 
-	if (mavlink_manual_control.enabled_extensions & (1u << 2)) { manual_control_setpoint.aux1 = mavlink_manual_control.aux1 / 1000.0f; }
+	if (mavlink_manual_control.enabled_extensions & (1u << 2)
+	    && math::isInRange((int)mavlink_manual_control.aux1, -1000, 1000)) { manual_control_setpoint.aux1 = mavlink_manual_control.aux1 / 1000.0f; }
 
-	if (mavlink_manual_control.enabled_extensions & (1u << 3)) { manual_control_setpoint.aux2 = mavlink_manual_control.aux2 / 1000.0f; }
+	if (mavlink_manual_control.enabled_extensions & (1u << 3)
+	    && math::isInRange((int)mavlink_manual_control.aux2, -1000, 1000)) { manual_control_setpoint.aux2 = mavlink_manual_control.aux2 / 1000.0f; }
 
-	if (mavlink_manual_control.enabled_extensions & (1u << 4)) { manual_control_setpoint.aux3 = mavlink_manual_control.aux3 / 1000.0f; }
+	if (mavlink_manual_control.enabled_extensions & (1u << 4)
+	    && math::isInRange((int)mavlink_manual_control.aux3, -1000, 1000)) { manual_control_setpoint.aux3 = mavlink_manual_control.aux3 / 1000.0f; }
 
-	if (mavlink_manual_control.enabled_extensions & (1u << 5)) { manual_control_setpoint.aux4 = mavlink_manual_control.aux4 / 1000.0f; }
+	if (mavlink_manual_control.enabled_extensions & (1u << 5)
+	    && math::isInRange((int)mavlink_manual_control.aux4, -1000, 1000)) { manual_control_setpoint.aux4 = mavlink_manual_control.aux4 / 1000.0f; }
 
-	if (mavlink_manual_control.enabled_extensions & (1u << 6)) { manual_control_setpoint.aux5 = mavlink_manual_control.aux5 / 1000.0f; }
+	if (mavlink_manual_control.enabled_extensions & (1u << 6)
+	    && math::isInRange((int)mavlink_manual_control.aux5, -1000, 1000)) { manual_control_setpoint.aux5 = mavlink_manual_control.aux5 / 1000.0f; }
 
-	if (mavlink_manual_control.enabled_extensions & (1u << 7)) { manual_control_setpoint.aux6 = mavlink_manual_control.aux6 / 1000.0f; }
+	if (mavlink_manual_control.enabled_extensions & (1u << 7)
+	    && math::isInRange((int)mavlink_manual_control.aux6, -1000, 1000)) { manual_control_setpoint.aux6 = mavlink_manual_control.aux6 / 1000.0f; }
 
 	manual_control_setpoint.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink.get_instance_id();
 	manual_control_setpoint.timestamp = manual_control_setpoint.timestamp_sample = hrt_absolute_time();
@@ -2273,14 +2291,25 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 }
 
 int
-MavlinkReceiver::set_message_interval(int msgId, float interval, int data_rate)
+MavlinkReceiver::set_message_interval(int msgId, float interval, float param3, float param4, float param7)
 {
 	if (msgId == MAVLINK_MSG_ID_HEARTBEAT) {
 		return PX4_ERROR;
 	}
 
-	if (data_rate > 0) {
-		_mavlink.set_data_rate(data_rate);
+	if (PX4_ISFINITE(param3) && (int)(param3 + 0.5f) != 0) {
+		PX4_ERR("SET_MESSAGE_INTERVAL requested param3 not supported.");
+		return PX4_ERROR;
+	}
+
+	if (PX4_ISFINITE(param4) && (int)(param4 + 0.5f) != 0) {
+		PX4_ERR("SET_MESSAGE_INTERVAL requested param4 not supported.");
+		return PX4_ERROR;
+	}
+
+	if (PX4_ISFINITE(param7) && (int)(param7 + 0.5f) != 0) {
+		PX4_ERR("SET_MESSAGE_INTERVAL response target not supported.");
+		return PX4_ERROR;
 	}
 
 	// configure_stream wants a rate (msgs/second), so convert here.
@@ -2607,26 +2636,6 @@ MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 }
 
 void
-MavlinkReceiver::handle_message_collision(mavlink_message_t *msg)
-{
-	mavlink_collision_t collision;
-	mavlink_msg_collision_decode(msg, &collision);
-
-	collision_report_s collision_report{};
-
-	collision_report.timestamp = hrt_absolute_time();
-	collision_report.src = collision.src;
-	collision_report.id = collision.id;
-	collision_report.action = collision.action;
-	collision_report.threat_level = collision.threat_level;
-	collision_report.time_to_minimum_delta = collision.time_to_minimum_delta;
-	collision_report.altitude_minimum_delta = collision.altitude_minimum_delta;
-	collision_report.horizontal_minimum_delta = collision.horizontal_minimum_delta;
-
-	_collision_report_pub.publish(collision_report);
-}
-
-void
 MavlinkReceiver::handle_message_gps_rtcm_data(mavlink_message_t *msg)
 {
 	mavlink_gps_rtcm_data_t gps_rtcm_data_msg;
@@ -2729,7 +2738,8 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_local_pos.vxy_max = INFINITY;
 		hil_local_pos.vz_max = INFINITY;
 		hil_local_pos.hagl_min = INFINITY;
-		hil_local_pos.hagl_max = INFINITY;
+		hil_local_pos.hagl_max_z = INFINITY;
+		hil_local_pos.hagl_max_xy = INFINITY;
 		hil_local_pos.timestamp = hrt_absolute_time();
 		_local_pos_pub.publish(hil_local_pos);
 	}
@@ -3065,7 +3075,7 @@ MavlinkReceiver::handle_message_gimbal_device_information(mavlink_message_t *msg
 	gimbal_information.yaw_max = gimbal_device_info_msg.yaw_max;
 	gimbal_information.yaw_min = gimbal_device_info_msg.yaw_min;
 
-	gimbal_information.gimbal_device_compid = msg->compid;
+	gimbal_information.gimbal_device_id = msg->compid;
 
 	_gimbal_device_information_pub.publish(gimbal_information);
 }
@@ -3092,6 +3102,7 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 	gimbal_attitude_status.failure_flags = gimbal_device_attitude_status_msg.failure_flags;
 
 	gimbal_attitude_status.received_from_mavlink = true;
+	gimbal_attitude_status.gimbal_device_id = gimbal_device_attitude_status_msg.gimbal_device_id;
 
 	_gimbal_device_attitude_status_pub.publish(gimbal_attitude_status);
 }

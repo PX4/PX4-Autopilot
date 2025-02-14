@@ -568,6 +568,26 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	return true;
 }
 
+Vector3f EstimatorInterface::getPosition() const
+{
+	LatLonAlt lla = _output_predictor.getLatLonAlt();
+	float x;
+	float y;
+
+	if (_local_origin_lat_lon.isInitialized()) {
+		_local_origin_lat_lon.project(lla.latitude_deg(), lla.longitude_deg(), x, y);
+
+	} else {
+		MapProjection zero_ref;
+		zero_ref.initReference(0.0, 0.0);
+		zero_ref.project(lla.latitude_deg(), lla.longitude_deg(), x, y);
+	}
+
+	const float z = -(lla.altitude() - getEkfGlobalOriginAltitude());
+
+	return Vector3f(x, y, z);
+}
+
 bool EstimatorInterface::isOnlyActiveSourceOfHorizontalAiding(const bool aiding_flag) const
 {
 	return aiding_flag && !isOtherSourceOfHorizontalAidingThan(aiding_flag);

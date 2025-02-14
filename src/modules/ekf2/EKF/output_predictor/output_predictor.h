@@ -39,6 +39,7 @@
 #include "../RingBuffer.h"
 
 #include <lib/geo/geo.h>
+#include <lib/lat_lon_alt/lat_lon_alt.hpp>
 
 class OutputPredictor
 {
@@ -52,7 +53,7 @@ public:
 
 	// modify output filter to match the the EKF state at the fusion time horizon
 	void alignOutputFilter(const matrix::Quatf &quat_state, const matrix::Vector3f &vel_state,
-			       const matrix::Vector3f &pos_state);
+			       const LatLonAlt &gpos_state);
 	/*
 	* Implement a strapdown INS algorithm using the latest IMU data at the current time horizon.
 	* Buffer the INS states and calculate the difference with the EKF states at the delayed fusion time horizon.
@@ -67,7 +68,7 @@ public:
 				   const matrix::Vector3f &delta_velocity, const float delta_velocity_dt);
 
 	void correctOutputStates(const uint64_t time_delayed_us,
-				 const matrix::Quatf &quat_state, const matrix::Vector3f &vel_state, const matrix::Vector3f &pos_state,
+				 const matrix::Quatf &quat_state, const matrix::Vector3f &vel_state, const LatLonAlt &gpos_state,
 				 const matrix::Vector3f &gyro_bias, const matrix::Vector3f &accel_bias);
 
 	void resetQuaternion(const matrix::Quatf &quat_change);
@@ -75,8 +76,8 @@ public:
 	void resetHorizontalVelocityTo(const matrix::Vector2f &delta_horz_vel);
 	void resetVerticalVelocityTo(float delta_vert_vel);
 
-	void resetHorizontalPositionTo(const matrix::Vector2f &delta_horz_pos);
-	void resetVerticalPositionTo(const float new_vert_pos, const float vert_pos_change);
+	void resetLatLonTo(const double &new_latitude, const double &new_longitude);
+	void resetAltitudeTo(float new_altitude, float vert_pos_change);
 
 	void print_status();
 
@@ -100,19 +101,20 @@ public:
 	// get the velocity of the body frame origin in local NED earth frame
 	matrix::Vector3f getVelocity() const { return _output_new.vel - _vel_imu_rel_body_ned; }
 
-	// get the velocity derivative in earth frame
-	const matrix::Vector3f &getVelocityDerivative() const { return _vel_deriv; }
+	// get the mean velocity derivative in earth frame since reset (see `resetVelocityDerivativeAccumulation()`)
+	matrix::Vector3f getVelocityDerivative() const;
+
+	void resetVelocityDerivativeAccumulation();
 
 	// get the derivative of the vertical position of the body frame origin in local NED earth frame
 	float getVerticalPositionDerivative() const { return _output_vert_new.vert_vel - _vel_imu_rel_body_ned(2); }
 
-	// get the position of the body frame origin in local earth frame
-	matrix::Vector3f getPosition() const
+	LatLonAlt getLatLonAlt() const
 	{
 		// rotate the position of the IMU relative to the boy origin into earth frame
 		const matrix::Vector3f pos_offset_earth{_R_to_earth_now * _imu_pos_body};
 		// subtract from the EKF position (which is at the IMU) to get position at the body origin
-		return _output_new.pos - pos_offset_earth;
+		return _global_ref + (_output_new.pos - pos_offset_earth);
 	}
 
 	// return an array containing the output predictor angular, velocity and position tracking
@@ -133,7 +135,7 @@ private:
 	* This provides an alternative vertical velocity output that is closer to the first derivative
 	* of the position but does degrade tracking relative to the EKF state.
 	*/
-	void applyCorrectionToVerticalOutputBuffer(float vert_vel_correction);
+	void applyCorrectionToVerticalOutputBuffer(float vert_vel_correction, const float pos_ref_change);
 
 	/*
 	* Calculate corrections to be applied to vel and pos output state history.
@@ -159,6 +161,8 @@ private:
 		float    dt{0.f};             ///< delta time (sec)
 	};
 
+	LatLonAlt _global_ref{0.0, 0.0, 0.f};
+
 	RingBuffer<outputSample> _output_buffer{12};
 	RingBuffer<outputVert> _output_vert_buffer{12};
 
@@ -176,7 +180,8 @@ private:
 	outputVert _output_vert_new{};		// vertical filter output on the non-delayed time horizon
 	matrix::Matrix3f _R_to_earth_now{};		// rotation matrix from body to earth frame at current time
 	matrix::Vector3f _vel_imu_rel_body_ned{};		// velocity of IMU relative to body origin in NED earth frame
-	matrix::Vector3f _vel_deriv{};		// velocity derivative at the IMU in NED earth frame (m/s/s)
+	matrix::Vector3f _delta_vel_sum{};	// accumulation of delta velocity at the IMU in NED earth frame (m/s/s)
+	float _delta_vel_dt{};			// duration of delta velocity integration (s)
 
 	// output predictor states
 	matrix::Vector3f _delta_angle_corr{};	///< delta angle correction vector (rad)

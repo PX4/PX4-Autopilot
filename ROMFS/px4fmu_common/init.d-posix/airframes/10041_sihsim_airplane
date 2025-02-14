@@ -16,12 +16,6 @@ param set-default SENS_EN_BAROSIM 1
 param set-default SENS_EN_MAGSIM 1
 param set-default SENS_EN_ARSPDSIM 1
 
-# disable some checks to allow to fly:
-# - with usb
-param set-default CBRK_USB_CHK 197848
-# - without real battery
-param set-default CBRK_SUPPLY_CHK 894281
-
 param set-default SIH_T_MAX 6
 param set-default SIH_MASS 0.3
 param set-default SIH_IXX 0.00402
@@ -33,19 +27,22 @@ param set-default SIH_KDV 0.2
 param set-default SIH_VEHICLE_TYPE 1 	# sih as fixed wing
 param set-default RWTO_TKOFF 1  # enable takeoff from runway (as opposed to launched)
 
-
 param set-default CA_AIRFRAME 1
-
 param set-default CA_ROTOR_COUNT 1
+param set-default CA_ROTOR0_PX 0.3
 
+# SIH for now hardcodes this configuration which we need to match in the airframe files.
 param set-default CA_SV_CS_COUNT 3
-param set-default CA_SV_CS0_TRQ_R -0.5
-param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS0_TRQ_R 1
+param set-default CA_SV_CS0_TYPE 15  # single channel aileron
 param set-default CA_SV_CS1_TRQ_P 1
-param set-default CA_SV_CS1_TYPE 3
+param set-default CA_SV_CS1_TYPE 3  # elevator
 param set-default CA_SV_CS2_TRQ_Y 1
-param set-default CA_SV_CS2_TYPE 4
-param set-default PWM_MAIN_FUNC3 201
-param set-default PWM_MAIN_FUNC4 202
-param set-default PWM_MAIN_FUNC5 203
-param set-default PWM_MAIN_FUNC6 101
+param set-default CA_SV_CS2_TYPE 4  # rudder
+
+param set-default PWM_MAIN_FUNC1 201
+param set-default PWM_MAIN_FUNC2 202
+param set-default PWM_MAIN_FUNC3 203
+param set-default PWM_MAIN_FUNC4 101
+
+param set-default EKF2_GPS_DELAY 0

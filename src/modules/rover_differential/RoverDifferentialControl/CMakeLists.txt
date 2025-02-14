@@ -35,5 +35,5 @@ px4_add_library(RoverDifferentialControl
 	RoverDifferentialControl.cpp
 )
 
-target_link_libraries(RoverDifferentialControl PUBLIC pid)
+target_link_libraries(RoverDifferentialControl PUBLIC PID)
 target_include_directories(RoverDifferentialControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

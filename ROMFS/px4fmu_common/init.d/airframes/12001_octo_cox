@@ -21,7 +21,6 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-
 param set-default MAV_TYPE 14
 
 param set-default CA_ROTOR_COUNT 8

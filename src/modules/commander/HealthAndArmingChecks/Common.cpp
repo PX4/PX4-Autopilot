@@ -73,6 +73,14 @@ void Report::armingCheckFailure(NavModes required_modes, HealthComponentIndex co
 	addEvent(event_id, log_levels, message, (uint32_t)reportedModes(required_modes), component.index);
 }
 
+void Report::armingCheckFailure(NavModesMessageFail required_modes, HealthComponentIndex component,
+				uint32_t event_id, const events::LogLevels &log_levels, const char *message)
+{
+	armingCheckFailure(required_modes.fail_modes, component, log_levels.external);
+	addEvent(event_id, log_levels, message,
+		 (uint32_t)reportedModes(required_modes.message_modes | required_modes.fail_modes), component.index);
+}
+
 Report::EventBufferHeader *Report::addEventToBuffer(uint32_t event_id, const events::LogLevels &log_levels,
 		uint32_t modes, unsigned args_size)
 {
@@ -219,7 +227,7 @@ bool Report::finalize()
 	return _results_changed;
 }
 
-bool Report::report(bool is_armed, bool force)
+bool Report::report(bool force)
 {
 	const hrt_abstime now = hrt_absolute_time();
 	const bool has_difference = _had_unreported_difference || _results_changed;
@@ -316,4 +324,13 @@ bool Report::report(bool is_armed, bool force)
 			       "Health report summary event", 0, current_results.health.is_present,
 			       current_results.health.error, current_results.health.warning);
 	return true;
+}
+
+bool Report::reportIfUnreportedDifferences()
+{
+	if (_had_unreported_difference) {
+		return report(true);
+	}
+
+	return false;
 }

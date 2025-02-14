@@ -100,12 +100,6 @@ private:
 	hrt_abstime	_last_lpos_relaxed_fail_time_us{0};	///< Last time that the relaxed local position validity recovery check failed (usec)
 	hrt_abstime	_last_lvel_fail_time_us{0};	///< Last time that the local velocity validity recovery check failed (usec)
 
-	// variables used to check for navigation failure after takeoff
-	hrt_abstime	_time_last_innov_pass{0};	///< last time velocity and position innovations passed
-	hrt_abstime	_time_last_innov_fail{0};	///< last time velocity and position innovations failed
-	bool		_nav_test_passed{false};	///< true if the post takeoff navigation test has passed
-	bool		_nav_test_failed{false};	///< true if the post takeoff navigation test has failed
-
 	bool _gps_was_fused{false};
 	bool _gnss_spoofed{false};
 
@@ -118,7 +112,7 @@ private:
 					(ParamBool<px4::params::SYS_HAS_GPS>) _param_sys_has_gps,
 					(ParamFloat<px4::params::COM_POS_FS_EPH>) _param_com_pos_fs_eph,
 					(ParamFloat<px4::params::COM_VEL_FS_EVH>) _param_com_vel_fs_evh,
-					(ParamInt<px4::params::COM_POS_FS_DELAY>) _param_com_pos_fs_delay,
-					(ParamFloat<px4::params::COM_POS_LOW_EPH>) _param_com_low_eph
+					(ParamFloat<px4::params::COM_POS_LOW_EPH>) _param_com_low_eph,
+					(ParamInt<px4::params::COM_POS_LOW_ACT>) _param_com_pos_low_act
 				       )
 };

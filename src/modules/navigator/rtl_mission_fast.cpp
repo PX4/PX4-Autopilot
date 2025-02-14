@@ -46,10 +46,10 @@
 
 static constexpr int32_t DEFAULT_MISSION_FAST_CACHE_SIZE = 5;
 
-RtlMissionFast::RtlMissionFast(Navigator *navigator) :
+RtlMissionFast::RtlMissionFast(Navigator *navigator, mission_s mission) :
 	RtlBase(navigator, DEFAULT_MISSION_FAST_CACHE_SIZE)
 {
-
+	_mission = mission;
 }
 
 void RtlMissionFast::on_inactive()

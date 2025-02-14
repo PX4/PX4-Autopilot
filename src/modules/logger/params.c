@@ -184,7 +184,6 @@ PARAM_DEFINE_INT32(SDLOG_UUID, 1);
  *
  * @value 0 Disabled
  * @value 2 XChaCha20
- * @value 3 AES
  *
  * @group SD Logging
  */

@@ -38,7 +38,6 @@
 #include <lib/geo/geo.h>
 #include <lib/atmosphere/atmosphere.h>
 
-
 namespace sensors
 {
 
@@ -142,6 +141,9 @@ void VehicleAirData::Run()
 
 	AirTemperatureUpdate();
 
+	estimator_status_flags_s estimator_status_flags;
+	const bool estimator_status_flags_updated = _estimator_status_flags_sub.update(&estimator_status_flags);
+
 	bool updated[MAX_SENSOR_COUNT] {};
 
 	for (int uorb_index = 0; uorb_index < MAX_SENSOR_COUNT; uorb_index++) {
@@ -188,7 +190,18 @@ void VehicleAirData::Run()
 							_sensor_sub[uorb_index].registerCallback();
 						}
 
+						if (!_calibration[uorb_index].calibrated()) {
+							_calibration[uorb_index].set_device_id(report.device_id);
+							_calibration[uorb_index].ParametersSave(uorb_index);
+							param_notify_changes();
+						}
+
 						ParametersUpdate(true);
+					}
+
+					if (estimator_status_flags_updated && _selected_sensor_sub_index >= 0 && _selected_sensor_sub_index == uorb_index
+					    && estimator_status_flags.cs_baro_fault && !_last_status_baro_fault) {
+						_priority[uorb_index] = 1; // 1 is min priority while still being enabled
 					}
 
 					// pressure corrected with offset (if available)
@@ -210,6 +223,10 @@ void VehicleAirData::Run()
 				}
 			}
 		}
+	}
+
+	if (estimator_status_flags_updated) {
+		_last_status_baro_fault = estimator_status_flags.cs_baro_fault;
 	}
 
 	// check for the current best sensor

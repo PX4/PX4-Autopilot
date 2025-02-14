@@ -92,13 +92,9 @@ void RoverPositionControl::parameters_update(bool force)
 		_gnd_control.set_l1_damping(_param_l1_damping.get());
 		_gnd_control.set_l1_period(_param_l1_period.get());
 
-		pid_init(&_speed_ctrl, PID_MODE_DERIVATIV_CALC, 0.01f);
-		pid_set_parameters(&_speed_ctrl,
-				   _param_speed_p.get(),
-				   _param_speed_i.get(),
-				   _param_speed_d.get(),
-				   _param_speed_imax.get(),
-				   _param_gndspeed_max.get());
+		_speed_ctrl.setGains(_param_speed_p.get(), _param_speed_i.get(), _param_speed_d.get());
+		_speed_ctrl.setIntegralLimit(_param_speed_imax.get());
+		_speed_ctrl.setOutputLimit(_param_gndspeed_max.get());
 	}
 }
 
@@ -239,12 +235,9 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 			const Dcmf R_to_body(Quatf(_vehicle_att.q).inversed());
 			const Vector3f vel = R_to_body * Vector3f(ground_speed(0), ground_speed(1), ground_speed(2));
 
-			const float x_vel = vel(0);
-			const float x_acc = _vehicle_acceleration_sub.get().xyz[0];
-
 			// Compute airspeed control out and just scale it as a constant
-			mission_throttle = _param_throttle_speed_scaler.get()
-					   * pid_calculate(&_speed_ctrl, mission_target_speed, x_vel, x_acc, dt);
+			_speed_ctrl.setSetpoint(mission_target_speed);
+			mission_throttle = _param_throttle_speed_scaler.get() * _speed_ctrl.update(vel(0), dt);
 
 			// Constrain throttle between min and max
 			mission_throttle = math::constrain(mission_throttle, _param_throttle_min.get(), _param_throttle_max.get());
@@ -327,10 +320,8 @@ RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity)
 		const Dcmf R_to_body(Quatf(_vehicle_att.q).inversed());
 		const Vector3f vel = R_to_body * Vector3f(current_velocity(0), current_velocity(1), current_velocity(2));
 
-		const float x_vel = vel(0);
-		const float x_acc = _vehicle_acceleration_sub.get().xyz[0];
-
-		const float control_throttle = pid_calculate(&_speed_ctrl, desired_speed, x_vel, x_acc, dt);
+		_speed_ctrl.setSetpoint(desired_speed);
+		const float control_throttle = _speed_ctrl.update(vel(0), dt);
 
 		//Constrain maximum throttle to mission throttle
 		_throttle_control = math::constrain(control_throttle, 0.0f, mission_throttle);
@@ -391,8 +382,6 @@ RoverPositionControl::Run()
 		attitude_setpoint_poll();
 		vehicle_attitude_poll();
 		manual_control_setpoint_poll();
-
-		_vehicle_acceleration_sub.update();
 
 		/* update parameters from storage */
 		parameters_update();

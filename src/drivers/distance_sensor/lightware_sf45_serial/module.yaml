@@ -1,6 +1,6 @@
 module_name: Lightware SF45 Rangefinder (serial)
 serial_config:
-    - command: lightware_sf45_serial start -R 0 -d ${SERIAL_DEV}
+    - command: lightware_sf45_serial start -d ${SERIAL_DEV}
       port_config_param:
         name: SENS_EN_SF45_CFG
         group: Sensors
@@ -32,7 +32,7 @@ parameters:
                   12: 5000hz
               reboot_required: true
               num_instances: 1
-              default: 1
+              default: 5
 
           SF45_ORIENT_CFG:
               description:
@@ -41,11 +41,11 @@ parameters:
                       The SF45 mounted facing upward or downward on the frame
               type: enum
               values:
-                0: Rotation upward
-                1: Rotation downward
+                24: Rotation upward
+                25: Rotation downward
               reboot_required: true
               num_instances: 1
-              default: 0
+              default: 24
 
           SF45_YAW_CFG:
               description:
@@ -55,9 +55,9 @@ parameters:
               type: enum
               values:
                 0: Rotation forward
-                1: Rotation backward
                 2: Rotation right
-                3: Rotation left
+                4: Rotation backward
+                6: Rotation left
               reboot_required: true
               num_instances: 1
               default: 0

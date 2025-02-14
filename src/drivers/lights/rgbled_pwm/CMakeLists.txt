@@ -41,3 +41,8 @@ px4_add_module(
 		arch_io_pins
 		arch_led_pwm
 	)
+
+target_link_libraries(drivers__rgbled_pwm
+	PRIVATE
+		drivers_board # Allows board to override PWM functions
+)

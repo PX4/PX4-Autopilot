@@ -25,28 +25,27 @@ jobs:
           "NO_NINJA_BUILD=1 px4_fmu-v5_default",
           "NO_NINJA_BUILD=1 px4_sitl_default",
           "px4_sitl_allyes",
-          "airframe_metadata",
           "module_documentation",
-          "parameters_metadata",
         ]
-    container:
-      image: px4io/px4-dev-nuttx-focal:2022-08-12
-      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
-    - uses: actions/checkout@v1
-      with:
-        token: ${{ secrets.ACCESS_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: check environment
-      run: |
-          export
-          ulimit -a
-    - name: ${{matrix.check}}
-      run: make ${{matrix.check}}
-    - name: upload coverage
-      if: contains(matrix.check, 'coverage')
-      uses: codecov/codecov-action@v1
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        flags: unittests
-        file: coverage/lcov.info
+      - name: Building [${{ matrix.check }}]
+        uses: addnab/docker-run-action@v3
+        with:
+          image: px4io/px4-dev-nuttx-focal:2022-08-12
+          options: -v ${{ github.workspace }}:/workspace
+          run: |
+            cd /workspace
+            git config --global --add safe.directory /workspace
+            make ${{ matrix.check }}
+
+      - name: Uploading Coverage to Codecov.io
+        if: contains(matrix.check, 'coverage')
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
+          file: coverage/lcov.info
