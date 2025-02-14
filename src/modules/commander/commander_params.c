@@ -1029,3 +1029,6 @@ PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 3);
  *
  */
 PARAM_DEFINE_INT32(COM_MODE_ARM_CHK, 0);
+
+// temporary, to test control surface preflight check.
+PARAM_DEFINE_INT32(COM_DO_CS_CHECK, 0);

@@ -346,6 +346,8 @@ ControlAllocator::Run()
 
 			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 
+			_preflight_check_running = vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK;
+
 			ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
 
 			// Check if the current flight phase is HOVER or FIXED_WING
@@ -394,6 +396,9 @@ ControlAllocator::Run()
 		do_update = true;
 		_timestamp_sample = vehicle_torque_setpoint.timestamp_sample;
 
+		if (_preflight_check_running) {
+			preflight_check_overwrite_torque_sp();
+		}
 	}
 
 	// Also run allocator on thrust setpoint changes if the torque setpoint
@@ -471,6 +476,30 @@ ControlAllocator::Run()
 	}
 
 	perf_end(_loop_perf);
+}
+
+// void ControlAllocator::test_individual_control_surfaces() {
+	// goal here: modify actuation at the servo level.
+
+	// in here: small state machine cycling through servos (or taking info
+	// from outside about which servo to actuate)
+	// if test running: if enough time passed: go to next thing
+	//                  if last thing: test = not running
+
+	// elsewhere (probably Run()...)
+	// set test running if right message received
+	// if test running,
+
+// }
+
+void ControlAllocator::preflight_check_overwrite_torque_sp() {
+
+	// goal here: inject different torque setpoint.
+
+	// right here: state machine cycling through roll, pitch, yaw(, collective tilt)
+	// overwrite _torque_sp after finding out which one
+
+
 }
 
 void

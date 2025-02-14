@@ -138,6 +138,8 @@ private:
 
 	void publish_actuator_controls();
 
+	void preflight_check_overwrite_torque_sp();
+
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
 	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations
 	int _num_control_allocation{0};
@@ -200,6 +202,8 @@ private:
 	// Reflects motor failures that are currently handled, not motor failures that are reported.
 	// For example, the system might report two motor failures, but only the first one is handled by CA
 	uint16_t _handled_motor_failure_bitmask{0};
+
+	bool _preflight_check_running{false};
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 

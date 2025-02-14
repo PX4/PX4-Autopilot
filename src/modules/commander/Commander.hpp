@@ -157,6 +157,8 @@ private:
 
 	unsigned handleCommandActuatorTest(const vehicle_command_s &cmd);
 
+	unsigned handleCommandControlTest(const vehicle_command_s &cmd);
+
 	void executeActionRequest(const action_request_s &action_request);
 
 	void printRejectMode(uint8_t nav_state);
@@ -349,6 +351,7 @@ private:
 		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_com_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>)    _param_com_takeoff_act,
+		(ParamBool<px4::params::COM_DO_CS_CHECK>)   _param_com_do_cs_check,
 		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max
 	)
 };
