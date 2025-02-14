@@ -24,14 +24,14 @@ void OpticalFlowSystem::PreUpdate(const gz::sim::UpdateInfo &, gz::sim::EntityCo
 	_ecm.EachNew<gz::sim::components::CustomSensor, gz::sim::components::ParentEntity>(
 		[&](const gz::sim::Entity & _entity,
 		    const gz::sim::components::CustomSensor * _custom,
-			const gz::sim::components::ParentEntity * _parent)->bool
-	{
+	const gz::sim::components::ParentEntity * _parent)->bool {
 		auto sensorScopedName = gz::sim::removeParentScope(gz::sim::scopedName(_entity, _ecm, "::", false), "::");
 
 		sdf::Sensor data = _custom->Data();
 		data.SetName(sensorScopedName);
 
-		if (data.Topic().empty()) {
+		if (data.Topic().empty())
+		{
 			std::string topic = scopedName(_entity, _ecm) + "/optical_flow";
 			data.SetTopic(topic);
 		}
@@ -39,7 +39,8 @@ void OpticalFlowSystem::PreUpdate(const gz::sim::UpdateInfo &, gz::sim::EntityCo
 		gz::sensors::SensorFactory sensorFactory;
 		auto sensor = sensorFactory.CreateSensor<custom::OpticalFlowSensor>(data);
 
-		if (sensor == nullptr) {
+		if (sensor == nullptr)
+		{
 			gzerr << "Failed to create optical flow sensor [" << sensorScopedName << "]" << std::endl;
 			return false;
 		}
@@ -73,9 +74,9 @@ void OpticalFlowSystem::RemoveSensorEntities(const gz::sim::EntityComponentManag
 {
 	_ecm.EachRemoved<gz::sim::components::CustomSensor>(
 		[&](const gz::sim::Entity & _entity,
-		const gz::sim::components::CustomSensor *)->bool
-	{
-		if (this->entitySensorMap.erase(_entity) == 0) {
+	const gz::sim::components::CustomSensor *)->bool {
+		if (this->entitySensorMap.erase(_entity) == 0)
+		{
 			gzerr << "Internal error, missing optical flow sensor for entity ["
 			      << _entity << "]" << std::endl;
 		}
@@ -84,8 +85,8 @@ void OpticalFlowSystem::RemoveSensorEntities(const gz::sim::EntityComponentManag
 }
 
 GZ_ADD_PLUGIN(OpticalFlowSystem, gz::sim::System,
-	OpticalFlowSystem::ISystemPreUpdate,
-	OpticalFlowSystem::ISystemPostUpdate
-)
+	      OpticalFlowSystem::ISystemPreUpdate,
+	      OpticalFlowSystem::ISystemPostUpdate
+	     )
 
 GZ_ADD_PLUGIN_ALIAS(OpticalFlowSystem, "custom::OpticalFlowSystem")
