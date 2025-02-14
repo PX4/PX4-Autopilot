@@ -396,9 +396,6 @@ ControlAllocator::Run()
 		do_update = true;
 		_timestamp_sample = vehicle_torque_setpoint.timestamp_sample;
 
-		if (_preflight_check_running) {
-			preflight_check_overwrite_torque_sp();
-		}
 	}
 
 	// Also run allocator on thrust setpoint changes if the torque setpoint
@@ -440,6 +437,10 @@ ControlAllocator::Run()
 				c[1](4) = vehicle_thrust_setpoint.xyz[1];
 				c[1](5) = vehicle_thrust_setpoint.xyz[2];
 			}
+		}
+
+		if (_preflight_check_running) {
+			preflight_check_overwrite_torque_sp(c);
 		}
 
 		for (int i = 0; i < _num_control_allocation; ++i) {
@@ -492,13 +493,38 @@ ControlAllocator::Run()
 
 // }
 
-void ControlAllocator::preflight_check_overwrite_torque_sp() {
+void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float, NUM_AXES> (&c)[ActuatorEffectiveness::MAX_NUM_MATRICES]) {
 
-	// goal here: inject different torque setpoint.
+	// cycle through roll, pitch, yaw, and for each one inject positive and
+	// negative torque setpoints.
 
-	// right here: state machine cycling through roll, pitch, yaw(, collective tilt)
-	// overwrite _torque_sp after finding out which one
+	// for now, no collective tilt if tiltrotor. will need to look a bit different.
 
+	int max_phase = 3 * 2;
+
+	hrt_abstime now = hrt_absolute_time();
+	if (now - _last_preflight_check_update >= 500_ms) {
+		_preflight_check_phase++;
+		_preflight_check_phase %= max_phase;  // or quit once we did the whole thing once?
+		_last_preflight_check_update = now;
+	}
+
+	int axis = _preflight_check_phase / 2;
+	int negative = _preflight_check_phase % 2;
+
+	c[0](0) = 0.;
+	c[0](1) = 0.;
+	c[0](2) = 0.;
+	c[0](axis) = negative ? -1.f : 1.f;
+
+	if (_num_control_allocation > 1) {
+		c[1](0) = 0.;
+		c[1](1) = 0.;
+		c[1](2) = 0.;
+		c[1](axis) = negative ? -1.f : 1.f;
+	}
+
+	// PX4_INFO("_torque_sp: %f, %f, %f", (double) _torque_sp(0), (double) _torque_sp(1), (double) _torque_sp(2));
 
 }
 

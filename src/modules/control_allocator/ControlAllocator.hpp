@@ -138,7 +138,7 @@ private:
 
 	void publish_actuator_controls();
 
-	void preflight_check_overwrite_torque_sp();
+	void preflight_check_overwrite_torque_sp(matrix::Vector<float, NUM_AXES> (&c)[ActuatorEffectiveness::MAX_NUM_MATRICES]);
 
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
 	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations
@@ -204,6 +204,8 @@ private:
 	uint16_t _handled_motor_failure_bitmask{0};
 
 	bool _preflight_check_running{false};
+	int _preflight_check_phase{0};
+	hrt_abstime _last_preflight_check_update{0};
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 

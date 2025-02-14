@@ -1878,14 +1878,15 @@ void Commander::run()
 			// through Commander::handle_command
 
 			// this nice pattern stolen from handle_command
+			// if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK, ModeChangeSource::ModeExecutor, false)) {
 			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK)) {
 				// return vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
-				PX4_INFO("mode intention changed");
+				// PX4_INFO("mode intention changed");
 
 			} else {
 				// printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 				// return vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-				PX4_INFO("");
+				// PX4_INFO("mode intention not changed");
 			}
 		} // else {
 			// leave the mode again somehow...
