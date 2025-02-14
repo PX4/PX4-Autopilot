@@ -286,6 +286,8 @@ private:
 
 	vehicle_land_detected_s	_vehicle_land_detected{};
 
+	uint8_t _prev_nav_state;
+
 	// commander publications
 	actuator_armed_s        _actuator_armed{};
 	vehicle_control_mode_s  _vehicle_control_mode{};

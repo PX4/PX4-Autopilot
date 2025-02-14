@@ -1879,18 +1879,24 @@ void Commander::run()
 
 			// this nice pattern stolen from handle_command
 			// if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK, ModeChangeSource::ModeExecutor, false)) {
-			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK)) {
+			_prev_nav_state = _vehicle_status.nav_state;
+			_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK);
+
+			// no error handling like this for now
+			// if (ret) {
 				// return vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 				// PX4_INFO("mode intention changed");
 
-			} else {
+			// } else {
 				// printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 				// return vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				// PX4_INFO("mode intention not changed");
-			}
-		} // else {
+			// }
+
+		} else {
 			// leave the mode again somehow...
-		// }
+			_user_mode_intention.change(_prev_nav_state);
+		}
 
 		modeManagementUpdate();
 
