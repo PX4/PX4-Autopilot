@@ -178,6 +178,21 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 		vehicle_control_mode.flag_control_allocation_enabled = true;
 		break;
 
+	// enabling literally all of these makes the allocator run nicely.
+	// enabling only allocator, it will not run.
+	// surely there is like one or two which we really need and the rest can be dropped...
+	case vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK:
+		vehicle_control_mode.flag_control_auto_enabled = true;
+		vehicle_control_mode.flag_control_position_enabled = true;
+		vehicle_control_mode.flag_control_velocity_enabled = true;
+		vehicle_control_mode.flag_control_altitude_enabled = true;
+		vehicle_control_mode.flag_control_climb_rate_enabled = true;
+		vehicle_control_mode.flag_control_attitude_enabled = true;
+		vehicle_control_mode.flag_control_rates_enabled = true;
+		vehicle_control_mode.flag_control_allocation_enabled = true;
+		break;
+
+
 	// vehicle_status_s::NAVIGATION_STATE_EXTERNALx: handled in ModeManagement
 	default:
 		break;
