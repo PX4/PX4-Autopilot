@@ -6,7 +6,7 @@ project(OpticalFlowSystem)
 gz_find_package(gz-plugin2 REQUIRED COMPONENTS register)
 gz_find_package(gz-sim8 REQUIRED)
 gz_find_package(gz-sensors8 REQUIRED)
-gz_find_package(gz-transport12 REQUIRED)
+gz_find_package(gz-transport13 REQUIRED)
 find_package(OpenCV REQUIRED)
 
 include(ExternalProject)
@@ -36,7 +36,7 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC gz-rendering8::gz-rendering8
     PUBLIC gz-plugin2::gz-plugin2
     PUBLIC gz-sim8::gz-sim8
-    PUBLIC gz-transport12::gz-transport12
+    PUBLIC gz-transport13::gz-transport13
     PUBLIC ${OpenCV_LIBS}
     PUBLIC ${OpticalFlow_LIBS}
 )
