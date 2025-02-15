@@ -1,16 +1,17 @@
 cmake_minimum_required(VERSION 3.11.0 FATAL_ERROR)
-find_package(gz-cmake3 REQUIRED)
 
 project(OpticalFlowSystem)
 
+# GZ packages for Harmonic
+gz_find_package(gz-cmake3 REQUIRED)
 gz_find_package(gz-plugin2 REQUIRED COMPONENTS register)
 gz_find_package(gz-sim8 REQUIRED)
 gz_find_package(gz-sensors8 REQUIRED)
 gz_find_package(gz-transport13 REQUIRED)
-find_package(OpenCV REQUIRED)
 
+# PX4-OpticalFlow
 include(ExternalProject)
-
+find_package(OpenCV REQUIRED)
 ExternalProject_Add(OpticalFlow
     GIT_REPOSITORY https://github.com/PX4/PX4-OpticalFlow.git
     GIT_TAG master
