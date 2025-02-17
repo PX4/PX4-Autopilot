@@ -133,7 +133,9 @@ parameters:
         RO_YAW_ACCEL_LIM:
           description:
             short: Yaw acceleration limit
-            long: Set to -1 to disable.
+            long: |
+              Used to cap how quickly the magnitude of yaw rate setpoints can increase.
+              Set to -1 to disable.
           type: float
           unit: deg/s^2
           min: -1
@@ -146,6 +148,7 @@ parameters:
           description:
             short: Yaw deceleration limit
             long: |
+              Used to cap how quickly the magnitude of yaw rate setpoints can decrease.
               Set to -1 to disable.
           type: float
           unit: deg/s^2

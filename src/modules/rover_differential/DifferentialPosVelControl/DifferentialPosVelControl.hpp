@@ -93,7 +93,7 @@ public:
 	/**
 	 * @brief Update position controller.
 	 */
-	void updatePosControl();
+	void updatePosVelControl();
 
 protected:
 	/**

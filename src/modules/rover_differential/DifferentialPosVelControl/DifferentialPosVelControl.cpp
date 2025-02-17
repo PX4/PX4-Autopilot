@@ -57,9 +57,9 @@ void DifferentialPosVelControl::updateParams()
 	}
 }
 
-void DifferentialPosVelControl::updatePosControl()
+void DifferentialPosVelControl::updatePosVelControl()
 {
-	hrt_abstime timestamp_prev = _timestamp;
+	const hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
 	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
 
@@ -71,7 +71,7 @@ void DifferentialPosVelControl::updatePosControl()
 
 		if (_param_ro_max_thr_speed.get() > FLT_EPSILON) {
 
-			float speed_body_x_setpoint_normalized = math::interpolate<float>(_speed_body_x_setpoint,
+			const float speed_body_x_setpoint_normalized = math::interpolate<float>(_speed_body_x_setpoint,
 					-_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get(), -1.f, 1.f);
 
 			if (_rover_steering_setpoint_sub.updated()) {
@@ -138,8 +138,8 @@ void DifferentialPosVelControl::updateSubscriptions()
 		}
 
 		_curr_pos_ned = Vector2f(vehicle_local_position.x, vehicle_local_position.y);
-		Vector3f velocity_in_local_frame(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
-		Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
+		const Vector3f velocity_in_local_frame(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
+		const Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
 		_vehicle_speed_body_x = fabsf(velocity_in_body_frame(0)) > _param_ro_speed_th.get() ? velocity_in_body_frame(0) : 0.f;
 		_vehicle_speed_body_y = fabsf(velocity_in_body_frame(1)) > _param_ro_speed_th.get() ? velocity_in_body_frame(1) : 0.f;
 	}
@@ -182,8 +182,8 @@ void DifferentialPosVelControl::manualPositionMode()
 	if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
 		_speed_body_x_setpoint = math::interpolate<float>(manual_control_setpoint.throttle,
 					 -1.f, 1.f, -_param_ro_speed_limit.get(), _param_ro_speed_limit.get());
-		float yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
-					  _param_ro_yaw_stick_dz.get()), -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
+		const float yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
+						_param_ro_yaw_stick_dz.get()), -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
 
 		if (fabsf(yaw_rate_setpoint) > FLT_EPSILON
 		    || fabsf(_speed_body_x_setpoint) < FLT_EPSILON) { // Closed loop yaw rate control
@@ -226,8 +226,8 @@ void DifferentialPosVelControl::offboardPositionMode()
 	const float distance_to_target = (target_waypoint_ned - _curr_pos_ned).norm();
 
 	if (target_waypoint_ned.isAllFinite() && distance_to_target > _param_nav_acc_rad.get()) {
-		float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
-				       _param_ro_decel_limit.get(), distance_to_target, 0.f);
+		const float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
+					     _param_ro_decel_limit.get(), distance_to_target, 0.f);
 		_speed_body_x_setpoint = math::min(speed_setpoint, _param_ro_speed_limit.get());
 		rover_attitude_setpoint_s rover_attitude_setpoint{};
 		rover_attitude_setpoint.timestamp = _timestamp;
@@ -395,7 +395,8 @@ bool DifferentialPosVelControl::runSanityChecks()
 
 		if (_prev_param_check_passed) {
 			events::send<float, float>(events::ID("differential_posVel_control_conf_invalid_speed_control"), events::Log::Error,
-						   "Invalid configuration for speed control: Neither feed forward nor feedback is setup", _param_ro_max_thr_speed.get(),
+						   "Invalid configuration for speed control: Neither feed forward (RO_MAX_THR_SPEED) nor feedback (RO_SPEED_P) is setup",
+						   _param_ro_max_thr_speed.get(),
 						   _param_ro_speed_p.get());
 		}
 	}

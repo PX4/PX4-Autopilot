@@ -58,7 +58,7 @@ void DifferentialRateControl::updateParams()
 
 void DifferentialRateControl::updateRateControl()
 {
-	hrt_abstime timestamp_prev = _timestamp;
+	const hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
 	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
 
@@ -97,8 +97,8 @@ void DifferentialRateControl::updateRateControl()
 
 void DifferentialRateControl::generateRateSetpoint()
 {
-	bool acro_mode_enabled = _vehicle_control_mode.flag_control_manual_enabled
-				 && !_vehicle_control_mode.flag_control_position_enabled && !_vehicle_control_mode.flag_control_attitude_enabled;
+	const bool acro_mode_enabled = _vehicle_control_mode.flag_control_manual_enabled
+				       && !_vehicle_control_mode.flag_control_position_enabled && !_vehicle_control_mode.flag_control_attitude_enabled;
 
 	if (acro_mode_enabled && _manual_control_setpoint_sub.updated()) { // Acro Mode
 		manual_control_setpoint_s manual_control_setpoint{};
@@ -124,8 +124,8 @@ void DifferentialRateControl::generateRateSetpoint()
 			_offboard_control_mode_sub.copy(&_offboard_control_mode);
 		}
 
-		bool offboard_rate_control = _offboard_control_mode.body_rate && !_offboard_control_mode.position
-					     && !_offboard_control_mode.velocity && !_offboard_control_mode.attitude;
+		const bool offboard_rate_control = _offboard_control_mode.body_rate && !_offboard_control_mode.position
+						   && !_offboard_control_mode.velocity && !_offboard_control_mode.attitude;
 
 		if (offboard_rate_control && PX4_ISFINITE(trajectory_setpoint.yawspeed)) {
 			rover_rate_setpoint_s rover_rate_setpoint{};
@@ -146,8 +146,9 @@ void DifferentialRateControl::generateSteeringSetpoint()
 	float speed_diff_normalized{0.f};
 
 	if (PX4_ISFINITE(_rover_rate_setpoint.yaw_rate_setpoint) && PX4_ISFINITE(_vehicle_yaw_rate)) {
-		float yaw_rate_setpoint = fabsf(_rover_rate_setpoint.yaw_rate_setpoint) > _param_ro_yaw_rate_th.get() * M_DEG_TO_RAD_F ?
-					  _rover_rate_setpoint.yaw_rate_setpoint : 0.f;
+		const float yaw_rate_setpoint = fabsf(_rover_rate_setpoint.yaw_rate_setpoint) > _param_ro_yaw_rate_th.get() *
+						M_DEG_TO_RAD_F ?
+						_rover_rate_setpoint.yaw_rate_setpoint : 0.f;
 		speed_diff_normalized = RoverControl::rateControl(_adjusted_yaw_rate_setpoint, _pid_yaw_rate,
 					yaw_rate_setpoint, _vehicle_yaw_rate, _param_rd_max_thr_yaw_r.get(), _max_yaw_accel,
 					_max_yaw_decel, _param_rd_wheel_track.get(), _dt);

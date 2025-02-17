@@ -106,7 +106,7 @@ private:
 	 * @param speed_diff_normalized Speed difference between left and right wheels [-1, 1].
 	 * @return Motor speeds for the right and left motors [-1, 1].
 	 */
-	Vector2f computeInverseKinematics(float throttle_body_x, const float speed_diff_normalized);
+	Vector2f computeInverseKinematics(float throttle_body_x, float speed_diff_normalized);
 
 	// uORB subscriptions
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};

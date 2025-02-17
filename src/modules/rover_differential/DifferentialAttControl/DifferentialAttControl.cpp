@@ -60,7 +60,7 @@ void DifferentialAttControl::updateParams()
 
 void DifferentialAttControl::updateAttControl()
 {
-	hrt_abstime timestamp_prev = _timestamp;
+	const hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
 	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
 
@@ -99,8 +99,8 @@ void DifferentialAttControl::updateAttControl()
 
 void DifferentialAttControl::generateAttitudeSetpoint()
 {
-	bool stab_mode_enabled = _vehicle_control_mode.flag_control_manual_enabled
-				 && !_vehicle_control_mode.flag_control_position_enabled && _vehicle_control_mode.flag_control_attitude_enabled;
+	const bool stab_mode_enabled = _vehicle_control_mode.flag_control_manual_enabled
+				       && !_vehicle_control_mode.flag_control_position_enabled && _vehicle_control_mode.flag_control_attitude_enabled;
 
 	if (stab_mode_enabled && _manual_control_setpoint_sub.updated()) { // Stab Mode
 		manual_control_setpoint_s manual_control_setpoint{};
@@ -113,8 +113,8 @@ void DifferentialAttControl::generateAttitudeSetpoint()
 			rover_throttle_setpoint.throttle_body_y = 0.f;
 			_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 
-			float yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
-						  _param_ro_yaw_stick_dz.get()), -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
+			const float yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
+							_param_ro_yaw_stick_dz.get()), -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
 
 			if (fabsf(yaw_rate_setpoint) > FLT_EPSILON
 			    || fabsf(rover_throttle_setpoint.throttle_body_x) < FLT_EPSILON) { // Closed loop yaw rate control
@@ -148,8 +148,8 @@ void DifferentialAttControl::generateAttitudeSetpoint()
 			_offboard_control_mode_sub.copy(&_offboard_control_mode);
 		}
 
-		bool offboard_att_control = _offboard_control_mode.attitude && !_offboard_control_mode.position
-					    && !_offboard_control_mode.velocity;
+		const bool offboard_att_control = _offboard_control_mode.attitude && !_offboard_control_mode.position
+						  && !_offboard_control_mode.velocity;
 
 		if (offboard_att_control && PX4_ISFINITE(trajectory_setpoint.yaw)) {
 			rover_attitude_setpoint_s rover_attitude_setpoint{};
@@ -176,8 +176,8 @@ void DifferentialAttControl::generateRateSetpoint()
 		return;
 	}
 
-	float yaw_rate_setpoint = RoverControl::attitudeControl(_adjusted_yaw_setpoint, _pid_yaw, _max_yaw_rate,
-				  _vehicle_yaw, _rover_attitude_setpoint.yaw_setpoint, _dt);
+	const float yaw_rate_setpoint = RoverControl::attitudeControl(_adjusted_yaw_setpoint, _pid_yaw, _max_yaw_rate,
+					_vehicle_yaw, _rover_attitude_setpoint.yaw_setpoint, _dt);
 
 	_last_rate_setpoint_update = _timestamp;
 	rover_rate_setpoint_s rover_rate_setpoint{};

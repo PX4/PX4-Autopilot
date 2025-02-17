@@ -95,6 +95,7 @@ float speedControl(SlewRate<float> &speed_with_rate_limit, PID &pid_speed, float
 /**
  * Applies yaw acceleration slew rate to a yaw rate setpoint and calculates the necessary speed diff setpoint
  * using a feedforward term and/or a PID controller.
+ * Note: This function is only for rovers that control the rate through a speed difference between the left/right wheels.
  * @param adjusted_yaw_rate_setpoint Yaw rate setpoint with applied slew rate [-1, 1] (Updated by this function).
  * @param pid_yaw_rate Yaw rate PID (Updated by this function).
  * @param yaw_rate_setpoint Yaw rate setpoint [rad/s].
