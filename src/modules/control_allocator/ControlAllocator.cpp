@@ -502,6 +502,15 @@ void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float,
 
 	int max_phase = 3 * 2;
 
+	// is this the proper way to do it?
+	// bool tiltrotor = _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
+	bool tiltrotor = dynamic_cast<ActuatorEffectivenessTiltrotorVTOL*>(_actuator_effectiveness) != nullptr;
+	PX4_INFO("tiltrotor = %d", (int) tiltrotor);
+
+	if (tiltrotor) {
+		max_phase = 4 * 2;
+	}
+
 	hrt_abstime now = hrt_absolute_time();
 	if (now - _last_preflight_check_update >= 500_ms) {
 		_preflight_check_phase++;
@@ -512,16 +521,34 @@ void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float,
 	int axis = _preflight_check_phase / 2;
 	int negative = _preflight_check_phase % 2;
 
-	c[0](0) = 0.;
-	c[0](1) = 0.;
-	c[0](2) = 0.;
-	c[0](axis) = negative ? -1.f : 1.f;
+	if (axis < 3) {
+		c[0](0) = 0.;
+		c[0](1) = 0.;
+		c[0](2) = 0.;
+		c[0](axis) = negative ? -1.f : 1.f;
 
-	if (_num_control_allocation > 1) {
-		c[1](0) = 0.;
-		c[1](1) = 0.;
-		c[1](2) = 0.;
-		c[1](axis) = negative ? -1.f : 1.f;
+		if (_num_control_allocation > 1) {
+			c[1](0) = 0.;
+			c[1](1) = 0.;
+			c[1](2) = 0.;
+			c[1](axis) = negative ? -1.f : 1.f;
+		}
+
+	} else {
+		// axis 4 = tiltrotor. Here, we modify the
+		// tiltrotor_extra_controls message, which is received in
+		// ActuatorEffectivenessTiltrotorVTOL::updateSetpoint
+
+		float modified_tilt_control = negative ? -1.f : 1.f;
+
+		tiltrotor_extra_controls_s tiltrotor_extra_controls;
+
+		if (_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls)) {
+			tiltrotor_extra_controls.collective_tilt_normalized_setpoint = modified_tilt_control;
+			tiltrotor_extra_controls.timestamp = hrt_absolute_time();
+			_tiltrotor_extra_controls_pub.publish(tiltrotor_extra_controls);
+
+		}
 	}
 
 	// PX4_INFO("_torque_sp: %f, %f, %f", (double) _torque_sp(0), (double) _torque_sp(1), (double) _torque_sp(2));
