@@ -117,12 +117,14 @@ private:
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _fw_lateral_ctrl_sub{ORB_ID(fw_lateral_control_setpoint)};
 	uORB::Subscription _fw_longitudinal_ctrl_sub{ORB_ID(fw_longitudinal_control_setpoint)};
-	uORB::SubscriptionData<longitudinal_control_limits_s> _long_control_limits_sub{ORB_ID(longitudinal_control_limits)};
-	uORB::SubscriptionData<lateral_control_limits_s> _lateral_control_limits_sub{ORB_ID(lateral_control_limits)};
+	uORB::Subscription _long_control_limits_sub{ORB_ID(longitudinal_control_limits)};
+	uORB::Subscription _lateral_control_limits_sub{ORB_ID(lateral_control_limits)};
 
 	vehicle_local_position_s _local_pos{};
 	fw_longitudinal_control_setpoint_s _long_control_sp{empty_longitudinal_control_setpoint};
+	longitudinal_control_limits_s _long_limits{};
 	fw_lateral_control_setpoint_s _lat_control_sp{empty_lateral_control_setpoint};
+	lateral_control_limits_s _lateral_limits{};
 
 	uORB::Publication <vehicle_attitude_setpoint_s> _attitude_sp_pub;
 	uORB::Publication <tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
@@ -156,6 +158,10 @@ private:
 		(ParamFloat<px4::params::FW_T_SPD_DEV_STD>) _param_speed_rate_standard_dev,
 		(ParamFloat<px4::params::FW_T_SPD_PRC_STD>) _param_process_noise_standard_dev,
 
+		(ParamFloat<px4::params::FW_T_CLMB_R_SP>) _param_climbrate_target,
+		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_sinkrate_target,
+		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
+		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,
 		(ParamFloat<px4::params::FW_THR_SLEW_MAX>) _param_fw_thr_slew_max,
 		(ParamFloat<px4::params::FW_LND_THRTC_SC>) _param_fw_thrtc_sc,
 		(ParamFloat<px4::params::FW_T_THR_LOW_HGT>) _param_fw_t_thr_low_hgt
@@ -228,6 +234,12 @@ private:
 	float getGuidanceQualityFactor(const vehicle_local_position_s &local_pos, const bool is_wind_valid) const;
 
 	float getCorrectedLateralAccelSetpoint(float lateral_accel_sp);
+
+	void setDefaultLongitudinalControlLimits();
+
+	void updateLongitudinalControlLimits(const longitudinal_control_limits_s &limits_in);
+
+	void updateControlLimits();
 };
 
 
