@@ -268,12 +268,15 @@ void InternalCombustionEngineControl::publishControl(const hrt_abstime now, cons
 bool InternalCombustionEngineControl::isEngineRunning(const hrt_abstime now)
 {
 	rpm_s rpm;
-	_rpm_sub.copy(&rpm);
 
-	const hrt_abstime rpm_timestamp = rpm.timestamp;
+	if (_rpm_sub.copy(&rpm)) {
+		const hrt_abstime rpm_timestamp = rpm.timestamp;
 
-	return (_param_ice_min_run_rpm.get() > FLT_EPSILON && (now < rpm_timestamp + 2_s)
-		&& rpm.rpm_estimate > _param_ice_min_run_rpm.get());
+		return (_param_ice_min_run_rpm.get() > FLT_EPSILON && (now < rpm_timestamp + 2_s)
+			&& rpm.rpm_estimate > _param_ice_min_run_rpm.get());
+	}
+
+	return false;
 }
 
 void InternalCombustionEngineControl::controlEngineRunning(float throttle_in)
