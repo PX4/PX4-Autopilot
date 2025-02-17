@@ -500,9 +500,6 @@ void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float,
 	// cycle through roll, pitch, yaw, and for each one inject positive and
 	// negative torque setpoints.
 
-	// for now, no collective tilt if tiltrotor. will need to look a bit different.
-
-
 	// is this the proper way to do it?
 	// bool tiltrotor = _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
 	bool tiltrotor = dynamic_cast<ActuatorEffectivenessTiltrotorVTOL*>(_actuator_effectiveness) != nullptr;
@@ -524,6 +521,8 @@ void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float,
 	int axis = _preflight_check_phase / 2;
 	int negative = _preflight_check_phase % 2;
 
+	float modified_tilt_control = 0.f;
+
 	if (axis < 3) {
 		c[0](0) = 0.;
 		c[0](1) = 0.;
@@ -538,23 +537,20 @@ void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float,
 		}
 
 	} else {
-		// axis 4 = tiltrotor. Here, we modify the
-		// tiltrotor_extra_controls message, which is received in
-		// ActuatorEffectivenessTiltrotorVTOL::updateSetpoint
-
-		float modified_tilt_control = negative ? -1.f : 1.f;
-
-		tiltrotor_extra_controls_s tiltrotor_extra_controls;
-
-		if (!_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls)) {
-			// got no message, make up thrust setpoint
-			tiltrotor_extra_controls.collective_thrust_normalized_setpoint = 0.;
-		}
-
-		tiltrotor_extra_controls.collective_tilt_normalized_setpoint = modified_tilt_control;
-		tiltrotor_extra_controls.timestamp = hrt_absolute_time();
-		_tiltrotor_extra_controls_pub.publish(tiltrotor_extra_controls);
+		// axis 4 = tiltrotor.
+		modified_tilt_control = negative ? -1.f : 1.f;
 	}
+
+	tiltrotor_extra_controls_s tiltrotor_extra_controls;
+
+	if (!_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls)) {
+		// got no message, make up thrust setpoint
+		tiltrotor_extra_controls.collective_thrust_normalized_setpoint = 0.;
+	}
+
+	tiltrotor_extra_controls.collective_tilt_normalized_setpoint = modified_tilt_control;
+	tiltrotor_extra_controls.timestamp = hrt_absolute_time();
+	_tiltrotor_extra_controls_pub.publish(tiltrotor_extra_controls);
 
 	// PX4_INFO("_torque_sp: %f, %f, %f", (double) _torque_sp(0), (double) _torque_sp(1), (double) _torque_sp(2));
 
