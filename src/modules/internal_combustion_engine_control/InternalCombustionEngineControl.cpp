@@ -356,11 +356,32 @@ int InternalCombustionEngineControl::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-ICE controls.
+The module controls internal combustion engine (ICE) features including: ignition (on/off),throttle and choke level, starter engine delay, and user request.
+The module publishes [InternalCombustionEngineControl.msg](../msg_docs/InternalCombustionEngineControl.md).
+The architecture is as shown below.:
+![Architecture](../../assets/diagrams/ice_control_diagram.png)
+
+### Enabling
+This feature is not enabled by default needs to be configured in the build target for your board together with the rpm capture driver:
+CONFIG_MODULES_INTERNAL_COMBUSTION_ENGINE_CONTROL=y
+CONFIG_DRIVERS_RPM_CAPTURE=y
+
+Additionally, to enable the module set [ICE_EN](https://docs.px4.io/main/en/advanced_config/parameter_reference.html#ICE_EN) to true and adjust the other module parameters ICE_ according to your needs.
+
+### Implementation
+The ICE is implemented with a (4) state machine:
+![Architecture](../../assets/diagrams/ice_control_state_machine.png)
+The state machine:
+- checks if [Rpm.msg](../msg_docs/Rpm.md) is updated to know if the engine is running
+- allows for user inputs from
+- AUX{N}
+- Arming state in [VehicleStatus.msg(../msg_docs/VehicleStatus.md)
+- MAVLink (TBD)
+<a id="internal_combustion_engine_control_usage"></a>
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("internal_combustion_engine_control", "system");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the background task");
+	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	return 0;
 }
