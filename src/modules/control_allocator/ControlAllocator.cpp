@@ -61,6 +61,8 @@ ControlAllocator::ControlAllocator() :
 	_actuator_servos_pub.advertise();
 	_actuator_servos_trim_pub.advertise();
 
+	_tiltrotor_extra_controls_pub.advertise();
+
 	for (int i = 0; i < MAX_NUM_MOTORS; ++i) {
 		char buffer[17];
 		snprintf(buffer, sizeof(buffer), "CA_R%u_SLEW", i);
@@ -505,7 +507,6 @@ void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float,
 	// is this the proper way to do it?
 	// bool tiltrotor = _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
 	bool tiltrotor = dynamic_cast<ActuatorEffectivenessTiltrotorVTOL*>(_actuator_effectiveness) != nullptr;
-	PX4_INFO("tiltrotor = %d", (int) tiltrotor);
 
 	if (tiltrotor) {
 		max_phase = 4 * 2;
@@ -543,12 +544,14 @@ void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float,
 
 		tiltrotor_extra_controls_s tiltrotor_extra_controls;
 
-		if (_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls)) {
-			tiltrotor_extra_controls.collective_tilt_normalized_setpoint = modified_tilt_control;
-			tiltrotor_extra_controls.timestamp = hrt_absolute_time();
-			_tiltrotor_extra_controls_pub.publish(tiltrotor_extra_controls);
-
+		if (!_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls)) {
+			// got no message, make up thrust setpoint
+			tiltrotor_extra_controls.collective_thrust_normalized_setpoint = 0.;
 		}
+
+		tiltrotor_extra_controls.collective_tilt_normalized_setpoint = modified_tilt_control;
+		tiltrotor_extra_controls.timestamp = hrt_absolute_time();
+		_tiltrotor_extra_controls_pub.publish(tiltrotor_extra_controls);
 	}
 
 	// PX4_INFO("_torque_sp: %f, %f, %f", (double) _torque_sp(0), (double) _torque_sp(1), (double) _torque_sp(2));
