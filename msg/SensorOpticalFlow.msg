@@ -5,7 +5,7 @@ uint32 device_id               # unique device ID for the sensor that does not c
 
 float32[2] pixel_flow          # (radians) optical flow in radians where a positive value is produced by a RH rotation of the sensor about the body axis
 
-float32[3] delta_angle         # (radians) accumulated gyro radians where a negative value is produced by a RH rotation about the body axis. Set to NaN if flow sensor does not have 3-axis gyro data.
+float32[3] delta_angle         # (radians) accumulated gyro radians where a positive value is produced by a RH rotation about the body axis. Set to NaN if flow sensor does not have 3-axis gyro data.
 bool delta_angle_available
 
 float32 distance_m             # (meters) Distance to the center of the flow field
