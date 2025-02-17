@@ -502,15 +502,17 @@ void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float,
 
 	// for now, no collective tilt if tiltrotor. will need to look a bit different.
 
-	int max_phase = 3 * 2;
 
 	// is this the proper way to do it?
 	// bool tiltrotor = _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
 	bool tiltrotor = dynamic_cast<ActuatorEffectivenessTiltrotorVTOL*>(_actuator_effectiveness) != nullptr;
 
+	int n_axes = 3;
 	if (tiltrotor) {
-		max_phase = 4 * 2;
+		n_axes = 4;
 	}
+
+	int max_phase = 2 * n_axes;
 
 	hrt_abstime now = hrt_absolute_time();
 	if (now - _last_preflight_check_update >= 500_ms) {
