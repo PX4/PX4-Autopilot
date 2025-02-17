@@ -100,7 +100,6 @@ private:
 	};
 
 	enum class UserOnOffRequest {
-		None,
 		Off,
 		On
 	};

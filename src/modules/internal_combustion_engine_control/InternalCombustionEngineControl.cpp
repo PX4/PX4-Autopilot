@@ -106,24 +106,33 @@ void InternalCombustionEngineControl::Run()
 
 	const hrt_abstime now = hrt_absolute_time();
 
-	UserOnOffRequest user_request = UserOnOffRequest::None;
+	UserOnOffRequest user_request = UserOnOffRequest::Off;
 
 	switch (static_cast<ICESource>(_param_ice_on_source.get())) {
-	case ICESource::ArmingState:
-		user_request = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? UserOnOffRequest::On :
-			       UserOnOffRequest::Off;
+	case ICESource::ArmingState: {
+			if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+				user_request = UserOnOffRequest::On;
+			}
+		}
 		break;
 
-	case ICESource::Mavlink:
-		user_request = UserOnOffRequest::Off;
+	case ICESource::Mavlink: {
+			user_request = UserOnOffRequest::Off;
+		}
 		break;
 
-	case ICESource::Aux1:
-		user_request = manual_control_setpoint.aux1 > 0.5f ? UserOnOffRequest::On : UserOnOffRequest::Off;
+	case ICESource::Aux1: {
+			if (manual_control_setpoint.aux1 > 0.5f) {
+				user_request = UserOnOffRequest::On;
+			}
+		}
 		break;
 
-	case ICESource::Aux2:
-		user_request = manual_control_setpoint.aux2 > 0.5f ? UserOnOffRequest::On : UserOnOffRequest::Off;
+	case ICESource::Aux2: {
+			if (manual_control_setpoint.aux2 > 0.5f) {
+				user_request = UserOnOffRequest::On;
+			}
+		}
 		break;
 	}
 
