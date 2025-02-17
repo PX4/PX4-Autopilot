@@ -33,6 +33,8 @@
 
 #include "InternalCombustionEngineControl.hpp"
 
+#include <px4_platform_common/events.h>
+
 using namespace time_literals;
 
 namespace internal_combustion_engine_control
@@ -211,6 +213,8 @@ void InternalCombustionEngineControl::Run()
 				_state_start_time = now;
 				_starting_retry_cycle = 0;
 				PX4_WARN("ICE: Running Fault detected");
+				events::send(events::ID("internal_combustion_engine_control_fault"), events::Log::Critical,
+					     "ICE: Fault");
 			}
 		}
 
