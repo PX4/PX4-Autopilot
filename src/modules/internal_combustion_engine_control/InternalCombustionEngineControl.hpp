@@ -126,7 +126,7 @@ private:
 	void controlEngineStop();
 	void controlEngineStartup(const hrt_abstime now);
 	void controlEngineFault();
-	bool maximumRetriesReached();
+	bool maximumAttemptsReached();
 	void publishControl(const hrt_abstime now, const UserOnOffRequest user_request);
 
 	// Starting state specifics
@@ -148,7 +148,7 @@ private:
 		(ParamFloat<px4::params::ICE_CHOKE_ST_DUR>) _param_ice_choke_st_dur,
 		(ParamFloat<px4::params::ICE_STARTING_DUR>) _param_ice_starting_dur,
 		(ParamFloat<px4::params::ICE_MIN_RUN_RPM>) _param_ice_min_run_rpm,
-		(ParamInt<px4::params::ICE_STRT_RETRY>) _param_ice_strt_retry,
+		(ParamInt<px4::params::ICE_STRT_ATTEMPT>) _param_ice_strt_attempts,
 		(ParamInt<px4::params::ICE_RUN_FAULT_D>) _param_ice_running_fault_detection,
 		(ParamFloat<px4::params::ICE_STRT_THR>) _param_ice_strt_thr,
 		(ParamInt<px4::params::ICE_STOP_CHOKE>) _param_ice_stop_choke,

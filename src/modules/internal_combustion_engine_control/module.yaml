@@ -34,7 +34,7 @@ parameters:
 
       ICE_STARTING_DUR:
         description:
-          short: Duration for starting up (excl. choking)
+          short: Duration of single starting attempt (excl. choking)
           long: |
               Maximum expected time for startup before declaring timeout.
         type: float
@@ -56,11 +56,11 @@ parameters:
         increment: 1
         default: 2000
 
-      ICE_STRT_RETRY:
+      ICE_STRT_ATTEMPT:
         description:
-          short: Number of retries for starting engine
+          short: Number attempts for starting the engine
           long: |
-              Number of accepted retries for restarting the engine before declaring a fault.
+              Number of accepted attempts for starting the engine before declaring a fault.
         type: int32
         min: 0
         max: 10

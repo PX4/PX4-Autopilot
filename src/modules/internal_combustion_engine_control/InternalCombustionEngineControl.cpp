@@ -140,7 +140,7 @@ void InternalCombustionEngineControl::Run()
 	case State::Stopped: {
 			controlEngineStop();
 
-			if (user_request == UserOnOffRequest::On && !maximumRetriesReached()) {
+			if (user_request == UserOnOffRequest::On && !maximumAttemptsReached()) {
 
 				_state = State::Starting;
 				_state_start_time = now;
@@ -177,7 +177,7 @@ void InternalCombustionEngineControl::Run()
 
 						} else {
 
-							if (maximumRetriesReached()) {
+							if (maximumAttemptsReached()) {
 								_state = State::Fault;
 								PX4_WARN("ICE: Fault");
 
@@ -328,7 +328,7 @@ void InternalCombustionEngineControl::controlEngineStartup(const hrt_abstime now
 		// start resting timer if engine is not running
 		_starting_rest_time = now;
 		_starting_retry_cycle++;
-		PX4_INFO("ICE: Retry %i finished", _starting_retry_cycle);
+		PX4_INFO("ICE: starting attempt %i finished", _starting_retry_cycle);
 	}
 }
 
@@ -337,14 +337,14 @@ bool InternalCombustionEngineControl::isStartingPermitted(const hrt_abstime now)
 	return now > _starting_rest_time + DELAY_BEFORE_RESTARTING * 1_s;
 }
 
-bool InternalCombustionEngineControl::maximumRetriesReached()
+bool InternalCombustionEngineControl::maximumAttemptsReached()
 {
 	// First and only attempt
-	if (_param_ice_strt_retry.get() == 0) {
+	if (_param_ice_strt_attempts.get() == 0) {
 		return _starting_retry_cycle > 0;
 	}
 
-	return _starting_retry_cycle >= _param_ice_strt_retry.get();
+	return _starting_retry_cycle >= _param_ice_strt_attempts.get();
 }
 
 int InternalCombustionEngineControl::print_usage(const char *reason)
