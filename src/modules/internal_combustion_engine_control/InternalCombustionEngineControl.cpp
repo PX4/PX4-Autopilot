@@ -109,10 +109,6 @@ void InternalCombustionEngineControl::Run()
 	UserOnOffRequest user_request = UserOnOffRequest::None;
 
 	switch (static_cast<ICESource>(_param_ice_on_source.get())) {
-	case ICESource::None:
-		user_request = UserOnOffRequest::Off;
-		break;
-
 	case ICESource::ArmingState:
 		user_request = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? UserOnOffRequest::On :
 			       UserOnOffRequest::Off;

@@ -12,15 +12,14 @@ parameters:
 
       ICE_ON_SOURCE:
         description:
-          short: Source of input to activate engine
+          short: Engine start/stop input source
         type: enum
         default: 0
         values:
-          0: No activation
-          1: On arming - disarming
-          2: Mavlink - TODO
-          3: Aux1
-          4: Aux2
+          0: On arming - disarming
+          1: Mavlink - TODO
+          2: Aux1
+          3: Aux2
 
       ICE_CHOKE_ST_DUR:
         description:
