@@ -207,8 +207,8 @@ public:
 	// set air density used by the multi-rotor specific drag force fusion
 	void set_air_density(float air_density) { _air_density = air_density; }
 
-	// the flags considered are opt_flow, gps, ev_vel and ev_pos
 	bool isOnlyActiveSourceOfHorizontalAiding(bool aiding_flag) const;
+	bool isOnlyActiveSourceOfHorizontalPositionAiding(bool aiding_flag) const;
 
 	/*
 	 * Check if there are any other active source of horizontal aiding
@@ -221,6 +221,7 @@ public:
 	 * @return true if an other source than aiding_flag is active
 	 */
 	bool isOtherSourceOfHorizontalAidingThan(bool aiding_flag) const;
+	bool isOtherSourceOfHorizontalPositionAidingThan(bool aiding_flag) const;
 
 	// Return true if at least one source of horizontal aiding is active
 	// the flags considered are opt_flow, gps, ev_vel and ev_pos
@@ -228,6 +229,8 @@ public:
 	bool isVerticalAidingActive() const;
 
 	int getNumberOfActiveHorizontalAidingSources() const;
+	int getNumberOfActiveHorizontalPositionAidingSources() const;
+	int getNumberOfActiveHorizontalVelocityAidingSources() const;
 
 	bool isOtherSourceOfVerticalPositionAidingThan(bool aiding_flag) const;
 	bool isVerticalPositionAidingActive() const;
