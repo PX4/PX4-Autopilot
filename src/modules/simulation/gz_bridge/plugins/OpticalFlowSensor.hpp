@@ -61,8 +61,6 @@ private:
 
 	// Flow
 	std::shared_ptr<OpticalFlowOpenCV> _optical_flow {nullptr};
-	float _flow_x {0.0f};
-	float _flow_y {0.0f};
 	int _integration_time_us;
 
 	// Camera

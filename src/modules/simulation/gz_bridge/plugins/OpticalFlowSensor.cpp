@@ -145,11 +145,14 @@ bool OpticalFlowSensor::Update(const std::chrono::steady_clock::duration &_now)
 	px4::msgs::OpticalFlow msg;
 	msg.set_time_usec(_last_image_timestamp);
 
-	int quality = _optical_flow->calcFlow(_last_image_gray.data, _last_image_timestamp,
-					      _integration_time_us, _flow_x, _flow_y);
+	float flow_x = 0.f;
+	float flow_y = 0.f;
 
-	msg.set_integrated_x(_flow_x);
-	msg.set_integrated_y(_flow_y);
+	int quality = _optical_flow->calcFlow(_last_image_gray.data, _last_image_timestamp,
+					      _integration_time_us, flow_x, flow_y);
+
+	msg.set_integrated_x(flow_x);
+	msg.set_integrated_y(flow_y);
 	msg.set_integration_time_us(_integration_time_us);
 	msg.set_quality(quality);
 
