@@ -46,10 +46,34 @@
 
 namespace Timer
 {
+
+
+// Just to keep def extract_timer(line): happy
 enum Timer {
-	EMIOS0 = 0,
-	EMIOS1,
-	EMIOS2,
+	EMIOS0_Channel0,
+	EMIOS0_Channel1,
+	EMIOS0_Channel2,
+	EMIOS0_Channel3,
+	EMIOS0_Channel4,
+	EMIOS0_Channel5,
+	EMIOS0_Channel6,
+	EMIOS0_Channel7,
+	EMIOS1_Channel0,
+	EMIOS1_Channel1,
+	EMIOS1_Channel2,
+	EMIOS1_Channel3,
+	EMIOS1_Channel4,
+	EMIOS1_Channel5,
+	EMIOS1_Channel6,
+	EMIOS1_Channel7,
+	EMIOS2_Channel0,
+	EMIOS2_Channel1,
+	EMIOS2_Channel2,
+	EMIOS2_Channel3,
+	EMIOS2_Channel4,
+	EMIOS2_Channel5,
+	EMIOS2_Channel6,
+	EMIOS2_Channel7,
 };
 enum Channel {
 	Channel0 = 0,
@@ -70,11 +94,37 @@ struct TimerChannel {
 static inline constexpr uint32_t timerBaseRegister(Timer::Timer timer)
 {
 	switch (timer) {
-	case Timer::EMIOS0: return S32K3XX_EMIOS0_BASE;
+	case Timer::EMIOS0_Channel0:
+	case Timer::EMIOS0_Channel1:
+	case Timer::EMIOS0_Channel2:
+	case Timer::EMIOS0_Channel3:
+	case Timer::EMIOS0_Channel4:
+	case Timer::EMIOS0_Channel5:
+	case Timer::EMIOS0_Channel6:
+	case Timer::EMIOS0_Channel7:
+		return S32K3XX_EMIOS0_BASE;
 
-	case Timer::EMIOS1: return S32K3XX_EMIOS1_BASE;
 
-	case Timer::EMIOS2: return S32K3XX_EMIOS2_BASE;
+
+	case Timer::EMIOS1_Channel0:
+	case Timer::EMIOS1_Channel1:
+	case Timer::EMIOS1_Channel2:
+	case Timer::EMIOS1_Channel3:
+	case Timer::EMIOS1_Channel4:
+	case Timer::EMIOS1_Channel5:
+	case Timer::EMIOS1_Channel6:
+	case Timer::EMIOS1_Channel7:
+		return S32K3XX_EMIOS1_BASE;
+
+	case Timer::EMIOS2_Channel0:
+	case Timer::EMIOS2_Channel1:
+	case Timer::EMIOS2_Channel2:
+	case Timer::EMIOS2_Channel3:
+	case Timer::EMIOS2_Channel4:
+	case Timer::EMIOS2_Channel5:
+	case Timer::EMIOS2_Channel6:
+	case Timer::EMIOS2_Channel7:
+		return S32K3XX_EMIOS2_BASE;
 	}
 
 	return 0;
