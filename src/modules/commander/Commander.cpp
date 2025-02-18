@@ -1894,8 +1894,9 @@ void Commander::run()
 			// }
 
 		} else {
-			// leave the mode again somehow...
-			_user_mode_intention.change(_prev_nav_state);
+			if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK) {
+				_user_mode_intention.change(_prev_nav_state);
+			}
 		}
 
 		modeManagementUpdate();
