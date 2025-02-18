@@ -810,6 +810,7 @@ px4io driver is used for main ones.
 	PRINT_MODULE_USAGE_PARAM_FLAG('e', "Disable RC", false);
 	PRINT_MODULE_USAGE_PARAM_INT('p', 2, 2, 7, "UART port", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("calibrate_escs", "Calibrate ESCs min/max range");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("enable_debug", "Enables driver debugging");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
