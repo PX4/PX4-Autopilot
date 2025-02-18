@@ -521,7 +521,7 @@ void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float,
 	int axis = _preflight_check_phase / 2;
 	int negative = _preflight_check_phase % 2;
 
-	float modified_tilt_control = 0.f;
+	float modified_tilt_control = 0.5f;
 
 	if (axis < 3) {
 		c[0](0) = 0.;
@@ -538,7 +538,8 @@ void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float,
 
 	} else {
 		// axis 4 = tiltrotor.
-		modified_tilt_control = negative ? -1.f : 1.f;
+		// collective tilt normalised control goes from 0 to 1.
+		modified_tilt_control = negative ? 0.f : 1.f;
 	}
 
 	tiltrotor_extra_controls_s tiltrotor_extra_controls;
