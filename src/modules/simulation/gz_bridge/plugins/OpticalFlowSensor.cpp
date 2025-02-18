@@ -58,6 +58,7 @@ bool OpticalFlowSensor::Load(const sdf::Sensor &_sdf)
 	      << "  hfov: " << hfov << std::endl;
 
 	gzdbg << "Subscribing to camera topic for flow: " << camera_topic << std::endl;
+
 	if (!_node.Subscribe(camera_topic, &OpticalFlowSensor::OnImage, this)) {
 		gzerr << "Failed to subscribe to camera topic: " << camera_topic << std::endl;
 		return false;
