@@ -2,12 +2,9 @@ cmake_minimum_required(VERSION 3.11.0 FATAL_ERROR)
 
 project(OpticalFlowSystem)
 
-# GZ packages for Harmonic
-gz_find_package(gz-cmake3 REQUIRED)
-gz_find_package(gz-plugin2 REQUIRED COMPONENTS register)
-gz_find_package(gz-sim8 REQUIRED)
-gz_find_package(gz-sensors8 REQUIRED)
-gz_find_package(gz-transport13 REQUIRED)
+gz_find_package(gz-plugin${GZ_PLUGIN_VERSION} REQUIRED COMPONENTS register)
+gz_find_package(gz-sim${GZ_SIM_VERSION} REQUIRED)
+gz_find_package(gz-sensors${GZ_SENSORS_VERSION} REQUIRED)
 
 # PX4-OpticalFlow
 include(ExternalProject)
@@ -33,11 +30,11 @@ add_library(${PROJECT_NAME} SHARED
 
 target_link_libraries(${PROJECT_NAME}
     PUBLIC px4_msgs
-    PUBLIC gz-sensors8::gz-sensors8
-    PUBLIC gz-rendering8::gz-rendering8
-    PUBLIC gz-plugin2::gz-plugin2
-    PUBLIC gz-sim8::gz-sim8
-    PUBLIC gz-transport13::gz-transport13
+    PUBLIC gz-sensors${GZ_SENSORS_VERSION}::gz-sensors${GZ_SENSORS_VERSION}
+    # PUBLIC gz-rendering8::gz-rendering8
+    PUBLIC gz-plugin${GZ_PLUGIN_VERSION}::gz-plugin${GZ_PLUGIN_VERSION}
+    PUBLIC gz-sim${GZ_SIM_VERSION}::gz-sim${GZ_SIM_VERSION}
+    PUBLIC gz-transport${GZ_TRANSPORT_VERSION}::gz-transport${GZ_TRANSPORT_VERSION}
     PUBLIC ${OpenCV_LIBS}
     PUBLIC ${OpticalFlow_LIBS}
 )
