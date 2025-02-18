@@ -67,7 +67,8 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 
 			// recalculate the innovation using the updated state
 			const Vector3f flow_gyro_corrected = _flow_sample_delayed.gyro_rate - _flow_gyro_bias;
-			_aid_src_optical_flow.innovation[1] = predictFlow(flow_gyro_corrected)(1) - _aid_src_optical_flow.observation[1];
+			_aid_src_optical_flow.innovation[1] = predictFlow(flow_gyro_corrected)(1) - static_cast<float>
+							      (_aid_src_optical_flow.observation[1]);
 		}
 
 		if (_aid_src_optical_flow.innovation_variance[index] < _aid_src_optical_flow.observation_variance[index]) {

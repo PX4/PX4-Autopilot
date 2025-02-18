@@ -2,7 +2,7 @@
 
 [![Releases](https://img.shields.io/github/release/PX4/PX4-Autopilot.svg)](https://github.com/PX4/PX4-Autopilot/releases) [![DOI](https://zenodo.org/badge/22634/PX4/PX4-Autopilot.svg)](https://zenodo.org/badge/latestdoi/22634/PX4/PX4-Autopilot)
 
-[![Nuttx Targets](https://github.com/PX4/PX4-Autopilot/workflows/Nuttx%20Targets/badge.svg)](https://github.com/PX4/PX4-Autopilot/actions?query=workflow%3A%22Nuttx+Targets%22?branch=master) [![SITL Tests](https://github.com/PX4/PX4-Autopilot/workflows/SITL%20Tests/badge.svg?branch=master)](https://github.com/PX4/PX4-Autopilot/actions?query=workflow%3A%22SITL+Tests%22)
+[![Build Targets](https://github.com/PX4/PX4-Autopilot/actions/workflows/build_all_targets.yml/badge.svg?branch=main)](https://github.com/PX4/PX4-Autopilot/actions/workflows/build_all_targets.yml) [![SITL Tests](https://github.com/PX4/PX4-Autopilot/workflows/SITL%20Tests/badge.svg?branch=master)](https://github.com/PX4/PX4-Autopilot/actions?query=workflow%3A%22SITL+Tests%22)
 
 [![Discord Shield](https://discordapp.com/api/guilds/1022170275984457759/widget.png?style=shield)](https://discord.gg/dronecode)
 
@@ -44,30 +44,9 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://docs.px4.io/main/en/con
 
 ## Maintenance Team
 
-Note: This is the source of truth for the active maintainers of PX4 ecosystem.
+See the latest list of maintainers on [MAINTAINERS](MAINTAINERS.md) file at the root of the project.
 
-| Sector | Maintainer |
-|---|---|
-| Founder | [Lorenz Meier](https://github.com/LorenzMeier) |
-| Architecture | [Daniel Agar](https://github.com/dagar) / [Beat Küng](https://github.com/bkueng)|
-| State Estimation | [Mathieu Bresciani](https://github.com/bresch) / [Paul Riseborough](https://github.com/priseborough) |
-| OS/NuttX | [David Sidrane](https://github.com/davids5) |
-| Drivers | [Daniel Agar](https://github.com/dagar) |
-| Simulation | [Jaeyoung Lim](https://github.com/Jaeyoung-Lim) |
-| ROS2 | [Beniamino Pozzan](https://github.com/beniaminopozzan) |
-| Community QnA Call | [Ramon Roche](https://github.com/mrpollo) |
-| [Documentation](https://docs.px4.io/main/en/) | [Hamish Willee](https://github.com/hamishwillee) |
-
-| Vehicle Type | Maintainer |
-|---|---|
-| Multirotor | [Matthias Grob](https://github.com/MaEtUgR) |
-| Fixed Wing | [Thomas Stastny](https://github.com/tstastny) |
-| Hybrid VTOL | [Silvan Fuhrer](https://github.com/sfuhrer) |
-| Rover | [Christian Friedrich](https://github.com/chfriedrich98) |
-| Boat | x |
-
-
-See also [maintainers list](https://px4.io/community/maintainers/) (px4.io) and the [contributors list](https://github.com/PX4/PX4-Autopilot/graphs/contributors) (Github). However it may be not up to date.
+For the latest stats on contributors please see the latest stats for the Dronecode ecosystem in our project dashboard under [LFX Insights](https://insights.lfx.linuxfoundation.org/foundation/dronecode). For information on how to update your profile and affiliations please see the following support link on how to [Complete Your LFX Profile](https://docs.linuxfoundation.org/lfx/my-profile/complete-your-lfx-profile). Dronecode publishes a yearly snapshot of contributions and achievements on its [website under the Reports section](https://dronecode.org).
 
 ## Supported Hardware
 
@@ -104,7 +83,7 @@ These boards fully comply with Pixhawk Standard, and are maintained by the PX4-A
 
 These boards are maintained to be compatible with PX4-Autopilot by the Manufacturers.
 
-* [ARK Electronics ARKV6X](https://docs.px4.io/main/en/flight_controller/arkv6x.html)
+* [ARK Electronics ARKV6X](https://docs.px4.io/main/en/flight_controller/ark_v6x.html)
 * [CubePilot Cube Orange+](https://docs.px4.io/main/en/flight_controller/cubepilot_cube_orangeplus.html)
 * [CubePilot Cube Orange](https://docs.px4.io/main/en/flight_controller/cubepilot_cube_orange.html)
 * [CubePilot Cube Yellow](https://docs.px4.io/main/en/flight_controller/cubepilot_cube_yellow.html)
@@ -119,7 +98,7 @@ These boards don't fully comply industry standards, and thus is solely maintaine
 
 ### Experimental
 
-These boards are nor maintained by PX4 team nor Manufacturer, and is not guaranteed to be compatible with up to date PX4 releases.
+These boards are not maintained by PX4 team nor Manufacturer, and is not guaranteed to be compatible with up to date PX4 releases.
 
 * [Raspberry PI with Navio 2](https://docs.px4.io/main/en/flight_controller/raspberry_pi_navio2.html)
 * [Bitcraze Crazyflie 2.0](https://docs.px4.io/main/en/complete_vehicles/crazyflie2.html)

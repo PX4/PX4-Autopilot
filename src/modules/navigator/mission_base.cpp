@@ -299,15 +299,14 @@ MissionBase::on_active()
 		replayCachedCameraModeItems();
 	}
 
+	// Replay cached gimbal commands immediately upon mission resume, but only after the vehicle has reached the final target altitude
+	if (haveCachedGimbalItems() && _work_item_type != WorkItemType::WORK_ITEM_TYPE_CLIMB) {
+		replayCachedGimbalItems();
+	}
 
 	// Replay cached mission commands once the last mission waypoint is re-reached after the mission interruption.
 	// Each replay function also clears the cached items afterwards
 	if (_mission.current_seq > _mission_activation_index) {
-		// replay gimbal commands
-		if (haveCachedGimbalItems()) {
-			replayCachedGimbalItems();
-		}
-
 		// replay trigger commands
 		if (cameraWasTriggering()) {
 			replayCachedTriggerItems();

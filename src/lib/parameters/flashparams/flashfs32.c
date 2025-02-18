@@ -1126,19 +1126,8 @@ int parameter_flashfs_init(sector_descriptor_t *fconfig, uint8_t *buffer, uint16
 	/*  No paramaters */
 
 	if (pf == NULL) {
-		size_t total_size = size + sizeof(flash_entry_header_t);
-		size_t alignment = 31;//32-byte flash line - 1
-		size_t  size_adjust = ((total_size + alignment) & ~alignment) - total_size;
-		total_size += size_adjust;
-
-		/* Do we have free space ?*/
-
-		if (find_free(total_size) == NULL) {
-
-			/* No parameters and no free space => need erase */
-
-			rv  = parameter_flashfs_erase();
-		}
+		// Parameters can't be found, assume sector is corrupt or empty
+		rv = parameter_flashfs_erase();
 	}
 
 	return rv;

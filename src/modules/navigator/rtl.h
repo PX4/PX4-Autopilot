@@ -78,7 +78,6 @@ public:
 		RTL_MISSION_FAST_REVERSE,
 	};
 
-	void on_inactivation() override;
 	void on_inactive() override;
 	void on_activation() override;
 	void on_active() override;

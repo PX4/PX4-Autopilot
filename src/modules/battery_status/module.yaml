@@ -61,3 +61,22 @@ parameters:
             num_instances: *max_num_config_instances
             instance_start: 1
             default: [-1, -1]
+
+        BAT${i}_I_OVERWRITE:
+            description:
+                short: Battery ${i} idle current overwrite
+                long: |
+                    This parameter allows to overwrite the current measured during
+                    idle (unarmed) state with a user-defined constant value (expressed in amperes).
+                    When the system is armed, the measured current is used. This is useful
+                    because on certain ESCs current measurements are inaccurate in case of no load.
+                    Negative values are ignored and will cause the measured current to be used.
+                    The default value of 0 disables the overwrite, in which case the measured value
+                    is always used.
+
+            type: float
+            decimal: 8
+            reboot_required: true
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [0, 0]

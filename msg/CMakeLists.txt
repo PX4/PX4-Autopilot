@@ -40,19 +40,14 @@ set(msg_files
 	ActionRequest.msg
 	ActuatorArmed.msg
 	ActuatorControlsStatus.msg
-	ActuatorMotors.msg
 	ActuatorOutputs.msg
-	ActuatorServos.msg
 	ActuatorServosTrim.msg
 	ActuatorTest.msg
 	AdcReport.msg
 	Airspeed.msg
 	AirspeedValidated.msg
 	AirspeedWind.msg
-	ArmingCheckReply.msg
-	ArmingCheckRequest.msg
 	AutotuneAttitudeControlStatus.msg
-	BatteryStatus.msg
 	Buffer128.msg
 	ButtonEvent.msg
 	CameraCapture.msg
@@ -61,8 +56,6 @@ set(msg_files
 	CanInterfaceStatus.msg
 	CellularStatus.msg
 	CollisionConstraints.msg
-	CollisionReport.msg
-	ConfigOverrides.msg
 	ControlAllocatorStatus.msg
 	Cpuload.msg
 	DatamanRequest.msg
@@ -110,7 +103,6 @@ set(msg_files
 	GimbalManagerSetAttitude.msg
 	GimbalManagerSetManualControl.msg
 	GimbalManagerStatus.msg
-	GotoSetpoint.msg
 	GpioConfig.msg
 	GpioIn.msg
 	GpioOut.msg
@@ -120,9 +112,9 @@ set(msg_files
 	Gripper.msg
 	HealthReport.msg
 	HeaterStatus.msg
-	HomePosition.msg
 	HoverThrustEstimate.msg
 	InputRc.msg
+	InternalCombustionEngineControl.msg
 	InternalCombustionEngineStatus.msg
 	IridiumsbdStatus.msg
 	IrlockReport.msg
@@ -136,7 +128,6 @@ set(msg_files
 	LogMessage.msg
 	MagnetometerBiasEstimate.msg
 	MagWorkerData.msg
-	ManualControlSetpoint.msg
 	ManualControlSwitches.msg
 	MavlinkLog.msg
 	MavlinkTunnel.msg
@@ -145,7 +136,6 @@ set(msg_files
 	Mission.msg
 	MissionResult.msg
 	MountOrientation.msg
-	ModeCompleted.msg
 	NavigatorMissionItem.msg
 	NavigatorStatus.msg
 	NormalizedUnsignedSetpoint.msg
@@ -182,13 +172,13 @@ set(msg_files
 	RateCtrlStatus.msg
 	RcChannels.msg
 	RcParameterMap.msg
-	RegisterExtComponentReply.msg
-	RegisterExtComponentRequest.msg
-	RoverAckermannGuidanceStatus.msg
-	RoverAckermannStatus.msg
-	RoverDifferentialGuidanceStatus.msg
-	RoverDifferentialSetpoint.msg
-	RoverDifferentialStatus.msg
+	RoverAttitudeSetpoint.msg
+	RoverAttitudeStatus.msg
+	RoverVelocityStatus.msg
+	RoverRateSetpoint.msg
+	RoverRateStatus.msg
+	RoverSteeringSetpoint.msg
+	RoverThrottleSetpoint.msg
 	RoverMecanumGuidanceStatus.msg
 	RoverMecanumSetpoint.msg
 	RoverMecanumStatus.msg
@@ -222,48 +212,56 @@ set(msg_files
 	TelemetryStatus.msg
 	TiltrotorExtraControls.msg
 	TimesyncStatus.msg
-	TrajectoryBezier.msg
-	TrajectorySetpoint.msg
-	TrajectoryWaypoint.msg
 	TransponderReport.msg
 	TuneControl.msg
 	UavcanParameterRequest.msg
 	UavcanParameterValue.msg
 	UlogStream.msg
 	UlogStreamAck.msg
-	UnregisterExtComponent.msg
 	VehicleAcceleration.msg
 	VehicleAirData.msg
 	VehicleAngularAccelerationSetpoint.msg
-	VehicleAngularVelocity.msg
-	VehicleAttitude.msg
-	VehicleAttitudeSetpoint.msg
-	VehicleCommand.msg
-	VehicleCommandAck.msg
 	VehicleConstraints.msg
-	VehicleControlMode.msg
-	VehicleGlobalPosition.msg
 	VehicleImu.msg
 	VehicleImuStatus.msg
-	VehicleLandDetected.msg
-	VehicleLocalPosition.msg
 	VehicleLocalPositionSetpoint.msg
 	VehicleMagnetometer.msg
-	VehicleOdometry.msg
 	VehicleOpticalFlow.msg
 	VehicleOpticalFlowVel.msg
-	VehicleRatesSetpoint.msg
 	VehicleRoi.msg
-	VehicleStatus.msg
 	VehicleThrustSetpoint.msg
 	VehicleTorqueSetpoint.msg
-	VehicleTrajectoryBezier.msg
-	VehicleTrajectoryWaypoint.msg
 	VelocityLimits.msg
-	VtolVehicleStatus.msg
 	WheelEncoders.msg
 	Wind.msg
 	YawEstimatorStatus.msg
+	versioned/ActuatorMotors.msg
+	versioned/ActuatorServos.msg
+	versioned/ArmingCheckReply.msg
+	versioned/ArmingCheckRequest.msg
+	versioned/BatteryStatus.msg
+	versioned/ConfigOverrides.msg
+	versioned/GotoSetpoint.msg
+	versioned/HomePosition.msg
+	versioned/ManualControlSetpoint.msg
+	versioned/ModeCompleted.msg
+	versioned/RegisterExtComponentReply.msg
+	versioned/RegisterExtComponentRequest.msg
+	versioned/TrajectorySetpoint.msg
+	versioned/UnregisterExtComponent.msg
+	versioned/VehicleAngularVelocity.msg
+	versioned/VehicleAttitude.msg
+	versioned/VehicleAttitudeSetpoint.msg
+	versioned/VehicleCommandAck.msg
+	versioned/VehicleCommand.msg
+	versioned/VehicleControlMode.msg
+	versioned/VehicleGlobalPosition.msg
+	versioned/VehicleLandDetected.msg
+	versioned/VehicleLocalPosition.msg
+	versioned/VehicleOdometry.msg
+	versioned/VehicleRatesSetpoint.msg
+	versioned/VehicleStatus.msg
+	versioned/VtolVehicleStatus.msg
 )
 list(SORT msg_files)
 
@@ -315,7 +313,7 @@ add_custom_command(
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
 		--headers
 		-f ${msg_files}
-		-i ${CMAKE_CURRENT_SOURCE_DIR}
+		-i ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/versioned
 		-o ${msg_out_path}
 		-e ${PX4_SOURCE_DIR}/Tools/msg/templates/uorb
 	DEPENDS
@@ -336,7 +334,7 @@ add_custom_command(
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
 		--json
 		-f ${msg_files}
-		-i ${CMAKE_CURRENT_SOURCE_DIR}
+		-i ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/versioned
 		-o ${msg_source_out_path}
 		-e ${PX4_SOURCE_DIR}/Tools/msg/templates/uorb
 	DEPENDS
@@ -374,7 +372,7 @@ add_custom_command(
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
 		--headers
 		-f ${msg_files}
-		-i ${CMAKE_CURRENT_SOURCE_DIR}
+		-i ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/versioned
 		-o ${ucdr_out_path}
 		-e ${PX4_SOURCE_DIR}/Tools/msg/templates/ucdr
 	DEPENDS
@@ -396,7 +394,7 @@ add_custom_command(
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
 		--sources
 		-f ${msg_files}
-		-i ${CMAKE_CURRENT_SOURCE_DIR}
+		-i ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/versioned
 		-o ${msg_source_out_path}
 		-e ${PX4_SOURCE_DIR}/Tools/msg/templates/uorb
 	DEPENDS
@@ -447,7 +445,7 @@ if(CONFIG_LIB_CDRSTREAM)
 	# Copy .msg files
 	foreach(msg_file ${msg_files})
 		get_filename_component(msg ${msg_file} NAME_WE)
-		configure_file(${PX4_SOURCE_DIR}/msg/${msg}.msg ${idl_out_path}/${msg}.msg COPYONLY)
+		configure_file(${msg_file} ${idl_out_path}/${msg}.msg COPYONLY)
 		list(APPEND uorb_cdr_idl ${idl_out_path}/${msg}.idl)
 		list(APPEND uorb_cdr_msg ${idl_out_path}/${msg}.msg)
 		list(APPEND uorb_cdr_idl_uorb ${idl_uorb_path}/${msg}.h)
@@ -492,7 +490,7 @@ if(CONFIG_LIB_CDRSTREAM)
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
 			--uorb-idl-header
 			-f ${msg_files}
-			-i ${CMAKE_CURRENT_SOURCE_DIR}
+			-i ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/versioned
 			-o ${idl_uorb_path}
 			-e ${PX4_SOURCE_DIR}/Tools/msg/templates/cdrstream
 		DEPENDS

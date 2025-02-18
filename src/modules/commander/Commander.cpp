@@ -594,7 +594,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 			return TRANSITION_DENIED;
 		}
 
-		_health_and_arming_checks.update();
+		_health_and_arming_checks.update(false, true);
 
 		if (!_health_and_arming_checks.canArm(_vehicle_status.nav_state)) {
 			tune_negative(true);
@@ -716,6 +716,8 @@ Commander::Commander() :
 	}
 
 	updateParameters();
+
+	_failsafe.setOnNotifyUserCallback(&Commander::onFailsafeNotifyUserTrampoline, this);
 }
 
 Commander::~Commander()
@@ -1448,7 +1450,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_STANDARD_MODE: {
 			mode_util::StandardMode standard_mode = (mode_util::StandardMode) roundf(cmd.param1);
-			uint8_t nav_state = mode_util::getNavStateFromStandardMode(standard_mode);
+			uint8_t nav_state = mode_util::getNavStateFromStandardMode(standard_mode, _vehicle_status.vehicle_type,
+					    _vehicle_status.is_vtol);
 
 			if (nav_state == vehicle_status_s::NAVIGATION_STATE_MAX) {
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);
@@ -1714,8 +1717,6 @@ void Commander::updateParameters()
 		_vehicle_status.system_type = value_int32;
 	}
 
-	_vehicle_status.avoidance_system_required = _param_com_obs_avoid.get();
-
 	_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
 
 	const bool is_rotary = is_rotary_wing(_vehicle_status) || (is_vtol(_vehicle_status)
@@ -1795,9 +1796,6 @@ void Commander::run()
 
 			_status_changed = true;
 		}
-
-		/* Update OA parameter */
-		_vehicle_status.avoidance_system_required = _param_com_obs_avoid.get();
 
 		handlePowerButtonState();
 
@@ -1970,7 +1968,7 @@ void Commander::checkForMissionUpdate()
 	if (_mission_result_sub.updated()) {
 		const mission_result_s &mission_result = _mission_result_sub.get();
 
-		const auto prev_mission_mission_id = mission_result.mission_id;
+		const uint32_t prev_mission_mission_id = mission_result.mission_id;
 		_mission_result_sub.update();
 
 		// if mission_result is valid for the current mission
@@ -2155,9 +2153,10 @@ void Commander::vtolStatusUpdate()
 	if (_vtol_vehicle_status_sub.update(&_vtol_vehicle_status) && is_vtol(_vehicle_status)) {
 
 		// Check if there has been any change while updating the flags (transition = rotary wing status)
-		const auto new_vehicle_type = _vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW ?
-					      vehicle_status_s::VEHICLE_TYPE_FIXED_WING :
-					      vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+		const uint8_t new_vehicle_type =
+			_vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW ?
+			vehicle_status_s::VEHICLE_TYPE_FIXED_WING :
+			vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 		if (new_vehicle_type != _vehicle_status.vehicle_type) {
 			_vehicle_status.vehicle_type = new_vehicle_type;
@@ -2264,7 +2263,8 @@ void Commander::handleAutoDisarm()
 				_auto_disarm_landed.set_state_and_update(_vehicle_land_detected.landed, hrt_absolute_time());
 
 			} else if (_param_com_disarm_prflt.get() > 0 && !_have_taken_off_since_arming) {
-				_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_prflt.get() * 1_s);
+				_auto_disarm_landed.set_hysteresis_time_from(false,
+						(_param_com_spoolup_time.get() + _param_com_disarm_prflt.get()) * 1_s);
 				_auto_disarm_landed.set_state_and_update(true, hrt_absolute_time());
 			}
 
@@ -2798,8 +2798,8 @@ void Commander::dataLinkCheck()
 					_open_drone_id_system_lost = false;
 
 					if (_datalink_last_heartbeat_open_drone_id_system != 0) {
-						mavlink_log_info(&_mavlink_log_pub, "OpenDroneID system regained\t");
-						events::send(events::ID("commander_open_drone_id_regained"), events::Log::Info, "OpenDroneID system regained");
+						mavlink_log_info(&_mavlink_log_pub, "Remote ID system regained\t");
+						events::send(events::ID("commander_open_drone_id_regained"), events::Log::Info, "Remote ID system regained");
 					}
 				}
 
@@ -2808,16 +2808,6 @@ void Commander::dataLinkCheck()
 				_datalink_last_heartbeat_open_drone_id_system = telemetry.timestamp;
 				_vehicle_status.open_drone_id_system_present = true;
 				_vehicle_status.open_drone_id_system_healthy = healthy;
-			}
-
-			if (telemetry.heartbeat_component_obstacle_avoidance) {
-				if (_avoidance_system_lost) {
-					_avoidance_system_lost = false;
-					_status_changed = true;
-				}
-
-				_datalink_last_heartbeat_avoidance_system = telemetry.timestamp;
-				_vehicle_status.avoidance_system_valid = telemetry.avoidance_system_healthy;
 			}
 		}
 	}
@@ -2860,26 +2850,15 @@ void Commander::dataLinkCheck()
 		_status_changed = true;
 	}
 
-	// OpenDroneID system
+	// Remote ID system
 	if ((hrt_elapsed_time(&_datalink_last_heartbeat_open_drone_id_system) > 3_s)
 	    && !_open_drone_id_system_lost) {
-		mavlink_log_critical(&_mavlink_log_pub, "OpenDroneID system lost");
-		events::send(events::ID("commander_open_drone_id_lost"), events::Log::Critical, "OpenDroneID system lost");
+		mavlink_log_critical(&_mavlink_log_pub, "Remote ID system lost");
+		events::send(events::ID("commander_remote_id_lost"), events::Log::Critical, "Remote ID system lost");
 		_vehicle_status.open_drone_id_system_present = false;
 		_vehicle_status.open_drone_id_system_healthy = false;
 		_open_drone_id_system_lost = true;
 		_status_changed = true;
-	}
-
-	// AVOIDANCE SYSTEM state check (only if it is enabled)
-	if (_vehicle_status.avoidance_system_required && !_onboard_controller_lost) {
-		// if heartbeats stop
-		if (!_avoidance_system_lost && (_datalink_last_heartbeat_avoidance_system > 0)
-		    && (hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > 5_s)) {
-
-			_avoidance_system_lost = true;
-			_vehicle_status.avoidance_system_valid = false;
-		}
 	}
 }
 
@@ -2999,6 +2978,20 @@ void Commander::send_parachute_command()
 	set_tune_override(tune_control_s::TUNE_ID_PARACHUTE_RELEASE);
 }
 
+void Commander::onFailsafeNotifyUserTrampoline(void *arg)
+{
+	Commander *commander = static_cast<Commander *>(arg);
+	commander->onFailsafeNotifyUser();
+}
+
+void Commander::onFailsafeNotifyUser()
+{
+	// If we are about to inform about a failsafe, we need to ensure any pending health report is sent out first,
+	// as the failsafe message might reference that. This is only needed in case the report is currently rate-limited,
+	// i.e. it had a recent previous change already.
+	_health_and_arming_checks.reportIfUnreportedDifferences();
+}
+
 int Commander::print_usage(const char *reason)
 {
 	if (reason) {
@@ -3017,7 +3010,7 @@ The commander module contains the state machine for mode switching and failsafe 
 #ifndef CONSTRAINED_FLASH
 	PRINT_MODULE_USAGE_COMMAND_DESCR("calibrate", "Run sensor calibration");
 	PRINT_MODULE_USAGE_ARG("mag|baro|accel|gyro|level|esc|airspeed", "Calibration type", false);
-	PRINT_MODULE_USAGE_ARG("quick", "Quick calibration (accel only, not recommended)", false);
+	PRINT_MODULE_USAGE_ARG("quick", "Quick calibration [mag, accel (not recommended)]", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("check", "Run preflight checks");
 	PRINT_MODULE_USAGE_COMMAND("arm");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Force arming (do not run preflight checks)", true);

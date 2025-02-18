@@ -133,7 +133,6 @@ private:
 		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad,
 		(ParamFloat<px4::params::RM_MAX_JERK>) _param_rm_max_jerk,
 		(ParamFloat<px4::params::RM_MAX_ACCEL>) _param_rm_max_accel,
-		(ParamFloat<px4::params::RM_MISS_SPD_DEF>) _param_rm_miss_spd_def,
 		(ParamFloat<px4::params::RM_MAX_YAW_RATE>) _param_rm_max_yaw_rate,
 		(ParamFloat<px4::params::RM_MISS_VEL_GAIN>) _param_rm_miss_vel_gain
 	)

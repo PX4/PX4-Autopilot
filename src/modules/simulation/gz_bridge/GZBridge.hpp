@@ -36,6 +36,7 @@
 #include "GZMixingInterfaceESC.hpp"
 #include "GZMixingInterfaceServo.hpp"
 #include "GZMixingInterfaceWheel.hpp"
+#include "GZGimbal.hpp"
 
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
@@ -49,6 +50,8 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/distance_sensor.h>
+#include <lib/drivers/device/Device.hpp>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -66,6 +69,7 @@
 
 #include <gz/msgs/imu.pb.h>
 #include <gz/msgs/fluid_pressure.pb.h>
+#include <gz/msgs/air_speed.pb.h>
 #include <gz/msgs/model.pb.h>
 #include <gz/msgs/odometry_with_covariance.pb.h>
 #include <gz/msgs/laserscan.pb.h>
@@ -104,12 +108,13 @@ private:
 
 	void clockCallback(const gz::msgs::Clock &clock);
 
-	// void airspeedCallback(const gz::msgs::AirSpeedSensor &air_pressure);
+	void airspeedCallback(const gz::msgs::AirSpeed &air_speed);
 	void barometerCallback(const gz::msgs::FluidPressure &air_pressure);
 	void imuCallback(const gz::msgs::IMU &imu);
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);
 	void odometryCallback(const gz::msgs::OdometryWithCovariance &odometry);
 	void navSatCallback(const gz::msgs::NavSat &nav_sat);
+	void laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan);
 	void laserScanCallback(const gz::msgs::LaserScan &scan);
 
 	/**
@@ -164,7 +169,8 @@ private:
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	//uORB::Publication<differential_pressure_s>    _differential_pressure_pub{ORB_ID(differential_pressure)};
+	uORB::Publication<distance_sensor_s>          _distance_sensor_pub{ORB_ID(distance_sensor)};
+	uORB::Publication<differential_pressure_s>    _differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<obstacle_distance_s>        _obstacle_distance_pub{ORB_ID(obstacle_distance)};
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
 	uORB::Publication<vehicle_attitude_s>         _attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
@@ -179,6 +185,7 @@ private:
 	GZMixingInterfaceESC   _mixing_interface_esc{_node, _node_mutex};
 	GZMixingInterfaceServo _mixing_interface_servo{_node, _node_mutex};
 	GZMixingInterfaceWheel _mixing_interface_wheel{_node, _node_mutex};
+	GZGimbal _gimbal{_node, _node_mutex};
 
 	px4::atomic<uint64_t> _world_time_us{0};
 

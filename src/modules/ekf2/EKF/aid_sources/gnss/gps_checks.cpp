@@ -55,32 +55,6 @@
 #define MASK_GPS_VSPD    (1<<8)
 #define MASK_GPS_SPOOFED (1<<9)
 
-void Ekf::collect_gps(const gnssSample &gps)
-{
-	if (_filter_initialised && !_pos_ref.isInitialized() && _gps_checks_passed) {
-		// If we have good GPS data set the origin's WGS-84 position to the last gps fix
-		setLatLonOriginFromCurrentPos(gps.lat, gps.lon, gps.hacc);
-
-		// Take the current GPS height and subtract the filter height above origin to estimate the GPS height of the origin
-		if (!PX4_ISFINITE(_gps_alt_ref)) {
-			setAltOriginFromCurrentPos(gps.alt, gps.vacc);
-		}
-
-		_information_events.flags.gps_checks_passed = true;
-
-		ECL_INFO("GPS origin set to lat=%.6f, lon=%.6f",
-			 _pos_ref.getProjectionReferenceLat(), _pos_ref.getProjectionReferenceLon());
-
-	} else {
-		// a rough 2D fix is sufficient to lookup earth spin rate
-		const bool gps_rough_2d_fix = (gps.fix_type >= 2) && (gps.hacc < 1000);
-
-		if (gps_rough_2d_fix && (_gps_checks_passed || !_pos_ref.isInitialized())) {
-			_earth_rate_NED = calcEarthRateNED((float)math::radians(gps.lat));
-		}
-	}
-}
-
 bool Ekf::runGnssChecks(const gnssSample &gps)
 {
 	_gps_check_fail_status.flags.spoofed = gps.spoofed;
@@ -128,11 +102,13 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 
 		// Calculate the horizontal and vertical drift velocity components and limit to 10x the threshold
 		const Vector3f vel_limit(_params.req_hdrift, _params.req_hdrift, _params.req_vdrift);
-		Vector3f pos_derived(delta_pos_n, delta_pos_e, (_gps_alt_prev - gps.alt));
-		pos_derived = matrix::constrain(pos_derived / dt, -10.0f * vel_limit, 10.0f * vel_limit);
+		Vector3f delta_pos(delta_pos_n, delta_pos_e, (_gps_alt_prev - gps.alt));
 
 		// Apply a low pass filter
-		_gps_pos_deriv_filt = pos_derived * filter_coef + _gps_pos_deriv_filt * (1.0f - filter_coef);
+		_gps_pos_deriv_filt = delta_pos / dt * filter_coef + _gps_pos_deriv_filt * (1.0f - filter_coef);
+
+		// Apply anti-windup to the state instead of the input to avoid generating a bias on asymmetric signals
+		_gps_pos_deriv_filt = matrix::constrain(_gps_pos_deriv_filt, -10.0f * vel_limit, 10.0f * vel_limit);
 
 		// hdrift: calculate the horizontal drift speed and fail if too high
 		_gps_horizontal_position_drift_rate_m_s = Vector2f(_gps_pos_deriv_filt.xy()).norm();
@@ -170,6 +146,16 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 	} else {
 		// This is the case where the vehicle is on ground and IMU movement is blocking the drift calculation
 		resetGpsDriftCheckFilters();
+	}
+
+	// force horizontal speed failure if above the limit
+	if (gps.vel.xy().longerThan(_params.velocity_limit)) {
+		_gps_check_fail_status.flags.hspeed = true;
+	}
+
+	// force vertical speed failure if above the limit
+	if (fabsf(gps.vel(2)) > _params.velocity_limit) {
+		_gps_check_fail_status.flags.vspeed = true;
 	}
 
 	// save GPS fix for next time

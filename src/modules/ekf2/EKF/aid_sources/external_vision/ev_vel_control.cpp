@@ -53,7 +53,8 @@ void Ekf::controlEvVelFusion(ExternalVisionVel &ev, const bool common_starting_c
 	// determine if we should use EV velocity aiding
 	bool continuing_conditions_passing = (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::VEL))
 					     && _control_status.flags.tilt_align
-					     && ev._sample.vel.isAllFinite();
+					     && ev._sample.vel.isAllFinite()
+					     && !ev._sample.vel.longerThan(_params.velocity_limit);
 
 
 	continuing_conditions_passing &= ev._measurement.isAllFinite() && ev._measurement_var.isAllFinite();

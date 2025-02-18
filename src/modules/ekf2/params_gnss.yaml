@@ -46,6 +46,15 @@ parameters:
       min: 1.0
       unit: SD
       decimal: 1
+    EKF2_GPS_YAW_OFF:
+      description:
+        short: Heading/Yaw offset for dual antenna GPS
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 360.0
+      unit: deg
+      decimal: 1
     EKF2_GPS_V_GATE:
       description:
         short: Gate size for GNSS velocity fusion

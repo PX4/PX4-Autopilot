@@ -91,20 +91,21 @@ def generate_python_function(function_name, output_names):
 def build_state_struct(state, T="float"):
     out = "struct StateSample {\n"
 
-    def TypeFromLength(len):
-        if len == 1:
+    def get_px4_type(obj):
+        if isinstance(obj, sf.M11):
             return f"{T}"
-        elif len == 2:
+        elif isinstance(obj, sf.M21):
             return f"matrix::Vector2<{T}>"
-        elif len == 3:
+        elif isinstance(obj, sf.M31):
             return f"matrix::Vector3<{T}>"
-        elif len == 4:
+        elif isinstance(obj, sf.Rot3):
             return f"matrix::Quaternion<{T}>"
         else:
+            print(f"unknown type {type(obj)}")
             raise NotImplementedError
 
     for key, val in state.items():
-        out += f"\t{TypeFromLength(val.storage_dim())} {key}{{}};\n"
+        out += f"\t{get_px4_type(val)} {key}{{}};\n"
 
     state_size = state.storage_dim()
     out += f"\n\tmatrix::Vector<{T}, {state_size}> Data() const {{\n" \

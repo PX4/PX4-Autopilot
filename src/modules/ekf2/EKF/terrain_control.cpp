@@ -43,7 +43,7 @@
 void Ekf::initTerrain()
 {
 	// assume a ground clearance
-	_state.terrain = _state.pos(2) + _params.rng_gnd_clearance;
+	_state.terrain = -_gpos.altitude() + _params.rng_gnd_clearance;
 
 	// use the ground clearance value as our uncertainty
 	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.rng_gnd_clearance));
@@ -53,7 +53,7 @@ void Ekf::controlTerrainFakeFusion()
 {
 	// If we are on ground, store the local position and time to use as a reference
 	if (!_control_status.flags.in_air) {
-		_last_on_ground_posD = _state.pos(2);
+		_last_on_ground_posD = -_gpos.altitude();
 		_control_status.flags.rng_fault = false;
 
 	} else if (!_control_status_prev.flags.in_air) {
@@ -63,40 +63,72 @@ void Ekf::controlTerrainFakeFusion()
 		initTerrain();
 	}
 
-	if (!_control_status.flags.in_air
-	    && !_control_status.flags.rng_terrain
-	    && !_control_status.flags.opt_flow_terrain) {
+	if (!_control_status.flags.in_air) {
+		bool no_terrain_aiding = !_control_status.flags.rng_terrain
+					 && !_control_status.flags.opt_flow_terrain
+					 && isTimedOut(_time_last_terrain_fuse, (uint64_t)1e6);
 
-		bool recent_terrain_aiding = isRecent(_time_last_terrain_fuse, (uint64_t)1e6);
-
-		if (_control_status.flags.vehicle_at_rest || !recent_terrain_aiding) {
+		if (no_terrain_aiding && (_height_sensor_ref != HeightSensor::RANGE)) {
 			initTerrain();
 		}
 	}
 }
 
-bool Ekf::isTerrainEstimateValid() const
+void Ekf::updateTerrainValidity()
 {
-	bool valid = false;
+	bool valid_opt_flow_terrain = false;
+	bool valid_rng_terrain = false;
+	bool positive_hagl_var = false;
+	bool small_relative_hagl_var = false;
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+
+	if (_control_status.flags.opt_flow_terrain
+	    && isRecent(_aid_src_optical_flow.time_last_fuse, _params.hgt_fusion_timeout_max)
+	   ) {
+		valid_opt_flow_terrain = true;
+	}
+
+#endif // CONFIG_EKF2_OPTICAL_FLOW
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+
+	if (_control_status.flags.rng_terrain
+	    && isRecent(_aid_src_rng_hgt.time_last_fuse, _params.hgt_fusion_timeout_max)
+	   ) {
+		valid_rng_terrain = true;
+	}
+
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 	if (_time_last_terrain_fuse != 0) {
 		// Assume being valid when the uncertainty is small compared to the height above ground
 		float hagl_var = INFINITY;
 		sym::ComputeHaglInnovVar(P, 0.f, &hagl_var);
 
-		if (hagl_var < fmaxf(sq(0.1f * getHagl()), 0.2f)) {
-			valid = true;
+		positive_hagl_var = hagl_var > 0.f;
+
+		if (positive_hagl_var
+		    && (hagl_var < sq(fmaxf(0.1f * getHagl(), 0.5f)))
+		   ) {
+			small_relative_hagl_var = true;
 		}
 	}
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
+	const bool positive_hagl = getHagl() >= 0.f;
 
-	// Assume that the terrain estimate is always valid when direct observations are fused
-	if (_control_status.flags.rng_terrain && isRecent(_aid_src_rng_hgt.time_last_fuse, _params.hgt_fusion_timeout_max)) {
-		valid = true;
+	if (!_terrain_valid) {
+		// require valid RNG or optical flow (+valid variance) to initially consider terrain valid
+		if (positive_hagl
+		    && positive_hagl_var
+		    && (valid_rng_terrain
+			|| (valid_opt_flow_terrain && small_relative_hagl_var))
+		   ) {
+			_terrain_valid = true;
+		}
+
+	} else {
+		// terrain was previously valid, continue considering valid if variance is good
+		_terrain_valid = positive_hagl && positive_hagl_var && small_relative_hagl_var;
 	}
-
-#endif // CONFIG_EKF2_RANGE_FINDER
-
-	return valid;
 }

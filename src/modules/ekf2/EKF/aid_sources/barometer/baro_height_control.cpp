@@ -65,6 +65,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 			if ((_baro_counter == 0) || baro_sample.reset) {
 				_baro_lpf.reset(measurement);
 				_baro_counter = 1;
+				_control_status.flags.baro_fault = false;
 
 			} else {
 				_baro_lpf.update(measurement);
@@ -73,7 +74,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 
 			if (_baro_counter <= _obs_buffer_length) {
 				// Initialize the pressure offset (included in the baro bias)
-				bias_est.setBias(_state.pos(2) + _baro_lpf.getState());
+				bias_est.setBias(-_gpos.altitude() + _baro_lpf.getState());
 			}
 		}
 
@@ -106,14 +107,14 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 		if (measurement_valid) {
 			bias_est.setMaxStateNoise(sqrtf(measurement_var));
 			bias_est.setProcessNoiseSpectralDensity(_params.baro_bias_nsd);
-			bias_est.fuseBias(measurement - (-_state.pos(2)), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
+			bias_est.fuseBias(measurement - _gpos.altitude(), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
 		}
 
 		// determine if we should use height aiding
 		const bool continuing_conditions_passing = (_params.baro_ctrl == 1)
 				&& measurement_valid
 				&& (_baro_counter > _obs_buffer_length)
-				&& !_baro_hgt_faulty;
+				&& !_control_status.flags.baro_fault;
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& isNewestSampleRecent(_time_last_baro_buffer_push, 2 * BARO_MAX_INTERVAL);
@@ -131,8 +132,9 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 					ECL_WARN("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
 
 					_information_events.flags.reset_hgt_to_baro = true;
-					resetVerticalPositionTo(-(_baro_lpf.getState() - bias_est.getBias()), measurement_var);
-					bias_est.setBias(_state.pos(2) + _baro_lpf.getState());
+					resetAltitudeTo(_baro_lpf.getState() - bias_est.getBias(), measurement_var);
+					bias_est.setBias(-_gpos.altitude() + _baro_lpf.getState());
+					resetAidSourceStatusZeroInnovation(aid_src);
 
 					// reset vertical velocity if no valid sources available
 					if (!isVerticalVelocityAidingActive()) {
@@ -147,7 +149,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 
 					if (isRecent(_time_last_hgt_fuse, _params.hgt_fusion_timeout_max)) {
 						// Some other height source is still working
-						_baro_hgt_faulty = true;
+						_control_status.flags.baro_fault = true;
 					}
 				}
 
@@ -163,12 +165,13 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 					_height_sensor_ref = HeightSensor::BARO;
 
 					_information_events.flags.reset_hgt_to_baro = true;
-					resetVerticalPositionTo(-(_baro_lpf.getState() - bias_est.getBias()), measurement_var);
-					bias_est.setBias(_state.pos(2) + _baro_lpf.getState());
+					initialiseAltitudeTo(measurement, measurement_var);
+					bias_est.reset();
+					resetAidSourceStatusZeroInnovation(aid_src);
 
 				} else {
 					ECL_INFO("starting %s height fusion", HGT_SRC_NAME);
-					bias_est.setBias(_state.pos(2) + _baro_lpf.getState());
+					bias_est.setBias(-_gpos.altitude() + _baro_lpf.getState());
 				}
 
 				aid_src.time_last_fuse = imu_sample.time_us;
@@ -202,7 +205,7 @@ void Ekf::stopBaroHgtFusion()
 #if defined(CONFIG_EKF2_BARO_COMPENSATION)
 float Ekf::compensateBaroForDynamicPressure(const imuSample &imu_sample, const float baro_alt_uncompensated) const
 {
-	if (_control_status.flags.wind && local_position_is_valid()) {
+	if (_control_status.flags.wind && isLocalHorizontalPositionValid()) {
 		// calculate static pressure error = Pmeas - Ptruth
 		// model position error sensitivity as a body fixed ellipse with a different scale in the positive and
 		// negative X and Y directions. Used to correct baro data for positional errors
