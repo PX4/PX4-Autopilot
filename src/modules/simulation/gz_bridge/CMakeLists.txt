@@ -43,11 +43,17 @@ if(GZ_DISTRO STREQUAL "harmonic")
     set(GZ_CMAKE_VERSION "3")
     set(GZ_MSGS_VERSION "10")
     set(GZ_TRANSPORT_VERSION "13")
+    set(GZ_PLUGIN_VERSION "2")
+    set(GZ_SIM_VERSION "8")
+    set(GZ_SENSORS_VERSION "8")
     message(STATUS "Using Gazebo Harmonic (cmake:${GZ_CMAKE_VERSION}, msgs:${GZ_MSGS_VERSION}, transport:${GZ_TRANSPORT_VERSION})")
 elseif(GZ_DISTRO STREQUAL "ionic")
     set(GZ_CMAKE_VERSION "4")
     set(GZ_MSGS_VERSION "11")
     set(GZ_TRANSPORT_VERSION "14")
+    set(GZ_PLUGIN_VERSION "3")
+    set(GZ_SIM_VERSION "9")
+    set(GZ_SENSORS_VERSION "9")
     message(STATUS "Using Gazebo Ionic (cmake:${GZ_CMAKE_VERSION}, msgs:${GZ_MSGS_VERSION}, transport:${GZ_TRANSPORT_VERSION})")
 else()
     message(FATAL_ERROR "Unknown Gazebo distribution: ${GZ_DISTRO}. Valid options are: harmonic or ionic")
@@ -58,91 +64,94 @@ find_package(gz-msgs${GZ_MSGS_VERSION} REQUIRED)
 find_package(gz-transport${GZ_TRANSPORT_VERSION} REQUIRED)
 find_package(Protobuf REQUIRED)
 
-# Custom message generation
-file(GLOB MSGS_PROTOS "${CMAKE_CURRENT_SOURCE_DIR}/msgs/*.proto")
-PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${MSGS_PROTOS})
-px4_add_library(px4_msgs ${PROTO_SRCS} ${PROTO_HDRS})
-target_include_directories(px4_msgs PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(px4_msgs PUBLIC ${PROTOBUF_LIBRARIES})
+if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
+	# Custom message generation
+	file(GLOB MSGS_PROTOS "${CMAKE_CURRENT_SOURCE_DIR}/msgs/*.proto")
+	PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${MSGS_PROTOS})
+	px4_add_library(px4_msgs ${PROTO_SRCS} ${PROTO_HDRS})
+	target_include_directories(px4_msgs PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+	target_link_libraries(px4_msgs PUBLIC ${PROTOBUF_LIBRARIES})
 
-# Build the plugins
-add_subdirectory(plugins)
+	# Build the plugins
+	add_subdirectory(plugins)
 
-# Add the gz_bridge module
-px4_add_module(
-	MODULE modules__simulation__gz_bridge
-	MAIN gz_bridge
-	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
-	SRCS
-		GZBridge.cpp
-		GZBridge.hpp
-		GZMixingInterfaceESC.cpp
-		GZMixingInterfaceESC.hpp
-		GZMixingInterfaceServo.cpp
-		GZMixingInterfaceServo.hpp
-		GZMixingInterfaceWheel.cpp
-		GZMixingInterfaceWheel.hpp
-		GZGimbal.cpp
-		GZGimbal.hpp
-	DEPENDS
-		mixer_module
-		px4_work_queue
-		gz-transport${GZ_TRANSPORT_VERSION}::core
-		px4_msgs
-	MODULE_CONFIG
-		module.yaml
-)
+	# Add the gz_bridge module
+	px4_add_module(
+		MODULE modules__simulation__gz_bridge
+		MAIN gz_bridge
+		COMPILE_FLAGS
+			${MAX_CUSTOM_OPT_LEVEL}
+		SRCS
+			GZBridge.cpp
+			GZBridge.hpp
+			GZMixingInterfaceESC.cpp
+			GZMixingInterfaceESC.hpp
+			GZMixingInterfaceServo.cpp
+			GZMixingInterfaceServo.hpp
+			GZMixingInterfaceWheel.cpp
+			GZMixingInterfaceWheel.hpp
+			GZGimbal.cpp
+			GZGimbal.hpp
+		DEPENDS
+			mixer_module
+			px4_work_queue
+			gz-transport${GZ_TRANSPORT_VERSION}::core
+			px4_msgs
+		MODULE_CONFIG
+			module.yaml
+	)
 
-# Link custom messages with module
-target_include_directories(modules__simulation__gz_bridge PUBLIC px4_msgs)
-target_link_libraries(modules__simulation__gz_bridge PUBLIC px4_msgs)
+	# Link custom messages with module
+	target_include_directories(modules__simulation__gz_bridge PUBLIC px4_msgs)
+	target_link_libraries(modules__simulation__gz_bridge PUBLIC px4_msgs)
 
-px4_add_git_submodule(TARGET git_gz PATH "${PX4_SOURCE_DIR}/Tools/simulation/gz")
-include(ExternalProject)
-ExternalProject_Add(gz
-	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation/gz
-	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
-	BINARY_DIR ${PX4_BINARY_DIR}/build_gz
-	INSTALL_COMMAND ""
-	DEPENDS git_gz
-	USES_TERMINAL_CONFIGURE true
-	USES_TERMINAL_BUILD true
-	EXCLUDE_FROM_ALL true
-	BUILD_ALWAYS 1
-)
+	px4_add_git_submodule(TARGET git_gz PATH "${PX4_SOURCE_DIR}/Tools/simulation/gz")
+	include(ExternalProject)
+	ExternalProject_Add(gz
+		SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation/gz
+		CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+		BINARY_DIR ${PX4_BINARY_DIR}/build_gz
+		INSTALL_COMMAND ""
+		DEPENDS git_gz
+		USES_TERMINAL_CONFIGURE true
+		USES_TERMINAL_BUILD true
+		EXCLUDE_FROM_ALL true
+		BUILD_ALWAYS 1
+	)
 
-# Below we setup the build targets for our worlds and models
-# e.g: gz_x500_flow_aruco --> gz_<model>_<world>
+	# Below we setup the build targets for our worlds and models
+	# e.g: gz_x500_flow_aruco --> gz_<model>_<world>
 
-file(GLOB gz_worlds ${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf)
-file(GLOB gz_airframes ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*)
+	file(GLOB gz_worlds ${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf)
+	file(GLOB gz_airframes ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*)
 
-foreach(gz_airframe IN LISTS gz_airframes)
-	set(model_name)
-	string(REGEX REPLACE ".*_gz_" "" model_name ${gz_airframe})
+	foreach(gz_airframe IN LISTS gz_airframes)
+		set(model_name)
+		string(REGEX REPLACE ".*_gz_" "" model_name ${gz_airframe})
 
-	foreach(world ${gz_worlds})
+		foreach(world ${gz_worlds})
 
-		get_filename_component("world_name" ${world} NAME_WE)
+			get_filename_component("world_name" ${world} NAME_WE)
 
-		if(world_name STREQUAL "default")
-			add_custom_target(gz_${model_name}
-				COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_name} $<TARGET_FILE:px4>
-				WORKING_DIRECTORY ${SITL_WORKING_DIR}
-				USES_TERMINAL
-				DEPENDS px4 OpticalFlowSystem
-			)
-		else()
-			add_custom_target(gz_${model_name}_${world_name}
-				COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_name} PX4_GZ_WORLD=${world_name} $<TARGET_FILE:px4>
-				WORKING_DIRECTORY ${SITL_WORKING_DIR}
-				USES_TERMINAL
-				DEPENDS px4 OpticalFlowSystem
-			)
-		endif()
+			if(world_name STREQUAL "default")
+				add_custom_target(gz_${model_name}
+					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_name} $<TARGET_FILE:px4>
+					WORKING_DIRECTORY ${SITL_WORKING_DIR}
+					USES_TERMINAL
+					DEPENDS px4 OpticalFlowSystem
+				)
+			else()
+				add_custom_target(gz_${model_name}_${world_name}
+					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_name} PX4_GZ_WORLD=${world_name} $<TARGET_FILE:px4>
+					WORKING_DIRECTORY ${SITL_WORKING_DIR}
+					USES_TERMINAL
+					DEPENDS px4 OpticalFlowSystem
+				)
+			endif()
+		endforeach()
 	endforeach()
-endforeach()
 
-# Setup the environment variables: PX4_GZ_MODELS, PX4_GZ_WORLDS, GZ_SIM_RESOURCE_PATH
-configure_file(gz_env.sh.in ${PX4_BINARY_DIR}/rootfs/gz_env.sh)
+	# Setup the environment variables: PX4_GZ_MODELS, PX4_GZ_WORLDS, GZ_SIM_RESOURCE_PATH
+	configure_file(gz_env.sh.in ${PX4_BINARY_DIR}/rootfs/gz_env.sh)
+
+endif()
