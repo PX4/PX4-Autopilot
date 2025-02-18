@@ -61,8 +61,6 @@ ControlAllocator::ControlAllocator() :
 	_actuator_servos_pub.advertise();
 	_actuator_servos_trim_pub.advertise();
 
-	_tiltrotor_extra_controls_pub.advertise();
-
 	for (int i = 0; i < MAX_NUM_MOTORS; ++i) {
 		char buffer[17];
 		snprintf(buffer, sizeof(buffer), "CA_R%u_SLEW", i);
@@ -347,7 +345,6 @@ ControlAllocator::Run()
 		if (_vehicle_status_sub.update(&vehicle_status)) {
 
 			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
-
 			_preflight_check_running = vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK;
 
 			ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
@@ -442,25 +439,34 @@ ControlAllocator::Run()
 		}
 
 		if (_preflight_check_running) {
+			preflight_check_update_state();
 			preflight_check_overwrite_torque_sp(c);
 		}
 
 		for (int i = 0; i < _num_control_allocation; ++i) {
 
-			ActuatorEffectivenessTiltrotorVTOL *casted = dynamic_cast<ActuatorEffectivenessTiltrotorVTOL *>
-					(_actuator_effectiveness);
-
-			if (casted != nullptr) {
-				casted->_preflight_check_running = _preflight_check_running;
-			}
-
 			_control_allocation[i]->setControlSetpoint(c[i]);
 
 			// Do allocation
 			_control_allocation[i]->allocate();
+
+			if (_preflight_check_running) {
+
+				// alternative: specify these member variables in the general ActuatorEffectiveness,
+				// and just don't use them anywhere except TiltrotorVTOL
+				auto actuator_effectiveness_tiltrotor_vtol = dynamic_cast<ActuatorEffectivenessTiltrotorVTOL*>(_actuator_effectiveness);
+
+				if (actuator_effectiveness_tiltrotor_vtol) {
+					float collective_tilt_sp = preflight_check_get_tilt_control();
+					actuator_effectiveness_tiltrotor_vtol->_collective_tilt_normalized_setpoint = collective_tilt_sp;
+					actuator_effectiveness_tiltrotor_vtol->_collective_thrust_normalized_setpoint = 0.0f;
+				}
+			}
+
 			_actuator_effectiveness->allocateAuxilaryControls(dt, i, _control_allocation[i]->_actuator_sp); //flaps and spoilers
 			_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp,
-								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax());
+								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax(),
+								_preflight_check_running);
 
 			if (_has_slew_rate) {
 				_control_allocation[i]->applySlewRateLimit(dt);
@@ -502,14 +508,12 @@ ControlAllocator::Run()
 
 // }
 
-void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float, NUM_AXES> (&c)[ActuatorEffectiveness::MAX_NUM_MATRICES]) {
+void ControlAllocator::preflight_check_update_state() {
+
+	bool tiltrotor = dynamic_cast<ActuatorEffectivenessTiltrotorVTOL*>(_actuator_effectiveness) != nullptr;
 
 	// cycle through roll, pitch, yaw, and for each one inject positive and
 	// negative torque setpoints.
-
-	// is this the proper way to do it?
-	// bool tiltrotor = _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
-	bool tiltrotor = dynamic_cast<ActuatorEffectivenessTiltrotorVTOL*>(_actuator_effectiveness) != nullptr;
 
 	int n_axes = 3;
 	if (tiltrotor) {
@@ -524,11 +528,12 @@ void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float,
 		_preflight_check_phase %= max_phase;  // or quit once we did the whole thing once?
 		_last_preflight_check_update = now;
 	}
+}
+
+void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float, NUM_AXES> (&c)[ActuatorEffectiveness::MAX_NUM_MATRICES]) {
 
 	int axis = _preflight_check_phase / 2;
 	int negative = _preflight_check_phase % 2;
-
-	float modified_tilt_control = 0.5f;
 
 	if (axis < 3) {
 		c[0](0) = 0.;
@@ -543,24 +548,24 @@ void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float,
 			c[1](axis) = negative ? -1.f : 1.f;
 		}
 
-	} else {
-		// axis 4 = tiltrotor.
+	}
+
+}
+
+float ControlAllocator::preflight_check_get_tilt_control() {
+
+	int axis = _preflight_check_phase / 2;
+	int negative = _preflight_check_phase % 2;
+
+	float modified_tilt_control = 0.5f;
+
+	if (axis == 3) {
+		// axis 3 = tiltrotor.
 		// collective tilt normalised control goes from 0 to 1.
 		modified_tilt_control = negative ? 0.f : 1.f;
 	}
 
-	tiltrotor_extra_controls_s tiltrotor_extra_controls;
-
-	if (!_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls)) {
-		// got no message, make up thrust setpoint
-		tiltrotor_extra_controls.collective_thrust_normalized_setpoint = 0.;
-	}
-
-	tiltrotor_extra_controls.collective_tilt_normalized_setpoint = modified_tilt_control;
-	tiltrotor_extra_controls.timestamp = hrt_absolute_time();
-	_tiltrotor_extra_controls_pub.publish(tiltrotor_extra_controls);
-
-	// PX4_INFO("_torque_sp: %f, %f, %f", (double) _torque_sp(0), (double) _torque_sp(1), (double) _torque_sp(2));
+	return modified_tilt_control;
 
 }
 

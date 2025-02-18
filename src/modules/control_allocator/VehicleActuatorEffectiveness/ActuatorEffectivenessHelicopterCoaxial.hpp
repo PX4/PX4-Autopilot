@@ -71,7 +71,7 @@ public:
 
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
+			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max, bool preflight_check_running) override;
 
 	void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
 private:

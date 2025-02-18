@@ -126,14 +126,30 @@ void ActuatorEffectivenessTiltrotorVTOL::allocateAuxilaryControls(const float dt
 
 void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
 		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
+		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max, bool preflight_check_running)
 {
 	// apply tilt
+
+	// if preflight_check_running, we alter the behaviour in these two ways:
+	// - collective tilt and thrust setpoints are NOT taken from uOrb
+	//   message, but from class member variable, which we can arbitrarily set
+	//   before calling this function
+	// - collective tilt is added to actuator_sp even if
+	//   (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT)
+	//   evaluates to false
+
 	if (matrix_index == 0) {
 		tiltrotor_extra_controls_s tiltrotor_extra_controls;
 
-		if (_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls)) {
+		if (_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls) || preflight_check_running) {
+
 			float control_collective_tilt = tiltrotor_extra_controls.collective_tilt_normalized_setpoint * 2.f - 1.f;
+			float control_collective_thrust = tiltrotor_extra_controls.collective_thrust_normalized_setpoint;
+
+			if (preflight_check_running) {
+				control_collective_tilt = _collective_tilt_normalized_setpoint * 2.f - 1.f;
+				control_collective_thrust = _collective_thrust_normalized_setpoint;
+			}
 
 			// set control_collective_tilt to exactly -1 or 1 if close to these end points
 			control_collective_tilt = control_collective_tilt < -0.99f ? -1.f : control_collective_tilt;
@@ -166,7 +182,7 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 				if (_tilts.config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
 
 					// as long as throttle spoolup is not completed, leave the tilts in the disarmed position (in hover)
-					if (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT || _preflight_check_running) {
+					if (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT || preflight_check_running) {
 						actuator_sp(i + _first_tilt_idx) += control_collective_tilt;
 
 					} else {
@@ -202,7 +218,7 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 			// in FW directly use throttle sp
 			if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
 				for (int i = 0; i < _first_tilt_idx; ++i) {
-					actuator_sp(i) = tiltrotor_extra_controls.collective_thrust_normalized_setpoint;
+					actuator_sp(i) = control_collective_thrust;
 				}
 			}
 		}

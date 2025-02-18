@@ -198,7 +198,7 @@ public:
 	 */
 	virtual void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
 				    int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-				    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) {}
+				    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max, bool preflight_check_running) {}
 
 	/**
 	 * Get a bitmask of motors to be stopped
