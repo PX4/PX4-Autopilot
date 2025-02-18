@@ -139,6 +139,8 @@ private:
 
 	bool    _reported_ready_last_cycle{false};
 
+	bool    _by_pass_config_reg_check{false};
+
 	// ADS1115 logic part
 	enum ChannelSelection {
 		Invalid = -1, A0 = 0, A1, A2, A3
