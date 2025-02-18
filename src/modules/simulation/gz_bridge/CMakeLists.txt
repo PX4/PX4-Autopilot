@@ -59,12 +59,15 @@ else()
     message(FATAL_ERROR "Unknown Gazebo distribution: ${GZ_DISTRO}. Valid options are: harmonic or ionic")
 endif()
 
-find_package(gz-cmake${GZ_CMAKE_VERSION} REQUIRED)
-find_package(gz-msgs${GZ_MSGS_VERSION} REQUIRED)
-find_package(gz-transport${GZ_TRANSPORT_VERSION} REQUIRED)
-find_package(Protobuf REQUIRED)
+# Use gz-transport as litmus test for prescence of gz
+find_package(gz-transport${GZ_TRANSPORT_VERSION})
 
 if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
+
+	find_package(gz-cmake${GZ_CMAKE_VERSION} REQUIRED)
+	find_package(gz-msgs${GZ_MSGS_VERSION} REQUIRED)
+	find_package(Protobuf REQUIRED)
+
 	# Custom message generation
 	file(GLOB MSGS_PROTOS "${CMAKE_CURRENT_SOURCE_DIR}/msgs/*.proto")
 	PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${MSGS_PROTOS})
