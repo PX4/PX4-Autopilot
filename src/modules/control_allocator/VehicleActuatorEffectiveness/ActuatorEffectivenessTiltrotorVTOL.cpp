@@ -166,7 +166,7 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 				if (_tilts.config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
 
 					// as long as throttle spoolup is not completed, leave the tilts in the disarmed position (in hover)
-					if (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT) {
+					if (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT || _preflight_check_running) {
 						actuator_sp(i + _first_tilt_idx) += control_collective_tilt;
 
 					} else {

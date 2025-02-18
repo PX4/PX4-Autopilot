@@ -88,6 +88,8 @@ public:
 
 	void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
 
+	bool _preflight_check_running{false};
+
 protected:
 	bool _collective_tilt_updated{true};
 	ActuatorEffectivenessRotors _mc_rotors;

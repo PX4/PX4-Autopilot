@@ -447,6 +447,13 @@ ControlAllocator::Run()
 
 		for (int i = 0; i < _num_control_allocation; ++i) {
 
+			ActuatorEffectivenessTiltrotorVTOL *casted = dynamic_cast<ActuatorEffectivenessTiltrotorVTOL *>
+					(_actuator_effectiveness);
+
+			if (casted != nullptr) {
+				casted->_preflight_check_running = _preflight_check_running;
+			}
+
 			_control_allocation[i]->setControlSetpoint(c[i]);
 
 			// Do allocation
