@@ -132,10 +132,10 @@ private:
 	// Variables
 	hrt_abstime _timestamp{0};
 	float _dt{0.f};
-	float _current_motor_setpoint{0.f};
+	float _current_throttle_body_x{0.f};
 
 	// Controllers
-	SlewRate<float> _motor_setpoint{0.f};
+	SlewRate<float> _throttle_body_x_setpoint{0.f};
 
 	// Parameters
 	DEFINE_PARAMETERS(
