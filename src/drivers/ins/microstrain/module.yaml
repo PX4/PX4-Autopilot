@@ -1,0 +1,38 @@
+module_name: MICROSTRAIN
+parameters:
+    - group: Sensors
+      definitions:
+
+        MS_IMU_RATE_HZ:
+            description:
+                short: Accel Data Rate
+                long: |
+                    Accel data rate
+                    The INS driver will be scheduled at a rate 2*MS_IMU_RATE_HZ
+                    Max Limit: 1000
+                    The max limit should be divisible by the rate
+                    Restart required
+            type: int32
+            default: 500
+
+        MS_MAG_RATE_HZ:
+            description:
+                short: Mag Data Rate
+                long: |
+                    Mag data rate
+                    Max Limit: 1000
+                    The max limit should be divisible by the rate
+                    Restart required
+            type: int32
+            default: 50
+
+        MS_BARO_RATE_HZ:
+            description:
+                short: Baro data rate
+                long: |
+                    Baro data rate
+                    Max Limit: 1000
+                    The max limit should be divisible by the rate
+                    Restart required
+            type: int32
+            default: 50
