@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2023-2024 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,9 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-px4_add_library(RoverDifferentialGuidance
-	RoverDifferentialGuidance.cpp
+px4_add_module(
+	MODULE modules__internal_combustion_engine_control
+	MAIN internal_combustion_engine_control
+	COMPILE_FLAGS
+		#-DDEBUG_BUILD
+	SRCS
+		InternalCombustionEngineControl.cpp
+		InternalCombustionEngineControl.hpp
+	MODULE_CONFIG
+		module.yaml
+	DEPENDS
+		px4_work_queue
+		SlewRate
 )
-
-target_include_directories(RoverDifferentialGuidance PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

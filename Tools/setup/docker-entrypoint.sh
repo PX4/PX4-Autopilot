@@ -1,6 +1,5 @@
 #!/bin/bash
 
-echo "[docker-entrypoint.sh] Starting entrypoint"
 # Start virtual X server in the background
 # - DISPLAY default is :99, set in dockerfile
 # - Users can override with `-e DISPLAY=` in `docker run` command to avoid
@@ -17,17 +16,4 @@ if [ -n "${ROS_DISTRO}" ]; then
 	source "/opt/ros/$ROS_DISTRO/setup.bash"
 fi
 
-echo "[docker-entrypoint.sh] Working Directory: ${pwd}"
-
-# Use the LOCAL_USER_ID if passed in at runtime
-if [ -n "${LOCAL_USER_ID}" ]; then
-	echo "[docker-entrypoint.sh] Starting with: $LOCAL_USER_ID:user"
-	# modify existing user's id
-	usermod -u $LOCAL_USER_ID user
-
-	# run as user
-	# exec gosu user "$@"
-	exec "$@"
-else
-	exec "$@"
-fi
+exec "$@"

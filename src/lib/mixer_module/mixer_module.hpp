@@ -40,6 +40,7 @@
 #include "functions/FunctionConstantMin.hpp"
 #include "functions/FunctionGimbal.hpp"
 #include "functions/FunctionGripper.hpp"
+#include "functions/FunctionICEngineControl.hpp"
 #include "functions/FunctionLandingGear.hpp"
 #include "functions/FunctionLandingGearWheel.hpp"
 #include "functions/FunctionManualRC.hpp"
