@@ -145,7 +145,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::ICE_ON_SOURCE>) _param_ice_on_source,
 		(ParamFloat<px4::params::ICE_CHOKE_ST_DUR>) _param_ice_choke_st_dur,
-		(ParamFloat<px4::params::ICE_STARTING_DUR>) _param_ice_starting_dur,
+		(ParamFloat<px4::params::ICE_STRT_DUR>) _param_ice_strt_dur,
 		(ParamFloat<px4::params::ICE_MIN_RUN_RPM>) _param_ice_min_run_rpm,
 		(ParamInt<px4::params::ICE_STRT_ATTEMPT>) _param_ice_strt_attempts,
 		(ParamInt<px4::params::ICE_RUN_FAULT_D>) _param_ice_running_fault_detection,

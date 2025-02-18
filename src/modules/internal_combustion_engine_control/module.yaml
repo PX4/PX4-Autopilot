@@ -22,7 +22,7 @@ parameters:
 
       ICE_CHOKE_ST_DUR:
         description:
-          short: Duration for choking before startup
+          short: Duration of choking during startup
         type: float
         unit: s
         min: 0
@@ -31,7 +31,7 @@ parameters:
         increment: 0.1
         default: 5
 
-      ICE_STARTING_DUR:
+      ICE_STRT_DUR:
         description:
           short: Duration of single starting attempt (excl. choking)
           long: |

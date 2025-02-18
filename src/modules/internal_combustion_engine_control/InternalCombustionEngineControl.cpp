@@ -307,7 +307,7 @@ void InternalCombustionEngineControl::controlEngineStartup(const hrt_abstime now
 {
 	float ignition_delay = 0.f;
 	float choke_duration = 0.f;
-	const float starter_duration = _param_ice_starting_dur.get();
+	const float starter_duration = _param_ice_strt_dur.get();
 
 	if (_starting_retry_cycle == 0) {
 		ignition_delay = math::max(_param_ice_ign_delay.get(), 0.f);
