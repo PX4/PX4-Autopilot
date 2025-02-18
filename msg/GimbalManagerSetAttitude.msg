@@ -20,3 +20,5 @@ float32[4] q
 float32 angular_velocity_x
 float32 angular_velocity_y
 float32 angular_velocity_z
+
+uint8 ORB_QUEUE_LENGTH = 2

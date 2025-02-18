@@ -36,6 +36,7 @@ px4_add_library(FlightTaskUtility
 	StickAccelerationXY.cpp
 	StickTiltXY.cpp
 	StickYaw.cpp
+	Gimbal.cpp
 )
 
 target_link_libraries(FlightTaskUtility PUBLIC FlightTask hysteresis SlewRate motion_planning mathlib)
