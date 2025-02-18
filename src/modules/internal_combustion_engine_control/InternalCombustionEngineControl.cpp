@@ -360,17 +360,22 @@ int InternalCombustionEngineControl::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-The module controls internal combustion engine (ICE) features including: ignition (on/off),throttle and choke level, starter engine delay, and user request.
+The module controls internal combustion engine (ICE) features including:
+ignition (on/off),throttle and choke level, starter engine delay, and user request.
 The module publishes [InternalCombustionEngineControl.msg](../msg_docs/InternalCombustionEngineControl.md).
 The architecture is as shown below.:
 ![Architecture](../../assets/diagrams/ice_control_diagram.png)
 
 ### Enabling
-This feature is not enabled by default needs to be configured in the build target for your board together with the rpm capture driver:
+This feature is not enabled by default needs to be configured in the
+build target for your board together with the rpm capture driver:
 CONFIG_MODULES_INTERNAL_COMBUSTION_ENGINE_CONTROL=y
 CONFIG_DRIVERS_RPM_CAPTURE=y
 
-Additionally, to enable the module set [ICE_EN](https://docs.px4.io/main/en/advanced_config/parameter_reference.html#ICE_EN) to true and adjust the other module parameters ICE_ according to your needs.
+Additionally, to enable the module:
+- set [ICE_EN](https://docs.px4.io/main/en/advanced_config/parameter_reference.html#ICE_EN)
+to true and adjust the other module parameters ICE_ according to your needs.
+- set [RPM_CAP_ENABLE](https://docs.px4.io/main/en/advanced_config/parameter_reference.html#RPM_CAP_ENABLE) to true.
 
 ### Implementation
 The ICE is implemented with a (4) state machine:
