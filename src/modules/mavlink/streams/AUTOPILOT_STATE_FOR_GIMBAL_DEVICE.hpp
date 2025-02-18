@@ -80,10 +80,12 @@ private:
 			mavlink_autopilot_state_for_gimbal_device_t msg{};
 
 			bool hil_state = false;
+			bool vehicle_armed = false;
 			vehicle_status_s vehicle_status;
 
 			if (_vehicle_status_sub.copy(&vehicle_status)) {
 				hil_state = vehicle_status.hil_state;
+				vehicle_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 			}
 
 			//msg.target_system = 0; // TODO
@@ -111,7 +113,7 @@ private:
 			{
 				vehicle_attitude_setpoint_s att_sp;
 
-				if (!hil_state && _att_sp_sub.copy(&att_sp)) {
+				if (!hil_state && vehicle_armed && _att_sp_sub.copy(&att_sp)) {
 					msg.feed_forward_angular_velocity_z = att_sp.yaw_sp_move_rate;
 				}
 			}
