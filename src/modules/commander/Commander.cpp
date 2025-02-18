@@ -1871,31 +1871,15 @@ void Commander::run()
 			_status_changed = true;
 		}
 
-		if (_param_com_do_cs_check.get()) {
+		if (!isArmed()) {
+			if (_param_com_do_cs_check.get()) {
+				_prev_nav_state = _vehicle_status.nav_state;
+				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK);
 
-			// directly modify user intention here.
-			// plan is for this to ultimately to be triggered by a mavlink command
-			// through Commander::handle_command
-
-			// this nice pattern stolen from handle_command
-			// if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK, ModeChangeSource::ModeExecutor, false)) {
-			_prev_nav_state = _vehicle_status.nav_state;
-			_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK);
-
-			// no error handling like this for now
-			// if (ret) {
-				// return vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
-				// PX4_INFO("mode intention changed");
-
-			// } else {
-				// printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
-				// return vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-				// PX4_INFO("mode intention not changed");
-			// }
-
-		} else {
-			if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK) {
-				_user_mode_intention.change(_prev_nav_state);
+			} else {
+				if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK) {
+					_user_mode_intention.change(_prev_nav_state);
+				}
 			}
 		}
 
