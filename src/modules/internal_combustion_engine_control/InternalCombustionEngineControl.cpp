@@ -214,7 +214,7 @@ void InternalCombustionEngineControl::Run()
 				_starting_retry_cycle = 0;
 				PX4_WARN("ICE: Running Fault detected");
 				events::send(events::ID("internal_combustion_engine_control_fault"), events::Log::Critical,
-					     "ICE: Fault");
+					     "IC engine fault detected");
 			}
 		}
 
