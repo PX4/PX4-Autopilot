@@ -39,17 +39,28 @@ then
 	vl53l1x start -X
 fi
 
-# ADIS16448 spi external IMU
+# ADIS164X spi external IMU
 if param compare -s SENS_EN_ADIS164X 1
 then
-	if param compare -s SENS_OR_ADIS164X 0
-	then
-		adis16448 -S start
-	fi
-	if param compare -s SENS_OR_ADIS164X 4
-	then
-		adis16448 -S start -R 4
-	fi
+	adis16448 -S start
+fi
+if param compare -s SENS_EN_ADIS164X 2
+then
+	adis16470 -S start
+fi
+if param compare -s SENS_EN_ADIS164X 3
+then
+	adis16477 -S start
+fi
+if param compare -s SENS_EN_ADIS164X 4
+then
+	adis16497 -S start
+fi
+
+# ADIS165X spi external IMU
+if param compare -s SENS_EN_ADIS165X 1
+then
+	adis16507 -S start
 fi
 
 # Eagle Tree airspeed sensor external I2C

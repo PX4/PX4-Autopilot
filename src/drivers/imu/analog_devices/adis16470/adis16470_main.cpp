@@ -35,6 +35,7 @@
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
+#include <parameters/param.h>
 
 void ADIS16470::print_usage()
 {
@@ -48,18 +49,13 @@ void ADIS16470::print_usage()
 
 extern "C" int adis16470_main(int argc, char *argv[])
 {
-	int ch;
 	using ThisDriver = ADIS16470;
 	BusCLIArguments cli{false, true};
 	cli.default_spi_frequency = SPI_SPEED;
 
-	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
-		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
-			break;
-		}
-	}
+	int32_t rotation = 0;
+	param_get(param_find("SENS_OR_ADIS164X"), &rotation);
+	cli.rotation = (Rotation)rotation;
 
 	const char *verb = cli.optArg();
 

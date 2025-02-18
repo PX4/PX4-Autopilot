@@ -34,23 +34,49 @@
 /**
  * Analog Devices ADIS16448 IMU (external SPI)
  *
- * @reboot_required true
  * @min 0
  * @max 1
  * @group Sensors
  * @value 0 Disabled
- * @value 1 Enabled
+ * @value 1 ADIS16448
+ * @value 2 ADIS16470
+ * @value 3 ADIS16477
+ * @value 4 ADIS16497
+ * @reboot_required true
   */
 PARAM_DEFINE_INT32(SENS_EN_ADIS164X, 0);
 
 /**
- * Analog Devices ADIS16448 IMU Orientation(external SPI)
+ * Analog Devices ADIS164X IMU Orientation (external SPI)
+ *
+ * @min 0
+ * @max 101
+ * @group Sensors
+ * @value 0 ROTATION_NONE
+ * @value N See rotation.h
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(SENS_OR_ADIS164X, 0);
+
+/**
+ * Analog Devices ADIS165X IMU (external SPI)
+ *
+ * @group Sensors
+ * @boolean
+ * @value 0 Disabled
+ * @value 1 ADIS16507
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(SENS_EN_ADIS165X, 0);
+
+/**
+ * Analog Devices ADIS16507 IMU Orientation(external SPI)
  *
  * @reboot_required true
  * @min 0
  * @max 101
  * @group Sensors
  * @value 0 ROTATION_NONE
- * @value 4 ROTATION_YAW_180
-  */
-PARAM_DEFINE_INT32(SENS_OR_ADIS164X, 0);
+ * @value N See rotation.h
+ */
+PARAM_DEFINE_INT32(SENS_OR_ADIS165X, dd);
