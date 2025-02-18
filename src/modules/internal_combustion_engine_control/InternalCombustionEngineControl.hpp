@@ -106,7 +106,6 @@ private:
 
 	enum class ICESource {
 		ArmingState,
-		Mavlink,
 		Aux1,
 		Aux2,
 	};

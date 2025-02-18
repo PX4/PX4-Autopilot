@@ -118,11 +118,6 @@ void InternalCombustionEngineControl::Run()
 		}
 		break;
 
-	case ICESource::Mavlink: {
-			user_request = UserOnOffRequest::Off;
-		}
-		break;
-
 	case ICESource::Aux1: {
 			if (manual_control_setpoint.aux1 > 0.5f) {
 				user_request = UserOnOffRequest::On;
@@ -385,7 +380,6 @@ The state machine:
 - allows for user inputs from
 - AUX{N}
 - Arming state in [VehicleStatus.msg(../msg_docs/VehicleStatus.md)
-- MAVLink (TBD)
 <a id="internal_combustion_engine_control_usage"></a>
 )DESCR_STR");
 

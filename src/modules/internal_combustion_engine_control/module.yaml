@@ -17,9 +17,8 @@ parameters:
         default: 0
         values:
           0: On arming - disarming
-          1: Mavlink - TODO
-          2: Aux1
-          3: Aux2
+          1: Aux1
+          2: Aux2
 
       ICE_CHOKE_ST_DUR:
         description:
