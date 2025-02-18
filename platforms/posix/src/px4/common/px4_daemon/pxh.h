@@ -81,6 +81,7 @@ public:
 	 */
 	static void stop();
 
+	static int shutdown_handler(int argc, char *argv[]);
 private:
 	void _print_prompt();
 	void _move_cursor(int position);
