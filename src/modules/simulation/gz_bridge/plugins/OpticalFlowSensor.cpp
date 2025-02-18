@@ -18,26 +18,26 @@ bool OpticalFlowSensor::Load(const sdf::Sensor &_sdf)
 
 	gz::sensors::Sensor::Load(_sdf);
 
-	_publisher = _node.Advertise<px4::msgs::OpticalFlow>(this->Topic());
-	gzdbg << "Advertising optical flow data on: " << this->Topic() << std::endl;
+	std::string output_topic = this->Topic();
+	_publisher = _node.Advertise<px4::msgs::OpticalFlow>(output_topic);
+	gzdbg << "Advertising optical flow data on: " << output_topic << std::endl;
 
-	// Get camera topic from our sensor config
-	auto elem = _sdf.Element();
-	auto opticalFlowElem = elem->GetElement("gz:optical_flow");
-	auto camera_topic = opticalFlowElem->Get<std::string>("camera_topic");
+	std::string camera_topic = output_topic;
+	size_t last_segment = camera_topic.rfind("/optical_flow/optical_flow");
 
-	std::string topic;
+	if (last_segment != std::string::npos) {
+		camera_topic = camera_topic.substr(0, last_segment) + "/flow_camera/image";
+	}
+
 	int image_width = 0;
 	int image_height = 0;
 	int update_rate = 0;
 	float hfov = 0;
 
-	// Get FOV from the actual camera sensor's config
-	auto sensorElem = elem->GetParent()->GetElement("sensor");
+	auto sensorElem = _sdf.Element()->GetParent()->GetElement("sensor");
 
 	while (sensorElem) {
 		if (sensorElem->Get<std::string>("name") == "flow_camera") {
-
 			auto cameraElem = sensorElem->GetElement("camera");
 			update_rate = sensorElem->GetElement("update_rate")->Get<int>();
 			hfov = cameraElem->GetElement("horizontal_fov")->Get<double>();
@@ -51,24 +51,22 @@ bool OpticalFlowSensor::Load(const sdf::Sensor &_sdf)
 		sensorElem = sensorElem->GetNextElement("sensor");
 	}
 
-	gzdbg << "image_width: " << image_width << std::endl;
-	gzdbg << "image_height: " << image_height << std::endl;
-	gzdbg << "update_rate: " << update_rate << std::endl;
-	gzdbg << "hfov: " << hfov << std::endl;
+	gzdbg << "Camera parameters:" << std::endl
+	      << "  image_width: " << image_width << std::endl
+	      << "  image_height: " << image_height << std::endl
+	      << "  update_rate: " << update_rate << std::endl
+	      << "  hfov: " << hfov << std::endl;
 
-	// Subscribe to camera
-	gzdbg << "Subscribing to camera topic: " << camera_topic << std::endl;
-
+	gzdbg << "Subscribing to camera topic for flow: " << camera_topic << std::endl;
 	if (!_node.Subscribe(camera_topic, &OpticalFlowSensor::OnImage, this)) {
 		gzerr << "Failed to subscribe to camera topic: " << camera_topic << std::endl;
 		return false;
 	}
 
-	// TODO: get from sdf
+	// Assume pinhole camera and 1:1 aspect ratio
 	float focal_length = (image_width / 2.0f) / tan(hfov / 2.0f);
-
-	// Create OpticalFlow
-	_optical_flow = std::make_shared<OpticalFlowOpenCV>(focal_length, focal_length, update_rate, image_width, image_height);
+	_optical_flow = std::make_shared<OpticalFlowOpenCV>(focal_length, focal_length,
+			update_rate, image_width, image_height);
 
 	return true;
 }
@@ -93,7 +91,6 @@ void OpticalFlowSensor::OnImage(const gz::msgs::Image &image_msg)
 		return;
 	}
 
-	// Store current timestamp for integration time calculation
 	uint32_t current_timestamp = (image_msg.header().stamp().sec() * 1000000ULL +
 				      image_msg.header().stamp().nsec() / 1000ULL) & 0xFFFFFFFF;
 
@@ -114,8 +111,8 @@ bool OpticalFlowSensor::Update(const std::chrono::steady_clock::duration &_now)
 	px4::msgs::OpticalFlow msg;
 	msg.set_time_usec(_last_image_timestamp);
 
-	int quality = _optical_flow->calcFlow(_last_image_gray.data, _last_image_timestamp, _integration_time_us, _flow_x,
-					      _flow_y);
+	int quality = _optical_flow->calcFlow(_last_image_gray.data, _last_image_timestamp,
+					      _integration_time_us, _flow_x, _flow_y);
 
 	msg.set_integrated_x(_flow_x);
 	msg.set_integrated_y(_flow_y);
