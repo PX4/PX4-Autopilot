@@ -247,7 +247,8 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-	std::string flow_topic = "/optical_flow";
+	std::string flow_topic = "/world/" + _world_name + "/model/" + _model_name +
+				 "/link/flow_link/sensor/optical_flow/optical_flow";
 
 	if (!_node.Subscribe(flow_topic, &GZBridge::opticalFlowCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", flow_topic.c_str());
