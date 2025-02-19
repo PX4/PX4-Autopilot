@@ -41,6 +41,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdlib>
 
 // TODO: move to a central header
 static constexpr uint8_t Bit0 = (1 << 0);
