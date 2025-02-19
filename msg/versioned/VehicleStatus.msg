@@ -89,10 +89,9 @@ uint8 HIL_STATE_ON = 1
 
 # If it's a VTOL, then the value will be VEHICLE_TYPE_ROTARY_WING while flying as a multicopter, and VEHICLE_TYPE_FIXED_WING when flying as a fixed-wing
 uint8 vehicle_type
-uint8 VEHICLE_TYPE_UNKNOWN = 0
-uint8 VEHICLE_TYPE_ROTARY_WING = 1
-uint8 VEHICLE_TYPE_FIXED_WING = 2
-uint8 VEHICLE_TYPE_ROVER = 3
+uint8 VEHICLE_TYPE_ROTARY_WING = 0
+uint8 VEHICLE_TYPE_FIXED_WING = 1
+uint8 VEHICLE_TYPE_ROVER = 2
 
 uint8 FAILSAFE_DEFER_STATE_DISABLED = 0
 uint8 FAILSAFE_DEFER_STATE_ENABLED = 1
