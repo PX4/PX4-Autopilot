@@ -61,31 +61,3 @@ PARAM_DEFINE_INT32(NN_OUT_DEBUG, 0);
  * @group Multicopter Neural Network Control
  */
 PARAM_DEFINE_INT32(NN_TIME_DEBUG, 0);
-
-
-/**
- * Save the inference time as logging is not implemented yet
- *
- * @group Multicopter Neural Network Control
- * @unit us
- *
- */
-PARAM_DEFINE_FLOAT(NN_CONTROL_INF, 0.0f);
-
-/**
- * Save the inference time as logging is not implemented yet
- *
- * @group Multicopter Neural Network Control
- * @unit us
- *
- */
-PARAM_DEFINE_FLOAT(NN_ALLOC_INF, 0.0f);
-
-/**
- * Save the inference time as logging is not implemented yet
- *
- * @group Multicopter Neural Network Control
- * @unit us
- *
- */
-PARAM_DEFINE_FLOAT(NN_FULL_INF, 0.0f);

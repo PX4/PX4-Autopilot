@@ -130,9 +130,6 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::NN_IN_DEBUG>) 		_param_debug_input_tensor,
 		(ParamBool<px4::params::NN_OUT_DEBUG>)	 	_param_debug_output_tensor,
-		(ParamBool<px4::params::NN_TIME_DEBUG>)		_param_debug_inference_time,
-		(ParamFloat<px4::params::NN_CONTROL_INF>)	_param_control_inference_time,
-		(ParamFloat<px4::params::NN_ALLOC_INF>)		_param_allocation_inference_time,
-		(ParamFloat<px4::params::NN_FULL_INF>)		_param_full_inference_time
+		(ParamBool<px4::params::NN_TIME_DEBUG>)		_param_debug_inference_time
 	)
 };
