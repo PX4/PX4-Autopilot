@@ -89,6 +89,16 @@ public:
 		return true;
 	}
 
+	void setCutoffFreq(float cutoff_freq)
+	{
+		if (cutoff_freq > FLT_EPSILON) {
+			_time_constant = 1.f / (M_TWOPI_F * cutoff_freq);
+
+		} else {
+			_time_constant = 0.f;
+		}
+	}
+
 	/**
 	 * Set filter parameter alpha directly without time abstraction
 	 *

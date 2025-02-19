@@ -189,7 +189,7 @@ class uploader:
     GET_CHIP        = b'\x2c'     # rev5+  , get chip version
     SET_BOOT_DELAY  = b'\x2d'     # rev5+  , set boot delay
     GET_CHIP_DES    = b'\x2e'     # rev5+  , get chip description in ASCII
-    GET_VERSION     = b'\x2f'     # rev5+  , get chip description in ASCII
+    GET_VERSION     = b'\x2f'     # rev5+  , get bootloader version in ASCII
     CHIP_FULL_ERASE = b'\x40'     # full erase of flash, rev6+
     MAX_DES_LENGTH  = 20
 
@@ -201,7 +201,6 @@ class uploader:
     INFO_BOARD_ID   = b'\x02'        # board type
     INFO_BOARD_REV  = b'\x03'        # board revision
     INFO_FLASH_SIZE = b'\x04'        # max firmware size in bytes
-    BL_VERSION      = b'\x07'        # get bootloader version, e.g. major.minor.patch.githash (up to 20 chars)
 
     PROG_MULTI_MAX  = 252            # protocol max is 255, must be multiple of 4
     READ_MULTI_MAX  = 252            # protocol max is 255
@@ -709,7 +708,7 @@ class uploader:
                 # https://github.com/PX4/Firmware/blob/master/src/drivers/boards/common/stm32/board_mcu_version.c#L125-L144
 
                 if self.fw_maxsize > fw.property('image_maxsize') and not force:
-                    raise RuntimeError(f"Board can accept larger flash images ({self.fw_maxsize} bytes) than board config ({fw.property('image_maxsize')} bytes). Please use the correct board configuration to avoid lacking critical functionality.")
+                    print(f"WARNING: Board can accept larger flash images ({self.fw_maxsize} bytes) than board config ({fw.property('image_maxsize')} bytes)")
         else:
             # If we're still on bootloader v4 on a Pixhawk, we don't know if we
             # have the silicon errata and therefore need to flash px4_fmu-v2

@@ -487,8 +487,6 @@ FixedwingPositionControl::status_publish()
 	pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(_current_latitude, _current_longitude,
 				  _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
 
-	pos_ctrl_status.yaw_acceptance = NAN;
-
 	pos_ctrl_status.timestamp = hrt_absolute_time();
 
 	pos_ctrl_status.type = _position_sp_type;
@@ -1858,8 +1856,10 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 							     POST_TOUCHDOWN_CLAMP_TIME, 0.0f,
 							     1.0f);
 
-			pitch_max_rad = touchdown_interpolator * _param_rwto_psp.get() + (1.0f - touchdown_interpolator) * pitch_max_rad;
-			pitch_min_rad = touchdown_interpolator * _param_rwto_psp.get() + (1.0f - touchdown_interpolator) * pitch_min_rad;
+			pitch_max_rad = touchdown_interpolator * math::radians(_param_rwto_psp.get()) + (1.0f - touchdown_interpolator) *
+					pitch_max_rad;
+			pitch_min_rad = touchdown_interpolator * math::radians(_param_rwto_psp.get()) + (1.0f - touchdown_interpolator) *
+					pitch_min_rad;
 		}
 
 		// idle throttle may be >0 for internal combustion engines
@@ -2078,8 +2078,10 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 			const float touchdown_interpolator = math::constrain((seconds_since_flare_start - touchdown_time) /
 							     POST_TOUCHDOWN_CLAMP_TIME, 0.0f, 1.0f);
 
-			pitch_max_rad = touchdown_interpolator * _param_rwto_psp.get() + (1.0f - touchdown_interpolator) * pitch_max_rad;
-			pitch_min_rad = touchdown_interpolator * _param_rwto_psp.get() + (1.0f - touchdown_interpolator) * pitch_min_rad;
+			pitch_max_rad = touchdown_interpolator * math::radians(_param_rwto_psp.get()) + (1.0f - touchdown_interpolator) *
+					pitch_max_rad;
+			pitch_min_rad = touchdown_interpolator * math::radians(_param_rwto_psp.get()) + (1.0f - touchdown_interpolator) *
+					pitch_min_rad;
 		}
 
 		// idle throttle may be >0 for internal combustion engines

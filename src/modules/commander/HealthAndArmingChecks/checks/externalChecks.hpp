@@ -38,9 +38,7 @@
 #include <uORB/topics/arming_check_reply.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
-
-static_assert((1ull << arming_check_reply_s::HEALTH_COMPONENT_INDEX_AVOIDANCE) == (uint64_t)
-	      health_component_t::avoidance, "enum definition missmatch");
+#include <px4_platform_common/module_params.h>
 
 class ExternalChecks : public HealthAndArmingCheckBase
 {
@@ -66,7 +64,7 @@ public:
 	void update();
 
 	bool isUnresponsive(int registration_id);
-
+	bool allowUpdateWhileArmed() const { return _param_com_mode_arm_chk.get(); }
 private:
 	static constexpr hrt_abstime REQUEST_TIMEOUT = 50_ms;
 	static constexpr hrt_abstime UPDATE_INTERVAL = 300_ms;
@@ -109,4 +107,7 @@ private:
 	uORB::Subscription _arming_check_reply_sub{ORB_ID(arming_check_reply)};
 
 	uORB::Publication<arming_check_request_s> _arming_check_request_pub{ORB_ID(arming_check_request)};
+	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
+					(ParamBool<px4::params::COM_MODE_ARM_CHK>) _param_com_mode_arm_chk
+				       );
 };

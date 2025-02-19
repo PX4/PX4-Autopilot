@@ -161,7 +161,7 @@ void VehicleOpticalFlow::Run()
 			}
 
 			Vector3f delta_angle{NAN, NAN, NAN};
-			uint16_t delta_angle_dt;
+			uint32_t delta_angle_dt;
 
 			if (_gyro_integrator.reset(delta_angle, delta_angle_dt)) {
 				_delta_angle += delta_angle;

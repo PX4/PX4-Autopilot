@@ -156,19 +156,8 @@ bool FlightTaskAuto::update()
 		break;
 	}
 
-	if (_param_com_obs_avoid.get()) {
-		_obstacle_avoidance.updateAvoidanceDesiredSetpoints(_position_setpoint, _velocity_setpoint, (int)_type);
-		_obstacle_avoidance.injectAvoidanceSetpoints(_position_setpoint, _velocity_setpoint, _yaw_setpoint,
-				_yawspeed_setpoint);
-	}
-
 	_checkEmergencyBraking();
 	Vector3f waypoints[] = {_prev_wp, _position_setpoint, _next_wp};
-
-	if (isTargetModified()) {
-		// In case object avoidance has injected a new setpoint, we take this as the next waypoints
-		waypoints[2] = _position_setpoint;
-	}
 
 	const bool should_wait_for_yaw_align = _param_mpc_yaw_mode.get() == int32_t(yaw_mode::towards_waypoint_yaw_first)
 					       && !_yaw_sp_aligned;
@@ -280,12 +269,6 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		} else {
 			max_speed = 0.f;
 			sticks_xy.setZero();
-		}
-
-		// If ground distance estimate valid (distance sensor) during nudging then limit horizontal speed
-		if (PX4_ISFINITE(_dist_to_bottom)) {
-			// Below 50cm no horizontal speed, above allow per meter altitude 0.5m/s speed
-			max_speed = math::max(0.f, math::min(max_speed, (_dist_to_bottom - .5f) * .5f));
 		}
 
 		_stick_acceleration_xy.setVelocityConstraint(max_speed);
@@ -481,17 +464,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	if (triplet_update || (_current_state != previous_state) || _current_state == State::offtrack) {
 		_updateInternalWaypoints();
-	}
-
-	if (_param_com_obs_avoid.get()
-	    && _sub_vehicle_status.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		_obstacle_avoidance.updateAvoidanceDesiredWaypoints(_triplet_target, _yaw_setpoint, _yawspeed_setpoint,
-				_triplet_next_wp,
-				_sub_triplet_setpoint.get().next.yaw,
-				(float)NAN,
-				_weathervane.isActive(), _sub_triplet_setpoint.get().current.type);
-		_obstacle_avoidance.checkAvoidanceProgress(
-			_position, _triplet_prev_wp, _target_acceptance_radius, Vector2f(_closest_pt));
 	}
 
 	// set heading
@@ -785,15 +757,6 @@ bool FlightTaskAuto::_generateHeadingAlongTraj()
 	}
 
 	return res;
-}
-
-bool FlightTaskAuto::isTargetModified() const
-{
-	const bool xy_modified = (_target - _position_setpoint).xy().longerThan(FLT_EPSILON);
-	const bool z_valid = PX4_ISFINITE(_position_setpoint(2));
-	const bool z_modified =  z_valid && std::fabs((_target - _position_setpoint)(2)) > FLT_EPSILON;
-
-	return xy_modified || z_modified;
 }
 
 void FlightTaskAuto::_updateTrajConstraints()

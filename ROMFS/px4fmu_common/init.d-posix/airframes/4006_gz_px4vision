@@ -19,7 +19,6 @@ param set-default SENS_EN_BAROSIM 0
 param set-default SENS_EN_MAGSIM 1
 
 # Commander Parameters
-param set-default COM_OBS_AVOID 0
 param set-default COM_DISARM_LAND 0.5
 
 # EKF2 parameters

@@ -4,6 +4,9 @@
 # Simulator IMU data provided at 250 Hz
 param set-default IMU_INTEG_RATE 250
 
+# For simulation, allow registering modes while armed for developer convenience
+param set-default COM_MODE_ARM_CHK 1
+
 if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0" ]; then
 
 	echo "INFO  [init] SIH simulator"
