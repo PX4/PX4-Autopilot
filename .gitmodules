@@ -83,3 +83,7 @@
 [submodule "boards/modalai/voxl2/libfc-sensor-api"]
 	path = boards/modalai/voxl2/libfc-sensor-api
 	url = https://gitlab.com/voxl-public/voxl-sdk/core-libs/libfc-sensor-api.git
+[submodule "src/lib/tflm/tflite_micro"]
+	path = src/lib/tflm/tflite_micro
+	url = git@github.com:tensorflow/tflite-micro.git
+	branch = main
