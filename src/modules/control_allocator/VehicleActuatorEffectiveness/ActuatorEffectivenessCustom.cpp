@@ -61,7 +61,8 @@ ActuatorEffectivenessCustom::getEffectivenessMatrix(Configuration &configuration
 
 void ActuatorEffectivenessCustom::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
 		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max, bool preflight_check_running)
+		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max, bool preflight_check_running,
+		float collective_tilt_normalized_setpoint, float collective_thrust_normalized_setpoint)
 {
 	stopMaskedMotorsWithZeroThrust(_motors_mask, actuator_sp);
 }

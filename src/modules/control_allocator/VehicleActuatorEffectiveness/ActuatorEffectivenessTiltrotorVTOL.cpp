@@ -126,7 +126,8 @@ void ActuatorEffectivenessTiltrotorVTOL::allocateAuxilaryControls(const float dt
 
 void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
 		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max, bool preflight_check_running)
+		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max, bool preflight_check_running,
+		float collective_tilt_normalized_setpoint, float collective_thrust_normalized_setpoint)
 {
 	// apply tilt
 
@@ -147,8 +148,8 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 			float control_collective_thrust = tiltrotor_extra_controls.collective_thrust_normalized_setpoint;
 
 			if (preflight_check_running) {
-				control_collective_tilt = _collective_tilt_normalized_setpoint * 2.f - 1.f;
-				control_collective_thrust = _collective_thrust_normalized_setpoint;
+				control_collective_tilt = collective_tilt_normalized_setpoint * 2.f - 1.f;
+				control_collective_thrust = collective_thrust_normalized_setpoint;
 			}
 
 			// set control_collective_tilt to exactly -1 or 1 if close to these end points

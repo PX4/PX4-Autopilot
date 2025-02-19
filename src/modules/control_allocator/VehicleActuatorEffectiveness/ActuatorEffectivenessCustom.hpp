@@ -47,7 +47,8 @@ public:
 
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max, bool preflight_check_running) override;
+			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max, bool preflight_check_running = true,
+			    float collective_tilt_normalized_setpoint = 0.0f, float collective_thrust_normalized_setpoint = 0.0f) override;
 
 	const char *name() const override { return "Custom"; }
 

@@ -82,14 +82,12 @@ public:
 
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max, bool preflight_check_running) override;
+			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max, bool preflight_check_running = true,
+			    float collective_tilt_normalized_setpoint = 0.0f, float collective_thrust_normalized_setpoint = 0.0f) override;
 
 	const char *name() const override { return "VTOL Tiltrotor"; }
 
 	void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
-
-	float _collective_tilt_normalized_setpoint{0.5f};
-	float _collective_thrust_normalized_setpoint{0.0f};
 
 protected:
 	bool _collective_tilt_updated{true};
