@@ -34,8 +34,7 @@
 /**
  * RPM capture enable
  *
- * Enables the RPM capture module.
- * Uses the pulses sensed on an input pin (pin function: RPM_Input) to calculate the RPM.
+ * Enables the RPM capture module to estimate RPM from pulses detected on a PWM pin configured as "RPM Input".
  *
  * @boolean
  * @group System
