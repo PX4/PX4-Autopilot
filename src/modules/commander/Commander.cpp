@@ -1875,8 +1875,10 @@ void Commander::run()
 		// COM_PREARM_MODE = 1 (Safety Button) or 2 (Always).
 		if (_actuator_armed.prearmed) {
 			if (_param_com_do_cs_check.get()) {
-				_prev_nav_state = _vehicle_status.nav_state;
-				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK);
+				if (_vehicle_status.nav_state != vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK) {
+					_prev_nav_state = _vehicle_status.nav_state;
+					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK);
+				}
 
 			} else {
 				if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK) {
