@@ -57,7 +57,7 @@ typedef void *uorb_cb_handle_t;
 #define UORB_INVALID_CB_HANDLE nullptr
 #define uorb_cb_handle_valid(x) ((x) != nullptr)
 #else
-#if defined(CONFIG_BUILD_KERNEL)
+#if defined(CONFIG_BUILD_KERNEL) || defined(__PX4_POSIX)
 #define MAX_EVENT_WAITERS 32
 #else
 #define MAX_EVENT_WAITERS 6
