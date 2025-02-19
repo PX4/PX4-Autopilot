@@ -1871,7 +1871,9 @@ void Commander::run()
 			_status_changed = true;
 		}
 
-		if (!isArmed()) {
+		// do the control surface preflight check only if pre-armed. this means we need:
+		// COM_PREARM_MODE = 1 (Safety Button) or 2 (Always).
+		if (_actuator_armed.prearmed) {
 			if (_param_com_do_cs_check.get()) {
 				_prev_nav_state = _vehicle_status.nav_state;
 				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK);
