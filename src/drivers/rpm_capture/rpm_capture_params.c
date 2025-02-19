@@ -32,9 +32,10 @@
  ****************************************************************************/
 
 /**
- * RPM Capture Enable
+ * RPM capture enable
  *
- * Enables the RPM capture module on FMU channel 5.
+ * Enables the RPM capture module.
+ * Uses the pulses sensed on an input pin (pin function: RPM_Input) to calculate the RPM.
  *
  * @boolean
  * @group System
