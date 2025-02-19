@@ -124,9 +124,16 @@ void ActuatorEffectivenessTiltrotorVTOL::allocateAuxilaryControls(const float dt
 
 }
 
+void ActuatorEffectivenessTiltrotorVTOL::setBypassTiltrotorControls(bool bypass, float collective_tilt, float collective_thrust)
+{
+	_bypass_tiltrotor_controls = bypass;
+	_collective_tilt_normalized_setpoint = collective_tilt;
+	_collective_thrust_normalized_setpoint = collective_thrust;
+}
+
 void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
 		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max, bool preflight_check_running)
+		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
 {
 	// apply tilt
 
@@ -141,12 +148,12 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 	if (matrix_index == 0) {
 		tiltrotor_extra_controls_s tiltrotor_extra_controls;
 
-		if (_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls) || preflight_check_running) {
+		if (_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls) || _bypass_tiltrotor_controls) {
 
 			float control_collective_tilt = tiltrotor_extra_controls.collective_tilt_normalized_setpoint * 2.f - 1.f;
 			float control_collective_thrust = tiltrotor_extra_controls.collective_thrust_normalized_setpoint;
 
-			if (preflight_check_running) {
+			if (_bypass_tiltrotor_controls) {
 				control_collective_tilt = _collective_tilt_normalized_setpoint * 2.f - 1.f;
 				control_collective_thrust = _collective_thrust_normalized_setpoint;
 			}
@@ -182,7 +189,7 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 				if (_tilts.config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
 
 					// as long as throttle spoolup is not completed, leave the tilts in the disarmed position (in hover)
-					if (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT || preflight_check_running) {
+					if (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT || _bypass_tiltrotor_controls) {
 						actuator_sp(i + _first_tilt_idx) += control_collective_tilt;
 
 					} else {

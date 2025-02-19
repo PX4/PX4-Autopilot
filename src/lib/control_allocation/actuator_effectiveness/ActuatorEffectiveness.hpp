@@ -198,7 +198,7 @@ public:
 	 */
 	virtual void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
 				    int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-				    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max, bool preflight_check_running) {}
+				    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) {}
 
 	/**
 	 * Get a bitmask of motors to be stopped
@@ -218,6 +218,18 @@ public:
 	 * @param actuator_sp outcome of the allocation to determine if the motor should be stopped
 	 */
 	virtual void stopMaskedMotorsWithZeroThrust(uint32_t stoppable_motors_mask, ActuatorVector &actuator_sp);
+
+	/**
+	 * If overridden by derived classes, optionally bypass the info usually
+	 * contained in tiltrotor_extra_controls -- normalised collective thrust
+	 * and tilt setpoints.
+	 *
+	 * Base class implementation is empty.
+	 *
+	 * @param bypass Flag indicating whether or not to use the other
+	 * arguments to bypass setpoints
+	 */
+	virtual void setBypassTiltrotorControls(bool bypass, float collective_tilt, float collective_thrust);
 
 protected:
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};

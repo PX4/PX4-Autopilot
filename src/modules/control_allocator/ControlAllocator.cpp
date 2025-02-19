@@ -450,23 +450,19 @@ ControlAllocator::Run()
 			// Do allocation
 			_control_allocation[i]->allocate();
 
-			if (_preflight_check_running) {
+			bool is_tiltrotor = _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
+			if (_preflight_check_running && is_tiltrotor) {
+				float preflight_check_tilt_sp = preflight_check_get_tilt_control();
+				_actuator_effectiveness->setBypassTiltrotorControls(true, preflight_check_tilt_sp, 0.0f);
 
-				// alternative: specify these member variables in the general ActuatorEffectiveness,
-				// and just don't use them anywhere except TiltrotorVTOL
-				auto actuator_effectiveness_tiltrotor_vtol = dynamic_cast<ActuatorEffectivenessTiltrotorVTOL*>(_actuator_effectiveness);
+			} else {
+				_actuator_effectiveness->setBypassTiltrotorControls(false, 0.0f, 0.0f);
 
-				if (actuator_effectiveness_tiltrotor_vtol) {
-					float collective_tilt_sp = preflight_check_get_tilt_control();
-					actuator_effectiveness_tiltrotor_vtol->_collective_tilt_normalized_setpoint = collective_tilt_sp;
-					actuator_effectiveness_tiltrotor_vtol->_collective_thrust_normalized_setpoint = 0.0f;
-				}
 			}
 
 			_actuator_effectiveness->allocateAuxilaryControls(dt, i, _control_allocation[i]->_actuator_sp); //flaps and spoilers
 			_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp,
-								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax(),
-								_preflight_check_running);
+								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax());
 
 			if (_has_slew_rate) {
 				_control_allocation[i]->applySlewRateLimit(dt);
@@ -494,23 +490,10 @@ ControlAllocator::Run()
 	perf_end(_loop_perf);
 }
 
-// void ControlAllocator::test_individual_control_surfaces() {
-	// goal here: modify actuation at the servo level.
-
-	// in here: small state machine cycling through servos (or taking info
-	// from outside about which servo to actuate)
-	// if test running: if enough time passed: go to next thing
-	//                  if last thing: test = not running
-
-	// elsewhere (probably Run()...)
-	// set test running if right message received
-	// if test running,
-
-// }
-
 void ControlAllocator::preflight_check_update_state() {
 
-	bool tiltrotor = dynamic_cast<ActuatorEffectivenessTiltrotorVTOL*>(_actuator_effectiveness) != nullptr;
+	// bool tiltrotor = dynamic_cast<ActuatorEffectivenessTiltrotorVTOL*>(_actuator_effectiveness) != nullptr;
+	bool tiltrotor = _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
 
 	// cycle through roll, pitch, yaw, and for each one inject positive and
 	// negative torque setpoints.

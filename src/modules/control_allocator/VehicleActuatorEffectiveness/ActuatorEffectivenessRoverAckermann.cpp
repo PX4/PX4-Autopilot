@@ -51,7 +51,7 @@ ActuatorEffectivenessRoverAckermann::getEffectivenessMatrix(Configuration &confi
 
 void ActuatorEffectivenessRoverAckermann::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
 		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max, bool preflight_check_running)
+		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
 {
 	stopMaskedMotorsWithZeroThrust(_motors_mask, actuator_sp);
 }
