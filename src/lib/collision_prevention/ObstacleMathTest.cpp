@@ -133,6 +133,22 @@ TEST(ObstacleMathTest, GetBinAtAngle)
 	EXPECT_EQ(bin_index, 18);
 }
 
+TEST(ObstacleMathTest, GetLowerBound)
+{
+	// GIVEN: an invalid bin index, non-integer bin width, and a negative non-integer angle offset
+	int      bin          = -1;
+	float    bin_width    =  7.5f;
+	float    angle_offset = -4.3f;
+
+	// WHEN: we calculate the lower bound angle of the bin
+	float lower_bound = ObstacleMath::get_lower_bound_angle(bin, bin_width, angle_offset);
+
+	// THEN: the lower bound angle should be correct. The bin index is wrapped to the end and
+	// the angle offset is applied in the counter-clockwise direction.
+	EXPECT_FLOAT_EQ(lower_bound, 344.45);
+
+}
+
 
 TEST(ObstacleMathTest, OffsetBinIndex)
 {

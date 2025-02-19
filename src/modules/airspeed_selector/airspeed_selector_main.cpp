@@ -388,7 +388,7 @@ AirspeedModule::Run()
 				input_data.airspeed_indicated_raw = airspeed_raw.indicated_airspeed_m_s;
 				input_data.airspeed_true_raw = airspeed_raw.true_airspeed_m_s;
 				input_data.airspeed_timestamp = airspeed_raw.timestamp;
-				input_data.air_temperature_celsius = airspeed_raw.air_temperature_celsius;
+				input_data.air_temperature_celsius = _vehicle_air_data.ambient_temperature;
 
 				if (_in_takeoff_situation) {
 					// set flag to false if either speed is above stall speed,

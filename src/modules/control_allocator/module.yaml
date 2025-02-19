@@ -31,6 +31,8 @@ parameters:
                 11: Helicopter (tail Servo)
                 12: Helicopter (Coaxial)
                 13: Rover (Mecanum)
+                14: Spacecraft 2D
+                15: Spacecraft 3D
             default: 0
 
         CA_METHOD:

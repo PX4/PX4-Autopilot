@@ -123,7 +123,7 @@ PARAM_DEFINE_INT32(SDLOG_MISSION, 0);
  * 4 : Full rates for analysis of fast maneuvers (RC, attitude, rates and actuators)
  * 5 : Debugging topics (debug_*.msg topics, for custom code)
  * 6 : Topics for sensor comparison (low rate raw IMU, Baro and magnetometer data)
- * 7 : Topics for computer vision and collision avoidance
+ * 7 : Topics for computer vision and collision prevention
  * 8 : Raw FIFO high-rate IMU (Gyro)
  * 9 : Raw FIFO high-rate IMU (Accel)
  * 10: Logging of mavlink tunnel message (useful for payload communication debugging)

@@ -47,6 +47,7 @@ CCACHE_DIR=${HOME}/.ccache
 mkdir -p "${CCACHE_DIR}"
 
 docker run -it --rm -w "${SRC_DIR}" \
+	--user="$(id -u):$(id -g)" \
 	--env=AWS_ACCESS_KEY_ID \
 	--env=AWS_SECRET_ACCESS_KEY \
 	--env=BRANCH_NAME \
@@ -54,7 +55,6 @@ docker run -it --rm -w "${SRC_DIR}" \
 	--env=CI \
 	--env=CODECOV_TOKEN \
 	--env=COVERALLS_REPO_TOKEN \
-	--env=LOCAL_USER_ID="$(id -u)" \
 	--env=PX4_ASAN \
 	--env=PX4_MSAN \
 	--env=PX4_TSAN \

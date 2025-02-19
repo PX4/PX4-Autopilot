@@ -39,8 +39,6 @@ px4_add_romfs_files(
 	1012_gazebo-classic_iris_rplidar
 	1013_gazebo-classic_iris_vision
 	1013_gazebo-classic_iris_vision.post
-	1014_gazebo-classic_iris_obs_avoid
-	1014_gazebo-classic_iris_obs_avoid.post
 	1015_gazebo-classic_iris_depth_camera
 	1016_gazebo-classic_iris_downward_depth_camera
 	1017_gazebo-classic_iris_opt_flow_mockup
@@ -113,6 +111,9 @@ px4_add_romfs_files(
 
 	17001_flightgear_tf-g1
 	17002_flightgear_tf-g2
+
+	71001_gazebo-classic_spacecraft_dart
+	71002_gz_spacecraft_2d
 
 	# [22000, 22999] Reserve for custom models
 )

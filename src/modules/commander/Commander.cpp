@@ -1717,8 +1717,6 @@ void Commander::updateParameters()
 		_vehicle_status.system_type = value_int32;
 	}
 
-	_vehicle_status.avoidance_system_required = _param_com_obs_avoid.get();
-
 	_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
 
 	const bool is_rotary = is_rotary_wing(_vehicle_status) || (is_vtol(_vehicle_status)
@@ -1798,9 +1796,6 @@ void Commander::run()
 
 			_status_changed = true;
 		}
-
-		/* Update OA parameter */
-		_vehicle_status.avoidance_system_required = _param_com_obs_avoid.get();
 
 		handlePowerButtonState();
 
@@ -2814,16 +2809,6 @@ void Commander::dataLinkCheck()
 				_vehicle_status.open_drone_id_system_present = true;
 				_vehicle_status.open_drone_id_system_healthy = healthy;
 			}
-
-			if (telemetry.heartbeat_component_obstacle_avoidance) {
-				if (_avoidance_system_lost) {
-					_avoidance_system_lost = false;
-					_status_changed = true;
-				}
-
-				_datalink_last_heartbeat_avoidance_system = telemetry.timestamp;
-				_vehicle_status.avoidance_system_valid = telemetry.avoidance_system_healthy;
-			}
 		}
 	}
 
@@ -2874,17 +2859,6 @@ void Commander::dataLinkCheck()
 		_vehicle_status.open_drone_id_system_healthy = false;
 		_open_drone_id_system_lost = true;
 		_status_changed = true;
-	}
-
-	// AVOIDANCE SYSTEM state check (only if it is enabled)
-	if (_vehicle_status.avoidance_system_required && !_onboard_controller_lost) {
-		// if heartbeats stop
-		if (!_avoidance_system_lost && (_datalink_last_heartbeat_avoidance_system > 0)
-		    && (hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > 5_s)) {
-
-			_avoidance_system_lost = true;
-			_vehicle_status.avoidance_system_valid = false;
-		}
 	}
 }
 
@@ -3036,7 +3010,7 @@ The commander module contains the state machine for mode switching and failsafe 
 #ifndef CONSTRAINED_FLASH
 	PRINT_MODULE_USAGE_COMMAND_DESCR("calibrate", "Run sensor calibration");
 	PRINT_MODULE_USAGE_ARG("mag|baro|accel|gyro|level|esc|airspeed", "Calibration type", false);
-	PRINT_MODULE_USAGE_ARG("quick", "Quick calibration (accel only, not recommended)", false);
+	PRINT_MODULE_USAGE_ARG("quick", "Quick calibration [mag, accel (not recommended)]", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("check", "Run preflight checks");
 	PRINT_MODULE_USAGE_COMMAND("arm");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Force arming (do not run preflight checks)", true);
