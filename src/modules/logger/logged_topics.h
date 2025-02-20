@@ -54,7 +54,8 @@ enum class SDLogProfileMask : int32_t {
 	VISION_AND_AVOIDANCE =  1 << 7,
 	RAW_IMU_GYRO_FIFO =     1 << 8,
 	RAW_IMU_ACCEL_FIFO =    1 << 9,
-	MAVLINK_TUNNEL =        1 << 10
+	MAVLINK_TUNNEL =        1 << 10,
+	AVIANT_HIGH_RATE =      1 << 11
 };
 
 enum class MissionLogType : int32_t {
@@ -169,6 +170,7 @@ private:
 	void add_thermal_calibration_topics();
 	void add_system_identification_topics();
 	void add_high_rate_topics();
+	void add_aviant_high_rate_topics();
 	void add_debug_topics();
 	void add_sensor_comparison_topics();
 	void add_vision_and_avoidance_topics();

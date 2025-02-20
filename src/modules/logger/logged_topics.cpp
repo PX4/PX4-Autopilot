@@ -261,6 +261,16 @@ void LoggedTopics::add_high_rate_topics()
 	add_topic("vehicle_rates_setpoint");
 }
 
+void LoggedTopics::add_aviant_high_rate_topics()
+{
+	add_topic("actuator_controls_0");
+	add_topic("actuator_outputs");
+	add_topic("sensor_combined");
+	add_topic("sensor_accel", 0, 2);
+	add_topic("sensor_gyro", 0, 2);
+	add_topic("vehicle_attitude");
+}
+
 void LoggedTopics::add_debug_topics()
 {
 	add_topic("debug_array");
@@ -552,5 +562,9 @@ void LoggedTopics::initialize_configured_topics(SDLogProfileMask profile)
 
 	if (profile & SDLogProfileMask::MAVLINK_TUNNEL) {
 		add_mavlink_tunnel();
+	}
+
+	if (profile & SDLogProfileMask::AVIANT_HIGH_RATE) {
+		add_aviant_high_rate_topics();
 	}
 }
