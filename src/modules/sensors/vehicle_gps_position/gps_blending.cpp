@@ -217,8 +217,8 @@ bool GpsBlending::blend_gps_data(uint64_t hrt_now_us)
 
 		if (_blend_use_spd_acc) {
 			for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
-				if (_gps_state[i].fix_type >= 3 && _gps_state[i].s_variance_m_s > 0.0f) {
-					speed_accuracy_sum_sq += _gps_state[i].s_variance_m_s * _gps_state[i].s_variance_m_s;
+				if (_gps_state[i].fix_type >= 3 && _gps_state[i].speed_accuracy > 0.0f) {
+					speed_accuracy_sum_sq += _gps_state[i].speed_accuracy * _gps_state[i].speed_accuracy;
 				}
 			}
 		}
@@ -264,8 +264,8 @@ bool GpsBlending::blend_gps_data(uint64_t hrt_now_us)
 			float sum_of_spd_weights = 0.0f;
 
 			for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
-				if (_gps_state[i].fix_type >= 3 && _gps_state[i].s_variance_m_s >= 0.001f) {
-					spd_blend_weights[i] = 1.0f / (_gps_state[i].s_variance_m_s * _gps_state[i].s_variance_m_s);
+				if (_gps_state[i].fix_type >= 3 && _gps_state[i].speed_accuracy >= 0.001f) {
+					spd_blend_weights[i] = 1.0f / (_gps_state[i].speed_accuracy * _gps_state[i].speed_accuracy);
 					sum_of_spd_weights += spd_blend_weights[i];
 				}
 			}
@@ -408,9 +408,9 @@ sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS
 				gps_blended_state.epv = _gps_state[i].epv;
 			}
 
-			if (_gps_state[i].s_variance_m_s > 0.0f
-			    && _gps_state[i].s_variance_m_s < gps_blended_state.s_variance_m_s) {
-				gps_blended_state.s_variance_m_s = _gps_state[i].s_variance_m_s;
+			if (_gps_state[i].speed_accuracy > 0.0f
+			    && _gps_state[i].speed_accuracy < gps_blended_state.speed_accuracy) {
+				gps_blended_state.speed_accuracy = _gps_state[i].speed_accuracy;
 			}
 
 			if (_gps_state[i].hdop > 0

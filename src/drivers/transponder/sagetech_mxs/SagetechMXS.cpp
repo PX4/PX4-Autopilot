@@ -788,19 +788,19 @@ void SagetechMXS::send_gps_msg()
 	gps.vfom = _gps.epv >= 0 ? _gps.epv : 0;
 	gps.nacv = sg_nacv_t::nacvUnknown;
 
-	if (_gps.s_variance_m_s >= (float)10.0 || _gps.s_variance_m_s < 0) {
+	if (_gps.speed_accuracy >= (float)10.0 || _gps.speed_accuracy < 0) {
 		gps.nacv = sg_nacv_t::nacvUnknown;
 
-	} else if (_gps.s_variance_m_s >= (float)3.0) {
+	} else if (_gps.speed_accuracy >= (float)3.0) {
 		gps.nacv = sg_nacv_t::nacv10dot0;
 
-	} else if (_gps.s_variance_m_s >= (float)1.0) {
+	} else if (_gps.speed_accuracy >= (float)1.0) {
 		gps.nacv = sg_nacv_t::nacv3dot0;
 
-	} else if (_gps.s_variance_m_s >= (float)0.3) {
+	} else if (_gps.speed_accuracy >= (float)0.3) {
 		gps.nacv = sg_nacv_t::nacv1dot0;
 
-	} else { //if (_gps.s_variance_m_s >= 0.0)
+	} else { //if (_gps.speed_accuracy >= 0.0)
 		gps.nacv = sg_nacv_t::nacv0dot3;
 	}
 

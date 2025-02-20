@@ -323,7 +323,7 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 		const bool fix = vehicle_gps_position.fix_type >= kHomePositionGPSRequiredFixType;
 		const bool eph = vehicle_gps_position.eph < kHomePositionGPSRequiredEPH;
 		const bool epv = vehicle_gps_position.epv < kHomePositionGPSRequiredEPV;
-		const bool evh = vehicle_gps_position.s_variance_m_s < kHomePositionGPSRequiredEVH;
+		const bool evh = vehicle_gps_position.speed_accuracy < kHomePositionGPSRequiredEVH;
 		_gps_position_for_home_valid = time && fix && eph && epv && evh;
 	}
 

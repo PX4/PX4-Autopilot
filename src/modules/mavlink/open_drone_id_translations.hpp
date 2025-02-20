@@ -41,7 +41,7 @@ namespace open_drone_id_translations
 
 MAV_ODID_UA_TYPE odidTypeForMavType(uint8_t system_type);
 
-MAV_ODID_SPEED_ACC odidSpeedAccForVariance(float s_variance_m_s);
+MAV_ODID_SPEED_ACC odidSpeedAccForVariance(float speed_accuracy);
 
 MAV_ODID_HOR_ACC odidHorAccForEph(float eph);
 

@@ -134,20 +134,20 @@ MAV_ODID_UA_TYPE odidTypeForMavType(uint8_t system_type)
 	}
 }
 
-MAV_ODID_SPEED_ACC odidSpeedAccForVariance(float s_variance_m_s)
+MAV_ODID_SPEED_ACC odidSpeedAccForVariance(float speed_accuracy)
 {
 	// TODO: should this be stddev, so square root of variance?
 	// speed_accuracy
-	if (s_variance_m_s < 0.3f) {
+	if (speed_accuracy < 0.3f) {
 		return MAV_ODID_SPEED_ACC_0_3_METERS_PER_SECOND;
 
-	} else if (s_variance_m_s < 1.f) {
+	} else if (speed_accuracy < 1.f) {
 		return MAV_ODID_SPEED_ACC_1_METERS_PER_SECOND;
 
-	} else if (s_variance_m_s < 3.f) {
+	} else if (speed_accuracy < 3.f) {
 		return MAV_ODID_SPEED_ACC_3_METERS_PER_SECOND;
 
-	} else if (s_variance_m_s < 10.f) {
+	} else if (speed_accuracy < 10.f) {
 		return MAV_ODID_SPEED_ACC_10_METERS_PER_SECOND;
 
 	} else {

@@ -64,7 +64,7 @@ void FakeGps::Run()
 	sensor_gps.longitude_deg = _longitude;
 	sensor_gps.altitude_msl_m = _altitude;
 	sensor_gps.altitude_ellipsoid_m = _altitude;
-	sensor_gps.s_variance_m_s = 0.3740f;
+	sensor_gps.speed_accuracy = 0.3740f;
 	sensor_gps.c_variance_rad = 0.6737f;
 	sensor_gps.eph = 2.1060f;
 	sensor_gps.epv = 3.8470f;

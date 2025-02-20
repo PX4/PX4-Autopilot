@@ -88,7 +88,7 @@ private:
 			msg.alt_ellipsoid = static_cast<int32_t>(round(gps.altitude_ellipsoid_m * 1e3)); // convert [m] to [mm]
 			msg.h_acc = gps.eph * 1e3f;              // position uncertainty in mm
 			msg.v_acc = gps.epv * 1e3f;              // altitude uncertainty in mm
-			msg.vel_acc = gps.s_variance_m_s * 1e3f; // speed uncertainty in mm
+			msg.vel_acc = gps.speed_accuracy * 1e3f; // speed uncertainty in mm
 
 			if (PX4_ISFINITE(gps.heading)) {
 				if (fabsf(gps.heading) < FLT_EPSILON) {

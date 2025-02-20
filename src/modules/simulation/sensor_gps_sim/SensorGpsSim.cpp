@@ -132,7 +132,7 @@ void SensorGpsSim::Run()
 		if (_sim_gps_used.get() >= 4) {
 			// fix
 			sensor_gps.fix_type = 3; // 3D fix
-			sensor_gps.s_variance_m_s = 0.4f;
+			sensor_gps.speed_accuracy = 0.4f;
 			sensor_gps.c_variance_rad = 0.1f;
 			sensor_gps.eph = 0.9f;
 			sensor_gps.epv = 1.78f;
@@ -142,7 +142,7 @@ void SensorGpsSim::Run()
 		} else {
 			// no fix
 			sensor_gps.fix_type = 0; // No fix
-			sensor_gps.s_variance_m_s = 100.f;
+			sensor_gps.speed_accuracy = 100.f;
 			sensor_gps.c_variance_rad = 100.f;
 			sensor_gps.eph = 100.f;
 			sensor_gps.epv = 100.f;

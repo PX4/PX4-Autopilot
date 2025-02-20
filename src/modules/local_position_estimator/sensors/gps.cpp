@@ -158,7 +158,7 @@ void BlockLocalPositionEstimator::gpsCorrect()
 		var_z = _sub_gps.get().epv * _sub_gps.get().epv;
 	}
 
-	float gps_s_stddev =  _sub_gps.get().s_variance_m_s;
+	float gps_s_stddev =  _sub_gps.get().speed_accuracy;
 
 	if (gps_s_stddev > _param_lpe_gps_vxy.get()) {
 		var_vxy = gps_s_stddev * gps_s_stddev;

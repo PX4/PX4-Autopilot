@@ -1233,7 +1233,7 @@ int SeptentrioDriver::process_message()
 
 			if (_sbf_decoder.parse(&vel_cov_geodetic) == PX4_OK) {
 				if (vel_cov_geodetic.cov_ve_ve > k_dnu_f4_value && vel_cov_geodetic.cov_vn_vn > k_dnu_f4_value && vel_cov_geodetic.cov_vu_vu > k_dnu_f4_value) {
-					_message_gps_state.s_variance_m_s = math::max(math::max(vel_cov_geodetic.cov_ve_ve, vel_cov_geodetic.cov_vn_vn), vel_cov_geodetic.cov_vu_vu);
+					_message_gps_state.speed_accuracy = math::max(math::max(vel_cov_geodetic.cov_ve_ve, vel_cov_geodetic.cov_vn_vn), vel_cov_geodetic.cov_vu_vu);
 				}
 			}
 

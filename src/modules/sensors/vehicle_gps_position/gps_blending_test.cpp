@@ -64,7 +64,7 @@ sensor_gps_s GpsBlendingTest::getDefaultGpsData()
 	gps_data.longitude_deg = 9.0;
 	gps_data.altitude_msl_m = 800.0;
 	gps_data.altitude_ellipsoid_m = 800.0;
-	gps_data.s_variance_m_s = 0.2f;
+	gps_data.speed_accuracy = 0.2f;
 	gps_data.c_variance_rad = 0.5f;
 	gps_data.eph = 0.7f;
 	gps_data.epv = 1.2f;

@@ -388,7 +388,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	}
 
 	if (valid_vel_cov) {
-		report.s_variance_m_s = math::max(vel_cov[0], vel_cov[4], vel_cov[8]);
+		report.speed_accuracy = math::max(vel_cov[0], vel_cov[4], vel_cov[8]);
 
 		/* There is a nonlinear relationship between the velocity vector and the heading.
 		 * Use Jacobian to transform velocity covariance to heading covariance
@@ -410,7 +410,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 			 vel_n_sq * vel_cov[4]) / ((vel_n_sq + vel_e_sq) * (vel_n_sq + vel_e_sq));
 
 	} else {
-		report.s_variance_m_s = -1.0F;
+		report.speed_accuracy = -1.0F;
 		report.c_variance_rad = -1.0F;
 	}
 

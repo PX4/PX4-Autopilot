@@ -118,9 +118,9 @@ public:
 			fix2.covariance.push_back(gps.eph);
 			fix2.covariance.push_back(gps.epv);
 			// velocity variance -- Vxx, Vyy, Vzz
-			fix2.covariance.push_back(gps.s_variance_m_s);
-			fix2.covariance.push_back(gps.s_variance_m_s);
-			fix2.covariance.push_back(gps.s_variance_m_s);
+			fix2.covariance.push_back(gps.speed_accuracy);
+			fix2.covariance.push_back(gps.speed_accuracy);
+			fix2.covariance.push_back(gps.speed_accuracy);
 
 			uavcan::equipment::gnss::ECEFPositionVelocity ecefpositionvelocity{};
 			ecefpositionvelocity.velocity_xyz[0] = NAN;

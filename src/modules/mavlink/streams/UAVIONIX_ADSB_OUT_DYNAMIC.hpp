@@ -92,7 +92,7 @@ private:
 			.baroAltMSL = static_cast<int32_t>(vehicle_air_data.baro_pressure_pa / 100.0f), // convert [Pa] to [mBar]
 			.accuracyHor = static_cast<uint32_t>(vehicle_gps_position.eph * 1000.0f), // convert [m] to [mm]
 			.accuracyVert = static_cast<uint16_t>(vehicle_gps_position.epv * 100.0f), // convert [m] to [cm]
-			.accuracyVel = static_cast<uint16_t>(vehicle_gps_position.s_variance_m_s * 1000.f), // convert [m/s] to [mm/s],
+			.accuracyVel = static_cast<uint16_t>(vehicle_gps_position.speed_accuracy * 1000.f), // convert [m/s] to [mm/s],
 			.velVert = static_cast<int16_t>(-1.0f * vehicle_gps_position.vel_d_m_s * 100.0f), // convert [m/s] to [cm/s]
 			.velNS = static_cast<int16_t>(vehicle_gps_position.vel_n_m_s * 100.0f), // convert [m/s] to [cm/s]
 			.VelEW = static_cast<int16_t>(vehicle_gps_position.vel_e_m_s * 100.0f), // convert [m/s] to [cm/s]

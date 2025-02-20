@@ -10,7 +10,7 @@ float64 longitude_deg		# Longitude in degrees, allows centimeter level RTK preci
 float64 altitude_msl_m		# Altitude above MSL, meters
 float64 altitude_ellipsoid_m	# Altitude above Ellipsoid, meters
 
-float32 s_variance_m_s		# GPS speed accuracy estimate, (metres/sec)
+float32 speed_accuracy		# GPS speed accuracy estimate, (metres/sec)
 float32 c_variance_rad		# GPS course accuracy estimate, (radians)
 uint8 FIX_TYPE_NONE                   = 1       # Value 0 is also valid to represent no fix.
 uint8 FIX_TYPE_2D                     = 2

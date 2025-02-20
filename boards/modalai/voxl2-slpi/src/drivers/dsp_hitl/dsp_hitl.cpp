@@ -1179,7 +1179,7 @@ handle_message_hil_gps_dsp(mavlink_message_t *msg)
 	gps.altitude_msl_m = hil_gps.alt * 1e-3;
 	gps.altitude_ellipsoid_m = hil_gps.alt * 1e-3;
 
-	gps.s_variance_m_s = 0.25f;
+	gps.speed_accuracy = 0.25f;
 	gps.c_variance_rad = 0.5f;
 
 	gps.satellites_used = hil_gps.satellites_visible;

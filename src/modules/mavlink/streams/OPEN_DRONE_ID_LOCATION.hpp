@@ -144,7 +144,7 @@ private:
 					const int speed_vertical_cm_s = roundf(-vel_ned(2) * 100.f);
 					msg.speed_vertical = math::constrain(speed_vertical_cm_s, -6200, 6200);
 
-					msg.speed_accuracy = open_drone_id_translations::odidSpeedAccForVariance(vehicle_gps_position.s_variance_m_s);
+					msg.speed_accuracy = open_drone_id_translations::odidSpeedAccForVariance(vehicle_gps_position.speed_accuracy);
 
 					updated = true;
 				}
