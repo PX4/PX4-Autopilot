@@ -159,7 +159,7 @@ bool RCTest::ghstTest()
 	uint16_t rc_values[max_channels];
 	uint16_t num_values = 0;
 	int line_counter = 1;
-	int8_t ghst_rssi = -1;
+	ghstLinkStatistics_t link_stats;
 	ghst_config(uart_fd);
 
 	while (fgets(line, line_size, fp) != nullptr)  {
@@ -186,7 +186,7 @@ bool RCTest::ghstTest()
 			// Pipe the data into the parser
 			hrt_abstime now = hrt_absolute_time();
 
-			bool result = ghst_parse(now, frame, frame_len, rc_values, &ghst_rssi, &num_values, max_channels);
+			bool result = ghst_parse(now, frame, frame_len, rc_values, &link_stats, &num_values, max_channels);
 
 			if (result) {
 				has_decoded_values = true;
