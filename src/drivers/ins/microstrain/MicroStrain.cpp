@@ -470,37 +470,32 @@ mip_cmd_result MicroStrain::configureImuMessageFormat()
 	}
 
 	// Configure the Message Format depending on if the device supports the descriptor
-	uint16_t imu_decimation = base_rate / (uint16_t)_param_ms_imu_rate_hz.get();
-	uint16_t mag_decimation = base_rate / (uint16_t)_param_ms_mag_rate_hz.get();
-	uint16_t baro_decimation = base_rate / (uint16_t)_param_ms_baro_rate_hz.get();
-
-	PX4_DEBUG("IMU decimation: %i", imu_decimation);
-	PX4_DEBUG("Mag decimation: %i", mag_decimation);
-	PX4_DEBUG("Baro decimation: %i", baro_decimation);
-
-
 	if (supportsDescriptor(MIP_SENSOR_DATA_DESC_SET, MIP_DATA_DESC_SENSOR_ACCEL_SCALED)
 	    && _param_ms_imu_rate_hz.get() > 0) {
+		uint16_t imu_decimation = base_rate / (uint16_t)_param_ms_imu_rate_hz.get();
 		imu_descriptors[num_imu_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_SENSOR_ACCEL_SCALED, imu_decimation};
-		PX4_DEBUG("IMU: Scaled accel enabled");
+		PX4_DEBUG("IMU: Scaled accel enabled with decimation %i", imu_decimation);
 	}
 
 	if (supportsDescriptor(MIP_SENSOR_DATA_DESC_SET, MIP_DATA_DESC_SENSOR_GYRO_SCALED)
 	    && _param_ms_imu_rate_hz.get() > 0) {
+		uint16_t imu_decimation = base_rate / (uint16_t)_param_ms_imu_rate_hz.get();
 		imu_descriptors[num_imu_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_SENSOR_GYRO_SCALED, imu_decimation};
-		PX4_DEBUG("IMU: Scaled gyro enabled");
+		PX4_DEBUG("IMU: Scaled gyro enabled with decimation %i", imu_decimation);
 	}
 
 	if (supportsDescriptor(MIP_SENSOR_DATA_DESC_SET, MIP_DATA_DESC_SENSOR_MAG_SCALED)
 	    && _param_ms_mag_rate_hz.get() > 0) {
+		uint16_t mag_decimation = base_rate / (uint16_t)_param_ms_mag_rate_hz.get();
 		imu_descriptors[num_imu_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_SENSOR_MAG_SCALED, mag_decimation};
-		PX4_DEBUG("IMU: Scaled mag enabled");
+		PX4_DEBUG("IMU: Scaled mag enabled with decimation %i", mag_decimation);
 	}
 
 	if (supportsDescriptor(MIP_SENSOR_DATA_DESC_SET, MIP_DATA_DESC_SENSOR_PRESSURE_SCALED)
 	    && _param_ms_baro_rate_hz.get() > 0) {
+		uint16_t baro_decimation = base_rate / (uint16_t)_param_ms_baro_rate_hz.get();
 		imu_descriptors[num_imu_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_SENSOR_PRESSURE_SCALED, baro_decimation};
-		PX4_DEBUG("IMU: Scaled pressure enabled");
+		PX4_DEBUG("IMU: Scaled pressure enabled with decimation %i", baro_decimation);
 	}
 
 	// Write the settings
@@ -530,9 +525,12 @@ mip_cmd_result MicroStrain::configureFilterMessageFormat()
 	}
 
 	// Configure the Message Format depending on if the device supports the descriptor
-	uint16_t filter_decimation = base_rate / (uint16_t)_param_ms_filter_rate_hz.get();
+	uint16_t filter_decimation = 250;
 
-	PX4_DEBUG("Filter decimation: %i", filter_decimation);
+	if (_param_ms_filter_rate_hz.get() != 0) {
+		filter_decimation = base_rate / (uint16_t)_param_ms_filter_rate_hz.get();
+		PX4_DEBUG("Filter decimation: %i", filter_decimation);
+	}
 
 	if (supportsDescriptor(MIP_FILTER_DATA_DESC_SET, MIP_DATA_DESC_FILTER_POS_LLH)
 	    && _param_ms_filter_rate_hz.get() > 0) {
@@ -576,11 +574,11 @@ mip_cmd_result MicroStrain::configureFilterMessageFormat()
 		PX4_DEBUG("Filter: Attitude euler uncertainty enabled");
 	}
 
-	// if (supportsDescriptor(MIP_FILTER_DATA_DESC_SET, MIP_DATA_DESC_FILTER_COMPENSATED_ANGULAR_RATE)
-	//     && _param_ms_filter_rate_hz.get() > 0) {
-	// 	filter_descriptors[num_filter_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_FILTER_COMPENSATED_ANGULAR_RATE, filter_decimation};
-	// 	PX4_DEBUG("Filter: Compensated angular rate enabled");
-	// }
+	if (supportsDescriptor(MIP_FILTER_DATA_DESC_SET, MIP_DATA_DESC_FILTER_COMPENSATED_ANGULAR_RATE)
+	    && _param_ms_filter_rate_hz.get() > 0) {
+		filter_descriptors[num_filter_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_FILTER_COMPENSATED_ANGULAR_RATE, filter_decimation};
+		PX4_DEBUG("Filter: Compensated angular rate enabled");
+	}
 
 	if (supportsDescriptor(MIP_FILTER_DATA_DESC_SET, MIP_DATA_DESC_FILTER_FILTER_STATUS)
 	    && _param_ms_filter_rate_hz.get() > 0) {
@@ -683,7 +681,6 @@ mip_cmd_result MicroStrain::configureAidingSources()
 
 	// Prioritizing setting up multi antenna offsets if it is supported
 	if (supportsDescriptor(MIP_FILTER_CMD_DESC_SET, MIP_CMD_DESC_FILTER_MULTI_ANTENNA_OFFSET)) {
-		PX4_INFO("Inside");
 		mip_cmd_result res1 = mip_filter_write_multi_antenna_offset(&_device, 1, gnss_antenna_offset1);
 		mip_cmd_result res2 = mip_filter_write_multi_antenna_offset(&_device, 2, gnss_antenna_offset2);
 
@@ -989,7 +986,7 @@ void MicroStrain::filterCallback(void *user, const mip_packet *packet, mip::Time
 
 	SensorSample<mip_filter_position_llh_data> pos_llh;
 	SensorSample<mip_filter_attitude_quaternion_data> att_quat;
-	//SensorSample<mip_filter_comp_angular_rate_data> ang_rate;
+	SensorSample<mip_filter_comp_angular_rate_data> ang_rate;
 	SensorSample<mip_filter_velocity_ned_data> vel_ned;
 	SensorSample<mip_filter_status_data> stat;
 	SensorSample<mip_filter_position_llh_uncertainty_data> llh_uncert;
@@ -1037,10 +1034,10 @@ void MicroStrain::filterCallback(void *user, const mip_packet *packet, mip::Time
 			att_euler_uncert.updated = true;
 			break;
 
-		// case MIP_DATA_DESC_FILTER_COMPENSATED_ANGULAR_RATE:
-		// 	extract_mip_filter_comp_angular_rate_data_from_field(&field, &ang_rate.sample);
-		// 	ang_rate.updated = true;
-		// 	break;
+		case MIP_DATA_DESC_FILTER_COMPENSATED_ANGULAR_RATE:
+			extract_mip_filter_comp_angular_rate_data_from_field(&field, &ang_rate.sample);
+			ang_rate.updated = true;
+			break;
 
 		case MIP_DATA_DESC_FILTER_FILTER_STATUS:
 			extract_mip_filter_status_data_from_field(&field, &stat.sample);
@@ -1058,24 +1055,24 @@ void MicroStrain::filterCallback(void *user, const mip_packet *packet, mip::Time
 	bool vehicle_local_position_valid = pos_llh.updated && att_quat.updated && vel_ned.updated && lin_accel.updated
 					    && llh_uncert.updated && vel_uncert.updated && att_euler_uncert.updated && stat.updated;
 	bool vehicle_odometry_valid = pos_llh.updated && att_quat.updated && vel_ned.updated && llh_uncert.updated
-				      && vel_uncert.updated && att_euler_uncert.updated;
+				      && vel_uncert.updated && att_euler_uncert.updated && ang_rate.updated;
 	bool estimator_status_valid = stat.updated && llh_uncert.updated;
-	//bool vehicle_angular_velocity_valid = ang_rate.updated;
 
 	if (vehicle_global_position_valid) {
 		vehicle_global_position_s gp{0};
 		gp.timestamp_sample = t;
+		bool is_fullnav = (stat.sample.filter_state == MIP_FILTER_MODE_FULL_NAV);
 
 		gp.lat = pos_llh.sample.latitude;
 		gp.lon = pos_llh.sample.longitude;
 
-		gp.lat_lon_valid = (stat.sample.filter_state == MIP_FILTER_MODE_FULL_NAV);
+		gp.lat_lon_valid = is_fullnav && pos_llh.sample.valid_flags;
 
 		// gp.alt is supposed to be in MSL, since the filter only estimates ellipsoid, we publish that instead.
 		gp.alt_ellipsoid = pos_llh.sample.ellipsoid_height;
 		gp.alt = pos_llh.sample.ellipsoid_height;
 
-		gp.alt_valid = (stat.sample.filter_state == MIP_FILTER_MODE_FULL_NAV);
+		gp.alt_valid = is_fullnav && pos_llh.sample.valid_flags;
 
 		gp.eph = sqrtf(sq(llh_uncert.sample.north) + sq(llh_uncert.sample.east) + sq(ref->_gps_origin_ep[0]));
 		gp.epv = sqrtf(sq(llh_uncert.sample.down) + sq(ref->_gps_origin_ep[1]));
@@ -1120,6 +1117,7 @@ void MicroStrain::filterCallback(void *user, const mip_packet *packet, mip::Time
 	if (vehicle_local_position_valid) {
 		vehicle_local_position_s vp{0};
 		vp.timestamp_sample = t;
+		bool is_fullNav = (stat.sample.filter_state == MIP_FILTER_MODE_FULL_NAV);
 
 		const Vector2f pos_ned = ref->_pos_ref.project(pos_llh.sample.latitude, pos_llh.sample.longitude);
 
@@ -1127,20 +1125,20 @@ void MicroStrain::filterCallback(void *user, const mip_packet *packet, mip::Time
 		vp.y = pos_ned(1);
 		vp.z = -(pos_llh.sample.ellipsoid_height - ref->_ref_alt);
 
-		vp.xy_valid = (stat.sample.filter_state == MIP_FILTER_MODE_FULL_NAV);
+		vp.xy_valid = is_fullNav && ref->_pos_ref.isInitialized();
 
-		vp.z_valid = (stat.sample.filter_state == MIP_FILTER_MODE_FULL_NAV);
+		vp.z_valid = is_fullNav && ref->_pos_ref.isInitialized() && pos_llh.sample.valid_flags;
 
 		vp.vx = vel_ned.sample.north;
 		vp.vy = vel_ned.sample.east;
 		vp.vz = vel_ned.sample.down;
 		vp.z_deriv = vp.vz;
 
-		vp.v_xy_valid = (stat.sample.filter_state == MIP_FILTER_MODE_FULL_NAV);
+		vp.v_xy_valid = is_fullNav && vel_ned.sample.valid_flags;
 
-		vp.v_z_valid = (stat.sample.filter_state == MIP_FILTER_MODE_FULL_NAV);
+		vp.v_z_valid = is_fullNav && vel_ned.sample.valid_flags;
 
-		// Conversion of liner acceleration from body frame to NED frame
+		// Conversion of linear acceleration from body frame to NED frame
 		matrix::Quatf quat{att_quat.sample.q[0], att_quat.sample.q[1], att_quat.sample.q[2], att_quat.sample.q[3]};
 		matrix::Vector3f acc_body{lin_accel.sample.accel[0], lin_accel.sample.accel[1], lin_accel.sample.accel[2]};
 		matrix::Vector3f acc_ned = quat.rotateVectorInverse(acc_body);
@@ -1231,9 +1229,9 @@ void MicroStrain::filterCallback(void *user, const mip_packet *packet, mip::Time
 		vo.velocity[1] = vel_ned.sample.east;
 		vo.velocity[2] = vel_ned.sample.down;
 
-		// vo.angular_velocity[0] = ang_rate.sample.gyro[0];
-		// vo.angular_velocity[1] = ang_rate.sample.gyro[1];
-		// vo.angular_velocity[2] = ang_rate.sample.gyro[2];
+		vo.angular_velocity[0] = ang_rate.sample.gyro[0];
+		vo.angular_velocity[1] = ang_rate.sample.gyro[1];
+		vo.angular_velocity[2] = ang_rate.sample.gyro[2];
 
 		vo.position_variance[0] = sq(llh_uncert.sample.north);
 		vo.position_variance[1] = sq(llh_uncert.sample.east);
@@ -1255,24 +1253,6 @@ void MicroStrain::filterCallback(void *user, const mip_packet *packet, mip::Time
 		vo.timestamp = hrt_absolute_time();
 		ref->_vehicle_odometry_pub.publish(vo);
 	}
-
-	// if (vehicle_angular_velocity_valid && ref->_param_ms_mode.get()) {
-	// 	vehicle_angular_velocity_s av{0};
-	// 	av.timestamp_sample = t;
-
-	// 	av.xyz[0] = ang_rate.sample.gyro[0];
-	// 	av.xyz[1] = ang_rate.sample.gyro[1];
-	// 	av.xyz[2] = ang_rate.sample.gyro[2];
-
-	// 	// ------- Fields we cannot obtain -------
-	// 	av.xyz_derivative[0] = 0;
-	// 	av.xyz_derivative[1] = 0;
-	// 	av.xyz_derivative[2] = 0;
-	// 	// ---------------------------------------
-
-	// 	av.timestamp = hrt_absolute_time();
-	// 	ref->_vehicle_angular_velocity_pub.publish(av);
-	// }
 
 	if (estimator_status_valid && ref->_param_ms_mode.get()) {
 		estimator_status_s status{0};
