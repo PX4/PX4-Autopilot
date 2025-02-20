@@ -82,6 +82,7 @@ private:
 	static constexpr uint16_t msg_id_invalid = 0xffff;
 
 	uint16_t _airspeed_msg_id = msg_id_invalid;
+	uint16_t _airspeed_validated_msg_id = msg_id_invalid;
 	uint16_t _distance_sensor_msg_id = msg_id_invalid;
 	uint16_t _optical_flow_msg_id = msg_id_invalid;
 	uint16_t _sensor_combined_msg_id = msg_id_invalid;
