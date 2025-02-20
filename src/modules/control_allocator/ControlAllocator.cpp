@@ -451,6 +451,7 @@ ControlAllocator::Run()
 			_control_allocation[i]->allocate();
 
 			bool is_tiltrotor = _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
+
 			if (_preflight_check_running && is_tiltrotor) {
 				float preflight_check_tilt_sp = preflight_check_get_tilt_control();
 				_actuator_effectiveness->setBypassTiltrotorControls(true, preflight_check_tilt_sp, 0.0f);
@@ -490,7 +491,8 @@ ControlAllocator::Run()
 	perf_end(_loop_perf);
 }
 
-void ControlAllocator::preflight_check_update_state() {
+void ControlAllocator::preflight_check_update_state()
+{
 
 	// bool tiltrotor = dynamic_cast<ActuatorEffectivenessTiltrotorVTOL*>(_actuator_effectiveness) != nullptr;
 	bool tiltrotor = _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
@@ -499,6 +501,7 @@ void ControlAllocator::preflight_check_update_state() {
 	// negative torque setpoints.
 
 	int n_axes = 3;
+
 	if (tiltrotor) {
 		n_axes = 4;
 	}
@@ -506,6 +509,7 @@ void ControlAllocator::preflight_check_update_state() {
 	int max_phase = 2 * n_axes;
 
 	hrt_abstime now = hrt_absolute_time();
+
 	if (now - _last_preflight_check_update >= 500_ms) {
 		_preflight_check_phase++;
 		_preflight_check_phase %= max_phase;  // or quit once we did the whole thing once?
@@ -513,7 +517,9 @@ void ControlAllocator::preflight_check_update_state() {
 	}
 }
 
-void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float, NUM_AXES> (&c)[ActuatorEffectiveness::MAX_NUM_MATRICES]) {
+void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float, NUM_AXES>
+		(&c)[ActuatorEffectiveness::MAX_NUM_MATRICES])
+{
 
 	int axis = _preflight_check_phase / 2;
 	int negative = _preflight_check_phase % 2;
@@ -535,7 +541,8 @@ void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float,
 
 }
 
-float ControlAllocator::preflight_check_get_tilt_control() {
+float ControlAllocator::preflight_check_get_tilt_control()
+{
 
 	int axis = _preflight_check_phase / 2;
 	int negative = _preflight_check_phase % 2;

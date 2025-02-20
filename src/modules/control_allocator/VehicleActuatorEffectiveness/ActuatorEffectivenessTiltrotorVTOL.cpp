@@ -124,7 +124,8 @@ void ActuatorEffectivenessTiltrotorVTOL::allocateAuxilaryControls(const float dt
 
 }
 
-void ActuatorEffectivenessTiltrotorVTOL::setBypassTiltrotorControls(bool bypass, float collective_tilt, float collective_thrust)
+void ActuatorEffectivenessTiltrotorVTOL::setBypassTiltrotorControls(bool bypass, float collective_tilt,
+		float collective_thrust)
 {
 	_bypass_tiltrotor_controls = bypass;
 	_collective_tilt_normalized_setpoint = collective_tilt;
