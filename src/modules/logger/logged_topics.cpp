@@ -79,6 +79,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("home_position");
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
+	add_optional_topic("internal_combustion_engine_control", 10);
 	add_optional_topic("internal_combustion_engine_status", 10);
 	add_optional_topic("iridiumsbd_status", 1000);
 	add_optional_topic("irlock_report", 1000);
@@ -109,9 +110,6 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("rover_rate_status", 100);
 	add_optional_topic("rover_steering_setpoint", 100);
 	add_optional_topic("rover_throttle_setpoint", 100);
-	add_optional_topic("rover_differential_guidance_status", 100);
-	add_optional_topic("rover_differential_setpoint", 100);
-	add_optional_topic("rover_differential_status", 100);
 	add_optional_topic("rover_mecanum_guidance_status", 100);
 	add_optional_topic("rover_mecanum_setpoint", 100);
 	add_optional_topic("rover_mecanum_status", 100);

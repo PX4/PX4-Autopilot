@@ -11,29 +11,39 @@ PX4_SIM_MODEL=${PX4_SIM_MODEL:=r1_rover}
 
 param set-default SIM_GZ_EN 1 # Gazebo bridge
 
-# Rover parameters
+param set-default NAV_ACC_RAD 0.5
+
+# Differential Parameters
 param set-default RD_WHEEL_TRACK 0.3
-param set-default RD_MAX_ACCEL 5
-param set-default RD_MAX_DECEL 10
-param set-default RD_MAX_JERK 30
 param set-default RD_MAX_THR_YAW_R 1.5
-param set-default RD_YAW_RATE_P 0.25
-param set-default RD_YAW_RATE_I 0.01
-param set-default RD_YAW_P 5
-param set-default RD_YAW_I 0.1
-param set-default RD_MAX_SPEED 2
-param set-default RD_MAX_THR_SPD 2.15
-param set-default RD_SPEED_P 0.1
-param set-default RD_SPEED_I 0.01
-param set-default RD_MAX_YAW_RATE 180
 param set-default RD_TRANS_DRV_TRN 0.349066
 param set-default RD_TRANS_TRN_DRV 0.174533
-param set-default RD_MAX_YAW_ACCEL 1000
 
-# Pure pursuit parameters
-param set-default PP_LOOKAHD_MAX 30
-param set-default PP_LOOKAHD_MIN 2
+# Rover Control Parameters
+param set-default RO_ACCEL_LIM 5
+param set-default RO_DECEL_LIM 10
+param set-default RO_JERK_LIM 30
+param set-default RO_MAX_THR_SPEED 2.1
+
+# Rover Rate Control Parameters
+param set-default RO_YAW_RATE_I 0.01
+param set-default RO_YAW_RATE_P 0.25
+param set-default RO_YAW_RATE_LIM 180
+param set-default RO_YAW_ACCEL_LIM 120
+param set-default RO_YAW_DECEL_LIM 1000
+
+# Rover Attitude Control Parameters
+param set-default RO_YAW_P 5
+
+# Rover Position Control Parameters
+param set-default RO_SPEED_LIM 2
+param set-default RO_SPEED_I 0.5
+param set-default RO_SPEED_P 1
+
+# Pure Pursuit parameters
 param set-default PP_LOOKAHD_GAIN 1
+param set-default PP_LOOKAHD_MAX 10
+param set-default PP_LOOKAHD_MIN 1
 
 # Simulated sensors
 param set-default SENS_EN_GPSSIM 1

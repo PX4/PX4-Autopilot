@@ -48,25 +48,23 @@ float throttleControl(SlewRate<float> &motor_setpoint, const float throttle_setp
 
 	if (accelerating && max_accel > FLT_EPSILON && max_thr_spd > FLT_EPSILON) { // Acceleration slew rate
 		motor_setpoint.setSlewRate(max_accel / max_thr_spd);
+		motor_setpoint.update(throttle_setpoint, dt);
 
 		// Reinitialize slew rate if current value is closer to setpoint than post slew rate value
 		if (fabsf(motor_setpoint.getState() - current_motor_setpoint) > fabsf(throttle_setpoint -
 				current_motor_setpoint)) {
-			motor_setpoint.setForcedValue(current_motor_setpoint);
+			motor_setpoint.setForcedValue(throttle_setpoint);
 		}
-
-		motor_setpoint.update(throttle_setpoint, dt);
 
 	} else if (!accelerating && max_decel > FLT_EPSILON && max_thr_spd > FLT_EPSILON) { // Deceleration slew rate
 		motor_setpoint.setSlewRate(max_decel / max_thr_spd);
+		motor_setpoint.update(throttle_setpoint, dt);
 
 		// Reinitialize slew rate if current value is closer to setpoint than post slew rate value
 		if (fabsf(motor_setpoint.getState() - current_motor_setpoint) > fabsf(throttle_setpoint -
 				current_motor_setpoint)) {
-			motor_setpoint.setForcedValue(current_motor_setpoint);
+			motor_setpoint.setForcedValue(throttle_setpoint);
 		}
-
-		motor_setpoint.update(throttle_setpoint, dt);
 
 	} else { // Fallthrough if slew rate parameters are not configured
 		motor_setpoint.setForcedValue(throttle_setpoint);
@@ -88,13 +86,12 @@ float attitudeControl(SlewRateYaw<float> &adjusted_yaw_setpoint, PID &pid_yaw,
 
 	if (yaw_slew_rate > FLT_EPSILON) { // Apply slew rate if configured
 		adjusted_yaw_setpoint.setSlewRate(yaw_slew_rate);
+		adjusted_yaw_setpoint.update(yaw_setpoint, dt);
 
 		// Reinitialize slew rate if current value is closer to setpoint than post slew rate value
 		if (fabsf(wrap_pi(adjusted_yaw_setpoint.getState() - vehicle_yaw)) > fabsf(wrap_pi(yaw_setpoint - vehicle_yaw))) {
-			adjusted_yaw_setpoint.setForcedValue(vehicle_yaw);
+			adjusted_yaw_setpoint.setForcedValue(yaw_setpoint);
 		}
-
-		adjusted_yaw_setpoint.update(yaw_setpoint, dt);
 
 	} else {
 		adjusted_yaw_setpoint.setForcedValue(yaw_setpoint);
@@ -118,25 +115,23 @@ float speedControl(SlewRate<float> &speed_with_rate_limit, PID &pid_speed, const
 	// Apply acceleration and deceleration limit
 	if (fabsf(speed_setpoint) >= fabsf(vehicle_speed) && max_accel > FLT_EPSILON) {
 		speed_with_rate_limit.setSlewRate(max_accel);
+		speed_with_rate_limit.update(speed_setpoint, dt);
 
 		// Reinitialize slew rate if current value is closer to setpoint than post slew rate value
 		if (fabsf(speed_with_rate_limit.getState() - vehicle_speed) > fabsf(
 			    speed_setpoint - vehicle_speed)) {
-			speed_with_rate_limit.setForcedValue(vehicle_speed);
+			speed_with_rate_limit.setForcedValue(speed_setpoint);
 		}
-
-		speed_with_rate_limit.update(speed_setpoint, dt);
 
 	} else if (fabsf(speed_setpoint) < fabsf(vehicle_speed) && max_decel > FLT_EPSILON) {
 		speed_with_rate_limit.setSlewRate(max_decel);
+		speed_with_rate_limit.update(speed_setpoint, dt);
 
 		// Reinitialize slew rate if current value is closer to setpoint than post slew rate value
 		if (fabsf(speed_with_rate_limit.getState() - vehicle_speed) > fabsf(
 			    speed_setpoint - vehicle_speed)) {
-			speed_with_rate_limit.setForcedValue(vehicle_speed);
+			speed_with_rate_limit.setForcedValue(speed_setpoint);
 		}
-
-		speed_with_rate_limit.update(speed_setpoint, dt);
 
 	} else { // Fallthrough if slew rate is not configured
 		speed_with_rate_limit.setForcedValue(speed_setpoint);
@@ -153,10 +148,70 @@ float speedControl(SlewRate<float> &speed_with_rate_limit, PID &pid_speed, const
 	}
 
 	// Feedback control
-	pid_speed.setSetpoint(speed_with_rate_limit.getState());
-	forward_speed_normalized += pid_speed.update(vehicle_speed, dt);
+	if (fabsf(speed_with_rate_limit.getState()) > FLT_EPSILON) {
+		pid_speed.setSetpoint(speed_with_rate_limit.getState());
+		forward_speed_normalized += pid_speed.update(vehicle_speed, dt);
+
+	} else {
+		pid_speed.resetIntegral();
+	}
+
 
 	return math::constrain(forward_speed_normalized, -1.f, 1.f);
+}
+
+float rateControl(SlewRate<float> &adjusted_yaw_rate_setpoint, PID &pid_yaw_rate, const float yaw_rate_setpoint,
+		  const float vehicle_yaw_rate, const float max_thr_yaw_r, const float max_yaw_accel, const float max_yaw_decel,
+		  const float wheel_track, const float dt)
+{
+	// Apply acceleration and deceleration limit
+	if (fabsf(yaw_rate_setpoint) >= fabsf(vehicle_yaw_rate) && max_yaw_accel > FLT_EPSILON) {
+		adjusted_yaw_rate_setpoint.setSlewRate(max_yaw_accel);
+		adjusted_yaw_rate_setpoint.update(yaw_rate_setpoint, dt);
+
+		// Reinitialize slew rate if current value is closer to setpoint than post slew rate value
+		if (fabsf(adjusted_yaw_rate_setpoint.getState() - vehicle_yaw_rate) > fabsf(
+			    yaw_rate_setpoint - vehicle_yaw_rate)) {
+			adjusted_yaw_rate_setpoint.setForcedValue(yaw_rate_setpoint);
+		}
+
+
+	} else if (fabsf(yaw_rate_setpoint) < fabsf(vehicle_yaw_rate) && max_yaw_decel > FLT_EPSILON) {
+		adjusted_yaw_rate_setpoint.setSlewRate(max_yaw_decel);
+		adjusted_yaw_rate_setpoint.update(yaw_rate_setpoint, dt);
+
+		// Reinitialize slew rate if current value is closer to setpoint than post slew rate value
+		if (fabsf(adjusted_yaw_rate_setpoint.getState() - vehicle_yaw_rate) > fabsf(
+			    yaw_rate_setpoint - vehicle_yaw_rate)) {
+			adjusted_yaw_rate_setpoint.setForcedValue(yaw_rate_setpoint);
+		}
+
+
+	} else { // Fallthrough if slew rate is not configured
+		adjusted_yaw_rate_setpoint.setForcedValue(yaw_rate_setpoint);
+	}
+
+	// Transform yaw rate into speed difference
+	float speed_diff_normalized{0.f};
+
+	if (wheel_track > FLT_EPSILON && max_thr_yaw_r > FLT_EPSILON) { // Feedforward
+		const float speed_diff = adjusted_yaw_rate_setpoint.getState() * wheel_track /
+					 2.f;
+		speed_diff_normalized = math::interpolate<float>(speed_diff, -max_thr_yaw_r,
+					max_thr_yaw_r, -1.f, 1.f);
+	}
+
+	// Feedback control
+	if (fabsf(adjusted_yaw_rate_setpoint.getState()) > FLT_EPSILON) {
+		pid_yaw_rate.setSetpoint(adjusted_yaw_rate_setpoint.getState());
+		speed_diff_normalized += pid_yaw_rate.update(vehicle_yaw_rate, dt);
+
+	} else {
+		pid_yaw_rate.resetIntegral();
+	}
+
+
+	return math::constrain(speed_diff_normalized, -1.f, 1.f);
 }
 
 void globalToLocalSetpointTriplet(Vector2f &curr_wp_ned, Vector2f &prev_wp_ned, Vector2f &next_wp_ned,
