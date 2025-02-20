@@ -1334,6 +1334,20 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 	_esc_status_pub.publish(_esc_status);
 
+	uint8_t num_writes = 0;
+
+	while (_esc_serial_passthru_sub.updated() && (num_writes < 4)) {
+		mavlink_tunnel_s uart_passthru{};
+		_esc_serial_passthru_sub.copy(&uart_passthru);
+
+		if (_uart_port.write(uart_passthru.payload, uart_passthru.payload_length) != uart_passthru.payload_length) {
+			PX4_ERR("Failed to send mavlink tunnel data to esc");
+			return false;
+		}
+
+		num_writes++;
+	}
+
 	perf_count(_output_update_perf);
 
 	return true;
