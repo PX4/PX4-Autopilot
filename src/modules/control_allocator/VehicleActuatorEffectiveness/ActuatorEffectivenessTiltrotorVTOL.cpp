@@ -127,6 +127,16 @@ void ActuatorEffectivenessTiltrotorVTOL::allocateAuxilaryControls(const float dt
 void ActuatorEffectivenessTiltrotorVTOL::setBypassTiltrotorControls(bool bypass, float collective_tilt,
 		float collective_thrust)
 {
+	// if _bypass_tiltrotor_controls (used for control surface preflight
+	// check), we alter the behaviour of processTiltrotorControls in these
+	// two ways:
+	// - collective tilt and thrust setpoints are NOT taken from uOrb
+	//   message, but from class member variable, which we can arbitrarily set
+	//   before calling this function using setBypassTiltrotorControls
+	// - collective tilt is added to actuator_sp even if
+	//   (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT)
+	//   evaluates to false
+
 	_bypass_tiltrotor_controls = bypass;
 	_collective_tilt_normalized_setpoint = collective_tilt;
 	_collective_thrust_normalized_setpoint = collective_thrust;
@@ -137,15 +147,6 @@ void ActuatorEffectivenessTiltrotorVTOL::processTiltrotorControls(ActuatorVector
 		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
 
 {
-	// if _bypass_tiltrotor_controls (used for control surface preflight
-	// check), we alter the behaviour in these two ways:
-	// - collective tilt and thrust setpoints are NOT taken from uOrb
-	//   message, but from class member variable, which we can arbitrarily set
-	//   before calling this function using setBypassTiltrotorControls
-	// - collective tilt is added to actuator_sp even if
-	//   (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT)
-	//   evaluates to false
-
 	tiltrotor_extra_controls_s tiltrotor_extra_controls;
 
 	if (_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls) || _bypass_tiltrotor_controls) {
