@@ -29,6 +29,12 @@ param set-default CA_ROTOR3_PX -1
 param set-default CA_ROTOR3_PY 1
 param set-default CA_ROTOR3_KM -0.05
 
+# again follows from CA_* params. remove redundancy sometime
+param set-default SIH_L_PITCH 1  # = CA_ROTOR0_PX
+param set-default SIH_L_ROLL 1   # = CA_ROTOR0_PY
+param set-default SIH_T_MAX 6.5 # = default value of CA_ROTOR0_CT
+param set-default SIH_Q_MAX 0.325 # = CA_ROTOR0_KM * SIH_T_MAX
+
 param set-default PWM_MAIN_FUNC1 101
 param set-default PWM_MAIN_FUNC2 102
 param set-default PWM_MAIN_FUNC3 103

@@ -44,6 +44,11 @@
 #include <px4_platform_common/log.h>
 #include <drivers/drv_hrt.h>
 
+DataValidator::DataValidator() :
+	ModuleParams(nullptr)
+{
+}
+
 void DataValidator::put(uint64_t timestamp, float val, uint32_t error_count_in, uint8_t priority_in)
 {
 	float data[dimensions] = {val};  // sets the first value and all others to 0
@@ -99,6 +104,16 @@ void DataValidator::put(uint64_t timestamp, const float val[dimensions], uint32_
 
 float DataValidator::confidence(uint64_t timestamp)
 {
+	// Check if parameters have changed
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+
+		updateParams();
+		_noise_scale = _sih_noise_scale.get();
+	}
+
 
 	float ret = 1.0f;
 
@@ -112,8 +127,12 @@ float DataValidator::confidence(uint64_t timestamp)
 		_error_mask |= ERROR_FLAG_TIMEOUT;
 		ret = 0.0f;
 
-	} else if (_value_equal_count > _value_equal_count_threshold) {
-		/* we got the exact same sensor value N times in a row */
+	} else if (_value_equal_count > _value_equal_count_threshold && !(fabsf(_noise_scale) < 0.000001f)) {
+		/*
+		we got the exact same sensor value N times in a row
+		If SIH noise scale is very low, constant sensor data are to be expected. In that case, don't
+		reject it as stale.
+		*/
 		_error_mask |= ERROR_FLAG_STALE_DATA;
 		ret = 0.0f;
 
