@@ -408,7 +408,6 @@ int Commander::custom_command(int argc, char *argv[])
 			} else if (!strcmp(argv[1], "auto:land")) {
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
 						     PX4_CUSTOM_SUB_MODE_AUTO_LAND);
-
 			} else if (!strcmp(argv[1], "auto:precland")) {
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
 						     PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND);
@@ -416,7 +415,6 @@ int Commander::custom_command(int argc, char *argv[])
 			} else if (!strcmp(argv[1], "ext1")) {
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
 						     PX4_CUSTOM_SUB_MODE_EXTERNAL1);
-
 			} else {
 				PX4_ERR("argument %s unsupported.", argv[1]);
 			}
@@ -842,6 +840,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 						case PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND:
 							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
+							break;
+
+						case PX4_CUSTOM_SUB_MODE_AUTO_CS_PREFLIGHT_CHECK:
+							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_CS_PREFLIGHT_CHECK;
 							break;
 
 						case PX4_CUSTOM_SUB_MODE_EXTERNAL1...PX4_CUSTOM_SUB_MODE_EXTERNAL8:
