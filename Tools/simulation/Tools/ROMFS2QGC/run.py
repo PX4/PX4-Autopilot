@@ -25,6 +25,6 @@ def replace_lines_in_file(input_filename, output_filename, vehicle_id):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("Usage: python3 run.py <input_filename> <output_filename> <Vehicle-id>")
+        print("Usage: python3 run.py <input_filename> <output_filename.params> <Vehicle-id>")
     else:
         replace_lines_in_file(sys.argv[1], sys.argv[2], sys.argv[3])
