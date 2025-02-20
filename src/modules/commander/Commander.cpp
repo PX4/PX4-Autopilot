@@ -1572,42 +1572,6 @@ void Commander::handleCommandsFromModeExecutors()
 	}
 }
 
-unsigned Commander::handleCommandControlTest(const vehicle_command_s &cmd)
-{
-
-	// TODO: trigger this some different way using params for dev purposes...?
-	// TODO: decode from command: do we want to test roll/pitch/yaw(/collective tilt), or
-	// individual control surfaces?
-	// TODO define these somewhere else like all the cool kids do
-	static const int TEST_MODE_INDIVIDUAL = 0;
-	static const int TEST_MODE_RPY = 1;
-
-	int test_mode = TEST_MODE_RPY;
-
-	if (test_mode == TEST_MODE_INDIVIDUAL) {
-		// _user_mode_intention.change()
-		// _user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_SERVO_TEST);
-		PX4_INFO("Not implemented");
-		return vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
-
-	} else if (test_mode == TEST_MODE_RPY) {
-
-		// this nice pattern stolen from handle_command
-		if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
-			return vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
-
-		} else {
-			printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
-			return vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-		}
-
-	} else {
-		return vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
-	}
-
-	return vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
-}
-
 unsigned Commander::handleCommandActuatorTest(const vehicle_command_s &cmd)
 {
 	if (isArmed() || (_safety.isButtonAvailable() && !_safety.isSafetyOff())) {
