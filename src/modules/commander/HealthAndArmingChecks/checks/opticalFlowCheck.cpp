@@ -59,19 +59,11 @@ void OpticalFlowCheck::checkAndReport(const Context &context, Report &reporter)
 				       events::ID("check_optical_sensor_missing"),
 				       events::Log::Error, "Optical flow sensor missing");
 
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Optical Flow Sensor missing");
-		}
-
 	} else if (!valid) {
 		/* EVENT
 		 */
 		reporter.healthFailure(NavModes::All, health_component_t::optical_flow,
 				       events::ID("check_optical_flow_sensor_invalid"),
 				       events::Log::Error, "No valid data from optical flow sensor");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: no valid data from optical flow sensor");
-		}
 	}
 }
