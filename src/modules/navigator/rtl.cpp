@@ -422,7 +422,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 				     "Mission land item could not be read");
 		}
 
-		float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_mission_item.lat, land_mission_item.lon)};
+		float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_mission_item.getLat(), land_mission_item.getLon())};
 
 		if ((dist + MIN_DIST_THRESHOLD) < min_dist) {
 			if (_param_rtl_type.get() != 0) {
@@ -456,10 +456,10 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 
 			// Ignore safepoints which are too close to the homepoint
 			const float dist_to_home = get_distance_to_next_waypoint(_home_pos_sub.get().lat, _home_pos_sub.get().lon,
-						   mission_safe_point.lat, mission_safe_point.lon);
+						   mission_safe_point.getLat(), mission_safe_point.getLon());
 
 			if (mission_safe_point.nav_cmd == NAV_CMD_RALLY_POINT && dist_to_home > MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES) {
-				float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, mission_safe_point.lat, mission_safe_point.lon)};
+				float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, mission_safe_point.getLat(), mission_safe_point.getLon())};
 
 				PositionYawSetpoint safepoint_position;
 				setSafepointAsDestination(safepoint_position, mission_safe_point);
@@ -492,8 +492,8 @@ void RTL::setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_ite
 {
 	rtl_position.alt = land_mission_item.altitude_is_relative ?	land_mission_item.altitude +
 			   _home_pos_sub.get().alt : land_mission_item.altitude;
-	rtl_position.lat = land_mission_item.lat;
-	rtl_position.lon = land_mission_item.lon;
+	rtl_position.lat = land_mission_item.getLat();
+	rtl_position.lon = land_mission_item.getLon();
 	rtl_position.yaw = _home_pos_sub.get().yaw;
 }
 
@@ -504,15 +504,15 @@ void RTL::setSafepointAsDestination(PositionYawSetpoint &rtl_position,
 	// TODO: handle all possible mission_safe_point.frame cases
 	switch (mission_safe_point.frame) {
 	case 0: // MAV_FRAME_GLOBAL
-		rtl_position.lat = mission_safe_point.lat;
-		rtl_position.lon = mission_safe_point.lon;
+		rtl_position.lat = mission_safe_point.getLat();
+		rtl_position.lon = mission_safe_point.getLon();
 		rtl_position.alt = mission_safe_point.altitude;
 		rtl_position.yaw = _home_pos_sub.get().yaw;;
 		break;
 
 	case 3: // MAV_FRAME_GLOBAL_RELATIVE_ALT
-		rtl_position.lat = mission_safe_point.lat;
-		rtl_position.lon = mission_safe_point.lon;
+		rtl_position.lat = mission_safe_point.getLat();
+		rtl_position.lon = mission_safe_point.getLon();
 		rtl_position.alt = mission_safe_point.altitude + _home_pos_sub.get().alt; // alt of safe point is rel to home
 		rtl_position.yaw = _home_pos_sub.get().yaw;;
 		break;
@@ -705,20 +705,21 @@ land_approaches_s RTL::readVtolLandApproaches(PositionYawSetpoint rtl_position) 
 				break;
 			}
 
-			const float dist_to_safepoint = get_distance_to_next_waypoint(mission_item.lat, mission_item.lon, rtl_position.lat,
+			const float dist_to_safepoint = get_distance_to_next_waypoint(mission_item.getLat(), mission_item.getLon(),
+							rtl_position.lat,
 							rtl_position.lon);
 
 			if (dist_to_safepoint < MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES) {
 				foundHomeLandApproaches = true;
-				vtol_land_approaches.land_location_lat_lon = matrix::Vector2d(mission_item.lat, mission_item.lon);
+				vtol_land_approaches.land_location_lat_lon = matrix::Vector2d(mission_item.getLat(), mission_item.getLon());
 			}
 
 			sector_counter = 0;
 		}
 
 		if (foundHomeLandApproaches && mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT) {
-			vtol_land_approaches.approaches[sector_counter].lat = mission_item.lat;
-			vtol_land_approaches.approaches[sector_counter].lon = mission_item.lon;
+			vtol_land_approaches.approaches[sector_counter].lat = mission_item.getLat();
+			vtol_land_approaches.approaches[sector_counter].lon = mission_item.getLon();
 			vtol_land_approaches.approaches[sector_counter].height_m = MissionBlock::get_absolute_altitude_for_item(mission_item,
 					_home_pos_sub.get().alt);
 			vtol_land_approaches.approaches[sector_counter].loiter_radius_m = mission_item.loiter_radius;
