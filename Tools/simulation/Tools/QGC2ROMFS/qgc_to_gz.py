@@ -19,11 +19,57 @@ def process_params_file(params_file, output_file):
             param_value = float(parts[3])
             of.write(f"param set-default {param_name} {param_value}\n")
 
+def find_available_romfs_file(airframes_path, vehicle_name, simulator):
+    min_number = 22000
+    max_number = 22999 #range for custom airframes
+    used_numbers = set()
+    final_romfs_file = ""
+    
+    # Scan existing files and collect used numbers
+    for (_, _, files) in os.walk(airframes_path):
+        for file in files:
+            if "_gz_" not in file:  # Ignore non-Gazebo Garden simulations
+                continue
+            file_parts = file.split("_gz_")
+            try:
+                file_number = int(file_parts[0])
+                if min_number <= file_number <= max_number:
+                    used_numbers.add(file_number)
+                if vehicle_name == file_parts[1]:
+                    return file  # Return immediately if vehicle already exists
+            except ValueError:
+                continue
+        break
+    
+    # Find the first available number
+    for num in range(min_number, max_number + 1):
+        if num not in used_numbers:
+            final_romfs_file = f"{num}_gz_{vehicle_name}"
+            break
+    else:
+        raise ValueError("No available numbers in the range 22000-22999")
+    
+    # If the file did not exist previously, create it and add it to CMakeLists.txt
+    if final_romfs_file:
+        with open(os.path.join(airframes_path, "CMakeLists.txt"), "r") as cf:
+            lines = cf.readlines()
+
+        for i in range(len(lines)):
+            if lines[i].strip() == ")":
+                lines.insert(i, f'\t{final_romfs_file}\n')
+                break
+        
+        # Write back to the file
+        with open(os.path.join(airframes_path, "CMakeLists.txt"), "w") as cf:
+            cf.writelines(lines)
+    
+    return final_romfs_file
+
 def main(params_path, romfs_path, simulator):
     params_file = os.path.basename(params_path)
     newpath = params_file.split('.')[0]
     vehicle_name = newpath
-    
+
     if not romfs_path.is_file():
         raise ValueError("Error: --romfs_path must be a valid file path.")
 
@@ -32,34 +78,7 @@ def main(params_path, romfs_path, simulator):
     for i in range(len(romfs_path_parts)-1):
         airframes_path += romfs_path_parts[i] + '/'
 
-    #check if the romfs file exist and if not create a new file with a incremented number
-    final_romfs_file = ""
-    biggest_numb = 22000
-    for (_, _, files) in os.walk(airframes_path):
-        for file in files:
-            if "_gz_" not in file: #ignore non gazebo garden simulations
-                continue
-            file_parts = file.split("_gz_")
-            file_name = file_parts[1]
-            if int(file_parts[0]) > biggest_numb:
-                biggest_numb = int(file_parts[0])
-            if vehicle_name == file_name:
-                final_romfs_file = file
-        break
-    #if the file did not exit previously then created and added it to the CmakeList
-    if final_romfs_file == "":
-        final_romfs_file = str(biggest_numb+1) + "_" + simulator + "_" + vehicle_name
-        with open(airframes_path + "CMakeLists.txt", "r") as cf:
-            lines = cf.readlines()
-
-        for i in range(len(lines)):
-            if lines[i][0] == ")":
-                lines.insert(i-1, '\t' + final_romfs_file +'\n') 
-                break
-        
-        # Write back to the file
-        with open(airframes_path + "CMakeLists.txt", "w") as cf:
-            cf.writelines(lines)
+    final_romfs_file = find_available_romfs_file(airframes_path, vehicle_name, simulator)
 
     #check for files of a previous code execution and remove them
     if Path(f"{newpath}/{params_file}").is_file(): #param file
