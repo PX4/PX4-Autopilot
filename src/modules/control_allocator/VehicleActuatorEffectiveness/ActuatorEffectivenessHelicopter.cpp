@@ -106,17 +106,16 @@ void ActuatorEffectivenessHelicopter::updateParams()
 	param_get(_param_handles.max_servo_throw, &max_servo_throw_deg);
 
 	if (max_servo_throw_deg > 0.f) {
-		//linearization feature enabled
+		// linearization feature enabled
+		_geometry.linearize_servos = 1;
 		const float max_servo_throw = math::radians(max_servo_throw_deg);
 		_geometry.max_servo_height = sinf(max_servo_throw);
 		_geometry.inverse_max_servo_throw = 1.f / max_servo_throw;
-		_geometry.linearize_servos = 1;
 
-	}  else {
+	} else {
 		// handle any undefined behaviour if disabled
-		_geometry.max_servo_height = 0.f;
-		_geometry.inverse_max_servo_throw = 0.f;
 		_geometry.linearize_servos = 0;
+		_geometry.max_servo_height = _geometry.inverse_max_servo_throw = 0.f;
 	}
 }
 
@@ -204,17 +203,17 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 
 float ActuatorEffectivenessHelicopter::getLinearServoOutput(float input) const
 {
-	input = math::constrain(input, -1.0f, 1.0f);
+	input = math::constrain(input, -1.f, 1.f);
 
-	//servo output is calculated by normalizing input to arm rotation of CA_MAX_SVO_THROW degrees as full input for a linear throw
-	float svo_height = _geometry.max_servo_height * input;
+	// make sure a the maximal input of [-1,1] maps to the maximal vertical deflection the servo can reach of sin(CA_MAX_SVO_THROW)
+	float servo_height = _geometry.max_servo_height * input;
 
-	if (!PX4_ISFINITE(svo_height)) {
-		svo_height = 0.0f;
+	if (!PX4_ISFINITE(servo_height)) {
+		servo_height = 0.f;
 	}
 
 	// mulitply by 1 over max arm roation in radians to normalise
-	return _geometry.inverse_max_servo_throw * asinf(svo_height);
+	return _geometry.inverse_max_servo_throw * asinf(servo_height);
 }
 
 bool ActuatorEffectivenessHelicopter::mainMotorEnaged()
