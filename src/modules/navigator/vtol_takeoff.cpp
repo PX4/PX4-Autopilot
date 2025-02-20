@@ -71,8 +71,8 @@ VtolTakeoff::on_active()
 				position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-				_mission_item.yaw = wrap_pi(get_bearing_to_next_waypoint(_mission_item.lat,
-							    _mission_item.lon, _loiter_location(0), _loiter_location(1)));
+				_mission_item.yaw = wrap_pi(get_bearing_to_next_waypoint(_mission_item.getLat(),
+							    _mission_item.getLon(), _loiter_location(0), _loiter_location(1)));
 				_mission_item.force_heading = true;
 				mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 				pos_sp_triplet->current.cruising_speed = -1.f;
@@ -86,8 +86,8 @@ VtolTakeoff::on_active()
 		case vtol_takeoff_state::ALIGN_HEADING: {
 
 				set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-				_mission_item.lat = _loiter_location(0);
-				_mission_item.lon = _loiter_location(1);
+				_mission_item.setLatEncoded(_loiter_location(0));
+				_mission_item.setLonEncoded(_loiter_location(1));
 				position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 				pos_sp_triplet->previous = pos_sp_triplet->current;
 
@@ -127,8 +127,8 @@ VtolTakeoff::on_active()
 				pos_sp_triplet->current.cruising_speed = -1.f;
 				pos_sp_triplet->current.cruising_throttle = -1.f;
 
-				_mission_item.lat = pos_sp_triplet->current.lat;
-				_mission_item.lon = pos_sp_triplet->current.lon;
+				_mission_item.setLatEncoded(pos_sp_triplet->current.lat);
+				_mission_item.setLonEncoded(pos_sp_triplet->current.lon);
 
 				_navigator->set_position_setpoint_triplet_updated();
 
@@ -172,8 +172,8 @@ VtolTakeoff::set_takeoff_position()
 
 	_takeoff_alt_msl = _navigator->get_global_position()->alt;
 
-	_mission_item.lat = _navigator->get_global_position()->lat;
-	_mission_item.lon = _navigator->get_global_position()->lon;
+	_mission_item.setLatEncoded(_navigator->get_global_position()->lat);
+	_mission_item.setLonEncoded(_navigator->get_global_position()->lon);
 
 	_navigator->get_mission_result()->finished = false;
 	_navigator->set_mission_result_updated();
