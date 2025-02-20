@@ -15,11 +15,12 @@ parameters:
 
         MS_IMU_RATE_HZ:
             description:
-                short: Accel Data Rate
+                short: IMU Data Rate
                 long: |
-                    Accel data rate
+                    IMU (Accelerometer and Gyroscope) data rate
                     The INS driver will be scheduled at a rate 2*MS_IMU_RATE_HZ
                     Max Limit: 1000
+                    0 - Disable IMU datastream
                     The max limit should be divisible by the rate
                     Restart required
             type: int32
@@ -27,10 +28,11 @@ parameters:
 
         MS_MAG_RATE_HZ:
             description:
-                short: Mag Data Rate
+                short: Magnetometer Data Rate
                 long: |
-                    Mag data rate
+                    Magnetometer data rate
                     Max Limit: 1000
+                    0 - Disable magnetometer datastream
                     The max limit should be divisible by the rate
                     Restart required
             type: int32
@@ -38,10 +40,11 @@ parameters:
 
         MS_BARO_RATE_HZ:
             description:
-                short: Baro data rate
+                short: Barometer data rate
                 long: |
-                    Baro data rate
+                    Barometer data rate
                     Max Limit: 1000
+                    0 - Disable barometer datastream
                     The max limit should be divisible by the rate
                     Restart required
             type: int32
@@ -54,6 +57,7 @@ parameters:
                     EKF data rate
                     Max Limit: 1000
                     The max limit should be divisible by the rate
+                    0 - Disable EKF datastream
                     Restart required
             type: int32
             default: 250
