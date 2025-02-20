@@ -297,8 +297,7 @@ void MulticopterNeuralNetworkControl::Run()
 
 	vehicle_control_mode_s vehicle_control_mode;
 	if (_vehicle_control_mode_sub.update(&vehicle_control_mode)) {
-		//_use_neural = vehicle_control_mode.flag_control_neural_enabled;
-		_use_neural = true;
+		_use_neural = vehicle_control_mode.flag_control_neural_enabled;
 	}
 
 	if(!_use_neural) {

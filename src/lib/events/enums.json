@@ -111,6 +111,10 @@
                             "name": "vtol_takeoff",
                             "description": "VTOL Takeoff"
                         },
+			"168034304": {
+			    "name": "neural",
+			    "description": "Neural"
+			},
                         "8388608": {
                             "name": "external1",
                             "description": "External 1"
@@ -604,6 +608,10 @@
                             "name": "external8",
                             "description": "External 8"
                         },
+			"24": {
+			    "name": "auto_neural",
+			    "description": "Neural"
+			},
                         "255": {
                             "name": "unknown",
                             "description": "[Unknown]"

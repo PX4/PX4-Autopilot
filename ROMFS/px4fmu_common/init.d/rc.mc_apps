@@ -36,3 +36,8 @@ mc_pos_control start
 # Start Multicopter Land Detector.
 #
 land_detector start multicopter
+
+#
+# Start Multicopter Neural Network Controller.
+#
+mc_nn_control start
