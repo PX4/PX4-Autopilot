@@ -241,6 +241,19 @@ PARAM_DEFINE_INT32(SYS_HAS_NUM_ASPD, 0);
 PARAM_DEFINE_INT32(SYS_HAS_NUM_DIST, 0);
 
 /**
+ * Control if the vehicle has an optical flow sensor
+ *
+ * 0: Preflight checks will not check for the presence of an optical flow sensor.
+ * 1: Require the presence of an optical flow sensor for preflight check to pass.
+ *
+ * @group System
+ * @min 0
+ * @max 1
+ */
+
+PARAM_DEFINE_INT32(SYS_HAS_NUM_OF, 0);
+
+/**
  * Enable factory calibration mode
  *
  * If enabled, future sensor calibrations will be stored to /fs/mtd_caldata.
