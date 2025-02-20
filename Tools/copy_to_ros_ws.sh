@@ -29,6 +29,5 @@ then
   rm -rf "${PX4_MSGS_DIR}"/srv/*.srv
 fi
 cp -ar "${PX4_SRC_DIR}"/msg/*.msg "${PX4_MSGS_DIR}"/msg
-mkdir -p "${PX4_MSGS_DIR}"/msg/versioned
-cp -ar "${PX4_SRC_DIR}"/msg/versioned/*.msg "${PX4_MSGS_DIR}"/msg/versioned
+cp -ar "${PX4_SRC_DIR}"/msg/versioned/*.msg "${PX4_MSGS_DIR}"/msg
 cp -ar "${PX4_SRC_DIR}"/srv/*.srv "${PX4_MSGS_DIR}"/srv

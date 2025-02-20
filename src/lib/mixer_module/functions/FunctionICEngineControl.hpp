@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,25 +31,53 @@
  *
  ****************************************************************************/
 
-/**
- * RPM capture enable
- *
- * Enables the RPM capture module to estimate RPM from pulses detected on a PWM pin configured as "RPM Input".
- *
- * @boolean
- * @group System
- * @reboot_required true
- */
-PARAM_DEFINE_INT32(RPM_CAP_ENABLE, 0);
+#pragma once
+
+#include "FunctionProviderBase.hpp"
+
+#include <uORB/topics/internal_combustion_engine_control.h>
 
 /**
- * Voltage pulses per revolution
- *
- * Number of voltage pulses per one rotor revolution on the capturing pin.
- *
- * @group System
- * @min 1
- * @max 50
- * @reboot_required true
+ * Functions: ICE...
  */
-PARAM_DEFINE_INT32(RPM_PULS_PER_REV, 1);
+class FunctionICEControl : public FunctionProviderBase
+{
+public:
+	FunctionICEControl()
+	{
+		resetAllToDisarmedValue();
+	}
+
+	static FunctionProviderBase *allocate(const Context &context) { return new FunctionICEControl(); }
+
+	void update() override
+	{
+		internal_combustion_engine_control_s internal_combustion_engine_control;
+
+		// map [0, 1] to [-1, 1] which is the interface for non-motor PWM channels
+		if (_internal_combustion_engine_control_sub.update(&internal_combustion_engine_control)) {
+			_data[0] = internal_combustion_engine_control.ignition_on * 2.f - 1.f;
+			_data[1] = internal_combustion_engine_control.throttle_control * 2.f - 1.f;
+			_data[2] = internal_combustion_engine_control.choke_control * 2.f - 1.f;
+			_data[3] = internal_combustion_engine_control.starter_engine_control * 2.f - 1.f;
+		}
+	}
+
+	float value(OutputFunction func) override { return _data[(int)func - (int)OutputFunction::IC_Engine_Ignition]; }
+
+private:
+	static constexpr int num_data_points = 4;
+
+	void resetAllToDisarmedValue()
+	{
+		for (int i = 0; i < num_data_points; ++i) {
+			_data[i] = NAN;
+		}
+	}
+
+	static_assert(num_data_points == (int)OutputFunction::IC_Engine_Starter - (int)OutputFunction::IC_Engine_Ignition + 1,
+		      "number of functions mismatch");
+
+	uORB::Subscription _internal_combustion_engine_control_sub{ORB_ID(internal_combustion_engine_control)};
+	float _data[num_data_points] {};
+};

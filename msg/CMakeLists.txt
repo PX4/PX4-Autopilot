@@ -48,7 +48,6 @@ set(msg_files
 	AirspeedValidated.msg
 	AirspeedWind.msg
 	AutotuneAttitudeControlStatus.msg
-	Buffer128.msg
 	ButtonEvent.msg
 	CameraCapture.msg
 	CameraStatus.msg
@@ -114,6 +113,7 @@ set(msg_files
 	HeaterStatus.msg
 	HoverThrustEstimate.msg
 	InputRc.msg
+	InternalCombustionEngineControl.msg
 	InternalCombustionEngineStatus.msg
 	IridiumsbdStatus.msg
 	IrlockReport.msg
@@ -178,9 +178,6 @@ set(msg_files
 	RoverRateStatus.msg
 	RoverSteeringSetpoint.msg
 	RoverThrottleSetpoint.msg
-	RoverDifferentialGuidanceStatus.msg
-	RoverDifferentialSetpoint.msg
-	RoverDifferentialStatus.msg
 	RoverMecanumGuidanceStatus.msg
 	RoverMecanumSetpoint.msg
 	RoverMecanumStatus.msg
