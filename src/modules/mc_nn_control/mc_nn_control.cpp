@@ -285,13 +285,9 @@ void MulticopterNeuralNetworkControl::Run()
 
 	perf_begin(_loop_perf);
 
-<<<<<<< HEAD
-	hrt_abstime start_time1 = hrt_absolute_time();
-=======
 	//std::chrono::time_point<std::chrono::system_clock> start1, end1;
 	//std::chrono::time_point<std::chrono::system_clock> start2, end2;
 	//start1 = std::chrono::system_clock::now();
->>>>>>> a09e1a5420 (Add tflm to px4 with module)
 
 	if (_parameter_update_sub.updated()) {
 		parameter_update_s param_update;
@@ -302,11 +298,15 @@ void MulticopterNeuralNetworkControl::Run()
 	vehicle_control_mode_s vehicle_control_mode;
 	if (_vehicle_control_mode_sub.update(&vehicle_control_mode)) {
 <<<<<<< HEAD
+<<<<<<< HEAD
 		_use_neural = vehicle_control_mode.flag_control_neural_enabled;
 =======
 		//_use_neural = vehicle_control_mode.flag_control_neural_enabled;
 		_use_neural = true;
 >>>>>>> a09e1a5420 (Add tflm to px4 with module)
+=======
+		_use_neural = vehicle_control_mode.flag_control_neural_enabled;
+>>>>>>> a817473560 (Added neural flight mode)
 	}
 
 	if(!_use_neural) {
