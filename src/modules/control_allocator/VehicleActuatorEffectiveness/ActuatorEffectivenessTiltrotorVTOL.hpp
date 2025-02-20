@@ -90,6 +90,11 @@ public:
 
 	void setBypassTiltrotorControls(bool bypass, float collective_tilt, float collective_thrust) override;
 
+	void processTiltrotorControls(ActuatorVector &actuator_sp,
+				      const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+				      const matrix::Vector<float, NUM_ACTUATORS> &actuator_max);
+
+
 protected:
 	bool _collective_tilt_updated{true};
 	ActuatorEffectivenessRotors _mc_rotors;

@@ -131,104 +131,112 @@ void ActuatorEffectivenessTiltrotorVTOL::setBypassTiltrotorControls(bool bypass,
 	_collective_thrust_normalized_setpoint = collective_thrust;
 }
 
-void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+void ActuatorEffectivenessTiltrotorVTOL::processTiltrotorControls(ActuatorVector &actuator_sp,
+		const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
 		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
-{
-	// apply tilt
 
-	// if preflight_check_running, we alter the behaviour in these two ways:
+{
+	// if _bypass_tiltrotor_controls (used for control surface preflight
+	// check), we alter the behaviour in these two ways:
 	// - collective tilt and thrust setpoints are NOT taken from uOrb
 	//   message, but from class member variable, which we can arbitrarily set
-	//   before calling this function
+	//   before calling this function using setBypassTiltrotorControls
 	// - collective tilt is added to actuator_sp even if
 	//   (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT)
 	//   evaluates to false
 
-	if (matrix_index == 0) {
-		tiltrotor_extra_controls_s tiltrotor_extra_controls;
+	tiltrotor_extra_controls_s tiltrotor_extra_controls;
 
-		if (_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls) || _bypass_tiltrotor_controls) {
+	if (_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls) || _bypass_tiltrotor_controls) {
 
-			float control_collective_tilt = tiltrotor_extra_controls.collective_tilt_normalized_setpoint * 2.f - 1.f;
-			float control_collective_thrust = tiltrotor_extra_controls.collective_thrust_normalized_setpoint;
+		float control_collective_tilt = tiltrotor_extra_controls.collective_tilt_normalized_setpoint * 2.f - 1.f;
+		float control_collective_thrust = tiltrotor_extra_controls.collective_thrust_normalized_setpoint;
 
-			if (_bypass_tiltrotor_controls) {
-				control_collective_tilt = _collective_tilt_normalized_setpoint * 2.f - 1.f;
-				control_collective_thrust = _collective_thrust_normalized_setpoint;
-			}
+		if (_bypass_tiltrotor_controls) {
+			control_collective_tilt = _collective_tilt_normalized_setpoint * 2.f - 1.f;
+			control_collective_thrust = _collective_thrust_normalized_setpoint;
+		}
 
-			// set control_collective_tilt to exactly -1 or 1 if close to these end points
-			control_collective_tilt = control_collective_tilt < -0.99f ? -1.f : control_collective_tilt;
-			control_collective_tilt = control_collective_tilt > 0.99f ? 1.f : control_collective_tilt;
+		// set control_collective_tilt to exactly -1 or 1 if close to these end points
+		control_collective_tilt = control_collective_tilt < -0.99f ? -1.f : control_collective_tilt;
+		control_collective_tilt = control_collective_tilt > 0.99f ? 1.f : control_collective_tilt;
 
-			// initialize _last_collective_tilt_control
-			if (!PX4_ISFINITE(_last_collective_tilt_control)) {
-				_last_collective_tilt_control = control_collective_tilt;
+		// initialize _last_collective_tilt_control
+		if (!PX4_ISFINITE(_last_collective_tilt_control)) {
+			_last_collective_tilt_control = control_collective_tilt;
 
-			} else if (fabsf(control_collective_tilt - _last_collective_tilt_control) > 0.01f) {
-				_collective_tilt_updated = true;
-				_last_collective_tilt_control = control_collective_tilt;
-			}
+		} else if (fabsf(control_collective_tilt - _last_collective_tilt_control) > 0.01f) {
+			_collective_tilt_updated = true;
+			_last_collective_tilt_control = control_collective_tilt;
+		}
 
-			// During transition to FF, only allow update thrust axis up to 45° as with a high tilt angle the effectiveness
-			// of the thrust axis in z is apporaching 0, and by that is increasing the motor output to max.
-			// Transition to HF: disable thrust axis tilting, and assume motors are vertical. This is to avoid
-			// a thrust spike when the transition is initiated (as then the tilt is fully forward).
-			if (_flight_phase == FlightPhase::TRANSITION_HF_TO_FF) {
-				_last_collective_tilt_control = math::constrain(_last_collective_tilt_control, -1.f, 0.f);
+		// During transition to FF, only allow update thrust axis up to 45° as with a high tilt angle the effectiveness
+		// of the thrust axis in z is apporaching 0, and by that is increasing the motor output to max.
+		// Transition to HF: disable thrust axis tilting, and assume motors are vertical. This is to avoid
+		// a thrust spike when the transition is initiated (as then the tilt is fully forward).
+		if (_flight_phase == FlightPhase::TRANSITION_HF_TO_FF) {
+			_last_collective_tilt_control = math::constrain(_last_collective_tilt_control, -1.f, 0.f);
 
-			} else if (_flight_phase == FlightPhase::TRANSITION_FF_TO_HF) {
-				_last_collective_tilt_control = -1.f;
-			}
+		} else if (_flight_phase == FlightPhase::TRANSITION_FF_TO_HF) {
+			_last_collective_tilt_control = -1.f;
+		}
 
-			bool yaw_saturated_positive = true;
-			bool yaw_saturated_negative = true;
+		bool yaw_saturated_positive = true;
+		bool yaw_saturated_negative = true;
 
-			for (int i = 0; i < _tilts.count(); ++i) {
-				if (_tilts.config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
+		for (int i = 0; i < _tilts.count(); ++i) {
+			if (_tilts.config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
 
-					// as long as throttle spoolup is not completed, leave the tilts in the disarmed position (in hover)
-					if (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT || _bypass_tiltrotor_controls) {
-						actuator_sp(i + _first_tilt_idx) += control_collective_tilt;
+				// as long as throttle spoolup is not completed, leave the tilts in the disarmed position (in hover)
+				if (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT || _bypass_tiltrotor_controls) {
+					actuator_sp(i + _first_tilt_idx) += control_collective_tilt;
 
-					} else {
-						actuator_sp(i + _first_tilt_idx) = NAN; // NaN sets tilts to disarmed position
-					}
-				}
-
-				// custom yaw saturation logic: only declare yaw saturated if all tilts are at the negative or positive yawing limit
-				if (_tilts.getYawTorqueOfTilt(i) > FLT_EPSILON) {
-
-					if (yaw_saturated_positive && actuator_sp(i + _first_tilt_idx) < actuator_max(i + _first_tilt_idx) - FLT_EPSILON) {
-						yaw_saturated_positive = false;
-					}
-
-					if (yaw_saturated_negative && actuator_sp(i + _first_tilt_idx) > actuator_min(i + _first_tilt_idx) + FLT_EPSILON) {
-						yaw_saturated_negative = false;
-					}
-
-				} else if (_tilts.getYawTorqueOfTilt(i) < -FLT_EPSILON) {
-					if (yaw_saturated_negative && actuator_sp(i + _first_tilt_idx) < actuator_max(i + _first_tilt_idx) - FLT_EPSILON) {
-						yaw_saturated_negative = false;
-					}
-
-					if (yaw_saturated_positive && actuator_sp(i + _first_tilt_idx) > actuator_min(i + _first_tilt_idx) + FLT_EPSILON) {
-						yaw_saturated_positive = false;
-					}
+				} else {
+					actuator_sp(i + _first_tilt_idx) = NAN; // NaN sets tilts to disarmed position
 				}
 			}
 
-			_yaw_tilt_saturation_flags.tilt_yaw_neg = yaw_saturated_negative;
-			_yaw_tilt_saturation_flags.tilt_yaw_pos = yaw_saturated_positive;
+			// custom yaw saturation logic: only declare yaw saturated if all tilts are at the negative or positive yawing limit
+			if (_tilts.getYawTorqueOfTilt(i) > FLT_EPSILON) {
 
-			// in FW directly use throttle sp
-			if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
-				for (int i = 0; i < _first_tilt_idx; ++i) {
-					actuator_sp(i) = control_collective_thrust;
+				if (yaw_saturated_positive && actuator_sp(i + _first_tilt_idx) < actuator_max(i + _first_tilt_idx) - FLT_EPSILON) {
+					yaw_saturated_positive = false;
+				}
+
+				if (yaw_saturated_negative && actuator_sp(i + _first_tilt_idx) > actuator_min(i + _first_tilt_idx) + FLT_EPSILON) {
+					yaw_saturated_negative = false;
+				}
+
+			} else if (_tilts.getYawTorqueOfTilt(i) < -FLT_EPSILON) {
+				if (yaw_saturated_negative && actuator_sp(i + _first_tilt_idx) < actuator_max(i + _first_tilt_idx) - FLT_EPSILON) {
+					yaw_saturated_negative = false;
+				}
+
+				if (yaw_saturated_positive && actuator_sp(i + _first_tilt_idx) > actuator_min(i + _first_tilt_idx) + FLT_EPSILON) {
+					yaw_saturated_positive = false;
 				}
 			}
 		}
+
+		_yaw_tilt_saturation_flags.tilt_yaw_neg = yaw_saturated_negative;
+		_yaw_tilt_saturation_flags.tilt_yaw_pos = yaw_saturated_positive;
+
+		// in FW directly use throttle sp
+		if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
+			for (int i = 0; i < _first_tilt_idx; ++i) {
+				actuator_sp(i) = control_collective_thrust;
+			}
+		}
+	}
+}
+
+void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
+		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
+{
+	if (matrix_index == 0) {
+
+		processTiltrotorControls(actuator_sp, actuator_min, actuator_max);
 
 		if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
 			stopMaskedMotorsWithZeroThrust(_motors & ~_untiltable_motors, actuator_sp);
