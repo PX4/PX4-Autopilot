@@ -64,6 +64,7 @@ enum PX4_CUSTOM_SUB_MODE_AUTO {
 	PX4_CUSTOM_SUB_MODE_AUTO_RESERVED_DO_NOT_USE, // was PX4_CUSTOM_SUB_MODE_AUTO_RTGS, deleted 2020-03-05
 	PX4_CUSTOM_SUB_MODE_AUTO_FOLLOW_TARGET,
 	PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND,
+	PX4_CUSTOM_SUB_MODE_AUTO_NEURAL,
 	PX4_CUSTOM_SUB_MODE_AUTO_VTOL_TAKEOFF,
 	PX4_CUSTOM_SUB_MODE_EXTERNAL1,
 	PX4_CUSTOM_SUB_MODE_EXTERNAL2,
@@ -134,6 +135,11 @@ static inline union px4_custom_mode get_px4_custom_mode(uint8_t nav_state)
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
 		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_NEURAL:
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_NEURAL;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:

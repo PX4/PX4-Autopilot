@@ -51,6 +51,7 @@ enum class StandardMode : uint8_t {
 	MISSION = 6,
 	LAND = 7,
 	TAKEOFF = 8,
+	NEUTRAL = 9,
 };
 
 /**
