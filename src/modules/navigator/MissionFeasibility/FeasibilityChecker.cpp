@@ -402,8 +402,8 @@ bool FeasibilityChecker::checkFixedWindLandApproach(mission_item_s &mission_item
 				// assume this is a fixed-wing landing pattern with orbit to alt followed
 				// by tangent exit to landing approach and touchdown at landing waypoint
 
-				const float distance_orbit_center_to_land = get_distance_to_next_waypoint(_mission_item_previous.lat,
-						_mission_item_previous.lon, mission_item.lat, mission_item.lon);
+				const float distance_orbit_center_to_land = get_distance_to_next_waypoint(_mission_item_previous.getLat(),
+						_mission_item_previous.getLon(), mission_item.getLat(), mission_item.getLon());
 				const float orbit_radius = fabsf(_mission_item_previous.loiter_radius);
 
 				if (distance_orbit_center_to_land <= orbit_radius) {
@@ -420,8 +420,9 @@ bool FeasibilityChecker::checkFixedWindLandApproach(mission_item_s &mission_item
 			} else if (_mission_item_previous.nav_cmd == NAV_CMD_WAYPOINT) {
 				// approaching directly from waypoint position
 
-				const float waypoint_distance = get_distance_to_next_waypoint(_mission_item_previous.lat, _mission_item_previous.lon,
-								mission_item.lat, mission_item.lon);
+				const float waypoint_distance = get_distance_to_next_waypoint(_mission_item_previous.getLat(),
+								_mission_item_previous.getLon(),
+								mission_item.getLat(), mission_item.getLon());
 				landing_approach_distance = waypoint_distance;
 
 			} else {
@@ -627,7 +628,7 @@ bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &
 		_first_waypoint_found = true;
 
 		const float dist_to_1wp_from_home_pos = get_distance_to_next_waypoint(
-				mission_item.lat, mission_item.lon,
+				mission_item.getLat(), mission_item.getLon(),
 				_home_lat_lon(0), _home_lat_lon(1));
 
 		if (dist_to_1wp_from_home_pos < _param_mis_dist_1wp) {
@@ -666,7 +667,7 @@ bool FeasibilityChecker::checkDistancesBetweenWaypoints(const mission_item_s &mi
 	if (PX4_ISFINITE(_last_lat) && PX4_ISFINITE(_last_lon)) {
 		/* check distance from current position to item */
 		const float dist_between_waypoints = get_distance_to_next_waypoint(
-				mission_item.lat, mission_item.lon,
+				mission_item.getLat(), mission_item.getLon(),
 				_last_lat, _last_lon);
 
 
@@ -687,8 +688,8 @@ bool FeasibilityChecker::checkDistancesBetweenWaypoints(const mission_item_s &mi
 		}
 	}
 
-	_last_lat = mission_item.lat;
-	_last_lon = mission_item.lon;
+	_last_lat = mission_item.getLat();
+	_last_lon = mission_item.getLon();
 	_last_cmd = mission_item.nav_cmd;
 
 	/* We ran through all waypoints and have not found any distances between waypoints that are too far. */

@@ -105,7 +105,7 @@ private:
 
 	static void *testAsyncThread(void *arg);
 
-	static constexpr uint32_t DM_MAX_DATA_SIZE{MISSION_ITEM_SIZE};
+	static constexpr uint32_t DM_MAX_DATA_SIZE{MISSION_SIZE};
 	static_assert(sizeof(dataman_response_s::data) == DM_MAX_DATA_SIZE, "data size != DM_MAX_DATA_SIZE");
 
 	uint8_t _buffer_read[DM_MAX_DATA_SIZE];

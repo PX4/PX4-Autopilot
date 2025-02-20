@@ -280,8 +280,8 @@ MissionBase::on_active()
 							       reinterpret_cast<uint8_t *>(&next_position_mission_item), sizeof(next_position_mission_item), MAX_DATAMAN_LOAD_WAIT);
 
 			if (success) {
-				_mission_item.yaw = matrix::wrap_pi(get_bearing_to_next_waypoint(_mission_item.lat, _mission_item.lon,
-								    next_position_mission_item.lat, next_position_mission_item.lon));
+				_mission_item.yaw = matrix::wrap_pi(get_bearing_to_next_waypoint(_mission_item.getLat(), _mission_item.getLon(),
+								    next_position_mission_item.getLat(), next_position_mission_item.getLon()));
 				_mission_item.force_heading = true; // note: doesn't have effect in fixed-wing mode
 			}
 		}
@@ -384,7 +384,7 @@ MissionBase::isLanding()
 		// distance to the WP is below the loiter radius + acceptance.
 		if ((num_found_items > 0U) && _mission.current_seq == next_mission_items_index[0U]
 		    && _mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT) {
-			const float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
+			const float d_current = get_distance_to_next_waypoint(_mission_item.getLat(), _mission_item.getLon(),
 						_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
 
 			// consider mission_item.loiter_radius invalid if NAN or 0, use default value in this case.
@@ -581,7 +581,7 @@ MissionBase::set_mission_result()
 
 bool MissionBase::do_need_move_to_item()
 {
-	float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
+	float d_current = get_distance_to_next_waypoint(_mission_item.getLat(), _mission_item.getLon(),
 			  _global_pos_sub.get().lat, _global_pos_sub.get().lon);
 
 	return d_current > _navigator->get_acceptance_radius();
@@ -905,8 +905,8 @@ MissionBase::do_abort_landing()
 	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
 	vcmd.param1 = -1;
 	vcmd.param2 = 1;
-	vcmd.param5 = _mission_item.lat;
-	vcmd.param6 = _mission_item.lon;
+	vcmd.param5 = _mission_item.getLat();
+	vcmd.param6 = _mission_item.getLon();
 	vcmd.param7 = alt_sp;
 
 	_navigator->publish_vehicle_cmd(&vcmd);
@@ -918,8 +918,8 @@ void MissionBase::publish_navigator_mission_item()
 
 	navigator_mission_item.sequence_current = _mission.current_seq;
 	navigator_mission_item.nav_cmd = _mission_item.nav_cmd;
-	navigator_mission_item.latitude = _mission_item.lat;
-	navigator_mission_item.longitude = _mission_item.lon;
+	navigator_mission_item.latitude = _mission_item.getLat();
+	navigator_mission_item.longitude = _mission_item.getLon();
 	navigator_mission_item.altitude = _mission_item.altitude;
 
 	navigator_mission_item.time_inside = get_time_inside(_mission_item);
@@ -1183,7 +1183,7 @@ int MissionBase::setMissionToClosestItem(double lat, double lon, float alt, floa
 			if (!((mission.nav_cmd == NAV_CMD_LAND) &&
 			      (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) &&
 			      (!vehicle_status.is_vtol))) {
-				float dist = get_distance_to_point_global_wgs84(mission.lat, mission.lon,
+				float dist = get_distance_to_point_global_wgs84(mission.getLat(), mission.getLon(),
 						MissionBlock::get_absolute_altitude_for_item(mission, home_alt),
 						lat,
 						lon,

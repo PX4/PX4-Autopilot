@@ -216,8 +216,8 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 					altitude = pos_sp_triplet->current.alt;
 				}
 
-				_mission_item.lat = _home_pos_sub.get().lat;
-				_mission_item.lon = _home_pos_sub.get().lon;
+				_mission_item.setLatEncoded(_home_pos_sub.get().lat);
+				_mission_item.setLonEncoded(_home_pos_sub.get().lon);
 				_mission_item.altitude = altitude;
 				_mission_item.altitude_is_relative = false;
 				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
@@ -247,8 +247,8 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND ||
 			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
 			_mission_item.nav_cmd = NAV_CMD_LAND;
-			_mission_item.lat = _home_pos_sub.get().lat;
-			_mission_item.lon = _home_pos_sub.get().lon;
+			_mission_item.setLatEncoded(_home_pos_sub.get().lat);
+			_mission_item.setLonEncoded(_home_pos_sub.get().lon);
 			_mission_item.yaw = NAN;
 
 			if ((_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) &&

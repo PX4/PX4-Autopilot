@@ -596,8 +596,8 @@ void RtlDirect::publish_rtl_direct_navigator_mission_item()
 
 	navigator_mission_item.sequence_current = static_cast<uint16_t>(_rtl_state);
 	navigator_mission_item.nav_cmd = _mission_item.nav_cmd;
-	navigator_mission_item.latitude = _mission_item.lat;
-	navigator_mission_item.longitude = _mission_item.lon;
+	navigator_mission_item.latitude = _mission_item.getLat();
+	navigator_mission_item.longitude = _mission_item.getLon();
 	navigator_mission_item.altitude = _mission_item.altitude;
 
 	navigator_mission_item.time_inside = get_time_inside(_mission_item);

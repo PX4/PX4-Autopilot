@@ -133,8 +133,8 @@ void RtlDirectMissionLand::setActiveMissionItems()
 			_mission_item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
 		}
 
-		_mission_item.lat = _global_pos_sub.get().lat;
-		_mission_item.lon = _global_pos_sub.get().lon;
+		_mission_item.setLatEncoded(_global_pos_sub.get().lat);
+		_mission_item.setLonEncoded(_global_pos_sub.get().lon);
 		_mission_item.altitude = _rtl_alt;
 		_mission_item.altitude_is_relative = false;
 
@@ -309,11 +309,11 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 							// Go to loiter
 							matrix::Vector2f direction{};
 							get_vector_to_next_waypoint(hor_position_at_calculation_point(0), hor_position_at_calculation_point(1),
-										    next_position_mission_item.lat, next_position_mission_item.lon, &direction(0), &direction(1));
+										    next_position_mission_item.getLat(), next_position_mission_item.getLon(), &direction(0), &direction(1));
 
 							float hor_dist = get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
-									 hor_position_at_calculation_point(1), next_position_mission_item.lat,
-									 next_position_mission_item.lon);
+									 hor_position_at_calculation_point(1), next_position_mission_item.getLat(),
+									 next_position_mission_item.getLon());
 
 							if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 								hor_dist = math::max(0.f, hor_dist - next_position_mission_item.loiter_radius);
@@ -330,11 +330,11 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 							// Go to point horizontally
 							matrix::Vector2f direction{};
 							get_vector_to_next_waypoint(hor_position_at_calculation_point(0), hor_position_at_calculation_point(1),
-										    next_position_mission_item.lat, next_position_mission_item.lon, &direction(0), &direction(1));
+										    next_position_mission_item.getLat(), next_position_mission_item.getLon(), &direction(0), &direction(1));
 
 							float hor_dist = get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
-									 hor_position_at_calculation_point(1), next_position_mission_item.lat,
-									 next_position_mission_item.lon);
+									 hor_position_at_calculation_point(1), next_position_mission_item.getLat(),
+									 next_position_mission_item.getLon());
 
 							if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 								hor_dist = math::max(0.f, hor_dist - next_position_mission_item.loiter_radius);
@@ -354,10 +354,10 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 
 							matrix::Vector2f direction{};
 							get_vector_to_next_waypoint(hor_position_at_calculation_point(0), hor_position_at_calculation_point(1),
-										    next_position_mission_item.lat, next_position_mission_item.lon, &direction(0), &direction(1));
+										    next_position_mission_item.getLat(), next_position_mission_item.getLon(), &direction(0), &direction(1));
 
 							const float hor_dist = get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
-									       hor_position_at_calculation_point(1), next_position_mission_item.lat, next_position_mission_item.lon);
+									       hor_position_at_calculation_point(1), next_position_mission_item.getLat(), next_position_mission_item.getLon());
 
 							// For fixed wing, add diagonal line
 							if ((_vehicle_status_sub.get().vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
@@ -385,10 +385,10 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 							// Default assume can go to the location directly
 							matrix::Vector2f direction{};
 							get_vector_to_next_waypoint(hor_position_at_calculation_point(0), hor_position_at_calculation_point(1),
-										    next_position_mission_item.lat, next_position_mission_item.lon, &direction(0), &direction(1));
+										    next_position_mission_item.getLat(), next_position_mission_item.getLon(), &direction(0), &direction(1));
 
 							const float hor_dist = get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
-									       hor_position_at_calculation_point(1), next_position_mission_item.lat, next_position_mission_item.lon);
+									       hor_position_at_calculation_point(1), next_position_mission_item.getLat(), next_position_mission_item.getLon());
 
 							_rtl_time_estimator.addDistance(hor_dist, direction,
 											get_absolute_altitude_for_item(next_position_mission_item) - altitude_at_calculation_point);
@@ -397,8 +397,8 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 					}
 
 					start_item_index = next_mission_item_index + 1;
-					hor_position_at_calculation_point(0) = next_position_mission_item.lat;
-					hor_position_at_calculation_point(1) = next_position_mission_item.lon;
+					hor_position_at_calculation_point(0) = next_position_mission_item.getLat();
+					hor_position_at_calculation_point(1) = next_position_mission_item.getLon();
 					altitude_at_calculation_point = get_absolute_altitude_for_item(next_position_mission_item);
 
 

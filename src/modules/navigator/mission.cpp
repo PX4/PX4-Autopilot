@@ -140,7 +140,7 @@ Mission::do_need_move_to_takeoff()
 	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 	    && _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
 
-		float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
+		float d_current = get_distance_to_next_waypoint(_mission_item.getLat(), _mission_item.getLon(),
 				  _global_pos_sub.get().lat, _global_pos_sub.get().lon);
 
 		return d_current > _navigator->get_acceptance_radius();
@@ -317,8 +317,8 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 			_mission_item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
 		}
 
-		_mission_item.lat = _global_pos_sub.get().lat;
-		_mission_item.lon = _global_pos_sub.get().lon;
+		_mission_item.setLatEncoded(_global_pos_sub.get().lat);
+		_mission_item.setLonEncoded(_global_pos_sub.get().lon);
 		_mission_item.yaw = NAN; // FlightTaskAuto handles yaw directly
 		_mission_item.altitude = _mission_init_climb_altitude_amsl;
 		_mission_item.altitude_is_relative = false;
@@ -365,15 +365,15 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 		/* set yaw setpoint to heading of VTOL_TAKEOFF wp against current position */
 		_mission_item.yaw = get_bearing_to_next_waypoint(
 					    _global_pos_sub.get().lat, _global_pos_sub.get().lon,
-					    _mission_item.lat, _mission_item.lon);
+					    _mission_item.getLat(), _mission_item.getLon());
 
 		_mission_item.force_heading = true;
 
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
 
 		/* set position setpoint to current while aligning */
-		_mission_item.lat = _global_pos_sub.get().lat;
-		_mission_item.lon = _global_pos_sub.get().lon;
+		_mission_item.setLatEncoded(_global_pos_sub.get().lat);
+		_mission_item.setLonEncoded(_global_pos_sub.get().lon);
 	}
 
 	/* heading is aligned now, prepare transition */

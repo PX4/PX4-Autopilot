@@ -4,7 +4,7 @@ uint8 client_id
 uint8 request_type	# id/read/write/clear
 uint8 item			# dm_item_t
 uint32 index
-uint8[56] data
+uint8[40] data
 
 uint8 STATUS_SUCCESS = 0
 uint8 STATUS_FAILURE_ID_ERR = 1
