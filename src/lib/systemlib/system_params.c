@@ -241,6 +241,18 @@ PARAM_DEFINE_INT32(SYS_HAS_NUM_ASPD, 0);
 PARAM_DEFINE_INT32(SYS_HAS_NUM_DIST, 0);
 
 /**
+ * Number of optical flow sensors required to be available
+ *
+ * The preflight check will fail if fewer than this number of optical flow sensors with valid data are present.
+ *
+ * @group System
+ * @min 0
+ * @max 1
+ */
+
+PARAM_DEFINE_INT32(SYS_HAS_NUM_OF, 0);
+
+/**
  * Enable factory calibration mode
  *
  * If enabled, future sensor calibrations will be stored to /fs/mtd_caldata.
