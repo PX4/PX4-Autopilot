@@ -241,10 +241,9 @@ PARAM_DEFINE_INT32(SYS_HAS_NUM_ASPD, 0);
 PARAM_DEFINE_INT32(SYS_HAS_NUM_DIST, 0);
 
 /**
- * Control if the vehicle has an optical flow sensor
+ * Number of optical flow sensors required to be available
  *
- * 0: Preflight checks will not check for the presence of an optical flow sensor.
- * 1: Require the presence of an optical flow sensor for preflight check to pass.
+ * The preflight check will fail if fewer than this number of optical flow sensors with valid data are present.
  *
  * @group System
  * @min 0
