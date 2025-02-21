@@ -749,6 +749,7 @@ MissionBlock::setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s 
 		item->lon = (double)NAN;
 		item->altitude = NAN;
 		item->loiter_radius = NAN;
+		item->yaw = NAN;
 	}
 }
 
