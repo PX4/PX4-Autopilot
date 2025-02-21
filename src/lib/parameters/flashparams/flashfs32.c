@@ -1128,6 +1128,11 @@ int parameter_flashfs_init(sector_descriptor_t *fconfig, uint8_t *buffer, uint16
 	if (pf == NULL) {
 		// Parameters can't be found, assume sector is corrupt or empty
 		rv = parameter_flashfs_erase();
+
+		// A positive return value means flash space has been erased successfully.
+		if (rv > 0) {
+			rv = 0;
+		}
 	}
 
 	return rv;
