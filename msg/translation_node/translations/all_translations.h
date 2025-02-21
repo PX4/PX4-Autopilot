@@ -11,3 +11,4 @@
 //#include "example_translation_service_v1.h"
 
 #include "translation_vehicle_status_v1.h"
+#include "translation_arming_check_reply_v1.h"
