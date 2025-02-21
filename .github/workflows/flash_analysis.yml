@@ -1,5 +1,9 @@
 name: FLASH usage analysis
 
+permissions:
+  pull-requests: write
+  issues: write
+
 on:
   push:
     branches:
