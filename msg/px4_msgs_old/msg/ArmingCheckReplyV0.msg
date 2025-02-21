@@ -16,7 +16,7 @@ bool can_arm_and_run              # whether arming is possible, and if it's a na
 
 uint8 num_events
 
-Event[5] events
+EventV0[5] events
 
 # Mode requirements
 bool mode_req_angular_velocity
