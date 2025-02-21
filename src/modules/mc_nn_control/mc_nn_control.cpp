@@ -38,8 +38,7 @@
  */
 
 #include "mc_nn_control.hpp"
-//#include <chrono>
-#include <thread>
+#include <drivers/drv_hrt.h>
 
 namespace {
 using NNControlOpResolver = tflite::MicroMutableOpResolver<4>; // This number should be the number of operations in the model, like tanh and fully connected
@@ -285,9 +284,7 @@ void MulticopterNeuralNetworkControl::Run()
 
 	perf_begin(_loop_perf);
 
-	//std::chrono::time_point<std::chrono::system_clock> start1, end1;
-	//std::chrono::time_point<std::chrono::system_clock> start2, end2;
-	//start1 = std::chrono::system_clock::now();
+	hrt_abstime start_time1 = hrt_absolute_time();
 
 	if (_parameter_update_sub.updated()) {
 		parameter_update_s param_update;
@@ -322,9 +319,9 @@ void MulticopterNeuralNetworkControl::Run()
 		PopulateInputTensor();
 
 		// Run inference
-		//start2 = std::chrono::system_clock::now();
+		hrt_abstime start_time2 = hrt_absolute_time();
 		TfLiteStatus invoke_status_control = _control_interpreter->Invoke();
-		//end2 = std::chrono::system_clock::now();
+		hrt_abstime inference_time_control = hrt_absolute_time() - start_time2;
 		if (invoke_status_control != kTfLiteOk) {
 			PX4_ERR("Invoke() failed");
 			return;
@@ -345,7 +342,9 @@ void MulticopterNeuralNetworkControl::Run()
 		allocation_input_tensor->data.f[4] = control_output_tensor->data.f[4] * 0.32f;
 		allocation_input_tensor->data.f[5] = control_output_tensor->data.f[5] * 0.02f;
 
+		hrt_abstime start_time3 = hrt_absolute_time();
 		TfLiteStatus invoke_status = _allocation_interpreter->Invoke();
+		hrt_abstime inference_time_allocation = hrt_absolute_time() - start_time3;
 		if (invoke_status != kTfLiteOk) {
 			PX4_ERR("Invoke() failed");
 			return;
@@ -362,17 +361,24 @@ void MulticopterNeuralNetworkControl::Run()
 		// Publish the actuator values
 		PublishOutput(_output_tensor->data.f);
 
-		//end1 = std::chrono::system_clock::now();
+		hrt_abstime full_controller_time = hrt_absolute_time() - start_time1;
 
 		if(_param_debug_output_tensor.get()) {
 			PX4_INFO("Actuator motors values:");
 			PX4_INFO("[%f, %f, %f, %f]", static_cast<double>(_output_tensor->data.f[0]), static_cast<double>(_output_tensor->data.f[1]), static_cast<double>(_output_tensor->data.f[2]), static_cast<double>(_output_tensor->data.f[3]));
 		}
 
-		// if(_param_debug_inference_time.get()) {
-		// 	PX4_INFO("Total controller time: %f microseconds",  double(std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1).count()));
-		// 	PX4_INFO("Inference time: %f microseconds",  double(std::chrono::duration_cast<std::chrono::microseconds>(end2 - start2).count()));
-		// }
+		if(_param_debug_inference_time.get()) {
+			_param_control_inference_time.set(inference_time_control);
+			_param_control_inference_time.commit();
+			_param_allocation_inference_time.set(inference_time_allocation);
+			_param_allocation_inference_time.commit();
+			_param_full_inference_time.set(full_controller_time);
+			_param_full_inference_time.commit();
+			PX4_INFO("Inference time control net: %llu us", (unsigned long long)inference_time_control);
+			PX4_INFO("Inference time allocation net: %llu us", (unsigned long long)inference_time_allocation);
+			PX4_INFO("Full controller time : %llu us", (unsigned long long)full_controller_time);
+		}
 	}
 	perf_end(_loop_perf);
 }
