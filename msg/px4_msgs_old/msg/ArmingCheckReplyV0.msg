@@ -1,4 +1,4 @@
-uint32 MESSAGE_VERSION = 1
+uint32 MESSAGE_VERSION = 0
 
 uint64 timestamp # time since system start (microseconds)
 
