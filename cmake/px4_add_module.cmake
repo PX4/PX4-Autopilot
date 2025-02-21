@@ -304,7 +304,7 @@ function(px4_add_module)
 				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${RUST_MOD}
 				DEPENDS ${CMAKE_BINARY_DIR}/uORB/topics/uORBTopics.hpp
 				DEPENDS rust_bindings
-				COMMAND CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR} cargo rustc --crate-type=staticlib ${CMAKE_RUST_COMPILER_FLAGS} --release --target-dir ${RUST_TARGET_DIR}
+				COMMAND CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR} cargo ${CMAKE_RUST_TOOLCHAIN_VERSION} rustc --crate-type=staticlib ${CMAKE_RUST_COMPILER_FLAGS} --release --target-dir ${RUST_TARGET_DIR}
 				)
 
 			# Before linking (PRE_LINK), replace the original stub library with Rust build output library

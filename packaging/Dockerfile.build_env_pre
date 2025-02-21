@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fakeroot \
     dh-make \
     debhelper \
+    clang \
     && pip3 install kconfiglib jsonschema \
     && rm -rf /var/lib/apt/lists/*
 
@@ -29,9 +30,13 @@ RUN mkdir -p /tools
 ENV RUSTUP_HOME /opt/rust
 ENV CARGO_HOME /opt/rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path
-RUN /opt/rust/bin/rustup target add riscv64gc-unknown-none-elf aarch64-unknown-none
+RUN /opt/rust/bin/rustup toolchain install stable-x86_64-unknown-linux-gnu
+RUN /opt/rust/bin/rustup target add --toolchain stable-x86_64-unknown-linux-gnu aarch64-unknown-none
 
-RUN /opt/rust/bin/cargo install bindgen-cli
+RUN /opt/rust/bin/rustup toolchain install 1.81.0-x86_64-unknown-linux-gnu
+RUN /opt/rust/bin/rustup target add --toolchain 1.81.0-x86_64-unknown-linux-gnu riscv64gc-unknown-none-elf
+
+RUN /opt/rust/bin/cargo install bindgen-cli@0.70.1
 
 RUN curl -LOs https://static.dev.sifive.com/dev-tools/freedom-tools/v2020.12/riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14.tar.gz && \
     tar xf riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14.tar.gz -C /tools && \
