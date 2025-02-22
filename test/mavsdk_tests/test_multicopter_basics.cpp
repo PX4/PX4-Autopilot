@@ -37,7 +37,7 @@
 
 #include "autopilot_tester.h"
 
-TEST_CASE("Altitude Hold", "[multicopter_basics]")
+TEST_CASE("Takeoff and hold position", "[multicopter][vtol]")
 {
 	const float takeoff_altitude = 10.0f;
 	const float altitude_tolerance = 0.5f;
