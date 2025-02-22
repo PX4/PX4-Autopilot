@@ -37,14 +37,33 @@
 #include <drivers/drv_hrt.h>
 #include <px4_arch/adc.h>
 
-// #include <rp2040_adc.h> Nuttx doesn't have this file in arch yet.
-#include <rp2040_gpio.h>
-
 /*
  * Register accessors.
  * For now, no reason not to just use ADC1.
  */
 #define REG(base, _reg) (*(volatile uint32_t *)((base) + (_reg)))
+
+
+#ifdef CONFIG_ARCH_CHIP_RP23XX
+#include <rp23xx_gpio.h>
+#include <hardware/rp23xx_adc.h>
+
+#define rCS(base)	REG((base), RP23XX_ADC_CS_OFFSET)	// ADC Control and Status
+#define rRESULT(base)	REG((base), RP23XX_ADC_RESULT_OFFSET)	// Result of most recent ADC conversion
+#define rFCS(base)	REG((base), RP23XX_ADC_FCS_OFFSET)	// FIFO control and status
+#define rFIFO(base)	REG((base), RP23XX_ADC_FIFO_OFFSET)	// Conversion result FIFO
+#define rDIV(base)	REG((base), RP23XX_ADC_DIV_OFFSET)	// Clock divider
+#define rINTR(base)	REG((base), RP23XX_ADC_INTR_OFFSET)	// Raw Interrupts
+#define rINTE(base)	REG((base), RP23XX_ADC_INTE_OFFSET)	// Interrupt Enable
+#define rINTF(base)	REG((base), RP23XX_ADC_INTF_OFFSET)	// Interrupt Force
+#define rINTS(base)	REG((base), RP23XX_ADC_INTS_OFFSET)	// Interrupt status after masking & forcing
+
+
+#else
+// #include <rp2040_adc.h> Nuttx doesn't have this file in arch yet.
+#include <rp2040_gpio.h>
+#include <hardware/rp2040_adc.h>
+
 
 #define rCS(base)	REG((base), 0x00)	// ADC Control and Status
 #define rRESULT(base)	REG((base), 0x04)	// Result of most recent ADC conversion
@@ -55,6 +74,8 @@
 #define rINTE(base)	REG((base), 0x18)	// Interrupt Enable
 #define rINTF(base)	REG((base), 0x1c)	// Interrupt Force
 #define rINTS(base)	REG((base), 0x20)	// Interrupt status after masking & forcing
+
+#endif
 
 int px4_arch_adc_init(uint32_t base_address)
 {
