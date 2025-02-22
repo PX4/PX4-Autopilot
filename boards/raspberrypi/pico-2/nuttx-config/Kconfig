@@ -1,0 +1,546 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+#####################################################################
+#  Build Configuration
+#####################################################################
+
+
+config RP23XX_FLASH_BOOT
+	bool "flash boot"
+	default y
+	---help---
+		If y, the built binary can be used for flash boot.
+		If not, the binary is for SRAM boot.
+
+config RP23XX_FLASH_CHIP
+	string "flash chip name"
+	default "w25q080"
+	---help---
+		Name of NOR flash device connected to RP2040 SoC.
+		(Used to choose the secondary boot loader.)
+		Basically this option should not be changed.
+
+
+config RP23XX_UF2_BINARY
+	bool "uf2 binary format"
+	default y
+	---help---
+		Create nuttx.uf2 binary format used on RP23XX based arch.
+
+#####################################################################
+#  PSRAM Configuration
+#####################################################################
+
+if RP23XX_PSRAM
+
+config RP23XX_PSRAM_CS1_GPIO
+	int "GPIO pin for the PSRAM (0, 8, 19, or 47)"
+	default 47
+	range 0 47
+	---help---
+		The PSRAM shares the same QPI signals with the flash, but
+		with a separate CS pin. Refer to board datasheet for more
+		information
+
+endif
+
+#####################################################################
+#  UART Configuration
+#####################################################################
+
+if RP23XX_UART0
+
+config RP23XX_UART0_TX_GPIO
+	int "GPIO pin for UART0 TX (0, 12, 16, or 28)"
+	default 0
+	range 0 28
+	---help---
+		RP23XX UART0 TX pin number used for data transmitted
+		from the RP23XX.  Refer to board documentation to see
+		which pins are available.
+
+config RP23XX_UART0_RX_GPIO
+	int "GPIO pin for UART0 RX (1, 13, 17, or 29)"
+	default 1
+	range 1 29
+	---help---
+		RP23XX UART0 RX pin number used for data received by the
+		RP23XX.  Refer to board documentation to see which pins
+		are available.
+
+if SERIAL_IFLOWCONTROL
+
+config RP23XX_UART0_CTS_GPIO
+	int "GPIO pin for UART0 CTS (2, 14, or 18)"
+	default 2
+	range 2 18
+	---help---
+		RP23XX UART0 CTS pin number an output pin that reflects the
+		UARTs ability to receive data.  This pin will be asserted when
+		the UART is able to receive another character.  Refer to board
+		documentation to see which pins are available.
+
+endif # SERIAL_IFLOWCONTROL
+
+if SERIAL_OFLOWCONTROL
+
+config RP23XX_UART0_RTS_GPIO
+	int "GPIO pin for UART0 RTS (3, 15, or 19)"
+	default 3
+	range 2 19
+	---help---
+		RP23XX UART0 RTS pin number an input pin used to control
+		transmission by the UART.  If output flow control is
+		enabled this pin must be asserted before data will be
+		transmitted.  Refer to board documentation to see which
+		pins are available.
+
+endif # SERIAL_OFLOWCONTROL
+
+endif # RP23XX_UART0
+
+#####################################################################
+
+if RP23XX_UART1
+
+config RP23XX_UART1_TX_GPIO
+	int "GPIO pin for UART1 TX (4, 8, 20, or 24)"
+	default 20
+	range 4 24
+	---help---
+		RP23XX UART1 TX pin number.  Refer to board documentation
+		to see which pins are available.
+
+config RP23XX_UART1_RX_GPIO
+	int "GPIO pin for UART1 RX (5, 9, 21, or 25)"
+	default 21
+	range 5 25
+	---help---
+		RP23XX UART1 RX pin number.  Refer to board documentation
+		to see which pins are available.
+
+if SERIAL_IFLOWCONTROL
+
+config RP23XX_UART1_CTS_GPIO
+	int "GPIO pin for UART1 CTS (6, 10, 22, or 26)"
+	default 22
+	range 6 26
+	---help---
+		RP23XX UART1 CTS pin number an output pin that reflects the
+		UARTs ability to receive data.  This pin will be asserted when
+		the UART is able to receive another character.  Refer to board
+		documentation to see which pins are available.
+
+endif # SERIAL_IFLOWCONTROL
+
+if SERIAL_OFLOWCONTROL
+
+config RP23XX_UART1_RTS_GPIO
+	int "GPIO pin for UART1 RTS (7, 11, 23, or 27)"
+	default 23
+	range 7 27
+	---help---
+		RP23XX UART01 RTS pin number an input pin used to control
+		transmission by the UART.  If output flow control is
+		enabled this pin must be asserted before data will be
+		transmitted.  Refer to board documentation to see which
+		pins are available.
+
+endif # SERIAL_OFLOWCONTROL
+
+endif # RP23XX_UART1
+
+#####################################################################
+#  SPI Configuration
+#####################################################################
+
+if RP23XX_SPI0
+
+config RP23XX_SPI0_RX_GPIO
+	int "GPIO pin for SPI0 RX (0, 4, 16, or 20)"
+	default 16
+	range 0 20
+	---help---
+		Refer to board documentation to see which pins are available.
+		This line is also known as MISO when we are configured in
+		SPI master mode.
+
+config RP23XX_SPI0_CS_GPIO
+	int "GPIO pin for SPI0 CSn (1, 5, 17, or 21)"
+	default 17
+	range 1 21
+	---help---
+		Refer to board documentation to see which pins are available.
+
+
+config RP23XX_SPI0_SCK_GPIO
+	int "GPIO pin for SPI0 SCK (2, 6, 18, or 22)"
+	default 18
+	range 2 22
+	---help---
+		Refer to board documentation to see which pins are available.
+
+config RP23XX_SPI0_TX_GPIO
+	int "GPIO pin for SPI0 TX (3, 7, 19, or 23)"
+	default 19
+	range 3 23
+	---help---
+		Refer to board documentation to see which pins are available.
+		This line is also known as MOSI when we are configured in
+		SPI master mode.
+
+endif # RP23XX_SPI0
+
+#####################################################################
+
+if RP23XX_SPI1
+
+config RP23XX_SPI1_RX_GPIO
+	int "GPIO pin for SPI1 RX (8, 12, 24, or 28)"
+	default 8
+	range 8 28
+	---help---
+		Refer to board documentation to see which pins are available.
+		This line is also known as MISO when we are configured in
+		SPI master mode, or MOSI when slave mode is configured.
+
+config RP23XX_SPI1_CS_GPIO
+	int "GPIO pin for SPI1 CSn (9, 13, 25, or 29)"
+	default 9
+	range 9 29
+	---help---
+		Refer to board documentation to see which pins are available.
+
+config RP23XX_SPI1_SCK_GPIO
+	int "GPIO pin for SPI1 SCK (10, 14, or 26)"
+	default 10
+	range 10 26
+	---help---
+		Refer to board documentation to see which pins are available.
+
+config RP23XX_SPI1_TX_GPIO
+	int "GPIO pin for SPI1 TX (11, 15, or 27)"
+	default 11
+	range 11 27
+	---help---
+		Refer to board documentation to see which pins are available.
+		This line is also known as MOSI when we are configured in
+		SPI master mode, or MISO when slave mode is configured.
+
+endif # RP23XX_SPI1
+
+#####################################################################
+#  I2C Configuration
+#####################################################################
+
+if RP23XX_I2C0 || RP23XX_I2C0_SLAVE
+
+config RP23XX_I2C0_SDA_GPIO
+	int "GPIO pin for I2C0 SDA (0, 4, 8, 12, 16, 20, 24, or 28)"
+	default 4
+	range 0 28
+	---help---
+		Refer to board documentation to see which pins are available.
+
+config RP23XX_I2C0_SCL_GPIO
+	int "GPIO pin for I2C0 SCL (1, 5, 9, 13, 17, 21, 25, or 29)"
+	default 5
+	range 1 29
+	---help---
+		Refer to board documentation to see which pins are available.
+
+endif # RP23XX_I2C0 || RP23XX_I2C0_SLAVE
+
+#####################################################################
+
+if RP23XX_I2C1 || RP23XX_I2C1_SLAVE
+
+config RP23XX_I2C1_SDA_GPIO
+	int "GPIO pin for I2C1 SDA (2, 6, 10, 14, 18, 22, or 26)"
+	default 6
+	range 2 26
+	---help---
+		Refer to board documentation to see which pins are available.
+
+config RP23XX_I2C1_SCL_GPIO
+	int "GPIO pin for I2C1 SCL (3, 7, 11, 15, 19, 23, or 27)"
+	default 7
+	range 3 27
+	---help---
+		Refer to board documentation to see which pins are available.
+
+endif # RP23XX_I2C1 || RP23XX_I2C1_SLAVE
+
+#####################################################################
+#  PWM Configuration
+#####################################################################
+
+if RP23XX_PWM0
+
+config RP23XX_PWM0A_GPIO
+	int "GPIO pin for PWM0 channel 1 (0, 16 or -1:no assign)"
+	default 0
+	range -1 16
+	---help---
+		This sets the GPIO pin to use for the A channel it must be
+		either 0 or 16, any other value disables the output.
+		Refer to board documentation to see which pins are available.
+
+if PWM_MULTICHAN && PWM_NCHANNELS > 1
+
+config RP23XX_PWM0B_GPIO
+	int "GPIO pin for PWM0 channel 2 (1, 17 or -1:no assign)"
+	default 1
+	range -1 29
+	---help---
+		This sets the GPIO pin to use for the B channel it must be
+		either 1 or 17, any other value disables the output.
+		Refer to board documentation to see which pins are available.
+
+endif # PWM_MULTICHAN && PWM_NCHANNELS > 1
+
+endif # RP23XX_PWM0
+
+#####################################################################
+
+if RP23XX_PWM1
+
+config RP23XX_PWM1A_GPIO
+	int "GPIO pin for PWM1 channel 1 (2, 18 or -1:no assign)"
+	default 2
+	range -1 29
+	---help---
+		This sets the GPIO pin to use for the A channel it must be
+		either 2 or 18, any other value disables the output.
+		Refer to board documentation to see which pins are available.
+
+if PWM_MULTICHAN && PWM_NCHANNELS > 1
+
+config RP23XX_PWM1B_GPIO
+	int "GPIO pin for PWM1 channel 2 (3, 19 or -1:no assign)"
+	default 3
+	range -1 29
+	---help---
+		This sets the GPIO pin to use for the B channel it must be
+		either 3 or 19, any other value disables the output.
+		Refer to board documentation to see which pins are available.
+
+endif # PWM_MULTICHAN && PWM_NCHANNELS > 1
+
+endif # RP23XX_PWM1
+
+#####################################################################
+
+if RP23XX_PWM2
+
+config RP23XX_PWM2A_GPIO
+	int "GPIO pin for PWM2 channel 1 (4, 20 or -1:no assign)"
+	default 4
+	range -1 29
+	---help---
+		This sets the GPIO pin to use for the A channel it must be
+		either 4 or 20, any other value disables the output.
+		Refer to board documentation to see which pins are available.
+
+if PWM_MULTICHAN && PWM_NCHANNELS > 1
+
+config RP23XX_PWM2B_GPIO
+	int "GPIO pin for PWM2 channel 2 (5, 21 or -1:no assign)"
+	default 5
+	range -1 29
+	---help---
+		This sets the GPIO pin to use for the B channel it must be
+		either 5 or 21, any other value disables the output.
+		Refer to board documentation to see which pins are available.
+
+endif # PWM_MULTICHAN && PWM_NCHANNELS > 1
+
+endif # RP23XX_PWM2
+
+#####################################################################
+
+if RP23XX_PWM3
+
+config RP23XX_PWM3A_GPIO
+	int "GPIO pin for PWM3 channel 1 (6, 22 or -1:no assign)"
+	default 6
+	range -1 29
+	---help---
+		This sets the GPIO pin to use for the A channel it must be
+		either 6 or 22, any other value disables the output.
+		Refer to board documentation to see which pins are available.
+
+if PWM_MULTICHAN && PWM_NCHANNELS > 1
+
+config RP23XX_PWM3B_GPIO
+	int "GPIO pin for PWM3 channel 2 (7, 23 or -1:no assign)"
+	default 7
+	range -1 29
+	---help---
+		This sets the GPIO pin to use for the B channel it must be
+		either 7 or 23, any other value disables the output.
+		Refer to board documentation to see which pins are available.
+
+endif # PWM_MULTICHAN && PWM_NCHANNELS > 1
+
+endif # RP23XX_PWM3
+
+#####################################################################
+
+if RP23XX_PWM4
+
+config RP23XX_PWM4A_GPIO
+	int "GPIO pin for PWM4 channel 1 (8, 24 or -1:no assign)"
+	default 8
+	range -1 29
+	---help---
+		This sets the GPIO pin to use for the A channel it must be
+		either 8 or 24, any other value disables the output.
+		Refer to board documentation to see which pins are available.
+
+if PWM_MULTICHAN && PWM_NCHANNELS > 1
+
+config RP23XX_PWM4B_GPIO
+	int "GPIO pin for PWM4 channel 2 (9, 25 or -1:no assign)"
+	default 9
+	range -1 29
+	---help---
+		This sets the GPIO pin to use for the B channel it must be
+		either 9 or 25, any other value disables the output.
+		Refer to board documentation to see which pins are available.
+
+endif # PWM_MULTICHAN && PWM_NCHANNELS > 1
+
+endif # RP23XX_PWM4
+
+#####################################################################
+
+if RP23XX_PWM5
+
+config RP23XX_PWM5A_GPIO
+	int "GPIO pin for PWM5 channel 1 (10, 26 or -1:no assign)"
+	default 10
+	range -1 29
+	---help---
+		This sets the GPIO pin to use for the A channel it must be
+		either 10 or 26, any other value disables the output.
+		Refer to board documentation to see which pins are available.
+
+if PWM_MULTICHAN && PWM_NCHANNELS > 1
+
+config RP23XX_PWM5B_GPIO
+	int "GPIO pin for PWM5 channel 2 (11, 27 or -1:no assign)"
+	default 11
+	range -1 29
+	---help---
+		This sets the GPIO pin to use for the B channel it must be
+		either 11 or 27, any other value disables the output.
+		Refer to board documentation to see which pins are available.
+
+endif # PWM_MULTICHAN && PWM_NCHANNELS > 1
+
+endif # RP23XX_PWM5
+
+#####################################################################
+
+if RP23XX_PWM6
+
+config RP23XX_PWM6A_GPIO
+	int "GPIO pin for PWM6 channel 1 (12, 28 or -1:no assign)"
+	default 12
+	range -1 29
+	---help---
+		This sets the GPIO pin to use for the A channel it must be
+		either 12 or 28, any other value disables the output.
+		Refer to board documentation to see which pins are available.
+
+if PWM_MULTICHAN && PWM_NCHANNELS > 1
+
+config RP23XX_PWM6B_GPIO
+	int "GPIO pin for PWM6 channel 2 (13, 29 or -1:no assign)"
+	default 13
+	range -1 29
+	---help---
+		This sets the GPIO pin to use for the B channel it must be
+		either 13 or 29, any other value disables the output.
+		Refer to board documentation to see which pins are available.
+
+endif # PWM_MULTICHAN && PWM_NCHANNELS > 1
+
+endif # RP23XX_PWM6
+
+#####################################################################
+
+if RP23XX_PWM7
+
+config RP23XX_PWM7A_GPIO
+	int "GPIO pin for PWM7 channel 1 (14 or -1:no assign)"
+	default 14
+	range -1 29
+	---help---
+		This sets the GPIO pin to use for the A channel it must be
+		either 14, any other value disables the output.
+		Refer to board documentation to see if pin 14 is available.
+
+if PWM_MULTICHAN && PWM_NCHANNELS > 1
+
+config RP23XX_PWM7B_GPIO
+	int "GPIO pin for PWM7 channel 2 (15 or -1:no assign)"
+	default 15
+	range -1 29
+	---help---
+		This sets the GPIO pin to use for the B channel it must be
+		either 15, any other value disables the output.
+		Refer to board documentation to see if pin 15 is available.
+
+endif # PWM_MULTICHAN && PWM_NCHANNELS > 1
+
+endif # RP23XX_PWM7
+
+#####################################################################
+#  I2S Configuration
+#####################################################################
+
+if RP23XX_I2S
+
+config RP23XX_I2S_DATA
+	int "GPIO pin for I2S DATA (0-29)"
+	default 9
+	range 0 29
+
+config RP23XX_I2S_CLOCK
+	int "GPIO pin for I2S CLOCK (0-29)"
+	default 10
+	range 0 29
+
+endif # RP23XX_I2S
+
+
+#####################################################################
+#  WS2812 Configuration
+#####################################################################
+
+if RP23XX_BOARD_HAS_WS2812
+
+config RP23XX_WS2812_GPIO_PIN
+	int "GPIO pin for ws2812 data line (0-29)"
+	default 0
+	range 0 29
+	---help---
+		This is the GPIO pin used to send data to the
+		configured ws2812 pixels.
+
+config RP23XX_WS2812_PWR_GPIO
+	int "GPIO pin for ws2812 power (0-29, or -1 if not used)"
+	default -1
+	range -1 29
+	---help---
+		Some RP23XX boards have an on-board ws2812
+		that is powered by a GPIO pin.  Set this
+		value to -1 if your board does not have
+		such a pin.
+
+endif # RP23XX_BOARD_HAS_WS2812

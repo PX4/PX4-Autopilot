@@ -40,6 +40,12 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform/io_timer_init.h>
 
+#ifdef CONFIG_ARCH_CHIP_RP23XX
+	#define RP2XXX_GPIO_FUNC_PWM RP23XX_GPIO_FUNC_PWM
+#else
+	#define RP2XXX_GPIO_FUNC_PWM RP2040_GPIO_FUNC_PWM
+#endif
+
 static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t io_timers_conf[MAX_IO_TIMERS],
 		Timer::TimerChannel timer, GPIO::GPIOPin pin)
 {
@@ -50,14 +56,14 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 	switch (timer.channel) {
 	case Timer::ChannelA:
 		if (!(pin.pin & 1) && (pin.pin & 15) / 2 == (timer.timer - 1)) {
-			gpio_af = getGPIOPin(pin.pin) | GPIO_FUN(RP2040_GPIO_FUNC_PWM);
+			gpio_af = getGPIOPin(pin.pin) | GPIO_FUN(RP2XXX_GPIO_FUNC_PWM);
 		}
 
 		break;
 
 	case Timer::ChannelB:
 		if ((pin.pin & 1) && (pin.pin & 15) / 2 == (timer.timer - 1)) {
-			gpio_af = getGPIOPin(pin.pin) | GPIO_FUN(RP2040_GPIO_FUNC_PWM);
+			gpio_af = getGPIOPin(pin.pin) | GPIO_FUN(RP2XXX_GPIO_FUNC_PWM);
 		}
 
 		break;

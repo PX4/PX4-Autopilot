@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,74 +32,88 @@
  ****************************************************************************/
 
 /**
- * @file board_mcu_version.c
- * Implementation of RP2040 based SoC version API
+ * @file led.c
+ *
+ * board LED backend.
  */
 
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
 
-#ifdef CONFIG_ARCH_CHIP_RP23XX
-#define RP2040_CPUID_BASE	(RP23XX_PPB_BASE + 0xed00)
-#else
-#define RP2040_CPUID_BASE	(RP2040_PPB_BASE + 0xed00)
-#endif
+#include <stdbool.h>
 
-/* magic numbers from reference manual */
+#include "board_config.h"
 
-enum MCU_REV {
-	MCU_REV_RP2040_REV_1 = 0x1
+#include <arch/board/board.h>
+
+/*
+ * Ideally we'd be able to get these from arm_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
+ */
+__BEGIN_DECLS
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
+__END_DECLS
+
+static uint32_t g_ledmap[] = {
+	GPIO_LED_BLUE,		// Onboard led on raspberrypi pico
 };
 
-/* Define any issues with the Silicon as lines separated by \n
- * omitting the last \n
- */
-#define RP2040_ERRATA "This device does not have a unique id!"
-
-
-// RP2040 datasheet CPUID register
-# define REVID_MASK    0xF
-# define DEVID_MASK    0xFFFFFFF0
-
-# define RP2040_DEVICE_ID	0x410CC60
-
-
-int board_mcu_version(char *rev, const char **revstr, const char **errata)
+__EXPORT void led_init(void)
 {
-	uint32_t abc = getreg32(RP2040_CPUID_BASE);
-
-	int32_t chip_version = (abc & DEVID_MASK) > 4;
-	enum MCU_REV revid = abc & REVID_MASK;
-	const char *chip_errata = NULL;
-
-	switch (chip_version) {
-
-
-	case RP2040_DEVICE_ID:
-		*revstr = "RP2040";
-		chip_errata = RP2040_ERRATA;
-		break;
-
-	default:
-		*revstr = "RPI???";
-		break;
+	/* Configure LED GPIOs for output */
+	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
+		px4_arch_configgpio(g_ledmap[l]);
 	}
-
-	switch (revid) {
-
-	case MCU_REV_RP2040_REV_1:
-		*rev = '1';
-		break;
-
-	default:
-		*rev = '?';
-		revid = -1;
-		break;
-	}
-
-	if (errata) {
-		*errata = chip_errata;
-	}
-
-	return revid;
 }
+
+static void phy_set_led(int led, bool state)
+{
+	/* Pull Down to switch on */
+	if (led == 0) {
+		px4_arch_gpiowrite(g_ledmap[led], state);
+	}
+}
+
+__EXPORT void led_on(int led)
+{
+	phy_set_led(led, true);
+}
+
+__EXPORT void led_off(int led)
+{
+	phy_set_led(led, false);
+}
+
+__EXPORT void led_toggle(int led)
+{
+	if (led == 0) {
+		phy_set_led(led, !px4_arch_gpioread(g_ledmap[led]));
+	}
+}
+
+// __EXPORT void board_autoled_initialize()
+// {
+// 	/* Configure LED1 GPIO for output */
+// 	px4_arch_configgpio(GPIO_LED1);
+// }
+
+// __EXPORT void board_autoled_on(int led)
+// {
+// 	if (led == 1) {
+// 		/* Pull down to switch on */
+// 		px4_arch_gpiowrite(GPIO_LED1, false);
+// 	}
+// }
+
+// __EXPORT void board_autoled_off(int led)
+// {
+// 	if (led == 1) {
+// 		/* Pull up to switch off */
+// 		px4_arch_gpiowrite(GPIO_LED1, true);
+// 	}
+// }

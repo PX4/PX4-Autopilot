@@ -32,3 +32,8 @@
  ****************************************************************************/
 #pragma once
 
+#include <board_config.h>
+
+#define SYSTEM_ADC_BASE	RP23XX_ADC_BASE
+
+#include <px4_platform/adc.h>

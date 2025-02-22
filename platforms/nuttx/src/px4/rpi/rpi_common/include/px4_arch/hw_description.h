@@ -35,10 +35,17 @@
 
 #include <stdint.h>
 
-#include <hardware/rp2040_memorymap.h>
+#ifdef CONFIG_ARCH_CHIP_RP23XX
+	#include <hardware/rp23xx_memorymap.h>
+	#define RP2XXX_PWM_BASE RP23XX_PWM_BASE
+#else
+	#include <hardware/rp2040_memorymap.h>
+	#define RP2XXX_PWM_BASE RP2040_PWM_BASE
+#endif
 
 #include <px4_platform_common/constexpr_util.h>
 
+// FIXME: double check impl, but for basic functionality RP2350 seem to behave same as RP2040
 
 /*
  * Timers
@@ -69,21 +76,21 @@ struct TimerChannel {
 static inline constexpr uint32_t timerBaseRegister(Timer::Timer timer)
 {
 	switch (timer) {
-	case Timer::Timer0: return RP2040_PWM_BASE + 0x00;
+	case Timer::Timer0: return RP2XXX_PWM_BASE + 0x00;
 
-	case Timer::Timer1: return RP2040_PWM_BASE + 0x14;
+	case Timer::Timer1: return RP2XXX_PWM_BASE + 0x14;
 
-	case Timer::Timer2: return RP2040_PWM_BASE + 0x28;
+	case Timer::Timer2: return RP2XXX_PWM_BASE + 0x28;
 
-	case Timer::Timer3: return RP2040_PWM_BASE + 0x3c;
+	case Timer::Timer3: return RP2XXX_PWM_BASE + 0x3c;
 
-	case Timer::Timer4: return RP2040_PWM_BASE + 0x50;
+	case Timer::Timer4: return RP2XXX_PWM_BASE + 0x50;
 
-	case Timer::Timer5: return RP2040_PWM_BASE + 0x64;
+	case Timer::Timer5: return RP2XXX_PWM_BASE + 0x64;
 
-	case Timer::Timer6: return RP2040_PWM_BASE + 0x78;
+	case Timer::Timer6: return RP2XXX_PWM_BASE + 0x78;
 
-	case Timer::Timer7: return RP2040_PWM_BASE + 0x8c;
+	case Timer::Timer7: return RP2XXX_PWM_BASE + 0x8c;
 
 	default: break;
 	}

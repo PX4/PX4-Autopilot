@@ -4,10 +4,19 @@
 
 __BEGIN_DECLS
 
+#if defined(CONFIG_ARCH_CHIP_RP23XX)
+
+#include <rp23xx_spi.h>
+#include <rp23xx_i2c.h>
+#include <rp23xx_gpio.h>
+
+#else
+
 #include <rp2040_spi.h>
 #include <rp2040_i2c.h>
 #include <rp2040_gpio.h>
 
+#endif
 // RP2040 doesn't have a bbsram. Following two defines are copied from nxp/k66.
 // This will remove the errors of undefined PX4_BBSRAM_SIZE when logger module is activated.
 // Fixme: using ??
@@ -50,11 +59,23 @@ __BEGIN_DECLS
 #define PX4_CPU_MFGUID_FORMAT_SIZE              ((2*PX4_CPU_MFGUID_BYTE_LENGTH)+1)
 
 #define PX4_BUS_OFFSET       1                  /* RP2040 buses are 0 based and adjustment is needed */
-#define px4_spibus_initialize(bus_num_1based)   rp2040_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
 
-#define px4_i2cbus_initialize(bus_num_1based)   rp2040_i2cbus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
-#define px4_i2cbus_uninitialize(pdev)           rp2040_i2cbus_uninitialize(pdev)
+#if defined(CONFIG_ARCH_CHIP_RP23XX)
 
+	#define px4_spibus_initialize(bus_num_1based)   rp23xx_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
+
+	#define px4_i2cbus_initialize(bus_num_1based)   rp23xx_i2cbus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
+	#define px4_i2cbus_uninitialize(pdev)           rp23xx_i2cbus_uninitialize(pdev)
+
+#else
+	#define px4_spibus_initialize(bus_num_1based)   rp2040_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
+
+        #define px4_i2cbus_initialize(bus_num_1based)   rp2040_i2cbus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
+        #define px4_i2cbus_uninitialize(pdev)           rp2040_i2cbus_uninitialize(pdev)
+
+#endif
+
+// FIXME: ???!!!
 // This part of the code is specific to rp2040.
 // RP2040 does not have the gpio configuration process similar to stm or tiva devices.
 // There are multiple different registers which are required to be configured based on the function selection.
@@ -74,12 +95,32 @@ __BEGIN_DECLS
 #define GPIO_SET	(1 << 8)	// Output set
 #define GPIO_FUN(func)	(func << 9)	// Function select
 
+#if defined(CONFIG_ARCH_CHIP_RP23XX)
+	#define GPIO_FUNC_SIO_SHIFT_9 GPIO_FUN(RP23XX_GPIO_FUNC_SIO)
+#else
+	#define GPIO_FUNC_SIO_SHIFT_9 GPIO_FUN(RP2040_GPIO_FUNC_SIO)
+#endif
+
 #define GPIO_NUM_MASK	0x1f
 #define	GPIO_PU_MASK	0x20		// GPIO PAD register mask
 #define	GPIO_PD_MASK	0x40		// GPIO pin number mask
 #define	GPIO_OUT_MASK	0x80		// GPIO pin function mask
 #define	GPIO_SET_MASK	0x100		// GPIO pin function mask
 #define	GPIO_FUN_MASK	0x3E00		// GPIO output enable mask
+
+#if defined(CONFIG_ARCH_CHIP_RP23XX)
+
+int rp23xx_gpioconfig(uint32_t pinset);
+int rp23xx_setgpioevent(uint32_t pinset, bool risingedge, bool fallingedge, bool event, xcpt_t func, void *arg);
+
+#define px4_arch_configgpio(pinset)		rp23xx_gpioconfig(pinset)			// Defined in io_pins/rp2040_pinset.c
+#define px4_arch_unconfiggpio(pinset)           rp23xx_gpio_init(pinset & GPIO_NUM_MASK)	// Reset the pin as input SIO
+#define px4_arch_gpioread(pinset)               rp23xx_gpio_get(pinset & GPIO_NUM_MASK)		// Use gpio_get
+#define px4_arch_gpiowrite(pinset, value)       rp23xx_gpio_put(pinset & GPIO_NUM_MASK, value)	// Use gpio_put
+#define px4_arch_gpiosetevent(pinset,r,f,e,fp,a) rp23xx_setgpioevent(pinset,r,f,e,fp,a)		// Defined in io_pins/rp2040_pinset.c
+
+
+#else
 
 int rp2040_gpioconfig(uint32_t pinset);
 int rp2040_setgpioevent(uint32_t pinset, bool risingedge, bool fallingedge, bool event, xcpt_t func, void *arg);
@@ -90,14 +131,19 @@ int rp2040_setgpioevent(uint32_t pinset, bool risingedge, bool fallingedge, bool
 #define px4_arch_gpiowrite(pinset, value)       rp2040_gpio_put(pinset & GPIO_NUM_MASK, value)	// Use gpio_put
 #define px4_arch_gpiosetevent(pinset,r,f,e,fp,a) rp2040_setgpioevent(pinset,r,f,e,fp,a)		// Defined in io_pins/rp2040_pinset.c
 
+#endif /* defined(CONFIG_ARCH_CHIP_RP23XX) */
+
+
 // Following are quick defines to be used with the functions defined above
 // These defines create a bit-mask which is supposed to be used in the
 // functions defined above to set up gpios correctly.
-#define PX4_MAKE_GPIO_INPUT(gpio) (gpio | GPIO_PU | GPIO_FUN(RP2040_GPIO_FUNC_SIO))
-#define PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio) (gpio | GPIO_OUT | GPIO_FUN(RP2040_GPIO_FUNC_SIO))
-#define PX4_MAKE_GPIO_OUTPUT_SET(gpio) (gpio | GPIO_OUT | GPIO_SET | GPIO_FUN(RP2040_GPIO_FUNC_SIO))
+#define PX4_MAKE_GPIO_INPUT(gpio) (gpio | GPIO_PU | GPIO_FUNC_SIO_SHIFT_9)
+#define PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio) (gpio | GPIO_OUT | GPIO_FUNC_SIO_SHIFT_9)
+#define PX4_MAKE_GPIO_OUTPUT_SET(gpio) (gpio | GPIO_OUT | GPIO_SET | GPIO_FUNC_SIO_SHIFT_9)
 
-#define PX4_GPIO_PIN_OFF(pinset) ((pinset & GPIO_NUM_MASK) | GPIO_FUN(RP2040_GPIO_FUNC_SIO) | GPIO_PD)
+#define PX4_GPIO_PIN_OFF(pinset) ((pinset & GPIO_NUM_MASK) | GPIO_FUNC_SIO_SHIFT_9 | GPIO_PD)
+
+
 
 #define px4_cache_aligned_data()
 #define px4_cache_aligned_alloc malloc

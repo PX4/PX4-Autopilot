@@ -105,6 +105,14 @@
 #define rINTF			_REG32(RP2040_PWM_BASE,RP2040_PWM_INTF_OFFSET)
 #define rINTS			_REG32(RP2040_PWM_BASE,RP2040_PWM_INTS_OFFSET)
 
+#ifdef CONFIG_ARCH_CHIP_RP23XX
+	//include <rp23xx_gpio.h>
+	//include <hardware/rp23xx_adc.h>
+	// FIXME: which one to use? _0 or _1?
+	#define RP_PWM_IRQ_WRAP RP23XX_PWM_IRQ_WRAP_0
+#else
+	#define RP_PWM_IRQ_WRAP RP2040_PWM_IRQ_WRAP
+#endif
 //					 				  NotUsed   PWMOut  PWMIn Capture OneShot Trigger
 io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT16_MAX,   0,  0,  0, 0, 0 };
 
@@ -503,8 +511,8 @@ int io_timer_init_timer(unsigned timer)
 		xcpt_t handler = io_timer_handler;
 
 		if (handler) {
-			irq_attach(RP2040_PWM_IRQ_WRAP, handler, NULL);
-			up_enable_irq(RP2040_PWM_IRQ_WRAP);
+			irq_attach(RP_PWM_IRQ_WRAP, handler, NULL);
+			up_enable_irq(RP_PWM_IRQ_WRAP);
 		}
 
 		px4_leave_critical_section(flags);

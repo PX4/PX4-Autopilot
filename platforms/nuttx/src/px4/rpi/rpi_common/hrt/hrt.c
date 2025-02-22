@@ -82,12 +82,23 @@
 #ifdef HRT_TIMER
 
 /* HRT configuration */
-#if   HRT_TIMER == 1
-# define HRT_TIMER_BASE		RP2040_TIMER_BASE
+#ifdef CONFIG_ARCH_CHIP_RP23XX
+	//#include <chip/hardware/rp23xx_timer.h>
+	#define RP23XX_TIMER0_BASE_               0x400b0000
+        #define RP23XX_TIMER1_BASE_               0x400b8000
+	#if   HRT_TIMER == 1
+	# define HRT_TIMER_BASE		RP23XX_TIMER0_BASE_
+	#else
+	# error HRT_TIMER must have a value of 1 because there is only one timer in RP2040 (RP23XX specifics not implemented)
+	#endif
 #else
-# error HRT_TIMER must have a value of 1 because there is only one timer in RP2040
-#endif
+	#if   HRT_TIMER == 1
+	# define HRT_TIMER_BASE		RP2040_TIMER_BASE
+	#else
+	# error HRT_TIMER must have a value of 1 because there is only one timer in RP2040
+	#endif
 
+#endif
 /**
  * Minimum/maximum deadlines.
  *
@@ -132,27 +143,49 @@
 #define rINTF		REG(0x3c)	// Interrupt Force
 #define rINTS		REG(0x40)	// Interrupt status after masking & forcing
 
-/*
- * Specific registers and bits used by HRT sub-functions
- */
-#if HRT_TIMER_CHANNEL == 1
-# define HRT_TIMER_VECTOR	RP2040_TIMER_IRQ_0	// Timer alarm interrupt vector //
-# define HRT_ALARM_VALUE	rALARM0			// Alarm register for HRT (similar to compare register for other MCUs) //
-# define HRT_ALARM_ENABLE	(1 << 0)		// Bit-0 for alarm 0 //
-#elif HRT_TIMER_CHANNEL == 2
-# define HRT_TIMER_VECTOR	RP2040_TIMER_IRQ_1	// Timer alarm interrupt vector //
-# define HRT_ALARM_VALUE	rALARM1			// Alarm register for HRT (similar to compare register for other MCUs) //
-# define HRT_ALARM_ENABLE	(1 << 1)		// Bit-1 for alarm 1 //
-#elif HRT_TIMER_CHANNEL == 3
-# define HRT_TIMER_VECTOR	RP2040_TIMER_IRQ_2	// Timer alarm interrupt vector //
-# define HRT_ALARM_VALUE	rALARM2			// Alarm register for HRT (similar to compare register for other MCUs) //
-# define HRT_ALARM_ENABLE	(1 << 2)		// Bit-2 for alarm 2 //
-#elif HRT_TIMER_CHANNEL == 4
-# define HRT_TIMER_VECTOR	RP2040_TIMER_IRQ_3	// Timer alarm interrupt vector //
-# define HRT_ALARM_VALUE	rALARM3			// Alarm register for HRT (similar to compare register for other MCUs) //
-# define HRT_ALARM_ENABLE	(1 << 3)		// Bit-3 for alarm 3 //
+#ifdef CONFIG_ARCH_CHIP_RP23XX
+	#if HRT_TIMER_CHANNEL == 1
+	# define HRT_TIMER_VECTOR	RP23XX_TIMER0_IRQ_0	// Timer alarm interrupt vector //
+	# define HRT_ALARM_VALUE	rALARM0			// Alarm register for HRT (similar to compare register for other MCUs) //
+	# define HRT_ALARM_ENABLE	(1 << 0)		// Bit-0 for alarm 0 //
+	#elif HRT_TIMER_CHANNEL == 2
+	# define HRT_TIMER_VECTOR	RP23XX_TIMER0_IRQ_1	// Timer alarm interrupt vector //
+	# define HRT_ALARM_VALUE	rALARM1			// Alarm register for HRT (similar to compare register for other MCUs) //
+	# define HRT_ALARM_ENABLE	(1 << 1)		// Bit-1 for alarm 1 //
+	#elif HRT_TIMER_CHANNEL == 3
+	# define HRT_TIMER_VECTOR	RP23XX_TIMER0_IRQ_2	// Timer alarm interrupt vector //
+	# define HRT_ALARM_VALUE	rALARM2			// Alarm register for HRT (similar to compare register for other MCUs) //
+	# define HRT_ALARM_ENABLE	(1 << 2)		// Bit-2 for alarm 2 //
+	#elif HRT_TIMER_CHANNEL == 4
+	# define HRT_TIMER_VECTOR	RP23XX_TIMER0_IRQ_3	// Timer alarm interrupt vector //
+	# define HRT_ALARM_VALUE	rALARM3			// Alarm register for HRT (similar to compare register for other MCUs) //
+	# define HRT_ALARM_ENABLE	(1 << 3)		// Bit-3 for alarm 3 //
+	#else
+	# error HRT_TIMER_CHANNEL must be a value between 1 and 4
+	#endif
 #else
-# error HRT_TIMER_CHANNEL must be a value between 1 and 4
+	/*
+	 * Specific registers and bits used by HRT sub-functions
+	 */
+	#if HRT_TIMER_CHANNEL == 1
+	# define HRT_TIMER_VECTOR	RP2040_TIMER_IRQ_0	// Timer alarm interrupt vector //
+	# define HRT_ALARM_VALUE	rALARM0			// Alarm register for HRT (similar to compare register for other MCUs) //
+	# define HRT_ALARM_ENABLE	(1 << 0)		// Bit-0 for alarm 0 //
+	#elif HRT_TIMER_CHANNEL == 2
+	# define HRT_TIMER_VECTOR	RP2040_TIMER_IRQ_1	// Timer alarm interrupt vector //
+	# define HRT_ALARM_VALUE	rALARM1			// Alarm register for HRT (similar to compare register for other MCUs) //
+	# define HRT_ALARM_ENABLE	(1 << 1)		// Bit-1 for alarm 1 //
+	#elif HRT_TIMER_CHANNEL == 3
+	# define HRT_TIMER_VECTOR	RP2040_TIMER_IRQ_2	// Timer alarm interrupt vector //
+	# define HRT_ALARM_VALUE	rALARM2			// Alarm register for HRT (similar to compare register for other MCUs) //
+	# define HRT_ALARM_ENABLE	(1 << 2)		// Bit-2 for alarm 2 //
+	#elif HRT_TIMER_CHANNEL == 4
+	# define HRT_TIMER_VECTOR	RP2040_TIMER_IRQ_3	// Timer alarm interrupt vector //
+	# define HRT_ALARM_VALUE	rALARM3			// Alarm register for HRT (similar to compare register for other MCUs) //
+	# define HRT_ALARM_ENABLE	(1 << 3)		// Bit-3 for alarm 3 //
+	#else
+	# error HRT_TIMER_CHANNEL must be a value between 1 and 4
+	#endif
 #endif
 
 /*

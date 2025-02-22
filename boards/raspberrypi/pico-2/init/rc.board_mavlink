@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# board specific MAVLink startup script.
+#------------------------------------------------------------------------------
+
+# Start MAVLink on the USB port
+# FIXME: did I forget USB driver impl?
+mavlink start -d /dev/ttyACM0
+# FIXME : mavlink serial port rx/tx?!
