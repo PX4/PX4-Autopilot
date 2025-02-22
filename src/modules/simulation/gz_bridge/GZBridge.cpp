@@ -70,6 +70,22 @@ int GZBridge::init()
 {
 	if (!_model_sim.empty()) {
 
+		// Set Physics rtf
+		const char *speed_factor_str = std::getenv("PX4_SIM_SPEED_FACTOR");
+
+		if (speed_factor_str) {
+			double speed_factor = std::atof(speed_factor_str);
+			gz::msgs::Physics p_req;
+			p_req.set_max_step_size(speed_factor * 0.004);
+			p_req.set_real_time_factor(-1.0);
+			std::string world_physics = "/world/" + _world_name + "/set_physics";
+			std::string physics_service{world_physics};
+
+			if (!callPhysicsMsgService(physics_service, p_req)) {
+				return PX4_ERROR;
+			}
+		}
+
 		// service call to create model
 		gz::msgs::EntityFactory req{};
 		req.set_sdf_filename(_model_sim + "/model.sdf");
@@ -204,6 +220,7 @@ int GZBridge::init()
 		PX4_ERR("failed to subscribe to %s", odometry_topic.c_str());
 		return PX4_ERROR;
 	}
+
 
 	// Laser Scan: optional
 	std::string laser_scan_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/link/sensor/lidar_2d_v2/scan";
@@ -937,6 +954,28 @@ bool GZBridge::callSceneInfoMsgService(const std::string &service)
 
 	} else {
 		PX4_WARN("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
+		return false;
+	}
+
+	return true;
+}
+
+bool GZBridge::callPhysicsMsgService(const std::string &service, const gz::msgs::Physics &req)
+{
+	bool result;
+	gz::msgs::Boolean rep;
+
+	if (_node.Request(service, req, 5000, rep, result)) {
+		if (!result) {
+			PX4_ERR("Physics service call failed.");
+			return false;
+
+		} else {
+			return true;
+		}
+
+	} else {
+		PX4_ERR("Physics Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
 		return false;
 	}
 
