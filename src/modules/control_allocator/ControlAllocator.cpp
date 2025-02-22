@@ -346,6 +346,10 @@ ControlAllocator::Run()
 
 			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 
+			if (_armed) {
+				preflight_check_stop();
+			}
+
 			ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
 
 			// Check if the current flight phase is HOVER or FIXED_WING
@@ -368,6 +372,39 @@ ControlAllocator::Run()
 
 			// Forward to effectiveness source
 			_actuator_effectiveness->setFlightPhase(flight_phase);
+		}
+	}
+
+	{
+		vehicle_command_s vehicle_command;
+
+		if (_vehicle_command_sub.update(&vehicle_command)) {
+
+			uint8_t result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_PREFLIGHT_CS_CHECK) {
+				if (!_armed) {
+					// currently this does not check prearmed status. if not prearmed, it will just do nothing.
+					// should we output some sort of mild warning in that case?
+					preflight_check_start();
+
+				} else {
+					result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+					PX4_INFO("Control surface preflight check rejected (armed)");
+				}
+
+				if (vehicle_command.from_external) {
+					vehicle_command_ack_s command_ack{};
+					command_ack.timestamp = hrt_absolute_time();
+					command_ack.command = vehicle_command.command;
+					command_ack.result = result;
+					command_ack.target_system = vehicle_command.source_system;
+					command_ack.target_component = vehicle_command.source_component;
+
+					uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
+					command_ack_pub.publish(command_ack);
+				}
+			}
 		}
 	}
 
@@ -437,12 +474,30 @@ ControlAllocator::Run()
 			}
 		}
 
+		preflight_check_update_state();
+
+		if (_preflight_check_running) {
+			preflight_check_overwrite_torque_sp(c);
+		}
+
 		for (int i = 0; i < _num_control_allocation; ++i) {
 
 			_control_allocation[i]->setControlSetpoint(c[i]);
 
 			// Do allocation
 			_control_allocation[i]->allocate();
+
+			bool is_tiltrotor = _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
+
+			if (_preflight_check_running && is_tiltrotor) {
+				float preflight_check_tilt_sp = preflight_check_get_tilt_control();
+				_actuator_effectiveness->setBypassTiltrotorControls(true, preflight_check_tilt_sp, 0.0f);
+
+			} else {
+				_actuator_effectiveness->setBypassTiltrotorControls(false, 0.0f, 0.0f);
+
+			}
+
 			_actuator_effectiveness->allocateAuxilaryControls(dt, i, _control_allocation[i]->_actuator_sp); //flaps and spoilers
 			_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp,
 								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax());
@@ -471,6 +526,91 @@ ControlAllocator::Run()
 	}
 
 	perf_end(_loop_perf);
+}
+
+void ControlAllocator::preflight_check_start()
+{
+	if (!_preflight_check_running) {
+		_preflight_check_phase = 0;
+		_preflight_check_running = true;
+		_last_preflight_check_update = hrt_absolute_time();
+	}
+}
+
+void ControlAllocator::preflight_check_stop()
+{
+	_preflight_check_running = false;
+}
+
+void ControlAllocator::preflight_check_update_state()
+{
+	if (_preflight_check_running) {
+
+		bool tiltrotor = _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
+
+		// cycle through roll, pitch, yaw(, collective tilt) and for
+		// each one inject positive and negative torque setpoints.
+
+		int n_axes = 3;
+
+		if (tiltrotor) {
+			n_axes = 4;
+		}
+
+		int max_phase = 2 * n_axes;
+
+		hrt_abstime now = hrt_absolute_time();
+
+		if (now - _last_preflight_check_update >= 500_ms) {
+			_preflight_check_phase++;
+			_last_preflight_check_update = now;
+
+			// terminate after one round
+			if (_preflight_check_phase >= max_phase) {
+				_preflight_check_running = false;
+			}
+		}
+	}
+}
+
+void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float, NUM_AXES>
+		(&c)[ActuatorEffectiveness::MAX_NUM_MATRICES])
+{
+
+	int axis = _preflight_check_phase / 2;
+	int negative = _preflight_check_phase % 2;
+
+	if (axis < 3) {
+		c[0](0) = 0.;
+		c[0](1) = 0.;
+		c[0](2) = 0.;
+		c[0](axis) = negative ? -1.f : 1.f;
+
+		if (_num_control_allocation > 1) {
+			c[1](0) = 0.;
+			c[1](1) = 0.;
+			c[1](2) = 0.;
+			c[1](axis) = negative ? -1.f : 1.f;
+		}
+	}
+}
+
+float ControlAllocator::preflight_check_get_tilt_control()
+{
+
+	int axis = _preflight_check_phase / 2;
+	int negative = _preflight_check_phase % 2;
+
+	float modified_tilt_control = 0.5f;
+
+	if (axis == 3) {
+		// axis 3 = tiltrotor.
+		// collective tilt normalised control goes from 0 to 1.
+		modified_tilt_control = negative ? 0.f : 1.f;
+	}
+
+	return modified_tilt_control;
+
 }
 
 void
