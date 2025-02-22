@@ -296,8 +296,10 @@ rp2040_boardinitialize(void)
  *   any failure to indicate the nature of the failure.
  *
  ****************************************************************************/
+#if defined(CONFIG_NSH_MMCSDSPIPORTNO)
+static struct spi_dev_s *spi1;
+#endif
 
-// static struct spi_dev_s *spi1;
 static struct spi_dev_s *spi2;
 
 __EXPORT int board_app_initialize(uintptr_t arg)
@@ -338,24 +340,26 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* Configure SPI-based devices */
 
-	// // SPI1: SDCard					// Will be configured later
-	// /* Get the SPI port for the microSD slot */
-	// spi1 = rp2040_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO); // PX4_BUS_NUMBER_FROM_PX4(1)
+	#if defined(CONFIG_NSH_MMCSDSPIPORTNO)
+		// // SPI1: SDCard					// Will be configured later
+		// /* Get the SPI port for the microSD slot */
+		 spi1 = rp2040_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO); // PX4_BUS_NUMBER_FROM_PX4(1)
 
-	// if (!spi1) {
-	// 	syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
-	// 	led_off(LED_BLUE);
-	// }
+		 if (!spi1) {
+			syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
+			led_off(LED_BLUE);
+		 }
 
-	// /* Now bind the SPI interface to the MMCSD driver */
-	// int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi1);
+		// /* Now bind the SPI interface to the MMCSD driver */
+		 int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi1);
 
-	// if (result != OK) {
-	// 	led_off(LED_BLUE);
-	// 	syslog(LOG_ERR, "[boot] FAILED to bind SPI port 1 to the MMCSD driver\n");
-	// }
+		 if (result != OK) {
+			led_off(LED_BLUE);
+			syslog(LOG_ERR, "[boot] FAILED to bind SPI port 1 to the MMCSD driver\n");
+		 }
+	  #endif
 
-	// up_udelay(20);
+	 up_udelay(20);
 
 	// SPI2: MPU9250 and BMP280
 	spi2 = rp2040_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(2));
@@ -371,21 +375,22 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	up_udelay(20);
 
-// #if defined(FLASH_BASED_PARAMS)					// This probably doesn't relate to RP2040 right now.
-// 	static sector_descriptor_t params_sector_map[] = {
-// 		{1, 16 * 1024, 0x08004000},
-// 		{0, 0, 0},
-// 	};
+ #if defined(FLASH_BASED_PARAMS)					// This probably doesn't relate to RP2040 right now.
+ 	static sector_descriptor_t params_sector_map[] = {
+ 		// FIXME: this is 134,234,112
+ 		{1, 16 * 1024, 0x08004000},
+ 		{0, 0, 0},
+ 	};
 
-// 	/* Initialize the flashfs layer to use heap allocated memory */
-// 	result = parameter_flashfs_init(params_sector_map, NULL, 0);
+ 	/* Initialize the flashfs layer to use heap allocated memory */
+ 	result = parameter_flashfs_init(params_sector_map, NULL, 0);
 
-// 	if (result != OK) {
-// 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
-// 		led_off(LED_AMBER);
-// 	}
+ 	if (result != OK) {
+ 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
+ 		led_off(LED_AMBER);
+ 	}
 
-// #endif
+ #endif
 
 	/* Configure the HW based on the manifest */
 

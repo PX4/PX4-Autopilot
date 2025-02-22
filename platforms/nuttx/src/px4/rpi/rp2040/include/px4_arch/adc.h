@@ -32,4 +32,8 @@
  ****************************************************************************/
 #pragma once
 
-#include "../../../rpi_common/include/px4_arch/adc.h"
+#include <board_config.h>
+
+#define SYSTEM_ADC_BASE	RP2040_ADC_BASE
+
+#include <px4_platform/adc.h>
