@@ -21,9 +21,23 @@
     __stack (== StackTop)
 */
 
+/*
+FIXME! tiny2350
+
 MEMORY
 {
     FLASH(rx) : ORIGIN = 0x10000000, LENGTH = 4096k
+    RAM(rwx) : ORIGIN =  0x20000000, LENGTH = 512k
+    SCRATCH_X(rwx) : ORIGIN = 0x20080000, LENGTH = 4k
+    SCRATCH_Y(rwx) : ORIGIN = 0x20081000, LENGTH = 4k
+}
+
+FIXME Pico 2 Plus:
+*/
+
+MEMORY
+{
+    FLASH(rx) : ORIGIN = 0x10000000, LENGTH = 16384k
     RAM(rwx) : ORIGIN =  0x20000000, LENGTH = 512k
     SCRATCH_X(rwx) : ORIGIN = 0x20080000, LENGTH = 4k
     SCRATCH_Y(rwx) : ORIGIN = 0x20081000, LENGTH = 4k
