@@ -3,10 +3,10 @@
 # board specific sensors init
 #------------------------------------------------------------------------------
 
-board_adc start
+# board_adc start
 
 # try starting an mpu9250 IMU on external SPI
-mpu9250 start -S
+# mpu9250 start -S
 
 # try starting a bmp280 barometer on external SPI
-bmp280 start -S
+# bmp280 start -S
