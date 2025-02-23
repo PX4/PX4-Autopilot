@@ -167,8 +167,8 @@ TEST_F(FeasibilityCheckerTest, check_dist_first_waypoint)
 	checker.publishLanded(true);
 	checker.publishCurrentPosition(0, 0);
 	waypoint_from_heading_and_distance(0, 0, 0, 501, &lat_new, &lon_new);
-	mission_item.lat = lat_new;
-	mission_item.lon = lon_new;
+	mission_item.setLatEncoded(lat_new);
+	mission_item.setLonEncoded(lon_new);
 
 	// THEN: pass
 	checker.processNextItem(mission_item, 0, 1);
@@ -179,8 +179,8 @@ TEST_F(FeasibilityCheckerTest, check_dist_first_waypoint)
 	checker.publishLanded(true);
 	checker.publishCurrentPosition(0, 0);
 	waypoint_from_heading_and_distance(0, 0, 0, 499, &lat_new, &lon_new);
-	mission_item.lat = lat_new;
-	mission_item.lon = lon_new;
+	mission_item.setLatEncoded(lat_new);
+	mission_item.setLonEncoded(lon_new);
 
 	// THEN: pass
 	checker.processNextItem(mission_item, 0, 1);
@@ -289,9 +289,9 @@ TEST_F(FeasibilityCheckerTest, fixed_wing_land_approach)
 	checker.processNextItem(mission_item, 0, 2);
 
 	double lat_new, lon_new;
-	waypoint_from_heading_and_distance(mission_item.lat, mission_item.lon, 0, 99, &lat_new, &lon_new);
-	mission_item.lat = lat_new;
-	mission_item.lon = lon_new;
+	waypoint_from_heading_and_distance(mission_item.getLat(), mission_item.getLon(), 0, 99, &lat_new, &lon_new);
+	mission_item.setLatEncoded(lat_new);
+	mission_item.setLonEncoded(lon_new);
 	mission_item.nav_cmd = NAV_CMD_LAND;
 	mission_item.altitude = 40;
 
@@ -310,9 +310,9 @@ TEST_F(FeasibilityCheckerTest, fixed_wing_land_approach)
 
 	checker.processNextItem(mission_item, 0, 2);
 
-	waypoint_from_heading_and_distance(mission_item.lat, mission_item.lon, 0, 99, &lat_new, &lon_new);
-	mission_item.lat = lat_new;
-	mission_item.lon = lon_new;
+	waypoint_from_heading_and_distance(mission_item.getLat(), mission_item.getLon(), 0, 99, &lat_new, &lon_new);
+	mission_item.setLatEncoded(lat_new);
+	mission_item.setLonEncoded(lon_new);
 	mission_item.nav_cmd = NAV_CMD_LAND;
 	mission_item.altitude = 40;
 
@@ -331,9 +331,9 @@ TEST_F(FeasibilityCheckerTest, fixed_wing_land_approach)
 
 	checker.processNextItem(mission_item, 0, 2);
 
-	waypoint_from_heading_and_distance(mission_item.lat, mission_item.lon, 0, 1, &lat_new, &lon_new);
-	mission_item.lat = lat_new;
-	mission_item.lon = lon_new;
+	waypoint_from_heading_and_distance(mission_item.getLat(), mission_item.getLon(), 0, 1, &lat_new, &lon_new);
+	mission_item.setLatEncoded(lat_new);
+	mission_item.setLonEncoded(lon_new);
 	mission_item.nav_cmd = NAV_CMD_LAND;
 	mission_item.altitude = 40;
 
@@ -352,9 +352,9 @@ TEST_F(FeasibilityCheckerTest, fixed_wing_land_approach)
 
 	checker.processNextItem(mission_item, 0, 2);
 
-	waypoint_from_heading_and_distance(mission_item.lat, mission_item.lon, 0, 1, &lat_new, &lon_new);
-	mission_item.lat = lat_new;
-	mission_item.lon = lon_new;
+	waypoint_from_heading_and_distance(mission_item.getLat(), mission_item.getLon(), 0, 1, &lat_new, &lon_new);
+	mission_item.setLatEncoded(lat_new);
+	mission_item.setLonEncoded(lon_new);
 	mission_item.nav_cmd = NAV_CMD_LAND;
 	mission_item.altitude = 40;
 
@@ -409,9 +409,9 @@ TEST_F(FeasibilityCheckerTest, fixed_wing_landing)
 	mission_item.nav_cmd = NAV_CMD_LAND;
 	mission_item.altitude = 0;
 	double lat_new, lon_new;
-	waypoint_from_heading_and_distance(mission_item.lat, mission_item.lon, 0, 200, &lat_new, &lon_new);
-	mission_item.lat = lat_new;
-	mission_item.lon = lon_new;
+	waypoint_from_heading_and_distance(mission_item.getLat(), mission_item.getLon(), 0, 200, &lat_new, &lon_new);
+	mission_item.setLatEncoded(lat_new);
+	mission_item.setLonEncoded(lon_new);
 	checker.processNextItem(mission_item, 1, 3);
 
 	mission_item.nav_cmd = NAV_CMD_DO_LAND_START;
