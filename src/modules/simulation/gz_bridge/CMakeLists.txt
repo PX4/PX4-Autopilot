@@ -68,17 +68,6 @@ if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
 	find_package(gz-msgs${GZ_MSGS_VERSION} REQUIRED)
 	find_package(Protobuf REQUIRED)
 
-	# Custom message generation
-	# file(GLOB MSGS_PROTOS "${CMAKE_CURRENT_SOURCE_DIR}/../gz_msgs/*.proto")
-	# PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${MSGS_PROTOS})
-	# px4_add_library(px4_msgs ${PROTO_SRCS} ${PROTO_HDRS})
-	# target_include_directories(px4_msgs PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-	# target_link_libraries(px4_msgs PUBLIC ${PROTOBUF_LIBRARIES})
-
-	# Build the plugins
-	# add_subdirectory(plugins)
-
-
 	# Add the gz_bridge module
 	px4_add_module(
 		MODULE modules__simulation__gz_bridge

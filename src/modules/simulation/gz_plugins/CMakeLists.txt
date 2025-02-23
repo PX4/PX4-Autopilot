@@ -42,31 +42,7 @@ if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
     gz_find_package(gz-sim${GZ_SIM_VERSION} REQUIRED)
     gz_find_package(gz-sensors${GZ_SENSORS_VERSION} REQUIRED)
 
-    if(NOT TARGET px4_gz_msgs)
-        message(FATAL_ERROR "px4_gz_msgs target not found. Enable MODULES_SIMULATION_GZ_MSGS first.")
-    endif()
-
-    # PX4-OpticalFlow
-    include(ExternalProject)
-    find_package(OpenCV REQUIRED)
-    ExternalProject_Add(OpticalFlow
-        GIT_REPOSITORY https://github.com/PX4/PX4-OpticalFlow.git
-        GIT_TAG master
-        PREFIX ${CMAKE_BINARY_DIR}/OpticalFlow
-        INSTALL_DIR ${CMAKE_BINARY_DIR}/OpticalFlow/install
-        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-        BUILD_BYPRODUCTS ${CMAKE_BINARY_DIR}/OpticalFlow/install/lib/libOpticalFlow.so
-    )
-
-    ExternalProject_Get_Property(OpticalFlow install_dir)
-
-    set(OpticalFlow_INCLUDE_DIRS ${install_dir}/include)
-    set(OpticalFlow_LIBS ${install_dir}/lib/libOpticalFlow.so)
-
-    # Proto
-    # file(GLOB MSGS_PROTOS "${CMAKE_CURRENT_SOURCE_DIR}/../gz_msgs/*.proto")
-    # PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${MSGS_PROTOS})
-    # px4_add_library(px4_msgs ${PROTO_SRCS} ${PROTO_HDRS})
+    include(${CMAKE_CURRENT_SOURCE_DIR}/optical_flow.cmake)
 
     add_library(${PROJECT_NAME} SHARED
         OpticalFlowSensor.cpp
@@ -76,7 +52,6 @@ if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
     target_link_libraries(${PROJECT_NAME}
         PUBLIC px4_gz_msgs
         PUBLIC gz-sensors${GZ_SENSORS_VERSION}::gz-sensors${GZ_SENSORS_VERSION}
-        # PUBLIC gz-rendering8::gz-rendering8
         PUBLIC gz-plugin${GZ_PLUGIN_VERSION}::gz-plugin${GZ_PLUGIN_VERSION}
         PUBLIC gz-sim${GZ_SIM_VERSION}::gz-sim${GZ_SIM_VERSION}
         PUBLIC gz-transport${GZ_TRANSPORT_VERSION}::gz-transport${GZ_TRANSPORT_VERSION}
