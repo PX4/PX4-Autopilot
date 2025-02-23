@@ -762,14 +762,15 @@ void RCInput::Run()
 
 				// parse new data
 				if (newBytes > 0) {
-					int8_t ghst_rssi = -1;
-					rc_updated = ghst_parse(cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &ghst_rssi,
+					ghstLinkStatistics_t link_stats = { .rssi_pct = -1, .rssi_dbm = NAN, .link_quality = 0 };
+
+					rc_updated = ghst_parse(cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &link_stats,
 								&_raw_rc_count, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 					if (rc_updated) {
 						// we have a new GHST frame. Publish it.
 						_input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_GHST;
-						int32_t valid_chans = fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0, ghst_rssi);
+						int32_t valid_chans = fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0, link_stats.rssi_pct);
 
 						// ghst telemetry works on fmu-v5
 						// on other Pixhawk (-related) boards we cannot write to the RC UART
