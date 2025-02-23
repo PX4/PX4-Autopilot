@@ -69,14 +69,15 @@ if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
 	find_package(Protobuf REQUIRED)
 
 	# Custom message generation
-	file(GLOB MSGS_PROTOS "${CMAKE_CURRENT_SOURCE_DIR}/msgs/*.proto")
-	PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${MSGS_PROTOS})
-	px4_add_library(px4_msgs ${PROTO_SRCS} ${PROTO_HDRS})
-	target_include_directories(px4_msgs PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-	target_link_libraries(px4_msgs PUBLIC ${PROTOBUF_LIBRARIES})
+	# file(GLOB MSGS_PROTOS "${CMAKE_CURRENT_SOURCE_DIR}/../gz_msgs/*.proto")
+	# PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${MSGS_PROTOS})
+	# px4_add_library(px4_msgs ${PROTO_SRCS} ${PROTO_HDRS})
+	# target_include_directories(px4_msgs PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+	# target_link_libraries(px4_msgs PUBLIC ${PROTOBUF_LIBRARIES})
 
 	# Build the plugins
-	add_subdirectory(plugins)
+	# add_subdirectory(plugins)
+
 
 	# Add the gz_bridge module
 	px4_add_module(
@@ -99,14 +100,18 @@ if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
 			mixer_module
 			px4_work_queue
 			gz-transport${GZ_TRANSPORT_VERSION}::core
-			px4_msgs
 		MODULE_CONFIG
 			module.yaml
 	)
 
+    target_include_directories(modules__simulation__gz_bridge
+        PUBLIC
+            ${PX4_GZ_MSGS_BINARY_DIR}
+    )
+
 	# Link custom messages with module
-	target_include_directories(modules__simulation__gz_bridge PUBLIC px4_msgs)
-	target_link_libraries(modules__simulation__gz_bridge PUBLIC px4_msgs)
+	target_include_directories(modules__simulation__gz_bridge PUBLIC px4_gz_msgs)
+	target_link_libraries(modules__simulation__gz_bridge PUBLIC px4_gz_msgs)
 
 	px4_add_git_submodule(TARGET git_gz PATH "${PX4_SOURCE_DIR}/Tools/simulation/gz")
 	include(ExternalProject)
@@ -119,7 +124,6 @@ if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
 		USES_TERMINAL_CONFIGURE true
 		USES_TERMINAL_BUILD true
 		EXCLUDE_FROM_ALL true
-		BUILD_ALWAYS 1
 	)
 
 	# Below we setup the build targets for our worlds and models
