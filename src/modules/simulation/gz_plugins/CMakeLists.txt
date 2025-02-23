@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.11.0 FATAL_ERROR)
-
 project(OpticalFlowSystem)
 
 if(NOT DEFINED ENV{GZ_DISTRO})
