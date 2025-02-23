@@ -38,6 +38,7 @@ execute_process(
     COMMAND ${PYTHON_EXECUTABLE} -m symforce.symbolic
     RESULT_VARIABLE PYTHON_SYMFORCE_EXIT_CODE
     OUTPUT_QUIET
+    ERROR_QUIET
 )
 
 # for now only provide symforce target helper if derivation.py generation isn't default
