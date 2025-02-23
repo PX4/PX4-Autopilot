@@ -68,7 +68,6 @@ if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
 	find_package(gz-msgs${GZ_MSGS_VERSION} REQUIRED)
 	find_package(Protobuf REQUIRED)
 
-	# Add the gz_bridge module
 	px4_add_module(
 		MODULE modules__simulation__gz_bridge
 		MAIN gz_bridge
@@ -98,7 +97,6 @@ if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
             ${PX4_GZ_MSGS_BINARY_DIR}
     )
 
-	# Link custom messages with module
 	target_include_directories(modules__simulation__gz_bridge PUBLIC px4_gz_msgs)
 	target_link_libraries(modules__simulation__gz_bridge PUBLIC px4_gz_msgs)
 
@@ -116,8 +114,8 @@ if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
 	)
 
 	# Below we setup the build targets for our worlds and models
-	# e.g: gz_x500_flow_aruco --> gz_<model>_<world>
-
+	# Syntax: gz_<model_name>_<world_name>
+	# Example: gz_x500_flow_forest
 	file(GLOB gz_worlds ${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf)
 	file(GLOB gz_airframes ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*)
 

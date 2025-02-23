@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# @name Gazebo x500 lidar down
+# @name Gazebo x500 with downward optical flow and distance sensor
 #
 # @type Quadrotor
 #
