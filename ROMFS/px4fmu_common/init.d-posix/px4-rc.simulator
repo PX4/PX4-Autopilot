@@ -1,6 +1,16 @@
 #!/bin/sh
 # shellcheck disable=SC2154
 
+# Function to handle cleanup
+if [ "$(uname)" = "Darwin" ]; then
+    cleanup() {
+        echo "INFO  [init] Cleaning up on macOS..."
+        pkill -f "gz sim" || true  # Ignore errors if no process is found
+        trap - INT TERM  # Clear the trap to prevent re-triggering
+        exit 0  # Exit gracefully
+    }
+fi
+
 # Simulator IMU data provided at 250 Hz
 param set-default IMU_INTEG_RATE 250
 
