@@ -31,9 +31,16 @@
 #
 ############################################################################
 
+set(MAVLINK_INCLUDE_DIR ${CMAKE_BINARY_DIR}/mavlink/common)
+if (${PX4_BOARD_NAME} MATCHES "MODALAI_VOXL2_SLPI")
+	set(MAVLINK_INCLUDE_DIR ${PX4_SOURCE_DIR}/build/modalai_voxl2_default/mavlink/common)
+endif()
+
 px4_add_module(
 	MODULE drivers__actuators__voxl_esc
 	MAIN voxl_esc
+	INCLUDES
+		${MAVLINK_INCLUDE_DIR}
 	SRCS
 		crc16.c
 		crc16.h
