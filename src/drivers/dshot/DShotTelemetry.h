@@ -64,14 +64,12 @@ public:
 
 	void deinit();
 
-	void setNumMotors(int num_motors) { _num_motors = num_motors; }
-	int numMotors() const { return _num_motors; }
-
 	/**
 	 * Read telemetry from the UART (non-blocking) and handle timeouts.
+	 * @param num_motors How many DShot enabled motors
 	 * @return -1 if no update, -2 timeout, >= 0 for the motor index. Use @latestESCData() to get the data.
 	 */
-	int update();
+	int update(int num_motors);
 
 	/**
 	 * Redirect everything that is read into a different buffer.
@@ -112,7 +110,7 @@ private:
 	 */
 	int setBaudrate(unsigned baud);
 
-	void requestNextMotor();
+	void requestNextMotor(int num_motors);
 
 	/**
 	 * Decode a single byte from an ESC feedback frame
@@ -126,7 +124,6 @@ private:
 	static uint8_t crc8(const uint8_t *buf, uint8_t len);
 
 	int _uart_fd{-1};
-	int _num_motors{0};
 	uint8_t _frame_buffer[ESC_FRAME_SIZE];
 	int _frame_position{0};
 
