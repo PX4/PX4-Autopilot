@@ -109,6 +109,9 @@ void OutputMavlinkV1::update(const ControlData &control_data, bool new_setpoints
 
 	_stream_device_attitude_status();
 
+	// If the output is MAVLink v1, then we signal this by referring to compid 1.
+	gimbal_device_id = 1;
+
 	_last_update = now;
 }
 

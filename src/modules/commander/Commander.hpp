@@ -241,7 +241,6 @@ private:
 	Hysteresis _auto_disarm_killed{false};
 
 	hrt_abstime _datalink_last_heartbeat_open_drone_id_system{0};
-	hrt_abstime _datalink_last_heartbeat_avoidance_system{0};
 	hrt_abstime _datalink_last_heartbeat_gcs{0};
 	hrt_abstime _datalink_last_heartbeat_onboard_controller{0};
 	hrt_abstime _datalink_last_heartbeat_parachute_system{0};
@@ -268,7 +267,6 @@ private:
 	bool _failsafe_user_override_request{false}; ///< override request due to stick movements
 
 	bool _open_drone_id_system_lost{true};
-	bool _avoidance_system_lost{false};
 	bool _onboard_controller_lost{false};
 	bool _parachute_system_lost{true};
 
@@ -342,7 +340,6 @@ private:
 		(ParamBool<px4::params::COM_FORCE_SAFETY>)  _param_com_force_safety,
 		(ParamFloat<px4::params::COM_KILL_DISARM>)  _param_com_kill_disarm,
 		(ParamBool<px4::params::COM_MOT_TEST_EN>)   _param_com_mot_test_en,
-		(ParamBool<px4::params::COM_OBS_AVOID>)     _param_com_obs_avoid,
 		(ParamFloat<px4::params::COM_OBC_LOSS_T>)   _param_com_obc_loss_t,
 		(ParamInt<px4::params::COM_PREARM_MODE>)    _param_com_prearm_mode,
 		(ParamInt<px4::params::COM_RC_OVERRIDE>)    _param_com_rc_override,

@@ -602,7 +602,6 @@ private:
 
 	HeightBiasEstimator _baro_b_est{HeightSensor::BARO, _height_sensor_ref};
 
-	bool _baro_hgt_faulty{false};		///< true if baro data have been declared faulty TODO: move to fault flags
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)

@@ -1,0 +1,5 @@
+menuconfig MODULES_INTERNAL_COMBUSTION_ENGINE_CONTROL
+	bool "internal_combustion_engine_control"
+	default n
+	---help---
+		Enable support for internal_combustion_engine_control

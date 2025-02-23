@@ -361,7 +361,7 @@ void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, 
 	_wing_l.update_aero(v_B, _w_B, alt, roll_cmd * FLAP_MAX);
 	_wing_r.update_aero(v_B, _w_B, alt, -roll_cmd * FLAP_MAX);
 
-	_tailplane.update_aero(v_B, _w_B, alt, pitch_cmd * FLAP_MAX, _T_MAX * throttle_cmd);
+	_tailplane.update_aero(v_B, _w_B, alt, -pitch_cmd * FLAP_MAX, _T_MAX * throttle_cmd);
 	_fin.update_aero(v_B, _w_B, alt, yaw_cmd * FLAP_MAX, _T_MAX * throttle_cmd);
 	_fuselage.update_aero(v_B, _w_B, alt);
 
@@ -556,7 +556,6 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	// regardless of vehicle type, body frame, etc this holds as long as wind=0
 	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_E.norm() + generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
-	airspeed.air_temperature_celsius = NAN;
 	airspeed.confidence = 0.7f;
 	airspeed.timestamp = hrt_absolute_time();
 	_airspeed_pub.publish(airspeed);
