@@ -1,6 +1,7 @@
 name: FLASH usage analysis
 
 permissions:
+  contents: read
   pull-requests: write
   issues: write
 
