@@ -150,6 +150,10 @@ if (NOT CONFIG_BUILD_FLAT)
 		nuttx_c
 		nuttx_xx
 		)
+
+		if(CONFIG_CRYPTO)
+			target_link_libraries(nuttx_crypto INTERFACE nuttx_kc)
+		endif()
 else()
 	list(APPEND nuttx_libs
 		nuttx_apps
