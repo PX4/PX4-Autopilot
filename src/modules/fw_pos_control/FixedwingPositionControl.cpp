@@ -1108,7 +1108,15 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 
 		} else {
 			// continue straight until vehicle has sufficient altitude
-			lateral_limits.lateral_accel_max = 0.0f;
+			lateral_limits.lateral_accel_max = 0.f;
+      
+      // keep flaps in landing configuration if the airspeed is below the min airspeed (keep deployed if airspeed not valid)
+			if (!_airspeed_valid || _airspeed_eas < _performance_model.getMinimumCalibratedAirspeed()) {
+				_flaps_setpoint =  _param_fw_flaps_lnd_scl.get();
+
+			} else {
+				_flaps_setpoint = 0.f;
+			}
 		}
 
 		enforce_low_height = true;
