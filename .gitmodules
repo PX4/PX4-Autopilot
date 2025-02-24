@@ -91,5 +91,5 @@
 	url = https://github.com/dronecan/pydronecan
 [submodule "src/lib/tflm/tflite_micro"]
 	path = src/lib/tflm/tflite_micro
-	url = git@github.com:tensorflow/tflite-micro.git
+	url = https://github.com/tensorflow/tflite-micro.git
 	branch = main
