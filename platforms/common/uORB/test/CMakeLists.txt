@@ -33,4 +33,3 @@
 ############################################################################
 
 px4_add_functional_gtest(SRC SubscriptionTest.cpp LINKLIBS uORB)
-
