@@ -46,10 +46,10 @@ namespace test
 {
 
 
-class SubscriptionTestable  : public  uORB::Subscription
+class uORBSubscriptionTestable  : public  uORB::Subscription
 {
 public:
-	SubscriptionTestable() : Subscription(ORB_ID(orb_test), 0)
+	uORBSubscriptionTestable() : Subscription(ORB_ID(orb_test), 0)
 	{
 	}
 
@@ -66,10 +66,10 @@ public:
 };
 
 
-class SubscriptionTest : public ::testing::Test
+class uORBSubscriptionTest : public ::testing::Test
 {
 protected:
-	SubscriptionTestable  testable;
+	uORBSubscriptionTestable  testable;
 
 	static void SetUpTestSuite()
 	{
@@ -92,7 +92,7 @@ protected:
 
 };
 
-TEST_F(SubscriptionTest, updateWhenSubscribedThenNotSubscribedTwice)
+TEST_F(uORBSubscriptionTest, updateWhenSubscribedThenNotSubscribedTwice)
 {
 	int anyValue = 1;
 	testable.setNodeValue(&anyValue);
@@ -102,7 +102,7 @@ TEST_F(SubscriptionTest, updateWhenSubscribedThenNotSubscribedTwice)
 	ASSERT_EQ(testable.getNodeValue(), &anyValue) << "Original node value don't have to be overrwiten";
 }
 
-TEST_F(SubscriptionTest, updateWhenNotSubscribedThenSubscribed)
+TEST_F(uORBSubscriptionTest, updateWhenNotSubscribedThenSubscribed)
 {
 	testable.setNodeValue(nullptr);
 
