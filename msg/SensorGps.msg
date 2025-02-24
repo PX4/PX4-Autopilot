@@ -1,5 +1,4 @@
 # GPS position in WGS84 coordinates.
-# the field 'timestamp' is for the position & velocity (microseconds) TODO: remove? clarify?
 uint64 timestamp              # Time since system start (microseconds)
 uint64 timestamp_sample
 
@@ -34,9 +33,8 @@ uint8 JAMMING_STATE_UNKNOWN  = 0
 uint8 JAMMING_STATE_OK       = 1
 uint8 JAMMING_STATE_WARNING  = 2
 uint8 JAMMING_STATE_CRITICAL = 3
-# TODO: review jamming state/indicator. What precisely does this represent?
-uint8 jamming_state           # Indicates whether jamming has been detected or suspected by the receivers
-int32 jamming_indicator       # Indicates jamming is occurring (TODO: units? Why int32?)
+uint8 jamming_state           # Indicates whether jamming has been detected or suspected by the receivers (ublox only)
+uint8 jamming_indicator       # Value from 0-255 where 0 indicates no jamming and 255 indicates strong CW jamming (ublox only)
 
 uint8 SPOOFING_STATE_UNKNOWN   = 0
 uint8 SPOOFING_STATE_NONE      = 1
