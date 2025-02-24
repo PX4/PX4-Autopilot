@@ -208,10 +208,6 @@ float ActuatorEffectivenessHelicopter::getLinearServoOutput(float input) const
 	// make sure a the maximal input of [-1,1] maps to the maximal vertical deflection the servo can reach of sin(CA_MAX_SVO_THROW)
 	float servo_height = _geometry.max_servo_height * input;
 
-	if (!PX4_ISFINITE(servo_height)) {
-		servo_height = 0.f;
-	}
-
 	// mulitply by 1 over max arm roation in radians to normalise
 	return _geometry.inverse_max_servo_throw * asinf(servo_height);
 }
