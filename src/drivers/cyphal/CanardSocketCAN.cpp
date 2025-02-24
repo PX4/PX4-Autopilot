@@ -90,12 +90,12 @@ int CanardSocketCAN::init()
 	/* NuttX Feature: Enable TX deadline when sending CAN frames
 	 * When a deadline occurs the driver will remove the CAN frame
 	 */
-
+#ifdef CONFIG_NET_CAN_RAW_TX_DEADLINE
 	if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_TX_DEADLINE, &on, sizeof(on)) < 0) {
 		PX4_ERR("CAN_RAW_TX_DEADLINE is disabled");
 		return -1;
 	}
-
+#endif
 	if (can_fd) {
 		if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &on, sizeof(on)) < 0) {
 			PX4_ERR("no CAN FD support");
@@ -174,7 +174,19 @@ int16_t CanardSocketCAN::transmit(const CanardTxQueueItem &txf, int timeout_ms)
 	_send_tv->tv_usec = deadline_systick % 1000000ULL;
 	_send_tv->tv_sec = (deadline_systick - _send_tv->tv_usec) / 1000000ULL;
 
+#ifdef CONFIG_NET_CAN_RAW_TX_DEADLINE
 	return sendmsg(_fd, &_send_msg, 0);
+#else
+	/* Use non-blocking calls for devices that don't implement TX deadline*/
+	auto res = sendmsg(_fd, &_send_msg, MSG_DONTWAIT);
+
+	/* Treat EAGAIN as a timeout instead of an error. Return 0, so CanardHandle will send the frame again later. */
+	if (res < 0 && errno == EAGAIN) {
+		return 0;
+	}
+
+	return res;
+#endif
 }
 
 int16_t CanardSocketCAN::receive(CanardRxFrame *rxf)
