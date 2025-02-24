@@ -35,6 +35,7 @@
 
 #include <float.h>
 #include <math.h>
+#include <string>
 
 #include <board_config.h>
 
@@ -49,15 +50,16 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/Serial.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/input_rc.h>
 
-#include "voxl2_io_serial.hpp"
-
 #include "voxl2_io_packet.h"
 #include "voxl2_io_packet_types.h"
+
+using namespace device;
 
 using namespace time_literals;
 
@@ -85,8 +87,8 @@ public:
 
 	virtual int	init();
 
-	void update_pwm_config();
 	int get_version_info();
+	void print_params();
 
 	struct Command {
 		uint16_t	id                 = 0;
@@ -105,8 +107,8 @@ public:
 		void clear() { len = 0; }
 	};
 
-	int send_cmd_thread_safe(Command *cmd);
-	int receive_sbus();
+	int receive_uart_packets();
+	int parse_sbus_packet(uint8_t *raw_data, uint32_t data_len);
 
 	void fill_rc_in(uint16_t raw_rc_count_local,
 			uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
@@ -114,53 +116,42 @@ public:
 			unsigned frame_drops, int rssi, input_rc_s &input_rc);
 private:
 	void Run() override;
-	bool stop_all_pwms();
 
 	/* PWM Parameters */
-	static constexpr uint32_t VOXL2_IO_CONFIG = 0;				// Default to off
-	static constexpr uint32_t VOXL2_IO_BOARD_CONFIG_SIZE = 4;	// PWM_MIN, PWM_MAX, 4 bytes
-	static constexpr uint32_t VOXL2_IO_ESC_CAL_SIZE = 1;
-	static constexpr uint32_t VOXL2_IO_DEFAULT_BAUD = 921600;
-	static constexpr uint16_t VOXL2_IO_OUTPUT_CHANNELS = 4;
-	static constexpr uint16_t VOXL2_IO_OUTPUT_DISABLED = 0;
-
-	static constexpr uint32_t VOXL2_IO_WRITE_WAIT_US = 200;
-	static constexpr uint32_t VOXL2_IO_DISCONNECT_TIMEOUT_US = 500000;
-
-	static constexpr uint16_t DISARMED_VALUE = 0;
-
-	static constexpr uint16_t VOXL2_IO_MIXER_MIN = 0;
-	static constexpr uint16_t VOXL2_IO_MIXER_MAX = 800;
-	static constexpr uint16_t VOXL2_IO_MIXER_FAILSAFE = 0;
-	static constexpr uint16_t VOXL2_IO_MIXER_DISARMED = 0;
-
-	static constexpr int32_t VOXL2_IO_DEFAULT_MIN = 1000;
-	static constexpr int32_t VOXL2_IO_DEFAULT_MAX = 2000;
-	static constexpr int32_t VOXL2_IO_DEFAULT_FAILSAFE = 900;
-	static constexpr int32_t VOXL2_IO_TICS = 24;	// 24 tics per us on M0065 timer clks
+	static constexpr uint32_t VOXL2_IO_DEFAULT_BAUD    = 921600;
+	static constexpr uint16_t VOXL2_IO_OUTPUT_CHANNELS = 8;
+	static constexpr uint16_t VOXL2_IO_MIXER_FAILSAFE  =
+		UINT16_MAX; //this will tell mixer to use the default failsafe depending on the function
 
 	/* SBUS */
 	static constexpr uint16_t VOXL2_IO_SBUS_FRAME_SIZE = 30;
 	static constexpr uint16_t SBUS_PAYLOAD = 3;
 
+	//packet packing function accepts pulse width in nanoseconds
+	//assuming the mixer outputs in microseconds, need to convert
+	static constexpr uint32_t MIXER_OUTPUT_TO_CMD_SCALE = 1000;  //standard pwm
+	//static constexpr uint32_t MIXER_OUTPUT_TO_CMD_SCALE = 125;   //oneshot125
+
 	/* M0065 version info */
-	static constexpr uint16_t VOXL2_IO_VERSION_INFO_SIZE = 6;
-	static constexpr uint16_t VOXL2_IO_SW_PROTOCOL_VERSION = 1;
-	static constexpr uint16_t VOXL2_IO_HW_PROTOCOL_VERSION = 35;
-	VOXL2_IO_VERSION_INFO _version_info;
+	static constexpr uint16_t VOXL2_IO_SW_VERSION = 2;
+	static constexpr uint16_t VOXL2_IO_HW_VERSION = 35;  //this is the version of the HW
+	int  _board_detect_retries{3};
+	VOXL2_IO_EXTENDED_VERSION_INFO _version_info;
 
 	/* Module update interval */
 	static constexpr unsigned	_current_update_interval{4000}; // 250 Hz
 
 	typedef struct {
-		int32_t		config{VOXL2_IO_CONFIG};
 		int32_t		baud_rate{VOXL2_IO_DEFAULT_BAUD};
-		int32_t		pwm_min{VOXL2_IO_DEFAULT_MIN};
-		int32_t		pwm_max{VOXL2_IO_DEFAULT_MAX};
-		int32_t		pwm_failsafe{VOXL2_IO_DEFAULT_FAILSAFE};
-		int32_t 	param_rc_input_proto{0};
+		int32_t		pwm_min{0};
+		int32_t		pwm_max{0};
+		int32_t     pwm_dis{0};
+		int32_t     pwm_cal_min{0};
+		int32_t     pwm_cal_max{0};
+		//int32_t		pwm_failsafe{VOXL2_IO_DEFAULT_FAILSAFE};
+		//int32_t 	param_rc_input_proto{0};
 		int32_t		param_rc_rssi_pwm_chan{0};
-		int32_t		function_map[VOXL2_IO_OUTPUT_CHANNELS] {0, 0, 0, 0};
+		int32_t		function_map[VOXL2_IO_OUTPUT_CHANNELS] {0, 0, 0, 0, 0, 0, 0, 0};
 		int32_t		verbose_logging{0};
 	} voxl2_io_params_t;
 	voxl2_io_params_t	_parameters;
@@ -179,20 +170,18 @@ private:
 		SCAN
 	} _rc_mode{RC_MODE::SCAN};
 
-	/* QUP7, VOXL2 J19, /dev/slpi-uart-7*/
 	char 				_device[10] {VOXL2_IO_DEFAULT_PORT};
-	Voxl2IoSerial 		*_uart_port;
+	Serial				_uart_port{};
 
 	/* Mixer output */
 	MixingOutput 	_mixing_output;
 
 	/* RC input */
-	VOXL2_IOPacket _sbus_packet;
-	uint64_t _rc_last_valid;
+	VOXL2_IOPacket _voxl2_io_packet;
+	uint64_t _rc_last_valid_time;
 	uint16_t _raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {UINT16_MAX};
-	unsigned _sbus_frame_drops{0};
-	uint16_t _sbus_total_frames{0};
-	bool	 _new_packet{false};
+	unsigned int _sbus_frame_drops{0};
+	uint32_t _sbus_total_frames{0};
 
 	/* Publications */
 	uORB::PublicationMulti<input_rc_s> _rc_pub{ORB_ID(input_rc)};
@@ -201,17 +190,12 @@ private:
 	uORB::Subscription 	_parameter_update_sub{ORB_ID(parameter_update)};
 
 	bool		_pwm_on{false};
-	int32_t		_pwm_fullscale{0};
-	int16_t 	_pwm_values[VOXL2_IO_OUTPUT_CHANNELS] = {0, 0, 0, 0};
 	bool		_outputs_disabled{false};
 
 	perf_counter_t		_cycle_perf;
 	perf_counter_t		_output_update_perf;
 
 	bool 			_debug{false};
-	uint16_t		_cmd_id{0};
-	Command 		_current_cmd;
-	px4::atomic<Command *>	_pending_cmd{nullptr};
 
 	static const uint8_t 	READ_BUF_SIZE = 128;
 	uint8_t			_read_buf[READ_BUF_SIZE];
@@ -220,9 +204,8 @@ private:
 	uint32_t		_packets_sent{0};
 	uint32_t		_packets_received{0};
 
-	int parse_response(uint8_t *buf, uint8_t len);
 	int	load_params(voxl2_io_params_t *params);
 	int update_params();
-	int	flush_uart_rx();
 	int calibrate_escs();
+	std::string board_id_to_name(int board_id);
 };

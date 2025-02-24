@@ -487,8 +487,6 @@ FixedwingPositionControl::status_publish()
 	pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(_current_latitude, _current_longitude,
 				  _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
 
-	pos_ctrl_status.yaw_acceptance = NAN;
-
 	pos_ctrl_status.timestamp = hrt_absolute_time();
 
 	pos_ctrl_status.type = _position_sp_type;
@@ -1318,7 +1316,15 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 
 		} else {
 			// continue straight until vehicle has sufficient altitude
+			// keep flaps in landing configuration if the airspeed is below the min airspeed (keep deployed if airspeed not valid)
 			roll_body = 0.0f;
+
+			if (!_airspeed_valid || _airspeed_eas < _performance_model.getMinimumCalibratedAirspeed()) {
+				_flaps_setpoint =  _param_fw_flaps_lnd_scl.get();
+
+			} else {
+				_flaps_setpoint = 0.f;
+			}
 		}
 
 		is_low_height = true; // In low-height flight, TECS will control altitude tighter

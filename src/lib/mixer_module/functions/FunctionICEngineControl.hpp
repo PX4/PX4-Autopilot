@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,37 +33,51 @@
 
 #pragma once
 
-#include <px4_log.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <termios.h>
+#include "FunctionProviderBase.hpp"
 
-#ifdef __PX4_QURT
-#include <drivers/device/qurt/uart.h>
-#define FAR
-#endif
+#include <uORB/topics/internal_combustion_engine_control.h>
 
-class Voxl2IoSerial
+/**
+ * Functions: ICE...
+ */
+class FunctionICEControl : public FunctionProviderBase
 {
 public:
-	Voxl2IoSerial();
-	virtual ~Voxl2IoSerial();
+	FunctionICEControl()
+	{
+		resetAllToDisarmedValue();
+	}
 
-	int		uart_open(const char *dev, speed_t speed);
-	int		uart_set_baud(speed_t speed);
-	int		uart_close();
-	int		uart_write(FAR void *buf, size_t len);
-	int		uart_read(FAR void *buf, size_t len);
-	bool		is_open() { return _uart_fd >= 0; };
-	int		uart_get_baud() {return _speed; }
+	static FunctionProviderBase *allocate(const Context &context) { return new FunctionICEControl(); }
+
+	void update() override
+	{
+		internal_combustion_engine_control_s internal_combustion_engine_control;
+
+		// map [0, 1] to [-1, 1] which is the interface for non-motor PWM channels
+		if (_internal_combustion_engine_control_sub.update(&internal_combustion_engine_control)) {
+			_data[0] = internal_combustion_engine_control.ignition_on * 2.f - 1.f;
+			_data[1] = internal_combustion_engine_control.throttle_control * 2.f - 1.f;
+			_data[2] = internal_combustion_engine_control.choke_control * 2.f - 1.f;
+			_data[3] = internal_combustion_engine_control.starter_engine_control * 2.f - 1.f;
+		}
+	}
+
+	float value(OutputFunction func) override { return _data[(int)func - (int)OutputFunction::IC_Engine_Ignition]; }
 
 private:
-	int			_uart_fd = -1;
+	static constexpr int num_data_points = 4;
 
-#if ! defined(__PX4_QURT)
-	struct termios		_orig_cfg;
-	struct termios		_cfg;
-#endif
+	void resetAllToDisarmedValue()
+	{
+		for (int i = 0; i < num_data_points; ++i) {
+			_data[i] = NAN;
+		}
+	}
 
-	int   _speed = -1;
+	static_assert(num_data_points == (int)OutputFunction::IC_Engine_Starter - (int)OutputFunction::IC_Engine_Ignition + 1,
+		      "number of functions mismatch");
+
+	uORB::Subscription _internal_combustion_engine_control_sub{ORB_ID(internal_combustion_engine_control)};
+	float _data[num_data_points] {};
 };

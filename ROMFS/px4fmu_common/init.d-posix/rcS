@@ -337,6 +337,11 @@ then
 	payload_deliverer start
 fi
 
+if param compare -s ICE_EN 1
+then
+	internal_combustion_engine_control start
+fi
+
 #user defined mavlink streams for instances can be in PATH
 . px4-rc.mavlink
 
