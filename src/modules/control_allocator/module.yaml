@@ -564,6 +564,20 @@ parameters:
           min: 0
           max: 10
           default: 0.0
+        CA_MAX_SVO_THROW:
+          description:
+            short: Throw angle of swashplate servo at maximum commands for linearization
+            long: |
+              Used to linearize mechanical output of swashplate servos to avoid axis coupling and binding with 4 servo redundancy.
+              This requires a symmetric setup where the servo horn is exactly centered with a 0 command.
+              Setting to zero disables feature.
+          type: float
+          decimal: 1
+          unit: deg
+          increment: 0.1
+          min: 0
+          max: 75
+          default: 0.0
 
         # Others
         CA_FAILURE_MODE:
