@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(RoverMecanumGuidance
-	RoverMecanumGuidance.cpp
+px4_add_library(MecanumRateControl
+	MecanumRateControl.cpp
 )
 
-target_include_directories(RoverMecanumGuidance PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(MecanumRateControl PUBLIC PID)
+target_include_directories(MecanumRateControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
