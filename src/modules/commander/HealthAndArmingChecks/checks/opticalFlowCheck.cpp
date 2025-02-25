@@ -46,9 +46,16 @@ void OpticalFlowCheck::checkAndReport(const Context &context, Report &reporter)
 		vehicle_optical_flow_s flow_sens;
 		valid = _vehicle_optical_flow_sub.copy(&flow_sens) && (hrt_elapsed_time(&flow_sens.timestamp) < 1_s);
 		reporter.setIsPresent(health_component_t::optical_flow);
-	}
 
-	if (!exists) {
+		if (!valid) {
+			/* EVENT
+			 */
+			reporter.healthFailure(NavModes::All, health_component_t::optical_flow,
+					       events::ID("check_optical_flow_sensor_invalid"),
+					       events::Log::Error, "No valid data from optical flow sensor");
+		}
+
+	} else {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -58,12 +65,5 @@ void OpticalFlowCheck::checkAndReport(const Context &context, Report &reporter)
 		reporter.healthFailure(NavModes::All, health_component_t::optical_flow,
 				       events::ID("check_optical_sensor_missing"),
 				       events::Log::Error, "Optical flow sensor missing");
-
-	} else if (!valid) {
-		/* EVENT
-		 */
-		reporter.healthFailure(NavModes::All, health_component_t::optical_flow,
-				       events::ID("check_optical_flow_sensor_invalid"),
-				       events::Log::Error, "No valid data from optical flow sensor");
 	}
 }
