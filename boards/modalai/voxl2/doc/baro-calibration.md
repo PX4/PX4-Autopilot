@@ -16,7 +16,7 @@ that are used by the `temperature_compensation` module in PX4.
 * Wait for the calibration process to complete.
 * It will output the parameter settings needed for the temperature compensation
   module into `/data/px4/param/parameters_baro_tc.cal`
-* Set the parameters in PX4.
-    * For example: `voxl-configure-px4-params -n -f /data/px4/param/parameters_baro_tc.cal`
+* The parameters will automatically be set in PX4 by default. If you do not want
+  the parameters to be set in PX4 then specify the `-x 1` option.
 * Reboot the board.
 

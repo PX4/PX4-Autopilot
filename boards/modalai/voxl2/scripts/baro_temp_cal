@@ -65,6 +65,7 @@ if __name__ == '__main__':
     parser.add_argument('-i','--num-iter',   type=int, required=False, default=1)
     parser.add_argument('-s','--sleep-interval',   type=int, required=False, default=300)
     parser.add_argument('-t','--enable-plots',   type=int, required=False, default=0)
+    parser.add_argument('-x','--no-params',   type=int, required=False, default=0)
     args = parser.parse_args()
 
     log_path = args.path
@@ -80,6 +81,7 @@ if __name__ == '__main__':
     num_cpu_stress = args.num_cpus
     sleep_between_iterations = args.sleep_interval #5*60 #seconds
     enable_plots = args.enable_plots == 1
+    set_px4_parameters = (args.no_params != 1)
 
     signal.signal(signal.SIGINT, handler)
 
@@ -310,6 +312,9 @@ if __name__ == '__main__':
             for k in range(poly_fit_order+1,6):
                 cal_file.write('1\t1\tTC_B0_X%d\t%.6f\t9\n' % (k,0.0))
             cal_file.close()
+
+            if set_px4_parameters:
+                subprocess.call(["voxl-configure-px4-params", "-n", "-f", cal_param_file_name])
 
         if (i < (num_iterations-1) ):
             print('sleeping..')
