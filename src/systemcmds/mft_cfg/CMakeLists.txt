@@ -30,23 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(MecanumRateControl)
-add_subdirectory(MecanumAttControl)
-add_subdirectory(MecanumPosVelControl)
-
 px4_add_module(
-	MODULE modules__rover_mecanum
-	MAIN rover_mecanum
+	MODULE systemcmds__mft_cfg
+	MAIN mft_cfg
+	COMPILE_FLAGS
 	SRCS
-		RoverMecanum.cpp
-		RoverMecanum.hpp
-	DEPENDS
-		MecanumRateControl
-		MecanumAttControl
-		MecanumPosVelControl
-		px4_work_queue
-		rover_control
-	MODULE_CONFIG
-		module.yaml
-)
+		mft_cfg.cpp
+	)
