@@ -160,7 +160,7 @@ int QShell::run_cmd(const std::vector<std::string> &appargs)
 
 			while (i < appargs.size() && appargs[i].c_str()[0] != '\0') {
 				arg[i] = (char *)appargs[i].c_str();
-				PX4_INFO("  arg%d = '%s'\n", i, arg[i]);
+				PX4_INFO("  arg%d = '%s'", i, arg[i]);
 				++i;
 			}
 
@@ -168,7 +168,7 @@ int QShell::run_cmd(const std::vector<std::string> &appargs)
 
 			//PX4_DEBUG_PRINTF(i);
 			if (m_apps[command] == NULL) {
-				PX4_ERR("Null function !!\n");
+				PX4_ERR("Null function !!");
 
 			} else {
 				int x = m_apps[command](i, (char **)arg);

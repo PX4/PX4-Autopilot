@@ -47,6 +47,8 @@
 #define PX4_TASK_MAX_ARGV_LENGTH 32
 #define PX4_MAX_TASKS 24
 
+#define MODULE_NAME "tasks"
+
 typedef struct task_entry {
 	pthread_t tid;
 	char name[PX4_TASK_MAX_NAME_LENGTH + 4];
@@ -129,7 +131,7 @@ static px4_task_t px4_task_spawn_internal(const char *name, int priority, px4_ma
 	int task_index = 0;
 	char *p = (char *)argv;
 
-	PX4_INFO("Creating pthread %s\n", name);
+	PX4_INFO("Creating pthread %s", name);
 
 	if (task_mutex_initialized == false) {
 		task_mutex_initialized = true;

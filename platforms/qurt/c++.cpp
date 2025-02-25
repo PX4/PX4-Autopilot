@@ -12,6 +12,8 @@ extern "C" {
     size_t fc_heap_usage(void);
 }
 
+#define MODULE_NAME "c++"
+
 /*
   Convenience class to collect and print heap statistics
 */

@@ -46,6 +46,8 @@
 
 #define MAX_ARGS 8 // max number of whitespace separated args after app name
 
+#define MODULE_NAME "main"
+
 __BEGIN_DECLS
 int slpi_main(int argc, char *argv[]);
 __END_DECLS

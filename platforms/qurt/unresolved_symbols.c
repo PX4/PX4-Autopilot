@@ -3,6 +3,8 @@
 #include <px4_log.h>
 #include <qurt_alloc.h>
 
+#define MODULE_NAME "unresolved"
+
 __attribute__((visibility("default"))) void free(void *ptr)
 {
 	qurt_free(ptr);
