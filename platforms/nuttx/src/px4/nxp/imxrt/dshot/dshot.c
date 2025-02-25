@@ -423,7 +423,9 @@ int up_bdshot_num_erpm_ready(void)
 	int num_ready = 0;
 
 	for (unsigned i = 0; i < DSHOT_TIMERS; ++i) {
-		if (bdshot_parsed_recv_mask & (1 << i)) {
+		// We only check that data has been received, rather than if it's valid.
+		// This ensures data is published even if one channel has bit errors.
+		if (bdshot_recv_mask & (1 << i)) {
 			++num_ready;
 		}
 	}
