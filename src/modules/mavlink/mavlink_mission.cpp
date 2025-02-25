@@ -329,8 +329,8 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 
 			mission_item.nav_cmd = mission_fence_point.nav_cmd;
 			mission_item.frame = mission_fence_point.frame;
-			mission_item.lat = mission_fence_point.lat;
-			mission_item.lon = mission_fence_point.lon;
+			mission_item.setLatEncoded(mission_fence_point.lat);
+			mission_item.setLonEncoded(mission_fence_point.lon);
 			mission_item.altitude = mission_fence_point.alt;
 
 			if (mission_fence_point.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION ||
@@ -1182,8 +1182,8 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			case MAV_MISSION_TYPE_FENCE: { // Write a geofence point
 					mission_fence_point_s mission_fence_point;
 					mission_fence_point.nav_cmd = mission_item.nav_cmd;
-					mission_fence_point.lat = mission_item.lat;
-					mission_fence_point.lon = mission_item.lon;
+					mission_fence_point.lat = mission_item.getLat();
+					mission_fence_point.lon = mission_item.getLon();
 					mission_fence_point.alt = mission_item.altitude;
 
 					if (mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION ||
@@ -1408,12 +1408,14 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			 * alignment, so we can just swap float for int32_t. */
 			const mavlink_mission_item_int_t *item_int
 				= reinterpret_cast<const mavlink_mission_item_int_t *>(mavlink_mission_item);
-			mission_item->lat = ((double)item_int->x) * 1e-7;
-			mission_item->lon = ((double)item_int->y) * 1e-7;
+			mission_item->___lat_int = item_int->x;
+			mission_item->___lon_int = item_int->y;
+			mission_item->int_encoded = true;
 
 		} else {
-			mission_item->lat = (double)mavlink_mission_item->x;
-			mission_item->lon = (double)mavlink_mission_item->y;
+			mission_item->___lat_float = mavlink_mission_item->x;
+			mission_item->___lon_float = mavlink_mission_item->y;
+			mission_item->int_encoded = false;
 		}
 
 		mission_item->altitude = mavlink_mission_item->z;
@@ -1553,10 +1555,12 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 				= reinterpret_cast<const mavlink_mission_item_int_t *>(mavlink_mission_item);
 			mission_item->params[4] = ((double)item_int->x);
 			mission_item->params[5] = ((double)item_int->y);
+			mission_item->int_encoded = false;
 
 		} else {
 			mission_item->params[4] = (double)mavlink_mission_item->x;
 			mission_item->params[5] = (double)mavlink_mission_item->y;
+			mission_item->int_encoded = false;
 		}
 
 		mission_item->params[6] = mavlink_mission_item->z;
@@ -1727,12 +1731,12 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			mavlink_mission_item_int_t *item_int =
 				reinterpret_cast<mavlink_mission_item_int_t *>(mavlink_mission_item);
 
-			item_int->x = round(mission_item->lat * 1e7);
-			item_int->y = round(mission_item->lon * 1e7);
+			item_int->x = mission_item->___lat_int;
+			item_int->y = mission_item->___lon_int;
 
 		} else {
-			mavlink_mission_item->x = (float)mission_item->lat;
-			mavlink_mission_item->y = (float)mission_item->lon;
+			mavlink_mission_item->x = mission_item->___lat_float;
+			mavlink_mission_item->y = mission_item->___lon_float;
 		}
 
 		mavlink_mission_item->z = mission_item->altitude;
