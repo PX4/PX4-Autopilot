@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2025 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,7 +38,11 @@
  */
 
 #include "mc_nn_control.hpp"
+#ifdef __PX4_NUTTX
 #include <drivers/drv_hrt.h>
+#else
+#include <chrono>
+#endif
 
 namespace {
 using NNControlOpResolver = tflite::MicroMutableOpResolver<4>; // This number should be the number of operations in the model, like tanh and fully connected
@@ -82,18 +86,7 @@ int MulticopterNeuralNetworkControl::InitializeNetwork() {
 	// Initialize the neural network
 	// Load the model
 	const tflite::Model* control_model = ::tflite::GetModel(control_net_tflite);  // TODO: Replace with your model data variable
-	// if (control_model->version() != TFLITE_SCHEMA_VERSION) {
-	// 	PX4_ERR("Model provided is schema version %d not equal to supported version %d.",
-	// 		control_model->version(), TFLITE_SCHEMA_VERSION);
-	// 	return -1;
-	// }
-
 	const tflite::Model* allocation_model = ::tflite::GetModel(allocation_net_tflite);  // TODO: Replace with your model data variable
-	// if (allocation_model->version() != TFLITE_SCHEMA_VERSION) {
-	// 	PX4_ERR("Model provided is schema version %d not equal to supported version %d.",
-	// 		allocation_model->version(), TFLITE_SCHEMA_VERSION);
-	// 	return -1;
-	// }
 
 	// Set up the interpreter
 	static NNControlOpResolver resolver;
@@ -189,14 +182,6 @@ void MulticopterNeuralNetworkControl::PopulateInputTensor() {
 	_input_tensor->data.f[13] = angular_vel_local(1);
 	_input_tensor->data.f[14] = angular_vel_local(2);
 
-	if (_param_debug_input_tensor.get()) {
-		PX4_INFO("Input tensor:");
-		PX4_INFO("pos_err: [%f, %f, %f]", static_cast<double>(_input_tensor->data.f[0]), static_cast<double>(_input_tensor->data.f[1]), static_cast<double>(_input_tensor->data.f[2]));
-		PX4_INFO("att: [%f, %f, %f, %f, %f, %f]", static_cast<double>(_input_tensor->data.f[3]), static_cast<double>(_input_tensor->data.f[4]), static_cast<double>(_input_tensor->data.f[5]), static_cast<double>(_input_tensor->data.f[6]), static_cast<double>(_input_tensor->data.f[7]), static_cast<double>(_input_tensor->data.f[8]));
-		PX4_INFO("vel: [%f, %f, %f]", static_cast<double>(_input_tensor->data.f[9]), static_cast<double>(_input_tensor->data.f[10]), static_cast<double>(_input_tensor->data.f[11]));
-		PX4_INFO("ang_vel: [%f, %f, %f]", static_cast<double>(_input_tensor->data.f[12]), static_cast<double>(_input_tensor->data.f[13]), static_cast<double>(_input_tensor->data.f[14]));
-	}
-	return;
 }
 
 void MulticopterNeuralNetworkControl::PublishOutput(float* command_actions) {
@@ -284,7 +269,11 @@ void MulticopterNeuralNetworkControl::Run()
 
 	perf_begin(_loop_perf);
 
-	hrt_abstime start_time1 = hrt_absolute_time();
+	#ifdef __PX4_NUTTX
+		hrt_abstime start_time1 = hrt_absolute_time();
+	#else
+		auto start_time1 = std::chrono::high_resolution_clock::now();
+	#endif
 
 	if (_parameter_update_sub.updated()) {
 		parameter_update_s param_update;
@@ -319,9 +308,18 @@ void MulticopterNeuralNetworkControl::Run()
 		PopulateInputTensor();
 
 		// Run inference
-		hrt_abstime start_time2 = hrt_absolute_time();
+		#ifdef __PX4_NUTTX
+        		hrt_abstime start_time2 = hrt_absolute_time();
+		#else
+			auto start_time2 = std::chrono::high_resolution_clock::now();
+		#endif
+		// Inference
 		TfLiteStatus invoke_status_control = _control_interpreter->Invoke();
-		hrt_abstime inference_time_control = hrt_absolute_time() - start_time2;
+		#ifdef __PX4_NUTTX
+			hrt_abstime inference_time_control = hrt_absolute_time() - start_time2;
+		#else
+			auto inference_time_control = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time2).count();
+		#endif
 		if (invoke_status_control != kTfLiteOk) {
 			PX4_ERR("Invoke() failed");
 			return;
@@ -342,9 +340,17 @@ void MulticopterNeuralNetworkControl::Run()
 		allocation_input_tensor->data.f[4] = control_output_tensor->data.f[4] * 0.32f;
 		allocation_input_tensor->data.f[5] = control_output_tensor->data.f[5] * 0.02f;
 
-		hrt_abstime start_time3 = hrt_absolute_time();
+		#ifdef __PX4_NUTTX
+			hrt_abstime start_time3 = hrt_absolute_time();
+		#else
+			auto start_time3 = std::chrono::high_resolution_clock::now();
+		#endif
 		TfLiteStatus invoke_status = _allocation_interpreter->Invoke();
-		hrt_abstime inference_time_allocation = hrt_absolute_time() - start_time3;
+		#ifdef __PX4_NUTTX
+			hrt_abstime inference_time_allocation = hrt_absolute_time() - start_time3;
+		#else
+			auto inference_time_allocation = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time3).count();
+		#endif
 		if (invoke_status != kTfLiteOk) {
 			PX4_ERR("Invoke() failed");
 			return;
@@ -361,24 +367,30 @@ void MulticopterNeuralNetworkControl::Run()
 		// Publish the actuator values
 		PublishOutput(_output_tensor->data.f);
 
-		hrt_abstime full_controller_time = hrt_absolute_time() - start_time1;
 
-		if(_param_debug_output_tensor.get()) {
-			PX4_INFO("Actuator motors values:");
-			PX4_INFO("[%f, %f, %f, %f]", static_cast<double>(_output_tensor->data.f[0]), static_cast<double>(_output_tensor->data.f[1]), static_cast<double>(_output_tensor->data.f[2]), static_cast<double>(_output_tensor->data.f[3]));
-		}
+		#ifdef __PX4_NUTTX
+			hrt_abstime full_controller_time = hrt_absolute_time() - start_time1;
+		#else
+			auto full_controller_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time1).count();
+		#endif
 
-		if(_param_debug_inference_time.get()) {
-			_param_control_inference_time.set(inference_time_control);
-			_param_control_inference_time.commit();
-			_param_allocation_inference_time.set(inference_time_allocation);
-			_param_allocation_inference_time.commit();
-			_param_full_inference_time.set(full_controller_time);
-			_param_full_inference_time.commit();
-			PX4_INFO("Inference time control net: %llu us", (unsigned long long)inference_time_control);
-			PX4_INFO("Inference time allocation net: %llu us", (unsigned long long)inference_time_allocation);
-			PX4_INFO("Full controller time : %llu us", (unsigned long long)full_controller_time);
+		// Publish the neural control debug message
+		neural_control_s neural_control;
+		neural_control.timestamp = hrt_absolute_time();
+		neural_control.control_inference_time = static_cast<int32_t>(inference_time_control);
+		neural_control.controller_time = static_cast<int32_t>(full_controller_time);
+		neural_control.allocation_inference_time = static_cast<int32_t>(inference_time_allocation);
+		for (int i = 0; i < 15; i++) {
+			neural_control.observation[i] = _input_tensor->data.f[i];
 		}
+		for (int i = 0; i < 6; i++) {
+			neural_control.wrench[i] = allocation_input_tensor->data.f[i];
+		}
+		neural_control.motor_thrust[0] = _output_tensor->data.f[0];
+		neural_control.motor_thrust[1] = _output_tensor->data.f[2];
+		neural_control.motor_thrust[2] = _output_tensor->data.f[3];
+		neural_control.motor_thrust[3] = _output_tensor->data.f[1];
+		_neural_control_pub.publish(neural_control);
 	}
 	perf_end(_loop_perf);
 }

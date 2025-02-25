@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2025 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -71,6 +71,7 @@
 
 // Publications
 #include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/neural_control.h>
 
 using namespace time_literals; // For the 1_s in the subscription callback
 
@@ -113,6 +114,7 @@ private:
 
 	// Publications
 	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
+	uORB::Publication<neural_control_s> _neural_control_pub{ORB_ID(neural_control)};
 
 	// Variables
 	bool _use_neural{false};
@@ -126,13 +128,4 @@ private:
 	vehicle_local_position_s _position;
 	vehicle_local_position_setpoint_s _position_setpoint;
 	vehicle_attitude_s _attitude;
-
-	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::NN_IN_DEBUG>) 		_param_debug_input_tensor,
-		(ParamBool<px4::params::NN_OUT_DEBUG>)	 	_param_debug_output_tensor,
-		(ParamBool<px4::params::NN_TIME_DEBUG>)		_param_debug_inference_time,
-		(ParamFloat<px4::params::NN_CONTROL_INF>)	_param_control_inference_time,
-		(ParamFloat<px4::params::NN_ALLOC_INF>)		_param_allocation_inference_time,
-		(ParamFloat<px4::params::NN_FULL_INF>)		_param_full_inference_time
-	)
 };
