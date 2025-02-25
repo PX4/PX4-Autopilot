@@ -1,0 +1,1231 @@
+#!/bin/sh
+#
+# @name Advanced Plane SITL
+#
+
+. ${R}etc/init.d/rc.fw_defaults
+
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=advanced_plane}
+
+param set-default SIM_GZ_EN 1
+
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_MAGSIM 1
+param set-default SENS_EN_ARSPDSIM 1
+
+param set-default FW_LND_ANG 8
+
+param set-default FW_PR_FF 0.08
+param set-default FW_PR_I 0.3
+param set-default FW_PR_P 0.08
+
+param set-default FW_RR_FF 0.05
+param set-default FW_RR_I 0.2
+param set-default FW_RR_P 0.03
+
+param set-default FW_YR_FF 0.3
+param set-default FW_YR_I 0.4
+param set-default FW_YR_P 0.2
+
+param set-default FW_PSP_OFF 2
+param set-default FW_P_LIM_MAX 32
+param set-default FW_P_LIM_MIN -15
+
+param set-default FW_SPOILERS_LND 0.4
+
+param set-default FW_THR_MIN 0.05
+param set-default FW_THR_TRIM 0.25
+param set-default FW_THR_MAX 0.6
+
+param set-default FW_T_CLMB_R_SP 5
+param set-default FW_T_CLMB_MAX 6
+param set-default FW_T_SINK_MAX 2.7
+param set-default FW_T_SINK_MIN 2.2
+
+param set-default FW_W_EN 1
+
+param set-default NAV_DLL_ACT 2
+
+param set-default RWTO_TKOFF 1
+
+param set-default CA_AIRFRAME 1
+
+param set-default CA_ROTOR_COUNT 1
+
+param set-default CA_SV_CS_COUNT 6
+param set-default CA_SV_CS0_TRQ_R -0.5
+param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS1_TRQ_R 0.5
+param set-default CA_SV_CS1_TYPE 2
+param set-default CA_SV_CS2_TRQ_P 1
+param set-default CA_SV_CS2_TYPE 3
+param set-default CA_SV_CS3_TRQ_Y 1
+param set-default CA_SV_CS3_TYPE 4
+param set-default CA_SV_CS4_TYPE 9
+param set-default CA_SV_CS5_TYPE 10
+
+param set-default SIM_GZ_EC_FUNC1 101
+param set-default SIM_GZ_EC_MIN1 10
+param set-default SIM_GZ_EC_MAX1 1600
+
+param set-default SIM_GZ_SV_FUNC1 201
+param set-default SIM_GZ_SV_FUNC2 202
+param set-default SIM_GZ_SV_FUNC3 203
+param set-default SIM_GZ_SV_FUNC4 204
+param set-default SIM_GZ_SV_FUNC5 205
+param set-default SIM_GZ_SV_FUNC6 206
+# param set-default ASPD_BETA_GATE 1.0
+# param set-default ASPD_BETA_NOISE 0.30000001192092896
+# param set-default ASPD_DO_CHECKS 7.0
+# param set-default ASPD_FALLBACK_GW 0.0
+# param set-default ASPD_FS_INNOV 5.0
+# param set-default ASPD_FS_INTEG 10.0
+# param set-default ASPD_FS_T_START -1.0
+# param set-default ASPD_FS_T_STOP 2.0
+# param set-default ASPD_PRIMARY 1.0
+# param set-default ASPD_SCALE_1 1.0
+# param set-default ASPD_SCALE_2 1.0
+# param set-default ASPD_SCALE_3 1.0
+# param set-default ASPD_SCALE_APPLY 2.0
+# param set-default ASPD_SCALE_NSD 9.9999997473788e-05
+# param set-default ASPD_TAS_GATE 3.0
+# param set-default ASPD_TAS_NOISE 1.399999976158142
+# param set-default ASPD_WERR_THR 0.550000011920929
+# param set-default ASPD_WIND_NSD 0.009999999776482582
+# param set-default BAT1_A_PER_V 3.5999999046325684
+param set-default BAT1_CAPACITY 2200.0
+# param set-default BAT1_I_CHANNEL -1.0
+param set-default BAT1_N_CELLS 3.0
+param set-default BAT1_R_INTERNAL 0.004999999888241291
+param set-default BAT1_SOURCE 0.0
+# param set-default BAT1_V_CHANNEL -1.0
+param set-default BAT1_V_CHARGED 4.050000190734863
+# param set-default BAT1_V_DIV 18.989871978759766
+param set-default BAT1_V_EMPTY 3.5999999046325684
+# param set-default BAT1_V_LOAD_DROP 0.10000000149011612
+# param set-default BAT2_A_PER_V -1.0
+param set-default BAT2_CAPACITY 2200.0
+# param set-default BAT2_I_CHANNEL -1.0
+param set-default BAT2_N_CELLS 3.0
+param set-default BAT2_R_INTERNAL 0.004999999888241291
+param set-default BAT2_SOURCE -1.0
+# param set-default BAT2_V_CHANNEL -1.0
+param set-default BAT2_V_CHARGED 4.199999809265137
+# param set-default BAT2_V_DIV -1.0
+param set-default BAT2_V_EMPTY 3.200000047683716
+# param set-default BAT2_V_LOAD_DROP 0.10000000149011612
+param set-default BAT_AVRG_CURRENT 15.0
+param set-default BAT_CRIT_THR 0.25
+param set-default BAT_EMERGEN_THR 0.10000000149011612
+param set-default BAT_LOW_THR 0.5
+# param set-default BAT_N_CELLS 3.0
+# param set-default BAT_V_CHARGED 4.050000190734863
+# param set-default BAT_V_EMPTY 3.5999999046325684
+# param set-default BAT_V_LOAD_DROP 0.30000001192092896
+# param set-default BAT_V_OFFS_CURR 0.0
+# param set-default CAL_ACC0_ID 4259850.0
+# param set-default CAL_ACC0_PRIO 50.0
+# param set-default CAL_ACC0_ROT -1.0
+# param set-default CAL_ACC0_XOFF -0.1263124793767929
+# param set-default CAL_ACC0_XSCALE 0.9809322357177734
+# param set-default CAL_ACC0_YOFF -0.1421743929386139
+# param set-default CAL_ACC0_YSCALE 1.0058633089065552
+# param set-default CAL_ACC0_ZOFF 0.09369020909070969
+# param set-default CAL_ACC0_ZSCALE 0.9803009033203125
+# param set-default CAL_ACC1_ID 2490378.0
+# param set-default CAL_ACC1_PRIO 50.0
+# param set-default CAL_ACC1_ROT -1.0
+# param set-default CAL_ACC1_XOFF 0.23187480866909027
+# param set-default CAL_ACC1_XSCALE 0.9878359436988831
+# param set-default CAL_ACC1_YOFF 0.015526968985795975
+# param set-default CAL_ACC1_YSCALE 1.0133894681930542
+# param set-default CAL_ACC1_ZOFF -0.06926688551902771
+# param set-default CAL_ACC1_ZSCALE 0.9960904121398926
+# param set-default CAL_ACC2_ID 0.0
+# param set-default CAL_ACC3_ID 0.0
+# param set-default CAL_AIR_CMODEL 0.0
+# param set-default CAL_AIR_TUBED_MM 1.5
+# param set-default CAL_AIR_TUBELEN 0.20000000298023224
+# param set-default CAL_BARO0_ID 0.0
+# param set-default CAL_BARO1_ID 0.0
+# param set-default CAL_BARO2_ID 0.0
+# param set-default CAL_BARO3_ID 0.0
+# param set-default CAL_GYRO0_ID 4325386.0
+# param set-default CAL_GYRO0_PRIO 50.0
+# param set-default CAL_GYRO0_ROT -1.0
+# param set-default CAL_GYRO0_XOFF 0.001020277151837945
+# param set-default CAL_GYRO0_YOFF -0.002719607204198837
+# param set-default CAL_GYRO0_ZOFF -0.000397246010834351
+# param set-default CAL_GYRO1_ID 2490378.0
+# param set-default CAL_GYRO1_PRIO 50.0
+# param set-default CAL_GYRO1_ROT -1.0
+# param set-default CAL_GYRO1_XOFF 0.016015775501728058
+# param set-default CAL_GYRO1_YOFF -0.0121398214250803
+# param set-default CAL_GYRO1_ZOFF 0.004861600231379271
+# param set-default CAL_GYRO2_ID 0.0
+# param set-default CAL_GYRO3_ID 0.0
+# param set-default CAL_MAG0_ID 396809.0
+# param set-default CAL_MAG0_PRIO 75.0
+# param set-default CAL_MAG0_ROT 0.0
+# param set-default CAL_MAG0_XCOMP 0.0
+# param set-default CAL_MAG0_XODIAG 0.007927005179226398
+# param set-default CAL_MAG0_XOFF -0.03686671331524849
+# param set-default CAL_MAG0_XSCALE 1.0312585830688477
+# param set-default CAL_MAG0_YCOMP 0.0
+# param set-default CAL_MAG0_YODIAG 0.11644621938467026
+# param set-default CAL_MAG0_YOFF -0.09981687366962433
+# param set-default CAL_MAG0_YSCALE 0.9544093012809753
+# param set-default CAL_MAG0_ZCOMP 0.0
+# param set-default CAL_MAG0_ZODIAG -0.041557542979717255
+# param set-default CAL_MAG0_ZOFF -0.0370478630065918
+# param set-default CAL_MAG0_ZSCALE 1.0404322147369385
+# param set-default CAL_MAG1_ID 396321.0
+# param set-default CAL_MAG1_PRIO 50.0
+# param set-default CAL_MAG1_ROT -1.0
+# param set-default CAL_MAG1_XCOMP 0.0
+# param set-default CAL_MAG1_XODIAG -0.010065817274153233
+# param set-default CAL_MAG1_XOFF -0.08170519769191742
+# param set-default CAL_MAG1_XSCALE 0.9599488973617554
+# param set-default CAL_MAG1_YCOMP 0.0
+# param set-default CAL_MAG1_YODIAG -0.001702055335044861
+# param set-default CAL_MAG1_YOFF 0.10259006172418594
+# param set-default CAL_MAG1_YSCALE 1.0409091711044312
+# param set-default CAL_MAG1_ZCOMP 0.0
+# param set-default CAL_MAG1_ZODIAG -0.09199514240026474
+# param set-default CAL_MAG1_ZOFF 0.18442854285240173
+# param set-default CAL_MAG1_ZSCALE 1.0109553337097168
+# param set-default CAL_MAG2_ID 0.0
+# param set-default CAL_MAG2_ROT -1.0
+# param set-default CAL_MAG3_ID 0.0
+# param set-default CAL_MAG3_ROT -1.0
+# param set-default CAL_MAG_COMP_TYP 0.0
+# param set-default CAL_MAG_SIDES 63.0
+# param set-default CAM_CAP_FBACK 0.0
+param set-default CA_AIRFRAME 1.0
+param set-default CA_FAILURE_MODE 0.0
+param set-default CA_METHOD 2.0
+param set-default CA_R0_SLEW 0.0
+param set-default CA_R10_SLEW 0.0
+param set-default CA_R11_SLEW 0.0
+param set-default CA_R1_SLEW 0.0
+param set-default CA_R2_SLEW 0.0
+param set-default CA_R3_SLEW 0.0
+param set-default CA_R4_SLEW 0.0
+param set-default CA_R5_SLEW 0.0
+param set-default CA_R6_SLEW 0.0
+param set-default CA_R7_SLEW 0.0
+param set-default CA_R8_SLEW 0.0
+param set-default CA_R9_SLEW 0.0
+param set-default CA_ROTOR0_CT 6.5
+param set-default CA_ROTOR0_KM 0.05000000074505806
+param set-default CA_ROTOR0_PX 0.30000001192092896
+param set-default CA_ROTOR0_PY 0.0
+param set-default CA_ROTOR0_PZ 0.0
+param set-default CA_ROTOR10_CT 6.5
+param set-default CA_ROTOR10_KM 0.05000000074505806
+param set-default CA_ROTOR10_PX 0.0
+param set-default CA_ROTOR10_PY 0.0
+param set-default CA_ROTOR10_PZ 0.0
+param set-default CA_ROTOR11_CT 6.5
+param set-default CA_ROTOR11_KM 0.05000000074505806
+param set-default CA_ROTOR11_PX 0.0
+param set-default CA_ROTOR11_PY 0.0
+param set-default CA_ROTOR11_PZ 0.0
+param set-default CA_ROTOR1_CT 6.5
+param set-default CA_ROTOR1_KM 0.05000000074505806
+param set-default CA_ROTOR1_PX 0.0
+param set-default CA_ROTOR1_PY 0.0
+param set-default CA_ROTOR1_PZ 0.0
+param set-default CA_ROTOR2_CT 6.5
+param set-default CA_ROTOR2_KM 0.05000000074505806
+param set-default CA_ROTOR2_PX 0.0
+param set-default CA_ROTOR2_PY 0.0
+param set-default CA_ROTOR2_PZ 0.0
+param set-default CA_ROTOR3_CT 6.5
+param set-default CA_ROTOR3_KM 0.05000000074505806
+param set-default CA_ROTOR3_PX 0.0
+param set-default CA_ROTOR3_PY 0.0
+param set-default CA_ROTOR3_PZ 0.0
+param set-default CA_ROTOR4_CT 6.5
+param set-default CA_ROTOR4_KM 0.05000000074505806
+param set-default CA_ROTOR4_PX 0.0
+param set-default CA_ROTOR4_PY 0.0
+param set-default CA_ROTOR4_PZ 0.0
+param set-default CA_ROTOR5_CT 6.5
+param set-default CA_ROTOR5_KM 0.05000000074505806
+param set-default CA_ROTOR5_PX 0.0
+param set-default CA_ROTOR5_PY 0.0
+param set-default CA_ROTOR5_PZ 0.0
+param set-default CA_ROTOR6_CT 6.5
+param set-default CA_ROTOR6_KM 0.05000000074505806
+param set-default CA_ROTOR6_PX 0.0
+param set-default CA_ROTOR6_PY 0.0
+param set-default CA_ROTOR6_PZ 0.0
+param set-default CA_ROTOR7_CT 6.5
+param set-default CA_ROTOR7_KM 0.05000000074505806
+param set-default CA_ROTOR7_PX 0.0
+param set-default CA_ROTOR7_PY 0.0
+param set-default CA_ROTOR7_PZ 0.0
+param set-default CA_ROTOR8_CT 6.5
+param set-default CA_ROTOR8_KM 0.05000000074505806
+param set-default CA_ROTOR8_PX 0.0
+param set-default CA_ROTOR8_PY 0.0
+param set-default CA_ROTOR8_PZ 0.0
+param set-default CA_ROTOR9_CT 6.5
+param set-default CA_ROTOR9_KM 0.05000000074505806
+param set-default CA_ROTOR9_PX 0.0
+param set-default CA_ROTOR9_PY 0.0
+param set-default CA_ROTOR9_PZ 0.0
+param set-default CA_ROTOR_COUNT 1.0
+param set-default CA_R_REV 0.0
+param set-default CA_SV0_SLEW 0.0
+param set-default CA_SV1_SLEW 0.0
+param set-default CA_SV2_SLEW 0.0
+param set-default CA_SV3_SLEW 0.0
+param set-default CA_SV4_SLEW 0.0
+param set-default CA_SV5_SLEW 0.0
+param set-default CA_SV6_SLEW 0.0
+param set-default CA_SV7_SLEW 0.0
+param set-default CA_SV_CS0_FLAP 0.0
+param set-default CA_SV_CS0_SPOIL 0.0
+param set-default CA_SV_CS0_TRIM 0.0
+param set-default CA_SV_CS0_TRQ_P 0.0
+param set-default CA_SV_CS0_TRQ_R -0.5
+param set-default CA_SV_CS0_TRQ_Y 0.0
+param set-default CA_SV_CS0_TYPE 1.0
+param set-default CA_SV_CS1_FLAP 0.0
+param set-default CA_SV_CS1_SPOIL 0.0
+param set-default CA_SV_CS1_TRIM 0.0
+param set-default CA_SV_CS1_TRQ_P 0.0
+param set-default CA_SV_CS1_TRQ_R 0.5
+param set-default CA_SV_CS1_TRQ_Y 0.0
+param set-default CA_SV_CS1_TYPE 2.0
+param set-default CA_SV_CS2_FLAP 0.0
+param set-default CA_SV_CS2_SPOIL 0.0
+param set-default CA_SV_CS2_TRIM 0.0
+param set-default CA_SV_CS2_TRQ_P 1.0
+param set-default CA_SV_CS2_TRQ_R 0.0
+param set-default CA_SV_CS2_TRQ_Y 0.0
+param set-default CA_SV_CS2_TYPE 3.0
+param set-default CA_SV_CS3_FLAP 0.0
+param set-default CA_SV_CS3_SPOIL 0.0
+param set-default CA_SV_CS3_TRIM 0.0
+param set-default CA_SV_CS3_TRQ_P 0.0
+param set-default CA_SV_CS3_TRQ_R 0.0
+param set-default CA_SV_CS3_TRQ_Y 1.0
+param set-default CA_SV_CS3_TYPE 4.0
+param set-default CA_SV_CS4_FLAP 0.0
+param set-default CA_SV_CS4_SPOIL 0.0
+param set-default CA_SV_CS4_TRIM 0.0
+param set-default CA_SV_CS4_TRQ_P 0.0
+param set-default CA_SV_CS4_TRQ_R 0.0
+param set-default CA_SV_CS4_TRQ_Y 0.0
+param set-default CA_SV_CS4_TYPE 0.0
+param set-default CA_SV_CS5_FLAP 0.0
+param set-default CA_SV_CS5_SPOIL 0.0
+param set-default CA_SV_CS5_TRIM 0.0
+param set-default CA_SV_CS5_TRQ_P 0.0
+param set-default CA_SV_CS5_TRQ_R 0.0
+param set-default CA_SV_CS5_TRQ_Y 0.0
+param set-default CA_SV_CS5_TYPE 0.0
+param set-default CA_SV_CS6_FLAP 0.0
+param set-default CA_SV_CS6_SPOIL 0.0
+param set-default CA_SV_CS6_TRIM 0.0
+param set-default CA_SV_CS6_TRQ_P 0.0
+param set-default CA_SV_CS6_TRQ_R 0.0
+param set-default CA_SV_CS6_TRQ_Y 0.0
+param set-default CA_SV_CS6_TYPE 0.0
+param set-default CA_SV_CS7_FLAP 0.0
+param set-default CA_SV_CS7_SPOIL 0.0
+param set-default CA_SV_CS7_TRIM 0.0
+param set-default CA_SV_CS7_TRQ_P 0.0
+param set-default CA_SV_CS7_TRQ_R 0.0
+param set-default CA_SV_CS7_TRQ_Y 0.0
+param set-default CA_SV_CS7_TYPE 0.0
+param set-default CA_SV_CS_COUNT 4.0
+# param set-default CBRK_AIRSPD_CHK 0.0
+# param set-default CBRK_BUZZER 0.0
+# param set-default CBRK_FLIGHTTERM 121212.0
+# param set-default CBRK_IO_SAFETY 22027.0
+# param set-default CBRK_SUPPLY_CHK 0.0
+# param set-default CBRK_USB_CHK 197848.0
+# param set-default CBRK_VTOLARMING 0.0
+param set-default COM_ACT_FAIL_ACT 0.0
+# param set-default COM_ARM_ARSP_EN 1.0
+param set-default COM_ARM_AUTH_ID 10.0
+param set-default COM_ARM_AUTH_MET 0.0
+param set-default COM_ARM_AUTH_REQ 0.0
+param set-default COM_ARM_AUTH_TO 1.0
+param set-default COM_ARM_CHK_ESCS 0.0
+# param set-default COM_ARM_EKF_HGT 1.0
+# param set-default COM_ARM_EKF_POS 0.5
+# param set-default COM_ARM_EKF_VEL 0.5
+# param set-default COM_ARM_EKF_YAW 0.5
+param set-default COM_ARM_HFLT_CHK 1.0
+param set-default COM_ARM_IMU_ACC 0.699999988079071
+param set-default COM_ARM_IMU_GYR 0.25
+param set-default COM_ARM_MAG_ANG -1.0
+param set-default COM_ARM_MAG_STR 0.0
+param set-default COM_ARM_MIS_REQ 0.0
+param set-default COM_ARM_SDCARD 1.0
+param set-default COM_ARM_SWISBTN 0.0
+param set-default COM_ARM_WO_GPS 1.0
+param set-default COM_CPU_MAX 95.0
+param set-default COM_DISARM_LAND 2.0
+param set-default COM_DISARM_PRFLT -1.0
+param set-default COM_DL_LOSS_T 10.0
+param set-default COM_FAIL_ACT_T 5.0
+param set-default COM_FLIGHT_UUID 108.0
+param set-default COM_FLTMODE1 0.0
+param set-default COM_FLTMODE2 -1.0
+param set-default COM_FLTMODE3 0.0
+param set-default COM_FLTMODE4 0.0
+param set-default COM_FLTMODE5 -1.0
+param set-default COM_FLTMODE6 7.0
+param set-default COM_FLT_PROFILE 0.0
+param set-default COM_FLT_TIME_MAX -1.0
+param set-default COM_FORCE_SAFETY 0.0
+param set-default COM_HLDL_LOSS_T 120.0
+param set-default COM_HLDL_REG_T 0.0
+param set-default COM_HOME_EN 1.0
+param set-default COM_HOME_IN_AIR 0.0
+param set-default COM_IMB_PROP_ACT 0.0
+param set-default COM_KILL_DISARM 5.0
+param set-default COM_LKDOWN_TKO 3.0
+param set-default COM_LOW_BAT_ACT 0.0
+param set-default COM_MOT_TEST_EN 1.0
+param set-default COM_OBC_LOSS_T 5.0
+param set-default COM_OBL_RC_ACT 0.0
+# param set-default COM_OBS_AVOID 0.0
+param set-default COM_OF_LOSS_T 1.0
+param set-default COM_PARACHUTE 0.0
+param set-default COM_POSCTL_NAVL 0.0
+# param set-default COM_POS_FS_DELAY 5.0
+param set-default COM_POS_FS_EPH 50.0
+param set-default COM_POS_LOW_EPH 50.0
+param set-default COM_POWER_COUNT 1.0
+param set-default COM_PREARM_MODE 0.0
+param set-default COM_QC_ACT 0.0
+param set-default COM_RCL_EXCEPT 0.0
+param set-default COM_RC_ARM_HYST 1000.0
+param set-default COM_RC_IN_MODE 3.0
+param set-default COM_RC_LOSS_T 0.5
+param set-default COM_RC_OVERRIDE 3.0
+param set-default COM_RC_STICK_OV 30.0
+param set-default COM_SPOOLUP_TIME 1.0
+param set-default COM_TAKEOFF_ACT 0.0
+param set-default COM_VEL_FS_EVH 5.0
+param set-default COM_WIND_MAX -1.0
+param set-default COM_WIND_WARN -1.0
+# param set-default DSHOT_3D_DEAD_H 1000.0
+# param set-default DSHOT_3D_DEAD_L 1000.0
+# param set-default DSHOT_3D_ENABLE 0.0
+# param set-default DSHOT_MIN 0.054999999701976776
+# param set-default DSHOT_TEL_CFG 0.0
+param set-default EKF2_ABIAS_INIT 0.20000000298023224
+param set-default EKF2_ABL_ACCLIM 25.0
+param set-default EKF2_ABL_GYRLIM 3.0
+param set-default EKF2_ABL_LIM 0.4000000059604645
+param set-default EKF2_ABL_TAU 0.5
+param set-default EKF2_ACC_B_NOISE 0.003000000026077032
+param set-default EKF2_ACC_NOISE 0.3499999940395355
+# param set-default EKF2_AID_MASK 0.0
+param set-default EKF2_ANGERR_INIT 0.10000000149011612
+param set-default EKF2_ARSP_THR 8.0
+param set-default EKF2_ASPD_MAX 20.0
+param set-default EKF2_ASP_DELAY 100.0
+param set-default EKF2_AVEL_DELAY 5.0
+param set-default EKF2_BARO_CTRL 1.0
+param set-default EKF2_BARO_DELAY 0.0
+param set-default EKF2_BARO_GATE 5.0
+param set-default EKF2_BARO_NOISE 3.5
+param set-default EKF2_BCOEF_X 100.0
+param set-default EKF2_BCOEF_Y 100.0
+param set-default EKF2_BETA_GATE 5.0
+param set-default EKF2_BETA_NOISE 0.30000001192092896
+param set-default EKF2_DECL_TYPE 7.0
+param set-default EKF2_DRAG_CTRL 0.0
+param set-default EKF2_DRAG_NOISE 2.5
+param set-default EKF2_EAS_NOISE 1.399999976158142
+param set-default EKF2_EVA_NOISE 0.10000000149011612
+param set-default EKF2_EVP_GATE 5.0
+param set-default EKF2_EVP_NOISE 0.10000000149011612
+param set-default EKF2_EVV_GATE 3.0
+param set-default EKF2_EVV_NOISE 0.10000000149011612
+param set-default EKF2_EV_CTRL 15.0
+param set-default EKF2_EV_DELAY 0.0
+param set-default EKF2_EV_NOISE_MD 0.0
+param set-default EKF2_EV_POS_X 0.0
+param set-default EKF2_EV_POS_Y 0.0
+param set-default EKF2_EV_POS_Z 0.0
+param set-default EKF2_EV_QMIN 0.0
+param set-default EKF2_FUSE_BETA 1.0
+param set-default EKF2_GBIAS_INIT 0.10000000149011612
+param set-default EKF2_GND_EFF_DZ 4.0
+param set-default EKF2_GND_MAX_HGT 0.5
+param set-default EKF2_GPS_CHECK 21.0
+param set-default EKF2_GPS_CTRL 7.0
+param set-default EKF2_GPS_DELAY 110.0
+param set-default EKF2_GPS_POS_X 0.0
+param set-default EKF2_GPS_POS_Y 0.0
+param set-default EKF2_GPS_POS_Z 0.0
+param set-default EKF2_GPS_P_GATE 5.0
+param set-default EKF2_GPS_P_NOISE 0.5
+param set-default EKF2_GPS_V_GATE 5.0
+param set-default EKF2_GPS_V_NOISE 0.30000001192092896
+param set-default EKF2_GRAV_NOISE 1.0
+param set-default EKF2_GSF_TAS 15.0
+param set-default EKF2_GYR_B_LIM 0.15000000596046448
+param set-default EKF2_GYR_B_NOISE 0.001000000047497451
+param set-default EKF2_GYR_NOISE 0.014999999664723873
+param set-default EKF2_HDG_GATE 2.5999999046325684
+param set-default EKF2_HEAD_NOISE 0.30000001192092896
+param set-default EKF2_HGT_REF 1.0
+param set-default EKF2_IMU_CTRL 3.0
+param set-default EKF2_IMU_POS_X 0.0
+param set-default EKF2_IMU_POS_Y 0.0
+param set-default EKF2_IMU_POS_Z 0.0
+param set-default EKF2_MAG_ACCLIM 0.0
+param set-default EKF2_MAG_B_NOISE 9.9999997473788e-05
+param set-default EKF2_MAG_CHECK 1.0
+param set-default EKF2_MAG_DECL -1.4825373888015747
+param set-default EKF2_MAG_DELAY 0.0
+param set-default EKF2_MAG_E_NOISE 0.001000000047497451
+param set-default EKF2_MAG_GATE 3.0
+param set-default EKF2_MAG_NOISE 0.05000000074505806
+param set-default EKF2_MAG_TYPE 0.0
+# param set-default EKF2_MAG_YAWLIM 0.0
+param set-default EKF2_MCOEF 0.15000000596046448
+param set-default EKF2_MIN_RNG 0.10000000149011612
+param set-default EKF2_MULTI_IMU 3.0
+param set-default EKF2_NOAID_NOISE 10.0
+param set-default EKF2_NOAID_TOUT 5000000.0
+param set-default EKF2_OF_CTRL 0.0
+param set-default EKF2_OF_DELAY 20.0
+param set-default EKF2_OF_GATE 3.0
+param set-default EKF2_OF_N_MAX 0.5
+param set-default EKF2_OF_N_MIN 0.15000000596046448
+param set-default EKF2_OF_POS_X 0.0
+param set-default EKF2_OF_POS_Y 0.0
+param set-default EKF2_OF_POS_Z 0.0
+param set-default EKF2_OF_QMIN 1.0
+param set-default EKF2_OF_QMIN_GND 0.0
+param set-default EKF2_PCOEF_XN 0.0
+param set-default EKF2_PCOEF_XP 0.0
+param set-default EKF2_PCOEF_YN 0.0
+param set-default EKF2_PCOEF_YP 0.0
+param set-default EKF2_PCOEF_Z 0.0
+param set-default EKF2_PREDICT_US 10000.0
+param set-default EKF2_REQ_EPH 10.0
+param set-default EKF2_REQ_EPV 10.0
+param set-default EKF2_REQ_GPS_H 10.0
+param set-default EKF2_REQ_HDRIFT 0.5
+param set-default EKF2_REQ_NSATS 6.0
+param set-default EKF2_REQ_PDOP 2.5
+param set-default EKF2_REQ_SACC 1.0
+param set-default EKF2_REQ_VDRIFT 1.0
+param set-default EKF2_RNG_A_HMAX 5.0
+param set-default EKF2_RNG_A_IGATE 1.0
+param set-default EKF2_RNG_A_VMAX 1.0
+param set-default EKF2_RNG_CTRL 1.0
+param set-default EKF2_RNG_DELAY 5.0
+param set-default EKF2_RNG_GATE 5.0
+param set-default EKF2_RNG_K_GATE 1.0
+param set-default EKF2_RNG_NOISE 0.10000000149011612
+param set-default EKF2_RNG_PITCH 0.0
+param set-default EKF2_RNG_POS_X 0.0
+param set-default EKF2_RNG_POS_Y 0.0
+param set-default EKF2_RNG_POS_Z 0.0
+param set-default EKF2_RNG_QLTY_T 1.0
+param set-default EKF2_RNG_SFE 0.05000000074505806
+param set-default EKF2_SEL_ERR_RED 0.20000000298023224
+param set-default EKF2_SEL_IMU_ACC 1.0
+param set-default EKF2_SEL_IMU_ANG 15.0
+param set-default EKF2_SEL_IMU_RAT 7.0
+param set-default EKF2_SEL_IMU_VEL 2.0
+param set-default EKF2_SYNT_MAG_Z 0.0
+param set-default EKF2_TAS_GATE 3.0
+param set-default EKF2_TAU_POS 0.25
+param set-default EKF2_TAU_VEL 0.25
+param set-default EKF2_TERR_GRAD 0.5
+# param set-default EKF2_TERR_MASK 3.0
+param set-default EKF2_TERR_NOISE 5.0
+param set-default EKF2_WIND_NSD 0.009999999776482582
+param set-default EV_TSK_RC_LOSS 0.0
+param set-default EV_TSK_STAT_DIS 0.0
+param set-default FD_ACT_EN 1.0
+param set-default FD_ACT_MOT_C2T 2.0
+param set-default FD_ACT_MOT_THR 0.20000000298023224
+param set-default FD_ACT_MOT_TOUT 100.0
+param set-default FD_ESCS_EN 1.0
+param set-default FD_EXT_ATS_EN 0.0
+param set-default FD_EXT_ATS_TRIG 1900.0
+param set-default FD_FAIL_P 60.0
+param set-default FD_FAIL_P_TTRI 0.30000001192092896
+param set-default FD_FAIL_R 60.0
+param set-default FD_FAIL_R_TTRI 0.30000001192092896
+param set-default FD_IMB_PROP_THR 30.0
+param set-default FW_ACRO_X_MAX 90.0
+param set-default FW_ACRO_Y_MAX 90.0
+param set-default FW_ACRO_Z_MAX 45.0
+param set-default FW_AIRSPD_MAX 20.0
+param set-default FW_AIRSPD_MIN 10.0
+param set-default FW_AIRSPD_STALL 7.0
+param set-default FW_AIRSPD_TRIM 15.0
+# param set-default FW_ARSP_MODE 0.0
+param set-default FW_ARSP_SCALE_EN 1.0
+param set-default FW_AT_APPLY 2.0
+param set-default FW_AT_AXES 3.0
+param set-default FW_AT_MAN_AUX 0.0
+param set-default FW_AT_START 0.0
+param set-default FW_AT_SYSID_AMP 1.0
+param set-default FW_BAT_SCALE_EN 0.0
+param set-default FW_DTRIM_P_VMAX 0.0
+param set-default FW_DTRIM_P_VMIN 0.0
+param set-default FW_DTRIM_R_VMAX 0.0
+param set-default FW_DTRIM_R_VMIN 0.0
+param set-default FW_DTRIM_Y_VMAX 0.0
+param set-default FW_DTRIM_Y_VMIN 0.0
+param set-default FW_FLAPS_LND_SCL 1.0
+param set-default FW_FLAPS_TO_SCL 0.0
+param set-default FW_GND_SPD_MIN 5.0
+param set-default FW_GPSF_LT 30.0
+param set-default FW_GPSF_R 15.0
+param set-default FW_LAUN_AC_T 0.05000000074505806
+param set-default FW_LAUN_AC_THLD 15.0
+param set-default FW_LAUN_DETCN_ON 1.0
+param set-default FW_LAUN_MOT_DEL 0.0
+param set-default FW_LND_ABORT 3.0
+param set-default FW_LND_AIRSPD -1.0
+param set-default FW_LND_ANG 5.0
+param set-default FW_LND_EARLYCFG 0.0
+param set-default FW_LND_FLALT 0.5
+param set-default FW_LND_FL_PMAX 15.0
+param set-default FW_LND_FL_PMIN 2.5
+param set-default FW_LND_FL_SINK 0.25
+param set-default FW_LND_FL_TIME 1.0
+param set-default FW_LND_NUDGE 2.0
+param set-default FW_LND_TD_OFF 3.0
+param set-default FW_LND_TD_TIME -1.0
+param set-default FW_LND_THRTC_SC 1.0
+param set-default FW_LND_USETER 1.0
+param set-default FW_MAN_P_MAX 30.0
+param set-default FW_MAN_P_SC 1.0
+param set-default FW_MAN_R_MAX 45.0
+param set-default FW_MAN_R_SC 1.0
+param set-default FW_MAN_Y_SC 1.0
+param set-default FW_PN_R_SLEW_MAX 90.0
+param set-default FW_POS_STK_CONF 2.0
+param set-default FW_PR_D 0.0
+param set-default FW_PR_FF 0.5
+param set-default FW_PR_I 0.10000000149011612
+param set-default FW_PR_IMAX 0.4000000059604645
+param set-default FW_PR_P 0.07999999821186066
+param set-default FW_PSP_OFF 0.0
+param set-default FW_P_LIM_MAX 30.0
+param set-default FW_P_LIM_MIN -30.0
+param set-default FW_P_RMAX_NEG 60.0
+param set-default FW_P_RMAX_POS 60.0
+param set-default FW_P_TC 0.4000000059604645
+param set-default FW_RLL_TO_YAW_FF 0.0
+param set-default FW_RR_D 0.0
+param set-default FW_RR_FF 0.5
+param set-default FW_RR_I 0.10000000149011612
+param set-default FW_RR_IMAX 0.20000000298023224
+param set-default FW_RR_P 0.05000000074505806
+param set-default FW_R_LIM 50.0
+param set-default FW_R_RMAX 70.0
+param set-default FW_R_TC 0.4000000059604645
+# param set-default FW_SPOILERS_DESC 0.0
+param set-default FW_SPOILERS_LND 0.0
+param set-default FW_SPOILERS_MAN 0.0
+param set-default FW_THR_ASPD_MAX 0.0
+param set-default FW_THR_ASPD_MIN 0.0
+param set-default FW_THR_IDLE 0.0
+param set-default FW_THR_MAX 1.0
+param set-default FW_THR_MIN 0.0
+param set-default FW_THR_SLEW_MAX 0.0
+param set-default FW_THR_TRIM 0.6000000238418579
+param set-default FW_TKO_AIRSPD -1.0
+param set-default FW_TKO_PITCH_MIN 5.0
+param set-default FW_T_ALT_TC 5.0
+param set-default FW_T_CLMB_MAX 1.0
+param set-default FW_T_CLMB_R_SP 0.5
+param set-default FW_T_HRATE_FF 0.30000001192092896
+param set-default FW_T_I_GAIN_PIT 0.10000000149011612
+# param set-default FW_T_I_GAIN_THR 0.05000000074505806
+param set-default FW_T_PTCH_DAMP 0.10000000149011612
+param set-default FW_T_RLL2THR 15.0
+param set-default FW_T_SEB_R_FF 1.0
+param set-default FW_T_SINK_MAX 5.0
+param set-default FW_T_SINK_MIN 2.0
+param set-default FW_T_SINK_R_SP 2.0
+param set-default FW_T_SPDWEIGHT 1.0
+param set-default FW_T_SPD_DEV_STD 0.20000000298023224
+param set-default FW_T_SPD_PRC_STD 0.20000000298023224
+param set-default FW_T_SPD_STD 0.20000000298023224
+param set-default FW_T_STE_R_TC 0.4000000059604645
+param set-default FW_T_TAS_TC 5.0
+# param set-default FW_T_THR_DAMP 0.10000000149011612
+param set-default FW_T_VERT_ACC 2.0
+param set-default FW_WIND_ARSP_SC 0.0
+param set-default FW_WING_HEIGHT 0.5
+param set-default FW_WING_SPAN 3.0
+param set-default FW_WR_FF 0.20000000298023224
+param set-default FW_WR_I 0.10000000149011612
+param set-default FW_WR_IMAX 0.4000000059604645
+param set-default FW_WR_P 0.5
+param set-default FW_W_EN 0.0
+param set-default FW_W_RMAX 30.0
+param set-default FW_YR_D 0.0
+param set-default FW_YR_FF 0.30000001192092896
+param set-default FW_YR_I 0.10000000149011612
+param set-default FW_YR_IMAX 0.20000000298023224
+param set-default FW_YR_P 0.05000000074505806
+param set-default FW_Y_RMAX 50.0
+param set-default GF_ACTION 2.0
+# param set-default GF_ALTMODE 0.0
+# param set-default GF_COUNT -1.0
+param set-default GF_MAX_HOR_DIST 0.0
+param set-default GF_MAX_VER_DIST 0.0
+param set-default GF_PREDICT 0.0
+param set-default GF_SOURCE 0.0
+param set-default GND_SPEED_THR_SC 1.0
+# param set-default GPS_1_CONFIG 0.0
+# param set-default GPS_2_CONFIG 0.0
+param set-default GPS_UBX_DYNMODEL 8.0
+param set-default IMU_ACCEL_CUTOFF 30.0
+param set-default IMU_DGYRO_CUTOFF 30.0
+param set-default IMU_GYRO_CAL_EN 1.0
+param set-default IMU_GYRO_CUTOFF 40.0
+param set-default IMU_GYRO_DNF_BW 15.0
+param set-default IMU_GYRO_DNF_EN 0.0
+param set-default IMU_GYRO_DNF_HMC 3.0
+param set-default IMU_GYRO_DNF_MIN 25.0
+param set-default IMU_GYRO_FFT_EN 1.0
+param set-default IMU_GYRO_FFT_LEN 512.0
+param set-default IMU_GYRO_FFT_MAX 150.0
+param set-default IMU_GYRO_FFT_MIN 30.0
+param set-default IMU_GYRO_FFT_SNR 10.0
+param set-default IMU_GYRO_NF0_BW 20.0
+param set-default IMU_GYRO_NF0_FRQ 0.0
+param set-default IMU_GYRO_NF1_BW 20.0
+param set-default IMU_GYRO_NF1_FRQ 0.0
+param set-default IMU_GYRO_RATEMAX 400.0
+param set-default IMU_INTEG_RATE 200.0
+param set-default LNDFW_AIRSPD_MAX 6.0
+param set-default LNDFW_TRIG_TIME 2.0
+param set-default LNDFW_VEL_XY_MAX 5.0
+param set-default LNDFW_VEL_Z_MAX 1.0
+param set-default LNDFW_XYACC_MAX 8.0
+# param set-default LNDMC_ALT_MAX -1.0
+param set-default LND_FLIGHT_T_HI 0.0
+param set-default LND_FLIGHT_T_LO 870469358.0
+param set-default MAN_ARM_GESTURE 0.0
+# param set-default MAV_0_CONFIG 101.0
+param set-default MAV_0_FLOW_CTRL 2.0
+param set-default MAV_0_FORWARD 1.0
+param set-default MAV_0_MODE 0.0
+param set-default MAV_0_RADIO_CTL 1.0
+param set-default MAV_0_RATE 1200.0
+# param set-default MAV_1_CONFIG 102.0
+param set-default MAV_1_FLOW_CTRL 0.0
+param set-default MAV_1_FORWARD 0.0
+param set-default MAV_1_MODE 2.0
+param set-default MAV_1_RADIO_CTL 1.0
+param set-default MAV_1_RATE 0.0
+# param set-default MAV_2_CONFIG 0.0
+param set-default MAV_COMP_ID 1.0
+param set-default MAV_FWDEXTSP 1.0
+param set-default MAV_HASH_CHK_EN 1.0
+param set-default MAV_HB_FORW_EN 1.0
+param set-default MAV_PROTO_VER 0.0
+param set-default MAV_RADIO_TOUT 5.0
+param set-default MAV_SIK_RADIO_ID 0.0
+param set-default MAV_SYS_ID 1.0
+param set-default MAV_TYPE 1.0
+param set-default MAV_USEHILGPS 0.0
+param set-default MBE_ENABLE 1.0
+param set-default MBE_LEARN_GAIN 18.0
+param set-default MC_AIRMODE 0.0
+param set-default MC_AT_EN 1.0
+param set-default MIS_DIST_1WP 900.0
+param set-default MIS_LND_ABRT_ALT 30.0
+param set-default MIS_MNT_YAW_CTL 0.0
+# param set-default MIS_PD_TO 5.0
+param set-default MIS_TAKEOFF_ALT 15.0
+param set-default MIS_TKO_LAND_REQ 0.0
+param set-default MIS_YAW_ERR 12.0
+param set-default MIS_YAW_TMT -1.0
+param set-default MNT_MODE_IN -1.0
+# param set-default MOT_POLE_COUNT 14.0
+# param set-default MOT_SLEW_MAX 0.0
+param set-default MPC_ACC_DOWN_MAX 3.0
+param set-default MPC_ACC_HOR 3.0
+param set-default MPC_ACC_HOR_MAX 5.0
+param set-default MPC_ACC_UP_MAX 4.0
+param set-default MPC_JERK_AUTO 4.0
+param set-default MPC_JERK_MAX 8.0
+param set-default MPC_LAND_SPEED 0.699999988079071
+param set-default MPC_XY_CRUISE 5.0
+param set-default MPC_Z_V_AUTO_DN 1.5
+param set-default MPC_Z_V_AUTO_UP 3.0
+param set-default NAV_ACC_RAD 10.0
+param set-default NAV_DLL_ACT 0.0
+param set-default NAV_FORCE_VT 1.0
+param set-default NAV_FW_ALTL_RAD 5.0
+param set-default NAV_FW_ALT_RAD 10.0
+param set-default NAV_LOITER_RAD 80.0
+param set-default NAV_MC_ALT_RAD 0.800000011920929
+param set-default NAV_MIN_LTR_ALT -1.0
+param set-default NAV_RCL_ACT 1.0
+param set-default NAV_TRAFF_AVOID 1.0
+param set-default NAV_TRAFF_A_HOR 500.0
+param set-default NAV_TRAFF_A_VER 500.0
+param set-default NAV_TRAFF_COLL_T 60.0
+param set-default NPFG_DAMPING 0.699999988079071
+param set-default NPFG_EN_MIN_GSP 1.0
+param set-default NPFG_GSP_MAX_TK 5.0
+param set-default NPFG_LB_PERIOD 1.0
+param set-default NPFG_PERIOD 10.0
+param set-default NPFG_PERIOD_SF 1.5
+param set-default NPFG_ROLL_TC 0.5
+param set-default NPFG_SW_DST_MLT 0.3199999928474426
+param set-default NPFG_TRACK_KEEP 1.0
+param set-default NPFG_UB_PERIOD 1.0
+param set-default NPFG_WIND_REG 1.0
+param set-default PLD_BTOUT 5.0
+param set-default PLD_FAPPR_ALT 0.10000000149011612
+param set-default PLD_HACC_RAD 0.20000000298023224
+param set-default PLD_MAX_SRCH 3.0
+param set-default PLD_SRCH_ALT 10.0
+param set-default PLD_SRCH_TOUT 10.0
+# param set-default PWM_AUX_DIS1 1000.0
+# param set-default PWM_AUX_DIS2 1000.0
+# param set-default PWM_AUX_DIS3 1000.0
+# param set-default PWM_AUX_DIS4 1000.0
+# param set-default PWM_AUX_DIS5 1000.0
+# param set-default PWM_AUX_DIS6 1000.0
+# param set-default PWM_AUX_DIS7 1000.0
+# param set-default PWM_AUX_DIS8 1000.0
+# param set-default PWM_AUX_FAIL1 -1.0
+# param set-default PWM_AUX_FAIL2 -1.0
+# param set-default PWM_AUX_FAIL3 -1.0
+# param set-default PWM_AUX_FAIL4 -1.0
+# param set-default PWM_AUX_FAIL5 -1.0
+# param set-default PWM_AUX_FAIL6 -1.0
+# param set-default PWM_AUX_FAIL7 -1.0
+# param set-default PWM_AUX_FAIL8 -1.0
+# param set-default PWM_AUX_FUNC1 0.0
+# param set-default PWM_AUX_FUNC2 0.0
+# param set-default PWM_AUX_FUNC3 0.0
+# param set-default PWM_AUX_FUNC4 0.0
+# param set-default PWM_AUX_FUNC5 0.0
+# param set-default PWM_AUX_FUNC6 0.0
+# param set-default PWM_AUX_FUNC7 0.0
+# param set-default PWM_AUX_FUNC8 0.0
+# param set-default PWM_AUX_MAX1 2000.0
+# param set-default PWM_AUX_MAX2 2000.0
+# param set-default PWM_AUX_MAX3 2000.0
+# param set-default PWM_AUX_MAX4 2000.0
+# param set-default PWM_AUX_MAX5 2000.0
+# param set-default PWM_AUX_MAX6 2000.0
+# param set-default PWM_AUX_MAX7 2000.0
+# param set-default PWM_AUX_MAX8 1900.0
+# param set-default PWM_AUX_MIN1 1000.0
+# param set-default PWM_AUX_MIN2 1000.0
+# param set-default PWM_AUX_MIN3 1000.0
+# param set-default PWM_AUX_MIN4 1000.0
+# param set-default PWM_AUX_MIN5 1000.0
+# param set-default PWM_AUX_MIN6 1000.0
+# param set-default PWM_AUX_MIN7 1000.0
+# param set-default PWM_AUX_MIN8 1100.0
+# param set-default PWM_AUX_REV 0.0
+# param set-default PWM_AUX_TIM0 100.0
+# param set-default PWM_AUX_TIM1 400.0
+# param set-default PWM_AUX_TIM2 400.0
+# param set-default PWM_MAIN_DIS1 1000.0
+# param set-default PWM_MAIN_DIS2 1000.0
+# param set-default PWM_MAIN_DIS3 1000.0
+# param set-default PWM_MAIN_DIS4 1000.0
+# param set-default PWM_MAIN_DIS5 1000.0
+# param set-default PWM_MAIN_DIS6 1000.0
+# param set-default PWM_MAIN_DIS7 1000.0
+# param set-default PWM_MAIN_DIS8 1000.0
+# param set-default PWM_MAIN_FAIL1 -1.0
+# param set-default PWM_MAIN_FAIL2 -1.0
+# param set-default PWM_MAIN_FAIL3 -1.0
+# param set-default PWM_MAIN_FAIL4 -1.0
+# param set-default PWM_MAIN_FAIL5 -1.0
+# param set-default PWM_MAIN_FAIL6 -1.0
+# param set-default PWM_MAIN_FAIL7 -1.0
+# param set-default PWM_MAIN_FAIL8 -1.0
+# param set-default PWM_MAIN_FUNC1 201.0
+# param set-default PWM_MAIN_FUNC2 202.0
+# param set-default PWM_MAIN_FUNC3 203.0
+# param set-default PWM_MAIN_FUNC4 204.0
+# param set-default PWM_MAIN_FUNC5 0.0
+# param set-default PWM_MAIN_FUNC6 0.0
+# param set-default PWM_MAIN_FUNC7 0.0
+# param set-default PWM_MAIN_FUNC8 101.0
+# param set-default PWM_MAIN_MAX1 2000.0
+# param set-default PWM_MAIN_MAX2 2000.0
+# param set-default PWM_MAIN_MAX3 2000.0
+# param set-default PWM_MAIN_MAX4 2000.0
+# param set-default PWM_MAIN_MAX5 2000.0
+# param set-default PWM_MAIN_MAX6 2000.0
+# param set-default PWM_MAIN_MAX7 2000.0
+# param set-default PWM_MAIN_MAX8 1900.0
+# param set-default PWM_MAIN_MIN1 1000.0
+# param set-default PWM_MAIN_MIN2 1000.0
+# param set-default PWM_MAIN_MIN3 1000.0
+# param set-default PWM_MAIN_MIN4 1000.0
+# param set-default PWM_MAIN_MIN5 1000.0
+# param set-default PWM_MAIN_MIN6 1000.0
+# param set-default PWM_MAIN_MIN7 1000.0
+# param set-default PWM_MAIN_MIN8 1100.0
+param set-default PWM_MAIN_REV 1.0
+# param set-default PWM_MAIN_TIM0 50.0
+# param set-default PWM_MAIN_TIM1 50.0
+# param set-default PWM_MAIN_TIM2 400.0
+# param set-default PWM_SBUS_MODE 0.0
+param set-default RC10_DZ 0.0
+param set-default RC10_MAX 2000.0
+param set-default RC10_MIN 1000.0
+param set-default RC10_REV 1.0
+param set-default RC10_TRIM 1500.0
+param set-default RC11_DZ 0.0
+param set-default RC11_MAX 2000.0
+param set-default RC11_MIN 1000.0
+param set-default RC11_REV 1.0
+param set-default RC11_TRIM 1500.0
+param set-default RC12_DZ 0.0
+param set-default RC12_MAX 2000.0
+param set-default RC12_MIN 1000.0
+param set-default RC12_REV 1.0
+param set-default RC12_TRIM 1500.0
+param set-default RC13_DZ 0.0
+param set-default RC13_MAX 2000.0
+param set-default RC13_MIN 1000.0
+param set-default RC13_REV 1.0
+param set-default RC13_TRIM 1500.0
+param set-default RC14_DZ 0.0
+param set-default RC14_MAX 2000.0
+param set-default RC14_MIN 1000.0
+param set-default RC14_REV 1.0
+param set-default RC14_TRIM 1500.0
+param set-default RC15_DZ 0.0
+param set-default RC15_MAX 2000.0
+param set-default RC15_MIN 1000.0
+param set-default RC15_REV 1.0
+param set-default RC15_TRIM 1500.0
+param set-default RC16_DZ 0.0
+param set-default RC16_MAX 2000.0
+param set-default RC16_MIN 1000.0
+param set-default RC16_REV 1.0
+param set-default RC16_TRIM 1500.0
+param set-default RC17_DZ 0.0
+param set-default RC17_MAX 2000.0
+param set-default RC17_MIN 1000.0
+param set-default RC17_REV 1.0
+param set-default RC17_TRIM 1500.0
+param set-default RC18_DZ 0.0
+param set-default RC18_MAX 2000.0
+param set-default RC18_MIN 1000.0
+param set-default RC18_REV 1.0
+param set-default RC18_TRIM 1500.0
+param set-default RC1_DZ 10.0
+param set-default RC1_MAX 2006.0
+param set-default RC1_MIN 982.0
+param set-default RC1_REV 1.0
+param set-default RC1_TRIM 982.0
+param set-default RC2_DZ 10.0
+param set-default RC2_MAX 2006.0
+param set-default RC2_MIN 982.0
+param set-default RC2_REV 1.0
+param set-default RC2_TRIM 1487.0
+param set-default RC3_DZ 10.0
+param set-default RC3_MAX 2006.0
+param set-default RC3_MIN 982.0
+param set-default RC3_REV 1.0
+param set-default RC3_TRIM 1492.0
+param set-default RC4_DZ 10.0
+param set-default RC4_MAX 1975.0
+param set-default RC4_MIN 982.0
+param set-default RC4_REV 1.0
+param set-default RC4_TRIM 1489.0
+param set-default RC5_DZ 10.0
+param set-default RC5_MAX 2006.0
+param set-default RC5_MIN 982.0
+param set-default RC5_REV 1.0
+param set-default RC5_TRIM 1494.0
+param set-default RC6_DZ 10.0
+param set-default RC6_MAX 2006.0
+param set-default RC6_MIN 982.0
+param set-default RC6_REV 1.0
+param set-default RC6_TRIM 1494.0
+param set-default RC7_DZ 10.0
+param set-default RC7_MAX 2000.0
+param set-default RC7_MIN 1000.0
+param set-default RC7_REV 1.0
+param set-default RC7_TRIM 1500.0
+param set-default RC8_DZ 10.0
+param set-default RC8_MAX 2000.0
+param set-default RC8_MIN 1000.0
+param set-default RC8_REV 1.0
+param set-default RC8_TRIM 1500.0
+param set-default RC9_DZ 0.0
+param set-default RC9_MAX 2000.0
+param set-default RC9_MIN 1000.0
+param set-default RC9_REV 1.0
+param set-default RC9_TRIM 1500.0
+param set-default RC_ARMSWITCH_TH 0.75
+param set-default RC_CHAN_CNT 18.0
+param set-default RC_ENG_MOT_TH 0.75
+param set-default RC_FAILS_THR 0.0
+param set-default RC_GEAR_TH 0.75
+param set-default RC_KILLSWITCH_TH 0.75
+param set-default RC_LOITER_TH 0.75
+# param set-default RC_MAP_ACRO_SW 0.0
+param set-default RC_MAP_ARM_SW 5.0
+param set-default RC_MAP_AUX1 0.0
+param set-default RC_MAP_AUX2 0.0
+param set-default RC_MAP_AUX3 0.0
+param set-default RC_MAP_AUX4 0.0
+param set-default RC_MAP_AUX5 5.0
+param set-default RC_MAP_AUX6 0.0
+param set-default RC_MAP_ENG_MOT 0.0
+param set-default RC_MAP_FAILSAFE 0.0
+param set-default RC_MAP_FLAPS 0.0
+param set-default RC_MAP_FLTMODE 7.0
+param set-default RC_MAP_FLTM_BTN 0.0
+param set-default RC_MAP_GEAR_SW 0.0
+param set-default RC_MAP_KILL_SW 6.0
+param set-default RC_MAP_LOITER_SW 0.0
+# param set-default RC_MAP_MAN_SW 0.0
+param set-default RC_MAP_MODE_SW 0.0
+param set-default RC_MAP_OFFB_SW 0.0
+param set-default RC_MAP_PARAM1 0.0
+param set-default RC_MAP_PARAM2 0.0
+param set-default RC_MAP_PARAM3 0.0
+param set-default RC_MAP_PITCH 3.0
+# param set-default RC_MAP_POSCTL_SW 0.0
+# param set-default RC_MAP_RATT_SW 0.0
+param set-default RC_MAP_RETURN_SW 0.0
+param set-default RC_MAP_ROLL 2.0
+# param set-default RC_MAP_STAB_SW 0.0
+param set-default RC_MAP_THROTTLE 1.0
+param set-default RC_MAP_TRANS_SW 0.0
+param set-default RC_MAP_YAW 4.0
+param set-default RC_OFFB_TH 0.75
+param set-default RC_RETURN_TH 0.75
+param set-default RC_RSSI_PWM_CHAN 0.0
+param set-default RC_RSSI_PWM_MAX 2000.0
+param set-default RC_RSSI_PWM_MIN 1000.0
+param set-default RC_TRANS_TH 0.75
+param set-default RTL_CONE_ANG 45.0
+param set-default RTL_DESCEND_ALT 40.0
+# param set-default RTL_HDG_MD 0.0
+param set-default RTL_LAND_DELAY -1.0
+param set-default RTL_LOITER_RAD 80.0
+param set-default RTL_MIN_DIST 10.0
+param set-default RTL_PLD_MD 0.0
+param set-default RTL_RETURN_ALT 40.0
+param set-default RTL_TIME_FACTOR 1.100000023841858
+param set-default RTL_TIME_MARGIN 100.0
+param set-default RTL_TYPE 1.0
+param set-default RWTO_HDG 0.0
+param set-default RWTO_MAX_THR 1.0
+param set-default RWTO_NPFG_PERIOD 5.0
+param set-default RWTO_NUDGE 0.0
+param set-default RWTO_PSP 0.0
+param set-default RWTO_RAMP_TIME 2.0
+param set-default RWTO_ROT_AIRSPD -1.0
+param set-default RWTO_ROT_TIME 1.0
+param set-default RWTO_TKOFF 0.0
+param set-default SDLOG_BOOT_BAT 0.0
+param set-default SDLOG_DIRS_MAX 0.0
+param set-default SDLOG_MISSION 0.0
+param set-default SDLOG_MODE 0.0
+param set-default SDLOG_PROFILE 1.0
+param set-default SDLOG_UTC_OFFSET 0.0
+param set-default SDLOG_UUID 1.0
+param set-default SENS_BARO_QNH 1013.25
+param set-default SENS_BARO_RATE 20.0
+param set-default SENS_BOARD_ROT 0.0 #in simulation the Board is allways facing frontwards (YAW 0 deg)
+param set-default SENS_BOARD_X_OFF 2.5029470920562744
+param set-default SENS_BOARD_Y_OFF 5.299503326416016
+param set-default SENS_BOARD_Z_OFF 0.0
+# param set-default SENS_CM8JL65_CFG 0.0
+param set-default SENS_DPRES_OFF 106.99533081054688
+# param set-default SENS_EN_BATT 0.0
+# param set-default SENS_EN_LL40LS 0.0
+# param set-default SENS_EN_MB12XX 0.0
+# param set-default SENS_EN_MPDT 0.0
+# param set-default SENS_EN_MS4525DO 1.0
+# param set-default SENS_EN_MS5525DS 0.0
+# param set-default SENS_EN_PAA3905 0.0
+# param set-default SENS_EN_PAW3902 0.0
+# param set-default SENS_EN_PGA460 0.0
+# param set-default SENS_EN_PMW3901 0.0
+# param set-default SENS_EN_PX4FLOW 0.0
+# param set-default SENS_EN_SDP3X 0.0
+# param set-default SENS_EN_SF1XX 0.0
+# param set-default SENS_EN_TF02PRO 0.0
+param set-default SENS_EN_THERMAL -1.0
+# param set-default SENS_EN_TRANGER 0.0
+# param set-default SENS_EN_VL53L0X 0.0
+# param set-default SENS_EN_VL53L1X 0.0
+param set-default SENS_EXT_I2C_PRB 1.0
+param set-default SENS_GPS_MASK 7.0
+param set-default SENS_GPS_PRIME 0.0
+param set-default SENS_GPS_TAU 10.0
+param set-default SENS_IMU_AUTOCAL 1.0
+param set-default SENS_IMU_MODE 0.0
+# param set-default SENS_LEDDAR1_CFG 0.0
+param set-default SENS_MAG_AUTOCAL 1.0
+param set-default SENS_MAG_AUTOROT 1.0
+param set-default SENS_MAG_MODE 1.0
+param set-default SENS_MAG_RATE 15.0
+param set-default SENS_MAG_SIDES 63.0
+# param set-default SENS_SF0X_CFG 0.0
+# param set-default SENS_TFLOW_CFG 0.0
+# param set-default SENS_TFMINI_CFG 0.0
+# param set-default SENS_ULAND_CFG 0.0
+# param set-default SENS_VN_CFG 0.0
+# param set-default SER_TEL1_BAUD 57600.0
+# param set-default SER_TEL2_BAUD 115200.0
+param set-default SYS_AUTOCONFIG 0.0
+param set-default SYS_AUTOSTART 2100.0
+param set-default SYS_CAL_ACCEL 0.0
+param set-default SYS_CAL_BARO 0.0
+param set-default SYS_CAL_GYRO 0.0
+param set-default SYS_CAL_TDEL 24.0
+param set-default SYS_CAL_TMAX 10.0
+param set-default SYS_CAL_TMIN 5.0
+param set-default SYS_DM_BACKEND 0.0
+param set-default SYS_FAC_CAL_MODE 0.0
+param set-default SYS_FAILURE_EN 0.0
+param set-default SYS_HAS_BARO 1.0
+param set-default SYS_HAS_GPS 1.0
+param set-default SYS_HAS_MAG 1.0
+param set-default SYS_HAS_NUM_DIST 0.0
+param set-default SYS_HITL 0.0
+# param set-default SYS_MC_EST_GROUP 2.0
+param set-default SYS_RGB_MAXBRT 1.0
+param set-default SYS_STCK_EN 1.0
+param set-default TC_A_ENABLE 0.0
+param set-default TC_B_ENABLE 0.0
+param set-default TC_G_ENABLE 0.0
+# param set-default TEL_BST_EN 0.0
+# param set-default TEL_FRSKY_CONFIG 0.0
+# param set-default TEL_HOTT_CONFIG 0.0
+param set-default THR_MDL_FAC 0.0
+param set-default TRIG_MODE 0.0
+param set-default TRIM_PITCH 0.0
+param set-default TRIM_ROLL 0.0
+param set-default TRIM_YAW 0.0
+# param set-default UAVCAN_BITRATE 1000000.0
+# param set-default UAVCAN_EC_FAIL1 -1.0
+# param set-default UAVCAN_EC_FAIL2 -1.0
+# param set-default UAVCAN_EC_FAIL3 -1.0
+# param set-default UAVCAN_EC_FAIL4 -1.0
+# param set-default UAVCAN_EC_FAIL5 -1.0
+# param set-default UAVCAN_EC_FAIL6 -1.0
+# param set-default UAVCAN_EC_FAIL7 -1.0
+# param set-default UAVCAN_EC_FAIL8 -1.0
+# param set-default UAVCAN_EC_FUNC1 0.0
+# param set-default UAVCAN_EC_FUNC2 0.0
+# param set-default UAVCAN_EC_FUNC3 0.0
+# param set-default UAVCAN_EC_FUNC4 0.0
+# param set-default UAVCAN_EC_FUNC5 0.0
+# param set-default UAVCAN_EC_FUNC6 0.0
+# param set-default UAVCAN_EC_FUNC7 0.0
+# param set-default UAVCAN_EC_FUNC8 0.0
+# param set-default UAVCAN_EC_MAX1 8191.0
+# param set-default UAVCAN_EC_MAX2 8191.0
+# param set-default UAVCAN_EC_MAX3 8191.0
+# param set-default UAVCAN_EC_MAX4 8191.0
+# param set-default UAVCAN_EC_MAX5 8191.0
+# param set-default UAVCAN_EC_MAX6 8191.0
+# param set-default UAVCAN_EC_MAX7 8191.0
+# param set-default UAVCAN_EC_MAX8 8191.0
+# param set-default UAVCAN_EC_MIN1 1.0
+# param set-default UAVCAN_EC_MIN2 1.0
+# param set-default UAVCAN_EC_MIN3 1.0
+# param set-default UAVCAN_EC_MIN4 1.0
+# param set-default UAVCAN_EC_MIN5 1.0
+# param set-default UAVCAN_EC_MIN6 1.0
+# param set-default UAVCAN_EC_MIN7 1.0
+# param set-default UAVCAN_EC_MIN8 1.0
+# param set-default UAVCAN_EC_REV 0.0
+# param set-default UAVCAN_ENABLE 2.0
+# param set-default UAVCAN_LGT_ANTCL 2.0
+# param set-default UAVCAN_LGT_LAND 0.0
+# param set-default UAVCAN_LGT_NAV 3.0
+# param set-default UAVCAN_LGT_STROB 1.0
+# param set-default UAVCAN_NODE_ID 1.0
+# param set-default UAVCAN_PUB_ARM 0.0
+# param set-default UAVCAN_PUB_MBD 0.0
+# param set-default UAVCAN_PUB_RTCM 0.0
+# param set-default UAVCAN_SUB_ASPD 0.0
+# param set-default UAVCAN_SUB_BARO 0.0
+# param set-default UAVCAN_SUB_BAT 0.0
+# param set-default UAVCAN_SUB_BTN 0.0
+# param set-default UAVCAN_SUB_DPRES 0.0
+# param set-default UAVCAN_SUB_FLOW 0.0
+# param set-default UAVCAN_SUB_GPS 1.0
+# param set-default UAVCAN_SUB_HYGRO 0.0
+# param set-default UAVCAN_SUB_ICE 0.0
+# param set-default UAVCAN_SUB_IMU 0.0
+# param set-default UAVCAN_SUB_MAG 1.0
+# param set-default UAVCAN_SUB_RNG 0.0
+# param set-default UAVCAN_SV_DIS1 500.0
+# param set-default UAVCAN_SV_DIS2 500.0
+# param set-default UAVCAN_SV_DIS3 500.0
+# param set-default UAVCAN_SV_DIS4 500.0
+# param set-default UAVCAN_SV_DIS5 500.0
+# param set-default UAVCAN_SV_DIS6 500.0
+# param set-default UAVCAN_SV_DIS7 500.0
+# param set-default UAVCAN_SV_DIS8 500.0
+# param set-default UAVCAN_SV_FAIL1 -1.0
+# param set-default UAVCAN_SV_FAIL2 -1.0
+# param set-default UAVCAN_SV_FAIL3 -1.0
+# param set-default UAVCAN_SV_FAIL4 -1.0
+# param set-default UAVCAN_SV_FAIL5 -1.0
+# param set-default UAVCAN_SV_FAIL6 -1.0
+# param set-default UAVCAN_SV_FAIL7 -1.0
+# param set-default UAVCAN_SV_FAIL8 -1.0
+# param set-default UAVCAN_SV_FUNC1 0.0
+# param set-default UAVCAN_SV_FUNC2 0.0
+# param set-default UAVCAN_SV_FUNC3 0.0
+# param set-default UAVCAN_SV_FUNC4 0.0
+# param set-default UAVCAN_SV_FUNC5 0.0
+# param set-default UAVCAN_SV_FUNC6 0.0
+# param set-default UAVCAN_SV_FUNC7 0.0
+# param set-default UAVCAN_SV_FUNC8 0.0
+# param set-default UAVCAN_SV_MAX1 1000.0
+# param set-default UAVCAN_SV_MAX2 1000.0
+# param set-default UAVCAN_SV_MAX3 1000.0
+# param set-default UAVCAN_SV_MAX4 1000.0
+# param set-default UAVCAN_SV_MAX5 1000.0
+# param set-default UAVCAN_SV_MAX6 1000.0
+# param set-default UAVCAN_SV_MAX7 1000.0
+# param set-default UAVCAN_SV_MAX8 1000.0
+# param set-default UAVCAN_SV_MIN1 0.0
+# param set-default UAVCAN_SV_MIN2 0.0
+# param set-default UAVCAN_SV_MIN3 0.0
+# param set-default UAVCAN_SV_MIN4 0.0
+# param set-default UAVCAN_SV_MIN5 0.0
+# param set-default UAVCAN_SV_MIN6 0.0
+# param set-default UAVCAN_SV_MIN7 0.0
+# param set-default UAVCAN_SV_MIN8 0.0
+# param set-default UAVCAN_SV_REV 0.0
+# param set-default UXRCE_DDS_CFG 102.0
+param set-default VTO_LOITER_ALT 80.0
+param set-default VT_B_DEC_MSS 2.0
+param set-default VT_FW_DIFTHR_EN 0.0
+param set-default WEIGHT_BASE -1.0
+param set-default WEIGHT_GROSS -1.0
