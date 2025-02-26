@@ -100,8 +100,6 @@ void VtolType::parameters_update()
 
 void VtolType::update_mc_state()
 {
-	resetAccelToPitchPitchIntegrator();
-
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 
@@ -113,7 +111,6 @@ void VtolType::update_mc_state()
 
 void VtolType::update_fw_state()
 {
-	resetAccelToPitchPitchIntegrator();
 	_last_thr_in_fw_mode =  _vehicle_thrust_setpoint_virtual_fw->xyz[0];
 
 	// copy virtual attitude setpoint to real attitude setpoint
