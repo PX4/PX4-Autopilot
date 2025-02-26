@@ -73,10 +73,36 @@ MulticopterNeuralNetworkControl::~MulticopterNeuralNetworkControl()
 
 bool MulticopterNeuralNetworkControl::init()
 {
+	PX4_INFO("Initializing MulticopterNeuralNetworkControl");
 	if (!_angular_velocity_sub.registerCallback())
 	{
 		PX4_ERR("callback registration failed");
 		return false;
+	}
+
+	// Register NeuralControl as a flight mode
+	PX4_INFO("Registering NeuralControl mode");
+	RegisterNeuralFlightMode();
+
+	// Check if registration was successful
+	px4_usleep(1000000);
+	// TODO: How to make time for the mode to register?
+	// TODO: Set arming checks: local_position, ang_vel, att,
+	register_ext_component_reply_s register_ext_component_reply;
+	if(_register_ext_component_reply_sub.updated()){
+		_register_ext_component_reply_sub.copy(&register_ext_component_reply);
+	}else{
+		PX4_ERR("NeuralControl mode registration failed");
+		return false;
+	}
+	if(register_ext_component_reply.request_id != _mode_request_id || register_ext_component_reply.success == false){
+		PX4_ERR("NeuralControl mode registration failed, request_id mismatch");
+		return false;
+	}else
+	{
+		_arming_check_id = register_ext_component_reply.arming_check_id;
+		_mode_id = register_ext_component_reply.mode_id;
+		PX4_INFO("NeuralControl mode registration successful, arming_check_id: %d, mode_id: %d", _arming_check_id, _mode_id);
 	}
 
   	return true;
@@ -122,6 +148,36 @@ int MulticopterNeuralNetworkControl::InitializeNetwork() {
 	}
 
 	return PX4_OK;
+}
+
+int32_t MulticopterNeuralNetworkControl::GetTime(){
+	#ifdef __PX4_NUTTX
+		return static_cast<int32_t>(hrt_absolute_time());
+	#else
+		return static_cast<int32_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+	#endif
+}
+
+void MulticopterNeuralNetworkControl::RegisterNeuralFlightMode() {
+	// Register the neural flight mode with the commander
+	register_ext_component_request_s register_ext_component_request{};
+	register_ext_component_request.timestamp = static_cast<uint8>(GetTime());
+	strncpy(register_ext_component_request.name, "Neural Control", sizeof(register_ext_component_request.name) - 1);
+	register_ext_component_request.request_id = _mode_request_id;
+	register_ext_component_request.px4_ros2_api_version = register_ext_component_request.LATEST_PX4_ROS2_API_VERSION;
+	register_ext_component_request.register_arming_check = true;
+	register_ext_component_request.register_mode = true;
+	_register_ext_component_request_pub.publish(register_ext_component_request);
+}
+
+void MulticopterNeuralNetworkControl::UnregisterNeuralFlightMode(int8 arming_check_id, int8 mode_id) {
+	// Unregister the neural flight mode with the commander
+	unregister_ext_component_s unregister_ext_component{};
+	unregister_ext_component.timestamp = static_cast<uint8>(GetTime());
+	strncpy(unregister_ext_component.name, "Neural Control", sizeof(unregister_ext_component.name) - 1);
+	unregister_ext_component.arming_check_id = arming_check_id;
+	unregister_ext_component.mode_id = mode_id;
+	_unregister_ext_component_pub.publish(unregister_ext_component);
 }
 
 
@@ -187,7 +243,7 @@ void MulticopterNeuralNetworkControl::PopulateInputTensor() {
 void MulticopterNeuralNetworkControl::PublishOutput(float* command_actions) {
 
 	actuator_motors_s actuator_motors;
-        actuator_motors.timestamp = hrt_absolute_time();
+        actuator_motors.timestamp = static_cast<uint8>(GetTime());
 
 	actuator_motors.control[0] = PX4_ISFINITE(command_actions[0]) ? command_actions[0] : NAN;
 	actuator_motors.control[1] = PX4_ISFINITE(command_actions[2]) ? command_actions[2] : NAN;
@@ -263,27 +319,18 @@ void MulticopterNeuralNetworkControl::Run()
 	if (should_exit())
 	{
 		_angular_velocity_sub.unregisterCallback();
+		UnregisterNeuralFlightMode(_arming_check_id, _mode_id);
 		exit_and_cleanup();
 		return;
 	}
 
 	perf_begin(_loop_perf);
 
-	#ifdef __PX4_NUTTX
-		hrt_abstime start_time1 = hrt_absolute_time();
-	#else
-		auto start_time1 = std::chrono::high_resolution_clock::now();
-	#endif
-
-	if (_parameter_update_sub.updated()) {
-		parameter_update_s param_update;
-		_parameter_update_sub.copy(&param_update);
-		updateParams();
-	}
+	int32_t start_time1 = GetTime();
 
 	vehicle_control_mode_s vehicle_control_mode;
 	if (_vehicle_control_mode_sub.update(&vehicle_control_mode)) {
-		_use_neural = vehicle_control_mode.flag_control_neural_enabled;
+		_use_neural = vehicle_control_mode.source_id == _mode_id;
 	}
 
 	if(!_use_neural) {
@@ -308,18 +355,10 @@ void MulticopterNeuralNetworkControl::Run()
 		PopulateInputTensor();
 
 		// Run inference
-		#ifdef __PX4_NUTTX
-        		hrt_abstime start_time2 = hrt_absolute_time();
-		#else
-			auto start_time2 = std::chrono::high_resolution_clock::now();
-		#endif
+		int32_t start_time2 = GetTime();
 		// Inference
 		TfLiteStatus invoke_status_control = _control_interpreter->Invoke();
-		#ifdef __PX4_NUTTX
-			hrt_abstime inference_time_control = hrt_absolute_time() - start_time2;
-		#else
-			auto inference_time_control = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time2).count();
-		#endif
+		int32_t inference_time_control = GetTime() - start_time2;
 		if (invoke_status_control != kTfLiteOk) {
 			PX4_ERR("Invoke() failed");
 			return;
@@ -340,17 +379,9 @@ void MulticopterNeuralNetworkControl::Run()
 		allocation_input_tensor->data.f[4] = control_output_tensor->data.f[4] * 0.32f;
 		allocation_input_tensor->data.f[5] = control_output_tensor->data.f[5] * 0.02f;
 
-		#ifdef __PX4_NUTTX
-			hrt_abstime start_time3 = hrt_absolute_time();
-		#else
-			auto start_time3 = std::chrono::high_resolution_clock::now();
-		#endif
+		int32_t start_time3 = GetTime();
 		TfLiteStatus invoke_status = _allocation_interpreter->Invoke();
-		#ifdef __PX4_NUTTX
-			hrt_abstime inference_time_allocation = hrt_absolute_time() - start_time3;
-		#else
-			auto inference_time_allocation = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time3).count();
-		#endif
+		int32_t inference_time_allocation = GetTime() - start_time3;
 		if (invoke_status != kTfLiteOk) {
 			PX4_ERR("Invoke() failed");
 			return;
@@ -368,18 +399,14 @@ void MulticopterNeuralNetworkControl::Run()
 		PublishOutput(_output_tensor->data.f);
 
 
-		#ifdef __PX4_NUTTX
-			hrt_abstime full_controller_time = hrt_absolute_time() - start_time1;
-		#else
-			auto full_controller_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time1).count();
-		#endif
+		int32_t full_controller_time = GetTime() - start_time1;
 
 		// Publish the neural control debug message
 		neural_control_s neural_control;
-		neural_control.timestamp = hrt_absolute_time();
-		neural_control.control_inference_time = static_cast<int32_t>(inference_time_control);
-		neural_control.controller_time = static_cast<int32_t>(full_controller_time);
-		neural_control.allocation_inference_time = static_cast<int32_t>(inference_time_allocation);
+		neural_control.timestamp = static_cast<uint8>(GetTime());
+		neural_control.control_inference_time = inference_time_control;
+		neural_control.controller_time = full_controller_time;
+		neural_control.allocation_inference_time = inference_time_allocation;
 		for (int i = 0; i < 15; i++) {
 			neural_control.observation[i] = _input_tensor->data.f[i];
 		}

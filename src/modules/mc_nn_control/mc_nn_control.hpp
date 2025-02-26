@@ -66,14 +66,14 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/register_ext_component_reply.h>
 
 // Publications
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/neural_control.h>
-
-using namespace time_literals; // For the 1_s in the subscription callback
+#include <uORB/topics/register_ext_component_request.h>
+#include <uORB/topics/unregister_ext_component.h>
 
 class MulticopterNeuralNetworkControl : public ModuleBase<MulticopterNeuralNetworkControl>, public ModuleParams,
 	public px4::WorkItem
@@ -102,10 +102,12 @@ private:
 	void PublishOutput(float* command_actions);
 	void RescaleActions();
 	int InitializeNetwork();
+	int32_t GetTime();
+	void RegisterNeuralFlightMode();
+	void UnregisterNeuralFlightMode(int8 arming_check_id, int8 mode_id);
 
 	// Subscriptions
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
+	uORB::Subscription _register_ext_component_reply_sub{ORB_ID(register_ext_component_reply)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
@@ -115,11 +117,16 @@ private:
 	// Publications
 	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
 	uORB::Publication<neural_control_s> _neural_control_pub{ORB_ID(neural_control)};
+	uORB::Publication<register_ext_component_request_s> _register_ext_component_request_pub{ORB_ID(register_ext_component_request)};
+	uORB::Publication<unregister_ext_component_s> _unregister_ext_component_pub{ORB_ID(unregister_ext_component)};
 
 	// Variables
 	bool _use_neural{false};
 	perf_counter_t _loop_perf; /**< loop duration performance counter */
 	hrt_abstime _last_run{0};
+	uint8 _mode_request_id{231}; //Random value
+	int8 _arming_check_id{-1};
+	int8 _mode_id{-1};
 	tflite::MicroInterpreter* _control_interpreter;
 	tflite::MicroInterpreter* _allocation_interpreter;
 	TfLiteTensor* _input_tensor;
