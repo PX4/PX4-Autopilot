@@ -249,8 +249,6 @@ void FwLateralLongitudinalControl::Run()
 				roll_sp = mapLateralAccelerationToRollAngle(lateral_accel_sp);
 			}
 
-			yaw_sp = _lat_control_sp.heading_sp_runway_takeoff;
-
 			fw_lateral_control_setpoint_s status = {
 				.timestamp = _lat_control_sp.timestamp,
 				.course_setpoint = _lat_control_sp.course_setpoint,

@@ -48,7 +48,7 @@ using matrix::Vector2d;
 using matrix::Vector3f;
 using matrix::wrap_pi;
 
-const fw_lateral_control_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course_setpoint = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration_setpoint = NAN, .roll_sp = NAN, .heading_sp_runway_takeoff = NAN};
+const fw_lateral_control_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course_setpoint = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration_setpoint = NAN, .roll_sp = NAN};
 const fw_longitudinal_control_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude_setpoint = NAN, .height_rate_setpoint = NAN, .equivalent_airspeed_setpoint = NAN, .pitch_sp = NAN, .thrust_sp = NAN};
 const longitudinal_control_limits_s empty_longitudinal_control_limits = {.timestamp = 0, .pitch_min = NAN, .pitch_max = NAN, .throttle_min = NAN, .throttle_max = NAN, .climb_rate_target = NAN, .sink_rate_target = NAN, .equivalent_airspeed_min = NAN, .equivalent_airspeed_max = NAN, .speed_weight = NAN, .enforce_low_height_condition = false, .disable_underspeed_protection = false };
 const lateral_control_limits_s empty_lateral_control_limits = {.timestamp = 0, .lateral_accel_max = NAN};
@@ -1311,7 +1311,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 	if (_runway_takeoff.runwayTakeoffEnabled()) {
 		if (!_runway_takeoff.isInitialized()) {
-			_runway_takeoff.init(now, _yaw, global_position);
+			_runway_takeoff.init(now, global_position);
 			_takeoff_ground_alt = _current_altitude;
 			_launch_current_yaw = _yaw;
 			_airspeed_slew_rate_controller.setForcedValue(takeoff_airspeed);
@@ -1364,8 +1364,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		fw_lateral_ctrl_sp.timestamp = hrt_absolute_time();
 		fw_lateral_ctrl_sp.course_setpoint = sp.course_setpoint;
 		fw_lateral_ctrl_sp.lateral_acceleration_setpoint = sp.lateral_acceleration_feedforward;
-		fw_lateral_ctrl_sp.heading_sp_runway_takeoff = _runway_takeoff.controlYaw() ? _runway_takeoff.getYaw(
-					sp.course_setpoint) : NAN;
 
 		// this overrides the roll setpoint, until the vehicle starts the climbout
 		fw_lateral_ctrl_sp.roll_sp = _runway_takeoff.getRoll();
@@ -1621,7 +1619,6 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		fw_lateral_ctrl_sp.timestamp = hrt_absolute_time();
 		fw_lateral_ctrl_sp.course_setpoint = sp.course_setpoint;
 		fw_lateral_ctrl_sp.lateral_acceleration_setpoint = sp.lateral_acceleration_feedforward;
-		fw_lateral_ctrl_sp.heading_sp_runway_takeoff = sp.course_setpoint;
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
 		const float roll_wingtip_strike = getMaxRollAngleNearGround(_current_altitude, terrain_alt);
@@ -1827,7 +1824,6 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 		fw_lateral_ctrl_sp.timestamp = hrt_absolute_time();
 		fw_lateral_ctrl_sp.course_setpoint = sp.course_setpoint;
 		fw_lateral_ctrl_sp.lateral_acceleration_setpoint = sp.lateral_acceleration_feedforward;
-		fw_lateral_ctrl_sp.heading_sp_runway_takeoff = sp.course_setpoint;
 
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 		/* longitudinal guidance */

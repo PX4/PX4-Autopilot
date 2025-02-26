@@ -70,10 +70,9 @@ public:
 	 * @brief Initializes the state machine.
 	 *
 	 * @param time_now Absolute time since system boot [us]
-	 * @param initial_yaw Vehicle yaw angle at time of initialization [us]
 	 * @param start_pos_global Vehicle global (lat, lon) position at time of initialization [deg]
 	 */
-	void init(const hrt_abstime &time_now, const float initial_yaw, const matrix::Vector2d &start_pos_global);
+	void init(const hrt_abstime &time_now, const matrix::Vector2d &start_pos_global);
 
 	/**
 	 * @brief Updates the state machine based on the current vehicle condition.
@@ -103,11 +102,6 @@ public:
 	bool runwayTakeoffEnabled() { return param_rwto_tkoff_.get(); }
 
 	/**
-	 * @return Initial vehicle yaw angle [rad]
-	 */
-	float getInitYaw() { return initial_yaw_; }
-
-	/**
 	 * @return The vehicle should control yaw via rudder or nose gear
 	 */
 	bool controlYaw();
@@ -123,17 +117,6 @@ public:
 	 * @return Roll angle setpoint [rad]
 	 */
 	float getRoll();
-
-	/**
-	 * @brief Returns the appropriate yaw angle setpoint.
-	 *
-	 * In heading hold mode (_heading_mode == 0), it returns initial yaw as long as it's on the runway.
-	 * When it has enough ground clearance we start navigation towards WP.
-	 *
-	 * @param external_yaw_setpoint Externally commanded yaw angle setpoint [rad]
-	 * @return Yaw angle setpoint [rad]
-	 */
-	float getYaw(float external_yaw_setpoint);
 
 	/**
 	 * @brief Returns the throttle setpoint.
@@ -207,12 +190,6 @@ private:
 	hrt_abstime takeoff_time_{0};
 
 	/**
-	 * Initial yaw of the vehicle on first pass through the runway takeoff state machine.
-	 * used for heading hold mode. [rad]
-	 */
-	float initial_yaw_{0.f};
-
-	/**
 	 * The global (lat, lon) position of the vehicle on first pass through the runway takeoff state machine. The
 	 * takeoff path emanates from this point to correct for any GNSS uncertainty from the planned takeoff point. The
 	 * vehicle should accordingly be set on the center of the runway before engaging the mission. [deg]
@@ -221,7 +198,6 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::RWTO_TKOFF>) param_rwto_tkoff_,
-		(ParamInt<px4::params::RWTO_HDG>) param_rwto_hdg_,
 		(ParamFloat<px4::params::RWTO_MAX_THR>) param_rwto_max_thr_,
 		(ParamFloat<px4::params::RWTO_PSP>) param_rwto_psp_,
 		(ParamFloat<px4::params::RWTO_RAMP_TIME>) param_rwto_ramp_time_,
