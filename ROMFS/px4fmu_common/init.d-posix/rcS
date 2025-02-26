@@ -342,11 +342,6 @@ then
 	internal_combustion_engine_control start
 fi
 
-if param compare -s MC_NN_EN 1
-then
-	mc_nn_control start
-fi
-
 #user defined mavlink streams for instances can be in PATH
 . px4-rc.mavlink
 
