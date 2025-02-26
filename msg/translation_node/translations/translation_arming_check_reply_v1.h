@@ -11,15 +11,15 @@
 class ArmingCheckReplyV1Translation {
 public:
     using MessageOlder = px4_msgs_old::msg::ArmingCheckReplyV0;
-    static_assert(MessageOlder::Request::MESSAGE_VERSION == 0);
+    static_assert(MessageOlder::MESSAGE_VERSION == 0);
 
     using MessageNewer = px4_msgs::msg::ArmingCheckReplyV1;
-    static_assert(MessageNewer::Request::MESSAGE_VERSION == 1);
+    static_assert(MessageNewer::MESSAGE_VERSION == 1);
 
     static constexpr const char* kTopic = "/fmu/in/arming_check_reply";
 
-    static void fromOlder(const MessageOlder::Request &msg_older, MessageNewer::Request &msg_newer) {
-	    // Request: set msg_newer from msg_older
+    static void fromOlder(const MessageOlder &msg_older, MessageNewer &msg_newer) {
+	    // Set msg_newer from msg_older
 	    msg_newer.timestamp = msg_older.timestamp;
 
 	    msg_newer.request_id = msg_older.request_id;
@@ -37,9 +37,9 @@ public:
 	    msg_newer.mode_req_angular_velocity = msg_older.mode_req_angular_velocity;
 	    msg_newer.mode_req_attitude = msg_older.mode_req_attitude;
 	    msg_newer.mode_req_local_alt = msg_older.mode_req_local_alt;
-	    msg_newer.mode_req_local_position = msg_older.ode_req_local_position;
-	    msg_newer.mode_req_local_position_relaxed = msg_older.ode_req_local_position_relaxed;
-	    msg_newer.ode_req_global_position = msg_older.ode_req_global_position;
+	    msg_newer.mode_req_local_position = msg_older.mode_req_local_position;
+	    msg_newer.mode_req_local_position_relaxed = msg_older.mode_req_local_position_relaxed;
+	    msg_newer.mode_req_global_position = msg_older.mode_req_global_position;
 	    msg_newer.mode_req_global_position_relaxed = false;
 	    msg_newer.mode_req_mission = msg_older.mode_req_mission;
 	    msg_newer.mode_req_home_position = msg_older.mode_req_home_position;
@@ -48,8 +48,8 @@ public:
 
     }
 
-    static void toOlder(const MessageNewer::Request &msg_newer, MessageOlder::Request &msg_older) {
-	    // Request: set msg_older from msg_newer
+    static void toOlder(const MessageNewer &msg_newer, MessageOlder &msg_older) {
+	    // Set msg_older from msg_newer
 	    msg_older.timestamp = msg_newer.timestamp;
 
 	    msg_older.request_id = msg_newer.request_id;
@@ -67,9 +67,8 @@ public:
 	    msg_older.mode_req_angular_velocity = msg_newer.mode_req_angular_velocity;
 	    msg_older.mode_req_attitude = msg_newer.mode_req_attitude;
 	    msg_older.mode_req_local_alt = msg_newer.mode_req_local_alt;
-	    msg_older.mode_req_local_position = msg_newer.ode_req_local_position;
-	    msg_older.ode_req_global_position = msg_newer.ode_req_global_position;
-	    msg_older.mode_req_global_position_relaxed = false;
+	    msg_older.mode_req_local_position = msg_newer.mode_req_local_position;
+	    msg_older.mode_req_global_position = msg_newer.mode_req_global_position;
 	    msg_older.mode_req_mission = msg_newer.mode_req_mission;
 	    msg_older.mode_req_home_position = msg_newer.mode_req_home_position;
 	    msg_older.mode_req_prevent_arming = msg_newer.mode_req_prevent_arming;
