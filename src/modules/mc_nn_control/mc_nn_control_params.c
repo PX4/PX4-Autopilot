@@ -42,6 +42,6 @@
  * If true the neural network control is automatically started on boot.
  *
  * @boolean
- * @group Multicopter Neural Network Control
+ * @group Neural Control
  */
 PARAM_DEFINE_INT32(MC_NN_EN, 1);
