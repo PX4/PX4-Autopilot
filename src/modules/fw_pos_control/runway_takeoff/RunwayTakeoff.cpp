@@ -98,12 +98,6 @@ void RunwayTakeoff::update(const hrt_abstime &time_now, const float takeoff_airs
 	}
 }
 
-bool RunwayTakeoff::controlYaw()
-{
-	// keep controlling yaw directly until we start navigation
-	return takeoff_state_ < RunwayTakeoffState::CLIMBOUT;
-}
-
 float RunwayTakeoff::getPitch()
 {
 	if (takeoff_state_ <= RunwayTakeoffState::CLAMPED_TO_RUNWAY) {

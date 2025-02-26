@@ -1331,12 +1331,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			_att_sp.yaw_sp_move_rate = _manual_control_setpoint.yaw;
 		}
 
-		// tune up the lateral position control guidance when on the ground
-		if (_runway_takeoff.controlYaw()) {
-			_directional_guidance.setPeriod(_param_rwto_npfg_period.get());
-
-		}
-
 		const Vector2f start_pos_local = _global_local_proj_ref.project(_runway_takeoff.getStartPosition()(0),
 						 _runway_takeoff.getStartPosition()(1));
 		const Vector2f takeoff_waypoint_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
@@ -1604,12 +1598,6 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 						      1.0f);
 
 		/* lateral guidance first, because npfg will adjust the airspeed setpoint if necessary */
-
-		// tune up the lateral position control guidance when on the ground
-		const float ground_roll_npfg_period = flare_ramp_interpolator * _param_rwto_npfg_period.get() +
-						      (1.0f - flare_ramp_interpolator) * _param_npfg_period.get();
-		_directional_guidance.setPeriod(ground_roll_npfg_period);
-
 		const Vector2f local_approach_entrance = local_land_point - landing_approach_vector;
 
 		const DirectionalGuidanceOutput sp = navigateLine(local_approach_entrance, local_land_point, local_position,
@@ -1810,13 +1798,6 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 						      1.0f);
 
 		/* lateral guidance first, because npfg will adjust the airspeed setpoint if necessary */
-
-		// tune up the lateral position control guidance when on the ground
-		const float ground_roll_npfg_period = flare_ramp_interpolator * _param_rwto_npfg_period.get() +
-						      (1.0f - flare_ramp_interpolator) * _param_npfg_period.get();
-
-		_directional_guidance.setPeriod(ground_roll_npfg_period);
-
 		const DirectionalGuidanceOutput sp = navigateLoiter(local_landing_orbit_center, local_position, loiter_radius,
 						     pos_sp_curr.loiter_direction_counter_clockwise,
 						     ground_speed, _wind_vel);

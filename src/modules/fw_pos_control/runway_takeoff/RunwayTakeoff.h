@@ -102,11 +102,6 @@ public:
 	bool runwayTakeoffEnabled() { return param_rwto_tkoff_.get(); }
 
 	/**
-	 * @return The vehicle should control yaw via rudder or nose gear
-	 */
-	bool controlYaw();
-
-	/**
 	 * @param external_pitch_setpoint Externally commanded pitch angle setpoint (usually from TECS) [rad]
 	 * @return Pitch angle setpoint (limited while plane is on runway) [rad]
 	 */
