@@ -1,20 +1,20 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *	notice, this list of conditions and the following disclaimer.
+ *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *	notice, this list of conditions and the following disclaimer in
- *	the documentation and/or other materials provided with the
- *	distribution.
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
  * 3. Neither the name PX4 nor the names of its contributors may be
- *	used to endorse or promote products derived from this software
- *	without specific prior written permission.
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -736,42 +736,36 @@ static float generate_wgn()
 }
 
 void GZBridge::addRealisticGpsNoise(double &latitude, double &longitude, double &altitude,
-                          float &vel_north, float &vel_east, float &vel_down)
+				    float &vel_north, float &vel_east, float &vel_down)
 {
-    // Position noise model - first order Markov process with occasional jumps
-    // Markov process: more persistence, less random walk
-    _gps_pos_noise_n = _pos_markov_time * _gps_pos_noise_n +
-                       _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
-                       0.02f * _gps_pos_noise_n;
+	_gps_pos_noise_n = _pos_markov_time * _gps_pos_noise_n +
+			   _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+			   0.02f * _gps_pos_noise_n;
 
-    _gps_pos_noise_e = _pos_markov_time * _gps_pos_noise_e +
-                       _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
-                       0.02f * _gps_pos_noise_e;
+	_gps_pos_noise_e = _pos_markov_time * _gps_pos_noise_e +
+			   _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+			   0.02f * _gps_pos_noise_e;
 
-    _gps_pos_noise_d = _pos_markov_time * _gps_pos_noise_d +
-                       _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f -
-                       0.02f * _gps_pos_noise_d;
+	_gps_pos_noise_d = _pos_markov_time * _gps_pos_noise_d +
+			   _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f -
+			   0.02f * _gps_pos_noise_d;
 
-    // Apply the correlated noise to positions
-    latitude += math::degrees((double)_gps_pos_noise_n / CONSTANTS_RADIUS_OF_EARTH);
-    longitude += math::degrees((double)_gps_pos_noise_e / CONSTANTS_RADIUS_OF_EARTH);
-    altitude += (double)_gps_pos_noise_d;
+	latitude += math::degrees((double)_gps_pos_noise_n / CONSTANTS_RADIUS_OF_EARTH);
+	longitude += math::degrees((double)_gps_pos_noise_e / CONSTANTS_RADIUS_OF_EARTH);
+	altitude += (double)_gps_pos_noise_d;
 
-    // Velocity noise model - F9P has ~0.05 m/s velocity accuracy
-    // More stable, less high-frequency noise
-    _gps_vel_noise_n = _vel_markov_time * _gps_vel_noise_n +
-                       _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+	_gps_vel_noise_n = _vel_markov_time * _gps_vel_noise_n +
+			   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
 
-    _gps_vel_noise_e = _vel_markov_time * _gps_vel_noise_e +
-                       _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+	_gps_vel_noise_e = _vel_markov_time * _gps_vel_noise_e +
+			   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
 
-    _gps_vel_noise_d = _vel_markov_time * _gps_vel_noise_d +
-                       _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
+	_gps_vel_noise_d = _vel_markov_time * _gps_vel_noise_d +
+			   _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
 
-    // Apply velocity noise
-    vel_north += _gps_vel_noise_n;
-    vel_east += _gps_vel_noise_e;
-    vel_down += _gps_vel_noise_d;
+	vel_north += _gps_vel_noise_n;
+	vel_east += _gps_vel_noise_e;
+	vel_down += _gps_vel_noise_d;
 }
 
 void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
