@@ -1109,7 +1109,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		} else {
 			// continue straight until vehicle has sufficient altitude
 			lateral_limits.lateral_accel_max = 0.f;
-      
+
       // keep flaps in landing configuration if the airspeed is below the min airspeed (keep deployed if airspeed not valid)
 			if (!_airspeed_valid || _airspeed_eas < _performance_model.getMinimumCalibratedAirspeed()) {
 				_flaps_setpoint =  _param_fw_flaps_lnd_scl.get();
@@ -2357,8 +2357,6 @@ FixedwingPositionControl::Run()
 
 		// restore lateral-directional guidance parameters (changed in takeoff mode)
 		_directional_guidance.setPeriod(_param_npfg_period.get());
-
-		_att_sp.reset_integral = false;
 
 		// by default no flaps/spoilers, is overwritten below in certain modes
 		_flaps_setpoint = 0.f;
