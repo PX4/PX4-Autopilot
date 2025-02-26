@@ -40,11 +40,10 @@ void OpticalFlowCheck::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	const bool exists = _vehicle_optical_flow_sub.advertised();
-	bool valid = false;
 
 	if (exists) {
 		vehicle_optical_flow_s flow_sens;
-		valid = _vehicle_optical_flow_sub.copy(&flow_sens) && (hrt_elapsed_time(&flow_sens.timestamp) < 1_s);
+		const bool valid = _vehicle_optical_flow_sub.copy(&flow_sens) && (hrt_elapsed_time(&flow_sens.timestamp) < 1_s);
 		reporter.setIsPresent(health_component_t::optical_flow);
 
 		if (!valid) {
