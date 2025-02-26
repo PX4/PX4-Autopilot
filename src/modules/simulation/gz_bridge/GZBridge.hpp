@@ -119,56 +119,13 @@ private:
 	void laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan);
 	void laserScanCallback(const gz::msgs::LaserScan &scan);
 
-	/**
-	 * @brief Call Entityfactory service
-	 *
-	 * @param req
-	 * @return true
-	 * @return false
-	 */
 	bool callEntityFactoryService(const std::string &service, const gz::msgs::EntityFactory &req);
-
-
-	/**
-	 * @brief Call scene info service
-	 *
-	 * @param service
-	 * @param req
-	 * @return true
-	 * @return false
-	 */
 	bool callSceneInfoMsgService(const std::string &service);
-
-	/**
-	 * @brief Call String service
-	 *
-	 * @param service
-	 * @param req
-	 * @return true
-	 * @return false
-	 */
 	bool callStringMsgService(const std::string &service, const gz::msgs::StringMsg &req);
-
-	/**
-	 * @brief Call Vector3d Service
-	 *
-	 * @param service
-	 * @param req
-	 * @return true
-	 * @return false
-	 */
 	bool callVector3dService(const std::string &service, const gz::msgs::Vector3d &req);
-	/**
-	*
-	* Convert a quaterion from FLU_to_ENU frames (ROS convention)
-	* to FRD_to_NED frames (PX4 convention)
-	*
-	* @param q_FRD_to_NED output quaterion in PX4 conventions
-	* @param q_FLU_to_ENU input quaterion in ROS conventions
-	*/
-	static void rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU);
-
 	bool callPhysicsMsgService(const std::string &service, const gz::msgs::Physics &req);
+
+	static void rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU);
 
 	void addRealisticGpsNoise(double &latitude, double &longitude, double &altitude,
 				  float &vel_north, float &vel_east, float &vel_down);
