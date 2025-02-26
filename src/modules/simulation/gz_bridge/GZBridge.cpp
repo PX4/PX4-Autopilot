@@ -52,8 +52,6 @@ GZBridge::GZBridge(const char *world, const char *name, const char *model,
 	_model_sim(model),
 	_model_pose(pose_str)
 {
-	pthread_mutex_init(&_node_mutex, nullptr);
-
 	updateParams();
 }
 
@@ -429,15 +427,11 @@ bool GZBridge::updateClock(const uint64_t tv_sec, const uint64_t tv_nsec)
 
 void GZBridge::clockCallback(const gz::msgs::Clock &clock)
 {
-	pthread_mutex_lock(&_node_mutex);
-
 	const uint64_t time_us = (clock.sim().sec() * 1000000) + (clock.sim().nsec() / 1000);
 
 	if (time_us > _world_time_us.load()) {
 		updateClock(clock.sim().sec(), clock.sim().nsec());
 	}
-
-	pthread_mutex_unlock(&_node_mutex);
 }
 
 void GZBridge::barometerCallback(const gz::msgs::FluidPressure &air_pressure)
@@ -445,8 +439,6 @@ void GZBridge::barometerCallback(const gz::msgs::FluidPressure &air_pressure)
 	if (hrt_absolute_time() == 0) {
 		return;
 	}
-
-	pthread_mutex_lock(&_node_mutex);
 
 	const uint64_t time_us = (air_pressure.header().stamp().sec() * 1000000)
 				 + (air_pressure.header().stamp().nsec() / 1000);
@@ -459,8 +451,6 @@ void GZBridge::barometerCallback(const gz::msgs::FluidPressure &air_pressure)
 	sensor_baro.temperature = this->_temperature;
 	sensor_baro.timestamp = hrt_absolute_time();
 	_sensor_baro_pub.publish(sensor_baro);
-
-	pthread_mutex_unlock(&_node_mutex);
 }
 
 
@@ -469,8 +459,6 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &air_speed)
 	if (hrt_absolute_time() == 0) {
 		return;
 	}
-
-	pthread_mutex_lock(&_node_mutex);
 
 	const uint64_t time_us = (air_speed.header().stamp().sec() * 1000000)
 				 + (air_speed.header().stamp().nsec() / 1000);
@@ -486,8 +474,6 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &air_speed)
 	_differential_pressure_pub.publish(report);
 
 	this->_temperature = report.temperature;
-
-	pthread_mutex_unlock(&_node_mutex);
 }
 
 void GZBridge::imuCallback(const gz::msgs::IMU &imu)
@@ -495,8 +481,6 @@ void GZBridge::imuCallback(const gz::msgs::IMU &imu)
 	if (hrt_absolute_time() == 0) {
 		return;
 	}
-
-	pthread_mutex_lock(&_node_mutex);
 
 	const uint64_t time_us = (imu.header().stamp().sec() * 1000000) + (imu.header().stamp().nsec() / 1000);
 
@@ -551,8 +535,6 @@ void GZBridge::imuCallback(const gz::msgs::IMU &imu)
 	sensor_gyro.temperature = NAN;
 	sensor_gyro.samples = 1;
 	_sensor_gyro_pub.publish(sensor_gyro);
-
-	pthread_mutex_unlock(&_node_mutex);
 }
 
 void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
@@ -560,8 +542,6 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 	if (hrt_absolute_time() == 0) {
 		return;
 	}
-
-	pthread_mutex_lock(&_node_mutex);
 
 	for (int p = 0; p < pose.pose_size(); p++) {
 		if (pose.pose(p).name() == _model_name) {
@@ -663,13 +643,9 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 
 			local_position_groundtruth.timestamp = hrt_absolute_time();
 			_lpos_ground_truth_pub.publish(local_position_groundtruth);
-
-			pthread_mutex_unlock(&_node_mutex);
 			return;
 		}
 	}
-
-	pthread_mutex_unlock(&_node_mutex);
 }
 
 void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &odometry)
@@ -677,8 +653,6 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &odometry
 	if (hrt_absolute_time() == 0) {
 		return;
 	}
-
-	pthread_mutex_lock(&_node_mutex);
 
 	const uint64_t time_us = (odometry.header().stamp().sec() * 1000000) + (odometry.header().stamp().nsec() / 1000);
 
@@ -744,8 +718,6 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &odometry
 
 	// odom.reset_counter = vpe.reset_counter;
 	_visual_odometry_pub.publish(odom);
-
-	pthread_mutex_unlock(&_node_mutex);
 }
 
 static float generate_wgn()
@@ -824,8 +796,6 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 		return;
 	}
 
-	pthread_mutex_lock(&_node_mutex);
-
 	const uint64_t time_us = (nav_sat.header().stamp().sec() * 1000000) + (nav_sat.header().stamp().nsec() / 1000);
 
 	if (time_us > _world_time_us.load()) {
@@ -836,7 +806,6 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 	if (!_pos_ref.isInitialized()) {
 		_pos_ref.initReference(nav_sat.latitude_deg(), nav_sat.longitude_deg(), hrt_absolute_time());
 		_alt_ref = nav_sat.altitude();
-		pthread_mutex_unlock(&_node_mutex);
 		return;
 	}
 
@@ -921,8 +890,6 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 	sensor_gps.satellites_used = _sim_gps_used.get();
 
 	_sensor_gps_pub.publish(sensor_gps);
-
-	pthread_mutex_unlock(&_node_mutex);
 }
 
 void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
@@ -1201,8 +1168,6 @@ void GZBridge::Run()
 		return;
 	}
 
-	pthread_mutex_lock(&_node_mutex);
-
 	if (_parameter_update_sub.updated()) {
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
@@ -1216,8 +1181,6 @@ void GZBridge::Run()
 	}
 
 	ScheduleDelayed(10_ms);
-
-	pthread_mutex_unlock(&_node_mutex);
 }
 
 int GZBridge::print_status()
