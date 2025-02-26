@@ -456,10 +456,6 @@ void GZBridge::barometerCallback(const gz::msgs::FluidPressure &air_pressure)
 
 void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &air_speed)
 {
-	if (hrt_absolute_time() == 0) {
-		return;
-	}
-
 	const uint64_t time_us = (air_speed.header().stamp().sec() * 1000000)
 				 + (air_speed.header().stamp().nsec() / 1000);
 
@@ -478,10 +474,6 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &air_speed)
 
 void GZBridge::imuCallback(const gz::msgs::IMU &imu)
 {
-	if (hrt_absolute_time() == 0) {
-		return;
-	}
-
 	const uint64_t time_us = (imu.header().stamp().sec() * 1000000) + (imu.header().stamp().nsec() / 1000);
 
 	if (time_us > _world_time_us.load()) {
@@ -539,10 +531,6 @@ void GZBridge::imuCallback(const gz::msgs::IMU &imu)
 
 void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 {
-	if (hrt_absolute_time() == 0) {
-		return;
-	}
-
 	for (int p = 0; p < pose.pose_size(); p++) {
 		if (pose.pose(p).name() == _model_name) {
 
@@ -650,10 +638,6 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 
 void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &odometry)
 {
-	if (hrt_absolute_time() == 0) {
-		return;
-	}
-
 	const uint64_t time_us = (odometry.header().stamp().sec() * 1000000) + (odometry.header().stamp().nsec() / 1000);
 
 	if (time_us > _world_time_us.load()) {
@@ -792,10 +776,6 @@ void GZBridge::addRealisticGpsNoise(double &latitude, double &longitude, double 
 
 void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 {
-	if (hrt_absolute_time() == 0) {
-		return;
-	}
-
 	const uint64_t time_us = (nav_sat.header().stamp().sec() * 1000000) + (nav_sat.header().stamp().nsec() / 1000);
 
 	if (time_us > _world_time_us.load()) {
@@ -894,10 +874,6 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 
 void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
 {
-	if (hrt_absolute_time() == 0) {
-		return;
-	}
-
 	distance_sensor_s distance_sensor{};
 	distance_sensor.timestamp = hrt_absolute_time();
 	device::Device::DeviceId id;
