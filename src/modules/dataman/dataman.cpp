@@ -65,12 +65,14 @@ __END_DECLS
 
 static constexpr int TASK_STACK_SIZE = 1420;
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 /* Private File based Operations */
 static ssize_t _file_write(dm_item_t item, unsigned index, const void *buf, size_t count);
 static ssize_t _file_read(dm_item_t item, unsigned index, void *buf, size_t count);
 static int  _file_clear(dm_item_t item);
 static int _file_initialize(unsigned max_offset);
 static void _file_shutdown();
+#endif
 
 /* Private Ram based Operations */
 static ssize_t _ram_write(dm_item_t item, unsigned index, const void *buf, size_t count);
@@ -88,6 +90,7 @@ typedef struct dm_operations_t {
 	int (*wait)(px4_sem_t *sem);
 } dm_operations_t;
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 static constexpr dm_operations_t dm_file_operations = {
 	.write   = _file_write,
 	.read    = _file_read,
@@ -96,6 +99,7 @@ static constexpr dm_operations_t dm_file_operations = {
 	.shutdown = _file_shutdown,
 	.wait = px4_sem_wait,
 };
+#endif
 
 static constexpr dm_operations_t dm_ram_operations = {
 	.write   = _ram_write,
@@ -149,9 +153,11 @@ static uint8_t dataman_clients_count = 1;
 static perf_counter_t _dm_read_perf{nullptr};
 static perf_counter_t _dm_write_perf{nullptr};
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 /* The data manager store file handle and file name */
 static const char *default_device_path = PX4_STORAGEDIR "/dataman";
 static char *k_data_manager_device_path = nullptr;
+#endif
 
 static enum {
 	BACKEND_NONE = 0,
@@ -241,6 +247,7 @@ static ssize_t _ram_write(dm_item_t item, unsigned index, const void *buf, size_
 	return count;
 }
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 /* write to the data manager file */
 static ssize_t
 _file_write(dm_item_t item, unsigned index, const void *buf, size_t count)
@@ -318,6 +325,7 @@ _file_write(dm_item_t item, unsigned index, const void *buf, size_t count)
 	/* All is well... return the number of user data written */
 	return count - DM_SECTOR_HDR_SIZE;
 }
+#endif
 
 /* Retrieve from the data manager RAM buffer*/
 static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count)
@@ -362,6 +370,7 @@ static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count
 	return buffer[0];
 }
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 /* Retrieve from the data manager file */
 static ssize_t
 _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
@@ -442,6 +451,7 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 	/* Return the number of bytes of caller data read */
 	return buffer[0];
 }
+#endif
 
 static int  _ram_clear(dm_item_t item)
 {
@@ -475,6 +485,7 @@ static int  _ram_clear(dm_item_t item)
 	return result;
 }
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 static int
 _file_clear(dm_item_t item)
 {
@@ -528,7 +539,9 @@ _file_clear(dm_item_t item)
 	fsync(dm_operations_data.file.fd);
 	return result;
 }
+#endif
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 static int
 _file_initialize(unsigned max_offset)
 {
@@ -594,6 +607,7 @@ _file_initialize(unsigned max_offset)
 
 	return 0;
 }
+#endif
 
 static int
 _ram_initialize(unsigned max_offset)
@@ -614,12 +628,14 @@ _ram_initialize(unsigned max_offset)
 	return 0;
 }
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 static void
 _file_shutdown()
 {
 	close(dm_operations_data.file.fd);
 	dm_operations_data.running = false;
 }
+#endif
 
 static void
 _ram_shutdown()
@@ -633,9 +649,12 @@ task_main(int argc, char *argv[])
 {
 	/* Dataman can use disk or RAM */
 	switch (backend) {
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
+
 	case BACKEND_FILE:
 		g_dm_ops = &dm_file_operations;
 		break;
+#endif
 
 	case BACKEND_RAM:
 		g_dm_ops = &dm_ram_operations;
@@ -680,10 +699,13 @@ task_main(int argc, char *argv[])
 	}
 
 	switch (backend) {
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
+
 	case BACKEND_FILE:
 		PX4_INFO("data manager file '%s' size is %u bytes", k_data_manager_device_path, max_offset);
 
 		break;
+#endif
 
 	case BACKEND_RAM:
 		PX4_INFO("data manager RAM size is %u bytes", max_offset);
@@ -871,7 +893,7 @@ usage()
 		R"DESCR_STR(
 ### Description
 Module to provide persistent storage for the rest of the system in form of a simple database through a C API.
-Multiple backends are supported:
+Multiple backends are supported depending on the board:
 - a file (eg. on the SD card)
 - RAM (this is obviously not persistent)
 
@@ -885,9 +907,13 @@ Reading and writing a single item is always atomic.
 
 	PRINT_MODULE_USAGE_NAME("dataman", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 	PRINT_MODULE_USAGE_PARAM_STRING('f', nullptr, "<file>", "Storage file", true);
+#endif
 	PRINT_MODULE_USAGE_PARAM_FLAG('r', "Use RAM backend (NOT persistent)", true);
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 	PRINT_MODULE_USAGE_PARAM_COMMENT("The options -f and -r are mutually exclusive. If nothing is specified, a file 'dataman' is used");
+#endif
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -930,9 +956,14 @@ dataman_main(int argc, char *argv[])
 					return -1;
 				}
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 				backend = BACKEND_FILE;
 				k_data_manager_device_path = strdup(dmoptarg);
 				PX4_INFO("dataman file set to: %s", k_data_manager_device_path);
+#else
+				backend = BACKEND_RAM;
+				PX4_WARN("dataman does not support persistent storage. Falling back to RAM.");
+#endif
 				break;
 
 			case 'r':
@@ -951,16 +982,22 @@ dataman_main(int argc, char *argv[])
 		}
 
 		if (backend == BACKEND_NONE) {
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 			backend = BACKEND_FILE;
 			k_data_manager_device_path = strdup(default_device_path);
+#else
+			backend = BACKEND_RAM;
+#endif
 		}
 
 		start();
 
 		if (!is_running()) {
 			PX4_ERR("dataman start failed");
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 			free(k_data_manager_device_path);
 			k_data_manager_device_path = nullptr;
+#endif
 			return -1;
 		}
 
@@ -976,8 +1013,10 @@ dataman_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		stop();
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 		free(k_data_manager_device_path);
 		k_data_manager_device_path = nullptr;
+#endif
 
 	} else if (!strcmp(argv[1], "status")) {
 		status();
