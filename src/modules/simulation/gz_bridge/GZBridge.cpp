@@ -748,6 +748,76 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &odometry
 	pthread_mutex_unlock(&_node_mutex);
 }
 
+static float generate_wgn()
+{
+	// generate white Gaussian noise sample with std=1
+
+	// algorithm 1:
+	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
+	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
+	// algorithm 2: from BlockRandGauss.hpp
+	static float V1, V2, S;
+	static bool phase = true;
+	float X;
+
+	if (phase) {
+		do {
+			float U1 = (float)rand() / (float)RAND_MAX;
+			float U2 = (float)rand() / (float)RAND_MAX;
+			V1 = 2.0f * U1 - 1.0f;
+			V2 = 2.0f * U2 - 1.0f;
+			S = V1 * V1 + V2 * V2;
+		} while (S >= 1.0f || fabsf(S) < 1e-8f);
+
+		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
+
+	} else {
+		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
+	}
+
+	phase = !phase;
+	return X;
+}
+
+void GZBridge::addRealisticGpsNoise(double &latitude, double &longitude, double &altitude,
+                          float &vel_north, float &vel_east, float &vel_down)
+{
+    // Position noise model - first order Markov process with occasional jumps
+    // Markov process: more persistence, less random walk
+    _gps_pos_noise_n = _pos_markov_time * _gps_pos_noise_n +
+                       _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+                       0.02f * _gps_pos_noise_n;
+
+    _gps_pos_noise_e = _pos_markov_time * _gps_pos_noise_e +
+                       _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+                       0.02f * _gps_pos_noise_e;
+
+    _gps_pos_noise_d = _pos_markov_time * _gps_pos_noise_d +
+                       _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f -
+                       0.02f * _gps_pos_noise_d;
+
+    // Apply the correlated noise to positions
+    latitude += math::degrees((double)_gps_pos_noise_n / CONSTANTS_RADIUS_OF_EARTH);
+    longitude += math::degrees((double)_gps_pos_noise_e / CONSTANTS_RADIUS_OF_EARTH);
+    altitude += (double)_gps_pos_noise_d;
+
+    // Velocity noise model - F9P has ~0.05 m/s velocity accuracy
+    // More stable, less high-frequency noise
+    _gps_vel_noise_n = _vel_markov_time * _gps_vel_noise_n +
+                       _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+
+    _gps_vel_noise_e = _vel_markov_time * _gps_vel_noise_e +
+                       _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+
+    _gps_vel_noise_d = _vel_markov_time * _gps_vel_noise_d +
+                       _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
+
+    // Apply velocity noise
+    vel_north += _gps_vel_noise_n;
+    vel_east += _gps_vel_noise_e;
+    vel_down += _gps_vel_noise_d;
+}
+
 void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 {
 	if (hrt_absolute_time() == 0) {
@@ -766,23 +836,95 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 	if (!_pos_ref.isInitialized()) {
 		_pos_ref.initReference(nav_sat.latitude_deg(), nav_sat.longitude_deg(), hrt_absolute_time());
 		_alt_ref = nav_sat.altitude();
+		pthread_mutex_unlock(&_node_mutex);
+		return;
+	}
+
+	double latitude = nav_sat.latitude_deg();
+	double longitude = nav_sat.longitude_deg();
+	double altitude = nav_sat.altitude();
+	float vel_north = nav_sat.velocity_north();
+	float vel_east = nav_sat.velocity_east();
+	float vel_down = -nav_sat.velocity_up();
+
+	vehicle_global_position_s gps_truth{};
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	gps_truth.timestamp_sample = time_us;
+	uint64_t timestamp = time_us;
+#else
+	uint64_t timestamp = hrt_absolute_time();
+#endif
+
+	// Publish GPS groundtruth
+	gps_truth.timestamp_sample = timestamp;
+	gps_truth.lat = latitude;
+	gps_truth.lon = longitude;
+	gps_truth.alt = altitude;
+	_gpos_ground_truth_pub.publish(gps_truth);
+
+	// Apply noise model (based on ublox F9P)
+	addRealisticGpsNoise(latitude, longitude, altitude, vel_north, vel_east, vel_down);
+
+	// Device ID
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	device_id.devid_s.bus = 0;
+	device_id.devid_s.address = 0;
+	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+
+	sensor_gps_s sensor_gps{};
+
+	if (_sim_gps_used.get() >= 4) {
+		// fix
+		sensor_gps.fix_type = 3; // 3D fix
+		sensor_gps.s_variance_m_s = 0.4f;
+		sensor_gps.c_variance_rad = 0.1f;
+		sensor_gps.eph = 0.9f;
+		sensor_gps.epv = 1.78f;
+		sensor_gps.hdop = 0.7f;
+		sensor_gps.vdop = 1.1f;
 
 	} else {
-		// publish GPS groundtruth
-		vehicle_global_position_s global_position_groundtruth{};
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-		global_position_groundtruth.timestamp_sample = time_us;
-#else
-		global_position_groundtruth.timestamp_sample = hrt_absolute_time();
-#endif
-		global_position_groundtruth.lat = nav_sat.latitude_deg();
-		global_position_groundtruth.lon = nav_sat.longitude_deg();
-		global_position_groundtruth.alt = nav_sat.altitude();
-		_gpos_ground_truth_pub.publish(global_position_groundtruth);
+		// no fix
+		sensor_gps.fix_type = 0; // No fix
+		sensor_gps.s_variance_m_s = 100.f;
+		sensor_gps.c_variance_rad = 100.f;
+		sensor_gps.eph = 100.f;
+		sensor_gps.epv = 100.f;
+		sensor_gps.hdop = 100.f;
+		sensor_gps.vdop = 100.f;
 	}
+
+	sensor_gps.timestamp = hrt_absolute_time();
+	sensor_gps.timestamp_sample = timestamp;
+	sensor_gps.time_utc_usec = 0;
+	sensor_gps.device_id = device_id.devid;
+	sensor_gps.latitude_deg = latitude;
+	sensor_gps.longitude_deg = longitude;
+	sensor_gps.altitude_msl_m = altitude;
+	sensor_gps.altitude_ellipsoid_m = altitude;
+	sensor_gps.noise_per_ms = 0;
+	sensor_gps.jamming_indicator = 0;
+	sensor_gps.vel_m_s = sqrtf(vel_north * vel_north + vel_east * vel_east);
+	sensor_gps.vel_n_m_s = vel_north;
+	sensor_gps.vel_e_m_s = vel_east;
+	sensor_gps.vel_d_m_s = vel_down;
+	sensor_gps.cog_rad = atan2(vel_east, vel_north);
+	sensor_gps.timestamp_time_relative = 0;
+	sensor_gps.heading = NAN;
+	sensor_gps.heading_offset = NAN;
+	sensor_gps.heading_accuracy = 0;
+	sensor_gps.automatic_gain_control = 0;
+	sensor_gps.jamming_state = 0;
+	sensor_gps.spoofing_state = 0;
+	sensor_gps.vel_ned_valid = true;
+	sensor_gps.satellites_used = _sim_gps_used.get();
+
+	_sensor_gps_pub.publish(sensor_gps);
 
 	pthread_mutex_unlock(&_node_mutex);
 }
+
 void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
 {
 	if (hrt_absolute_time() == 0) {

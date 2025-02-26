@@ -44,24 +44,26 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/drivers/device/Device.hpp>
 #include <lib/geo/geo.h>
+
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
-#include <lib/drivers/device/Device.hpp>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_baro.h>
+#include <uORB/topics/obstacle_distance.h>
+#include <uORB/topics/wheel_encoders.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/vehicle_odometry.h>
-#include <uORB/topics/wheel_encoders.h>
-#include <uORB/topics/obstacle_distance.h>
 
 #include <gz/math.hh>
 #include <gz/msgs.hh>
@@ -168,8 +170,11 @@ private:
 
 	bool callPhysicsMsgService(const std::string &service, const gz::msgs::Physics &req);
 
-	// Subscriptions
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
+	void addRealisticGpsNoise(double &latitude, double &longitude, double &altitude,
+                          float &vel_north, float &vel_east, float &vel_down);
+
+	uORB::SubscriptionInterval                    _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Publication<distance_sensor_s>          _distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::Publication<differential_pressure_s>    _differential_pressure_pub{ORB_ID(differential_pressure)};
@@ -178,15 +183,17 @@ private:
 	uORB::Publication<vehicle_attitude_s>         _attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
 	uORB::Publication<vehicle_global_position_s>  _gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Publication<vehicle_local_position_s>   _lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
-	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
-	uORB::PublicationMulti<sensor_accel_s> _sensor_accel_pub{ORB_ID(sensor_accel)};
-	uORB::PublicationMulti<sensor_gyro_s>  _sensor_gyro_pub{ORB_ID(sensor_gyro)};
-	uORB::PublicationMulti<vehicle_odometry_s> _visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
+	uORB::PublicationMulti<sensor_gps_s>          _sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_baro_s>         _sensor_baro_pub{ORB_ID(sensor_baro)};
+	uORB::PublicationMulti<sensor_accel_s>        _sensor_accel_pub{ORB_ID(sensor_accel)};
+	uORB::PublicationMulti<sensor_gyro_s>         _sensor_gyro_pub{ORB_ID(sensor_gyro)};
+	uORB::PublicationMulti<vehicle_odometry_s>    _visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 
 	GZMixingInterfaceESC   _mixing_interface_esc{_node, _node_mutex};
 	GZMixingInterfaceServo _mixing_interface_servo{_node, _node_mutex};
 	GZMixingInterfaceWheel _mixing_interface_wheel{_node, _node_mutex};
+
 	GZGimbal _gimbal{_node, _node_mutex};
 
 	px4::atomic<uint64_t> _world_time_us{0};
@@ -209,4 +216,28 @@ private:
 	float _temperature{288.15};  // 15 degrees
 
 	gz::transport::Node _node;
+
+    // Position noise state variables
+    float _gps_pos_noise_n = 0.0f;  // North position noise state [m]
+    float _gps_pos_noise_e = 0.0f;  // East position noise state [m]
+    float _gps_pos_noise_d = 0.0f;  // Down position noise state [m]
+
+    // Velocity noise state variables
+    float _gps_vel_noise_n = 0.0f;  // North velocity noise state [m/s]
+    float _gps_vel_noise_e = 0.0f;  // East velocity noise state [m/s]
+    float _gps_vel_noise_d = 0.0f;  // Down velocity noise state [m/s]
+
+    // Noise configuration parameters (could be made configurable)
+    const float _pos_noise_amplitude = 0.8f;    // Position noise amplitude [m]
+    const float _pos_noise_density = 0.1f;      // Position noise process density
+    const float _pos_random_walk = 0.01f;       // Position random walk coefficient
+    const float _pos_markov_time = 0.95f;       // Position Markov process coefficient
+
+    const float _vel_noise_amplitude = 0.05f;   // Velocity noise amplitude [m/s]
+    const float _vel_noise_density = 0.2f;      // Velocity noise process density
+    const float _vel_markov_time = 0.85f;       // Velocity Markov process coefficient
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SIM_GPS_USED>) _sim_gps_used
+	)
 };
