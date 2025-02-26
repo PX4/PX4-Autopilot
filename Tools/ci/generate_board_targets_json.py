@@ -69,7 +69,7 @@ def process_target(px4board_file, target_name):
     group = None
 
     if px4board_file.endswith("default.px4board") or \
-        px4board_file.endswith("recovery.px4board") or \
+        px4board_file.endswith("performance-test.px4board") or \
         px4board_file.endswith("bootloader.px4board"):
         kconf.load_config(px4board_file, replace=True)
     else: # Merge config with default.px4board
