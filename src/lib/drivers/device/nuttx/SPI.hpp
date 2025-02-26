@@ -39,7 +39,6 @@
  * Base class for devices connected via SPI.
  */
 
-#include "../CDev.hpp"
 #include <px4_platform_common/spi.h>
 
 #if defined(CONFIG_SPI)
@@ -55,7 +54,7 @@ namespace device __EXPORT
 /**
  * Abstract class for character device on SPI
  */
-class __EXPORT SPI : public CDev
+class __EXPORT SPI : public PX4SPI
 {
 public:
 	// no copy, assignment, move, move assignment
@@ -81,21 +80,9 @@ protected:
 
 	virtual ~SPI();
 
-	/**
-	 * Locking modes supported by the driver.
-	 */
-	enum LockMode {
-		LOCK_PREEMPTION,	/**< the default; lock against all forms of preemption. */
-		LOCK_THREADS,		/**< lock only against other threads, using SPI_LOCK */
-		LOCK_NONE		/**< perform no locking, only safe if the bus is entirely private */
-	};
 
 	virtual int	init() override;
 
-	/**
-	 * Check for the presence of the device on the bus.
-	 */
-	virtual int	probe() { return PX4_OK; }
 
 	/**
 	 * Perform a SPI transfer.
@@ -161,10 +148,12 @@ protected:
 	 */
 	void		set_lockmode(enum LockMode mode) { _locking_mode = mode; }
 
+	void		set_cs_to_sck_delay(uint32_t delay_ns) { _cs_to_sck_ns = delay_ns; }
 private:
 	uint32_t		_device;
 	enum spi_mode_e		_mode;
 	uint32_t		_frequency;
+	uint32_t		_cs_to_sck_ns {0};
 	struct spi_dev_s	*_dev {nullptr};
 
 	LockMode		_locking_mode{LOCK_THREADS};	/**< selected locking mode */
@@ -173,9 +162,7 @@ protected:
 	int	_transfer(uint8_t *send, uint8_t *recv, unsigned len);
 
 	int	_transferhword(uint16_t *send, uint16_t *recv, unsigned len);
-
 	bool	external() const override { return px4_spi_bus_external(get_device_bus()); }
-
 };
 
 } // namespace device
