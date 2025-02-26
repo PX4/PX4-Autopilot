@@ -15,6 +15,8 @@ control_allocator start
 #
 uuv_att_control start
 
+#Start UUV Position controller. 
+uuv_pos_control start
 #
 # Start UUV Land Detector.
 #

@@ -74,6 +74,9 @@ publications:
   - topic: /fmu/out/vehicle_trajectory_waypoint_desired
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
 
+  - topic: /fmu/out/sensor_baro
+    type: px4_msgs::msg::SensorBaro
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
@@ -165,3 +168,5 @@ subscriptions:
 
 # Create uORB::PublicationMulti
 subscriptions_multi:
+  - topic: /fmu/in/vehicle_local_position
+    type: px4_msgs::msg::VehicleLocalPosition
