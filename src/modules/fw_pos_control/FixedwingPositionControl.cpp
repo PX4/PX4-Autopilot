@@ -1326,9 +1326,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		_runway_takeoff.update(now, takeoff_airspeed, _airspeed_eas, _current_altitude - _takeoff_ground_alt,
 				       clearance_altitude_amsl - _takeoff_ground_alt);
 
-		// yaw control is disabled once in "taking off" state
-		_att_sp.fw_control_yaw_wheel = _runway_takeoff.controlYaw();
-
 		// XXX: hacky way to pass through manual nose-wheel incrementing. need to clean this interface.
 		if (_param_rwto_nudge.get()) {
 			_att_sp.yaw_sp_move_rate = _manual_control_setpoint.yaw;
@@ -1680,9 +1677,6 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		longitudinal_control_limits.throttle_max = throttle_max;
 		longitudinal_control_limits.disable_underspeed_protection = true;
 
-		// enable direct yaw control using rudder/wheel
-		_att_sp.fw_control_yaw_wheel = true;
-
 		// XXX: hacky way to pass through manual nose-wheel incrementing. need to clean this interface.
 		if (_param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled) {
 			_att_sp.yaw_sp_move_rate = _manual_control_setpoint.yaw;
@@ -1739,9 +1733,6 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		longitudinal_control_limits.throttle_min = _param_fw_thr_idle.get();
 		longitudinal_control_limits.throttle_max = _landed ? _param_fw_thr_idle.get() : NAN;
 		longitudinal_control_limits.sink_rate_target = desired_max_sinkrate;
-
-		// enable direct yaw control using rudder/wheel
-		_att_sp.fw_control_yaw_wheel = false;
 	}
 
 	_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
@@ -2359,10 +2350,6 @@ FixedwingPositionControl::Run()
 		// by default no flaps/spoilers, is overwritten below in certain modes
 		_flaps_setpoint = 0.f;
 		_spoilers_setpoint = 0.f;
-
-
-		// by default we don't want yaw to be contoller directly with rudder
-		_att_sp.fw_control_yaw_wheel = false;
 
 		// default to zero - is used (IN A HACKY WAY) to pass direct nose wheel steering via yaw stick to the actuators during auto takeoff
 		_att_sp.yaw_sp_move_rate = 0.0f;

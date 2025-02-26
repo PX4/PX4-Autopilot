@@ -269,7 +269,8 @@ void FixedwingAttitudeControl::Run()
 
 		bool wheel_control = false;
 
-		if (_param_fw_w_en.get() && _att_sp.fw_control_yaw_wheel && _vcontrol_mode.flag_control_auto_enabled) {
+		// TODO listen to a runway_takeoff_status to determine when to control wheel
+		if (_param_fw_w_en.get() && _vcontrol_mode.flag_control_auto_enabled) {
 			wheel_control = true;
 		}
 
