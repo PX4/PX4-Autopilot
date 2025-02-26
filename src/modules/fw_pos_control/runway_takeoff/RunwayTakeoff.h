@@ -169,12 +169,6 @@ public:
 	void forceSetFlyState() { takeoff_state_ = RunwayTakeoffState::FLY; }
 
 	/**
-	 * @return If the attitude / rate control integrators should be continually reset.
-	 * This is the case during ground roll.
-	 */
-	bool resetIntegrators();
-
-	/**
 	 * @brief Reset the state machine.
 	 */
 	void reset();

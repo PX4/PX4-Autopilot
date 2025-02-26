@@ -8,6 +8,5 @@ float32 lateral_acceleration_setpoint 	# [m/s^2], NAN if not controlled directly
 float32 roll_sp 			# TODO: remove, only for testing
 
 float32 heading_sp_runway_takeoff 	# [-pi, pi], heading setpoint for runway takeoff
-bool reset_integral 			# TODO: remove, resets rate controller integrals
 
 # TOPICS fw_lateral_control_setpoint fw_lateral_control_status

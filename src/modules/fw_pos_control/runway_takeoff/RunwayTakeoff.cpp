@@ -159,12 +159,6 @@ float RunwayTakeoff::getThrottle(const float idle_throttle) const
 	return throttle;
 }
 
-bool RunwayTakeoff::resetIntegrators()
-{
-	// reset integrators if we're still on runway
-	return takeoff_state_ < RunwayTakeoffState::CLIMBOUT;
-}
-
 float RunwayTakeoff::getMinPitch(float min_pitch_in_climbout, float min_pitch) const
 {
 	if (takeoff_state_ < RunwayTakeoffState::CLIMBOUT) {
