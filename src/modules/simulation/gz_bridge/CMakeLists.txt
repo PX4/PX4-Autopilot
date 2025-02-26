@@ -33,108 +33,105 @@
 
 # Find the gz_Transport library
 # Look for GZ Ionic or Harmonic
-find_package(gz-transport NAMES gz-transport14 gz-transport13)
+find_package(gz-transport NAMES gz-transport14 gz-transport13 gz-transport12 REQUIRED)
 
-if(gz-transport_FOUND)
 
-	add_compile_options(-frtti -fexceptions)
+add_compile_options(-frtti -fexceptions)
 
-	set(GZ_TRANSPORT_VER ${gz-transport_VERSION_MAJOR})
+set(GZ_TRANSPORT_VER ${gz-transport_VERSION_MAJOR})
 
-	if(GZ_TRANSPORT_VER GREATER_EQUAL 12)
-		set(GZ_TRANSPORT_LIB gz-transport${GZ_TRANSPORT_VER}::core)
-	else()
-		set(GZ_TRANSPORT_LIB ignition-transport${GZ_TRANSPORT_VER}::core)
+if(GZ_TRANSPORT_VER GREATER_EQUAL 12)
+	set(GZ_TRANSPORT_LIB gz-transport${GZ_TRANSPORT_VER}::core)
+else()
+	set(GZ_TRANSPORT_LIB ignition-transport${GZ_TRANSPORT_VER}::core)
+endif()
+
+px4_add_module(
+	MODULE modules__simulation__gz_bridge
+	MAIN gz_bridge
+	COMPILE_FLAGS
+		${MAX_CUSTOM_OPT_LEVEL}
+	SRCS
+		GZBridge.cpp
+		GZBridge.hpp
+		GZMixingInterfaceESC.cpp
+		GZMixingInterfaceESC.hpp
+		GZMixingInterfaceServo.cpp
+		GZMixingInterfaceServo.hpp
+		GZMixingInterfaceWheel.cpp
+		GZMixingInterfaceWheel.hpp
+		GZGimbal.cpp
+		GZGimbal.hpp
+	DEPENDS
+		mixer_module
+		px4_work_queue
+		${GZ_TRANSPORT_LIB}
+	MODULE_CONFIG
+		module.yaml
+)
+
+px4_add_git_submodule(TARGET git_gz PATH "${PX4_SOURCE_DIR}/Tools/simulation/gz")
+include(ExternalProject)
+ExternalProject_Add(gz
+	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation/gz
+	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+	BINARY_DIR ${PX4_BINARY_DIR}/build_gz
+	INSTALL_COMMAND ""
+	DEPENDS git_gz
+	USES_TERMINAL_CONFIGURE true
+	USES_TERMINAL_BUILD true
+	EXCLUDE_FROM_ALL true
+	BUILD_ALWAYS 1
+)
+
+set(gz_worlds
+	default
+	windy
+	baylands
+	lawn
+	aruco
+	rover
+	walls
+)
+
+# find corresponding airframes
+file(GLOB gz_airframes
+	RELATIVE ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes
+	${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*
+)
+
+# remove any .post files
+foreach(gz_airframe IN LISTS gz_airframes)
+	if(gz_airframe MATCHES ".post")
+		list(REMOVE_ITEM gz_airframes ${gz_airframe})
 	endif()
+endforeach()
+list(REMOVE_DUPLICATES gz_airframes)
 
-	px4_add_module(
-		MODULE modules__simulation__gz_bridge
-		MAIN gz_bridge
-		COMPILE_FLAGS
-			${MAX_CUSTOM_OPT_LEVEL}
-		SRCS
-			GZBridge.cpp
-			GZBridge.hpp
-			GZMixingInterfaceESC.cpp
-			GZMixingInterfaceESC.hpp
-			GZMixingInterfaceServo.cpp
-			GZMixingInterfaceServo.hpp
-			GZMixingInterfaceWheel.cpp
-			GZMixingInterfaceWheel.hpp
-			GZGimbal.cpp
-			GZGimbal.hpp
-		DEPENDS
-			mixer_module
-			px4_work_queue
-			${GZ_TRANSPORT_LIB}
-		MODULE_CONFIG
-			module.yaml
-	)
+foreach(gz_airframe IN LISTS gz_airframes)
+	set(model_only)
+	string(REGEX REPLACE ".*_gz_" "" model_only ${gz_airframe})
 
-	px4_add_git_submodule(TARGET git_gz PATH "${PX4_SOURCE_DIR}/Tools/simulation/gz")
-	include(ExternalProject)
-	ExternalProject_Add(gz
-		SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation/gz
-		CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
-		BINARY_DIR ${PX4_BINARY_DIR}/build_gz
-		INSTALL_COMMAND ""
-		DEPENDS git_gz
-		USES_TERMINAL_CONFIGURE true
-		USES_TERMINAL_BUILD true
-		EXCLUDE_FROM_ALL true
-		BUILD_ALWAYS 1
-	)
+	foreach(world ${gz_worlds})
 
-	set(gz_worlds
-		default
-		windy
-		baylands
-  		lawn
-		aruco
-		rover
-		walls
-	)
+		get_filename_component("world_name" ${world} NAME_WE)
 
-	# find corresponding airframes
-	file(GLOB gz_airframes
-	     RELATIVE ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes
-	     ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*
-	)
-
-	# remove any .post files
-	foreach(gz_airframe IN LISTS gz_airframes)
-		if(gz_airframe MATCHES ".post")
-			list(REMOVE_ITEM gz_airframes ${gz_airframe})
+		if(world_name STREQUAL "default")
+			add_custom_target(gz_${model_only}
+				COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} $<TARGET_FILE:px4>
+				WORKING_DIRECTORY ${SITL_WORKING_DIR}
+				USES_TERMINAL
+				DEPENDS px4
+			)
+		else()
+			add_custom_target(gz_${model_only}_${world_name}
+				COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} PX4_GZ_WORLD=${world_name} $<TARGET_FILE:px4>
+				WORKING_DIRECTORY ${SITL_WORKING_DIR}
+				USES_TERMINAL
+				DEPENDS px4
+			)
 		endif()
 	endforeach()
-	list(REMOVE_DUPLICATES gz_airframes)
-
-	foreach(gz_airframe IN LISTS gz_airframes)
-		set(model_only)
-		string(REGEX REPLACE ".*_gz_" "" model_only ${gz_airframe})
-
-		foreach(world ${gz_worlds})
-
-			get_filename_component("world_name" ${world} NAME_WE)
-
-			if(world_name STREQUAL "default")
-				add_custom_target(gz_${model_only}
-					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} $<TARGET_FILE:px4>
-					WORKING_DIRECTORY ${SITL_WORKING_DIR}
-					USES_TERMINAL
-					DEPENDS px4
-				)
-			else()
-				add_custom_target(gz_${model_only}_${world_name}
-					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} PX4_GZ_WORLD=${world_name} $<TARGET_FILE:px4>
-					WORKING_DIRECTORY ${SITL_WORKING_DIR}
-					USES_TERMINAL
-					DEPENDS px4
-				)
-			endif()
-		endforeach()
-	endforeach()
-	# PX4_GZ_MODELS, PX4_GZ_WORLDS, GZ_SIM_RESOURCE_PATH
-	configure_file(gz_env.sh.in ${PX4_BINARY_DIR}/rootfs/gz_env.sh)
-
-endif()
+endforeach()
+# PX4_GZ_MODELS, PX4_GZ_WORLDS, GZ_SIM_RESOURCE_PATH
+configure_file(gz_env.sh.in ${PX4_BINARY_DIR}/rootfs/gz_env.sh)
