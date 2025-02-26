@@ -1,0 +1,26 @@
+{
+    "mode": "sitl",
+    "simulator": "sih",
+    "mavlink_connection": "udp://:14540",
+    "tests":
+    [
+        {
+            "model": "quadx",
+            "vehicle": "quadx",
+            "test_filter": "[multicopter],[offboard][offboard_attitude]",
+            "timeout_min": 10
+        },
+        {
+            "model": "standard_vtol",
+            "vehicle": "standard_vtol",
+            "test_filter": "[vtol], [vtol_wind], [vtol_airspeed_fail]",
+            "timeout_min": 10
+        },
+        {
+            "model": "xvert",
+            "vehicle": "xvert",
+            "test_filter": "[vtol]",
+            "timeout_min": 10
+        }
+    ]
+}

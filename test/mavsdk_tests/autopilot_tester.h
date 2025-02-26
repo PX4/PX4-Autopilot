@@ -164,6 +164,40 @@ public:
 		CHECK(_param->set_param_int(param, value) == Param::Result::Success);
 	}
 
+	template<typename Rep, typename Period>
+	void sleep_for(std::chrono::duration<Rep, Period> duration)
+	{
+		const std::chrono::microseconds duration_us(duration);
+
+		// Hopefully this is often enough not to have PX4 time out on us.
+		auto realtime_sleep_duration = std::chrono::milliseconds(1);
+
+		if (speed_factor.has_value()) {
+			// If sim is running faster than realtime, we need to
+			// speed up polling (which happens w.r.t. real time) to
+			// maintain the check resolution w.r.t. sim time
+			realtime_sleep_duration /= speed_factor.value();
+		}
+
+		if (_telemetry && _telemetry->attitude_quaternion().timestamp_us != 0) {
+
+			const int64_t start_time_us = _telemetry->attitude_quaternion().timestamp_us;
+
+			while (true) {
+				std::this_thread::sleep_for(realtime_sleep_duration);
+
+				const int64_t elapsed_time_us = _telemetry->attitude_quaternion().timestamp_us - start_time_us;
+
+				if (elapsed_time_us > duration_us.count()) {
+					return;
+				}
+			}
+
+		} else {
+			std::this_thread::sleep_for(duration);
+		}
+	}
+
 protected:
 	mavsdk::Param *getParams() const { return _param.get();}
 	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
@@ -180,31 +214,6 @@ protected:
 		CHECK(_home.latitude_deg != NAN);
 		CHECK(_home.longitude_deg != NAN);
 		return _home;
-	}
-
-	template<typename Rep, typename Period>
-	void sleep_for(std::chrono::duration<Rep, Period> duration)
-	{
-		const std::chrono::microseconds duration_us(duration);
-
-		if (_telemetry && _telemetry->attitude_quaternion().timestamp_us != 0) {
-
-			const int64_t start_time_us = _telemetry->attitude_quaternion().timestamp_us;
-
-			while (true) {
-				// Hopefully this is often enough not to have PX4 time out on us.
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
-				const int64_t elapsed_time_us = _telemetry->attitude_quaternion().timestamp_us - start_time_us;
-
-				if (elapsed_time_us > duration_us.count()) {
-					return;
-				}
-			}
-
-		} else {
-			std::this_thread::sleep_for(duration);
-		}
 	}
 
 private:
@@ -236,7 +245,14 @@ private:
 	bool poll_condition_with_timeout(
 		std::function<bool()> fun, std::chrono::duration<Rep, Period> duration)
 	{
-		static constexpr unsigned check_resolution = 100;
+		unsigned check_resolution = 100;
+
+		if (speed_factor.has_value()) {
+			// If sim is running faster than realtime, we need to
+			// speed up polling (which happens w.r.t. real time) to
+			// maintain the check resolution w.r.t. sim time
+			check_resolution *= speed_factor.value();
+		}
 
 		const std::chrono::microseconds duration_us(duration);
 
@@ -280,7 +296,6 @@ private:
 
 		return true;
 	}
-
 
 
 	mavsdk::Mavsdk _mavsdk{};

@@ -42,5 +42,5 @@ TEST_CASE("Fly VTOL mission", "[vtol]")
 	tester.load_qgc_mission_raw_and_move_here("test/mavsdk_tests/vtol_mission.plan");
 	tester.arm();
 	tester.execute_mission_raw();
-	tester.wait_until_disarmed();
+	tester.wait_until_disarmed(std::chrono::seconds(180));
 }
