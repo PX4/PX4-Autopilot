@@ -85,7 +85,7 @@ jobs:
       - name: Upload image
         uses: ishworkh/container-image-artifact-upload@v2.0.0
         with:
-          image: ${{ steps.image_name.outputs.image_name }}
+          image: "${{ steps.image_name.outputs.image_name }}-${{ matrix.arch }}"
 
   push:
     runs-on: [runs-on,"runner=8cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
@@ -101,7 +101,12 @@ jobs:
       - name: Download image
         uses: ishworkh/container-image-artifact-download@v2.0.0
         with:
-          image: ${{ needs.build.outputs.image_name }}
+          image: "${{ needs.build.outputs.image_name }}-x64"
+
+      - name: Download image
+        uses: ishworkh/container-image-artifact-download@v2.0.0
+        with:
+          image: "${{ needs.build.outputs.image_name }}-arm64"
 
       - name: Setup tmate session
         # if: ${{ failure() }}
