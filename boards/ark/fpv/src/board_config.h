@@ -307,6 +307,9 @@
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
+/* This board has 3 DMA channels available for bidirectional dshot */
+#define BOARD_DMA_NUM_DSHOT_CHANNELS 3
+
 /* This board provides the board_on_reset interface */
 
 #define BOARD_HAS_ON_RESET 1
