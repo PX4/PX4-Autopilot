@@ -45,7 +45,6 @@ bool UserModeIntention::change(uint8_t user_intended_nav_state, ModeChangeSource
 			       bool force)
 {
 	_ever_had_mode_change = true;
-	_had_mode_change = true;
 
 	if (_handler) {
 		// If a replacement mode is selected, select the internal one instead. The replacement will be selected after.
