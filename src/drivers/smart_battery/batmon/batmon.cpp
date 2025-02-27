@@ -199,19 +199,19 @@ void Batmon::RunImpl()
 		// TODO: This critical setting should be set with BMS info or through a paramter
 		// Setting a hard coded BATT_CELL_VOLTAGE_THRESHOLD_FAILED may not be appropriate
 		//if (_lifetime_max_delta_cell_voltage > BATT_CELL_VOLTAGE_THRESHOLD_FAILED) {
-		//	new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+		//	new_report.warning = battery_status_s::WARNING_CRITICAL;
 
 		if (new_report.remaining > _low_thr) {
-			new_report.warning = battery_status_s::BATTERY_WARNING_NONE;
+			new_report.warning = battery_status_s::WARNING_NONE;
 
 		} else if (new_report.remaining > _crit_thr) {
-			new_report.warning = battery_status_s::BATTERY_WARNING_LOW;
+			new_report.warning = battery_status_s::WARNING_LOW;
 
 		} else if (new_report.remaining > _emergency_thr) {
-			new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+			new_report.warning = battery_status_s::WARNING_CRITICAL;
 
 		} else {
-			new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+			new_report.warning = battery_status_s::WARNING_EMERGENCY;
 		}
 
 		new_report.interface_error = perf_event_count(_interface->_interface_errors);
