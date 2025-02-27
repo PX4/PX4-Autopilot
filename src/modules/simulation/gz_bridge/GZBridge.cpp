@@ -68,8 +68,9 @@ GZBridge::~GZBridge()
 
 int GZBridge::init()
 {
-	// TODO make configurable in sensible way.
-	bool platform = true;
+	// TODO document this somehow
+	char *moving_platform = std::getenv("GZ_MOVING_PLATFORM");
+	bool platform = ((moving_platform != nullptr) && (std::strcmp(moving_platform, "1") == 0));
 
 	if (!_model_sim.empty()) {
 
