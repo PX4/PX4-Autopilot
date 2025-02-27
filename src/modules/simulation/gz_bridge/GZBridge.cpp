@@ -742,7 +742,7 @@ int GZBridge::task_spawn(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "w:m:p:i:n:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "w:n:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'w':
 			world_name = myoptarg;
@@ -815,7 +815,6 @@ int GZBridge::print_usage(const char *reason)
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('w', nullptr, nullptr, "World name", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Model name", false);
-	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, nullptr, "Model Pose", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
