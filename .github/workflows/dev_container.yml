@@ -23,9 +23,9 @@ jobs:
     runs-on: [runs-on,"runner=8cpu-linux-${{ matrix.arch }}","image=ubuntu24-full-${{ matrix.arch }}","run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     outputs:
       px4_version: ${{ steps.px4_version.outputs.px4_version }}
-      tags: ${{ steps.meta.outputs.tags }}
-      labels: ${{ steps.meta.outputs.labels }}
-      metadata: ${{ steps.docker.outputs.metadata }}
+    #   tags: ${{ steps.meta.outputs.tags }}
+    #   labels: ${{ steps.meta.outputs.labels }}
+    #   metadata: ${{ steps.docker.outputs.metadata }}
       image_name: ${{ steps.image_name.outputs.image_name }}
     steps:
       - uses: runs-on/action@v1
