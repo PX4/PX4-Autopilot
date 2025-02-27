@@ -108,8 +108,6 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 				const Quatf q(Eulerf(roll_body, pitch_body, yaw_body));
 				q.copyTo(_att_sp.q_d);
 
-				_att_sp.reset_integral = false;
-
 				_att_sp.timestamp = hrt_absolute_time();
 
 				_attitude_sp_pub.publish(_att_sp);
@@ -271,7 +269,8 @@ void FixedwingAttitudeControl::Run()
 
 		bool wheel_control = false;
 
-		if (_param_fw_w_en.get() && _att_sp.fw_control_yaw_wheel && _vcontrol_mode.flag_control_auto_enabled) {
+		// TODO listen to a runway_takeoff_status to determine when to control wheel
+		if (_param_fw_w_en.get() && _vcontrol_mode.flag_control_auto_enabled) {
 			wheel_control = true;
 		}
 
@@ -283,11 +282,10 @@ void FixedwingAttitudeControl::Run()
 
 		if (_vcontrol_mode.flag_control_rates_enabled) {
 
-			/* Reset integrators if commanded by attitude setpoint, or the aircraft is on ground
+			/* Reset integrators if the aircraft is on ground
 			 * or a multicopter (but not transitioning VTOL or tailsitter)
 			 */
-			if (_att_sp.reset_integral
-			    || _landed
+			if (_landed
 			    || !_in_fw_or_transition_wo_tailsitter_transition) {
 
 				_rates_sp.reset_integral = true;
