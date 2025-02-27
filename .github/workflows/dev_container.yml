@@ -16,7 +16,7 @@ on:
 
 jobs:
   build:
-    name: Build and Push Container (${{ matrix.arch }})
+    name: Build and Push Container (${{ matrix.arch == 'x64' && 'x86' || 'arm64' }})
     strategy:
       matrix:
         arch: [x64, arm64]
@@ -29,7 +29,7 @@ jobs:
           submodules: false
           fetch-depth: 0
 
-      - name: Set PX4 Tag
+      - name: Set PX4 Tag Version
         id: px4-tag
         run: |
           echo "tag=$(git describe --tags --match 'v[0-9]*')" >> $GITHUB_OUTPUT
@@ -75,10 +75,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Get Tag Name
+      - name: Get Container Image Tag Name
         id: tag_name
         run: |
-          echo "::set-output name=tag_name::$(echo '${{ fromJSON(steps.docker.outputs.metadata)['image.name'] }}' | sed 's/,.*$//')"
+          echo "tag_name=$(echo '${{ fromJSON(steps.docker.outputs.metadata)['image.name'] }}' | sed 's/,.*$//')" >> $GITHUB_OUTPUT
 
       - name: make quick_check
         uses: addnab/docker-run-action@v3
