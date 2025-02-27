@@ -15,8 +15,6 @@ PX4_SIM_MODEL=${PX4_SIM_MODEL:=spacecraft_2d}
 
 param set-default SIM_GZ_EN 1
 
-param set-default SENS_EN_GPSSIM 1
-param set-default SENS_EN_BAROSIM 1
 param set-default SENS_EN_MAGSIM 1
 param set-default COM_ARM_CHK_ESCS 0  # We don't have ESCs
 param set-default FD_ESCS_EN 0 # We don't have ESCs - but maybe we need this later?
