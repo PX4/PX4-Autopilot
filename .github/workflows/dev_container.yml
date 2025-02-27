@@ -82,10 +82,18 @@ jobs:
             make px4_sitl_default
             make px4_fmu-v6x_default
 
-      - name: Upload image
-        uses: ishworkh/container-image-artifact-upload@v2.0.0
+      - name: Build and export
+        uses: docker/build-push-action@v6
         with:
-          image: "${{ steps.image_name.outputs.image_name }}-${{ matrix.arch }}"
+          tags: ${{ steps.image_name.outputs.image_name }}
+          outputs: type=docker,dest=${{ runner.temp }}/${{ steps.image_name.outputs.image_name }}-${{ matrix.arch }}.tar
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.image_name.outputs.image_name }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/${{ steps.image_name.outputs.image_name }}-${{ matrix.arch }}.tar
+
 
   push:
     runs-on: [runs-on,"runner=8cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
@@ -98,15 +106,17 @@ jobs:
           submodules: false
           fetch-depth: 0
 
-      - name: Download image
-        uses: ishworkh/container-image-artifact-download@v2.0.0
+      - name: Download x64 Artifact
+        uses: actions/download-artifact@v4
         with:
-          image: "${{ needs.build.outputs.image_name }}-x64"
+          name: ${{ steps.image_name.outputs.image_name }}-x64
+          path: ${{ runner.temp }}
 
-      - name: Download image
-        uses: ishworkh/container-image-artifact-download@v2.0.0
+      - name: Download x86 Artifact
+        uses: actions/download-artifact@v4
         with:
-          image: "${{ needs.build.outputs.image_name }}-arm64"
+          name: ${{ steps.image_name.outputs.image_name }}-x86
+          path: ${{ runner.temp }}
 
       - name: Setup tmate session
         # if: ${{ failure() }}
