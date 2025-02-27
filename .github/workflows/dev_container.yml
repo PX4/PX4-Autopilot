@@ -50,6 +50,25 @@ jobs:
           tags: |
             type=raw,enable=true,value=${{ steps.px4_version.outputs.px4_version }},priority=1000
 
+      - name: Cache Apt Registry
+        uses: actions/cache@v3
+        id: cache
+        with:
+          path: |
+            var-cache-apt
+            var-lib-apt
+          key: cache-${{ hashFiles('Tools/setup/Dockerfile') }}
+
+      - name: Inject Cache into Docker
+        uses: reproducible-containers/buildkit-cache-dance@v3.1.0
+        with:
+          cache-map: |
+            {
+              "var-cache-apt": "/var/cache/apt",
+              "var-lib-apt": "/var/lib/apt"
+            }
+          skip-extraction: ${{ steps.cache.outputs.cache-hit }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
