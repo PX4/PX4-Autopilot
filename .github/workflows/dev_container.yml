@@ -36,14 +36,14 @@ jobs:
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        # if: ${{ startsWith(github.ref, 'refs/tags/') }}
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        # if: ${{ startsWith(github.ref, 'refs/tags/') }}
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -55,7 +55,7 @@ jobs:
         with:
           images: |
             ghcr.io/PX4/px4-dev
-            ${{ (github.event_name != 'pull_request') && 'px4io/px4-dev' || '' }}
+            px4io/px4-dev
           tags: |
             type=raw,enable=true,value=${{ steps.px4-tag.outputs.tag }},priority=1000
 
@@ -93,7 +93,7 @@ jobs:
 
       - name: Push container image
         uses: docker/build-push-action@v6
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        # if: ${{ startsWith(github.ref, 'refs/tags/') }}
         with:
           context: Tools/setup
           tags: ${{ steps.meta.outputs.tags }}
