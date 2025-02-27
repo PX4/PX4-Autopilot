@@ -51,6 +51,7 @@ FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 
 	case gcs_connection_loss_failsafe_mode::Hold_mode:
 		options.action = Action::Hold;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
 	case gcs_connection_loss_failsafe_mode::Return_mode:
