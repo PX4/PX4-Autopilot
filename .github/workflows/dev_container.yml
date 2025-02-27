@@ -16,8 +16,11 @@ on:
 
 jobs:
   build:
-    name: Build and Push Container
-    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    name: Build and Push Container (${{ matrix.arch }})
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+    runs-on: [runs-on,"runner=8cpu-linux-${{ matrix.arch }}","image=ubuntu24-full-${{ matrix.arch }}","run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     steps:
       - uses: runs-on/action@v1
       - uses: actions/checkout@v4
@@ -66,7 +69,7 @@ jobs:
           context: Tools/setup
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64
+          platforms: linux/${{ matrix.arch == 'x64' && 'amd64' || 'arm64' }}
           load: true
           push: false
           cache-from: type=gha
@@ -95,7 +98,7 @@ jobs:
           context: Tools/setup
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/${{ matrix.arch == 'x64' && 'amd64' || 'arm64' }}
           provenance: mode=max
           push: true
           cache-from: type=gha
