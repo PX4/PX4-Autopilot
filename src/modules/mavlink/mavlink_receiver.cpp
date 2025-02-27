@@ -1976,7 +1976,16 @@ MavlinkReceiver::handle_message_tunnel(mavlink_message_t *msg)
 	memcpy(tunnel.payload, mavlink_tunnel.payload, sizeof(tunnel.payload));
 	static_assert(sizeof(tunnel.payload) == sizeof(mavlink_tunnel.payload), "mavlink_tunnel.payload size mismatch");
 
-	_mavlink_tunnel_pub.publish(tunnel);
+	switch (mavlink_tunnel.payload_type) {
+	case MAV_TUNNEL_PAYLOAD_TYPE_MODALAI_ESC_UART_PASSTHRU:
+		_esc_serial_passthru_pub.publish(tunnel);
+		break;
+
+	default:
+		_mavlink_tunnel_pub.publish(tunnel);
+		break;
+	}
+
 
 }
 
