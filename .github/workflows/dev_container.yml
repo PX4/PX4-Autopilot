@@ -86,13 +86,13 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           tags: ${{ steps.image_name.outputs.image_name }}
-          outputs: type=docker,dest=${{ runner.temp }}/${{ steps.image_name.outputs.image_name }}-${{ matrix.arch }}.tar
+          outputs: type=docker,dest=${{ runner.temp }}/px4-builder-image-${{ matrix.arch }}.tar
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.image_name.outputs.image_name }}-${{ matrix.arch }}
-          path: ${{ runner.temp }}/${{ steps.image_name.outputs.image_name }}-${{ matrix.arch }}.tar
+          path: ${{ runner.temp }}/px4-builder-image-${{ matrix.arch }}.tar
 
 
   push:
