@@ -83,7 +83,7 @@ using namespace time_literals;
 class GZBridge : public ModuleBase<GZBridge>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	GZBridge(const char *world, const char *name, const char *model, const char *pose_str);
+	GZBridge(const std::string &world, const std::string &model_name);
 	~GZBridge() override;
 
 	/** @see ModuleBase */
@@ -100,30 +100,19 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
-	uint64_t world_time_us() const { return _world_time_us.load(); }
-
 private:
 
 	void Run() override;
 
-	bool updateClock(const uint64_t tv_sec, const uint64_t tv_nsec);
-
-	void clockCallback(const gz::msgs::Clock &clock);
-
-	void airspeedCallback(const gz::msgs::AirSpeed &air_speed);
-	void barometerCallback(const gz::msgs::FluidPressure &air_pressure);
-	void imuCallback(const gz::msgs::IMU &imu);
-	void poseInfoCallback(const gz::msgs::Pose_V &pose);
-	void odometryCallback(const gz::msgs::OdometryWithCovariance &odometry);
-	void navSatCallback(const gz::msgs::NavSat &nav_sat);
-	void laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan);
-	void laserScanCallback(const gz::msgs::LaserScan &scan);
-
-	bool callEntityFactoryService(const std::string &service, const gz::msgs::EntityFactory &req);
-	bool callSceneInfoMsgService(const std::string &service);
-	bool callStringMsgService(const std::string &service, const gz::msgs::StringMsg &req);
-	bool callVector3dService(const std::string &service, const gz::msgs::Vector3d &req);
-	bool callPhysicsMsgService(const std::string &service, const gz::msgs::Physics &req);
+	void clockCallback(const gz::msgs::Clock &msg);
+	void airspeedCallback(const gz::msgs::AirSpeed &msg);
+	void barometerCallback(const gz::msgs::FluidPressure &msg);
+	void imuCallback(const gz::msgs::IMU &msg);
+	void poseInfoCallback(const gz::msgs::Pose_V &msg);
+	void odometryCallback(const gz::msgs::OdometryWithCovariance &msg);
+	void navSatCallback(const gz::msgs::NavSat &msg);
+	void laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg);
+	void laserScanCallback(const gz::msgs::LaserScan &msg);
 
 	static void rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU);
 
@@ -146,18 +135,14 @@ private:
 	uORB::PublicationMulti<sensor_gyro_s>         _sensor_gyro_pub{ORB_ID(sensor_gyro)};
 	uORB::PublicationMulti<vehicle_odometry_s>    _visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 
-	GZMixingInterfaceESC   _mixing_interface_esc{_node, _node_mutex};
-	GZMixingInterfaceServo _mixing_interface_servo{_node, _node_mutex};
-	GZMixingInterfaceWheel _mixing_interface_wheel{_node, _node_mutex};
+	GZMixingInterfaceESC   _mixing_interface_esc{_node};
+	GZMixingInterfaceServo _mixing_interface_servo{_node};
+	GZMixingInterfaceWheel _mixing_interface_wheel{_node};
 
-	GZGimbal _gimbal{_node, _node_mutex};
-
-	px4::atomic<uint64_t> _world_time_us{0};
-
-	pthread_mutex_t _node_mutex;
+	GZGimbal _gimbal{_node};
 
 	MapProjection _pos_ref{};
-	double _alt_ref{}; // starting altitude reference
+	double _alt_ref{};
 
 	matrix::Vector3d _position_prev{};
 	matrix::Vector3d _velocity_prev{};
@@ -166,8 +151,6 @@ private:
 
 	const std::string _world_name;
 	const std::string _model_name;
-	const std::string _model_sim;
-	const std::string _model_pose;
 
 	float _temperature{288.15};  // 15 degrees
 
