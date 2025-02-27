@@ -116,6 +116,9 @@ private:
 	void navSatCallback(const gz::msgs::NavSat &nav_sat);
 	void laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan);
 	void laserScanCallback(const gz::msgs::LaserScan &scan);
+	void platformNavsatCallback(const gz::msgs::NavSat &pose);
+
+	bool createMovingPlatform();
 
 	/**
 	 * @brief Call Entityfactory service

@@ -68,6 +68,9 @@ GZBridge::~GZBridge()
 
 int GZBridge::init()
 {
+	// TODO make configurable in sensible way.
+	bool platform = true;
+
 	if (!_model_sim.empty()) {
 
 		// service call to create model
@@ -100,6 +103,12 @@ int GZBridge::init()
 			position->set_x(model_pose_v[0]);
 			position->set_y(model_pose_v[1]);
 			position->set_z(model_pose_v[2]);
+
+			if (platform) {
+				// why does this only look good if way bigger than actual platform height?
+				float platform_height = 0.5;
+				position->set_z(fmaxf(platform_height, model_pose_v[2]));
+			}
 
 			gz::math::Quaterniond q(model_pose_v[3], model_pose_v[4], model_pose_v[5]);
 
@@ -170,6 +179,23 @@ int GZBridge::init()
 			follow_offset_msg.set_z(2.0);
 			callVector3dService("/gui/follow/offset", follow_offset_msg);
 		}
+	}
+
+	if (platform) {
+		if (!createMovingPlatform()) {
+			return PX4_ERROR;
+		}
+
+		// TODO find the version of this that actually works
+		// gz::msgs::Twist twist_msg;
+		// twist_msg.mutable_linear()->set_x(1.);
+		// twist_msg.mutable_linear()->set_y(0.);
+		// twist_msg.mutable_linear()->set_z(0.);
+
+		// std::string twist_topic = "/model/" + _model_name + "/cmd_vel";
+
+		// something something _node.Advertise()?
+		// _node.Publisher.Publish(what??);
 	}
 
 	// clock
@@ -247,6 +273,17 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	if (platform) {
+
+		std::string platform_pose_topic = "/world/" + _world_name +
+						  "/model/flat_platform/link/platform_link/sensor/navsat_sensor/navsat";
+
+		if (!_node.Subscribe(platform_pose_topic, &GZBridge::platformNavsatCallback, this)) {
+			PX4_ERR("failed to subscribe to %s", platform_pose_topic.c_str());
+			return PX4_ERROR;
+		}
+	}
+
 	if (!_mixing_interface_esc.init(_model_name)) {
 		PX4_ERR("failed to init ESC output");
 		return PX4_ERROR;
@@ -269,6 +306,47 @@ int GZBridge::init()
 
 	ScheduleNow();
 	return OK;
+}
+
+bool GZBridge::createMovingPlatform()
+{
+
+	// moving platform to launch & land from.
+
+	gz::msgs::EntityFactory req{};
+	// base dir: Tools/simulation/gz/models
+	req.set_sdf_filename("platform.sdf");
+
+	// can also set sdf string directly using req.set_sdf
+	// https://gazebosim.org/api/gazebo/6/entity_creation.html
+	// req.set_name("platform");
+	req.set_allow_renaming(false);
+
+	// position: origin (might want to adapt to model position)
+	gz::msgs::Pose *p = req.mutable_pose();
+	gz::msgs::Vector3d *position = p->mutable_position();
+	position->set_x(0.);
+	position->set_y(0.);
+	position->set_z(0.05);
+
+	// gz::math::Quaterniond q(model_pose_v[3], model_pose_v[4], model_pose_v[5]);
+
+	// orientation: unit quaternion
+	gz::msgs::Quaternion *orientation = p->mutable_orientation();
+	orientation->set_x(0.);
+	orientation->set_y(0.);
+	orientation->set_z(0.);
+	orientation->set_w(1.);
+
+	std::string create_service = "/world/" + _world_name + "/create";
+
+	if (!callEntityFactoryService(create_service, req)) {
+		PX4_ERR("EntityFactory service call failed (platform)");
+		return false;
+	}
+
+	return true;
+
 }
 
 int GZBridge::task_spawn(int argc, char *argv[])
@@ -408,6 +486,22 @@ bool GZBridge::updateClock(const uint64_t tv_sec, const uint64_t tv_nsec)
 #endif // ENABLE_LOCKSTEP_SCHEDULER
 
 	return false;
+}
+
+void GZBridge::platformNavsatCallback(const gz::msgs::NavSat &nav_sat)
+{
+
+	pthread_mutex_lock(&_node_mutex);
+
+	// print d n'ebugging pas
+	PX4_INFO("Moving Platform NavSat pos: lat=%.2f, lon=%.2f, alt=%.2f",
+		 nav_sat.latitude_deg(), nav_sat.longitude_deg(), nav_sat.altitude());
+
+	// TODO publish the corresponding uOrb msg. then in reality we just have
+	// to convert the mavlink msg from the ground station to exactly the
+	// same uOrb msg.
+
+	pthread_mutex_unlock(&_node_mutex);
 }
 
 void GZBridge::clockCallback(const gz::msgs::Clock &clock)
