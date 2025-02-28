@@ -2,6 +2,7 @@
 #include <px4_platform_common/time.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/shutdown.h>
 
 #include "apps.h"
 
@@ -42,8 +43,9 @@ void list_builtins(apps_map_type &apps)
 
 int shutdown_main(int argc, char *argv[])
 {
-	printf("Exiting NOW.\n");
-	system_exit(0);
+	printf("Exiting in shutdown_main\n");
+	px4_shutdown_request(0);
+	return 0;
 }
 
 int list_tasks_main(int argc, char *argv[])
