@@ -457,6 +457,35 @@ class Tester:
                     px4_runner.env[env_key] = str(test['env'][env_key])
                 self.active_runners.append(px4_runner)
 
+            elif self.config['simulator'] == 'sih':
+
+                # only run px4.
+                px4_runner = ph.Px4Runner(
+                    os.getcwd(),
+                    log_dir,
+                    test['model'],
+                    case,
+                    self.get_max_speed_factor(test),
+                    self.debugger,
+                    self.verbose,
+                    self.build_dir)
+                for env_key in test.get('env', []):
+                    px4_runner.env[env_key] = str(test['env'][env_key])
+                self.active_runners.append(px4_runner)
+
+                # overwrite these env vars which were already hardcoded in Px4Runner.__init__
+                # maybe there is a cleaner way to do this?
+                px4_runner.env['PX4_SIMULATOR'] = 'sihsim'
+
+                # ofc only works for the specific models for which the
+                # sihsim_model file exists. it would be very cool to simulate
+                # any airframe file in sih...
+                px4_runner.env["PX4_SIM_MODEL"] = "sihsim_" + test['model']
+
+
+        # import ipdb; ipdb.set_trace()
+
+
         mavsdk_tests_runner = ph.TestRunner(
             os.getcwd(),
             log_dir,
