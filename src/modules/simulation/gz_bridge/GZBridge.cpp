@@ -183,20 +183,11 @@ int GZBridge::init()
 	}
 
 	if (platform) {
+
 		if (!createMovingPlatform()) {
 			return PX4_ERROR;
 		}
 
-		// TODO find the version of this that actually works
-		// gz::msgs::Twist twist_msg;
-		// twist_msg.mutable_linear()->set_x(1.);
-		// twist_msg.mutable_linear()->set_y(0.);
-		// twist_msg.mutable_linear()->set_z(0.);
-
-		// std::string twist_topic = "/model/" + _model_name + "/cmd_vel";
-
-		// something something _node.Advertise()?
-		// _node.Publisher.Publish(what??);
 	}
 
 	// clock
@@ -275,7 +266,6 @@ int GZBridge::init()
 	}
 
 	if (platform) {
-
 		std::string platform_pose_topic = "/world/" + _world_name +
 						  "/model/flat_platform/link/platform_link/sensor/navsat_sensor/navsat";
 
@@ -401,7 +391,29 @@ bool GZBridge::createMovingPlatform()
 	}
 
 	return true;
+}
 
+bool GZBridge::setPlatformPose(gz::msgs::Pose &pose)
+{
+
+	std::string topic = "/world/" + _world_name + "/set_pose";
+
+	pose.set_name("flat_platform");
+
+	bool result;
+	gz::msgs::Boolean rep;
+
+	if (_node.Request(topic, pose, 1000, rep, result)) {
+		if (!rep.data() || !result) {
+			PX4_ERR("set_pose service call failed.");
+			return false;
+		}
+
+	} else {
+		PX4_WARN("set_pose service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
+		return false;
+	}
+	return true;
 }
 
 int GZBridge::task_spawn(int argc, char *argv[])
@@ -1182,6 +1194,17 @@ void GZBridge::Run()
 		_mixing_interface_wheel.updateParams();
 		_gimbal.updateParams();
 	}
+
+	// float time_s = hrt_absolute_time() / 1e6;  // abstime in microseconds
+	// float vel = 1.0f;
+
+	// gz::msgs::Pose pose;
+	// gz::msgs::Vector3d *position = pose.mutable_position();
+	// position->set_x(time_s * vel);
+	// position->set_y(0.);
+	// position->set_z(0.05);
+
+	// setPlatformPose(pose);
 
 	ScheduleDelayed(10_ms);
 

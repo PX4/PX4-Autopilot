@@ -118,6 +118,8 @@ private:
 	void laserScanCallback(const gz::msgs::LaserScan &scan);
 	void platformNavsatCallback(const gz::msgs::NavSat &pose);
 
+	bool setPlatformPose(gz::msgs::Pose &pose);
+
 	bool createMovingPlatform();
 
 	/**
