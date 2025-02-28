@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include "uORBMessageFields.hpp"
+#include <uORB/uORBMessageFields.hpp>
 
 #include <gtest/gtest.h>
 #include <containers/Bitset.hpp>
