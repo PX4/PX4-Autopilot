@@ -77,6 +77,8 @@
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/failure_detector_status.h>
 
 class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::ScheduledWorkItem
@@ -138,6 +140,14 @@ private:
 
 	void publish_actuator_controls();
 
+	void preflight_check_overwrite_torque_sp(matrix::Vector<float, NUM_AXES> (&c)[ActuatorEffectiveness::MAX_NUM_MATRICES]);
+	void preflight_check_update_state();
+	void preflight_check_handle_tilt_control();
+	void preflight_check_start(vehicle_command_s &cmd);
+	void preflight_check_send_ack(uint8_t result);
+	void preflight_check_abort();
+	void preflight_check_finish();
+
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
 	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations
 	int _num_control_allocation{0};
@@ -180,6 +190,8 @@ private:
 	uORB::Subscription _vehicle_torque_setpoint1_sub{ORB_ID(vehicle_torque_setpoint), 1};  /**< vehicle torque setpoint subscription (2. instance) */
 	uORB::Subscription _vehicle_thrust_setpoint1_sub{ORB_ID(vehicle_thrust_setpoint), 1};	 /**< vehicle thrust setpoint subscription (2. instance) */
 
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+
 	// Outputs
 	uORB::PublicationMulti<control_allocator_status_s> _control_allocator_status_pub[2] {ORB_ID(control_allocator_status), ORB_ID(control_allocator_status)};
 
@@ -200,6 +212,14 @@ private:
 	// Reflects motor failures that are currently handled, not motor failures that are reported.
 	// For example, the system might report two motor failures, but only the first one is handled by CA
 	uint16_t _handled_motor_failure_bitmask{0};
+
+	bool _preflight_check_running{false};
+
+	uint8_t _preflight_check_axis{0};
+	float _preflight_check_input{0.0f};
+	vehicle_command_s _last_preflight_check_command{0};
+	hrt_abstime _preflight_check_started{0};
+	hrt_abstime _preflight_check_last_ack{0};
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
