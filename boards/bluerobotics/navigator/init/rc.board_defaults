@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+# system_power not implemented
+param set CBRK_SUPPLY_CHK 894281
+
+# 1K + 4.7K
+param set BAT1_V_DIV 5.7
+
+# Always keep current config
+param set SYS_AUTOCONFIG 0
