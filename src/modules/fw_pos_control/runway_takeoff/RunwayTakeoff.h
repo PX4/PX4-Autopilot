@@ -102,13 +102,11 @@ public:
 	bool runwayTakeoffEnabled() { return param_rwto_tkoff_.get(); }
 
 	/**
-	 * @param external_pitch_setpoint Externally commanded pitch angle setpoint (usually from TECS) [rad]
 	 * @return Pitch angle setpoint (limited while plane is on runway) [rad]
 	 */
 	float getPitch();
 
 	/**
-	 * @param external_roll_setpoint Externally commanded roll angle setpoint (usually from path navigation) [rad]
 	 * @return Roll angle setpoint [rad]
 	 */
 	float getRoll();
