@@ -89,3 +89,7 @@
 [submodule "src/drivers/uavcan/libdronecan/libuavcan/dsdl_compiler/pydronecan"]
 	path = src/drivers/uavcan/libdronecan/libuavcan/dsdl_compiler/pydronecan
 	url = https://github.com/dronecan/pydronecan
+[submodule "src/drivers/ins/microstrain/mip_sdk"]
+	path = src/drivers/ins/microstrain/mip_sdk
+	url = https://github.com/LORD-MicroStrain/mip_sdk.git
+	branch = feature/px4_compilation
