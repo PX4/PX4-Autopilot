@@ -44,7 +44,7 @@ TEST_CASE("Fly VTOL Loiter with airspeed failure", "[vtol_airspeed_fail]")
 	tester.enable_fixedwing_mectrics();
 
 	// configuration
-	const float takeoff_altitude = 10.f;
+	const float takeoff_altitude = 30.f;
 	tester.set_takeoff_altitude(takeoff_altitude);
 
 	tester.load_qgc_mission_raw_and_move_here("test/mavsdk_tests/vtol_mission.plan");
@@ -53,15 +53,16 @@ TEST_CASE("Fly VTOL Loiter with airspeed failure", "[vtol_airspeed_fail]")
 	tester.takeoff();
 	tester.wait_until_altitude(takeoff_altitude, std::chrono::seconds(30));
 	tester.transition_to_fixedwing();
+	tester.wait_until_fixedwing(std::chrono::seconds(10));
 
 
 	// tester.wait_until_altitude(50.f, std::chrono::seconds(30));
-	std::this_thread::sleep_for(std::chrono::seconds(10));
+	tester.sleep_for(std::chrono::seconds(10));
 	tester.inject_failure(mavsdk::Failure::FailureUnit::SensorAirspeed, mavsdk::Failure::FailureType::Wrong, 0,
 			      mavsdk::Failure::Result::Success);
 
 
-	std::this_thread::sleep_for(std::chrono::seconds(10));
+	tester.sleep_for(std::chrono::seconds(10));
 
 	tester.check_airspeed_is_invalid(); // it's enough to check once after landing, as invalidation is permanent
 }

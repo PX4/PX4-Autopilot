@@ -1039,6 +1039,6 @@ void AutopilotTester::check_airspeed_is_invalid()
 	// If the airspeed was invalidated during the flight, the airspeed is sent in the
 	// telemetry is NAN and stays so with the default parameter settings.
 	const Telemetry::FixedwingMetrics &metrics = getTelemetry()->fixedwing_metrics();
-	std::cout << "Reported airspeed after failure: " << metrics.airspeed_m_s ;
+	std::cout << "Reported airspeed after failure: " << metrics.airspeed_m_s << "\n";
 	REQUIRE(!std::isfinite(metrics.airspeed_m_s));
 }

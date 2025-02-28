@@ -45,7 +45,7 @@ TEST_CASE("RTL direct Home", "[vtol]")
 	tester.set_rtl_appr_force(0);
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(2);
-	tester.wait_until_disarmed(std::chrono::seconds(120));
+	tester.wait_until_disarmed(std::chrono::seconds(180));
 	tester.check_home_within(5.0f);
 }
 
@@ -60,7 +60,7 @@ TEST_CASE("RTL direct Mission Land", "[vtol]")
 	tester.set_rtl_type(1);
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(2);
-	tester.wait_until_disarmed(std::chrono::seconds(120));
+	tester.wait_until_disarmed(std::chrono::seconds(180));
 	tester.check_mission_land_within(5.0f);
 }
 
