@@ -99,8 +99,8 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/fw_lateral_control_setpoint.h>
 #include <uORB/topics/fw_longitudinal_control_setpoint.h>
-#include <uORB/topics/longitudinal_control_limits.h>
-#include <uORB/topics/lateral_control_limits.h>
+
+#include "ControlLimitsHandler.hpp"
 
 #ifdef CONFIG_FIGURE_OF_EIGHT
 #include "figure_eight/FigureEight.hpp"
@@ -217,9 +217,7 @@ private:
 	uORB::Publication<normalized_unsigned_setpoint_s> _spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
 	uORB::PublicationData<fw_lateral_control_setpoint_s> _lateral_ctrl_sp_pub{ORB_ID(fw_lateral_control_setpoint)};
 	uORB::PublicationData<fw_lateral_control_setpoint_s> _lateral_ctrl_status_pub{ORB_ID(fw_lateral_control_status)};
-	uORB::PublicationData<lateral_control_limits_s> _lateral_ctrl_limits_pub{ORB_ID(lateral_control_limits)};
 	uORB::PublicationData<fw_longitudinal_control_setpoint_s> _longitudinal_ctrl_sp_pub{ORB_ID(fw_longitudinal_control_setpoint)};
-	uORB::PublicationData<longitudinal_control_limits_s> _longitudinal_ctrl_limits_pub{ORB_ID(longitudinal_control_limits)};
 
 	manual_control_setpoint_s _manual_control_setpoint{};
 	position_setpoint_triplet_s _pos_sp_triplet{};
@@ -227,6 +225,8 @@ private:
 	vehicle_control_mode_s _control_mode{};
 	vehicle_local_position_s _local_pos{};
 	vehicle_status_s _vehicle_status{};
+
+	CombinedControlLimitHandler _ctrl_limits_handler;
 
 	Vector2f _lpos_where_backtrans_started;
 

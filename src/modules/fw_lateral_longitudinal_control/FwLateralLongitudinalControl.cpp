@@ -184,10 +184,14 @@ void FwLateralLongitudinalControl::Run()
 				_fw_longitudinal_ctrl_sub.copy(&_long_control_sp);
 			}
 
+			float airspeed_sp = PX4_ISFINITE(_long_control_sp.equivalent_airspeed_setpoint) ?
+					    _long_control_sp.equivalent_airspeed_setpoint :
+					    _performance_model.getCalibratedTrimAirspeed();
+
+			airspeed_sp = math::constrain(airspeed_sp, _long_limits.equivalent_airspeed_min, _long_limits.equivalent_airspeed_max);
+
 			tecs_update_pitch_throttle(control_interval, _long_control_sp.altitude_setpoint,
-						   PX4_ISFINITE(_long_control_sp.equivalent_airspeed_setpoint)
-						   ? _long_control_sp.equivalent_airspeed_setpoint :
-						   _performance_model.getCalibratedTrimAirspeed(),
+						   airspeed_sp,
 						   _long_limits.pitch_min,
 						   _long_limits.pitch_max,
 						   _long_limits.throttle_min,

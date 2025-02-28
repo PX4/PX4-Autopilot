@@ -34,6 +34,7 @@
 #include "FixedwingPositionControl.hpp"
 
 #include <px4_platform_common/events.h>
+#include <uORB/topics/longitudinal_control_limits.h>
 
 using math::constrain;
 using math::max;
@@ -50,8 +51,6 @@ using matrix::wrap_pi;
 
 const fw_lateral_control_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course_setpoint = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration_setpoint = NAN, .roll_sp = NAN};
 const fw_longitudinal_control_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude_setpoint = NAN, .height_rate_setpoint = NAN, .equivalent_airspeed_setpoint = NAN, .pitch_sp = NAN, .thrust_sp = NAN};
-const longitudinal_control_limits_s empty_longitudinal_control_limits = {.timestamp = 0, .pitch_min = NAN, .pitch_max = NAN, .throttle_min = NAN, .throttle_max = NAN, .climb_rate_target = NAN, .sink_rate_target = NAN, .equivalent_airspeed_min = NAN, .equivalent_airspeed_max = NAN, .speed_weight = NAN, .enforce_low_height_condition = false, .disable_underspeed_protection = false };
-const lateral_control_limits_s empty_lateral_control_limits = {.timestamp = 0, .lateral_accel_max = NAN};
 FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
@@ -739,21 +738,14 @@ void FixedwingPositionControl::control_idle()
 	lateral_ctrl_sp.lateral_acceleration_setpoint = 0.0f;
 	_lateral_ctrl_sp_pub.publish(lateral_ctrl_sp);
 
-	lateral_control_limits_s lateral_limits = empty_lateral_control_limits;
-	lateral_limits.timestamp = hrt_absolute_time();
-	_lateral_ctrl_limits_pub.publish(lateral_limits);
-
 	fw_longitudinal_control_setpoint_s long_contrl_sp {empty_longitudinal_control_setpoint};
 	long_contrl_sp.timestamp = now;
 	long_contrl_sp.pitch_sp = math::radians(_param_fw_psp_off.get());
 	long_contrl_sp.thrust_sp = 0.0f;
 	_longitudinal_ctrl_sp_pub.publish(long_contrl_sp);
 
-	longitudinal_control_limits_s longitudinal_control_limits = empty_longitudinal_control_limits;
-	longitudinal_control_limits.timestamp = now;
-	longitudinal_control_limits.throttle_max = 0.f;
-	longitudinal_control_limits.throttle_min = 0.f;
-	_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
+	_ctrl_limits_handler.setThrottleMax(0.0f);
+	_ctrl_limits_handler.setThrottleMin(0.0f);
 }
 
 void
@@ -778,20 +770,13 @@ FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_i
 		throttle_max = _param_fw_thr_min.get();
 	}
 
-	longitudinal_control_limits_s longitudinal_control_limits = empty_longitudinal_control_limits;
-	longitudinal_control_limits.timestamp = hrt_absolute_time();
-	longitudinal_control_limits.throttle_max = throttle_max;
-	_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
+	_ctrl_limits_handler.setThrottleMax(throttle_max);
 
 	fw_lateral_control_setpoint_s lateral_ctrl_sp = empty_lateral_control_setpoint;
 	lateral_ctrl_sp.timestamp = hrt_absolute_time();
 	const float roll_body = math::radians(_param_nav_gpsf_r.get()); // open loop loiter bank angle
 	lateral_ctrl_sp.lateral_acceleration_setpoint = rollAngleToLateralAccel(roll_body);
 	_lateral_ctrl_sp_pub.publish(lateral_ctrl_sp);
-
-	lateral_control_limits_s lateral_limits = empty_lateral_control_limits;
-	lateral_limits.timestamp = hrt_absolute_time();
-	_lateral_ctrl_limits_pub.publish(lateral_limits);
 }
 
 void
@@ -812,22 +797,15 @@ FixedwingPositionControl::control_auto_descend(const float control_interval)
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-	longitudinal_control_limits_s longitudinal_control_limits = empty_longitudinal_control_limits;
-	longitudinal_control_limits.timestamp = hrt_absolute_time();
-	longitudinal_control_limits.throttle_max = (_landed
-			|| !_local_pos.v_z_valid) ? _param_fw_thr_min.get() : _param_fw_thr_max.get();
+	_ctrl_limits_handler.setThrottleMax((_landed
+					     || !_local_pos.v_z_valid) ? _param_fw_thr_min.get() : _param_fw_thr_max.get());
 
-	_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
 
 	fw_lateral_control_setpoint_s lateral_ctrl_sp = empty_lateral_control_setpoint;
 	lateral_ctrl_sp.timestamp = hrt_absolute_time();
 	const float roll_body = math::radians(_param_nav_gpsf_r.get()); // open loop loiter bank angle
 	lateral_ctrl_sp.lateral_acceleration_setpoint = rollAngleToLateralAccel(roll_body);
 	_lateral_ctrl_sp_pub.publish(lateral_ctrl_sp);
-
-	lateral_control_limits_s lateral_limits = empty_lateral_control_limits;
-	lateral_limits.timestamp = hrt_absolute_time();
-	_lateral_ctrl_limits_pub.publish(lateral_limits);
 }
 
 uint8_t
@@ -945,13 +923,11 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-	longitudinal_control_limits_s longitudinal_control_limits = empty_longitudinal_control_limits;
-	longitudinal_control_limits.timestamp = hrt_absolute_time();
-	longitudinal_control_limits.throttle_min = throttle_min;
-	longitudinal_control_limits.throttle_max = throttle_max;
-	longitudinal_control_limits.speed_weight = pos_sp_curr.gliding_enabled ? 2.0f :
-			longitudinal_control_limits.speed_weight;
-	_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
+
+	_ctrl_limits_handler.setThrottleMax(throttle_max);
+	_ctrl_limits_handler.setThrottleMin(throttle_min);
+	_ctrl_limits_handler.setSpeedWeight((pos_sp_curr.gliding_enabled ? 2.0f : NAN));
+
 
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
 	Vector2f curr_wp_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
@@ -971,10 +947,6 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 	lateral_ctrl_sp.course_setpoint = sp.course_setpoint;
 	lateral_ctrl_sp.lateral_acceleration_setpoint = sp.lateral_acceleration_feedforward;
 	_lateral_ctrl_sp_pub.publish(lateral_ctrl_sp);
-
-	lateral_control_limits_s lateral_limits = empty_lateral_control_limits;
-	lateral_limits.timestamp = hrt_absolute_time();
-	_lateral_ctrl_limits_pub.publish(lateral_limits);
 }
 
 void
@@ -997,10 +969,6 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 	fw_lateral_ctrl_sp.lateral_acceleration_setpoint = sp.lateral_acceleration_feedforward;
 	_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
-	lateral_control_limits_s lateral_limits = empty_lateral_control_limits;
-	lateral_limits.timestamp = hrt_absolute_time();
-	_lateral_ctrl_limits_pub.publish(lateral_limits);
-
 	const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
 		.altitude_setpoint = pos_sp_curr.alt,
@@ -1012,16 +980,11 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-	longitudinal_control_limits_s longitudinal_control_limits = empty_longitudinal_control_limits;
-	longitudinal_control_limits.timestamp = hrt_absolute_time();
-
 	if (pos_sp_curr.gliding_enabled) {
-		longitudinal_control_limits.throttle_min = 0.f;
-		longitudinal_control_limits.throttle_max = 0.f;
-		longitudinal_control_limits.speed_weight = 2.0f;
+		_ctrl_limits_handler.setThrottleMin(0.0f);
+		_ctrl_limits_handler.setThrottleMax(0.0f);
+		_ctrl_limits_handler.setSpeedWeight(2.0f);
 	}
-
-	_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
 }
 
 void
@@ -1098,9 +1061,6 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 
 	_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
-	lateral_control_limits_s lateral_limits = empty_lateral_control_limits;
-	lateral_limits.timestamp = hrt_absolute_time();
-
 	if (_landing_abort_status) {
 		if (pos_sp_curr.alt - _current_altitude  < kClearanceAltitudeBuffer) {
 			// aborted landing complete, normal loiter over landing point
@@ -1108,8 +1068,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 
 		} else {
 			// continue straight until vehicle has sufficient altitude
-			lateral_limits.lateral_accel_max = 0.0f;
-
+			_ctrl_limits_handler.setLateralAccelMax(0.0f);
 
 			// keep flaps in landing configuration if the airspeed is below the min airspeed (keep deployed if airspeed not valid)
 			if (!_airspeed_valid || _airspeed_eas < _performance_model.getMinimumCalibratedAirspeed()) {
@@ -1123,7 +1082,6 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		enforce_low_height = true;
 	}
 
-	_lateral_ctrl_limits_pub.publish(lateral_limits);
 
 	const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
@@ -1136,17 +1094,14 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-	longitudinal_control_limits_s longitudinal_control_limits = empty_longitudinal_control_limits;
-	longitudinal_control_limits.timestamp = hrt_absolute_time();
-	longitudinal_control_limits.enforce_low_height_condition = enforce_low_height;
 
 	if (pos_sp_curr.gliding_enabled) {
-		longitudinal_control_limits.throttle_min = 0.f;
-		longitudinal_control_limits.throttle_max = 0.f;
-		longitudinal_control_limits.speed_weight = 2.0f;
+		_ctrl_limits_handler.setThrottleMin(0.0f);
+		_ctrl_limits_handler.setThrottleMax(0.0f);
+		_ctrl_limits_handler.setSpeedWeight(2.0f);
 	}
 
-	_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
+	_ctrl_limits_handler.setEnforceLowHeightCondition(enforce_low_height);
 }
 
 #ifdef CONFIG_FIGURE_OF_EIGHT
@@ -1180,10 +1135,6 @@ FixedwingPositionControl::controlAutoFigureEight(const float control_interval, c
 
 	_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
-	lateral_control_limits_s lateral_limits = empty_lateral_control_limits;
-	lateral_limits.timestamp = hrt_absolute_time();
-	_lateral_ctrl_limits_pub.publish(lateral_limits);
-
 	_closest_point_on_path = _figure_eight.getClosestPoint();
 
 	const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
@@ -1197,16 +1148,11 @@ FixedwingPositionControl::controlAutoFigureEight(const float control_interval, c
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-	longitudinal_control_limits_s longitudinal_control_limits = empty_longitudinal_control_limits;
-	longitudinal_control_limits.timestamp = hrt_absolute_time();
-
 	if (pos_sp_curr.gliding_enabled) {
-		longitudinal_control_limits.throttle_min = 0.f;
-		longitudinal_control_limits.throttle_max = 0.f;
-		longitudinal_control_limits.speed_weight = 2.0f;
+		_ctrl_limits_handler.setThrottleMin(0.0f);
+		_ctrl_limits_handler.setThrottleMax(0.0f);
+		_ctrl_limits_handler.setSpeedWeight(2.0f);
 	}
-
-	_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
 }
 
 void FixedwingPositionControl::publishFigureEightStatus(const position_setpoint_s pos_sp)
@@ -1251,10 +1197,6 @@ FixedwingPositionControl::control_auto_path(const float control_interval, const 
 	fw_lateral_ctrl_sp.lateral_acceleration_setpoint = sp.lateral_acceleration_feedforward;
 	_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
-	lateral_control_limits_s lateral_limits = empty_lateral_control_limits;
-	lateral_limits.timestamp = hrt_absolute_time();
-	_lateral_ctrl_limits_pub.publish(lateral_limits);
-
 	const fw_longitudinal_control_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
 		.altitude_setpoint = pos_sp_curr.alt,
@@ -1266,16 +1208,12 @@ FixedwingPositionControl::control_auto_path(const float control_interval, const 
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-	longitudinal_control_limits_s longitudinal_control_limits = empty_longitudinal_control_limits;
-	longitudinal_control_limits.timestamp = hrt_absolute_time();
 
 	if (pos_sp_curr.gliding_enabled) {
-		longitudinal_control_limits.throttle_min = 0.f;
-		longitudinal_control_limits.throttle_max = 0.f;
-		longitudinal_control_limits.speed_weight = 2.0f;
+		_ctrl_limits_handler.setThrottleMin(0.0f);
+		_ctrl_limits_handler.setThrottleMax(0.0f);
+		_ctrl_limits_handler.setSpeedWeight(2.0f);
 	}
-
-	_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
 }
 
 void
@@ -1301,12 +1239,9 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 	float adjusted_min_airspeed = _performance_model.getMinimumCalibratedAirspeed(getLoadFactor());
 
-	longitudinal_control_limits_s longitudinal_control_limits = empty_longitudinal_control_limits;
-	longitudinal_control_limits.timestamp = hrt_absolute_time();
-
 	if (takeoff_airspeed < adjusted_min_airspeed) {
 		// adjust underspeed detection bounds for takeoff airspeed
-		longitudinal_control_limits.equivalent_airspeed_min = takeoff_airspeed;
+		_ctrl_limits_handler.setMinimumAirspeed(takeoff_airspeed);
 		adjusted_min_airspeed = takeoff_airspeed;
 	}
 
@@ -1366,9 +1301,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		const float roll_wingtip_strike = math::constrain(getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt),
 						  0.f, math::radians(_param_fw_r_lim.get()));
-		lateral_control_limits_s lateral_limits{.timestamp = hrt_absolute_time()};
-		lateral_limits.lateral_accel_max = rollAngleToLateralAccel(roll_wingtip_strike);
-		_lateral_ctrl_limits_pub.publish(lateral_limits);
+		_ctrl_limits_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
 
 		// update tecs
 		const float pitch_max = _runway_takeoff.getMaxPitch(math::radians(_param_fw_p_lim_max.get()));
@@ -1387,10 +1320,10 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-		longitudinal_control_limits.pitch_min = pitch_min;
-		longitudinal_control_limits.pitch_max = pitch_max;
-		longitudinal_control_limits.climb_rate_target = _performance_model.getMaximumClimbRate(_air_density);
-		longitudinal_control_limits.disable_underspeed_protection = true;
+		_ctrl_limits_handler.setPitchMin(pitch_min);
+		_ctrl_limits_handler.setPitchMax(pitch_max);
+		_ctrl_limits_handler.setClimbRateTarget(_performance_model.getMaximumClimbRate(_air_density));
+		_ctrl_limits_handler.setDisableUnderspeedProtection(true);
 
 		_flaps_setpoint = _param_fw_flaps_to_scl.get();
 
@@ -1459,9 +1392,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 			const float roll_wingtip_strike = math::constrain(getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt),
 							  0.f, math::radians(_param_fw_r_lim.get()));
-			lateral_control_limits_s lateral_limits{.timestamp = hrt_absolute_time()};
-			lateral_limits.lateral_accel_max = rollAngleToLateralAccel(roll_wingtip_strike);
-			_lateral_ctrl_limits_pub.publish(lateral_limits);
+			_ctrl_limits_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
 
 			const float max_takeoff_throttle = (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
 							   _param_fw_thr_idle.get() : NAN;
@@ -1474,12 +1405,13 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 				.thrust_sp = NAN
 			};
 
+
 			_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-			longitudinal_control_limits.pitch_min = radians(_takeoff_pitch_min.get());
-			longitudinal_control_limits.throttle_max = max_takeoff_throttle;
-			longitudinal_control_limits.climb_rate_target = _performance_model.getMaximumClimbRate(_air_density);
-			longitudinal_control_limits.disable_underspeed_protection = true;
+			_ctrl_limits_handler.setPitchMin(radians(_takeoff_pitch_min.get()));
+			_ctrl_limits_handler.setThrottleMax(max_takeoff_throttle);
+			_ctrl_limits_handler.setClimbRateTarget(_performance_model.getMaximumClimbRate(_air_density));
+			_ctrl_limits_handler.setDisableUnderspeedProtection(true);
 
 			//float yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
@@ -1495,8 +1427,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			long_control_sp.pitch_sp = radians(_takeoff_pitch_min.get());
 			_longitudinal_ctrl_sp_pub.publish(long_control_sp);
 		}
-
-		_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
 
 		launch_detection_status_s launch_detection_status;
 		launch_detection_status.timestamp = now;
@@ -1520,14 +1450,12 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 				    _performance_model.getMinimumCalibratedAirspeed(getLoadFactor());
 	float adjusted_min_airspeed = _performance_model.getMinimumCalibratedAirspeed(getLoadFactor());
 
-	longitudinal_control_limits_s longitudinal_control_limits = empty_longitudinal_control_limits;
-	longitudinal_control_limits.timestamp = hrt_absolute_time();
-	longitudinal_control_limits.enforce_low_height_condition = true;
+	_ctrl_limits_handler.setEnforceLowHeightCondition(true);
 
 	if (airspeed_land < adjusted_min_airspeed) {
 		// adjust underspeed detection bounds for landing airspeed
 		adjusted_min_airspeed = airspeed_land;
-		longitudinal_control_limits.equivalent_airspeed_min = airspeed_land;
+		_ctrl_limits_handler.setMinimumAirspeed(airspeed_land);
 	}
 
 	const float target_airspeed = adapt_airspeed_setpoint(control_interval, airspeed_land, adjusted_min_airspeed,
@@ -1614,9 +1542,7 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 		const float roll_wingtip_strike = math::constrain(getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt),
 						  0.f, math::radians(_param_fw_r_lim.get()));
-		lateral_control_limits_s lateral_limits{.timestamp = hrt_absolute_time()};
-		lateral_limits.lateral_accel_max = rollAngleToLateralAccel(roll_wingtip_strike);
-		_lateral_ctrl_limits_pub.publish(lateral_limits);
+		_ctrl_limits_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
 
 		/* longitudinal guidance */
 
@@ -1660,11 +1586,11 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-		longitudinal_control_limits.pitch_min = pitch_min_rad;
-		longitudinal_control_limits.pitch_max = pitch_max_rad;
-		longitudinal_control_limits.throttle_min = _param_fw_thr_idle.get();
-		longitudinal_control_limits.throttle_max = throttle_max;
-		longitudinal_control_limits.disable_underspeed_protection = true;
+		_ctrl_limits_handler.setPitchMin(pitch_min_rad);
+		_ctrl_limits_handler.setPitchMax(pitch_max_rad);
+		_ctrl_limits_handler.setThrottleMax(throttle_max);
+		_ctrl_limits_handler.setThrottleMin(_param_fw_thr_idle.get());
+		_ctrl_limits_handler.setDisableUnderspeedProtection(true);
 
 		// XXX: hacky way to pass through manual nose-wheel incrementing. need to clean this interface.
 		if (_param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled) {
@@ -1696,9 +1622,8 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		fw_lateral_ctrl_sp.lateral_acceleration_setpoint = sp.lateral_acceleration_feedforward;
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
-		lateral_control_limits_s lateral_limits{.timestamp = hrt_absolute_time()};
-		lateral_limits.lateral_accel_max = rollAngleToLateralAccel(getMaxRollAngleNearGround(_current_altitude, terrain_alt));
-		_lateral_ctrl_limits_pub.publish(lateral_limits);
+		_ctrl_limits_handler.setLateralAccelMax(rollAngleToLateralAccel(getMaxRollAngleNearGround(_current_altitude,
+							terrain_alt)));
 
 		/* longitudinal guidance */
 
@@ -1719,12 +1644,10 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-		longitudinal_control_limits.throttle_min = _param_fw_thr_idle.get();
-		longitudinal_control_limits.throttle_max = _landed ? _param_fw_thr_idle.get() : NAN;
-		longitudinal_control_limits.sink_rate_target = desired_max_sinkrate;
+		_ctrl_limits_handler.setThrottleMin(_param_fw_thr_idle.get());
+		_ctrl_limits_handler.setThrottleMax(_landed ? _param_fw_thr_idle.get() : NAN);
+		_ctrl_limits_handler.setSinkRateTarget(desired_max_sinkrate);
 	}
-
-	_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
 
 	_flaps_setpoint = _param_fw_flaps_lnd_scl.get();
 	_spoilers_setpoint = _param_fw_spoilers_lnd.get();
@@ -1748,13 +1671,10 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 				    _performance_model.getMinimumCalibratedAirspeed(getLoadFactor());
 	float adjusted_min_airspeed = _performance_model.getMinimumCalibratedAirspeed(getLoadFactor());
 
-	longitudinal_control_limits_s longitudinal_control_limits = empty_longitudinal_control_limits;
-	longitudinal_control_limits.timestamp = hrt_absolute_time();
-
 	if (airspeed_land < adjusted_min_airspeed) {
 		// adjust underspeed detection bounds for landing airspeed
 		adjusted_min_airspeed = airspeed_land;
-		longitudinal_control_limits.equivalent_airspeed_min = airspeed_land;
+		_ctrl_limits_handler.setMinimumAirspeed(airspeed_land);
 	}
 
 	const float target_airspeed = adapt_airspeed_setpoint(control_interval, airspeed_land, adjusted_min_airspeed,
@@ -1851,11 +1771,11 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-		longitudinal_control_limits.pitch_min = pitch_min_rad;
-		longitudinal_control_limits.pitch_max = pitch_max_rad;
-		longitudinal_control_limits.throttle_min = _param_fw_thr_idle.get();
-		longitudinal_control_limits.throttle_max = throttle_max;
-		longitudinal_control_limits.disable_underspeed_protection = true;
+		_ctrl_limits_handler.setPitchMin(pitch_min_rad);
+		_ctrl_limits_handler.setPitchMax(pitch_max_rad);
+		_ctrl_limits_handler.setThrottleMax(throttle_max);
+		_ctrl_limits_handler.setThrottleMin(_param_fw_thr_idle.get());
+		_ctrl_limits_handler.setDisableUnderspeedProtection(true);
 
 		// XXX: hacky way to pass through manual nose-wheel incrementing. need to clean this interface.
 		if (_param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled) {
@@ -1903,17 +1823,14 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-		longitudinal_control_limits.throttle_min = _param_fw_thr_idle.get();
-		longitudinal_control_limits.throttle_max = _landed ? _param_fw_thr_idle.get() : NAN;
-		longitudinal_control_limits.sink_rate_target = desired_max_sinkrate;
-		_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
+		_ctrl_limits_handler.setThrottleMin(_param_fw_thr_idle.get());
+		_ctrl_limits_handler.setThrottleMax(_landed ? _param_fw_thr_idle.get() : NAN);
+		_ctrl_limits_handler.setSinkRateTarget(desired_max_sinkrate);
 	}
 
-	_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
 
-	lateral_control_limits_s lateral_limits{.timestamp = hrt_absolute_time()};
-	lateral_limits.lateral_accel_max = rollAngleToLateralAccel(getMaxRollAngleNearGround(_current_altitude, terrain_alt));
-	_lateral_ctrl_limits_pub.publish(lateral_limits);
+	_ctrl_limits_handler.setLateralAccelMax(rollAngleToLateralAccel(getMaxRollAngleNearGround(_current_altitude,
+						terrain_alt)));
 
 	_flaps_setpoint = _param_fw_flaps_lnd_scl.get();
 	_spoilers_setpoint = _param_fw_spoilers_lnd.get();
@@ -1959,11 +1876,8 @@ FixedwingPositionControl::control_manual_altitude(const float control_interval, 
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-	longitudinal_control_limits_s longitudinal_control_limits = empty_longitudinal_control_limits;
-	longitudinal_control_limits.timestamp = hrt_absolute_time();
-	longitudinal_control_limits.pitch_min = min_pitch;
-	longitudinal_control_limits.throttle_max = throttle_max;
-	_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
+	_ctrl_limits_handler.setPitchMin(min_pitch);
+	_ctrl_limits_handler.setThrottleMax(throttle_max);
 
 	const float roll_body = _manual_control_setpoint.roll * radians(_param_fw_r_lim.get());
 	const DirectionalGuidanceOutput sp = {.lateral_acceleration_feedforward = rollAngleToLateralAccel(roll_body)};
@@ -1972,10 +1886,6 @@ FixedwingPositionControl::control_manual_altitude(const float control_interval, 
 	fw_lateral_ctrl_sp.course_setpoint = sp.course_setpoint;
 	fw_lateral_ctrl_sp.lateral_acceleration_setpoint = sp.lateral_acceleration_feedforward;
 	_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
-
-	lateral_control_limits_s lateral_limits = empty_lateral_control_limits;
-	lateral_limits.timestamp = hrt_absolute_time();
-	_lateral_ctrl_limits_pub.publish(lateral_limits);
 }
 
 void
@@ -2063,11 +1973,8 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-	longitudinal_control_limits_s longitudinal_control_limits = empty_longitudinal_control_limits;
-	longitudinal_control_limits.timestamp = hrt_absolute_time();
-	longitudinal_control_limits.pitch_min = min_pitch;
-	longitudinal_control_limits.throttle_max = throttle_max;
-	_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
+	_ctrl_limits_handler.setPitchMin(min_pitch);
+	_ctrl_limits_handler.setThrottleMax(throttle_max);
 
 	if (!_yaw_lock_engaged || fabsf(_manual_control_setpoint.roll) >= HDG_HOLD_MAN_INPUT_THRESH ||
 	    fabsf(_manual_control_setpoint.yaw) >= HDG_HOLD_MAN_INPUT_THRESH) {
@@ -2081,10 +1988,6 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 		fw_lateral_ctrl_sp.lateral_acceleration_setpoint = rollAngleToLateralAccel(roll_body);
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 	}
-
-	lateral_control_limits_s lateral_limits = empty_lateral_control_limits;
-	lateral_limits.timestamp = hrt_absolute_time();
-	_lateral_ctrl_limits_pub.publish(lateral_limits);
 }
 
 float FixedwingPositionControl::rollAngleToLateralAccel(float roll_body) const
@@ -2102,10 +2005,6 @@ void FixedwingPositionControl::control_backtransition_heading_hold()
 	fw_lateral_ctrl_sp.timestamp = hrt_absolute_time();
 	fw_lateral_ctrl_sp.airspeed_reference_direction = _backtrans_heading;
 	_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
-
-	lateral_control_limits_s lateral_limits = empty_lateral_control_limits;
-	lateral_limits.timestamp = hrt_absolute_time();
-	_lateral_ctrl_limits_pub.publish(lateral_limits);
 }
 
 void FixedwingPositionControl::control_backtransition_line_follow(const Vector2f &ground_speed,
@@ -2132,10 +2031,6 @@ void FixedwingPositionControl::control_backtransition_line_follow(const Vector2f
 	fw_lateral_ctrl_sp.course_setpoint = sp.course_setpoint;
 	fw_lateral_ctrl_sp.lateral_acceleration_setpoint = sp.lateral_acceleration_feedforward;
 	_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
-
-	lateral_control_limits_s lateral_limits = empty_lateral_control_limits;
-	lateral_limits.timestamp = hrt_absolute_time();
-	_lateral_ctrl_limits_pub.publish(lateral_limits);
 }
 
 void
@@ -2410,6 +2305,8 @@ FixedwingPositionControl::Run()
 				break;
 			}
 		}
+
+		_ctrl_limits_handler.update();
 
 
 		// if there's any change in landing gear setpoint publish it
@@ -2915,7 +2812,6 @@ float FixedwingPositionControl::getLoadFactor() const
 	return load_factor_from_bank_angle;
 
 }
-
 
 extern "C" __EXPORT int fw_pos_control_main(int argc, char *argv[])
 {
