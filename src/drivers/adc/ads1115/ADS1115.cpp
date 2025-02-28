@@ -70,6 +70,11 @@ int ADS1115::probe()
 		return ret;
 	}
 
+	// In flight controllers that operates with multiple autopilots the initial state may be unknown.
+	if (_by_pass_config_reg_check) {
+		return PX4_OK;
+	}
+
 	if (buf[0] != CONFIG_RESET_VALUE_HIGH || buf[1] != CONFIG_RESET_VALUE_LOW) {
 		DEVICE_DEBUG("ADS1115 not found");
 		return PX4_ERROR;

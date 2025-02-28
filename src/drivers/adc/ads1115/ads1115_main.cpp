@@ -45,7 +45,8 @@
 ADS1115::ADS1115(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample"))
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample")),
+	_by_pass_config_reg_check{static_cast<bool>(config.custom1)}
 {
 	_adc_report.device_id = this->get_device_id();
 	_adc_report.resolution = 32768;
@@ -151,9 +152,10 @@ parameter, and is disabled by default.
 If enabled, internal ADCs are not used.
 
 )DESCR_STR");
-	
+
 	PRINT_MODULE_USAGE_NAME("ads1115", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_FLAG('N', "Bypass config register in reset state check", false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x48);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
@@ -167,12 +169,22 @@ void ADS1115::print_status()
 
 extern "C" int ads1115_main(int argc, char *argv[])
 {
+	int ch;
 	using ThisDriver = ADS1115;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;
 	cli.i2c_address = 0x48;
+	cli.custom1 = 0;
 
-	const char *verb = cli.parseDefaultArguments(argc, argv);
+	while ((ch = cli.getOpt(argc, argv, "N")) != EOF) {
+		switch (ch) {
+		case 'N':
+			cli.custom1 = 1;
+			break;
+		}
+	}
+
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();
