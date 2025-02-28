@@ -1110,7 +1110,8 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 			// continue straight until vehicle has sufficient altitude
 			lateral_limits.lateral_accel_max = 0.f;
 
-      // keep flaps in landing configuration if the airspeed is below the min airspeed (keep deployed if airspeed not valid)
+
+			// keep flaps in landing configuration if the airspeed is below the min airspeed (keep deployed if airspeed not valid)
 			if (!_airspeed_valid || _airspeed_eas < _performance_model.getMinimumCalibratedAirspeed()) {
 				_flaps_setpoint =  _param_fw_flaps_lnd_scl.get();
 
@@ -1363,7 +1364,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		fw_lateral_ctrl_sp.roll_sp = _runway_takeoff.getRoll();
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
-		const float roll_wingtip_strike = getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt);
+		const float roll_wingtip_strike = math::constrain(getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt),
+						  0.f, math::radians(_param_fw_r_lim.get()));
 		lateral_control_limits_s lateral_limits{.timestamp = hrt_absolute_time()};
 		lateral_limits.lateral_accel_max = rollAngleToLateralAccel(roll_wingtip_strike);
 		_lateral_ctrl_limits_pub.publish(lateral_limits);
@@ -1455,7 +1457,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 			_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
-			const float roll_wingtip_strike = getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt);
+			const float roll_wingtip_strike = math::constrain(getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt),
+							  0.f, math::radians(_param_fw_r_lim.get()));
 			lateral_control_limits_s lateral_limits{.timestamp = hrt_absolute_time()};
 			lateral_limits.lateral_accel_max = rollAngleToLateralAccel(roll_wingtip_strike);
 			_lateral_ctrl_limits_pub.publish(lateral_limits);
@@ -1609,7 +1612,8 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		fw_lateral_ctrl_sp.lateral_acceleration_setpoint = sp.lateral_acceleration_feedforward;
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
-		const float roll_wingtip_strike = getMaxRollAngleNearGround(_current_altitude, terrain_alt);
+		const float roll_wingtip_strike = math::constrain(getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt),
+						  0.f, math::radians(_param_fw_r_lim.get()));
 		lateral_control_limits_s lateral_limits{.timestamp = hrt_absolute_time()};
 		lateral_limits.lateral_accel_max = rollAngleToLateralAccel(roll_wingtip_strike);
 		_lateral_ctrl_limits_pub.publish(lateral_limits);
