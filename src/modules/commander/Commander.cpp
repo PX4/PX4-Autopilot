@@ -2193,13 +2193,13 @@ void Commander::updateTunes()
 
 	} else if (!_vehicle_status.usb_connected &&
 		   (_vehicle_status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
-		   (_battery_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
+		   (_battery_warning == battery_status_s::WARNING_CRITICAL)) {
 
 		/* play tune on battery critical */
 		set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_FAST);
 
 	} else if ((_vehicle_status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
-		   (_battery_warning == battery_status_s::BATTERY_WARNING_LOW)) {
+		   (_battery_warning == battery_status_s::WARNING_LOW)) {
 		/* play tune on battery warning */
 		set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW);
 
@@ -2493,10 +2493,10 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 			if (_vehicle_status.failsafe) {
 				led_color = led_control_s::COLOR_PURPLE;
 
-			} else if (battery_warning == battery_status_s::BATTERY_WARNING_LOW) {
+			} else if (battery_warning == battery_status_s::WARNING_LOW) {
 				led_color = led_control_s::COLOR_AMBER;
 
-			} else if (battery_warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
+			} else if (battery_warning == battery_status_s::WARNING_CRITICAL) {
 				led_color = led_control_s::COLOR_RED;
 
 			} else {
@@ -2867,7 +2867,7 @@ void Commander::battery_status_check()
 	// Handle shutdown request from emergency battery action
 	if (_battery_warning != _failsafe_flags.battery_warning) {
 
-		if (_failsafe_flags.battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
+		if (_failsafe_flags.battery_warning == battery_status_s::WARNING_EMERGENCY) {
 #if defined(BOARD_HAS_POWER_CONTROL)
 
 			if (!isArmed() && (px4_shutdown_request(60_s) == 0)) {
