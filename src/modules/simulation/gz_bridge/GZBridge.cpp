@@ -69,8 +69,8 @@ GZBridge::~GZBridge()
 int GZBridge::init()
 {
 	// TODO document this somehow
-	char *moving_platform = std::getenv("GZ_MOVING_PLATFORM");
-	bool platform = ((moving_platform != nullptr) && (std::strcmp(moving_platform, "1") == 0));
+	const char *moving_platform = std::getenv("GZ_MOVING_PLATFORM");
+	_has_platform = ((moving_platform != nullptr) && (std::strcmp(moving_platform, "1") == 0));
 
 	if (!_model_sim.empty()) {
 
@@ -105,7 +105,7 @@ int GZBridge::init()
 			position->set_y(model_pose_v[1]);
 			position->set_z(model_pose_v[2]);
 
-			if (platform) {
+			if (_has_platform) {
 				// why does this only look good if way bigger than actual platform height?
 				float platform_height = 0.5;
 				position->set_z(fmaxf(platform_height, model_pose_v[2]));
@@ -182,12 +182,16 @@ int GZBridge::init()
 		}
 	}
 
-	if (platform) {
+	if (_has_platform) {
 
 		if (!createMovingPlatform()) {
 			return PX4_ERROR;
 		}
 
+		// Initialise publisher for setPlatformVelocity
+		// TODO less hardcoding of these topic strings
+		std::string cmd_vel_topic = "/model/flat_platform/link/platform_link/cmd_vel";
+		_platform_twist_pub = _node.Advertise<gz::msgs::Twist>(cmd_vel_topic);
 	}
 
 	// clock
@@ -265,7 +269,7 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-	if (platform) {
+	if (_has_platform) {
 		std::string platform_pose_topic = "/world/" + _world_name +
 						  "/model/flat_platform/link/platform_link/sensor/navsat_sensor/navsat";
 
@@ -299,6 +303,24 @@ int GZBridge::init()
 	return OK;
 }
 
+
+void GZBridge::setPlatformVelocity(float vx, float vy, float vz)
+{
+
+	gz::msgs::Twist twist;
+	gz::msgs::Set(twist.mutable_linear(),
+		      gz::math::Vector3d(vx, vy, vz));
+
+	if (_platform_twist_pub) {
+		_platform_twist_pub.Publish(twist);
+
+	} else {
+		PX4_ERR("wanted to set platform velocity but publisher not initialized");
+	}
+
+	// TODO unified error handling? PX4_ERR at the lowest level or return success bool?
+}
+
 bool GZBridge::createMovingPlatform()
 {
 
@@ -308,8 +330,7 @@ bool GZBridge::createMovingPlatform()
 
 	// https://gazebosim.org/api/gazebo/6/entity_creation.html
 	// This just as a first hacky quick solution.
-	// Surely there is a good place for such a file without putting it in the gz repo?
-
+	// Ultimately we should probably put this in the PX4-gazebo-models repo
 	std::string platform_sdf = R""""(
 	<?xml version="1.0" ?>
 	<sdf version="1.6">
@@ -354,29 +375,35 @@ bool GZBridge::createMovingPlatform()
 	        <always_on>1</always_on>
 	        <update_rate>30</update_rate>
 	      </sensor>
+
 	    </link>
+
+	    <!-- plugin for sending direct velocity commands -->
+            <plugin
+              filename="gz-sim-velocity-control-system"
+              name="gz::sim::systems::VelocityControl">
+	      <link_name>platform_link</link_name>
+            </plugin>
+
 	  </model>
 	</sdf>
 	)"""";
+
 
 	req.set_sdf(platform_sdf);
 
 	// base dir: Tools/simulation/gz/models
 	// req.set_sdf_filename("platform.sdf");
 
-	// req.set_name("platform");
 	req.set_allow_renaming(false);
 
-	// position: origin (might want to adapt to model position)
+	// Set position & orientation. Origin hardcoded -- adapt to model pose?
 	gz::msgs::Pose *p = req.mutable_pose();
 	gz::msgs::Vector3d *position = p->mutable_position();
 	position->set_x(0.);
 	position->set_y(0.);
 	position->set_z(0.05);
 
-	// gz::math::Quaterniond q(model_pose_v[3], model_pose_v[4], model_pose_v[5]);
-
-	// orientation: unit quaternion
 	gz::msgs::Quaternion *orientation = p->mutable_orientation();
 	orientation->set_x(0.);
 	orientation->set_y(0.);
@@ -413,6 +440,7 @@ bool GZBridge::setPlatformPose(gz::msgs::Pose &pose)
 		PX4_WARN("set_pose service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
 		return false;
 	}
+
 	return true;
 }
 
@@ -561,8 +589,8 @@ void GZBridge::platformNavsatCallback(const gz::msgs::NavSat &nav_sat)
 	pthread_mutex_lock(&_node_mutex);
 
 	// print d n'ebugging pas
-	PX4_INFO("Moving Platform NavSat pos: lat=%.2f, lon=%.2f, alt=%.2f",
-		 nav_sat.latitude_deg(), nav_sat.longitude_deg(), nav_sat.altitude());
+	// PX4_INFO("Moving Platform NavSat pos: lat=%.2f, lon=%.2f, alt=%.2f",
+	// 	 nav_sat.latitude_deg(), nav_sat.longitude_deg(), nav_sat.altitude());
 
 	// TODO publish the corresponding uOrb msg. then in reality we just have
 	// to convert the mavlink msg from the ground station to exactly the
@@ -1195,16 +1223,9 @@ void GZBridge::Run()
 		_gimbal.updateParams();
 	}
 
-	// float time_s = hrt_absolute_time() / 1e6;  // abstime in microseconds
-	// float vel = 1.0f;
-
-	// gz::msgs::Pose pose;
-	// gz::msgs::Vector3d *position = pose.mutable_position();
-	// position->set_x(time_s * vel);
-	// position->set_y(0.);
-	// position->set_z(0.05);
-
-	// setPlatformPose(pose);
+	if (_has_platform) {
+		setPlatformVelocity(1.0, 0.0, 0.0);
+	}
 
 	ScheduleDelayed(10_ms);
 

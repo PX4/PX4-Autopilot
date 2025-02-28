@@ -120,6 +120,8 @@ private:
 
 	bool setPlatformPose(gz::msgs::Pose &pose);
 
+	void setPlatformVelocity(float vx, float vy, float vz);
+
 	bool createMovingPlatform();
 
 	/**
@@ -192,6 +194,8 @@ private:
 	GZMixingInterfaceWheel _mixing_interface_wheel{_node, _node_mutex};
 	GZGimbal _gimbal{_node, _node_mutex};
 
+	bool _has_platform{false};
+
 	px4::atomic<uint64_t> _world_time_us{0};
 
 	pthread_mutex_t _node_mutex;
@@ -212,4 +216,5 @@ private:
 	float _temperature{288.15};  // 15 degrees
 
 	gz::transport::Node _node;
+	gz::transport::Node::Publisher _platform_twist_pub;
 };
