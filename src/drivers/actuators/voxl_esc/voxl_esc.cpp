@@ -47,7 +47,7 @@ VoxlEsc::VoxlEsc() :
 	_mixing_output{"VOXL_ESC", VOXL_ESC_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval")),
-	_battery(1, nullptr, _battery_report_interval, battery_status_s::BATTERY_SOURCE_POWER_MODULE)
+	_battery(1, nullptr, _battery_report_interval, battery_status_s::SOURCE_POWER_MODULE)
 {
 	_device = VOXL_ESC_DEFAULT_PORT;
 
@@ -1636,7 +1636,7 @@ void VoxlEsc::print_params()
 
 	PX4_INFO("Params: VOXL_ESC_VLOG: %" PRId32,    _parameters.verbose_logging);
 	PX4_INFO("Params: VOXL_ESC_PUB_BST: %" PRId32, _parameters.publish_battery_status);
-	
+
 	PX4_INFO("Params: VOXL_ESC_T_WARN: %" PRId32, _parameters.esc_warn_temp_threshold);
 	PX4_INFO("Params: VOXL_ESC_T_OVER: %" PRId32, _parameters.esc_over_temp_threshold);
 

@@ -81,31 +81,31 @@ private:
 							 math::max((int)battery_status.time_remaining_s, 1) : 0;
 
 				switch (battery_status.warning) {
-				case (battery_status_s::BATTERY_WARNING_NONE):
+				case (battery_status_s::WARNING_NONE):
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_OK;
 					break;
 
-				case (battery_status_s::BATTERY_WARNING_LOW):
+				case (battery_status_s::WARNING_LOW):
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_LOW;
 					break;
 
-				case (battery_status_s::BATTERY_WARNING_CRITICAL):
+				case (battery_status_s::WARNING_CRITICAL):
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_CRITICAL;
 					break;
 
-				case (battery_status_s::BATTERY_WARNING_EMERGENCY):
+				case (battery_status_s::WARNING_EMERGENCY):
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_EMERGENCY;
 					break;
 
-				case (battery_status_s::BATTERY_WARNING_FAILED):
+				case (battery_status_s::WARNING_FAILED):
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_FAILED;
 					break;
 
-				case (battery_status_s::BATTERY_STATE_UNHEALTHY):
+				case (battery_status_s::STATE_UNHEALTHY):
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_UNHEALTHY;
 					break;
 
-				case (battery_status_s::BATTERY_STATE_CHARGING):
+				case (battery_status_s::STATE_CHARGING):
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_CHARGING;
 					break;
 

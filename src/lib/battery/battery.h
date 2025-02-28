@@ -175,7 +175,7 @@ private:
 	float _state_of_charge_volt_based{-1.f}; // [0,1]
 	float _state_of_charge{-1.f}; // [0,1]
 	float _scale{1.f};
-	uint8_t _warning{battery_status_s::BATTERY_WARNING_NONE};
+	uint8_t _warning{battery_status_s::WARNING_NONE};
 	hrt_abstime _last_timestamp{0};
 	bool _armed{false};
 	bool _vehicle_status_is_fw{false};
