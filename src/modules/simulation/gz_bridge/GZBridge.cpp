@@ -315,11 +315,65 @@ bool GZBridge::createMovingPlatform()
 	// moving platform to launch & land from.
 
 	gz::msgs::EntityFactory req{};
-	// base dir: Tools/simulation/gz/models
-	req.set_sdf_filename("platform.sdf");
 
-	// can also set sdf string directly using req.set_sdf
 	// https://gazebosim.org/api/gazebo/6/entity_creation.html
+	// This just as a first hacky quick solution.
+	// Surely there is a good place for such a file without putting it in the gz repo?
+
+	std::string platform_sdf = R""""(
+	<?xml version="1.0" ?>
+	<sdf version="1.6">
+	  <model name="flat_platform">
+	    <!-- Link representing the flat platform -->
+	    <link name="platform_link">
+	      <!-- Visual properties -->
+	      <visual name="platform_visual">
+	        <geometry>
+	          <box>
+	            <size>5 5 0.1</size>
+	          </box>
+	        </geometry>
+	        <material>
+	          <ambient>0.3 0.3 0.3 1</ambient>
+	          <diffuse>0.3 0.3 0.3 1</diffuse>
+	          <specular>0.1 0.1 0.1 1</specular>
+	        </material>
+	      </visual>
+
+	      <!-- Collision properties -->
+	      <collision name="platform_collision">
+	        <geometry>
+	          <box>
+	            <size>5 5 0.1</size>
+	          </box> shit
+	        </geometry>
+	      </collision>
+
+	      <!-- Inertial properties (irrelevant, but required) -->
+	      <inertial>
+	        <mass>1</mass>
+	        <inertia>
+	          <ixx>1</ixx>
+	          <iyy>1</iyy>
+	          <izz>1</izz>
+	        </inertia>
+	      </inertial>
+
+	      <!-- Sensor to measure the position of the platform -->
+	      <sensor name="navsat_sensor" type="navsat">
+	        <always_on>1</always_on>
+	        <update_rate>30</update_rate>
+	      </sensor>
+	    </link>
+	  </model>
+	</sdf>
+	)"""";
+
+	req.set_sdf(platform_sdf);
+
+	// base dir: Tools/simulation/gz/models
+	// req.set_sdf_filename("platform.sdf");
+
 	// req.set_name("platform");
 	req.set_allow_renaming(false);
 
