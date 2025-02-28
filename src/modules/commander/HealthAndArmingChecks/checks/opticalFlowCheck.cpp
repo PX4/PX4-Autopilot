@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,30 +31,38 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "opticalFlowCheck.hpp"
 
-#include "../Common.hpp"
-
-#include <lib/hysteresis/hysteresis.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/system_power.h>
-
-class PowerChecks : public HealthAndArmingCheckBase
+void OpticalFlowCheck::checkAndReport(const Context &context, Report &reporter)
 {
-public:
-	PowerChecks();
-	~PowerChecks() = default;
+	if (!_param_sys_has_num_of.get()) {
+		return;
+	}
 
-	void checkAndReport(const Context &context, Report &reporter) override;
+	const bool exists = _vehicle_optical_flow_sub.advertised();
 
-private:
-	uORB::Subscription _system_power_sub{ORB_ID(system_power)};
-	bool _overcurrent_warning_sent{false};
-	systemlib::Hysteresis _voltage_low_hysteresis{false};
-	systemlib::Hysteresis _voltage_high_hysteresis{false};
+	if (exists) {
+		vehicle_optical_flow_s flow_sens;
+		const bool valid = _vehicle_optical_flow_sub.copy(&flow_sens) && (hrt_elapsed_time(&flow_sens.timestamp) < 1_s);
+		reporter.setIsPresent(health_component_t::optical_flow);
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
-					(ParamInt<px4::params::COM_POWER_COUNT>) _param_com_power_count
-				       )
-};
+		if (!valid) {
+			/* EVENT
+			 */
+			reporter.healthFailure(NavModes::All, health_component_t::optical_flow,
+					       events::ID("check_optical_flow_sensor_invalid"),
+					       events::Log::Error, "No valid data from optical flow sensor");
+		}
+
+	} else {
+		/* EVENT
+		 * @description
+		 * <profile name="dev">
+		 * This check can be configured via <param>SYS_HAS_NUM_OF</param> parameter.
+		 * </profile>
+		 */
+		reporter.healthFailure(NavModes::All, health_component_t::optical_flow,
+				       events::ID("check_optical_sensor_missing"),
+				       events::Log::Error, "Optical flow sensor missing");
+	}
+}

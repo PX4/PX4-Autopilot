@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,26 +35,21 @@
 
 #include "../Common.hpp"
 
-#include <lib/hysteresis/hysteresis.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/system_power.h>
+#include <uORB/topics/vehicle_optical_flow.h>
 
-class PowerChecks : public HealthAndArmingCheckBase
+class OpticalFlowCheck : public HealthAndArmingCheckBase
 {
 public:
-	PowerChecks();
-	~PowerChecks() = default;
+	OpticalFlowCheck() = default;
+	~OpticalFlowCheck() = default;
 
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
-	uORB::Subscription _system_power_sub{ORB_ID(system_power)};
-	bool _overcurrent_warning_sent{false};
-	systemlib::Hysteresis _voltage_low_hysteresis{false};
-	systemlib::Hysteresis _voltage_high_hysteresis{false};
+	uORB::Subscription _vehicle_optical_flow_sub{ORB_ID::vehicle_optical_flow};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
-					(ParamInt<px4::params::COM_POWER_COUNT>) _param_com_power_count
+					(ParamInt<px4::params::SYS_HAS_NUM_OF>) _param_sys_has_num_of
 				       )
 };
