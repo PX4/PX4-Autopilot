@@ -45,7 +45,8 @@
 ADS1115::ADS1115(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample"))
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample")),
+	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
 {
 	_adc_report.device_id = this->get_device_id();
 	_adc_report.resolution = 32768;
@@ -61,6 +62,7 @@ ADS1115::~ADS1115()
 {
 	ScheduleClear();
 	perf_free(_cycle_perf);
+	perf_free(_comms_errors);
 }
 
 void ADS1115::exit_and_cleanup()
@@ -77,56 +79,55 @@ void ADS1115::RunImpl()
 
 	perf_begin(_cycle_perf);
 
-	_adc_report.timestamp = hrt_absolute_time();
+	const int ready = isSampleReady();
 
-	if (isSampleReady()) { // whether ADS1115 is ready to be read or not
-		if (!_reported_ready_last_cycle) {
-			PX4_INFO("ADS1115: reported ready");
-			_reported_ready_last_cycle = true;
+	if (ready == 1) {
+		// I2C transaction success and status register reported conversion as finished
+		if (_ready_counter == 0) { PX4_INFO("ADS1115: reported ready"); }
+
+		if (_ready_counter < MAX_READY_COUNTER) { _ready_counter++; }
+
+		int16_t value;
+		Channel ch = getMeasurement(&value);
+
+		if (ch != Channel::Invalid) {
+			// Store current readings and mark channel as read
+			const unsigned index{ch2u(ch)};
+			_adc_report.channel_id[index] = index;
+			_adc_report.raw_data[index] = value;
+			_channel_cycle_mask |= 1u << index;
+
+		} else {
+			// we will retry the same channel again
+			perf_count(_comms_errors);
 		}
 
-		int16_t buf;
-		ADS1115::ChannelSelection ch = cycleMeasure(&buf);
-		++_channel_cycle_count;
+		// Find the next unread channel in the bitmask
+		uint8_t next_index{0};
 
-		switch (ch) {
-		case ADS1115::A0:
-			_adc_report.channel_id[0] = 0;
-			_adc_report.raw_data[0] = buf;
-			break;
+		for (; next_index < 4 && (_channel_cycle_mask & (1u << next_index)); next_index++) {}
 
-		case ADS1115::A1:
-			_adc_report.channel_id[1] = 1;
-			_adc_report.raw_data[1] = buf;
-			break;
+		readChannel(u2ch(next_index));
 
-		case ADS1115::A2:
-			_adc_report.channel_id[2] = 2;
-			_adc_report.raw_data[2] = buf;
-			break;
-
-		case ADS1115::A3:
-			_adc_report.channel_id[3] = 3;
-			_adc_report.raw_data[3] = buf;
-			break;
-
-		default:
-			PX4_DEBUG("ADS1115: undefined behaviour");
-			setChannel(ADS1115::A0);
-			--_channel_cycle_count;
-			break;
-		}
-
-		if (_channel_cycle_count == 4) { // ADS1115 has 4 channels
-			_channel_cycle_count = 0;
+		if (_channel_cycle_mask == 0b1111) {
+			_channel_cycle_mask = 0;
 			_to_adc_report.publish(_adc_report);
 		}
 
-	} else {
-		if (_reported_ready_last_cycle) {
-			_reported_ready_last_cycle = false;
-			PX4_ERR("ADS1115: not ready. Device lost?");
-		}
+	} else if (ready == 0) {
+		// I2C transaction success but status register reported conversion still in progress
+		perf_count(_comms_errors);
+		// Reset the channel to unstick the device
+		readChannel(Channel::A0);
+
+	} else if (ready == -1) {
+		if (_ready_counter == 1) { PX4_ERR("ADS1115: device lost"); }
+
+		if (_ready_counter > 0) { _ready_counter--; }
+
+		perf_count(_comms_errors);
+		// Reset the channel to unstick the device
+		readChannel(Channel::A0);
 	}
 
 	perf_end(_cycle_perf);
@@ -151,7 +152,7 @@ parameter, and is disabled by default.
 If enabled, internal ADCs are not used.
 
 )DESCR_STR");
-	
+
 	PRINT_MODULE_USAGE_NAME("ads1115", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
@@ -163,6 +164,7 @@ void ADS1115::print_status()
 {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_cycle_perf);
+	perf_print_counter(_comms_errors);
 }
 
 extern "C" int ads1115_main(int argc, char *argv[])
