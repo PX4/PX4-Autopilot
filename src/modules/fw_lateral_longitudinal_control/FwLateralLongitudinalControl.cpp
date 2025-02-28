@@ -249,10 +249,6 @@ void FwLateralLongitudinalControl::Run()
 				roll_sp = mapLateralAccelerationToRollAngle(lateral_accel_sp);
 			}
 
-			_att_sp.reset_integral = _lat_control_sp.reset_integral;
-			_att_sp.fw_control_yaw_wheel = PX4_ISFINITE(_lat_control_sp.heading_sp_runway_takeoff);
-			yaw_sp = _lat_control_sp.heading_sp_runway_takeoff;
-
 			fw_lateral_control_setpoint_s status = {
 				.timestamp = _lat_control_sp.timestamp,
 				.course_setpoint = _lat_control_sp.course_setpoint,
