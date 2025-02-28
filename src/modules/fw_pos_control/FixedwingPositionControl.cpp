@@ -48,7 +48,7 @@ using matrix::Vector2d;
 using matrix::Vector3f;
 using matrix::wrap_pi;
 
-const fw_lateral_control_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course_setpoint = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration_setpoint = NAN, .roll_sp = NAN, .heading_sp_runway_takeoff = NAN, .reset_integral = false};
+const fw_lateral_control_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course_setpoint = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration_setpoint = NAN, .roll_sp = NAN};
 const fw_longitudinal_control_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude_setpoint = NAN, .height_rate_setpoint = NAN, .equivalent_airspeed_setpoint = NAN, .pitch_sp = NAN, .thrust_sp = NAN};
 const longitudinal_control_limits_s empty_longitudinal_control_limits = {.timestamp = 0, .pitch_min = NAN, .pitch_max = NAN, .throttle_min = NAN, .throttle_max = NAN, .climb_rate_target = NAN, .sink_rate_target = NAN, .equivalent_airspeed_min = NAN, .equivalent_airspeed_max = NAN, .speed_weight = NAN, .enforce_low_height_condition = false, .disable_underspeed_protection = false };
 const lateral_control_limits_s empty_lateral_control_limits = {.timestamp = 0, .lateral_accel_max = NAN};
@@ -1110,6 +1110,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 			// continue straight until vehicle has sufficient altitude
 			lateral_limits.lateral_accel_max = 0.0f;
 
+
 			// keep flaps in landing configuration if the airspeed is below the min airspeed (keep deployed if airspeed not valid)
 			if (!_airspeed_valid || _airspeed_eas < _performance_model.getMinimumCalibratedAirspeed()) {
 				_flaps_setpoint =  _param_fw_flaps_lnd_scl.get();
@@ -1311,7 +1312,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 	if (_runway_takeoff.runwayTakeoffEnabled()) {
 		if (!_runway_takeoff.isInitialized()) {
-			_runway_takeoff.init(now, _yaw, global_position);
+			_runway_takeoff.init(now, global_position);
 			_takeoff_ground_alt = _current_altitude;
 			_launch_current_yaw = _yaw;
 			_airspeed_slew_rate_controller.setForcedValue(takeoff_airspeed);
@@ -1326,18 +1327,9 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		_runway_takeoff.update(now, takeoff_airspeed, _airspeed_eas, _current_altitude - _takeoff_ground_alt,
 				       clearance_altitude_amsl - _takeoff_ground_alt);
 
-		// yaw control is disabled once in "taking off" state
-		_att_sp.fw_control_yaw_wheel = _runway_takeoff.controlYaw();
-
 		// XXX: hacky way to pass through manual nose-wheel incrementing. need to clean this interface.
 		if (_param_rwto_nudge.get()) {
 			_att_sp.yaw_sp_move_rate = _manual_control_setpoint.yaw;
-		}
-
-		// tune up the lateral position control guidance when on the ground
-		if (_runway_takeoff.controlYaw()) {
-			_directional_guidance.setPeriod(_param_rwto_npfg_period.get());
-
 		}
 
 		const Vector2f start_pos_local = _global_local_proj_ref.project(_runway_takeoff.getStartPosition()(0),
@@ -1367,9 +1359,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		fw_lateral_ctrl_sp.timestamp = hrt_absolute_time();
 		fw_lateral_ctrl_sp.course_setpoint = sp.course_setpoint;
 		fw_lateral_ctrl_sp.lateral_acceleration_setpoint = sp.lateral_acceleration_feedforward;
-		fw_lateral_ctrl_sp.reset_integral = _runway_takeoff.resetIntegrators();
-		fw_lateral_ctrl_sp.heading_sp_runway_takeoff = _runway_takeoff.controlYaw() ? _runway_takeoff.getYaw(
-					sp.course_setpoint) : NAN;
 
 		// this overrides the roll setpoint, until the vehicle starts the climbout
 		fw_lateral_ctrl_sp.roll_sp = _runway_takeoff.getRoll();
@@ -1499,7 +1488,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			fw_lateral_ctrl_sp.timestamp = hrt_absolute_time();
 			fw_lateral_ctrl_sp.lateral_acceleration_setpoint = 0.f;
 			/* Tell the attitude controller to stop integrating while we are waiting for the launch */
-			fw_lateral_ctrl_sp.reset_integral = true;
 			_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
 			fw_longitudinal_control_setpoint_s long_control_sp{empty_longitudinal_control_setpoint};
@@ -1613,12 +1601,6 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 						      1.0f);
 
 		/* lateral guidance first, because npfg will adjust the airspeed setpoint if necessary */
-
-		// tune up the lateral position control guidance when on the ground
-		const float ground_roll_npfg_period = flare_ramp_interpolator * _param_rwto_npfg_period.get() +
-						      (1.0f - flare_ramp_interpolator) * _param_npfg_period.get();
-		_directional_guidance.setPeriod(ground_roll_npfg_period);
-
 		const Vector2f local_approach_entrance = local_land_point - landing_approach_vector;
 
 		const DirectionalGuidanceOutput sp = navigateLine(local_approach_entrance, local_land_point, local_position,
@@ -1628,7 +1610,6 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		fw_lateral_ctrl_sp.timestamp = hrt_absolute_time();
 		fw_lateral_ctrl_sp.course_setpoint = sp.course_setpoint;
 		fw_lateral_ctrl_sp.lateral_acceleration_setpoint = sp.lateral_acceleration_feedforward;
-		fw_lateral_ctrl_sp.heading_sp_runway_takeoff = sp.course_setpoint;
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
 		const float roll_wingtip_strike = math::constrain(getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt),
@@ -1684,9 +1665,6 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		longitudinal_control_limits.throttle_min = _param_fw_thr_idle.get();
 		longitudinal_control_limits.throttle_max = throttle_max;
 		longitudinal_control_limits.disable_underspeed_protection = true;
-
-		// enable direct yaw control using rudder/wheel
-		_att_sp.fw_control_yaw_wheel = true;
 
 		// XXX: hacky way to pass through manual nose-wheel incrementing. need to clean this interface.
 		if (_param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled) {
@@ -1744,9 +1722,6 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		longitudinal_control_limits.throttle_min = _param_fw_thr_idle.get();
 		longitudinal_control_limits.throttle_max = _landed ? _param_fw_thr_idle.get() : NAN;
 		longitudinal_control_limits.sink_rate_target = desired_max_sinkrate;
-
-		// enable direct yaw control using rudder/wheel
-		_att_sp.fw_control_yaw_wheel = false;
 	}
 
 	_longitudinal_ctrl_limits_pub.publish(longitudinal_control_limits);
@@ -1827,13 +1802,6 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 						      1.0f);
 
 		/* lateral guidance first, because npfg will adjust the airspeed setpoint if necessary */
-
-		// tune up the lateral position control guidance when on the ground
-		const float ground_roll_npfg_period = flare_ramp_interpolator * _param_rwto_npfg_period.get() +
-						      (1.0f - flare_ramp_interpolator) * _param_npfg_period.get();
-
-		_directional_guidance.setPeriod(ground_roll_npfg_period);
-
 		const DirectionalGuidanceOutput sp = navigateLoiter(local_landing_orbit_center, local_position, loiter_radius,
 						     pos_sp_curr.loiter_direction_counter_clockwise,
 						     ground_speed, _wind_vel);
@@ -1841,7 +1809,6 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 		fw_lateral_ctrl_sp.timestamp = hrt_absolute_time();
 		fw_lateral_ctrl_sp.course_setpoint = sp.course_setpoint;
 		fw_lateral_ctrl_sp.lateral_acceleration_setpoint = sp.lateral_acceleration_feedforward;
-		fw_lateral_ctrl_sp.heading_sp_runway_takeoff = sp.course_setpoint;
 
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 		/* longitudinal guidance */
@@ -2361,15 +2328,9 @@ FixedwingPositionControl::Run()
 		// restore lateral-directional guidance parameters (changed in takeoff mode)
 		_directional_guidance.setPeriod(_param_npfg_period.get());
 
-		_att_sp.reset_integral = false;
-
 		// by default no flaps/spoilers, is overwritten below in certain modes
 		_flaps_setpoint = 0.f;
 		_spoilers_setpoint = 0.f;
-
-
-		// by default we don't want yaw to be contoller directly with rudder
-		_att_sp.fw_control_yaw_wheel = false;
 
 		// default to zero - is used (IN A HACKY WAY) to pass direct nose wheel steering via yaw stick to the actuators during auto takeoff
 		_att_sp.yaw_sp_move_rate = 0.0f;

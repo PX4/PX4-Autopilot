@@ -51,9 +51,8 @@ using namespace time_literals;
 namespace runwaytakeoff
 {
 
-void RunwayTakeoff::init(const hrt_abstime &time_now, const float initial_yaw, const matrix::Vector2d &start_pos_global)
+void RunwayTakeoff::init(const hrt_abstime &time_now, const matrix::Vector2d &start_pos_global)
 {
-	initial_yaw_ = initial_yaw;
 	start_pos_global_ = start_pos_global;
 	takeoff_state_ = RunwayTakeoffState::THROTTLE_RAMP;
 	initialized_ = true;
@@ -99,12 +98,6 @@ void RunwayTakeoff::update(const hrt_abstime &time_now, const float takeoff_airs
 	}
 }
 
-bool RunwayTakeoff::controlYaw()
-{
-	// keep controlling yaw directly until we start navigation
-	return takeoff_state_ < RunwayTakeoffState::CLIMBOUT;
-}
-
 float RunwayTakeoff::getPitch()
 {
 	if (takeoff_state_ <= RunwayTakeoffState::CLAMPED_TO_RUNWAY) {
@@ -122,16 +115,6 @@ float RunwayTakeoff::getRoll()
 	}
 
 	return NAN;
-}
-
-float RunwayTakeoff::getYaw(float external_yaw_setpoint)
-{
-	if (param_rwto_hdg_.get() == 0 && takeoff_state_ < RunwayTakeoffState::CLIMBOUT) {
-		return initial_yaw_;
-
-	} else {
-		return external_yaw_setpoint;
-	}
 }
 
 float RunwayTakeoff::getThrottle(const float idle_throttle) const
@@ -157,12 +140,6 @@ float RunwayTakeoff::getThrottle(const float idle_throttle) const
 	}
 
 	return throttle;
-}
-
-bool RunwayTakeoff::resetIntegrators()
-{
-	// reset integrators if we're still on runway
-	return takeoff_state_ < RunwayTakeoffState::CLIMBOUT;
 }
 
 float RunwayTakeoff::getMinPitch(float min_pitch_in_climbout, float min_pitch) const
