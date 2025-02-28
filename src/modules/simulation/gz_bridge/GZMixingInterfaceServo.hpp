@@ -44,10 +44,9 @@
 class GZMixingInterfaceServo : public OutputModuleInterface
 {
 public:
-	GZMixingInterfaceServo(gz::transport::Node &node, pthread_mutex_t &node_mutex) :
+	GZMixingInterfaceServo(gz::transport::Node &node) :
 		OutputModuleInterface(MODULE_NAME "-actuators-servo", px4::wq_configurations::rate_ctrl),
-		_node(node),
-		_node_mutex(node_mutex)
+		_node(node)
 	{}
 
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
@@ -83,7 +82,7 @@ private:
 	float get_servo_angle_min(const size_t index);
 
 	gz::transport::Node &_node;
-	pthread_mutex_t &_node_mutex;
+	pthread_mutex_t _node_mutex;
 
 	MixingOutput _mixing_output{"SIM_GZ_SV", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
