@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -103,7 +103,7 @@ static inline constexpr timer_io_channels_t initIOTimerChannelOutputClear(const 
 }
 
 
-static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dma = {})
+static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dma = {})
 {
 	bool nuttx_config_timer_enabled = false;
 	io_timers_t ret{};
@@ -268,9 +268,10 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 	constexpr_assert(!nuttx_config_timer_enabled, "IO Timer requires NuttX timer config to be disabled (STM32_TIMx)");
 
 	// DShot
-	if (dshot_dma.index != DMA::Invalid) {
-		ret.dshot.dma_base = getDMABaseRegister(dshot_dma);
-		ret.dshot.dmamap = getTimerUpdateDMAMap(timer, dshot_dma);
+	if (dma.index != DMA::Invalid) {
+		ret.dshot.dma_base = getDMABaseRegister(dma);
+		ret.dshot.dma_map_up = getTimerUpdateDMAMap(timer, dma);
+		getTimerChannelDMAMap(timer, dma, ret.dshot.dma_map_ch);
 	}
 
 	return ret;
