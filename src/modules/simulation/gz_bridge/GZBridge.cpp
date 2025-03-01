@@ -175,6 +175,8 @@ void GZBridge::barometerCallback(const gz::msgs::FluidPressure &msg)
 	device::Device::DeviceId id{};
 	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
 	id.devid_s.devtype = DRV_BARO_DEVTYPE_BAROSIM;
+	id.devid_s.bus = 1;
+	id.devid_s.address = 1;
 
 	sensor_baro_s report{};
 	report.timestamp = timestamp;
@@ -193,6 +195,8 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
 	device::Device::DeviceId id{};
 	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
 	id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SIM;
+	id.devid_s.bus = 1;
+	id.devid_s.address = 1;
 
 	differential_pressure_s report{};
 	report.timestamp = timestamp;
@@ -221,6 +225,8 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
 	device::Device::DeviceId id{};
 	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
 	id.devid_s.devtype = DRV_IMU_DEVTYPE_SIM;
+	id.devid_s.bus = 1;
+	id.devid_s.address = 1;
 
 	// publish accel
 	sensor_accel_s accel{};
@@ -504,6 +510,8 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 	device::Device::DeviceId id{};
 	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
 	id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+	id.devid_s.bus = 1;
+	id.devid_s.address = 1;
 
 	sensor_gps_s sensor_gps{};
 
@@ -561,6 +569,8 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
 	device::Device::DeviceId id{};
 	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
 	id.devid_s.devtype = DRV_DIST_DEVTYPE_SIM;
+	id.devid_s.bus = 1;
+	id.devid_s.address = 1;
 
 	distance_sensor_s report{};
 	report.timestamp = hrt_absolute_time();
