@@ -11,8 +11,4 @@ float32[4] q_d			# Desired quaternion for quaternion control
 # For fixed wings thrust_x is the throttle demand and thrust_y, thrust_z will usually be zero.
 float32[3] thrust_body		# Normalized thrust command in body FRD frame [-1,1]
 
-bool reset_integral	# Reset roll/pitch/yaw integrals (navigation logic change)
-
-bool fw_control_yaw_wheel	# control heading with steering wheel (used for auto takeoff on runway)
-
 # TOPICS vehicle_attitude_setpoint mc_virtual_attitude_setpoint fw_virtual_attitude_setpoint
