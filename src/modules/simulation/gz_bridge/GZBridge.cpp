@@ -264,6 +264,14 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	std::string flow_topic = "/world/" + _world_name + "/model/" + _model_name +
+				 "/link/flow_link/sensor/optical_flow/optical_flow";
+
+	if (!_node.Subscribe(flow_topic, &GZBridge::opticalFlowCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", flow_topic.c_str());
+		return PX4_ERROR;
+	}
+
 	if (!_mixing_interface_esc.init(_model_name)) {
 		PX4_ERR("failed to init ESC output");
 		return PX4_ERROR;
@@ -286,6 +294,40 @@ int GZBridge::init()
 
 	ScheduleNow();
 	return OK;
+}
+
+void GZBridge::opticalFlowCallback(const px4::msgs::OpticalFlow &flow)
+{
+	sensor_optical_flow_s msg = {};
+
+	msg.timestamp = hrt_absolute_time();
+	msg.timestamp_sample = flow.time_usec();
+	msg.pixel_flow[0] = flow.integrated_x();
+	msg.pixel_flow[1] = flow.integrated_y();
+	msg.quality = flow.quality();
+	msg.integration_timespan_us = flow.integration_time_us();
+
+	// Static data
+	device::Device::DeviceId id;
+	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	id.devid_s.bus = 0;
+	id.devid_s.address = 0;
+	id.devid_s.devtype = DRV_FLOW_DEVTYPE_SIM;
+	msg.device_id = id.devid;
+
+	// values taken from PAW3902
+	msg.mode = sensor_optical_flow_s::MODE_LOWLIGHT;
+	msg.max_flow_rate = 7.4f;
+	msg.min_ground_distance = 0.f;
+	msg.max_ground_distance = 30.f;
+	msg.error_count = 0;
+
+	// No delta angle
+	// No distance
+	// This means that delta angle will come from vehicle gyro
+	// Distance will come from vehicle distance sensor
+
+	_optical_flow_pub.publish(msg);
 }
 
 int GZBridge::task_spawn(int argc, char *argv[])
@@ -923,7 +965,7 @@ bool GZBridge::callEntityFactoryService(const std::string &service, const gz::ms
 	bool result;
 	gz::msgs::Boolean rep;
 
-	if (_node.Request(service, req, 1000, rep, result)) {
+	if (_node.Request(service, req, 5000, rep, result)) {
 		if (!rep.data() || !result) {
 			PX4_ERR("EntityFactory service call failed.");
 			return false;
