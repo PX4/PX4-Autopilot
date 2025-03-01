@@ -232,9 +232,12 @@ then
 
 	# compasses
 	hmc5883 -T -X -q start
+	if ! iis2mdc -X -q start
+	then
+		lis2mdl -X -q start
+	fi
 	ist8308 -X -q start
 	ist8310 -X -q start
-	lis2mdl -X -q start
 	if ! lis3mdl -X -q start
 	then
 		lis3mdl -X -q -a 0x1c start
