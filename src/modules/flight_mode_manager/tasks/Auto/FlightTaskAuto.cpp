@@ -243,6 +243,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		_land_heading = _yaw_setpoint;
 		_stick_acceleration_xy.resetPosition(Vector2f(_target(0), _target(1)));
 		_initial_land_position = Vector3f(_target(0), _target(1), NAN);
+		_land_position_modified = false;
 	}
 
 	// Update xy-position in case of landing position changes (etc. precision landing)
@@ -253,9 +254,17 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		// Stick full up -1 -> stop, stick full down 1 -> double the speed
 		vertical_speed *= (1 - _sticks.getThrottleZeroCenteredExpo());
 
+		Vector2f sticks_xy = _sticks.getPitchRollExpo();
+
+		if (sticks_xy.longerThan(FLT_EPSILON)) {
+			if (!_land_position_modified) {
+				// Hold current heading to avoid unexpected flight path
+				_land_heading = _yaw_sp_prev;
+			}
+		}
+
 		rcHelpModifyYaw(_land_heading);
 
-		Vector2f sticks_xy = _sticks.getPitchRollExpo();
 		Vector2f sticks_ne = sticks_xy;
 		Sticks::rotateIntoHeadingFrameXY(sticks_ne, _yaw, _land_heading);
 
