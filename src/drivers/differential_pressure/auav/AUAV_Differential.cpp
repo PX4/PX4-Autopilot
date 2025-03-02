@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "AUAV_Differential.hpp"
+#include <parameters/param.h>
 
 AUAV_Differential::AUAV_Differential(const I2CSPIDriverConfig &config) :
 	AUAV(config)
@@ -46,6 +47,13 @@ void AUAV_Differential::publish_pressure(const float pressure_p, const float tem
 	differential_pressure.timestamp_sample = timestamp_sample;
 	differential_pressure.device_id = get_device_id();
 	differential_pressure.differential_pressure_pa = pressure_p;
+	int32_t differential_press_abs = 0;
+	param_get(param_find("SENS_DPRES_ABS"), &differential_press_abs);
+
+	//If differential pressure absolute param set to 1, ignore negative values
+	if(differential_press_abs == 1){
+		differential_pressure.differential_pressure_pa = fabsf(pressure_p);
+	}
 	differential_pressure.temperature = temperature_c;
 	differential_pressure.error_count = perf_event_count(_comms_errors);
 	_differential_pressure_pub.publish(differential_pressure);

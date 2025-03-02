@@ -40,6 +40,7 @@
  */
 
 #include "ASP5033.hpp"
+#include <parameters/param.h>
 
 ASP5033::ASP5033(const I2CSPIDriverConfig &config) :
 	I2C(config),
@@ -232,6 +233,15 @@ int ASP5033::collect()
 		differential_pressure.timestamp_sample = timestamp_sample;
 		differential_pressure.device_id = get_device_id();
 		differential_pressure.differential_pressure_pa = _pressure;
+		int32_t differential_press_abs = 0;
+		param_get(param_find("SENS_DPRES_ABS"), &differential_press_abs);
+
+		//If differential pressure absolute param set to 1, ignore negative values
+		if(differential_press_abs == 1){
+			differential_pressure.differential_pressure_pa = fabsf(_pressure);
+		}
+
+
 		differential_pressure.temperature = _temperature ;
 		differential_pressure.error_count = perf_event_count(_comms_errors);
 		differential_pressure.timestamp = timestamp_sample;
