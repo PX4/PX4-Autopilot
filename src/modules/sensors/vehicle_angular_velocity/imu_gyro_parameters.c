@@ -45,7 +45,7 @@
 * @min 0
 * @max 1000
 * @unit Hz
-* @reboot_required true
+* @reboot_required false
 * @group Sensors
 */
 PARAM_DEFINE_FLOAT(IMU_GYRO_NF0_FRQ, 0.0f);
@@ -60,7 +60,7 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_NF0_FRQ, 0.0f);
 * @min 0
 * @max 100
 * @unit Hz
-* @reboot_required true
+* @reboot_required false
 * @group Sensors
 */
 PARAM_DEFINE_FLOAT(IMU_GYRO_NF0_BW, 20.0f);
@@ -79,7 +79,7 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_NF0_BW, 20.0f);
 * @min 0
 * @max 1000
 * @unit Hz
-* @reboot_required true
+* @reboot_required false
 * @group Sensors
 */
 PARAM_DEFINE_FLOAT(IMU_GYRO_NF1_FRQ, 0.0f);
@@ -94,7 +94,7 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_NF1_FRQ, 0.0f);
 * @min 0
 * @max 100
 * @unit Hz
-* @reboot_required true
+* @reboot_required false
 * @group Sensors
 */
 PARAM_DEFINE_FLOAT(IMU_GYRO_NF1_BW, 20.0f);
@@ -112,7 +112,7 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_NF1_BW, 20.0f);
 * @min 0
 * @max 1000
 * @unit Hz
-* @reboot_required true
+* @reboot_required false
 * @group Sensors
 */
 PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 40.0f);
@@ -134,7 +134,7 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 40.0f);
 * @value 1000 1000 Hz
 * @value 2000 2000 Hz
 * @unit Hz
-* @reboot_required true
+* @reboot_required false
 * @group Sensors
 */
 PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 400);
@@ -154,7 +154,7 @@ PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 400);
 * @min 0
 * @max 1000
 * @unit Hz
-* @reboot_required true
+* @reboot_required false
 * @group Sensors
 */
 PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 30.0f);
