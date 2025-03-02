@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "MS4515.hpp"
+#include <parameters/param.h>
 
 MS4515::MS4515(const I2CSPIDriverConfig &config) :
 	I2C(config),
@@ -163,6 +164,14 @@ int MS4515::collect()
 		differential_pressure.timestamp_sample = timestamp_sample;
 		differential_pressure.device_id = get_device_id();
 		differential_pressure.differential_pressure_pa = diff_press_pa;
+		int32_t differential_press_abs = 0;
+		param_get(param_find("SENS_DPRES_ABS"), &differential_press_abs);
+
+		//If differential pressure absolute param set to 1, ignore negative values
+		if(differential_press_abs == 1){
+			differential_pressure.differential_pressure_pa = fabsf(diff_press_pa);
+		}
+
 		differential_pressure.temperature = temperature_c;
 		differential_pressure.error_count = perf_event_count(_comms_errors);
 		differential_pressure.timestamp = hrt_absolute_time();
