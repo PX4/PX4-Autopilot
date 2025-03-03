@@ -69,8 +69,8 @@ GZBridge::~GZBridge()
 int GZBridge::init()
 {
 	// TODO document this somehow
-	const char *moving_platform = std::getenv("GZ_MOVING_PLATFORM");
-	_has_platform = ((moving_platform != nullptr) && (std::strcmp(moving_platform, "1") == 0));
+	// const char *moving_platform = std::getenv("GZ_MOVING_PLATFORM");
+	_has_platform = 0 == _world_name.compare("moving_platform");
 
 	if (!_model_sim.empty()) {
 
@@ -183,10 +183,6 @@ int GZBridge::init()
 	}
 
 	if (_has_platform) {
-
-		if (!createMovingPlatform()) {
-			return PX4_ERROR;
-		}
 
 		// Initialise publisher for setPlatformVelocity
 		// TODO less hardcoding of these topic strings
@@ -321,104 +317,6 @@ void GZBridge::setPlatformVelocity(float vx, float vy, float vz)
 	// TODO unified error handling? PX4_ERR at the lowest level or return success bool?
 }
 
-bool GZBridge::createMovingPlatform()
-{
-
-	// moving platform to launch & land from.
-
-	gz::msgs::EntityFactory req{};
-
-	// https://gazebosim.org/api/gazebo/6/entity_creation.html
-	// This just as a first hacky quick solution.
-	// Ultimately we should probably put this in the PX4-gazebo-models repo
-	std::string platform_sdf = R""""(
-	<?xml version="1.0" ?>
-	<sdf version="1.6">
-	  <model name="flat_platform">
-	    <!-- Link representing the flat platform -->
-	    <link name="platform_link">
-	      <!-- Visual properties -->
-	      <visual name="platform_visual">
-	        <geometry>
-	          <box>
-	            <size>5 5 0.1</size>
-	          </box>
-	        </geometry>
-	        <material>
-	          <ambient>0.3 0.3 0.3 1</ambient>
-	          <diffuse>0.3 0.3 0.3 1</diffuse>
-	          <specular>0.1 0.1 0.1 1</specular>
-	        </material>
-	      </visual>
-
-	      <!-- Collision properties -->
-	      <collision name="platform_collision">
-	        <geometry>
-	          <box>
-	            <size>5 5 0.1</size>
-	          </box> shit
-	        </geometry>
-	      </collision>
-
-	      <!-- Inertial properties (irrelevant, but required) -->
-	      <inertial>
-	        <mass>1</mass>
-	        <inertia>
-	          <ixx>1</ixx>
-	          <iyy>1</iyy>
-	          <izz>1</izz>
-	        </inertia>
-	      </inertial>
-
-	      <!-- Sensor to measure the position of the platform -->
-	      <sensor name="navsat_sensor" type="navsat">
-	        <always_on>1</always_on>
-	        <update_rate>30</update_rate>
-	      </sensor>
-
-	    </link>
-
-	    <!-- plugin for sending direct velocity commands -->
-            <plugin
-              filename="gz-sim-velocity-control-system"
-              name="gz::sim::systems::VelocityControl">
-	      <link_name>platform_link</link_name>
-            </plugin>
-
-	  </model>
-	</sdf>
-	)"""";
-
-
-	req.set_sdf(platform_sdf);
-
-	// base dir: Tools/simulation/gz/models
-	// req.set_sdf_filename("platform.sdf");
-
-	req.set_allow_renaming(false);
-
-	// Set position & orientation. Origin hardcoded -- adapt to model pose?
-	gz::msgs::Pose *p = req.mutable_pose();
-	gz::msgs::Vector3d *position = p->mutable_position();
-	position->set_x(0.);
-	position->set_y(0.);
-	position->set_z(0.05);
-
-	gz::msgs::Quaternion *orientation = p->mutable_orientation();
-	orientation->set_x(0.);
-	orientation->set_y(0.);
-	orientation->set_z(0.);
-	orientation->set_w(1.);
-
-	std::string create_service = "/world/" + _world_name + "/create";
-
-	if (!callEntityFactoryService(create_service, req)) {
-		PX4_ERR("EntityFactory service call failed (platform)");
-		return false;
-	}
-
-	return true;
-}
 
 bool GZBridge::setPlatformPose(gz::msgs::Pose &pose)
 {
