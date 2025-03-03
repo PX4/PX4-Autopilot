@@ -110,7 +110,8 @@ void SensorAirspeedSim::Run()
 		// if the gazebo world includes windEffects plugin,
 		// calculate the airspeed from the true wind velocity by wind triangle
 
-		if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated() && _vehicle_attitude_sub.updated()) {
+		if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated()
+		    && _vehicle_attitude_sub.updated()) {
 
 			vehicle_local_position_s lpos{};
 			_vehicle_local_position_sub.copy(&lpos);
@@ -143,16 +144,17 @@ void SensorAirspeedSim::Run()
 			float diff_pressure;
 
 			// calculate true airspeed by wind triangle if wind is available
-			if (_wind_gz_sub.updated()){
+			if (_wind_gz_sub.updated()) {
 				wind_gz_s wind_true{};
 				_wind_gz_sub.copy(&wind_true);
 				Vector3f wind_velocity = Vector3f{wind_true.x, wind_true.y, wind_true.z};
 				Vector3f Va_vec = local_velocity - wind_velocity;  // calculate true airspeed by wind triangle
 				float Va = Va_vec.norm();
 				diff_pressure = sign(Va) * 0.005f * air_density  * Va * Va + diff_pressure_noise;
-			}
-			else{
-				diff_pressure = sign(body_velocity(0)) * 0.005f * air_density  * body_velocity(0) * body_velocity(0) + diff_pressure_noise;
+
+			} else {
+				diff_pressure = sign(body_velocity(0)) * 0.005f * air_density  * body_velocity(0) * body_velocity(
+							0) + diff_pressure_noise;
 			}
 
 			differential_pressure_s differential_pressure{};

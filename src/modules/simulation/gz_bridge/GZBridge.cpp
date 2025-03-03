@@ -263,7 +263,7 @@ int GZBridge::init()
 		PX4_ERR("failed to subscribe to %s", nav_sat_topic.c_str());
 		return PX4_ERROR;
 	}
-	
+
 	// Wind: /world/$WORLD/wind_info
 	std::string wind_topic = "/world/" + _world_name + "/wind_info";
 

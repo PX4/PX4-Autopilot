@@ -5,4 +5,4 @@ float32 x		# Wind component in north / X direction (m/sec)
 float32 y		# Wind component in east / Y direction (m/sec)
 float32 z		# Wind component in vertical / Z direction (m/sec)
 
-
+# TOPICS wind_gz
