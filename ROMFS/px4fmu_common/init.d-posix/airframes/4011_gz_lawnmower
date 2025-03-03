@@ -12,10 +12,7 @@ PX4_SIM_MODEL=${PX4_SIM_MODEL:=lawnmower}
 param set-default SIM_GZ_EN 1 # Gazebo bridge
 
 # Simulated sensors
-param set-default SENS_EN_GPSSIM 1
-param set-default SENS_EN_BAROSIM 0
 param set-default SENS_EN_MAGSIM 1
-param set-default SENS_EN_ARSPDSIM 0
 # We can arm and drive in manual mode when it slides and GPS check fails:
 param set-default COM_ARM_WO_GPS 1
 

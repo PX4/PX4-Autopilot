@@ -45,10 +45,7 @@ param set-default PP_LOOKAHD_MAX 10
 param set-default PP_LOOKAHD_MIN 1
 
 # Simulated sensors
-param set-default SENS_EN_GPSSIM 1
-param set-default SENS_EN_BAROSIM 0
 param set-default SENS_EN_MAGSIM 1
-param set-default SENS_EN_ARSPDSIM 0
 
 # Actuator mapping
 param set-default SIM_GZ_WH_FUNC1 102 # right wheel front
