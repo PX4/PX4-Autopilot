@@ -54,6 +54,7 @@ void AUAV_Differential::publish_pressure(const float pressure_p, const float tem
 	if (differential_press_abs == 1) {
 		differential_pressure.differential_pressure_pa = fabsf(pressure_p);
 	}
+
 	differential_pressure.temperature = temperature_c;
 	differential_pressure.error_count = perf_event_count(_comms_errors);
 	_differential_pressure_pub.publish(differential_pressure);
