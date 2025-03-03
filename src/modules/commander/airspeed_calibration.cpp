@@ -164,8 +164,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 					calibration_log_info(mavlink_log_pub, "[cal] Positive pressure: OK (%d Pa)", (int)differential_pressure_pa);
 					break;
 
-				}
-				else {
+				} else {
 					/* do not allow negative values if SENS_DPRES_ABS not set */
 					calibration_log_critical(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)",
 								 (int)differential_pressure_pa);

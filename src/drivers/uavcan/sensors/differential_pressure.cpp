@@ -74,7 +74,7 @@ void UavcanDifferentialPressureBridge::air_sub_cb(const
 	param_get(param_find("SENS_DPRES_ABS"), &differential_press_abs);
 
 	//If differential pressure absolute param set to 1, ignore negative values
-	if(differential_press_abs == 1){
+	if (differential_press_abs == 1) {
 		diff_press_pa = fabsf(msg.differential_pressure);
 	}
 

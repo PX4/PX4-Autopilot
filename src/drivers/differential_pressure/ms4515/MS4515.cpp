@@ -168,7 +168,7 @@ int MS4515::collect()
 		param_get(param_find("SENS_DPRES_ABS"), &differential_press_abs);
 
 		//If differential pressure absolute param set to 1, ignore negative values
-		if(differential_press_abs == 1){
+		if (differential_press_abs == 1) {
 			differential_pressure.differential_pressure_pa = fabsf(diff_press_pa);
 		}
 
