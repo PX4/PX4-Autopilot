@@ -83,8 +83,6 @@ param set-default CA_ROTOR7_AY -0.211325
 param set-default CA_ROTOR7_AZ -0.57735
 
 param set-default SIM_GZ_EN 1
-param set-default SENS_EN_GPSSIM 1
-param set-default SENS_EN_BAROSIM 0
 param set-default SENS_EN_MAGSIM 1
 
 param set-default SIM_GZ_EC_FUNC1 101
