@@ -263,6 +263,14 @@ int GZBridge::init()
 		PX4_ERR("failed to subscribe to %s", nav_sat_topic.c_str());
 		return PX4_ERROR;
 	}
+	
+	// Wind: /world/$WORLD/wind_info
+	std::string wind_topic = "/world/" + _world_name + "/wind_info";
+
+	if (!_node.Subscribe(wind_topic, &GZBridge::windCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", wind_topic.c_str());
+		return PX4_ERROR;
+	}
 
 	if (!_mixing_interface_esc.init(_model_name)) {
 		PX4_ERR("failed to init ESC output");
@@ -916,6 +924,28 @@ void GZBridge::laserScanCallback(const gz::msgs::LaserScan &scan)
 	}
 
 	_obstacle_distance_pub.publish(obs);
+}
+
+void GZBridge::windCallback(const gz::msgs::Wind &wind_gz)
+{
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
+
+	pthread_mutex_lock(&_node_mutex);
+
+	// const uint64_t time_us = (wind_gz.header().stamp().sec() * 1000000) + (wind_gz.header().stamp().nsec() / 1000);
+
+	// publish
+	wind_gz_s wind{};
+	wind.timestamp = hrt_absolute_time();
+	// wind.timestamp_sample = time_us;
+	wind.x = wind_gz.linear_velocity().y();
+	wind.y = wind_gz.linear_velocity().x();
+	wind.z = -wind_gz.linear_velocity().z();
+	_wind_gz_pub.publish(wind);
+
+	pthread_mutex_unlock(&_node_mutex);
 }
 
 bool GZBridge::callEntityFactoryService(const std::string &service, const gz::msgs::EntityFactory &req)

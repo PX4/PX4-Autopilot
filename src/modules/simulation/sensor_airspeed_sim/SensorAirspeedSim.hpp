@@ -47,6 +47,8 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 
+#include <uORB/topics/wind_gz.h>
+
 using namespace time_literals;
 
 static constexpr float TEMPERATURE_MSL = 288.15; // temperature at MSL [K] (15 [C])
@@ -84,7 +86,8 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position_groundtruth)};
-
+	uORB::Subscription _wind_gz_sub{ORB_ID(wind_gz)};
+	
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};

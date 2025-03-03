@@ -62,6 +62,7 @@
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/wheel_encoders.h>
 #include <uORB/topics/obstacle_distance.h>
+#include <uORB/topics/wind_gz.h>
 
 #include <gz/math.hh>
 #include <gz/msgs.hh>
@@ -75,6 +76,7 @@
 #include <gz/msgs/laserscan.pb.h>
 #include <gz/msgs/stringmsg.pb.h>
 #include <gz/msgs/scene.pb.h>
+#include <gz/msgs/wind.pb.h>
 
 using namespace time_literals;
 
@@ -116,6 +118,7 @@ private:
 	void navSatCallback(const gz::msgs::NavSat &nav_sat);
 	void laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan);
 	void laserScanCallback(const gz::msgs::LaserScan &scan);
+	void windCallback(const gz::msgs::Wind &wind);
 
 	/**
 	 * @brief Call Entityfactory service
@@ -171,6 +174,7 @@ private:
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
+	uORB::Publication<wind_gz_s>        	      _wind_gz_pub{ORB_ID(wind_gz)};
 	uORB::Publication<distance_sensor_s>          _distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::Publication<differential_pressure_s>    _differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<obstacle_distance_s>        _obstacle_distance_pub{ORB_ID(obstacle_distance)};
