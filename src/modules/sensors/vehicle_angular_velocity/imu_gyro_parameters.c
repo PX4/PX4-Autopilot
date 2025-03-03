@@ -134,7 +134,7 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 40.0f);
 * @value 1000 1000 Hz
 * @value 2000 2000 Hz
 * @unit Hz
-* @reboot_required false
+* @reboot_required true
 * @group Sensors
 */
 PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 400);
