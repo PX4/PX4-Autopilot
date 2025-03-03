@@ -87,9 +87,9 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 				. ../gz_env.sh
 			fi
 
-			# Start gazebo with default world
 			echo "INFO  [init] Starting gazebo with world: ${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf"
-			${gz_command} ${gz_sub_command} --verbose=1 -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
+
+			${gz_command} ${gz_sub_command} --verbose=${GZ_VERBOSE:=1} -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
 
 			if [ -z "${HEADLESS}" ]; then
 				echo "INFO  [init] Starting gz gui"
@@ -124,9 +124,10 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 			echo "INFO  [init] Spawning model at position: ${pos_x} ${pos_y} ${pos_z}"
 		fi
 
+		echo "INFO  [init] Spawning model"
 		# Spawn model
 		${gz_command} service -s "/world/${PX4_GZ_WORLD}/create" --reqtype gz.msgs.EntityFactory \
-				--reptype gz.msgs.Boolean --timeout 1000 \
+				--reptype gz.msgs.Boolean --timeout 5000 \
 				--req "sdf_filename: \"${PX4_GZ_MODELS}/${MODEL_NAME}\", name: \"${MODEL_NAME_INSTANCE}\", allow_renaming: false${POSE_ARG}" > /dev/null 2>&1
 
 		# Start gz_bridge
@@ -163,7 +164,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 		if [ -n "${PX4_SIM_SPEED_FACTOR}" ]; then
 			echo "INFO  [init] Setting simulation speed factor: ${PX4_SIM_SPEED_FACTOR}"
 			${gz_command} service -s "/world/${PX4_GZ_WORLD}/set_physics" --reqtype gz.msgs.Physics \
-						--reptype gz.msgs.Boolean --timeout 1000 \
+						--reptype gz.msgs.Boolean --timeout 5000 \
 						--req "real_time_factor: ${PX4_SIM_SPEED_FACTOR}" > /dev/null 2>&1
 		fi
 
