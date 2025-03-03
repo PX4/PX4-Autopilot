@@ -105,12 +105,6 @@ int GZBridge::init()
 			position->set_y(model_pose_v[1]);
 			position->set_z(model_pose_v[2]);
 
-			if (_has_platform) {
-				// why does this only look good if way bigger than actual platform height?
-				float platform_height = 0.5;
-				position->set_z(fmaxf(platform_height, model_pose_v[2]));
-			}
-
 			gz::math::Quaterniond q(model_pose_v[3], model_pose_v[4], model_pose_v[5]);
 
 			q.Normalize();
@@ -183,7 +177,6 @@ int GZBridge::init()
 	}
 
 	if (_has_platform) {
-
 		// Initialise publisher for setPlatformVelocity
 		// TODO less hardcoding of these topic strings
 		std::string cmd_vel_topic = "/model/flat_platform/link/platform_link/cmd_vel";
@@ -266,11 +259,11 @@ int GZBridge::init()
 	}
 
 	if (_has_platform) {
-		std::string platform_pose_topic = "/world/" + _world_name +
-						  "/model/flat_platform/link/platform_link/sensor/navsat_sensor/navsat";
+		std::string platform_navsat_topic = "/world/" + _world_name +
+						    "/model/flat_platform/link/platform_link/sensor/navsat_sensor/navsat";
 
-		if (!_node.Subscribe(platform_pose_topic, &GZBridge::platformNavsatCallback, this)) {
-			PX4_ERR("failed to subscribe to %s", platform_pose_topic.c_str());
+		if (!_node.Subscribe(platform_navsat_topic, &GZBridge::platformNavsatCallback, this)) {
+			PX4_ERR("failed to subscribe to %s", platform_navsat_topic.c_str());
 			return PX4_ERROR;
 		}
 	}
@@ -299,13 +292,80 @@ int GZBridge::init()
 	return OK;
 }
 
+void GZBridge::updatePlatformVelocity(const gz::math::Vector3d& mean_velocity)
+{
 
-void GZBridge::setPlatformVelocity(float vx, float vy, float vz)
+	// Velocity and angular velocity = low pass filtered white noise + feedback term.
+
+	gz::math::Vector3d noise_v = gz::math::Vector3d(
+		gz::math::Rand::DblNormal(),
+		gz::math::Rand::DblNormal(),
+		gz::math::Rand::DblNormal()
+	);
+
+	gz::math::Vector3d noise_w = gz::math::Vector3d(
+		gz::math::Rand::DblNormal(),
+		gz::math::Rand::DblNormal(),
+		gz::math::Rand::DblNormal()
+	);
+
+	// Update rates for the filtered white noise.
+	// larger number here = faster movement
+	// write these in terms of time constants?
+	// https://ethz.ch/content/dam/ethz/special-interest/mavt/dynamic-systems-n-control/idsc-dam/Lectures/Signals-and-Systems/Lectures/Lecture%20Notes%209.pdf
+	const double alpha_v = 0.01;
+	const double alpha_w = 0.01;
+
+	// Noise amplitude.
+	// larger number here = bigger movement
+	// we scale it by the update rates to keep total energy constant
+	const double ampl_v = 0.01 / alpha_v;
+	const double ampl_w = 0.01 / alpha_w;
+
+	// For ultra realism we might have axis specific versions of these
+	// constants -- Real ships roll more quickly than they pitch and yaw.
+	// But probably overkill for now.
+
+	_noise_v_lowpass = (1-alpha_v) * _noise_v_lowpass + alpha_v * noise_v;
+	_noise_w_lowpass = (1-alpha_w) * _noise_w_lowpass + alpha_w * noise_w;
+
+	_platform_v = ampl_v * _noise_v_lowpass + mean_velocity;
+	_platform_w = ampl_w * _noise_w_lowpass;
+
+	const bool feedback = true;
+
+	// feedback terms to ensure the random walk (= integral of noise)
+	// stays within a realistic region.
+	if (feedback) {
+
+		// small feedback to maintain height. no attempt to stabilise x and y.
+		const double platform_height = 2.;
+		const gz::math::Vector3d pos_gains(0., 0., 1.);  // [m/s / m]
+		_platform_v += -pos_gains * (_platform_position - gz::math::Vector3d(0., platform_height, 0.));
+
+		// eq. 23 from Nonlinear Quadrocopter Attitude Control (Brescianini, Hehn, D'Andrea)
+		// https://www.research-collection.ethz.ch/handle/20.500.11850/154099
+		const double sgn = _platform_orientation.W() > 0 ? 1. : -1.;
+
+		const double attitude_gain = 1.;
+
+		gz::math::Vector3d q_imag = gz::math::Vector3d(
+			_platform_orientation.X(),
+			_platform_orientation.Y(),
+			_platform_orientation.Z()
+		);
+
+		_platform_w += -attitude_gain * sgn * q_imag;
+	}
+
+}
+
+void GZBridge::setPlatformVelocity(const gz::math::Vector3d& vs, const gz::math::Vector3d& ws)
 {
 
 	gz::msgs::Twist twist;
-	gz::msgs::Set(twist.mutable_linear(),
-		      gz::math::Vector3d(vx, vy, vz));
+	gz::msgs::Set(twist.mutable_linear(), vs);
+	gz::msgs::Set(twist.mutable_angular(), ws);
 
 	if (_platform_twist_pub) {
 		_platform_twist_pub.Publish(twist);
@@ -315,6 +375,18 @@ void GZBridge::setPlatformVelocity(float vx, float vy, float vz)
 	}
 
 	// TODO unified error handling? PX4_ERR at the lowest level or return success bool?
+}
+
+void GZBridge::setPlatformVelocity(double vx, double vy, double vz, double wx, double wy, double wz)
+{
+	const gz::math::Vector3d vs(vx, vy, vz);
+	const gz::math::Vector3d ws(wx, wy, wz);
+	setPlatformVelocity(vs, ws);
+}
+
+void GZBridge::setPlatformVelocity(double vx, double vy, double vz)
+{
+	setPlatformVelocity(vx, vy, vz, 0, 0, 0);
 }
 
 
@@ -734,8 +806,15 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 			local_position_groundtruth.timestamp = hrt_absolute_time();
 			_lpos_ground_truth_pub.publish(local_position_groundtruth);
 
-			pthread_mutex_unlock(&_node_mutex);
-			return;
+		} else if (_has_platform && pose.pose(p).name() == "flat_platform") {
+
+			// We need this for realistic boat rocking motion
+			// Keep it all in gazebo's ENU for these purposes
+			// TODO consider renaming flat_platform to something less generic to avoid possible name collisions
+
+			_platform_position = gz::msgs::Convert(pose.pose(p).position());
+			_platform_orientation = gz::msgs::Convert(pose.pose(p).orientation());
+
 		}
 	}
 
@@ -1122,7 +1201,9 @@ void GZBridge::Run()
 	}
 
 	if (_has_platform) {
-		setPlatformVelocity(1.0, 0.0, 0.0);
+		const gz::math::Vector3d mean_vel(2.0, 0.0, 0.0);
+		updatePlatformVelocity(mean_vel);
+		setPlatformVelocity(_platform_v, _platform_w);
 	}
 
 	ScheduleDelayed(10_ms);

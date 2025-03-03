@@ -64,7 +64,9 @@
 #include <uORB/topics/obstacle_distance.h>
 
 #include <gz/math.hh>
+#include <gz/math/Rand.hh>
 #include <gz/msgs.hh>
+#include <gz/msgs/Utility.hh>
 #include <gz/transport.hh>
 
 #include <gz/msgs/imu.pb.h>
@@ -120,7 +122,10 @@ private:
 
 	bool setPlatformPose(gz::msgs::Pose &pose);
 
-	void setPlatformVelocity(float vx, float vy, float vz);
+	void updatePlatformVelocity(const gz::math::Vector3d& mean_velocity);
+	void setPlatformVelocity(const gz::math::Vector3d& vs, const gz::math::Vector3d& ws);
+	void setPlatformVelocity(double vx, double vy, double vz, double wx, double wy, double wz);
+	void setPlatformVelocity(double vx, double vy, double vz);
 
 	bool createMovingPlatform();
 
@@ -217,4 +222,13 @@ private:
 
 	gz::transport::Node _node;
 	gz::transport::Node::Publisher _platform_twist_pub;
+
+	gz::math::Vector3d _noise_v_lowpass{0., 0., 0.};
+	gz::math::Vector3d _noise_w_lowpass{0., 0., 0.};
+
+	gz::math::Vector3d _platform_v{0., 0., 0.};
+	gz::math::Vector3d _platform_w{0., 0., 0.};
+
+	gz::math::Vector3d _platform_position;
+	gz::math::Quaterniond _platform_orientation{1., 0., 0., 0.};
 };
