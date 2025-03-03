@@ -87,7 +87,7 @@ def process_target(px4board_file, target_name):
 
     if platform not in excluded_platforms:
         # get the container based on the platform and toolchain
-        container = 'ghcr.io/px4/px4-dev:v1.16.0-alpha2-388-ga996439b1d'
+        container = 'ghcr.io/px4/px4-dev:v1.16.0-alpha2-419-gd48631e2ce'
         if platform == 'posix':
             group = 'base'
             if toolchain:
@@ -121,7 +121,7 @@ if(verbose):
 # - Events
 metadata_targets = ['airframe_metadata', 'parameters_metadata', 'extract_events']
 grouped_targets['base'] = {}
-grouped_targets['base']['container'] = 'ghcr.io/px4/px4-dev:v1.16.0-alpha2-388-ga996439b1d'
+grouped_targets['base']['container'] = 'ghcr.io/px4/px4-dev:v1.16.0-alpha2-419-gd48631e2ce'
 grouped_targets['base']['manufacturers'] = {}
 grouped_targets['base']['manufacturers']['px4'] = []
 grouped_targets['base']['manufacturers']['px4'] += metadata_targets
