@@ -120,7 +120,7 @@ private:
 
 	static void rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU);
 
-	void addRealisticGpsNoise(double &latitude, double &longitude, double &altitude,
+	void addGpsNoise(double &latitude, double &longitude, double &altitude,
 				  float &vel_north, float &vel_east, float &vel_down);
 
 	uORB::SubscriptionInterval                    _parameter_update_sub{ORB_ID(parameter_update), 1_s};

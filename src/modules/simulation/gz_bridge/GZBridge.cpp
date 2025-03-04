@@ -484,7 +484,7 @@ static float generate_wgn()
 	return X;
 }
 
-void GZBridge::addRealisticGpsNoise(double &latitude, double &longitude, double &altitude,
+void GZBridge::addGpsNoise(double &latitude, double &longitude, double &altitude,
 				    float &vel_north, float &vel_east, float &vel_down)
 {
 	_gps_pos_noise_n = _pos_markov_time * _gps_pos_noise_n +
@@ -546,7 +546,7 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 	_gpos_ground_truth_pub.publish(gps_truth);
 
 	// Apply noise model (based on ublox F9P)
-	addRealisticGpsNoise(latitude, longitude, altitude, vel_north, vel_east, vel_down);
+	addGpsNoise(latitude, longitude, altitude, vel_north, vel_east, vel_down);
 
 	// Device ID
 	device::Device::DeviceId id{};
