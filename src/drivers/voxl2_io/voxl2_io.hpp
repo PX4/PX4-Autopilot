@@ -55,6 +55,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/input_rc.h>
+#include <uORB/topics/mavlink_tunnel.h>
 
 #include "voxl2_io_packet.h"
 #include "voxl2_io_packet_types.h"
@@ -188,9 +189,11 @@ private:
 
 	/* Subscriptions */
 	uORB::Subscription 	_parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription	_io_serial_passthru_sub{ORB_ID(io_serial_passthru)};
 
 	bool		_pwm_on{false};
 	bool		_outputs_disabled{false};
+	hrt_abstime	_last_uart_passthru{0};
 
 	perf_counter_t		_cycle_perf;
 	perf_counter_t		_output_update_perf;
@@ -208,4 +211,5 @@ private:
 	int update_params();
 	int calibrate_escs();
 	std::string board_id_to_name(int board_id);
+	int handle_uart_passthru();
 };
