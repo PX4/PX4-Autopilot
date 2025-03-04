@@ -15,9 +15,30 @@ on:
       - '*'
 
 jobs:
+  test:
+    name: Check for Changes
+    runs-on: [runs-on,"runner=1cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}"]
+    outputs:
+      changes: ${{ steps.changes.outputs.src }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+          submodules: false
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            src:
+              - 'Tools/setup/ubuntu.sh'
+              - 'Tools/setup/requirements.txt'
   build:
     name: Build and Push Container
     runs-on: [runs-on,"runner=8cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    needs: test
+    if: needs.test.outputs.changes == 'true'
     steps:
       - uses: runs-on/action@v1
       - uses: actions/checkout@v4
