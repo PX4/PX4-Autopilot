@@ -1,0 +1,33 @@
+# PX4 base development environment
+FROM px4io/px4-dev:v1.16.0-alpha2-419-gd48631e2ce
+LABEL maintainer="Daniel Agar <daniel@agar.ca>, Ramon Roche <mrpollo@gmail.com>"
+
+# Some QT-Apps/Gazebo don't not show controls without this
+ENV QT_X11_NO_MITSHM=1
+# Use UTF8 encoding in java tools (needed to compile jMAVSim)
+ENV JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
+
+# Set Up Caching of APT packages
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+	--mount=type=cache,target=/var/lib/apt,sharing=locked \
+	rm -f /etc/apt/apt.conf.d/docker-clean && \
+	echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' >/etc/apt/apt.conf.d/keep-cache && \
+	apt-get --quiet -y update
+
+# Install Shell Script Entrypoint
+# COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+# Install PX4 Requirements
+COPY requirements.txt /tmp/requirements.txt
+COPY ubuntu.sh /tmp/ubuntu.sh
+RUN touch /.dockerenv
+RUN bash /tmp/ubuntu.sh --no-nuttx
+
+RUN git config --global --add safe.directory '*'
+
+# create user with id 1001 (jenkins docker workflow default)
+# RUN useradd --shell /bin/bash -u 1001 -c "" -m user && usermod -a -G dialout user
+
+# ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+CMD ["/bin/bash"]
