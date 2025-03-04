@@ -67,4 +67,21 @@ if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
 
     add_dependencies(${PROJECT_NAME} OpticalFlow)
 
+    # Build MovingPlatformController
+    # TODO encapsulate this in a nicer way. This is completely independent from optical flow
+    add_library(MovingPlatformController SHARED
+        MovingPlatformController.cpp
+    )
+
+    target_link_libraries(MovingPlatformController
+        PUBLIC gz-sim${GZ_SIM_VERSION}::gz-sim${GZ_SIM_VERSION}
+        PUBLIC gz-plugin${GZ_PLUGIN_VERSION}::gz-plugin${GZ_PLUGIN_VERSION}
+        PUBLIC gz-transport${GZ_TRANSPORT_VERSION}::gz-transport${GZ_TRANSPORT_VERSION}
+    )
+
+    install(TARGETS MovingPlatformController
+        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+    )
+
+
 endif()

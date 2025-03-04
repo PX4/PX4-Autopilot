@@ -139,7 +139,7 @@ if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
 					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_name} PX4_GZ_WORLD=${world_name} $<TARGET_FILE:px4>
 					WORKING_DIRECTORY ${SITL_WORKING_DIR}
 					USES_TERMINAL
-					DEPENDS px4 OpticalFlowSystem
+					DEPENDS px4 OpticalFlowSystem MovingPlatformController
 				)
 			endif()
 		endforeach()
