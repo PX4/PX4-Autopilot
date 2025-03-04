@@ -70,9 +70,8 @@ public:
 	 * @brief Initializes the state machine.
 	 *
 	 * @param time_now Absolute time since system boot [us]
-	 * @param start_pos_global Vehicle global (lat, lon) position at time of initialization [deg]
 	 */
-	void init(const hrt_abstime &time_now, const matrix::Vector2d &start_pos_global);
+	void init(const hrt_abstime &time_now);
 
 	/**
 	 * @brief Updates the state machine based on the current vehicle condition.
@@ -135,11 +134,6 @@ public:
 	 */
 	float getMaxPitch(const float max_pitch) const;
 
-	/**
-	 * @return Runway takeoff starting position in global frame (lat, lon) [deg]
-	 */
-	const matrix::Vector2d &getStartPosition() const { return start_pos_global_; };
-
 	// NOTE: this is only to be used for mistaken mode transitions to takeoff while already in air
 	void forceSetFlyState() { takeoff_state_ = RunwayTakeoffState::FLY; }
 
@@ -180,13 +174,6 @@ private:
 	 * The absolute time the takeoff state transitions from CLAMPED_TO_RUNWAY -> CLIMBOUT [us]
 	 */
 	hrt_abstime takeoff_time_{0};
-
-	/**
-	 * The global (lat, lon) position of the vehicle on first pass through the runway takeoff state machine. The
-	 * takeoff path emanates from this point to correct for any GNSS uncertainty from the planned takeoff point. The
-	 * vehicle should accordingly be set on the center of the runway before engaging the mission. [deg]
-	 */
-	matrix::Vector2d start_pos_global_{};
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::RWTO_TKOFF>) param_rwto_tkoff_,

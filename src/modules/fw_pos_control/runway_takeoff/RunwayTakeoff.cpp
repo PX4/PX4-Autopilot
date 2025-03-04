@@ -51,9 +51,8 @@ using namespace time_literals;
 namespace runwaytakeoff
 {
 
-void RunwayTakeoff::init(const hrt_abstime &time_now, const matrix::Vector2d &start_pos_global)
+void RunwayTakeoff::init(const hrt_abstime &time_now)
 {
-	start_pos_global_ = start_pos_global;
 	takeoff_state_ = RunwayTakeoffState::THROTTLE_RAMP;
 	initialized_ = true;
 	time_initialized_ = time_now;

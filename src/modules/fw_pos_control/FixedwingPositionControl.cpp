@@ -1197,7 +1197,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 	if (_runway_takeoff.runwayTakeoffEnabled()) {
 		if (!_runway_takeoff.isInitialized()) {
-			_runway_takeoff.init(now, global_position);
+			_runway_takeoff.init(now);
+			_takeoff_init_position = global_position;
 			_takeoff_ground_alt = _current_altitude;
 			_launch_current_yaw = _yaw;
 			_airspeed_slew_rate_controller.setForcedValue(takeoff_airspeed);
@@ -1217,8 +1218,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			_att_sp.yaw_sp_move_rate = _manual_control_setpoint.yaw;
 		}
 
-		const Vector2f start_pos_local = _global_local_proj_ref.project(_runway_takeoff.getStartPosition()(0),
-						 _runway_takeoff.getStartPosition()(1));
+		const Vector2f start_pos_local = _global_local_proj_ref.project(_takeoff_init_position(0), _takeoff_init_position(1));
 		const Vector2f takeoff_waypoint_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 
 		// by default set the takeoff bearing to the takeoff yaw, but override in a mission takeoff with bearing to takeoff WP
@@ -1299,14 +1299,14 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		if (!_launch_detected && _launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
 			_launch_detected = true;
-			_launch_global_position = global_position;
+			_takeoff_init_position = global_position;
 			_takeoff_ground_alt = _current_altitude;
 			_launch_current_yaw = _yaw;
 			_airspeed_slew_rate_controller.setForcedValue(takeoff_airspeed);
 		}
 
-		const Vector2f launch_local_position = _global_local_proj_ref.project(_launch_global_position(0),
-						       _launch_global_position(1));
+		const Vector2f launch_local_position = _global_local_proj_ref.project(_takeoff_init_position(0),
+						       _takeoff_init_position(1));
 		const Vector2f takeoff_waypoint_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 
 		// by default set the takeoff bearing to the takeoff yaw, but override in a mission takeoff with bearing to takeoff WP
