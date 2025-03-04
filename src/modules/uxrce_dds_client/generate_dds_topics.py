@@ -108,6 +108,14 @@ def process_message_type(msg_type, camelcase):
     else:
         msg_type['topic_name'] = msg_type['topic_simple']
 
+    # topic_pub_thold: eg. rate: 10Hz => topic_pub_thold_us = 100000 (us)
+    if 'rate' in msg_type:
+        rate = msg_type['rate']
+        msg_type['topic_pub_thold_us'] = int(1000000 / rate)
+        print(msg_type['topic_name'] + " rate: " + str(msg_type['rate']) + " => thold_us: " + str(msg_type['topic_pub_thold_us']))
+    else:
+        msg_type['topic_pub_thold_us'] = 0
+
 pubs_not_empty = msg_map['publications'] is not None
 if pubs_not_empty:
     for p in msg_map['publications']:
