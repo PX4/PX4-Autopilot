@@ -118,7 +118,6 @@ public:
 	 * ramps from RWTO_MAX_THR to the externally defined throttle setting over the takeoff rotation time
 	 *
 	 * @param idle_throttle normalized [0,1]
-	 * @param external_throttle_setpoint Externally commanded throttle setpoint (usually from TECS), normalized [0,1]
 	 * @return Throttle setpoint, normalized [0,1]
 	 */
 	float getThrottle(const float idle_throttle) const;

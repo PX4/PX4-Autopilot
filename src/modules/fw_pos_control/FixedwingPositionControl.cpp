@@ -1182,7 +1182,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 	// (navigator will accept the takeoff as complete once crossing the clearance altitude)
 	const float altitude_setpoint_amsl = clearance_altitude_amsl + kClearanceAltitudeBuffer;
 
-	Vector2f local_2D_position{_local_pos.x, _local_pos.y};
+	const Vector2f local_2D_position{_local_pos.x, _local_pos.y};
 
 	const float takeoff_airspeed = (_param_fw_tko_airspd.get() > FLT_EPSILON) ? _param_fw_tko_airspd.get() :
 				       _performance_model.getMinimumCalibratedAirspeed(getLoadFactor());
