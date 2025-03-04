@@ -104,7 +104,7 @@ static int board_reset_enter_app(FAR void *arg)
 
 	/* It is now safe to read and hold hartid locally (CPU cannot change) */
 
-	hartid = riscv_mhartid();
+	hartid = up_cpu_index();
 
 #ifdef CONFIG_SMP
 	/* Notify that this CPU is paused */
