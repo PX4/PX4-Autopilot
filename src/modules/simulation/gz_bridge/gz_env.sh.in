@@ -9,4 +9,3 @@ export GZ_SIM_SYSTEM_PLUGIN_PATH=$GZ_SIM_SYSTEM_PLUGIN_PATH:$PX4_GZ_PLUGINS
 # We load plugins specific for PX4 through our own server config file
 # See https://gazebosim.org/api/sim/8/server_config.html
 export GZ_SIM_SERVER_CONFIG_PATH=$PX4_GZ_SERVER_CONFIG
-
