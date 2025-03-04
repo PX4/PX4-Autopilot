@@ -227,8 +227,10 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		libimage-exiftool-perl \
 		libopencv-dev \
 		libxml2-utils \
+		mesa-utils \
 		pkg-config \
 		protobuf-compiler \
+		x-window-system \
 		;
 
 	if sudo dmidecode -t system | grep -q "Manufacturer: VMware, Inc." ; then
