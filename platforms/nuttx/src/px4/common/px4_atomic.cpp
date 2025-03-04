@@ -52,7 +52,7 @@ atomic_block::~atomic_block(void)
 void atomic_block::start(void)
 {
 #ifdef CONFIG_SMP
-	_irqlock = spin_lock_irqsave_wo_note(&_spinlock);
+	_irqlock = spin_lock_irqsave_notrace(&_spinlock);
 #else
 	_irqlock = enter_critical_section();
 #endif
@@ -61,7 +61,7 @@ void atomic_block::start(void)
 void atomic_block::finish(void)
 {
 #ifdef CONFIG_SMP
-	spin_unlock_irqrestore_wo_note(&_spinlock, _irqlock);
+	spin_unlock_irqrestore_notrace(&_spinlock, _irqlock);
 #else
 	leave_critical_section(_irqlock);
 #endif
