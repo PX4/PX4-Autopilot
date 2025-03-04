@@ -37,11 +37,41 @@
 
 namespace custom
 {
-class MovingPlatformController: public gz::sim::System, public gz::sim::ISystemPreUpdate
+class MovingPlatformController
+	: public gz::sim::System,
+	  public gz::sim::ISystemConfigure,
+	  public gz::sim::ISystemPreUpdate
 {
 public:
+
+	MovingPlatformController();
+
 	void PreUpdate(const gz::sim::UpdateInfo &_info,
 		       gz::sim::EntityComponentManager &_ecm) final;
+
+	void Configure(const gz::sim::Entity &entity,
+		       const std::shared_ptr<const sdf::Element> &sdf,
+		       gz::sim::EntityComponentManager &ecm,
+		       gz::sim::EventManager &eventMgr) override;
+
+
+private:
+
+	void updatePose(const gz::sim::EntityComponentManager &ecm);
+	void updateVelocityCommands(const gz::math::Vector3d &mean_velocity);
+	void sendVelocityCommands();
+
+	gz::sim::Entity &_entity;
+
+	// low-pass filtered white noise for driving boat motion
+	gz::math::Vector3d _noise_v_lowpass{0., 0., 0.};
+	gz::math::Vector3d _noise_w_lowpass{0., 0., 0.};
+
+	gz::math::Vector3d _platform_v{0., 0., 0.};
+	gz::math::Vector3d _platform_w{0., 0., 0.};
+
+	gz::math::Vector3d _platform_position{0., 0., 0.};
+	gz::math::Quaterniond _platform_orientation{1., 0., 0., 0.};
 
 };
 } // end namespace custom

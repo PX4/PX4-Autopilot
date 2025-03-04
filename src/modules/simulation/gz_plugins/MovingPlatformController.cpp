@@ -38,18 +38,110 @@ using namespace custom;
 
 #include <gz/plugin/Register.hh>
 
-#include <gz/sim/components/CustomSensor.hh>
-#include <gz/sim/components/Name.hh>
-#include <gz/sim/components/ParentEntity.hh>
-#include <gz/sim/components/Sensor.hh>
+#include "gz/sim/components/Pose.hh"
+#include <gz/sim/components/Model.hh>
 #include <gz/sim/EntityComponentManager.hh>
 #include <gz/sim/Util.hh>
 
-void MovingPlatformController::PreUpdate(const gz::sim::UpdateInfo &_info, gz::sim::EntityComponentManager &_ecm)
+#include <gz/math.hh>
+#include <gz/math/Rand.hh>
+#include <gz/math/Pose3.hh>
+
+void MovingPlatformController::Configure(const gz::sim::Entity &entity,
+		const std::shared_ptr<const sdf::Element> &sdf,
+		gz::sim::EntityComponentManager &ecm,
+		gz::sim::EventManager &eventMgr)
 {
-	gzmsg << "entering PreUpdate" << std::endl;
+	_entity = entity;
 }
 
+void MovingPlatformController::PreUpdate(const gz::sim::UpdateInfo &_info, gz::sim::EntityComponentManager &ecm)
+{
+	updatePose(ecm);
+
+	const gz::math::Vector3d mean_vel(1.0, 0.0, 0.0);
+	updateVelocityCommands(mean_vel);
+
+	sendVelocityCommands();
+}
+
+void MovingPlatformController::updateVelocityCommands(const gz::math::Vector3d &mean_velocity)
+{
+	// Velocity and angular velocity = low pass filtered white noise + feedback term.
+
+	gz::math::Vector3d noise_v = gz::math::Vector3d(
+					     gz::math::Rand::DblNormal(),
+					     gz::math::Rand::DblNormal(),
+					     gz::math::Rand::DblNormal()
+				     );
+
+	gz::math::Vector3d noise_w = gz::math::Vector3d(
+					     gz::math::Rand::DblNormal(),
+					     gz::math::Rand::DblNormal(),
+					     gz::math::Rand::DblNormal()
+				     );
+
+	// Update rates for the filtered white noise.
+	// larger number here = faster movement
+	// write these in terms of time constants?
+	// https://ethz.ch/content/dam/ethz/special-interest/mavt/dynamic-systems-n-control/idsc-dam/Lectures/Signals-and-Systems/Lectures/Lecture%20Notes%209.pdf
+	const double alpha_v = 0.01;
+	const double alpha_w = 0.01;
+
+	// Noise amplitude.
+	// larger number here = bigger movement
+	// we scale it by the update rates to keep total energy constant
+	const double ampl_v = 0.01 / alpha_v;
+	const double ampl_w = 0.01 / alpha_w;
+
+	// For ultra realism we might have axis specific versions of these
+	// constants -- Real ships roll more quickly than they pitch and yaw.
+	// But probably overkill for now.
+
+	_noise_v_lowpass = (1 - alpha_v) * _noise_v_lowpass + alpha_v * noise_v;
+	_noise_w_lowpass = (1 - alpha_w) * _noise_w_lowpass + alpha_w * noise_w;
+
+	_platform_v = ampl_v * _noise_v_lowpass + mean_velocity;
+	_platform_w = ampl_w * _noise_w_lowpass;
+
+	const bool feedback = true;
+
+	// feedback terms to ensure the random walk (= integral of noise)
+	// stays within a realistic region.
+	if (feedback) {
+
+		// small feedback to maintain height. no attempt to stabilise x and y.
+		const double platform_height = 2.;
+		const gz::math::Vector3d pos_gains(0., 0., 1.);  // [m/s / m]
+		_platform_v += -pos_gains * (_platform_position - gz::math::Vector3d(0., platform_height, 0.));
+
+		// eq. 23 from Nonlinear Quadrocopter Attitude Control (Brescianini, Hehn, D'Andrea)
+		// https://www.research-collection.ethz.ch/handle/20.500.11850/154099
+		const double sgn = _platform_orientation.W() > 0 ? 1. : -1.;
+
+		const double attitude_gain = 1.;
+
+		gz::math::Vector3d q_imag = gz::math::Vector3d(
+						    _platform_orientation.X(),
+						    _platform_orientation.Y(),
+						    _platform_orientation.Z()
+					    );
+
+		_platform_w += -attitude_gain * sgn * q_imag;
+	}
+}
+
+void MovingPlatformController::updatePose(const gz::sim::EntityComponentManager &ecm)
+{
+	auto pose = ecm.Component<gz::sim::components::Pose>(_entity);
+	_platform_position = pose->Data().Pos();
+	_platform_orientation = pose->Data().Rot();
+}
+
+void MovingPlatformController::sendVelocityCommands()
+{
+
+}
 
 GZ_ADD_PLUGIN(MovingPlatformController, gz::sim::System, MovingPlatformController::ISystemPreUpdate)
 
