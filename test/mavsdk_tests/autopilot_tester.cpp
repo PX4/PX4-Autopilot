@@ -210,7 +210,7 @@ void AutopilotTester::wait_until_hovering()
 	wait_for_landed_state(Telemetry::LandedState::InAir, std::chrono::seconds(45));
 }
 
-void AutopilotTester::wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout, float delta = 0.5f)
+void AutopilotTester::wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout, float delta)
 {
 	auto prom = std::promise<void> {};
 	auto fut = prom.get_future();
