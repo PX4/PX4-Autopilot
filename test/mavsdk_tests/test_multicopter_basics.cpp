@@ -40,7 +40,7 @@
 TEST_CASE("Takeoff and hold position", "[multicopter][vtol]")
 {
 	const float takeoff_altitude = 10.f;
-	const float altitude_tolerance = 1.f;
+	const float altitude_tolerance = 0.25f;
 	const int delay_seconds = 60.f;
 
 	AutopilotTester tester;
@@ -56,7 +56,7 @@ TEST_CASE("Takeoff and hold position", "[multicopter][vtol]")
 	tester.arm();
 	tester.takeoff();
 	tester.wait_until_hovering();
-	tester.wait_until_altitude(takeoff_altitude, std::chrono::seconds(30));
+	tester.wait_until_altitude(takeoff_altitude, std::chrono::seconds(30), altitude_tolerance + 0.1f);
 
 	// Monitor altitude and fail if it exceeds the tolerance
 	tester.start_checking_altitude(altitude_tolerance);
