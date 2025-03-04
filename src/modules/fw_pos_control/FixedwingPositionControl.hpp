@@ -298,8 +298,8 @@ private:
 	// true if a launch, specifically using the launch detector, has been detected
 	bool _launch_detected{false};
 
-	// [deg] global position of the vehicle at the time launch is detected (using launch detector)
-	Vector2d _launch_global_position{0, 0};
+	// [deg] global position of the vehicle at the time launch is detected (using launch detector) or takeoff is started (runway)
+	Vector2d _takeoff_init_position{0, 0};
 
 	// [rad] current vehicle yaw at the time the launch is detected
 	float _launch_current_yaw{0.f};
