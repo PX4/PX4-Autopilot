@@ -50,7 +50,6 @@ void RangeFinderConsistencyCheck::init(const float z, const float z_var, const f
 	_x(RangeFilter::z.idx) = z;
 	_x(RangeFilter::terrain.idx) = z - dist_bottom;
 	_initialized = true;
-	_state = KinematicState::UNKNOWN;
 	_test_ratio_lpf.reset(0.f);
 	_t_since_first_sample = 0.f;
 }
@@ -92,8 +91,7 @@ void RangeFinderConsistencyCheck::update(const float z, const float z_var, const
 			R = z_var;
 
 		} else if (measurement_idx == 1) {
-			H(RangeFilter::z.idx) = _Ht(0);
-			H(RangeFilter::terrain.idx) = _Ht(1);
+			H = _Ht;
 			R = dist_bottom_var;
 		}
 
@@ -137,10 +135,8 @@ void RangeFinderConsistencyCheck::update(const float z, const float z_var, const
 void RangeFinderConsistencyCheck::evaluateState(const float dt, const float vz, const float vz_var)
 {
 	// start the consistency check after 1s
-	if (_t_since_first_sample + dt > 1.0f) {
-		_t_since_first_sample = 2.0f;
-
-		if (abs(_test_ratio_lpf.getState()) < 1.f) {
+	if (_t_since_first_sample > _t_to_init) {
+		if (fabsf(_test_ratio_lpf.getState()) < 1.f) {
 			const bool vertical_motion = sq(vz) > fmaxf(vz_var, 0.1f);
 
 			if (!horizontal_motion && vertical_motion) {
