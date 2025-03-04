@@ -33,12 +33,12 @@ find_package(gz-transport${GZ_TRANSPORT_VERSION})
 
 if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
 
-    gz_find_package(gz-cmake${GZ_CMAKE_VERSION} REQUIRED)
-    gz_find_package(gz-msgs${GZ_MSGS_VERSION} REQUIRED)
-    gz_find_package(Protobuf REQUIRED)
-    gz_find_package(gz-plugin${GZ_PLUGIN_VERSION} REQUIRED COMPONENTS register)
-    gz_find_package(gz-sim${GZ_SIM_VERSION} REQUIRED)
-    gz_find_package(gz-sensors${GZ_SENSORS_VERSION} REQUIRED)
+    find_package(gz-cmake${GZ_CMAKE_VERSION} REQUIRED)
+    find_package(gz-msgs${GZ_MSGS_VERSION} REQUIRED)
+    find_package(Protobuf REQUIRED)
+    find_package(gz-plugin${GZ_PLUGIN_VERSION} REQUIRED COMPONENTS register)
+    find_package(gz-sim${GZ_SIM_VERSION} REQUIRED)
+    find_package(gz-sensors${GZ_SENSORS_VERSION} REQUIRED)
 
     include(${CMAKE_CURRENT_SOURCE_DIR}/optical_flow.cmake)
 
