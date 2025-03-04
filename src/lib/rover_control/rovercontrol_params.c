@@ -96,7 +96,7 @@ PARAM_DEFINE_FLOAT(RO_YAW_RATE_I, 0.f);
  * @min 0
  * @max 10000
  * @increment 0.01
- * @decimal 3
+ * @decimal 2
  * @group Rover Rate Control
  */
 PARAM_DEFINE_FLOAT(RO_YAW_RATE_LIM, 0.f);
