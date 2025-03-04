@@ -215,7 +215,7 @@ void AutopilotTester::wait_until_altitude(float rel_altitude_m, std::chrono::sec
 	auto prom = std::promise<void> {};
 	auto fut = prom.get_future();
 
-	_telemetry->subscribe_position([&prom, rel_altitude_m, this](Telemetry::Position new_position) {
+	_telemetry->subscribe_position([&prom, rel_altitude_m, delta, this](Telemetry::Position new_position) {
 		if (fabs(rel_altitude_m - new_position.relative_altitude_m) <= delta) {
 			_telemetry->subscribe_position(nullptr);
 			prom.set_value();
