@@ -181,7 +181,7 @@ hrt_tim_isr(int irq, void *context, void *arg)
 	/* was this a timer tick? */
 	if (status & MPFS_MSTIMER_RIS_MASK) {
 		/* get exclusive access to hrt */
-		flags = spin_lock_irqsave_wo_note(&g_hrt_lock);
+		flags = spin_lock_irqsave_notrace(&g_hrt_lock);
 
 		/* do latency calculations */
 		hrt_latency_update();
@@ -193,7 +193,7 @@ hrt_tim_isr(int irq, void *context, void *arg)
 		hrt_call_reschedule();
 
 		/* release exclusive access */
-		spin_unlock_irqrestore_wo_note(&g_hrt_lock, flags);
+		spin_unlock_irqrestore_notrace(&g_hrt_lock, flags);
 
 		/* clear the interrupt */
 		putreg32((MPFS_MSTIMER_RIS_MASK), MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1RIS_OFFSET);
@@ -269,7 +269,7 @@ hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, 
 static void
 hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime interval, hrt_callout callout, void *arg)
 {
-	irqstate_t flags = spin_lock_irqsave_wo_note(&g_hrt_lock);
+	irqstate_t flags = spin_lock_irqsave_notrace(&g_hrt_lock);
 
 	/* if the entry is currently queued, remove it */
 	/* note that we are using a potentially uninitialised
@@ -290,7 +290,7 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
 
 	hrt_call_enter(entry);
 
-	spin_unlock_irqrestore_wo_note(&g_hrt_lock, flags);
+	spin_unlock_irqrestore_notrace(&g_hrt_lock, flags);
 }
 
 /**
@@ -310,7 +310,7 @@ hrt_called(struct hrt_call *entry)
 void
 hrt_cancel(struct hrt_call *entry)
 {
-	irqstate_t flags = spin_lock_irqsave_wo_note(&g_hrt_lock);
+	irqstate_t flags = spin_lock_irqsave_notrace(&g_hrt_lock);
 
 	sq_rem(&entry->link, &callout_queue);
 	entry->deadline = 0;
@@ -320,7 +320,7 @@ hrt_cancel(struct hrt_call *entry)
 	 */
 	entry->period = 0;
 
-	spin_unlock_irqrestore_wo_note(&g_hrt_lock, flags);
+	spin_unlock_irqrestore_notrace(&g_hrt_lock, flags);
 }
 
 static void
