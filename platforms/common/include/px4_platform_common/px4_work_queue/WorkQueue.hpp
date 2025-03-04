@@ -90,8 +90,8 @@ private:
 	// In NuttX work can be enqueued from an ISR
 #ifdef CONFIG_BUILD_FLAT
 #ifdef CONFIG_SMP
-	void work_lock() { _flags = spin_lock_irqsave_wo_note(&_spinlock); }
-	void work_unlock() { spin_unlock_irqrestore_wo_note(&_spinlock, _flags); }
+	void work_lock() { _flags = spin_lock_irqsave_notrace(&_spinlock); }
+	void work_unlock() { spin_unlock_irqrestore_notrace(&_spinlock, _flags); }
 	spinlock_t _spinlock;
 #else
 	void work_lock() { _flags = enter_critical_section(); }
