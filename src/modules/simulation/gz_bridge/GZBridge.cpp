@@ -485,7 +485,7 @@ static float generate_wgn()
 }
 
 void GZBridge::addGpsNoise(double &latitude, double &longitude, double &altitude,
-				    float &vel_north, float &vel_east, float &vel_down)
+			   float &vel_north, float &vel_east, float &vel_down)
 {
 	_gps_pos_noise_n = _pos_markov_time * _gps_pos_noise_n +
 			   _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
