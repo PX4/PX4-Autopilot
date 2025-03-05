@@ -127,7 +127,6 @@ set(msg_files
 	Mission.msg
 	MissionResult.msg
 	MountOrientation.msg
-	ModalIoData.msg
 	ModalIoMavlinkData.msg
 	ModeCompleted.msg
 	NavigatorMissionItem.msg

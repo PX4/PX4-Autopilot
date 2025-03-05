@@ -232,9 +232,6 @@ dataman start
 navigator start
 load_mon start
 
-# This bridge allows raw data packets to be sent over UART to the ESC
-modal_io_bridge start
-
 # Start microdds_client for ros2 offboard messages from agent over localhost
 microdds_client start -t udp -h 127.0.0.1 -p 8888
 

@@ -1370,18 +1370,23 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 	_esc_status_pub.publish(_esc_status);
 
-	// If any extra external modal io data has been received then
-	// send it over as well
-	while (_modal_io_data_sub.updated()) {
-		modal_io_data_s io_data{};
-		_modal_io_data_sub.copy(&io_data);
-		// PX4_INFO("Got Modal IO data: %u bytes", io_data.len);
-		// PX4_INFO("   0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x",
-		// 		 io_data.data[0], io_data.data[1], io_data.data[2], io_data.data[3],
-		// 		 io_data.data[4], io_data.data[5], io_data.data[6], io_data.data[7]);
-		if (_uart_port->uart_write(io_data.data, io_data.len) != io_data.len) {
-			PX4_ERR("VOXL_ESC: Failed to send modal io data to esc");
-			return false;
+	uint8_t num_writes = 0;
+
+	// Don't do these faster than 20Hz
+	if (hrt_elapsed_time(&_last_uart_passthru) > 50_ms) {
+		_last_uart_passthru = hrt_absolute_time();
+
+		// Don't do more than a few writes each check
+		while (_esc_serial_passthru_sub.updated() && (num_writes < 4)) {
+			mavlink_tunnel_s uart_passthru{};
+			_esc_serial_passthru_sub.copy(&uart_passthru);
+
+			if (_uart_port->uart_write(uart_passthru.payload, uart_passthru.payload_length) != uart_passthru.payload_length) {
+				PX4_ERR("Failed to send mavlink tunnel data to esc");
+				return false;
+			}
+
+			num_writes++;
 		}
 	}
 
