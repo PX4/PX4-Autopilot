@@ -256,7 +256,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		Vector2f sticks_xy = _sticks.getPitchRollExpo();
 
 		if (sticks_xy.longerThan(FLT_EPSILON)) {
-			// Hold current heading to avoid unexpected flight path
+			// Ensure no unintended yawing when nudging horizontally during initial heading alignment
 			_land_heading = _yaw_sp_prev;
 		}
 
