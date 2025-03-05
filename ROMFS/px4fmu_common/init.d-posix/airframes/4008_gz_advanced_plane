@@ -11,7 +11,6 @@ PX4_SIM_MODEL=${PX4_SIM_MODEL:=advanced_plane}
 
 param set-default SIM_GZ_EN 1
 
-param set-default SENS_EN_MAGSIM 1
 param set-default SENS_EN_ARSPDSIM 1
 
 param set-default FW_LND_ANG 8
