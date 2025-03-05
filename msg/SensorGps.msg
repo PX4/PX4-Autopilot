@@ -69,4 +69,4 @@ uint8 RTCM_MSG_USED_NOT_USED = 1
 uint8 RTCM_MSG_USED_USED = 2
 uint8 rtcm_msg_used		# Indicates if the RTCM message was used successfully by the receiver
 
-# TOPICS sensor_gps vehicle_gps_position
+# TOPICS sensor_gps vehicle_gps_position platform_gps_position

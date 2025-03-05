@@ -561,6 +561,14 @@ void GZBridge::platformNavsatCallback(const gz::msgs::NavSat &nav_sat)
 	// print d n'ebugging pas
 	// PX4_INFO("Moving Platform NavSat pos: lat=%.2f, lon=%.2f, alt=%.2f",
 	// 	 nav_sat.latitude_deg(), nav_sat.longitude_deg(), nav_sat.altitude());
+	sensor_gps_s gps_output{};
+
+	gps_output.latitude_deg = nav_sat.latitude_deg();
+	gps_output.longitude_deg = nav_sat.longitude_deg();
+	// not sure if this is msl or ellipsoid. consult gz docs.
+	gps_output.altitude_ellipsoid_m = nav_sat.altitude();
+
+	_platform_gps_position_pub.publish(gps_output);
 
 	// TODO publish the corresponding uOrb msg. then in reality we just have
 	// to convert the mavlink msg from the ground station to exactly the
