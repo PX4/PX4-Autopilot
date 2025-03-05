@@ -432,6 +432,9 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &msg)
 			_lpos_ground_truth_pub.publish(local_position_groundtruth);
 
 			// calculate the differential pressure
+			const float LAPSE_RATE = 0.0065; // reduction in temperature with altitude for troposphere [K/m]
+			const float AIR_DENSITY_MSL = 1.225; // air density at MSL [kg/m^3]
+
 			const float temperature_local = _temperature - LAPSE_RATE * _alt_amsl;
 			const float density_ratio = powf(_temperature / temperature_local, 4.256f);
 			const float air_density = AIR_DENSITY_MSL / density_ratio;
@@ -440,7 +443,7 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &msg)
 			float diff_pressure;
 
 			// determine if the wind information is available
-			if (_wind_velocity.norm() > 0.001d) {
+			if (hrt_elapsed_time(&_wind_timestamp) < 1_s) {
 				matrix::Vector3d Va_vec = velocity - _wind_velocity;  // calculate true airspeed by wind triangle
 				float Va = Va_vec.norm();
 				diff_pressure = matrix::sign(Va) * 0.005f * air_density  * Va * Va + diff_pressure_noise;
@@ -812,11 +815,15 @@ void GZBridge::laserScanCallback(const gz::msgs::LaserScan &msg)
 
 void GZBridge::windCallback(const gz::msgs::Wind &wind_gz)
 {
-	if (hrt_absolute_time() == 0) {
-		return;
-	}
+	_wind_timestamp = hrt_absolute_time();
+	// define quaternion for rotation between ENU to NED
+	static const auto q_ENU_to_NED = gz::math::Quaterniond(0, 0.70711, 0.70711, 0);
 
-	_wind_velocity = matrix::Vector3d{wind_gz.linear_velocity().y(), wind_gz.linear_velocity().x(), -wind_gz.linear_velocity().z()};
+	gz::math::Vector3d wind_velocity = q_ENU_to_NED.RotateVector(gz::math::Vector3d(
+			wind_gz.linear_velocity().x(),
+			wind_gz.linear_velocity().y(),
+			wind_gz.linear_velocity().z()));
+	_wind_velocity = matrix::Vector3d(wind_velocity[0], wind_velocity[1], wind_velocity[2]);
 }
 
 void GZBridge::rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU)

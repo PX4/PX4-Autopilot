@@ -85,8 +85,6 @@
 
 using namespace time_literals;
 
-static constexpr float LAPSE_RATE = 0.0065; // reduction in temperature with altitude for troposphere [K/m]
-static constexpr float AIR_DENSITY_MSL = 1.225; // air density at MSL [kg/m^3]
 
 class GZBridge : public ModuleBase<GZBridge>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -174,6 +172,7 @@ private:
 
 	// For wind triangle calculation
 	matrix::Vector3d _wind_velocity{};
+	uint64_t _wind_timestamp{0};
 
 	// GPS noise model
 	float _gps_pos_noise_n = 0.0f;
