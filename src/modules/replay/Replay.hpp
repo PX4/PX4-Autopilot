@@ -44,7 +44,6 @@
 
 #include <px4_platform_common/module.h>
 #include <uORB/topics/uORBTopics.hpp>
-#include <uORB/topics/ekf2_timestamps.h>
 
 namespace px4
 {
@@ -141,8 +140,10 @@ protected:
 		CompatBase *compat = nullptr;
 
 		// statistics
-		int error_counter = 0;
+		int approx_timestamp_counter = 0;
 		int publication_counter = 0;
+
+		bool published = false;
 	};
 
 	/**
