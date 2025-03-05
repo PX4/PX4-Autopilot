@@ -99,7 +99,12 @@ void BMP581::start()
 {
 	_collect_phase = false;
 
-	ScheduleOnInterval(_measure_interval, _measure_interval * 3);
+	if (intf == BMP5_SPI_INTF) {
+		ScheduleOnInterval(_measure_interval, _measure_interval * 3);
+
+	} else if (intf == BMP5_I2C_INTF) {
+		ScheduleOnInterval(_measure_interval * 3, _measure_interval * 6);
+	}
 }
 
 void BMP581::RunImpl()
