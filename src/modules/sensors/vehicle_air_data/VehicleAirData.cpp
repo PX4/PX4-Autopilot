@@ -255,7 +255,7 @@ void VehicleAirData::Run()
 	}
 
 	if (!_relative_calibration_done) {
-		UpdateRelativeCalibrations(time_now_us);
+		_relative_calibration_done = UpdateRelativeCalibrations(time_now_us);
 	}
 
 	// Publish
@@ -329,13 +329,14 @@ void VehicleAirData::Run()
 	perf_end(_cycle_perf);
 }
 
-void VehicleAirData::UpdateRelativeCalibrations(const hrt_abstime time_now_us)
+bool VehicleAirData::UpdateRelativeCalibrations(const hrt_abstime time_now_us)
 {
 	// delay calibration to allow all drivers to start up
-	_calibration_t_first = _calibration_t_first == 0 ? time_now_us : _calibration_t_first;
+	if (_calibration_t_first == 0) {
+		_calibration_t_first = time_now_us;
+	}
 
 	if (time_now_us - _calibration_t_first > 1_s) {
-		_relative_calibration_done = true;
 		const float pressure_primary = _data_sum[_selected_sensor_sub_index] / _data_sum_count[_selected_sensor_sub_index];
 
 		for (int instance = 0; instance < MAX_SENSOR_COUNT; ++instance) {
@@ -348,10 +349,13 @@ void VehicleAirData::UpdateRelativeCalibrations(const hrt_abstime time_now_us)
 				_calibration[instance].set_offset(new_offset);
 				_calibration[instance].ParametersSave(instance);
 				param_notify_changes();
-				ParametersUpdate(true);
 			}
 		}
+
+		return true;
 	}
+
+	return false;
 }
 
 void VehicleAirData::CheckFailover(const hrt_abstime &time_now_us)

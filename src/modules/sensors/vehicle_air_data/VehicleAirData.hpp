@@ -85,7 +85,7 @@ private:
 	void CheckFailover(const hrt_abstime &time_now_us);
 	bool ParametersUpdate(bool force = false);
 	void UpdateStatus();
-	void UpdateRelativeCalibrations(hrt_abstime time_now_us);
+	bool UpdateRelativeCalibrations(hrt_abstime time_now_us);
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
