@@ -13,8 +13,6 @@ PX4_SIM_MODEL=${PX4_SIM_MODEL:=quadtailsitter}
 
 param set-default SIM_GZ_EN 1 # Gazebo bridge
 
-param set-default SENS_EN_MAGSIM 1
-
 param set-default MAV_TYPE 20
 
 param set-default CA_AIRFRAME 4
