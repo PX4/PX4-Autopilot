@@ -493,4 +493,23 @@ TEST(MatrixAttitudeTest, Attitude)
 	q = Quatf(0, 0, 0, 1); // 180 degree rotation around the z axis
 	R = Dcmf(q);
 	EXPECT_EQ(q, Quatf(R));
+
+	// Check for Euler 3-1-2
+
+	Eulerf euler_test(0, -90 * deg2rad, -110.0 * deg2rad);
+	Quatf quat_test{euler_test};
+	Euler312f euler312{quat_test};
+	Eulerf euler321{quat_test};
+
+	// 3-2-1 should fail
+	// test that floats are not equal
+	// exact result is undefined - can be 0 or pi
+	EXPECT_GT(fabsf(euler321(0) - euler_test(0)), 1e-5);
+	EXPECT_EQ(std::isnan(euler321(1)), 1);
+	EXPECT_GT(fabsf(euler321(2) - euler_test(2)), 1e-5);
+
+	// 3-1-2 should pass
+	EXPECT_FLOAT_EQ(euler312(0), euler_test(0));
+	EXPECT_FLOAT_EQ(euler312(1), euler_test(1));
+	EXPECT_FLOAT_EQ(euler312(2), euler_test(2));
 }
