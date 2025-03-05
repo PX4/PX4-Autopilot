@@ -418,6 +418,21 @@ void up_bdshot_erpm(void)
 }
 
 
+int up_bdshot_num_erpm_ready(void)
+{
+	int num_ready = 0;
+
+	for (unsigned i = 0; i < DSHOT_TIMERS; ++i) {
+		// We only check that data has been received, rather than if it's valid.
+		// This ensures data is published even if one channel has bit errors.
+		if (bdshot_recv_mask & (1 << i)) {
+			++num_ready;
+		}
+	}
+
+	return num_ready;
+}
+
 
 int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 {
