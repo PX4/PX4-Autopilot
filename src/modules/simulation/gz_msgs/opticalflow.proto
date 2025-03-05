@@ -1,0 +1,19 @@
+syntax = "proto3";
+package px4.msgs;
+
+message OpticalFlow {
+	// Timestamp (microseconds, since system start)
+	int64 time_usec = 1;
+
+	// Integration time
+	uint32 integration_time_us = 2;
+
+	// Integrated x-axis flow (rad)
+	float integrated_x = 3;
+
+	// Integrated y-axis flow (rad)
+	float integrated_y = 4;
+
+	// Quality of optical flow measurement (0: bad, 255: maximum quality)
+	float quality = 5;
+}

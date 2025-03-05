@@ -1,20 +1,20 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *	notice, this list of conditions and the following disclaimer.
+ *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *	notice, this list of conditions and the following disclaimer in
- *	the documentation and/or other materials provided with the
- *	distribution.
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
  * 3. Neither the name PX4 nor the names of its contributors may be
- *	used to endorse or promote products derived from this software
- *	without specific prior written permission.
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -43,24 +43,17 @@
 #include <iostream>
 #include <string>
 
-GZBridge::GZBridge(const char *world, const char *name, const char *model,
-		   const char *pose_str) :
+GZBridge::GZBridge(const std::string &world, const std::string &model_name) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_world_name(world),
-	_model_name(name),
-	_model_sim(model),
-	_model_pose(pose_str)
+	_model_name(model_name)
 {
-	pthread_mutex_init(&_node_mutex, nullptr);
-
 	updateParams();
 }
 
 GZBridge::~GZBridge()
 {
-	// TODO: unsubscribe
-
 	for (auto &sub_topic : _node.SubscribedTopics()) {
 		_node.Unsubscribe(sub_topic);
 	}
@@ -68,126 +61,6 @@ GZBridge::~GZBridge()
 
 int GZBridge::init()
 {
-	if (!_model_sim.empty()) {
-
-		// Set Physics rtf
-		const char *speed_factor_str = std::getenv("PX4_SIM_SPEED_FACTOR");
-
-		if (speed_factor_str) {
-			double speed_factor = std::atof(speed_factor_str);
-			gz::msgs::Physics p_req;
-			p_req.set_max_step_size(speed_factor * 0.004);
-			p_req.set_real_time_factor(-1.0);
-			std::string world_physics = "/world/" + _world_name + "/set_physics";
-			std::string physics_service{world_physics};
-
-			if (!callPhysicsMsgService(physics_service, p_req)) {
-				return PX4_ERROR;
-			}
-		}
-
-		// service call to create model
-		gz::msgs::EntityFactory req{};
-		req.set_sdf_filename(_model_sim + "/model.sdf");
-
-		req.set_name(_model_name); // New name for the entity, overrides the name on the SDF.
-
-		req.set_allow_renaming(false); // allowed to rename the entity in case of overlap with existing entities
-
-		if (!_model_pose.empty()) {
-			PX4_INFO("Requested Model Position: %s", _model_pose.c_str());
-
-			std::vector<double> model_pose_v;
-
-			std::stringstream ss(_model_pose);
-
-			while (ss.good()) {
-				std::string substr;
-				std::getline(ss, substr, ',');
-				model_pose_v.push_back(std::stod(substr));
-			}
-
-			while (model_pose_v.size() < 6) {
-				model_pose_v.push_back(0.0);
-			}
-
-			gz::msgs::Pose *p = req.mutable_pose();
-			gz::msgs::Vector3d *position = p->mutable_position();
-			position->set_x(model_pose_v[0]);
-			position->set_y(model_pose_v[1]);
-			position->set_z(model_pose_v[2]);
-
-			gz::math::Quaterniond q(model_pose_v[3], model_pose_v[4], model_pose_v[5]);
-
-			q.Normalize();
-			gz::msgs::Quaternion *orientation = p->mutable_orientation();
-			orientation->set_x(q.X());
-			orientation->set_y(q.Y());
-			orientation->set_z(q.Z());
-			orientation->set_w(q.W());
-		}
-
-		//world/$WORLD/create service.
-		gz::msgs::Boolean rep;
-		bool result;
-		std::string create_service = "/world/" + _world_name + "/create";
-
-		bool gz_called = false;
-		// Check if PX4_GZ_STANDALONE has been set.
-		char *standalone_val = std::getenv("PX4_GZ_STANDALONE");
-
-		if ((standalone_val != nullptr) && (std::strcmp(standalone_val, "1") == 0)) {
-			// Check if Gazebo has been called and if not attempt to reconnect.
-			while (gz_called == false) {
-				if (_node.Request(create_service, req, 1000, rep, result)) {
-					if (!rep.data() || !result) {
-						PX4_ERR("EntityFactory service call failed");
-						return PX4_ERROR;
-
-					} else {
-						gz_called = true;
-					}
-				}
-
-				// If Gazebo has not been called, wait 2 seconds and try again.
-				else {
-					PX4_WARN("Service call timed out as Gazebo has not been detected. Retrying...");
-					system_usleep(2000000);
-				}
-			}
-		}
-
-
-		// If PX4_GZ_STANDALONE has been set, you can try to connect but GZ_SIM_RESOURCE_PATH needs to be set correctly to work.
-		else {
-			if (!callEntityFactoryService(create_service, req)) {
-				return PX4_ERROR;
-			}
-
-			std::string scene_info_service = "/world/" + _world_name + "/scene/info";
-			bool scene_created = false;
-
-			while (scene_created == false) {
-				if (!callSceneInfoMsgService(scene_info_service)) {
-					PX4_WARN("Service call timed out as Gazebo has not been detected. Retrying...");
-					system_usleep(2000000);
-
-				} else {
-					scene_created = true;
-				}
-			}
-
-			gz::msgs::StringMsg follow_msg{};
-			follow_msg.set_data(_model_name);
-			callStringMsgService("/gui/follow", follow_msg);
-			gz::msgs::Vector3d follow_offset_msg{};
-			follow_offset_msg.set_x(-2.0);
-			follow_offset_msg.set_y(-2.0);
-			follow_offset_msg.set_z(2.0);
-			callVector3dService("/gui/follow/offset", follow_offset_msg);
-		}
-	}
-
 	// clock
 	std::string clock_topic = "/world/" + _world_name + "/clock";
 
@@ -212,7 +85,6 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-
 	// IMU: /world/$WORLD/model/$MODEL/link/base_link/sensor/imu_sensor/imu
 	std::string odometry_topic = "/model/" + _model_name + "/odometry_with_covariance";
 
@@ -220,7 +92,6 @@ int GZBridge::init()
 		PX4_ERR("failed to subscribe to %s", odometry_topic.c_str());
 		return PX4_ERROR;
 	}
-
 
 	// Laser Scan: optional
 	std::string laser_scan_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/link/sensor/lidar_2d_v2/scan";
@@ -264,6 +135,14 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	std::string flow_topic = "/world/" + _world_name + "/model/" + _model_name +
+				 "/link/flow_link/sensor/optical_flow/optical_flow";
+
+	if (!_node.Subscribe(flow_topic, &GZBridge::opticalFlowCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", flow_topic.c_str());
+		return PX4_ERROR;
+	}
+
 	if (!_mixing_interface_esc.init(_model_name)) {
 		PX4_ERR("failed to init ESC output");
 		return PX4_ERROR;
@@ -288,295 +167,154 @@ int GZBridge::init()
 	return OK;
 }
 
-int GZBridge::task_spawn(int argc, char *argv[])
+void GZBridge::clockCallback(const gz::msgs::Clock &msg)
 {
-	const char *world_name = "default";
-	const char *model_name = nullptr;
-	const char *model_pose = nullptr;
-	const char *model_sim = nullptr;
-	const char *px4_instance = nullptr;
-	std::string model_name_std;
-
-
-	bool error_flag = false;
-	int myoptind = 1;
-	int ch;
-	const char *myoptarg = nullptr;
-
-	while ((ch = px4_getopt(argc, argv, "w:m:p:i:n:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'w':
-			// world
-			world_name = myoptarg;
-			break;
-
-		case 'n':
-			// model
-			model_name = myoptarg;
-			break;
-
-		case 'p':
-			// pose
-			model_pose = myoptarg;
-			break;
-
-		case 'm':
-			// pose
-			model_sim = myoptarg;
-			break;
-
-		case 'i':
-			// pose
-			px4_instance = myoptarg;
-			break;
-
-		case '?':
-			error_flag = true;
-			break;
-
-		default:
-			PX4_WARN("unrecognized flag");
-			error_flag = true;
-			break;
-		}
-	}
-
-	if (error_flag) {
-		return PX4_ERROR;
-	}
-
-	if (!model_pose) {
-		model_pose = "";
-	}
-
-	if (!model_sim) {
-		model_sim = "";
-	}
-
-	if (!px4_instance) {
-		if (!model_name) {
-			model_name = model_sim;
-		}
-
-	} else if (!model_name) {
-		model_name_std = std::string(model_sim) + "_" + std::string(px4_instance);
-		model_name = model_name_std.c_str();
-	}
-
-	PX4_INFO("world: %s, model name: %s, simulation model: %s", world_name, model_name, model_sim);
-
-	GZBridge *instance = new GZBridge(world_name, model_name, model_sim, model_pose);
-
-	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
-
-		if (instance->init() == PX4_OK) {
-
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-			// lockstep scheduler wait for initial clock set before returning
-			int sleep_count_limit = 10000;
-
-			while ((instance->world_time_us() == 0) && sleep_count_limit > 0) {
-				// wait for first clock message
-				system_usleep(1000);
-				sleep_count_limit--;
-			}
-
-			if (instance->world_time_us() == 0) {
-				PX4_ERR("timed out waiting for clock message");
-				instance->request_stop();
-				instance->ScheduleNow();
-
-			} else {
-				return PX4_OK;
-			}
-
-#else
-			return PX4_OK;
-#endif // ENABLE_LOCKSTEP_SCHEDULER
-
-			//return PX4_OK;
-		}
-
-	} else {
-		PX4_ERR("alloc failed");
-	}
-
-	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
-
-	return PX4_ERROR;
-}
-
-bool GZBridge::updateClock(const uint64_t tv_sec, const uint64_t tv_nsec)
-{
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	// NOTE: PX4-SITL time needs to stay in sync with gz, so this clock-sync will happen on every callback.
 	struct timespec ts;
-	ts.tv_sec = tv_sec;
-	ts.tv_nsec = tv_nsec;
-
-	if (px4_clock_settime(CLOCK_MONOTONIC, &ts) == 0) {
-		_world_time_us.store(ts_to_abstime(&ts));
-		return true;
-	}
-
-#endif // ENABLE_LOCKSTEP_SCHEDULER
-
-	return false;
+	ts.tv_sec = msg.sim().sec();
+	ts.tv_nsec = msg.sim().nsec();
+	px4_clock_settime(CLOCK_MONOTONIC, &ts);
 }
 
-void GZBridge::clockCallback(const gz::msgs::Clock &clock)
+void GZBridge::opticalFlowCallback(const px4::msgs::OpticalFlow &flow)
 {
-	pthread_mutex_lock(&_node_mutex);
+	sensor_optical_flow_s msg = {};
 
-	const uint64_t time_us = (clock.sim().sec() * 1000000) + (clock.sim().nsec() / 1000);
+	msg.timestamp = hrt_absolute_time();
+	msg.timestamp_sample = flow.time_usec();
+	msg.pixel_flow[0] = flow.integrated_x();
+	msg.pixel_flow[1] = flow.integrated_y();
+	msg.quality = flow.quality();
+	msg.integration_timespan_us = flow.integration_time_us();
 
-	if (time_us > _world_time_us.load()) {
-		updateClock(clock.sim().sec(), clock.sim().nsec());
-	}
+	// Static data
+	device::Device::DeviceId id;
+	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	id.devid_s.bus = 0;
+	id.devid_s.address = 0;
+	id.devid_s.devtype = DRV_FLOW_DEVTYPE_SIM;
+	msg.device_id = id.devid;
 
-	pthread_mutex_unlock(&_node_mutex);
+	// values taken from PAW3902
+	msg.mode = sensor_optical_flow_s::MODE_LOWLIGHT;
+	msg.max_flow_rate = 7.4f;
+	msg.min_ground_distance = 0.f;
+	msg.max_ground_distance = 30.f;
+	msg.error_count = 0;
+
+	// No delta angle
+	// No distance
+	// This means that delta angle will come from vehicle gyro
+	// Distance will come from vehicle distance sensor
+
+	_optical_flow_pub.publish(msg);
 }
 
-void GZBridge::barometerCallback(const gz::msgs::FluidPressure &air_pressure)
+void GZBridge::barometerCallback(const gz::msgs::FluidPressure &msg)
 {
-	if (hrt_absolute_time() == 0) {
-		return;
-	}
+	const uint64_t timestamp = hrt_absolute_time();
 
-	pthread_mutex_lock(&_node_mutex);
+	device::Device::DeviceId id{};
+	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	id.devid_s.devtype = DRV_BARO_DEVTYPE_BAROSIM;
+	id.devid_s.bus = 1;
+	id.devid_s.address = 1;
 
-	const uint64_t time_us = (air_pressure.header().stamp().sec() * 1000000)
-				 + (air_pressure.header().stamp().nsec() / 1000);
-
-	// publish
-	sensor_baro_s sensor_baro{};
-	sensor_baro.timestamp_sample = time_us;
-	sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
-	sensor_baro.pressure = air_pressure.pressure();
-	sensor_baro.temperature = this->_temperature;
-	sensor_baro.timestamp = hrt_absolute_time();
-	_sensor_baro_pub.publish(sensor_baro);
-
-	pthread_mutex_unlock(&_node_mutex);
+	sensor_baro_s report{};
+	report.timestamp = timestamp;
+	report.timestamp_sample = timestamp;
+	report.device_id = id.devid;
+	report.pressure = msg.pressure();
+	report.temperature = this->_temperature;
+	_sensor_baro_pub.publish(report);
 }
 
 
-void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &air_speed)
+void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
 {
-	if (hrt_absolute_time() == 0) {
-		return;
-	}
+	const uint64_t timestamp = hrt_absolute_time();
 
-	pthread_mutex_lock(&_node_mutex);
-
-	const uint64_t time_us = (air_speed.header().stamp().sec() * 1000000)
-				 + (air_speed.header().stamp().nsec() / 1000);
-
-	double air_speed_value = air_speed.diff_pressure();
+	device::Device::DeviceId id{};
+	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SIM;
+	id.devid_s.bus = 1;
+	id.devid_s.address = 1;
 
 	differential_pressure_s report{};
-	report.timestamp_sample = time_us;
-	report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
-	report.differential_pressure_pa = static_cast<float>(air_speed_value); // hPa to Pa;
-	report.temperature = static_cast<float>(air_speed.temperature()) + atmosphere::kAbsoluteNullCelsius; // K to C
-	report.timestamp = hrt_absolute_time();;
+	report.timestamp = timestamp;
+	report.timestamp_sample = timestamp;
+	report.device_id = id.devid;
+	report.differential_pressure_pa = msg.diff_pressure(); // hPa to Pa;
+	report.temperature = static_cast<float>(msg.temperature()) + atmosphere::kAbsoluteNullCelsius; // K to C
 	_differential_pressure_pub.publish(report);
 
 	this->_temperature = report.temperature;
-
-	pthread_mutex_unlock(&_node_mutex);
 }
 
-void GZBridge::imuCallback(const gz::msgs::IMU &imu)
+void GZBridge::imuCallback(const gz::msgs::IMU &msg)
 {
-	if (hrt_absolute_time() == 0) {
-		return;
-	}
 
-	pthread_mutex_lock(&_node_mutex);
-
-	const uint64_t time_us = (imu.header().stamp().sec() * 1000000) + (imu.header().stamp().nsec() / 1000);
-
-	if (time_us > _world_time_us.load()) {
-		updateClock(imu.header().stamp().sec(), imu.header().stamp().nsec());
-	}
+	const uint64_t timestamp = hrt_absolute_time();
 
 	// FLU -> FRD
 	static const auto q_FLU_to_FRD = gz::math::Quaterniond(0, 1, 0, 0);
 
 	gz::math::Vector3d accel_b = q_FLU_to_FRD.RotateVector(gz::math::Vector3d(
-					     imu.linear_acceleration().x(),
-					     imu.linear_acceleration().y(),
-					     imu.linear_acceleration().z()));
+					     msg.linear_acceleration().x(),
+					     msg.linear_acceleration().y(),
+					     msg.linear_acceleration().z()));
+
+	device::Device::DeviceId id{};
+	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	id.devid_s.devtype = DRV_IMU_DEVTYPE_SIM;
+	id.devid_s.bus = 1;
+	id.devid_s.address = 1;
 
 	// publish accel
-	sensor_accel_s sensor_accel{};
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	sensor_accel.timestamp_sample = time_us;
-	sensor_accel.timestamp = time_us;
-#else
-	sensor_accel.timestamp_sample = hrt_absolute_time();
-	sensor_accel.timestamp = hrt_absolute_time();
-#endif
-	sensor_accel.device_id = 1310988; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	sensor_accel.x = accel_b.X();
-	sensor_accel.y = accel_b.Y();
-	sensor_accel.z = accel_b.Z();
-	sensor_accel.temperature = NAN;
-	sensor_accel.samples = 1;
-	_sensor_accel_pub.publish(sensor_accel);
+	sensor_accel_s accel{};
+
+	accel.timestamp_sample = timestamp;
+	accel.timestamp = timestamp;
+	accel.device_id = id.devid;
+
+	accel.x = accel_b.X();
+	accel.y = accel_b.Y();
+	accel.z = accel_b.Z();
+	accel.temperature = NAN;
+	accel.samples = 1;
+	_sensor_accel_pub.publish(accel);
 
 
 	gz::math::Vector3d gyro_b = q_FLU_to_FRD.RotateVector(gz::math::Vector3d(
-					    imu.angular_velocity().x(),
-					    imu.angular_velocity().y(),
-					    imu.angular_velocity().z()));
+					    msg.angular_velocity().x(),
+					    msg.angular_velocity().y(),
+					    msg.angular_velocity().z()));
 
 	// publish gyro
-	sensor_gyro_s sensor_gyro{};
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	sensor_gyro.timestamp_sample = time_us;
-	sensor_gyro.timestamp = time_us;
-#else
-	sensor_gyro.timestamp_sample = hrt_absolute_time();
-	sensor_gyro.timestamp = hrt_absolute_time();
-#endif
-	sensor_gyro.device_id = 1310988; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	sensor_gyro.x = gyro_b.X();
-	sensor_gyro.y = gyro_b.Y();
-	sensor_gyro.z = gyro_b.Z();
-	sensor_gyro.temperature = NAN;
-	sensor_gyro.samples = 1;
-	_sensor_gyro_pub.publish(sensor_gyro);
-
-	pthread_mutex_unlock(&_node_mutex);
+	sensor_gyro_s gyro{};
+	gyro.timestamp_sample = timestamp;
+	gyro.timestamp = timestamp;
+	gyro.device_id = id.devid;
+	gyro.x = gyro_b.X();
+	gyro.y = gyro_b.Y();
+	gyro.z = gyro_b.Z();
+	gyro.temperature = NAN;
+	gyro.samples = 1;
+	_sensor_gyro_pub.publish(gyro);
 }
 
-void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
+void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &msg)
 {
-	if (hrt_absolute_time() == 0) {
-		return;
-	}
+	const uint64_t timestamp = hrt_absolute_time();
 
-	pthread_mutex_lock(&_node_mutex);
+	for (int p = 0; p < msg.pose_size(); p++) {
+		if (msg.pose(p).name() == _model_name) {
 
-	for (int p = 0; p < pose.pose_size(); p++) {
-		if (pose.pose(p).name() == _model_name) {
+			const double dt = math::constrain((timestamp - _timestamp_prev) * 1e-6, 0.001, 0.1);
+			_timestamp_prev = timestamp;
 
-			const uint64_t time_us = (pose.header().stamp().sec() * 1000000) + (pose.header().stamp().nsec() / 1000);
-
-			if (time_us > _world_time_us.load()) {
-				updateClock(pose.header().stamp().sec(), pose.header().stamp().nsec());
-			}
-
-			const double dt = math::constrain((time_us - _timestamp_prev) * 1e-6, 0.001, 0.1);
-			_timestamp_prev = time_us;
-
-			gz::msgs::Vector3d pose_position = pose.pose(p).position();
-			gz::msgs::Quaternion pose_orientation = pose.pose(p).orientation();
+			gz::msgs::Vector3d pose_position = msg.pose(p).position();
+			gz::msgs::Quaternion pose_orientation = msg.pose(p).orientation();
 
 			// ground truth
 			gz::math::Quaterniond q_gr = gz::math::Quaterniond(
@@ -590,39 +328,27 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 
 			// publish attitude groundtruth
 			vehicle_attitude_s vehicle_attitude_groundtruth{};
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-			vehicle_attitude_groundtruth.timestamp_sample = time_us;
-#else
-			vehicle_attitude_groundtruth.timestamp_sample = hrt_absolute_time();
-#endif
+			vehicle_attitude_groundtruth.timestamp_sample = timestamp;
 			vehicle_attitude_groundtruth.q[0] = q_nb.W();
 			vehicle_attitude_groundtruth.q[1] = q_nb.X();
 			vehicle_attitude_groundtruth.q[2] = q_nb.Y();
 			vehicle_attitude_groundtruth.q[3] = q_nb.Z();
-			vehicle_attitude_groundtruth.timestamp = hrt_absolute_time();
+			vehicle_attitude_groundtruth.timestamp = timestamp;
 			_attitude_ground_truth_pub.publish(vehicle_attitude_groundtruth);
 
 			// publish angular velocity groundtruth
 			const matrix::Eulerf euler{matrix::Quatf(vehicle_attitude_groundtruth.q)};
 			vehicle_angular_velocity_s vehicle_angular_velocity_groundtruth{};
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-			vehicle_angular_velocity_groundtruth.timestamp_sample = time_us;
-#else
-			vehicle_angular_velocity_groundtruth.timestamp_sample = hrt_absolute_time();
-#endif
+			vehicle_angular_velocity_groundtruth.timestamp_sample = timestamp;
 			const matrix::Vector3f angular_velocity = (euler - _euler_prev) / dt;
 			_euler_prev = euler;
 			angular_velocity.copyTo(vehicle_angular_velocity_groundtruth.xyz);
 
-			vehicle_angular_velocity_groundtruth.timestamp = hrt_absolute_time();
+			vehicle_angular_velocity_groundtruth.timestamp = timestamp;
 			_angular_velocity_ground_truth_pub.publish(vehicle_angular_velocity_groundtruth);
 
 			vehicle_local_position_s local_position_groundtruth{};
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-			local_position_groundtruth.timestamp_sample = time_us;
-#else
-			local_position_groundtruth.timestamp_sample = hrt_absolute_time();
-#endif
+			local_position_groundtruth.timestamp_sample = timestamp;
 			// position ENU -> NED
 			const matrix::Vector3d position{pose_position.y(), pose_position.x(), -pose_position.z()};
 			const matrix::Vector3d velocity{(position - _position_prev) / dt};
@@ -661,48 +387,29 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 				local_position_groundtruth.z_global = false;
 			}
 
-			local_position_groundtruth.timestamp = hrt_absolute_time();
+			local_position_groundtruth.timestamp = timestamp;
 			_lpos_ground_truth_pub.publish(local_position_groundtruth);
-
-			pthread_mutex_unlock(&_node_mutex);
 			return;
 		}
 	}
-
-	pthread_mutex_unlock(&_node_mutex);
 }
 
-void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &odometry)
+void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &msg)
 {
-	if (hrt_absolute_time() == 0) {
-		return;
-	}
+	const uint64_t timestamp = hrt_absolute_time();
 
-	pthread_mutex_lock(&_node_mutex);
-
-	const uint64_t time_us = (odometry.header().stamp().sec() * 1000000) + (odometry.header().stamp().nsec() / 1000);
-
-	if (time_us > _world_time_us.load()) {
-		updateClock(odometry.header().stamp().sec(), odometry.header().stamp().nsec());
-	}
-
-	vehicle_odometry_s odom{};
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	odom.timestamp_sample = time_us;
-	odom.timestamp = time_us;
-#else
-	odom.timestamp_sample = hrt_absolute_time();
-	odom.timestamp = hrt_absolute_time();
-#endif
+	vehicle_odometry_s report{};
+	report.timestamp_sample = timestamp;
+	report.timestamp = timestamp;
 
 	// gz odometry position is in ENU frame and needs to be converted to NED
-	odom.pose_frame = vehicle_odometry_s::POSE_FRAME_NED;
-	odom.position[0] = odometry.pose_with_covariance().pose().position().y();
-	odom.position[1] = odometry.pose_with_covariance().pose().position().x();
-	odom.position[2] = -odometry.pose_with_covariance().pose().position().z();
+	report.pose_frame = vehicle_odometry_s::POSE_FRAME_NED;
+	report.position[0] = msg.pose_with_covariance().pose().position().y();
+	report.position[1] = msg.pose_with_covariance().pose().position().x();
+	report.position[2] = -msg.pose_with_covariance().pose().position().z();
 
 	// gz odometry orientation is "body FLU->ENU" and needs to be converted in "body FRD->NED"
-	gz::msgs::Quaternion pose_orientation = odometry.pose_with_covariance().pose().orientation();
+	gz::msgs::Quaternion pose_orientation = msg.pose_with_covariance().pose().orientation();
 	gz::math::Quaterniond q_gr = gz::math::Quaterniond(
 					     pose_orientation.w(),
 					     pose_orientation.x(),
@@ -710,101 +417,214 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &odometry
 					     pose_orientation.z());
 	gz::math::Quaterniond q_nb;
 	GZBridge::rotateQuaternion(q_nb, q_gr);
-	odom.q[0] = q_nb.W();
-	odom.q[1] = q_nb.X();
-	odom.q[2] = q_nb.Y();
-	odom.q[3] = q_nb.Z();
+	report.q[0] = q_nb.W();
+	report.q[1] = q_nb.X();
+	report.q[2] = q_nb.Y();
+	report.q[3] = q_nb.Z();
 
 	// gz odometry linear velocity is in body FLU and needs to be converted in body FRD
-	odom.velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_BODY_FRD;
-	odom.velocity[0] = odometry.twist_with_covariance().twist().linear().x();
-	odom.velocity[1] = -odometry.twist_with_covariance().twist().linear().y();
-	odom.velocity[2] = -odometry.twist_with_covariance().twist().linear().z();
+	report.velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_BODY_FRD;
+	report.velocity[0] = msg.twist_with_covariance().twist().linear().x();
+	report.velocity[1] = -msg.twist_with_covariance().twist().linear().y();
+	report.velocity[2] = -msg.twist_with_covariance().twist().linear().z();
 
 	// gz odometry angular velocity is in body FLU and need to be converted in body FRD
-	odom.angular_velocity[0] = odometry.twist_with_covariance().twist().angular().x();
-	odom.angular_velocity[1] = -odometry.twist_with_covariance().twist().angular().y();
-	odom.angular_velocity[2] = -odometry.twist_with_covariance().twist().angular().z();
+	report.angular_velocity[0] = msg.twist_with_covariance().twist().angular().x();
+	report.angular_velocity[1] = -msg.twist_with_covariance().twist().angular().y();
+	report.angular_velocity[2] = -msg.twist_with_covariance().twist().angular().z();
 
 	// VISION_POSITION_ESTIMATE covariance
 	//  pose 6x6 cross-covariance matrix
 	//  (states: x, y, z, roll, pitch, yaw).
 	//  If unknown, assign NaN value to first element in the array.
-	odom.position_variance[0] = odometry.pose_with_covariance().covariance().data(7);  // Y  row 1, col 1
-	odom.position_variance[1] = odometry.pose_with_covariance().covariance().data(0);  // X  row 0, col 0
-	odom.position_variance[2] = odometry.pose_with_covariance().covariance().data(14); // Z  row 2, col 2
+	report.position_variance[0] = msg.pose_with_covariance().covariance().data(7);  // Y  row 1, col 1
+	report.position_variance[1] = msg.pose_with_covariance().covariance().data(0);  // X  row 0, col 0
+	report.position_variance[2] = msg.pose_with_covariance().covariance().data(14); // Z  row 2, col 2
 
-	odom.orientation_variance[0] = odometry.pose_with_covariance().covariance().data(21); // R  row 3, col 3
-	odom.orientation_variance[1] = odometry.pose_with_covariance().covariance().data(28); // P  row 4, col 4
-	odom.orientation_variance[2] = odometry.pose_with_covariance().covariance().data(35); // Y  row 5, col 5
+	report.orientation_variance[0] = msg.pose_with_covariance().covariance().data(21); // R  row 3, col 3
+	report.orientation_variance[1] = msg.pose_with_covariance().covariance().data(28); // P  row 4, col 4
+	report.orientation_variance[2] = msg.pose_with_covariance().covariance().data(35); // Y  row 5, col 5
 
-	odom.velocity_variance[0] = odometry.twist_with_covariance().covariance().data(7);  // Y  row 1, col 1
-	odom.velocity_variance[1] = odometry.twist_with_covariance().covariance().data(0);  // X  row 0, col 0
-	odom.velocity_variance[2] = odometry.twist_with_covariance().covariance().data(14); // Z  row 2, col 2
+	report.velocity_variance[0] = msg.twist_with_covariance().covariance().data(7);  // Y  row 1, col 1
+	report.velocity_variance[1] = msg.twist_with_covariance().covariance().data(0);  // X  row 0, col 0
+	report.velocity_variance[2] = msg.twist_with_covariance().covariance().data(14); // Z  row 2, col 2
 
-	// odom.reset_counter = vpe.reset_counter;
-	_visual_odometry_pub.publish(odom);
-
-	pthread_mutex_unlock(&_node_mutex);
+	// report.reset_counter = vpe.reset_counter;
+	_visual_odometry_pub.publish(report);
 }
 
-void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
+static float generate_wgn()
 {
-	if (hrt_absolute_time() == 0) {
-		return;
+	// generate white Gaussian noise sample with std=1
+
+	// algorithm 1:
+	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
+	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
+	// algorithm 2: from BlockRandGauss.hpp
+	static float V1, V2, S;
+	static bool phase = true;
+	float X;
+
+	if (phase) {
+		do {
+			float U1 = (float)rand() / (float)RAND_MAX;
+			float U2 = (float)rand() / (float)RAND_MAX;
+			V1 = 2.0f * U1 - 1.0f;
+			V2 = 2.0f * U2 - 1.0f;
+			S = V1 * V1 + V2 * V2;
+		} while (S >= 1.0f || fabsf(S) < 1e-8f);
+
+		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
+
+	} else {
+		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
 	}
 
-	pthread_mutex_lock(&_node_mutex);
+	phase = !phase;
+	return X;
+}
 
-	const uint64_t time_us = (nav_sat.header().stamp().sec() * 1000000) + (nav_sat.header().stamp().nsec() / 1000);
+void GZBridge::addRealisticGpsNoise(double &latitude, double &longitude, double &altitude,
+				    float &vel_north, float &vel_east, float &vel_down)
+{
+	_gps_pos_noise_n = _pos_markov_time * _gps_pos_noise_n +
+			   _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+			   0.02f * _gps_pos_noise_n;
 
-	if (time_us > _world_time_us.load()) {
-		updateClock(nav_sat.header().stamp().sec(), nav_sat.header().stamp().nsec());
-	}
+	_gps_pos_noise_e = _pos_markov_time * _gps_pos_noise_e +
+			   _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+			   0.02f * _gps_pos_noise_e;
+
+	_gps_pos_noise_d = _pos_markov_time * _gps_pos_noise_d +
+			   _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f -
+			   0.02f * _gps_pos_noise_d;
+
+	latitude += math::degrees((double)_gps_pos_noise_n / CONSTANTS_RADIUS_OF_EARTH);
+	longitude += math::degrees((double)_gps_pos_noise_e / CONSTANTS_RADIUS_OF_EARTH);
+	altitude += (double)_gps_pos_noise_d;
+
+	_gps_vel_noise_n = _vel_markov_time * _gps_vel_noise_n +
+			   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+
+	_gps_vel_noise_e = _vel_markov_time * _gps_vel_noise_e +
+			   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+
+	_gps_vel_noise_d = _vel_markov_time * _gps_vel_noise_d +
+			   _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
+
+	vel_north += _gps_vel_noise_n;
+	vel_east += _gps_vel_noise_e;
+	vel_down += _gps_vel_noise_d;
+}
+
+void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
+{
+	const uint64_t timestamp = hrt_absolute_time();
 
 	// initialize gps position
 	if (!_pos_ref.isInitialized()) {
-		_pos_ref.initReference(nav_sat.latitude_deg(), nav_sat.longitude_deg(), hrt_absolute_time());
-		_alt_ref = nav_sat.altitude();
-
-	} else {
-		// publish GPS groundtruth
-		vehicle_global_position_s global_position_groundtruth{};
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-		global_position_groundtruth.timestamp_sample = time_us;
-#else
-		global_position_groundtruth.timestamp_sample = hrt_absolute_time();
-#endif
-		global_position_groundtruth.lat = nav_sat.latitude_deg();
-		global_position_groundtruth.lon = nav_sat.longitude_deg();
-		global_position_groundtruth.alt = nav_sat.altitude();
-		_gpos_ground_truth_pub.publish(global_position_groundtruth);
-	}
-
-	pthread_mutex_unlock(&_node_mutex);
-}
-void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
-{
-	if (hrt_absolute_time() == 0) {
+		_pos_ref.initReference(msg.latitude_deg(), msg.longitude_deg(), timestamp);
+		_alt_ref = msg.altitude();
 		return;
 	}
 
-	distance_sensor_s distance_sensor{};
-	distance_sensor.timestamp = hrt_absolute_time();
-	device::Device::DeviceId id;
-	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-	id.devid_s.bus = 0;
-	id.devid_s.address = 0;
-	id.devid_s.devtype = DRV_DIST_DEVTYPE_SIM;
-	distance_sensor.device_id = id.devid;
-	distance_sensor.min_distance = static_cast<float>(scan.range_min());
-	distance_sensor.max_distance = static_cast<float>(scan.range_max());
-	distance_sensor.current_distance = static_cast<float>(scan.ranges()[0]);
-	distance_sensor.variance = 0.0f;
-	distance_sensor.signal_quality = -1;
-	distance_sensor.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	double latitude = msg.latitude_deg();
+	double longitude = msg.longitude_deg();
+	double altitude = msg.altitude();
+	float vel_north = msg.velocity_north();
+	float vel_east = msg.velocity_east();
+	float vel_down = -msg.velocity_up();
 
-	gz::msgs::Quaternion pose_orientation = scan.world_pose().orientation();
+	vehicle_global_position_s gps_truth{};
+
+	// Publish GPS groundtruth
+	gps_truth.timestamp = timestamp;
+	gps_truth.timestamp_sample = timestamp;
+	gps_truth.lat = latitude;
+	gps_truth.lon = longitude;
+	gps_truth.alt = altitude;
+	_gpos_ground_truth_pub.publish(gps_truth);
+
+	// Apply noise model (based on ublox F9P)
+	addRealisticGpsNoise(latitude, longitude, altitude, vel_north, vel_east, vel_down);
+
+	// Device ID
+	device::Device::DeviceId id{};
+	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+	id.devid_s.bus = 1;
+	id.devid_s.address = 1;
+
+	sensor_gps_s sensor_gps{};
+
+	if (_sim_gps_used.get() >= 4) {
+		// fix
+		sensor_gps.fix_type = 3; // 3D fix
+		sensor_gps.s_variance_m_s = 0.4f;
+		sensor_gps.c_variance_rad = 0.1f;
+		sensor_gps.eph = 0.9f;
+		sensor_gps.epv = 1.78f;
+		sensor_gps.hdop = 0.7f;
+		sensor_gps.vdop = 1.1f;
+
+	} else {
+		// no fix
+		sensor_gps.fix_type = 0; // No fix
+		sensor_gps.s_variance_m_s = 100.f;
+		sensor_gps.c_variance_rad = 100.f;
+		sensor_gps.eph = 100.f;
+		sensor_gps.epv = 100.f;
+		sensor_gps.hdop = 100.f;
+		sensor_gps.vdop = 100.f;
+	}
+
+	sensor_gps.timestamp = timestamp;
+	sensor_gps.timestamp_sample = timestamp;
+	sensor_gps.time_utc_usec = 0;
+	sensor_gps.device_id = id.devid;
+	sensor_gps.latitude_deg = latitude;
+	sensor_gps.longitude_deg = longitude;
+	sensor_gps.altitude_msl_m = altitude;
+	sensor_gps.altitude_ellipsoid_m = altitude;
+	sensor_gps.noise_per_ms = 0;
+	sensor_gps.jamming_indicator = 0;
+	sensor_gps.vel_m_s = sqrtf(vel_north * vel_north + vel_east * vel_east);
+	sensor_gps.vel_n_m_s = vel_north;
+	sensor_gps.vel_e_m_s = vel_east;
+	sensor_gps.vel_d_m_s = vel_down;
+	sensor_gps.cog_rad = atan2(vel_east, vel_north);
+	sensor_gps.timestamp_time_relative = 0;
+	sensor_gps.heading = NAN;
+	sensor_gps.heading_offset = NAN;
+	sensor_gps.heading_accuracy = 0;
+	sensor_gps.automatic_gain_control = 0;
+	sensor_gps.jamming_state = 0;
+	sensor_gps.spoofing_state = 0;
+	sensor_gps.vel_ned_valid = true;
+	sensor_gps.satellites_used = _sim_gps_used.get();
+
+	_sensor_gps_pub.publish(sensor_gps);
+}
+
+void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
+{
+	device::Device::DeviceId id{};
+	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	id.devid_s.devtype = DRV_DIST_DEVTYPE_SIM;
+	id.devid_s.bus = 1;
+	id.devid_s.address = 1;
+
+	distance_sensor_s report{};
+	report.timestamp = hrt_absolute_time();
+	report.device_id = id.devid;
+	report.min_distance = static_cast<float>(msg.range_min());
+	report.max_distance = static_cast<float>(msg.range_max());
+	report.current_distance = static_cast<float>(msg.ranges()[0]);
+	report.variance = 0.0f;
+	report.signal_quality = -1;
+	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+
+	gz::msgs::Quaternion pose_orientation = msg.world_pose().orientation();
 	gz::math::Quaterniond q_sensor = gz::math::Quaterniond(
 			pose_orientation.w(),
 			pose_orientation.x(),
@@ -818,34 +638,34 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
 	const gz::math::Quaterniond q_down(0, 1, 0, 0);
 
 	if (q_sensor.Equal(q_front, 0.03)) {
-		distance_sensor.orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
+		report.orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
 
 	} else if (q_sensor.Equal(q_down, 0.03)) {
-		distance_sensor.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+		report.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
 	} else if (q_sensor.Equal(q_left, 0.03)) {
-		distance_sensor.orientation = distance_sensor_s::ROTATION_LEFT_FACING;
+		report.orientation = distance_sensor_s::ROTATION_LEFT_FACING;
 
 	} else {
-		distance_sensor.orientation = distance_sensor_s::ROTATION_CUSTOM;
-		distance_sensor.q[0] = q_sensor.W();
-		distance_sensor.q[1] = q_sensor.X();
-		distance_sensor.q[2] = q_sensor.Y();
-		distance_sensor.q[3] = q_sensor.Z();
+		report.orientation = distance_sensor_s::ROTATION_CUSTOM;
+		report.q[0] = q_sensor.W();
+		report.q[1] = q_sensor.X();
+		report.q[2] = q_sensor.Y();
+		report.q[3] = q_sensor.Z();
 	}
 
-	_distance_sensor_pub.publish(distance_sensor);
+	_distance_sensor_pub.publish(report);
 }
 
-void GZBridge::laserScanCallback(const gz::msgs::LaserScan &scan)
+void GZBridge::laserScanCallback(const gz::msgs::LaserScan &msg)
 {
 	static constexpr int SECTOR_SIZE_DEG = 5; // PX4 Collision Prevention uses 5 degree sectors
 
-	double angle_min_deg = scan.angle_min() * 180 / M_PI;
-	double angle_step_deg = scan.angle_step() * 180 / M_PI;
+	double angle_min_deg = msg.angle_min() * 180 / M_PI;
+	double angle_step_deg = msg.angle_step() * 180 / M_PI;
 
 	int samples_per_sector = std::round(SECTOR_SIZE_DEG / angle_step_deg);
-	int number_of_sectors = scan.ranges_size() / samples_per_sector;
+	int number_of_sectors = msg.ranges_size() / samples_per_sector;
 
 	std::vector<double> ds_array(number_of_sectors, UINT16_MAX);
 
@@ -858,7 +678,7 @@ void GZBridge::laserScanCallback(const gz::msgs::LaserScan &scan)
 
 		for (int j = 0; j < samples_per_sector; j++) {
 
-			double distance = scan.ranges()[i * samples_per_sector + j];
+			double distance = msg.ranges()[i * samples_per_sector + j];
 
 			// inf values mean no object
 			if (isinf(distance)) {
@@ -871,7 +691,7 @@ void GZBridge::laserScanCallback(const gz::msgs::LaserScan &scan)
 
 		// If all samples in a sector are inf then it means the sector is clear
 		if (samples_used_in_sector == 0) {
-			ds_array[i] = scan.range_max();
+			ds_array[i] = msg.range_max();
 
 		} else {
 			ds_array[i] = sum / samples_used_in_sector;
@@ -879,20 +699,20 @@ void GZBridge::laserScanCallback(const gz::msgs::LaserScan &scan)
 	}
 
 	// Publish to uORB
-	obstacle_distance_s obs {};
+	obstacle_distance_s report {};
 
 	// Initialize unknown
-	for (auto &i : obs.distances) {
+	for (auto &i : report.distances) {
 		i = UINT16_MAX;
 	}
 
-	obs.timestamp = hrt_absolute_time();
-	obs.frame = obstacle_distance_s::MAV_FRAME_BODY_FRD;
-	obs.sensor_type = obstacle_distance_s::MAV_DISTANCE_SENSOR_LASER;
-	obs.min_distance = static_cast<uint16_t>(scan.range_min() * 100.);
-	obs.max_distance = static_cast<uint16_t>(scan.range_max() * 100.);
-	obs.angle_offset = static_cast<float>(angle_min_deg);
-	obs.increment = static_cast<float>(SECTOR_SIZE_DEG);
+	report.timestamp = hrt_absolute_time();
+	report.frame = obstacle_distance_s::MAV_FRAME_BODY_FRD;
+	report.sensor_type = obstacle_distance_s::MAV_DISTANCE_SENSOR_LASER;
+	report.min_distance = static_cast<uint16_t>(msg.range_min() * 100.);
+	report.max_distance = static_cast<uint16_t>(msg.range_max() * 100.);
+	report.angle_offset = static_cast<float>(angle_min_deg);
+	report.increment = static_cast<float>(SECTOR_SIZE_DEG);
 
 	// Map samples in FOV into sectors in ObstacleDistance
 	int index = 0;
@@ -902,130 +722,21 @@ void GZBridge::laserScanCallback(const gz::msgs::LaserScan &scan)
 
 		uint16_t distance_cm = (*i) * 100.;
 
-		if (distance_cm >= obs.max_distance) {
-			obs.distances[index] = obs.max_distance + 1;
+		if (distance_cm >= report.max_distance) {
+			report.distances[index] = report.max_distance + 1;
 
-		} else if (distance_cm < obs.min_distance) {
-			obs.distances[index] = 0;
+		} else if (distance_cm < report.min_distance) {
+			report.distances[index] = 0;
 
 		} else {
-			obs.distances[index] = distance_cm;
+			report.distances[index] = distance_cm;
 		}
 
 		index++;
 	}
 
-	_obstacle_distance_pub.publish(obs);
+	_obstacle_distance_pub.publish(report);
 }
-
-bool GZBridge::callEntityFactoryService(const std::string &service, const gz::msgs::EntityFactory &req)
-{
-	bool result;
-	gz::msgs::Boolean rep;
-
-	if (_node.Request(service, req, 1000, rep, result)) {
-		if (!rep.data() || !result) {
-			PX4_ERR("EntityFactory service call failed.");
-			return false;
-		}
-
-	} else {
-		PX4_WARN("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
-		return false;
-	}
-
-	return true;
-}
-
-bool GZBridge::callSceneInfoMsgService(const std::string &service)
-{
-	bool result;
-	gz::msgs::Empty req;
-	gz::msgs::Scene rep;
-
-	if (_node.Request(service, req, 3000, rep, result)) {
-		if (!result) {
-			PX4_ERR("Scene Info service call failed.");
-			return false;
-
-		} else {
-			return true;
-		}
-
-	} else {
-		PX4_WARN("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
-		return false;
-	}
-
-	return true;
-}
-
-bool GZBridge::callPhysicsMsgService(const std::string &service, const gz::msgs::Physics &req)
-{
-	bool result;
-	gz::msgs::Boolean rep;
-
-	if (_node.Request(service, req, 5000, rep, result)) {
-		if (!result) {
-			PX4_ERR("Physics service call failed.");
-			return false;
-
-		} else {
-			return true;
-		}
-
-	} else {
-		PX4_ERR("Physics Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
-		return false;
-	}
-
-	return true;
-}
-
-bool GZBridge::callStringMsgService(const std::string &service, const gz::msgs::StringMsg &req)
-{
-	bool result;
-
-	gz::msgs::Boolean rep;
-
-	if (_node.Request(service, req, 3000, rep, result)) {
-		if (!rep.data() || !result) {
-			PX4_ERR("String service call failed");
-			return false;
-
-		}
-	}
-
-	else {
-		PX4_WARN("Service call timed out: %s", service.c_str());
-		return false;
-	}
-
-	return true;
-}
-
-bool GZBridge::callVector3dService(const std::string &service, const gz::msgs::Vector3d &req)
-{
-	bool result;
-
-	gz::msgs::Boolean rep;
-
-	if (_node.Request(service, req, 3000, rep, result)) {
-		if (!rep.data() || !result) {
-			PX4_ERR("String service call failed");
-			return false;
-
-		}
-	}
-
-	else {
-		PX4_WARN("Service call timed out: %s", service.c_str());
-		return false;
-	}
-
-	return true;
-}
-
 
 void GZBridge::rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU)
 {
@@ -1059,8 +770,6 @@ void GZBridge::Run()
 		return;
 	}
 
-	pthread_mutex_lock(&_node_mutex);
-
 	if (_parameter_update_sub.updated()) {
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
@@ -1074,8 +783,53 @@ void GZBridge::Run()
 	}
 
 	ScheduleDelayed(10_ms);
+}
 
-	pthread_mutex_unlock(&_node_mutex);
+int GZBridge::task_spawn(int argc, char *argv[])
+{
+	std::string world_name;
+	std::string model_name;
+
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "w:n:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'w':
+			world_name = myoptarg;
+			break;
+
+		case 'n':
+			model_name = myoptarg;
+			break;
+
+		default:
+			print_usage();
+			return PX4_ERROR;
+		}
+	}
+
+	PX4_INFO("world: %s, model: %s", world_name.c_str(), model_name.c_str());
+
+	GZBridge *instance = new GZBridge(world_name, model_name);
+
+	if (!instance) {
+		PX4_ERR("alloc failed");
+		return PX4_ERROR;
+	}
+
+	_object.store(instance);
+	_task_id = task_id_is_work_queue;
+
+	if (instance->init() != PX4_OK) {
+		delete instance;
+		_object.store(nullptr);
+		_task_id = -1;
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
 }
 
 int GZBridge::print_status()
@@ -1111,11 +865,8 @@ int GZBridge::print_usage(const char *reason)
 
 	PRINT_MODULE_USAGE_NAME("gz_bridge", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAM_STRING('m', nullptr, nullptr, "Fuel model name", false);
-	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, nullptr, "Model Pose", false);
-	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Model name", false);
-	PRINT_MODULE_USAGE_PARAM_STRING('i', nullptr, nullptr, "PX4 instance", false);
 	PRINT_MODULE_USAGE_PARAM_STRING('w', nullptr, nullptr, "World name", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Model name", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

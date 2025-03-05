@@ -39,7 +39,7 @@
 using namespace time_literals;
 
 using battery_fault_reason_t = events::px4::enums::battery_fault_reason_t;
-static_assert(battery_status_s::BATTERY_FAULT_COUNT == (static_cast<uint8_t>(battery_fault_reason_t::_max) + 1)
+static_assert(battery_status_s::FAULT_COUNT == (static_cast<uint8_t>(battery_fault_reason_t::_max) + 1)
 	      , "Battery fault flags mismatch!");
 
 static constexpr const char *battery_fault_reason_str(battery_fault_reason_t battery_fault_reason)
@@ -78,7 +78,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 		// Reset related failsafe flags otherwise failures from before disabling the check cause failsafes without reported reason
 		reporter.failsafeFlags().battery_unhealthy = false;
 		reporter.failsafeFlags().battery_low_remaining_time = false;
-		reporter.failsafeFlags().battery_warning = battery_status_s::BATTERY_WARNING_NONE;
+		reporter.failsafeFlags().battery_warning = battery_status_s::WARNING_NONE;
 		return;
 	}
 
@@ -86,7 +86,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 	// There are possibly multiple batteries, and we can't know which ones serve which purpose. So the safest
 	// option is to check if ANY of them have a warning, and specifically find which one has the most
 	// urgent warning.
-	uint8_t worst_warning = battery_status_s::BATTERY_WARNING_NONE;
+	uint8_t worst_warning = battery_status_s::WARNING_NONE;
 	float worst_battery_remaining = 1.f;
 	// To make sure that all connected batteries are being regularly reported, we check which one has the
 	// oldest timestamp.
@@ -132,7 +132,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 			}
 
 			// trigger a battery failsafe action if a battery disconnects in flight
-			worst_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+			worst_warning = battery_status_s::WARNING_CRITICAL;
 		}
 
 		if (battery.connected) {
@@ -195,13 +195,13 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.failsafeFlags().battery_warning = worst_warning;
 	}
 
-	const bool battery_warning = reporter.failsafeFlags().battery_warning > battery_status_s::BATTERY_WARNING_NONE
-				     && reporter.failsafeFlags().battery_warning < battery_status_s::BATTERY_WARNING_FAILED;
+	const bool battery_warning = reporter.failsafeFlags().battery_warning > battery_status_s::WARNING_NONE
+				     && reporter.failsafeFlags().battery_warning < battery_status_s::WARNING_FAILED;
 	const bool configured_arm_threshold_in_use = !context.isArmed() && (_param_com_arm_bat_min.get() >= -FLT_EPSILON);
 	const bool below_configured_arm_threshold = (worst_battery_remaining < _param_com_arm_bat_min.get());
 
 	if (battery_warning || (configured_arm_threshold_in_use && below_configured_arm_threshold)) {
-		const bool critical_or_higher = reporter.failsafeFlags().battery_warning >= battery_status_s::BATTERY_WARNING_CRITICAL;
+		const bool critical_or_higher = reporter.failsafeFlags().battery_warning >= battery_status_s::WARNING_CRITICAL;
 		NavModes affected_modes = (!configured_arm_threshold_in_use && critical_or_higher)
 					  || (configured_arm_threshold_in_use && below_configured_arm_threshold) ? NavModes::All : NavModes::None;
 		events::LogLevel log_level = critical_or_higher || below_configured_arm_threshold
@@ -209,7 +209,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 
 		switch (reporter.failsafeFlags().battery_warning) {
 		default:
-		case battery_status_s::BATTERY_WARNING_LOW:
+		case battery_status_s::WARNING_LOW:
 			/* EVENT
 			* @description
 			* The lowest battery state of charge is below the low threshold.
@@ -227,7 +227,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 
 			break;
 
-		case battery_status_s::BATTERY_WARNING_CRITICAL:
+		case battery_status_s::WARNING_CRITICAL:
 			/* EVENT
 			* @description
 			* The lowest battery state of charge is below the critical threshold.
@@ -245,7 +245,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 
 			break;
 
-		case battery_status_s::BATTERY_WARNING_EMERGENCY:
+		case battery_status_s::WARNING_EMERGENCY:
 			/* EVENT
 			* @description
 			* The lowest battery state of charge is below the emergency threshold.
@@ -275,7 +275,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 		|| is_required_battery_missing
 		// No currently-connected batteries have any fault
 		|| battery_has_fault
-		|| reporter.failsafeFlags().battery_warning == battery_status_s::BATTERY_WARNING_FAILED;
+		|| reporter.failsafeFlags().battery_warning == battery_status_s::WARNING_FAILED;
 
 	if (reporter.failsafeFlags().battery_unhealthy
 	    && !is_required_battery_missing && !battery_has_fault) { // missing batteries and faults are reported above already
