@@ -79,10 +79,14 @@
 #include <gz/msgs/laserscan.pb.h>
 #include <gz/msgs/stringmsg.pb.h>
 #include <gz/msgs/scene.pb.h>
+#include <gz/msgs/wind.pb.h>
 // Custom PX4 proto
 #include <opticalflow.pb.h>
 
 using namespace time_literals;
+
+static constexpr float LAPSE_RATE = 0.0065; // reduction in temperature with altitude for troposphere [K/m]
+static constexpr float AIR_DENSITY_MSL = 1.225; // air density at MSL [kg/m^3]
 
 class GZBridge : public ModuleBase<GZBridge>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -119,8 +123,11 @@ private:
 	void laserScanCallback(const gz::msgs::LaserScan &msg);
 	void opticalFlowCallback(const px4::msgs::OpticalFlow &msg);
 	void magnetometerCallback(const gz::msgs::Magnetometer &msg);
+	void windCallback(const gz::msgs::Wind &wind);
 
 	static void rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU);
+	// generate white Gaussian noise sample with std=1
+	static float generate_wgn();
 
 	void addGpsNoise(double &latitude, double &longitude, double &altitude,
 			 float &vel_north, float &vel_east, float &vel_down);
@@ -151,6 +158,7 @@ private:
 
 	MapProjection _pos_ref{};
 	double _alt_ref{};
+	float _alt_amsl{};
 
 	matrix::Vector3d _position_prev{};
 	matrix::Vector3d _velocity_prev{};
@@ -163,6 +171,9 @@ private:
 	float _temperature{288.15};  // 15 degrees
 
 	gz::transport::Node _node;
+
+	// For wind triangle calculation
+	matrix::Vector3d _wind_velocity{};
 
 	// GPS noise model
 	float _gps_pos_noise_n = 0.0f;

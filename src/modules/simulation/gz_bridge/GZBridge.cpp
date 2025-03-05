@@ -152,6 +152,14 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	// Wind: /world/$WORLD/wind_info
+	std::string wind_topic = "/world/" + _world_name + "/wind_info";
+
+	if (!_node.Subscribe(wind_topic, &GZBridge::windCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", wind_topic.c_str());
+		return PX4_ERROR;
+	}
+
 	if (!_mixing_interface_esc.init(_model_name)) {
 		PX4_ERR("failed to init ESC output");
 		return PX4_ERROR;
@@ -422,6 +430,33 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &msg)
 
 			local_position_groundtruth.timestamp = timestamp;
 			_lpos_ground_truth_pub.publish(local_position_groundtruth);
+
+			// calculate the differential pressure
+			const float temperature_local = _temperature - LAPSE_RATE * _alt_amsl;
+			const float density_ratio = powf(_temperature / temperature_local, 4.256f);
+			const float air_density = AIR_DENSITY_MSL / density_ratio;
+			// calculate differential pressure + noise in hPa
+			const float diff_pressure_noise = generate_wgn() * 0.01f;
+			float diff_pressure;
+			// determine if the wind information is available
+			if (_wind_velocity.norm() > 0.001d) {
+				matrix::Vector3d Va_vec = velocity - _wind_velocity;  // calculate true airspeed by wind triangle
+				float Va = Va_vec.norm();
+				diff_pressure = matrix::sign(Va) * 0.005f * air_density  * Va * Va + diff_pressure_noise;
+			}
+			else {
+				matrix::Vector3f body_velocity = matrix::Dcmf(matrix::Quatf(vehicle_attitude_groundtruth.q)).transpose() * static_cast<matrix::Vector3f>(velocity);
+				diff_pressure = matrix::sign(body_velocity(0)) * 0.005f * air_density  * body_velocity(0) * body_velocity(0) + diff_pressure_noise;
+			}
+
+			// publish differential pressure
+			differential_pressure_s differential_pressure{};
+			differential_pressure.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
+			differential_pressure.differential_pressure_pa = (double)diff_pressure * 100.0; // hPa to Pa;
+			differential_pressure.temperature = temperature_local;
+			differential_pressure.timestamp = timestamp;
+			_differential_pressure_pub.publish(differential_pressure);
+
 			return;
 		}
 	}
@@ -486,7 +521,7 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &msg)
 	_visual_odometry_pub.publish(report);
 }
 
-static float generate_wgn()
+float GZBridge::generate_wgn()
 {
 	// generate white Gaussian noise sample with std=1
 
@@ -577,6 +612,7 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 	gps_truth.lon = longitude;
 	gps_truth.alt = altitude;
 	_gpos_ground_truth_pub.publish(gps_truth);
+	_alt_amsl = altitude;
 
 	// Apply noise model (based on ublox F9P)
 	addGpsNoise(latitude, longitude, altitude, vel_north, vel_east, vel_down);
@@ -769,6 +805,14 @@ void GZBridge::laserScanCallback(const gz::msgs::LaserScan &msg)
 	}
 
 	_obstacle_distance_pub.publish(report);
+}
+
+void GZBridge::windCallback(const gz::msgs::Wind &wind_gz)
+{
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
+	_wind_velocity = matrix::Vector3d{wind_gz.linear_velocity().y(), wind_gz.linear_velocity().x(), -wind_gz.linear_velocity().z()};
 }
 
 void GZBridge::rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU)
