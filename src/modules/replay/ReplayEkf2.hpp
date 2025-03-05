@@ -77,7 +77,7 @@ private:
 
 	/**
 	 * find the next message for a subscription that matches a given timestamp and publish it
-	 * @param timestamp in 0.1 ms
+	 * @param timestamp in microseconds
 	 * @param msg_id
 	 * @param replay_file file currently replayed (file seek position should be considered arbitrary after this call)
 	 * @return true if timestamp found and published
