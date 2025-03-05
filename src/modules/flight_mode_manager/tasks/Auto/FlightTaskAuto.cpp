@@ -253,9 +253,15 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		// Stick full up -1 -> stop, stick full down 1 -> double the speed
 		vertical_speed *= (1 - _sticks.getThrottleZeroCenteredExpo());
 
+		Vector2f sticks_xy = _sticks.getPitchRollExpo();
+
+		if (sticks_xy.longerThan(FLT_EPSILON)) {
+			// Ensure no unintended yawing when nudging horizontally during initial heading alignment
+			_land_heading = _yaw_sp_prev;
+		}
+
 		rcHelpModifyYaw(_land_heading);
 
-		Vector2f sticks_xy = _sticks.getPitchRollExpo();
 		Vector2f sticks_ne = sticks_xy;
 		Sticks::rotateIntoHeadingFrameXY(sticks_ne, _yaw, _land_heading);
 
