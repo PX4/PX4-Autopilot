@@ -36,5 +36,4 @@ px4_add_library(pure_pursuit
 	PurePursuit.hpp
 )
 
-px4_add_functional_gtest(SRC PurePursuitTest.cpp LINKLIBS pure_pursuit)
-set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/module.yaml)
+px4_add_unit_gtest(SRC PurePursuitTest.cpp LINKLIBS pure_pursuit)

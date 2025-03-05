@@ -47,6 +47,7 @@ px4_add_module(
 		MecanumPosVelControl
 		px4_work_queue
 		rover_control
+		pure_pursuit
 	MODULE_CONFIG
 		module.yaml
 )

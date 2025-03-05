@@ -41,6 +41,7 @@ MecanumPosVelControl::MecanumPosVelControl(ModuleParams *parent) : ModuleParams(
 	_rover_throttle_setpoint_pub.advertise();
 	_rover_attitude_setpoint_pub.advertise();
 	_rover_velocity_status_pub.advertise();
+	_pure_pursuit_status_pub.advertise();
 	updateParams();
 }
 
@@ -235,11 +236,15 @@ void MecanumPosVelControl::manualPositionMode()
 			}
 
 			// Construct a 'target waypoint' for course control s.t. it is never within the maximum lookahead of the rover
-			const float vector_scaling = sqrtf(powf(_param_pp_lookahd_max.get(),
-								2) + powf(_posctl_pure_pursuit.getCrosstrackError(), 2)) + _posctl_pure_pursuit.getDistanceOnLineSegment();
+			const Vector2f start_to_curr_pos = _curr_pos_ned - _pos_ctl_start_position_ned;
+			const float vector_scaling = fabsf(start_to_curr_pos * _pos_ctl_course_direction) + _param_pp_lookahd_max.get();
 			const Vector2f target_waypoint_ned = _pos_ctl_start_position_ned + vector_scaling * _pos_ctl_course_direction;
-			const float bearing_setpoint = _posctl_pure_pursuit.calcDesiredHeading(target_waypoint_ned, _pos_ctl_start_position_ned,
+			pure_pursuit_status_s pure_pursuit_status{};
+			pure_pursuit_status.timestamp = _timestamp;
+			const float bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
+						       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _pos_ctl_start_position_ned,
 						       _curr_pos_ned, velocity_magnitude_setpoint);
+			_pure_pursuit_status_pub.publish(pure_pursuit_status);
 			const float bearing_setpoint_body_frame = matrix::wrap_pi(bearing_setpoint - _vehicle_yaw);
 			_speed_body_x_setpoint = velocity_magnitude_setpoint * cosf(bearing_setpoint_body_frame);
 			_speed_body_y_setpoint = velocity_magnitude_setpoint * sinf(bearing_setpoint_body_frame);
@@ -271,8 +276,12 @@ void MecanumPosVelControl::offboardPositionMode()
 		const float velocity_magnitude_setpoint = math::min(math::trajectory::computeMaxSpeedFromDistance(
 					_param_ro_jerk_limit.get(),
 					_param_ro_decel_limit.get(), distance_to_target, 0.f), _param_ro_speed_limit.get());
-		const float bearing_setpoint = _posctl_pure_pursuit.calcDesiredHeading(target_waypoint_ned, _curr_pos_ned,
-					       _curr_pos_ned, fabsf(_speed_body_x_setpoint));
+		pure_pursuit_status_s pure_pursuit_status{};
+		pure_pursuit_status.timestamp = _timestamp;
+		const float bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
+					       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _curr_pos_ned,
+					       _curr_pos_ned, velocity_magnitude_setpoint);
+		_pure_pursuit_status_pub.publish(pure_pursuit_status);
 		const float bearing_setpoint_body_frame = matrix::wrap_pi(bearing_setpoint - _vehicle_yaw);
 		_speed_body_x_setpoint = velocity_magnitude_setpoint * cosf(bearing_setpoint_body_frame);
 		_speed_body_y_setpoint = velocity_magnitude_setpoint * sinf(bearing_setpoint_body_frame);
@@ -316,8 +325,12 @@ void MecanumPosVelControl::autoPositionMode()
 	const float velocity_magnitude = calcVelocityMagnitude(_auto_speed, distance_to_curr_wp, _param_ro_decel_limit.get(),
 					 _param_ro_jerk_limit.get(), _waypoint_transition_angle, _param_ro_speed_limit.get(), _param_rm_miss_spd_gain.get(),
 					 _nav_state);
-	const float bearing_setpoint = _posctl_pure_pursuit.calcDesiredHeading(_curr_wp_ned, _prev_wp_ned, _curr_pos_ned,
+	pure_pursuit_status_s pure_pursuit_status{};
+	pure_pursuit_status.timestamp = _timestamp;
+	const float bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
+				       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _curr_wp_ned, _prev_wp_ned, _curr_pos_ned,
 				       velocity_magnitude);
+	_pure_pursuit_status_pub.publish(pure_pursuit_status);
 	const float bearing_setpoint_body_frame = matrix::wrap_pi(bearing_setpoint - _vehicle_yaw);
 	Vector2f desired_velocity(0.f, 0.f);
 	_speed_body_x_setpoint = _mission_finished ? 0.f : velocity_magnitude * cosf(bearing_setpoint_body_frame);

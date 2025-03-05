@@ -41,6 +41,7 @@ AckermannPosVelControl::AckermannPosVelControl(ModuleParams *parent) : ModulePar
 	_rover_throttle_setpoint_pub.advertise();
 	_rover_attitude_setpoint_pub.advertise();
 	_rover_velocity_status_pub.advertise();
+	_pure_pursuit_status_pub.advertise();
 	updateParams();
 }
 
@@ -187,12 +188,16 @@ void AckermannPosVelControl::manualPositionMode()
 			}
 
 			// Construct a 'target waypoint' for course control s.t. it is never within the maximum lookahead of the rover
-			const float vector_scaling = sqrtf(powf(_param_pp_lookahd_max.get(),
-								2) + powf(_posctl_pure_pursuit.getCrosstrackError(), 2)) + _posctl_pure_pursuit.getDistanceOnLineSegment();
+			const Vector2f start_to_curr_pos = _curr_pos_ned - _pos_ctl_start_position_ned;
+			const float vector_scaling = fabsf(start_to_curr_pos * _pos_ctl_course_direction) + _param_pp_lookahd_max.get();
 			const Vector2f target_waypoint_ned = _pos_ctl_start_position_ned + sign(_speed_body_x_setpoint) *
 							     vector_scaling * _pos_ctl_course_direction;
-			float yaw_setpoint = _posctl_pure_pursuit.calcDesiredHeading(target_waypoint_ned, _pos_ctl_start_position_ned,
+			pure_pursuit_status_s pure_pursuit_status{};
+			pure_pursuit_status.timestamp = _timestamp;
+			float yaw_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
+					     _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _pos_ctl_start_position_ned,
 					     _curr_pos_ned, fabsf(_speed_body_x_setpoint));
+			_pure_pursuit_status_pub.publish(pure_pursuit_status);
 			yaw_setpoint = _speed_body_x_setpoint > FLT_EPSILON ? yaw_setpoint : matrix::wrap_pi(yaw_setpoint + M_PI_F);
 			rover_attitude_setpoint_s rover_attitude_setpoint{};
 			rover_attitude_setpoint.timestamp = _timestamp;
@@ -215,10 +220,15 @@ void AckermannPosVelControl::offboardPositionMode()
 		const float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
 					     _param_ro_decel_limit.get(), distance_to_target, 0.f);
 		_speed_body_x_setpoint = math::min(speed_setpoint, _param_ro_speed_limit.get());
+		pure_pursuit_status_s pure_pursuit_status{};
+		pure_pursuit_status.timestamp = _timestamp;
+		const float yaw_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
+					   _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _curr_pos_ned,
+					   _curr_pos_ned, fabsf(_speed_body_x_setpoint));
+		_pure_pursuit_status_pub.publish(pure_pursuit_status);
 		rover_attitude_setpoint_s rover_attitude_setpoint{};
 		rover_attitude_setpoint.timestamp = _timestamp;
-		rover_attitude_setpoint.yaw_setpoint = _posctl_pure_pursuit.calcDesiredHeading(target_waypoint_ned, _curr_pos_ned,
-						       _curr_pos_ned, fabsf(_speed_body_x_setpoint));
+		rover_attitude_setpoint.yaw_setpoint = yaw_setpoint;
 		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
 
 	} else {
@@ -264,10 +274,15 @@ void AckermannPosVelControl::autoPositionMode()
 		_speed_body_x_setpoint = calcSpeedSetpoint(_cruising_speed, _min_speed, distance_to_prev_wp, distance_to_curr_wp,
 					 _acceptance_radius, _prev_acceptance_radius, _param_ro_decel_limit.get(), _param_ro_jerk_limit.get(), _nav_state,
 					 _waypoint_transition_angle, _prev_waypoint_transition_angle, _param_ro_speed_limit.get());
+		pure_pursuit_status_s pure_pursuit_status{};
+		pure_pursuit_status.timestamp = _timestamp;
+		const float yaw_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
+					   _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _curr_wp_ned, _prev_wp_ned, _curr_pos_ned,
+					   fabsf(_speed_body_x_setpoint));
+		_pure_pursuit_status_pub.publish(pure_pursuit_status);
 		rover_attitude_setpoint_s rover_attitude_setpoint{};
 		rover_attitude_setpoint.timestamp = _timestamp;
-		rover_attitude_setpoint.yaw_setpoint = _posctl_pure_pursuit.calcDesiredHeading(_curr_wp_ned, _prev_wp_ned,
-						       _curr_pos_ned, fabsf(_speed_body_x_setpoint));
+		rover_attitude_setpoint.yaw_setpoint = yaw_setpoint;
 		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
 	}
 }

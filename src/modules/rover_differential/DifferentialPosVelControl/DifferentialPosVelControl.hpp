@@ -187,6 +187,7 @@ private:
 	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
 	uORB::Publication<rover_velocity_status_s> _rover_velocity_status_pub{ORB_ID(rover_velocity_status)};
 	uORB::Publication<position_controller_status_s>	_position_controller_status_pub{ORB_ID(position_controller_status)};
+	uORB::Publication<pure_pursuit_status_s>	_pure_pursuit_status_pub{ORB_ID(pure_pursuit_status)};
 
 	// Variables
 	hrt_abstime _timestamp{0};
@@ -218,7 +219,6 @@ private:
 	SlewRate<float> _speed_setpoint;
 
 	// Class Instances
-	PurePursuit _posctl_pure_pursuit{this}; // Pure pursuit library
 	MapProjection _global_ned_proj_ref{}; // Transform global to NED coordinates
 	GuidanceState _currentState{GuidanceState::DRIVING}; // The current state of the guidance.
 
@@ -235,7 +235,9 @@ private:
 		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_limit,
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
 		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th,
+		(ParamFloat<px4::params::PP_LOOKAHD_GAIN>)  _param_pp_lookahd_gain,
 		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
+		(ParamFloat<px4::params::PP_LOOKAHD_MIN>)   _param_pp_lookahd_min,
 		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
 		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad
 
