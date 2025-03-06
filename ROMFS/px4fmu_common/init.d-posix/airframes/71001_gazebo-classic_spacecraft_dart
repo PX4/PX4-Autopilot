@@ -1,0 +1,155 @@
+#!/bin/sh
+#
+# @name 6DoF Spacecraft Model
+#
+# @type Freeflyer with 8 thrusters
+#
+# @maintainer Pedro Roque <padr@kth.se>
+#
+
+. ${R}etc/init.d/rc.sc_defaults
+
+param set-default CA_AIRFRAME 15
+param set-default MAV_TYPE 99
+
+param set-default CA_THRUSTER_CNT 12
+param set-default CA_R_REV 0
+
+# param set-default FW_ARSP_MODE 1
+
+# Auto to be provided by Custom Airframe
+param set-default CA_METHOD 0
+
+# disable attitude failure detection
+param set-default FD_FAIL_P 0
+param set-default FD_FAIL_R 0
+
+# Set proper failsafes
+param set-default COM_ACT_FAIL_ACT 0
+param set-default COM_LOW_BAT_ACT 0
+param set-default NAV_DLL_ACT 0
+param set-default GF_ACTION 1
+param set-default NAV_RCL_ACT 1
+param set-default COM_POSCTL_NAVL 2
+
+# Set thrusters
+param set-default CA_THRUSTER0_PX -0.50
+param set-default CA_THRUSTER0_PY 0.50
+param set-default CA_THRUSTER0_PZ 0.0
+param set-default CA_THRUSTER0_CT 0.237
+param set-default CA_THRUSTER0_AX 0.0
+param set-default CA_THRUSTER0_AY -1.0
+param set-default CA_THRUSTER0_AZ 0.0
+
+param set-default CA_THRUSTER1_PX 0.50
+param set-default CA_THRUSTER1_PY 0.50
+param set-default CA_THRUSTER1_PZ 0.0
+param set-default CA_THRUSTER1_CT 0.237
+param set-default CA_THRUSTER1_AX 0.0
+param set-default CA_THRUSTER1_AY -1.0
+param set-default CA_THRUSTER1_AZ 0.0
+
+param set-default CA_THRUSTER2_PX 0.50
+param set-default CA_THRUSTER2_PY -0.50
+param set-default CA_THRUSTER2_PZ 0.0
+param set-default CA_THRUSTER2_CT 0.237
+param set-default CA_THRUSTER2_AX 0.0
+param set-default CA_THRUSTER2_AY 1.0
+param set-default CA_THRUSTER2_AZ 0.0
+
+param set-default CA_THRUSTER3_PX -0.50
+param set-default CA_THRUSTER3_PY -0.50
+param set-default CA_THRUSTER3_PZ 0.0
+param set-default CA_THRUSTER3_CT 0.237
+param set-default CA_THRUSTER3_AX 0.0
+param set-default CA_THRUSTER3_AY 1.0
+param set-default CA_THRUSTER3_AZ 0.0
+
+param set-default CA_THRUSTER4_PX -0.50
+param set-default CA_THRUSTER4_PY 0.0
+param set-default CA_THRUSTER4_PZ -0.50
+param set-default CA_THRUSTER4_CT 0.237
+param set-default CA_THRUSTER4_AX 1.0
+param set-default CA_THRUSTER4_AY 0.0
+param set-default CA_THRUSTER4_AZ 0.0
+
+param set-default CA_THRUSTER5_PX 0.50
+param set-default CA_THRUSTER5_PY 0.0
+param set-default CA_THRUSTER5_PZ -0.50
+param set-default CA_THRUSTER5_CT 0.237
+param set-default CA_THRUSTER5_AX -1.0
+param set-default CA_THRUSTER5_AY 0.0
+param set-default CA_THRUSTER5_AZ 0.0
+
+param set-default CA_THRUSTER6_PX 0.50
+param set-default CA_THRUSTER6_PY 0.0
+param set-default CA_THRUSTER6_PZ 0.50
+param set-default CA_THRUSTER6_CT 0.237
+param set-default CA_THRUSTER6_AX -1.0
+param set-default CA_THRUSTER6_AY 0.0
+param set-default CA_THRUSTER6_AZ 0.0
+
+param set-default CA_THRUSTER7_PX -0.50
+param set-default CA_THRUSTER7_PY 0.0
+param set-default CA_THRUSTER7_PZ 0.50
+param set-default CA_THRUSTER7_CT 0.237
+param set-default CA_THRUSTER7_AX 1.0
+param set-default CA_THRUSTER7_AY 0.0
+param set-default CA_THRUSTER7_AZ 0.0
+
+param set-default CA_THRUSTER8_PX 0.0
+param set-default CA_THRUSTER8_PY -0.50
+param set-default CA_THRUSTER8_PZ -0.50
+param set-default CA_THRUSTER8_CT 0.237
+param set-default CA_THRUSTER8_AX 0.0
+param set-default CA_THRUSTER8_AY 0.0
+param set-default CA_THRUSTER8_AZ 1.0
+
+param set-default CA_THRUSTER9_PX 0.0
+param set-default CA_THRUSTER9_PY 0.50
+param set-default CA_THRUSTER9_PZ -0.50
+param set-default CA_THRUSTER9_CT 0.237
+param set-default CA_THRUSTER9_AX 0.0
+param set-default CA_THRUSTER9_AY 0.0
+param set-default CA_THRUSTER9_AZ 1.0
+
+param set-default CA_THRUSTER10_PX 0.0
+param set-default CA_THRUSTER10_PY 0.50
+param set-default CA_THRUSTER10_PZ 0.50
+param set-default CA_THRUSTER10_CT 0.237
+param set-default CA_THRUSTER10_AX 0.0
+param set-default CA_THRUSTER10_AY 0.0
+param set-default CA_THRUSTER10_AZ -1.0
+
+param set-default CA_THRUSTER11_PX 0.0
+param set-default CA_THRUSTER11_PY -0.50
+param set-default CA_THRUSTER11_PZ 0.50
+param set-default CA_THRUSTER11_CT 0.237
+param set-default CA_THRUSTER11_AX 0.0
+param set-default CA_THRUSTER11_AY 0.0
+param set-default CA_THRUSTER11_AZ -1.0
+
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
+param set-default PWM_MAIN_FUNC5 105
+param set-default PWM_MAIN_FUNC6 106
+param set-default PWM_MAIN_FUNC7 107
+param set-default PWM_MAIN_FUNC8 108
+param set-default PWM_MAIN_FUNC9 109
+param set-default PWM_MAIN_FUNC10 110
+param set-default PWM_MAIN_FUNC11 111
+param set-default PWM_MAIN_FUNC12 112
+
+# PWM Simulation
+param set PWM_SIM_PWM_MAX 10000
+param set PWM_SIM_PWM_MIN 0
+
+# Controller Tunings
+param set-default SC_ROLLRATE_P 0.14
+param set-default SC_PITCHRATE_P 0.14
+param set-default SC_ROLLRATE_I 0.3
+param set-default SC_PITCHRATE_I 0.3
+param set-default SC_ROLLRATE_D 0.004
+param set-default SC_PITCHRATE_D 0.004

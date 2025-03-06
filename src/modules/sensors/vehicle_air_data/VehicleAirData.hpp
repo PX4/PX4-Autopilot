@@ -73,9 +73,15 @@ public:
 	void PrintStatus();
 
 private:
+	enum TemperatureSource {
+		DEFAULT_TEMP = 0,
+		EXTERNAL_BARO = 1,
+		AIRSPEED = 2,
+	};
+
 	void Run() override;
 
-	void AirTemperatureUpdate();
+	float AirTemperatureUpdate(const float temperature_baro, TemperatureSource &source, const hrt_abstime time_now_us);
 	void CheckFailover(const hrt_abstime &time_now_us);
 	bool ParametersUpdate(bool force = false);
 	void UpdateStatus();
@@ -124,7 +130,7 @@ private:
 
 	int8_t _selected_sensor_sub_index{-1};
 
-	float _air_temperature_celsius{20.f}; // initialize with typical 20degC ambient temperature
+	bool _last_status_baro_fault{false};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh,

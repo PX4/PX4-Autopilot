@@ -120,12 +120,16 @@ private:
 	bool init();
 	void deinit();
 
-	bool setup_session(uxrSession *session);
-	void delete_session(uxrSession *session);
+	bool setupSession(uxrSession *session);
+	void deleteSession(uxrSession *session);
 
 	bool setBaudrate(int fd, unsigned baud);
 
 	void handleMessageFormatRequest();
+
+	void calculateTxRxRate();
+	void checkConnectivity(uxrSession *session);
+	void resetConnectivityCounters();
 
 	uORB::Publication<message_format_response_s> _message_format_response_pub{ORB_ID(message_format_response)};
 	uORB::Subscription _message_format_request_sub{ORB_ID(message_format_request)};
@@ -179,6 +183,14 @@ private:
 	uxrCommunication *_comm{nullptr};
 	int _fd{-1};
 
+	hrt_abstime _last_status_update;
+	hrt_abstime _last_ping;
+	bool _had_ping_reply{false};
+	int _num_pings_missed{0};
+	int32_t _num_tx_rate_zero{0};
+	int32_t _num_rx_rate_zero{0};
+	uint32_t _last_num_payload_sent{0};
+	uint32_t _last_num_payload_received{0};
 	int _last_payload_tx_rate{}; ///< in B/s
 	int _last_payload_rx_rate{}; ///< in B/s
 
@@ -197,6 +209,8 @@ private:
 		(ParamInt<px4::params::UXRCE_DDS_KEY>) _param_uxrce_key,
 		(ParamInt<px4::params::UXRCE_DDS_PTCFG>) _param_uxrce_dds_ptcfg,
 		(ParamInt<px4::params::UXRCE_DDS_SYNCC>) _param_uxrce_dds_syncc,
-		(ParamInt<px4::params::UXRCE_DDS_SYNCT>) _param_uxrce_dds_synct
+		(ParamInt<px4::params::UXRCE_DDS_SYNCT>) _param_uxrce_dds_synct,
+		(ParamInt<px4::params::UXRCE_DDS_TX_TO>) _param_uxrce_dds_tx_to,
+		(ParamInt<px4::params::UXRCE_DDS_RX_TO>) _param_uxrce_dds_rx_to
 	)
 };

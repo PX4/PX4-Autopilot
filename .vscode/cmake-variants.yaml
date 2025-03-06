@@ -131,6 +131,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_can-flow_canbootloader
+    ark_can-flow-mr_canbootloader:
+      short: ark_can-flow-mr_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-flow-mr_canbootloader
     ark_can-gps_default:
       short: ark_can-gps_default
       buildType: MinSizeRel

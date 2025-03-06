@@ -129,6 +129,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 				} else {
 					_position_setpoint(2) = _position(2);
+					_dist_to_ground_lock = NAN;
 				}
 			}
 
