@@ -57,6 +57,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/failsafe_flags.h>
 #include <uORB/topics/health_report.h>
+#include <uORB/topics/vehicle_air_data.h>
 
 #include <px4_platform_common/events.h>
 
@@ -284,7 +285,7 @@ private:
 				updated = true;
 				_batteries[i].connected = battery.connected;
 
-				if (battery.warning > battery_status_s::BATTERY_WARNING_LOW) {
+				if (battery.warning > battery_status_s::WARNING_LOW) {
 					msg->failure_flags |= HL_FAILURE_FLAG_BATTERY;
 				}
 			}
@@ -521,6 +522,7 @@ private:
 		update_gps();
 		update_vehicle_status();
 		update_wind();
+		update_vehicle_air_data();
 	}
 
 	void update_airspeed()
@@ -529,7 +531,6 @@ private:
 
 		if (_airspeed_sub.update(&airspeed)) {
 			_airspeed.add_value(airspeed.indicated_airspeed_m_s, _update_rate_filtered);
-			_temperature.add_value(airspeed.air_temperature_celsius, _update_rate_filtered);
 		}
 	}
 
@@ -610,6 +611,15 @@ private:
 		}
 	}
 
+	void update_vehicle_air_data()
+	{
+		vehicle_air_data_s air_data;
+
+		if (_vehicle_air_data_sub.update(&air_data)) {
+			_temperature.add_value(air_data.ambient_temperature, _update_rate_filtered);
+		}
+	}
+
 	void set_default_values(mavlink_high_latency2_t &msg) const
 	{
 		msg.airspeed = 0;
@@ -659,6 +669,7 @@ private:
 	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};
 	uORB::Subscription _wind_sub{ORB_ID(wind)};
 	uORB::Subscription _health_report_sub{ORB_ID(health_report)};
+	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 
 	SimpleAnalyzer _airspeed;
 	SimpleAnalyzer _airspeed_sp;

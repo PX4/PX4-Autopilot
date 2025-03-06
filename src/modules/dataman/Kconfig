@@ -11,3 +11,11 @@ menuconfig USER_DATAMAN
 	depends on BOARD_PROTECTED && MODULES_DATAMAN
 	---help---
 		Put dataman in userspace memory
+
+
+menuconfig DATAMAN_PERSISTENT_STORAGE
+	bool "dataman supports persistent storage"
+	default y
+	depends on MODULES_DATAMAN
+	---help---
+		Dataman supports reading/writing to persistent storage

@@ -641,14 +641,6 @@ PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
 PARAM_DEFINE_INT32(COM_ACT_FAIL_ACT, 0);
 
 /**
- * Flag to enable obstacle avoidance.
- *
- * @boolean
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);
-
-/**
  * Expect and require a healthy MAVLink parachute system
  *
  * @boolean

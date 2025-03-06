@@ -45,6 +45,9 @@ using namespace matrix;
 using namespace atmosphere;
 
 static constexpr uint32_t SENSOR_TIMEOUT{300_ms};
+static constexpr float DEFAULT_TEMPERATURE_CELSIUS = 15.f;
+static constexpr float TEMPERATURE_MIN_CELSIUS = -60.f;
+static constexpr float TEMPERATURE_MAX_CELSIUS = 60.f;
 
 VehicleAirData::VehicleAirData() :
 	ModuleParams(nullptr),
@@ -77,21 +80,23 @@ void VehicleAirData::Stop()
 	}
 }
 
-void VehicleAirData::AirTemperatureUpdate()
+float VehicleAirData::AirTemperatureUpdate(const float temperature_baro, TemperatureSource &source,
+		const hrt_abstime time_now_us)
 {
+	// use the temperature from the differential pressure sensor if available
+	// otherwise use the temperature from the external barometer
+	// Temperature measurements from internal baros are not used as typically not representative for ambient temperature
+	float temperature = source == TemperatureSource::EXTERNAL_BARO ? temperature_baro : DEFAULT_TEMPERATURE_CELSIUS;
 	differential_pressure_s differential_pressure;
 
-	static constexpr float temperature_min_celsius = -20.f;
-	static constexpr float temperature_max_celsius = 35.f;
-
-	// update air temperature if data from differential pressure sensor is finite and not exactly 0
-	// limit the range to max 35°C to limt the error due to heated up airspeed sensors prior flight
-	if (_differential_pressure_sub.update(&differential_pressure) && PX4_ISFINITE(differential_pressure.temperature)
-	    && fabsf(differential_pressure.temperature) > FLT_EPSILON) {
-
-		_air_temperature_celsius = math::constrain(differential_pressure.temperature, temperature_min_celsius,
-					   temperature_max_celsius);
+	if (_differential_pressure_sub.copy(&differential_pressure)
+	    && time_now_us - differential_pressure.timestamp_sample < 1_s
+	    && PX4_ISFINITE(differential_pressure.temperature)) {
+		temperature = differential_pressure.temperature;
+		source = TemperatureSource::AIRSPEED;
 	}
+
+	return math::constrain(temperature, TEMPERATURE_MIN_CELSIUS, TEMPERATURE_MAX_CELSIUS);
 }
 
 bool VehicleAirData::ParametersUpdate(bool force)
@@ -138,8 +143,6 @@ void VehicleAirData::Run()
 	const hrt_abstime time_now_us = hrt_absolute_time();
 
 	const bool parameter_update = ParametersUpdate();
-
-	AirTemperatureUpdate();
 
 	estimator_status_flags_s estimator_status_flags;
 	const bool estimator_status_flags_updated = _estimator_status_flags_sub.update(&estimator_status_flags);
@@ -272,23 +275,26 @@ void VehicleAirData::Run()
 
 					if (publish) {
 						const float pressure_pa = _data_sum[instance] / _data_sum_count[instance];
-						const float temperature = _temperature_sum[instance] / _data_sum_count[instance];
+						const float temperature_baro = _temperature_sum[instance] / _data_sum_count[instance];
+						TemperatureSource temperature_source = _calibration[instance].external() ? TemperatureSource::EXTERNAL_BARO :
+										       TemperatureSource::DEFAULT_TEMP;
+						const float ambient_temperature = AirTemperatureUpdate(temperature_baro, temperature_source, time_now_us);
 
 						const float pressure_sealevel_pa = _param_sens_baro_qnh.get() * 100.f;
 						const float altitude = getAltitudeFromPressure(pressure_pa, pressure_sealevel_pa);
 
 						// calculate air density
-						const float air_density = getDensityFromPressureAndTemp(pressure_pa, temperature);
+						const float air_density = getDensityFromPressureAndTemp(pressure_pa, ambient_temperature);
 
 						// populate vehicle_air_data with and publish
 						vehicle_air_data_s out{};
 						out.timestamp_sample = timestamp_sample;
 						out.baro_device_id = _calibration[instance].device_id();
 						out.baro_alt_meter = altitude;
-						out.baro_temp_celcius = temperature;
+						out.ambient_temperature = ambient_temperature;
+						out.temperature_source = static_cast<uint8_t>(temperature_source);
 						out.baro_pressure_pa = pressure_pa;
 						out.rho = air_density;
-						out.eas2tas = sqrtf(kAirDensitySeaLevelStandardAtmos / math::max(air_density, FLT_EPSILON));
 						out.calibration_count = _calibration[instance].calibration_count();
 						out.timestamp = hrt_absolute_time();
 

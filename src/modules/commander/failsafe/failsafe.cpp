@@ -192,16 +192,16 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 
 	switch (battery_warning) {
 	default:
-	case battery_status_s::BATTERY_WARNING_NONE:
+	case battery_status_s::WARNING_NONE:
 		options.action = Action::None;
 		break;
 
-	case battery_status_s::BATTERY_WARNING_LOW:
+	case battery_status_s::WARNING_LOW:
 		options.action = Action::Warn;
 		options.cause = Cause::BatteryLow;
 		break;
 
-	case battery_status_s::BATTERY_WARNING_CRITICAL:
+	case battery_status_s::WARNING_CRITICAL:
 		options.action = Action::Warn;
 		options.cause = Cause::BatteryCritical;
 
@@ -222,7 +222,7 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 
 		break;
 
-	case battery_status_s::BATTERY_WARNING_EMERGENCY:
+	case battery_status_s::WARNING_EMERGENCY:
 		options.action = Action::Warn;
 		options.cause = Cause::BatteryEmergency;
 
@@ -550,21 +550,21 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 					   _param_com_low_bat_act.get() : (int32_t)LowBatteryAction::Warning;
 
 	switch (status_flags.battery_warning) {
-	case battery_status_s::BATTERY_WARNING_LOW:
+	case battery_status_s::WARNING_LOW:
 		_last_state_battery_warning_low = checkFailsafe(_caller_id_battery_warning_low, _last_state_battery_warning_low,
-						  true, fromBatteryWarningActParam(low_battery_action, battery_status_s::BATTERY_WARNING_LOW));
+						  true, fromBatteryWarningActParam(low_battery_action, battery_status_s::WARNING_LOW));
 		break;
 
-	case battery_status_s::BATTERY_WARNING_CRITICAL:
+	case battery_status_s::WARNING_CRITICAL:
 		_last_state_battery_warning_critical = checkFailsafe(_caller_id_battery_warning_critical,
 						       _last_state_battery_warning_critical,
-						       true, fromBatteryWarningActParam(low_battery_action, battery_status_s::BATTERY_WARNING_CRITICAL));
+						       true, fromBatteryWarningActParam(low_battery_action, battery_status_s::WARNING_CRITICAL));
 		break;
 
-	case battery_status_s::BATTERY_WARNING_EMERGENCY:
+	case battery_status_s::WARNING_EMERGENCY:
 		_last_state_battery_warning_emergency = checkFailsafe(_caller_id_battery_warning_emergency,
 							_last_state_battery_warning_emergency,
-							true, fromBatteryWarningActParam(low_battery_action, battery_status_s::BATTERY_WARNING_EMERGENCY));
+							true, fromBatteryWarningActParam(low_battery_action, battery_status_s::WARNING_EMERGENCY));
 		break;
 
 	default:
