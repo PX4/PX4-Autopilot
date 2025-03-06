@@ -6,7 +6,7 @@ uint32 device_id              # Unique device ID for the sensor that does not ch
 
 float64 latitude              # Latitude in degrees (allows centimeter level RTK precision)
 float64 longitude             # Longitude in degrees (allows centimeter level RTK precision)
-float64 altitude_msl          # Altitude above MSL (meters) (calculated from GNSS system)
+float64 altitude_msl          # Altitude above MSL (meters) (as calculated by GNSS system)
 float64 altitude_ellipsoid    # Altitude above Ellipsoid (WGS84)(meters)
 
 float32 speed_accuracy        # GPS speed accuracy estimate (meters/sec)
