@@ -533,7 +533,8 @@ void EKF2::Run()
 			} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE) {
 
 				if ((_ekf.control_status_flags().wind_dead_reckoning || _ekf.control_status_flags().inertial_dead_reckoning
-				     || (!_ekf.control_status_flags().in_air && !_ekf.control_status_flags().gps)) && PX4_ISFINITE(vehicle_command.param2)
+				     || (!_ekf.control_status_flags().in_air && !_ekf.control_status_flags().gnss_pos))
+				    && PX4_ISFINITE(vehicle_command.param2)
 				    && PX4_ISFINITE(vehicle_command.param5) && PX4_ISFINITE(vehicle_command.param6)
 				   ) {
 
@@ -1892,7 +1893,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.control_status_changes   = _filter_control_status_changes;
 		status_flags.cs_tilt_align            = _ekf.control_status_flags().tilt_align;
 		status_flags.cs_yaw_align             = _ekf.control_status_flags().yaw_align;
-		status_flags.cs_gps                   = _ekf.control_status_flags().gps;
+		status_flags.cs_gnss_pos              = _ekf.control_status_flags().gnss_pos;
 		status_flags.cs_opt_flow              = _ekf.control_status_flags().opt_flow;
 		status_flags.cs_mag_hdg               = _ekf.control_status_flags().mag_hdg;
 		status_flags.cs_mag_3d                = _ekf.control_status_flags().mag_3D;
@@ -1934,6 +1935,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_valid_fake_pos      = _ekf.control_status_flags().valid_fake_pos;
 		status_flags.cs_constant_pos        = _ekf.control_status_flags().constant_pos;
 		status_flags.cs_baro_fault	    = _ekf.control_status_flags().baro_fault;
+		status_flags.cs_gnss_vel            = _ekf.control_status_flags().gnss_vel;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
