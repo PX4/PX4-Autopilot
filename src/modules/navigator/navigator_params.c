@@ -221,3 +221,13 @@ PARAM_DEFINE_FLOAT(NAV_MIN_GND_DIST, -1.f);
  * @group Mission
  */
 PARAM_DEFINE_INT32(NAV_LTR_LAST_DL, 0);
+
+/**
+ * Threshold for low AGL status detection.
+ *
+ * @unit m
+ * @decimal 1
+ * @increment 1
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(NAV_LOW_AGL_THR, 100.0f);

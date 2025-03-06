@@ -72,6 +72,18 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 	}
 
 	for (int instance = 0; instance < MAX_AGP_IDS; instance++) {
+
+		// DQ custom: forwardporting the previous low AGL status logic but only for instance 0
+		// TODO: if visnav/handrail is not instance 0 update this
+		if (instance == 0) {
+			_low_agl_status_sub.update();
+
+			if (_low_agl_status_sub.get().low_agl) {
+				// Skip the update for this AGP source
+				continue;
+			}
+		}
+
 		if (_agp_sub[instance].updated()) {
 			aux_global_position_s msg{};
 			_agp_sub[instance].copy(&msg);

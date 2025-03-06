@@ -92,6 +92,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/mode_completed.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/low_agl_status.h>
 
 using namespace time_literals;
 
@@ -339,6 +340,7 @@ private:
 	uORB::Publication<vehicle_roi_s>		_vehicle_roi_pub{ORB_ID(vehicle_roi)};
 	uORB::Publication<mode_completed_s> _mode_completed_pub{ORB_ID(mode_completed)};
 	uORB::PublicationData<distance_sensor_mode_change_request_s> _distance_sensor_mode_change_request_pub{ORB_ID(distance_sensor_mode_change_request)};
+	uORB::PublicationData<low_agl_status_s> _low_agl_status{ORB_ID(low_agl_status)};
 
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
 
@@ -407,6 +409,8 @@ private:
 
 	bool _is_capturing_images{false}; // keep track if we need to stop capturing images
 
+	hrt_abstime _time_last_rotary_wing{0};
+
 	bool _was_in_air_for_some_time{false}; // APX4 custom
 	uORB::SubscriptionMultiArray<telemetry_status_s> _telemetry_status_subs{ORB_ID::telemetry_status};
 	PositionYawSetpoint _last_pos_with_gcs_heartbeat{(double)NAN, (double)NAN, NAN, NAN};
@@ -450,6 +454,7 @@ private:
 		(ParamFloat<px4::params::NAV_MIN_LTR_ALT>)   _param_min_ltr_alt,	/**< minimum altitude in Loiter mode*/
 		(ParamFloat<px4::params::NAV_MIN_GND_DIST>)
 		_param_nav_min_gnd_dist,	/**< minimum distance to ground (Mission and RTL)*/
+		(ParamFloat<px4::params::NAV_LOW_AGL_THR>)   _param_nav_low_agl_threshold,
 
 		// non-navigator parameters: Mission (MIS_*)
 		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>)    _param_mis_takeoff_alt,
@@ -459,4 +464,6 @@ private:
 		(ParamFloat<px4::params::MIS_COMMAND_TOUT>) _param_mis_command_tout,
 		(ParamInt<px4::params::COM_SEC_MODE_EN>)    _param_secure_mode // APX4 custom
 	)
+
+	void updateLowAglStatus();
 };

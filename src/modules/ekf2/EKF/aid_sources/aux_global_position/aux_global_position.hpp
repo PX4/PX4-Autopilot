@@ -43,6 +43,8 @@
 #include <lib/parameters/param.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/aux_global_position.h>
+#include <uORB/topics/low_agl_status.h>
+
 #include <aid_sources/aux_global_position/aux_global_position_control.hpp>
 
 class Ekf;
@@ -78,6 +80,8 @@ private:
 	uORB::Subscription _agp_sub[MAX_AGP_IDS];
 	int8_t _instance_slot_map[MAX_AGP_IDS] {-1, -1, -1, -1};
 	uint8_t _n_sources{0};
+
+	uORB::SubscriptionData<low_agl_status_s> _low_agl_status_sub{ORB_ID(low_agl_status)};
 
 	int32_t getAgpParamInt32(const char *param_suffix, int instance) const;
 	bool setAgpParamInt32(const char *param_suffix, int instance, int32_t value);

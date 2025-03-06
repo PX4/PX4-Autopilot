@@ -75,6 +75,8 @@ public:
 
 	virtual bool isLanding();
 
+	float getMissionItemAlt() const;
+
 protected:
 
 	/**

@@ -111,6 +111,8 @@ public:
 
 	bool isLanding() { return (_rtl_state != RTLState::IDLE) && (_rtl_state >= RTLState::LOITER_DOWN);};
 
+	float getLandingAlt() const { return _land_approach.height_m;};
+
 private:
 	/**
 	 * @brief Return to launch state machine.

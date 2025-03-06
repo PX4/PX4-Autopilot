@@ -114,6 +114,11 @@ Navigator::Navigator() :
 	_distance_sensor_mode_change_request_pub.get().request_on_off = distance_sensor_mode_change_request_s::REQUEST_OFF;
 	_distance_sensor_mode_change_request_pub.update();
 
+	_low_agl_status.advertise();
+	_low_agl_status.get().timestamp = hrt_absolute_time();
+	_low_agl_status.get().low_agl = false;
+	_low_agl_status.update();
+
 	reset_triplets();
 }
 
@@ -949,9 +954,53 @@ void Navigator::run()
 
 		publish_distance_sensor_mode_request();
 
+
+		updateLowAglStatus();
+
 		_geofence.run();
 
 		perf_end(_loop_perf);
+	}
+}
+
+void Navigator::updateLowAglStatus()
+{
+	// vtol takeoff will switch to hold once done
+#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
+	bool low_agl = _navigation_mode == &_vtol_takeoff;
+#else
+	bool low_agl = false;
+#endif
+
+	if (_param_nav_low_agl_threshold.get() > 0.f) {
+
+		// low alt landing logic
+		const float alt_threshold = _global_pos.alt - _param_nav_low_agl_threshold.get();
+
+		if (((_navigation_mode == &_rtl) && _rtl.isLanding())) {
+			low_agl = _rtl.getLandingAlt() > alt_threshold;
+
+		} else if (((_navigation_mode == &_mission) && _mission.isLanding())) {
+			low_agl = _mission.getMissionItemAlt() > alt_threshold;
+		}
+	}
+
+	// in MC mode we always consider agl to be low, use a 10s hysteresis before clearing the flag in fixed wing mode
+	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		low_agl = true;
+		_time_last_rotary_wing = hrt_absolute_time();
+
+	} else if (_time_last_rotary_wing != 0 && hrt_elapsed_time(&_time_last_rotary_wing) < 10 * 1_s) {
+		low_agl = true;
+
+	} else {
+		_time_last_rotary_wing = 0;
+	}
+
+	if (low_agl != _low_agl_status.get().low_agl) {
+		_low_agl_status.get().low_agl = low_agl;
+		_low_agl_status.get().timestamp = hrt_absolute_time();
+		_low_agl_status.update();
 	}
 }
 

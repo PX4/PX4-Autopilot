@@ -90,6 +90,8 @@ public:
 
 	bool isLanding();
 
+	float getLandingAlt();
+
 	bool clearSafePoints(); // APX4 custom
 
 private:

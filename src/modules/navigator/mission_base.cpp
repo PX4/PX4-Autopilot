@@ -427,6 +427,12 @@ MissionBase::isLanding()
 	}
 }
 
+
+float MissionBase::getMissionItemAlt() const
+{
+	return get_absolute_altitude_for_item(_mission_item);
+}
+
 void MissionBase::update_mission()
 {
 	if (_mission.count == 0u || !_is_current_planned_mission_item_valid || !isMissionValid()) {

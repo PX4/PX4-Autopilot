@@ -326,6 +326,32 @@ bool RTL::isLanding()
 	return is_landing;
 }
 
+float RTL::getLandingAlt()
+{
+	float alt = 0.0f;
+
+	switch (_rtl_type) {
+	case RtlType::RTL_MISSION_FAST:
+	case RtlType::RTL_MISSION_FAST_REVERSE:
+	case RtlType::RTL_DIRECT_MISSION_LAND:
+		if (_rtl_mission_type_handle) {
+			alt = _rtl_mission_type_handle->getMissionItemAlt();
+		}
+
+		break;
+
+	case RtlType::RTL_DIRECT:
+		alt = _rtl_direct.getLandingAlt();
+		break;
+
+	default:
+		break;
+	}
+
+	return alt;
+
+}
+
 // APX4 custom Clear safepoint from dataman
 bool RTL::clearSafePoints()
 {
