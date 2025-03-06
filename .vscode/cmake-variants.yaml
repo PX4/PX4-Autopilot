@@ -96,6 +96,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v6x_default
+    px4_fmu-v6x_robosub:
+      short: px4_fmu-v6x_robosub
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_fmu-v6x_robosub
     px4_fmu-v6x_bootloader:
       short: px4_fmu-v6x_bootloader
       buildType: MinSizeRel

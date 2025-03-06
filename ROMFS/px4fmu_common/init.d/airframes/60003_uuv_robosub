@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# @name Robosub UUV (Unmanned Underwater Vehicle)
+#
+# @type Underwater Robot
+# @class Underwater Robot
+#
+# @maintainer 
+#
+# @board px4_fmu-v2 exclude
+#
+
+. ${R}etc/init.d/rc.uuv_defaults
+. ${R}etc/init.d/airframes/60000_uuv_generic
