@@ -245,7 +245,6 @@ set(msg_files
 	versioned/HomePosition.msg
 	versioned/ManualControlSetpoint.msg
 	versioned/ModeCompleted.msg
-	versioned/MovingPlatformState.msg
 	versioned/RegisterExtComponentReply.msg
 	versioned/RegisterExtComponentRequest.msg
 	versioned/TrajectorySetpoint.msg

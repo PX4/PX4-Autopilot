@@ -24,3 +24,9 @@ bool abs_pos_valid		# Flag showing whether absolute position is valid
 float32 x_abs			# X/north position of target, relative to origin (navigation frame) [meters]
 float32 y_abs			# Y/east position of target, relative to origin (navigation frame) [meters]
 float32 z_abs			# Z/down position of target, relative to origin (navigation frame) [meters]
+
+bool abs_vel_valid      # Flag showing whether absolute velocity is valid
+float32 vx_abs			# X/north velocity of target, relative to origin (navigation frame) [meters/second]
+float32 vy_abs			# Y/east velocity of target, relative to origin (navigation frame) [meters/second]
+
+# TOPICS landing_target_pose moving_platform_pose
