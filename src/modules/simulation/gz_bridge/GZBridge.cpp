@@ -85,7 +85,16 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-	// IMU: /world/$WORLD/model/$MODEL/link/base_link/sensor/imu_sensor/imu
+	// mag: /world/$WORLD/model/$MODEL/link/base_link/sensor/magnetometer_sensor/magnetometer
+	std::string mag_topic = "/world/" + _world_name + "/model/" + _model_name +
+				"/link/base_link/sensor/magnetometer_sensor/magnetometer";
+
+	if (!_node.Subscribe(mag_topic, &GZBridge::magnetometerCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", mag_topic.c_str());
+		return PX4_ERROR;
+	}
+
+	// odom: /world/$WORLD/model/$MODEL/link/base_link/odometry_with_covariance
 	std::string odometry_topic = "/model/" + _model_name + "/odometry_with_covariance";
 
 	if (!_node.Subscribe(odometry_topic, &GZBridge::odometryCallback, this)) {
@@ -176,16 +185,16 @@ void GZBridge::clockCallback(const gz::msgs::Clock &msg)
 	px4_clock_settime(CLOCK_MONOTONIC, &ts);
 }
 
-void GZBridge::opticalFlowCallback(const px4::msgs::OpticalFlow &flow)
+void GZBridge::opticalFlowCallback(const px4::msgs::OpticalFlow &msg)
 {
-	sensor_optical_flow_s msg = {};
+	sensor_optical_flow_s report = {};
 
-	msg.timestamp = hrt_absolute_time();
-	msg.timestamp_sample = flow.time_usec();
-	msg.pixel_flow[0] = flow.integrated_x();
-	msg.pixel_flow[1] = flow.integrated_y();
-	msg.quality = flow.quality();
-	msg.integration_timespan_us = flow.integration_time_us();
+	report.timestamp = hrt_absolute_time();
+	report.timestamp_sample = msg.time_usec();
+	report.pixel_flow[0] = msg.integrated_x();
+	report.pixel_flow[1] = msg.integrated_y();
+	report.quality = msg.quality();
+	report.integration_timespan_us = msg.integration_time_us();
 
 	// Static data
 	device::Device::DeviceId id;
@@ -193,21 +202,47 @@ void GZBridge::opticalFlowCallback(const px4::msgs::OpticalFlow &flow)
 	id.devid_s.bus = 0;
 	id.devid_s.address = 0;
 	id.devid_s.devtype = DRV_FLOW_DEVTYPE_SIM;
-	msg.device_id = id.devid;
+	report.device_id = id.devid;
 
 	// values taken from PAW3902
-	msg.mode = sensor_optical_flow_s::MODE_LOWLIGHT;
-	msg.max_flow_rate = 7.4f;
-	msg.min_ground_distance = 0.f;
-	msg.max_ground_distance = 30.f;
-	msg.error_count = 0;
+	report.mode = sensor_optical_flow_s::MODE_LOWLIGHT;
+	report.max_flow_rate = 7.4f;
+	report.min_ground_distance = 0.f;
+	report.max_ground_distance = 30.f;
+	report.error_count = 0;
 
 	// No delta angle
 	// No distance
 	// This means that delta angle will come from vehicle gyro
 	// Distance will come from vehicle distance sensor
 
-	_optical_flow_pub.publish(msg);
+	_optical_flow_pub.publish(report);
+}
+
+void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
+{
+	const uint64_t timestamp = hrt_absolute_time();
+
+	device::Device::DeviceId id{};
+	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	id.devid_s.devtype = DRV_MAG_DEVTYPE_MAGSIM;
+	id.devid_s.bus = 1;
+	id.devid_s.address = 3; // TODO: any value other than 3 causes Commander to not use the mag.... wtf
+
+	sensor_mag_s report{};
+	report.timestamp = timestamp;
+	report.timestamp_sample = timestamp;
+	report.device_id = id.devid;
+	report.temperature = this->_temperature;
+
+	// FIMEX: once we're on jetty or later
+	// The magnetometer plugin publishes in units of gauss and in a weird left handed coordinate system
+	// https://github.com/gazebosim/gz-sim/pull/2460
+	report.x = -msg.field_tesla().y();
+	report.y = -msg.field_tesla().x();
+	report.z = msg.field_tesla().z();
+
+	_sensor_mag_pub.publish(report);
 }
 
 void GZBridge::barometerCallback(const gz::msgs::FluidPressure &msg)
@@ -253,7 +288,6 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
 
 void GZBridge::imuCallback(const gz::msgs::IMU &msg)
 {
-
 	const uint64_t timestamp = hrt_absolute_time();
 
 	// FLU -> FRD
@@ -283,7 +317,6 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
 	accel.temperature = NAN;
 	accel.samples = 1;
 	_sensor_accel_pub.publish(accel);
-
 
 	gz::math::Vector3d gyro_b = q_FLU_to_FRD.RotateVector(gz::math::Vector3d(
 					    msg.angular_velocity().x(),
@@ -484,8 +517,8 @@ static float generate_wgn()
 	return X;
 }
 
-void GZBridge::addRealisticGpsNoise(double &latitude, double &longitude, double &altitude,
-				    float &vel_north, float &vel_east, float &vel_down)
+void GZBridge::addGpsNoise(double &latitude, double &longitude, double &altitude,
+			   float &vel_north, float &vel_east, float &vel_down)
 {
 	_gps_pos_noise_n = _pos_markov_time * _gps_pos_noise_n +
 			   _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
@@ -546,7 +579,7 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 	_gpos_ground_truth_pub.publish(gps_truth);
 
 	// Apply noise model (based on ublox F9P)
-	addRealisticGpsNoise(latitude, longitude, altitude, vel_north, vel_east, vel_down);
+	addGpsNoise(latitude, longitude, altitude, vel_north, vel_east, vel_down);
 
 	// Device ID
 	device::Device::DeviceId id{};
