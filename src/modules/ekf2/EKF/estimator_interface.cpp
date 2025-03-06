@@ -622,6 +622,11 @@ int EstimatorInterface::getNumberOfActiveHorizontalPositionAidingSources() const
 	       + int(_control_status.flags.aux_gpos);
 }
 
+bool EstimatorInterface::isHorizontalPositionAidingActive() const
+{
+	return getNumberOfActiveHorizontalPositionAidingSources() > 0;
+}
+
 int EstimatorInterface::getNumberOfActiveHorizontalVelocityAidingSources() const
 {
 	return int(_control_status.flags.gnss_vel)
