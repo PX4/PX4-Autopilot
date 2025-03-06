@@ -583,8 +583,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 				return TRANSITION_DENIED;
 			}
 
-			if ((_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER
-			     || _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_BOAT)
+			if ((is_ground_vehicle(_vehicle_status))
 			    && !_failsafe_flags.manual_control_signal_lost && !_is_throttle_near_center) {
 
 				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: throttle not centered\t");
