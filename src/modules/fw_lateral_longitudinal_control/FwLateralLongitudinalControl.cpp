@@ -366,7 +366,6 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 	const float throttle_trim_compensated = _performance_model.getTrimThrottle(throttle_min,
 						throttle_max, airspeed_sp, _air_density);
 
-	/* No underspeed protection in landing mode */
 	_tecs.set_detect_underspeed_enabled(!disable_underspeed_detection);
 
 	// HOTFIX: the airspeed rate estimate using acceleration in body-forward direction has shown to lead to high biases
