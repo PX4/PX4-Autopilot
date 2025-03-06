@@ -202,8 +202,9 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 #if defined(CONFIG_EKF2_WIND)
 
 	// wind vel: add process noise
-	float wind_vel_nsd_scaled = _params.wind_vel_nsd * (1.f + _params.wind_vel_nsd_scaler * fabsf(_height_rate_lpf));
-	float wind_vel_process_noise = sq(wind_vel_nsd_scaled) * dt;
+	const float height_rate = _height_rate_lpf.update(_state.vel(2), imu_delayed.delta_vel_dt);
+	const float wind_vel_nsd_scaled = _params.wind_vel_nsd * (1.f + _params.wind_vel_nsd_scaler * fabsf(height_rate));
+	const float wind_vel_process_noise = sq(wind_vel_nsd_scaled) * dt;
 
 	for (unsigned index = 0; index < State::wind_vel.dof; index++) {
 		const unsigned i = State::wind_vel.idx + index;
@@ -279,7 +280,17 @@ void Ekf::constrainStateVariances()
 void Ekf::constrainStateVar(const IdxDof &state, float min, float max)
 {
 	for (unsigned i = state.idx; i < (state.idx + state.dof); i++) {
-		P(i, i) = math::constrain(P(i, i), min, max);
+		if (P(i, i) < min) {
+			P(i, i) = min;
+
+		} else if (P(i, i) > max) {
+			// Constrain the variance growth by fusing zero innovation as clipping the variance
+			// would artifically increase the correlation between states and destabilize the filter.
+			const float innov = 0.f;
+			const float R = 10.f * P(i, i); // This reduces the variance by ~10% as K = P / (P + R)
+			const float innov_var = P(i, i) + R;
+			fuseDirectStateMeasurement(innov, innov_var, R, i);
+		}
 	}
 }
 
@@ -297,9 +308,7 @@ void Ekf::constrainStateVarLimitRatio(const IdxDof &state, float min, float max,
 	float limited_max = math::constrain(state_var_max, min, max);
 	float limited_min = math::constrain(limited_max / max_ratio, min, max);
 
-	for (unsigned i = state.idx; i < (state.idx + state.dof); i++) {
-		P(i, i) = math::constrain(P(i, i), limited_min, limited_max);
-	}
+	constrainStateVar(state, limited_min, limited_max);
 }
 
 void Ekf::resetQuatCov(const float yaw_noise)

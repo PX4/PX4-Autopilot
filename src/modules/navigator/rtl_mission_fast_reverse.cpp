@@ -155,6 +155,13 @@ void RtlMissionFastReverse::setActiveMissionItems()
 		}
 
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+		const bool mc_landing_after_transition = _vehicle_status_sub.get().vehicle_type ==
+				vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && _vehicle_status_sub.get().is_vtol &&
+				new_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
+
+		if (mc_landing_after_transition) {
+			pos_sp_triplet->current.alt_acceptance_radius = FLT_MAX;
+		}
 	}
 
 	issue_command(_mission_item);
@@ -262,6 +269,13 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 				_mission_item.altitude = _home_pos_sub.get().alt;
 				_mission_item.altitude_is_relative = false;
 				_navigator->reset_position_setpoint(pos_sp_triplet->previous);
+
+				_mission_item.land_precision = _param_rtl_pld_md.get();
+
+				if (_mission_item.land_precision > 0) {
+					startPrecLand(_mission_item.land_precision);
+					new_work_item_type = WorkItemType::WORK_ITEM_TYPE_PRECISION_LAND;
+				}
 			}
 		}
 	}

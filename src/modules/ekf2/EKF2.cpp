@@ -745,6 +745,7 @@ void EKF2::Run()
 		ekf2_timestamps_s ekf2_timestamps {
 			.timestamp = now,
 			.airspeed_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+			.airspeed_validated_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
 			.distance_sensor_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
 			.optical_flow_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
 			.vehicle_air_data_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
@@ -1556,6 +1557,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 
 	// Acceleration of body origin in local frame
 	const Vector3f vel_deriv{_ekf.getVelocityDerivative()};
+	_ekf.resetVelocityDerivativeAccumulation();
 	lpos.ax = vel_deriv(0);
 	lpos.ay = vel_deriv(1);
 	lpos.az = vel_deriv(2);
@@ -1627,7 +1629,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 			      || _ekf.control_status_flags().wind_dead_reckoning;
 
 	// get control limit information
-	_ekf.get_ekf_ctrl_limits(&lpos.vxy_max, &lpos.vz_max, &lpos.hagl_min, &lpos.hagl_max);
+	_ekf.get_ekf_ctrl_limits(&lpos.vxy_max, &lpos.vz_max, &lpos.hagl_min, &lpos.hagl_max_z, &lpos.hagl_max_xy);
 
 	// convert NaN to INFINITY
 	if (!PX4_ISFINITE(lpos.vxy_max)) {
@@ -1642,8 +1644,12 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 		lpos.hagl_min = INFINITY;
 	}
 
-	if (!PX4_ISFINITE(lpos.hagl_max)) {
-		lpos.hagl_max = INFINITY;
+	if (!PX4_ISFINITE(lpos.hagl_max_z)) {
+		lpos.hagl_max_z = INFINITY;
+	}
+
+	if (!PX4_ISFINITE(lpos.hagl_max_xy)) {
+		lpos.hagl_max_xy = INFINITY;
 	}
 
 	// publish vehicle local position data
@@ -1927,6 +1933,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_opt_flow_terrain    = _ekf.control_status_flags().opt_flow_terrain;
 		status_flags.cs_valid_fake_pos      = _ekf.control_status_flags().valid_fake_pos;
 		status_flags.cs_constant_pos        = _ekf.control_status_flags().constant_pos;
+		status_flags.cs_baro_fault	    = _ekf.control_status_flags().baro_fault;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
@@ -2075,6 +2082,9 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 			}
 
 			_airspeed_validated_timestamp_last = airspeed_validated.timestamp;
+
+			ekf2_timestamps.airspeed_validated_timestamp_rel = (int16_t)((int64_t)airspeed_validated.timestamp / 100 -
+					(int64_t)ekf2_timestamps.timestamp / 100);
 		}
 
 	} else if (((ekf2_timestamps.timestamp - _airspeed_validated_timestamp_last) > 3_s) && _airspeed_sub.updated()) {

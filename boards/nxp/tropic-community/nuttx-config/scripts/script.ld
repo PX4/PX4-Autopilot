@@ -22,7 +22,7 @@
 
 MEMORY
 {
-  flash (rx)  : ORIGIN = 0x60000000, LENGTH = 7936K
+  flash (rx)  : ORIGIN = 0x60000000, LENGTH = 7936K - 128K
   sram  (rwx) : ORIGIN = 0x20200000, LENGTH = 512K
   itcm  (rwx) : ORIGIN = 0x00000000, LENGTH = 384K
   dtcm  (rwx) : ORIGIN = 0x20000000, LENGTH = 128K

@@ -34,8 +34,8 @@
 /**
  * Path navigation roll slew rate limit.
  *
- * The maximum change in roll angle setpoint per second.
- * This limit is applied in all Auto modes, plus manual Position and Altitude modes.
+ * Maximum change in roll angle setpoint per second.
+ * Applied in all Auto modes, plus manual Position & Altitude modes.
  *
  * @unit deg/s
  * @min 0
@@ -48,7 +48,7 @@ PARAM_DEFINE_FLOAT(FW_PN_R_SLEW_MAX, 90.0f);
 /**
  * NPFG period
  *
- * Period of the NPFG control law.
+ * Period of NPFG control law.
  *
  * @unit s
  * @min 1.0
@@ -62,7 +62,7 @@ PARAM_DEFINE_FLOAT(NPFG_PERIOD, 10.0f);
 /**
  * NPFG damping ratio
  *
- * Damping ratio of the NPFG control law.
+ * Damping ratio of NPFG control law.
  *
  * @min 0.10
  * @max 1.00
@@ -76,7 +76,7 @@ PARAM_DEFINE_FLOAT(NPFG_DAMPING, 0.7f);
  * Enable automatic lower bound on the NPFG period
  *
  * Avoids limit cycling from a too aggressively tuned period/damping combination.
- * If set to false, also disables the upper bound NPFG_PERIOD_UB.
+ * If false, also disables upper bound NPFG_PERIOD_UB.
  *
  * @boolean
  * @group FW NPFG Control
@@ -339,8 +339,6 @@ PARAM_DEFINE_FLOAT(FW_LND_FLALT, 0.5f);
  *
  * This is critical for detecting when to flare, and should be enabled if possible.
  *
- * NOTE: terrain estimate is currently solely derived from a distance sensor.
- *
  * If enabled and no measurement is found within a given timeout, the landing waypoint altitude will be used OR the landing
  * will be aborted, depending on the criteria set in FW_LND_ABORT.
  *
@@ -428,12 +426,12 @@ PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
 /**
  * Low-height threshold for tighter altitude tracking
  *
- * Defines the height (distance to bottom) threshold below which tighter altitude
+ * Height above ground threshold below which tighter altitude
  * tracking gets enabled (see FW_LND_THRTC_SC). Below this height, TECS smoothly
  * (1 sec / sec) transitions the altitude tracking time constant from FW_T_ALT_TC
  * to FW_LND_THRTC_SC*FW_T_ALT_TC.
  *
- * If equal to -1, low-height traking is disabled.
+ * -1 to disable.
  *
  * @unit m
  * @min -1
@@ -450,8 +448,6 @@ PARAM_DEFINE_FLOAT(FW_T_THR_LOW_HGT, -1.f);
 
 /**
  * Maximum descent rate
- *
- * This sets the maximum descent rate that the controller will use.
  *
  * @unit m/s
  * @min 1.0
@@ -579,15 +575,12 @@ PARAM_DEFINE_FLOAT(FW_T_SPD_PRC_STD, 0.2f);
 PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 15.0f);
 
 /**
- * Speed <--> Altitude priority
+ * Speed <--> Altitude weight
  *
  * Adjusts the amount of weighting that the pitch control
- * applies to speed vs height errors. Setting it to 0.0 will cause the
- * pitch control to control height and ignore speed errors.
- * Setting it to 2.0 will cause the pitch control loop to control speed
- * and ignore height errors. The default value of 1.0 allows the pitch
- * control to simultaneously control height and speed.
- * Set to 2 for gliders.
+ * applies to speed vs height errors.
+ * 0 -> control height only
+ * 2 -> control speed only (gliders)
  *
  * @min 0.0
  * @max 2.0

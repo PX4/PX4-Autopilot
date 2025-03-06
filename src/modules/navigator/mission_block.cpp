@@ -622,11 +622,11 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	sp->lon = item.lon;
 	sp->alt = get_absolute_altitude_for_item(item);
 	sp->yaw = item.yaw;
-	sp->loiter_radius = (fabsf(item.loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(item.loiter_radius) :
+	sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
 			    _navigator->get_loiter_radius();
 	sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
 
-	if (item.acceptance_radius > 0.001f && PX4_ISFINITE(item.acceptance_radius)) {
+	if (item.acceptance_radius > FLT_EPSILON && PX4_ISFINITE(item.acceptance_radius)) {
 		// if the mission item has a specified acceptance radius, overwrite the default one from parameters
 		sp->acceptance_radius = item.acceptance_radius;
 
@@ -978,7 +978,7 @@ void MissionBlock::startPrecLand(uint16_t land_precision)
 		_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
 		_navigator->get_precland()->on_activation();
 
-	} else { //_mission_item.land_precision == 2
+	} else if (_mission_item.land_precision == 2) {
 		_navigator->get_precland()->set_mode(PrecLandMode::Required);
 		_navigator->get_precland()->on_activation();
 	}
@@ -1026,7 +1026,8 @@ void MissionBlock::updateMaxHaglFailsafe()
 	const float target_alt = _navigator->get_position_setpoint_triplet()->current.alt;
 
 	if (_navigator->get_global_position()->terrain_alt_valid
-	    && ((target_alt - _navigator->get_global_position()->terrain_alt) > _navigator->get_local_position()->hagl_max)) {
+	    && ((target_alt - _navigator->get_global_position()->terrain_alt)
+		> math::min(_navigator->get_local_position()->hagl_max_z, _navigator->get_local_position()->hagl_max_xy))) {
 		// Handle case where the altitude setpoint is above the maximum HAGL (height above ground level)
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Target altitude higher than max HAGL\t");
 		events::send(events::ID("navigator_fail_max_hagl"), events::Log::Error, "Target altitude higher than max HAGL");

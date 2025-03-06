@@ -176,6 +176,9 @@
 
 #define BOARD_BATTERY1_V_DIV	 (21.0f) // (20k + 1k) / 1k = 21
 
+#define BOARD_BATTERY_ADC_VOLTAGE_FILTER_S 0.075f
+#define BOARD_BATTERY_ADC_CURRENT_FILTER_S 0.125f
+
 #define ADC_SCALED_PAYLOAD_SENSE ADC_SCALED_12V_CHANNEL
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */

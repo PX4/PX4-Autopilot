@@ -85,7 +85,7 @@ PARAM_DEFINE_INT32(UAVCAN_BITRATE, 1000000);
  * @unit m
  * @group UAVCAN
  */
-PARAM_DEFINE_FLOAT(UAVCAN_RNG_MIN, 0.3f);
+PARAM_DEFINE_FLOAT(UAVCAN_RNG_MIN, 0.0f);
 
 /**
  * UAVCAN rangefinder maximum range
@@ -95,7 +95,7 @@ PARAM_DEFINE_FLOAT(UAVCAN_RNG_MIN, 0.3f);
  * @unit m
  * @group UAVCAN
  */
-PARAM_DEFINE_FLOAT(UAVCAN_RNG_MAX, 200.0f);
+PARAM_DEFINE_FLOAT(UAVCAN_RNG_MAX, 999.0f);
 
 /**
  * UAVCAN fuel tank maximum capacity

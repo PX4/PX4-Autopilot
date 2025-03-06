@@ -40,6 +40,21 @@
 namespace gimbal
 {
 
+enum MntModeIn {
+	MNT_MODE_IN_DISABLED = -1,
+	MNT_MODE_IN_AUTO,				// RC and MAVLink gimbal protocol v2
+	MNT_MODE_IN_RC,
+	MNT_MODE_IN_MAVLINK_ROI,			// MAVLink gimbal protocol v1 (to be deprecated)
+	MNT_MODE_IN_MAVLINK_DO_MOUNT,		// MAVLink gimbal protocol v1 (to be deprecated)
+	MNT_MODE_IN_MAVLINK_V2			// MAVLink gimbal protocol v2
+};
+
+enum MntModeOut {
+	MNT_MODE_OUT_AUX = 0,
+	MNT_MODE_OUT_MAVLINK_V1, 			// MAVLink gimbal protocol v1 (to be deprecated)
+	MNT_MODE_OUT_MAVLINK_V2 			// MAVLink gimbal protocol v2
+};
+
 struct Parameters {
 	int32_t mnt_mode_in;
 	int32_t mnt_mode_out;

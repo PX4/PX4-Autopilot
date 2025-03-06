@@ -258,12 +258,19 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 			_angle_outputs[i] -= euler_vehicle(i);
 		}
 
-		if (PX4_ISFINITE(_angle_outputs[i])) {
-			// bring angles into proper range [-pi, pi]
+		if (PX4_ISFINITE(_angle_outputs[i]) && _parameters.mnt_rc_in_mode == 0) {
+			// if we are in angle input mode, we bring angles into proper range [-pi, pi]
 			_angle_outputs[i] = matrix::wrap_pi(_angle_outputs[i]);
 		}
 	}
 
+	// constrain angle outputs to [-range/2, range/2]
+	_angle_outputs[0] = math::constrain(_angle_outputs[0], math::radians(-_parameters.mnt_range_roll / 2),
+					    math::radians(_parameters.mnt_range_roll / 2));
+	_angle_outputs[1] = math::constrain(_angle_outputs[1], math::radians(-_parameters.mnt_range_pitch / 2),
+					    math::radians(_parameters.mnt_range_pitch / 2));
+	_angle_outputs[2] = math::constrain(_angle_outputs[2], math::radians(-_parameters.mnt_range_yaw / 2),
+					    math::radians(_parameters.mnt_range_yaw / 2));
 
 	// constrain pitch to [MNT_LND_P_MIN, MNT_LND_P_MAX] if landed
 	if (_landed) {

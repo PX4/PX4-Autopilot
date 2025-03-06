@@ -118,7 +118,7 @@ VtolTakeoff::on_active()
 				_mission_item.time_inside = 1.f;
 				_mission_item.loiter_radius = _navigator->get_loiter_radius();
 				_mission_item.acceptance_radius  = _navigator->get_acceptance_radius();
-				_mission_item.altitude = _navigator->get_home_position()->alt + _param_loiter_alt.get();
+				_mission_item.altitude = _takeoff_alt_msl + _param_loiter_alt.get();
 
 				mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 				pos_sp_triplet->current.lat = _loiter_location(0);
@@ -169,6 +169,8 @@ VtolTakeoff::set_takeoff_position()
 {
 	// set current mission item to takeoff
 	set_takeoff_item(&_mission_item, _transition_alt_amsl);
+
+	_takeoff_alt_msl = _navigator->get_global_position()->alt;
 
 	_mission_item.lat = _navigator->get_global_position()->lat;
 	_mission_item.lon = _navigator->get_global_position()->lon;

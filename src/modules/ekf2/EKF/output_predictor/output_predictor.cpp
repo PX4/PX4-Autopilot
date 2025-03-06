@@ -109,7 +109,8 @@ void OutputPredictor::reset()
 
 	_R_to_earth_now.setIdentity();
 	_vel_imu_rel_body_ned.setZero();
-	_vel_deriv.setZero();
+	_delta_vel_sum.setZero();
+	_delta_vel_dt = 0.f;
 
 	_delta_angle_corr.setZero();
 
@@ -210,9 +211,8 @@ void OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector
 	delta_vel_earth(2) += CONSTANTS_ONE_G * delta_velocity_dt;
 
 	// calculate the earth frame velocity derivatives
-	if (delta_velocity_dt > 0.001f) {
-		_vel_deriv = delta_vel_earth / delta_velocity_dt;
-	}
+	_delta_vel_sum += delta_vel_earth;
+	_delta_vel_dt += delta_velocity_dt;
 
 	// save the previous velocity so we can use trapezoidal integration
 	const Vector3f vel_last(_output_new.vel);
@@ -388,4 +388,20 @@ void OutputPredictor::applyCorrectionToOutputBuffer(const Vector3f &vel_correcti
 
 	// update output state to corrected values
 	_output_new = _output_buffer.get_newest();
+}
+
+matrix::Vector3f OutputPredictor::getVelocityDerivative() const
+{
+	if (_delta_vel_dt > FLT_EPSILON) {
+		return _delta_vel_sum / _delta_vel_dt;
+
+	} else {
+		return matrix::Vector3f(0.f, 0.f, 0.f);
+	}
+}
+
+void OutputPredictor::resetVelocityDerivativeAccumulation()
+{
+	_delta_vel_dt = 0.f;
+	_delta_vel_sum.setZero();
 }

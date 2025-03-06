@@ -92,6 +92,8 @@ parameters:
           by this parameter. The range sensor and vision options should only be used
           when for operation over a flat surface as the local NED origin will move
           up and down with ground level.
+          If GPS is set as reference but altitude fusion is disabled in EKF2_GPS_CTRL,
+          the GPS altitude is still used to initiaize the bias of the other height sensors.
       type: enum
       values:
         0: Barometric pressure

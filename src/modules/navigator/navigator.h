@@ -57,8 +57,11 @@
 
 #include "GeofenceBreachAvoidance/geofence_breach_avoidance.h"
 
+#if CONFIG_NAVIGATOR_ADSB
 #include <lib/adsb/AdsbConflict.h>
+#endif // CONFIG_NAVIGATOR_ADSB
 #include <lib/perf/perf_counter.h>
+#include <px4_platform_common/events.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
@@ -136,14 +139,14 @@ public:
 	 */
 	void publish_vehicle_cmd(vehicle_command_s *vcmd);
 
+#if CONFIG_NAVIGATOR_ADSB
 	/**
 	 * Check nearby traffic for potential collisions
 	 */
 	void check_traffic();
-
 	void take_traffic_conflict_action();
-
 	void run_fake_traffic();
+#endif // CONFIG_NAVIGATOR_ADSB
 
 	/**
 	 * Setters
@@ -365,7 +368,10 @@ private:
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */
+#if CONFIG_NAVIGATOR_ADSB
 	AdsbConflict 	_adsb_conflict;			/**< class that handles ADSB conflict avoidance */
+	traffic_buffer_s _traffic_buffer{};
+#endif // CONFIG_NAVIGATOR_ADSB
 
 	NavigatorMode *_navigation_mode{nullptr};	/**< abstract pointer to current navigation mode class */
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE] {};	/**< array of navigation modes */
@@ -380,8 +386,6 @@ private:
 
 	float _cruising_speed_current_mode{-1.0f};
 	float _mission_throttle{NAN};
-
-	traffic_buffer_s _traffic_buffer{};
 
 	bool _is_capturing_images{false}; // keep track if we need to stop capturing images
 

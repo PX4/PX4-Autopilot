@@ -57,7 +57,7 @@
  * @min 0.0
  * @decimal 3
  * @increment 0.01
- * @group Rover Position Control
+ * @group Rover Position Control (Deprecated)
  */
 PARAM_DEFINE_FLOAT(GND_WHEEL_BASE, 0.31f);
 
@@ -73,7 +73,7 @@ PARAM_DEFINE_FLOAT(GND_WHEEL_BASE, 0.31f);
  * @max 50.0
  * @decimal 1
  * @increment 0.1
- * @group Rover Position Control
+ * @group Rover Position Control (Deprecated)
  */
 PARAM_DEFINE_FLOAT(GND_L1_DIST, 1.0f);
 
@@ -90,7 +90,7 @@ PARAM_DEFINE_FLOAT(GND_L1_DIST, 1.0f);
  * @max 50.0
  * @decimal 1
  * @increment 0.5
- * @group Rover Position Control
+ * @group Rover Position Control (Deprecated)
  */
 PARAM_DEFINE_FLOAT(GND_L1_PERIOD, 5.0f);
 
@@ -103,7 +103,7 @@ PARAM_DEFINE_FLOAT(GND_L1_PERIOD, 5.0f);
  * @max 0.9
  * @decimal 2
  * @increment 0.05
- * @group Rover Position Control
+ * @group Rover Position Control (Deprecated)
  */
 PARAM_DEFINE_FLOAT(GND_L1_DAMPING, 0.75f);
 
@@ -118,7 +118,7 @@ PARAM_DEFINE_FLOAT(GND_L1_DAMPING, 0.75f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group Rover Position Control
+ * @group Rover Position Control (Deprecated)
  */
 PARAM_DEFINE_FLOAT(GND_THR_CRUISE, 0.1f);
 
@@ -133,7 +133,7 @@ PARAM_DEFINE_FLOAT(GND_THR_CRUISE, 0.1f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group Rover Position Control
+ * @group Rover Position Control (Deprecated)
  */
 PARAM_DEFINE_FLOAT(GND_THR_MAX, 0.3f);
 
@@ -148,7 +148,7 @@ PARAM_DEFINE_FLOAT(GND_THR_MAX, 0.3f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group Rover Position Control
+ * @group Rover Position Control (Deprecated)
  */
 PARAM_DEFINE_FLOAT(GND_THR_MIN, 0.0f);
 
@@ -160,7 +160,7 @@ PARAM_DEFINE_FLOAT(GND_THR_MIN, 0.0f);
  * @max 1
  * @value 0 open loop control
  * @value 1 close the loop with gps speed
- * @group Rover Position Control
+ * @group Rover Position Control (Deprecated)
  */
 PARAM_DEFINE_INT32(GND_SP_CTRL_MODE, 1);
 
@@ -174,7 +174,7 @@ PARAM_DEFINE_INT32(GND_SP_CTRL_MODE, 1);
  * @max 50.0
  * @decimal 3
  * @increment 0.005
- * @group Rover Position Control
+ * @group Rover Position Control (Deprecated)
  */
 PARAM_DEFINE_FLOAT(GND_SPEED_P, 2.0f);
 
@@ -188,7 +188,7 @@ PARAM_DEFINE_FLOAT(GND_SPEED_P, 2.0f);
  * @max 50.0
  * @decimal 3
  * @increment 0.005
- * @group Rover Position Control
+ * @group Rover Position Control (Deprecated)
  */
 PARAM_DEFINE_FLOAT(GND_SPEED_I, 3.0f);
 
@@ -202,7 +202,7 @@ PARAM_DEFINE_FLOAT(GND_SPEED_I, 3.0f);
  * @max 50.0
  * @decimal 3
  * @increment 0.005
- * @group Rover Position Control
+ * @group Rover Position Control (Deprecated)
  */
 PARAM_DEFINE_FLOAT(GND_SPEED_D, 0.001f);
 
@@ -216,7 +216,7 @@ PARAM_DEFINE_FLOAT(GND_SPEED_D, 0.001f);
  * @max 50.0
  * @decimal 3
  * @increment 0.005
- * @group Rover Position Control
+ * @group Rover Position Control (Deprecated)
  */
 PARAM_DEFINE_FLOAT(GND_SPEED_IMAX, 1.0f);
 
@@ -230,7 +230,7 @@ PARAM_DEFINE_FLOAT(GND_SPEED_IMAX, 1.0f);
  * @max 50.0
  * @decimal 3
  * @increment 0.005
- * @group Rover Position Control
+ * @group Rover Position Control (Deprecated)
  */
 PARAM_DEFINE_FLOAT(GND_SPEED_THR_SC, 1.0f);
 
@@ -243,7 +243,7 @@ PARAM_DEFINE_FLOAT(GND_SPEED_THR_SC, 1.0f);
  * @max 40
  * @decimal 1
  * @increment 0.5
- * @group Rover Position Control
+ * @group Rover Position Control (Deprecated)
  */
 PARAM_DEFINE_FLOAT(GND_SPEED_TRIM, 3.0f);
 
@@ -256,7 +256,7 @@ PARAM_DEFINE_FLOAT(GND_SPEED_TRIM, 3.0f);
  * @max 40
  * @decimal 1
  * @increment 0.5
- * @group Rover Position Control
+ * @group Rover Position Control (Deprecated)
  */
 PARAM_DEFINE_FLOAT(GND_SPEED_MAX, 10.0f);
 
@@ -271,7 +271,7 @@ PARAM_DEFINE_FLOAT(GND_SPEED_MAX, 10.0f);
  * @max 3.14159
  * @decimal 3
  * @increment 0.01
- * @group Rover Position Control
+ * @group Rover Position Control (Deprecated)
  */
 PARAM_DEFINE_FLOAT(GND_MAX_ANG, 0.7854f);
 
@@ -282,6 +282,6 @@ PARAM_DEFINE_FLOAT(GND_MAX_ANG, 0.7854f);
  * @min 0.0
  * @max 400
  * @decimal 1
- * @group Rover Position Control
+ * @group Rover Position Control (Deprecated)
  */
 PARAM_DEFINE_FLOAT(GND_MAN_Y_MAX, 150.0f);

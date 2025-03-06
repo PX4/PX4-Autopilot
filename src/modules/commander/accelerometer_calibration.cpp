@@ -157,21 +157,17 @@ struct accel_worker_data_s {
 	orb_advert_t	*mavlink_log_pub{nullptr};
 	unsigned	done_count{0};
 	float		accel_ref[MAX_ACCEL_SENS][detect_orientation_side_count][3] {};
+
+	calibration::Accelerometer calibration[MAX_ACCEL_SENS] {};
 };
 
 // Read specified number of accelerometer samples, calculate average and dispersion.
-static calibrate_return read_accelerometer_avg(float (&accel_avg)[MAX_ACCEL_SENS][detect_orientation_side_count][3],
-		unsigned orient, unsigned samples_num)
+static calibrate_return read_accelerometer_avg(accel_worker_data_s *worker_data, unsigned orient, unsigned samples_num)
 {
 	Vector3f accel_sum[MAX_ACCEL_SENS] {};
 	unsigned counts[MAX_ACCEL_SENS] {};
 
 	unsigned errcount = 0;
-
-	// sensor thermal corrections
-	uORB::Subscription sensor_correction_sub{ORB_ID(sensor_correction)};
-	sensor_correction_s sensor_correction{};
-	sensor_correction_sub.copy(&sensor_correction);
 
 	uORB::SubscriptionBlocking<sensor_accel_s> accel_sub[MAX_ACCEL_SENS] {
 		{ORB_ID(sensor_accel), 0, 0},
@@ -187,32 +183,9 @@ static calibrate_return read_accelerometer_avg(float (&accel_avg)[MAX_ACCEL_SENS
 				sensor_accel_s arp;
 
 				while (accel_sub[accel_index].update(&arp)) {
-					// fetch optional thermal offset corrections in sensor/board frame
-					Vector3f offset{0, 0, 0};
-					sensor_correction_sub.update(&sensor_correction);
-
-					if (sensor_correction.timestamp > 0 && arp.device_id != 0) {
-						for (uint8_t correction_index = 0; correction_index < MAX_ACCEL_SENS; correction_index++) {
-							if (sensor_correction.accel_device_ids[correction_index] == arp.device_id) {
-								switch (correction_index) {
-								case 0:
-									offset = Vector3f{sensor_correction.accel_offset_0};
-									break;
-								case 1:
-									offset = Vector3f{sensor_correction.accel_offset_1};
-									break;
-								case 2:
-									offset = Vector3f{sensor_correction.accel_offset_2};
-									break;
-								case 3:
-									offset = Vector3f{sensor_correction.accel_offset_3};
-									break;
-								}
-							}
-						}
-					}
-
-					accel_sum[accel_index] += Vector3f{arp.x, arp.y, arp.z} - offset;
+					// fetch optional thermal offset corrections
+					worker_data->calibration[accel_index].SensorCorrectionsUpdate();
+					accel_sum[accel_index] += worker_data->calibration[accel_index].Correct(Vector3f(arp.x, arp.y, arp.z));
 
 					counts[accel_index]++;
 				}
@@ -228,16 +201,9 @@ static calibrate_return read_accelerometer_avg(float (&accel_avg)[MAX_ACCEL_SENS
 		}
 	}
 
-	// rotate sensor measurements from sensor to body frame using board rotation matrix
-	const Dcmf board_rotation = calibration::GetBoardRotationMatrix();
-
-	for (unsigned s = 0; s < MAX_ACCEL_SENS; s++) {
-		accel_sum[s] = board_rotation * accel_sum[s];
-	}
-
 	for (unsigned s = 0; s < MAX_ACCEL_SENS; s++) {
 		const Vector3f avg{accel_sum[s] / counts[s]};
-		avg.copyTo(accel_avg[s][orient]);
+		avg.copyTo(worker_data->accel_ref[s][orient]);
 	}
 
 	return calibrate_return_ok;
@@ -251,7 +217,7 @@ static calibrate_return accel_calibration_worker(detect_orientation_return orien
 	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Hold still, measuring %s side",
 			     detect_orientation_str(orientation));
 
-	read_accelerometer_avg(worker_data->accel_ref, orientation, samples_num);
+	read_accelerometer_avg(worker_data, orientation, samples_num);
 
 	// check accel
 	for (unsigned accel_index = 0; accel_index < MAX_ACCEL_SENS; accel_index++) {
@@ -325,18 +291,27 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 {
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, sensor_name);
 
-	calibration::Accelerometer calibrations[MAX_ACCEL_SENS] {};
+	accel_worker_data_s worker_data{};
+	worker_data.mavlink_log_pub = mavlink_log_pub;
+
 	unsigned active_sensors = 0;
 
 	for (uint8_t cur_accel = 0; cur_accel < MAX_ACCEL_SENS; cur_accel++) {
 		uORB::SubscriptionData<sensor_accel_s> accel_sub{ORB_ID(sensor_accel), cur_accel};
 
 		if (accel_sub.advertised() && (accel_sub.get().device_id != 0) && (accel_sub.get().timestamp > 0)) {
-			calibrations[cur_accel].set_device_id(accel_sub.get().device_id);
+			worker_data.calibration[cur_accel].set_device_id(accel_sub.get().device_id);
+
+			// clear existing calibration
+			worker_data.calibration[cur_accel].Reset();
+
+			// force fetch optional thermal offset corrections
+			worker_data.calibration[cur_accel].SensorCorrectionsUpdate(true);
+
 			active_sensors++;
 
 		} else {
-			calibrations[cur_accel].Reset();
+			worker_data.calibration[cur_accel].Reset();
 		}
 	}
 
@@ -353,15 +328,10 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	}
 
 	/* measure and calculate offsets & scales */
-	accel_worker_data_s worker_data{};
-	worker_data.mavlink_log_pub = mavlink_log_pub;
 	bool data_collected[detect_orientation_side_count] {};
 
 	if (calibrate_from_orientation(mavlink_log_pub, data_collected, accel_calibration_worker, &worker_data,
 				       false) == calibrate_return_ok) {
-
-		const Dcmf board_rotation = calibration::GetBoardRotationMatrix();
-		const Dcmf board_rotation_t = board_rotation.transpose();
 
 		bool param_save = false;
 		bool failed = true;
@@ -396,29 +366,22 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 				const Matrix3f accel_T = mat_A.I() * CONSTANTS_ONE_G;
 
 				// update calibration
-				const Vector3f accel_offs_rotated{board_rotation_t *offset};
-				calibrations[i].set_offset(accel_offs_rotated);
-
-				const Matrix3f accel_T_rotated{board_rotation_t *accel_T * board_rotation};
-				calibrations[i].set_scale(accel_T_rotated.diag());
+				worker_data.calibration[i].set_offset(offset);
+				worker_data.calibration[i].set_scale(accel_T.diag());
 
 #if defined(DEBUD_BUILD)
 				PX4_INFO("accel %d: offset", i);
 				offset.print();
-				PX4_INFO("accel %d: bT * offset", i);
-				accel_offs_rotated.print();
 
 				PX4_INFO("accel %d: mat_A", i);
 				mat_A.print();
 				PX4_INFO("accel %d: accel_T", i);
 				accel_T.print();
-				PX4_INFO("accel %d: bT * accel_T * b", i);
-				accel_T_rotated.print();
 #endif // DEBUD_BUILD
-				calibrations[i].PrintStatus();
+				worker_data.calibration[i].PrintStatus();
 
 
-				if (calibrations[i].ParametersSave(i, true)) {
+				if (worker_data.calibration[i].ParametersSave(i, true)) {
 					param_save = true;
 					failed = false;
 

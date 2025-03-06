@@ -327,13 +327,15 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 	*ekf_evv = sqrtf(P(State::vel.idx + 2, State::vel.idx + 2));
 }
 
-void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max) const
+void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max_z,
+			      float *hagl_max_xy) const
 {
 	// Do not require limiting by default
 	*vxy_max = NAN;
 	*vz_max = NAN;
 	*hagl_min = NAN;
-	*hagl_max = NAN;
+	*hagl_max_z = NAN;
+	*hagl_max_xy = NAN;
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// Calculate range finder limits
@@ -345,10 +347,9 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 	// TODO : calculate visual odometry limits
 	const bool relying_on_rangefinder = isOnlyActiveSourceOfVerticalPositionAiding(_control_status.flags.rng_hgt);
 
-	// Keep within range sensor limit when using rangefinder as primary height source
 	if (relying_on_rangefinder) {
 		*hagl_min = rangefinder_hagl_min;
-		*hagl_max = rangefinder_hagl_max;
+		*hagl_max_z = rangefinder_hagl_max;
 	}
 
 # if defined(CONFIG_EKF2_OPTICAL_FLOW)
@@ -371,11 +372,12 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		const float flow_constrained_height = math::constrain(getHagl(), flow_hagl_min, flow_hagl_max);
 
 		// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion
-		const float flow_vxy_max = 0.5f * _flow_max_rate * flow_constrained_height;
+		float flow_vxy_max = 0.5f * _flow_max_rate * flow_constrained_height;
+		flow_hagl_max = math::max(flow_hagl_max * 0.9f, flow_hagl_max - 1.0f);
 
 		*vxy_max = flow_vxy_max;
 		*hagl_min = flow_hagl_min;
-		*hagl_max = flow_hagl_max;
+		*hagl_max_xy = flow_hagl_max;
 	}
 
 # endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -1129,6 +1131,21 @@ bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R,
 	// apply the state corrections
 	fuse(K, innovation);
 	return true;
+}
+
+void Ekf::resetAidSourceStatusZeroInnovation(estimator_aid_source1d_s &status) const
+{
+	status.time_last_fuse = _time_delayed_us;
+
+	status.innovation = 0.f;
+	status.innovation_filtered = 0.f;
+	status.innovation_variance = status.observation_variance;
+
+	status.test_ratio = 0.f;
+	status.test_ratio_filtered = 0.f;
+
+	status.innovation_rejected = false;
+	status.fused = true;
 }
 
 void Ekf::updateAidSourceStatus(estimator_aid_source1d_s &status, const uint64_t &timestamp_sample,
