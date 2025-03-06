@@ -1373,6 +1373,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			fixed_wing_longitudinal_setpoint_s long_control_sp{empty_longitudinal_control_setpoint};
 			long_control_sp.timestamp = hrt_absolute_time();
 			long_control_sp.pitch_direct = radians(_takeoff_pitch_min.get());
+			long_control_sp.throttle_direct = _param_fw_thr_idle.get();
 			_longitudinal_ctrl_sp_pub.publish(long_control_sp);
 		}
 
