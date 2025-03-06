@@ -108,6 +108,7 @@ protected:
 
 	void _checkEmergencyBraking();
 	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
+	bool isTargetModified() const;
 	void _updateTrajConstraints();
 
 	void rcHelpModifyYaw(float &yaw_sp);

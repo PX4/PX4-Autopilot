@@ -172,11 +172,6 @@ void Standard::update_transition_state()
 
 	VtolType::update_transition_state();
 
-	const Eulerf attitude_setpoint_euler(Quatf(_v_att_sp->q_d));
-	float roll_body = attitude_setpoint_euler.phi();
-	float pitch_body = attitude_setpoint_euler.theta();
-	float yaw_body = attitude_setpoint_euler.psi();
-
 	// we get attitude setpoint from a multirotor flighttask if climbrate is controlled.
 	// in any other case the fixed wing attitude controller publishes attitude setpoint from manual stick input.
 	if (_v_control_mode->flag_control_climb_rate_enabled) {
@@ -186,7 +181,6 @@ void Standard::update_transition_state()
 		}
 
 		memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
-		roll_body = Eulerf(Quatf(_fw_virtual_att_sp->q_d)).phi();
 
 	} else {
 		// we need a recent incoming (fw virtual) attitude setpoint, otherwise return (means the previous setpoint stays active)
@@ -196,6 +190,16 @@ void Standard::update_transition_state()
 
 		memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 		_v_att_sp->thrust_body[2] = -_fw_virtual_att_sp->thrust_body[0];
+	}
+
+
+	const Eulerf attitude_setpoint_euler(Quatf(_v_att_sp->q_d));
+	float roll_body = attitude_setpoint_euler.phi();
+	float pitch_body = attitude_setpoint_euler.theta();
+	float yaw_body = attitude_setpoint_euler.psi();
+
+	if (_v_control_mode->flag_control_climb_rate_enabled) {
+		roll_body = Eulerf(Quatf(_fw_virtual_att_sp->q_d)).phi();
 	}
 
 	if (_vtol_mode == vtol_mode::TRANSITION_TO_FW) {

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,9 +31,35 @@
 #
 ############################################################################
 
-px4_add_library(RoverMecanumControl
-	RoverMecanumControl.cpp
+project(OpticalFlowSystem)
+
+# Include the OpticalFlow external dependency
+include(${CMAKE_CURRENT_SOURCE_DIR}/optical_flow.cmake)
+
+# Find OpenCV
+find_package(OpenCV REQUIRED)
+
+add_library(${PROJECT_NAME} SHARED
+    OpticalFlowSensor.cpp
+    OpticalFlowSystem.cpp
 )
 
-target_link_libraries(RoverMecanumControl PUBLIC PID)
-target_include_directories(RoverMecanumControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(${PROJECT_NAME}
+    PUBLIC px4_gz_msgs
+    PUBLIC gz-sensors${GZ_SENSORS_VERSION}::gz-sensors${GZ_SENSORS_VERSION}
+    PUBLIC gz-plugin${GZ_PLUGIN_VERSION}::gz-plugin${GZ_PLUGIN_VERSION}
+    PUBLIC gz-sim${GZ_SIM_VERSION}::gz-sim${GZ_SIM_VERSION}
+    PUBLIC gz-transport${GZ_TRANSPORT_VERSION}::gz-transport${GZ_TRANSPORT_VERSION}
+    PUBLIC ${OpenCV_LIBS}
+    PUBLIC ${OpticalFlow_LIBS}
+)
+
+target_include_directories(${PROJECT_NAME}
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
+    PUBLIC ${OpenCV_INCLUDE_DIRS}
+    PUBLIC ${OpticalFlow_INCLUDE_DIRS}
+    PUBLIC px4_gz_msgs
+)
+
+add_dependencies(${PROJECT_NAME} OpticalFlow)

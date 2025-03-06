@@ -121,6 +121,8 @@ bool GZMixingInterfaceServo::init(const std::string &model_name)
 		_angular_range_rad.push_back(max_val - min_val);
 	}
 
+	pthread_mutex_init(&_node_mutex, nullptr);
+
 	ScheduleNow();
 
 	return true;

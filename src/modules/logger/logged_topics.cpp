@@ -105,14 +105,11 @@ void LoggedTopics::add_default_topics()
 	add_topic("radio_status");
 	add_optional_topic("rover_attitude_setpoint", 100);
 	add_optional_topic("rover_attitude_status", 100);
-	add_optional_topic("rover_velocity_status", 100);
 	add_optional_topic("rover_rate_setpoint", 100);
 	add_optional_topic("rover_rate_status", 100);
 	add_optional_topic("rover_steering_setpoint", 100);
 	add_optional_topic("rover_throttle_setpoint", 100);
-	add_optional_topic("rover_mecanum_guidance_status", 100);
-	add_optional_topic("rover_mecanum_setpoint", 100);
-	add_optional_topic("rover_mecanum_status", 100);
+	add_optional_topic("rover_velocity_status", 100);
 	add_topic("rtl_time_estimate", 1000);
 	add_topic("rtl_status", 2000);
 	add_optional_topic("sensor_airflow", 100);

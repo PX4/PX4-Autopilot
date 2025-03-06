@@ -159,6 +159,11 @@ bool FlightTaskAuto::update()
 	_checkEmergencyBraking();
 	Vector3f waypoints[] = {_prev_wp, _position_setpoint, _next_wp};
 
+	if (isTargetModified()) {
+		// In case the target has been modified, we take this as the next waypoints
+		waypoints[2] = _position_setpoint;
+	}
+
 	const bool should_wait_for_yaw_align = _param_mpc_yaw_mode.get() == int32_t(yaw_mode::towards_waypoint_yaw_first)
 					       && !_yaw_sp_aligned;
 	const bool force_zero_velocity_setpoint = should_wait_for_yaw_align || _is_emergency_braking_active;
@@ -248,9 +253,15 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		// Stick full up -1 -> stop, stick full down 1 -> double the speed
 		vertical_speed *= (1 - _sticks.getThrottleZeroCenteredExpo());
 
+		Vector2f sticks_xy = _sticks.getPitchRollExpo();
+
+		if (sticks_xy.longerThan(FLT_EPSILON)) {
+			// Ensure no unintended yawing when nudging horizontally during initial heading alignment
+			_land_heading = _yaw_sp_prev;
+		}
+
 		rcHelpModifyYaw(_land_heading);
 
-		Vector2f sticks_xy = _sticks.getPitchRollExpo();
 		Vector2f sticks_ne = sticks_xy;
 		Sticks::rotateIntoHeadingFrameXY(sticks_ne, _yaw, _land_heading);
 
@@ -757,6 +768,15 @@ bool FlightTaskAuto::_generateHeadingAlongTraj()
 	}
 
 	return res;
+}
+
+bool FlightTaskAuto::isTargetModified() const
+{
+	const bool xy_modified = (_target - _position_setpoint).xy().longerThan(FLT_EPSILON);
+	const bool z_valid = PX4_ISFINITE(_position_setpoint(2));
+	const bool z_modified =  z_valid && std::fabs((_target - _position_setpoint)(2)) > FLT_EPSILON;
+
+	return xy_modified || z_modified;
 }
 
 void FlightTaskAuto::_updateTrajConstraints()
