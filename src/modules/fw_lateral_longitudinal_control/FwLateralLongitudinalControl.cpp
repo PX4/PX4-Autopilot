@@ -145,6 +145,7 @@ void FwLateralLongitudinalControl::Run()
 		_tecs.set_altitude_error_time_constant(_tecs_alt_time_const_slew_rate.getState());
 
 		if (_vehicle_air_data_sub.updated()) {
+			_vehicle_air_data_sub.update();
 			_air_density = PX4_ISFINITE(_vehicle_air_data_sub.get().rho) ? _vehicle_air_data_sub.get().rho : _air_density;
 			_tecs.set_max_climb_rate(_performance_model.getMaximumClimbRate(_air_density));
 			_tecs.set_min_sink_rate(_performance_model.getMinimumSinkRate(_air_density));
