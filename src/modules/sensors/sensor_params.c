@@ -88,6 +88,19 @@ PARAM_DEFINE_FLOAT(CAL_AIR_TUBED_MM, 1.5f);
 PARAM_DEFINE_FLOAT(SENS_DPRES_OFF, 0.0f);
 
 /**
+ * Differential pressure sensor absolute
+ *
+ * Set to 1 to enable absolute values only for differential pressure sensors.
+ * This should be done if differential pressure sensors have had static and dynamic ports swapped.
+ * Setting this parameter to 1 makes it difficult to detect pitot-static pressure leaks; only
+ * set this parameter if static and dynamic tubes are inaccessible.
+ *
+ * @category system
+ * @group Sensor Calibration
+ */
+PARAM_DEFINE_INT32(SENS_DPRES_ABS, 0);
+
+/**
  * Differential pressure sensor analog scaling
  *
  * Pick the appropriate scaling from the datasheet.
