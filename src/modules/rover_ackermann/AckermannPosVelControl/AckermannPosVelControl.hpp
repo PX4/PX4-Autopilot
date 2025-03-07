@@ -64,6 +64,7 @@
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/pure_pursuit_status.h>
 
 using namespace matrix;
 
@@ -192,11 +193,12 @@ private:
 	offboard_control_mode_s _offboard_control_mode{};
 
 	// uORB publications
-	uORB::Publication<rover_rate_setpoint_s> _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
-	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
-	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
-	uORB::Publication<rover_velocity_status_s> _rover_velocity_status_pub{ORB_ID(rover_velocity_status)};
+	uORB::Publication<rover_rate_setpoint_s>        _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
+	uORB::Publication<rover_throttle_setpoint_s>    _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
+	uORB::Publication<rover_attitude_setpoint_s>    _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
+	uORB::Publication<rover_velocity_status_s>      _rover_velocity_status_pub{ORB_ID(rover_velocity_status)};
 	uORB::Publication<position_controller_status_s>	_position_controller_status_pub{ORB_ID(position_controller_status)};
+	uORB::Publication<pure_pursuit_status_s>	_pure_pursuit_status_pub{ORB_ID(pure_pursuit_status)};
 
 	// Variables
 	hrt_abstime _timestamp{0};
@@ -232,7 +234,6 @@ private:
 	SlewRate<float> _speed_setpoint;
 
 	// Class Instances
-	PurePursuit _posctl_pure_pursuit{this}; // Pure pursuit library
 	MapProjection _global_ned_proj_ref{}; // Transform global to NED coordinates
 
 	DEFINE_PARAMETERS(
@@ -245,7 +246,9 @@ private:
 		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_limit,
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
 		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th,
+		(ParamFloat<px4::params::PP_LOOKAHD_GAIN>)  _param_pp_lookahd_gain,
 		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
+		(ParamFloat<px4::params::PP_LOOKAHD_MIN>)   _param_pp_lookahd_min,
 		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
 		(ParamFloat<px4::params::RA_ACC_RAD_MAX>)   _param_ra_acc_rad_max,
 		(ParamFloat<px4::params::RA_ACC_RAD_GAIN>)  _param_ra_acc_rad_gain,
