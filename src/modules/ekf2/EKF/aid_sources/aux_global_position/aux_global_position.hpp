@@ -82,6 +82,8 @@ private:
 		return (last_sensor_timestamp == 0) || (last_sensor_timestamp + timeout_period < time_delayed_us);
 	}
 
+	bool isResetAllowed(const Ekf &ekf) const;
+
 	struct AuxGlobalPositionSample {
 		uint64_t time_us{};     ///< timestamp of the measurement (uSec)
 		double latitude{};
@@ -99,6 +101,11 @@ private:
 	enum class Ctrl : uint8_t {
 		HPOS  = (1 << 0),
 		VPOS  = (1 << 1)
+	};
+
+	enum class Mode : uint8_t {
+		AUTO           = 0,   	///< Reset on fusion timeout if no other source of position is available
+		DEAD_RECKONING = 1   	///< Reset on fusion timeout if no source of velocity is availabl
 	};
 
 	enum class State {
@@ -122,6 +129,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::EKF2_AGP_CTRL>) _param_ekf2_agp_ctrl,
+		(ParamInt<px4::params::EKF2_AGP_MODE>) _param_ekf2_agp_mode,
 		(ParamFloat<px4::params::EKF2_AGP_DELAY>) _param_ekf2_agp_delay,
 		(ParamFloat<px4::params::EKF2_AGP_NOISE>) _param_ekf2_agp_noise,
 		(ParamFloat<px4::params::EKF2_AGP_GATE>) _param_ekf2_agp_gate
