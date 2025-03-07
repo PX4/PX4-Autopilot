@@ -107,7 +107,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 					const bool fused = ekf.fuseHorizontalPosition(aid_src);
 					bool reset = false;
 
-					if (!fused && !ekf.isOtherSourceOfHorizontalPositionAidingThan(ekf.control_status_flags().aux_gpos)) {
+					if (!fused && isResetAllowed(ekf)) {
 						ekf.resetHorizontalPositionTo(sample.latitude, sample.longitude, Vector2f(aid_src.observation_variance));
 						ekf.resetAidSourceStatusZeroInnovation(aid_src);
 						reset = true;
@@ -139,7 +139,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 
 				if (isTimedOut(aid_src.time_last_fuse, imu_delayed.time_us, ekf._params.reset_timeout_max)
 				    || (_reset_counters.lat_lon != sample.lat_lon_reset_counter)) {
-					if (ekf.isOnlyActiveSourceOfHorizontalPositionAiding(ekf.control_status_flags().aux_gpos)) {
+					if (isResetAllowed(ekf)) {
 
 						ekf.resetHorizontalPositionTo(sample.latitude, sample.longitude, Vector2f(aid_src.observation_variance));
 
@@ -176,6 +176,14 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 		_state = State::stopped;
 		ECL_WARN("Aux global position data stopped");
 	}
+}
+
+bool AuxGlobalPosition::isResetAllowed(const Ekf &ekf) const
+{
+	return ((static_cast<Mode>(_param_ekf2_agp_mode.get()) == Mode::kAuto)
+		&& !ekf.isOtherSourceOfHorizontalPositionAidingThan(ekf.control_status_flags().aux_gpos))
+	       || ((static_cast<Mode>(_param_ekf2_agp_mode.get()) == Mode::kDeadReckoning)
+		   && !ekf.isOtherSourceOfHorizontalAidingThan(ekf.control_status_flags().aux_gpos));
 }
 
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
