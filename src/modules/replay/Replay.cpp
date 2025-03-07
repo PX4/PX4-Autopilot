@@ -730,6 +730,7 @@ Replay::nextDataMessage(std::ifstream &file, Subscription &subscription, int msg
 						subscription.next_read_pos = cur_pos;
 						file.seekg(subscription.timestamp_offset, ios::cur);
 						file.read((char *)&subscription.next_timestamp, sizeof(subscription.next_timestamp));
+						subscription.published = false;
 						done = true;
 
 					} else { //sanity check failed!
@@ -1125,6 +1126,7 @@ Replay::publishTopic(Subscription &sub, void *data)
 
 	if (published) {
 		++sub.publication_counter;
+		sub.published = true;
 	}
 
 	return published;
