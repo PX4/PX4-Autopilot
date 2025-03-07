@@ -223,11 +223,12 @@ void FwLateralLongitudinalControl::Run()
 
 			float airspeed_reference_direction{NAN};
 			float lateral_accel_sp {NAN};
+			const Vector2f airspeed_vector = _lateral_control_state.ground_speed - _lateral_control_state.wind_speed;
 
 			if (PX4_ISFINITE(_lat_control_sp.course_setpoint)) {
 				airspeed_reference_direction = _course_to_airspeed.mapCourseSetpointToHeadingSetpoint(
 								       _lat_control_sp.course_setpoint, _lateral_control_state.wind_speed,
-								       _long_control_state.airspeed_eas * _long_control_state.eas2tas);
+								       airspeed_vector.norm());
 			}
 
 			if (PX4_ISFINITE(_lat_control_sp.airspeed_reference_direction)) {
@@ -236,10 +237,9 @@ void FwLateralLongitudinalControl::Run()
 			}
 
 			if (PX4_ISFINITE(airspeed_reference_direction)) {
-				const Vector2f  airspeed_vector = _lateral_control_state.ground_speed - _lateral_control_state.wind_speed;
 				const float heading = atan2f(airspeed_vector(1), airspeed_vector(0));
 				lateral_accel_sp = _airspeed_ref_control.controlHeading(airspeed_reference_direction, heading,
-						   _long_control_state.airspeed_eas * _long_control_state.eas2tas);
+						   airspeed_vector.norm());
 			}
 
 			if (PX4_ISFINITE(_lat_control_sp.lateral_acceleration_setpoint)) {
