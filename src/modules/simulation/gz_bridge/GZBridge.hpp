@@ -121,7 +121,7 @@ private:
 	void laserScanCallback(const gz::msgs::LaserScan &msg);
 	void opticalFlowCallback(const px4::msgs::OpticalFlow &msg);
 	void magnetometerCallback(const gz::msgs::Magnetometer &msg);
-	void windCallback(const gz::msgs::Wind &wind);
+	void windCallback(const gz::msgs::Wind &msg);
 
 	static void rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU);
 	// generate white Gaussian noise sample with std=1

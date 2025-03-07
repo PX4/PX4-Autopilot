@@ -440,7 +440,7 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &msg)
 			const float air_density = AIR_DENSITY_MSL / density_ratio;
 			// calculate differential pressure + noise in hPa
 			const float diff_pressure_noise = generate_wgn() * 0.01f;
-			float diff_pressure;
+			float diff_pressure = 0.f;
 
 			// determine if the wind information is available
 			if (hrt_elapsed_time(&_wind_timestamp) < 1_s) {
@@ -456,12 +456,17 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &msg)
 			}
 
 			// publish differential pressure
-			differential_pressure_s differential_pressure{};
-			differential_pressure.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
-			differential_pressure.differential_pressure_pa = (double)diff_pressure * 100.0; // hPa to Pa;
-			differential_pressure.temperature = temperature_local;
-			differential_pressure.timestamp = timestamp;
-			_differential_pressure_pub.publish(differential_pressure);
+			differential_pressure_s report{};
+			device::Device::DeviceId id;
+			id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+			id.devid_s.bus = 1;
+			id.devid_s.address = 5;
+			id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SIM;
+			report.device_id = id.devid;
+			report.differential_pressure_pa = (double)diff_pressure * 100.0; // hPa to Pa;
+			report.temperature = temperature_local;
+			report.timestamp = timestamp;
+			_differential_pressure_pub.publish(report);
 
 			return;
 		}
@@ -813,16 +818,16 @@ void GZBridge::laserScanCallback(const gz::msgs::LaserScan &msg)
 	_obstacle_distance_pub.publish(report);
 }
 
-void GZBridge::windCallback(const gz::msgs::Wind &wind_gz)
+void GZBridge::windCallback(const gz::msgs::Wind &msg)
 {
 	_wind_timestamp = hrt_absolute_time();
 	// define quaternion for rotation between ENU to NED
 	static const auto q_ENU_to_NED = gz::math::Quaterniond(0, 0.70711, 0.70711, 0);
 
 	gz::math::Vector3d wind_velocity = q_ENU_to_NED.RotateVector(gz::math::Vector3d(
-			wind_gz.linear_velocity().x(),
-			wind_gz.linear_velocity().y(),
-			wind_gz.linear_velocity().z()));
+			msg.linear_velocity().x(),
+			msg.linear_velocity().y(),
+			msg.linear_velocity().z()));
 	_wind_velocity = matrix::Vector3d(wind_velocity[0], wind_velocity[1], wind_velocity[2]);
 }
 
