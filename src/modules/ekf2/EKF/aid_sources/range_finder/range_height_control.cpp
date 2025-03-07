@@ -66,22 +66,20 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 			const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
 			_range_sensor.setRange(_range_sensor.getRange() + pos_offset_earth(2) / _range_sensor.getCosTilt());
 
-			if (_control_status.flags.in_air) {
-				const float dist_var = getRngVar();
-				_rng_consistency_check.current_posD_reset_count = get_posD_reset_count();
+			const float dist_var = getRngVar();
+			_rng_consistency_check.current_posD_reset_count = get_posD_reset_count();
 
-				const bool updated_horizontal_motion = sq(_state.vel(0)) + sq(_state.vel(1)) > fmaxf(P.trace<2>(State::vel.idx), 0.1f);
+			const bool updated_horizontal_motion = sq(_state.vel(0)) + sq(_state.vel(1)) > fmaxf(P.trace<2>(State::vel.idx), 0.1f);
 
-				if (!updated_horizontal_motion && _rng_consistency_check.horizontal_motion) {
-					_rng_consistency_check.reset();
-				}
-
-				_rng_consistency_check.horizontal_motion = updated_horizontal_motion;
-				const float z_var = P(State::pos.idx + 2, State::pos.idx + 2);
-				const float vz_var = P(State::vel.idx + 2, State::vel.idx + 2);
-				_rng_consistency_check.run(_gpos.altitude(), z_var, _state.vel(2), vz_var, _range_sensor.getDistBottom(),
-							   dist_var, imu_sample.time_us);
+			if (!updated_horizontal_motion && _rng_consistency_check.horizontal_motion) {
+				_rng_consistency_check.reset();
 			}
+
+			_rng_consistency_check.horizontal_motion = updated_horizontal_motion;
+			const float z_var = P(State::pos.idx + 2, State::pos.idx + 2);
+			const float vz_var = P(State::vel.idx + 2, State::vel.idx + 2);
+			_rng_consistency_check.run(_gpos.altitude(), z_var, _state.vel(2), vz_var, _range_sensor.getDistBottom(),
+						   dist_var, imu_sample.time_us);
 
 		} else {
 			// If we are supposed to be using range finder data but have bad range measurements
