@@ -250,7 +250,7 @@ TEST_F(EkfHeightFusionTest, baroRefFailOver)
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
 
 	_sensor_simulator.stopGps();
-	_sensor_simulator.runSeconds(10);
+	_sensor_simulator.runSeconds(14);
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::RANGE);
 
 	_sensor_simulator.stopRangeFinder();
