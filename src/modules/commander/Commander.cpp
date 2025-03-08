@@ -574,7 +574,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 
 			if (!_vehicle_control_mode.flag_control_climb_rate_enabled &&
 			    !_failsafe_flags.manual_control_signal_lost && !_is_throttle_low
-			    && _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROVER) {
+			    && !is_ground_vehicle(_vehicle_status)) {
 
 				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: high throttle\t");
 				events::send(events::ID("commander_arm_denied_throttle_high"), {events::Log::Critical, events::LogInternal::Info},
@@ -688,7 +688,7 @@ Commander::Commander() :
 	_vehicle_status.system_id = 1;
 	_vehicle_status.component_id = 1;
 	_vehicle_status.system_type = 0;
-	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_UNKNOWN;
+	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 	_vehicle_status.nav_state = _user_mode_intention.get();
 	_vehicle_status.nav_state_user_intention = _user_mode_intention.get();
 	_vehicle_status.nav_state_timestamp = hrt_absolute_time();
@@ -1889,8 +1889,7 @@ void Commander::run()
 		_actuator_armed.armed = isArmed();
 		_actuator_armed.prearmed = getPrearmState();
 		_actuator_armed.ready_to_arm = _vehicle_status.pre_flight_checks_pass || isArmed();
-		_actuator_armed.lockdown = ((_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION)
-					    || (_vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON)
+		_actuator_armed.lockdown = ((_vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON)
 					    || _multicopter_throw_launch.isThrowLaunchInProgress());
 		// _actuator_armed.manual_lockdown // action_request_s::ACTION_KILL
 		_actuator_armed.force_failsafe = (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION);
@@ -2193,13 +2192,13 @@ void Commander::updateTunes()
 
 	} else if (!_vehicle_status.usb_connected &&
 		   (_vehicle_status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
-		   (_battery_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
+		   (_battery_warning == battery_status_s::WARNING_CRITICAL)) {
 
 		/* play tune on battery critical */
 		set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_FAST);
 
 	} else if ((_vehicle_status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
-		   (_battery_warning == battery_status_s::BATTERY_WARNING_LOW)) {
+		   (_battery_warning == battery_status_s::WARNING_LOW)) {
 		/* play tune on battery warning */
 		set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW);
 
@@ -2493,10 +2492,10 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 			if (_vehicle_status.failsafe) {
 				led_color = led_control_s::COLOR_PURPLE;
 
-			} else if (battery_warning == battery_status_s::BATTERY_WARNING_LOW) {
+			} else if (battery_warning == battery_status_s::WARNING_LOW) {
 				led_color = led_control_s::COLOR_AMBER;
 
-			} else if (battery_warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
+			} else if (battery_warning == battery_status_s::WARNING_CRITICAL) {
 				led_color = led_control_s::COLOR_RED;
 
 			} else {
@@ -2867,7 +2866,7 @@ void Commander::battery_status_check()
 	// Handle shutdown request from emergency battery action
 	if (_battery_warning != _failsafe_flags.battery_warning) {
 
-		if (_failsafe_flags.battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
+		if (_failsafe_flags.battery_warning == battery_status_s::WARNING_EMERGENCY) {
 #if defined(BOARD_HAS_POWER_CONTROL)
 
 			if (!isArmed() && (px4_shutdown_request(60_s) == 0)) {

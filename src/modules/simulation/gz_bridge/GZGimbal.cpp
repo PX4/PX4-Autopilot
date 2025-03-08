@@ -49,6 +49,8 @@ bool GZGimbal::init(const std::string &world_name, const std::string &model_name
 		return false;
 	}
 
+	pthread_mutex_init(&_node_mutex, nullptr);
+
 	updateParameters();
 
 	ScheduleOnInterval(200_ms); // @5Hz

@@ -262,7 +262,7 @@ private:
 
 	hrt_abstime _last_health_and_arming_check{0};
 
-	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
+	uint8_t		_battery_warning{battery_status_s::WARNING_NONE};
 
 	bool _failsafe_user_override_request{false}; ///< override request due to stick movements
 
