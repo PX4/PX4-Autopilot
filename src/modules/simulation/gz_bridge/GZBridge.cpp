@@ -152,6 +152,16 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	if (_world_name.compare("moving_platform") == 0) {
+		std::string platform_navsat_topic = "/world/" + _world_name +
+						    "/model/flat_platform/link/platform_link/sensor/navsat_sensor/navsat";
+
+		if (!_node.Subscribe(platform_navsat_topic, &GZBridge::platformNavsatCallback, this)) {
+			PX4_ERR("failed to subscribe to %s", flow_topic.c_str());
+			return PX4_ERROR;
+		}
+	}
+
 	if (!_mixing_interface_esc.init(_model_name)) {
 		PX4_ERR("failed to init ESC output");
 		return PX4_ERROR;
@@ -183,6 +193,11 @@ void GZBridge::clockCallback(const gz::msgs::Clock &msg)
 	ts.tv_sec = msg.sim().sec();
 	ts.tv_nsec = msg.sim().nsec();
 	px4_clock_settime(CLOCK_MONOTONIC, &ts);
+}
+
+void GZBridge::platformNavsatCallback(const gz::msgs::NavSat &msg)
+{
+	// Here we can send the navsat message over uOrb to anything we like
 }
 
 void GZBridge::opticalFlowCallback(const px4::msgs::OpticalFlow &msg)

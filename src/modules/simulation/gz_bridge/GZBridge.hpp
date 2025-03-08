@@ -109,6 +109,7 @@ private:
 	void Run() override;
 
 	void clockCallback(const gz::msgs::Clock &msg);
+	void platformNavsatCallback(const gz::msgs::NavSat &msg);
 	void airspeedCallback(const gz::msgs::AirSpeed &msg);
 	void barometerCallback(const gz::msgs::FluidPressure &msg);
 	void imuCallback(const gz::msgs::IMU &msg);
