@@ -35,6 +35,47 @@
 
 #include "../../../stm32_common/include/px4_arch/hw_description.h"
 
+static inline constexpr void getTimerChannelDMAMap(Timer::Timer timer, const DMA &dma, uint32_t *dma_map_ch)
+{
+	switch (timer) {
+	case Timer::Timer1:
+		if (dma.index == DMA::Index2) {
+			dma_map_ch[0] = DMAMAP_TIM1_CH1;
+			dma_map_ch[1] = DMAMAP_TIM1_CH2_1;
+			dma_map_ch[2] = DMAMAP_TIM1_CH3_2;
+			dma_map_ch[3] = DMAMAP_TIM1_CH4;
+		}
+
+		break;
+
+	case Timer::Timer2:
+	case Timer::Timer3:
+		break;
+
+	case Timer::Timer4:
+		if (dma.index == DMA::Index1) {
+			dma_map_ch[0] = DMAMAP_TIM4_CH1;
+			dma_map_ch[1] = DMAMAP_TIM4_CH2;
+			dma_map_ch[2] = DMAMAP_TIM4_CH3;
+			dma_map_ch[3] = 0;
+		}
+
+		break;
+
+	case Timer::Timer5:
+	case Timer::Timer6:
+	case Timer::Timer7:
+	case Timer::Timer8:
+	case Timer::Timer9:
+	case Timer::Timer10:
+	case Timer::Timer11:
+	case Timer::Timer12:
+	case Timer::Timer13:
+	case Timer::Timer14:
+		break;
+	}
+}
+
 static inline constexpr uint32_t getTimerUpdateDMAMap(Timer::Timer timer, const DMA &dma)
 {
 	uint32_t dma_map = 0;
