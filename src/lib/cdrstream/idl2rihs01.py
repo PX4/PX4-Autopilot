@@ -36,22 +36,57 @@
 import argparse
 import pathlib
 import sys
+import os
+import tempfile
+import json
 
-from rosidl_adapter.msg import convert_msg_to_idl
+try:
+    from rosidl_generator_type_description import generate_type_hash
+except ImportError:
+    # modifying sys.path and importing the Python package with the same
+    # name as this script does not work on Windows
+    rosidl_generator_type_description_root = os.path.dirname(os.path.dirname(__file__))
+    rosidl_generator_type_description_module = os.path.join(
+        rosidl_generator_type_description_root, 'rosidl_generator_type_description', '__init__.py')
+    if not os.path.exists(rosidl_generator_type_description_module):
+        raise
+    from importlib.machinery import SourceFileLoader
+
+    loader = SourceFileLoader('rosidl_generator_type_description', rosidl_generator_type_description_module)
+    rosidl_generator_type_description = loader.load_module()
+    generate_type_hash = rosidl_generator_type_description.generate_type_hash
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description=f'Convert px4 .msg files to .idl')
+        description=f'Convert px4 .idl files to rihs01')
     parser.add_argument(
         'interface_files', nargs='+',
         help='The interface files to convert')
+    parser.add_argument(
+        '--output-dir', '-o',
+         help='The directory to save converted files (default: current directory)')
     args = parser.parse_args(sys.argv[1:])
 
-    for interface_file in args.interface_files:
-        interface_file = pathlib.Path(interface_file)
-        package_dir = interface_file.parent.absolute()
+    # So for some odd reason rosidl doesn't do proper cli arguments but believes
+    # that some magically crafted json is better
 
-        convert_msg_to_idl(
-            package_dir, 'px4_msgs',
-            interface_file.absolute().relative_to(package_dir),
-            interface_file.parent)
+    idl_files = []
+
+    type_hash_arguments = {}
+    type_hash_arguments['package_name'] = "px4_msgs"
+    type_hash_arguments['output_dir'] = args.output_dir
+    type_hash_arguments["idl_tuples"] = idl_files
+
+    for interface_file in args.interface_files:
+        # So file path need to be magically encoded with a : to let the parser do its thing
+
+        interface_file = str(pathlib.Path(interface_file)).replace("px4/msg", "px4:msg")
+        idl_files.append(interface_file)
+
+    json_file = tempfile.NamedTemporaryFile(mode="w+",delete=False)
+    json.dump(type_hash_arguments, json_file)
+    json_file.flush()
+
+    print(json_file.name)
+
+    generate_type_hash(json_file.name)
