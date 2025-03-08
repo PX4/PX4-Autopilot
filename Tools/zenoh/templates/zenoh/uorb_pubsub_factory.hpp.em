@@ -88,9 +88,14 @@ type_topic_count = len([e for e in topic_names_all if e.startswith(topic_name)])
         CONFIG_ZENOH_PUBSUB_@(topic_name.upper())_COUNT + \
 @[end for]        0
 
+@[for topic_name, rihs01_hash in rihs01_hashes.items()]@
+const uint8_t @(topic_name)_hash[32] = @(rihs01_hash)
+@[end for]
+
 typedef struct {
 	const uint32_t *ops;
 	const orb_metadata* orb_meta;
+	const uint8_t *hash;
 } UorbPubSubTopicBinder;
 
 const UorbPubSubTopicBinder _topics[ZENOH_PUBSUB_COUNT] {
@@ -104,8 +109,9 @@ topic_names = [e for e in topic_names_all if e.startswith(topic_name)]
 }@
 @[for topic_name_inst in topic_names]@
 		{
-		  px4_msg_@(topic_dict[topic_name])_cdrstream_desc.ops.ops,
-		  ORB_ID(@(topic_name_inst))
+		  px4_msgs_msg_@(topic_dict[topic_name])_cdrstream_desc.ops.ops,
+		  ORB_ID(@(topic_name_inst)),
+		  @(topic_dict[topic_name])_hash
 		},
 @{
 uorb_id_idx += 1
@@ -148,6 +154,24 @@ Zenoh_Subscriber* genSubscriber(const char *name) {
     for (auto &sub : _topics) {
         if(strcmp(sub.orb_meta->o_name, name) == 0) {
             return new uORB_Zenoh_Subscriber(sub.orb_meta, sub.ops);
+        }
+    }
+    return NULL;
+}
+
+const uint8_t* getRIHS01_Hash(const orb_metadata *meta) {
+    for (auto &sub : _topics) {
+        if(sub.orb_meta->o_id == meta->o_id) {
+            return sub.hash;
+        }
+    }
+    return NULL;
+}
+
+const uint8_t* getRIHS01_Hash(const char *name) {
+    for (auto &sub : _topics) {
+        if(strcmp(sub.orb_meta->o_name, name) == 0) {
+            return sub.hash;
         }
     }
     return NULL;
