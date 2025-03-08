@@ -185,7 +185,7 @@ def create_pdf_report(ulog: ULog, multi_instance: int, output_plot_filename: str
         # plot control mode summary A
         data_plot = ControlModeSummaryPlot(
             status_flags_time, estimator_status_flags, [['cs_tilt_align', 'cs_yaw_align'],
-            ['cs_gps', 'cs_opt_flow', 'cs_ev_pos'], ['cs_baro_hgt', 'cs_gps_hgt',
+            ['cs_gnss_pos', 'cs_opt_flow', 'cs_ev_pos'], ['cs_baro_hgt', 'cs_gps_hgt',
              'cs_rng_hgt', 'cs_ev_hgt'], ['cs_mag_hdg', 'cs_mag_3d', 'cs_mag_dec']],
             x_label='time (sec)', y_labels=['aligned', 'pos aiding', 'hgt aiding', 'mag aiding'],
             annotation_text=[['tilt alignment', 'yaw alignment'], ['GPS aiding', 'optical flow aiding',

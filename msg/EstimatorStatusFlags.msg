@@ -6,7 +6,7 @@ uint64 timestamp_sample                   # the timestamp of the raw data (micro
 uint32 control_status_changes # number of filter control status (cs) changes
 bool cs_tilt_align            #  0 - true if the filter tilt alignment is complete
 bool cs_yaw_align             #  1 - true if the filter yaw alignment is complete
-bool cs_gps                   #  2 - true if GPS measurement fusion is intended
+bool cs_gnss_pos              #  2 - true if GNSS position measurement fusion is intended
 bool cs_opt_flow              #  3 - true if optical flow measurements fusion is intended
 bool cs_mag_hdg               #  4 - true if a simple magnetic yaw heading fusion is intended
 bool cs_mag_3d                #  5 - true if 3-axis magnetometer measurement fusion is intended
@@ -48,6 +48,7 @@ bool cs_opt_flow_terrain        # 40 - true if we are fusing flow data for terra
 bool cs_valid_fake_pos          # 41 - true if a valid constant position is being fused
 bool cs_constant_pos            # 42 - true if the vehicle is at a constant position
 bool cs_baro_fault	        # 43 - true when the current baro has been declared faulty and is no longer being used
+bool cs_gnss_vel                # 44 - true if GNSS velocity measurement fusion is intended
 
 # fault status
 uint32 fault_status_changes   # number of filter fault status (fs) changes

@@ -262,7 +262,7 @@ void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv) const
 	if (_horizontal_deadreckon_time_exceeded) {
 #if defined(CONFIG_EKF2_GNSS)
 
-		if (_control_status.flags.gps) {
+		if (_control_status.flags.gnss_pos) {
 			hpos_err = math::max(hpos_err, Vector2f(_aid_src_gnss_pos.innovation).norm());
 		}
 
@@ -302,8 +302,12 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 
 #if defined(CONFIG_EKF2_GNSS)
 
-		if (_control_status.flags.gps) {
+		if (_control_status.flags.gnss_pos) {
 			vel_err_conservative = math::max(vel_err_conservative, Vector2f(_aid_src_gnss_pos.innovation).norm());
+		}
+
+		if (_control_status.flags.gnss_vel) {
+			vel_err_conservative = math::max(vel_err_conservative, Vector2f(_aid_src_gnss_vel.innovation).norm());
 		}
 
 #endif // CONFIG_EKF2_GNSS
@@ -446,7 +450,7 @@ float Ekf::getHorizontalVelocityInnovationTestRatio() const
 
 #if defined(CONFIG_EKF2_GNSS)
 
-	if (_control_status.flags.gps) {
+	if (_control_status.flags.gnss_vel) {
 		for (int i = 0; i < 2; i++) { // only xy
 			test_ratio = math::max(test_ratio, fabsf(_aid_src_gnss_vel.test_ratio_filtered[i]));
 		}
@@ -488,7 +492,7 @@ float Ekf::getVerticalVelocityInnovationTestRatio() const
 
 #if defined(CONFIG_EKF2_GNSS)
 
-	if (_control_status.flags.gps) {
+	if (_control_status.flags.gnss_vel) {
 		test_ratio = math::max(test_ratio, fabsf(_aid_src_gnss_vel.test_ratio_filtered[2]));
 	}
 
@@ -516,7 +520,7 @@ float Ekf::getHorizontalPositionInnovationTestRatio() const
 
 #if defined(CONFIG_EKF2_GNSS)
 
-	if (_control_status.flags.gps) {
+	if (_control_status.flags.gnss_pos) {
 		for (auto &test_ratio_filtered : _aid_src_gnss_pos.test_ratio_filtered) {
 			test_ratio = math::max(test_ratio, fabsf(test_ratio_filtered));
 		}
@@ -706,7 +710,7 @@ uint16_t Ekf::get_ekf_soln_status() const
 	soln_status.flags.pos_vert_agl = isTerrainEstimateValid();
 #endif // CONFIG_EKF2_TERRAIN
 
-	// 128	ESTIMATOR_CONST_POS_MODE	True if the EKF is in a constant position mode and is not using external measurements (eg GPS or optical flow)
+	// 128	ESTIMATOR_CONST_POS_MODE	True if the EKF is in a constant position mode and is not using external measurements (eg GNSS or optical flow)
 	soln_status.flags.const_pos_mode = _control_status.flags.fake_pos || _control_status.flags.valid_fake_pos
 					   || _control_status.flags.vehicle_at_rest;
 
@@ -714,13 +718,13 @@ uint16_t Ekf::get_ekf_soln_status() const
 	soln_status.flags.pred_pos_horiz_rel = isHorizontalAidingActive();
 
 	// 512	ESTIMATOR_PRED_POS_HORIZ_ABS	True if the EKF has sufficient data to enter a mode that will provide a (absolute) position estimate
-	soln_status.flags.pred_pos_horiz_abs = _control_status.flags.gps || _control_status.flags.aux_gpos;
+	soln_status.flags.pred_pos_horiz_abs = _control_status.flags.gnss_pos || _control_status.flags.aux_gpos;
 
-	// 1024	ESTIMATOR_GPS_GLITCH	True if the EKF has detected a GPS glitch
+	// 1024	ESTIMATOR_GPS_GLITCH	True if the EKF has detected a GNSS glitch
 #if defined(CONFIG_EKF2_GNSS)
-	const bool gps_vel_innov_bad = Vector3f(_aid_src_gnss_vel.test_ratio).max() > 1.f;
-	const bool gps_pos_innov_bad = Vector2f(_aid_src_gnss_pos.test_ratio).max() > 1.f;
-	soln_status.flags.gps_glitch = (gps_vel_innov_bad || gps_pos_innov_bad);
+	const bool gnss_vel_innov_bad = Vector3f(_aid_src_gnss_vel.test_ratio).max() > 1.f;
+	const bool gnss_pos_innov_bad = Vector2f(_aid_src_gnss_pos.test_ratio).max() > 1.f;
+	soln_status.flags.gps_glitch = (gnss_vel_innov_bad || gnss_pos_innov_bad);
 #endif // CONFIG_EKF2_GNSS
 
 	// 2048	ESTIMATOR_ACCEL_ERROR	True if the EKF has detected bad accelerometer data
@@ -799,14 +803,14 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 	bool aiding_expected_in_air = false;
 
 	// velocity aiding active
-	if ((_control_status.flags.gps || _control_status.flags.ev_vel)
+	if ((_control_status.flags.gnss_vel || _control_status.flags.ev_vel)
 	    && isRecent(_time_last_hor_vel_fuse, _params.no_aid_timeout_max)
 	   ) {
 		inertial_dead_reckoning = false;
 	}
 
 	// position aiding active
-	if ((_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.aux_gpos)
+	if ((_control_status.flags.gnss_pos || _control_status.flags.ev_pos || _control_status.flags.aux_gpos)
 	    && isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
 	   ) {
 		inertial_dead_reckoning = false;

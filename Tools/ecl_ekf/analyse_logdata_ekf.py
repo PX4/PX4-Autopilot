@@ -111,13 +111,13 @@ def find_checks_that_apply(
         innov_fail_checks.append('yaw')
 
     # Velocity Sensor Checks
-    if (np.amax(estimator_status_flags['cs_gps']) > 0.5):
+    if (np.amax(estimator_status_flags['cs_gnss_vel']) > 0.5):
         sensor_checks.append('vel')
         innov_fail_checks.append('velh')
         innov_fail_checks.append('velv')
 
     # Position Sensor Checks
-    if (pos_checks_when_sensors_not_fused or (np.amax(estimator_status_flags['cs_gps']) > 0.5)
+    if (pos_checks_when_sensors_not_fused or (np.amax(estimator_status_flags['cs_gnss_pos']) > 0.5)
         or (np.amax(estimator_status_flags['cs_ev_pos']) > 0.5)):
         sensor_checks.append('pos')
         innov_fail_checks.append('posh')
