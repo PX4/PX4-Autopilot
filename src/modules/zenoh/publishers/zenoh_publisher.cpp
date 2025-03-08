@@ -44,7 +44,6 @@
 
 Zenoh_Publisher::Zenoh_Publisher()
 {
-	this->_topic[0] = 0x0;
 }
 
 Zenoh_Publisher::~Zenoh_Publisher()
@@ -60,20 +59,19 @@ int Zenoh_Publisher::undeclare_publisher()
 
 int Zenoh_Publisher::declare_publisher(z_owned_session_t s, const char *keyexpr)
 {
-	strncpy(this->_topic, keyexpr, sizeof(this->_topic));
-
 	z_view_keyexpr_t ke;
-	z_view_keyexpr_from_str(&ke, this->_topic);
 
-	if (z_declare_publisher(&_pub, z_loan(s), z_loan(ke), NULL) < 0) {
+	if (z_view_keyexpr_from_str(&ke, keyexpr) < 0) {
+		printf("%s is not a valid key expression\n", keyexpr);
+		return -1;
+	}
+
+	if (z_declare_publisher(z_loan(s), &_pub, z_loan(ke), NULL) < 0) {
 		printf("Unable to declare publisher for key expression!\n");
 		return -1;
 	}
 
-	if (!z_publisher_check(&_pub)) {
-		printf("Unable to declare publisher for key expression!\n");
-		return -1;
-	}
+	z_timestamp_new(&ts, z_loan(s));
 
 	return 0;
 }
@@ -82,14 +80,39 @@ int8_t Zenoh_Publisher::publish(const uint8_t *buf, int size)
 {
 	z_publisher_put_options_t options;
 	z_publisher_put_options_default(&options);
-	options.encoding = NULL;
+
+	z_owned_bytes_t attachment;
+	z_bytes_empty(&attachment);
+
+	ze_owned_serializer_t serializer;
+	ze_serializer_empty(&serializer);
+
+	ze_serializer_serialize_str(z_loan_mut(serializer), "sequence_number");
+	ze_serializer_serialize_int64(z_loan_mut(serializer), this->sequence_number++);
+
+	ze_serializer_serialize_str(z_loan_mut(serializer), "source_timestamp");
+	ze_serializer_serialize_int64(z_loan_mut(serializer), hrt_absolute_time());
+
+	px4_guid_t px4_guid;
+	board_get_px4_guid(px4_guid);
+
+	ze_serializer_serialize_str(z_loan_mut(serializer), "source_gid");
+	ze_serializer_serialize_buf(z_loan_mut(serializer), px4_guid, 16);
+
+	ze_serializer_finish(z_move(serializer), &attachment);
+	options.attachment = z_move(attachment);
+
+	// Add timestamp
+	options.timestamp = &ts;
 
 	z_owned_bytes_t payload;
-	z_bytes_serialize_from_slice(&payload, buf, size);
+	z_bytes_copy_from_buf(&payload, buf, size);
 	return z_publisher_put(z_loan(_pub), z_move(payload), &options);
 }
 
 void Zenoh_Publisher::print()
 {
-	printf("Topic: %s\n", this->_topic);
+	z_view_string_t keystr;
+	z_keyexpr_as_view_string(z_publisher_keyexpr(z_loan(_pub)), &keystr);
+	printf("Topic: %s\n", z_string_data(z_loan(keystr)));
 }

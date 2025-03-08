@@ -43,27 +43,33 @@ set(BUILD_TESTING OFF)
 set(CHECK_THREADS NO)
 set(MESSAGE_QUIET ON)
 set(ZENOH_DEBUG ${CONFIG_ZENOH_DEBUG})
+set(PICO_STATIC ON)
+set(Z_FEATURE_TCP_NODELAY 0)
+set(Z_FEATURE_MATCHING 0)
+#set(Z_FEATURE_BATCHING 0)
+#set(Z_FEATURE_INTEREST 0)
 
 px4_add_git_submodule(TARGET git_zenoh-pico PATH "zenoh-pico")
 add_subdirectory(zenoh-pico)
 unset(MESSAGE_QUIET)
-add_dependencies(zenohpico git_zenoh-pico px4_platform)
-target_compile_options(zenohpico PUBLIC -Wno-cast-align
+add_dependencies(zenohpico_static git_zenoh-pico px4_platform)
+target_compile_options(zenohpico_static PUBLIC -Wno-cast-align
 			-Wno-narrowing
 			-Wno-stringop-overflow
 			-Wno-stringop-truncation
 			-Wno-unused-result
+			-Wno-type-limits
 			-DZ_BATCH_SIZE_RX=512
-			-DZ_BATCH_SIZE_TX=512
-			-DZ_FRAG_MAX_SIZE=1024)
+			-DZ_BATCH_SIZE_TX=512)
 
-target_compile_options(zenohpico PRIVATE -Wno-missing-prototypes)
+
+target_compile_options(zenohpico_static PRIVATE -Wno-missing-prototypes)
 if(CONFIG_PLATFORM_NUTTX)
-    target_compile_options(zenohpico PRIVATE -DUNIX_NO_MULTICAST_IF)
+    target_compile_options(zenohpico_static PRIVATE -DUNIX_NO_MULTICAST_IF)
 endif()
 
 if(CONFIG_ZENOH_SERIAL)
-    target_compile_options(zenohpico PRIVATE -DZ_LINK_SERIAL)
+    target_compile_options(zenohpico_static PRIVATE -DZ_LINK_SERIAL)
 endif()
 
 
@@ -81,7 +87,7 @@ px4_add_module(
 			cdr
 			uorb_msgs
 			px4_work_queue
-			zenohpico
+			zenohpico_static
 			zenoh_topics
 			git_zenoh-pico
 		INCLUDES

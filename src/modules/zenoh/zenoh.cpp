@@ -52,11 +52,36 @@
 // Auto-generated header to all uORB <-> CDR conversions
 #include <uorb_pubsub_factory.hpp>
 
+// FIXME make this a parameter
+const uint8_t ros_domain_id = 0;
 
 #define Z_PUBLISH
 #define Z_SUBSCRIBE
 
 extern "C" __EXPORT int zenoh_main(int argc, char *argv[]);
+
+void toCamelCase(char *input)
+{
+	int capitalizeNext = 1; // Capitalize the first letter
+	int j = 0;
+
+	for (int i = 0; input[i] != '\0'; i++) {
+		if (input[i] == '_') {
+			capitalizeNext = 1; // Next letter should be capitalized
+
+		} else {
+			if (capitalizeNext && isalpha(input[i])) {
+				input[j++] = toupper(input[i]);
+				capitalizeNext = 0;
+
+			} else {
+				input[j++] = input[i];
+			}
+		}
+	}
+
+	input[j] = '\0'; // Null-terminate the input string
+}
 
 ZENOH::ZENOH():
 	ModuleParams(nullptr)
@@ -93,17 +118,10 @@ void ZENOH::run()
 
 	PX4_INFO("Opening session...");
 	z_owned_session_t s;
-	ret = z_open(&s, z_move(config));
+	ret = z_open(&s, z_move(config), NULL);
 
-	if (ret  < 0) {
+	if (ret < 0) {
 		PX4_ERR("Unable to open session, ret: %d", ret);
-		return;
-	}
-
-	PX4_INFO("Checking session...");
-
-	if (!z_session_check(&s)) {
-		PX4_ERR("Unable to check session!");
 		return;
 	}
 
@@ -112,7 +130,7 @@ void ZENOH::run()
 	// Start read and lease tasks for zenoh-pico
 	if (zp_start_read_task(z_loan_mut(s), NULL) < 0 || zp_start_lease_task(z_loan_mut(s), NULL) < 0) {
 		PX4_ERR("Unable to start read and lease tasks");
-		z_close(z_move(s));
+		z_drop(z_move(s));
 		return;
 	}
 
@@ -122,15 +140,33 @@ void ZENOH::run()
 	{
 		char topic[TOPIC_INFO_SIZE];
 		char type[TOPIC_INFO_SIZE];
+		char keyexpr[KEYEXPR_SIZE];
 
 		for (i = 0; i < _sub_count; i++) {
 			z_config.getSubscriberMapping(topic, type);
 			_zenoh_subscribers[i] = genSubscriber(type);
 
 			if (_zenoh_subscribers[i] != 0) {
-				_zenoh_subscribers[i]->declare_subscriber(s, topic);
+				const uint8_t *rihs_hash = getRIHS01_Hash(type);
+				toCamelCase(type); // Convert uORB type to camel case
+				snprintf(keyexpr, KEYEXPR_SIZE, "%i/%s/"
+					 KEYEXPR_MSG_NAME "%s_/RIHS01_"
+					 "%02x%02x%02x%02x%02x%02x%02x%02x"
+					 "%02x%02x%02x%02x%02x%02x%02x%02x"
+					 "%02x%02x%02x%02x%02x%02x%02x%02x"
+					 "%02x%02x%02x%02x%02x%02x%02x%02x",
+					 ros_domain_id, topic, type,
+					 rihs_hash[0], rihs_hash[1], rihs_hash[2], rihs_hash[3],
+					 rihs_hash[4], rihs_hash[5], rihs_hash[6], rihs_hash[7],
+					 rihs_hash[8], rihs_hash[9], rihs_hash[10], rihs_hash[11],
+					 rihs_hash[12], rihs_hash[13], rihs_hash[14], rihs_hash[15],
+					 rihs_hash[16], rihs_hash[17], rihs_hash[18], rihs_hash[19],
+					 rihs_hash[20], rihs_hash[21], rihs_hash[22], rihs_hash[23],
+					 rihs_hash[24], rihs_hash[25], rihs_hash[26], rihs_hash[27],
+					 rihs_hash[28], rihs_hash[29], rihs_hash[30], rihs_hash[31]
+					);
+				_zenoh_subscribers[i]->declare_subscriber(s, keyexpr);
 			}
-
 
 		}
 
@@ -149,13 +185,32 @@ void ZENOH::run()
 	{
 		char topic[TOPIC_INFO_SIZE];
 		char type[TOPIC_INFO_SIZE];
+		char keyexpr[KEYEXPR_SIZE];
 
 		for (i = 0; i < _pub_count; i++) {
 			z_config.getPublisherMapping(topic, type);
 			_zenoh_publishers[i] = genPublisher(type);
 
 			if (_zenoh_publishers[i] != 0) {
-				_zenoh_publishers[i]->declare_publisher(s, topic);
+				const uint8_t *rihs_hash = getRIHS01_Hash(type);
+				toCamelCase(type); // Convert uORB type to camel case
+				snprintf(keyexpr, KEYEXPR_SIZE, "%i/%s/"
+					 KEYEXPR_MSG_NAME "%s_/RIHS01_"
+					 "%02x%02x%02x%02x%02x%02x%02x%02x"
+					 "%02x%02x%02x%02x%02x%02x%02x%02x"
+					 "%02x%02x%02x%02x%02x%02x%02x%02x"
+					 "%02x%02x%02x%02x%02x%02x%02x%02x",
+					 ros_domain_id, topic, type,
+					 rihs_hash[0], rihs_hash[1], rihs_hash[2], rihs_hash[3],
+					 rihs_hash[4], rihs_hash[5], rihs_hash[6], rihs_hash[7],
+					 rihs_hash[8], rihs_hash[9], rihs_hash[10], rihs_hash[11],
+					 rihs_hash[12], rihs_hash[13], rihs_hash[14], rihs_hash[15],
+					 rihs_hash[16], rihs_hash[17], rihs_hash[18], rihs_hash[19],
+					 rihs_hash[20], rihs_hash[21], rihs_hash[22], rihs_hash[23],
+					 rihs_hash[24], rihs_hash[25], rihs_hash[26], rihs_hash[27],
+					 rihs_hash[28], rihs_hash[29], rihs_hash[30], rihs_hash[31]
+					);
+				_zenoh_publishers[i]->declare_publisher(s, keyexpr);
 				_zenoh_publishers[i]->setPollFD(&pfds[i]);
 			}
 		}
@@ -211,7 +266,7 @@ void ZENOH::run()
 	zp_stop_read_task(z_session_loan_mut(&s));
 	zp_stop_lease_task(z_session_loan_mut(&s));
 
-	z_close(z_session_move(&s));
+	z_drop(z_session_move(&s));
 	exit_and_cleanup();
 }
 
