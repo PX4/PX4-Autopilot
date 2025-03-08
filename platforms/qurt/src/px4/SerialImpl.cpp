@@ -37,6 +37,8 @@
 #include <drivers/device/qurt/uart.h>
 #include <drivers/drv_hrt.h>
 
+#define MODULE_NAME "SerialImpl"
+
 namespace device
 {
 
