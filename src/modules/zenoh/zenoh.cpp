@@ -98,8 +98,13 @@ void ZENOH::run()
 	int8_t ret;
 	int i;
 
+#ifndef BOARD_HAS_NO_UUID
 	px4_guid_t px4_guid;
 	board_get_px4_guid(px4_guid);
+#else
+	// TODO Fill ID with something reasonable
+	px4_guid_t px4_guid = {0xAA, 0xBB, 0xAA};
+#endif
 
 	Zenoh_Config z_config;
 
@@ -149,7 +154,7 @@ void ZENOH::run()
 			if (_zenoh_subscribers[i] != 0) {
 				const uint8_t *rihs_hash = getRIHS01_Hash(type);
 				toCamelCase(type); // Convert uORB type to camel case
-				snprintf(keyexpr, KEYEXPR_SIZE, "%li/%s/"
+				snprintf(keyexpr, KEYEXPR_SIZE, "%" PRId32 "/%s/"
 					 KEYEXPR_MSG_NAME "%s_/RIHS01_"
 					 "%02x%02x%02x%02x%02x%02x%02x%02x"
 					 "%02x%02x%02x%02x%02x%02x%02x%02x"
@@ -194,7 +199,7 @@ void ZENOH::run()
 			if (_zenoh_publishers[i] != 0) {
 				const uint8_t *rihs_hash = getRIHS01_Hash(type);
 				toCamelCase(type); // Convert uORB type to camel case
-				snprintf(keyexpr, KEYEXPR_SIZE, "%li/%s/"
+				snprintf(keyexpr, KEYEXPR_SIZE, "%" PRId32 "/%s/"
 					 KEYEXPR_MSG_NAME "%s_/RIHS01_"
 					 "%02x%02x%02x%02x%02x%02x%02x%02x"
 					 "%02x%02x%02x%02x%02x%02x%02x%02x"
