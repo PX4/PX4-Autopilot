@@ -82,6 +82,9 @@ public:
 	void run() override;
 
 private:
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::ZENOH_DOMAIN_ID>) _zenoh_domain_id
+	)
 
 	Zenoh_Config _config;
 

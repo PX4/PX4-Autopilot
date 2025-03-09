@@ -52,9 +52,6 @@
 // Auto-generated header to all uORB <-> CDR conversions
 #include <uorb_pubsub_factory.hpp>
 
-// FIXME make this a parameter
-const uint8_t ros_domain_id = 0;
-
 #define Z_PUBLISH
 #define Z_SUBSCRIBE
 
@@ -100,6 +97,9 @@ void ZENOH::run()
 	char locator[NET_LOCATOR_SIZE];
 	int8_t ret;
 	int i;
+
+	px4_guid_t px4_guid;
+	board_get_px4_guid(px4_guid);
 
 	Zenoh_Config z_config;
 
@@ -149,13 +149,13 @@ void ZENOH::run()
 			if (_zenoh_subscribers[i] != 0) {
 				const uint8_t *rihs_hash = getRIHS01_Hash(type);
 				toCamelCase(type); // Convert uORB type to camel case
-				snprintf(keyexpr, KEYEXPR_SIZE, "%i/%s/"
+				snprintf(keyexpr, KEYEXPR_SIZE, "%li/%s/"
 					 KEYEXPR_MSG_NAME "%s_/RIHS01_"
 					 "%02x%02x%02x%02x%02x%02x%02x%02x"
 					 "%02x%02x%02x%02x%02x%02x%02x%02x"
 					 "%02x%02x%02x%02x%02x%02x%02x%02x"
 					 "%02x%02x%02x%02x%02x%02x%02x%02x",
-					 ros_domain_id, topic, type,
+					 _zenoh_domain_id.get(), topic, type,
 					 rihs_hash[0], rihs_hash[1], rihs_hash[2], rihs_hash[3],
 					 rihs_hash[4], rihs_hash[5], rihs_hash[6], rihs_hash[7],
 					 rihs_hash[8], rihs_hash[9], rihs_hash[10], rihs_hash[11],
@@ -194,13 +194,13 @@ void ZENOH::run()
 			if (_zenoh_publishers[i] != 0) {
 				const uint8_t *rihs_hash = getRIHS01_Hash(type);
 				toCamelCase(type); // Convert uORB type to camel case
-				snprintf(keyexpr, KEYEXPR_SIZE, "%i/%s/"
+				snprintf(keyexpr, KEYEXPR_SIZE, "%li/%s/"
 					 KEYEXPR_MSG_NAME "%s_/RIHS01_"
 					 "%02x%02x%02x%02x%02x%02x%02x%02x"
 					 "%02x%02x%02x%02x%02x%02x%02x%02x"
 					 "%02x%02x%02x%02x%02x%02x%02x%02x"
 					 "%02x%02x%02x%02x%02x%02x%02x%02x",
-					 ros_domain_id, topic, type,
+					 _zenoh_domain_id.get(), topic, type,
 					 rihs_hash[0], rihs_hash[1], rihs_hash[2], rihs_hash[3],
 					 rihs_hash[4], rihs_hash[5], rihs_hash[6], rihs_hash[7],
 					 rihs_hash[8], rihs_hash[9], rihs_hash[10], rihs_hash[11],
@@ -210,7 +210,7 @@ void ZENOH::run()
 					 rihs_hash[24], rihs_hash[25], rihs_hash[26], rihs_hash[27],
 					 rihs_hash[28], rihs_hash[29], rihs_hash[30], rihs_hash[31]
 					);
-				_zenoh_publishers[i]->declare_publisher(s, keyexpr);
+				_zenoh_publishers[i]->declare_publisher(s, keyexpr, (uint8_t *)&px4_guid);
 				_zenoh_publishers[i]->setPollFD(&pfds[i]);
 			}
 		}

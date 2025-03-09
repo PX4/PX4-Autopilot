@@ -54,7 +54,6 @@ void Zenoh_Subscriber::data_handler(const z_loaned_sample_t *sample)
 	       (int)z_bytes_len(z_sample_payload(sample)));
 }
 
-
 Zenoh_Subscriber::Zenoh_Subscriber()
 {
 }
