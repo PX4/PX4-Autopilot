@@ -59,6 +59,8 @@ target_compile_options(zenohpico_static PUBLIC -Wno-cast-align
 			-Wno-stringop-truncation
 			-Wno-unused-result
 			-Wno-type-limits
+			-Wno-unused-variable
+			-Wno-maybe-uninitialized
 			-DZ_BATCH_SIZE_RX=512
 			-DZ_BATCH_SIZE_TX=512)
 
