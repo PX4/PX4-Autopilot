@@ -57,9 +57,11 @@ int Zenoh_Publisher::undeclare_publisher()
 	return 0;
 }
 
-int Zenoh_Publisher::declare_publisher(z_owned_session_t s, const char *keyexpr)
+int Zenoh_Publisher::declare_publisher(z_owned_session_t s, const char *keyexpr, uint8_t *gid)
 {
 	z_view_keyexpr_t ke;
+
+	this->rmw_gid = gid;
 
 	if (z_view_keyexpr_from_str(&ke, keyexpr) < 0) {
 		printf("%s is not a valid key expression\n", keyexpr);
@@ -93,11 +95,8 @@ int8_t Zenoh_Publisher::publish(const uint8_t *buf, int size)
 	ze_serializer_serialize_str(z_loan_mut(serializer), "source_timestamp");
 	ze_serializer_serialize_int64(z_loan_mut(serializer), hrt_absolute_time());
 
-	px4_guid_t px4_guid;
-	board_get_px4_guid(px4_guid);
-
 	ze_serializer_serialize_str(z_loan_mut(serializer), "source_gid");
-	ze_serializer_serialize_buf(z_loan_mut(serializer), px4_guid, 16);
+	ze_serializer_serialize_buf(z_loan_mut(serializer), rmw_gid, 16);
 
 	ze_serializer_finish(z_move(serializer), &attachment);
 	options.attachment = z_move(attachment);
