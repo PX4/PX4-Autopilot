@@ -54,7 +54,7 @@ public:
 	Zenoh_Publisher();
 	virtual ~Zenoh_Publisher();
 
-	virtual int declare_publisher(z_owned_session_t s, const char *keyexpr);
+	virtual int declare_publisher(z_owned_session_t s, const char *keyexpr, uint8_t *gid);
 
 	virtual int undeclare_publisher();
 
@@ -68,4 +68,7 @@ protected:
 	z_owned_publisher_t _pub;
 	int64_t sequence_number;
 	z_timestamp_t ts;
+
+	/* 16 bytes DDS-Like GID */
+	uint8_t *rmw_gid;
 };
