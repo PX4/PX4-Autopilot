@@ -83,10 +83,8 @@ if __name__ == '__main__':
         interface_file = str(pathlib.Path(interface_file)).replace("px4/msg", "px4:msg")
         idl_files.append(interface_file)
 
-    json_file = tempfile.NamedTemporaryFile(mode="w+",delete=False)
+    json_file = tempfile.NamedTemporaryFile(mode="w+")
     json.dump(type_hash_arguments, json_file)
     json_file.flush()
-
-    print(json_file.name)
 
     generate_type_hash(json_file.name)
