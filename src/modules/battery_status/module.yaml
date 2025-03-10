@@ -36,6 +36,19 @@ parameters:
             instance_start: 1
             default: [-1.0, -1.0]
 
+        BAT${i}_V_OFFS_CURR:
+            description:
+                short: Battery ${i} current measurement ADC offset in V.
+                long: |
+                    This offset will be subtracted before calculating the battery
+                    current based on the voltage.
+            type: float
+            decimal: 8
+            reboot_required: true
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [0.0, 0.0]
+
         BAT${i}_V_CHANNEL:
             description:
                 short: Battery ${i} Voltage ADC Channel
