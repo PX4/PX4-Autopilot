@@ -51,8 +51,9 @@ void MovingPlatformController::Configure(const gz::sim::Entity &entity,
 	_entity = entity;
 	_model = gz::sim::Model(entity);
 
-	// refrain from hardcoding world name / path?
-	std::string cmd_vel_topic = "/model/flat_platform/cmd_vel";
+	// Advertise topic to communicate with VelocityControl plugin
+	std::string model_name = _model.Name(ecm);
+	std::string cmd_vel_topic = "/model/" + model_name + "/cmd_vel";
 	_platform_twist_pub = _node.Advertise<gz::msgs::Twist>(cmd_vel_topic);
 }
 
@@ -105,12 +106,9 @@ void MovingPlatformController::updateVelocityCommands(const gz::math::Vector3d &
 	_platform_v = ampl_v * _noise_v_lowpass + mean_velocity;
 	_platform_w = ampl_w * _noise_w_lowpass;
 
-	const bool feedback = true;
-
 	// feedback terms to ensure the random walk (= integral of noise)
 	// stays within a realistic region.
-	if (feedback) {
-
+	{
 		// small feedback to maintain height. no attempt to stabilise x and y.
 		const double platform_height = 2.;
 		const gz::math::Vector3d pos_gains(0., 0., 1.);  // [m/s / m]
