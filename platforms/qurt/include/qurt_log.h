@@ -37,6 +37,10 @@
 #include <stdint.h>
 #include <px4_platform_common/defines.h>
 
+#define BASE_BUFFER_SIZE 256
+#define MAX_MODULE_NAME_SIZE 32
+#define MODULE_BUFFER_SIZE (BASE_BUFFER_SIZE + MAX_MODULE_NAME_SIZE)
+
 __BEGIN_DECLS
 
 extern void qurt_log_to_apps(int level, const char *message);
@@ -44,22 +48,27 @@ extern void qurt_log_to_apps(int level, const char *message);
 // Defining hap_debug
 void HAP_debug(const char *msg, int level, const char *filename, int line);
 
-static __inline void qurt_log(int level, const char *file, int line,
-			      const char *format, ...)
+static __inline void qurt_log_module(int level, const char *module, const char *file, int line,
+				     const char *format, ...)
 {
-	char buf[256];
+	char buf[BASE_BUFFER_SIZE];
 	va_list args;
 	va_start(args, format);
 	vsnprintf(buf, sizeof(buf), format, args);
 	va_end(args);
-	HAP_debug(buf, level, file, line);
 
-	qurt_log_to_apps(level, buf);
+	char module_buf[MODULE_BUFFER_SIZE];
+	snprintf(module_buf, MAX_MODULE_NAME_SIZE, "[%s] ", module);
+	strcat(module_buf, buf);
+
+	HAP_debug(module_buf, level, file, line);
+
+	qurt_log_to_apps(level, module_buf);
 }
 
 static __inline void qurt_log_raw(const char *format, ...)
 {
-	char buf[256];
+	char buf[BASE_BUFFER_SIZE];
 	va_list args;
 	va_start(args, format);
 	vsnprintf(buf, sizeof(buf), format, args);
