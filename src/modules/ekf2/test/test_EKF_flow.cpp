@@ -171,7 +171,7 @@ TEST_F(EkfFlowTest, resetToFlowVelocityOnGround)
 	_ekf_wrapper.enableFlowFusion();
 	_sensor_simulator.startFlow();
 	_sensor_simulator.startRangeFinder();
-	_sensor_simulator.runSeconds(1.0);
+	_sensor_simulator.runSeconds(2.0);
 
 	// THEN: estimated velocity should match simulated velocity
 	const Vector2f estimated_horz_velocity = Vector2f(_ekf->getVelocity());
