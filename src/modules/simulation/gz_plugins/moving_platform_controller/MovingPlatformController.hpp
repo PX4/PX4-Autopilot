@@ -74,9 +74,6 @@
  *        </model>
  *      </sdf>
  *
- * At the moment the model name "flat_platform" is hardcoded, so it will only
- * work for models with that name.
- *
  */
 
 namespace custom
