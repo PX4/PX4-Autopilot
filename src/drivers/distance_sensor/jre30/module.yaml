@@ -1,0 +1,6 @@
+module_name: JAE JRE-30 Rangefinder
+serial_config:
+    - command: jre30 start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_JRE30_CFG
+        group: Sensors
