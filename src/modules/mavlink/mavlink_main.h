@@ -501,6 +501,8 @@ public:
 
 	bool failure_injection_enabled() const { return _param_sys_failure_injection_enabled.get(); }
 
+	bool sdlog_reached_wp_enabled() const { return _param_sdlog_reached_wp.get(); }
+
 	struct ping_statistics_s {
 		uint64_t last_ping_time;
 		uint32_t last_ping_seq;
@@ -664,7 +666,8 @@ private:
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
 		(ParamInt<px4::params::MAV_RADIO_TOUT>)      _param_mav_radio_timeout,
 		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl,
-		(ParamBool<px4::params::SYS_FAILURE_EN>) _param_sys_failure_injection_enabled
+		(ParamBool<px4::params::SYS_FAILURE_EN>) _param_sys_failure_injection_enabled,
+		(ParamBool<px4::params::SDLOG_REACHED_WP>) _param_sdlog_reached_wp
 	)
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": tx run elapsed")};                      /**< loop performance counter */
