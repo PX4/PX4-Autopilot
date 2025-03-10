@@ -167,11 +167,8 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 
 		checkMagHeadingConsistency(mag_sample);
 
-		const bool using_ne_aiding = _control_status.flags.gps || _control_status.flags.aux_gpos;
-
-
 		{
-			const bool mag_consistent_or_no_ne_aiding = _control_status.flags.mag_heading_consistent || !using_ne_aiding;
+			const bool mag_consistent_or_no_ne_aiding = _control_status.flags.mag_heading_consistent || !isNorthEastAidingActive();
 			const bool common_conditions_passing = _control_status.flags.mag
 							       && ((_control_status.flags.yaw_align && mag_consistent_or_no_ne_aiding)
 									       || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
@@ -200,7 +197,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 
 		// if we are using 3-axis magnetometer fusion, but without external NE aiding,
 		// then the declination must be fused as an observation to prevent long term heading drift
-		const bool no_ne_aiding_or_not_moving = !using_ne_aiding || _control_status.flags.vehicle_at_rest;
+		const bool no_ne_aiding_or_not_moving = !isNorthEastAidingActive() || _control_status.flags.vehicle_at_rest;
 		_control_status.flags.mag_dec = _control_status.flags.mag && no_ne_aiding_or_not_moving;
 
 		if (_control_status.flags.mag) {
@@ -321,10 +318,9 @@ void Ekf::stopMagFusion()
 		resetMagBiasCov();
 
 		if (_control_status.flags.yaw_align && (_control_status.flags.mag_3D || _control_status.flags.mag_hdg)) {
-			// reset yaw alignment from mag unless using GNSS aiding
-			const bool using_ne_aiding = _control_status.flags.gps || _control_status.flags.aux_gpos;
+			// reset yaw alignment from mag unless yaw is observable through North-East aiding
 
-			if (!using_ne_aiding) {
+			if (!isNorthEastAidingActive()) {
 				_control_status.flags.yaw_align = false;
 			}
 		}
@@ -480,9 +476,8 @@ void Ekf::checkMagHeadingConsistency(const magSample &mag_sample)
 
 	if (fabsf(_mag_heading_innov_lpf.getState()) < _params.mag_heading_noise) {
 		// Check if there has been enough change in horizontal velocity to make yaw observable
-		const bool using_ne_aiding = _control_status.flags.gps || _control_status.flags.aux_gpos;
 
-		if (using_ne_aiding && (_accel_horiz_lpf.getState().longerThan(_params.mag_acc_gate))) {
+		if (isNorthEastAidingActive() && (_accel_horiz_lpf.getState().longerThan(_params.mag_acc_gate))) {
 			// yaw angle must be observable to consider consistency
 			_control_status.flags.mag_heading_consistent = true;
 		}
