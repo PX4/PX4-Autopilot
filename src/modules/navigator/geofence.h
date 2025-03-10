@@ -208,6 +208,12 @@ private:
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
 	/**
+	 * Check polygon or circle geofence fullfills the requirements relative to the current mission.
+	 * @return true if checks pass
+	 */
+	bool checkMissionRequirementsForGeofence(const PolygonInfo &polygon);
+
+	/**
 	 * Check if a single point is within a polygon or circle
 	 * @return true if within polygon or circle
 	 */
