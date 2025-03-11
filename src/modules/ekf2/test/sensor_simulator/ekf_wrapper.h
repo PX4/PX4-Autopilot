@@ -100,6 +100,7 @@ public:
 	void disableExternalVisionHeadingFusion();
 	bool isIntendingExternalVisionHeadingFusion() const;
 
+	bool isIntendingMagFusion() const;
 	bool isIntendingMagHeadingFusion() const;
 	bool isIntendingMag3DFusion() const;
 	bool isMagHeadingConsistent() const;

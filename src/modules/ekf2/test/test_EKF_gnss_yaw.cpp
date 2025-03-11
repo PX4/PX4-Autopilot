@@ -261,7 +261,7 @@ TEST_F(EkfGpsHeadingTest, fallBackToYawEmergencyEstimator)
 	checkConvergence(true_heading, 5.f);
 }
 
-TEST_F(EkfGpsHeadingTest, yawJmpOnGround)
+TEST_F(EkfGpsHeadingTest, yawJumpOnGround)
 {
 	// GIVEN: the GPS yaw fusion activated
 	float gps_heading = _ekf_wrapper.getYawAngle();
@@ -269,21 +269,28 @@ TEST_F(EkfGpsHeadingTest, yawJmpOnGround)
 	_sensor_simulator.runSeconds(1);
 	_ekf->set_in_air_status(false);
 
+	// Mag data is fused to estimate the mag bias and earth mag filed states
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingMagFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
+
 	// WHEN: the measurement suddenly changes
 	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
 	gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + math::radians(45.f));
 	_sensor_simulator._gps.setYaw(gps_heading);
 	_sensor_simulator.runSeconds(8);
 
-	// THEN: the fusion should stop, reset to mag
+	// THEN: the fusion should stop and mag heading fusion should start without reset as
+	// mag fusion is already running
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
-	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter);
 
 	// AND THEN: restart GNSS yaw fusion
 	_sensor_simulator.runSeconds(5);
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
-	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 2);
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
 	EXPECT_LT(fabsf(matrix::wrap_pi(_ekf_wrapper.getYawAngle() - gps_heading)), math::radians(1.f));
 }
 
