@@ -236,7 +236,7 @@ MissionBase::on_activation()
 	}
 
 	if (!resume_mission_on_previous) {
-		// Only replay speed changes immedietly if we are not resuming the mission at the previous position item.
+		// Only replay speed changes immediately if we are not resuming the mission at the previous position item.
 		// Otherwise it must be handled in the on_active() method once we reach the previous position item.
 		replayCachedSpeedChangeItems();
 		_speed_replayed_on_activation = true;
