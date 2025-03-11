@@ -170,3 +170,57 @@ PARAM_DEFINE_FLOAT(MC_SLOW_DEF_YAWR, 45.f);
  * @group Multicopter Position Slow Mode
  */
 PARAM_DEFINE_INT32(MC_SLOW_MAP_PTCH, 0);
+
+/**
+ * Exponential scaling factor for pitch stick
+ *
+ * This value is used to scale the pitch stick input in slow mode.
+ *
+ * @unit %
+ * @min 0
+ * @max 100
+ * @increment 1
+ * @decimal 0
+ * @group Multicopter Position Slow Mode
+ */
+PARAM_DEFINE_FLOAT(MC_SLOW_EXP_PIT, 10.f);
+
+/**
+ * Exponential scaling factor for yaw stick
+ *
+ * This value is used to scale the yaw stick input in slow mode.
+ *
+ * @unit %
+ * @min 0
+ * @max 100
+ * @increment 1
+ * @decimal 0
+ * @group Multicopter Position Slow Mode
+ */
+PARAM_DEFINE_FLOAT(MC_SLOW_EXPO_YAW, 10.f);
+
+/**
+ * Deadband for pitch stick
+ *
+ * This value is used to define the deadband for the pitch stick input in slow mode.
+ *
+ * @unit us
+ * @min 0
+ * @max 1000
+ * @increment 1
+ * @group Multicopter Position Slow Mode
+ */
+PARAM_DEFINE_INT32(MC_SLOW_WIN_PIT, 0);
+
+/**
+ * Deadband for yaw stick
+ *
+ * This value is used to define the deadband for the yaw stick input in slow mode.
+ *
+ * @unit us
+ * @min 0
+ * @max 1000
+ * @increment 1
+ * @group Multicopter Position Slow Mode
+ */
+PARAM_DEFINE_INT32(MC_SLOW_WIN_YAW, 0);

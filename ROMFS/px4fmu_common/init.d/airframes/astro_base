@@ -106,6 +106,7 @@ param set-default RC_MAP_AUX2 12 # Vertical velocity, AUX2, Channel 12
 param set-default MC_SLOW_MAP_VVEL 2
 param set-default RC_MAP_AUX3 13 # Horizontal velocity, AUX3, Channel 13
 param set-default MC_SLOW_MAP_HVEL 3
+param set-default RC_MAP_AUX4 5 # Not used, Gimbal pitch rocker on Herelink and Switch on Pilot Pro, AUX4, Channel 5
 
 # Position mode
 param set-default MPC_VEL_MANUAL 15

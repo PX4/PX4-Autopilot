@@ -33,9 +33,77 @@
 
 #include "Gimbal.hpp"
 #include <px4_platform_common/events.h>
+#include <math.h>
 
 using namespace time_literals;
 using namespace matrix;
+
+// -------------------------------------------------------------------------------------------------
+// Helper: compute a roll‑free yaw that stays continuous through 90° pitch
+// and automatically corrects the 180° flip that occurs once the camera
+// tilts past straight down (or straight up).  The correction is done by
+// detecting when the denominator of the fused‑yaw formula changes sign.
+// -------------------------------------------------------------------------------------------------
+static float pan_yaw_from_cam_quat(const Quatf &q)
+{
+	Quatf q_norm = q.normalized();
+
+	float w = q_norm(0);
+	float x = q_norm(1);
+	float y = q_norm(2);
+	float z = q_norm(3);
+
+	/*  Sign-lock:  q and –q encode the same attitude.
+	*  Forcing w ≥ 0 picks a single representation, so
+	*  headings derived from the quaternion never jump
+	*  by ±π when w crosses zero.                       */
+	if (w < 0.0f) {
+		w = -w;
+		x = -x;
+		y = -y;
+		z = -z;
+	}
+
+
+	/*  Fused-yaw forms
+	*  ---------------
+	*  long  = atan2( 2(wz+xy) , w²+x²−y²−z² )
+	*          · roll-invariant, but blows up when |tilt| → 90°
+	*
+	*  short = 2*atan2(z , w) (same as atan2(2wz , w²−z²))
+	*          · always stable, but drifts with roll
+	*
+	*  Select long form except when the long denominator
+	*  is too close to zero (≈ vertical nose).
+	*/
+	const float num_full = 2.f * (w * z + x * y);                    // 2(w z + x y)
+	const float denom_full = w * w + x * x - y * y - z * z;  // w²+x²−y²−z²
+
+	float hdg = 0.f;
+
+	if (fabsf(denom_full) > 1e-3f) { /* far from ±90°  →  long form */
+		hdg = atan2f(num_full, denom_full);
+
+	} else {                          /* near ±90°      →  short form */
+		hdg = 2.f * atan2f(z, w); /* 2·atan2(z,w)   (stable)     */
+	}
+
+	/* π-offset correction when body-Z points mostly down */
+	/*  include deadband to protect agauinst noise  */
+	const float hemi = w * w + z * z; /* w² + z²               */
+
+	if (hemi < 0.5f - 1e-3f) {             /* only if >90° */
+		hdg += (hdg >= 0.f) ? -M_PI_F : M_PI_F;
+	}
+
+
+	/* wrap to (–π, π] */
+	if (hdg <= -M_PI_F) { hdg += 2.f * M_2_PI_F; }
+
+	if (hdg > M_PI_F) { hdg -= 2.f * M_2_PI_F; }
+
+	return hdg;
+}
 
 Gimbal::Gimbal(ModuleParams *parent) :
 	ModuleParams(parent)
@@ -53,8 +121,13 @@ bool Gimbal::checkForTelemetry(const hrt_abstime now)
 
 		if (_gimbal_device_attitude_status_sub.copy(&gimbal_device_attitude_status)) {
 			_telemtry_timestamp = gimbal_device_attitude_status.timestamp;
-			_telemetry_flags = gimbal_device_attitude_status.device_flags;
-			_telemetry_yaw = Eulerf(Quatf(gimbal_device_attitude_status.q)).psi();
+			_telemetry_flags    = gimbal_device_attitude_status.device_flags;
+
+			// ----------------------------------------------------------------------------
+			// Robust yaw extraction – follow the PAN joint only.
+			// ----------------------------------------------------------------------------
+			const Quatf q(gimbal_device_attitude_status.q);
+			_telemetry_yaw = pan_yaw_from_cam_quat(q);
 		}
 	}
 
@@ -129,4 +202,24 @@ void Gimbal::publishGimbalManagerSetAttitude(const uint16_t gimbal_flags,
 	gimbal_setpoint.angular_velocity_z = gimbal_rates(2);
 	gimbal_setpoint.timestamp = hrt_absolute_time();
 	_gimbal_manager_set_attitude_pub.publish(gimbal_setpoint);
+}
+
+float Gimbal::getPitch(const hrt_abstime now)
+{
+	if (_gimbal_manager_set_manual_control_sub.updated()) {
+		gimbal_manager_set_manual_control_s gimbal_manager_set_manual_control{};
+
+		if (_gimbal_manager_set_manual_control_sub.copy(&gimbal_manager_set_manual_control)
+		    && gimbal_manager_set_manual_control.origin_compid != _param_mav_comp_id.get()
+		    && gimbal_manager_set_manual_control.origin_sysid != _param_mav_sys_id.get()) {
+			_set_manual_control_timestamp = gimbal_manager_set_manual_control.timestamp;
+			_set_manual_control_pitchrate = gimbal_manager_set_manual_control.pitch_rate;
+		}
+	}
+
+	if (now > _set_manual_control_timestamp + 2_s) {
+		_set_manual_control_pitchrate = 0.f;
+	}
+
+	return _set_manual_control_pitchrate;
 }
