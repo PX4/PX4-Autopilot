@@ -106,6 +106,9 @@ private:
 	bool _lateral_updated{false};
 	bool _longitudinal_updated{false};
 
+	hrt_abstime _time_last_longitudinal_publish{0};
+	hrt_abstime _time_last_lateral_publish{0};
+
 	uORB::PublicationData<lateral_control_limits_s> _lateral_publisher{ORB_ID(lateral_control_limits)};
 	uORB::PublicationData<longitudinal_control_limits_s> _longitudinal_publisher{ORB_ID(longitudinal_control_limits)};
 

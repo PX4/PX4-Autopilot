@@ -37,6 +37,10 @@
  */
 
 #include "ControlLimitsHandler.hpp"
+#include <drivers/drv_hrt.h>
+
+using namespace time_literals;
+
 
 void CombinedControlLimitHandler::update(bool force_publish_invalid)
 {
@@ -66,14 +70,16 @@ void CombinedControlLimitHandler::update(bool force_publish_invalid)
 	_lateral_updated |= floatValueChanged(_lateral_limits_current_cycle.lateral_accel_max,
 					      _lateral_publisher.get().lateral_accel_max);
 
-	if (_longitudinal_updated || force_publish_invalid) {
+	if (_longitudinal_updated || force_publish_invalid || hrt_elapsed_time(&_time_last_longitudinal_publish) > 1_s) {
 		_longitudinal_limits_current_cycle.timestamp = hrt_absolute_time();
 		_longitudinal_publisher.update(_longitudinal_limits_current_cycle);
+		_time_last_longitudinal_publish = _longitudinal_limits_current_cycle.timestamp;
 	}
 
-	if (_lateral_updated || force_publish_invalid) {
+	if (_lateral_updated || force_publish_invalid || hrt_elapsed_time(&_time_last_lateral_publish) > 1_s) {
 		_lateral_limits_current_cycle.timestamp = hrt_absolute_time();
 		_lateral_publisher.update(_lateral_limits_current_cycle);
+		_time_last_lateral_publish = _lateral_limits_current_cycle.timestamp;
 	}
 
 	_longitudinal_updated = _lateral_updated = false;
