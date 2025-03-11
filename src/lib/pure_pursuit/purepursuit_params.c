@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2022-2023 ModalAI, Inc. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,50 +30,46 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <px4_platform_common/defines.h>
+/**
+ * @file pruepursuit_params.c
+ *
+ * Parameters defined by the pure pursuit lib.
+ */
 
-#define BASE_BUFFER_SIZE 256
-#define MAX_MODULE_NAME_SIZE 32
-#define MODULE_BUFFER_SIZE (BASE_BUFFER_SIZE + MAX_MODULE_NAME_SIZE)
+/**
+ * Tuning parameter for the pure pursuit controller
+ *
+ * Lower value -> More aggressive controller (beware overshoot/oscillations)
+ *
+ * @min 0.1
+ * @max 100
+ * @increment 0.01
+ * @decimal 2
+ * @group Pure Pursuit
+ */
+PARAM_DEFINE_FLOAT(PP_LOOKAHD_GAIN, 1.0f);
 
-__BEGIN_DECLS
+/**
+ * Minimum lookahead distance for the pure pursuit controller
+ *
+ * @min 0.1
+ * @max 100
+ * @unit m
+ * @increment 0.01
+ * @decimal 2
+ * @group Pure Pursuit
+ */
+PARAM_DEFINE_FLOAT(PP_LOOKAHD_MIN, 1.0f);
 
-extern void qurt_log_to_apps(int level, const char *message);
-
-// Defining hap_debug
-void HAP_debug(const char *msg, int level, const char *filename, int line);
-
-static __inline void qurt_log_module(int level, const char *module, const char *file, int line,
-				     const char *format, ...)
-{
-	char buf[BASE_BUFFER_SIZE];
-	va_list args;
-	va_start(args, format);
-	vsnprintf(buf, sizeof(buf), format, args);
-	va_end(args);
-
-	char module_buf[MODULE_BUFFER_SIZE];
-	snprintf(module_buf, MAX_MODULE_NAME_SIZE, "[%s] ", module);
-	strcat(module_buf, buf);
-
-	HAP_debug(module_buf, level, file, line);
-
-	qurt_log_to_apps(level, module_buf);
-}
-
-static __inline void qurt_log_raw(const char *format, ...)
-{
-	char buf[BASE_BUFFER_SIZE];
-	va_list args;
-	va_start(args, format);
-	vsnprintf(buf, sizeof(buf), format, args);
-	va_end(args);
-	qurt_log_to_apps(1, buf);
-}
-
-__END_DECLS
+/**
+ * Maximum lookahead distance for the pure pursuit controller
+ *
+ * @min 0.1
+ * @max 100
+ * @unit m
+ * @increment 0.01
+ * @decimal 2
+ * @group Pure Pursuit
+ */
+PARAM_DEFINE_FLOAT(PP_LOOKAHD_MAX, 10.0f);
