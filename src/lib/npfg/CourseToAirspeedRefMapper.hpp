@@ -85,7 +85,7 @@ private:
 	 * @param[in] wind_cross_bearing 2D cross product of wind velocity and bearing vector [m/s]
 	 * @param[in] wind_dot_bearing 2D dot product of wind velocity and bearing vector [m/s]
 	 * @param[in] wind_speed Wind speed [m/s]
-	 * @param[in] min_ground_speed Minimum commanded forward ground speed [m/s]
+	 * @param[in] airspeed_true True airspeed [m/s]
 	 * @return Air velocity vector [m/s]
 	 */
 	matrix::Vector2f refAirVelocity(const matrix::Vector2f &wind_vel, const matrix::Vector2f &bearing_vec,

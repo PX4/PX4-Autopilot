@@ -691,7 +691,7 @@ float FwLateralLongitudinalControl::getCorrectedLateralAccelSetpoint(float later
 	return can_run_factor * (lateral_accel_sp);
 }
 float FwLateralLongitudinalControl::mapLateralAccelerationToRollAngle(float lateral_acceleration_sp) const {
-	return  atanf(lateral_acceleration_sp * 1.0f / CONSTANTS_ONE_G);
+	return  atanf(lateral_acceleration_sp / CONSTANTS_ONE_G);
 }
 
 void FwLateralLongitudinalControl::setDefaultLongitudinalControlLimits() {

@@ -129,8 +129,8 @@ private:
 	uORB::Publication <vehicle_attitude_setpoint_s> _attitude_sp_pub;
 	uORB::Publication <tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
 	uORB::PublicationData <flight_phase_estimation_s> _flight_phase_estimation_pub{ORB_ID(flight_phase_estimation)};
-	uORB::PublicationData <fw_lateral_control_setpoint_s> _lateral_ctrl_status_pub{ORB_ID(fw_lateral_control_status)};
-	uORB::PublicationData <fw_longitudinal_control_setpoint_s> _longitudinal_ctrl_status_pub{
+	uORB::Publication <fw_lateral_control_setpoint_s> _lateral_ctrl_status_pub{ORB_ID(fw_lateral_control_status)};
+	uORB::Publication <fw_longitudinal_control_setpoint_s> _longitudinal_ctrl_status_pub{
 		ORB_ID(fw_longitudinal_control_status)};
 
 	DEFINE_PARAMETERS(
