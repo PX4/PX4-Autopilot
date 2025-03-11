@@ -25,57 +25,64 @@ DEFAULT_PRIVATE_KEY = os.path.join(PX4_MAIN_DIR, "key/private/private_key.pem")
 def decrypt_log_file(ulog_file, ulog_key, rsa_key, output_folder):
     """Decrypts a single log file and saves it as .ulg in the output folder."""
 
-    # Read the private RSA key
-    with open(rsa_key, 'rb') as f:
-        r = RSA.import_key(f.read())
+    try:
+        # Read the private RSA key
+        with open(rsa_key, 'rb') as f:
+            r = RSA.import_key(f.read())
 
-    # Determine key data filename
-    if ulog_key == "":
-        key_data_filename = ulog_file
-        magic = "ULogEnc"
-    else:
-        key_data_filename = ulog_key
-        magic = "ULogKey"
+        # Determine key data filename
+        if ulog_key == "":
+            key_data_filename = ulog_file
+            magic = "ULogEnc"
+        else:
+            key_data_filename = ulog_key
+            magic = "ULogKey"
 
-    with open(key_data_filename, 'rb') as f:
-        # Read the encrypted ChaCha key and the nonce
-        ulog_key_header = f.read(22)
+        with open(key_data_filename, 'rb') as f:
+            # Read the encrypted ChaCha key and the nonce
+            ulog_key_header = f.read(22)
 
-        # Parse the header
-        try:
+            # Parse the header
             if not ulog_key_header.startswith(bytearray(magic.encode())):
-                raise Exception("Incorrect header magic")
+                print(f"Skipping {ulog_file}: Incorrect header magic")
+                return
             if ulog_key_header[7] != 1:
-                raise Exception("Unsupported header version")
+                print(f"Skipping {ulog_file}: Unsupported header version")
+                return
             if ulog_key_header[16] != 4:
-                raise Exception("Unsupported key algorithm")
+                print(f"Skipping {ulog_file}: Unsupported key algorithm")
+                return
 
             key_size = ulog_key_header[19] << 8 | ulog_key_header[18]
             nonce_size = ulog_key_header[21] << 8 | ulog_key_header[20]
             ulog_key_cipher = f.read(key_size)
             nonce = f.read(nonce_size)
-        except Exception as e:
-            print(f"Key data format error: {e}")
+
+        data_offset = 22 + key_size + nonce_size if magic == "ULogEnc" else 0
+
+        # Try to decrypt the ChaCha key
+        cipher_rsa = PKCS1_OAEP.new(r, SHA256)
+        try:
+            ulog_key = cipher_rsa.decrypt(ulog_key_cipher)
+        except ValueError:
+            print(f"Skipping {ulog_file}: Incorrect decryption (wrong key)")
             return
 
-    data_offset = 22 + key_size + nonce_size if magic == "ULogEnc" else 0
+        # Read and decrypt the log data
+        cipher = ChaCha20.new(key=ulog_key, nonce=nonce)
 
-    # Decrypt the ChaCha key
-    cipher_rsa = PKCS1_OAEP.new(r, SHA256)
-    ulog_key = cipher_rsa.decrypt(ulog_key_cipher)
+        # Save decrypted log with .ulg extension
+        output_path = os.path.join(output_folder, Path(ulog_file).stem + ".ulg")
+        with open(ulog_file, 'rb') as f:
+            if data_offset > 0:
+                f.seek(data_offset)
+            with open(output_path, 'wb') as out:
+                out.write(cipher.decrypt(f.read()))
 
-    # Read and decrypt the log data
-    cipher = ChaCha20.new(key=ulog_key, nonce=nonce)
+        print(f"Decrypted log saved to: {output_path}")
 
-    # Save decrypted log with .ulg extension
-    output_path = os.path.join(output_folder, Path(ulog_file).stem + ".ulg")
-    with open(ulog_file, 'rb') as f:
-        if data_offset > 0:
-            f.seek(data_offset)
-        with open(output_path, 'wb') as out:
-            out.write(cipher.decrypt(f.read()))
-
-    print(f"Decrypted log saved to: {output_path}")
+    except Exception as e:
+        print(f"Skipping {ulog_file}: Error occurred - {e}")
 
 def decrypt_all_logs(private_key_path):
     """Decrypts all logs in the encrypted folder and saves them in the decrypted folder."""
