@@ -44,9 +44,14 @@ Tools for generating encryption keys, building PX4 firmware with encrypted logs,
    cd PX4-Autopilot/Tools/log_encryption
    mavproxy.py --master=/dev/ttyACM0 --baudrate 57600
    python3 download_logs.py serial:/dev/ttyACM0:57600
+
+   OR
+
+   mavproxy.py --master=udp:0.0.0.0:14550
+   python3 download_logs.py udp:0.0.0.0:14550
    ```
-   For some reason running the mavproxy is neccessary, also udp connection was not tested yet
-   Also your port might need to be adjusted and QGC closed
+
+   For some reason running the mavproxy is neccessary, mav files are downloaded after, they can be neglected
 
 4. **Decrypt Logs**:
    ```bash

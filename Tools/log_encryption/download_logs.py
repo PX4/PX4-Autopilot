@@ -39,23 +39,25 @@ class MavlinkLogDownloader:
         """Downloads logs to the temporary folder."""
         self.mav.mav.log_request_list_send(self.mav.target_system, self.mav.target_component, 0, 0xFFFF)
 
-        log_entries = []
+        log_entries = {}  # Use a dictionary to store unique log entries
         start_time = time.time()
-        while time.time() - start_time < 5:  # Wait for 5 seconds for log entries
+
+        while time.time() - start_time < 5:  # Wait for log entries (5s)
             msg = self.mav.recv_match(type='LOG_ENTRY', blocking=True, timeout=1)
-            if msg:
-                log_entries.append(msg)
+            if msg and msg.id not in log_entries:
+                log_entries[msg.id] = msg  # Store the log entry with its ID
                 print(f"Log ID: {msg.id}, Size: {msg.size} bytes, Date: {msg.time_utc}")
 
         if not log_entries:
             print("No log entries found.")
             return
 
-        for entry in log_entries:
-            self.download_log_file(entry)
+        for entry in log_entries.values():
+            self.download_log_file(entry)  # Download logs only once per unique ID
 
         # After downloading, classify logs as encrypted or decrypted
         self.classify_logs()
+
 
     def download_log_file(self, log_entry):
         """Downloads a log file to the temporary folder."""
