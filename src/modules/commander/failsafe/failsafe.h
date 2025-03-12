@@ -179,6 +179,10 @@ private:
 	bool _last_state_battery_warning_critical{false};
 	const int _caller_id_battery_warning_emergency{genCallerId()};
 	bool _last_state_battery_warning_emergency{false};
+	const int _caller_id_fd_esc_arming{genCallerId()};
+	bool _last_state_fd_esc_arming{false};
+	const int _caller_id_battery_unhealthy_spoolup{genCallerId()};
+	bool _last_state_battery_unhealthy_spoolup{false};
 
 	hrt_abstime _armed_time{0};
 	bool _was_armed{false};
