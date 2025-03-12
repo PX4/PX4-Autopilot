@@ -90,9 +90,10 @@ int IST8310::probe()
 	// addition, the I2C address is not always correct, sometimes it boots with
 	// 0x0C rather than 0x0E.
 	const auto start_time = hrt_absolute_time();
+	const uint8_t start_addr = get_device_address();
 
 	while (hrt_elapsed_time(&start_time) < 50_ms) {
-		set_device_address(I2C_ADDRESS_DEFAULT);
+		set_device_address(start_addr);
 		const int WAI = RegisterRead(Register::WAI);
 
 		if (WAI == Device_ID) {
