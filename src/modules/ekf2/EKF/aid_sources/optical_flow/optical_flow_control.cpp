@@ -150,7 +150,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 		const bool continuing_conditions_passing = _fc.of.intended()
 				&& _control_status.flags.tilt_align
-				&& is_within_sensor_dist;
+				&& is_within_sensor_dist && !_control_status.flags.fixed_wing;
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& is_quality_good
