@@ -52,6 +52,7 @@ Tools for generating encryption keys, building PX4 firmware with encrypted logs,
    ```
 
    For some reason running the mavproxy is neccessary, mav files are downloaded after, they can be neglected
+   Addresses might need to be adjusted
 
 4. **Decrypt Logs**:
    ```bash
