@@ -28,11 +28,11 @@ jobs:
       - name: crowdin push
         uses: crowdin/github-action@v2
         with:
-          config: 'docs/crowdin_docs.yml'
+          config: 'docs/crowdin.yml'
           upload_sources: true
           upload_translations: false
           download_translations: false
-          crowdin_branch_name: master
+          crowdin_branch_name: main
         env:
           # A classic GitHub Personal Access Token with the 'repo' scope selected (the user should have write access to the repository).
           GITHUB_TOKEN: ${{ secrets.PX4BUILDBOT_ACCESSTOKEN }}
