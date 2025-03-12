@@ -59,12 +59,9 @@
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/offboard_control_mode.h>
+#include <uORB/topics/position_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/position_controller_status.h>
-#include <uORB/topics/mission_result.h>
-#include <uORB/topics/home_position.h>
 
 using namespace matrix;
 
@@ -135,11 +132,6 @@ private:
 	void autoPositionMode();
 
 	/**
-	 * @brief Update uORB subscriptions used for auto modes.
-	 */
-	void updateAutoSubscriptions();
-
-	/**
 	 * @brief Calculate the speed setpoint. During waypoint transition the speed is restricted to
 	 * Maximum_speed * (1 - normalized_transition_angle * RM_MISS_VEL_GAIN).
 	 * On straight lines it is based on a speed trajectory such that the rover will arrive at the next waypoint transition
@@ -152,10 +144,11 @@ private:
 	 * @param max_speed Maximum speed setpoint [m/s]
 	 * @param trans_drv_trn Heading error threshold to switch from driving to turning [rad].
 	 * @param miss_spd_gain Tuning parameter for the speed reduction during waypoint transition.
+	 * @param curr_wp_type Type of the current waypoint.
 	 * @return Speed setpoint [m/s].
 	 */
 	float calcSpeedSetpoint(float cruising_speed, float distance_to_curr_wp, float max_decel, float max_jerk,
-				float waypoint_transition_angle, float max_speed, float trans_drv_trn, float miss_spd_gain);
+				float waypoint_transition_angle, float max_speed, float trans_drv_trn, float miss_spd_gain, int curr_wp_type);
 
 
 	/**
@@ -172,10 +165,6 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _mission_result_sub{ORB_ID(mission_result)};
-	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
 	uORB::Subscription _rover_steering_setpoint_sub{ORB_ID(rover_steering_setpoint)};
 	vehicle_control_mode_s _vehicle_control_mode{};
 	offboard_control_mode_s _offboard_control_mode{};
@@ -186,7 +175,6 @@ private:
 	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
 	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
 	uORB::Publication<rover_velocity_status_s> _rover_velocity_status_pub{ORB_ID(rover_velocity_status)};
-	uORB::Publication<position_controller_status_s>	_position_controller_status_pub{ORB_ID(position_controller_status)};
 	uORB::Publication<pure_pursuit_status_s>	_pure_pursuit_status_pub{ORB_ID(pure_pursuit_status)};
 
 	// Variables
@@ -201,12 +189,10 @@ private:
 	float _max_yaw_rate{0.f};
 	float _speed_body_x_setpoint{0.f};
 	float _dt{0.f};
-	int _nav_state{0};
+	int _curr_wp_type{position_setpoint_s::SETPOINT_TYPE_IDLE};
 	bool _course_control{false}; // Indicates if the rover is doing course control in manual position mode.
-	bool _mission_finished{false};
 
 	// Waypoint variables
-	Vector2d _home_position{};
 	Vector2f _curr_wp_ned{};
 	Vector2f _prev_wp_ned{};
 	Vector2f _next_wp_ned{};
