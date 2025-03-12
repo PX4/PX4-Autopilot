@@ -160,6 +160,15 @@ ReplayEkf2::publishEkf2Topics(sensor_combined_s &sensor_combined, std::ifstream 
 	findTimestampAndPublish(sensor_combined.timestamp, _aux_global_position_msg_id, replay_file);
 
 	// sensor_combined: publish last because ekf2 is polling on this
+	if (_last_sensor_combined_timestamp > 0) {
+		// Some samples might be missing so compensate for this by holding the last value
+		const uint32_t true_dt = static_cast<uint32_t>(sensor_combined.timestamp - _last_sensor_combined_timestamp);
+		sensor_combined.gyro_integral_dt = true_dt;
+		sensor_combined.accelerometer_integral_dt = true_dt;
+	}
+
+	_last_sensor_combined_timestamp = sensor_combined.timestamp;
+
 	publishTopic(*_subscriptions[_sensor_combined_msg_id], &sensor_combined);
 
 	return true;
