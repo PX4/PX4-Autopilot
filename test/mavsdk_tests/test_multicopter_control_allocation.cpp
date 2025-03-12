@@ -62,7 +62,7 @@ TEST_CASE("Control Allocation - Remove one motor", "[controlallocation]")
 	tester.check_tracks_mission(5.f);
 	tester.store_home();
 	tester.enable_actuator_output_status();
-	std::this_thread::sleep_for(std::chrono::seconds(
+	tester.sleep_for(std::chrono::seconds(
 					    1));  // This is necessary for the takeoff altitude to be applied properly
 
 	// Takeoff
@@ -78,7 +78,7 @@ TEST_CASE("Control Allocation - Remove one motor", "[controlallocation]")
 	const unsigned num_motors = 6; // TODO: get from model
 	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off, motor_instance,
 			      mavsdk::Failure::Result::Success);
-	std::this_thread::sleep_for(std::chrono::seconds(1));
+	tester.sleep_for(std::chrono::seconds(1));
 	tester.ensure_motor_stopped(motor_instance - 1, num_motors);
 
 	tester.execute_mission();
@@ -115,7 +115,7 @@ TEST_CASE("Control Allocation - Remove two motors", "[controlallocation]")
 	tester.set_rtl_altitude(flight_altitude);
 	tester.check_tracks_mission(5.f);
 	tester.store_home();
-	std::this_thread::sleep_for(std::chrono::seconds(
+	tester.sleep_for(std::chrono::seconds(
 					    1));  // This is necessary for the takeoff altitude to be applied properly
 
 	tester.arm();
@@ -131,11 +131,11 @@ TEST_CASE("Control Allocation - Remove two motors", "[controlallocation]")
 	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off,
 			      first_motor_instance,
 			      mavsdk::Failure::Result::Success);
-	std::this_thread::sleep_for(std::chrono::seconds(1));
+	tester.sleep_for(std::chrono::seconds(1));
 	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off,
 			      second_motor_instance,
 			      mavsdk::Failure::Result::Success);
-	std::this_thread::sleep_for(std::chrono::seconds(1));
+	tester.sleep_for(std::chrono::seconds(1));
 
 	tester.execute_mission();
 	tester.stop_checking_altitude();
@@ -170,7 +170,7 @@ TEST_CASE("Control Allocation - Remove and restore every motor once", "[controla
 	tester.set_rtl_altitude(flight_altitude);
 	tester.check_tracks_mission(5.f);
 	tester.store_home();
-	std::this_thread::sleep_for(std::chrono::seconds(
+	tester.sleep_for(std::chrono::seconds(
 					    1));  // This is necessary for the takeoff altitude to be applied properly
 
 	tester.arm();
@@ -184,10 +184,10 @@ TEST_CASE("Control Allocation - Remove and restore every motor once", "[controla
 	for (int m = 1; m <= 6; m++) {
 		tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off, m,
 				      mavsdk::Failure::Result::Success);
-		std::this_thread::sleep_for(std::chrono::seconds(1));
+		tester.sleep_for(std::chrono::seconds(1));
 		tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Ok, m,
 				      mavsdk::Failure::Result::Success);
-		std::this_thread::sleep_for(std::chrono::seconds(1));
+		tester.sleep_for(std::chrono::seconds(1));
 	}
 
 	tester.execute_mission();
@@ -216,7 +216,7 @@ TEST_CASE("Control Allocation - Return home on motor failure", "[controlallocati
 	tester.set_param_com_act_fail_act(3);	// RTL on motor failure
 	tester.set_takeoff_altitude(flight_altitude);
 	tester.store_home();
-	std::this_thread::sleep_for(std::chrono::seconds(
+	tester.sleep_for(std::chrono::seconds(
 					    1));  // This is necessary for the takeoff altitude to be applied properly
 
 	// Takeoff
@@ -232,7 +232,7 @@ TEST_CASE("Control Allocation - Return home on motor failure", "[controlallocati
 	const int motor_instance = 1;
 	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off, motor_instance,
 			      mavsdk::Failure::Result::Success);
-	std::this_thread::sleep_for(std::chrono::seconds(1));
+	tester.sleep_for(std::chrono::seconds(1));
 
 	// Wait for RTL to trigger automatically
 	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
@@ -256,7 +256,7 @@ TEST_CASE("Control Allocation - Terminate on motor failure", "[controlallocation
 	tester.set_param_ca_failure_mode(1);	// Enable control allocation handling of failed motor
 	tester.set_param_com_act_fail_act(4);	// Terminate on motor failure
 	tester.set_takeoff_altitude(flight_altitude);
-	std::this_thread::sleep_for(std::chrono::seconds(
+	tester.sleep_for(std::chrono::seconds(
 					    1));  // This is necessary for the takeoff altitude to be applied properly
 
 	// Takeoff
@@ -269,7 +269,7 @@ TEST_CASE("Control Allocation - Terminate on motor failure", "[controlallocation
 	const int motor_instance = 1;
 	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off, motor_instance,
 			      mavsdk::Failure::Result::Success);
-	std::this_thread::sleep_for(std::chrono::seconds(1));
+	tester.sleep_for(std::chrono::seconds(1));
 
 	// Wait for disarm with a low enough timeout such that it's necessary for the
 	// drone to freefall (terminate) in order to disarm quickly enough:

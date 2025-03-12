@@ -193,7 +193,7 @@ protected:
 
 			while (true) {
 				// Hopefully this is often enough not to have PX4 time out on us.
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				tester.sleep_for(std::chrono::milliseconds(1));
 
 				const int64_t elapsed_time_us = _telemetry->attitude_quaternion().timestamp_us - start_time_us;
 
@@ -203,7 +203,7 @@ protected:
 			}
 
 		} else {
-			std::this_thread::sleep_for(duration);
+			tester.sleep_for(duration);
 		}
 	}
 
@@ -245,7 +245,7 @@ private:
 			const int64_t start_time_us = _telemetry->attitude_quaternion().timestamp_us;
 
 			while (!fun()) {
-				std::this_thread::sleep_for(duration_us / check_resolution);
+				tester.sleep_for(duration_us / check_resolution);
 
 				// This might potentially loop forever and the test needs to be killed by a watchdog outside.
 				// The reason not to include an absolute timeout here is that it can happen if the host is
@@ -264,7 +264,7 @@ private:
 			const auto start_time = std::chrono::steady_clock::now();
 
 			while (!fun()) {
-				std::this_thread::sleep_for(duration_us / check_resolution);
+				tester.sleep_for(duration_us / check_resolution);
 				const auto elapsed_time_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() -
 							     start_time);
 
