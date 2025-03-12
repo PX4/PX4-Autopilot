@@ -87,7 +87,7 @@ int DShotTelemetry::redirectOutput(OutputBuffer &buffer)
 	return 0;
 }
 
-int DShotTelemetry::update()
+int DShotTelemetry::update(int num_motors)
 {
 	if (_uart_fd < 0) {
 		return -1;
@@ -120,7 +120,7 @@ int DShotTelemetry::update()
 				++_num_timeouts;
 			}
 
-			requestNextMotor();
+			requestNextMotor(num_motors);
 			return -2;
 		}
 
@@ -142,7 +142,7 @@ int DShotTelemetry::update()
 				_redirect_output = nullptr;
 				ret = _current_motor_index_request;
 				_current_motor_index_request = -1;
-				requestNextMotor();
+				requestNextMotor(num_motors);
 			}
 
 		} else {
@@ -153,7 +153,7 @@ int DShotTelemetry::update()
 					ret = _current_motor_index_request;
 				}
 
-				requestNextMotor();
+				requestNextMotor(num_motors);
 			}
 		}
 	}
@@ -225,9 +225,9 @@ uint8_t DShotTelemetry::crc8(const uint8_t *buf, uint8_t len)
 }
 
 
-void DShotTelemetry::requestNextMotor()
+void DShotTelemetry::requestNextMotor(int num_motors)
 {
-	_current_motor_index_request = (_current_motor_index_request + 1) % _num_motors;
+	_current_motor_index_request = (_current_motor_index_request + 1) % num_motors;
 	_current_request_start = 0;
 	_frame_position = 0;
 }
