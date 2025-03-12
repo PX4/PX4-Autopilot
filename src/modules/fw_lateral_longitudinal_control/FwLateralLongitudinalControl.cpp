@@ -68,6 +68,11 @@ FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 	_attitude_sp_pub(is_vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
+	_tecs_status_pub.advertise();
+	_flight_phase_estimation_pub.advertise();
+	_lateral_ctrl_status_pub.advertise();
+	_longitudinal_ctrl_status_pub.advertise();
+	parameters_update();
 }
 
 FwLateralLongitudinalControl::~FwLateralLongitudinalControl()
