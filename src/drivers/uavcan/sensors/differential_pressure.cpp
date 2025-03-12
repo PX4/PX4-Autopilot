@@ -70,12 +70,12 @@ void UavcanDifferentialPressureBridge::air_sub_cb(const
 	_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_UAVCAN;
 	_device_id.devid_s.address = msg.getSrcNodeID().get() & 0xFF;
 	float diff_press_pa = msg.differential_pressure;
-	int32_t differential_press_abs = 0;
-	param_get(param_find("SENS_DPRES_ABS"), &differential_press_abs);
+	int32_t differential_press_inv = 0;
+	param_get(param_find("SENS_DPRES_INV"), &differential_press_inv);
 
-	//If differential pressure absolute param set to 1, ignore negative values
-	if (differential_press_abs == 1) {
-		diff_press_pa = fabsf(msg.differential_pressure);
+	//If differential pressure invert param set to 1, swap positive and negative
+	if (differential_press_inv == 1) {
+		diff_press_pa = -1.0f * msg.differential_pressure;
 	}
 
 	float temperature_c = msg.static_air_temperature + atmosphere::kAbsoluteNullCelsius;
