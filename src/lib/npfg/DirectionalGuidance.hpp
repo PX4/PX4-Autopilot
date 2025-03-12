@@ -131,7 +131,6 @@ private:
 
 	float period_{10.0f}; // nominal (desired) period -- user defined [s]
 	float damping_{0.7071f}; // nominal (desired) damping ratio -- user defined
-	float _time_const{7.0f}; // time constant (computed from period_ and damping_) [s]
 	float adapted_period_{10.0f}; // auto-adapted period (if stability bounds enabled) [s]
 
 	/*
