@@ -165,12 +165,6 @@ void MecanumPosVelControl::updateSubscriptions()
 		_vehicle_speed_body_y = fabsf(velocity_in_body_frame(1)) > _param_ro_speed_th.get() ? velocity_in_body_frame(1) : 0.f;
 	}
 
-	if (_vehicle_status_sub.updated()) {
-		vehicle_status_s vehicle_status;
-		_vehicle_status_sub.copy(&vehicle_status);
-		_nav_state = vehicle_status.nav_state;
-	}
-
 }
 
 void MecanumPosVelControl::generateAttitudeSetpoint()
@@ -313,48 +307,13 @@ void MecanumPosVelControl::offboardVelocityMode()
 
 void MecanumPosVelControl::autoPositionMode()
 {
-	updateAutoSubscriptions();
-
-	const float distance_to_curr_wp = sqrt(powf(_curr_pos_ned(0) - _curr_wp_ned(0),
-					       2) + powf(_curr_pos_ned(1) - _curr_wp_ned(1), 2));
-
-	if (_nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) { // Check RTL arrival
-		_mission_finished = distance_to_curr_wp < _param_nav_acc_rad.get();
-	}
-
-	const float velocity_magnitude = calcVelocityMagnitude(_auto_speed, distance_to_curr_wp, _param_ro_decel_limit.get(),
-					 _param_ro_jerk_limit.get(), _waypoint_transition_angle, _param_ro_speed_limit.get(), _param_rm_miss_spd_gain.get(),
-					 _nav_state);
-	pure_pursuit_status_s pure_pursuit_status{};
-	pure_pursuit_status.timestamp = _timestamp;
-	const float bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
-				       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _curr_wp_ned, _prev_wp_ned, _curr_pos_ned,
-				       velocity_magnitude);
-	_pure_pursuit_status_pub.publish(pure_pursuit_status);
-	const float bearing_setpoint_body_frame = matrix::wrap_pi(bearing_setpoint - _vehicle_yaw);
-	Vector2f desired_velocity(0.f, 0.f);
-	_speed_body_x_setpoint = _mission_finished ? 0.f : velocity_magnitude * cosf(bearing_setpoint_body_frame);
-	_speed_body_y_setpoint = _mission_finished ? 0.f : velocity_magnitude * sinf(bearing_setpoint_body_frame);
-	rover_attitude_setpoint_s rover_attitude_setpoint{};
-	rover_attitude_setpoint.timestamp = _timestamp;
-	rover_attitude_setpoint.yaw_setpoint = _auto_yaw;
-	_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
-}
-
-void MecanumPosVelControl::updateAutoSubscriptions()
-{
-	if (_home_position_sub.updated()) {
-		home_position_s home_position{};
-		_home_position_sub.copy(&home_position);
-		_home_position = Vector2d(home_position.lat, home_position.lon);
-	}
-
 	if (_position_setpoint_triplet_sub.updated()) {
 		position_setpoint_triplet_s position_setpoint_triplet{};
 		_position_setpoint_triplet_sub.copy(&position_setpoint_triplet);
+		_curr_wp_type = position_setpoint_triplet.current.type;
 
 		RoverControl::globalToLocalSetpointTriplet(_curr_wp_ned, _prev_wp_ned, _next_wp_ned, position_setpoint_triplet,
-				_curr_pos_ned, _home_position, _global_ned_proj_ref);
+				_curr_pos_ned, _global_ned_proj_ref);
 
 		_waypoint_transition_angle = RoverControl::calcWaypointTransitionAngle(_prev_wp_ned, _curr_wp_ned, _next_wp_ned);
 
@@ -371,38 +330,72 @@ void MecanumPosVelControl::updateAutoSubscriptions()
 		}
 	}
 
-	if (_mission_result_sub.updated()) {
-		mission_result_s mission_result{};
-		_mission_result_sub.copy(&mission_result);
-		_mission_finished = mission_result.finished;
+	const float distance_to_curr_wp = sqrt(powf(_curr_pos_ned(0) - _curr_wp_ned(0),
+					       2) + powf(_curr_pos_ned(1) - _curr_wp_ned(1), 2));
+
+	// Check stopping conditions
+	bool auto_stop{false};
+
+	if (_curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND
+	    || _curr_wp_type == position_setpoint_s::SETPOINT_TYPE_IDLE
+	    || !_next_wp_ned.isAllFinite()) { // Check stopping conditions
+		auto_stop = distance_to_curr_wp < _param_nav_acc_rad.get();
+	}
+
+	if (auto_stop) {
+		_speed_body_x_setpoint = 0.f;
+		_speed_body_y_setpoint = 0.f;
+		rover_rate_setpoint_s rover_rate_setpoint{};
+		rover_rate_setpoint.timestamp = _timestamp;
+		rover_rate_setpoint.yaw_rate_setpoint = 0.f;
+		_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
+
+	} else { // Regular guidance algorithm
+		const float velocity_magnitude = calcVelocityMagnitude(_auto_speed, distance_to_curr_wp, _param_ro_decel_limit.get(),
+						 _param_ro_jerk_limit.get(), _waypoint_transition_angle, _param_ro_speed_limit.get(), _param_rm_miss_spd_gain.get(),
+						 _curr_wp_type);
+		pure_pursuit_status_s pure_pursuit_status{};
+		pure_pursuit_status.timestamp = _timestamp;
+		const float bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
+					       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _curr_wp_ned, _prev_wp_ned, _curr_pos_ned,
+					       velocity_magnitude);
+		_pure_pursuit_status_pub.publish(pure_pursuit_status);
+		const float bearing_setpoint_body_frame = matrix::wrap_pi(bearing_setpoint - _vehicle_yaw);
+		Vector2f desired_velocity(0.f, 0.f);
+		_speed_body_x_setpoint = velocity_magnitude * cosf(bearing_setpoint_body_frame);
+		_speed_body_y_setpoint = velocity_magnitude * sinf(bearing_setpoint_body_frame);
+		rover_attitude_setpoint_s rover_attitude_setpoint{};
+		rover_attitude_setpoint.timestamp = _timestamp;
+		rover_attitude_setpoint.yaw_setpoint = _auto_yaw;
+		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
 	}
 }
 
 float MecanumPosVelControl::calcVelocityMagnitude(const float auto_speed, const float distance_to_curr_wp,
 		const float max_decel, const float max_jerk, const float waypoint_transition_angle, const float max_speed,
-		const float miss_spd_gain, const int nav_state)
+		const float miss_spd_gain, const int curr_wp_type)
 {
-	float velocity_magnitude{auto_speed};
-
-	if (max_jerk > FLT_EPSILON && max_decel > FLT_EPSILON
-	    && miss_spd_gain > FLT_EPSILON) {
-		float max_velocity_magnitude = velocity_magnitude;
-
-		if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
-			max_velocity_magnitude = math::trajectory::computeMaxSpeedFromDistance(max_jerk,
-						 max_decel, distance_to_curr_wp, 0.f);
-
-		} else if (PX4_ISFINITE(waypoint_transition_angle)) {
-			const float speed_reduction = math::constrain(miss_spd_gain * math::interpolate(M_PI_F - waypoint_transition_angle, 0.f,
-						      M_PI_F, 0.f, 1.f), 0.f, 1.f);
-			max_velocity_magnitude = math::trajectory::computeMaxSpeedFromDistance(max_jerk, max_decel, distance_to_curr_wp,
-						 max_speed * (1.f - speed_reduction));
-		}
-
-		velocity_magnitude = math::constrain(max_velocity_magnitude, -auto_speed, auto_speed);
+	// Upcoming stop
+	if (max_decel > FLT_EPSILON && max_jerk > FLT_EPSILON && (!PX4_ISFINITE(waypoint_transition_angle)
+			|| curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND
+			|| curr_wp_type == position_setpoint_s::SETPOINT_TYPE_IDLE)) {
+		const float max_velocity_magnitude = math::trajectory::computeMaxSpeedFromDistance(max_jerk,
+						     max_decel, distance_to_curr_wp, 0.f);
+		return math::constrain(max_velocity_magnitude, -auto_speed, auto_speed);
 	}
 
-	return velocity_magnitude;
+	// Straight line speed
+	if (max_jerk > FLT_EPSILON && max_decel > FLT_EPSILON && miss_spd_gain > FLT_EPSILON) {
+		const float speed_reduction = math::constrain(miss_spd_gain * math::interpolate(M_PI_F - waypoint_transition_angle, 0.f,
+					      M_PI_F, 0.f, 1.f), 0.f, 1.f);
+		const float max_velocity_magnitude = math::trajectory::computeMaxSpeedFromDistance(max_jerk, max_decel,
+						     distance_to_curr_wp,
+						     max_speed * (1.f - speed_reduction));
+
+		return math::constrain(max_velocity_magnitude, -auto_speed, auto_speed);
+	}
+
+	return auto_speed; // Fallthrough
 }
 
 bool MecanumPosVelControl::runSanityChecks()
