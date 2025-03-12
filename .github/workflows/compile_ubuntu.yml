@@ -7,9 +7,13 @@ on:
       - 'stable'
       - 'beta'
       - 'release/**'
+    paths-ignore:
+      - 'docs/**' # Do not trigger for any changes under docs
   pull_request:
     branches:
       - '*'
+    paths-ignore:
+      - 'docs/**' # Do not trigger for any changes under docs
 
 jobs:
   build_and_test:

@@ -4,10 +4,13 @@ on:
   push:
     branches:
     - 'main'
+    paths-ignore:
+    - 'docs/**' # Do not trigger for any changes under docs
   pull_request:
     branches:
     - '*'
-
+    paths-ignore:
+    - 'docs/**' # Do not trigger for any changes under docs
 jobs:
   build:
     runs-on: ubuntu-latest

@@ -10,9 +10,13 @@ on:
       - 'release/**'
     tags:
       - 'v*'
+    paths-ignore:
+      - 'docs/**' # Do not trigger for any changes under docs
   pull_request:
     branches:
       - '*'
+    paths-ignore:
+      - 'docs/**' # Do not trigger for any changes under docs
 
 jobs:
   build:

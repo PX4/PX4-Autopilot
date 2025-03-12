@@ -9,9 +9,13 @@ on:
   push:
     branches:
       - 'main'
+    paths-ignore:
+      - 'docs/**' # Do not trigger for any changes under docs
   pull_request:
     branches:
       - '*'
+    paths-ignore:
+      - 'docs/**' # Do not trigger for any changes under docs
 
 env:
   MIN_FLASH_POS_DIFF_FOR_COMMENT: 50
