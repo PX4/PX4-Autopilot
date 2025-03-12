@@ -62,7 +62,7 @@ void AccelerometerChecks::checkAndReport(const Context &context, Report &reporte
 				is_calibration_valid = (calibration::FindCurrentCalibrationIndex("ACC", accel_data.device_id) >= 0);
 			}
 
-			reporter.setIsPresent(health_component_t::gyro);
+			reporter.setIsPresent(health_component_t::accel);
 		}
 
 		const bool is_sensor_ok = is_valid && is_calibration_valid;
