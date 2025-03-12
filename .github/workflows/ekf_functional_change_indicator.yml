@@ -5,7 +5,8 @@ on:
     branches:
     - '*'
     paths-ignore:
-    - 'docs/**' # Do not trigger for any changes under docs
+      - 'docs/**'
+      - '.github/**'
 
 jobs:
   unit_tests:

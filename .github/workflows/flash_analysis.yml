@@ -10,12 +10,14 @@ on:
     branches:
       - 'main'
     paths-ignore:
-      - 'docs/**' # Do not trigger for any changes under docs
+      - 'docs/**'
+      - '.github/**'
   pull_request:
     branches:
       - '*'
     paths-ignore:
-      - 'docs/**' # Do not trigger for any changes under docs
+      - 'docs/**'
+      - '.github/**'
 
 env:
   MIN_FLASH_POS_DIFF_FOR_COMMENT: 50

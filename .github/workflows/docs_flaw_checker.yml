@@ -1,4 +1,4 @@
-name: Check for flaws in PX4 Guide source
+name: Docs - Check for flaws in PX4 Guide Source
 # So far:
   # Modifications of translations files
   # Broken internal links

@@ -1,4 +1,4 @@
-name: Comment Workflow
+name: Docs - Comment Workflow
 on:
   workflow_run:
     workflows: ["Check for flaws"]
@@ -10,7 +10,7 @@ jobs:
       pull-requests: write # for marocchino/sticky-pull-request-comment
     name: Comments
     runs-on: ubuntu-latest
-    steps:    
+    steps:
       - name: 'Download PR artifact'
         uses: actions/github-script@v6
         with:
@@ -34,7 +34,7 @@ jobs:
 
       - name: 'Unzip artifact'
         run: unzip pr_number.zip
-  
+
       # Doesn't work across workflows
       #- name: Get artifacts from flaw checker workflow
       #  uses: actions/download-artifact@v3
@@ -53,7 +53,7 @@ jobs:
         uses: juliangruber/read-file-action@v1
         with:
           path: ./pr_number
-          
+
       - name: File detail info
         run: |
           echo "${{ steps.read-errors-by-page.outputs.content }}"
@@ -68,14 +68,14 @@ jobs:
           number: ${{ steps.read-error-pr-number.outputs.content }}
           header: flaws
           message: ${{ steps.read-errors-by-page.outputs.content || 'No flaws found' }}
-  
+
       #- name: Dump GitHub context
       #  env:
       #    GITHUB_CONTEXT: ${{ toJSON(github) }}
-      #  run: echo "$GITHUB_CONTEXT"  
-  
+      #  run: echo "$GITHUB_CONTEXT"
+
       # Would like to do this, but it doesn't work (for me).
-      # Moving to time-based, or triggering on workflow 
+      # Moving to time-based, or triggering on workflow
       #- name: Wait for artifacts upload to succeed
       #  uses: lewagon/wait-on-check-action@v1.3.1
       #  with:
@@ -83,7 +83,7 @@ jobs:
       #    check-name: 'Archive production artifacts'
       #    repo-token: ${{ secrets.GITHUB_TOKEN }}
       #    wait-interval: 80
-  
+
       # Not needed for now - trying to trigger off the workflow
       #- name: Sleep for 80 seconds
       #  run: sleep 80s

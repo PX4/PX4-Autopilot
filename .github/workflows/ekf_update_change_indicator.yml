@@ -3,7 +3,8 @@ name: EKF Update Change Indicator
 on:
   push:
     paths-ignore:
-      - 'docs/**' # Do not trigger for any changes under docs
+      - 'docs/**'
+      - '.github/**'
 
 jobs:
   unit_tests:
