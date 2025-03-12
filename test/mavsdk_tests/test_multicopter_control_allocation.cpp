@@ -62,8 +62,8 @@ TEST_CASE("Control Allocation - Remove one motor", "[controlallocation]")
 	tester.check_tracks_mission(5.f);
 	tester.store_home();
 	tester.enable_actuator_output_status();
-	tester.sleep_for(std::chrono::seconds(
-					    1));  // This is necessary for the takeoff altitude to be applied properly
+	// This sleep is necessary for the takeoff altitude to be applied properly
+	tester.sleep_for(std::chrono::seconds(1));
 
 	// Takeoff
 	tester.arm();
@@ -115,8 +115,8 @@ TEST_CASE("Control Allocation - Remove two motors", "[controlallocation]")
 	tester.set_rtl_altitude(flight_altitude);
 	tester.check_tracks_mission(5.f);
 	tester.store_home();
-	tester.sleep_for(std::chrono::seconds(
-					    1));  // This is necessary for the takeoff altitude to be applied properly
+	// This sleep is necessary for the takeoff altitude to be applied properly
+	tester.sleep_for(std::chrono::seconds(1));
 
 	tester.arm();
 	tester.takeoff();
@@ -170,8 +170,8 @@ TEST_CASE("Control Allocation - Remove and restore every motor once", "[controla
 	tester.set_rtl_altitude(flight_altitude);
 	tester.check_tracks_mission(5.f);
 	tester.store_home();
-	tester.sleep_for(std::chrono::seconds(
-					    1));  // This is necessary for the takeoff altitude to be applied properly
+	// This sleep is necessary for the takeoff altitude to be applied properly
+	tester.sleep_for(std::chrono::seconds(1));
 
 	tester.arm();
 	tester.takeoff();
@@ -216,8 +216,8 @@ TEST_CASE("Control Allocation - Return home on motor failure", "[controlallocati
 	tester.set_param_com_act_fail_act(3);	// RTL on motor failure
 	tester.set_takeoff_altitude(flight_altitude);
 	tester.store_home();
-	tester.sleep_for(std::chrono::seconds(
-					    1));  // This is necessary for the takeoff altitude to be applied properly
+	// This sleep is necessary for the takeoff altitude to be applied properly
+	tester.sleep_for(std::chrono::seconds(1));
 
 	// Takeoff
 	tester.arm();
@@ -256,8 +256,8 @@ TEST_CASE("Control Allocation - Terminate on motor failure", "[controlallocation
 	tester.set_param_ca_failure_mode(1);	// Enable control allocation handling of failed motor
 	tester.set_param_com_act_fail_act(4);	// Terminate on motor failure
 	tester.set_takeoff_altitude(flight_altitude);
-	tester.sleep_for(std::chrono::seconds(
-					    1));  // This is necessary for the takeoff altitude to be applied properly
+	// This sleep is necessary for the takeoff altitude to be applied properly
+	tester.sleep_for(std::chrono::seconds(1));
 
 	// Takeoff
 	tester.arm();
