@@ -263,8 +263,7 @@ void FwLateralLongitudinalControl::Run()
 				.timestamp = _lat_control_sp.timestamp,
 				.course_setpoint = _lat_control_sp.course_setpoint,
 				.airspeed_reference_direction = airspeed_reference_direction,
-				.lateral_acceleration_setpoint = lateral_accel_sp,
-				.roll_sp = roll_sp // TODO: just for logging, can be removed later
+				.lateral_acceleration_setpoint = lateral_accel_sp
 			};
 
 			_lateral_ctrl_status_pub.publish(status);

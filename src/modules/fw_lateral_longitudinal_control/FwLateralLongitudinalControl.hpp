@@ -79,7 +79,7 @@
 #include <fw_performance_model/PerformanceModel.hpp>
 #include <slew_rate/SlewRate.hpp>
 
-const fw_lateral_control_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course_setpoint = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration_setpoint = NAN, .roll_sp = NAN};
+const fw_lateral_control_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course_setpoint = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration_setpoint = NAN};
 const fw_longitudinal_control_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude_setpoint = NAN, .height_rate_setpoint = NAN, .equivalent_airspeed_setpoint = NAN, .pitch_sp = NAN, .thrust_sp = NAN};
 
 class FwLateralLongitudinalControl final : public ModuleBase<FwLateralLongitudinalControl>, public ModuleParams,

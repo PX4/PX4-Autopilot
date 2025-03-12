@@ -49,7 +49,7 @@ using matrix::Vector2d;
 using matrix::Vector3f;
 using matrix::wrap_pi;
 
-const fw_lateral_control_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course_setpoint = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration_setpoint = NAN, .roll_sp = NAN};
+const fw_lateral_control_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course_setpoint = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration_setpoint = NAN};
 const fw_longitudinal_control_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude_setpoint = NAN, .height_rate_setpoint = NAN, .equivalent_airspeed_setpoint = NAN, .pitch_sp = NAN, .thrust_sp = NAN};
 FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	ModuleParams(nullptr),
@@ -1295,8 +1295,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		fw_lateral_ctrl_sp.course_setpoint = sp.course_setpoint;
 		fw_lateral_ctrl_sp.lateral_acceleration_setpoint = sp.lateral_acceleration_feedforward;
 
-		// this overrides the roll setpoint, until the vehicle starts the climbout
-		fw_lateral_ctrl_sp.roll_sp = _runway_takeoff.getRoll();
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
 		const float roll_wingtip_strike = math::constrain(getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt),
