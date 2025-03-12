@@ -1,38 +1,37 @@
-name: Crowdin - Upload Guide sources (en)
+name: Docs - Crowdin - Download Guide Translations
 
 # https://github.com/crowdin/github-action/tree/master
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'docs/en/**'
-  pull_request:
-    types:
-      - closed
-    branches:
-      - main
-    paths:
-      - 'docs/en/**'
+  schedule:
+    - cron: '0 0 * * 0' # Runs every Sunday at 00:00 UTC
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
-  upload-to-crowdin:
-    if: github.event.pull_request.merged == true || github.event_name == 'push'
+  synchronize-with-crowdin:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: crowdin push
+
+      - name: crowdin action
         uses: crowdin/github-action@v2
         with:
           config: 'docs/crowdin_docs.yml'
-          upload_sources: true
+          upload_sources: false
           upload_translations: false
-          download_translations: false
-          crowdin_branch_name: master
+          download_translations: true
+          localization_branch_name: l10n_crowdin_docs_translations
+          crowdin_branch_name: main
+          create_pull_request: true
+          pull_request_title: 'New PX4 guide translations (Crowdin)'
+          pull_request_body: 'New PX4 guide Crowdin translations by [Crowdin GH Action](https://github.com/crowdin/github-action)'
+          pull_request_base_branch_name: 'main'
         env:
           # A classic GitHub Personal Access Token with the 'repo' scope selected (the user should have write access to the repository).
           GITHUB_TOKEN: ${{ secrets.PX4BUILDBOT_ACCESSTOKEN }}
