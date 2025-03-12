@@ -189,6 +189,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("yaw_estimator_status", 1000);
 
 	// log all raw sensors at minimal rate (at least 1 Hz)
+	add_topic_multi("battery_info", 5000, 2);
 	add_topic_multi("battery_status", 200, 2);
 	add_topic_multi("differential_pressure", 1000, 2);
 	add_topic_multi("distance_sensor", 1000, 2);
