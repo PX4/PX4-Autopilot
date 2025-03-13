@@ -122,7 +122,6 @@ add_custom_command(
 		${romfs_gen_root_dir}/init.d/rc.autostart.post
 		${romfs_gen_root_dir}/init.d/rc.filepaths
 		${romfs_copy_stamp}
-	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/*
 	COMMAND ${CMAKE_COMMAND} -E tar xf ${romfs_tar_file}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		--airframes-path ${romfs_gen_root_dir}/init.d
@@ -217,6 +216,7 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 			# generate rc.board_bootloader_upgrade
 			set(BOARD_FIRMWARE_BIN "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
 			configure_file(${PX4_SOURCE_DIR}/platforms/nuttx/init/rc.board_bootloader_upgrade.in ${romfs_gen_root_dir}/init.d/rc.board_bootloader_upgrade @ONLY)
+			message(STATUS "Created in ${romfs_gen_root_dir}/init.d/rc.board_bootloader_upgrade")
 		else()
 			# remove bootloader from extras
 			list(REMOVE_ITEM OPTIONAL_BOARD_EXTRAS ${board_extra_file})
