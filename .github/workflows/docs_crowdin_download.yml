@@ -51,24 +51,3 @@ jobs:
 
           # Visit https://crowdin.com/settings#api-key to create this token
           CROWDIN_PERSONAL_TOKEN: ${{ secrets.PX4BUILDBOT_CROWDIN_PERSONAL_TOKEN }}
-      - name: Debug Environment Variables2
-        run: |
-          echo "CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_DOCS_PROJECT_ID }}"
-          echo "CROWDIN_PERSONAL_TOKEN: ${{ secrets.PX4BUILDBOT_CROWDIN_PERSONAL_TOKEN }}"
-      - name: Verify Secrets
-        run: |
-          if [[ -n "${{ secrets.CROWDIN_PROJECT_ID }}" ]]; then
-            echo "CROWDIN_PROJECT_ID is set."
-          else
-            echo "CROWDIN_PROJECT_ID is NOT set."
-          fi
-          if [[ -n "${{ secrets.CROWDIN_PERSONAL_TOKEN }}" ]]; then
-            echo "CROWDIN_PERSONAL_TOKEN is set."
-          else
-            echo "CROWDIN_PERSONAL_TOKEN is NOT set."
-          fi
-          if [[ -n "${{ secrets.PX4BUILTBOT_PERSONAL_ACCESS_TOKEN }}" ]]; then
-            echo "PX4BUILTBOT_PERSONAL_ACCESS_TOKEN is set."
-          else
-            echo "PX4BUILTBOT_PERSONAL_ACCESS_TOKEN is NOT set."
-          fi
