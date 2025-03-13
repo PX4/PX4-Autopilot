@@ -25,12 +25,17 @@
    ```
 
    Make sure you have the right key in your board file
+   ```CONFIG_PUBLIC_KEY1="../../../keys/public/public_key.pub"```
 
 3. **Build Firmware**:
    ```bash
    cd PX4-Autopilot
 
    AND
+
+   make <your_board_name>_encrypted_logs
+
+   OR
 
    make ark_fmu-v6x_encrypted_logs
 
@@ -42,8 +47,7 @@
 
    make ark_pi6x_encrypted_logs
 
-   OR
-   make <your_board_name>_encrypted_logs
+
 
    AND
 
