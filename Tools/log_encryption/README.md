@@ -1,24 +1,32 @@
 # PX4 Log Encryption Tools
 
-Tools for generating encryption keys, building PX4 firmware with encrypted logs, downloading logs, and decrypting them.
+   Tools for generating encryption keys, building PX4 firmware with encrypted logs, downloading logs, and decrypting them.
 
-## Prerequisites
 
-- Python 3.x
-- pip3 install --user pycryptodome pymavlink
-- PX4 development environment
 
 ## Usage
 
+1. **Get the board file**:
+   To be able to use these methode you need to create your own board file in your board folder. You can just copy one that is used below.
+   ```bash
+   encrypted_logs.px4board
+   ```
+   Then using menuconfig you should Enable the settings: Blake2s hash algorithm, Entropy pool and strong random number generator, and Use interrupts to feed timing randomness to entropy pool.
+   Once you have generated the keys make sure you add them to the boardconfig.
 
+   ```bash
+   make <your_board_name>_encrypted_logs menuconfig
+   ```
 
-1. **Generate Keys**:
+2. **Generate Keys**:
    ```bash
    cd PX4-Autopilot/Tools/log_encryption
    python3 generate_keys.py
    ```
 
-2. **Build Firmware**:
+   Make sure you have the right key in your board file
+
+3. **Build Firmware**:
    ```bash
    cd PX4-Autopilot
 
@@ -34,27 +42,28 @@ Tools for generating encryption keys, building PX4 firmware with encrypted logs,
 
    make ark_pi6x_encrypted_logs
 
+   OR
+   make <your_board_name>_encrypted_logs
+
    AND
 
    Upload the custom fw on your flight controller and record couple of logs
    ```
 
-3. **Download Logs**:
+4. **Download Logs**:
    ```bash
    cd PX4-Autopilot/Tools/log_encryption
-   mavproxy.py --master=/dev/ttyACM0 --baudrate 57600
+
    python3 download_logs.py serial:/dev/ttyACM0:57600
 
    OR
 
-   mavproxy.py --master=udp:0.0.0.0:14550
    python3 download_logs.py udp:0.0.0.0:14550
    ```
 
-   For some reason running the mavproxy is neccessary, mav files are downloaded after, they can be neglected
    Addresses might need to be adjusted
 
-4. **Decrypt Logs**:
+5. **Decrypt Logs**:
    ```bash
    cd PX4-Autopilot/Tools/log_encryption
    python3 decrypt_logs.py
