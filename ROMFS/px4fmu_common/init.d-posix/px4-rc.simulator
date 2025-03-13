@@ -125,10 +125,11 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 		fi
 
 		echo "INFO  [init] Spawning model"
+
 		# Spawn model
 		${gz_command} service -s "/world/${PX4_GZ_WORLD}/create" --reqtype gz.msgs.EntityFactory \
 				--reptype gz.msgs.Boolean --timeout 5000 \
-				--req "sdf_filename: \"${PX4_GZ_MODELS}/${MODEL_NAME}\", name: \"${MODEL_NAME_INSTANCE}\", allow_renaming: false${POSE_ARG}" > /dev/null 2>&1
+				--req "sdf_filename: \"${PX4_GZ_MODELS}/${MODEL_NAME}/model.sdf\", name: \"${MODEL_NAME_INSTANCE}\", allow_renaming: false${POSE_ARG}" > /dev/null 2>&1
 
 		# Start gz_bridge
 		if ! gz_bridge start -w "${PX4_GZ_WORLD}" -n "${MODEL_NAME_INSTANCE}"; then
