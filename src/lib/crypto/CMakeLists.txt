@@ -33,6 +33,8 @@
 
 if (DEFINED PX4_CRYPTO)
 
+add_subdirectory(crypto_utils)
+
 px4_add_git_submodule(TARGET git_monocypher PATH "monocypher")
 px4_add_git_submodule(TARGET git_libtomcrypt PATH "libtomcrypt")
 px4_add_git_submodule(TARGET git_libtommath PATH "libtommath")
@@ -96,20 +98,16 @@ target_link_libraries(libtomcrypt
 	PRIVATE
 		libtommath
 		px4_random
+		crypto_utils
 )
 
 # Fix for erroneous warning on some compilers:
 # "der_encode_asn1_identifier.c:39:18: error: comparison is always false due to limited range of data type"
 target_compile_options(libtomcrypt PRIVATE -Wno-type-limits)
 
-# Re-define memory allocation macros if we are building for
-# memory protected build in nuttx. All allocations happen in
-# kernel heap there
+# Re-define memory allocation macros for libtommath
 
-if (NOT DEFINED CONFIG_BUILD_FLAT AND "${PX4_PLATFORM}" MATCHES "nuttx")
-	target_compile_options(libtomcrypt PUBLIC -DXMALLOC=kmm_malloc -DXFREE=kmm_free -DXREALLOC=kmm_realloc -DXCALLOC=kmm_calloc)
-	target_compile_options(libtommath PUBLIC -DMP_MALLOC=kmm_malloc -DMP_FREE\(p,s\)=kmm_free\(p\) -DMP_REALLOC\(p,o,n\)=kmm_realloc\(p,n\) -DMP_CALLOC=kmm_calloc)
-	target_link_libraries(libtommath PRIVATE nuttx_kmm)
-endif()
+target_compile_options(libtommath PUBLIC -DMP_MALLOC=sec_malloc -DMP_FREE\(p,s\)=sec_free\(p\) -DMP_REALLOC\(p,o,n\)=sec_realloc\(p,n\) -DMP_CALLOC=sec_calloc)
+target_link_libraries(libtommath PRIVATE crypto_utils)
 
 endif()
