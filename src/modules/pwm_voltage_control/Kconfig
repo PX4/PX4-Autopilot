@@ -1,0 +1,5 @@
+menuconfig MODULES_PWM_VOLTAGE_CONTROL
+	bool "pwm_voltage_control"
+	default n
+	---help---
+		Enable support for pwm_voltage_control
