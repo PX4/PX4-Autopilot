@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8" />
+    <link href="data:;base64,iVBORw0KGgo=" rel="icon" />
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+    <title>FUN AND GAMES</title>
+    <style></style>
+  </head>
+  <body>
+    Search: <input id="search" type="text" /> Preset:
+    <select id="select-graph" name="select-graph">
+      <option value="graph_full_no_mavlink.json">
+        All Modules (w/o mavlink)
+      </option>
+      <option value="graph_full.json">All Modules</option>
+      <option value="graph_px4_sitl.json">SITL Modules</option>
+      <option value="graph_px4_fmu-v5.json">FMUv5 Modules</option>
+      <option value="graph_px4_fmu-v4.json">FMUv4 Modules</option>
+      <option value="graph_px4_fmu-v2.json">FMUv2 Modules</option>
+    </select>
+    <br />
+    <svg id="svg-graph" width="1200" height="1400"></svg>
+    <script
+      type="application/javascript"
+      src="https://d3js.org/d3.v4.min.js"
+      asysc
+    ></script>
+    <script type="application/javascript" src="uorb_graph.js" asysc></script>
+  </body>
+</html>

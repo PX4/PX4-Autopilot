@@ -14,9 +14,15 @@ on:
       - 'stable'
       - 'beta'
       - 'release/**'
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
   pull_request:
     branches:
       - '*'
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
 
 jobs:
   group_targets:

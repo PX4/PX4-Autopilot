@@ -1,0 +1,157 @@
+# MAVSDK 통합 테스트
+
+PX4 can be tested end to end to using integration tests based on [MAVSDK](https://mavsdk.mavlink.io).
+
+테스트는 주로 SITL에 대해 개발되고, CI(지속적 통합)에서 실행됩니다.
+앞으로, 모든 플랫폼/하드웨어으로 일반화할 계획입니다.
+
+아래 지침은 로컬에서 테스트를 설정하고 진행하는 방법을 설명합니다.
+
+## 준비 사항
+
+### 개발 환경 설정
+
+아직 하지 않은 경우:
+
+- Install the development toolchain for [Linux](../dev_setup/dev_env_linux_ubuntu.md) or [macOS](../dev_setup/dev_env_mac.md) (Windows not supported).
+  [Gazebo Classic](../sim_gazebo_classic/index.md) is required, and should be installed by default.
+- [Get the PX4 source code](../dev_setup/building_px4.md#download-the-px4-source-code):
+
+  ```sh
+  git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+  cd PX4-Autopilot
+  ```
+
+### 테스트용 PX4 빌드
+
+시뮬레이터 테스트를 위한 PX4를 빌드하려면 다음 명령어를 실행하십시오.
+
+```sh
+DONT_RUN=1 make px4_sitl gazebo-classic mavsdk_tests
+```
+
+### MAVSDK C++ 라이브러리 설치
+
+The tests need the MAVSDK C++ library installed system-wide (e.g. in `/usr/lib` or `/usr/local/lib`).
+
+바이너리 또는 소스에서 설치:
+
+- [MAVSDK > C++ > C++ QuickStart](https://mavsdk.mavlink.io/main/en/cpp/quickstart.html): Install as a prebuilt library on supported platforms (recommended)
+- [MAVSDK > C++ Guide > Building from Source](https://mavsdk.mavlink.io/main/en/cpp/guide/build.html): Build C++ library from source.
+
+## 모든 PX4 테스트 실행
+
+To run all SITL tests as defined in [sitl.json](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/configs/sitl.json), do:
+
+```sh
+test/mavsdk_tests/mavsdk_test_runner.py test/mavsdk_tests/configs/sitl.json --speed-factor 10
+```
+
+그러면, 모든 테스트가 나열되고 순차적으로 실행됩니다.
+
+To see all possible command line arguments use the `-h` argument:
+
+```sh
+test/mavsdk_tests/mavsdk_test_runner.py -h
+
+usage: mavsdk_test_runner.py [-h] [--log-dir LOG_DIR] [--speed-factor SPEED_FACTOR] [--iterations ITERATIONS] [--abort-early] [--gui] [--model MODEL]
+                             [--case CASE] [--debugger DEBUGGER] [--verbose]
+                             config_file
+
+positional arguments:
+  config_file           JSON config file to use
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --log-dir LOG_DIR     Directory for log files
+  --speed-factor SPEED_FACTOR
+                        how fast to run the simulation
+  --iterations ITERATIONS
+                        how often to run all tests
+  --abort-early         abort on first unsuccessful test
+  --gui                 display the visualization for a simulation
+  --model MODEL         only run tests for one model
+  --case CASE           only run tests for one case
+  --debugger DEBUGGER   choice from valgrind, callgrind, gdb, lldb
+  --verbose             enable more verbose output
+```
+
+## 단일 테스트 실행
+
+Run a single test by specifying the `model` and test `case` as command line options.
+예를 들어, 임무에서 테일시터 비행을 테스트하려면, 다음을 실행합니다.
+
+```sh
+test/mavsdk_tests/mavsdk_test_runner.py test/mavsdk_tests/configs/sitl.json --speed-factor 10 --model tailsitter --case 'Fly square Multicopter Missions including RTL'
+```
+
+The easiest way to find out the current set of models and their associated test cases is to run all PX4 tests [as shown above](#run-all-px4-tests) (note, you can then cancel the build if you wish to test just one).
+
+이 문서 작성 시점에서 모든 테스트를 실행하여 생성된 목록은 다음과 같습니다.
+
+```sh
+About to run 39 test cases for 3 selected models (1 iteration):
+  - iris:
+    - 'Land on GPS lost during mission (baro height mode)'
+    - 'Land on GPS lost during mission (GPS height mode)'
+    - 'Continue on mag lost during mission'
+    - 'Continue on baro lost during mission (baro height mode)'
+    - 'Continue on baro lost during mission (GPS height mode)'
+    - 'Continue on baro stuck during mission (baro height mode)'
+    - 'Continue on baro stuck during mission (GPS height mode)'
+    - 'Takeoff and Land'
+    - 'Fly square Multicopter Missions including RTL'
+    - 'Fly square Multicopter Missions with manual RTL'
+    - 'Fly straight Multicopter Mission'
+    - 'Offboard takeoff and land'
+    - 'Offboard position control'
+    - 'Fly forward in position control'
+    - 'Fly forward in altitude control'
+  - standard_vtol:
+    - 'Land on GPS lost during mission (baro height mode)'
+    - 'Land on GPS lost during mission (GPS height mode)'
+    - 'Continue on mag lost during mission'
+    - 'Continue on baro lost during mission (baro height mode)'
+    - 'Continue on baro lost during mission (GPS height mode)'
+    - 'Continue on baro stuck during mission (baro height mode)'
+    - 'Continue on baro stuck during mission (GPS height mode)'
+    - 'Takeoff and Land'
+    - 'Fly square Multicopter Missions including RTL'
+    - 'Fly square Multicopter Missions with manual RTL'
+    - 'Fly forward in position control'
+    - 'Fly forward in altitude control'
+  - tailsitter:
+    - 'Land on GPS lost during mission (baro height mode)'
+    - 'Land on GPS lost during mission (GPS height mode)'
+    - 'Continue on mag lost during mission'
+    - 'Continue on baro lost during mission (baro height mode)'
+    - 'Continue on baro lost during mission (GPS height mode)'
+    - 'Continue on baro stuck during mission (baro height mode)'
+    - 'Continue on baro stuck during mission (GPS height mode)'
+    - 'Takeoff and Land'
+    - 'Fly square Multicopter Missions including RTL'
+    - 'Fly square Multicopter Missions with manual RTL'
+    - 'Fly forward in position control'
+    - 'Fly forward in altitude control'
+```
+
+## 구현 참고 사항
+
+- The tests are invoked from the test runner script [mavsdk_test_runner.py](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/mavsdk_test_runner.py), which is written in Python.
+
+  In addition to MAVSDK, this runner starts `px4` as well as Gazebo for SITL tests, and collects the logs of these processes.
+
+- 테스트 실행기는 다음을 포함하는 C++ 바이너리입니다.
+  - The [main](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/test_main.cpp) function to parse the arguments.
+  - An abstraction around MAVSDK called [autopilot_tester](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/autopilot_tester.h).
+  - The actual tests using the abstraction around MAVSDK as e.g. [test_multicopter_mission.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/test_multicopter_mission.cpp).
+  - The tests use the [catch2](https://github.com/catchorg/Catch2) unit testing framework.
+    이 프레임워크를 사용하는 이유는 다음과 같습니다.
+    - Asserts (`REQUIRE`) which are needed to abort a test can be inside of functions (and not just in the top level test as is [the case with gtest](https://github.com/google/googletest/blob/main/docs/advanced.md#assertion-placement)).
+    - Dependency management is easier because _catch2_ can just be included as a header-only library.
+    - _Catch2_ supports [tags](https://github.com/catchorg/Catch2/blob/devel/docs/test-cases-and-sections.md#tags), which allows for flexible composition of tests.
+
+사용된 용어:
+
+- "model": This is the selected Gazebo model, e.g. `iris`.
+- "test case": This is a [catch2 test case](https://github.com/catchorg/Catch2/blob/master/docs/test-cases-and-sections.md).
