@@ -2,8 +2,6 @@
 
    Tools for generating encryption keys, building PX4 firmware with encrypted logs, downloading logs, and decrypting them.
 
-
-
 ## Usage
 
 1. **Get the board file**:
@@ -47,8 +45,6 @@
 
    make ark_pi6x_encrypted_logs
 
-
-
    AND
 
    Upload the custom fw on your flight controller and record couple of logs
@@ -73,12 +69,8 @@
    python3 decrypt_logs.py
    ```
 
-
-
 ## Directory Structure
 
 - **`keys/`**: Encryption keys.
-- **`encrypted_logs/`**: Downloaded encrypted logs.
-- **`decrypted_logs/`**: Decrypted logs.
-
-
+- **`logs/encrypted/`**: Downloaded encrypted logs.
+- **`logs/decrypted/`**: Decrypted logs.
