@@ -136,6 +136,9 @@ private:
 	bool _relative_calibration_done{false};
 	uint64_t _calibration_t_first{0};
 
+	bool _calibration_done{false};
+	uint64_t _calibration_delay{0};
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh,
 		(ParamFloat<px4::params::SENS_BARO_RATE>) _param_sens_baro_rate
