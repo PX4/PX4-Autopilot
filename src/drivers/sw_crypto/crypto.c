@@ -42,6 +42,7 @@
 #include <stdbool.h>
 
 #include <lib/crypto/monocypher/src/optional/monocypher-ed25519.h>
+#include <lib/crypto/crypto_utils/secure_heap.h>
 #include <px4_platform_common/crypto_backend.h>
 #include <px4_random.h>
 #include <tomcrypt.h>
@@ -149,6 +150,7 @@ static const uint8_t *crypto_get_key_ptr(keystore_session_handle_t handle,
 
 void crypto_init()
 {
+	secure_heap_init();
 	keystore_init();
 	clear_key_cache();
 }

@@ -42,6 +42,7 @@ target_link_libraries(crypto_backend
 target_link_libraries(crypto_backend
 	PRIVATE
 		px4_random
+		crypto_utils
 		monocypher
 		libtomcrypt
 )
