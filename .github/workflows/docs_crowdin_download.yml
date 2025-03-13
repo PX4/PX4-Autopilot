@@ -47,4 +47,4 @@ jobs:
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_DOCS_PROJECT_ID }}
 
           # Visit https://crowdin.com/settings#api-key to create this token
-          CROWDIN_PERSONAL_TOKEN: ${{ secrets.PX4BUILDBOT_CROWDIN_PERSONAL_TOKEN }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.PX4BUILTBOT_PERSONAL_ACCESS_TOKEN }}
