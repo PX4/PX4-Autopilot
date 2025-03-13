@@ -566,7 +566,7 @@ union filter_control_status_u {
 	struct {
 		uint64_t tilt_align              : 1; ///< 0 - true if the filter tilt alignment is complete
 		uint64_t yaw_align               : 1; ///< 1 - true if the filter yaw alignment is complete
-		uint64_t gps                     : 1; ///< 2 - true if GPS measurement fusion is intended
+		uint64_t gnss_pos                : 1; ///< 2 - true if GNSS position measurement fusion is intended
 		uint64_t opt_flow                : 1; ///< 3 - true if optical flow measurements fusion is intended
 		uint64_t mag_hdg                 : 1; ///< 4 - true if a simple magnetic yaw heading fusion is intended
 		uint64_t mag_3D                  : 1; ///< 5 - true if 3-axis magnetometer measurement fusion is intended
@@ -620,8 +620,8 @@ uint64_t mag_heading_consistent  :
 		uint64_t opt_flow_terrain        : 1; ///< 40 - true if we are fusing flow data for terrain
 		uint64_t valid_fake_pos          : 1; ///< 41 - true if a valid constant position is being fused
 		uint64_t constant_pos            : 1; ///< 42 - true if the vehicle is at a constant position
-		uint64_t baro_fault	      : 1; ///< 43 - true when the baro has been declared faulty and is no longer being used
-
+		uint64_t baro_fault              : 1; ///< 43 - true when the baro has been declared faulty and is no longer being used
+		uint64_t gnss_vel                : 1; ///< 44 - true if GNSS velocity measurement fusion is intended
 	} flags;
 	uint64_t value;
 };

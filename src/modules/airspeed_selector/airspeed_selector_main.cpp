@@ -561,7 +561,8 @@ void AirspeedModule::poll_topics()
 	_gnss_lpos_valid = (_time_now_usec - _vehicle_local_position.timestamp < 1_s)
 			   && (_vehicle_local_position.timestamp > 0)
 			   && _vehicle_local_position.v_xy_valid
-			   && _estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS);
+			   && (_estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GNSS_POS)
+			       || _estimator_status.control_mode_flags & (static_cast<uint64_t>(1) << estimator_status_s::CS_GNSS_VEL));
 }
 
 void AirspeedModule::update_wind_estimator_sideslip()

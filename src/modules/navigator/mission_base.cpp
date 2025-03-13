@@ -218,6 +218,8 @@ MissionBase::on_activation()
 
 	int32_t resume_index = _inactivation_index > 0 ? _inactivation_index : 0;
 
+	bool resume_mission_on_previous = false;
+
 	if (_inactivation_index > 0 && cameraWasTriggering()) {
 		size_t num_found_items{0U};
 		getPreviousPositionItems(_inactivation_index - 1, &resume_index, num_found_items, 1U);
@@ -229,7 +231,18 @@ MissionBase::on_activation()
 			setMissionIndex(resume_index);
 
 			_align_heading_necessary = true;
+			resume_mission_on_previous = true;
 		}
+	}
+
+	if (!resume_mission_on_previous) {
+		// Only replay speed changes immediately if we are not resuming the mission at the previous position item.
+		// Otherwise it must be handled in the on_active() method once we reach the previous position item.
+		replayCachedSpeedChangeItems();
+		_speed_replayed_on_activation = true;
+
+	} else {
+		_speed_replayed_on_activation = false;
 	}
 
 	checkClimbRequired(_mission.current_seq);
@@ -304,14 +317,16 @@ MissionBase::on_active()
 		replayCachedGimbalItems();
 	}
 
-	// Replay cached mission commands once the last mission waypoint is re-reached after the mission interruption.
-	// Each replay function also clears the cached items afterwards
+	// Replay cached trigger commands once the last mission waypoint is re-reached after the mission resume
 	if (_mission.current_seq > _mission_activation_index) {
 		// replay trigger commands
 		if (cameraWasTriggering()) {
 			replayCachedTriggerItems();
 		}
+	}
 
+	if (!_speed_replayed_on_activation && _mission.current_seq > _mission_activation_index) {
+		// replay speed change items if not already done on mission (re-)activation
 		replayCachedSpeedChangeItems();
 	}
 

@@ -73,13 +73,13 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 			exit 1
 		fi
 
-		# look for running ${gz_command} gazebo world
+		# Look for an already running world
 		gz_world=$( ${gz_command} topic -l | grep -m 1 -e "^/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
 
 		# shellcheck disable=SC2153
 		if [ -z "${gz_world}" ] && [ -n "${PX4_GZ_WORLD}" ]; then
 
-			# source generated gz_env.sh for GZ_SIM_RESOURCE_PATH
+			# Setup gz environment variables
 			if [ -f ./gz_env.sh ]; then
 				. ./gz_env.sh
 
@@ -87,62 +87,125 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 				. ../gz_env.sh
 			fi
 
-			echo "INFO  [init] starting gazebo with world: ${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf"
+			echo "INFO  [init] Starting gazebo with world: ${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf"
 
-			${gz_command} ${gz_sub_command} --verbose=1 -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
+			${gz_command} ${gz_sub_command} --verbose=${GZ_VERBOSE:=1} -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
 
 			if [ -z "${HEADLESS}" ]; then
-				# HEADLESS not set, starting gui
-				${gz_command} ${gz_sub_command} -g &
+				echo "INFO  [init] Starting gz gui"
+				${gz_command} ${gz_sub_command} -g > /dev/null 2>&1 &
 			fi
-
 		else
-			# Gazebo is already running, do not start the simulator, nor the GUI
+			# Gazebo is already running
 			echo "INFO  [init] gazebo already running world: ${gz_world}"
 			PX4_GZ_WORLD=${gz_world}
 		fi
+
 	else
 		echo "INFO  [init] Standalone PX4 launch, waiting for Gazebo"
 	fi
 
-	# start gz_bridge
+	# Start gz_bridge - either spawn a model or connect to existing one
 	if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
-		# model specified, gz_bridge will spawn model
+		# Spawn a model
+		MODEL_NAME="${PX4_SIM_MODEL#*gz_}"
+		MODEL_NAME_INSTANCE="${MODEL_NAME}_${px4_instance}"
 
+		POSE_ARG=""
 		if [ -n "${PX4_GZ_MODEL_POSE}" ]; then
-			# model pose provided: [x, y, z, roll, pitch, yaw]
+			pos_x=$(echo "${PX4_GZ_MODEL_POSE}" | awk -F',' '{print $1}')
+			pos_y=$(echo "${PX4_GZ_MODEL_POSE}" | awk -F',' '{print $2}')
+			pos_z=$(echo "${PX4_GZ_MODEL_POSE}" | awk -F',' '{print $3}')
+			pos_x=${pos_x:-0}
+			pos_y=${pos_y:-0}
+			pos_z=${pos_z:-0}
 
-			# Clean potential input line formatting.
-			model_pose="$( echo "${PX4_GZ_MODEL_POSE}" | sed -e 's/^[ \t]*//; s/[ \t]*$//; s/,/ /g; s/  / /g; s/ /,/g' )"
-			echo "INFO  [init] PX4_GZ_MODEL_POSE set, spawning at: ${model_pose}"
-
-		else
-			# model pose not provided, origin will be used
-
-			echo "WARN  [init] PX4_GZ_MODEL_POSE not set, spawning at origin."
-			model_pose="0,0,0,0,0,0"
+			POSE_ARG=", pose: { position: { x: ${pos_x}, y: ${pos_y}, z: ${pos_z} } }"
+			echo "INFO  [init] Spawning model at position: ${pos_x} ${pos_y} ${pos_z}"
 		fi
 
-		# start gz bridge with pose arg.
-		if ! gz_bridge start -p "${model_pose}" -m "${PX4_SIM_MODEL#*gz_}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
+		echo "INFO  [init] Spawning model"
+		# Spawn model
+		${gz_command} service -s "/world/${PX4_GZ_WORLD}/create" --reqtype gz.msgs.EntityFactory \
+				--reptype gz.msgs.Boolean --timeout 5000 \
+				--req "sdf_filename: \"${PX4_GZ_MODELS}/${MODEL_NAME}\", name: \"${MODEL_NAME_INSTANCE}\", allow_renaming: false${POSE_ARG}" > /dev/null 2>&1
+
+		# Start gz_bridge
+		if ! gz_bridge start -w "${PX4_GZ_WORLD}" -n "${MODEL_NAME_INSTANCE}"; then
 			echo "ERROR [init] gz_bridge failed to start and spawn model"
 			exit 1
 		fi
 
-	elif [ -n "${PX4_GZ_MODEL_NAME}" ]; then
-		# model name specificed, gz_bridge will attach to existing model
+		# Set physics parameters for faster-than-realtime simulation if needed
+		check_scene_info() {
+			SERVICE_INFO=$(${gz_command} service -i --service "/world/${PX4_GZ_WORLD}/scene/info" 2>&1)
+			if echo "$SERVICE_INFO" | grep -q "Service providers"; then
+				return 0
+			else
+				return 1
+			fi
+		}
 
+		ATTEMPTS=30
+		while [ $ATTEMPTS -gt 0 ]; do
+			if check_scene_info; then
+				echo "INFO  [init] Gazebo world is ready"
+				break
+			fi
+			ATTEMPTS=$((ATTEMPTS-1))
+			if [ $ATTEMPTS -eq 0 ]; then
+				echo "ERROR [init] Timed out waiting for Gazebo world"
+				exit 1
+			fi
+			echo "INFO  [init] Waiting for Gazebo world..."
+			sleep 1
+		done
+
+		if [ -n "${PX4_SIM_SPEED_FACTOR}" ]; then
+			echo "INFO  [init] Setting simulation speed factor: ${PX4_SIM_SPEED_FACTOR}"
+			${gz_command} service -s "/world/${PX4_GZ_WORLD}/set_physics" --reqtype gz.msgs.Physics \
+						--reptype gz.msgs.Boolean --timeout 5000 \
+						--req "real_time_factor: ${PX4_SIM_SPEED_FACTOR}" > /dev/null 2>&1
+		fi
+
+
+		# Set up camera to follow the model if requested
+		if [ -n "${PX4_GZ_FOLLOW}" ]; then
+
+			# Wait for model to spawn
+			sleep 1
+
+			echo "INFO  [init] Setting camera to follow ${MODEL_NAME_INSTANCE}"
+
+			# Set camera to follow the model
+			${gz_command} service -s "/gui/follow" --reqtype gz.msgs.StringMsg \
+					--reptype gz.msgs.Boolean --timeout 5000 \
+					--req "data: \"${MODEL_NAME_INSTANCE}\"" > /dev/null 2>&1
+
+			# Set default camera offset if not specified
+			follow_x=${PX4_GZ_FOLLOW_OFFSET_X:--2.0}
+			follow_y=${PX4_GZ_FOLLOW_OFFSET_Y:--2.0}
+			follow_z=${PX4_GZ_FOLLOW_OFFSET_Z:-2.0}
+
+			# Set camera offset
+			${gz_command} service -s "/gui/follow/offset" --reqtype gz.msgs.Vector3d \
+					--reptype gz.msgs.Boolean --timeout 5000 \
+					--req "x: ${follow_x}, y: ${follow_y}, z: ${follow_z}" > /dev/null 2>&1
+
+			echo "INFO  [init] Camera follow offset set to ${follow_x}, ${follow_y}, ${follow_z}"
+		fi
+
+	elif [ -n "${PX4_GZ_MODEL_NAME}" ]; then
+		# Connect to existing model
 		echo "INFO  [init] PX4_GZ_MODEL_NAME set, PX4 will attach to existing model"
-		if ! gz_bridge start -n "${PX4_GZ_MODEL_NAME}" -w "${PX4_GZ_WORLD}"; then
+		if ! gz_bridge start -w "${PX4_GZ_WORLD}" -n "${PX4_GZ_MODEL_NAME}"; then
 			echo "ERROR [init] gz_bridge failed to start and attach to existing model"
 			exit 1
 		fi
-
 	else
-		echo "ERROR [init] failed to pass only PX4_GZ_MODEL_NAME or PX4_SIM_MODEL"
+		echo "ERROR [init] failed to pass either PX4_GZ_MODEL_NAME or PX4_SIM_MODEL"
 		exit 1
 	fi
-
 	# Start the sensor simulator modules
 	if param compare -s SENS_EN_BAROSIM 1
 	then

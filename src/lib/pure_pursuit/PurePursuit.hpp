@@ -31,13 +31,6 @@
  *
  ****************************************************************************/
 
-#pragma once
-
-#include <matrix/math.hpp>
-#include <px4_platform_common/module_params.h>
-
-using namespace matrix;
-
 /**
  * @file PurePursuit.hpp
  *
@@ -76,55 +69,37 @@ using namespace matrix;
  * 			(+- 3.14159 rad)
  *
  * Input:  Current/prev waypoint and the vehicle position in NED frame as well as the vehicle speed.
- * Output: Calculates the intersection points as described above and returns the heading towards the point that is closer to the current waypoint.
+ * Output: Calculates the intersection points as described above and returns the bearing towards the point that is closer to the current waypoint.
  */
-class PurePursuit : public ModuleParams
+
+#pragma once
+#include <matrix/math.hpp>
+#include <mathlib/mathlib.h>
+#include <px4_platform_common/module_params.h>
+#include <uORB/topics/pure_pursuit_status.h>
+
+using namespace matrix;
+
+namespace PurePursuit
 {
-public:
-	PurePursuit(ModuleParams *parent);
-	~PurePursuit() = default;
-
-	/**
-	 * @brief Return heading towards the intersection point between a circle with a radius of
-	 * vehicle_speed * PP_LOOKAHD_GAIN around the vehicle and an extended line segment from the previous to the current waypoint.
-	 * Exceptions:
-	 * 	Will return heading towards the current waypoint if it is closer to the vehicle than the lookahead or if the waypoints overlap.
-	 * 	Will return heading towards the closest point on the path if there are no intersection points (crosstrack error bigger than lookahead).
-	 * 	Will return NAN if input is invalid.
-	 * @param curr_wp_ned North/East coordinates of current waypoint in NED frame [m].
-	 * @param prev_wp_ned North/East coordinates of previous waypoint in NED frame [m].
-	 * @param curr_pos_ned North/East coordinates of current position of the vehicle in NED frame [m].
-	 * @param vehicle_speed Vehicle speed [m/s].
-	 * @param PP_LOOKAHD_GAIN Tuning parameter [-]
-	 * @param PP_LOOKAHD_MAX Maximum lookahead distance [m]
-	 * @param PP_LOOKAHD_MIN Minimum lookahead distance [m]
-	 */
-	float calcDesiredHeading(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned, const Vector2f &curr_pos_ned,
-				 float vehicle_speed);
-
-	float getLookaheadDistance() {return _lookahead_distance;};
-	float getCrosstrackError() {return _curr_pos_to_path.norm();};
-	float getDistanceOnLineSegment() {return _distance_on_line_segment.norm();};
-
-protected:
-	/**
-	 * @brief Update the parameters of the module.
-	 */
-	void updateParams() override;
-
-	struct {
-		param_t lookahead_gain;
-		param_t lookahead_max;
-		param_t lookahead_min;
-	} _param_handles{};
-
-	struct {
-		float lookahead_gain{1.f};
-		float lookahead_max{10.f};
-		float lookahead_min{1.f};
-	} _params{};
-private:
-	float _lookahead_distance{0.f}; // Radius of the circle around the vehicle
-	Vector2f _distance_on_line_segment{}; // Projection of prev_wp_to_curr_pos onto prev_wp_to_curr_wp
-	Vector2f _curr_pos_to_path{}; // Shortest vector from the current position to the path
-};
+/**
+ * @brief Return bearing towards the intersection point between a circle with a radius of
+ * vehicle_speed * lookahead_gain around the vehicle and an extended line segment from the previous to the current waypoint.
+ * Exceptions:
+ * 	Will return bearing towards the current waypoint if it is closer to the vehicle than the lookahead or if the waypoints overlap.
+ * 	Will return bearing towards the closest point on the path if there are no intersection points (crosstrack error bigger than lookahead).
+ * 	Will return NAN if input is invalid.
+ * @param pure_pursuit_status Pure pursuit struct
+ * @param lookahead_gain Tuning parameter [-]
+ * @param lookahead_max Maximum lookahead distance [m]
+ * @param lookahead_min Minimum lookahead distance [m]
+ * @param curr_wp_ned North/East coordinates of current waypoint in NED frame [m].
+ * @param prev_wp_ned North/East coordinates of previous waypoint in NED frame [m].
+ * @param curr_pos_ned North/East coordinates of current position of the vehicle in NED frame [m].
+ * @param vehicle_speed Vehicle speed [m/s].
+ * @return Target bearing [rad]
+ */
+float calcTargetBearing(pure_pursuit_status_s &pure_pursuit_status, float lookahead_gain, float lookahead_max,
+			float lookahead_min, const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned, const Vector2f &curr_pos_ned,
+			float vehicle_speed);
+}
