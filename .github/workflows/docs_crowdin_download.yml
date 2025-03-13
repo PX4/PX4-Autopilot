@@ -41,10 +41,10 @@ jobs:
           download_language: ${{ matrix.lc }}
         env:
           # A classic GitHub Personal Access Token with the 'repo' scope selected (the user should have write access to the repository).
-          GITHUB_TOKEN: ${{ secrets.PX4BUILDBOT_ACCESSTOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PX4BUILTBOT_PERSONAL_ACCESS_TOKEN }}
 
           # A numeric ID, found at https://crowdin.com/project/<projectName>/tools/api
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_DOCS_PROJECT_ID }}
 
           # Visit https://crowdin.com/settings#api-key to create this token
-          CROWDIN_PERSONAL_TOKEN: ${{ secrets.PX4BUILTBOT_PERSONAL_ACCESS_TOKEN }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.PX4BUILDBOT_CROWDIN_PERSONAL_TOKEN }}
