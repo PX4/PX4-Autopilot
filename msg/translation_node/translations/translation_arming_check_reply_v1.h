@@ -13,7 +13,7 @@ public:
     using MessageOlder = px4_msgs_old::msg::ArmingCheckReplyV0;
     static_assert(MessageOlder::MESSAGE_VERSION == 0);
 
-    using MessageNewer = px4_msgs::msg::ArmingCheckReplyV1;
+    using MessageNewer = px4_msgs::msg::ArmingCheckReply;
     static_assert(MessageNewer::MESSAGE_VERSION == 1);
 
     static constexpr const char* kTopic = "/fmu/in/arming_check_reply";
