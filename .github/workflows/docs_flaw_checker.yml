@@ -25,7 +25,7 @@ jobs:
 
       - name: Create logs directory
         run: |
-          mkdir logs
+          mkdir -p docs/logs
 
       - name: Get changed english files
         id: get_changed_markdown_english
@@ -43,7 +43,7 @@ jobs:
       - name: Save JSON file containing files to link check
         run: |
           echo "${{ steps.get_changed_markdown_english.outputs.all_changed_files }}"
-          echo "${{ steps.get_changed_markdown_english.outputs.all_changed_files }}" > ./logs/prFiles.json
+          echo "${{ steps.get_changed_markdown_english.outputs.all_changed_files }}" > ./docs/logs/prFiles.json
 
       - name: Run link checker
         id: link-check
@@ -57,7 +57,7 @@ jobs:
         id: read-errors-by-page
         uses: juliangruber/read-file-action@v1
         with:
-          path: ./logs/errorsFilteredByPrPages.md
+          path: ./docs/logs/errorsFilteredByPrPages.md
 
       - name: Echo Errors by Page
         run: echo "${{ steps.read-errors-by-page.outputs.content }}"
