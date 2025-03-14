@@ -65,6 +65,8 @@ public:
 	{
 		char data[_uorb_meta->o_size];
 
+		// TODO process rmw_zenoh attachment
+
 		const z_loaned_bytes_t *payload = z_sample_payload(sample);
 		size_t len = z_bytes_len(payload);
 
