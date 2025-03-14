@@ -4,3 +4,10 @@ menuconfig DRIVERS_CDCACM_AUTOSTART
 	depends on MODULES_MAVLINK
 	---help---
 		Enable support for cdcacm_autostart
+
+menuconfig USER_CDCACM_AUTOSTART
+	bool "CDC ACM monitor running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && DRIVERS_CDCACM_AUTOSTART
+	---help---
+		Put CDC ACM monitor in userspace memory

@@ -37,10 +37,9 @@
 
 __BEGIN_DECLS
 #include <arch/board/board.h>
-#include <builtin/builtin.h>
+#include <sys/ioctl.h>
+#include <sys/boardctl.h>
 
-extern int sercon_main(int c, char **argv);
-extern int serdis_main(int c, char **argv);
 __END_DECLS
 
 #include <px4_platform_common/shutdown.h>
@@ -65,6 +64,37 @@ __END_DECLS
 #    error "CONFIG_SERIAL_PASSTHRU_GPSn and CONFIG_BOARD_SERIAL_GPSn must be defined"
 #  endif
 #endif
+
+static void *usb_handle;
+
+static int serial_connect(void)
+{
+	struct boardioc_usbdev_ctrl_s ctrl = {
+		.usbdev = BOARDIOC_USBDEV_CDCACM,
+		.action = BOARDIOC_USBDEV_CONNECT,
+		.instance = CONFIG_SYSTEM_CDCACM_DEVMINOR,
+		.handle = &usb_handle,
+	};
+
+	return boardctl(BOARDIOC_USBDEV_CONTROL, (uintptr_t)&ctrl);
+}
+
+static int serial_disconnect(void)
+{
+	struct boardioc_usbdev_ctrl_s ctrl = {
+		.usbdev = BOARDIOC_USBDEV_CDCACM,
+		.action = BOARDIOC_USBDEV_DISCONNECT,
+		.instance = CONFIG_SYSTEM_CDCACM_DEVMINOR,
+		.handle = &usb_handle,
+	};
+
+	if (usb_handle) {
+		boardctl(BOARDIOC_USBDEV_CONTROL, (uintptr_t)&ctrl);
+		usb_handle = NULL;
+	}
+
+	return 0;
+}
 
 CdcAcmAutostart::CdcAcmAutostart() :
 	ModuleParams(nullptr),
@@ -162,11 +192,9 @@ void CdcAcmAutostart::state_connected()
 {
 	if (!_vbus_present && !_vbus_present_prev && (_active_protocol == UsbProtocol::mavlink)) {
 		PX4_DEBUG("lost vbus!");
-		sched_lock();
 		static const char app[] {"mavlink"};
 		static const char *stop_argv[] {"mavlink", "stop", "-d", USB_DEVICE_PATH, NULL};
-		exec_builtin(app, (char **)stop_argv, NULL, 0);
-		sched_unlock();
+		px4_exec(app, (char **)stop_argv, NULL, 0);
 		_state = UsbAutoStartState::disconnecting;
 	}
 }
@@ -176,7 +204,7 @@ void CdcAcmAutostart::state_disconnected()
 	if (_vbus_present && _vbus_present_prev) {
 		PX4_DEBUG("starting sercon");
 
-		if (sercon_main(0, nullptr) == EXIT_SUCCESS) {
+		if (serial_connect() == EXIT_SUCCESS) {
 			_state = UsbAutoStartState::connecting;
 			PX4_DEBUG("state connecting");
 			_reschedule_time = 1_s;
@@ -350,7 +378,7 @@ void CdcAcmAutostart::state_disconnecting()
 	}
 
 	// Disconnect serial
-	serdis_main(0, NULL);
+	serial_disconnect();
 	_state = UsbAutoStartState::disconnected;
 	_active_protocol = UsbProtocol::none;
 }
@@ -542,13 +570,7 @@ bool CdcAcmAutostart::start_ublox_serial_passthru(speed_t baudrate)
 
 int CdcAcmAutostart::execute_process(char **argv)
 {
-	int pid = -1;
-	sched_lock();
-
-	pid = exec_builtin(argv[0], argv, nullptr, 0);
-
-	sched_unlock();
-	return pid;
+	return px4_exec(argv[0], (char **)argv, NULL, 0);
 }
 
 int CdcAcmAutostart::task_spawn(int argc, char *argv[])
