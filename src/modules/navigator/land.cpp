@@ -60,7 +60,11 @@ Land::on_activation()
 
 	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 	    && _navigator->get_local_position()->xy_global) { // only execute if global position is valid
-		_navigator->preproject_stop_point(_mission_item.lat, _mission_item.lon);
+		double lat = _mission_item.getLat();
+		double lon = _mission_item.getLon();
+		_navigator->preproject_stop_point(lat, lon);
+		_mission_item.setLatEncoded(lat);
+		_mission_item.setLonEncoded(lon);
 	}
 
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);

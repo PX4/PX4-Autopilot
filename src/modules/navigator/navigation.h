@@ -43,8 +43,13 @@
 
 #pragma once
 
+#include <math.h>
 #include <stdint.h>
 #include <stdbool.h>
+
+#if !defined(__STDC_IEC_559__) && !defined(__GCC_IEC_559)
+#  error "Non standard float implementation does not guarantee 32-bit floats"
+#endif
 
 #if defined(MEMORY_CONSTRAINED_SYSTEM)
 #  define NUM_MISSIONS_SUPPORTED 50
@@ -144,9 +149,6 @@ enum NAV_FRAME {
  * possibility of unaligned memory accesses.
  */
 struct mission_item_s {
-	double lat;					/**< latitude in degrees				*/
-	double lon;					/**< longitude in degrees				*/
-
 	// Union to support both Mission Item categories in MAVLink such as:
 	// 1. With Global coordinate (param5 ~ 7 corresponds to lat, lon and altitude)
 	// 2. Without global coordinate (when frame = MAV_FRAME_MISSION)
@@ -159,12 +161,27 @@ struct mission_item_s {
 			union {
 				float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
 				float circle_radius;		/**< geofence circle radius in meters (only used for NAV_CMD_NAV_FENCE_CIRCLE*) */
+				int16_t do_jump_mission_index;	/**< index where the do jump will go to                 */
+				uint16_t vertex_count;		/**< Polygon vertex count (geofence)	*/
 			};
-			float acceptance_radius;		/**< default radius in which the mission is accepted as reached in meters */
-			float loiter_radius;			/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
+			union {
+				float acceptance_radius;	/**< default radius in which the mission is accepted as reached in meters */
+				uint16_t do_jump_repeat_count;	/**< how many times do jump needs to be done            */
+				uint16_t land_precision;	/**< Defines if landing should be precise: 0 = normal landing, 1 = opportunistic precision landing, 2 = required precision landing (with search)	*/
+			};
+			union {
+				float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
+				uint16_t do_jump_current_count;	/**< count how many times the jump has been done	*/
+			};
 			float yaw;				/**< in radians NED -PI..+PI, NAN means don't change yaw		*/
-			float ___lat_float;			/**< padding */
-			float ___lon_float;			/**< padding */
+			union {
+				int32_t ___lat_int;		/**< Latitude stored as int32 */
+				float ___lat_float;		/**< Latitude stored as float */
+			};
+			union {
+				int32_t ___lon_int;		/**< Longitude stored as int32 */
+				float ___lon_float;		/**< Longitude stored as float */
+			};
 			float altitude;				/**< altitude in meters	(AMSL)			*/
 		};
 
@@ -172,16 +189,7 @@ struct mission_item_s {
 		float params[7];				/**< array to store mission command values with no global coordinates (frame = MAV_FRAME_MISSION) */
 	};
 
-	uint16_t nav_cmd;				/**< navigation command					*/
-
-	int16_t do_jump_mission_index;			/**< index where the do jump will go to                 */
-	uint16_t do_jump_repeat_count;			/**< how many times do jump needs to be done            */
-
-	union {
-		uint16_t do_jump_current_count;			/**< count how many times the jump has been done	*/
-		uint16_t vertex_count;				/**< Polygon vertex count (geofence)	*/
-		uint16_t land_precision;			/**< Defines if landing should be precise: 0 = normal landing, 1 = opportunistic precision landing, 2 = required precision landing (with search)	*/
-	};
+	uint16_t nav_cmd;					/**< navigation command					*/
 
 	struct {
 		uint16_t frame : 4,				/**< mission frame */
@@ -191,10 +199,41 @@ struct mission_item_s {
 			 altitude_is_relative : 1,		/**< true if altitude is relative from start point	*/
 			 autocontinue : 1,			/**< true if next waypoint should follow after this one */
 			 vtol_back_transition : 1,		/**< part of the vtol back transition sequence */
-			 _padding0 : 4;				/**< padding remaining unused bits  */
+			 int_encoded : 1,			/**< specifies if latitude/longitude are encoded as int32 */
+			 _padding0 : 3;				/**< padding remaining unused bits  */
 	};
 
-	uint8_t _padding1[2];				/**< padding struct size to alignment boundary  */
+	void setLatEncoded(const double lat)
+	{
+		___lat_int = lat * 1e7;
+		int_encoded = true;
+	}
+
+	void setLonEncoded(const double lon)
+	{
+		___lon_int = lon * 1e7;
+		int_encoded = true;
+	}
+
+	double getLat() const
+	{
+		if (int_encoded) {
+			return ((double)___lat_int) * 1e-7;
+
+		} else {
+			return (double)___lat_float;
+		}
+	}
+
+	double getLon() const
+	{
+		if (int_encoded) {
+			return ((double)___lon_int) * 1e-7;
+
+		} else {
+			return (double)___lon_float;
+		}
+	}
 };
 
 /**
