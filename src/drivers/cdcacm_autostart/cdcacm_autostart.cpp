@@ -497,7 +497,7 @@ bool CdcAcmAutostart::start_mavlink()
 {
 	bool success = false;
 	char mavlink_mode_string[3];
-	snprintf(mavlink_mode_string, sizeof(mavlink_mode_string), "%ld", _usb_mav_mode.get());
+	snprintf(mavlink_mode_string, sizeof(mavlink_mode_string), "%" PRId32, _usb_mav_mode.get());
 	static const char *argv[] {"mavlink", "start", "-d", USB_DEVICE_PATH, "-m", mavlink_mode_string, nullptr};
 
 	if (execute_process((char **)argv) > 0) {
