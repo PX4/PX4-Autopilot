@@ -81,7 +81,9 @@ if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
     add_subdirectory(optical_flow)
     add_subdirectory(template_plugin)
     add_subdirectory(gstreamer)
+    add_subdirectory(moving_platform_controller)
 
     # Add an alias target for each plugin
-    add_custom_target(px4_gz_plugins ALL DEPENDS OpticalFlowSystem TemplatePlugin GstCameraSystem)
+    add_custom_target(px4_gz_plugins ALL DEPENDS OpticalFlowSystem TemplatePlugin GstCameraSystem MovingPlatformController)
+
 endif()
