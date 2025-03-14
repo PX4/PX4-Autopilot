@@ -52,4 +52,3 @@ Note that the current divider and voltage divider should not be set in the [Batt
 ## See Also
 
 - [Digital Power Module (PM) Setup](https://docs.holybro.com/power-module-and-pdb/power-module/digital-power-module-pm-setup#px4-setup) (Manufacturer guide)
-

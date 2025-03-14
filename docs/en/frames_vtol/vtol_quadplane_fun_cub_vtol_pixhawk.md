@@ -82,4 +82,3 @@ After you finish calibration the VTOL is ready to fly.
 ## Support
 
 If you have any questions regarding your VTOL conversion or configuration please visit <https://discuss.px4.io/c/px4/vtol>.
-

@@ -129,4 +129,3 @@ print("Sitemap generated to: %s" % outputfile)
 
 #print("BRANCH_NAME: %s" % BRANCH_NAME)
 #print("Build version: %s" % build_version)
-

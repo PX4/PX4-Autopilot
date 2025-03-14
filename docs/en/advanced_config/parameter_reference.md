@@ -38018,4 +38018,3 @@ Skip the controller.
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; |  |  |  | 0 |
-
