@@ -583,6 +583,16 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 				return TRANSITION_DENIED;
 			}
 
+			if ((is_ground_vehicle(_vehicle_status))
+			    && !_failsafe_flags.manual_control_signal_lost && !_is_throttle_near_center) {
+
+				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: throttle not centered\t");
+				events::send(events::ID("commander_arm_denied_throttle_not_centered"), {events::Log::Critical, events::LogInternal::Info},
+					     "Arming denied: throttle not centered");
+				tune_negative(true);
+				return TRANSITION_DENIED;
+			}
+
 		} else if (calling_reason == arm_disarm_reason_t::stick_gesture
 			   || calling_reason == arm_disarm_reason_t::rc_switch
 			   || calling_reason == arm_disarm_reason_t::rc_button) {
@@ -1723,7 +1733,6 @@ void Commander::updateParameters()
 			       && _vtol_vehicle_status.vehicle_vtol_state != vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 	const bool is_fixed = is_fixed_wing(_vehicle_status) || (is_vtol(_vehicle_status)
 			      && _vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-	const bool is_ground = is_ground_vehicle(_vehicle_status);
 
 	/* disable manual override for all systems that rely on electronic stabilization */
 	if (is_rotary) {
@@ -1732,8 +1741,11 @@ void Commander::updateParameters()
 	} else if (is_fixed) {
 		_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
-	} else if (is_ground) {
+	} else if (is_rover_type(_vehicle_status)) {
 		_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROVER;
+
+	} else if (is_boat_type(_vehicle_status)) {
+		_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_BOAT;
 	}
 
 	_vehicle_status.is_vtol = is_vtol(_vehicle_status);
@@ -2901,13 +2913,15 @@ void Commander::manualControlCheck()
 
 		_is_throttle_above_center = (manual_control_setpoint.throttle > 0.2f);
 		_is_throttle_low = (manual_control_setpoint.throttle < -0.8f);
+		_is_throttle_near_center = (fabsf(manual_control_setpoint.throttle) < 0.05f);
 
 		if (isArmed()) {
 			// Abort autonomous mode and switch to position mode if sticks are moved significantly
 			// but only if actually in air.
 			if (manual_control_setpoint.sticks_moving
 			    && !_vehicle_control_mode.flag_control_manual_enabled
-			    && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
+			    && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+				|| _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_BOAT)
 			   ) {
 				bool override_enabled = false;
 
