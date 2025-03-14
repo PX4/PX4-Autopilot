@@ -7,6 +7,7 @@
 // Translate ArmingCheckReply v0 <--> v1
 #include <px4_msgs_old/msg/arming_check_reply_v0.hpp>
 #include <px4_msgs/msg/arming_check_reply.hpp>
+#include "translation_event_v1.h"
 
 class ArmingCheckReplyV1Translation {
 public:
@@ -19,7 +20,6 @@ public:
     static constexpr const char* kTopic = "/fmu/in/arming_check_reply";
 
     static void fromOlder(const MessageOlder &msg_older, MessageNewer &msg_newer) {
-	    // Set msg_newer from msg_older
 	    msg_newer.timestamp = msg_older.timestamp;
 
 	    msg_newer.request_id = msg_older.request_id;
@@ -32,7 +32,11 @@ public:
 
 	    msg_newer.can_arm_and_run = msg_older.can_arm_and_run;
 
-	    memcpy(msg_newer.events, msg_older.events, sizeof(Event));
+
+	    for (std::size_t i = 0; i < msg_newer.events.size();i++) {
+		    EventV1Translation::fromOlder(msg_older.events.at(i), msg_newer.events.at(i));
+	    }
+
 
 	    msg_newer.mode_req_angular_velocity = msg_older.mode_req_angular_velocity;
 	    msg_newer.mode_req_attitude = msg_older.mode_req_attitude;
@@ -49,7 +53,6 @@ public:
     }
 
     static void toOlder(const MessageNewer &msg_newer, MessageOlder &msg_older) {
-	    // Set msg_older from msg_newer
 	    msg_older.timestamp = msg_newer.timestamp;
 
 	    msg_older.request_id = msg_newer.request_id;
@@ -62,7 +65,9 @@ public:
 
 	    msg_older.can_arm_and_run = msg_newer.can_arm_and_run;
 
-	    memcpy(msg_older.events, msg_newer.events, sizeof(Event));
+	    for (std::size_t i = 0; i < msg_older.events.size();i++) {
+		    EventV1Translation::toOlder(msg_newer.events.at(i), msg_older.events.at(i));
+	    }
 
 	    msg_older.mode_req_angular_velocity = msg_newer.mode_req_angular_velocity;
 	    msg_older.mode_req_attitude = msg_newer.mode_req_attitude;
@@ -76,4 +81,4 @@ public:
     }
 };
 
-REGISTER_SERVICE_TRANSLATION_DIRECT(ArmingCheckReplyV1Translation);
+REGISTER_TOPIC_TRANSLATION_DIRECT(ArmingCheckReplyV1Translation);
