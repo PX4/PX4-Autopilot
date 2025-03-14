@@ -105,5 +105,5 @@ UavcanAirspeedBridge::ias_sub_cb(const
 	report.indicated_airspeed_m_s   = msg.indicated_airspeed;
 	report.true_airspeed_m_s   	= _last_tas_m_s;
 
-	publish(msg.getSrcNodeID().get(), &report);
+	publish(msg.getIfaceIndex(), msg.getSrcNodeID().get(), &report);
 }
