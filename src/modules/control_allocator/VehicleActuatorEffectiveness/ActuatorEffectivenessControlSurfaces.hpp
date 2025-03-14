@@ -107,7 +107,7 @@ private:
 	param_t _count_handle;
 
 	Params _params[MAX_COUNT] {};
-	int _count{0};
+	int32_t _count{0};
 
 	SlewRate<float> _flaps_setpoint_with_slewrate;
 	SlewRate<float> _spoilers_setpoint_with_slewrate;

@@ -1142,17 +1142,11 @@ float Navigator::get_altitude_acceptance_radius()
 
 	} else {
 		float alt_acceptance_radius = _param_nav_mc_alt_rad.get();
-
-		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
-
 		const position_setpoint_s &curr_sp = get_position_setpoint_triplet()->current;
 
 		if (PX4_ISFINITE(curr_sp.alt_acceptance_radius) && curr_sp.alt_acceptance_radius > FLT_EPSILON) {
 			alt_acceptance_radius = curr_sp.alt_acceptance_radius;
 
-		} else if ((pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp)
-			   && pos_ctrl_status.altitude_acceptance > alt_acceptance_radius) {
-			alt_acceptance_radius = pos_ctrl_status.altitude_acceptance;
 		}
 
 		return alt_acceptance_radius;
@@ -1213,14 +1207,6 @@ float Navigator::get_acceptance_radius()
 bool Navigator::get_yaw_to_be_accepted(float mission_item_yaw)
 {
 	float yaw = mission_item_yaw;
-
-	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
-
-	// if yaw_acceptance from position controller is NaN overwrite the mission item yaw such that
-	// the waypoint can be reached from any direction
-	if ((pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp) && !PX4_ISFINITE(pos_ctrl_status.yaw_acceptance)) {
-		yaw = pos_ctrl_status.yaw_acceptance;
-	}
 
 	return PX4_ISFINITE(yaw);
 }

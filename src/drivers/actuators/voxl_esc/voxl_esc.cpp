@@ -47,7 +47,7 @@ VoxlEsc::VoxlEsc() :
 	_mixing_output{"VOXL_ESC", VOXL_ESC_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval")),
-	_battery(1, nullptr, _battery_report_interval, battery_status_s::BATTERY_SOURCE_POWER_MODULE)
+	_battery(1, nullptr, _battery_report_interval, battery_status_s::SOURCE_POWER_MODULE)
 {
 	_device = VOXL_ESC_DEFAULT_PORT;
 
@@ -90,13 +90,13 @@ VoxlEsc::~VoxlEsc()
 
 int VoxlEsc::init()
 {
-	PX4_INFO("VOXL_ESC: Starting VOXL ESC driver");
+	PX4_ERR("Starting VOXL ESC driver");
 
 	/* Getting initial parameter values */
 	int ret = update_params();
 
 	if (ret != OK) {
-		PX4_ERR("VOXL_ESC: Failed to update params during init");
+		PX4_ERR("Failed to update params during init");
 		return ret;
 	}
 
@@ -124,13 +124,13 @@ int VoxlEsc::device_init()
 
 	// Open serial port
 	if (!_uart_port.isOpen()) {
-		PX4_INFO("VOXL_ESC: Opening UART ESC device %s, baud rate %" PRIi32, _device, _parameters.baud_rate);
+		PX4_ERR("Opening UART ESC device %s, baud rate %" PRIi32, _device, _parameters.baud_rate);
 #ifndef __PX4_QURT
 
 		//warn user that unless DMA is enabled for UART RX, data can be lost due to high frequency of per char cpu interrupts
 		//at least at 2mbit, there are definitely losses, did not test other baud rates to find the cut off
 		if (_parameters.baud_rate > 250000) {
-			PX4_WARN("VOXL_ESC: Baud rate is too high for non-DMA based UART, this can lead to loss of RX data");
+			PX4_WARN("Baud rate is too high for non-DMA based UART, this can lead to loss of RX data");
 		}
 
 #endif
@@ -165,7 +165,7 @@ int VoxlEsc::device_init()
 	}
 
 	// Detect ESCs
-	PX4_INFO("VOXL_ESC: Detecting ESCs...");
+	PX4_ERR("Detecting ESCs...");
 	qc_esc_packet_init(&_fb_packet);
 
 	//request extended version info from each ESC and wait for reply
@@ -174,7 +174,7 @@ int VoxlEsc::device_init()
 		cmd.len = qc_esc_create_extended_version_request_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 
 		if (_uart_port.write(cmd.buf, cmd.len) != cmd.len) {
-			PX4_ERR("VOXL_ESC: Could not write version request packet to UART port");
+			PX4_ERR("Could not write version request packet to UART port");
 			return -1;
 		}
 
@@ -201,17 +201,17 @@ int VoxlEsc::device_init()
 						QC_ESC_EXTENDED_VERSION_INFO ver;
 						memcpy(&ver, _fb_packet.buffer, packet_size);
 
-						PX4_INFO("VOXL_ESC: \tESC ID     : %i", ver.id);
-						PX4_INFO("VOXL_ESC: \tBoard Type : %i: %s", ver.hw_version, board_id_to_name(ver.hw_version));
+						PX4_ERR("\tESC ID     : %i", ver.id);
+						PX4_ERR("\tBoard Type : %i: %s", ver.hw_version, board_id_to_name(ver.hw_version));
 
 						uint8_t *u = &ver.unique_id[0];
-						PX4_INFO("VOXL_ESC: \tUnique ID  : 0x%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-							 u[11], u[10], u[9], u[8], u[7], u[6], u[5], u[4], u[3], u[2], u[1], u[0]);
+						PX4_ERR("\tUnique ID  : 0x%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+							u[11], u[10], u[9], u[8], u[7], u[6], u[5], u[4], u[3], u[2], u[1], u[0]);
 
-						PX4_INFO("VOXL_ESC: \tFirmware   : version %4d, hash %.12s", ver.sw_version, ver.firmware_git_version);
-						PX4_INFO("VOXL_ESC: \tBootloader : version %4d, hash %.12s", ver.bootloader_version, ver.bootloader_git_version);
-						PX4_INFO("VOXL_ESC: \tReply time : %" PRIu32 "us", (uint32_t)response_time);
-						PX4_INFO("VOXL_ESC:");
+						PX4_ERR("\tFirmware   : version %4d, hash %.12s", ver.sw_version, ver.firmware_git_version);
+						PX4_ERR("\tBootloader : version %4d, hash %.12s", ver.bootloader_version, ver.bootloader_git_version);
+						PX4_ERR("\tReply time : %" PRIu32 "us", (uint32_t)response_time);
+						PX4_INFO("");
 
 						if (ver.id == esc_id) {
 							memcpy(&_version_info[esc_id], &ver, sizeof(ver));
@@ -223,7 +223,7 @@ int VoxlEsc::device_init()
 		}
 
 		if (!got_response) {
-			PX4_ERR("VOXL_ESC: ESC %d version info response timeout", esc_id);
+			PX4_ERR("ESC %d version info response timeout", esc_id);
 		}
 	}
 
@@ -232,7 +232,7 @@ int VoxlEsc::device_init()
 
 	for (int esc_id = 0; esc_id < VOXL_ESC_OUTPUT_CHANNELS; esc_id++) {
 		if (_version_info[esc_id].sw_version == 0) {
-			PX4_ERR("VOXL_ESC: ESC ID %d was not detected", esc_id);
+			PX4_ERR("ESC ID %d was not detected", esc_id);
 			esc_detection_fault = true;
 		}
 	}
@@ -240,7 +240,7 @@ int VoxlEsc::device_init()
 	//check the firmware hashes to make sure they are the same. Firmware hash has 8 chars plus optional "*"
 	for (int esc_id = 1; esc_id < VOXL_ESC_OUTPUT_CHANNELS; esc_id++) {
 		if (strncmp(_version_info[0].firmware_git_version, _version_info[esc_id].firmware_git_version, 9) != 0) {
-			PX4_ERR("VOXL_ESC: ESC %d Firmware hash does not match ESC 0 firmware hash:  (%.12s) != (%.12s)",
+			PX4_ERR("ESC %d Firmware hash does not match ESC 0 firmware hash:  (%.12s) != (%.12s)",
 				esc_id, _version_info[esc_id].firmware_git_version, _version_info[0].firmware_git_version);
 			esc_detection_fault = true;
 		}
@@ -256,13 +256,13 @@ int VoxlEsc::device_init()
 	}
 
 	if (esc_detection_fault) {
-		PX4_ERR("VOXL_ESC: Critical error during ESC initialization");
+		PX4_ERR("Critical error during ESC initialization");
 		return -1;
 	}
 
-	PX4_INFO("VOXL_ESC: Use extened rpm packet : %d", _extended_rpm);
+	PX4_ERR("Use extened rpm packet : %d", _extended_rpm);
 
-	PX4_INFO("VOXL_ESC: All ESCs successfully detected");
+	PX4_ERR("All ESCs successfully detected");
 
 	_device_initialized =  true;
 
@@ -309,45 +309,53 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	param_get(param_find("VOXL_ESC_T_WARN"), &params->esc_warn_temp_threshold);
 	param_get(param_find("VOXL_ESC_T_OVER"), &params->esc_over_temp_threshold);
 
+	param_get(param_find("VOXL_ESC_GPIO_CH"), &params->gpio_ctl_channel);
+
 	if (params->rpm_min >= params->rpm_max) {
-		PX4_ERR("VOXL_ESC: Invalid parameter VOXL_ESC_RPM_MIN.  Please verify parameters.");
+		PX4_ERR("Invalid parameter VOXL_ESC_RPM_MIN.  Please verify parameters.");
 		params->rpm_min = 0;
 		ret = PX4_ERROR;
 	}
 
 	if (params->turtle_motor_percent < 0 || params->turtle_motor_percent > 100) {
-		PX4_ERR("VOXL_ESC: Invalid parameter VOXL_ESC_T_PERC.  Please verify parameters.");
+		PX4_ERR("Invalid parameter VOXL_ESC_T_PERC.  Please verify parameters.");
 		params->turtle_motor_percent = 0;
 		ret = PX4_ERROR;
 	}
 
 	if (params->turtle_motor_deadband < 0 || params->turtle_motor_deadband > 100) {
-		PX4_ERR("VOXL_ESC: Invalid parameter VOXL_ESC_T_DEAD.  Please verify parameters.");
+		PX4_ERR("Invalid parameter VOXL_ESC_T_DEAD.  Please verify parameters.");
 		params->turtle_motor_deadband = 0;
 		ret = PX4_ERROR;
 	}
 
 	if (params->turtle_motor_expo < 0 || params->turtle_motor_expo > 100) {
-		PX4_ERR("VOXL_ESC: Invalid parameter VOXL_ESC_T_EXPO.  Please verify parameters.");
+		PX4_ERR("Invalid parameter VOXL_ESC_T_EXPO.  Please verify parameters.");
 		params->turtle_motor_expo = 0;
 		ret = PX4_ERROR;
 	}
 
 	if (params->turtle_stick_minf < 0.0f || params->turtle_stick_minf > 100.0f) {
-		PX4_ERR("VOXL_ESC: Invalid parameter VOXL_ESC_T_MINF.  Please verify parameters.");
+		PX4_ERR("Invalid parameter VOXL_ESC_T_MINF.  Please verify parameters.");
 		params->turtle_stick_minf = 0.0f;
 		ret = PX4_ERROR;
 	}
 
 	if (params->turtle_cosphi < 0.0f || params->turtle_cosphi > 100.0f) {
-		PX4_ERR("VOXL_ESC: Invalid parameter VOXL_ESC_T_COSP.  Please verify parameters.");
+		PX4_ERR("Invalid parameter VOXL_ESC_T_COSP.  Please verify parameters.");
 		params->turtle_cosphi = 0.0f;
+		ret = PX4_ERROR;
+	}
+
+	if (params->gpio_ctl_channel < 0 || params->gpio_ctl_channel > 6) {
+		PX4_ERR("Invalid parameter VOXL_ESC_GPIO_CH.  Please verify parameters.");
+		params->gpio_ctl_channel = 0;
 		ret = PX4_ERROR;
 	}
 
 	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
 		if (params->function_map[i] < (int)OutputFunction::Motor1 || params->function_map[i] > (int)OutputFunction::Motor4) {
-			PX4_ERR("VOXL_ESC: Invalid parameter VOXL_ESC_FUNCX.  Only supports motors 1-4.  Please verify parameters.");
+			PX4_ERR("Invalid parameter VOXL_ESC_FUNCX.  Only supports motors 1-4.  Please verify parameters.");
 			params->function_map[i] = 0;
 			ret = PX4_ERROR;
 
@@ -365,7 +373,7 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 		if (params->motor_map[i] == VOXL_ESC_OUTPUT_DISABLED ||
 		    params->motor_map[i] < -(VOXL_ESC_OUTPUT_CHANNELS) ||
 		    params->motor_map[i] > VOXL_ESC_OUTPUT_CHANNELS) {
-			PX4_ERR("VOXL_ESC: Invalid parameter VOXL_ESC_MOTORX.  Please verify parameters.");
+			PX4_ERR("Invalid parameter VOXL_ESC_MOTORX.  Please verify parameters.");
 			params->motor_map[i] = 0;
 			ret = PX4_ERROR;
 		}
@@ -471,9 +479,8 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 						uint32_t voltage     = fb.voltage;
 						int32_t  current     = fb.current * 8;
 						int32_t  temperature = fb.temperature / 100;
-						PX4_INFO("VOXL_ESC: [%" PRId64 "] ID_RAW=%d ID=%d, RPM=%5d, PWR=%3d%%, V=%5dmV, I=%+5dmA, T=%+3dC", tnow, (int)id,
-							 motor_idx + 1,
-							 (int)rpm, (int)power, (int)voltage, (int)current, (int)temperature);
+						PX4_ERR("[%" PRId64 "] ID_RAW=%d ID=%d, RPM=%5d, PWR=%3d%%, V=%5dmV, I=%+5dmA, T=%+3dC", tnow, (int)id,
+							motor_idx + 1, (int)rpm, (int)power, (int)voltage, (int)current, (int)temperature);
 					}
 
 					_esc_chans[id].rate_meas     = fb.rpm;
@@ -541,24 +548,24 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 				QC_ESC_VERSION_INFO ver;
 				memcpy(&ver, _fb_packet.buffer, packet_size);
 
-				PX4_INFO("VOXL_ESC: ESC ID: %i", ver.id);
-				PX4_INFO("VOXL_ESC: HW Version: %i", ver.hw_version);
-				PX4_INFO("VOXL_ESC: SW Version: %i", ver.sw_version);
-				PX4_INFO("VOXL_ESC: Unique ID: %i", (int)ver.unique_id);
+				PX4_ERR("ESC ID: %i", ver.id);
+				PX4_ERR("HW Version: %i", ver.hw_version);
+				PX4_ERR("SW Version: %i", ver.sw_version);
+				PX4_ERR("Unique ID: %i", (int)ver.unique_id);
 
 			} else if (packet_type == ESC_PACKET_TYPE_VERSION_EXT_RESPONSE && packet_size == sizeof(QC_ESC_EXTENDED_VERSION_INFO)) {
 				QC_ESC_EXTENDED_VERSION_INFO ver;
 				memcpy(&ver, _fb_packet.buffer, packet_size);
-				PX4_INFO("VOXL_ESC: \tESC ID     : %i", ver.id);
-				PX4_INFO("VOXL_ESC: \tBoard      : %i", ver.hw_version);
-				PX4_INFO("VOXL_ESC: \tSW Version : %i", ver.sw_version);
+				PX4_ERR("\tESC ID     : %i", ver.id);
+				PX4_ERR("\tBoard      : %i", ver.hw_version);
+				PX4_ERR("\tSW Version : %i", ver.sw_version);
 
 				uint8_t *u = &ver.unique_id[0];
-				PX4_INFO("VOXL_ESC: \tUnique ID  : 0x%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-					 u[11], u[10], u[9], u[8], u[7], u[6], u[5], u[4], u[3], u[2], u[1], u[0]);
+				PX4_ERR("\tUnique ID  : 0x%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+					u[11], u[10], u[9], u[8], u[7], u[6], u[5], u[4], u[3], u[2], u[1], u[0]);
 
-				PX4_INFO("VOXL_ESC: \tFirmware   : version %4d, hash %.12s", ver.sw_version, ver.firmware_git_version);
-				PX4_INFO("VOXL_ESC: \tBootloader : version %4d, hash %.12s", ver.bootloader_version, ver.bootloader_git_version);
+				PX4_ERR("\tFirmware   : version %4d, hash %.12s", ver.sw_version, ver.firmware_git_version);
+				PX4_ERR("\tBootloader : version %4d, hash %.12s", ver.bootloader_version, ver.bootloader_git_version);
 
 			} else if (packet_type == ESC_PACKET_TYPE_FB_POWER_STATUS && packet_size == sizeof(QC_ESC_FB_POWER_STATUS)) {
 				QC_ESC_FB_POWER_STATUS packet;
@@ -671,7 +678,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 	}
 
 	if (!is_running()) {
-		PX4_INFO("VOXL_ESC:Not running");
+		PX4_INFO("Not running");
 		return -1;
 
 	}
@@ -730,7 +737,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 
 	if (!strcmp(verb, "reset")) {
 		if (esc_id < VOXL_ESC_OUTPUT_CHANNELS) {
-			PX4_INFO("VOXL_ESC: Reset ESC: %i", esc_id);
+			PX4_ERR("Reset ESC: %i", esc_id);
 			cmd.len = qc_esc_create_reset_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = false;
 			return get_instance()->send_cmd_thread_safe(&cmd);
@@ -742,7 +749,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 
 	} else if (!strcmp(verb, "version")) {
 		if (esc_id < VOXL_ESC_OUTPUT_CHANNELS) {
-			PX4_INFO("VOXL_ESC: Request version for ESC: %i", esc_id);
+			PX4_ERR("Request version for ESC: %i", esc_id);
 			cmd.len = qc_esc_create_version_request_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = true;
 			cmd.resp_delay_us = 2000;
@@ -755,7 +762,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 
 	} else if (!strcmp(verb, "version-ext")) {
 		if (esc_id < VOXL_ESC_OUTPUT_CHANNELS) {
-			PX4_INFO("VOXL_ESC: Request extended version for ESC: %i", esc_id);
+			PX4_ERR("Request extended version for ESC: %i", esc_id);
 			cmd.len = qc_esc_create_extended_version_request_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = true;
 			cmd.resp_delay_us = 5000;
@@ -768,7 +775,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 
 	} else if (!strcmp(verb, "tone")) {
 		if (esc_id < VOXL_ESC_OUTPUT_CHANNELS) {
-			PX4_INFO("VOXL_ESC: Request tone for ESC mask: %i", esc_id);
+			PX4_ERR("Request tone for ESC mask: %i", esc_id);
 			cmd.len = qc_esc_create_sound_packet(period, duration, power, esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = false;
 			return get_instance()->send_cmd_thread_safe(&cmd);
@@ -782,7 +789,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 		if (led_mask <= 0x0FFF) {
 			get_instance()->_led_rsc.test = true;
 			get_instance()->_led_rsc.breath_en = false;
-			PX4_INFO("VOXL_ESC: Request LED control for ESCs with mask: %i", led_mask);
+			PX4_ERR("Request LED control for ESCs with mask: %i", led_mask);
 
 			get_instance()->_esc_chans[0].led = (led_mask & 0x0007);
 			get_instance()->_esc_chans[1].led = (led_mask & 0x0038) >> 3;
@@ -797,7 +804,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 
 	}  else if (!strcmp(verb, "rpm")) {
 		if (esc_id < VOXL_ESC_OUTPUT_CHANNELS) {
-			PX4_INFO("VOXL_ESC: Request RPM for ESC ID: %i - RPM: %i", esc_id, rate);
+			PX4_ERR("Request RPM for ESC ID: %i - RPM: %i", esc_id, rate);
 			int16_t rate_req[VOXL_ESC_OUTPUT_CHANNELS] = {0, 0, 0, 0};
 			uint8_t id_fb = 0;
 
@@ -831,8 +838,8 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 			cmd.repeat_delay_us = repeat_delay_us;
 			cmd.print_feedback  = true;
 
-			PX4_INFO("VOXL_ESC: Feedback id debug: %i", id_fb);
-			PX4_INFO("VOXL_ESC: Sending UART ESC RPM command %i", rate);
+			PX4_ERR("Feedback id debug: %i", id_fb);
+			PX4_ERR("Sending UART ESC RPM command %i", rate);
 
 			return get_instance()->send_cmd_thread_safe(&cmd);
 
@@ -843,7 +850,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 
 	} else if (!strcmp(verb, "pwm")) {
 		if (esc_id < VOXL_ESC_OUTPUT_CHANNELS) {
-			PX4_INFO("VOXL_ESC: Request PWM for ESC ID: %i - PWM: %i", esc_id, rate);
+			PX4_ERR("Request PWM for ESC ID: %i - PWM: %i", esc_id, rate);
 			int16_t rate_req[VOXL_ESC_OUTPUT_CHANNELS] = {0, 0, 0, 0};
 			uint8_t id_fb = 0;
 
@@ -876,8 +883,8 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 			cmd.repeat_delay_us = repeat_delay_us;
 			cmd.print_feedback  = true;
 
-			PX4_INFO("VOXL_ESC: Feedback id debug: %i", id_fb);
-			PX4_INFO("VOXL_ESC: Sending UART ESC power command %i", rate);
+			PX4_ERR("Feedback id debug: %i", id_fb);
+			PX4_ERR("Sending UART ESC power command %i", rate);
 
 			return get_instance()->send_cmd_thread_safe(&cmd);
 
@@ -1242,13 +1249,57 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 					       _extended_rpm);
 
 	if (_uart_port.write(cmd.buf, cmd.len) != cmd.len) {
-		PX4_ERR("VOXL_ESC: Failed to send packet");
+		PX4_ERR("Failed to send packet");
 		return false;
+	}
+
+	// Track and manage gpio command writes
+	bool write_gpio_command = false;
+
+	if (_gpio_ctl_en) {
+		if (_gpio_ctl_high != _prev_gpio_ctl_high) {
+			_gpio_write_counter = 0;
+		}
+
+		if (_gpio_write_counter < 10) {
+			write_gpio_command = true;
+			_gpio_write_counter++;
+		}
+
+		_prev_gpio_ctl_high = _gpio_ctl_high;
+
+		if (write_gpio_command) {
+			Command gpio_cmd;
+			const int ESC_PACKET_TYPE_GPIO_CMD = 15;
+			uint8_t data[5];
+
+			int esc_id = 0; // In future un-hardcode
+			int val = 0;
+
+			if (_gpio_ctl_high) {
+				val = 1;
+			}
+
+			data[0] = esc_id; // esc id
+			data[1] = 80; // 01010000 : pin F0
+			data[2] = 0; // 0: output, 1: input
+			data[3] = val; //cmd LSB
+			data[4] = 0; // cmd MSB
+
+			// type, data, size
+			gpio_cmd.len = qc_esc_create_packet(ESC_PACKET_TYPE_GPIO_CMD, (uint8_t *) & (data[0]), 5, gpio_cmd.buf,
+							    sizeof(gpio_cmd.buf));
+
+			if (_uart_port.write(gpio_cmd.buf, gpio_cmd.len) != gpio_cmd.len) {
+				PX4_ERR("Failed to send gpio packet");
+				return false;
+			}
+		}
+
 	}
 
 	// increment ESC id from which to request feedback in round robin order
 	_fb_idx = (_fb_idx + 1) % VOXL_ESC_OUTPUT_CHANNELS;
-
 
 	/*
 	 * Here we read and parse response from ESCs. Since the latest command has just been sent out,
@@ -1283,20 +1334,18 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 	_esc_status_pub.publish(_esc_status);
 
-	// If any extra external modal io data has been received then
-	// send it over as well
-	while (_voxl2_io_data_sub.updated()) {
-		buffer128_s io_data{};
-		_voxl2_io_data_sub.copy(&io_data);
+	uint8_t num_writes = 0;
 
-		// PX4_INFO("Got Modal IO data: %u bytes", io_data.len);
-		// PX4_INFO("   0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x",
-		// 		 io_data.data[0], io_data.data[1], io_data.data[2], io_data.data[3],
-		// 		 io_data.data[4], io_data.data[5], io_data.data[6], io_data.data[7]);
-		if (_uart_port.write(io_data.data, io_data.len) != io_data.len) {
-			PX4_ERR("VOXL_ESC: Failed to send modal io data to esc");
+	while (_esc_serial_passthru_sub.updated() && (num_writes < 4)) {
+		mavlink_tunnel_s uart_passthru{};
+		_esc_serial_passthru_sub.copy(&uart_passthru);
+
+		if (_uart_port.write(uart_passthru.payload, uart_passthru.payload_length) != uart_passthru.payload_length) {
+			PX4_ERR("Failed to send mavlink tunnel data to esc");
 			return false;
 		}
+
+		num_writes++;
 	}
 
 	perf_count(_output_update_perf);
@@ -1308,7 +1357,7 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 void VoxlEsc::Run()
 {
 	if (should_exit()) {
-		PX4_ERR("VOXL_ESC: Stopping the module");
+		PX4_ERR("Stopping the module");
 		ScheduleClear();
 		_mixing_output.unregister();
 
@@ -1328,12 +1377,12 @@ void VoxlEsc::Run()
 		int dev_init_ret = device_init();
 
 		if (dev_init_ret != 0) {
-			PX4_WARN("VOXL_ESC: Failed to initialize device, retries left %d", retries_left);
+			PX4_WARN("Failed to initialize device, retries left %d", retries_left);
 		}
 	}
 
 	if (!_device_initialized) {
-		PX4_ERR("VOXL_ESC: Failed to initialize device, exiting the module");
+		PX4_ERR("Failed to initialize device, exiting the module");
 		ScheduleClear();
 		_mixing_output.unregister();
 		exit_and_cleanup();
@@ -1374,11 +1423,12 @@ void VoxlEsc::Run()
 		update_leds(_led_rsc.mode, _led_rsc.control);
 	}
 
-	if (_parameters.mode > 0) {
-		/* if turtle mode enabled, we go straight to the sticks, no mix */
-		if (_manual_control_setpoint_sub.updated()) {
+	/* check whether sticks have been updated */
+	if (_manual_control_setpoint_sub.updated()) {
+		_manual_control_setpoint_sub.copy(&_manual_control_setpoint);
 
-			_manual_control_setpoint_sub.copy(&_manual_control_setpoint);
+		// if turtle mode enabled, we go straight to the sticks, no mix
+		if (_parameters.mode > 0) {
 
 			if (!_outputs_on) {
 
@@ -1400,6 +1450,45 @@ void VoxlEsc::Run()
 			}
 		}
 
+		// check if gpio control is enabled
+		if (_parameters.gpio_ctl_channel > 0) {
+
+			_gpio_ctl_en = true;
+			float gpio_setpoint = VOXL_ESC_GPIO_CTL_DISABLED_SETPOINT;
+
+			switch (_parameters.gpio_ctl_channel) {
+			case VOXL_ESC_GPIO_CTL_AUX1:
+				gpio_setpoint = _manual_control_setpoint.aux1;
+				break;
+
+			case VOXL_ESC_GPIO_CTL_AUX2:
+				gpio_setpoint = _manual_control_setpoint.aux2;
+				break;
+
+			case VOXL_ESC_GPIO_CTL_AUX3:
+				gpio_setpoint = _manual_control_setpoint.aux3;
+				break;
+
+			case VOXL_ESC_GPIO_CTL_AUX4:
+				gpio_setpoint = _manual_control_setpoint.aux4;
+				break;
+
+			case VOXL_ESC_GPIO_CTL_AUX5:
+				gpio_setpoint = _manual_control_setpoint.aux5;
+				break;
+
+			case VOXL_ESC_GPIO_CTL_AUX6:
+				gpio_setpoint = _manual_control_setpoint.aux6;
+				break;
+			}
+
+			if (gpio_setpoint > VOXL_ESC_GPIO_CTL_THRESHOLD) {
+				_gpio_ctl_high = false;
+
+			} else {
+				_gpio_ctl_high = true;
+			}
+		}
 	}
 
 	if (!_outputs_on) {
@@ -1431,19 +1520,19 @@ void VoxlEsc::Run()
 				} else {
 					if (_current_cmd.retries == 0) {
 						_current_cmd.clear();
-						PX4_ERR("VOXL_ESC: Failed to send command, errno: %i", errno);
+						PX4_ERR("Failed to send command, errno: %i", errno);
 
 					} else {
 						_current_cmd.retries--;
-						PX4_ERR("VOXL_ESC: Failed to send command, errno: %i", errno);
+						PX4_ERR("Failed to send command, errno: %i", errno);
 					}
 				}
 
 				px4_usleep(_current_cmd.repeat_delay_us);
 			} while (_current_cmd.repeats-- > 0);
 
-			PX4_INFO("VOXL_ESC: RX packet count: %d", (int)_rx_packet_count);
-			PX4_INFO("VOXL_ESC: CRC error count: %d", (int)_rx_crc_error_count);
+			PX4_ERR("RX packet count: %d", (int)_rx_packet_count);
+			PX4_ERR("CRC error count: %d", (int)_rx_crc_error_count);
 
 		} else {
 			Command *new_cmd = _pending_cmd.load();
@@ -1547,9 +1636,11 @@ void VoxlEsc::print_params()
 
 	PX4_INFO("Params: VOXL_ESC_VLOG: %" PRId32,    _parameters.verbose_logging);
 	PX4_INFO("Params: VOXL_ESC_PUB_BST: %" PRId32, _parameters.publish_battery_status);
-	
+
 	PX4_INFO("Params: VOXL_ESC_T_WARN: %" PRId32, _parameters.esc_warn_temp_threshold);
 	PX4_INFO("Params: VOXL_ESC_T_OVER: %" PRId32, _parameters.esc_over_temp_threshold);
+
+	PX4_INFO("Params: VOXL_ESC_GPIO_CH: %" PRId32, _parameters.gpio_ctl_channel);
 }
 
 int VoxlEsc::print_status()

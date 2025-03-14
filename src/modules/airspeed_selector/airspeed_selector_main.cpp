@@ -388,7 +388,7 @@ AirspeedModule::Run()
 				input_data.airspeed_indicated_raw = airspeed_raw.indicated_airspeed_m_s;
 				input_data.airspeed_true_raw = airspeed_raw.true_airspeed_m_s;
 				input_data.airspeed_timestamp = airspeed_raw.timestamp;
-				input_data.air_temperature_celsius = airspeed_raw.air_temperature_celsius;
+				input_data.air_temperature_celsius = _vehicle_air_data.ambient_temperature;
 
 				if (_in_takeoff_situation) {
 					// set flag to false if either speed is above stall speed,
@@ -561,7 +561,8 @@ void AirspeedModule::poll_topics()
 	_gnss_lpos_valid = (_time_now_usec - _vehicle_local_position.timestamp < 1_s)
 			   && (_vehicle_local_position.timestamp > 0)
 			   && _vehicle_local_position.v_xy_valid
-			   && _estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS);
+			   && (_estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GNSS_POS)
+			       || _estimator_status.control_mode_flags & (static_cast<uint64_t>(1) << estimator_status_s::CS_GNSS_VEL));
 }
 
 void AirspeedModule::update_wind_estimator_sideslip()

@@ -116,7 +116,6 @@
 #include "streams/SYSTEM_TIME.hpp"
 #include "streams/TIME_ESTIMATE_TO_TARGET.hpp"
 #include "streams/TIMESYNC.hpp"
-#include "streams/TRAJECTORY_REPRESENTATION_WAYPOINTS.hpp"
 #include "streams/VFR_HUD.hpp"
 #include "streams/VIBRATION.hpp"
 #include "streams/WIND_COV.hpp"
@@ -382,9 +381,6 @@ static const StreamListItem streams_list[] = {
 #if defined(MANUAL_CONTROL_HPP)
 	create_stream_list_item<MavlinkStreamManualControl>(),
 #endif // MANUAL_CONTROL_HPP
-#if defined(TRAJECTORY_REPRESENTATION_WAYPOINTS_HPP)
-	create_stream_list_item<MavlinkStreamTrajectoryRepresentationWaypoints>(),
-#endif // TRAJECTORY_REPRESENTATION_WAYPOINTS_HPP
 #if defined(OPTICAL_FLOW_RAD_HPP)
 	create_stream_list_item<MavlinkStreamOpticalFlowRad>(),
 #endif // OPTICAL_FLOW_RAD_HPP

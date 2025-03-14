@@ -47,8 +47,7 @@ px4_add_module(
 		AckermannPosVelControl
 		px4_work_queue
 		rover_control
+		pure_pursuit
 	MODULE_CONFIG
 		module.yaml
 )
-
-set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/rover_control/module.yaml)

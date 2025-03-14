@@ -117,7 +117,7 @@ void EkfWrapper::disableGpsFusion()
 
 bool EkfWrapper::isIntendingGpsFusion() const
 {
-	return _ekf->control_status_flags().gps;
+	return _ekf->control_status_flags().gnss_vel || _ekf->control_status_flags().gnss_pos;
 }
 
 void EkfWrapper::enableGpsHeadingFusion()
