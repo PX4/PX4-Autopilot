@@ -340,6 +340,7 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 		bool disable_underspeed_detection, float hgt_rate_sp)
 {
 	bool test_is_running = true;
+
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	if (_vehicle_status_sub.get().is_vtol
 	    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
@@ -576,38 +577,24 @@ void FwLateralLongitudinalControl::updateAttitude() {
 }
 
 void FwLateralLongitudinalControl::updateAirspeed() {
-	bool airspeed_valid = _airspeed_valid;
+
 	airspeed_validated_s airspeed_validated;
 
 	if (_param_fw_use_airspd.get() && _airspeed_validated_sub.update(&airspeed_validated)) {
 
-
 		if (PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
 		    && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)) {
 
-			airspeed_valid = true;
-
 			_time_airspeed_last_valid = airspeed_validated.timestamp;
 			_long_control_state.airspeed_eas = airspeed_validated.calibrated_airspeed_m_s;
-
 			_long_control_state.eas2tas = constrain(airspeed_validated.true_airspeed_m_s / airspeed_validated.calibrated_airspeed_m_s, 0.9f, 2.0f);
-
-		} else {
-			airspeed_valid = false;
-		}
-
-	} else {
-		// no airspeed updates for one second
-		if (airspeed_valid && (hrt_elapsed_time(&_time_airspeed_last_valid) > 1_s)) {
-			airspeed_valid = false;
 		}
 	}
 
-	// update TECS if validity changed
-	if (airspeed_valid != _airspeed_valid) {
-		_tecs.enable_airspeed(airspeed_valid);
-		_airspeed_valid = airspeed_valid;
-	}
+	// no airspeed updates for one second --> declare invalid
+	const bool airspeed_valid = hrt_elapsed_time(&_time_airspeed_last_valid) < 1_s;
+
+	_tecs.enable_airspeed(airspeed_valid);
 }
 bool FwLateralLongitudinalControl::checkLowHeightConditions() const
 {

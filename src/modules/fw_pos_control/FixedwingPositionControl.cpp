@@ -51,6 +51,7 @@ using matrix::wrap_pi;
 
 const fw_lateral_control_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course_setpoint = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration_setpoint = NAN};
 const fw_longitudinal_control_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude_setpoint = NAN, .height_rate_setpoint = NAN, .equivalent_airspeed_setpoint = NAN, .pitch_sp = NAN, .thrust_sp = NAN};
+
 FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
@@ -58,7 +59,7 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	_launchDetector(this),
 	_runway_takeoff(this)
 #ifdef CONFIG_FIGURE_OF_EIGHT
-	, _figure_eight(_directional_guidance, _wind_vel, _eas2tas)
+	, _figure_eight(_directional_guidance, _wind_vel)
 #endif // CONFIG_FIGURE_OF_EIGHT
 {
 
@@ -170,38 +171,19 @@ FixedwingPositionControl::vehicle_command_poll()
 void
 FixedwingPositionControl::airspeed_poll()
 {
-	bool airspeed_valid = _airspeed_valid;
 	airspeed_validated_s airspeed_validated;
 
 	if (_param_fw_use_airspd.get() && _airspeed_validated_sub.update(&airspeed_validated)) {
 
-		_eas2tas = 1.0f; //this is the default value, taken in case of invalid airspeed
-
-		if (PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
-		    && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)) {
-
-			airspeed_valid = true;
+		if (PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)) {
 
 			_time_airspeed_last_valid = airspeed_validated.timestamp;
 			_airspeed_eas = airspeed_validated.calibrated_airspeed_m_s;
-
-			_eas2tas = constrain(airspeed_validated.true_airspeed_m_s / airspeed_validated.calibrated_airspeed_m_s, 0.9f, 2.0f);
-
-		} else {
-			airspeed_valid = false;
-		}
-
-	} else {
-		// no airspeed updates for one second
-		if (airspeed_valid && (hrt_elapsed_time(&_time_airspeed_last_valid) > 1_s)) {
-			airspeed_valid = false;
 		}
 	}
 
-	// update TECS if validity changed
-	if (airspeed_valid != _airspeed_valid) {
-		_airspeed_valid = airspeed_valid;
-	}
+	// no airspeed updates for one second --> declare invalid
+	_airspeed_valid = hrt_elapsed_time(&_time_airspeed_last_valid) < 1_s;
 }
 
 void
