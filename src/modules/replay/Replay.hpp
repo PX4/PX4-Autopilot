@@ -201,8 +201,7 @@ protected:
 	/**
 	 * Find next data message for this subscription, starting with the stored file offset.
 	 * Skip the first message, and if found, read the timestamp and store the new file offset.
-	 * This also takes care of new subscriptions and parameter updates. When reaching EOF,
-	 * the subscription is set to invalid.
+	 * When reaching EOF, the subscription is set to invalid.
 	 * File seek position is arbitrary after this call.
 	 * @return false on file error
 	 */
