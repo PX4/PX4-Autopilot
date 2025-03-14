@@ -136,6 +136,7 @@ PARAM_DEFINE_FLOAT(ASPD_SCALE_3, 1.0f);
  * @value 1 First airspeed sensor
  * @value 2 Second airspeed sensor
  * @value 3 Third airspeed sensor
+ * @value 4 Thrust based airspeed
  *
  * @reboot_required true
  * @group Airspeed Validator
@@ -166,11 +167,11 @@ PARAM_DEFINE_INT32(ASPD_DO_CHECKS, 7);
  * minus windspeed if no other airspeed sensor available to fall back to.
  *
  * @value 0 Disable fallback to sensor-less estimation
- * @value 1 Enable fallback to sensor-less estimation
- * @boolean
+ * @value 1 Fallback to groundspeed-minus-windspeed airspeed estimation
+ * @value 2 Fallback to thrust based airspeed estimation
  * @group Airspeed Validator
  */
-PARAM_DEFINE_INT32(ASPD_FALLBACK_GW, 0);
+PARAM_DEFINE_INT32(ASPD_FALLBACK, 0);
 
 /**
  * Airspeed failure innovation threshold

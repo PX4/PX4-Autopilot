@@ -137,6 +137,10 @@ bool Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 		K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) = K_wind;
 	}
 
+	if (_synthetic_airspeed) {
+		K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) = 0.f;
+	}
+
 	measurementUpdate(K, H, sideslip.observation_variance, sideslip.innovation);
 
 	sideslip.fused = true;

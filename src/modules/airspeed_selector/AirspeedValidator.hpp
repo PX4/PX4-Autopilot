@@ -183,6 +183,7 @@ private:
 	FilteredDerivative<float> _IAS_derivative; ///< indicated airspeed derivative for first principle check
 	AlphaFilter<float> _throttle_filtered; ///< filtered throttle for first principle check
 	AlphaFilter<float> _pitch_filtered; ///< filtered pitch for first principle check
+	uint64_t _t_last_throttle_fw{0};
 	hrt_abstime _time_last_first_principle_check{0}; ///< time airspeed first principle was last checked (uSec)
 	hrt_abstime _time_last_first_principle_check_passing{0}; ///< time airspeed first principle was last passing (uSec)
 	float _param_psp_off{0.0f}; ///< parameter pitch in level flight [rad]
@@ -218,6 +219,7 @@ private:
 	void check_first_principle(const uint64_t timestamp, const float throttle, const float throttle_trim,
 				   const uint64_t tecs_timestamp, const Quatf &att_q);
 	void update_airspeed_valid_status(const uint64_t timestamp);
+	void update_throttle_filter(uint64_t timestamp, float throttle_fw);
 	void reset();
 	void reset_CAS_scale_check();
 

@@ -60,6 +60,7 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 	check_load_factor(input_data.accel_z);
 	check_airspeed_innovation(input_data.timestamp, input_data.vel_test_ratio, input_data.hdg_test_ratio,
 				  input_data.ground_velocity, input_data.gnss_valid);
+	update_throttle_filter(input_data.timestamp, input_data.fixed_wing_tecs_throttle);
 	check_first_principle(input_data.timestamp, input_data.fixed_wing_tecs_throttle,
 			      input_data.fixed_wing_tecs_throttle_trim, input_data.tecs_timestamp, input_data.q_att);
 	update_airspeed_valid_status(input_data.timestamp);
@@ -305,18 +306,15 @@ AirspeedValidator::check_first_principle(const uint64_t timestamp, const float t
 	if (dt < FLT_EPSILON || dt > 1.f) {
 		// reset if dt is too large
 		_IAS_derivative.reset(0.f);
-		_throttle_filtered.reset(throttle_fw);
 		_pitch_filtered.reset(pitch);
 		_time_last_first_principle_check_passing = timestamp;
 
 	} else {
 		// update filters, with different time constant
 		_IAS_derivative.setParameters(dt, 5.f);
-		_throttle_filtered.setParameters(dt, 0.5f);
 		_pitch_filtered.setParameters(dt, 1.5f);
 
 		_IAS_derivative.update(_IAS);
-		_throttle_filtered.update(throttle_fw);
 		_pitch_filtered.update(pitch);
 	}
 
@@ -370,5 +368,20 @@ AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp)
 	} else if (_checks_clear_delay > 0.f && (timestamp - _time_checks_failed) > _checks_clear_delay * 1_s) {
 		// re-enabling is only possible if the clear delay is positive
 		_airspeed_valid = true;
+	}
+}
+
+void
+AirspeedValidator::update_throttle_filter(uint64_t timestamp, float throttle_fw)
+{
+	const float dt = static_cast<float>(timestamp - _t_last_throttle_fw) / 1_s;
+	_t_last_throttle_fw = timestamp;
+
+	if (dt < FLT_EPSILON || dt > 1.f) {
+		_throttle_filtered.reset(throttle_fw);
+
+	} else {
+		_throttle_filtered.setParameters(dt, 0.5f);
+		_throttle_filtered.update(throttle_fw);
 	}
 }
