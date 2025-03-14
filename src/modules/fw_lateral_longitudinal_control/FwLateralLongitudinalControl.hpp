@@ -170,7 +170,6 @@ private:
 
 	hrt_abstime _last_time_loop_ran{};
 	uint8_t _z_reset_counter{0};
-	bool _tecs_is_running{false};
 	bool _airspeed_valid{false};
 	uint64_t _time_airspeed_last_valid{0};
 	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};

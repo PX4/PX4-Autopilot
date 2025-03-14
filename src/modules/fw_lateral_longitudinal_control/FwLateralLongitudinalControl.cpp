@@ -207,6 +207,7 @@ void FwLateralLongitudinalControl::Run()
 						   _long_limits.disable_underspeed_protection,
 						   _long_control_sp.height_rate_setpoint
 						  );
+
 			pitch_sp = PX4_ISFINITE(_long_control_sp.pitch_sp) ? _long_control_sp.pitch_sp : _tecs.get_pitch_setpoint();
 			throttle_sp = PX4_ISFINITE(_long_control_sp.thrust_sp) ? _long_control_sp.thrust_sp : _tecs.get_throttle_setpoint();
 
@@ -220,7 +221,6 @@ void FwLateralLongitudinalControl::Run()
 			_longitudinal_ctrl_status_pub.publish(longitudinal_control_status);
 
 			float roll_sp {NAN};
-			float yaw_sp {NAN};
 
 			if (_fw_lateral_ctrl_sub.updated()) {
 				_fw_lateral_ctrl_sub.copy(&_lat_control_sp);
@@ -270,7 +270,7 @@ void FwLateralLongitudinalControl::Run()
 
 			float roll_body = PX4_ISFINITE(roll_sp) ? roll_sp : 0.0f;
 			float pitch_body = PX4_ISFINITE(pitch_sp) ? pitch_sp : 0.0f;
-			const float yaw_body = PX4_ISFINITE(yaw_sp) ? yaw_sp : _yaw;
+			const float yaw_body = _yaw; // yaw is not controlled in fixed wing, need to set it though for quaternion generation
 			const float thrust_body_x = PX4_ISFINITE(throttle_sp) ? throttle_sp : 0.0f;
 
 			if (_control_mode_sub.get().flag_control_manual_enabled) {
@@ -339,15 +339,14 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 		const float desired_max_climbrate,
 		bool disable_underspeed_detection, float hgt_rate_sp)
 {
+	bool test_is_running = true;
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	if (_vehicle_status_sub.get().is_vtol
 	    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 		|| _vehicle_status_sub.get().in_transition_mode)) {
-		_tecs_is_running = false;
+		test_is_running = false;
 		return;
 
-	} else {
-		_tecs_is_running = true;
 	}
 
 	const float throttle_trim_compensated = _performance_model.getTrimThrottle(throttle_min,
@@ -379,7 +378,7 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 
 	tecs_status_publish(alt_sp, airspeed_sp, airspeed_rate_estimate, throttle_trim_compensated);
 
-	if (_tecs_is_running && !_vehicle_status_sub.get().in_transition_mode
+	if (test_is_running && !_vehicle_status_sub.get().in_transition_mode
 	    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
 		const TECS::DebugOutput &tecs_output{_tecs.getStatus()};
 
@@ -699,17 +698,17 @@ float FwLateralLongitudinalControl::mapLateralAccelerationToRollAngle(float late
 }
 
 void FwLateralLongitudinalControl::setDefaultLongitudinalControlLimits() {
-		_long_limits.timestamp = hrt_absolute_time();
-		_long_limits.equivalent_airspeed_min = _performance_model.getMinimumCalibratedAirspeed();
-		_long_limits.equivalent_airspeed_max = _performance_model.getMaximumCalibratedAirspeed();
-		_long_limits.pitch_min = radians(_param_fw_p_lim_min.get());
-		_long_limits.pitch_max = radians(_param_fw_p_lim_max.get());
-		_long_limits.throttle_min = _param_fw_thr_min.get();
-		_long_limits.throttle_max = _param_fw_thr_max.get();
-		_long_limits.climb_rate_target = _param_climbrate_target.get();
-		_long_limits.sink_rate_target = _param_sinkrate_target.get();
-		_long_limits.disable_underspeed_protection = false;
-		_long_limits.enforce_low_height_condition = false;
+	_long_limits.timestamp = hrt_absolute_time();
+	_long_limits.equivalent_airspeed_min = _performance_model.getMinimumCalibratedAirspeed();
+	_long_limits.equivalent_airspeed_max = _performance_model.getMaximumCalibratedAirspeed();
+	_long_limits.pitch_min = radians(_param_fw_p_lim_min.get());
+	_long_limits.pitch_max = radians(_param_fw_p_lim_max.get());
+	_long_limits.throttle_min = _param_fw_thr_min.get();
+	_long_limits.throttle_max = _param_fw_thr_max.get();
+	_long_limits.climb_rate_target = _param_climbrate_target.get();
+	_long_limits.sink_rate_target = _param_sinkrate_target.get();
+	_long_limits.disable_underspeed_protection = false;
+	_long_limits.enforce_low_height_condition = false;
 }
 
 void FwLateralLongitudinalControl::updateLongitudinalControlLimits(const longitudinal_control_limits_s &limits_in) {
