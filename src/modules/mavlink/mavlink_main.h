@@ -267,7 +267,7 @@ public:
 		case MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH:
 			return "OnboardLowBandwidth";
 
-		case MAVLINK_MODE_LORA:
+		case MAVLINK_MODE_LOW_BANDWIDTH:
 			return "Lora";
 
 		case MAVLINK_MODE_UAVIONIX:
