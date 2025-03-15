@@ -31,12 +31,10 @@
 #
 ############################################################################
 
-if(NOT DEFINED ENV{GZ_DISTRO})
+if(NOT DEFINED ENV{GZ_DISTRO} OR NOT "$ENV{GZ_DISTRO}" STREQUAL "harmonic")
     find_package(gz-transport NAMES gz-transport14 gz-transport13)
 else()
-    if (ENV{GZ_DISTRO} STREQUAL "harmonic")
-        find_package(gz-transport NAMES gz-transport13)
-    endif()
+    find_package(gz-transport NAMES gz-transport13)
 endif()
 
 if (gz-transport_FOUND)

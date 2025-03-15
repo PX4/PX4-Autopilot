@@ -33,18 +33,16 @@
 
 project(px4_gz_plugins)
 
-if(NOT DEFINED ENV{GZ_DISTRO})
+if(NOT DEFINED ENV{GZ_DISTRO} OR NOT "$ENV{GZ_DISTRO}"  STREQUAL "harmonic")
     find_package(gz-transport NAMES gz-transport14 gz-transport13 gz-transport12)
     find_package(gz-sim NAMES gz-sim9 gz-sim8)
     find_package(gz-sensors NAMES gz-sensors9 gz-sensors8)
     find_package(gz-plugin NAMES gz-plugin3 gz-plugin2 COMPONENTS register)
 else()
-    if (ENV{GZ_DISTRO} STREQUAL "harmonic")
-        find_package(gz-transport NAMES gz-transport13)
-        find_package(gz-sim NAMES gz-sim8)
-        find_package(gz-sensors NAMES gz-sensors8)
-        find_package(gz-plugin NAMES gz-plugin2 COMPONENTS register)
-    endif()
+    find_package(gz-transport NAMES gz-transport13)
+    find_package(gz-sim NAMES gz-sim8)
+    find_package(gz-sensors NAMES gz-sensors8)
+    find_package(gz-plugin NAMES gz-plugin2 COMPONENTS register)
 endif()
 
 if (gz-transport_FOUND)
