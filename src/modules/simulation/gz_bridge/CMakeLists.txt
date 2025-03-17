@@ -31,43 +31,13 @@
 #
 ############################################################################
 
-if(NOT DEFINED ENV{GZ_DISTRO})
-    set(GZ_DISTRO "harmonic" CACHE STRING "Gazebo distribution to use")
+if(NOT DEFINED ENV{GZ_DISTRO} OR NOT "$ENV{GZ_DISTRO}" STREQUAL "harmonic")
+    find_package(gz-transport NAMES gz-transport14 gz-transport13)
 else()
-    set(GZ_DISTRO $ENV{GZ_DISTRO})
+    find_package(gz-transport NAMES gz-transport13)
 endif()
 
-# Define library version combinations for different Gazebo distributions
-# https://github.com/gazebo-tooling/gazebodistro/blob/master/collection-harmonic.yaml
-if(GZ_DISTRO STREQUAL "harmonic")
-    set(GZ_CMAKE_VERSION "3")
-    set(GZ_MSGS_VERSION "10")
-    set(GZ_TRANSPORT_VERSION "13")
-    set(GZ_PLUGIN_VERSION "2")
-    set(GZ_SIM_VERSION "8")
-    set(GZ_SENSORS_VERSION "8")
-    message(STATUS "Using Gazebo Harmonic (cmake:${GZ_CMAKE_VERSION}, msgs:${GZ_MSGS_VERSION}, transport:${GZ_TRANSPORT_VERSION})")
-elseif(GZ_DISTRO STREQUAL "ionic")
-    set(GZ_CMAKE_VERSION "4")
-    set(GZ_MSGS_VERSION "11")
-    set(GZ_TRANSPORT_VERSION "14")
-    set(GZ_PLUGIN_VERSION "3")
-    set(GZ_SIM_VERSION "9")
-    set(GZ_SENSORS_VERSION "9")
-    message(STATUS "Using Gazebo Ionic (cmake:${GZ_CMAKE_VERSION}, msgs:${GZ_MSGS_VERSION}, transport:${GZ_TRANSPORT_VERSION})")
-else()
-    message(FATAL_ERROR "Unknown Gazebo distribution: ${GZ_DISTRO}. Valid options are: harmonic or ionic")
-endif()
-
-# Use gz-transport as litmus test for prescence of gz
-find_package(gz-transport${GZ_TRANSPORT_VERSION})
-
-if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
-
-	find_package(gz-cmake${GZ_CMAKE_VERSION} REQUIRED)
-	find_package(gz-msgs${GZ_MSGS_VERSION} REQUIRED)
-	find_package(Protobuf REQUIRED)
-
+if (gz-transport_FOUND)
 	px4_add_module(
 		MODULE modules__simulation__gz_bridge
 		MAIN gz_bridge
@@ -87,7 +57,7 @@ if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
 		DEPENDS
 			mixer_module
 			px4_work_queue
-			gz-transport${GZ_TRANSPORT_VERSION}::core
+			gz-transport${gz-transport_VERSION_MAJOR}::core
 		MODULE_CONFIG
 			module.yaml
 	)
