@@ -34,7 +34,6 @@
 project(GstCameraSystem)
 
 # Find required packages
-find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
 pkg_check_modules(GSTREAMER_APP REQUIRED gstreamer-app-1.0)
@@ -49,7 +48,6 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC gz-plugin${GZ_PLUGIN_VERSION}::gz-plugin${GZ_PLUGIN_VERSION}
     PUBLIC gz-sim${GZ_SIM_VERSION}::gz-sim${GZ_SIM_VERSION}
     PUBLIC gz-transport${GZ_TRANSPORT_VERSION}::gz-transport${GZ_TRANSPORT_VERSION}
-    PUBLIC ${OpenCV_LIBS}
     PUBLIC ${GSTREAMER_LIBRARIES}
     PUBLIC ${GSTREAMER_APP_LIBRARIES}
 )
@@ -58,7 +56,6 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
     PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
     PUBLIC px4_gz_msgs
-    PUBLIC ${OpenCV_INCLUDE_DIRS}
     PUBLIC ${GSTREAMER_INCLUDE_DIRS}
     PUBLIC ${GSTREAMER_APP_INCLUDE_DIRS}
 )
