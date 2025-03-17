@@ -329,10 +329,13 @@ bool VtolType::isRollExceeded()
 bool VtolType::isFrontTransitionTimeout()
 {
 	// check front transition timeout
-	if (getFrontTransitionTimeout()  > FLT_EPSILON && _common_vtol_mode == mode::TRANSITION_TO_FW) {
+	if (_common_vtol_mode == mode::TRANSITION_TO_FW) {
+		// when we use airspeed, we can timeout earlier if airspeed is not increasing fast enough
+		if (_param_fw_use_airspd.get() && _time_since_trans_start > getOpenLoopFrontTransitionTime()
+		    && _airspeed_validated->calibrated_airspeed_m_s < getBlendAirspeed()) {
+			return true;
 
-		if (_time_since_trans_start > getFrontTransitionTimeout()) {
-			// transition timeout occured, abort transition
+		} else if (_time_since_trans_start > getFrontTransitionTimeout()) {
 			return true;
 		}
 	}
