@@ -198,7 +198,6 @@ private:
 
 	struct Parameters {
 		float diff_pres_offset_pa;
-		int32_t diff_pres_inv;
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 		float diff_pres_analog_scale;
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
@@ -210,7 +209,7 @@ private:
 
 	struct ParameterHandles {
 		param_t diff_pres_offset_pa;
-		param_t diff_pres_inv;
+		param_t diff_pres_rev;
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 		param_t diff_pres_analog_scale;
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */

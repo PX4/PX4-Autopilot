@@ -233,11 +233,11 @@ int ASP5033::collect()
 		differential_pressure.timestamp_sample = timestamp_sample;
 		differential_pressure.device_id = get_device_id();
 		differential_pressure.differential_pressure_pa = _pressure;
-		int32_t differential_press_inv = 0;
-		param_get(param_find("SENS_DPRES_INV"), &differential_press_inv);
+		int32_t differential_press_rev = 0;
+		param_get(param_find("SENS_DPRES_REV"), &differential_press_rev);
 
-		//If differential pressure invert param set to 1, swap positive and negative
-		if (differential_press_inv == 1) {
+		//If differential pressure reverse param set, swap positive and negative
+		if (differential_press_rev == 1) {
 			differential_pressure.differential_pressure_pa = -1.0f * _pressure;
 		}
 

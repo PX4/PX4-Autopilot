@@ -88,17 +88,16 @@ PARAM_DEFINE_FLOAT(CAL_AIR_TUBED_MM, 1.5f);
 PARAM_DEFINE_FLOAT(SENS_DPRES_OFF, 0.0f);
 
 /**
- * Differential pressure sensor invert
+ * Reverse differential pressure sensor readings
  *
- * Set to 1 to enable inverted values for all differential pressure sensors.
- * This should be done if differential pressure sensors have had static and dynamic ports swapped.
- * Setting this parameter to 1 makes it difficult to detect pitot-static pressure leaks; only
- * set this parameter if static and dynamic tubes are inaccessible.
+ * Reverse the raw measurements of all differential pressure sensors.
+ * This can be enabled if the sensors have static and dynamic ports swapped.
  *
  * @category system
  * @group Sensor Calibration
+ * @boolean
  */
-PARAM_DEFINE_INT32(SENS_DPRES_INV, 0);
+PARAM_DEFINE_INT32(SENS_DPRES_REV, 0);
 
 /**
  * Differential pressure sensor analog scaling
