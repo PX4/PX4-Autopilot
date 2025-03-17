@@ -216,7 +216,6 @@ private:
 	uORB::Publication<normalized_unsigned_setpoint_s> _flaps_setpoint_pub{ORB_ID(flaps_setpoint)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
 	uORB::PublicationData<fw_lateral_control_setpoint_s> _lateral_ctrl_sp_pub{ORB_ID(fw_lateral_control_setpoint)};
-	uORB::PublicationData<fw_lateral_control_setpoint_s> _lateral_ctrl_status_pub{ORB_ID(fw_lateral_control_status)};
 	uORB::PublicationData<fw_longitudinal_control_setpoint_s> _longitudinal_ctrl_sp_pub{ORB_ID(fw_longitudinal_control_setpoint)};
 
 	manual_control_setpoint_s _manual_control_setpoint{};
