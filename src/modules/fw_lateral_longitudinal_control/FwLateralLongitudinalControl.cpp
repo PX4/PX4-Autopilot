@@ -226,6 +226,8 @@ void FwLateralLongitudinalControl::Run()
 			float roll_sp {NAN};
 
 			if (_fw_lateral_ctrl_sub.updated()) {
+				// We store the update of _fw_lateral_ctrl_sub in a member variable instead of only local such that we can run
+				// the controllers also without new setpoints.
 				_fw_lateral_ctrl_sub.copy(&_lat_control_sp);
 			}
 
@@ -255,12 +257,10 @@ void FwLateralLongitudinalControl::Run()
 						   _lat_control_sp.lateral_acceleration;
 			}
 
-			if (PX4_ISFINITE(lateral_accel_sp)) {
-				lateral_accel_sp = getCorrectedLateralAccelSetpoint(lateral_accel_sp);
-				lateral_accel_sp = math::constrain(lateral_accel_sp, -_lateral_limits.lateral_accel_max,
-								   _lateral_limits.lateral_accel_max);
-				roll_sp = mapLateralAccelerationToRollAngle(lateral_accel_sp);
-			}
+			lateral_accel_sp = getCorrectedLateralAccelSetpoint(lateral_accel_sp);
+			lateral_accel_sp = math::constrain(lateral_accel_sp, -_lateral_limits.lateral_accel_max,
+							   _lateral_limits.lateral_accel_max);
+			roll_sp = mapLateralAccelerationToRollAngle(lateral_accel_sp);
 
 			fw_lateral_control_setpoint_s status = {
 				.timestamp = _lat_control_sp.timestamp,
@@ -271,6 +271,7 @@ void FwLateralLongitudinalControl::Run()
 
 			_lateral_ctrl_status_pub.publish(status);
 
+			// additional is_finite checks that should not be necessary, but are kept for safety
 			float roll_body = PX4_ISFINITE(roll_sp) ? roll_sp : 0.0f;
 			float pitch_body = PX4_ISFINITE(pitch_sp) ? pitch_sp : 0.0f;
 			const float yaw_body = _yaw; // yaw is not controlled in fixed wing, need to set it though for quaternion generation
