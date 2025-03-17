@@ -39,7 +39,6 @@
 #include <mutex>
 #include <atomic>
 #include <regex>
-#include <opencv2/opencv.hpp>
 
 #include <gz/sim/System.hh>
 #include <gz/transport/Node.hh>
@@ -82,7 +81,7 @@ private:
 	gz::transport::Node _node;
 
 	// Image processing
-	cv::Mat _currentFrame;
+	gz::msgs::Image _currentFrame;
 	std::mutex _frameMutex;
 	std::atomic<bool> _newFrameAvailable {};
 

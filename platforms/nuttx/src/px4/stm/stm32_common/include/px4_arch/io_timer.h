@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012, 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -81,6 +81,8 @@ typedef enum io_timer_channel_mode_t {
 	IOTimerChanMode_PPS     = 8,
 	IOTimerChanMode_RPM     = 9,
 	IOTimerChanMode_Other   = 10,
+	IOTimerChanMode_DshotInverted = 11,
+	IOTimerChanMode_CaptureDMA = 12,
 	IOTimerChanModeSize
 } io_timer_channel_mode_t;
 
@@ -159,7 +161,12 @@ __EXPORT int io_timer_unallocate_channel(unsigned channel);
 __EXPORT int io_timer_get_channel_mode(unsigned channel);
 __EXPORT int io_timer_get_mode_channels(io_timer_channel_mode_t mode);
 __EXPORT extern void io_timer_trigger(unsigned channels_mask);
+
 __EXPORT void io_timer_update_dma_req(uint8_t timer, bool enable);
+__EXPORT int io_timer_set_dshot_burst_mode(uint8_t timer, unsigned dshot_pwm_rate, uint8_t dma_burst_length);
+
+__EXPORT void io_timer_capture_dma_req(uint8_t timer, uint8_t timer_channel_index, bool enable);
+__EXPORT int io_timer_set_dshot_capture_mode(uint8_t timer, uint8_t timer_channel_index, unsigned dshot_pwm_freq);
 
 /**
  * Reserve a timer
@@ -169,7 +176,6 @@ __EXPORT int io_timer_allocate_timer(unsigned timer, io_timer_channel_mode_t mod
 
 __EXPORT int io_timer_unallocate_timer(unsigned timer);
 
-__EXPORT extern int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_rate, uint8_t dma_burst_length);
 
 /**
  * Returns the pin configuration for a specific channel, to be used as GPIO output.
