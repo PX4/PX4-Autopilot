@@ -212,7 +212,7 @@ void FwLateralLongitudinalControl::Run()
 			throttle_sp = PX4_ISFINITE(_long_control_sp.thrust_direct) ? _long_control_sp.thrust_direct :
 				      _tecs.get_throttle_setpoint();
 
-			fw_longitudinal_setpoint_s longitudinal_control_status {
+			fixed_wing_longitudinal_setpoint_s longitudinal_control_status {
 				.timestamp = hrt_absolute_time(),
 				.altitude = _long_control_sp.altitude,
 				.height_rate = _tecs.getStatus().control.altitude_rate_control,
@@ -262,7 +262,7 @@ void FwLateralLongitudinalControl::Run()
 							   _lateral_limits.lateral_accel_max);
 			roll_sp = mapLateralAccelerationToRollAngle(lateral_accel_sp);
 
-			fw_lateral_setpoint_s status = {
+			fixed_wing_lateral_setpoint_s status = {
 				.timestamp = _lat_control_sp.timestamp,
 				.course = _lat_control_sp.course,
 				.airspeed_reference_direction = airspeed_reference_direction,

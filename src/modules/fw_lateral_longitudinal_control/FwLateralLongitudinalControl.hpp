@@ -71,16 +71,16 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/fw_lateral_setpoint.h>
-#include <uORB/topics/fw_longitudinal_setpoint.h>
+#include <uORB/topics/fixed_wing_lateral_setpoint.h>
+#include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
 #include <uORB/topics/longitudinal_control_limits.h>
 #include <uORB/topics/lateral_control_limits.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <fw_performance_model/PerformanceModel.hpp>
 #include <slew_rate/SlewRate.hpp>
 
-const fw_lateral_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration = NAN};
-const fw_longitudinal_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude = NAN, .height_rate = NAN, .equivalent_airspeed = NAN, .pitch_direct = NAN, .thrust_direct = NAN};
+const fixed_wing_lateral_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration = NAN};
+const fixed_wing_longitudinal_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude = NAN, .height_rate = NAN, .equivalent_airspeed = NAN, .pitch_direct = NAN, .thrust_direct = NAN};
 
 class FwLateralLongitudinalControl final : public ModuleBase<FwLateralLongitudinalControl>, public ModuleParams,
 	public px4::WorkItem
@@ -115,23 +115,23 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_landed_sub{ORB_ID(vehicle_land_detected)};
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _fw_lateral_ctrl_sub{ORB_ID(fw_lateral_setpoint)};
-	uORB::Subscription _fw_longitudinal_ctrl_sub{ORB_ID(fw_longitudinal_setpoint)};
+	uORB::Subscription _fw_lateral_ctrl_sub{ORB_ID(fixed_wing_lateral_setpoint)};
+	uORB::Subscription _fw_longitudinal_ctrl_sub{ORB_ID(fixed_wing_longitudinal_setpoint)};
 	uORB::Subscription _long_control_limits_sub{ORB_ID(longitudinal_control_limits)};
 	uORB::Subscription _lateral_control_limits_sub{ORB_ID(lateral_control_limits)};
 
 	vehicle_local_position_s _local_pos{};
-	fw_longitudinal_setpoint_s _long_control_sp{empty_longitudinal_control_setpoint};
+	fixed_wing_longitudinal_setpoint_s _long_control_sp{empty_longitudinal_control_setpoint};
 	longitudinal_control_limits_s _long_limits{};
-	fw_lateral_setpoint_s _lat_control_sp{empty_lateral_control_setpoint};
+	fixed_wing_lateral_setpoint_s _lat_control_sp{empty_lateral_control_setpoint};
 	lateral_control_limits_s _lateral_limits{};
 
 	uORB::Publication <vehicle_attitude_setpoint_s> _attitude_sp_pub;
 	uORB::Publication <tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
 	uORB::PublicationData <flight_phase_estimation_s> _flight_phase_estimation_pub{ORB_ID(flight_phase_estimation)};
-	uORB::Publication <fw_lateral_setpoint_s> _lateral_ctrl_status_pub{ORB_ID(fw_lateral_setpoint_status)};
-	uORB::Publication <fw_longitudinal_setpoint_s> _longitudinal_ctrl_status_pub{
-		ORB_ID(fw_longitudinal_setpoint_status)};
+	uORB::Publication <fixed_wing_lateral_setpoint_s> _lateral_ctrl_status_pub{ORB_ID(fixed_wing_lateral_setpoint_status)};
+	uORB::Publication <fixed_wing_longitudinal_setpoint_s> _longitudinal_ctrl_status_pub{
+		ORB_ID(fixed_wing_longitudinal_setpoint_status)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,

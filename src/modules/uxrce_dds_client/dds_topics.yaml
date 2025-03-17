@@ -163,11 +163,11 @@ subscriptions:
   - topic: /fmu/in/aux_global_position
     type: px4_msgs::msg::VehicleGlobalPosition
 
-  - topic: /fmu/in/fw_longitudinal_setpoint
-    type: px4_msgs::msg::FwLongitudinalSetpoint
+  - topic: /fmu/in/fixed_wing_longitudinal_setpoint
+    type: px4_msgs::msg::FixedWingLongitudinalSetpoint
 
-  - topic: /fmu/in/fw_lateral_setpoint
-    type: px4_msgs::msg::FwLateralSetpoint
+  - topic: /fmu/in/fixed_wing_lateral_setpoint
+    type: px4_msgs::msg::FixedWingLateralSetpoint
 
   - topic: /fmu/in/longitudinal_control_limits
     type: px4_msgs::msg::LongitudinalControlLimits

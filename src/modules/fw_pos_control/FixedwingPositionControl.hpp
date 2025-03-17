@@ -97,8 +97,8 @@
 #include <uORB/topics/wind.h>
 #include <uORB/topics/orbit_status.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/fw_lateral_setpoint.h>
-#include <uORB/topics/fw_longitudinal_setpoint.h>
+#include <uORB/topics/fixed_wing_lateral_setpoint.h>
+#include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
 
 #include "ControlLimitsHandler.hpp"
 
@@ -215,8 +215,8 @@ private:
 	uORB::Publication<landing_gear_s> _landing_gear_pub {ORB_ID(landing_gear)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _flaps_setpoint_pub{ORB_ID(flaps_setpoint)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
-	uORB::PublicationData<fw_lateral_setpoint_s> _lateral_ctrl_sp_pub{ORB_ID(fw_lateral_setpoint)};
-	uORB::PublicationData<fw_longitudinal_setpoint_s> _longitudinal_ctrl_sp_pub{ORB_ID(fw_longitudinal_setpoint)};
+	uORB::PublicationData<fixed_wing_lateral_setpoint_s> _lateral_ctrl_sp_pub{ORB_ID(fixed_wing_lateral_setpoint)};
+	uORB::PublicationData<fixed_wing_longitudinal_setpoint_s> _longitudinal_ctrl_sp_pub{ORB_ID(fixed_wing_longitudinal_setpoint)};
 
 	manual_control_setpoint_s _manual_control_setpoint{};
 	position_setpoint_triplet_s _pos_sp_triplet{};
