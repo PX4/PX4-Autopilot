@@ -18,6 +18,9 @@ param set-default SENS_EN_INA238 0
 param set-default SENS_EN_INA228 0
 param set-default SENS_EN_INA226 0
 
+# Don't enable SF45 by default
+param set-default SENS_EN_SF45_CFG 0
+
 safety_button start
 
 if param greater -s UAVCAN_ENABLE 0
