@@ -194,7 +194,7 @@ param set-default CAL_GYRO0_PRIO 100
 param set-default CAL_GYRO1_PRIO 75
 param set-default CAL_GYRO2_PRIO 50
 param set CAL_ACC0_PRIO 100 # hardcode sensor priorities
-param set CAL_ACC1_PRIO 75 # to handle when they get changed by calibration or reset
+#param set CAL_ACC1_PRIO 75 # to handle when they get changed by calibration or reset
 param set CAL_ACC2_PRIO 50
 param set CAL_GYRO0_PRIO 100
 param set CAL_GYRO1_PRIO 75

@@ -34,8 +34,13 @@ then
 	#SKYNODE base fmu board orientation
 
 	# Internal SPI BMI088 (soft mounted) - fallback
-	bmi088 -A -R 2 -s start
-	bmi088 -G -R 2 -s start
+	if param greater -s CAL_ACC1_PRIO 0
+	then
+		bmi088 -A -R 2 -s start
+		bmi088 -G -R 2 -s start
+	else
+		echo "BMI088 sensor disabled"
+	fi
 
 	# Freefly replaced the icm42688p with mpu6000 that is started with higher priority above
 

@@ -56,7 +56,7 @@ static const char *_blacklist_params[] = {
 	"CAL_ACC0_ROT",
 
 	"CAL_ACC1_ID",
-	"CAL_ACC1_PRIO",
+	// "CAL_ACC1_PRIO", // Removed to allow MAVLink access to this parameter
 	"CAL_ACC1_ROT",
 
 	"CAL_ACC2_ID",
