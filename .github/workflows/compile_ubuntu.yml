@@ -7,9 +7,15 @@ on:
       - 'stable'
       - 'beta'
       - 'release/**'
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
   pull_request:
     branches:
       - '*'
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
 
 jobs:
   build_and_test:

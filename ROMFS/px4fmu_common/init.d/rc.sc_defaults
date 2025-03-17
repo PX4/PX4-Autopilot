@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
+
+set VEHICLE_TYPE sc
+
+# MAV_TYPE_QUADROTOR 2
+#param set-default MAV_TYPE 12
+
+# Set micro-dds-client to use ethernet and IP-address 192.168.0.1
+param set-default UXRCE_DDS_AG_IP -1062731775
+
+# Disable preflight disarm to not interfere with external launching
+param set-default COM_DISARM_PRFLT -1
+param set-default CBRK_SUPPLY_CHK 894281
+param set-default COM_ARM_HFLT_CHK 0
+
+#Missing params
+param set-default CP_DIST -1.0
+
+# Default to MoCap fusion
+param set-default ATT_EXT_HDG_M 2
+param set-default EKF2_EV_CTRL 15
+param set-default EKF2_EV_DELAY 5
+param set-default EKF2_GPS_CTRL 0
+param set-default EKF2_HGT_REF 3

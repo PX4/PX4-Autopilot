@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# Standard apps for sr. Attitude/Position estimator, Attitude/Position control.
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
+
+# Start Spacecraft App
+spacecraft start
+
+# Estimator Group Selection
+# ekf2 start &
+
+# Start MicroDDS Client
+# uxrce_dds_client start -t udp -h 192.168.0.1 -n spacebot2
+# uxrce_dds_client start -t udp -p 8888
+
+#
+# Start Control Allocator
+#
+# sc_control_allocator start
+
+#
+# Start Spacecraft Rate Controller.
+#
+# sc_rate_control start
+
+#
+# Start Spacecraft Attitude Controller.
+#
+# sc_att_control start
+
+#
+# Start Spacecraft Position Controller.
+#
+# sc_pos_control start

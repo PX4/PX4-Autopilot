@@ -1,0 +1,108 @@
+{   
+    "gitbook": ">= 3.2.2",
+    "title": "PX4 User Guide",
+    "variables": {
+        "logo": "./assets/site/logo_pro_small.png",
+        "px4_version": "master"
+    },
+    "plugins": [
+        "youtube",
+        "richquotes@git+https://github.com/Dronecode/gitbook-plugin-richquotes.git",
+        "language-picker",
+        "collapsible-menu",
+        "anchors",
+        "page-toc-button",
+        "ga",
+        "page-footer-ex",
+        "custom-favicon",
+        "bulk-redirect@git+https://github.com/Dronecode/gitbook-plugin-bulk-redirect.git",
+        "toolbar@git+https://github.com/hamishwillee/gitbook-plugin-toolbar.git",
+        "validate-links",
+        "versions-select@git+https://github.com/Dronecode/gitbook-plugin-versions-select.git",
+        "mathjax@git+https://github.com/Dronecode/plugin-mathjax.git#update_cdn",
+        "theme-dronecode@git+https://github.com/dronecode/theme-dronecode.git"
+    ],
+    "pluginsConfig": {
+
+        "page-footer-ex":{
+            "copyright":"© PX4 Dev Team. License:   <a href='https://creativecommons.org/licenses/by/4.0/'>CC BY 4.0</a>",
+            "update_label":"Updated: ",
+            "update_format":"YYYY-MM-DD HH:mm:ss"
+        },
+        "ga": {
+            "token": "UA-33658859-3"
+        },
+        "richquotes":
+        {
+            "tip": {
+                "alert": "success",
+                "picto": "fa-thumbs-o-up"
+            },
+            "archived": {
+                "alert": "warning",
+                "picto": "fa-archive"
+            }
+        },
+        "favicon": "favicon.ico",
+        "bulk-redirect": {
+            "basepath": "/",
+            "redirectsFile": "redirects.json"
+        },
+        "toolbar": {
+            "buttons":
+            [
+                {
+                    "label": "Bug tracker",
+                    "icon": "fa fa-bug",
+                    "position" : "left",
+                    "url": "https://github.com/PX4/px4_user_guide/issues/new?title=Doc+Bug:+{{title}}&body=DESCRIBE+PROBLEM+WITH+DOCS+HERE%0A%0ABug+Page:+[{{title}}]({{url}})"
+                    
+                },
+                {
+                    "label": "GitHub",
+                    "icon": "fa fa-github",
+                    "url": "https://github.com/PX4/px4_user_guide"
+                },
+                {
+                    "label": "Edit page on github",
+                    "icon": "fa fa-pencil-square-o",
+                    "position" : "left",
+                    "url": "https://github.com/PX4/px4_user_guide/edit/master/{{filepath_lang}}"
+                }
+            ]
+        },
+        
+        "versions": {
+            "gitbookConfigURL": "https://raw.githubusercontent.com/PX4/px4_user_guide/main/book.json",
+            "options": [
+                {
+                    "value": "https://docs.px4.io/main/en/",
+                    "text": "main"
+                },
+                {
+                    "value": "https://docs.px4.io/v1.15/en/",
+                    "text": "v1.15 - stable"
+                },
+                {
+                    "value": "https://docs.px4.io/v1.14/en/",
+                    "text": "v1.14"
+                },
+                {
+                    "value": "https://docs.px4.io/v1.13/en/",
+                    "text": "v1.13"
+                },
+                {
+                    "value": "https://docs.px4.io/v1.12/en/",
+                    "text": "v1.12"
+                },				 
+                {
+                    "value": "https://docs.px4.io/v1.11/en/",
+                    "text": "v1.11"
+                }
+            ]
+        }
+
+    }
+
+}
+

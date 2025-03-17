@@ -55,7 +55,7 @@ public:
 
 	struct Geometry {
 		SwashPlateGeometry swash_plate_servos[NUM_SWASH_PLATE_SERVOS_MAX];
-		int num_swash_plate_servos{0};
+		int32_t num_swash_plate_servos{0};
 		float spoolup_time;
 	};
 

@@ -40,9 +40,6 @@
 #include <uORB/Publication.hpp>
 #include <px4_platform_common/module_params.h>
 
-static_assert((1ull << arming_check_reply_s::HEALTH_COMPONENT_INDEX_AVOIDANCE) == (uint64_t)
-	      health_component_t::avoidance, "enum definition missmatch");
-
 class ExternalChecks : public HealthAndArmingCheckBase
 {
 public:

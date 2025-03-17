@@ -441,7 +441,6 @@ RoverPositionControl::Run()
 								  _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
 
 					pos_ctrl_status.acceptance_radius = turn_distance;
-					pos_ctrl_status.yaw_acceptance = NAN;
 
 					pos_ctrl_status.timestamp = hrt_absolute_time();
 
