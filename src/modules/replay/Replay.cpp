@@ -730,6 +730,7 @@ Replay::nextDataMessage(std::ifstream &file, Subscription &subscription, int msg
 						subscription.next_read_pos = cur_pos;
 						file.seekg(subscription.timestamp_offset, ios::cur);
 						file.read((char *)&subscription.next_timestamp, sizeof(subscription.next_timestamp));
+						subscription.published = false;
 						done = true;
 
 					} else { //sanity check failed!
@@ -901,6 +902,7 @@ Replay::run()
 
 	PX4_INFO("Replay in progress...");
 
+	// Find and add all subscriptions
 	ulog_message_header_s message_header;
 	replay_file.seekg(_data_section_start);
 
@@ -909,21 +911,22 @@ Replay::run()
 		replay_file.read((char *)&message_header, ULOG_MSG_HEADER_LEN);
 
 		if (!replay_file) {
+			// end of file
 			break;
 		}
 
 		if (message_header.msg_type == (int)ULogMessageType::ADD_LOGGED_MSG) {
 			readAndAddSubscription(replay_file, message_header.msg_size);
 
-		} else if (message_header.msg_type == (int)ULogMessageType::DATA) {
-			// End of Definition & Data Section Message Header section
-			break;
-
 		} else {
 			// Not important for now, skip
 			replay_file.seekg(message_header.msg_size, ios::cur);
 		}
 	}
+
+	// Rewind back to the begining of the data section
+	replay_file.seekg(_data_section_start);
+	replay_file.clear();
 
 	const uint64_t timestamp_offset = getTimestampOffset();
 	uint32_t nr_published_messages = 0;
@@ -1125,6 +1128,7 @@ Replay::publishTopic(Subscription &sub, void *data)
 
 	if (published) {
 		++sub.publication_counter;
+		sub.published = true;
 	}
 
 	return published;

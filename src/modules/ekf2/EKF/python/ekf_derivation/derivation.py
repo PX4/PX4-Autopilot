@@ -524,8 +524,8 @@ def predict_opt_flow(state, epsilon):
     hagl = add_epsilon_sign(hagl, hagl, epsilon)
     R_to_earth = state["quat_nominal"].to_rotation_matrix()
     flow_pred = sf.V2()
-    flow_pred[0] =  rel_vel_sensor[1] / hagl * R_to_earth[2, 2]
-    flow_pred[1] = -rel_vel_sensor[0] / hagl * R_to_earth[2, 2]
+    flow_pred[0] =  rel_vel_sensor[1] / sf.Abs(hagl) * R_to_earth[2, 2]
+    flow_pred[1] = -rel_vel_sensor[0] / sf.Abs(hagl) * R_to_earth[2, 2]
 
     return flow_pred
 

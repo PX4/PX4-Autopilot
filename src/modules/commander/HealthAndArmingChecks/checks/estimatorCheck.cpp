@@ -224,7 +224,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 
 	// If GPS aiding is required, declare fault condition if the required GPS quality checks are failing
 	if (_param_sys_has_gps.get()) {
-		const bool ekf_gps_fusion = estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS);
+		const bool ekf_gps_fusion = estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GNSS_POS);
 		const bool ekf_gps_check_fail = estimator_status.gps_check_fail_flags > 0;
 
 		if (ekf_gps_fusion) {

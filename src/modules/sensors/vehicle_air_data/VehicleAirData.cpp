@@ -254,6 +254,10 @@ void VehicleAirData::Run()
 		}
 	}
 
+	if (!_relative_calibration_done) {
+		_relative_calibration_done = UpdateRelativeCalibrations(time_now_us);
+	}
+
 	// Publish
 	if (_param_sens_baro_rate.get() > 0) {
 		int interval_us = 1e6f / _param_sens_baro_rate.get();
@@ -323,6 +327,35 @@ void VehicleAirData::Run()
 	ScheduleDelayed(50_ms);
 
 	perf_end(_cycle_perf);
+}
+
+bool VehicleAirData::UpdateRelativeCalibrations(const hrt_abstime time_now_us)
+{
+	// delay calibration to allow all drivers to start up
+	if (_calibration_t_first == 0) {
+		_calibration_t_first = time_now_us;
+	}
+
+	if (time_now_us - _calibration_t_first > 1_s) {
+		const float pressure_primary = _data_sum[_selected_sensor_sub_index] / _data_sum_count[_selected_sensor_sub_index];
+
+		for (int instance = 0; instance < MAX_SENSOR_COUNT; ++instance) {
+
+			if (instance != _selected_sensor_sub_index
+			    && _calibration[instance].device_id() != 0
+			    && _data_sum_count[instance] > 0) {
+				const float pressure_secondary = _data_sum[instance] / _data_sum_count[instance];
+				const float new_offset = pressure_secondary - pressure_primary + _calibration[instance].offset();
+				_calibration[instance].set_offset(new_offset);
+				_calibration[instance].ParametersSave(instance);
+				param_notify_changes();
+			}
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 void VehicleAirData::CheckFailover(const hrt_abstime &time_now_us)
