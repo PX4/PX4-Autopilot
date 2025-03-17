@@ -293,22 +293,23 @@ void MulticopterNeuralNetworkControl::PublishOutput(float* command_actions) {
 
 
 inline void MulticopterNeuralNetworkControl::RescaleActions() {
-	//static const float _thrust_coefficient = 0.00001286412;
-	static const float _thrust_coefficient = 0.00001006412;
+	const float thrust_coeff = _param_thrust_coeff.get();
+	const float min_rpm = _param_min_rpm.get();
+	const float max_rpm = _param_max_rpm.get();
+	const float min_force = thrust_coeff * (min_rpm/60.0f) * (min_rpm/60.0f);
+	const float max_force = thrust_coeff * (max_rpm/60.0f) * (max_rpm/60.0f);
 	const float a = 0.8f;
   	const float b = (1.f - 0.8f);
 	const float tmp1 = b / (2.f * a);
 	const float tmp2 = b * b / (4.f * a * a);
-	const int max_rpm = 22000.0f;
-	const int min_rpm = 1000.0f;
 	for (int i = 0; i < 4; i++) {
-		if (_output_tensor->data.f[i] < 0.2f){
-			_output_tensor->data.f[i] = 0.2f;
+		if (_output_tensor->data.f[i] < min_force){
+			_output_tensor->data.f[i] = min_force;
 		}
-		else if (_output_tensor->data.f[i] > 1.2f){
-			_output_tensor->data.f[i] = 1.2f;
+		else if (_output_tensor->data.f[i] > max_force){
+			_output_tensor->data.f[i] = max_force;
 		}
-		float rps = _output_tensor->data.f[i]/_thrust_coefficient;
+		float rps = _output_tensor->data.f[i]/thrust_coeff;
 		rps = sqrt(rps);
 		float rpm = rps * 60.0f;
 		_output_tensor->data.f[i] = (rpm*2.0f - max_rpm - min_rpm) / (max_rpm - min_rpm);
@@ -381,6 +382,12 @@ void MulticopterNeuralNetworkControl::Run()
 	if (_vehicle_status_sub.updated()) {
 		_vehicle_status_sub.copy(&vehicle_status);
 		_use_neural = vehicle_status.nav_state == _mode_id;
+	}
+
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+		updateParams();
 	}
 
 	if(!_use_neural) {

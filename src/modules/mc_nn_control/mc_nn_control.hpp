@@ -51,7 +51,6 @@
 #include <tflite_micro/tensorflow/lite/micro/micro_mutable_op_resolver.h>
 #include <tflite_micro/tensorflow/lite/micro/micro_interpreter.h>
 #include <tflite_micro/tensorflow/lite/schema/schema_generated.h>
-#include <tflite_micro/tensorflow/lite/kernels/internal/reference/tanh.h>
 
 // Include model
 #include "allocation_net.hpp"
@@ -69,6 +68,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/register_ext_component_reply.h>
 #include <uORB/topics/arming_check_request.h>
+#include <uORB/topics/parameter_update.h>
 
 // Publications
 #include <uORB/topics/actuator_motors.h>
@@ -77,6 +77,8 @@
 #include <uORB/topics/unregister_ext_component.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/arming_check_reply.h>
+
+using namespace time_literals; // For the 1_s in the subscription interval
 
 class MulticopterNeuralNetworkControl : public ModuleBase<MulticopterNeuralNetworkControl>, public ModuleParams,
 	public px4::WorkItem
@@ -116,6 +118,7 @@ private:
 	void CheckModeRegistration();
 
 	// Subscriptions
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _register_ext_component_reply_sub{ORB_ID(register_ext_component_reply)};
 	uORB::Subscription _arming_check_request_sub{ORB_ID(arming_check_request)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -148,4 +151,10 @@ private:
 	vehicle_local_position_s _position;
 	vehicle_local_position_setpoint_s _position_setpoint;
 	vehicle_attitude_s _attitude;
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::MAX_RPM>) _param_max_rpm,
+		(ParamInt<px4::params::MIN_RPM>) _param_min_rpm,
+		(ParamFloat<px4::params::THRUST_COEFF>) _param_thrust_coeff
+	)
 };

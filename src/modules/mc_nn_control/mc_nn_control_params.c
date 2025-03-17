@@ -45,3 +45,30 @@
  * @group Neural Control
  */
 PARAM_DEFINE_INT32(MC_NN_EN, 1);
+
+/**
+ * The maximum RPM of the motors. Used to normalize the output of the neural network.
+ *
+ * @min 0
+ * @max 80000
+ * @group Neural Control
+ */
+PARAM_DEFINE_INT32(MAX_RPM, 22000);
+
+/**
+ * The minimum RPM of the motors. Used to normalize the output of the neural network.
+ *
+ * @min 0
+ * @max 80000
+ * @group Neural Control
+ */
+PARAM_DEFINE_INT32(MIN_RPM, 1000);
+
+/**
+ * Thrust coefficient of the motors. Used to normalize the output of the neural network. PX4 shows only 4 decimals, true default is 0.00001006412.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group Neural Control
+ */
+PARAM_DEFINE_FLOAT(THRUST_COEFF, 0.00001006412f);
