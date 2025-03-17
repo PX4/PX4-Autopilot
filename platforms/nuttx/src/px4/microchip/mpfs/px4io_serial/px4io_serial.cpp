@@ -43,6 +43,8 @@
 #include <termios.h>
 #include <debug.h>
 
+#include "mpfs_rcc.h"
+
 /* Nb. this register only exists in FPGA UART implementation. For MSS uart
  * this is a scratch register, and the code works by IRQ on each byte
  */
@@ -68,7 +70,6 @@ ArchPX4IOSerial::~ArchPX4IOSerial()
 	px4_sem_destroy(&_completion_semaphore);
 }
 
-
 int ArchPX4IOSerial::init_uart()
 {
 	/* Reset off */
@@ -81,6 +82,10 @@ int ArchPX4IOSerial::init_uart()
 	modifyreg32(MPFS_SYSREG_BASE + MPFS_SYSREG_SUBBLK_CLOCK_CR_OFFSET,
 		    0, SYSREG_SUBBLK_CLOCK_CR_FIC3);
 
+	/* Release IP reset */
+
+	int instance = (PX4IO_SERIAL_BASE & 0xF000) >> 12;
+	mpfs_set_reset(MPFS_RCC_UART, instance, 0);
 
 	/* Disable interrupts */
 
