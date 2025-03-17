@@ -223,3 +223,14 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
  * @group FW Performance
  */
 PARAM_DEFINE_FLOAT(FW_AIRSPD_FLP_SC, 1.f);
+
+/**
+ * Weight ratio to delta airspeed trim
+ *
+ * @unit m/s
+ * @min 0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_W_RATIO_ARSPD, 5.4f);

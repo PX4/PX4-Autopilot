@@ -141,7 +141,9 @@ float PerformanceModel::getMinimumSinkRate(float air_density) const
 }
 float PerformanceModel::getCalibratedTrimAirspeed() const
 {
-	return math::constrain(_param_fw_airspd_trim.get() * sqrtf(getWeightRatio()), _param_fw_airspd_min.get(),
+	const float delta_airspeed_trim = (getWeightRatio() - 1.0f) * _params_fw_weight_ratio_to_delta_trim_airspeed.get();
+
+	return math::constrain(_param_fw_airspd_trim.get() + delta_airspeed_trim, _param_fw_airspd_min.get(),
 			       _param_fw_airspd_max.get());
 }
 float PerformanceModel::getMinimumCalibratedAirspeed(float load_factor, float flaps_setpoint) const

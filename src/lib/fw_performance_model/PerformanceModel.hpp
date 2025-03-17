@@ -137,8 +137,8 @@ private:
 		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,
 		(ParamFloat<px4::params::FW_THR_ASPD_MIN>) _param_fw_thr_aspd_min,
 		(ParamFloat<px4::params::FW_THR_ASPD_MAX>) _param_fw_thr_aspd_max,
-		(ParamFloat<px4::params::FW_AIRSPD_FLP_SC>) _param_fw_airspd_flp_sc
-	)
+		(ParamFloat<px4::params::FW_AIRSPD_FLP_SC>) _param_fw_airspd_flp_sc,
+		(ParamFloat<px4::params::FW_W_RATIO_ARSPD>) _params_fw_weight_ratio_to_delta_trim_airspeed)
 
 	/**
 	 * Get the sea level trim throttle for a given calibrated airspeed setpoint.
