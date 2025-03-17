@@ -10,9 +10,15 @@ on:
       - 'release/**'
     tags:
       - 'v*'
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
   pull_request:
     branches:
       - '*'
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
 
 jobs:
   build:

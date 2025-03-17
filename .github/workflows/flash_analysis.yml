@@ -9,9 +9,15 @@ on:
   push:
     branches:
       - 'main'
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
   pull_request:
     branches:
       - '*'
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
 
 env:
   MIN_FLASH_POS_DIFF_FOR_COMMENT: 50

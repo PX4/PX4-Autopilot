@@ -227,6 +227,7 @@ public:
 	// the flags considered are opt_flow, gps, ev_vel and ev_pos
 	bool isHorizontalAidingActive() const;
 	bool isVerticalAidingActive() const;
+	bool isNorthEastAidingActive() const;
 
 	int getNumberOfActiveHorizontalAidingSources() const;
 	int getNumberOfActiveHorizontalPositionAidingSources() const;
