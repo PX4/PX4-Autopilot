@@ -1,11 +1,11 @@
 uint64 timestamp
 
+# Note: If not both pitch_direct and thrust_direct are finite, then either altitude or height_rate must be finite
 
-# Note: If not both pitch_sp and throttle_sp are finite, then either altitude_setpoint or height_rate_setpoint must be finite
-float32 altitude_setpoint  # NAN if not controlled, MSL [m]
-float32 height_rate_setpoint # NAN if not controlled directly, used as feedforward if altitude_setpoint is finite [m/s]
-float32 equivalent_airspeed_setpoint # [m/s]
-float32 pitch_sp # NAN if not controlled, overrides total energy controller [rad]
-float32 thrust_sp # NAN if not controlled, overrides total energy controller [0,1]
+float32 altitude  			# [m] Altitdue setpoint AMSL, NAN if not controlled
+float32 height_rate 			# [m/s] NAN if not controlled directly, used as feedforward if altitude is finite
+float32 equivalent_airspeed 		# [m/s] NAN if system default should be used
+float32 pitch_direct 			# [rad] NAN if not controlled, overrides total energy controller
+float32 thrust_direct 			# [0,1] NAN if not controlled, overrides total energy controller
 
 # TOPICS fw_longitudinal_control_setpoint fw_longitudinal_control_status

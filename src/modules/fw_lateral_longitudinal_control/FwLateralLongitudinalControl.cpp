@@ -190,13 +190,13 @@ void FwLateralLongitudinalControl::Run()
 				_fw_longitudinal_ctrl_sub.copy(&_long_control_sp);
 			}
 
-			float airspeed_sp = PX4_ISFINITE(_long_control_sp.equivalent_airspeed_setpoint) ?
-					    _long_control_sp.equivalent_airspeed_setpoint :
+			float airspeed_sp = PX4_ISFINITE(_long_control_sp.equivalent_airspeed) ?
+					    _long_control_sp.equivalent_airspeed :
 					    _performance_model.getCalibratedTrimAirspeed();
 
 			airspeed_sp = math::constrain(airspeed_sp, _long_limits.equivalent_airspeed_min, _long_limits.equivalent_airspeed_max);
 
-			tecs_update_pitch_throttle(control_interval, _long_control_sp.altitude_setpoint,
+			tecs_update_pitch_throttle(control_interval, _long_control_sp.altitude,
 						   airspeed_sp,
 						   _long_limits.pitch_min,
 						   _long_limits.pitch_max,
@@ -205,17 +205,20 @@ void FwLateralLongitudinalControl::Run()
 						   _long_limits.sink_rate_target,
 						   _long_limits.climb_rate_target,
 						   _long_limits.disable_underspeed_protection,
-						   _long_control_sp.height_rate_setpoint
+						   _long_control_sp.height_rate
 						  );
 
-			pitch_sp = PX4_ISFINITE(_long_control_sp.pitch_sp) ? _long_control_sp.pitch_sp : _tecs.get_pitch_setpoint();
-			throttle_sp = PX4_ISFINITE(_long_control_sp.thrust_sp) ? _long_control_sp.thrust_sp : _tecs.get_throttle_setpoint();
+			pitch_sp = PX4_ISFINITE(_long_control_sp.pitch_direct) ? _long_control_sp.pitch_direct : _tecs.get_pitch_setpoint();
+			throttle_sp = PX4_ISFINITE(_long_control_sp.thrust_direct) ? _long_control_sp.thrust_direct :
+				      _tecs.get_throttle_setpoint();
 
 			fw_longitudinal_control_setpoint_s longitudinal_control_status {
 				.timestamp = hrt_absolute_time(),
-				.altitude_setpoint = _long_control_sp.altitude_setpoint,
-				.height_rate_setpoint = _tecs.getStatus().control.altitude_rate_control,
-				.equivalent_airspeed_setpoint = _tecs.getStatus().true_airspeed_sp / _long_control_state.eas2tas,
+				.altitude = _long_control_sp.altitude,
+				.height_rate = _tecs.getStatus().control.altitude_rate_control,
+				.equivalent_airspeed = _tecs.getStatus().true_airspeed_sp / _long_control_state.eas2tas,
+				.pitch_direct = pitch_sp,
+				.thrust_direct = throttle_sp
 			};
 
 			_longitudinal_ctrl_status_pub.publish(longitudinal_control_status);
@@ -230,9 +233,9 @@ void FwLateralLongitudinalControl::Run()
 			float lateral_accel_sp {NAN};
 			const Vector2f airspeed_vector = _lateral_control_state.ground_speed - _lateral_control_state.wind_speed;
 
-			if (PX4_ISFINITE(_lat_control_sp.course_setpoint)) {
+			if (PX4_ISFINITE(_lat_control_sp.course)) {
 				airspeed_reference_direction = _course_to_airspeed.mapCourseSetpointToHeadingSetpoint(
-								       _lat_control_sp.course_setpoint, _lateral_control_state.wind_speed,
+								       _lat_control_sp.course, _lateral_control_state.wind_speed,
 								       airspeed_vector.norm());
 			}
 
@@ -247,9 +250,9 @@ void FwLateralLongitudinalControl::Run()
 						   airspeed_vector.norm());
 			}
 
-			if (PX4_ISFINITE(_lat_control_sp.lateral_acceleration_setpoint)) {
-				lateral_accel_sp = PX4_ISFINITE(lateral_accel_sp) ? lateral_accel_sp + _lat_control_sp.lateral_acceleration_setpoint :
-						   _lat_control_sp.lateral_acceleration_setpoint;
+			if (PX4_ISFINITE(_lat_control_sp.lateral_acceleration)) {
+				lateral_accel_sp = PX4_ISFINITE(lateral_accel_sp) ? lateral_accel_sp + _lat_control_sp.lateral_acceleration :
+						   _lat_control_sp.lateral_acceleration;
 			}
 
 			if (PX4_ISFINITE(lateral_accel_sp)) {
@@ -261,9 +264,9 @@ void FwLateralLongitudinalControl::Run()
 
 			fw_lateral_control_setpoint_s status = {
 				.timestamp = _lat_control_sp.timestamp,
-				.course_setpoint = _lat_control_sp.course_setpoint,
+				.course = _lat_control_sp.course,
 				.airspeed_reference_direction = airspeed_reference_direction,
-				.lateral_acceleration_setpoint = lateral_accel_sp
+				.lateral_acceleration = lateral_accel_sp
 			};
 
 			_lateral_ctrl_status_pub.publish(status);
