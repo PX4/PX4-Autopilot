@@ -8,4 +8,4 @@ float32 equivalent_airspeed 		# [m/s] NAN if system default should be used
 float32 pitch_direct 			# [rad] NAN if not controlled, overrides total energy controller
 float32 thrust_direct 			# [0,1] NAN if not controlled, overrides total energy controller
 
-# TOPICS fw_longitudinal_control_setpoint fw_longitudinal_control_status
+# TOPICS fw_longitudinal_setpoint fw_longitudinal_setpoint_status
