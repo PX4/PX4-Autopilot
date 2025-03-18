@@ -418,7 +418,9 @@ bool CdcAcmAutostart::scan_buffer_for_mavlink_reboot()
 			if (param1 == 1) {
 				// 1: Reboot autopilot
 				rebooting = true;
+#if defined(CONFIG_BOARDCTL_RESET)
 				px4_reboot_request(REBOOT_REQUEST, 0);
+#endif
 
 			} else if (param1 == 2) {
 				// 2: Shutdown autopilot
@@ -430,7 +432,9 @@ bool CdcAcmAutostart::scan_buffer_for_mavlink_reboot()
 			} else if (param1 == 3) {
 				// 3: Reboot autopilot and keep it in the bootloader until upgraded.
 				rebooting = true;
+#if defined(CONFIG_BOARDCTL_RESET)
 				px4_reboot_request(REBOOT_TO_BOOTLOADER, 0);
+#endif
 			}
 		}
 	}
