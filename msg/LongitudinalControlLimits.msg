@@ -10,4 +10,4 @@ float32 equivalent_airspeed_min 	# [m/s]
 float32 equivalent_airspeed_max 	# [m/s]
 float32 speed_weight 			# [0,2], 0=pitch controls altitude only, 2=pitch controls airspeed only
 bool enforce_low_height_condition 	# if true, total energy controller will use lower altitude control time constant
-bool disable_underspeed_protection 	#
+bool disable_underspeed_protection 	# if true, underspeed handling is disabled in the total energy controller

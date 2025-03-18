@@ -49,7 +49,7 @@ using matrix::Vector2d;
 using matrix::Vector3f;
 using matrix::wrap_pi;
 
-const fixed_wing_lateral_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration = NAN};
+const fixed_wing_lateral_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course = NAN, .airspeed_direction = NAN, .lateral_acceleration = NAN};
 const fixed_wing_longitudinal_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude = NAN, .height_rate = NAN, .equivalent_airspeed = NAN, .pitch_direct = NAN, .throttle_direct = NAN};
 
 FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
@@ -1980,7 +1980,7 @@ void FixedwingPositionControl::control_backtransition_heading_hold()
 
 	fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
 	fw_lateral_ctrl_sp.timestamp = hrt_absolute_time();
-	fw_lateral_ctrl_sp.airspeed_reference_direction = _backtrans_heading;
+	fw_lateral_ctrl_sp.airspeed_direction = _backtrans_heading;
 	_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 }
 

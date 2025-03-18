@@ -231,24 +231,24 @@ void FwLateralLongitudinalControl::Run()
 				_fw_lateral_ctrl_sub.copy(&_lat_control_sp);
 			}
 
-			float airspeed_reference_direction{NAN};
+			float airspeed_direction_sp{NAN};
 			float lateral_accel_sp {NAN};
 			const Vector2f airspeed_vector = _lateral_control_state.ground_speed - _lateral_control_state.wind_speed;
 
 			if (PX4_ISFINITE(_lat_control_sp.course)) {
-				airspeed_reference_direction = _course_to_airspeed.mapCourseSetpointToHeadingSetpoint(
-								       _lat_control_sp.course, _lateral_control_state.wind_speed,
-								       airspeed_vector.norm());
+				airspeed_direction_sp = _course_to_airspeed.mapCourseSetpointToHeadingSetpoint(
+								_lat_control_sp.course, _lateral_control_state.wind_speed,
+								airspeed_vector.norm());
 			}
 
-			if (PX4_ISFINITE(_lat_control_sp.airspeed_reference_direction)) {
-				airspeed_reference_direction = PX4_ISFINITE(airspeed_reference_direction) ? airspeed_reference_direction +
-							       _lat_control_sp.airspeed_reference_direction : _lat_control_sp.airspeed_reference_direction;
+			if (PX4_ISFINITE(_lat_control_sp.airspeed_direction)) {
+				airspeed_direction_sp = PX4_ISFINITE(airspeed_direction_sp) ? airspeed_direction_sp +
+							_lat_control_sp.airspeed_direction : _lat_control_sp.airspeed_direction;
 			}
 
-			if (PX4_ISFINITE(airspeed_reference_direction)) {
+			if (PX4_ISFINITE(airspeed_direction_sp)) {
 				const float heading = atan2f(airspeed_vector(1), airspeed_vector(0));
-				lateral_accel_sp = _airspeed_ref_control.controlHeading(airspeed_reference_direction, heading,
+				lateral_accel_sp = _airspeed_ref_control.controlHeading(airspeed_direction_sp, heading,
 						   airspeed_vector.norm());
 			}
 
@@ -265,7 +265,7 @@ void FwLateralLongitudinalControl::Run()
 			fixed_wing_lateral_setpoint_s status = {
 				.timestamp = _lat_control_sp.timestamp,
 				.course = _lat_control_sp.course,
-				.airspeed_reference_direction = airspeed_reference_direction,
+				.airspeed_direction = airspeed_direction_sp,
 				.lateral_acceleration = lateral_accel_sp
 			};
 
