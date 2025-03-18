@@ -38,7 +38,7 @@
 #include <matrix/Euler.hpp>
 #include <atmosphere/atmosphere.h>
 
-EulerNavDriver::EulerNavDriver(const char* device_name)
+EulerNavDriver::EulerNavDriver(const char *device_name)
 	: ModuleParams{nullptr}
 	, _serial_port{device_name, 115200, ByteSize::EightBits, Parity::None, StopBits::One, FlowControl::Disabled}
 	, _data_buffer{}
@@ -60,39 +60,35 @@ int EulerNavDriver::task_spawn(int argc, char *argv[])
 	int task_id = px4_task_spawn_cmd("bahrs", SCHED_DEFAULT, SCHED_PRIORITY_FAST_DRIVER,
 					 Config::TASK_STACK_SIZE, (px4_main_t)&run_trampoline, argv);
 
-	if (task_id < 0)
-	{
+	if (task_id < 0) {
 		_task_id = -1;
 		PX4_ERR("Failed to spawn task.");
-	}
-	else
-	{
+
+	} else {
 		_task_id = task_id;
 	}
 
 	return (_task_id < 0) ? 1 : 0;
 }
 
-EulerNavDriver* EulerNavDriver::instantiate(int argc, char *argv[])
+EulerNavDriver *EulerNavDriver::instantiate(int argc, char *argv[])
 {
 	int option_index = 1;
-	const char* option_arg{nullptr};
-	const char* device_name{nullptr};
+	const char *option_arg{nullptr};
+	const char *device_name{nullptr};
 
-	while (true)
-	{
+	while (true) {
 		int option{px4_getopt(argc, argv, "d:", &option_index, &option_arg)};
 
-		if (EOF == option)
-		{
+		if (EOF == option) {
 			break;
 		}
 
-		switch (option)
-		{
+		switch (option) {
 		case 'd':
 			device_name = option_arg;
 			break;
+
 		default:
 			break;
 		}
