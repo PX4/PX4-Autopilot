@@ -2019,6 +2019,8 @@ FixedwingPositionControl::Run()
 		return;
 	}
 
+	const hrt_abstime now = hrt_absolute_time();
+
 	perf_begin(_loop_perf);
 
 	/* only run controller if position changed */
@@ -2283,8 +2285,7 @@ FixedwingPositionControl::Run()
 			}
 		}
 
-		_ctrl_limits_handler.update();
-
+		_ctrl_limits_handler.update(now);
 
 		// if there's any change in landing gear setpoint publish it
 		if (_new_landing_gear_position != old_landing_gear_position
@@ -2292,7 +2293,7 @@ FixedwingPositionControl::Run()
 
 			landing_gear_s landing_gear = {};
 			landing_gear.landing_gear = _new_landing_gear_position;
-			landing_gear.timestamp = hrt_absolute_time();
+			landing_gear.timestamp = now;
 			_landing_gear_pub.publish(landing_gear);
 		}
 
@@ -2301,12 +2302,12 @@ FixedwingPositionControl::Run()
 		    && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 			normalized_unsigned_setpoint_s flaps_setpoint;
 			flaps_setpoint.normalized_setpoint = _flaps_setpoint;
-			flaps_setpoint.timestamp = hrt_absolute_time();
+			flaps_setpoint.timestamp = now;
 			_flaps_setpoint_pub.publish(flaps_setpoint);
 
 			normalized_unsigned_setpoint_s spoilers_setpoint;
 			spoilers_setpoint.normalized_setpoint = _spoilers_setpoint;
-			spoilers_setpoint.timestamp = hrt_absolute_time();
+			spoilers_setpoint.timestamp = now;
 			_spoilers_setpoint_pub.publish(spoilers_setpoint);
 		}
 
