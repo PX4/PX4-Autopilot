@@ -50,6 +50,7 @@ jobs:
         run: |
           npm -g install markdown_link_checker_sc@0.0.134
           cd docs/
+          touch logs/errorsFilteredByPrPages.md
           markdown_link_checker_sc -r . -d en -f logs/prFiles.json -i assets -u docs.px4.io/main/ > logs/errorsFilteredByPrPages.md
           mkdir -p pr
           cp logs/errorsFilteredByPrPages.md pr/errorsFilteredByPrPages.md
