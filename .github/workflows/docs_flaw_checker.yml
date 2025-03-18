@@ -25,7 +25,7 @@ jobs:
 
       - name: Create logs directory
         run: |
-          mkdir docs/logs
+          mkdir logs
 
       - name: Get changed english files
         id: get_changed_markdown_english
@@ -43,28 +43,21 @@ jobs:
       - name: Save JSON file containing files to link check
         run: |
           echo "${{ steps.get_changed_markdown_english.outputs.all_changed_files }}"
-          echo "${{ steps.get_changed_markdown_english.outputs.all_changed_files }}" > ./docs/logs/prFiles.json
+          echo "${{ steps.get_changed_markdown_english.outputs.all_changed_files }}" > ./logs/prFiles.json
 
       - name: Run link checker
         id: link-check
         run: |
           npm -g install markdown_link_checker_sc@0.0.134
-          cd docs/
-          touch logs/errorsFilteredByPrPages.md
-          markdown_link_checker_sc -r . -d en -f logs/prFiles.json -i assets -u docs.px4.io/main/
-          #markdown_link_checker_sc -r . -d en -f logs/prFiles.json -i assets -u docs.px4.io/main/ > logs/errorsFilteredByPrPages.md
-          mkdir -p pr
-          cp logs/errorsFilteredByPrPages.md pr/errorsFilteredByPrPages.md
-
-      - name: Setup tmate session
-        if: ${{ failure() }}
-        uses: mxschmitt/action-tmate@v3
+          markdown_link_checker_sc -r ${{ github.workspace }} -d en -f ./docs/logs/prFiles.json -i assets -u docs.px4.io/main/ > ./docs/logs/errorsFilteredByPrPages.md
+          mkdir -p ./pr
+          cp ./docs/logs/errorsFilteredByPrPages.md ./pr/errorsFilteredByPrPages.md
 
       - name: Read errorsFilteredByPrPages.md file
         id: read-errors-by-page
         uses: juliangruber/read-file-action@v1
         with:
-          path: ./docs/logs/errorsFilteredByPrPages.md
+          path: ./logs/errorsFilteredByPrPages.md
 
       - name: Echo Errors by Page
         run: echo "${{ steps.read-errors-by-page.outputs.content }}"
@@ -73,9 +66,9 @@ jobs:
         env:
           PR_NUMBER: ${{ github.event.number }}
         run: |
-          #mkdir -p ./docs/pr
-          echo $PR_NUMBER > ./docs/pr/pr_number
+          #mkdir -p ./pr
+          echo $PR_NUMBER > ./pr/pr_number
       - uses: actions/upload-artifact@v4
         with:
           name: pr_number
-          path: docs/pr/
+          path: pr/
