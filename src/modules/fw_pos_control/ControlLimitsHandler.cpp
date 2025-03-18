@@ -42,7 +42,7 @@
 using namespace time_literals;
 
 
-void CombinedControlLimitHandler::update(bool force_publish_invalid)
+void CombinedControlLimitHandler::update(const hrt_abstime now)
 {
 	_longitudinal_updated = floatValueChanged(_longitudinal_limits_current_cycle.pitch_min,
 				_longitudinal_publisher.get().pitch_min);
@@ -70,14 +70,14 @@ void CombinedControlLimitHandler::update(bool force_publish_invalid)
 	_lateral_updated |= floatValueChanged(_lateral_limits_current_cycle.lateral_accel_max,
 					      _lateral_publisher.get().lateral_accel_max);
 
-	if (_longitudinal_updated || force_publish_invalid || hrt_elapsed_time(&_time_last_longitudinal_publish) > 1_s) {
-		_longitudinal_limits_current_cycle.timestamp = hrt_absolute_time();
+	if (_longitudinal_updated || now - _time_last_longitudinal_publish > 1_s) {
+		_longitudinal_limits_current_cycle.timestamp = now;
 		_longitudinal_publisher.update(_longitudinal_limits_current_cycle);
 		_time_last_longitudinal_publish = _longitudinal_limits_current_cycle.timestamp;
 	}
 
-	if (_lateral_updated || force_publish_invalid || hrt_elapsed_time(&_time_last_lateral_publish) > 1_s) {
-		_lateral_limits_current_cycle.timestamp = hrt_absolute_time();
+	if (_lateral_updated || now - _time_last_lateral_publish > 1_s) {
+		_lateral_limits_current_cycle.timestamp = now;
 		_lateral_publisher.update(_lateral_limits_current_cycle);
 		_time_last_lateral_publish = _lateral_limits_current_cycle.timestamp;
 	}

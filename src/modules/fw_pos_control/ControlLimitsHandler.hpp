@@ -53,7 +53,7 @@ public:
 	CombinedControlLimitHandler() = default;
 	~CombinedControlLimitHandler() = default;
 
-	void update(bool force_publish_invalid = false);
+	void update(const hrt_abstime now);
 
 	void setEnforceLowHeightCondition(bool low_height_condition);
 
