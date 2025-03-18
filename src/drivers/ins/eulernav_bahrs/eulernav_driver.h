@@ -50,7 +50,7 @@ class EulerNavDriver : public ModuleBase<EulerNavDriver>, public ModuleParams
 public:
 	/// @brief Class constructor
 	/// @param device_name Serial port to open
-	EulerNavDriver(const char* device_name);
+	EulerNavDriver(const char *device_name);
 
 	~EulerNavDriver();
 
@@ -58,7 +58,7 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 	/// @brief Required by ModuleBase
-	static EulerNavDriver* instantiate(int argc, char *argv[]);
+	static EulerNavDriver *instantiate(int argc, char *argv[]);
 
 	/// @brief Required by ModuleBase
 	static int custom_command(int argc, char *argv[]);
@@ -127,27 +127,27 @@ private:
 	/// @brief Searches the ring buffer for sync bytes.
 	/// @param buffer Ring buffer to search
 	/// @return True if sync bytes found, false if the number of bytes remaining in the buffer is less then message header length.
-	static bool findNextMessageHeader(Ringbuffer& buffer);
+	static bool findNextMessageHeader(Ringbuffer &buffer);
 
 	/// @brief Get protocol version and message code from the ring buffer.
 	/// @param buffer The buffer to process
 	/// @param protocol_ver Output protocol version
 	/// @param message_code Output message code
 	/// @return True on success, false on failure
-	static bool retrieveProtocolVersionAndMessageType(Ringbuffer& buffer, uint16_t& protocol_ver, uint8_t& message_code);
+	static bool retrieveProtocolVersionAndMessageType(Ringbuffer &buffer, uint16_t &protocol_ver, uint8_t &message_code);
 
 	/// @brief Decode a message from BAHRS and publish its content.
 	/// @param data An array of message bytes
 	/// @param messsage_id Message ID
-	void decodeMessageAndPublishData(const uint8_t* data, CSerialProtocol::EMessageIds messsage_id);
+	void decodeMessageAndPublishData(const uint8_t *data, CSerialProtocol::EMessageIds messsage_id);
 
 	/// @brief Decode and publish IMU data.
 	/// @param data Inertial message data bytes
-	void handleInertialDataMessage(const uint8_t* data);
+	void handleInertialDataMessage(const uint8_t *data);
 
 	/// @brief Decode and publish vehicle attitude and pressure height.
 	/// @param data Navigation message data bytes
-	void handleNavigationDataMessage(const uint8_t* data);
+	void handleNavigationDataMessage(const uint8_t *data);
 
 	/// @brief Get message length by message ID
 	/// @param messsage_id Query message ID
@@ -158,7 +158,7 @@ private:
 	/// @param buf Data buffer pointer
 	/// @param len Number of words to include in the CRC.
 	/// @return CRC value
-	static uint32_t crc32(const uint32_t* buf, size_t len);
+	static uint32_t crc32(const uint32_t *buf, size_t len);
 
 	using VehicleAttitude = px4::msg::VehicleAttitude;
 	using PressureData = px4::msg::SensorBaro;
