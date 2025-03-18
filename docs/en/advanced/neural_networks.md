@@ -47,6 +47,10 @@ The input can be changed to whatever you want. Set ut the input you want to use 
 
  All the input values are collected from uORB topics and transformed into the correct representation in the PopulateInputTensor() function. PX4 uses the NED frame representation, while the Aerial Gym Simulator, in which the NN was trained, uses the ENU representation. Therefore two rotation matrices are created in the function and all the inputs are transformed from the NED representation to the ENU one.
 
+ ![ENU-NED](../../assets/advanced/ENU-NED.png)
+
+ ENU and NED are just rotation representations, the translational difference is only there so both can be seen in the same figure.
+
 ## Output
 The output consists of 4 values, the motor forces, one for each motor. These are transformed in the RescaleActions() function. This is done because PX4 expects normalized motor commands while the Aerial Gym Simulator uses physical values. So the output from the network needs to be normalized before they can be sent to the motors in PX4. The network is currently trained for a drone platform used in the [Autonomous Robots Lab (ARL)](https://www.autonomousrobotslab.com/) at NTNU. But the controller is somewhat robust, so it could work directly on other platforms, but performing system identification and training a new network is recommended. You can find instructions for this in the [Aerial Gym Documentation](TODO).
 
@@ -55,6 +59,8 @@ After the actions are normalized they are reordered as well, since the ordering 
  1. -> 3
  1. -> 4
  1. -> 2
+
+ ![Motor numbering](../../assets/advanced/PX4-AG_motor_numbering.png)
 
  And then the commands are published to the [ActuatorMotors](../msg_docs/ActuatorMotors.md) topic. The reordering and the publishing is handled in PublishOutput(float* command_actions) function.
 
