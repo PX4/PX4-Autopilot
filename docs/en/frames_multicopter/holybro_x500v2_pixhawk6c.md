@@ -57,7 +57,7 @@ This topic provides full instructions for building the [Holybro X500 V2 ARF Kit]
 1. To assemble the landing gear, loosen the pre-assembled screws of the Landing Gear-Cross Bar and insert the Landing Gear-Vertical Pole and fasten the same.
 
    [![Assembly8](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly8.png)](https://youtu.be/mU4vm4zyjcY)
-   
+
    [![Assembly9](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly9.png)](https://youtu.be/7REaF3YAqLg)
 
 1. Use the Socket Cap Screw M3*8 to screw the landing gears to the bottom plate
@@ -105,7 +105,7 @@ Note that the ESC connectors are color-coded and must be inserted in the PWM out
 
    [![Assembly16](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly16.png)](https://youtu.be/GOTqmjq9_3s)
 
-1. While inserting the top plate on top of this the 3 piece assembly (bottom plate, top plate & arms) have to screwed using Socket Cap Screw M3*38 and Flange Locknut M3. 
+1. While inserting the top plate on top of this the 3 piece assembly (bottom plate, top plate & arms) have to screwed using Socket Cap Screw M3*38 and Flange Locknut M3.
 1. Hold one side using the mini cross wrench provided in the developer kit.
 
    [![Assembly17](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly17.png)](https://youtu.be/2rcNVekJQd0)
@@ -133,7 +133,7 @@ The following parts can be placed as per usual.
 1. Assemble the GPS by following the video.
 
    [![Assembly20](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly20.png)](https://youtu.be/aiFxVJFjlos)
-  
+
    This guide uses the GPS mount location suggested in Holybro’s guide.
 1. Screw the GPS mount’s bottom end on the payload holder side using Locknut M3 & Screw M3*10
 
