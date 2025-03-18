@@ -175,4 +175,3 @@ private:
 	uORB::PublicationMulti<VehicleAttitude> _attitude_pub; ///< Vehicle attitude publisher
 	uORB::PublicationMulti<PressureData> _barometer_pub; ///< Pressure data publisher
 };
-
