@@ -56,6 +56,10 @@ jobs:
           mkdir -p pr
           cp logs/errorsFilteredByPrPages.md pr/errorsFilteredByPrPages.md
 
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+
       - name: Read errorsFilteredByPrPages.md file
         id: read-errors-by-page
         uses: juliangruber/read-file-action@v1
