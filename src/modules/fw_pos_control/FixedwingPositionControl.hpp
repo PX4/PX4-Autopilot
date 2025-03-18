@@ -852,10 +852,7 @@ private:
 			const matrix::Vector2f &wind_vel);
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
 		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _param_fw_gnd_spd_min,
-
-		(ParamFloat<px4::params::FW_PN_R_SLEW_MAX>) _param_fw_pn_r_slew_max,
 		(ParamFloat<px4::params::FW_R_LIM>) _param_fw_r_lim,
 
 		(ParamFloat<px4::params::NPFG_PERIOD>) _param_npfg_period,
@@ -875,56 +872,40 @@ private:
 		(ParamFloat<px4::params::FW_LND_FL_PMAX>) _param_fw_lnd_fl_pmax,
 		(ParamFloat<px4::params::FW_LND_FL_PMIN>) _param_fw_lnd_fl_pmin,
 		(ParamFloat<px4::params::FW_LND_FLALT>) _param_fw_lnd_flalt,
-		(ParamFloat<px4::params::FW_T_THR_LOW_HGT>) _param_fw_t_thr_low_hgt,
 		(ParamBool<px4::params::FW_LND_EARLYCFG>) _param_fw_lnd_earlycfg,
 		(ParamInt<px4::params::FW_LND_USETER>) _param_fw_lnd_useter,
 
 		(ParamFloat<px4::params::FW_P_LIM_MAX>) _param_fw_p_lim_max,
 		(ParamFloat<px4::params::FW_P_LIM_MIN>) _param_fw_p_lim_min,
-
 		(ParamFloat<px4::params::FW_T_CLMB_R_SP>) _param_climbrate_target,
 		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_sinkrate_target,
 		(ParamFloat<px4::params::FW_T_SINK_MAX>) _param_fw_t_sink_max,
-		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_fw_t_spdweight,
-
 		(ParamFloat<px4::params::FW_THR_IDLE>) _param_fw_thr_idle,
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
 		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,
-
 		(ParamFloat<px4::params::FW_FLAPS_LND_SCL>) _param_fw_flaps_lnd_scl,
 		(ParamFloat<px4::params::FW_FLAPS_TO_SCL>) _param_fw_flaps_to_scl,
 		(ParamFloat<px4::params::FW_SPOILERS_LND>) _param_fw_spoilers_lnd,
-
 		(ParamInt<px4::params::FW_POS_STK_CONF>) _param_fw_pos_stk_conf,
-
 		(ParamInt<px4::params::FW_GPSF_LT>) _param_nav_gpsf_lt,
 		(ParamFloat<px4::params::FW_GPSF_R>) _param_nav_gpsf_r,
 
 		// external parameters
 		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
-
 		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,
-
 		(ParamFloat<px4::params::FW_TKO_PITCH_MIN>) _takeoff_pitch_min,
-
 		(ParamFloat<px4::params::NAV_FW_ALT_RAD>) _param_nav_fw_alt_rad,
-
 		(ParamFloat<px4::params::FW_WING_SPAN>) _param_fw_wing_span,
 		(ParamFloat<px4::params::FW_WING_HEIGHT>) _param_fw_wing_height,
-
 		(ParamBool<px4::params::RWTO_NUDGE>) _param_rwto_nudge,
-
 		(ParamFloat<px4::params::FW_LND_FL_TIME>) _param_fw_lnd_fl_time,
 		(ParamFloat<px4::params::FW_LND_FL_SINK>) _param_fw_lnd_fl_sink,
 		(ParamFloat<px4::params::FW_LND_TD_TIME>) _param_fw_lnd_td_time,
 		(ParamFloat<px4::params::FW_LND_TD_OFF>) _param_fw_lnd_td_off,
 		(ParamInt<px4::params::FW_LND_NUDGE>) _param_fw_lnd_nudge,
 		(ParamInt<px4::params::FW_LND_ABORT>) _param_fw_lnd_abort,
-
 		(ParamFloat<px4::params::FW_WIND_ARSP_SC>) _param_fw_wind_arsp_sc,
-
 		(ParamFloat<px4::params::FW_TKO_AIRSPD>) _param_fw_tko_airspd,
-
 		(ParamFloat<px4::params::RWTO_PSP>) _param_rwto_psp,
 		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on
 	)
