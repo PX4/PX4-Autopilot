@@ -182,7 +182,16 @@ void GZBridge::clockCallback(const gz::msgs::Clock &msg)
 	struct timespec ts;
 	ts.tv_sec = msg.sim().sec();
 	ts.tv_nsec = msg.sim().nsec();
-	px4_clock_settime(CLOCK_MONOTONIC, &ts);
+
+	if (!_realtime_clock_set) {
+		// Set initial real time clock at startup
+		px4_clock_settime(CLOCK_REALTIME, &ts);
+		_realtime_clock_set = true;
+
+	} else {
+		// Keep monotonic clock synchronized
+		px4_clock_settime(CLOCK_MONOTONIC, &ts);
+	}
 }
 
 void GZBridge::opticalFlowCallback(const px4::msgs::OpticalFlow &msg)
