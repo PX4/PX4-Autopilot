@@ -50,7 +50,7 @@ using matrix::Vector3f;
 using matrix::wrap_pi;
 
 const fixed_wing_lateral_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course = NAN, .airspeed_reference_direction = NAN, .lateral_acceleration = NAN};
-const fixed_wing_longitudinal_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude = NAN, .height_rate = NAN, .equivalent_airspeed = NAN, .pitch_direct = NAN, .thrust_direct = NAN};
+const fixed_wing_longitudinal_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude = NAN, .height_rate = NAN, .equivalent_airspeed = NAN, .pitch_direct = NAN, .throttle_direct = NAN};
 
 FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	ModuleParams(nullptr),
@@ -720,7 +720,7 @@ void FixedwingPositionControl::control_idle()
 	fixed_wing_longitudinal_setpoint_s long_contrl_sp {empty_longitudinal_control_setpoint};
 	long_contrl_sp.timestamp = now;
 	long_contrl_sp.pitch_direct = math::radians(_param_fw_psp_off.get());
-	long_contrl_sp.thrust_direct = 0.0f;
+	long_contrl_sp.throttle_direct = 0.0f;
 	_longitudinal_ctrl_sp_pub.publish(long_contrl_sp);
 
 	_ctrl_limits_handler.setThrottleMax(0.0f);
@@ -736,7 +736,7 @@ FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_i
 		.height_rate = NAN,
 		.equivalent_airspeed = _performance_model.getCalibratedTrimAirspeed(),
 		.pitch_direct = NAN,
-		.thrust_direct = NAN
+		.throttle_direct = NAN
 	};
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
@@ -771,7 +771,7 @@ FixedwingPositionControl::control_auto_descend(const float control_interval)
 		.height_rate = -descend_rate,
 		.equivalent_airspeed = _performance_model.getCalibratedTrimAirspeed(),
 		.pitch_direct = NAN,
-		.thrust_direct = NAN
+		.throttle_direct = NAN
 	};
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
@@ -897,7 +897,7 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 		.height_rate = NAN,
 		.equivalent_airspeed = target_airspeed,
 		.pitch_direct = NAN,
-		.thrust_direct = NAN
+		.throttle_direct = NAN
 	};
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
@@ -954,7 +954,7 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 		.height_rate = pos_sp_curr.vz,
 		.equivalent_airspeed = target_airspeed,
 		.pitch_direct = NAN,
-		.thrust_direct = NAN
+		.throttle_direct = NAN
 	};
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
@@ -1068,7 +1068,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		.height_rate = NAN,
 		.equivalent_airspeed = target_airspeed,
 		.pitch_direct = NAN,
-		.thrust_direct = NAN
+		.throttle_direct = NAN
 	};
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
@@ -1122,7 +1122,7 @@ FixedwingPositionControl::controlAutoFigureEight(const float control_interval, c
 		.height_rate = NAN,
 		.equivalent_airspeed = target_airspeed,
 		.pitch_direct = NAN,
-		.thrust_direct = NAN
+		.throttle_direct = NAN
 	};
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
@@ -1182,7 +1182,7 @@ FixedwingPositionControl::control_auto_path(const float control_interval, const 
 		.height_rate = NAN,
 		.equivalent_airspeed = target_airspeed,
 		.pitch_direct = NAN,
-		.thrust_direct = NAN
+		.throttle_direct = NAN
 	};
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
@@ -1292,7 +1292,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			.height_rate = NAN,
 			.equivalent_airspeed = target_airspeed,
 			.pitch_direct = _runway_takeoff.getPitch(),
-			.thrust_direct = _runway_takeoff.getThrottle(_param_fw_thr_idle.get())
+			.throttle_direct = _runway_takeoff.getThrottle(_param_fw_thr_idle.get())
 		};
 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
@@ -1379,7 +1379,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 				.height_rate = NAN,
 				.equivalent_airspeed = target_airspeed,
 				.pitch_direct = NAN,
-				.thrust_direct = NAN
+				.throttle_direct = NAN
 			};
 
 
@@ -1558,7 +1558,7 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 			.height_rate = height_rate_setpoint,
 			.equivalent_airspeed = target_airspeed,
 			.pitch_direct = NAN,
-			.thrust_direct = NAN
+			.throttle_direct = NAN
 		};
 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
@@ -1616,7 +1616,7 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 			.height_rate = NAN,
 			.equivalent_airspeed = target_airspeed,
 			.pitch_direct = NAN,
-			.thrust_direct = NAN
+			.throttle_direct = NAN
 		};
 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
@@ -1743,7 +1743,7 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 			.height_rate = height_rate_setpoint,
 			.equivalent_airspeed = target_airspeed,
 			.pitch_direct = NAN,
-			.thrust_direct = NAN
+			.throttle_direct = NAN
 		};
 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
@@ -1795,7 +1795,7 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 			.height_rate = -glide_slope_sink_rate,
 			.equivalent_airspeed = target_airspeed,
 			.pitch_direct = NAN,
-			.thrust_direct = NAN
+			.throttle_direct = NAN
 		};
 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
@@ -1848,7 +1848,7 @@ FixedwingPositionControl::control_manual_altitude(const float control_interval, 
 		.height_rate = height_rate_sp,
 		.equivalent_airspeed = calibrated_airspeed_sp,
 		.pitch_direct = NAN,
-		.thrust_direct = NAN
+		.throttle_direct = NAN
 	};
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
@@ -1945,7 +1945,7 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 		.height_rate = height_rate_sp,
 		.equivalent_airspeed = calibrated_airspeed_sp,
 		.pitch_direct = NAN,
-		.thrust_direct = NAN
+		.throttle_direct = NAN
 	};
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);

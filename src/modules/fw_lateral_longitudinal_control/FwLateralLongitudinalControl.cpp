@@ -209,7 +209,7 @@ void FwLateralLongitudinalControl::Run()
 						  );
 
 			pitch_sp = PX4_ISFINITE(_long_control_sp.pitch_direct) ? _long_control_sp.pitch_direct : _tecs.get_pitch_setpoint();
-			throttle_sp = PX4_ISFINITE(_long_control_sp.thrust_direct) ? _long_control_sp.thrust_direct :
+			throttle_sp = PX4_ISFINITE(_long_control_sp.throttle_direct) ? _long_control_sp.throttle_direct :
 				      _tecs.get_throttle_setpoint();
 
 			fixed_wing_longitudinal_setpoint_s longitudinal_control_status {
@@ -218,7 +218,7 @@ void FwLateralLongitudinalControl::Run()
 				.height_rate = _tecs.getStatus().control.altitude_rate_control,
 				.equivalent_airspeed = _tecs.getStatus().true_airspeed_sp / _long_control_state.eas2tas,
 				.pitch_direct = pitch_sp,
-				.thrust_direct = throttle_sp
+				.throttle_direct = throttle_sp
 			};
 
 			_longitudinal_ctrl_status_pub.publish(longitudinal_control_status);
@@ -343,13 +343,13 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 		const float desired_max_climbrate,
 		bool disable_underspeed_detection, float hgt_rate_sp)
 {
-	bool test_is_running = true;
+	bool tecs_is_running = true;
 
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	if (_vehicle_status_sub.get().is_vtol
 	    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 		|| _vehicle_status_sub.get().in_transition_mode)) {
-		test_is_running = false;
+		tecs_is_running = false;
 		return;
 
 	}
@@ -383,7 +383,7 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 
 	tecs_status_publish(alt_sp, airspeed_sp, airspeed_rate_estimate, throttle_trim_compensated);
 
-	if (test_is_running && !_vehicle_status_sub.get().in_transition_mode
+	if (tecs_is_running && !_vehicle_status_sub.get().in_transition_mode
 	    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
 		const TECS::DebugOutput &tecs_output{_tecs.getStatus()};
 
