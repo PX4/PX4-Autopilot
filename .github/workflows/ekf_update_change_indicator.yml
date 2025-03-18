@@ -1,6 +1,10 @@
 name: EKF Update Change Indicator
 
-on: push
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
 
 jobs:
   unit_tests:

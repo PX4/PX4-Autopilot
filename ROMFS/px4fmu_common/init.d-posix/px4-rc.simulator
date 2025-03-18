@@ -95,6 +95,32 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 				echo "INFO  [init] Starting gz gui"
 				${gz_command} ${gz_sub_command} -g > /dev/null 2>&1 &
 			fi
+
+			# Wait for Gazebo world to be ready before proceeding
+			check_scene_info() {
+				SERVICE_INFO=$(${gz_command} service -i --service "/world/${PX4_GZ_WORLD}/scene/info" 2>&1)
+				if echo "$SERVICE_INFO" | grep -q "Service providers"; then
+					return 0
+				else
+					return 1
+				fi
+			}
+
+			ATTEMPTS=30
+			while [ $ATTEMPTS -gt 0 ]; do
+				if check_scene_info; then
+					echo "INFO  [init] Gazebo world is ready"
+					break
+				fi
+				ATTEMPTS=$((ATTEMPTS-1))
+				if [ $ATTEMPTS -eq 0 ]; then
+					echo "ERROR [init] Timed out waiting for Gazebo world"
+					exit 1
+				fi
+				echo "INFO  [init] Waiting for Gazebo world..."
+				sleep 1
+			done
+
 		else
 			# Gazebo is already running
 			echo "INFO  [init] gazebo already running world: ${gz_world}"
@@ -125,10 +151,14 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 		fi
 
 		echo "INFO  [init] Spawning model"
+
 		# Spawn model
 		${gz_command} service -s "/world/${PX4_GZ_WORLD}/create" --reqtype gz.msgs.EntityFactory \
 				--reptype gz.msgs.Boolean --timeout 5000 \
-				--req "sdf_filename: \"${PX4_GZ_MODELS}/${MODEL_NAME}\", name: \"${MODEL_NAME_INSTANCE}\", allow_renaming: false${POSE_ARG}" > /dev/null 2>&1
+				--req "sdf_filename: \"${PX4_GZ_MODELS}/${MODEL_NAME}/model.sdf\", name: \"${MODEL_NAME_INSTANCE}\", allow_renaming: false${POSE_ARG}" > /dev/null 2>&1
+
+		# Wait for model to spawn
+		sleep 1
 
 		# Start gz_bridge
 		if ! gz_bridge start -w "${PX4_GZ_WORLD}" -n "${MODEL_NAME_INSTANCE}"; then
@@ -137,30 +167,6 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 		fi
 
 		# Set physics parameters for faster-than-realtime simulation if needed
-		check_scene_info() {
-			SERVICE_INFO=$(${gz_command} service -i --service "/world/${PX4_GZ_WORLD}/scene/info" 2>&1)
-			if echo "$SERVICE_INFO" | grep -q "Service providers"; then
-				return 0
-			else
-				return 1
-			fi
-		}
-
-		ATTEMPTS=30
-		while [ $ATTEMPTS -gt 0 ]; do
-			if check_scene_info; then
-				echo "INFO  [init] Gazebo world is ready"
-				break
-			fi
-			ATTEMPTS=$((ATTEMPTS-1))
-			if [ $ATTEMPTS -eq 0 ]; then
-				echo "ERROR [init] Timed out waiting for Gazebo world"
-				exit 1
-			fi
-			echo "INFO  [init] Waiting for Gazebo world..."
-			sleep 1
-		done
-
 		if [ -n "${PX4_SIM_SPEED_FACTOR}" ]; then
 			echo "INFO  [init] Setting simulation speed factor: ${PX4_SIM_SPEED_FACTOR}"
 			${gz_command} service -s "/world/${PX4_GZ_WORLD}/set_physics" --reqtype gz.msgs.Physics \
@@ -168,12 +174,8 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 						--req "real_time_factor: ${PX4_SIM_SPEED_FACTOR}" > /dev/null 2>&1
 		fi
 
-
 		# Set up camera to follow the model if requested
 		if [ -n "${PX4_GZ_FOLLOW}" ]; then
-
-			# Wait for model to spawn
-			sleep 1
 
 			echo "INFO  [init] Setting camera to follow ${MODEL_NAME_INSTANCE}"
 

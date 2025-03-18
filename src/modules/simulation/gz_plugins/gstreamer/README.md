@@ -12,7 +12,6 @@ This plugin provides GStreamer-based video streaming capabilities for cameras in
 ## Prerequisites
 
 - GStreamer 1.0 with development files
-- OpenCV with development files
 - NVIDIA drivers and CUDA (optional, for hardware acceleration)
 
 ## Configuration
