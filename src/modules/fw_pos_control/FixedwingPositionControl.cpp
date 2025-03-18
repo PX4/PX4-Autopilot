@@ -719,7 +719,7 @@ void FixedwingPositionControl::control_idle()
 
 	fixed_wing_longitudinal_setpoint_s long_contrl_sp {empty_longitudinal_control_setpoint};
 	long_contrl_sp.timestamp = now;
-	long_contrl_sp.pitch_direct = math::radians(_param_fw_psp_off.get());
+	long_contrl_sp.pitch_direct = 0.f;
 	long_contrl_sp.throttle_direct = 0.0f;
 	_longitudinal_ctrl_sp_pub.publish(long_contrl_sp);
 
