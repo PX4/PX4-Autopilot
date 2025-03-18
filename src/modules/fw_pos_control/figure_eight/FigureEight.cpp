@@ -48,7 +48,7 @@ static constexpr bool SOUTH_CIRCLE_IS_COUNTER_CLOCKWISE{true};
 static constexpr float DEFAULT_MAJOR_TO_MINOR_AXIS_RATIO{2.5f};
 static constexpr float MINIMAL_FEASIBLE_MAJOR_TO_MINOR_AXIS_RATIO{2.0f};
 
-FigureEight::FigureEight(DirectionalGuidance &npfg, matrix::Vector2f &wind_vel, float &eas2tas) :
+FigureEight::FigureEight(DirectionalGuidance &npfg, matrix::Vector2f &wind_vel) :
 	ModuleParams(nullptr),
 	_directional_guidance(npfg),
 	_wind_vel(wind_vel)

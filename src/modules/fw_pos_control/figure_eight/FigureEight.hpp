@@ -87,9 +87,8 @@ public:
 	 *
 	 * @param[in] npfg is the reference to the parent npfg object.
 	 * @param[in] wind_vel is the reference to the parent wind velocity [m/s].
-	 * @param[in] eas2tas is the reference to the parent indicated airspeed to true airspeed conversion.
 	 */
-	FigureEight(DirectionalGuidance &directional_guidance, matrix::Vector2f &wind_vel, float &eas2tas);
+	FigureEight(DirectionalGuidance &directional_guidance, matrix::Vector2f &wind_vel);
 
 	/**
 	 * @brief reset the figure eight pattern.

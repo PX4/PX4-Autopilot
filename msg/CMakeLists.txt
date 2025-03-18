@@ -91,8 +91,8 @@ set(msg_files
 	FollowTargetEstimator.msg
 	FollowTargetStatus.msg
 	FuelTankStatus.msg
-	FwLateralControlSetpoint.msg
-	FwLongitudinalControlSetpoint.msg
+	FixedWingLateralSetpoint.msg
+	FixedWingLongitudinalSetpoint.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
 	GeofenceStatus.msg
