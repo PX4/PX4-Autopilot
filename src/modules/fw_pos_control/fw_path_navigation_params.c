@@ -94,48 +94,6 @@ PARAM_DEFINE_INT32(NPFG_LB_PERIOD, 1);
 PARAM_DEFINE_INT32(NPFG_UB_PERIOD, 1);
 
 /**
- * Enable track keeping excess wind handling logic.
- *
- * @boolean
- * @group FW NPFG Control
- */
-PARAM_DEFINE_INT32(NPFG_TRACK_KEEP, 1);
-
-/**
- * Enable minimum forward ground speed maintaining excess wind handling logic
- *
- * @boolean
- * @group FW NPFG Control
- */
-PARAM_DEFINE_INT32(NPFG_EN_MIN_GSP, 1);
-
-/**
- * Enable wind excess regulation.
- *
- * Disabling this parameter further disables all other airspeed incrementation options.
- *
- * @boolean
- * @group FW NPFG Control
- */
-PARAM_DEFINE_INT32(NPFG_WIND_REG, 1);
-
-/**
- * Maximum, minimum forward ground speed for track keeping in excess wind
- *
- * The maximum value of the minimum forward ground speed that may be commanded
- * by the track keeping excess wind handling logic. Commanded in full at the normalized
- * track error fraction of the track error boundary and reduced to zero on track.
- *
- * @unit m/s
- * @min 0.0
- * @max 10.0
- * @decimal 1
- * @increment 0.5
- * @group FW NPFG Control
- */
-PARAM_DEFINE_FLOAT(NPFG_GSP_MAX_TK, 5.0f);
-
-/**
  * Roll time constant
  *
  * Time constant of roll controller command / response, modeled as first order delay.
