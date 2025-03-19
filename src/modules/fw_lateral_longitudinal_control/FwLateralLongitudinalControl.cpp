@@ -332,7 +332,6 @@ void FwLateralLongitudinalControl::updateControlLimits()
 		} else {
 			_lateral_limits.lateral_accel_max = tanf(radians(_param_fw_r_lim.get())) * CONSTANTS_ONE_G;
 		}
-
 	}
 }
 

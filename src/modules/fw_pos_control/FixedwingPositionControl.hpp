@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,13 +35,6 @@
 /**
  * @file FixedwingPositionControl.hpp
  * Implementation of various fixed-wing position level navigation/control modes.
- *
- * The implementation for the controllers is in a separate library. This class only
- * interfaces to the library.
- *
- * @author Lorenz Meier <lorenz@px4.io>
- * @author Thomas Gubler <thomasgubler@gmail.com>
- * @author Andreas Antener <andreas@uaventure.com>
  */
 
 #ifndef FIXEDWINGPOSITIONCONTROL_HPP_
@@ -49,13 +42,13 @@
 
 #include "launchdetection/LaunchDetector.h"
 #include "runway_takeoff/RunwayTakeoff.h"
-#include <lib/fw_performance_model/PerformanceModel.hpp>
+#include "ControlLimitsHandler.hpp"
 
 #include <float.h>
-
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <lib/atmosphere/atmosphere.h>
+#include <lib/fw_performance_model/PerformanceModel.hpp>
 #include <lib/npfg/DirectionalGuidance.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
@@ -66,22 +59,23 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <uORB/uORB.h>
+
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed_validated.h>
-#include <uORB/topics/flight_phase_estimation.h>
+#include <uORB/topics/fixed_wing_lateral_setpoint.h>
+#include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/normalized_unsigned_setpoint.h>
-#include <uORB/topics/npfg_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/tecs_status.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -96,16 +90,10 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind.h>
 #include <uORB/topics/orbit_status.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/fixed_wing_lateral_setpoint.h>
-#include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
-
-#include "ControlLimitsHandler.hpp"
 
 #ifdef CONFIG_FIGURE_OF_EIGHT
 #include "figure_eight/FigureEight.hpp"
 #include <uORB/topics/figure_eight_status.h>
-
 #endif // CONFIG_FIGURE_OF_EIGHT
 
 using namespace launchdetection;
@@ -163,11 +151,6 @@ static constexpr float MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE = 0.15f;
 // [s] time interval after touchdown for ramping in runway clamping constraints (touchdown is assumed at FW_LND_TD_TIME after start of flare)
 static constexpr float POST_TOUCHDOWN_CLAMP_TIME = 0.5f;
 
-// [m/s] maximum reference altitude rate threshhold
-static constexpr float MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT = 0.1f;
-
-
-
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
 {
@@ -208,7 +191,6 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};
-	uORB::Publication<position_controller_status_s>	_pos_ctrl_status_pub{ORB_ID(position_controller_status)};
 	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};
 	uORB::Publication<launch_detection_status_s> _launch_detection_status_pub{ORB_ID(launch_detection_status)};
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
@@ -851,6 +833,10 @@ private:
 			const matrix::Vector2f &ground_vel,
 			const matrix::Vector2f &wind_vel);
 
+	void control_idle();
+
+	float rollAngleToLateralAccel(float roll_body) const;
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _param_fw_gnd_spd_min,
 		(ParamFloat<px4::params::FW_R_LIM>) _param_fw_r_lim,
@@ -909,10 +895,6 @@ private:
 		(ParamFloat<px4::params::RWTO_PSP>) _param_rwto_psp,
 		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on
 	)
-
-	void control_idle();
-
-	float rollAngleToLateralAccel(float roll_body) const;
 };
 
 #endif // FIXEDWINGPOSITIONCONTROL_HPP_
