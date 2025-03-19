@@ -151,19 +151,19 @@ The follow-me behavior can be configured using the following parameters:
 
 1. Set the [follow distance](#FLW_TGT_DST) to more than 12 meters (8 meters is a "recommended minimum").
 
-   Існує вроджений вплив позиції (3 ~ 5 метрів) між цільовим об'єктом та GPS-датчиком дрона, що змушує дрон слідувати 'примарній цілі' десь поблизу фактичної цілі.
-   Це стає більш очевидним, коли відстань слідування дуже мала.
-   Ми рекомендуємо встановити достатньо велику відстань, щоб відхилення GPS не було значним.
+  Існує вроджений вплив позиції (3 ~ 5 метрів) між цільовим об'єктом та GPS-датчиком дрона, що змушує дрон слідувати 'примарній цілі' десь поблизу фактичної цілі.
+  Це стає більш очевидним, коли відстань слідування дуже мала.
+  Ми рекомендуємо встановити достатньо велику відстань, щоб відхилення GPS не було значним.
 
 2. The speed at which you can change the follow angle depends on the [maximum tangential velocity](#FLW_TGT_MAX_VEL) setting.
 
-   Experimentation shows that values between `5 m/s` are `10 m/s` are usually suitable.
+  Experimentation shows that values between `5 m/s` are `10 m/s` are usually suitable.
 
 3. Використовуючи коригування RC для висоти, відстані та кута, ви можете отримати деякі креативні знімки камери.
 
-   <lite-youtube videoid="o3DhvCL_M1E" title="YUN0012 almostCinematic"/>
+  <lite-youtube videoid="o3DhvCL_M1E" title="YUN0012 almostCinematic"/>
 
-   This video demonstrates a Google-Earth view perspective, by adjusting the height to around 50 meters (high), distance to 1 meter (close). Що дозволяє перспективу, як знято з супутника.
+  This video demonstrates a Google-Earth view perspective, by adjusting the height to around 50 meters (high), distance to 1 meter (close). Що дозволяє перспективу, як знято з супутника.
 
 ## Відомі проблеми
 

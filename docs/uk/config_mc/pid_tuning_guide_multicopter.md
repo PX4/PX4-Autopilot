@@ -45,7 +45,7 @@ PX4 supports two (mathematically equivalent) forms of the PID rate controller in
 
 Users can select the form that is used by setting the proportional gain for the other form to "1" (i.e. in the diagram below set **K** to 1 for the parallel form, or **P** to 1 for the standard form - this will replace either the K or P blocks with a line).
 
-![PID\_Mixed](../../assets/mc_pid_tuning/PID_algorithm_Mixed.png)
+![PID_Mixed](../../assets/mc_pid_tuning/PID_algorithm_Mixed.png)
 
 <!-- The drawing is on draw.io: https://drive.google.com/file/d/1hXnAJVRyqNAdcreqNa5W4PQFkYnzwgOO/view?usp=sharing -->
 
@@ -74,14 +74,14 @@ The derivative term (**D**) is on the feedback path in order to avoid an effect 
 The _parallel form_ is the simplest form, and is (hence) commonly used in textbooks.
 У цьому випадку вихід контролера просто є сумою пропорційних, інтегральних та диференційних дій.
 
-![PID\_Parallel](../../assets/mc_pid_tuning/PID_algorithm_Parallel.png)
+![PID_Parallel](../../assets/mc_pid_tuning/PID_algorithm_Parallel.png)
 
 ##### Стандартна форма
 
 Ця форма математично еквівалентна паралельній формі, але основною перевагою є те, що (навіть якщо це здається протирічливим) вона роз'єднує налаштування пропорційного коефіцієнта від інтегрального та диференціального коефіцієнтів.
 Це означає, що нову платформу легко можна налаштувати, взявши вигоди від дрона зі схожим розміром/інерцією і просто налаштувати коефіцієнт K, щоб він летів належним чином.
 
-![PID\_Standard](../../assets/mc_pid_tuning/PID_algorithm_Standard.png)
+![PID_Standard](../../assets/mc_pid_tuning/PID_algorithm_Standard.png)
 
 #### Оцінити Налаштування PID
 

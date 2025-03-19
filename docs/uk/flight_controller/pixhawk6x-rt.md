@@ -43,7 +43,7 @@ Pixhawk®️sco6X-RT ідеально підходить для розробни
 - Потрійне резервування доменів: повністю ізольовані сенсорні домени з окремими шинами та окремим керуванням живленням
 - Нова система ізоляції вібрацій для фільтрації високочастотних вібрацій та зменшення шуму для забезпечення точних вимірювань
 - Інтерфейс Ethernet для високошвидкісної інтеграції комп'ютера місії
-- IMUs are temperature-controlled by onboard heating resistors, allowing optimum working temperature of IMUs&#x20
+- IMUs are temperature-controlled by onboard heating resistors, allowing optimum working temperature of IMUs&#x20;
 
 ### Processors & Sensors
 

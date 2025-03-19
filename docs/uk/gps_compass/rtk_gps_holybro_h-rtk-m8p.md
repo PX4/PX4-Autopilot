@@ -12,7 +12,7 @@ Refer to the [Specification and Model Comparison section](#specification-and-mod
 
 Використання RTK дозволяє PX4 отримати своє положення з точністю до сантиметрів, що набагато точніше, ніж може забезпечити звичайний GPS.
 
-![h-rtk\_rover](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_all_label.jpg)
+![h-rtk_rover](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_all_label.jpg)
 
 ## Де купити
 
@@ -34,11 +34,11 @@ The cables/connectors may need to be modified in order to connect to other fligh
 
 ## Карта виводів
 
-![h-rtk\_rover\_pinmap](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_pinmap.jpg)
+![h-rtk_rover_pinmap](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_pinmap.jpg)
 
 ## Специфікація та порівняння моделей
 
-![h-rtk\_spec](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_spec.png)
+![h-rtk_spec](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_spec.png)
 
 ## Аксесуари до GPS
 

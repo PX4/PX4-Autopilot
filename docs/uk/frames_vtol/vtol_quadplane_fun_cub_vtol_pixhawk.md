@@ -34,7 +34,7 @@ QuadPlane VTOL Fun Cub є стандартним повітряним судно
 
 Структура виготовлена з алюмінієвих стрижнів, як показано нижче.
 
-![quad\_frame](../../assets/airframes/vtol/funcub_pixhawk/fun_cub_aluminium_frame_for_vtol.jpg)
+![quad_frame](../../assets/airframes/vtol/funcub_pixhawk/fun_cub_aluminium_frame_for_vtol.jpg)
 ![Fun Cub -frame for vtol mounted](../../assets/airframes/vtol/funcub_pixhawk/fun_cub_aluminium_frame_for_vtol_mounted.jpg)
 
 ## Підключення
@@ -78,3 +78,4 @@ For further instructions on wiring and configurations please see:
 ## Підтримка
 
 If you have any questions regarding your VTOL conversion or configuration please visit <https://discuss.px4.io/c/px4/vtol>.
+

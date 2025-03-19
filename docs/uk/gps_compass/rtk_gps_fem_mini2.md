@@ -39,7 +39,7 @@ The [MINI2 Receiver](http://www.femtomes.com) is connected to a UART on the flig
 Для живлення модуля вам знадобиться окреме джерело живлення 12В.
 Контакти на 12-контактному роз'ємі позначені, як показано нижче.
 
-![MINI\_II\_2](../../assets/hardware/gps/rtk_fem_miniII_2.jpg)
+![MINI_II_2](../../assets/hardware/gps/rtk_fem_miniII_2.jpg)
 
 ## Налаштування
 

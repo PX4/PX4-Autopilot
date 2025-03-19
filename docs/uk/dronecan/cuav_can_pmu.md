@@ -65,7 +65,7 @@ Set the following parameters in _QGroundControl_ [Vehicle Setup > Parameters](..
 
 - [UAVCAN_SUB_BAT](../advanced_config/parameter_reference.md#UAVCAN_SUB_BAT): set to: _Raw data_
 
-  ![QGC - Set UAVCAN\_SUB\_BAT parameter to raw data](../../assets/hardware/power_module/cuav_can/qgc_set_usavcan_sub_bat.png)
+  ![QGC - Set UAVCAN_SUB_BAT parameter to raw data](../../assets/hardware/power_module/cuav_can/qgc_set_usavcan_sub_bat.png)
 
 ## Подальша інформація
 

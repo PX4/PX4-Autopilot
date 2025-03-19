@@ -132,50 +132,50 @@ make px4_fmu-v6c_default upload
 
 1. Встановіть `raspi-config`:
 
-   ```sh
-   sudo apt update
-   sudo apt upgrade
-   sudo apt-get install raspi-config
-   ```
+  ```sh
+  sudo apt update
+  sudo apt upgrade
+  sudo apt-get install raspi-config
+  ```
 
 2. Open `raspi-config`:
 
-   ```sh
-   sudo raspi-config
-   ```
+  ```sh
+  sudo raspi-config
+  ```
 
 3. Перейдіть до **Варіанти інтерфейсу**, а потім клацніть **Серійний порт**.
 
-   - Виберіть **No**, щоб вимкнути послідовний вхід у оболонку.
-   - Виберіть **Так**, щоб увімкнути послідовний інтерфейс.
-   - Клацніть **Завершити** та перезапустіть RPi.
+  - Виберіть **No**, щоб вимкнути послідовний вхід у оболонку.
+  - Виберіть **Так**, щоб увімкнути послідовний інтерфейс.
+  - Клацніть **Завершити** та перезапустіть RPi.
 
 4. Відкрийте файл конфігурації завантаження прошивки в редакторі `nano` на RaPi:
 
-   ```sh
-   sudo nano /boot/firmware/config.txt
-   ```
+  ```sh
+  sudo nano /boot/firmware/config.txt
+  ```
 
 5. Додайте наступний текст в кінець файлу (після останнього рядка):
 
-   ```sh
-   enable_uart=1
-   dtoverlay=disable-bt
-   ```
+  ```sh
+  enable_uart=1
+  dtoverlay=disable-bt
+  ```
 
 6. Далі збережіть файл і перезапустіть RPi.
 
-   - У `nano` ви можете зберегти файл за допомогою такої послідовності комбінацій клавіш: **ctrl+x**, **ctrl+y**, **Enter**.
+  - У `nano` ви можете зберегти файл за допомогою такої послідовності комбінацій клавіш: **ctrl+x**, **ctrl+y**, **Enter**.
 
 7. Перевірте, чи доступний послідовний порт.
-   В даному випадку ми використовуємо наступні команди для перегляду серійних пристроїв:
+  В даному випадку ми використовуємо наступні команди для перегляду серійних пристроїв:
 
-   ```sh
-   cd /
-   ls /dev/ttyAMA0
-   ```
+  ```sh
+  cd /
+  ls /dev/ttyAMA0
+  ```
 
-   Результат команди повинен містити підключення RX/TX `/dev/ttyAMA0` (зверніть увагу, що цей послідовний порт також доступний як `/dev/serial0`).
+  Результат команди повинен містити підключення RX/TX `/dev/ttyAMA0` (зверніть увагу, що цей послідовний порт також доступний як `/dev/serial0`).
 
 RPi наразі налаштований для роботи з RPi та зв'язку за допомогою послідовного порту `/dev/ttyAMA0`.
 Зверніть увагу, що ми встановимо додаткове програмне забезпечення в наступних розділах для роботи з MAVLink та ROS 2.
@@ -199,38 +199,38 @@ PX4 рекомендує використовувати [MAVSDK](https://mavsdk.
 2. Відкрийте QGroundControl (повинно з'єднатися з транспортним засобом).
 3. [Перевірте/змініть наступні параметри](../advanced_config/parameters.md) в QGroundControl:
 
-   ```ini
-   MAV_1_CONFIG = TELEM2
-   UXRCE_DDS_CFG = 0 (Disabled)
-   SER_TEL2_BAUD = 57600
-   ```
+  ```ini
+  MAV_1_CONFIG = TELEM2
+  UXRCE_DDS_CFG = 0 (Disabled)
+  SER_TEL2_BAUD = 57600
+  ```
 
-   Зверніть увагу, що параметри можуть вже бути налаштовані належним чином.
-   Для отримання інформації про те, як працюють послідовні порти та конфігурація MAVLink, див. [Конфігурація послідовного порту](../peripherals/serial_configuration.md) та [Периферійні пристрої MAVLink](../peripherals/mavlink_peripherals.md).
+  Зверніть увагу, що параметри можуть вже бути налаштовані належним чином.
+  Для отримання інформації про те, як працюють послідовні порти та конфігурація MAVLink, див. [Конфігурація послідовного порту](../peripherals/serial_configuration.md) та [Периферійні пристрої MAVLink](../peripherals/mavlink_peripherals.md).
 
 Потім встановіть налаштування MAVProxy на RPi за допомогою наступних термінальних команд:
 
 1. Встановіть MAVProxy:
 
-   ```sh
-   sudo apt install python3-pip
-   sudo pip3 install mavproxy
-   sudo apt remove modemmanager
-   ```
+  ```sh
+  sudo apt install python3-pip
+  sudo pip3 install mavproxy
+  sudo apt remove modemmanager
+  ```
 
 2. Запустіть MAVProxy, встановивши порт для підключення до `/dev/ttyAMA0` та швидкість передачі даних, щоб відповідати PX4:
 
-   ```sh
-   sudo mavproxy.py --master=/dev/serial0 --baudrate 57600
-   ```
+  ```sh
+  sudo mavproxy.py --master=/dev/serial0 --baudrate 57600
+  ```
 
-   Зверніть увагу, що вище ми використовували `/dev/serial0`, але ми могли б так само добре використовувати `/dev/ttyAMA0`.
-   Якщо ми підключалися через USB, тоді ми замість цього встановили порт як `/dev/ttyACM0`:
+  Зверніть увагу, що вище ми використовували `/dev/serial0`, але ми могли б так само добре використовувати `/dev/ttyAMA0`.
+  Якщо ми підключалися через USB, тоді ми замість цього встановили порт як `/dev/ttyACM0`:
 
-   ```sh
-   sudo chmod a+rw /dev/ttyACM0
-   sudo mavproxy.py --master=/dev/ttyACM0 --baudrate 57600
-   ```
+  ```sh
+  sudo chmod a+rw /dev/ttyACM0
+  sudo mavproxy.py --master=/dev/ttyACM0 --baudrate 57600
+  ```
 
 
 :::
@@ -258,26 +258,26 @@ The [ROS 2 Guide](../ros2/user_guide.md) and [uXRCE-DDS](../middleware/uxrce_dds
 
 2. [Перевірте/змініть наступні параметри](../advanced_config/parameters.md) в QGroundControl:
 
-   ```ini
-   MAV_1_CONFIG = 0 (Disabled)
-   UXRCE_DDS_CFG = 102 (TELEM2)
-   SER_TEL2_BAUD = 921600
-   ```
+  ```ini
+  MAV_1_CONFIG = 0 (Disabled)
+  UXRCE_DDS_CFG = 102 (TELEM2)
+  SER_TEL2_BAUD = 921600
+  ```
 
-   [MAV_1_CONFIG=0](../advanced_config/parameter_reference.md#MAV_1_CONFIG) та [UXRCE_DDS_CFG=102](../advanced_config/parameter_reference.md#UXRCE_DDS_CFG) вимикають MAVLink на TELEM2 та увімкнюють клієнт uXRCE-DDS на TELEM2, відповідно.
-   Швидкість `SER_TEL2_BAUD` встановлює швидкість передачі даних зв'язку.\
-   Ви так само можете налаштувати підключення до `TELEM1`, використовуючи або `MAV_1_CONFIG`, або `MAV_0_CONFIG`.
+  [MAV_1_CONFIG=0](../advanced_config/parameter_reference.md#MAV_1_CONFIG) та [UXRCE_DDS_CFG=102](../advanced_config/parameter_reference.md#UXRCE_DDS_CFG) вимикають MAVLink на TELEM2 та увімкнюють клієнт uXRCE-DDS на TELEM2, відповідно.
+  Швидкість `SER_TEL2_BAUD` встановлює швидкість передачі даних зв'язку.\
+  Ви так само можете налаштувати підключення до `TELEM1`, використовуючи або `MAV_1_CONFIG`, або `MAV_0_CONFIG`.
 
-   Вам потрібно перезавантажити керування польотом, щоб застосувати будь-які зміни до цих параметрів.
+  Вам потрібно перезавантажити керування польотом, щоб застосувати будь-які зміни до цих параметрів.
 
 :::
 
 3. Перевірте, що модуль [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) зараз працює.
-   Ви можете це зробити, запустивши наступну команду в QGroundControl [MAVLink Console](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_console.html):
+  Ви можете це зробити, запустивши наступну команду в QGroundControl [MAVLink Console](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_console.html):
 
-   ```sh
-   uxrce_dds_client status
-   ```
+  ```sh
+  uxrce_dds_client status
+  ```
 
 :::info
 Якщо модуль клієнта не працює, ви можете запустити його вручну в консолі MAVLink:
@@ -298,32 +298,32 @@ uxrce_dds_client start -t serial -d /dev/ttyS3 -b 921600
 
 2. Встановіть git за допомогою терміналу RPi:
 
-   ```sh
-   sudo apt install git
-   ```
+  ```sh
+  sudo apt install git
+  ```
 
 3. Встановіть агент uXRCE_DDS:
 
-   ```sh
-   git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
-   cd Micro-XRCE-DDS-Agent
-   mkdir build
-   cd build
-   cmake ..
-   make
-   sudo make install
-   sudo ldconfig /usr/local/lib/
-   ```
+  ```sh
+  git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+  cd Micro-XRCE-DDS-Agent
+  mkdir build
+  cd build
+  cmake ..
+  make
+  sudo make install
+  sudo ldconfig /usr/local/lib/
+  ```
 
-   Див. [uXRCE-DDS > Встановлення агента Micro XRCE-DDS](../middleware/uxrce_dds.md#micro-xrce-dds-agent-installation) для альтернативних способів встановлення агента.
+  Див. [uXRCE-DDS > Встановлення агента Micro XRCE-DDS](../middleware/uxrce_dds.md#micro-xrce-dds-agent-installation) для альтернативних способів встановлення агента.
 
 4. Запустіть агента в терміналі RPi:
 
-   ```sh
-   sudo MicroXRCEAgent serial --dev /dev/serial0 -b 921600
-   ```
+  ```sh
+  sudo MicroXRCEAgent serial --dev /dev/serial0 -b 921600
+  ```
 
-   Зверніть увагу, як ми використовуємо раніше налаштований послідовний порт і ту саму швидкість передачі даних, що й для PX4.
+  Зверніть увагу, як ми використовуємо раніше налаштований послідовний порт і ту саму швидкість передачі даних, що й для PX4.
 
 Тепер, коли обидва агент та клієнт працюють, ви повинні бачити активність як на консолі MAVLink, так і на терміналі RPi.
 Ви можете переглянути доступні теми за допомогою наступної команди на RPi:
