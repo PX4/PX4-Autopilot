@@ -35,21 +35,21 @@ The main hardware documentation is [here](http://mindpx.net/assets/accessories/m
 - Support IMU isolation
 - DroneCode<sup>&reg;</sup> standard compliance connector
 
-|                    Item                    |                                                       描述                                                      |
-| :----------------------------------------: | :-----------------------------------------------------------------------------------------------------------: |
-|         Flight controller/Processor        |                                                    F427VIT6                                                   |
-|                     重量                     |                                              ~6g                                              |
-|                  Dimension                 |                                                    35x35mm                                                    |
-|                 PWM Outputs                |                                                   maximum 6                                                   |
-|                     IMU                    |                                                     10DOF                                                     |
-|                IMU isolation               |                                                  YES/Optional                                                 |
-|               Radio Receiver               |                                  S.BUS/PPM/DSM/DSM2/DSMX/SUMD                                 |
-|                  Telemetry                 | FrSky<sup>&amp;reg;</sup> D.Port, S.Port, Wifi, 3DR radio |
-| On board TF card for flight data recording |                                                      YES                                                      |
-|             OneShot ESC Support            |                                                      YES                                                      |
-|               Expansion Slots              |                                         2x7(pin)x2                                         |
-|          On board Real time clock          |                                                      YES                                                      |
-|                  Connector                 |                         JST GH(compliance with DroneCode standard)                         |
+|                    Item                    |                                                     描述                                                    |
+| :----------------------------------------: | :-------------------------------------------------------------------------------------------------------: |
+|         Flight controller/Processor        |                                                  F427VIT6                                                 |
+|                     重量                     |                                            ~6g                                            |
+|                  Dimension                 |                                                  35x35mm                                                  |
+|                 PWM Outputs                |                                                 maximum 6                                                 |
+|                     IMU                    |                                                   10DOF                                                   |
+|                IMU isolation               |                                                YES/Optional                                               |
+|               Radio Receiver               |                                S.BUS/PPM/DSM/DSM2/DSMX/SUMD                               |
+|                  Telemetry                 | FrSky<sup>&reg;</sup> D.Port, S.Port, Wifi, 3DR radio |
+| On board TF card for flight data recording |                                                    YES                                                    |
+|             OneShot ESC Support            |                                                    YES                                                    |
+|               Expansion Slots              |                                       2x7(pin)x2                                       |
+|          On board Real time clock          |                                                    YES                                                    |
+|                  Connector                 |                       JST GH(compliance with DroneCode standard)                       |
 
 ## Quick Start
 

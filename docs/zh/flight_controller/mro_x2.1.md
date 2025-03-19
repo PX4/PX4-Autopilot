@@ -80,7 +80,7 @@ This product can be ordered at the [mRobotics<sup>&reg;</sup> Store](https://sto
 
 ## 接线指南
 
-![mRo\_X2.1\_Wiring](../../assets/flight_controller/mro/mro_x21_wiring.png)
+![mRo_X2.1_Wiring](../../assets/flight_controller/mro/mro_x21_wiring.png)
 
 ## 编译固件
 

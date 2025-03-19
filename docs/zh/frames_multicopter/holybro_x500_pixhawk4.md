@@ -81,125 +81,125 @@ The following tools are used in this assembly:
 Estimate time to assemble is 3.75 hours (180 minutes for frame, 45 minutes for autopilot installation/configuration)
 
 1. Start by assembling the landing gear.
-   Unscrew the landing gear screws and insert the vertical pole (figures 1 and 2).
+  Unscrew the landing gear screws and insert the vertical pole (figures 1 and 2).
 
-   ![Landing Figure 1: Components](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_1_fig1.jpg)
+  ![Landing Figure 1: Components](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_1_fig1.jpg)
 
-   _Figure 2_: Landing gear components
+  _Figure 2_: Landing gear components
 
-   ![Landing Figure 2: Assembled](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_1_fig2.jpg)
+  ![Landing Figure 2: Assembled](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_1_fig2.jpg)
 
-   _Figure 2_: Landing gear assembled
+  _Figure 2_: Landing gear assembled
 
 2. Then put the 4 arms through the 4 motor bases shown in figure 3.
-   Make sure the rods protrude the base slightly and are consistent throughout all 4 arms, and be sure to have the motor wires facing outward.
+  Make sure the rods protrude the base slightly and are consistent throughout all 4 arms, and be sure to have the motor wires facing outward.
 
-   ![Attach arms to motor bases](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_2_fig3.png)
+  ![Attach arms to motor bases](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_2_fig3.png)
 
-   _Figure 3_: Attach arms to motor bases
+  _Figure 3_: Attach arms to motor bases
 
 3. Insert 4 nylon screws and nylon standoffs and attach the power module PM07 to the bottom plate using 4 nylon nuts as shown in Figures 4.
 
-   ![Attach power module](../../assets/airframes/multicopter/x500_holybro_pixhawk4/power_module.jpg)
+  ![Attach power module](../../assets/airframes/multicopter/x500_holybro_pixhawk4/power_module.jpg)
 
-   _Figure 4_: Attach power module
+  _Figure 4_: Attach power module
 
 4. Feed the 4 motor ESCs through each of the arms and connect the 3-wires end to the motors shown in Figure 5.
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig17.jpg" width="250" title="Connect motors">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig17.jpg" width="250" title="Connect motors">
 
-   _Figure 5_: Connect motors
+  _Figure 5_: Connect motors
 
 5. Connect the ESCs power wires onto the power module PM07, black->black and red->red, ESC PWM signal wires goes to "FMU-PWM-Out".
-   Make sure you connect the motor ESC PWM wires in the correct order.
-   Refer to Figure 7 for airframe motor number and connect to the corresponding number on the PM07 board.
+  Make sure you connect the motor ESC PWM wires in the correct order.
+  Refer to Figure 7 for airframe motor number and connect to the corresponding number on the PM07 board.
 
-   ![ESC power module and signal wiring](../../assets/airframes/multicopter/x500_holybro_pixhawk4/pm07_pwm.jpg)
-   _Figure 7_: ESC power module and signal wiring
+  ![ESC power module and signal wiring](../../assets/airframes/multicopter/x500_holybro_pixhawk4/pm07_pwm.jpg)
+  _Figure 7_: ESC power module and signal wiring
 
-   The color on top of the motor indicate the spin direction (figure 7-1), black tip is clockwise, and white tip is counter-clockwise.
-   Make sure the follow the px4 quadrotor x airframe reference for motor direction (figure 7-2).
+  The color on top of the motor indicate the spin direction (figure 7-1), black tip is clockwise, and white tip is counter-clockwise.
+  Make sure the follow the px4 quadrotor x airframe reference for motor direction (figure 7-2).
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/quadx.png" width="240">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/quadx.png" width="240">
 
-   _Figure 7_: Motor order/direction diagram
+  _Figure 7_: Motor order/direction diagram
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/motor_direction1.jpg" width="400">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/motor_direction1.jpg" width="400">
 
-   _Figure 7-1_: Motor direction
+  _Figure 7-1_: Motor direction
 
 6. Connect the 10 pin cables to FMU-PWM-in, the 6 pin cables to the PWR1 on the PM07 power module.
 
-   ![Flight controller/Power module PWM and Power connections](../../assets/airframes/multicopter/x500_holybro_pixhawk4/pm07_cable.jpg)
+  ![Flight controller/Power module PWM and Power connections](../../assets/airframes/multicopter/x500_holybro_pixhawk4/pm07_cable.jpg)
 
-   _Figure 8_: Power module PWM and power wiring
+  _Figure 8_: Power module PWM and power wiring
 
 7. If you want to mount the GPS on the top plate, you can now secure the GPS mount onto the top plate using 4 screws and nuts.
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gpsmount.jpg" width="400" title="Secure GPS mount onto top plate">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gpsmount.jpg" width="400" title="Secure GPS mount onto top plate">
 
-   _Figure 9_: Secure GPS mount onto top plate
+  _Figure 9_: Secure GPS mount onto top plate
 
 8. Feed the PM07 cables through the top plate.
-   Connect the top and bottom plate by using 4 U-shaped nylon straps, screws, and nuts on each side, ensure that the motor ESC cables are inside the U-shape nylon straps like Figure 10, keep the nut loose.
+  Connect the top and bottom plate by using 4 U-shaped nylon straps, screws, and nuts on each side, ensure that the motor ESC cables are inside the U-shape nylon straps like Figure 10, keep the nut loose.
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/top_plate.jpg" width="300">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/top_plate.jpg" width="300">
 
-   _Figure 10-1_: Feed power module cables through top plate
+  _Figure 10-1_: Feed power module cables through top plate
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/ushape.jpg" width="355" title="Connecting top and bottom plate">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/ushape.jpg" width="355" title="Connecting top and bottom plate">
 
-   _Figure 10-2_: Connecting top and bottom plate
+  _Figure 10-2_: Connecting top and bottom plate
 
 9. Push the arm tubes a bit into the frame and make sure the amount of protrusion (red square from Figure 11) are consistent on all 4 arms.
-   Ensure all the motors are pointed directly upward, then tighten all the nuts and screws.
+  Ensure all the motors are pointed directly upward, then tighten all the nuts and screws.
 
-   ![Arms 3](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig16.jpg)
+  ![Arms 3](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig16.jpg)
 
 10. Put the hanger gaskets into the 4 hangers and mount them onto the bottom plate using 8 hex screws (Figure 11).
-    The screw holes are noted by the white arrow in Figure 12.
-    We recommend tilting the drone sideway to make the installation easier.
+  The screw holes are noted by the white arrow in Figure 12.
+  We recommend tilting the drone sideway to make the installation easier.
 
-    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig9.png" width="400" title="Hanger gaskets">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig9.png" width="400" title="Hanger gaskets">
 
-    _Figure 11_: Hanger gaskets
+  _Figure 11_: Hanger gaskets
 
-    ![Battery Mount 4](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig10.jpg)
+  ![Battery Mount 4](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig10.jpg)
 
-    _Figure 12_: Screw holes
+  _Figure 12_: Screw holes
 
 11. Insert the slide bars onto the hanger rings (Figure 13).
-    Assemble the battery mount and platform board and mount them onto the slide bars as shown in Figure 14.
+  Assemble the battery mount and platform board and mount them onto the slide bars as shown in Figure 14.
 
-    ![Battery Mount 2: Slide bars](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig8.png)
+  ![Battery Mount 2: Slide bars](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig8.png)
 
-    _Figure 13_: Slide bars
+  _Figure 13_: Slide bars
 
-    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/battery_mount1.jpg" width="400" title="Battery mount on slide bars">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/battery_mount1.jpg" width="400" title="Battery mount on slide bars">
 
-    _Figure 14_: Battery mount on slide bars
+  _Figure 14_: Battery mount on slide bars
 
 12. Mount the landing gear onto the bottom plate.
-    We recommend tilting the drone sideway to make this installation process easier.
+  We recommend tilting the drone sideway to make this installation process easier.
 
-    ![Landing Gear](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig5.jpg)
+  ![Landing Gear](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig5.jpg)
 
-    _Figure 15_: Landing Gear
+  _Figure 15_: Landing Gear
 
 13. Use the tape and stick the GPS to the top of the GPS mast and mount the GPS mast.
-    Make sure the arrow on the gps is pointing forward (Figure 16).
+  Make sure the arrow on the gps is pointing forward (Figure 16).
 
-    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gps2.jpg" width="400" title="Figure 16: GPS and mast">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gps2.jpg" width="400" title="Figure 16: GPS and mast">
 
-    _Figure 16_: GPS and mast
+  _Figure 16_: GPS and mast
 
 14. Mount the telemetry radio onto the top plate.
-    Plug the telemetry cable into `TELEM1` port and GPS module to `GPS MODULE` port on the flight controller.
-    Plug the cable from PM07 `FMU-PWM-in` to `I/O-PWM-out`on the FC and PM07 `PWR1` to `POWER1` on the FC, as shown in Figure 17.
+  Plug the telemetry cable into `TELEM1` port and GPS module to `GPS MODULE` port on the flight controller.
+  Plug the cable from PM07 `FMU-PWM-in` to `I/O-PWM-out`on the FC and PM07 `PWR1` to `POWER1` on the FC, as shown in Figure 17.
 
-    ![Pixhawk 4 wiring 1](../../assets/airframes/multicopter/x500_holybro_pixhawk4/fc_connections.jpg)
+  ![Pixhawk 4 wiring 1](../../assets/airframes/multicopter/x500_holybro_pixhawk4/fc_connections.jpg)
 
-    _Figure 17_: Mount telemetry radio/plug in PWM and Power cables to Flight controller.
+  _Figure 17_: Mount telemetry radio/plug in PWM and Power cables to Flight controller.
 
 Please refer to [Pixhawk 4 Quick Start](../assembly/quick_start_pixhawk4.md) for more information.
 

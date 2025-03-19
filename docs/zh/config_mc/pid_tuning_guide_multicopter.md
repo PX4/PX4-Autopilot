@@ -45,7 +45,7 @@ PX4 supports two (mathematically equivalent) forms of the PID rate controller in
 
 Users can select the form that is used by setting the proportional gain for the other form to "1" (i.e. in the diagram below set **K** to 1 for the parallel form, or **P** to 1 for the standard form - this will replace either the K or P blocks with a line).
 
-![PID\_Mixed](../../assets/mc_pid_tuning/PID_algorithm_Mixed.png)
+![PID_Mixed](../../assets/mc_pid_tuning/PID_algorithm_Mixed.png)
 
 <!-- The drawing is on draw.io: https://drive.google.com/file/d/1hXnAJVRyqNAdcreqNa5W4PQFkYnzwgOO/view?usp=sharing -->
 
@@ -74,14 +74,14 @@ The derivative term (**D**) is on the feedback path in order to avoid an effect 
 The _parallel form_ is the simplest form, and is (hence) commonly used in textbooks.
 在这种情况下，控制器的输出只是简单的将比例，积分和微分项相加。
 
-![PID\_Parallel](../../assets/mc_pid_tuning/PID_algorithm_Parallel.png)
+![PID_Parallel](../../assets/mc_pid_tuning/PID_algorithm_Parallel.png)
 
 ##### 标准模式
 
 这种形式在数学上等同于并行形式。 但主要的优点是（即使似乎有点反直觉）将比例增益的调试与积分、微分增益分离开了。
 这意味着一个新的平台通过使用同样大小/推力 无人机的增益，使它更易于调试，只是简单地调整K增益就可正常飞行。
 
-![PID\_Standard](../../assets/mc_pid_tuning/PID_algorithm_Standard.png)
+![PID_Standard](../../assets/mc_pid_tuning/PID_algorithm_Standard.png)
 
 #### 角速度 PID 调试
 

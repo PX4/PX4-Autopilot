@@ -8,7 +8,7 @@ Contact the [manufacturer](https://store.mrobotics.io/) for hardware support or 
 The _mRo Pixhawk<sup>&reg;</sup>_ is a hardware compatible version of the original [Pixhawk 1](../flight_controller/pixhawk.md). It runs PX4 on the [NuttX](https://nuttx.apache.org/) OS.
 
 :::tip
-The controller can be used as a drop-in replacement for the 3DR<sup>&amp;reg;</sup> [Pixhawk 1](../flight_controller/pixhawk.md).
+The controller can be used as a drop-in replacement for the 3DR<sup>&reg;</sup> [Pixhawk 1](../flight_controller/pixhawk.md).
 The main difference is that it is based on the [Pixhawk-project](https://pixhawk.org/) **FMUv3** open hardware design, which corrects a bug that limited the original Pixhawk 1 to 1MB of flash.
 :::
 
