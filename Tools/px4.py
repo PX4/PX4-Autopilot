@@ -59,7 +59,7 @@ from sys import platform as _platform
 
 def get_version():
     """
-        Get PX4 Firmware latest Git tag.
+        Get PX4-Autopilot Latest Git Tag.
     """
     px4_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -74,7 +74,7 @@ def get_version():
             exit(1)
     else:
         # Else, get it from remote repo tags (requires network access)
-        cmd = "git ls-remote --tags git://github.com/PX4/Firmware.git | cut -d/ -f3- | sort -n -t. -k1,1 -k2,2 -k3,3 | awk '/^v[^{]*$/{version=$1}END{print version}'"
+        cmd = "git ls-remote --tags git@github.com:PX4/PX4-Autopilot.git | cut -d/ -f3- | sort -n -t. -k1,1 -k2,2 -k3,3 | awk '/^v[^{]*$/{version=$1}END{print version}'"
 
         try:
             version = subprocess.check_output(
@@ -94,7 +94,7 @@ else:
 
 
 def main():
-    print("PX4 release", get_version())
+    print("PX4 Release", get_version())
 
 
 if __name__ == '__main__':
