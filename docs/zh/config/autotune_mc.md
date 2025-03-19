@@ -1,6 +1,6 @@
 ---
 title: Multicopter Auto-Tuning
-frame: 多旋翼
+frame: Multicopter
 newEditLink: en/config/_autotune.md
 ---
 

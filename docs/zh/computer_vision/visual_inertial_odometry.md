@@ -96,7 +96,7 @@ It is rare that a system is set up with an entirely synchronised chain!
 
 通过检查 IMU 速率和 EV 速率之间的偏移，可以从日志中获取对延迟的粗略估计：
 
-![ekf2\_ev\_delay log](../../assets/ekf2/ekf2_ev_delay_tuning.png)
+![ekf2_ev_delay log](../../assets/ekf2/ekf2_ev_delay_tuning.png)
 
 :::info
 A plot of external data vs. onboard estimate (as above) can be generated using [FlightPlot](../log/flight_log_analysis.md#flightplot) or similar flight analysis tools.
@@ -132,15 +132,15 @@ Perform the following checks to verify that VIO is working properly _before_ you
 可以通过更改参数来进一步调整该值，以找到在动态变化中最低的EKF更新值。
 
 1. Put the vehicle on the ground and start streaming `ODOMETRY` feedback (as above).
-   油门杆推到最低并解锁。
+  油门杆推到最低并解锁。
 
-   此时，设置为位置控制模式。
-   如果切换成功，飞控会闪绿灯。
-   绿灯代表：你的外部位置信息已经注入到飞控中，并且位置控制模式已经切换成功。
+  此时，设置为位置控制模式。
+  如果切换成功，飞控会闪绿灯。
+  绿灯代表：你的外部位置信息已经注入到飞控中，并且位置控制模式已经切换成功。
 
 2. 油门杆放到中间位置（死区），以便无人机保持飞行高度。
-   提高操控杆会增加参考高度，降低操控杆会降低参考高度。
-   Similarly, the other stick will change the position over the ground.
+  提高操控杆会增加参考高度，降低操控杆会降低参考高度。
+  Similarly, the other stick will change the position over the ground.
 
 3. Increase the value of the throttle stick and the vehicle will take off. Move it back to the middle immediately afterwards.
 

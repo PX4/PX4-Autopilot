@@ -80,7 +80,7 @@ The remaining 6 PWM ports are still being adapted (so it is not compatible with 
 ## 购买渠道
 
 - [CUAV Store](https://store.cuav.net)<\br>
-- [CUAV Aliexpress](https://www.aliexpress.com/item/4001042501927.html?gps-id=8041884\&scm=1007.14677.110221.0\&scm_id=1007.14677.110221.0\&scm-url=1007.14677.110221.0\&pvid=3dc0a3ba-fa82-43d2-b0b3-6280e4329cef\&spm=a2g0o.store_home.promoteRecommendProducts_7913969.58)
+- [CUAV Aliexpress](https://www.aliexpress.com/item/4001042501927.html?gps-id=8041884&scm=1007.14677.110221.0&scm_id=1007.14677.110221.0&scm-url=1007.14677.110221.0&pvid=3dc0a3ba-fa82-43d2-b0b3-6280e4329cef&spm=a2g0o.store_home.promoteRecommendProducts_7913969.58)
 
 ## Connections (Wiring)
 

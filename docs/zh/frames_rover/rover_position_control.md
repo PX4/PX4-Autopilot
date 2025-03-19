@@ -35,9 +35,9 @@ Setting up a rover with Ackermann steering is straightforward:
 
 1. In the [Airframe](../config/airframe.md) configuration, select the _Generic Ground Vehicle (Deprecated)_.
 
-   ![Select Ackermann steered airframe](../../assets/config/airframe/airframe_rover_ackermann.png)
+  ![Select Ackermann steered airframe](../../assets/config/airframe/airframe_rover_ackermann.png)
 
-   Select the **Apply and Restart** button.
+  Select the **Apply and Restart** button.
 
 2. Open the [Actuators Configuration & Testing](../config/actuators.md) to map the steering and throttle functions to flight controller outputs.
 
@@ -45,7 +45,7 @@ Setting up a rover with Ackermann steering is straightforward:
 
 1. In the [Airframe](../config/airframe.md) configuration, select either the _Aion Robotics R1 UGV_ or _NXP Cup car: DF Robot GPX (Deprecated)_
 
-   ![Select Differential steered airframe](../../assets/config/airframe/airframe_rover_aion.png)
+  ![Select Differential steered airframe](../../assets/config/airframe/airframe_rover_aion.png)
 
 Select the **Apply and Restart** button.
 

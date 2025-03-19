@@ -108,92 +108,92 @@ The following steps are required to get started:
 
 2. Clone the repository into the workspace:
 
-   ```sh
-   cd $ros_workspace/src
-   git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib
-   ```
+  ```sh
+  cd $ros_workspace/src
+  git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib
+  ```
 
-   ::: info
-   To ensure compatibility, use the latest _main_ branches for PX4, _px4_msgs_ and the library.
-   See also [here](https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4).
+  ::: info
+  To ensure compatibility, use the latest _main_ branches for PX4, _px4_msgs_ and the library.
+  See also [here](https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4).
 
 :::
 
 3. Build the workspace:
 
-   ```sh
-   cd ..
-   colcon build
-   source install/setup.bash
-   ```
+  ```sh
+  cd ..
+  colcon build
+  source install/setup.bash
+  ```
 
 4. In a different shell, start PX4 SITL:
 
-   ```sh
-   cd $px4-autopilot
-   make px4_sitl gazebo-classic
-   ```
+  ```sh
+  cd $px4-autopilot
+  make px4_sitl gazebo-classic
+  ```
 
-   (here we use Gazebo-Classic, but you can use any model or simulator)
+  (here we use Gazebo-Classic, but you can use any model or simulator)
 
 5. Run the micro XRCE agent in a new shell (you can keep it running afterward):
 
-   ```sh
-   MicroXRCEAgent udp4 -p 8888
-   ```
+  ```sh
+  MicroXRCEAgent udp4 -p 8888
+  ```
 
 6. Start QGroundControl.
 
-   ::: info
-   Use QGroundControl Daily, which supports dynamically updating the list of modes.
+  ::: info
+  Use QGroundControl Daily, which supports dynamically updating the list of modes.
 
 :::
 
 7. Back in the ROS 2 terminal, run one of the example modes:
 
-   ```sh
-   ros2 run example_mode_manual_cpp example_mode_manual
-   ```
+  ```sh
+  ros2 run example_mode_manual_cpp example_mode_manual
+  ```
 
-   You should get an output like this showing 'My Manual Mode' mode being registered:
+  You should get an output like this showing 'My Manual Mode' mode being registered:
 
-   ```sh
-   [DEBUG] [example_mode_manual]: Checking message compatibility...
-   [DEBUG] [example_mode_manual]: Subscriber found, continuing
-   [DEBUG] [example_mode_manual]: Publisher found, continuing
-   [DEBUG] [example_mode_manual]: Registering 'My Manual Mode' (arming check: 1, mode: 1, mode executor: 0)
-   [DEBUG] [example_mode_manual]: Subscriber found, continuing
-   [DEBUG] [example_mode_manual]: Publisher found, continuing
-   [DEBUG] [example_mode_manual]: Got RegisterExtComponentReply
-   [DEBUG] [example_mode_manual]: Arming check request (id=1, only printed once)
-   ```
+  ```sh
+  [DEBUG] [example_mode_manual]: Checking message compatibility...
+  [DEBUG] [example_mode_manual]: Subscriber found, continuing
+  [DEBUG] [example_mode_manual]: Publisher found, continuing
+  [DEBUG] [example_mode_manual]: Registering 'My Manual Mode' (arming check: 1, mode: 1, mode executor: 0)
+  [DEBUG] [example_mode_manual]: Subscriber found, continuing
+  [DEBUG] [example_mode_manual]: Publisher found, continuing
+  [DEBUG] [example_mode_manual]: Got RegisterExtComponentReply
+  [DEBUG] [example_mode_manual]: Arming check request (id=1, only printed once)
+  ```
 
 8. On the PX4 shell, you can check that PX4 registered the new mode:
 
-   ```sh
-   commander status
-   ```
+  ```sh
+  commander status
+  ```
 
-   The output should contain:
+  The output should contain:
 
-   ```plain
-   INFO  [commander] Disarmed
-   INFO  [commander] navigation mode: Position
-   INFO  [commander] user intended navigation mode: Position
-   INFO  [commander] in failsafe: no
-   INFO  [commander] External Mode 1: nav_state: 23, name: My Manual Mode
-   ```
+  ```plain
+  INFO  [commander] Disarmed
+  INFO  [commander] navigation mode: Position
+  INFO  [commander] user intended navigation mode: Position
+  INFO  [commander] in failsafe: no
+  INFO  [commander] External Mode 1: nav_state: 23, name: My Manual Mode
+  ```
 
 9. At this point you should be able to see the mode in QGroundControl as well:
 
-   ![QGC Modes](../../assets/middleware/ros2/px4_ros2_interface_lib/qgc_modes.png)
+  ![QGC Modes](../../assets/middleware/ros2/px4_ros2_interface_lib/qgc_modes.png)
 
 10. Select the mode, make sure you have a manual control source (physical or virtual joystick), and arm the vehicle.
-    The mode will then activate, and it should print the following output:
+  The mode will then activate, and it should print the following output:
 
-    ```sh
-    [DEBUG] [example_mode_manual]: Mode 'My Manual Mode' activated
-    ```
+  ```sh
+  [DEBUG] [example_mode_manual]: Mode 'My Manual Mode' activated
+  ```
 
 11. Now you are ready to create your own mode.
 
@@ -422,7 +422,7 @@ If you want to control an independent actuator (a servo), follow these steps:
 1. [Configure the output](../payloads/generic_actuator_control.md#generic-actuator-control-with-mavlink)
 2. Create an instance of [px4_ros2::PeripheralActuatorControls](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1PeripheralActuatorControls.html) in the constructor of your mode.
 3. Call the `set()` method to control the actuator(s).
-   This can be done independently of any active setpoints.
+  This can be done independently of any active setpoints.
 
 ### Telemetry
 
