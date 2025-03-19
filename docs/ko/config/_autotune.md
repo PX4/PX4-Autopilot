@@ -95,12 +95,12 @@ The test steps are:
 
   4. Read the warning popup and click on **OK** to start tuning.
 
-4. 드론은 먼저 빠른 롤 동작을 수행한 후 피치 및 요 동작을 수행합니다.
+4. The drone will first start to perform quick roll motions followed by pitch and yaw motions.
   The progress is shown in the progress bar, next to the _Autotune_ button.
 
 5. <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">Manually land and disarm to apply the new tuning parameters.
   Takeoff carefully and manually test that the vehicle is stable.</div><div v-else-if="$frontmatter.frame === 'Plane'">The tuning will be immediately/automatically be applied and tested in flight (by default).
-  그런 다음, PX4는 4초 테스트를 실행하고 문제가 감지되면 튜닝 작업의 이전 상태로 복원합니다.</div>
+  PX4 will then run a 4 second test and revert the new tuning if a problem is detected.</div>
 
 :::warning
 If any strong oscillations occur, land immediately and follow the instructions in the [Troubleshooting](#troubleshooting) section below.
