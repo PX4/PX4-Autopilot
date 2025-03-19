@@ -69,9 +69,9 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 <!-- [CUAV Store](https://store.cuav.net/index.php?id_product=95&id_product_attribute=0&rewrite=cuav-new-pixhack-v5-autopilot-m8n-gps-for-fpv-rc-drone-quadcopter-helicopter-flight-simulator-free-shipping-whole-sale&controller=product&id_lang=1) -->
 
-[CUAV Aliexpress](https://www.aliexpress.com/item/32890380056.html?spm=a2g0o.detail.1000060.1.7a7233e7mLTlVl\&gps-id=pcDetailBottomMoreThisSeller\&scm=1007.13339.90158.0\&scm_id=1007.13339.90158.0\&scm-url=1007.13339.90158.0\&pvid=d899bfab-a7ca-46e1-adf2-72ad1d649822) (International users)
+[CUAV Aliexpress](https://www.aliexpress.com/item/32890380056.html?spm=a2g0o.detail.1000060.1.7a7233e7mLTlVl&gps-id=pcDetailBottomMoreThisSeller&scm=1007.13339.90158.0&scm_id=1007.13339.90158.0&scm-url=1007.13339.90158.0&pvid=d899bfab-a7ca-46e1-adf2-72ad1d649822) (International users)
 
-[CUAV Taobao](https://item.taobao.com/item.htm?spm=a1z10.5-c.w4002-21303114052.37.a28f697aeYzQx9\&id=594262853015) (China Mainland users)
+CUAV Taobao (China Mainland users)
 
 :::info
 Autopilot may be purchased with included Neo GPS module
@@ -178,8 +178,8 @@ For more information see [Using JTAG for hardware debugging](#using-jtag-for-har
 
 ## Периферійні пристрої
 
-- [Цифровий датчик швидкості польоту](https://item.taobao.com/item.htm?spm=a1z10.3-c-s.w4002-16371268452.37.6d9f48afsFgGZI\\&id=9512463037)
-- [Телеметричні радіо модулі](https://cuav.taobao.com/category-158480951.htm?spm=2013.1.w5002-16371268426.4.410b7a821qYbBq\\&search=y\\&catName=%CA%FD%B4%AB%B5%E7%CC%A8)
+- [Цифровий датчик швидкості польоту](https://item.taobao.com/item.htm?spm=a1z10.3-c-s.w4002-16371268452.37.6d9f48afsFgGZI\&id=9512463037)
+- [Телеметричні радіо модулі](https://cuav.taobao.com/category-158480951.htm?spm=2013.1.w5002-16371268426.4.410b7a821qYbBq\&search=y\&catName=%CA%FD%B4%AB%B5%E7%CC%A8)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 
 ## Підтримувані платформи / Конструкції

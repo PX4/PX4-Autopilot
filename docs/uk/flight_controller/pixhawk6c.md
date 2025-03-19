@@ -33,20 +33,20 @@ Pixhawk® 6C ідеально підходить для розробників �
 - High performance STM32H743 Processor with more computing power & RAM
 - Новий економічний дизайн із низькопрофільним форм-фактором
 - Нова інтегрована система віброізоляції, призначена для фільтрації високочастотних вібрацій та зменшення шуму для забезпечення точних даних
-- IMUs are temperature-controlled by onboard heating resistors, allowing optimum working temperature of IMUs&#x20
+- IMUs are temperature-controlled by onboard heating resistors, allowing optimum working temperature of IMUs&#x20;
 
 # Технічні характеристики
 
 ### **Processors & Sensors**
 
-- FMU Processor: STM32H743&#x20
-  - 32 Bit Arm® Cortex®-M7, 480MHz, 2MB memory, 1MB SRAM&#x20
+- FMU Processor: STM32H743&#x20;
+  - 32 Bit Arm® Cortex®-M7, 480MHz, 2MB memory, 1MB SRAM&#x20;
 - IO Processor: STM32F103
-  - &#x20;32 Bit Arm® Cortex®-M3, 72MHz, 64KB SRAM&#x20
-- On-board sensors&#x20
-  - &#x20;Accel/Gyro: ICM-42688-P&#x20
-  - Accel/Gyro: BMI055&#x20
-  - Mag: IST8310&#x20
+  - &#x20;32 Bit Arm® Cortex®-M3, 72MHz, 64KB SRAM&#x20;
+- On-board sensors&#x20;
+  - &#x20;Accel/Gyro: ICM-42688-P&#x20;
+  - Accel/Gyro: BMI055&#x20;
+  - Mag: IST8310&#x20;
   - Барометр: MS5611
 
 ### **Electrical data**
@@ -210,5 +210,5 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 - [PM02 Power Module](../power_module/holybro_pm02.md)
 - [PM06 Power Module](../power_module/holybro_pm06_pixhawk4mini_power_module.md)
 - [PM07 Power Module](../power_module/holybro_pm07_pixhawk4_power_module.md)
-- [FMUv6C reference design pinout](https://docs.google.com/spreadsheets/d/1FcmWRKd6zjdz3-cnjEDYEmANKZOFzNSc/edit?usp=sharing\&ouid=113251442407318461574\&rtpof=true\&sd=true).
+- FMUv6C reference design pinout.
 - [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).

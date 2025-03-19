@@ -27,36 +27,36 @@ The following steps describe how to install and run the translation node on your
 
 1. (Optional) Create a new ROS 2 workspace in which to build the message translation node and its dependencies:
 
-   ```sh
-   mkdir -p /path/to/ros_ws/src
-   ```
+  ```sh
+  mkdir -p /path/to/ros_ws/src
+  ```
 
 2. Run the following helper script to copy the message definitions and translation node into your ROS workspace directory.
 
-   ```sh
-   cd /path/to/ros_ws
-   /path/to/PX4-Autopilot/Tools/copy_to_ros_ws.sh .
-   ```
+  ```sh
+  cd /path/to/ros_ws
+  /path/to/PX4-Autopilot/Tools/copy_to_ros_ws.sh .
+  ```
 
 3. Build and source the workspace.
 
-   ```sh
-   colcon build
-   source /path/to/ros_ws/install/setup.bash
-   ```
+  ```sh
+  colcon build
+  source /path/to/ros_ws/install/setup.bash
+  ```
 
 4. Finally, run the translation node.
 
-   ```sh
-   ros2 run translation_node translation_node_bin
-   ```
+  ```sh
+  ros2 run translation_node translation_node_bin
+  ```
 
-   You should see an output similar to:
+  You should see an output similar to:
 
-   ```sh
-   [INFO] [1734525720.729530513] [translation_node]: Registered pub/sub topics and versions:
-   [INFO] [1734525720.729594413] [translation_node]: Registered services and versions:
-   ```
+  ```sh
+  [INFO] [1734525720.729530513] [translation_node]: Registered pub/sub topics and versions:
+  [INFO] [1734525720.729594413] [translation_node]: Registered services and versions:
+  ```
 
 With the translation node running, any simultaneously running ROS 2 application designed to communicate with PX4 can do so, as long as it uses message versions recognized by the node.
 The translation node will print a warning if it encounters an unknown topic version.
@@ -295,111 +295,111 @@ The example describes the process of updating the `VehicleAttitude` message defi
 
 1. **Create an Archived Definition of the Current Versioned Message**
 
-   Copy the versioned `.msg` topic message file (or `.srv` service message file) to `px4_msgs_old/msg/` (or `px4_msgs_old/srv/`), and append its message version to the file name.
+  Copy the versioned `.msg` topic message file (or `.srv` service message file) to `px4_msgs_old/msg/` (or `px4_msgs_old/srv/`), and append its message version to the file name.
 
-   For example:<br>
-   Copy `msg/versioned/VehicleAttitude.msg` → `msg/versioned/px4_msgs_old/msg/VehicleAttitudeV3.msg`
+  For example:<br>
+  Copy `msg/versioned/VehicleAttitude.msg` → `msg/versioned/px4_msgs_old/msg/VehicleAttitudeV3.msg`
 
 2. **Update Translation References to the Archived Definition**
 
-   Update the existing translations header files `msg/translation_node/translations/*.h` to reference the newly archived message definition.
+  Update the existing translations header files `msg/translation_node/translations/*.h` to reference the newly archived message definition.
 
-   For example, update references in those files:<br>
+  For example, update references in those files:<br>
 
-   - Replace `px4_msgs::msg::VehicleAttitude` → `px4_msgs_old::msg::VehicleAttitudeV3`
-   - Replace `#include <px4_msgs/msg/vehicle_attitude.hpp>` → `#include <px4_msgs_old/msg/vehicle_attitude_v3.hpp>`
+  - Replace `px4_msgs::msg::VehicleAttitude` → `px4_msgs_old::msg::VehicleAttitudeV3`
+  - Replace `#include <px4_msgs/msg/vehicle_attitude.hpp>` → `#include <px4_msgs_old/msg/vehicle_attitude_v3.hpp>`
 
 3. **Update the Versioned Definition**
 
-   Update the versioned `.msg` topic message file (or `.srv` service message file) with required changes.
+  Update the versioned `.msg` topic message file (or `.srv` service message file) with required changes.
 
-   First increment the `MESSAGE_VERSION` field.
-   Then update the message fields that prompted the version change.
+  First increment the `MESSAGE_VERSION` field.
+  Then update the message fields that prompted the version change.
 
-   For example, update `msg/versioned/VehicleAttitude.msg` from:
+  For example, update `msg/versioned/VehicleAttitude.msg` from:
 
-   ```.msg
-   uint32 MESSAGE_VERSION = 3
-   uint64 timestamp
-   ...
-   ```
+  ```txt
+  uint32 MESSAGE_VERSION = 3
+  uint64 timestamp
+  ...
+  ```
 
-   to
+  to
 
-   ```.msg
-   uint32 MESSAGE_VERSION = 4  # Increment
-   uint64 timestamp
-   float32 new_field           # Make definition changes
-   ...
-   ```
+  ```txt
+  uint32 MESSAGE_VERSION = 4  # Increment
+  uint64 timestamp
+  float32 new_field           # Make definition changes
+  ...
+  ```
 
 4. **Add a New Translation Header**
 
-   Add a new version translation to bridge the archived version and the updated current version, by creating a new translation header.
+  Add a new version translation to bridge the archived version and the updated current version, by creating a new translation header.
 
-   For example, create a direct translation header `translation_node/translations/translation_vehicle_attitude_v4.h`:
+  For example, create a direct translation header `translation_node/translations/translation_vehicle_attitude_v4.h`:
 
-   ```c++
-   // Translate VehicleAttitude v3 <--> v4
-   #include <px4_msgs_old/msg/vehicle_attitude_v3.hpp>
-   #include <px4_msgs/msg/vehicle_attitude.hpp>
+  ```c++
+  // Translate VehicleAttitude v3 <--> v4
+  #include <px4_msgs_old/msg/vehicle_attitude_v3.hpp>
+  #include <px4_msgs/msg/vehicle_attitude.hpp>
 
-   class VehicleAttitudeV4Translation {
-   public:
-     using MessageOlder = px4_msgs_old::msg::VehicleAttitudeV3;
-     static_assert(MessageOlder::MESSAGE_VERSION == 3);
+  class VehicleAttitudeV4Translation {
+  public:
+    using MessageOlder = px4_msgs_old::msg::VehicleAttitudeV3;
+    static_assert(MessageOlder::MESSAGE_VERSION == 3);
 
-     using MessageNewer = px4_msgs::msg::VehicleAttitude;
-     static_assert(MessageNewer::MESSAGE_VERSION == 4);
+    using MessageNewer = px4_msgs::msg::VehicleAttitude;
+    static_assert(MessageNewer::MESSAGE_VERSION == 4);
 
-     static constexpr const char* kTopic = "fmu/out/vehicle_attitude";
+    static constexpr const char* kTopic = "fmu/out/vehicle_attitude";
 
-     static void fromOlder(const MessageOlder &msg_older, MessageNewer &msg_newer) {
-       msg_newer.timestamp = msg_older.timestamp;
-       msg_newer.timestamp_sample = msg_older.timestamp_sample;
-       msg_newer.q[0] = msg_older.q[0];
-       msg_newer.q[1] = msg_older.q[1];
-       msg_newer.q[2] = msg_older.q[2];
-       msg_newer.q[3] = msg_older.q[3];
-       msg_newer.delta_q_reset = msg_older.delta_q_reset;
-       msg_newer.quat_reset_counter = msg_older.quat_reset_counter;
+    static void fromOlder(const MessageOlder &msg_older, MessageNewer &msg_newer) {
+      msg_newer.timestamp = msg_older.timestamp;
+      msg_newer.timestamp_sample = msg_older.timestamp_sample;
+      msg_newer.q[0] = msg_older.q[0];
+      msg_newer.q[1] = msg_older.q[1];
+      msg_newer.q[2] = msg_older.q[2];
+      msg_newer.q[3] = msg_older.q[3];
+      msg_newer.delta_q_reset = msg_older.delta_q_reset;
+      msg_newer.quat_reset_counter = msg_older.quat_reset_counter;
 
-       // Populate `new_field` with some value
-       msg_newer.new_field = -1;
-     }
+      // Populate `new_field` with some value
+      msg_newer.new_field = -1;
+    }
 
-     static void toOlder(const MessageNewer &msg_newer, MessageOlder &msg_older) {
-       msg_older.timestamp = msg_newer.timestamp;
-       msg_older.timestamp_sample = msg_newer.timestamp_sample;
-       msg_older.q[0] = msg_newer.q[0];
-       msg_older.q[1] = msg_newer.q[1];
-       msg_older.q[2] = msg_newer.q[2];
-       msg_older.q[3] = msg_newer.q[3];
-       msg_older.delta_q_reset = msg_newer.delta_q_reset;
-       msg_older.quat_reset_counter = msg_newer.quat_reset_counter;
+    static void toOlder(const MessageNewer &msg_newer, MessageOlder &msg_older) {
+      msg_older.timestamp = msg_newer.timestamp;
+      msg_older.timestamp_sample = msg_newer.timestamp_sample;
+      msg_older.q[0] = msg_newer.q[0];
+      msg_older.q[1] = msg_newer.q[1];
+      msg_older.q[2] = msg_newer.q[2];
+      msg_older.q[3] = msg_newer.q[3];
+      msg_older.delta_q_reset = msg_newer.delta_q_reset;
+      msg_older.quat_reset_counter = msg_newer.quat_reset_counter;
 
-       // Discards `new_field` from MessageNewer
-     }
-   };
+      // Discards `new_field` from MessageNewer
+    }
+  };
 
-   REGISTER_TOPIC_TRANSLATION_DIRECT(VehicleAttitudeV4Translation);
-   ```
+  REGISTER_TOPIC_TRANSLATION_DIRECT(VehicleAttitudeV4Translation);
+  ```
 
-   Version translation templates are provided here:
+  Version translation templates are provided here:
 
-   - [Direct Topic Message Translation Template](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/example_translation_direct_v1.h)
-   - [Generic Topic Message Translation Template](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/example_translation_multi_v2.h)
-   - [Direct Service Message Translation Template](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/example_translation_service_v1.h)
+  - [Direct Topic Message Translation Template](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/example_translation_direct_v1.h)
+  - [Generic Topic Message Translation Template](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/example_translation_multi_v2.h)
+  - [Direct Service Message Translation Template](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/example_translation_service_v1.h)
 
 5. **Include New Headers in `all_translations.h`**
 
-   Add all newly created headers to [`translations/all_translations.h`](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/all_translations.h) so that the translation node can find them.
+  Add all newly created headers to [`translations/all_translations.h`](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/all_translations.h) so that the translation node can find them.
 
-   For example, append the following line to `all_translation.h`:
+  For example, append the following line to `all_translation.h`:
 
-   ```c++
-   #include "translation_vehicle_attitude_v4.h"
-   ```
+  ```c++
+  #include "translation_vehicle_attitude_v4.h"
+  ```
 
 Note that in the example above and in most cases, step 4 only requires the developer to create a direct translation for the definition change.
 This is because the changes only involved a single message.

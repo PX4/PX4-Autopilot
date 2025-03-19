@@ -109,92 +109,92 @@ Unless the mode is safety-critical, requires strict timing or very high update r
 
 2. Клонуйте репозиторій в робочий простір:
 
-   ```sh
-   cd $ros_workspace/src
-   git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib
-   ```
+  ```sh
+  cd $ros_workspace/src
+  git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib
+  ```
 
-   :::info
-   Для забезпечення сумісності, використовуйте останні _main_ гілки для PX4, _px4_msgs_ та бібліотеки.
-   Дивіться також [here](https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4).
+  :::info
+  Для забезпечення сумісності, використовуйте останні _main_ гілки для PX4, _px4_msgs_ та бібліотеки.
+  Дивіться також [here](https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4).
 
 :::
 
 3. Побудуйте робочий простір:
 
-   ```sh
-   cd ..
-   colcon build
-   source install/setup.bash
-   ```
+  ```sh
+  cd ..
+  colcon build
+  source install/setup.bash
+  ```
 
 4. У іншій оболонці запустіть PX4 SITL:
 
-   ```sh
-   cd $px4-autopilot
-   make px4_sitl gazebo-classic
-   ```
+  ```sh
+  cd $px4-autopilot
+  make px4_sitl gazebo-classic
+  ```
 
-   (тут ми використовуємо Gazebo-Classic, але ви можете використовувати будь-яку модель або симулятор)
+  (тут ми використовуємо Gazebo-Classic, але ви можете використовувати будь-яку модель або симулятор)
 
 5. Запустіть агента micro XRCE в новій оболонці (після цього ви можете залишити його запущеним):
 
-   ```sh
-   MicroXRCEAgent udp4 -p 8888
-   ```
+  ```sh
+  MicroXRCEAgent udp4 -p 8888
+  ```
 
 6. Запустіть QGroundControl.
 
-   :::info
-   Використовуйте QGroundControl Daily, яка підтримує динамічне оновлення списку режимів.
+  :::info
+  Використовуйте QGroundControl Daily, яка підтримує динамічне оновлення списку режимів.
 
 :::
 
 7. Повернутись до терміналу 2 ROS, запустити один із прикладів:
 
-   ```sh
-   ros2 run example_mode_manual_cpp example_mode_manual
-   ```
+  ```sh
+  ros2 run example_mode_manual_cpp example_mode_manual
+  ```
 
-   Ви повинні отримати на виході режим 'Мій ручний режим' зареєстрований:
+  Ви повинні отримати на виході режим 'Мій ручний режим' зареєстрований:
 
-   ```sh
-   [DEBUG] [example_mode_manual]: Checking message compatibility...
-   [DEBUG] [example_mode_manual]: Subscriber found, continuing
-   [DEBUG] [example_mode_manual]: Publisher found, continuing
-   [DEBUG] [example_mode_manual]: Registering 'My Manual Mode' (arming check: 1, mode: 1, mode executor: 0)
-   [DEBUG] [example_mode_manual]: Subscriber found, continuing
-   [DEBUG] [example_mode_manual]: Publisher found, continuing
-   [DEBUG] [example_mode_manual]: Got RegisterExtComponentReply
-   [DEBUG] [example_mode_manual]: Arming check request (id=1, only printed once)
-   ```
+  ```sh
+  [DEBUG] [example_mode_manual]: Checking message compatibility...
+  [DEBUG] [example_mode_manual]: Subscriber found, continuing
+  [DEBUG] [example_mode_manual]: Publisher found, continuing
+  [DEBUG] [example_mode_manual]: Registering 'My Manual Mode' (arming check: 1, mode: 1, mode executor: 0)
+  [DEBUG] [example_mode_manual]: Subscriber found, continuing
+  [DEBUG] [example_mode_manual]: Publisher found, continuing
+  [DEBUG] [example_mode_manual]: Got RegisterExtComponentReply
+  [DEBUG] [example_mode_manual]: Arming check request (id=1, only printed once)
+  ```
 
 8. На PX4 оболонці ви можете перевірити, що PX4 зареєстрував новий режим:
 
-   ```sh
-   commander status
-   ```
+  ```sh
+  commander status
+  ```
 
-   Вихід має містити:
+  Вихід має містити:
 
-   ```plain
-   INFO  [commander] Disarmed
-   INFO  [commander] navigation mode: Position
-   INFO  [commander] user intended navigation mode: Position
-   INFO  [commander] in failsafe: no
-   INFO  [commander] External Mode 1: nav_state: 23, name: My Manual Mode
-   ```
+  ```plain
+  INFO  [commander] Disarmed
+  INFO  [commander] navigation mode: Position
+  INFO  [commander] user intended navigation mode: Position
+  INFO  [commander] in failsafe: no
+  INFO  [commander] External Mode 1: nav_state: 23, name: My Manual Mode
+  ```
 
 9. У цій точці ви також повинні побачити режим в QGroundControl :
 
 
 
 10. Виберіть режим, переконайтеся, що у вас є ручне джерело управління (фізичний або віртуальний джойстик), та озброєння транспорту.
-    Тоді режим активується, і він має вивести наступний вивід:
+  Тоді режим активується, і він має вивести наступний вивід:
 
-    ```sh
-    [DEBUG] [example_mode_manual]: Mode 'My Manual Mode' activated
-    ```
+  ```sh
+  [DEBUG] [example_mode_manual]: Mode 'My Manual Mode' activated
+  ```
 
 11. Тепер ви готові створити свій власний режим.
 
@@ -423,7 +423,7 @@ _goto_setpoint->update(
 1. Налаштуйте вивід
 2. Створіть екземпляр px4_ros2::PeripheralActuatorControls у конструкторі вашого режиму.
 3. Викличте метод set(), щоб керувати клапаном(-ами).
-   Це може бути зроблено незалежно від будь-яких активних встановлень.
+  Це може бути зроблено незалежно від будь-яких активних встановлень.
 
 ### Телеметрія
 

@@ -148,9 +148,9 @@ Note that there can be negative impacts on performance if `IMU_GYRO_CUTOFF` and 
 
 Below is an example for three different `IMU_DGYRO_CUTOFF` filter values (40Hz, 70Hz, 90Hz).
 При 90 Гц загальний рівень шуму починає збільшуватися (особливо для крену), тому частота відсічки 70 Гц є безпечним налаштуванням.
-![IMU\_DGYRO\_CUTOFF=40](../../assets/config/mc/filter_tuning/actuator_controls_fft_dgyrocutoff_40.png)
-![IMU\_DGYRO\_CUTOFF=70](../../assets/config/mc/filter_tuning/actuator_controls_fft_dgyrocutoff_70.png)
-![IMU\_DGYRO\_CUTOFF=90](../../assets/config/mc/filter_tuning/actuator_controls_fft_dgyrocutoff_90.png)
+![IMU_DGYRO_CUTOFF=40](../../assets/config/mc/filter_tuning/actuator_controls_fft_dgyrocutoff_40.png)
+![IMU_DGYRO_CUTOFF=70](../../assets/config/mc/filter_tuning/actuator_controls_fft_dgyrocutoff_70.png)
+![IMU_DGYRO_CUTOFF=90](../../assets/config/mc/filter_tuning/actuator_controls_fft_dgyrocutoff_90.png)
 
 :::info
 The plot cannot be compared between different vehicles, as the y axis scale can be different.
@@ -161,16 +161,16 @@ The plot cannot be compared between different vehicles, as the y axis scale can 
 In this case you might use the settings: [IMU_GYRO_NF0_FRQ=32](../advanced_config/parameter_reference.md#IMU_GYRO_NF0_FRQ) and [IMU_GYRO_NF0_BW=5](../advanced_config/parameter_reference.md#IMU_GYRO_NF0_BW) (note, this spike is narrower than usual).
 Низкочастотні фільтри та фільтр позбавлення можна налаштовувати незалежно (тобто вам не потрібно встановлювати фільтр позбавлення перед збором даних для налаштування низкочастотного фільтра).
 
-![IMU\_GYRO\_NF0\_FRQ=32 IMU\_GYRO\_NF0\_BW=5](../../assets/config/mc/filter_tuning/actuator_controls_fft_gyro_notch_32.png)
+![IMU_GYRO_NF0_FRQ=32 IMU_GYRO_NF0_BW=5](../../assets/config/mc/filter_tuning/actuator_controls_fft_gyro_notch_32.png)
 
 ## Додаткові поради
 
 1. Прийнятна затримка залежить від розміру транспортного засобу та очікувань.
-   FPV racers typically tune for the absolute minimal latency (as a ballpark `IMU_GYRO_CUTOFF` around 120, `IMU_DGYRO_CUTOFF` of 50 to 80).
-   For bigger vehicles latency is less critical and `IMU_GYRO_CUTOFF` of around 80 might be acceptable.
+  FPV racers typically tune for the absolute minimal latency (as a ballpark `IMU_GYRO_CUTOFF` around 120, `IMU_DGYRO_CUTOFF` of 50 to 80).
+  For bigger vehicles latency is less critical and `IMU_GYRO_CUTOFF` of around 80 might be acceptable.
 
 2. You can start tuning at higher `IMU_GYRO_CUTOFF` values (e.g. 100Hz), which might be desirable because the default tuning of `IMU_GYRO_CUTOFF` is set very low (30Hz).
-   Однак вам потрібно бути обізнаними з ризиками:
-   - Не літайте більше 20-30 секунд
-   - Перевірте, що двигуни не нагріваються занадто сильно
-   - Слухайте дивні звуки та симптоми надмірного шуму, як обговорено вище.
+  Однак вам потрібно бути обізнаними з ризиками:
+  - Не літайте більше 20-30 секунд
+  - Перевірте, що двигуни не нагріваються занадто сильно
+  - Слухайте дивні звуки та симптоми надмірного шуму, як обговорено вище.

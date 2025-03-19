@@ -66,9 +66,9 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 [CUAV Store](https://store.cuav.net/shop/v5-nano/)
 
-[CUAV Aliexpress](https://www.aliexpress.com/item/33050770314.html?storeId=3257035\&spm=2114.12010612.8148356.9.dbe6790bjW2hpH) (international users)
+CUAV Aliexpress (international users)
 
-[CUAV Taobao](https://item.taobao.com/item.htm?spm=a230r.1.14.8.26ab5258veQJRu\&id=569404317857\&ns=1\&abbucket=13#detail) (China Mainland users)
+CUAV Taobao (China Mainland users)
 
 :::info
 Autopilot may be purchased with included Neo GPS module
@@ -167,8 +167,8 @@ The _V5 nano_ has no over current protection.
 
 ## Периферійні пристрої
 
-- [Цифровий датчик швидкості польоту](https://item.taobao.com/item.htm?spm=a1z10.3-c-s.w4002-16371268452.37.6d9f48afsFgGZI\\&id=9512463037)
-- [Телеметричні радіо модулі](https://cuav.taobao.com/category-158480951.htm?spm=2013.1.w5002-16371268426.4.410b7a821qYbBq\\&search=y\\&catName=%CA%FD%B4%AB%B5%E7%CC%A8)
+- [Цифровий датчик швидкості польоту](https://item.taobao.com/item.htm?spm=a1z10.3-c-s.w4002-16371268452.37.6d9f48afsFgGZI\&id=9512463037)
+- [Телеметричні радіо модулі](https://cuav.taobao.com/category-158480951.htm?spm=2013.1.w5002-16371268426.4.410b7a821qYbBq\&search=y\&catName=%CA%FD%B4%AB%B5%E7%CC%A8)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 
 ## Підтримувані платформи / Конструкції
