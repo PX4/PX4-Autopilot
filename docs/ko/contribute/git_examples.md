@@ -109,64 +109,64 @@ To switch between branches:
 
 1. Clean up the current branch, de-initializing submodule and removing all build artifacts:
 
-   ```sh
-   make clean
-   make distclean
-   ```
+  ```sh
+  make clean
+  make distclean
+  ```
 
 2. Switch to a new branch or tag (here we first fetch the fictional branch "PR_test_branch" from the `upstream` remote):
 
-   ```sh
-   git fetch upstream PR_test_branch
-   git checkout PR_test_branch
-   ```
+  ```sh
+  git fetch upstream PR_test_branch
+  git checkout PR_test_branch
+  ```
 
 3. Get the submodules for the new branch:
 
-   ```sh
-   make submodulesclean
-   ```
+  ```sh
+  make submodulesclean
+  ```
 
 <!-- FYI: Cleaning commands in https://github.com/PX4/PX4-Autopilot/blob/main/Makefile#L494 -->
 
 ## 특정 릴리스 가져오기
 
 Specific PX4 point releases are made as tags of the [release branches](#get-a-release-branch), and are named using the format `v<release>`.
-These are [listed on Github here](https://github.com/PX4/PX4-Autopilot/releases?q=release\&expanded=true) (or you can query all tags using `git tag -l`).
+These are listed on Github here (or you can query all tags using `git tag -l`).
 
 To get the source code for a _specific older release_ (tag):
 
 1. Clone the PX4-Autopilot repo and navigate into _PX4-Autopilot_ directory:
 
-   ```sh
-   git clone https://github.com/PX4/PX4-Autopilot.git
-   cd PX4-Autopilot
-   ```
+  ```sh
+  git clone https://github.com/PX4/PX4-Autopilot.git
+  cd PX4-Autopilot
+  ```
 
-   :::note
+  :::note
 
-   You can reuse an existing repo rather than cloning a new one.
-   In this case clean the build environment (see [changing source trees](#changing-source-trees)):
+  You can reuse an existing repo rather than cloning a new one.
+  In this case clean the build environment (see [changing source trees](#changing-source-trees)):
 
-   ```sh
-   make clean
-   make distclean
-   ```
+  ```sh
+  make clean
+  make distclean
+  ```
 
 
 :::
 
 2. Checkout code for particular tag (e.g. for tag v1.13.0-beta2)
 
-   ```sh
-   git checkout v1.13.0-beta2
-   ```
+  ```sh
+  git checkout v1.13.0-beta2
+  ```
 
 3. Update submodules:
 
-   ```sh
-   make submodulesclean
-   ```
+  ```sh
+  make submodulesclean
+  ```
 
 ## Get a Release Branch
 

@@ -44,12 +44,12 @@ The following options have been tested:
 - [GPS F9P (included in Skynode eval. kit)](../gps_compass/rtk_gps_holybro_h-rtk-f9p.md)
 - [GPS M9N (cheaper alternative to F9P)](../gps_compass/rtk_gps_holybro_h-rtk-m8p.md)
 - [Airspeed sensor (included in Skynode eval. kit)](https://www.dualrc.com/parts/airspeed-sensor-sdp33) — recommended for improved safety and performance
-- [Airspeed sensor (cheaper alternative)](https://holybro.com/products/digital-air-speed-sensor?pr_prod_strat=use_description\&pr_rec_id=236dfda00\&pr_rec_pid=7150470561981\&pr_ref_pid=7150472462525\&pr_seq=uniform)
+- [Airspeed sensor (cheaper alternative)](https://holybro.com/products/digital-air-speed-sensor?pr_prod_strat=use_description&pr_rec_id=236dfda00&pr_rec_pid=7150470561981&pr_ref_pid=7150472462525&pr_seq=uniform)
 - [Lidar Lightware lw20-c (included in Skynode eval. kit)](../sensor/sfxx_lidar.md) (Optional)
 - [Lidar Seeed Studio PSK-CM8JL65-CC5 (cheaper alternative)](https://www.seeedstudio.com/PSK-CM8JL65-CC5-Infrared-Distance-Measuring-Sensor-p-4028.html) (Optional)
 - [Radio (RC) System](../getting_started/rc_transmitter_receiver.md) of your preference
 - [Groundstation and Radio link](https://holybro.com/collections/rc-radio-transmitter-receiver/products/skydroid-h12?variant=42940989931709)
-- [USB-C extension cable](https://www.digitec.ch/en/s1/product/powerguard-usb-c-usb-c-025-m-usb-cables-22529949?dbq=1\&gclid=Cj0KCQjw2cWgBhDYARIsALggUhrh-z-7DSU0wKfLBVa8filkXLQaxUpi7pC0ffQyRzLng8Ph01h2R1gaAp0mEALw_wcB\&gclsrc=aw.ds)
+- [USB-C extension cable](https://www.digitec.ch/en/s1/product/powerguard-usb-c-usb-c-025-m-usb-cables-22529949?dbq=1&gclid=Cj0KCQjw2cWgBhDYARIsALggUhrh-z-7DSU0wKfLBVa8filkXLQaxUpi7pC0ffQyRzLng8Ph01h2R1gaAp0mEALw_wcB&gclsrc=aw.ds)
 - [I2C Splitter](https://www.3dxr.co.uk/autopilots-c2/the-cube-aka-pixhawk-2-1-c9/cube-cables-accessories-sensors-c15/cubepilot-i2c-can-splitter-jst-gh-4pin-p2840)
 - [3D-Printed mounts](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/vtol/foxtech_loong_2160/loong-3d-prints.zip)
   - 1x Baseplate
@@ -61,9 +61,9 @@ The following options have been tested:
   - 1x USB-C Holder 1
   - 1x USB-C Holder 2
 - [Messing threaded inserts](https://cnckitchen.store/products/gewindeeinsatz-threaded-insert-set-standard-200-stk-pcs)
-- [XT30 connectors](https://www.amazon.com/Connectors-Female-Pieces-Shrink-Battery/dp/B0875MBLNH/ref=sr_1_1?keywords=xt30+connector\&qid=1700643604\&sr=8-1)
-- [Div. Screws](https://de.aliexpress.com/item/1005005999729125.html?spm=a2g0o.productlist.main.1.7fe0c7fcvInMsM\&algo_pvid=2e5373e9-747f-4a28-9739-cd59d05d64f1\&aem_p4p_detail=202311220106396068090130108300006423842\&algo_exp_id=2e5373e9-747f-4a28-9739-cd59d05d64f1-0\&pdp_npi=4%40dis%21CHF%2114.42%213.72%21%21%2116.01%21%21%402101f04d17006439995917563eeeb0%2112000035246480339%21sea%21CH%210%21AB\&curPageLogUid=24AixvgVOlG3\&search_p4p_id=202311220106396068090130108300006423842_1)
-- [Zip ties](https://www.amazon.com/Superun-Cable-Tie-Kit-Assorted/dp/B07TMKJP5S/ref=sr_1_2?crid=968Z3XJK9N3J\&keywords=zip%2Bties%2Bset\&qid=1700644053\&sprefix=zip%2Bties%2Bset%2Caps%2C155\&sr=8-2\&th=1)
+- [XT30 connectors](https://www.amazon.com/Connectors-Female-Pieces-Shrink-Battery/dp/B0875MBLNH/ref=sr_1_1?keywords=xt30+connector&qid=1700643604&sr=8-1)
+- [Div. Screws](https://de.aliexpress.com/item/1005005999729125.html?spm=a2g0o.productlist.main.1.7fe0c7fcvInMsM&algo_pvid=2e5373e9-747f-4a28-9739-cd59d05d64f1&aem_p4p_detail=202311220106396068090130108300006423842&algo_exp_id=2e5373e9-747f-4a28-9739-cd59d05d64f1-0&pdp_npi=4%40dis%21CHF%2114.42%213.72%21%21%2116.01%21%21%402101f04d17006439995917563eeeb0%2112000035246480339%21sea%21CH%210%21AB&curPageLogUid=24AixvgVOlG3&search_p4p_id=202311220106396068090130108300006423842_1)
+- [Zip ties](https://www.amazon.com/Superun-Cable-Tie-Kit-Assorted/dp/B07TMKJP5S/ref=sr_1_2?crid=968Z3XJK9N3J&keywords=zip%2Bties%2Bset&qid=1700644053&sprefix=zip%2Bties%2Bset%2Caps%2C155&sr=8-2&th=1)
 - [Antenna extension cable - matching your radio system](https://www.digikey.ch/de/products/detail/amphenol-rf/095-902-536-012/13246174)
 - [Recommended Battery (12S 22Ah)](https://genstattu.com/tattu-22-2v-30c-6s-22000mah-lipo-battery-with-xt90-s-plug-for-uav.html)
 
@@ -73,7 +73,7 @@ The following tools were used for this build.
 
 - Hex driver set
 - Wrench set
-- [Soldering station](https://www.amazon.com/UY-CHAN-Programmable-Pocket-size-Soldering/dp/B07G71CKC4/ref=sr_1_7?crid=2S2XK6363XRDF\&keywords=ts+80+soldering+iron\&qid=1700644208\&sprefix=ts+80%2Caps%2C151\&sr=8-7)
+- [Soldering station](https://www.amazon.com/UY-CHAN-Programmable-Pocket-size-Soldering/dp/B07G71CKC4/ref=sr_1_7?crid=2S2XK6363XRDF&keywords=ts+80+soldering+iron&qid=1700644208&sprefix=ts+80%2Caps%2C151&sr=8-7)
 - Glue: Hot glue, 5 min Epoxy
 - 테이프
 - 3M Double sided tape ([3M VHB tape](https://www.amazon.in/3M-VHB-Tape-4910-Length/dp/B00GTABM3Y))
@@ -99,33 +99,33 @@ Use a soldering iron to press the threaded inserts into the 3D-Printed parts.
 
 1. Insert 10x M3 threaded inserts into the baseplate as shown in the picture:
 
-   ![Baseplate with threaded inserts](../../assets/airframes/vtol/foxtech_loong_2160/03-baseplate.jpg)
+  ![Baseplate with threaded inserts](../../assets/airframes/vtol/foxtech_loong_2160/03-baseplate.jpg)
 
 2. Insert 2x M3 threaded inserts into the stack fixture as shown in the picture below:
 
-   ![Stack fixture with threaded inserts](../../assets/airframes/vtol/foxtech_loong_2160/04-stack-fixture.jpg)
+  ![Stack fixture with threaded inserts](../../assets/airframes/vtol/foxtech_loong_2160/04-stack-fixture.jpg)
 
 3. Insert 2x M4 threaded inserts into the fan mount and radio mount as shown in the picture below.
 
-   ![Radio-mount](../../assets/airframes/vtol/foxtech_loong_2160/05-radio-mount.jpg)
+  ![Radio-mount](../../assets/airframes/vtol/foxtech_loong_2160/05-radio-mount.jpg)
 
-   If you would like to add a 40mm 5V fan to the fan mount, insert 4x M3 inserts.
+  If you would like to add a 40mm 5V fan to the fan mount, insert 4x M3 inserts.
 
-   ![Fan-mount](../../assets/airframes/vtol/foxtech_loong_2160/06-fan-mount.jpg)
+  ![Fan-mount](../../assets/airframes/vtol/foxtech_loong_2160/06-fan-mount.jpg)
 
 4. Change the cable connector to a servo connector so it can be plugged into the servo rail to be powered.
 
-   ::: info
-   A fan might be needed if a powerful radio is used.
+  ::: info
+  A fan might be needed if a powerful radio is used.
 
 :::
 
-   ![Fan-mount with fan](../../assets/airframes/vtol/foxtech_loong_2160/07-fan-mount.jpg)
+  ![Fan-mount with fan](../../assets/airframes/vtol/foxtech_loong_2160/07-fan-mount.jpg)
 
 5. Remove the original mounting plate from the vehicle.
-   Tape the cables to the outside of the fuselage.
+  Tape the cables to the outside of the fuselage.
 
-   ![Empty fuselage](../../assets/airframes/vtol/foxtech_loong_2160/08-preparations.jpg)
+  ![Empty fuselage](../../assets/airframes/vtol/foxtech_loong_2160/08-preparations.jpg)
 
 6. Slide the baseplate into the vehicle.
 
@@ -142,9 +142,9 @@ The 40A power module provides power for the avionics when using Skynode (and com
 1. Remove the case from the 40A PM.
 2. Screw the PM with 2x M2x6mm to the bottom of the baseplate.
 3. Create a cable to extend the XT60 connector to an XT30 that is mounted on the baseplate.
-   With that, the 6S battery power can be directly plugged into the XT30 connector with the pre-configured cable that comes with the vehicle.
+  With that, the 6S battery power can be directly plugged into the XT30 connector with the pre-configured cable that comes with the vehicle.
 
-   ![40A Power Module installation](../../assets/airframes/vtol/foxtech_loong_2160/10-40a-power-module.jpg)
+  ![40A Power Module installation](../../assets/airframes/vtol/foxtech_loong_2160/10-40a-power-module.jpg)
 
 If necessary, the 10V output of the radio port on the PM can also be exposed via an XT30 that can be mounted next to the 6S battery input XT60.
 
@@ -153,17 +153,17 @@ If necessary, the 10V output of the radio port on the PM can also be exposed via
 #### Pitot Tube
 
 1. The sensor can be installed with 2x M3x16mm screws in the front right corner of the baseplate.
-   Take care that the connector is facing the center of the fuselage.
+  Take care that the connector is facing the center of the fuselage.
 
-   ![Mounted airspeed sensor](../../assets/airframes/vtol/foxtech_loong_2160/11-airspeed-sensor.jpg)
+  ![Mounted airspeed sensor](../../assets/airframes/vtol/foxtech_loong_2160/11-airspeed-sensor.jpg)
 
-   Only the front tube (not as shown in the picture) is used; the other tube can be removed since our experience showed that the pressure inside the fuselage is sufficient as static pressure.
+  Only the front tube (not as shown in the picture) is used; the other tube can be removed since our experience showed that the pressure inside the fuselage is sufficient as static pressure.
 
 2. When the stack is mounted inside the fuselage, the tube coming from the wing and the one from the airspeed sensor need to be spliced together.
-   Use some spit (that's the easiest way) to push them together and afterward use a heat shrink tube to reinforce the connection.
+  Use some spit (that's the easiest way) to push them together and afterward use a heat shrink tube to reinforce the connection.
 
-   :::warning
-   Use a heat source carefully since the foam starts to melt at high temperatures.
+  :::warning
+  Use a heat source carefully since the foam starts to melt at high temperatures.
 
 :::
 
@@ -175,22 +175,22 @@ If no lidar is mounted you should disable using fixed-wing actuation in hover to
 :::
 
 1. Mark the location to install the lidar with some tape or a pen.
-   Cut a hole inside the PVC shell and the foam, so that the lidar fits in place.
+  Cut a hole inside the PVC shell and the foam, so that the lidar fits in place.
 
-   ![Prepared lidar hole](../../assets/airframes/vtol/foxtech_loong_2160/12-lidar-01.jpg)
+  ![Prepared lidar hole](../../assets/airframes/vtol/foxtech_loong_2160/12-lidar-01.jpg)
 
 2. Secure the lidar with hot glue.
 
-   ![Installed lidar](../../assets/airframes/vtol/foxtech_loong_2160/13-lidar-02.jpg)
+  ![Installed lidar](../../assets/airframes/vtol/foxtech_loong_2160/13-lidar-02.jpg)
 
 #### GPS/나침반
 
 1. Use double sided tape to mount the GPS in the rear of the vehicle underneath the rear latch.
 
-   ![Installed GPS](../../assets/airframes//vtol/foxtech_loong_2160/14-gps.jpg)
+  ![Installed GPS](../../assets/airframes//vtol/foxtech_loong_2160/14-gps.jpg)
 
-   The arrow on the GPS for the orientation can be ignored.
-   The orientation will be detected by the flight controller during the calibration.
+  The arrow on the GPS for the orientation can be ignored.
+  The orientation will be detected by the flight controller during the calibration.
 
 ### 비행 콘트롤러
 
@@ -203,15 +203,15 @@ Install either the Pixhawk or Skynode onto the baseplate.
 #### Skynode
 
 1. Use 4x M3x8 screws to mount the Skynode to the baseplate.
-   Make sure that the top of the "A" is facing to the front of the vehicle.
+  Make sure that the top of the "A" is facing to the front of the vehicle.
 2. Plug the 40A Power Module into the upper one of the two power connectors.
 3. Plug one (or if needed two) USB adapters into the 4-pin JST-GH connectors into the back of the Skynode and feed them to the front of the plate.
-   Fix the cables with zip ties in place.
+  Fix the cables with zip ties in place.
 4. Tape a I2C splitter to the front right side of the baseplate (The splitter can be used to plug in ETH devices such as a radio link.)
 5. Connect the I2C splitter with the ETH port in the back of the Skynode.
 6. Plug in the two 40-pin cables into the front of the Skynode.
 7. Plug in the USB-C extension cable and bend it over to the front.
-   The bend needs to be very tight, so that the plate will fit into the vehicle.
+  The bend needs to be very tight, so that the plate will fit into the vehicle.
 
 ![Installed Skynode](../../assets/airframes/vtol/foxtech_loong_2160/15-skynode.jpg)
 
@@ -223,17 +223,17 @@ Install either the Pixhawk or Skynode onto the baseplate.
 
 1. Tape the Skynode LTE antennas to the side of the fuselage as shown in the picture:
 
-   ![LTE-Antennas](../../assets/airframes/vtol/foxtech_loong_2160/16-lte-antennas.jpg)
+  ![LTE-Antennas](../../assets/airframes/vtol/foxtech_loong_2160/16-lte-antennas.jpg)
 
 2. If you are using a radio telemetry module you can mount the antennas to the top of the fuselage.
-   In the front you can mount the antenna extension cable directly.
+  In the front you can mount the antenna extension cable directly.
 
-   ![WIFI-Antennas-Front](../../assets/airframes/vtol/foxtech_loong_2160/17-antenna-front.jpg)
+  ![WIFI-Antennas-Front](../../assets/airframes/vtol/foxtech_loong_2160/17-antenna-front.jpg)
 
-   In the back you can use the 3D-Printed antenna adapter.
-   The adapter can be glued in place with hot glue.
+  In the back you can use the 3D-Printed antenna adapter.
+  The adapter can be glued in place with hot glue.
 
-   ![WIFI-Antenna-Back](../../assets/airframes/vtol/foxtech_loong_2160/19-rear-antenna.jpg)
+  ![WIFI-Antenna-Back](../../assets/airframes/vtol/foxtech_loong_2160/19-rear-antenna.jpg)
 
 ### 12S Power Module
 

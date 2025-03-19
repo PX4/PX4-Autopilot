@@ -27,18 +27,18 @@ Before calibration they must be [enabled via the corresponding parameter](../adv
 
 4. Click the **Airspeed** sensor button.
 
-   ![Airspeed calibration](../../assets/qgc/setup/sensor/sensor_airspeed.jpg)
+  ![Airspeed calibration](../../assets/qgc/setup/sensor/sensor_airspeed.jpg)
 
 5. 센서로 부는 바람을 막으십시오 (예: 손을 컵 모양으로 감쌀 수 있습니다).
-   피톳 튜브의 구멍을 막지 않도록 주의하십시오.
+  피톳 튜브의 구멍을 막지 않도록 주의하십시오.
 
 6. Click **OK** to start the calibration.
 
 7. 피톳 튜브의 끝에 입으로 바람을 불어 보정 완료 신호를 보냅니다.
 
-   :::tip
-   Blowing into the tube is also a basic check that the dynamic and static ports are installed correctly.
-   교체한  센서는 튜브에 바람을 불어 넣을 때 큰 음의 차압을 판독하고 보정이 오류와 함께 중단됩니다.
+  :::tip
+  Blowing into the tube is also a basic check that the dynamic and static ports are installed correctly.
+  교체한  센서는 튜브에 바람을 불어 넣을 때 큰 음의 차압을 판독하고 보정이 오류와 함께 중단됩니다.
 
 :::
 

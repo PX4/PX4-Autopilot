@@ -86,7 +86,7 @@ The document explains how, but in summary:
 
 1. Modify an unused `MAV_n_CONFIG` parameter, such as [MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG), so that it is assigned to port to which your camera is connected.
 2. Set the corresponding [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) to `2` (Onboard).
-   This ensures that the right set of MAVLink messages are emitted and forwarded.
+  This ensures that the right set of MAVLink messages are emitted and forwarded.
 3. You may need to set some of the other parameters, depending on your connection - such as the baud rate.
 
 Then connect and configure the camera as recommended in its user guide.

@@ -43,7 +43,7 @@ Geofence planning is fully documented in [Plan View > GeoFence](https://docs.qgr
    - 펜스 중앙 마커를 사용하여 펜스를 올바른 위치로 이동할 수 있습니다.
    - 원형 울타리 테두리의 마커를 사용하여 반경을 변경할 수 있습니다.
    - 모서리 (정점)의 마커를 사용하여 다각형의 형상을 변경할 수 있습니다.
-     기존 마커 사이의 선을 따라 중간을 클릭하면 추가 정점이 생성됩니다.
+      기존 마커 사이의 선을 따라 중간을 클릭하면 추가 정점이 생성됩니다.
 5. Use the _Geofence Editor_ to set a fence as an inclusion or exclusion, and to select a fence to edit (**Edit** radio button) or Delete (**Del** button).
 6. 필요한 만큼 울타리를 추가하십시오.
 7. Once finished, click on the **Upload** button (top right) to send the fence (along with rally points and mission) to the vehicle.

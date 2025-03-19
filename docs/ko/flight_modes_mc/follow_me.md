@@ -151,19 +151,19 @@ The follow-me behavior can be configured using the following parameters:
 
 1. Set the [follow distance](#FLW_TGT_DST) to more than 12 meters (8 meters is a "recommended minimum").
 
-   There is an inherent position bias (3 ~ 5 meters) between the target and the drone's GPS sensor, which makes the drone follow a 'ghost target' somewhere near the actual target.
-   This is more obvious when the follow distance is very small.
-   We recommend that the follow distance is set to be large enough such that the GPS bias is not significant.
+  There is an inherent position bias (3 ~ 5 meters) between the target and the drone's GPS sensor, which makes the drone follow a 'ghost target' somewhere near the actual target.
+  This is more obvious when the follow distance is very small.
+  We recommend that the follow distance is set to be large enough such that the GPS bias is not significant.
 
 2. The speed at which you can change the follow angle depends on the [maximum tangential velocity](#FLW_TGT_MAX_VEL) setting.
 
-   Experimentation shows that values between `5 m/s` are `10 m/s` are usually suitable.
+  Experimentation shows that values between `5 m/s` are `10 m/s` are usually suitable.
 
 3. Using the RC Adjustment for height, distance and angle, you can get some creative camera shots.
 
-   <lite-youtube videoid="o3DhvCL_M1E" title="YUN0012 almostCinematic"/>
+  <lite-youtube videoid="o3DhvCL_M1E" title="YUN0012 almostCinematic"/>
 
-   This video demonstrates a Google-Earth view perspective, by adjusting the height to around 50 meters (high), distance to 1 meter (close). Which allows a perspective as shot from a satellite.
+  This video demonstrates a Google-Earth view perspective, by adjusting the height to around 50 meters (high), distance to 1 meter (close). Which allows a perspective as shot from a satellite.
 
 ## 알려진 이슈들
 
