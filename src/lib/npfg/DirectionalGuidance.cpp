@@ -94,11 +94,12 @@ DirectionalGuidance::guideToPath(const Vector2f &curr_pos_local, const Vector2f 
 	// we consider feasibility of both the current bearing as well as that on the track at the current closest point
 	const float feas_combined = feas_ * feas_on_track_;
 	// lateral acceleration needed to stay on curved track (assuming no heading error)
-	const float lateral_accel_ff = lateralAccelFF(unit_path_tangent, ground_vel, wind_dot_upt,
-				       wind_cross_upt, airspeed, wind_speed, signed_track_error_, path_curvature) * feas_combined * track_proximity_;
+	lateral_accel_ff_ = lateralAccelFF(unit_path_tangent, ground_vel, wind_dot_upt,
+					   wind_cross_upt, airspeed, wind_speed, signed_track_error_, path_curvature) * feas_combined * track_proximity_;
+	course_sp_ = atan2f(bearing_vec_(1), bearing_vec_(0));
 
-	return DirectionalGuidanceOutput{.course_setpoint = atan2f(bearing_vec_(1), bearing_vec_(0)),
-					 .lateral_acceleration_feedforward = lateral_accel_ff};
+	return DirectionalGuidanceOutput{.course_setpoint = course_sp_,
+					 .lateral_acceleration_feedforward = lateral_accel_ff_};
 }
 
 float DirectionalGuidance::adaptPeriod(const float ground_speed, const float airspeed, const float wind_speed,
@@ -166,8 +167,6 @@ float DirectionalGuidance::normalizedTrackError(const float track_error, const f
 {
 	return math::constrain(track_error / track_error_bound, 0.0f, 1.0f);
 }
-
-
 
 float DirectionalGuidance::windFactor(const float airspeed, const float wind_speed) const
 {
