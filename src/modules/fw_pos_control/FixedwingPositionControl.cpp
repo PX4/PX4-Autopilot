@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -66,7 +66,6 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	// limit to 50 Hz
 	_local_pos_sub.set_interval_ms(20);
 
-	_pos_ctrl_status_pub.advertise();
 	_pos_ctrl_landing_status_pub.advertise();
 	_launch_detection_status_pub.advertise();
 	_landing_gear_pub.advertise();

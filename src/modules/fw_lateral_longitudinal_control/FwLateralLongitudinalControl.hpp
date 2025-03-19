@@ -40,7 +40,7 @@
 #define PX4_FWLATERALLONGITUDINALCONTROL_HPP
 
 #include <float.h>
-
+#include <fw_performance_model/PerformanceModel.hpp>
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <lib/atmosphere/atmosphere.h>
@@ -55,29 +55,29 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <slew_rate/SlewRate.hpp>
+#include <uORB/uORB.h>
+
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/fixed_wing_lateral_setpoint.h>
+#include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
 #include <uORB/topics/flight_phase_estimation.h>
+#include <uORB/topics/lateral_control_limits.h>
+#include <uORB/topics/longitudinal_control_limits.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/fixed_wing_lateral_setpoint.h>
-#include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
-#include <uORB/topics/longitudinal_control_limits.h>
-#include <uORB/topics/lateral_control_limits.h>
-#include <uORB/topics/vehicle_land_detected.h>
-#include <fw_performance_model/PerformanceModel.hpp>
-#include <slew_rate/SlewRate.hpp>
 
 const fixed_wing_lateral_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course = NAN, .airspeed_direction = NAN, .lateral_acceleration = NAN};
 const fixed_wing_longitudinal_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude = NAN, .height_rate = NAN, .equivalent_airspeed = NAN, .pitch_direct = NAN, .throttle_direct = NAN};
@@ -157,7 +157,6 @@ private:
 		(ParamFloat<px4::params::FW_T_SPD_STD>) _param_speed_standard_dev,
 		(ParamFloat<px4::params::FW_T_SPD_DEV_STD>) _param_speed_rate_standard_dev,
 		(ParamFloat<px4::params::FW_T_SPD_PRC_STD>) _param_process_noise_standard_dev,
-
 		(ParamFloat<px4::params::FW_T_CLMB_R_SP>) _param_climbrate_target,
 		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_sinkrate_target,
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
@@ -166,7 +165,6 @@ private:
 		(ParamFloat<px4::params::FW_LND_THRTC_SC>) _param_fw_thrtc_sc,
 		(ParamFloat<px4::params::FW_T_THR_LOW_HGT>) _param_fw_t_thr_low_hgt
 	)
-
 
 	hrt_abstime _last_time_loop_ran{};
 	uint8_t _z_reset_counter{0};
@@ -239,6 +237,5 @@ private:
 
 	void updateControlLimits();
 };
-
 
 #endif //PX4_FWLATERALLONGITUDINALCONTROL_HPP
