@@ -100,7 +100,7 @@ The RC sticks cannot be used during autotuning (moving the sticks will stop the 
 
 5. <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">Manually land and disarm to apply the new tuning parameters.
   Takeoff carefully and manually test that the vehicle is stable.</div><div v-else-if="$frontmatter.frame === 'Plane'">The tuning will be immediately/automatically be applied and tested in flight (by default).
-  PX4 потім проведе 4-секундний тест і поверне нове налаштування, якщо буде виявлено проблему.</div>
+  PX4 will then run a 4 second test and revert the new tuning if a problem is detected.</div>
 
 :::warning
 If any strong oscillations occur, land immediately and follow the instructions in the [Troubleshooting](#troubleshooting) section below.
