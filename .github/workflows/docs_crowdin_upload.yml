@@ -28,7 +28,7 @@ jobs:
       - name: crowdin push
         uses: crowdin/github-action@v2
         with:
-          config: 'docs/crowdin.yml'
+          config: 'docs/crowdin_docs.yml'
           upload_sources: true
           upload_translations: false
           download_translations: false
