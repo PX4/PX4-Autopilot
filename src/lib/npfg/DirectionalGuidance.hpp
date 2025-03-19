@@ -124,6 +124,14 @@ public:
 	 */
 	float switchDistance(float wp_radius) const;
 
+	float getCourseSetpoint() const { return course_sp_; }
+	float getLateralAccelerationSetpoint() const { return lateral_accel_ff_; }
+	float getBearingFeasibility() const { return feas_; }
+	float getBearingFeasibilityOnTrack() const { return feas_on_track_; }
+	float getSignedTrackError() const { return signed_track_error_; }
+	float getTrackErrorBound() const { return track_error_bound_; }
+	float getAdaptedPeriod() const { return adapted_period_; }
+
 private:
 	static constexpr float NPFG_EPSILON = 1.0e-6; // small number *bigger than machine epsilon
 	static constexpr float MIN_RADIUS = 0.5f; // minimum effective radius (avoid singularities) [m]
@@ -162,7 +170,8 @@ private:
 	float track_proximity_{0.0f}; // value in [0,1] indicating proximity to track, 0 = at track error boundary or beyond, 1 = on track
 	float signed_track_error_{0.0f}; // signed track error [m]
 	matrix::Vector2f bearing_vec_{matrix::Vector2f{1.0f, 0.0f}}; // bearing unit vector
-
+	float course_sp_{0.f}; // course setpoint [rad]
+	float lateral_accel_ff_{0.f}; // lateral acceleration feedforward [m/s^2]
 
 	/*
 	 * Cacluates a continuous representation of the bearing feasibility from [0,1].

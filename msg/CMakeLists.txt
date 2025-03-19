@@ -93,6 +93,8 @@ set(msg_files
 	FuelTankStatus.msg
 	FixedWingLateralSetpoint.msg
 	FixedWingLongitudinalSetpoint.msg
+	FixedWingLateralStatus.msg
+	FixedWingLatLongStatus.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
 	GeofenceStatus.msg
@@ -142,7 +144,6 @@ set(msg_files
 	NavigatorMissionItem.msg
 	NavigatorStatus.msg
 	NormalizedUnsignedSetpoint.msg
-	NpfgStatus.msg
 	ObstacleDistance.msg
 	OffboardControlMode.msg
 	OnboardComputerStatus.msg

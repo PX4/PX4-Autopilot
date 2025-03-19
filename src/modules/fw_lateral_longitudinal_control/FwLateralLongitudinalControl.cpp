@@ -271,6 +271,13 @@ void FwLateralLongitudinalControl::Run()
 
 			_lateral_ctrl_status_pub.publish(status);
 
+			fixed_wing_lat_long_status_s lat_long_status{};
+			lat_long_status.timestamp = hrt_absolute_time();
+			lat_long_status.lat_accel = lateral_accel_sp;
+			lat_long_status.can_run_factor = _can_run_factor;
+
+			_fixed_wing_lat_long_status_pub.publish(lat_long_status);
+
 			// additional is_finite checks that should not be necessary, but are kept for safety
 			float roll_body = PX4_ISFINITE(roll_sp) ? roll_sp : 0.0f;
 			float pitch_body = PX4_ISFINITE(pitch_sp) ? pitch_sp : 0.0f;
@@ -294,6 +301,7 @@ void FwLateralLongitudinalControl::Run()
 			_att_sp.thrust_body[0] = thrust_body_x;
 
 			_attitude_sp_pub.publish(_att_sp);
+
 		}
 
 		_z_reset_counter = _local_pos.z_reset_counter;
@@ -647,7 +655,7 @@ float FwLateralLongitudinalControl::getGuidanceQualityFactor(const vehicle_local
 float FwLateralLongitudinalControl::getCorrectedLateralAccelSetpoint(float lateral_accel_sp)
 {
 	// Scale the npfg output to zero if npfg is not certain for correct output
-	const float can_run_factor{math::constrain(getGuidanceQualityFactor(_local_pos, _wind_valid), 0.f, 1.f)};
+	_can_run_factor = math::constrain(getGuidanceQualityFactor(_local_pos, _wind_valid), 0.f, 1.f);
 
 	hrt_abstime now{hrt_absolute_time()};
 
@@ -659,7 +667,7 @@ float FwLateralLongitudinalControl::getCorrectedLateralAccelSetpoint(float later
 		_time_since_first_reduced_roll = 0U;
 	}
 
-	if (_vehicle_status_sub.get().in_transition_mode || can_run_factor > ROLL_WARNING_CAN_RUN_THRESHOLD || _landed) {
+	if (_vehicle_status_sub.get().in_transition_mode || _can_run_factor > ROLL_WARNING_CAN_RUN_THRESHOLD || _landed) {
 		// NPFG reports a good condition or we are in transition, reset the user warning variables.
 		_need_report_npfg_uncertain_condition = true;
 		_time_since_first_reduced_roll = 0U;
@@ -681,7 +689,7 @@ float FwLateralLongitudinalControl::getCorrectedLateralAccelSetpoint(float later
 
 	_time_since_last_npfg_call = now;
 
-	return can_run_factor * (lateral_accel_sp);
+	return _can_run_factor * (lateral_accel_sp);
 }
 float FwLateralLongitudinalControl::mapLateralAccelerationToRollAngle(float lateral_acceleration_sp) const {
 	return  atanf(lateral_acceleration_sp / CONSTANTS_ONE_G);

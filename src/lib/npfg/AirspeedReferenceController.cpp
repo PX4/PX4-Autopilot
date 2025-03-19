@@ -58,6 +58,7 @@ float AirspeedReferenceController::controlHeading(const float heading_sp, const 
 	} else {
 		// airspeed/airspeed_ref is used to scale any incremented airspeed reference back to the current airspeed
 		// for acceleration commands in a "feedback" sense (i.e. at the current vehicle airspeed)
+		// todo use airspeed_ref or adapt comment
 		return p_gain_ * cross_air_vel_err;
 	}
 }

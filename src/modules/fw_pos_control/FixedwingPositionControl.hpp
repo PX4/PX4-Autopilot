@@ -67,6 +67,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/fixed_wing_lateral_setpoint.h>
+#include <uORB/topics/fixed_wing_lateral_status.h>
 #include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/launch_detection_status.h>
@@ -199,6 +200,7 @@ private:
 	uORB::Publication<normalized_unsigned_setpoint_s> _spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
 	uORB::PublicationData<fixed_wing_lateral_setpoint_s> _lateral_ctrl_sp_pub{ORB_ID(fixed_wing_lateral_setpoint)};
 	uORB::PublicationData<fixed_wing_longitudinal_setpoint_s> _longitudinal_ctrl_sp_pub{ORB_ID(fixed_wing_longitudinal_setpoint)};
+	uORB::Publication<fixed_wing_lateral_status_s> _fixed_wing_lateral_status_pub{ORB_ID(fixed_wing_lateral_status)};
 
 	manual_control_setpoint_s _manual_control_setpoint{};
 	position_setpoint_triplet_s _pos_sp_triplet{};
@@ -834,6 +836,7 @@ private:
 			const matrix::Vector2f &wind_vel);
 
 	void control_idle();
+	void publish_lateral_status(const hrt_abstime now);
 
 	float rollAngleToLateralAccel(float roll_body) const;
 
