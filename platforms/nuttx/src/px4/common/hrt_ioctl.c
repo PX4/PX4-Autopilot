@@ -232,7 +232,7 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 			struct hrt_boardctl *ioc_parm = (struct hrt_boardctl *)arg;
 			px4_sem_t *callout_sem = (px4_sem_t *)ioc_parm->handle;
 			struct usr_hrt_call *e;
-			px4_sem_wait(callout_sem);
+			do { } while (px4_sem_wait(callout_sem) != 0);
 
 			/* Atomically update the pointer to user side hrt entry */
 			flags = spin_lock_irqsave_notrace(&g_hrt_ioctl_lock);
