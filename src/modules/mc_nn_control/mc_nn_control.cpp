@@ -50,9 +50,9 @@ using NNControlOpResolver = tflite::MicroMutableOpResolver<4>; // This number sh
 TfLiteStatus RegisterOps(NNControlOpResolver& op_resolver) {
   // Add the operations to you need to the op_resolver
   TF_LITE_ENSURE_STATUS(op_resolver.AddFullyConnected());
-  TF_LITE_ENSURE_STATUS(op_resolver.AddTanh());
   TF_LITE_ENSURE_STATUS(op_resolver.AddRelu());
   TF_LITE_ENSURE_STATUS(op_resolver.AddAdd());
+  TF_LITE_ENSURE_STATUS(op_resolver.AddTanh());
   return kTfLiteOk;
 }
 }  // namespace
@@ -86,7 +86,6 @@ int MulticopterNeuralNetworkControl::InitializeNetwork() {
 	// Initialize the neural network
 	// Load the model
 	const tflite::Model* control_model = ::tflite::GetModel(control_net_tflite);  // TODO: Replace with your model data variable
-	const tflite::Model* allocation_model = ::tflite::GetModel(allocation_net_tflite);  // TODO: Replace with your model data variable
 
 	// Set up the interpreter
 	static NNControlOpResolver resolver;
@@ -96,27 +95,17 @@ int MulticopterNeuralNetworkControl::InitializeNetwork() {
 	}
 	constexpr int kTensorArenaSize = 10 * 1024; //TODO: Check this size
 	static uint8_t tensor_arena[kTensorArenaSize];
-	_control_interpreter = new tflite::MicroInterpreter(control_model, resolver, tensor_arena, kTensorArenaSize);
-	_allocation_interpreter = new tflite::MicroInterpreter(allocation_model, resolver, tensor_arena, kTensorArenaSize);
+	_interpreter = new tflite::MicroInterpreter(control_model, resolver, tensor_arena, kTensorArenaSize);
 
 	// Allocate memory for the model's tensors
-	TfLiteStatus allocate_status_control = _control_interpreter->AllocateTensors();
-	if (allocate_status_control != kTfLiteOk) {
-		PX4_ERR("AllocateTensors() failed");
-		return -1;
-	}
-	TfLiteStatus allocate_status = _allocation_interpreter->AllocateTensors();
+	TfLiteStatus allocate_status = _interpreter->AllocateTensors();
 	if (allocate_status != kTfLiteOk) {
 		PX4_ERR("AllocateTensors() failed");
 		return -1;
 	}
 
-	_input_tensor = _control_interpreter->input(0);
+	_input_tensor = _interpreter->input(0);
 	if (_input_tensor == nullptr) {
-		PX4_ERR("Input tensor is null");
-		return -1;
-	}
-	if (_allocation_interpreter->input(0) == nullptr) {
 		PX4_ERR("Input tensor is null");
 		return -1;
 	}
@@ -135,7 +124,7 @@ int32_t MulticopterNeuralNetworkControl::GetTime(){
 void MulticopterNeuralNetworkControl::RegisterNeuralFlightMode() {
 	// Register the neural flight mode with the commander
 	register_ext_component_request_s register_ext_component_request{};
-	register_ext_component_request.timestamp = static_cast<uint8>(GetTime());
+	register_ext_component_request.timestamp = hrt_absolute_time();
 	strncpy(register_ext_component_request.name, "Neural Control", sizeof(register_ext_component_request.name) - 1);
 	register_ext_component_request.request_id = _mode_request_id;
 	register_ext_component_request.px4_ros2_api_version = 1;
@@ -148,7 +137,7 @@ void MulticopterNeuralNetworkControl::RegisterNeuralFlightMode() {
 void MulticopterNeuralNetworkControl::UnregisterNeuralFlightMode(int8 arming_check_id, int8 mode_id) {
 	// Unregister the neural flight mode with the commander
 	unregister_ext_component_s unregister_ext_component{};
-	unregister_ext_component.timestamp = static_cast<uint8>(GetTime());
+	unregister_ext_component.timestamp = hrt_absolute_time();
 	strncpy(unregister_ext_component.name, "Neural Control", sizeof(unregister_ext_component.name) - 1);
 	unregister_ext_component.arming_check_id = arming_check_id;
 	unregister_ext_component.mode_id = mode_id;
@@ -159,16 +148,16 @@ void MulticopterNeuralNetworkControl::UnregisterNeuralFlightMode(int8 arming_che
 void MulticopterNeuralNetworkControl::ConfigureNeuralFlightMode(int8 mode_id) {
 	// Configure the neural flight mode with the commander
 	vehicle_control_mode_s config_control_setpoints{};
-	config_control_setpoints.timestamp = static_cast<uint8>(GetTime());
+	config_control_setpoints.timestamp = hrt_absolute_time();
 	config_control_setpoints.source_id = mode_id;
 	// TODO: Should these be stopped to save computing, or is it best to keep them running for safety?
-	// config_control_setpoints.flag_control_position_enabled = false;
-	// config_control_setpoints.flag_control_velocity_enabled = false;
-	// config_control_setpoints.flag_control_altitude_enabled = false;
-	// config_control_setpoints.flag_control_climb_rate_enabled = false;
-	// config_control_setpoints.flag_control_acceleration_enabled = false;
-	// config_control_setpoints.flag_control_attitude_enabled = false;
-	// config_control_setpoints.flag_control_rates_enabled = false;
+	// config_control_setpoints.flag_control_position_enabled = true;
+	// config_control_setpoints.flag_control_velocity_enabled = true;
+	// config_control_setpoints.flag_control_altitude_enabled = true;
+	// config_control_setpoints.flag_control_climb_rate_enabled = true;
+	// config_control_setpoints.flag_control_acceleration_enabled = true;
+	// config_control_setpoints.flag_control_attitude_enabled = true;
+	// config_control_setpoints.flag_control_rates_enabled = true;
 	config_control_setpoints.flag_control_allocation_enabled = false;
 	_config_control_setpoints_pub.publish(config_control_setpoints);
 }
@@ -177,7 +166,7 @@ void MulticopterNeuralNetworkControl::ConfigureNeuralFlightMode(int8 mode_id) {
 void MulticopterNeuralNetworkControl::ReplyToArmingCheck(int8 request_id) {
 	// Reply to the arming check request
 	arming_check_reply_s arming_check_reply;
-	arming_check_reply.timestamp = static_cast<uint8>(GetTime());
+	arming_check_reply.timestamp = hrt_absolute_time();
 	arming_check_reply.request_id = request_id;
 	arming_check_reply.registration_id = _arming_check_id;
 	arming_check_reply.health_component_index = arming_check_reply.HEALTH_COMPONENT_INDEX_NONE; // Think this says that there is no new health component that needs to be present to fly
@@ -266,17 +255,21 @@ void MulticopterNeuralNetworkControl::PopulateInputTensor() {
 	_input_tensor->data.f[13] = angular_vel_local(1);
 	_input_tensor->data.f[14] = angular_vel_local(2);
 
+	for (int i = 0; i < 15; i++) {
+		_input_data[i] = _input_tensor->data.f[i];
+	}
+
 }
 
 void MulticopterNeuralNetworkControl::PublishOutput(float* command_actions) {
 
 	actuator_motors_s actuator_motors;
-        actuator_motors.timestamp = static_cast<uint8>(GetTime());
+        actuator_motors.timestamp = hrt_absolute_time();
 
 	actuator_motors.control[0] = PX4_ISFINITE(command_actions[0]) ? command_actions[0] : NAN;
-	actuator_motors.control[1] = PX4_ISFINITE(command_actions[2]) ? command_actions[2] : NAN;
-	actuator_motors.control[2] = PX4_ISFINITE(command_actions[3]) ? command_actions[3] : NAN;
-	actuator_motors.control[3] = PX4_ISFINITE(command_actions[1]) ? command_actions[1] : NAN;
+	actuator_motors.control[1] = PX4_ISFINITE(command_actions[1]) ? command_actions[1] : NAN;
+	actuator_motors.control[2] = PX4_ISFINITE(command_actions[2]) ? command_actions[2] : NAN;
+	actuator_motors.control[3] = PX4_ISFINITE(command_actions[3]) ? command_actions[3] : NAN;
         actuator_motors.control[4] = -NAN;
         actuator_motors.control[5] = -NAN;
         actuator_motors.control[6] = -NAN;
@@ -296,19 +289,12 @@ inline void MulticopterNeuralNetworkControl::RescaleActions() {
 	const float thrust_coeff = _param_thrust_coeff.get();
 	const float min_rpm = _param_min_rpm.get();
 	const float max_rpm = _param_max_rpm.get();
-	const float min_force = thrust_coeff * (min_rpm/60.0f) * (min_rpm/60.0f);
-	const float max_force = thrust_coeff * (max_rpm/60.0f) * (max_rpm/60.0f);
 	const float a = 0.8f;
   	const float b = (1.f - 0.8f);
 	const float tmp1 = b / (2.f * a);
 	const float tmp2 = b * b / (4.f * a * a);
 	for (int i = 0; i < 4; i++) {
-		if (_output_tensor->data.f[i] < min_force){
-			_output_tensor->data.f[i] = min_force;
-		}
-		else if (_output_tensor->data.f[i] > max_force){
-			_output_tensor->data.f[i] = max_force;
-		}
+		_output_tensor->data.f[i] = _output_tensor->data.f[i] + 1.0f;
 		float rps = _output_tensor->data.f[i]/thrust_coeff;
 		rps = sqrt(rps);
 		float rpm = rps * 60.0f;
@@ -417,36 +403,14 @@ void MulticopterNeuralNetworkControl::Run()
 		// Run inference
 		int32_t start_time2 = GetTime();
 		// Inference
-		TfLiteStatus invoke_status_control = _control_interpreter->Invoke();
-		int32_t inference_time_control = GetTime() - start_time2;
-		if (invoke_status_control != kTfLiteOk) {
-			PX4_ERR("Invoke() failed");
-			return;
-		}
-		// Print the output
-		TfLiteTensor* control_output_tensor = _control_interpreter->output(0);
-		if (control_output_tensor == nullptr) {
-			PX4_ERR("Output tensor is null");
-			return;
-		}
-
-		TfLiteTensor* allocation_input_tensor = _allocation_interpreter->input(0);
-		// rescale actions
-		allocation_input_tensor->data.f[0] = control_output_tensor->data.f[0] * 0;
-		allocation_input_tensor->data.f[1] = control_output_tensor->data.f[1] * 0;
-		allocation_input_tensor->data.f[2] = control_output_tensor->data.f[2] * 2.0f + 2.8f;
-		allocation_input_tensor->data.f[3] = control_output_tensor->data.f[3] * 0.32f;
-		allocation_input_tensor->data.f[4] = control_output_tensor->data.f[4] * 0.32f;
-		allocation_input_tensor->data.f[5] = control_output_tensor->data.f[5] * 0.02f;
-
-		int32_t start_time3 = GetTime();
-		TfLiteStatus invoke_status = _allocation_interpreter->Invoke();
-		int32_t inference_time_allocation = GetTime() - start_time3;
+		TfLiteStatus invoke_status = _interpreter->Invoke();
+		int32_t inference_time = GetTime() - start_time2;
 		if (invoke_status != kTfLiteOk) {
 			PX4_ERR("Invoke() failed");
 			return;
 		}
-		_output_tensor = _allocation_interpreter->output(0);
+		// Get the output tensor
+		_output_tensor = _interpreter->output(0);
 		if (_output_tensor == nullptr) {
 			PX4_ERR("Output tensor is null");
 			return;
@@ -458,25 +422,20 @@ void MulticopterNeuralNetworkControl::Run()
 		// Publish the actuator values
 		PublishOutput(_output_tensor->data.f);
 
-
 		int32_t full_controller_time = GetTime() - start_time1;
 
 		// Publish the neural control debug message
 		neural_control_s neural_control;
-		neural_control.timestamp = static_cast<uint8>(GetTime());
-		neural_control.control_inference_time = inference_time_control;
+		neural_control.timestamp = hrt_absolute_time();
+		neural_control.inference_time = inference_time;
 		neural_control.controller_time = full_controller_time;
-		neural_control.allocation_inference_time = inference_time_allocation;
 		for (int i = 0; i < 15; i++) {
-			neural_control.observation[i] = _input_tensor->data.f[i];
-		}
-		for (int i = 0; i < 6; i++) {
-			neural_control.wrench[i] = allocation_input_tensor->data.f[i];
+			neural_control.observation[i] = _input_data[i];
 		}
 		neural_control.motor_thrust[0] = _output_tensor->data.f[0];
-		neural_control.motor_thrust[1] = _output_tensor->data.f[2];
-		neural_control.motor_thrust[2] = _output_tensor->data.f[3];
-		neural_control.motor_thrust[3] = _output_tensor->data.f[1];
+		neural_control.motor_thrust[1] = _output_tensor->data.f[1];
+		neural_control.motor_thrust[2] = _output_tensor->data.f[2];
+		neural_control.motor_thrust[3] = _output_tensor->data.f[3];
 		_neural_control_pub.publish(neural_control);
 	}
 	perf_end(_loop_perf);

@@ -50,6 +50,7 @@ file(GLOB TFLITE_MICRO_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/tensorflow/lite/micro/kernels/*.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/tensorflow/lite/kernels/*.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/tensorflow/lite/kernels/internal/*.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/tensorflow/lite/kernels/internal/reference/*.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/tensorflow/lite/core/api/*.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/tensorflow/lite/core/c/*.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/tensorflow/lite/schema/*.cc

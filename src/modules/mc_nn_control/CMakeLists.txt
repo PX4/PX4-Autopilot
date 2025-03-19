@@ -44,8 +44,6 @@ px4_add_module(
 		mc_nn_control.hpp
 		control_net.cpp
 		control_net.hpp
-		allocation_net.cpp
-		allocation_net.hpp
 	DEPENDS
 		tflm
 		px4_work_queue

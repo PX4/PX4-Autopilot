@@ -53,7 +53,6 @@
 #include <tflite_micro/tensorflow/lite/schema/schema_generated.h>
 
 // Include model
-#include "allocation_net.hpp"
 #include "control_net.hpp"
 
 #include <uORB/Publication.hpp>
@@ -143,10 +142,10 @@ private:
 	uint8 _mode_request_id{231}; //Random value
 	int8 _arming_check_id{-1};
 	int8 _mode_id{-1};
-	tflite::MicroInterpreter* _control_interpreter;
-	tflite::MicroInterpreter* _allocation_interpreter;
+	tflite::MicroInterpreter* _interpreter;
 	TfLiteTensor* _input_tensor;
 	TfLiteTensor* _output_tensor;
+	float _input_data[15];
 	vehicle_angular_velocity_s _angular_velocity;
 	vehicle_local_position_s _position;
 	vehicle_local_position_setpoint_s _position_setpoint;
