@@ -370,7 +370,7 @@ CONFIG_DRIVERS_RPM_CAPTURE=y
 Additionally, to enable the module:
 
 - Set [ICE_EN](../advanced_config/parameter_reference.md#ICE_EN)
-  to true and adjust the other `ICE_` module parameters according to your needs.
+ to true and adjust the other `ICE_` module parameters according to your needs.
 - Set [RPM_CAP_ENABLE](../advanced_config/parameter_reference.md#RPM_CAP_ENABLE) to true.
 
 The module outputs control signals for ignition, throttle, and choke,
@@ -390,8 +390,8 @@ The state machine:
 
 - Checks if [Rpm.msg](../msg_docs/Rpm.md) is updated to know if the engine is running
 - Allows for user inputs from:
-  - AUX{N}
-  - Arming state in [VehicleStatus.msg](../msg_docs/VehicleStatus.md)
+ - AUX{N}
+ - Arming state in [VehicleStatus.msg](../msg_docs/VehicleStatus.md)
 
 The module publishes [InternalCombustionEngineControl.msg](../msg_docs/InternalCombustionEngineControl.md).
 
@@ -505,7 +505,7 @@ System logger which logs a configurable set of uORB topics and system printf mes
 구현은 두 개의 스레드를 사용합니다.
 
 - The main thread, running at a fixed rate (or polling on a topic if started with -p) and checking for
-  data updates
+ data updates
 - 작성자 스레드, 파일에 데이터 쓰기
 
 그 사이에는 구성 가능한 크기의 쓰기 버퍼가 있습니다(및 미션 로그를 위한 또 다른 고정 크기 버퍼). 드롭아웃을 방지하려면 크기가 커야 합니다.
@@ -720,9 +720,9 @@ There are 2 environment variables used for configuration: `replay`, which must b
 the log file to be replayed. The second is the mode, specified via `replay_mode`:
 
 - `replay_mode=ekf2`: specific EKF2 replay mode. It can only be used with the ekf2 module, but allows the replay
-  to run as fast as possible.
+ to run as fast as possible.
 - Generic otherwise: this can be used to replay any module(s), but the replay will be done with the same speed as the
-  log was recorded.
+ log was recorded.
 
 The module is typically used together with uORB publisher rules, to specify which messages should be replayed.
 The replay module will just publish all messages that are found in the log. It also applies the parameters from
@@ -888,12 +888,12 @@ it into a more usable form, and publishes it for the rest of the system.
 제공 기능은 다음과 같습니다:
 
 - Read the output from the sensor drivers (`SensorGyro`, etc.).
-  동일한 유형이 여러 개 있는 경우 투표 및 장애 조치 처리를 수행합니다.
-  그런 다음, 보드 회전 및 온도 보정을 적용합니다(활성화된 경우). And finally publish the data; one of the
-  topics is `SensorCombined`, used by many parts of the system.
+ 동일한 유형이 여러 개 있는 경우 투표 및 장애 조치 처리를 수행합니다.
+ 그런 다음, 보드 회전 및 온도 보정을 적용합니다(활성화된 경우). And finally publish the data; one of the
+ topics is `SensorCombined`, used by many parts of the system.
 - Make sure the sensor drivers get the updated calibration parameters (scale & offset) when the parameters change or
-  on startup. 센서 드라이버는 매개변수 업데이트를 위하여 ioctl 인터페이스를 사용합니다. For this to work properly, the
-  sensor drivers must already be running when `sensors` is started.
+ on startup. 센서 드라이버는 매개변수 업데이트를 위하여 ioctl 인터페이스를 사용합니다. For this to work properly, the
+ sensor drivers must already be running when `sensors` is started.
 - Do sensor consistency checks and publish the `SensorsStatusImu` topic.
 
 ### 구현

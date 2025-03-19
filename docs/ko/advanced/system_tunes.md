@@ -52,7 +52,7 @@ On Windows, one option is to use _Melody Master_ within _Dosbox_.
 7. 음악을 저장할 준비가 끝나면:
    - Press **F2** to give the tune a name and save it in the _/Music_ sub folder of your Melody Master installation.
    - Press **F7**, the scroll down the list of output formats on the right to get to ANSI.
-     The file will be exported to the _root_ of the Melody Master directory (with the same name and a file-type specific extension).
+      The file will be exported to the _root_ of the Melody Master directory (with the same name and a file-type specific extension).
 
 8. 파일을 여십시오.
    출력 내용은 다음과 같습니다:

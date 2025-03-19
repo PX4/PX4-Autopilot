@@ -96,7 +96,7 @@ It is rare that a system is set up with an entirely synchronised chain!
 
 IMU 속도와 EV 속도 사이의 오프셋을 확인하여 로그에서 대략적인 지연 추정치를 얻을 수 있습니다.
 
-![ekf2\_ev\_delay log](../../assets/ekf2/ekf2_ev_delay_tuning.png)
+![ekf2_ev_delay log](../../assets/ekf2/ekf2_ev_delay_tuning.png)
 
 :::info
 A plot of external data vs. onboard estimate (as above) can be generated using [FlightPlot](../log/flight_log_analysis.md#flightplot) or similar flight analysis tools.
@@ -132,15 +132,15 @@ Perform the following checks to verify that VIO is working properly _before_ you
 이러한 단계가 유지되면, 첫 번째 비행을 시도할 수 있습니다.
 
 1. Put the vehicle on the ground and start streaming `ODOMETRY` feedback (as above).
-   스로틀 스틱을 내리고 모터를 작동시키십시오.
+  스로틀 스틱을 내리고 모터를 작동시키십시오.
 
-   이때 왼쪽 스틱을 가장 낮은 위치에 놓고, 위치 제어로 전환합니다.
-   초록불이 켜져야 합니다.
-   녹색 표시등은 위치 피드백을 사용할 수 있고, 위치 제어가 활성화되었음을 알려줍니다.
+  이때 왼쪽 스틱을 가장 낮은 위치에 놓고, 위치 제어로 전환합니다.
+  초록불이 켜져야 합니다.
+  녹색 표시등은 위치 피드백을 사용할 수 있고, 위치 제어가 활성화되었음을 알려줍니다.
 
 2. 기체가 고도를 유지하도록 스로틀 스틱을 중간(데드 존)에 놓습니다.
-   스틱을 올리면 기준 고도가 증가하고 값을 낮추면 감소합니다.
-   Similarly, the other stick will change the position over the ground.
+  스틱을 올리면 기준 고도가 증가하고 값을 낮추면 감소합니다.
+  Similarly, the other stick will change the position over the ground.
 
 3. Increase the value of the throttle stick and the vehicle will take off. Move it back to the middle immediately afterwards.
 

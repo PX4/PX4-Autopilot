@@ -148,9 +148,9 @@ Note that there can be negative impacts on performance if `IMU_GYRO_CUTOFF` and 
 
 Below is an example for three different `IMU_DGYRO_CUTOFF` filter values (40Hz, 70Hz, 90Hz).
 90Hz에서는 일반적인 소음이 증가하기 시작하므로 (특히 롤의 경우) 차단 주파수 70Hz가 안전합니다.
-![IMU\_DGYRO\_CUTOFF=40](../../assets/config/mc/filter_tuning/actuator_controls_fft_dgyrocutoff_40.png)
-![IMU\_DGYRO\_CUTOFF=70](../../assets/config/mc/filter_tuning/actuator_controls_fft_dgyrocutoff_70.png)
-![IMU\_DGYRO\_CUTOFF=90](../../assets/config/mc/filter_tuning/actuator_controls_fft_dgyrocutoff_90.png)
+![IMU_DGYRO_CUTOFF=40](../../assets/config/mc/filter_tuning/actuator_controls_fft_dgyrocutoff_40.png)
+![IMU_DGYRO_CUTOFF=70](../../assets/config/mc/filter_tuning/actuator_controls_fft_dgyrocutoff_70.png)
+![IMU_DGYRO_CUTOFF=90](../../assets/config/mc/filter_tuning/actuator_controls_fft_dgyrocutoff_90.png)
 
 :::info
 The plot cannot be compared between different vehicles, as the y axis scale can be different.
@@ -161,16 +161,16 @@ The plot cannot be compared between different vehicles, as the y axis scale can 
 In this case you might use the settings: [IMU_GYRO_NF0_FRQ=32](../advanced_config/parameter_reference.md#IMU_GYRO_NF0_FRQ) and [IMU_GYRO_NF0_BW=5](../advanced_config/parameter_reference.md#IMU_GYRO_NF0_BW) (note, this spike is narrower than usual).
 저역 통과 필터와 노치 필터는 독립적으로 조정할 수 있습니다 (즉, 저역 통과 필터를 조정하기 전에 노치 필터를 설정할 필요는 없습니다).
 
-![IMU\_GYRO\_NF0\_FRQ=32 IMU\_GYRO\_NF0\_BW=5](../../assets/config/mc/filter_tuning/actuator_controls_fft_gyro_notch_32.png)
+![IMU_GYRO_NF0_FRQ=32 IMU_GYRO_NF0_BW=5](../../assets/config/mc/filter_tuning/actuator_controls_fft_gyro_notch_32.png)
 
 ## 추가 팁
 
 1. 허용 가능한 지연 시간은 기체 크기와 기대치에 따라 달라집니다.
-   FPV racers typically tune for the absolute minimal latency (as a ballpark `IMU_GYRO_CUTOFF` around 120, `IMU_DGYRO_CUTOFF` of 50 to 80).
-   For bigger vehicles latency is less critical and `IMU_GYRO_CUTOFF` of around 80 might be acceptable.
+  FPV racers typically tune for the absolute minimal latency (as a ballpark `IMU_GYRO_CUTOFF` around 120, `IMU_DGYRO_CUTOFF` of 50 to 80).
+  For bigger vehicles latency is less critical and `IMU_GYRO_CUTOFF` of around 80 might be acceptable.
 
 2. You can start tuning at higher `IMU_GYRO_CUTOFF` values (e.g. 100Hz), which might be desirable because the default tuning of `IMU_GYRO_CUTOFF` is set very low (30Hz).
-   유일한 주의 사항은 위험을 알고 있어야한다는 것입니다.
-   - 20 ~ 30 초 이상 비행하지 마십시오
-   - 모터가 과열되지 않는 지 확인하십시오.
-   - 위의 설명처럼 이상한 소리와 과도한 소음을 체크하십시오.
+  유일한 주의 사항은 위험을 알고 있어야한다는 것입니다.
+  - 20 ~ 30 초 이상 비행하지 마십시오
+  - 모터가 과열되지 않는 지 확인하십시오.
+  - 위의 설명처럼 이상한 소리와 과도한 소음을 체크하십시오.

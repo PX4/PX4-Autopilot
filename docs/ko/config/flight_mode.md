@@ -40,24 +40,24 @@ You can also separately specify channels for mapping a kill switch, return to la
 
 3. Select **"Q" icon > Vehicle Setup > Flight Modes** (sidebar) to open _Flight Modes Setup_.
 
-   ![Flight modes single-channel](../../assets/qgc/setup/flight_modes/flight_modes_single_channel.jpg)
+  ![Flight modes single-channel](../../assets/qgc/setup/flight_modes/flight_modes_single_channel.jpg)
 
 4. Specify _Flight Mode Settings_:
-   - Select the **Mode channel** (above this shown as Channel 5, but this will depend on your transmitter configuration).
-   - Move the transmitter switch (or switches) that you have set up for mode selection through the available positions.
-     The mode slot matching your current switch position will be highlighted (above this is _Flight Mode 1_).
-     ::: info
-     While you can set flight modes in any of the 6 slots, only the channels that are mapped to switch positions will be highlighted/used.
+  - Select the **Mode channel** (above this shown as Channel 5, but this will depend on your transmitter configuration).
+  - Move the transmitter switch (or switches) that you have set up for mode selection through the available positions.
+    The mode slot matching your current switch position will be highlighted (above this is _Flight Mode 1_).
+    ::: info
+    While you can set flight modes in any of the 6 slots, only the channels that are mapped to switch positions will be highlighted/used.
 
 :::
-   - Select the flight mode that you want triggered for each switch position.
+  - Select the flight mode that you want triggered for each switch position.
 
 5. Specify _Switch Settings_:
-   - Select the channels that you want to map to specific actions - e.g.: _Return_ mode, _Kill switch_, _offboard_ mode, etc. (if you have spare switches and channels on your transmitter).
+  - Select the channels that you want to map to specific actions - e.g.: _Return_ mode, _Kill switch_, _offboard_ mode, etc. (if you have spare switches and channels on your transmitter).
 
 6. Test that the modes are mapped to the right transmitter switches:
-   - Check the _Channel Monitor_ to confirm that the expected channel is changed by each switch.
-   - Select each mode switch on your transmitter in turn, and check that the desired flight mode is activated (the text turns yellow on _QGroundControl_ for the active mode).
+  - Check the _Channel Monitor_ to confirm that the expected channel is changed by each switch.
+  - Select each mode switch on your transmitter in turn, and check that the desired flight mode is activated (the text turns yellow on _QGroundControl_ for the active mode).
 
 All values are automatically saved as they are changed.
 

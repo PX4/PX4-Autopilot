@@ -81,125 +81,125 @@ Additionally you will need a battery and receiver ([compatible radio system](../
 예상 조립 시간은 3.75시간(프레임은 180분, 오토파일럿 설치와 설정은 45분)입니다.
 
 1. 랜딩기어 조립부터 시작합니다.
-   랜딩 기어 나사를 풀고 수직 기둥을 삽입합니다(그림 1 및 2).
+  랜딩 기어 나사를 풀고 수직 기둥을 삽입합니다(그림 1 및 2).
 
-   ![Landing Figure 1: Components](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_1_fig1.jpg)
+  ![Landing Figure 1: Components](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_1_fig1.jpg)
 
-   _Figure 2_: Landing gear components
+  _Figure 2_: Landing gear components
 
-   ![Landing Figure 2: Assembled](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_1_fig2.jpg)
+  ![Landing Figure 2: Assembled](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_1_fig2.jpg)
 
-   _Figure 2_: Landing gear assembled
+  _Figure 2_: Landing gear assembled
 
 2. 그런 다음, 그림 3에 표시된 4개의 모터 베이스를 통해 4개의 암을 넣습니다.
-   로드가 베이스를 약간 돌출시키고 4개의 암 전체에서 일관성이 있는 지 확인하고, 모터 와이어가 바깥쪽을 향하도록 합니다.
+  로드가 베이스를 약간 돌출시키고 4개의 암 전체에서 일관성이 있는 지 확인하고, 모터 와이어가 바깥쪽을 향하도록 합니다.
 
-   ![Attach arms to motor bases](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_2_fig3.png)
+  ![Attach arms to motor bases](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_2_fig3.png)
 
-   _Figure 3_: Attach arms to motor bases
+  _Figure 3_: Attach arms to motor bases
 
 3. 4개의 나일론 나사와 나일론 스탠드오프를 삽입하고, 그림 4와 같이 4개의 나일론 너트를 사용하여 전원 모듈 PM07을 하단 플레이트에 부착합니다.
 
-   ![Attach power module](../../assets/airframes/multicopter/x500_holybro_pixhawk4/power_module.jpg)
+  ![Attach power module](../../assets/airframes/multicopter/x500_holybro_pixhawk4/power_module.jpg)
 
-   _Figure 4_: Attach power module
+  _Figure 4_: Attach power module
 
 4. 각 암을 통해 4개의 모터 ESC를 공급하고, 그림 5에 표시된 모터에 3선 끝을 연결합니다.
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig17.jpg" width="250" title="Connect motors">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig17.jpg" width="250" title="Connect motors">
 
-   _Figure 5_: Connect motors
+  _Figure 5_: Connect motors
 
 5. Connect the ESCs power wires onto the power module PM07, black->black and red->red, ESC PWM signal wires goes to "FMU-PWM-Out".
-   모터 ESC PWM 와이어를 올바른 순서로 연결하였는 지 확인하십시오.
-   Refer to Figure 7 for airframe motor number and connect to the corresponding number on the PM07 board.
+  모터 ESC PWM 와이어를 올바른 순서로 연결하였는 지 확인하십시오.
+  Refer to Figure 7 for airframe motor number and connect to the corresponding number on the PM07 board.
 
-   ![ESC power module and signal wiring](../../assets/airframes/multicopter/x500_holybro_pixhawk4/pm07_pwm.jpg)
-   _Figure 7_: ESC power module and signal wiring
+  ![ESC power module and signal wiring](../../assets/airframes/multicopter/x500_holybro_pixhawk4/pm07_pwm.jpg)
+  _Figure 7_: ESC power module and signal wiring
 
-   모터 상단의 색상은 회전 방향(그림 7-1)을 나타내며, 검은색 끝은 시계 방향, 흰색 끝은 반시계 방향입니다.
-   모터 방향은 px4 quadrotor x 기체 정의서를 따라야 합니다(그림 7-2).
+  모터 상단의 색상은 회전 방향(그림 7-1)을 나타내며, 검은색 끝은 시계 방향, 흰색 끝은 반시계 방향입니다.
+  모터 방향은 px4 quadrotor x 기체 정의서를 따라야 합니다(그림 7-2).
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/quadx.png" width="240">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/quadx.png" width="240">
 
-   _Figure 7_: Motor order/direction diagram
+  _Figure 7_: Motor order/direction diagram
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/motor_direction1.jpg" width="400">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/motor_direction1.jpg" width="400">
 
-   _Figure 7-1_: Motor direction
+  _Figure 7-1_: Motor direction
 
 6. 10핀 케이블을 FMU-PWM-in에 연결하고, 6핀 케이블을 PM07 전원 모듈의 PWR1에 연결합니다.
 
-   ![Flight controller/Power module PWM and Power connections](../../assets/airframes/multicopter/x500_holybro_pixhawk4/pm07_cable.jpg)
+  ![Flight controller/Power module PWM and Power connections](../../assets/airframes/multicopter/x500_holybro_pixhawk4/pm07_cable.jpg)
 
-   _Figure 8_: Power module PWM and power wiring
+  _Figure 8_: Power module PWM and power wiring
 
 7. GPS를 상판에 장착하는 경우에는 4개의 나사와 너트를 사용하여 GPS 장착을 상판에 고정합니다.
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gpsmount.jpg" width="400" title="Secure GPS mount onto top plate">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gpsmount.jpg" width="400" title="Secure GPS mount onto top plate">
 
-   _Figure 9_: Secure GPS mount onto top plate
+  _Figure 9_: Secure GPS mount onto top plate
 
 8. 상판을 통하여 PM07 케이블을 공급합니다.
-   양쪽에 4개의 U자형 나일론 스트랩, 나사 및 너트를 사용하여 상단 및 하단 플레이트를 연결하고, 모터 ESC 케이블이 그림 10과 같이 U자형 나일론 스트랩 내부에 있는 지 확인하고 너트를 느슨하게 유지합니다.
+  양쪽에 4개의 U자형 나일론 스트랩, 나사 및 너트를 사용하여 상단 및 하단 플레이트를 연결하고, 모터 ESC 케이블이 그림 10과 같이 U자형 나일론 스트랩 내부에 있는 지 확인하고 너트를 느슨하게 유지합니다.
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/top_plate.jpg" width="300">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/top_plate.jpg" width="300">
 
-   _Figure 10-1_: Feed power module cables through top plate
+  _Figure 10-1_: Feed power module cables through top plate
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/ushape.jpg" width="355" title="Connecting top and bottom plate">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/ushape.jpg" width="355" title="Connecting top and bottom plate">
 
-   _Figure 10-2_: Connecting top and bottom plate
+  _Figure 10-2_: Connecting top and bottom plate
 
 9. 암 튜브를 프레임에 약간 밀어 넣고, 돌출 정도(그림 11의 빨간색 사각형)가 4개의 암 모두에서 일정한 지 확인합니다.
-   모든 모터가 위를 향하고 있는 지 확인후, 모든 너트와 나사를 조입니다.
+  모든 모터가 위를 향하고 있는 지 확인후, 모든 너트와 나사를 조입니다.
 
-   ![Arms 3](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig16.jpg)
+  ![Arms 3](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig16.jpg)
 
 10. 행거 개스킷을 행거 4개에 넣고 육각 나사 8개를 사용하여 하단 플레이트에 장착합니다(그림 11).
-    나사 구멍은 그림 12에서 흰색 화살표로 표시되어 있습니다.
-    설치가 더 쉽도록 드론을 옆으로 기울이는 것이 좋습니다.
+  나사 구멍은 그림 12에서 흰색 화살표로 표시되어 있습니다.
+  설치가 더 쉽도록 드론을 옆으로 기울이는 것이 좋습니다.
 
-    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig9.png" width="400" title="Hanger gaskets">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig9.png" width="400" title="Hanger gaskets">
 
-    _Figure 11_: Hanger gaskets
+  _Figure 11_: Hanger gaskets
 
-    ![Battery Mount 4](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig10.jpg)
+  ![Battery Mount 4](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig10.jpg)
 
-    _Figure 12_: Screw holes
+  _Figure 12_: Screw holes
 
 11. 행거 링에 슬라이드 바를 삽입합니다(그림 13).
-    배터리 마운트와 플랫폼 보드를 조립하고, 그림 14와 같이 슬라이드 바에 장착합니다.
+  배터리 마운트와 플랫폼 보드를 조립하고, 그림 14와 같이 슬라이드 바에 장착합니다.
 
-    ![Battery Mount 2: Slide bars](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig8.png)
+  ![Battery Mount 2: Slide bars](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig8.png)
 
-    _Figure 13_: Slide bars
+  _Figure 13_: Slide bars
 
-    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/battery_mount1.jpg" width="400" title="Battery mount on slide bars">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/battery_mount1.jpg" width="400" title="Battery mount on slide bars">
 
-    _Figure 14_: Battery mount on slide bars
+  _Figure 14_: Battery mount on slide bars
 
 12. 랜딩 기어를 하판에 장착합니다.
-    이 설치 과정을 더 쉽게 하려면 드론을 옆으로 기울이는 것이 좋습니다.
+  이 설치 과정을 더 쉽게 하려면 드론을 옆으로 기울이는 것이 좋습니다.
 
-    ![Landing Gear](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig5.jpg)
+  ![Landing Gear](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig5.jpg)
 
-    _Figure 15_: Landing Gear
+  _Figure 15_: Landing Gear
 
 13. 테이프를 사용하여 GPS를 GPS 마스트 상단에 붙이고 GPS 마스트를 장착합니다.
-    GPS의 화살표가 전방을 가리키는 지 확인하십시오(그림 16).
+  GPS의 화살표가 전방을 가리키는 지 확인하십시오(그림 16).
 
-    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gps2.jpg" width="400" title="Figure 16: GPS and mast">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gps2.jpg" width="400" title="Figure 16: GPS and mast">
 
-    _Figure 16_: GPS and mast
+  _Figure 16_: GPS and mast
 
 14. 상판에 텔레메트리를 장착합니다.
-    Plug the telemetry cable into `TELEM1` port and GPS module to `GPS MODULE` port on the flight controller.
-    Plug the cable from PM07 `FMU-PWM-in` to `I/O-PWM-out`on the FC and PM07 `PWR1` to `POWER1` on the FC, as shown in Figure 17.
+  Plug the telemetry cable into `TELEM1` port and GPS module to `GPS MODULE` port on the flight controller.
+  Plug the cable from PM07 `FMU-PWM-in` to `I/O-PWM-out`on the FC and PM07 `PWR1` to `POWER1` on the FC, as shown in Figure 17.
 
-    ![Pixhawk 4 wiring 1](../../assets/airframes/multicopter/x500_holybro_pixhawk4/fc_connections.jpg)
+  ![Pixhawk 4 wiring 1](../../assets/airframes/multicopter/x500_holybro_pixhawk4/fc_connections.jpg)
 
-    _Figure 17_: Mount telemetry radio/plug in PWM and Power cables to Flight controller.
+  _Figure 17_: Mount telemetry radio/plug in PWM and Power cables to Flight controller.
 
 Please refer to [Pixhawk 4 Quick Start](../assembly/quick_start_pixhawk4.md) for more information.
 

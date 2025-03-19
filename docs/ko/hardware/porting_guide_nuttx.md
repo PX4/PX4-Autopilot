@@ -62,30 +62,30 @@ To run `qconfig` you may need to install additional Qt dependencies.
 
 2. 소스 코드를 다운로드하고 기존 대상을 빌드할 수 있는 지 확인합니다.
 
-   ```sh
-   git clone --recursive https://github.com/PX4/PX4-Autopilot.git
-   cd PX4-Autopilot
-   make px4_fmu-v5
-   ```
+  ```sh
+  git clone --recursive https://github.com/PX4/PX4-Autopilot.git
+  cd PX4-Autopilot
+  make px4_fmu-v5
+  ```
 
 3. 동일한(또는 유사한) CPU 유형을 사용하는 기존 대상을 복사합니다.
-   예: STM32F7의 경우
+  예: STM32F7의 경우
 
-   ```sh
-   mkdir boards/manufacturer
-   cp -r boards/px4/fmu-v5 boards/manufacturer/my-target-v1
-   ```
+  ```sh
+  mkdir boards/manufacturer
+  cp -r boards/px4/fmu-v5 boards/manufacturer/my-target-v1
+  ```
 
-   Change **manufacturer** to the manufacturer name and **my-target-v1** to your board name.
+  Change **manufacturer** to the manufacturer name and **my-target-v1** to your board name.
 
 Next you need to go through all files under **boards/manufacturer/my-target-v1** and update them according to your board.
 
 1. **firmware.prototype**: update the board ID and name
 2. **default.px4board**: update the **VENDOR** and **MODEL** to match the directory names (**my-target-v1**).
-   직렬 포트를 설정합니다.
+  직렬 포트를 설정합니다.
 3. Configure NuttX (**defconfig**) via `make manufacturer_my-target-v1 menuconfig`: Adjust the CPU and chip, configure the peripherals (UART's, SPI, I2C, ADC).
 4. **nuttx-config/include/board.h**: Configure the NuttX pins.
-   여러 가지 핀 옵션이 있는 주변 장치에서는 NuttX는 핀 정보을 알아야 합니다.
-   They are defined in the chip-specific pinmap header file, for example [stm32f74xx75xx_pinmap.h](https://github.com/PX4/NuttX/blob/px4_firmware_nuttx-8.2/arch/arm/src/stm32f7/hardware/stm32f74xx75xx_pinmap.h).
+  여러 가지 핀 옵션이 있는 주변 장치에서는 NuttX는 핀 정보을 알아야 합니다.
+  They are defined in the chip-specific pinmap header file, for example [stm32f74xx75xx_pinmap.h](https://github.com/PX4/NuttX/blob/px4_firmware_nuttx-8.2/arch/arm/src/stm32f7/hardware/stm32f74xx75xx_pinmap.h).
 5. **src**: go through all files under **src** and update them as needed, in particular **board_config.h**.
 6. **init/rc.board_sensors**: start the sensors that are attached to the board.

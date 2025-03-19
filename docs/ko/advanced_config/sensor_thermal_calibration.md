@@ -102,11 +102,11 @@ PX4는 두 가지 보정 절차를 지원합니다.
 
 9. Open a terminal window in the **Firmware/Tools** directory and run the python calibration script:
 
-   ```sh
-   python process_sensor_caldata.py <full path name to .ulog file>
-   ```
+  ```sh
+  python process_sensor_caldata.py <full path name to .ulog file>
+  ```
 
-   This will generate a **.pdf** file showing the measured data and curve fits for each sensor, and a **.params** file containing the calibration parameters.
+  This will generate a **.pdf** file showing the measured data and curve fits for each sensor, and a **.params** file containing the calibration parameters.
 
 10. Power the board, connect _QGroundControl_ and load the parameter from the generated **.params** file onto the board using _QGroundControl_. 매개변수의 갯수가 많이지므로, 로드 시간이 길어질 수 있습니다.
 

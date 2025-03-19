@@ -13,7 +13,7 @@ Contact the [manufacturer](https://store.mrobotics.io/) for hardware support or 
 
 The [AUAV<sup>&reg;</sup>](http://www.auav.com/) _AUAV-X2 autopilot_ is based on the [Pixhawk<sup>&reg;</sup>-project](https://pixhawk.org/) **FMUv2** open hardware design. It runs PX4 on the [NuttX](https://nuttx.apache.org/) OS.
 
-![AUAVX2\_case2](../../assets/flight_controller/auav_x2/auavx2_case2.jpg)
+![AUAVX2_case2](../../assets/flight_controller/auav_x2/auavx2_case2.jpg)
 
 ## 요약
 

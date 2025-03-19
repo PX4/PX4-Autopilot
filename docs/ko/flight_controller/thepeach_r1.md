@@ -9,7 +9,7 @@ Contact the [manufacturer](https://thepeach.kr/) for hardware support or complia
 
 It is based on the **Pixhawk-project FMUv3** open hardware design and runs **PX4** on **Nuttx OS**.
 
-![ThePeach\_R1](../../assets/flight_controller/thepeach_r1/main.png)
+![ThePeach_R1](../../assets/flight_controller/thepeach_r1/main.png)
 
 ## 사양
 
@@ -55,7 +55,7 @@ It is based on the **Pixhawk-project FMUv3** open hardware design and runs **PX4
 
 ## 커넥터
 
-![pinmap\_top](../../assets/flight_controller/thepeach_r1/pinmap.png)
+![pinmap_top](../../assets/flight_controller/thepeach_r1/pinmap.png)
 
 ## 시리얼 포트 매핑
 

@@ -48,7 +48,7 @@ The process is demonstrated for a multicopter, but is equally valid for other ve
    - 기체에 시동을 걸고 스로틀을 천천히 최대로 올립니다.
    - 스로틀을 천천히 0까지 낮춥니다.
    - 기체 시동을 끄십시오.
-     &#062; <strong x-id="1">참고</strong> 진동을 면밀히 관찰하고, 신중하게 테스트를 진행하십시오.
+      &#062; <strong x-id="1">참고</strong> 진동을 면밀히 관찰하고, 신중하게 테스트를 진행하십시오.
 
    ::: info
    Perform the test carefully and closely monitor the vibrations.

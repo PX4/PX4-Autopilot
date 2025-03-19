@@ -12,7 +12,7 @@ Refer to the [Specification and Model Comparison section](#specification-and-mod
 
 RTK를 사용하면 PX4는 일반 GPS에서 제공하는 것 보다 훨씬 더 정확한 센티미터 수준의 정확도로 위치를 파악할 수 있습니다.
 
-![h-rtk\_rover](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_all_label.jpg)
+![h-rtk_rover](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_all_label.jpg)
 
 ## 구매처
 
@@ -34,11 +34,11 @@ The cables/connectors may need to be modified in order to connect to other fligh
 
 ## 핀 맵
 
-![h-rtk\_rover\_pinmap](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_pinmap.jpg)
+![h-rtk_rover_pinmap](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_pinmap.jpg)
 
 ## 사양 및 모델 비교
 
-![h-rtk\_spec](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_spec.png)
+![h-rtk_spec](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_spec.png)
 
 ## GPS 소품
 

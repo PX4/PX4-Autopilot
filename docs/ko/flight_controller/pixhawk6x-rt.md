@@ -43,7 +43,7 @@ The Pixhawk®​ 6X-RT is perfect for developers at corporate research labs, sta
 - Triple redundancy domains: Completely isolated sensor domains with separate buses and separate power control
 - Newly designed vibration isolation system to filter out high frequency vibration and reduce noise to ensure accurate readings
 - Ethernet interface for high-speed mission computer integration
-- IMUs are temperature-controlled by onboard heating resistors, allowing optimum working temperature of IMUs&#x20
+- IMUs are temperature-controlled by onboard heating resistors, allowing optimum working temperature of IMUs&#x20;
 
 ### Processors & Sensors
 
