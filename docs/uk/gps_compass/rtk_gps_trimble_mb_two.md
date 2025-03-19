@@ -24,8 +24,8 @@ A good example is the [Maxtenna M1227HCT-A2-SMA](http://www.maxtena.com/products
 Тип роз'єму антени на пристрої - MMCX.
 Підходящі кабелі для вищезазначених антен (коннектор SMA) можна знайти тут:
 
-- [30 cm version](https://www.digikey.com/products/en?mpart=415-0073-012\&v=24)
-- [45 cm version](https://www.digikey.com/products/en?mpart=415-0073-018\&v=24)
+- [30 cm version](https://www.digikey.com/products/en?mpart=415-0073-012&v=24)
+- [45 cm version](https://www.digikey.com/products/en?mpart=415-0073-018&v=24)
 
 ## Підключення та з'єднання
 

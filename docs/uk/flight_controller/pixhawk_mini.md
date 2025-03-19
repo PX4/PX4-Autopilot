@@ -15,7 +15,7 @@ Pixhawk Mini базується на відкритому проекті PX4 і 
 Wiring information is available [below](#wiring).
 
 :::info
-This flight controller was designed by 3DR in collaboration with HobbyKing<sup>&amp;reg;</sup>.
+This flight controller was designed by 3DR in collaboration with HobbyKing<sup>&reg;</sup>.
 Раніше він був відомий як 3DR Pixhawk Mini.
 :::
 
@@ -109,7 +109,7 @@ The _Pixhawk Mini_ is shipped with the following contents:
 | Модуль GPS                                                                                                   | ![Compass+GPS module](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_compass_drawing.png)                                  |
 | Quad Power Distribution Board                                                                                | ![Quad Power Distribution Board](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_quad_power_distribution_board_drawing.png) |
 | 8 Channel PWM Breakout board                                                                                 | ![8 Channel PWM Breakout board](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_8_channel_pwm_breakout_board_drawing.png)   |
-| кабель на 4 піна (для I2C)                                                                | ![4-pin cable (for I2C)](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_4_pin_cable_drawing.png)                           |
+| кабель на 4 піна (для I2C)                                                                | ![4-pin cable (for I2C)](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_4_pin_cable_drawing.png)        |
 | RC-in кабель для PPM/SBUS                                                                                    | ![RC-in cable for PPM/SBUS](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_rc_in_cable_drawing.png)                        |
 | 6 to 6/4 ‘Y’ адаптер для GPS та додаткових пристроїв I2C                                                     | ![6 to 6/4 ‘Y’ adapter](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_6_to_6_and_4_pin_Y_cable_drawing.png)               |
 | 6-піновий кабель (2) (для плати розподілу живлення та для компасу/gps) | ![6 pin cable](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_6_pin_cable_drawing.png)                                     |

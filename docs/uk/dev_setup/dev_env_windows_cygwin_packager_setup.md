@@ -136,32 +136,32 @@ The toolchain gets maintained and hence these instructions might not cover every
 
 10. Download [**Apache Ant**](https://ant.apache.org/bindownload.cgi) as zip archive of the binaries for Windows and unpack the content to the folder `C:\PX4\toolchain\apache-ant`.
 
-    :::tip
-    Make sure you don't have an additional folder layer from the folder which is inside the downloaded archive.
+   :::tip
+   Make sure you don't have an additional folder layer from the folder which is inside the downloaded archive.
 
 :::
 
-    ::: info
-    This is what the toolchain does in: [apache-ant/install-apache-ant.bat](https://github.com/MaEtUgR/PX4Toolchain/blob/master/toolchain/apache-ant/install-apache-ant.bat).
+   ::: info
+   This is what the toolchain does in: [apache-ant/install-apache-ant.bat](https://github.com/MaEtUgR/PX4Toolchain/blob/master/toolchain/apache-ant/install-apache-ant.bat).
 
 :::
 
 11. Download, build and add _genromfs_ to the path:
 
-    - Clone the source code to the folder **C:\PX4\toolchain\genromfs\genromfs-src** with
+   - Clone the source code to the folder **C:\PX4\toolchain\genromfs\genromfs-src** with
 
       ```sh
       cd /c/toolchain/genromfs
       git clone https://github.com/chexum/genromfs.git genromfs-src
       ```
 
-    - Скомпілюйте це:
+   - Скомпілюйте це:
 
       ```sh
       cd genromfs-src
       make all
       ```
 
-    - Copy the resulting binary **genromfs.exe** one folder level out to: **C:\PX4\toolchain\genromfs**
+   - Copy the resulting binary **genromfs.exe** one folder level out to: **C:\PX4\toolchain\genromfs**
 
 12. Make sure all the binary folders of all the installed components are correctly listed in the `PATH` variable configured by [**setup-environment.bat**](https://github.com/PX4/windows-toolchain/blob/master/toolchain/scripts/setup-environment.bat).

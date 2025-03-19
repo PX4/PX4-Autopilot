@@ -396,7 +396,7 @@ Frequently asked questions are answered in [FAQ](https://docs.sky-drones.com/air
 
 - [AIRLink product page](https://sky-drones.com/airlink)
 - [AIRLink documentation](https://docs.sky-drones.com/avionics/airlink)
-- [AIRLink datasheet](https://3182378893-files.gitbook.io/~/files/v0/b/gitbook-x-prod.appspot.com/o/spaces%2F-MTMlWysgDtJq8Hid1v7%2Fuploads%2F8AiuNNSwLYnZSscj7uIV%2FAIRLink-Datasheet.pdf?alt=media\&token=cbf0c4bf-9ab1-40c5-a0af-c6babdddb690)
+- [AIRLink datasheet](https://3182378893-files.gitbook.io/~/files/v0/b/gitbook-x-prod.appspot.com/o/spaces%2F-MTMlWysgDtJq8Hid1v7%2Fuploads%2F8AiuNNSwLYnZSscj7uIV%2FAIRLink-Datasheet.pdf?alt=media&token=cbf0c4bf-9ab1-40c5-a0af-c6babdddb690)
 - [Buy AIRLink Enterprise 4G](https://sky-drones.com/sets/airlink-enterprise-set.html)
 - [Buy AIRLink Enterprise 5G](https://sky-drones.com/sets/airlink-5g-enterprise-set.html)
 - [Buy AIRLink Core 4G](https://sky-drones.com/autopilots/airlink-core.html)

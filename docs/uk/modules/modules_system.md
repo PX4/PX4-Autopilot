@@ -370,7 +370,7 @@ CONFIG_DRIVERS_RPM_CAPTURE=y
 Additionally, to enable the module:
 
 - Set [ICE_EN](../advanced_config/parameter_reference.md#ICE_EN)
-  to true and adjust the other `ICE_` module parameters according to your needs.
+ to true and adjust the other `ICE_` module parameters according to your needs.
 - Set [RPM_CAP_ENABLE](../advanced_config/parameter_reference.md#RPM_CAP_ENABLE) to true.
 
 The module outputs control signals for ignition, throttle, and choke,
@@ -390,8 +390,8 @@ The state machine:
 
 - Checks if [Rpm.msg](../msg_docs/Rpm.md) is updated to know if the engine is running
 - Allows for user inputs from:
-  - AUX{N}
-  - Arming state in [VehicleStatus.msg](../msg_docs/VehicleStatus.md)
+ - AUX{N}
+ - Arming state in [VehicleStatus.msg](../msg_docs/VehicleStatus.md)
 
 The module publishes [InternalCombustionEngineControl.msg](../msg_docs/InternalCombustionEngineControl.md).
 
@@ -510,7 +510,7 @@ System logger which logs a configurable set of uORB topics and system printf mes
 Реалізація використовує два потоки:
 
 - The main thread, running at a fixed rate (or polling on a topic if started with -p) and checking for
-  data updates
+ data updates
 - Потік запису, що записує дані у файл
 
 Між ними знаходиться буфер запису з конфігурованим розміром (і ще один буфер фіксованого розміру для журналу місій). Він повинен бути великим, щоб уникнути втрати даних.
@@ -725,9 +725,9 @@ There are 2 environment variables used for configuration: `replay`, which must b
 the log file to be replayed. The second is the mode, specified via `replay_mode`:
 
 - `replay_mode=ekf2`: specific EKF2 replay mode. It can only be used with the ekf2 module, but allows the replay
-  to run as fast as possible.
+ to run as fast as possible.
 - Generic otherwise: this can be used to replay any module(s), but the replay will be done with the same speed as the
-  log was recorded.
+ log was recorded.
 
 Модуль зазвичай використовується разом з правилами видавця uORB, щоб вказати, які повідомлення потрібно відтворити.
 Модуль відтворення просто опублікує всі повідомлення, які знаходяться в журналі. Це також застосовує параметри з
@@ -892,12 +892,12 @@ Source: [modules/sensors](https://github.com/PX4/PX4-Autopilot/tree/main/src/mod
 Надана функціональність включає в себе:
 
 - Read the output from the sensor drivers (`SensorGyro`, etc.).
-  Якщо існують кілька екземплярів того самого типу, виконуйте голосування та обробку аварійної ситуації.
-  Потім застосуйте обертання дошки та калібрування температури (якщо ввімкнено). And finally publish the data; one of the
-  topics is `SensorCombined`, used by many parts of the system.
+ Якщо існують кілька екземплярів того самого типу, виконуйте голосування та обробку аварійної ситуації.
+ Потім застосуйте обертання дошки та калібрування температури (якщо ввімкнено). And finally publish the data; one of the
+ topics is `SensorCombined`, used by many parts of the system.
 - Make sure the sensor drivers get the updated calibration parameters (scale & offset) when the parameters change or
-  on startup. Драйвери сенсора використовують інтерфейс ioctl для оновлення параметрів. For this to work properly, the
-  sensor drivers must already be running when `sensors` is started.
+ on startup. Драйвери сенсора використовують інтерфейс ioctl для оновлення параметрів. For this to work properly, the
+ sensor drivers must already be running when `sensors` is started.
 - Do sensor consistency checks and publish the `SensorsStatusImu` topic.
 
 ### Імплементація

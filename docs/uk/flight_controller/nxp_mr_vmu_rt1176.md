@@ -60,7 +60,7 @@ Similar variants will be available from our licensees.
 - Triple-redundancy domains: Completely isolated sensor domains with separate buses and separate power control
 - Нова система ізоляції вібрацій для фільтрації високочастотних вібрацій та зменшення шуму для забезпечення точних вимірювань
 - 100Base-T1 2-Wire Ethernet interface for high-speed mission computer integration
-- IMUs are temperature-controlled by onboard heating resistors, allowing optimum working temperature of IMUs&#x20
+- IMUs are temperature-controlled by onboard heating resistors, allowing optimum working temperature of IMUs&#x20;
 
 ### Processors & Sensors
 

@@ -57,10 +57,10 @@ To set up/start SIH:
 1. Connect the flight controller to the desktop computer with a USB cable.
 2. Відкрийте QGroundControl і зачекайте, поки контролер польоту також завантажиться та підключиться.
 3. Open [Vehicle Setup > Airframe](../config/airframe.md) then select the desired frame:
-   - [SIH Quadcopter X](../airframes/airframe_reference.md#copter_simulation_sih_quadcopter_x)
-   - [SIH plane AERT](../airframes/airframe_reference.md#plane_simulation_sih_plane_aert)
-   - [SIH Tailsitter Duo](../airframes/airframe_reference.md#vtol_simulation_sih_tailsitter_duo)
-   - [SIH Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_simulation_sih_standard_vtol_quadplane)
+  - [SIH Quadcopter X](../airframes/airframe_reference.md#copter_simulation_sih_quadcopter_x)
+  - [SIH plane AERT](../airframes/airframe_reference.md#plane_simulation_sih_plane_aert)
+  - [SIH Tailsitter Duo](../airframes/airframe_reference.md#vtol_simulation_sih_tailsitter_duo)
+  - [SIH Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_simulation_sih_standard_vtol_quadplane)
 
 Потім автопілот перезавантажиться.
 The `sih` module is started on reboot, and the vehicle should be displayed on the ground control station map.
@@ -86,19 +86,19 @@ SIH does not _need_ a visualiser — you can connect with QGroundControl and fly
 
 3. Start jMAVSim by calling the script **jmavsim_run.sh** from a terminal:
 
-   ```sh
-   ./Tools/simulation/jmavsim/jmavsim_run.sh -q -d /dev/ttyACM0 -b 2000000 -o
-   ```
+  ```sh
+  ./Tools/simulation/jmavsim/jmavsim_run.sh -q -d /dev/ttyACM0 -b 2000000 -o
+  ```
 
-   де прапорці такі:
+  де прапорці такі:
 
-   - `-q` to allow the communication to _QGroundControl_ (optional).
-   - `-d` to start the serial device `/dev/ttyACM0` on Linux.
-     On macOS this would be `/dev/tty.usbmodem1`.
-   - `-b` to set the serial baud rate to `2000000`.
-   - `-o` to start jMAVSim in _display Only_ mode (i.e. the physical engine is turned off and jMAVSim only displays the trajectory given by the SIH in real-time).
-   - add a flag `-a` to display an aircraft or `-t` to display a tailsitter.
-     Якщо цей прапорець не вказаний, за замовчуванням відображатиметься квадрокоптер.
+  - `-q` to allow the communication to _QGroundControl_ (optional).
+  - `-d` to start the serial device `/dev/ttyACM0` on Linux.
+    On macOS this would be `/dev/tty.usbmodem1`.
+  - `-b` to set the serial baud rate to `2000000`.
+  - `-o` to start jMAVSim in _display Only_ mode (i.e. the physical engine is turned off and jMAVSim only displays the trajectory given by the SIH in real-time).
+  - add a flag `-a` to display an aircraft or `-t` to display a tailsitter.
+    Якщо цей прапорець не вказаний, за замовчуванням відображатиметься квадрокоптер.
 
 4. After few seconds, _QGroundControl_ can be opened again.
 
@@ -116,29 +116,29 @@ In this case you don't need the flight controller hardware.
 1. Install the [PX4 Development toolchain](../dev_setup/dev_env.md).
 2. Виконайте відповідну команду make для кожного типу транспортного засобу (в корені репозиторію PX4-Autopilot):
 
-   - квадротор:
+  - квадротор:
 
-     ```sh
-     make px4_sitl sihsim_quadx
-     ```
+    ```sh
+    make px4_sitl sihsim_quadx
+    ```
 
-   - Закріплені крила (літаки):
+  - Закріплені крила (літаки):
 
-     ```sh
-     make px4_sitl sihsim_airplane
-     ```
+    ```sh
+    make px4_sitl sihsim_airplane
+    ```
 
-   - XVert VTOL tailsitter:
+  - XVert VTOL tailsitter:
 
-     ```sh
-     make px4_sitl sihsim_xvert
-     ```
+    ```sh
+    make px4_sitl sihsim_xvert
+    ```
 
-   - Standard VTOL:
+  - Standard VTOL:
 
-     ```sh
-     make px4_sitl sihsim_standard_vtol
-     ```
+    ```sh
+    make px4_sitl sihsim_standard_vtol
+    ```
 
 ### Зміна швидкості симуляції
 
