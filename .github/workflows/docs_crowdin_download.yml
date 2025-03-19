@@ -30,7 +30,7 @@ jobs:
       - name: Matrix
         uses: crowdin/github-action@v2
         with:
-          config: 'docs/crowdin.yml'
+          config: 'docs/crowdin_docs.yml'
           upload_sources: false
           upload_translations: false
           download_translations: true
