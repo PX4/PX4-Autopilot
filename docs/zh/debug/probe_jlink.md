@@ -49,7 +49,7 @@ See the [Embedded Debug Tools][emdbg] for more advanced debug options.
 The [Segger JLink EDU Mini](https://www.segger.com/products/debug-probes/j-link/models/j-link-edu-mini/) is an inexpensive and popular SWD debug probe.
 The probe's connector pinout looks like the image below (connect to this using an ARM 10-pin mini connector like [FTSH-105-01-F-DV-K](https://www.digikey.com/products/en?keywords=SAM8796-ND)).
 
-![connector\_jlink\_mini.png](../../assets/debug/connector_jlink_mini.png)
+![connector_jlink_mini.png](../../assets/debug/connector_jlink_mini.png)
 
 The pin mapping to connect the J-Link Edu Mini to [Pixhawk Debug Mini](swd_debug.md#pixhawk-debug-mini) is shown below.
 

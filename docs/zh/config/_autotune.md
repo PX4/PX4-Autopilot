@@ -43,13 +43,13 @@ To make sure the vehicle is stable enough for auto-tuning:
 2. Take off and <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">hover at 1m above ground in [Altitude mode](../flight_modes_mc/altitude.md) or [Stabilized mode](../flight_modes_mc/manual_stabilized.md)</div><div style="display: inline;" v-else-if="$frontmatter.frame === 'Plane'">fly at cruise speed in [Position mode](../flight_modes_fw/position.md) or [Altitude mode](../flight_modes_fw/altitude.md)</div>.
 
 3. Use the RC transmitter roll stick to perform the following maneuver, tilting the vehicle just a few degrees: _roll left > roll right > center_ (The whole maneuver should take about 3 seconds).
-   The vehicle should stabilise itself within 2 oscillations.
+  The vehicle should stabilise itself within 2 oscillations.
 
 4. Repeat the maneuver, tilting with larger amplitudes at each attempt.
-   If the vehicle can stabilise itself within 2 oscillations at ~20 degrees move to the next step.
+  If the vehicle can stabilise itself within 2 oscillations at ~20 degrees move to the next step.
 
 5. Repeat the same maneuvers but on the pitch axis.
-   As above, start with small angles and confirm that the vehicle can stabilise itself within 2 oscillations before increasing the tilt.
+  As above, start with small angles and confirm that the vehicle can stabilise itself within 2 oscillations before increasing the tilt.
 
 If the drone can stabilize itself within 2 oscillations it is ready for the [auto-tuning procedure](#auto-tuning-procedure).
 
@@ -72,35 +72,43 @@ The test steps are:
 1. Perform the [pre-tuning test](#pre-tuning-test).
 
 2. Takeoff using RC control <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">in [Altitude mode](../flight_modes_mc/altitude.md).
-   Hover the vehicle at a safe distance and at a few meters above ground (between 4 and 20m).</div><div v-else-if="$frontmatter.frame === 'Plane'">
-   Once flying at cruise speed, activate [Hold mode](../flight_modes_fw/hold.md).
-   This will guide the plane to fly in circle at constant altitude and speed.</div>
+  Hover the vehicle at a safe distance and at a few meters above ground (between 4 and 20m).</div><div v-else-if="$frontmatter.frame === 'Plane'">
+  Once flying at cruise speed, activate [Hold mode](../flight_modes_fw/hold.md).
+  This will guide the plane to fly in circle at constant altitude and speed.</div>
 
 3. Enable autotune.
 
-   <div v-if="$frontmatter.frame === 'Plane'">
-   <div class="tip custom-block"><p class="custom-block-title">TIP</p>
+  <div v-if="$frontmatter.frame === 'Plane'">
+  <div class="tip custom-block"><p class="custom-block-title">TIP</p>
 
-   If an [Enable/Disable Autotune Switch](#enable-disable-autotune-switch) is configured you can just toggle the switch to the "enabled" position.
+  If an [Enable/Disable Autotune Switch](#enable-disable-autotune-switch) is configured you can just toggle the switch to the "enabled" position.
 
-   </div></div>
+  </div></div>
 
-   1. In QGroundControl, open the menu **Vehicle setup > PID Tuning**:
+  1. In QGroundControl, open the menu **Vehicle setup > PID Tuning**:
 
-      ![Tuning Setup > Autotune Enabled](../../assets/qgc/setup/autotune/autotune.png)
+    ![Tuning Setup > Autotune Enabled](../../assets/qgc/setup/autotune/autotune.png)
 
-   2. Select either the _Rate Controller_ or _Attitude Controller_ tabs.
+  2. Select either the _Rate Controller_ or _Attitude Controller_ tabs.
 
-   3. Ensure that the **Autotune enabled** button is enabled (this will display the **Autotune** button and remove the manual tuning selectors).
+  3. Ensure that the **Autotune enabled** button is enabled (this will display the **Autotune** button and remove the manual tuning selectors).
 
-   4. Read the warning popup and click on **OK** to start tuning.
+  4. Read the warning popup and click on **OK** to start tuning.
 
 4. The drone will first start to perform quick roll motions followed by pitch and yaw motions.
-   The progress is shown in the progress bar, next to the _Autotune_ button.
+  The progress is shown in the progress bar, next to the _Autotune_ button.
 
-5. <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">Manually land and disarm to apply the new tuning parameters.
-   Takeoff carefully and manually test that the vehicle is stable.</div><div v-else-if="$frontmatter.frame === 'Plane'">The tuning will be immediately/automatically be applied and tested in flight (by default).
-   PX4 will then run a 4 second test and revert the new tuning if a problem is detected.</div>
+<div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">
+
+5. Manually land and disarm to apply the new tuning parameters.
+  Takeoff carefully and manually test that the vehicle is stable.
+
+</div><div v-else-if="$frontmatter.frame === 'Plane'">
+
+5. The tuning will be immediately/automatically be applied and tested in flight (by default).
+  PX4 will then run a 4 second test and revert the new tuning if a problem is detected.
+
+</div>
 
 :::warning
 If any strong oscillations occur, land immediately and follow the instructions in the [Troubleshooting](#troubleshooting) section below.

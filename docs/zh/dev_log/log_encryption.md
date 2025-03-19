@@ -30,7 +30,7 @@ If another algorithm is supported in future, the process is _likely_ to remain t
 The encryption process for each new ULog is:
 
 1. A XChaCha20 symmetric key is generated and encrypted using an RSA2048 public key.
-   This wrapped (encrypted) key is stored on the SD card in the beginning of a file that has the suffix `.ulge` ("ulog encrypted").
+  This wrapped (encrypted) key is stored on the SD card in the beginning of a file that has the suffix `.ulge` ("ulog encrypted").
 2. When a log is captured, the ULog data is encrypted with the unwrapped symmetric key and the resulting data is appended into the end of the `.ulge` file immediately after the wrapped key data.
 
 After the flight, the `.ulge` file containing both the wrapped symmetric key and the encrypted log data can be found on the SD card.

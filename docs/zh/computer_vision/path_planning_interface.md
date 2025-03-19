@@ -1,6 +1,6 @@
 # Path Planning Interface
 
-<Badge type="warning" text="Removed" />
+<Badge type="warning" text="Removed PX4 v1.15" />
 
 :::warning
 The **Path Planning Interface**, along with the features **Obstacle avoidance in Missions** and **Safe Landing** are no longer supported or maintained, and _should not_ be used in any PX4 version.

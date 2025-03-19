@@ -35,7 +35,7 @@ The minimal equipment required is:
 
 The structure is made out of aluminum booms as shown below.
 
-![quad\_frame](../../assets/airframes/vtol/funcub_pixhawk/fun_cub_aluminium_frame_for_vtol.jpg)
+![quad_frame](../../assets/airframes/vtol/funcub_pixhawk/fun_cub_aluminium_frame_for_vtol.jpg)
 ![Fun Cub -frame for vtol mounted](../../assets/airframes/vtol/funcub_pixhawk/fun_cub_aluminium_frame_for_vtol_mounted.jpg)
 
 ## 布线
@@ -79,3 +79,4 @@ After you finish calibration the VTOL is ready to fly.
 ## 技术支持
 
 If you have any questions regarding your VTOL conversion or configuration please visit <https://discuss.px4.io/c/px4/vtol>.
+

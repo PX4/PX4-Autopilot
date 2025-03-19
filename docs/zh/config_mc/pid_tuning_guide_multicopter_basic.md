@@ -72,7 +72,7 @@ The tuning procedure is:
 1. Arm the vehicle, takeoff, and hover (typically in [Position mode](../flight_modes_mc/position.md)).
 
 2. Open _QGroundControl_ **Vehicle Setup > PID Tuning**
-   ![QGC Rate Controller Tuning UI](../../assets/mc_pid_tuning/qgc_mc_pid_tuning_rate_controller.png)
+  ![QGC Rate Controller Tuning UI](../../assets/mc_pid_tuning/qgc_mc_pid_tuning_rate_controller.png)
 
 3. Select the **Rate Controller** tab.
 
@@ -80,60 +80,60 @@ The tuning procedure is:
 
 5. Set the _Thrust curve_ value to: 0.3 (PWM, power-based controllers) or 1 (RPM-based ESCs)
 
-   ::: info
-   For PWM, power-based and (some) UAVCAN speed controllers, the control signal to thrust relationship may not be linear.
-   As a result, the optimal tuning at hover thrust may not be ideal when the vehicle is operating at higher thrust.
+  ::: info
+  For PWM, power-based and (some) UAVCAN speed controllers, the control signal to thrust relationship may not be linear.
+  As a result, the optimal tuning at hover thrust may not be ideal when the vehicle is operating at higher thrust.
 
-   The thrust curve value can be used to compensate for this non-linearity:
+  The thrust curve value can be used to compensate for this non-linearity:
 
-   - For PWM controllers, 0.3 is a good default (which may benefit from [further tuning](../config_mc/pid_tuning_guide_multicopter.md#thrust-curve)).
-   - For RPM-based controllers, use 1 (no further tuning is required as these have a quadratic thrust curve).
+  - For PWM controllers, 0.3 is a good default (which may benefit from [further tuning](../config_mc/pid_tuning_guide_multicopter.md#thrust-curve)).
+  - For RPM-based controllers, use 1 (no further tuning is required as these have a quadratic thrust curve).
 
-   For more information see the [detailed PID tuning guide](../config_mc/pid_tuning_guide_multicopter.md#thrust-curve).
+  For more information see the [detailed PID tuning guide](../config_mc/pid_tuning_guide_multicopter.md#thrust-curve).
 
 :::
 
 6. Set the _Select Tuning_ radio button to: **Roll**.
 
 7. (Optionally) Select the **Automatic Flight Mode Switching** checkbox.
-   This will _automatically_ switch from [Position mode](../flight_modes_mc/position.md) to [Stabilised mode](../flight_modes_mc/manual_stabilized.md) when you press the **Start** button
+  This will _automatically_ switch from [Position mode](../flight_modes_mc/position.md) to [Stabilised mode](../flight_modes_mc/manual_stabilized.md) when you press the **Start** button
 
 8. For rate controller tuning switch to _Acro mode_, _Stabilized mode_ or _Altitude mode_ (unless automatic switching is enabled).
 
 9. Select the **Start** button in order to start tracking the setpoint and response curves.
 
 10. Rapidly move the _roll stick_ full range and observe the step response on the plots.
-    :::tip
-    Stop tracking to enable easier inspection of the plots.
-    This happens automatically when you zoom/pan.
-    Use the **Start** button to restart the plots, and **Clear** to reset them.
+  :::tip
+  Stop tracking to enable easier inspection of the plots.
+  This happens automatically when you zoom/pan.
+  Use the **Start** button to restart the plots, and **Clear** to reset them.
 
 :::
 
 11. Modify the three PID values using the sliders (for roll rate-tuning these affect `MC_ROLLRATE_K`, `MC_ROLLRATE_I`, `MC_ROLLRATE_D`) and observe the step response again.
-    The values are saved to the vehicle as soon as the sliders are moved.
-    ::: info
-    The goal is for the _Response_ curve to match the _Setpoint_ curve as closely as possible (i.e. a fast response without overshoots).
+  The values are saved to the vehicle as soon as the sliders are moved.
+  ::: info
+  The goal is for the _Response_ curve to match the _Setpoint_ curve as closely as possible (i.e. a fast response without overshoots).
 
 :::
-    The PID values can be adjusted as follows:
-    - P (proportional) or K gain:
-      - increase this for more responsiveness
-      - reduce if the response is overshooting and/or oscillating (up to a certain point increasing the D gain also helps).
-    - D (derivative) gain:
-      - this can be increased to dampen overshoots and oscillations
-      - increase this only as much as needed, as it amplifies noise (and can lead to hot motors)
-    - I (integral) gain:
-      - used to reduce steady-state error
-      - if too low, the response might never reach the setpoint (e.g. in wind)
-      - if too high, slow oscillations can occur
+  The PID values can be adjusted as follows:
+  - P (proportional) or K gain:
+    - increase this for more responsiveness
+    - reduce if the response is overshooting and/or oscillating (up to a certain point increasing the D gain also helps).
+  - D (derivative) gain:
+    - this can be increased to dampen overshoots and oscillations
+    - increase this only as much as needed, as it amplifies noise (and can lead to hot motors)
+  - I (integral) gain:
+    - used to reduce steady-state error
+    - if too low, the response might never reach the setpoint (e.g. in wind)
+    - if too high, slow oscillations can occur
 
 12. Repeat the tuning process above for the pitch and yaw:
-    - Use _Select Tuning_ radio button to select the axis to tune
-    - Move the appropriate sticks (i.e. pitch stick for pitch, yaw stick for yaw).
-    - For pitch tuning, start with the same values as for roll.
-      :::tip
-      Use the **Save to Clipboard** and **Reset from Clipboard** buttons to copy the roll settings for initial pitch settings.
+  - Use _Select Tuning_ radio button to select the axis to tune
+  - Move the appropriate sticks (i.e. pitch stick for pitch, yaw stick for yaw).
+  - For pitch tuning, start with the same values as for roll.
+    :::tip
+    Use the **Save to Clipboard** and **Reset from Clipboard** buttons to copy the roll settings for initial pitch settings.
 
 :::
 
@@ -141,10 +141,10 @@ The tuning procedure is:
 
 14. Repeat the tuning process for the velocity and positions controllers (on all the axes).
 
-    - Use Position mode when tuning these controllers
-    - Select the **Simple position control** option in the _Position control mode ..._ selector (this allows direct control for the generation of step inputs)
+  - Use Position mode when tuning these controllers
+  - Select the **Simple position control** option in the _Position control mode ..._ selector (this allows direct control for the generation of step inputs)
 
-      ![QGC PID tuning: Simple control selector](../../assets/mc_pid_tuning/qgc_mc_pid_tuning_simple_control.png)
+    ![QGC PID tuning: Simple control selector](../../assets/mc_pid_tuning/qgc_mc_pid_tuning_simple_control.png)
 
 All done!
 Remember to re-enable airmode before leaving the setup.

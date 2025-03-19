@@ -48,9 +48,9 @@ It is based on the **Pixhawk-project FMUv3** open hardware design and runs **PX4
 
 ## 连接器
 
-![pinmap\_top](../../assets/flight_controller/thepeach_k1/pinmap_top.png)
+![pinmap_top](../../assets/flight_controller/thepeach_k1/pinmap_top.png)
 
-![pinmap\_bottom](../../assets/flight_controller/thepeach_k1/pinmap_bottom.png)
+![pinmap_bottom](../../assets/flight_controller/thepeach_k1/pinmap_bottom.png)
 
 ## 串口映射
 

@@ -28,7 +28,7 @@ Pixhawk<sup>&reg;</sup> V6X brings you the ultimate in performance, stability an
 - External sensor bus (SPI5) has two chip select lines and data-ready signals for additional sensors and payload with SPI-interface.
 - Integrated Microchip Ethernet PHY for high-speed communication over Ethernet with onboard devices such as mission computers.
 - Newly designed vibration isolation system to filter out high frequency vibration and reduce noise to ensure accurate readings.
-- IMUs are temperature-controlled by onboard heating resistors, allowing optimum working temperature of IMUs&#x20
+- IMUs are temperature-controlled by onboard heating resistors, allowing optimum working temperature of IMUs&#x20;
 - Modular flight controller: separated IMU, FMU, and Base system connected by a 100-pin & a 50-pin Pixhawk®​ Autopilot Bus connector.
 
 The Pixhawk® V6X is ideal for corporate research labs, academic research and commercial applications.

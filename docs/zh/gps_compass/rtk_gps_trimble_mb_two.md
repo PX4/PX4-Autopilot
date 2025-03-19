@@ -24,8 +24,8 @@ A good example is the [Maxtenna M1227HCT-A2-SMA](http://www.maxtena.com/products
 The antenna connector type on the device is MMCX.
 Suitable cables for the above antennas (SMA connector) can be found here:
 
-- [30 cm version](https://www.digikey.com/products/en?mpart=415-0073-012\&v=24)
-- [45 cm version](https://www.digikey.com/products/en?mpart=415-0073-018\&v=24)
+- [30 cm version](https://www.digikey.com/products/en?mpart=415-0073-012&v=24)
+- [45 cm version](https://www.digikey.com/products/en?mpart=415-0073-018&v=24)
 
 ## 接线和连接
 

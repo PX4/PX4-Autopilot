@@ -29,10 +29,10 @@ The [Advanced Trimming](#advanced-trimming) section introduces parameters that c
 
 1. Trim the servos by physically adjusting the linkages lengths if possible and fine tune by trimming the PWM channels (use `PWM_MAIN/AUX_TRIMx`) on the bench to properly set the control surfaces to their theoretical position.
 2. Fly in stabilized mode at cruise speed and set the pitch setpoint offset (`FW_PSP_OFF`) to desired angle of attack.
-   巡航速度飞行下的需用攻角为飞机在平飞状态下保持固定高度时的实际飞行迎角。
-   If you are using an airspeed sensor, also set the correct cruise airspeed (`FW_AIRSPD_TRIM`).
+  巡航速度飞行下的需用攻角为飞机在平飞状态下保持固定高度时的实际飞行迎角。
+  If you are using an airspeed sensor, also set the correct cruise airspeed (`FW_AIRSPD_TRIM`).
 3. Look at the actuator controls in the log file (upload it to [Flight Review](https://logs.px4.io) and check the _Actuator Controls_ plot for example) and set the pitch trim (`TRIM_PITCH`).
-   将该值设置为平飞时俯仰角度的平均值。
+  将该值设置为平飞时俯仰角度的平均值。
 
 步骤3可以在步骤2之前执行，如果你不想查看日志， 或者如果您在手动模式下感觉舒适。
 You can then trim your remote (with the trim switches) and report the values to `TRIM_PITCH` (and remove the trims from your transmitter) or update `TRIM_PITCH` directly during flight via telemetry and QGC.

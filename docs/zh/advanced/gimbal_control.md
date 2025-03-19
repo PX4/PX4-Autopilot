@@ -129,7 +129,7 @@ The on-screen gimbal control can be used to move/test a connected MAVLink camera
 
 2. Open QGroundControl and enable the on-screen camera control (Application settings).
 
-   ![Quadrotor(x500) with gimbal (Front-facing) in Gazebo](../../assets/qgc/fly/gimbal_control_x500gz.png)
+  ![Quadrotor(x500) with gimbal (Front-facing) in Gazebo](../../assets/qgc/fly/gimbal_control_x500gz.png)
 
 3. Make sure the vehicle is armed and flying, e.g. by entering with `commander takeoff`.
 
