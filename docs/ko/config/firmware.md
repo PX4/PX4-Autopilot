@@ -61,10 +61,10 @@ Next you will need to specify the [vehicle airframe](../config/airframe.md) (and
 2. Check **Advanced settings** and select the version from the dropdown list:
    - **Standard Version (stable):** The default version (i.e. no need to use advanced settings to install this!)
    - **Beta Testing (beta):** A beta/candidate release.
-     신규 버전 출시 이전에 테스트 할 경우에만 사용할 수 있습니다.
+      신규 버전 출시 이전에 테스트 할 경우에만 사용할 수 있습니다.
    - **Developer Build (master):** The latest build of PX4/PX4-Autopilot _main_ branch.
    - **Custom Firmware file...:** A custom firmware file (e.g. [that you have built locally](../dev_setup/building_px4.md)).
-     사용자 정의 펌웨어 파일을 선택한 경우 다음 단계에서 파일 시스템에서 사용자 정의 펌웨어를 선택하여야 합니다.
+      사용자 정의 펌웨어 파일을 선택한 경우 다음 단계에서 파일 시스템에서 사용자 정의 펌웨어를 선택하여야 합니다.
 
 그러면 펌웨어 업데이트가 이전과 같이 계속됩니다.
 

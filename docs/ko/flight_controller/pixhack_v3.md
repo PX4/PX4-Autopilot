@@ -53,7 +53,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 보드는 아래에서 구입할 수 있습니다.
 
-- [store.cuav.net](http://store.cuav.net/index.php?id_product=8\&id_product_attribute=0\&rewrite=pixhack-v3-autopilot\&controller=product\&id_lang=3)
+- [store.cuav.net](http://store.cuav.net/index.php?id_product=8&id_product_attribute=0&rewrite=pixhack-v3-autopilot&controller=product&id_lang=3)
 - [leixun.aliexpress.com/store](https://leixun.aliexpress.com/store)
 
 ## 펌웨어 빌드

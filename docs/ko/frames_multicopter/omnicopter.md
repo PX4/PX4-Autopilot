@@ -19,7 +19,7 @@ This build follows the original design from [Brescianini, Dario, and Raffaello D
     You can select your own flight controller of choice, it just needs to support 8 DShot outputs.
 
 :::
-  - GPS: [ZED-F9P](https://www.gnss.store/gnss-gps-modules/105-ublox-zed-f9p-rtk-gnss-receiver-board-with-sma-base-or-rover.html?search_query=ZED-F9P\&results=11)
+  - GPS: [ZED-F9P](https://www.gnss.store/gnss-gps-modules/105-ublox-zed-f9p-rtk-gnss-receiver-board-with-sma-base-or-rover.html?search_query=ZED-F9P&results=11)
   - [GPS helix antenna](https://www.gnss.store/rf-gps-antennas/28-high-performance-multi-band-gnss-active-quad-helix-antenna-for-rtk.html)
     ::: info
     Any other GPS may work as well, however a helix antenna is expected to perform better for inverted flights.

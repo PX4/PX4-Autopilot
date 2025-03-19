@@ -35,21 +35,21 @@ The main hardware documentation is [here](http://mindpx.net/assets/accessories/m
 - IMU 격리 지원
 - DroneCode<sup>&reg;</sup> 표준 준수 커넥터
 
-|          항목         |                                                       설명                                                      |
-| :-----------------: | :-----------------------------------------------------------------------------------------------------------: |
-|     비행 컨트롤러/프로세서    |                                                    F427VIT6                                                   |
-|          중량         |                                                      약 6g                                                     |
-|          크기         |                                                    35x35mm                                                    |
-|        PWM 출력       |                                                      최대 6                                                     |
-|        관성 센서        |                                                     10DOF                                                     |
-|        IMU 격리       |                                                   예 / 선택 사항                                                   |
-|       라디오 수신기       |                                  S.BUS/PPM/DSM/DSM2/DSMX/SUMD                                 |
-|        텔레메트리        | FrSky<sup>&amp;reg;</sup> D.Port, S.Port, Wifi, 3DR radio |
-| 비행 데이터 기록 온보드 TF 카드 |                                                       예                                                       |
-|    OneShot ESC 지원   |                                                       예                                                       |
-|        확장 슬롯        |                                         2x7(pin)x2                                         |
-|      온보드 실시간 시계     |                                                       예                                                       |
-|         커넥터         |                                   JST GH(DroneCode 표준 준수)                                  |
+|          항목         |                                                     설명                                                    |
+| :-----------------: | :-------------------------------------------------------------------------------------------------------: |
+|     비행 컨트롤러/프로세서    |                                                  F427VIT6                                                 |
+|          중량         |                                                    약 6g                                                   |
+|          크기         |                                                  35x35mm                                                  |
+|        PWM 출력       |                                                    최대 6                                                   |
+|        관성 센서        |                                                   10DOF                                                   |
+|        IMU 격리       |                                                 예 / 선택 사항                                                 |
+|       라디오 수신기       |                                S.BUS/PPM/DSM/DSM2/DSMX/SUMD                               |
+|        텔레메트리        | FrSky<sup>&reg;</sup> D.Port, S.Port, Wifi, 3DR radio |
+| 비행 데이터 기록 온보드 TF 카드 |                                                     예                                                     |
+|    OneShot ESC 지원   |                                                     예                                                     |
+|        확장 슬롯        |                                       2x7(pin)x2                                       |
+|      온보드 실시간 시계     |                                                     예                                                     |
+|         커넥터         |                                 JST GH(DroneCode 표준 준수)                                |
 
 ## 빠른 시작
 

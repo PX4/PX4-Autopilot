@@ -45,7 +45,7 @@ PX4 supports two (mathematically equivalent) forms of the PID rate controller in
 
 Users can select the form that is used by setting the proportional gain for the other form to "1" (i.e. in the diagram below set **K** to 1 for the parallel form, or **P** to 1 for the standard form - this will replace either the K or P blocks with a line).
 
-![PID\_Mixed](../../assets/mc_pid_tuning/PID_algorithm_Mixed.png)
+![PID_Mixed](../../assets/mc_pid_tuning/PID_algorithm_Mixed.png)
 
 <!-- The drawing is on draw.io: https://drive.google.com/file/d/1hXnAJVRyqNAdcreqNa5W4PQFkYnzwgOO/view?usp=sharing -->
 
@@ -74,14 +74,14 @@ The derivative term (**D**) is on the feedback path in order to avoid an effect 
 The _parallel form_ is the simplest form, and is (hence) commonly used in textbooks.
 이 경우 컨트롤러의 출력은 간단한 비례, 적분 및 미분 동작의 합입니다.
 
-![PID\_Parallel](../../assets/mc_pid_tuning/PID_algorithm_Parallel.png)
+![PID_Parallel](../../assets/mc_pid_tuning/PID_algorithm_Parallel.png)
 
 ##### 표준 형식
 
 이 형식은 병렬 형식과 수학적으로 동일하지만 주요 이점은 (반 직관적으로 보일지라도) 비례 이득 튜닝을 적분과 미분 이득에서 분리하는 것입니다.
 즉, 비슷한 크기와 관성을 가진 드론의 이득을 취하고 K 이득을 조정하여 적절하게 비행하는 방법으로 새로운 플랫폼을 쉽게 조정할 수 있습니다.
 
-![PID\_Standard](../../assets/mc_pid_tuning/PID_algorithm_Standard.png)
+![PID_Standard](../../assets/mc_pid_tuning/PID_algorithm_Standard.png)
 
 #### 속도 PID 튜닝
 

@@ -24,8 +24,8 @@ A good example is the [Maxtenna M1227HCT-A2-SMA](http://www.maxtena.com/products
 장치의 안테나 커넥터 유형은 MMCX입니다.
 위의 안테나(SMA 커넥터)에 적합한 케이블은 아래에서 참고하십시오.
 
-- [30 cm version](https://www.digikey.com/products/en?mpart=415-0073-012\&v=24)
-- [45 cm version](https://www.digikey.com/products/en?mpart=415-0073-018\&v=24)
+- [30 cm version](https://www.digikey.com/products/en?mpart=415-0073-012&v=24)
+- [45 cm version](https://www.digikey.com/products/en?mpart=415-0073-018&v=24)
 
 ## 배선
 

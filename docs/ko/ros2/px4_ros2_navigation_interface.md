@@ -22,80 +22,80 @@ The following steps are required to get started:
 
 2. Clone the repository into the workspace:
 
-   ```sh
-   cd $ros_workspace/src
-   git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib
-   ```
+  ```sh
+  cd $ros_workspace/src
+  git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib
+  ```
 
-   ::: info
-   To ensure compatibility, use the latest _main_ branches for PX4, _px4_msgs_ and the library.
-   See also [here](https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4).
+  ::: info
+  To ensure compatibility, use the latest _main_ branches for PX4, _px4_msgs_ and the library.
+  See also [here](https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4).
 
 :::
 
 3. Build the workspace:
 
-   ```sh
-   cd ..
-   colcon build
-   ```
+  ```sh
+  cd ..
+  colcon build
+  ```
 
 4. In a different shell, start PX4 SITL:
 
-   ```sh
-   cd $px4-autopilot
-   make px4_sitl gazebo-classic
-   ```
+  ```sh
+  cd $px4-autopilot
+  make px4_sitl gazebo-classic
+  ```
 
-   (here we use Gazebo-Classic, but you can use any model or simulator)
+  (here we use Gazebo-Classic, but you can use any model or simulator)
 
 5. In yet a different shell, run the micro XRCE agent (you can keep it running afterward):
 
-   ```sh
-   MicroXRCEAgent udp4 -p 8888
-   ```
+  ```sh
+  MicroXRCEAgent udp4 -p 8888
+  ```
 
 6. Back in the ROS 2 terminal, source the workspace you just built (in step 3) and run the [global_navigation](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/navigation/global_navigation) example, which periodically sends dummy global position updates:
 
-   ```sh
-   source install/setup.bash
-   ros2 run example_global_navigation_cpp example_global_navigation
-   ```
+  ```sh
+  source install/setup.bash
+  ros2 run example_global_navigation_cpp example_global_navigation
+  ```
 
-   You should get an output like this showing that the global interface is successfully sending position updates:
+  You should get an output like this showing that the global interface is successfully sending position updates:
 
-   ```sh
-   [INFO] [1702030701.836897756] [example_global_navigation_node]: example_global_navigation_node running!
-   [DEBUG] [1702030702.837279784] [example_global_navigation_node]: Successfully sent position update to navigation interface.
-   [DEBUG] [1702030703.837223884] [example_global_navigation_node]: Successfully sent position update to navigation interface.
-   ```
+  ```sh
+  [INFO] [1702030701.836897756] [example_global_navigation_node]: example_global_navigation_node running!
+  [DEBUG] [1702030702.837279784] [example_global_navigation_node]: Successfully sent position update to navigation interface.
+  [DEBUG] [1702030703.837223884] [example_global_navigation_node]: Successfully sent position update to navigation interface.
+  ```
 
 7. In the PX4 shell, you can check that PX4 receives global position updates:
 
-   ```sh
-   listener aux_global_position
-   ```
+  ```sh
+  listener aux_global_position
+  ```
 
-   The output should look like:
+  The output should look like:
 
-   ```sh
-   TOPIC: aux_global_position
-   aux_global_position
-      timestamp: 46916000 (0.528000 seconds ago)
-      timestamp_sample: 46916000 (0 us before timestamp)
-      lat: 12.343210
-      lon: 23.454320
-      alt: 12.40000
-      alt_ellipsoid: 0.00000
-      delta_alt: 0.00000
-      eph: 0.31623
-      epv: 0.44721
-      terrain_alt: 0.00000
-      lat_lon_reset_counter: 0
-      alt_reset_counter: 0
-      terrain_alt_valid: False
-      dead_reckoning: False
-   ```
+  ```sh
+  TOPIC: aux_global_position
+  aux_global_position
+     timestamp: 46916000 (0.528000 seconds ago)
+     timestamp_sample: 46916000 (0 us before timestamp)
+     lat: 12.343210
+     lon: 23.454320
+     alt: 12.40000
+     alt_ellipsoid: 0.00000
+     delta_alt: 0.00000
+     eph: 0.31623
+     epv: 0.44721
+     terrain_alt: 0.00000
+     lat_lon_reset_counter: 0
+     alt_reset_counter: 0
+     terrain_alt_valid: False
+     dead_reckoning: False
+  ```
 
 8. Now you are ready to use the navigation interface to send your own position updates.
 
