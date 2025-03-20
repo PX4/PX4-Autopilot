@@ -1265,8 +1265,9 @@ void MicroStrain::filterCallback(void *user, const mip_packet *packet, mip::Time
 		status.gps_check_fail_flags = 0;
 
 		// Minimal mapping of error flags from device to the PX4 health flags
-		status.control_mode_flags = stat.sample.filter_state == 4 ? (0x1 << estimator_status_s::CS_GPS) |
-					    (0x1 << estimator_status_s::CS_GPS_HGT) : 0x00;
+		status.control_mode_flags = stat.sample.filter_state == 4 ? (0x1ULL << estimator_status_s::CS_GNSS_POS) |
+					    (0x1ULL << estimator_status_s::CS_GNSS_VEL) |
+					    (0x1ULL << estimator_status_s::CS_GPS_HGT) : 0x00;
 		status.filter_fault_flags = stat.sample.status_flags;
 
 		status.pos_horiz_accuracy = sqrtf(sq(llh_uncert.sample.north) + sq(llh_uncert.sample.east));
