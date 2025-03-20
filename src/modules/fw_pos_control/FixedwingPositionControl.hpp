@@ -409,11 +409,10 @@ private:
 	 * @param control_interval Time since last position control call [s]
 	 * @param curr_pos the current 2D absolute position of the vehicle in [deg].
 	 * @param ground_speed the 2D ground speed of the vehicle in [m/s].
-	 * @param pos_sp_prev the previous position setpoint.
 	 * @param pos_sp_curr the current position setpoint.
 	 */
 	void controlAutoFigureEight(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
-				    const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+				    const position_setpoint_s &pos_sp_curr);
 
 	void publishFigureEightStatus(const position_setpoint_s pos_sp);
 #endif // CONFIG_FIGURE_OF_EIGHT
@@ -429,7 +428,7 @@ private:
 	void vehicle_command_poll();
 	void vehicle_control_mode_poll();
 
-	void wind_poll();
+	void wind_poll(const hrt_abstime now);
 
 	void landing_status_publish();
 
@@ -509,19 +508,15 @@ private:
 	 * @brief Controls altitude and airspeed for a fixed-bank loiter.
 	 *
 	 * Used as a failsafe mode after a lateral position estimate failure.
-	 *
-	 * @param control_interval Time since last position control call [s]
 	 */
-	void control_auto_fixed_bank_alt_hold(const float control_interval);
+	void control_auto_fixed_bank_alt_hold();
 
 	/**
 	 * @brief Control airspeed with a fixed descent rate and roll angle.
 	 *
 	 * Used as a failsafe mode after a lateral position estimate failure.
-	 *
-	 * @param control_interval Time since last position control call [s]
 	 */
-	void control_auto_descend(const float control_interval);
+	void control_auto_descend();
 
 	/**
 	 * @brief Vehicle control for position waypoints.
@@ -541,12 +536,11 @@ private:
 	 * @param control_interval Time since last position control call [s]
 	 * @param curr_pos Current 2D local position vector of vehicle [m]
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 * @param pos_sp_prev previous position setpoint
 	 * @param pos_sp_curr current position setpoint
 	 * @param pos_sp_next next position setpoint
 	 */
 	void control_auto_loiter(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
-				 const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+				 const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
 
 
 	/**
