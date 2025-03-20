@@ -409,36 +409,8 @@ FixedwingPositionControl::updateLandingAbortStatus(const uint8_t new_abort_statu
 float
 FixedwingPositionControl::getManualHeightRateSetpoint()
 {
-	/*
-	 * The complete range is -1..+1, so this is 6%
-	 * of the up or down range or 3% of the total range.
-	 */
-	const float deadBand = 0.06f;
-
-	/*
-	 * The correct scaling of the complete range needs
-	 * to account for the missing part of the slope
-	 * due to the deadband
-	 */
-	const float factor = 1.0f - deadBand;
-
-	float height_rate_setpoint = 0.0f;
-
-	/*
-	 * Manual control has as convention the rotation around
-	 * an axis. Positive X means to rotate positively around
-	 * the X axis in NED frame, which is pitching down
-	 */
-	if (_manual_control_setpoint_for_height_rate > deadBand) {
-		/* pitching down */
-		float pitch = -(_manual_control_setpoint_for_height_rate - deadBand) / factor;
-		height_rate_setpoint = pitch * _param_sinkrate_target.get();
-
-	} else if (_manual_control_setpoint_for_height_rate < - deadBand) {
-		/* pitching up */
-		float pitch = -(_manual_control_setpoint_for_height_rate + deadBand) / factor;
-		height_rate_setpoint = pitch * _param_climbrate_target.get();
-	}
+	const float height_rate_setpoint = math::interpolate<float>(math::deadzone(_manual_control_setpoint_for_height_rate,
+		kStickDeadBand), -1.f, 1.f, -_param_climbrate_target.get(), -_param_sinkrate_target.get());
 
 	return height_rate_setpoint;
 }
