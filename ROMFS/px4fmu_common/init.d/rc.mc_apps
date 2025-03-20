@@ -26,6 +26,15 @@ then
 fi
 
 #
+# Start Vision Target Estimator.
+#
+
+if param greater -s VTE_EN 0
+then
+	vision_target_estimator start
+fi
+
+#
 # Start Multicopter Position Controller.
 #
 mc_hover_thrust_estimator start
