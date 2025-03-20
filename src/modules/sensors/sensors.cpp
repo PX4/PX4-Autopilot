@@ -60,9 +60,6 @@ Sensors::Sensors(bool hil_enabled) :
 	/* Differential pressure offset */
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
 
-	/* Differential pressure reverse*/
-	//Parameter handle here, parameter used in differential pressure sensor drivers
-	_parameter_handles.diff_pres_rev = param_find("SENS_DPRES_REV");
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	_parameter_handles.diff_pres_analog_scale = param_find("SENS_DPRES_ANSC");
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */

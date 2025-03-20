@@ -209,7 +209,7 @@ private:
 
 	struct ParameterHandles {
 		param_t diff_pres_offset_pa;
-		param_t diff_pres_rev;
+
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 		param_t diff_pres_analog_scale;
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
