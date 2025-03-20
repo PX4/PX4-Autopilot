@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2022-2023 ModalAI, Inc. All rights reserved.
+ *   Copyright (c) 2019-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,50 +30,85 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <px4_platform_common/defines.h>
+/**
+ * Test for Subscription
+ */
 
-#define BASE_BUFFER_SIZE 256
-#define MAX_MODULE_NAME_SIZE 32
-#define MODULE_BUFFER_SIZE (BASE_BUFFER_SIZE + MAX_MODULE_NAME_SIZE)
+#include <gtest/gtest.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/uORB.h>
+#include <uORB/topics/orb_test.h>
 
-__BEGIN_DECLS
-
-extern void qurt_log_to_apps(int level, const char *message);
-
-// Defining hap_debug
-void HAP_debug(const char *msg, int level, const char *filename, int line);
-
-static __inline void qurt_log_module(int level, const char *module, const char *file, int line,
-				     const char *format, ...)
+namespace uORB
 {
-	char buf[BASE_BUFFER_SIZE];
-	va_list args;
-	va_start(args, format);
-	vsnprintf(buf, sizeof(buf), format, args);
-	va_end(args);
+namespace test
+{
 
-	char module_buf[MODULE_BUFFER_SIZE];
-	snprintf(module_buf, MAX_MODULE_NAME_SIZE, "[%s] ", module);
-	strcat(module_buf, buf);
 
-	HAP_debug(module_buf, level, file, line);
+class uORBSubscriptionTestable  : public  uORB::Subscription
+{
+public:
+	uORBSubscriptionTestable() : Subscription(ORB_ID(orb_test), 0)
+	{
+	}
 
-	qurt_log_to_apps(level, module_buf);
+	void setNodeValue(void *node)
+	{
+		_node = node;
+
+	}
+	void *getNodeValue()
+	{
+		return _node;
+	}
+
+};
+
+
+class uORBSubscriptionTest : public ::testing::Test
+{
+protected:
+	uORBSubscriptionTestable  testable;
+
+	static void SetUpTestSuite()
+	{
+		uORB::Manager::initialize();
+
+		orb_test_s message{};
+		orb_advertise(ORB_ID(orb_test), &message);
+
+	}
+	static void TearDownTestSuite()
+	{
+		uORB::Manager::terminate();
+	}
+
+	void TearDown() override
+	{
+		testable.setNodeValue(nullptr);
+	}
+
+
+};
+
+TEST_F(uORBSubscriptionTest, updateWhenSubscribedThenNotSubscribedTwice)
+{
+	int anyValue = 1;
+	testable.setNodeValue(&anyValue);
+
+	testable.updated();
+
+	ASSERT_EQ(testable.getNodeValue(), &anyValue) << "Original node value don't have to be overrwiten";
 }
 
-static __inline void qurt_log_raw(const char *format, ...)
+TEST_F(uORBSubscriptionTest, updateWhenNotSubscribedThenSubscribed)
 {
-	char buf[BASE_BUFFER_SIZE];
-	va_list args;
-	va_start(args, format);
-	vsnprintf(buf, sizeof(buf), format, args);
-	va_end(args);
-	qurt_log_to_apps(1, buf);
-}
+	testable.setNodeValue(nullptr);
 
-__END_DECLS
+	testable.updated();
+
+	ASSERT_NE(testable.getNodeValue(), nullptr) << "Node value after 'updated' have to be initialized";
+}
+}
+}
