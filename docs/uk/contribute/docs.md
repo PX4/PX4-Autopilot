@@ -50,74 +50,74 @@ For these kinds of changes we suggest using the same approach as for _code_:
 
 4. Клонуйте ваш форкнутий репозиторій на локальний комп'ютер:
 
-   ```sh
-   cd ~/wherever/
-   git clone https://github.com/<your git name>/PX4-user_guide.git
-   ```
+  ```sh
+  cd ~/wherever/
+  git clone https://github.com/<your git name>/PX4-user_guide.git
+  ```
 
-   Наприклад, щоб клонувати форк посібника користувача PX4 для користувача з обліковим записом Github "john_citizen":
+  Наприклад, щоб клонувати форк посібника користувача PX4 для користувача з обліковим записом Github "john_citizen":
 
-   ```sh
-   git clone https://github.com/john_citizen/PX4-user_guide.git
-   ```
+  ```sh
+  git clone https://github.com/john_citizen/PX4-user_guide.git
+  ```
 
 5. Перейдіть до свого локального сховища:
 
-   ```sh
-   cd ~/wherever/PX4-user_guide
-   ```
+  ```sh
+  cd ~/wherever/PX4-user_guide
+  ```
 
 6. Add a _remote_ called "upstream" to point to the PX4 version of the library:
 
-   ```sh
-   git remote add upstream https://github.com/PX4/PX4-user_guide.git
-   ```
+  ```sh
+  git remote add upstream https://github.com/PX4/PX4-user_guide.git
+  ```
 
-   :::tip
-   A "remote" is a handle to a particular repository.
-   The remote named _origin_ is created by default when you clone the repository, and points to _your fork_ of the guide.
-   Above you create a new remote _upstream_ that points to the PX4 project version of the documents.
+  :::tip
+  A "remote" is a handle to a particular repository.
+  The remote named _origin_ is created by default when you clone the repository, and points to _your fork_ of the guide.
+  Above you create a new remote _upstream_ that points to the PX4 project version of the documents.
 
 :::
 
 7. Створити гілку для ваших змін:
 
-   ```sh
-   git checkout -b <your_feature_branch_name>
-   ```
+  ```sh
+  git checkout -b <your_feature_branch_name>
+  ```
 
-   This creates a local branch on your computer named `your_feature_branch_name`.
+  This creates a local branch on your computer named `your_feature_branch_name`.
 
 8. Внести зміни до документації за необхідною (загальний посібник по цьому в наступних розділах)
 
 9. Коли ви будете задоволені своїми змінами, ви можете додати їх до вашої локальної гілки за допомогою "commit":
 
-   ```sh
-   git add <file name>
-   git commit -m "<your commit message>"
-   ```
+  ```sh
+  git add <file name>
+  git commit -m "<your commit message>"
+  ```
 
-   For a good commit message, please refer to the [Source Code Management](../contribute/code.md#commits-and-commit-messages) section.
+  For a good commit message, please refer to the [Source Code Management](../contribute/code.md#commits-and-commit-messages) section.
 
 10. Натисніть "Push" вашу локальну гілку (включаючи додані до неї коміти) у вашу репозиторію-форк на Github.
 
-    ```sh
-    git push origin your_feature_branch_name
-    ```
+  ```sh
+  git push origin your_feature_branch_name
+  ```
 
 11. Go to your forked repository on Github in a web browser, e.g.: `https://github.com/<your git name>/PX4-user_guide.git`.
-    Там ви маєте побачити повідомлення, що нова гілка була відправлена у вашу репозиторію-форк.
+  Там ви маєте побачити повідомлення, що нова гілка була відправлена у вашу репозиторію-форк.
 
 12. Створіть запит на витягнення (Pull Request, PR):
-    - On the right hand side of the "new branch message" (see one step before), you should see a green button saying "Compare & Create Pull Request".
-      Натисніть на неї.
-    - Буде створено шаблон запиту на витягнення.
-      Він буде перераховувати ваші коміти, і ви можете (маєте) додати значущий заголовок (у випадку одного коміту PR, це зазвичай повідомлення про коміт) та повідомлення (<span style="color:orange">поясніть, що ви зробили і для якої причини. </span>.
-      Check [other pull requests](https://github.com/PX4/PX4-user_guide/pulls) for comparison)
+  - On the right hand side of the "new branch message" (see one step before), you should see a green button saying "Compare & Create Pull Request".
+    Натисніть на неї.
+  - Буде створено шаблон запиту на витягнення.
+    Він буде перераховувати ваші коміти, і ви можете (маєте) додати значущий заголовок (у випадку одного коміту PR, це зазвичай повідомлення про коміт) та повідомлення (<span style="color:orange">поясніть, що ви зробили і для якої причини. </span>.
+    Check [other pull requests](https://github.com/PX4/PX4-user_guide/pulls) for comparison)
 
 13. Готово!
-    Редактори PX4 User Guide зараз переглянуть вашу співпрацю і вирішать, чи хочуть вони інтегрувати її.
-    Періодично перевіряйте, чи є у них питання по вашим змінам.
+  Редактори PX4 User Guide зараз переглянуть вашу співпрацю і вирішать, чи хочуть вони інтегрувати її.
+  Періодично перевіряйте, чи є у них питання по вашим змінам.
 
 ### Побудова бібліотеки локально
 
@@ -125,51 +125,51 @@ For these kinds of changes we suggest using the same approach as for _code_:
 
 1. Install the [Vitepress prerequisites](https://vitepress.dev/guide/getting-started#prerequisites):
 
-   - [Nodejs 18+](https://nodejs.org/en)
-   - [Yarn classic](https://classic.yarnpkg.com/en/docs/install)
+  - [Nodejs 18+](https://nodejs.org/en)
+  - [Yarn classic](https://classic.yarnpkg.com/en/docs/install)
 
 2. Перейдіть до свого локального сховища:
 
-   ```sh
-   cd ~/wherever/PX4-user_guide
-   ```
+  ```sh
+  cd ~/wherever/PX4-user_guide
+  ```
 
 3. Встановити залежності (включаючи Vuepress):
 
-   ```sh
-   yarn install
-   ```
+  ```sh
+  yarn install
+  ```
 
 4. Попередній перегляд і обслуговування бібліотеки:
 
-   ```sh
-   yarn docs:dev
-   ```
+  ```sh
+  yarn docs:dev
+  ```
 
-   - Одного разу, коли сервер розробки / попереднього перегляду побудує бібліотеку (менше хвилини вперше), він покаже вам URL-адресу, за допомогою якої ви можете переглянути сайт.
-     This will be something like: `http://localhost:5173/px4_user_guide/`.
-   - Stop serving using **CTRL+C** in the terminal prompt.
+  - Одного разу, коли сервер розробки / попереднього перегляду побудує бібліотеку (менше хвилини вперше), він покаже вам URL-адресу, за допомогою якої ви можете переглянути сайт.
+    This will be something like: `http://localhost:5173/px4_user_guide/`.
+  - Stop serving using **CTRL+C** in the terminal prompt.
 
 5. Open previewed pages in your local editor:
 
-   First specify a local text editor file using the `EDITOR` environment variable, before calling `yarn start` to preview the library.
-   For example, on Windows command line you can enable VSCode as your default editor by entering:
+  First specify a local text editor file using the `EDITOR` environment variable, before calling `yarn start` to preview the library.
+  For example, on Windows command line you can enable VSCode as your default editor by entering:
 
-   ```sh
-   set EDITOR=code
-   ```
+  ```sh
+  set EDITOR=code
+  ```
 
-   The **Open in your editor** link at the bottom of each page will then open the current page in the editor (this replaces the _Open in GitHub_ link).
+  The **Open in your editor** link at the bottom of each page will then open the current page in the editor (this replaces the _Open in GitHub_ link).
 
 6. Побудуйте бібліотеку за допомогою:
 
-   ```sh
-   # Ubuntu
-   yarn docs:build
+  ```sh
+  # Ubuntu
+  yarn docs:build
 
-   # Windows
-   yarn docs:buildwin
-   ```
+  # Windows
+  yarn docs:buildwin
+  ```
 
 :::tip
 Use `yarn start` to preview changes _as you make them_ (documents are updated and served very quickly).
@@ -224,41 +224,41 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
 
 1. Назви файлів/файлів
 
-   - Put new markdown files in an appropriate sub-folder of `/en/`, such as `/en/contribute/`.
-     Не створюйте додаткових вкладених папок.
-   - Put new image files in an appropriate nested sub-folder of `/assets/`.
-     Deeper nesting is allowed/encouraged.
-   - Use descriptive names for folders and files.
-     In particular, image filenames should describe what they contain (don't name as "image1.png")
-   - Use lower case filenames and separate words using underscores (`_`).
+  - Put new markdown files in an appropriate sub-folder of `/en/`, such as `/en/contribute/`.
+    Не створюйте додаткових вкладених папок.
+  - Put new image files in an appropriate nested sub-folder of `/assets/`.
+    Deeper nesting is allowed/encouraged.
+  - Use descriptive names for folders and files.
+    In particular, image filenames should describe what they contain (don't name as "image1.png")
+  - Use lower case filenames and separate words using underscores (`_`).
 
 2. Зображення
 
-   - Використовуйте найменший розмір і найнижчу роздільну здатність, яка все ще робить зображення корисним (це зменшує вартість завантаження для користувачів із слабким інтернет-з'єднанням).
-   - New images should be created in a sub-folder of `/assets/` (so they can be shared between translations).
-   - SVG files are preferred for diagrams.
-     PNG files are preferred over JPG for screenshots.
+  - Використовуйте найменший розмір і найнижчу роздільну здатність, яка все ще робить зображення корисним (це зменшує вартість завантаження для користувачів із слабким інтернет-з'єднанням).
+  - New images should be created in a sub-folder of `/assets/` (so they can be shared between translations).
+  - SVG files are preferred for diagrams.
+    PNG files are preferred over JPG for screenshots.
 
 3. Контент
 
-   - Use "style" (**bold**, _emphasis_, etc.) consistently and sparingly (as little as possible).
-     - **Bold** for button presses and menu definitions.
-     - _Emphasis_ for tool names such as _QGroundControl_ or _prettier_.
-     - `code` for file paths, and code, parameter names that aren't linked, using tools in a command line, such as `prettier`.
-   - Headings and page titles should use "First Letter Capitalisation".
-   - The page title should be a first level heading (`#`).
-     All other headings should be h2 (`##`) or lower.
-   - Не додавати ніяких стилів до заголовків.
-   - Don't translate the text indicating the name of an `info`, `tip` or `warning` declaration (e.g. `::: tip`) as this precise text is required to render the aside properly.
-   - Break lines on sentences by preference.
-     Don't break lines based on some arbitrary line length.
-   - Format using _prettier_ (_VSCode_ is a has extensions can be used for this).
+  - Use "style" (**bold**, _emphasis_, etc.) consistently and sparingly (as little as possible).
+    - **Bold** for button presses and menu definitions.
+    - _Emphasis_ for tool names such as _QGroundControl_ or _prettier_.
+    - `code` for file paths, and code, parameter names that aren't linked, using tools in a command line, such as `prettier`.
+  - Headings and page titles should use "First Letter Capitalisation".
+  - The page title should be a first level heading (`#`).
+    All other headings should be h2 (`##`) or lower.
+  - Не додавати ніяких стилів до заголовків.
+  - Don't translate the text indicating the name of an `info`, `tip` or `warning` declaration (e.g. `::: tip`) as this precise text is required to render the aside properly.
+  - Break lines on sentences by preference.
+    Don't break lines based on some arbitrary line length.
+  - Format using _prettier_ (_VSCode_ is a has extensions can be used for this).
 
 4. Videos:
 
-   - Youtube videos can be added using the format `<lite-youtube videoid="<youtube-video-id>" title="your title"/>` (supported via the [https://www.npmjs.com/package/lite-youtube-embed](https://www.npmjs.com/package/lite-youtube-embed) custom element, which has other parameters you can pass).
-     - Use instructional videos sparingly as they date badly, and are hard to maintain.
-     - Cool videos of airframes in flight are always welcome.
+  - Youtube videos can be added using the format `<lite-youtube videoid="<youtube-video-id>" title="your title"/>` (supported via the [https://www.npmjs.com/package/lite-youtube-embed](https://www.npmjs.com/package/lite-youtube-embed) custom element, which has other parameters you can pass).
+    - Use instructional videos sparingly as they date badly, and are hard to maintain.
+    - Cool videos of airframes in flight are always welcome.
 
 ## Де я можу додати зміни?
 

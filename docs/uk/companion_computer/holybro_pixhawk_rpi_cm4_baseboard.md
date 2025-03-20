@@ -69,15 +69,15 @@ To install the RPi CM4 companion computer:
 
 1. Disconnect the `FAN` wiring.
 
-   ![HB\_Pixhawk\_CM4\_Fan](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_fan.jpg)
+  ![HB_Pixhawk_CM4_Fan](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_fan.jpg)
 
 2. Видаліть ці 4 гвинти на задній стороні підлогової дошки.
 
-   ![Bottom of the board showing screws in corners holding the cover](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_bottom.jpg)
+  ![Bottom of the board showing screws in corners holding the cover](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_bottom.jpg)
 
 3. Видаліть підставку корпусу, встановіть CM4 та використовуйте 4 гвинти для його кріплення (як показано):
 
-   ![HB\_Pixhawk\_CM4\_Screws](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_screws.jpg)
+  ![HB_Pixhawk_CM4_Screws](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_screws.jpg)
 
 4. Прикріпіть кришку знову.
 
@@ -115,29 +115,29 @@ RPi CM4 та контролер польоту повинні бути живл�
 
 1. Switch Dip-Switch to `RPI`.
 
-   ![](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/cm4_dip_switch.png)
+  ![](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/cm4_dip_switch.png)
 
 2. Підключіть комп'ютер до порту USB-C _CM4 Slave_, що використовується для живлення та прошивки RPi.
 
-   ![](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/cm4_usbc_slave_port.png)
+  ![](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/cm4_usbc_slave_port.png)
 
 3. Отримайте `usbboot`, зберіть його та запустіть.
 
-   ```sh
-   sudo apt install libusb-1.0-0-dev
-   git clone --depth=1 https://github.com/raspberrypi/usbboot
-   cd usbboot
-   make
-   sudo ./rpiboot
-   ```
+  ```sh
+  sudo apt install libusb-1.0-0-dev
+  git clone --depth=1 https://github.com/raspberrypi/usbboot
+  cd usbboot
+  make
+  sudo ./rpiboot
+  ```
 
 4. Тепер ви можете встановити свою перевагу Linux дистрибутив за допомогою `rpi-imager`.
-   Переконайтеся, що ви додали налаштування WiFi та SSH (приховані за символом шестерні / розширеним).
+  Переконайтеся, що ви додали налаштування WiFi та SSH (приховані за символом шестерні / розширеним).
 
-   ```sh
-   sudo apt install rpi-imager
-   rpi-imager
-   ```
+  ```sh
+  sudo apt install rpi-imager
+  rpi-imager
+  ```
 
 5. Після завершення відключення USB-C CM4 Slave (це відмонтує томи та вимкне CM4).
 
@@ -146,8 +146,8 @@ RPi CM4 та контролер польоту повинні бути живл�
 7. Увімкніть CM4, надаючи живлення через порт USB-C CM4 Slave.
 
 8. Щоб перевірити, чи запускається/працює, ви можете або:
-   - Перевірте, чи є вихід HDMI
-   - Підключіться через SSH (якщо налаштовано в rpi-imager, і є доступ до WiFi).
+  - Перевірте, чи є вихід HDMI
+  - Підключіться через SSH (якщо налаштовано в rpi-imager, і є доступ до WiFi).
 
 ## Налаштуйте послідовне підключення PX4 до CM4 MAVLink
 
@@ -167,13 +167,13 @@ FC повинен бути налаштований для підключенн�
 
 1. Підключіть комп'ютер, на якому працює QGroundControl, через порт USB Type C на базовій платі, позначеній як `FC`
 
-   ![Image of baseboard showing FC USB-C connector](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_fc_usb_c.jpg)
+  ![Image of baseboard showing FC USB-C connector](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_fc_usb_c.jpg)
 
 2. [Встановіть параметри](../advanced_config/parameters.md):
 
-   - `MAV_1_CONFIG` = `102`
-   - `MAV_1_MODE = 2`
-   - `SER_TEL2_BAUD` = `921600`
+  - `MAV_1_CONFIG` = `102`
+  - `MAV_1_MODE = 2`
+  - `SER_TEL2_BAUD` = `921600`
 
 3. Перезавантажте FC.
 
@@ -185,13 +185,13 @@ FC повинен бути налаштований для підключенн�
 
 2. Увімкніть послідовний порт RPi, запустивши `RPi-config`
 
-   - Перейдіть до `3 Варіанти інтерфейсу`, потім `I6 Серійний порт`.
-     Потім введіть:
-     - `login shell accessible over serial → No`
-     - `serial port hardware enabled` → `Yes`
+  - Перейдіть до `3 Варіанти інтерфейсу`, потім `I6 Серійний порт`.
+    Потім введіть:
+    - `login shell accessible over serial → No`
+    - `serial port hardware enabled` → `Yes`
 
 3. Завершіть і перезавантажте.
-   This will add `enable_uart=1` to `/boot/config.txt`, and remove `console=serial0,115200` from `/boot/cmdline.txt`.
+  This will add `enable_uart=1` to `/boot/config.txt`, and remove `console=serial0,115200` from `/boot/cmdline.txt`.
 
 4. Тепер MAVLink-трафік повинен бути доступний на `/dev/serial0` з швидкістю передачі даних 921600.
 
@@ -201,9 +201,9 @@ FC повинен бути налаштований для підключенн�
 
 2. Встановіть MAVSDK Python:
 
-   ```sh
-   python3 -m pip install mavsdk
-   ```
+  ```sh
+  python3 -m pip install mavsdk
+  ```
 
 3. Скопіюйте приклад з [прикладів MAVSDK-Python](https://github.com/mavlink/MAVSDK-Python/tree/main/examples).
 
@@ -247,7 +247,7 @@ Note that we could have used WiFi for the link, but by setting up a dedicated ro
 
 To set up a local ethernet connection between CM4 and the flight computer, the two Ethernet ports need to be connected using the provided 8 pin to 4 pin connector.
 
-![HB\_Pixhawk\_CM4\_Ethernet\_Cable](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_ethernet_cable.png)
+![HB_Pixhawk_CM4_Ethernet_Cable](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_ethernet_cable.png)
 
 Схема виводів кабелю:
 

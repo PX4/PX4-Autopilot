@@ -43,7 +43,7 @@ To use [ROS 2/uXRCE-DDS](../ros2/user_guide.md) instead of MAVLink on `TELEM2`, 
 Безпечним і легким у налаштуванні варіантом є використання плати адаптера USB-послідовного порту від FTDI Chip для підключення від `TELEM2` на Pixhawk до USB-порту на супутниковому комп'ютері.
 Нижче наведено зв'язку карту `TELEM2` до FTDI.
 
-| TELEM2 |                                | FTDI | &amp;nbsp;                               |
+| TELEM2 |                                | FTDI | &nbsp;                                   |
 | ------ | ------------------------------ | ---- | ------------------------------------------------------------ |
 | 1      | +5V (red)   |      | DO NOT CONNECT!                                              |
 | 2      | Tx (out)    | 5    | FTDI RX (yellow) (in)  |

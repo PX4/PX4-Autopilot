@@ -1,5 +1,5 @@
 ---
-frame: Літак
+frame: Plane
 title: Assembling a Fixed-Wing
 newEditLink: en/assembly/_assembly.md
 ---

@@ -42,7 +42,7 @@ The source code for supported worlds can be found on GitHub here: [PX4/PX4-SITL_
 ## Sonoma Raceway
 
 [PX4/PX4-SITL_gazebo-classic/tree/main/worlds/sonoma_raceway.world](https://github.com/PX4/PX4-SITL_gazebo-classic/blob/main/worlds/sonoma_raceway.world)
-![Sonoma\_Raceway](../../assets/simulation/gazebo_classic/worlds/sonoma_raceway.png)
+![Sonoma_Raceway](../../assets/simulation/gazebo_classic/worlds/sonoma_raceway.png)
 
 ## Warehouse
 

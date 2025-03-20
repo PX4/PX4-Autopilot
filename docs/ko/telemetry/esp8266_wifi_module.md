@@ -30,7 +30,7 @@ ESP8266 모듈은 여러 곳에서 쉽게 구매할 수 있습니다.
   The Kahuna comes with a cable to connect directly to the Pixhawk-standard `TELEM1` or `TELEM2` ports.
   It is pre-flashed with the latest firmware, and has a u.fl connector for an external antenna.
   At most you may need to set the baud rate parameter, which for `TELEM1` is `SER_TEL1_BAUD = 57600 (57600 8N1)`.
-  The [User Guide](https://docs.google.com/document/d/1VyOsp9_q6dIAdYdWuDFcWoqqrNy_vbFMANubZA3Uz5g/edit?pli=1\&tab=t.0) include WiFi setup and other relevant information.
+  The User Guide include WiFi setup and other relevant information.
 
   ![Kahuna ESP8266 WiFi Module](../../assets/peripherals/telemetry/esp8266/beyond_robotics_kahuna_esp8266.png)
 

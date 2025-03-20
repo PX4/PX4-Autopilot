@@ -51,74 +51,74 @@ For these kinds of changes we suggest using the same approach as for _code_:
 
 4. 복사된 저장소를 로컬 컴퓨터에 복제합니다.
 
-   ```sh
-   cd ~/wherever/
-   git clone https://github.com/<your git name>/PX4-user_guide.git
-   ```
+  ```sh
+  cd ~/wherever/
+  git clone https://github.com/<your git name>/PX4-user_guide.git
+  ```
 
-   예를 들어, Github 계정이 "john_citizen"인 사용자의 PX4 사용자 가이드 포크를 복제합니다.
+  예를 들어, Github 계정이 "john_citizen"인 사용자의 PX4 사용자 가이드 포크를 복제합니다.
 
-   ```sh
-   git clone https://github.com/john_citizen/PX4-user_guide.git
-   ```
+  ```sh
+  git clone https://github.com/john_citizen/PX4-user_guide.git
+  ```
 
 5. 로컬 저장소로 이동합니다.
 
-   ```sh
-   cd ~/wherever/PX4-user_guide
-   ```
+  ```sh
+  cd ~/wherever/PX4-user_guide
+  ```
 
 6. Add a _remote_ called "upstream" to point to the PX4 version of the library:
 
-   ```sh
-   git remote add upstream https://github.com/PX4/PX4-user_guide.git
-   ```
+  ```sh
+  git remote add upstream https://github.com/PX4/PX4-user_guide.git
+  ```
 
-   :::tip
-   A "remote" is a handle to a particular repository.
-   The remote named _origin_ is created by default when you clone the repository, and points to _your fork_ of the guide.
-   Above you create a new remote _upstream_ that points to the PX4 project version of the documents.
+  :::tip
+  A "remote" is a handle to a particular repository.
+  The remote named _origin_ is created by default when you clone the repository, and points to _your fork_ of the guide.
+  Above you create a new remote _upstream_ that points to the PX4 project version of the documents.
 
 :::
 
 7. 변경 사항에 대한 브랜치를 생성합니다.
 
-   ```sh
-   git checkout -b <your_feature_branch_name>
-   ```
+  ```sh
+  git checkout -b <your_feature_branch_name>
+  ```
 
-   This creates a local branch on your computer named `your_feature_branch_name`.
+  This creates a local branch on your computer named `your_feature_branch_name`.
 
 8. 필요에 따라 문서를 변경합니다(다음 섹션에서 이에 대한 일반 지침).
 
 9. 변경 사항에 완료되면 "커밋"을 사용하여, 로컬 브랜치에 추가합니다.
 
-   ```sh
-   git add <file name>
-   git commit -m "<your commit message>"
-   ```
+  ```sh
+  git add <file name>
+  git commit -m "<your commit message>"
+  ```
 
-   For a good commit message, please refer to the [Source Code Management](../contribute/code.md#commits-and-commit-messages) section.
+  For a good commit message, please refer to the [Source Code Management](../contribute/code.md#commits-and-commit-messages) section.
 
 10. 로컬 분기(추가된 커밋 포함)를 Github의 분기된 저장소에 푸시합니다.
 
-    ```sh
-    git push origin your_feature_branch_name
-    ```
+  ```sh
+  git push origin your_feature_branch_name
+  ```
 
 11. Go to your forked repository on Github in a web browser, e.g.: `https://github.com/<your git name>/PX4-user_guide.git`.
-    새 분기가 분기된 저장소로 푸시되었다는 메시지가 표시되어야 합니다.
+  새 분기가 분기된 저장소로 푸시되었다는 메시지가 표시되어야 합니다.
 
 12. 풀 요청(PR) 생성:
-    - On the right hand side of the "new branch message" (see one step before), you should see a green button saying "Compare & Create Pull Request".
-      클릭합니다.
-    - 풀 요청 템플릿이 생성됩니다.
-      그것은 당신의 커밋을 나열하고 의미 있는 제목(하나의 커밋 PR의 경우 일반적으로 커밋 메시지)과 메시지(<span style="color:orange">어떤 이유에서 수행했는지 설명</span>)를 추가할 수 있습니다(반드시).
-      Check [other pull requests](https://github.com/PX4/PX4-user_guide/pulls) for comparison)
+  - On the right hand side of the "new branch message" (see one step before), you should see a green button saying "Compare & Create Pull Request".
+    클릭합니다.
+  - 풀 요청 템플릿이 생성됩니다.
+    그것은 당신의 커밋을 나열하고 의미 있는 제목(하나의 커밋 PR의 경우 일반적으로 커밋 메시지)과 메시지(<span style="color:orange">어떤 이유에서 수행했는지 설명</span>)를 추가할 수 있습니다(반드시).
+    Check [other pull requests](https://github.com/PX4/PX4-user_guide/pulls) for comparison)
 
 13. 완료하였습니다.
-    PX4 사용자 가이드 유지 관리자는 이제 귀하의 기여를 검투한 후에, 통합 여부를 결정합니다.
-    때때로 변경 사항에 대한 질문을 확인하십시오.
+  PX4 사용자 가이드 유지 관리자는 이제 귀하의 기여를 검투한 후에, 통합 여부를 결정합니다.
+  때때로 변경 사항에 대한 질문을 확인하십시오.
 
 ### 로컬에서 라이브러리 구축
 
@@ -126,51 +126,51 @@ For these kinds of changes we suggest using the same approach as for _code_:
 
 1. Install the [Vitepress prerequisites](https://vitepress.dev/guide/getting-started#prerequisites):
 
-   - [Nodejs 18+](https://nodejs.org/en)
-   - [Yarn classic](https://classic.yarnpkg.com/en/docs/install)
+  - [Nodejs 18+](https://nodejs.org/en)
+  - [Yarn classic](https://classic.yarnpkg.com/en/docs/install)
 
 2. 로컬 저장소로 이동합니다.
 
-   ```sh
-   cd ~/wherever/PX4-user_guide
-   ```
+  ```sh
+  cd ~/wherever/PX4-user_guide
+  ```
 
 3. 종속성(Vuepress 포함)들을 설치합니다.
 
-   ```sh
-   yarn install
-   ```
+  ```sh
+  yarn install
+  ```
 
 4. Preview and serve the library:
 
-   ```sh
-   yarn docs:dev
-   ```
+  ```sh
+  yarn docs:dev
+  ```
 
-   - Once the development/preview server has built the library (less than a minute for the first time) it will show you the URL you can preview the site on.
-     This will be something like: `http://localhost:5173/px4_user_guide/`.
-   - Stop serving using **CTRL+C** in the terminal prompt.
+  - Once the development/preview server has built the library (less than a minute for the first time) it will show you the URL you can preview the site on.
+    This will be something like: `http://localhost:5173/px4_user_guide/`.
+  - Stop serving using **CTRL+C** in the terminal prompt.
 
 5. Open previewed pages in your local editor:
 
-   First specify a local text editor file using the `EDITOR` environment variable, before calling `yarn start` to preview the library.
-   For example, on Windows command line you can enable VSCode as your default editor by entering:
+  First specify a local text editor file using the `EDITOR` environment variable, before calling `yarn start` to preview the library.
+  For example, on Windows command line you can enable VSCode as your default editor by entering:
 
-   ```sh
-   set EDITOR=code
-   ```
+  ```sh
+  set EDITOR=code
+  ```
 
-   The **Open in your editor** link at the bottom of each page will then open the current page in the editor (this replaces the _Open in GitHub_ link).
+  The **Open in your editor** link at the bottom of each page will then open the current page in the editor (this replaces the _Open in GitHub_ link).
 
 6. 다음을 사용하여 라이브러리를 빌드합니다.
 
-   ```sh
-   # Ubuntu
-   yarn docs:build
+  ```sh
+  # Ubuntu
+  yarn docs:build
 
-   # Windows
-   yarn docs:buildwin
-   ```
+  # Windows
+  yarn docs:buildwin
+  ```
 
 :::tip
 Use `yarn start` to preview changes _as you make them_ (documents are updated and served very quickly).
@@ -225,41 +225,41 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
 
 1. 파일/파일명
 
-   - Put new markdown files in an appropriate sub-folder of `/en/`, such as `/en/contribute/`.
-     폴더를 중첩하지 마십시오.
-   - Put new image files in an appropriate nested sub-folder of `/assets/`.
-     Deeper nesting is allowed/encouraged.
-   - Use descriptive names for folders and files.
-     In particular, image filenames should describe what they contain (don't name as "image1.png")
-   - Use lower case filenames and separate words using underscores (`_`).
+  - Put new markdown files in an appropriate sub-folder of `/en/`, such as `/en/contribute/`.
+    폴더를 중첩하지 마십시오.
+  - Put new image files in an appropriate nested sub-folder of `/assets/`.
+    Deeper nesting is allowed/encouraged.
+  - Use descriptive names for folders and files.
+    In particular, image filenames should describe what they contain (don't name as "image1.png")
+  - Use lower case filenames and separate words using underscores (`_`).
 
 2. 이미지
 
-   - 이미지는 최대한 가장 작은 크기와 가장 낮은 해상도를 사용합니다(이렇게 하면 대역폭이 좋지 않은 사용자의 다운로드 비용이 줄어듭니다).
-   - New images should be created in a sub-folder of `/assets/` (so they can be shared between translations).
-   - SVG files are preferred for diagrams.
-     PNG files are preferred over JPG for screenshots.
+  - 이미지는 최대한 가장 작은 크기와 가장 낮은 해상도를 사용합니다(이렇게 하면 대역폭이 좋지 않은 사용자의 다운로드 비용이 줄어듭니다).
+  - New images should be created in a sub-folder of `/assets/` (so they can be shared between translations).
+  - SVG files are preferred for diagrams.
+    PNG files are preferred over JPG for screenshots.
 
 3. 내용
 
-   - Use "style" (**bold**, _emphasis_, etc.) consistently and sparingly (as little as possible).
-     - **Bold** for button presses and menu definitions.
-     - _Emphasis_ for tool names such as _QGroundControl_ or _prettier_.
-     - `code` for file paths, and code, parameter names that aren't linked, using tools in a command line, such as `prettier`.
-   - Headings and page titles should use "First Letter Capitalisation".
-   - The page title should be a first level heading (`#`).
-     All other headings should be h2 (`##`) or lower.
-   - 제목에는 스타일을 추가하지 마십시오.
-   - Don't translate the text indicating the name of an `info`, `tip` or `warning` declaration (e.g. `::: tip`) as this precise text is required to render the aside properly.
-   - Break lines on sentences by preference.
-     Don't break lines based on some arbitrary line length.
-   - Format using _prettier_ (_VSCode_ is a has extensions can be used for this).
+  - Use "style" (**bold**, _emphasis_, etc.) consistently and sparingly (as little as possible).
+    - **Bold** for button presses and menu definitions.
+    - _Emphasis_ for tool names such as _QGroundControl_ or _prettier_.
+    - `code` for file paths, and code, parameter names that aren't linked, using tools in a command line, such as `prettier`.
+  - Headings and page titles should use "First Letter Capitalisation".
+  - The page title should be a first level heading (`#`).
+    All other headings should be h2 (`##`) or lower.
+  - 제목에는 스타일을 추가하지 마십시오.
+  - Don't translate the text indicating the name of an `info`, `tip` or `warning` declaration (e.g. `::: tip`) as this precise text is required to render the aside properly.
+  - Break lines on sentences by preference.
+    Don't break lines based on some arbitrary line length.
+  - Format using _prettier_ (_VSCode_ is a has extensions can be used for this).
 
 4. Videos:
 
-   - Youtube videos can be added using the format `<lite-youtube videoid="<youtube-video-id>" title="your title"/>` (supported via the [https://www.npmjs.com/package/lite-youtube-embed](https://www.npmjs.com/package/lite-youtube-embed) custom element, which has other parameters you can pass).
-     - Use instructional videos sparingly as they date badly, and are hard to maintain.
-     - Cool videos of airframes in flight are always welcome.
+  - Youtube videos can be added using the format `<lite-youtube videoid="<youtube-video-id>" title="your title"/>` (supported via the [https://www.npmjs.com/package/lite-youtube-embed](https://www.npmjs.com/package/lite-youtube-embed) custom element, which has other parameters you can pass).
+    - Use instructional videos sparingly as they date badly, and are hard to maintain.
+    - Cool videos of airframes in flight are always welcome.
 
 ## 어디에서 변경 사항을 추가합니까?
 

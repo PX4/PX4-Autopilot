@@ -147,7 +147,7 @@ PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);
 /**
  * Front transition timeout
  *
- * Time in seconds after which transition will be cancelled. Disabled if set to 0.
+ * Time in seconds after which transition will be cancelled.
  *
  * @unit s
  * @min 0.1
@@ -273,6 +273,8 @@ PARAM_DEFINE_INT32(VT_FW_QC_HMAX, 0);
  * Airspeed-less front transition time (open loop)
  *
  * The duration of the front transition when there is no airspeed feedback available.
+ * When airspeed is used, transition timeout is declared if airspeed does not
+ * reach VT_ARSP_BLEND after this time.
  *
  * @unit s
  * @min 1.0

@@ -54,19 +54,19 @@ To [switch between the two antennas modes](https://docs.rockblock.rock7.com/docs
 모듈의 기본 보드 속도는 19200입니다. However, the PX4 _iridiumsbd_ driver requires a baud rate of 115200 so it needs to be changed using the [AT commands](https://www.groundcontrol.com/en/wp-content/uploads/2022/02/IRDM_ISU_ATCommandReferenceMAN0009_Rev2.0_ATCOMM_Oct2012.pdf).
 
 1. Connect to the module with using a 19200/8-N-1 setting and check if the communication is working using the command: `AT`.
-   The response should be: `OK`.
+  The response should be: `OK`.
 
 2. baudrate 속도를 변경합니다.
 
-   ```
-   AT+IPR=9
-   ```
+  ```
+  AT+IPR=9
+  ```
 
 3. 이제 115200/8-N-1 설정을 사용하여 모델에 다시 연결하고 다음을 사용하여 설정을 저장합니다.
 
-   ```
-   AT&W0
-   ```
+  ```
+  AT&W0
+  ```
 
 이제 이 모듈을 PX4에서 사용할 수 있습니다.
 
@@ -102,55 +102,55 @@ Log in to the [account](https://rockblock.rock7.com/Operations) and register the
 
 1. 메시지 릴레이로 작동하는 서버에는 고정 IP 주소와  열린 TCP 포트 2개가 있어야 합니다.
 
-   - `5672` for the _RabbitMQ_ message broker (can be changed in the _rabbitmq_ settings)
-   - `45679` for the HTTP POST interface (can be changed in the **relay.cfg** file)
+  - `5672` for the _RabbitMQ_ message broker (can be changed in the _rabbitmq_ settings)
+  - `45679` for the HTTP POST interface (can be changed in the **relay.cfg** file)
 
 2. 필요한 Python 모듈을 설치합니다.
 
-   ```sh
-   sudo pip install pika tornado future
-   ```
+  ```sh
+  sudo pip install pika tornado future
+  ```
 
 3. Install the `rabbitmq` message broker:
 
-   ```sh
-   sudo apt install rabbitmq-server
-   ```
+  ```sh
+  sudo apt install rabbitmq-server
+  ```
 
 4. 브로커 자격 증명을 구성합니다(암호를 PWD로 변경).
 
-   ```sh
-   sudo rabbitmqctl add_user iridiumsbd PWD
-   sudo rabbitmqctl set_permissions iridiumsbd ".*" ".*" ".*"
-   ```
+  ```sh
+  sudo rabbitmqctl add_user iridiumsbd PWD
+  sudo rabbitmqctl set_permissions iridiumsbd ".*" ".*" ".*"
+  ```
 
 5. Clone the [SatComInfrastructure](https://github.com/acfloria/SatComInfrastructure.git) repository:
 
-   ```sh
-   git clone https://github.com/acfloria/SatComInfrastructure.git
-   ```
+  ```sh
+  git clone https://github.com/acfloria/SatComInfrastructure.git
+  ```
 
 6. Go to the location of the _SatComInfrastructure_ repo and configure the broker's queues:
 
-   ```sh
-   ./setup_rabbit.py localhost iridiumsbd PWD
-   ```
+  ```sh
+  ./setup_rabbit.py localhost iridiumsbd PWD
+  ```
 
 7. 설정을 확인합니다.
 
-   ```sh
-   sudo rabbitmqctl list_queues
-   ```
+  ```sh
+  sudo rabbitmqctl list_queues
+  ```
 
-   This should give you a list of 4 queues: `MO`, `MO_LOG`, `MT`, `MT_LOG`
+  This should give you a list of 4 queues: `MO`, `MO_LOG`, `MT`, `MT_LOG`
 
 8. Edit the `relay.cfg` configuration file to reflect your settings.
 
 9. 분리 모드에서 릴레이 스크립트를 실행합니다.
 
-   ```sh
-   screen -dm bash -c 'cd SatcomInfrastructure/; ./relay.py
-   ```
+  ```sh
+  screen -dm bash -c 'cd SatcomInfrastructure/; ./relay.py
+  ```
 
 기타 지침은 다음과 같습니다.
 
@@ -178,15 +178,15 @@ Log in to the [account](https://rockblock.rock7.com/Operations) and register the
 
 1. 필요한 Python 모듈을 설치합니다.
 
-   ```sh
-   sudo pip install pika tornado future
-   ```
+  ```sh
+  sudo pip install pika tornado future
+  ```
 
 2. SatComInfrarastructure 저장소 복제:
 
-   ```sh
-   git clone https://github.com/acfloria/SatComInfrastructure.git
-   ```
+  ```sh
+  git clone https://github.com/acfloria/SatComInfrastructure.git
+  ```
 
 3. Edit the **udp2rabbit.cfg** configuration file to reflect your settings.
 
@@ -194,20 +194,20 @@ Log in to the [account](https://rockblock.rock7.com/Operations) and register the
 
 5. 다음 매개 변수를 사용하여 QGC에서 UDP 연결을 추가합니다.
 
-   - 접속 포트: 10000
-   - 대상 호스트: 127.0.0.1:10001
-   - 높은 지연 시간: 확인됨
+  - 접속 포트: 10000
+  - 대상 호스트: 127.0.0.1:10001
+  - 높은 지연 시간: 확인됨
 
-   ![High Latency Link Settings](../../assets/satcom/linksettings.png)
+  ![High Latency Link Settings](../../assets/satcom/linksettings.png)
 
 ### 검증
 
 1. Open a terminal on the ground station computer and change to the location of the _SatComInfrastructure_ repository.
-   Then start the **udp2rabbit.py** script:
+  Then start the **udp2rabbit.py** script:
 
-   ```sh
-   ./udp2rabbit.py
-   ```
+  ```sh
+  ./udp2rabbit.py
+  ```
 
 2. Send a test message from [RockBlock Account](https://rockblock.rock7.com/Operations) to the created delivery group in the `Test Delivery Groups` tab.
 
@@ -218,36 +218,36 @@ If in the terminal where the `udp2rabbit.py` script is running within a couple o
 ## 시스템 실행
 
 1. Start _QGroundControl_.
-   먼저 높은 지연 시간 링크를 수동으로 연결한 다음, 일반 텔레메트리 링크를 연결합니다.
+  먼저 높은 지연 시간 링크를 수동으로 연결한 다음, 일반 텔레메트리 링크를 연결합니다.
 
-   ![Connect the High Latency link](../../assets/satcom/linkconnect.png)
+  ![Connect the High Latency link](../../assets/satcom/linkconnect.png)
 
 2. Open a terminal on the ground station computer and change to the location of the _SatComInfrastructure_ repository.
-   Then start the **udp2rabbit.py** script:
+  Then start the **udp2rabbit.py** script:
 
-   ```sh
-   ./udp2rabbit.py
-   ```
+  ```sh
+  ./udp2rabbit.py
+  ```
 
 3. 기체의 전원을 켭니다.
 
 4. Wait until the first `HIGH_LATENCY2` message is received on QGC.
-   This can be checked either using the _MAVLink Inspector_ widget or on the toolbar with the _LinkIndicator_.
-   If more than one link is connected to the active vehicle the _LinkIndicator_ shows all of them by clicking on the name of the shown link:
+  This can be checked either using the _MAVLink Inspector_ widget or on the toolbar with the _LinkIndicator_.
+  If more than one link is connected to the active vehicle the _LinkIndicator_ shows all of them by clicking on the name of the shown link:
 
-   ![Link Toolbar](../../assets/satcom/linkindicator.jpg)
+  ![Link Toolbar](../../assets/satcom/linkindicator.jpg)
 
-   링크 표시기는 항상 우선 순위 링크의 이름을 표시합니다.
+  링크 표시기는 항상 우선 순위 링크의 이름을 표시합니다.
 
 5. 이제 위성 통신 시스템을 사용할 준비가 되었습니다.우선 순위 링크(명령 전송 링크)는 다음 방법으로 결정됩니다.
 
-   - 사용자가 링크를 명령하지 않으면, 지연 시간이 큰 링크보다 일반적인 텔레메트리 링크가 선호됩니다.
-   - 기체가 시동을 켜고 텔레메트리 링크가 끊어지면(특정 시간 동안 MAVLink 메시지가 수신되지 않을 경우), 오토파일럿과 QGC는 일반 텔레메트리에서 긴 대기 시간 링크로 되돌아갑니다.
-     텔레메트리 링크가 복구되는 즉시 QGC와 자동 조종기가 다시 이 링크로 전환됩니다.
-   - The user can select a priority link over the `LinkIndicator` on the toolbar.
-     이 링크가 활성화되어 있거나 사용자가 다른 우선 순위 링크를 선택하면 이 링크는 우선 순위 링크로 유지됩니다.
+  - 사용자가 링크를 명령하지 않으면, 지연 시간이 큰 링크보다 일반적인 텔레메트리 링크가 선호됩니다.
+  - 기체가 시동을 켜고 텔레메트리 링크가 끊어지면(특정 시간 동안 MAVLink 메시지가 수신되지 않을 경우), 오토파일럿과 QGC는 일반 텔레메트리에서 긴 대기 시간 링크로 되돌아갑니다.
+    텔레메트리 링크가 복구되는 즉시 QGC와 자동 조종기가 다시 이 링크로 전환됩니다.
+  - The user can select a priority link over the `LinkIndicator` on the toolbar.
+    이 링크가 활성화되어 있거나 사용자가 다른 우선 순위 링크를 선택하면 이 링크는 우선 순위 링크로 유지됩니다.
 
-     ![Prioritylink Selection](../../assets/satcom/linkselection.png)
+    ![Prioritylink Selection](../../assets/satcom/linkselection.png)
 
 ## 문제 해결
 

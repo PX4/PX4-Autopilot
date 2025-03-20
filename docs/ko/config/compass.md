@@ -23,9 +23,9 @@ If any external magnetometers are available, it then disables the internal magne
 Several types of compass calibration are available:
 
 1. [Complete](#complete-calibration): This calibration is required after installing the autopilot on an airframe for the first time or when the configuration of the vehicle has changed significantly.
-   It compensates for hard and soft iron effects by estimating an offset and a scale factor for each axis.
+  It compensates for hard and soft iron effects by estimating an offset and a scale factor for each axis.
 2. [Partial](#partial-quick-calibration): This calibration can be performed as a routine when preparing the vehicle for a flight, after changing the payload, or simply when the compass rose seems inaccurate.
-   This type of calibration only estimates the offsets to compensate for a hard iron effect.
+  This type of calibration only estimates the offsets to compensate for a hard iron effect.
 3. [Large vehicle](#large-vehicle-calibration): This calibration can be performed when the vehicle is too large or heavy to perform a complete calibration. This type of calibration only estimates the offsets to compensate for a hard iron effect.
 
 ## 보정 절차
@@ -35,13 +35,13 @@ Several types of compass calibration are available:
 Before starting the calibration:
 
 1. 큰 금속 물체등과 같이 자기장이 강한 곳에서 멀리 떨어진 위치를 선택하십시오.
-   :::tip
-   Metal is not always obvious! 사무실 테이블 위에서나 (종종 금속 막대 포함) 또는 차량 옆에서 보정하지 마십시오.
-   철근이 고르지 않게 분포된 콘크리트 슬래브 근처 장소들도 보정에 영향을 미칠 수 있습니다.
+  :::tip
+  Metal is not always obvious! 사무실 테이블 위에서나 (종종 금속 막대 포함) 또는 차량 옆에서 보정하지 마십시오.
+  철근이 고르지 않게 분포된 콘크리트 슬래브 근처 장소들도 보정에 영향을 미칠 수 있습니다.
 
 :::
 2. Connect via telemetry radio rather than USB if at all possible.
-   USB can potentially cause significant magnetic interference.
+  USB can potentially cause significant magnetic interference.
 3. If using an external compass (or a combined GPS/compass module), make sure it is [mounted](../assembly/mount_gps_compass.md) as far as possible from other electronics in order to reduce magnetic interference, and in a _supported orientation_.
 
 ### Complete Calibration
@@ -54,10 +54,10 @@ Before starting the calibration:
 
 3. Click the **Compass** sensor button.
 
-   ![Select Compass calibration PX4](../../assets/qgc/setup/sensor/sensor_compass_select_px4.png)
+  ![Select Compass calibration PX4](../../assets/qgc/setup/sensor/sensor_compass_select_px4.png)
 
-   ::: info
-   You should already have set the [Autopilot Orientation](../config/flight_controller_orientation.md). 미리 설정하지 않았다면, 여기에서 설정할 수 있습니다.
+  ::: info
+  You should already have set the [Autopilot Orientation](../config/flight_controller_orientation.md). 미리 설정하지 않았다면, 여기에서 설정할 수 있습니다.
 
 :::
 
@@ -65,7 +65,7 @@ Before starting the calibration:
 
 5. 기체를 아래에 표시된 자세로 놓고 그대로 유지해주십시오 메시지가 표시되면(방향 이미지가 노란색으로 변함) 기체를 지정축을 기준으로 한 방향으로 회전시킵니다. 현재 방향에 대해 보정이 완료되면 화면의 그림이 녹색으로 바뀝니다.
 
-   ![Compass calibration steps on PX4](../../assets/qgc/setup/sensor/sensor_compass_calibrate_px4.png)
+  ![Compass calibration steps on PX4](../../assets/qgc/setup/sensor/sensor_compass_calibrate_px4.png)
 
 6. 드론의 모든 방향에 대해 보정 과정을 반복합니다.
 
@@ -76,7 +76,7 @@ Once you've calibrated the vehicle in all the positions _QGroundControl_ will di
 This calibration is similar to the well-known figure-8 compass calibration done on a smartphone:
 
 1. Hold the vehicle in front of you and randomly perform partial rotations on all its axes.
-   2-3 oscillations of ~30 degrees in every direction is usually sufficient.
+  2-3 oscillations of ~30 degrees in every direction is usually sufficient.
 2. Wait for the heading estimate to stabilize and verify that the compass rose is pointing to the correct direction (this can take a couple of seconds).
 
 참고:
@@ -94,12 +94,12 @@ This calibration process leverages external knowledge of vehicle's orientation a
 
 1. Ensure GNSS Fix. This is required to find the expected Earth magnetic field in WMM tables.
 2. Align the vehicle to face True North.
-   Be as accurate as possible for best results.
+  Be as accurate as possible for best results.
 3. Open the [QGroundControl MAVLink Console](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_console.html) and send the following command:
 
-   ```sh
-   commander calibrate mag quick
-   ```
+  ```sh
+  commander calibrate mag quick
+  ```
 
 참고:
 

@@ -35,8 +35,8 @@ Boards that are not compliant with the requirements are [unsupported](#unsupport
 6. 다음 내용을 포함하는 적절한 문서:
 
    - PX4 핀 정의를 아래에 매핑하는 완전한 핀배열 공개:
-     1. 마이크로컨트롤러 핀
-     2. 물리적 외부 커넥터
+      1. 마이크로컨트롤러 핀
+      2. 물리적 외부 커넥터
    - A block diagram or full schematic of the main components (sensors, power supply, etc.) that allows to infer software requirements and boot order
    - A manual of the finished product detailing its use
 

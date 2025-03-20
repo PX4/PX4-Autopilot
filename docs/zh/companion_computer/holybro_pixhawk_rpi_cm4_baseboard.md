@@ -69,15 +69,15 @@ To install the RPi CM4 companion computer:
 
 1. Disconnect the `FAN` wiring.
 
-   ![HB\_Pixhawk\_CM4\_Fan](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_fan.jpg)
+  ![HB_Pixhawk_CM4_Fan](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_fan.jpg)
 
 2. Remove these 4 screws on the back side of the baseboard.
 
-   ![Bottom of the board showing screws in corners holding the cover](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_bottom.jpg)
+  ![Bottom of the board showing screws in corners holding the cover](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_bottom.jpg)
 
 3. Remove the baseboard case, install the CM4, and use the 4 screws to attach it (as shown):
 
-   ![HB\_Pixhawk\_CM4\_Screws](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_screws.jpg)
+  ![HB_Pixhawk_CM4_Screws](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_screws.jpg)
 
 4. Reattach the cover.
 
@@ -115,29 +115,29 @@ To flash a RPi image onto EMMC.
 
 1. Switch Dip-Switch to `RPI`.
 
-   ![](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/cm4_dip_switch.png)
+  ![](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/cm4_dip_switch.png)
 
 2. Connect computer to USB-C _CM4 Slave_ port used to power & flash the RPi.
 
-   ![](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/cm4_usbc_slave_port.png)
+  ![](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/cm4_usbc_slave_port.png)
 
 3. Get `usbboot`, build it and run it.
 
-   ```sh
-   sudo apt install libusb-1.0-0-dev
-   git clone --depth=1 https://github.com/raspberrypi/usbboot
-   cd usbboot
-   make
-   sudo ./rpiboot
-   ```
+  ```sh
+  sudo apt install libusb-1.0-0-dev
+  git clone --depth=1 https://github.com/raspberrypi/usbboot
+  cd usbboot
+  make
+  sudo ./rpiboot
+  ```
 
 4. You can now install your preferred Linux distro using The `rpi-imager`.
-   Make sure you add WiFi and SSH settings (hidden behind the gear/advanced symbol).
+  Make sure you add WiFi and SSH settings (hidden behind the gear/advanced symbol).
 
-   ```sh
-   sudo apt install rpi-imager
-   rpi-imager
-   ```
+  ```sh
+  sudo apt install rpi-imager
+  rpi-imager
+  ```
 
 5. Once done, unplugging USB-C CM4 Slave (this will unmount the volumes, and power off the CM4).
 
@@ -146,8 +146,8 @@ To flash a RPi image onto EMMC.
 7. Power on CM4 by providing power to USB-C CM4 Slave port.
 
 8. To check if it's booting/working you can either:
-   - Check there is HDMI output
-   - Connect via SSH (if set up in rpi-imager, and WiFi is available).
+  - Check there is HDMI output
+  - Connect via SSH (if set up in rpi-imager, and WiFi is available).
 
 ## Configure PX4 to CM4 MAVLink Serial Connection
 
@@ -167,13 +167,13 @@ To enable this MAVLink instance on the FC:
 
 1. Connect a computer running QGroundControl via USB Type C port on the baseboard labeled `FC`
 
-   ![Image of baseboard showing FC USB-C connector](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_fc_usb_c.jpg)
+  ![Image of baseboard showing FC USB-C connector](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_fc_usb_c.jpg)
 
 2. [Set the parameters](../advanced_config/parameters.md):
 
-   - `MAV_1_CONFIG` = `102`
-   - `MAV_1_MODE = 2`
-   - `SER_TEL2_BAUD` = `921600`
+  - `MAV_1_CONFIG` = `102`
+  - `MAV_1_MODE = 2`
+  - `SER_TEL2_BAUD` = `921600`
 
 3. Reboot the FC.
 
@@ -185,13 +185,13 @@ On the RPi side:
 
 2. Enable the RPi serial port by running `RPi-config`
 
-   - Go to `3 Interface Options`, then `I6 Serial Port`.
-     Then choose:
-     - `login shell accessible over serial → No`
-     - `serial port hardware enabled` → `Yes`
+  - Go to `3 Interface Options`, then `I6 Serial Port`.
+    Then choose:
+    - `login shell accessible over serial → No`
+    - `serial port hardware enabled` → `Yes`
 
 3. Finish, and reboot.
-   This will add `enable_uart=1` to `/boot/config.txt`, and remove `console=serial0,115200` from `/boot/cmdline.txt`.
+  This will add `enable_uart=1` to `/boot/config.txt`, and remove `console=serial0,115200` from `/boot/cmdline.txt`.
 
 4. Now MAVLink traffic should be available on `/dev/serial0` at a baudrate of 921600.
 
@@ -201,9 +201,9 @@ On the RPi side:
 
 2. Install MAVSDK Python:
 
-   ```sh
-   python3 -m pip install mavsdk
-   ```
+  ```sh
+  python3 -m pip install mavsdk
+  ```
 
 3. Copy an example from the [MAVSDK-Python examples](https://github.com/mavlink/MAVSDK-Python/tree/main/examples).
 
@@ -247,7 +247,7 @@ Note that we could have used WiFi for the link, but by setting up a dedicated ro
 
 To set up a local ethernet connection between CM4 and the flight computer, the two Ethernet ports need to be connected using the provided 8 pin to 4 pin connector.
 
-![HB\_Pixhawk\_CM4\_Ethernet\_Cable](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_ethernet_cable.png)
+![HB_Pixhawk_CM4_Ethernet_Cable](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_ethernet_cable.png)
 
 The pinout of the cable is:
 

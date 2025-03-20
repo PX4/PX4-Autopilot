@@ -11,7 +11,7 @@ For airframe specific documentation and build instructions see [VTOL Framebuilds
 2. Flash the firmware for your current release or master (PX4 `main` branch build).
 3. In the [Frame setup](../config/airframe.md) section select the appropriate VTOL airframe.
 
-   If your airframe is not listed select the [Generic Standard VTOL](../airframes/airframe_reference.md#vtol_standard_vtol_generic_standard_vtol) frame.
+  If your airframe is not listed select the [Generic Standard VTOL](../airframes/airframe_reference.md#vtol_standard_vtol_generic_standard_vtol) frame.
 
 ### 비행 / 전환 모드 스위치
 

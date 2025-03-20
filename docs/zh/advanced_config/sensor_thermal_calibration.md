@@ -102,11 +102,11 @@ To perform an offboard calibration:
 
 9. Open a terminal window in the **Firmware/Tools** directory and run the python calibration script:
 
-   ```sh
-   python process_sensor_caldata.py <full path name to .ulog file>
-   ```
+  ```sh
+  python process_sensor_caldata.py <full path name to .ulog file>
+  ```
 
-   This will generate a **.pdf** file showing the measured data and curve fits for each sensor, and a **.params** file containing the calibration parameters.
+  This will generate a **.pdf** file showing the measured data and curve fits for each sensor, and a **.params** file containing the calibration parameters.
 
 10. Power the board, connect _QGroundControl_ and load the parameter from the generated **.params** file onto the board using _QGroundControl_. 由于参数的数量，加载它们可能需要一些时间。
 

@@ -39,7 +39,7 @@ The [MINI2 Receiver](http://www.femtomes.com) is connected to a UART on the flig
 모듈에 전원을 공급하기 위하여, 별도의 12V 전원공급장치가 필요합니다.
 12핀 커넥터 핀은 아래와 같이 번호가 지정됩니다.
 
-![MINI\_II\_2](../../assets/hardware/gps/rtk_fem_miniII_2.jpg)
+![MINI_II_2](../../assets/hardware/gps/rtk_fem_miniII_2.jpg)
 
 ## 설정
 

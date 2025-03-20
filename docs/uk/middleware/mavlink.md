@@ -40,12 +40,12 @@ MAVLink messages, commands and enumerations are defined in [XML definition files
 The MAVLink project standardizes a number of messages, commands, enumerations, and microservices, for exchanging data using the following definition files (note that higher level files _include_ the definitions of the files below them):
 
 - [development.xml](https://mavlink.io/en/messages/development.html) — Definitions that are proposed to be part of the standard.
-  The definitions move to `common.xml` if accepted following testing.
+ The definitions move to `common.xml` if accepted following testing.
 - [common.xml](https://mavlink.io/en/messages/common.html) — A "library" of definitions meeting many common UAV use cases.
-  Вони підтримуються багатьма польотними стеками, наземними станціями та периферійними пристроями MAVLink.
-  Польотні стеки, які використовують ці визначення, з більшою ймовірністю будуть взаємодіяти.
+ Вони підтримуються багатьма польотними стеками, наземними станціями та периферійними пристроями MAVLink.
+ Польотні стеки, які використовують ці визначення, з більшою ймовірністю будуть взаємодіяти.
 - [standard.xml](https://mavlink.io/en/messages/standard.html) — Definitions that are actually standard.
-  Вони присутні на переважній більшості польотних стеків і реалізовані однаково.
+ Вони присутні на переважній більшості польотних стеків і реалізовані однаково.
 - [minimal.xml](https://mavlink.io/en/messages/minimal.html) — Definitions required by a minimal MAVLink implementation.
 
 The project also hosts [dialect XML definitions](https://mavlink.io/en/messages/#dialects), which contain MAVLink definitions that are specific to a flight stack or other stakeholder.
@@ -79,7 +79,7 @@ This contains XML definition files in [/mavlink/messages/1.0/](https://github.co
 The XML file for which headers files are generated may be defined in the [PX4 kconfig board configuration](../hardware/porting_guide_config.md#px4-board-configuration-kconfig) on a per-board basis, using the variable `CONFIG_MAVLINK_DIALECT`:
 
 - For SITL `CONFIG_MAVLINK_DIALECT` is set to `development` in [boards/px4/sitl/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/sitl/default.px4board#L36).
-  You can change this to any other definition file, but the file must include `common.xml`.
+ You can change this to any other definition file, but the file must include `common.xml`.
 - For other boards `CONFIG_MAVLINK_DIALECT` is not set by default, and PX4 builds the definitions in `common.xml` (these are build into the [mavlink module](../modules/modules_communication.md#mavlink) by default — search for `menuconfig MAVLINK_DIALECT` in [src/modules/mavlink/Kconfig](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/Kconfig#L10)).
 
 The files are generated into the build directory: `/build/<build target>/mavlink/`.
@@ -246,55 +246,55 @@ Most streaming classes are very similar (see examples in [/src/modules/mavlink/s
 - The streaming class derives from [`MavlinkStream`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_stream.h) and is named using the pattern `MavlinkStream<CamelCaseMessageName>`.
 
 - The `public` definitions are "near-boilerplate", allowing PX4 to get an instance of the class (`new_instance()`), and then to use it to fetch the name, id, and size of the message from the MAVLink headers (`get_name()`, `get_name_static()`, `get_id_static()`, `get_id()`, `get_size()`).
-  Для ваших власних потокових класів їх можна просто скопіювати і змінити, щоб вони відповідали значенням для вашого повідомлення MAVLink.
+ Для ваших власних потокових класів їх можна просто скопіювати і змінити, щоб вони відповідали значенням для вашого повідомлення MAVLink.
 
 - The `private` definitions subscribe to the uORB topics that need to be published.
-  У цьому випадку тема uORB має кілька екземплярів: по одному для кожної батареї.
-  We use `uORB::SubscriptionMultiArray` to get an array of battery status subscriptions.
+ У цьому випадку тема uORB має кілька екземплярів: по одному для кожної батареї.
+ We use `uORB::SubscriptionMultiArray` to get an array of battery status subscriptions.
 
-  Тут ми також визначаємо конструктори, щоб уникнути копіювання визначення.
+ Тут ми також визначаємо конструктори, щоб уникнути копіювання визначення.
 
 - The `protected` section is where the important work takes place!
 
-  Here we override the `send()` method, copying values from the subscribed uORB topic(s) into appropriate fields in the MAVLink message, and then send the message.
+ Here we override the `send()` method, copying values from the subscribed uORB topic(s) into appropriate fields in the MAVLink message, and then send the message.
 
-  In this particular example we have an array of uORB instances `_battery_status_subs` (because we have multiple batteries).
-  We iterate the array and use `update()` on each subscription to check if the associated battery instance has changed (and update a structure with the current data).
-  This allows us to send the MAVLink message _only_ if the associated battery uORB topic has changed:
+ In this particular example we have an array of uORB instances `_battery_status_subs` (because we have multiple batteries).
+ We iterate the array and use `update()` on each subscription to check if the associated battery instance has changed (and update a structure with the current data).
+ This allows us to send the MAVLink message _only_ if the associated battery uORB topic has changed:
 
-  ```cpp
-  // Struct to hold current topic data.
-  battery_status_s battery_status;
+ ```cpp
+ // Struct to hold current topic data.
+ battery_status_s battery_status;
 
-  // update() populates battery_status and returns true if the status has changed
-  if (battery_sub.update(&battery_status)) {
-     // Use battery_status to populate message and send
-  }
-  ```
+ // update() populates battery_status and returns true if the status has changed
+ if (battery_sub.update(&battery_status)) {
+    // Use battery_status to populate message and send
+ }
+ ```
 
-  If wanted to send a MAVLink message whether or not the data changed, we could instead use `copy()` as shown:
+ If wanted to send a MAVLink message whether or not the data changed, we could instead use `copy()` as shown:
 
-  ```cpp
-  battery_status_s battery_status;
-  battery_sub.copy(&battery_status);
-  ```
+ ```cpp
+ battery_status_s battery_status;
+ battery_sub.copy(&battery_status);
+ ```
 
-  ::: info
-  For a single-instance topic like [VehicleStatus](../msg_docs/VehicleStatus.md) we would subscribe like this:
+ ::: info
+ For a single-instance topic like [VehicleStatus](../msg_docs/VehicleStatus.md) we would subscribe like this:
 
-  ```cpp
-  // Create subscription _vehicle_status_sub
-  uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-  ```
+ ```cpp
+ // Create subscription _vehicle_status_sub
+ uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+ ```
 
-  І ми можемо використовувати отриману підписку так само, з оновленням або копіюванням.
+ І ми можемо використовувати отриману підписку так само, з оновленням або копіюванням.
 
-  ```cpp
-  vehicle_status_s vehicle_status{}; // vehicle_status_s is the definition of the uORB topic
-  if (_vehicle_status_sub.update(&vehicle_status)) {
-    // Use the vehicle_status as it has been updated.
-  }
-  ```
+ ```cpp
+ vehicle_status_s vehicle_status{}; // vehicle_status_s is the definition of the uORB topic
+ if (_vehicle_status_sub.update(&vehicle_status)) {
+   // Use the vehicle_status as it has been updated.
+ }
+ ```
 
 
 :::
@@ -474,17 +474,17 @@ This approach can also be used to test incoming messages that publish a uORB top
 Існує кілька підходів для перегляду трафіку MAVLink:
 
 - Create a [Wireshark MAVLink plugin](https://mavlink.io/en/guide/wireshark.html) for your dialect.
-  This allows you to inspect MAVLink traffic on an IP interface - for example between _QGroundControl_ or MAVSDK and your real or simulated version of PX4.
+ This allows you to inspect MAVLink traffic on an IP interface - for example between _QGroundControl_ or MAVSDK and your real or simulated version of PX4.
 
-  :::tip
-  It is much easier to generate a wireshark plugin and inspect traffic in Wireshark, than to rebuild QGroundControl with your dialect and use MAVLink Inspector.
+ :::tip
+ It is much easier to generate a wireshark plugin and inspect traffic in Wireshark, than to rebuild QGroundControl with your dialect and use MAVLink Inspector.
 
 :::
 
 - [Log uORB topics](../dev_log/logging.md) associate with your MAVLink message.
 
 - View received messages in the QGroundControl [MAVLink Inspector](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_inspector.html).
-  You will need to rebuild QGroundControl with the custom message definitions, [as described below](#updating-qgroundcontrol)
+ You will need to rebuild QGroundControl with the custom message definitions, [as described below](#updating-qgroundcontrol)
 
 ### Встановити швидкість передачі за допомогою оболонки
 

@@ -117,19 +117,19 @@ The official ROS documentation also contains information on how to use [unittest
 
    - Запустити симулятор
 
-     ```sh
-     cd <PX4-Autopilot_clone>
-     source Tools/simulation/gazebo/setup_gazebo.bash
-     roslaunch launch/mavros_posix_sitl.launch
-     ```
+      ```sh
+      cd <PX4-Autopilot_clone>
+      source Tools/simulation/gazebo/setup_gazebo.bash
+      roslaunch launch/mavros_posix_sitl.launch
+      ```
 
    - Запустити тест (в новій оболонці):
 
-     ```sh
-     cd <PX4-Autopilot_clone>
-     source Tools/simulation/gazebo/setup_gazebo.bash
-     rosrun px4 mavros_new_test.py
-     ```
+      ```sh
+      cd <PX4-Autopilot_clone>
+      source Tools/simulation/gazebo/setup_gazebo.bash
+      rosrun px4 mavros_new_test.py
+      ```
 
 3. Додати новий тестовий вузол до файлу запуску
 

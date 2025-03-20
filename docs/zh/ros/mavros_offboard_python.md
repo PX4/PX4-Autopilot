@@ -25,38 +25,38 @@ Other examples in Python can be found here: [integrationtests/python_src/px4_it/
 
 1. Open the terminal and go to `~/catkin_ws/src` directory
 
-   ```sh
-   roscd  # Should cd into ~/catkin_ws/devel
-   cd ..
-   cd src
-   ```
+ ```sh
+ roscd  # Should cd into ~/catkin_ws/devel
+ cd ..
+ cd src
+ ```
 
 2. In the `~/catkin_ws/src` directory create a new package named `offboard_py` (in this case) with the `rospy` dependency:
 
-   ```sh
-   catkin_create_pkg offboard_py rospy
-   ```
+ ```sh
+ catkin_create_pkg offboard_py rospy
+ ```
 
 3. Build the new package in the `~/catkin_ws/` directory:
 
-   ```sh
-   cd .. # Assuming previous directory to be ~/catkin_ws/src
-   catkin build
-   source devel/setup.bash
-   ```
+ ```sh
+ cd .. # Assuming previous directory to be ~/catkin_ws/src
+ catkin build
+ source devel/setup.bash
+ ```
 
 4. 您现在应该能够通过使用以下方法切换至包目录：
 
-   ```sh
-   roscd offboard_py
-   ```
+ ```sh
+ roscd offboard_py
+ ```
 
 5. To store your Python files, create a new folder called `/scripts` on the package:
 
-   ```sh
-   mkdir scripts
-   cd scripts
-   ```
+ ```sh
+ mkdir scripts
+ cd scripts
+ ```
 
 ## 代码
 

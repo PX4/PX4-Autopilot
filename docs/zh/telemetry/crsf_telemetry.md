@@ -77,36 +77,36 @@ To use this feature you must build and upload custom firmware that includes [crs
 
 1. [Setup a development environment](../dev_setup/dev_env.md) for building PX4.
 
-   As part of this process you will have used `git` to fetch source code into the **PX4-Autopilot** directory.
+  As part of this process you will have used `git` to fetch source code into the **PX4-Autopilot** directory.
 
 2. Open a terminal and `cd` into the `PX4-Autopilot` directory.
 
-   ```sh
-   cd PX4-Autopilot
-   ```
+  ```sh
+  cd PX4-Autopilot
+  ```
 
 3. Launch the [PX4 board config tool (`menuconfig`)](../hardware/porting_guide_config.md#px4-menuconfig-setup) for your `make` target using the `boardconfig` option (here the target is the [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md) flight controller):
 
-   ```sh
-   make ark_fmu-v6x_default boardconfig
-   ```
+  ```sh
+  make ark_fmu-v6x_default boardconfig
+  ```
 
 4. In the PX4 board config tool:
 
-   - Disable the default `rc_input` module
-     1. Navigate to the `drivers` submenu, then scroll down to highlight `rc_input`.
-     2. Use the enter key to remove the `*` from `rc_input` checkbox.
-   - Enable the `crsf_rc` module
-     1. Scroll to highlight the `RC` submenu, then press enter to open it.
-     2. Scroll to highlight `crsf_rc` and press enter to enable it.
+  - Disable the default `rc_input` module
+    1. Navigate to the `drivers` submenu, then scroll down to highlight `rc_input`.
+    2. Use the enter key to remove the `*` from `rc_input` checkbox.
+  - Enable the `crsf_rc` module
+    1. Scroll to highlight the `RC` submenu, then press enter to open it.
+    2. Scroll to highlight `crsf_rc` and press enter to enable it.
 
-   Save and exit the PX4 board config tool.
+  Save and exit the PX4 board config tool.
 
 5. [Build the PX4 source code](../dev_setup/building_px4.md) with your changes (again assuming you are using ARKV6X):
 
-   ```sh
-   make ark_fmu-v6x_default
-   ```
+  ```sh
+  make ark_fmu-v6x_default
+  ```
 
 This will build your custom firmware, which must now be uploaded to your flight controller.
 
@@ -128,11 +128,11 @@ Alternatively you can use QGroundControl to install the firmware, as described i
 
 1. [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) — Set to the port that is connected to the CRSF receiver (such as `TELEM1`).
 
-   This [configures the serial port](../peripherals/serial_configuration.md) to use the CRSF protocol.
-   Note that some serial ports may already have a [default serial port mapping](../peripherals/serial_configuration.md#default-serial-port-configuration) or [default MAVLink serial port mapping](../peripherals/mavlink_peripherals.md#default-mavlink-ports) that you will have to un-map before you can assign the port to CRSF.
-   For example, if you want to use `TELEM1` or `TELEM2` you first need to modify [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) or [MAV_1_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG) to stop setting those ports.
+  This [configures the serial port](../peripherals/serial_configuration.md) to use the CRSF protocol.
+  Note that some serial ports may already have a [default serial port mapping](../peripherals/serial_configuration.md#default-serial-port-configuration) or [default MAVLink serial port mapping](../peripherals/mavlink_peripherals.md#default-mavlink-ports) that you will have to un-map before you can assign the port to CRSF.
+  For example, if you want to use `TELEM1` or `TELEM2` you first need to modify [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) or [MAV_1_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG) to stop setting those ports.
 
-   There is no need to set the baud rate for the port, as this is configured by the driver.
+  There is no need to set the baud rate for the port, as this is configured by the driver.
 
 2. [RC_CRSF_TEL_EN](../advanced_config/parameter_reference.md#RC_CRSF_TEL_EN) — Enable to activate Crossfire telemetry.
 

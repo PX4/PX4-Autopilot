@@ -105,7 +105,7 @@ In reality, this needs some empirical tuning since delays in the entire MoCap->P
 Приблизну оцінку затримки можна отримати з логів, перевіривши зсув між частотами IMU та EV.
 To enable logging of EV rates set bit 7 (Computer Vision and Avoidance) of [SDLOG_PROFILE](../advanced_config/parameter_reference.md#SDLOG_PROFILE).
 
-![ekf2\_ev\_delay log](../../assets/ekf2/ekf2_ev_delay_tuning.png)
+![ekf2_ev_delay log](../../assets/ekf2/ekf2_ev_delay_tuning.png)
 
 :::info
 A plot of external data vs. onboard estimate (as above) can be generated using [FlightPlot](../log/flight_log_analysis.md#flightplot) or similar flight analysis tools.

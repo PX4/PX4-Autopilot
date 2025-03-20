@@ -79,7 +79,7 @@ This product can be ordered at the [mRobotics<sup>&reg;</sup> Store](https://sto
 
 ## 배선 가이드
 
-![mRo\_X2.1\_Wiring](../../assets/flight_controller/mro/mro_x21_wiring.png)
+![mRo_X2.1_Wiring](../../assets/flight_controller/mro/mro_x21_wiring.png)
 
 ## 펌웨어 빌드
 

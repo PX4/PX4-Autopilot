@@ -514,7 +514,7 @@ div.frame_variant td, div.frame_variant th {
 </table>
 </div>
 
-## 고정익
+## Plane
 
 ### 플라잉 윙
 
@@ -801,3 +801,4 @@ div.frame_variant td, div.frame_variant th {
 </tbody>
 </table>
 </div>
+

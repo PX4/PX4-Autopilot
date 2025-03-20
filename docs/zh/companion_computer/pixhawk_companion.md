@@ -43,7 +43,7 @@ In most cases the accessible hardware serial ports already have some function (m
 A safe and easy to set up option is to use an FTDI Chip USB-to-serial adapter board to connect from `TELEM2` on the Pixhawk to the USB port on the companion computer.
 The `TELEM2` to FTDI wiring map is shown below.
 
-| TELEM2 |                              | FTDI | &amp;nbsp;   |
+| TELEM2 |                              | FTDI | &nbsp;       |
 | ------ | ---------------------------- | ---- | -------------------------------- |
 | 1      | + 5v (红色) |      | DO NOT CONNECT!                  |
 | 2      | 2                            | 5    | 5                                |

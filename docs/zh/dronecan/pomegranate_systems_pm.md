@@ -45,11 +45,11 @@ Source code and build instructions can be found on [the bitbucket](https://bitbu
 1. Enable DroneCAN by setting the [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) parameter to `2` (Sensors Automatic Config) or `3`.
 2. Enable DroneCAN battery monitoring by setting [UAVCAN_SUB_BAT](../advanced_config/parameter_reference.md#UAVCAN_SUB_BAT) to `1` or `2` ( depending on your battery).
 3. Set the following module parameters using the [MAVLink console](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_console.html):
-   - Battery capacity in mAh: `battery_capacity_mAh`
-   - Battery voltage when _full_: `battery_full_V`,
-   - Battery voltage when _empty_: `battery_empty_V`
-   - Turn on current integration: `enable_current_track`
-   - (optional) Turn Off CANbus termination resistor :`enable_can_term`
+  - Battery capacity in mAh: `battery_capacity_mAh`
+  - Battery voltage when _full_: `battery_full_V`,
+  - Battery voltage when _empty_: `battery_empty_V`
+  - Turn on current integration: `enable_current_track`
+  - (optional) Turn Off CANbus termination resistor :`enable_can_term`
 
 **Example:** A Power Module with UAVCAN node id `125` connected to a `3S` LiPo with capacity of `5000mAh` can be configured with the following commands:
 

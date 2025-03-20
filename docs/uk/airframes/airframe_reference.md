@@ -512,7 +512,7 @@ div.frame_variant td, div.frame_variant th {
 </table>
 </div>
 
-## Літак
+## Plane
 
 ### Літаюче крило
 
@@ -797,3 +797,4 @@ div.frame_variant td, div.frame_variant th {
 </tbody>
 </table>
 </div>
+

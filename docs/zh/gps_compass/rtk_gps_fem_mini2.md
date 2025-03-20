@@ -39,7 +39,7 @@ The [MINI2 Receiver](http://www.femtomes.com) is connected to a UART on the flig
 To power the module you will need a separate 12V power supply.
 The pins on the 12-pin connector are numbered as shown below.
 
-![MINI\_II\_2](../../assets/hardware/gps/rtk_fem_miniII_2.jpg)
+![MINI_II_2](../../assets/hardware/gps/rtk_fem_miniII_2.jpg)
 
 ## 配置
 

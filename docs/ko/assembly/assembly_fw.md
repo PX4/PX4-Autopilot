@@ -1,5 +1,5 @@
 ---
-frame: 고정익
+frame: Plane
 title: Assembling a Fixed-Wing
 newEditLink: en/assembly/_assembly.md
 ---

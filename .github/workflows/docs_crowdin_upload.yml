@@ -8,18 +8,18 @@ on:
       - main
     paths:
       - 'docs/en/**'
-  pull_request:
-    types:
-      - closed
-    branches:
-      - main
-    paths:
-      - 'docs/en/**'
+  #pull_request:
+  #  types:
+  #    - closed
+  #  branches:
+  #    - main
+  #  paths:
+  #    - 'docs/en/**'
   workflow_dispatch:
 
 jobs:
   upload-to-crowdin:
-    if: github.event.pull_request.merged == true || github.event_name == 'push'
+    #if: github.event.pull_request.merged == true || github.event_name == 'push'  || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     steps:
@@ -28,7 +28,7 @@ jobs:
       - name: crowdin push
         uses: crowdin/github-action@v2
         with:
-          config: 'docs/crowdin.yml'
+          config: 'docs/crowdin_docs.yml'
           upload_sources: true
           upload_translations: false
           download_translations: false

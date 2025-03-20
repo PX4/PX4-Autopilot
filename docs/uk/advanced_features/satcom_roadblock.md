@@ -54,19 +54,19 @@ The setup was tested with the current release of _QGroundControl_ running on Ubu
 Стандартна швидкість передачі даних модуля - 19200. However, the PX4 _iridiumsbd_ driver requires a baud rate of 115200 so it needs to be changed using the [AT commands](https://www.groundcontrol.com/en/wp-content/uploads/2022/02/IRDM_ISU_ATCommandReferenceMAN0009_Rev2.0_ATCOMM_Oct2012.pdf).
 
 1. Connect to the module with using a 19200/8-N-1 setting and check if the communication is working using the command: `AT`.
-   Відповідь має бути: `OK`.
+  Відповідь має бути: `OK`.
 
 2. Змінити швидкість передачі:
 
-   ```
-   AT+IPR=9
-   ```
+  ```
+  AT+IPR=9
+  ```
 
 3. Знову підключіться до моделі з параметрами 115200/8-N-1 і збережіть конфігурацію за допомогою:
 
-   ```
-   AT&W0
-   ```
+  ```
+  AT&W0
+  ```
 
 Модуль тепер готовий до використання з PX4.
 
@@ -102,55 +102,55 @@ drivers/telemetry/iridiumsbd
 
 1. Сервер, який працює як ретранслятор повідомлень, повинен мати статичну IP-адресу та два загальнодоступних відкритих TCP-порти:
 
-   - `5672` для брокера повідомлень _RabbitMQ_ (можна змінити в налаштуваннях _rabbitmq_)
-   - `45679` для інтерфейсу HTTP POST (можна змінити у файлі **relay.cfg**)
+  - `5672` для брокера повідомлень _RabbitMQ_ (можна змінити в налаштуваннях _rabbitmq_)
+  - `45679` для інтерфейсу HTTP POST (можна змінити у файлі **relay.cfg**)
 
 2. Встановіть необхідні модулі python:
 
-   ```sh
-   sudo pip install pika tornado future
-   ```
+  ```sh
+  sudo pip install pika tornado future
+  ```
 
 3. Встановіть брокер повідомлень `rabbitmq`:
 
-   ```sh
-   sudo apt install rabbitmq-server
-   ```
+  ```sh
+  sudo apt install rabbitmq-server
+  ```
 
 4. Налаштуйте облікові дані брокера (змініть PWD на ваш бажаний пароль):
 
-   ```sh
-   sudo rabbitmqctl add_user iridiumsbd PWD
-   sudo rabbitmqctl set_permissions iridiumsbd ".*" ".*" ".*"
-   ```
+  ```sh
+  sudo rabbitmqctl add_user iridiumsbd PWD
+  sudo rabbitmqctl set_permissions iridiumsbd ".*" ".*" ".*"
+  ```
 
 5. Клонувати репозиторій [SatComInfrastructure](https://github.com/acfloria/SatComInfrastructure.git):
 
-   ```sh
-   git clone https://github.com/acfloria/SatComInfrastructure.git
-   ```
+  ```sh
+  git clone https://github.com/acfloria/SatComInfrastructure.git
+  ```
 
 6. Перейдіть до розташування репозиторію _SatComInfrastructure_ і налаштуйте черги брокера:
 
-   ```sh
-   ./setup_rabbit.py localhost iridiumsbd PWD
-   ```
+  ```sh
+  ./setup_rabbit.py localhost iridiumsbd PWD
+  ```
 
 7. Перевірте налаштування:
 
-   ```sh
-   sudo rabbitmqctl list_queues
-   ```
+  ```sh
+  sudo rabbitmqctl list_queues
+  ```
 
-   Це повинно дати вам список із 4 черг: `MO`, `MO_LOG`, `MT`, `MT_LOG`
+  Це повинно дати вам список із 4 черг: `MO`, `MO_LOG`, `MT`, `MT_LOG`
 
 8. Edit the `relay.cfg` configuration file to reflect your settings.
 
 9. Запустіть скрипт реле в режимі відокремленого виконання:
 
-   ```sh
-   screen -dm bash -c 'cd SatcomInfrastructure/; ./relay.py
-   ```
+  ```sh
+  screen -dm bash -c 'cd SatcomInfrastructure/; ./relay.py
+  ```
 
 Інші інструкції включають:
 
@@ -178,15 +178,15 @@ drivers/telemetry/iridiumsbd
 
 1. Встановіть необхідні модулі python:
 
-   ```sh
-   sudo pip install pika tornado future
-   ```
+  ```sh
+  sudo pip install pika tornado future
+  ```
 
 2. Клонуйте репозиторій SatComInfrastructure:
 
-   ```sh
-   git clone https://github.com/acfloria/SatComInfrastructure.git
-   ```
+  ```sh
+  git clone https://github.com/acfloria/SatComInfrastructure.git
+  ```
 
 3. Відредагуйте конфігураційний файл **udp2rabbit.cfg**, щоб відображати ваші налаштування.
 
@@ -194,20 +194,20 @@ drivers/telemetry/iridiumsbd
 
 5. Додавайте UDP з'єднання в QGC з параметрами:
 
-   - Порт прослуховування: 10000
-   - Цільові хости: 127.0.0.1:10001
-   - Висока затримка: позначено
+  - Порт прослуховування: 10000
+  - Цільові хости: 127.0.0.1:10001
+  - Висока затримка: позначено
 
-   ![High Latency Link Settings](../../assets/satcom/linksettings.png)
+  ![High Latency Link Settings](../../assets/satcom/linksettings.png)
 
 ### Перевірка
 
 1. Відкрийте термінал на комп'ютері наземної станції та перейдіть до розташування репозиторію _SatComInfrastructure_.
-   Потім запустіть скрипт **udp2rabbit.py**:
+  Потім запустіть скрипт **udp2rabbit.py**:
 
-   ```sh
-   ./udp2rabbit.py
-   ```
+  ```sh
+  ./udp2rabbit.py
+  ```
 
 2. Надішліть тестове повідомлення з облікового запису [RockBlock](https://rockblock.rock7.com/Operations) до створеної групи доставки на вкладці `Тестові групи доставки`.
 
@@ -218,37 +218,37 @@ drivers/telemetry/iridiumsbd
 ## Запуск системи
 
 1. Запустіть _QGroundControl_.
-   Спочатку вручну підключіть високо запізнюваний зв'язок, а потім звичайний телеметрійний зв'язок:
+  Спочатку вручну підключіть високо запізнюваний зв'язок, а потім звичайний телеметрійний зв'язок:
 
-   ![Connect the High Latency link](../../assets/satcom/linkconnect.png)
+  ![Connect the High Latency link](../../assets/satcom/linkconnect.png)
 
 2. Відкрийте термінал на комп'ютері наземної станції та перейдіть до розташування репозиторію _SatComInfrastructure_.
-   Потім запустіть скрипт **udp2rabbit.py**:
+  Потім запустіть скрипт **udp2rabbit.py**:
 
-   ```sh
-   ./udp2rabbit.py
-   ```
+  ```sh
+  ./udp2rabbit.py
+  ```
 
 3. Увімкніть транспортний засіб.
 
 4. Дочекайтеся, доки на QGC не буде отримано перше повідомлення `HIGH_LATENCY2`.
-   Це можна перевірити за допомогою віджету _Інспектора MAVLink_ або на панелі інструментів за допомогою _індикатора зв'язку(LinkIndicator)_.
-   Це можна перевірити за допомогою віджету _Інспектора MAVLink_ або на панелі інструментів за допомогою _індикатора зв'язку(LinkIndicator)_:
+  Це можна перевірити за допомогою віджету _Інспектора MAVLink_ або на панелі інструментів за допомогою _індикатора зв'язку(LinkIndicator)_.
+  Це можна перевірити за допомогою віджету _Інспектора MAVLink_ або на панелі інструментів за допомогою _індикатора зв'язку(LinkIndicator)_:
 
-   ![Link Toolbar](../../assets/satcom/linkindicator.jpg)
+  ![Link Toolbar](../../assets/satcom/linkindicator.jpg)
 
-   Індикатор зв'язку завжди показує назву пріоритетного зв'язку.
+  Індикатор зв'язку завжди показує назву пріоритетного зв'язку.
 
 5. Супутникова система зв'язку тепер готова до використання.
-   Пріоритетний зв'язок, через який надсилаються команди, визначається наступними способами:
+  Пріоритетний зв'язок, через який надсилаються команди, визначається наступними способами:
 
-   - Якщо користувач не вказав зв'язок, звичайний радіо телеметрійний зв'язок віддається перевагу перед високозапізнюваним зв'язком.
-   - Автопілот та QGC перехоплюватимуть звичайний радіо телеметрійний зв'язок на високозапізнюваний зв'язок, якщо транспортний засіб зброєний, а радіо телеметрійний зв'язок втрачений (не отримано жодного повідомлення MAVLink протягом певного часу).
-     Як тільки радіо телеметрійний зв'язок відновлюється, QGC та автопілот повертаються до нього.
-   - Користувач може вибрати пріоритетний зв'язок через індикатор зв'язку на панелі інструментів.
-     Це посилання зберігається як пріоритетне посилання, поки воно активне або користувач вибирає інше пріоритетне посилання:
+  - Якщо користувач не вказав зв'язок, звичайний радіо телеметрійний зв'язок віддається перевагу перед високозапізнюваним зв'язком.
+  - Автопілот та QGC перехоплюватимуть звичайний радіо телеметрійний зв'язок на високозапізнюваний зв'язок, якщо транспортний засіб зброєний, а радіо телеметрійний зв'язок втрачений (не отримано жодного повідомлення MAVLink протягом певного часу).
+    Як тільки радіо телеметрійний зв'язок відновлюється, QGC та автопілот повертаються до нього.
+  - Користувач може вибрати пріоритетний зв'язок через індикатор зв'язку на панелі інструментів.
+    Це посилання зберігається як пріоритетне посилання, поки воно активне або користувач вибирає інше пріоритетне посилання:
 
-     ![Prioritylink Selection](../../assets/satcom/linkselection.png)
+    ![Prioritylink Selection](../../assets/satcom/linkselection.png)
 
 ## Усунення проблем
 
