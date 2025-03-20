@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,7 +65,7 @@ void FigureEight::resetPattern()
 
 DirectionalGuidanceOutput FigureEight::updateSetpoint(const matrix::Vector2f &curr_pos_local,
 		const matrix::Vector2f &ground_speed,
-		const FigureEightPatternParameters &parameters, float target_airspeed)
+		const FigureEightPatternParameters &parameters)
 {
 	// Sanitize inputs
 	FigureEightPatternParameters valid_parameters{sanitizeParameters(parameters)};
@@ -81,7 +81,7 @@ DirectionalGuidanceOutput FigureEight::updateSetpoint(const matrix::Vector2f &cu
 	updateSegment(curr_pos_local, valid_parameters,  pattern_points);
 
 	// Apply control logic based on segment
-	return applyControl(curr_pos_local, ground_speed, valid_parameters, target_airspeed, pattern_points);
+	return applyControl(curr_pos_local, ground_speed, valid_parameters, pattern_points);
 }
 
 FigureEight::FigureEightPatternParameters FigureEight::sanitizeParameters(const FigureEightPatternParameters
@@ -279,7 +279,7 @@ void FigureEight::updateSegment(const matrix::Vector2f &curr_pos_local, const Fi
 
 DirectionalGuidanceOutput FigureEight::applyControl(const matrix::Vector2f &curr_pos_local,
 		const matrix::Vector2f &ground_speed,
-		const FigureEightPatternParameters &parameters, float target_airspeed,
+		const FigureEightPatternParameters &parameters,
 		const FigureEightPatternPoints &pattern_points)
 {
 	Vector2f center_to_pos_local;
@@ -288,7 +288,7 @@ DirectionalGuidanceOutput FigureEight::applyControl(const matrix::Vector2f &curr
 	switch (_current_segment) {
 	case FigureEightSegment::SEGMENT_CIRCLE_NORTH: {
 			return applyCircle(NORTH_CIRCLE_IS_COUNTER_CLOCKWISE, pattern_points.normalized_north_circle_offset, curr_pos_local,
-					   ground_speed, parameters, target_airspeed);
+					   ground_speed, parameters);
 		}
 		break;
 
@@ -296,13 +296,13 @@ DirectionalGuidanceOutput FigureEight::applyControl(const matrix::Vector2f &curr
 			// Follow path from north-east to south-west
 			return applyLine(pattern_points.normalized_north_exit_offset, pattern_points.normalized_south_entry_offset,
 					 curr_pos_local,
-					 ground_speed, parameters, target_airspeed);
+					 ground_speed, parameters);
 		}
 		break;
 
 	case FigureEightSegment::SEGMENT_CIRCLE_SOUTH: {
 			return applyCircle(SOUTH_CIRCLE_IS_COUNTER_CLOCKWISE, pattern_points.normalized_south_circle_offset, curr_pos_local,
-					   ground_speed, parameters, target_airspeed);
+					   ground_speed, parameters);
 		}
 		break;
 
@@ -310,21 +310,21 @@ DirectionalGuidanceOutput FigureEight::applyControl(const matrix::Vector2f &curr
 			// follow path from south-east to north-west
 			return applyLine(pattern_points.normalized_south_exit_offset, pattern_points.normalized_north_entry_offset,
 					 curr_pos_local,
-					 ground_speed, parameters, target_airspeed);
+					 ground_speed, parameters);
 		}
 		break;
 
 	case FigureEightSegment::SEGMENT_POINT_SOUTHWEST: {
 			// Follow path from current position to south-west
 			return applyLine(center_to_pos_local, pattern_points.normalized_south_entry_offset, curr_pos_local,
-					 ground_speed, parameters, target_airspeed);
+					 ground_speed, parameters);
 		}
 		break;
 
 	case FigureEightSegment::SEGMENT_POINT_NORTHWEST: {
 			// Follow path from current position to north-west
 			return applyLine(center_to_pos_local, pattern_points.normalized_north_entry_offset, curr_pos_local,
-					 ground_speed, parameters, target_airspeed);
+					 ground_speed, parameters);
 		}
 		break;
 
@@ -365,7 +365,7 @@ float FigureEight::calculateRotationAngle(const FigureEightPatternParameters &pa
 DirectionalGuidanceOutput FigureEight::applyCircle(bool loiter_direction_counter_clockwise,
 		const matrix::Vector2f &normalized_circle_offset,
 		const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-		const FigureEightPatternParameters &parameters, float target_airspeed)
+		const FigureEightPatternParameters &parameters)
 {
 	const float loiter_direction_multiplier = loiter_direction_counter_clockwise ? -1.f : 1.f;
 
@@ -404,7 +404,7 @@ DirectionalGuidanceOutput FigureEight::applyCircle(bool loiter_direction_counter
 
 DirectionalGuidanceOutput FigureEight::applyLine(const matrix::Vector2f &normalized_line_start_offset,
 		const matrix::Vector2f &normalized_line_end_offset, const matrix::Vector2f &curr_pos_local,
-		const matrix::Vector2f &ground_speed, const FigureEightPatternParameters &parameters, float target_airspeed)
+		const matrix::Vector2f &ground_speed, const FigureEightPatternParameters &parameters)
 {
 	const Dcm2f rotation_matrix(calculateRotationAngle(parameters));
 

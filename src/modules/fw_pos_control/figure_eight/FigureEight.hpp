@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -99,15 +99,14 @@ public:
 	void resetPattern();
 
 	/**
-	 * @brief Update roll and airspeed setpoint.
+	 * @brief Update roll setpoint
 	 *
 	 * @param[in] curr_pos_local is the current local position of the vehicle in [m].
 	 * @param[in] ground_speed is the current ground speed of the vehicle in [m/s].
 	 * @param[in] parameters is the parameter set defining the figure eight shape.
-	 * @param[in] target_airspeed is the current targeted indicated airspeed [m/s].
 	 */
 	DirectionalGuidanceOutput updateSetpoint(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-			const FigureEightPatternParameters &parameters, float target_airspeed);
+			const FigureEightPatternParameters &parameters);
 	/**
 	 * @brief Get the target bearing of current point on figure of eight
 	 *
@@ -120,7 +119,6 @@ public:
 	 * @return Local coordinates of closes point on the figure of eight
 	 */
 	matrix::Vector2f getClosestPoint() const {return _closest_point_on_path;};
-
 
 private:
 	/**
@@ -159,11 +157,10 @@ private:
 	 * @param[in] curr_pos_local is the current local position of the vehicle in [m].
 	 * @param[in] ground_speed is the current ground speed of the vehicle in [m/s].
 	 * @param[in] parameters is the parameter set defining the figure eight shape.
-	 * @param[in] target_airspeed is the current targeted indicated airspeed [m/s].
 	 * @param[in] pattern_points are the relevant points defining the figure eight pattern.
 	 */
 	DirectionalGuidanceOutput applyControl(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-					       const FigureEightPatternParameters &parameters, float target_airspeed,
+					       const FigureEightPatternParameters &parameters,
 					       const FigureEightPatternPoints &pattern_points);
 	/**
 	 * @brief Update active segment.
@@ -199,12 +196,11 @@ private:
 	 * @param[in] curr_pos_local is the current local position of the vehicle in [m].
 	 * @param[in] ground_speed is the current ground speed of the vehicle in [m/s].
 	 * @param[in] parameters is the parameter set defining the figure eight shape.
-	 * @param[in] target_airspeed is the current targeted indicated airspeed [m/s].
 	 */
 	DirectionalGuidanceOutput applyCircle(bool loiter_direction_counter_clockwise,
 					      const matrix::Vector2f &normalized_circle_offset,
 					      const matrix::Vector2f &curr_pos_local,
-					      const matrix::Vector2f &ground_speed, const FigureEightPatternParameters &parameters, float target_airspeed);
+					      const matrix::Vector2f &ground_speed, const FigureEightPatternParameters &parameters);
 	/**
 	 * @brief Apply path lateral control
 	 *
@@ -213,12 +209,11 @@ private:
 	 * @param[in] curr_pos_local is the current local position of the vehicle in [m].
 	 * @param[in] ground_speed is the current ground speed of the vehicle in [m/s].
 	 * @param[in] parameters is the parameter set defining the figure eight shape.
-	 * @param[in] target_airspeed is the current targeted indicated airspeed [m/s].
 	 */
 	DirectionalGuidanceOutput applyLine(const matrix::Vector2f &normalized_line_start_offset,
 					    const matrix::Vector2f &normalized_line_end_offset,
 					    const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-					    const FigureEightPatternParameters &parameters, float target_airspeed);
+					    const FigureEightPatternParameters &parameters);
 
 private:
 	/**
