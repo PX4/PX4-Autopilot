@@ -4,10 +4,10 @@
 
 PX4 uses computer vision systems (primarily running on [Companion Computers](../companion_computer/index.md)) in order to support the following features:
 
-- [Optical Flow](#optical-flow) provides 2D velocity estimation (using a downward facing camera and a downward facing distance sensor).
+- [Optical Flow](#optial-flow) provides 2D velocity estimation (using a downward facing camera and a downward facing distance sensor).
 - [Motion Capture](#motion-capture) provides 3D pose estimation using a vision system that is _external_ to the vehicle.
   It is primarily used for indoor navigation.
-- [Visual Inertial Odometry](#visual-inertial-odometry-vio) provides 3D pose and velocity estimation using an onboard vision system and IMU.
+- [Visual Inertial Odometry](#visual-inertil-odometry-vio) provides 3D pose and velocity estimation using an onboard vision system and IMU.
   It is used for navigation when GNSS position information is absent or unreliable.
 - [Collision Prevention](../computer_vision/collision_prevention.md) is used to stop vehicles before they can crash into an obstacle (primarily when flying in manual modes).
 
@@ -27,6 +27,7 @@ MoCap is commonly used to navigate a vehicle in situations where GPS is absent (
 For information about MoCap see:
 
 - [External Position Estimation](../ros/external_position_estimation.md)
+- [External Position Estimation](../ros/external_position_estimation.html)
 - [Flying with Motion Capture (VICON, NOKOV, Optitrack)](../tutorials/motion-capture.md)
 - [Using PX4's Navigation Filter (EKF2) > External Vision System](../advanced_config/tuning_the_ecl_ekf.md#external-vision-system)
 
