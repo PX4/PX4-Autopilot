@@ -103,7 +103,7 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 	return true;
 }
 
-float Ekf::predictFlowRange() const
+float Ekf::predictFlowHagl() const
 {
 	// calculate the sensor position relative to the IMU
 	const Vector3f pos_offset_body = _params.flow_pos_body - _params.imu_pos_body;
@@ -113,17 +113,21 @@ float Ekf::predictFlowRange() const
 
 	// calculate the height above the ground of the optical flow camera. Since earth frame is NED
 	// a positive offset in earth frame leads to a smaller height above the ground.
-	const float height_above_gnd_est = getHagl() - pos_offset_earth(2);
+	float height_above_gnd_est = getHagl() - pos_offset_earth(2);
 
-	// calculate range from focal point to centre of image
-	float flow_range = height_above_gnd_est / _R_to_earth(2, 2); // absolute distance to the frame region in view
+	constexpr float min_hagl = FLT_EPSILON;
 
-	// avoid the flow prediction singularity at range = 0
-	if (fabsf(flow_range) < FLT_EPSILON) {
-		flow_range = signNoZero(flow_range) * FLT_EPSILON;
+	if (fabsf(height_above_gnd_est) < min_hagl) {
+		height_above_gnd_est = signNoZero(height_above_gnd_est) * min_hagl;
 	}
 
-	return flow_range;
+	return fabsf(height_above_gnd_est);
+}
+float Ekf::predictFlowRange() const
+{
+	// calculate range from focal point to centre of image
+	// absolute distance to the frame region in view
+	return predictFlowHagl() / _R_to_earth(2, 2);
 }
 
 Vector2f Ekf::predictFlow(const Vector3f &flow_gyro) const
@@ -142,9 +146,9 @@ Vector2f Ekf::predictFlow(const Vector3f &flow_gyro) const
 	const Vector2f vel_body = _state.quat_nominal.rotateVectorInverse(vel_rel_earth).xy();
 
 	// calculate range from focal point to centre of image
-	const float range = predictFlowRange();
+	const float scale = _R_to_earth(2, 2) / predictFlowHagl();
 
-	return Vector2f(vel_body(1) / range, -vel_body(0) / range);
+	return Vector2f(vel_body(1) * scale, -vel_body(0) * scale);
 }
 
 float Ekf::calcOptFlowMeasVar(const flowSample &flow_sample) const
