@@ -41,6 +41,7 @@
 #include <px4_platform_common/log.h>
 #include <systemlib/px4_macros.h>
 #include <nuttx/timers/pwm.h>
+#include <nuttx/spinlock.h>
 
 #ifndef TONE_ALARM_PWM_OUT_PATH
 #define TONE_ALARM_PWM_OUT_PATH "/dev/pwmX";
@@ -52,6 +53,7 @@ namespace ToneAlarmInterface
 {
 
 int pwm_fd = 0;
+spinlock_t lock;
 
 void init()
 {
@@ -74,7 +76,7 @@ hrt_abstime start_note(unsigned frequency)
 	pwm.channels[0].channel = 1;
 	pwm.channels[0].duty = ((uint32_t)(TONE_ALARM_PWM_DUTY << 16) / 100);
 
-	irqstate_t flags = enter_critical_section();
+	irqstate_t flags = spin_lock_irqsave(&lock);
 
 	// Set frequency
 	if (ioctl(pwm_fd, PWMIOC_SETCHARACTERISTICS,
@@ -89,7 +91,7 @@ hrt_abstime start_note(unsigned frequency)
 		PX4_ERR("PWMIOC_START failed: %d\n", errno);
 	}
 
-	leave_critical_section(flags);
+	spin_unlock_irqrestore(&lock, flags);
 
 	return time_started;
 }
