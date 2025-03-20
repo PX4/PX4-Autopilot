@@ -1,6 +1,6 @@
 # ARK Pi6X Flow
 
-The [ARK Pi6X Flow](<(https://arkelectron.gitbook.io/ark-documentation/flight-controllers/ark-pi6x-flow)>) integrates a Raspberry Pi Compute Module 4 (CM4) Carrier, [ARKV6X Flight Controller](../flight_controller/ark_v6x.md), [ARK Flow sensors](../dronecan/ark_flow.md) , [ARK PAB Power Module](../power_module/ark_pab_power_module.md), and a 4-in-1 ESC, all mounted onto one compact board.
+The [ARK Pi6X Flow](https://arkelectron.gitbook.io/ark-documentation/flight-controllers/ark-pi6x-flow) integrates a Raspberry Pi Compute Module 4 (CM4) Carrier, [ARKV6X Flight Controller](../flight_controller/ark_v6x.md), [ARK Flow sensors](../dronecan/ark_flow.md) , [ARK PAB Power Module](../power_module/ark_pab_power_module.md), and a 4-in-1 ESC, all mounted onto one compact board.
 
 ![ARK Pi6X Flow Flight Controller](../../assets/flight_controller/ark_pi6x_flow/ark_pi6xflow.jpg)
 

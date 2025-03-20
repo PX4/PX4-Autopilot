@@ -8,18 +8,18 @@ on:
       - main
     paths:
       - 'docs/en/**'
-  pull_request:
-    types:
-      - closed
-    branches:
-      - main
-    paths:
-      - 'docs/en/**'
+  #pull_request:
+  #  types:
+  #    - closed
+  #  branches:
+  #    - main
+  #  paths:
+  #    - 'docs/en/**'
   workflow_dispatch:
 
 jobs:
   upload-to-crowdin:
-    if: github.event.pull_request.merged == true || github.event_name == 'push'  || github.event_name == 'workflow_dispatch'
+    #if: github.event.pull_request.merged == true || github.event_name == 'push'  || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     steps:
