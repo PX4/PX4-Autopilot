@@ -189,6 +189,36 @@ You can now build and test.
 
 ## Download & Decrypt Log Files
 
+To be able to decrypt the encrypted log files you need to follow the corresponding folder structure:
+
+```sh
+PX4-Autopilot/
+│
+├── logs/ # Main directory for logs
+│ ├── encrypted/ # Stores encrypted logs (.ulge)
+│ │ ├── log-YYYY-MM-DD_HH-MM-SS_ID.ulge # Encrypted logs
+│ │
+│ ├── decrypted/ # Stores decrypted logs (.ulg)
+│ │ ├── log-YYYY-MM-DD_HH-MM-SS_ID.ulg # Regular PX4 logs
+|
+├── Tools/log_encryption # PX4 Tools directory (script location)
+│ ├── download_logs.py # This script downloads the logs
+│ ├── decrypt_logs.py # This script decrypts the encrypted logs
+│
+└── Other PX4 directories... # Rest of the PX4 structure
+```
+You could connect to the flight controller and download the logs using the provided script via serial or udp connection.
+Ports/ adresses should be adjusted
+```sh
+cd PX4-Autopilot/Tools/log_encryption
+
+python3 download_logs.py serial:/dev/ttyACM0:57600
+
+OR
+
+python3 download_logs.py udp:0.0.0.0:14550
+```
+Otherwise you could download the logs manually and place them in the folders above.
 Encrypted log files are downloaded using the QGroundControl [Log Download](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/log_download.html) view (**Analyze Tools > Log Download**) just like ordinary log files.
 
 Note that the encrypted files will be downloaded with the `.ulg` suffix, instead of `.ulge`.
@@ -196,45 +226,64 @@ Note that the encrypted files will be downloaded with the `.ulg` suffix, instead
 ### Decrypt ULogs
 
 Before you can analyze your encrypted logs, you will need to decrypt them.
-There is a Python script that can be used to decrypt logs in `Tools/decrypt_ulog.py`.
+There is a Python script that can be used to decrypt logs in `Tools/log_encryption/decrypt_ulog.py`.
 
-When decrypting a `.ulge` file the script takes 3 arguments:
-
-1. The encrypted log file.
-2. An empty string `''`.
-3. The decryption key (the RSA2048 `.pem` private key which is used to unwrap the symmetric key).
-
-For example:
-
+To decrypt the log files you can use the script provided below, to be able to us it you have to have the keys and logs in the structure provided below.
 ```sh
-python3 decrypt_ulog.py \
-/home/john/Downloads/log_24_2024-10-6-23-39-50.ulg '' \
-new_keys/private_key.pem
+PX4-Autopilot/
+│
+├── logs/ # Main directory for logs
+│ ├── encrypted/ # Stores encrypted logs (.ulge)
+│ │ ├── log-YYYY-MM-DD_HH-MM-SS_ID.ulge # Encrypted logs
+│ │
+│ ├── decrypted/
+│ │ ├── log-YYYY-MM-DD_HH-MM-SS_ID.ulg # Regular PX4 logs
+|
+├── keys/ # Main directory for keys
+│ ├── private/ # Stores private keys
+│ │ ├── private_key.pem # RSA private key (2048-bit)
+│ │
+│ ├── public/ # Stores public keys
+│ │ ├── public_key.der # Public key in DER format
+│ │ ├── public_key.pub # Public key in hex format
 ```
-
-On success the decrypted log file is created with the `.ulog` suffix.
-
-::: info
-The script can be used with both `.ulge` logs and the `.ulgc`/`.ulgk` files used in [PX4 v1.15 Log Encryption](https://docs.px4.io/v1.15/en/dev_log/log_encryption.html).
-The full command line syntax is given below:
-
 ```sh
-usage: decrypt_ulog.py [-h] [ulog_file] [ulog_key] [rsa_key]
-
-CLI tool to decrypt an ulog file
-
-positional arguments:
-  ulog_file   .ulge/.ulgc, encrypted log file
-  ulog_key    .ulgk, legacy encrypted key (give empty string '' to ignore for .ulge)
-  rsa_key     .pem format key for decrypting the ulog key
-
-optional arguments:
-  -h, --help  show this help message and exit
+cd PX4-Autopilot/Tools/log_encryption
+python3 decrypt_logs.py
 ```
-
-:::
+On success the decrypted logs can be found in the decrypted folder.
 
 ## Generate RSA Public & Private Keys
+
+To generate your keys you can use the following script:
+
+```sh
+PX4-Autopilot/
+│
+├── Tools/log_encryption # PX4 Tools directory (script location)
+│ ├── generate_keys.py # This script generates the key structure
+```
+
+```sh
+cd PX4-Autopilot/Tools/log_encryption
+python3 generate_keys.py
+```
+As a result a private key and a public key will be generated in a new folder structure.
+
+```sh
+PX4-Autopilot/
+│
+├── keys/ # Main directory for keys
+│ ├── private/ # Stores private keys
+│ │ ├── private_key.pem # RSA private key (2048-bit)
+│ │
+│ ├── public/ # Stores public keys
+│ │ ├── public_key.der # Public key in DER format
+│ │ ├── public_key.pub # Public key in hex format
+```
+The script does not overwrite the existing keys and also would work with already existing private key.
+
+Otherwise you could generate the keys with the way below, in that case please copy the key files to the corresponding repositories respectively, to be able to use the provided scripts in the sections above.
 
 To generate a RSA2048 private and public key, you can use OpenSSL:
 
@@ -252,4 +301,7 @@ xxd -p public_key.der | tr -d '\n' | sed 's/\(..\)/0x\1, /g' > public_key.pub
 ```
 
 To use this key you would modify your `.px4board` file to point `CONFIG_PUBLIC_KEY1` to the file location of `public_key.pub`.
+```sh
+CONFIG_PUBLIC_KEY1="../../../keys/public/public_key.pub"
+```
 The private key generated should be stored safely and used when you need to decrypt log files.
