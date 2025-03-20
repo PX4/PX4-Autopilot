@@ -289,13 +289,13 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 
 	/* Don't allow interrupts during the UART fifo fill; any delay here could timeout the px4io */
 
-	irqstate_t flags = px4_enter_critical_section();
+	irqstate_t flags = up_irq_save();
 
 	for (size_t i = 0; i < send_size; i++) {
 		putreg32(packet[i], PX4IO_SERIAL_BASE + MPFS_UART_THR_OFFSET);
 	}
 
-	px4_leave_critical_section(flags);
+	up_irq_restore(flags);
 
 	/* Wait for response, max 10 ms */
 
