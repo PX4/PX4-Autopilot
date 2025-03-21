@@ -73,7 +73,7 @@ int UavcanMagnetometerBridge::init()
 void UavcanMagnetometerBridge::mag_sub_cb(const
 		uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength> &msg)
 {
-	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
+	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getIfaceIndex(), msg.getSrcNodeID().get());
 
 	if (channel == nullptr) {
 		// Something went wrong - no channel to publish on; return
@@ -98,7 +98,7 @@ void
 UavcanMagnetometerBridge::mag2_sub_cb(const
 				      uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength2> &msg)
 {
-	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
+	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getIfaceIndex(), msg.getSrcNodeID().get());
 
 	if (channel == nullptr || channel->instance < 0) {
 		// Something went wrong - no channel to publish on; return
@@ -121,11 +121,11 @@ UavcanMagnetometerBridge::mag2_sub_cb(const
 
 int UavcanMagnetometerBridge::init_driver(uavcan_bridge::Channel *channel)
 {
-	// update device id as we now know our device node_id
-	DeviceId device_id{_device_id};
-
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType_UAVCAN,
+	device_id.devid_s.bus = channel->iface_idx,
 	device_id.devid_s.devtype = DRV_MAG_DEVTYPE_UAVCAN;
-	device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
+	device_id.devid_s.address =  static_cast<uint8_t>(channel->node_id);
 
 	channel->h_driver = new PX4Magnetometer(device_id.devid, ROTATION_NONE);
 
