@@ -791,6 +791,7 @@ private:
 	// calculate optical flow body angular rate compensation
 	void calcOptFlowBodyRateComp(const flowSample &flow_sample);
 
+	float predictFlowHagl() const;
 	float predictFlowRange() const;
 	Vector2f predictFlow(const Vector3f &flow_gyro) const;
 
