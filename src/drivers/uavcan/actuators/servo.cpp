@@ -39,9 +39,37 @@ using namespace time_literals;
 
 UavcanServoController::UavcanServoController(uavcan::INode &node) :
 	_node(node),
-	_uavcan_pub_array_cmd(node)
+	_uavcan_pub_array_cmd(node),
+	_uavcan_sub_status(node),
+	_uavcan_sub_temperature(node)
+
 {
 	_uavcan_pub_array_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
+}
+
+int
+UavcanServoController::init()
+{
+	// Servo status subscription
+	int res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanServoController::servo_status_sub_cb));
+
+	if (res < 0) {
+		PX4_ERR("Servo status sub failed %i", res);
+		return res;
+	}
+
+	// Servo temperature subscription
+	res = _uavcan_sub_temperature.start(TemperatureCbBinder(this, &UavcanServoController::servo_temperature_sub_cb));
+
+	if (res < 0) {
+		PX4_ERR("Servo Temperature sub failed %i", res);
+		return res;
+	}
+
+	_servo_status_pub.advertise(); // advertise to ensure messages are logged
+	_servo_temperature_pub.advertise();
+
+	return res; // return if both subscriptions are successful
 }
 
 void
@@ -59,4 +87,65 @@ UavcanServoController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACT
 	}
 
 	_uavcan_pub_array_cmd.broadcast(msg);
+}
+
+void
+UavcanServoController::servo_temperature_sub_cb(const
+		uavcan::ReceivedDataStructure<uavcan::equipment::device::Temperature>
+		&msg)
+{
+	if (msg.device_id < servo_temperature_s::CONNECTED_SERVO_MAX) {
+		auto &ref = _servo_temperature.servo[msg.device_id];
+
+		ref.timestamp   = hrt_absolute_time();
+		ref.node_id     = msg.getSrcNodeID().get();
+		ref.actuator_id = msg.device_id;
+		ref.temperature = msg.temperature;
+		ref.error_flags = msg.error_flags;
+
+		_servo_temperature.counter += 1;
+		_servo_temperature.timestamp = hrt_absolute_time();
+		_servo_temperature_pub.publish(_servo_temperature);
+	}
+}
+
+
+void
+UavcanServoController::servo_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::actuator::Status>
+		&msg)
+{
+	if (msg.actuator_id < servo_status_s::CONNECTED_SERVO_MAX) {
+		auto &ref = _servo_status.servo[msg.actuator_id];
+
+		ref.timestamp              = hrt_absolute_time();
+		ref.servo_node_id          = msg.getSrcNodeID().get();
+		ref.servo_actuator_id      = msg.actuator_id;
+		ref.servo_position         = msg.position;
+		ref.servo_force            = msg.force;
+		ref.servo_speed            = msg.speed;
+		ref.servo_power_rating_pct = msg.power_rating_pct;
+
+		_servo_status.counter += 1;
+		_servo_status.servo_connectiontype = servo_status_s::SERVO_CONNECTION_TYPE_CAN;
+		_servo_status.servo_online_flags = check_servos_status();
+		_servo_status.timestamp = hrt_absolute_time();
+		_servo_status_pub.publish(_servo_status);
+	}
+}
+
+uint8_t
+UavcanServoController::check_servos_status()
+{
+	int servo_status_flags = 0;
+	const hrt_abstime now = hrt_absolute_time();
+
+	for (int index = 0; index < servo_status_s::CONNECTED_SERVO_MAX; index++) {
+
+		if (_servo_status.servo[index].timestamp > 0 && now - _servo_status.servo[index].timestamp < 1200_ms) {
+			servo_status_flags |= (1 << index);
+		}
+
+	}
+
+	return servo_status_flags;
 }

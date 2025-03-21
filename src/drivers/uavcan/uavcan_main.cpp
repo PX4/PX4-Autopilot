@@ -527,7 +527,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 #endif
 
-	// Actuators
+	// ESC's
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 	ret = _esc_controller.init();
 
@@ -536,6 +536,19 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	}
 
 #endif
+
+	// Servos
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
+
+
+	ret = _servo_controller.init();
+
+	if (ret < 0) {
+		return ret;
+	}
+
+#endif
+
 
 #if defined(CONFIG_UAVCAN_HARDPOINT_CONTROLLER)
 	ret = _hardpoint_controller.init();
