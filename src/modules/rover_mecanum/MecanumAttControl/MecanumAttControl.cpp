@@ -92,7 +92,7 @@ void MecanumAttControl::updateAttControl()
 	rover_attitude_status_s rover_attitude_status;
 	rover_attitude_status.timestamp = _timestamp;
 	rover_attitude_status.measured_yaw = _vehicle_yaw;
-	rover_attitude_status.adjusted_yaw_setpoint = _adjusted_yaw_setpoint.getState();
+	rover_attitude_status.adjusted_yaw_setpoint = matrix::wrap_pi(_adjusted_yaw_setpoint.getState());
 	_rover_attitude_status_pub.publish(rover_attitude_status);
 
 }
