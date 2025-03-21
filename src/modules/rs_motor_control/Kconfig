@@ -1,0 +1,13 @@
+menuconfig MODULES_RS_MOTOR_CONTROL
+	bool "rs_motor_control"
+	default n
+	---help---
+		Enable support for rs_motor_control
+
+menuconfig USER_RS_MOTOR_CONTROL
+	bool "rs_motor_control running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_RS_MOTOR_CONTROL
+	---help---
+		Put rs_motor_control in userspace memory
+
