@@ -125,15 +125,13 @@ float Ekf::predictFlowHagl() const
 
 	// calculate the height above the ground of the optical flow camera. Since earth frame is NED
 	// a positive offset in earth frame leads to a smaller height above the ground.
-	float height_above_gnd_est = getHagl() - pos_offset_earth(2);
+	const float height_above_gnd_est = fabsf(getHagl() - pos_offset_earth(2));
 
-	constexpr float min_hagl = FLT_EPSILON;
+	// Never return a really small value to avoid generating insanely large flow innovations
+	// that could destabilize the filter
+	constexpr float min_hagl = 1e-2f;
 
-	if (fabsf(height_above_gnd_est) < min_hagl) {
-		height_above_gnd_est = signNoZero(height_above_gnd_est) * min_hagl;
-	}
-
-	return fabsf(height_above_gnd_est);
+	return fmaxf(height_above_gnd_est, min_hagl);
 }
 float Ekf::predictFlowRange() const
 {
