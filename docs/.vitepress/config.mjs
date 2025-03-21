@@ -18,7 +18,7 @@ export default defineConfig({
     "ja/**/*.md",
     "ru/**/*.md",
     "tr/**/*.md",
-    //"kr/**/*.md",
+    //"ko/**/*.md",
     //"zh/**/*.md",
     //"uk/**/*.md",
     "**/_*.md", //Remove source docs that start with "_" (included/not rendered)
@@ -156,26 +156,13 @@ export default defineConfig({
 
     nav: [
       {
-        text: "PX4",
+        text: "Dronecode",
         items: [
           {
-            text: "Website",
+            text: "PX4",
             link: "https://px4.io/",
             ariaLabel: "PX4 website link",
           },
-          {
-            text: "Autopilot Source Code",
-            link: "https://github.com/PX4/PX4-Autopilot",
-          },
-          {
-            text: "Docs Source Code",
-            link: "https://github.com/PX4/PX4-Autopilot/docs/",
-          },
-        ],
-      },
-      {
-        text: "Dronecode",
-        items: [
           {
             text: "QGroundControl",
             link: "http://qgroundcontrol.com/",
@@ -206,7 +193,7 @@ export default defineConfig({
         text: "Version",
         items: [
           { text: "main", link: "https://docs.px4.io/main/en/" },
-          { text: "v1.15", link: "https://docs.px4.io/v1.15/en/" },
+          { text: "v1.15 (stable)", link: "https://docs.px4.io/v1.15/en/" },
           { text: "v1.14", link: "https://docs.px4.io/v1.14/en/" },
           { text: "v1.13", link: "https://docs.px4.io/v1.13/en/" },
           { text: "v1.12", link: "https://docs.px4.io/v1.12/en/" },

@@ -322,7 +322,7 @@ PARAM_DEFINE_INT32(COM_IMB_PROP_ACT, 0);
 PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 1.0f);
 
 /**
- * Set command after a quadchute
+ * Set action after a quadchute
  *
  * @value -1 Warning only
  * @value  0 Return mode

@@ -70,7 +70,9 @@ private:
 			msg.target = mavlink_system.sysid;
 			msg.x = manual_control_setpoint.pitch * 1000.f;
 			msg.y = manual_control_setpoint.roll * 1000.f;
-			msg.z = manual_control_setpoint.throttle * 1000.f;
+			// Convert from internal range [-1, 1] to [0, 1000]
+			// ([-1, 1] + 1) / 2 * 1000 = [0, 1000]
+			msg.z = (manual_control_setpoint.throttle + 1.0f) * 500.0f;
 			msg.r = manual_control_setpoint.yaw * 1000.f;
 
 			manual_control_switches_s manual_control_switches{};

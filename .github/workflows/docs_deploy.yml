@@ -5,8 +5,6 @@ on:
     branches:
       - 'main'
       - 'release/**'
-    tags:
-      - 'v*'
     paths:
       - 'docs/en/**'
   pull_request:
@@ -70,7 +68,7 @@ jobs:
   deploy:
     if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged) || github.event_name == 'workflow_dispatch' }}
     needs: build
-    runs-on: [runs-on,runner=2cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
 
     steps:
       - name: Download Artifact
