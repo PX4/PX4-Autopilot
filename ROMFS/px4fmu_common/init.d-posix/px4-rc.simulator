@@ -47,18 +47,22 @@ if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0"
 	fi
 
 elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
-	# Use Gazebo
 
 	echo "INFO  [init] Gazebo simulator"
 
-	# Only start up Gazebo if PX4_GZ_STANDALONE is not set.
 	if [ -z "${PX4_GZ_STANDALONE}" ]; then
 
-		# "gz sim" only available in Garden and later
-		GZ_SIM_VERSIONS=$(gz sim --versions 2>&1)
-		if [ $? -eq 0 ] && [ "${GZ_SIM_VERSIONS}" != "" ]
-		then
-			# "gz sim" from Garden on
+		# Enforce minimum gz version as Harmonic (gz-sim8)
+		MIN_GZ_VERSION="8.0.0"
+		GZ_SIM_VERSION=$(gz sim --versions 2>/dev/null | head -n 1 | tr -d ' ')
+
+		if [ -z "$GZ_SIM_VERSION" ]; then
+		    echo "ERROR [init] Gazebo gz sim not found. Please install gz-harmonic"
+		    exit 1
+		fi
+
+		# Use sort compare, check that MIN_GZ_VERSION is ordered last
+		if [ "$(printf '%s\n' "$GZ_SIM_VERSION" "$MIN_GZ_VERSION" | sort -V | head -n1)" = "$MIN_GZ_VERSION" ]; then
 			gz_command="gz"
 			gz_sub_command="sim"
 
@@ -69,8 +73,8 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 				gz_sub_command="${gz_sub_command} --render-engine ${PX4_GZ_SIM_RENDER_ENGINE}"
 			fi
 		else
-			echo "ERROR [init] Gazebo gz please install gz-garden"
-			exit 1
+		    echo "ERROR [init] Gazebo gz sim version is too old ($GZ_SIM_VERSION). Minimum required version is $MIN_GZ_VERSION"
+		    exit 1
 		fi
 
 		# Look for an already running world
