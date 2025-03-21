@@ -46,18 +46,17 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 {
 	const auto state_vector = _state.vector();
 
-	_innov_check_fail_status.flags.reject_optflow_X = (_aid_src_optical_flow.test_ratio[0] > 1.f);
-	_innov_check_fail_status.flags.reject_optflow_Y = (_aid_src_optical_flow.test_ratio[1] > 1.f);
-
 	// if either axis fails we abort the fusion
 	if (_aid_src_optical_flow.innovation_rejected) {
+		_innov_check_fail_status.flags.reject_optflow_X = true;
+		_innov_check_fail_status.flags.reject_optflow_Y = true;
 		return false;
 	}
 
 	// fuse observation axes sequentially
 	for (uint8_t index = 0; index <= 1; index++) {
 		if (index == 0) {
-			// everything was already computed above
+			// everything was already computed before
 
 		} else if (index == 1) {
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
@@ -69,6 +68,16 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 			const Vector3f flow_gyro_corrected = _flow_sample_delayed.gyro_rate - _flow_gyro_bias;
 			_aid_src_optical_flow.innovation[1] = predictFlow(flow_gyro_corrected)(1) - static_cast<float>
 							      (_aid_src_optical_flow.observation[1]);
+
+			// recalculate the test ratio as the measurement jacobian is highly non linear
+			// when close to the ground (singularity at 0) and the innovation can suddenly become really
+			// large and destabilize the filter
+			_aid_src_optical_flow.test_ratio[1] = sq(_aid_src_optical_flow.innovation[1]) / (sq(
+					_params.flow_innov_gate) * _aid_src_optical_flow.innovation_variance[1]);
+
+			if (_aid_src_optical_flow.test_ratio[1] > 1.f) {
+				continue;
+			}
 		}
 
 		if (_aid_src_optical_flow.innovation_variance[index] < _aid_src_optical_flow.observation_variance[index]) {
@@ -90,6 +99,9 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 
 	_fault_status.flags.bad_optflow_X = false;
 	_fault_status.flags.bad_optflow_Y = false;
+
+	_innov_check_fail_status.flags.reject_optflow_X = (_aid_src_optical_flow.test_ratio[0] > 1.f);
+	_innov_check_fail_status.flags.reject_optflow_Y = (_aid_src_optical_flow.test_ratio[1] > 1.f);
 
 	_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
 	_aid_src_optical_flow.fused = true;
