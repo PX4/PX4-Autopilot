@@ -32,9 +32,10 @@
  ****************************************************************************/
 /**
  * @file mc_nn_control.cpp
- * Multicopter Neural Network Control module, from position setpoints to control allocator.
+ * Multicopter Neural Network Control module, from position setpoints to actuator motors.
  *
  * @author Sindre Meyer Hegre <sindre.hegre@gmail.com>
+ * @author Welf Rehberg <welf.rehberg@ntnu.no
  */
 
 #include "mc_nn_control.hpp"
@@ -44,16 +45,19 @@
 #include <chrono>
 #endif
 
-namespace {
-using NNControlOpResolver = tflite::MicroMutableOpResolver<4>; // This number should be the number of operations in the model, like tanh and fully connected
+namespace
+{
+// This number should be the number of operations in the model, like tanh and fully connected
+using NNControlOpResolver = tflite::MicroMutableOpResolver<4>;
 
-TfLiteStatus RegisterOps(NNControlOpResolver& op_resolver) {
-  // Add the operations to you need to the op_resolver
-  TF_LITE_ENSURE_STATUS(op_resolver.AddFullyConnected());
-  TF_LITE_ENSURE_STATUS(op_resolver.AddRelu());
-  TF_LITE_ENSURE_STATUS(op_resolver.AddAdd());
-  TF_LITE_ENSURE_STATUS(op_resolver.AddTanh());
-  return kTfLiteOk;
+TfLiteStatus RegisterOps(NNControlOpResolver &op_resolver)
+{
+	// Add the operations to you need to the op_resolver
+	TF_LITE_ENSURE_STATUS(op_resolver.AddFullyConnected());
+	TF_LITE_ENSURE_STATUS(op_resolver.AddRelu());
+	TF_LITE_ENSURE_STATUS(op_resolver.AddAdd());
+	TF_LITE_ENSURE_STATUS(op_resolver.AddTanh());
+	return kTfLiteOk;
 }
 }  // namespace
 
@@ -73,38 +77,43 @@ MulticopterNeuralNetworkControl::~MulticopterNeuralNetworkControl()
 
 bool MulticopterNeuralNetworkControl::init()
 {
-	if (!_angular_velocity_sub.registerCallback())
-	{
+	if (!_angular_velocity_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
 
-  	return true;
+	return true;
 }
 
-int MulticopterNeuralNetworkControl::InitializeNetwork() {
+int MulticopterNeuralNetworkControl::InitializeNetwork()
+{
 	// Initialize the neural network
 	// Load the model
-	const tflite::Model* control_model = ::tflite::GetModel(control_net_tflite);  // TODO: Replace with your model data variable
+	// TODO: Replace with your model data variable
+	const tflite::Model *control_model = ::tflite::GetModel(control_net_tflite);
 
 	// Set up the interpreter
 	static NNControlOpResolver resolver;
+
 	if (RegisterOps(resolver) != kTfLiteOk) {
 		PX4_ERR("Failed to register ops");
 		return -1;
 	}
-	constexpr int kTensorArenaSize = 10 * 1024; //TODO: Check this size
+
+	constexpr int kTensorArenaSize = 10 * 1024;
 	static uint8_t tensor_arena[kTensorArenaSize];
 	_interpreter = new tflite::MicroInterpreter(control_model, resolver, tensor_arena, kTensorArenaSize);
 
 	// Allocate memory for the model's tensors
 	TfLiteStatus allocate_status = _interpreter->AllocateTensors();
+
 	if (allocate_status != kTfLiteOk) {
 		PX4_ERR("AllocateTensors() failed");
 		return -1;
 	}
 
 	_input_tensor = _interpreter->input(0);
+
 	if (_input_tensor == nullptr) {
 		PX4_ERR("Input tensor is null");
 		return -1;
@@ -113,15 +122,18 @@ int MulticopterNeuralNetworkControl::InitializeNetwork() {
 	return PX4_OK;
 }
 
-int32_t MulticopterNeuralNetworkControl::GetTime(){
-	#ifdef __PX4_NUTTX
-		return static_cast<int32_t>(hrt_absolute_time());
-	#else
-		return static_cast<int32_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-	#endif
+int32_t MulticopterNeuralNetworkControl::GetTime()
+{
+#ifdef __PX4_NUTTX
+	return static_cast<int32_t>(hrt_absolute_time());
+#else
+	return static_cast<int32_t>(std::chrono::duration_cast<std::chrono::microseconds>
+				    (std::chrono::system_clock::now().time_since_epoch()).count());
+#endif
 }
 
-void MulticopterNeuralNetworkControl::RegisterNeuralFlightMode() {
+void MulticopterNeuralNetworkControl::RegisterNeuralFlightMode()
+{
 	// Register the neural flight mode with the commander
 	register_ext_component_request_s register_ext_component_request{};
 	register_ext_component_request.timestamp = hrt_absolute_time();
@@ -134,7 +146,8 @@ void MulticopterNeuralNetworkControl::RegisterNeuralFlightMode() {
 }
 
 
-void MulticopterNeuralNetworkControl::UnregisterNeuralFlightMode(int8 arming_check_id, int8 mode_id) {
+void MulticopterNeuralNetworkControl::UnregisterNeuralFlightMode(int8 arming_check_id, int8 mode_id)
+{
 	// Unregister the neural flight mode with the commander
 	unregister_ext_component_s unregister_ext_component{};
 	unregister_ext_component.timestamp = hrt_absolute_time();
@@ -145,7 +158,8 @@ void MulticopterNeuralNetworkControl::UnregisterNeuralFlightMode(int8 arming_che
 }
 
 
-void MulticopterNeuralNetworkControl::ConfigureNeuralFlightMode(int8 mode_id) {
+void MulticopterNeuralNetworkControl::ConfigureNeuralFlightMode(int8 mode_id)
+{
 	// Configure the neural flight mode with the commander
 	vehicle_control_mode_s config_control_setpoints{};
 	config_control_setpoints.timestamp = hrt_absolute_time();
@@ -163,15 +177,16 @@ void MulticopterNeuralNetworkControl::ConfigureNeuralFlightMode(int8 mode_id) {
 }
 
 
-void MulticopterNeuralNetworkControl::ReplyToArmingCheck(int8 request_id) {
+void MulticopterNeuralNetworkControl::ReplyToArmingCheck(int8 request_id)
+{
 	// Reply to the arming check request
 	arming_check_reply_s arming_check_reply;
 	arming_check_reply.timestamp = hrt_absolute_time();
 	arming_check_reply.request_id = request_id;
 	arming_check_reply.registration_id = _arming_check_id;
-	arming_check_reply.health_component_index = arming_check_reply.HEALTH_COMPONENT_INDEX_NONE; // Think this says that there is no new health component that needs to be present to fly
-	arming_check_reply.num_events = 0; // I do not know what events are being referenced here
-	arming_check_reply.can_arm_and_run = true; // I think this tells that this mode does not add any new requirements to the arming check
+	arming_check_reply.health_component_index = arming_check_reply.HEALTH_COMPONENT_INDEX_NONE;
+	arming_check_reply.num_events = 0;
+	arming_check_reply.can_arm_and_run = true;
 	arming_check_reply.mode_req_angular_velocity = true;
 	arming_check_reply.mode_req_local_position = true;
 	arming_check_reply.mode_req_attitude = true;
@@ -183,9 +198,11 @@ void MulticopterNeuralNetworkControl::ReplyToArmingCheck(int8 request_id) {
 }
 
 
-void MulticopterNeuralNetworkControl::CheckModeRegistration() {
+void MulticopterNeuralNetworkControl::CheckModeRegistration()
+{
 	register_ext_component_reply_s register_ext_component_reply;
 	int tries = register_ext_component_reply.ORB_QUEUE_LENGTH;
+
 	while (_register_ext_component_reply_sub.update(&register_ext_component_reply) && --tries >= 0) {
 		if (register_ext_component_reply.request_id == _mode_request_id && register_ext_component_reply.success) {
 			_arming_check_id = register_ext_component_reply.arming_check_id;
@@ -198,7 +215,8 @@ void MulticopterNeuralNetworkControl::CheckModeRegistration() {
 }
 
 
-void MulticopterNeuralNetworkControl::PopulateInputTensor() {
+void MulticopterNeuralNetworkControl::PopulateInputTensor()
+{
 	// Creates a 15 element input tensor for the neural network [pos_err(3), lin_vel(3), att(6), ang_vel(3)]
 
 	// transform observations in correct frame
@@ -227,7 +245,8 @@ void MulticopterNeuralNetworkControl::PopulateInputTensor() {
 	matrix::Vector3f position_local = matrix::Vector3f(_position.x, _position.y, _position.z);
 	position_local = frame_transf * frame_transf_2 * position_local;
 
-	matrix::Vector3f position_setpoint_local = matrix::Vector3f(_position_setpoint.x, _position_setpoint.y, _position_setpoint.z);
+	matrix::Vector3f position_setpoint_local = matrix::Vector3f(_position_setpoint.x, _position_setpoint.y,
+			_position_setpoint.z);
 	position_setpoint_local = frame_transf * frame_transf_2 * position_setpoint_local;
 
 	matrix::Vector3f linear_velocity_local = matrix::Vector3f(_position.vx, _position.vy, _position.vz);
@@ -236,7 +255,8 @@ void MulticopterNeuralNetworkControl::PopulateInputTensor() {
 	matrix::Quatf attitude = matrix::Quatf(_attitude.q);
 	matrix::Dcmf _attitude_local_mat = frame_transf * (frame_transf_2 * matrix::Dcmf(attitude)) * frame_transf.transpose();
 
-	matrix::Vector3f angular_vel_local = matrix::Vector3f( _angular_velocity.xyz[0], _angular_velocity.xyz[1], _angular_velocity.xyz[2]);
+	matrix::Vector3f angular_vel_local = matrix::Vector3f(_angular_velocity.xyz[0], _angular_velocity.xyz[1],
+					     _angular_velocity.xyz[2]);
 	angular_vel_local = frame_transf * angular_vel_local;
 
 	_input_tensor->data.f[0] = position_setpoint_local(0) - position_local(0);
@@ -261,23 +281,24 @@ void MulticopterNeuralNetworkControl::PopulateInputTensor() {
 
 }
 
-void MulticopterNeuralNetworkControl::PublishOutput(float* command_actions) {
+void MulticopterNeuralNetworkControl::PublishOutput(float *command_actions)
+{
 
 	actuator_motors_s actuator_motors;
-        actuator_motors.timestamp = hrt_absolute_time();
+	actuator_motors.timestamp = hrt_absolute_time();
 
 	actuator_motors.control[0] = PX4_ISFINITE(command_actions[0]) ? command_actions[0] : NAN;
 	actuator_motors.control[1] = PX4_ISFINITE(command_actions[1]) ? command_actions[1] : NAN;
 	actuator_motors.control[2] = PX4_ISFINITE(command_actions[2]) ? command_actions[2] : NAN;
 	actuator_motors.control[3] = PX4_ISFINITE(command_actions[3]) ? command_actions[3] : NAN;
-        actuator_motors.control[4] = -NAN;
-        actuator_motors.control[5] = -NAN;
-        actuator_motors.control[6] = -NAN;
-        actuator_motors.control[7] = -NAN;
-        actuator_motors.control[8] = -NAN;
-        actuator_motors.control[9] = -NAN;
-        actuator_motors.control[10] = -NAN;
-        actuator_motors.control[11] = -NAN;
+	actuator_motors.control[4] = -NAN;
+	actuator_motors.control[5] = -NAN;
+	actuator_motors.control[6] = -NAN;
+	actuator_motors.control[7] = -NAN;
+	actuator_motors.control[8] = -NAN;
+	actuator_motors.control[9] = -NAN;
+	actuator_motors.control[10] = -NAN;
+	actuator_motors.control[11] = -NAN;
 	actuator_motors.reversible_flags = 0;
 
 	_actuator_motors_pub.publish(actuator_motors);
@@ -285,21 +306,24 @@ void MulticopterNeuralNetworkControl::PublishOutput(float* command_actions) {
 
 
 
-inline void MulticopterNeuralNetworkControl::RescaleActions() {
+inline void MulticopterNeuralNetworkControl::RescaleActions()
+{
 	const float thrust_coeff = _param_thrust_coeff.get();
 	const float min_rpm = _param_min_rpm.get();
 	const float max_rpm = _param_max_rpm.get();
 	const float a = 0.8f;
-  	const float b = (1.f - 0.8f);
+	const float b = (1.0f - 0.8f);
 	const float tmp1 = b / (2.f * a);
 	const float tmp2 = b * b / (4.f * a * a);
+
 	for (int i = 0; i < 4; i++) {
 		_output_tensor->data.f[i] = _output_tensor->data.f[i] + 1.0f;
-		float rps = _output_tensor->data.f[i]/thrust_coeff;
+		float rps = _output_tensor->data.f[i] / thrust_coeff;
 		rps = sqrt(rps);
 		float rpm = rps * 60.0f;
-		_output_tensor->data.f[i] = (rpm*2.0f - max_rpm - min_rpm) / (max_rpm - min_rpm);
-		_output_tensor->data.f[i] = a * (((_output_tensor->data.f[i] + 1.0f) / 2.0f + tmp1) * ((_output_tensor->data.f[i] + 1.0f) / 2.0f + tmp1) - tmp2);
+		_output_tensor->data.f[i] = (rpm * 2.0f - max_rpm - min_rpm) / (max_rpm - min_rpm);
+		_output_tensor->data.f[i] = a * (((_output_tensor->data.f[i] + 1.0f) / 2.0f + tmp1) * ((
+				_output_tensor->data.f[i] + 1.0f) / 2.0f + tmp1) - tmp2);
 	}
 }
 
@@ -309,19 +333,21 @@ int MulticopterNeuralNetworkControl::task_spawn(int argc, char *argv[])
 	// This function loads the model, sets up the interpreter, allocates memory for the model's tensors, and prepares the input data.
 	MulticopterNeuralNetworkControl *instance = new MulticopterNeuralNetworkControl();
 
-	if (instance){
+	if (instance) {
 		_object.store(instance);
 		_task_id = task_id_is_work_queue;
 
 		if (instance->init() and instance->InitializeNetwork() == PX4_OK) {
 			return PX4_OK;
-		}
-		else {
+
+		} else {
 			PX4_ERR("init failed");
 		}
+
 	} else {
 		PX4_ERR("alloc failed");
 	}
+
 	delete instance;
 	_object.store(nullptr);
 	_task_id = -1;
@@ -331,12 +357,13 @@ int MulticopterNeuralNetworkControl::task_spawn(int argc, char *argv[])
 
 void MulticopterNeuralNetworkControl::Run()
 {
-	if (should_exit())
-	{
+	if (should_exit()) {
 		_angular_velocity_sub.unregisterCallback();
+
 		if (_sent_mode_registration) {
 			UnregisterNeuralFlightMode(_arming_check_id, _mode_id);
 		}
+
 		exit_and_cleanup();
 		return;
 	}
@@ -365,6 +392,7 @@ void MulticopterNeuralNetworkControl::Run()
 
 	// Check if navigation mode is set to Neural Control
 	vehicle_status_s vehicle_status;
+
 	if (_vehicle_status_sub.updated()) {
 		_vehicle_status_sub.copy(&vehicle_status);
 		_use_neural = vehicle_status.nav_state == _mode_id;
@@ -376,7 +404,7 @@ void MulticopterNeuralNetworkControl::Run()
 		updateParams();
 	}
 
-	if(!_use_neural) {
+	if (!_use_neural) {
 		// If the neural network flight mode is not enabled, do nothing
 		perf_end(_loop_perf);
 		return;
@@ -388,13 +416,15 @@ void MulticopterNeuralNetworkControl::Run()
 	if (_angular_velocity_sub.update(&_angular_velocity)) {
 		_last_run = _angular_velocity.timestamp_sample;
 
-		if(_attitude_sub.updated()) {
+		if (_attitude_sub.updated()) {
 			_attitude_sub.copy(&_attitude);
 		}
-		if(_position_sub.updated()) {
+
+		if (_position_sub.updated()) {
 			_position_sub.copy(&_position);
 		}
-		if(_position_setpoint_sub.updated()) {
+
+		if (_position_setpoint_sub.updated()) {
 			_position_setpoint_sub.copy(&_position_setpoint);
 		}
 
@@ -405,12 +435,15 @@ void MulticopterNeuralNetworkControl::Run()
 		// Inference
 		TfLiteStatus invoke_status = _interpreter->Invoke();
 		int32_t inference_time = GetTime() - start_time2;
+
 		if (invoke_status != kTfLiteOk) {
 			PX4_ERR("Invoke() failed");
 			return;
 		}
+
 		// Get the output tensor
 		_output_tensor = _interpreter->output(0);
+
 		if (_output_tensor == nullptr) {
 			PX4_ERR("Output tensor is null");
 			return;
@@ -429,15 +462,18 @@ void MulticopterNeuralNetworkControl::Run()
 		neural_control.timestamp = hrt_absolute_time();
 		neural_control.inference_time = inference_time;
 		neural_control.controller_time = full_controller_time;
+
 		for (int i = 0; i < 15; i++) {
 			neural_control.observation[i] = _input_data[i];
 		}
+
 		neural_control.motor_thrust[0] = _output_tensor->data.f[0];
 		neural_control.motor_thrust[1] = _output_tensor->data.f[1];
 		neural_control.motor_thrust[2] = _output_tensor->data.f[2];
 		neural_control.motor_thrust[3] = _output_tensor->data.f[3];
 		_neural_control_pub.publish(neural_control);
 	}
+
 	perf_end(_loop_perf);
 }
 
@@ -448,12 +484,14 @@ int MulticopterNeuralNetworkControl::custom_command(int argc, char *argv[])
 
 int MulticopterNeuralNetworkControl::print_status()
 {
-	if(_mode_id == -1) {
+	if (_mode_id == -1) {
 		PX4_INFO("Neural control flight mode: Mode registration failed");
 		PX4_INFO("Neural control flight mode: Request sent: %d", _sent_mode_registration);
-	}else{
+
+	} else {
 		PX4_INFO("Neural control flight mode: Registered, mode id: %d, arming check id: %d", _mode_id, _arming_check_id);
 	}
+
 	return 0;
 }
 

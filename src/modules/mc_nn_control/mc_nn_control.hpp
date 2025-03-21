@@ -33,9 +33,10 @@
 
 /**
  * @file mc_nn_control.h
- * Multicopter Neural Network Control module, from position setpoints to control allocator.
+ * Multicopter Neural Network Control module, from position setpoints to actuator motors.
  *
  * @author Sindre Meyer Hegre <sindre.hegre@gmail.com>
+ * @author Welf Rehberg <welf.rehberg@ntnu.no
  */
 #pragma once
 
@@ -106,7 +107,7 @@ private:
 
 	// Functions
 	void PopulateInputTensor();
-	void PublishOutput(float* command_actions);
+	void PublishOutput(float *command_actions);
 	void RescaleActions();
 	int InitializeNetwork();
 	int32_t GetTime();
@@ -142,9 +143,9 @@ private:
 	uint8 _mode_request_id{231}; //Random value
 	int8 _arming_check_id{-1};
 	int8 _mode_id{-1};
-	tflite::MicroInterpreter* _interpreter;
-	TfLiteTensor* _input_tensor;
-	TfLiteTensor* _output_tensor;
+	tflite::MicroInterpreter *_interpreter;
+	TfLiteTensor *_input_tensor;
+	TfLiteTensor *_output_tensor;
 	float _input_data[15];
 	vehicle_angular_velocity_s _angular_velocity;
 	vehicle_local_position_s _position;

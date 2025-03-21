@@ -38,7 +38,7 @@
  * @author Sindre Meyer Hegre <sindre.hegre@gmail.com>
  */
 
- /**
+/**
  * If true the neural network control is automatically started on boot.
  *
  * @boolean
@@ -65,7 +65,7 @@ PARAM_DEFINE_INT32(MAX_RPM, 22000);
 PARAM_DEFINE_INT32(MIN_RPM, 1000);
 
 /**
- * Thrust coefficient of the motors. Used to normalize the output of the neural network. PX4 shows only 4 decimals, true default is 0.00001006412.
+ * Thrust coefficient of the motors. Used to normalize the output of the neural network. PX4 shows only 4 decimals, true default is 0.00001002412.
  *
  * @min 0.0
  * @max 1.0

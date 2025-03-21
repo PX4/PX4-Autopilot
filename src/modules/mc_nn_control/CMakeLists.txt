@@ -40,15 +40,16 @@ px4_add_module(
 	MAIN mc_nn_control
 	COMPILE_FLAGS
 	SRCS
-		mc_nn_control.cpp
-		mc_nn_control.hpp
-		control_net.cpp
-		control_net.hpp
+		# mc_nn_control.cpp
+		# mc_nn_control.hpp
+		#control_net.cpp
+		#control_net.hpp
+		dummy.cpp
 	DEPENDS
-		tflm
-		px4_work_queue
-		mathlib
+		#tflm
+		#px4_work_queue
+		#mathlib
 )
-target_link_libraries(mc_nn_control PRIVATE tflm)
-target_include_directories(mc_nn_control PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/lib/tflm)
+# target_link_libraries(mc_nn_control PRIVATE tflm)
+# target_include_directories(mc_nn_control PRIVATE
+#     ${CMAKE_SOURCE_DIR}/src/lib/tflm)

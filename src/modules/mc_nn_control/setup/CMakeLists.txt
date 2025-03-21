@@ -79,8 +79,8 @@ set(TFLM_INCLUDE_DIRS
     # Add C++ 17 std lib if building for NuttX
     if(CONFIG_BOARD_TOOLCHAIN STREQUAL "arm-none-eabi")
     list(APPEND TFLM_INCLUDE_DIRS
-	${TFLITE_DOWNLOADS_DIR}/include/13.2.1
-        ${TFLITE_DOWNLOADS_DIR}/include/13.2.1/arm-none-eabi
+	${CMAKE_CURRENT_SOURCE_DIR}/include/13.2.1
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/13.2.1/arm-none-eabi
     )
 endif()
 
