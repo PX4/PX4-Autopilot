@@ -35,11 +35,18 @@ on:
         required: false
         default: ''
         type: string
+      saluki-nxp-manual-bl-version:
+        description: 'saluki-nxp optional bootloader version (e.g. ghcr.io/tiiuae/saluki_bootloader_v2:sha-d8b2524)'
+        required: false
+        default: ''
+        type: string
+
 permissions:
   contents: read
   packages: write
 
 env:
+  saluki_nxp_bootloader: "ghcr.io/tiiuae/saluki_bootloader_v2:2.6.0"
   saluki_fpga_repo: "ghcr.io/tiiuae/saluki-fpga"
   saluki_pi_fpga_version: "4.26.0"
   saluki_v2_fpga_version: "4.26.0"
@@ -76,6 +83,7 @@ jobs:
       saluki_v3_fpga_version: ${{ steps.variables.outputs.saluki_v3_fpga_version }}
       saluki_pi_fpga_version: ${{ steps.variables.outputs.saluki_pi_fpga_version }}
       saluki_fmu2_fpga_version: ${{ steps.variables.outputs.saluki_fmu2_fpga_version }}
+      saluki_nxp_bootloader: ${{ steps.variables.outputs.saluki_nxp_bootloader }}
     steps:
       - name: Print input variables
         id: variables
@@ -104,16 +112,24 @@ jobs:
             saluki_fmu2_fpga_version=${{ github.event.inputs.saluki-fmu2-manual-fpga-version }}
           fi
 
+          # use saluki-nxp-bl default version if custom is not provided
+          saluki_nxp_bl_container=${{ env.saluki_nxp_bootloader }}
+          if [ -n "${{ github.event.inputs.saluki-nxp-manual-bl-version }}" ]; then
+            saluki_nxp_bl_container=${{ github.event.inputs.saluki-nxp-manual-bl-version }}
+          fi
+
           echo "saluki_v2_fpga_version=${saluki_v2_fpga_version}" >> $GITHUB_OUTPUT
           echo "saluki_v3_fpga_version=${saluki_v3_fpga_version}" >> $GITHUB_OUTPUT
           echo "saluki_pi_fpga_version=${saluki_pi_fpga_version}" >> $GITHUB_OUTPUT
           echo "saluki_fmu2_fpga_version=${saluki_fmu2_fpga_version}" >> $GITHUB_OUTPUT
+          echo "saluki_nxp_bootloader=${saluki_nxp_bl_container}" >> $GITHUB_OUTPUT
           echo "jfrog_upload=${{ github.event.inputs.jfrog-upload }}" >> $GITHUB_OUTPUT
 
           echo "saluki_v2_fpga_version: ${saluki_v2_fpga_version}"
           echo "saluki_v3_fpga_version: ${saluki_v3_fpga_version}"
           echo "saluki_pi_fpga_version: ${saluki_pi_fpga_version}"
           echo "saluki_fmu2_fpga_version: ${saluki_fmu2_fpga_version}"
+          echo "saluki_nxp_bootloader: ${saluki_nxp_bl_container}"
           echo "jfrog_upload: ${{ github.event.inputs.jfrog-upload }}"
 
   px4fwupdater:
@@ -156,6 +172,7 @@ jobs:
       BUILD_DIR: combine
       FPGA_DIR: combine/fpga
       BOOTLOADER_DIR: combine/bootloader
+      NXP_BOOTLOADER: ${{ needs.variables.outputs.saluki_nxp_bootloader }}
     needs:
       - px4fwupdater
       - variables

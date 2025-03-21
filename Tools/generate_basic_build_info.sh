@@ -37,6 +37,7 @@ build_info["build_url"]=${build_url}
 build_info["px4_build_url"]=${build_url}
 build_info["px4_reponame"]=${repo}
 build_info["px4_sha"]=${sha}
+build_info["nxp_bootloader"]=${NXP_BOOTLOADER:-"undefined"}
 
 # loop thru associative array and print key value pairs
 json_info="{"
