@@ -210,13 +210,13 @@ void AutopilotTester::wait_until_hovering()
 	wait_for_landed_state(Telemetry::LandedState::InAir, std::chrono::seconds(45));
 }
 
-void AutopilotTester::wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout)
+void AutopilotTester::wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout, float delta)
 {
 	auto prom = std::promise<void> {};
 	auto fut = prom.get_future();
 
-	_telemetry->subscribe_position([&prom, rel_altitude_m, this](Telemetry::Position new_position) {
-		if (fabs(rel_altitude_m - new_position.relative_altitude_m) <= 0.5) {
+	_telemetry->subscribe_position([&prom, rel_altitude_m, delta, this](Telemetry::Position new_position) {
+		if (fabs(rel_altitude_m - new_position.relative_altitude_m) <= delta) {
 			_telemetry->subscribe_position(nullptr);
 			prom.set_value();
 		}
