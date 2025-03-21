@@ -144,7 +144,8 @@ float FixedwingAttitudeControl::get_airspeed_constrained()
 {
 	_airspeed_validated_sub.update();
 	const bool airspeed_valid = PX4_ISFINITE(_airspeed_validated_sub.get().calibrated_airspeed_m_s)
-				    && (hrt_elapsed_time(&_airspeed_validated_sub.get().timestamp) < 1_s);
+				    && (hrt_elapsed_time(&_airspeed_validated_sub.get().timestamp) < 1_s)
+				    && _airspeed_validated_sub.get().airspeed_source != airspeed_validated_s::SYNTHETIC;
 
 	// if no airspeed measurement is available out best guess is to use the trim airspeed
 	float airspeed = _param_fw_airspd_trim.get();
