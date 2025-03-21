@@ -318,7 +318,7 @@ void RTL::setRtlTypeAndDestination()
 
 	uint8_t safe_point_index{0U};
 
-	if (_param_rtl_type.get() != 2) {
+	if (_param_rtl_type.get() != 2 && _param_rtl_type.get() != 4) {
 		// check the closest allowed destination.
 		DestinationType destination_type{DestinationType::DESTINATION_TYPE_HOME};
 		PositionYawSetpoint rtl_position;
@@ -566,6 +566,14 @@ void RTL::init_rtl_mission_type()
 		} else {
 			new_rtl_mission_type = RtlType::RTL_MISSION_FAST_REVERSE;
 		}
+
+	} else if (_param_rtl_type.get() == 4) {
+		if (hasMissionLandStart() && reverseIsFurther()) {
+			new_rtl_mission_type = RtlType::RTL_MISSION_FAST;
+
+		} else {
+			new_rtl_mission_type = RtlType::RTL_MISSION_FAST_REVERSE;
+		}
 	}
 
 	if (_set_rtl_mission_type == new_rtl_mission_type) {
@@ -629,6 +637,12 @@ bool RTL::hasMissionLandStart() const
 	return _mission_sub.get().land_start_index >= 0 && _mission_sub.get().land_index >= 0
 	       && _navigator->get_mission_result()->valid;
 }
+
+bool RTL::reverseIsFurther() const
+{
+	return (_mission_sub.get().land_start_index - _mission_sub.get().current_seq) < _mission_sub.get().current_seq;
+}
+
 
 bool RTL::hasVtolLandApproach(const PositionYawSetpoint &rtl_position) const
 {
