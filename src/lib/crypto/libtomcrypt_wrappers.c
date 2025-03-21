@@ -17,6 +17,22 @@ struct ltc_hash_descriptor hash_descriptor[] = {
 		&sha256_done,
 		&sha256_test,
 		NULL
+	},
+	{
+		"sha384",
+		4,
+		48,
+		128,
+
+		/* OID */
+		{ 2, 16, 840, 1, 101, 3, 4, 2, 2,  },
+		9,
+
+		&sha384_init,
+		&sha512_process,
+		&sha384_done,
+		&sha384_test,
+		NULL
 	}
 };
 

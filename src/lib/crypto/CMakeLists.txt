@@ -68,6 +68,8 @@ libtomcrypt_wrappers.c
 	${PK_SRC}
 	${MATH_SRC}
 	libtomcrypt/src/hashes/sha2/sha256.c
+	libtomcrypt/src/hashes/sha2/sha384.c
+	libtomcrypt/src/hashes/sha2/sha512.c
 	libtomcrypt/src/hashes/helper/hash_memory.c
 	libtomcrypt/src/prngs/sprng.c
 	libtomcrypt/src/misc/crypt/crypt_ltc_mp_descriptor.c
