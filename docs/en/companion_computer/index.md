@@ -41,12 +41,14 @@ Larger high power examples:
 - [ModalAI VOXL 2](https://docs.modalai.com/voxl2-external-flight-controller/)
 - [NXP NavQPlus](https://nxp.gitbook.io/navqplus/user-contributed-content/ros2/microdds)
 - [Nvidia Jetson TX2](https://developer.nvidia.com/embedded/jetson-tx2)
-* [Intel NUC](https://www.intel.com/content/www/us/en/products/details/nuc.html)
-* [Gigabyte Brix](https://www.gigabyte.com/Mini-PcBarebone/BRIX)
+- [Intel NUC](https://www.intel.com/content/www/us/en/products/details/nuc.html)
+- [Gigabyte Brix](https://www.gigabyte.com/Mini-PcBarebone/BRIX)
+- [Aerium Lumen - NVIDIA Jetson Baseboard](https://www.aerium.co.il/product-page/lumen) ([Documentation](https://aerium.bitbucket.io/documentation/Product%20Manuals/Lumen/))
 
 Small/lower power examples:
 
 - [Raspberry Pi](../companion_computer/pixhawk_rpi.md)
+- [Aerium Pascal - Raspberry Pi CM4/CM5 Baseboard](https://www.aerium.co.il/product-page/pascal-cm4-carrier) ([Documentation](https://aerium.bitbucket.io/documentation/Product%20Manuals/Pascal/))
 
 ::: info
 The choice of computer will depend on the usual tradeoffs: cost, weight, power consumption, ease of setup, and computational resources required.
