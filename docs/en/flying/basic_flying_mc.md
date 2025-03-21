@@ -3,7 +3,7 @@
 This topic explains the basics of flying a vehicle using an [RC Transmitter](../getting_started/rc_transmitter_receiver.md) or [Joystick](../config/joystick.md) in a manual or autopilot-assisted flight mode (for autonomous flight see: [Missions](../flying/missions.md)).
 
 ::: info
-Before you fly for the first time you should read our [First Flight Guidelines](../flying/first_flight_guidelines.md).
+Before you fly for the first time you should read our [First Flight Guidelines](../flying/first_flight_guidelines.md). Make sure the drone is ready to fly.
 :::
 
 ## Arm the Vehicle
