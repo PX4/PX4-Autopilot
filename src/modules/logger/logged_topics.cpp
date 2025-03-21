@@ -93,6 +93,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("magnetometer_bias_estimate", 200);
 	add_topic("manual_control_setpoint", 200);
 	add_topic("manual_control_switches");
+	add_optional_topic("mecanum_velocity_setpoint", 100);
 	add_topic("mission_result");
 	add_topic("navigator_mission_item");
 	add_topic("navigator_status");
