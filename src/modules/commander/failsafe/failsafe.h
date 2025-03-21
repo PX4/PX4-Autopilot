@@ -59,6 +59,12 @@ private:
 		Offboard = (1 << 2)
 	};
 
+	enum class DatalinkLossExceptionBits : int32_t {
+		Mission = (1 << 0),
+		Hold = (1 << 1),
+		Offboard = (1 << 2)
+	};
+
 	// COM_LOW_BAT_ACT parameter values
 	enum class LowBatteryAction : int32_t {
 		Warning = 0,        // Warning
@@ -193,6 +199,7 @@ private:
 					(ParamInt<px4::params::NAV_DLL_ACT>) 	_param_nav_dll_act,
 					(ParamInt<px4::params::NAV_RCL_ACT>) 	_param_nav_rcl_act,
 					(ParamInt<px4::params::COM_RCL_EXCEPT>) _param_com_rcl_except,
+					(ParamInt<px4::params::COM_DLL_EXCEPT>) _param_com_dll_except,
 					(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
 					(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl,
 					(ParamInt<px4::params::GF_ACTION>)  	_param_gf_action,
