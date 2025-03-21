@@ -54,8 +54,9 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 
 	const float upper_accel_limit = CONSTANTS_ONE_G * 1.1f;
 	const float lower_accel_limit = CONSTANTS_ONE_G * 0.9f;
-	const bool accel_lpf_norm_good = (_accel_magnitude_filt > lower_accel_limit)
-					 && (_accel_magnitude_filt < upper_accel_limit);
+	const float accel_lpf_norm_sq = _accel_lpf.getState().norm_squared();
+	const bool accel_lpf_norm_good = (accel_lpf_norm_sq > sq(lower_accel_limit))
+					 && (accel_lpf_norm_sq < sq(upper_accel_limit));
 
 	// fuse gravity observation if our overall acceleration isn't too big
 	_control_status.flags.gravity_vector = (_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector))
