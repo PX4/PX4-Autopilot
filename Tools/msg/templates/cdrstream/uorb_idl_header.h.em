@@ -49,14 +49,14 @@ for field in spec.parsed_fields():
             (package, name) = genmsg.names.package_resource_name(field.base_type)
             package = package or spec.package # convert '' to package
 
-            print('typedef px4_msg_%s px4_msg_px4__msg__%s;' % (name,name))
+            print('typedef px4_msgs_msg_%s px4_msgs_msg_px4_msgs__msg__%s;' % (name,name))
 }@
 
 
 
-typedef struct @uorb_struct px4_msg_@(file_base_name);
+typedef struct @uorb_struct px4_msgs_msg_@(file_base_name);
 
-extern const struct dds_cdrstream_desc px4_msg_@(file_base_name)_cdrstream_desc;
+extern const struct dds_cdrstream_desc px4_msgs_msg_@(file_base_name)_cdrstream_desc;
 
 #ifdef __cplusplus
 }
