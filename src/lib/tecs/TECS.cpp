@@ -172,7 +172,12 @@ void TECSAltitudeReferenceModel::update(const float dt, const AltitudeReferenceS
 	bool control_altitude = true;
 	float altitude_setpoint = setpoint.alt;
 
-	if (PX4_ISFINITE(setpoint.alt_rate)) {
+	if (!PX4_ISFINITE(setpoint.alt) && !PX4_ISFINITE(setpoint.alt_rate)) {
+		// neither altitude nor altitude rate is set - reset to current altitude
+		_velocity_control_traj_generator.reset(0.f, 0, current_alt);
+		altitude_setpoint = current_alt;
+
+	} else if (PX4_ISFINITE(setpoint.alt_rate)) {
 		// input is height rate (not altitude)
 		_velocity_control_traj_generator.setCurrentPositionEstimate(current_alt);
 		_velocity_control_traj_generator.update(dt, setpoint.alt_rate);
@@ -180,6 +185,7 @@ void TECSAltitudeReferenceModel::update(const float dt, const AltitudeReferenceS
 		control_altitude = PX4_ISFINITE(altitude_setpoint); // returns true if altitude is locked
 
 	} else {
+		// input is altitude
 		_velocity_control_traj_generator.reset(0, height_rate, altitude_setpoint);
 	}
 
@@ -710,7 +716,6 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 		  float throttle_trim, float pitch_limit_min, float pitch_limit_max, float target_climbrate,
 		  float target_sinkrate, const float speed_deriv_forward, float hgt_rate, float hgt_rate_sp)
 {
-
 	// Calculate the time since last update (seconds)
 	const hrt_abstime now(hrt_absolute_time());
 	const float dt = static_cast<float>((now - _update_timestamp)) / 1_s;
@@ -781,7 +786,9 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 
 void TECS::_setFastDescend(const float alt_setpoint, const float alt)
 {
-	if (_control_flag.airspeed_enabled && (_fast_descend_alt_err > FLT_EPSILON)
+	// disable fast descend if we are close to the target altitude or the altitude setpoint is not finite
+
+	if (PX4_ISFINITE(alt_setpoint) && _control_flag.airspeed_enabled && (_fast_descend_alt_err > FLT_EPSILON)
 	    && ((alt_setpoint + _fast_descend_alt_err) < alt)) {
 		auto now = hrt_absolute_time();
 
@@ -792,7 +799,7 @@ void TECS::_setFastDescend(const float alt_setpoint, const float alt)
 		_fast_descend = constrain(max(_fast_descend, static_cast<float>(now - _enabled_fast_descend_timestamp) /
 					      static_cast<float>(FAST_DESCEND_RAMP_UP_TIME)), 0.f, 1.f);
 
-	} else if ((_fast_descend > FLT_EPSILON) && (_fast_descend_alt_err > FLT_EPSILON)) {
+	} else if (PX4_ISFINITE(alt_setpoint) && (_fast_descend > FLT_EPSILON) && (_fast_descend_alt_err > FLT_EPSILON)) {
 		// Were in fast descend, scale it down. up until 5m above target altitude
 		_fast_descend = constrain((alt - alt_setpoint - 5.f) / _fast_descend_alt_err, 0.f, 1.f);
 		_enabled_fast_descend_timestamp = 0U;
