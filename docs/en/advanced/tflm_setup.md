@@ -14,17 +14,17 @@ This guide assumes that you can build PX4 locally from before. So if you have no
 
 	```sh
 	cd src/lib
-	mkdir tlfm
+	mkdir tflm
 	cd ../..
 	```
 	```sh
-	git submodule add -b main https://github.com/tensorflow/tflite-micro.git src/lib/tflm
+	git submodule add -b main https://github.com/tensorflow/tflite-micro.git src/lib/tflm/tflite_micro/
 	```
 
 1. Then we need to install the TFLM dependencies. This is automatically done when you build it as a static library, enter the tflite-micro folder and do the following command:
 
 	```sh
-	cd src/lib/tflm/tflite-micro
+	cd src/lib/tflm/tflite_micro
 	```
 	```sh
 	make -f tensorflow/lite/micro/tools/make/Makefile TARGET=cortex_m_generic TARGET_ARCH=cortex-m7 microlite

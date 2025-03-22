@@ -36,7 +36,7 @@
  * Multicopter Neural Network Control module, from position setpoints to actuator motors.
  *
  * @author Sindre Meyer Hegre <sindre.hegre@gmail.com>
- * @author Welf Rehberg <welf.rehberg@ntnu.no
+ * @author Welf Rehberg <welf.rehberg@ntnu.no>
  */
 #pragma once
 
@@ -62,7 +62,7 @@
 
 // Subscriptions
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_status.h>
@@ -123,7 +123,7 @@ private:
 	uORB::Subscription _arming_check_request_sub{ORB_ID(arming_check_request)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _position_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
+	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::SubscriptionCallbackWorkItem _angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
@@ -147,9 +147,9 @@ private:
 	TfLiteTensor *_input_tensor;
 	TfLiteTensor *_output_tensor;
 	float _input_data[15];
+	trajectory_setpoint_s _trajectory_setpoint;
 	vehicle_angular_velocity_s _angular_velocity;
 	vehicle_local_position_s _position;
-	vehicle_local_position_setpoint_s _position_setpoint;
 	vehicle_attitude_s _attitude;
 
 	DEFINE_PARAMETERS(

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,44 +31,35 @@
  *
  ****************************************************************************/
 
-/**
- * @file mc_nn_control_params.c
- * Parameters for the Multicopter Neural Network Control module
- *
- * @author Sindre Meyer Hegre <sindre.hegre@gmail.com>
- */
+#include <thread>
+#include <chrono>
+#include <math.h>
 
-/**
- * If true the neural network control is automatically started on boot.
- *
- * @boolean
- * @group Neural Control
- */
-PARAM_DEFINE_INT32(MC_NN_EN, 1);
+#include "autopilot_tester.h"
 
-/**
- * The maximum RPM of the motors. Used to normalize the output of the neural network.
- *
- * @min 0
- * @max 80000
- * @group Neural Control
- */
-PARAM_DEFINE_INT32(MAX_RPM, 22000);
+TEST_CASE("Takeoff and hold position", "[multicopter][vtol]")
+{
+	const float takeoff_altitude = 10.f;
+	const float altitude_tolerance = 0.1f;
+	const int delay_seconds = 60.f;
 
-/**
- * The minimum RPM of the motors. Used to normalize the output of the neural network.
- *
- * @min 0
- * @max 80000
- * @group Neural Control
- */
-PARAM_DEFINE_INT32(MIN_RPM, 1000);
+	AutopilotTester tester;
+	tester.connect(connection_url);
+	tester.wait_until_ready();
 
-/**
- * Thrust coefficient of the motors. Used to normalize the output of the neural network. Divided by 100 000
- *
- * @min 0.0
- * @max 5.0
- * @group Neural Control
- */
-PARAM_DEFINE_FLOAT(THRUST_COEFF, 1.4f);
+	tester.set_takeoff_altitude(takeoff_altitude);
+	tester.store_home();
+	// The sleep here is necessary for the takeoff altitude to be applied properly
+	std::this_thread::sleep_for(std::chrono::seconds(1));
+
+	// Takeoff
+	tester.arm();
+	tester.takeoff();
+	tester.wait_until_hovering();
+	tester.wait_until_altitude(takeoff_altitude, std::chrono::seconds(30), altitude_tolerance);
+
+	// Monitor altitude and fail if it exceeds the tolerance
+	tester.start_checking_altitude(altitude_tolerance + 0.1);
+
+	std::this_thread::sleep_for(std::chrono::seconds(delay_seconds));
+}
