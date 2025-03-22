@@ -88,6 +88,18 @@ PARAM_DEFINE_FLOAT(CAL_AIR_TUBED_MM, 1.5f);
 PARAM_DEFINE_FLOAT(SENS_DPRES_OFF, 0.0f);
 
 /**
+ * Reverse differential pressure sensor readings
+ *
+ * Reverse the raw measurements of all differential pressure sensors.
+ * This can be enabled if the sensors have static and dynamic ports swapped.
+ *
+ * @category system
+ * @group Sensor Calibration
+ * @boolean
+ */
+PARAM_DEFINE_INT32(SENS_DPRES_REV, 0);
+
+/**
  * Differential pressure sensor analog scaling
  *
  * Pick the appropriate scaling from the datasheet.
