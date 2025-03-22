@@ -67,8 +67,7 @@ void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& _gps_checks_passed
-				&& !is_gnss_yaw_data_intermittent
-				&& !_gps_intermittent;
+				&& !is_gnss_yaw_data_intermittent;
 
 		if (_control_status.flags.gnss_yaw) {
 			if (continuing_conditions_passing) {

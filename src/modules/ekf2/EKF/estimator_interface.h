@@ -87,8 +87,6 @@ public:
 #if defined(CONFIG_EKF2_GNSS)
 	void setGpsData(const gnssSample &gnss_sample);
 
-	const gnssSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
-
 	float gps_horizontal_position_drift_rate_m_s() const { return _gps_horizontal_position_drift_rate_m_s; }
 	float gps_vertical_position_drift_rate_m_s() const { return _gps_vertical_position_drift_rate_m_s; }
 	float gps_filtered_horizontal_velocity_m_s() const { return _gps_filtered_horizontal_velocity_m_s; }
@@ -394,8 +392,6 @@ protected:
 #if defined(CONFIG_EKF2_GNSS)
 	RingBuffer<gnssSample> *_gps_buffer {nullptr};
 	uint64_t _time_last_gps_buffer_push{0};
-
-	gnssSample _gps_sample_delayed{};
 
 	float _gps_horizontal_position_drift_rate_m_s{NAN}; // Horizontal position drift rate (m/s)
 	float _gps_vertical_position_drift_rate_m_s{NAN};   // Vertical position drift rate (m/s)

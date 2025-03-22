@@ -167,6 +167,18 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 		_last_gps_fail_us = _time_delayed_us;
 	}
 
+	if (
+		_gps_check_fail_status.flags.fix ||
+		(_gps_check_fail_status.flags.nsats   && (_params.gps_check_mask & MASK_GPS_NSATS)) ||
+		(_gps_check_fail_status.flags.pdop    && (_params.gps_check_mask & MASK_GPS_PDOP)) ||
+		(_gps_check_fail_status.flags.spoofed && (_params.gps_check_mask & MASK_GPS_SPOOFED))
+	) {
+		_gnss_common_checks_passed = false;
+
+	} else {
+		_gnss_common_checks_passed = true;
+	}
+
 	// if any user selected checks have failed, record the fail time
 	if (
 		_gps_check_fail_status.flags.fix ||

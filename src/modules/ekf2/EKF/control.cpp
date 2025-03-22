@@ -112,7 +112,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_GNSS)
-	controlGpsFusion(imu_delayed);
+	controlGnssFusion(imu_delayed);
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)

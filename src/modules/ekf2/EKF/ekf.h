@@ -562,11 +562,11 @@ private:
 	uint64_t _last_gps_fail_us{0};		///< last system time in usec that the GPS failed it's checks
 	uint64_t _last_gps_pass_us{0};		///< last system time in usec that the GPS passed it's checks
 	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
+
 	bool _gps_checks_passed{false};		///> true when all active GPS checks have passed
+	bool _gnss_common_checks_passed{false};
 
 	gps_check_fail_status_u _gps_check_fail_status{};
-	// height sensor status
-	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
 
 	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
 
@@ -861,19 +861,8 @@ private:
 
 #if defined(CONFIG_EKF2_GNSS)
 	// control fusion of GPS observations
-	void controlGpsFusion(const imuSample &imu_delayed);
-	void controlGnssVelFusion(estimator_aid_source3d_s &aid_src, bool force_reset);
-	void controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool force_reset);
+	void controlGnssFusion(const imuSample &imu_sample);
 	void stopGnssFusion();
-	void stopGnssVelFusion();
-	void stopGnssPosFusion();
-	void updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_sample, estimator_aid_source3d_s &aid_src);
-	void updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s &aid_src);
-	void controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel);
-	bool tryYawEmergencyReset();
-	void resetVelocityToGnss(estimator_aid_source3d_s &aid_src);
-	void resetHorizontalPositionToGnss(estimator_aid_source2d_s &aid_src);
-	bool shouldResetGpsFusion() const;
 
 	/*
 	 * Return true if the GPS solution quality is adequate.
@@ -881,6 +870,18 @@ private:
 	 * Checks are adjusted using the EKF2_REQ_* parameters
 	*/
 	bool runGnssChecks(const gnssSample &gps);
+
+
+	void controlGnssVelocityFusion(const imuSample &imu_sample, const gnssSample &gnss_sample, const bool force_reset);
+	void stopGnssVelFusion();
+	void controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel);
+	bool tryYawEmergencyReset();
+
+	void controlGnssPositionFusion(const imuSample &imu_sample, const gnssSample &gnss_sample, const bool force_reset);
+	void stopGnssPosFusion();
+
+	bool shouldResetGpsFusion() const;
+
 
 	void controlGnssHeightFusion(const gnssSample &gps_sample);
 	void stopGpsHgtFusion();
