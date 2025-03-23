@@ -126,7 +126,13 @@ void ZENOH::run()
 	ret = z_open(&s, z_move(config), NULL);
 
 	if (ret < 0) {
-		PX4_ERR("Unable to open session, ret: %d", ret);
+		if (ret == _Z_ERR_SCOUT_NO_RESULTS) {
+			PX4_ERR("Unable to open session, scout no results");
+
+		} else {
+			PX4_ERR("Unable to open session, ret: %d", ret);
+		}
+
 		return;
 	}
 
