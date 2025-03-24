@@ -58,6 +58,10 @@ if DRIVERS_UAVCANNODE
         bool "Include raw air data"
         default n
 
+    config UAVCANNODE_RAW_IMU
+        bool "Include raw IMU"
+	default n
+
     config UAVCANNODE_RTK_DATA
         bool "Include RTK data"
         default n
