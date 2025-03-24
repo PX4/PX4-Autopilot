@@ -146,6 +146,9 @@ public:
 	 */
 	void setInputSetpoint(const trajectory_setpoint_s &setpoint);
 
+	void setBodySpecificForce(const matrix::Vector3f &specific_force) { _body_specific_force = specific_force; }
+	void setAttitude(const matrix::Quatf &attitude) { _attitude = attitude; }
+
 	/**
 	 * Apply P-position and PID-velocity controller that updates the member
 	 * thrust, yaw- and yawspeed-setpoints.
@@ -233,4 +236,7 @@ private:
 	matrix::Vector3f _thr_sp; /**< desired thrust */
 	float _yaw_sp{}; /**< desired heading */
 	float _yawspeed_sp{}; /** desired yaw-speed */
+
+	matrix::Vector3f _body_specific_force;
+	matrix::Quatf _attitude;
 };

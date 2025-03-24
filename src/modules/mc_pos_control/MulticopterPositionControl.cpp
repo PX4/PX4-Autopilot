@@ -413,6 +413,8 @@ void MulticopterPositionControl::Run()
 		}
 
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
+		_vehicle_acceleration_sub.update(&_vehicle_acceleration);
+		_vehicle_attitude_sub.update(&_vehicle_attitude);
 
 		if (_param_mpc_use_hte.get()) {
 			hover_thrust_estimate_s hte;
@@ -542,6 +544,8 @@ void MulticopterPositionControl::Run()
 				math::max(speed_down, 0.f));
 
 			_control.setInputSetpoint(_setpoint);
+			_control.setAttitude(Quatf(_vehicle_attitude.q));
+			_control.setBodySpecificForce(Vector3f(_vehicle_acceleration.xyz));
 
 			// update states
 			if (!PX4_ISFINITE(_setpoint.position[2])

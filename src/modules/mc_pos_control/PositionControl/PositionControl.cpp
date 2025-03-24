@@ -211,7 +211,12 @@ void PositionControl::_accelerationControl()
 		z_specific_force += _acc_sp(2);
 	}
 
-	Vector3f body_z = Vector3f(-_acc_sp(0), -_acc_sp(1), -z_specific_force).normalized();
+	const Vector3f sf_sp_ned = Vector3f(_acc_sp(0), _acc_sp(1), z_specific_force);
+	const Vector3f sf_sp_body = _attitude.rotateVectorInverse(sf_sp_ned);
+
+	Quatf att_error(_body_specific_force, sf_sp_body);
+	Quatf desired_att = _attitude * att_error;
+	Vector3f body_z = desired_att.dcm_z();
 	ControlMath::limitTilt(body_z, Vector3f(0, 0, 1), _lim_tilt);
 	// Convert to thrust assuming hover thrust produces standard gravity
 	const float thrust_ned_z = _acc_sp(2) * (_hover_thrust / CONSTANTS_ONE_G) - _hover_thrust;
