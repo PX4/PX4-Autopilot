@@ -59,7 +59,6 @@ Sensors::Sensors(bool hil_enabled) :
 #if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 	/* Differential pressure offset */
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
-
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	_parameter_handles.diff_pres_analog_scale = param_find("SENS_DPRES_ANSC");
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
