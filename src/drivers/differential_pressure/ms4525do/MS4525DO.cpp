@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "MS4525DO.hpp"
+#include <parameters/param.h>
 
 using namespace time_literals;
 
@@ -200,6 +201,14 @@ void MS4525DO::RunImpl()
 					differential_pressure.timestamp_sample = _timestamp_sample;
 					differential_pressure.device_id = get_device_id();
 					differential_pressure.differential_pressure_pa = diff_press_pa;
+					int32_t differential_press_rev = 0;
+					param_get(param_find("SENS_DPRES_REV"), &differential_press_rev);
+
+					//If differential pressure reverse param set, swap positive and negative
+					if (differential_press_rev == 1) {
+						differential_pressure.differential_pressure_pa = -1.0f * diff_press_pa;
+					}
+
 					differential_pressure.temperature = temperature_c;
 					differential_pressure.error_count = perf_event_count(_comms_errors);
 					differential_pressure.timestamp = hrt_absolute_time();
