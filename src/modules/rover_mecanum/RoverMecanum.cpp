@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023-2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,15 +32,16 @@
  ****************************************************************************/
 
 #include "RoverMecanum.hpp"
-using namespace matrix;
+
 using namespace time_literals;
 
 RoverMecanum::RoverMecanum() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
+	_rover_throttle_setpoint_pub.advertise();
+	_rover_steering_setpoint_pub.advertise();
 	updateParams();
-	_rover_mecanum_setpoint_pub.advertise();
 }
 
 bool RoverMecanum::init()
@@ -53,222 +54,117 @@ void RoverMecanum::updateParams()
 {
 	ModuleParams::updateParams();
 
-	_max_yaw_rate = _param_rm_max_yaw_rate.get() * M_DEG_TO_RAD_F;
+	if (_param_ro_accel_limit.get() > FLT_EPSILON && _param_ro_max_thr_speed.get() > FLT_EPSILON) {
+		_throttle_body_x_setpoint.setSlewRate(_param_ro_accel_limit.get() / _param_ro_max_thr_speed.get());
+		_throttle_body_y_setpoint.setSlewRate(_param_ro_accel_limit.get() / _param_ro_max_thr_speed.get());
+	}
 }
 
 void RoverMecanum::Run()
 {
-	if (should_exit()) {
-		ScheduleClear();
-		exit_and_cleanup();
-		return;
-	}
-
-	updateSubscriptions();
-
-	// Generate and publish attitude and velocity setpoints
-	hrt_abstime timestamp = hrt_absolute_time();
-
-	switch (_nav_state) {
-	case vehicle_status_s::NAVIGATION_STATE_MANUAL: {
-			manual_control_setpoint_s manual_control_setpoint{};
-			rover_mecanum_setpoint_s rover_mecanum_setpoint{};
-
-			if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-				rover_mecanum_setpoint.timestamp = timestamp;
-				rover_mecanum_setpoint.forward_speed_setpoint = NAN;
-				rover_mecanum_setpoint.forward_speed_setpoint_normalized = manual_control_setpoint.throttle;
-				rover_mecanum_setpoint.lateral_speed_setpoint = NAN;
-				rover_mecanum_setpoint.lateral_speed_setpoint_normalized = manual_control_setpoint.roll;
-				rover_mecanum_setpoint.yaw_rate_setpoint = NAN;
-				rover_mecanum_setpoint.yaw_rate_setpoint_normalized = manual_control_setpoint.yaw * _param_rm_man_yaw_scale.get();
-				rover_mecanum_setpoint.yaw_setpoint = NAN;
-				_rover_mecanum_setpoint_pub.publish(rover_mecanum_setpoint);
-
-			}
-		} break;
-
-	case vehicle_status_s::NAVIGATION_STATE_ACRO: {
-			manual_control_setpoint_s manual_control_setpoint{};
-			rover_mecanum_setpoint_s rover_mecanum_setpoint{};
-
-			if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-				rover_mecanum_setpoint.timestamp = timestamp;
-				rover_mecanum_setpoint.forward_speed_setpoint = NAN;
-				rover_mecanum_setpoint.forward_speed_setpoint_normalized = manual_control_setpoint.throttle;
-				rover_mecanum_setpoint.lateral_speed_setpoint = NAN;
-				rover_mecanum_setpoint.lateral_speed_setpoint_normalized = manual_control_setpoint.roll;
-				rover_mecanum_setpoint.yaw_rate_setpoint = math::interpolate<float>(manual_control_setpoint.yaw,
-						-1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
-				rover_mecanum_setpoint.yaw_rate_setpoint_normalized = NAN;
-				rover_mecanum_setpoint.yaw_setpoint = NAN;
-				_rover_mecanum_setpoint_pub.publish(rover_mecanum_setpoint);
-			}
-		} break;
-
-	case vehicle_status_s::NAVIGATION_STATE_STAB: {
-			manual_control_setpoint_s manual_control_setpoint{};
-			rover_mecanum_setpoint_s rover_mecanum_setpoint{};
-
-			if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-				rover_mecanum_setpoint.timestamp = timestamp;
-				rover_mecanum_setpoint.forward_speed_setpoint = NAN;
-				rover_mecanum_setpoint.forward_speed_setpoint_normalized = manual_control_setpoint.throttle;
-				rover_mecanum_setpoint.lateral_speed_setpoint = NAN;
-				rover_mecanum_setpoint.lateral_speed_setpoint_normalized = manual_control_setpoint.roll;
-				rover_mecanum_setpoint.yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.yaw,
-						STICK_DEADZONE),
-						-1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
-				rover_mecanum_setpoint.yaw_rate_setpoint_normalized = NAN;
-				rover_mecanum_setpoint.yaw_setpoint = NAN;
-
-				if (fabsf(rover_mecanum_setpoint.yaw_rate_setpoint) > FLT_EPSILON
-				    || (fabsf(rover_mecanum_setpoint.forward_speed_setpoint_normalized) < FLT_EPSILON
-					&& fabsf(rover_mecanum_setpoint.lateral_speed_setpoint_normalized) < FLT_EPSILON)) { // Closed loop yaw rate control
-					_yaw_ctl = false;
-
-				} else { // Closed loop yaw control
-
-					if (!_yaw_ctl) {
-						_desired_yaw = _vehicle_yaw;
-						_yaw_ctl = true;
-					}
-
-					rover_mecanum_setpoint.yaw_setpoint = _desired_yaw;
-					rover_mecanum_setpoint.yaw_rate_setpoint = NAN;
-				}
-
-				_rover_mecanum_setpoint_pub.publish(rover_mecanum_setpoint);
-			}
-		} break;
-
-	case vehicle_status_s::NAVIGATION_STATE_POSCTL: {
-			manual_control_setpoint_s manual_control_setpoint{};
-			rover_mecanum_setpoint_s rover_mecanum_setpoint{};
-
-			if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-				rover_mecanum_setpoint.timestamp = timestamp;
-				rover_mecanum_setpoint.forward_speed_setpoint = math::interpolate<float>(manual_control_setpoint.throttle,
-						-1.f, 1.f, -_param_rm_max_speed.get(), _param_rm_max_speed.get());;
-				rover_mecanum_setpoint.forward_speed_setpoint_normalized = NAN;
-				rover_mecanum_setpoint.lateral_speed_setpoint = math::interpolate<float>(manual_control_setpoint.roll,
-						-1.f, 1.f, -_param_rm_max_speed.get(), _param_rm_max_speed.get());
-				rover_mecanum_setpoint.lateral_speed_setpoint_normalized = NAN;
-				rover_mecanum_setpoint.yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.yaw,
-						STICK_DEADZONE),
-						-1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
-				rover_mecanum_setpoint.yaw_rate_setpoint_normalized = NAN;
-				rover_mecanum_setpoint.yaw_setpoint = NAN;
-
-				if (fabsf(rover_mecanum_setpoint.yaw_rate_setpoint) > FLT_EPSILON
-				    || (fabsf(rover_mecanum_setpoint.forward_speed_setpoint) < FLT_EPSILON
-					&& fabsf(rover_mecanum_setpoint.lateral_speed_setpoint) < FLT_EPSILON)) { // Closed loop yaw rate control
-					rover_mecanum_setpoint.yaw_rate_setpoint = math::interpolate<float>(manual_control_setpoint.yaw,
-							-1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
-					rover_mecanum_setpoint.yaw_setpoint = NAN;
-					_yaw_ctl = false;
-
-				} else { // Closed loop yaw control // TODO: Add cruise control
-					if (!_yaw_ctl) {
-						_desired_yaw = _vehicle_yaw;
-						_yaw_ctl = true;
-					}
-
-					rover_mecanum_setpoint.yaw_setpoint = _desired_yaw;
-					rover_mecanum_setpoint.yaw_rate_setpoint = NAN;
-				}
-
-				_rover_mecanum_setpoint_pub.publish(rover_mecanum_setpoint);
-			}
-		} break;
-
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-		_rover_mecanum_guidance.computeGuidance(_vehicle_yaw, _nav_state);
-		break;
-
-	default: // Unimplemented nav states will stop the rover
-		rover_mecanum_setpoint_s rover_mecanum_setpoint{};
-		rover_mecanum_setpoint.timestamp = timestamp;
-		rover_mecanum_setpoint.forward_speed_setpoint = NAN;
-		rover_mecanum_setpoint.forward_speed_setpoint_normalized = 0.f;
-		rover_mecanum_setpoint.lateral_speed_setpoint = NAN;
-		rover_mecanum_setpoint.lateral_speed_setpoint_normalized = 0.f;
-		rover_mecanum_setpoint.yaw_rate_setpoint = NAN;
-		rover_mecanum_setpoint.yaw_rate_setpoint_normalized = 0.f;
-		rover_mecanum_setpoint.yaw_setpoint = NAN;
-		_rover_mecanum_setpoint_pub.publish(rover_mecanum_setpoint);
-		break;
-	}
-
-	if (!_armed) { // Reset when disarmed
-		_rover_mecanum_control.resetControllers();
-		_yaw_ctl = false;
-	}
-
-	_rover_mecanum_control.computeMotorCommands(_vehicle_yaw, _vehicle_yaw_rate, _vehicle_forward_speed,
-			_vehicle_lateral_speed);
-
-}
-
-void RoverMecanum::updateSubscriptions()
-{
 	if (_parameter_update_sub.updated()) {
-		parameter_update_s parameter_update;
-		_parameter_update_sub.copy(&parameter_update);
 		updateParams();
 	}
 
-	if (_vehicle_status_sub.updated()) {
-		vehicle_status_s vehicle_status{};
-		_vehicle_status_sub.copy(&vehicle_status);
+	const hrt_abstime timestamp_prev = _timestamp;
+	_timestamp = hrt_absolute_time();
+	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
 
-		if (vehicle_status.nav_state != _nav_state) {
-			_rover_mecanum_control.resetControllers();
-			_yaw_ctl = false;
+	_mecanum_pos_vel_control.updatePosControl();
+	_mecanum_att_control.updateAttControl();
+	_mecanum_rate_control.updateRateControl();
 
-			if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION
-			    || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
-				_rover_mecanum_guidance.setDesiredYaw(_vehicle_yaw);
-			}
-		}
-
-		_nav_state = vehicle_status.nav_state;
-		_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+	if (_vehicle_control_mode_sub.updated()) {
+		_vehicle_control_mode_sub.copy(&_vehicle_control_mode);
 	}
 
-	if (_vehicle_local_position_sub.updated()) {
-		vehicle_local_position_s vehicle_local_position{};
-		_vehicle_local_position_sub.copy(&vehicle_local_position);
-		Vector3f velocity_in_local_frame(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
-		Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
-		// Apply threshold to the velocity measurement to cut off measurement noise when standing still
-		_vehicle_forward_speed = fabsf(velocity_in_body_frame(0)) > SPEED_THRESHOLD ? velocity_in_body_frame(0) : 0.f;
-		_vehicle_lateral_speed = fabsf(velocity_in_body_frame(1)) > SPEED_THRESHOLD ? velocity_in_body_frame(1) : 0.f;
+	const bool full_manual_mode_enabled = _vehicle_control_mode.flag_control_manual_enabled
+					      && !_vehicle_control_mode.flag_control_position_enabled && !_vehicle_control_mode.flag_control_attitude_enabled
+					      && !_vehicle_control_mode.flag_control_rates_enabled;
+
+	if (full_manual_mode_enabled) { // Manual mode
+		generateSteeringSetpoint();
 	}
 
-	if (_vehicle_angular_velocity_sub.updated()) {
-		vehicle_angular_velocity_s vehicle_angular_velocity{};
-		_vehicle_angular_velocity_sub.copy(&vehicle_angular_velocity);
-
-		// Apply threshold to the yaw rate measurement if the rover is standing still to avoid stuttering due to closed loop yaw(rate) control
-		if ((fabsf(_vehicle_forward_speed) > FLT_EPSILON && fabsf(_vehicle_lateral_speed) > FLT_EPSILON)
-		    || fabsf(vehicle_angular_velocity.xyz[2]) > YAW_RATE_THRESHOLD) {
-			_vehicle_yaw_rate = vehicle_angular_velocity.xyz[2];
-
-		} else {
-			_vehicle_yaw_rate = 0.f;
-		}
+	if (_vehicle_control_mode.flag_armed) {
+		generateActuatorSetpoint();
 
 	}
 
-	if (_vehicle_attitude_sub.updated()) {
-		vehicle_attitude_s vehicle_attitude{};
-		_vehicle_attitude_sub.copy(&vehicle_attitude);
-		_vehicle_attitude_quaternion = matrix::Quatf(vehicle_attitude.q);
-		_vehicle_yaw = matrix::Eulerf(_vehicle_attitude_quaternion).psi();
+}
+
+void RoverMecanum::generateSteeringSetpoint()
+{
+	manual_control_setpoint_s manual_control_setpoint{};
+
+	if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
+		rover_steering_setpoint_s rover_steering_setpoint{};
+		rover_steering_setpoint.timestamp = _timestamp;
+		rover_steering_setpoint.normalized_speed_diff = manual_control_setpoint.yaw;
+		_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
+		rover_throttle_setpoint_s rover_throttle_setpoint{};
+		rover_throttle_setpoint.timestamp = _timestamp;
+		rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
+		rover_throttle_setpoint.throttle_body_y = manual_control_setpoint.roll;
+		_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+	}
+}
+
+void RoverMecanum::generateActuatorSetpoint()
+{
+	if (_rover_throttle_setpoint_sub.updated()) {
+		_rover_throttle_setpoint_sub.copy(&_rover_throttle_setpoint);
 	}
 
+	if (_actuator_motors_sub.updated()) {
+		actuator_motors_s actuator_motors{};
+		_actuator_motors_sub.copy(&actuator_motors);
+		_current_throttle_body_x = (actuator_motors.control[0] + actuator_motors.control[1]) / 2.f;
+		_current_throttle_body_y = (actuator_motors.control[2] - actuator_motors.control[0]) / 2.f;
+	}
+
+	if (_rover_steering_setpoint_sub.updated()) {
+		_rover_steering_setpoint_sub.copy(&_rover_steering_setpoint);
+	}
+
+	const float throttle_body_x = RoverControl::throttleControl(_throttle_body_x_setpoint,
+				      _rover_throttle_setpoint.throttle_body_x, _current_throttle_body_x, _param_ro_accel_limit.get(),
+				      _param_ro_decel_limit.get(), _param_ro_max_thr_speed.get(), _dt);
+	const float throttle_body_y = RoverControl::throttleControl(_throttle_body_y_setpoint,
+				      _rover_throttle_setpoint.throttle_body_y, _current_throttle_body_y, _param_ro_accel_limit.get(),
+				      _param_ro_decel_limit.get(), _param_ro_max_thr_speed.get(), _dt);
+	actuator_motors_s actuator_motors{};
+	actuator_motors.reversible_flags = _param_r_rev.get();
+	computeInverseKinematics(throttle_body_x, throttle_body_y,
+				 _rover_steering_setpoint.normalized_speed_diff).copyTo(actuator_motors.control);
+	actuator_motors.timestamp = _timestamp;
+	_actuator_motors_pub.publish(actuator_motors);
+
+
+}
+
+Vector4f RoverMecanum::computeInverseKinematics(float throttle_body_x, float throttle_body_y,
+		const float speed_diff_normalized)
+{
+	const float total_speed = fabsf(throttle_body_x) + fabsf(throttle_body_y) + fabsf(speed_diff_normalized);
+
+	if (total_speed > 1.f) { // Adjust speed setpoints if infeasible
+		const float theta = atan2f(fabsf(throttle_body_y), fabsf(throttle_body_x));
+		const float magnitude = (1.f - fabsf(speed_diff_normalized)) / (sinf(theta) + cosf(theta));
+		const float normalization = 1.f / (sqrtf(powf(throttle_body_x, 2.f) + powf(throttle_body_y, 2.f)));
+		throttle_body_x *= magnitude * normalization;
+		throttle_body_y *= magnitude * normalization;
+
+	}
+
+	// Calculate motor commands
+	const float input_data[3] = {throttle_body_x, throttle_body_y, speed_diff_normalized};
+	const Matrix<float, 3, 1> input(input_data);
+	const float m_data[12] = {1.f, -1.f, -1.f, 1.f, 1.f, 1.f, 1.f, 1.f, -1.f, 1.f, -1.f, 1.f};
+	const Matrix<float, 4, 3> m(m_data);
+	const Vector4f motor_commands = m * input;
+
+	return motor_commands;
 }
 
 int RoverMecanum::task_spawn(int argc, char *argv[])
@@ -296,7 +192,7 @@ int RoverMecanum::task_spawn(int argc, char *argv[])
 
 int RoverMecanum::custom_command(int argc, char *argv[])
 {
-	return print_usage("unk_timestampn command");
+	return print_usage("unknown command");
 }
 
 int RoverMecanum::print_usage(const char *reason)
@@ -308,7 +204,7 @@ int RoverMecanum::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Rover Mecanum controller.
+Rover mecanum module.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("rover_mecanum", "controller");

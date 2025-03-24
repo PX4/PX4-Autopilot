@@ -399,17 +399,11 @@ MavlinkFTP::_workList(PayloadHeader *payload)
 				payload->data[offset++] = kDirentSkip;
 				*((char *)&payload->data[offset]) = '\0';
 				offset++;
-				payload->size = offset;
-				closedir(dp);
+				errorCode = kErrFailErrno;
 
-				return errorCode;
-			}
-
-			// FIXME: does this ever happen? I would assume readdir always sets errno.
-			// no more entries?
-			if (payload->offset != 0 && offset == 0) {
+			} else if (offset == 0) {
 				// User is requesting subsequent dir entries but there were none. This means the user asked
-				// to seek past EOF.
+				// to seek past EOF. This can happen with `payload->offset == 0` if the directory is empty.
 				errorCode = kErrEOF;
 			}
 

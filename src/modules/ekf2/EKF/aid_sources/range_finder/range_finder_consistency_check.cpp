@@ -74,11 +74,6 @@ void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_va
 
 void RangeFinderConsistencyCheck::updateConsistency(float vz, uint64_t time_us)
 {
-	if (fabsf(vz) < _min_vz_for_valid_consistency) {
-		// We can only check consistency if there is vertical motion
-		return;
-	}
-
 	if (fabsf(_signed_test_ratio_lpf.getState()) >= 1.f) {
 		if ((time_us - _time_last_horizontal_motion) > _signed_test_ratio_tau) {
 			_is_kinematically_consistent = false;
@@ -86,7 +81,8 @@ void RangeFinderConsistencyCheck::updateConsistency(float vz, uint64_t time_us)
 		}
 
 	} else {
-		if ((_test_ratio < 1.f)
+		if ((fabsf(vz) > _min_vz_for_valid_consistency)
+		    && (_test_ratio < 1.f)
 		    && ((time_us - _time_last_inconsistent_us) > _consistency_hyst_time_us)
 		   ) {
 			_is_kinematically_consistent = true;

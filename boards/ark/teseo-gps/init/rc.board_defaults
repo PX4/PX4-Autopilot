@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+param set-default CBRK_IO_SAFETY 0
+param set-default CANNODE_SUB_MBD 1
+param set-default CANNODE_SUB_RTCM 1
+param set-default MBE_ENABLE 0
+param set-default SENS_IMU_CLPNOTI 0
+
+tone_alarm start
+
+ekf2 start

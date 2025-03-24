@@ -54,6 +54,7 @@
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensors_status.h>
 #include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/estimator_status_flags.h>
 
 using namespace time_literals;
 
@@ -72,12 +73,19 @@ public:
 	void PrintStatus();
 
 private:
+	enum TemperatureSource {
+		DEFAULT_TEMP = 0,
+		EXTERNAL_BARO = 1,
+		AIRSPEED = 2,
+	};
+
 	void Run() override;
 
-	void AirTemperatureUpdate();
+	float AirTemperatureUpdate(const float temperature_baro, TemperatureSource &source, const hrt_abstime time_now_us);
 	void CheckFailover(const hrt_abstime &time_now_us);
 	bool ParametersUpdate(bool force = false);
 	void UpdateStatus();
+	bool UpdateRelativeCalibrations(hrt_abstime time_now_us);
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
@@ -88,6 +96,8 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _differential_pressure_sub{ORB_ID(differential_pressure)};
+
+	uORB::Subscription _estimator_status_flags_sub{ORB_ID(estimator_status_flags)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
 		{this, ORB_ID(sensor_baro), 0},
@@ -121,7 +131,10 @@ private:
 
 	int8_t _selected_sensor_sub_index{-1};
 
-	float _air_temperature_celsius{20.f}; // initialize with typical 20degC ambient temperature
+	bool _last_status_baro_fault{false};
+
+	bool _relative_calibration_done{false};
+	uint64_t _calibration_t_first{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh,

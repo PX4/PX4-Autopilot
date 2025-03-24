@@ -13,8 +13,6 @@ param set-default MAV_TYPE 1
 #
 # Default parameters for fixed wing UAVs.
 #
-param set-default COM_POS_FS_DELAY 5
-
 # there is a 2.5 factor applied on the _FS thresholds if for invalidation
 param set-default COM_POS_FS_EPH 50
 param set-default COM_VEL_FS_EVH 3
@@ -26,7 +24,6 @@ param set-default COM_DISARM_PRFLT -1
 
 param set-default EKF2_ARSP_THR 8
 param set-default EKF2_FUSE_BETA 1
-param set-default EKF2_GPS_CHECK 21
 param set-default EKF2_MAG_ACCLIM 0
 param set-default EKF2_REQ_EPH 10
 param set-default EKF2_REQ_EPV 10

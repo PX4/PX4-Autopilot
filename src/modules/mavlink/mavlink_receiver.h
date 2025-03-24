@@ -67,7 +67,6 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/camera_status.h>
 #include <uORB/topics/cellular_status.h>
-#include <uORB/topics/collision_report.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/follow_target.h>
@@ -111,8 +110,6 @@
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_trajectory_bezier.h>
-#include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/velocity_limits.h>
 
 #if !defined(CONSTRAINED_FLASH)
@@ -202,8 +199,6 @@ private:
 	void handle_message_set_position_target_local_ned(mavlink_message_t *msg);
 	void handle_message_statustext(mavlink_message_t *msg);
 	void handle_message_tunnel(mavlink_message_t *msg);
-	void handle_message_trajectory_representation_bezier(mavlink_message_t *msg);
-	void handle_message_trajectory_representation_waypoints(mavlink_message_t *msg);
 	void handle_message_utm_global_position(mavlink_message_t *msg);
 #if defined(MAVLINK_MSG_ID_SET_VELOCITY_LIMITS) // For now only defined if development.xml is used
 	void handle_message_set_velocity_limits(mavlink_message_t *msg);
@@ -302,7 +297,6 @@ private:
 	uORB::Publication<battery_status_s>			_battery_pub{ORB_ID(battery_status)};
 	uORB::Publication<camera_status_s>			_camera_status_pub{ORB_ID(camera_status)};
 	uORB::Publication<cellular_status_s>			_cellular_status_pub{ORB_ID(cellular_status)};
-	uORB::Publication<collision_report_s>			_collision_report_pub{ORB_ID(collision_report)};
 	uORB::Publication<differential_pressure_s>		_differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<follow_target_s>			_follow_target_pub{ORB_ID(follow_target)};
 	uORB::Publication<gimbal_manager_set_attitude_s>	_gimbal_manager_set_attitude_pub{ORB_ID(gimbal_manager_set_attitude)};
@@ -313,6 +307,7 @@ private:
 	uORB::Publication<landing_target_pose_s>		_landing_target_pose_pub{ORB_ID(landing_target_pose)};
 	uORB::Publication<log_message_s>			_log_message_pub{ORB_ID(log_message)};
 	uORB::Publication<mavlink_tunnel_s>			_mavlink_tunnel_pub{ORB_ID(mavlink_tunnel)};
+	uORB::Publication<mavlink_tunnel_s>			_esc_serial_passthru_pub{ORB_ID(esc_serial_passthru)};
 	uORB::Publication<obstacle_distance_s>			_obstacle_distance_pub{ORB_ID(obstacle_distance)};
 	uORB::Publication<offboard_control_mode_s>		_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<onboard_computer_status_s>		_onboard_computer_status_pub{ORB_ID(onboard_computer_status)};
@@ -331,8 +326,6 @@ private:
 	uORB::Publication<vehicle_odometry_s>			_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
 	uORB::Publication<vehicle_odometry_s>			_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
-	uORB::Publication<vehicle_trajectory_bezier_s>		_trajectory_bezier_pub{ORB_ID(vehicle_trajectory_bezier)};
-	uORB::Publication<vehicle_trajectory_waypoint_s>	_trajectory_waypoint_pub{ORB_ID(vehicle_trajectory_waypoint)};
 
 #if !defined(CONSTRAINED_FLASH)
 	uORB::Publication<debug_array_s>			_debug_array_pub {ORB_ID(debug_array)};
@@ -402,7 +395,6 @@ private:
 	hrt_abstime _heartbeat_component_telemetry_radio{0};
 	hrt_abstime _heartbeat_component_log{0};
 	hrt_abstime _heartbeat_component_osd{0};
-	hrt_abstime _heartbeat_component_obstacle_avoidance{0};
 	hrt_abstime _heartbeat_component_visual_inertial_odometry{0};
 	hrt_abstime _heartbeat_component_pairing_manager{0};
 	hrt_abstime _heartbeat_component_udp_bridge{0};

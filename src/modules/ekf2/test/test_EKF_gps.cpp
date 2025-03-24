@@ -164,7 +164,7 @@ TEST_F(EkfGpsTest, resetToGpsPosition)
 
 	// AND: simulate jump in position
 	_sensor_simulator.startGps();
-	const Vector3f simulated_position_change(2.0f, -1.0f, 0.f);
+	const Vector3f simulated_position_change(20.0f, -1.0f, 0.f);
 	_sensor_simulator._gps.stepHorizontalPositionByMeters(
 		Vector2f(simulated_position_change));
 	_sensor_simulator.runSeconds(6);

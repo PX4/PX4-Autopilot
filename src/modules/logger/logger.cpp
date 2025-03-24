@@ -1307,7 +1307,7 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 #if defined(PX4_CRYPTO)
 
 	if (_param_sdlog_crypto_algorithm.get() != 0) {
-		crypto_suffix = "c";
+		crypto_suffix = "e";
 	}
 
 #endif

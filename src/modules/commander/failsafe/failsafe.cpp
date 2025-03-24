@@ -51,6 +51,7 @@ FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 
 	case gcs_connection_loss_failsafe_mode::Hold_mode:
 		options.action = Action::Hold;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
 	case gcs_connection_loss_failsafe_mode::Return_mode:
@@ -192,16 +193,16 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 
 	switch (battery_warning) {
 	default:
-	case battery_status_s::BATTERY_WARNING_NONE:
+	case battery_status_s::WARNING_NONE:
 		options.action = Action::None;
 		break;
 
-	case battery_status_s::BATTERY_WARNING_LOW:
+	case battery_status_s::WARNING_LOW:
 		options.action = Action::Warn;
 		options.cause = Cause::BatteryLow;
 		break;
 
-	case battery_status_s::BATTERY_WARNING_CRITICAL:
+	case battery_status_s::WARNING_CRITICAL:
 		options.action = Action::Warn;
 		options.cause = Cause::BatteryCritical;
 
@@ -222,7 +223,7 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 
 		break;
 
-	case battery_status_s::BATTERY_WARNING_EMERGENCY:
+	case battery_status_s::WARNING_EMERGENCY:
 		options.action = Action::Warn;
 		options.cause = Cause::BatteryEmergency;
 
@@ -368,6 +369,49 @@ FailsafeBase::ActionOptions Failsafe::fromHighWindLimitActParam(int param_value)
 	return options;
 }
 
+FailsafeBase::ActionOptions Failsafe::fromPosLowActParam(int param_value)
+{
+	ActionOptions options{};
+	options.allow_user_takeover = UserTakeoverAllowed::AlwaysModeSwitchOnly; // ensure the user can escape again
+
+	switch (command_after_pos_low_failsafe(param_value)) {
+	case command_after_pos_low_failsafe::None:
+		options.action = Action::None;
+		break;
+
+	case command_after_pos_low_failsafe::Warning:
+		options.action = Action::Warn;
+		break;
+
+	case command_after_pos_low_failsafe::Hold_mode:
+		options.action = Action::Hold;
+		options.clear_condition = ClearCondition::WhenConditionClears;
+		break;
+
+	case command_after_pos_low_failsafe::Return_mode:
+		options.action = Action::RTL;
+		options.clear_condition = ClearCondition::WhenConditionClears;
+		break;
+
+	case command_after_pos_low_failsafe::Terminate:
+		options.allow_user_takeover = UserTakeoverAllowed::Never;
+		options.action = Action::Terminate;
+		options.clear_condition = ClearCondition::Never;
+		break;
+
+	case command_after_pos_low_failsafe::Land_mode:
+		options.action = Action::Land;
+		options.clear_condition = ClearCondition::WhenConditionClears;
+		break;
+
+	default:
+		options.action = Action::Warn;
+		break;
+	}
+
+	return options;
+}
+
 FailsafeBase::ActionOptions Failsafe::fromRemainingFlightTimeLowActParam(int param_value)
 {
 	ActionOptions options{};
@@ -469,10 +513,10 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		       ActionOptions(fromHighWindLimitActParam(_param_com_wind_max_act.get()).cannotBeDeferred()));
 	CHECK_FAILSAFE(status_flags, flight_time_limit_exceeded, ActionOptions(Action::RTL).cannotBeDeferred());
 
-	// trigger RTL if low position accurancy is detected
+	// trigger Low Position Accuracy Failsafe (only in auto mission and auto loiter)
 	if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ||
 	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
-		CHECK_FAILSAFE(status_flags, local_position_accuracy_low, ActionOptions(Action::RTL));
+		CHECK_FAILSAFE(status_flags, local_position_accuracy_low, fromPosLowActParam(_param_com_pos_low_act.get()));
 	}
 
 	if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
@@ -507,21 +551,21 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 					   _param_com_low_bat_act.get() : (int32_t)LowBatteryAction::Warning;
 
 	switch (status_flags.battery_warning) {
-	case battery_status_s::BATTERY_WARNING_LOW:
+	case battery_status_s::WARNING_LOW:
 		_last_state_battery_warning_low = checkFailsafe(_caller_id_battery_warning_low, _last_state_battery_warning_low,
-						  true, fromBatteryWarningActParam(low_battery_action, battery_status_s::BATTERY_WARNING_LOW));
+						  true, fromBatteryWarningActParam(low_battery_action, battery_status_s::WARNING_LOW));
 		break;
 
-	case battery_status_s::BATTERY_WARNING_CRITICAL:
+	case battery_status_s::WARNING_CRITICAL:
 		_last_state_battery_warning_critical = checkFailsafe(_caller_id_battery_warning_critical,
 						       _last_state_battery_warning_critical,
-						       true, fromBatteryWarningActParam(low_battery_action, battery_status_s::BATTERY_WARNING_CRITICAL));
+						       true, fromBatteryWarningActParam(low_battery_action, battery_status_s::WARNING_CRITICAL));
 		break;
 
-	case battery_status_s::BATTERY_WARNING_EMERGENCY:
+	case battery_status_s::WARNING_EMERGENCY:
 		_last_state_battery_warning_emergency = checkFailsafe(_caller_id_battery_warning_emergency,
 							_last_state_battery_warning_emergency,
-							true, fromBatteryWarningActParam(low_battery_action, battery_status_s::BATTERY_WARNING_EMERGENCY));
+							true, fromBatteryWarningActParam(low_battery_action, battery_status_s::WARNING_EMERGENCY));
 		break;
 
 	default:
@@ -533,8 +577,12 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	if ((_armed_time != 0)
 	    && (time_us < _armed_time + static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s))
 	   ) {
-		CHECK_FAILSAFE(status_flags, fd_esc_arming_failure, ActionOptions(Action::Disarm).cannotBeDeferred());
-		CHECK_FAILSAFE(status_flags, battery_unhealthy, ActionOptions(Action::Disarm).cannotBeDeferred());
+		_last_state_fd_esc_arming = checkFailsafe(_caller_id_fd_esc_arming, _last_state_fd_esc_arming,
+					    status_flags.fd_esc_arming_failure,
+					    ActionOptions(Action::Disarm).cannotBeDeferred());
+		_last_state_battery_unhealthy_spoolup = checkFailsafe(_caller_id_battery_unhealthy_spoolup,
+							_last_state_battery_unhealthy_spoolup, status_flags.battery_unhealthy,
+							ActionOptions(Action::Disarm).cannotBeDeferred());
 	}
 
 	// Handle fails during the early takeoff phase

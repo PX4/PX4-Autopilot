@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,29 +39,28 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
+// Libraries
+#include <lib/pure_pursuit/PurePursuit.hpp>
+#include <lib/rover_control/RoverControl.hpp>
 #include <lib/slew_rate/SlewRate.hpp>
 
 // uORB includes
+#include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/actuator_servos.h>
-#include <uORB/topics/rover_ackermann_status.h>
-#include <uORB/topics/vehicle_local_position.h>
-
-
-// Standard library includes
-#include <math.h>
+#include <uORB/topics/rover_steering_setpoint.h>
+#include <uORB/topics/rover_throttle_setpoint.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 // Local includes
-#include "RoverAckermannGuidance/RoverAckermannGuidance.hpp"
-using motor_setpoint_struct = RoverAckermannGuidance::motor_setpoint;
-
-using namespace time_literals;
+#include "AckermannRateControl/AckermannRateControl.hpp"
+#include "AckermannAttControl/AckermannAttControl.hpp"
+#include "AckermannPosVelControl/AckermannPosVelControl.hpp"
 
 class RoverAckermann : public ModuleBase<RoverAckermann>, public ModuleParams,
 	public px4::ScheduledWorkItem
@@ -84,61 +83,65 @@ public:
 
 	bool init();
 
-
 protected:
+	/**
+	 * @brief Update the parameters of the module.
+	 */
 	void updateParams() override;
 
 private:
 	void Run() override;
 
 	/**
-	 * @brief Update uORB subscriptions.
+	 * @brief Generate and publish roverSteeringSetpoint from manualControlSetpoint (Manual Mode).
 	 */
-	void updateSubscriptions();
+	void generateSteeringSetpoint();
 
 	/**
-	 * @brief Apply slew rates to motor setpoints.
-	 * @param motor_setpoint Normalized steering and throttle setpoints.
-	 * @param dt Time since last update [s].
-	 * @return Motor setpoint with applied slew rates.
+	 * @brief Generate and publish actuatorMotors/actuatorServos setpoints from roverThrottleSetpoint/roverSteeringSetpoint.
 	 */
-	motor_setpoint_struct applySlewRates(motor_setpoint_struct motor_setpoint, float dt);
-
-	/**
-	 * @brief Publish motor setpoints to ActuatorMotors/ActuatorServos and logging values to RoverAckermannStatus.
-	 * @param motor_setpoint_with_slew_rate Normalized motor_setpoint with applied slew rates.
-	 */
-	void publishMotorSetpoints(motor_setpoint_struct motor_setpoint_with_slew_rates);
+	void generateActuatorSetpoint();
 
 	// uORB subscriptions
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _rover_steering_setpoint_sub{ORB_ID(rover_steering_setpoint)};
+	uORB::Subscription _rover_throttle_setpoint_sub{ORB_ID(rover_throttle_setpoint)};
+	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _actuator_servos_sub{ORB_ID(actuator_servos)};
+	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
+	vehicle_control_mode_s _vehicle_control_mode{};
+	rover_steering_setpoint_s _rover_steering_setpoint{};
+	rover_throttle_setpoint_s _rover_throttle_setpoint{};
 
 	// uORB publications
 	uORB::PublicationMulti<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
 	uORB::Publication<actuator_servos_s> _actuator_servos_pub{ORB_ID(actuator_servos)};
-	uORB::Publication<rover_ackermann_status_s> _rover_ackermann_status_pub{ORB_ID(rover_ackermann_status)};
+	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
+	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
 
 	// Class instances
-	RoverAckermannGuidance _ackermann_guidance{this};
+	AckermannRateControl _ackermann_rate_control{this};
+	AckermannAttControl _ackermann_att_control{this};
+	AckermannPosVelControl _ackermann_pos_vel_control{this};
 
 	// Variables
-	int _nav_state{0};
-	motor_setpoint_struct _motor_setpoint;
 	hrt_abstime _timestamp{0};
-	float _actual_speed{0.f};
-	SlewRate<float> _steering_with_rate_limit{0.f};
-	SlewRate<float> _throttle_with_accel_limit{0.f};
-	bool _armed{false};
+	float _dt{0.f};
+	float _current_servo_setpoint{0.f};
+	float _current_motor_setpoint{0.f};
+
+	// Controllers
+	SlewRate<float> _servo_setpoint{0.f};
+	SlewRate<float> _motor_setpoint{0.f};
 
 	// Parameters
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_R_REV>) _param_r_rev,
-		(ParamFloat<px4::params::RA_MAX_STR_ANG>) _param_ra_max_steer_angle,
-		(ParamFloat<px4::params::RA_MAX_SPEED>) _param_ra_max_speed,
-		(ParamFloat<px4::params::RA_MAX_ACCEL>) _param_ra_max_accel,
-		(ParamFloat<px4::params::RA_MAX_STR_RATE>) _param_ra_max_steering_rate
+		(ParamFloat<px4::params::RA_STR_RATE_LIM>) _param_ra_str_rate_limit,
+		(ParamFloat<px4::params::RA_MAX_STR_ANG>) _param_ra_max_str_ang,
+		(ParamFloat<px4::params::RO_ACCEL_LIM>) _param_ro_accel_limit,
+		(ParamFloat<px4::params::RO_DECEL_LIM>) _param_ro_decel_limit,
+		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed
 	)
 };

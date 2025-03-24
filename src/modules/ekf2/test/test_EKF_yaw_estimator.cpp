@@ -40,7 +40,6 @@
 #include "EKF/ekf.h"
 #include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
-#include "test_helper/reset_logging_checker.h"
 
 class EKFYawEstimatorTest : public ::testing::Test
 {
@@ -91,8 +90,6 @@ TEST_F(EKFYawEstimatorTest, inAirYawAlignment)
 	// WHEN: the vehicle starts accelerating in the horizontal plane
 	_sensor_simulator.setTrajectoryTargetVelocity(Vector3f(2.f, -2.f, -1.f));
 	_ekf->set_in_air_status(true);
-	ResetLoggingChecker reset_logging_checker(_ekf);
-	reset_logging_checker.capturePreResetState();
 
 	_sensor_simulator.runTrajectorySeconds(3.f);
 
@@ -106,10 +103,12 @@ TEST_F(EKFYawEstimatorTest, inAirYawAlignment)
 	EXPECT_NEAR(yaw_est, yaw, tolerance_rad);
 	EXPECT_LT(yaw_est_var, tolerance_rad);
 
-	// 1 reset when starting GNSS aiding
-	reset_logging_checker.capturePostResetState();
-	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
-	EXPECT_TRUE(reset_logging_checker.isHorizontalPositionResetCounterIncreasedBy(1));
+	EXPECT_LT(_ekf->aid_src_gnss_pos().test_ratio[0], 0.5f);
+	EXPECT_LT(_ekf->aid_src_gnss_pos().test_ratio[1], 0.5f);
+
+	EXPECT_LT(_ekf->aid_src_gnss_vel().test_ratio[0], 0.1f);
+	EXPECT_LT(_ekf->aid_src_gnss_vel().test_ratio[1], 0.1f);
+	EXPECT_LT(_ekf->aid_src_gnss_vel().test_ratio[2], 0.1f);
 
 	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
 	EXPECT_TRUE(_ekf->isGlobalHorizontalPositionValid());

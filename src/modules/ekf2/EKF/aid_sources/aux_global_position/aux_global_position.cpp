@@ -73,25 +73,22 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 			return;
 		}
 
-		estimator_aid_source2d_s aid_src{};
-		Vector2f position;
+		estimator_aid_source2d_s &aid_src = _aid_src_aux_global_position;
+		const LatLonAlt position(sample.latitude, sample.longitude, sample.altitude_amsl);
+		const Vector2f innovation = (ekf.getLatLonAlt() - position).xy(); // altitude measurements are not used
 
-		if (ekf.global_origin_valid()) {
-			position = ekf.global_origin().project(sample.latitude, sample.longitude);
-			//const float hgt = ekf.getEkfGlobalOriginAltitude() - (float)sample.altitude;
-			// relax the upper observation noise limit which prevents bad measurements perturbing the position estimate
-			float pos_noise = math::max(sample.eph, _param_ekf2_agp_noise.get(), 0.01f);
-			const float pos_var = sq(pos_noise);
-			const Vector2f pos_obs_var(pos_var, pos_var);
+		// relax the upper observation noise limit which prevents bad measurements perturbing the position estimate
+		float pos_noise = math::max(sample.eph, _param_ekf2_agp_noise.get(), 0.01f);
+		const float pos_var = sq(pos_noise);
+		const Vector2f pos_obs_var(pos_var, pos_var);
 
-			ekf.updateAidSourceStatus(aid_src,
-						  sample.time_us,                                    // sample timestamp
-						  position,                                          // observation
-						  pos_obs_var,                                       // observation variance
-						  Vector2f(ekf.state().pos) - position,              // innovation
-						  Vector2f(ekf.getPositionVariance()) + pos_obs_var, // innovation variance
-						  math::max(_param_ekf2_agp_gate.get(), 1.f));       // innovation gate
-		}
+		ekf.updateAidSourceStatus(aid_src,
+					  sample.time_us,                                      // sample timestamp
+					  matrix::Vector2d(sample.latitude, sample.longitude), // observation
+					  pos_obs_var,                                         // observation variance
+					  innovation,                                          // innovation
+					  Vector2f(ekf.getPositionVariance()) + pos_obs_var,   // innovation variance
+					  math::max(_param_ekf2_agp_gate.get(), 1.f));         // innovation gate
 
 		const bool starting_conditions = PX4_ISFINITE(sample.latitude) && PX4_ISFINITE(sample.longitude)
 						 && ekf.control_status_flags().yaw_align;
@@ -107,14 +104,26 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 				_state = State::starting;
 
 				if (ekf.global_origin_valid()) {
-					ekf.enableControlStatusAuxGpos();
-					_reset_counters.lat_lon = sample.lat_lon_reset_counter;
-					_state = State::active;
+					const bool fused = ekf.fuseHorizontalPosition(aid_src);
+					bool reset = false;
+
+					if (!fused && !ekf.isOtherSourceOfHorizontalPositionAidingThan(ekf.control_status_flags().aux_gpos)) {
+						ekf.resetGlobalPositionTo(sample.latitude, sample.longitude, sample.altitude_amsl, pos_var, sq(sample.epv));
+						ekf.resetAidSourceStatusZeroInnovation(aid_src);
+						reset = true;
+					}
+
+					if (fused || reset) {
+						ekf.enableControlStatusAuxGpos();
+						_reset_counters.lat_lon = sample.lat_lon_reset_counter;
+						_state = State::active;
+					}
 
 				} else {
 					// Try to initialize using measurement
-					if (ekf.setEkfGlobalOriginFromCurrentPos(sample.latitude, sample.longitude, sample.altitude_amsl, sample.eph,
-							sample.epv)) {
+					if (ekf.resetGlobalPositionTo(sample.latitude, sample.longitude, sample.altitude_amsl, pos_var,
+								      sq(sample.epv))) {
+						ekf.resetAidSourceStatusZeroInnovation(aid_src);
 						ekf.enableControlStatusAuxGpos();
 						_reset_counters.lat_lon = sample.lat_lon_reset_counter;
 						_state = State::active;
@@ -130,12 +139,18 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 
 				if (isTimedOut(aid_src.time_last_fuse, imu_delayed.time_us, ekf._params.no_aid_timeout_max)
 				    || (_reset_counters.lat_lon != sample.lat_lon_reset_counter)) {
+					if (ekf.isOnlyActiveSourceOfHorizontalPositionAiding(ekf.control_status_flags().aux_gpos)) {
 
-					ekf.resetHorizontalPositionTo(Vector2f(aid_src.observation), Vector2f(aid_src.observation_variance));
+						ekf.resetHorizontalPositionTo(sample.latitude, sample.longitude, Vector2f(aid_src.observation_variance));
 
-					ekf.resetAidSourceStatusZeroInnovation(aid_src);
+						ekf.resetAidSourceStatusZeroInnovation(aid_src);
 
-					_reset_counters.lat_lon = sample.lat_lon_reset_counter;
+						_reset_counters.lat_lon = sample.lat_lon_reset_counter;
+
+					} else {
+						ekf.disableControlStatusAuxGpos();
+						_state = State::stopped;
+					}
 				}
 
 			} else {

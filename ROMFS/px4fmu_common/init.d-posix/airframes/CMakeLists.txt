@@ -39,8 +39,6 @@ px4_add_romfs_files(
 	1012_gazebo-classic_iris_rplidar
 	1013_gazebo-classic_iris_vision
 	1013_gazebo-classic_iris_vision.post
-	1014_gazebo-classic_iris_obs_avoid
-	1014_gazebo-classic_iris_obs_avoid.post
 	1015_gazebo-classic_iris_depth_camera
 	1016_gazebo-classic_iris_downward_depth_camera
 	1017_gazebo-classic_iris_opt_flow_mockup
@@ -49,6 +47,7 @@ px4_add_romfs_files(
 	1022_gazebo-classic_uuv_bluerov2_heavy
 	1030_gazebo-classic_plane
 	1031_gazebo-classic_plane_cam
+	1031_gazebo-classic_plane_cam.post
 	1032_gazebo-classic_plane_catapult
 	1033_jsbsim_rascal
 	1034_flightgear_rascal-electric
@@ -84,9 +83,15 @@ px4_add_romfs_files(
 	4010_gz_x500_mono_cam
 	4011_gz_lawnmower
 	4012_gz_rover_ackermann
-	4013_gz_x500_lidar
+	4013_gz_x500_lidar_2d
 	4014_gz_x500_mono_cam_down
 	4015_gz_r1_rover_mecanum
+	4016_gz_x500_lidar_down
+	4017_gz_x500_lidar_front
+	4018_gz_quadtailsitter
+	4019_gz_x500_gimbal
+	4020_gz_tiltrotor
+	4021_gz_x500_flow
 
 	6011_gazebo-classic_typhoon_h480
 	6011_gazebo-classic_typhoon_h480.post
@@ -103,9 +108,13 @@ px4_add_romfs_files(
 	10040_sihsim_quadx
 	10041_sihsim_airplane
 	10042_sihsim_xvert
+	10043_sihsim_standard_vtol
 
 	17001_flightgear_tf-g1
 	17002_flightgear_tf-g2
+
+	71001_gazebo-classic_spacecraft_dart
+	71002_gz_spacecraft_2d
 
 	# [22000, 22999] Reserve for custom models
 )

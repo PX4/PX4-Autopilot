@@ -326,6 +326,7 @@ px4io_update:
 bootloaders_update: \
 	3dr_ctrl-zero-h7-oem-revg_bootloader \
 	ark_fmu-v6x_bootloader \
+	ark_fpv_bootloader \
 	ark_pi6x_bootloader \
 	cuav_nora_bootloader \
 	cuav_x7pro_bootloader \
@@ -342,6 +343,8 @@ bootloaders_update: \
 	matek_h743-mini_bootloader \
 	matek_h743-slim_bootloader \
         micoair_h743_bootloader \
+        micoair_h743-aio_bootloader \
+	micoair_h743-v2_bootloader \
 	modalai_fc-v2_bootloader \
 	mro_ctrl-zero-classic_bootloader \
 	mro_ctrl-zero-h7_bootloader \
@@ -401,7 +404,7 @@ check_newlines:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard tests_avoidance
+.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard
 .PHONY: rostest python_coverage
 
 tests:
@@ -453,10 +456,6 @@ tests_offboard: rostest
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_offboard_posctl.test
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_offboard_rpyrt_ctl.test
-
-tests_avoidance: rostest
-	@"$(SRC_DIR)"/test/rostest_avoidance_run.sh mavros_posix_test_avoidance.test
-	@"$(SRC_DIR)"/test/rostest_avoidance_run.sh mavros_posix_test_safe_landing.test
 
 python_coverage:
 	@mkdir -p "$(SRC_DIR)"/build/python_coverage

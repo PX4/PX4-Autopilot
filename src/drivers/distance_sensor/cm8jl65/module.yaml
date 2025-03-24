@@ -18,7 +18,7 @@ parameters:
             values:
                 25: ROTATION_DOWNWARD_FACING
                 24: ROTATION_UPWARD_FACING
-                12: ROTATION_BACKWARD_FACING
+                4: ROTATION_BACKWARD_FACING
                 0: ROTATION_FORWARD_FACING
                 6: ROTATION_LEFT_FACING
                 2: ROTATION_RIGHT_FACING

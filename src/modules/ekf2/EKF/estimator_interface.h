@@ -72,6 +72,7 @@
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #include <lib/atmosphere/atmosphere.h>
+#include <lib/lat_lon_alt/lat_lon_alt.hpp>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/AlphaFilter.hpp>
@@ -206,8 +207,8 @@ public:
 	// set air density used by the multi-rotor specific drag force fusion
 	void set_air_density(float air_density) { _air_density = air_density; }
 
-	// the flags considered are opt_flow, gps, ev_vel and ev_pos
 	bool isOnlyActiveSourceOfHorizontalAiding(bool aiding_flag) const;
+	bool isOnlyActiveSourceOfHorizontalPositionAiding(bool aiding_flag) const;
 
 	/*
 	 * Check if there are any other active source of horizontal aiding
@@ -220,13 +221,17 @@ public:
 	 * @return true if an other source than aiding_flag is active
 	 */
 	bool isOtherSourceOfHorizontalAidingThan(bool aiding_flag) const;
+	bool isOtherSourceOfHorizontalPositionAidingThan(bool aiding_flag) const;
 
 	// Return true if at least one source of horizontal aiding is active
 	// the flags considered are opt_flow, gps, ev_vel and ev_pos
 	bool isHorizontalAidingActive() const;
 	bool isVerticalAidingActive() const;
+	bool isNorthEastAidingActive() const;
 
 	int getNumberOfActiveHorizontalAidingSources() const;
+	int getNumberOfActiveHorizontalPositionAidingSources() const;
+	int getNumberOfActiveHorizontalVelocityAidingSources() const;
 
 	bool isOtherSourceOfVerticalPositionAidingThan(bool aiding_flag) const;
 	bool isVerticalPositionAidingActive() const;
@@ -239,9 +244,13 @@ public:
 	const matrix::Quatf &getQuaternion() const { return _output_predictor.getQuaternion(); }
 	float getUnaidedYaw() const { return _output_predictor.getUnaidedYaw(); }
 	Vector3f getVelocity() const { return _output_predictor.getVelocity(); }
-	const Vector3f &getVelocityDerivative() const { return _output_predictor.getVelocityDerivative(); }
+
+	// get the mean velocity derivative in earth frame since last reset (see `resetVelocityDerivativeAccumulation()`)
+	Vector3f getVelocityDerivative() const { return _output_predictor.getVelocityDerivative(); }
+	void resetVelocityDerivativeAccumulation() { return _output_predictor.resetVelocityDerivativeAccumulation(); }
 	float getVerticalPositionDerivative() const { return _output_predictor.getVerticalPositionDerivative(); }
-	Vector3f getPosition() const { return _output_predictor.getPosition(); }
+	Vector3f getPosition() const;
+	LatLonAlt getLatLonAlt() const { return _output_predictor.getLatLonAlt(); }
 	const Vector3f &getOutputTrackingError() const { return _output_predictor.getOutputTrackingError(); }
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -307,9 +316,9 @@ public:
 	const imuSample &get_imu_sample_delayed() const { return _imu_buffer.get_oldest(); }
 	const uint64_t &time_delayed_us() const { return _time_delayed_us; }
 
-	bool global_origin_valid() const { return _pos_ref.isInitialized(); }
-	const MapProjection &global_origin() const { return _pos_ref; }
-	float getEkfGlobalOriginAltitude() const { return PX4_ISFINITE(_gps_alt_ref) ? _gps_alt_ref : 0.f; }
+	bool global_origin_valid() const { return _local_origin_lat_lon.isInitialized(); }
+	const MapProjection &global_origin() const { return _local_origin_lat_lon; }
+	float getEkfGlobalOriginAltitude() const { return PX4_ISFINITE(_local_origin_alt) ? _local_origin_alt : 0.f; }
 
 	OutputPredictor &output_predictor() { return _output_predictor; };
 
@@ -379,10 +388,8 @@ protected:
 	bool _initialised{false};      // true if the ekf interface instance (data buffering) is initialized
 
 	// Variables used to publish the WGS-84 location of the EKF local NED origin
-	MapProjection _pos_ref{}; // Contains WGS-84 position latitude and longitude of the EKF origin
-	float _gps_alt_ref{NAN};		///< WGS-84 height (m)
-	float _gpos_origin_eph{0.0f}; // horizontal position uncertainty of the global origin
-	float _gpos_origin_epv{0.0f}; // vertical position uncertainty of the global origin
+	MapProjection _local_origin_lat_lon{};
+	float _local_origin_alt{NAN};
 
 #if defined(CONFIG_EKF2_GNSS)
 	RingBuffer<gnssSample> *_gps_buffer {nullptr};

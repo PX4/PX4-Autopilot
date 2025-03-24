@@ -53,7 +53,6 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("autotune_attitude_control_status", 100);
 	add_optional_topic("camera_capture");
 	add_optional_topic("camera_trigger");
-	add_optional_topic("can_interface_status", 10);
 	add_topic("cellular_status", 200);
 	add_topic("commander_state");
 	add_topic("config_overrides");
@@ -62,7 +61,8 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("external_ins_attitude");
 	add_optional_topic("external_ins_global_position");
 	add_optional_topic("external_ins_local_position");
-	add_optional_topic("esc_status", 250);
+	// add_optional_topic("esc_status", 250);
+	add_topic("esc_status");
 	add_topic("failure_detector_status", 100);
 	add_topic("failsafe_flags");
 	add_optional_topic("follow_target", 500);
@@ -80,6 +80,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("home_position");
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
+	add_optional_topic("internal_combustion_engine_control", 10);
 	add_optional_topic("internal_combustion_engine_status", 10);
 	add_optional_topic("iridiumsbd_status", 1000);
 	add_optional_topic("irlock_report", 1000);
@@ -99,18 +100,18 @@ void LoggedTopics::add_default_topics()
 	add_topic("parameter_update");
 	add_topic("position_controller_status", 500);
 	add_topic("position_controller_landing_status", 100);
+	add_optional_topic("pure_pursuit_status", 100);
 	add_topic("goto_setpoint", 200);
 	add_topic("position_setpoint_triplet", 200);
 	add_optional_topic("px4io_status");
 	add_topic("radio_status");
-	add_optional_topic("rover_ackermann_guidance_status", 100);
-	add_optional_topic("rover_ackermann_status", 100);
-	add_optional_topic("rover_differential_guidance_status", 100);
-	add_optional_topic("rover_differential_setpoint", 100);
-	add_optional_topic("rover_differential_status", 100);
-	add_optional_topic("rover_mecanum_guidance_status", 100);
-	add_optional_topic("rover_mecanum_setpoint", 100);
-	add_optional_topic("rover_mecanum_status", 100);
+	add_optional_topic("rover_attitude_setpoint", 100);
+	add_optional_topic("rover_attitude_status", 100);
+	add_optional_topic("rover_rate_setpoint", 100);
+	add_optional_topic("rover_rate_status", 100);
+	add_optional_topic("rover_steering_setpoint", 100);
+	add_optional_topic("rover_throttle_setpoint", 100);
+	add_optional_topic("rover_velocity_status", 100);
 	add_topic("rtl_time_estimate", 1000);
 	add_topic("rtl_status", 2000);
 	add_optional_topic("sensor_airflow", 100);
@@ -250,6 +251,10 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("yaw_estimator_status");
 
 #endif /* CONFIG_ARCH_BOARD_PX4_SITL */
+
+#ifdef CONFIG_BOARD_UAVCAN_INTERFACES
+	add_topic_multi("can_interface_status", 100, CONFIG_BOARD_UAVCAN_INTERFACES);
+#endif
 }
 
 void LoggedTopics::add_high_rate_topics()
@@ -290,6 +295,7 @@ void LoggedTopics::add_estimator_replay_topics()
 
 	// current EKF2 subscriptions
 	add_topic("airspeed");
+	add_topic("airspeed_validated");
 	add_topic("vehicle_optical_flow");
 	add_topic("sensor_combined");
 	add_topic("sensor_selection");
@@ -322,10 +328,10 @@ void LoggedTopics::add_sensor_comparison_topics()
 void LoggedTopics::add_vision_and_avoidance_topics()
 {
 	add_topic("collision_constraints");
+	add_topic_multi("distance_sensor");
 	add_topic("obstacle_distance_fused");
+	add_topic("obstacle_distance");
 	add_topic("vehicle_mocap_odometry", 30);
-	add_topic("vehicle_trajectory_waypoint", 200);
-	add_topic("vehicle_trajectory_waypoint_desired", 200);
 	add_topic("vehicle_visual_odometry", 30);
 }
 

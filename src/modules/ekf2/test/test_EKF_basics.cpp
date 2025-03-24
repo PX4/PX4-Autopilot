@@ -103,7 +103,8 @@ TEST_F(EkfBasicsTest, initialControlMode)
 	// THEN: EKF control status should be reasonable
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().tilt_align);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().yaw_align);
-	EXPECT_EQ(0, (int) _ekf->control_status_flags().gps);
+	EXPECT_EQ(0, (int) _ekf->control_status_flags().gnss_pos);
+	EXPECT_EQ(0, (int) _ekf->control_status_flags().gnss_vel);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().opt_flow);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().mag_hdg);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_3D);
@@ -158,7 +159,8 @@ TEST_F(EkfBasicsTest, gpsFusion)
 	// THEN: EKF should fuse GPS, but no other position sensor
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().tilt_align);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().yaw_align);
-	EXPECT_EQ(1, (int) _ekf->control_status_flags().gps);
+	EXPECT_EQ(1, (int) _ekf->control_status_flags().gnss_pos);
+	EXPECT_EQ(1, (int) _ekf->control_status_flags().gnss_vel);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().opt_flow);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().mag_hdg);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_3D);
@@ -219,19 +221,22 @@ TEST_F(EkfBasicsTest, reset_ekf_global_origin_gps_initialized)
 	_altitude_new  = 100.0;
 
 	_sensor_simulator.startGps();
-	_ekf->set_min_required_gps_health_time(1e6);
-	_sensor_simulator.runSeconds(1);
+	_ekf_wrapper.enableGpsHeightFusion();
 
 	_sensor_simulator.setGpsLatitude(_latitude_new);
 	_sensor_simulator.setGpsLongitude(_longitude_new);
 	_sensor_simulator.setGpsAltitude(_altitude_new);
+	_ekf->set_min_required_gps_health_time(1e6);
+	_sensor_simulator.runSeconds(1);
 	_sensor_simulator.runSeconds(5);
 
 	_ekf->getEkfGlobalOrigin(_origin_time, _latitude, _longitude, _altitude);
 
 	EXPECT_DOUBLE_EQ(_latitude, _latitude_new);
 	EXPECT_DOUBLE_EQ(_longitude, _longitude_new);
-	EXPECT_NEAR(_altitude, _altitude_new, 0.01f);
+
+	// In baro height ref the origin is set using baro data and not GNSS altitude
+	EXPECT_NEAR(_altitude, _sensor_simulator._baro.getData(), 0.01f);
 
 	// Note: we cannot reset too far since the local position is limited to 1e6m
 	_latitude_new  = 14.0000005;
@@ -261,11 +266,13 @@ TEST_F(EkfBasicsTest, reset_ekf_global_origin_gps_initialized)
 
 TEST_F(EkfBasicsTest, reset_ekf_global_origin_gps_uninitialized)
 {
-	_ekf->getEkfGlobalOrigin(_origin_time, _latitude_new, _longitude_new, _altitude_new);
+	_ekf->getEkfGlobalOrigin(_origin_time, _latitude, _longitude, _altitude);
 
 	EXPECT_DOUBLE_EQ(_latitude, _latitude_new);
 	EXPECT_DOUBLE_EQ(_longitude, _longitude_new);
-	EXPECT_FLOAT_EQ(_altitude, _altitude_new);
+
+	// In baro height ref the origin is set using baro data and not GNSS altitude
+	EXPECT_NEAR(_altitude, _sensor_simulator._baro.getData(), 0.01f);
 
 	EXPECT_FALSE(_ekf->global_origin_valid());
 

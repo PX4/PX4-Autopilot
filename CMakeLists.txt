@@ -99,7 +99,7 @@
 #
 #=============================================================================
 
-cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
 set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE FILEPATH "PX4 source directory" FORCE)
 set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE FILEPATH "PX4 binary directory" FORCE)
@@ -408,8 +408,15 @@ include(px4_add_gtest)
 if(BUILD_TESTING)
 	include(gtest)
 
+	# Ensure there's no -R without any filter expression since that trips newer ctest versions
+	if(TESTFILTER)
+		set(TESTFILTERARG "-R")
+	else()
+		set(TESTFILTERARG "")
+	endif()
+
 	add_custom_target(test_results
-			COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} --output-on-failure -T Test -R ${TESTFILTER} USES_TERMINAL
+			COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} --output-on-failure -T Test ${TESTFILTERARG} ${TESTFILTER}
 			DEPENDS
 				px4
 				examples__dyn_hello

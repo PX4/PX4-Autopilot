@@ -313,11 +313,8 @@ protected:
 
 	float _quadchute_ref_alt{NAN};	// altitude (AMSL) reference to compute quad-chute altitude loss condition
 
-	float _accel_to_pitch_integ = 0;
-
 	bool _quadchute_command_treated{false};
 
-	float update_and_get_backtransition_pitch_sp();
 	bool isFrontTransitionCompleted();
 	virtual bool isFrontTransitionCompletedBase();
 
@@ -365,7 +362,6 @@ protected:
 private:
 	hrt_abstime _throttle_blend_start_ts{0};	// time at which we start blending between transition throttle and fixed wing throttle
 
-	void resetAccelToPitchPitchIntegrator() { _accel_to_pitch_integ = 0.f; }
 	bool shouldBlendThrottleAfterFrontTransition() { return _throttle_blend_start_ts != 0; };
 
 	void stopBlendingThrottleAfterFrontTransition() { _throttle_blend_start_ts = 0; }

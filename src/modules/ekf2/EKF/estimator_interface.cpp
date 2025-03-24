@@ -568,6 +568,26 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	return true;
 }
 
+Vector3f EstimatorInterface::getPosition() const
+{
+	LatLonAlt lla = _output_predictor.getLatLonAlt();
+	float x;
+	float y;
+
+	if (_local_origin_lat_lon.isInitialized()) {
+		_local_origin_lat_lon.project(lla.latitude_deg(), lla.longitude_deg(), x, y);
+
+	} else {
+		MapProjection zero_ref;
+		zero_ref.initReference(0.0, 0.0);
+		zero_ref.project(lla.latitude_deg(), lla.longitude_deg(), x, y);
+	}
+
+	const float z = -(lla.altitude() - getEkfGlobalOriginAltitude());
+
+	return Vector3f(x, y, z);
+}
+
 bool EstimatorInterface::isOnlyActiveSourceOfHorizontalAiding(const bool aiding_flag) const
 {
 	return aiding_flag && !isOtherSourceOfHorizontalAidingThan(aiding_flag);
@@ -581,11 +601,32 @@ bool EstimatorInterface::isOtherSourceOfHorizontalAidingThan(const bool aiding_f
 
 int EstimatorInterface::getNumberOfActiveHorizontalAidingSources() const
 {
-	return int(_control_status.flags.gps)
-	       + int(_control_status.flags.opt_flow)
+	return getNumberOfActiveHorizontalPositionAidingSources() + getNumberOfActiveHorizontalVelocityAidingSources();
+}
+
+bool EstimatorInterface::isOnlyActiveSourceOfHorizontalPositionAiding(const bool aiding_flag) const
+{
+	return aiding_flag && !isOtherSourceOfHorizontalPositionAidingThan(aiding_flag);
+}
+
+bool EstimatorInterface::isOtherSourceOfHorizontalPositionAidingThan(const bool aiding_flag) const
+{
+	const int nb_sources = getNumberOfActiveHorizontalPositionAidingSources();
+	return aiding_flag ? nb_sources > 1 : nb_sources > 0;
+}
+
+int EstimatorInterface::getNumberOfActiveHorizontalPositionAidingSources() const
+{
+	return int(_control_status.flags.gnss_pos)
 	       + int(_control_status.flags.ev_pos)
+	       + int(_control_status.flags.aux_gpos);
+}
+
+int EstimatorInterface::getNumberOfActiveHorizontalVelocityAidingSources() const
+{
+	return int(_control_status.flags.gnss_vel)
+	       + int(_control_status.flags.opt_flow)
 	       + int(_control_status.flags.ev_vel)
-	       + int(_control_status.flags.aux_gpos)
 	       // Combined airspeed and sideslip fusion allows sustained wind relative dead reckoning
 	       // and so is treated as a single aiding source.
 	       + int(_control_status.flags.fuse_aspd && _control_status.flags.fuse_beta);
@@ -632,8 +673,15 @@ bool EstimatorInterface::isVerticalVelocityAidingActive() const
 
 int EstimatorInterface::getNumberOfActiveVerticalVelocityAidingSources() const
 {
-	return int(_control_status.flags.gps)
+	return int(_control_status.flags.gnss_vel)
 	       + int(_control_status.flags.ev_vel);
+}
+
+bool EstimatorInterface::isNorthEastAidingActive() const
+{
+	return _control_status.flags.gnss_pos
+	       || _control_status.flags.gnss_vel
+	       || _control_status.flags.aux_gpos;
 }
 
 void EstimatorInterface::printBufferAllocationFailed(const char *buffer_name)

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,22 +31,13 @@
 #
 ############################################################################
 
-# Find the gz_Transport library
-# Look for GZ Ionic, Harmonic, and Garden library options in that order
-find_package(gz-transport NAMES gz-transport14 gz-transport13 gz-transport12)
+if(NOT DEFINED ENV{GZ_DISTRO} OR NOT "$ENV{GZ_DISTRO}" STREQUAL "harmonic")
+    find_package(gz-transport NAMES gz-transport14 gz-transport13)
+else()
+    find_package(gz-transport NAMES gz-transport13)
+endif()
 
-if(gz-transport_FOUND)
-
-	add_compile_options(-frtti -fexceptions)
-
-	set(GZ_TRANSPORT_VER ${gz-transport_VERSION_MAJOR})
-
-	if(GZ_TRANSPORT_VER GREATER_EQUAL 12)
-		set(GZ_TRANSPORT_LIB gz-transport${GZ_TRANSPORT_VER}::core)
-	else()
-		set(GZ_TRANSPORT_LIB ignition-transport${GZ_TRANSPORT_VER}::core)
-	endif()
-
+if (gz-transport_FOUND)
 	px4_add_module(
 		MODULE modules__simulation__gz_bridge
 		MAIN gz_bridge
@@ -61,13 +52,23 @@ if(gz-transport_FOUND)
 			GZMixingInterfaceServo.hpp
 			GZMixingInterfaceWheel.cpp
 			GZMixingInterfaceWheel.hpp
+			GZGimbal.cpp
+			GZGimbal.hpp
 		DEPENDS
 			mixer_module
 			px4_work_queue
-			${GZ_TRANSPORT_LIB}
+			gz-transport${gz-transport_VERSION_MAJOR}::core
 		MODULE_CONFIG
 			module.yaml
 	)
+
+    target_include_directories(modules__simulation__gz_bridge
+        PUBLIC
+            ${PX4_GZ_MSGS_BINARY_DIR}
+    )
+
+	target_include_directories(modules__simulation__gz_bridge PUBLIC px4_gz_msgs)
+	target_link_libraries(modules__simulation__gz_bridge PUBLIC px4_gz_msgs)
 
 	px4_add_git_submodule(TARGET git_gz PATH "${PX4_SOURCE_DIR}/Tools/simulation/gz")
 	include(ExternalProject)
@@ -80,58 +81,41 @@ if(gz-transport_FOUND)
 		USES_TERMINAL_CONFIGURE true
 		USES_TERMINAL_BUILD true
 		EXCLUDE_FROM_ALL true
-		BUILD_ALWAYS 1
 	)
 
-	set(gz_worlds
-		default
-		windy
-		baylands
-  		lawn
-		aruco
-		rover
-	)
-
-	# find corresponding airframes
-	file(GLOB gz_airframes
-	     RELATIVE ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes
-	     ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*
-	)
-
-	# remove any .post files
-	foreach(gz_airframe IN LISTS gz_airframes)
-		if(gz_airframe MATCHES ".post")
-			list(REMOVE_ITEM gz_airframes ${gz_airframe})
-		endif()
-	endforeach()
-	list(REMOVE_DUPLICATES gz_airframes)
+	# Below we setup the build targets for our worlds and models
+	# Syntax: gz_<model_name>_<world_name>
+	# Example: gz_x500_flow_forest
+	file(GLOB gz_worlds ${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf)
+	file(GLOB gz_airframes ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*)
 
 	foreach(gz_airframe IN LISTS gz_airframes)
-		set(model_only)
-		string(REGEX REPLACE ".*_gz_" "" model_only ${gz_airframe})
+		set(model_name)
+		string(REGEX REPLACE ".*_gz_" "" model_name ${gz_airframe})
 
 		foreach(world ${gz_worlds})
 
 			get_filename_component("world_name" ${world} NAME_WE)
 
 			if(world_name STREQUAL "default")
-				add_custom_target(gz_${model_only}
-					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} $<TARGET_FILE:px4>
+				add_custom_target(gz_${model_name}
+					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_name} GZ_IP=127.0.0.1 $<TARGET_FILE:px4>
 					WORKING_DIRECTORY ${SITL_WORKING_DIR}
 					USES_TERMINAL
-					DEPENDS px4
+					DEPENDS px4 px4_gz_plugins
 				)
 			else()
-				add_custom_target(gz_${model_only}_${world_name}
-					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} PX4_GZ_WORLD=${world_name} $<TARGET_FILE:px4>
+				add_custom_target(gz_${model_name}_${world_name}
+					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_name} PX4_GZ_WORLD=${world_name} GZ_IP=127.0.0.1 $<TARGET_FILE:px4>
 					WORKING_DIRECTORY ${SITL_WORKING_DIR}
 					USES_TERMINAL
-					DEPENDS px4
+					DEPENDS px4 px4_gz_plugins
 				)
 			endif()
 		endforeach()
 	endforeach()
-	# PX4_GZ_MODELS, PX4_GZ_WORLDS, GZ_SIM_RESOURCE_PATH
+
+	# Setup the environment variables: PX4_GZ_MODELS, PX4_GZ_WORLDS, GZ_SIM_RESOURCE_PATH
 	configure_file(gz_env.sh.in ${PX4_BINARY_DIR}/rootfs/gz_env.sh)
 
 endif()

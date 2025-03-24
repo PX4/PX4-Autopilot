@@ -85,7 +85,8 @@ using namespace device;
 using namespace time_literals;
 
 #define TIMEOUT_1HZ		1300	//!< Timeout time in mS, 1000 mS (1Hz) + 300 mS delta for error
-#define TIMEOUT_5HZ		500		//!< Timeout time in mS,  200 mS (5Hz) + 300 mS delta for error
+#define TIMEOUT_5HZ		500	//!< Timeout time in mS,  200 mS (5Hz) + 300 mS delta for error
+#define TIMEOUT_DUMP_ADD	450	//!< Additional time in mS to account for RTCM3 parsing and dumping
 #define RATE_MEASUREMENT_PERIOD 5_s
 
 enum class gps_driver_mode_t {
@@ -476,6 +477,10 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 	if (_interface == GPSHelper::Interface::UART) {
 		ret = _uart.readAtLeast(buf, buf_length, math::min(character_count, buf_length), timeout_adjusted);
 
+		if (ret > 0) {
+			_num_bytes_read += ret;
+		}
+
 // SPI is only supported on LInux
 #if defined(__PX4_LINUX)
 
@@ -543,8 +548,13 @@ void GPS::handleInjectDataTopic()
 		for (int instance = 0; instance < _orb_inject_data_sub.size(); instance++) {
 			const bool exists = _orb_inject_data_sub[instance].advertised();
 
-			if (exists) {
-				if (_orb_inject_data_sub[instance].copy(&msg)) {
+			if (exists && _orb_inject_data_sub[instance].copy(&msg)) {
+				/* Don't select the own RTCM instance. In case it has a lower
+				 * instance number, it will be selected and will be rejected
+				 * later in the code, resulting in no RTCM injection at all.
+				 */
+				if (msg.device_id != get_device_id()) {
+					// Only use the message if it is up to date
 					if ((hrt_absolute_time() - msg.timestamp) < 5_s) {
 						// Remember that we already did a copy on this instance.
 						already_copied = true;
@@ -954,6 +964,12 @@ GPS::run()
 				/* The MB rover will wait as long as possible to compute a navigation solution,
 				 * possibly lowering the navigation rate all the way to 1 Hz while doing so. */
 				receive_timeout = TIMEOUT_1HZ;
+			}
+
+			if (_dump_communication_mode != gps_dump_comm_mode_t::Disabled) {
+				/* Dumping the RTCM3/UBX data requires additional parsing and storing of data via uORB.
+				 * Without additional time this can lead to timeouts. */
+				receive_timeout += TIMEOUT_DUMP_ADD;
 			}
 
 			while ((helper_ret = _helper->receive(receive_timeout)) > 0 && !should_exit()) {

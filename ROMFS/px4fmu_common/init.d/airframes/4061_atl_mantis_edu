@@ -38,7 +38,6 @@ param set-default COM_FLTMODE5 -1
 param set-default COM_FLTMODE6  1
 param set-default COM_RC_LOSS_T 3
 
-
 # ekf2
 param set-default EKF2_BARO_NOISE 2
 
@@ -79,18 +78,15 @@ param set-default EKF2_RNG_POS_Z 0.033
 
 param set-default EKF2_TERR_NOISE 1
 
-
 # Maximum allowed angle velocity in the landed state
 param set-default LNDMC_ROT_MAX 40
 
 # Maximum vertical velocity allowed in the landed state
 param set-default LNDMC_Z_VEL_MAX 0.7
 
-
 # filtering
 param set-default IMU_DGYRO_CUTOFF 50
 param set-default IMU_GYRO_CUTOFF 65
-
 
 # Pitch angle & rate setting
 param set-default MC_PITCHRATE_P 0.075
@@ -147,7 +143,6 @@ param set-default RC_MAP_FLTMODE    6
 param set-default RC_MAP_RETURN_SW  7
 
 param set-default RC1_TRIM          1000
-
 
 # optical flow
 param set-default SENS_FLOW_MAXR   7.4

@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# board sensors init
+#------------------------------------------------------------------------------
+
+param set-default IMU_GYRO_RATEMAX 1000
+param set-default SENS_IMU_CLPNOTI 0
+
+# SPI 1
+icm42688p -R 0 -s start
+
+# SPI 2
+paa3905 -s start -Y 180
+
+# SPI 3
+afbrs50 start

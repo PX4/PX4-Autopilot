@@ -141,6 +141,15 @@ private:
 		Land_mode = 5
 	};
 
+	enum class command_after_pos_low_failsafe : int32_t {
+		None = 0,
+		Warning = 1,
+		Hold_mode = 2,
+		Return_mode = 3,
+		Terminate = 4,
+		Land_mode = 5
+	};
+
 	enum class command_after_remaining_flight_time_low : int32_t {
 		None = 0,
 		Warning = 1,
@@ -156,6 +165,7 @@ private:
 	static ActionOptions fromQuadchuteActParam(int param_value);
 	static Action fromOffboardLossActParam(int param_value, uint8_t &user_intended_mode);
 	static ActionOptions fromHighWindLimitActParam(int param_value);
+	static ActionOptions fromPosLowActParam(int param_value);
 	static ActionOptions fromRemainingFlightTimeLowActParam(int param_value);
 
 	const int _caller_id_mode_fallback{genCallerId()};
@@ -169,6 +179,10 @@ private:
 	bool _last_state_battery_warning_critical{false};
 	const int _caller_id_battery_warning_emergency{genCallerId()};
 	bool _last_state_battery_warning_emergency{false};
+	const int _caller_id_fd_esc_arming{genCallerId()};
+	bool _last_state_fd_esc_arming{false};
+	const int _caller_id_battery_unhealthy_spoolup{genCallerId()};
+	bool _last_state_battery_unhealthy_spoolup{false};
 
 	hrt_abstime _armed_time{0};
 	bool _was_armed{false};
@@ -191,7 +205,8 @@ private:
 					(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
 					(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act,
 					(ParamInt<px4::params::COM_WIND_MAX_ACT>) _param_com_wind_max_act,
-					(ParamInt<px4::params::COM_FLTT_LOW_ACT>) _param_com_fltt_low_act
+					(ParamInt<px4::params::COM_FLTT_LOW_ACT>) _param_com_fltt_low_act,
+					(ParamInt<px4::params::COM_POS_LOW_ACT>) _param_com_pos_low_act
 				       );
 
 };

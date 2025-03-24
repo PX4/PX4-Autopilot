@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,39 +40,33 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-// uORB includes
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_angular_velocity.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/rover_mecanum_setpoint.h>
+// Libraries
+#include <lib/rover_control/RoverControl.hpp>
+#include <lib/slew_rate/SlewRate.hpp>
 
-// Standard libraries
-#include <lib/pid/pid.h>
-#include <matrix/matrix/math.hpp>
+// uORB includes
+#include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/rover_steering_setpoint.h>
+#include <uORB/topics/rover_throttle_setpoint.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 // Local includes
-#include "RoverMecanumGuidance/RoverMecanumGuidance.hpp"
-#include "RoverMecanumControl/RoverMecanumControl.hpp"
-
-// Constants
-static constexpr float YAW_RATE_THRESHOLD =
-	0.02f; // [rad/s] Threshold for the yaw rate measurement to avoid stuttering when the rover is standing still
-static constexpr float SPEED_THRESHOLD =
-	0.1f; // [m/s] Threshold for the speed measurement to cut off measurement noise when the rover is standing still
-static constexpr float STICK_DEADZONE =
-	0.1f; // [0, 1] Percentage of stick input range that will be interpreted as zero around the stick centered value
-
-using namespace time_literals;
+#include "MecanumRateControl/MecanumRateControl.hpp"
+#include "MecanumAttControl/MecanumAttControl.hpp"
+#include "MecanumPosVelControl/MecanumPosVelControl.hpp"
 
 class RoverMecanum : public ModuleBase<RoverMecanum>, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+	/**
+	 * @brief Constructor for RoverMecanum
+	 */
 	RoverMecanum();
 	~RoverMecanum() override = default;
 
@@ -88,46 +82,69 @@ public:
 	bool init();
 
 protected:
+	/**
+	 * @brief Update the parameters of the module.
+	 */
 	void updateParams() override;
 
 private:
 	void Run() override;
 
 	/**
-	 * @brief Update uORB subscriptions.
+	 * @brief Generate and publish roverSteeringSetpoint from manualControlSetpoint (Manual Mode).
 	 */
-	void updateSubscriptions();
+	void generateSteeringSetpoint();
 
-	// uORB Subscriptions
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	/**
+	 * @brief Generate and publish actuatorMotors setpoints from roverThrottleSetpoint/roverSteeringSetpoint.
+	 */
+	void generateActuatorSetpoint();
+
+	/**
+	 * @brief Compute normalized motor commands based on normalized setpoints.
+	 * @param throttle_body_x Normalized speed in body x direction [-1, 1].
+	 * @param throttle_body_y Normalized speed in body y direction [-1, 1].
+	 * @param speed_diff_normalized Speed difference between left and right wheels [-1, 1].
+	 * @return Motor speeds [-1, 1].
+	 */
+	Vector4f computeInverseKinematics(float throttle_body_x, float throttle_body_y, const float speed_diff_normalized);
+
+	// uORB subscriptions
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
-	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _rover_steering_setpoint_sub{ORB_ID(rover_steering_setpoint)};
+	uORB::Subscription _rover_throttle_setpoint_sub{ORB_ID(rover_throttle_setpoint)};
+	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
+	vehicle_control_mode_s    _vehicle_control_mode{};
+	rover_steering_setpoint_s _rover_steering_setpoint{};
+	rover_throttle_setpoint_s _rover_throttle_setpoint{};
 
-	// uORB Publications
-	uORB::Publication<rover_mecanum_setpoint_s> _rover_mecanum_setpoint_pub{ORB_ID(rover_mecanum_setpoint)};
+	// uORB publications
+	uORB::PublicationMulti<actuator_motors_s>    _actuator_motors_pub{ORB_ID(actuator_motors)};
+	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
+	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
 
-	// Instances
-	RoverMecanumGuidance _rover_mecanum_guidance{this};
-	RoverMecanumControl _rover_mecanum_control{this};
+	// Class instances
+	MecanumRateControl   _mecanum_rate_control{this};
+	MecanumAttControl    _mecanum_att_control{this};
+	MecanumPosVelControl _mecanum_pos_vel_control{this};
 
 	// Variables
-	matrix::Quatf _vehicle_attitude_quaternion{};
-	float _vehicle_yaw_rate{0.f};
-	float _vehicle_forward_speed{0.f};
-	float _vehicle_lateral_speed{0.f};
-	float _vehicle_yaw{0.f};
-	float _max_yaw_rate{0.f};
-	int _nav_state{0};
-	bool _yaw_ctl{false}; // Indicates if the rover is doing yaw or yaw rate control in position mode
-	float _desired_yaw{0.f}; // Yaw setpoint for position mode
-	bool _armed{false};
+	hrt_abstime _timestamp{0};
+	float _dt{0.f};
+	float _current_throttle_body_x{0.f};
+	float _current_throttle_body_y{0.f};
 
+	// Controllers
+	SlewRate<float> _throttle_body_x_setpoint{0.f};
+	SlewRate<float> _throttle_body_y_setpoint{0.f};
+
+	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RM_MAX_SPEED>) _param_rm_max_speed,
-		(ParamFloat<px4::params::RM_MAN_YAW_SCALE>) _param_rm_man_yaw_scale,
-		(ParamFloat<px4::params::RM_MAX_YAW_RATE>) _param_rm_max_yaw_rate
+		(ParamInt<px4::params::CA_R_REV>)           _param_r_rev,
+		(ParamFloat<px4::params::RO_ACCEL_LIM>)     _param_ro_accel_limit,
+		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_limit,
+		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed
 	)
 };

@@ -533,7 +533,8 @@ void EKF2::Run()
 			} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE) {
 
 				if ((_ekf.control_status_flags().wind_dead_reckoning || _ekf.control_status_flags().inertial_dead_reckoning
-				     || (!_ekf.control_status_flags().in_air && !_ekf.control_status_flags().gps)) && PX4_ISFINITE(vehicle_command.param2)
+				     || (!_ekf.control_status_flags().in_air && !_ekf.control_status_flags().gnss_pos))
+				    && PX4_ISFINITE(vehicle_command.param2)
 				    && PX4_ISFINITE(vehicle_command.param5) && PX4_ISFINITE(vehicle_command.param6)
 				   ) {
 
@@ -745,6 +746,7 @@ void EKF2::Run()
 		ekf2_timestamps_s ekf2_timestamps {
 			.timestamp = now,
 			.airspeed_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+			.airspeed_validated_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
 			.distance_sensor_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
 			.optical_flow_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
 			.vehicle_air_data_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
@@ -1166,17 +1168,17 @@ void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
 void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 {
 	if (_ekf.global_origin_valid() && _ekf.control_status().flags.yaw_align) {
-		const Vector3f position{_ekf.getPosition()};
-
 		// generate and publish global position data
 		vehicle_global_position_s global_pos{};
 		global_pos.timestamp_sample = timestamp;
 
-		// Position of local NED origin in GPS / WGS84 frame
-		_ekf.global_origin().reproject(position(0), position(1), global_pos.lat, global_pos.lon);
+		// Position GPS / WGS84 frame
+		const LatLonAlt lla = _ekf.getLatLonAlt();
+		global_pos.lat = lla.latitude_deg();
+		global_pos.lon = lla.longitude_deg();
 		global_pos.lat_lon_valid = _ekf.isGlobalHorizontalPositionValid();
 
-		global_pos.alt = -position(2) + _ekf.getEkfGlobalOriginAltitude(); // Altitude AMSL in meters
+		global_pos.alt = lla.altitude();
 		global_pos.alt_valid = _ekf.isGlobalVerticalPositionValid();
 
 #if defined(CONFIG_EKF2_GNSS)
@@ -1556,6 +1558,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 
 	// Acceleration of body origin in local frame
 	const Vector3f vel_deriv{_ekf.getVelocityDerivative()};
+	_ekf.resetVelocityDerivativeAccumulation();
 	lpos.ax = vel_deriv(0);
 	lpos.ay = vel_deriv(1);
 	lpos.az = vel_deriv(2);
@@ -1627,7 +1630,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 			      || _ekf.control_status_flags().wind_dead_reckoning;
 
 	// get control limit information
-	_ekf.get_ekf_ctrl_limits(&lpos.vxy_max, &lpos.vz_max, &lpos.hagl_min, &lpos.hagl_max);
+	_ekf.get_ekf_ctrl_limits(&lpos.vxy_max, &lpos.vz_max, &lpos.hagl_min, &lpos.hagl_max_z, &lpos.hagl_max_xy);
 
 	// convert NaN to INFINITY
 	if (!PX4_ISFINITE(lpos.vxy_max)) {
@@ -1642,8 +1645,12 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 		lpos.hagl_min = INFINITY;
 	}
 
-	if (!PX4_ISFINITE(lpos.hagl_max)) {
-		lpos.hagl_max = INFINITY;
+	if (!PX4_ISFINITE(lpos.hagl_max_z)) {
+		lpos.hagl_max_z = INFINITY;
+	}
+
+	if (!PX4_ISFINITE(lpos.hagl_max_xy)) {
+		lpos.hagl_max_xy = INFINITY;
 	}
 
 	// publish vehicle local position data
@@ -1886,7 +1893,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.control_status_changes   = _filter_control_status_changes;
 		status_flags.cs_tilt_align            = _ekf.control_status_flags().tilt_align;
 		status_flags.cs_yaw_align             = _ekf.control_status_flags().yaw_align;
-		status_flags.cs_gps                   = _ekf.control_status_flags().gps;
+		status_flags.cs_gnss_pos              = _ekf.control_status_flags().gnss_pos;
 		status_flags.cs_opt_flow              = _ekf.control_status_flags().opt_flow;
 		status_flags.cs_mag_hdg               = _ekf.control_status_flags().mag_hdg;
 		status_flags.cs_mag_3d                = _ekf.control_status_flags().mag_3D;
@@ -1927,6 +1934,8 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_opt_flow_terrain    = _ekf.control_status_flags().opt_flow_terrain;
 		status_flags.cs_valid_fake_pos      = _ekf.control_status_flags().valid_fake_pos;
 		status_flags.cs_constant_pos        = _ekf.control_status_flags().constant_pos;
+		status_flags.cs_baro_fault	    = _ekf.control_status_flags().baro_fault;
+		status_flags.cs_gnss_vel            = _ekf.control_status_flags().gnss_vel;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
@@ -2075,6 +2084,9 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 			}
 
 			_airspeed_validated_timestamp_last = airspeed_validated.timestamp;
+
+			ekf2_timestamps.airspeed_validated_timestamp_rel = (int16_t)((int64_t)airspeed_validated.timestamp / 100 -
+					(int64_t)ekf2_timestamps.timestamp / 100);
 		}
 
 	} else if (((ekf2_timestamps.timestamp - _airspeed_validated_timestamp_last) > 3_s) && _airspeed_sub.updated()) {
@@ -2403,6 +2415,15 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 		} else {
 			return; //TODO: change and set to NAN
+		}
+
+		if (fabsf(_param_ekf2_gps_yaw_off.get()) > 0.f) {
+			if (!PX4_ISFINITE(vehicle_gps_position.heading_offset) && PX4_ISFINITE(vehicle_gps_position.heading)) {
+				// Apply offset
+				float yaw_offset = matrix::wrap_pi(math::radians(_param_ekf2_gps_yaw_off.get()));
+				vehicle_gps_position.heading_offset = yaw_offset;
+				vehicle_gps_position.heading = matrix::wrap_pi(vehicle_gps_position.heading - yaw_offset);
+			}
 		}
 
 		const float altitude_amsl = static_cast<float>(vehicle_gps_position.altitude_msl_m);

@@ -100,8 +100,6 @@ void VtolType::parameters_update()
 
 void VtolType::update_mc_state()
 {
-	resetAccelToPitchPitchIntegrator();
-
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 
@@ -113,7 +111,6 @@ void VtolType::update_mc_state()
 
 void VtolType::update_fw_state()
 {
-	resetAccelToPitchPitchIntegrator();
 	_last_thr_in_fw_mode =  _vehicle_thrust_setpoint_virtual_fw->xyz[0];
 
 	// copy virtual attitude setpoint to real attitude setpoint
@@ -166,37 +163,6 @@ void VtolType::update_transition_state()
 	check_quadchute_condition();
 
 	_last_thr_in_mc = _vehicle_thrust_setpoint_virtual_mc->xyz[2];
-}
-
-float VtolType::update_and_get_backtransition_pitch_sp()
-{
-	// maximum up or down pitch the controller is allowed to demand
-	const float pitch_lim = 0.3f;
-	const Eulerf euler(Quatf(_v_att->q));
-
-	const float track = atan2f(_local_pos->vy, _local_pos->vx);
-	const float accel_body_forward = cosf(track) * _local_pos->ax + sinf(track) * _local_pos->ay;
-
-	// increase the target deceleration setpoint provided to the controller by 20%
-	// to make overshooting the transition waypoint less likely in the presence of tracking errors
-	const float dec_sp = _param_vt_b_dec_mss.get() * 1.2f;
-
-	// get accel error, positive means decelerating too slow, need to pitch up (must reverse dec_max, as it is a positive number)
-	const float accel_error_forward = dec_sp + accel_body_forward;
-
-	const float pitch_sp_new = _accel_to_pitch_integ;
-
-	float integrator_input = _param_vt_b_dec_i.get() * accel_error_forward;
-
-	if ((pitch_sp_new >= pitch_lim && accel_error_forward > 0.0f) ||
-	    (pitch_sp_new <= 0.f && accel_error_forward < 0.0f)) {
-		integrator_input = 0.0f;
-	}
-
-	_accel_to_pitch_integ += integrator_input * _transition_dt;
-
-	// only allow positive (pitch up) pitch setpoint
-	return math::constrain(pitch_sp_new, 0.f, pitch_lim);
 }
 
 bool VtolType::isFrontTransitionCompleted()
@@ -363,10 +329,13 @@ bool VtolType::isRollExceeded()
 bool VtolType::isFrontTransitionTimeout()
 {
 	// check front transition timeout
-	if (getFrontTransitionTimeout()  > FLT_EPSILON && _common_vtol_mode == mode::TRANSITION_TO_FW) {
+	if (_common_vtol_mode == mode::TRANSITION_TO_FW) {
+		// when we use airspeed, we can timeout earlier if airspeed is not increasing fast enough
+		if (_param_fw_use_airspd.get() && _time_since_trans_start > getOpenLoopFrontTransitionTime()
+		    && _airspeed_validated->calibrated_airspeed_m_s < getBlendAirspeed()) {
+			return true;
 
-		if (_time_since_trans_start > getFrontTransitionTimeout()) {
-			// transition timeout occured, abort transition
+		} else if (_time_since_trans_start > getFrontTransitionTimeout()) {
 			return true;
 		}
 	}

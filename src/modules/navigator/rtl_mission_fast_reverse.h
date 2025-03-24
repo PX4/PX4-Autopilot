@@ -52,7 +52,7 @@ class Navigator;
 class RtlMissionFastReverse : public RtlBase
 {
 public:
-	RtlMissionFastReverse(Navigator *navigator);
+	RtlMissionFastReverse(Navigator *navigator, mission_s mission);
 	~RtlMissionFastReverse() = default;
 
 	void on_activation() override;
@@ -74,4 +74,8 @@ private:
 	bool _in_landing_phase{false};
 
 	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
+	DEFINE_PARAMETERS_CUSTOM_PARENT(
+		RtlBase,
+		(ParamInt<px4::params::RTL_PLD_MD>)       _param_rtl_pld_md
+	)
 };

@@ -16,5 +16,8 @@ float32 angular_velocity_y
 float32 angular_velocity_z
 
 uint32 failure_flags
+float32 delta_yaw
+float32 delta_yaw_velocity
+uint8 gimbal_device_id
 
 bool received_from_mavlink

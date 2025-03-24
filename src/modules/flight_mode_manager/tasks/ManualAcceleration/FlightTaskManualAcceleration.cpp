@@ -59,7 +59,28 @@ bool FlightTaskManualAcceleration::activate(const trajectory_setpoint_s &last_se
 
 bool FlightTaskManualAcceleration::update()
 {
+	const vehicle_local_position_s vehicle_local_pos = _sub_vehicle_local_position.get();
+	setMaxDistanceToGround(vehicle_local_pos.hagl_max_xy);
 	bool ret = FlightTaskManualAltitudeSmoothVel::update();
+
+	float max_hagl_ratio = 0.0f;
+
+	if (PX4_ISFINITE(vehicle_local_pos.hagl_max_xy) && vehicle_local_pos.hagl_max_xy > FLT_EPSILON) {
+		max_hagl_ratio = (vehicle_local_pos.dist_bottom) / vehicle_local_pos.hagl_max_xy;
+	}
+
+	// limit horizontal velocity near max hagl to decrease chance of larger gound distance jumps
+	static constexpr float factor_threshold = 0.8f; // threshold ratio of max_hagl
+	static constexpr float min_vel = 2.f; // minimum max-velocity near max_hagl
+
+	if (max_hagl_ratio > factor_threshold) {
+		max_hagl_ratio = math::min(max_hagl_ratio, 1.f);
+		const float vxy_max = math::min(vehicle_local_pos.vxy_max, _param_mpc_vel_manual.get());
+		_stick_acceleration_xy.setVelocityConstraint(interpolate(vxy_max, factor_threshold, min_vel, vxy_max, min_vel));
+
+	} else {
+		_stick_acceleration_xy.setVelocityConstraint(math::min(_param_mpc_vel_manual.get(), vehicle_local_pos.vxy_max));
+	}
 
 	_stick_acceleration_xy.generateSetpoints(_sticks.getPitchRollExpo(), _yaw, _yaw_setpoint, _position,
 			_velocity_setpoint_feedback.xy(), _deltatime);

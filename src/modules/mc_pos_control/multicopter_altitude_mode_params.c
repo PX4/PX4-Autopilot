@@ -73,15 +73,13 @@ PARAM_DEFINE_FLOAT(MPC_MAN_Y_TAU, 0.08f);
 /**
  * Altitude reference mode
  *
- * Set to 0 to control height relative to the earth frame origin. This origin may move up and down in
- * flight due to sensor drift.
- * Set to 1 to control height relative to estimated distance to ground. The vehicle will move up and down
- * with terrain height variation. Requires a distance to ground sensor. The height controller will
- * revert to using height above origin if the distance to ground estimate becomes invalid as indicated
- * by the local_position.distance_bottom_valid message being false.
- * Set to 2 to control height relative to ground (requires a distance sensor) when stationary and relative
- * to earth frame origin when moving horizontally.
- * The speed threshold is controlled by the MPC_HOLD_MAX_XY parameter.
+ * Control height
+ * 0: relative earth frame origin which may drift due to sensors
+ * 1: relative to ground (requires distance sensor) which changes with terrain variation.
+ * It will revert to relative earth frame if the distance to ground estimate becomes invalid.
+ * 2: relative to ground (requires distance sensor) when stationary
+ * and relative to earth frame when moving horizontally.
+ * The speed threshold is MPC_HOLD_MAX_XY
  *
  * @min 0
  * @max 2

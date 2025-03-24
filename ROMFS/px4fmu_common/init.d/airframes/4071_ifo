@@ -30,7 +30,6 @@ param set-default IMU_DGYRO_CUTOFF 90
 param set-default IMU_GYRO_CUTOFF 100
 
 # System
-
 param set-default SENS_BOARD_ROT 10
 
 # EKF2
