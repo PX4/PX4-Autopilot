@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC2154
 
 # EKF2 specifics
 param set-default EKF2_GPS_DELAY 10
