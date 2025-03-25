@@ -93,7 +93,7 @@ set(msg_files
 	FuelTankStatus.msg
 	FixedWingLateralSetpoint.msg
 	FixedWingLongitudinalSetpoint.msg
-	FixedWingLateralStatus.msg
+	FixedWingLateralGuidanceStatus.msg
 	FixedWingLatLongStatus.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg

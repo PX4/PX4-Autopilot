@@ -70,7 +70,7 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	_landing_gear_pub.advertise();
 	_flaps_setpoint_pub.advertise();
 	_spoilers_setpoint_pub.advertise();
-	_fixed_wing_lateral_status_pub.advertise();
+	_fixed_wing_lateral_guidance_status_pub.advertise();
 
 	_airspeed_slew_rate_controller.setSlewRate(ASPD_SP_SLEW_RATE);
 
@@ -2225,7 +2225,7 @@ FixedwingPositionControl::Run()
 		// only publish status in full FW mode
 		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
 		    || _vehicle_status.in_transition_mode) {
-			publish_lateral_status(now);
+			publish_lateral_guidance_status(now);
 
 		}
 
@@ -2662,21 +2662,21 @@ DirectionalGuidanceOutput FixedwingPositionControl::navigateBearing(const matrix
 	return _directional_guidance.guideToPath(vehicle_pos, ground_vel, wind_vel, unit_path_tangent, vehicle_pos, 0.0f);
 }
 
-void FixedwingPositionControl::publish_lateral_status(const hrt_abstime now)
+void FixedwingPositionControl::publish_lateral_guidance_status(const hrt_abstime now)
 {
-	fixed_wing_lateral_status_s fixed_wing_lateral_status{};
+	fixed_wing_lateral_guidance_status_s fixed_wing_lateral_guidance_status{};
 
-	fixed_wing_lateral_status.timestamp = now;
-	fixed_wing_lateral_status.course_setpoint = _directional_guidance.getCourseSetpoint();
-	fixed_wing_lateral_status.lat_accel_ff = _directional_guidance.getLateralAccelerationSetpoint();
-	fixed_wing_lateral_status.bearing_feas = _directional_guidance.getBearingFeasibility();
-	fixed_wing_lateral_status.bearing_feas_on_track = _directional_guidance.getBearingFeasibilityOnTrack();
-	fixed_wing_lateral_status.signed_track_error = _directional_guidance.getSignedTrackError();
-	fixed_wing_lateral_status.track_error_bound = _directional_guidance.getTrackErrorBound();
-	fixed_wing_lateral_status.adapted_period = _directional_guidance.getAdaptedPeriod();
-	fixed_wing_lateral_status.wind_est_valid = _wind_valid;
+	fixed_wing_lateral_guidance_status.timestamp = now;
+	fixed_wing_lateral_guidance_status.course_setpoint = _directional_guidance.getCourseSetpoint();
+	fixed_wing_lateral_guidance_status.lat_accel_ff = _directional_guidance.getLateralAccelerationSetpoint();
+	fixed_wing_lateral_guidance_status.bearing_feas = _directional_guidance.getBearingFeasibility();
+	fixed_wing_lateral_guidance_status.bearing_feas_on_track = _directional_guidance.getBearingFeasibilityOnTrack();
+	fixed_wing_lateral_guidance_status.signed_track_error = _directional_guidance.getSignedTrackError();
+	fixed_wing_lateral_guidance_status.track_error_bound = _directional_guidance.getTrackErrorBound();
+	fixed_wing_lateral_guidance_status.adapted_period = _directional_guidance.getAdaptedPeriod();
+	fixed_wing_lateral_guidance_status.wind_est_valid = _wind_valid;
 
-	_fixed_wing_lateral_status_pub.publish(fixed_wing_lateral_status);
+	_fixed_wing_lateral_guidance_status_pub.publish(fixed_wing_lateral_guidance_status);
 }
 
 int FixedwingPositionControl::task_spawn(int argc, char *argv[])
