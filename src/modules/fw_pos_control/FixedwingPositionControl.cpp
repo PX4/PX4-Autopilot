@@ -2661,7 +2661,7 @@ void FixedwingPositionControl::publish_lateral_guidance_status(const hrt_abstime
 
 	fixed_wing_lateral_guidance_status.timestamp = now;
 	fixed_wing_lateral_guidance_status.course_setpoint = _directional_guidance.getCourseSetpoint();
-	fixed_wing_lateral_guidance_status.lat_accel_ff = _directional_guidance.getLateralAccelerationSetpoint();
+	fixed_wing_lateral_guidance_status.lateral_acceleration_ff = _directional_guidance.getLateralAccelerationSetpoint();
 	fixed_wing_lateral_guidance_status.bearing_feas = _directional_guidance.getBearingFeasibility();
 	fixed_wing_lateral_guidance_status.bearing_feas_on_track = _directional_guidance.getBearingFeasibilityOnTrack();
 	fixed_wing_lateral_guidance_status.signed_track_error = _directional_guidance.getSignedTrackError();
