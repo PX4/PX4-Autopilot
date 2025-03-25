@@ -94,7 +94,7 @@ set(msg_files
 	FixedWingLateralSetpoint.msg
 	FixedWingLongitudinalSetpoint.msg
 	FixedWingLateralGuidanceStatus.msg
-	FixedWingLatLongStatus.msg
+	FixedWingLateralStatus.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
 	GeofenceStatus.msg
