@@ -31,9 +31,8 @@
 #
 ############################################################################
 
-px4_add_library(DifferentialPosVelControl
-	DifferentialPosVelControl.cpp
+px4_add_library(DifferentialPosControl
+	DifferentialPosControl.cpp
 )
 
-target_link_libraries(DifferentialPosVelControl PUBLIC PID)
-target_include_directories(DifferentialPosVelControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(DifferentialPosControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
