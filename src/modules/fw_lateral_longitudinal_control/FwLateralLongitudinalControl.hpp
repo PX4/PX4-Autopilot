@@ -64,7 +64,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/fixed_wing_lateral_setpoint.h>
-#include <uORB/topics/fixed_wing_lat_long_status.h>
+#include <uORB/topics/fixed_wing_lateral_status.h>
 #include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
 #include <uORB/topics/flight_phase_estimation.h>
 #include <uORB/topics/lateral_control_limits.h>
@@ -130,7 +130,7 @@ private:
 	uORB::Publication <vehicle_attitude_setpoint_s> _attitude_sp_pub;
 	uORB::Publication <tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
 	uORB::PublicationData <flight_phase_estimation_s> _flight_phase_estimation_pub{ORB_ID(flight_phase_estimation)};
-	uORB::Publication <fixed_wing_lat_long_status_s> _fixed_wing_lat_long_status_pub{ORB_ID(fixed_wing_lat_long_status)};
+	uORB::Publication <fixed_wing_lateral_status_s> _fixed_wing_lateral_status_pub{ORB_ID(fixed_wing_lateral_status)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,

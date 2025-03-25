@@ -251,12 +251,12 @@ void FwLateralLongitudinalControl::Run()
 							   _lateral_limits.lateral_accel_max);
 			roll_sp = mapLateralAccelerationToRollAngle(lateral_accel_sp);
 
-			fixed_wing_lat_long_status_s lat_long_status{};
-			lat_long_status.timestamp = hrt_absolute_time();
-			lat_long_status.lat_accel = lateral_accel_sp;
-			lat_long_status.can_run_factor = _can_run_factor;
+			fixed_wing_lateral_status_s fixed_wing_lateral_status{};
+			fixed_wing_lateral_status.timestamp = hrt_absolute_time();
+			fixed_wing_lateral_status.lateral_acceleration = lateral_accel_sp;
+			fixed_wing_lateral_status.can_run_factor = _can_run_factor;
 
-			_fixed_wing_lat_long_status_pub.publish(lat_long_status);
+			_fixed_wing_lateral_status_pub.publish(fixed_wing_lateral_status);
 
 			// additional is_finite checks that should not be necessary, but are kept for safety
 			float roll_body = PX4_ISFINITE(roll_sp) ? roll_sp : 0.0f;
