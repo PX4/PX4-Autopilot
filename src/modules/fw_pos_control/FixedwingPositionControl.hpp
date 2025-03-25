@@ -621,11 +621,13 @@ private:
 	/**
 	 * @brief Controls user commanded altitude, airspeed, and bearing.
 	 *
+	 * @param now Current system time [us]
 	 * @param control_interval Time since last position control call [s]
 	 * @param curr_pos Current 2D local position vector of vehicle [m]
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
 	 */
-	void control_manual_position(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed);
+	void control_manual_position(const hrt_abstime now, const float control_interval, const Vector2d &curr_pos,
+				     const Vector2f &ground_speed);
 
 	/**
 	 * @brief Holds the initial heading during the course of a transition to hover. Used when there is no local

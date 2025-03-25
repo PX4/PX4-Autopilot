@@ -1795,7 +1795,8 @@ FixedwingPositionControl::control_manual_altitude(const float control_interval, 
 }
 
 void
-FixedwingPositionControl::control_manual_position(const float control_interval, const Vector2d &curr_pos,
+FixedwingPositionControl::control_manual_position(const hrt_abstime now, const float control_interval,
+		const Vector2d &curr_pos,
 		const Vector2f &ground_speed)
 {
 	updateManualTakeoffStatus();
@@ -1817,7 +1818,7 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 	}
 
 	if (_local_pos.xy_reset_counter != _xy_reset_counter) {
-		_time_last_xy_reset = _local_pos.timestamp;
+		_time_last_xy_reset = now;
 	}
 
 	/* heading control */
@@ -1853,14 +1854,14 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 
 			// if there's a reset-by-fusion, the ekf needs some time to converge,
 			// therefore we go into track holiding for 2 seconds
-			if (_local_pos.timestamp - _time_last_xy_reset < 2_s) {
+			if (now - _time_last_xy_reset < 2_s) {
 				_hdg_hold_position = curr_pos_local;
 			}
 
 			const DirectionalGuidanceOutput sp = navigateLine(_hdg_hold_position, _hdg_hold_yaw, curr_pos_local, ground_speed,
 							     _wind_vel);
 			fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
-			fw_lateral_ctrl_sp.timestamp = hrt_absolute_time();
+			fw_lateral_ctrl_sp.timestamp = now;
 			fw_lateral_ctrl_sp.course = sp.course_setpoint;
 			fw_lateral_ctrl_sp.lateral_acceleration = sp.lateral_acceleration_feedforward;
 
@@ -1947,17 +1948,17 @@ FixedwingPositionControl::Run()
 		return;
 	}
 
-	const hrt_abstime now = hrt_absolute_time();
-
 	perf_begin(_loop_perf);
 
 	/* only run controller if position changed */
 
 	if (_local_pos_sub.update(&_local_pos)) {
 
-		const float control_interval = math::constrain((_local_pos.timestamp - _last_time_position_control_called) * 1e-6f,
+		const hrt_abstime now = _local_pos.timestamp;
+
+		const float control_interval = math::constrain((now - _last_time_position_control_called) * 1e-6f,
 					       MIN_AUTO_TIMESTEP, MAX_AUTO_TIMESTEP);
-		_last_time_position_control_called = _local_pos.timestamp;
+		_last_time_position_control_called = now;
 
 		// check for parameter updates
 		if (_parameter_update_sub.updated()) {
@@ -2121,9 +2122,9 @@ FixedwingPositionControl::Run()
 		Vector2d curr_pos(_current_latitude, _current_longitude);
 		Vector2f ground_speed(_local_pos.vx, _local_pos.vy);
 
-		set_control_mode_current(_local_pos.timestamp);
+		set_control_mode_current(now);
 
-		update_in_air_states(_local_pos.timestamp);
+		update_in_air_states(now);
 
 		// restore nominal TECS parameters in case changed intermittently (e.g. in landing handling)
 
@@ -2167,13 +2168,13 @@ FixedwingPositionControl::Run()
 			}
 
 		case FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT: {
-				control_auto_landing_straight(_local_pos.timestamp, control_interval, ground_speed, _pos_sp_triplet.previous,
+				control_auto_landing_straight(now, control_interval, ground_speed, _pos_sp_triplet.previous,
 							      _pos_sp_triplet.current);
 				break;
 			}
 
 		case FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR: {
-				control_auto_landing_circular(_local_pos.timestamp, control_interval, ground_speed, _pos_sp_triplet.current);
+				control_auto_landing_circular(now, control_interval, ground_speed, _pos_sp_triplet.current);
 				break;
 			}
 
@@ -2183,12 +2184,12 @@ FixedwingPositionControl::Run()
 			}
 
 		case FW_POSCTRL_MODE_AUTO_TAKEOFF: {
-				control_auto_takeoff(_local_pos.timestamp, control_interval, curr_pos, ground_speed, _pos_sp_triplet.current);
+				control_auto_takeoff(now, control_interval, curr_pos, ground_speed, _pos_sp_triplet.current);
 				break;
 			}
 
 		case FW_POSCTRL_MODE_MANUAL_POSITION: {
-				control_manual_position(control_interval, curr_pos, ground_speed);
+				control_manual_position(now, control_interval, curr_pos, ground_speed);
 				break;
 			}
 
