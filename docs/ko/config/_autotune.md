@@ -43,13 +43,13 @@ To make sure the vehicle is stable enough for auto-tuning:
 2. Take off and <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">hover at 1m above ground in [Altitude mode](../flight_modes_mc/altitude.md) or [Stabilized mode](../flight_modes_mc/manual_stabilized.md)</div><div style="display: inline;" v-else-if="$frontmatter.frame === 'Plane'">fly at cruise speed in [Position mode](../flight_modes_fw/position.md) or [Altitude mode](../flight_modes_fw/altitude.md)</div>.
 
 3. Use the RC transmitter roll stick to perform the following maneuver, tilting the vehicle just a few degrees: _roll left > roll right > center_ (The whole maneuver should take about 3 seconds).
-   기체는 2번의 진동 이내에서 안정화되어야 합니다.
+  기체는 2번의 진동 이내에서 안정화되어야 합니다.
 
 4. 각각의 시도에서 더 큰 진폭으로 기울이면서 기동을 반복합니다.
-   기체가 ~20도에서 2번의 진동 내에서 안정화될 수 있으면 다음 단계로 이동합니다.
+  기체가 ~20도에서 2번의 진동 내에서 안정화될 수 있으면 다음 단계로 이동합니다.
 
 5. 피치 축에서 동일한 동작을 반복합니다.
-   As above, start with small angles and confirm that the vehicle can stabilise itself within 2 oscillations before increasing the tilt.
+  As above, start with small angles and confirm that the vehicle can stabilise itself within 2 oscillations before increasing the tilt.
 
 If the drone can stabilize itself within 2 oscillations it is ready for the [auto-tuning procedure](#auto-tuning-procedure).
 
@@ -72,35 +72,43 @@ The test steps are:
 1. Perform the [pre-tuning test](#pre-tuning-test).
 
 2. Takeoff using RC control <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">in [Altitude mode](../flight_modes_mc/altitude.md).
-   Hover the vehicle at a safe distance and at a few meters above ground (between 4 and 20m).</div><div v-else-if="$frontmatter.frame === 'Plane'">
-   Once flying at cruise speed, activate [Hold mode](../flight_modes_fw/hold.md).
-   This will guide the plane to fly in circle at constant altitude and speed.</div>
+  Hover the vehicle at a safe distance and at a few meters above ground (between 4 and 20m).</div><div v-else-if="$frontmatter.frame === 'Plane'">
+  Once flying at cruise speed, activate [Hold mode](../flight_modes_fw/hold.md).
+  This will guide the plane to fly in circle at constant altitude and speed.</div>
 
 3. Enable autotune.
 
-   <div v-if="$frontmatter.frame === 'Plane'">
-   <div class="tip custom-block"><p class="custom-block-title">TIP</p>
+  <div v-if="$frontmatter.frame === 'Plane'">
+  <div class="tip custom-block"><p class="custom-block-title">TIP</p>
 
-   If an [Enable/Disable Autotune Switch](#enable-disable-autotune-switch) is configured you can just toggle the switch to the "enabled" position.
+  If an [Enable/Disable Autotune Switch](#enable-disable-autotune-switch) is configured you can just toggle the switch to the "enabled" position.
 
-   </div></div>
+  </div></div>
 
-   1. In QGroundControl, open the menu **Vehicle setup > PID Tuning**:
+  1. In QGroundControl, open the menu **Vehicle setup > PID Tuning**:
 
-      ![Tuning Setup > Autotune Enabled](../../assets/qgc/setup/autotune/autotune.png)
+    ![Tuning Setup > Autotune Enabled](../../assets/qgc/setup/autotune/autotune.png)
 
-   2. Select either the _Rate Controller_ or _Attitude Controller_ tabs.
+  2. Select either the _Rate Controller_ or _Attitude Controller_ tabs.
 
-   3. Ensure that the **Autotune enabled** button is enabled (this will display the **Autotune** button and remove the manual tuning selectors).
+  3. Ensure that the **Autotune enabled** button is enabled (this will display the **Autotune** button and remove the manual tuning selectors).
 
-   4. Read the warning popup and click on **OK** to start tuning.
+  4. Read the warning popup and click on **OK** to start tuning.
 
-4. 드론은 먼저 빠른 롤 동작을 수행한 후 피치 및 요 동작을 수행합니다.
-   The progress is shown in the progress bar, next to the _Autotune_ button.
+4. The drone will first start to perform quick roll motions followed by pitch and yaw motions.
+  The progress is shown in the progress bar, next to the _Autotune_ button.
 
-5. <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">Manually land and disarm to apply the new tuning parameters.
-   Takeoff carefully and manually test that the vehicle is stable.</div><div v-else-if="$frontmatter.frame === 'Plane'">The tuning will be immediately/automatically be applied and tested in flight (by default).
-   그런 다음, PX4는 4초 테스트를 실행하고 문제가 감지되면 튜닝 작업의 이전 상태로 복원합니다.</div>
+<div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">
+
+5. Manually land and disarm to apply the new tuning parameters.
+  Takeoff carefully and manually test that the vehicle is stable.
+
+</div><div v-else-if="$frontmatter.frame === 'Plane'">
+
+5. The tuning will be immediately/automatically be applied and tested in flight (by default).
+  PX4 will then run a 4 second test and revert the new tuning if a problem is detected.
+
+</div>
 
 :::warning
 If any strong oscillations occur, land immediately and follow the instructions in the [Troubleshooting](#troubleshooting) section below.
@@ -117,7 +125,7 @@ Additional notes:
 <div v-else-if="$frontmatter.frame === 'Plane'">
 
 - Autotuning can also be run in [Altitude mode](../flight_modes_fw/altitude.md) or [Position mode](../flight_modes_fw/position.md).
-  그러나 직선으로 비행하면서 테스트를 실행하면 더 큰 튜닝 안전 영역이 필요하며, 더 좋은 튜닝 결과를 보장하지 않습니다.
+  However running the test while flying straight requires a larger safe area for tuning, and does not give a significantly better tuning result.
 
 </div>
 
@@ -150,18 +158,18 @@ Fast oscillations (more than 1 oscillation per second): this is because the gain
 
 </div>
 
-### 자동 튜닝 실패
+### The auto-tuning sequence fails
 
 If the drone was not moving enough during auto-tuning, the system identification algorithm might have issues to find the correct coefficients.
 
 Increase the <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">[MC_AT_SYSID_AMP](../advanced_config/parameter_reference.md#MC_AT_SYSID_AMP)</div><div style="display: inline;" v-else-if="$frontmatter.frame === 'Plane'">[FW_AT_SYSID_AMP](../advanced_config/parameter_reference.md#FW_AT_SYSID_AMP)</div> parameter by steps of 1 and trigger the auto-tune again.
 
-### 드론이 자동 튜닝 후 진동합니다.
+### The drone oscillates after auto-tuning
 
 Due to effects not included in the mathematical model such as delays, saturation, slew-rate, airframe flexibility, the loop gain can be too high.
 To fix this, follow the same steps described [when the drone oscillates in the pre-tuning test](#drone-oscillates-when-performing-the-pre-tuning-test).
 
-### 여전히 정상 작동하지 않는 경우:
+### I still can't get it to work
 
 Attempt manual tuning using the guides listed in [See also](#see-also) below.
 
@@ -183,13 +191,13 @@ This behaviour can be configured using the [FW_AT_APPLY](../advanced_config/para
 </div>
 
 - `0`: the gains are not applied.
-  자동 튜닝의 결과를 직접적으로 사용하지 않은 체로 검사하는 경우에 사용합니다.
+  This is used for testing purposes if the user wants to inspect results of the auto-tuning algorithm without using them directly.
 - `1`: apply the gains after disarm (default for multirotors).
-  이후, 조종자는 주의하여 이륙하면서 튜닝 결과를 테스트할 수 있습니다.
+  The operator can then test the new tuning while taking-off carefully.
 - `2`: apply immediately (default for fixed-wings).
-  새로운 튜닝이 적용되고, 교란이 컨트롤러로 전송된 후, 다음 4초 동안 안정성이 모니터링됩니다.
-  제어 루프가 불안정한 경우, 제어 게인을 즉시 이전 값으로 복원합니다.
-  테스트를 통과하면, 조종자는 새로운 튜닝 결과를 사용할 수 있습니다.
+  The new tuning is applied, disturbances are sent to the controller and the stability is monitored during the next 4 seconds.
+  If the control loop is unstable, the control gains are immediately reverted back to their previous value.
+  If the test passes, the pilot can then use the new tuning.
 
 <div v-if="$frontmatter.frame === 'Plane'">
 
@@ -217,7 +225,7 @@ Fixed-wing vehicles (only) can select which axes are tuned using the [FW_AT_AXES
 
 </div>
 
-## 개발자 SDK
+## Developers/SDKs
 
 Autotuning is started using [MAV_CMD_DO_AUTOTUNE_ENABLE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_AUTOTUNE_ENABLE) MAVLink command.
 
@@ -231,7 +239,7 @@ PX4 should stream progress as the protocol does not allow polling.
 
 The feature is not yet supported by MAVSDK.
 
-## 배경 및 세부 사항
+## Background/Detail
 
 PX4 uses [PID controllers](../flight_stack/controller_diagrams.md) (rate, attitude, velocity, and position) to calculate the outputs required to move a vehicle from its current estimated state to match a desired setpoint.
 The controllers must be well tuned in order to get the best performance out of a vehicle.
@@ -258,20 +266,20 @@ The default behaviour can be configured using [parameters](#optional-configurati
 
 ### 자주 묻는 질문
 
-#### 어떤 기체 유형이 지원됩니까?
+#### What frames types are supported?
 
 Autotuning is enabled for multicopter, fixed-wing, and hybrid VTOL fixed-wing vehicles.
 
 While it is not yet enabled for other frame types, in theory it an be used with any frame that uses a rate controller.
 
-#### 지원되는 모든 기체에 대해 자동 튜닝이 작동됩니까?
+#### Does autotuning work for all supported airframes?
 
 The mathematical model used by autotuning to estimate the dynamics of the drone assumes this it is a linear system with no coupling between the axes (SISO), and with a limited complexity (2 poles and 2 zeros).
 If the real drone is too far from those conditions, the model will not be able to represent the real dynamics of the drone.
 
 In practise, autotuning generally works well for fixed-wing and multicopter, provided the frame is not too flexible.
 
-#### 자동 튜닝은 얼마나 걸립니까?
+#### How long does autotuning take?
 
 Tuning takes 5s-20s per axis (aborted if tuning could not be established in 20s) + 2s pause between each axis + 4s of testing if the new gains are applied in air.
 

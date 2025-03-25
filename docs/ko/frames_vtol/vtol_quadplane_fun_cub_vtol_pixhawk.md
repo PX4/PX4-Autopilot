@@ -34,7 +34,7 @@ Fun Cub QuadPlane VTOL은 쿼드콥터로 개조된 표준 테일 플레인 항�
 
 구조는 아래와 같은 알루미늄 재질로 만들어집니다.
 
-![quad\_frame](../../assets/airframes/vtol/funcub_pixhawk/fun_cub_aluminium_frame_for_vtol.jpg)
+![quad_frame](../../assets/airframes/vtol/funcub_pixhawk/fun_cub_aluminium_frame_for_vtol.jpg)
 ![Fun Cub -frame for vtol mounted](../../assets/airframes/vtol/funcub_pixhawk/fun_cub_aluminium_frame_for_vtol_mounted.jpg)
 
 ## 배선
@@ -78,3 +78,4 @@ For further instructions on wiring and configurations please see:
 ## 지원
 
 If you have any questions regarding your VTOL conversion or configuration please visit <https://discuss.px4.io/c/px4/vtol>.
+

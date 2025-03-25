@@ -57,13 +57,13 @@ VMWare performance is acceptable for basic usage (building Firmware) but not for
    Remember all settings are only for within your host operating system usage and hence you can disable any screen saver and local workstation security features which do not increase risk of a network attack.
 
 10. Once the new VM is booted up make sure you install _VMWare tools drivers and tools extension_ inside your guest system.
-    This will enhance performance and usability of your VM usage:
+   This will enhance performance and usability of your VM usage:
 
-    - Significantly enhanced graphics performance
-    - Proper support for hardware device usage like USB port allocation (important for target upload), proper mouse wheel scrolling, sound support
-    - Guest display resolution adaption to the window size
-    - Clipboard sharing to host system
-    - File sharing to host system
+   - Significantly enhanced graphics performance
+   - Proper support for hardware device usage like USB port allocation (important for target upload), proper mouse wheel scrolling, sound support
+   - Guest display resolution adaption to the window size
+   - Clipboard sharing to host system
+   - File sharing to host system
 
 11. Continue with [PX4 environment setup for Linux](../dev_setup/dev_env_linux.md)
 
@@ -98,11 +98,11 @@ To allow this, you need to configure USB passthrough settings:
 4. Add USB filters for the bootloader in VM: **VirtualBox > Settings > USB > Add new USB filter**.
 
    - Open the menu and plug in the USB cable connected to your autopilot.
-     Select the `...Bootloader` device when it appears in the UI.
+      Select the `...Bootloader` device when it appears in the UI.
 
-     ::: info
-     The bootloader device only appears for a few seconds after connecting USB.
-     If it disappears before you can select it, disconnect and then reconnect USB.
+      ::: info
+      The bootloader device only appears for a few seconds after connecting USB.
+      If it disappears before you can select it, disconnect and then reconnect USB.
 
 :::
 

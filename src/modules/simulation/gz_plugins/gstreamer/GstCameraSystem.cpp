@@ -206,17 +206,11 @@ void GstCameraSystem::onImage(const gz::msgs::Image &msg)
 		return;
 	}
 
-	// Convert the image data to OpenCV format
-	cv::Mat frame(msg.height(), msg.width(), CV_8UC3);
-
 	// Check pixel format and convert if necessary
 	if (msg.pixel_format_type() == gz::msgs::PixelFormatType::RGB_INT8) {
-		// Copy RGB data directly
-		memcpy(frame.data, msg.data().c_str(), msg.data().size());
-
 		// Process the frame
 		std::lock_guard<std::mutex> lock(_frameMutex);
-		frame.copyTo(_currentFrame);
+		_currentFrame = msg;
 		_newFrameAvailable = true;
 
 	} else {
@@ -412,7 +406,7 @@ void GstCameraSystem::gstThreadFunc()
 	while (_running) {
 		std::unique_lock<std::mutex> lock(_frameMutex);
 
-		if (_newFrameAvailable && !_currentFrame.empty()) {
+		if (_newFrameAvailable) {
 			// Push RGB data directly - we configured the caps to accept RGB
 			const guint size = _width * _height * 3; // RGB is 3 bytes per pixel
 			GstBuffer *buffer = gst_buffer_new_allocate(nullptr, size, nullptr);
@@ -421,8 +415,8 @@ void GstCameraSystem::gstThreadFunc()
 				GstMapInfo map;
 
 				if (gst_buffer_map(buffer, &map, GST_MAP_WRITE)) {
-					// Copy RGB data directly from the OpenCV Mat
-					memcpy(map.data, _currentFrame.data, size);
+					// Copy RGB data directly from the current frame
+					memcpy(map.data, _currentFrame.data().c_str(), size);
 					gst_buffer_unmap(buffer, &map);
 
 					// Add timing information for smoother playback

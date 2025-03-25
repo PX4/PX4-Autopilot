@@ -188,16 +188,16 @@ The following sections are out of date and need retesting.
 
 1. On the PX4 console:
 
-   ```shell
-   camera_trigger test
-   ```
+  ```shell
+  camera_trigger test
+  ```
 
 2. From _QGroundControl_:
 
-   Click on **Trigger Camera** in the main instrument panel.
-   These shots are not logged or counted for geotagging.
+  Click on **Trigger Camera** in the main instrument panel.
+  These shots are not logged or counted for geotagging.
 
-   ![QGC Test Camera](../../assets/camera/qgc_test_camera.png)
+  ![QGC Test Camera](../../assets/camera/qgc_test_camera.png)
 
 ## Sony QX-1 example (Photogrammetry)
 

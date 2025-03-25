@@ -15215,7 +15215,7 @@ Reboot | minValue | maxValue | increment | default | unit
 
 ### COM_QC_ACT (`INT32`) {#COM_QC_ACT}
 
-Set command after a quadchute.
+Set action after a quadchute.
 
 **Values:**
 
@@ -37406,7 +37406,7 @@ Reboot | minValue | maxValue | increment | default | unit
 
 Airspeed-less front transition time (open loop).
 
-The duration of the front transition when there is no airspeed feedback available.
+The duration of the front transition when there is no airspeed feedback available. When airspeed is used, transition timeout is declared if airspeed does not reach VT_ARSP_BLEND after this time.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
@@ -37518,7 +37518,7 @@ Reboot | minValue | maxValue | increment | default | unit
 
 Front transition timeout.
 
-Time in seconds after which transition will be cancelled. Disabled if set to 0.
+Time in seconds after which transition will be cancelled.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---

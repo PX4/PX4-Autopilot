@@ -38,24 +38,24 @@ The instructions below might be used to create a task named _MyTask_:
 
    - Update the copyright to the current year
 
-     ```cmake
-     ############################################################################
-     #
-     #   Copyright (c) 2021 PX4 Development Team. All rights reserved.
-     #
-     ```
+      ```cmake
+      ############################################################################
+      #
+      #   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+      #
+      ```
 
    - Modify the code to reflect the new task - e.g. replace `FlightTaskOrbit` with `FlightTaskMyTask`.
-     The code will look something like this:
+      The code will look something like this:
 
-     ```cmake
-     px4_add_library(FlightTaskMyTask
-         FlightTaskMyTask.cpp
-     )
+      ```cmake
+      px4_add_library(FlightTaskMyTask
+          FlightTaskMyTask.cpp
+      )
 
-     target_link_libraries(FlightTaskMyTask PUBLIC FlightTask)
-     target_include_directories(FlightTaskMyTask PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-     ```
+      target_link_libraries(FlightTaskMyTask PUBLIC FlightTask)
+      target_include_directories(FlightTaskMyTask PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+      ```
 
 4. Update the header file (in this case **FlightTaskMyTask.hpp**):
    Most tasks reimplement the virtual methods `activate()` and `update()`, and in this example we also have a private variable.
@@ -141,35 +141,35 @@ The instructions below might be used to create a task named _MyTask_:
 
    - Update `MPC_POS_MODE` ([multicopter_position_mode_params.c](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mc_pos_control/multicopter_position_mode_params.c)) to add an option for selecting "MyTask" if the parameter has a previously unused value like 5:
 
-     ```c
-     ...
-      * @value 0 Direct velocity
-      * @value 3 Smoothed velocity
-      * @value 4 Acceleration based
-      * @value 5 My task
-      * @group Multicopter Position Control
-      */
-     PARAM_DEFINE_INT32(MPC_POS_MODE, 5);
-     ```
+      ```c
+      ...
+       * @value 0 Direct velocity
+       * @value 3 Smoothed velocity
+       * @value 4 Acceleration based
+       * @value 5 My task
+       * @group Multicopter Position Control
+       */
+      PARAM_DEFINE_INT32(MPC_POS_MODE, 5);
+      ```
 
    - Add a case for your new option in the switch for the parameter [FlightModeManager.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/flight_mode_manager/FlightModeManager.cpp#L266-L285) to enable the task when `_param_mpc_pos_mode` has the right value.
 
-     ```cpp
-     ...
-     // manual position control
-     ...
-     switch (_param_mpc_pos_mode.get()) {
-       ...
-       case 3:
-          error = switchTask(FlightTaskIndex::ManualPositionSmoothVel);
-          break;
-       case 5: // Add case for new task: MyTask
-          error = switchTask(FlightTaskIndex::MyTask);
-          break;
-     case 4:
-     ....
-     ...
-     ```
+      ```cpp
+      ...
+      // manual position control
+      ...
+      switch (_param_mpc_pos_mode.get()) {
+        ...
+        case 3:
+           error = switchTask(FlightTaskIndex::ManualPositionSmoothVel);
+           break;
+        case 5: // Add case for new task: MyTask
+           error = switchTask(FlightTaskIndex::MyTask);
+           break;
+      case 4:
+      ....
+      ...
+      ```
 
 ## 신규 비행 작업 테스트
 

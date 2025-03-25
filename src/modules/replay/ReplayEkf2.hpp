@@ -100,6 +100,7 @@ private:
 	uint16_t _vehicle_attitude_groundtruth_msg_id = msg_id_invalid;
 
 	bool _ekf2_timestamps_exists{false};
+	uint64_t _last_sensor_combined_timestamp{0};
 };
 
 } //namespace px4

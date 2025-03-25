@@ -29,24 +29,24 @@ The script is intended to be run on _clean_ Ubuntu LTS installations, and may no
 
 1. [Download PX4 Source Code](../dev_setup/building_px4.md):
 
-   ```sh
-   git clone https://github.com/PX4/PX4-Autopilot.git --recursive
-   ```
+  ```sh
+  git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+  ```
 
-   ::: info
-   The environment setup scripts in the source usually work for recent PX4 releases.
-   If working with an older version of PX4 you may need to [get the source code specific to your release](../contribute/git_examples.md#get-a-specific-release).
+  ::: info
+  The environment setup scripts in the source usually work for recent PX4 releases.
+  If working with an older version of PX4 you may need to [get the source code specific to your release](../contribute/git_examples.md#get-a-specific-release).
 
 :::
 
 2. Run the **ubuntu.sh** with no arguments (in a bash shell) to install everything:
 
-   ```sh
-   bash ./PX4-Autopilot/Tools/setup/ubuntu.sh
-   ```
+  ```sh
+  bash ./PX4-Autopilot/Tools/setup/ubuntu.sh
+  ```
 
-   - 스크립트가 진행되는 동안 모든 프롬프트를 확인합니다.
-   - You can use the `--no-nuttx` and `--no-sim-tools` options to omit the NuttX and/or simulation tools.
+  - 스크립트가 진행되는 동안 모든 프롬프트를 확인합니다.
+  - You can use the `--no-nuttx` and `--no-sim-tools` options to omit the NuttX and/or simulation tools.
 
 3. 완료되면 컴퓨터를 재부팅합니다.
 

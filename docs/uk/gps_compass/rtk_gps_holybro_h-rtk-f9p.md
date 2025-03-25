@@ -40,13 +40,13 @@ The cables/connectors may need to be modified in order to connect to other fligh
 
 ## Карта виводів
 
-![h-rtk-f9p\_rover\_pinmap](../../assets/hardware/gps/rtk_holybro_h-rtk_helical_pinmap.jpg)
+![h-rtk-f9p_rover_pinmap](../../assets/hardware/gps/rtk_holybro_h-rtk_helical_pinmap.jpg)
 
-![h-rtk-f9p\_helical\_pinmap](../../assets/hardware/gps/rtk_holybro_h-rtk_rover_lite_pinmap.jpg)
+![h-rtk-f9p_helical_pinmap](../../assets/hardware/gps/rtk_holybro_h-rtk_rover_lite_pinmap.jpg)
 
 ## Специфікація та порівняння моделей
 
-![h-rtk-f9p\_spec](../../assets/hardware/gps/rtk_holybro_h-rtk-f9p_spec.png)
+![h-rtk-f9p_spec](../../assets/hardware/gps/rtk_holybro_h-rtk-f9p_spec.png)
 
 ## Аксесуари до GPS
 

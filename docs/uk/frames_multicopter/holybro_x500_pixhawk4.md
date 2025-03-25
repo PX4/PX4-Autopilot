@@ -81,125 +81,125 @@ Additionally you will need a battery and receiver ([compatible radio system](../
 Час збірки (приблизно): 3.75 години (180 хвилин на раму, 45 хвилин на встановлення/налаштування автопілота)
 
 1. Почніть зі збирання шасі.
-   Відкрутіть гвинти шасі і вставте вертикальну стійку (зобр. 1 і 2).
+  Відкрутіть гвинти шасі і вставте вертикальну стійку (зобр. 1 і 2).
 
-   ![Landing Figure 1: Components](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_1_fig1.jpg)
+  ![Landing Figure 1: Components](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_1_fig1.jpg)
 
-   _Figure 2_: Landing gear components
+  _Figure 2_: Landing gear components
 
-   ![Landing Figure 2: Assembled](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_1_fig2.jpg)
+  ![Landing Figure 2: Assembled](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_1_fig2.jpg)
 
-   _Figure 2_: Landing gear assembled
+  _Figure 2_: Landing gear assembled
 
 2. Потім просуньте 4 кронштейни через 4 основи двигуна, як показано на малюнку 3.
-   Переконайтеся, що штанги злегка виступають з основи і є однаковими на всіх 4-х плечах, а також переконайтеся, що дроти електродвигуна спрямовані назовні.
+  Переконайтеся, що штанги злегка виступають з основи і є однаковими на всіх 4-х плечах, а також переконайтеся, що дроти електродвигуна спрямовані назовні.
 
-   ![Attach arms to motor bases](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_2_fig3.png)
+  ![Attach arms to motor bases](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_step_2_fig3.png)
 
-   _Figure 3_: Attach arms to motor bases
+  _Figure 3_: Attach arms to motor bases
 
 3. Вставте 4 нейлонові гвинти та нейлонові стійки і прикріпіть модуль живлення PM07 до нижньої панелі за допомогою 4 нейлонових гайок, як показано на зображенні 4.
 
-   ![Attach power module](../../assets/airframes/multicopter/x500_holybro_pixhawk4/power_module.jpg)
+  ![Attach power module](../../assets/airframes/multicopter/x500_holybro_pixhawk4/power_module.jpg)
 
-   _Figure 4_: Attach power module
+  _Figure 4_: Attach power module
 
 4. Протягніть 4 двигуни ESC через кожне з кронштейнів і підключіть трижильні дроти до двигунів, як показано на зображенні 5.
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig17.jpg" width="250" title="Connect motors">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig17.jpg" width="250" title="Connect motors">
 
-   _Figure 5_: Connect motors
+  _Figure 5_: Connect motors
 
 5. Connect the ESCs power wires onto the power module PM07, black->black and red->red, ESC PWM signal wires goes to "FMU-PWM-Out".
-   Переконайтеся, що ви підключили дроти ШІМ ESC двигуна в правильному порядку.
-   Номер двигуна повітряного корпусу дивіться на зображенні 7 і підключіть його до відповідного номера на платі PM07.
+  Переконайтеся, що ви підключили дроти ШІМ ESC двигуна в правильному порядку.
+  Номер двигуна повітряного корпусу дивіться на зображенні 7 і підключіть його до відповідного номера на платі PM07.
 
-   ![ESC power module and signal wiring](../../assets/airframes/multicopter/x500_holybro_pixhawk4/pm07_pwm.jpg)
-   _Figure 7_: ESC power module and signal wiring
+  ![ESC power module and signal wiring](../../assets/airframes/multicopter/x500_holybro_pixhawk4/pm07_pwm.jpg)
+  _Figure 7_: ESC power module and signal wiring
 
-   Колір на верхній частині двигуна вказує на напрямок обертання (зображення 7-1), чорний кінчик - за годинниковою стрілкою, а білий - проти годинникової стрілки.
-   Переконайтеся, що при виборі напрямку двигуна ви дотримуєтесь орієнтира px4 quadrotor x airframe (зображення 7-2).
+  Колір на верхній частині двигуна вказує на напрямок обертання (зображення 7-1), чорний кінчик - за годинниковою стрілкою, а білий - проти годинникової стрілки.
+  Переконайтеся, що при виборі напрямку двигуна ви дотримуєтесь орієнтира px4 quadrotor x airframe (зображення 7-2).
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/quadx.png" width="240">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/quadx.png" width="240">
 
-   _Figure 7_: Motor order/direction diagram
+  _Figure 7_: Motor order/direction diagram
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/motor_direction1.jpg" width="400">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/motor_direction1.jpg" width="400">
 
-   _Figure 7-1_: Motor direction
+  _Figure 7-1_: Motor direction
 
 6. Підключіть 10-контактні кабелі до FMU-PWM-in, а 6-контактні - до PWR1 на модулі живлення PM07.
 
-   ![Flight controller/Power module PWM and Power connections](../../assets/airframes/multicopter/x500_holybro_pixhawk4/pm07_cable.jpg)
+  ![Flight controller/Power module PWM and Power connections](../../assets/airframes/multicopter/x500_holybro_pixhawk4/pm07_cable.jpg)
 
-   _Figure 8_: Power module PWM and power wiring
+  _Figure 8_: Power module PWM and power wiring
 
 7. Якщо ви хочете встановити GPS на верхній панелі, то тепер ви можете закріпити кріплення GPS на верхній панелі за допомогою 4 гвинтів і гайок.
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gpsmount.jpg" width="400" title="Secure GPS mount onto top plate">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gpsmount.jpg" width="400" title="Secure GPS mount onto top plate">
 
-   _Figure 9_: Secure GPS mount onto top plate
+  _Figure 9_: Secure GPS mount onto top plate
 
 8. Протягніть кабелі PM07 через верхню пластину.
-   З'єднайте верхню і нижню пластини за допомогою 4 U-подібних нейлонових ременів, гвинтів і гайок з кожного боку, переконайтеся, що кабелі ESC двигуна знаходяться всередині U-подібних нейлонових ременів, як показано на зображенні 10, гайки не затягуйте.
+  З'єднайте верхню і нижню пластини за допомогою 4 U-подібних нейлонових ременів, гвинтів і гайок з кожного боку, переконайтеся, що кабелі ESC двигуна знаходяться всередині U-подібних нейлонових ременів, як показано на зображенні 10, гайки не затягуйте.
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/top_plate.jpg" width="300">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/top_plate.jpg" width="300">
 
-   _Figure 10-1_: Feed power module cables through top plate
+  _Figure 10-1_: Feed power module cables through top plate
 
-   <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/ushape.jpg" width="355" title="Connecting top and bottom plate">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/ushape.jpg" width="355" title="Connecting top and bottom plate">
 
-   _Figure 10-2_: Connecting top and bottom plate
+  _Figure 10-2_: Connecting top and bottom plate
 
 9. Трохи всуньте трубки кронштейнів у раму і переконайтеся, що величина виступу (червоний квадрат на зображенні 11) є однаковою на всіх 4-х кронштейнах.
-   Переконайтеся, що всі двигуни спрямовані прямо вгору, а потім затягніть усі гайки та гвинти.
+  Переконайтеся, що всі двигуни спрямовані прямо вгору, а потім затягніть усі гайки та гвинти.
 
-   ![Arms 3](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig16.jpg)
+  ![Arms 3](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig16.jpg)
 
 10. Вставте прокладки для підвісів у 4 підвіси та закріпіть їх на нижній пластині за допомогою 8 шестигранних гвинтів (Зображення 11).
-    Отвори для гвинтів позначені білою стрілкою на зображенні 12.
-    Ми рекомендуємо нахилити дрон убік, щоб полегшити встановлення.
+  Отвори для гвинтів позначені білою стрілкою на зображенні 12.
+  Ми рекомендуємо нахилити дрон убік, щоб полегшити встановлення.
 
-    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig9.png" width="400" title="Hanger gaskets">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig9.png" width="400" title="Hanger gaskets">
 
-    _Figure 11_: Hanger gaskets
+  _Figure 11_: Hanger gaskets
 
-    ![Battery Mount 4](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig10.jpg)
+  ![Battery Mount 4](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig10.jpg)
 
-    _Figure 12_: Screw holes
+  _Figure 12_: Screw holes
 
 11. Вставте направляючі планки на кільця кріплення (зображення 13).
-    Зберіть кріплення для батареї та плату платформи і встановіть їх на направляючі, як показано на зображенні 14.
+  Зберіть кріплення для батареї та плату платформи і встановіть їх на направляючі, як показано на зображенні 14.
 
-    ![Battery Mount 2: Slide bars](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig8.png)
+  ![Battery Mount 2: Slide bars](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig8.png)
 
-    _Figure 13_: Slide bars
+  _Figure 13_: Slide bars
 
-    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/battery_mount1.jpg" width="400" title="Battery mount on slide bars">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/battery_mount1.jpg" width="400" title="Battery mount on slide bars">
 
-    _Figure 14_: Battery mount on slide bars
+  _Figure 14_: Battery mount on slide bars
 
 12. Встановіть шасі на нижню пластину.
-    Ми рекомендуємо нахилити дрон убік, щоб полегшити встановлення.
+  Ми рекомендуємо нахилити дрон убік, щоб полегшити встановлення.
 
-    ![Landing Gear](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig5.jpg)
+  ![Landing Gear](../../assets/airframes/multicopter/x500_holybro_pixhawk4/x500_fig5.jpg)
 
-    _Figure 15_: Landing Gear
+  _Figure 15_: Landing Gear
 
 13. За допомогою скотча приклейте GPS до верхньої частини GPS-щогли і встановіть її на щоглу.
-    Переконайтеся, що стрілка на gps вказує вперед (зображення 16).
+  Переконайтеся, що стрілка на gps вказує вперед (зображення 16).
 
-    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gps2.jpg" width="400" title="Figure 16: GPS and mast">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gps2.jpg" width="400" title="Figure 16: GPS and mast">
 
-    _Figure 16_: GPS and mast
+  _Figure 16_: GPS and mast
 
 14. Встановіть телеметричну радіостанцію на верхню пластину.
-    Plug the telemetry cable into `TELEM1` port and GPS module to `GPS MODULE` port on the flight controller.
-    Plug the cable from PM07 `FMU-PWM-in` to `I/O-PWM-out`on the FC and PM07 `PWR1` to `POWER1` on the FC, as shown in Figure 17.
+  Plug the telemetry cable into `TELEM1` port and GPS module to `GPS MODULE` port on the flight controller.
+  Plug the cable from PM07 `FMU-PWM-in` to `I/O-PWM-out`on the FC and PM07 `PWR1` to `POWER1` on the FC, as shown in Figure 17.
 
-    ![Pixhawk 4 wiring 1](../../assets/airframes/multicopter/x500_holybro_pixhawk4/fc_connections.jpg)
+  ![Pixhawk 4 wiring 1](../../assets/airframes/multicopter/x500_holybro_pixhawk4/fc_connections.jpg)
 
-    _Figure 17_: Mount telemetry radio/plug in PWM and Power cables to Flight controller.
+  _Figure 17_: Mount telemetry radio/plug in PWM and Power cables to Flight controller.
 
 Please refer to [Pixhawk 4 Quick Start](../assembly/quick_start_pixhawk4.md) for more information.
 

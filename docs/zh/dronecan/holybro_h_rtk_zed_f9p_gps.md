@@ -54,7 +54,7 @@ The high-precision PNI RM3100 compass ensures accurate orientation and stability
 The Holybro ZED-F9P GPS is connected to the CAN bus using a Pixhawk standard 4 pin JST GH cable.
 For more information, refer to the [CAN Wiring](../can/index.md#wiring) instructions.
 
-For dual F9P setups leveraging GPS yaw, connect both F9P CAN connectors to the same bus via a CAN or I2C expansion splitter or [hub](https://holybro.com/products/can-hub?_pos=1&_sid=eeb6b74b2&_ss=r).
+For dual F9P setups leveraging GPS yaw, connect both F9P CAN connectors to the same bus via a CAN or I2C expansion splitter or hub.
 
 ## Firmware Setup
 
@@ -64,10 +64,10 @@ To update the "AP Periph" firmware to the latest version:
 
 1. [Download the latest binary](https://firmware.ardupilot.org/AP_Periph/latest/HolybroG4_GPS/).
 2. Update the firmware using either of the following approaches:
-   - Using ArduPilot:
-     1. Install _Ardupilot_ firmware on your flight controller and the Mission Planner GCS on your computer.
-     2. Update the binary by following the instructions in the [DroneCAN FW Upgrade](https://docs.holybro.com/gps-and-rtk-system/zed-f9p-h-rtk-series/dronecan-fw-upgrade) guide.
-   - Use a serial-to-can converter (such as the [Zubax Babel](https://github.com/Zubax/canface_cf1?tab=readme-ov-file)) and the [DroneCAN GUI Tool](https://dronecan.github.io/Implementations/Libuavcan/Tutorials/11._Firmware_update/).
+  - Using ArduPilot:
+    1. Install _Ardupilot_ firmware on your flight controller and the Mission Planner GCS on your computer.
+    2. Update the binary by following the instructions in the [DroneCAN FW Upgrade](https://docs.holybro.com/gps-and-rtk-system/zed-f9p-h-rtk-series/dronecan-fw-upgrade) guide.
+  - Use a serial-to-can converter (such as the [Zubax Babel](https://github.com/Zubax/canface_cf1?tab=readme-ov-file)) and the [DroneCAN GUI Tool](https://dronecan.github.io/Implementations/Libuavcan/Tutorials/11._Firmware_update/).
 
 Remember to change the firmware on the flight controller back to PX4 afterwards.
 
@@ -88,7 +88,7 @@ DroneCAN configuration in PX4 is explained in more detail in [DroneCAN > Enablin
 
 - For the the single Rover the module should be mounted with the included mast.
 - For the Dual ZED-F9P setup (moving baseline), the DroneCAN modules should be placed at least 30cm apart on the airframe and elevated on a mast also.
-  See the following [mast](https://holybro.com/products/30-antenna-mount?_pos=20&_sid=67b49d76b&_ss=r).
+  See the following mast.
 - F9P module arrow(s) should be pointing forward with respect to the autopilot orientation.
 
 ## Dual ZED-F9P DroneCAN Modules For Heading
@@ -98,14 +98,14 @@ In order to use dual ZED-F9P GPS heading in PX4, follow these steps:
 1. Open the QGroundControl parameters page.
 2. On the left side next to the parameters list, double-click on the _System_ section (this hides the section).
 3. Components should be visible on the left panel.
-   Click on the first `_Component_<ID#>` that maps to the ZED-F9P DroneCAN node (below shown as _Component 124_).
+  Click on the first `_Component_<ID#>` that maps to the ZED-F9P DroneCAN node (below shown as _Component 124_).
 4. Click on the _GPS_ subsection and configure the parameters listed below:
 
-   - `GPS_TYPE`: Either set to `17` for moving baseline _base_, or set to `18` to be the moving baseline _rover_.
-     One F9P MUST be _rover_, and the other MUST be _base_.
-   - `GPS_AUTO_CONFIG`: set to 1 for both the rover and base
-   - `GPS_POS_X`, `GPS_POS_Y`, `GPS_POS_Z`: This is the antenna placement, which for the F9P is internal to the module.
-     This is the local offset (FRD) with respect to the autopilot.
+  - `GPS_TYPE`: Either set to `17` for moving baseline _base_, or set to `18` to be the moving baseline _rover_.
+    One F9P MUST be _rover_, and the other MUST be _base_.
+  - `GPS_AUTO_CONFIG`: set to 1 for both the rover and base
+  - `GPS_POS_X`, `GPS_POS_Y`, `GPS_POS_Z`: This is the antenna placement, which for the F9P is internal to the module.
+    This is the local offset (FRD) with respect to the autopilot.
 
 ![QGC Setup](../../assets/hardware/gps/holybro_h_rtk_zed_f9p_rover/holybro_f9p_gps_qgc_setup.png)
 

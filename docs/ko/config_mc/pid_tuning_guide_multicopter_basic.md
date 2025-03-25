@@ -72,7 +72,7 @@ Make sure to have assigned a [Kill switch](../config/safety.md#emergency-switche
 1. Arm the vehicle, takeoff, and hover (typically in [Position mode](../flight_modes_mc/position.md)).
 
 2. Open _QGroundControl_ **Vehicle Setup > PID Tuning**
-   ![QGC Rate Controller Tuning UI](../../assets/mc_pid_tuning/qgc_mc_pid_tuning_rate_controller.png)
+  ![QGC Rate Controller Tuning UI](../../assets/mc_pid_tuning/qgc_mc_pid_tuning_rate_controller.png)
 
 3. Select the **Rate Controller** tab.
 
@@ -80,60 +80,60 @@ Make sure to have assigned a [Kill switch](../config/safety.md#emergency-switche
 
 5. Set the _Thrust curve_ value to: 0.3 (PWM, power-based controllers) or 1 (RPM-based ESCs)
 
-   ::: info
-   For PWM, power-based and (some) UAVCAN speed controllers, the control signal to thrust relationship may not be linear.
-   그 결과 호버 추력에서 최적의 튜닝은 차량이 강한 추력으로 작동시 최적이 아닐 수 있습니다.
+  ::: info
+  For PWM, power-based and (some) UAVCAN speed controllers, the control signal to thrust relationship may not be linear.
+  그 결과 호버 추력에서 최적의 튜닝은 차량이 강한 추력으로 작동시 최적이 아닐 수 있습니다.
 
-   추력 곡선 값을 사용하여 비선형성을 보상할 수 있습니다.
+  추력 곡선 값을 사용하여 비선형성을 보상할 수 있습니다.
 
-   - For PWM controllers, 0.3 is a good default (which may benefit from [further tuning](../config_mc/pid_tuning_guide_multicopter.md#thrust-curve)).
-   - RPM 기반 컨트롤러의 경우 1을 사용합니다 (2 차 추력 곡선이 있으므로 추가 튜닝이 필요하지 않음).
+  - For PWM controllers, 0.3 is a good default (which may benefit from [further tuning](../config_mc/pid_tuning_guide_multicopter.md#thrust-curve)).
+  - RPM 기반 컨트롤러의 경우 1을 사용합니다 (2 차 추력 곡선이 있으므로 추가 튜닝이 필요하지 않음).
 
-   For more information see the [detailed PID tuning guide](../config_mc/pid_tuning_guide_multicopter.md#thrust-curve).
+  For more information see the [detailed PID tuning guide](../config_mc/pid_tuning_guide_multicopter.md#thrust-curve).
 
 :::
 
 6. Set the _Select Tuning_ radio button to: **Roll**.
 
 7. (Optionally) Select the **Automatic Flight Mode Switching** checkbox.
-   This will _automatically_ switch from [Position mode](../flight_modes_mc/position.md) to [Stabilised mode](../flight_modes_mc/manual_stabilized.md) when you press the **Start** button
+  This will _automatically_ switch from [Position mode](../flight_modes_mc/position.md) to [Stabilised mode](../flight_modes_mc/manual_stabilized.md) when you press the **Start** button
 
 8. For rate controller tuning switch to _Acro mode_, _Stabilized mode_ or _Altitude mode_ (unless automatic switching is enabled).
 
 9. Select the **Start** button in order to start tracking the setpoint and response curves.
 
 10. Rapidly move the _roll stick_ full range and observe the step response on the plots.
-    :::tip
-    Stop tracking to enable easier inspection of the plots.
-    확대/축소/이동시 자동으로 발생합니다.
-    Use the **Start** button to restart the plots, and **Clear** to reset them.
+  :::tip
+  Stop tracking to enable easier inspection of the plots.
+  확대/축소/이동시 자동으로 발생합니다.
+  Use the **Start** button to restart the plots, and **Clear** to reset them.
 
 :::
 
 11. Modify the three PID values using the sliders (for roll rate-tuning these affect `MC_ROLLRATE_K`, `MC_ROLLRATE_I`, `MC_ROLLRATE_D`) and observe the step response again.
-    슬라이더를 움직이면 값이 기체에 저장됩니다.
-    ::: info
-    The goal is for the _Response_ curve to match the _Setpoint_ curve as closely as possible (i.e. a fast response without overshoots).
+  슬라이더를 움직이면 값이 기체에 저장됩니다.
+  ::: info
+  The goal is for the _Response_ curve to match the _Setpoint_ curve as closely as possible (i.e. a fast response without overshoots).
 
 :::
-    The PID values can be adjusted as follows:
-    - P (비례) 또는 K 이득 :
-      - 더 많은 응답을 위해 이것을 늘리십시오.
-      - 응답이 오버 슈팅 및/또는 진동하는 경우 감소합니다 (특정 지점까지 D 게인 증가도 도움이 됨).
-    - D (미분) 이득 :
-      - 오버슈트 및 진동을 줄이기 위해이 값을 늘릴 수 있습니다.
-      - 소음을 증폭하고 모터가 뜨거워 질 수 있으므로 필요한 만큼만 늘리십시오.
-    - I (적분) 이득 :
-      - 정상 상태 오류를 줄이는 데 사용
-      - 너무 낮으면 응답이 설정 값에 도달하지 못할 수 있습니다 (예 : 바람)
-      - 너무 높으면 느린 진동이 발생할 수 있습니다.
+  The PID values can be adjusted as follows:
+  - P (비례) 또는 K 이득 :
+    - 더 많은 응답을 위해 이것을 늘리십시오.
+    - 응답이 오버 슈팅 및/또는 진동하는 경우 감소합니다 (특정 지점까지 D 게인 증가도 도움이 됨).
+  - D (미분) 이득 :
+    - 오버슈트 및 진동을 줄이기 위해이 값을 늘릴 수 있습니다.
+    - 소음을 증폭하고 모터가 뜨거워 질 수 있으므로 필요한 만큼만 늘리십시오.
+  - I (적분) 이득 :
+    - 정상 상태 오류를 줄이는 데 사용
+    - 너무 낮으면 응답이 설정 값에 도달하지 못할 수 있습니다 (예 : 바람)
+    - 너무 높으면 느린 진동이 발생할 수 있습니다.
 
 12. 피치와 요에 대해 위의 튜닝 프로세스를 반복합니다.
-    - Use _Select Tuning_ radio button to select the axis to tune
-    - 적절한 스틱을 이동합니다 (예 : 피치 스틱, 요 스틱).
-    - 피치 튜닝의 경우 롤과 동일한 값으로 시작하십시오.
-      :::tip
-      Use the **Save to Clipboard** and **Reset from Clipboard** buttons to copy the roll settings for initial pitch settings.
+  - Use _Select Tuning_ radio button to select the axis to tune
+  - 적절한 스틱을 이동합니다 (예 : 피치 스틱, 요 스틱).
+  - 피치 튜닝의 경우 롤과 동일한 값으로 시작하십시오.
+    :::tip
+    Use the **Save to Clipboard** and **Reset from Clipboard** buttons to copy the roll settings for initial pitch settings.
 
 :::
 
@@ -141,10 +141,10 @@ Make sure to have assigned a [Kill switch](../config/safety.md#emergency-switche
 
 14. Repeat the tuning process for the velocity and positions controllers (on all the axes).
 
-    - Use Position mode when tuning these controllers
-    - Select the **Simple position control** option in the _Position control mode ..._ selector (this allows direct control for the generation of step inputs)
+  - Use Position mode when tuning these controllers
+  - Select the **Simple position control** option in the _Position control mode ..._ selector (this allows direct control for the generation of step inputs)
 
-      ![QGC PID tuning: Simple control selector](../../assets/mc_pid_tuning/qgc_mc_pid_tuning_simple_control.png)
+    ![QGC PID tuning: Simple control selector](../../assets/mc_pid_tuning/qgc_mc_pid_tuning_simple_control.png)
 
 완료되었습니다 !
 설정을 종료하기 전에 에어 모드를 다시 활성화하여야 합니다.

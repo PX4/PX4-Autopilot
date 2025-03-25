@@ -43,7 +43,7 @@ Geofence planning is fully documented in [Plan View > GeoFence](https://docs.qgr
    - 围栏中心的圆点可以用来调整围栏的位置。
    - 边界上的圆点可以用来调整半径。
    - 角（顶点）上的圆点可以用来改变多边形的形状。
-     点击线段中间可以在两个顶点中添加新的顶点。
+      点击线段中间可以在两个顶点中添加新的顶点。
 5. Use the _Geofence Editor_ to set a fence as an inclusion or exclusion, and to select a fence to edit (**Edit** radio button) or Delete (**Del** button).
 6. 可添加任意数量的围栏
 7. Once finished, click on the **Upload** button (top right) to send the fence (along with rally points and mission) to the vehicle.

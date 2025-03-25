@@ -37,9 +37,9 @@ Note that if landed, the next mission item after deployment should be another `W
    - Щоб скинути посилку під час польоту, установіть відповідну висоту для маршрутної точки (і переконайтеся, що маршрутна точка знаходиться в безпечному місці для скидання посилки).
 
    - If you'd like to land the vehicle to make the delivery you will need to change the `Waypoint` to a `Land` mission item.
-     Do this by selecting the mission item heading, then selecting `Land` in the popup dialog.
+      Do this by selecting the mission item heading, then selecting `Land` in the popup dialog.
 
-     ![Waypoint to Land mission item](../../assets/flying/package_delivery_land_waypoint.png)
+      ![Waypoint to Land mission item](../../assets/flying/package_delivery_land_waypoint.png)
 
 3. Додайте маршрутну точку на карті (у будь-якому місці) для вивільнення захвату.
    To change this to a `Gripper Mechanism` select the "Waypoint" heading, and in the popup changing the group to "Advanced", then selecting `Gripper Mechanism`.

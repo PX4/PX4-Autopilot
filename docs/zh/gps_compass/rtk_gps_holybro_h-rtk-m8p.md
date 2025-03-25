@@ -12,7 +12,7 @@ Refer to the [Specification and Model Comparison section](#specification-and-mod
 
 Using RTK allows PX4 to get its position with centimeter-level accuracy, which is much more accurate than can be provided by a normal GPS.
 
-![h-rtk\_rover](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_all_label.jpg)
+![h-rtk_rover](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_all_label.jpg)
 
 ## 购买渠道
 
@@ -34,11 +34,11 @@ The cables/connectors may need to be modified in order to connect to other fligh
 
 ## Pin Map
 
-![h-rtk\_rover\_pinmap](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_pinmap.jpg)
+![h-rtk_rover_pinmap](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_pinmap.jpg)
 
 ## Specification and Model Comparison
 
-![h-rtk\_spec](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_spec.png)
+![h-rtk_spec](../../assets/hardware/gps/rtk_holybro_h-rtk-m8p_spec.png)
 
 ## GPS Accessories
 

@@ -33,45 +33,19 @@
 
 project(px4_gz_plugins)
 
-if(NOT DEFINED ENV{GZ_DISTRO})
-    set(GZ_DISTRO "harmonic" CACHE STRING "Gazebo distribution to use")
+if(NOT DEFINED ENV{GZ_DISTRO} OR NOT "$ENV{GZ_DISTRO}"  STREQUAL "harmonic")
+    find_package(gz-transport NAMES gz-transport14 gz-transport13 gz-transport12)
+    find_package(gz-sim NAMES gz-sim9 gz-sim8)
+    find_package(gz-sensors NAMES gz-sensors9 gz-sensors8)
+    find_package(gz-plugin NAMES gz-plugin3 gz-plugin2 COMPONENTS register)
 else()
-    set(GZ_DISTRO $ENV{GZ_DISTRO})
+    find_package(gz-transport NAMES gz-transport13)
+    find_package(gz-sim NAMES gz-sim8)
+    find_package(gz-sensors NAMES gz-sensors8)
+    find_package(gz-plugin NAMES gz-plugin2 COMPONENTS register)
 endif()
 
-# Define library version combinations for different Gazebo distributions
-# https://github.com/gazebo-tooling/gazebodistro/blob/master/collection-harmonic.yaml
-if(GZ_DISTRO STREQUAL "harmonic")
-    set(GZ_CMAKE_VERSION "3")
-    set(GZ_MSGS_VERSION "10")
-    set(GZ_TRANSPORT_VERSION "13")
-    set(GZ_PLUGIN_VERSION "2")
-    set(GZ_SIM_VERSION "8")
-    set(GZ_SENSORS_VERSION "8")
-    message(STATUS "Using Gazebo Harmonic (cmake:${GZ_CMAKE_VERSION}, msgs:${GZ_MSGS_VERSION}, transport:${GZ_TRANSPORT_VERSION})")
-elseif(GZ_DISTRO STREQUAL "ionic")
-    set(GZ_CMAKE_VERSION "4")
-    set(GZ_MSGS_VERSION "11")
-    set(GZ_TRANSPORT_VERSION "14")
-    set(GZ_PLUGIN_VERSION "3")
-    set(GZ_SIM_VERSION "9")
-    set(GZ_SENSORS_VERSION "9")
-    message(STATUS "Using Gazebo Ionic (cmake:${GZ_CMAKE_VERSION}, msgs:${GZ_MSGS_VERSION}, transport:${GZ_TRANSPORT_VERSION})")
-else()
-    message(FATAL_ERROR "Unknown Gazebo distribution: ${GZ_DISTRO}. Valid options are: harmonic or ionic")
-endif()
-
-# Use gz-transport as litmus test for presence of gz
-find_package(gz-transport${GZ_TRANSPORT_VERSION})
-
-if (gz-transport${GZ_TRANSPORT_VERSION}_FOUND)
-    find_package(gz-cmake${GZ_CMAKE_VERSION} REQUIRED)
-    find_package(gz-msgs${GZ_MSGS_VERSION} REQUIRED)
-    find_package(Protobuf REQUIRED)
-    find_package(gz-plugin${GZ_PLUGIN_VERSION} REQUIRED COMPONENTS register)
-    find_package(gz-sim${GZ_SIM_VERSION} REQUIRED)
-    find_package(gz-sensors${GZ_SENSORS_VERSION} REQUIRED)
-
+if (gz-transport_FOUND)
     # Create a flat output directory for all plugin libraries
     set(PX4_GZ_PLUGIN_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "Directory for all Gazebo plugin libraries")
     file(MAKE_DIRECTORY ${PX4_GZ_PLUGIN_OUTPUT_DIR})

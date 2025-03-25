@@ -125,19 +125,19 @@ To write a new test:
 
    - Start the simulator:
 
-     ```sh
-     cd <PX4-Autopilot_clone>
-     source Tools/simulation/gazebo/setup_gazebo.bash
-     roslaunch launch/mavros_posix_sitl.launch
-     ```
+      ```sh
+      cd <PX4-Autopilot_clone>
+      source Tools/simulation/gazebo/setup_gazebo.bash
+      roslaunch launch/mavros_posix_sitl.launch
+      ```
 
    - Run test (in a new shell):
 
-     ```sh
-     cd <PX4-Autopilot_clone>
-     source Tools/simulation/gazebo/setup_gazebo.bash
-     rosrun px4 mavros_new_test.py
-     ```
+      ```sh
+      cd <PX4-Autopilot_clone>
+      source Tools/simulation/gazebo/setup_gazebo.bash
+      rosrun px4 mavros_new_test.py
+      ```
 
 3. Add new test node to a launch file
 

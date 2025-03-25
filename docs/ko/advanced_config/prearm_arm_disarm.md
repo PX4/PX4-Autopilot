@@ -153,15 +153,15 @@ It corresponds to: [COM_PREARM_MODE=1](#COM_PREARM_MODE) (safety switch) and [CB
 시작 절차는 다음과 같습니다:
 
 1. 전원 인가
-   - 모든 액츄에이터를 시동 해제 상태로 잠금
-   - 시동 걸기 불가능
+  - 모든 액츄에이터를 시동 해제 상태로 잠금
+  - 시동 걸기 불가능
 2. 안전 스위치 누름
-   - 시스템이 시동전 상태로 전환: 추진 모터를 제외한 모든 액츄에이터 동작 가능(예: 보조익)
-   - 시스템 안전 장치 꺼짐: 시동 가능
+  - 시스템이 시동전 상태로 전환: 추진 모터를 제외한 모든 액츄에이터 동작 가능(예: 보조익)
+  - 시스템 안전 장치 꺼짐: 시동 가능
 3. 시동 명령 인가
 
-   - 시스템에 시동이 걸림
-   - 모든 모터와 액츄에이터를 움직일 수 있음
+  - 시스템에 시동이 걸림
+  - 모든 모터와 액츄에이터를 움직일 수 있음
 
 ### COM_PREARM_MODE = Disabled and Safety Switch
 
@@ -171,15 +171,15 @@ This corresponds to [COM_PREARM_MODE=0](#COM_PREARM_MODE) (Disabled) and [CBRK_I
 시작 절차는 다음과 같습니다:
 
 1. 전원 인가
-   - 모든 액츄에이터를 시동 해제 상태로 잠금
-   - 시동 걸기 불가능
+  - 모든 액츄에이터를 시동 해제 상태로 잠금
+  - 시동 걸기 불가능
 2. 안전 스위치 누름
-   - _All actuators stay locked into disarmed position (same as disarmed)._
-   - 시스템 안전 장치 꺼짐: 시동 가능
+  - _All actuators stay locked into disarmed position (same as disarmed)._
+  - 시스템 안전 장치 꺼짐: 시동 가능
 3. 시동 명령 인가
 
-   - 시스템에 시동이 걸림
-   - 모든 모터와 액츄에이터를 움직일 수 있음
+  - 시스템에 시동이 걸림
+  - 모든 모터와 액츄에이터를 움직일 수 있음
 
 ### COM_PREARM_MODE = Always and Safety Switch
 
@@ -190,13 +190,13 @@ This corresponds to [COM_PREARM_MODE=2](#COM_PREARM_MODE) (Always) and [CBRK_IO_
 시작 절차는 다음과 같습니다:
 
 1. 전원 인가
-   - 시스템이 시동전 상태로 전환: 추진 모터를 제외한 모든 액츄에이터 동작 가능(예: 보조익)
-   - 시동 걸기 불가능
+  - 시스템이 시동전 상태로 전환: 추진 모터를 제외한 모든 액츄에이터 동작 가능(예: 보조익)
+  - 시동 걸기 불가능
 2. 안전 스위치 누름
-   - 시스템 안전 장치 꺼짐: 시동 가능
+  - 시스템 안전 장치 꺼짐: 시동 가능
 3. 시동 명령 인가
-   - 시스템에 시동이 걸림
-   - 모든 모터와 액츄에이터를 움직일 수 있음
+  - 시스템에 시동이 걸림
+  - 모든 모터와 액츄에이터를 움직일 수 있음
 
 ### COM_PREARM_MODE = Safety or Disabled and No Safety Switch
 
@@ -206,11 +206,11 @@ This corresponds to [COM_PREARM_MODE=0 or 1](#COM_PREARM_MODE) (Disabled/Safety 
 시작 절차는 다음과 같습니다:
 
 1. 전원 인가
-   - 모든 액츄에이터를 시동 해제 상태로 잠금
-   - 시스템 안전 장치 꺼짐: 시동 가능
+  - 모든 액츄에이터를 시동 해제 상태로 잠금
+  - 시스템 안전 장치 꺼짐: 시동 가능
 2. 시동 명령 인가
-   - 시스템에 시동이 걸림
-   - 모든 모터와 액츄에이터를 움직일 수 있음
+  - 시스템에 시동이 걸림
+  - 모든 모터와 액츄에이터를 움직일 수 있음
 
 ### COM_PREARM_MODE = Always and No Safety Switch
 
@@ -220,11 +220,11 @@ This corresponds to [COM_PREARM_MODE=2](#COM_PREARM_MODE) (Always) and [CBRK_IO_
 시작 절차는 다음과 같습니다:
 
 1. 전원 인가
-   - 시스템이 시동전 상태로 전환: 추진 모터를 제외한 모든 액츄에이터 동작 가능(예: 보조익)
-   - 시스템 안전 장치 꺼짐: 시동 가능
+  - 시스템이 시동전 상태로 전환: 추진 모터를 제외한 모든 액츄에이터 동작 가능(예: 보조익)
+  - 시스템 안전 장치 꺼짐: 시동 가능
 2. 시동 명령 인가
-   - 시스템에 시동이 걸림
-   - 모든 모터와 액츄에이터를 움직일 수 있음
+  - 시스템에 시동이 걸림
+  - 모든 모터와 액츄에이터를 움직일 수 있음
 
 ### 매개변수
 

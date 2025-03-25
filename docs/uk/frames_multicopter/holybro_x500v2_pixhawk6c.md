@@ -18,21 +18,21 @@ This topic provides full instructions for building the [Holybro X500 V2 ARF Kit]
 **Screw**-  Sunk Screw M2.5\*6 12pcs
 
 1. Вставте резинове кільце підвіски-висувки в кожну з їхніх відповідних підвісок.
-   Не використовуйте гострi предмети для натискання резинок всередині.
+  Не використовуйте гострi предмети для натискання резинок всередині.
 
-   [![Assembly1](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly1.png)](https://www.youtube.com/watch?v=4Tid-FCP_aI)
+  [![Assembly1](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly1.png)](https://www.youtube.com/watch?v=4Tid-FCP_aI)
 
 2. Візьміть плату кріплення батареї і закрутіть її за допомогою затискача зі слайдом за допомогою відвірки винта M2.5\*6.
 
-   [![Assembly2](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly2.png)](https://youtu.be/9E-rld6tPWQ)
+  [![Assembly2](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly2.png)](https://youtu.be/9E-rld6tPWQ)
 
 3. Закрутіть 4 вішалки на дошку платформи, використовуючи поглиблену винт M2.5\*6.
 
-   [![Assembly3](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly3.png)](https://youtu.be/4qIBABc9KsY))
+  [![Assembly3](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly3.png)](https://youtu.be/4qIBABc9KsY))
 
 4. Візьміть зациклювальну планку та вставте 4 вісця, щоб прикрутити до нижньої плати пізніше.
 
-   [![Assembly4](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly4.png)](https://youtu.be/CFx6Ct7FCIc))
+  [![Assembly4](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly4.png)](https://youtu.be/CFx6Ct7FCIc))
 
 5. Now insert the battery holder and payload holders assembled in step 2 & 3
 
@@ -44,11 +44,11 @@ This topic provides full instructions for building the [Holybro X500 V2 ARF Kit]
 
 1. Візьміть нижню пластину і вставте 4 гвинти M3\*14 та закрутіть нейлонові заглушки на них.
 
-   [![Assembly6](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly6.png)](https://youtu.be/IfsMXTr3Uy4)
+  [![Assembly6](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly6.png)](https://youtu.be/IfsMXTr3Uy4)
 
 2. Розмістіть Планку розподілу живлення та використовуйте гайки-самостопорювачі для їх збирання. Модуль живлення PM02 (для Pixhawk 6C) буде живити цю плату
 
-   [![Assembly7](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly7.png)](https://youtu.be/Qjs6pqarRIY)
+  [![Assembly7](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly7.png)](https://youtu.be/Qjs6pqarRIY)
 
 3. Use Socket Cap Screws M2.5\*6 and screw the bottom plate on the 4 hangers (that we inserted in the 2 bars on the 3rd step of the payload holder assembly)
 
@@ -56,15 +56,15 @@ This topic provides full instructions for building the [Holybro X500 V2 ARF Kit]
 
 1. Для збирання станції шасі відкрутіть заздалегідь складені винти шасі - перекрестна стрічка та вставте шасі - вертикальний стовп і затягніть той же.
 
-   [![Assembly8](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly8.png)](https://youtu.be/mU4vm4zyjcY)
+  [![Assembly8](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly8.png)](https://youtu.be/mU4vm4zyjcY)
 
-   [![Assembly9](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly9.png)](https://youtu.be/7REaF3YAqLg)
+  [![Assembly9](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly9.png)](https://youtu.be/7REaF3YAqLg)
 
 2. Використовуйте Гвинт кришки розетки M3\*8, щоб прикрутити посадкові шасі до нижньої пластини
 
-   [![Assembly11](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly11.png)](https://youtu.be/iDxzWeyCN54)
+  [![Assembly11](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly11.png)](https://youtu.be/iDxzWeyCN54)
 
-   [![Assembly12](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly12.png)](https://youtu.be/3fNJQraCJx0)
+  [![Assembly12](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly12.png)](https://youtu.be/3fNJQraCJx0)
 
 Оскільки важко вставити проводи після того, як верхня плита складена, зробіть проводку заздалегідь.
 Хоча дизайн добре спроектований таким чином, що ви зможете зробити це пізніше також.
@@ -78,11 +78,11 @@ Pixhawk 6C запитується за допомогою плати живле�
 
 Двигуни живляться через розподільчу дошку живлення, як показано на наведеній нижче схемі.
 
-![motors\_pdb\_pixhawk6c](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/motors_pdb_pixhawk6c.png)
+![motors_pdb_pixhawk6c](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/motors_pdb_pixhawk6c.png)
 
 Зверніть увагу, що роз'єми ESC мають кольорову кодировку і повинні бути вставлені в PWM out так, що білий кабель зверху.
 
-![esc\_connector\_pixhawk6c](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/esc_connector.jpg)
+![esc_connector_pixhawk6c](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/esc_connector.jpg)
 
 ### Кронштейн
 
@@ -92,28 +92,28 @@ Pixhawk 6C запитується за допомогою плати живле�
 
 1. Поставити руки досить просто, оскільки двигуни поставляються вже зібраними.
 
-   - Переконайтесь, що у вас є правильна пронумерована рука з мотором на відповідному боці.
+  - Переконайтесь, що у вас є правильна пронумерована рука з мотором на відповідному боці.
 
-   [![Assembly15](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly15.png)](https://youtu.be/45KCey3WiJ4)
+  [![Assembly15](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly15.png)](https://youtu.be/45KCey3WiJ4)
 
-   :::tip
-   Use your allen keys/ any elongated item and insert it on the opposite side of the bolt that you're trying to fasten.
+  :::tip
+  Use your allen keys/ any elongated item and insert it on the opposite side of the bolt that you're trying to fasten.
 
 :::
 
 2. Возьміть одну руку та вставте прямокутний виступ всередину прямокутного порожнини на нижній плиті.
 
-   [![Assembly16](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly16.png)](https://youtu.be/GOTqmjq9_3s)
+  [![Assembly16](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly16.png)](https://youtu.be/GOTqmjq9_3s)
 
 3. While inserting the top plate on top of this the 3 piece assembly (bottom plate, top plate & arms) have to screwed using Socket Cap Screw M3\*38 and Flange Locknut M3.
 
 4. Утримуйте одну сторону, використовуючи міні-гайковий ключ, який надається у розробницькому комплекті.
 
-   [![Assembly17](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly17.png)](https://youtu.be/2rcNVekJQd0)
+  [![Assembly17](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly17.png)](https://youtu.be/2rcNVekJQd0)
 
 5. Не зав'язуйте жодних болтів, поки всі 3 мотори не будуть на місці, оскільки це може зробити складним збирання 3-го та 4-го моторів.
 
-   [![Assembly18](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly18.png)](https://youtu.be/SlKRuNoE_AY)
+  [![Assembly18](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly18.png)](https://youtu.be/SlKRuNoE_AY)
 
 ### Пропелери
 
@@ -132,12 +132,12 @@ Pixhawk 6C запитується за допомогою плати живле�
 
 1. Зберіть GPS, дотримуючись відео.
 
-   [![Assembly20](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly20.png)](https://youtu.be/aiFxVJFjlos)
+  [![Assembly20](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly20.png)](https://youtu.be/aiFxVJFjlos)
 
-   У цьому посібнику використовується місце кріплення GPS, запропоноване в посібнику Holybro.
+  У цьому посібнику використовується місце кріплення GPS, запропоноване в посібнику Holybro.
 2. Screw the GPS mount’s bottom end on the payload holder side using Locknut M3 & Screw M3\*10
 
-   [![Assembly21](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly21.png)](https://youtu.be/uG5UKy3FrIc)
+  [![Assembly21](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly21.png)](https://youtu.be/uG5UKy3FrIc)
 
 ### Pixhawk 6C
 
@@ -161,7 +161,7 @@ Pixhawk 6C запитується за допомогою плати живле�
 - Камери, такі як камера глибини / відстеження Intel Realsense або Structure Core, можна встановити за допомогою кріплення для Depth Camera
 - Просто вставте кріплення всередину 2-х планок і використовуйте гвинти залежно від камери, яку ви використовуєте.
 
-![payloads\_x500v2](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/payloads_x500v2.png)
+![payloads_x500v2](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/payloads_x500v2.png)
 
 ## Встановлення/Налаштування PX4
 

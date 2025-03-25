@@ -57,13 +57,13 @@ VMWare performance is acceptable for basic usage (building Firmware) but not for
    모든 설정은 호스트 운영 체제에서 사용하기 위한 것이므로, 네트워크 공격의 위험을 증가시키지 않는 화면 보호기 및 로컬 워크스테이션 보안 기능을 비활성화할 수 있습니다.
 
 10. Once the new VM is booted up make sure you install _VMWare tools drivers and tools extension_ inside your guest system.
-    이렇게 하면 다음과 같은 VM 사용의 성능과 유용성들이 향상됩니다.
+   이렇게 하면 다음과 같은 VM 사용의 성능과 유용성들이 향상됩니다.
 
-    - 크게 향상된 그래픽 성능
-    - Proper support for hardware device usage like USB port allocation (important for target upload), proper mouse wheel scrolling, sound support
-    - 창 크기에 따른 게스트 디스플레이 해상도 조정
-    - 호스트 시스템 클립보드 공유
-    - 호스트 시스템 파일 공유
+   - 크게 향상된 그래픽 성능
+   - Proper support for hardware device usage like USB port allocation (important for target upload), proper mouse wheel scrolling, sound support
+   - 창 크기에 따른 게스트 디스플레이 해상도 조정
+   - 호스트 시스템 클립보드 공유
+   - 호스트 시스템 파일 공유
 
 11. Continue with [PX4 environment setup for Linux](../dev_setup/dev_env_linux.md)
 
@@ -98,11 +98,11 @@ To allow this, you need to configure USB passthrough settings:
 4. Add USB filters for the bootloader in VM: **VirtualBox > Settings > USB > Add new USB filter**.
 
    - Open the menu and plug in the USB cable connected to your autopilot.
-     Select the `...Bootloader` device when it appears in the UI.
+      Select the `...Bootloader` device when it appears in the UI.
 
-     ::: info
-     The bootloader device only appears for a few seconds after connecting USB.
-     If it disappears before you can select it, disconnect and then reconnect USB.
+      ::: info
+      The bootloader device only appears for a few seconds after connecting USB.
+      If it disappears before you can select it, disconnect and then reconnect USB.
 
 :::
 

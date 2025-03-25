@@ -15,7 +15,7 @@ Pixhawk 미니는 PX4 오픈 하드웨어 프로젝트를 기반으로하며 PX4
 Wiring information is available [below](#wiring).
 
 :::info
-This flight controller was designed by 3DR in collaboration with HobbyKing<sup>&amp;reg;</sup>.
+This flight controller was designed by 3DR in collaboration with HobbyKing<sup>&reg;</sup>.
 It was formerly known as the 3DR Pixhawk Mini.
 :::
 
@@ -109,7 +109,7 @@ The _Pixhawk Mini_ is shipped with the following contents:
 | GPS 모듈                                                                                                   | ![Compass+GPS module](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_compass_drawing.png)                                  |
 | 쿼드 배전 보드                                                                                                 | ![Quad Power Distribution Board](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_quad_power_distribution_board_drawing.png) |
 | 8 채널 PWM 브레이크 아웃 보드                                                                                      | ![8 Channel PWM Breakout board](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_8_channel_pwm_breakout_board_drawing.png)   |
-| 4 핀 케이블 (I2C 용)                                                                       | ![4-pin cable (for I2C)](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_4_pin_cable_drawing.png)                           |
+| 4 핀 케이블 (I2C 용)                                                                       | ![4-pin cable (for I2C)](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_4_pin_cable_drawing.png)        |
 | PPM/SBUS용 RC-in 케이블                                                                                      | ![RC-in cable for PPM/SBUS](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_rc_in_cable_drawing.png)                        |
 | GPS 및 추가 I2C 장치용 6 ~ 6/4 ‘Y’ 어댑터                                                         | ![6 to 6/4 ‘Y’ adapter](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_6_to_6_and_4_pin_Y_cable_drawing.png)               |
 | 6 pin cable (2) (for power distribution board and for compass/gps) | ![6 pin cable](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_6_pin_cable_drawing.png)                                     |

@@ -81,15 +81,15 @@ To enumerate the ESC:
 
 3. Start the process of ESC auto-enumeration by pressing the **Start Assignment** button, as shown on the screenshot below.
 
-   ![QGC - DroneCAN ESC auto-enumeration](../../assets/peripherals/esc_qgc/qgc_uavcan_settings.jpg)
+  ![QGC - DroneCAN ESC auto-enumeration](../../assets/peripherals/esc_qgc/qgc_uavcan_settings.jpg)
 
-   You will hear a sound indicating that the flight controller has entered the ESC enumeration mode.
+  You will hear a sound indicating that the flight controller has entered the ESC enumeration mode.
 
 4. Manually turn each motor in the correct direction of its rotation (as specified in the [Airframe Reference](../airframes/airframe_reference.md)), starting from the first motor and finishing with the last motor.
-   Each time you turn a motor, you should hear a confirmation beep.
+  Each time you turn a motor, you should hear a confirmation beep.
 
-   ::: info
-   Make sure to turn each of the motors in the correct direction, as the ESC will automatically learn and remember the direction (i.e. motors that spin clockwise during normal operation must also be turned clockwise during enumeration).
+  ::: info
+  Make sure to turn each of the motors in the correct direction, as the ESC will automatically learn and remember the direction (i.e. motors that spin clockwise during normal operation must also be turned clockwise during enumeration).
 
 :::
 
