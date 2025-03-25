@@ -1,7 +1,7 @@
 uint64 timestamp                # time since system start (microseconds)
 
 float32 course_setpoint         # bearing angle (same as course) [rad]
-float32 lat_accel_ff            # lateral acceleration demand only for maintaining curvature [m/s^2]
+float32 lateral_acceleration_ff # lateral acceleration demand only for maintaining curvature [m/s^2]
 float32 bearing_feas            # bearing feasibility [0,1]
 float32 bearing_feas_on_track   # on-track bearing feasibility [0,1]
 float32 signed_track_error      # signed track error [m]
