@@ -70,8 +70,6 @@ FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 {
 	_tecs_status_pub.advertise();
 	_flight_phase_estimation_pub.advertise();
-	_lateral_ctrl_status_pub.advertise();
-	_longitudinal_ctrl_status_pub.advertise();
 	parameters_update();
 }
 
@@ -214,17 +212,6 @@ void FwLateralLongitudinalControl::Run()
 			throttle_sp = PX4_ISFINITE(_long_control_sp.throttle_direct) ? _long_control_sp.throttle_direct :
 				      _tecs.get_throttle_setpoint();
 
-			fixed_wing_longitudinal_setpoint_s longitudinal_control_status {
-				.timestamp = hrt_absolute_time(),
-				.altitude = _long_control_sp.altitude,
-				.height_rate = _tecs.getStatus().control.altitude_rate_control,
-				.equivalent_airspeed = _tecs.getStatus().true_airspeed_sp / _long_control_state.eas2tas,
-				.pitch_direct = pitch_sp,
-				.throttle_direct = throttle_sp
-			};
-
-			_longitudinal_ctrl_status_pub.publish(longitudinal_control_status);
-
 			float roll_sp {NAN};
 
 			if (_fw_lateral_ctrl_sub.updated()) {
@@ -263,15 +250,6 @@ void FwLateralLongitudinalControl::Run()
 			lateral_accel_sp = math::constrain(lateral_accel_sp, -_lateral_limits.lateral_accel_max,
 							   _lateral_limits.lateral_accel_max);
 			roll_sp = mapLateralAccelerationToRollAngle(lateral_accel_sp);
-
-			fixed_wing_lateral_setpoint_s status = {
-				.timestamp = _lat_control_sp.timestamp,
-				.course = _lat_control_sp.course,
-				.airspeed_direction = airspeed_direction_sp,
-				.lateral_acceleration = lateral_accel_sp
-			};
-
-			_lateral_ctrl_status_pub.publish(status);
 
 			fixed_wing_lat_long_status_s lat_long_status{};
 			lat_long_status.timestamp = hrt_absolute_time();
