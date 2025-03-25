@@ -50,6 +50,8 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 
 	echo "INFO  [init] Gazebo simulator"
 
+	gz_command="gz"
+
 	if [ -z "${PX4_GZ_STANDALONE}" ]; then
 
 		# Enforce minimum gz version as Harmonic (gz-sim8)
@@ -63,7 +65,6 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 
 		# Use sort compare, check that MIN_GZ_VERSION is ordered last
 		if [ "$(printf '%s\n' "$GZ_SIM_VERSION" "$MIN_GZ_VERSION" | sort -V | head -n1)" = "$MIN_GZ_VERSION" ]; then
-			gz_command="gz"
 			gz_sub_command="sim"
 
 			# Specify render engine if `GZ_SIM_RENDER_ENGINE` is set
