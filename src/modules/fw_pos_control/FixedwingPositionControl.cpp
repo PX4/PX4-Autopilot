@@ -2022,9 +2022,17 @@ FixedwingPositionControl::Run()
 
 	perf_begin(_loop_perf);
 
-	/* only run controller if position changed */
+	if (_vehicle_status_sub.updated()) {
 
-	if (_local_pos_sub.update(&_local_pos)) {
+		if (_vehicle_status_sub.update(&_vehicle_status)) {
+			_nav_state = _vehicle_status.nav_state;
+		}
+	}
+
+	/* only run controller if position changed and we are not running an external mode*/
+
+	if (!((_nav_state >= vehicle_status_s::NAVIGATION_STATE_EXTERNAL1)
+	      && (_nav_state <= vehicle_status_s::NAVIGATION_STATE_EXTERNAL8)) && _local_pos_sub.update(&_local_pos)) {
 
 		const float control_interval = math::constrain((_local_pos.timestamp - _last_time_position_control_called) * 1e-6f,
 					       MIN_AUTO_TIMESTEP, MAX_AUTO_TIMESTEP);
@@ -2181,13 +2189,12 @@ FixedwingPositionControl::Run()
 			}
 		}
 
-		if (_vehicle_status_sub.update(&_vehicle_status)) {
-			if (!_vehicle_status.in_transition_mode) {
-				// reset position of backtransition start if not in transition
-				_lpos_where_backtrans_started = Vector2f(NAN, NAN);
-				_backtrans_heading = NAN;
-			}
+		if (!_vehicle_status.in_transition_mode) {
+			// reset position of backtransition start if not in transition
+			_lpos_where_backtrans_started = Vector2f(NAN, NAN);
+			_backtrans_heading = NAN;
 		}
+
 
 		Vector2d curr_pos(_current_latitude, _current_longitude);
 		Vector2f ground_speed(_local_pos.vx, _local_pos.vy);
