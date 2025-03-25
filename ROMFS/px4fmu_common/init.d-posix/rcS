@@ -227,9 +227,6 @@ then
 	exit 1
 fi
 
-#user defined params for instances can be in PATH
-. px4-rc.params
-
 dataman start
 
 # only start the simulator if not in replay mode, as both control the lockstep time
