@@ -70,6 +70,8 @@ private:
 
 	uORB::PublicationMulti<sensor_temp_s> _to_sensor_temp{ORB_ID(sensor_temp)};
 	perf_counter_t _cycle_perf;
+	perf_counter_t _comms_errors;
+
 
 	sensor_temp_s _sensor_temp{};
 
