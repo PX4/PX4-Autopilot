@@ -75,6 +75,12 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 			_mag_lpf.reset(mag_sample.mag);
 			_mag_counter = 1;
 
+			if (!_control_status.flags.in_air) {
+				// Assume that a reset on the ground is caused by a change in mag calibration
+				// Clear alignment to force a clean reset
+				_control_status.flags.yaw_align = false;
+			}
+
 		} else {
 			_mag_lpf.update(mag_sample.mag);
 			_mag_counter++;
