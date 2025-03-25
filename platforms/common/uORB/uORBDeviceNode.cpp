@@ -408,6 +408,12 @@ uORB::DeviceNode::DeviceNode(const ORB_ID id, const uint8_t instance, const char
 		PX4_DEBUG("SEM INIT FAIL: ret %d", ret);
 	}
 
+#if defined(__PX4_NUTTX)
+	/* Optimize the mutex in NuttX build */
+
+	sem_setprotocol(&_lock, SEM_TYPE_MUTEX | SEM_PRIO_NONE);
+#endif
+
 #if defined(CONFIG_BUILD_FLAT)
 	_devname = strdup(path);
 #else
