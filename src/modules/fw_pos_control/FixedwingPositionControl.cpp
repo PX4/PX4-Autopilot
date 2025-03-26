@@ -398,8 +398,16 @@ FixedwingPositionControl::updateLandingAbortStatus(const uint8_t new_abort_statu
 float
 FixedwingPositionControl::getManualHeightRateSetpoint()
 {
-	const float height_rate_setpoint = math::interpolate<float>(math::deadzone(_manual_control_setpoint_for_height_rate,
-					   kStickDeadBand), -1.f, 1.f, -_param_climbrate_target.get(), -_param_sinkrate_target.get());
+	float height_rate_setpoint = 0.f;
+
+	if (_manual_control_setpoint_for_height_rate >= FLT_EPSILON) {
+		height_rate_setpoint = math::interpolate<float>(math::deadzone(_manual_control_setpoint_for_height_rate,
+				       kStickDeadBand), 0, 1.f, 0.f, -_param_sinkrate_target.get());
+
+	} else {
+		height_rate_setpoint = math::interpolate<float>(math::deadzone(_manual_control_setpoint_for_height_rate,
+				       kStickDeadBand), -1., 0.f, _param_climbrate_target.get(), 0.f);
+	}
 
 	return height_rate_setpoint;
 }
