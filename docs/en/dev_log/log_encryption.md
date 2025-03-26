@@ -252,10 +252,35 @@ Run the tool as shown below (assuming the default key location):
 
 ```sh
 cd PX4-Autopilot/Tools/log_encryption
+AND
+# Uses default key + default folder
 python3 decrypt_logs.py
+
+OR
+# Uses custom key + default folder
+python3 decrypt_logs.py path/to/private_key.pem
+
+OR
+# Uses custom key + specific file
+python3 decrypt_logs.py path/to/private_key.pem path/to/custom_log.ulge
+
+OR
+# Uses custom key + specific folder
+python3 decrypt_logs.py path/to/private_key.pem path/to/custom_log_folder
+
+OR
+# Uses default key + specific file
+python3 decrypt_logs.py "" path/to/custom_log.ulge
+
+OR
+# Uses default key + specific folder
+python3 decrypt_logs.py "" path/to/custom_log_folder
 ```
 
 On success the decrypted logs can be found in the decrypted folder.
+```sh
+PX4-Autopilot/logs/decrypted
+```
 
 ## Generate RSA Public & Private Keys
 
@@ -289,6 +314,22 @@ The private key should be stored safely and used when you need to [decrypt log f
 ### Manual Key Generation
 
 The script makes it easier to generate the required public and private keys.
+You have to have OpenSSL installed on your system.
+You can check it using
+```sh
+openssl version
+```
+If there is no output you can install it using:
+Ubuntu/Debian
+```sh
+sudo apt update
+sudo apt install openssl
+```
+macOS
+```sh
+brew install openssl
+```
+
 You can alternatively generate the keys using OpenSSL as shown below and copy them into the appropriate locations expected by the rest of the toolchain.
 
 To generate a RSA2048 private and public key, you can use OpenSSL:
