@@ -64,10 +64,45 @@
    Addresses might need to be adjusted
 
 5. **Decrypt Logs**:
+   The easiest way to run this is to have your private key and encrypted logs in te following folders respectively:
+   ```bash
+   PX4-Autopilot/keys/private
+   PX4-Autopilot/logs/encrypted
+   ```
+   Then run:
    ```bash
    cd PX4-Autopilot/Tools/log_encryption
+
+   AND
+   # Uses default key + default folder
    python3 decrypt_logs.py
+
+   OR
+   # Uses custom key
+   python3 decrypt_logs.py path/to/private_key.pem
+
+   OR
+   # Uses custom key + specific file
+   python3 decrypt_logs.py path/to/private_key.pem path/to/custom_log.ulge
+
+   OR
+   # Uses custom key + specific folder
+   python3 decrypt_logs.py path/to/private_key.pem path/to/custom_log_folder
+
+   OR
+   # Uses default key + specific file
+   python3 decrypt_logs.py "" path/to/custom_log.ulge
+
+   OR
+   # Uses default key + specific folder
+   python3 decrypt_logs.py "" path/to/custom_log_folder
    ```
+
+   Your decrypted logs can be found in:
+   ```bash
+   PX4-Autopilot/logs/decrypted
+   ```
+   Otherwise
 
 ## Directory Structure
 

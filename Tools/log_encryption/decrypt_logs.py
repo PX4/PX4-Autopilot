@@ -86,37 +86,42 @@ def decrypt_log_file(ulog_file, private_key, output_folder):
         print(f"Skipping {ulog_file}: Error occurred - {e}")
 
 
-def decrypt_all_logs(private_key_path):
-    """Decrypts all logs in the encrypted folder and saves them in the decrypted folder."""
+def decrypt_all_logs(private_key_path, log_source_path=None):
+    """Decrypts all logs in the given folder or a single file."""
 
-    # Find all encrypted logs
-    encrypted_logs = [f for f in os.listdir(ENCRYPTED_LOGS_DIR) if f.endswith(".ulge")]
+    if log_source_path and os.path.isfile(log_source_path):
+        logs = [log_source_path]
+        output_dir = DECRYPTED_LOGS_DIR
+    else:
+        # Use default encrypted logs directory if not provided
+        folder = log_source_path if log_source_path else ENCRYPTED_LOGS_DIR
+        logs = [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".ulge")]
+        output_dir = DECRYPTED_LOGS_DIR
 
-    if not encrypted_logs:
+    if not logs:
         print("No encrypted logs found.")
         return
 
-    print(f"Found {len(encrypted_logs)} encrypted logs. Decrypting...")
+    print(f"Found {len(logs)} encrypted log(s). Decrypting...")
 
-    # Ensure output directory exists
-    os.makedirs(DECRYPTED_LOGS_DIR, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
 
-    for log_file in encrypted_logs:
-        log_path = os.path.join(ENCRYPTED_LOGS_DIR, log_file)
-        decrypt_log_file(log_path, private_key_path, DECRYPTED_LOGS_DIR)
+    for log_path in logs:
+        decrypt_log_file(log_path, private_key_path, output_dir)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Decrypt encrypted PX4 log files")
     parser.add_argument("private_key", nargs="?", default=None, help="Path to the private RSA key (.pem)")
+    parser.add_argument("log_file_or_folder", nargs="?", default=None, help="Log file (.ulge) or folder containing encrypted logs")
 
     args = parser.parse_args()
 
-    # If no key is provided, use the default private key
     private_key_path = args.private_key if args.private_key else DEFAULT_PRIVATE_KEY
 
     if not os.path.exists(private_key_path):
         print(f"Error: Private key file not found at {private_key_path}")
         sys.exit(1)
 
-    decrypt_all_logs(private_key_path)
+    decrypt_all_logs(private_key_path, args.log_file_or_folder)
+
