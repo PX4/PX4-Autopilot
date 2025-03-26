@@ -259,21 +259,17 @@ On success the decrypted logs can be found in the decrypted folder.
 
 ## Generate RSA Public & Private Keys
 
-To generate your keys you can use the following script:
+The [Tools/log_encryption/generate_keys.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/log_encryption/generate_keys.py) script can be used to generate the public key that is used on the device for encryption, and the private key that is used on the computer as part of log decryption.
 
-```sh
-PX4-Autopilot/
-│
-├── Tools/log_encryption # PX4 Tools directory (script location)
-│ ├── generate_keys.py # This script generates the key structure
-```
+The script is used as shown:
 
 ```sh
 cd PX4-Autopilot/Tools/log_encryption
 python3 generate_keys.py
 ```
 
-As a result a private key and a public key will be generated in a new folder structure.
+The private and public key will be generated as shown below.
+The script does not overwrite the existing keys and will also work with an existing private key.
 
 ```sh
 PX4-Autopilot/
@@ -287,9 +283,13 @@ PX4-Autopilot/
 │ │ ├── public_key.pub # Public key in hex format
 ```
 
-The script does not overwrite the existing keys and also would work with already existing private key.
+Note that the public key is created with the default name and location expected by the toolchain when building PX4 (i.e. in `CONFIG_PUBLIC_KEY1`), and the private key is created in the default location expected by the script we use for [decrypting ulogs](#decrypt-ulogs).
+The private key should be stored safely and used when you need to [decrypt log files](#decrypt-ulogs).
 
-Otherwise you could generate the keys with the way below, in that case please copy the key files to the corresponding repositories respectively, to be able to use the provided scripts in the sections above.
+### Manual Key Generation
+
+The script makes it easier to generate the required public and private keys.
+You can alternatively generate the keys using OpenSSL as shown below and copy them into the appropriate locations expected by the rest of the toolchain.
 
 To generate a RSA2048 private and public key, you can use OpenSSL:
 
@@ -297,7 +297,7 @@ To generate a RSA2048 private and public key, you can use OpenSSL:
 openssl genpkey -algorithm RSA -out private_key.pem -pkeyopt rsa_keygen_bits:2048
 ```
 
-Then you can create a public key from this private key:
+Then can create a public key from this private key:
 
 ```sh
 # Convert private_key.pem to a DER file
@@ -311,5 +311,3 @@ To use this key you would modify your `.px4board` file to point `CONFIG_PUBLIC_K
 ```sh
 CONFIG_PUBLIC_KEY1="../../../keys/public/public_key.pub"
 ```
-
-The private key generated should be stored safely and used when you need to decrypt log files.
