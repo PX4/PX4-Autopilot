@@ -126,7 +126,10 @@ void ZENOH::run()
 	ret = z_open(&s, z_move(config), NULL);
 
 	if (ret < 0) {
-		if (ret == _Z_ERR_SCOUT_NO_RESULTS) {
+		if (ret == _Z_ERR_TRANSPORT_OPEN_FAILED) {
+			PX4_ERR("Unable to open session, make sure zenohd is running on %s", locator);
+
+		} else if (ret == _Z_ERR_SCOUT_NO_RESULTS) {
 			PX4_ERR("Unable to open session, scout no results");
 
 		} else {

@@ -50,7 +50,7 @@
 #include <uORB/topics/uORBTopics.hpp>
 
 
-const char *default_net_config = Z_CONFIG_MODE_DEFAULT;
+const char *default_net_config = Z_CONFIG_MODE_DEFAULT ";" CONFIG_ZENOH_DEFAULT_LOCATOR;
 const char *default_pub_config = "";
 const char *default_sub_config = ""; //TODO maybe use YAML
 

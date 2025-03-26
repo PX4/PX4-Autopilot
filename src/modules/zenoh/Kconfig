@@ -16,6 +16,11 @@ if MODULES_ZENOH
             2: INFO + ERROR
             3: DEBUG + INFO + ERROR
 
+    config ZENOH_DEFAULT_LOCATOR
+        string "Zenoh default mode"
+        default "tcp/127.0.0.1:7447" if PLATFORM_POSIX
+        default "" if !PLATFORM_POSIX
+
     # Choose exactly one item
     choice ZENOH_PUBSUB_SELECTION
             prompt "Publishers/Subscribers selection"
