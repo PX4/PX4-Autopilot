@@ -309,7 +309,7 @@ bool crypto_signature_check(crypto_session_handle_t handle,
 						int stat = 0;
 
 						if (rsa_verify_hash_ex(
-							    signature, 256, hash, hash_len, padding, hash_idx, saltlen, &stat, &key)
+							    signature, rsa_get_size(&key), hash, hash_len, padding, hash_idx, saltlen, &stat, &key)
 						    == CRYPT_OK
 						    && stat) {
 							ret = true;
