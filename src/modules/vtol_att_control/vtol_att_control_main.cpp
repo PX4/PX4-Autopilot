@@ -427,9 +427,16 @@ VtolAttitudeControl::Run()
 		_vehicle_thrust_setpoint0_pub.publish(_thrust_setpoint_0);
 		_vehicle_thrust_setpoint1_pub.publish(_thrust_setpoint_1);
 
-		// Advertise/Publish vtol vehicle status
-		_vtol_vehicle_status.timestamp = hrt_absolute_time();
-		_vtol_vehicle_status_pub.publish(_vtol_vehicle_status);
+		// Advertise/publish vtol vehicle status -- immediately if changed, otherwise at 1 Hz
+		const bool vtol_vehicle_status_changed =
+			(_vtol_vehicle_status.vehicle_vtol_state != _prev_published_vtol_vehicle_status.vehicle_vtol_state) ||
+			(_vtol_vehicle_status.fixed_wing_system_failure != _prev_published_vtol_vehicle_status.fixed_wing_system_failure);
+
+		if (vtol_vehicle_status_changed || hrt_elapsed_time(&_prev_published_vtol_vehicle_status.timestamp) >= 1_s) {
+			_vtol_vehicle_status.timestamp = hrt_absolute_time();
+			_vtol_vehicle_status_pub.publish(_vtol_vehicle_status);
+			_prev_published_vtol_vehicle_status = _vtol_vehicle_status;
+		}
 
 		// Publish flaps/spoiler setpoint with configured deflection in Hover if in Auto.
 		// In Manual always published in FW rate controller, and in Auto FW in FW Position Controller.
