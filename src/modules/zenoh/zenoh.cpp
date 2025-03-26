@@ -180,6 +180,9 @@ void ZENOH::run()
 					 rihs_hash[28], rihs_hash[29], rihs_hash[30], rihs_hash[31]
 					);
 				_zenoh_subscribers[i]->declare_subscriber(s, keyexpr);
+
+			} else {
+				PX4_ERR("Could not create a subscriber for type %s", type);
 			}
 
 		}
@@ -226,6 +229,9 @@ void ZENOH::run()
 					);
 				_zenoh_publishers[i]->declare_publisher(s, keyexpr, (uint8_t *)&px4_guid);
 				_zenoh_publishers[i]->setPollFD(&pfds[i]);
+
+			} else {
+				PX4_ERR("Could not create a publisher for type %s", type);
 			}
 		}
 
@@ -265,13 +271,17 @@ void ZENOH::run()
 
 	// Exiting cleaning up publisher and subscribers
 	for (i = 0; i < _sub_count; i++) {
-		delete _zenoh_subscribers[i];
+		if (_zenoh_subscribers[i]) {
+			delete _zenoh_subscribers[i];
+		}
 	}
 
 	free(_zenoh_subscribers);
 
 	for (i = 0; i < _pub_count; i++) {
-		delete _zenoh_publishers[i];
+		if (_zenoh_publishers[i]) {
+			delete _zenoh_publishers[i];
+		}
 	}
 
 	free(_zenoh_publishers);
@@ -329,13 +339,17 @@ int ZENOH::print_status()
 	PX4_INFO("Publishers");
 
 	for (int i = 0; i < _pub_count; i++) {
-		_zenoh_publishers[i]->print();
+		if (_zenoh_publishers[i]) {
+			_zenoh_publishers[i]->print();
+		}
 	}
 
 	PX4_INFO("Subscribers");
 
 	for (int i = 0; i < _sub_count; i++) {
-		_zenoh_subscribers[i]->print();
+		if (_zenoh_subscribers[i]) {
+			_zenoh_subscribers[i]->print();
+		}
 	}
 
 	return 0;
