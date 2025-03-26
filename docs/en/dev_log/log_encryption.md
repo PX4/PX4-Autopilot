@@ -189,46 +189,50 @@ You can now build and test.
 
 ## Download & Decrypt Log Files
 
-To be able to decrypt the encrypted log files you need to follow the corresponding folder structure:
+Before you can analyse your logs they must first be downloaded and decrypted.
+PX4 includes Python scripts in [Tools/log_encryption](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/) that make this process easier:
 
-```sh
-PX4-Autopilot/
-│
-├── logs/ # Main directory for logs
-│ ├── encrypted/ # Stores encrypted logs (.ulge)
-│ │ ├── log-YYYY-MM-DD_HH-MM-SS_ID.ulge # Encrypted logs
-│ │
-│ ├── decrypted/ # Stores decrypted logs (.ulg)
-│ │ ├── log-YYYY-MM-DD_HH-MM-SS_ID.ulg # Regular PX4 logs
-|
-├── Tools/log_encryption # PX4 Tools directory (script location)
-│ ├── download_logs.py # This script downloads the logs
-│ ├── decrypt_logs.py # This script decrypts the encrypted logs
-│
-└── Other PX4 directories... # Rest of the PX4 structure
-```
-You could connect to the flight controller and download the logs using the provided script via serial or udp connection.
-Ports/ adresses should be adjusted
-```sh
-cd PX4-Autopilot/Tools/log_encryption
+- [download_logs.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/log_encryption/download_logs.py): Downloads the logs to `/logs/encrypted`.
+- [decrypt_logs.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/log_encryption/decrypt_logs.py): Decrypts encrypted logs in `/logs/encrypted` to `/logs/decrypted` using a specified (or default) key.
 
-python3 download_logs.py serial:/dev/ttyACM0:57600
+The following sections show how these are used.
 
-OR
+### Download Log Files
 
-python3 download_logs.py udp:0.0.0.0:14550
-```
-Otherwise you could download the logs manually and place them in the folders above.
-Encrypted log files are downloaded using the QGroundControl [Log Download](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/log_download.html) view (**Analyze Tools > Log Download**) just like ordinary log files.
+The easiest way to download the files is to use [download_logs.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/log_encryption/download_logs.py).
+This takes a single argument that sets the serial or UDP MAVLink connection to the device as shown below (adjust parameters as needed):
 
-Note that the encrypted files will be downloaded with the `.ulg` suffix, instead of `.ulge`.
+- UDP connection
+
+  ```sh
+  cd PX4-Autopilot/Tools/log_encryption
+  python3 download_logs.py udp:0.0.0.0:14550
+  ```
+
+- USB serial port on Linux
+
+  ```sh
+  cd PX4-Autopilot/Tools/log_encryption
+  python3 download_logs.py serial:/dev/ttyACM0:57600
+  ```
+
+The files are downloaded to `/logs/encrypted`, which is the location expected by the decryption script.
+
+::: info
+Encrypted log files can also be downloaded manually using the QGroundControl [Log Download](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/log_download.html) view (**Analyze Tools > Log Download**) just like ordinary log files.
+
+Note that in this case you will need to copy the files to `/logs/encrypted` and rename them to the `.ulge` suffix (they are downloaded with the `.ulg` suffix)
+:::
 
 ### Decrypt ULogs
 
-Before you can analyze your encrypted logs, you will need to decrypt them.
-There is a Python script that can be used to decrypt logs in `Tools/log_encryption/decrypt_ulog.py`.
+The [decrypt_logs.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/log_encryption/decrypt_logs.py) script can be used to decrypt encrypted logs in `/logs/encrypted`, creating the unencrypted logs in `/logs/decrypted`.
 
-To decrypt the log files you can use the script provided below, to be able to us it you have to have the keys and logs in the structure provided below.
+The script needs access to the private key corresponds to the public key used to encrypt the logs on the device.
+By default it uses the private key in `keys/private/private_key.pem`, but you can also pass the full path of a key as a command line argument.
+
+The expected folder structure showing the location of encrypted logs, decrypted logs and the default private key is shown below:
+
 ```sh
 PX4-Autopilot/
 │
@@ -240,17 +244,17 @@ PX4-Autopilot/
 │ │ ├── log-YYYY-MM-DD_HH-MM-SS_ID.ulg # Regular PX4 logs
 |
 ├── keys/ # Main directory for keys
-│ ├── private/ # Stores private keys
-│ │ ├── private_key.pem # RSA private key (2048-bit)
-│ │
-│ ├── public/ # Stores public keys
-│ │ ├── public_key.der # Public key in DER format
-│ │ ├── public_key.pub # Public key in hex format
+  ├── private/ # Stores private keys
+    ├── private_key.pem # RSA private key (2048-bit)
 ```
+
+Run the tool as shown below (assuming the default key location):
+
 ```sh
 cd PX4-Autopilot/Tools/log_encryption
 python3 decrypt_logs.py
 ```
+
 On success the decrypted logs can be found in the decrypted folder.
 
 ## Generate RSA Public & Private Keys
@@ -268,6 +272,7 @@ PX4-Autopilot/
 cd PX4-Autopilot/Tools/log_encryption
 python3 generate_keys.py
 ```
+
 As a result a private key and a public key will be generated in a new folder structure.
 
 ```sh
@@ -281,6 +286,7 @@ PX4-Autopilot/
 │ │ ├── public_key.der # Public key in DER format
 │ │ ├── public_key.pub # Public key in hex format
 ```
+
 The script does not overwrite the existing keys and also would work with already existing private key.
 
 Otherwise you could generate the keys with the way below, in that case please copy the key files to the corresponding repositories respectively, to be able to use the provided scripts in the sections above.
@@ -301,7 +307,9 @@ xxd -p public_key.der | tr -d '\n' | sed 's/\(..\)/0x\1, /g' > public_key.pub
 ```
 
 To use this key you would modify your `.px4board` file to point `CONFIG_PUBLIC_KEY1` to the file location of `public_key.pub`.
+
 ```sh
 CONFIG_PUBLIC_KEY1="../../../keys/public/public_key.pub"
 ```
+
 The private key generated should be stored safely and used when you need to decrypt log files.
