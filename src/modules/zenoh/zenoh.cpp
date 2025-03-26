@@ -162,35 +162,41 @@ void ZENOH::run()
 
 			if (_zenoh_subscribers[i] != 0) {
 				const uint8_t *rihs_hash = getRIHS01_Hash(type);
-				toCamelCase(type); // Convert uORB type to camel case
-				snprintf(keyexpr, KEYEXPR_SIZE, "%" PRId32 "/%s/"
-					 KEYEXPR_MSG_NAME "%s_/RIHS01_"
-					 "%02x%02x%02x%02x%02x%02x%02x%02x"
-					 "%02x%02x%02x%02x%02x%02x%02x%02x"
-					 "%02x%02x%02x%02x%02x%02x%02x%02x"
-					 "%02x%02x%02x%02x%02x%02x%02x%02x",
-					 _zenoh_domain_id.get(), topic, type,
-					 rihs_hash[0], rihs_hash[1], rihs_hash[2], rihs_hash[3],
-					 rihs_hash[4], rihs_hash[5], rihs_hash[6], rihs_hash[7],
-					 rihs_hash[8], rihs_hash[9], rihs_hash[10], rihs_hash[11],
-					 rihs_hash[12], rihs_hash[13], rihs_hash[14], rihs_hash[15],
-					 rihs_hash[16], rihs_hash[17], rihs_hash[18], rihs_hash[19],
-					 rihs_hash[20], rihs_hash[21], rihs_hash[22], rihs_hash[23],
-					 rihs_hash[24], rihs_hash[25], rihs_hash[26], rihs_hash[27],
-					 rihs_hash[28], rihs_hash[29], rihs_hash[30], rihs_hash[31]
-					);
-				_zenoh_subscribers[i]->declare_subscriber(s, keyexpr);
+				const char *type_name = genTypeName(type, rihs_hash);
 
-			} else {
-				PX4_ERR("Could not create a subscriber for type %s", type);
+				if (type_name) {
+					strcpy(type, type_name);
+					toCamelCase(type); // Convert uORB type to camel case
+					snprintf(keyexpr, KEYEXPR_SIZE, "%" PRId32 "/%s/"
+						 KEYEXPR_MSG_NAME "%s_/RIHS01_"
+						 "%02x%02x%02x%02x%02x%02x%02x%02x"
+						 "%02x%02x%02x%02x%02x%02x%02x%02x"
+						 "%02x%02x%02x%02x%02x%02x%02x%02x"
+						 "%02x%02x%02x%02x%02x%02x%02x%02x",
+						 _zenoh_domain_id.get(), topic, type,
+						 rihs_hash[0], rihs_hash[1], rihs_hash[2], rihs_hash[3],
+						 rihs_hash[4], rihs_hash[5], rihs_hash[6], rihs_hash[7],
+						 rihs_hash[8], rihs_hash[9], rihs_hash[10], rihs_hash[11],
+						 rihs_hash[12], rihs_hash[13], rihs_hash[14], rihs_hash[15],
+						 rihs_hash[16], rihs_hash[17], rihs_hash[18], rihs_hash[19],
+						 rihs_hash[20], rihs_hash[21], rihs_hash[22], rihs_hash[23],
+						 rihs_hash[24], rihs_hash[25], rihs_hash[26], rihs_hash[27],
+						 rihs_hash[28], rihs_hash[29], rihs_hash[30], rihs_hash[31]
+						);
+					_zenoh_subscribers[i]->declare_subscriber(s, keyexpr);
+
+				} else {
+					PX4_ERR("Could not create a subscriber for type %s", type);
+				}
+
 			}
 
-		}
-
-		if (z_config.getSubscriberMapping(topic, type) < 0) {
-			PX4_WARN("Subscriber mapping parsing error");
+			if (z_config.getSubscriberMapping(topic, type) < 0) {
+				PX4_WARN("Subscriber mapping parsing error");
+			}
 		}
 	}
+
 #endif
 
 #ifdef Z_PUBLISH
@@ -210,25 +216,31 @@ void ZENOH::run()
 
 			if (_zenoh_publishers[i] != 0) {
 				const uint8_t *rihs_hash = getRIHS01_Hash(type);
-				toCamelCase(type); // Convert uORB type to camel case
-				snprintf(keyexpr, KEYEXPR_SIZE, "%" PRId32 "/%s/"
-					 KEYEXPR_MSG_NAME "%s_/RIHS01_"
-					 "%02x%02x%02x%02x%02x%02x%02x%02x"
-					 "%02x%02x%02x%02x%02x%02x%02x%02x"
-					 "%02x%02x%02x%02x%02x%02x%02x%02x"
-					 "%02x%02x%02x%02x%02x%02x%02x%02x",
-					 _zenoh_domain_id.get(), topic, type,
-					 rihs_hash[0], rihs_hash[1], rihs_hash[2], rihs_hash[3],
-					 rihs_hash[4], rihs_hash[5], rihs_hash[6], rihs_hash[7],
-					 rihs_hash[8], rihs_hash[9], rihs_hash[10], rihs_hash[11],
-					 rihs_hash[12], rihs_hash[13], rihs_hash[14], rihs_hash[15],
-					 rihs_hash[16], rihs_hash[17], rihs_hash[18], rihs_hash[19],
-					 rihs_hash[20], rihs_hash[21], rihs_hash[22], rihs_hash[23],
-					 rihs_hash[24], rihs_hash[25], rihs_hash[26], rihs_hash[27],
-					 rihs_hash[28], rihs_hash[29], rihs_hash[30], rihs_hash[31]
-					);
-				_zenoh_publishers[i]->declare_publisher(s, keyexpr, (uint8_t *)&px4_guid);
-				_zenoh_publishers[i]->setPollFD(&pfds[i]);
+				const char *type_name = genTypeName(type, rihs_hash);
+
+				if (type_name) {
+					strcpy(type, type_name);
+					toCamelCase(type); // Convert uORB type to camel case
+					snprintf(keyexpr, KEYEXPR_SIZE, "%" PRId32 "/%s/"
+						 KEYEXPR_MSG_NAME "%s_/RIHS01_"
+						 "%02x%02x%02x%02x%02x%02x%02x%02x"
+						 "%02x%02x%02x%02x%02x%02x%02x%02x"
+						 "%02x%02x%02x%02x%02x%02x%02x%02x"
+						 "%02x%02x%02x%02x%02x%02x%02x%02x",
+						 _zenoh_domain_id.get(), topic, type,
+						 rihs_hash[0], rihs_hash[1], rihs_hash[2], rihs_hash[3],
+						 rihs_hash[4], rihs_hash[5], rihs_hash[6], rihs_hash[7],
+						 rihs_hash[8], rihs_hash[9], rihs_hash[10], rihs_hash[11],
+						 rihs_hash[12], rihs_hash[13], rihs_hash[14], rihs_hash[15],
+						 rihs_hash[16], rihs_hash[17], rihs_hash[18], rihs_hash[19],
+						 rihs_hash[20], rihs_hash[21], rihs_hash[22], rihs_hash[23],
+						 rihs_hash[24], rihs_hash[25], rihs_hash[26], rihs_hash[27],
+						 rihs_hash[28], rihs_hash[29], rihs_hash[30], rihs_hash[31]
+						);
+					_zenoh_publishers[i]->declare_publisher(s, keyexpr, (uint8_t *)&px4_guid);
+					_zenoh_publishers[i]->setPollFD(&pfds[i]);
+
+				}
 
 			} else {
 				PX4_ERR("Could not create a publisher for type %s", type);

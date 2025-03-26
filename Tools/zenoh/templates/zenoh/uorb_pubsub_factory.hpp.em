@@ -159,6 +159,20 @@ Zenoh_Subscriber* genSubscriber(const char *name) {
     return NULL;
 }
 
+const char* genTypeName(const char *name, const uint8_t* hash) {
+    const char *pch;
+    for (auto &sub : _topics) {
+        pch = strstr(name, sub.orb_meta->o_name);
+        if(pch) {
+            if(hash == sub.hash) {
+                return sub.orb_meta->o_name;
+            }
+        }
+    }
+    return NULL;
+}
+
+
 const uint8_t* getRIHS01_Hash(const orb_metadata *meta) {
     for (auto &sub : _topics) {
         if(sub.orb_meta->o_id == meta->o_id) {
