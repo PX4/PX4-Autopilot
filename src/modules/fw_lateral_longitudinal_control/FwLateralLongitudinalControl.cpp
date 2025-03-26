@@ -70,6 +70,7 @@ FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 {
 	_tecs_status_pub.advertise();
 	_flight_phase_estimation_pub.advertise();
+	_fixed_wing_lateral_status_pub.advertise();
 	parameters_update();
 }
 
