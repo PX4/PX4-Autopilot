@@ -155,7 +155,12 @@ def generate_topics_list_file_from_files(files, outputdir, template_filename, te
     for msg_filename in files:
         topics.extend(get_topics(msg_filename))
 
-    tl_globals = {"msgs": filenames, "topics": topics, "datatypes": datatypes, "full_base_names": full_base_names, "rihs01_hashes": rihs01_hashes}
+    datatypes_with_topics = dict()
+    for msg_filename in files:
+        datatype = re.sub(r'(?<!^)(?=[A-Z])', '_', os.path.basename(msg_filename)).lower().replace(".msg","")
+        datatypes_with_topics[datatype] = get_topics(msg_filename)
+
+    tl_globals = {"msgs": filenames, "topics": topics, "datatypes": datatypes, "full_base_names": full_base_names, "rihs01_hashes": rihs01_hashes, "datatypes_with_topics": datatypes_with_topics}
     tl_template_file = os.path.join(templatedir, template_filename)
     tl_out_file = os.path.join(outputdir, template_filename.replace(".em", ""))
 
