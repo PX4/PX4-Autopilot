@@ -45,7 +45,7 @@
 #include <uORB/Subscription.hpp>
 #include <dds_serializer.h>
 
-#define CDR_SAFETY_MARGIN 12
+#define CDR_SAFETY_MARGIN 24
 
 class uORB_Zenoh_Publisher : public Zenoh_Publisher
 {
