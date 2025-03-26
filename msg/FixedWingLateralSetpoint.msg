@@ -5,5 +5,3 @@ uint64 timestamp
 float32 course 				# [-pi, pi] Course over ground setpoint, w.r.t. North. NAN if not controlled directly.
 float32 airspeed_direction    		# [-pi, pi] Angle projected to ground of desired airspeed vector, w.r.t. North. NAN if not controlled directly, used as feedforward if course setpoint is finite.
 float32 lateral_acceleration 		# [m/s^2] Lateral acceleration setpoint in FRD frame. NAN if not controlled directly, used as feedforward if either course setpoint or airspeed_direction is finite.
-
-# TOPICS fixed_wing_lateral_setpoint
