@@ -276,9 +276,14 @@ int Zenoh_Config::getPubSubMapping(char *topic, char *type, const char *filename
 				const char *config_type = get_csv_field(buffer, 2);
 				const char *config_topic = get_csv_field(buffer, 1);
 
-				strncpy(type, config_type, TOPIC_INFO_SIZE);
-				strncpy(topic, config_topic, TOPIC_INFO_SIZE);
-				return 1;
+				if (config_topic && config_type) {
+					strncpy(type, config_type, TOPIC_INFO_SIZE);
+					strncpy(topic, config_topic, TOPIC_INFO_SIZE);
+					return 1;
+
+				} else {
+					return -1;
+				}
 			}
 
 		}
