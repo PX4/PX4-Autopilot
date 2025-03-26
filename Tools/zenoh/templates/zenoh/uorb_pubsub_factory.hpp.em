@@ -74,7 +74,7 @@ full_base_names.sort()
 
 @[for idx, topic_name in enumerate(datatypes)]@
 @{
-type_topic_count = len([e for e in topic_names_all if e.startswith(topic_name)])
+type_topic_count = len(datatypes_with_topics[topic_name])
 }@
 #ifdef CONFIG_ZENOH_PUBSUB_@(topic_name.upper())
 #  define CONFIG_ZENOH_PUBSUB_@(topic_name.upper())_COUNT @(type_topic_count)
@@ -105,7 +105,7 @@ uorb_id_idx = 0
 @[for idx, topic_name in enumerate(datatypes)]@
 #ifdef CONFIG_ZENOH_PUBSUB_@(topic_name.upper())
 @{
-topic_names = [e for e in topic_names_all if e.startswith(topic_name)]
+topic_names = datatypes_with_topics[topic_name]
 }@
 @[for topic_name_inst in topic_names]@
 		{
@@ -160,6 +160,8 @@ Zenoh_Subscriber* genSubscriber(const char *name) {
 }
 
 const char* genTypeName(const char *name, const uint8_t* hash) {
+    //FIXME this isn't fully clean because we've got topics that never matches datatype name
+    // i.e. ESTIMATOR_AID_SOURCE2D however storing all strings in flash isn't ideal either
     const char *pch;
     for (auto &sub : _topics) {
         pch = strstr(name, sub.orb_meta->o_name);
