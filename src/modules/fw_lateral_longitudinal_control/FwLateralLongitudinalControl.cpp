@@ -89,7 +89,7 @@ FwLateralLongitudinalControl::parameters_update()
 	_tecs.set_max_sink_rate(_param_fw_t_sink_max.get());
 	_tecs.set_min_sink_rate(_performance_model.getMinimumSinkRate(_air_density));
 	_tecs.set_equivalent_airspeed_trim(_performance_model.getCalibratedTrimAirspeed());
-	_tecs.set_equivalent_airspeed_min(_performance_model.getMinimumCalibratedAirspeed());
+	_tecs.set_equivalent_airspeed_min(_performance_model.getMinimumCalibratedAirspeed(getLoadFactor(), _flaps_setpoint));
 	_tecs.set_equivalent_airspeed_max(_performance_model.getMaximumCalibratedAirspeed());
 	_tecs.set_throttle_damp(_param_fw_t_thr_damping.get());
 	_tecs.set_integrator_gain_throttle(_param_fw_t_thr_integ.get());
@@ -168,6 +168,13 @@ void FwLateralLongitudinalControl::Run()
 
 		_vehicle_status_sub.update();
 		_control_mode_sub.update();
+
+		if (_flaps_setpoint_sub.updated()) {
+			normalized_unsigned_setpoint_s flaps_setpoint{};
+			_flaps_setpoint_sub.copy(&flaps_setpoint);
+			_flaps_setpoint = flaps_setpoint.normalized_setpoint;
+		}
+
 		update_control_state();
 
 		if (_control_mode_sub.get().flag_control_manual_enabled && _control_mode_sub.get().flag_control_altitude_enabled
@@ -612,7 +619,7 @@ float
 FwLateralLongitudinalControl::adapt_airspeed_setpoint(const float control_interval, float calibrated_airspeed_setpoint,
 		float calibrated_min_airspeed_guidance, float wind_speed)
 {
-	float system_min_airspeed = _performance_model.getMinimumCalibratedAirspeed(getLoadFactor());
+	float system_min_airspeed = _performance_model.getMinimumCalibratedAirspeed(getLoadFactor(), _flaps_setpoint);
 
 	const float system_max_airspeed = _performance_model.getMaximumCalibratedAirspeed();
 

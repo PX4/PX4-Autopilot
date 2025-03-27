@@ -2582,19 +2582,6 @@ fw_pos_control is the fixed-wing position controller.
 
 	return 0;
 }
-float FixedwingPositionControl::getLoadFactor() const
-{
-	float load_factor_from_bank_angle = 1.0f;
-
-	float roll_body = Eulerf(Quatf(_att_sp.q_d)).phi();
-
-	if (PX4_ISFINITE(roll_body)) {
-		load_factor_from_bank_angle = 1.0f / math::max(cosf(roll_body), FLT_EPSILON);
-	}
-
-	return load_factor_from_bank_angle;
-
-}
 
 extern "C" __EXPORT int fw_pos_control_main(int argc, char *argv[])
 {
