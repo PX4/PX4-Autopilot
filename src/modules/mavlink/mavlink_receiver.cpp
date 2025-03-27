@@ -2083,21 +2083,21 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 }
 
 void MavlinkReceiver::handle_message_rc_channels(mavlink_message_t *msg)
-	{
-	    mavlink_rc_channels_t rc_channels;
-	    mavlink_msg_rc_channels_decode(msg, &rc_channels);
+{
+	mavlink_rc_channels_t rc_channels;
+	mavlink_msg_rc_channels_decode(msg, &rc_channels);
 
-	    // Fill the uORB input_rc message
-	    input_rc_s rc_input{};
-	    rc_input.timestamp = hrt_absolute_time();
-	    rc_input.timestamp_last_signal = hrt_absolute_time();
-	    rc_input.channel_count = rc_channels.chancount;
-	    rc_input.rssi = rc_channels.rssi;
-	    rc_input.rc_failsafe = false;
-	    rc_input.rc_lost = false;
-	    rc_input.rc_lost_frame_count = 0;
-	    rc_input.rc_total_frame_count = 1;
-	    rc_input.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
+	// Fill the uORB input_rc message
+	input_rc_s rc_input{};
+	rc_input.timestamp = hrt_absolute_time();
+	rc_input.timestamp_last_signal = hrt_absolute_time();
+	rc_input.channel_count = rc_channels.chancount;
+	rc_input.rssi = rc_channels.rssi;
+	rc_input.rc_failsafe = false;
+	rc_input.rc_lost = false;
+	rc_input.rc_lost_frame_count = 0;
+	rc_input.rc_total_frame_count = 1;
+	rc_input.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
 
 
 	rc_input.values[0] = rc_channels.chan1_raw;
@@ -2119,9 +2119,9 @@ void MavlinkReceiver::handle_message_rc_channels(mavlink_message_t *msg)
 	rc_input.values[16] = rc_channels.chan17_raw;
 	rc_input.values[17] = rc_channels.chan18_raw;
 
-	    // Publish the rc_channelsmessage
-	    _rc_pub.publish(rc_input);
-	}
+	// Publish the rc_channelsmessage
+	_rc_pub.publish(rc_input);
+}
 
 void
 MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
