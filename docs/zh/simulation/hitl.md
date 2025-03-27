@@ -1,7 +1,7 @@
-# Hardware in the Loop Simulation (HITL)
+# 硬体仿真(HITL)
 
 :::warning
-HITL is [community supported and maintained](../simulation/community_supported_simulators.md).
+硬体仿真被 [社区支持和维护](../simulation/community_supported_simulators.md)
 It may or may not work with current versions of PX4.
 
 See [Toolchain Installation](../dev_setup/dev_env.md) for information about the environments and tools supported by the core development team.
@@ -10,13 +10,13 @@ See [Toolchain Installation](../dev_setup/dev_env.md) for information about the 
 硬件在环仿真模式 (HITL 或 HIL) 下 PX4 固件代码运行在真实的飞行控制器硬件平台上。
 这种方法的优点是可以在实际硬件上测试大多数的实际飞行代码。
 
-PX4 supports HITL for multicopters (using [jMAVSim](../sim_jmavsim/index.md) or [Gazebo Classic](../sim_gazebo_classic/index.md)) and VTOL (using Gazebo Classic).
+PX4 支持多轴( [jMAVSim](../sim_jmavsim/index.md)或[Gazebo Classic](../sim_gazebo_classic/index.md))及VTOL (using Gazebo Classic)的仿真。
 
 <a id="compatible_airframe"></a>
 
 ## HITL兼容机架
 
-The set of compatible airframes vs simulators is:
+机架与模拟器兼容情况：
 
 | 机架                                                                                                               | `SYS_AUTOSTART` | Gazebo Classic | jMAVSim |
 | ---------------------------------------------------------------------------------------------------------------- | --------------- | -------------- | ------- |
