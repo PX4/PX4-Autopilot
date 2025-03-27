@@ -31,7 +31,10 @@
 
 #include "arm_internal.h"
 #include "rp23xx_gpio.h"
+
+#ifdef CONFIG_BOARDCTL_UNIQUEID
 #include "rp23xx_uniqueid.h"
+#endif
 
 /****************************************************************************
  * Pre-processor Definitions

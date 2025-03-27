@@ -58,12 +58,17 @@
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/i2c/i2c_master.h>
-#include <nuttx/mmcsd.h>
+#if defined(CONFIG_NSH_MMCSDSPIPORTNO)
+	#include <nuttx/mmcsd.h>
+#endif
 #include <nuttx/analog/adc.h>
 #include <nuttx/mm/gran.h>
 
 #include "board_config.h"
+//platforms/nuttx/src/px4/rpi/rpi_common/include/px4_arch/micro_hal.h
+#include <px4_arch/micro_hal.h>
 #include <rp23xx_uart.h>
+
 
 #include <arch/board/board.h>
 
@@ -362,8 +367,14 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	 up_udelay(20);
 
-	// SPI2: MPU9250 and BMP280
-	spi2 = rp23xx_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(2));
+	// SPI2: sensors
+	#if defined(CONFIG_NSH_MMCSDSPIPORTNO)
+  		// SPI2
+        #define SENSOR_SPI_BUS    2
+    #else
+  	  #define SENSOR_SPI_BUS    2
+    #endif
+	spi2 = rp23xx_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(SENSOR_SPI_BUS));
 
 	if (!spi2) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 2\n");

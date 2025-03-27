@@ -59,6 +59,7 @@
 #define MHZ                     1000000
 
 #define BOARD_XOSC_FREQ         (12 * MHZ)
+#define BOARD_XOSC_STARTUPDELAY 64
 #define BOARD_PLL_SYS_FREQ      (150 * MHZ)
 #define BOARD_PLL_USB_FREQ      (48 * MHZ)
 
@@ -189,8 +190,11 @@ void rp23xx_boardinitialize(void);
  * UART1TX: GPIO8
  * UART1RX: GPIO9
  */
+ // FIXME 0 (default) -> 4 (pimoroni plus 2)?
 #define CONFIG_RP23XX_UART0_GPIO	0	/* TELEM */
 
+
+// FIXME 4?
 #define CONFIG_RP23XX_UART1_GPIO	8	/* GPS */
 
 /*
@@ -204,7 +208,9 @@ void rp23xx_boardinitialize(void);
  *   reset the bus to clear stuck slaves.  They match the pin configuration,
  *   but are normally-high GPIOs.
  */
-#define CONFIG_RP23XX_I2C1_GPIO		6
+//#define CONFIG_RP23XX_I2C1_GPIO		6
+// FIXME: would conflict with SPI0 if enabled
+#define CONFIG_RP23XX_I2C1_GPIO		12
 
 /* SPI0:
  *  SPIDEV_FLASH (probably micro sd card)
@@ -215,9 +221,9 @@ void rp23xx_boardinitialize(void);
  */
 
 
-#define GPIO_SPI0_SCLK  ( 2 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
-#define GPIO_SPI0_MISO ( 4 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
-#define GPIO_SPI0_MOSI ( 3 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+#define GPIO_SPI0_SCLK  ( 10 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+#define GPIO_SPI0_MISO ( 12 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+#define GPIO_SPI0_MOSI ( 11 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
 
 /* SPI1:
  *  MPU9250 and BMP280
@@ -227,9 +233,13 @@ void rp23xx_boardinitialize(void);
  *  MOSI: GPIO11
  */
 
-#define GPIO_SPI1_SCLK	( 10 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
-#define GPIO_SPI1_MISO	( 12 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
-#define GPIO_SPI1_MOSI	( 11 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+//#define GPIO_SPI1_SCLK	( 10 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+//#define GPIO_SPI1_MISO	( 12 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+//#define GPIO_SPI1_MOSI	( 11 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+
+#define GPIO_SPI1_SCLK	( 6 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+#define GPIO_SPI1_MISO	( 4 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+#define GPIO_SPI1_MOSI	( 3 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
 
 
 #endif  /* __ARCH_BOARD_BOARD_H */

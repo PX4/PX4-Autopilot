@@ -29,7 +29,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "pico.h"
+#include "rp23xx_pico.h"
 #include "rp23xx_uniqueid.h"
 #include "rp23xx_rom.h"
 

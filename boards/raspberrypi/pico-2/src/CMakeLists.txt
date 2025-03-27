@@ -41,9 +41,14 @@ add_library(drivers_board
 	timer_config.cpp
 	usb.c
 	rp23xx_composite.c
+	#rp23xx_uniqueid.c
+	rp23xx_usbmsc.c
 	# rp23xx_userleds.c
 	rp23xx_autoleds.c
-	rp23xx_boardinitialize.c
+	# fixme - potential conflict with rp23xx_boardinitialize in init.c ?
+	# rp23xx_boardinitialize.c
+	# rp23xx_common_bringup.c
+	rp23xx_common_initialize.c
 	rp23xx_appinit.c
 	rp23xx_bringup.c
 	rp23xx_gpio.c
