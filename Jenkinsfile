@@ -12,6 +12,11 @@ pipeline {
           branch 'pr-jenkins' // for testing
         }
       }
+      not {
+        changeSet {
+          files('docs/**') // Don't run for changes under 'docs'
+        }
+      }
       parallel {
 
         stage('Airframe') {
