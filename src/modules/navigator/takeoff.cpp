@@ -77,7 +77,8 @@ Takeoff::on_active()
 			_mission_item.nav_cmd = NAV_CMD_IDLE;
 
 		} else {
-			if (pos_sp_triplet->current.valid) {
+			if (pos_sp_triplet->current.valid
+			    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 				setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
 
 			} else {

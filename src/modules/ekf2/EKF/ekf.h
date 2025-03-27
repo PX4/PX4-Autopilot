@@ -862,7 +862,11 @@ private:
 #if defined(CONFIG_EKF2_GNSS)
 	// control fusion of GPS observations
 	void controlGpsFusion(const imuSample &imu_delayed);
-	void stopGpsFusion();
+	void controlGnssVelFusion(estimator_aid_source3d_s &aid_src, bool force_reset);
+	void controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool force_reset);
+	void stopGnssFusion();
+	void stopGnssVelFusion();
+	void stopGnssPosFusion();
 	void updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_sample, estimator_aid_source3d_s &aid_src);
 	void updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s &aid_src);
 	void controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel);

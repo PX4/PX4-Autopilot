@@ -118,11 +118,10 @@ float rateControl(SlewRate<float> &adjusted_yaw_rate_setpoint, PID &pid_yaw_rate
  * @param next_wp_ned Next waypoint in NED frame (Updated by this function)
  * @param position_setpoint_triplet Position Setpoint Triplet
  * @param curr_pos Current position of the rover in global frame
- * @param home_pos Home position in global frame
  * @param global_ned_proj_ref Global to ned projection
  */
 void globalToLocalSetpointTriplet(Vector2f &curr_wp_ned, Vector2f &prev_wp_ned, Vector2f &next_wp_ned,
-				  position_setpoint_triplet_s position_setpoint_triplet, Vector2f &curr_pos_ned, Vector2d &home_pos,
+				  position_setpoint_triplet_s position_setpoint_triplet, Vector2f &curr_pos_ned,
 				  MapProjection &global_ned_proj_ref);
 
 /**

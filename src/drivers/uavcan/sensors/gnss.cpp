@@ -453,7 +453,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	}
 
 	// If we haven't already done so, set the system clock using GPS data
-	if ((fix_type >= sensor_gps_s::FIX_TYPE_2D) && !_system_clock_set) {
+	if (report.time_utc_usec != 0 && (fix_type >= sensor_gps_s::FIX_TYPE_2D) && !_system_clock_set) {
 		timespec ts{};
 
 		// get the whole microseconds

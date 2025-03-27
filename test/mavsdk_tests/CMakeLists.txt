@@ -22,6 +22,7 @@ if(MAVSDK_FOUND)
         # follow-me needs a MAVSDK update:
         # https://github.com/mavlink/MAVSDK/pull/1770
         # autopilot_tester_follow_me.cpp
+        test_multicopter_basics.cpp
         test_multicopter_control_allocation.cpp
         test_multicopter_failure_injection.cpp
         test_multicopter_failsafe.cpp

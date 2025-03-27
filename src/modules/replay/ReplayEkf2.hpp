@@ -35,6 +35,9 @@
 
 #include "Replay.hpp"
 
+#include <uORB/topics/ekf2_timestamps.h>
+#include <uORB/topics/sensor_combined.h>
+
 namespace px4
 {
 
@@ -70,9 +73,11 @@ private:
 
 	bool publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifstream &replay_file);
 
+	bool publishEkf2Topics(sensor_combined_s &sensors_combined, std::ifstream &replay_file);
+
 	/**
 	 * find the next message for a subscription that matches a given timestamp and publish it
-	 * @param timestamp in 0.1 ms
+	 * @param timestamp in microseconds
 	 * @param msg_id
 	 * @param replay_file file currently replayed (file seek position should be considered arbitrary after this call)
 	 * @return true if timestamp found and published
@@ -93,6 +98,9 @@ private:
 	uint16_t _vehicle_local_position_groundtruth_msg_id = msg_id_invalid;
 	uint16_t _vehicle_global_position_groundtruth_msg_id = msg_id_invalid;
 	uint16_t _vehicle_attitude_groundtruth_msg_id = msg_id_invalid;
+
+	bool _ekf2_timestamps_exists{false};
+	uint64_t _last_sensor_combined_timestamp{0};
 };
 
 } //namespace px4

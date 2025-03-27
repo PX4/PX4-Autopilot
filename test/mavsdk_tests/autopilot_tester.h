@@ -118,7 +118,7 @@ public:
 	void transition_to_multicopter();
 	void wait_until_disarmed(std::chrono::seconds timeout_duration = std::chrono::seconds(60));
 	void wait_until_hovering(); // TODO: name suggests, that function waits for drone velocity to be zero and not just drone in the air
-	void wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout);
+	void wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout, float delta = 0.5f);
 	void wait_until_fixedwing(std::chrono::seconds timeout);
 	void wait_until_speed_lower_than(float speed, std::chrono::seconds timeout);
 	void prepare_square_mission(MissionOptions mission_options);
@@ -164,24 +164,6 @@ public:
 		CHECK(_param->set_param_int(param, value) == Param::Result::Success);
 	}
 
-protected:
-	mavsdk::Param *getParams() const { return _param.get();}
-	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
-	mavsdk::ManualControl *getManualControl() const { return _manual_control.get();}
-	MavlinkPassthrough *getMavlinkPassthrough() const { return _mavlink_passthrough.get();}
-	std::shared_ptr<System> get_system() { return _mavsdk.systems().at(0);}
-	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
-	bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos, float acceptance_radius_m);
-
-	const Telemetry::GroundTruth &getHome()
-	{
-		// Check if home was stored before it is accessed
-		CHECK(_home.absolute_altitude_m != NAN);
-		CHECK(_home.latitude_deg != NAN);
-		CHECK(_home.longitude_deg != NAN);
-		return _home;
-	}
-
 	template<typename Rep, typename Period>
 	void sleep_for(std::chrono::duration<Rep, Period> duration)
 	{
@@ -205,6 +187,24 @@ protected:
 		} else {
 			std::this_thread::sleep_for(duration);
 		}
+	}
+
+protected:
+	mavsdk::Param *getParams() const { return _param.get();}
+	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
+	mavsdk::ManualControl *getManualControl() const { return _manual_control.get();}
+	MavlinkPassthrough *getMavlinkPassthrough() const { return _mavlink_passthrough.get();}
+	std::shared_ptr<System> get_system() { return _mavsdk.systems().at(0);}
+	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
+	bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos, float acceptance_radius_m);
+
+	const Telemetry::GroundTruth &getHome()
+	{
+		// Check if home was stored before it is accessed
+		CHECK(_home.absolute_altitude_m != NAN);
+		CHECK(_home.latitude_deg != NAN);
+		CHECK(_home.longitude_deg != NAN);
+		return _home;
 	}
 
 private:
@@ -280,7 +280,6 @@ private:
 
 		return true;
 	}
-
 
 
 	mavsdk::Mavsdk _mavsdk{};

@@ -215,8 +215,7 @@ float rateControl(SlewRate<float> &adjusted_yaw_rate_setpoint, PID &pid_yaw_rate
 }
 
 void globalToLocalSetpointTriplet(Vector2f &curr_wp_ned, Vector2f &prev_wp_ned, Vector2f &next_wp_ned,
-				  position_setpoint_triplet_s position_setpoint_triplet, Vector2f &curr_pos_ned, Vector2d &home_pos,
-				  MapProjection &global_ned_proj_ref)
+				  position_setpoint_triplet_s position_setpoint_triplet, Vector2f &curr_pos_ned, MapProjection &global_ned_proj_ref)
 {
 	if (position_setpoint_triplet.current.valid && PX4_ISFINITE(position_setpoint_triplet.current.lat)
 	    && PX4_ISFINITE(position_setpoint_triplet.current.lon)) {
@@ -241,8 +240,7 @@ void globalToLocalSetpointTriplet(Vector2f &curr_wp_ned, Vector2f &prev_wp_ned, 
 		next_wp_ned = global_ned_proj_ref.project(position_setpoint_triplet.next.lat, position_setpoint_triplet.next.lon);
 
 	} else {
-		next_wp_ned = home_pos.isAllFinite() ? global_ned_proj_ref.project(home_pos(0), home_pos(1)) : Vector2f(NAN,
-				NAN); // Enables corner slow down with RTL
+		next_wp_ned = Vector2f(NAN, NAN);
 	}
 }
 
