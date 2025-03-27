@@ -133,6 +133,22 @@ static constexpr const char *tstate_name(const tstate_t s)
 	}
 }
 
+#ifndef up_check_intstack_remain
+	#if CONFIG_ARCH_INTERRUPTSTACK > 3
+		// deleted from new nuttx version?
+		size_t up_check_intstack_remain(void)
+		{
+	          // FIXME: which CPU index(es)?
+	        int cpu_index = 0;
+			return (CONFIG_ARCH_INTERRUPTSTACK & ~3) - up_check_intstack(cpu_index);
+		}
+		ssize_t up_check_tcbstack_remain(FAR struct tcb_s *tcb)
+		{
+			return (ssize_t)tcb->adj_stack_size - (ssize_t)up_check_tcbstack(tcb);
+		}
+	#endif
+#endif
+
 void print_load_buffer(char *buffer, int buffer_length, print_load_callback_f cb, void *user,
 		       struct print_load_s *print_state)
 {
