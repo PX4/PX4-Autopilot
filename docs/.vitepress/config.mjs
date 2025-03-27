@@ -89,7 +89,11 @@ export default defineConfig({
               : (c) =>
                   `${
                     window.location.origin
-                  }/__open-in-editor?file=${encodeURIComponent(c.filePath)}`,
+                  }/__open-in-editor?file=${encodeURIComponent(
+                    c.frontmatter.newEditLink
+                      ? c.frontmatter.newEditLink
+                      : c.filePath
+                  )}`,
         },
       },
     },
