@@ -92,10 +92,24 @@ type_topic_count = len(datatypes_with_topics[topic_name])
 const uint8_t @(topic_name)_hash[32] = @(rihs01_hash)
 @[end for]
 
+@[for idx, topic_name in enumerate(datatypes)]@
+#ifdef CONFIG_ZENOH_PUBSUB_@(topic_name.upper())
+@{
+topic_names = datatypes_with_topics[topic_name]
+}@
+const orb_metadata* @(topic_name)_topic_meta[@(len(topic_names))] = {
+@[for topic_name_inst in topic_names]@
+	ORB_ID(@(topic_name_inst)),
+@[end for]};
+#endif
+@[end for]
+
 typedef struct {
+    const char *data_type_name;
 	const uint32_t *ops;
-	const orb_metadata* orb_meta;
 	const uint8_t *hash;
+	const orb_metadata** orb_topic;
+	const uint8_t orb_topics_size;
 } UorbPubSubTopicBinder;
 
 const UorbPubSubTopicBinder _topics[ZENOH_PUBSUB_COUNT] {
@@ -107,23 +121,23 @@ uorb_id_idx = 0
 @{
 topic_names = datatypes_with_topics[topic_name]
 }@
-@[for topic_name_inst in topic_names]@
 		{
+		  "@(topic_name)",
 		  px4_msgs_msg_@(topic_dict[topic_name])_cdrstream_desc.ops.ops,
-		  ORB_ID(@(topic_name_inst)),
-		  @(topic_dict[topic_name])_hash
+		  @(topic_dict[topic_name])_hash,
+		  @(topic_name)_topic_meta,
+		  @(len(topic_names)),
 		},
-@{
-uorb_id_idx += 1
-}@
-@[end for]#endif
+#endif
 @[end for]
 };
 
 uORB_Zenoh_Publisher* genPublisher(const orb_metadata *meta) {
     for (auto &pub : _topics) {
-        if(pub.orb_meta->o_id == meta->o_id) {
-            return new uORB_Zenoh_Publisher(meta, pub.ops);
+        for(int i = 0; i < pub.orb_topics_size; i++) {
+            if(pub.orb_topic[i]->o_id == meta->o_id) {
+                return new uORB_Zenoh_Publisher(meta, pub.ops);
+            }
         }
     }
     return NULL;
@@ -132,8 +146,10 @@ uORB_Zenoh_Publisher* genPublisher(const orb_metadata *meta) {
 
 uORB_Zenoh_Publisher* genPublisher(const char *name) {
     for (auto &pub : _topics) {
-        if(strcmp(pub.orb_meta->o_name, name) == 0) {
-            return new uORB_Zenoh_Publisher(pub.orb_meta, pub.ops);
+        for(int i = 0; i < pub.orb_topics_size; i++) {
+            if(strcmp(pub.orb_topic[i]->o_name, name) == 0) {
+                return new uORB_Zenoh_Publisher(pub.orb_topic[i], pub.ops);
+            }
         }
     }
     return NULL;
@@ -142,8 +158,10 @@ uORB_Zenoh_Publisher* genPublisher(const char *name) {
 
 Zenoh_Subscriber* genSubscriber(const orb_metadata *meta) {
     for (auto &sub : _topics) {
-        if(sub.orb_meta->o_id == meta->o_id) {
-            return new uORB_Zenoh_Subscriber(meta, sub.ops);
+        for(int i = 0; i < sub.orb_topics_size; i++) {
+            if(sub.orb_topic[i]->o_id == meta->o_id) {
+                return new uORB_Zenoh_Subscriber(meta, sub.ops);
+            }
         }
     }
     return NULL;
@@ -152,22 +170,20 @@ Zenoh_Subscriber* genSubscriber(const orb_metadata *meta) {
 
 Zenoh_Subscriber* genSubscriber(const char *name) {
     for (auto &sub : _topics) {
-        if(strcmp(sub.orb_meta->o_name, name) == 0) {
-            return new uORB_Zenoh_Subscriber(sub.orb_meta, sub.ops);
+        for(int i = 0; i < sub.orb_topics_size; i++) {
+            if(strcmp(sub.orb_topic[i]->o_name, name) == 0) {
+                return new uORB_Zenoh_Subscriber(sub.orb_topic[i], sub.ops);
+            }
         }
     }
     return NULL;
 }
 
-const char* genTypeName(const char *name, const uint8_t* hash) {
-    //FIXME this isn't fully clean because we've got topics that never matches datatype name
-    // i.e. ESTIMATOR_AID_SOURCE2D however storing all strings in flash isn't ideal either
-    const char *pch;
+const char* getTypeName(const char *name) {
     for (auto &sub : _topics) {
-        pch = strstr(name, sub.orb_meta->o_name);
-        if(pch) {
-            if(hash == sub.hash) {
-                return sub.orb_meta->o_name;
+        for(int i = 0; i < sub.orb_topics_size; i++) {
+            if(strcmp(sub.orb_topic[i]->o_name, name) == 0) {
+                return sub.data_type_name;
             }
         }
     }
@@ -177,8 +193,10 @@ const char* genTypeName(const char *name, const uint8_t* hash) {
 
 const uint8_t* getRIHS01_Hash(const orb_metadata *meta) {
     for (auto &sub : _topics) {
-        if(sub.orb_meta->o_id == meta->o_id) {
-            return sub.hash;
+        for(int i = 0; i < sub.orb_topics_size; i++) {
+            if(sub.orb_topic[i]->o_id == meta->o_id) {
+                return sub.hash;
+            }
         }
     }
     return NULL;
@@ -186,8 +204,10 @@ const uint8_t* getRIHS01_Hash(const orb_metadata *meta) {
 
 const uint8_t* getRIHS01_Hash(const char *name) {
     for (auto &sub : _topics) {
-        if(strcmp(sub.orb_meta->o_name, name) == 0) {
-            return sub.hash;
+        for(int i = 0; i < sub.orb_topics_size; i++) {
+            if(strcmp(sub.orb_topic[i]->o_name, name) == 0) {
+                return sub.hash;
+            }
         }
     }
     return NULL;
