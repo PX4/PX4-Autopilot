@@ -189,12 +189,14 @@ void ADIS16507::RunImpl()
 			_state = STATE::READ;
 
 			if (DataReadyInterruptConfigure()) {
+				PX4_DEBUG("using data ready interrupt");
 				_data_ready_interrupt_enabled = true;
 
 				// backup schedule as a watchdog timeout
 				ScheduleDelayed(100_ms);
 
 			} else {
+				PX4_DEBUG("not using data ready interrupt");
 				_data_ready_interrupt_enabled = false;
 				ScheduleOnInterval(SAMPLE_INTERVAL_US, SAMPLE_INTERVAL_US);
 			}
@@ -225,6 +227,7 @@ void ADIS16507::RunImpl()
 					timestamp_sample = drdy_timestamp_sample;
 
 				} else {
+					PX4_DEBUG("DRDY MISSED!");
 					perf_count(_drdy_missed_perf);
 				}
 
@@ -281,7 +284,7 @@ void ADIS16507::RunImpl()
 				}
 
 				if (buffer.checksum != checksum) {
-					//PX4_DEBUG("adis_report.checksum: %X vs calculated: %X", buffer.checksum, checksum);
+					PX4_DEBUG("adis_report.checksum: %X vs calculated: %X", buffer.checksum, checksum);
 					perf_count(_bad_transfer_perf);
 					perf_count(_perf_crc_bad);
 				}
@@ -290,13 +293,14 @@ void ADIS16507::RunImpl()
 					// Data path overrun. A 1 indicates that one of the
 					// data paths have experienced an overrun condition.
 					// If this occurs, initiate a reset,
-
+					PX4_DEBUG("DATA BUFFER OVERRUN!");
 					//Reset();
 					//return;
 				}
 
 				// Check all Status/Error Flag Indicators (DIAG_STAT)
 				if (buffer.DIAG_STAT != 0) {
+					PX4_DEBUG("BAD TRANSFER!(1)");
 					perf_count(_bad_transfer_perf);
 				}
 
@@ -345,6 +349,7 @@ void ADIS16507::RunImpl()
 				}
 
 			} else {
+				PX4_DEBUG("BAD TRANSFER!(2)");
 				perf_count(_bad_transfer_perf);
 			}
 
@@ -353,6 +358,7 @@ void ADIS16507::RunImpl()
 
 				// full reset if things are failing consistently
 				if (_failure_count > 10) {
+					PX4_DEBUG("_failure_count > 10");
 					Reset();
 					return;
 				}
@@ -367,6 +373,7 @@ void ADIS16507::RunImpl()
 				} else {
 					// register check failed, force reset
 					perf_count(_bad_register_perf);
+					PX4_DEBUG("BAD REGISTER!");
 					Reset();
 				}
 			}
