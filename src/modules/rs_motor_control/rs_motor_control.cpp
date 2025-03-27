@@ -65,11 +65,13 @@ RobosubMotorControl::~RobosubMotorControl()
 }
 
 bool RobosubMotorControl::init()
-{	// Execute the Run() function everytime an input_rc is publiced
+{
+	// Execute the Run() function everytime an input_rc is publiced
 	if (!_rs_input_rc_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
+
 	PX4_DEBUG("RobosubMotorControl::init()");
 	return true;
 }
@@ -84,21 +86,22 @@ void RobosubMotorControl::parameters_update(bool force)
 
 		// update parameters from storage
 		updateParams();
-}
+	}
 }
 
 void RobosubMotorControl::Run()
 {
 	PX4_INFO("RobosubMotorControl::Run()");
+
 	if (should_exit()) {
 		//  _vehicle_attitude_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
-	 }
+	}
 
 	perf_begin(_loop_perf);
 
-	 /* check vehicle control mode for changes to publication state */
+	/* check vehicle control mode for changes to publication state */
 	//  _vcontrol_mode_sub.update(&_vcontrol_mode);
 	_vcontrol_mode_sub.update(&_vcontrol_mode);
 
@@ -106,11 +109,13 @@ void RobosubMotorControl::Run()
 	parameters_update();
 
 	PX4_INFO("rc data");
+
 	// Check if the input_rc topic has been updated
 	// and copy the data to the local variable
 	if (_input_rc_sub.update(&_input_rc)) {
 		input_rc_s rc_data {};
 		_input_rc_sub.copy(&rc_data);
+
 		// Debug print the rc data
 		for (unsigned i = 0; i < rc_data.channel_count; ++i) {
 			PX4_INFO("rc_data[%u]: %d", i, rc_data.values[i]);
@@ -118,13 +123,14 @@ void RobosubMotorControl::Run()
 
 		// Normalize the rc data to a value between -1 and 1
 		float normalized = (rc_data.values[1] - 1500) / 400.0f;
+
 		// actuator_motors_s actuator_motors{};
 		// actuator_motors.timestamp = hrt_absolute_time();
 		// actuator_motors.reversible_flags = 0;
 		// actuator_motors.control[0] = normalized;
 		// _actuator_motors_pub.publish(actuator_motors);
 		if (_vcontrol_mode.flag_control_manual_enabled ||
-			_vcontrol_mode.flag_control_attitude_enabled) {
+		    _vcontrol_mode.flag_control_attitude_enabled) {
 
 			_vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
 			_vehicle_thrust_setpoint.timestamp_sample = hrt_absolute_time();
@@ -142,14 +148,16 @@ void RobosubMotorControl::Run()
 			_vehicle_thrust_setpoint_pub.publish(_vehicle_thrust_setpoint);
 			_vehicle_torque_setpoint_pub.publish(_vehicle_torque_setpoint);
 			PX4_INFO("Published setpoints at %llu", hrt_absolute_time());
-			PX4_INFO("_vehicle_thruster_setpoint: %f, %f, %f", (double)_vehicle_thrust_setpoint.xyz[0], (double)_vehicle_thrust_setpoint.xyz[1], (double)_vehicle_thrust_setpoint.xyz[2]);
+			PX4_INFO("_vehicle_thruster_setpoint: %f, %f, %f", (double)_vehicle_thrust_setpoint.xyz[0],
+				 (double)_vehicle_thrust_setpoint.xyz[1], (double)_vehicle_thrust_setpoint.xyz[2]);
 			PX4_INFO("Control mode flags: manual=%d, attitude=%d",
-				(int)_vcontrol_mode.flag_control_manual_enabled,
-				(int)_vcontrol_mode.flag_control_attitude_enabled);
+				 (int)_vcontrol_mode.flag_control_manual_enabled,
+				 (int)_vcontrol_mode.flag_control_attitude_enabled);
 			// if(_vehicle_thrust_setpoint_sub.update(&_vehicle_thrust_setpoint_sub)) {
 			// 	PX4_INFO("_vehicle_thrust_setpoint_sub updated");
 			// }
 		}
+
 		// TODO_RS: Why function 101?
 		// int function = 101;
 		// float value = normalized;
@@ -157,10 +165,11 @@ void RobosubMotorControl::Run()
 		// actuator_test(function, value, 0, false);
 
 	}
-	 perf_end(_loop_perf);
- }
 
- void RobosubMotorControl::actuator_test(int function, float value, int timeout_ms, bool release_control)
+	perf_end(_loop_perf);
+}
+
+void RobosubMotorControl::actuator_test(int function, float value, int timeout_ms, bool release_control)
 {
 	actuator_test_s actuator_test{};
 	actuator_test.timestamp = hrt_absolute_time();
@@ -173,8 +182,8 @@ void RobosubMotorControl::Run()
 	actuator_test_pub.publish(actuator_test);
 }
 
- int RobosubMotorControl::task_spawn(int argc, char *argv[])
- {
+int RobosubMotorControl::task_spawn(int argc, char *argv[])
+{
 	RobosubMotorControl *instance = new RobosubMotorControl();
 
 	if (instance) {
@@ -194,16 +203,16 @@ void RobosubMotorControl::Run()
 	_task_id = -1;
 
 	return PX4_ERROR;
- }
+}
 
- int RobosubMotorControl::custom_command(int argc, char *argv[])
- {
+int RobosubMotorControl::custom_command(int argc, char *argv[])
+{
 	return print_usage("unknown command");
- }
+}
 
 
- int RobosubMotorControl::print_usage(const char *reason)
- {
+int RobosubMotorControl::print_usage(const char *reason)
+{
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
