@@ -158,9 +158,9 @@ Fast oscillations (more than 1 oscillation per second): this is because the gain
 
 </div>
 
-### The auto-tuning sequence fails
+### Послідовність автоматичної настройки не вдається
 
-If the drone was not moving enough during auto-tuning, the system identification algorithm might have issues to find the correct coefficients.
+Якщо безпілотник не рухався достатньо під час автоматичного налаштування, алгоритм ідентифікації системи може мати проблеми з визначенням правильних коефіцієнтів.
 
 Increase the <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">[MC_AT_SYSID_AMP](../advanced_config/parameter_reference.md#MC_AT_SYSID_AMP)</div><div style="display: inline;" v-else-if="$frontmatter.frame === 'Plane'">[FW_AT_SYSID_AMP](../advanced_config/parameter_reference.md#FW_AT_SYSID_AMP)</div> parameter by steps of 1 and trigger the auto-tune again.
 
@@ -169,11 +169,11 @@ Increase the <div style="display: inline;" v-if="$frontmatter.frame === 'Multico
 Due to effects not included in the mathematical model such as delays, saturation, slew-rate, airframe flexibility, the loop gain can be too high.
 To fix this, follow the same steps described [when the drone oscillates in the pre-tuning test](#drone-oscillates-when-performing-the-pre-tuning-test).
 
-### I still can't get it to work
+### Я все ще не можу зрозуміти, як це працює
 
 Attempt manual tuning using the guides listed in [See also](#see-also) below.
 
-## Optional Configuration
+## Необов'язкова Конфігурація
 
 ### Apply Tuning when In-Air/Landed
 
@@ -191,12 +191,12 @@ This behaviour can be configured using the [FW_AT_APPLY](../advanced_config/para
 </div>
 
 - `0`: the gains are not applied.
-  This is used for testing purposes if the user wants to inspect results of the auto-tuning algorithm without using them directly.
+  Це використовується для тестування, якщо користувач хоче перевірити результати автоналаштування алгоритму без прямого їх використання.
 - `1`: apply the gains after disarm (default for multirotors).
-  The operator can then test the new tuning while taking-off carefully.
+  Оператор може перевірити нове налаштування під час обережного зльоту.
 - `2`: apply immediately (default for fixed-wings).
-  The new tuning is applied, disturbances are sent to the controller and the stability is monitored during the next 4 seconds.
-  If the control loop is unstable, the control gains are immediately reverted back to their previous value.
+  Нове налаштування застосовується, перешкоди надсилаються контролеру, а стабільність контролюється протягом наступних 4 секунд.
+  Якщо керуюче коло нестійке, керуючі коефіцієнти негайно повертаються до свого попереднього значення.
   If the test passes, the pilot can then use the new tuning.
 
 <div v-if="$frontmatter.frame === 'Plane'">
@@ -225,33 +225,33 @@ Fixed-wing vehicles (only) can select which axes are tuned using the [FW_AT_AXES
 
 </div>
 
-## Developers/SDKs
+## Розробники/SDKs
 
 Autotuning is started using [MAV_CMD_DO_AUTOTUNE_ENABLE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_AUTOTUNE_ENABLE) MAVLink command.
 
 At time of writing the message is resent at regular intervals to poll PX4 for progress: the `COMMAND_ACK` includes result that the operation is in progress, and also the progress as a percentage.
-The operation completes when the progress is 100% or the vehicle lands and disarms.
+Операція завершується, коли прогрес досягає 100% або транспортний засіб приземляється і роззброюється.
 
 :::info
 This is not a MAVLink-compliant implementation of a [command protocol long running command](https://mavlink.io/en/services/command.html#long_running_commands).
-PX4 should stream progress as the protocol does not allow polling.
+PX4 повинен транслювати прогрес, оскільки протокол не дозволяє опитування.
 :::
 
-The feature is not yet supported by MAVSDK.
+Функція ще не підтримується MAVSDK.
 
 ## Background/Detail
 
 PX4 uses [PID controllers](../flight_stack/controller_diagrams.md) (rate, attitude, velocity, and position) to calculate the outputs required to move a vehicle from its current estimated state to match a desired setpoint.
-The controllers must be well tuned in order to get the best performance out of a vehicle.
-In particular, a poorly tuned rate controller results in less stable flight in all modes, and takes longer to recover from disturbances.
+Контролери повинні бути добре налаштовані, щоб отримати найкращу продуктивність з автомобіля.
+Зокрема, погано налаштований регулятор швидкості призводить до менш стабільного польоту у всіх режимах і потребує більше часу на відновлення після перешкод.
 
 Generally if you use a [frame configuration](../config/airframe.md) that is similar to your vehicle then the vehicle will be able to fly.
-However unless the configuration precisely matches your hardware you should tune the rate and attitude controllers.
-Tuning the velocity and position controllers is less important because they are less affected by vehicle dynamics, and the default tuning configuration for a similar airframe is often sufficient.
+Однак, якщо конфігурація точно не відповідає вашому обладнанню, вам слід налаштувати регулятори швидкості та кута нахилу.
+Налаштування контролерів швидкості та позиції менш важливе, оскільки вони менше піддаються динаміці транспортного засобу, і типова конфігурація налаштування для схожого аеродинамічного корпусу часто є достатньою.
 
-Autotuning provides an automatic mechanism to tune the rate and attitude controllers.
+Автоналаштування забезпечує автоматичний механізм для налаштування регуляторів швидкості та кута нахилу.
 It can be used to tune fixed-wing and multicopter vehicles, and VTOL vehicles when flying as a multicopter or as a fixed-wing (transition between modes must be manually tuned).
-In theory it should work for other vehicle types that have a rate controller, but currently only the above types are supported.
+Теоретично це повинно працювати для інших типів транспортних засобів, які мають регулятор швидкості, але наразі підтримуються лише вищезазначені типи.
 
 Automatic tuning works well for the multicopter and fixed-wing vehicle configurations supported by PX4, provided the frame is not too flexible
 (see [below for more information](#does-autotuning-work-for-all-supported-airframes)).
@@ -266,32 +266,32 @@ The default behaviour can be configured using [parameters](#optional-configurati
 
 ### Часто Запитувані Питання
 
-#### What frames types are supported?
+#### Які типи кадрів підтримуються?
 
 Autotuning is enabled for multicopter, fixed-wing, and hybrid VTOL fixed-wing vehicles.
 
 While it is not yet enabled for other frame types, in theory it an be used with any frame that uses a rate controller.
 
-#### Does autotuning work for all supported airframes?
+#### Чи працює автоналадка для всіх підтримуваних конструкцій?
 
 The mathematical model used by autotuning to estimate the dynamics of the drone assumes this it is a linear system with no coupling between the axes (SISO), and with a limited complexity (2 poles and 2 zeros).
 If the real drone is too far from those conditions, the model will not be able to represent the real dynamics of the drone.
 
 In practise, autotuning generally works well for fixed-wing and multicopter, provided the frame is not too flexible.
 
-#### How long does autotuning take?
+#### Як довго триває автоналагодження?
 
 Tuning takes 5s-20s per axis (aborted if tuning could not be established in 20s) + 2s pause between each axis + 4s of testing if the new gains are applied in air.
 
-A multicopter must tune all three axes, and by default does not test the new gains in-air.
+Мультикоптер повинен налаштовувати всі три осі, і за замовчуванням не перевіряє нові виграші у повітрі.
 Tuning will therefore take between 19s (`5 + 2 + 5 + 2 + 5`) and 64s (`20x3 + 2x2`).
 
-By default a fixed-wing vehicle tunes all three axes and then tests the new gains in-air.
+За замовчуванням літак налагоджує всі три осі, а потім перевіряє нові коефіцієнти в повітрі.
 The range is therefore between 25s (`5 + 2 + 5 + 2 + 5 + 2 + 4`) and 70s (`20x3 + 3x2 + 4`).
 
-Note however that the above settings are defaults.
-A multicopter can choose to run the tests in air, and a fixed-wing can choose not to.
-Further, a fixed-wing can choose to tune fewer axes.
+Зверніть увагу, що вищезазначені налаштування є значеннями за замовчуванням.
+Мультикоптер може вибрати проведення тестів в повітрі, а планер може вибрати не робити цього.
+Додатково, літак з фіксованим крилом може вибрати налаштувати менше вісей.
 
 Anecdotally, it usually takes around 40s for either vehicle.
 
