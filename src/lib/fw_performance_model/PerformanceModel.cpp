@@ -144,17 +144,18 @@ float PerformanceModel::getCalibratedTrimAirspeed() const
 	return math::constrain(_param_fw_airspd_trim.get() * sqrtf(getWeightRatio()), _param_fw_airspd_min.get(),
 			       _param_fw_airspd_max.get());
 }
-float PerformanceModel::getMinimumCalibratedAirspeed(float load_factor) const
+float PerformanceModel::getMinimumCalibratedAirspeed(float load_factor, float flaps_setpoint) const
 {
-
 	load_factor = math::max(load_factor, FLT_EPSILON);
-	return _param_fw_airspd_min.get() * sqrtf(getWeightRatio() * load_factor);
+	const float airspeed_flap_factor = math::lerp(1.f, _param_fw_airspd_flp_sc.get(), flaps_setpoint);
+	return (_param_fw_airspd_min.get() * airspeed_flap_factor) * sqrtf(getWeightRatio() * load_factor);
 }
 
-float PerformanceModel::getCalibratedStallAirspeed(float load_factor) const
+float PerformanceModel::getCalibratedStallAirspeed(float load_factor, float flaps_setpoint) const
 {
 	load_factor = math::max(load_factor, FLT_EPSILON);
-	return _param_fw_airspd_stall.get() * sqrtf(getWeightRatio() * load_factor);
+	const float airspeed_flap_factor = math::lerp(1.f, _param_fw_airspd_flp_sc.get(), flaps_setpoint);
+	return (_param_fw_airspd_stall.get() * airspeed_flap_factor) * sqrtf(getWeightRatio() * load_factor);
 }
 
 float PerformanceModel::getMaximumCalibratedAirspeed() const
