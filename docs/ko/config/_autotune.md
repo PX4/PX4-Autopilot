@@ -158,7 +158,7 @@ Fast oscillations (more than 1 oscillation per second): this is because the gain
 
 </div>
 
-### The auto-tuning sequence fails
+### 자동 튜닝 실패
 
 If the drone was not moving enough during auto-tuning, the system identification algorithm might have issues to find the correct coefficients.
 
@@ -169,7 +169,7 @@ Increase the <div style="display: inline;" v-if="$frontmatter.frame === 'Multico
 Due to effects not included in the mathematical model such as delays, saturation, slew-rate, airframe flexibility, the loop gain can be too high.
 To fix this, follow the same steps described [when the drone oscillates in the pre-tuning test](#drone-oscillates-when-performing-the-pre-tuning-test).
 
-### I still can't get it to work
+### 여전히 정상 작동하지 않는 경우
 
 Attempt manual tuning using the guides listed in [See also](#see-also) below.
 
@@ -191,7 +191,7 @@ This behaviour can be configured using the [FW_AT_APPLY](../advanced_config/para
 </div>
 
 - `0`: the gains are not applied.
-  This is used for testing purposes if the user wants to inspect results of the auto-tuning algorithm without using them directly.
+  자동 튜닝의 결과를 직접적으로 사용하지 않은 체로 검사하는 경우에 사용합니다.
 - `1`: apply the gains after disarm (default for multirotors).
   The operator can then test the new tuning while taking-off carefully.
 - `2`: apply immediately (default for fixed-wings).
@@ -225,7 +225,7 @@ Fixed-wing vehicles (only) can select which axes are tuned using the [FW_AT_AXES
 
 </div>
 
-## Developers/SDKs
+## 개발자 SDK
 
 Autotuning is started using [MAV_CMD_DO_AUTOTUNE_ENABLE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_AUTOTUNE_ENABLE) MAVLink command.
 
@@ -239,7 +239,7 @@ PX4 should stream progress as the protocol does not allow polling.
 
 The feature is not yet supported by MAVSDK.
 
-## Background/Detail
+## 배경 및 세부 사항
 
 PX4 uses [PID controllers](../flight_stack/controller_diagrams.md) (rate, attitude, velocity, and position) to calculate the outputs required to move a vehicle from its current estimated state to match a desired setpoint.
 The controllers must be well tuned in order to get the best performance out of a vehicle.
@@ -266,20 +266,20 @@ The default behaviour can be configured using [parameters](#optional-configurati
 
 ### 자주 묻는 질문
 
-#### What frames types are supported?
+#### 어떤 기체 유형이 지원됩니까?
 
 Autotuning is enabled for multicopter, fixed-wing, and hybrid VTOL fixed-wing vehicles.
 
 While it is not yet enabled for other frame types, in theory it an be used with any frame that uses a rate controller.
 
-#### Does autotuning work for all supported airframes?
+#### 지원되는 모든 기체에 대해 자동 튜닝이 작동됩니까?
 
 The mathematical model used by autotuning to estimate the dynamics of the drone assumes this it is a linear system with no coupling between the axes (SISO), and with a limited complexity (2 poles and 2 zeros).
 If the real drone is too far from those conditions, the model will not be able to represent the real dynamics of the drone.
 
 In practise, autotuning generally works well for fixed-wing and multicopter, provided the frame is not too flexible.
 
-#### How long does autotuning take?
+#### 자동 튜닝은 얼마나 걸립니까?
 
 Tuning takes 5s-20s per axis (aborted if tuning could not be established in 20s) + 2s pause between each axis + 4s of testing if the new gains are applied in air.
 
