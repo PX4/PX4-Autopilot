@@ -183,8 +183,7 @@ float FixedwingRateControl::get_airspeed_and_update_scaling()
 
 	if (_param_fw_arsp_scale_en.get()) {
 		const float min_airspeed = math::max(_param_fw_airspd_stall.get(), 0.1f);
-		const float max_airspeed = 1000.0f;
-		const float airspeed_constrained = constrain(airspeed, min_airspeed, max_airspeed);
+		const float airspeed_constrained = math::max(airspeed, min_airspeed);
 		_airspeed_scaling = _param_fw_airspd_trim.get() / airspeed_constrained;
 
 	} else {
