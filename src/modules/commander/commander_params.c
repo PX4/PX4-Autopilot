@@ -615,7 +615,7 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
  * Specify modes in which RC loss is ignored and the failsafe action not triggered.
  *
  * @min 0
- * @max 31
+ * @max 7
  * @bit 0 Mission
  * @bit 1 Hold
  * @bit 2 Offboard
@@ -629,7 +629,7 @@ PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
  * Specify modes in which datalink loss is ignored and the failsafe action not triggered.
  *
  * @min 0
- * @max 31
+ * @max 7
  * @bit 0 Mission
  * @bit 1 Hold
  * @bit 2 Offboard
