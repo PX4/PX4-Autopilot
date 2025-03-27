@@ -424,7 +424,6 @@ private:
 	void landing_status_publish();
 
 	void publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);
-	float getLoadFactor() const;
 
 	/**
 	 * @brief Sets the landing abort status and publishes landing status.
