@@ -274,6 +274,10 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 	float bearing_now = get_bearing_to_next_waypoint(lat_now, lon_now, lat_center, lon_center);
 
 	int return_value = -1;		// Set error flag, cleared when valid result calculated.
+    // FIXME: NULL ptr, why?
+    if (!crosstrack_error) {
+        return -1;
+    }
 	crosstrack_error->past_end = false;
 	crosstrack_error->distance = 0.0f;
 	crosstrack_error->bearing = 0.0f;
@@ -346,6 +350,10 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 		float dist_to_start = get_distance_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
 		float dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 
+                   // FIXME: NULL ptr, why?
+    if (!crosstrack_error) {
+        return -1;
+    }
 		if (dist_to_start < dist_to_end) {
 			crosstrack_error->distance = dist_to_start;
 			crosstrack_error->bearing = get_bearing_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);

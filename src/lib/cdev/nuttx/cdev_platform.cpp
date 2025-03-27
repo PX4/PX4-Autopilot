@@ -84,6 +84,11 @@ unlink	: nullptr
 #endif
 };
 
+#ifndef FSNODEFLAG_DELETED
+	// FIXME : deleted from nuttx, so just ignore it to simplify?
+	#define FSNODEFLAG_DELETED FSNODEFLAG_TYPE_MASK
+#endif
+
 static int
 cdev_open(file_t *filp)
 {
