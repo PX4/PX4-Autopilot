@@ -50,6 +50,8 @@ ADIS16470::ADIS16470(const I2CSPIDriverConfig &config) :
 	if (_drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
 	}
+
+	set_cs_to_sck_delay(SPI_CS_TO_SCK_PERIOD_NS);
 }
 
 ADIS16470::~ADIS16470()
