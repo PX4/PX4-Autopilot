@@ -179,10 +179,17 @@ float FixedwingRateControl::get_airspeed_and_update_scaling()
 	 *
 	 * Forcing the scaling to this value allows reasonable handheld tests.
 	 */
-	const float airspeed_constrained = constrain(constrain(airspeed, _param_fw_airspd_stall.get(),
-					   _param_fw_airspd_max.get()), 0.1f, 1000.0f);
 
-	_airspeed_scaling = (_param_fw_arsp_scale_en.get()) ? (_param_fw_airspd_trim.get() / airspeed_constrained) : 1.0f;
+
+	if (_param_fw_arsp_scale_en.get()) {
+		const float min_airspeed = max(_param_fw_airspd_stall.get(), 0.1f);
+		const float max_airspeed = 1000.0f;
+		const float airspeed_constrained = constrain(airspeed, min_airspeed, max_airspeed);
+		_airspeed_scaling = _param_fw_airspd_trim.get() / airspeed_constrained;
+
+	} else {
+		_airspeed_scaling = 1.0f;
+	}
 
 	return airspeed;
 }
