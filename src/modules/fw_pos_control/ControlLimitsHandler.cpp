@@ -54,10 +54,6 @@ void CombinedControlLimitHandler::update(const hrt_abstime now)
 				 _longitudinal_publisher.get().throttle_max);
 	_longitudinal_updated |= floatValueChanged(_longitudinal_limits_current_cycle.speed_weight,
 				 _longitudinal_publisher.get().speed_weight);
-	_longitudinal_updated |= floatValueChanged(_longitudinal_limits_current_cycle.equivalent_airspeed_min,
-				 _longitudinal_publisher.get().equivalent_airspeed_min);
-	_longitudinal_updated |= floatValueChanged(_longitudinal_limits_current_cycle.equivalent_airspeed_max,
-				 _longitudinal_publisher.get().equivalent_airspeed_max);
 	_longitudinal_updated |= floatValueChanged(_longitudinal_limits_current_cycle.climb_rate_target,
 				 _longitudinal_publisher.get().climb_rate_target);
 	_longitudinal_updated |= floatValueChanged(_longitudinal_limits_current_cycle.sink_rate_target,
@@ -100,16 +96,6 @@ void CombinedControlLimitHandler::setThrottleMin(float throttle_min)
 void CombinedControlLimitHandler::setSpeedWeight(float speed_weight)
 {
 	_longitudinal_limits_current_cycle.speed_weight = speed_weight;
-}
-
-void CombinedControlLimitHandler::setMinimumAirspeed(const float airspeed_min)
-{
-	_longitudinal_limits_current_cycle.equivalent_airspeed_min = airspeed_min;
-}
-
-void CombinedControlLimitHandler::setMaximumAirspeed(const float airspeed_max)
-{
-	_longitudinal_limits_current_cycle.equivalent_airspeed_max = airspeed_max;
 }
 
 void CombinedControlLimitHandler::setPitchMin(const float pitch_min)

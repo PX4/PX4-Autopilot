@@ -72,7 +72,9 @@ public:
 	~CourseToAirspeedRefMapper() = default;
 
 	float mapCourseSetpointToHeadingSetpoint(const float bearing_setpoint,
-			const matrix::Vector2f &wind_vel, float airspeed_true) const;
+			const matrix::Vector2f &wind_vel, float airspeed_sp) const;
+	float getMinAirspeedForCurrentBearing(const float bearing_setpoint,
+					      const matrix::Vector2f &wind_vel, float max_airspeed, float min_ground_speed) const;
 
 private:
 	/*
@@ -81,21 +83,17 @@ private:
 	 * Nominal and maximum true airspeed member variables must be set before using this method.
 	 *
 	 * @param[in] wind_vel Wind velocity vector [m/s]
-	 * @param[in] bearing_vec Bearing vector
-	 * @param[in] wind_cross_bearing 2D cross product of wind velocity and bearing vector [m/s]
-	 * @param[in] wind_dot_bearing 2D dot product of wind velocity and bearing vector [m/s]
-	 * @param[in] wind_speed Wind speed [m/s]
-	 * @param[in] airspeed_true True airspeed [m/s]
+	 * @param[in] bearing_setpoint Bearing
+	 * @param[in] airspeed_true True airspeed setpoint[m/s]
 	 * @return Air velocity vector [m/s]
 	 */
-	matrix::Vector2f refAirVelocity(const matrix::Vector2f &wind_vel, const matrix::Vector2f &bearing_vec,
-					const float wind_cross_bearing, const float wind_dot_bearing,
-					const float wind_speed, float airspeed_true) const;
+	matrix::Vector2f refAirVelocity(const matrix::Vector2f &wind_vel, const float bearing_setpoint,
+					float airspeed_true, float min_ground_speed) const;
 	/*
 	 * Projection of the air velocity vector onto the bearing line considering
 	 * a connected wind triangle.
 	 *
-	 * @param[in] airspeed Vehicle true airspeed [m/s]
+	 * @param[in] airspeed Vehicle true airspeed setpoint [m/s]
 	 * @param[in] wind_cross_bearing 2D cross product of wind velocity and bearing vector [m/s]
 	 * @return Projection of air velocity vector on bearing vector [m/s]
 	 */
@@ -118,7 +116,7 @@ private:
 	 * @param[in] wind_cross_bearing 2D cross product of wind velocity and bearing vector [m/s]
 	 * @param[in] airsp_dot_bearing 2D dot product of air velocity (solution) and bearing vector [m/s]
 	 * @param[in] bearing_vec Bearing vector
-	 * @return Air velocity vector [m/s]
+	 * @return Air velocity reference vector [m/s]
 	 */
 	matrix::Vector2f solveWindTriangle(const float wind_cross_bearing, const float airsp_dot_bearing,
 					   const matrix::Vector2f &bearing_vec) const;
