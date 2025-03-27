@@ -137,15 +137,20 @@ public:
 	/*
 	 * Store a key into keystore
 	 *
-	 * encryption_idx: The key index in keystore to be used in decrypting and
-	 *   authenticating the key before storing
-	 * key: The pointer to the key
-	 * key_idx: Index where the key will be stored in keystore
-	*/
+	 * authentication_key_idx: The key index in keystore to be
+	 *   used -- depending on the key type -- in decrypt the key
+	 *   or check signature of the key before storing to keystore.
+	 * signature: The pointer to the signature of key. Set NULL if
+	 *   no signature available.
+	 * key: The pointer to the key to be stored.
+	 * key_len: The size of the key in bytes.
+	 * key_idx: Index where the key will be stored in keystore.
+	 */
 
-
-	bool set_key(uint8_t encryption_idx,
+	bool set_key(uint8_t authentication_key_idx,
+		     const uint8_t *signature,
 		     const uint8_t *key,
+		     size_t key_len,
 		     uint8_t key_idx);
 
 	/*
