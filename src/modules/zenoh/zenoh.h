@@ -86,6 +86,8 @@ private:
 		(ParamInt<px4::params::ZENOH_DOMAIN_ID>) _zenoh_domain_id
 	)
 
+	int generate_rmw_zenoh_keyexpr(const char *topic, char *type, char *keyexpr);
+
 	Zenoh_Config _config;
 
 	int _pub_count;
