@@ -65,7 +65,7 @@
 
 #include "rp23xx_gpio.h"
 
-#include "rp23xx_pico.h"
+//#include "rp23xx_pico.h"
 
 #ifdef CONFIG_ARCH_LEDS
 

@@ -3,7 +3,7 @@
 # board specific sensors init
 #------------------------------------------------------------------------------
 
-# board_adc start
+board_adc start
 
 # try starting an IMU on external SPI
 # fixme - specify interrupt pin somewhere
