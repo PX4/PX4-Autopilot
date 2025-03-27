@@ -282,7 +282,7 @@ if RP23XX_PWM0
 
 config RP23XX_PWM0A_GPIO
 	int "GPIO pin for PWM0 channel 1 (0, 16 or -1:no assign)"
-	default 0
+	default 16
 	range -1 16
 	---help---
 		This sets the GPIO pin to use for the A channel it must be
@@ -293,7 +293,7 @@ if PWM_MULTICHAN && PWM_NCHANNELS > 1
 
 config RP23XX_PWM0B_GPIO
 	int "GPIO pin for PWM0 channel 2 (1, 17 or -1:no assign)"
-	default 1
+	default 17
 	range -1 29
 	---help---
 		This sets the GPIO pin to use for the B channel it must be
@@ -310,7 +310,7 @@ if RP23XX_PWM1
 
 config RP23XX_PWM1A_GPIO
 	int "GPIO pin for PWM1 channel 1 (2, 18 or -1:no assign)"
-	default 2
+	default 18
 	range -1 29
 	---help---
 		This sets the GPIO pin to use for the A channel it must be
@@ -321,7 +321,7 @@ if PWM_MULTICHAN && PWM_NCHANNELS > 1
 
 config RP23XX_PWM1B_GPIO
 	int "GPIO pin for PWM1 channel 2 (3, 19 or -1:no assign)"
-	default 3
+	default 19
 	range -1 29
 	---help---
 		This sets the GPIO pin to use for the B channel it must be
@@ -338,7 +338,7 @@ if RP23XX_PWM2
 
 config RP23XX_PWM2A_GPIO
 	int "GPIO pin for PWM2 channel 1 (4, 20 or -1:no assign)"
-	default 4
+	default 20
 	range -1 29
 	---help---
 		This sets the GPIO pin to use for the A channel it must be
@@ -349,7 +349,7 @@ if PWM_MULTICHAN && PWM_NCHANNELS > 1
 
 config RP23XX_PWM2B_GPIO
 	int "GPIO pin for PWM2 channel 2 (5, 21 or -1:no assign)"
-	default 5
+	default 21
 	range -1 29
 	---help---
 		This sets the GPIO pin to use for the B channel it must be
@@ -366,7 +366,7 @@ if RP23XX_PWM3
 
 config RP23XX_PWM3A_GPIO
 	int "GPIO pin for PWM3 channel 1 (6, 22 or -1:no assign)"
-	default 6
+	default 22
 	range -1 29
 	---help---
 		This sets the GPIO pin to use for the A channel it must be
@@ -377,7 +377,7 @@ if PWM_MULTICHAN && PWM_NCHANNELS > 1
 
 config RP23XX_PWM3B_GPIO
 	int "GPIO pin for PWM3 channel 2 (7, 23 or -1:no assign)"
-	default 7
+	default 23
 	range -1 29
 	---help---
 		This sets the GPIO pin to use for the B channel it must be
@@ -394,7 +394,7 @@ if RP23XX_PWM4
 
 config RP23XX_PWM4A_GPIO
 	int "GPIO pin for PWM4 channel 1 (8, 24 or -1:no assign)"
-	default 8
+	default 24
 	range -1 29
 	---help---
 		This sets the GPIO pin to use for the A channel it must be
@@ -405,7 +405,7 @@ if PWM_MULTICHAN && PWM_NCHANNELS > 1
 
 config RP23XX_PWM4B_GPIO
 	int "GPIO pin for PWM4 channel 2 (9, 25 or -1:no assign)"
-	default 9
+	default 25
 	range -1 29
 	---help---
 		This sets the GPIO pin to use for the B channel it must be
@@ -422,7 +422,7 @@ if RP23XX_PWM5
 
 config RP23XX_PWM5A_GPIO
 	int "GPIO pin for PWM5 channel 1 (10, 26 or -1:no assign)"
-	default 10
+	default 26
 	range -1 29
 	---help---
 		This sets the GPIO pin to use for the A channel it must be
@@ -433,7 +433,7 @@ if PWM_MULTICHAN && PWM_NCHANNELS > 1
 
 config RP23XX_PWM5B_GPIO
 	int "GPIO pin for PWM5 channel 2 (11, 27 or -1:no assign)"
-	default 11
+	default 27
 	range -1 29
 	---help---
 		This sets the GPIO pin to use for the B channel it must be
