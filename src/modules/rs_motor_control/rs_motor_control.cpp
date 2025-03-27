@@ -122,7 +122,14 @@ void RobosubMotorControl::Run()
 		}
 
 		// Normalize the rc data to a value between -1 and 1
-		float normalized = (rc_data.values[1] - 1500) / 400.0f;
+		float normalized_0 = (rc_data.values[0] - 1500) / 400.0f;
+		float normalized_1 = (rc_data.values[1] - 1500) / 400.0f;
+		float normalized_2 = (rc_data.values[2] - 1500) / 400.0f;
+		float normalized_3 = (rc_data.values[3] - 1500) / 400.0f;
+		float normalized_4 = (rc_data.values[4] - 1500) / 400.0f;
+		float normalized_5 = (rc_data.values[5] - 1500) / 400.0f;
+		// float normalized_6 = (rc_data.values[6] - 1500) / 400.0f;
+
 
 		// actuator_motors_s actuator_motors{};
 		// actuator_motors.timestamp = hrt_absolute_time();
@@ -134,16 +141,21 @@ void RobosubMotorControl::Run()
 
 			_vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
 			_vehicle_thrust_setpoint.timestamp_sample = hrt_absolute_time();
-			normalized = math::constrain(normalized, -1.0f, 1.0f);
-			_vehicle_thrust_setpoint.xyz[0] = normalized;
-			_vehicle_thrust_setpoint.xyz[1] = normalized;
-			_vehicle_thrust_setpoint.xyz[2] = normalized;
+			normalized_0 = math::constrain(normalized_0, -1.0f, 1.0f);
+			normalized_1 = math::constrain(normalized_1, -1.0f, 1.0f);
+			normalized_2 = math::constrain(normalized_2, -1.0f, 1.0f);
+			normalized_3 = math::constrain(normalized_3, -1.0f, 1.0f);
+			normalized_4 = math::constrain(normalized_4, -1.0f, 1.0f);
+			normalized_5 = math::constrain(normalized_5, -1.0f, 1.0f);
+			_vehicle_thrust_setpoint.xyz[0] = normalized_1;
+			_vehicle_thrust_setpoint.xyz[1] = normalized_2;
+			_vehicle_thrust_setpoint.xyz[2] = normalized_4;
 
 			_vehicle_torque_setpoint.timestamp = hrt_absolute_time();
 			_vehicle_torque_setpoint.timestamp_sample = hrt_absolute_time();
-			_vehicle_torque_setpoint.xyz[0] = normalized;
-			_vehicle_torque_setpoint.xyz[1] = normalized;
-			_vehicle_torque_setpoint.xyz[2] = normalized;
+			// _vehicle_torque_setpoint.xyz[0] = normalized_3;
+			// _vehicle_torque_setpoint.xyz[1] = normalized_4;
+			// _vehicle_torque_setpoint.xyz[2] = normalized_5;
 
 			_vehicle_thrust_setpoint_pub.publish(_vehicle_thrust_setpoint);
 			_vehicle_torque_setpoint_pub.publish(_vehicle_torque_setpoint);
