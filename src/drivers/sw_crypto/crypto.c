@@ -534,6 +534,54 @@ bool crypto_get_encrypted_key(crypto_session_handle_t handle,
 	return ret;
 }
 
+bool crypto_set_key(crypto_session_handle_t handle,
+		    uint8_t authentication_key_idx,
+		    const uint8_t *signature,
+		    const uint8_t *key,
+		    size_t key_len,
+		    uint8_t key_idx)
+{
+	bool ret = false;
+	bool verified = false;
+
+	if (key_idx >= KEY_CACHE_LEN) {
+		return ret;
+	}
+
+	if (!crypto_session_handle_valid(handle)) {
+		return ret;
+	}
+
+	// Clear previous key from cache index
+	if (key_cache[key_idx].key_size > 0) {
+		SECMEM_FREE(key_cache[key_idx].key);
+		key_cache[key_idx].key = NULL;
+		key_cache[key_idx].key_size = 0;
+	}
+
+	if (!signature) {
+		// No verification
+		authentication_key_idx = authentication_key_idx;
+		verified = true;
+
+	} else {
+		// Verify signature
+		verified = crypto_signature_check(handle,
+						  authentication_key_idx,
+						  signature,
+						  key,
+						  key_len);
+	}
+
+	if (verified) {
+		if (keystore_put_key(handle.keystore_handle, key_idx, key, key_len)) {
+			ret = true;
+		}
+	}
+
+	return ret;
+}
+
 bool crypto_get_nonce(crypto_session_handle_t handle, uint8_t *nonce, size_t *nonce_len)
 {
 	switch (handle.algorithm) {

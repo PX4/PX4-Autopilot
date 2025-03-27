@@ -80,7 +80,7 @@ size_t keystore_get_key(keystore_session_handle_t handle, uint8_t idx, uint8_t *
  * key: pointer to the key
  * key_size: size of the key
  */
-bool keystore_put_key(keystore_session_handle_t handle, uint8_t idx, uint8_t *key, size_t key_size);
+bool keystore_put_key(keystore_session_handle_t handle, uint8_t idx, const uint8_t *key, size_t key_size);
 
 /*
  * Modify a key in keystore
@@ -166,6 +166,28 @@ bool crypto_get_encrypted_key(crypto_session_handle_t handle,
 			      uint8_t *key,
 			      size_t *max_len,
 			      uint8_t encryption_key_idx);
+
+/*
+ * Store a key into keystore
+ *
+ * handle: an open crypto context; the stored key signature will
+ *  be verified according to this context
+ * authentication_key_idx: The key index in keystore to be
+ *  used -- depending on the key type -- in decrypt the key or
+ *  check signature of the key before storing to keystore.
+ * signature: The pointer to the signature of key. Set NULL if
+ *  no signature available.
+ * key: The pointer to the key to be verified.
+ * key_len: The size of the key in bytes.
+ * key_idx: Index where the key will be stored in keystore.
+ * returns true on success, false on failure
+ */
+bool crypto_set_key(crypto_session_handle_t handle,
+		    uint8_t authentication_key_idx,
+		    const uint8_t *signature,
+		    const uint8_t *key,
+		    size_t key_len,
+		    uint8_t key_idx);
 
 /*
  * Re-create or set nonce.
