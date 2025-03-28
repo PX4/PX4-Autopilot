@@ -59,9 +59,13 @@ CONFIG_TESTING_OSTEST=y
 # default baud is 115200
 # baud needs to match it seems!!!
 CONFIG_UART0_BAUD=115200
+# if yes, the console indicatos showprogress are making loading stuck
 CONFIG_SUPPRESS_UART_CONFIG=n
-CONFIG_USE_SERIALDRIVER=y
-#CONFIG_HAVE_UART_DEVICE=y
+# seems it didnt help to disable serial driver when tried before, but code should be much simpler then
+CONFIG_USE_SERIALDRIVER=n
+# not needed the two?
+CONFIG_HAVE_UART_DEVICE=y
+CONFIG_HAVE_UART=y
 # end of pimoroni-plus-2:nsh
 
 # vidma
@@ -194,7 +198,12 @@ CONFIG_DEV_PIPE_SIZE=70
 # fixme this was making init stuck as it thinks UART TX queue is full. maybe bad config it was?
 CONFIG_DEBUG_FEATURES=y
 # this didnt help?
-# CONFIG_USE_EARLYSERIALINIT is not defined
+# CONFIG_USE_EARLYSERIALINIT=n gives Xabbb
+# CONFIG_USE_EARLYSERIALINIT=y gives 
+CONFIG_USE_EARLYSERIALINIT=n
+# FIXME: trying for now to simplify serial console?!
+# not receiveing anything on UART0
+#CONFIG_SUPPRESS_SERIAL_INTS=y
 # CONFIG_DEBUG_HARDFAULT_INFO=y
 CONFIG_DEBUG_SYMBOLS=y
 # CONFIG_DEBUG_ASSERTIONS=y

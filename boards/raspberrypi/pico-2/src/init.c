@@ -212,7 +212,8 @@ __EXPORT void
 rp23xx_boardinitialize(void)
 {
 	// /* Reset all PWM to Low outputs */
-	// board_on_reset(-1);
+    // FIXME: do i need some fix???
+	board_on_reset(-1);
 
 	// /* configure LEDs */
 	board_autoled_initialize();
