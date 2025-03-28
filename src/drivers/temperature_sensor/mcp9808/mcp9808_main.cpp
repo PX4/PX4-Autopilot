@@ -41,59 +41,6 @@
 #include "mcp9808.h"
 #include <px4_platform_common/module.h>
 
-MCP9808::MCP9808(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config),
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
-
-{
-	_sensor_temp.device_id = this->get_device_id();
-
-}
-
-MCP9808::~MCP9808()
-{
-	ScheduleClear();
-	perf_free(_cycle_perf);
-	perf_free(_comms_errors);
-
-}
-
-void MCP9808::exit_and_cleanup()
-{
-	I2CSPIDriverBase::exit_and_cleanup();	// nothing to do
-}
-
-void MCP9808::RunImpl()
-{
-	perf_begin(_cycle_perf);
-
-	// publish at around 5HZ
-	if ((hrt_absolute_time() - measurement_time) > 200_ms) {
-
-		measurement_time = hrt_absolute_time(); // get the time the measurement was taken
-		float temperature = read_temperature();
-
-		if (std::isnan(temperature)) {
-
-			perf_count(_comms_errors);
-
-		} else {
-
-			_sensor_temp.timestamp = hrt_absolute_time();
-			_sensor_temp.timestamp_sample = measurement_time;
-			_sensor_temp.temperature = temperature;
-
-			_to_sensor_temp.publish(_sensor_temp);
-		}
-
-
-	}
-
-	perf_end(_cycle_perf);
-}
-
 void MCP9808::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("mcp9808", "driver");
@@ -103,13 +50,11 @@ void MCP9808::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-
 void MCP9808::print_status()
 {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_comms_errors);
-
 }
 
 extern "C" int mcp9808_main(int argc, char *argv[])
