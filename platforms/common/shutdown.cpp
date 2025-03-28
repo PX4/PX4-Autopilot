@@ -109,9 +109,10 @@ static uint16_t shutdown_counter = 0; ///< count how many times the shutdown wor
 #define SHUTDOWN_ARG_REBOOT (1<<1)
 #define SHUTDOWN_ARG_TO_BOOTLOADER (1<<2)
 #define SHUTDOWN_ARG_TO_ISP (1<<3)
+#define SHUTDOWN_ARG_HOOKS_COMPLETED (1<<4)
 static uint8_t shutdown_args = 0;
 
-static constexpr int max_shutdown_hooks = 1;
+static constexpr int max_shutdown_hooks = 2;
 static shutdown_hook_t shutdown_hooks[max_shutdown_hooks] = {};
 
 static hrt_abstime shutdown_time_us = 0;
@@ -150,16 +151,9 @@ int px4_unregister_shutdown_hook(shutdown_hook_t hook)
 	return -EINVAL;
 }
 
-/**
- * work queue callback method to shutdown.
- * @param arg unused
- */
-static void shutdown_worker(void *arg)
+static bool px4_execute_shutdown_hooks()
 {
-	PX4_DEBUG("shutdown worker (%i)", shutdown_counter);
 	bool done = true;
-
-	pthread_mutex_lock(&shutdown_mutex);
 
 	for (int i = 0; i < max_shutdown_hooks; ++i) {
 		if (shutdown_hooks[i]) {
@@ -167,6 +161,25 @@ static void shutdown_worker(void *arg)
 				done = false;
 			}
 		}
+	}
+
+	return done;
+}
+
+/**
+ * work queue callback method to shutdown.
+ * @param arg unused
+ */
+static void shutdown_worker(void *arg)
+{
+	PX4_DEBUG("shutdown worker (%i)", shutdown_counter);
+	shutdown_counter++;
+	bool done = true;
+
+	pthread_mutex_lock(&shutdown_mutex);
+
+	if (!(shutdown_args & SHUTDOWN_ARG_HOOKS_COMPLETED)) {
+		done = px4_execute_shutdown_hooks();
 	}
 
 	const hrt_abstime now = hrt_absolute_time();
@@ -261,7 +274,16 @@ int px4_shutdown_request(uint32_t delay_us)
 
 	shutdown_time_us = hrt_absolute_time();
 
-	if (delay_us > 0) {
+	// For immediate shutdown run the shutdown hooks here in case
+	// they can't wait for the worker thread to spin up and be executed.
+	// (For example when process received sigint)
+	// They will be executed again in the worker thread if not completed here.
+	if (delay_us == 0) {
+		if (px4_execute_shutdown_hooks()) {
+			shutdown_args |= SHUTDOWN_ARG_HOOKS_COMPLETED;
+		}
+
+	} else {
 		shutdown_time_us += delay_us;
 	}
 
