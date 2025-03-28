@@ -63,7 +63,6 @@ set(msg_files
 	DebugKeyValue.msg
 	DebugValue.msg
 	DebugVect.msg
-	DeviceTemperature.msg
 	DifferentialPressure.msg
 	DistanceSensor.msg
 	DistanceSensorModeChangeRequest.msg
@@ -205,7 +204,6 @@ set(msg_files
 	SensorAirflow.msg
 	ServoReport.msg
 	ServoStatus.msg
-	ServoTemperature.msg
 	SystemPower.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg

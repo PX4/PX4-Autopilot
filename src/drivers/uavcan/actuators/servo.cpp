@@ -41,10 +41,15 @@ UavcanServoController::UavcanServoController(uavcan::INode &node) :
 	_node(node),
 	_uavcan_pub_array_cmd(node),
 	_uavcan_sub_status(node),
-	_uavcan_sub_temperature(node)
-
+	_uavcan_sub_temperature(node),
+	_uavcan_sub_circuit_status(node)
 {
 	_uavcan_pub_array_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
+	memset(_last_temperature, 0, sizeof(_last_temperature)); // Set bytes to 0
+	memset(_last_temperature_error_flag, 0, sizeof(_last_temperature_error_flag));
+	memset(_last_voltage, 0, sizeof(_last_voltage));
+	memset(_last_current, 0, sizeof(_last_current));
+	memset(_last_power_error_flag, 0, sizeof(_last_power_error_flag));
 }
 
 int
@@ -66,8 +71,16 @@ UavcanServoController::init()
 		return res;
 	}
 
+	// Servo circuit status subscription
+	res = _uavcan_sub_circuit_status.start(CircuitStatusCbBinder(this,
+					       &UavcanServoController::servo_circuit_status_sub_cb));
+
+	if (res < 0) {
+		PX4_ERR("Servo circuit status sub failed %i", res);
+		return res;
+	}
+
 	_servo_status_pub.advertise(); // advertise to ensure messages are logged
-	_servo_temperature_pub.advertise();
 
 	return res; // return if both subscriptions are successful
 }
@@ -94,21 +107,27 @@ UavcanServoController::servo_temperature_sub_cb(const
 		uavcan::ReceivedDataStructure<uavcan::equipment::device::Temperature>
 		&msg)
 {
-	if (msg.device_id < servo_temperature_s::CONNECTED_SERVO_MAX) {
-		auto &ref = _servo_temperature.servo[msg.device_id];
+	if (msg.device_id < servo_status_s::CONNECTED_SERVO_MAX) {
 
-		ref.timestamp   = hrt_absolute_time();
-		ref.node_id     = msg.getSrcNodeID().get();
-		ref.actuator_id = msg.device_id;
-		ref.temperature = msg.temperature;
-		ref.error_flags = msg.error_flags;
-
-		_servo_temperature.counter += 1;
-		_servo_temperature.timestamp = hrt_absolute_time();
-		_servo_temperature_pub.publish(_servo_temperature);
+		_last_temperature[msg.device_id] = msg.temperature;
+		_last_temperature_error_flag[msg.device_id] = msg.error_flags;
+		_servo_temperature_counter += 1; // Keep counter to monitor callbacks
 	}
 }
 
+void
+UavcanServoController::servo_circuit_status_sub_cb(const
+		uavcan::ReceivedDataStructure<uavcan::equipment::power::CircuitStatus>
+		&msg)
+{
+	if (msg.circuit_id < servo_status_s::CONNECTED_SERVO_MAX) {
+
+		_last_voltage[msg.circuit_id] = msg.voltage;
+		_last_current[msg.circuit_id] = msg.current;
+		_last_power_error_flag[msg.circuit_id] = msg.error_flags;
+		_servo_power_counter += 1; // Keep counter to monitor callbacks
+	}
+}
 
 void
 UavcanServoController::servo_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::actuator::Status>
@@ -125,7 +144,18 @@ UavcanServoController::servo_status_sub_cb(const uavcan::ReceivedDataStructure<u
 		ref.servo_speed            = msg.speed;
 		ref.servo_power_rating_pct = msg.power_rating_pct;
 
+		// Add servo temperature data
+		ref.servo_temperature 	   = _last_temperature[msg.actuator_id];
+		ref.servo_temperature_error_flags = _last_temperature_error_flag[msg.actuator_id];
+
+		// Add servo power data
+		ref.servo_voltage 	   = _last_voltage[msg.actuator_id];
+		ref.servo_current 	   = _last_current[msg.actuator_id];
+		ref.servo_power_error_flags = _last_power_error_flag[msg.actuator_id];
+
 		_servo_status.counter += 1;
+		_servo_status.temperature_counter = _servo_temperature_counter;
+		_servo_status.power_counter = _servo_power_counter;
 		_servo_status.servo_connectiontype = servo_status_s::SERVO_CONNECTION_TYPE_CAN;
 		_servo_status.servo_online_flags = check_servos_status();
 		_servo_status.timestamp = hrt_absolute_time();

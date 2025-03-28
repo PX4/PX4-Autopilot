@@ -37,11 +37,11 @@
 #include <uavcan/equipment/actuator/Status.hpp>
 #include <uavcan/equipment/actuator/ArrayCommand.hpp>
 #include <uavcan/equipment/device/Temperature.hpp>
+#include <uavcan/equipment/power/CircuitStatus.hpp>
 #include <lib/perf/perf_counter.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/servo_status.h>
-#include <uORB/topics/servo_temperature.h>
 #include <drivers/drv_hrt.h>
 #include <lib/mixer_module/mixer_module.hpp>
 
@@ -61,7 +61,6 @@ public:
 	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs);
 
 	servo_status_s &servo_status() { return _servo_status; }
-	servo_temperature_s &servo_temperature() { return _servo_temperature; }
 
 
 private:
@@ -75,6 +74,11 @@ private:
 	 * Servo temperature message reception will be reported via this callback.
 	 */
 	void servo_temperature_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::device::Temperature> &msg);
+
+	/**
+	 * Servo circuit status message reception will be reported via this callback.
+	 */
+	void servo_circuit_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::power::CircuitStatus> &msg);
 
 
 	/**
@@ -91,13 +95,15 @@ private:
 		TemperatureCbBinder;
 
 	typedef uavcan::MethodBinder<UavcanServoController *,
+		void (UavcanServoController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::power::CircuitStatus>&)>
+		CircuitStatusCbBinder;
+
+	typedef uavcan::MethodBinder<UavcanServoController *,
 		void (UavcanServoController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
 
 	servo_status_s	_servo_status{};
-	servo_temperature_s _servo_temperature{};
 
 	uORB::PublicationMulti<servo_status_s> _servo_status_pub{ORB_ID(servo_status)};
-	uORB::PublicationMulti<servo_temperature_s> _servo_temperature_pub{ORB_ID(servo_temperature)};
 
 	/*
 	 * libuavcan related things
@@ -107,5 +113,15 @@ private:
 	uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand> _uavcan_pub_array_cmd;
 	uavcan::Subscriber<uavcan::equipment::actuator::Status, StatusCbBinder>	_uavcan_sub_status;
 	uavcan::Subscriber<uavcan::equipment::device::Temperature, TemperatureCbBinder> _uavcan_sub_temperature;
+	uavcan::Subscriber<uavcan::equipment::power::CircuitStatus, CircuitStatusCbBinder> _uavcan_sub_circuit_status;
+
+
+	float _last_temperature[servo_status_s::CONNECTED_SERVO_MAX];
+	uint8_t _last_temperature_error_flag[servo_status_s::CONNECTED_SERVO_MAX];
+	float _last_voltage[servo_status_s::CONNECTED_SERVO_MAX];
+	float _last_current[servo_status_s::CONNECTED_SERVO_MAX];
+	uint8_t _last_power_error_flag[servo_status_s::CONNECTED_SERVO_MAX];
+	int _servo_temperature_counter{0};
+	int _servo_power_counter{0};
 
 };
