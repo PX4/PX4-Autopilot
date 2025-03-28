@@ -86,6 +86,12 @@ UavcanServoController::init()
 }
 
 void
+UavcanServoController::set_servo_count(uint8_t count)
+{
+	_servo_count = count;
+}
+
+void
 UavcanServoController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
 	uavcan::equipment::actuator::ArrayCommand msg;
@@ -156,6 +162,7 @@ UavcanServoController::servo_status_sub_cb(const uavcan::ReceivedDataStructure<u
 		_servo_status.counter += 1;
 		_servo_status.temperature_counter = _servo_temperature_counter;
 		_servo_status.power_counter = _servo_power_counter;
+		_servo_status.servo_count = _servo_count;
 		_servo_status.servo_connectiontype = servo_status_s::SERVO_CONNECTION_TYPE_CAN;
 		_servo_status.servo_online_flags = check_servos_status();
 		_servo_status.timestamp = hrt_absolute_time();

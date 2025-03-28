@@ -6,6 +6,9 @@ float32 servo_force					# Newton or Newton metre
 float32 servo_speed					# meter per second or radian per second
 uint8 servo_power_rating_pct				# 0 - unloaded, 100 - full load
 
+uint8 servo_function					# servo output function
+
+
 float32 servo_temperature					# in kelvin
 uint8 servo_temperature_error_flags
 

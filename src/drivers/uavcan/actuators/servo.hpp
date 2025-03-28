@@ -58,6 +58,7 @@ public:
 	~UavcanServoController() = default;
 
 	int init();
+	void set_servo_count(uint8_t count);
 	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs);
 
 	servo_status_s &servo_status() { return _servo_status; }
@@ -102,6 +103,7 @@ private:
 		void (UavcanServoController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
 
 	servo_status_s	_servo_status{};
+	uint8_t _servo_count{0};
 
 	uORB::PublicationMulti<servo_status_s> _servo_status_pub{ORB_ID(servo_status)};
 
