@@ -72,7 +72,9 @@ public:
 	~CourseToAirspeedRefMapper() = default;
 
 	float mapCourseSetpointToHeadingSetpoint(const float bearing_setpoint,
-			const matrix::Vector2f &wind_vel, float airspeed_true) const;
+			const matrix::Vector2f &wind_vel, float max_airspeed, float min_ground_speed) const;
+	float getMinAirspeedForCurrentBearing(const float bearing_setpoint,
+					      const matrix::Vector2f &wind_vel, float max_airspeed, float min_ground_speed) const;
 
 private:
 	/*
@@ -90,7 +92,7 @@ private:
 	 */
 	matrix::Vector2f refAirVelocity(const matrix::Vector2f &wind_vel, const matrix::Vector2f &bearing_vec,
 					const float wind_cross_bearing, const float wind_dot_bearing,
-					const float wind_speed, float airspeed_true) const;
+					const float wind_speed, float airspeed_true, float min_ground_speed) const;
 	/*
 	 * Projection of the air velocity vector onto the bearing line considering
 	 * a connected wind triangle.

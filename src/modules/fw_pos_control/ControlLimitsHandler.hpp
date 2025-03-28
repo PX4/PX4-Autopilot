@@ -43,7 +43,7 @@
 #include <uORB/Publication.hpp>
 #include <lib/mathlib/mathlib.h>
 
-const longitudinal_control_limits_s empty_longitudinal_control_limits = {.timestamp = 0, .pitch_min = NAN, .pitch_max = NAN, .throttle_min = NAN, .throttle_max = NAN, .climb_rate_target = NAN, .sink_rate_target = NAN, .equivalent_airspeed_min = NAN, .equivalent_airspeed_max = NAN, .speed_weight = NAN, .enforce_low_height_condition = false, .disable_underspeed_protection = false };
+const longitudinal_control_limits_s empty_longitudinal_control_limits = {.timestamp = 0, .pitch_min = NAN, .pitch_max = NAN, .throttle_min = NAN, .throttle_max = NAN, .climb_rate_target = NAN, .sink_rate_target = NAN, .speed_weight = NAN, .enforce_low_height_condition = false, .disable_underspeed_protection = false };
 const lateral_control_limits_s empty_lateral_control_limits = {.timestamp = 0, .lateral_accel_max = NAN};
 
 
@@ -62,10 +62,6 @@ public:
 	void setThrottleMin(float throttle_min);
 
 	void setSpeedWeight(float speed_weight);
-
-	void setMinimumAirspeed(const float airspeed_min);
-
-	void setMaximumAirspeed(const float airspeed_max);
 
 	void setPitchMin(const float pitch_min);
 

@@ -36,42 +36,81 @@ using matrix::Vector2f;
 
 float
 CourseToAirspeedRefMapper::mapCourseSetpointToHeadingSetpoint(const float bearing_setpoint, const Vector2f &wind_vel,
-		float airspeed_true) const
+		float airspeed_max, float min_ground_speed) const
 {
-
-	Vector2f bearing_vector = Vector2f{cosf(bearing_setpoint), sinf(bearing_setpoint)};
+	const Vector2f bearing_vector = Vector2f{cosf(bearing_setpoint), sinf(bearing_setpoint)};
 	const float wind_cross_bearing = wind_vel.cross(bearing_vector);
 	const float wind_dot_bearing = wind_vel.dot(bearing_vector);
 
 	const Vector2f air_vel_ref = refAirVelocity(wind_vel, bearing_vector, wind_cross_bearing,
-				     wind_dot_bearing, wind_vel.norm(), airspeed_true);
+				     wind_dot_bearing, wind_vel.norm(), airspeed_max, min_ground_speed);
 
 	return atan2f(air_vel_ref(1), air_vel_ref(0));
 }
 
+float
+CourseToAirspeedRefMapper::getMinAirspeedForCurrentBearing(const float bearing_setpoint, const Vector2f &wind_vel,
+		float airspeed_max, float min_ground_speed) const
+{
+	const Vector2f bearing_vector = Vector2f{cosf(bearing_setpoint), sinf(bearing_setpoint)};
+	const float wind_cross_bearing = wind_vel.cross(bearing_vector);
+	const float wind_dot_bearing = wind_vel.dot(bearing_vector);
+
+	const Vector2f air_vel_ref = refAirVelocity(wind_vel, bearing_vector, wind_cross_bearing,
+				     wind_dot_bearing, wind_vel.norm(), airspeed_max, min_ground_speed);
+
+	return air_vel_ref.norm();
+}
+
 matrix::Vector2f CourseToAirspeedRefMapper::refAirVelocity(const Vector2f &wind_vel, const Vector2f &bearing_vec,
 		const float wind_cross_bearing, const float wind_dot_bearing,
-		const float wind_speed, float airspeed_true) const
+		const float wind_speed, float airspeed_max, float min_ground_speed) const
 {
 	Vector2f air_vel_ref;
 
-	if (bearingIsFeasible(wind_cross_bearing, wind_dot_bearing, airspeed_true, wind_speed)) {
-		const float airsp_dot_bearing = projectAirspOnBearing(airspeed_true, wind_cross_bearing);
-		air_vel_ref = solveWindTriangle(wind_cross_bearing, airsp_dot_bearing, bearing_vec);
+	const float airspeed_nom_ = 15.f; //TODO pass as arguemnt or remove
 
-	} else {
-		air_vel_ref = infeasibleAirVelRef(wind_vel, bearing_vec, wind_speed, airspeed_true);
+	if (min_ground_speed > wind_dot_bearing) {
+		// minimum ground speed and/or track keeping
+
+		// airspeed required to achieve minimum ground speed along bearing vector
+		const float airspeed_min = sqrtf((min_ground_speed - wind_dot_bearing) * (min_ground_speed - wind_dot_bearing) +
+						 wind_cross_bearing * wind_cross_bearing);
+
+		if (airspeed_min > airspeed_max) {
+			if (bearingIsFeasible(wind_cross_bearing, wind_dot_bearing, airspeed_max, wind_speed)) {
+				// we will not maintain the minimum ground speed, but can still achieve the bearing at maximum airspeed
+				const float airsp_dot_bearing = projectAirspOnBearing(airspeed_max, wind_cross_bearing);
+				air_vel_ref = solveWindTriangle(wind_cross_bearing, airsp_dot_bearing, bearing_vec);
+
+			} else {
+				// bearing is maximally infeasible, employ mitigation law
+				air_vel_ref = infeasibleAirVelRef(wind_vel, bearing_vec, wind_speed, airspeed_max);
+			}
+
+		} else if (airspeed_min > airspeed_nom_) {
+			// the minimum ground speed is achievable within the nom - max airspeed range
+			// solve wind triangle with for air velocity reference with minimum airspeed
+			const float airsp_dot_bearing = projectAirspOnBearing(airspeed_min, wind_cross_bearing);
+			air_vel_ref = solveWindTriangle(wind_cross_bearing, airsp_dot_bearing, bearing_vec);
+
+		} else {
+			// the minimum required airspeed is less than nominal, so we can track the bearing and minimum
+			// ground speed with our nominal airspeed reference
+			const float airsp_dot_bearing = projectAirspOnBearing(airspeed_nom_, wind_cross_bearing);
+			air_vel_ref = solveWindTriangle(wind_cross_bearing, airsp_dot_bearing, bearing_vec);
+		}
 	}
 
 	return air_vel_ref;
 }
 
-float CourseToAirspeedRefMapper::projectAirspOnBearing(const float airspeed, const float wind_cross_bearing) const
+float CourseToAirspeedRefMapper::projectAirspOnBearing(const float airspeed_true, const float wind_cross_bearing) const
 {
 	// NOTE: wind_cross_bearing must be less than airspeed to use this function
 	// it is assumed that bearing feasibility is checked and found feasible (e.g. bearingIsFeasible() = true) prior to entering this method
 	// otherwise the return will be erroneous
-	return sqrtf(math::max(airspeed * airspeed - wind_cross_bearing * wind_cross_bearing, 0.0f));
+	return sqrtf(math::max(airspeed_true * airspeed_true - wind_cross_bearing * wind_cross_bearing, 0.0f));
 }
 
 int CourseToAirspeedRefMapper::bearingIsFeasible(const float wind_cross_bearing, const float wind_dot_bearing,
