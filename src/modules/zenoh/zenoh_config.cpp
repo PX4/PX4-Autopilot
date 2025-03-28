@@ -50,7 +50,7 @@
 #include <uORB/topics/uORBTopics.hpp>
 
 
-const char *default_net_config = Z_CONFIG_MODE_DEFAULT;
+const char *default_net_config = Z_CONFIG_MODE_DEFAULT ";" CONFIG_ZENOH_DEFAULT_LOCATOR;
 const char *default_pub_config = "";
 const char *default_sub_config = ""; //TODO maybe use YAML
 
@@ -276,9 +276,14 @@ int Zenoh_Config::getPubSubMapping(char *topic, char *type, const char *filename
 				const char *config_type = get_csv_field(buffer, 2);
 				const char *config_topic = get_csv_field(buffer, 1);
 
-				strncpy(type, config_type, TOPIC_INFO_SIZE);
-				strncpy(topic, config_topic, TOPIC_INFO_SIZE);
-				return 1;
+				if (config_topic && config_type) {
+					strncpy(type, config_type, TOPIC_INFO_SIZE);
+					strncpy(topic, config_topic, TOPIC_INFO_SIZE);
+					return 1;
+
+				} else {
+					return -1;
+				}
 			}
 
 		}
