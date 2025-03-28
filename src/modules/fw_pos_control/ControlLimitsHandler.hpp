@@ -82,11 +82,7 @@ public:
 private:
 	bool booleanValueChanged(bool new_value, bool current_value)
 	{
-		if (current_value != new_value) {
-			return true;
-		}
-
-		return false;
+		return current_value != new_value;
 	}
 
 	bool floatValueChanged(float new_value, float current_value)
