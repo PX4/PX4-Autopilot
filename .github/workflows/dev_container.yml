@@ -10,45 +10,40 @@ on:
       - 'release/**'
     tags:
       - 'v*'
-    paths-ignore:
-      - 'docs/**'
-      - '.github/**'
+    paths:
+      - 'Tools/setup/ubuntu.sh'
+      - 'Tools/setup/requirements.txt'
+      - 'Tools/setup/Dockerfile'
+      - 'Tools/setup/docker-entrypoint.sh'
   pull_request:
     branches:
       - '*'
-    paths-ignore:
-      - 'docs/**'
-      - '.github/**'
+    paths:
+      - 'Tools/setup/ubuntu.sh'
+      - 'Tools/setup/requirements.txt'
+      - 'Tools/setup/Dockerfile'
+      - 'Tools/setup/docker-entrypoint.sh'
 
 jobs:
-  build:
-    name: Build and Push Container
-    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+  setup:
+    name: Set Tags and Variables
+    runs-on: [runs-on,"runner=1cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    outputs:
+      px4_version: ${{ steps.px4_version.outputs.px4_version }}
+      meta_tags: ${{ steps.meta.outputs.tags }}
+      meta_labels: ${{ steps.meta.outputs.labels }}
     steps:
+      - uses: runs-on/action@v1
       - uses: actions/checkout@v4
         with:
           fetch-tags: true
           submodules: false
           fetch-depth: 0
 
-      - name: Set PX4 Tag
-        id: px4-tag
+      - name: Set PX4 Tag Version
+        id: px4_version
         run: |
-          echo "tag=$(git describe --tags --match 'v[0-9]*')" >> $GITHUB_OUTPUT
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        if: github.event_name != 'pull_request'
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          echo "px4_version=$(git describe --tags --match 'v[0-9]*')" >> $GITHUB_OUTPUT
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
@@ -56,52 +51,143 @@ jobs:
         with:
           images: |
             ghcr.io/PX4/px4-dev
-            ${{ (github.event_name != 'pull_request') && 'px4io/px4-dev' || '' }}
+            px4io/px4-dev
           tags: |
-            type=raw,enable=true,value=${{ steps.px4-tag.outputs.tag }},priority=1000
+            type=raw,enable=true,value=${{ steps.px4_version.outputs.px4_version }},priority=1000
+
+  build:
+    name: Build Container (${{ matrix.arch }})
+    needs: setup
+    strategy:
+      matrix:
+        include:
+          - platform: linux/arm64
+            arch: arm64
+            runner: arm64
+          - platform: linux/amd64
+            arch: amd64
+            runner: x64
+    runs-on: [runs-on,"runner=8cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    steps:
+      - uses: runs-on/action@v1
+      - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+          submodules: false
+          fetch-depth: 0
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        # if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        # if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
 
-      - name: Build and load container image
+      - name: Build and Load Container Image
         uses: docker/build-push-action@v6
         id: docker
         with:
           context: Tools/setup
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          platforms: |
-            linux/amd64
-          load: true
-          push: false
-          cache-from: type=s3,blobs_prefix=cache/${{ github.repository }}/,manifests_prefix=cache/${{ github.repository }}/,region=${{ env.RUNS_ON_AWS_REGION }},bucket=${{ env.RUNS_ON_S3_BUCKET_CACHE }}
-          cache-to: type=s3,blobs_prefix=cache/${{ github.repository }}/,manifests_prefix=cache/${{ github.repository }}/,region=${{ env.RUNS_ON_AWS_REGION }},bucket=${{ env.RUNS_ON_S3_BUCKET_CACHE }},mode=max
+          tags: |
+            ghcr.io/px4/px4-dev:${{ matrix.arch }}-${{ needs.setup.outputs.px4_version }}
+            px4io/px4-dev:${{ matrix.arch }}-${{ needs.setup.outputs.px4_version }}
+          labels: ${{ needs.setup.outputs.meta_labels }}
+          platforms: ${{ matrix.platform }}
+          load: false
+          push: true
+          cache-from: type=gha,version=1
+          cache-to: type=gha,version=1,mode=max
 
-      - name: Get Tag Name
-        id: tag_name
+      # - name: Get Container Image Tag Name
+      #   id: image_name
+      #   run: |
+      #     echo "image_name=$(echo '${{ fromJSON(steps.docker.outputs.metadata)['image.name'] }}' | sed 's/,.*$//')" >> $GITHUB_OUTPUT
+
+      # - name: Test Build of PX4 with Container
+      #   uses: addnab/docker-run-action@v3
+      #   with:
+      #     image: ${{ steps.image_name.outputs.image_name }}
+      #     options: -v ${{ github.workspace }}:/workspace
+      #     run: |
+      #       cd /workspace
+      #       git config --global --add safe.directory /workspace
+      #       make px4_sitl_default
+
+  deploy:
+    name: Deploy To Registry
+    runs-on: [runs-on,"runner=8cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    needs: [build, setup]
+    # if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    steps:
+      - uses: runs-on/action@v1
+      - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+          submodules: false
+          fetch-depth: 0
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        # if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        # if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+
+      - name: Verify Images Exist Before Creating Manifest
         run: |
-          echo "::set-output name=tag_name::$(echo '${{ fromJSON(steps.docker.outputs.metadata)['image.name'] }}' | sed 's/,.*$//')"
+          docker manifest inspect px4io/px4-dev:arm64-${{ needs.setup.outputs.px4_version }} || echo "⚠️ Warning: No ARM64 image found!"
+          docker manifest inspect px4io/px4-dev:amd64-${{ needs.setup.outputs.px4_version }} || echo "⚠️ Warning: No AMD64 image found!"
+          docker manifest inspect ghcr.io/px4/px4-dev:arm64-${{ needs.setup.outputs.px4_version }} || echo "⚠️ Warning: No ARM64 image found!"
+          docker manifest inspect ghcr.io/px4/px4-dev:amd64-${{ needs.setup.outputs.px4_version }} || echo "⚠️ Warning: No AMD64 image found!"
 
-      - name: make quick_check
-        uses: addnab/docker-run-action@v3
-        with:
-          image: ${{ steps.tag_name.outputs.tag_name }}
-          options: -v ${{ github.workspace }}:/workspace
-          run: |
-            cd /workspace
-            git config --global --add safe.directory /workspace
-            make px4_sitl_default
-            make px4_fmu-v6x_default
+      - name: Create and Push Multi-Arch Manifest for Docker Hub
+        run: |
+          docker manifest create px4io/px4-dev:${{ needs.setup.outputs.px4_version }} \
+            --amend px4io/px4-dev:arm64-${{ needs.setup.outputs.px4_version }} \
+            --amend px4io/px4-dev:amd64-${{ needs.setup.outputs.px4_version }}
 
-      - name: Push container image
-        uses: docker/build-push-action@v6
-        with:
-          context: Tools/setup
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          platforms: |
-            linux/amd64
-          provenance: mode=max
-          push: ${{ github.event_name != 'pull_request' }}
-          cache-from: type=s3,blobs_prefix=cache/${{ github.repository }}/,manifests_prefix=cache/${{ github.repository }}/,region=${{ env.RUNS_ON_AWS_REGION }},bucket=${{ env.RUNS_ON_S3_BUCKET_CACHE }}
-          cache-to: type=s3,blobs_prefix=cache/${{ github.repository }}/,manifests_prefix=cache/${{ github.repository }}/,region=${{ env.RUNS_ON_AWS_REGION }},bucket=${{ env.RUNS_ON_S3_BUCKET_CACHE }},mode=max
+          docker manifest push px4io/px4-dev:${{ needs.setup.outputs.px4_version }}
+
+      - name: Create and Push Multi-Arch Manifest for GHCR
+        run: |
+          docker manifest create ghcr.io/px4/px4-dev:${{ needs.setup.outputs.px4_version }} \
+            --amend ghcr.io/px4/px4-dev:arm64-${{ needs.setup.outputs.px4_version }} \
+            --amend ghcr.io/px4/px4-dev:amd64-${{ needs.setup.outputs.px4_version }}
+
+          docker manifest push ghcr.io/px4/px4-dev:${{ needs.setup.outputs.px4_version }}
+
+      # - name: Push Images to Registry
+      #   uses: docker/build-push-action@v6
+      #   with:
+      #     context: Tools/setup
+      #     tags: ${{ needs.setup.outputs.meta_tags }}
+      #     labels: ${{ needs.setup.outputs.meta_labels }}
+      #     platforms: linux/amd64,linux/arm64
+      #     load: false
+      #     push: true

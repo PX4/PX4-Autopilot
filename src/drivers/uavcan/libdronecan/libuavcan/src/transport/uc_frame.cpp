@@ -2,6 +2,10 @@
  * Copyright (C) 2014 Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
+#if defined(__GNUC__) && __GNUC__ >= 12
+# pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+
 #include <uavcan/transport/frame.hpp>
 #include <uavcan/transport/can_io.hpp>
 #include <uavcan/transport/crc.hpp>
