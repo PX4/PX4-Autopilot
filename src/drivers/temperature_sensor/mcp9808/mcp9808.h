@@ -44,6 +44,12 @@
 
 using namespace time_literals;
 
+#define MCP9808_REG_CONFIG 0x01
+#define MCP9808_REG_AMBIENT_TEMP 0x05
+#define MCP9808_REG_MANUF_ID 0x06
+#define MCP9808_REG_DEVICE_ID 0x07
+#define MCP9808_REG_RESOLUTION 0x08
+
 class MCP9808 : public device::I2C, public I2CSPIDriver<MCP9808>
 {
 public:
@@ -56,30 +62,15 @@ public:
 	static void print_usage();
 
 protected:
-	void print_status() override;
-	void exit_and_cleanup() override;
+	void print_status();
 
 private:
-	enum class Register : uint8_t {
-		CONFIG = 0x01,
-		AMBIENT_TEMP = 0x05,
-		MANUF_ID = 0x06,
-		DEVICE_ID = 0x07,
-		RESOLUTION = 0x08
-	};
-
-	uORB::PublicationMulti<sensor_temp_s> _to_sensor_temp{ORB_ID(sensor_temp)};
+	uORB::PublicationMulti<sensor_temp_s> _sensor_temp_pub{ORB_ID(sensor_temp)};
 	perf_counter_t _cycle_perf;
 	perf_counter_t _comms_errors;
-
-
 	sensor_temp_s _sensor_temp{};
-
-
-	int read_reg(Register address, uint16_t &data);
-	int write_reg(Register address, uint16_t value);
+	int read_reg(uint8_t address, uint16_t &data);
+	int write_reg(uint8_t address, uint16_t value);
 	float read_temperature();
-
-	uint32_t measurement_time = 0;
-
+	hrt_abstime measurement_time = 0;
 };
