@@ -21,6 +21,14 @@ if MODULES_ZENOH
         default "tcp/127.0.0.1:7447" if PLATFORM_POSIX
         default "" if !PLATFORM_POSIX
 
+    config ZENOH_RMW_LIVELINESS
+        bool "[EXPERIMENTAL] rmw_zenoh liveliness implemenation"
+        default y
+        ---help---
+                Declares liveliness tokens with key expressions in the way rmw_zenoh expects them
+                Allowing to construct ROS2 graphs
+
+
     # Choose exactly one item
     choice ZENOH_PUBSUB_SELECTION
             prompt "Publishers/Subscribers selection"
