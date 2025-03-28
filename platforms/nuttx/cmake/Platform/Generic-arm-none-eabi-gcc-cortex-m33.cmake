@@ -39,7 +39,11 @@ if(CONFIG_NUTTX_SIMPLIFIED_BUILD)
 	# endless loop in => 0x2000b2c6:	00 00	movs	r0, r0
 	# before clock configure was in: => 0x10000224 <rp23xx_clock_configure+28>:	0c 24	movs	r4, #12
 	# it jumped to RAM!?
-	set(extra_cpu_flags "-mlittle-endian -mcpu=cortex-m33 -mfloat-abi=softfp -mfpu=fpv5-sp-d16")
+
+
+	# FIXME: FPU disabled for now	set(extra_cpu_flags "-mlittle-endian -mcpu=cortex-m33 -mfloat-abi=softfp -mfpu=fpv5-sp-d16")
+
+	set(extra_cpu_flags "-mlittle-endian -mcpu=cortex-m33 -mfloat-abi=soft -mfpu=fpv5-sp-d16")
 
 
 
