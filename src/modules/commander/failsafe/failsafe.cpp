@@ -471,6 +471,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	const bool rc_loss_ignored_takeoff = (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
 					      state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
 					     && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::Hold);
+
 	const bool rc_loss_ignored = rc_loss_ignored_mission || rc_loss_ignored_loiter || rc_loss_ignored_offboard ||
 				     rc_loss_ignored_takeoff || ignore_any_link_loss_vtol_takeoff_fixedwing
 				     || _manual_control_lost_at_arming;
@@ -481,6 +482,9 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	}
 
 	// GCS connection loss
+	const bool dll_loss_ignored_land = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
+					   || state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
+
 	const bool dll_loss_ignored_mission = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION
 					      && (_param_com_dll_except.get() & (int)DatalinkLossExceptionBits::Mission);
 	const bool dll_loss_ignored_loiter = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER
@@ -490,10 +494,6 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	const bool dll_loss_ignored_takeoff = (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
 					       state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
 					      && (_param_com_dll_except.get() & (int)DatalinkLossExceptionBits::Hold);
-	const bool dll_loss_ignored_land = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
-					   ||
-					   state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
-
 
 	const bool dll_loss_ignored = dll_loss_ignored_mission || dll_loss_ignored_loiter || dll_loss_ignored_offboard ||
 				      dll_loss_ignored_takeoff || ignore_any_link_loss_vtol_takeoff_fixedwing || dll_loss_ignored_land;
