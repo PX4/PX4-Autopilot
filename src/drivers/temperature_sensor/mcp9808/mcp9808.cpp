@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,7 +39,7 @@ MCP9808::MCP9808(const I2CSPIDriverConfig &config) :
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
 {
-	_sensor_temp.device_id = this->get_device_id();
+	_sensor_temp.device_id = get_device_id();
 }
 
 MCP9808::~MCP9808()
@@ -53,23 +53,17 @@ void MCP9808::RunImpl()
 {
 	perf_begin(_cycle_perf);
 
-	// publish at around 5HZ
-	if ((hrt_elapsed_time(&measurement_time)) > 200_ms) {
+	float temperature = read_temperature();
 
-		float temperature = read_temperature();
-		measurement_time = hrt_absolute_time(); // get the time the measurement was taken
+	if (std::isnan(temperature)) {
 
-		if (std::isnan(temperature)) {
+		perf_count(_comms_errors);
 
-			perf_count(_comms_errors);
+	} else {
+		_sensor_temp.timestamp = hrt_absolute_time();
+		_sensor_temp.temperature = temperature;
 
-		} else {
-			_sensor_temp.timestamp = hrt_absolute_time();
-			_sensor_temp.timestamp_sample = measurement_time;
-			_sensor_temp.temperature = temperature;
-
-			_sensor_temp_pub.publish(_sensor_temp);
-		}
+		_sensor_temp_pub.publish(_sensor_temp);
 	}
 
 	perf_end(_cycle_perf);
@@ -109,7 +103,7 @@ int MCP9808::init()
 		return ret;
 	}
 
-	PX4_INFO("I2C initialized successfully");
+	PX4_DEBUG("I2C initialized successfully");
 
 	ret = write_reg(MCP9808_REG_CONFIG, 0x0000); // Ensure default configuration
 
@@ -120,7 +114,7 @@ int MCP9808::init()
 
 	_sensor_temp_pub.advertise();
 
-	ScheduleOnInterval(100_ms); // Sample at 10 Hz
+	ScheduleOnInterval(200_ms); // Sample at 5 Hz
 	return PX4_OK;
 }
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
  * @file mcp9808_main.cpp
  * @author TedObrien
  *
- * Driver for the Microchip MCP9080 Temperature Sensor  connected via I2C.
+ * Driver for the Microchip MCP9080 Temperature Sensor connected via I2C.
  */
 
 #include "mcp9808.h"
