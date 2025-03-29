@@ -142,5 +142,13 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2025-03-19: translate ASPD_FALLBACK_GW to ASPD_FALLBACK
+	{
+		if (strcmp("ASPD_FALLBACK_GW", node->name) == 0) {
+			strcpy(node->name, "ASPD_FALLBACK");
+			PX4_INFO("copying %s -> %s", "ASPD_FALLBACK_GW", "ASPD_FALLBACK");
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }
