@@ -80,6 +80,12 @@ publications:
   - topic: /fmu/out/home_position
     type: px4_msgs::msg::HomePosition
 
+  - topic: /fmu/out/wind
+    type: px4_msgs::msg::Wind
+
+  - topic: /fmu/out/vtol_vehicle_status
+    type: px4_msgs::msg::VtolVehicleStatus
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
@@ -162,6 +168,18 @@ subscriptions:
 
   - topic: /fmu/in/aux_global_position
     type: px4_msgs::msg::VehicleGlobalPosition
+
+  - topic: /fmu/in/fixed_wing_longitudinal_setpoint
+    type: px4_msgs::msg::FixedWingLongitudinalSetpoint
+
+  - topic: /fmu/in/fixed_wing_lateral_setpoint
+    type: px4_msgs::msg::FixedWingLateralSetpoint
+
+  - topic: /fmu/in/longitudinal_control_limits
+    type: px4_msgs::msg::LongitudinalControlLimits
+
+  - topic: /fmu/in/lateral_control_limits
+    type: px4_msgs::msg::LateralControlLimits
 
 # Create uORB::PublicationMulti
 subscriptions_multi:
