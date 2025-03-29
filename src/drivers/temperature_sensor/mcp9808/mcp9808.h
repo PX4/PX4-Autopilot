@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -66,11 +66,10 @@ protected:
 
 private:
 	uORB::PublicationMulti<sensor_temp_s> _sensor_temp_pub{ORB_ID(sensor_temp)};
-	perf_counter_t _cycle_perf;
-	perf_counter_t _comms_errors;
-	sensor_temp_s _sensor_temp{};
 	int read_reg(uint8_t address, uint16_t &data);
 	int write_reg(uint8_t address, uint16_t value);
 	float read_temperature();
-	hrt_abstime measurement_time = 0;
+	sensor_temp_s _sensor_temp{};
+	perf_counter_t _cycle_perf;
+	perf_counter_t _comms_errors;
 };
