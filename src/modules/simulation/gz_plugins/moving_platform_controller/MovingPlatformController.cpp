@@ -51,146 +51,226 @@ void MovingPlatformController::Configure(const gz::sim::Entity &entity,
 	_entity = entity;
 	_model = gz::sim::Model(entity);
 
-	double v_x = 1.0f;
+	const std::string link_name = sdf->Get<std::string>("link_name");
+	_link_entity = _model.LinkByName(ecm, link_name);
 
-	// Read v_x from environment variable.
+	if (!_link_entity) {
+		throw std::runtime_error("MovingPlatformController::Configure: Link \"" + link_name + "\" was not found. "
+			"Please ensure that your model contains the corresponding link.");
+	}
+
+	_link = gz::sim::Link(_link_entity);
+
+	// Needed to report linear & angular velocity
+	_link.EnableVelocityChecks(ecm, true);
+
+	// Get velocity and orientation setpoints from env vars
 	{
-		const char *env_var_name = "PX4_GZ_PLATFORM_VEL";
-		const char *env_var_value = std::getenv(env_var_name);
+		const double vel_forward = ReadEnvVar("PX4_GZ_PLATFORM_VEL", 1.0);
+		const double heading_deg = ReadEnvVar("PX4_GZ_PLATFORM_HEADING_DEG", 0.0);
+		const double heading = GZ_DTOR(heading_deg);
 
-		if (env_var_value) {
-			try {
-				v_x = std::stof(env_var_value);
+		_orientation_sp = gz::math::Quaterniond(0., 0., heading);
 
-			} catch (const std::invalid_argument &e) {
-				// These warnings will only be visible with sufficient verbosity level...
-				gzwarn << "Invalid argument: " << env_var_value << " is not a valid double for " << env_var_name << std::endl;
-				gzwarn << "Keeping default value of " << v_x << " m/s." << std::endl;
+		// Set initial orientation to match the heading
+		const auto optional_original_pose = _link.WorldPose(ecm);
+		if (optional_original_pose.has_value()) {
+			const gz::math::Pose3d original_pose = optional_original_pose.value();
+			const gz::math::Pose3d new_pose(original_pose.Pos(), _orientation_sp);
+			_model.SetWorldPoseCmd(ecm, new_pose);
 
-			} catch (const std::out_of_range &e) {
-				gzwarn << "Out of range: " << env_var_value << " is out of range for " << env_var_name << std::endl;
-				gzwarn << "Keeping default value of " << v_x << " m/s." << std::endl;
-			}
+		} else {
+			gzwarn << "Unable to get initial platform pose. Heading will not be set" << std::endl;
+		}
+
+		// Velocity setpoint in world frame.
+		const gz::math::Vector3d _body_velocity_sp(vel_forward, 0., 0.);
+		_velocity_sp = _orientation_sp * _body_velocity_sp;
+	}
+
+	// Get gravity, model mass, platform height.
+	{
+		const auto world_entity = gz::sim::worldEntity(ecm);
+		const auto world = gz::sim::World(world_entity);
+		const auto gravity = world.Gravity(ecm);
+
+		if (gravity.has_value()) {
+			_gravity = world.Gravity(ecm).value().Z();
+		} else {
+			gzwarn << "Unable to get gazebo world gravity. Keeping default of " << _gravity << std::endl;
+		}
+
+		auto inertial_component = ecm.Component<gz::sim::components::Inertial>(_link_entity);
+
+		if (inertial_component) {
+			_platform_mass = inertial_component->Data().MassMatrix().Mass();
+		} else {
+			gzwarn << "Unable to get inertial component for link " << link_name << ". Keeping default mass of " << _platform_mass << std::endl;
+		}
+
+		auto pose_component = ecm.Component<gz::sim::components::Pose>(_link_entity);
+
+		if (pose_component) {
+			_platform_height_setpoint = pose_component->Data().Z();
+		} else {
+			gzwarn << "Unable to get inertial component for link " << link_name << ". Keeping default mass of " << _platform_mass << std::endl;
 		}
 	}
 
-	_target_vel_sp = gz::math::Vector3d(v_x, 0., 0.);
-
-	// Advertise topic to communicate with VelocityControl plugin
-	std::string model_name = _model.Name(ecm);
-	std::string cmd_vel_topic = "/model/" + model_name + "/cmd_vel";
-	_platform_twist_pub = _node.Advertise<gz::msgs::Twist>(cmd_vel_topic);
 }
 
 void MovingPlatformController::PreUpdate(const gz::sim::UpdateInfo &_info, gz::sim::EntityComponentManager &ecm)
 {
-	updatePose(ecm);
-
-	// Initially, ramp up the velocity with constant acceleration. Otherwise
-	// we can't really simulate fast velocities as the drone just slips off
-	// the platform.
-
-	const double max_accel_mag = 2.; // m/s^2
-	const double dt = std::chrono::duration<double>(_info.dt).count(); // s
-
-	const gz::math::Vector3d vel_sp_err = _target_vel_sp - _current_vel_sp;
-
-	if (vel_sp_err.Length() < max_accel_mag * dt) {
-		// we are already almost there. set directly to avoid division by 0.
-		_current_vel_sp = _target_vel_sp;
-
-	} else {
-		// acclerate towards target velocity.
-		const gz::math::Vector3d accel = vel_sp_err.Normalized() * max_accel_mag;
-		_current_vel_sp = _current_vel_sp + accel * dt;
-	}
-
-	updateVelocityCommands(_current_vel_sp);
-
-	sendVelocityCommands();
+	updatePlatformState(ecm);
+	updateWrenchCommand(_velocity_sp, _orientation_sp);
+	sendWrenchCommand(ecm);
 }
 
-void MovingPlatformController::updateVelocityCommands(const gz::math::Vector3d &velocity_setpoint)
+void MovingPlatformController::updateWrenchCommand(
+	const gz::math::Vector3d &velocity_setpoint,
+	const gz::math::Quaterniond &orientation_setpoint)
 {
-	// Velocity and angular velocity = low pass filtered white noise + feedback term.
+	// (force, torque) =
+	//    constant normal force / buoyancy term offsetting gravity
+	//  + low-pass filtered white noise representing waves, road noise, etc.
+	//  + PD feedback term representing stable vehicle design
 
-	gz::math::Vector3d noise_v = gz::math::Vector3d(
-					     gz::math::Rand::DblNormal(),
-					     gz::math::Rand::DblNormal(),
-					     gz::math::Rand::DblNormal()
-				     );
+	gz::math::Vector3d noise_force = gz::math::Vector3d(
+			gz::math::Rand::DblNormal(),
+			gz::math::Rand::DblNormal(),
+			gz::math::Rand::DblNormal()
+					  );
 
-	gz::math::Vector3d noise_w = gz::math::Vector3d(
-					     gz::math::Rand::DblNormal(),
-					     gz::math::Rand::DblNormal(),
-					     gz::math::Rand::DblNormal()
-				     );
+	gz::math::Vector3d noise_torque = gz::math::Vector3d(
+			gz::math::Rand::DblNormal(),
+			gz::math::Rand::DblNormal(),
+			gz::math::Rand::DblNormal()
+					  );
 
 	// Filter coefficients for low-pass filtering the white noise.
-	// larger number here = faster movement
-	// write these in terms of time constants?
-	// https://ethz.ch/content/dam/ethz/special-interest/mavt/dynamic-systems-n-control/idsc-dam/Lectures/Signals-and-Systems/Lectures/Lecture%20Notes%209.pdf
-	const double filter_coef_v = 0.01;
-	const double filter_coef_w = 0.01;
+	// larger number = faster movement
+	// should be between 0 and 1
+	const double filter_coef_force = 0.1;
+	const double filter_coef_torque = 0.1;
 
 	// Noise amplitude.
-	// larger number here = bigger movement
-	const double ampl_v = 1.;
-	const double ampl_w = 1.;
+	// larger number = bigger movement
+	// should be >= 0
+	const double noise_ampl_force = 1. * _platform_mass;
+	const double noise_ampl_torque = 1. * _platform_mass;
 
-	// For ultra realism we might have axis specific versions of these
-	// constants -- Real ships roll more quickly than they pitch and yaw.
-	// But probably overkill for now.
+	_noise_lowpass_force = (1 - filter_coef_force) * _noise_lowpass_force + filter_coef_force * noise_force;
+	_noise_lowpass_torque = (1 - filter_coef_torque) * _noise_lowpass_torque + filter_coef_torque * noise_torque;
 
-	_noise_v_lowpass = (1 - filter_coef_v) * _noise_v_lowpass + filter_coef_v * noise_v;
-	_noise_w_lowpass = (1 - filter_coef_w) * _noise_w_lowpass + filter_coef_w * noise_w;
+	const gz::math::Vector3d normal_force(0., 0., -_gravity * _platform_mass);
 
-	_platform_v = ampl_v * _noise_v_lowpass + velocity_setpoint;
-	_platform_w = ampl_w * _noise_w_lowpass;
+	_force = noise_ampl_force * _noise_lowpass_force + normal_force;
+	_torque = noise_ampl_torque * _noise_lowpass_torque;
 
-	// feedback terms to ensure the random walk (= integral of noise)
-	// stays within a realistic region.
+	// Feedback terms to ensure stability of the platform.
 	{
-		// small feedback to maintain height. no attempt to stabilise x and y.
-		const double platform_height = 2.;
-		const gz::math::Vector3d pos_gains(0., 0., 1.);  // [m/s / m]
-		_platform_v += -pos_gains * (_platform_position - gz::math::Vector3d(0., platform_height, 0.));
 
-		// eq. 23 from Nonlinear Quadrocopter Attitude Control (Brescianini, Hehn, D'Andrea)
-		// https://www.research-collection.ethz.ch/handle/20.500.11850/154099
-		const double sgn = _platform_orientation.W() > 0 ? 1. : -1.;
+		const gz::math::Vector3d pos_gains = _platform_mass * gz::math::Vector3d(0., 0., 1.);
+		const gz::math::Vector3d vel_gains = _platform_mass * gz::math::Vector3d(1., 1., 1.);
 
-		const double attitude_gain = 1.;
+		const gz::math::Vector3d platform_pos_error = (_platform_position - gz::math::Vector3d(0., 0., _platform_height_setpoint));
+		const gz::math::Vector3d platform_vel_error = (_platform_velocity - velocity_setpoint);
 
-		gz::math::Vector3d q_imag = gz::math::Vector3d(
-						    _platform_orientation.X(),
-						    _platform_orientation.Y(),
-						    _platform_orientation.Z()
-					    );
+		// * is element-wise
+		const gz::math::Vector3d feedback_force = -pos_gains * platform_pos_error - vel_gains * platform_vel_error;
 
-		_platform_w += -attitude_gain * sgn * q_imag;
+		// Clip horizontal force to avoid large accelerations, which might cause the drone to slip off the platform.
+		const float max_accel = 2.; // [m/s^2]
+		const gz::math::Vector2d _force_xy = gz::math::Vector2d(feedback_force.X(), feedback_force.Y());
+		const float accel_xy = _force_xy.Length() / _platform_mass;
+
+		if (accel_xy > max_accel) {
+			const float scaling = max_accel / accel_xy;
+			_force += feedback_force * gz::math::Vector3d(scaling, scaling, 1.);
+		} else {
+			_force += feedback_force;
+		}
+
+		// Attitude - similar but accounting for quaternion weirdness.
+		// Combining ideas from:
+		//  - Eq. 23 in Nonlinear Quadrocopter Attitude Control (Brescianini, Hehn, D'Andrea)
+		//    https://www.research-collection.ethz.ch/handle/20.500.11850/154099
+		//  - Eq. 20 in Full Quaternion Based Attitude Control for a Quadrotor (Fresk, Nikolakopoulos)
+		//    https://www.diva-portal.org/smash/get/diva2:1010947/FULLTEXT01.pdf
+
+		const gz::math::Quaterniond attitude_err = _platform_orientation * orientation_setpoint.Inverse();
+
+		const double attitude_p_gain = 1. * _platform_mass;
+		const double attitude_d_gain = 1. * _platform_mass;
+
+		const double sgn = attitude_err.W() > 0. ? 1. : -1.;
+		gz::math::Vector3d attitude_err_imag = sgn * gz::math::Vector3d(attitude_err.X(), attitude_err.Y(), attitude_err.Z());
+
+		_torque += -attitude_p_gain * attitude_err_imag - attitude_d_gain * _platform_angular_velocity;
 	}
 }
 
 
-void MovingPlatformController::updatePose(const gz::sim::EntityComponentManager &ecm)
+void MovingPlatformController::updatePlatformState(const gz::sim::EntityComponentManager &ecm)
 {
-	auto pose = ecm.Component<gz::sim::components::Pose>(_entity);
 
-	if (pose != nullptr) {
-		_platform_position = pose->Data().Pos();
-		_platform_orientation = pose->Data().Rot();
+	const auto optional_pose = _link.WorldPose(ecm);
+
+	if (optional_pose.has_value()) {
+		_platform_position = optional_pose.value().Pos();
+		_platform_orientation = optional_pose.value().Rot();
 
 	} else {
-		std::cerr << "MovingPlatformController: got nullptr pose" << std::endl;
+		gzerr << "Unable to get pose" << std::endl;
 	}
+
+
+	const auto optional_vel = _link.WorldLinearVelocity(ecm);
+
+	if (optional_vel.has_value()) {
+		_platform_velocity = optional_vel.value();
+
+	} else {
+		gzerr << "Unable to get linear velocity" << std::endl;
+	}
+
+
+	const auto optional_angular_vel = _link.WorldAngularVelocity(ecm);
+
+	if (optional_angular_vel.has_value()) {
+		_platform_angular_velocity = optional_angular_vel.value();
+
+	} else {
+		gzerr << "Unable to get angular velocity" << std::endl;
+	}
+
 }
 
-void MovingPlatformController::sendVelocityCommands()
+void MovingPlatformController::sendWrenchCommand(gz::sim::EntityComponentManager &ecm)
 {
-	// We use the velocity control plugin to directly set velocities.
-	gz::msgs::Twist twist_msg;
-	gz::msgs::Set(twist_msg.mutable_linear(), _platform_v);
-	gz::msgs::Set(twist_msg.mutable_angular(), _platform_w);
-	_platform_twist_pub.Publish(twist_msg);
+	_link.AddWorldWrench(ecm, _force, _torque);
+}
+
+
+double MovingPlatformController::ReadEnvVar(const char* env_var_name, double default_value) {
+
+	const char *env_var_value = std::getenv(env_var_name);
+
+	if (env_var_value) {
+		try {
+			double value = std::stod(env_var_value);
+			return value;
+
+		} catch (const std::invalid_argument &e) {
+			// These warnings will only be visible with sufficient verbosity level...
+			gzwarn << "Invalid argument: " << env_var_value << " is not a valid double for " << env_var_name << std::endl;
+			gzwarn << "Keeping default value of " << default_value << " m/s." << std::endl;
+
+		} catch (const std::out_of_range &e) {
+			gzwarn << "Out of range: " << env_var_value << " is out of range for " << env_var_name << std::endl;
+			gzwarn << "Keeping default value of " << default_value << " m/s." << std::endl;
+		}
+	}
+
+	return default_value;
 }

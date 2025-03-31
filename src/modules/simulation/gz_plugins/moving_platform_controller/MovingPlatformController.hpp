@@ -34,23 +34,27 @@
 #pragma once
 
 #include <gz/sim/Util.hh>
+#include <gz/sim/Link.hh>
 #include <gz/sim/Model.hh>
+#include <gz/sim/World.hh>
 #include <gz/sim/System.hh>
 #include "gz/sim/components/Pose.hh"
 #include <gz/sim/components/Model.hh>
+#include "gz/sim/components/Inertial.hh"
+#include "gz/sim/components/LinearVelocity.hh"
+#include "gz/sim/components/AngularVelocity.hh"
 #include <gz/sim/EntityComponentManager.hh>
 
 #include <gz/transport/Node.hh>
+
 #include <gz/plugin/Register.hh>
+
 #include <gz/msgs/Utility.hh>
 #include <gz/msgs/twist.pb.h>
 
 #include <gz/math.hh>
 #include <gz/math/Rand.hh>
 #include <gz/math/Pose3.hh>
-
-#include <iostream>
-
 
 namespace custom
 {
@@ -70,32 +74,40 @@ public:
 
 private:
 
-	void updatePose(const gz::sim::EntityComponentManager &ecm);
-	void updateVelocityCommands(const gz::math::Vector3d &mean_velocity);
+	void updatePlatformState(const gz::sim::EntityComponentManager &ecm);
+	void updateWrenchCommand(const gz::math::Vector3d &velocity_setpoint, const gz::math::Quaterniond &orientation_setpoint);
 	void sendVelocityCommands();
+	void sendWrenchCommand(gz::sim::EntityComponentManager &ecm);
+	double ReadEnvVar(const char* env_var_name, double default_value);
 
 	gz::transport::Node _node;
 	gz::sim::Entity _entity;
 	gz::sim::Model _model{gz::sim::kNullEntity};
-
+	gz::sim::Entity _link_entity;
+	gz::sim::Link _link;
 
 	// Low-pass filtered white noise for driving boat motion.
-	gz::math::Vector3d _noise_v_lowpass{0., 0., 0.};
-	gz::math::Vector3d _noise_w_lowpass{0., 0., 0.};
+	gz::math::Vector3d _noise_lowpass_force{0., 0., 0.};
+	gz::math::Vector3d _noise_lowpass_torque{0., 0., 0.};
 
 	// Platform linear & angular velocity.
-	gz::math::Vector3d _platform_v{0., 0., 0.};
-	gz::math::Vector3d _platform_w{0., 0., 0.};
+	gz::math::Vector3d _force{0., 0., 0.};
+	gz::math::Vector3d _torque{0., 0., 0.};
 
 	// Platform position & orientation for feedback.
 	gz::math::Vector3d _platform_position{0., 0., 0.};
 	gz::math::Quaterniond _platform_orientation{1., 0., 0., 0.};
+	gz::math::Vector3d _platform_velocity{0., 0., 0.};
+	gz::math::Vector3d _platform_angular_velocity{0., 0., 0.};
 
-	// Target platform velocity setpoint [m/s].
-	gz::math::Vector3d _target_vel_sp{1., 0., 0.};
-	// Current platform velocity setpoint [m/s].
-	gz::math::Vector3d _current_vel_sp{0., 0., 0.};
+	// Platform velocity setpoint [m/s].
+	gz::math::Vector3d _velocity_sp{1., 0., 0.};
+	// Orientation setpoint.
+	gz::math::Quaterniond _orientation_sp{1., 0., 0., 0.};
+	// Height setpoint [m]
+	double _platform_height_setpoint{2.};
 
-	gz::transport::Node::Publisher _platform_twist_pub;
+	double _gravity{-9.8};
+	double _platform_mass{10000.};
 };
 } // end namespace custom
