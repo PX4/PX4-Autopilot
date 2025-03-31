@@ -29,6 +29,8 @@ class MavlinkLogDownloader:
         else:
             self.mav = mavutil.mavlink_connection(connection_url)
 
+        self.mav.WIRE_PROTOCOL_VERSION = "2.0"
+
         # Start heartbeat thread
         self.heartbeat_thread = threading.Thread(target=self.send_heartbeat_thread)
         self.heartbeat_thread.daemon = True
@@ -36,6 +38,15 @@ class MavlinkLogDownloader:
 
         self.mav.wait_heartbeat()
         print(f"Heartbeat received from system {self.mav.target_system}, component {self.mav.target_component}")
+
+        # Waking up the autopilot, it is needed to ensure we get answer for log request
+        self.mav.mav.command_long_send(
+            self.mav.target_system,
+            self.mav.target_component,
+            mavutil.mavlink.MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES,
+            0,
+            1, 0, 0, 0, 0, 0, 0
+        )
 
         # Allow heartbeats to establish connection
         time.sleep(3)
