@@ -11,6 +11,14 @@ pkgs.stdenv.mkDerivation rec {
     hash = "sha256-UBEhKkA2KBahP+9K4m7A1WkrguYOYHIjwuR3Chh1M5g=";
   };
 
+  # TODO: can be solved differently in cmake?
+  postPatch = ''
+    # Fix library location path construction
+    substituteInPlace core/cmd/CMakeLists.txt \
+      --replace 'set(executable_location "../../../' \
+                'set(executable_location "'
+  '';
+
   propagatedBuildInputs = with pkgs; [
     python3
     python3Packages.protobuf

@@ -11,20 +11,19 @@ pkgs.stdenv.mkDerivation {
     hash = "sha256-JJNP0pImmDwWwIADDjb2HzQlGVznrQoqnifQeAXShHM=";
   };
 
+  # TODO: can be solved differently in cmake?
+  postPatch = ''
+    # Fix library location path construction
+    substituteInPlace src/cmd/CMakeLists.txt \
+      --replace 'set(library_location "../../../' \
+                'set(library_location "'
+  '';
+
+
   buildInputs = with pkgs; [
     cppzmq
     protobuf
     tinyxml-2
-    qt5.qtbase
-    qt5.qtquickcontrols2
-    qt5.qtcharts
-    qt5.qtgraphicaleffects
-    qt5.qtlocation
-    qt5.qtpositioning
-    qt5.qtdeclarative
-      # qt5.qtlabs.folderlistmodel
-      # qt5.qtlabs.platform
-      # qt5.qtlabs.settings
   ];
 
   cmakeFlags = [
@@ -43,6 +42,16 @@ pkgs.stdenv.mkDerivation {
     gz-tools
     gz-transport
     gz-utils
+    qt5.qtbase
+    qt5.qtquickcontrols2
+    qt5.qtcharts
+    qt5.qtgraphicaleffects
+    qt5.qtlocation
+    qt5.qtpositioning
+    qt5.qtdeclarative
+      # qt5.qtlabs.folderlistmodel
+      # qt5.qtlabs.platform
+      # qt5.qtlabs.settings
   ];
 
   nativeBuildInputs = with pkgs; [

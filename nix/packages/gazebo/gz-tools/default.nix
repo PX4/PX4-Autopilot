@@ -21,7 +21,14 @@ pkgs.stdenv.mkDerivation {
     python3
     cmake
     pkg-config
+    makeWrapper
   ];
+
+  # Set LD_LIBRARY_PATH to include the library directory (libgz-tools2-backward.so discovery)
+  postFixup = ''
+    wrapProgram $out/bin/gz \
+      --prefix LD_LIBRARY_PATH : "$out/lib"
+  '';
 
   meta = with pkgs.lib; {
     maintainers = [ "Carlos Agüero <caguero@openrobotics.org>" ];

@@ -11,6 +11,14 @@ pkgs.stdenv.mkDerivation rec {
     hash = "sha256-Mw2kILEUEfzbglegGFi/UuKBcmxbydXN1SDb3AJLV44=";
   };
 
+  # TODO: https://github.com/gazebosim/gz-launch/pull/253 - can be solved differently?
+  postPatch = ''
+    # Fix library location path construction
+    substituteInPlace src/cmd/CMakeLists.txt \
+      --replace 'set(launch_exe_location "../../../' \
+                'set(launch_exe_location "'
+  '';
+
   buildInputs = with pkgs; [
     binutils          # Provides libbfd
     elfutils          # Provides libdw and libelf
@@ -23,8 +31,6 @@ pkgs.stdenv.mkDerivation rec {
     yaml-cpp
     tinyxml-2
     util-linux # For uuid support
-    qt5.qtbase
-    qt5.qtquickcontrols2
   ];
 
   propagatedBuildInputs = with pkgs; [
@@ -36,6 +42,8 @@ pkgs.stdenv.mkDerivation rec {
     gz-sim
     gz-tools
     gz-transport
+    qt5.qtbase
+    qt5.qtquickcontrols2
   ];
 
   nativeBuildInputs = with pkgs; [

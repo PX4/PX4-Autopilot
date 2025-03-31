@@ -11,6 +11,14 @@ pkgs.stdenv.mkDerivation rec {
     hash = "sha256-Qn4G6hLFEaVQO02E0qL1yqkdGDNLz/a1dpy+jiYtNbY=";
   };
 
+  # TODO: can be solved differently in cmake?
+  postPatch = ''
+    # Fix library location path construction
+    substituteInPlace loader/src/cmd/CMakeLists.txt \
+      --replace 'set(plugin_exe_location "../../../' \
+                'set(plugin_exe_location "'
+  '';
+
   propagatedBuildInputs = with pkgs; [
     gz-cmake
     gz-tools

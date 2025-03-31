@@ -11,11 +11,14 @@ pkgs.stdenv.mkDerivation rec {
     hash = "sha256-tKjEJ2iGCE26lG0Y6xDRcUrqbUt0CVR01zMiFOAEca0=";
   };
 
+  # TODO: https://github.com/gazebosim/gz-sim/pull/2358 - can be solved differently?
   postPatch = ''
     # Fix library location path construction
     substituteInPlace src/cmd/CMakeLists.txt \
       --replace 'set(library_location "../../../' \
-                'set(library_location "'
+                'set(library_location "' \
+      --replace 'set(model_exe_location "../../../' \
+                'set(model_exe_location "'
   '';
 
   buildInputs = with pkgs; [
@@ -27,8 +30,6 @@ pkgs.stdenv.mkDerivation rec {
     xorg.libXmu.dev
     protobufc.dev
     python311Packages.pybind11
-    qt5.qtbase
-    qt5.qtquickcontrols2
     tinyxml-2
     util-linux # For uuid support.
     libsodium
@@ -49,6 +50,8 @@ pkgs.stdenv.mkDerivation rec {
     gz-transport
     gz-utils
     sdformat
+    qt5.qtbase
+    qt5.qtquickcontrols2
   ];
 
   nativeBuildInputs =  with pkgs; [

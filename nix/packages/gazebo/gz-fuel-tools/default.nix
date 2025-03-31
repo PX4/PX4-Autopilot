@@ -11,6 +11,14 @@ pkgs.stdenv.mkDerivation {
     hash = "sha256-J6PlHz2v51RHuG4ThuJjvN3Qha8eYzyrohugJhM6Uqs=";
   };
 
+  # TODO: can be solved differently in cmake?
+  postPatch = ''
+    # Fix library location path construction
+    substituteInPlace src/cmd/CMakeLists.txt \
+      --replace 'set(library_location "../../../' \
+                'set(library_location "'
+  '';
+
   propagatedBuildInputs = with pkgs; [
     curl.dev
     gflags

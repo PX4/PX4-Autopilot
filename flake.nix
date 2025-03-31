@@ -63,7 +63,9 @@
 
     # Default plugins (customize this list as needed)
     gzPlugins = [
+      pkgs.gz-gui
       pkgs.gz-sim
+      pkgs.gz-launch
       # Add other plugins here
     ];
     

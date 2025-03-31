@@ -11,6 +11,14 @@ pkgs.stdenv.mkDerivation {
     hash = "sha256-UG9tNrgHsqIraSxkWbh/tJmvQ0sUy6+zwUTFdMo0kls=";
   };
 
+  # TODO: https://github.com/gazebosim/gz-gui/pull/614 - can be solved differently?
+  postPatch = ''
+    # Fix library location path construction
+    substituteInPlace src/cmd/CMakeLists.txt \
+      --replace 'set(library_location "../../../' \
+                'set(library_location "'
+  '';
+
   buildInputs = with pkgs; [
     python311Packages.pybind11
     tinyxml-2

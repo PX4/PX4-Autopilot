@@ -11,6 +11,24 @@ pkgs.stdenv.mkDerivation rec {
     hash = "sha256-wB+S1m4l+6X1Pw2jm6C+O5EgMF7kb9XNIv4sM6yXiDc=";
   };
 
+  # TODO: can be solved differently in cmake?
+  postPatch = ''
+    # Fix library location path construction
+    substituteInPlace src/cmd/CMakeLists.txt \
+      --replace 'set(service_exe_location "../../../' \
+                'set(service_exe_location "' \
+      --replace 'set(topic_exe_location "../../../' \
+                'set(topic_exe_location "'
+
+    substituteInPlace log/src/cmd/CMakeLists.txt \
+      --replace 'set(log_library_location "../../../' \
+                'set(log_library_location "'
+
+    substituteInPlace parameters/src/cmd/CMakeLists.txt \
+      --replace 'set(param_library_location "../../../' \
+                'set(param_library_location "'
+  '';
+
   buildInputs = with pkgs; [
     zlib
     cppzmq
