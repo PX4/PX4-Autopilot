@@ -38,7 +38,13 @@ using namespace time_literals;
 AckermannPosControl::AckermannPosControl(ModuleParams *parent) : ModuleParams(parent)
 {
 	_pure_pursuit_status_pub.advertise();
+	_rover_position_setpoint_pub.advertise();
 	_ackermann_velocity_setpoint_pub.advertise();
+
+	// Initially set to NaN to indicate that the rover has no position setpoint
+	_rover_position_setpoint.position_ned[0] = NAN;
+	_rover_position_setpoint.position_ned[1] = NAN;
+
 	updateParams();
 }
 
@@ -62,6 +68,10 @@ void AckermannPosControl::updatePosControl()
 	updateSubscriptions();
 
 	if (_vehicle_control_mode.flag_control_position_enabled && _vehicle_control_mode.flag_armed && runSanityChecks()) {
+		if (_vehicle_control_mode.flag_control_offboard_enabled) {
+			generatePositionSetpoint();
+		}
+
 		generateVelocitySetpoint();
 
 	}
@@ -96,6 +106,30 @@ void AckermannPosControl::updateSubscriptions()
 
 }
 
+void AckermannPosControl::generatePositionSetpoint()
+{
+	if (_offboard_control_mode_sub.updated()) {
+		_offboard_control_mode_sub.copy(&_offboard_control_mode);
+	}
+
+	if (!_offboard_control_mode.position) {
+		return;
+	}
+
+	trajectory_setpoint_s trajectory_setpoint{};
+	_trajectory_setpoint_sub.copy(&trajectory_setpoint);
+
+	// Translate trajectory setpoint to rover position setpoint
+	rover_position_setpoint_s rover_position_setpoint{};
+	rover_position_setpoint.timestamp = _timestamp;
+	rover_position_setpoint.position_ned[0] = trajectory_setpoint.position[0];
+	rover_position_setpoint.position_ned[1] = trajectory_setpoint.position[1];
+	rover_position_setpoint.cruising_speed = _param_ro_speed_limit.get();
+	rover_position_setpoint.yaw = NAN;
+	_rover_position_setpoint_pub.publish(rover_position_setpoint);
+
+}
+
 void AckermannPosControl::generateVelocitySetpoint()
 {
 	// Manual Position Mode
@@ -110,9 +144,11 @@ void AckermannPosControl::generateVelocitySetpoint()
 		return;
 	}
 
-	// Offboard Position Mode
-	if (_offboard_control_mode_sub.copy(&_offboard_control_mode) && _offboard_control_mode.position) {
+	// Rover Position Setpoint
+	if (_rover_position_setpoint_sub.copy(&_rover_position_setpoint)
+	    && PX4_ISFINITE(_rover_position_setpoint.position_ned[0]) && PX4_ISFINITE(_rover_position_setpoint.position_ned[1])) {
 		goToPositionMode();
+		return;
 	}
 
 }
@@ -320,15 +356,16 @@ float AckermannPosControl::calcSpeedSetpoint(const float cruising_speed, const f
 
 void AckermannPosControl::goToPositionMode()
 {
-	trajectory_setpoint_s trajectory_setpoint{};
-	_trajectory_setpoint_sub.copy(&trajectory_setpoint);
-	const Vector2f target_waypoint_ned(trajectory_setpoint.position[0], trajectory_setpoint.position[1]);
+	const Vector2f target_waypoint_ned(_rover_position_setpoint.position_ned[0], _rover_position_setpoint.position_ned[1]);
 	const float distance_to_target = (target_waypoint_ned - _curr_pos_ned).norm();
 
 	if (distance_to_target > _param_nav_acc_rad.get()) {
 		const float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
 					     _param_ro_decel_limit.get(), distance_to_target, 0.f);
-		const float speed_body_x_setpoint = math::min(speed_setpoint, _param_ro_speed_limit.get());
+		const float max_speed = PX4_ISFINITE(_rover_position_setpoint.cruising_speed) ?
+					_rover_position_setpoint.cruising_speed :
+					_param_ro_speed_limit.get();
+		const float speed_body_x_setpoint = math::min(speed_setpoint, max_speed);
 		pure_pursuit_status_s pure_pursuit_status{};
 		pure_pursuit_status.timestamp = _timestamp;
 		const float yaw_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),

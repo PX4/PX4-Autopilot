@@ -49,6 +49,7 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/rover_position_setpoint.h>
 #include <uORB/topics/ackermann_velocity_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -94,6 +95,11 @@ private:
 	void updateSubscriptions();
 
 	/**
+	 * @brief Generate and publish roverPositionSetpoint from position of trajectorySetpoint.
+	 */
+	void generatePositionSetpoint();
+
+	/**
 	 * @brief Generate and publish roverVelocitySetpoint from manualControlSetpoint (Position Mode) or
 	 * 	  positionSetpointTriplet (Auto Mode) or roverPositionSetpoint.
 	 */
@@ -110,7 +116,7 @@ private:
 	void autoPositionMode();
 
 	/**
-	 * @brief Generate and publish roverVelocitySetpoint from trajectorySetpoint.
+	 * @brief Generate and publish roverVelocitySetpoint from roverPositionSetpoint.
 	 */
 	void goToPositionMode();
 
@@ -169,13 +175,16 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
+	uORB::Subscription _rover_position_setpoint_sub{ORB_ID(rover_position_setpoint)};
 	vehicle_control_mode_s _vehicle_control_mode{};
 	offboard_control_mode_s _offboard_control_mode{};
+	rover_position_setpoint_s _rover_position_setpoint{};
 
 	// uORB publications
 	uORB::Publication<ackermann_velocity_setpoint_s> _ackermann_velocity_setpoint_pub{ORB_ID(ackermann_velocity_setpoint)};
 	uORB::Publication<position_controller_status_s>	 _position_controller_status_pub{ORB_ID(position_controller_status)};
 	uORB::Publication<pure_pursuit_status_s>	 _pure_pursuit_status_pub{ORB_ID(pure_pursuit_status)};
+	uORB::Publication<rover_position_setpoint_s>	 _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
 
 	// Variables
 	hrt_abstime _timestamp{0};
