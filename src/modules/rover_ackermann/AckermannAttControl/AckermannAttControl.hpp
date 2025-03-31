@@ -81,9 +81,9 @@ protected:
 
 private:
 	/**
-	 * @brief Generate and publish roverAttitudeSetpoint from manualControlSetpoint (Stab Mode).
+	 * @brief Generate and publish roverAttitudeSetpoint and roverThrottleSetpoint from manualControlSetpoint (Stab Mode).
 	 */
-	void generateAttitudeSetpoint();
+	void generateAttitudeAndThrottleSetpoint();
 
 	/**
 	 * @brief Generate and publish roverRateSetpoint from roverAttitudeSetpoint.
