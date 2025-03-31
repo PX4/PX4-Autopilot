@@ -96,7 +96,7 @@ public:
 	/**
 	 * Get the minimum airspeed compensated for weight, load factor due to bank angle and flaps.
 	 * @param load_factor due to banking
-	 * @param flaps_setpoint Flaps setpoint
+	 * @param flaps_setpoint Flaps setpoint, normalized in range [0,1]
 	 * @return calibrated minimum airspeed in m/s
 	 */
 	float getMinimumCalibratedAirspeed(float load_factor, float flaps_setpoint) const;
@@ -110,7 +110,7 @@ public:
 	/**
 	 * get the stall airspeed compensated for load factor due to bank angle.
 	 * @param load_factor load factor due to banking
-	 * @param flaps_setpoint Flaps setpoint
+	 * @param flaps_setpoint Flaps setpoint, normalized in range [0,1]
 	 * @return calibrated stall airspeed in m/s
 	 */
 	float getCalibratedStallAirspeed(float load_factor, float flaps_setpoint) const;

@@ -78,18 +78,6 @@ public:
 
 private:
 	/*
-	 * Determines a reference air velocity *without curvature compensation, but
-	 * including "optimal" true airspeed reference compensation in excess wind conditions.
-	 * Nominal and maximum true airspeed member variables must be set before using this method.
-	 *
-	 * @param[in] wind_vel Wind velocity vector [m/s]
-	 * @param[in] bearing_setpoint Bearing
-	 * @param[in] airspeed_true True airspeed setpoint[m/s]
-	 * @return Air velocity vector [m/s]
-	 */
-	matrix::Vector2f refAirVelocity(const matrix::Vector2f &wind_vel, const float bearing_setpoint,
-					float airspeed_true, float min_ground_speed) const;
-	/*
 	 * Projection of the air velocity vector onto the bearing line considering
 	 * a connected wind triangle.
 	 *
