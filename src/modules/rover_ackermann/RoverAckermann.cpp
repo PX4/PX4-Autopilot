@@ -73,7 +73,8 @@ void RoverAckermann::Run()
 	_timestamp = hrt_absolute_time();
 	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
 
-	_ackermann_pos_vel_control.updatePosVelControl();
+	_ackermann_pos_control.updatePosControl();
+	_ackermann_vel_control.updateVelControl();
 	_ackermann_att_control.updateAttControl();
 	_ackermann_rate_control.updateRateControl();
 
@@ -86,14 +87,14 @@ void RoverAckermann::Run()
 					      && !_vehicle_control_mode.flag_control_rates_enabled;
 
 	if (full_manual_mode_enabled) { // Manual mode
-		generateSteeringSetpoint();
+		generateSteeringAndThrottleSetpoint();
 	}
 
 	generateActuatorSetpoint();
 
 }
 
-void RoverAckermann::generateSteeringSetpoint()
+void RoverAckermann::generateSteeringAndThrottleSetpoint()
 {
 	manual_control_setpoint_s manual_control_setpoint{};
 
