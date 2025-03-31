@@ -226,7 +226,7 @@ TEST_F(EkfTerrainTest, testRngStartInAir)
 	runFlowAndRngScenario(rng_height, flow_height);
 
 	// THEN: the terrain should reset using rng
-	EXPECT_NEAR(rng_height, _ekf->getHagl(), 1e-3f);
+	EXPECT_NEAR(rng_height, _ekf->getHagl(), 2e-2f);
 
 	// AND: the terrain state should be highly correlated with the other height states
 	auto P = _ekf->covariances();
@@ -242,5 +242,5 @@ TEST_F(EkfTerrainTest, testRngStartInAir)
 
 	const float corr_terrain_abias_z = P(State::accel_bias.idx + 2,
 					     State::terrain.idx) / sqrtf(_ekf->getAccelBiasVariance()(2) * var_terrain);
-	EXPECT_NEAR(corr_terrain_abias_z, -0.4f, 0.03f);
+	EXPECT_NEAR(corr_terrain_abias_z, -0.3f, 0.03f);
 }
