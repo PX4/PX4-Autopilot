@@ -51,48 +51,50 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		rng_data_ready = _range_buffer->pop_first_older_than(imu_sample.time_us, _range_sensor.getSampleAddress());
 		_range_sensor.setDataReadiness(rng_data_ready);
 
-		// update range sensor angle parameters in case they have changed
-		_range_sensor.setPitchOffset(_params.rng_sens_pitch);
-		_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
-		_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
-		_range_sensor.setMaxFogDistance(_params.rng_fog);
-		_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
+		if (rng_data_ready) {
+			// update range sensor angle parameters in case they have changed
+			_range_sensor.setPitchOffset(_params.rng_sens_pitch);
+			_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
+			_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
+			_range_sensor.setMaxFogDistance(_params.rng_fog);
+			_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
 
-		_range_sensor.runChecks(imu_sample.time_us, _R_to_earth);
+			_range_sensor.runChecks(imu_sample.time_us, _R_to_earth);
 
-		if (_range_sensor.isDataHealthy()) {
-			// correct the range data for position offset relative to the IMU
-			const Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
-			const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-			_range_sensor.setRange(_range_sensor.getRange() + pos_offset_earth(2) / _range_sensor.getCosTilt());
+			if (_range_sensor.isDataHealthy()) {
+				// correct the range data for position offset relative to the IMU
+				const Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
+				const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+				_range_sensor.setRange(_range_sensor.getRange() + pos_offset_earth(2) / _range_sensor.getCosTilt());
 
-			const float dist_var = getRngVar();
-			_rng_consistency_check.current_posD_reset_count = get_posD_reset_count();
+				const float dist_var = getRngVar();
+				_rng_consistency_check.current_posD_reset_count = get_posD_reset_count();
 
-			const bool updated_horizontal_motion = sq(_state.vel(0)) + sq(_state.vel(1)) > fmaxf(P.trace<2>(State::vel.idx), 0.1f);
+				const bool updated_horizontal_motion = sq(_state.vel(0)) + sq(_state.vel(1)) > fmaxf(P.trace<2>(State::vel.idx), 0.1f);
 
-			if (!updated_horizontal_motion && _rng_consistency_check.horizontal_motion) {
-				_rng_consistency_check.reset();
-			}
-
-			_rng_consistency_check.horizontal_motion = updated_horizontal_motion;
-			const float z_var = P(State::pos.idx + 2, State::pos.idx + 2);
-			const float vz_var = P(State::vel.idx + 2, State::vel.idx + 2);
-			_rng_consistency_check.run(_gpos.altitude(), z_var, _state.vel(2), vz_var, _range_sensor.getDistBottom(),
-						   dist_var, imu_sample.time_us);
-
-		} else {
-			// If we are supposed to be using range finder data but have bad range measurements
-			// and are on the ground, then synthesise a measurement at the expected on ground value
-			if (_range_sensor.isRegularlySendingData()
-			    && _range_sensor.isDataReady()) {
-				if (!_control_status.flags.in_air) {
-
-					_range_sensor.setRange(_params.rng_gnd_clearance);
-					_range_sensor.setValidity(true); // bypass the checks
-
-				} else {
+				if (!updated_horizontal_motion && _rng_consistency_check.horizontal_motion) {
 					_rng_consistency_check.reset();
+				}
+
+				_rng_consistency_check.horizontal_motion = updated_horizontal_motion;
+				const float z_var = P(State::pos.idx + 2, State::pos.idx + 2);
+				const float vz_var = P(State::vel.idx + 2, State::vel.idx + 2);
+				_rng_consistency_check.run(_gpos.altitude(), z_var, _state.vel(2), vz_var, _range_sensor.getDistBottom(),
+							   dist_var, imu_sample.time_us);
+
+			} else {
+				// If we are supposed to be using range finder data but have bad range measurements
+				// and are on the ground, then synthesise a measurement at the expected on ground value
+				if (_range_sensor.isRegularlySendingData()
+				    && _range_sensor.isDataReady()) {
+					if (!_control_status.flags.in_air) {
+
+						_range_sensor.setRange(_params.rng_gnd_clearance);
+						_range_sensor.setValidity(true); // bypass the checks
+
+					} else {
+						_rng_consistency_check.reset();
+					}
 				}
 			}
 		}
