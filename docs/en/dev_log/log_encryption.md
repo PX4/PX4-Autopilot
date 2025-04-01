@@ -213,7 +213,7 @@ This takes a single argument that sets the serial or UDP MAVLink connection to t
 
   ```sh
   cd PX4-Autopilot/Tools/log_encryption
-  python3 download_logs.py serial:/dev/ttyACM0:57600
+  python3 download_logs.py /dev/ttyACM0 --baudrate 57600
   ```
 
 The files are downloaded to `/logs/encrypted`, which is the location expected by the decryption script.
