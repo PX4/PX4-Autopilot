@@ -62,6 +62,18 @@ parameters:
             type: int32
             default: 250
 
+        MS_GNSS_RATE_HZ:
+            description:
+                short: GNSS data Rate
+                long: |
+                    GNSS receiver 1 and 2 data rate
+                    Max Limit: 5
+                    The max limit should be divisible by the rate
+                    0 - Disable GNSS datastream
+                    Restart required
+            type: int32
+            default: 5
+
         MS_ALIGNMENT:
             description:
                 short: Alignment type
@@ -71,6 +83,19 @@ parameters:
                     1 = Kinematic,
                     2 = External,
                     3 = Dual Antenna
+                    Restart required
+            type: int32
+            default: 3
+
+        MS_GNSS_AID_SRC:
+            description:
+                short: GNSS aiding source control
+                long: |
+                    Select the source of gnss aiding.
+                    1 = All internal receivers,
+                    2 = External GNSS messages,
+                    3 = GNSS receiver 1 only
+                    4 = GNSS receiver 2 only
                     Restart required
             type: int32
             default: 1
