@@ -113,7 +113,7 @@ float StickYaw::updateYawLock(const float yaw, const float yawspeed_setpoint, co
 		return NAN;
 
 	} else {
-		// break down and hold the current heading when no more rotation commanded
+		// slow down and hold the current heading when no more rotation commanded
 		if (!PX4_ISFINITE(yaw_setpoint)) {
 			return yaw;
 
