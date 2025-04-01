@@ -31,9 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(AckermannPosVelControl
-	AckermannPosVelControl.cpp
+px4_add_library(DifferentialVelControl
+	DifferentialVelControl.cpp
 )
 
-target_link_libraries(AckermannPosVelControl PUBLIC PID)
-target_include_directories(AckermannPosVelControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(DifferentialVelControl PUBLIC PID)
+target_include_directories(DifferentialVelControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

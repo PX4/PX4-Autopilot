@@ -84,10 +84,9 @@ protected:
 private:
 
 	/**
-	 * @brief Generate and publish roverRateSetpoint from manualControlSetpoint (Acro Mode)
-	 * 	  or trajectorySetpoint (Offboard rate control).
+	 * @brief Generate and publish roverRateSetpoint and roverThrottleSetpoint from manualControlSetpoint (Acro Mode).
 	 */
-	void generateRateSetpoint();
+	void generateRateAndThrottleSetpoint();
 
 	/**
 	 * @brief Generate and publish roverSteeringSetpoint from RoverRateSetpoint.

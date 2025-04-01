@@ -37,6 +37,7 @@ cmake_policy(SET CMP0057 NEW)
 include(px4_list_make_absolute)
 
 set(msg_files
+	AckermannVelocitySetpoint.msg
 	ActionRequest.msg
 	ActuatorArmed.msg
 	ActuatorControlsStatus.msg
@@ -63,6 +64,7 @@ set(msg_files
 	DebugValue.msg
 	DebugVect.msg
 	DifferentialPressure.msg
+	DifferentialVelocitySetpoint.msg
 	DistanceSensor.msg
 	DistanceSensorModeChangeRequest.msg
 	Ekf2Timestamps.msg
@@ -173,6 +175,7 @@ set(msg_files
 	RcParameterMap.msg
 	RoverAttitudeSetpoint.msg
 	RoverAttitudeStatus.msg
+	RoverPositionSetpoint.msg
 	RoverRateSetpoint.msg
 	RoverRateStatus.msg
 	RoverSteeringSetpoint.msg
