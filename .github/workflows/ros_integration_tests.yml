@@ -1,23 +1,37 @@
+# NOTE: this workflow is now running on Dronecode / PX4 AWS account.
+# - If you want to keep the tests running in GitHub Actions you need to uncomment the "runs-on: ubuntu-latest" lines
+#   and comment the "runs-on: [runs-on,runner=..." lines.
+# - If you would like to duplicate this setup try setting up "RunsOn" on your own AWS account try https://runs-on.com
+
 name: ROS Integration Tests
 
 on:
   push:
     branches:
     - 'main'
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
   pull_request:
     branches:
     - '*'
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [runs-on,runner=16cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=false]
     container:
       image: px4io/px4-dev-ros2-galactic:2021-09-08
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
       with:
-        token: ${{ secrets.ACCESS_TOKEN }}
+        fetch-depth: 0
+
+    - name: Git Ownership Workaround
+      run: git config --system --add safe.directory '*'
 
     - name: Install gazebo
       run: |
@@ -30,7 +44,7 @@ jobs:
         string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
         message("::set-output name=timestamp::${current_date}")
     - name: ccache cache files
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: ~/.ccache
         key: ros_integration_tests-${{matrix.config.build_type}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
@@ -52,6 +66,7 @@ jobs:
         git clone --recursive https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
         cd Micro-XRCE-DDS-Agent
         git checkout v2.2.1 # recent versions require cmake 3.22, but px4-dev-ros2-galactic:2021-09-08 is on 3.16
+        sed -i 's/_fastdds_tag 2.8.x/_fastdds_tag 2.8.2/g' CMakeLists.txt
         mkdir build
         cd build
         cmake ..
@@ -62,12 +77,15 @@ jobs:
     - name: Get and build the ros2 interface library
       shell: bash
       run: |
+        PX4_DIR="$(pwd)"
         . /opt/ros/galactic/setup.bash
         mkdir -p /opt/px4_ws/src
         cd /opt/px4_ws/src
         git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib.git
         cd ..
-        vcs import --input src/px4-ros2-interface-lib/dependencies.repos src
+        # Copy messages to ROS workspace
+        "${PX4_DIR}/Tools/copy_to_ros_ws.sh" "$(pwd)"
+        rm -rf src/translation_node src/px4_msgs_old
         colcon build --symlink-install
     - name: ccache post-run ros workspace
       run: ccache -s
@@ -94,3 +112,12 @@ jobs:
         test/ros_test_runner.py --verbose --model iris --upload --force-color
       timeout-minutes: 45
 
+    - name: Upload failed logs
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: failed-logs.zip
+        path: |
+          logs/**/**/**/*.log
+          logs/**/**/**/*.ulg
+          build/px4_sitl_default/tmp_ros_tests/rootfs/log/**/*.ulg
