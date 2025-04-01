@@ -64,7 +64,7 @@
    Addresses might need to be adjusted
 
 5. **Decrypt Logs**:
-   The easiest way to run this is to have your private key and encrypted logs in te following folders respectively:
+   The easiest way to run this is to have your private key and encrypted logs in the following folders respectively:
    ```bash
    PX4-Autopilot/keys/private
    PX4-Autopilot/logs/encrypted
