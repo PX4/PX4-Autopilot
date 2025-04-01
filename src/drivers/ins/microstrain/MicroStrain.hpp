@@ -44,6 +44,8 @@
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 
+#include "mathlib/math/filter/AlphaFilter.hpp"
+
 #include <uORB/Publication.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
@@ -108,6 +110,8 @@ public:
 
 	static void filterCallback(void *user, const mip_packet *packet, mip::Timestamp timestamp);
 
+	static void gnssCallback(void *user, const mip_packet *packet, mip::Timestamp timestamp);
+
 private:
 	/** @see ModuleBase */
 	void Run() override;
@@ -135,6 +139,8 @@ private:
 
 	mip_cmd_result configureFilterMessageFormat();
 
+	mip_cmd_result configureGnssMessageFormat(uint8_t descriptor_set);
+
 	mip_cmd_result writeMessageFormat(uint8_t descriptor_set, uint8_t num_descriptors,
 					  const mip::DescriptorRate *descriptors);
 
@@ -143,6 +149,10 @@ private:
 	mip_cmd_result configureAidingSources();
 
 	mip_cmd_result writeFilterInitConfig();
+
+	void initializeRefPos();
+
+	void updateGeoidHeight(float geoid_height, float t);
 
 	void sendAidingMeasurements();
 
@@ -167,15 +177,21 @@ private:
 	float gnss_antenna_offset2[3] = {0};
 	mip_aiding_frame_config_command_rotation rotation = {0};
 
+	AlphaFilter<float> _geoid_height_lpf;
+	uint64_t _last_geoid_height_update_us{0};
+	static constexpr float kGeoidHeightLpfTimeConstant = 10.f;
+
 	MapProjection _pos_ref{};
 	double _ref_alt = 0;
-	double _gps_origin_ep[2] = {0};
+	float _gps_origin_ep[2] = {0};
 
 	template <typename T>
 	struct SensorSample {
 		T sample;
 		bool updated = false;
 	};
+
+	mip_filter_gnss_dual_antenna_status_data dual_ant_stat{0};
 
 	uint16_t _supported_descriptors[1024] = {0};
 	uint16_t _supported_desc_len = 0;
@@ -187,6 +203,7 @@ private:
 	// Handlers
 	mip_dispatch_handler _sensor_data_handler;
 	mip_dispatch_handler _filter_data_handler;
+	mip_dispatch_handler _gnss_data_handler[2];
 
 	char _port[128];
 
@@ -197,7 +214,9 @@ private:
 		(ParamInt<px4::params::MS_MAG_RATE_HZ>) _param_ms_mag_rate_hz,
 		(ParamInt<px4::params::MS_BARO_RATE_HZ>) _param_ms_baro_rate_hz,
 		(ParamInt<px4::params::MS_FILT_RATE_HZ>) _param_ms_filter_rate_hz,
+		(ParamInt<px4::params::MS_GNSS_RATE_HZ>) _param_ms_gnss_rate_hz,
 		(ParamInt<px4::params::MS_ALIGNMENT>) _param_ms_alignment,
+		(ParamInt<px4::params::MS_GNSS_AID_SRC>) _param_ms_gnss_aid_src_ctrl,
 		(ParamInt<px4::params::MS_INT_MAG_EN>) _param_ms_int_mag_en,
 		(ParamInt<px4::params::MS_INT_HEAD_EN>) _param_ms_int_heading_en,
 		(ParamInt<px4::params::MS_EXT_HEAD_EN>) _param_ms_ext_heading_en,
@@ -223,6 +242,7 @@ private:
 
 	// Must publish to prevent sensor stale failure (sensors module)
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
+	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub[2] {ORB_ID(sensor_gps), ORB_ID(sensor_gps)};
 	uORB::Publication<sensor_selection_s> _sensor_selection_pub{ORB_ID(sensor_selection)};
 
 	uORB::Publication<vehicle_global_position_s> _vehicle_global_position_pub;
@@ -236,5 +256,5 @@ private:
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
-	uORB::Subscription                 _sensor_gps_sub{ORB_ID(sensor_gps)};
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 };
