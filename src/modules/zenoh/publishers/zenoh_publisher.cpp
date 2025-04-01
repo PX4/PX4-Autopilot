@@ -73,8 +73,6 @@ int Zenoh_Publisher::declare_publisher(z_owned_session_t s, const char *keyexpr,
 		return -1;
 	}
 
-	z_timestamp_new(&ts, z_loan(s));
-
 	return 0;
 }
 
@@ -100,9 +98,6 @@ int8_t Zenoh_Publisher::publish(const uint8_t *buf, int size)
 
 	ze_serializer_finish(z_move(serializer), &attachment);
 	options.attachment = z_move(attachment);
-
-	// Add timestamp
-	options.timestamp = &ts;
 
 	z_owned_bytes_t payload;
 	z_bytes_copy_from_buf(&payload, buf, size);
