@@ -9,7 +9,7 @@ from pymavlink import mavutil
 from argparse import ArgumentParser
 
 class MavlinkLogDownloader:
-    def __init__(self, connection_url, output_dir):
+    def __init__(self, connection_url, output_dir, baudrate=57600, source_system=254):
         self.connection_url = connection_url
         self.output_dir = output_dir
         self.encrypted_dir = os.path.join(output_dir, "encrypted")
@@ -19,15 +19,12 @@ class MavlinkLogDownloader:
         os.makedirs(self.output_dir, exist_ok=True)
         os.makedirs(self.encrypted_dir, exist_ok=True)
 
-        # Handle serial or UDP connections
-        if connection_url.startswith("serial:"):
-            parts = connection_url.split(":")
-            if len(parts) != 3:
-                raise ValueError("Invalid serial connection URL. Use format: serial:/dev/ttyACM1:57600")
-            device, baudrate = parts[1], int(parts[2])
-            self.mav = mavutil.mavlink_connection(device, baud=baudrate)
+        # # Handle serial or UDP connections
+        if os.path.exists(connection_url):  # likely a serial device
+            self.mav = mavutil.mavlink_connection(connection_url, baud=baudrate, source_system=source_system)
         else:
-            self.mav = mavutil.mavlink_connection(connection_url)
+            self.mav = mavutil.mavlink_connection(connection_url, source_system=source_system)
+
 
         self.mav.WIRE_PROTOCOL_VERSION = "2.0"
 
@@ -43,9 +40,10 @@ class MavlinkLogDownloader:
         self.mav.mav.command_long_send(
             self.mav.target_system,
             self.mav.target_component,
-            mavutil.mavlink.MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES,
-            0,
-            1, 0, 0, 0, 0, 0, 0
+            mavutil.mavlink.MAV_CMD_REQUEST_MESSAGE,  # Command ID 512
+            0,  # Confirmation
+            mavutil.mavlink.MAVLINK_MSG_ID_AUTOPILOT_VERSION,  # param1: Message ID 148
+            0, 0, 0, 0, 0, 0  # params 2–7 are not used for this message
         )
 
         # Allow heartbeats to establish connection
@@ -164,15 +162,24 @@ class MavlinkLogDownloader:
 
 def main():
     parser = ArgumentParser(description="Download PX4 log files over MAVLink.")
-    parser.add_argument('connection_url', help="MAVLink connection URL (e.g., udp:127.0.0.1:14550, serial:/dev/ttyACM1:57600)")
+    parser.add_argument('connection_url', help="MAVLink connection URL (e.g., udp:0.0.0.0:14550, /dev/ttyACM0 --baudrate 57600)")
     parser.add_argument('--output', '-o', default=os.path.join(os.path.dirname(__file__), "../..", "logs"), help="Output directory for log files (default: ../../logs)")
+    parser.add_argument('--baudrate', type=int, default=57600, help="Baudrate for serial connection (default: 57600)")
+    parser.add_argument('--source-system', type=int, default=254, help="MAVLink source system ID (default: 254)")
+
 
     args = parser.parse_args()
 
     output_dir = os.path.abspath(args.output)
 
     print(f"Connecting to {args.connection_url}...")
-    log_downloader = MavlinkLogDownloader(args.connection_url, output_dir)
+    log_downloader = MavlinkLogDownloader(
+        args.connection_url,
+        output_dir,
+        baudrate=args.baudrate,
+        source_system=args.source_system
+    )
+
 
     try:
         log_downloader.download_logs()

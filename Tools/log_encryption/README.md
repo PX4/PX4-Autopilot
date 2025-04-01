@@ -33,19 +33,8 @@
 
    make <your_board_name>_encrypted_logs
 
-   OR
-
-   make ark_fmu-v6x_encrypted_logs
-
-   OR
-
-   make ark_fpv_encrypted_logs
-
-   OR
-
-   make ark_pi6x_encrypted_logs
-
-   AND
+   FOR INSTANCE
+   make_ark_fpv_encrypted_logs
 
    Upload the custom firmware on your flight controller and record some logs
    ```
@@ -54,7 +43,7 @@
    ```bash
    cd PX4-Autopilot/Tools/log_encryption
 
-   python3 download_logs.py serial:/dev/ttyACM0:57600
+   python3 download_logs.py /dev/ttyACM0 --baudrate 57600
 
    OR
 
@@ -78,24 +67,8 @@
    python3 decrypt_logs.py
 
    OR
-   # Uses custom key
-   python3 decrypt_logs.py path/to/private_key.pem
-
-   OR
-   # Uses custom key + specific file
-   python3 decrypt_logs.py path/to/private_key.pem path/to/custom_log.ulge
-
-   OR
-   # Uses custom key + specific folder
-   python3 decrypt_logs.py path/to/private_key.pem path/to/custom_log_folder
-
-   OR
-   # Uses default key + specific file
-   python3 decrypt_logs.py "" path/to/custom_log.ulge
-
-   OR
-   # Uses default key + specific folder
-   python3 decrypt_logs.py "" path/to/custom_log_folder
+   # Use --help to get all the options
+   python3 decrypt_logs.py --help
    ```
 
    Your decrypted logs can be found in:

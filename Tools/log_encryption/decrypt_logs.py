@@ -91,12 +91,10 @@ def decrypt_all_logs(private_key_path, log_source_path=None):
 
     if log_source_path and os.path.isfile(log_source_path):
         logs = [log_source_path]
-        output_dir = DECRYPTED_LOGS_DIR
     else:
         # Use default encrypted logs directory if not provided
         folder = log_source_path if log_source_path else ENCRYPTED_LOGS_DIR
         logs = [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".ulge")]
-        output_dir = DECRYPTED_LOGS_DIR
 
     if not logs:
         print("No encrypted logs found.")
@@ -104,16 +102,27 @@ def decrypt_all_logs(private_key_path, log_source_path=None):
 
     print(f"Found {len(logs)} encrypted log(s). Decrypting...")
 
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(DECRYPTED_LOGS_DIR, exist_ok=True)
 
     for log_path in logs:
-        decrypt_log_file(log_path, private_key_path, output_dir)
+        decrypt_log_file(log_path, private_key_path, DECRYPTED_LOGS_DIR)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Decrypt encrypted PX4 log files")
-    parser.add_argument("private_key", nargs="?", default=None, help="Path to the private RSA key (.pem)")
-    parser.add_argument("log_file_or_folder", nargs="?", default=None, help="Log file (.ulge) or folder containing encrypted logs")
+    parser = argparse.ArgumentParser(
+    description="Decrypt PX4 encrypted log files (.ulge) using a ChaCha20+RSA scheme.\n\n"
+                "Usage examples:\n"
+                "  python3 decrypt_logs.py /path/to/private_key.pem /path/to/custom_log.ulge\n"
+                "  python3 decrypt_logs.py /path/to/private_key.pem /path/to/folder_with_ulge_files\n"
+                "  python3 decrypt_logs.py                  # Uses default key + default log folder\n",
+    formatter_class=argparse.RawTextHelpFormatter
+    )
+
+    parser.add_argument("private_key", nargs="?", default=None,
+                        help="Path to the private RSA key (.pem). If omitted, uses default key.")
+    parser.add_argument("log_file_or_folder", nargs="?", default=None,
+                        help="Path to a single .ulge file or folder containing them. If omitted, uses default encrypted log folder.")
+
 
     args = parser.parse_args()
 
