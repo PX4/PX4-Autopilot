@@ -5,7 +5,7 @@
 ## Usage
 
 1. **Get the board file**:
-   To be able to use these methode you need to create your own board file in your board folder. You can just copy one that is used below.
+   In order to use these tools you need to create an `encrypted_logs` target in your target board directory. For example:
    ```bash
    encrypted_logs.px4board
    ```
