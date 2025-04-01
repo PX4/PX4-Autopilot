@@ -95,11 +95,11 @@ CameraCapture::~CameraCapture()
 void
 CameraCapture::capture_callback(uint32_t chan_index, hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
-	// Maximum acceptable rate is 5kHz
-	if ((edge_time - _trigger.hrt_edge_time) < 200_us) {
+	// Maximum acceptable rate is 100 Hz
+	if ((edge_time - _trigger.hrt_edge_time) < 10_ms) {
 		++_trigger_rate_exceeded_counter;
 
-		if (_trigger_rate_exceeded_counter > 100) {
+		if (_trigger_rate_exceeded_counter > 20) {
 
 			// Trigger rate too high, stop future interrupts
 			up_input_capture_set(_capture_channel, Disabled, 0, nullptr, nullptr);
