@@ -1,6 +1,8 @@
 # PX4 Log Encryption Tools
 
-   Tools for generating encryption keys, building PX4 firmware with encrypted logs, downloading logs, and decrypting them.
+Tools for generating encryption keys, building PX4 firmware with encrypted logs, downloading logs, and decrypting them.
+
+For more information see: https://docs.px4.io/main/en/dev_log/log_encryption.html
 
 ## Usage
 
