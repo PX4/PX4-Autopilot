@@ -44,7 +44,9 @@ MEMORY
 }
 
 EXTERN(_vectors)
-ENTRY(__start)
+ENTRY(_stext)
+/* before it was this, almost ok */
+/*ENTRY(__start)*/
 /*ENTRY(_entry_point)*/
 /*EXTERN(bootStr)*/
 

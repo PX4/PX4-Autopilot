@@ -68,7 +68,7 @@
 //platforms/nuttx/src/px4/rpi/rpi_common/include/px4_arch/micro_hal.h
 #include <px4_arch/micro_hal.h>
 #include <rp23xx_uart.h>
-
+#include <rp23xx_gpio.h>
 
 #include <arch/board/board.h>
 
