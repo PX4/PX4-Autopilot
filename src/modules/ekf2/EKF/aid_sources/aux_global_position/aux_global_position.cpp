@@ -108,7 +108,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 					bool reset = false;
 
 					if (!fused && !ekf.isOtherSourceOfHorizontalPositionAidingThan(ekf.control_status_flags().aux_gpos)) {
-						ekf.resetGlobalPositionTo(sample.latitude, sample.longitude, sample.altitude_amsl, pos_var, sq(sample.epv));
+						ekf.resetHorizontalPositionTo(sample.latitude, sample.longitude, Vector2f(aid_src.observation_variance));
 						ekf.resetAidSourceStatusZeroInnovation(aid_src);
 						reset = true;
 					}
