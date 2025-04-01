@@ -46,12 +46,12 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <lib/geo/geo.h>
-#include <lib/weather_vane/WeatherVane.hpp>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/motion_planning/PositionSmoothing.hpp>
+#include <lib/stick_yaw/StickYaw.hpp>
+#include <lib/weather_vane/WeatherVane.hpp>
 #include "Sticks.hpp"
 #include "StickAccelerationXY.hpp"
-#include "StickYaw.hpp"
 
 /**
  * This enum has to agree with position_setpoint_s type definition
