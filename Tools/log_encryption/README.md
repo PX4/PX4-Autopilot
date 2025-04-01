@@ -9,7 +9,7 @@
    ```bash
    encrypted_logs.px4board
    ```
-   Then using menuconfig you should Enable the settings: Blake2s hash algorithm, Entropy pool and strong random number generator, and Use interrupts to feed timing randomness to entropy pool.
+   Using `make menuconfig` you should enable these settings: `Blake2s hash algorithm`, `entropy pool` and `strong random number generator` and select `use interrupts` to feed timing randomness to the entropy pool.
    Once you have generated the keys make sure you add them to the boardconfig.
 
    ```bash
