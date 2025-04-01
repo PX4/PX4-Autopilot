@@ -47,7 +47,7 @@
 
    AND
 
-   Upload the custom fw on your flight controller and record couple of logs
+   Upload the custom firmware on your flight controller and record some logs
    ```
 
 4. **Download Logs**:
