@@ -21,5 +21,6 @@ elif [ "$PX4_SIM_MODEL" = "jmavsim_iris" ] || [ "$(param show -q SYS_AUTOSTART)"
 
 else
     # Run simulator_mavlink module for interface with gazebo-classic
+    echo "starting gazebo-classic sim"
     . px4-rc.mavlinksim
 fi

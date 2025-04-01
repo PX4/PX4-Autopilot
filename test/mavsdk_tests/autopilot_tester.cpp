@@ -83,17 +83,6 @@ void AutopilotTester::wait_until_ready()
 {
 	std::cout << time_str() << "Waiting for system to be ready (system health ok & able to arm)" << std::endl;
 
-	// Wiat until the system is healthy
-	CHECK(poll_condition_with_timeout(
-	[this]() { return _telemetry->health_all_ok(); }, std::chrono::seconds(30)));
-
-	// Note: There is a known bug in MAVSDK (https://github.com/mavlink/MAVSDK/issues/1852),
-	// where `health_all_ok()` returning true doesn't actually mean vehicle is ready to accept
-	// global position estimate as valid (due to hysteresis). This needs to be fixed properly.
-
-	// However, this is mitigated by the `is_armable` check below as a side effect, since
-	// when the vehicle considers global position to be valid, it will then allow arming
-
 	// Wait until we can arm
 	CHECK(poll_condition_with_timeout(
 	[this]() {	return _telemetry->health().is_armable;	}, std::chrono::seconds(45)));

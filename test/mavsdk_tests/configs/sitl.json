@@ -5,9 +5,9 @@
     "tests":
     [
         {
-            "model": "iris",
-            "vehicle": "iris",
-            "test_filter": "[multicopter],[offboard][offboard_attitude]",
+            "model": "iris_opt_flow",
+            "vehicle": "iris_opt_flow",
+            "test_filter": "[flowonly]",
             "timeout_min": 10
         },
         {

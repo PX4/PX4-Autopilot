@@ -30,6 +30,8 @@ param set-default PWM_MAIN_FUNC3 103
 param set-default PWM_MAIN_FUNC4 104
 
 # EKF2
+param set-default SYS_HAS_GPS 0
+param set-default SIM_GPS_USED 0
 param set-default EKF2_GPS_CTRL 0
 param set-default EKF2_HGT_REF 0
 param set-default EKF2_EVP_NOISE 0.05
