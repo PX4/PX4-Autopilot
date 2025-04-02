@@ -3,7 +3,7 @@
 The J.MARPLE [J.Fi telemetry module](https://jmarple.ai/j-fi/) is a compact and lightweight wireless communication device featuring a PCB-integrated antenna or external antenna, enabling seamless telemetry connections between various drone flight controllers (FC) and ground control stations.
 
 This module includes a Pixhawk-standard JST 6-pin `TELEM` connector, ensuring compatibility with all PX4-based flight controllers.
-It supports quick plug-and-play operation with default settings, requiring no additional configuration.
+It supports quick plug-and-play operation to `TELEM1` with default settings, requiring no additional configuration.
 
 The J.Fi telemetry module provides reliable communication up to approximately 500 meters when using a PCB-integrated antenna.
 Operating in the 2.4GHz frequency band, it allows unrestricted global use without regulatory limitations.
@@ -76,23 +76,21 @@ No additional setup is required.
 
 ## PX4 Setup
 
-### TELEM Port Configuration
-
 - **By default**, PX4 uses the **TELEM1** port for telemetry radios (**baud rate: 57600**).
   To use a different baud rate, add a new serial communication link with the desired rate (**see Application Settings → Comms Links**).
-- For a **one-to-many (1:N)** MAVLink communication setup, assign a unique **System ID** to each MAVLink system (1: host, N: clients).
+- For a **one-to-many (1:N)** MAVLink communication setup, assign a unique **System ID** ([MAV_SYS_ID](../en/advanced_config/parameter_reference.md#MAV_SYS_ID)) to each MAVLink system (1: host, N: clients).
 
 ![J.Fi Wireless Telemetry Broadcast Communication](../../assets/hardware/telemetry/jmarple/jfi_telemetry_usage.png)
 
 <lite-youtube videoid="tPeJA2gn7Zw" title="Simultaneous Control using J.Fi Wireless Telemetry Module"/>
 
-## Configuration
+## J.Fi Configuration
 
 - **Device:** Press and hold _button B_, then click the _RST button_.
   Release _button B_ when _LED 2_ blinks.
   - Device enters configuration mode
-- **Smart device:** Connect to Wi-Fi network named **&quot;J.Fi-xxxxxx&quot;** (x: alphanumeric characters)
-- **Browser:** Go to **192.168.4.1** to open the **configuration page.**
+- **Smart device:** Connect to Wi-Fi network named `J.Fi-xxxxxx` (x: alphanumeric characters)
+- **Browser:** Go to `192.168.4.1` to open the **configuration page**.
 - **Configuration page:** Adjust settings as needed, then click **Save**
   - _LED 1_ blinks once upon saving
 
