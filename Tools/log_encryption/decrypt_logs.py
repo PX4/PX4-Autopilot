@@ -133,4 +133,3 @@ if __name__ == "__main__":
         sys.exit(1)
 
     decrypt_all_logs(private_key_path, args.log_file_or_folder)
-
