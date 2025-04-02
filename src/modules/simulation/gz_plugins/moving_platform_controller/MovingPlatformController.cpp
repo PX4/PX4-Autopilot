@@ -164,6 +164,7 @@ void MovingPlatformController::updateNoise(const double dt)
 	const double cutoff_freq_torque = 5.;  // 1/s
 
 	const double max_cutoff_freq = 0.5 / dt;
+
 	if (cutoff_freq_force < 0 || cutoff_freq_force > max_cutoff_freq ||
 	    cutoff_freq_torque < 0 || cutoff_freq_torque > max_cutoff_freq) {
 		throw std::runtime_error("MovingPlatformController::updateWrenchCommand: invalid cutoff frequency");
