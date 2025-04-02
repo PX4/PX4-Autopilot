@@ -31,6 +31,11 @@ CONFIG:
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_test
+    px4_sitl_zenoh:
+      short: px4_sitl_zenoh
+      buildType: RelWithDebInfo
+      settings:
+        CONFIG: px4_sitl_test
     px4_io-v2_default:
       short: px4_io-v2
       buildType: MinSizeRel

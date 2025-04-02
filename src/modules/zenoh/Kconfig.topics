@@ -65,10 +65,6 @@ menu "Zenoh publishers/subscribers"
 		bool "battery_status"
 		default n
 
-	config ZENOH_PUBSUB_BUFFER128
-		bool "buffer128"
-		default n
-
 	config ZENOH_PUBSUB_BUTTON_EVENT
 		bool "button_event"
 		default n
@@ -341,6 +337,10 @@ menu "Zenoh publishers/subscribers"
 		bool "input_rc"
 		default n
 
+	config ZENOH_PUBSUB_INTERNAL_COMBUSTION_ENGINE_CONTROL
+		bool "internal_combustion_engine_control"
+		default n
+
 	config ZENOH_PUBSUB_INTERNAL_COMBUSTION_ENGINE_STATUS
 		bool "internal_combustion_engine_status"
 		default n
@@ -585,40 +585,32 @@ menu "Zenoh publishers/subscribers"
 		bool "register_ext_component_request"
 		default n
 
-	config ZENOH_PUBSUB_ROVER_ACKERMANN_GUIDANCE_STATUS
-		bool "rover_ackermann_guidance_status"
+	config ZENOH_PUBSUB_ROVER_ATTITUDE_SETPOINT
+		bool "rover_attitude_setpoint"
 		default n
 
-	config ZENOH_PUBSUB_ROVER_ACKERMANN_SETPOINT
-		bool "rover_ackermann_setpoint"
+	config ZENOH_PUBSUB_ROVER_ATTITUDE_STATUS
+		bool "rover_attitude_status"
 		default n
 
-	config ZENOH_PUBSUB_ROVER_ACKERMANN_STATUS
-		bool "rover_ackermann_status"
+	config ZENOH_PUBSUB_ROVER_RATE_SETPOINT
+		bool "rover_rate_setpoint"
 		default n
 
-	config ZENOH_PUBSUB_ROVER_DIFFERENTIAL_GUIDANCE_STATUS
-		bool "rover_differential_guidance_status"
+	config ZENOH_PUBSUB_ROVER_RATE_STATUS
+		bool "rover_rate_status"
 		default n
 
-	config ZENOH_PUBSUB_ROVER_DIFFERENTIAL_SETPOINT
-		bool "rover_differential_setpoint"
+	config ZENOH_PUBSUB_ROVER_STEERING_SETPOINT
+		bool "rover_steering_setpoint"
 		default n
 
-	config ZENOH_PUBSUB_ROVER_DIFFERENTIAL_STATUS
-		bool "rover_differential_status"
+	config ZENOH_PUBSUB_ROVER_THROTTLE_SETPOINT
+		bool "rover_throttle_setpoint"
 		default n
 
-	config ZENOH_PUBSUB_ROVER_MECANUM_GUIDANCE_STATUS
-		bool "rover_mecanum_guidance_status"
-		default n
-
-	config ZENOH_PUBSUB_ROVER_MECANUM_SETPOINT
-		bool "rover_mecanum_setpoint"
-		default n
-
-	config ZENOH_PUBSUB_ROVER_MECANUM_STATUS
-		bool "rover_mecanum_status"
+	config ZENOH_PUBSUB_ROVER_VELOCITY_STATUS
+		bool "rover_velocity_status"
 		default n
 
 	config ZENOH_PUBSUB_RPM
@@ -743,10 +735,6 @@ menu "Zenoh publishers/subscribers"
 
 	config ZENOH_PUBSUB_TRAJECTORY_SETPOINT
 		bool "trajectory_setpoint"
-		default n
-
-	config ZENOH_PUBSUB_TRAJECTORY_WAYPOINT
-		bool "trajectory_waypoint"
 		default n
 
 	config ZENOH_PUBSUB_TRANSPONDER_REPORT
@@ -918,7 +906,6 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_ARMING_CHECK_REQUEST
 	select ZENOH_PUBSUB_AUTOTUNE_ATTITUDE_CONTROL_STATUS
 	select ZENOH_PUBSUB_BATTERY_STATUS
-	select ZENOH_PUBSUB_BUFFER128
 	select ZENOH_PUBSUB_BUTTON_EVENT
 	select ZENOH_PUBSUB_CAMERA_CAPTURE
 	select ZENOH_PUBSUB_CAMERA_STATUS
@@ -987,6 +974,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_HOME_POSITION
 	select ZENOH_PUBSUB_HOVER_THRUST_ESTIMATE
 	select ZENOH_PUBSUB_INPUT_RC
+	select ZENOH_PUBSUB_INTERNAL_COMBUSTION_ENGINE_CONTROL
 	select ZENOH_PUBSUB_INTERNAL_COMBUSTION_ENGINE_STATUS
 	select ZENOH_PUBSUB_IRIDIUMSBD_STATUS
 	select ZENOH_PUBSUB_IRLOCK_REPORT
@@ -1048,15 +1036,13 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_RC_PARAMETER_MAP
 	select ZENOH_PUBSUB_REGISTER_EXT_COMPONENT_REPLY
 	select ZENOH_PUBSUB_REGISTER_EXT_COMPONENT_REQUEST
-	select ZENOH_PUBSUB_ROVER_ACKERMANN_GUIDANCE_STATUS
-	select ZENOH_PUBSUB_ROVER_ACKERMANN_SETPOINT
-	select ZENOH_PUBSUB_ROVER_ACKERMANN_STATUS
-	select ZENOH_PUBSUB_ROVER_DIFFERENTIAL_GUIDANCE_STATUS
-	select ZENOH_PUBSUB_ROVER_DIFFERENTIAL_SETPOINT
-	select ZENOH_PUBSUB_ROVER_DIFFERENTIAL_STATUS
-	select ZENOH_PUBSUB_ROVER_MECANUM_GUIDANCE_STATUS
-	select ZENOH_PUBSUB_ROVER_MECANUM_SETPOINT
-	select ZENOH_PUBSUB_ROVER_MECANUM_STATUS
+	select ZENOH_PUBSUB_ROVER_ATTITUDE_SETPOINT
+	select ZENOH_PUBSUB_ROVER_ATTITUDE_STATUS
+	select ZENOH_PUBSUB_ROVER_RATE_SETPOINT
+	select ZENOH_PUBSUB_ROVER_RATE_STATUS
+	select ZENOH_PUBSUB_ROVER_STEERING_SETPOINT
+	select ZENOH_PUBSUB_ROVER_THROTTLE_SETPOINT
+	select ZENOH_PUBSUB_ROVER_VELOCITY_STATUS
 	select ZENOH_PUBSUB_RPM
 	select ZENOH_PUBSUB_RTL_STATUS
 	select ZENOH_PUBSUB_RTL_TIME_ESTIMATE
@@ -1088,7 +1074,6 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_TILTROTOR_EXTRA_CONTROLS
 	select ZENOH_PUBSUB_TIMESYNC_STATUS
 	select ZENOH_PUBSUB_TRAJECTORY_SETPOINT
-	select ZENOH_PUBSUB_TRAJECTORY_WAYPOINT
 	select ZENOH_PUBSUB_TRANSPONDER_REPORT
 	select ZENOH_PUBSUB_TUNE_CONTROL
 	select ZENOH_PUBSUB_UAVCAN_PARAMETER_REQUEST
