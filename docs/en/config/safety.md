@@ -148,9 +148,9 @@ The settings and underlying parameters are shown below.
 
 The following settings also apply, but are not displayed in the QGC UI.
 
-| Setting                                              | Parameter                                                                  | Description                                                   |
-| ---------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| <a id="COM_DLL_EXCEPT"></a>Data link loss exceptions | [COM_DLL_EXCEPT](../advanced_config/parameter_reference.md#COM_DLL_EXCEPT) | Set modes where data link loss should not trigger a failsafe. |
+| Setting                                                     | Parameter                                                                  | Description                                          |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------- |
+| <a id="COM_DLL_EXCEPT"></a>Mode exceptions for DLL failsafe | [COM_DLL_EXCEPT](../advanced_config/parameter_reference.md#COM_DLL_EXCEPT) | Set modes where DL loss will not trigger a failsafe. |
 
 ## Geofence Failsafe
 
