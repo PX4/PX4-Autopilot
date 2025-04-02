@@ -75,10 +75,11 @@ public:
 private:
 
 	void updatePlatformState(const gz::sim::EntityComponentManager &ecm);
-	void updateWrenchCommand(const gz::math::Vector3d &velocity_setpoint, const gz::math::Quaterniond &orientation_setpoint);
+	void updateWrenchCommand(const gz::math::Vector3d &velocity_setpoint,
+				 const gz::math::Quaterniond &orientation_setpoint);
 	void sendVelocityCommands();
 	void sendWrenchCommand(gz::sim::EntityComponentManager &ecm);
-	double ReadEnvVar(const char* env_var_name, double default_value);
+	double ReadEnvVar(const char *env_var_name, double default_value);
 
 	gz::transport::Node _node;
 	gz::sim::Entity _entity;

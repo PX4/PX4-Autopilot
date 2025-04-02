@@ -56,7 +56,7 @@ void MovingPlatformController::Configure(const gz::sim::Entity &entity,
 
 	if (!_link_entity) {
 		throw std::runtime_error("MovingPlatformController::Configure: Link \"" + link_name + "\" was not found. "
-			"Please ensure that your model contains the corresponding link.");
+					 "Please ensure that your model contains the corresponding link.");
 	}
 
 	_link = gz::sim::Link(_link_entity);
@@ -74,6 +74,7 @@ void MovingPlatformController::Configure(const gz::sim::Entity &entity,
 
 		// Set initial orientation to match the heading
 		const auto optional_original_pose = _link.WorldPose(ecm);
+
 		if (optional_original_pose.has_value()) {
 			const gz::math::Pose3d original_pose = optional_original_pose.value();
 			const gz::math::Pose3d new_pose(original_pose.Pos(), _orientation_sp);
@@ -96,6 +97,7 @@ void MovingPlatformController::Configure(const gz::sim::Entity &entity,
 
 		if (gravity.has_value()) {
 			_gravity = world.Gravity(ecm).value().Z();
+
 		} else {
 			gzwarn << "Unable to get gazebo world gravity. Keeping default of " << _gravity << std::endl;
 		}
@@ -104,16 +106,20 @@ void MovingPlatformController::Configure(const gz::sim::Entity &entity,
 
 		if (inertial_component) {
 			_platform_mass = inertial_component->Data().MassMatrix().Mass();
+
 		} else {
-			gzwarn << "Unable to get inertial component for link " << link_name << ". Keeping default mass of " << _platform_mass << std::endl;
+			gzwarn << "Unable to get inertial component for link " << link_name << ". Keeping default mass of " << _platform_mass <<
+			       std::endl;
 		}
 
 		auto pose_component = ecm.Component<gz::sim::components::Pose>(_link_entity);
 
 		if (pose_component) {
 			_platform_height_setpoint = pose_component->Data().Z();
+
 		} else {
-			gzwarn << "Unable to get pose component for link " << link_name << ". Keeping default platform height setpoint of " << _platform_height_setpoint << std::endl;
+			gzwarn << "Unable to get pose component for link " << link_name << ". Keeping default platform height setpoint of " <<
+			       _platform_height_setpoint << std::endl;
 		}
 	}
 
@@ -139,7 +145,7 @@ void MovingPlatformController::updateWrenchCommand(
 			gz::math::Rand::DblNormal(),
 			gz::math::Rand::DblNormal(),
 			gz::math::Rand::DblNormal()
-					  );
+					 );
 
 	gz::math::Vector3d noise_torque = gz::math::Vector3d(
 			gz::math::Rand::DblNormal(),
@@ -173,7 +179,8 @@ void MovingPlatformController::updateWrenchCommand(
 		const gz::math::Vector3d pos_gains = _platform_mass * gz::math::Vector3d(0., 0., 1.);
 		const gz::math::Vector3d vel_gains = _platform_mass * gz::math::Vector3d(1., 1., 1.);
 
-		const gz::math::Vector3d platform_pos_error = (_platform_position - gz::math::Vector3d(0., 0., _platform_height_setpoint));
+		const gz::math::Vector3d platform_pos_error = (_platform_position - gz::math::Vector3d(0., 0.,
+				_platform_height_setpoint));
 		const gz::math::Vector3d platform_vel_error = (_platform_velocity - velocity_setpoint);
 
 		// * is element-wise
@@ -187,6 +194,7 @@ void MovingPlatformController::updateWrenchCommand(
 		if (accel_xy > max_accel) {
 			const float scaling = max_accel / accel_xy;
 			_force += feedback_force * gz::math::Vector3d(scaling, scaling, 1.);
+
 		} else {
 			_force += feedback_force;
 		}
@@ -252,7 +260,8 @@ void MovingPlatformController::sendWrenchCommand(gz::sim::EntityComponentManager
 }
 
 
-double MovingPlatformController::ReadEnvVar(const char* env_var_name, double default_value) {
+double MovingPlatformController::ReadEnvVar(const char *env_var_name, double default_value)
+{
 
 	const char *env_var_value = std::getenv(env_var_name);
 
