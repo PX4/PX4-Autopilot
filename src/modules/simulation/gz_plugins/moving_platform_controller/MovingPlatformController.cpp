@@ -113,7 +113,7 @@ void MovingPlatformController::Configure(const gz::sim::Entity &entity,
 		if (pose_component) {
 			_platform_height_setpoint = pose_component->Data().Z();
 		} else {
-			gzwarn << "Unable to get inertial component for link " << link_name << ". Keeping default mass of " << _platform_mass << std::endl;
+			gzwarn << "Unable to get pose component for link " << link_name << ". Keeping default platform height setpoint of " << _platform_height_setpoint << std::endl;
 		}
 	}
 
