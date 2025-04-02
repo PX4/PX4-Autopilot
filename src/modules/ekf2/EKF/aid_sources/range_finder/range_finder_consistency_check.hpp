@@ -66,7 +66,10 @@ public:
 	void set_terrain_process_noise(float terrain_process_noise) { _terrain_process_noise = terrain_process_noise; }
 	void reset()
 	{
-		_state = (_initialized && _state == KinematicState::CONSISTENT) ? KinematicState::UNKNOWN : _state;
+		if (_initialized && _state == KinematicState::CONSISTENT) {
+			_state = KinematicState::UNKNOWN;
+		}
+
 		_initialized = false;
 	}
 

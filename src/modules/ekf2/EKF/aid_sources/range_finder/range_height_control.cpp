@@ -51,8 +51,8 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		rng_data_ready = _range_buffer->pop_first_older_than(imu_sample.time_us, _range_sensor.getSampleAddress());
 		_range_sensor.setDataReadiness(rng_data_ready);
 
-		if (rng_data_ready) {
-			// update range sensor angle parameters in case they have changed
+		if (_range_sensor.isDataReady()) {
+
 			_range_sensor.setPitchOffset(_params.rng_sens_pitch);
 			_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
 			_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
@@ -82,20 +82,12 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				_rng_consistency_check.run(_gpos.altitude(), z_var, _state.vel(2), vz_var, _range_sensor.getDistBottom(),
 							   dist_var, imu_sample.time_us);
 
+			} else if (_range_sensor.isRegularlySendingData() && !_control_status.flags.in_air) {
+				_range_sensor.setRange(_params.rng_gnd_clearance);
+				_range_sensor.setValidity(true);
+
 			} else {
-				// If we are supposed to be using range finder data but have bad range measurements
-				// and are on the ground, then synthesise a measurement at the expected on ground value
-				if (_range_sensor.isRegularlySendingData()
-				    && _range_sensor.isDataReady()) {
-					if (!_control_status.flags.in_air) {
-
-						_range_sensor.setRange(_params.rng_gnd_clearance);
-						_range_sensor.setValidity(true); // bypass the checks
-
-					} else {
-						_rng_consistency_check.reset();
-					}
-				}
+				_rng_consistency_check.reset();
 			}
 		}
 
@@ -109,7 +101,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 	auto &aid_src = _aid_src_rng_hgt;
 
-	if (rng_data_ready && _range_sensor.getSampleAddress()) {
+	if (_range_sensor.isDataReady() && _range_sensor.getSampleAddress()) {
 
 		updateRangeHagl(aid_src);
 		const bool measurement_valid = PX4_ISFINITE(aid_src.observation) && PX4_ISFINITE(aid_src.observation_variance);
