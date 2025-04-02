@@ -75,6 +75,8 @@ No additional setup is required.
 
 <img src="../../assets/hardware/telemetry/jfi_telemetry_usage.png" title="J.Fi Wireless Telemetry Broadcast Communication" />
 
+<lite-youtube videoid="tPeJA2gn7Zw" title="Simultaneous Control using J.Fi Wireless Telemetry Module"/>
+
 ## Configuration
 - **Device:** Press and hold *button B*, then click the *RST button*. Release *button B* when *LED 2* blinks.
   - Device enters configuration mode
