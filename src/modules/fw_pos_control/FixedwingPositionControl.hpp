@@ -48,7 +48,6 @@
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <lib/atmosphere/atmosphere.h>
-#include <lib/fw_performance_model/PerformanceModel.hpp>
 #include <lib/npfg/DirectionalGuidance.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
@@ -78,7 +77,6 @@
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/trajectory_setpoint.h>
-#include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -123,9 +121,6 @@ static constexpr hrt_abstime TERRAIN_ALT_FIRST_MEASUREMENT_TIMEOUT = 10_s;
 
 // [.] max throttle from user which will not lead to motors spinning up in altitude controlled modes
 static constexpr float THROTTLE_THRESH = -.9f;
-
-// [m/s/s] slew rate limit for airspeed setpoint changes
-static constexpr float ASPD_SP_SLEW_RATE = 1.f;
 
 // [us] time after which the wind estimate is disabled if no longer updating
 static constexpr hrt_abstime WIND_EST_TIMEOUT = 10_s;
@@ -187,7 +182,6 @@ private:
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
-	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
@@ -359,7 +353,6 @@ private:
 
 	float _airspeed_eas{0.f};
 	bool _airspeed_valid{false};
-	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};
 
 	// [us] last time airspeed was received. used to detect timeouts.
 	hrt_abstime _time_airspeed_last_valid{0};
@@ -388,8 +381,6 @@ private:
 
 	// nonlinear path following guidance - lateral-directional position control
 	DirectionalGuidance _directional_guidance;
-
-	PerformanceModel _performance_model;
 
 	// LANDING GEAR
 	int8_t _new_landing_gear_position{landing_gear_s::GEAR_KEEP};
@@ -435,7 +426,6 @@ private:
 	void landing_status_publish();
 
 	void publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);
-	float getLoadFactor() const;
 
 	/**
 	 * @brief Sets the landing abort status and publishes landing status.
@@ -648,21 +638,6 @@ private:
 
 	float get_manual_airspeed_setpoint();
 
-	/**
-	 * @brief Returns an adapted calibrated airspeed setpoint
-	 *
-	 * Adjusts the setpoint for wind, accelerated stall, and slew rates.
-	 *
-	 * @param control_interval Time since the last position control update [s]
-	 * @param calibrated_airspeed_setpoint Calibrated airspeed septoint (generally from the position setpoint) [m/s]
-	 * @param calibrated_min_airspeed Minimum calibrated airspeed [m/s]
-	 * @param ground_speed Vehicle ground velocity vector (NE) [m/s]
-	 * @param in_takeoff_situation Vehicle is currently in a takeoff situation
-	 * @return Adjusted calibrated airspeed setpoint [m/s]
-	 */
-	float adapt_airspeed_setpoint(const float control_interval, float calibrated_airspeed_setpoint,
-				      float calibrated_min_airspeed, const Vector2f &ground_speed, bool in_takeoff_situation = false);
-
 	void reset_takeoff_state();
 	void reset_landing_state();
 
@@ -676,8 +651,6 @@ private:
 	void set_control_mode_current(const hrt_abstime &now);
 
 	void publishOrbitStatus(const position_setpoint_s pos_sp);
-
-	SlewRate<float> _airspeed_slew_rate_controller;
 
 	float getMaxRollAngleNearGround(const float altitude, const float terrain_altitude) const;
 
@@ -842,7 +815,6 @@ private:
 	float rollAngleToLateralAccel(float roll_body) const;
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _param_fw_gnd_spd_min,
 		(ParamFloat<px4::params::FW_R_LIM>) _param_fw_r_lim,
 
 		(ParamFloat<px4::params::NPFG_PERIOD>) _param_npfg_period,
@@ -890,10 +862,13 @@ private:
 		(ParamFloat<px4::params::FW_LND_TD_OFF>) _param_fw_lnd_td_off,
 		(ParamInt<px4::params::FW_LND_NUDGE>) _param_fw_lnd_nudge,
 		(ParamInt<px4::params::FW_LND_ABORT>) _param_fw_lnd_abort,
-		(ParamFloat<px4::params::FW_WIND_ARSP_SC>) _param_fw_wind_arsp_sc,
 		(ParamFloat<px4::params::FW_TKO_AIRSPD>) _param_fw_tko_airspd,
 		(ParamFloat<px4::params::RWTO_PSP>) _param_rwto_psp,
-		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on
+		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on,
+		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
+		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
+		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
+		(ParamFloat<px4::params::FW_T_CLMB_MAX>) _param_fw_t_clmb_max
 	)
 };
 

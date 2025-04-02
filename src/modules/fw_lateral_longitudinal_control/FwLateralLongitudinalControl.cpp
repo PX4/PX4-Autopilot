@@ -61,6 +61,8 @@ static constexpr uint64_t ROLL_WARNING_TIMEOUT = 2_s;
 // [-] Can-run threshold needed to trigger the roll-constraining failsafe warning
 static constexpr float ROLL_WARNING_CAN_RUN_THRESHOLD = 0.9f;
 
+// [m/s/s] slew rate limit for airspeed setpoint changes
+static constexpr float ASPD_SP_SLEW_RATE = 1.f;
 
 FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 	ModuleParams(nullptr),
@@ -72,6 +74,7 @@ FwLateralLongitudinalControl::FwLateralLongitudinalControl(bool is_vtol) :
 	_flight_phase_estimation_pub.advertise();
 	_fixed_wing_lateral_status_pub.advertise();
 	parameters_update();
+	_airspeed_slew_rate_controller.setSlewRate(ASPD_SP_SLEW_RATE);
 }
 
 FwLateralLongitudinalControl::~FwLateralLongitudinalControl()
@@ -86,7 +89,7 @@ FwLateralLongitudinalControl::parameters_update()
 	_tecs.set_max_sink_rate(_param_fw_t_sink_max.get());
 	_tecs.set_min_sink_rate(_performance_model.getMinimumSinkRate(_air_density));
 	_tecs.set_equivalent_airspeed_trim(_performance_model.getCalibratedTrimAirspeed());
-	_tecs.set_equivalent_airspeed_min(_performance_model.getMinimumCalibratedAirspeed());
+	_tecs.set_equivalent_airspeed_min(_performance_model.getMinimumCalibratedAirspeed(getLoadFactor(), _flaps_setpoint));
 	_tecs.set_equivalent_airspeed_max(_performance_model.getMaximumCalibratedAirspeed());
 	_tecs.set_throttle_damp(_param_fw_t_thr_damping.get());
 	_tecs.set_integrator_gain_throttle(_param_fw_t_thr_integ.get());
@@ -165,6 +168,13 @@ void FwLateralLongitudinalControl::Run()
 
 		_vehicle_status_sub.update();
 		_control_mode_sub.update();
+
+		if (_flaps_setpoint_sub.updated()) {
+			normalized_unsigned_setpoint_s flaps_setpoint{};
+			_flaps_setpoint_sub.copy(&flaps_setpoint);
+			_flaps_setpoint = flaps_setpoint.normalized_setpoint;
+		}
+
 		update_control_state();
 
 		if (_control_mode_sub.get().flag_control_manual_enabled && _control_mode_sub.get().flag_control_altitude_enabled
@@ -184,6 +194,8 @@ void FwLateralLongitudinalControl::Run()
 					 || _vehicle_status_sub.get().in_transition_mode);
 
 		if (should_run) {
+
+			// ----- Longitudinal ------
 			float pitch_sp{NAN};
 			float throttle_sp{NAN};
 
@@ -191,14 +203,11 @@ void FwLateralLongitudinalControl::Run()
 				_fw_longitudinal_ctrl_sub.copy(&_long_control_sp);
 			}
 
-			float airspeed_sp = PX4_ISFINITE(_long_control_sp.equivalent_airspeed) ?
-					    _long_control_sp.equivalent_airspeed :
-					    _performance_model.getCalibratedTrimAirspeed();
-
-			airspeed_sp = math::constrain(airspeed_sp, _long_limits.equivalent_airspeed_min, _long_limits.equivalent_airspeed_max);
+			const float airspeed_sp_eas = adapt_airspeed_setpoint(control_interval, _long_control_sp.equivalent_airspeed,
+						      _min_airspeed_from_guidance, _lateral_control_state.wind_speed.length());
 
 			tecs_update_pitch_throttle(control_interval, _long_control_sp.altitude,
-						   airspeed_sp,
+						   airspeed_sp_eas,
 						   _long_limits.pitch_min,
 						   _long_limits.pitch_max,
 						   _long_limits.throttle_min,
@@ -213,6 +222,7 @@ void FwLateralLongitudinalControl::Run()
 			throttle_sp = PX4_ISFINITE(_long_control_sp.throttle_direct) ? _long_control_sp.throttle_direct :
 				      _tecs.get_throttle_setpoint();
 
+			// ----- Lateral ------
 			float roll_sp {NAN};
 
 			if (_fw_lateral_ctrl_sub.updated()) {
@@ -228,7 +238,18 @@ void FwLateralLongitudinalControl::Run()
 			if (PX4_ISFINITE(_lat_control_sp.course)) {
 				airspeed_direction_sp = _course_to_airspeed.mapCourseSetpointToHeadingSetpoint(
 								_lat_control_sp.course, _lateral_control_state.wind_speed,
-								airspeed_vector.norm());
+								airspeed_sp_eas);
+
+				// Note: the here updated _min_airspeed_from_guidance is only used in the next iteration
+				// in the longitudinal controller.
+				const float max_true_airspeed = _performance_model.getMaximumCalibratedAirspeed() * _long_control_state.eas2tas;
+				_min_airspeed_from_guidance = _course_to_airspeed.getMinAirspeedForCurrentBearing(
+								      _lat_control_sp.course, _lateral_control_state.wind_speed,
+								      max_true_airspeed, _param_fw_gnd_spd_min.get())
+							      / _long_control_state.eas2tas;
+
+			} else {
+				_min_airspeed_from_guidance = 0.f; // reset if no longer in course control
 			}
 
 			if (PX4_ISFINITE(_lat_control_sp.airspeed_direction)) {
@@ -585,8 +606,77 @@ void FwLateralLongitudinalControl::updateAirspeed() {
 	// no airspeed updates for one second --> declare invalid
 	const bool airspeed_valid = hrt_elapsed_time(&_time_airspeed_last_valid) < 1_s;
 
+	if (!airspeed_valid) {
+		_long_control_state.eas2tas = 1.f;
+	}
+
 	_tecs.enable_airspeed(airspeed_valid);
 }
+
+float
+FwLateralLongitudinalControl::adapt_airspeed_setpoint(const float control_interval, float calibrated_airspeed_setpoint,
+		float calibrated_min_airspeed_guidance, float wind_speed)
+{
+	float system_min_airspeed = _performance_model.getMinimumCalibratedAirspeed(getLoadFactor(), _flaps_setpoint);
+
+	const float system_max_airspeed = _performance_model.getMaximumCalibratedAirspeed();
+
+	// airspeed setpoint adjustments
+	if (!PX4_ISFINITE(calibrated_airspeed_setpoint) || calibrated_airspeed_setpoint <= FLT_EPSILON) {
+		calibrated_airspeed_setpoint = _performance_model.getCalibratedTrimAirspeed();
+
+		// Aditional option to increase the min airspeed setpoint based on wind estimate for more stability in higher winds.
+		if (_wind_valid && _param_fw_wind_arsp_sc.get() > FLT_EPSILON) {
+			system_min_airspeed = math::min(system_min_airspeed + _param_fw_wind_arsp_sc.get() *
+			wind_speed, system_max_airspeed);
+		}
+	}
+
+	// increase setpoint to at what's at least required for the lateral guidance
+	calibrated_airspeed_setpoint = math::max(calibrated_airspeed_setpoint, calibrated_min_airspeed_guidance);
+
+	// constrain airspeed to feasible range
+	calibrated_airspeed_setpoint = math::constrain(calibrated_airspeed_setpoint, system_min_airspeed, system_max_airspeed);
+
+	if (!PX4_ISFINITE(_airspeed_slew_rate_controller.getState())) {
+
+		// initialize the airspeed setpoint
+		if (PX4_ISFINITE(_long_control_state.airspeed_eas) && _long_control_state.airspeed_eas < system_min_airspeed) {
+			// current airpseed is below minimum - init with minimum
+			_airspeed_slew_rate_controller.setForcedValue(system_min_airspeed);
+
+		} else if (PX4_ISFINITE(_long_control_state.airspeed_eas) && _long_control_state.airspeed_eas > system_max_airspeed) {
+			// current airpseed is above maximum - init with maximum
+			_airspeed_slew_rate_controller.setForcedValue(system_max_airspeed);
+
+		} else if (PX4_ISFINITE(_long_control_state.airspeed_eas)) {
+			// current airpseed is between min and max - init with current
+			_airspeed_slew_rate_controller.setForcedValue(_long_control_state.airspeed_eas);
+
+		} else {
+			// current airpseed is invalid - init with setpoint
+			_airspeed_slew_rate_controller.setForcedValue(calibrated_airspeed_setpoint);
+		}
+	} else {
+		// update slew rate state
+		if (_airspeed_slew_rate_controller.getState() < system_min_airspeed) {
+			// current airpseed setpoint is below minimum - reset to minimum
+			_airspeed_slew_rate_controller.setForcedValue(system_min_airspeed);
+
+		} else if (_airspeed_slew_rate_controller.getState() > system_max_airspeed) {
+			// current airpseed setpoint is above maximum - reset to maximum
+			_airspeed_slew_rate_controller.setForcedValue(system_max_airspeed);
+
+		} else if (PX4_ISFINITE(_long_control_state.airspeed_eas)) {
+			// current airpseed setpoint is between min and max - update
+			_airspeed_slew_rate_controller.update(calibrated_airspeed_setpoint, control_interval);
+
+		}
+	}
+
+	return _airspeed_slew_rate_controller.getState();
+}
+
 bool FwLateralLongitudinalControl::checkLowHeightConditions() const
 {
 	// Are conditions for low-height
@@ -677,8 +767,6 @@ float FwLateralLongitudinalControl::mapLateralAccelerationToRollAngle(float late
 
 void FwLateralLongitudinalControl::setDefaultLongitudinalControlLimits() {
 	_long_limits.timestamp = hrt_absolute_time();
-	_long_limits.equivalent_airspeed_min = _performance_model.getMinimumCalibratedAirspeed();
-	_long_limits.equivalent_airspeed_max = _performance_model.getMaximumCalibratedAirspeed();
 	_long_limits.pitch_min = radians(_param_fw_p_lim_min.get());
 	_long_limits.pitch_max = radians(_param_fw_p_lim_max.get());
 	_long_limits.throttle_min = _param_fw_thr_min.get();
@@ -691,17 +779,6 @@ void FwLateralLongitudinalControl::setDefaultLongitudinalControlLimits() {
 
 void FwLateralLongitudinalControl::updateLongitudinalControlLimits(const longitudinal_control_limits_s &limits_in) {
 	_long_limits.timestamp = limits_in.timestamp;
-	if(PX4_ISFINITE(limits_in.equivalent_airspeed_min) ) {
-		_long_limits.equivalent_airspeed_min = math::constrain(limits_in.equivalent_airspeed_min, _performance_model.getMinimumCalibratedAirspeed(), _performance_model.getCalibratedTrimAirspeed());
-	} else {
-		_long_limits.equivalent_airspeed_min = _performance_model.getMinimumCalibratedAirspeed();
-	}
-
-	if (PX4_ISFINITE(limits_in.equivalent_airspeed_max)) {
-		_long_limits.equivalent_airspeed_max = math::constrain(limits_in.equivalent_airspeed_max, _performance_model.getCalibratedTrimAirspeed(), _performance_model.getMaximumCalibratedAirspeed());
-	} else {
-		_long_limits.equivalent_airspeed_max = _performance_model.getMaximumCalibratedAirspeed();
-	}
 
 	if (PX4_ISFINITE(limits_in.pitch_min)) {
 		_long_limits.pitch_min = math::constrain(limits_in.pitch_min, radians(_param_fw_p_lim_min.get()), radians(_param_fw_p_lim_max.get()));
@@ -738,6 +815,19 @@ void FwLateralLongitudinalControl::updateLongitudinalControlLimits(const longitu
 	} else {
 		_long_limits.sink_rate_target = _param_sinkrate_target.get();
 	}
+}
+
+float FwLateralLongitudinalControl::getLoadFactor() const
+{
+	float load_factor_from_bank_angle = 1.f;
+
+	const float roll_body = Eulerf(Quatf(_att_sp.q_d)).phi();
+
+	if (PX4_ISFINITE(roll_body)) {
+		load_factor_from_bank_angle = 1.f / math::max(cosf(roll_body), FLT_EPSILON);
+	}
+
+	return load_factor_from_bank_angle;
 }
 
 extern "C" __EXPORT int fw_lat_lon_control_main(int argc, char *argv[])

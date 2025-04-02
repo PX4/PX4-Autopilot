@@ -66,6 +66,7 @@
 #include <uORB/topics/fixed_wing_lateral_setpoint.h>
 #include <uORB/topics/fixed_wing_lateral_status.h>
 #include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
+#include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/flight_phase_estimation.h>
 #include <uORB/topics/lateral_control_limits.h>
 #include <uORB/topics/longitudinal_control_limits.h>
@@ -110,6 +111,7 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
+	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
 	uORB::Subscription _wind_sub{ORB_ID(wind)};
 	uORB::SubscriptionData<vehicle_control_mode_s> _control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::SubscriptionData<vehicle_air_data_s> _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
@@ -126,6 +128,7 @@ private:
 	longitudinal_control_limits_s _long_limits{};
 	fixed_wing_lateral_setpoint_s _lat_control_sp{empty_lateral_control_setpoint};
 	lateral_control_limits_s _lateral_limits{};
+	float _flaps_setpoint{0.f};
 
 	uORB::Publication <vehicle_attitude_setpoint_s> _attitude_sp_pub;
 	uORB::Publication <tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
@@ -162,7 +165,9 @@ private:
 		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,
 		(ParamFloat<px4::params::FW_THR_SLEW_MAX>) _param_fw_thr_slew_max,
 		(ParamFloat<px4::params::FW_LND_THRTC_SC>) _param_fw_thrtc_sc,
-		(ParamFloat<px4::params::FW_T_THR_LOW_HGT>) _param_fw_t_thr_low_hgt
+		(ParamFloat<px4::params::FW_T_THR_LOW_HGT>) _param_fw_t_thr_low_hgt,
+		(ParamFloat<px4::params::FW_WIND_ARSP_SC>) _param_fw_wind_arsp_sc,
+		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _param_fw_gnd_spd_min
 	)
 
 	hrt_abstime _last_time_loop_ran{};
@@ -191,9 +196,9 @@ private:
 	hrt_abstime _time_since_first_reduced_roll{0U}; ///< absolute time since start when entering reduced roll angle for the first time
 	hrt_abstime _time_since_last_npfg_call{0U}; 	///< absolute time since start when the npfg reduced roll angle calculations was last performed
 	vehicle_attitude_setpoint_s _att_sp{};
-
 	bool _landed{false};
 	float _can_run_factor{0.f};
+	SlewRate<float> _airspeed_slew_rate_controller;
 
 	perf_counter_t _loop_perf; // loop performance counter
 
@@ -201,6 +206,8 @@ private:
 	TECS _tecs;
 	CourseToAirspeedRefMapper _course_to_airspeed;
 	AirspeedReferenceController _airspeed_ref_control;
+
+	float _min_airspeed_from_guidance{0.f}; // need to store it bc we only update after running longitudinal controller
 
 	void parameters_update();
 	void update_control_state();
@@ -236,6 +243,21 @@ private:
 	void updateLongitudinalControlLimits(const longitudinal_control_limits_s &limits_in);
 
 	void updateControlLimits();
+
+	float getLoadFactor() const;
+
+	/**
+	 * @brief Returns an adapted calibrated airspeed setpoint
+	 *
+	 * Adjusts the setpoint for wind, accelerated stall, and slew rates.
+	 *
+	 * @param control_interval Time since the last position control update [s]
+	 * @param calibrated_airspeed_setpoint Calibrated airspeed septoint (generally from the position setpoint) [m/s]
+	 * @param calibrated_min_airspeed_guidance Minimum airspeed required for lateral guidance [m/s]
+	 * @return Adjusted calibrated airspeed setpoint [m/s]
+	 */
+	float adapt_airspeed_setpoint(const float control_interval, float calibrated_airspeed_setpoint,
+				      float calibrated_min_airspeed_guidance, float wind_speed);
 };
 
 #endif //PX4_FWLATERALLONGITUDINALCONTROL_HPP
