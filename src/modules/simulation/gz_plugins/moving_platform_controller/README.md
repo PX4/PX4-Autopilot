@@ -17,7 +17,7 @@ Start by selecting the moving_platform world, which loads the plugin. We need to
 PX4_GZ_MODEL_POSE=0,0,2.2 PX4_GZ_WORLD=moving_platform make px4_sitl gz_standard_vtol
 ```
 
-The velocity (in m/s) can be set with the `PX4_GZ_PLATFORM_VEL` and `PX4_GZ_PLATFORM_HEADING_DEG` environment variable. By default it is 1 m/s in east direction. The heading is such that 0 represents east, 90 north, 180 west, and 270 south.
+The velocity (in m/s) can be set with the `PX4_GZ_PLATFORM_VEL` and `PX4_GZ_PLATFORM_HEADING_DEG` environment variables. By default it is 1 m/s in east direction. The heading is such that 0 represents east, 90 north, 180 west, and 270 south.
 
 ```
 PX4_GZ_PLATFORM_VEL=5 PX4_GZ_PLATFORM_HEADING_DEG=135 PX4_GZ_MODEL_POSE=0,0,2.2,0,0,0 PX4_GZ_WORLD=moving_platform make px4_sitl gz_standard_vtol

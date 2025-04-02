@@ -45,7 +45,7 @@
 #include "gz/sim/components/AngularVelocity.hh"
 #include <gz/sim/EntityComponentManager.hh>
 
-#include <gz/transport/Node.hh>
+#include <gz/common/Timer.hh>
 
 #include <gz/plugin/Register.hh>
 
@@ -55,6 +55,8 @@
 #include <gz/math.hh>
 #include <gz/math/Rand.hh>
 #include <gz/math/Pose3.hh>
+
+using namespace std::chrono_literals;
 
 namespace custom
 {
@@ -74,14 +76,14 @@ public:
 
 private:
 
-	void updatePlatformState(const gz::sim::EntityComponentManager &ecm);
+	void getPlatformState(const gz::sim::EntityComponentManager &ecm);
+	void updateNoise(const double dt);
 	void updateWrenchCommand(const gz::math::Vector3d &velocity_setpoint,
-				 const gz::math::Quaterniond &orientation_setpoint);
-	void sendVelocityCommands();
+				 const gz::math::Quaterniond &orientation_setpoint,
+				 const bool keep_stationary);
 	void sendWrenchCommand(gz::sim::EntityComponentManager &ecm);
 	double ReadEnvVar(const char *env_var_name, double default_value);
 
-	gz::transport::Node _node;
 	gz::sim::Entity _entity;
 	gz::sim::Model _model{gz::sim::kNullEntity};
 	gz::sim::Entity _link_entity;
@@ -110,5 +112,8 @@ private:
 
 	double _gravity{-9.8};
 	double _platform_mass{10000.};
+	gz::math::Vector3d _platform_diag_moments;
+
+	gz::common::Timer _startup_timer;
 };
 } // end namespace custom

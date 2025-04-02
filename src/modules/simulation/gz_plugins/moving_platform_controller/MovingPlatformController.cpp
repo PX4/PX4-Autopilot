@@ -64,6 +64,9 @@ void MovingPlatformController::Configure(const gz::sim::Entity &entity,
 	// Needed to report linear & angular velocity
 	_link.EnableVelocityChecks(ecm, true);
 
+	_startup_timer = gz::common::Timer();
+	_startup_timer.Start();
+
 	// Get velocity and orientation setpoints from env vars
 	{
 		const double vel_forward = ReadEnvVar("PX4_GZ_PLATFORM_VEL", 1.0);
@@ -106,6 +109,7 @@ void MovingPlatformController::Configure(const gz::sim::Entity &entity,
 
 		if (inertial_component) {
 			_platform_mass = inertial_component->Data().MassMatrix().Mass();
+			_platform_diag_moments = inertial_component->Data().MassMatrix().DiagonalMoments();
 
 		} else {
 			gzwarn << "Unable to get inertial component for link " << link_name << ". Keeping default mass of " << _platform_mass <<
@@ -127,20 +131,20 @@ void MovingPlatformController::Configure(const gz::sim::Entity &entity,
 
 void MovingPlatformController::PreUpdate(const gz::sim::UpdateInfo &_info, gz::sim::EntityComponentManager &ecm)
 {
-	updatePlatformState(ecm);
-	updateWrenchCommand(_velocity_sp, _orientation_sp);
+	getPlatformState(ecm);
+
+	const double dt_sec = std::chrono::duration<double>(_info.dt).count();
+	updateNoise(dt_sec);
+
+	// Wait for model to spawn, takes quite some time now...
+	const bool keep_stationary = _startup_timer.ElapsedTime() < 5s;
+	updateWrenchCommand(_velocity_sp, _orientation_sp, keep_stationary);
+
 	sendWrenchCommand(ecm);
 }
 
-void MovingPlatformController::updateWrenchCommand(
-	const gz::math::Vector3d &velocity_setpoint,
-	const gz::math::Quaterniond &orientation_setpoint)
+void MovingPlatformController::updateNoise(const double dt)
 {
-	// (force, torque) =
-	//    constant normal force / buoyancy term offsetting gravity
-	//  + low-pass filtered white noise representing waves, road noise, etc.
-	//  + PD feedback term representing stable vehicle design
-
 	gz::math::Vector3d noise_force = gz::math::Vector3d(
 			gz::math::Rand::DblNormal(),
 			gz::math::Rand::DblNormal(),
@@ -153,20 +157,48 @@ void MovingPlatformController::updateWrenchCommand(
 			gz::math::Rand::DblNormal()
 					  );
 
-	// Filter coefficients for low-pass filtering the white noise.
+	// Cutoff frequencies for low-pass filtering the white noise.
 	// larger number = faster movement
-	// should be between 0 and 1
-	const double filter_coef_force = 0.1;
-	const double filter_coef_torque = 0.1;
+	// Should be between 0 and sample_freq / 2, with sample_freq = 1/dt
+	const double cutoff_freq_force  = 5.;  // 1/s
+	const double cutoff_freq_torque = 5.;  // 1/s
 
-	// Noise amplitude.
+	const double max_cutoff_freq = 0.5 / dt;
+	if (cutoff_freq_force < 0 || cutoff_freq_force > max_cutoff_freq ||
+	    cutoff_freq_torque < 0 || cutoff_freq_torque > max_cutoff_freq) {
+		throw std::runtime_error("MovingPlatformController::updateWrenchCommand: invalid cutoff frequency");
+	}
+
+	// Cutoff frequency -> filter coefficient calculation from PX4's AlphaFilter.hpp
+	// from AlphaFilter::setCutoffFreq
+	const double time_constant_force = 1. / (2 * GZ_PI * cutoff_freq_force);
+	const double time_constant_torque = 1. / (2 * GZ_PI * cutoff_freq_torque);
+
+	// from AlphaFilter::setParameters
+	const double filter_coef_force = dt / (dt + time_constant_force);
+	const double filter_coef_torque = dt / (dt + time_constant_torque);
+
+	_noise_lowpass_force = (1. - filter_coef_force) * _noise_lowpass_force + filter_coef_force * noise_force;
+	_noise_lowpass_torque = (1. - filter_coef_torque) * _noise_lowpass_torque + filter_coef_torque * noise_torque;
+}
+
+void MovingPlatformController::updateWrenchCommand(
+	const gz::math::Vector3d &velocity_setpoint,
+	const gz::math::Quaterniond &orientation_setpoint,
+	const bool keep_stationary)
+{
+	// (force, torque) =
+	//    constant normal force / buoyancy term offsetting gravity
+	//  + low-pass filtered white noise representing waves, road noise, etc.
+	//  + PD feedback term representing stable vehicle design
+
+	// If keep_stationary, override noise amplitude and velocity setpoint to zero.
+	// This is to wait for the model to spawn initially.
+
+	// Noise amplitude >= 0
 	// larger number = bigger movement
-	// should be >= 0
-	const double noise_ampl_force = 1. * _platform_mass;
-	const double noise_ampl_torque = 1. * _platform_mass;
-
-	_noise_lowpass_force = (1 - filter_coef_force) * _noise_lowpass_force + filter_coef_force * noise_force;
-	_noise_lowpass_torque = (1 - filter_coef_torque) * _noise_lowpass_torque + filter_coef_torque * noise_torque;
+	const double noise_ampl_force = keep_stationary ? 0. : _platform_mass;
+	const gz::math::Vector3d noise_ampl_torque = keep_stationary ? gz::math::Vector3d::Zero : _platform_diag_moments;
 
 	const gz::math::Vector3d normal_force(0., 0., -_gravity * _platform_mass);
 
@@ -176,12 +208,16 @@ void MovingPlatformController::updateWrenchCommand(
 	// Feedback terms to ensure stability of the platform.
 	{
 
-		const gz::math::Vector3d pos_gains = _platform_mass * gz::math::Vector3d(0., 0., 1.);
-		const gz::math::Vector3d vel_gains = _platform_mass * gz::math::Vector3d(1., 1., 1.);
+		// Position - simple PD controller, but with zero position gains in xy direction.
+		// With the Vector3d on the RHS having units of 1/s^2 and 1/s, respectively
+		const gz::math::Vector3d pos_gains = _platform_mass * gz::math::Vector3d(0., 0., 1.); // [N / m]
+		const gz::math::Vector3d vel_gains = _platform_mass * gz::math::Vector3d(1., 1., 1.); // [N / (m/s)]
 
-		const gz::math::Vector3d platform_pos_error = (_platform_position - gz::math::Vector3d(0., 0.,
-				_platform_height_setpoint));
-		const gz::math::Vector3d platform_vel_error = (_platform_velocity - velocity_setpoint);
+		const gz::math::Vector3d platform_position_setpoint(0., 0., _platform_height_setpoint);
+		const gz::math::Vector3d current_velocity_setpoint = keep_stationary ? gz::math::Vector3d::Zero : velocity_setpoint;
+
+		const gz::math::Vector3d platform_pos_error = (_platform_position - platform_position_setpoint);
+		const gz::math::Vector3d platform_vel_error = (_platform_velocity - current_velocity_setpoint);
 
 		// * is element-wise
 		const gz::math::Vector3d feedback_force = -pos_gains * platform_pos_error - vel_gains * platform_vel_error;
@@ -208,18 +244,20 @@ void MovingPlatformController::updateWrenchCommand(
 
 		const gz::math::Quaterniond attitude_err = _platform_orientation * orientation_setpoint.Inverse();
 
-		const double attitude_p_gain = 1. * _platform_mass;
-		const double attitude_d_gain = 1. * _platform_mass;
+		// With the factors of 1. having units of 1 / (m rad) and s / (m rad), respectively
+		const gz::math::Vector3d attitude_p_gain = 1. * _platform_diag_moments; // [N m / rad]
+		const gz::math::Vector3d attitude_d_gain = 1. * _platform_diag_moments; // [N m / (rad/s)]
 
 		const double sgn = attitude_err.W() > 0. ? 1. : -1.;
 		gz::math::Vector3d attitude_err_imag = sgn * gz::math::Vector3d(attitude_err.X(), attitude_err.Y(), attitude_err.Z());
 
-		_torque += -attitude_p_gain * attitude_err_imag - attitude_d_gain * _platform_angular_velocity;
+		// Factor of 2 to convert quaternion error to rad
+		_torque += -2. * attitude_p_gain * attitude_err_imag - attitude_d_gain * _platform_angular_velocity;
 	}
 }
 
 
-void MovingPlatformController::updatePlatformState(const gz::sim::EntityComponentManager &ecm)
+void MovingPlatformController::getPlatformState(const gz::sim::EntityComponentManager &ecm)
 {
 
 	const auto optional_pose = _link.WorldPose(ecm);
