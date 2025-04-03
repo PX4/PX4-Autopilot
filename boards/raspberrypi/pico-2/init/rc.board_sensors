@@ -7,7 +7,11 @@ board_adc start
 
 # try starting an IMU on external SPI
 # fixme - specify interrupt pin somewhere
-icm45686 start -S
+# icm45686 start -S
+
+# or internal spi
+icm45686 start -s -b 1 -c 5
+
 icm45686 status
 
 # try starting a bmp280 barometer on external SPI

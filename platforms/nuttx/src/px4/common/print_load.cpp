@@ -279,6 +279,12 @@ void print_load_buffer(char *buffer, int buffer_length, print_load_callback_f cb
 			// DO NOTHING
 			break;
 
+		#ifdef CONFIG_SMP
+		// FIXME
+		case TSTATE_TASK_ASSIGNED:
+			break;
+		#endif
+
 		case NUM_TASK_STATES:
 			// DO NOTHING
 			break;

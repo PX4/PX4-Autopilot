@@ -46,6 +46,7 @@
 #include <arm_internal.h>
 #include <chip.h>
 
+// FIXME: if defined CONFIG_SPI
 static const px4_spi_bus_t *_spi_bus0;
 static const px4_spi_bus_t *_spi_bus1;
 

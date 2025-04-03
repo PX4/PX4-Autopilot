@@ -39,6 +39,7 @@ constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
 };
 
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
+    // FIXME !!!
 	initIOTimerChannel(io_timers, {Timer::Timer1, Timer::ChannelA}, {GPIO::Pin18}),
 	initIOTimerChannel(io_timers, {Timer::Timer1, Timer::ChannelB}, {GPIO::Pin19}),
 	initIOTimerChannel(io_timers, {Timer::Timer2, Timer::ChannelA}, {GPIO::Pin20}),

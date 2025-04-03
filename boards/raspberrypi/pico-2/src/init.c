@@ -211,8 +211,8 @@ void rp23xx_boardearlyinitialize(void)
 __EXPORT void
 rp23xx_boardinitialize(void)
 {
+	// FIXME: something is very bad in this method somewhere, breaking UART0 TX
 	// /* Reset all PWM to Low outputs */
-    // FIXME: do i need some fix???
 	board_on_reset(-1);
 
 	// /* configure LEDs */
@@ -369,16 +369,17 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	 up_udelay(20);
 
 	// SPI2: sensors
+	 syslog(LOG_ERR, "[boot] initializing SPI sensors\n");
 	#if defined(CONFIG_NSH_MMCSDSPIPORTNO)
   		// SPI2
-        #define SENSOR_SPI_BUS    2
+        #define SENSOR_SPI_BUS    1
     #else
-  	  #define SENSOR_SPI_BUS    2
+  	  #define SENSOR_SPI_BUS    1
     #endif
 	spi2 = rp23xx_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(SENSOR_SPI_BUS));
 
 	if (!spi2) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 2\n");
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 1\n");
 		led_off(LED_BLUE);
 	}
 

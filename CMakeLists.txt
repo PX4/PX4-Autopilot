@@ -341,6 +341,11 @@ include(px4_add_common_flags)
 px4_add_common_flags()
 px4_os_add_flags()
 
+# FIXME: temporary debug
+message(STATUS "CMAKE_C_FLAGS: ${CMAKE_C_FLAGS}")
+message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
+message(STATUS "CFLAGS: ${CFLAGS}")
+
 #=============================================================================
 # board cmake init (optional)
 #
