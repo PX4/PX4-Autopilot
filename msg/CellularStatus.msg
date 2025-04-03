@@ -1,4 +1,4 @@
-uint64 timestamp # time since system start [us]
+uint64 timestamp # Time since system start [us]
 
 uint16 status # Status bitmap 1: Roaming is active
 uint16 STATUS_FLAG_UNKNOWN = 1 # State unknown or not reportable
