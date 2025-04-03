@@ -251,7 +251,7 @@ else
 		param set SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
 		param set SYS_AUTOCONFIG 1
 		param save
-		reboot
+		#FIXME reboot
 	fi
 
 	#
