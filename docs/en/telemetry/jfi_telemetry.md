@@ -76,8 +76,33 @@ No additional setup is required.
 
 ## PX4 Setup
 
-- **By default**, PX4 uses the **TELEM1** port for telemetry radios (**baud rate: 57600**).
-  To use a different baud rate, add a new serial communication link with the desired rate (**see Application Settings → Comms Links**).
+
+- **By default**, PX4 uses the `TELEM1` port for telemetry radios, with the baud rate set to `57600`. Since J.Fi also uses `57600` as its default baud rate, it usually works simply by connecting the device.
+
+- If you want to use a different baud rate, set the [SER_TEL1_BAUD](../advanced_config/parameter_reference.md#SER_TEL1_BAUD) parameter in PX4 to the desired value, and also configure the J.Fi device to match.
+For how to configure J.Fi, please refer to the **J.Fi Configuration** section below.
+
+::: info
+If you want to use the `TELEM2` port or any other port instead, change the [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) parameter to the corresponding port and update the appropriate **SER_TELX_BAUD** parameter.
+
+For more details, please refer to the following link:
+https://docs.px4.io/main/en/peripherals/serial_configuration.html
+:::
+
+- When connecting the receiver to **QGroundControl**, if the baud rate is set to 57600, it can automatically connect just like a SiK Radio.
+If you're using a different baud rate, you must first **disable SiK Radio in QGC,** `Application Settings → General → AutoConnect`.
+Then, go to `Application Settings → Comms Links`, click `Add`, and create a new link configuration.
+Set **Type** to **Serial**, configure the **Serial Port** and **Baud Rate** to match the J.Fi device, and then click `Connect`.
+
+::: info
+For one-to-one connections, the default baud rate is typically sufficient.
+However, for one-to-many (1:N) setups, a higher baud rate is recommended to ensure stable data reception.
+:::
+
+::: info
+While it's recommended that all J.Fi devices use the same baud rate, we've confirmed that communication is still partially possible even when using different baud rates across devices.
+:::
+
 - For a **one-to-many (1:N)** MAVLink communication setup, assign a unique **System ID** ([MAV_SYS_ID](../advanced_config/parameter_reference.md#MAV_SYS_ID)) to each MAVLink system (1: host, N: clients).
 
 ![J.Fi Wireless Telemetry Broadcast Communication](../../assets/hardware/telemetry/jmarple/jfi_telemetry_usage.png)
