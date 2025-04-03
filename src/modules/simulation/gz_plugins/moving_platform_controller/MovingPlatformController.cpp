@@ -99,7 +99,7 @@ void MovingPlatformController::Configure(const gz::sim::Entity &entity,
 		const auto gravity = world.Gravity(ecm);
 
 		if (gravity.has_value()) {
-			_gravity = world.Gravity(ecm).value().Z();
+			_gravity = gravity.value().Z();
 
 		} else {
 			gzwarn << "Unable to get gazebo world gravity. Keeping default of " << _gravity << std::endl;
