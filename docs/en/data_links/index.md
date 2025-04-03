@@ -14,4 +14,4 @@ This section provides information about various radio systems that you can use, 
 
 ## See Also
 
-- [Safety Configuration > Data Link Loss Failsafe](../config/safety.html#data-link-loss-failsafe)
+- [Safety Configuration > Data Link Loss Failsafe](../config/safety.md#data-link-loss-failsafe)
