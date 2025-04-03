@@ -78,7 +78,7 @@ No additional setup is required.
 
 - **By default**, PX4 uses the **TELEM1** port for telemetry radios (**baud rate: 57600**).
   To use a different baud rate, add a new serial communication link with the desired rate (**see Application Settings → Comms Links**).
-- For a **one-to-many (1:N)** MAVLink communication setup, assign a unique **System ID** ([MAV_SYS_ID](../en/advanced_config/parameter_reference.md#MAV_SYS_ID)) to each MAVLink system (1: host, N: clients).
+- For a **one-to-many (1:N)** MAVLink communication setup, assign a unique **System ID** ([MAV_SYS_ID](../advanced_config/parameter_reference.md#MAV_SYS_ID)) to each MAVLink system (1: host, N: clients).
 
 ![J.Fi Wireless Telemetry Broadcast Communication](../../assets/hardware/telemetry/jmarple/jfi_telemetry_usage.png)
 
