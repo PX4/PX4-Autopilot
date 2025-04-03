@@ -37,16 +37,16 @@ Operating in the 2.4GHz frequency band, it allows unrestricted global use withou
 
 ## Broadcast Communication
 
-**With default settings enabled**, the device automatically broadcasts data to **all nearby J.Fi devices.**
-Connect your external device or system to the **Broadcast port.**
+With default settings enabled, the device automatically broadcasts data to all nearby J.Fi devices.
+Connect your external device or system to the **Broadcast port**.
 No additional setup is required.
 
 ![J.Fi Wireless Telemetry Broadcast Communication](../../assets/hardware/telemetry/jmarple/jfi_telemetry_broadcast.png)
 
 ## Paired Communication
 
-- Modules must first undergo an **initial pairing procedure.**
-- Once paired, communication is **exclusively limited to paired J.Fi devices.** Connect your external device or system to the **Pair port.**
+- Modules must first undergo an initial pairing procedure.
+- Once paired, communication is _restricted to paired J.Fi devices_. Connect your external device or system to the **Pair port.**
 
 ![J.Fi Wireless Telemetry Paired Communication](../../assets/hardware/telemetry/jmarple/jfi_telemetry_paired.png)
 
@@ -76,38 +76,45 @@ No additional setup is required.
 
 ## PX4 Setup
 
+PX4 is plug-and-play with J.Fi if connected to the `TELEM1` port, and should connect without further connection.
 
-- **By default**, PX4 uses the `TELEM1` port for telemetry radios, with the baud rate set to `57600`. Since J.Fi also uses `57600` as its default baud rate, it usually works simply by connecting the device.
+If you want to use another port you will need to assign a MAVLink instance to the serial port (see [MAVLink Peripherals (GCS/OSD/Companion)](../peripherals/mavlink_peripherals.md)) (and possibly unassign whatever is currently using the port).
 
-- If you want to use a different baud rate, set the [SER_TEL1_BAUD](../advanced_config/parameter_reference.md#SER_TEL1_BAUD) parameter in PX4 to the desired value, and also configure the J.Fi device to match.
-For how to configure J.Fi, please refer to the **J.Fi Configuration** section below.
+### One-to-one (1:1) Setups
 
-::: info
-If you want to use the `TELEM2` port or any other port instead, change the [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) parameter to the corresponding port and update the appropriate **SER_TELX_BAUD** parameter.
+The `TELEM1` port is set to use `57600` as the baud rate by default (and J.Fi is set to match).
+This default baud rate is calibrated for inexpensive low-power telemetry radios.
+While this should be sufficient for 1:1 setups, J.Fi will work with much higher rates (i.e., `115200`).
 
-For more details, please refer to the following link:
-https://docs.px4.io/main/en/peripherals/serial_configuration.html
-:::
+If you want to change the baud rate:
 
-- When connecting the receiver to **QGroundControl**, if the baud rate is set to 57600, it can automatically connect just like a SiK Radio.
-If you're using a different baud rate, you must first **disable SiK Radio in QGC,** `Application Settings → General → AutoConnect`.
-Then, go to `Application Settings → Comms Links`, click `Add`, and create a new link configuration.
-Set **Type** to **Serial**, configure the **Serial Port** and **Baud Rate** to match the J.Fi device, and then click `Connect`.
+1. Change [SER_TEL1_BAUD](../advanced_config/parameter_reference.md#SER_TEL1_BAUD) if you're using the `TELEM1` port (see [Serial Port Configuration](../peripherals/serial_configuration.md) for other ports).
+2. Update the baud rate in the [J.Fi Configuration](#j-fi-configuration) to match.
 
-::: info
-For one-to-one connections, the default baud rate is typically sufficient.
-However, for one-to-many (1:N) setups, a higher baud rate is recommended to ensure stable data reception.
-:::
+### One-to-many (1:N) Setups
 
-::: info
-While it's recommended that all J.Fi devices use the same baud rate, we've confirmed that communication is still partially possible even when using different baud rates across devices.
-:::
+For one-to-many (1:N) setups a higher baud rate is _highly recommended_ to ensure stable data reception.
+All J.Fi devices should be set to the same baud rate (although communication may work even when when devices use different baud rates).
+This should be changed in both PX4 and the J.Fi modules as explained in the previous section.
 
-- For a **one-to-many (1:N)** MAVLink communication setup, assign a unique **System ID** ([MAV_SYS_ID](../advanced_config/parameter_reference.md#MAV_SYS_ID)) to each MAVLink system (1: host, N: clients).
+You will also need to make sure that all vehicles on the MAVLink network are assigned a unique **System ID** ([MAV_SYS_ID](../advanced_config/parameter_reference.md#MAV_SYS_ID)).
 
 ![J.Fi Wireless Telemetry Broadcast Communication](../../assets/hardware/telemetry/jmarple/jfi_telemetry_usage.png)
 
 <lite-youtube videoid="tPeJA2gn7Zw" title="Simultaneous Control using J.Fi Wireless Telemetry Module"/>
+
+## QGroundControl Configuration
+
+The J.Fi will connect plug-and-play to **QGroundControl** and automatically connect just like a SiK Radio.
+
+However if you change the baud rate from 57600 you will need to create and use a new link configuration:
+
+1. Disable SiK Radio in QGC (**Application Settings → General → AutoConnect**).
+2. Create a new link configuration:
+   - Go to **Application Settings → Comms Links**.
+   - Click **Add**.
+   - Set **Type** to **Serial**, configure the **Serial Port** and **Baud Rate** to match the J.Fi device.
+3. Select **Connect** to connect with the new configuration.
 
 ## J.Fi Configuration
 
