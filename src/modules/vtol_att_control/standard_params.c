@@ -43,31 +43,30 @@
 /**
  * Use fixed-wing actuation in hover to accelerate forward
  *
- * This feature can be used to avoid the plane having to pitch nose down in order to move forward.
- * Prevents large, negative lift from pitching nose down into wind.
- * Fixed-wing forward actuators refers to puller/pusher (standard VTOL), or forward-tilt (tiltrotor VTOL).
- * Only active if demanded down pitch is below VT_PITCH_MIN.
+ * Prevents downforce from pitching the body down when facing wind.
+ * Uses puller/pusher (standard VTOL), or forward-tilt (tiltrotor VTOL) to accelerate forward instead.
+ * Only active if demanded pitch  is below VT_PITCH_MIN.
  * Use VT_FWD_THRUST_SC to tune it.
  * Descend mode is treated as Landing too.
  *
- * Only active (if enabled) in Altitude, Position and Auto modes, not in Stabilized.
+ * Only active (if enabled) in height-rate controlled modes.
  *
  * @value 0 Disabled
  * @value 1 Enabled (except LANDING)
- * @value 2 Enabled if distance to ground above MPC_LAND_ALT1
- * @value 3 Enabled if distance to ground above MPC_LAND_ALT2
+ * @value 2 Enabled if above MPC_LAND_ALT1
+ * @value 3 Enabled if above MPC_LAND_ALT2
  * @value 4 Enabled constantly
- * @value 5 Enabled if distance to ground above MPC_LAND_ALT1 (except LANDING)
- * @value 6 Enabled if distance to ground above MPC_LAND_ALT2 (except LANDING)
+ * @value 5 Enabled if above MPC_LAND_ALT1 (except LANDING)
+ * @value 6 Enabled if above MPC_LAND_ALT2 (except LANDING)
  *
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_FWD_THRUST_EN, 0);
 
 /**
- * Fixed-wing actuation thrust scale for hover forward flight
+ * Fixed-wing actuation thrust scale in hover
  *
- * Scale applied to the demanded down-pitch to get the fixed-wing forward actuation in hover mode.
+ * Scale applied to the demanded pitch (below VT_PITCH_MIN) to get the fixed-wing forward actuation in hover mode.
  * Enabled via VT_FWD_THRUST_EN.
  *
  * @min 0.0
