@@ -82,7 +82,7 @@ size_t keystore_get_key(keystore_session_handle_t handle, uint8_t idx, uint8_t *
 	return ret;
 }
 
-bool keystore_put_key(keystore_session_handle_t handle, uint8_t idx, uint8_t *key, size_t key_size)
+bool keystore_put_key(keystore_session_handle_t handle, uint8_t idx, const uint8_t *key, size_t key_size)
 {
 	return false;
 }
