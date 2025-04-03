@@ -33,7 +33,6 @@
 
 
 add_library(drivers_board
-	boot_string.c
 	i2c.cpp
 	init.c
 	led.c
@@ -45,14 +44,6 @@ add_library(drivers_board
 	rp23xx_usbmsc.c
 	# rp23xx_userleds.c
 	rp23xx_autoleds.c
-	# fixme - potential conflict with rp23xx_boardinitialize in init.c ?
-	# rp23xx_boardinitialize.c
-	# rp23xx_common_bringup.c
-	# is it not needed?
-	# rp23xx_common_initialize.c
-	#rp23xx_appinit.c
-	#rp23xx_bringup.c
-	#rp23xx_gpio.c
 )
 
 target_link_libraries(drivers_board
