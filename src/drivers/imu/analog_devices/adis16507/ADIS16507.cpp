@@ -59,7 +59,8 @@ ADIS16507::~ADIS16507()
 	perf_free(_bad_transfer_perf);
 	perf_free(_perf_crc_bad);
 	perf_free(_drdy_missed_perf);
-	perf_free(_data_buffer_overrrun);
+	perf_free(_data_buffer_overrrun_perf);
+	perf_free(_drdy_received_perf);
 }
 
 int ADIS16507::init()
@@ -89,18 +90,6 @@ void ADIS16507::exit_and_cleanup()
 	I2CSPIDriverBase::exit_and_cleanup();
 }
 
-void ADIS16507::print_status()
-{
-	I2CSPIDriverBase::print_status();
-
-	perf_print_counter(_reset_perf);
-	perf_print_counter(_bad_register_perf);
-	perf_print_counter(_bad_transfer_perf);
-	perf_print_counter(_perf_crc_bad);
-	perf_print_counter(_drdy_missed_perf);
-	perf_print_counter(_data_buffer_overrrun);
-}
-
 int ADIS16507::probe()
 {
 	// Power-On Start-Up Time 310 ms
@@ -125,19 +114,70 @@ int ADIS16507::probe()
 	return PX4_OK;
 }
 
+bool ADIS16507::Configure()
+{
+	for (const auto &r : _register_cfg) {
+		RegisterWrite(r.reg, r.value);
+	}
+
+	// We must wait for changes to apply
+	px4_usleep(5000);
+
+	// now check that all are configured
+	bool success = true;
+
+	for (const auto &r : _register_cfg) {
+		if (!RegisterCheck(r)) {
+			success = false;
+		}
+	}
+
+	// accel: ±392 m/sec^2
+	_px4_accel.set_range(392);
+	_px4_accel.set_scale(392.f / 32'000.f); // 32,000 -> 392 m/sec^2
+
+	// Gyroscope measurement range
+	// Range Identifier (RANG_MDL)
+	const uint16_t RANG_MDL = RegisterRead(Register::RANG_MDL);
+
+	// sanity check RANG_MDL [1:0] Reserved, binary value = 11
+	if (RANG_MDL & (Bit1 | Bit0)) {
+		const uint16_t gyro_range = (RANG_MDL & (Bit3 | Bit2)) >> 2;
+
+		if (gyro_range == 0b11) {
+			// 11 = ±2000°/sec (ADIS16507-3BMLZ)
+			_px4_gyro.set_range(math::radians(2000.f));
+			_px4_gyro.set_scale(math::radians(1.f / 10.f)); // scaling 10 LSB/°/sec -> rad/s per LSB
+
+		} else if (gyro_range == 0b01) {
+			// 01 = ±500°/sec (ADIS16507-2BMLZ)
+			_px4_gyro.set_range(math::radians(500.f));
+			_px4_gyro.set_scale(math::radians(1.f / 40.f)); // scaling 40 LSB/°/sec -> rad/s per LSB
+
+		} else if (gyro_range == 0b00) {
+			// 00 = ±125°/sec (ADIS16507-1BMLZ)
+			_px4_gyro.set_range(math::radians(500.f));
+			_px4_gyro.set_scale(math::radians(1.f / 40.f)); // scaling 40 LSB/°/sec -> rad/s per LSB
+		}
+	}
+
+	return success;
+}
+
 void ADIS16507::RunImpl()
 {
 	const hrt_abstime now = hrt_absolute_time();
 
 	switch (_state) {
 	case STATE::RESET:
+		PX4_DEBUG("Resetting");
 		perf_count(_reset_perf);
 		// GLOB_CMD: software reset
 		RegisterWrite(Register::GLOB_CMD, GLOB_CMD_BIT::Software_reset);
 		_reset_timestamp = now;
 		_failure_count = 0;
 		_state = STATE::WAIT_FOR_RESET;
-		ScheduleDelayed(255_ms); // 255 ms Reset Recovery Time
+		ScheduleDelayed(500_ms); // 255 ms Reset Recovery Time
 		break;
 
 	case STATE::WAIT_FOR_RESET:
@@ -146,6 +186,7 @@ void ADIS16507::RunImpl()
 			if ((RegisterRead(Register::PROD_ID) == Product_identification)) {
 				// if reset succeeded then configure
 				_state = STATE::CONFIGURE;
+				PX4_DEBUG("Reset complete, configuring");
 				ScheduleNow();
 
 			} else {
@@ -162,6 +203,7 @@ void ADIS16507::RunImpl()
 			}
 
 		} else {
+			PX4_DEBUG("Running self test");
 			RegisterWrite(Register::GLOB_CMD, GLOB_CMD_BIT::Sensor_self_test);
 			_state = STATE::SELF_TEST_CHECK;
 			ScheduleDelayed(14_ms); // Self Test Time
@@ -191,11 +233,14 @@ void ADIS16507::RunImpl()
 			_state = STATE::READ;
 
 			if (DataReadyInterruptConfigure()) {
-				PX4_DEBUG("using data ready interrupt");
+				PX4_DEBUG("Using data ready interrupt");
 				_data_ready_interrupt_enabled = true;
 
 				// backup schedule as a watchdog timeout
 				ScheduleDelayed(100_ms);
+
+				// Data ready should reschedule this almost immediately
+				return;
 
 			} else {
 				PX4_DEBUG("not using data ready interrupt");
@@ -261,7 +306,9 @@ void ADIS16507::RunImpl()
 			// ADIS16507 burst report should be 176 bits
 			static_assert(sizeof(BurstRead) == (176 / 8), "ADIS16507 report not 176 bits");
 
-			buffer.cmd = static_cast<uint16_t>(Register::GLOB_CMD) << 8;
+			// 16-Bit Burst Mode with BURST_SEL = 0
+			// DIN: 0x6800
+			buffer.cmd = 0x6800;
 			set_frequency(SPI_SPEED_BURST);
 
 			if (transferhword((uint16_t *)&buffer, (uint16_t *)&buffer, sizeof(buffer) / sizeof(uint16_t)) == PX4_OK) {
@@ -289,22 +336,15 @@ void ADIS16507::RunImpl()
 					PX4_DEBUG("adis_report.checksum: %X vs calculated: %X", buffer.checksum, checksum);
 					perf_count(_bad_transfer_perf);
 					perf_count(_perf_crc_bad);
+					// TODO: handle the error
 				}
 
-				if (buffer.DIAG_STAT != DIAG_STAT_BIT::Data_path_overrun) {
-					// Data path overrun. A 1 indicates that one of the
-					// data paths have experienced an overrun condition.
-					// If this occurs, initiate a reset,
-					// PX4_DEBUG("DATA BUFFER OVERRUN!");
-					perf_count(_data_buffer_overrrun);
-					//Reset();
-					//return;
-				}
 
 				// Check all Status/Error Flag Indicators (DIAG_STAT)
 				if (buffer.DIAG_STAT != 0) {
-					PX4_DEBUG("BAD TRANSFER!(1)");
+					PX4_DEBUG("Error: DIAG_STAT: 0x%02x", buffer.DIAG_STAT);
 					perf_count(_bad_transfer_perf);
+					// TODO: handle the error
 				}
 
 				// temperature 1 LSB = 0.1°C
@@ -366,72 +406,10 @@ void ADIS16507::RunImpl()
 					return;
 				}
 			}
-
-			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
-				// check configuration registers periodically or immediately following any failure
-				if (RegisterCheck(_register_cfg[_checked_register])) {
-					_last_config_check_timestamp = now;
-					_checked_register = (_checked_register + 1) % size_register_cfg;
-
-				} else {
-					// register check failed, force reset
-					perf_count(_bad_register_perf);
-					PX4_DEBUG("BAD REGISTER!");
-					Reset();
-				}
-			}
 		}
 
 		break;
 	}
-}
-
-bool ADIS16507::Configure()
-{
-	// first set and clear all configured register bits
-	for (const auto &reg_cfg : _register_cfg) {
-		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
-	}
-
-	// now check that all are configured
-	bool success = true;
-
-	for (const auto &reg_cfg : _register_cfg) {
-		if (!RegisterCheck(reg_cfg)) {
-			success = false;
-		}
-	}
-
-	// accel: ±392 m/sec^2
-	_px4_accel.set_range(392);
-	_px4_accel.set_scale(392.f / 32'000.f); // 32,000 -> 392 m/sec^2
-
-	// Gyroscope measurement range
-	// Range Identifier (RANG_MDL)
-	const uint16_t RANG_MDL = RegisterRead(Register::RANG_MDL);
-
-	// sanity check RANG_MDL [1:0] Reserved, binary value = 11
-	if (RANG_MDL & (Bit1 | Bit0)) {
-		const uint16_t gyro_range = (RANG_MDL & (Bit3 | Bit2)) >> 2;
-
-		if (gyro_range == 0b11) {
-			// 11 = ±2000°/sec (ADIS16507-3BMLZ)
-			_px4_gyro.set_range(math::radians(2000.f));
-			_px4_gyro.set_scale(math::radians(1.f / 10.f)); // scaling 10 LSB/°/sec -> rad/s per LSB
-
-		} else if (gyro_range == 0b01) {
-			// 01 = ±500°/sec (ADIS16507-2BMLZ)
-			_px4_gyro.set_range(math::radians(500.f));
-			_px4_gyro.set_scale(math::radians(1.f / 40.f)); // scaling 40 LSB/°/sec -> rad/s per LSB
-
-		} else if (gyro_range == 0b00) {
-			// 00 = ±125°/sec (ADIS16507-1BMLZ)
-			_px4_gyro.set_range(math::radians(500.f));
-			_px4_gyro.set_scale(math::radians(1.f / 40.f)); // scaling 40 LSB/°/sec -> rad/s per LSB
-		}
-	}
-
-	return success;
 }
 
 int ADIS16507::DataReadyInterruptCallback(int irq, void *context, void *arg)
@@ -443,6 +421,7 @@ int ADIS16507::DataReadyInterruptCallback(int irq, void *context, void *arg)
 void ADIS16507::DataReady()
 {
 	_drdy_timestamp_sample.store(hrt_absolute_time());
+	perf_count(_drdy_received_perf);
 	ScheduleNow();
 }
 
@@ -467,21 +446,15 @@ bool ADIS16507::DataReadyInterruptDisable()
 
 bool ADIS16507::RegisterCheck(const register_config_t &reg_cfg)
 {
-	bool success = true;
+	const uint16_t value = RegisterRead(reg_cfg.reg);
 
-	const uint16_t reg_value = RegisterRead(reg_cfg.reg);
-
-	if (reg_cfg.set_bits && ((reg_value & reg_cfg.set_bits) != reg_cfg.set_bits)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not set)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.set_bits);
-		success = false;
+	if (value != reg_cfg.value) {
+		PX4_DEBUG("register 0x%02hhX: 0x%02hhX (should be 0x%02hhX)", (uint8_t)reg_cfg.reg, value, reg_cfg.value);
+		return false;
 	}
 
-	if (reg_cfg.clear_bits && ((reg_value & reg_cfg.clear_bits) != 0)) {
-		PX4_DEBUG("0x%02hhX: 0x%02hhX (0x%02hhX not cleared)", (uint8_t)reg_cfg.reg, reg_value, reg_cfg.clear_bits);
-		success = false;
-	}
 
-	return success;
+	return true;
 }
 
 uint16_t ADIS16507::RegisterRead(Register reg)
@@ -520,4 +493,17 @@ void ADIS16507::RegisterSetAndClearBits(Register reg, uint16_t setbits, uint16_t
 	if (orig_val != val) {
 		RegisterWrite(reg, val);
 	}
+}
+
+void ADIS16507::print_status()
+{
+	I2CSPIDriverBase::print_status();
+
+	perf_print_counter(_reset_perf);
+	perf_print_counter(_bad_register_perf);
+	perf_print_counter(_bad_transfer_perf);
+	perf_print_counter(_perf_crc_bad);
+	perf_print_counter(_drdy_missed_perf);
+	perf_print_counter(_data_buffer_overrrun_perf);
+	perf_print_counter(_drdy_received_perf);
 }

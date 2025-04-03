@@ -70,12 +70,6 @@ public:
 private:
 	void exit_and_cleanup() override;
 
-	struct register_config_t {
-		Register reg;
-		uint16_t set_bits{0};
-		uint16_t clear_bits{0};
-	};
-
 	int probe() override;
 
 	bool Reset();
@@ -102,7 +96,8 @@ private:
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _perf_crc_bad{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": CRC16 bad"))};
-	perf_counter_t _data_buffer_overrrun{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": Buffer overrun"))};
+	perf_counter_t _data_buffer_overrrun_perf{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": Buffer overrun"))};
+	perf_counter_t _drdy_received_perf{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": drdy received"))};
 	perf_counter_t _drdy_missed_perf{nullptr};
 
 	hrt_abstime _reset_timestamp{0};
@@ -123,9 +118,7 @@ private:
 	} _state{STATE::RESET};
 
 	uint8_t _checked_register{0};
-	static constexpr uint8_t size_register_cfg{1};
-	register_config_t _register_cfg[size_register_cfg] {
-		// Register              | Set bits, Clear bits
-		{ Register::MSC_CTRL,    0, MSC_CTRL_BIT::DR_polarity },
+	register_config_t _register_cfg[1] {
+		{ Register::MSC_CTRL, 0x00C0 }, // Defualt but change DR polarity
 	};
 };

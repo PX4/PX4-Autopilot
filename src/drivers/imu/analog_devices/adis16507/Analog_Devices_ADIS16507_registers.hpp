@@ -94,6 +94,11 @@ enum class Register : uint16_t {
 	FLSHCNT_HIGH   = 0x7E, // Output, flash memory write cycle counter, upper word
 };
 
+struct register_config_t {
+		Register reg;
+		uint16_t value{0};
+};
+
 // DIAG_STAT
 enum DIAG_STAT_BIT : uint16_t {
 	Accelerometer_failure       = Bit10, // A 1 indicates failure of the accelerometer at the conclusion of the self test
@@ -130,6 +135,5 @@ enum GLOB_CMD_BIT : uint16_t {
 
 	Sensor_self_test  = Bit2,
 };
-
 
 } // namespace Analog_Devices_ADIS16507
