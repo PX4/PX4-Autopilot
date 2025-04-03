@@ -79,7 +79,9 @@ bool BusEvent::wait(uavcan::MonotonicDuration duration)
 
 void BusEvent::signalFromInterrupt()
 {
-	if (sem_.semcount <= 0) {
+	int semcount;
+
+	if (sem_getvalue(&sem_, &semcount) == 0 && semcount <= 0) {
 		(void)sem_post(&sem_);
 	}
 
