@@ -71,7 +71,7 @@ PARAM_DEFINE_INT32(VT_FWD_THRUST_EN, 0);
  * Enabled via VT_FWD_THRUST_EN.
  *
  * @min 0.0
- * @max 2.0
+ * @max 5.0
  * @increment 0.01
  * @decimal 2
  * @group VTOL Attitude Control
