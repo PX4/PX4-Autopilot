@@ -59,6 +59,7 @@ ADIS16507::~ADIS16507()
 	perf_free(_bad_transfer_perf);
 	perf_free(_perf_crc_bad);
 	perf_free(_drdy_missed_perf);
+	perf_free(_data_buffer_overrrun);
 }
 
 int ADIS16507::init()
@@ -97,6 +98,7 @@ void ADIS16507::print_status()
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_perf_crc_bad);
 	perf_print_counter(_drdy_missed_perf);
+	perf_print_counter(_data_buffer_overrrun);
 }
 
 int ADIS16507::probe()
@@ -293,7 +295,8 @@ void ADIS16507::RunImpl()
 					// Data path overrun. A 1 indicates that one of the
 					// data paths have experienced an overrun condition.
 					// If this occurs, initiate a reset,
-					PX4_DEBUG("DATA BUFFER OVERRUN!");
+					// PX4_DEBUG("DATA BUFFER OVERRUN!");
+					perf_count(_data_buffer_overrrun);
 					//Reset();
 					//return;
 				}
