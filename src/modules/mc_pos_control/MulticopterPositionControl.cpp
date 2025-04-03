@@ -198,6 +198,8 @@ void MulticopterPositionControl::parameters_update(bool force)
 			Vector3f(_param_mpc_xy_vel_p_acc.get(), _param_mpc_xy_vel_p_acc.get(), _param_mpc_z_vel_p_acc.get()),
 			Vector3f(_param_mpc_xy_vel_i_acc.get(), _param_mpc_xy_vel_i_acc.get(), _param_mpc_z_vel_i_acc.get()),
 			Vector3f(_param_mpc_xy_vel_d_acc.get(), _param_mpc_xy_vel_d_acc.get(), _param_mpc_z_vel_d_acc.get()));
+		_control.setAccelerationGains(_param_mpc_xy_acc_p.get());
+		_control.setAccelerationCutoff(_param_mpc_acc_cutoff.get());
 		_control.setHorizontalThrustMargin(_param_mpc_thr_xy_marg.get());
 		_control.decoupleHorizontalAndVecticalAcceleration(_param_mpc_acc_decouple.get());
 		_goto_control.setParamMpcAccHor(_param_mpc_acc_hor.get());
@@ -545,7 +547,7 @@ void MulticopterPositionControl::Run()
 
 			_control.setInputSetpoint(_setpoint);
 			_control.setAttitude(Quatf(_vehicle_attitude.q));
-			_control.setBodySpecificForce(Vector3f(_vehicle_acceleration.xyz));
+			_control.setBodySpecificForce(Vector3f(_vehicle_acceleration.xyz), dt);
 
 			// update states
 			if (!PX4_ISFINITE(_setpoint.position[2])

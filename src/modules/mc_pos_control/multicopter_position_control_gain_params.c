@@ -135,3 +135,29 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_D_ACC, 0.f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_D_ACC, 0.2f);
+
+/**
+ * Gain for xy acceleration control
+ *
+ * Reduce to lower the sensitivity to accelerometer noise
+ *
+ * @min 0.1
+ * @max 1
+ * @decimal 2
+ * @increment 0.05
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_XY_ACC_P, 1.f);
+
+/**
+ * Acceleration feedback cutoff frequency
+ *
+ * 0 to disable
+ *
+ * @min 0
+ * @max 100
+ * @decimal 1
+ * @increment 1.0
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_ACC_CUTOFF, 0.1f);

@@ -40,6 +40,7 @@
 #pragma once
 
 #include <lib/mathlib/mathlib.h>
+#include <mathlib/math/filter/AlphaFilter.hpp>
 #include <matrix/matrix/math.hpp>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -92,6 +93,9 @@ public:
 	 * @param D 3D vector of derivative gains
 	 */
 	void setVelocityGains(const matrix::Vector3f &P, const matrix::Vector3f &I, const matrix::Vector3f &D);
+
+	void setAccelerationGains(const float gain_xy) { _gain_acc_xy = gain_xy; }
+	void setAccelerationCutoff(const float cutoff_frequency) { _body_specific_force_lpf.setCutoffFreq(cutoff_frequency); }
 
 	/**
 	 * Set the maximum velocity to execute with feed forward and position control
@@ -146,7 +150,7 @@ public:
 	 */
 	void setInputSetpoint(const trajectory_setpoint_s &setpoint);
 
-	void setBodySpecificForce(const matrix::Vector3f &specific_force) { _body_specific_force = specific_force; }
+	void setBodySpecificForce(const matrix::Vector3f &specific_force, const float dt) { _body_specific_force_lpf.update(specific_force, dt); }
 	void setAttitude(const matrix::Quatf &attitude) { _attitude = attitude; }
 
 	/**
@@ -202,7 +206,7 @@ private:
 
 	void _positionControl(); ///< Position proportional control
 	void _velocityControl(const float dt); ///< Velocity PID control
-	void _accelerationControl(); ///< Acceleration setpoint processing
+	void _accelerationControl(float dt); ///< Acceleration setpoint processing
 
 	// Gains
 	matrix::Vector3f _gain_pos_p; ///< Position control proportional gain
@@ -221,6 +225,8 @@ private:
 
 	float _hover_thrust{}; ///< Thrust [HOVER_THRUST_MIN, HOVER_THRUST_MAX] with which the vehicle hovers not accelerating down or up with level orientation
 	bool _decouple_horizontal_and_vertical_acceleration{true}; ///< Ignore vertical acceleration setpoint to remove its effect on the tilt setpoint
+	float _gain_acc_xy{1.f};
+	AlphaFilter<matrix::Vector3f> _body_specific_force_lpf{};
 
 	// States
 	matrix::Vector3f _pos; /**< current position */
@@ -237,6 +243,5 @@ private:
 	float _yaw_sp{}; /**< desired heading */
 	float _yawspeed_sp{}; /** desired yaw-speed */
 
-	matrix::Vector3f _body_specific_force;
 	matrix::Quatf _attitude;
 };

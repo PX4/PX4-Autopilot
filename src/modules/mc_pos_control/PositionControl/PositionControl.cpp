@@ -149,7 +149,7 @@ void PositionControl::_velocityControl(const float dt)
 	// No control input from setpoints or corresponding states which are NAN
 	ControlMath::addIfNotNanVector3f(_acc_sp, acc_sp_velocity);
 
-	_accelerationControl();
+	_accelerationControl(dt);
 
 	// Integrator anti-windup in vertical direction
 	if ((_thr_sp(2) >= -_lim_thr_min && vel_error(2) >= 0.f) ||
@@ -201,7 +201,7 @@ void PositionControl::_velocityControl(const float dt)
 	_vel_int += vel_error.emult(_gain_vel_i) * dt;
 }
 
-void PositionControl::_accelerationControl()
+void PositionControl::_accelerationControl(const float dt)
 {
 	// Assume standard acceleration due to gravity in vertical direction for attitude generation
 	float z_specific_force = -CONSTANTS_ONE_G;
@@ -214,7 +214,7 @@ void PositionControl::_accelerationControl()
 	const Vector3f sf_sp_ned = Vector3f(_acc_sp(0), _acc_sp(1), z_specific_force);
 	const Vector3f sf_sp_body = _attitude.rotateVectorInverse(sf_sp_ned);
 
-	Quatf att_error(_body_specific_force, sf_sp_body);
+	Quatf att_error(AxisAnglef(AxisAnglef(Quatf(_body_specific_force_lpf.getState(), sf_sp_body)) * _gain_acc_xy));
 	Quatf desired_att = _attitude * att_error;
 	Vector3f body_z = desired_att.dcm_z();
 	ControlMath::limitTilt(body_z, Vector3f(0, 0, 1), _lim_tilt);
