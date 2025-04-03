@@ -174,6 +174,10 @@ int board_read_VBUS_state(void)
 
 void rp23xx_boardearlyinitialize(void)
 {
+
+	// reset all GPIO functions!
+	rp23xx_gpio_initialize();
+
 	/* Set default UART pin */
 #if defined(CONFIG_RP23XX_UART0) && CONFIG_RP23XX_UART0_GPIO >= 0
 	rp23xx_gpio_set_function(CONFIG_RP23XX_UART0_GPIO, RP23XX_GPIO_FUNC_UART);     /* TX */
