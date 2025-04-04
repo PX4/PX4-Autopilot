@@ -71,12 +71,6 @@ then
 fi
 
 
-# Heater driver for temperature regulated IMUs.
-if param compare -s SENS_EN_THERMAL 1
-then
-	heater start
-fi
-
 # Teraranger one tof sensor
 if param greater -s SENS_EN_TRANGER 0
 then
