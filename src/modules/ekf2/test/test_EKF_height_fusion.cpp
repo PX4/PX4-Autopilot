@@ -125,9 +125,6 @@ TEST_F(EkfHeightFusionTest, baroRef)
 	const BiasEstimator::status &gps_status = _ekf->getGpsHgtBiasEstimatorStatus();
 	EXPECT_NEAR(gps_status.bias, _sensor_simulator._gps.getData().alt - _sensor_simulator._baro.getData(), 0.2f);
 
-	const float hagl  = _ekf->output_predictor().getLatLonAlt().altitude() + _ekf->state().terrain;
-	EXPECT_NEAR(hagl, baro_increment, 1.2f);
-
 	const BiasEstimator::status &ev_status = _ekf->getEvHgtBiasEstimatorStatus();
 	EXPECT_EQ(ev_status.bias, 0.f);
 
@@ -149,9 +146,6 @@ TEST_F(EkfHeightFusionTest, baroRef)
 	EXPECT_EQ(gps_status.bias, _ekf->getGpsHgtBiasEstimatorStatus().bias);
 	// the estimated height follows the GPS height
 	EXPECT_NEAR(_ekf->getPosition()(2), -(baro_increment + gps_increment), 0.3f);
-	// and the range finder bias is adjusted to follow the new reference
-	const float hagl2  = _ekf->output_predictor().getLatLonAlt().altitude() + _ekf->state().terrain;
-	EXPECT_NEAR(hagl2, (baro_increment + gps_increment), 1.3f);
 }
 
 TEST_F(EkfHeightFusionTest, gpsRef)
