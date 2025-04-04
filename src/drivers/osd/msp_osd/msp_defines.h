@@ -111,6 +111,7 @@
 #define MSP_MODE_TURNASSIST  27
 #define MSP_MODE_NAVLAUNCH   28
 #define MSP_MODE_AUTOTRIM    29
+#define MSP_CMD_DISPLAYPORT 182
 
 struct msp_esc_sensor_data_t {
 	uint8_t motor_count;
@@ -786,6 +787,15 @@ struct msp_battery_state_t {
 	uint16_t amperage;
 	uint8_t batteryState;
 	uint16_t batteryVoltage;
+} __attribute__((packed));
+
+struct msp_rendor_battery_state_t {
+	uint8_t subCommand; // 0x03 write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs; //
+	uint8_t iconIndexY;
+	uint8_t str[5];
 } __attribute__((packed));
 
 // MSP_STATUS reply customized for BF/DJI

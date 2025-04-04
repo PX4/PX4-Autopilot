@@ -51,6 +51,16 @@ using namespace time_literals;
 
 namespace msp_osd
 {
+	typedef enum {
+	    MSP_DP_HEARTBEAT = 0,         // Release the display after clearing and updating
+	    MSP_DP_RELEASE = 1,         // Release the display after clearing and updating
+	    MSP_DP_CLEAR_SCREEN = 2,    // Clear the display
+	    MSP_DP_WRITE_STRING = 3,    // Write a string at given coordinates
+	    MSP_DP_DRAW_SCREEN = 4,     // Trigger a screen draw
+	    MSP_DP_OPTIONS = 5,         // Not used by Betaflight. Reserved by Ardupilot and INAV
+	    MSP_DP_SYS = 6,             // Display system element displayportSystemElement_e at given coordinates
+	    MSP_DP_COUNT,
+	} displayportMspSubCommand;
 
 msp_name_t construct_display_message(const vehicle_status_s &vehicle_status,
 				     const vehicle_attitude_s &vehicle_attitude,
@@ -221,6 +231,43 @@ msp_battery_state_t construct_BATTERY_STATE(const battery_status_s &battery_stat
 	battery_state.legacyBatteryVoltage = battery_status.voltage_v * 10;
 	return battery_state;
 }
+
+msp_rendor_battery_state_t construct_rendor_BATTERY_STATE(const battery_status_s &battery_status)
+{
+	// initialize result
+	msp_rendor_battery_state_t battery_state = {0};
+
+	battery_state.subCommand = MSP_DP_WRITE_STRING; // 3 write string. fixed
+	battery_state.screenYPosition = 0x09; // Fixed for testing
+	battery_state.screenXPosition = 0x22; // Fixed for testing
+	battery_state.iconAttrs = 0x00; //
+	battery_state.iconIndexY = 0x93; // Empty battery Icon for testing
+	battery_state.str[0] = '-';
+	battery_state.str[1] = '0';
+	battery_state.str[2] = '0';
+	battery_state.str[3] = '.';
+	battery_state.str[4] = '4';
+
+
+	// MSP_BATTERY_STATE
+	// battery_state.amperage = battery_status.current_a * 100.0f; // Used for power element
+	// battery_state.batteryVoltage = (uint16_t)((battery_status.voltage_v / battery_status.cell_count) * 400.0f);  // OK
+	// battery_state.mAhDrawn = battery_status.discharged_mah ; // OK
+	// battery_state.batteryCellCount = battery_status.cell_count;
+	// battery_state.batteryCapacity = battery_status.capacity; // not used?
+
+	// // Voltage color 0==white, 1==red
+	// if (battery_status.voltage_v < 14.4f) {
+	// 	battery_state.batteryState = 1;
+
+	// } else {
+	// 	battery_state.batteryState = 0;
+	// }
+
+	// battery_state.legacyBatteryVoltage = battery_status.voltage_v * 10;
+	return battery_state;
+}
+
 
 msp_raw_gps_t construct_RAW_GPS(const sensor_gps_s &vehicle_gps_position,
 				const airspeed_validated_s &airspeed_validated)

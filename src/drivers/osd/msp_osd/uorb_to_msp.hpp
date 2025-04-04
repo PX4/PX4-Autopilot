@@ -87,6 +87,8 @@ msp_analog_t construct_ANALOG(const battery_status_s &battery_status, const inpu
 // construct an MSP_BATTERY_STATE struct
 msp_battery_state_t construct_BATTERY_STATE(const battery_status_s &battery_status);
 
+msp_rendor_battery_state_t construct_rendor_BATTERY_STATE(const battery_status_s &battery_status);
+
 // construct an MSP_RAW_GPS struct
 msp_raw_gps_t construct_RAW_GPS(const sensor_gps_s &vehicle_gps_position,
 				const airspeed_validated_s &airspeed_validated);

@@ -111,6 +111,18 @@ const uint16_t osd_current_draw_pos = 2103;
 
 const uint16_t osd_numerical_vario_pos = LOCATION_HIDDEN;
 
+typedef enum {
+    MSP_DP_HEARTBEAT = 0,         // Release the display after clearing and updating
+    MSP_DP_RELEASE = 1,         // Release the display after clearing and updating
+    MSP_DP_CLEAR_SCREEN = 2,    // Clear the display
+    MSP_DP_WRITE_STRING = 3,    // Write a string at given coordinates
+    MSP_DP_DRAW_SCREEN = 4,     // Trigger a screen draw
+    MSP_DP_OPTIONS = 5,         // Not used by Betaflight. Reserved by Ardupilot and INAV
+    MSP_DP_SYS = 6,             // Display system element displayportSystemElement_e at given coordinates
+    MSP_DP_COUNT,
+} displayportMspSubCommand;
+
+
 MspOsd::MspOsd(const char *device) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
@@ -131,7 +143,7 @@ MspOsd::~MspOsd()
 
 bool MspOsd::init()
 {
-	ScheduleOnInterval(100_ms);
+	ScheduleOnInterval(500_ms);
 
 	return true;
 }
@@ -269,6 +281,11 @@ void MspOsd::Run()
 	if (_param_osd_symbols.get() == 0) {
 		return;
 	}
+	uint8_t subcmd = MSP_DP_HEARTBEAT;
+	this->Send(MSP_CMD_DISPLAYPORT, &subcmd, 1); //
+
+	subcmd = MSP_DP_CLEAR_SCREEN;
+	this->Send(MSP_CMD_DISPLAYPORT, &subcmd, 1); //
 
 	// update display message
 	{
@@ -281,121 +298,139 @@ void MspOsd::Run()
 		log_message_s log_message{};
 		_log_message_sub.copy(&log_message);
 
-		const auto display_message = msp_osd::construct_display_message(
-						     vehicle_status,
-						     vehicle_attitude,
-						     log_message,
-						     _param_osd_log_level.get(),
-						     _display);
-		this->Send(MSP_NAME, &display_message);
+		// const auto display_message = msp_osd::construct_display_message(
+		// 				     vehicle_status,
+		// 				     vehicle_attitude,
+		// 				     log_message,
+		// 				     _param_osd_log_level.get(),
+		// 				     _display);
+		// this->Send(MSP_NAME, &display_message);
 	}
 
 	// MSP_FC_VARIANT
 	{
-		const auto msg = msp_osd::construct_FC_VARIANT();
-		this->Send(MSP_FC_VARIANT, &msg);
+		// const auto msg = msp_osd::construct_FC_VARIANT();
+		// this->Send(MSP_FC_VARIANT, &msg);
 	}
 
 	// MSP_STATUS
 	{
-		vehicle_status_s vehicle_status{};
-		_vehicle_status_sub.copy(&vehicle_status);
+		// vehicle_status_s vehicle_status{};
+		// _vehicle_status_sub.copy(&vehicle_status);
 
-		const auto msg = msp_osd::construct_STATUS(vehicle_status);
-		this->Send(MSP_STATUS, &msg);
+		// const auto msg = msp_osd::construct_STATUS(vehicle_status);
+		// this->Send(MSP_STATUS, &msg);
 	}
 
 	// MSP_ANALOG
 	{
-		battery_status_s battery_status{};
-		_battery_status_sub.copy(&battery_status);
+		// battery_status_s battery_status{};
+		// _battery_status_sub.copy(&battery_status);
 
-		input_rc_s input_rc{};
-		_input_rc_sub.copy(&input_rc);
+		// input_rc_s input_rc{};
+		// _input_rc_sub.copy(&input_rc);
 
-		const auto msg = msp_osd::construct_ANALOG(
-					 battery_status,
-					 input_rc);
-		this->Send(MSP_ANALOG, &msg);
+		// const auto msg = msp_osd::construct_ANALOG(
+		// 			 battery_status,
+		// 			 input_rc);
+		// this->Send(MSP_ANALOG, &msg);
 	}
 
 	// MSP_BATTERY_STATE
 	{
+		// battery_status_s battery_status{};
+		// _battery_status_sub.copy(&battery_status);
+
+		// const auto msg = msp_osd::construct_BATTERY_STATE(battery_status);
+		// this->Send(MSP_BATTERY_STATE, &msg);
+
 		battery_status_s battery_status{};
 		_battery_status_sub.copy(&battery_status);
 
-		const auto msg = msp_osd::construct_BATTERY_STATE(battery_status);
-		this->Send(MSP_BATTERY_STATE, &msg);
+		const auto msg = msp_osd::construct_rendor_BATTERY_STATE(battery_status);
+		this->Send(182, &msg, sizeof(msp_rendor_battery_state_t));
+
 	}
 
 	// MSP_RAW_GPS
 	{
-		sensor_gps_s vehicle_gps_position{};
-		_vehicle_gps_position_sub.copy(&vehicle_gps_position);
+		// sensor_gps_s vehicle_gps_position{};
+		// _vehicle_gps_position_sub.copy(&vehicle_gps_position);
 
-		airspeed_validated_s airspeed_validated{};
-		_airspeed_validated_sub.copy(&airspeed_validated);
+		// airspeed_validated_s airspeed_validated{};
+		// _airspeed_validated_sub.copy(&airspeed_validated);
 
-		const auto msg = msp_osd::construct_RAW_GPS(
-					 vehicle_gps_position,
-					 airspeed_validated);
-		this->Send(MSP_RAW_GPS, &msg);
+		// const auto msg = msp_osd::construct_RAW_GPS(
+		// 			 vehicle_gps_position,
+		// 			 airspeed_validated);
+		// this->Send(MSP_RAW_GPS, &msg);
 	}
 
 	// MSP_COMP_GPS
 	{
 		// update heartbeat
-		_heartbeat = !_heartbeat;
+		// _heartbeat = !_heartbeat;
 
-		home_position_s home_position{};
-		_home_position_sub.copy(&home_position);
+		// home_position_s home_position{};
+		// _home_position_sub.copy(&home_position);
 
-		vehicle_global_position_s vehicle_global_position{};
-		_vehicle_global_position_sub.copy(&vehicle_global_position);
+		// vehicle_global_position_s vehicle_global_position{};
+		// _vehicle_global_position_sub.copy(&vehicle_global_position);
 
-		// construct and send message
-		const auto msg = msp_osd::construct_COMP_GPS(
-					 home_position,
-					 vehicle_global_position,
-					 _heartbeat);
-		this->Send(MSP_COMP_GPS, &msg);
+		// // construct and send message
+		// const auto msg = msp_osd::construct_COMP_GPS(
+		// 			 home_position,
+		// 			 vehicle_global_position,
+		// 			 _heartbeat);
+		// this->Send(MSP_COMP_GPS, &msg);
 	}
 
 	// MSP_ATTITUDE
 	{
-		vehicle_attitude_s vehicle_attitude{};
-		_vehicle_attitude_sub.copy(&vehicle_attitude);
+		// vehicle_attitude_s vehicle_attitude{};
+		// _vehicle_attitude_sub.copy(&vehicle_attitude);
 
-		const auto msg = msp_osd::construct_ATTITUDE(vehicle_attitude);
-		this->Send(MSP_ATTITUDE, &msg);
+		// const auto msg = msp_osd::construct_ATTITUDE(vehicle_attitude);
+		// this->Send(MSP_ATTITUDE, &msg);
 	}
 
 	// MSP_ALTITUDE
 	{
-		sensor_gps_s vehicle_gps_position{};
-		_vehicle_gps_position_sub.copy(&vehicle_gps_position);
+		// sensor_gps_s vehicle_gps_position{};
+		// _vehicle_gps_position_sub.copy(&vehicle_gps_position);
 
-		vehicle_local_position_s vehicle_local_position{};
-		_vehicle_local_position_sub.copy(&vehicle_local_position);
+		// vehicle_local_position_s vehicle_local_position{};
+		// _vehicle_local_position_sub.copy(&vehicle_local_position);
 
 		// construct and send message
-		const auto msg = msp_osd::construct_ALTITUDE(vehicle_gps_position, vehicle_local_position);
-		this->Send(MSP_ALTITUDE, &msg);
+		// const auto msg = msp_osd::construct_ALTITUDE(vehicle_gps_position, vehicle_local_position);
+		// this->Send(MSP_ALTITUDE, &msg);
 	}
 
 	// MSP_MOTOR_TELEMETRY
 	{
-		const auto msg = msp_osd::construct_ESC_SENSOR_DATA();
-		this->Send(MSP_ESC_SENSOR_DATA, &msg);
+		// const auto msg = msp_osd::construct_ESC_SENSOR_DATA();
+		// this->Send(MSP_ESC_SENSOR_DATA, &msg);
 	}
+	subcmd = MSP_DP_DRAW_SCREEN;
+	this->Send(MSP_CMD_DISPLAYPORT, &subcmd, 1); //
 
 	// send full configuration
-	SendConfig();
+	// SendConfig();
 }
 
 void MspOsd::Send(const unsigned int message_type, const void *payload)
 {
 	if (_msp.Send(message_type, payload)) {
+		_performance_data.successful_sends++;
+
+	} else {
+		_performance_data.unsuccessful_sends++;
+	}
+}
+void MspOsd::Send(const unsigned int message_type, const void *payload,int32_t payload_size)
+{
+	if (_msp.Send(message_type, payload,payload_size)) {
 		_performance_data.successful_sends++;
 
 	} else {

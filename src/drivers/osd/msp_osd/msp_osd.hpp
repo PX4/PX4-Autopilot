@@ -123,6 +123,7 @@ private:
 
 	// update a single display element in the display
 	void Send(const unsigned int message_type, const void *payload);
+	void Send(const unsigned int message_type, const void *payload,int32_t payload_size);
 
 	// send full configuration to MSP (triggers the actual update)
 	void SendConfig();
