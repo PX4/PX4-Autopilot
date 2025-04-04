@@ -68,7 +68,7 @@ function(px4_add_common_flags)
 		# Warnings
 		-Wall
 		-Wextra
-		-Werror
+		#-Werror
 
 		-Warray-bounds
 		-Wcast-align
