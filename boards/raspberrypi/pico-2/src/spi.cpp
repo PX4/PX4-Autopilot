@@ -36,22 +36,17 @@
 #include <nuttx/spi/spi.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-  #if defined(CONFIG_NSH_MMCSDSPIPORTNO)
-	initSPIBus(SPI::Bus::SPI0, {
-		initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::Pin5}),
-	}),
-  #else
-    // FIXME?
-    #if defined(CONFIG_RP23XX_SPI0)
-	// initSPIBusExternal(SPI::Bus::SPI0, {
-	// 	initSPIConfigExternal(SPI::CS{GPIO::Pin13}),
-	// }),
-	initSPIBus(SPI::Bus::SPI0, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::Pin5}),
-	}),
+	#if defined(CONFIG_RP23XX_SPI0)
+		// initSPIBusExternal(SPI::Bus::SPI0, {
+		// 	initSPIConfigExternal(SPI::CS{GPIO::Pin13}),
+		// }),
+		initSPIBus(SPI::Bus::SPI0, {
+			#if defined(CONFIG_NSH_MMCSDSPIPORTNO)
+			initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::Pin5}),  // FIXME: CS GPIO?
+			#endif
+			initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::Pin5}),
+		}),
 	#endif
-
-  #endif
 	#if defined(CONFIG_RP23XX_SPI1)
 		initSPIBusExternal(SPI::Bus::SPI1, {
 			initSPIConfigExternal(SPI::CS{GPIO::Pin13}),

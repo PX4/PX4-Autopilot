@@ -43,11 +43,6 @@
 #define CONFIG_ARCH_ARMV8M
 #endif
 
-// FIXME?
-//#ifndef CONFIG_SMP
-//#define CONFIG_SMP
-//#endif
-
 
 /****************************************************************************************************
  * Included Files
@@ -56,8 +51,6 @@
 #include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
-
-//#define RP23XX_BOARD_W
 
 
 /* LEDs */
@@ -140,6 +133,7 @@
 	// GPIO29 IP Used in ADC mode (ADC3) to measure VSYS/3
 
 #endif
+
 /* PWM
  *
  * Alternatively CH3/CH4 could be assigned to UART6_TX/RX

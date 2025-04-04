@@ -278,7 +278,8 @@ rp23xx_boardinitialize(void)
 	// stm32_configgpio(GPIO_PPM_IN);
 
 	/* configure SPI all interfaces GPIO */
-	// FIXME !!!
+	// FIXME - UART messed up here!
+	// platforms/nuttx/src/px4/rpi/rpi_common/spi/spi.cpp
 	rp23xx_spiinitialize();
 
 }

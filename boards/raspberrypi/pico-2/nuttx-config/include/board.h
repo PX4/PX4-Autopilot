@@ -210,7 +210,7 @@ void rp23xx_boardinitialize(void);
  */
 //#define CONFIG_RP23XX_I2C1_GPIO		6
 // FIXME: would conflict with SPI0 if enabled
-#define CONFIG_RP23XX_I2C1_GPIO		12
+#define CONFIG_RP23XX_I2C1_GPIO		20
 
 /* SPI0:
  *  SPIDEV_FLASH (probably micro sd card)
