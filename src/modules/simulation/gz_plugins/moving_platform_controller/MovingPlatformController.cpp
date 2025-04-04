@@ -372,7 +372,7 @@ void MovingPlatformController::getVehicleModelName()
 	const std::string prefix_to_remove = "gz_";
 	size_t pos = px4_sim_model.find(prefix_to_remove);
 
-	if (pos == 0) {
+	if (pos != std::string::npos) {
 		px4_sim_model = px4_sim_model.substr(pos + prefix_to_remove.length());
 
 	} else {
