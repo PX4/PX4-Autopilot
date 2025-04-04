@@ -161,7 +161,9 @@ __EXPORT void board_on_reset(int status)
 
 int board_read_VBUS_state(void)
 {
-	return BOARD_ADC_USB_CONNECTED ? 0 : 1;
+    // FIXME: it reads "USB/VBUS not connected" now !?
+    return BOARD_ADC_USB_CONNECTED ? 0 : 1; // FIXME:  ?
+    // return 0;
 }
 
 /****************************************************************************
@@ -374,18 +376,21 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	 up_udelay(20);
 
 	// SPI2: sensors
-	 syslog(LOG_ERR, "[boot] initializing SPI sensors\n");
 	#if defined(CONFIG_NSH_MMCSDSPIPORTNO)
   		// SPI2
         #define SENSOR_SPI_BUS    1
     #else
   	  #define SENSOR_SPI_BUS    1
     #endif
-	spi2 = rp23xx_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(SENSOR_SPI_BUS));
+    	int sensors_spi_rp_port_num = PX4_BUS_NUMBER_FROM_PX4(SENSOR_SPI_BUS);
+    	syslog(LOG_ERR, "[boot] initializing sensors on SPI%d\n", sensors_spi_rp_port_num);
+	spi2 = rp23xx_spibus_initialize(sensors_spi_rp_port_num);
 
 	if (!spi2) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 1\n");
 		led_off(LED_BLUE);
+	} else {
+		syslog(LOG_INFO, "[boot] initialized SPI sensors port 1\n");
 	}
 
 	/* Default SPI2 to 1MHz and de-assert the known chip selects. */
@@ -393,6 +398,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	up_udelay(20);
+	syslog(LOG_INFO, "[boot] initialized SPI sensors port 1\n");
 
  #if defined(FLASH_BASED_PARAMS)					// This probably doesn't relate to RP2040 right now.
  	static sector_descriptor_t params_sector_map[] = {

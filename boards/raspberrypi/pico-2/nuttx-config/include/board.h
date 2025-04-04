@@ -41,10 +41,6 @@
 
 #include <nuttx/config.h>
 
-#include "rp23xx_i2cdev.h"
-#include "rp23xx_spidev.h"
-#include "rp23xx_i2sdev.h"
-#include "rp23xx_spisd.h"
 
 #ifndef __ASSEMBLY__
 #  include <stdint.h>
@@ -210,7 +206,8 @@ void rp23xx_boardinitialize(void);
  */
 //#define CONFIG_RP23XX_I2C1_GPIO		6
 // FIXME: would conflict with SPI0 if enabled
-#define CONFIG_RP23XX_I2C1_GPIO		20
+// FIXME GPIOs 18-21 assigned to timer, PWM ?
+#define CONFIG_RP23XX_I2C1_GPIO		16
 
 /* SPI0:
  *  SPIDEV_FLASH (probably micro sd card)
@@ -220,10 +217,14 @@ void rp23xx_boardinitialize(void);
  *  MISO: GPIO4
  */
 
+#define GPIO_SPI0_SCLK	( 6 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+#define GPIO_SPI0_MISO	( 4 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+#define GPIO_SPI0_MOSI	( 3 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
 
-#define GPIO_SPI0_SCLK  ( 10 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
-#define GPIO_SPI0_MISO ( 12 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
-#define GPIO_SPI0_MOSI ( 11 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+
+//#define GPIO_SPI0_SCLK  ( 10 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+//#define GPIO_SPI0_MISO ( 12 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+//#define GPIO_SPI0_MOSI ( 11 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
 
 /* SPI1:
  *  MPU9250 and BMP280
@@ -233,13 +234,13 @@ void rp23xx_boardinitialize(void);
  *  MOSI: GPIO11
  */
 
-//#define GPIO_SPI1_SCLK	( 10 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
-//#define GPIO_SPI1_MISO	( 12 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
-//#define GPIO_SPI1_MOSI	( 11 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+#define GPIO_SPI1_SCLK	( 10 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+#define GPIO_SPI1_MISO	( 12 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+#define GPIO_SPI1_MOSI	( 11 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
 
-#define GPIO_SPI1_SCLK	( 6 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
-#define GPIO_SPI1_MISO	( 4 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
-#define GPIO_SPI1_MOSI	( 3 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+//#define GPIO_SPI1_SCLK	( 6 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+//#define GPIO_SPI1_MISO	( 4 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+//#define GPIO_SPI1_MOSI	( 3 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
 
 
 #endif  /* __ARCH_BOARD_BOARD_H */

@@ -101,12 +101,12 @@ __BEGIN_DECLS
 	#define GPIO_FUNC_SIO_SHIFT_9 GPIO_FUN(RP2040_GPIO_FUNC_SIO)
 #endif
 
-#define GPIO_NUM_MASK	0x1f
-#define	GPIO_PU_MASK	0x20		// GPIO PAD register mask
-#define	GPIO_PD_MASK	0x40		// GPIO pin number mask
-#define	GPIO_OUT_MASK	0x80		// GPIO pin function mask
-#define	GPIO_SET_MASK	0x100		// GPIO pin function mask
-#define	GPIO_FUN_MASK	0x3E00		// GPIO output enable mask
+#define GPIO_NUM_MASK	0x1f  		//                                00011111 = 31 FIXME
+#define	GPIO_PU_MASK	0x20		// GPIO PAD register mask.        00100000 = 32
+#define	GPIO_PD_MASK	0x40		// GPIO pin number mask.          01000000 = 64
+#define	GPIO_OUT_MASK	0x80		// GPIO pin function mask         10000000 = 128
+#define	GPIO_SET_MASK	0x100		// GPIO pin function mask        100000000 =256
+#define	GPIO_FUN_MASK	0x3E00		// GPIO output enable mask 011111000000000
 
 #if defined(CONFIG_ARCH_CHIP_RP23XX)
 
