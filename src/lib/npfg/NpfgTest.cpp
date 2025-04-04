@@ -75,8 +75,7 @@ TEST(NpfgTest, NoWind)
 	float min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
 					 airspeed_max, min_ground_speed);
 
-	float airspeed_setpoint_adapted = (min_airspeed_for_bearing > airspeed_max) ? airspeed_max : math::constrain(
-			airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+	float airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
 
 	float heading_setpoint = _course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
 				 airspeed_setpoint_adapted);
@@ -94,8 +93,7 @@ TEST(NpfgTest, NoWind)
 	min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
 				   airspeed_max, min_ground_speed);
 
-	airspeed_setpoint_adapted = (min_airspeed_for_bearing > airspeed_max) ? airspeed_max : math::constrain(
-					    airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+	airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
 
 	heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
 					   airspeed_setpoint_adapted));
@@ -121,8 +119,7 @@ TEST(NpfgTest, LightCrossWind)
 	float min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
 					 airspeed_max, min_ground_speed);
 
-	float airspeed_setpoint_adapted = (min_airspeed_for_bearing > airspeed_max) ? airspeed_max : math::constrain(
-			airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+	float airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
 
 	float heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
 				 airspeed_setpoint_adapted));
@@ -140,8 +137,7 @@ TEST(NpfgTest, LightCrossWind)
 	min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
 				   airspeed_max, min_ground_speed);
 
-	airspeed_setpoint_adapted = (min_airspeed_for_bearing > airspeed_max) ? airspeed_max : math::constrain(
-					    airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+	airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
 
 	heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
 					   airspeed_setpoint_adapted));
@@ -166,8 +162,7 @@ TEST(NpfgTest, StrongHeadWind)
 	float min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
 					 airspeed_max, min_ground_speed);
 
-	float airspeed_setpoint_adapted = (min_airspeed_for_bearing > airspeed_max) ? airspeed_max : math::constrain(
-			airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+	float airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
 
 	float heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
 				 airspeed_setpoint_adapted));
@@ -196,8 +191,7 @@ TEST(NpfgTest, StrongTailWind)
 	float min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
 					 airspeed_max, min_ground_speed);
 
-	float airspeed_setpoint_adapted = (min_airspeed_for_bearing > airspeed_max) ? airspeed_max : math::constrain(
-			airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+	float airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
 
 	float heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
 				 airspeed_setpoint_adapted));
@@ -227,8 +221,7 @@ TEST(NpfgTest, ExcessHeadWind)
 	float min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
 					 airspeed_max, min_ground_speed);
 
-	float airspeed_setpoint_adapted = (min_airspeed_for_bearing > airspeed_max) ? airspeed_max : math::constrain(
-			airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+	float airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
 
 	float heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
 				 airspeed_setpoint_adapted));
@@ -254,12 +247,12 @@ TEST(NpfgTest, ExcessHeadWind)
 
 	// WHEN: we update bearing and airspeed magnitude augmentation
 	min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
-					 airspeed_max, min_ground_speed);
+				   airspeed_max, min_ground_speed);
 
 	airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
 
 	heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
-				 airspeed_setpoint_adapted));
+					   airspeed_setpoint_adapted));
 
 	// THEN: expect heading sp due North with a min airspeed equal to airspeed_max
 	EXPECT_NEAR(heading_setpoint, 0.f, 0.01f);
@@ -275,12 +268,12 @@ TEST(NpfgTest, ExcessHeadWind)
 
 	// WHEN: we update bearing and airspeed magnitude augmentation
 	min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
-		airspeed_max, min_ground_speed);
+				   airspeed_max, min_ground_speed);
 
 	airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
 
 	heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
-		airspeed_setpoint_adapted));
+					   airspeed_setpoint_adapted));
 
 	// THEN: expect heading setpoint to be between the target bearing and the cross wind
 	// & the minimum airspeed to be = maximum airspeed
@@ -305,8 +298,7 @@ TEST(NpfgTest, ExcessTailWind)
 	float min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
 					 airspeed_max, min_ground_speed);
 
-	float airspeed_setpoint_adapted = (min_airspeed_for_bearing > airspeed_max) ? airspeed_max : math::constrain(
-			airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+	float airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
 
 	float heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
 				 airspeed_setpoint_adapted));
@@ -353,12 +345,12 @@ TEST(NpfgTest, ExcessCrossWind)
 	airspeed_max = 30.f;
 
 	min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
-		airspeed_max, min_ground_speed);
+				   airspeed_max, min_ground_speed);
 
 	airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
 
 	heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
-		airspeed_setpoint_adapted));
+					   airspeed_setpoint_adapted));
 
 	EXPECT_NEAR(heading_setpoint, -M_PI_F / 2.f, 0.01f);
 	EXPECT_NEAR(min_airspeed_for_bearing, airspeed_max, 0.1f);
