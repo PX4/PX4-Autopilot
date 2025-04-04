@@ -44,6 +44,7 @@
 
 #include <gtest/gtest.h>
 #include <lib/npfg/CourseToAirspeedRefMapper.hpp>
+#include <lib/npfg/AirspeedReferenceController.hpp>
 
 using namespace matrix;
 
@@ -72,12 +73,16 @@ TEST(NpfgTest, NoWind)
 	float airspeed_setpoint = 15.f;
 
 	// WHEN: we update bearing and airspeed magnitude augmentation
-	float heading_setpoint = _course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel, airspeed_setpoint);
 	float min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
 					 airspeed_max, min_ground_speed);
 
+	float airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+
+	float heading_setpoint = _course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
+				 airspeed_setpoint_adapted);
+
 	// THEN: expect heading due North with a min airspeed equal to min_ground_speed
-	EXPECT_NEAR(heading_setpoint, 0.f, FLT_EPSILON);
+	EXPECT_NEAR(heading_setpoint, 0.f, 0.01f);
 	EXPECT_NEAR(min_airspeed_for_bearing, min_ground_speed, FLT_EPSILON);
 
 	// GIVEN: bearing due South
@@ -86,13 +91,17 @@ TEST(NpfgTest, NoWind)
 	min_ground_speed = 5.0f;
 
 	// WHEN: we update bearing and airspeed magnitude augmentation
-	heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
-					   airspeed_setpoint));
 	min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
 				   airspeed_max, min_ground_speed);
 
+	airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+
+	heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
+					   airspeed_setpoint_adapted));
+
+
 	// THEN: expect heading due South with a min airspeed equal to min_ground_speed
-	EXPECT_NEAR(heading_setpoint, -M_PI_F, 2 * FLT_EPSILON); // Why is the 2*FLT_EPS required here to make it pass?
+	EXPECT_NEAR(heading_setpoint, -M_PI_F,  0.01f);
 	EXPECT_NEAR(min_airspeed_for_bearing, min_ground_speed, FLT_EPSILON);
 }
 
@@ -108,12 +117,16 @@ TEST(NpfgTest, LightCrossWind)
 	float airspeed_setpoint = 15.f;
 
 	// WHEN: we update bearing and airspeed magnitude augmentation
-	float heading_setpoint = _course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel, airspeed_setpoint);
 	float min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
 					 airspeed_max, min_ground_speed);
 
+	float airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+
+	float heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
+				 airspeed_setpoint_adapted));
+
 	// THEN: expect heading -0.4115168 with a min airspeed of to 7.8 (sqrt(25+36))
-	EXPECT_NEAR(heading_setpoint, -0.4115168, 0.1f);
+	EXPECT_NEAR(heading_setpoint, -0.4115168,  0.01f);
 	EXPECT_NEAR(min_airspeed_for_bearing, 7.8f, 0.1f);
 
 	// GIVEN: bearing due South
@@ -122,17 +135,20 @@ TEST(NpfgTest, LightCrossWind)
 	min_ground_speed = 5.0f;
 
 	// WHEN: we update bearing and airspeed magnitude augmentation
-	heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
-					   airspeed_setpoint));
 	min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
 				   airspeed_max, min_ground_speed);
 
+	airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+
+	heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
+					   airspeed_setpoint_adapted));
+
 	// THEN: expect heading of -2.73 and a min airspeed of 7.8 (sqrt(25+36))
-	EXPECT_NEAR(heading_setpoint, -2.73f, 0.1f); // Why is the 2*FLT_EPS required here to make it pass?
+	EXPECT_NEAR(heading_setpoint, -2.73f,  0.01f);
 	EXPECT_NEAR(min_airspeed_for_bearing, 7.8f, 0.1f);
 }
 
-TEST(NpfgTest, StrongHeadWing)
+TEST(NpfgTest, StrongHeadWind)
 {
 	CourseToAirspeedRefMapper _course_to_airspeed;
 
@@ -144,32 +160,55 @@ TEST(NpfgTest, StrongHeadWing)
 	float airspeed_setpoint = 15.f;
 
 	// WHEN: we update bearing and airspeed magnitude augmentation
-	float heading_setpoint = _course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel, airspeed_setpoint);
 	float min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
 					 airspeed_max, min_ground_speed);
 
+	float airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+
+	float heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
+				 airspeed_setpoint_adapted));
+
+
 	// THEN: expect heading due North with a min airspeed equal to 16+min_ground_speed
-	EXPECT_NEAR(heading_setpoint, 0.f, 0.1f);
+	EXPECT_NEAR(heading_setpoint, 0.f,  0.01f);
 	EXPECT_NEAR(min_airspeed_for_bearing, 16 + min_ground_speed, 0.1f);
 
+
+}
+
+TEST(NpfgTest, StrongTailWind)
+{
+
+	CourseToAirspeedRefMapper _course_to_airspeed;
+
 	// GIVEN: bearing due South
-	bearing = M_PI_F;
-	airspeed_max = 25.f;
-	min_ground_speed = 5.0f;
+	const Vector2f wind_vel(-16.f, 0.f);
+	float bearing = M_PI_F;
+	float airspeed_max = 25.f;
+	float min_ground_speed = 5.0f;
+	float airspeed_setpoint = 15.f;
 
 	// WHEN: we update bearing and airspeed magnitude augmentation
-	heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
-					   airspeed_setpoint));
-	min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
-				   airspeed_max, min_ground_speed);
+	float min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
+					 airspeed_max, min_ground_speed);
+
+	float airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+
+	float heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
+				 airspeed_setpoint_adapted));
 
 	// THEN: expect heading due South with a min airspeed at 0
-	EXPECT_NEAR(heading_setpoint, -M_PI_F, 0.1f); // Why is the 2*FLT_EPS required here to make it pass?
+	EXPECT_NEAR(heading_setpoint, -M_PI_F,  0.01f);
 	EXPECT_NEAR(min_airspeed_for_bearing, 0.f, 0.1f);
 }
 
-TEST(NpfgTest, ExceedingHeadWind)
+
+
+TEST(NpfgTest, ExcessHeadWind)
 {
+
+	// TEST DESCRIPTION: infeasible bearing, with |wind| = |airspeed|. Align with wind
+
 	CourseToAirspeedRefMapper _course_to_airspeed;
 
 	// GIVEN
@@ -180,26 +219,180 @@ TEST(NpfgTest, ExceedingHeadWind)
 	float airspeed_setpoint = 15.f;
 
 	// WHEN: we update bearing and airspeed magnitude augmentation
-	float heading_setpoint = _course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel, airspeed_setpoint);
 	float min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
 					 airspeed_max, min_ground_speed);
 
+	float airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+
+	float heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
+				 airspeed_setpoint_adapted));
+
 	// THEN: expect heading sp due North with a min airspeed equal to airspeed_max
-	EXPECT_NEAR(heading_setpoint, 0.f, 0.1f);
+	EXPECT_NEAR(heading_setpoint, 0.f, 0.01f);
 	EXPECT_NEAR(min_airspeed_for_bearing, airspeed_max, 0.1f);
 
-	// GIVEN: bearing due South
-	bearing = M_PI_F;
-	airspeed_max = 25.f;
-	min_ground_speed = 5.0f;
+	// WHEN: we increase the maximum airspeed
+	airspeed_max = 35.f;
 
-	// WHEN: we update bearing and airspeed magnitude augmentation
-	heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
-					   airspeed_setpoint));
 	min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
 				   airspeed_max, min_ground_speed);
 
-	// THEN: expect heading due South with a min airspeed equal at 0
-	EXPECT_NEAR(heading_setpoint, -M_PI_F, 0.1f); // Why is the 2*FLT_EPS required here to make it pass?
+	// THEN: expect the minimum airspeed to be high enough to maintain minimum groundspeed
+	EXPECT_NEAR(min_airspeed_for_bearing, 30.f, 0.1f);
+
+	// TEST DESCRIPTION: infeasible bearing, with |wind| = |airspeed|. Align with wind
+
+	// GIVEN: bearing east
+	bearing = M_PI_F / 2.f;
+	airspeed_max = 25.f;
+
+	// WHEN: we update bearing and airspeed magnitude augmentation
+	min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
+				   airspeed_max, min_ground_speed);
+
+	airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+
+	heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
+					   airspeed_setpoint_adapted));
+
+	// THEN: expect heading sp due North with a min airspeed equal to airspeed_max
+	EXPECT_NEAR(heading_setpoint, 0.f, 0.01f);
+	EXPECT_NEAR(min_airspeed_for_bearing, airspeed_max, 0.1f);
+
+
+	// TEST DESCRIPTION: infeasible bearing, with |wind| > |airspeed|. Aircraft should have a heading between the target bearing
+	// and wind direction to minimize drift while still attempting to reach the bearing.
+
+	// GIVEN: bearing NE
+	bearing = M_PI_F / 4.f;
+	airspeed_max = 20.f;
+
+	// WHEN: we update bearing and airspeed magnitude augmentation
+	min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
+				   airspeed_max, min_ground_speed);
+
+	airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+
+	heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
+					   airspeed_setpoint_adapted));
+
+	// THEN: expect heading setpoint to be between the target bearing and the cross wind
+	// & the minimum airspeed to be = maximum airspeed
+	EXPECT_TRUE((heading_setpoint > -M_PI_F / 2.f) && (heading_setpoint < bearing));
+	EXPECT_NEAR(min_airspeed_for_bearing, airspeed_max, 0.1f);
+
+}
+
+TEST(NpfgTest, ExcessTailWind)
+{
+
+	CourseToAirspeedRefMapper _course_to_airspeed;
+
+	// GIVEN: bearing due South
+	const Vector2f wind_vel(-25.f, 0.f);
+	float bearing = M_PI_F;
+	float airspeed_max = 25.f;
+	float min_ground_speed = 5.0f;
+	float airspeed_setpoint = 15.f;
+
+	// WHEN: we update bearing and airspeed magnitude augmentation
+	float min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
+					 airspeed_max, min_ground_speed);
+
+	float airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+
+	float heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
+				 airspeed_setpoint_adapted));
+
+	// THEN: expect heading due South with a min airspeed equal to 0
+	EXPECT_NEAR(heading_setpoint, -M_PI_F, 0.01f);
 	EXPECT_NEAR(min_airspeed_for_bearing, 0.f, 0.1f);
+
+}
+
+TEST(NpfgTest, ExcessCrossWind)
+{
+
+	// TEST DESCRIPTION: infeasible bearing, with |wind| > |airspeed|. Aircraft should have a heading between the target bearing
+	// and wind direction to minimize drift while still attempting to reach the bearing.
+
+	CourseToAirspeedRefMapper _course_to_airspeed;
+
+	// GIVEN
+	const Vector2f wind_vel(0, 30.f);
+	float bearing = 0.f;
+	float airspeed_max = 25.f;
+	float min_ground_speed = 5.f;
+	float airspeed_setpoint = 15.f;
+
+
+	// WHEN: we update bearing and airspeed magnitude augmentation
+	float min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
+					 airspeed_max, min_ground_speed);
+
+	float airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+
+	float heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
+				 airspeed_setpoint_adapted));
+
+	// THEN: expect heading setpoint to be between the target bearing and the cross wind
+	// & the minimum airspeed to be = maximum airspeed
+	EXPECT_TRUE((heading_setpoint > -M_PI_F / 2.f) && (heading_setpoint < bearing));
+	EXPECT_NEAR(min_airspeed_for_bearing, airspeed_max, 0.1f);
+
+
+	// TEST DESCRIPTION: infeasible bearing, with |wind| = |airspeed|. Align with wind.
+
+	airspeed_max = 30.f;
+
+	min_airspeed_for_bearing = _course_to_airspeed.getMinAirspeedForCurrentBearing(bearing, wind_vel,
+				   airspeed_max, min_ground_speed);
+
+	airspeed_setpoint_adapted = math::constrain(airspeed_setpoint, min_airspeed_for_bearing, airspeed_max);
+
+	heading_setpoint = matrix::wrap_pi(_course_to_airspeed.mapCourseSetpointToHeadingSetpoint(bearing, wind_vel,
+					   airspeed_setpoint_adapted));
+
+	EXPECT_NEAR(heading_setpoint, -M_PI_F / 2.f, 0.01f);
+	EXPECT_NEAR(min_airspeed_for_bearing, airspeed_max, 0.1f);
+
+}
+
+TEST(NpfgTest, HeadingControl)
+{
+
+	AirspeedReferenceController _airspeed_reference_controller;
+	const float p_gain = 0.8885f;
+
+	// GIVEN: that we are already aligned with out heading setpoint
+	float heading_sp = 0.f;
+	float heading = 0.f;
+	float airspeed = 15.f;
+
+	// WHEN: we compute the lateral acceleration setpoint
+	float lateral_acceleration_setpoint = _airspeed_reference_controller.controlHeading(heading_sp, heading, airspeed);
+
+	// THEN: we expect 0 lateral acceleration
+	EXPECT_NEAR(lateral_acceleration_setpoint, 0.f, 0.01f);
+
+	// GIVEN: current heading 45 deg NW
+	heading = - M_PI_F / 4.f;
+
+	// WHEN: we compute the lateral acceleration setpoint
+	lateral_acceleration_setpoint = _airspeed_reference_controller.controlHeading(heading_sp, heading, airspeed);
+
+	// THEN: we expect a positive lateral acceleration input.  = Airspeed vector
+	// required to correct the difference between the setpoint and the current heading,
+	// scaled by p_gain.
+	EXPECT_NEAR(lateral_acceleration_setpoint, airspeed * sinf(heading_sp - heading) * p_gain, 0.01f);
+
+	// GIVEN: current heading 180 (South)
+	heading = M_PI_F;
+
+	// WHEN: we compute the lateral acceleration setpoint
+	lateral_acceleration_setpoint = _airspeed_reference_controller.controlHeading(heading_sp, heading, airspeed);
+
+	// THEN: we we expect maxmimum lateral acceleration setpoint
+	EXPECT_NEAR(lateral_acceleration_setpoint, airspeed * p_gain, 0.01f);
+
 }
