@@ -516,6 +516,65 @@ bool EncodeCanFrameV2(const AgxMessage *msg, CANFrame *can_frame)
 	return ret;
 }
 
+uint32_t GetCanIdFromMsgTypeV2(const MsgType type)
+{
+	uint32_t can_id = 0;
+
+	switch (type) {
+	case AgxMsgMotionCommand: can_id = CAN_MSG_MOTION_COMMAND_ID; break;
+
+	case AgxMsgLightCommand: can_id = CAN_MSG_LIGHT_COMMAND_ID; break;
+
+	case AgxMsgBrakingCommand: can_id = CAN_MSG_BRAKING_COMMAND_ID; break;
+
+	case AgxMsgSystemState: can_id = CAN_MSG_SYSTEM_STATE_ID; break;
+
+	case AgxMsgMotionState: can_id = CAN_MSG_MOTION_STATE_ID; break;
+
+	case AgxMsgLightState: can_id = CAN_MSG_LIGHT_STATE_ID; break;
+
+	case AgxMsgRcState: can_id = CAN_MSG_RC_STATE_ID; break;
+
+	case AgxMsgActuatorHSState: can_id = CAN_MSG_ACTUATOR1_HS_STATE_ID; break;
+
+	case AgxMsgActuatorLSState: can_id = CAN_MSG_ACTUATOR1_LS_STATE_ID; break;
+
+	case AgxMsgMotionModeState: can_id = CAN_MSG_CURRENT_CTRL_MODE; break;
+
+	case AgxMsgOdometry: can_id = CAN_MSG_ODOMETRY_ID; break;
+
+	case AgxMsgImuAccel: can_id = CAN_MSG_IMU_ACCEL_ID; break;
+
+	case AgxMsgImuGyro: can_id = CAN_MSG_IMU_GYRO_ID; break;
+
+	case AgxMsgImuEuler: can_id = CAN_MSG_IMU_EULER_ID; break;
+
+	case AgxMsgSafetyBumper: can_id = CAN_MSG_SAFETY_BUMPER_ID; break;
+
+	case AgxMsgUltrasonic: can_id = CAN_MSG_ULTRASONIC_1_ID; break;
+
+	case AgxMsgUwb: can_id = CAN_MSG_UWB_1_ID; break;
+
+	case AgxMsgBmsBasic: can_id = CAN_MSG_BMS_BASIC_ID; break;
+
+	case AgxMsgBmsExtended: can_id = CAN_MSG_BMS_EXTENDED_ID; break;
+
+	case AgxMsgVersionRequest: can_id = CAN_MSG_VERSION_REQUEST_ID; break;
+
+	case AgxMsgVersionResponse: can_id = CAN_MSG_VERSION_RESPONSE_ID; break;
+
+	case AgxMsgControlModeConfig: can_id = CAN_MSG_CTRL_MODE_CONFIG_ID; break;
+
+	case AgxMsgSteerNeutralRequest: can_id = CAN_MSG_STEER_NEUTRAL_REQUEST_ID; break;
+
+	case AgxMsgUnknown: break;
+
+	default: break;
+	}
+
+	return can_id;
+}
+
 uint8_t CalcCanFrameChecksumV2(uint16_t id, uint8_t *data, uint8_t dlc)
 {
 	uint8_t checksum = 0x00;

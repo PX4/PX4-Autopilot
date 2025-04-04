@@ -39,6 +39,9 @@ void ScoutRobot::Connect(const char *const can_dev, const uint32_t can_bitrate)
 	_can = new SocketCAN();
 
 	if (_can->Init(can_dev, can_bitrate) == PX4_OK) { _can_connected = true; }
+
+	// Init filter to accept only system status feedback msg by default
+	_can->SetMaskFilter(_parser.GetCanId(AgxMsgSystemState), CAN_SFF_MASK);
 }
 
 
@@ -172,8 +175,6 @@ void ScoutRobot::CheckUpdateFromRover()
 
 	if (_parser.DecodeMessage(&_rx_frame, &status_msg)) {
 		UpdateRobotCoreState(status_msg);	// 0x211
-		UpdateActuatorState(status_msg);	// 0x251-0x254
-		UpdateMotorState(status_msg);
 	}
 }
 
@@ -189,7 +190,7 @@ void ScoutRobot::EnableCommandMode()
 	if (_parser.EncodeMessage(&msg, &_tx_frame)) {
 		uint64_t count = 0;
 
-		while (count < 100) {
+		while (count < 5) {
 			count++;
 			_can->SendFrame(_tx_frame);
 		}
@@ -205,6 +206,9 @@ void ScoutRobot::QuerySystemVersion(const uint64_t timeout_msec)
 
 	const hrt_abstime begin = hrt_absolute_time();
 
+	// Set mask filter to receive only version response
+	_can->SetMaskFilter(_parser.GetCanId(AgxMsgVersionResponse), CAN_SFF_MASK);
+
 	while (hrt_elapsed_time(&begin) < timeout_msec) {
 		// Send request
 		if (_parser.EncodeMessage(&msg, &_tx_frame)) { _can->SendFrame(_tx_frame); }
@@ -215,6 +219,8 @@ void ScoutRobot::QuerySystemVersion(const uint64_t timeout_msec)
 		AgxMessage status_msg;
 
 		if (_parser.DecodeMessage(&_rx_frame, &status_msg)) {
+			PX4_INFO("QuerySystemVersion: %s", status_msg.body.version_str);
+
 			if (UpdateVersionResponse(status_msg) == PX4_OK) { break; }
 		}
 	}

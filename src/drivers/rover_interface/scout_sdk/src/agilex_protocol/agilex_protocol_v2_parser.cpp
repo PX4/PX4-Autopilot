@@ -12,6 +12,11 @@ bool AgileXProtocolV2Parser::EncodeMessage(const AgxMessage *msg, TxFrame *txf)
 	return EncodeCanFrameV2(msg, &txf->frame);
 }
 
+uint32_t AgileXProtocolV2Parser::GetCanId(const MsgType type)
+{
+	return GetCanIdFromMsgTypeV2(type);
+}
+
 uint8_t AgileXProtocolV2Parser::CalculateChecksum(uint16_t id, uint8_t *data, uint8_t dlc)
 {
 	return CalcCanFrameChecksumV2(id, data, dlc);
