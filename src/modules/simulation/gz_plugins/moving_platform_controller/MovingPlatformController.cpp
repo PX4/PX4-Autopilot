@@ -136,7 +136,8 @@ void MovingPlatformController::PreUpdate(const gz::sim::UpdateInfo &_info, gz::s
 	const double dt_sec = std::chrono::duration<double>(_info.dt).count();
 	updateNoise(dt_sec);
 
-	// Wait for model to spawn, takes quite some time now...
+	// The model takes 5s to spawn. Before that, don't move the platform -
+	// otherwise the platform is not under the model by the time it spawns
 	const bool keep_stationary = _startup_timer.ElapsedTime() < 5s;
 	updateWrenchCommand(_velocity_sp, _orientation_sp, keep_stationary);
 
