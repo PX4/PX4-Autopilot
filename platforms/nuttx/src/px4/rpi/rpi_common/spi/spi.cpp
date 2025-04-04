@@ -85,9 +85,9 @@ __EXPORT void rp2040_spiinitialize()
 #endif
 {
 	px4_set_spi_buses_from_hw_version();
-	// FIXME?
+	// FIXME? restoring these two lines break UART TX?
 	//board_control_spi_sensors_power_configgpio();
-	//board_control_spi_sensors_power(true, 0xffff);
+	// board_control_spi_sensors_power(true, 0xffff);
 
 	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
 		switch (px4_spi_buses[i].bus) {
@@ -105,6 +105,7 @@ __EXPORT void rp2040_spiinitialize()
 #endif
 
 #if defined(CONFIG_RP2XXX_SPI1) && defined(GPIO_SPI1_SCLK) && defined(GPIO_SPI1_MISO) && defined(GPIO_SPI1_MOSI)
+// FIXME: restoring this seem to also fail UART TX ?
 //	px4_arch_configgpio(GPIO_SPI1_SCLK);
 //	px4_arch_configgpio(GPIO_SPI1_MISO);
 //	px4_arch_configgpio(GPIO_SPI1_MOSI);
@@ -120,6 +121,7 @@ __EXPORT void rp2040_spiinitialize()
 #endif // CONFIG_RP2XXX_SPI0
 
 #ifdef CONFIG_RP2XXX_SPI1
+// FIXME: restoring this seem to also fail UART TX ?
 //	ASSERT(_spi_bus1);
 //
 //	if (board_has_bus(BOARD_SPI_BUS, PX4_BUS_NUMBER_TO_PX4(1))) {
