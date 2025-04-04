@@ -350,7 +350,6 @@ VtolAttitudeControl::Run()
 		_local_pos_sub.update(&_local_pos);
 		_local_pos_sp_sub.update(&_local_pos_sp);
 		_pos_sp_triplet_sub.update(&_pos_sp_triplet);
-		_airspeed_validated_sub.update(&_airspeed_validated);
 		_tecs_status_sub.update(&_tecs_status);
 		_land_detected_sub.update(&_land_detected);
 
@@ -362,6 +361,23 @@ VtolAttitudeControl::Run()
 
 			} else {
 				_home_position_z = NAN;
+			}
+		}
+
+		if (_airspeed_validated_sub.updated()) {
+			airspeed_validated_s airspeed_validated;
+
+			if (_airspeed_validated_sub.copy(&airspeed_validated)) {
+				const bool airspeed_from_sensor = airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_1
+								  || airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_2
+								  || airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_3;
+				const bool use_airspeed = _param_fw_use_airspd.get() && airspeed_from_sensor;
+
+				_calibrated_airspeed = use_airspeed ? airspeed_validated.calibrated_airspeed_m_s : NAN;
+				_time_last_airspeed_update = airspeed_validated.timestamp;
+
+			} else if (hrt_elapsed_time(&_time_last_airspeed_update) > 1_s) {
+				_calibrated_airspeed = NAN;
 			}
 		}
 
