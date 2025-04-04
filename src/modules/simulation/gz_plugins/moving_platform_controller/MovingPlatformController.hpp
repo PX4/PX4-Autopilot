@@ -82,12 +82,16 @@ private:
 				 const gz::math::Quaterniond &orientation_setpoint,
 				 const bool keep_stationary);
 	void sendWrenchCommand(gz::sim::EntityComponentManager &ecm);
-	double ReadEnvVar(const char *env_var_name, double default_value);
+	double readEnvVar(const char *env_var_name, double default_value);
+	void getVehicleModelName();
 
 	gz::sim::Entity _entity;
 	gz::sim::Model _model{gz::sim::kNullEntity};
 	gz::sim::Entity _link_entity;
 	gz::sim::Link _link;
+
+	gz::sim::Entity _world_entity;
+	gz::sim::World _world;
 
 	// Low-pass filtered white noise for driving boat motion.
 	gz::math::Vector3d _noise_lowpass_force{0., 0., 0.};
@@ -115,5 +119,7 @@ private:
 	gz::math::Vector3d _platform_diag_moments;
 
 	gz::common::Timer _startup_timer;
+	std::string _vehicle_model_name;
+	bool _wait_for_vehicle_spawned;
 };
 } // end namespace custom

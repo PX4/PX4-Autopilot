@@ -64,13 +64,18 @@ void MovingPlatformController::Configure(const gz::sim::Entity &entity,
 	// Needed to report linear & angular velocity
 	_link.EnableVelocityChecks(ecm, true);
 
+	_world_entity = gz::sim::worldEntity(ecm);
+	_world = gz::sim::World(_world_entity);
+
+	getVehicleModelName();
+
 	_startup_timer = gz::common::Timer();
 	_startup_timer.Start();
 
 	// Get velocity and orientation setpoints from env vars
 	{
-		const double vel_forward = ReadEnvVar("PX4_GZ_PLATFORM_VEL", 1.0);
-		const double heading_deg = ReadEnvVar("PX4_GZ_PLATFORM_HEADING_DEG", 0.0);
+		const double vel_forward = readEnvVar("PX4_GZ_PLATFORM_VEL", 1.0);
+		const double heading_deg = readEnvVar("PX4_GZ_PLATFORM_HEADING_DEG", 0.0);
 		const double heading = GZ_DTOR(heading_deg);
 
 		_orientation_sp = gz::math::Quaterniond(0., 0., heading);
@@ -94,9 +99,7 @@ void MovingPlatformController::Configure(const gz::sim::Entity &entity,
 
 	// Get gravity, model mass, platform height.
 	{
-		const auto world_entity = gz::sim::worldEntity(ecm);
-		const auto world = gz::sim::World(world_entity);
-		const auto gravity = world.Gravity(ecm);
+		const auto gravity = _world.Gravity(ecm);
 
 		if (gravity.has_value()) {
 			_gravity = gravity.value().Z();
@@ -136,9 +139,11 @@ void MovingPlatformController::PreUpdate(const gz::sim::UpdateInfo &_info, gz::s
 	const double dt_sec = std::chrono::duration<double>(_info.dt).count();
 	updateNoise(dt_sec);
 
-	// The model takes 5s to spawn. Before that, don't move the platform -
-	// otherwise the platform is not under the model by the time it spawns
-	const bool keep_stationary = _startup_timer.ElapsedTime() < 5s;
+	// Keep stationary if model is not yet spawned (and model name valid).
+	// If model name invalid, then we don't know what to wait for and move it immediately.
+	const bool vehicle_has_spawned = 0 != _world.ModelByName(ecm, _vehicle_model_name);
+	const bool keep_stationary = _wait_for_vehicle_spawned && !vehicle_has_spawned;
+
 	updateWrenchCommand(_velocity_sp, _orientation_sp, keep_stationary);
 
 	sendWrenchCommand(ecm);
@@ -304,7 +309,7 @@ void MovingPlatformController::sendWrenchCommand(gz::sim::EntityComponentManager
 }
 
 
-double MovingPlatformController::ReadEnvVar(const char *env_var_name, double default_value)
+double MovingPlatformController::readEnvVar(const char *env_var_name, double default_value)
 {
 
 	const char *env_var_value = std::getenv(env_var_name);
@@ -326,4 +331,65 @@ double MovingPlatformController::ReadEnvVar(const char *env_var_name, double def
 	}
 
 	return default_value;
+}
+
+void MovingPlatformController::getVehicleModelName()
+{
+	// Find the name of the gazebo vehicle model.
+	// The name is constructed in px4-rc.gzsim as:
+	//     MODEL_NAME="${PX4_SIM_MODEL#*gz_}"
+	//     MODEL_NAME_INSTANCE="${MODEL_NAME}_${px4_instance}"
+	// So here we replicate that.
+
+	const char *px4_sim_model_cstr = std::getenv("PX4_SIM_MODEL");
+	std::string px4_sim_model = "";
+
+	const char *px4_gz_model_name_cstr = std::getenv("PX4_GZ_MODEL_NAME");
+
+	if (px4_sim_model_cstr != nullptr) {
+
+		px4_sim_model = px4_sim_model_cstr;
+
+	} else if (px4_gz_model_name_cstr != nullptr) {
+
+		// This happens if we attach to an existing model. In this case,
+		// do not wait for any vehicle to spawn.
+
+		gzwarn << "PX4_SIM_MODEL not set. Proceeding without vehicle name and moving platform immediately." << std::endl;
+		_wait_for_vehicle_spawned = false;
+
+	} else {
+
+		// If neither are set, the px4-rc.gzsim script should have
+		// exited 1. We could land here if these environment variables
+		// change -- if so, update this function accordingly.
+
+		gzerr << "Neither PX4_MODEL nor PX4_GZ_MODEL_NAME are set. One needed to proceed." << std::endl;
+		_wait_for_vehicle_spawned = false;
+	}
+
+	// Remove leading "gz_"
+	const std::string prefix_to_remove = "gz_";
+	size_t pos = px4_sim_model.find(prefix_to_remove);
+
+	if (pos == 0) {
+		px4_sim_model = px4_sim_model.substr(pos + prefix_to_remove.length());
+
+	} else {
+		gzwarn << "Error: \"gz_\" not found in PX4_SIM_MODEL. Using the entire string as MODEL_NAME." << std::endl;
+	}
+
+	// Get the px4_instance environment variable
+	const char *px4_instance_cstr = std::getenv("px4_instance");
+	std::string px4_instance = "";
+
+	if (px4_instance_cstr != nullptr) {
+		px4_instance = px4_instance_cstr;
+
+	} else {
+		px4_instance = "0";
+	}
+
+	_vehicle_model_name = px4_sim_model + "_" + px4_instance;
+	_wait_for_vehicle_spawned = true;
 }
