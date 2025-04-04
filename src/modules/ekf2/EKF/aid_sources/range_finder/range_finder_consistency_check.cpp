@@ -81,7 +81,6 @@ void RangeFinderConsistencyCheck::update(const float z, const float z_var, const
 	for (int measurement_idx = 0; measurement_idx < 2; measurement_idx++) {
 
 		float R;
-		bool reject = false;
 		Vector2f H;
 
 		if (measurement_idx == 0) {
@@ -111,22 +110,20 @@ void RangeFinderConsistencyCheck::update(const float z, const float z_var, const
 		} else if (measurement_idx == 1) {
 			_innov = y;
 			const float test_ratio = fminf(sq(y) / (sq(_gate) * S), 4.f); // limit to 4 to limit sensitivity to outliers
-			_test_ratio_lpf.update(sign(_innov) * test_ratio, dt);
-			reject = test_ratio > 1.f;
+			_test_ratio_lpf.setParameters(dt, _t_to_init);
+			_test_ratio_lpf.update(sign(_innov) * test_ratio);
 		}
 
-		if (!reject) {
-			// update step
-			_x(RangeFilter::z.idx)       += K(RangeFilter::z.idx) * y;
-			_x(RangeFilter::terrain.idx) += K(RangeFilter::terrain.idx) * y;
+		// update step
+		_x(RangeFilter::z.idx)       += K(RangeFilter::z.idx) * y;
+		_x(RangeFilter::terrain.idx) += K(RangeFilter::terrain.idx) * y;
 
-			// covariance update with Joseph form:
-			// P = (I - K H) P (I - K H)^T + K R K^T
-			Matrix2f I;
-			I.setIdentity();
-			Matrix2f IKH = I - K.multiplyByTranspose(H);
-			_P = IKH * _P * IKH.transpose() + (K * R).multiplyByTranspose(K);
-		}
+		// covariance update with Joseph form:
+		// P = (I - K H) P (I - K H)^T + K R K^T
+		Matrix2f I;
+		I.setIdentity();
+		Matrix2f IKH = I - K.multiplyByTranspose(H);
+		_P = IKH * _P * IKH.transpose() + (K * R).multiplyByTranspose(K);
 	}
 
 	evaluateState(dt, vz, vz_var);
@@ -142,7 +139,7 @@ void RangeFinderConsistencyCheck::evaluateState(const float dt, const float vz, 
 			if (!horizontal_motion && vertical_motion) {
 				_state = KinematicState::CONSISTENT;
 
-			} else {
+			} else if (_state == KinematicState::CONSISTENT || vertical_motion) {
 				_state = KinematicState::UNKNOWN;
 			}
 
