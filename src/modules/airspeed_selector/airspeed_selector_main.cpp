@@ -100,12 +100,13 @@ private:
 	void Run() override;
 
 	static constexpr int MAX_NUM_AIRSPEED_SENSORS = 3; /**< Support max 3 airspeed sensors */
-	enum airspeed_index {
-		DISABLED_INDEX = -1,
-		GROUND_MINUS_WIND_INDEX,
-		FIRST_SENSOR_INDEX,
-		SECOND_SENSOR_INDEX,
-		THIRD_SENSOR_INDEX
+	enum class AirspeedSource : int {
+		DISABLED = -1,
+		GROUND_MINUS_WIND,
+		SENSOR_1,
+		SENSOR_2,
+		SENSOR_3,
+		SYNTHETIC
 	};
 
 	uORB::Publication<airspeed_validated_s> _airspeed_validated_pub {ORB_ID(airspeed_validated)};			/**< airspeed validated topic*/
@@ -123,7 +124,7 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
+	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint), 0};
 	uORB::Subscription _position_setpoint_sub{ORB_ID(position_setpoint)};
 	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 	uORB::SubscriptionMultiArray<airspeed_s, MAX_NUM_AIRSPEED_SENSORS> _airspeed_subs{ORB_ID::airspeed};
@@ -136,7 +137,6 @@ private:
 	vehicle_land_detected_s _vehicle_land_detected {};
 	vehicle_local_position_s _vehicle_local_position {};
 	vehicle_status_s _vehicle_status {};
-	vtol_vehicle_status_s _vtol_vehicle_status {};
 	position_setpoint_s _position_setpoint {};
 
 	WindEstimator	_wind_estimator_sideslip; /**< wind estimator instance only fusing sideslip */
@@ -148,8 +148,8 @@ private:
 
 	matrix::Quatf _q_att;
 	hrt_abstime _time_now_usec{0};
-	int _valid_airspeed_index{-2}; /**< index of currently chosen (valid) airspeed sensor */
-	int _prev_airspeed_index{-2}; /**< previously chosen airspeed sensor index */
+	AirspeedSource _valid_airspeed_src{AirspeedSource::DISABLED};
+	AirspeedSource _prev_airspeed_src{AirspeedSource::DISABLED};
 	bool _initialized{false}; /**< module initialized*/
 	bool _gnss_lpos_valid{false}; /**< local position (from GNSS) valid */
 	bool _in_takeoff_situation{true}; /**< in takeoff situation (defined as not yet stall speed reached) */
@@ -205,14 +205,13 @@ private:
 		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim
 	)
 
-	void 		init(); 	/**< initialization of the airspeed validator instances */
-	void 		check_for_connected_airspeed_sensors(); /**< check for airspeed sensors (airspeed topics) and get _number_of_airspeed_sensors */
-	void		update_params(); /**< update parameters */
-	void 		poll_topics(); /**< poll all topics required beside airspeed (e.g. current temperature) */
-	void 		update_wind_estimator_sideslip(); /**< update the wind estimator instance only fusing sideslip */
-	void		update_ground_minus_wind_airspeed(); /**< update airspeed estimate based on groundspeed minus windspeed */
-	void 		select_airspeed_and_publish(); /**< select airspeed sensor (or groundspeed-windspeed) */
-
+	void init(); 	/**< initialization of the airspeed validator instances */
+	void check_for_connected_airspeed_sensors(); /**< check for airspeed sensors (airspeed topics) and get _number_of_airspeed_sensors */
+	void update_params(); /**< update parameters */
+	void poll_topics(); /**< poll all topics required beside airspeed (e.g. current temperature) */
+	void update_wind_estimator_sideslip(); /**< update the wind estimator instance only fusing sideslip */
+	void update_ground_minus_wind_airspeed(); /**< update airspeed estimate based on groundspeed minus windspeed */
+	void select_airspeed_and_publish(); /**< select airspeed sensor (or groundspeed-windspeed) */
 };
 
 AirspeedModule::AirspeedModule():
@@ -261,9 +260,11 @@ AirspeedModule::init()
 	check_for_connected_airspeed_sensors();
 
 	// Set the default sensor
-	if (_param_airspeed_primary_index.get() > _number_of_airspeed_sensors) {
+	if (_param_airspeed_primary_index.get() > _number_of_airspeed_sensors
+	    && _param_airspeed_primary_index.get() <= MAX_NUM_AIRSPEED_SENSORS) {
 		// constrain the index to the number of sensors connected
-		_valid_airspeed_index = math::min(_param_airspeed_primary_index.get(), _number_of_airspeed_sensors);
+		_valid_airspeed_src = static_cast<AirspeedSource>(math::min(_param_airspeed_primary_index.get(),
+				      _number_of_airspeed_sensors));
 
 		if (_number_of_airspeed_sensors == 0) {
 			mavlink_log_info(&_mavlink_log_pub, "No airspeed sensor detected. Switch to non-airspeed mode.\t");
@@ -278,10 +279,10 @@ AirspeedModule::init()
 
 	} else {
 		// set index to the one provided in the parameter ASPD_PRIMARY
-		_valid_airspeed_index =	_param_airspeed_primary_index.get();
+		_valid_airspeed_src = static_cast<AirspeedSource>(_param_airspeed_primary_index.get());
 	}
 
-	_prev_airspeed_index = _valid_airspeed_index; // used to detect a sensor switching
+	_prev_airspeed_src = _valid_airspeed_src;
 }
 
 void
@@ -290,7 +291,7 @@ AirspeedModule::check_for_connected_airspeed_sensors()
 	// check for new connected airspeed sensor
 	int detected_airspeed_sensors = 0;
 
-	if (_param_airspeed_primary_index.get() > 0) {
+	if (_param_airspeed_primary_index.get() > 0 && _param_airspeed_primary_index.get() <= MAX_NUM_AIRSPEED_SENSORS) {
 
 		for (int i = 0; i < _airspeed_subs.size(); i++) {
 			if (!_airspeed_subs[i].advertised()) {
@@ -538,7 +539,6 @@ void AirspeedModule::poll_topics()
 	_vehicle_air_data_sub.update(&_vehicle_air_data);
 	_vehicle_land_detected_sub.update(&_vehicle_land_detected);
 	_vehicle_status_sub.update(&_vehicle_status);
-	_vtol_vehicle_status_sub.update(&_vtol_vehicle_status);
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
 	_position_setpoint_sub.update(&_position_setpoint);
 
@@ -614,68 +614,78 @@ void AirspeedModule::update_ground_minus_wind_airspeed()
 
 void AirspeedModule::select_airspeed_and_publish()
 {
-
 	// we need to re-evaluate the sensors if we're currently not on a phyisical sensor or the current sensor got invalid
 	bool airspeed_sensor_switching_necessary = false;
+	const int prev_airspeed_index = static_cast<int>(_prev_airspeed_src);
 
-	if (_prev_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX) {
+	if (_prev_airspeed_src < AirspeedSource::SENSOR_1) {
 		airspeed_sensor_switching_necessary = true;
 
 	} else {
-		airspeed_sensor_switching_necessary = !_airspeed_validator[_prev_airspeed_index - 1].get_airspeed_valid();
+		airspeed_sensor_switching_necessary = !_airspeed_validator[prev_airspeed_index - 1].get_airspeed_valid();
 	}
 
 	const bool airspeed_sensor_switching_allowed = _number_of_airspeed_sensors > 0 &&
-			_param_airspeed_primary_index.get() > airspeed_index::GROUND_MINUS_WIND_INDEX && _param_airspeed_checks_on.get();
+			_param_airspeed_primary_index.get() > static_cast<int>(AirspeedSource::GROUND_MINUS_WIND)
+			&& _param_airspeed_checks_on.get();
 
 	const bool airspeed_sensor_added = _prev_number_of_airspeed_sensors < _number_of_airspeed_sensors;
 
 	if (airspeed_sensor_switching_necessary && (airspeed_sensor_switching_allowed || airspeed_sensor_added)) {
 
-		_valid_airspeed_index = airspeed_index::DISABLED_INDEX;
+		_valid_airspeed_src = AirspeedSource::DISABLED;
 
 		// loop through all sensors and take the first valid one
 		for (int i = 0; i < _number_of_airspeed_sensors; i++) {
 			if (_airspeed_validator[i].get_airspeed_valid()) {
-				_valid_airspeed_index = i + 1;
+				_valid_airspeed_src = static_cast<AirspeedSource>(i + 1);
 				break;
 			}
 		}
 	}
 
 	// check if airspeed based on ground-wind speed is valid and can be published
-	if (_valid_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX
-	    || _param_airspeed_primary_index.get() == airspeed_index::GROUND_MINUS_WIND_INDEX) {
+	if (_valid_airspeed_src < AirspeedSource::SENSOR_1) {
 
 		// _gnss_lpos_valid determines if ground-wind estimate is valid
 		if (_gnss_lpos_valid &&
-		    (_param_airspeed_fallback_gw.get() || _param_airspeed_primary_index.get() == airspeed_index::GROUND_MINUS_WIND_INDEX)) {
-			_valid_airspeed_index = airspeed_index::GROUND_MINUS_WIND_INDEX;
+		    (_param_airspeed_fallback.get() == 1
+		     || _param_airspeed_primary_index.get() == static_cast<int>(AirspeedSource::GROUND_MINUS_WIND))) {
+			_valid_airspeed_src = AirspeedSource::GROUND_MINUS_WIND;
 
 		} else {
-			_valid_airspeed_index = airspeed_index::DISABLED_INDEX;
+
+			_valid_airspeed_src = AirspeedSource::DISABLED;
 		}
 	}
 
+	const int valid_airspeed_index = static_cast<int>(_valid_airspeed_src);
+
 	// print warning or info, depending of whether airspeed got declared invalid or healthy
-	if (_valid_airspeed_index != _prev_airspeed_index &&
+	if (_valid_airspeed_src != _prev_airspeed_src &&
 	    _number_of_airspeed_sensors > 0) {
-		if (_vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED && _prev_airspeed_index > 0) {
+		if (_vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED
+		    && _prev_airspeed_src > AirspeedSource::GROUND_MINUS_WIND
+		    && prev_airspeed_index <= MAX_NUM_AIRSPEED_SENSORS) {
 			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor failure detected. Check connection and reboot.\t");
 			events::send(events::ID("airspeed_selector_sensor_failure_disarmed"), events::Log::Critical,
 				     "Airspeed sensor failure detected. Check connection and reboot");
 
-		} else if (_prev_airspeed_index > 0) {
-			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor failure detected. Return to launch (RTL) is advised.\t");
+		} else if (_prev_airspeed_src > AirspeedSource::GROUND_MINUS_WIND
+			   && prev_airspeed_index <= MAX_NUM_AIRSPEED_SENSORS) {
+			mavlink_log_critical(&_mavlink_log_pub,
+					     "Airspeed sensor failure detected. Return to launch (RTL) is advised.\t");
 			events::send(events::ID("airspeed_selector_sensor_failure"), events::Log::Critical,
 				     "Airspeed sensor failure detected. Return to launch (RTL) is advised");
 
-		} else if (_prev_airspeed_index == 0 && _valid_airspeed_index == -1) {
+		} else if (_prev_airspeed_src == AirspeedSource::GROUND_MINUS_WIND
+			   && _valid_airspeed_src == AirspeedSource::DISABLED) {
 			mavlink_log_info(&_mavlink_log_pub, "Airspeed estimation invalid\t");
 			events::send(events::ID("airspeed_selector_estimation_invalid"), events::Log::Error,
 				     "Airspeed estimation invalid");
 
-		} else if (_prev_airspeed_index == -1 && _valid_airspeed_index == 0) {
+		} else if (_prev_airspeed_src == AirspeedSource::DISABLED
+			   && _valid_airspeed_src == AirspeedSource::GROUND_MINUS_WIND) {
 			mavlink_log_info(&_mavlink_log_pub, "Airspeed estimation valid\t");
 			events::send(events::ID("airspeed_selector_estimation_valid"), events::Log::Info,
 				     "Airspeed estimation valid");
@@ -710,11 +720,12 @@ void AirspeedModule::select_airspeed_and_publish()
 	airspeed_validated.throttle_filtered = _airspeed_validator[_valid_airspeed_index - 1].get_throttle_filtered();
 	airspeed_validated.pitch_filtered = _airspeed_validator[_valid_airspeed_index - 1].get_pitch_filtered();
 
-	switch (_valid_airspeed_index) {
-	case airspeed_index::DISABLED_INDEX:
+
+	switch (_valid_airspeed_src) {
+	case AirspeedSource::DISABLED:
 		break;
 
-	case airspeed_index::GROUND_MINUS_WIND_INDEX:
+	case AirspeedSource::GROUND_MINUS_WIND:
 		airspeed_validated.indicated_airspeed_m_s = _ground_minus_wind_CAS;
 		airspeed_validated.calibrated_airspeed_m_s = _ground_minus_wind_CAS;
 		airspeed_validated.true_airspeed_m_s = _ground_minus_wind_TAS;
