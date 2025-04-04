@@ -80,18 +80,16 @@ void RangeFinderConsistencyCheck::update(const float z, const float z_var, const
 
 	for (int measurement_idx = 0; measurement_idx < 2; measurement_idx++) {
 
-		float R;
-		Vector2f H;
+		// dist_bottom
+		Vector2f H = _Ht;
+		float R = dist_bottom_var;
 
+		// z, direct state measurement
 		if (measurement_idx == 0) {
-			// direct state measurement
 			H(RangeFilter::z.idx) = 1.f;
 			H(RangeFilter::terrain.idx) = 0.f;
 			R = z_var;
 
-		} else if (measurement_idx == 1) {
-			H = _Ht;
-			R = dist_bottom_var;
 		}
 
 		// residual
