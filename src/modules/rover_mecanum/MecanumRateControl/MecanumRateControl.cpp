@@ -75,7 +75,7 @@ void MecanumRateControl::updateRateControl()
 
 	if (_vehicle_control_mode.flag_control_rates_enabled  && _vehicle_control_mode.flag_armed && runSanityChecks()) {
 		if (_vehicle_control_mode.flag_control_manual_enabled || _vehicle_control_mode.flag_control_offboard_enabled) {
-			generateRateSetpoint();
+			generateRateAndThrottleSetpoint();
 		}
 
 		generateSteeringSetpoint();
@@ -95,7 +95,7 @@ void MecanumRateControl::updateRateControl()
 
 }
 
-void MecanumRateControl::generateRateSetpoint()
+void MecanumRateControl::generateRateAndThrottleSetpoint()
 {
 	const bool acro_mode_enabled = _vehicle_control_mode.flag_control_manual_enabled
 				       && !_vehicle_control_mode.flag_control_position_enabled && !_vehicle_control_mode.flag_control_attitude_enabled;

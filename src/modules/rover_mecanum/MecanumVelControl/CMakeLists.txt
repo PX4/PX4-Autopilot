@@ -31,9 +31,10 @@
 #
 ############################################################################
 
-px4_add_library(AckermannPosVelControl
-	AckermannPosVelControl.cpp
+px4_add_library(MecanumVelControl
+	MecanumVelControl.cpp
 )
 
-target_link_libraries(AckermannPosVelControl PUBLIC PID)
-target_include_directories(AckermannPosVelControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(MecanumVelControl PUBLIC PID)
+target_link_libraries(MecanumVelControl PUBLIC pure_pursuit)
+target_include_directories(MecanumVelControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

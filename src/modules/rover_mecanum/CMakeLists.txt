@@ -33,7 +33,8 @@
 
 add_subdirectory(MecanumRateControl)
 add_subdirectory(MecanumAttControl)
-add_subdirectory(MecanumPosVelControl)
+add_subdirectory(MecanumVelControl)
+add_subdirectory(MecanumPosControl)
 
 px4_add_module(
 	MODULE modules__rover_mecanum
@@ -44,7 +45,8 @@ px4_add_module(
 	DEPENDS
 		MecanumRateControl
 		MecanumAttControl
-		MecanumPosVelControl
+		MecanumVelControl
+		MecanumPosControl
 		px4_work_queue
 		rover_control
 		pure_pursuit

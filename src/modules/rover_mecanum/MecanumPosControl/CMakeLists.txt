@@ -31,9 +31,10 @@
 #
 ############################################################################
 
-px4_add_library(DifferentialPosVelControl
-	DifferentialPosVelControl.cpp
+px4_add_library(MecanumPosControl
+	MecanumPosControl.cpp
 )
 
-target_link_libraries(DifferentialPosVelControl PUBLIC PID)
-target_include_directories(DifferentialPosVelControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(MecanumPosControl PUBLIC PID)
+target_link_libraries(MecanumPosControl PUBLIC pure_pursuit)
+target_include_directories(MecanumPosControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
