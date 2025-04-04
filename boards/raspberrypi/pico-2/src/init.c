@@ -382,6 +382,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
     #else
   	  #define SENSOR_SPI_BUS    1
     #endif
+
+    #if defined(CONFIG_RP23XX_SPI0)
     	int sensors_spi_rp_port_num = PX4_BUS_NUMBER_FROM_PX4(SENSOR_SPI_BUS);
     	syslog(LOG_ERR, "[boot] initializing sensors on SPI%d\n", sensors_spi_rp_port_num);
 	spi2 = rp23xx_spibus_initialize(sensors_spi_rp_port_num);
@@ -399,6 +401,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	up_udelay(20);
 	syslog(LOG_INFO, "[boot] initialized SPI sensors port 1\n");
+    #else
+    	syslog(LOG_ERR, "[boot] SKIPPED initializing sensors on SPI0 - disabled\n");
+    #endif
 
  #if defined(FLASH_BASED_PARAMS)					// This probably doesn't relate to RP2040 right now.
  	static sector_descriptor_t params_sector_map[] = {

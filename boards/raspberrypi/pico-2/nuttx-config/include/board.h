@@ -207,7 +207,10 @@ void rp23xx_boardinitialize(void);
 //#define CONFIG_RP23XX_I2C1_GPIO		6
 // FIXME: would conflict with SPI0 if enabled
 // FIXME GPIOs 18-21 assigned to timer, PWM ?
-#define CONFIG_RP23XX_I2C1_GPIO		16
+// if using SPI on pins 4/5: #define CONFIG_RP23XX_I2C1_GPIO		16
+// if using I2C
+#define CONFIG_RP23XX_I2C0_GPIO		4
+
 
 /* SPI0:
  *  SPIDEV_FLASH (probably micro sd card)
