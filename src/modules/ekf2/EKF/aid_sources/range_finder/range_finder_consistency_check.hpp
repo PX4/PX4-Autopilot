@@ -42,7 +42,6 @@
 
 #include <mathlib/math/filter/AlphaFilter.hpp>
 
-
 class RangeFinderConsistencyCheck final
 {
 public:

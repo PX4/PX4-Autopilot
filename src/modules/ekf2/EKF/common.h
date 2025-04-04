@@ -605,7 +605,6 @@ uint64_t mag_heading_consistent  :
 		uint64_t baro_fault              : 1; ///< 43 - true when the baro has been declared faulty and is no longer being used
 		uint64_t gnss_vel                : 1; ///< 44 - true if GNSS velocity measurement fusion is intended
 		uint64_t rng_kin_unknown	 : 1; ///< 45 - true when the range finder kinematic consistency check is not running
-
 	} flags;
 	uint64_t value;
 };
