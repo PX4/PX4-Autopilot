@@ -10,7 +10,12 @@ board_adc start
 # icm45686 start -S
 
 # or internal spi
-icm45686 start -s -b 1 -c 5
+icm45686 start -s
+
+# on external I2C1
+mpu9250_i2c start -X
+
+# icm45686 start -s -c 5 -m 3 -f 1000
 
 icm45686 status
 
