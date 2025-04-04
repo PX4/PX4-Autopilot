@@ -149,6 +149,9 @@ void RoverInterface::Init()
 	// Breathing mode light by default when not armed
 	_scout->SetLightCommand(LightMode::BREATH, 0);
 
+	// Allow reception of rover motion control feedback message only
+	_scout->AllowOnlyMotionControlFeedback();
+
 	_initialized = true;
 }
 

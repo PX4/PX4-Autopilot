@@ -14,6 +14,7 @@ extern "C" {
 
 bool DecodeCanFrameV2(const CANFrame *can_frame, AgxMessage *msg);
 bool EncodeCanFrameV2(const AgxMessage *msg, CANFrame *can_frame);
+uint32_t GetCanIdFromMsgTypeV2(const MsgType type);
 uint8_t CalcCanFrameChecksumV2(uint16_t id, uint8_t *data, uint8_t dlc);
 
 #ifdef __cplusplus

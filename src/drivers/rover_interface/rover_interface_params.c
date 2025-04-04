@@ -51,7 +51,7 @@ PARAM_DEFINE_INT32(RI_ROVER_TYPE, -1);
  *
  * @unit bit/s
  * @min 20000
- * @max 1000000
+ * @max 4000000
  * @reboot_required true
  * @group Rover Interface
  */

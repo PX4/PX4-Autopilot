@@ -100,7 +100,7 @@ extern "C" {
 
 // query/config group: 0x4
 #define CAN_MSG_VERSION_REQUEST_ID ((uint32_t)0x411)
-#define CAN_MSG_VERSION_RESPONSE_ID ((uint32_t)0x4a1)
+#define CAN_MSG_VERSION_RESPONSE_ID ((uint32_t)0x41a)
 
 #define CAN_MSG_CTRL_MODE_CONFIG_ID ((uint32_t)0x421)
 

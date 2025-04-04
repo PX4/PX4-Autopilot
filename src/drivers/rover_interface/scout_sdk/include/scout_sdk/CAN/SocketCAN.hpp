@@ -10,6 +10,8 @@
 
 #include <sys/time.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 
 #include <nuttx/can.h>
 
@@ -59,10 +61,14 @@ public:
 	/// The return value is number of bytes received, negative value on error.
 	int16_t ReceiveFrame(RxFrame *rxf);
 
+	/// Set mask filter for the socket
+	/// The return value is 0 on success and -1 on error
+	int16_t SetMaskFilter(const uint32_t value, const uint32_t mask);
 private:
 
 	int               _fd{-1};
 	bool              _can_fd{false};
+	struct ifreq      _ifr {};
 
 	//// Send msg structure
 	struct iovec       _send_iov {};

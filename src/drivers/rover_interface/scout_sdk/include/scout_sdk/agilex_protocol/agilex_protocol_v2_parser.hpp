@@ -14,6 +14,7 @@ class AgileXProtocolV2Parser
 public:
 	bool DecodeMessage(const RxFrame *rxf, AgxMessage *msg);
 	bool EncodeMessage(const AgxMessage *msg, TxFrame *txf);
+	uint32_t GetCanId(const MsgType type);
 	uint8_t CalculateChecksum(uint16_t id, uint8_t *data, uint8_t dlc);
 };
 }	// namespace scoutsdk

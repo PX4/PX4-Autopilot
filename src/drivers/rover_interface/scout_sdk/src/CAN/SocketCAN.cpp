@@ -33,9 +33,6 @@
 
 #include "scout_sdk/CAN/SocketCAN.hpp"
 
-#include <net/if.h>
-#include <sys/ioctl.h>
-
 #define MODULE_NAME "SCOUT_SDK"
 
 #include <px4_platform_common/log.h>
@@ -55,7 +52,6 @@ namespace scoutsdk
 int SocketCAN::Init(const char *const can_iface_name, const uint32_t can_bitrate)
 {
 	struct sockaddr_can addr;
-	struct ifreq ifr;
 
 	// Disable CAN FD mode
 	bool can_fd = 0;
@@ -68,18 +64,18 @@ int SocketCAN::Init(const char *const can_iface_name, const uint32_t can_bitrate
 		return -1;
 	}
 
-	strncpy(ifr.ifr_name, can_iface_name, IFNAMSIZ - 1);
-	ifr.ifr_name[IFNAMSIZ - 1] = '\0';
-	ifr.ifr_ifindex = if_nametoindex(ifr.ifr_name);
+	strncpy(_ifr.ifr_name, can_iface_name, IFNAMSIZ - 1);
+	_ifr.ifr_name[IFNAMSIZ - 1] = '\0';
+	_ifr.ifr_ifindex = if_nametoindex(_ifr.ifr_name);
 
-	if (!ifr.ifr_ifindex) {
+	if (!_ifr.ifr_ifindex) {
 		PX4_ERR("if_nametoindex");
 		return -1;
 	}
 
 	memset(&addr, 0, sizeof(addr));
 	addr.can_family = AF_CAN;
-	addr.can_ifindex = ifr.ifr_ifindex;
+	addr.can_ifindex = _ifr.ifr_ifindex;
 
 	const int on = 1;
 	/* RX Timestamping */
@@ -146,35 +142,13 @@ int SocketCAN::Init(const char *const can_iface_name, const uint32_t can_bitrate
 	_recv_cmsg = CMSG_FIRSTHDR(&_recv_msg);
 
 	// Setup bitrate
-	ifr.ifr_ifru.ifru_can_data.arbi_bitrate = can_bitrate / 1000;
-	ifr.ifr_ifru.ifru_can_data.arbi_samplep = 88;
-	ifr.ifr_ifru.ifru_can_data.data_bitrate = 4 * can_bitrate / 1000;
-	ifr.ifr_ifru.ifru_can_data.data_samplep = 75;
+	_ifr.ifr_ifru.ifru_can_data.arbi_bitrate = can_bitrate / 1000;
+	_ifr.ifr_ifru.ifru_can_data.arbi_samplep = 88;
+	_ifr.ifr_ifru.ifru_can_data.data_bitrate = 4 * can_bitrate / 1000;
+	_ifr.ifr_ifru.ifru_can_data.data_samplep = 75;
 
-	if (ioctl(_fd, SIOCSCANBITRATE, &ifr) < 0) {
+	if (ioctl(_fd, SIOCSCANBITRATE, &_ifr) < 0) {
 		PX4_ERR("Setting CAN bitrate to %" PRIu32 " bit/s failed", can_bitrate);
-		return -1;
-	}
-
-	// Setup RX range filter [ RANGE FILTER NEEDS TO BE SET BEFORE ANY BIT FILTER]
-	ifr.ifr_ifru.ifru_can_filter.fid1 = 0x211;	// lower end
-	ifr.ifr_ifru.ifru_can_filter.fid2 = 0x231;	// higher end
-	ifr.ifr_ifru.ifru_can_filter.ftype = CAN_FILTER_RANGE;
-	ifr.ifr_ifru.ifru_can_filter.fprio = CAN_MSGPRIO_LOW;
-
-	if (ioctl(_fd, SIOCACANSTDFILTER, &ifr) < 0) {
-		PX4_ERR("Setting RX range filter failed");
-		return -1;
-	}
-
-	// Setup RX bit filter
-	ifr.ifr_ifru.ifru_can_filter.fid1 = 0x41A;	// value
-	ifr.ifr_ifru.ifru_can_filter.fid2 = 0x7FF;	// mask
-	ifr.ifr_ifru.ifru_can_filter.ftype = CAN_FILTER_MASK;
-	ifr.ifr_ifru.ifru_can_filter.fprio = CAN_MSGPRIO_LOW;
-
-	if (ioctl(_fd, SIOCACANSTDFILTER, &ifr) < 0) {
-		PX4_ERR("Setting RX bit filter A failed");
 		return -1;
 	}
 
@@ -248,4 +222,20 @@ int16_t SocketCAN::ReceiveFrame(RxFrame *rxf)
 
 	return result;
 }
+
+int16_t SocketCAN::SetMaskFilter(const uint32_t value, const uint32_t mask)
+{
+	_ifr.ifr_ifru.ifru_can_filter.fid1 = value;
+	_ifr.ifr_ifru.ifru_can_filter.fid2 = mask;
+	_ifr.ifr_ifru.ifru_can_filter.ftype = CAN_FILTER_MASK;
+	_ifr.ifr_ifru.ifru_can_filter.fprio = CAN_MSGPRIO_LOW;
+
+	if (ioctl(_fd, SIOCACANEXTFILTER, &_ifr) < 0) {
+		PX4_ERR("Setting RX bit filter failed. CAN bit filter is not supported");
+		return -1;
+	}
+
+	return 0;
+}
+
 }	// namespace scoutsdk
