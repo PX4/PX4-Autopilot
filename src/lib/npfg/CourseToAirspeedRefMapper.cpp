@@ -110,5 +110,5 @@ matrix::Vector2f CourseToAirspeedRefMapper::infeasibleAirVelRef(const Vector2f &
 	// it is assumed that bearing feasibility is checked and found infeasible (e.g. bearingIsFeasible() = false) prior to entering this method
 	// otherwise the normalization of the air velocity vector could have a division by zero
 	Vector2f air_vel_ref = sqrtf(math::max(wind_speed * wind_speed - airspeed * airspeed, 0.0f)) * bearing_vec - wind_vel;
-	return air_vel_ref.normalized() * airspeed;
+	return air_vel_ref.normalized();
 }
