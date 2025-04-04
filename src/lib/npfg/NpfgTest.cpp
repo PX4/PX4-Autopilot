@@ -44,6 +44,7 @@
 
 #include <gtest/gtest.h>
 #include <lib/npfg/CourseToAirspeedRefMapper.hpp>
+#include <lib/npfg/AirspeedReferenceController.hpp>
 
 using namespace matrix;
 
@@ -354,5 +355,44 @@ TEST(NpfgTest, ExcessCrossWind)
 
 	EXPECT_NEAR(heading_setpoint, -M_PI_F / 2.f, 0.01f);
 	EXPECT_NEAR(min_airspeed_for_bearing, airspeed_max, 0.1f);
+
+}
+
+TEST(NpfgTest, HeadingControl)
+{
+
+	AirspeedReferenceController _airspeed_reference_controller;
+	const float p_gain = 0.8885f;
+
+	// GIVEN: that we are already aligned with out heading setpoint
+	float heading_sp = 0.f;
+	float heading = 0.f;
+	float airspeed = 15.f;
+
+	// WHEN: we compute the lateral acceleration setpoint
+	float lateral_acceleration_setpoint = _airspeed_reference_controller.controlHeading(heading_sp, heading, airspeed);
+
+	// THEN: we expect 0 lateral acceleration
+	EXPECT_NEAR(lateral_acceleration_setpoint, 0.f, 0.01f);
+
+	// GIVEN: current heading 45 deg NW
+	heading = - M_PI_F / 4.f;
+
+	// WHEN: we compute the lateral acceleration setpoint
+	lateral_acceleration_setpoint = _airspeed_reference_controller.controlHeading(heading_sp, heading, airspeed);
+
+	// THEN: we expect a positive lateral acceleration input.  = Airspeed vector
+	// required to correct the difference between the setpoint and the current heading,
+	// scaled by p_gain.
+	EXPECT_NEAR(lateral_acceleration_setpoint, airspeed * sinf(heading_sp - heading) * p_gain, 0.01f);
+
+	// GIVEN: current heading 180 (South)
+	heading = M_PI_F;
+
+	// WHEN: we compute the lateral acceleration setpoint
+	lateral_acceleration_setpoint = _airspeed_reference_controller.controlHeading(heading_sp, heading, airspeed);
+
+	// THEN: we we expect maxmimum lateral acceleration setpoint
+	EXPECT_NEAR(lateral_acceleration_setpoint, airspeed * p_gain, 0.01f);
 
 }
