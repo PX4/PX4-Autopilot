@@ -747,15 +747,6 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	const float acc_rad = _directional_guidance.switchDistance(500.0f);
-	float throttle_min = NAN;
-	float throttle_max = NAN;
-
-	if (pos_sp_curr.gliding_enabled) {
-		/* enable gliding with this waypoint */
-		throttle_min = 0.0;
-		throttle_max = 0.0;
-	}
-
 	const float target_airspeed = pos_sp_curr.cruising_speed > FLT_EPSILON ? pos_sp_curr.cruising_speed : NAN;
 
 	// waypoint is a plain navigation waypoint
@@ -804,9 +795,18 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
+	float throttle_min = NAN;
+	float throttle_max = NAN;
+
+	if (pos_sp_curr.gliding_enabled) {
+		/* enable gliding with this waypoint */
+		throttle_min = 0.0;
+		throttle_max = 0.0;
+		_ctrl_limits_handler.setSpeedWeight(2.f);
+	}
+
 	_ctrl_limits_handler.setThrottleMax(throttle_max);
 	_ctrl_limits_handler.setThrottleMin(throttle_min);
-	_ctrl_limits_handler.setSpeedWeight((pos_sp_curr.gliding_enabled ? 2.0f : NAN));
 
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
 	Vector2f curr_wp_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
@@ -2031,6 +2031,9 @@ FixedwingPositionControl::Run()
 		// by default no flaps/spoilers, is overwritten below in certain modes
 		_flaps_setpoint = 0.f;
 		_spoilers_setpoint = 0.f;
+
+		// by default set speed weight to the param value, can be overwritten inside the methods below
+		_ctrl_limits_handler.setSpeedWeight(_param_t_spdweight.get());
 
 		// default to zero - is used (IN A HACKY WAY) to pass direct nose wheel steering via yaw stick to the actuators during auto takeoff
 		_att_sp.yaw_sp_move_rate = 0.0f;
