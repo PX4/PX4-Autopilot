@@ -44,6 +44,7 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/airspeed/airspeed.h>
 #include <lib/systemlib/mavlink_log.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
@@ -65,12 +66,14 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/airspeed_wind.h>
+#include <uORB/topics/flight_phase_estimation.h>
 
 using namespace time_literals;
 
 static constexpr uint32_t SCHEDULE_INTERVAL{100_ms};	/**< The schedule interval in usec (10 Hz) */
+static constexpr float _kThrottleFilterTimeConstant{0.5f};
 
 using matrix::Dcmf;
 using matrix::Quatf;
@@ -128,6 +131,7 @@ private:
 	uORB::Subscription _position_setpoint_sub{ORB_ID(position_setpoint)};
 	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 	uORB::SubscriptionMultiArray<airspeed_s, MAX_NUM_AIRSPEED_SENSORS> _airspeed_subs{ORB_ID::airspeed};
+	uORB::SubscriptionData<flight_phase_estimation_s> _flight_phase_estimation_sub{ORB_ID(flight_phase_estimation)};
 
 
 	tecs_status_s _tecs_status {};
@@ -177,6 +181,9 @@ private:
 	param_t _param_handle_fw_thr_max{PARAM_INVALID};
 	float _param_fw_thr_max{0.0f};
 
+	AlphaFilter<float> _throttle_filtered{_kThrottleFilterTimeConstant};
+	uint64_t _t_last_throttle_fw{0};
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::ASPD_WIND_NSD>) _param_aspd_wind_nsd,
 		(ParamFloat<px4::params::ASPD_SCALE_NSD>) _param_aspd_scale_nsd,
@@ -190,7 +197,7 @@ private:
 		(ParamFloat<px4::params::ASPD_SCALE_3>) _param_airspeed_scale_3,
 		(ParamInt<px4::params::ASPD_PRIMARY>) _param_airspeed_primary_index,
 		(ParamInt<px4::params::ASPD_DO_CHECKS>) _param_airspeed_checks_on,
-		(ParamInt<px4::params::ASPD_FALLBACK_GW>) _param_airspeed_fallback_gw,
+		(ParamInt<px4::params::ASPD_FALLBACK>) _param_airspeed_fallback,
 
 		(ParamFloat<px4::params::ASPD_FS_INNOV>) _tas_innov_threshold, /**< innovation check threshold */
 		(ParamFloat<px4::params::ASPD_FS_INTEG>) _tas_innov_integ_threshold, /**< innovation check integrator threshold */
@@ -202,7 +209,12 @@ private:
 
 		// external parameters
 		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
-		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim
+		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
+		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
+		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
+		(ParamFloat<px4::params::FW_THR_ASPD_MIN>) _param_fw_thr_aspd_min,
+		(ParamFloat<px4::params::FW_THR_TRIM>) _param_fw_thr_trim,
+		(ParamFloat<px4::params::FW_THR_ASPD_MAX>) _param_fw_thr_aspd_max
 	)
 
 	void init(); 	/**< initialization of the airspeed validator instances */
@@ -212,6 +224,8 @@ private:
 	void update_wind_estimator_sideslip(); /**< update the wind estimator instance only fusing sideslip */
 	void update_ground_minus_wind_airspeed(); /**< update airspeed estimate based on groundspeed minus windspeed */
 	void select_airspeed_and_publish(); /**< select airspeed sensor (or groundspeed-windspeed) */
+	float get_synthetic_airspeed(float throttle);
+	void update_throttle_filter(hrt_abstime t_now);
 };
 
 AirspeedModule::AirspeedModule():
@@ -350,6 +364,7 @@ AirspeedModule::Run()
 	poll_topics();
 	update_wind_estimator_sideslip();
 	update_ground_minus_wind_airspeed();
+	update_throttle_filter(_time_now_usec);
 
 	if (_number_of_airspeed_sensors > 0) {
 
@@ -375,7 +390,7 @@ AirspeedModule::Run()
 		input_data.vel_test_ratio = _estimator_status.vel_test_ratio;
 		input_data.hdg_test_ratio = _estimator_status.hdg_test_ratio;
 		input_data.tecs_timestamp = _tecs_status.timestamp;
-		input_data.fixed_wing_tecs_throttle = _tecs_status.throttle_sp;
+		input_data.fixed_wing_throttle_filtered = _throttle_filtered.getState();
 		input_data.fixed_wing_tecs_throttle_trim = _tecs_status.throttle_trim;
 
 		// iterate through all airspeed sensors, poll new data from them and update their validators
@@ -653,6 +668,11 @@ void AirspeedModule::select_airspeed_and_publish()
 		     || _param_airspeed_primary_index.get() == static_cast<int>(AirspeedSource::GROUND_MINUS_WIND))) {
 			_valid_airspeed_src = AirspeedSource::GROUND_MINUS_WIND;
 
+		} else if ((_param_airspeed_fallback.get() == 2
+			    || _param_airspeed_primary_index.get() == static_cast<int>(AirspeedSource::SYNTHETIC))
+			   && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			_valid_airspeed_src = AirspeedSource::SYNTHETIC;
+
 		} else {
 
 			_valid_airspeed_src = AirspeedSource::DISABLED;
@@ -691,35 +711,34 @@ void AirspeedModule::select_airspeed_and_publish()
 				     "Airspeed estimation valid");
 
 		} else {
-			mavlink_log_info(&_mavlink_log_pub, "Airspeed sensor healthy, start using again (%i, %i)\t", _prev_airspeed_index,
-					 _valid_airspeed_index);
+			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor healthy, start using again (%i, %i)\t", prev_airspeed_index,
+					     valid_airspeed_index);
 			/* EVENT
 			 * @description Previously selected sensor index: {1}, current sensor index: {2}.
 			 */
-			events::send<uint8_t, uint8_t>(events::ID("airspeed_selector_estimation_regain"), events::Log::Info,
-						       "Airspeed sensor healthy, start using again", _prev_airspeed_index,
-						       _valid_airspeed_index);
+			events::send<uint8_t, uint8_t>(events::ID("airspeed_selector_estimation_regain"), events::Log::Critical,
+						       "Airspeed sensor healthy, start using again", prev_airspeed_index,
+						       valid_airspeed_index);
 		}
 	}
 
-	_prev_airspeed_index = _valid_airspeed_index;
 	_prev_number_of_airspeed_sensors = _number_of_airspeed_sensors;
 
 	airspeed_validated_s airspeed_validated = {};
 	airspeed_validated.timestamp = _time_now_usec;
-	airspeed_validated.true_ground_minus_wind_m_s = NAN;
 	airspeed_validated.calibrated_ground_minus_wind_m_s = NAN;
+	airspeed_validated.calibraded_airspeed_synth_m_s = NAN;
 	airspeed_validated.indicated_airspeed_m_s = NAN;
 	airspeed_validated.calibrated_airspeed_m_s = NAN;
 	airspeed_validated.true_airspeed_m_s = NAN;
-	airspeed_validated.airspeed_sensor_measurement_valid = false;
-	airspeed_validated.selected_airspeed_index = _valid_airspeed_index;
 
-	airspeed_validated.airspeed_derivative_filtered = _airspeed_validator[_valid_airspeed_index -
-					      1].get_airspeed_derivative();
-	airspeed_validated.throttle_filtered = _airspeed_validator[_valid_airspeed_index - 1].get_throttle_filtered();
-	airspeed_validated.pitch_filtered = _airspeed_validator[_valid_airspeed_index - 1].get_pitch_filtered();
+	airspeed_validated.airspeed_derivative_filtered = _airspeed_validator[valid_airspeed_index -
+					     1].get_airspeed_derivative();
+	airspeed_validated.throttle_filtered = _throttle_filtered.getState();
+	airspeed_validated.pitch_filtered = _airspeed_validator[valid_airspeed_index - 1].get_pitch_filtered();
 
+	airspeed_validated.airspeed_source = valid_airspeed_index;
+	_prev_airspeed_src = _valid_airspeed_src;
 
 	switch (_valid_airspeed_src) {
 	case AirspeedSource::DISABLED:
@@ -730,17 +749,28 @@ void AirspeedModule::select_airspeed_and_publish()
 		airspeed_validated.calibrated_airspeed_m_s = _ground_minus_wind_CAS;
 		airspeed_validated.true_airspeed_m_s = _ground_minus_wind_TAS;
 		airspeed_validated.calibrated_ground_minus_wind_m_s = _ground_minus_wind_CAS;
-		airspeed_validated.true_ground_minus_wind_m_s = _ground_minus_wind_TAS;
+		airspeed_validated.calibraded_airspeed_synth_m_s = get_synthetic_airspeed(airspeed_validated.throttle_filtered);
 
 		break;
 
+	case AirspeedSource::SYNTHETIC: {
+			airspeed_validated.throttle_filtered = _throttle_filtered.getState();
+			airspeed_validated.pitch_filtered = _airspeed_validator[0].get_pitch_filtered();
+			float synthetic_airspeed = get_synthetic_airspeed(airspeed_validated.throttle_filtered);
+			airspeed_validated.calibrated_airspeed_m_s = synthetic_airspeed;
+			airspeed_validated.indicated_airspeed_m_s = synthetic_airspeed;
+			airspeed_validated.calibraded_airspeed_synth_m_s = synthetic_airspeed;
+			airspeed_validated.true_airspeed_m_s =
+				calc_true_from_calibrated_airspeed(synthetic_airspeed, _vehicle_air_data.rho);
+			break;
+		}
+
 	default:
-		airspeed_validated.indicated_airspeed_m_s = _airspeed_validator[_valid_airspeed_index - 1].get_IAS();
-		airspeed_validated.calibrated_airspeed_m_s = _airspeed_validator[_valid_airspeed_index - 1].get_CAS();
-		airspeed_validated.true_airspeed_m_s = _airspeed_validator[_valid_airspeed_index - 1].get_TAS();
+		airspeed_validated.indicated_airspeed_m_s = _airspeed_validator[valid_airspeed_index - 1].get_IAS();
+		airspeed_validated.calibrated_airspeed_m_s = _airspeed_validator[valid_airspeed_index - 1].get_CAS();
+		airspeed_validated.true_airspeed_m_s = _airspeed_validator[valid_airspeed_index - 1].get_TAS();
 		airspeed_validated.calibrated_ground_minus_wind_m_s = _ground_minus_wind_CAS;
-		airspeed_validated.true_ground_minus_wind_m_s = _ground_minus_wind_TAS;
-		airspeed_validated.airspeed_sensor_measurement_valid = true;
+		airspeed_validated.calibraded_airspeed_synth_m_s = get_synthetic_airspeed(airspeed_validated.throttle_filtered);
 		break;
 	}
 
@@ -765,6 +795,60 @@ void AirspeedModule::select_airspeed_and_publish()
 		_wind_est_pub[i + 1].publish(wind_est);
 	}
 
+}
+
+float AirspeedModule::get_synthetic_airspeed(float throttle)
+{
+	float synthetic_airspeed;
+	_flight_phase_estimation_sub.update();
+	flight_phase_estimation_s flight_phase_estimation = _flight_phase_estimation_sub.get();
+
+	if (flight_phase_estimation.flight_phase != flight_phase_estimation_s::FLIGHT_PHASE_LEVEL
+	    || _time_now_usec - flight_phase_estimation.timestamp > 1_s) {
+		synthetic_airspeed = _param_fw_airspd_trim.get();
+
+	} else if (throttle < _param_fw_thr_trim.get() && _param_fw_thr_aspd_min.get() > 0.f) {
+		synthetic_airspeed = interpolate(throttle, _param_fw_thr_aspd_min.get(),
+						 _param_fw_thr_trim.get(),
+						 _param_fw_airspd_min.get(), _param_fw_airspd_trim.get());
+
+	} else if (throttle > _param_fw_thr_trim.get() && _param_fw_thr_aspd_max.get() > 0.f) {
+		synthetic_airspeed = interpolate(throttle, _param_fw_thr_trim.get(),
+						 _param_fw_thr_aspd_max.get(),
+						 _param_fw_airspd_trim.get(), _param_fw_airspd_max.get());
+
+	} else {
+		synthetic_airspeed = _param_fw_airspd_trim.get();
+	}
+
+	return synthetic_airspeed;
+}
+
+void AirspeedModule::update_throttle_filter(hrt_abstime now)
+{
+	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		vehicle_thrust_setpoint_s vehicle_thrust_setpoint_0{};
+		_vehicle_thrust_setpoint_0_sub.copy(&vehicle_thrust_setpoint_0);
+
+		float forward_thrust = vehicle_thrust_setpoint_0.xyz[0];
+
+		// if VTOL, use the total thrust vector length (otherwise needs special handling for tailsitters and tiltrotors)
+		if (_vehicle_status.is_vtol) {
+			forward_thrust = sqrtf(vehicle_thrust_setpoint_0.xyz[0] * vehicle_thrust_setpoint_0.xyz[0] +
+					       vehicle_thrust_setpoint_0.xyz[1] * vehicle_thrust_setpoint_0.xyz[1] +
+					       vehicle_thrust_setpoint_0.xyz[2] * vehicle_thrust_setpoint_0.xyz[2]);
+		}
+
+		const float dt = static_cast<float>(now - _t_last_throttle_fw) * 1e-6f;
+		_t_last_throttle_fw = now;
+
+		if (dt < FLT_EPSILON || dt > 1.f) {
+			_throttle_filtered.reset(forward_thrust);
+
+		} else {
+			_throttle_filtered.update(forward_thrust, dt);
+		}
+	}
 }
 
 int AirspeedModule::custom_command(int argc, char *argv[])
