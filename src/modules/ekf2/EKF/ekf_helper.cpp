@@ -1259,16 +1259,6 @@ void Ekf::clearInhibitedStateKalmanGains(VectorState &K) const
 	}
 
 #endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_WIND)
-
-	if (!_control_status.flags.wind) {
-		for (unsigned i = 0; i < State::wind_vel.dof; i++) {
-			K(State::wind_vel.idx + i) = 0.f;
-		}
-	}
-
-#endif // CONFIG_EKF2_WIND
 }
 
 float Ekf::getHeadingInnov() const
