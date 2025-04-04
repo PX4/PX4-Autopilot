@@ -837,7 +837,6 @@ private:
 		(ParamFloat<px4::params::FW_P_LIM_MIN>) _param_fw_p_lim_min,
 		(ParamFloat<px4::params::FW_T_CLMB_R_SP>) _param_climbrate_target,
 		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_sinkrate_target,
-		(ParamFloat<px4::params::FW_T_SINK_MAX>) _param_fw_t_sink_max,
 		(ParamFloat<px4::params::FW_THR_IDLE>) _param_fw_thr_idle,
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
 		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,

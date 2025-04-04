@@ -1443,11 +1443,10 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 		/* longitudinal guidance */
 
-		// open the desired max sink rate to encompass the glide slope if within the aircraft's performance limits
+		// Open the desired max sink rate to encompass the glide slope.
 		// x/sqrt(x^2+1) = sin(arctan(x))
 		const float glide_slope_sink_rate = airspeed_land * glide_slope / sqrtf(glide_slope * glide_slope + 1.0f);
-		const float desired_max_sinkrate = math::min(math::max(glide_slope_sink_rate, _param_sinkrate_target.get()),
-						   _param_fw_t_sink_max.get());
+		const float desired_max_sinkrate = math::max(glide_slope_sink_rate, _param_sinkrate_target.get());
 
 		const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 			.timestamp = hrt_absolute_time(),
@@ -1612,12 +1611,11 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 
 		/* longitudinal guidance */
 
-		// open the desired max sink rate to encompass the glide slope if within the aircraft's performance limits
+		// Open the desired max sink rate to encompass the glide slope.
 		// x/sqrt(x^2+1) = sin(arctan(x))
 		const float glide_slope = math::radians(_param_fw_lnd_ang.get());
 		const float glide_slope_sink_rate = airspeed_land * glide_slope / sqrtf(glide_slope * glide_slope + 1.0f);
-		const float desired_max_sinkrate = math::min(math::max(glide_slope_sink_rate, _param_sinkrate_target.get()),
-						   _param_fw_t_sink_max.get());
+		const float desired_max_sinkrate = math::max(glide_slope_sink_rate, _param_sinkrate_target.get());
 
 		const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 			.timestamp = now,
