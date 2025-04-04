@@ -180,6 +180,7 @@ void MovingPlatformController::updateNoise(const double dt)
 	const double filter_coef_force = dt / (dt + time_constant_force);
 	const double filter_coef_torque = dt / (dt + time_constant_torque);
 
+	// This noise is dimensionless, units only come into play in updateWrenchCommand
 	_noise_lowpass_force = (1. - filter_coef_force) * _noise_lowpass_force + filter_coef_force * noise_force;
 	_noise_lowpass_torque = (1. - filter_coef_torque) * _noise_lowpass_torque + filter_coef_torque * noise_torque;
 }
@@ -199,13 +200,16 @@ void MovingPlatformController::updateWrenchCommand(
 
 	// Noise amplitude >= 0
 	// larger number = bigger movement
-	const double noise_ampl_force = keep_stationary ? 0. : _platform_mass;
-	const gz::math::Vector3d noise_ampl_torque = keep_stationary ? gz::math::Vector3d::Zero : _platform_diag_moments;
+	const double noise_ampl_force_scaling = keep_stationary ? 0. : 1.;          // [N / kg]
+	const double noise_ampl_force = noise_ampl_force_scaling * _platform_mass;  // [N]
 
-	const gz::math::Vector3d normal_force(0., 0., -_gravity * _platform_mass);
+	const double noise_ampl_torque_scaling = keep_stationary ? 0. : 1.;         // [N m / (kg m^2) = 1/s^2]
+	const gz::math::Vector3d noise_ampl_torque = noise_ampl_torque_scaling * _platform_diag_moments; // [N m]
 
-	_force = noise_ampl_force * _noise_lowpass_force + normal_force;
-	_torque = noise_ampl_torque * _noise_lowpass_torque;
+	const gz::math::Vector3d normal_force(0., 0., -_gravity * _platform_mass);  // [N]
+
+	_force = noise_ampl_force * _noise_lowpass_force + normal_force;            // [N]
+	_torque = noise_ampl_torque * _noise_lowpass_torque;                        // [N m]
 
 	// Feedback terms to ensure stability of the platform.
 	{
