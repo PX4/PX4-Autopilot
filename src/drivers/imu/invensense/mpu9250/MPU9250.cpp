@@ -162,8 +162,8 @@ int MPU9250::probe()
 {
 	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
 
-	if (whoami != WHOAMI) {
-		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
+	if (whoami != WHOAMI && whoami != WHOAM_GY91) {
+		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x, expect either 0x%02x or 0x%02x", whoami, WHOAMI, WHOAM_GY91);
 		return PX4_ERROR;
 	}
 
@@ -173,6 +173,7 @@ int MPU9250::probe()
 void MPU9250::RunImpl()
 {
 	const hrt_abstime now = hrt_absolute_time();
+	uint8_t whoami = 0;
 
 	switch (_state) {
 	case STATE::RESET:
@@ -188,7 +189,9 @@ void MPU9250::RunImpl()
 
 		// The reset value is 0x00 for all registers other than the registers below
 		//  Document Number: RM-MPU-9250A-00 Page 9 of 55
-		if ((RegisterRead(Register::WHO_AM_I) == WHOAMI)
+		whoami = RegisterRead(Register::WHO_AM_I);
+
+		if (((whoami == WHOAMI) || (whoami == WHOAM_GY91))
 		    && (RegisterRead(Register::PWR_MGMT_1) == 0x01)) {
 
 			// offset registers (factory calibration) should not change during normal operation

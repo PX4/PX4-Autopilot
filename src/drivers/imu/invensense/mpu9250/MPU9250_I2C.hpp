@@ -93,6 +93,7 @@ private:
 
 	int probe() override;
 
+	bool validate_whoami();
 	bool Reset();
 
 	bool Configure();

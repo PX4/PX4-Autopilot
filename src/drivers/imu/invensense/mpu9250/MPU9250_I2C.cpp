@@ -105,12 +105,17 @@ void MPU9250_I2C::print_status()
 	perf_print_counter(_drdy_missed_perf);
 }
 
+bool MPU9250_I2C::validate_whoami()
+{
+	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
+	return (whoami == WHOAMI) || (whoami == WHOAM_GY91);
+}
+
 int MPU9250_I2C::probe()
 {
 	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
-
-	if (whoami != WHOAMI) {
-		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
+	if (whoami != WHOAMI && whoami != WHOAM_GY91) {
+		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x, expect either 0x%02x or 0x%02x", whoami, WHOAMI, WHOAM_GY91);
 		return PX4_ERROR;
 	}
 
@@ -135,7 +140,7 @@ void MPU9250_I2C::RunImpl()
 
 		// The reset value is 0x00 for all registers other than the registers below
 		//  Document Number: RM-MPU-9250A-00 Page 9 of 55
-		if ((RegisterRead(Register::WHO_AM_I) == WHOAMI)
+		if (MPU9250_I2C::validate_whoami()
 		    && (RegisterRead(Register::PWR_MGMT_1) == 0x01)) {
 
 			// Wakeup and reset digital signal path
