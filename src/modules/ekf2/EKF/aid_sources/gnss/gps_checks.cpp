@@ -68,12 +68,17 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 	// Check the position dilution of precision
 	_gps_check_fail_status.flags.pdop = (gps.pdop > _params.req_pdop);
 
-	// Check the reported horizontal and vertical position accuracy
-	_gps_check_fail_status.flags.hacc = (gps.hacc > _params.req_hacc);
-	_gps_check_fail_status.flags.vacc = (gps.vacc > _params.req_vacc);
+	// Check the reported horizontal position accuracy (relaxed once passing)
+	const float max_horiz_accuracy = _control_status.flags.gps ? 2.f * _params.req_hacc : _params.req_hacc;
+	_gps_check_fail_status.flags.hacc = (gps.hacc > max_horiz_accuracy);
 
-	// Check the reported speed accuracy
-	_gps_check_fail_status.flags.sacc = (gps.sacc > _params.req_sacc);
+	// Check the reported vertical position accuracy (relaxed once passing)
+	const float max_vert_accuracy = _control_status.flags.gps ? 2.f * _params.req_vacc : _params.req_vacc;
+	_gps_check_fail_status.flags.vacc = (gps.vacc > max_vert_accuracy);
+
+	// Check the reported speed accuracy (relaxed once passing)
+	const float max_speed_accuracy = _control_status.flags.gps ? 2.f * _params.req_sacc : _params.req_sacc;
+	_gps_check_fail_status.flags.sacc = (gps.sacc > max_speed_accuracy);
 
 	// Calculate time lapsed since last update, limit to prevent numerical errors and calculate a lowpass filter coefficient
 	constexpr float filt_time_const = 10.0f;
