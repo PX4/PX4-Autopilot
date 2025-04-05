@@ -154,7 +154,7 @@ class FixedWingModeManager final : public ModuleBase<FixedWingModeManager>, publ
 	public px4::WorkItem
 {
 public:
-	FixedWingModeManager(bool vtol = false);
+	FixedWingModeManager();
 	~FixedWingModeManager() override;
 
 	/** @see ModuleBase */
