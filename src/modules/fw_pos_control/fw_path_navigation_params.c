@@ -122,6 +122,7 @@ PARAM_DEFINE_FLOAT(NPFG_SW_DST_MLT, 0.32f);
  */
 PARAM_DEFINE_FLOAT(NPFG_PERIOD_SF, 1.5f);
 
+
 /**
  * Minimum pitch angle setpoint
  *
@@ -132,7 +133,7 @@ PARAM_DEFINE_FLOAT(NPFG_PERIOD_SF, 1.5f);
  * @max 0.0
  * @decimal 1
  * @increment 0.5
- * @group FW TECS
+ * @group FW General
  */
 PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -30.0f);
 
@@ -146,7 +147,7 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -30.0f);
  * @max 60.0
  * @decimal 1
  * @increment 0.5
- * @group FW TECS
+ * @group FW General
  */
 PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 30.0f);
 
@@ -160,7 +161,7 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 30.0f);
  * @max 65.0
  * @decimal 1
  * @increment 0.5
- * @group FW Path Control
+ * @group FW General
  */
 PARAM_DEFINE_FLOAT(FW_R_LIM, 50.0f);
 
@@ -175,7 +176,7 @@ PARAM_DEFINE_FLOAT(FW_R_LIM, 50.0f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group FW TECS
+ * @group FW General
  */
 PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
 
@@ -191,7 +192,7 @@ PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group FW TECS
+ * @group FW General
  */
 PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
 
@@ -205,7 +206,7 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
  * @max 0.4
  * @decimal 2
  * @increment 0.01
- * @group FW TECS
+ * @group FW General
  */
 PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.0f);
 
@@ -232,7 +233,7 @@ PARAM_DEFINE_FLOAT(FW_LND_ANG, 5.0f);
  * @max 30.0
  * @decimal 1
  * @increment 0.5
- * @group FW Path Control
+ * @group FW Auto Takeoff
  */
 PARAM_DEFINE_FLOAT(FW_TKO_PITCH_MIN, 10.0f);
 
@@ -247,7 +248,7 @@ PARAM_DEFINE_FLOAT(FW_TKO_PITCH_MIN, 10.0f);
  * @min -1.0
  * @decimal 1
  * @increment 0.1
- * @group FW TECS
+ * @group FW Auto Takeoff
  */
 PARAM_DEFINE_FLOAT(FW_TKO_AIRSPD, -1.0f);
 
@@ -365,7 +366,7 @@ PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
  * @max 2.0
  * @decimal 1
  * @increment 1.0
- * @group FW TECS
+ * @group FW General
  */
 PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
 
@@ -378,7 +379,7 @@ PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
  * @max 3
  * @bit 0 Alternative stick configuration (height rate on throttle stick, airspeed on pitch stick)
  * @bit 1 Enable airspeed setpoint via sticks in altitude and position flight mode
- * @group FW Path Control
+ * @group FW General
  */
 PARAM_DEFINE_INT32(FW_POS_STK_CONF, 2);
 
@@ -393,7 +394,7 @@ PARAM_DEFINE_INT32(FW_POS_STK_CONF, 2);
  * @max 15
  * @decimal 2
  * @increment 0.01
- * @group FW TECS
+ * @group FW General
  */
 PARAM_DEFINE_FLOAT(FW_T_CLMB_R_SP, 3.0f);
 
@@ -408,7 +409,7 @@ PARAM_DEFINE_FLOAT(FW_T_CLMB_R_SP, 3.0f);
  * @max 15
  * @decimal 2
  * @increment 0.01
- * @group FW TECS
+ * @group FW General
  */
 PARAM_DEFINE_FLOAT(FW_T_SINK_R_SP, 2.0f);
 
@@ -422,7 +423,7 @@ PARAM_DEFINE_FLOAT(FW_T_SINK_R_SP, 2.0f);
  * @unit s
  * @min 0
  * @max 3600
- * @group Mission
+ * @group FW General
  */
 PARAM_DEFINE_INT32(FW_GPSF_LT, 30);
 
@@ -436,7 +437,7 @@ PARAM_DEFINE_INT32(FW_GPSF_LT, 30);
  * @max 30.0
  * @decimal 1
  * @increment 0.5
- * @group Mission
+ * @group FW General
  */
 PARAM_DEFINE_FLOAT(FW_GPSF_R, 15.0f);
 
@@ -450,7 +451,7 @@ PARAM_DEFINE_FLOAT(FW_GPSF_R, 15.0f);
  * @min 0.1
  * @decimal 1
  * @increment 0.1
- * @group FW Geometry
+ * @group FW General
  */
 PARAM_DEFINE_FLOAT(FW_WING_SPAN, 3.0);
 
@@ -464,7 +465,7 @@ PARAM_DEFINE_FLOAT(FW_WING_SPAN, 3.0);
  * @min 0.0
  * @decimal 1
  * @increment 1
- * @group FW Geometry
+ * @group FW General
  */
 PARAM_DEFINE_FLOAT(FW_WING_HEIGHT, 0.5);
 
@@ -578,7 +579,7 @@ PARAM_DEFINE_INT32(FW_LND_ABORT, 3);
  * Not compatible with runway takeoff.
  *
  * @boolean
- * @group FW Launch detection
+ * @group FW Auto Takeoff
  */
 PARAM_DEFINE_INT32(FW_LAUN_DETCN_ON, 0);
 
@@ -593,7 +594,7 @@ PARAM_DEFINE_INT32(FW_LAUN_DETCN_ON, 0);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group FW Rate Control
+ * @group FW Auto Takeoff
  */
 PARAM_DEFINE_FLOAT(FW_FLAPS_TO_SCL, 0.0f);
 
@@ -608,7 +609,7 @@ PARAM_DEFINE_FLOAT(FW_FLAPS_TO_SCL, 0.0f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group FW Rate Control
+ * @group FW Auto Landing
  */
 PARAM_DEFINE_FLOAT(FW_FLAPS_LND_SCL, 1.0f);
 
@@ -620,6 +621,6 @@ PARAM_DEFINE_FLOAT(FW_FLAPS_LND_SCL, 1.0f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group FW Attitude Control
+ * @group FW Auto Landing
  */
 PARAM_DEFINE_FLOAT(FW_SPOILERS_LND, 0.f);
