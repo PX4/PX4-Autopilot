@@ -8,7 +8,7 @@
  * @min 0
  * @decimal 0
  * @increment 1
- * @group FW Path Control
+ * @group FW Lateral Control
  */
 PARAM_DEFINE_FLOAT(FW_PN_R_SLEW_MAX, 90.0f);
 
@@ -23,7 +23,7 @@ PARAM_DEFINE_FLOAT(FW_PN_R_SLEW_MAX, 90.0f);
  * @max 40
  * @decimal 1
  * @increment 0.5
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_GND_SPD_MIN, 5.0f);
 
@@ -41,7 +41,7 @@ PARAM_DEFINE_FLOAT(FW_GND_SPD_MIN, 5.0f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f);
 
@@ -59,7 +59,7 @@ PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f);
  * @min -1
  * @decimal 0
  * @increment 1
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_THR_LOW_HGT, -1.f);
 
@@ -72,7 +72,7 @@ PARAM_DEFINE_FLOAT(FW_T_THR_LOW_HGT, -1.f);
  * @max 1.0
  * @decimal 3
  * @increment 0.01
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_THR_DAMPING, 0.05f);
 
@@ -86,7 +86,7 @@ PARAM_DEFINE_FLOAT(FW_T_THR_DAMPING, 0.05f);
  * @max 1.0
  * @decimal 3
  * @increment 0.005
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_THR_INTEG, 0.02f);
 
@@ -100,7 +100,7 @@ PARAM_DEFINE_FLOAT(FW_T_THR_INTEG, 0.02f);
  * @max 2.0
  * @decimal 2
  * @increment 0.05
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_I_GAIN_PIT, 0.1f);
 
@@ -116,7 +116,7 @@ PARAM_DEFINE_FLOAT(FW_T_I_GAIN_PIT, 0.1f);
  * @max 10.0
  * @decimal 1
  * @increment 0.5
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
 
@@ -130,7 +130,7 @@ PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
  * @max 10.0
  * @decimal 2
  * @increment 0.1
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_SPD_STD, 0.07f);
 
@@ -144,7 +144,7 @@ PARAM_DEFINE_FLOAT(FW_T_SPD_STD, 0.07f);
  * @max 10.0
  * @decimal 2
  * @increment 0.1
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_SPD_DEV_STD, 0.2f);
 
@@ -159,7 +159,7 @@ PARAM_DEFINE_FLOAT(FW_T_SPD_DEV_STD, 0.2f);
  * @max 10.0
  * @decimal 2
  * @increment 0.1
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_SPD_PRC_STD, 0.2f);
 
@@ -174,7 +174,7 @@ PARAM_DEFINE_FLOAT(FW_T_SPD_PRC_STD, 0.2f);
  * @max 20.0
  * @decimal 1
  * @increment 0.5
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 15.0f);
 
@@ -185,7 +185,7 @@ PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 15.0f);
  * @max 2.0
  * @decimal 2
  * @increment 0.1
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.1f);
 
@@ -195,7 +195,7 @@ PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.1f);
  * @min 2.0
  * @decimal 2
  * @increment 0.5
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_ALT_TC, 5.0f);
 
@@ -207,7 +207,7 @@ PARAM_DEFINE_FLOAT(FW_T_ALT_TC, 5.0f);
  *
  * @min -1.0
  * @decimal 0
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_F_ALT_ERR, -1.0f);
 
@@ -218,7 +218,7 @@ PARAM_DEFINE_FLOAT(FW_T_F_ALT_ERR, -1.0f);
  * @max 1.0
  * @decimal 2
  * @increment 0.05
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.3f);
 
@@ -228,7 +228,7 @@ PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.3f);
  * @min 2.0
  * @decimal 2
  * @increment 0.5
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_TAS_TC, 5.0f);
 
@@ -241,7 +241,7 @@ PARAM_DEFINE_FLOAT(FW_T_TAS_TC, 5.0f);
  * @max 2
  * @decimal 2
  * @increment 0.01
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_STE_R_TC, 0.4f);
 
@@ -253,7 +253,7 @@ PARAM_DEFINE_FLOAT(FW_T_STE_R_TC, 0.4f);
  * @max 3
  * @decimal 2
  * @increment 0.01
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_SEB_R_FF, 1.0f);
 
@@ -267,7 +267,7 @@ PARAM_DEFINE_FLOAT(FW_T_SEB_R_FF, 1.0f);
  * @min 0
  * @decimal 2
  * @increment 0.01
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_WIND_ARSP_SC, 0.f);
 
@@ -279,6 +279,6 @@ PARAM_DEFINE_FLOAT(FW_WIND_ARSP_SC, 0.f);
  * @max 15.0
  * @decimal 1
  * @increment 0.5
- * @group FW TECS
+ * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);
