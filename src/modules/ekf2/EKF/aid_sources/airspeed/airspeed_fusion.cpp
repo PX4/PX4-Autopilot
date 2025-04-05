@@ -131,7 +131,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 			if (_control_status.flags.inertial_dead_reckoning && !is_airspeed_consistent) {
 				resetVelUsingAirspeed(airspeed_sample);
 
-			} else if (!_external_wind_init
+			} else if (!_external_wind_init && !_synthetic_airspeed
 				   && (!_control_status.flags.wind
 				       || getWindVelocityVariance().longerThan(sq(_params.initial_wind_uncertainty)))) {
 				resetWindUsingAirspeed(airspeed_sample);
@@ -210,6 +210,10 @@ void Ekf::fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_sour
 		const Vector2f K_wind = K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0);
 		K.setZero();
 		K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) = K_wind;
+	}
+
+	if (_synthetic_airspeed) {
+		K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) = 0.f;
 	}
 
 	measurementUpdate(K, H, aid_src.observation_variance, aid_src.innovation);

@@ -60,7 +60,7 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 	check_load_factor(input_data.accel_z);
 	check_airspeed_innovation(input_data.timestamp, input_data.vel_test_ratio, input_data.hdg_test_ratio,
 				  input_data.ground_velocity, input_data.gnss_valid);
-	check_first_principle(input_data.timestamp, input_data.fixed_wing_tecs_throttle,
+	check_first_principle(input_data.timestamp, input_data.fixed_wing_throttle_filtered,
 			      input_data.fixed_wing_tecs_throttle_trim, input_data.tecs_timestamp, input_data.q_att);
 	update_airspeed_valid_status(input_data.timestamp);
 }
@@ -298,31 +298,28 @@ AirspeedValidator::check_first_principle(const uint64_t timestamp, const float t
 		return;
 	}
 
-	const float dt = static_cast<float>(timestamp - _time_last_first_principle_check) / 1_s;
+	const float dt = static_cast<float>(timestamp - _time_last_first_principle_check) * 1e-6f;
 	_time_last_first_principle_check = timestamp;
 
 	// update filters
 	if (dt < FLT_EPSILON || dt > 1.f) {
 		// reset if dt is too large
 		_IAS_derivative.reset(0.f);
-		_throttle_filtered.reset(throttle_fw);
 		_pitch_filtered.reset(pitch);
 		_time_last_first_principle_check_passing = timestamp;
 
 	} else {
 		// update filters, with different time constant
 		_IAS_derivative.setParameters(dt, 5.f);
-		_throttle_filtered.setParameters(dt, 0.5f);
 		_pitch_filtered.setParameters(dt, 1.5f);
 
 		_IAS_derivative.update(_IAS);
-		_throttle_filtered.update(throttle_fw);
 		_pitch_filtered.update(pitch);
 	}
 
 	// declare high throttle if more than 5% above trim
 	const float high_throttle_threshold = math::min(throttle_trim + kHighThrottleDelta, _param_throttle_max);
-	const bool high_throttle = _throttle_filtered.getState() > high_throttle_threshold;
+	const bool high_throttle = throttle_fw > high_throttle_threshold;
 	const bool pitching_down = _pitch_filtered.getState() < _param_psp_off;
 
 	// check if the airspeed derivative is too low given the throttle and pitch

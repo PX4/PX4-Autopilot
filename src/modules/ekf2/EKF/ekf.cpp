@@ -346,9 +346,16 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 
 		} else {
 			ECL_INFO("fuse external observation as position measurement");
+
+			// enforce wind fusion even when cs_wind is false
+#if defined(CONFIG_EKF2_WIND)
+			_enforce_wind_fusion = true;
+#endif // CONFIG_EKF2_WIND
 			fuseDirectStateMeasurement(innov(0), innov_var(0), obs_var, State::pos.idx + 0);
 			fuseDirectStateMeasurement(innov(1), innov_var(1), obs_var, State::pos.idx + 1);
-
+#if defined(CONFIG_EKF2_WIND)
+			_enforce_wind_fusion = false;
+#endif
 			// Use the reset counters to inform the controllers about a potential large position jump
 			// TODO: compute the actual position change
 			_state_reset_status.reset_count.posNE++;

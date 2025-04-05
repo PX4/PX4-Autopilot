@@ -267,9 +267,9 @@ msp_raw_gps_t construct_RAW_GPS(const sensor_gps_s &vehicle_gps_position,
 	//raw_gps.hdop = vehicle_gps_position_struct.hdop
 	raw_gps.numSat = vehicle_gps_position.satellites_used;
 
-	if (airspeed_validated.airspeed_sensor_measurement_valid
+	if (airspeed_validated.airspeed_source >= airspeed_validated_s::GROUND_MINUS_WIND
 	    && PX4_ISFINITE(airspeed_validated.indicated_airspeed_m_s)
-	    && airspeed_validated.indicated_airspeed_m_s > 0) {
+	    && airspeed_validated.indicated_airspeed_m_s > 0.f) {
 		raw_gps.groundSpeed = airspeed_validated.indicated_airspeed_m_s * 100;
 
 	} else {

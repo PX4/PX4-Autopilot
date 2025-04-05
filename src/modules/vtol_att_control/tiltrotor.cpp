@@ -104,8 +104,8 @@ void Tiltrotor::update_vtol_state()
 				const Vector3f vel = R_to_body * Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
 				exit_backtransition_speed_condition = vel(0) < _param_mpc_xy_cruise.get() ;
 
-			} else if (PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)) {
-				exit_backtransition_speed_condition = _airspeed_validated->calibrated_airspeed_m_s < _param_mpc_xy_cruise.get() ;
+			} else if (PX4_ISFINITE(_attc->get_calibrated_airspeed())) {
+				exit_backtransition_speed_condition = _attc->get_calibrated_airspeed() < _param_mpc_xy_cruise.get() ;
 			}
 
 			const bool exit_backtransition_time_condition = _time_since_trans_start > _param_vt_b_trans_dur.get() ;
@@ -251,14 +251,14 @@ void Tiltrotor::update_transition_state()
 		_mc_roll_weight = 1.0f;
 		_mc_yaw_weight = 1.0f;
 
-		if (_param_fw_use_airspd.get()  && PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s) &&
-		    _airspeed_validated->calibrated_airspeed_m_s >= getBlendAirspeed()) {
-			_mc_roll_weight = 1.0f - (_airspeed_validated->calibrated_airspeed_m_s - getBlendAirspeed()) /
+		if (PX4_ISFINITE(_attc->get_calibrated_airspeed()) &&
+		    _attc->get_calibrated_airspeed() >= getBlendAirspeed()) {
+			_mc_roll_weight = 1.0f - (_attc->get_calibrated_airspeed() - getBlendAirspeed()) /
 					  (getTransitionAirspeed()  - getBlendAirspeed());
 		}
 
 		// without airspeed do timed weight changes
-		if ((!_param_fw_use_airspd.get() || !PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)) &&
+		if ((!PX4_ISFINITE(_attc->get_calibrated_airspeed())) &&
 		    _time_since_trans_start > getMinimumFrontTransitionTime()) {
 			_mc_roll_weight = 1.0f - (_time_since_trans_start - getMinimumFrontTransitionTime()) /
 					  (getOpenLoopFrontTransitionTime() - getMinimumFrontTransitionTime());
