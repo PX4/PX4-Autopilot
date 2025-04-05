@@ -52,7 +52,7 @@ using matrix::wrap_pi;
 const fixed_wing_lateral_setpoint_s empty_lateral_control_setpoint = {.timestamp = 0, .course = NAN, .airspeed_direction = NAN, .lateral_acceleration = NAN};
 const fixed_wing_longitudinal_setpoint_s empty_longitudinal_control_setpoint = {.timestamp = 0, .altitude = NAN, .height_rate = NAN, .equivalent_airspeed = NAN, .pitch_direct = NAN, .throttle_direct = NAN};
 
-FixedWingModeManager::FixedWingModeManager(bool vtol) :
+FixedWingModeManager::FixedWingModeManager() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
@@ -542,8 +542,8 @@ FixedWingModeManager::move_position_setpoint_for_vtol_transition(position_setpoi
 
 void
 FixedWingModeManager::control_auto(const float control_interval, const Vector2d &curr_pos,
-				       const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr,
-				       const position_setpoint_s &pos_sp_next)
+				   const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr,
+				   const position_setpoint_s &pos_sp_next)
 {
 	position_setpoint_s current_sp = pos_sp_curr;
 	move_position_setpoint_for_vtol_transition(current_sp);
@@ -1023,7 +1023,7 @@ void FixedWingModeManager::publishFigureEightStatus(const position_setpoint_s po
 
 void
 FixedWingModeManager::control_auto_path(const float control_interval, const Vector2d &curr_pos,
-		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr)
+					const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr)
 {
 	const float target_airspeed = pos_sp_curr.cruising_speed > FLT_EPSILON ? pos_sp_curr.cruising_speed : NAN;
 
@@ -2573,15 +2573,7 @@ void FixedWingModeManager::publish_lateral_guidance_status(const hrt_abstime now
 
 int FixedWingModeManager::task_spawn(int argc, char *argv[])
 {
-	bool vtol = false;
-
-	if (argc > 1) {
-		if (strcmp(argv[1], "vtol") == 0) {
-			vtol = true;
-		}
-	}
-
-	FixedWingModeManager *instance = new FixedWingModeManager(vtol);
+	FixedWingModeManager *instance = new FixedWingModeManager();
 
 	if (instance) {
 		_object.store(instance);
@@ -2624,7 +2616,6 @@ lateral-longitudinal controller and and controllers below that (attitude, rate).
 
 	PRINT_MODULE_USAGE_NAME("fw_mode_manager", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
