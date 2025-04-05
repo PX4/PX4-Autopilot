@@ -33,12 +33,12 @@
 
 
 /**
- * @file FixedwingPositionControl.hpp
- * Implementation of various fixed-wing position level navigation/control modes.
+ * @file FixedWingModeManager.hpp
+ * Implementation of various fixed-wing control modes.
  */
 
-#ifndef FIXEDWINGPOSITIONCONTROL_HPP_
-#define FIXEDWINGPOSITIONCONTROL_HPP_
+#ifndef FIXEDWINGMODEMANAGER_HPP_
+#define FIXEDWINGMODEMANAGER_HPP_
 
 #include "launchdetection/LaunchDetector.h"
 #include "runway_takeoff/RunwayTakeoff.h"
@@ -151,12 +151,12 @@ static constexpr float POST_TOUCHDOWN_CLAMP_TIME = 0.5f;
 // [] Stick deadzon
 static constexpr float kStickDeadBand = 0.06f;
 
-class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
+class FixedWingModeManager final : public ModuleBase<FixedWingModeManager>, public ModuleParams,
 	public px4::WorkItem
 {
 public:
-	FixedwingPositionControl();
-	~FixedwingPositionControl() override;
+	FixedWingModeManager();
+	~FixedWingModeManager() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -872,4 +872,4 @@ private:
 	)
 };
 
-#endif // FIXEDWINGPOSITIONCONTROL_HPP_
+#endif // FIXEDWINGMODEMANAGER_HPP_
