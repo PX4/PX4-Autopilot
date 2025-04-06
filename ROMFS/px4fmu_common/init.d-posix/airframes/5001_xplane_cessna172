@@ -44,7 +44,6 @@ param set-default CA_SV_CS3_TRQ_Y 1.0
 # Enabling simulated sensors for integration with X-Plane
 param set-default SENS_EN_GPSSIM 1
 param set-default SENS_EN_BAROSIM 1
-param set-default SENS_EN_MAGSIM 1
 param set-default SENS_EN_ARSPDSIM 1
 
 # ---- PWM Output Configuration ----
@@ -84,7 +83,6 @@ param set-default SDLOG_MODE 0
 param set-default CBRK_USB_CHK 197848      # Disable USB check
 param set-default CBRK_SUPPLY_CHK 894281   # Disable real battery check
 param set-default CBRK_IO_SAFETY 22027     # Disable safety switch check
-param set-default CBRK_AIRSPD_CHK 1612128  # Disable airspeed sensor check
 
 # ---- End of Configuration ----
 #new
@@ -106,7 +104,6 @@ param set-default CA_ROTOR0_PX 1.2000
 
 param set-default CA_R0_SLEW 2.0000
 param set-default EKF2_ABL_ACCLIM 35.0000
-param set-default EKF2_MAG_DELAY 1.0000
 param set-default FW_LND_ABORT 0
 param set-default FW_PN_R_SLEW_MAX 50.0000
 param set-default FW_PR_FF 3.4000
@@ -121,25 +118,22 @@ param set-default FW_RR_P 0.4700
 param set-default FW_R_RMAX 10.0000
 param set-default FW_R_TC 0.6000
 param set-default FW_T_ALT_TC 10.0000
-param set-default FW_T_I_GAIN_THR 0.0200
 param set-default FW_T_RLL2THR 5.0000
 param set-default FW_T_STE_R_TC 2.5000
-param set-default FW_T_THR_DAMP 0.0000
 param set-default LNDFW_AIRSPD_MAX 30.0000
 param set-default MIS_YAW_ERR 30.0000
 param set-default MIS_YAW_TMT 5.0000
+param set-default VT_F_TR_OL_TM 60.0000
 
 param set-default NAV_ACC_RAD 300.0000
 param set-default NAV_FW_ALT_RAD 50.0000
 param set-default MPC_MAN_Y_MAX 20.0000
 param set-default NAV_MIN_LTR_ALT -1.0000
 
-param set-default EKF2_MAG_TYPE 0
 param set-default FW_LND_AIRSPD 36.0000
 param set-default FW_PR_D 0.3550
 param set-default FW_RR_D 0.0850
 param set-default FW_RR_I 0.1300
-param set-default SYS_HAS_MAG 1
 
 param set-default EKF2_ABIAS_INIT 0.0000
 param set-default EKF2_ABL_LIM 0.8000

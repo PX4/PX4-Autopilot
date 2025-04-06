@@ -301,3 +301,8 @@ param set-default EKF2_MULTI_IMU 1
 param set-default EKF2_REQ_VDRIFT 1.0000
 param set-default IMU_GYRO_RATEMAX 100
 param set-default IMU_INTEG_RATE 100
+
+param set-default ASPD_DO_CHECKS 0
+param set-default EKF2_GPS_DELAY 1.0
+param set-default EKF2_MULTI_IMU 1
+param set-default EKF2_SYNT_MAG_Z 1
