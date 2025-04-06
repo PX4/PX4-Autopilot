@@ -314,6 +314,7 @@
   - [Joysticks](config/joystick.md)
   - [Data Links](data_links/index.md)
     - [MAVLink 텔레메트리(OSD/GCS) ](peripherals/mavlink_peripherals.md)
+
     - [텔레메트리 무선통신](telemetry/index.md)
       - [SiK 무선통신](telemetry/sik_radio.md)
         - [RFD900 (SiK) 텔레메트리](telemetry/rfd900_telemetry.md)
@@ -326,9 +327,13 @@
         - [ARK Electron Microhard Serial Telemetry Radio](telemetry/ark_microhard_serial.md)
         - [Holybro Microhard P900 Telemetry Radio](telemetry/holybro_microhard_p900_radio.md)
       - [CUAV P8 Telemetry Radio](telemetry/cuav_p8_radio.md)
+      - [J.Fi Wireless Telemetry Module](telemetry/jfi_telemetry.md)
       - [HolyBro XBP9X - Discontinued](telemetry/holybro_xbp9x_radio.md)
+
     - [FrSky 텔레메트리](peripherals/frsky_telemetry.md)
+
     - [TBS Crossfire (CRSF) Telemetry](telemetry/crsf_telemetry.md)
+
     - [Satellite Comms (Iridium/RockBlock)](advanced_features/satcom_roadblock.md)
   - [Power Systems](power_systems/index.md)
     - [Battery Estimation Tuning](config/battery.md)
