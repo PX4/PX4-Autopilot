@@ -1,11 +1,10 @@
-#!/usr/bin/env python3
-
 import re
 import sys
 import os
 from enum import Enum
 from functools import lru_cache
 
+force_color = False
 
 class color(Enum):
     PURPLE = '\033[95m'
@@ -22,7 +21,7 @@ class color(Enum):
 
 
 def colorize(text: str, c: color) -> str:
-    if _supports_color():
+    if force_color or _supports_color():
         return str(c.value) + text + color.RESET.value
     else:
         return text
