@@ -56,6 +56,11 @@ void MessageDisplay::set(const MessageDisplayType mode, const char *string)
 		if (strcmp(flight_mode_msg, string) != 0) {
 			flight_mode_msg[MSG_BUFFER_SIZE - 1] = '\0';
 			strncpy(flight_mode_msg, string, MSG_BUFFER_SIZE - 1);
+			for(int i = 0; i < (MSG_BUFFER_SIZE - 1); ++i){
+				if (flight_mode_msg[i] >= 'a' && flight_mode_msg[i] <= 'z'){
+						flight_mode_msg[i] = flight_mode_msg[i] - 32; // toupper
+				}
+			}
 			updated_ = true;
 		}
 

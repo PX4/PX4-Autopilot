@@ -111,6 +111,9 @@ const uint16_t osd_current_draw_pos = 2103;
 
 const uint16_t osd_numerical_vario_pos = LOCATION_HIDDEN;
 
+#define OSD_GRID_COL_MAX (59)
+#define OSD_GRID_ROW_MAX (21)
+
 typedef enum {
     MSP_DP_HEARTBEAT = 0,         // Release the display after clearing and updating
     MSP_DP_RELEASE = 1,         // Release the display after clearing and updating
@@ -297,13 +300,23 @@ void MspOsd::Run()
 
 		log_message_s log_message{};
 		_log_message_sub.copy(&log_message);
+		// TODO re-wirte this function?
+		const auto display_message = msp_osd::construct_display_message(
+						     vehicle_status,
+						     vehicle_attitude,
+						     log_message,
+						     _param_osd_log_level.get(),
+						     _display);
 
-		// const auto display_message = msp_osd::construct_display_message(
-		// 				     vehicle_status,
-		// 				     vehicle_attitude,
-		// 				     log_message,
-		// 				     _param_osd_log_level.get(),
-		// 				     _display);
+		char msg[sizeof(msp_name_t) + 5] = {0};
+		int index = 0;
+		msg[index++] = MSP_DP_WRITE_STRING;
+		msg[index++] = 0x02; // row position
+		msg[index++] = 0x14; // colum position
+		msg[index++] = 0; 	//
+		msg[index++] = 0x03; 	//
+		memcpy(&msg[index++], &display_message, sizeof(msp_name_t));
+		this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msg));
 		// this->Send(MSP_NAME, &display_message);
 	}
 
