@@ -322,7 +322,8 @@ void MspOsd::Run()
 
 	// MSP_FC_VARIANT
 	{
-		// const auto msg = msp_osd::construct_FC_VARIANT();
+		const auto msg = msp_osd::construct_FC_VARIANT();
+		this->Send(MSP_FC_VARIANT, &msg, sizeof(msg));
 		// this->Send(MSP_FC_VARIANT, &msg);
 	}
 
