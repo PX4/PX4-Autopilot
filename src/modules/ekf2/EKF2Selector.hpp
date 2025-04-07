@@ -96,6 +96,23 @@ private:
 	// Update the error scores for all available instances
 	bool UpdateErrorScores();
 
+
+	typedef enum EKFChangeReason {
+		NONE = 0, //Indicates that it hasn't changed
+		INIT, // EKF initialization can't be considered a change
+		FILTER_FAULT,
+		TIMEOUT,
+		GYRO_FAULT,
+		ACCEL_FAULT,
+		UNHEALTHY,
+		LOWER_ERROR_AVAILABLE,
+		USER_SELECTED,
+		UNKNOWN
+	} EKFChangeReason;
+
+	// Calculates the instance health issue with the highest priority
+	EKFChangeReason CalculateHealthChangeReason();
+
 	// Subscriptions (per estimator instance)
 	struct EstimatorInstance {
 
@@ -186,6 +203,7 @@ private:
 
 	uint32_t _instance_changed_count{0};
 	hrt_abstime _last_instance_change{0};
+	EKFChangeReason _ekf_last_change_reason{EKFChangeReason::NONE};
 
 	hrt_abstime _last_status_publish{0};
 	bool _selector_status_publish{false};
