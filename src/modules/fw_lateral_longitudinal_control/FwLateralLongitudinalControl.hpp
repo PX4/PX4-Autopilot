@@ -68,7 +68,7 @@
 #include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
 #include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/flight_phase_estimation.h>
-#include <uORB/topics/lateral_control_limits.h>
+#include <uORB/topics/lateral_control_configuration.h>
 #include <uORB/topics/longitudinal_control_limits.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/tecs_status.h>
@@ -121,13 +121,13 @@ private:
 	uORB::Subscription _fw_lateral_ctrl_sub{ORB_ID(fixed_wing_lateral_setpoint)};
 	uORB::Subscription _fw_longitudinal_ctrl_sub{ORB_ID(fixed_wing_longitudinal_setpoint)};
 	uORB::Subscription _long_control_limits_sub{ORB_ID(longitudinal_control_limits)};
-	uORB::Subscription _lateral_control_limits_sub{ORB_ID(lateral_control_limits)};
+	uORB::Subscription _lateral_control_configuration_sub{ORB_ID(lateral_control_configuration)};
 
 	vehicle_local_position_s _local_pos{};
 	fixed_wing_longitudinal_setpoint_s _long_control_sp{empty_longitudinal_control_setpoint};
 	longitudinal_control_limits_s _long_limits{};
 	fixed_wing_lateral_setpoint_s _lat_control_sp{empty_lateral_control_setpoint};
-	lateral_control_limits_s _lateral_limits{};
+	lateral_control_configuration_s _lateral_limits{};
 	float _flaps_setpoint{0.f};
 
 	uORB::Publication <vehicle_attitude_setpoint_s> _attitude_sp_pub;
