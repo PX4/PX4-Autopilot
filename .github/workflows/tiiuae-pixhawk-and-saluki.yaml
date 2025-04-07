@@ -48,10 +48,10 @@ permissions:
 env:
   saluki_nxp_bootloader: "ghcr.io/tiiuae/saluki_bootloader_v2:2.6.0"
   saluki_fpga_repo: "ghcr.io/tiiuae/saluki-fpga"
-  saluki_pi_fpga_version: "4.26.0"
-  saluki_v2_fpga_version: "4.26.0"
-  saluki_v3_fpga_version: "4.26.0"
-  saluki_fmu2_fpga_version: "4.26.0"
+  saluki_pi_fpga_version: "4.27.0"
+  saluki_v2_fpga_version: "4.27.0"
+  saluki_v3_fpga_version: "4.27.0"
+  saluki_fmu2_fpga_version: "4.27.0"
 
 jobs:
   fc_matrix:
