@@ -319,6 +319,7 @@
     - [Telemetry Radios](telemetry/index.md)
       - [SiK Radio](telemetry/sik_radio.md)
         - [RFD900 (SiK) Telemetry Radio](telemetry/rfd900_telemetry.md)
+        - [ThunderFly TFSIK01 Telemetry Radio](telemetry/tfsik_telemetry.md)
         - [HolyBro (SIK) Telemetry Radio](telemetry/holybro_sik_radio.md)
       - [Telemetry Wifi](telemetry/telemetry_wifi.md)
         - [ESP8266 WiFi Module](telemetry/esp8266_wifi_module.md)
