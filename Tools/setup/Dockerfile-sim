@@ -1,18 +1,11 @@
 # PX4 base development environment
-FROM ubuntu:24.04
+FROM px4io/px4-dev:v1.16.0-alpha2-419-gd48631e2ce
 LABEL maintainer="Daniel Agar <daniel@agar.ca>, Ramon Roche <mrpollo@gmail.com>"
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV LANG=C.UTF-8
-ENV LC_ALL=C.UTF-8
-ENV DISPLAY=:99
-ENV TERM=xterm
-ENV TZ=UTC
-ENV QEMU_CPU=max,pauth-impdef=on
-
-# SITL UDP PORTS
-EXPOSE 14556/udp
-EXPOSE 14557/udp
+# Some QT-Apps/Gazebo don't not show controls without this
+ENV QT_X11_NO_MITSHM=1
+# Use UTF8 encoding in java tools (needed to compile jMAVSim)
+ENV JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
 
 # Set Up Caching of APT packages
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -22,19 +15,19 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 	apt-get --quiet -y update
 
 # Install Shell Script Entrypoint
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+# COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 # Install PX4 Requirements
 COPY requirements.txt /tmp/requirements.txt
 COPY ubuntu.sh /tmp/ubuntu.sh
 RUN touch /.dockerenv
-RUN bash /tmp/ubuntu.sh --no-sim-tools
+RUN bash /tmp/ubuntu.sh --no-nuttx
 
 RUN git config --global --add safe.directory '*'
 
 # create user with id 1001 (jenkins docker workflow default)
-RUN useradd --shell /bin/bash -u 1001 -c "" -m user && usermod -a -G dialout user
+# RUN useradd --shell /bin/bash -u 1001 -c "" -m user && usermod -a -G dialout user
 
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+# ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 CMD ["/bin/bash"]
