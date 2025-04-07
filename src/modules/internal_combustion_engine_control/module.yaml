@@ -121,11 +121,13 @@ parameters:
 
       ICE_STRT_CHOKE:
         description:
-          short: Choke position during startup, 1 for fully choked.
+          short: Choke position during startup, 100 % for fully choked.
+          long: |
+              If the engine does not fire fully choked, open the choke slightly to allow for more air into the fuel/air mixture by reducing a few percentages until fire.
         type: float
         unit: norm
         min: 0
         max: 1
         decimal: 0
         increment: 0.01
-        default: 0.8
+        default: 1.0
