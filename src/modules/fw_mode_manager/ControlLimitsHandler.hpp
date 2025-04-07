@@ -38,12 +38,12 @@
 #ifndef PX4_CONTROLLIMITSHANDLER_HPP
 #define PX4_CONTROLLIMITSHANDLER_HPP
 
-#include <uORB/topics/longitudinal_control_limits.h>
+#include <uORB/topics/longitudinal_control_configuration.h>
 #include <uORB/topics/lateral_control_configuration.h>
 #include <uORB/Publication.hpp>
 #include <lib/mathlib/mathlib.h>
 
-const longitudinal_control_limits_s empty_longitudinal_control_limits = {.timestamp = 0, .pitch_min = NAN, .pitch_max = NAN, .throttle_min = NAN, .throttle_max = NAN, .climb_rate_target = NAN, .sink_rate_target = NAN, .speed_weight = NAN, .enforce_low_height_condition = false, .disable_underspeed_protection = false };
+const longitudinal_control_configuration_s empty_longitudinal_control_configuration = {.timestamp = 0, .pitch_min = NAN, .pitch_max = NAN, .throttle_min = NAN, .throttle_max = NAN, .climb_rate_target = NAN, .sink_rate_target = NAN, .speed_weight = NAN, .enforce_low_height_condition = false, .disable_underspeed_protection = false };
 const lateral_control_configuration_s empty_lateral_control_configuration = {.timestamp = 0, .lateral_accel_max = NAN};
 
 
@@ -102,10 +102,10 @@ private:
 	hrt_abstime _time_last_lateral_publish{0};
 
 	uORB::PublicationData<lateral_control_configuration_s> _lateral_publisher{ORB_ID(lateral_control_configuration)};
-	uORB::PublicationData<longitudinal_control_limits_s> _longitudinal_publisher{ORB_ID(longitudinal_control_limits)};
+	uORB::PublicationData<longitudinal_control_configuration_s> _longitudinal_publisher{ORB_ID(longitudinal_control_configuration)};
 
 	lateral_control_configuration_s _lateral_limits_current_cycle{empty_lateral_control_configuration};
-	longitudinal_control_limits_s _longitudinal_limits_current_cycle {empty_longitudinal_control_limits};
+	longitudinal_control_configuration_s _longitudinal_limits_current_cycle {empty_longitudinal_control_configuration};
 };
 
 #endif //PX4_CONTROLLIMITSHANDLER_HPP
