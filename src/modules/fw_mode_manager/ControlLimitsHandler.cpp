@@ -79,7 +79,7 @@ void CombinedControlLimitHandler::update(const hrt_abstime now)
 	}
 
 	_longitudinal_updated = _lateral_updated = false;
-	_longitudinal_limits_current_cycle = empty_longitudinal_control_limits;
+	_longitudinal_limits_current_cycle = empty_longitudinal_control_configuration;
 	_lateral_limits_current_cycle = empty_lateral_control_configuration;
 }
 

@@ -321,13 +321,13 @@ void FwLateralLongitudinalControl::updateControlLimits()
 	}
 
 	if (_long_limits.timestamp == 0) {
-		setDefaultLongitudinalControlLimits();
+		setDefaultLongitudinalControlConfiguration();
 	}
 
 	if (_long_control_limits_sub.updated() || _parameter_update_sub.updated()) {
-		longitudinal_control_limits_s limits_in{};
+		longitudinal_control_configuration_s limits_in{};
 		_long_control_limits_sub.copy(&limits_in);
-		updateLongitudinalControlLimits(limits_in);
+		updateLongitudinalControlConfiguration(limits_in);
 	}
 
 	if (_lateral_control_configuration_sub.updated() || _parameter_update_sub.updated()) {
@@ -765,7 +765,7 @@ float FwLateralLongitudinalControl::mapLateralAccelerationToRollAngle(float late
 	return  atanf(lateral_acceleration_sp / CONSTANTS_ONE_G);
 }
 
-void FwLateralLongitudinalControl::setDefaultLongitudinalControlLimits() {
+void FwLateralLongitudinalControl::setDefaultLongitudinalControlConfiguration() {
 	_long_limits.timestamp = hrt_absolute_time();
 	_long_limits.pitch_min = radians(_param_fw_p_lim_min.get());
 	_long_limits.pitch_max = radians(_param_fw_p_lim_max.get());
@@ -777,7 +777,7 @@ void FwLateralLongitudinalControl::setDefaultLongitudinalControlLimits() {
 	_long_limits.enforce_low_height_condition = false;
 }
 
-void FwLateralLongitudinalControl::updateLongitudinalControlLimits(const longitudinal_control_limits_s &limits_in) {
+void FwLateralLongitudinalControl::updateLongitudinalControlConfiguration(const longitudinal_control_configuration_s &limits_in) {
 	_long_limits.timestamp = limits_in.timestamp;
 
 	if (PX4_ISFINITE(limits_in.pitch_min)) {

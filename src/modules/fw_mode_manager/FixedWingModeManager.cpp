@@ -34,7 +34,7 @@
 #include "FixedWingModeManager.hpp"
 
 #include <px4_platform_common/events.h>
-#include <uORB/topics/longitudinal_control_limits.h>
+#include <uORB/topics/longitudinal_control_configuration.h>
 
 using math::constrain;
 using math::max;
