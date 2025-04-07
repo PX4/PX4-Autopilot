@@ -330,9 +330,9 @@ void FwLateralLongitudinalControl::updateControlLimits()
 		updateLongitudinalControlLimits(limits_in);
 	}
 
-	if (_lateral_control_limits_sub.updated() || _parameter_update_sub.updated()) {
-		lateral_control_limits_s limits_in{};
-		_lateral_control_limits_sub.copy(&limits_in);
+	if (_lateral_control_configuration_sub.updated() || _parameter_update_sub.updated()) {
+		lateral_control_configuration_s limits_in{};
+		_lateral_control_configuration_sub.copy(&limits_in);
 		_lateral_limits.timestamp = limits_in.timestamp;
 
 		if (PX4_ISFINITE(limits_in.lateral_accel_max)) {
