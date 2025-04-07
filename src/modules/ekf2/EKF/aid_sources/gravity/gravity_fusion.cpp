@@ -61,7 +61,8 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 	// fuse gravity observation if our overall acceleration isn't too big
 	_control_status.flags.gravity_vector = (_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector))
 					       && (accel_lpf_norm_good || _control_status.flags.vehicle_at_rest)
-					       && !isHorizontalAidingActive();
+					       && !isHorizontalAidingActive()
+					       && _control_status.flags.tilt_align; // Let fake position do the initial alignment (more robust before takeoff)
 
 	// calculate kalman gains and innovation variances
 	Vector3f innovation = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f, -1.f)) - measurement;
