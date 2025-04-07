@@ -592,6 +592,20 @@ parameters:
                 1: Remove first failed motor from effectiveness
             default: 0
 
+        CA_STOP_MOT_THLD:
+            description:
+                short: Threshold on absolute thrust setpoint to stop stoppable motors.
+                long: |
+                    Stop motor (send NAN) if absolute actuator setpoint is below this threshold on
+                    a stoppable motor (e.g. fixed-wing motors).
+                    Set to 0 to not stop any motor.
+            type: float
+            decimal: 2
+            increment: 0.01
+            min: 0
+            max: 1
+            default: 0.02
+
 # Mixer
 mixer:
     actuator_types:

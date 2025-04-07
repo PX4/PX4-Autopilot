@@ -64,9 +64,10 @@ TEST(ActuatorEffectivenessHelicopterTest, ThrottleCurve)
 	actuator_min.setAll(0.f);
 	ActuatorEffectiveness::ActuatorVector actuator_max{};
 	actuator_max.setAll(1.f);
+	const float stop_threshold = 0.f; // do not stop motors
 
 	control_sp(ActuatorEffectiveness::ControlAxis::THRUST_Z) = 0.1f;
-	helicopter.updateSetpoint(control_sp, 0, actuator_sp, actuator_min, actuator_max);
+	helicopter.updateSetpoint(control_sp, 0, actuator_sp, actuator_min, actuator_max, 0.f);
 	EXPECT_FLOAT_EQ(actuator_sp(0), 0.f);
 
 	control_sp(ActuatorEffectiveness::ControlAxis::THRUST_Z) = 0.f;

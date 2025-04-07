@@ -445,7 +445,7 @@ ControlAllocator::Run()
 			_control_allocation[i]->allocate();
 			_actuator_effectiveness->allocateAuxilaryControls(dt, i, _control_allocation[i]->_actuator_sp); //flaps and spoilers
 			_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp,
-								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax());
+								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax(), _param_ca_stop_mot_thld.get());
 
 			if (_has_slew_rate) {
 				_control_allocation[i]->applySlewRateLimit(dt);

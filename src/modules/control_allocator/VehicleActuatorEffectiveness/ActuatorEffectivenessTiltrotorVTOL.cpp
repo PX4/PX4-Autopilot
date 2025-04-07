@@ -126,7 +126,7 @@ void ActuatorEffectivenessTiltrotorVTOL::allocateAuxilaryControls(const float dt
 
 void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
 		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
+		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max, float stop_threshold)
 {
 	// apply tilt
 	if (matrix_index == 0) {
@@ -208,7 +208,7 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 		}
 
 		if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
-			stopMaskedMotorsWithZeroThrust(_motors & ~_untiltable_motors, actuator_sp);
+			stopMaskedMotorsWithZeroThrust(_motors & ~_untiltable_motors, actuator_sp, stop_threshold);
 		}
 	}
 }
