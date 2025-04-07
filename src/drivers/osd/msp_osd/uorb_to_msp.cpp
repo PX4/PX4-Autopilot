@@ -241,30 +241,18 @@ msp_rendor_battery_state_t construct_rendor_BATTERY_STATE(const battery_status_s
 	battery_state.screenYPosition = 0x09; // Fixed for testing
 	battery_state.screenXPosition = 0x22; // Fixed for testing
 	battery_state.iconAttrs = 0x00; //
-	battery_state.iconIndexY = 0x93; // Empty battery Icon for testing
-	battery_state.str[0] = '-';
-	battery_state.str[1] = '0';
-	battery_state.str[2] = '0';
-	battery_state.str[3] = '.';
-	battery_state.str[4] = '4';
 
-
-	// MSP_BATTERY_STATE
-	// battery_state.amperage = battery_status.current_a * 100.0f; // Used for power element
-	// battery_state.batteryVoltage = (uint16_t)((battery_status.voltage_v / battery_status.cell_count) * 400.0f);  // OK
-	// battery_state.mAhDrawn = battery_status.discharged_mah ; // OK
-	// battery_state.batteryCellCount = battery_status.cell_count;
-	// battery_state.batteryCapacity = battery_status.capacity; // not used?
-
-	// // Voltage color 0==white, 1==red
-	// if (battery_status.voltage_v < 14.4f) {
-	// 	battery_state.batteryState = 1;
-
-	// } else {
-	// 	battery_state.batteryState = 0;
-	// }
-
-	// battery_state.legacyBatteryVoltage = battery_status.voltage_v * 10;
+	float sigle_cell_v =battery_status.voltage_v / battery_status.cell_count;
+	if(sigle_cell_v > 4.0f){
+		battery_state.iconIndexY = 0x91; // Full battery Icon
+	}else if( (sigle_cell_v <= 4.0f) && (sigle_cell_v > 3.5f) ){
+    battery_state.iconIndexY = 0x93; // Half battery Icon
+  }else if( (sigle_cell_v <= 3.5f) && (sigle_cell_v > 3.2f) ){
+    battery_state.iconIndexY = 0x95; // Empty battery Icon
+  }else{
+    battery_state.iconIndexY = 0x96; // Dead battery Icon
+  }
+  sprintf(&battery_state.str[0], "%.1fV", (double)sigle_cell_v);
 	return battery_state;
 }
 

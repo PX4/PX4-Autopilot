@@ -795,7 +795,7 @@ struct msp_rendor_battery_state_t {
 	uint8_t screenXPosition;
 	uint8_t iconAttrs; //
 	uint8_t iconIndexY;
-	uint8_t str[5];
+	char str[5];
 } __attribute__((packed));
 
 // MSP_STATUS reply customized for BF/DJI

@@ -348,7 +348,7 @@ void MspOsd::Run()
 		_battery_status_sub.copy(&battery_status);
 
 		const auto msg = msp_osd::construct_rendor_BATTERY_STATE(battery_status);
-		this->Send(182, &msg, sizeof(msp_rendor_battery_state_t));
+		this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_battery_state_t));
 
 	}
 
