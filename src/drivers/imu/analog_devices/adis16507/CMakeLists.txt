@@ -35,7 +35,6 @@ px4_add_module(
 	MODULE drivers__imu__analog_devices__adis16507
 	MAIN adis16507
 	COMPILE_FLAGS
-		-DDEBUG_BUILD
 	SRCS
 		ADIS16507.cpp
 		ADIS16507.hpp
