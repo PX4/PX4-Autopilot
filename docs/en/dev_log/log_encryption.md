@@ -372,3 +372,6 @@ This section explains how you might manually run the same steps as the script (s
    ```sh
    CONFIG_PUBLIC_KEY1="../../../keys/public/public_key.pub"
    ```
+
+### See also
+How to decrypt and view encrypted logs on [Flight Review](../getting_started/flight_reporting.md)
