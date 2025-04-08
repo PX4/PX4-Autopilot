@@ -196,6 +196,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_manual_control(msg);
 		break;
 
+	case MAVLINK_MSG_ID_RC_CHANNELS:
+		handle_message_rc_channels(msg);
+		break;
+
 	case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
 		handle_message_rc_channels_override(msg);
 		break;
@@ -2031,6 +2035,8 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 	rc.values[16] = man.chan17_raw;
 	rc.values[17] = man.chan18_raw;
 
+
+
 #if defined(ATL_MANTIS_RC_INPUT_HACKS)
 
 	// Sanity checking if the RC controller is really sending.
@@ -2074,6 +2080,47 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 
 	// publish uORB message
 	_rc_pub.publish(rc);
+}
+
+void MavlinkReceiver::handle_message_rc_channels(mavlink_message_t *msg)
+{
+	mavlink_rc_channels_t rc_channels;
+	mavlink_msg_rc_channels_decode(msg, &rc_channels);
+
+	// Fill the uORB input_rc message
+	input_rc_s rc_input{};
+	rc_input.timestamp = hrt_absolute_time();
+	rc_input.timestamp_last_signal = hrt_absolute_time();
+	rc_input.channel_count = rc_channels.chancount;
+	rc_input.rssi = rc_channels.rssi;
+	rc_input.rc_failsafe = false;
+	rc_input.rc_lost = false;
+	rc_input.rc_lost_frame_count = 0;
+	rc_input.rc_total_frame_count = 1;
+	rc_input.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
+
+
+	rc_input.values[0] = rc_channels.chan1_raw;
+	rc_input.values[1] = rc_channels.chan2_raw;
+	rc_input.values[2] = rc_channels.chan3_raw;
+	rc_input.values[3] = rc_channels.chan4_raw;
+	rc_input.values[4] = rc_channels.chan5_raw;
+	rc_input.values[5] = rc_channels.chan6_raw;
+	rc_input.values[6] = rc_channels.chan7_raw;
+	rc_input.values[7] = rc_channels.chan8_raw;
+	rc_input.values[8] = rc_channels.chan9_raw;
+	rc_input.values[9] = rc_channels.chan10_raw;
+	rc_input.values[10] = rc_channels.chan11_raw;
+	rc_input.values[11] = rc_channels.chan12_raw;
+	rc_input.values[12] = rc_channels.chan13_raw;
+	rc_input.values[13] = rc_channels.chan14_raw;
+	rc_input.values[14] = rc_channels.chan15_raw;
+	rc_input.values[15] = rc_channels.chan16_raw;
+	rc_input.values[16] = rc_channels.chan17_raw;
+	rc_input.values[17] = rc_channels.chan18_raw;
+
+	// Publish the rc_channelsmessage
+	_rc_pub.publish(rc_input);
 }
 
 void
