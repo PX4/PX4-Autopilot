@@ -100,6 +100,12 @@ msp_comp_gps_t construct_COMP_GPS(const home_position_s &home_position,
 				  const vehicle_global_position_s &vehicle_global_position,
 				  const bool heartbeat);
 
+msp_rendor_latitude_t construct_rendor_GPS_LAT(const sensor_gps_s &vehicle_gps_position);
+
+msp_rendor_longitude_t construct_rendor_GPS_LON(const sensor_gps_s &vehicle_gps_position);
+
+msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const sensor_gps_s &vehicle_gps_position);
+
 // construct an MSP_ATTITUDE struct
 msp_attitude_t construct_ATTITUDE(const vehicle_attitude_s &vehicle_attitude);
 

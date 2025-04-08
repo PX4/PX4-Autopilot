@@ -340,14 +340,14 @@ void MspOsd::Run()
 	{
 		// battery_status_s battery_status{};
 		// _battery_status_sub.copy(&battery_status);
-	if(enabled(SymbolIndex::RSSI_VALUE)){
-		input_rc_s input_rc{};
-		_input_rc_sub.copy(&input_rc);
 
 		// const auto msg = msp_osd::construct_ANALOG(
 		// 			 battery_status,
 		// 			 input_rc);
 		// this->Send(MSP_ANALOG, &msg);
+	if(enabled(SymbolIndex::RSSI_VALUE)){
+		input_rc_s input_rc{};
+		_input_rc_sub.copy(&input_rc);
 		const auto msg = msp_osd::construct_rendor_RSSI(input_rc);
 		this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_rssi_t));
 	}
@@ -371,8 +371,8 @@ void MspOsd::Run()
 
 	// MSP_RAW_GPS
 	{
-		// sensor_gps_s vehicle_gps_position{};
-		// _vehicle_gps_position_sub.copy(&vehicle_gps_position);
+		sensor_gps_s vehicle_gps_position{};
+		_vehicle_gps_position_sub.copy(&vehicle_gps_position);
 
 		// airspeed_validated_s airspeed_validated{};
 		// _airspeed_validated_sub.copy(&airspeed_validated);
@@ -381,6 +381,20 @@ void MspOsd::Run()
 		// 			 vehicle_gps_position,
 		// 			 airspeed_validated);
 		// this->Send(MSP_RAW_GPS, &msg);
+		if(enabled(SymbolIndex::GPS_LAT)){
+			const auto msg = msp_osd::construct_rendor_GPS_LAT(vehicle_gps_position);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_latitude_t));
+		}
+
+		if(enabled(SymbolIndex::GPS_LON)){
+			const auto msg = msp_osd::construct_rendor_GPS_LON(vehicle_gps_position);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_longitude_t));
+		}
+
+		if(enabled(SymbolIndex::GPS_SATS)){
+			const auto msg = msp_osd::construct_rendor_GPS_NUM(vehicle_gps_position);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_satellites_used_t));
+		}
 	}
 
 	// MSP_COMP_GPS

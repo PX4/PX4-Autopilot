@@ -403,6 +403,38 @@ struct msp_raw_gps_t {
 	uint16_t hdop;
 } __attribute__((packed));
 
+struct msp_rendor_latitude_t{
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00; //
+	uint8_t iconIndexY = 0x89; //LAT icon
+
+	char str[11]; // -00.0000000
+} __attribute__((packed));
+
+
+struct msp_rendor_longitude_t{
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00; //
+	uint8_t iconIndexY = 0x98; //LON icon
+
+	char str[12]; // -000.0000000
+} __attribute__((packed));
+
+struct msp_rendor_satellites_used_t{
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00; //
+	uint8_t iconIndexY = 0x1E; //satellites icon
+	uint8_t iconIndexY2 = 0x1F; //satellites icon
+
+	char str[2]; // 99
+} __attribute__((packed));
+
 
 // MSP_COMP_GPS reply
 struct msp_comp_gps_t {

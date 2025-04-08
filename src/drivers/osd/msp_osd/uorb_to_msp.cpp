@@ -332,6 +332,50 @@ msp_raw_gps_t construct_RAW_GPS(const sensor_gps_s &vehicle_gps_position,
 	return raw_gps;
 }
 
+msp_rendor_latitude_t construct_rendor_GPS_LAT(const sensor_gps_s &vehicle_gps_position)
+{
+  msp_rendor_latitude_t lat;
+
+	lat.screenYPosition = 0x12; //
+	lat.screenXPosition = 0x29; //
+
+	if (vehicle_gps_position.fix_type >= 2) {
+    sprintf(&lat.str[0], "%.6f",vehicle_gps_position.latitude_deg);
+  }else{
+    sprintf(&lat.str[0], "%.6f", 0.0);
+  }
+  return lat;
+}
+
+msp_rendor_longitude_t construct_rendor_GPS_LON(const sensor_gps_s &vehicle_gps_position)
+{
+  msp_rendor_longitude_t lon;
+
+	lon.screenYPosition = 0x11; //
+	lon.screenXPosition = 0x29; //
+
+	if (vehicle_gps_position.fix_type >= 2) {
+    sprintf(&lon.str[0], "%.6f",vehicle_gps_position.longitude_deg);
+  }else{
+    sprintf(&lon.str[0], "%.6f", -0.0);
+  }
+  return lon;
+}
+
+msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const sensor_gps_s &vehicle_gps_position)
+{
+  msp_rendor_satellites_used_t num;
+
+	num.screenYPosition = 0x10; //
+	num.screenXPosition = 0x29; //
+  char num_str[4];
+  sprintf(num_str, "%d", vehicle_gps_position.satellites_used % 100); // max 99
+  strncpy(&num.str[0], num_str, 2);
+
+  return num;
+}
+
+
 msp_comp_gps_t construct_COMP_GPS(const home_position_s &home_position,
 				  const vehicle_global_position_s &vehicle_global_position,
 				  const bool heartbeat)
