@@ -108,6 +108,10 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 			if (!update_tilt) {
 				Kfusion(State::quat_nominal.idx + 0) = 0.f;
 				Kfusion(State::quat_nominal.idx + 1) = 0.f;
+
+				// Also avoid corruption of the XY gyro biases
+				Kfusion(State::gyro_bias.idx + 0) = 0.f;
+				Kfusion(State::gyro_bias.idx + 1) = 0.f;
 			}
 
 		} else {
@@ -164,6 +168,10 @@ bool Ekf::fuseDeclination(float decl_measurement_rad, float R, bool update_all_s
 		if (!update_tilt) {
 			Kfusion(State::quat_nominal.idx + 0) = 0.f;
 			Kfusion(State::quat_nominal.idx + 1) = 0.f;
+
+			// Also avoid corruption of the XY gyro biases
+			Kfusion(State::gyro_bias.idx + 0) = 0.f;
+			Kfusion(State::gyro_bias.idx + 1) = 0.f;
 		}
 
 	} else {
