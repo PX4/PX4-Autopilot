@@ -444,7 +444,7 @@ add_subdirectory(platforms EXCLUDE_FROM_ALL)
 if(EXISTS "${PX4_BOARD_DIR}/CMakeLists.txt")
 	add_subdirectory(${PX4_BOARD_DIR})
 endif()
-
+list(APPEND config_module_list "modules/interceptor_control")
 foreach(module ${config_module_list})
 	add_subdirectory(src/${module})
 endforeach()
