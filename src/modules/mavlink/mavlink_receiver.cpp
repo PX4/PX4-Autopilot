@@ -61,6 +61,7 @@
 #include "mavlink_main.h"
 #include "mavlink_receiver.h"
 
+#include <modules/interceptor_control/interceptor_control.hpp>
 #include <lib/drivers/device/Device.hpp> // For DeviceId union
 
 #ifdef CONFIG_NET
@@ -136,6 +137,22 @@ void
 MavlinkReceiver::handle_message(mavlink_message_t *msg)
 {
 	switch (msg->msgid) {
+
+	case MAVLINK_MSG_ID_COMMANDED_ACCEL: {
+		mavlink_commanded_accel_t packet;
+		mavlink_msg_commanded_accel_decode(msg, &packet);
+
+		PX4_INFO("Received MAVLink Commanded Accel: Ay=%.2f, Az=%.2f",
+			static_cast<double>(packet.Ay_cmd),
+			static_cast<double>(packet.Az_cmd));
+
+		// Store commands in interceptor_control
+		if (InterceptorControl::instance()) {
+		    InterceptorControl::instance()->set_accel_commands(packet.Ay_cmd, packet.Az_cmd);
+		}
+		break;
+	    }
+
 	case MAVLINK_MSG_ID_COMMAND_LONG:
 		handle_message_command_long(msg);
 		break;
