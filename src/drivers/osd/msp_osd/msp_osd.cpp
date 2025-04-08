@@ -111,8 +111,8 @@ const uint16_t osd_current_draw_pos = 2103;
 
 const uint16_t osd_numerical_vario_pos = LOCATION_HIDDEN;
 
-#define OSD_GRID_COL_MAX (59)
-#define OSD_GRID_ROW_MAX (21)
+#define OSD_GRID_COL_MAX (59) // From betaflight-configurator OSD tab
+#define OSD_GRID_ROW_MAX (21) // From betaflight-configurator OSD tab
 
 typedef enum {
     MSP_DP_HEARTBEAT = 0,         // Release the display after clearing and updating
@@ -239,7 +239,7 @@ void MspOsd::SendConfig()
 
 	_msp.Send(MSP_OSD_CONFIG, &msp_osd_config);
 }
-
+// extract it to MSPOSD_BF_Run() and MSPOSD_DJIFPV_Run() for compatibility?
 void MspOsd::Run()
 {
 	if (should_exit()) {
@@ -340,14 +340,17 @@ void MspOsd::Run()
 	{
 		// battery_status_s battery_status{};
 		// _battery_status_sub.copy(&battery_status);
-
-		// input_rc_s input_rc{};
-		// _input_rc_sub.copy(&input_rc);
+	if(enabled(SymbolIndex::RSSI_VALUE)){
+		input_rc_s input_rc{};
+		_input_rc_sub.copy(&input_rc);
 
 		// const auto msg = msp_osd::construct_ANALOG(
 		// 			 battery_status,
 		// 			 input_rc);
 		// this->Send(MSP_ANALOG, &msg);
+		const auto msg = msp_osd::construct_rendor_RSSI(input_rc);
+		this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_rssi_t));
+	}
 	}
 
 	// MSP_BATTERY_STATE

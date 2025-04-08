@@ -312,6 +312,16 @@ struct msp_analog_t {
 	int16_t  amperage; // send amperage in 0.01 A steps, range is -320A to 320A
 } __attribute__((packed));
 
+struct msp_rendor_rssi_t{
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00; //
+	uint8_t iconIndexY = 0x01; //RSSI icon
+
+	char str[4]; // 100%
+} __attribute__((packed));
+
 
 // MSP_ARMING_CONFIG reply
 struct msp_arming_config_t {

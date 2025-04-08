@@ -84,6 +84,8 @@ msp_status_BF_t construct_STATUS(const vehicle_status_s &vehicle_status);
 // construct an MSP_ANALOG struct
 msp_analog_t construct_ANALOG(const battery_status_s &battery_status, const input_rc_s &input_rc);
 
+msp_rendor_rssi_t construct_rendor_RSSI(const input_rc_s &input_rc);
+
 // construct an MSP_BATTERY_STATE struct
 msp_battery_state_t construct_BATTERY_STATE(const battery_status_s &battery_status);
 

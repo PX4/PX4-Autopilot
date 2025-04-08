@@ -208,6 +208,24 @@ msp_analog_t construct_ANALOG(const battery_status_s &battery_status, const inpu
 	return analog;
 }
 
+msp_rendor_rssi_t construct_rendor_RSSI(const input_rc_s &input_rc)
+{
+  msp_rendor_rssi_t rssi;
+  rssi.screenYPosition=0x02;
+	rssi.screenXPosition=0x02;
+
+  char rssi_str[5]={0};
+  int len = sprintf(rssi_str, "%d", input_rc.link_quality);
+  strncpy(&rssi.str[0], rssi_str, 4);
+  if(len >= 3){
+    rssi.str[3] = '%';
+  }else{
+    rssi.str[len] = '%';
+  }
+
+  return rssi;
+}
+
 msp_battery_state_t construct_BATTERY_STATE(const battery_status_s &battery_status)
 {
 	// initialize result
