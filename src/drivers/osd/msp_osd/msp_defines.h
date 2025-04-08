@@ -289,6 +289,25 @@ struct msp_attitude_t {
 	int16_t yaw;
 } __attribute__((packed));
 
+struct msp_rendor_pitch_t{
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00; //
+	uint8_t iconIndexY = 0x15; //PITCH icon
+
+	char str[6]; // -00.0
+} __attribute__((packed));
+
+struct msp_rendor_roll_t{
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00; //
+	uint8_t iconIndexY = 0x14; //ROLL icon
+
+	char str[6]; // -00.0
+} __attribute__((packed));
 
 // MSP_ALTITUDE reply
 struct msp_altitude_t {

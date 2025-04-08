@@ -436,6 +436,47 @@ msp_attitude_t construct_ATTITUDE(const vehicle_attitude_s &vehicle_attitude)
 	return attitude;
 }
 
+msp_rendor_pitch_t  construct_rendor_PITCH(const vehicle_attitude_s &vehicle_attitude)
+{
+	// initialize results
+	msp_rendor_pitch_t pit;
+
+  pit.screenYPosition = 0x0D; //
+	pit.screenXPosition = 0x29; //
+
+	// convert from quaternion to RPY
+	matrix::Eulerf euler_attitude(matrix::Quatf(vehicle_attitude.q));
+	double pitch_deg = (double)math::degrees(euler_attitude.theta());
+	// attitude.roll = math::degrees(euler_attitude.phi()) * 10;
+
+  char pitch_str[10];
+  sprintf(pitch_str, "%.1f", pitch_deg);
+  strncpy(&pit.str[0], pitch_str, 5);
+
+	return pit;
+}
+
+msp_rendor_roll_t  construct_rendor_ROLL(const vehicle_attitude_s &vehicle_attitude)
+{
+	// initialize results
+	msp_rendor_roll_t roll;
+
+  roll.screenYPosition = 0x0E; //
+	roll.screenXPosition = 0x29; //
+
+	// convert from quaternion to RPY
+	matrix::Eulerf euler_attitude(matrix::Quatf(vehicle_attitude.q));
+	// double pitch = (double)math::degrees(euler_attitude.theta());
+	double roll_deg = (double)math::degrees(euler_attitude.phi());
+
+  char roll_str[10];
+  sprintf(roll_str, "%.1f", roll_deg);
+  strncpy(&roll.str[0], roll_str, 5);
+
+	return roll;
+}
+
+
 msp_altitude_t construct_ALTITUDE(const sensor_gps_s &vehicle_gps_position,
 				  const vehicle_local_position_s &vehicle_local_position)
 {

@@ -109,6 +109,10 @@ msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const sensor_gps_s &vehicl
 // construct an MSP_ATTITUDE struct
 msp_attitude_t construct_ATTITUDE(const vehicle_attitude_s &vehicle_attitude);
 
+msp_rendor_pitch_t  construct_rendor_PITCH(const vehicle_attitude_s &vehicle_attitude);
+
+msp_rendor_roll_t  construct_rendor_ROLL(const vehicle_attitude_s &vehicle_attitude);
+
 // construct an MSP_ALTITUDE struct
 msp_altitude_t construct_ALTITUDE(const sensor_gps_s &vehicle_gps_position,
 				  const vehicle_local_position_s &vehicle_local_position);

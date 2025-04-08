@@ -418,12 +418,21 @@ void MspOsd::Run()
 
 	// MSP_ATTITUDE
 	{
-		// vehicle_attitude_s vehicle_attitude{};
-		// _vehicle_attitude_sub.copy(&vehicle_attitude);
+		vehicle_attitude_s vehicle_attitude{};
+		_vehicle_attitude_sub.copy(&vehicle_attitude);
 
 		// const auto msg = msp_osd::construct_ATTITUDE(vehicle_attitude);
 		// this->Send(MSP_ATTITUDE, &msg);
+		{
+			const auto msg = msp_osd::construct_rendor_PITCH(vehicle_attitude);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_pitch_t));
+		}
+		{
+			const auto msg = msp_osd::construct_rendor_ROLL(vehicle_attitude);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_roll_t));
+		}
 	}
+
 
 	// MSP_ALTITUDE
 	{
