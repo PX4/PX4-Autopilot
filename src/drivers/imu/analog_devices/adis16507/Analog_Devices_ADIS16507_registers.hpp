@@ -64,35 +64,28 @@ namespace Analog_Devices_ADIS16507
 {
 static constexpr uint32_t SPI_SPEED = 2 * 1000 * 1000;       // 2 MHz SPI serial interface
 static constexpr uint32_t SPI_SPEED_BURST = 1 * 1000 * 1000; // 1 MHz SPI serial interface for burst read
-
 static constexpr uint32_t SPI_STALL_PERIOD = 16; // 16 us Stall period between data
-
-static constexpr uint16_t DIR_WRITE = 0x80;
-
-static constexpr uint16_t Product_identification = 0x407B;
 
 static constexpr uint32_t SAMPLE_INTERVAL_US = 500; // 2000 Hz
 
-enum class Register : uint16_t {
-	DIAG_STAT      = 0x02,
+static constexpr uint16_t DIR_WRITE = 0x80;
 
-	FILT_CTRL      = 0x5C,
+namespace Register
+{
+static constexpr uint16_t DIAG_STAT = 0x02;
+static constexpr uint16_t FILT_CTRL = 0x5C;
+static constexpr uint16_t RANG_MDL = 0x5E;
+static constexpr uint16_t MSC_CTRL = 0x60;
+static constexpr uint16_t GLOB_CMD = 0x68;
+static constexpr uint16_t FIRM_REV = 0x6C; // Identification, firmware revision
+static constexpr uint16_t FIRM_DM = 0x6E; // Identification, date code, day and month
+static constexpr uint16_t FIRM_Y = 0x70; // Identification, date code, year
+static constexpr uint16_t PROD_ID = 0x72; // Identification, part number
+static constexpr uint16_t SERIAL_NUM = 0x74; // Identification, serial number
+static constexpr uint16_t FLSHCNT_LOW = 0x7C; // Output, flash memory write cycle counter, lower word
+static constexpr uint16_t FLSHCNT_HIGH = 0x7E; // Output, flash memory write cycle counter, upper word
 
-	RANG_MDL       = 0x5E,
-
-	MSC_CTRL       = 0x60,
-
-	GLOB_CMD       = 0x68,
-
-	FIRM_REV       = 0x6C, // Identification, firmware revision
-	FIRM_DM        = 0x6E, // Identification, date code, day and month
-	FIRM_Y         = 0x70, // Identification, date code, year
-	PROD_ID        = 0x72, // Identification, part number
-	SERIAL_NUM     = 0x74, // Identification, serial number
-
-	FLSHCNT_LOW    = 0x7C, // Output, flash memory write cycle counter, lower word
-	FLSHCNT_HIGH   = 0x7E, // Output, flash memory write cycle counter, upper word
-};
+static constexpr uint16_t PROD_ID_EXPECTED = 0x407B;
 
 // DIAG_STAT
 enum DIAG_STAT_BIT : uint16_t {
@@ -131,5 +124,6 @@ enum GLOB_CMD_BIT : uint16_t {
 	Sensor_self_test  = Bit2,
 };
 
+} // namespace Register
 
 } // namespace Analog_Devices_ADIS16507
