@@ -402,11 +402,11 @@ void MspOsd::Run()
 		// update heartbeat
 		// _heartbeat = !_heartbeat;
 
-		// home_position_s home_position{};
-		// _home_position_sub.copy(&home_position);
+		home_position_s home_position{};
+		_home_position_sub.copy(&home_position);
 
-		// vehicle_global_position_s vehicle_global_position{};
-		// _vehicle_global_position_sub.copy(&vehicle_global_position);
+		vehicle_global_position_s vehicle_global_position{};
+		_vehicle_global_position_sub.copy(&vehicle_global_position);
 
 		// // construct and send message
 		// const auto msg = msp_osd::construct_COMP_GPS(
@@ -414,6 +414,11 @@ void MspOsd::Run()
 		// 			 vehicle_global_position,
 		// 			 _heartbeat);
 		// this->Send(MSP_COMP_GPS, &msg);
+
+		 const auto msg =  msp_osd::construct_rendor_distanceToHome(home_position, vehicle_global_position);
+
+		this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_distanceToHome_t));
+
 	}
 
 	// MSP_ATTITUDE

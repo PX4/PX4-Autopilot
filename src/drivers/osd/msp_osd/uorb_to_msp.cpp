@@ -412,6 +412,37 @@ msp_comp_gps_t construct_COMP_GPS(const home_position_s &home_position,
 	return comp_gps;
 }
 
+msp_rendor_distanceToHome_t construct_rendor_distanceToHome(const home_position_s &home_position,
+				  const vehicle_global_position_s &vehicle_global_position)
+{
+	msp_rendor_distanceToHome_t distance;
+
+	distance.screenYPosition = 0x08; //
+	distance.screenXPosition = 0x02; //
+
+  int16_t dist_i = 0;
+
+	if (home_position.valid_hpos
+	    && home_position.valid_lpos
+	    && (hrt_elapsed_time(&vehicle_global_position.timestamp) < 1_s)) {
+
+		float distance_to_home = get_distance_to_next_waypoint(vehicle_global_position.lat,
+					 vehicle_global_position.lon,
+					 home_position.lat, home_position.lon);
+
+		dist_i = (int16_t)distance_to_home; // meters
+
+	} else {
+		dist_i = 0; // meters
+	}
+
+  char num_str[7];
+  sprintf(num_str, "%d", dist_i); // 65536
+  strncpy(&distance.str[0], num_str, 6);
+
+	return distance;
+}
+
 msp_attitude_t construct_ATTITUDE(const vehicle_attitude_s &vehicle_attitude)
 {
 	// initialize results

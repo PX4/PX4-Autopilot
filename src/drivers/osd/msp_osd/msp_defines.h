@@ -473,6 +473,16 @@ struct msp_comp_gps_t {
 	uint8_t  heartbeat;       // toggles 0 and 1 for each change
 } __attribute__((packed));
 
+struct msp_rendor_distanceToHome_t{
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00; //
+	uint8_t iconIndex = 0x71; //distanceToHome icon
+
+	char str[6]; // 65536
+} __attribute__((packed));
+
 
 // values for msp_nav_status_t.mode
 #define MSP_NAV_STATUS_MODE_NONE   0
