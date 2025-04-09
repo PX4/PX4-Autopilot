@@ -82,7 +82,7 @@ I2C bus accelerators are separate circuits that can be used to support longer wi
 They work by physically dividing an I2C network into 2 parts and using their own transistors to amplify I2C signals.
 
 Available accelerators include:
-- [Thunderfly TFI2CEXT01](https://github.com/ThunderFly-aerospace/TFI2CEXT01):
+- [Thunderfly TFI2CEXT01](https://docs.thunderfly.cz/avionics/TFI2CEXT01/):
   ![I2C bus extender](../../assets/peripherals/i2c_tfi2cext/tfi2cext01a_bottom.jpg)
   - This has Dronecode connectors and is hence very easy to add to a Pixhawk I2C setup.
   - The module has no settings (it works out of the box).
