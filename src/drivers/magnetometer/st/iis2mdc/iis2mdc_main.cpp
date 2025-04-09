@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,38 +31,10 @@
  *
  ****************************************************************************/
 
-#include "iis2mdc.h"
+#include "IIS2MDC.hpp"
+
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
-
-I2CSPIDriverBase *IIS2MDC::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
-	device::Device *interface = IIS2MDC_I2C_interface(config);
-
-	if (interface == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (interface->init() != OK) {
-		delete interface;
-		PX4_DEBUG("no device on bus %i (devid 0x%lx)", config.bus, config.spi_devid);
-		return nullptr;
-	}
-
-	IIS2MDC *dev = new IIS2MDC(interface, config);
-
-	if (dev == nullptr) {
-		delete interface;
-		return nullptr;
-	}
-
-	if (OK != dev->init()) {
-		delete dev;
-		return nullptr;
-	}
-
-	return dev;
-}
 
 void IIS2MDC::print_usage()
 {
@@ -70,17 +42,18 @@ void IIS2MDC::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x30);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x1E);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
 extern "C" int iis2mdc_main(int argc, char *argv[])
 {
-	using ThisDriver = IIS2MDC;
 	int ch;
+	using ThisDriver = IIS2MDC;
 	BusCLIArguments cli{true, false};
-	cli.i2c_address = 0x1E;
-	cli.default_i2c_frequency = 400000;
+	cli.i2c_address = I2C_ADDRESS_DEFAULT;
+	cli.default_i2c_frequency = I2C_SPEED;
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
