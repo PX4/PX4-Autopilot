@@ -119,7 +119,7 @@
  */
 
 #if defined(CONFIG_BOARD_INITIALIZE) && !defined(CONFIG_BOARDCTL) && !defined(CONFIG_BOARD_INITTHREAD)
-#  warning SDIO initialization cannot be perfomed on the IDLE thread
+#  warning SDIO initialization cannot be performed on the IDLE thread
 #endif
 
 /* AV-X_V1 never powers off the Servo rail */

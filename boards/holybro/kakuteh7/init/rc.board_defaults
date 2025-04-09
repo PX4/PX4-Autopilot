@@ -3,7 +3,7 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-# transision from params file to flash-based params (2022-08)
+# transition from params file to flash-based params (2022-08)
 if [ -f $PARAM_FILE ]
 then
 	param load $PARAM_FILE

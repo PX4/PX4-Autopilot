@@ -152,7 +152,7 @@
 #define SDIO_MINOR              0
 #if defined(CONFIG_BOARD_INITIALIZE) && !defined(CONFIG_LIB_BOARDCTL) && \
    !defined(CONFIG_BOARD_INITTHREAD)
-#  warning SDIO initialization cannot be perfomed on the IDLE thread
+#  warning SDIO initialization cannot be performed on the IDLE thread
 #endif
 
 /* This board provides a DMA pool and APIs */

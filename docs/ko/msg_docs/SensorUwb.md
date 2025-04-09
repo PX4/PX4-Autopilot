@@ -23,10 +23,10 @@ float32 distance		# distance in m to the UWB receiver
 
 
 #Angle of arrival, Angle in Degree -60..+60; FOV in both axis is 120 degrees
-float32 aoa_azimuth_dev	# Angle of arrival of first incomming RX msg
-float32 aoa_elevation_dev	# Angle of arrival of first incomming RX msg
-float32 aoa_azimuth_resp	# Angle of arrival of first incomming RX msg at the responder
-float32 aoa_elevation_resp	# Angle of arrival of first incomming RX msg at the responder
+float32 aoa_azimuth_dev	# Angle of arrival of first incoming RX msg
+float32 aoa_elevation_dev	# Angle of arrival of first incoming RX msg
+float32 aoa_azimuth_resp	# Angle of arrival of first incoming RX msg at the responder
+float32 aoa_elevation_resp	# Angle of arrival of first incoming RX msg at the responder
 
 # Figure of merit for the angle measurements
 uint8 aoa_azimuth_fom		# AOA Azimuth FOM

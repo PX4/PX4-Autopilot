@@ -45,7 +45,7 @@
  * the 0x0800:0000 address range.
  *
  * The first 16 KiB of flash is reserved for the bootloader.
- * Paramater storage will use the next 16KiB Sector.
+ * Parameter storage will use the next 16KiB Sector.
  */
 
 MEMORY

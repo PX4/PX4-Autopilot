@@ -100,7 +100,7 @@
 
 #define OPT_RESTART_TIMEOUT_MS          20000
 
-/* Reserved for the Booloader */
+/* Reserved for the Bootloader */
 #define OPT_BOOTLOADER_SIZE_IN_K        (32 * 1024)
 
 /* Reserved for the application out of the total
