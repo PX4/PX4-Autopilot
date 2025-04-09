@@ -414,11 +414,11 @@ void MspOsd::Run()
 		// 			 vehicle_global_position,
 		// 			 _heartbeat);
 		// this->Send(MSP_COMP_GPS, &msg);
+		if(enabled(SymbolIndex::HOME_DIST)){
+			const auto msg =  msp_osd::construct_rendor_distanceToHome(home_position, vehicle_global_position);
 
-		 const auto msg =  msp_osd::construct_rendor_distanceToHome(home_position, vehicle_global_position);
-
-		this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_distanceToHome_t));
-
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_distanceToHome_t));
+		}
 	}
 
 	// MSP_ATTITUDE
@@ -450,10 +450,12 @@ void MspOsd::Run()
 		// construct and send message
 		// const auto msg = msp_osd::construct_ALTITUDE(vehicle_gps_position, vehicle_local_position);
 		// this->Send(MSP_ALTITUDE, &msg);
+
+		if(enabled(SymbolIndex::ALTITUDE)){
 			const auto msg = msp_osd::construct_Rendor_ALTITUDE(vehicle_gps_position, vehicle_local_position);
 
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_altitude_t));
-
+		}
 	}
 
 	// MSP_MOTOR_TELEMETRY
