@@ -144,6 +144,12 @@ Users that want to disable the RC loss failsafe in specific automatic modes (mis
 | Тайм-аут втрати каналу зв'язку | [COM_DL_LOSS_T](../advanced_config/parameter_reference.md#COM_DL_LOSS_T) | Час після втрати з'єднання з даними перед тим, як спрацює запобіжник. |
 | Моделювання відмовостійкості   | [NAV_DLL_ACT](../advanced_config/parameter_reference.md#NAV_DLL_ACT)                          | Вимкнути, Hold mode, Return mode, Land mode, Роззброїти, Завершити.   |
 
+Також застосовуються наступні налаштування, але вони не відображаються в інтерфейсі QGC.
+
+| Налаштування                                                | Параметр                                                                                                             | Опис                                                                 |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| <a id="COM_DLL_EXCEPT"></a>Mode exceptions for DLL failsafe | [COM_DLL_EXCEPT](../advanced_config/parameter_reference.md#COM_DLL_EXCEPT) | Set modes where DL loss will not trigger a failsafe. |
+
 ## Аварійний режим "обмеження зони політів"
 
 The _Geofence Failsafe_ is triggered when the drone breaches a "virtual" perimeter.

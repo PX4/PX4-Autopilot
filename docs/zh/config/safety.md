@@ -146,6 +146,12 @@ The settings and underlying parameters are shown below.
 | 数据链路丢失超时 | [COM_DL_LOSS_T](../advanced_config/parameter_reference.md#COM_DL_LOSS_T) | 数据连接断开后到故障保护触发之前的时间。                                                            |
 | 故障保护动作   | [NAV_DLL_ACT](../advanced_config/parameter_reference.md#NAV_DLL_ACT)                          | Disabled, Hold mode, Return mode, Land mode, Disarm, Terminate. |
 
+The following settings also apply, but are not displayed in the QGC UI.
+
+| 设置                                                          | 参数                                                                                                                   | 描述                                                                   |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| <a id="COM_DLL_EXCEPT"></a>Mode exceptions for DLL failsafe | [COM_DLL_EXCEPT](../advanced_config/parameter_reference.md#COM_DLL_EXCEPT) | Set modes where DL loss will not trigger a failsafe. |
+
 ## 地理围栏故障保护
 
 The _Geofence Failsafe_ is triggered when the drone breaches a "virtual" perimeter.
