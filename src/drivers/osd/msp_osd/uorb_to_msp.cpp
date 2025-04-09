@@ -262,13 +262,13 @@ msp_rendor_battery_state_t construct_rendor_BATTERY_STATE(const battery_status_s
 
 	float sigle_cell_v =battery_status.voltage_v / battery_status.cell_count;
 	if(sigle_cell_v > 4.0f){
-		battery_state.iconIndexY = 0x91; // Full battery Icon
+		battery_state.iconIndex = 0x91; // Full battery Icon
 	}else if( (sigle_cell_v <= 4.0f) && (sigle_cell_v > 3.5f) ){
-    battery_state.iconIndexY = 0x93; // Half battery Icon
+    battery_state.iconIndex = 0x93; // Half battery Icon
   }else if( (sigle_cell_v <= 3.5f) && (sigle_cell_v > 3.2f) ){
-    battery_state.iconIndexY = 0x95; // Empty battery Icon
+    battery_state.iconIndex = 0x95; // Empty battery Icon
   }else{
-    battery_state.iconIndexY = 0x96; // Dead battery Icon
+    battery_state.iconIndex = 0x96; // Dead battery Icon
   }
   sprintf(&battery_state.str[0], "%.1fV", (double)sigle_cell_v);
 	return battery_state;
