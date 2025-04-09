@@ -256,8 +256,8 @@ msp_rendor_battery_state_t construct_rendor_BATTERY_STATE(const battery_status_s
 	msp_rendor_battery_state_t battery_state = {0};
 
 	battery_state.subCommand = MSP_DP_WRITE_STRING; // 3 write string. fixed
-	battery_state.screenYPosition = 0x09; // Fixed for testing
-	battery_state.screenXPosition = 0x22; // Fixed for testing
+	battery_state.screenYPosition = 0x04; //
+	battery_state.screenXPosition = 0x02; //
 	battery_state.iconAttrs = 0x00; //
 
 	float sigle_cell_v =battery_status.voltage_v / battery_status.cell_count;
@@ -336,7 +336,7 @@ msp_rendor_latitude_t construct_rendor_GPS_LAT(const sensor_gps_s &vehicle_gps_p
 {
   msp_rendor_latitude_t lat;
 
-	lat.screenYPosition = 0x12; //
+	lat.screenYPosition = 0x0A; //
 	lat.screenXPosition = 0x29; //
 
 	if (vehicle_gps_position.fix_type >= 2) {
@@ -351,7 +351,7 @@ msp_rendor_longitude_t construct_rendor_GPS_LON(const sensor_gps_s &vehicle_gps_
 {
   msp_rendor_longitude_t lon;
 
-	lon.screenYPosition = 0x11; //
+	lon.screenYPosition = 0x09; //
 	lon.screenXPosition = 0x29; //
 
 	if (vehicle_gps_position.fix_type >= 2) {
@@ -366,7 +366,7 @@ msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const sensor_gps_s &vehicl
 {
   msp_rendor_satellites_used_t num;
 
-	num.screenYPosition = 0x10; //
+	num.screenYPosition = 0x08; //
 	num.screenXPosition = 0x29; //
   char num_str[4];
   sprintf(num_str, "%d", vehicle_gps_position.satellites_used % 100); // max 99
