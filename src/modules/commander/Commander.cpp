@@ -247,8 +247,30 @@ int Commander::custom_command(int argc, char *argv[])
 
 			} else if (!strcmp(argv[1], "mag")) {
 				if (argc > 2 && (strcmp(argv[2], "quick") == 0)) {
-					// magnetometer quick calibration: VEHICLE_CMD_FIXED_MAG_CAL_YAW
-					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_FIXED_MAG_CAL_YAW);
+					// Magnetometer quick calibration with optional heading
+					float heading_deg = 0.0f;
+
+					if (argc > 3) {
+						char *end;
+						heading_deg = strtof(argv[3], &end);
+
+						if (*end != '\0') { // Check if parsing failed
+							PX4_ERR("Invalid heading value: %s", argv[3]);
+							return 1;
+						}
+
+						heading_deg = roundf(heading_deg);
+					}
+
+					// Send command with heading (param1), other params zeroed (use GPS)
+					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_FIXED_MAG_CAL_YAW,
+							     heading_deg,  // param1: heading in degrees
+							     0.0f,         // param2: unused
+							     0.0f,         // param3: latitude (0 triggers GPS)
+							     0.0f,         // param4: longitude (0 triggers GPS)
+							     0.0,          // param5: unused
+							     0.0,          // param6: unused
+							     0.0f);        // param7: unused
 
 				} else {
 					// magnetometer calibration: param2 = 1
