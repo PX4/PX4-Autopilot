@@ -87,17 +87,27 @@ struct SendTopicsSubs {
 
 	uint32_t num_payload_sent{};
 
-	void init();
+	bool init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrStreamId best_effort_in_stream_id, uxrObjectId participant_id, const char *client_namespace);
 	void update(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId best_effort_stream_id, uxrObjectId participant_id, const char *client_namespace);
 	void reset();
 };
 
-void SendTopicsSubs::init() {
+bool SendTopicsSubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrStreamId best_effort_in_stream_id, uxrObjectId participant_id, const char *client_namespace) {
+	bool ret = true;
 	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
-		fds[idx].fd = orb_subscribe(send_subscriptions[idx].orb_meta);
-		fds[idx].events = POLLIN;
-		orb_set_interval(fds[idx].fd, UXRCE_DEFAULT_POLL_RATE);
+		if (fds[idx].events == 0) {
+			fds[idx].fd = orb_subscribe(send_subscriptions[idx].orb_meta);
+			fds[idx].events = POLLIN;
+			orb_set_interval(fds[idx].fd, UXRCE_DEFAULT_POLL_RATE);
+		}
+
+		if (!create_data_writer(session, reliable_out_stream_id, participant_id, static_cast<ORB_ID>(send_subscriptions[idx].orb_meta->o_id), client_namespace, send_subscriptions[idx].topic,
+								   send_subscriptions[idx].message_version,
+								   send_subscriptions[idx].dds_type_name, send_subscriptions[idx].data_writer)) {
+			ret = false;
+		}
 	}
+	return ret;
 }
 
 void SendTopicsSubs::reset() {
@@ -119,12 +129,6 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 		if (fds[idx].revents & POLLIN) {
 			// Topic updated, copy data and send
 			orb_copy(send_subscriptions[idx].orb_meta, fds[idx].fd, &topic_data);
-			if (send_subscriptions[idx].data_writer.id == UXR_INVALID_ID) {
-				// data writer not created yet
-				create_data_writer(session, reliable_out_stream_id, participant_id, static_cast<ORB_ID>(send_subscriptions[idx].orb_meta->o_id), client_namespace, send_subscriptions[idx].topic,
-								   send_subscriptions[idx].message_version,
-								   send_subscriptions[idx].dds_type_name, send_subscriptions[idx].data_writer);
-			}
 
 			if (send_subscriptions[idx].data_writer.id != UXR_INVALID_ID) {
 
