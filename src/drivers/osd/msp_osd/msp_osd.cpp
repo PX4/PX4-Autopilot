@@ -436,15 +436,19 @@ void MspOsd::Run()
 
 	// MSP_ALTITUDE
 	{
-		// sensor_gps_s vehicle_gps_position{};
-		// _vehicle_gps_position_sub.copy(&vehicle_gps_position);
+		sensor_gps_s vehicle_gps_position{};
+		_vehicle_gps_position_sub.copy(&vehicle_gps_position);
 
-		// vehicle_local_position_s vehicle_local_position{};
-		// _vehicle_local_position_sub.copy(&vehicle_local_position);
+		vehicle_local_position_s vehicle_local_position{};
+		_vehicle_local_position_sub.copy(&vehicle_local_position);
 
 		// construct and send message
 		// const auto msg = msp_osd::construct_ALTITUDE(vehicle_gps_position, vehicle_local_position);
 		// this->Send(MSP_ALTITUDE, &msg);
+			const auto msg = msp_osd::construct_Rendor_ALTITUDE(vehicle_gps_position, vehicle_local_position);
+
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_altitude_t));
+
 	}
 
 	// MSP_MOTOR_TELEMETRY

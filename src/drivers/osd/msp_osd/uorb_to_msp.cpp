@@ -500,6 +500,30 @@ msp_altitude_t construct_ALTITUDE(const sensor_gps_s &vehicle_gps_position,
 	return altitude;
 }
 
+msp_rendor_altitude_t construct_Rendor_ALTITUDE(const sensor_gps_s &vehicle_gps_position,
+				  const vehicle_local_position_s &vehicle_local_position)
+{
+  msp_rendor_altitude_t altitude;
+
+  altitude.screenYPosition = 0x06; //
+	altitude.screenXPosition = 0x02; //
+
+  double alt;
+
+	if (vehicle_gps_position.fix_type >= 2) {
+		alt = vehicle_gps_position.altitude_msl_m;
+
+	} else {
+		alt = vehicle_local_position.z * -1;
+	}
+
+  char alt_str[10];
+  sprintf(alt_str, "%.1f", alt);
+  strncpy(&altitude.str[0], alt_str, 6);
+
+  return altitude;
+}
+
 msp_esc_sensor_data_dji_t construct_ESC_SENSOR_DATA()
 {
 	// initialize result

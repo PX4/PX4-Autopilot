@@ -117,6 +117,9 @@ msp_rendor_roll_t  construct_rendor_ROLL(const vehicle_attitude_s &vehicle_attit
 msp_altitude_t construct_ALTITUDE(const sensor_gps_s &vehicle_gps_position,
 				  const vehicle_local_position_s &vehicle_local_position);
 
+msp_rendor_altitude_t construct_Rendor_ALTITUDE(const sensor_gps_s &vehicle_gps_position,
+				  const vehicle_local_position_s &vehicle_local_position);
+
 // construct an MSP_ESC_SENSOR_DATA struct
 msp_esc_sensor_data_dji_t construct_ESC_SENSOR_DATA();
 

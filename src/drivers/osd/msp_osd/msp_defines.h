@@ -322,9 +322,9 @@ struct msp_rendor_altitude_t{
 	uint8_t screenYPosition;
 	uint8_t screenXPosition;
 	uint8_t iconAttrs = 0x00; //
-	uint8_t iconIndex = 0x14; //ROLL icon
+	uint8_t iconIndex = 0x7F; //ALT icon
 
-	char str[6]; // -00.0
+	char str[8]; // -0000.0 // 9999.9 meter
 } __attribute__((packed));
 
 
