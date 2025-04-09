@@ -42,42 +42,69 @@
 
 #include <mathlib/math/filter/AlphaFilter.hpp>
 
+
 class RangeFinderConsistencyCheck final
 {
 public:
 	RangeFinderConsistencyCheck() = default;
 	~RangeFinderConsistencyCheck() = default;
 
-	void update(float dist_bottom, float dist_bottom_var, float vz, float vz_var, bool horizontal_motion, uint64_t time_us);
+	enum class KinematicState : int {
+		INCONSISTENT = 0,
+		CONSISTENT = 1,
+		UNKNOWN = 2
+	};
 
-	void setGate(float gate) { _gate = gate; }
+	float getTestRatioLpf() const { return _initialized ? _test_ratio_lpf.getState() : 0.f; }
+	float getInnov() const { return _initialized ? _innov : 0.f; }
+	float getInnovVar() const { return _initialized ? _innov_var : 0.f; }
+	bool isKinematicallyConsistent() const { return _state == KinematicState::CONSISTENT && _t_since_first_sample > _t_to_init; }
+	bool isNotKinematicallyInconsistent() const { return _state != KinematicState::INCONSISTENT && _t_since_first_sample > _t_to_init; }
+	void setGate(const float gate) { _gate = gate; }
+	void run(float z, float z_var, float vz, float vz_var,
+		 float dist_bottom, float dist_bottom_var, uint64_t time_us);
+	void set_terrain_process_noise(float terrain_process_noise) { _terrain_process_noise = terrain_process_noise; }
+	void reset()
+	{
+		if (_initialized && _state == KinematicState::CONSISTENT) {
+			_state = KinematicState::UNKNOWN;
+		}
 
-	float getTestRatio() const { return _test_ratio; }
-	float getSignedTestRatioLpf() const { return _signed_test_ratio_lpf.getState(); }
-	float getInnov() const { return _innov; }
-	float getInnovVar() const { return _innov_var; }
-	bool isKinematicallyConsistent() const { return _is_kinematically_consistent; }
+		_initialized = false;
+	}
+
+	uint8_t current_posD_reset_count{0};
+	bool horizontal_motion{false};
 
 private:
-	void updateConsistency(float vz, uint64_t time_us);
 
-	uint64_t _time_last_update_us{};
-	float _dist_bottom_prev{};
-
-	float _test_ratio{};
-	AlphaFilter<float> _signed_test_ratio_lpf{}; // average signed test ratio used to detect a bias in the data
-	float _gate{.2f};
-	float _innov{};
-	float _innov_var{};
-
-	bool _is_kinematically_consistent{true};
-	uint64_t _time_last_inconsistent_us{};
-	uint64_t _time_last_horizontal_motion{};
-
-	static constexpr float _signed_test_ratio_tau = 2.f;
-
-	static constexpr float _min_vz_for_valid_consistency = .5f;
-	static constexpr uint64_t _consistency_hyst_time_us = 1e6;
+	void update(float z, float z_var, float vz, float vz_var, float dist_bottom,
+		    float dist_bottom_var, uint64_t time_us);
+	void init(float z, float z_var, float dist_bottom, float dist_bottom_var);
+	void evaluateState(float dt, float vz, float vz_var);
+	float _terrain_process_noise{0.0f};
+	matrix::SquareMatrix<float, 2> _P{};
+	matrix::Vector2f _Ht{};
+	matrix::Vector2f _x{};
+	bool _initialized{false};
+	float _innov{0.f};
+	float _innov_var{0.f};
+	uint64_t _time_last_update_us{0};
+	static constexpr float time_constant{1.f};
+	AlphaFilter<float> _test_ratio_lpf{time_constant};
+	float _gate{1.0f};
+	KinematicState _state{KinematicState::UNKNOWN};
+	float _t_since_first_sample{0.f};
+	uint8_t _last_posD_reset_count{0};
+	static constexpr float _t_to_init{1.f};
 };
+
+namespace RangeFilter
+{
+struct IdxDof { unsigned idx; unsigned dof; };
+static constexpr IdxDof z{0, 1};
+static constexpr IdxDof terrain{1, 1};
+static constexpr uint8_t size{2};
+}
 
 #endif // !EKF_RANGE_FINDER_CONSISTENCY_CHECK_HPP
