@@ -318,34 +318,16 @@ void MspOsd::Run()
 		msg[index++] = 0x03;
 		memcpy(&msg[index++], &display_message, sizeof(msp_name_t));
 		this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msg));
-		// this->Send(MSP_NAME, &display_message);
 	}
 
 	// MSP_FC_VARIANT
 	{
 		const auto msg = msp_osd::construct_FC_VARIANT();
 		this->Send(MSP_FC_VARIANT, &msg, sizeof(msg));
-		// this->Send(MSP_FC_VARIANT, &msg);
-	}
-
-	// MSP_STATUS
-	{
-		// vehicle_status_s vehicle_status{};
-		// _vehicle_status_sub.copy(&vehicle_status);
-
-		// const auto msg = msp_osd::construct_STATUS(vehicle_status);
-		// this->Send(MSP_STATUS, &msg);
 	}
 
 	// MSP_ANALOG
 	{
-		// battery_status_s battery_status{};
-		// _battery_status_sub.copy(&battery_status);
-
-		// const auto msg = msp_osd::construct_ANALOG(
-		// 			 battery_status,
-		// 			 input_rc);
-		// this->Send(MSP_ANALOG, &msg);
 		if (enabled(SymbolIndex::RSSI_VALUE)) {
 			input_rc_s input_rc{};
 			_input_rc_sub.copy(&input_rc);
@@ -356,12 +338,6 @@ void MspOsd::Run()
 
 	// MSP_BATTERY_STATE
 	{
-		// battery_status_s battery_status{};
-		// _battery_status_sub.copy(&battery_status);
-
-		// const auto msg = msp_osd::construct_BATTERY_STATE(battery_status);
-		// this->Send(MSP_BATTERY_STATE, &msg);
-
 		battery_status_s battery_status{};
 		_battery_status_sub.copy(&battery_status);
 
@@ -375,13 +351,6 @@ void MspOsd::Run()
 		sensor_gps_s vehicle_gps_position{};
 		_vehicle_gps_position_sub.copy(&vehicle_gps_position);
 
-		// airspeed_validated_s airspeed_validated{};
-		// _airspeed_validated_sub.copy(&airspeed_validated);
-
-		// const auto msg = msp_osd::construct_RAW_GPS(
-		// 			 vehicle_gps_position,
-		// 			 airspeed_validated);
-		// this->Send(MSP_RAW_GPS, &msg);
 		if (enabled(SymbolIndex::GPS_LAT)) {
 			const auto msg = msp_osd::construct_rendor_GPS_LAT(vehicle_gps_position);
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_latitude_t));
@@ -400,21 +369,12 @@ void MspOsd::Run()
 
 	// MSP_COMP_GPS
 	{
-		// update heartbeat
-		// _heartbeat = !_heartbeat;
-
 		home_position_s home_position{};
 		_home_position_sub.copy(&home_position);
 
 		vehicle_global_position_s vehicle_global_position{};
 		_vehicle_global_position_sub.copy(&vehicle_global_position);
 
-		// // construct and send message
-		// const auto msg = msp_osd::construct_COMP_GPS(
-		// 			 home_position,
-		// 			 vehicle_global_position,
-		// 			 _heartbeat);
-		// this->Send(MSP_COMP_GPS, &msg);
 		if (enabled(SymbolIndex::HOME_DIST)) {
 			const auto msg =  msp_osd::construct_rendor_distanceToHome(home_position, vehicle_global_position);
 
@@ -427,8 +387,6 @@ void MspOsd::Run()
 		vehicle_attitude_s vehicle_attitude{};
 		_vehicle_attitude_sub.copy(&vehicle_attitude);
 
-		// const auto msg = msp_osd::construct_ATTITUDE(vehicle_attitude);
-		// this->Send(MSP_ATTITUDE, &msg);
 		{
 			const auto msg = msp_osd::construct_rendor_PITCH(vehicle_attitude);
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_pitch_t));
@@ -448,10 +406,6 @@ void MspOsd::Run()
 		vehicle_local_position_s vehicle_local_position{};
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
 
-		// construct and send message
-		// const auto msg = msp_osd::construct_ALTITUDE(vehicle_gps_position, vehicle_local_position);
-		// this->Send(MSP_ALTITUDE, &msg);
-
 		if (enabled(SymbolIndex::ALTITUDE)) {
 			const auto msg = msp_osd::construct_Rendor_ALTITUDE(vehicle_gps_position, vehicle_local_position);
 
@@ -461,14 +415,10 @@ void MspOsd::Run()
 
 	// MSP_MOTOR_TELEMETRY
 	{
-		// const auto msg = msp_osd::construct_ESC_SENSOR_DATA();
-		// this->Send(MSP_ESC_SENSOR_DATA, &msg);
+
 	}
 	subcmd = MSP_DP_DRAW_SCREEN;
 	this->Send(MSP_CMD_DISPLAYPORT, &subcmd, 1);
-
-	// send full configuration
-	// SendConfig();
 }
 
 void MspOsd::Send(const unsigned int message_type, const void *payload)
