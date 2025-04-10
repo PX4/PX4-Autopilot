@@ -546,7 +546,7 @@ msp_rendor_altitude_t construct_Rendor_ALTITUDE(const sensor_gps_s &vehicle_gps_
 		alt = vehicle_gps_position.altitude_msl_m;
 
 	} else {
-		alt = vehicle_local_position.z * -1;
+		alt = (double)(vehicle_local_position.z * -1.0f);
 	}
 
 	memset(&altitude.str[0], 0, sizeof(altitude.str));
