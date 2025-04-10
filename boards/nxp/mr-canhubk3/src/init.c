@@ -105,18 +105,18 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* Configure LPSPI1 peripheral chip select */
 
-	s32k3xx_pinconfig(PIN_LPSPI2_PCS);
+	s32k3xx_pinconfig(PIN_LPSPI1_PCS);
 
 	/* Initialize the SPI driver for LPSPI1 */
 
-	struct spi_dev_s *g_lpspi2 = s32k3xx_lpspibus_initialize(2);
+	struct spi_dev_s *g_lpspi1 = s32k3xx_lpspibus_initialize(1);
 
-	if (g_lpspi2 == NULL) {
-		spierr("ERROR: FAILED to initialize LPSPI2\n");
+	if (g_lpspi1 == NULL) {
+		spierr("ERROR: FAILED to initialize LPSPI1\n");
 		return -ENODEV;
 	}
 
-	rv = mmcsd_spislotinitialize(0, 0, g_lpspi2);
+	rv = mmcsd_spislotinitialize(0, 0, g_lpspi1);
 
 	if (rv < 0) {
 		mcerr("ERROR: Failed to bind SPI port %d to SD slot %d\n",
