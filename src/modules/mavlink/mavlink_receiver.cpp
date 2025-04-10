@@ -606,6 +606,10 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			send_ack = true;
 		}
 
+	} else if (cmd_mavlink.command == MAV_CMD_DO_SET_GLOBAL_ORIGIN) {
+		_cmd_pub.publish(vehicle_command);
+		handle_request_message_command(MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN);
+
 	} else if (cmd_mavlink.command == MAV_CMD_DO_AUTOTUNE_ENABLE) {
 
 		bool has_module = true;
