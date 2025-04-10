@@ -73,7 +73,7 @@ SPI::_spi_transfer_func_t    SPI::_spi_transfer    = NULL;
 pthread_mutex_t SPI::_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 SPI::SPI(uint8_t device_type, const char *name, int bus, uint32_t device, enum spi_mode_e mode, uint32_t frequency) :
-	CDev(name, nullptr)
+	PX4SPI(name)
 	// CDev(name, nullptr),
 	// _device(device),
 	// _mode(mode),
