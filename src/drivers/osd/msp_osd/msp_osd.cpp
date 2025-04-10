@@ -314,8 +314,8 @@ void MspOsd::Run()
 		msg[index++] = MSP_DP_WRITE_STRING;
 		msg[index++] = 0x02; // row position
 		msg[index++] = 0x14; // colum position
-		msg[index++] = 0;
-		msg[index++] = 0x03;
+		msg[index++] = 0;		// Icon attr
+		msg[index++] = 0x03; // Icon index >
 		memcpy(&msg[index++], &display_message, sizeof(msp_name_t));
 		this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msg));
 	}
