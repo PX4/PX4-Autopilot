@@ -85,14 +85,14 @@ public:
 
 	inline matrix::Vector3f Uncorrect(const matrix::Vector3f &corrected_data) const
 	{
-		return (_rotation.I() * corrected_data) + _thermal_offset + _offset;
+		return (_rotation.T() * corrected_data) + _thermal_offset + _offset;
 	}
 
 	// Compute sensor offset from bias (board frame)
 	matrix::Vector3f BiasCorrectedSensorOffset(const matrix::Vector3f &bias) const
 	{
 		// updated calibration offset = existing offset + bias rotated to sensor frame
-		return _offset + (_rotation.I() * bias);
+		return _offset + (_rotation.T() * bias);
 	}
 
 	bool ParametersLoad();
