@@ -469,7 +469,7 @@ void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const Co
 	if (param.integrator_gain_pitch > FLT_EPSILON) {
 
 		// Calculate derivative from change in climb angle to rate of change of specific energy balance
-		const float climb_angle_to_SEB_rate = input.tas * CONSTANTS_ONE_G;
+		const float climb_angle_to_SEB_rate = max(input.tas, param.tas_min) * CONSTANTS_ONE_G;
 
 		// Calculate pitch integrator input term
 		float pitch_integ_input = _getControlError(seb_rate) * param.integrator_gain_pitch / climb_angle_to_SEB_rate;
