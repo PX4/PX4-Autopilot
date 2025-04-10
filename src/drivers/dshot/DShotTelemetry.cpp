@@ -49,7 +49,7 @@ DShotTelemetry::~DShotTelemetry()
 	deinit();
 }
 
-int DShotTelemetry::init(const char *uart_device)
+int DShotTelemetry::init(const char *uart_device, bool swap_rxtx)
 {
 	deinit();
 	_uart_fd = ::open(uart_device, O_RDONLY | O_NOCTTY);
@@ -59,6 +59,7 @@ int DShotTelemetry::init(const char *uart_device)
 		return -errno;
 	}
 
+	ioctl(_uart_fd, TIOCSSWAP, swap_rxtx ? SER_SWAP_ENABLED  : 0);
 	_num_timeouts = 0;
 	_num_successful_responses = 0;
 	_current_motor_index_request = -1;
