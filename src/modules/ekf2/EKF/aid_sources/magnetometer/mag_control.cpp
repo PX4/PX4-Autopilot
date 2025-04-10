@@ -239,13 +239,13 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 						    && PX4_ISFINITE(_wmm_declination_rad)
 						   ) {
 							// using declination from the world magnetic model
-							fuseDeclination(_wmm_declination_rad, 0.5f, update_all_states);
+							fuseDeclination(_wmm_declination_rad, 0.5f, update_all_states, update_tilt);
 
 						} else if ((_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)
 							   && PX4_ISFINITE(_params.mag_declination_deg) && (fabsf(_params.mag_declination_deg) > 0.f)
 							  ) {
 							// using previously saved declination
-							fuseDeclination(math::radians(_params.mag_declination_deg), R_DECL, update_all_states);
+							fuseDeclination(math::radians(_params.mag_declination_deg), R_DECL, update_all_states, update_tilt);
 
 						} else {
 							// if there is no aiding coming from an inertial frame we need to fuse some declination

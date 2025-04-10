@@ -137,14 +137,6 @@ void Ekf::reset()
 
 bool Ekf::update()
 {
-	if (!_filter_initialised) {
-		_filter_initialised = initialiseFilter();
-
-		if (!_filter_initialised) {
-			return false;
-		}
-	}
-
 	// Only run the filter if IMU data in the buffer has been updated
 	if (_imu_updated) {
 		_imu_updated = false;
@@ -153,11 +145,38 @@ bool Ekf::update()
 		// TODO: explicitly pop at desired time horizon
 		const imuSample imu_sample_delayed = _imu_buffer.get_oldest();
 
+		// protect against zero data
+		if (imu_sample_delayed.delta_vel_dt < 1e-4f || imu_sample_delayed.delta_ang_dt < 1e-4f) {
+			return false;
+		}
+
 		// calculate an average filter update time
-		//  filter and limit input between -50% and +100% of nominal value
-		float input = 0.5f * (imu_sample_delayed.delta_vel_dt + imu_sample_delayed.delta_ang_dt);
-		float filter_update_s = 1e-6f * _params.filter_update_interval_us;
-		_dt_ekf_avg = 0.99f * _dt_ekf_avg + 0.01f * math::constrain(input, 0.5f * filter_update_s, 2.f * filter_update_s);
+		// limit input between -50% and +100% of nominal value
+		const float filter_update_s = 1e-6f * _params.filter_update_interval_us;
+		const float input = math::constrain(0.5f * (imu_sample_delayed.delta_vel_dt + imu_sample_delayed.delta_ang_dt),
+						    0.5f * filter_update_s,
+						    2.f * filter_update_s);
+
+		if (_is_first_imu_sample) {
+			_accel_lpf.reset(imu_sample_delayed.delta_vel / imu_sample_delayed.delta_vel_dt);
+			_gyro_lpf.reset(imu_sample_delayed.delta_ang / imu_sample_delayed.delta_ang_dt);
+			_dt_ekf_avg = input;
+
+			_is_first_imu_sample = false;
+
+		} else {
+			_accel_lpf.update(imu_sample_delayed.delta_vel / imu_sample_delayed.delta_vel_dt);
+			_gyro_lpf.update(imu_sample_delayed.delta_ang / imu_sample_delayed.delta_ang_dt);
+			_dt_ekf_avg = 0.99f * _dt_ekf_avg + 0.01f * input;
+		}
+
+		if (!_filter_initialised) {
+			_filter_initialised = initialiseFilter();
+
+			if (!_filter_initialised) {
+				return false;
+			}
+		}
 
 		updateIMUBiasInhibit(imu_sample_delayed);
 
@@ -179,24 +198,6 @@ bool Ekf::update()
 
 bool Ekf::initialiseFilter()
 {
-	// Filter accel for tilt initialization
-	const imuSample &imu_init = _imu_buffer.get_newest();
-
-	// protect against zero data
-	if (imu_init.delta_vel_dt < 1e-4f || imu_init.delta_ang_dt < 1e-4f) {
-		return false;
-	}
-
-	if (_is_first_imu_sample) {
-		_accel_lpf.reset(imu_init.delta_vel / imu_init.delta_vel_dt);
-		_gyro_lpf.reset(imu_init.delta_ang / imu_init.delta_ang_dt);
-		_is_first_imu_sample = false;
-
-	} else {
-		_accel_lpf.update(imu_init.delta_vel / imu_init.delta_vel_dt);
-		_gyro_lpf.update(imu_init.delta_ang / imu_init.delta_ang_dt);
-	}
-
 	if (!initialiseTilt()) {
 		return false;
 	}
