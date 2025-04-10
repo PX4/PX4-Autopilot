@@ -15,7 +15,6 @@ They may come either fully assembled or in parts.
 - [ModalAI VOXL 2 Starling PX4 Development Drone](../complete_vehicles_mc/modalai_starling.md) - SLAM development drone supercharged by VOXL 2 and PX4.
 - [PX4 Vision DevKit](../complete_vehicles_mc/px4_vision_kit.md) - Multicopter used for PX4 computer vision development
 
-
 ## PX4 Preinstalled
 
 This section lists vehicles that are sold fully assembled and ready to fly (RTF), with PX4 installed.
@@ -25,6 +24,7 @@ This section lists vehicles that are sold fully assembled and ready to fly (RTF)
 - [ModalAI Sentinel](https://www.modalai.com/sentinel)
 - [MindRacer 210](../complete_vehicles_mc/mindracer210.md)
 - [NanoMind 110](../complete_vehicles_mc/nanomind110.md)
+- [Amovlab F410](../complete_vehicles_mc/amov_F410_drone.md)
 
 ## PX4 Compatible
 
@@ -33,7 +33,6 @@ This section lists vehicles where you can update the software to run PX4.
 - [Holybro Kopis 2](../complete_vehicles_mc/holybro_kopis2.md)
 - [Bitcraze Crazyflie 2.1](../complete_vehicles_mc/crazyflie21.md)
 - [BetaFPV Beta75X 2S Brushless Whoop](../complete_vehicles_mc/betafpv_beta75x.md) (discontinued)
-
 
 ## Custom PX4
 
@@ -44,7 +43,6 @@ These may or may not be updatable to run "vanilla" PX4.
 - [Yuneec Mantis Q](https://px4.io/portfolio/yuneec-mantis-q/)
 - [Yuneec H520](https://px4.io/portfolio/yuneec-h520-hexacopter/)
 - [AeroSense Aerobo (AS-MC02-P)](https://px4.io/portfolio/aerosense-aerobo/)
-
 
 ## See Also
 

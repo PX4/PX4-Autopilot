@@ -5,18 +5,27 @@ It can be used immediately after receiving, capable of meeting indoor/outdoor st
 
 ![Amovlab f410 Hero Image](../../assets/airframes/multicopter/amovlab_f410/hero.jpg)
 
+::: tip
+The vehicle comes with everything needed to fly, including the battery and a remote control.
+It is pre-installed with PX4 v1.13.
+:::
+
 ## Overview
 
 1. Can serve as a basic flight platform, paired with Pixhawk 6C flight controller to achieve optical flow and GPS fusion positioning, enabling stable flight both indoors and outdoors.
    It is one of the most stable basic flight platforms on the market.
 2. Sturdy and reliable structure, with key parts made of aluminum alloy and carbon fiber, high strength and not easily damaged.
 3. High stability, providing industrial-grade stability assurance, friendly to beginners, offering simplified version of interactive PC to enhance flight experience, can be initially used for outdoor aerial photography and image collection.
-4. High compatibility with different components, providing platform for loading other user sensors, preparing for functional model development.
-5. The fuselage provides abundant power supply making it perfect for installing additional sensors and onboard computers (including 5 external output voltages, 3 channels of 5V, 2 channels of 12V).
-6. Has rich open-source code support, and can be used with PX4, FMT, and ArduPilot.
-7. Secondary development has complete documentation, flight controller code of confirmed versions is open-source, meeting users' secondary development needs.
-   Also provides image pulling, photography, PC version of SDK source code.
-8. Quasi-smart battery. Easy to insert and attach.
+4. Has rich open-source code support, and can be used with PX4, FMT, and ArduPilot.
+5. Video can be streamed from the UAV webcam to QGroundControl.
+6. The drone has a lot of room and support for expansion, including for adding on-board computers, range sensors, and other payloads.
+   - Compatibility with many different components, providing platform for loading other user sensors, preparing for functional model development.
+   - Abundant power supply making it perfect for installing additional sensors and onboard computers (including 5 external output voltages, 3 channels of 5V, 2 channels of 12V).
+   - Pc-SDK support.
+     This is a PC-based Python SDK Library based on MAVSDK that significantly simplifies UAV development compared to other approaches, such as using ROS or using C++. All you need is a basic understanding of Python programming and some simple coordinate system principles!
+   - The [documentation](https://docs.amovlab.com/f450-v6c-wiki/#/en/) shows many of the options.
+7. Quasi-smart battery. The battery has a hard housing design that makes easy to install and remove.
+   It provides accurate power estimates, but does not have some more advanced "smart battery" features.
 
 ## Where to Buy
 
@@ -95,7 +104,7 @@ It can be used immediately after receiving, capable of meeting indoor/outdoor st
 
 ## Tutorials
 
-[Tutorials (Chines)](https://docs.amovlab.com/F450-V6C-wiki/#/src/%E8%A7%84%E6%A0%BC%E5%8F%82%E6%95%B0/%E8%A7%84%E6%A0%BC%E5%8F%82%E6%95%B0) (docs.amovlab.com/)
+- Tutorials [English](https://docs.amovlab.com/f450-v6c-wiki/#/en/)/[Chinese](https://docs.amovlab.com/F450-V6C-wiki/#/src/%E8%A7%84%E6%A0%BC%E5%8F%82%E6%95%B0/%E8%A7%84%E6%A0%BC%E5%8F%82%E6%95%B0) (docs.amovlab.com/)
 
 ### Videos
 
