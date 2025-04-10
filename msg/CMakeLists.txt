@@ -125,12 +125,12 @@ set(msg_files
 	LandingGearWheel.msg
 	LandingTargetInnovations.msg
 	LandingTargetPose.msg
-	LateralControlLimits.msg
+	LateralControlConfiguration.msg
 	LaunchDetectionStatus.msg
 	LedControl.msg
 	LoggerStatus.msg
 	LogMessage.msg
-	LongitudinalControlLimits.msg
+	LongitudinalControlConfiguration.msg
 	MagnetometerBiasEstimate.msg
 	MagWorkerData.msg
 	ManualControlSwitches.msg

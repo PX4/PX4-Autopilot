@@ -48,7 +48,7 @@
  * @min 0
  * @decimal 1
  * @increment 0.5
- * @group FW Launch detection
+ * @group FW Auto Takeoff
  */
 PARAM_DEFINE_FLOAT(FW_LAUN_AC_THLD, 30.0f);
 
@@ -62,7 +62,7 @@ PARAM_DEFINE_FLOAT(FW_LAUN_AC_THLD, 30.0f);
  * @max 5.0
  * @decimal 2
  * @increment 0.05
- * @group FW Launch detection
+ * @group FW Auto Takeoff
  */
 PARAM_DEFINE_FLOAT(FW_LAUN_AC_T, 0.05f);
 
@@ -76,6 +76,6 @@ PARAM_DEFINE_FLOAT(FW_LAUN_AC_T, 0.05f);
  * @max 10.0
  * @decimal 1
  * @increment 0.5
- * @group FW Launch detection
+ * @group FW Auto Takeoff
  */
 PARAM_DEFINE_FLOAT(FW_LAUN_MOT_DEL, 0.0f);

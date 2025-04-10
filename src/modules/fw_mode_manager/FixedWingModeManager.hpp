@@ -33,16 +33,16 @@
 
 
 /**
- * @file FixedwingPositionControl.hpp
- * Implementation of various fixed-wing position level navigation/control modes.
+ * @file FixedWingModeManager.hpp
+ * Implementation of various fixed-wing control modes.
  */
 
-#ifndef FIXEDWINGPOSITIONCONTROL_HPP_
-#define FIXEDWINGPOSITIONCONTROL_HPP_
+#ifndef FIXEDWINGMODEMANAGER_HPP_
+#define FIXEDWINGMODEMANAGER_HPP_
 
 #include "launchdetection/LaunchDetector.h"
 #include "runway_takeoff/RunwayTakeoff.h"
-#include "ControlLimitsHandler.hpp"
+#include "ControllerConfigurationHandler.hpp"
 
 #include <float.h>
 #include <drivers/drv_hrt.h>
@@ -150,12 +150,12 @@ static constexpr float POST_TOUCHDOWN_CLAMP_TIME = 0.5f;
 // [] Stick deadzon
 static constexpr float kStickDeadBand = 0.06f;
 
-class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
+class FixedWingModeManager final : public ModuleBase<FixedWingModeManager>, public ModuleParams,
 	public px4::WorkItem
 {
 public:
-	FixedwingPositionControl(bool vtol = false);
-	~FixedwingPositionControl() override;
+	FixedWingModeManager();
+	~FixedWingModeManager() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -206,7 +206,7 @@ private:
 	vehicle_local_position_s _local_pos{};
 	vehicle_status_s _vehicle_status{};
 
-	CombinedControlLimitHandler _ctrl_limits_handler;
+	CombinedControllerConfigurationHandler _ctrl_configuration_handler;
 
 	Vector2f _lpos_where_backtrans_started;
 
@@ -837,7 +837,6 @@ private:
 		(ParamFloat<px4::params::FW_P_LIM_MIN>) _param_fw_p_lim_min,
 		(ParamFloat<px4::params::FW_T_CLMB_R_SP>) _param_climbrate_target,
 		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_sinkrate_target,
-		(ParamFloat<px4::params::FW_T_SINK_MAX>) _param_fw_t_sink_max,
 		(ParamFloat<px4::params::FW_THR_IDLE>) _param_fw_thr_idle,
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
 		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,
@@ -847,6 +846,7 @@ private:
 		(ParamInt<px4::params::FW_POS_STK_CONF>) _param_fw_pos_stk_conf,
 		(ParamInt<px4::params::FW_GPSF_LT>) _param_nav_gpsf_lt,
 		(ParamFloat<px4::params::FW_GPSF_R>) _param_nav_gpsf_r,
+		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_t_spdweight,
 
 		// external parameters
 		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
@@ -872,4 +872,4 @@ private:
 	)
 };
 
-#endif // FIXEDWINGPOSITIONCONTROL_HPP_
+#endif // FIXEDWINGMODEMANAGER_HPP_

@@ -172,11 +172,11 @@ subscriptions:
   - topic: /fmu/in/fixed_wing_lateral_setpoint
     type: px4_msgs::msg::FixedWingLateralSetpoint
 
-  - topic: /fmu/in/longitudinal_control_limits
-    type: px4_msgs::msg::LongitudinalControlLimits
+  - topic: /fmu/in/longitudinal_control_configuration
+    type: px4_msgs::msg::LongitudinalControlConfiguration
 
-  - topic: /fmu/in/lateral_control_limits
-    type: px4_msgs::msg::LateralControlLimits
+  - topic: /fmu/in/lateral_control_configuration
+    type: px4_msgs::msg::LateralControlConfiguration
 
 # Create uORB::PublicationMulti
 subscriptions_multi:

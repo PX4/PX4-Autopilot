@@ -68,8 +68,8 @@
 #include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
 #include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/flight_phase_estimation.h>
-#include <uORB/topics/lateral_control_limits.h>
-#include <uORB/topics/longitudinal_control_limits.h>
+#include <uORB/topics/lateral_control_configuration.h>
+#include <uORB/topics/longitudinal_control_configuration.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_air_data.h>
@@ -120,14 +120,14 @@ private:
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _fw_lateral_ctrl_sub{ORB_ID(fixed_wing_lateral_setpoint)};
 	uORB::Subscription _fw_longitudinal_ctrl_sub{ORB_ID(fixed_wing_longitudinal_setpoint)};
-	uORB::Subscription _long_control_limits_sub{ORB_ID(longitudinal_control_limits)};
-	uORB::Subscription _lateral_control_limits_sub{ORB_ID(lateral_control_limits)};
+	uORB::Subscription _long_control_configuration_sub{ORB_ID(longitudinal_control_configuration)};
+	uORB::Subscription _lateral_control_configuration_sub{ORB_ID(lateral_control_configuration)};
 
 	vehicle_local_position_s _local_pos{};
 	fixed_wing_longitudinal_setpoint_s _long_control_sp{empty_longitudinal_control_setpoint};
-	longitudinal_control_limits_s _long_limits{};
+	longitudinal_control_configuration_s _long_configuration{};
 	fixed_wing_lateral_setpoint_s _lat_control_sp{empty_lateral_control_setpoint};
-	lateral_control_limits_s _lateral_limits{};
+	lateral_control_configuration_s _lateral_configuration{};
 	float _flaps_setpoint{0.f};
 
 	uORB::Publication <vehicle_attitude_setpoint_s> _attitude_sp_pub;
@@ -238,11 +238,11 @@ private:
 
 	float getCorrectedLateralAccelSetpoint(float lateral_accel_sp);
 
-	void setDefaultLongitudinalControlLimits();
+	void setDefaultLongitudinalControlConfiguration();
 
-	void updateLongitudinalControlLimits(const longitudinal_control_limits_s &limits_in);
+	void updateLongitudinalControlConfiguration(const longitudinal_control_configuration_s &configuration_in);
 
-	void updateControlLimits();
+	void updateControllerConfiguration();
 
 	float getLoadFactor() const;
 
