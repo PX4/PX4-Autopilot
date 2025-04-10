@@ -115,14 +115,14 @@ const uint16_t osd_numerical_vario_pos = LOCATION_HIDDEN;
 #define OSD_GRID_ROW_MAX (21) // From betaflight-configurator OSD tab
 
 typedef enum {
-    MSP_DP_HEARTBEAT = 0,         // Release the display after clearing and updating
-    MSP_DP_RELEASE = 1,         // Release the display after clearing and updating
-    MSP_DP_CLEAR_SCREEN = 2,    // Clear the display
-    MSP_DP_WRITE_STRING = 3,    // Write a string at given coordinates
-    MSP_DP_DRAW_SCREEN = 4,     // Trigger a screen draw
-    MSP_DP_OPTIONS = 5,         // Not used by Betaflight. Reserved by Ardupilot and INAV
-    MSP_DP_SYS = 6,             // Display system element displayportSystemElement_e at given coordinates
-    MSP_DP_COUNT,
+	MSP_DP_HEARTBEAT = 0,         // Release the display after clearing and updating
+	MSP_DP_RELEASE = 1,         // Release the display after clearing and updating
+	MSP_DP_CLEAR_SCREEN = 2,    // Clear the display
+	MSP_DP_WRITE_STRING = 3,    // Write a string at given coordinates
+	MSP_DP_DRAW_SCREEN = 4,     // Trigger a screen draw
+	MSP_DP_OPTIONS = 5,         // Not used by Betaflight. Reserved by Ardupilot and INAV
+	MSP_DP_SYS = 6,             // Display system element displayportSystemElement_e at given coordinates
+	MSP_DP_COUNT,
 } displayportMspSubCommand;
 
 
@@ -284,6 +284,7 @@ void MspOsd::Run()
 	if (_param_osd_symbols.get() == 0) {
 		return;
 	}
+
 	uint8_t subcmd = MSP_DP_HEARTBEAT;
 	this->Send(MSP_CMD_DISPLAYPORT, &subcmd, 1); //
 
@@ -345,12 +346,12 @@ void MspOsd::Run()
 		// 			 battery_status,
 		// 			 input_rc);
 		// this->Send(MSP_ANALOG, &msg);
-	if(enabled(SymbolIndex::RSSI_VALUE)){
-		input_rc_s input_rc{};
-		_input_rc_sub.copy(&input_rc);
-		const auto msg = msp_osd::construct_rendor_RSSI(input_rc);
-		this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_rssi_t));
-	}
+		if (enabled(SymbolIndex::RSSI_VALUE)) {
+			input_rc_s input_rc{};
+			_input_rc_sub.copy(&input_rc);
+			const auto msg = msp_osd::construct_rendor_RSSI(input_rc);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_rssi_t));
+		}
 	}
 
 	// MSP_BATTERY_STATE
@@ -381,17 +382,17 @@ void MspOsd::Run()
 		// 			 vehicle_gps_position,
 		// 			 airspeed_validated);
 		// this->Send(MSP_RAW_GPS, &msg);
-		if(enabled(SymbolIndex::GPS_LAT)){
+		if (enabled(SymbolIndex::GPS_LAT)) {
 			const auto msg = msp_osd::construct_rendor_GPS_LAT(vehicle_gps_position);
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_latitude_t));
 		}
 
-		if(enabled(SymbolIndex::GPS_LON)){
+		if (enabled(SymbolIndex::GPS_LON)) {
 			const auto msg = msp_osd::construct_rendor_GPS_LON(vehicle_gps_position);
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_longitude_t));
 		}
 
-		if(enabled(SymbolIndex::GPS_SATS)){
+		if (enabled(SymbolIndex::GPS_SATS)) {
 			const auto msg = msp_osd::construct_rendor_GPS_NUM(vehicle_gps_position);
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_satellites_used_t));
 		}
@@ -414,7 +415,7 @@ void MspOsd::Run()
 		// 			 vehicle_global_position,
 		// 			 _heartbeat);
 		// this->Send(MSP_COMP_GPS, &msg);
-		if(enabled(SymbolIndex::HOME_DIST)){
+		if (enabled(SymbolIndex::HOME_DIST)) {
 			const auto msg =  msp_osd::construct_rendor_distanceToHome(home_position, vehicle_global_position);
 
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_distanceToHome_t));
@@ -451,7 +452,7 @@ void MspOsd::Run()
 		// const auto msg = msp_osd::construct_ALTITUDE(vehicle_gps_position, vehicle_local_position);
 		// this->Send(MSP_ALTITUDE, &msg);
 
-		if(enabled(SymbolIndex::ALTITUDE)){
+		if (enabled(SymbolIndex::ALTITUDE)) {
 			const auto msg = msp_osd::construct_Rendor_ALTITUDE(vehicle_gps_position, vehicle_local_position);
 
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_altitude_t));
@@ -479,9 +480,9 @@ void MspOsd::Send(const unsigned int message_type, const void *payload)
 		_performance_data.unsuccessful_sends++;
 	}
 }
-void MspOsd::Send(const unsigned int message_type, const void *payload,int32_t payload_size)
+void MspOsd::Send(const unsigned int message_type, const void *payload, int32_t payload_size)
 {
-	if (_msp.Send(message_type, payload,payload_size)) {
+	if (_msp.Send(message_type, payload, payload_size)) {
 		_performance_data.successful_sends++;
 
 	} else {

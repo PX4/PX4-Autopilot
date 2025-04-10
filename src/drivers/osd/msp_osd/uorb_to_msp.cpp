@@ -51,16 +51,16 @@ using namespace time_literals;
 
 namespace msp_osd
 {
-	typedef enum {
-	    MSP_DP_HEARTBEAT = 0,         // Release the display after clearing and updating
-	    MSP_DP_RELEASE = 1,         // Release the display after clearing and updating
-	    MSP_DP_CLEAR_SCREEN = 2,    // Clear the display
-	    MSP_DP_WRITE_STRING = 3,    // Write a string at given coordinates
-	    MSP_DP_DRAW_SCREEN = 4,     // Trigger a screen draw
-	    MSP_DP_OPTIONS = 5,         // Not used by Betaflight. Reserved by Ardupilot and INAV
-	    MSP_DP_SYS = 6,             // Display system element displayportSystemElement_e at given coordinates
-	    MSP_DP_COUNT,
-	} displayportMspSubCommand;
+typedef enum {
+	MSP_DP_HEARTBEAT = 0,         // Release the display after clearing and updating
+	MSP_DP_RELEASE = 1,         // Release the display after clearing and updating
+	MSP_DP_CLEAR_SCREEN = 2,    // Clear the display
+	MSP_DP_WRITE_STRING = 3,    // Write a string at given coordinates
+	MSP_DP_DRAW_SCREEN = 4,     // Trigger a screen draw
+	MSP_DP_OPTIONS = 5,         // Not used by Betaflight. Reserved by Ardupilot and INAV
+	MSP_DP_SYS = 6,             // Display system element displayportSystemElement_e at given coordinates
+	MSP_DP_COUNT,
+} displayportMspSubCommand;
 
 msp_name_t construct_display_message(const vehicle_status_s &vehicle_status,
 				     const vehicle_attitude_s &vehicle_attitude,
@@ -210,20 +210,22 @@ msp_analog_t construct_ANALOG(const battery_status_s &battery_status, const inpu
 
 msp_rendor_rssi_t construct_rendor_RSSI(const input_rc_s &input_rc)
 {
-  msp_rendor_rssi_t rssi;
-  rssi.screenYPosition=0x02;
-	rssi.screenXPosition=0x02;
+	msp_rendor_rssi_t rssi;
+	rssi.screenYPosition = 0x02;
+	rssi.screenXPosition = 0x02;
 
-  char rssi_str[5]={0};
-  int len = sprintf(rssi_str, "%d", input_rc.link_quality);
-  strncpy(&rssi.str[0], rssi_str, 4);
-  if(len >= 3){
-    rssi.str[3] = '%';
-  }else{
-    rssi.str[len] = '%';
-  }
+	char rssi_str[5] = {0};
+	int len = sprintf(rssi_str, "%d", input_rc.link_quality);
+	strncpy(&rssi.str[0], rssi_str, 4);
 
-  return rssi;
+	if (len >= 3) {
+		rssi.str[3] = '%';
+
+	} else {
+		rssi.str[len] = '%';
+	}
+
+	return rssi;
 }
 
 msp_battery_state_t construct_BATTERY_STATE(const battery_status_s &battery_status)
@@ -260,17 +262,22 @@ msp_rendor_battery_state_t construct_rendor_BATTERY_STATE(const battery_status_s
 	battery_state.screenXPosition = 0x02; //
 	battery_state.iconAttrs = 0x00; //
 
-	float sigle_cell_v =battery_status.voltage_v / battery_status.cell_count;
-	if(sigle_cell_v > 4.0f){
+	float sigle_cell_v = battery_status.voltage_v / battery_status.cell_count;
+
+	if (sigle_cell_v > 4.0f) {
 		battery_state.iconIndex = 0x91; // Full battery Icon
-	}else if( (sigle_cell_v <= 4.0f) && (sigle_cell_v > 3.5f) ){
-    battery_state.iconIndex = 0x93; // Half battery Icon
-  }else if( (sigle_cell_v <= 3.5f) && (sigle_cell_v > 3.2f) ){
-    battery_state.iconIndex = 0x95; // Empty battery Icon
-  }else{
-    battery_state.iconIndex = 0x96; // Dead battery Icon
-  }
-  sprintf(&battery_state.str[0], "%.1fV", (double)sigle_cell_v);
+
+	} else if ((sigle_cell_v <= 4.0f) && (sigle_cell_v > 3.5f)) {
+		battery_state.iconIndex = 0x93; // Half battery Icon
+
+	} else if ((sigle_cell_v <= 3.5f) && (sigle_cell_v > 3.2f)) {
+		battery_state.iconIndex = 0x95; // Empty battery Icon
+
+	} else {
+		battery_state.iconIndex = 0x96; // Dead battery Icon
+	}
+
+	sprintf(&battery_state.str[0], "%.1fV", (double)sigle_cell_v);
 	return battery_state;
 }
 
@@ -334,45 +341,49 @@ msp_raw_gps_t construct_RAW_GPS(const sensor_gps_s &vehicle_gps_position,
 
 msp_rendor_latitude_t construct_rendor_GPS_LAT(const sensor_gps_s &vehicle_gps_position)
 {
-  msp_rendor_latitude_t lat;
+	msp_rendor_latitude_t lat;
 
 	lat.screenYPosition = 0x0A; //
 	lat.screenXPosition = 0x29; //
 
 	if (vehicle_gps_position.fix_type >= 2) {
-    sprintf(&lat.str[0], "%.6f",vehicle_gps_position.latitude_deg);
-  }else{
-    sprintf(&lat.str[0], "%.6f", 0.0);
-  }
-  return lat;
+		sprintf(&lat.str[0], "%.6f", vehicle_gps_position.latitude_deg);
+
+	} else {
+		sprintf(&lat.str[0], "%.6f", 0.0);
+	}
+
+	return lat;
 }
 
 msp_rendor_longitude_t construct_rendor_GPS_LON(const sensor_gps_s &vehicle_gps_position)
 {
-  msp_rendor_longitude_t lon;
+	msp_rendor_longitude_t lon;
 
 	lon.screenYPosition = 0x09; //
 	lon.screenXPosition = 0x29; //
 
 	if (vehicle_gps_position.fix_type >= 2) {
-    sprintf(&lon.str[0], "%.6f",vehicle_gps_position.longitude_deg);
-  }else{
-    sprintf(&lon.str[0], "%.6f", -0.0);
-  }
-  return lon;
+		sprintf(&lon.str[0], "%.6f", vehicle_gps_position.longitude_deg);
+
+	} else {
+		sprintf(&lon.str[0], "%.6f", -0.0);
+	}
+
+	return lon;
 }
 
 msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const sensor_gps_s &vehicle_gps_position)
 {
-  msp_rendor_satellites_used_t num;
+	msp_rendor_satellites_used_t num;
 
 	num.screenYPosition = 0x08; //
 	num.screenXPosition = 0x29; //
-  char num_str[4];
-  sprintf(num_str, "%d", vehicle_gps_position.satellites_used % 100); // max 99
-  strncpy(&num.str[0], num_str, 2);
+	char num_str[4];
+	sprintf(num_str, "%d", vehicle_gps_position.satellites_used % 100); // max 99
+	strncpy(&num.str[0], num_str, 2);
 
-  return num;
+	return num;
 }
 
 
@@ -413,14 +424,14 @@ msp_comp_gps_t construct_COMP_GPS(const home_position_s &home_position,
 }
 
 msp_rendor_distanceToHome_t construct_rendor_distanceToHome(const home_position_s &home_position,
-				  const vehicle_global_position_s &vehicle_global_position)
+		const vehicle_global_position_s &vehicle_global_position)
 {
 	msp_rendor_distanceToHome_t distance;
 
 	distance.screenYPosition = 0x08; //
 	distance.screenXPosition = 0x02; //
 
-  int16_t dist_i = 0;
+	int16_t dist_i = 0;
 
 	if (home_position.valid_hpos
 	    && home_position.valid_lpos
@@ -436,9 +447,9 @@ msp_rendor_distanceToHome_t construct_rendor_distanceToHome(const home_position_
 		dist_i = 0; // meters
 	}
 
-  char num_str[7];
-  sprintf(num_str, "%d", dist_i); // 65536
-  strncpy(&distance.str[0], num_str, 6);
+	char num_str[7];
+	sprintf(num_str, "%d", dist_i); // 65536
+	strncpy(&distance.str[0], num_str, 6);
 
 	return distance;
 }
@@ -472,7 +483,7 @@ msp_rendor_pitch_t  construct_rendor_PITCH(const vehicle_attitude_s &vehicle_att
 	// initialize results
 	msp_rendor_pitch_t pit;
 
-  pit.screenYPosition = 0x0D; //
+	pit.screenYPosition = 0x0D; //
 	pit.screenXPosition = 0x29; //
 
 	// convert from quaternion to RPY
@@ -480,9 +491,9 @@ msp_rendor_pitch_t  construct_rendor_PITCH(const vehicle_attitude_s &vehicle_att
 	double pitch_deg = (double)math::degrees(euler_attitude.theta());
 	// attitude.roll = math::degrees(euler_attitude.phi()) * 10;
 
-  char pitch_str[10];
-  sprintf(pitch_str, "%.1f", pitch_deg);
-  strncpy(&pit.str[0], pitch_str, 5);
+	char pitch_str[10];
+	sprintf(pitch_str, "%.1f", pitch_deg);
+	strncpy(&pit.str[0], pitch_str, 5);
 
 	return pit;
 }
@@ -492,7 +503,7 @@ msp_rendor_roll_t  construct_rendor_ROLL(const vehicle_attitude_s &vehicle_attit
 	// initialize results
 	msp_rendor_roll_t roll;
 
-  roll.screenYPosition = 0x0E; //
+	roll.screenYPosition = 0x0E; //
 	roll.screenXPosition = 0x29; //
 
 	// convert from quaternion to RPY
@@ -500,9 +511,9 @@ msp_rendor_roll_t  construct_rendor_ROLL(const vehicle_attitude_s &vehicle_attit
 	// double pitch = (double)math::degrees(euler_attitude.theta());
 	double roll_deg = (double)math::degrees(euler_attitude.phi());
 
-  char roll_str[10];
-  sprintf(roll_str, "%.1f", roll_deg);
-  strncpy(&roll.str[0], roll_str, 5);
+	char roll_str[10];
+	sprintf(roll_str, "%.1f", roll_deg);
+	strncpy(&roll.str[0], roll_str, 5);
 
 	return roll;
 }
@@ -532,14 +543,14 @@ msp_altitude_t construct_ALTITUDE(const sensor_gps_s &vehicle_gps_position,
 }
 
 msp_rendor_altitude_t construct_Rendor_ALTITUDE(const sensor_gps_s &vehicle_gps_position,
-				  const vehicle_local_position_s &vehicle_local_position)
+		const vehicle_local_position_s &vehicle_local_position)
 {
-  msp_rendor_altitude_t altitude;
+	msp_rendor_altitude_t altitude;
 
-  altitude.screenYPosition = 0x06; //
+	altitude.screenYPosition = 0x06; //
 	altitude.screenXPosition = 0x02; //
 
-  double alt;
+	double alt;
 
 	if (vehicle_gps_position.fix_type >= 2) {
 		alt = vehicle_gps_position.altitude_msl_m;
@@ -548,11 +559,11 @@ msp_rendor_altitude_t construct_Rendor_ALTITUDE(const sensor_gps_s &vehicle_gps_
 		alt = vehicle_local_position.z * -1;
 	}
 
-  char alt_str[10];
-  sprintf(alt_str, "%.1f", alt);
-  strncpy(&altitude.str[0], alt_str, 6);
+	char alt_str[10];
+	sprintf(alt_str, "%.1f", alt);
+	strncpy(&altitude.str[0], alt_str, 6);
 
-  return altitude;
+	return altitude;
 }
 
 msp_esc_sensor_data_dji_t construct_ESC_SENSOR_DATA()

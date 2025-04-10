@@ -289,7 +289,7 @@ struct msp_attitude_t {
 	int16_t yaw;
 } __attribute__((packed));
 
-struct msp_rendor_pitch_t{
+struct msp_rendor_pitch_t {
 	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
 	uint8_t screenYPosition;
 	uint8_t screenXPosition;
@@ -299,7 +299,7 @@ struct msp_rendor_pitch_t{
 	char str[6]; // -00.0
 } __attribute__((packed));
 
-struct msp_rendor_roll_t{
+struct msp_rendor_roll_t {
 	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
 	uint8_t screenYPosition;
 	uint8_t screenXPosition;
@@ -317,7 +317,7 @@ struct msp_altitude_t {
 } __attribute__((packed));
 
 
-struct msp_rendor_altitude_t{
+struct msp_rendor_altitude_t {
 	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
 	uint8_t screenYPosition;
 	uint8_t screenXPosition;
@@ -342,7 +342,7 @@ struct msp_analog_t {
 	int16_t  amperage; // send amperage in 0.01 A steps, range is -320A to 320A
 } __attribute__((packed));
 
-struct msp_rendor_rssi_t{
+struct msp_rendor_rssi_t {
 	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
 	uint8_t screenYPosition;
 	uint8_t screenXPosition;
@@ -433,7 +433,7 @@ struct msp_raw_gps_t {
 	uint16_t hdop;
 } __attribute__((packed));
 
-struct msp_rendor_latitude_t{
+struct msp_rendor_latitude_t {
 	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
 	uint8_t screenYPosition;
 	uint8_t screenXPosition;
@@ -444,7 +444,7 @@ struct msp_rendor_latitude_t{
 } __attribute__((packed));
 
 
-struct msp_rendor_longitude_t{
+struct msp_rendor_longitude_t {
 	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
 	uint8_t screenYPosition;
 	uint8_t screenXPosition;
@@ -454,7 +454,7 @@ struct msp_rendor_longitude_t{
 	char str[12]; // -000.0000000
 } __attribute__((packed));
 
-struct msp_rendor_satellites_used_t{
+struct msp_rendor_satellites_used_t {
 	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
 	uint8_t screenYPosition;
 	uint8_t screenXPosition;
@@ -473,7 +473,7 @@ struct msp_comp_gps_t {
 	uint8_t  heartbeat;       // toggles 0 and 1 for each change
 } __attribute__((packed));
 
-struct msp_rendor_distanceToHome_t{
+struct msp_rendor_distanceToHome_t {
 	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
 	uint8_t screenYPosition;
 	uint8_t screenXPosition;
