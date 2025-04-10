@@ -146,7 +146,7 @@ MspOsd::~MspOsd()
 
 bool MspOsd::init()
 {
-	ScheduleOnInterval(500_ms);
+	ScheduleOnInterval(100_ms);
 
 	return true;
 }

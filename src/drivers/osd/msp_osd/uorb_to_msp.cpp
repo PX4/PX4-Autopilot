@@ -442,6 +442,7 @@ msp_rendor_distanceToHome_t construct_rendor_distanceToHome(const home_position_
 
 	}
 
+	memset(&distance.str[0], 0, sizeof(distance.str));
 	snprintf(&distance.str[0], sizeof(distance.str), "%d", dist_i); // 65536
 
 	return distance;
@@ -548,6 +549,7 @@ msp_rendor_altitude_t construct_Rendor_ALTITUDE(const sensor_gps_s &vehicle_gps_
 		alt = vehicle_local_position.z * -1;
 	}
 
+	memset(&altitude.str[0], 0, sizeof(altitude.str));
 	snprintf(&altitude.str[0], sizeof(altitude.str), "%.1f", alt);
 
 	return altitude;
