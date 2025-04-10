@@ -60,8 +60,8 @@ px4_add_module(
 	SRCS
 		FixedWingModeManager.cpp
 		FixedWingModeManager.hpp
-		ControlLimitsHandler.cpp
-		ControlLimitsHandler.hpp
+		ControllerConfigurationHandler.cpp
+		ControllerConfigurationHandler.hpp
 	DEPENDS
 		${POSCONTROL_DEPENDENCIES}
 	)

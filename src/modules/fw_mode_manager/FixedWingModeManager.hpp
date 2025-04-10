@@ -42,7 +42,7 @@
 
 #include "launchdetection/LaunchDetector.h"
 #include "runway_takeoff/RunwayTakeoff.h"
-#include "ControlLimitsHandler.hpp"
+#include "ControllerConfigurationHandler.hpp"
 
 #include <float.h>
 #include <drivers/drv_hrt.h>
@@ -206,7 +206,7 @@ private:
 	vehicle_local_position_s _local_pos{};
 	vehicle_status_s _vehicle_status{};
 
-	CombinedControlLimitHandler _ctrl_limits_handler;
+	CombinedControllerConfigurationHandler _ctrl_configuration_handler;
 
 	Vector2f _lpos_where_backtrans_started;
 

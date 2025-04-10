@@ -33,10 +33,10 @@
 
 
 /**
- * @file CombinedControlLimitHandler.hpp
+ * @file CombinedControllerConfigurationHandler.hpp
  */
-#ifndef PX4_CONTROLLIMITSHANDLER_HPP
-#define PX4_CONTROLLIMITSHANDLER_HPP
+#ifndef PX4_CONTROLLERCONFIGURATIONHANDLER_HPP
+#define PX4_CONTROLLERCONFIGURATIONHANDLER_HPP
 
 #include <uORB/topics/longitudinal_control_configuration.h>
 #include <uORB/topics/lateral_control_configuration.h>
@@ -47,11 +47,11 @@ const longitudinal_control_configuration_s empty_longitudinal_control_configurat
 const lateral_control_configuration_s empty_lateral_control_configuration = {.timestamp = 0, .lateral_accel_max = NAN};
 
 
-class CombinedControlLimitHandler
+class CombinedControllerConfigurationHandler
 {
 public:
-	CombinedControlLimitHandler() = default;
-	~CombinedControlLimitHandler() = default;
+	CombinedControllerConfigurationHandler() = default;
+	~CombinedControllerConfigurationHandler() = default;
 
 	void update(const hrt_abstime now);
 
@@ -104,8 +104,8 @@ private:
 	uORB::PublicationData<lateral_control_configuration_s> _lateral_publisher{ORB_ID(lateral_control_configuration)};
 	uORB::PublicationData<longitudinal_control_configuration_s> _longitudinal_publisher{ORB_ID(longitudinal_control_configuration)};
 
-	lateral_control_configuration_s _lateral_limits_current_cycle{empty_lateral_control_configuration};
-	longitudinal_control_configuration_s _longitudinal_limits_current_cycle {empty_longitudinal_control_configuration};
+	lateral_control_configuration_s _lateral_configuration_current_cycle{empty_lateral_control_configuration};
+	longitudinal_control_configuration_s _longitudinal_configuration_current_cycle {empty_longitudinal_control_configuration};
 };
 
-#endif //PX4_CONTROLLIMITSHANDLER_HPP
+#endif //PX4_CONTROLLERCONFIGURATIONHANDLER_HPP

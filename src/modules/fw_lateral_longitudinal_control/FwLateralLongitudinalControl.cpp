@@ -144,11 +144,11 @@ void FwLateralLongitudinalControl::Run()
 					       0.001f, 0.1f);
 		_last_time_loop_ran = _local_pos.timestamp;
 
-		updateControlLimits();
+		updateControllerConfiguration();
 
-		_tecs.set_speed_weight(_long_limits.speed_weight);
+		_tecs.set_speed_weight(_long_configuration.speed_weight);
 		updateTECSAltitudeTimeConstant(checkLowHeightConditions()
-					       || _long_limits.enforce_low_height_condition, control_interval);
+					       || _long_configuration.enforce_low_height_condition, control_interval);
 		_tecs.set_altitude_error_time_constant(_tecs_alt_time_const_slew_rate.getState());
 
 		if (_vehicle_air_data_sub.updated()) {
@@ -208,13 +208,13 @@ void FwLateralLongitudinalControl::Run()
 
 			tecs_update_pitch_throttle(control_interval, _long_control_sp.altitude,
 						   airspeed_sp_eas,
-						   _long_limits.pitch_min,
-						   _long_limits.pitch_max,
-						   _long_limits.throttle_min,
-						   _long_limits.throttle_max,
-						   _long_limits.sink_rate_target,
-						   _long_limits.climb_rate_target,
-						   _long_limits.disable_underspeed_protection,
+						   _long_configuration.pitch_min,
+						   _long_configuration.pitch_max,
+						   _long_configuration.throttle_min,
+						   _long_configuration.throttle_max,
+						   _long_configuration.sink_rate_target,
+						   _long_configuration.climb_rate_target,
+						   _long_configuration.disable_underspeed_protection,
 						   _long_control_sp.height_rate
 						  );
 
@@ -269,8 +269,8 @@ void FwLateralLongitudinalControl::Run()
 			}
 
 			lateral_accel_sp = getCorrectedLateralAccelSetpoint(lateral_accel_sp);
-			lateral_accel_sp = math::constrain(lateral_accel_sp, -_lateral_limits.lateral_accel_max,
-							   _lateral_limits.lateral_accel_max);
+			lateral_accel_sp = math::constrain(lateral_accel_sp, -_lateral_configuration.lateral_accel_max,
+							   _lateral_configuration.lateral_accel_max);
 			roll_sp = mapLateralAccelerationToRollAngle(lateral_accel_sp);
 
 			fixed_wing_lateral_status_s fixed_wing_lateral_status{};
@@ -312,35 +312,35 @@ void FwLateralLongitudinalControl::Run()
 	perf_end(_loop_perf);
 }
 
-void FwLateralLongitudinalControl::updateControlLimits()
+void FwLateralLongitudinalControl::updateControllerConfiguration()
 {
-	if (_lateral_limits.timestamp == 0) {
-		_lateral_limits.timestamp = _local_pos.timestamp;
-		_lateral_limits.lateral_accel_max = tanf(radians(_param_fw_r_lim.get())) * CONSTANTS_ONE_G;
+	if (_lateral_configuration.timestamp == 0) {
+		_lateral_configuration.timestamp = _local_pos.timestamp;
+		_lateral_configuration.lateral_accel_max = tanf(radians(_param_fw_r_lim.get())) * CONSTANTS_ONE_G;
 
 	}
 
-	if (_long_limits.timestamp == 0) {
+	if (_long_configuration.timestamp == 0) {
 		setDefaultLongitudinalControlConfiguration();
 	}
 
-	if (_long_control_limits_sub.updated() || _parameter_update_sub.updated()) {
-		longitudinal_control_configuration_s limits_in{};
-		_long_control_limits_sub.copy(&limits_in);
-		updateLongitudinalControlConfiguration(limits_in);
+	if (_long_control_configuration_sub.updated() || _parameter_update_sub.updated()) {
+		longitudinal_control_configuration_s configuration_in{};
+		_long_control_configuration_sub.copy(&configuration_in);
+		updateLongitudinalControlConfiguration(configuration_in);
 	}
 
 	if (_lateral_control_configuration_sub.updated() || _parameter_update_sub.updated()) {
-		lateral_control_configuration_s limits_in{};
-		_lateral_control_configuration_sub.copy(&limits_in);
-		_lateral_limits.timestamp = limits_in.timestamp;
+		lateral_control_configuration_s configuration_in{};
+		_lateral_control_configuration_sub.copy(&configuration_in);
+		_lateral_configuration.timestamp = configuration_in.timestamp;
 
-		if (PX4_ISFINITE(limits_in.lateral_accel_max)) {
-			_lateral_limits.lateral_accel_max = min(limits_in.lateral_accel_max, tanf(radians(
-					_param_fw_r_lim.get())) * CONSTANTS_ONE_G);
+		if (PX4_ISFINITE(configuration_in.lateral_accel_max)) {
+			_lateral_configuration.lateral_accel_max = min(configuration_in.lateral_accel_max, tanf(radians(
+						_param_fw_r_lim.get())) * CONSTANTS_ONE_G);
 
 		} else {
-			_lateral_limits.lateral_accel_max = tanf(radians(_param_fw_r_lim.get())) * CONSTANTS_ONE_G;
+			_lateral_configuration.lateral_accel_max = tanf(radians(_param_fw_r_lim.get())) * CONSTANTS_ONE_G;
 		}
 	}
 }
@@ -766,54 +766,54 @@ float FwLateralLongitudinalControl::mapLateralAccelerationToRollAngle(float late
 }
 
 void FwLateralLongitudinalControl::setDefaultLongitudinalControlConfiguration() {
-	_long_limits.timestamp = hrt_absolute_time();
-	_long_limits.pitch_min = radians(_param_fw_p_lim_min.get());
-	_long_limits.pitch_max = radians(_param_fw_p_lim_max.get());
-	_long_limits.throttle_min = _param_fw_thr_min.get();
-	_long_limits.throttle_max = _param_fw_thr_max.get();
-	_long_limits.climb_rate_target = _param_climbrate_target.get();
-	_long_limits.sink_rate_target = _param_sinkrate_target.get();
-	_long_limits.disable_underspeed_protection = false;
-	_long_limits.enforce_low_height_condition = false;
+	_long_configuration.timestamp = hrt_absolute_time();
+	_long_configuration.pitch_min = radians(_param_fw_p_lim_min.get());
+	_long_configuration.pitch_max = radians(_param_fw_p_lim_max.get());
+	_long_configuration.throttle_min = _param_fw_thr_min.get();
+	_long_configuration.throttle_max = _param_fw_thr_max.get();
+	_long_configuration.climb_rate_target = _param_climbrate_target.get();
+	_long_configuration.sink_rate_target = _param_sinkrate_target.get();
+	_long_configuration.disable_underspeed_protection = false;
+	_long_configuration.enforce_low_height_condition = false;
 }
 
-void FwLateralLongitudinalControl::updateLongitudinalControlConfiguration(const longitudinal_control_configuration_s &limits_in) {
-	_long_limits.timestamp = limits_in.timestamp;
+void FwLateralLongitudinalControl::updateLongitudinalControlConfiguration(const longitudinal_control_configuration_s &configuration_in) {
+	_long_configuration.timestamp = configuration_in.timestamp;
 
-	if (PX4_ISFINITE(limits_in.pitch_min)) {
-		_long_limits.pitch_min = math::constrain(limits_in.pitch_min, radians(_param_fw_p_lim_min.get()), radians(_param_fw_p_lim_max.get()));
+	if (PX4_ISFINITE(configuration_in.pitch_min)) {
+		_long_configuration.pitch_min = math::constrain(configuration_in.pitch_min, radians(_param_fw_p_lim_min.get()), radians(_param_fw_p_lim_max.get()));
 	} else {
-		_long_limits.pitch_min = radians(_param_fw_p_lim_min.get());
+		_long_configuration.pitch_min = radians(_param_fw_p_lim_min.get());
 	}
 
-	if (PX4_ISFINITE(limits_in.pitch_max)) {
-		_long_limits.pitch_max = math::constrain(limits_in.pitch_max, _long_limits.pitch_min, radians(_param_fw_p_lim_max.get()));
+	if (PX4_ISFINITE(configuration_in.pitch_max)) {
+		_long_configuration.pitch_max = math::constrain(configuration_in.pitch_max, _long_configuration.pitch_min, radians(_param_fw_p_lim_max.get()));
 	} else {
-		_long_limits.pitch_max = radians(_param_fw_p_lim_max.get());
+		_long_configuration.pitch_max = radians(_param_fw_p_lim_max.get());
 	}
 
-	if (PX4_ISFINITE(limits_in.throttle_min)) {
-		_long_limits.throttle_min = math::constrain(limits_in.throttle_min, _param_fw_thr_min.get(), _param_fw_thr_max.get());
+	if (PX4_ISFINITE(configuration_in.throttle_min)) {
+		_long_configuration.throttle_min = math::constrain(configuration_in.throttle_min, _param_fw_thr_min.get(), _param_fw_thr_max.get());
 	} else {
-		_long_limits.throttle_min = _param_fw_thr_min.get();
+		_long_configuration.throttle_min = _param_fw_thr_min.get();
 	}
 
-	if (PX4_ISFINITE(limits_in.throttle_max)) {
-		_long_limits.throttle_max = math::constrain(limits_in.throttle_max, _long_limits.throttle_min, _param_fw_thr_max.get());
+	if (PX4_ISFINITE(configuration_in.throttle_max)) {
+		_long_configuration.throttle_max = math::constrain(configuration_in.throttle_max, _long_configuration.throttle_min, _param_fw_thr_max.get());
 	} else {
-		_long_limits.throttle_max = _param_fw_thr_max.get();
+		_long_configuration.throttle_max = _param_fw_thr_max.get();
 	}
 
-	if (PX4_ISFINITE(limits_in.climb_rate_target)) {
-		_long_limits.climb_rate_target = math::max(0.0f, limits_in.climb_rate_target);
+	if (PX4_ISFINITE(configuration_in.climb_rate_target)) {
+		_long_configuration.climb_rate_target = math::max(0.0f, configuration_in.climb_rate_target);
 	} else {
-		_long_limits.climb_rate_target = _param_climbrate_target.get();
+		_long_configuration.climb_rate_target = _param_climbrate_target.get();
 	}
 
-	if (PX4_ISFINITE(limits_in.sink_rate_target)) {
-		_long_limits.sink_rate_target = math::max(0.0f, limits_in.sink_rate_target);
+	if (PX4_ISFINITE(configuration_in.sink_rate_target)) {
+		_long_configuration.sink_rate_target = math::max(0.0f, configuration_in.sink_rate_target);
 	} else {
-		_long_limits.sink_rate_target = _param_sinkrate_target.get();
+		_long_configuration.sink_rate_target = _param_sinkrate_target.get();
 	}
 }
 

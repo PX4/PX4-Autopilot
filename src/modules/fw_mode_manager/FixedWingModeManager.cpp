@@ -625,8 +625,8 @@ void FixedWingModeManager::control_idle()
 	long_contrl_sp.throttle_direct = 0.0f;
 	_longitudinal_ctrl_sp_pub.publish(long_contrl_sp);
 
-	_ctrl_limits_handler.setThrottleMax(0.0f);
-	_ctrl_limits_handler.setThrottleMin(0.0f);
+	_ctrl_configuration_handler.setThrottleMax(0.0f);
+	_ctrl_configuration_handler.setThrottleMin(0.0f);
 }
 
 void
@@ -652,7 +652,7 @@ FixedWingModeManager::control_auto_fixed_bank_alt_hold()
 		throttle_max = _param_fw_thr_min.get();
 	}
 
-	_ctrl_limits_handler.setThrottleMax(throttle_max);
+	_ctrl_configuration_handler.setThrottleMax(throttle_max);
 
 	fixed_wing_lateral_setpoint_s lateral_ctrl_sp = empty_lateral_control_setpoint;
 	lateral_ctrl_sp.timestamp = hrt_absolute_time();
@@ -681,8 +681,8 @@ FixedWingModeManager::control_auto_descend()
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-	_ctrl_limits_handler.setThrottleMax((_landed
-					     || !_local_pos.v_z_valid) ? _param_fw_thr_min.get() : _param_fw_thr_max.get());
+	_ctrl_configuration_handler.setThrottleMax((_landed
+			|| !_local_pos.v_z_valid) ? _param_fw_thr_min.get() : _param_fw_thr_max.get());
 
 	fixed_wing_lateral_setpoint_s lateral_ctrl_sp = empty_lateral_control_setpoint;
 	lateral_ctrl_sp.timestamp = now;
@@ -802,11 +802,11 @@ FixedWingModeManager::control_auto_position(const float control_interval, const 
 		/* enable gliding with this waypoint */
 		throttle_min = 0.0;
 		throttle_max = 0.0;
-		_ctrl_limits_handler.setSpeedWeight(2.f);
+		_ctrl_configuration_handler.setSpeedWeight(2.f);
 	}
 
-	_ctrl_limits_handler.setThrottleMax(throttle_max);
-	_ctrl_limits_handler.setThrottleMin(throttle_min);
+	_ctrl_configuration_handler.setThrottleMax(throttle_max);
+	_ctrl_configuration_handler.setThrottleMin(throttle_min);
 
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
 	Vector2f curr_wp_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
@@ -859,9 +859,9 @@ FixedWingModeManager::control_auto_velocity(const float control_interval, const 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
 	if (pos_sp_curr.gliding_enabled) {
-		_ctrl_limits_handler.setThrottleMin(0.0f);
-		_ctrl_limits_handler.setThrottleMax(0.0f);
-		_ctrl_limits_handler.setSpeedWeight(2.0f);
+		_ctrl_configuration_handler.setThrottleMin(0.0f);
+		_ctrl_configuration_handler.setThrottleMax(0.0f);
+		_ctrl_configuration_handler.setSpeedWeight(2.0f);
 	}
 }
 
@@ -925,7 +925,7 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 
 		} else {
 			// continue straight until vehicle has sufficient altitude
-			_ctrl_limits_handler.setLateralAccelMax(0.0f);
+			_ctrl_configuration_handler.setLateralAccelMax(0.0f);
 
 			// keep flaps in landing configuration if the airspeed is below the min airspeed (keep deployed if airspeed not valid)
 			if (!_airspeed_valid || _airspeed_eas < _param_fw_airspd_min.get()) {
@@ -951,12 +951,12 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
 	if (pos_sp_curr.gliding_enabled) {
-		_ctrl_limits_handler.setThrottleMin(0.0f);
-		_ctrl_limits_handler.setThrottleMax(0.0f);
-		_ctrl_limits_handler.setSpeedWeight(2.0f);
+		_ctrl_configuration_handler.setThrottleMin(0.0f);
+		_ctrl_configuration_handler.setThrottleMax(0.0f);
+		_ctrl_configuration_handler.setSpeedWeight(2.0f);
 	}
 
-	_ctrl_limits_handler.setEnforceLowHeightCondition(enforce_low_height);
+	_ctrl_configuration_handler.setEnforceLowHeightCondition(enforce_low_height);
 }
 
 #ifdef CONFIG_FIGURE_OF_EIGHT
@@ -999,9 +999,9 @@ FixedWingModeManager::controlAutoFigureEight(const float control_interval, const
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
 	if (pos_sp_curr.gliding_enabled) {
-		_ctrl_limits_handler.setThrottleMin(0.0f);
-		_ctrl_limits_handler.setThrottleMax(0.0f);
-		_ctrl_limits_handler.setSpeedWeight(2.0f);
+		_ctrl_configuration_handler.setThrottleMin(0.0f);
+		_ctrl_configuration_handler.setThrottleMax(0.0f);
+		_ctrl_configuration_handler.setSpeedWeight(2.0f);
 	}
 }
 
@@ -1056,9 +1056,9 @@ FixedWingModeManager::control_auto_path(const float control_interval, const Vect
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
 	if (pos_sp_curr.gliding_enabled) {
-		_ctrl_limits_handler.setThrottleMin(0.0f);
-		_ctrl_limits_handler.setThrottleMax(0.0f);
-		_ctrl_limits_handler.setSpeedWeight(2.0f);
+		_ctrl_configuration_handler.setThrottleMin(0.0f);
+		_ctrl_configuration_handler.setThrottleMax(0.0f);
+		_ctrl_configuration_handler.setSpeedWeight(2.0f);
 	}
 }
 
@@ -1133,7 +1133,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 
 		const float roll_wingtip_strike = math::constrain(getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt),
 						  0.f, math::radians(_param_fw_r_lim.get()));
-		_ctrl_limits_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
+		_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
 
 		const float pitch_max = _runway_takeoff.getMaxPitch(math::radians(_param_fw_p_lim_max.get()));
 		const float pitch_min = _runway_takeoff.getMinPitch(math::radians(_takeoff_pitch_min.get()),
@@ -1150,10 +1150,10 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-		_ctrl_limits_handler.setPitchMin(pitch_min);
-		_ctrl_limits_handler.setPitchMax(pitch_max);
-		_ctrl_limits_handler.setClimbRateTarget(_param_fw_t_clmb_max.get());
-		_ctrl_limits_handler.setDisableUnderspeedProtection(true);
+		_ctrl_configuration_handler.setPitchMin(pitch_min);
+		_ctrl_configuration_handler.setPitchMax(pitch_max);
+		_ctrl_configuration_handler.setClimbRateTarget(_param_fw_t_clmb_max.get());
+		_ctrl_configuration_handler.setDisableUnderspeedProtection(true);
 
 		_flaps_setpoint = _param_fw_flaps_to_scl.get();
 
@@ -1219,7 +1219,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 
 			const float roll_wingtip_strike = math::constrain(getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt),
 							  0.f, math::radians(_param_fw_r_lim.get()));
-			_ctrl_limits_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
+			_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
 
 			const float max_takeoff_throttle = (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
 							   _param_fw_thr_idle.get() : NAN;
@@ -1235,10 +1235,10 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 
 			_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-			_ctrl_limits_handler.setPitchMin(radians(_takeoff_pitch_min.get()));
-			_ctrl_limits_handler.setThrottleMax(max_takeoff_throttle);
-			_ctrl_limits_handler.setClimbRateTarget(_param_fw_t_clmb_max.get());
-			_ctrl_limits_handler.setDisableUnderspeedProtection(true);
+			_ctrl_configuration_handler.setPitchMin(radians(_takeoff_pitch_min.get()));
+			_ctrl_configuration_handler.setThrottleMax(max_takeoff_throttle);
+			_ctrl_configuration_handler.setClimbRateTarget(_param_fw_t_clmb_max.get());
+			_ctrl_configuration_handler.setDisableUnderspeedProtection(true);
 
 			//float yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
@@ -1276,7 +1276,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 	const float airspeed_land = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() :
 				    _param_fw_airspd_min.get();
 
-	_ctrl_limits_handler.setEnforceLowHeightCondition(true);
+	_ctrl_configuration_handler.setEnforceLowHeightCondition(true);
 
 	// now handle position
 	const Vector2f local_position{_local_pos.x, _local_pos.y};
@@ -1358,7 +1358,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 
 		const float roll_wingtip_strike = math::constrain(getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt),
 						  0.f, math::radians(_param_fw_r_lim.get()));
-		_ctrl_limits_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
+		_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
 
 		/* longitudinal guidance */
 
@@ -1402,11 +1402,11 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-		_ctrl_limits_handler.setPitchMin(pitch_min_rad);
-		_ctrl_limits_handler.setPitchMax(pitch_max_rad);
-		_ctrl_limits_handler.setThrottleMax(throttle_max);
-		_ctrl_limits_handler.setThrottleMin(_param_fw_thr_idle.get());
-		_ctrl_limits_handler.setDisableUnderspeedProtection(true);
+		_ctrl_configuration_handler.setPitchMin(pitch_min_rad);
+		_ctrl_configuration_handler.setPitchMax(pitch_max_rad);
+		_ctrl_configuration_handler.setThrottleMax(throttle_max);
+		_ctrl_configuration_handler.setThrottleMin(_param_fw_thr_idle.get());
+		_ctrl_configuration_handler.setDisableUnderspeedProtection(true);
 
 		// XXX: hacky way to pass through manual nose-wheel incrementing. need to clean this interface.
 		if (_param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled) {
@@ -1438,8 +1438,8 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 		fw_lateral_ctrl_sp.lateral_acceleration = sp.lateral_acceleration_feedforward;
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
-		_ctrl_limits_handler.setLateralAccelMax(rollAngleToLateralAccel(getMaxRollAngleNearGround(_current_altitude,
-							terrain_alt)));
+		_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(getMaxRollAngleNearGround(_current_altitude,
+				terrain_alt)));
 
 		/* longitudinal guidance */
 
@@ -1459,9 +1459,9 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-		_ctrl_limits_handler.setThrottleMin(_param_fw_thr_idle.get());
-		_ctrl_limits_handler.setThrottleMax(_landed ? _param_fw_thr_idle.get() : NAN);
-		_ctrl_limits_handler.setSinkRateTarget(desired_max_sinkrate);
+		_ctrl_configuration_handler.setThrottleMin(_param_fw_thr_idle.get());
+		_ctrl_configuration_handler.setThrottleMax(_landed ? _param_fw_thr_idle.get() : NAN);
+		_ctrl_configuration_handler.setSinkRateTarget(desired_max_sinkrate);
 	}
 
 	_flaps_setpoint = _param_fw_flaps_lnd_scl.get();
@@ -1484,7 +1484,7 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 	const float airspeed_land = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() :
 				    _param_fw_airspd_min.get();
 
-	_ctrl_limits_handler.setEnforceLowHeightCondition(true);
+	_ctrl_configuration_handler.setEnforceLowHeightCondition(true);
 
 
 	const Vector2f local_position{_local_pos.x, _local_pos.y};
@@ -1577,11 +1577,11 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-		_ctrl_limits_handler.setPitchMin(pitch_min_rad);
-		_ctrl_limits_handler.setPitchMax(pitch_max_rad);
-		_ctrl_limits_handler.setThrottleMax(throttle_max);
-		_ctrl_limits_handler.setThrottleMin(_param_fw_thr_idle.get());
-		_ctrl_limits_handler.setDisableUnderspeedProtection(true);
+		_ctrl_configuration_handler.setPitchMin(pitch_min_rad);
+		_ctrl_configuration_handler.setPitchMax(pitch_max_rad);
+		_ctrl_configuration_handler.setThrottleMax(throttle_max);
+		_ctrl_configuration_handler.setThrottleMin(_param_fw_thr_idle.get());
+		_ctrl_configuration_handler.setDisableUnderspeedProtection(true);
 
 		// XXX: hacky way to pass through manual nose-wheel incrementing. need to clean this interface.
 		if (_param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled) {
@@ -1628,13 +1628,13 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-		_ctrl_limits_handler.setThrottleMin(_param_fw_thr_idle.get());
-		_ctrl_limits_handler.setThrottleMax(_landed ? _param_fw_thr_idle.get() : NAN);
-		_ctrl_limits_handler.setSinkRateTarget(desired_max_sinkrate);
+		_ctrl_configuration_handler.setThrottleMin(_param_fw_thr_idle.get());
+		_ctrl_configuration_handler.setThrottleMax(_landed ? _param_fw_thr_idle.get() : NAN);
+		_ctrl_configuration_handler.setSinkRateTarget(desired_max_sinkrate);
 	}
 
-	_ctrl_limits_handler.setLateralAccelMax(rollAngleToLateralAccel(getMaxRollAngleNearGround(_current_altitude,
-						terrain_alt)));
+	_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(getMaxRollAngleNearGround(_current_altitude,
+			terrain_alt)));
 
 	_flaps_setpoint = _param_fw_flaps_lnd_scl.get();
 	_spoilers_setpoint = _param_fw_spoilers_lnd.get();
@@ -1678,8 +1678,8 @@ FixedWingModeManager::control_manual_altitude(const float control_interval, cons
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-	_ctrl_limits_handler.setPitchMin(min_pitch);
-	_ctrl_limits_handler.setThrottleMax(throttle_max);
+	_ctrl_configuration_handler.setPitchMin(min_pitch);
+	_ctrl_configuration_handler.setThrottleMax(throttle_max);
 
 	const float roll_body = _manual_control_setpoint.roll * radians(_param_fw_r_lim.get());
 	const DirectionalGuidanceOutput sp = {.lateral_acceleration_feedforward = rollAngleToLateralAccel(roll_body)};
@@ -1774,8 +1774,8 @@ FixedWingModeManager::control_manual_position(const hrt_abstime now, const float
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-	_ctrl_limits_handler.setPitchMin(min_pitch);
-	_ctrl_limits_handler.setThrottleMax(throttle_max);
+	_ctrl_configuration_handler.setPitchMin(min_pitch);
+	_ctrl_configuration_handler.setThrottleMax(throttle_max);
 
 	if (!_yaw_lock_engaged || fabsf(_manual_control_setpoint.roll) >= HDG_HOLD_MAN_INPUT_THRESH ||
 	    fabsf(_manual_control_setpoint.yaw) >= HDG_HOLD_MAN_INPUT_THRESH) {
@@ -2031,7 +2031,7 @@ FixedWingModeManager::Run()
 		_spoilers_setpoint = 0.f;
 
 		// by default set speed weight to the param value, can be overwritten inside the methods below
-		_ctrl_limits_handler.setSpeedWeight(_param_t_spdweight.get());
+		_ctrl_configuration_handler.setSpeedWeight(_param_t_spdweight.get());
 
 		// default to zero - is used (IN A HACKY WAY) to pass direct nose wheel steering via yaw stick to the actuators during auto takeoff
 		_att_sp.yaw_sp_move_rate = 0.0f;
@@ -2112,7 +2112,7 @@ FixedWingModeManager::Run()
 			}
 		}
 
-		_ctrl_limits_handler.update(now);
+		_ctrl_configuration_handler.update(now);
 
 		// only publish status in full FW mode
 		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
