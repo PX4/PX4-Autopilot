@@ -6,6 +6,7 @@ PX4 supports a number of types of telemetry radios:
 
 - [SiK Radio](../telemetry/sik_radio.md) based firmware (more generally, any radio with a UART interface should work).
   - [RFD900 Telemetry Radio](../telemetry/rfd900_telemetry.md)
+  - [ThunderFly TFSIK01 Telemetry Radio](../telemetry/tfsik_telemetry.md)
   - [HolyBro SiK Telemetry Radio](../telemetry/holybro_sik_radio.md)
   - <del>_HKPilot Telemetry Radio_</del> (Discontinued)
   - <del>_3DR Telemetry Radio_</del> (Discontinued)
