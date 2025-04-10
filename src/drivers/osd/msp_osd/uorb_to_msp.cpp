@@ -258,9 +258,9 @@ msp_rendor_battery_state_t construct_rendor_BATTERY_STATE(const battery_status_s
 	msp_rendor_battery_state_t battery_state = {0};
 
 	battery_state.subCommand = MSP_DP_WRITE_STRING; // 3 write string. fixed
-	battery_state.screenYPosition = 0x04; //
-	battery_state.screenXPosition = 0x02; //
-	battery_state.iconAttrs = 0x00; //
+	battery_state.screenYPosition = 0x04;
+	battery_state.screenXPosition = 0x02;
+	battery_state.iconAttrs = 0x00;
 
 	float sigle_cell_v = battery_status.voltage_v / battery_status.cell_count;
 
@@ -343,8 +343,8 @@ msp_rendor_latitude_t construct_rendor_GPS_LAT(const sensor_gps_s &vehicle_gps_p
 {
 	msp_rendor_latitude_t lat;
 
-	lat.screenYPosition = 0x0A; //
-	lat.screenXPosition = 0x29; //
+	lat.screenYPosition = 0x0A;
+	lat.screenXPosition = 0x29;
 
 	if (vehicle_gps_position.fix_type >= 2) {
 		sprintf(&lat.str[0], "%.6f", vehicle_gps_position.latitude_deg);
@@ -360,8 +360,8 @@ msp_rendor_longitude_t construct_rendor_GPS_LON(const sensor_gps_s &vehicle_gps_
 {
 	msp_rendor_longitude_t lon;
 
-	lon.screenYPosition = 0x09; //
-	lon.screenXPosition = 0x29; //
+	lon.screenYPosition = 0x09;
+	lon.screenXPosition = 0x29;
 
 	if (vehicle_gps_position.fix_type >= 2) {
 		sprintf(&lon.str[0], "%.6f", vehicle_gps_position.longitude_deg);
@@ -377,8 +377,8 @@ msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const sensor_gps_s &vehicl
 {
 	msp_rendor_satellites_used_t num;
 
-	num.screenYPosition = 0x08; //
-	num.screenXPosition = 0x29; //
+	num.screenYPosition = 0x08;
+	num.screenXPosition = 0x29;
 	char num_str[4];
 	sprintf(num_str, "%d", vehicle_gps_position.satellites_used % 100); // max 99
 	strncpy(&num.str[0], num_str, 2);
@@ -428,8 +428,8 @@ msp_rendor_distanceToHome_t construct_rendor_distanceToHome(const home_position_
 {
 	msp_rendor_distanceToHome_t distance;
 
-	distance.screenYPosition = 0x08; //
-	distance.screenXPosition = 0x02; //
+	distance.screenYPosition = 0x08;
+	distance.screenXPosition = 0x02;
 
 	int16_t dist_i = 0;
 
@@ -483,8 +483,8 @@ msp_rendor_pitch_t  construct_rendor_PITCH(const vehicle_attitude_s &vehicle_att
 	// initialize results
 	msp_rendor_pitch_t pit;
 
-	pit.screenYPosition = 0x0D; //
-	pit.screenXPosition = 0x29; //
+	pit.screenYPosition = 0x0D;
+	pit.screenXPosition = 0x29;
 
 	// convert from quaternion to RPY
 	matrix::Eulerf euler_attitude(matrix::Quatf(vehicle_attitude.q));
@@ -503,8 +503,8 @@ msp_rendor_roll_t  construct_rendor_ROLL(const vehicle_attitude_s &vehicle_attit
 	// initialize results
 	msp_rendor_roll_t roll;
 
-	roll.screenYPosition = 0x0E; //
-	roll.screenXPosition = 0x29; //
+	roll.screenYPosition = 0x0E;
+	roll.screenXPosition = 0x29;
 
 	// convert from quaternion to RPY
 	matrix::Eulerf euler_attitude(matrix::Quatf(vehicle_attitude.q));
@@ -547,8 +547,8 @@ msp_rendor_altitude_t construct_Rendor_ALTITUDE(const sensor_gps_s &vehicle_gps_
 {
 	msp_rendor_altitude_t altitude;
 
-	altitude.screenYPosition = 0x06; //
-	altitude.screenXPosition = 0x02; //
+	altitude.screenYPosition = 0x06;
+	altitude.screenXPosition = 0x02;
 
 	double alt;
 

@@ -286,10 +286,10 @@ void MspOsd::Run()
 	}
 
 	uint8_t subcmd = MSP_DP_HEARTBEAT;
-	this->Send(MSP_CMD_DISPLAYPORT, &subcmd, 1); //
+	this->Send(MSP_CMD_DISPLAYPORT, &subcmd, 1);
 
 	subcmd = MSP_DP_CLEAR_SCREEN;
-	this->Send(MSP_CMD_DISPLAYPORT, &subcmd, 1); //
+	this->Send(MSP_CMD_DISPLAYPORT, &subcmd, 1);
 
 	// update display message
 	{
@@ -314,8 +314,8 @@ void MspOsd::Run()
 		msg[index++] = MSP_DP_WRITE_STRING;
 		msg[index++] = 0x02; // row position
 		msg[index++] = 0x14; // colum position
-		msg[index++] = 0; 	//
-		msg[index++] = 0x03; 	//
+		msg[index++] = 0;
+		msg[index++] = 0x03;
 		memcpy(&msg[index++], &display_message, sizeof(msp_name_t));
 		this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msg));
 		// this->Send(MSP_NAME, &display_message);
@@ -465,7 +465,7 @@ void MspOsd::Run()
 		// this->Send(MSP_ESC_SENSOR_DATA, &msg);
 	}
 	subcmd = MSP_DP_DRAW_SCREEN;
-	this->Send(MSP_CMD_DISPLAYPORT, &subcmd, 1); //
+	this->Send(MSP_CMD_DISPLAYPORT, &subcmd, 1);
 
 	// send full configuration
 	// SendConfig();
