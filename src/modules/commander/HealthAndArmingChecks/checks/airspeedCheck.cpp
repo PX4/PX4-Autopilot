@@ -54,6 +54,12 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 
 		reporter.setIsPresent(health_component_t::differential_pressure);
 
+		const bool airspeed_from_sensor = airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_1
+						  || airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_2
+						  || airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_3;
+
+		const float airspeed_calibrated_from_sensor = airspeed_from_sensor ? airspeed_validated.calibrated_airspeed_m_s : NAN;
+
 		// Maximally allow the airspeed reading to be at FW_AIRSPD_MAX when arming. This is to catch very badly calibrated
 		// airspeed sensors, but also high wind conditions that prevent a forward flight of the vehicle.
 		float arming_max_airspeed_allowed = 20.f;
@@ -62,7 +68,7 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 		/*
 		 * Check if airspeed is declared valid or not by airspeed selector.
 		 */
-		if (!PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)) {
+		if (!PX4_ISFINITE(airspeed_calibrated_from_sensor)) {
 
 			/* EVENT
 			 */
@@ -75,7 +81,7 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 			}
 		}
 
-		if (!context.isArmed() && fabsf(airspeed_validated.calibrated_airspeed_m_s) > arming_max_airspeed_allowed) {
+		if (!context.isArmed() && airspeed_calibrated_from_sensor > arming_max_airspeed_allowed) {
 			/* EVENT
 			 * @description
 			 * Current airspeed reading too high. Check if wind is below maximum airspeed and redo airspeed

@@ -1262,7 +1262,7 @@ void Ekf::clearInhibitedStateKalmanGains(VectorState &K) const
 
 #if defined(CONFIG_EKF2_WIND)
 
-	if (!_control_status.flags.wind) {
+	if (!_control_status.flags.wind && !_enforce_wind_fusion) {
 		for (unsigned i = 0; i < State::wind_vel.dof; i++) {
 			K(State::wind_vel.idx + i) = 0.f;
 		}

@@ -82,9 +82,13 @@ private:
 
 			airspeed_validated_s airspeed_validated{};
 			_airspeed_validated_sub.copy(&airspeed_validated);
+			const bool airspeed_from_sensor = airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_1
+							  || airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_2
+							  || airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_3;
 
 			mavlink_vfr_hud_t msg{};
-			msg.airspeed = airspeed_validated.calibrated_airspeed_m_s;
+			// display NAN in case of source not being one of the sensors
+			msg.airspeed = airspeed_from_sensor ? airspeed_validated.calibrated_airspeed_m_s : NAN;
 			msg.groundspeed = sqrtf(lpos.vx * lpos.vx + lpos.vy * lpos.vy);
 			msg.heading = math::degrees(matrix::wrap_2pi(lpos.heading));
 

@@ -497,6 +497,7 @@ private:
 #if defined(CONFIG_EKF2_WIND)
 	static constexpr float _kHeightRateLpfTimeConstant = 10.f;
 	AlphaFilter<float> _height_rate_lpf{_kHeightRateLpfTimeConstant};
+	bool _enforce_wind_fusion{false};
 #endif // CONFIG_EKF2_WIND
 
 	SquareMatrixState P{};	///< state covariance matrix
