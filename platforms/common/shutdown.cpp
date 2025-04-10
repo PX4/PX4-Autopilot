@@ -111,7 +111,7 @@ static uint16_t shutdown_counter = 0; ///< count how many times the shutdown wor
 #define SHUTDOWN_ARG_TO_ISP (1<<3)
 static uint8_t shutdown_args = 0;
 
-static constexpr int max_shutdown_hooks = 1;
+static constexpr int max_shutdown_hooks = 2;
 static shutdown_hook_t shutdown_hooks[max_shutdown_hooks] = {};
 
 static hrt_abstime shutdown_time_us = 0;
@@ -157,6 +157,7 @@ int px4_unregister_shutdown_hook(shutdown_hook_t hook)
 static void shutdown_worker(void *arg)
 {
 	PX4_DEBUG("shutdown worker (%i)", shutdown_counter);
+	shutdown_counter++;
 	bool done = true;
 
 	pthread_mutex_lock(&shutdown_mutex);
@@ -265,7 +266,7 @@ int px4_shutdown_request(uint32_t delay_us)
 		shutdown_time_us += delay_us;
 	}
 
-	work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, nullptr, 1);
+	work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, nullptr, 0);
 	pthread_mutex_unlock(&shutdown_mutex);
 	return 0;
 }
