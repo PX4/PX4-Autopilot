@@ -22,6 +22,7 @@ parameters:
                     Max Limit: 1000
                     0 - Disable IMU datastream
                     The max limit should be divisible by the rate
+                    eg: 1000 % MS_IMU_RATE_HZ = 0
                     Restart required
             type: int32
             default: 500
@@ -34,6 +35,7 @@ parameters:
                     Max Limit: 1000
                     0 - Disable magnetometer datastream
                     The max limit should be divisible by the rate
+                    eg: 1000 % MS_MAG_RATE_HZ = 0
                     Restart required
             type: int32
             default: 50
@@ -46,6 +48,7 @@ parameters:
                     Max Limit: 1000
                     0 - Disable barometer datastream
                     The max limit should be divisible by the rate
+                    eg: 1000 % MS_BARO_RATE_HZ = 0
                     Restart required
             type: int32
             default: 50
@@ -56,8 +59,9 @@ parameters:
                 long: |
                     EKF data rate
                     Max Limit: 1000
-                    The max limit should be divisible by the rate
                     0 - Disable EKF datastream
+                    The max limit should be divisible by the rate
+                    eg: 1000 % MS_FILT_RATE_HZ = 0
                     Restart required
             type: int32
             default: 250
@@ -70,6 +74,7 @@ parameters:
                     Max Limit: 5
                     The max limit should be divisible by the rate
                     0 - Disable GNSS datastream
+                    eg: 5 % MS_GNSS_RATE_HZ = 0
                     Restart required
             type: int32
             default: 5
@@ -116,7 +121,7 @@ parameters:
                 long: |
                     0 = Disabled,
                     1 = Enabled
-                    If dual antennas are supported (CV7-GNSS/INS). The filter will be configured to accept heading as an aiding measurement from the device itself.
+                    If dual antennas are supported (CV7-GNSS/INS). The filter will be configured to use dual antenna heading as an aiding measurement.
                     Restart required
             type: int32
             default: 0
@@ -170,7 +175,7 @@ parameters:
             description:
                 short: GNSS lever arm offset 1 (X)
                 long: |
-                    Lever arm offset in the X direction for the external GNSS receiver
+                    Lever arm offset (m) in the X direction for the external GNSS receiver
                     In the case of a dual antenna setup, this is antenna 1
                     Restart required
             type: float
@@ -180,7 +185,7 @@ parameters:
             description:
                 short: GNSS lever arm offset 1 (Y)
                 long: |
-                    Lever arm offset in the Y direction for the external GNSS receiver
+                    Lever arm offset (m) in the Y direction for the external GNSS receiver
                     In the case of a dual antenna setup, this is antenna 1
                     Restart required
             type: float
@@ -190,7 +195,7 @@ parameters:
             description:
                 short: GNSS lever arm offset 1 (Z)
                 long: |
-                    Lever arm offset in the Z direction for the external GNSS receiver
+                    Lever arm offset (m) in the Z direction for the external GNSS receiver
                     In the case of a dual antenna setup, this is antenna 1
                     Restart required
             type: float
@@ -200,7 +205,7 @@ parameters:
             description:
                 short: GNSS lever arm offset 2 (X)
                 long: |
-                    Lever arm offset in the X direction for antenna 2
+                    Lever arm offset (m) in the X direction for antenna 2
                     This will only be used if the device supports a dual antenna setup
                     Restart required
             type: float
@@ -210,7 +215,7 @@ parameters:
             description:
                 short: GNSS lever arm offset 2 (Y)
                 long: |
-                    Lever arm offset in the Y direction for antenna 2
+                    Lever arm offset (m) in the Y direction for antenna 2
                     This will only be used if the device supports a dual antenna setup
                     Restart required
             type: float
@@ -220,7 +225,7 @@ parameters:
             description:
                 short: GNSS lever arm offset 2 (Z)
                 long: |
-                    Lever arm offset in the X direction for antenna 2
+                    Lever arm offset (m) in the X direction for antenna 2
                     This will only be used if the device supports a dual antenna setup
                     Restart required
             type: float
@@ -230,7 +235,7 @@ parameters:
             description:
                 short: Sensor to Vehicle Transform (Roll)
                 long: |
-                    The orientation of the device with respect to the vehicle frame around the x axis
+                    The orientation of the device (Radians) with respect to the vehicle frame around the x axis
                     Requires MS_SVT_EN to be enabled to be used
                     Restart required
             type: float
@@ -240,7 +245,7 @@ parameters:
             description:
                 short: Sensor to Vehicle Transform (Pitch)
                 long: |
-                    The orientation of the device with respect to the vehicle frame around the y axis
+                    The orientation of the device (Radians) with respect to the vehicle frame around the y axis
                     Requires MS_SVT_EN to be enabled to be used
                     Restart required
             type: float
@@ -250,7 +255,7 @@ parameters:
             description:
                 short: Sensor to Vehicle Transform (Yaw)
                 long: |
-                    The orientation of the device with respect to the vehicle frame around the z axis
+                    The orientation of the device (Radians) with respect to the vehicle frame around the z axis
                     Requires MS_SVT_EN to be enabled to be used
                     Restart required
             type: float
