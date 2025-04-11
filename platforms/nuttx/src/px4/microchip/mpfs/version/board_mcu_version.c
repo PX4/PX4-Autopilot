@@ -175,6 +175,9 @@ int board_get_px4_guid_formated(char *format_buffer, int size)
 	board_get_px4_guid(px4_guid);
 	int offset  = 0;
 
+	/* Size must be equal or less than GUID string len to make reversed copy work */
+	if (size > PX4_GUID_FORMAT_SIZE) { size = PX4_GUID_FORMAT_SIZE; }
+
 	/* size should be 2 per byte + 1 for termination
 	 * So it needs to be odd
 	 */
