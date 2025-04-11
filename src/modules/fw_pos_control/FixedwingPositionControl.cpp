@@ -1356,8 +1356,14 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 		const float flare_ramp_interpolator_sqrt = sqrtf(flare_ramp_interpolator);
 
-		const float height_rate_setpoint = flare_ramp_interpolator_sqrt * (-_param_fw_lnd_fl_sink.get()) +
-						   (1.0f - flare_ramp_interpolator_sqrt) * _flare_states.initial_height_rate_setpoint;
+		// Use separate ramp for the altitude setpoint that's starting only when the other is finished
+		// to allow motor to be ramped down before height rate setpoint is adapted for flaring.
+		const float flare_hieght_rate_interpolator = math::constrain((seconds_since_flare_start -
+				_param_fw_lnd_fl_time.get()) / (_param_fw_lnd_fl_time.get()), 0.f, 1.f);
+		const float flare_hieght_rate_interpolator_sqrt = sqrt(flare_hieght_rate_interpolator);
+
+		const float height_rate_setpoint = flare_hieght_rate_interpolator_sqrt * (-_param_fw_lnd_fl_sink.get()) +
+						   (1.0f - flare_hieght_rate_interpolator_sqrt) * _flare_states.initial_height_rate_setpoint;
 
 		float pitch_min_rad = flare_ramp_interpolator_sqrt * radians(_param_fw_lnd_fl_pmin.get()) +
 				      (1.0f - flare_ramp_interpolator_sqrt) * radians(_param_fw_p_lim_min.get());
