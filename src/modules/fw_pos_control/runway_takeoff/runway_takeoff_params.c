@@ -48,7 +48,7 @@
 PARAM_DEFINE_INT32(RWTO_TKOFF, 0);
 
 /**
- * Max throttle during runway takeoff.
+ * Throttle during runway takeoff.
  *
  * @unit norm
  * @min 0.0
