@@ -99,7 +99,7 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
+	uORB::Subscription _hover_thrust_slewrate_estimate_sub{ORB_ID(hover_thrust_estimate)};
 	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _autotune_attitude_control_status_sub{ORB_ID(autotune_attitude_control_status)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
@@ -120,7 +120,8 @@ private:
 
 	matrix::Vector3f _thrust_setpoint_body; /**< body frame 3D thrust vector */
 
-	float _hover_thrust{NAN};
+	float _hover_thrust_estimate{NAN};
+	SlewRate<float> _hover_thrust_slew_rate{.5f};
 
 	float _man_yaw_sp{0.f};				/**< current yaw setpoint in manual mode */
 	float _man_tilt_max{0.f};			/**< maximum tilt allowed for manual flight [rad] */
