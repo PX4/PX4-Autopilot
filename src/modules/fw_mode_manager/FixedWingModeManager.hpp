@@ -68,6 +68,7 @@
 #include <uORB/topics/fixed_wing_lateral_setpoint.h>
 #include <uORB/topics/fixed_wing_lateral_guidance_status.h>
 #include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
+#include <uORB/topics/fixed_wing_runway_control.h>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -198,6 +199,7 @@ private:
 	uORB::PublicationData<fixed_wing_lateral_setpoint_s> _lateral_ctrl_sp_pub{ORB_ID(fixed_wing_lateral_setpoint)};
 	uORB::PublicationData<fixed_wing_longitudinal_setpoint_s> _longitudinal_ctrl_sp_pub{ORB_ID(fixed_wing_longitudinal_setpoint)};
 	uORB::Publication<fixed_wing_lateral_guidance_status_s> _fixed_wing_lateral_guidance_status_pub{ORB_ID(fixed_wing_lateral_guidance_status)};
+	uORB::Publication<fixed_wing_runway_control_s> _fixed_wing_runway_control_pub{ORB_ID(fixed_wing_runway_control)};
 
 	manual_control_setpoint_s _manual_control_setpoint{};
 	position_setpoint_triplet_s _pos_sp_triplet{};
