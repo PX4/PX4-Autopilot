@@ -2172,7 +2172,8 @@ FixedWingModeManager::reset_landing_state()
 	_last_time_terrain_alt_was_valid = 0;
 
 	// reset abort land, unless loitering after an abort
-	if (_landing_abort_status && (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+	if ((_landing_abort_status && (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LOITER)) ||
+	    (_landing_abort_status && _param_fw_lnd_abort.get() == 0)) {
 
 		updateLandingAbortStatus(position_controller_landing_status_s::NOT_ABORTED);
 	}
