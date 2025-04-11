@@ -1,39 +1,35 @@
-# DATAGNSS GEM1305 RTK Receiver with antenna
+# DATAGNSS NANO HRTK receiver
 
-GEM1305 is a RTK receiver with antenna designed and manufactured by [DATAGNSS](https://www.datagnss.com/).
+NANO HRTK receiver is a RTK receiver designed and manufactured by [DATAGNSS](https://www.datagnss.com/).
 
-GEM1305 is based on the new generation CYNOSURE IV dual-core GNSS SoC.
-It supports RTK functionality with a maximum data update rate of 10Hz, and comes with cables for connecting to GPS ports on most Pixhawk devices.
+It is a high performance dual-band RTK receiver with compass, which is based on CYNOSURE series chipset. It supports global civil navigation systems, including GPS, BDS, GLONASS, Galileo, QZSS, and SBAS.
 
-GEM1305 supports base and rover options.
+NANO HRTK receiver support compass. It is designed for UAV, RTK, and other applications.
 
-GEM1305 is equipped with an IST8310 compass.
+<img src="../../assets/hardware/gps/datagnss_nano_hrtk/NANO-HRTK-case-400x.png" width="400px" alt="DATAGNSS NANO HRTK Receiver">
 
-<img src="../../assets/hardware/gps/datagnss_gem1305/datagnss-gem1305-02.png" width="500px" alt="DATAGNSS GEM1305 RTK Receiver">
+<img src="../../assets/hardware/gps/datagnss_nano_hrtk/NANO-HRTK-ANTENNA-600x.png" width="600px" alt="DATAGNSS NANO HRTK Receiver">
 
 ::: info
 
-- GEM1305 RTK doesn't support moving base mode yet.
+- NANO HRTK Receiver doesn't support moving base mode yet.
+- NANO HRTK Receiver support base and rover options.
 
 :::
 
 ## Where to Buy
 
-- [GEM1305 RTK receiver with antenna](https://www.datagnss.com/collections/gnss-for-drone/products/gem1305) (www.datagnss.com)
+- [NANO HRTK receiver](https://www.datagnss.com/collections/gnss-for-drone/products/nano-helix-rtk-receiver) (www.datagnss.com)
 
-  <img src="../../assets/hardware/gps/datagnss_gem1305/gem1305_hero.png" width="500px" alt="DATAGNSS GEM1305 RTK Receiver">
+  <img src="../../assets/hardware/gps/datagnss_nano_hrtk/NANO-HRTK-case-400x.png" width="300px" alt="DATAGNSS NANO HRTK Receiver">
 
-- [DGM10 RTK Receiver](https://www.datagnss.com/collections/gnss-for-drone/products/dgm10-rtk-receiver) (same receiver in a casing).
-
-  ![dgm10_rtk_receiver.png](../../assets/hardware/gps/datagnss_gem1305/dgm10_rtk_receiver.png)
 
 ## Key Features
 
 - Full constellation, multi-frequency GNSS satellite receiver
 - Support RTK with up to 10hz output rate
 - Standard UART serial interface
-- Lightweight only 50g or 26g(NANO RTK receiver)
-- High performance antenna
+- Lightweight and compact size
 
 ## Frequencies
 
@@ -51,7 +47,7 @@ GEM1305 is equipped with an IST8310 compass.
 
 ## Interface
 
-- UART: 230400bps default
+- UART *2 : 230400bps default
 - SMA connector for antenna
 - Output rate 5Hz default, up to 10Hz
 - Main power supply: 4.7~5.2V
@@ -59,7 +55,7 @@ GEM1305 is equipped with an IST8310 compass.
 ## Protocol
 
 - NMEA-0183 output
-- RTCMv3 input/output
+- RTCM3.x input/output
 
 ## Environment
 
@@ -67,23 +63,25 @@ GEM1305 is equipped with an IST8310 compass.
 
 ## Dimension and Weight
 
-- 55x55x12mm
-- 50g (GEM1305) 26g (NANO with Helix)
+- 35x30mm
+- 25g
 
 ## Pinout
 
 The board is connected to the autopilot via UART interface.
 
-![GEM1305 connector](../../assets/hardware/gps/datagnss_gem1305/gem1305_connector.png)
+![NANO HRTK Receiver](../../assets/hardware/gps/datagnss_nano_hrtk/nano-hrtk-rcv-line-400.png)
 
-The 1.25mm pitch 6P connector (from left: PIN1 to PIN6) supports UART for GNSS and I2C for compass.
+The 1.25mm pitch 6P connector supports UART for GNSS and I2C for compass.
+
+![PINOUT](../../assets/hardware/gps/datagnss_nano_hrtk/HELIX-RTK-PINOUT.png)
 
 ## Hardware Setup
 
 RTK requires a base RTK module attached to the ground station, and a rover RTK module on the vehicle.
 The data from the base needs to be transmitted to the drone via telemetry radio and inputed into the RTK receiver on the rover.
 
-![RTK setup overview](../../assets/hardware/gps/datagnss_gem1305/setup_overview.png)
+![RTK setup overview](../../assets/hardware/gps/datagnss_nano_hrtk/setup_overview.png)
 
 The setup/connections for base and rover modules are shown below.
 
@@ -103,30 +101,28 @@ See to [How to setup Base station](https://wiki.datagnss.com/index.php/GEM1305-a
 
 The rover setup showing connections to a GPS port and the (required) connection to a telemetry radio are shown in the diagram below.
 
-![Rover module and pixhawk big picture connections](../../assets/hardware/gps/datagnss_gem1305/rover_gnss_setup.png)
+![Rover module and pixhawk big picture connections](../../assets/hardware/gps/datagnss_nano_hrtk/rover_gnss_setup.png)
 
 The diagram below shows the wiring from the `GPS2` port on the Pixhawk 6c flight controller.
 Note that an appropriate cable is supplied for this purpose.
-
-![Rover module setup](../../assets/hardware/gps/datagnss_gem1305/pixhawk_connections.png)
 
 GPS and RTK configuration on PX4 via _QGroundControl_ is plug and play (see [RTK GPS](../gps_compass/rtk_gps.md) for more information).
 
 ## Package List
 
-- GEM1305 RTK Receiver
-- DG-6P-C01, GH-1.25mm-6P cable
+- NANO HRTK Receiver
+- DG-6P-Cxx, GH-1.25mm-GH 6P cable
+- Helix antenna L1/L2/L5 (optional)
 
 ## Resources
 
 - [NANO RTK Receiver 2D drawing file](https://wiki.datagnss.com/images/3/31/EVK-DG-1206_V.2.0.pdf)
-- [GEM1305 Wiki](https://docs.datagnss.com/gnss/rtk_receiver/GEM1305/) (DATAGNSS WiKi)
+- [NANO HRTK Receiver Wiki](https://docs.datagnss.com/gnss/rtk_receiver/NANO/nano-helix-rtk/) (DATAGNSS WiKi)
 - [HED-10L Heading RTK Receiver](https://docs.datagnss.com/gnss/rtk_receiver/HED-10L/)
-- [NANO HRTK Receiver](https://docs.datagnss.com/gnss/rtk_receiver/NANO/nano-helix-rtk/)
 
 ## More information
 
-- [NANO RTK Receiver](https://www.datagnss.com/collections/evk/products/tau951m-1312-tiny-evk)
+- [NANO RTK Receiver](https://docs.datagnss.com/gnss/rtk_receiver/NANO/nano-rtk-receiver)
 - [HELIX Antenna for RTK](https://www.datagnss.com/collections/rtk-antenna/products/smart-helix-antenna)
 - [RTK Antenna AGR6302G](https://www.datagnss.com/collections/rtk-antenna/products/antenna-agr6302g)
 - [AT400 RTK Antenna](https://www.datagnss.com/collections/rtk-antenna/products/at400-multi-band-antenna-for-rtk)
