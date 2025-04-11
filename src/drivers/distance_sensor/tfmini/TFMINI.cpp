@@ -33,6 +33,7 @@
 
 #include "TFMINI.hpp"
 
+#include <lib/parameters/param.h>
 #include <lib/drivers/device/Device.hpp>
 #include <fcntl.h>
 
@@ -72,25 +73,21 @@ TFMINI::~TFMINI()
 int
 TFMINI::init()
 {
-	int32_t hw_model = 1; // only one model so far...
+	// Note:
+	// Sensor specification shows 0.3m as minimum, but in practice
+	// 0.3 is too close to minimum so chattering of invalid sensor decision
+	// is happening sometimes. this cause EKF to believe inconsistent range readings.
+	// So we set 0.4 as valid minimum.
+	float min_distance = 0.3f;
+	float max_distance = 12.f;
+	float fov_degrees = 2.3f;
+	param_get(param_find("SENS_TFMINI_MIN"), &min_distance);
+	param_get(param_find("SENS_TFMINI_MAX"), &max_distance);
+	param_get(param_find("SENS_TFMINI_FOV"), &fov_degrees);
 
-	switch (hw_model) {
-	case 1: // TFMINI (12m, 100 Hz)
-		// Note:
-		// Sensor specification shows 0.3m as minimum, but in practice
-		// 0.3 is too close to minimum so chattering of invalid sensor decision
-		// is happening sometimes. this cause EKF to believe inconsistent range readings.
-		// So we set 0.4 as valid minimum.
-		_px4_rangefinder.set_min_distance(0.4f);
-		_px4_rangefinder.set_max_distance(12.0f);
-		_px4_rangefinder.set_fov(math::radians(1.15f));
-
-		break;
-
-	default:
-		PX4_ERR("invalid HW model %" PRId32 ".", hw_model);
-		return -1;
-	}
+	_px4_rangefinder.set_min_distance(min_distance);
+	_px4_rangefinder.set_max_distance(max_distance);
+	_px4_rangefinder.set_fov(math::radians(fov_degrees / 2));
 
 	// status
 	int ret = 0;

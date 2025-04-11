@@ -4,3 +4,40 @@ serial_config:
       port_config_param:
         name: SENS_TFMINI_CFG
         group: Sensors
+
+parameters:
+    - group: Sensors
+      definitions:
+        SENS_TFMINI_MIN:
+            description:
+                short: Minimum distance
+                long: Minimum measurement distance in meters.
+            type: float
+            unit: m
+            min: 0
+            decimal: 1
+            increment: 0.1
+            default: 0.3
+            reboot_required: true
+        SENS_TFMINI_MAX:
+            description:
+                short: Maximum distance
+                long: Maximum measurement distance in meters
+            type: float
+            unit: m
+            min: 0
+            decimal: 1
+            increment: 0.1
+            default: 12
+            reboot_required: true
+        SENS_TFMINI_FOV:
+            description:
+                short: Field of View in degrees
+                long: The full (not half) Field of View in degrees.
+            type: float
+            unit: deg
+            min: 0
+            decimal: 1
+            increment: 0.1
+            default: 2.3
+            reboot_required: true
