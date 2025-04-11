@@ -47,6 +47,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 {
 	/* fetch initial parameter values */
 	parameters_update();
+	_landing_gear_wheel_pub.advertise();
 }
 
 FixedwingAttitudeControl::~FixedwingAttitudeControl()
@@ -267,12 +268,12 @@ void FixedwingAttitudeControl::Run()
 
 		vehicle_land_detected_poll();
 
-		bool wheel_control = false;
+		fixed_wing_runway_control_s runway_control{};
+		_fixed_wing_runway_control_sub.copy(&runway_control);
+		const bool runway_control_timeout = hrt_elapsed_time(&runway_control.timestamp) > 1_s;
+		const bool wheel_controller_enabled = _param_fw_w_en.get() && _vcontrol_mode.flag_control_auto_enabled
+						      && !runway_control_timeout && runway_control.wheel_steering_enabled;
 
-		// TODO listen to a runway_takeoff_status to determine when to control wheel
-		if (_param_fw_w_en.get() && _vcontrol_mode.flag_control_auto_enabled) {
-			wheel_control = true;
-		}
 
 		/* if we are in rotary wing mode, do nothing */
 		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_vehicle_status.is_vtol) {
@@ -297,7 +298,7 @@ void FixedwingAttitudeControl::Run()
 
 			float groundspeed_scale = 1.f;
 
-			if (wheel_control) {
+			if (wheel_controller_enabled) {
 				if (_local_pos_sub.updated()) {
 					vehicle_local_position_s vehicle_local_position;
 
@@ -333,7 +334,7 @@ void FixedwingAttitudeControl::Run()
 					_yaw_ctrl.control_yaw(roll_sp, _pitch_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
 							      euler_angles.theta(), get_airspeed_constrained());
 
-					if (wheel_control) {
+					if (wheel_controller_enabled) {
 						_wheel_ctrl.control_attitude(euler_sp.psi(), euler_angles.psi());
 
 					} else {
@@ -392,12 +393,11 @@ void FixedwingAttitudeControl::Run()
 				vehicle_angular_velocity_s angular_velocity{};
 				_vehicle_rates_sub.copy(&angular_velocity);
 
-				// XXX: yaw_sp_move_rate here is an abuse -- used to ferry manual yaw inputs from
-				// position controller during auto modes _manual_control_setpoint.r gets passed
-				// whenever nudging is enabled, otherwise zero
-				const float wheel_controller_output = _wheel_ctrl.control_bodyrate(dt, angular_velocity.xyz[2], _groundspeed,
-								      groundspeed_scale);
-				wheel_u = wheel_control ? wheel_controller_output +  _att_sp.yaw_sp_move_rate : 0.f;
+				const float wheel_controller_output = wheel_controller_enabled ? _wheel_ctrl.control_bodyrate(dt,
+								      angular_velocity.xyz[2], _groundspeed,
+								      groundspeed_scale) : 0.f;
+
+				wheel_u = wheel_controller_output + runway_control.wheel_steering_nudging_rate;
 			}
 
 			_landing_gear_wheel.normalized_wheel_setpoint = PX4_ISFINITE(wheel_u) ? wheel_u : 0.f;
