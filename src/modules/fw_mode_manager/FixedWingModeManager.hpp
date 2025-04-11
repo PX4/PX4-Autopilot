@@ -203,7 +203,6 @@ private:
 
 	manual_control_setpoint_s _manual_control_setpoint{};
 	position_setpoint_triplet_s _pos_sp_triplet{};
-	vehicle_attitude_setpoint_s _att_sp{};
 	vehicle_control_mode_s _control_mode{};
 	vehicle_local_position_s _local_pos{};
 	vehicle_status_s _vehicle_status{};
@@ -336,7 +335,6 @@ private:
 		bool flaring{false};
 		hrt_abstime start_time{0}; // [us]
 		float initial_height_rate_setpoint{0.0f}; // [m/s]
-		float initial_throttle_setpoint{0.0f};
 	} _flare_states;
 
 	// [m] last terrain estimate which was valid

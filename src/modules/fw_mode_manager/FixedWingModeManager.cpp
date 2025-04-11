@@ -478,14 +478,6 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 			_hdg_hold_yaw = _yaw; // yaw is not controlled, so set setpoint to current yaw
 			_hdg_hold_enabled = false; // this makes sure the waypoints are reset below
 			_yaw_lock_engaged = false;
-
-			/* reset setpoints from other modes (auto) otherwise we won't
-			 * level out without new manual input */
-			float roll_body = _manual_control_setpoint.roll * radians(_param_fw_r_lim.get());
-			float yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
-			const Eulerf current_setpoint(Quatf(_att_sp.q_d));
-			const Quatf setpoint(Eulerf(roll_body, current_setpoint.theta(), yaw_body));
-			setpoint.copyTo(_att_sp.q_d);
 		}
 
 		_control_mode_current = FW_POSCTRL_MODE_MANUAL_POSITION;
@@ -1335,7 +1327,6 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 			_flare_states.flaring = true;
 			_flare_states.start_time = now;
 			_flare_states.initial_height_rate_setpoint = -_local_pos.vz;
-			_flare_states.initial_throttle_setpoint = _att_sp.thrust_body[0];
 			events::send(events::ID("fixedwing_position_control_landing_flaring"), events::Log::Info,
 				     "Landing, flaring");
 		}
@@ -1407,14 +1398,6 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 		_ctrl_configuration_handler.setThrottleMax(throttle_max);
 		_ctrl_configuration_handler.setThrottleMin(_param_fw_thr_idle.get());
 		_ctrl_configuration_handler.setDisableUnderspeedProtection(true);
-
-		// blend the height rate controlled throttle setpoints with initial throttle setting over the flare
-		// ramp time period to maintain throttle command continuity when switching from altitude to height rate
-		// control
-//		const float blended_throttle = flare_ramp_interpolator * get_tecs_thrust() + (1.0f - flare_ramp_interpolator) *
-//					       _flare_states.initial_throttle_setpoint;
-//
-//		_att_sp.thrust_body[0] = blended_throttle;
 
 	} else {
 
@@ -1520,7 +1503,6 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 			_flare_states.flaring = true;
 			_flare_states.start_time = now;
 			_flare_states.initial_height_rate_setpoint = -_local_pos.vz;
-			_flare_states.initial_throttle_setpoint = _att_sp.thrust_body[0];
 			events::send(events::ID("fixedwing_position_control_landing_circle_flaring"), events::Log::Info,
 				     "Landing, flaring");
 		}
@@ -1585,14 +1567,6 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 		_ctrl_configuration_handler.setThrottleMax(throttle_max);
 		_ctrl_configuration_handler.setThrottleMin(_param_fw_thr_idle.get());
 		_ctrl_configuration_handler.setDisableUnderspeedProtection(true);
-
-		// blend the height rate controlled throttle setpoints with initial throttle setting over the flare
-		// ramp time period to maintain throttle command continuity when switching from altitude to height rate
-		// control
-//		const float blended_throttle = flare_ramp_interpolator * get_tecs_thrust() + (1.0f - flare_ramp_interpolator) *
-//					       _flare_states.initial_throttle_setpoint;
-//
-//		_att_sp.thrust_body[0] = blended_throttle;
 
 	} else {
 
@@ -2100,7 +2074,6 @@ FixedWingModeManager::Run()
 			}
 
 		case FW_POSCTRL_MODE_OTHER: {
-				_att_sp.thrust_body[0] = min(_att_sp.thrust_body[0], _param_fw_thr_max.get());
 				break;
 			}
 
