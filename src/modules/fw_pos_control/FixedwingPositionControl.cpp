@@ -71,6 +71,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_flaps_setpoint_pub.advertise();
 	_spoilers_setpoint_pub.advertise();
 	_fixed_wing_lateral_guidance_status_pub.advertise();
+	_fixed_wing_runway_control_pub.advertise();
 
 	parameters_update();
 }
@@ -1094,11 +1095,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		_runway_takeoff.update(now, takeoff_airspeed, _airspeed_eas, _current_altitude - _takeoff_ground_alt,
 				       clearance_altitude_amsl - _takeoff_ground_alt);
 
-		// XXX: hacky way to pass through manual nose-wheel incrementing. need to clean this interface.
-		if (_param_rwto_nudge.get()) {
-			_att_sp.yaw_sp_move_rate = _manual_control_setpoint.yaw;
-		}
-
 		const Vector2f start_pos_local = _global_local_proj_ref.project(_takeoff_init_position(0), _takeoff_init_position(1));
 		const Vector2f takeoff_waypoint_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 
@@ -1153,6 +1149,13 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		if (_runway_takeoff.getState() > RunwayTakeoffState::CLIMBOUT) {
 			_new_landing_gear_position = landing_gear_s::GEAR_UP;
 		}
+
+		fixed_wing_runway_control_s fw_runway_control{};
+		fw_runway_control.timestamp = now;
+		fw_runway_control.wheel_steering_enabled = true;
+		fw_runway_control.wheel_steering_nudging_rate = _param_rwto_nudge.get() ? _manual_control_setpoint.yaw : 0.f;
+
+		_fixed_wing_runway_control_pub.publish(fw_runway_control);
 
 	} else {
 		/* Perform launch detection */
@@ -1440,6 +1443,14 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		_ctrl_configuration_handler.setSinkRateTarget(desired_max_sinkrate);
 	}
 
+	fixed_wing_runway_control_s fw_runway_control{};
+	fw_runway_control.timestamp = now;
+	fw_runway_control.wheel_steering_enabled = true;
+	fw_runway_control.wheel_steering_nudging_rate = _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled ?
+			_manual_control_setpoint.yaw : 0.f;
+
+	_fixed_wing_runway_control_pub.publish(fw_runway_control);
+
 	_flaps_setpoint = _param_fw_flaps_lnd_scl.get();
 	_spoilers_setpoint = _param_fw_spoilers_lnd.get();
 
@@ -1594,6 +1605,14 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 		_ctrl_configuration_handler.setThrottleMax(_landed ? _param_fw_thr_idle.get() : NAN);
 		_ctrl_configuration_handler.setSinkRateTarget(desired_max_sinkrate);
 	}
+
+	fixed_wing_runway_control_s fw_runway_control{};
+	fw_runway_control.timestamp = now;
+	fw_runway_control.wheel_steering_enabled = true;
+	fw_runway_control.wheel_steering_nudging_rate = _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled ?
+			_manual_control_setpoint.yaw : 0.f;
+
+	_fixed_wing_runway_control_pub.publish(fw_runway_control);
 
 	_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(getMaxRollAngleNearGround(_current_altitude,
 			terrain_alt)));
@@ -1994,9 +2013,6 @@ FixedwingPositionControl::Run()
 
 		// by default set speed weight to the param value, can be overwritten inside the methods below
 		_ctrl_configuration_handler.setSpeedWeight(_param_t_spdweight.get());
-
-		// default to zero - is used (IN A HACKY WAY) to pass direct nose wheel steering via yaw stick to the actuators during auto takeoff
-		_att_sp.yaw_sp_move_rate = 0.0f;
 
 		if (_control_mode_current != FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT
 		    && _control_mode_current != FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR) {
