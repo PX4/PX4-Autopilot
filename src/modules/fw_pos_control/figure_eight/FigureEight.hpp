@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,7 +45,7 @@
 #include <px4_platform_common/param.h>
 #include <lib/matrix/matrix/math.hpp>
 
-#include "lib/npfg/npfg.hpp"
+#include "lib/npfg/DirectionalGuidance.hpp"
 
 class FigureEight : public ModuleParams
 {
@@ -87,9 +87,8 @@ public:
 	 *
 	 * @param[in] npfg is the reference to the parent npfg object.
 	 * @param[in] wind_vel is the reference to the parent wind velocity [m/s].
-	 * @param[in] eas2tas is the reference to the parent indicated airspeed to true airspeed conversion.
 	 */
-	FigureEight(NPFG &npfg, matrix::Vector2f &wind_vel, float &eas2tas);
+	FigureEight(DirectionalGuidance &directional_guidance, matrix::Vector2f &wind_vel);
 
 	/**
 	 * @brief reset the figure eight pattern.
@@ -100,27 +99,14 @@ public:
 	void resetPattern();
 
 	/**
-	 * @brief Update roll and airspeed setpoint.
+	 * @brief Update roll setpoint
 	 *
 	 * @param[in] curr_pos_local is the current local position of the vehicle in [m].
 	 * @param[in] ground_speed is the current ground speed of the vehicle in [m/s].
 	 * @param[in] parameters is the parameter set defining the figure eight shape.
-	 * @param[in] target_airspeed is the current targeted indicated airspeed [m/s].
 	 */
-	void updateSetpoint(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-			    const FigureEightPatternParameters &parameters, float target_airspeed);
-	/**
-	 * @brief Get the roll setpoint
-	 *
-	 * @return the roll setpoint in [rad].
-	 */
-	float getRollSetpoint() const {return _roll_setpoint;};
-	/**
-	 * @brief Get the indicated airspeed setpoint
-	 *
-	 * @return the indicated airspeed setpoint in [m/s].
-	 */
-	float getAirspeedSetpoint() const {return _indicated_airspeed_setpoint;};
+	DirectionalGuidanceOutput updateSetpoint(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
+			const FigureEightPatternParameters &parameters);
 	/**
 	 * @brief Get the target bearing of current point on figure of eight
 	 *
@@ -133,7 +119,6 @@ public:
 	 * @return Local coordinates of closes point on the figure of eight
 	 */
 	matrix::Vector2f getClosestPoint() const {return _closest_point_on_path;};
-
 
 private:
 	/**
@@ -172,12 +157,11 @@ private:
 	 * @param[in] curr_pos_local is the current local position of the vehicle in [m].
 	 * @param[in] ground_speed is the current ground speed of the vehicle in [m/s].
 	 * @param[in] parameters is the parameter set defining the figure eight shape.
-	 * @param[in] target_airspeed is the current targeted indicated airspeed [m/s].
 	 * @param[in] pattern_points are the relevant points defining the figure eight pattern.
 	 */
-	void applyControl(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-			  const FigureEightPatternParameters &parameters, float target_airspeed,
-			  const FigureEightPatternPoints &pattern_points);
+	DirectionalGuidanceOutput applyControl(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
+					       const FigureEightPatternParameters &parameters,
+					       const FigureEightPatternPoints &pattern_points);
 	/**
 	 * @brief Update active segment.
 	 *
@@ -212,11 +196,11 @@ private:
 	 * @param[in] curr_pos_local is the current local position of the vehicle in [m].
 	 * @param[in] ground_speed is the current ground speed of the vehicle in [m/s].
 	 * @param[in] parameters is the parameter set defining the figure eight shape.
-	 * @param[in] target_airspeed is the current targeted indicated airspeed [m/s].
 	 */
-	void applyCircle(bool loiter_direction_counter_clockwise, const matrix::Vector2f &normalized_circle_offset,
-			 const matrix::Vector2f &curr_pos_local,
-			 const matrix::Vector2f &ground_speed, const FigureEightPatternParameters &parameters, float target_airspeed);
+	DirectionalGuidanceOutput applyCircle(bool loiter_direction_counter_clockwise,
+					      const matrix::Vector2f &normalized_circle_offset,
+					      const matrix::Vector2f &curr_pos_local,
+					      const matrix::Vector2f &ground_speed, const FigureEightPatternParameters &parameters);
 	/**
 	 * @brief Apply path lateral control
 	 *
@@ -225,18 +209,18 @@ private:
 	 * @param[in] curr_pos_local is the current local position of the vehicle in [m].
 	 * @param[in] ground_speed is the current ground speed of the vehicle in [m/s].
 	 * @param[in] parameters is the parameter set defining the figure eight shape.
-	 * @param[in] target_airspeed is the current targeted indicated airspeed [m/s].
 	 */
-	void applyLine(const matrix::Vector2f &normalized_line_start_offset, const matrix::Vector2f &normalized_line_end_offset,
-		       const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-		       const FigureEightPatternParameters &parameters, float target_airspeed);
+	DirectionalGuidanceOutput applyLine(const matrix::Vector2f &normalized_line_start_offset,
+					    const matrix::Vector2f &normalized_line_end_offset,
+					    const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
+					    const FigureEightPatternParameters &parameters);
 
 private:
 	/**
 	 * @brief npfg lateral control object.
 	 *
 	 */
-	NPFG &_npfg;
+	DirectionalGuidance &_directional_guidance;
 
 	/**
 	 * @brief Wind velocity in [m/s].
@@ -244,24 +228,9 @@ private:
 	 */
 	const matrix::Vector2f &_wind_vel;
 	/**
-	 * @brief Conversion factor from indicated to true airspeed.
-	 *
-	 */
-	const float &_eas2tas;
-	/**
-	 * @brief Roll setpoint in [rad].
-	 *
-	 */
-	float _roll_setpoint;
-	/**
-	 * @brief Indicated airspeed setpoint in [m/s].
-	 *
-	 */
-	float _indicated_airspeed_setpoint;
-	/**
-	 * @brief active figure eight position setpoint.
-	 *
-	 */
+	* @brief active figure eight position setpoint.
+	*
+	*/
 	FigureEightPatternParameters _active_parameters;
 
 	/**
