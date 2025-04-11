@@ -181,6 +181,7 @@
       - [Holybro Kakute H7v2](flight_controller/kakuteh7v2.md)
       - [Holybro Kakute H7mini](flight_controller/kakuteh7mini.md)
       - [Holybro Kakute H7](flight_controller/kakuteh7.md)
+      - [Holybro Kakute H7 Wing](flight_controller/kakuteh7-wing.md)
       - [Holybro Durandal](flight_controller/durandal.md)
         - [Wiring Quickstart](assembly/quick_start_durandal.md)
       - [Holybro Pix32 v5](flight_controller/holybro_pix32_v5.md)
