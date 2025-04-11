@@ -110,6 +110,7 @@ MulticopterAttitudeControl::throttle_curve(float throttle_stick_input, float dt)
 		if (_hover_thrust_estimate_sub.update(&hte)) {
 			if (hte.valid) {
 				_hover_thrust_slew_rate.update(hte.hover_thrust, dt);
+
 			} else { // fallback
 				_hover_thrust_slew_rate.update(_param_mpc_thr_hover.get(), dt);
 			}
