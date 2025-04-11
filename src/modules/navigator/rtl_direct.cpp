@@ -77,7 +77,12 @@ void RtlDirect::on_activation()
 
 	parameters_update();
 
-	_rtl_state = getActivationLandState();
+	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+		_rtl_state = RTLState::LAND;
+
+	} else {
+		_rtl_state = getActivationLandState();
+	}
 
 	// reset cruising speed and throttle to default for RTL
 	_navigator->reset_cruising_speed();
