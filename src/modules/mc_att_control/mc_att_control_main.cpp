@@ -65,6 +65,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl(bool vtol) :
 	_manual_throttle_minimum.setSlewRate(0.05f);
 	// Rate of change 50% per second -> 2 seconds to ramp to 100%
 	_manual_throttle_maximum.setSlewRate(0.5f);
+	_hover_thrust_slew_rate.setSlewRate(0.5f);
 }
 
 MulticopterAttitudeControl::~MulticopterAttitudeControl()
@@ -99,7 +100,7 @@ MulticopterAttitudeControl::parameters_updated()
 }
 
 float
-MulticopterAttitudeControl::throttle_curve(float throttle_stick_input)
+MulticopterAttitudeControl::throttle_curve(float throttle_stick_input, float dt)
 {
 	float thrust = 0.f;
 
@@ -108,13 +109,15 @@ MulticopterAttitudeControl::throttle_curve(float throttle_stick_input)
 
 		if (_hover_thrust_estimate_sub.update(&hte)) {
 			if (hte.valid) {
-				_hover_thrust = hte.hover_thrust;
+				_hover_thrust_slew_rate.update(hte.hover_thrust, dt);
+			} else { // fallback
+				_hover_thrust_slew_rate.update(_param_mpc_thr_hover.get(), dt);
 			}
 		}
 	}
 
-	if (!PX4_ISFINITE(_hover_thrust)) {
-		_hover_thrust = _param_mpc_thr_hover.get();
+	if (!PX4_ISFINITE(_hover_thrust_slew_rate.getState())) {
+		_hover_thrust_slew_rate.setForcedValue(_param_mpc_thr_hover.get());
 	}
 
 	// throttle_stick_input is in range [-1, 1]
@@ -203,7 +206,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt)
 
 	q_sp.copyTo(attitude_setpoint.q_d);
 
-	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_setpoint.throttle);
+	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_setpoint.throttle, dt);
 
 	attitude_setpoint.timestamp = hrt_absolute_time();
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);

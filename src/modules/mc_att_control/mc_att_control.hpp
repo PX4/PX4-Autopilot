@@ -89,7 +89,7 @@ private:
 	 */
 	void parameters_updated();
 
-	float throttle_curve(float throttle_stick_input);
+	float throttle_curve(float throttle_stick_input, float dt);
 
 	/**
 	 * Generate & publish an attitude setpoint from stick inputs
@@ -121,7 +121,8 @@ private:
 	perf_counter_t  _loop_perf;             /**< loop duration performance counter */
 
 	matrix::Vector3f _thrust_setpoint_body; /**< body frame 3D thrust vector */
-	float _hover_thrust{NAN};
+
+	SlewRate<float> _hover_thrust_slew_rate{NAN};
 
 	float _yaw_setpoint_stabilized{0.f};
 	bool _heading_good_for_control{true}; // initialized true to have heading lock when local position never published
