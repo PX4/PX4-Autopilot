@@ -799,9 +799,10 @@ mip_cmd_result MicroStrain::configureAidingSources()
 				PX4_ERR("Could not write the gnss aiding source");
 				return res;
 
-			} else {
-				_ext_pos_vel_aiding = (_param_ms_gnss_aid_src_ctrl.get() == 2);
 			}
+
+			_ext_pos_vel_aiding = (_param_ms_gnss_aid_src_ctrl.get() == MIP_FILTER_GNSS_SOURCE_COMMAND_SOURCE_EXT);
+
 
 		} else {
 			PX4_ERR("Does not support GNSS source control");
@@ -845,29 +846,7 @@ mip_cmd_result MicroStrain::writeFilterInitConfig()
 	float filter_init_pos[3] = {0};
 	float filter_init_vel[3] = {0};
 
-	uint8_t initial_alignment;
-
-	switch (_param_ms_alignment.get()) {
-	case 1: {
-			initial_alignment = MIP_FILTER_INITIALIZATION_CONFIGURATION_COMMAND_ALIGNMENT_SELECTOR_KINEMATIC;
-			break;
-		}
-
-	case 2: {
-			initial_alignment = MIP_FILTER_INITIALIZATION_CONFIGURATION_COMMAND_ALIGNMENT_SELECTOR_EXTERNAL;
-			break;
-		}
-
-	case 3: {
-			initial_alignment = MIP_FILTER_INITIALIZATION_CONFIGURATION_COMMAND_ALIGNMENT_SELECTOR_DUAL_ANTENNA;
-			break;
-		}
-
-	default: {
-			initial_alignment = MIP_FILTER_INITIALIZATION_CONFIGURATION_COMMAND_ALIGNMENT_SELECTOR_MAGNETOMETER;
-			break;
-		}
-	}
+	const uint8_t initial_alignment = _param_ms_alignment.get();
 
 	// Filter initialization configuration
 	if (supportsDescriptor(MIP_FILTER_CMD_DESC_SET, MIP_CMD_DESC_FILTER_INITIALIZATION_CONFIGURATION)) {
@@ -1179,13 +1158,7 @@ void MicroStrain::filterCallback(void *user, const mip_packet *packet, mip::Time
 			break;
 
 		case MIP_DATA_DESC_FILTER_GNSS_DUAL_ANTENNA_STATUS:
-			mip_filter_gnss_dual_antenna_status_data dual_ant_stat_temp;
-			extract_mip_filter_gnss_dual_antenna_status_data_from_field(&field, &dual_ant_stat_temp);
-
-			if (dual_ant_stat_temp.time_of_week >= ref->dual_ant_stat.time_of_week) {
-				ref->dual_ant_stat = dual_ant_stat_temp;
-			}
-
+			extract_mip_filter_gnss_dual_antenna_status_data_from_field(&field, &ref->dual_ant_stat);
 			break;
 
 		default:
@@ -1616,7 +1589,7 @@ void MicroStrain::gnssCallback(void *user, const mip_packet *packet, mip::Timest
 
 		gps.timestamp = hrt_absolute_time();
 
-		if (instance == 1) {ref->updateGeoidHeight(_geoid_height, gps.timestamp);}
+		if (instance == 0) {ref->updateGeoidHeight(_geoid_height, gps.timestamp);}
 
 		ref->_sensor_gps_pub[instance].publish(gps);
 	}
@@ -1625,6 +1598,8 @@ void MicroStrain::gnssCallback(void *user, const mip_packet *packet, mip::Timest
 void MicroStrain::initializeRefPos()
 {
 	sensor_gps_s gps{0};
+
+	_vehicle_gps_position_sub.update(&gps);
 
 	// Fix isn't 3D or RTK or RTCM
 	if ((gps.fix_type < 3) || (gps.fix_type > 6)) {
@@ -1642,6 +1617,8 @@ void MicroStrain::initializeRefPos()
 
 	_gps_origin_ep[0] = gps.eph;
 	_gps_origin_ep[1] = gps.epv;
+
+	PX4_DEBUG("Reference position initialized");
 }
 
 void MicroStrain::updateGeoidHeight(float geoid_height, float t)
