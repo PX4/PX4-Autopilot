@@ -77,17 +77,21 @@ PARAM_DEFINE_FLOAT(MPC_MANTHR_MIN, 0.08f);
  *
  * Defines how the throttle stick is mapped to collective thrust in Stabilized mode.
  *
- * Rescale to hover thrust:
+ * Rescale to hover thrust parameter:
  *   Stick input is linearly rescaled, such that a centered stick corresponds to the hover throttle (see MPC_THR_HOVER).
  *
  * No Rescale:
  *   Directly map the stick 1:1 to the output.
  *   Can be useful with very low hover thrust which leads to much distortion and the upper half getting sensitive.
  *
+ * Rescale to hover thrust estimate:
+ *   Similar to rescaling to the hover thrust parameter value, but it uses the hover thrust estimator's output instead of a fixed parameter.
+ *
  * With MPC_THR_HOVER 0.5 both modes are the same.
  *
- * @value 0 Rescale to hover thrust
+ * @value 0 Rescale to parameter
  * @value 1 No Rescale
+ * @value 2 Rescale to estimate
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_THR_CURVE, 0);

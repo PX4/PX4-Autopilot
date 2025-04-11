@@ -65,7 +65,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl(bool vtol) :
 	_manual_throttle_minimum.setSlewRate(0.05f);
 	// Rate of change 50% per second -> 2 seconds to ramp to 100%
 	_manual_throttle_maximum.setSlewRate(0.5f);
-	_hover_thrust_slew_rate.setSlewRate(0.5f);
+	// Rate of change 5% per second -> 6 seconds to ramp 30% if hover thrust parameter is off
+	_hover_thrust_slew_rate.setSlewRate(0.05f);
 }
 
 MulticopterAttitudeControl::~MulticopterAttitudeControl()
@@ -96,30 +97,18 @@ MulticopterAttitudeControl::parameters_updated()
 	_attitude_control.setRateLimit(Vector3f(radians(_param_mc_rollrate_max.get()), radians(_param_mc_pitchrate_max.get()),
 						radians(_param_mc_yawrate_max.get())));
 
+	// Update from hover thrust parameter if there's no valid estimate in use
+	if (!PX4_ISFINITE(_hover_thrust_estimate)) {
+		_hover_thrust_slew_rate.setForcedValue(_param_mpc_thr_hover.get());
+	}
+
 	_man_tilt_max = math::radians(_param_mpc_man_tilt_max.get());
 }
 
 float
-MulticopterAttitudeControl::throttle_curve(float throttle_stick_input, float dt)
+MulticopterAttitudeControl::throttle_curve(float throttle_stick_input)
 {
 	float thrust = 0.f;
-
-	{
-		hover_thrust_estimate_s hte;
-
-		if (_hover_thrust_estimate_sub.update(&hte)) {
-			if (hte.valid) {
-				_hover_thrust_slew_rate.update(hte.hover_thrust, dt);
-
-			} else { // fallback
-				_hover_thrust_slew_rate.update(_param_mpc_thr_hover.get(), dt);
-			}
-		}
-	}
-
-	if (!PX4_ISFINITE(_hover_thrust_slew_rate.getState())) {
-		_hover_thrust_slew_rate.setForcedValue(_param_mpc_thr_hover.get());
-	}
 
 	// throttle_stick_input is in range [-1, 1]
 	switch (_param_mpc_thr_curve.get()) {
@@ -207,7 +196,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt)
 
 	q_sp.copyTo(attitude_setpoint.q_d);
 
-	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_setpoint.throttle, dt);
+	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_setpoint.throttle);
 
 	attitude_setpoint.timestamp = hrt_absolute_time();
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
@@ -232,6 +221,21 @@ MulticopterAttitudeControl::Run()
 
 		updateParams();
 		parameters_updated();
+	}
+
+	// Update hover thrust for stick scaling
+	if (_vehicle_status_sub.updated()) {
+		hover_thrust_estimate_s hover_thrust_estimate;
+
+		if (_hover_thrust_slewrate_estimate_sub.update(&hover_thrust_estimate)) {
+			if (hover_thrust_estimate.valid) {
+				_hover_thrust_estimate = math::constrain(hover_thrust_estimate.hover_thrust, .05f, .9f);
+
+			} else {
+				// Possibly bad estimate before it got invalid, slew back to parameter
+				_hover_thrust_estimate = _param_mpc_thr_hover.get();
+			}
+		}
 	}
 
 	// run controller on attitude updates
@@ -380,6 +384,10 @@ MulticopterAttitudeControl::Run()
 
 		} else {
 			_manual_throttle_maximum.setForcedValue(0.f);
+		}
+
+		if (PX4_ISFINITE(_hover_thrust_estimate)) {
+			_hover_thrust_slew_rate.update(_hover_thrust_estimate, dt);
 		}
 	}
 
