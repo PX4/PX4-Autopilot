@@ -111,6 +111,7 @@
 #define MSP_MODE_TURNASSIST  27
 #define MSP_MODE_NAVLAUNCH   28
 #define MSP_MODE_AUTOTRIM    29
+#define MSP_CMD_DISPLAYPORT 182
 
 struct msp_esc_sensor_data_t {
 	uint8_t motor_count;
@@ -288,12 +289,42 @@ struct msp_attitude_t {
 	int16_t yaw;
 } __attribute__((packed));
 
+struct msp_rendor_pitch_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x15; //PITCH icon
+
+	char str[6]; // -00.0
+} __attribute__((packed));
+
+struct msp_rendor_roll_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x14; //ROLL icon
+
+	char str[6]; // -00.0
+} __attribute__((packed));
 
 // MSP_ALTITUDE reply
 struct msp_altitude_t {
 	int32_t estimatedActualPosition;  // cm
 	int16_t estimatedActualVelocity;  // cm/s
 	int32_t baroLatestAltitude;
+} __attribute__((packed));
+
+
+struct msp_rendor_altitude_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x7F; //ALT icon
+
+	char str[8]; // -0000.0 // 9999.9 meter
 } __attribute__((packed));
 
 
@@ -309,6 +340,16 @@ struct msp_analog_t {
 	uint16_t mAhDrawn; // milliamp hours drawn from battery
 	uint16_t rssi;     // 0..1023
 	int16_t  amperage; // send amperage in 0.01 A steps, range is -320A to 320A
+} __attribute__((packed));
+
+struct msp_rendor_rssi_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x01; //RSSI icon
+
+	char str[4]; // 100%
 } __attribute__((packed));
 
 
@@ -392,12 +433,54 @@ struct msp_raw_gps_t {
 	uint16_t hdop;
 } __attribute__((packed));
 
+struct msp_rendor_latitude_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x89; //LAT icon
+
+	char str[11]; // -00.0000000
+} __attribute__((packed));
+
+
+struct msp_rendor_longitude_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x98; //LON icon
+
+	char str[12]; // -000.0000000
+} __attribute__((packed));
+
+struct msp_rendor_satellites_used_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x1E; //satellites icon
+	uint8_t iconIndex2 = 0x1F; //satellites icon
+
+	char str[2]; // 99
+} __attribute__((packed));
+
 
 // MSP_COMP_GPS reply
 struct msp_comp_gps_t {
 	int16_t  distanceToHome;  // distance to home in meters
 	int16_t  directionToHome; // direction to home in degrees
 	uint8_t  heartbeat;       // toggles 0 and 1 for each change
+} __attribute__((packed));
+
+struct msp_rendor_distanceToHome_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00; //
+	uint8_t iconIndex = 0x71; //distanceToHome icon
+
+	char str[6]; // 65536
 } __attribute__((packed));
 
 
@@ -786,6 +869,15 @@ struct msp_battery_state_t {
 	uint16_t amperage;
 	uint8_t batteryState;
 	uint16_t batteryVoltage;
+} __attribute__((packed));
+
+struct msp_rendor_battery_state_t {
+	uint8_t subCommand; // 0x03 write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs;
+	uint8_t iconIndex;
+	char str[5];
 } __attribute__((packed));
 
 // MSP_STATUS reply customized for BF/DJI

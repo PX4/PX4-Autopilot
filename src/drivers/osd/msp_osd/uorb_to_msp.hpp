@@ -84,8 +84,12 @@ msp_status_BF_t construct_STATUS(const vehicle_status_s &vehicle_status);
 // construct an MSP_ANALOG struct
 msp_analog_t construct_ANALOG(const battery_status_s &battery_status, const input_rc_s &input_rc);
 
+msp_rendor_rssi_t construct_rendor_RSSI(const input_rc_s &input_rc);
+
 // construct an MSP_BATTERY_STATE struct
 msp_battery_state_t construct_BATTERY_STATE(const battery_status_s &battery_status);
+
+msp_rendor_battery_state_t construct_rendor_BATTERY_STATE(const battery_status_s &battery_status);
 
 // construct an MSP_RAW_GPS struct
 msp_raw_gps_t construct_RAW_GPS(const sensor_gps_s &vehicle_gps_position,
@@ -96,12 +100,28 @@ msp_comp_gps_t construct_COMP_GPS(const home_position_s &home_position,
 				  const vehicle_global_position_s &vehicle_global_position,
 				  const bool heartbeat);
 
+msp_rendor_latitude_t construct_rendor_GPS_LAT(const sensor_gps_s &vehicle_gps_position);
+
+msp_rendor_longitude_t construct_rendor_GPS_LON(const sensor_gps_s &vehicle_gps_position);
+
+msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const sensor_gps_s &vehicle_gps_position);
+
 // construct an MSP_ATTITUDE struct
 msp_attitude_t construct_ATTITUDE(const vehicle_attitude_s &vehicle_attitude);
+
+msp_rendor_pitch_t  construct_rendor_PITCH(const vehicle_attitude_s &vehicle_attitude);
+
+msp_rendor_roll_t  construct_rendor_ROLL(const vehicle_attitude_s &vehicle_attitude);
 
 // construct an MSP_ALTITUDE struct
 msp_altitude_t construct_ALTITUDE(const sensor_gps_s &vehicle_gps_position,
 				  const vehicle_local_position_s &vehicle_local_position);
+
+msp_rendor_altitude_t construct_Rendor_ALTITUDE(const sensor_gps_s &vehicle_gps_position,
+		const vehicle_local_position_s &vehicle_local_position);
+
+msp_rendor_distanceToHome_t construct_rendor_distanceToHome(const home_position_s &home_position,
+		const vehicle_global_position_s &vehicle_global_position);
 
 // construct an MSP_ESC_SENSOR_DATA struct
 msp_esc_sensor_data_dji_t construct_ESC_SENSOR_DATA();
