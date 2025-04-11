@@ -398,6 +398,17 @@ typedef struct cryptoiocgenkeypair {
 	bool ret;
 } cryptoiocgenkeypair_t;
 
+#define CRYPTOIOCSETKEY _CRYPTOIOC(13)
+typedef struct cryptoiocsetkey {
+	crypto_session_handle_t *handle;
+	uint8_t authentication_key_idx;
+	const uint8_t *signature;
+	const uint8_t *key;
+	size_t key_len;
+	uint8_t key_idx;
+	bool ret;
+} cryptoiocsetkey_t;
+
 #if defined(__cplusplus)
 } // extern "C"
 #endif

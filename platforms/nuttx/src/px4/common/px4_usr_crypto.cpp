@@ -156,6 +156,17 @@ bool PX4Crypto::get_nonce(uint8_t *nonce,
 	return data.ret;
 }
 
+bool PX4Crypto::set_key(uint8_t authentication_key_idx,
+			const uint8_t *signature,
+			const uint8_t *key,
+			size_t key_len,
+			uint8_t key_idx)
+{
+	cryptoiocsetkey_t data = {&_crypto_handle, authentication_key_idx, signature, key, key_len, key_idx, false};
+	boardctl(CRYPTOIOCSETKEY, reinterpret_cast<unsigned long>(&data));
+	return data.ret;
+}
+
 bool PX4Crypto::get_encrypted_key(uint8_t key_idx,
 				  uint8_t *key,
 				  size_t *key_len,

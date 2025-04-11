@@ -253,6 +253,13 @@ int PX4Crypto::crypto_ioctl(unsigned int cmd, unsigned long arg)
 		}
 		break;
 
+	case CRYPTOIOCSETKEY: {
+			cryptoiocsetkey_t *data = (cryptoiocsetkey_t *)arg;
+			data->ret = crypto_set_key(*(data->handle), data->authentication_key_idx, data->signature, data->key,
+						   data->key_len, data->key_idx);
+		}
+		break;
+
 	case CRYPTOIOCGETKEY: {
 			cryptoiocgetkey_t *data = (cryptoiocgetkey_t *)arg;
 			data->ret = crypto_get_encrypted_key(*(data->handle), data->key_idx, data->key, data->max_len,
