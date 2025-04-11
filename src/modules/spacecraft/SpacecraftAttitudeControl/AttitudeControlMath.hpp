@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,62 +32,39 @@
  ****************************************************************************/
 
 /**
- * @file ControlAllocator.hpp
- *
- * Control allocator.
- *
- * @author Julien Lecoeur <julien.lecoeur@gmail.com>
+ * @file AttitudeControlMath.hpp
  */
 
 #pragma once
 
-#include <lib/matrix/matrix/math.hpp>
-#include <lib/perf/perf_counter.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/actuator_servos.h>
-#include <uORB/topics/actuator_servos_trim.h>
-#include <uORB/topics/control_allocator_status.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_torque_setpoint.h>
-#include <uORB/topics/vehicle_thrust_setpoint.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/failure_detector_status.h>
+#include <matrix/matrix/math.hpp>
 
-class SpacecraftHandler : public ModuleBase<SpacecraftHandler>, public ModuleParams, public px4::ScheduledWorkItem
+namespace AttitudeControlMath
 {
-public:
+/**
+ * Rotate a tilt quaternion (without yaw rotation) such that when rotated by a yaw setpoint
+ * the resulting tilt is the same as if it was rotated by the current yaw of the vehicle
+ * @param q_sp_tilt pure tilt quaternion (yaw = 0) that needs to be corrected
+ * @param q_att current attitude of the vehicle
+ * @param q_sp_yaw pure yaw quaternion of the desired yaw setpoint
+ */
+void inline correctTiltSetpointForYawError(matrix::Quatf &q_sp_tilt, const matrix::Quatf &q_att,
+		const matrix::Quatf &q_sp_yaw)
+{
+	const matrix::Vector3f z_unit(0.f, 0.f, 1.f);
 
-	SpacecraftHandler();
+	// Extract yaw from the current attitude
+	const matrix::Vector3f att_z = q_att.dcm_z();
+	const matrix::Quatf q_tilt(z_unit, att_z);
+	const matrix::Quatf q_yaw = q_tilt.inversed() * q_att; // This is not euler yaw
 
-	~SpacecraftHandler() override = default;
+	// Find the quaternion that creates a tilt aligned with the body frame
+	// when rotated by the yaw setpoint
+	// To do so, solve q_yaw * q_tilt_ne = q_sp_yaw * q_sp_rp_compensated
+	const matrix::Quatf q_sp_rp_compensated = q_sp_yaw.inversed() * q_yaw * q_sp_tilt;
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
-
-	bool init();
-
-protected:
-	/**
-	 * @brief Update the parameters of the module.
-	 */
-	void updateParams() override;
-
-};
+	// Extract the corrected tilt
+	const matrix::Vector3f att_sp_z = q_sp_rp_compensated.dcm_z();
+	q_sp_tilt = matrix::Quatf(z_unit, att_sp_z);
+}
+}

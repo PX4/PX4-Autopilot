@@ -34,16 +34,50 @@
 /**
  * @file SpacecraftHandler.cpp
  *
- * Control allocator.
+ * Spacecraft control handler.
  *
- * @author Julien Lecoeur <julien.lecoeur@gmail.com>
+ * @author Pedro Roque <padr@kth.se>
  */
 
 #include "SpacecraftHandler.hpp"
 
+
+using namespace time_literals;
+
+SpacecraftHandler::SpacecraftHandler() :
+	ModuleParams(nullptr),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
+{
+	updateParams();
+}
+
+bool SpacecraftHandler::init()
+{
+	ScheduleOnInterval(4_ms); // 250 Hz
+	return true;
+}
+
 int SpacecraftHandler::task_spawn(int argc, char *argv[])
 {
-	return 0;
+	SpacecraftHandler *instance = new SpacecraftHandler();
+
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
+	}
+
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
 }
 
 int SpacecraftHandler::print_status()
@@ -75,6 +109,7 @@ int SpacecraftHandler::print_usage(const char *reason)
 
 	PRINT_MODULE_USAGE_NAME("spacecraft", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND("status");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
