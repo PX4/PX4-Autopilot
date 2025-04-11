@@ -69,7 +69,7 @@ private:
 	static constexpr hrt_abstime REQUEST_TIMEOUT = 50_ms;
 	static constexpr hrt_abstime UPDATE_INTERVAL = 300_ms;
 	static_assert(REQUEST_TIMEOUT < UPDATE_INTERVAL, "keep timeout < update interval");
-	static constexpr int NUM_NO_REPLY_UNTIL_UNRESPONSIVE = 3; ///< Mode timeout = this value * UPDATE_INTERVAL
+	static constexpr int NUM_NO_REPLY_UNTIL_UNRESPONSIVE = 6; ///< Mode timeout = this value * UPDATE_INTERVAL
 	/// Timeout directly after registering (in some cases ROS can take a while until the subscription gets the first
 	/// sample, around 800ms was observed)
 	static constexpr int NUM_NO_REPLY_UNTIL_UNRESPONSIVE_INIT = 10;
