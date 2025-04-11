@@ -31,25 +31,10 @@
 #
 ############################################################################
 
-add_subdirectory(MecanumRateControl)
-add_subdirectory(MecanumAttControl)
-add_subdirectory(MecanumVelControl)
-add_subdirectory(MecanumPosControl)
-
-px4_add_module(
-	MODULE modules__rover_mecanum
-	MAIN rover_mecanum
-	SRCS
-		RoverMecanum.cpp
-		RoverMecanum.hpp
-	DEPENDS
-		MecanumRateControl
-		MecanumAttControl
-		MecanumVelControl
-		MecanumPosControl
-		px4_work_queue
-		rover_control
-		pure_pursuit
-	MODULE_CONFIG
-		module.yaml
+px4_add_library(MecanumVelControl
+	MecanumVelControl.cpp
 )
+
+target_link_libraries(MecanumVelControl PUBLIC PID)
+target_link_libraries(MecanumVelControl PUBLIC pure_pursuit)
+target_include_directories(MecanumVelControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

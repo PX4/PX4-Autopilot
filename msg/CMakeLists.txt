@@ -64,6 +64,7 @@ set(msg_files
 	DebugValue.msg
 	DebugVect.msg
 	DifferentialPressure.msg
+	DifferentialVelocitySetpoint.msg
 	DistanceSensor.msg
 	DistanceSensorModeChangeRequest.msg
 	Ekf2Timestamps.msg
@@ -130,6 +131,7 @@ set(msg_files
 	ManualControlSwitches.msg
 	MavlinkLog.msg
 	MavlinkTunnel.msg
+	MecanumVelocitySetpoint.msg
 	MessageFormatRequest.msg
 	MessageFormatResponse.msg
 	Mission.msg
