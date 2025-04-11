@@ -391,7 +391,7 @@ class SourceParser(object):
 
         # Process parsed content
         airframe_type = None
-        maintainer = "John Doe <john@example.com>"
+        maintainer = None
         airframe_name = None
         airframe_class = None
 
