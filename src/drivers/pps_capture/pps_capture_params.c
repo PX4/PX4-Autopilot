@@ -32,15 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file pps_capture_params.c
- * PPS Capture params
- */
-/**
- * PPS Capture Enable
+ * PPS capture enable
  *
- * Enables the PPS capture module.
- * This switches mode of FMU channel 7 to be the
- * PPS input channel.
+ * Enables the PPS capture module to refine the GPS time from pulses detected on a PWM pin configured as "PPS Input".
  *
  * @boolean
  * @group GPS
