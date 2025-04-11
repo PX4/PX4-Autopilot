@@ -119,7 +119,13 @@ MulticopterAttitudeControl::throttle_curve(float throttle_stick_input)
 
 	// throttle_stick_input is in range [-1, 1]
 	switch (_param_mpc_thr_curve.get()) {
-	case 1: // no rescaling to hover throttle
+	case 1: // rescale to HTE value
+		thrust = math::interpolateNXY(throttle_stick_input,
+		{-1.f, 0.f, 1.f},
+		{_manual_throttle_minimum.getState(), _hover_thrust_slew_rate.getState(), _param_mpc_thr_max.get()});
+		break;
+
+	case 2: // no rescaling to hover throttle
 		thrust = math::interpolate(throttle_stick_input, -1.f, 1.f,
 					   _manual_throttle_minimum.getState(), _param_mpc_thr_max.get());
 		break;
@@ -127,7 +133,7 @@ MulticopterAttitudeControl::throttle_curve(float throttle_stick_input)
 	default: // 0 or other: rescale to hover throttle at 0 stick input
 		thrust = math::interpolateNXY(throttle_stick_input,
 		{-1.f, 0.f, 1.f},
-		{_manual_throttle_minimum.getState(), _hover_thrust, _param_mpc_thr_max.get()});
+		{_manual_throttle_minimum.getState(), _param_mpc_thr_hover.get(), _param_mpc_thr_max.get()});
 		break;
 	}
 
