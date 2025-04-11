@@ -1131,8 +1131,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
-		const float roll_wingtip_strike = math::constrain(getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt),
-						  0.f, math::radians(_param_fw_r_lim.get()));
+		const float roll_wingtip_strike = getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt);
 		_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
 
 		const float pitch_max = _runway_takeoff.getMaxPitch(math::radians(_param_fw_p_lim_max.get()));
@@ -1217,8 +1216,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 
 			_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
-			const float roll_wingtip_strike = math::constrain(getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt),
-							  0.f, math::radians(_param_fw_r_lim.get()));
+			const float roll_wingtip_strike = getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt);
 			_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
 
 			const float max_takeoff_throttle = (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
@@ -1356,8 +1354,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 		fw_lateral_ctrl_sp.lateral_acceleration = sp.lateral_acceleration_feedforward;
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
-		const float roll_wingtip_strike = math::constrain(getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt),
-						  0.f, math::radians(_param_fw_r_lim.get()));
+		const float roll_wingtip_strike = getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt);
 		_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
 
 		/* longitudinal guidance */
@@ -2191,7 +2188,9 @@ float FixedWingModeManager::getMaxRollAngleNearGround(const float altitude, cons
 	// d(roll strike)/d(height) = 2 / span / cos(2 * height / span)
 	// d(roll strike)/d(height) (@height=0) = 2 / span
 	// roll strike ~= 2 * height / span
-	return  2.0f * height_above_ground / _param_fw_wing_span.get();
+
+	return  math::constrain(2.f * height_above_ground / _param_fw_wing_span.get(), 0.f,
+				math::radians(_param_fw_r_lim.get()));
 }
 
 
