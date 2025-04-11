@@ -88,7 +88,7 @@ private:
 	 */
 	void parameters_updated();
 
-	float throttle_curve(float throttle_stick_input);
+	float throttle_curve(float throttle_stick_input, float dt);
 
 	/**
 	 * Generate & publish an attitude setpoint from stick inputs
@@ -120,7 +120,7 @@ private:
 
 	matrix::Vector3f _thrust_setpoint_body; /**< body frame 3D thrust vector */
 
-	float _hover_thrust{NAN};
+	SlewRate<float> _hover_thrust_slew_rate{NAN};
 
 	float _man_yaw_sp{0.f};				/**< current yaw setpoint in manual mode */
 	float _man_tilt_max{0.f};			/**< maximum tilt allowed for manual flight [rad] */
