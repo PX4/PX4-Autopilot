@@ -444,8 +444,8 @@ int ICM42688P::DataReadyInterruptCallback(int irq, void *context, void *arg)
 
 		if (interrupt_debug_count == interrupt_debug_trigger) {
 			avg_interrupt_delta = cumulative_interrupt_delta / interrupt_debug_trigger;
-			PX4_INFO(">>> Max: %llu, Min: %llu, Avg: %llu", max_interrupt_delta,
-				 min_interrupt_delta, avg_interrupt_delta);
+			PX4_INFO(">>> Max: %llu, Min: %llu, Avg: %llu", (long long unsigned int) max_interrupt_delta,
+				 (long long unsigned int) min_interrupt_delta, (long long unsigned int) avg_interrupt_delta);
 			interrupt_debug_count = 0;
 			cumulative_interrupt_delta = 0;
 		}
