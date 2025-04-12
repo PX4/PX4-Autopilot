@@ -120,11 +120,11 @@
 /* Define GPIO pins used as ADC N.B. Channel numbers are for reference, */
 
 #define PX4_ADC_GPIO  \
-	/* ADC_5V_RAIL_SENSE       GPIO_AD_B1_11 GPIO1 Pin 27 */  ADC1_GPIO(0,  27)
+	/* ADC_5V_RAIL_SENSE       GPIO_AD_B1_08 GPIO1 Pin 24 */  ADC1_GPIO(0,  24)
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
 
-#define ADC_5V_RAIL_SENSE        /* GPIO_AD_B1_11 GPIO1 Pin 27 */  ADC1_CH(0)
+#define ADC_5V_RAIL_SENSE        /* GPIO_AD_B1_08 GPIO1 Pin 24 */  ADC1_CH(13)
 
 #define ADC_CHANNELS 	         (1 << ADC_5V_RAIL_SENSE)
 
@@ -165,13 +165,13 @@
 
 //FIXME FlexPWM TONE DRIVER
 #define TONE_ALARM_FLEXPWM      PWMA_VAL
-#define TONE_ALARM_TIMER        3  /* FlexPWM 3 */
-#define TONE_ALARM_CHANNEL      1  /* GPIO_EMC_31 PWM3_PWMA01 */
+#define TONE_ALARM_TIMER        1  /* FlexPWM 3 */
+#define TONE_ALARM_CHANNEL      0  /* GPIO_EMC_23 PWM1_PWMA00 */
 
-#define GPIO_BUZZER_1           /* GPIO_EMC_31  GPIO4_IO31  */ (GPIO_PORT4 | GPIO_PIN31  | GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GENERAL_OUTPUT_IOMUX)
+#define GPIO_BUZZER_1           /* GPIO_EMC_23  GPIO4_IO23  */ (GPIO_PORT4 | GPIO_PIN23  | GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GENERAL_OUTPUT_IOMUX)
 
 #define GPIO_TONE_ALARM_IDLE    GPIO_BUZZER_1
-#define GPIO_TONE_ALARM         (GPIO_FLEXPWM3_PWMA01_1 | GENERAL_OUTPUT_IOMUX)
+#define GPIO_TONE_ALARM         (GPIO_FLEXPWM1_PWMA00_1 | GENERAL_OUTPUT_IOMUX)
 
 /* USB OTG FS
  *
