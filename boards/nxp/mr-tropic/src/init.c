@@ -87,6 +87,7 @@
 #include <px4_platform_common/init.h>
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_dma_alloc.h>
+#include <px4_platform/board_determine_hw_info.h>
 
 /* Configuration ************************************************************/
 
@@ -218,10 +219,6 @@ __EXPORT void imxrt_boardinitialize(void)
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	px4_gpio_init(gpio, arraySize(gpio));
 
-	/* configure SPI interfaces */
-
-	imxrt_spidev_initialize();
-
 	imxrt_usb_initialize();
 
 	fmurt1062_timer_initialize();
@@ -321,9 +318,11 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* Power on Interfaces */
 
-	board_spi_reset(10, 0xffff);
-
 	px4_platform_init();
+
+	imxrt_spiinitialize();
+
+	board_determine_hw_info();
 
 	/* configure the DMA allocator */
 
@@ -342,9 +341,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	ret = fmurt1062_usdhc_initialize();
 #endif
 
-	/* Configure SPI-based devices */
+	imxrt_spiinitialize();
 
-	ret = imxrt1062_spi_bus_initialize();
+	board_spi_reset(10, 0xffff);
 
 #ifdef CONFIG_IMXRT_ENET
 	imxrt_gpio_write(GPIO_ENET_RST, true);

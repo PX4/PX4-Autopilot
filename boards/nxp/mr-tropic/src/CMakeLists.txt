@@ -43,6 +43,8 @@ px4_add_library(drivers_board
 	imxrt_flexspi_nor_flash.c
 	imxrt_flexspi_storage.c
 	imxrt_ocram_initialize.c
+	hw_rev_ver_tropic.c
+	manifest.c
 )
 
 # Force compiler not to use builtin functions (like memcpy)
@@ -51,6 +53,7 @@ set_source_files_properties(imxrt_ocram_initialize.c PROPERTIES COMPILE_FLAGS -f
 
 target_link_libraries(drivers_board
 	PRIVATE
+		arch_spi
 		nuttx_arch # sdio
 		nuttx_drivers # sdio
 		px4_layer
