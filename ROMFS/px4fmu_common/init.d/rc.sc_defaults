@@ -5,8 +5,8 @@
 
 set VEHICLE_TYPE sc
 
-# MAV_TYPE_QUADROTOR 2
-#param set-default MAV_TYPE 12
+# MAV_TYPE_SPACECRAFT
+param set-default MAV_TYPE 7
 
 # Set micro-dds-client to use ethernet and IP-address 192.168.0.1
 param set-default UXRCE_DDS_AG_IP -1062731775

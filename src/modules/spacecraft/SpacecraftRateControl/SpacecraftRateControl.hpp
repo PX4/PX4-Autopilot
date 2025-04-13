@@ -62,31 +62,21 @@
 
 using namespace time_literals;
 
-class SpacecraftRateControl : public ModuleBase<SpacecraftRateControl>, public ModuleParams, public px4::WorkItem
+class SpacecraftRateControl : public ModuleParams
 {
 public:
 	SpacecraftRateControl(ModuleParams *parent);
 	~SpacecraftRateControl() = default;
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
+	/**
+	 * @brief Update rate controller.
+	 */
+	void updateRateControl();
 
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	bool init();
+protected:
+	void updateParams() override;
 
 private:
-	void Run() override;
-
-	/**
-	 * initialize some vectors/matrices from parameters
-	 */
-	void parameters_updated();
-
 	void updateActuatorControlsStatus(const vehicle_torque_setpoint_s &vehicle_torque_setpoint, float dt);
 
 	RateControl _rate_control; ///< class for rate control calculations
@@ -98,10 +88,9 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
-	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
 	uORB::Publication<actuator_controls_status_s>	_actuator_controls_status_pub{ORB_ID(actuator_controls_status_0)};
 	uORB::PublicationMulti<rate_ctrl_status_s>	_controller_status_pub{ORB_ID(rate_ctrl_status)};
@@ -109,8 +98,9 @@ private:
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 
-	vehicle_control_mode_s	_vehicle_control_mode{};
-	vehicle_status_s	_vehicle_status{};
+	vehicle_control_mode_s		_vehicle_control_mode{};
+	vehicle_status_s		_vehicle_status{};
+	vehicle_angular_velocity_s 	angular_velocity{};
 
 	bool _landed{true};
 	bool _maybe_landed{true};

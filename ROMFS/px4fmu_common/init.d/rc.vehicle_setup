@@ -33,6 +33,15 @@ then
 fi
 
 #
+# Spapcecraft setup.
+#
+if [ $VEHICLE_TYPE = sc ]
+then
+	# Start standard multicopter apps.
+	. ${R}etc/init.d/rc.sc_apps
+fi
+
+#
 # Differential Rover setup.
 #
 if [ $VEHICLE_TYPE = rover_differential ]

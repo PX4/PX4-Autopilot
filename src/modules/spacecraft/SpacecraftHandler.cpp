@@ -57,6 +57,31 @@ bool SpacecraftHandler::init()
 	return true;
 }
 
+void SpacecraftHandler::updateParams()
+{
+	ModuleParams::updateParams();
+}
+
+void SpacecraftHandler::Run()
+{
+	if (_parameter_update_sub.updated()) {
+		updateParams();
+	}
+
+	const hrt_abstime timestamp_prev = _timestamp;
+	_timestamp = hrt_absolute_time();
+	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
+
+	_spacecraft_rate_control.updateRateControl();
+
+	// TODO: Prepare allocation
+	// if (_vehicle_control_mode.flag_armed) {
+	// 	generateActuatorSetpoint();
+
+	// }
+
+}
+
 int SpacecraftHandler::task_spawn(int argc, char *argv[])
 {
 	SpacecraftHandler *instance = new SpacecraftHandler();

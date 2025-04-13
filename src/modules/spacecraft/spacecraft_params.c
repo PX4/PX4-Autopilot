@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,11 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file mc_rate_control_params.c
- * Parameters for multicopter attitude controller.
+ * @file spacecraft_params.c
+ * Parameters for spacecraft vehicle type.
  *
- * @author Lorenz Meier <lorenz@px4.io>
- * @author Anton Babushkin <anton@px4.io>
+ * @author Pedro Roque <padr@kth.se>
  */
 
 /**
@@ -48,7 +47,7 @@
  * @max 0.5
  * @decimal 3
  * @increment 0.01
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_ROLLRATE_P, 0.15f);
 
@@ -60,7 +59,7 @@ PARAM_DEFINE_FLOAT(SC_ROLLRATE_P, 0.15f);
  * @min 0.0
  * @decimal 3
  * @increment 0.01
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_ROLLRATE_I, 0.2f);
 
@@ -72,7 +71,7 @@ PARAM_DEFINE_FLOAT(SC_ROLLRATE_I, 0.2f);
  * @min 0.0
  * @decimal 2
  * @increment 0.01
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_RR_INT_LIM, 0.30f);
 
@@ -85,7 +84,7 @@ PARAM_DEFINE_FLOAT(SC_RR_INT_LIM, 0.30f);
  * @max 0.01
  * @decimal 4
  * @increment 0.0005
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_ROLLRATE_D, 0.003f);
 
@@ -96,7 +95,7 @@ PARAM_DEFINE_FLOAT(SC_ROLLRATE_D, 0.003f);
  *
  * @min 0.0
  * @decimal 4
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_ROLLRATE_FF, 0.0f);
 
@@ -116,7 +115,7 @@ PARAM_DEFINE_FLOAT(SC_ROLLRATE_FF, 0.0f);
  * @max 5.0
  * @decimal 4
  * @increment 0.0005
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_ROLLRATE_K, 1.0f);
 
@@ -129,7 +128,7 @@ PARAM_DEFINE_FLOAT(SC_ROLLRATE_K, 1.0f);
  * @max 0.6
  * @decimal 3
  * @increment 0.01
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_PITCHRATE_P, 0.15f);
 
@@ -141,7 +140,7 @@ PARAM_DEFINE_FLOAT(SC_PITCHRATE_P, 0.15f);
  * @min 0.0
  * @decimal 3
  * @increment 0.01
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_PITCHRATE_I, 0.2f);
 
@@ -153,7 +152,7 @@ PARAM_DEFINE_FLOAT(SC_PITCHRATE_I, 0.2f);
  * @min 0.0
  * @decimal 2
  * @increment 0.01
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_PR_INT_LIM, 0.30f);
 
@@ -165,7 +164,7 @@ PARAM_DEFINE_FLOAT(SC_PR_INT_LIM, 0.30f);
  * @min 0.0
  * @decimal 4
  * @increment 0.0005
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_PITCHRATE_D, 0.003f);
 
@@ -176,7 +175,7 @@ PARAM_DEFINE_FLOAT(SC_PITCHRATE_D, 0.003f);
  *
  * @min 0.0
  * @decimal 4
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_PITCHRATE_FF, 0.0f);
 
@@ -196,7 +195,7 @@ PARAM_DEFINE_FLOAT(SC_PITCHRATE_FF, 0.0f);
  * @max 5.0
  * @decimal 4
  * @increment 0.0005
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_PITCHRATE_K, 1.0f);
 
@@ -209,7 +208,7 @@ PARAM_DEFINE_FLOAT(SC_PITCHRATE_K, 1.0f);
  * @max 10.0
  * @decimal 2
  * @increment 0.01
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_YAWRATE_P, 10.0f);
 
@@ -221,7 +220,7 @@ PARAM_DEFINE_FLOAT(SC_YAWRATE_P, 10.0f);
  * @min 0.0
  * @decimal 2
  * @increment 0.01
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_YAWRATE_I, 0.865f);
 
@@ -233,7 +232,7 @@ PARAM_DEFINE_FLOAT(SC_YAWRATE_I, 0.865f);
  * @min 0.0
  * @decimal 2
  * @increment 0.01
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_YR_INT_LIM, 0.2f);
 
@@ -245,7 +244,7 @@ PARAM_DEFINE_FLOAT(SC_YR_INT_LIM, 0.2f);
  * @min 0.0
  * @decimal 2
  * @increment 0.01
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_YAWRATE_D, 0.0f);
 
@@ -257,7 +256,7 @@ PARAM_DEFINE_FLOAT(SC_YAWRATE_D, 0.0f);
  * @min 0.0
  * @decimal 4
  * @increment 0.01
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_YAWRATE_FF, 0.0f);
 
@@ -277,7 +276,7 @@ PARAM_DEFINE_FLOAT(SC_YAWRATE_FF, 0.0f);
  * @max 5.0
  * @decimal 4
  * @increment 0.0005
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_YAWRATE_K, 1.0f);
 
@@ -291,7 +290,7 @@ PARAM_DEFINE_FLOAT(SC_YAWRATE_K, 1.0f);
  * @max 1800.0
  * @decimal 1
  * @increment 5
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_ACRO_R_MAX, 720.0f);
 
@@ -305,7 +304,7 @@ PARAM_DEFINE_FLOAT(SC_ACRO_R_MAX, 720.0f);
  * @max 1800.0
  * @decimal 1
  * @increment 5
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_ACRO_P_MAX, 720.0f);
 
@@ -319,7 +318,7 @@ PARAM_DEFINE_FLOAT(SC_ACRO_P_MAX, 720.0f);
  * @max 1800.0
  * @decimal 1
  * @increment 5
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_ACRO_Y_MAX, 540.0f);
 
@@ -334,7 +333,7 @@ PARAM_DEFINE_FLOAT(SC_ACRO_Y_MAX, 540.0f);
  * @min 0
  * @max 1
  * @decimal 2
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_ACRO_EXPO, 0.69f);
 
@@ -349,7 +348,7 @@ PARAM_DEFINE_FLOAT(SC_ACRO_EXPO, 0.69f);
  * @min 0
  * @max 1
  * @decimal 2
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_ACRO_EXPO_Y, 0.69f);
 
@@ -365,7 +364,7 @@ PARAM_DEFINE_FLOAT(SC_ACRO_EXPO_Y, 0.69f);
  * @min 0
  * @max 0.95
  * @decimal 2
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_ACRO_SUPEXPO, 0.7f);
 
@@ -381,7 +380,7 @@ PARAM_DEFINE_FLOAT(SC_ACRO_SUPEXPO, 0.7f);
  * @min 0
  * @max 0.95
  * @decimal 2
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_ACRO_SUPEXPOY, 0.7f);
 
@@ -395,7 +394,7 @@ PARAM_DEFINE_FLOAT(SC_ACRO_SUPEXPOY, 0.7f);
  * it will still be 0.5 at 60% battery.
  *
  * @boolean
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_INT32(SC_BAT_SCALE_EN, 0);
 
@@ -406,7 +405,7 @@ PARAM_DEFINE_INT32(SC_BAT_SCALE_EN, 0);
  * @min 0
  * @max 1.0
  * @decimal 2
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_MAN_F_MAX, 1.0f);
 
@@ -417,6 +416,6 @@ PARAM_DEFINE_FLOAT(SC_MAN_F_MAX, 1.0f);
  * @min 0
  * @max 1.0
  * @decimal 2
- * @group Multicopter Rate Control
+ * @group Spacecraft Rate Control
  */
 PARAM_DEFINE_FLOAT(SC_MAN_T_MAX, 1.0f);

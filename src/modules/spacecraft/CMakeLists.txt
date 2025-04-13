@@ -32,6 +32,7 @@
 ############################################################################
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+add_subdirectory(SpacecraftRateControl)
 
 px4_add_module(
 	MODULE modules__spacecraft
@@ -48,4 +49,5 @@ px4_add_module(
 	DEPENDS
 		mathlib
 		px4_work_queue
+		SpacecraftRateControl
 )

@@ -90,16 +90,6 @@ void SpacecraftRateControl::updateRateControl()
 
 		/* check for updates in other topics */
 		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
-
-		if (_vehicle_land_detected_sub.updated()) {
-			vehicle_land_detected_s vehicle_land_detected;
-
-			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
-				_landed = vehicle_land_detected.landed;
-				_maybe_landed = vehicle_land_detected.maybe_landed;
-			}
-		}
-
 		_vehicle_status_sub.update(&_vehicle_status);
 
 		// use rates setpoint topic
@@ -175,8 +165,7 @@ void SpacecraftRateControl::updateRateControl()
 		// run the rate controller
 		if (_vehicle_control_mode.flag_control_rates_enabled) {
 			// reset integral if disarmed
-			if (!_vehicle_control_mode.flag_armed ||
-			    _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_SPACECRAFT) {
+			if (!_vehicle_control_mode.flag_armed) {
 				_rate_control.resetIntegral();
 			}
 
@@ -197,17 +186,9 @@ void SpacecraftRateControl::updateRateControl()
 						}
 					}
 				}
-
-				// TODO: send the unallocated value directly for better anti-windup
-				// _rate_control.setSaturationStatus(saturation_positive, saturation_negative);
 			}
 
-			// run rate controller
-			const Vector3f torque_sp =
-				_rate_control.update(rates, _rates_setpoint, angular_accel, dt, false);
-			// PX4_INFO("Rate: %f %f %f", (double)rates(0), (double)rates(1), (double)rates(2));
-			// PX4_INFO("Rate Setpoint: %f %f %f", (double)_rates_setpoint(0), (double)_rates_setpoint(1), (double)_rates_setpoint(2));
-			// PX4_INFO("Torque sp: %f %f %f", (double)torque_sp(0), (double)torque_sp(1), (double)torque_sp(2));
+			const Vector3f torque_sp = _rate_control.update(rates, _rates_setpoint, angular_accel, dt, false);
 
 			// publish rate controller status
 			rate_ctrl_status_s rate_ctrl_status{};

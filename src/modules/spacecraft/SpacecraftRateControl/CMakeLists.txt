@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,14 +31,11 @@
 #
 ############################################################################
 
-px4_add_library(SpacecraftPositionControl
-	ControlMath.cpp
-	ControlMath.hpp
-	PositionControl.cpp
-	PositionControl.hpp
+px4_add_library(SpacecraftRateControl
+	SpacecraftRateControl.cpp
 )
-target_include_directories(SpacecraftPositionControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-# TODO: add unit tests
-# px4_add_unit_gtest(SRC ScControlMathTest.cpp LINKLIBS SpacecraftPositionControl)
-# px4_add_unit_gtest(SRC ScPositionControlTest.cpp LINKLIBS SpacecraftPositionControl)
+target_link_libraries(SpacecraftRateControl PUBLIC RateControl)
+target_link_libraries(SpacecraftRateControl PUBLIC mathlib)
+target_link_libraries(SpacecraftRateControl PUBLIC circuit_breaker)
+target_include_directories(SpacecraftRateControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
