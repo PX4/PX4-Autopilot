@@ -33,7 +33,7 @@
 
 #include "control_mode.hpp"
 #include <uORB/topics/vehicle_status.h>
-#include <iostream>
+
 namespace mode_util
 {
 
