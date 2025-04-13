@@ -1734,7 +1734,6 @@ void Commander::updateParameters()
 
 	} else if (is_ground) {
 		_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROVER;
-
 	} else {
 		_vehicle_status.vehicle_type = _vehicle_status.system_type;
 	}

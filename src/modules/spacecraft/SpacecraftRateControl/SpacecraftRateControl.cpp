@@ -77,8 +77,7 @@ void SpacecraftRateControl::updateParams()
 
 void SpacecraftRateControl::updateRateControl()
 {
-	if (_vehicle_angular_velocity_sub.update(&angular_velocity))
-	{
+	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
 		const hrt_abstime now = angular_velocity.timestamp_sample;
 
 		// Guard against too small (< 0.125ms) and too large (> 20ms) dt's.
@@ -96,7 +95,7 @@ void SpacecraftRateControl::updateRateControl()
 		vehicle_rates_setpoint_s vehicle_rates_setpoint{};
 
 		if (_vehicle_control_mode.flag_control_manual_enabled &&
-			!_vehicle_control_mode.flag_control_attitude_enabled) {
+		    !_vehicle_control_mode.flag_control_attitude_enabled) {
 			// Here we can be in: Manual Mode or Acro Mode
 			// generate the rate setpoint from sticks
 			manual_control_setpoint_s manual_control_setpoint;
@@ -105,8 +104,8 @@ void SpacecraftRateControl::updateRateControl()
 				if (_vehicle_control_mode.flag_control_rates_enabled) {
 					// manual rates control - ACRO mode
 					const Vector3f man_rate_sp{manual_control_setpoint.roll,
-											   -manual_control_setpoint.pitch,
-											   manual_control_setpoint.yaw};
+								   -manual_control_setpoint.pitch,
+								   manual_control_setpoint.yaw};
 
 					_rates_setpoint = man_rate_sp * 5;
 					_thrust_setpoint(2) = -manual_control_setpoint.throttle;
