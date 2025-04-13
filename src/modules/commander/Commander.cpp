@@ -1734,6 +1734,8 @@ void Commander::updateParameters()
 
 	} else if (is_ground) {
 		_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROVER;
+	} else if (is_spacecraft(_vehicle_status)) {
+		_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_SPACECRAFT;
 	}
 
 	_vehicle_status.is_vtol = is_vtol(_vehicle_status);
