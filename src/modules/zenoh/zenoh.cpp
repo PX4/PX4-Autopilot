@@ -207,6 +207,13 @@ int ZENOH::setupSession()
 		return ret;
 	}
 
+	// Start read and lease tasks for zenoh-pico
+	if (zp_start_read_task(z_loan_mut(s), NULL) < 0 || zp_start_lease_task(z_loan_mut(s), NULL) < 0) {
+		PX4_ERR("Unable to start read and lease tasks");
+		z_drop(z_move(s));
+		ret = -EINVAL;
+	}
+
 	return ret;
 }
 
@@ -224,13 +231,6 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 	px4_guid[1] = 0xBB;
 	px4_guid[2] = 0xCC;
 #endif
-
-	// Start read and lease tasks for zenoh-pico
-	if (zp_start_read_task(z_loan_mut(s), NULL) < 0 || zp_start_lease_task(z_loan_mut(s), NULL) < 0) {
-		PX4_ERR("Unable to start read and lease tasks");
-		z_drop(z_move(s));
-		return -EINVAL;
-	}
 
 #ifdef CONFIG_ZENOH_RMW_LIVELINESS
 	z_id_t self_id = z_info_zid(z_loan(s));
