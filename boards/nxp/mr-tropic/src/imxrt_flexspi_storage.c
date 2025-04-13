@@ -575,12 +575,13 @@ int imxrt_flexspi_storage_initialize(void)
 
 	if (g_flexspi_nor.flexspi) {
 		ret = OK;
-	}
 
-	FLEXSPI_UPDATE_LUT(g_flexspi_nor.flexspi,
-			   0,
-			   (const uint32_t *)g_flexspi_nor_lut,
-			   sizeof(g_flexspi_nor_lut) / 4);
+
+		FLEXSPI_UPDATE_LUT(g_flexspi_nor.flexspi,
+				   0,
+				   (const uint32_t *)g_flexspi_nor_lut,
+				   sizeof(g_flexspi_nor_lut) / 4);
+	}
 
 	/* Register the MTD driver so that it can be accessed from the
 	 * VFS.

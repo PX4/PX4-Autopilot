@@ -104,11 +104,6 @@ extern void led_off(int led);
 
 extern uint32_t _srodata;            /* Start of .rodata */
 extern uint32_t _erodata;            /* End of .rodata */
-extern const uint64_t _fitcmfuncs;   /* Copy source address in FLASH */
-extern uint64_t _sitcmfuncs;         /* Copy destination start address in ITCM */
-extern uint64_t _eitcmfuncs;         /* Copy destination end address in ITCM */
-extern uint64_t _sdtcm;              /* Copy destination start address in DTCM */
-extern uint64_t _edtcm;              /* Copy destination end address in DTCM */
 __END_DECLS
 
 /************************************************************************************
@@ -139,8 +134,13 @@ __EXPORT void board_on_reset(int status)
 		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_gpio_output(i)));
 	}
 
+	/*
+	 * On resets invoked from system (not boot) ensure we establish a low
+	 * output state on PWM pins to disarm the ESC and prevent the reset from potentially
+	 * spinning up the motors.
+	 */
 	if (status >= 0) {
-		up_mdelay(6);
+		up_mdelay(100);
 	}
 }
 
@@ -190,50 +190,6 @@ void imxrt_flash_setup_prefetch_partition(void)
 	ARM_DSB();
 	ARM_ISB();
 	ARM_DMB();
-}
-
-/****************************************************************************
- * Name: imxrt_ocram_initialize
- *
- * Description:
- *   Called off reset vector to reconfigure the flexRAM
- *   and finish the FLASH to RAM Copy.
- *
- ****************************************************************************/
-
-__EXPORT void imxrt_ocram_initialize(void)
-{
-	uint32_t regval;
-	register uint64_t *src;
-	register uint64_t *dest;
-
-	/* FlexRAM Configuration
-	 *    F = 64K ITCM
-	 *    A = 64K DTCM
-	 *    5 = 64K OCRAM
-	 *    So 0xFFFFFFAA is
-	 *    384K FlexRAM ITCM
-	 *    128K FlexRAM DTCM
-	 * */
-
-	putreg32(0xFFFFFFAA, IMXRT_IOMUXC_GPR_GPR17);
-	regval = getreg32(IMXRT_IOMUXC_GPR_GPR16);
-	putreg32(regval | GPR_GPR16_FLEXRAM_BANK_CFG_SEL, IMXRT_IOMUXC_GPR_GPR16);
-
-	/* Copy any necessary code sections from FLASH to ITCM. The process is the
-	* same as the code copying from FLASH to RAM above. */
-	for (src = (uint64_t *)&_fitcmfuncs, dest = (uint64_t *)&_sitcmfuncs;
-	     dest < (uint64_t *)&_eitcmfuncs;) {
-		*dest++ = *src++;
-	}
-
-	/* Clear .dtcm.  We'll do this inline (vs. calling memset) just to be
-	* certain that there are no issues with the state of global variables.
-	*/
-
-	for (dest = &_sdtcm; dest < &_edtcm;) {
-		*dest++ = 0;
-	}
 }
 
 /****************************************************************************
