@@ -210,6 +210,7 @@ set(msg_files
 	TelemetryStatus.msg
 	TiltrotorExtraControls.msg
 	TimesyncStatus.msg
+	TrajectorySetpoint6dof.msg
 	TransponderReport.msg
 	TuneControl.msg
 	UavcanParameterRequest.msg
@@ -247,7 +248,6 @@ set(msg_files
 	versioned/RegisterExtComponentReply.msg
 	versioned/RegisterExtComponentRequest.msg
 	versioned/TrajectorySetpoint.msg
-	versioned/TrajectorySetpoint6DoF.msg
 	versioned/UnregisterExtComponent.msg
 	versioned/VehicleAngularVelocity.msg
 	versioned/VehicleAttitude.msg
