@@ -65,6 +65,7 @@
 // Local includes
 #include "SpacecraftRateControl/SpacecraftRateControl.hpp"
 #include "SpacecraftAttitudeControl/SpacecraftAttitudeControl.hpp"
+#include "SpacecraftPositionControl/SpacecraftPositionControl.hpp"
 
 class SpacecraftHandler : public ModuleBase<SpacecraftHandler>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -109,6 +110,7 @@ private:
 	// Class instances
 	SpacecraftRateControl _spacecraft_rate_control{this};
 	SpacecraftAttitudeControl _spacecraft_attitude_control{this};
+	SpacecraftPositionControl _spacecraft_position_control{this};
 
 	// Variables
 	hrt_abstime _timestamp{0};

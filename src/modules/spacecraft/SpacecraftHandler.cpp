@@ -72,6 +72,7 @@ void SpacecraftHandler::Run()
 	_timestamp = hrt_absolute_time();
 	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
 
+	_spacecraft_position_control.updatePositionControl();
 	_spacecraft_attitude_control.updateAttitudeControl();
 	_spacecraft_rate_control.updateRateControl();
 
