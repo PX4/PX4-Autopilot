@@ -1,0 +1,12 @@
+menuconfig MODULES_ROBOSUB_RS_OBJECT_DETECTION
+	bool "robosub_object_detection"
+	default n
+	---help---
+		Enable support for robosub_object_detection
+
+menuconfig USER_ROBOSUB_RS_OBJECT_DETECTION
+	bool "robosub_object_detection running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_ROBOSUB_RS_OBJECT_DETECTION
+	---help---
+		Put robosub_object_detection in userspace memory

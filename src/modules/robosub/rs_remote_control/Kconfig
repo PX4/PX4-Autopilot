@@ -1,0 +1,12 @@
+menuconfig MODULES_ROBOSUB_RS_REMOTE_CONTROL
+	bool "robosub_remote_control"
+	default n
+	---help---
+		Enable support for robosub_remote_control
+
+menuconfig USER_ROBOSUB_RS_REMOTE_CONTROL
+	bool "robosub_remote_control running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_ROBOSUB_RS_REMOTE_CONTROL
+	---help---
+		Put robosub_remote_control in userspace memory

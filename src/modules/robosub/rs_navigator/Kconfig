@@ -1,0 +1,12 @@
+menuconfig MODULES_ROBOSUB_RS_NAVIGATOR
+	bool "robosub_navigator"
+	default n
+	---help---
+		Enable support for robosub_navigator
+
+menuconfig USER_ROBOSUB_RS_NAVIGATOR
+	bool "robosub_navigator running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_ROBOSUB_RS_NAVIGATOR
+	---help---
+		Put robosub_navigator in userspace memory
