@@ -37,6 +37,7 @@ cmake_policy(SET CMP0057 NEW)
 include(px4_list_make_absolute)
 
 set(msg_files
+	AckermannVelocitySetpoint.msg
 	ActionRequest.msg
 	ActuatorArmed.msg
 	ActuatorControlsStatus.msg
@@ -45,7 +46,6 @@ set(msg_files
 	ActuatorTest.msg
 	AdcReport.msg
 	Airspeed.msg
-	AirspeedValidated.msg
 	AirspeedWind.msg
 	AutotuneAttitudeControlStatus.msg
 	ButtonEvent.msg
@@ -174,6 +174,7 @@ set(msg_files
 	RcParameterMap.msg
 	RoverAttitudeSetpoint.msg
 	RoverAttitudeStatus.msg
+	RoverPositionSetpoint.msg
 	RoverRateSetpoint.msg
 	RoverRateStatus.msg
 	RoverSteeringSetpoint.msg
@@ -234,6 +235,7 @@ set(msg_files
 	YawEstimatorStatus.msg
 	versioned/ActuatorMotors.msg
 	versioned/ActuatorServos.msg
+	versioned/AirspeedValidated.msg
 	versioned/ArmingCheckReply.msg
 	versioned/ArmingCheckRequest.msg
 	versioned/BatteryStatus.msg

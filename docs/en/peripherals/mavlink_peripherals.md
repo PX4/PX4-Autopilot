@@ -1,6 +1,6 @@
-# MAVLink Peripherals (GCS/OSD/Companion)
+# MAVLink Peripherals (GCS/OSD/Gimbal/Camera/Companion)
 
-Ground Control Stations (GCS), On-Screen Displays (OSD), Companion Computers, ADS-B receivers, and other MAVLink peripherals interact with PX4 using separate MAVLink streams, sent via different serial ports.
+Ground Control Stations (GCS), On-Screen Displays (OSD), MAVLink Cameras & Gimbals, Remote IDs, Companion Computers, ADS-B receivers, and other MAVLink peripherals interact with PX4 using separate MAVLink streams, sent via different serial ports.
 
 In order to configure that a particular serial port is used for MAVLink traffic with a particular peripheral, we use [Serial Port Configuration](../peripherals/serial_configuration.md), assigning one of the abstract "MAVLink instance" configuration parameters to the desired port.
 We then set other properties of the MAVLink channel using the parameters associated with our selected MAVLink instance, so that they match the requirements of our particular peripheral.
@@ -36,8 +36,10 @@ The parameters for each instance are:
   - _OSD_: Standard set of messages for an OSD system.
   - _Config_: Standard set of messages and rate configuration for a fast link (e.g. USB).
   - _Minimal_: Minimal set of messages for use with a GCS connected on a high latency link.
-  - _ExtVision_ or _ExtVisionMin_: Messages for offboard vision systems (ExtVision needed for VIO).
-  - _Iridium_: Messages for an [Iridium satellite communication system](../advanced_features/satcom_roadblock.md).
+  - _External Vision_: Messages for offboard vision systems.
+  - _Gimbal_: Messages for a gimbal. Note this also enables [message forwarding](#MAV_X_FORWARD)
+  - _Onboard Low Bandwidth_: Standard set of messages for a companion computer connected on a lower speed link.
+  - _uAvionix_: Messages for a uAvionix ADS-B beacon.
 
   ::: info
   If you need to find the specific set of message for each mode search for `MAVLINK_MODE_` in [/src/modules/mavlink/mavlink_main.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/mavlink_main.cpp).
@@ -64,9 +66,7 @@ You will need to reboot PX4 to make the parameter available (i.e. in QGroundCont
 The parameter used will depend on the [assigned serial port](../advanced_config/parameter_reference.md#serial) - for example: `SER_GPS1_BAUD`, `SER_TEL2_BAUD`, etc.
 The value you use will depend on the type of connection and the capabilities of the connected MAVLink peripheral.
 
-<a id="default_ports"></a>
-
-## Default MAVLink Ports
+## Default MAVLink Ports {#default_ports}
 
 ### TELEM1
 
@@ -108,8 +108,16 @@ On this hardware, there is a [default serial port mapping](../peripherals/serial
 
 For more information see: [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md)
 
+## Device Specific Setup
+
+Links to setup instructions for specific MAVLink components:
+
+- [MAVLink Cameras (Camera Protocol v2) > PX4 Configuration](../camera/mavlink_v2_camera.md#px4-configuration)
+- [Gimbal Configuration > MAVLink Gimbal (MNT_MODE_OUT=MAVLINK)](../advanced/gimbal_control.md#mavlink-gimbal-mnt-mode-out-mavlink)
+
 ## See Also
 
 - [Serial Port Configuration](../peripherals/serial_configuration.md)
 - [PX4 Ethernet Setup > PX4 MAVLink Serial Port Configuration](../advanced_config/ethernet_setup.md#px4-mavlink-serial-port-configuration)
 - [Serial Port Mapping](../hardware/serial_port_mapping.md)
+

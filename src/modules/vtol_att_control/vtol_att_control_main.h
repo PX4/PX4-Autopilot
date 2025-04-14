@@ -205,6 +205,7 @@ private:
 	vehicle_local_position_setpoint_s	_local_pos_sp{};
 	vehicle_status_s 			_vehicle_status{};
 	vtol_vehicle_status_s 			_vtol_vehicle_status{};
+	vtol_vehicle_status_s 			_prev_published_vtol_vehicle_status{};
 	float _home_position_z{NAN};
 
 	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};	// [kg/m^3]

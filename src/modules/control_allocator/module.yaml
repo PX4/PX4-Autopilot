@@ -40,7 +40,7 @@ parameters:
                 short: Control allocation method
                 long: |
                   Selects the algorithm and desaturation method.
-                  If set to Automtic, the selection is based on the airframe (CA_AIRFRAME).
+                  If set to Automatic, the selection is based on the airframe (CA_AIRFRAME).
             type: enum
             values:
                 0: Pseudo-inverse with output clipping

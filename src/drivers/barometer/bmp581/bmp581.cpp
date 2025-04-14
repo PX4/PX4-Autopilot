@@ -97,31 +97,24 @@ void BMP581::print_status()
 
 void BMP581::start()
 {
-	_collect_phase = false;
+	measure();
 
 	ScheduleOnInterval(_measure_interval, _measure_interval * 3);
 }
 
 void BMP581::RunImpl()
 {
-
-	if (_collect_phase) {
-		collect();
-	}
-
-	measure();
+	collect();
 }
 
 int BMP581::measure()
 {
 	int ret;
 
-	_collect_phase = true;
-
 	perf_begin(_measure_perf);
 
 	/* start measurement */
-	ret = set_power_mode(BMP5_POWERMODE_FORCED);
+	ret = set_power_mode(BMP5_POWERMODE_NORMAL);
 
 	if (ret != PX4_OK) {
 		PX4_DEBUG("failed to set power mode");
@@ -137,8 +130,6 @@ int BMP581::measure()
 
 int BMP581::collect()
 {
-	_collect_phase = false;
-
 	bmp5_sensor_data data{};
 
 	uint8_t int_status;

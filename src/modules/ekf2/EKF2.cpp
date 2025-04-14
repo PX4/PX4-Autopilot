@@ -2197,26 +2197,26 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 		const Vector3f ev_odom_vel(ev_odom.velocity);
 		const Vector3f ev_odom_vel_var(ev_odom.velocity_variance);
 
+		bool velocity_frame_valid = false;
+
+		switch (ev_odom.velocity_frame) {
+		case vehicle_odometry_s::VELOCITY_FRAME_NED:
+			ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_NED;
+			velocity_frame_valid = true;
+			break;
+
+		case vehicle_odometry_s::VELOCITY_FRAME_FRD:
+			ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_FRD;
+			velocity_frame_valid = true;
+			break;
+
+		case vehicle_odometry_s::VELOCITY_FRAME_BODY_FRD:
+			ev_data.vel_frame = VelocityFrame::BODY_FRAME_FRD;
+			velocity_frame_valid = true;
+			break;
+		}
+
 		if (ev_odom_vel.isAllFinite()) {
-			bool velocity_frame_valid = false;
-
-			switch (ev_odom.velocity_frame) {
-			case vehicle_odometry_s::VELOCITY_FRAME_NED:
-				ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_NED;
-				velocity_frame_valid = true;
-				break;
-
-			case vehicle_odometry_s::VELOCITY_FRAME_FRD:
-				ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_FRD;
-				velocity_frame_valid = true;
-				break;
-
-			case vehicle_odometry_s::VELOCITY_FRAME_BODY_FRD:
-				ev_data.vel_frame = VelocityFrame::BODY_FRAME_FRD;
-				velocity_frame_valid = true;
-				break;
-			}
-
 			if (velocity_frame_valid) {
 				ev_data.vel = ev_odom_vel;
 
@@ -2241,21 +2241,21 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 		const Vector3f ev_odom_pos(ev_odom.position);
 		const Vector3f ev_odom_pos_var(ev_odom.position_variance);
 
+		bool position_frame_valid = false;
+
+		switch (ev_odom.pose_frame) {
+		case vehicle_odometry_s::POSE_FRAME_NED:
+			ev_data.pos_frame = PositionFrame::LOCAL_FRAME_NED;
+			position_frame_valid = true;
+			break;
+
+		case vehicle_odometry_s::POSE_FRAME_FRD:
+			ev_data.pos_frame = PositionFrame::LOCAL_FRAME_FRD;
+			position_frame_valid = true;
+			break;
+		}
+
 		if (ev_odom_pos.isAllFinite()) {
-			bool position_frame_valid = false;
-
-			switch (ev_odom.pose_frame) {
-			case vehicle_odometry_s::POSE_FRAME_NED:
-				ev_data.pos_frame = PositionFrame::LOCAL_FRAME_NED;
-				position_frame_valid = true;
-				break;
-
-			case vehicle_odometry_s::POSE_FRAME_FRD:
-				ev_data.pos_frame = PositionFrame::LOCAL_FRAME_FRD;
-				position_frame_valid = true;
-				break;
-			}
-
 			if (position_frame_valid) {
 				ev_data.pos = ev_odom_pos;
 

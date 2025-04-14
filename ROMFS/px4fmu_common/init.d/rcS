@@ -404,6 +404,14 @@ else
 		fi
 	fi
 
+	# Heater driver for temperature regulated IMUs.
+	# The heater needs to start after px4io.
+	if param compare -s SENS_EN_THERMAL 1
+	then
+		heater start
+	fi
+
+
 	#
 	# RC update (map raw RC input to calibrate manual control)
 	#  start before commander
