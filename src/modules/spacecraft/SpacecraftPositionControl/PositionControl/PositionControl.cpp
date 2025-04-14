@@ -116,7 +116,7 @@ void ScPositionControl::_positionControl(const float dt)
 	_pos_int(1) = math::constrain(_vel_int(1), -_pos_int_lim, _pos_int_lim);
 	_pos_int(2) = math::constrain(_vel_int(2), -_pos_int_lim, _pos_int_lim);
 
-        // P-position controller
+	// P-position controller
 	ControlMath::setZeroIfNanVector3f(_pos_sp);
 	Vector3f pos_error = _pos_sp - _pos;
 	Vector3f vel_sp_position = pos_error.emult(_gain_pos_p) + _pos_int;

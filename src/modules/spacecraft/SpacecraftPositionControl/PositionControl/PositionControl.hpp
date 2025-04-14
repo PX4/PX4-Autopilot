@@ -84,11 +84,11 @@ public:
 
 	/**
 	 * @brief Set the Position Integral Limits object
-	 * 
+	 *
 	 * @param lim float limit to be set (on all axis)
 	 */
 	void setPositionIntegralLimits(const float lim);
-	
+
 	/**
 	 * Set the velocity control gains
 	 * @param P 3D vector of proportional gains for x,y,z axis
@@ -105,7 +105,7 @@ public:
 
 	/**
 	 * @brief Set the Velocity Integral Limits object
-	 * 
+	 *
 	 * @param lim float limit to be set (on all axis)
 	 */
 	void setVelocityIntegralLimits(const float lim);
@@ -145,12 +145,13 @@ public:
 	 * Set the integral term in xy to 0.
 	 * @see _vel_int
 	 */
-	void resetIntegral() {
-          _pos_int.setZero();
-          _vel_int.setZero();
-    }
+	void resetIntegral()
+	{
+		_pos_int.setZero();
+		_vel_int.setZero();
+	}
 
-        /**
+	/**
 	 * Get the controllers output attitude setpoint
 	 * This attitude setpoint was generated from the resulting acceleration setpoint after position and velocity control.
 	 * It needs to be executed by the attitude controller to achieve velocity and position tracking.
@@ -184,10 +185,10 @@ private:
 	float _lim_vel{}; ///< Horizontal velocity limit with feed forward and position control
 	float _lim_thr_min{}; ///< Minimum collective thrust allowed as output [-1,0] e.g. -0.9
 	float _lim_thr_max{}; ///< Maximum collective thrust allowed as output [-1,0] e.g. -0.1
-    float _pos_int_lim{}; ///< Anti-windup for position control
+	float _pos_int_lim{}; ///< Anti-windup for position control
 	float _vel_int_lim{}; ///< Anti-windup for velocity control
 
-        // States
+	// States
 	matrix::Vector3f _pos; /**< current position */
 	matrix::Vector3f _pos_int; /**< integral term of the position controller */
 	matrix::Vector3f _vel; /**< current velocity */

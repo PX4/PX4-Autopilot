@@ -169,9 +169,9 @@ private:
 	 * @brief publishes target setpoint.
 	 *
 	 */
-    	void publishLocalPositionSetpoint(vehicle_attitude_setpoint_s &_att_sp);
+	void publishLocalPositionSetpoint(vehicle_attitude_setpoint_s &_att_sp);
 
-        /**
+	/**
 	 * Generate setpoint to bridge no executable setpoint being available.
 	 * Used to handle transitions where no proper setpoint was generated yet and when the received setpoint is invalid.
 	 * This should only happen briefly when transitioning and never during mode operation or by design.
