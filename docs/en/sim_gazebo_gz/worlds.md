@@ -73,6 +73,23 @@ World with walls that is designed for testing [collision prevention](../computer
 
 [PX4-gazebo-models/main/worlds/windy.sdf](https://github.com/PX4/PX4-gazebo-models/blob/main/worlds/windy.sdf)
 
+## Moving Platform
+
+[Empty world](#default) with the addition of a flat moving platform, to simulate drone operations from moving vehicles like ships or trucks. The platform is controlled by a plugin which is included in the world. The platform is at a height of 2m, so place the vehicle on it with:
+
+```
+PX4_GZ_MODEL_POSE=0,0,2.2 PX4_GZ_WORLD=moving_platform make px4_sitl gz_standard_vtol
+```
+
+The plugin can be configured with the following environment variables:
+
+ - `PX4_GZ_PLATFORM_VEL`: Platform speed (m/s).
+ - `PX4_GZ_PLATFORM_HEADING_DEG`: Platform heading and direction of velocity (degrees). 0 = east, positive direction is counterclockwise.
+
+[PX4-gazebo-models/main/worlds/moving_platform.sdf](https://github.com/PX4/PX4-gazebo-models/blob/main/worlds/moving_platform.sdf)
+
+![screenshot of moving platform world](../../assets/simulation/gazebo/worlds/moving_platform.png)
+
 ## Model Specific Worlds {#model_specific_worlds}
 
 Some [vehicle models](../sim_gazebo_gz/vehicles.md) rely on the physics / plugins of a specific world.
