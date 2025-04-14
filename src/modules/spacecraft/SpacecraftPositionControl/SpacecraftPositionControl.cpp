@@ -353,7 +353,7 @@ void SpacecraftPositionControl::poll_manual_setpoint(const float dt,
 			    !_vehicle_control_mode.flag_control_offboard_enabled) {
 
 				if (_vehicle_control_mode.flag_control_attitude_enabled &&
-					_vehicle_control_mode.flag_control_position_enabled) {
+				    _vehicle_control_mode.flag_control_position_enabled) {
 					// We are in Stabilized mode
 					// Generate position setpoints
 					if (!stabilized_pos_sp_initialized) {
