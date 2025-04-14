@@ -72,8 +72,7 @@ int ADIS16507::init()
 	}
 
 	_state = STATE::RESET;
-	ScheduleDelayed(1_ms);
-
+	ScheduleNow();
 	return PX4_OK;
 }
 
@@ -82,7 +81,6 @@ void ADIS16507::Reset()
 	_state = STATE::RESET;
 	DataReadyInterruptDisable();
 	ScheduleClear();
-	ScheduleDelayed(1_ms);
 }
 
 void ADIS16507::exit_and_cleanup()
@@ -131,8 +129,8 @@ bool ADIS16507::Configure()
 		RegisterWrite(r.reg, r.val);
 	}
 
-	// We must wait for changes to apply
-	px4_usleep(5000);
+	// Wait for changes to apply
+	px4_usleep(SPI_STALL_PERIOD);
 
 	// Check that all are configured
 	for (const auto &r : defaults) {
@@ -184,15 +182,13 @@ void ADIS16507::RunImpl()
 		PX4_DEBUG("Resetting");
 		perf_count(_reset_perf);
 
+		RegisterWrite(Register::GLOB_CMD, Register::GLOB_CMD_BIT::Software_reset);
+
 #ifdef GPIO_ADIS16507_RESET
 		PX4_DEBUG("Hardware reset");
 		GPIO_ADIS16507_RESET(1);
-		// Minimum 10us
-		px4_usleep(15);
+		px4_usleep(15); // Minimum 10us
 		GPIO_ADIS16507_RESET(0);
-#else
-		PX4_DEBUG("Software reset");
-		RegisterWrite(Register::GLOB_CMD, Register::GLOB_CMD_BIT::Software_reset);
 #endif
 		_failure_count = 0;
 		_state = STATE::WAIT_FOR_RESET;
@@ -305,7 +301,7 @@ void ADIS16507::RunImpl()
 
 			// Pg 20 of Datasheet
 			// 16-Bit Burst Mode with BURST_SEL = 0
-			buffer.cmd = 0x6800;
+			buffer.cmd = BURST_READ_CMD;
 			set_frequency(SPI_SPEED_BURST);
 
 			if (transferhword((uint16_t *)&buffer, (uint16_t *)&buffer, sizeof(buffer) / sizeof(uint16_t)) != PX4_OK) {
@@ -313,7 +309,7 @@ void ADIS16507::RunImpl()
 				_failure_count++;
 
 				if (_failure_count > 10) {
-					PX4_WARN("Consecutive failures!");
+					PX4_DEBUG("Consecutive failures!");
 					Reset();
 				}
 
@@ -328,7 +324,7 @@ void ADIS16507::RunImpl()
 				_failure_count++;
 
 				if (_failure_count > 10) {
-					PX4_WARN("Consecutive failures!");
+					PX4_DEBUG("Consecutive failures!");
 					Reset();
 				}
 
@@ -353,7 +349,7 @@ void ADIS16507::RunImpl()
 			// Check all Status/Error Flag Indicators (DIAG_STAT)
 			if (buffer.diag_stat != 0) {
 				perf_count(_bad_status_perf);
-				PX4_WARN("Error: DIAG_STAT: 0x%02x", buffer.diag_stat);
+				PX4_DEBUG("Error: DIAG_STAT: 0x%02x", buffer.diag_stat);
 				PrintErrorFlags(buffer.diag_stat);
 				return;
 			}
@@ -393,43 +389,43 @@ void ADIS16507::RunImpl()
 void ADIS16507::PrintErrorFlags(uint16_t flags)
 {
 	if (flags & (1 << 10)) {
-		PX4_WARN("Accelerometer failure");
+		PX4_DEBUG("Accelerometer failure");
 	}
 
 	if (flags & (1 << 9)) {
-		PX4_WARN("Gyro 2 failure");
+		PX4_DEBUG("Gyro 2 failure");
 	}
 
 	if (flags & (1 << 8)) {
-		PX4_WARN("Gyro 1 failure");
+		PX4_DEBUG("Gyro 1 failure");
 	}
 
 	if (flags & (1 << 7)) {
-		PX4_WARN("Clock error");
+		PX4_DEBUG("Clock error");
 	}
 
 	if (flags & (1 << 6)) {
-		PX4_WARN("Memory failure");
+		PX4_DEBUG("Memory failure");
 	}
 
 	if (flags & (1 << 5)) {
-		PX4_WARN("Sensor failure");
+		PX4_DEBUG("Sensor failure");
 	}
 
 	if (flags & (1 << 4)) {
-		PX4_WARN("Standby mode (VDD < 2.8V)");
+		PX4_DEBUG("Standby mode (VDD < 2.8V)");
 	}
 
 	if (flags & (1 << 3)) {
-		PX4_WARN("SPI communication error");
+		PX4_DEBUG("SPI communication error");
 	}
 
 	if (flags & (1 << 2)) {
-		PX4_WARN("Flash memory update failure");
+		PX4_DEBUG("Flash memory update failure");
 	}
 
 	if (flags & (1 << 1)) {
-		PX4_WARN("Data path overrun");
+		PX4_DEBUG("Data path overrun");
 	}
 
 	// Bit 0 and 15:11 are reserved and not printed

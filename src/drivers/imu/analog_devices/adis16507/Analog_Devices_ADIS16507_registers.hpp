@@ -70,6 +70,9 @@ static constexpr uint32_t SAMPLE_INTERVAL_US = 500; // 2000 Hz
 
 static constexpr uint16_t DIR_WRITE = 0x80;
 
+static constexpr uint16_t BURST_READ_CMD = 0x6800;
+
+
 namespace Register
 {
 static constexpr uint16_t DIAG_STAT = 0x02;
@@ -109,18 +112,14 @@ enum FILT_CTRL_BIT : uint16_t {
 // MSC_CTRL
 enum MSC_CTRL_BIT : uint16_t {
 	BURST32     = Bit9, // 32-bit burst enable bit
-
 	GYRO_COMP   = Bit7, // Linear acceleration compensation for gyroscopes
-
 	DR_polarity = Bit0, // 1 = active high when data is valid
 };
 
 // GLOB_CMD
 enum GLOB_CMD_BIT : uint16_t {
 	Software_reset    = Bit7,
-
 	Flash_memory_test = Bit4,
-
 	Sensor_self_test  = Bit2,
 };
 
