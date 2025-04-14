@@ -136,4 +136,3 @@ private:
 		(ParamFloat<px4::params::SC_MAN_Y_SCALE>)    _param_sc_man_y_scale /**< scaling factor from stick to yaw rate */
 	)
 };
-
