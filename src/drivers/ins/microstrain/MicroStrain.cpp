@@ -936,8 +936,6 @@ bool MicroStrain::initializeIns()
 					       &filterCallback,
 					       this);
 
-	mip_3dm_write_pps_source(&_device, MIP_3DM_PPS_SOURCE_COMMAND_SOURCE_RECEIVER_1);
-
 	// Configure the GNSS1 message format based on what descriptors are supported
 	if (!mip_cmd_result_is_ack(res = configureGnssMessageFormat(MIP_GNSS1_DATA_DESC_SET))) {
 		MS_PX4_ERROR(res, "Could not write GNSS1 message format");
