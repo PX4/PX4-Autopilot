@@ -217,13 +217,13 @@ float AutopilotTester::relative_altitude()
 
 	float relative_altitude = NAN;
 
-	_telemetry->subscribe_position([&prom, relative_altitude, this](Telemetry::Position new_position) {
+	_telemetry->subscribe_position([&prom, &relative_altitude, this](Telemetry::Position new_position) {
 		_telemetry->subscribe_position(nullptr);
 		relative_altitude = new_position.relative_altitude_m;
 		prom.set_value();
 	});
 
-	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
+	REQUIRE(fut.wait_for(std::chrono::seconds(3)) == std::future_status::ready);
 
 	return relative_altitude;
 }
