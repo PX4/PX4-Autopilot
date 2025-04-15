@@ -3,7 +3,7 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-set VEHICLE_TYPE sc
+set VEHICLE_TYPE spacecraft
 
 # MAV_TYPE_SPACECRAFT
 param set-default MAV_TYPE 7
