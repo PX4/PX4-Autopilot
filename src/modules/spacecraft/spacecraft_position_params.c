@@ -291,4 +291,3 @@ PARAM_DEFINE_FLOAT(SPC_MAN_Y_TAU, 0.08f);
  * @group Spacecraft Position Control
  */
 PARAM_DEFINE_FLOAT(SPC_VELD_LP, 5.0f);
-
