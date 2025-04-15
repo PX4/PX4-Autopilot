@@ -45,7 +45,7 @@
 
 using namespace matrix;
 
-const trajectory_setpoint_s ScPositionControl::empty_trajectory_setpoint = {0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN};
+const trajectory_setpoint6dof_s ScPositionControl::empty_trajectory_setpoint = {0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN, NAN}, {NAN, NAN, NAN}};
 
 void ScPositionControl::setVelocityGains(const Vector3f &P, const Vector3f &I, const Vector3f &D)
 {
@@ -88,12 +88,12 @@ void ScPositionControl::setState(const PositionControlStates &states)
 	_att_q = states.quaternion;
 }
 
-void ScPositionControl::setInputSetpoint(const trajectory_setpoint_s &setpoint)
+void ScPositionControl::setInputSetpoint(const trajectory_setpoint6dof_s &setpoint)
 {
 	_pos_sp = Vector3f(setpoint.position);
 	_vel_sp = Vector3f(setpoint.velocity);
 	_acc_sp = Vector3f(setpoint.acceleration);
-	_quat_sp = Quatf(setpoint.attitude);
+	_quat_sp = Quatf(setpoint.quaternion);
 }
 
 bool ScPositionControl::update(const float dt)

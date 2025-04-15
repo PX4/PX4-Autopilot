@@ -41,7 +41,7 @@
 
 #include <lib/mathlib/mathlib.h>
 #include <matrix/matrix/math.hpp>
-#include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/trajectory_setpoint6dof.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
@@ -128,7 +128,7 @@ public:
 	 * Note: NAN value means no feed forward/leave state uncontrolled if there's no higher order setpoint.
 	 * @param setpoint setpoints including feed-forwards to execute in update()
 	 */
-	void setInputSetpoint(const trajectory_setpoint_s &setpoint);
+	void setInputSetpoint(const trajectory_setpoint6dof_s &setpoint);
 
 	/**
 	 * Apply P-position and PID-velocity controller that updates the member
@@ -162,7 +162,7 @@ public:
 	/**
 	 * All setpoints are set to NAN (uncontrolled). Timestampt zero.
 	 */
-	static const trajectory_setpoint_s empty_trajectory_setpoint;
+	static const trajectory_setpoint6dof_s empty_trajectory_setpoint;
 
 private:
 	// The range limits of the hover thrust configuration/estimate
