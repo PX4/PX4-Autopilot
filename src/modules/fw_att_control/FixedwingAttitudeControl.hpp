@@ -131,6 +131,7 @@ private:
 	bool _landed{true};
 	float _groundspeed{0.f};
 	bool _in_fw_or_transition_wo_tailsitter_transition{false}; // only run the FW attitude controller in these states
+	float _steering_wheel_yaw_setpoint{NAN};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
