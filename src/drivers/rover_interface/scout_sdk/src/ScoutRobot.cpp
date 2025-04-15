@@ -22,6 +22,7 @@ ScoutRobot::ScoutRobot(ProtocolVersion protocol, bool is_mini_model)
 
 	// Setup buffers
 	_tx_frame.frame.payload = &_tx_data;
+	_tx_frame.tx_deadline_delta_usec = 1000 * 10; // default to 10ms deadline
 	_rx_frame.frame.payload = &_rx_data;
 
 	_version_response_msgs.str_version_response = (const char *)_version_response_string;
@@ -219,8 +220,6 @@ void ScoutRobot::QuerySystemVersion(const uint64_t timeout_msec)
 		AgxMessage status_msg;
 
 		if (_parser.DecodeMessage(&_rx_frame, &status_msg)) {
-			PX4_INFO("QuerySystemVersion: %s", status_msg.body.version_str);
-
 			if (UpdateVersionResponse(status_msg) == PX4_OK) { break; }
 		}
 	}

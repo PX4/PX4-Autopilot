@@ -29,7 +29,8 @@ struct RxFrame {
 
 /// TX Frame with its transmission deadline.
 struct TxFrame {
-	uint64_t tx_deadline_usec;
+	/// The duration between send time and transmission deadline in microseconds.
+	uint64_t tx_deadline_delta_usec;
 
 	/// The actual CAN frame data.
 	CANFrame frame;
@@ -54,7 +55,7 @@ public:
 	/// Send a Frame to the SocketInstance socket
 	/// This function is blocking
 	/// The return value is number of bytes transferred, negative value on error.
-	int16_t SendFrame(const TxFrame &txframe, int timeout_ms = 0);
+	int16_t SendFrame(const TxFrame &txframe);
 
 	/// Receive a Frame from the SocketInstance socket
 	/// This function is blocking

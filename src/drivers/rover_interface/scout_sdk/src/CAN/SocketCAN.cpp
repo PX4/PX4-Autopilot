@@ -39,9 +39,13 @@
 
 uint64_t getMonotonicTimestampUSec(void)
 {
-	struct timespec ts {};
+	struct timespec ts;
 
-	clock_gettime(CLOCK_MONOTONIC, &ts);
+	memset(&ts, 0, sizeof(ts));
+
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
+		std::abort();
+	}
 
 	return ts.tv_sec * 1000000ULL + ts.tv_nsec / 1000ULL;
 }
@@ -155,7 +159,7 @@ int SocketCAN::Init(const char *const can_iface_name, const uint32_t can_bitrate
 	return 0;
 }
 
-int16_t SocketCAN::SendFrame(const TxFrame &txf, int timeout_ms)
+int16_t SocketCAN::SendFrame(const TxFrame &txf)
 {
 	/* Copy Frame to can_frame/canfd_frame */
 	if (_can_fd) {
@@ -165,19 +169,25 @@ int16_t SocketCAN::SendFrame(const TxFrame &txf, int timeout_ms)
 
 	} else {
 		struct can_frame *frame = (struct can_frame *)&_send_frame;
-		//frame->can_id = txf.frame.can_id | CAN_EFF_FLAG;
 		frame->can_id = txf.frame.can_id;
 		frame->can_dlc = txf.frame.payload_size;
 		memcpy(&frame->data, txf.frame.payload, txf.frame.payload_size);
 		PX4_DEBUG("cansend len %d; can_id: %03x", frame->can_dlc, frame->can_id);
 	}
 
-	uint64_t deadline_systick = getMonotonicTimestampUSec() + (txf.tx_deadline_usec - hrt_absolute_time()) +
-				    CONFIG_USEC_PER_TICK; // Compensate for precision loss when converting hrt to systick
+	/* Check if deadline duration is valid */
+	if (txf.tx_deadline_delta_usec > 0) {
+		uint64_t deadline_systick = getMonotonicTimestampUSec() + txf.tx_deadline_delta_usec;
 
-	/* Set CAN_RAW_TX_DEADLINE timestamp  */
-	_send_tv->tv_usec = deadline_systick % 1000000ULL;
-	_send_tv->tv_sec = (deadline_systick - _send_tv->tv_usec) / 1000000ULL;
+		/* Set CAN_RAW_TX_DEADLINE timestamp */
+		_send_tv->tv_usec = deadline_systick % 1000000ULL;
+		_send_tv->tv_sec = (deadline_systick - _send_tv->tv_usec) / 1000000ULL;
+
+	} else {
+		/* Indefinite deadline case: remove this logic and set CONFIG_NET_CAN_RAW_DEFAULT_TX_DEADLINE to 0 instead */
+		PX4_ERR("Invalid tx_deadline_delta_usec value: %lu", txf.tx_deadline_delta_usec);
+		return -1;
+	}
 
 	auto ret =  sendmsg(_fd, &_send_msg, 0);
 
@@ -230,8 +240,13 @@ int16_t SocketCAN::SetMaskFilter(const uint32_t value, const uint32_t mask)
 	_ifr.ifr_ifru.ifru_can_filter.ftype = CAN_FILTER_MASK;
 	_ifr.ifr_ifru.ifru_can_filter.fprio = CAN_MSGPRIO_LOW;
 
-	if (ioctl(_fd, SIOCACANEXTFILTER, &_ifr) < 0) {
-		PX4_ERR("Setting RX bit filter failed. CAN bit filter is not supported");
+	if (ioctl(_fd, SIOCDCANSTDFILTER, &_ifr) < 0) {
+		PX4_ERR("Resetting RX mask filter failed. CAN mask filter is not supported");
+		return -1;
+	}
+
+	if (ioctl(_fd, SIOCACANSTDFILTER, &_ifr) < 0) {
+		PX4_ERR("Setting RX mask filter failed. CAN mask filter is not supported");
 		return -1;
 	}
 
