@@ -87,6 +87,7 @@
 #include "standard.h"
 #include "tailsitter.h"
 #include "tiltrotor.h"
+#include "vtol_type.h"
 
 using namespace time_literals;
 
@@ -149,8 +150,8 @@ private:
 	void Run() override;
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_virtual_fw_sub{this, ORB_ID(vehicle_torque_setpoint_virtual_fw)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_virtual_mc_sub{this, ORB_ID(vehicle_torque_setpoint_virtual_mc)};
-	uORB::SubscriptionCallbackWorkItem _vehicle_thrust_setpoint_virtual_fw_sub{this, ORB_ID(vehicle_thrust_setpoint_virtual_fw)};
-	uORB::SubscriptionCallbackWorkItem _vehicle_thrust_setpoint_virtual_mc_sub{this, ORB_ID(vehicle_thrust_setpoint_virtual_mc)};
+	uORB::Subscription _vehicle_thrust_setpoint_virtual_fw_sub{ORB_ID(vehicle_thrust_setpoint_virtual_fw)};
+	uORB::Subscription _vehicle_thrust_setpoint_virtual_mc_sub{ORB_ID(vehicle_thrust_setpoint_virtual_mc)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -223,6 +224,7 @@ private:
 	uint8_t _nav_state_prev;
 
 	VtolType	*_vtol_type{nullptr};	// base class for different vtol types
+	mode		_previous_vtol_mode;
 
 	bool		_initialized{false};
 
@@ -235,6 +237,12 @@ private:
 	void		vehicle_cmd_poll();
 
 	void 		parameters_update();
+
+	void		update_registrations();
+
+	void		register_mc_callbacks();
+
+	void		register_fw_callbacks();
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::VT_TYPE>) _param_vt_type,

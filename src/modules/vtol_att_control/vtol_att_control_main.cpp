@@ -94,26 +94,7 @@ VtolAttitudeControl::~VtolAttitudeControl()
 bool
 VtolAttitudeControl::init()
 {
-	if (!_vehicle_torque_setpoint_virtual_fw_sub.registerCallback()) {
-		PX4_ERR("callback registration failed");
-		return false;
-	}
-
-	if (!_vehicle_torque_setpoint_virtual_mc_sub.registerCallback()) {
-		PX4_ERR("callback registration failed");
-		return false;
-	}
-
-	if (!_vehicle_thrust_setpoint_virtual_fw_sub.registerCallback()) {
-		PX4_ERR("callback registration failed");
-		return false;
-	}
-
-	if (!_vehicle_thrust_setpoint_virtual_mc_sub.registerCallback()) {
-		PX4_ERR("callback registration failed");
-		return false;
-	}
-
+	ScheduleNow();
 	return true;
 }
 
@@ -273,13 +254,47 @@ VtolAttitudeControl::parameters_update()
 }
 
 void
+VtolAttitudeControl::update_registrations()
+{
+	mode current_vtol_mode = _vtol_type->get_mode();
+
+	switch (current_vtol_mode) {
+	case mode::TRANSITION_TO_FW:
+	case mode::TRANSITION_TO_MC:
+	case mode::ROTARY_WING:
+		register_mc_callbacks();
+		break;
+
+	case mode::FIXED_WING:
+		register_fw_callbacks();
+		break;
+	}
+
+	_previous_vtol_mode = current_vtol_mode;
+}
+
+void
+VtolAttitudeControl::register_mc_callbacks()
+{
+	if (_vehicle_torque_setpoint_virtual_mc_sub.registerCallback()) {
+		_vehicle_torque_setpoint_virtual_fw_sub.unregisterCallback();
+	}
+}
+
+void
+VtolAttitudeControl::register_fw_callbacks()
+{
+	if (_vehicle_torque_setpoint_virtual_fw_sub.registerCallback()) {
+		_vehicle_torque_setpoint_virtual_mc_sub.unregisterCallback();
+	}
+}
+
+void
 VtolAttitudeControl::Run()
 {
 	if (should_exit()) {
 		_vehicle_torque_setpoint_virtual_fw_sub.unregisterCallback();
 		_vehicle_torque_setpoint_virtual_mc_sub.unregisterCallback();
-		_vehicle_thrust_setpoint_virtual_fw_sub.unregisterCallback();
-		_vehicle_thrust_setpoint_virtual_mc_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -298,6 +313,7 @@ VtolAttitudeControl::Run()
 	if (!_initialized) {
 
 		if (_vtol_type->init()) {
+			update_registrations();
 			_initialized = true;
 
 		} else {
@@ -315,8 +331,13 @@ VtolAttitudeControl::Run()
 
 	// run on actuator publications corresponding to VTOL mode
 	bool should_run = false;
+	mode current_vtol_mode = _vtol_type->get_mode();
 
-	switch (_vtol_type->get_mode()) {
+	if (current_vtol_mode != _previous_vtol_mode) {
+		update_registrations();
+	}
+
+	switch (current_vtol_mode) {
 	case mode::TRANSITION_TO_FW:
 	case mode::TRANSITION_TO_MC:
 		should_run = updated_fw_in || updated_mc_in;
