@@ -45,7 +45,7 @@ TEST_CASE("Takeoff and hold position", "[multicopter][vtol]")
 
 	AutopilotTester tester;
 	tester.connect(connection_url);
-	tester.wait_until_ready();
+	tester.wait_until_ready();sdsdd
 
 	tester.set_takeoff_altitude(takeoff_altitude);
 	tester.store_home();
@@ -58,7 +58,9 @@ TEST_CASE("Takeoff and hold position", "[multicopter][vtol]")
 	tester.wait_until_hovering();
 
 	// Takeoff altitude is relative to ground altitude, which is not always zero.
-	float altitude = tester.relative_altitude() + takeoff_altitude;
+	float relative = tester.relative_altitude();
+	float altitude = relative + takeoff_altitude;
+	printf("relative: %f", relative);
 	tester.wait_until_altitude(altitude, std::chrono::seconds(30), altitude_tolerance);
 
 	// Monitor altitude and fail if it exceeds the tolerance

@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.5.1)
 
 project(mavsdk_tests CXX)
 
+message("BUILDING MAVSDK TESTS")
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

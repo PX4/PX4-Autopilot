@@ -83,6 +83,18 @@ if (gz-transport_FOUND)
 		EXCLUDE_FROM_ALL true
 	)
 
+	message(STATUS "Configuring MAVSDK tests build")
+	ExternalProject_Add(mavsdk_tests
+		SOURCE_DIR ${PX4_SOURCE_DIR}/test/mavsdk_tests
+		CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+		BINARY_DIR ${PX4_BINARY_DIR}/mavsdk_tests
+		INSTALL_COMMAND ""
+		USES_TERMINAL_CONFIGURE true
+		USES_TERMINAL_BUILD true
+		# EXCLUDE_FROM_ALL true
+		BUILD_ALWAYS 1
+	)
+
 	# Below we setup the build targets for our worlds and models
 	# Syntax: gz_<model_name>_<world_name>
 	# Example: gz_x500_flow_forest
