@@ -40,10 +40,7 @@
 using namespace matrix;
 
 SpacecraftPositionControl::SpacecraftPositionControl(ModuleParams *parent) : ModuleParams(parent),
-	_vehicle_attitude_setpoint_pub(ORB_ID(vehicle_attitude_setpoint)),
-	_vel_x_deriv(this, "VELD"),
-	_vel_y_deriv(this, "VELD"),
-	_vel_z_deriv(this, "VELD")
+	_vehicle_attitude_setpoint_pub(ORB_ID(vehicle_attitude_setpoint))
 {
 	updateParams();
 }
@@ -58,7 +55,6 @@ void SpacecraftPositionControl::updateParams()
 
 		// update parameters from storage
 		ModuleParams::updateParams();
-		SuperBlock::updateParams();
 
 		int num_changed = 0;
 
@@ -156,28 +152,16 @@ PositionControlStates SpacecraftPositionControl::set_vehicle_states(const vehicl
 
 	if (vehicle_local_position.v_xy_valid && velocity_xy.isAllFinite()) {
 		states.velocity.xy() = velocity_xy;
-		states.acceleration(0) = _vel_x_deriv.update(velocity_xy(0));
-		states.acceleration(1) = _vel_y_deriv.update(velocity_xy(1));
 
 	} else {
 		states.velocity(0) = states.velocity(1) = NAN;
-		states.acceleration(0) = states.acceleration(1) = NAN;
-
-		// reset derivatives to prevent acceleration spikes when regaining velocity
-		_vel_x_deriv.reset();
-		_vel_y_deriv.reset();
 	}
 
 	if (PX4_ISFINITE(vehicle_local_position.vz) && vehicle_local_position.v_z_valid) {
 		states.velocity(2) = vehicle_local_position.vz;
-		states.acceleration(2) = _vel_z_deriv.update(states.velocity(2));
 
 	} else {
 		states.velocity(2) = NAN;
-		states.acceleration(2) = NAN;
-
-		// reset derivative to prevent acceleration spikes when regaining velocity
-		_vel_z_deriv.reset();
 	}
 
 	if (PX4_ISFINITE(vehicle_attitude.q[0]) && PX4_ISFINITE(vehicle_attitude.q[1]) && PX4_ISFINITE(vehicle_attitude.q[2])
@@ -200,9 +184,6 @@ void SpacecraftPositionControl::updatePositionControl()
 		const float dt =
 			math::constrain(((vehicle_local_position.timestamp_sample - _time_stamp_last_loop) * 1e-6f), 0.002f, 0.04f);
 		_time_stamp_last_loop = vehicle_local_position.timestamp_sample;
-
-		// set _dt in controllib Block for BlockDerivative
-		setDt(dt);
 
 		if (_vehicle_control_mode_sub.updated()) {
 			const bool previous_position_control_enabled = _vehicle_control_mode.flag_control_position_enabled;
@@ -244,17 +225,9 @@ void SpacecraftPositionControl::updatePositionControl()
 			}
 
 			if (vehicle_local_position.heading_reset_counter != _heading_reset_counter) {
-				_setpoint.yaw = wrap_pi(_setpoint.yaw + vehicle_local_position.delta_heading);
+				// Set proper attitude setpoint with quaternion
+				// _setpoint.yaw = wrap_pi(_setpoint.yaw + vehicle_local_position.delta_heading);
 			}
-		}
-
-		if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
-			_vel_x_deriv.reset();
-			_vel_y_deriv.reset();
-		}
-
-		if (vehicle_local_position.vz_reset_counter != _vz_reset_counter) {
-			_vel_z_deriv.reset();
 		}
 
 		// save latest reset counters
@@ -328,8 +301,6 @@ void SpacecraftPositionControl::publishLocalPositionSetpoint(vehicle_attitude_se
 	local_position_setpoint.x = _setpoint.position[0];
 	local_position_setpoint.y = _setpoint.position[1];
 	local_position_setpoint.z = _setpoint.position[2];
-	local_position_setpoint.yaw = NAN;
-	local_position_setpoint.yawspeed = NAN;
 	local_position_setpoint.vx = _setpoint.velocity[0];
 	local_position_setpoint.vy = _setpoint.velocity[1];
 	local_position_setpoint.vz = _setpoint.velocity[2];
@@ -348,10 +319,7 @@ void SpacecraftPositionControl::poll_manual_setpoint(const float dt,
 {
 	if (_vehicle_control_mode.flag_control_manual_enabled && _vehicle_control_mode.flag_armed) {
 		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)) {
-
-			if (!_vehicle_control_mode.flag_control_climb_rate_enabled &&
-			    !_vehicle_control_mode.flag_control_offboard_enabled) {
-
+			if (!_vehicle_control_mode.flag_control_offboard_enabled) {
 				if (_vehicle_control_mode.flag_control_attitude_enabled &&
 				    _vehicle_control_mode.flag_control_position_enabled) {
 					// We are in Stabilized mode
@@ -391,7 +359,7 @@ void SpacecraftPositionControl::poll_manual_setpoint(const float dt,
 					const float pitch_body = 0.0;
 
 					Quatf q_sp(Eulerf(roll_body, pitch_body, _manual_yaw_sp));
-					q_sp.copyTo(_setpoint.attitude);
+					q_sp.copyTo(_setpoint.quaternion);
 
 					_setpoint.timestamp = hrt_absolute_time();
 
@@ -409,7 +377,7 @@ void SpacecraftPositionControl::poll_manual_setpoint(const float dt,
 	}
 }
 
-trajectory_setpoint_s SpacecraftPositionControl::generateFailsafeSetpoint(const hrt_abstime &now,
+trajectory_setpoint6dof_s SpacecraftPositionControl::generateFailsafeSetpoint(const hrt_abstime &now,
 		const PositionControlStates &states, bool warn)
 {
 	// rate limit the warnings
@@ -420,7 +388,7 @@ trajectory_setpoint_s SpacecraftPositionControl::generateFailsafeSetpoint(const 
 		_last_warn = now;
 	}
 
-	trajectory_setpoint_s failsafe_setpoint = ScPositionControl::empty_trajectory_setpoint;
+	trajectory_setpoint6dof_s failsafe_setpoint = ScPositionControl::empty_trajectory_setpoint;
 	failsafe_setpoint.timestamp = now;
 
 	failsafe_setpoint.velocity[0] = failsafe_setpoint.velocity[1] = failsafe_setpoint.velocity[2] = 0.f;

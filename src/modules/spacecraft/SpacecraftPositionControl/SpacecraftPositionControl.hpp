@@ -57,7 +57,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/trajectory_setpoint6dof.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -73,13 +73,13 @@ public:
 	SpacecraftPositionControl(ModuleParams *parent);
 	~SpacecraftPositionControl() = default;
 
-	bool updatePositionControl();
+	void updatePositionControl();
 
 protected:
 	/**
 	 * Update our local parameter cache.
 	 */
-	void updateParams(bool force);
+	void updateParams();
 
 private:
 
@@ -92,7 +92,7 @@ private:
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)}; 	/**< notification of manual control updates */
 
-	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
+	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint6dof)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 
@@ -100,7 +100,7 @@ private:
 	hrt_abstime _time_position_control_enabled{0};
 	hrt_abstime _manual_setpoint_last_called{0};
 
-	trajectory_setpoint_s 		_setpoint{ScPositionControl::empty_trajectory_setpoint};
+	trajectory_setpoint6dof_s 	_setpoint{ScPositionControl::empty_trajectory_setpoint};
 	vehicle_control_mode_s 		_vehicle_control_mode{};
 	manual_control_setpoint_s	_manual_control_setpoint{};			    /**< r/c channel data */
 
@@ -126,10 +126,6 @@ private:
 		(ParamFloat<px4::params::SPC_JERK_MAX>)     _param_mpc_jerk_max,
 		(ParamFloat<px4::params::SPC_THR_MAX>)      _param_mpc_thr_max
 	);
-
-	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
-	control::BlockDerivative _vel_y_deriv; /**< velocity derivative in y */
-	control::BlockDerivative _vel_z_deriv; /**< velocity derivative in z */
 
 	matrix::Vector3f target_pos_sp;
 	float yaw_rate;
@@ -176,5 +172,5 @@ private:
 	 * Used to handle transitions where no proper setpoint was generated yet and when the received setpoint is invalid.
 	 * This should only happen briefly when transitioning and never during mode operation or by design.
 	 */
-	trajectory_setpoint_s generateFailsafeSetpoint(const hrt_abstime &now, const PositionControlStates &states, bool warn);
+	trajectory_setpoint6dof_s generateFailsafeSetpoint(const hrt_abstime &now, const PositionControlStates &states, bool warn);
 };
