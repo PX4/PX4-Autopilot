@@ -94,4 +94,4 @@ PARAM_DEFINE_FLOAT(MPC_MANTHR_MIN, 0.08f);
  * @value 2 Rescale to estimate
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(MPC_THR_CURVE, 0);
+PARAM_DEFINE_INT32(MPC_THR_CURVE, 2);
