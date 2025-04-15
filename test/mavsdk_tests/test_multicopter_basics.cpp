@@ -56,7 +56,10 @@ TEST_CASE("Takeoff and hold position", "[multicopter][vtol]")
 	tester.arm();
 	tester.takeoff();
 	tester.wait_until_hovering();
-	tester.wait_until_altitude(takeoff_altitude, std::chrono::seconds(30), altitude_tolerance);
+
+	// Takeoff altitude is relative to ground altitude, which is not always zero.
+	float altitude = tester.getHome().absolute_altitude_m + takeoff_altitude;
+	tester.wait_until_altitude(altitude, std::chrono::seconds(30), altitude_tolerance);
 
 	// Monitor altitude and fail if it exceeds the tolerance
 	tester.start_checking_altitude(altitude_tolerance + 0.1);
