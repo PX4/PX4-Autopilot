@@ -210,6 +210,25 @@ void AutopilotTester::wait_until_hovering()
 	wait_for_landed_state(Telemetry::LandedState::InAir, std::chrono::seconds(45));
 }
 
+float AutopilotTester::relative_altitude()
+{
+	auto prom = std::promise<void> {};
+	auto fut = prom.get_future();
+
+	float relative_altitude = NAN;
+
+	_telemetry->subscribe_position([&prom, relative_altitude, this](Telemetry::Position new_position) {
+		_telemetry->subscribe_position(nullptr);
+		relative_altitude = new_position.relative_altitude_m;
+		prom.set_value();
+	});
+
+	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
+
+	return relative_altitude;
+}
+
+
 void AutopilotTester::wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout, float delta)
 {
 	auto prom = std::promise<void> {};

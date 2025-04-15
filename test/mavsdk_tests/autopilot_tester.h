@@ -103,6 +103,8 @@ public:
 	 */
 	void wait_until_ready();
 
+	float relative_altitude();
+
 	void store_home();
 	void check_home_within(float acceptance_radius_m);
 	void check_home_not_within(float min_distance_m);
@@ -189,15 +191,6 @@ public:
 		}
 	}
 
-	const Telemetry::GroundTruth &getHome()
-	{
-		// Check if home was stored before it is accessed
-		CHECK(_home.absolute_altitude_m != NAN);
-		CHECK(_home.latitude_deg != NAN);
-		CHECK(_home.longitude_deg != NAN);
-		return _home;
-	}
-
 protected:
 	mavsdk::Param *getParams() const { return _param.get();}
 	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
@@ -207,6 +200,14 @@ protected:
 	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
 	bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos, float acceptance_radius_m);
 
+	const Telemetry::GroundTruth &getHome()
+	{
+		// Check if home was stored before it is accessed
+		CHECK(_home.absolute_altitude_m != NAN);
+		CHECK(_home.latitude_deg != NAN);
+		CHECK(_home.longitude_deg != NAN);
+		return _home;
+	}
 
 private:
 	mavsdk::Mission::MissionItem create_mission_item(
