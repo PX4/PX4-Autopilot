@@ -132,7 +132,6 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
-		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
 		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
 		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
 		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
