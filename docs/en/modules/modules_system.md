@@ -467,7 +467,7 @@ the mission log). It should be large to avoid dropouts.
 ### Examples
 Typical usage to start logging immediately:
 ```
-logger start -e -t
+logger start -e
 ```
 
 Or if already running:

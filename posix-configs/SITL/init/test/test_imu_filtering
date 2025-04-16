@@ -43,7 +43,7 @@ fake_imu start
 sensors start
 gyro_fft start
 
-logger start -f -t -b 10000 -p sensor_gyro
+logger start -f -b 10000 -p sensor_gyro
 logger on
 
 echo "Running for 10 seconds"

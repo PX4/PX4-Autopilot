@@ -240,7 +240,7 @@ mavlink start -x -u 14558 -o 14559 -r 100000 -n lo
 # because if power is removed without stopping the logger gracefully then
 # the log file may be corrupted. Rather than using "-e" option it's better
 # to use the SDLOG_MODE to do that.
-logger start -t -b 256
+logger start -b 256
 
 mavlink boot_complete
 
