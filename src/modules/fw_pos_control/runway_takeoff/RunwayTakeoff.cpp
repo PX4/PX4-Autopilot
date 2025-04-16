@@ -51,10 +51,8 @@ using namespace time_literals;
 namespace runwaytakeoff
 {
 
-void RunwayTakeoff::init(const hrt_abstime &time_now, const float initial_yaw, const matrix::Vector2d &start_pos_global)
+void RunwayTakeoff::init(const hrt_abstime &time_now)
 {
-	initial_yaw_ = initial_yaw;
-	start_pos_global_ = start_pos_global;
 	takeoff_state_ = RunwayTakeoffState::THROTTLE_RAMP;
 	initialized_ = true;
 	time_initialized_ = time_now;
@@ -99,42 +97,26 @@ void RunwayTakeoff::update(const hrt_abstime &time_now, const float takeoff_airs
 	}
 }
 
-bool RunwayTakeoff::controlYaw()
-{
-	// keep controlling yaw directly until we start navigation
-	return takeoff_state_ < RunwayTakeoffState::CLIMBOUT;
-}
-
-float RunwayTakeoff::getPitch(float external_pitch_setpoint)
+float RunwayTakeoff::getPitch()
 {
 	if (takeoff_state_ <= RunwayTakeoffState::CLAMPED_TO_RUNWAY) {
 		return math::radians(param_rwto_psp_.get());
 	}
 
-	return external_pitch_setpoint;
+	return NAN;
 }
 
-float RunwayTakeoff::getRoll(float external_roll_setpoint)
+float RunwayTakeoff::getRoll()
 {
 	// until we have enough ground clearance, set roll to 0
 	if (takeoff_state_ < RunwayTakeoffState::CLIMBOUT) {
 		return 0.0f;
 	}
 
-	return external_roll_setpoint;
+	return NAN;
 }
 
-float RunwayTakeoff::getYaw(float external_yaw_setpoint)
-{
-	if (param_rwto_hdg_.get() == 0 && takeoff_state_ < RunwayTakeoffState::CLIMBOUT) {
-		return initial_yaw_;
-
-	} else {
-		return external_yaw_setpoint;
-	}
-}
-
-float RunwayTakeoff::getThrottle(const float idle_throttle, const float external_throttle_setpoint) const
+float RunwayTakeoff::getThrottle(const float idle_throttle) const
 {
 	float throttle = idle_throttle;
 
@@ -147,28 +129,16 @@ float RunwayTakeoff::getThrottle(const float idle_throttle, const float external
 		break;
 
 	case RunwayTakeoffState::CLAMPED_TO_RUNWAY:
+	case RunwayTakeoffState::CLIMBOUT:
 		throttle = param_rwto_max_thr_.get();
 
 		break;
 
-	case RunwayTakeoffState::CLIMBOUT:
-		// ramp in throttle setpoint over takeoff rotation transition time
-		throttle = interpolateValuesOverAbsoluteTime(param_rwto_max_thr_.get(), external_throttle_setpoint, takeoff_time_,
-				param_rwto_rot_time_.get());
-
-		break;
-
 	case RunwayTakeoffState::FLY:
-		throttle = external_throttle_setpoint;
+		throttle = NAN;
 	}
 
 	return throttle;
-}
-
-bool RunwayTakeoff::resetIntegrators()
-{
-	// reset integrators if we're still on runway
-	return takeoff_state_ < RunwayTakeoffState::CLIMBOUT;
 }
 
 float RunwayTakeoff::getMinPitch(float min_pitch_in_climbout, float min_pitch) const
