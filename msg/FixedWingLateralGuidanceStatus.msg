@@ -1,10 +1,13 @@
+# Fixed Wing Lateral Guidance Status message
+# Published by fw_pos_control module to report the resultant lateral setpoints and NPFG debug outputs
+
 uint64 timestamp                # time since system start (microseconds)
 
-float32 course_setpoint         # bearing angle (same as course) [rad]
-float32 lateral_acceleration_ff # lateral acceleration demand only for maintaining curvature [m/s^2]
-float32 bearing_feas            # bearing feasibility [0,1]
-float32 bearing_feas_on_track   # on-track bearing feasibility [0,1]
-float32 signed_track_error      # signed track error [m]
-float32 track_error_bound       # track error bound [m]
-float32 adapted_period          # adapted period (if auto-tuning enabled) [s]
+float32 course_setpoint         # [rad] [-pi, pi] Bearing angle. Same as course over ground setpoint, w.r.t. North.
+float32 lateral_acceleration_ff # [m/s^2] [FRD] lateral acceleration demand only for maintaining curvature
+float32 bearing_feas            # [0,1] bearing feasibility
+float32 bearing_feas_on_track   # [0,1] on-track bearing feasibility
+float32 signed_track_error      # [m] signed track error
+float32 track_error_bound       # [m] track error bound
+float32 adapted_period          # [s] adapted period (if auto-tuning enabled)
 uint8 wind_est_valid            # (boolean) true = wind estimate is valid and/or being used by controller (also indicates if wind est usage is disabled despite being valid)
