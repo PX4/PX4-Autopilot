@@ -41,3 +41,4 @@ px4_add_library(npfg
 )
 
 target_link_libraries(npfg PRIVATE geo)
+px4_add_unit_gtest(SRC NpfgTest.cpp LINKLIBS npfg)
