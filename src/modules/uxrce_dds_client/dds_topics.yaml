@@ -163,5 +163,17 @@ subscriptions:
   - topic: /fmu/in/aux_global_position
     type: px4_msgs::msg::VehicleGlobalPosition
 
+  - topic: /fmu/in/fixed_wing_longitudinal_setpoint
+    type: px4_msgs::msg::FixedWingLongitudinalSetpoint
+
+  - topic: /fmu/in/fixed_wing_lateral_setpoint
+    type: px4_msgs::msg::FixedWingLateralSetpoint
+
+  - topic: /fmu/in/longitudinal_control_configuration
+    type: px4_msgs::msg::LongitudinalControlConfiguration
+
+  - topic: /fmu/in/lateral_control_configuration
+    type: px4_msgs::msg::LateralControlConfiguration
+
 # Create uORB::PublicationMulti
 subscriptions_multi:
