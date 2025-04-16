@@ -1315,10 +1315,7 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 
 	// Check if time is non-zero for valid UTC timestamp
 	if (timestamp_utc > 0) {
-		int offset = _param_sdlog_utc_offset.get() * 60;
-		if (timestamp_utc > abs(offset)) {
-			timestamp_utc += offset;
-		}
+		timestamp_utc += _param_sdlog_utc_offset.get() * 60;
 
 		tm tt = {};
 		gmtime_r(&timestamp_utc, &tt);
