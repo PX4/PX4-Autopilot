@@ -227,7 +227,7 @@ MulticopterAttitudeControl::Run()
 	if (_vehicle_status_sub.updated()) {
 		hover_thrust_estimate_s hover_thrust_estimate;
 
-		if (_hover_thrust_slewrate_estimate_sub.update(&hover_thrust_estimate)) {
+		if (_hover_thrust_estimate_sub.update(&hover_thrust_estimate)) {
 			if (hover_thrust_estimate.valid) {
 				_hover_thrust_estimate = math::constrain(hover_thrust_estimate.hover_thrust, .05f, .9f);
 
