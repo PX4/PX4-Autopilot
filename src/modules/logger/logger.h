@@ -213,6 +213,8 @@ private:
 	 */
 	int get_log_file_name(LogType type, char *file_name, size_t file_name_size);
 
+	void emit_log_start_event(LogType type);
+
 	void start_log_file(LogType type);
 
 	void stop_log_file(LogType type);

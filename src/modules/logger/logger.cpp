@@ -1235,6 +1235,7 @@ int Logger::create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len)
 		strftime(file_name.log_dir, sizeof(LogFileName::log_dir), "%Y-%m-%d", tt);
 		strncpy(log_dir + n, file_name.log_dir, log_dir_len - n);
 
+		// temporary debugging
 		PX4_INFO("creating log dir: %s", log_dir);
 
 		int mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
@@ -1260,6 +1261,9 @@ int Logger::create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len)
 				PX4_ERR("log path too long (%i)", n);
 				return -1;
 			}
+
+			// temporary debugging
+			PX4_INFO("creating log dir: %s", log_dir);
 
 			strncpy(log_dir + n, file_name.log_dir, log_dir_len - n);
 			int mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
@@ -1289,7 +1293,7 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 
 	time_t timestamp_utc = {};
 	struct timespec ts = {};
-	px4_clock_gettime(CLOCK_REALTIME, &ts);
+	// px4_clock_gettime(CLOCK_REALTIME, &ts);
 	timestamp_utc = ts.tv_sec + (ts.tv_nsec / 1e9);
 
 	tm tt = {};
@@ -1325,7 +1329,8 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 		// Create log file name from timestamp
 		char log_file_name_time[16] = "";
 		strftime(log_file_name_time, sizeof(log_file_name_time), "%H_%M_%S", &tt);
-		snprintf(log_file_name, sizeof(LogFileName::log_file_name), "%s%s.ulg%s", log_file_name_time, replay_suffix, crypto_suffix);
+		snprintf(log_file_name, sizeof(LogFileName::log_file_name), "%s%s.ulg%s", log_file_name_time, replay_suffix,
+			 crypto_suffix);
 		PX4_INFO("log_file_name: %s", log_file_name);
 
 		// Now we copy it into some other buffer... why?
@@ -1408,38 +1413,7 @@ void Logger::start_log_file(LogType type)
 	// it isn't quite right since the zeroes get dropped, see below:
 	// PX4: 	2025-04-05/14_27_49.ulg
 	// MAVSDK : 2025-4-5/14_27_49.ulg
-	if (type == LogType::Full) {
-	    // Check if we're using time-based format by checking for hyphen
-	    if (strstr(_file_name[(int)type].log_dir, "-")) {
-
-	    	// TODO: this way of populating the file_name is weird, especially since we already have it above
-	        uint16_t year = 0;
-	        uint8_t month = 0, day = 0;
-	        sscanf(_file_name[(int)type].log_dir, "%hd-%hhd-%hhd", &year, &month, &day);
-
-	        uint8_t hour = 0, minute = 0, second = 0;
-	        sscanf(_file_name[(int)type].log_file_name, "%hhd_%hhd_%hhd", &hour, &minute, &second);
-
-	        events::send<uint16_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t>(
-	            events::ID("logger_open_file_time"),
-	            events::Log::Info,
-	            "logging: opening log file {1}-{2}-{3}/{4}_{5}_{6}.ulg",
-	            year, month, day, hour, minute, second);
-	    } else {
-	        // Session-based format
-	        uint16_t sess = 0;
-	        sscanf(_file_name[(int)type].log_dir, "sess%hd", &sess);
-
-	        uint16_t log_index = 0;
-	        sscanf(_file_name[(int)type].log_file_name, "log%hd", &log_index);
-
-	        events::send<uint16_t, uint16_t>(
-	            events::ID("logger_open_file_sess"),
-	            events::Log::Info,
-	            "logging: opening log file sess{1}/log{2}.ulg",
-	            sess, log_index);
-	    }
-	}
+	emit_log_start_event(type);
 
 	if (_writer.start_log_file(type, file_name)) {
 		_writer.select_write_backend(LogWriter::BackendFile);
@@ -1470,7 +1444,43 @@ void Logger::start_log_file(LogType type)
 
 		_statistics[(int) type].start_time_file = hrt_absolute_time();
 	}
+}
 
+void Logger::emit_log_start_event(LogType type)
+{
+	if (type == LogType::Full) {
+		// Check if we're using time-based format by checking for hyphen
+		if (strstr(_file_name[(int)type].log_dir, "-")) {
+
+			// TODO: this way of populating the file_name is weird, especially since we already have it above
+			uint16_t year = 0;
+			uint8_t month = 0, day = 0;
+			sscanf(_file_name[(int)type].log_dir, "%hd-%hhd-%hhd", &year, &month, &day);
+
+			uint8_t hour = 0, minute = 0, second = 0;
+			sscanf(_file_name[(int)type].log_file_name, "%hhd_%hhd_%hhd", &hour, &minute, &second);
+
+			events::send<uint16_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t>(
+				events::ID("logger_open_file_time"),
+				events::Log::Info,
+				"logging: opening log file {1}-{2}-{3}/{4}_{5}_{6}.ulg",
+				year, month, day, hour, minute, second);
+
+		} else {
+			// Session-based format
+			uint16_t sess = 0;
+			sscanf(_file_name[(int)type].log_dir, "sess%hd", &sess);
+
+			uint16_t log_index = 0;
+			sscanf(_file_name[(int)type].log_file_name, "log%hd", &log_index);
+
+			events::send<uint16_t, uint16_t>(
+				events::ID("logger_open_file_sess"),
+				events::Log::Info,
+				"logging: opening log file sess{1}/log{2}.ulg",
+				sess, log_index);
+		}
+	}
 }
 
 void Logger::stop_log_file(LogType type)
