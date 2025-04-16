@@ -278,7 +278,7 @@ void FwLateralLongitudinalControl::Run()
 
 			fixed_wing_lateral_status_s fixed_wing_lateral_status{};
 			fixed_wing_lateral_status.timestamp = hrt_absolute_time();
-			fixed_wing_lateral_status.lateral_acceleration = lateral_accel_sp;
+			fixed_wing_lateral_status.lateral_acceleration_setpoint = lateral_accel_sp;
 			fixed_wing_lateral_status.can_run_factor = _can_run_factor;
 
 			_fixed_wing_lateral_status_pub.publish(fixed_wing_lateral_status);
