@@ -48,21 +48,6 @@
 PARAM_DEFINE_INT32(RWTO_TKOFF, 0);
 
 /**
- * Specifies which heading should be held during the runway takeoff ground roll.
- *
- * 0: airframe heading when takeoff is initiated
- * 1: position control along runway direction (bearing defined from vehicle position on takeoff initiation to MAV_CMD_TAKEOFF
- *    position defined by operator)
- *
- * @value 0 Airframe
- * @value 1 Runway
- * @min 0
- * @max 1
- * @group Runway Takeoff
- */
-PARAM_DEFINE_INT32(RWTO_HDG, 0);
-
-/**
  * Max throttle during runway takeoff.
  *
  * @unit norm
@@ -101,18 +86,6 @@ PARAM_DEFINE_FLOAT(RWTO_PSP, 0.0);
  * @group Runway Takeoff
  */
 PARAM_DEFINE_FLOAT(RWTO_RAMP_TIME, 2.0f);
-
-/**
- * NPFG period while steering on runway
- *
- * @unit s
- * @min 1.0
- * @max 100.0
- * @decimal 1
- * @increment 0.1
- * @group Runway Takeoff
- */
-PARAM_DEFINE_FLOAT(RWTO_NPFG_PERIOD, 5.0f);
 
 /**
  * Enable use of yaw stick for nudging the wheel during runway ground roll
