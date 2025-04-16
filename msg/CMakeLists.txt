@@ -90,8 +90,6 @@ set(msg_files
 	FollowTargetEstimator.msg
 	FollowTargetStatus.msg
 	FuelTankStatus.msg
-	FixedWingLateralSetpoint.msg
-	FixedWingLongitudinalSetpoint.msg
 	FixedWingLateralGuidanceStatus.msg
 	FixedWingLateralStatus.msg
 	FixedWingRunwayControl.msg
@@ -125,12 +123,10 @@ set(msg_files
 	LandingGearWheel.msg
 	LandingTargetInnovations.msg
 	LandingTargetPose.msg
-	LateralControlConfiguration.msg
 	LaunchDetectionStatus.msg
 	LedControl.msg
 	LoggerStatus.msg
 	LogMessage.msg
-	LongitudinalControlConfiguration.msg
 	MagnetometerBiasEstimate.msg
 	MagWorkerData.msg
 	ManualControlSwitches.msg
@@ -238,7 +234,6 @@ set(msg_files
 	VehicleTorqueSetpoint.msg
 	VelocityLimits.msg
 	WheelEncoders.msg
-	Wind.msg
 	YawEstimatorStatus.msg
 	versioned/ActuatorMotors.msg
 	versioned/ActuatorServos.msg
@@ -247,8 +242,12 @@ set(msg_files
 	versioned/ArmingCheckRequest.msg
 	versioned/BatteryStatus.msg
 	versioned/ConfigOverrides.msg
+	versioned/FixedWingLateralSetpoint.msg
+	versioned/FixedWingLongitudinalSetpoint.msg
 	versioned/GotoSetpoint.msg
 	versioned/HomePosition.msg
+	versioned/LateralControlConfiguration.msg
+	versioned/LongitudinalControlConfiguration.msg
 	versioned/ManualControlSetpoint.msg
 	versioned/ModeCompleted.msg
 	versioned/RegisterExtComponentReply.msg
@@ -268,6 +267,7 @@ set(msg_files
 	versioned/VehicleRatesSetpoint.msg
 	versioned/VehicleStatus.msg
 	versioned/VtolVehicleStatus.msg
+	versioned/Wind.msg
 )
 list(SORT msg_files)
 
