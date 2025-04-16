@@ -1293,11 +1293,8 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 
 	time_t timestamp_utc = {};
 	struct timespec ts = {};
-	// px4_clock_gettime(CLOCK_REALTIME, &ts);
+	px4_clock_gettime(CLOCK_REALTIME, &ts);
 	timestamp_utc = ts.tv_sec + (ts.tv_nsec / 1e9);
-
-	tm tt = {};
-	gmtime_r(&timestamp_utc, &tt);
 
 	const char *replay_suffix = "";
 
@@ -1318,6 +1315,13 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 
 	// Check if time is non-zero for valid UTC timestamp
 	if (timestamp_utc > 0) {
+		int offset = _param_sdlog_utc_offset.get() * 60;
+		if (timestamp_utc > abs(offset)) {
+			timestamp_utc += offset;
+		}
+
+		tm tt = {};
+		gmtime_r(&timestamp_utc, &tt);
 
 		// TODO: move create_log_dir outside of this...
 		int n = create_log_dir(type, &tt, file_name, file_name_size);
