@@ -1393,8 +1393,10 @@ void Logger::start_log_file(LogType type)
 	PX4_INFO("Start file log (type: %s)", log_type_str(type));
 	_statistics[(int) type].start_time_file = 0;
 
+	// TODO: might not need this since get_log_file_name sets a member variable _file_name
 	char file_name[LOG_DIR_LEN] = "";
 
+	// Populates the internal _file_name
 	if (get_log_file_name(type, file_name, sizeof(file_name)) != PX4_OK) {
 		PX4_ERR("failed to get log file name");
 		return;
@@ -1412,8 +1414,8 @@ void Logger::start_log_file(LogType type)
 	// Emit event when we're recording a full log type (TODO: rename "full" to "normal"?)
 	// TODO: do we really need separate events? If the intent is to convey the full log string
 	// it isn't quite right since the zeroes get dropped, see below:
-	// PX4: 	2025-04-05/14_27_49.ulg
-	// MAVSDK : 2025-4-5/14_27_49.ulg
+	// PX4:     2025-04-05/14_27_49.ulg
+	// MAVSDK:  2025-4-5/14_27_49.ulg
 	emit_log_start_event(type);
 
 	if (_writer.start_log_file(type, file_name)) {
@@ -1455,10 +1457,13 @@ void Logger::emit_log_start_event(LogType type)
 
 			// TODO: this way of populating the file_name is weird, especially since we already have it above
 			uint16_t year = 0;
-			uint8_t month = 0, day = 0;
+			uint8_t month = 0;
+			uint8_t day = 0;
 			sscanf(_file_name[(int)type].log_dir, "%hd-%hhd-%hhd", &year, &month, &day);
 
-			uint8_t hour = 0, minute = 0, second = 0;
+			uint8_t hour = 0;
+			uint8_t minute = 0;
+			uint8_t second = 0;
 			sscanf(_file_name[(int)type].log_file_name, "%hhd_%hhd_%hhd", &hour, &minute, &second);
 
 			events::send<uint16_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t>(
