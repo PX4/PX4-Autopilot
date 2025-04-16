@@ -1299,7 +1299,7 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 	// Apply UTC offset parameter and handle potential underflow
 	int32_t utc_offset_seconds = _param_sdlog_utc_offset.get() * 60;
 
-	if (utc_offset_seconds < 0 && timestamp_utc < (uint32_t)abs(utc_offset_seconds)) {
+	if (utc_offset_seconds < 0 && timestamp_utc < (time_t)abs(utc_offset_seconds)) {
 		timestamp_utc = 0;
 
 	} else {
