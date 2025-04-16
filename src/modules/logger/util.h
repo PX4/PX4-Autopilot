@@ -75,15 +75,6 @@ bool file_exist(const char *filename);
 int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb_advert_t &mavlink_log_pub,
 		     int &sess_dir_index);
 
-/**
- * Get the time for log file name
- * @param tt returned time
- * @param utc_offset_sec UTC time offset [s]
- * @param boot_time use time when booted instead of current time
- * @return true on success, false otherwise (eg. if no gps)
- */
-bool get_log_time(struct tm *tt, int utc_offset_sec = 0, bool boot_time = false);
-
 } //namespace util
 } //namespace logger
 } //namespace px4

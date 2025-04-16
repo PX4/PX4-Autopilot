@@ -107,7 +107,7 @@ public:
 
 
 	Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, const char *poll_topic_name,
-	       LogMode log_mode, bool log_name_timestamp, float rate_factor);
+	       LogMode log_mode, float rate_factor);
 
 	~Logger();
 
@@ -211,7 +211,7 @@ private:
 	/**
 	 * Get log file name with directory (create it if necessary)
 	 */
-	int get_log_file_name(LogType type, char *file_name, size_t file_name_size, bool notify);
+	int get_log_file_name(LogType type, char *file_name, size_t file_name_size);
 
 	void start_log_file(LogType type);
 
@@ -350,7 +350,6 @@ private:
 	hrt_abstime					_last_sync_time{0}; ///< last time a sync msg was sent
 
 	LogMode						_log_mode;
-	const bool					_log_name_timestamp;
 
 	LoggerSubscription	 			*_subscriptions{nullptr}; ///< all subscriptions for full & mission log (in front)
 	int						_num_subscriptions{0};
