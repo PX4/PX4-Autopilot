@@ -40,11 +40,18 @@ CourseToAirspeedRefMapper::mapCourseSetpointToHeadingSetpoint(const float bearin
 {
 	const Vector2f bearing_vector = Vector2f{cosf(bearing_setpoint), sinf(bearing_setpoint)};
 	const float wind_cross_bearing = wind_vel.cross(bearing_vector);
+	const float wind_dot_bearing = wind_vel.dot(bearing_vector);
 
-	const float airsp_dot_bearing = projectAirspOnBearing(airspeed_sp, wind_cross_bearing);
-	const Vector2f air_vel_ref = solveWindTriangle(wind_cross_bearing, airsp_dot_bearing, bearing_vector);
+	Vector2f air_vel_ref;
 
-	// TODO check if we need to use infeasibleAirVelRef or other mitigation functions in some cases (high wind)
+	if (bearingIsFeasible(wind_cross_bearing, wind_dot_bearing, airspeed_sp, wind_vel.norm())) {
+
+		const float airsp_dot_bearing = projectAirspOnBearing(airspeed_sp, wind_cross_bearing);
+		air_vel_ref = solveWindTriangle(wind_cross_bearing, airsp_dot_bearing, bearing_vector);
+
+	} else {
+		air_vel_ref = infeasibleAirVelRef(wind_vel, bearing_vector, wind_vel.norm(), airspeed_sp);
+	}
 
 	return atan2f(air_vel_ref(1), air_vel_ref(0));
 }
@@ -96,12 +103,12 @@ CourseToAirspeedRefMapper::solveWindTriangle(const float wind_cross_bearing, con
 			wind_cross_bearing * bearing_vec(0) + airsp_dot_bearing * bearing_vec(1)};
 }
 
-// matrix::Vector2f CourseToAirspeedRefMapper::infeasibleAirVelRef(const Vector2f &wind_vel, const Vector2f &bearing_vec,
-// 		const float wind_speed, const float airspeed) const
-// {
-// 	// NOTE: wind speed must be greater than airspeed, and airspeed must be greater than zero to use this function
-// 	// it is assumed that bearing feasibility is checked and found infeasible (e.g. bearingIsFeasible() = false) prior to entering this method
-// 	// otherwise the normalization of the air velocity vector could have a division by zero
-// 	Vector2f air_vel_ref = sqrtf(math::max(wind_speed * wind_speed - airspeed * airspeed, 0.0f)) * bearing_vec - wind_vel;
-// 	return air_vel_ref.normalized() * airspeed;
-// }
+matrix::Vector2f CourseToAirspeedRefMapper::infeasibleAirVelRef(const Vector2f &wind_vel, const Vector2f &bearing_vec,
+		const float wind_speed, const float airspeed) const
+{
+	// NOTE: wind speed must be greater than airspeed, and airspeed must be greater than zero to use this function
+	// it is assumed that bearing feasibility is checked and found infeasible (e.g. bearingIsFeasible() = false) prior to entering this method
+	// otherwise the normalization of the air velocity vector could have a division by zero
+	Vector2f air_vel_ref = sqrtf(math::max(wind_speed * wind_speed - airspeed * airspeed, 0.0f)) * bearing_vec - wind_vel;
+	return air_vel_ref.normalized() * airspeed;
+}
