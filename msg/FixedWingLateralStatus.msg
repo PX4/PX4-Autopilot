@@ -1,4 +1,7 @@
-uint64 timestamp                # time since system start (microseconds)
+# Fixed Wing Lateral Status message
+# Published by the fw_lateral_longitudinal_control module to report the resultant lateral setpoint
 
-float32 lateral_acceleration    # resultant lateral acceleration reference [m/s^2]
-float32 can_run_factor 	 	# estimate of certainty of the correct functionality of the npfg roll setpoint in [0, 1]
+uint64 timestamp                         # time since system start (microseconds)
+
+float32 lateral_acceleration_setpoint    # [m/s^2] [FRD] resultant lateral acceleration setpoint
+float32 can_run_factor 	 	         # [0, 1] estimate of certainty of the correct functionality of the npfg roll setpoint in
