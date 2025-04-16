@@ -107,6 +107,7 @@ PARAM_DEFINE_FLOAT(LNDFW_TRIG_TIME, 2.f);
  * Fixed-wing land detector: max rotational speed
  *
  * Maximum allowed norm of the angular velocity in the landed state.
+ * Only used if neither airspeed nor groundspeed can be used for landing detection.
  *
  * @unit deg/s
  * @decimal 1
