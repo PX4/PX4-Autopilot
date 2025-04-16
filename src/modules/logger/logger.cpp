@@ -1464,7 +1464,6 @@ void Logger::emit_log_start_event(LogType type)
 		// Check if we're using time-based format by checking for hyphen
 		if (strstr(_file_name[(int)type].log_dir, "-")) {
 
-			// TODO: this way of populating the file_name is weird, especially since we already have it above
 			uint16_t year = 0;
 			uint8_t month = 0;
 			uint8_t day = 0;
