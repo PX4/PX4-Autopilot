@@ -206,7 +206,10 @@ void FwLateralLongitudinalControl::Run()
 			const float airspeed_sp_eas = adapt_airspeed_setpoint(control_interval, _long_control_sp.equivalent_airspeed,
 						      _min_airspeed_from_guidance, _lateral_control_state.wind_speed.length());
 
-			tecs_update_pitch_throttle(control_interval, _long_control_sp.altitude,
+			// If the both altitude and height rate are set, set altitude setpoint to NAN
+			const float altitude_sp = PX4_ISFINITE(_long_control_sp.height_rate) ? NAN : _long_control_sp.altitude;
+
+			tecs_update_pitch_throttle(control_interval, altitude_sp,
 						   airspeed_sp_eas,
 						   _long_configuration.pitch_min,
 						   _long_configuration.pitch_max,
