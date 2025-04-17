@@ -1403,6 +1403,11 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->nav_cmd = NAV_CMD_TAKEOFF;
 			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
 
+			if (std::isnan(mavlink_mission_item->param4))
+			{
+				mission_item->yaw = 0;
+			}
+
 			// TODO may want to just have a new PX4 param to globally rule them all on this feature vs
 			// looking at has nag and ev_ctrl
 

@@ -1122,6 +1122,9 @@ void Ekf::loadMagCovData()
 
 void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 {
+
+	PX4_INFO("resetQuatStateYaw called: %f (%f)\n", (double)yaw, (double)yaw_variance);
+
 	// save a copy of the quaternion state for later use in calculating the amount of reset change
 	const Quatf quat_before_reset = _state.quat_nominal;
 
