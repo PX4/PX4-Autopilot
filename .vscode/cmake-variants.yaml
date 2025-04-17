@@ -276,6 +276,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: cuav_7-nano_default
+    cuav_fmu-v6x_default:
+      short: cuav_fmu-v6x
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cuav_fmu-v6x_default
     cuav_x25_default:
       short: cuav_x25-evo
       buildType: MinSizeRel
