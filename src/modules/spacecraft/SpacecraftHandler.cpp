@@ -77,10 +77,9 @@ void SpacecraftHandler::Run()
 	_spacecraft_rate_control.updateRateControl();
 
 	// TODO: Prepare allocation
-	// if (_vehicle_control_mode.flag_armed) {
-	// 	generateActuatorSetpoint();
-
-	// }
+	if (_vehicle_control_mode.flag_armed) {
+		_spacecraft_control_allocation.generateActuationSignals();
+	}
 
 }
 
