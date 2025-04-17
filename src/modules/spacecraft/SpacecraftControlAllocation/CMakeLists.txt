@@ -32,28 +32,15 @@
 ############################################################################
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-add_subdirectory(SpacecraftControlAllocation)
-add_subdirectory(SpacecraftRateControl)
-add_subdirectory(SpacecraftAttitudeControl)
-add_subdirectory(SpacecraftPositionControl)
+add_subdirectory(ActuatorEffectiveness)
 
-px4_add_module(
-	MODULE modules__spacecraft
-	MAIN spacecraft
-	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
-	STACK_MAIN
-		3000
-	SRCS
-		SpacecraftHandler.cpp
-		SpacecraftHandler.hpp
-	MODULE_CONFIG
-		module.yaml
-	DEPENDS
-		mathlib
-		px4_work_queue
-		SpacecraftRateControl
-		SpacecraftAttitudeControl
-		SpacecraftPositionControl
-		SpacecraftControlAllocation
+px4_add_library(SpacecraftControlAllocation
+	ControlAllocator.cpp
 )
+
+target_link_libraries(SpacecraftControlAllocation PUBLIC mathlib)
+target_link_libraries(SpacecraftControlAllocation PUBLIC ControlAllocation)
+target_link_libraries(SpacecraftControlAllocation PUBLIC ActuatorEffectiveness)
+target_link_libraries(SpacecraftControlAllocation PUBLIC SpacecraftActuatorEffectivenessLibrary)
+target_link_libraries(SpacecraftControlAllocation PUBLIC SlewRate)
+target_include_directories(SpacecraftControlAllocation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
