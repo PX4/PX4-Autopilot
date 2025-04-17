@@ -238,11 +238,7 @@ private:
 
 	void 		parameters_update();
 
-	void		update_registrations();
-
-	void		register_mc_callbacks();
-
-	void		register_fw_callbacks();
+	void		update_callbacks();
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::VT_TYPE>) _param_vt_type,

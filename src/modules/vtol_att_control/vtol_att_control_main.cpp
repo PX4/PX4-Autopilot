@@ -254,7 +254,7 @@ VtolAttitudeControl::parameters_update()
 }
 
 void
-VtolAttitudeControl::update_registrations()
+VtolAttitudeControl::update_callbacks()
 {
 	mode current_vtol_mode = _vtol_type->get_mode();
 
@@ -262,31 +262,21 @@ VtolAttitudeControl::update_registrations()
 	case mode::TRANSITION_TO_FW:
 	case mode::TRANSITION_TO_MC:
 	case mode::ROTARY_WING:
-		register_mc_callbacks();
+		if (_vehicle_torque_setpoint_virtual_mc_sub.registerCallback()) {
+			_vehicle_torque_setpoint_virtual_fw_sub.unregisterCallback();
+		}
+
 		break;
 
 	case mode::FIXED_WING:
-		register_fw_callbacks();
+		if (_vehicle_torque_setpoint_virtual_fw_sub.registerCallback()) {
+			_vehicle_torque_setpoint_virtual_mc_sub.unregisterCallback();
+		}
+
 		break;
 	}
 
 	_previous_vtol_mode = current_vtol_mode;
-}
-
-void
-VtolAttitudeControl::register_mc_callbacks()
-{
-	if (_vehicle_torque_setpoint_virtual_mc_sub.registerCallback()) {
-		_vehicle_torque_setpoint_virtual_fw_sub.unregisterCallback();
-	}
-}
-
-void
-VtolAttitudeControl::register_fw_callbacks()
-{
-	if (_vehicle_torque_setpoint_virtual_fw_sub.registerCallback()) {
-		_vehicle_torque_setpoint_virtual_mc_sub.unregisterCallback();
-	}
 }
 
 void
@@ -313,7 +303,7 @@ VtolAttitudeControl::Run()
 	if (!_initialized) {
 
 		if (_vtol_type->init()) {
-			update_registrations();
+			update_callbacks();
 			_initialized = true;
 
 		} else {
@@ -334,7 +324,7 @@ VtolAttitudeControl::Run()
 	mode current_vtol_mode = _vtol_type->get_mode();
 
 	if (current_vtol_mode != _previous_vtol_mode) {
-		update_registrations();
+		update_callbacks();
 	}
 
 	switch (current_vtol_mode) {
