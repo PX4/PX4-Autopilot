@@ -63,8 +63,8 @@ static const px4_spi_bus_t *_spi_bus1;
 	#ifdef CONFIG_RP2040_SPI0
 		#define CONFIG_RP2XXX_SPI0 CONFIG_RP2040_SPI0
 	#endif
-	#ifdef CONFIG_RP23XX_SPI1
-		#define CONFIG_RP2XXX_SPI1 CONFIG_RP23XX_SPI1
+	#ifdef CONFIG_RP2040_SPI1
+		#define CONFIG_RP2XXX_SPI1 CONFIG_RP2040_SPI1
 	#endif
 
 #endif
@@ -185,7 +185,7 @@ static inline void rp2040_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s 
 		return SPI_STATUS_PRESENT;
 	}
 #else
-	void rp23xx_spi0select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
+	void rp2040_spi0select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 	{
 		spiinfo("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 		rp2040_spixselect(_spi_bus0, dev, devid, selected);

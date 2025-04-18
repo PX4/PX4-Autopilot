@@ -48,6 +48,7 @@
 #define MHZ                     1000000
 
 #define BOARD_XOSC_FREQ         (12 * MHZ)
+#define BOARD_XOSC_STARTUPDELAY 1
 #define BOARD_PLL_SYS_FREQ      (125 * MHZ)
 #define BOARD_PLL_USB_FREQ      (48 * MHZ)
 
@@ -108,7 +109,7 @@
  *  MISO: GPIO4
  *  MOSI: GPIO3
  */
-
+// FIXME: ON Pico W this is connected to GPIO_USB_VBUS_VALID ? or not?
 #define GPIO_SPI0_SCLK  ( 2 | GPIO_FUN(RP2040_GPIO_FUNC_SPI) )
 #define GPIO_SPI0_MISO ( 4 | GPIO_FUN(RP2040_GPIO_FUNC_SPI) )
 #define GPIO_SPI0_MOSI ( 3 | GPIO_FUN(RP2040_GPIO_FUNC_SPI) )
