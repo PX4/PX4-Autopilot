@@ -102,7 +102,7 @@ param_export_internal(param_filter_func filter)
 			i = user_config.get(param).i;
 
 			if (bson_encoder_append_int32(&encoder, param_name(param), i)) {
-				debug("BSON append failed for '%s'", param_name(s->param));
+				//debug("BSON append failed for '%s'", param_name(s->param));
 				goto out;
 			}
 
@@ -112,7 +112,7 @@ param_export_internal(param_filter_func filter)
 			f = user_config.get(param).f;
 
 			if (bson_encoder_append_double(&encoder, param_name(param), (double)f)) {
-				debug("BSON append failed for '%s'", param_name(s->param));
+				//debug("BSON append failed for '%s'", param_name(s->param));
 				goto out;
 			}
 

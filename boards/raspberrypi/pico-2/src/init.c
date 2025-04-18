@@ -85,6 +85,10 @@
 #  include <parameters/flashparams/flashfs.h>
 #endif
 
+#ifdef CONFIG_RP23XX_FLASH_FILE_SYSTEM
+#  include "rp23xx_flash_mtd.h"
+#endif
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -407,18 +411,67 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
  #if defined(FLASH_BASED_PARAMS)					// This probably doesn't relate to RP2040 right now.
  	static sector_descriptor_t params_sector_map[] = {
- 		// FIXME: this is 134,234,112
- 		{1, 16 * 1024, 0x08004000},
+ 		// FIXME: maybe we want to hide this memory from script.ld ?
+ 		// The W25Q128JV array is organized into 65,536 programmable pages of 256-bytes each. Up to 256 bytes
+                //   can be programmed at a time. Pages can be erased in groups of 16 (4KB sector erase), groups of 128
+                //   (32KB block erase), groups of 256 (64KB block erase) or the entire chip (chip erase). The W25Q128JV
+                //    has 4,096 erasable sectors and 256 erasable blocks respectively. The small 4KB sectors allow for greater
+                //    flexibility in applications that require data and parameter storage. (See Figure 2.)
+ 		// flash start + 4MB offset for code = 0x10000000 + 4mb = 268435456 + 4194304 = 272629760 = 0x10400000
+ 		{1, 32 * 1024, 0x10400000},
  		{0, 0, 0},
  	};
 
  	/* Initialize the flashfs layer to use heap allocated memory */
- 	result = parameter_flashfs_init(params_sector_map, NULL, 0);
+ 	int result = parameter_flashfs_init(params_sector_map, (uint8_t *)NULL, (uint16_t)0);
 
  	if (result != OK) {
  		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
  		led_off(LED_AMBER);
+ 	} else {
+ 		syslog(LOG_INFO, "[boot] initialized params in FLASH\n");
  	}
+
+ #endif
+
+
+ #ifdef CONFIG_RP23XX_FLASH_FILE_SYSTEM
+   struct mtd_dev_s *mtd_dev;
+   mtd_dev = rp23xx_flash_mtd_initialize();
+
+   if (mtd_dev == NULL)
+     {
+       syslog(LOG_ERR, "ERROR: flash_mtd_initialize failed: %d\n", errno);
+     }
+   else
+     {
+       int ret = smart_initialize(0, mtd_dev, NULL);
+
+       if (ret < 0)
+         {
+           syslog(LOG_ERR, "ERROR: smart_initialize failed: %d\n", -ret);
+         }
+       else if (sizeof(CONFIG_RP23XX_FLASH_MOUNT_POINT) > 1)
+         {
+           mkdir(CONFIG_RP23XX_FLASH_MOUNT_POINT, 0777);
+
+           /* Mount the file system */
+
+           ret = nx_mount("/dev/smart0",
+                         CONFIG_RP23XX_FLASH_MOUNT_POINT,
+                         "smartfs",
+                         0,
+                         NULL);
+           if (ret < 0)
+             {
+               syslog(LOG_ERR,
+                     "ERROR: nx_mount(\"/dev/smart0\", \"%s\", \"smartfs\","
+                     " 0, NULL) failed: %d\n",
+                     CONFIG_RP23XX_FLASH_MOUNT_POINT,
+                     ret);
+             }
+         }
+     }
 
  #endif
 

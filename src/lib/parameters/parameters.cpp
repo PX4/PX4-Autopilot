@@ -797,6 +797,7 @@ int param_save_default(bool blocking)
 	const char *filename = param_get_default_file();
 
 	if (filename) {
+		PX4_DEBUG("param_save_default to file %s", filename);
 		static constexpr int MAX_ATTEMPTS = 3;
 
 		for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -827,6 +828,7 @@ int param_save_default(bool blocking)
 		}
 
 	} else {
+		PX4_DEBUG("param_save_default to flash");
 		perf_begin(param_export_perf);
 		res = flash_param_save(nullptr);
 		perf_end(param_export_perf);
@@ -1330,7 +1332,8 @@ void param_print_status()
 	if (param_backup_file) {
 		PX4_INFO("backup file: %s", param_backup_file);
 	}
-
+#else
+	PX4_INFO("storage backend: FLASH_BASED_PARAMS");
 #endif /* FLASH_BASED_PARAMS */
 
 	PX4_INFO("storage array: %d/%d elements (%zu bytes total)",

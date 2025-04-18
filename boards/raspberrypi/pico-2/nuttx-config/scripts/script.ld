@@ -206,6 +206,7 @@ SECTIONS
         *(vtable)
 
         *(.time_critical*)
+        *(.ram_code.*)
 
         /* remaining .text and .rodata; i.e. stuff we exclude above because we want it in RAM */
         *(.text*)
@@ -255,6 +256,11 @@ SECTIONS
         __tls_end = .;
         _etbss = ABSOLUTE(.);
     } > RAM
+
+    .flash_section : {
+        . = ALIGN(4*1024);
+        *(.flash.*)
+    } > FLASH
 
     .bss (NOLOAD) : {
         . = ALIGN(4);
