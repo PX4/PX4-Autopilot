@@ -153,6 +153,7 @@ enum SIGNAL_PATH_RESET_BIT : uint8_t {
 	FIFO_FLUSH      = Bit1,
 };
 
+
 // PWR_MGMT0
 enum PWR_MGMT0_BIT : uint8_t {
 	GYRO_MODE_LOW_NOISE  = Bit3 | Bit2, // 11: Places gyroscope in Low Noise (LN) Mode
@@ -211,6 +212,7 @@ enum ACCEL_CONFIG0_BIT : uint8_t {
 // GYRO_CONFIG1
 enum GYRO_CONFIG1_BIT : uint8_t {
 	GYRO_UI_FILT_ORD = Bit3 | Bit2, // 00: 1st Order
+	TEMP_FILT_BW_5HZ = Bit7 | Bit6  // 5hz DLPF
 };
 
 // GYRO_ACCEL_CONFIG0
@@ -241,6 +243,11 @@ enum FIFO_CONFIG1_BIT : uint8_t {
 enum INT_CONFIG0_BIT : uint8_t {
 	// 3:2 FIFO_THS_INT_CLEAR
 	CLEAR_ON_FIFO_READ = Bit3,
+};
+
+// INTF_CONFIG1
+enum INTF_CONFIG1_BIT : uint8_t {
+	INTF1_RTC_REQUIRED = Bit2,
 };
 
 // INT_SOURCE0
@@ -334,12 +341,23 @@ enum GYRO_CONFIG_STATIC5_BIT : uint8_t {
 	// 42 Hz
 	// GYRO_AAF_BITSHIFT_SET = Bit7 | Bit6 | Bit5 | Bit4, //15
 	// GYRO_AAF_BITSHIFT_CLEAR = 0,
+};
 
-
+// INTF_CONFIG5
+enum INTF_CONFIG5_BIT : uint8_t {
+	INTF5_PIN_9_MODE_CLKIN = Bit2,
 };
 
 
 //---------------- BANK2 Register bits
+
+//        AAF_DELT  AAF_DELTSQR  AAF_BITSHIFT
+// 42hz       1          1           15
+// 213hz      5         25           10
+//
+// ACCEL_CONFIG_STATIC2 = AAF_DELT<<1 with bit 7 reserved
+// ACCEL_CONFIG_STATIC3 = (AAF_DELTSQR & 0xFF) // lower 8 bits of DELTSQR
+// ACCEL_CONFIG_STATIC4 = (AAF_BITSHIFT<<4) | ((AAF_DELTSQR & 0xF00)>>8) // rest of  DELTSQR
 
 // ACCEL_CONFIG_STATIC2
 enum ACCEL_CONFIG_STATIC2_BIT : uint8_t {
@@ -347,22 +365,22 @@ enum ACCEL_CONFIG_STATIC2_BIT : uint8_t {
 	ACCEL_AAF_DELT = Bit3 | Bit1,
 
 	// 213 Hz
-	ACCEL_AAF_DELT_SET = Bit3 | Bit1, //5
+	ACCEL_AAF_DELT_SET = Bit3 | Bit1, // 5
 	ACCEL_AAF_DELT_CLEAR = Bit6 | Bit5 | Bit4 | Bit2,
 
-	// 42 Hz
-	// ACCEL_AAF_DELT_SET = Bit1, //1
+	// // 42 Hz
+	// ACCEL_AAF_DELT_SET = Bit1, // 1
 	// ACCEL_AAF_DELT_CLEAR = Bit6 | Bit5 | Bit4 | Bit3 | Bit2,
 };
 
 // ACCEL_CONFIG_STATIC3
 enum ACCEL_CONFIG_STATIC3_BIT : uint8_t {
-	ACCEL_AAF_DELTSQR_LOW = Bit4 | Bit3 | Bit0,
+
 	// 213 Hz
 	ACCEL_AAF_DELTSQR_LOW_SET = Bit4 | Bit3 | Bit0, //25
 	ACCEL_AAF_DELTSQR_LOW_CLEAR = Bit7 | Bit6 | Bit5 | Bit2 | Bit1,
 
-	// 42 Hz
+	// //  42 Hz
 	// ACCEL_AAF_DELTSQR_LOW_SET = Bit0, //1
 	// ACCEL_AAF_DELTSQR_LOW_CLEAR = Bit7 | Bit6 | Bit5 | Bit4 | Bit3 | Bit2 | Bit1,
 
@@ -370,18 +388,14 @@ enum ACCEL_CONFIG_STATIC3_BIT : uint8_t {
 
 // ACCEL_CONFIG_STATIC4
 enum ACCEL_CONFIG_STATIC4_BIT : uint8_t {
-	ACCEL_AAF_BITSHIFT     = Bit7 | Bit5,
-	ACCEL_AAF_DELTSQR_HIGH = 0,
+
 	// 213 Hz
-	ACCEL_AAF_BITSHIFT_SET = Bit7 | Bit5, //10
-	ACCEL_AAF_BITSHIFT_CLEAR = Bit6 | Bit4,
+	ACCEL_AAF_STATIC4_SET = Bit7 | Bit5, // 10 <<4
+	ACCEL_AAF_STATIC4_CLEAR = Bit6 | Bit4 | Bit3 | Bit2 | Bit1 | Bit0,
 
-	// 42 Hz
-	// ACCEL_AAF_BITSHIFT_SET = Bit7 | Bit6 | Bit5 | Bit4, //15
-	// ACCEL_AAF_BITSHIFT_CLEAR = 0,
-
-	ACCEL_AAF_DELTSQR_HIGH_SET = 0,
-	ACCEL_AAF_DELTSQR_HIGH_CLEAR = Bit3 | Bit2 | Bit1 | Bit0,
+	// // 42 Hz
+	// ACCEL_AAF_STATIC4_SET = Bit7 | Bit6 | Bit5 | Bit4, // 15 << 4
+	// ACCEL_AAF_STATIC4_CLEAR = Bit3 | Bit2 | Bit1 | Bit0,
 };
 
 
