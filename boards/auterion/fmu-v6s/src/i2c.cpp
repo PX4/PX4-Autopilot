@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,93 +31,9 @@
  *
  ****************************************************************************/
 
-/**
- * @file lis2mdl_i2c.cpp
- *
- * I2C interface for LIS2MDL
- */
+#include <px4_arch/i2c_hw_description.h>
 
-#include <px4_platform_common/px4_config.h>
-
-#include <assert.h>
-#include <errno.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <sys/types.h>
-#include <unistd.h>
-
-#include <drivers/device/i2c.h>
-
-#include "board_config.h"
-#include "lis2mdl.h"
-
-class LIS2MDL_I2C : public device::I2C
-{
-public:
-	LIS2MDL_I2C(const I2CSPIDriverConfig &config);
-	virtual ~LIS2MDL_I2C() = default;
-
-	virtual int     read(unsigned address, void *data, unsigned count);
-	virtual int     write(unsigned address, void *data, unsigned count);
-
-protected:
-	virtual int     probe();
-
+constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
+	initI2CBusExternal(1),
+	initI2CBusInternal(4),
 };
-
-device::Device *
-LIS2MDL_I2C_interface(const I2CSPIDriverConfig &config);
-
-device::Device *
-LIS2MDL_I2C_interface(const I2CSPIDriverConfig &config)
-{
-	return new LIS2MDL_I2C(config);
-}
-
-LIS2MDL_I2C::LIS2MDL_I2C(const I2CSPIDriverConfig &config) :
-	I2C(config)
-{
-}
-
-int
-LIS2MDL_I2C::probe()
-{
-	uint8_t data = 0;
-
-	_retries = 1;
-
-	if (read(ADDR_WHO_AM_I, &data, 1)) {
-		DEVICE_DEBUG("read_reg fail");
-		return -EIO;
-	}
-
-	if (data != ID_WHO_AM_I) {
-		DEVICE_DEBUG("LIS2MDL bad ID: %02x", data);
-		return -EIO;
-	}
-
-	return OK;
-}
-
-int
-LIS2MDL_I2C::read(unsigned address, void *data, unsigned count)
-{
-	uint8_t cmd = address;
-	return transfer(&cmd, 1, (uint8_t *)data, count);
-}
-
-int
-LIS2MDL_I2C::write(unsigned address, void *data, unsigned count)
-{
-	uint8_t buf[32];
-
-	if (sizeof(buf) < (count + 1)) {
-		return -EIO;
-	}
-
-	buf[0] = address;
-	memcpy(&buf[1], data, count);
-
-	return transfer(&buf[0], count + 1, nullptr, 0);
-}
