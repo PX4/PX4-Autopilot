@@ -23,7 +23,7 @@ Data can be gathered using the following sequence:
 5) Move to a warm dry, still air, constant pressure environment.
 6) Apply power for 45 minutes, keeping the board still.
 7) Remove power and extract the .ulog file
-8) Open a terminal window in the Firmware/Tools directory and run the python calibration script script file: 'python process_sensor_caldata.py <full path name to .ulog file>
+8) Open a terminal window in the Firmware/Tools directory and run the python calibration script script file: 'python3 process_sensor_caldata.py <full path name to .ulog file>
 9) Power the board, connect QGC and load the parameter from the generated .params file onto the board using QGC. Due to the number of parameters, loading them may take some time.
 10) TODO - we need a way for user to reliably tell when parameters have all been changed and saved.
 11) After parameters have finished loading, set SDLOG_MODE and SDLOG_PROFILE to their respective values prior to step 4) and remove power.

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 ############################################################################
 #
 #   Copyright (C) 2013-2014 PX4 Development Team. All rights reserved.
@@ -34,7 +34,7 @@
 
 """Fetch files via nsh console
 
-Usage: python fetch_file.py [-l] [-f] [-d device] [-s speed] [-o out_path] path
+Usage: python3 fetch_file.py [-l] [-f] [-d device] [-s speed] [-o out_path] path
 \t-l\tList files
 \t-f\tOverwrite existing files
 \t-d\tSerial device
@@ -134,7 +134,7 @@ def _get_files_in_dir(ser, path, path_out, force, timeout):
             _get_file(ser, path_fn, path_fn_out, force, timeout)
 
 def _usage():
-    print("""Usage: python fetch_file.py [-l] [-f] [-d device] [-s speed] [-o out_path] path
+    print("""Usage: python3 fetch_file.py [-l] [-f] [-d device] [-s speed] [-o out_path] path
 \t-l\tList files
 \t-f\tOverwrite existing files
 \t-d\tSerial device
