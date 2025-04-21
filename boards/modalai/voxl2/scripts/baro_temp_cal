@@ -18,8 +18,6 @@ def handler(signum, frame):
     global keep_going
     keep_going = 0
     print('\nCtrl+C was pressed. Exiting gracefully...')
-    # keep_going flag doesn't seem reliable yet, just quit
-    sys.exit(0)
 
 def hogcpu():
     while True:
@@ -54,11 +52,6 @@ def get_px4_baro():
 
         retval = p.wait()
 
-    if p.returncode != 0 or not isinstance(temperature, float):
-        print("ERROR calling px4-listener, likely px4 isn't running.")
-        print("Start with systemctl start voxl-px4")
-        sys.exit(1)
-
     return (timestamp,device_id,pressure,temperature)
 
 if __name__ == '__main__':
@@ -67,42 +60,27 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Barometer Test Script')
     parser.add_argument('-n','--num-samples',   type=int, required=False, default=1250)
-    parser.add_argument('-p','--log_path',   type=str, required=False, default='/data/baro_cal_logs/', help='location to save logs and plots to')
-    parser.add_argument('-c','--num-cpus',   type=int, required=False, default=7)
+    parser.add_argument('-p','--path',   type=str, required=False, default='.')
+    parser.add_argument('-c','--num-cpus',   type=int, required=False, default=4)
     parser.add_argument('-i','--num-iter',   type=int, required=False, default=1)
-    parser.add_argument('-f','--force', action='store_true', help='disable temperature range checks and run calibration anyway')
     parser.add_argument('-s','--sleep-interval',   type=int, required=False, default=300)
-    parser.add_argument('-t','--enable-plots', action='store_true', help='Enable plotting')
+    parser.add_argument('-t','--enable-plots',   type=int, required=False, default=0)
     parser.add_argument('-x','--no-params',   type=int, required=False, default=0)
     args = parser.parse_args()
 
-    log_path = args.log_path
+    log_path = args.path
     if log_path != '.':
             try:
-                os.makedirs(log_path, exist_ok=True)
+                os.mkdir(log_path)
             except Exception as e:
                 print(f'Error: Could not create log directory: {e}')
                 sys.exit(1)
-
-    if args.force:
-        print("running in forced mode")
 
     max_sample_count = args.num_samples
     num_iterations = args.num_iter
     num_cpu_stress = args.num_cpus
     sleep_between_iterations = args.sleep_interval #5*60 #seconds
-
-    enable_plots = args.enable_plots
-    if enable_plots:
-        try:
-            import plotly.graph_objects as go
-            from plotly.subplots import make_subplots
-        except:
-            print('ERROR: In order to plot the results, install the Python "plotly" module:')
-            print('sudo apt install -y python3-pip')
-            print('pip3 install plotly --upgrade')
-            sys.exit(1)
-
+    enable_plots = args.enable_plots == 1
     set_px4_parameters = (args.no_params != 1)
 
     signal.signal(signal.SIGINT, handler)
@@ -111,8 +89,7 @@ if __name__ == '__main__':
         if keep_going==0:
             print('Exiting')
             sys.exit(0)
-
-        print(f'Starting iteration #{i}\n')
+        print(f'Starting iteration #{i}')
 
         tlast = 0
         sample_count = 0
@@ -125,41 +102,18 @@ if __name__ == '__main__':
         fname = log_path + '/baro_log_%d_%d.txt' % (i,time_start)
         f     = open(fname, 'w')
 
-
-
-        # wait for temp to be low enough
-        needs_fan_turning_off = False
-        start_temp = 100.0 # this will be reset to current temp shortly
-        while True:
-
-            (timestamp, device_id, pressure, start_temp) = get_px4_baro()
-
-            if args.force:
-                break
-
-            if start_temp < 35.0:
-                break
-
-            print(f"\rBaro too hot ({start_temp:5.1f}C) cool the VOXL with a fan until <35C", end="", flush=True);
-            needs_fan_turning_off = True
-            time.sleep(1);
-
-        if needs_fan_turning_off:
-            input("\nPlease turn the fan OFF, then press Enter to continue.\n")
-
-
         # Create and start CPU hog processes
         if num_cpu_stress:
-            print('\nStarting stress tasks')
+            print('Starting stress tasks')
             for j in range(num_cpu_stress):
                 proc = multiprocessing.Process(target=hogcpu)
                 procs.append(proc)
                 proc.start()
+
         print('Starting data capture')
 
         # Start the data collection loop
         while (sample_count < max_sample_count and keep_going==1):
-
             (timestamp, device_id, pressure, temperature) = get_px4_baro()
 
             #make sure we got new data
@@ -169,20 +123,14 @@ if __name__ == '__main__':
                     ts.append(timestamp)
                     ps.append(pressure)
                     temps.append(temperature)
-                    #print(f'({sample_count:4.d})[{timestamp}] ID: {device_id} P: {pressure}, T: {temperature}')
-                    print(f'({sample_count:4d}) P:{pressure:8.1f}Pa T: {temperature:4.1f}C')
+                    print(f'({sample_count})[{timestamp}] ID: {device_id} P: {pressure}, T: {temperature}')
                     f.write(f'{sample_count}, {int(timestamp)}, {device_id}, {pressure}, {temperature}\n')
-
-                    # can break early if we've already covered a wide 30C temp range
-                    if (temperature > (start_temp+30.0)):
-                        break
                 else:
                     print(f'Incorrect baro device id: {device_id}')
                     break
 
             tlast=timestamp
             time.sleep(0.01)
-
 
         print('Finished collecting data')
 
@@ -198,6 +146,13 @@ if __name__ == '__main__':
 
         if enable_plots:
             print('Generating plots..')
+                
+            try:
+                import plotly.graph_objects as go
+                from plotly.subplots import make_subplots
+            except:
+                print('WARNING: In order to plot the results, install the Python "plotly" module: pip3 install plotly --upgrade')
+                sys.exit(0)
 
             fig = make_subplots(rows=4, cols=1, start_cell="top-left")
 
@@ -229,9 +184,9 @@ if __name__ == '__main__':
             fig.update_xaxes(title_text='Temperature (deg C)',row=4, col=1)
             fig.update_yaxes(title_text='Pressure (Pa)',row=4, col=1)
 
-            html_path = '%s/barometer_test_results_%d_%d.html' % (log_path, i, time_start)
-            print(f"Saving plot to: {html_path}")
-            fig.write_html(html_path, include_plotlyjs='cdn')
+            #fig.update_xaxes(matches='x')
+
+            fig.write_html(log_path + '/barometer_test_results_%d_%d.html' % (i,time_start),include_plotlyjs='cdn')
             #fig.show()  #the figure will not show on VOXL because there is no display / browser
 
         # Figure out PX4 parameters only for first iteration
@@ -331,20 +286,6 @@ if __name__ == '__main__':
             #     fig.add_trace(go.Scatter(x=ts_plot2 , y=p_plot2, name=f'[{log_cntr}] Pressure Ref (Pa)'),  row=5, col=1)
             #     fig.add_trace(go.Scatter(x=ts_plot2 , y=t_plot2, name=f'[{log_cntr}] Temperature Ref (Pa)'),  row=6, col=1)
 
-
-            # check we actually covered a decent (>20C temp range)
-            temp_range = t_max - t_min
-            if not args.force and temp_range < 20.0:
-                print(f'ERROR: calibration only covered {temp_range}C, not enough for a good cal')
-                sys.exit(1)
-
-
-            # min temp should be very low to allow extrapolation of calibration in cold weather
-            # cal was usually done on a bench with no airflow in a warm room
-            # increase t_max a little bit to allow extrapolation outdoors in the sun
-            t_min = 0
-            t_max = t_max + 10
-
             # print the PX4 params
             print('param set TC_B_ENABLE 1')
             print('param set TC_B0_ID    %d' % baro_sensor_id)
@@ -373,12 +314,7 @@ if __name__ == '__main__':
             cal_file.close()
 
             if set_px4_parameters:
-                print('\nLoading new params to PX4')
                 subprocess.call(["voxl-configure-px4-params", "-n", "-f", cal_param_file_name])
-
-            if enable_plots:
-                print('pull the plot file with')
-                print(f'adb pull {html_path}')
 
         if (i < (num_iterations-1) ):
             print('sleeping..')
