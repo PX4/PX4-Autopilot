@@ -63,7 +63,7 @@
 typedef struct {
 	uint32_t                hw_ver_rev; /* the version and revision */
 	const px4_hw_mft_item_t *mft;       /* The first entry */
-	uint32_t                entries;    /* the lenght of the list */
+	uint32_t                entries;    /* the length of the list */
 } px4_hw_mft_list_entry_t;
 
 typedef px4_hw_mft_list_entry_t *px4_hw_mft_list_entry;

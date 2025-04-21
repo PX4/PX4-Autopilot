@@ -71,12 +71,6 @@ then
 fi
 
 
-# Heater driver for temperature regulated IMUs.
-if param compare -s SENS_EN_THERMAL 1
-then
-	heater start
-fi
-
 # Teraranger one tof sensor
 if param greater -s SENS_EN_TRANGER 0
 then
@@ -232,10 +226,7 @@ then
 
 	# compasses
 	hmc5883 -T -X -q start
-	if ! iis2mdc -X -q start
-	then
-		lis2mdl -X -q start
-	fi
+	iis2mdc -X -q start
 	ist8308 -X -q start
 	ist8310 -X -q start
 	if ! lis3mdl -X -q start

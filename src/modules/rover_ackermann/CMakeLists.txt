@@ -33,7 +33,8 @@
 
 add_subdirectory(AckermannRateControl)
 add_subdirectory(AckermannAttControl)
-add_subdirectory(AckermannPosVelControl)
+add_subdirectory(AckermannVelControl)
+add_subdirectory(AckermannPosControl)
 
 px4_add_module(
 	MODULE modules__rover_ackermann
@@ -44,7 +45,8 @@ px4_add_module(
 	DEPENDS
 		AckermannRateControl
 		AckermannAttControl
-		AckermannPosVelControl
+		AckermannVelControl
+		AckermannPosControl
 		px4_work_queue
 		rover_control
 		pure_pursuit
