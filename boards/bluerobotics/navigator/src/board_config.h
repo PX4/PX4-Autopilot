@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,92 +32,35 @@
  ****************************************************************************/
 
 /**
- * @file lis2mdl_i2c.cpp
+ * @file board_config.h
  *
- * I2C interface for LIS2MDL
+ * BlueRobotics Navigator board configuration.
  */
 
-#include <px4_platform_common/px4_config.h>
+#pragma once
 
-#include <assert.h>
-#include <errno.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <sys/types.h>
-#include <unistd.h>
+#define BOARD_OVERRIDE_UUID "BRNAVID000000000" // must be of length 16
+#define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_RPI
 
-#include <drivers/device/i2c.h>
+#define BOARD_MAX_LEDS 1
 
-#include "board_config.h"
-#include "lis2mdl.h"
+// Neopixel config
+#define BOARD_HAS_N_S_RGB_LED 1
+#define BOARD_RGB_SPI_BUS 0
+#define BOARD_RGB_SPI_FREQ 8 * 1000 * 1000 // Emulated 800Kbps since we use 1 byte as 1 bit
 
-class LIS2MDL_I2C : public device::I2C
-{
-public:
-	LIS2MDL_I2C(const I2CSPIDriverConfig &config);
-	virtual ~LIS2MDL_I2C() = default;
+// I2C
+#define CONFIG_I2C 1
+#define PX4_NUMBER_I2C_BUSES    3
 
-	virtual int     read(unsigned address, void *data, unsigned count);
-	virtual int     write(unsigned address, void *data, unsigned count);
+// SPI
+#define CONFIG_SPI 1
 
-protected:
-	virtual int     probe();
+#define ADC_BATTERY_VOLTAGE_CHANNEL  3
+#define ADC_BATTERY_CURRENT_CHANNEL  2
+#define ADC_5V_RAIL_SENSE            0
 
-};
+#define ADC_DP_V_DIV 1.0f
 
-device::Device *
-LIS2MDL_I2C_interface(const I2CSPIDriverConfig &config);
-
-device::Device *
-LIS2MDL_I2C_interface(const I2CSPIDriverConfig &config)
-{
-	return new LIS2MDL_I2C(config);
-}
-
-LIS2MDL_I2C::LIS2MDL_I2C(const I2CSPIDriverConfig &config) :
-	I2C(config)
-{
-}
-
-int
-LIS2MDL_I2C::probe()
-{
-	uint8_t data = 0;
-
-	_retries = 1;
-
-	if (read(ADDR_WHO_AM_I, &data, 1)) {
-		DEVICE_DEBUG("read_reg fail");
-		return -EIO;
-	}
-
-	if (data != ID_WHO_AM_I) {
-		DEVICE_DEBUG("LIS2MDL bad ID: %02x", data);
-		return -EIO;
-	}
-
-	return OK;
-}
-
-int
-LIS2MDL_I2C::read(unsigned address, void *data, unsigned count)
-{
-	uint8_t cmd = address;
-	return transfer(&cmd, 1, (uint8_t *)data, count);
-}
-
-int
-LIS2MDL_I2C::write(unsigned address, void *data, unsigned count)
-{
-	uint8_t buf[32];
-
-	if (sizeof(buf) < (count + 1)) {
-		return -EIO;
-	}
-
-	buf[0] = address;
-	memcpy(&buf[1], data, count);
-
-	return transfer(&buf[0], count + 1, nullptr, 0);
-}
+#include <system_config.h>
+#include <px4_platform_common/board_common.h>

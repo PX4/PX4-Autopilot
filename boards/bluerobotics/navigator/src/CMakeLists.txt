@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,12 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__lis2mdl
-	MAIN lis2mdl
-	SRCS
-		lis2mdl_i2c.cpp
-		lis2mdl_spi.cpp
-		lis2mdl_main.cpp
-		lis2mdl.cpp
-	)
+
+add_library(drivers_board
+	i2c.cpp
+	spi.cpp
+)

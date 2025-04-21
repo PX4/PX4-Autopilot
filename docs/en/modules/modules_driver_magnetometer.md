@@ -192,13 +192,13 @@ ist8310 <command> [arguments...]
 
    status        print status info
 ```
-## lis2mdl
-Source: [drivers/magnetometer/lis2mdl](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/magnetometer/lis2mdl)
+## iis2mdc
+Source: [drivers/magnetometer/iis2mdc](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/magnetometer/iis2mdc)
 
-<a id="lis2mdl_usage"></a>
+<a id="iis2mdc_usage"></a>
 ### Usage
 ```
-lis2mdl <command> [arguments...]
+iis2mdc <command> [arguments...]
  Commands:
    start
      [-I]        Internal I2C bus(es)
