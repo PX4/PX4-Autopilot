@@ -34,48 +34,39 @@
 #pragma once
 
 // PX4 includes
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
+// Libraries
+#include <lib/rover_control/RoverControl.hpp>
+#include <lib/slew_rate/SlewRate.hpp>
+#include <math.h>
 
 // uORB includes
 #include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/parameter_update.h>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/actuator_servos.h>
 #include <uORB/topics/rover_steering_setpoint.h>
 #include <uORB/topics/rover_throttle_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/manual_control_setpoint.h>
 
-// Local includes
-#include "AckermannActControl/AckermannActControl.hpp"
-#include "AckermannRateControl/AckermannRateControl.hpp"
-#include "AckermannAttControl/AckermannAttControl.hpp"
-#include "AckermannVelControl/AckermannVelControl.hpp"
-#include "AckermannPosControl/AckermannPosControl.hpp"
-
-class RoverAckermann : public ModuleBase<RoverAckermann>, public ModuleParams,
-	public px4::ScheduledWorkItem
+/**
+ * @brief Class for ackermann actuator control.
+ */
+class AckermannActControl : public ModuleParams
 {
 public:
 	/**
-	 * @brief Constructor for RoverAckermann
+	 * @brief Constructor for AckermannActControl.
+	 * @param parent The parent ModuleParams object.
 	 */
-	RoverAckermann();
-	~RoverAckermann() override = default;
+	AckermannActControl(ModuleParams *parent);
+	~AckermannActControl() = default;
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	bool init();
+	/**
+	 * @brief Update actuator controller.
+	 */
+	void updateActControl();
 
 protected:
 	/**
@@ -84,28 +75,37 @@ protected:
 	void updateParams() override;
 
 private:
-	void Run() override;
 
 	/**
-	 * @brief Generate and publish roverSteeringSetpoint and roverThrottleSetpoint from manualControlSetpoint (Manual Mode).
+	 * @brief Generate and publish actuatorMotors/actuatorServos setpoints from roverThrottleSetpoint/roverSteeringSetpoint.
 	 */
-	void generateSteeringAndThrottleSetpoint();
+	void generateActuatorSetpoint();
 
 	// uORB subscriptions
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	vehicle_control_mode_s _vehicle_control_mode{};
+	uORB::Subscription _actuator_servos_sub{ORB_ID(actuator_servos)};
+	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
+	uORB::Subscription _rover_steering_setpoint_sub{ORB_ID(rover_steering_setpoint)};
+	uORB::Subscription _rover_throttle_setpoint_sub{ORB_ID(rover_throttle_setpoint)};
 
 	// uORB publications
-	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
-	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
+	uORB::PublicationMulti<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
+	uORB::Publication<actuator_servos_s> _actuator_servos_pub{ORB_ID(actuator_servos)};
 
-	// Class instances
-	AckermannActControl  _ackermann_act_control{this};
-	AckermannRateControl _ackermann_rate_control{this};
-	AckermannAttControl  _ackermann_att_control{this};
-	AckermannVelControl  _ackermann_vel_control{this};
-	AckermannPosControl  _ackermann_pos_control{this};
+	// Variables
+	hrt_abstime _timestamp{0};
+	float _dt{0.f};
 
+	// Controllers
+	SlewRate<float> _servo_setpoint{0.f};
+	SlewRate<float> _motor_setpoint{0.f};
+
+	// Parameters
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::CA_R_REV>) _param_r_rev,
+		(ParamFloat<px4::params::RA_STR_RATE_LIM>) _param_ra_str_rate_limit,
+		(ParamFloat<px4::params::RA_MAX_STR_ANG>) _param_ra_max_str_ang,
+		(ParamFloat<px4::params::RO_ACCEL_LIM>) _param_ro_accel_limit,
+		(ParamFloat<px4::params::RO_DECEL_LIM>) _param_ro_decel_limit,
+		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed
+	)
 };
