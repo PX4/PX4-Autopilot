@@ -224,7 +224,7 @@ MulticopterAttitudeControl::Run()
 	}
 
 	// Update hover thrust for stick scaling
-	if (_vehicle_status_sub.updated()) {
+	if (_hover_thrust_estimate_sub.updated()) {
 		hover_thrust_estimate_s hover_thrust_estimate;
 
 		if (_hover_thrust_estimate_sub.update(&hover_thrust_estimate)) {
