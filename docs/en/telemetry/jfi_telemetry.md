@@ -21,7 +21,7 @@ Operating in the 2.4GHz frequency band, it allows unrestricted global use withou
 - **Frequency Band:** 2.4GHz
 - **Speed:** Up to 11 Mbps (adjustable)
 - **Range:** Up to 500 meters (varies upon environments)
-- **Payload Capacity:** Up to 1400 bytes
+- **Payload Capacity:** Up to 1024 bytes
 
 ### Network Schemes
 
