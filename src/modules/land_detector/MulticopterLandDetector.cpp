@@ -77,8 +77,7 @@ MulticopterLandDetector::MulticopterLandDetector()
 {
 	_paramHandle.minManThrottle = param_find("MPC_MANTHR_MIN");
 	_paramHandle.minThrottle = param_find("MPC_THR_MIN");
-	_paramHandle.useHoverThrustEstimate = param_find("MPC_USE_HTE");
-	_paramHandle.hoverThrottle = param_find("MPC_THR_HOVER");
+	_paramHandle.mpc_thr_hover = param_find("MPC_THR_HOVER");
 	_paramHandle.landSpeed = param_find("MPC_LAND_SPEED");
 	_paramHandle.crawlSpeed = param_find("MPC_LAND_CRWL");
 	_minimum_thrust_8s_hysteresis.set_hysteresis_time_from(false, 8_s);
@@ -98,12 +97,12 @@ void MulticopterLandDetector::_update_topics()
 		_flag_control_climb_rate_enabled = vehicle_control_mode.flag_control_climb_rate_enabled;
 	}
 
-	if (_params.useHoverThrustEstimate) {
+	if (_hover_thrust_estimate_sub.updated()) {
 		hover_thrust_estimate_s hte;
 
 		if (_hover_thrust_estimate_sub.update(&hte)) {
 			if (hte.valid) {
-				_params.hoverThrottle = hte.hover_thrust;
+				_hover_thrust_estimate = hte.hover_thrust;
 				_hover_thrust_estimate_last_valid = hte.timestamp;
 			}
 		}
@@ -119,6 +118,7 @@ void MulticopterLandDetector::_update_topics()
 void MulticopterLandDetector::_update_params()
 {
 	param_get(_paramHandle.minThrottle, &_params.minThrottle);
+	param_get(_paramHandle.mpc_thr_hover, &_params.mpc_thr_hover);
 	param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
 	param_get(_paramHandle.landSpeed, &_params.landSpeed);
 	param_get(_paramHandle.crawlSpeed, &_params.crawlSpeed);
@@ -132,21 +132,6 @@ void MulticopterLandDetector::_update_params()
 
 		_param_lndmc_z_vel_max.set(lndmc_upper_threshold);
 		_param_lndmc_z_vel_max.commit_no_notification();
-	}
-
-	int32_t use_hover_thrust_estimate = 0;
-	param_get(_paramHandle.useHoverThrustEstimate, &use_hover_thrust_estimate);
-	_params.useHoverThrustEstimate = (use_hover_thrust_estimate == 1);
-
-	if (!_params.useHoverThrustEstimate || !_hover_thrust_initialized) {
-		param_get(_paramHandle.hoverThrottle, &_params.hoverThrottle);
-
-		// HTE runs based on the position controller so, even if we wish to use
-		// the estimate, it is only available in altitude and position modes.
-		// Therefore, we need to always initialize the hoverThrottle using the hover
-		// thrust parameter in case we fly in stabilized
-		// TODO: this can be removed once HTE runs in all modes
-		_hover_thrust_initialized = true;
 	}
 }
 
@@ -215,7 +200,8 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 	// low thrust: 30% of throttle range between min and hover, relaxed to 60% if hover thrust estimate available
 	const float thr_pct_hover = _hover_thrust_estimate_valid ? 0.6f : 0.3f;
-	const float sys_low_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * thr_pct_hover;
+	const float hover_thrust = PX4_ISFINITE(_hover_thrust_estimate) ? _hover_thrust_estimate : _params.mpc_thr_hover;
+	const float sys_low_throttle = _params.minThrottle + (hover_thrust - _params.minThrottle) * thr_pct_hover;
 	_has_low_throttle = (_vehicle_thrust_setpoint_throttle <= sys_low_throttle);
 	bool ground_contact = _has_low_throttle;
 
@@ -259,7 +245,8 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 
 	if (_flag_control_climb_rate_enabled) {
 		// 10% of throttle range between min and hover
-		minimum_thrust_threshold = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * 0.1f;
+		const float hover_thrust = PX4_ISFINITE(_hover_thrust_estimate) ? _hover_thrust_estimate : _params.mpc_thr_hover;
+		minimum_thrust_threshold = _params.minThrottle + (hover_thrust - _params.minThrottle) * 0.1f;
 
 	} else {
 		minimum_thrust_threshold = (_params.minManThrottle + 0.01f);
