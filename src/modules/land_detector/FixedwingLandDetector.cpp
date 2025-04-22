@@ -121,7 +121,9 @@ bool FixedwingLandDetector::_get_landed_state()
 		const float vel_xy_max_threshold   = airspeed_invalid ? 0.7f * _param_lndfw_vel_xy_max.get() :
 						     _param_lndfw_vel_xy_max.get();
 
-		const float max_rotation_threshold = math::radians(_param_lndfw_rot_max.get()) ;
+		// only use the max rotational threshold if neither airspeed nor groundspeed can be used for landing detection
+		const float max_rotation_threshold = (!_vehicle_local_position.v_xy_valid
+						      && airspeed_invalid) ? math::radians(_param_lndfw_rot_max.get()) : INFINITY;
 
 		// Crude land detector for fixedwing.
 		landDetected = _airspeed_filtered         < _param_lndfw_airspd.get()

@@ -216,7 +216,9 @@ void Sih::sensor_step()
 
 	reconstruct_sensors_signals(now);
 
-	if ((_vehicle == VehicleType::FW || _vehicle == VehicleType::TS || _vehicle == VehicleType::SVTOL)
+	if ((_vehicle == VehicleType::FixedWing
+	     || _vehicle == VehicleType::TailsitterVTOL
+	     || _vehicle == VehicleType::StandardVTOL)
 	    && now - _airspeed_time >= 50_ms) {
 		_airspeed_time = now;
 		send_airspeed(now);
@@ -304,7 +306,7 @@ void Sih::read_motors(const float dt)
 		_last_actuator_output_time = actuators_out.timestamp;
 
 		for (int i = 0; i < NUM_ACTUATORS_MAX; i++) { // saturate the motor signals
-			if ((_vehicle == VehicleType::FW && i < 3) || (_vehicle == VehicleType::TS && i > 3)) {
+			if ((_vehicle == VehicleType::FixedWing && i < 3) || (_vehicle == VehicleType::TailsitterVTOL && i > 3)) {
 				_u[i] = actuators_out.output[i];
 
 			} else {
@@ -317,7 +319,7 @@ void Sih::read_motors(const float dt)
 
 void Sih::generate_force_and_torques()
 {
-	if (_vehicle == VehicleType::MC) {
+	if (_vehicle == VehicleType::Multicopter) {
 		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
 				 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
@@ -325,13 +327,13 @@ void Sih::generate_force_and_torques()
 		_Fa_E = -_KDV * _v_E;   // first order drag to slow down the aircraft
 		_Ma_B = -_KDW * _w_B;   // first order angular damper
 
-	} else if (_vehicle == VehicleType::FW) {
+	} else if (_vehicle == VehicleType::FixedWing) {
 		_T_B = Vector3f(_T_MAX * _u[3], 0.0f, 0.0f); 	// forward thruster
 		// _Mt_B = Vector3f(_Q_MAX*_u[3], 0.0f,0.0f); 	// thruster torque
 		_Mt_B = Vector3f();
 		generate_fw_aerodynamics(_u[0], _u[1], _u[2], _u[3]);
 
-	} else if (_vehicle == VehicleType::TS) {
+	} else if (_vehicle == VehicleType::TailsitterVTOL) {
 		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (_u[0] + _u[1]));
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (_u[1] - _u[0]), 0.0f, _Q_MAX * (_u[1] - _u[0]));
 		generate_ts_aerodynamics();
@@ -339,7 +341,7 @@ void Sih::generate_force_and_torques()
 		// _Fa_E = -_KDV * _v_E;   // first order drag to slow down the aircraft
 		// _Ma_B = -_KDW * _w_B;   // first order angular damper
 
-	} else if (_vehicle == VehicleType::SVTOL) {
+	} else if (_vehicle == VehicleType::StandardVTOL) {
 
 		_T_B = Vector3f(_T_MAX * 2 * _u[7], 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
@@ -427,7 +429,9 @@ void Sih::equations_of_motion(const float dt)
 	Vector3f ground_force_E;
 
 	if ((_lla.altitude() - _lpos_ref_alt) < 0.f && force_down > 0.f) {
-		if (_vehicle == VehicleType::MC || _vehicle == VehicleType::TS || _vehicle == VehicleType::SVTOL) {
+		if (_vehicle == VehicleType::Multicopter
+		    || _vehicle == VehicleType::TailsitterVTOL
+		    || _vehicle == VehicleType::StandardVTOL) {
 			ground_force_E = -sum_of_forces_E;
 
 			if (!_grounded) {
@@ -438,7 +442,7 @@ void Sih::equations_of_motion(const float dt)
 
 			_grounded = true;
 
-		} else if (_vehicle == VehicleType::FW) {
+		} else if (_vehicle == VehicleType::FixedWing) {
 			Vector3f down_u = _R_N2E.col(2);
 			ground_force_E = -down_u * sum_of_forces_E * down_u;
 
@@ -711,19 +715,19 @@ int Sih::print_status()
 	PX4_INFO("Achieved speedup: %.2fX", (double)_achieved_speedup);
 #endif
 
-	if (_vehicle == VehicleType::MC) {
+	if (_vehicle == VehicleType::Multicopter) {
 		PX4_INFO("Running MultiCopter");
 
-	} else if (_vehicle == VehicleType::FW) {
+	} else if (_vehicle == VehicleType::FixedWing) {
 		PX4_INFO("Running Fixed-Wing");
 
-	} else if (_vehicle == VehicleType::TS) {
+	} else if (_vehicle == VehicleType::TailsitterVTOL) {
 		PX4_INFO("Running TailSitter");
 		PX4_INFO("aoa [deg]: %d", (int)(degrees(_ts[4].get_aoa())));
 		PX4_INFO("v segment (m/s)");
 		_ts[4].get_vS().print();
 
-	} else if (_vehicle == VehicleType::SVTOL) {
+	} else if (_vehicle == VehicleType::StandardVTOL) {
 		PX4_INFO("Running Standard VTOL");
 	}
 

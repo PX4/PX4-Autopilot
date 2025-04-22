@@ -35,7 +35,6 @@ px4_add_library(FlightTaskUtility
 	Sticks.cpp
 	StickAccelerationXY.cpp
 	StickTiltXY.cpp
-	StickYaw.cpp
 	Gimbal.cpp
 )
 

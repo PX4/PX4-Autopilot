@@ -1,8 +1,9 @@
 # Gazebo Classic Simulation
 
 :::warning
-_Gazebo Classic_ is supported with PX4 up to Ubuntu Linux 20.04.
-In Ubuntu 22.04 and later you must use [Gazebo](../sim_gazebo_gz/index.md) (which was [formerly known](https://www.openrobotics.org/blog/2022/4/6/a-new-era-for-gazebo) as "Gazebo Ignition").
+[Gazebo](../sim_gazebo_gz/index.md) is nearing feature-parity with Gazebo Classic on PX4, and will soon replace it.
+Until then you can continue to use Gazebo-Classic on Ubuntu 22.04 for the few cases where you still need to.
+For more information see [PX4-Autopilot#23602: GZ Feature tracker](https://github.com/PX4/PX4-Autopilot/issues/23602).
 :::
 
 Gazebo Classic is a powerful 3D simulation environment for autonomous robots that is particularly suitable for testing object-avoidance and computer vision.
@@ -32,11 +33,8 @@ See [Simulation](../simulation/index.md) for general information about simulator
 If you plan to use PX4 with ROS you **should follow the** [ROS Instructions](../simulation/ros_interface.md) to install both ROS and Gazebo Classic (and thereby avoid installation conflicts).
 :::
 
-Gazebo Classic setup is included in our [standard build instructions](../dev_setup/dev_env.md) for macOS, Ubuntu 18.04 and 20.04, and Windows on WSL2 for the same hosts.
-
-For Ubuntu 22.04 LTS and later, the installation script ([/Tools/setup/ubuntu.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/ubuntu.sh)) installs the [Gazebo](../sim_gazebo_gz/index.md) simulator instead.
-
-If you want to use Gazebo Classic on Ubuntu 22.04 you can use the following commands to remove [Gazebo](../sim_gazebo_gz/index.md) (Harmonic) and then reinstall Gazebo-Classic 11:
+The standard installation script ([/Tools/setup/ubuntu.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/ubuntu.sh)) installs the [Gazebo](../sim_gazebo_gz/index.md) (Harmonic) simulator.
+If you want to use Gazebo Classic on _Ubuntu 22.04 (only)_ you can use the following commands to remove Gazebo and then reinstall Gazebo-Classic 11:
 
 ```sh
 sudo apt remove gz-harmonic
@@ -47,10 +45,10 @@ sudo aptitude install gazebo libgazebo11 libgazebo-dev
 Note that `aptitude` is needed because it can resolve dependency conflicts (by removing certain packages) that `apt` is unable to handle.
 
 ::: tip
-You could also modify the installation script to install Gazebo Classic on later versions before it is run for the first time.
-:::
+You could also modify the installation script to install Gazebo Classic on Ubuntu 22.04 before it is run for the first time.
 
 Additional installation instructions can be found on [gazebosim.org](http://gazebosim.org/tutorials?cat=guided_b&tut=guided_b1).
+:::
 
 ## Running the Simulation
 
@@ -281,8 +279,6 @@ To enable/disable GPS noise:
      You can enable it by adding the `gpsNoise` element to the `gps_plugin` section (as shown above).
 
 The next time you build/restart Gazebo Classic it will use the new GPS noise setting.
-
-
 
 ## Loading a Specific World
 
@@ -544,8 +540,6 @@ The code is available on the [sitl_gazebo repository](https://github.com/PX4/PX4
 The build system enforces the correct GIT submodules, including the simulator.
 It will not overwrite changes in files in the directory.
 :::
-
-
 
 ## Further Information
 

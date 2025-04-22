@@ -220,13 +220,9 @@ private:
 
 	float       _u[NUM_ACTUATORS_MAX] {};         // thruster signals
 
-	// MC = Multicopter
-	// FW = Fixed Wing
-	// TS = Tailsitter VTOL
-	// SVTOL = Standard VTOL
-	enum class VehicleType {MC, FW, TS, SVTOL};
+	enum class VehicleType {Multicopter, FixedWing, TailsitterVTOL, StandardVTOL};
 
-	VehicleType _vehicle = VehicleType::MC;
+	VehicleType _vehicle = VehicleType::Multicopter;
 
 	// aerodynamic segments for the fixedwing
 	AeroSeg _wing_l = AeroSeg(SPAN / 2.0f, MAC, -4.0f, matrix::Vector3f(0.0f, -SPAN / 4.0f, 0.0f), 3.0f,

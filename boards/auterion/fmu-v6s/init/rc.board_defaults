@@ -1,0 +1,28 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+# Set the backend of the dataman to SRAM
+param set-default SYS_DM_BACKEND 1
+# Set TELEM1 as default mavlink connection
+param set-default MAV_0_CONFIG 0
+# Disable logger writing to FRAM, only stream over MAVLINK
+set LOGGER_ARGS "-m mavlink"
+
+# 200kOhm/10kOhm voltage divider on V_BAT
+param set-default BAT1_V_DIV 21
+
+# Skynode: use the "custom participant", IP=10.41.10.1 config for uxrce_dds_client
+param set-default UXRCE_DDS_PTCFG 2
+param set-default UXRCE_DDS_AG_IP 170461697
+param set-default UXRCE_DDS_CFG 1000
+
+# Update default IP config if needed
+netman update_default -i eth0
+
+# Start a second NSH connected to the debug port
+nshterm /dev/ttyS3 &
+
+# Start the time_persistor to cyclically store the RTC in FRAM
+time_persistor start

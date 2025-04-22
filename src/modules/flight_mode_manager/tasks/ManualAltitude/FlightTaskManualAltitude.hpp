@@ -39,10 +39,10 @@
 
 #pragma once
 
+#include <lib/stick_yaw/StickYaw.hpp>
 #include "FlightTask.hpp"
 #include "Sticks.hpp"
 #include "StickTiltXY.hpp"
-#include "StickYaw.hpp"
 #include <uORB/Subscription.hpp>
 
 class FlightTaskManualAltitude : public FlightTask

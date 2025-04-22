@@ -37,6 +37,9 @@ else()
     find_package(gz-transport NAMES gz-transport13)
 endif()
 
+file(GLOB gz_worlds ${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf)
+file(GLOB gz_airframes ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*)
+
 if (gz-transport_FOUND)
 	px4_add_module(
 		MODULE modules__simulation__gz_bridge
@@ -86,15 +89,11 @@ if (gz-transport_FOUND)
 	# Below we setup the build targets for our worlds and models
 	# Syntax: gz_<model_name>_<world_name>
 	# Example: gz_x500_flow_forest
-	file(GLOB gz_worlds ${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf)
-	file(GLOB gz_airframes ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*)
-
 	foreach(gz_airframe IN LISTS gz_airframes)
 		set(model_name)
 		string(REGEX REPLACE ".*_gz_" "" model_name ${gz_airframe})
 
 		foreach(world ${gz_worlds})
-
 			get_filename_component("world_name" ${world} NAME_WE)
 
 			if(world_name STREQUAL "default")
@@ -118,4 +117,32 @@ if (gz-transport_FOUND)
 	# Setup the environment variables: PX4_GZ_MODELS, PX4_GZ_WORLDS, GZ_SIM_RESOURCE_PATH
 	configure_file(gz_env.sh.in ${PX4_BINARY_DIR}/rootfs/gz_env.sh)
 
+else()
+	# Create fallback targets that provide helpful error messages when Gazebo dependencies are missing
+	foreach(gz_airframe IN LISTS gz_airframes)
+		set(model_name)
+		string(REGEX REPLACE ".*_gz_" "" model_name ${gz_airframe})
+
+		foreach(world ${gz_worlds})
+			get_filename_component("world_name" ${world} NAME_WE)
+
+			if(world_name STREQUAL "default")
+				add_custom_target(gz_${model_name}
+					COMMAND ${CMAKE_COMMAND} -E echo "ERROR: Gazebo simulation dependencies not found!"
+					COMMAND ${CMAKE_COMMAND} -E echo "  - For installation instructions, see: https://gazebosim.org/docs/harmonic/install_ubuntu/"
+					COMMAND ${CMAKE_COMMAND} -E false
+					VERBATIM
+				)
+			else()
+				add_custom_target(gz_${model_name}_${world_name}
+					COMMAND ${CMAKE_COMMAND} -E echo "ERROR: Gazebo simulation dependencies not found!"
+					COMMAND ${CMAKE_COMMAND} -E echo "  - For installation instructions, see: https://gazebosim.org/docs/harmonic/install_ubuntu/"
+					COMMAND ${CMAKE_COMMAND} -E false
+					VERBATIM
+				)
+			endif()
+		endforeach()
+	endforeach()
+
+	message(STATUS "Gazebo simulation bridge module disabled: missing dependencies")
 endif()
