@@ -45,19 +45,25 @@
 #include <iostream>
 #include <string>
 
-GZBridge::GZBridge(const char *world, const char *name, const char *model,
-		   const char *type, const char *pose_str) :
+GZBridge::GZBridge(const char *world, const char *name, const char *model, const char *pose_str) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_world_name(world),
 	_model_name(name),
 	_model_sim(model),
-	_vehicle_type(type),
 	_model_pose(pose_str)
 {
 	pthread_mutex_init(&_node_mutex, nullptr);
 
 	updateParams();
+
+	// get current simulated vehicle airframe type
+	param_get(param_find("CA_AIRFRAME"), &_airframe);
+
+	// get rover max speed
+	if (_airframe == 6) {
+		param_get(param_find("GND_SPEED_MAX"), &_rover_max_speed);
+	}
 }
 
 GZBridge::~GZBridge()
@@ -198,18 +204,6 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-	// output (rover vehicle type) eg /model/$MODEL_NAME/cmd_vel
-	if (_vehicle_type == "rover") {
-		std::string cmd_vel_topic = "/model/" + _model_name + "/cmd_vel";
-		_cmd_vel_pub = _node.Advertise<gz::msgs::Twist>(cmd_vel_topic);
-
-		if (!_cmd_vel_pub.Valid()) {
-			PX4_ERR("failed to advertise %s", cmd_vel_topic.c_str());
-			return PX4_ERROR;
-		}
-
-	}
-
 #if 0
 	// Airspeed: /world/$WORLD/model/$MODEL/link/airspeed_link/sensor/air_speed/air_speed
 	std::string airspeed_topic = "/world/" + _world_name + "/model/" + _model_name +
@@ -254,6 +248,17 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	// output (rover airframe type) eg /model/$MODEL_NAME/cmd_vel
+	if (_airframe == 6) {
+		std::string cmd_vel_topic = "/model/" + _model_name + "/cmd_vel";
+		_cmd_vel_pub = _node.Advertise<gz::msgs::Twist>(cmd_vel_topic);
+
+		if (!_cmd_vel_pub.Valid()) {
+			PX4_ERR("failed to advertise %s", cmd_vel_topic.c_str());
+			return PX4_ERROR;
+		}
+	}
+
 	ScheduleNow();
 	return OK;
 }
@@ -264,7 +269,6 @@ int GZBridge::task_spawn(int argc, char *argv[])
 	const char *model_name = nullptr;
 	const char *model_pose = nullptr;
 	const char *model_sim = nullptr;
-	const char *vehicle_type = nullptr;
 	const char *px4_instance = nullptr;
 	std::string model_name_std;
 
@@ -274,7 +278,7 @@ int GZBridge::task_spawn(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "w:m:p:i:n:v:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "w:m:p:i:n:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'w':
 			// world
@@ -301,11 +305,6 @@ int GZBridge::task_spawn(int argc, char *argv[])
 			px4_instance = myoptarg;
 			break;
 
-		case 'v':
-			// vehicle type
-			vehicle_type = myoptarg;
-			break;
-
 		case '?':
 			error_flag = true;
 			break;
@@ -329,10 +328,6 @@ int GZBridge::task_spawn(int argc, char *argv[])
 		model_sim = "";
 	}
 
-	if (!vehicle_type) {
-		vehicle_type = "mc";
-	}
-
 	if (!px4_instance) {
 		if (!model_name) {
 			model_name = model_sim;
@@ -343,10 +338,9 @@ int GZBridge::task_spawn(int argc, char *argv[])
 		model_name = model_name_std.c_str();
 	}
 
-	PX4_INFO("world: %s, model name: %s, simulation model: %s, vehicle type: %s", world_name, model_name, model_sim,
-		 vehicle_type);
+	PX4_INFO("world: %s, model name: %s, simulation model: %s", world_name, model_name, model_sim);
 
-	GZBridge *instance = new GZBridge(world_name, model_name, model_sim, vehicle_type, model_pose);
+	GZBridge *instance = new GZBridge(world_name, model_name, model_sim, model_pose);
 
 	if (instance) {
 		_object.store(instance);
@@ -754,8 +748,10 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 		vehicle_global_position_s global_position_groundtruth{};
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 		global_position_groundtruth.timestamp_sample = time_us;
+		global_position_groundtruth.timestamp = time_us;
 #else
 		global_position_groundtruth.timestamp_sample = hrt_absolute_time();
+		global_position_groundtruth.timestamp = hrt_absolute_time();
 #endif
 		global_position_groundtruth.lat = nav_sat.latitude_deg();
 		global_position_groundtruth.lon = nav_sat.longitude_deg();
@@ -769,13 +765,15 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 void GZBridge::updateCmdVel()
 {
 	bool do_update = false;
+	float rover_throttle_control = 0.0f;
+	float rover_yaw_control = 0.0f;
 
 	// Check torque setppoint update
 	if (_vehicle_torque_setpoint_sub.updated()) {
 		vehicle_torque_setpoint_s vehicle_torque_setpoint_msg;
 
 		if (_vehicle_torque_setpoint_sub.copy(&vehicle_torque_setpoint_msg)) {
-			_rover_yaw_control = vehicle_torque_setpoint_msg.xyz[2];
+			rover_yaw_control = vehicle_torque_setpoint_msg.xyz[2];
 			do_update = true;
 		}
 	}
@@ -785,19 +783,21 @@ void GZBridge::updateCmdVel()
 		vehicle_thrust_setpoint_s vehicle_thrust_setpoint_msg;
 
 		if (_vehicle_thrust_setpoint_sub.copy(&vehicle_thrust_setpoint_msg)) {
-			_rover_throttle_control = vehicle_thrust_setpoint_msg.xyz[0];
+			/**
+			 * On physical rover the max speed scale back is only for mission mode
+			 * But here, we simplify the logic and apply the scale back for both
+			 * manual and mission mode
+			 */
+			rover_throttle_control = vehicle_thrust_setpoint_msg.xyz[0] * _rover_max_speed;
 			do_update = true;
 		}
 	}
 
 	if (do_update) {
-		auto throttle = 1.0f * _rover_throttle_control;
-		auto steering = _rover_yaw_control;
-
 		// publish cmd_vel
 		gz::msgs::Twist cmd_vel_message;
-		cmd_vel_message.mutable_linear()->set_x(throttle);
-		cmd_vel_message.mutable_angular()->set_z(steering);
+		cmd_vel_message.mutable_linear()->set_x(rover_throttle_control);
+		cmd_vel_message.mutable_angular()->set_z(rover_yaw_control);
 
 		if (_cmd_vel_pub.Valid()) {
 			_cmd_vel_pub.Publish(cmd_vel_message);
@@ -849,8 +849,8 @@ void GZBridge::Run()
 		_mixing_interface_wheel.updateParams();
 	}
 
-	// In case of rover vehicle type, publish gz cmd_vel
-	if (_vehicle_type == "rover") { updateCmdVel(); }
+	// In case of differential drive rover airframe type, publish gz cmd_vel
+	if (_airframe == 6) { updateCmdVel(); }
 
 	ScheduleDelayed(10_ms);
 
