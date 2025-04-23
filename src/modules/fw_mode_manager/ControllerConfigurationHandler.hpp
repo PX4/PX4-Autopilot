@@ -75,6 +75,8 @@ public:
 
 	void setLateralAccelMax(float lateral_accel_max);
 
+	void resetLastPublishTime();
+
 private:
 	bool booleanValueChanged(bool new_value, bool current_value)
 	{

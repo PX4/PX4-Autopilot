@@ -132,3 +132,8 @@ void CombinedControllerConfigurationHandler::setEnforceLowHeightCondition(bool l
 {
 	_longitudinal_configuration_current_cycle.enforce_low_height_condition = low_height_condition;
 }
+
+void CombinedControllerConfigurationHandler::resetLastPublishTime()
+{
+	_time_last_longitudinal_publish = _time_last_lateral_publish = 0;
+}

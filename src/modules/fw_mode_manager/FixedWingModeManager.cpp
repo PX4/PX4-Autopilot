@@ -1839,8 +1839,15 @@ FixedWingModeManager::Run()
 
 	/* only run controller if position changed and we are not running an external mode*/
 
-	if (!((_nav_state >= vehicle_status_s::NAVIGATION_STATE_EXTERNAL1)
-	      && (_nav_state <= vehicle_status_s::NAVIGATION_STATE_EXTERNAL8)) && _local_pos_sub.update(&_local_pos)) {
+	const bool is_external_nav_state = (_nav_state >= vehicle_status_s::NAVIGATION_STATE_EXTERNAL1)
+					   && (_nav_state <= vehicle_status_s::NAVIGATION_STATE_EXTERNAL8);
+
+	if (is_external_nav_state) {
+		// this will cause the configuration handler to publish immediately the next time an internal flight
+		// mode is active
+		_ctrl_configuration_handler.resetLastPublishTime();
+
+	} else if (_local_pos_sub.update(&_local_pos)) {
 
 		const hrt_abstime now = _local_pos.timestamp;
 
@@ -2094,7 +2101,9 @@ FixedWingModeManager::Run()
 			}
 		}
 
-		_ctrl_configuration_handler.update(now);
+		if (_control_mode_current != FW_POSCTRL_MODE_OTHER) {
+			_ctrl_configuration_handler.update(now);
+		}
 
 		// only publish status in full FW mode
 		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
