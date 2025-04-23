@@ -290,16 +290,8 @@ if __name__ == '__main__':
             print('param set TC_B_ENABLE 1')
             print('param set TC_B0_ID    %d' % baro_sensor_id)
             print('param set TC_B0_TREF  %.2f' % t_ref)
-            # Always set TMIN to 0 if it is above that. Since the compensation is linear it should
-            # be okay to artificially set a lower minimum
-            TMIN = 0.0
-            if t_min < 0.0:
-                TMIN = t_min
-            print('param set TC_B0_TMIN  %.2f' % TMIN)
-            # Always set TMAX 10 degrees higher. Since the compensation is linear it should
-            # be okay to artificially set a higher maximum
-            TMAX = t_max + 10.0
-            print('param set TC_B0_TMAX  %.2f' % TMAX)
+            print('param set TC_B0_TMIN  %.2f' % t_min)
+            print('param set TC_B0_TMAX  %.2f' % t_max)
             for i in range(poly_fit_order+1):
                 print('param set TC_B0_X%d    %.5f' % (i,p[poly_fit_order-i]))
             for i in range(poly_fit_order+1,6):
@@ -313,8 +305,8 @@ if __name__ == '__main__':
             cal_file.write('1\t1\tTC_B_ENABLE\t1\t6\n')
             cal_file.write('1\t1\tTC_B0_ID\t%d\t6\n' % baro_sensor_id)
             cal_file.write('1\t1\tTC_B0_TREF\t%.2f\t9\n' % t_ref)
-            cal_file.write('1\t1\tTC_B0_TMIN\t%.2f\t9\n' % TMIN)
-            cal_file.write('1\t1\tTC_B0_TMAX\t%.2f\t9\n' % TMAX)
+            cal_file.write('1\t1\tTC_B0_TMIN\t%.2f\t9\n' % t_min)
+            cal_file.write('1\t1\tTC_B0_TMAX\t%.2f\t9\n' % t_max)
             for k in range(poly_fit_order+1):
                 cal_file.write('1\t1\tTC_B0_X%d\t%.6f\t9\n' % (k,p[poly_fit_order-k]))
             for k in range(poly_fit_order+1,6):
