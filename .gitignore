@@ -82,6 +82,7 @@ CPackSourceConfig.cmake
 CTestTestfile.cmake
 external/
 rules.ninja
+.cache/
 
 # in tree build
 **/*.a

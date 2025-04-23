@@ -417,6 +417,9 @@ int Commander::custom_command(int argc, char *argv[])
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
 						     PX4_CUSTOM_SUB_MODE_EXTERNAL1);
 
+			} else if (!strcmp(argv[1], "robosub")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
+						     PX4_CUSTOM_SUB_MODE_ROBOSUB); 
 			} else {
 				PX4_ERR("argument %s unsupported.", argv[1]);
 			}
@@ -846,6 +849,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 						case PX4_CUSTOM_SUB_MODE_EXTERNAL1...PX4_CUSTOM_SUB_MODE_EXTERNAL8:
 							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_EXTERNAL1 + (custom_sub_mode - PX4_CUSTOM_SUB_MODE_EXTERNAL1);
+							break;
+						case PX4_CUSTOM_SUB_MODE_ROBOSUB:
+							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_ROBOSUB;
 							break;
 
 						default:
@@ -1724,6 +1730,7 @@ void Commander::updateParameters()
 	const bool is_fixed = is_fixed_wing(_vehicle_status) || (is_vtol(_vehicle_status)
 			      && _vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 	const bool is_ground = is_ground_vehicle(_vehicle_status);
+	const bool is_sub = is_submarine(_vehicle_status);
 
 	/* disable manual override for all systems that rely on electronic stabilization */
 	if (is_rotary) {
@@ -1734,7 +1741,10 @@ void Commander::updateParameters()
 
 	} else if (is_ground) {
 		_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROVER;
-	}
+	} else if (is_sub) {
+		_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROBOSUB;
+
+	} 
 
 	_vehicle_status.is_vtol = is_vtol(_vehicle_status);
 	_vehicle_status.is_vtol_tailsitter = is_vtol_tailsitter(_vehicle_status);

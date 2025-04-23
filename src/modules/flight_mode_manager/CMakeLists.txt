@@ -48,6 +48,7 @@ list(APPEND flight_tasks_all
 	ManualAltitudeSmoothVel
 	ManualPosition
 	Transition
+	Robosub
 )
 
 if(NOT px4_constrained_flash_build)

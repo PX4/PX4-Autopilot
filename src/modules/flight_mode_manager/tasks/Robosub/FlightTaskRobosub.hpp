@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskAuto.hpp
+ * @file FlightTaskRobosub.hpp
  *
  * Map from global triplet to local quadruple.
  */
@@ -58,7 +58,7 @@
  * The only reason for not using the struct position_setpoint is because
  * of the size
  */
-#ifndef POSITION_SETPOINT_S_TYPE
+#ifndef POSITION_SETPOINT_S_TYPE // Needed because its already defined in auto flight task (for now)
 #define POSITION_SETPOINT_S_TYPE
 enum class WaypointType : int {
 	position = position_setpoint_s::SETPOINT_TYPE_POSITION,
@@ -85,11 +85,12 @@ enum class yaw_mode : int32_t {
 	yaw_fixed = 5,
 };
 #endif
-class FlightTaskAuto : public FlightTask
+
+class FlightTaskRobosub : public FlightTask
 {
 public:
-	FlightTaskAuto() = default;
-	virtual ~FlightTaskAuto() = default;
+	FlightTaskRobosub() = default;
+	virtual ~FlightTaskRobosub() = default;
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 	void reActivate() override;
 	bool updateInitialize() override;

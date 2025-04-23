@@ -122,6 +122,10 @@ bool is_ground_vehicle(const vehicle_status_s &current_status)
 	return (current_status.system_type == VEHICLE_TYPE_BOAT || current_status.system_type == VEHICLE_TYPE_GROUND_ROVER);
 }
 
+bool is_submarine(const vehicle_status_s &current_status)
+{
+	return (current_status.system_type == VEHICLE_TYPE_SUBMARINE);
+}
 // End time for currently blinking LED message, 0 if no blink message
 static hrt_abstime blink_msg_end = 0;
 static int fd_leds{-1};
