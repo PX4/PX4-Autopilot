@@ -342,7 +342,8 @@ if __name__ == '__main__':
             # min temp should be very low to allow extrapolation of calibration in cold weather
             # cal was usually done on a bench with no airflow in a warm room
             # increase t_max a little bit to allow extrapolation outdoors in the sun
-            t_min = 0
+            if t_min > 0.0:
+                t_min = 0.0
             t_max = t_max + 10
 
             # print the PX4 params
