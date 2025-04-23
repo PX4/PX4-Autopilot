@@ -140,7 +140,7 @@ if __name__ == '__main__':
             if start_temp < 35.0:
                 break
 
-            print(f"\rBaro too hot ({start_temp:5.1f}C) cool the VOXL with a fan until <35C", end="", flush=True);
+            print(f"\rBaro too hot [{start_temp:5.1f}C] cool the VOXL with a fan until <35C", end="", flush=True);
             needs_fan_turning_off = True
             time.sleep(1);
 
