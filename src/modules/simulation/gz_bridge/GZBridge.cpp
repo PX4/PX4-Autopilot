@@ -136,7 +136,11 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-	// Gimbal mixing interface
+	if (!_mixing_interface_thruster.init(_model_name)) {
+		PX4_ERR("failed to init thruster output");
+		return PX4_ERROR;
+	}
+
 	if (!_gimbal.init(_world_name, _model_name)) {
 		PX4_ERR("failed to init gimbal");
 		return PX4_ERROR;
@@ -935,6 +939,40 @@ void GZBridge::rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::m
 	q_FRD_to_NED = q_ENU_to_NED * q_FLU_to_ENU * q_FLU_to_FRD.Inverse();
 }
 
+<<<<<<< HEAD
+=======
+void GZBridge::Run()
+{
+	if (should_exit()) {
+		ScheduleClear();
+
+		_mixing_interface_esc.stop();
+		_mixing_interface_servo.stop();
+		_mixing_interface_wheel.stop();
+		_mixing_interface_thruster.stop();
+		_gimbal.stop();
+
+		exit_and_cleanup();
+		return;
+	}
+
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		updateParams();
+
+		_mixing_interface_esc.updateParams();
+		_mixing_interface_servo.updateParams();
+		_mixing_interface_wheel.updateParams();
+		_mixing_interface_thruster.updateParams();
+		_gimbal.updateParams();
+	}
+
+	ScheduleDelayed(10_ms);
+}
+
+>>>>>>> 14433ddefe (feat: thruster simulation interface)
 int GZBridge::task_spawn(int argc, char *argv[])
 {
 	std::string world_name;
@@ -992,6 +1030,9 @@ int GZBridge::print_status()
 
 	PX4_INFO_RAW("Wheel outputs:\n");
 	_mixing_interface_wheel.mixingOutput().printStatus();
+
+	PX4_INFO_RAW("Thruster outputs:\n");
+	_mixing_interface_thruster.mixingOutput().printStatus();
 
 	return 0;
 }
