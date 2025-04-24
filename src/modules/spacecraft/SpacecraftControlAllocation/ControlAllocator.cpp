@@ -46,6 +46,9 @@
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
 
+// PX4 LOG
+// #include <px4_platform_common/log.h>
+
 using namespace matrix;
 using namespace time_literals;
 
@@ -312,7 +315,11 @@ SpacecraftControlAllocator::generateActuationSignals()
 			if (_has_slew_rate) {
 				_control_allocation[i]->applySlewRateLimit(dt);
 			}
-
+			// PX4_INFO("Actuator setpoint %d: %f %f %f %f %f %f %f %f", i,
+			// 	 (double)_control_allocation[i]->_actuator_sp(0), (double)_control_allocation[i]->_actuator_sp(1),
+			// 	 (double)_control_allocation[i]->_actuator_sp(2), (double)_control_allocation[i]->_actuator_sp(3),
+			// 	 (double)_control_allocation[i]->_actuator_sp(4), (double)_control_allocation[i]->_actuator_sp(5),
+			// 	 (double)_control_allocation[i]->_actuator_sp(6), (double)_control_allocation[i]->_actuator_sp(7));
 			_control_allocation[i]->clipActuatorSetpoint();
 		}
 	}
@@ -387,6 +394,14 @@ SpacecraftControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessU
 
 					slew_rate[selected_matrix](actuator_idx_matrix[selected_matrix]) = _params.slew_rate_motors[actuator_type_idx];
 
+				} else if ((ActuatorType)actuator_type == ActuatorType::THRUSTERS) {
+					if (actuator_type_idx >= MAX_NUM_THRUSTERS) {
+						PX4_ERR("Too many thrusters");
+						_num_actuators[actuator_type] = 0;
+						break;
+					}
+
+					minimum[selected_matrix](actuator_idx_matrix[selected_matrix]) = 0.f;
 				} else if ((ActuatorType)actuator_type == ActuatorType::SERVOS) {
 					if (actuator_type_idx >= MAX_NUM_SERVOS) {
 						PX4_ERR("Too many servos");
@@ -540,10 +555,15 @@ SpacecraftControlAllocator::publish_actuator_controls()
 
 	uint32_t stopped_motors = _actuator_effectiveness->getStoppedMotors() | _handled_motor_failure_bitmask;
 
+	// Setpoint for motors and servos
+	int actuator_type = 0;
+	if (_num_actuators[(int)ActuatorType::THRUSTERS] > 0) {
+		actuator_type = (int)ActuatorType::THRUSTERS;
+	}
+
 	// motors
 	int motors_idx;
-
-	for (motors_idx = 0; motors_idx < _num_actuators[0] && motors_idx < actuator_motors_s::NUM_CONTROLS; motors_idx++) {
+	for (motors_idx = 0; motors_idx < _num_actuators[actuator_type] && motors_idx < actuator_motors_s::NUM_CONTROLS; motors_idx++) {
 		int selected_matrix = _control_allocation_selection_indexes[actuator_idx];
 		float actuator_sp = _control_allocation[selected_matrix]->getActuatorSetpoint()(actuator_idx_matrix[selected_matrix]);
 		actuator_motors.control[motors_idx] = PX4_ISFINITE(actuator_sp) ? actuator_sp : NAN;
@@ -559,7 +579,6 @@ SpacecraftControlAllocator::publish_actuator_controls()
 	for (int i = motors_idx; i < actuator_motors_s::NUM_CONTROLS; i++) {
 		actuator_motors.control[i] = NAN;
 	}
-
 	_actuator_motors_pub.publish(actuator_motors);
 
 	// servos
