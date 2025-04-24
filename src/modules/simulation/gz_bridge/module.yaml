@@ -41,10 +41,10 @@ actuator_output:
       group_label: 'Thrusters'
       channel_label: 'Thrusters'
       standard_params:
-        disarmed: { min: 0, max: 1000, default: 0 }
-        min: { min: 0, max: 1000, default: 0 }
-        max: { min: 0, max: 1000, default: 1000 }
-        failsafe: { min: 0, max: 1000 }
+        disarmed: { min: 0, max: 10000, default: 0 }
+        min: { min: 0, max: 10000, default: 0 }
+        max: { min: 0, max: 10000, default: 10000 }
+        failsafe: { min: 0, max: 10000 }
       num_channels: 8
 
 parameters:
