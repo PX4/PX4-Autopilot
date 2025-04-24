@@ -36,6 +36,7 @@
 #include "GZMixingInterfaceESC.hpp"
 #include "GZMixingInterfaceServo.hpp"
 #include "GZMixingInterfaceWheel.hpp"
+#include "GZMixingInterfaceThruster.hpp"
 #include "GZGimbal.hpp"
 
 #include <px4_platform_common/atomic.h>
@@ -146,6 +147,7 @@ private:
 	GZMixingInterfaceESC   _mixing_interface_esc{_node};
 	GZMixingInterfaceServo _mixing_interface_servo{_node};
 	GZMixingInterfaceWheel _mixing_interface_wheel{_node};
+	GZMixingInterfaceThruster _mixing_interface_thruster{_node};
 
 	GZGimbal _gimbal{_node};
 
