@@ -665,7 +665,7 @@ void Navigator::run()
 					vehicle_command_s vehicle_command{};
 					vehicle_command.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
 					vehicle_command.param1 = _mission.get_land_start_index();
-					publish_vehicle_command(&vehicle_command);
+					publish_vehicle_command(vehicle_command);
 
 				} else {
 					PX4_WARN("planned mission landing not available");
@@ -867,7 +867,7 @@ void Navigator::run()
 			vehicle_command_s vehicle_command{};
 			vehicle_command.command = NAV_CMD_DO_VTOL_TRANSITION;
 			vehicle_command.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-			publish_vehicle_command(&vehicle_command);
+			publish_vehicle_command(vehicle_command);
 			mavlink_log_info(&_mavlink_log_pub, "Transition to hover mode and descend.\t");
 			events::send(events::ID("navigator_transition_descend"), events::Log::Critical,
 				     "Transition to hover mode and descend");
@@ -1227,13 +1227,13 @@ void Navigator::take_traffic_conflict_action()
 	case 2: {
 			_rtl.set_return_alt_min(true);
 			vehicle_command.command = vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH;
-			publish_vehicle_command(&vehicle_command);
+			publish_vehicle_command(vehicle_command);
 			break;
 		}
 
 	case 3: {
 			vehicle_command.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
-			publish_vehicle_command(&vehicle_command);
+			publish_vehicle_command(vehicle_command);
 			break;
 
 		}
@@ -1241,7 +1241,7 @@ void Navigator::take_traffic_conflict_action()
 	case 4: {
 
 			vehicle_command.command = vehicle_command_s::VEHICLE_CMD_NAV_LOITER_UNLIM;
-			publish_vehicle_command(&vehicle_command);
+			publish_vehicle_command(vehicle_command);
 			break;
 
 		}
@@ -1392,32 +1392,32 @@ void Navigator::publish_navigator_status()
 	}
 }
 
-void Navigator::publish_vehicle_command(vehicle_command_s *vehicle_command)
+void Navigator::publish_vehicle_command(vehicle_command_s &vehicle_command)
 {
-	vehicle_command->timestamp = hrt_absolute_time();
-	vehicle_command->source_system = _vstatus.system_id;
-	vehicle_command->source_component = _vstatus.component_id;
-	vehicle_command->target_system = _vstatus.system_id;
-	vehicle_command->confirmation = false;
-	vehicle_command->from_external = false;
+	vehicle_command.timestamp = hrt_absolute_time();
+	vehicle_command.source_system = _vstatus.system_id;
+	vehicle_command.source_component = _vstatus.component_id;
+	vehicle_command.target_system = _vstatus.system_id;
+	vehicle_command.confirmation = false;
+	vehicle_command.from_external = false;
 
 	int target_camera_component_id;
 
 	// The camera commands are not processed on the autopilot but will be
 	// sent to the mavlink links to other components.
-	switch (vehicle_command->command) {
+	switch (vehicle_command.command) {
 	case NAV_CMD_IMAGE_START_CAPTURE:
 
-		if (static_cast<int>(vehicle_command->param3) == 1) {
+		if (static_cast<int>(vehicle_command.param3) == 1) {
 			// When sending a single capture we need to include the sequence number, thus camera_trigger needs to handle this command
-			vehicle_command->command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
-			vehicle_command->param1 = 0.f; // Session control hide lens
-			vehicle_command->param2 = 0.f; // Zoom absolute position
-			vehicle_command->param3 = 0.f; // Zoom step
-			vehicle_command->param4 = 0.f; // Focus lock
-			vehicle_command->param5 = 1.; // Shoot command
-			vehicle_command->param6 = 0.; // Command identity
-			vehicle_command->param7 = 0.f; // Shot identifier
+			vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
+			vehicle_command.param1 = 0.f; // Session control hide lens
+			vehicle_command.param2 = 0.f; // Zoom absolute position
+			vehicle_command.param3 = 0.f; // Zoom step
+			vehicle_command.param4 = 0.f; // Focus lock
+			vehicle_command.param5 = 1.; // Shoot command
+			vehicle_command.param6 = 0.; // Command identity
+			vehicle_command.param7 = 0.f; // Shot identifier
 
 		} else {
 			// We are only capturing multiple if param3 is 0 or > 1.
@@ -1425,65 +1425,65 @@ void Navigator::publish_vehicle_command(vehicle_command_s *vehicle_command)
 			_is_capturing_images = true;
 		}
 
-		target_camera_component_id = static_cast<int>(vehicle_command->param1); // Target id from param 1
+		target_camera_component_id = static_cast<int>(vehicle_command.param1); // Target id from param 1
 
 		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
-			vehicle_command->target_component = target_camera_component_id;
+			vehicle_command.target_component = target_camera_component_id;
 
 		} else {
-			vehicle_command->target_component = 100; // MAV_COMP_ID_CAMERA
+			vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
 		}
 
 		break;
 
 	case NAV_CMD_IMAGE_STOP_CAPTURE:
 		_is_capturing_images = false;
-		target_camera_component_id = static_cast<int>(vehicle_command->param1); // Target id from param 1
+		target_camera_component_id = static_cast<int>(vehicle_command.param1); // Target id from param 1
 
 		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
-			vehicle_command->target_component = target_camera_component_id;
+			vehicle_command.target_component = target_camera_component_id;
 
 		} else {
-			vehicle_command->target_component = 100; // MAV_COMP_ID_CAMERA
+			vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
 		}
 
 		break;
 
 	case NAV_CMD_SET_CAMERA_MODE:
-		target_camera_component_id = static_cast<int>(vehicle_command->param1); // Target id from param 1
+		target_camera_component_id = static_cast<int>(vehicle_command.param1); // Target id from param 1
 
 		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
-			vehicle_command->target_component = target_camera_component_id;
+			vehicle_command.target_component = target_camera_component_id;
 
 		} else {
-			vehicle_command->target_component = 100; // MAV_COMP_ID_CAMERA
+			vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
 		}
 
 		break;
 
 	case NAV_CMD_SET_CAMERA_SOURCE:
-		target_camera_component_id = static_cast<int>(vehicle_command->param1); // Target id from param 1
+		target_camera_component_id = static_cast<int>(vehicle_command.param1); // Target id from param 1
 
 		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
-			vehicle_command->target_component = target_camera_component_id;
+			vehicle_command.target_component = target_camera_component_id;
 
 		} else {
-			vehicle_command->target_component = 100; // MAV_COMP_ID_CAMERA
+			vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
 		}
 
 		break;
 
 	case NAV_CMD_VIDEO_START_CAPTURE:
 	case NAV_CMD_VIDEO_STOP_CAPTURE:
-		vehicle_command->target_component = 100; // MAV_COMP_ID_CAMERA
+		vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
 		break;
 
 	default:
-		vehicle_command->target_component = 0;
+		vehicle_command.target_component = 0;
 		break;
 	}
 
-	_vehicle_cmd_pub.publish(*vehicle_command);
+	_vehicle_cmd_pub.publish(vehicle_command);
 }
 
 void Navigator::publish_distance_sensor_mode_request()
@@ -1535,7 +1535,7 @@ void Navigator::acquire_gimbal_control()
 	vehicle_command.param2 = _vstatus.component_id;
 	vehicle_command.param3 = -1.f; // Leave secondary control unchanged
 	vehicle_command.param4 = -1.f;
-	publish_vehicle_command(&vehicle_command);
+	publish_vehicle_command(vehicle_command);
 }
 
 void Navigator::release_gimbal_control()
@@ -1546,7 +1546,7 @@ void Navigator::release_gimbal_control()
 	vehicle_command.param2 = -3.f;
 	vehicle_command.param3 = -1.f; // Leave secondary control unchanged
 	vehicle_command.param4 = -1.f;
-	publish_vehicle_command(&vehicle_command);
+	publish_vehicle_command(vehicle_command);
 }
 
 
@@ -1557,7 +1557,7 @@ Navigator::stop_capturing_images()
 		vehicle_command_s vehicle_command{};
 		vehicle_command.command = NAV_CMD_IMAGE_STOP_CAPTURE;
 		vehicle_command.param1 = 0.f;
-		publish_vehicle_command(&vehicle_command);
+		publish_vehicle_command(vehicle_command);
 
 		// _is_capturing_images is reset inside publish_vehicle_command.
 	}
@@ -1610,7 +1610,7 @@ void Navigator::disable_camera_trigger()
 	// Pause trigger
 	vehicle_command.param1 = -1.f;
 	vehicle_command.param3 = 1.f;
-	publish_vehicle_command(&vehicle_command);
+	publish_vehicle_command(vehicle_command);
 }
 
 void Navigator::set_gimbal_neutral()
@@ -1622,7 +1622,7 @@ void Navigator::set_gimbal_neutral()
 	vehicle_command.param3 = NAN; // Don't set any angular velocities
 	vehicle_command.param4 = NAN;
 	vehicle_command.param5 = gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL;
-	publish_vehicle_command(&vehicle_command);
+	publish_vehicle_command(vehicle_command);
 }
 
 void Navigator::sendWarningDescentStoppedDueToTerrain()
