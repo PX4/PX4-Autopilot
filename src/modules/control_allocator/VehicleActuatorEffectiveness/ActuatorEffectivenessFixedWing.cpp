@@ -61,9 +61,8 @@ ActuatorEffectivenessFixedWing::getEffectivenessMatrix(Configuration &configurat
 	return (rotors_added_successfully && surfaces_added_successfully);
 }
 
-void ActuatorEffectivenessFixedWing::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
+void ActuatorEffectivenessFixedWing::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
+		ActuatorVector &actuator_sp, const ActuatorVector &actuator_min, const ActuatorVector &actuator_max)
 {
 	stopMaskedMotorsWithZeroThrust(_forwards_motors_mask, actuator_sp);
 }

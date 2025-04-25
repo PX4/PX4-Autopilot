@@ -195,9 +195,8 @@ public:
 	 * It is called after the matrix multiplication and before final clipping.
 	 * @param actuator_sp input & output setpoint
 	 */
-	virtual void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-				    int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-				    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) {}
+	virtual void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
+				    ActuatorVector &actuator_sp, const ActuatorVector &actuator_min, const ActuatorVector &actuator_max) {}
 
 	/**
 	 * Get a bitmask of motors to be stopped
