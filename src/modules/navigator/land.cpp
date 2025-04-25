@@ -109,17 +109,16 @@ Land::on_active()
 	if (_navigator->abort_landing()) {
 
 		// send reposition cmd to get out of land mode (will loiter at current position and altitude)
-		vehicle_command_s vcmd = {};
-
-		vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
-		vcmd.param1 = -1;
-		vcmd.param2 = 1;
-		vcmd.param5 = _navigator->get_global_position()->lat;
-		vcmd.param6 = _navigator->get_global_position()->lon;
+		vehicle_command_s vehicle_command{};
+		vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
+		vehicle_command.param1 = -1;
+		vehicle_command.param2 = 1;
+		vehicle_command.param5 = _navigator->get_global_position()->lat;
+		vehicle_command.param6 = _navigator->get_global_position()->lon;
 		// as we don't know the landing point altitude assume the worst case (abort at 0m above ground),
 		// and thus always climb MIS_LND_ABRT_ALT
-		vcmd.param7 = _navigator->get_global_position()->alt + _navigator->get_landing_abort_min_alt();
+		vehicle_command.param7 = _navigator->get_global_position()->alt + _navigator->get_landing_abort_min_alt();
 
-		_navigator->publish_vehicle_command(&vcmd);
+		_navigator->publish_vehicle_command(&vehicle_command);
 	}
 }
