@@ -60,7 +60,7 @@ public:
 		FixedUpwards, ///< axis is fixed, pointing upwards (negative Z)
 	};
 
-	static constexpr int NUM_ROTORS_MAX = 8;
+	static constexpr int NUM_ROTORS_MAX = 12;
 
 	struct RotorGeometry {
 		matrix::Vector3f position;
