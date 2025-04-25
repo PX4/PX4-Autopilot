@@ -36,6 +36,7 @@
  *
  * @author Roman Bapst <bapstroman@gmail.com>
  * @author Beat Küng <beat-kueng@gmx.net>
+ * @author Matthias Grob <maetugr@gmail.com>
  */
 
 #include "ControlAllocationSequentialDesaturation.hpp"
@@ -64,7 +65,7 @@ ControlAllocationSequentialDesaturation::allocate()
 	}
 }
 
-void ControlAllocationSequentialDesaturation::desaturateActuators(
+float ControlAllocationSequentialDesaturation::desaturateActuators(
 	ActuatorVector &actuator_sp,
 	const ActuatorVector &desaturation_vector,
 	float increase_limit, float decrease_limit)
@@ -82,6 +83,8 @@ void ControlAllocationSequentialDesaturation::desaturateActuators(
 	for (int i = 0; i < _num_actuators; i++) {
 		actuator_sp(i) += gain * desaturation_vector(i);
 	}
+
+	return gain;
 }
 
 float ControlAllocationSequentialDesaturation::computeDesaturationGain(const ActuatorVector &desaturation_vector,
@@ -124,6 +127,8 @@ void ControlAllocationSequentialDesaturation::mix(float roll_pitch_limit, float 
 	ActuatorVector yaw;
 	ActuatorVector thrust_z;
 
+	ActuatorVector mixed_with_yaw;
+
 	for (int i = 0; i < _num_actuators; i++) {
 		_actuator_sp(i) = _actuator_trim(i) +
 				  _mix(i, ControlAxis::ROLL) * (_control_sp(ControlAxis::ROLL) - _control_trim(ControlAxis::ROLL)) +
@@ -132,148 +137,44 @@ void ControlAllocationSequentialDesaturation::mix(float roll_pitch_limit, float 
 				  _mix(i, ControlAxis::THRUST_X) * (_control_sp(ControlAxis::THRUST_X) - _control_trim(ControlAxis::THRUST_X)) +
 				  _mix(i, ControlAxis::THRUST_Y) * (_control_sp(ControlAxis::THRUST_Y) - _control_trim(ControlAxis::THRUST_Y)) +
 				  _mix(i, ControlAxis::THRUST_Z) * (_control_sp(ControlAxis::THRUST_Z) - _control_trim(ControlAxis::THRUST_Z));
+		mixed_with_yaw(i) = _actuator_sp(i) + _mix(i,
+				    ControlAxis::YAW) * (_control_sp(ControlAxis::YAW) - _control_trim(ControlAxis::YAW));
 		roll(i) = _mix(i, ControlAxis::ROLL);
 		pitch(i) = _mix(i, ControlAxis::PITCH);
 		yaw(i) = _mix(i, ControlAxis::YAW);
 		thrust_z(i) = _mix(i, ControlAxis::THRUST_Z);
 	}
 
-	const bool debug = false;
+	const bool debug = true;
 
 	if (debug) { printf("Roll Pitch Thrust Mixed\n"); _actuator_sp.print(); };
 
-	desaturateActuators(_actuator_sp, thrust_z, roll_pitch_limit);
+	if (debug) { printf("Roll Pitch Yaw Thrust Mixed\n"); mixed_with_yaw.print(); };
 
-	if (debug) { printf("Thrust Roll Pitch\n"); _actuator_sp.print(); };
+	float rp = desaturateActuators(_actuator_sp, thrust_z, roll_pitch_limit);
 
-	desaturateActuators(_actuator_sp, roll);
+	float rpy = desaturateActuators(mixed_with_yaw, thrust_z, roll_pitch_limit);
 
-	desaturateActuators(_actuator_sp, pitch);
+	printf("%.3f %.3f\n", (double)rp, (double)rpy);
 
-	if (debug) { printf("Roll Pitch\n"); _actuator_sp.print(); };
+	const bool use_rpy = fabsf(rpy) < fabsf(rp);
 
-	for (int i = 0; i < _num_actuators; i++) {
-		_actuator_sp(i) += _mix(i, ControlAxis::YAW) * (_control_sp(ControlAxis::YAW) - _control_trim(ControlAxis::YAW));
+	if (use_rpy) {
+		_actuator_sp = mixed_with_yaw;
 	}
 
-	if (debug) { printf("Yaw mixed\n"); _actuator_sp.print(); };
-
-	desaturateActuators(_actuator_sp, thrust_z, yaw_limit, 0.15f);
-
-	if (debug) { printf("Thrust Yaw\n"); _actuator_sp.print(); };
-
-	desaturateActuators(_actuator_sp, yaw);
-
-	if (debug) { printf("Yaw\n"); _actuator_sp.print(); };
-}
-
-void
-ControlAllocationSequentialDesaturation::mixAirmodeRP()
-{
-	// Airmode for roll and pitch, but not yaw
-
-	// Mix without yaw
-	ActuatorVector thrust_z;
-
-	for (int i = 0; i < _num_actuators; i++) {
-		_actuator_sp(i) = _actuator_trim(i) +
-				  _mix(i, ControlAxis::ROLL) * (_control_sp(ControlAxis::ROLL) - _control_trim(ControlAxis::ROLL)) +
-				  _mix(i, ControlAxis::PITCH) * (_control_sp(ControlAxis::PITCH) - _control_trim(ControlAxis::PITCH)) +
-				  _mix(i, ControlAxis::THRUST_X) * (_control_sp(ControlAxis::THRUST_X) - _control_trim(ControlAxis::THRUST_X)) +
-				  _mix(i, ControlAxis::THRUST_Y) * (_control_sp(ControlAxis::THRUST_Y) - _control_trim(ControlAxis::THRUST_Y)) +
-				  _mix(i, ControlAxis::THRUST_Z) * (_control_sp(ControlAxis::THRUST_Z) - _control_trim(ControlAxis::THRUST_Z));
-		thrust_z(i) = _mix(i, ControlAxis::THRUST_Z);
-	}
-
-	desaturateActuators(_actuator_sp, thrust_z);
-
-	// Mix yaw independently
-	mixYaw();
-}
-
-void
-ControlAllocationSequentialDesaturation::mixAirmodeRPY()
-{
-	// Airmode for roll, pitch and yaw
-
-	// Do full mixing
-	ActuatorVector thrust_z;
-	ActuatorVector yaw;
-
-	for (int i = 0; i < _num_actuators; i++) {
-		_actuator_sp(i) = _actuator_trim(i) +
-				  _mix(i, ControlAxis::ROLL) * (_control_sp(ControlAxis::ROLL) - _control_trim(ControlAxis::ROLL)) +
-				  _mix(i, ControlAxis::PITCH) * (_control_sp(ControlAxis::PITCH) - _control_trim(ControlAxis::PITCH)) +
-				  _mix(i, ControlAxis::YAW) * (_control_sp(ControlAxis::YAW) - _control_trim(ControlAxis::YAW)) +
-				  _mix(i, ControlAxis::THRUST_X) * (_control_sp(ControlAxis::THRUST_X) - _control_trim(ControlAxis::THRUST_X)) +
-				  _mix(i, ControlAxis::THRUST_Y) * (_control_sp(ControlAxis::THRUST_Y) - _control_trim(ControlAxis::THRUST_Y)) +
-				  _mix(i, ControlAxis::THRUST_Z) * (_control_sp(ControlAxis::THRUST_Z) - _control_trim(ControlAxis::THRUST_Z));
-		thrust_z(i) = _mix(i, ControlAxis::THRUST_Z);
-		yaw(i) = _mix(i, ControlAxis::YAW);
-	}
-
-	desaturateActuators(_actuator_sp, thrust_z);
-
-	// Unsaturate yaw (in case upper and lower bounds are exceeded)
-	// to prioritize roll/pitch over yaw.
-	desaturateActuators(_actuator_sp, yaw);
-}
-
-void
-ControlAllocationSequentialDesaturation::mixAirmodeDisabled()
-{
-	// Airmode disabled: never allow to increase the thrust to unsaturate a motor
-
-	// Mix without yaw
-	ActuatorVector thrust_z;
-	ActuatorVector roll;
-	ActuatorVector pitch;
-
-	for (int i = 0; i < _num_actuators; i++) {
-		_actuator_sp(i) = _actuator_trim(i) +
-				  _mix(i, ControlAxis::ROLL) * (_control_sp(ControlAxis::ROLL) - _control_trim(ControlAxis::ROLL)) +
-				  _mix(i, ControlAxis::PITCH) * (_control_sp(ControlAxis::PITCH) - _control_trim(ControlAxis::PITCH)) +
-				  _mix(i, ControlAxis::THRUST_X) * (_control_sp(ControlAxis::THRUST_X) - _control_trim(ControlAxis::THRUST_X)) +
-				  _mix(i, ControlAxis::THRUST_Y) * (_control_sp(ControlAxis::THRUST_Y) - _control_trim(ControlAxis::THRUST_Y)) +
-				  _mix(i, ControlAxis::THRUST_Z) * (_control_sp(ControlAxis::THRUST_Z) - _control_trim(ControlAxis::THRUST_Z));
-		thrust_z(i) = _mix(i, ControlAxis::THRUST_Z);
-		roll(i) = _mix(i, ControlAxis::ROLL);
-		pitch(i) = _mix(i, ControlAxis::PITCH);
-	}
-
-	// only reduce thrust
-	desaturateActuators(_actuator_sp, thrust_z, 0.f);
-
-	// Reduce roll/pitch acceleration if needed to unsaturate
 	desaturateActuators(_actuator_sp, roll);
 	desaturateActuators(_actuator_sp, pitch);
 
-	// Mix yaw independently
-	mixYaw();
-}
+	if (!use_rpy) {
+		for (int i = 0; i < _num_actuators; i++) {
+			_actuator_sp(i) += _mix(i, ControlAxis::YAW) * (_control_sp(ControlAxis::YAW) - _control_trim(ControlAxis::YAW));
+		}
 
-void
-ControlAllocationSequentialDesaturation::mixYaw(float yaw_limit)
-{
-	// Add yaw to outputs
-	ActuatorVector yaw;
-	ActuatorVector thrust_z;
-
-	for (int i = 0; i < _num_actuators; i++) {
-		_actuator_sp(i) += _mix(i, ControlAxis::YAW) * (_control_sp(ControlAxis::YAW) - _control_trim(ControlAxis::YAW));
-		yaw(i) = _mix(i, ControlAxis::YAW);
-		thrust_z(i) = _mix(i, ControlAxis::THRUST_Z);
+		desaturateActuators(_actuator_sp, thrust_z, yaw_limit, 0.15f);
 	}
 
-	// Change yaw acceleration to unsaturate the outputs if needed (do not change roll/pitch),
-	// and allow some yaw response at maximum thrust
-	ActuatorVector max_prev = _actuator_max;
-	_actuator_max += (_actuator_max - _actuator_min) * MINIMUM_YAW_MARGIN;
 	desaturateActuators(_actuator_sp, yaw);
-	_actuator_max = max_prev;
-
-	// reduce thrust only
-	desaturateActuators(_actuator_sp, thrust_z, 0.f);
 }
 
 void
