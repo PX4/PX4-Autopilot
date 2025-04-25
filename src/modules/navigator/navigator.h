@@ -132,10 +132,10 @@ public:
 	/**
 	 * @brief Publish a given specified vehicle command
 	 *
-	 * Sets the target_component of the vehicle command accordingly depending on the
-	 * vehicle command value (e.g. For Camera control, sets target system component id)
+	 * Fill in timestamp, source and target IDs.
+	 * target_component special handling (e.g. For Camera control, set camera ID)
 	 *
-	 * @param vcmd Vehicle command to execute
+	 * @param vcmd Vehicle command to publish
 	 */
 	void publish_vehicle_command(vehicle_command_s *vcmd);
 
