@@ -146,6 +146,12 @@ The settings and underlying parameters are shown below.
 | Data Link Loss Timeout | [COM_DL_LOSS_T](../advanced_config/parameter_reference.md#COM_DL_LOSS_T) | Amount of time after losing the data connection before the failsafe will trigger. |
 | Failsafe Action        | [NAV_DLL_ACT](../advanced_config/parameter_reference.md#NAV_DLL_ACT)     | Disabled, Hold mode, Return mode, Land mode, Disarm, Terminate.                   |
 
+The following settings also apply, but are not displayed in the QGC UI.
+
+| Setting                                                     | Parameter                                                                  | Description                                          |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------- |
+| <a id="COM_DLL_EXCEPT"></a>Mode exceptions for DLL failsafe | [COM_DLL_EXCEPT](../advanced_config/parameter_reference.md#COM_DLL_EXCEPT) | Set modes where DL loss will not trigger a failsafe. |
+
 ## Geofence Failsafe
 
 The _Geofence Failsafe_ is triggered when the drone breaches a "virtual" perimeter.

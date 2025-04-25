@@ -15,7 +15,7 @@ Simple changes to _existing content_ can be made by clicking the **Edit on GitHu
 
 ![Vitepress: Edit Page button](../../assets/vuepress/vuepress_edit_page_on_github_link.png)
 
-To edit an existing page:
+To edit an existing English page:
 
 1. Open the page.
 1. Click the **Edit on GitHub** link below the page content.
@@ -24,49 +24,62 @@ To edit an existing page:
 
 The documentation team will review the request and either merge it or work with you to update it.
 
-## Changes using Git (New Pages and Images)
+Note that you can only make changes to the English version directly in the source.
+[Translations are handled in Crowdin](../contribute/translation.md).
+
+## Changes using Git
 
 More substantial changes, including adding new pages or adding/modifying images, aren't as easy to make (or properly test) on Github.
+
 For these kinds of changes we suggest using the same approach as for _code_:
 
-1. Use the _git_ toolchain to get the documentation source code onto your local computer.
+1. Use the _git_ toolchain to get the PX4 source code onto your local computer.
 1. Modify the documentation as needed (add, change, delete).
 1. _Test_ that it builds properly using Vitepress.
-1. Create a branch for your changes and create a pull request (PR) to pull it back into the documentation.
+1. Create a branch for your changes and create a pull request (PR) to pull it back into the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot.git) repo.
 
 The following explain how to get the source code, build locally (to test), and modify the code.
 
-### Get/Push Documentation Source Code
+### Get Documentation Source Code
+
+Documentation sources are in the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot/) repo, alongside all the other PX4 source code.
+The sources are markdown files located the [/docs](https://github.com/PX4/PX4-Autopilot/tree/main/docs) subdirectory.
+The English source files are in the [/docs/en/](https://github.com/PX4/PX4-Autopilot/tree/main/docs/en) subdirectory and can be edited directly.
+[Translation](../contribute/translation.md) sources are in language specific subdirectories, such as `ko` for korean and `zh` for Chinese: these are edited via the Crowdin tool, and should not be edited directly.
+
+::: tip
+If you already have a clone of the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot/) you can ignore this section.
+:::
 
 To get the library(s) sources onto your local computer you will need to use the git toolchain.
 The instructions below explain how to get git and use it on your local computer.
 
 1. Download git for your computer from [https://git-scm.com/downloads](https://git-scm.com/downloads)
 1. [Sign up](https://github.com/join) for Github if you haven't already
-1. Create a copy (Fork) of the [PX4 User Guide repo](https://github.com/PX4/PX4-user_guide) on Github ([instructions here](https://docs.github.com/en/get-started/quickstart/fork-a-repo)).
+1. Create a copy (Fork) of the [PX4-Autopilot repo](https://github.com/PX4/PX4-Autopilot) on Github ([instructions here](https://docs.github.com/en/get-started/quickstart/fork-a-repo)).
 1. Clone (copy) your forked repository to your local computer:
 
    ```sh
    cd ~/wherever/
-   git clone https://github.com/<your git name>/PX4-user_guide.git
+   git clone https://github.com/<your git name>/PX4-Autopilot.git
    ```
 
-   For example, to clone the PX4 userguide fork for a user with Github account "john_citizen":
+   For example, to clone PX4 source fork for a user with Github account "john_citizen":
 
    ```sh
-   git clone https://github.com/john_citizen/PX4-user_guide.git
+   git clone https://github.com/john_citizen/PX4-Autopilot.git
    ```
 
 1. Navigate to your local repository:
 
    ```sh
-   cd ~/wherever/PX4-user_guide
+   cd ~/wherever/PX4-Autopilot
    ```
 
-1. Add a _remote_ called "upstream" to point to the PX4 version of the library:
+1. Add a _remote_ called "upstream" to point to the "official" PX4 version of the library:
 
    ```sh
-   git remote add upstream https://github.com/PX4/PX4-user_guide.git
+   git remote add upstream https://github.com/PX4/PX4-Autopilot.git
    ```
 
    :::tip
@@ -75,7 +88,19 @@ The instructions below explain how to get git and use it on your local computer.
    Above you create a new remote _upstream_ that points to the PX4 project version of the documents.
    :::
 
-1. Create a branch for your changes:
+### Make/Push Documentation Changes
+
+Within the repository you created above:
+
+1. Bring your copy of the repository `main` branch up to date:
+
+   ```sh
+   git checkout main
+   git fetch upstream main
+   git pull upstream main
+   ```
+
+2. Create a new branch for your changes:
 
    ```sh
    git checkout -b <your_feature_branch_name>
@@ -83,8 +108,8 @@ The instructions below explain how to get git and use it on your local computer.
 
    This creates a local branch on your computer named `your_feature_branch_name`.
 
-1. Make changes to the documentation as needed (general guidance on this in following sections)
-1. Once you are satisfied with your changes, you can add them to your local branch using a "commit":
+3. Make changes to the documentation as needed (general guidance on this in following sections)
+4. Once you are satisfied with your changes, you can add them to your local branch using a "commit":
 
    ```sh
    git add <file name>
@@ -93,21 +118,25 @@ The instructions below explain how to get git and use it on your local computer.
 
    For a good commit message, please refer to the [Source Code Management](../contribute/code.md#commits-and-commit-messages) section.
 
-1. Push your local branch (including commits added to it) to your forked repository on Github.
+5. Push your local branch (including commits added to it) to your forked repository on Github.
 
    ```sh
    git push origin your_feature_branch_name
    ```
 
-1. Go to your forked repository on Github in a web browser, e.g.: `https://github.com/<your git name>/PX4-user_guide.git`.
+6. Go to your forked repository on Github in a web browser, e.g.: `https://github.com/<your git name>/PX4-Autopilot.git`.
    There you should see the message that a new branch has been pushed to your forked repository.
-1. Create a pull request (PR):
+7. Create a pull request (PR):
+
    - On the right hand side of the "new branch message" (see one step before), you should see a green button saying "Compare & Create Pull Request".
      Press it.
    - A pull request template will be created.
      It will list your commits and you can (must) add a meaningful title (in case of a one commit PR, it's usually the commit message) and message (<span style="color:orange">explain what you did for what reason</span>.
-     Check [other pull requests](https://github.com/PX4/PX4-user_guide/pulls) for comparison)
-1. You're done!
+     Check [other pull requests](https://github.com/PX4/PX4-Autopilot/pulls) for comparison).
+   - Add the "Documentation" label.
+
+8. You're done!
+
    Maintainers for the PX4 User Guide will now have a look at your contribution and decide if they want to integrate it.
    Check if they have questions on your changes every once in a while.
 
@@ -120,10 +149,10 @@ Build the library locally to test that any changes you have made have rendered p
    - [Nodejs 18+](https://nodejs.org/en)
    - [Yarn classic](https://classic.yarnpkg.com/en/docs/install)
 
-1. Navigate to your local repository:
+1. Navigate to your local repository and the `/docs` subdirectory:
 
    ```sh
-   cd ~/wherever/PX4-user_guide
+   cd ~/wherever/PX4-Autopilot/docs
    ```
 
 1. Install dependencies (including Vitepress):

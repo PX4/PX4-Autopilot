@@ -314,6 +314,7 @@
   - [Джойстики](config/joystick.md)
   - [Посилання даних](data_links/index.md)
     - [MAVLink Telemetry (OSD/GCS)](peripherals/mavlink_peripherals.md)
+
     - [Телеметричні радіостанції](telemetry/index.md)
       - [SiK Radio](telemetry/sik_radio.md)
         - [Телеметричне радіо RFD900 (SiK)](telemetry/rfd900_telemetry.md)
@@ -326,9 +327,13 @@
         - [ARK Electron Microhard Серійне Телеметрійне Радіо](telemetry/ark_microhard_serial.md)
         - [Holybro Microhard P900 Телеметрійне Радіо](telemetry/holybro_microhard_p900_radio.md)
       - [CUAV P8 Телеметрійне радіо](telemetry/cuav_p8_radio.md)
+      - [J.Fi Wireless Telemetry Module](telemetry/jfi_telemetry.md)
       - [Holybro XBP9X - Припинено](telemetry/holybro_xbp9x_radio.md)
+
     - [FrSky телеметрія](peripherals/frsky_telemetry.md)
+
     - [TBS Crossfire (CRSF) телеметрія](telemetry/crsf_telemetry.md)
+
     - [Супутниковий зв'язок (Iridium/RockBlock)](advanced_features/satcom_roadblock.md)
   - [Енергетичні системи](power_systems/index.md)
     - [Налаштування оцінки батареї](config/battery.md)

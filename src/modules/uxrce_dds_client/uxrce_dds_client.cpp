@@ -366,6 +366,11 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 		return false;
 	}
 
+	if (!_subs->init(session, _reliable_out, reliable_in, best_effort_in, _participant_id, _client_namespace)) {
+		PX4_ERR("subs init failed");
+		return false;
+	}
+
 	// create VehicleCommand replier
 	if (_num_of_repliers < MAX_NUM_REPLIERS) {
 		if (add_replier(new VehicleCommandSrv(session, _reliable_out, reliable_in, _participant_id, _client_namespace,
@@ -386,11 +391,6 @@ void UxrceddsClient::deleteSession(uxrSession *session)
 	if (_session_created) {
 		uxr_delete_session_retries(session, _connected ? 1 : 0);
 		_session_created = false;
-	}
-
-	if (_subs_initialized) {
-		_subs->reset();
-		_subs_initialized = false;
 	}
 
 	_last_payload_tx_rate = 0;
@@ -649,9 +649,6 @@ void UxrceddsClient::run()
 		hrt_abstime last_sync_session = 0;
 		int poll_error_counter = 0;
 		resetConnectivityCounters();
-
-		_subs->init();
-		_subs_initialized = true;
 
 		while (!should_exit() && _connected) {
 			perf_begin(_loop_perf);
