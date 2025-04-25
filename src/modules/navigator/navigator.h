@@ -135,9 +135,9 @@ public:
 	 * Fill in timestamp, source and target IDs.
 	 * target_component special handling (e.g. For Camera control, set camera ID)
 	 *
-	 * @param vcmd Vehicle command to publish
+	 * @param vehicle_command Vehicle command to publish
 	 */
-	void publish_vehicle_command(vehicle_command_s *vcmd);
+	void publish_vehicle_command(vehicle_command_s *vehicle_command);
 
 #if CONFIG_NAVIGATOR_ADSB
 	/**
