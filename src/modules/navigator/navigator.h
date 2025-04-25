@@ -137,7 +137,7 @@ public:
 	 *
 	 * @param vcmd Vehicle command to execute
 	 */
-	void publish_vehicle_cmd(vehicle_command_s *vcmd);
+	void publish_vehicle_command(vehicle_command_s *vcmd);
 
 #if CONFIG_NAVIGATOR_ADSB
 	/**

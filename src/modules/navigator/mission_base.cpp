@@ -924,7 +924,7 @@ MissionBase::do_abort_landing()
 	vcmd.param6 = _mission_item.lon;
 	vcmd.param7 = alt_sp;
 
-	_navigator->publish_vehicle_cmd(&vcmd);
+	_navigator->publish_vehicle_command(&vcmd);
 }
 
 void MissionBase::publish_navigator_mission_item()
