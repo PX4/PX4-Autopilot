@@ -665,7 +665,7 @@ void Navigator::run()
 					vehicle_command_s vcmd = {};
 					vcmd.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
 					vcmd.param1 = _mission.get_land_start_index();
-					publish_vehicle_cmd(&vcmd);
+					publish_vehicle_command(&vcmd);
 
 				} else {
 					PX4_WARN("planned mission landing not available");
@@ -867,7 +867,7 @@ void Navigator::run()
 			vehicle_command_s vcmd = {};
 			vcmd.command = NAV_CMD_DO_VTOL_TRANSITION;
 			vcmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-			publish_vehicle_cmd(&vcmd);
+			publish_vehicle_command(&vcmd);
 			mavlink_log_info(&_mavlink_log_pub, "Transition to hover mode and descend.\t");
 			events::send(events::ID("navigator_transition_descend"), events::Log::Critical,
 				     "Transition to hover mode and descend");
@@ -1227,13 +1227,13 @@ void Navigator::take_traffic_conflict_action()
 	case 2: {
 			_rtl.set_return_alt_min(true);
 			vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH;
-			publish_vehicle_cmd(&vcmd);
+			publish_vehicle_command(&vcmd);
 			break;
 		}
 
 	case 3: {
 			vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
-			publish_vehicle_cmd(&vcmd);
+			publish_vehicle_command(&vcmd);
 			break;
 
 		}
@@ -1241,7 +1241,7 @@ void Navigator::take_traffic_conflict_action()
 	case 4: {
 
 			vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LOITER_UNLIM;
-			publish_vehicle_cmd(&vcmd);
+			publish_vehicle_command(&vcmd);
 			break;
 
 		}
@@ -1392,7 +1392,7 @@ void Navigator::publish_navigator_status()
 	}
 }
 
-void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
+void Navigator::publish_vehicle_command(vehicle_command_s *vcmd)
 {
 	vcmd->timestamp = hrt_absolute_time();
 	vcmd->source_system = _vstatus.system_id;
@@ -1537,7 +1537,7 @@ void Navigator::acquire_gimbal_control()
 	vcmd.param2 = _vstatus.component_id;
 	vcmd.param3 = -1.0f; // Leave unchanged.
 	vcmd.param4 = -1.0f; // Leave unchanged.
-	publish_vehicle_cmd(&vcmd);
+	publish_vehicle_command(&vcmd);
 }
 
 void Navigator::release_gimbal_control()
@@ -1548,7 +1548,7 @@ void Navigator::release_gimbal_control()
 	vcmd.param2 = -3.0f; // Remove control if it had it.
 	vcmd.param3 = -1.0f; // Leave unchanged.
 	vcmd.param4 = -1.0f; // Leave unchanged.
-	publish_vehicle_cmd(&vcmd);
+	publish_vehicle_command(&vcmd);
 }
 
 
@@ -1559,9 +1559,9 @@ Navigator::stop_capturing_images()
 		vehicle_command_s vcmd = {};
 		vcmd.command = NAV_CMD_IMAGE_STOP_CAPTURE;
 		vcmd.param1 = 0.0f;
-		publish_vehicle_cmd(&vcmd);
+		publish_vehicle_command(&vcmd);
 
-		// _is_capturing_images is reset inside publish_vehicle_cmd.
+		// _is_capturing_images is reset inside publish_vehicle_command.
 	}
 }
 
@@ -1612,7 +1612,7 @@ void Navigator::disable_camera_trigger()
 	// Pause trigger
 	cmd.param1 = -1.0f;
 	cmd.param3 = 1.0f;
-	publish_vehicle_cmd(&cmd);
+	publish_vehicle_command(&cmd);
 }
 
 void Navigator::set_gimbal_neutral()
@@ -1624,7 +1624,7 @@ void Navigator::set_gimbal_neutral()
 	vcmd.param3 = NAN;
 	vcmd.param4 = NAN;
 	vcmd.param5 = gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL;
-	publish_vehicle_cmd(&vcmd);
+	publish_vehicle_command(&vcmd);
 }
 
 void Navigator::sendWarningDescentStoppedDueToTerrain()
