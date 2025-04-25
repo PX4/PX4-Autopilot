@@ -175,10 +175,6 @@ void GstCameraSystem::findCameraTopic()
 			}
 		}
 	}
-
-	if (!_initialized) {
-		gzdbg << "No camera topics found yet, will check again next update" << std::endl;
-	}
 }
 
 //////////////////////////////////////////////////

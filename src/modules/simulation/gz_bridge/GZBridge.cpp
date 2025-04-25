@@ -43,6 +43,8 @@
 #include <iostream>
 #include <string>
 
+static float generate_wgn();
+
 GZBridge::GZBridge(const std::string &world, const std::string &model_name) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
@@ -130,7 +132,7 @@ int GZBridge::init()
 	std::string air_pressure_topic = "/world/" + _world_name + "/model/" + _model_name +
 					 "/link/base_link/sensor/air_pressure_sensor/air_pressure";
 
-	if (!_node.Subscribe(air_pressure_topic, &GZBridge::barometerCallback, this)) {
+	if (!_node.Subscribe(air_pressure_topic, &GZBridge::airPressureCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", air_pressure_topic.c_str());
 		return PX4_ERROR;
 	}
@@ -254,7 +256,7 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
 	_sensor_mag_pub.publish(report);
 }
 
-void GZBridge::barometerCallback(const gz::msgs::FluidPressure &msg)
+void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
 {
 	const uint64_t timestamp = hrt_absolute_time();
 
@@ -495,7 +497,7 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &msg)
 	_visual_odometry_pub.publish(report);
 }
 
-static float generate_wgn()
+float generate_wgn()
 {
 	// generate white Gaussian noise sample with std=1
 
