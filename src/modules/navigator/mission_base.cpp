@@ -915,16 +915,14 @@ MissionBase::do_abort_landing()
 	}
 
 	// send reposition cmd to get out of mission
-	vehicle_command_s vcmd = {};
-
-	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
-	vcmd.param1 = -1;
-	vcmd.param2 = 1;
-	vcmd.param5 = _mission_item.lat;
-	vcmd.param6 = _mission_item.lon;
-	vcmd.param7 = alt_sp;
-
-	_navigator->publish_vehicle_command(&vcmd);
+	vehicle_command_s vehicle_command{};
+	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
+	vehicle_command.param1 = -1;
+	vehicle_command.param2 = 1;
+	vehicle_command.param5 = _mission_item.lat;
+	vehicle_command.param6 = _mission_item.lon;
+	vehicle_command.param7 = alt_sp;
+	_navigator->publish_vehicle_command(&vehicle_command);
 }
 
 void MissionBase::publish_navigator_mission_item()
