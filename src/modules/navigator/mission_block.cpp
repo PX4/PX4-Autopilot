@@ -549,7 +549,7 @@ MissionBlock::issue_command(const mission_item_s &item)
 		}
 	}
 
-	_navigator->publish_vehicle_cmd(&vcmd);
+	_navigator->publish_vehicle_command(&vcmd);
 
 	if (item_has_timeout(item)) {
 		_timestamp_command_timeout = hrt_absolute_time();
@@ -785,7 +785,7 @@ MissionBlock::set_land_item(struct mission_item_s *item)
 		vcmd.command = NAV_CMD_DO_VTOL_TRANSITION;
 		vcmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 		vcmd.param2 = 0.0f;
-		_navigator->publish_vehicle_cmd(&vcmd);
+		_navigator->publish_vehicle_command(&vcmd);
 	}
 
 	/* set the land item */

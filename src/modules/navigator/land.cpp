@@ -120,6 +120,6 @@ Land::on_active()
 		// and thus always climb MIS_LND_ABRT_ALT
 		vcmd.param7 = _navigator->get_global_position()->alt + _navigator->get_landing_abort_min_alt();
 
-		_navigator->publish_vehicle_cmd(&vcmd);
+		_navigator->publish_vehicle_command(&vcmd);
 	}
 }
