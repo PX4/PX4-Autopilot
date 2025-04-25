@@ -86,8 +86,8 @@ MissionBlock::issue_command(const mission_item_s &item) =>  https://github.com/P
   _navigator->publish_vehicle_command(&vehicle_command);
 
 Publishing command:
-void Navigator::publish_vehicle_command(vehicle_command_s *vehicle_command)  => https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/navigator_main.cpp#L1358
-  For camera commands set to vehicle_command->target_component = 100; // MAV_COMP_ID_CAMERA
+void Navigator::publish_vehicle_command(vehicle_command_s &vehicle_command)  => https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/navigator_main.cpp#L1358
+  For camera commands set to vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
   All others just get published as-is
 -->
 

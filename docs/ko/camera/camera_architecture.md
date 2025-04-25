@@ -88,9 +88,9 @@ Commands supported in missions, including camera commands, are shown in these me
   - Mission items are executed when set active.
   - `issue_command(_mission_item)` is called at the end of this to send the current non-waypoint command
     - [`MissionBlock::issue_command(const mission_item_s &item)`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/mission_block.cpp#L543-L562)
-      - Creates a vehicle command for the mission item then calls `publish_vehicle_command` to publish it (`_navigator->publish_vehicle_command(&vehicle_command);`)
-        - [`void Navigator::publish_vehicle_command(vehicle_command_s *vehicle_command)`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/navigator_main.cpp#L1358)
-          - For some camera commands it sets the component ID to the camera component id (`vehicle_command->target_component = 100; // MAV_COMP_ID_CAMERA`)
+      - Creates a vehicle command for the mission item then calls `publish_vehicle_command` to publish it (`_navigator->publish_vehicle_command(vehicle_command);`)
+        - [`void Navigator::publish_vehicle_command(vehicle_command_s &vehicle_command)`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/navigator_main.cpp#L1358)
+          - For some camera commands it sets the component ID to the camera component id (`vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA`)
           - All others just get published to default component ID.
           - The `VehicleCommand` UORB topic is published.
 

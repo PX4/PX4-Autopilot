@@ -922,7 +922,7 @@ MissionBase::do_abort_landing()
 	vehicle_command.param5 = _mission_item.lat;
 	vehicle_command.param6 = _mission_item.lon;
 	vehicle_command.param7 = alt_sp;
-	_navigator->publish_vehicle_command(&vehicle_command);
+	_navigator->publish_vehicle_command(vehicle_command);
 }
 
 void MissionBase::publish_navigator_mission_item()

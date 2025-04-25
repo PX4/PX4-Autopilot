@@ -137,7 +137,7 @@ public:
 	 *
 	 * @param vehicle_command Vehicle command to publish
 	 */
-	void publish_vehicle_command(vehicle_command_s *vehicle_command);
+	void publish_vehicle_command(vehicle_command_s &vehicle_command);
 
 #if CONFIG_NAVIGATOR_ADSB
 	/**
