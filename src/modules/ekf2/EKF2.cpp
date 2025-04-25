@@ -1473,7 +1473,6 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.az = vel_deriv(2);
 
 	lpos.xy_valid = _ekf.local_position_is_valid();
-        PX4_WARN("lpos.xy_valid = _ekf.local_position_is_valid %d\n", lpos.xy_valid);
 	lpos.v_xy_valid = _ekf.local_position_is_valid();
 
 	// TODO: some modules (e.g.: mc_pos_control) don't handle v_z_valid != z_valid properly
