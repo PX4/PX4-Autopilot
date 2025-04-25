@@ -37,6 +37,7 @@
 #include "FlightTaskAuto.hpp"
 #include <mathlib/mathlib.h>
 #include <float.h>
+#include <uORB/topics/gimbal_manager_set_attitude.h>
 
 using namespace matrix;
 
@@ -235,7 +236,12 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	bool range_dist_available = PX4_ISFINITE(_dist_to_bottom);
 
 	if (range_dist_available && _dist_to_bottom <= _param_mpc_land_alt3.get()) {
+		commandGimbalNeutral();
+		_was_gimbal_commanded_neutral = true;
 		vertical_speed = _param_mpc_land_crwl.get();
+
+	} else {
+		_was_gimbal_commanded_neutral = false;
 	}
 
 	if (_type_previous != WaypointType::land) {
@@ -849,4 +855,45 @@ void FlightTaskAuto::updateParams()
 
 	// make sure that alt1 is above alt2
 	_param_mpc_land_alt1.set(math::max(_param_mpc_land_alt1.get(), _param_mpc_land_alt2.get()));
+}
+
+void FlightTaskAuto::commandGimbalNeutral()
+{
+	vehicle_command_s vehicle_command{};
+	vehicle_command.source_system = _sub_vehicle_status.get().system_id;
+	vehicle_command.source_component = _sub_vehicle_status.get().component_id;
+	vehicle_command.target_system = _sub_vehicle_status.get().system_id;
+	vehicle_command.target_component = 0;
+	vehicle_command.confirmation = false;
+	vehicle_command.from_external = false;
+
+	// Take control
+	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
+	vehicle_command.param1 = _sub_vehicle_status.get().system_id; // Take primary control
+	vehicle_command.param2 = _sub_vehicle_status.get().component_id;
+	vehicle_command.param3 = -1.f; // Leave secondary control unchanged
+	vehicle_command.param4 = -1.f;
+	vehicle_command.timestamp = hrt_absolute_time();
+	_vehicle_command_pub.publish(vehicle_command);
+
+	// Command neutral position
+	vehicle_command = {};
+	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW;
+	vehicle_command.param1 = NAN; // Don't set any angles
+	vehicle_command.param2 = NAN;
+	vehicle_command.param3 = NAN; // Don't set any angular velocities
+	vehicle_command.param4 = NAN;
+	vehicle_command.param5 = gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL;
+	vehicle_command.timestamp = hrt_absolute_time();
+	_vehicle_command_pub.publish(vehicle_command);
+
+	// Release control
+	vehicle_command = {};
+	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
+	vehicle_command.param1 = -3.f; // Remove primary control if it was taken
+	vehicle_command.param2 = -3.f;
+	vehicle_command.param3 = -1.f; // Leave secondary control unchanged
+	vehicle_command.param4 = -1.f;
+	vehicle_command.timestamp = hrt_absolute_time();
+	_vehicle_command_pub.publish(vehicle_command);
 }
