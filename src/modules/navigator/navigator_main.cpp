@@ -1409,15 +1409,15 @@ void Navigator::publish_vehicle_command(vehicle_command_s *vehicle_command)
 	case NAV_CMD_IMAGE_START_CAPTURE:
 
 		if (static_cast<int>(vehicle_command->param3) == 1) {
-			// When sending a single capture we need to include the sequence number, thus camera_trigger needs to handle this cmd
-			vehicle_command->param1 = 0.0f;
-			vehicle_command->param2 = 0.0f;
-			vehicle_command->param3 = 0.0f;
-			vehicle_command->param4 = 0.0f;
-			vehicle_command->param5 = 1.0;
-			vehicle_command->param6 = 0.0;
-			vehicle_command->param7 = 0.0f;
+			// When sending a single capture we need to include the sequence number, thus camera_trigger needs to handle this command
 			vehicle_command->command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
+			vehicle_command->param1 = 0.f; // Session control hide lens
+			vehicle_command->param2 = 0.f; // Zoom absolute position
+			vehicle_command->param3 = 0.f; // Zoom step
+			vehicle_command->param4 = 0.f; // Focus lock
+			vehicle_command->param5 = 1.; // Shoot command
+			vehicle_command->param6 = 0.; // Command identity
+			vehicle_command->param7 = 0.f; // Shot identifier
 
 		} else {
 			// We are only capturing multiple if param3 is 0 or > 1.
@@ -1531,10 +1531,10 @@ void Navigator::acquire_gimbal_control()
 {
 	vehicle_command_s vehicle_command{};
 	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
-	vehicle_command.param1 = _vstatus.system_id;
+	vehicle_command.param1 = _vstatus.system_id; // Take primary control
 	vehicle_command.param2 = _vstatus.component_id;
-	vehicle_command.param3 = -1.0f; // Leave unchanged.
-	vehicle_command.param4 = -1.0f; // Leave unchanged.
+	vehicle_command.param3 = -1.f; // Leave secondary control unchanged
+	vehicle_command.param4 = -1.f;
 	publish_vehicle_command(&vehicle_command);
 }
 
@@ -1542,10 +1542,10 @@ void Navigator::release_gimbal_control()
 {
 	vehicle_command_s vehicle_command{};
 	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
-	vehicle_command.param1 = -3.0f; // Remove control if it had it.
-	vehicle_command.param2 = -3.0f; // Remove control if it had it.
-	vehicle_command.param3 = -1.0f; // Leave unchanged.
-	vehicle_command.param4 = -1.0f; // Leave unchanged.
+	vehicle_command.param1 = -3.f; // Remove primary control if it was taken
+	vehicle_command.param2 = -3.f;
+	vehicle_command.param3 = -1.f; // Leave secondary control unchanged
+	vehicle_command.param4 = -1.f;
 	publish_vehicle_command(&vehicle_command);
 }
 
@@ -1556,7 +1556,7 @@ Navigator::stop_capturing_images()
 	if (_is_capturing_images) {
 		vehicle_command_s vehicle_command{};
 		vehicle_command.command = NAV_CMD_IMAGE_STOP_CAPTURE;
-		vehicle_command.param1 = 0.0f;
+		vehicle_command.param1 = 0.f;
 		publish_vehicle_command(&vehicle_command);
 
 		// _is_capturing_images is reset inside publish_vehicle_command.
@@ -1608,8 +1608,8 @@ void Navigator::disable_camera_trigger()
 	vehicle_command_s vehicle_command{};
 	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL;
 	// Pause trigger
-	vehicle_command.param1 = -1.0f;
-	vehicle_command.param3 = 1.0f;
+	vehicle_command.param1 = -1.f;
+	vehicle_command.param3 = 1.f;
 	publish_vehicle_command(&vehicle_command);
 }
 
@@ -1617,9 +1617,9 @@ void Navigator::set_gimbal_neutral()
 {
 	vehicle_command_s vehicle_command{};
 	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW;
-	vehicle_command.param1 = NAN;
+	vehicle_command.param1 = NAN; // Don't set any angles
 	vehicle_command.param2 = NAN;
-	vehicle_command.param3 = NAN;
+	vehicle_command.param3 = NAN; // Don't set any angular velocities
 	vehicle_command.param4 = NAN;
 	vehicle_command.param5 = gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL;
 	publish_vehicle_command(&vehicle_command);
