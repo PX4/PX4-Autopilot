@@ -70,7 +70,8 @@ bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 
 	_position_smoothing.reset(accel_prev, vel_prev, pos_prev);
 
-	_yaw_sp_prev = PX4_ISFINITE(last_setpoint.yaw) ? last_setpoint.yaw : _yaw;
+	const float heading = PX4_ISFINITE(last_setpoint.yaw) ? last_setpoint.yaw : _yaw;
+	_heading_smoothing.reset(heading, 0.f);
 	_updateTrajConstraints();
 	_is_emergency_braking_active = false;
 	_time_last_cruise_speed_override = 0;
@@ -190,16 +191,14 @@ bool FlightTaskAuto::update()
 		// no valid heading -> generate heading in this flight task
 		// Generate heading along trajectory if possible, otherwise hold the previous yaw setpoint
 		if (!_generateHeadingAlongTraj()) {
-			_yaw_setpoint = PX4_ISFINITE(_yaw_sp_prev) ? _yaw_sp_prev : _yaw;
+			_yaw_setpoint = _yaw;
 		}
 	}
 
 	// update previous type
 	_type_previous = _type;
 
-	// If the FlightTask generates a yaw or a yawrate setpoint that exceeds this value
-	// it will see its setpoint constrained here
-	_limitYawRate();
+	_smoothYaw();
 
 	_constraints.want_takeoff = _checkTakeoff();
 
@@ -257,7 +256,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 
 		if (sticks_xy.longerThan(FLT_EPSILON)) {
 			// Ensure no unintended yawing when nudging horizontally during initial heading alignment
-			_land_heading = _yaw_sp_prev;
+			_land_heading = _yaw;
 		}
 
 		rcHelpModifyYaw(_land_heading);
@@ -300,39 +299,25 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 }
 
-void FlightTaskAuto::_limitYawRate()
+void FlightTaskAuto::_smoothYaw()
 {
 	const float yawrate_max = math::radians(_param_mpc_yawrauto_max.get());
 
 	_yaw_sp_aligned = true;
 
-	if (PX4_ISFINITE(_yaw_setpoint) && PX4_ISFINITE(_yaw_sp_prev)) {
-		// Limit the rate of change of the yaw setpoint
-		const float dyaw_desired = matrix::wrap_pi(_yaw_setpoint - _yaw_sp_prev);
-		const float dyaw_max = yawrate_max * _deltatime;
-		const float dyaw = math::constrain(dyaw_desired, -dyaw_max, dyaw_max);
-		const float yaw_setpoint_sat = matrix::wrap_pi(_yaw_sp_prev + dyaw);
+	if (PX4_ISFINITE(_yaw_setpoint)) {
+		_heading_smoothing.update(_yaw_setpoint, _deltatime);
+		float yaw_sp_prev = _yaw_setpoint;
+		_yaw_setpoint = _heading_smoothing.getSmoothedHeading();
+		_yawspeed_setpoint = _heading_smoothing.getSmoothedHeadingRate();
 
 		// The yaw setpoint is aligned when it is within tolerance
-		_yaw_sp_aligned = fabsf(matrix::wrap_pi(_yaw_setpoint - yaw_setpoint_sat)) < math::radians(_param_mis_yaw_err.get());
-
-		_yaw_setpoint = yaw_setpoint_sat;
-
-		if (!PX4_ISFINITE(_yawspeed_setpoint) && (_deltatime > FLT_EPSILON)) {
-			// Create a feedforward using the filtered derivative
-			_yawspeed_filter.setParameters(_deltatime, .2f);
-			_yawspeed_filter.update(dyaw / _deltatime);
-			_yawspeed_setpoint = _yawspeed_filter.getState();
-		}
+		_yaw_sp_aligned = fabsf(matrix::wrap_pi(yaw_sp_prev - _yaw_setpoint)) < math::radians(_param_mis_yaw_err.get());
 	}
-
-	_yaw_sp_prev = PX4_ISFINITE(_yaw_setpoint) ? _yaw_setpoint : _yaw;
 
 	if (PX4_ISFINITE(_yawspeed_setpoint)) {
 		// The yaw setpoint is aligned when its rate is not saturated
 		_yaw_sp_aligned = _yaw_sp_aligned && (fabsf(_yawspeed_setpoint) < yawrate_max);
-
-		_yawspeed_setpoint = math::constrain(_yawspeed_setpoint, -yawrate_max, yawrate_max);
 	}
 }
 
@@ -725,7 +710,7 @@ void FlightTaskAuto::_ekfResetHandlerVelocityZ(float delta_vz)
 
 void FlightTaskAuto::_ekfResetHandlerHeading(float delta_psi)
 {
-	_yaw_sp_prev += delta_psi;
+	_yaw_setpoint += delta_psi;
 }
 
 void FlightTaskAuto::_checkEmergencyBraking()
@@ -835,6 +820,12 @@ void FlightTaskAuto::_updateTrajConstraints()
 	// correction required by the altitude/vertical position controller
 	_constraints.speed_down = math::max(_constraints.speed_down, 1.2f * _param_mpc_z_v_auto_dn.get());;
 	_constraints.speed_up = math::max(_constraints.speed_up, 1.2f * _param_mpc_z_v_auto_up.get());;
+
+	// Update constrains of heading smoothing
+	const float yawrate_max = math::radians(_param_mpc_yawrauto_max.get());
+	const float yawrate_acc = math::radians(_param_mpc_yawrauto_acc.get());
+	_heading_smoothing.setMaxHeadingRate(yawrate_max);
+	_heading_smoothing.setMaxHeadingAccel(yawrate_acc);
 }
 
 bool FlightTaskAuto::_highEnoughForLandingGear()
