@@ -784,7 +784,7 @@ MissionBlock::set_land_item(struct mission_item_s *item)
 		vehicle_command_s vehicle_command{};
 		vehicle_command.command = NAV_CMD_DO_VTOL_TRANSITION;
 		vehicle_command.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-		vehicle_command.param2 = 0.0f;
+		vehicle_command.param2 = 0.f; // normal unforced transition
 		_navigator->publish_vehicle_command(&vehicle_command);
 	}
 

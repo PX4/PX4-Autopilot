@@ -111,8 +111,8 @@ Land::on_active()
 		// send reposition cmd to get out of land mode (will loiter at current position and altitude)
 		vehicle_command_s vehicle_command{};
 		vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
-		vehicle_command.param1 = -1;
-		vehicle_command.param2 = 1;
+		vehicle_command.param1 = -1.f; // Default speed
+		vehicle_command.param2 = 1.f; // Modes should switch, not setting this is unsupported
 		vehicle_command.param5 = _navigator->get_global_position()->lat;
 		vehicle_command.param6 = _navigator->get_global_position()->lon;
 		// as we don't know the landing point altitude assume the worst case (abort at 0m above ground),
