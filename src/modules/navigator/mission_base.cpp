@@ -917,8 +917,8 @@ MissionBase::do_abort_landing()
 	// send reposition cmd to get out of mission
 	vehicle_command_s vehicle_command{};
 	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
-	vehicle_command.param1 = -1;
-	vehicle_command.param2 = 1;
+	vehicle_command.param1 = -1.f; // Default speed
+	vehicle_command.param2 = 1.f; // Modes should switch, not setting this is unsupported
 	vehicle_command.param5 = _mission_item.lat;
 	vehicle_command.param6 = _mission_item.lon;
 	vehicle_command.param7 = alt_sp;
