@@ -20,8 +20,8 @@ jobs:
     strategy:
       matrix:
         config: [
-          px4_fmu-v5_default,
-          px4_sitl
+            px4_fmu-v5_default,
+            px4_sitl
           ]
     steps:
     - name: install Python 3.10
@@ -62,3 +62,7 @@ jobs:
           ccache -z
           make ${{matrix.config}}
           ccache -s
+
+    - name: Setup tmate session
+      if: ${{ failure() }}
+      uses: mxschmitt/action-tmate@v3
