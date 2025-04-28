@@ -604,6 +604,10 @@
                             "name": "external8",
                             "description": "External 8"
                         },
+                        "24": {
+                            "name": "robosub",
+                            "description": "Robosub"
+                        },
                         "255": {
                             "name": "unknown",
                             "description": "[Unknown]"
