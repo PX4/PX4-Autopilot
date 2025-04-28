@@ -88,6 +88,7 @@ MavlinkReceiver::~MavlinkReceiver()
 	_sensor_baro_pub.unadvertise();
 	_sensor_gps_pub.unadvertise();
 	_sensor_optical_flow_pub.unadvertise();
+	_esc_status_pub.unadvertise();
 }
 
 static constexpr vehicle_odometry_s vehicle_odometry_empty {
@@ -356,6 +357,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 		case MAVLINK_MSG_ID_HIL_OPTICAL_FLOW:
 			handle_message_hil_optical_flow(msg);
+			break;
+
+		case MAVLINK_MSG_ID_ESC_INFO:
+			handle_message_esc_info(msg);
+			break;
+
+		case MAVLINK_MSG_ID_ESC_STATUS:
+			handle_message_esc_status(msg);
 			break;
 
 		default:
@@ -916,6 +925,37 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 	ds.signal_quality = dist_sensor.signal_quality == 0 ? -1 : 100 * (dist_sensor.signal_quality - 1) / 99;
 
 	_distance_sensor_pub.publish(ds);
+}
+
+void
+MavlinkReceiver::handle_message_esc_info(mavlink_message_t *msg)
+{
+	mavlink_esc_info_t esc_info_mav;
+	mavlink_msg_esc_info_decode(msg, &esc_info_mav);
+	_esc_count = esc_info_mav.count;
+}
+
+void
+MavlinkReceiver::handle_message_esc_status(mavlink_message_t *msg)
+{
+	mavlink_esc_status_t esc_status_mav;
+	mavlink_msg_esc_status_decode(msg, &esc_status_mav);
+
+	esc_status_s esc_status{};
+	esc_status.esc_count = math::min(_esc_count, (uint8_t)MAVLINK_MSG_ESC_STATUS_FIELD_RPM_LEN);	/* currently only support quadcopter */
+
+	for (int i = 0; i < esc_status.esc_count; i++) {
+		esc_status.esc[i].timestamp = hrt_absolute_time();
+		esc_status.esc[i].esc_rpm = esc_status_mav.rpm[i];
+		esc_status.esc_online_flags |= 1 << i;
+
+		if (abs(esc_status_mav.rpm[i]) > 0) {
+			esc_status.esc_armed_flags |= 1 << i;
+		}
+	}
+
+	esc_status.timestamp = hrt_absolute_time();
+	_esc_status_pub.publish(esc_status);
 }
 
 void
