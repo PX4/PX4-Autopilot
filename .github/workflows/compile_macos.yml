@@ -19,10 +19,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        config: [
-            px4_fmu-v5_default,
-            px4_sitl
-          ]
+        config: [px4_fmu-v5_default, px4_sitl]
     steps:
     - name: install Python 3.10
       uses: actions/setup-python@v5
