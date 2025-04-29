@@ -37,7 +37,7 @@ using namespace time_literals;
 
 DifferentialPosControl::DifferentialPosControl(ModuleParams *parent) : ModuleParams(parent)
 {
-	_differential_velocity_setpoint_pub.advertise();
+	_rover_velocity_setpoint_pub.advertise();
 	_rover_position_setpoint_pub.advertise();
 	_pure_pursuit_status_pub.advertise();
 
@@ -159,20 +159,20 @@ void DifferentialPosControl::manualPositionMode()
 	if (fabsf(speed_setpoint) < FLT_EPSILON) { // Turn on spot
 		_course_control = false;
 		const float bearing_setpoint = matrix::wrap_pi(_vehicle_yaw + bearing_delta);
-		differential_velocity_setpoint_s differential_velocity_setpoint{};
-		differential_velocity_setpoint.timestamp = _timestamp;
-		differential_velocity_setpoint.speed = 0.f;
-		differential_velocity_setpoint.bearing = bearing_setpoint;
-		_differential_velocity_setpoint_pub.publish(differential_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = 0.f;
+		rover_velocity_setpoint.bearing = bearing_setpoint;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 
 	} else if (fabsf(bearing_delta) > FLT_EPSILON) { // Closed loop yaw rate control
 		_course_control = false;
 		const float bearing_setpoint = matrix::wrap_pi(_vehicle_yaw + bearing_delta);
-		differential_velocity_setpoint_s differential_velocity_setpoint{};
-		differential_velocity_setpoint.timestamp = _timestamp;
-		differential_velocity_setpoint.speed = speed_setpoint;
-		differential_velocity_setpoint.bearing = bearing_setpoint;
-		_differential_velocity_setpoint_pub.publish(differential_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = speed_setpoint;
+		rover_velocity_setpoint.bearing = bearing_setpoint;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 
 	} else { // Course control if the steering input is zero (keep driving on a straight line)
 		if (!_course_control) {
@@ -192,12 +192,12 @@ void DifferentialPosControl::manualPositionMode()
 					       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _pos_ctl_start_position_ned,
 					       _curr_pos_ned, fabsf(speed_setpoint));
 		_pure_pursuit_status_pub.publish(pure_pursuit_status);
-		differential_velocity_setpoint_s differential_velocity_setpoint{};
-		differential_velocity_setpoint.timestamp = _timestamp;
-		differential_velocity_setpoint.speed = speed_setpoint;
-		differential_velocity_setpoint.bearing = speed_setpoint > -FLT_EPSILON ? bearing_setpoint : matrix::wrap_pi(
-					bearing_setpoint + M_PI_F);
-		_differential_velocity_setpoint_pub.publish(differential_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = speed_setpoint;
+		rover_velocity_setpoint.bearing = speed_setpoint > -FLT_EPSILON ? bearing_setpoint : matrix::wrap_pi(
+				bearing_setpoint + M_PI_F);
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 	}
 }
 
@@ -232,11 +232,11 @@ void DifferentialPosControl::autoPositionMode()
 	}
 
 	if (auto_stop) {
-		differential_velocity_setpoint_s differential_velocity_setpoint{};
-		differential_velocity_setpoint.timestamp = _timestamp;
-		differential_velocity_setpoint.speed = 0.f;
-		differential_velocity_setpoint.bearing = _vehicle_yaw;
-		_differential_velocity_setpoint_pub.publish(differential_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = 0.f;
+		rover_velocity_setpoint.bearing = _vehicle_yaw;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 
 	} else {
 		const float speed_setpoint = calcSpeedSetpoint(_cruising_speed, distance_to_curr_wp, _param_ro_decel_limit.get(),
@@ -248,11 +248,11 @@ void DifferentialPosControl::autoPositionMode()
 					       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _curr_wp_ned, _prev_wp_ned, _curr_pos_ned,
 					       fabsf(speed_setpoint));
 		_pure_pursuit_status_pub.publish(pure_pursuit_status);
-		differential_velocity_setpoint_s differential_velocity_setpoint{};
-		differential_velocity_setpoint.timestamp = _timestamp;
-		differential_velocity_setpoint.speed = speed_setpoint;
-		differential_velocity_setpoint.bearing = bearing_setpoint;
-		_differential_velocity_setpoint_pub.publish(differential_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = speed_setpoint;
+		rover_velocity_setpoint.bearing = bearing_setpoint;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 	}
 
 }
@@ -302,18 +302,18 @@ void DifferentialPosControl::goToPositionMode()
 					       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _curr_pos_ned,
 					       _curr_pos_ned, fabsf(speed_setpoint));
 		_pure_pursuit_status_pub.publish(pure_pursuit_status);
-		differential_velocity_setpoint_s differential_velocity_setpoint{};
-		differential_velocity_setpoint.timestamp = _timestamp;
-		differential_velocity_setpoint.speed = speed_setpoint;
-		differential_velocity_setpoint.bearing = bearing_setpoint;
-		_differential_velocity_setpoint_pub.publish(differential_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = speed_setpoint;
+		rover_velocity_setpoint.bearing = bearing_setpoint;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 
 	} else {
-		differential_velocity_setpoint_s differential_velocity_setpoint{};
-		differential_velocity_setpoint.timestamp = _timestamp;
-		differential_velocity_setpoint.speed = 0.f;
-		differential_velocity_setpoint.bearing = _vehicle_yaw;
-		_differential_velocity_setpoint_pub.publish(differential_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = 0.f;
+		rover_velocity_setpoint.bearing = _vehicle_yaw;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 	}
 }
 

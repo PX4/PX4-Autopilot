@@ -39,7 +39,7 @@ AckermannPosControl::AckermannPosControl(ModuleParams *parent) : ModuleParams(pa
 {
 	_pure_pursuit_status_pub.advertise();
 	_rover_position_setpoint_pub.advertise();
-	_ackermann_velocity_setpoint_pub.advertise();
+	_rover_velocity_setpoint_pub.advertise();
 
 	// Initially set to NaN to indicate that the rover has no position setpoint
 	_rover_position_setpoint.position_ned[0] = NAN;
@@ -167,13 +167,12 @@ void AckermannPosControl::manualPositionMode()
 	if (fabsf(yaw_delta) > FLT_EPSILON
 	    || fabsf(speed_setpoint) < FLT_EPSILON) { // Closed loop yaw rate control
 		_course_control = false;
-		const float yaw_setpoint = matrix::wrap_pi(_vehicle_yaw + yaw_delta);
-		ackermann_velocity_setpoint_s ackermann_velocity_setpoint{};
-		ackermann_velocity_setpoint.timestamp = _timestamp;
-		ackermann_velocity_setpoint.velocity_ned[0] = fabsf(speed_setpoint) * cosf(yaw_setpoint);
-		ackermann_velocity_setpoint.velocity_ned[1] = fabsf(speed_setpoint) * sinf(yaw_setpoint);
-		ackermann_velocity_setpoint.backwards = speed_setpoint < -FLT_EPSILON;
-		_ackermann_velocity_setpoint_pub.publish(ackermann_velocity_setpoint);
+		const float yaw_setpoint = matrix::wrap_pi(_vehicle_yaw + sign(speed_setpoint) * yaw_delta);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = speed_setpoint;
+		rover_velocity_setpoint.bearing = yaw_setpoint;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 
 	} else { // Course control if the steering input is zero (keep driving on a straight line)
 		if (!_course_control) {
@@ -189,16 +188,17 @@ void AckermannPosControl::manualPositionMode()
 						     vector_scaling * _pos_ctl_course_direction;
 		pure_pursuit_status_s pure_pursuit_status{};
 		pure_pursuit_status.timestamp = _timestamp;
-		const float yaw_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
-					   _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _pos_ctl_start_position_ned,
-					   _curr_pos_ned, fabsf(speed_setpoint));
+		const float bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
+					       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _pos_ctl_start_position_ned,
+					       _curr_pos_ned, fabsf(speed_setpoint));
 		_pure_pursuit_status_pub.publish(pure_pursuit_status);
-		ackermann_velocity_setpoint_s ackermann_velocity_setpoint{};
-		ackermann_velocity_setpoint.timestamp = _timestamp;
-		ackermann_velocity_setpoint.velocity_ned[0] = fabsf(speed_setpoint) * cosf(yaw_setpoint);
-		ackermann_velocity_setpoint.velocity_ned[1] = fabsf(speed_setpoint) * sinf(yaw_setpoint);
-		ackermann_velocity_setpoint.backwards = speed_setpoint < -FLT_EPSILON;
-		_ackermann_velocity_setpoint_pub.publish(ackermann_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = speed_setpoint;
+		rover_velocity_setpoint.bearing = speed_setpoint > -FLT_EPSILON ? bearing_setpoint : matrix::wrap_pi(
+				bearing_setpoint + M_PI_F);
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
+
 	}
 }
 
@@ -224,12 +224,11 @@ void AckermannPosControl::autoPositionMode()
 	}
 
 	if (auto_stop) {
-		ackermann_velocity_setpoint_s ackermann_velocity_setpoint{};
-		ackermann_velocity_setpoint.timestamp = _timestamp;
-		ackermann_velocity_setpoint.velocity_ned[0] = 0.f;
-		ackermann_velocity_setpoint.velocity_ned[1] = 0.f;
-		ackermann_velocity_setpoint.backwards = false;
-		_ackermann_velocity_setpoint_pub.publish(ackermann_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = 0.f;
+		rover_velocity_setpoint.bearing = _vehicle_yaw;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 
 	} else { // Regular guidance algorithm
 		const float speed_setpoint = calcSpeedSetpoint(_cruising_speed, _min_speed, distance_to_prev_wp,
@@ -242,12 +241,11 @@ void AckermannPosControl::autoPositionMode()
 					   _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _curr_wp_ned, _prev_wp_ned, _curr_pos_ned,
 					   fabsf(speed_setpoint));
 		_pure_pursuit_status_pub.publish(pure_pursuit_status);
-		ackermann_velocity_setpoint_s ackermann_velocity_setpoint{};
-		ackermann_velocity_setpoint.timestamp = _timestamp;
-		ackermann_velocity_setpoint.velocity_ned[0] = fabsf(speed_setpoint) * cosf(yaw_setpoint);
-		ackermann_velocity_setpoint.velocity_ned[1] = fabsf(speed_setpoint) * sinf(yaw_setpoint);
-		ackermann_velocity_setpoint.backwards = false;
-		_ackermann_velocity_setpoint_pub.publish(ackermann_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = speed_setpoint;
+		rover_velocity_setpoint.bearing = yaw_setpoint;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 
 	}
 }
@@ -372,20 +370,18 @@ void AckermannPosControl::goToPositionMode()
 					   _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _curr_pos_ned,
 					   _curr_pos_ned, fabsf(speed_setpoint));
 		_pure_pursuit_status_pub.publish(pure_pursuit_status);
-		ackermann_velocity_setpoint_s ackermann_velocity_setpoint{};
-		ackermann_velocity_setpoint.timestamp = _timestamp;
-		ackermann_velocity_setpoint.velocity_ned[0] = fabsf(speed_setpoint) * cosf(yaw_setpoint);
-		ackermann_velocity_setpoint.velocity_ned[1] = fabsf(speed_setpoint) * sinf(yaw_setpoint);
-		ackermann_velocity_setpoint.backwards = false;
-		_ackermann_velocity_setpoint_pub.publish(ackermann_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = speed_setpoint;
+		rover_velocity_setpoint.bearing = yaw_setpoint;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 
 	} else {
-		ackermann_velocity_setpoint_s ackermann_velocity_setpoint{};
-		ackermann_velocity_setpoint.timestamp = _timestamp;
-		ackermann_velocity_setpoint.velocity_ned[0] = 0.f;
-		ackermann_velocity_setpoint.velocity_ned[1] = 0.f;
-		ackermann_velocity_setpoint.backwards = false;
-		_ackermann_velocity_setpoint_pub.publish(ackermann_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = 0.f;
+		rover_velocity_setpoint.bearing = _vehicle_yaw;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 	}
 }
 

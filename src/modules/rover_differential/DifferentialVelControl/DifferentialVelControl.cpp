@@ -39,7 +39,7 @@ DifferentialVelControl::DifferentialVelControl(ModuleParams *parent) : ModulePar
 {
 	_rover_throttle_setpoint_pub.advertise();
 	_rover_attitude_setpoint_pub.advertise();
-	_differential_velocity_setpoint_pub.advertise();
+	_rover_velocity_setpoint_pub.advertise();
 	_rover_velocity_status_pub.advertise();
 	updateParams();
 }
@@ -125,28 +125,28 @@ void DifferentialVelControl::generateVelocitySetpoint()
 	const Vector2f velocity_in_local_frame(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
 
 	if (offboard_vel_control && velocity_in_local_frame.isAllFinite()) {
-		differential_velocity_setpoint_s differential_velocity_setpoint{};
-		differential_velocity_setpoint.timestamp = _timestamp;
-		differential_velocity_setpoint.speed = velocity_in_local_frame.norm();
-		differential_velocity_setpoint.bearing = atan2f(velocity_in_local_frame(1), velocity_in_local_frame(0));
-		_differential_velocity_setpoint_pub.publish(differential_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = velocity_in_local_frame.norm();
+		rover_velocity_setpoint.bearing = atan2f(velocity_in_local_frame(1), velocity_in_local_frame(0));
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 	}
 }
 
 void DifferentialVelControl::generateAttitudeAndThrottleSetpoint()
 {
-	if (_differential_velocity_setpoint_sub.updated()) {
-		_differential_velocity_setpoint_sub.copy(&_differential_velocity_setpoint);
+	if (_rover_velocity_setpoint_sub.updated()) {
+		_rover_velocity_setpoint_sub.copy(&_rover_velocity_setpoint);
 	}
 
 	// Attitude Setpoint
 	rover_attitude_setpoint_s rover_attitude_setpoint{};
 	rover_attitude_setpoint.timestamp = _timestamp;
-	rover_attitude_setpoint.yaw_setpoint = _differential_velocity_setpoint.bearing;
+	rover_attitude_setpoint.yaw_setpoint = _rover_velocity_setpoint.bearing;
 	_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
 
 	// Throttle Setpoint
-	const float heading_error = matrix::wrap_pi(_differential_velocity_setpoint.bearing - _vehicle_yaw);
+	const float heading_error = matrix::wrap_pi(_rover_velocity_setpoint.bearing - _vehicle_yaw);
 
 	if (_current_state == DrivingState::DRIVING && fabsf(heading_error) > _param_rd_trans_drv_trn.get()) {
 		_current_state = DrivingState::SPOT_TURNING;
@@ -158,7 +158,7 @@ void DifferentialVelControl::generateAttitudeAndThrottleSetpoint()
 	float speed_setpoint = 0.f;
 
 	if (_current_state == DrivingState::DRIVING) {
-		speed_setpoint = math::constrain(_differential_velocity_setpoint.speed, -_param_ro_speed_limit.get(),
+		speed_setpoint = math::constrain(_rover_velocity_setpoint.speed, -_param_ro_speed_limit.get(),
 						 _param_ro_speed_limit.get());
 
 		const float speed_setpoint_normalized = math::interpolate<float>(speed_setpoint,
