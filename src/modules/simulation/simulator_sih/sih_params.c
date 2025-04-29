@@ -333,6 +333,7 @@ PARAM_DEFINE_FLOAT(SIH_T_TAU, 0.05f);
  * @value 1 Fixed-Wing
  * @value 2 Tailsitter
  * @value 3 Standard VTOL
+ * @value 4 Boat
  * @reboot_required true
  * @group Simulation In Hardware
  */

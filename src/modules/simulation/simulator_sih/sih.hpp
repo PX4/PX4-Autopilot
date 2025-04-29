@@ -161,6 +161,7 @@ private:
 	void send_airspeed(const hrt_abstime &time_now_us);
 	void send_dist_snsr(const hrt_abstime &time_now_us);
 	void publish_ground_truth(const hrt_abstime &time_now_us);
+	void generate_boat_dynamics(const float roll_cmd, const float throttle_cmd);
 	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust);
 	void generate_ts_aerodynamics();
 	void sensor_step();
@@ -220,7 +221,7 @@ private:
 
 	float       _u[NUM_ACTUATORS_MAX] {};         // thruster signals
 
-	enum class VehicleType {Multicopter, FixedWing, TailsitterVTOL, StandardVTOL};
+	enum class VehicleType {Multicopter, FixedWing, TailsitterVTOL, StandardVTOL, Boat};
 
 	VehicleType _vehicle = VehicleType::Multicopter;
 

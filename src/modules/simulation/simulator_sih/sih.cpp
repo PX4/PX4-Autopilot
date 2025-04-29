@@ -76,7 +76,7 @@ void Sih::run()
 	_airspeed_time = task_start;
 	_dist_snsr_time = task_start;
 	_vehicle = (VehicleType)constrain(_sih_vtype.get(), static_cast<typeof _sih_vtype.get()>(0),
-					  static_cast<typeof _sih_vtype.get()>(3));
+					  static_cast<typeof _sih_vtype.get()>(5));
 
 	_actuator_out_sub = uORB::Subscription{ORB_ID(actuator_outputs_sim)};
 
@@ -351,8 +351,65 @@ void Sih::generate_force_and_torques()
 		// thrust 0 because it is already contained in _T_B. in
 		// equations_of_motion they are all summed into sum_of_forces_E
 		generate_fw_aerodynamics(_u[4], _u[5], _u[6], 0);
+
+	} else if (_vehicle == VehicleType::Boat) {
+		// _T_B = Vector3f(_T_MAX * _u[1], 0.0f, 0.0f); 	// forward thruster
+		// _Mt_B = Vector3f(_Q_MAX*_u[3], 0.0f,0.0f); 	// thruster torque
+		// _Mt_B = Vector3f();
+		// _Mt_B = Vector3f(0.f, 0.f, _Q_MAX * _u[3] * (+_u[0]));
+		generate_boat_dynamics(_u[1], _u[0]);
+
+		_Fa_E = -_KDV * _v_E;   // first order drag to slow down the vehicle
+		_Ma_B = -_KDW * _w_B;   // first order angular damper
+
 	}
 }
+
+void Sih::generate_boat_dynamics(const float throttle_cmd, const float steering_cmd)
+{
+	const float MAX_FORCE = 100.0f;                   // [N]
+	const float MAX_STEER_ANGLE = 1.2f;              // [rad] (=68.7°)
+	const float MOMENT_EFFECTIVENESS = 0.08f;         // unitless (0..1)
+	const float ENGINE_TO_COG = 1.0f;                // [m]
+
+	const float DAMPING_X = 2.0f;                    // forward drag [N·s/m]
+	const float DAMPING_Y = 8.0f;                    // lateral drag [N·s/m]
+	const float YAW_DAMPING = 1.0f;                  // yaw damping [Nm·s/rad]
+	const float LATERAL_RESISTANCE = 20.0f;          // keel-like resistance [N·s/m]
+
+	// --- Convert nav velocity to body frame ---
+	const matrix::Dcmf R_nb(_q);                     // body to nav frame
+	const matrix::Vector3f v_B = R_nb.T() * _v_N;    // nav -> body
+
+	// --- Compute input-based thrust ---
+	const float steering_angle = MAX_STEER_ANGLE * steering_cmd;
+	const float force = MAX_FORCE * throttle_cmd;
+
+	_T_B = matrix::Vector3f(
+		       std::cos(steering_angle) * force,
+		       std::sin(steering_angle) * force,
+		       0.0f
+	       );
+
+	// --- Compute yaw moment from steering (scaled by speed) ---
+	const float speed = v_B.norm();
+	const float steer_eff = math::constrain(speed / 10.0f, 0.0f, 1.0f);  // more effective at higher speeds
+
+	_Mt_B = matrix::Vector3f(
+			0.0f,
+			0.0f,
+			std::sin(steering_angle) * ENGINE_TO_COG * force * MOMENT_EFFECTIVENESS * steer_eff
+		);
+
+	// --- Apply drag damping ---
+	_T_B(0) -= DAMPING_X * v_B(0);           // forward resistance
+	_T_B(1) -= DAMPING_Y * v_B(1);           // lateral resistance
+	_T_B(1) -= LATERAL_RESISTANCE * v_B(1);  // extra "keel" effect
+
+	// --- Angular damping (if you have _w_B) ---
+	_Mt_B(2) -= YAW_DAMPING * _w_B(2);   // oppose yaw rotation
+}
+
 
 void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd,
 				   const float throttle_cmd)
@@ -443,6 +500,18 @@ void Sih::equations_of_motion(const float dt)
 			_grounded = true;
 
 		} else if (_vehicle == VehicleType::FixedWing) {
+			Vector3f down_u = _R_N2E.col(2);
+			ground_force_E = -down_u * sum_of_forces_E * down_u;
+
+			if (!_grounded) {
+				// if we just hit the floor
+				// compute the force that will stop the vehicle in one time step
+				ground_force_E += down_u * (-_v_N(2) / dt) * _MASS;
+			}
+
+			_grounded = true;
+
+		} else if (_vehicle == VehicleType::Boat) {
 			Vector3f down_u = _R_N2E.col(2);
 			ground_force_E = -down_u * sum_of_forces_E * down_u;
 
@@ -729,6 +798,10 @@ int Sih::print_status()
 
 	} else if (_vehicle == VehicleType::StandardVTOL) {
 		PX4_INFO("Running Standard VTOL");
+
+	} else if (_vehicle == VehicleType::Boat) {
+		PX4_INFO("Running Boat");
+
 	}
 
 	PX4_INFO("vehicle landed: %d", _grounded);
