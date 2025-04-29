@@ -73,9 +73,13 @@ if(CONFIG_MODULES_ROVER_POS_CONTROL)
 	px4_add_romfs_files(
 		rc.rover_apps
 		rc.rover_defaults
+	)
+endif()
 
-		rc.boat_apps # hack
-		rc.boat_defaults # hack
+if(CONFIG_SIH_SIM_BOAT)
+	px4_add_romfs_files(
+		rc.boat_apps
+		rc.boat_defaults
 	)
 endif()
 
