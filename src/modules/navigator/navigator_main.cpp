@@ -311,7 +311,7 @@ void Navigator::run()
 					}
 
 					// (3) Loiter radius (param3)
-					if (PX4_ISFINITE(cmd.param3) && cmd.param3 > 0.0f) {
+					if (PX4_ISFINITE(cmd.param3) && cmd.param3 > FLT_EPSILON) {
 						rep->current.loiter_radius = fabsf(cmd.param3);
 
 					} else {
