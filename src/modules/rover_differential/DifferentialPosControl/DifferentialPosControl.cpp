@@ -97,9 +97,10 @@ void DifferentialPosControl::updateSubscriptions()
 		}
 
 		_curr_pos_ned = Vector2f(vehicle_local_position.x, vehicle_local_position.y);
-		const Vector3f velocity_in_local_frame(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
-		const Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
-		_vehicle_speed_body_x = fabsf(velocity_in_body_frame(0)) > _param_ro_speed_th.get() ? velocity_in_body_frame(0) : 0.f;
+		Vector3f velocity_ned(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
+		Vector3f velocity_xyz = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_ned);
+		Vector2f velocity_2d = Vector2f(velocity_xyz(0), velocity_xyz(1));
+		_vehicle_speed = velocity_2d.norm() > _param_ro_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
 	}
 
 }
@@ -148,14 +149,14 @@ void DifferentialPosControl::manualPositionMode()
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 
-	const float speed_body_x_setpoint = math::interpolate<float>(manual_control_setpoint.throttle,
-					    -1.f, 1.f, -_param_ro_speed_limit.get(), _param_ro_speed_limit.get());
+	const float speed_setpoint = math::interpolate<float>(manual_control_setpoint.throttle,
+				     -1.f, 1.f, -_param_ro_speed_limit.get(), _param_ro_speed_limit.get());
 	const float bearing_scaling = math::min(_max_yaw_rate / _param_ro_yaw_p.get(),
 						_param_rd_trans_drv_trn.get() - FLT_EPSILON);
 	const float bearing_delta = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
 				    _param_ro_yaw_stick_dz.get()), -1.f, 1.f, -bearing_scaling, bearing_scaling);
 
-	if (fabsf(speed_body_x_setpoint) < FLT_EPSILON) { // Turn on spot
+	if (fabsf(speed_setpoint) < FLT_EPSILON) { // Turn on spot
 		_course_control = false;
 		const float bearing_setpoint = matrix::wrap_pi(_vehicle_yaw + bearing_delta);
 		differential_velocity_setpoint_s differential_velocity_setpoint{};
@@ -169,7 +170,7 @@ void DifferentialPosControl::manualPositionMode()
 		const float bearing_setpoint = matrix::wrap_pi(_vehicle_yaw + bearing_delta);
 		differential_velocity_setpoint_s differential_velocity_setpoint{};
 		differential_velocity_setpoint.timestamp = _timestamp;
-		differential_velocity_setpoint.speed = speed_body_x_setpoint;
+		differential_velocity_setpoint.speed = speed_setpoint;
 		differential_velocity_setpoint.bearing = bearing_setpoint;
 		_differential_velocity_setpoint_pub.publish(differential_velocity_setpoint);
 
@@ -183,18 +184,18 @@ void DifferentialPosControl::manualPositionMode()
 		// Construct a 'target waypoint' for course control s.t. it is never within the maximum lookahead of the rover
 		const Vector2f start_to_curr_pos = _curr_pos_ned - _pos_ctl_start_position_ned;
 		const float vector_scaling = fabsf(start_to_curr_pos * _pos_ctl_course_direction) + _param_pp_lookahd_max.get();
-		const Vector2f target_waypoint_ned = _pos_ctl_start_position_ned + sign(speed_body_x_setpoint) *
+		const Vector2f target_waypoint_ned = _pos_ctl_start_position_ned + sign(speed_setpoint) *
 						     vector_scaling * _pos_ctl_course_direction;
 		pure_pursuit_status_s pure_pursuit_status{};
 		pure_pursuit_status.timestamp = _timestamp;
 		const float bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
 					       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _pos_ctl_start_position_ned,
-					       _curr_pos_ned, fabsf(speed_body_x_setpoint));
+					       _curr_pos_ned, fabsf(speed_setpoint));
 		_pure_pursuit_status_pub.publish(pure_pursuit_status);
 		differential_velocity_setpoint_s differential_velocity_setpoint{};
 		differential_velocity_setpoint.timestamp = _timestamp;
-		differential_velocity_setpoint.speed = speed_body_x_setpoint;
-		differential_velocity_setpoint.bearing = speed_body_x_setpoint > -FLT_EPSILON ? bearing_setpoint : matrix::wrap_pi(
+		differential_velocity_setpoint.speed = speed_setpoint;
+		differential_velocity_setpoint.bearing = speed_setpoint > -FLT_EPSILON ? bearing_setpoint : matrix::wrap_pi(
 					bearing_setpoint + M_PI_F);
 		_differential_velocity_setpoint_pub.publish(differential_velocity_setpoint);
 	}
@@ -238,18 +239,18 @@ void DifferentialPosControl::autoPositionMode()
 		_differential_velocity_setpoint_pub.publish(differential_velocity_setpoint);
 
 	} else {
-		const float speed_body_x_setpoint = calcSpeedSetpoint(_cruising_speed, distance_to_curr_wp, _param_ro_decel_limit.get(),
-						    _param_ro_jerk_limit.get(), _waypoint_transition_angle, _param_ro_speed_limit.get(), _param_rd_trans_drv_trn.get(),
-						    _param_rd_miss_spd_gain.get(), _curr_wp_type);
+		const float speed_setpoint = calcSpeedSetpoint(_cruising_speed, distance_to_curr_wp, _param_ro_decel_limit.get(),
+					     _param_ro_jerk_limit.get(), _waypoint_transition_angle, _param_ro_speed_limit.get(), _param_rd_trans_drv_trn.get(),
+					     _param_rd_miss_spd_gain.get(), _curr_wp_type);
 		pure_pursuit_status_s pure_pursuit_status{};
 		pure_pursuit_status.timestamp = _timestamp;
 		const float bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
 					       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _curr_wp_ned, _prev_wp_ned, _curr_pos_ned,
-					       fabsf(speed_body_x_setpoint));
+					       fabsf(speed_setpoint));
 		_pure_pursuit_status_pub.publish(pure_pursuit_status);
 		differential_velocity_setpoint_s differential_velocity_setpoint{};
 		differential_velocity_setpoint.timestamp = _timestamp;
-		differential_velocity_setpoint.speed = speed_body_x_setpoint;
+		differential_velocity_setpoint.speed = speed_setpoint;
 		differential_velocity_setpoint.bearing = bearing_setpoint;
 		_differential_velocity_setpoint_pub.publish(differential_velocity_setpoint);
 	}
@@ -289,21 +290,21 @@ void DifferentialPosControl::goToPositionMode()
 	const float distance_to_target = (target_waypoint_ned - _curr_pos_ned).norm();
 
 	if (distance_to_target > _param_nav_acc_rad.get()) {
-		const float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
-					     _param_ro_decel_limit.get(), distance_to_target, 0.f);
+		float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
+				       _param_ro_decel_limit.get(), distance_to_target, 0.f);
 		const float max_speed = PX4_ISFINITE(_rover_position_setpoint.cruising_speed) ?
 					_rover_position_setpoint.cruising_speed :
 					_param_ro_speed_limit.get();
-		const float speed_body_x_setpoint = math::min(speed_setpoint, max_speed);
+		speed_setpoint = math::min(speed_setpoint, max_speed);
 		pure_pursuit_status_s pure_pursuit_status{};
 		pure_pursuit_status.timestamp = _timestamp;
 		const float bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
 					       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _curr_pos_ned,
-					       _curr_pos_ned, fabsf(speed_body_x_setpoint));
+					       _curr_pos_ned, fabsf(speed_setpoint));
 		_pure_pursuit_status_pub.publish(pure_pursuit_status);
 		differential_velocity_setpoint_s differential_velocity_setpoint{};
 		differential_velocity_setpoint.timestamp = _timestamp;
-		differential_velocity_setpoint.speed = speed_body_x_setpoint;
+		differential_velocity_setpoint.speed = speed_setpoint;
 		differential_velocity_setpoint.bearing = bearing_setpoint;
 		_differential_velocity_setpoint_pub.publish(differential_velocity_setpoint);
 

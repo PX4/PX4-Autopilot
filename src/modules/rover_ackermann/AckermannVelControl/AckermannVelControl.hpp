@@ -126,8 +126,7 @@ private:
 	// Variables
 	hrt_abstime _timestamp{0};
 	Quatf _vehicle_attitude_quaternion{};
-	float _vehicle_speed_body_x{0.f};
-	float _vehicle_speed_body_y{0.f};
+	float _vehicle_speed{0.f}; // [m/s] Positiv: Forwards, Negativ: Backwards
 	float _vehicle_yaw{0.f};
 	float _dt{0.f};
 	bool _prev_param_check_passed{true};
