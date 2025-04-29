@@ -124,7 +124,7 @@ However if you change the baud rate from 57600 you will need to create and use a
 - **Smart device:** Connect to Wi-Fi network named `J.Fi-xxxxxx` (x: alphanumeric characters)
 - **Browser:** Go to `192.168.4.1` to open the **configuration page**.
 - **Configuration page:** Adjust settings as needed, then click **Save**
-  - _LED 1_ blinks once upon saving
+  - _LED 2_ blinks once upon saving
 
 ![J.Fi Wireless Telemetry Broadcast Communication](../../assets/hardware/telemetry/jmarple/jfi_telemetry_config.jpg)
 
