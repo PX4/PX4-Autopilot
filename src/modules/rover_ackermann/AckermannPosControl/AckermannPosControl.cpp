@@ -158,21 +158,21 @@ void AckermannPosControl::manualPositionMode()
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 
-	const float speed_body_x_setpoint = math::interpolate<float>(manual_control_setpoint.throttle,
-					    -1.f, 1.f, -_param_ro_speed_limit.get(), _param_ro_speed_limit.get());
+	const float speed_setpoint = math::interpolate<float>(manual_control_setpoint.throttle,
+				     -1.f, 1.f, -_param_ro_speed_limit.get(), _param_ro_speed_limit.get());
 	const float yaw_delta = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
 				_param_ro_yaw_stick_dz.get()), -1.f, 1.f, -_max_yaw_rate / _param_ro_yaw_p.get(),
 				_max_yaw_rate / _param_ro_yaw_p.get());
 
 	if (fabsf(yaw_delta) > FLT_EPSILON
-	    || fabsf(speed_body_x_setpoint) < FLT_EPSILON) { // Closed loop yaw rate control
+	    || fabsf(speed_setpoint) < FLT_EPSILON) { // Closed loop yaw rate control
 		_course_control = false;
 		const float yaw_setpoint = matrix::wrap_pi(_vehicle_yaw + yaw_delta);
 		ackermann_velocity_setpoint_s ackermann_velocity_setpoint{};
 		ackermann_velocity_setpoint.timestamp = _timestamp;
-		ackermann_velocity_setpoint.velocity_ned[0] = fabsf(speed_body_x_setpoint) * cosf(yaw_setpoint);
-		ackermann_velocity_setpoint.velocity_ned[1] = fabsf(speed_body_x_setpoint) * sinf(yaw_setpoint);
-		ackermann_velocity_setpoint.backwards = speed_body_x_setpoint < -FLT_EPSILON;
+		ackermann_velocity_setpoint.velocity_ned[0] = fabsf(speed_setpoint) * cosf(yaw_setpoint);
+		ackermann_velocity_setpoint.velocity_ned[1] = fabsf(speed_setpoint) * sinf(yaw_setpoint);
+		ackermann_velocity_setpoint.backwards = speed_setpoint < -FLT_EPSILON;
 		_ackermann_velocity_setpoint_pub.publish(ackermann_velocity_setpoint);
 
 	} else { // Course control if the steering input is zero (keep driving on a straight line)
@@ -185,19 +185,19 @@ void AckermannPosControl::manualPositionMode()
 		// Construct a 'target waypoint' for course control s.t. it is never within the maximum lookahead of the rover
 		const Vector2f start_to_curr_pos = _curr_pos_ned - _pos_ctl_start_position_ned;
 		const float vector_scaling = fabsf(start_to_curr_pos * _pos_ctl_course_direction) + _param_pp_lookahd_max.get();
-		const Vector2f target_waypoint_ned = _pos_ctl_start_position_ned + sign(speed_body_x_setpoint) *
+		const Vector2f target_waypoint_ned = _pos_ctl_start_position_ned + sign(speed_setpoint) *
 						     vector_scaling * _pos_ctl_course_direction;
 		pure_pursuit_status_s pure_pursuit_status{};
 		pure_pursuit_status.timestamp = _timestamp;
 		const float yaw_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
 					   _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _pos_ctl_start_position_ned,
-					   _curr_pos_ned, fabsf(speed_body_x_setpoint));
+					   _curr_pos_ned, fabsf(speed_setpoint));
 		_pure_pursuit_status_pub.publish(pure_pursuit_status);
 		ackermann_velocity_setpoint_s ackermann_velocity_setpoint{};
 		ackermann_velocity_setpoint.timestamp = _timestamp;
-		ackermann_velocity_setpoint.velocity_ned[0] = fabsf(speed_body_x_setpoint) * cosf(yaw_setpoint);
-		ackermann_velocity_setpoint.velocity_ned[1] = fabsf(speed_body_x_setpoint) * sinf(yaw_setpoint);
-		ackermann_velocity_setpoint.backwards = speed_body_x_setpoint < -FLT_EPSILON;
+		ackermann_velocity_setpoint.velocity_ned[0] = fabsf(speed_setpoint) * cosf(yaw_setpoint);
+		ackermann_velocity_setpoint.velocity_ned[1] = fabsf(speed_setpoint) * sinf(yaw_setpoint);
+		ackermann_velocity_setpoint.backwards = speed_setpoint < -FLT_EPSILON;
 		_ackermann_velocity_setpoint_pub.publish(ackermann_velocity_setpoint);
 	}
 }
@@ -232,20 +232,20 @@ void AckermannPosControl::autoPositionMode()
 		_ackermann_velocity_setpoint_pub.publish(ackermann_velocity_setpoint);
 
 	} else { // Regular guidance algorithm
-		const float speed_body_x_setpoint = calcSpeedSetpoint(_cruising_speed, _min_speed, distance_to_prev_wp,
-						    distance_to_curr_wp, _acceptance_radius, _prev_acceptance_radius, _param_ro_decel_limit.get(),
-						    _param_ro_jerk_limit.get(), _curr_wp_type, _waypoint_transition_angle, _prev_waypoint_transition_angle,
-						    _param_ro_speed_limit.get());
+		const float speed_setpoint = calcSpeedSetpoint(_cruising_speed, _min_speed, distance_to_prev_wp,
+					     distance_to_curr_wp, _acceptance_radius, _prev_acceptance_radius, _param_ro_decel_limit.get(),
+					     _param_ro_jerk_limit.get(), _curr_wp_type, _waypoint_transition_angle, _prev_waypoint_transition_angle,
+					     _param_ro_speed_limit.get());
 		pure_pursuit_status_s pure_pursuit_status{};
 		pure_pursuit_status.timestamp = _timestamp;
 		const float yaw_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
 					   _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _curr_wp_ned, _prev_wp_ned, _curr_pos_ned,
-					   fabsf(speed_body_x_setpoint));
+					   fabsf(speed_setpoint));
 		_pure_pursuit_status_pub.publish(pure_pursuit_status);
 		ackermann_velocity_setpoint_s ackermann_velocity_setpoint{};
 		ackermann_velocity_setpoint.timestamp = _timestamp;
-		ackermann_velocity_setpoint.velocity_ned[0] = fabsf(speed_body_x_setpoint) * cosf(yaw_setpoint);
-		ackermann_velocity_setpoint.velocity_ned[1] = fabsf(speed_body_x_setpoint) * sinf(yaw_setpoint);
+		ackermann_velocity_setpoint.velocity_ned[0] = fabsf(speed_setpoint) * cosf(yaw_setpoint);
+		ackermann_velocity_setpoint.velocity_ned[1] = fabsf(speed_setpoint) * sinf(yaw_setpoint);
 		ackermann_velocity_setpoint.backwards = false;
 		_ackermann_velocity_setpoint_pub.publish(ackermann_velocity_setpoint);
 
@@ -360,22 +360,22 @@ void AckermannPosControl::goToPositionMode()
 	const float distance_to_target = (target_waypoint_ned - _curr_pos_ned).norm();
 
 	if (distance_to_target > _param_nav_acc_rad.get()) {
-		const float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
-					     _param_ro_decel_limit.get(), distance_to_target, 0.f);
+		float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
+				       _param_ro_decel_limit.get(), distance_to_target, 0.f);
 		const float max_speed = PX4_ISFINITE(_rover_position_setpoint.cruising_speed) ?
 					_rover_position_setpoint.cruising_speed :
 					_param_ro_speed_limit.get();
-		const float speed_body_x_setpoint = math::min(speed_setpoint, max_speed);
+		speed_setpoint = math::min(speed_setpoint, max_speed);
 		pure_pursuit_status_s pure_pursuit_status{};
 		pure_pursuit_status.timestamp = _timestamp;
 		const float yaw_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
 					   _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _curr_pos_ned,
-					   _curr_pos_ned, fabsf(speed_body_x_setpoint));
+					   _curr_pos_ned, fabsf(speed_setpoint));
 		_pure_pursuit_status_pub.publish(pure_pursuit_status);
 		ackermann_velocity_setpoint_s ackermann_velocity_setpoint{};
 		ackermann_velocity_setpoint.timestamp = _timestamp;
-		ackermann_velocity_setpoint.velocity_ned[0] = fabsf(speed_body_x_setpoint) * cosf(yaw_setpoint);
-		ackermann_velocity_setpoint.velocity_ned[1] = fabsf(speed_body_x_setpoint) * sinf(yaw_setpoint);
+		ackermann_velocity_setpoint.velocity_ned[0] = fabsf(speed_setpoint) * cosf(yaw_setpoint);
+		ackermann_velocity_setpoint.velocity_ned[1] = fabsf(speed_setpoint) * sinf(yaw_setpoint);
 		ackermann_velocity_setpoint.backwards = false;
 		_ackermann_velocity_setpoint_pub.publish(ackermann_velocity_setpoint);
 
