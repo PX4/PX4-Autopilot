@@ -98,6 +98,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 	# start gz_bridge
 	if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
 		# model specified, gz_bridge will spawn model
+		echo "INFO  [init] only PX4_SIM_MODEL set, start gz_bridge with model: ${PX4_SIM_MODEL#*gz_}"
 
 		if [ -n "${PX4_GZ_MODEL_POSE}" ]; then
 			# model pose provided: [x, y, z, roll, pitch, yaw]
@@ -119,10 +120,34 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 			exit 1
 		fi
 
-	elif [ -n "${PX4_GZ_MODEL_NAME}" ]; then
-		# model name specificed, gz_bridge will attach to existing model
+	elif [ -n "${PX4_SIM_MODEL}" ] && [ -n "${PX4_GZ_MODEL_NAME}" ]; then
+		# model type and name specified, gz_bridge will spawn model with name
+		echo "INFO  [init] both PX4_SIM_MODEL and PX4_GZ_MODEL_NAME set, start gz_bridge with model: ${PX4_SIM_MODEL#*gz_} and name: ${PX4_GZ_MODEL_NAME}"
 
-		echo "INFO  [init] PX4_GZ_MODEL_NAME set, PX4 will attach to existing model"
+		if [ -n "${PX4_GZ_MODEL_POSE}" ]; then
+			# model pose provided: [x, y, z, roll, pitch, yaw]
+
+			# Clean potential input line formatting.
+			model_pose="$( echo "${PX4_GZ_MODEL_POSE}" | sed -e 's/^[ \t]*//; s/[ \t]*$//; s/,/ /g; s/  / /g; s/ /,/g' )"
+			echo "INFO  [init] PX4_GZ_MODEL_POSE set, spawning at: ${model_pose}"
+
+		else
+			# model pose not provided, origin will be used
+
+			echo "WARN  [init] PX4_GZ_MODEL_POSE not set, spawning at origin."
+			model_pose="0,0,0,0,0,0"
+		fi
+
+		# start gz bridge with pose arg.
+		if ! gz_bridge start -p "${model_pose}" -m "${PX4_SIM_MODEL#*gz_}" -n "${PX4_GZ_MODEL_NAME}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
+			echo "ERROR [init] gz_bridge failed to start and spawn model with name"
+			exit 1
+		fi
+
+	elif [ -z "${PX4_SIM_MODEL}" ] && [ -n "${PX4_GZ_MODEL_NAME}" ]; then
+		# model name specified, gz_bridge will attach to existing model with name
+		echo "INFO  [init] only PX4_GZ_MODEL_NAME set, start gz_bridge and attach to model with name: ${PX4_GZ_MODEL_NAME}"
+
 		if ! gz_bridge start -n "${PX4_GZ_MODEL_NAME}" -w "${PX4_GZ_WORLD}"; then
 			echo "ERROR [init] gz_bridge failed to start and attach to existing model"
 			exit 1

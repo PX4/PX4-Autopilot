@@ -14,7 +14,7 @@
             "environment": [
                 {
                     "name": "PX4_SIM_MODEL",
-                    "value": "gz_${input:PX4_GZ_MODEL}"
+                    "value": "gz_${input:PX4_SIM_MODEL}"
                 }
             ],
             "externalConsole": false,
@@ -218,7 +218,7 @@
     "inputs": [
         {
             "type": "pickString",
-            "id": "PX4_GZ_MODEL",
+            "id": "PX4_SIM_MODEL",
             "description": "GZ vehicle model",
             "options": [
               "x500",
