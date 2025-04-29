@@ -163,7 +163,7 @@ private:
 	uORB::Publication<rover_velocity_status_s>          _rover_velocity_status_pub{ORB_ID(rover_velocity_status)};
 	uORB::Publication<differential_velocity_setpoint_s> _differential_velocity_setpoint_pub{ORB_ID(differential_velocity_setpoint)};
 	uORB::Publication<pure_pursuit_status_s>	    _pure_pursuit_status_pub{ORB_ID(pure_pursuit_status)};
-	uORB::Publication<rover_position_setpoint_s>	 _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
+	uORB::Publication<rover_position_setpoint_s>	    _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
 
 	// Variables
 	hrt_abstime _timestamp{0};
@@ -171,7 +171,7 @@ private:
 	Vector2f _curr_pos_ned{};
 	Vector2f _pos_ctl_course_direction{};
 	Vector2f _pos_ctl_start_position_ned{};
-	float _vehicle_speed_body_x{0.f};
+	float _vehicle_speed{0.f}; // [m/s] Positiv: Forwards, Negativ: Backwards
 	float _vehicle_yaw{0.f};
 	float _max_yaw_rate{0.f};
 	float _dt{0.f};

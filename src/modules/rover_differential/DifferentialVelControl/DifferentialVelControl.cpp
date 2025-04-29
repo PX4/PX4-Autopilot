@@ -76,14 +76,14 @@ void DifferentialVelControl::updateVelControl()
 		_speed_setpoint.setForcedValue(0.f);
 	}
 
-	// Publish position controller status (logging only)
+	// Publish velocity controller status (logging only)
 	rover_velocity_status_s rover_velocity_status;
 	rover_velocity_status.timestamp = _timestamp;
-	rover_velocity_status.measured_speed_body_x = _vehicle_speed_body_x;
+	rover_velocity_status.measured_speed_body_x = _vehicle_speed;
 	rover_velocity_status.adjusted_speed_body_x_setpoint = _speed_setpoint.getState();
-	rover_velocity_status.measured_speed_body_y = _vehicle_speed_body_y;
-	rover_velocity_status.adjusted_speed_body_y_setpoint = NAN;
 	rover_velocity_status.pid_throttle_body_x_integral = _pid_speed.getIntegral();
+	rover_velocity_status.measured_speed_body_y = NAN;
+	rover_velocity_status.adjusted_speed_body_y_setpoint = NAN;
 	rover_velocity_status.pid_throttle_body_y_integral = NAN;
 	_rover_velocity_status_pub.publish(rover_velocity_status);
 }
@@ -103,10 +103,10 @@ void DifferentialVelControl::updateSubscriptions()
 	if (_vehicle_local_position_sub.updated()) {
 		vehicle_local_position_s vehicle_local_position{};
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
-		const Vector3f velocity_in_local_frame(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
-		const Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
-		_vehicle_speed_body_x = fabsf(velocity_in_body_frame(0)) > _param_ro_speed_th.get() ? velocity_in_body_frame(0) : 0.f;
-		_vehicle_speed_body_y = fabsf(velocity_in_body_frame(1)) > _param_ro_speed_th.get() ? velocity_in_body_frame(1) : 0.f;
+		Vector3f velocity_ned(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
+		Vector3f velocity_xyz = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_ned);
+		Vector2f velocity_2d = Vector2f(velocity_xyz(0), velocity_xyz(1));
+		_vehicle_speed = velocity_2d.norm() > _param_ro_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
 	}
 
 }
@@ -155,31 +155,31 @@ void DifferentialVelControl::generateAttitudeAndThrottleSetpoint()
 		_current_state = DrivingState::DRIVING;
 	}
 
-	float speed_body_x_setpoint = 0.f;
+	float speed_setpoint = 0.f;
 
 	if (_current_state == DrivingState::DRIVING) {
-		speed_body_x_setpoint = math::constrain(_differential_velocity_setpoint.speed, -_param_ro_speed_limit.get(),
-							_param_ro_speed_limit.get());
+		speed_setpoint = math::constrain(_differential_velocity_setpoint.speed, -_param_ro_speed_limit.get(),
+						 _param_ro_speed_limit.get());
 
-		const float speed_body_x_setpoint_normalized = math::interpolate<float>(speed_body_x_setpoint,
-				-_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get(), -1.f, 1.f);
+		const float speed_setpoint_normalized = math::interpolate<float>(speed_setpoint,
+							-_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get(), -1.f, 1.f);
 
 		if (_rover_steering_setpoint_sub.updated()) {
 			_rover_steering_setpoint_sub.copy(&_rover_steering_setpoint);
 		}
 
-		if (fabsf(speed_body_x_setpoint_normalized) > 1.f - fabsf(
+		if (fabsf(speed_setpoint_normalized) > 1.f - fabsf(
 			    _rover_steering_setpoint.normalized_speed_diff)) { // Adjust speed setpoint if it is infeasible due to the desired speed difference of the left/right wheels
-			speed_body_x_setpoint = math::interpolate<float>(sign(speed_body_x_setpoint_normalized) * (1.f - fabsf(
-							_rover_steering_setpoint.normalized_speed_diff)), -1.f, 1.f,
-						- _param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get());
+			speed_setpoint = math::interpolate<float>(sign(speed_setpoint_normalized) * (1.f - fabsf(
+						 _rover_steering_setpoint.normalized_speed_diff)), -1.f, 1.f,
+					 - _param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get());
 		}
 	}
 
 	rover_throttle_setpoint_s rover_throttle_setpoint{};
 	rover_throttle_setpoint.timestamp = _timestamp;
 	rover_throttle_setpoint.throttle_body_x = RoverControl::speedControl(_speed_setpoint, _pid_speed,
-			speed_body_x_setpoint, _vehicle_speed_body_x, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
+			speed_setpoint, _vehicle_speed, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
 			_param_ro_max_thr_speed.get(), _dt);
 	rover_throttle_setpoint.throttle_body_y = 0.f;
 	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
