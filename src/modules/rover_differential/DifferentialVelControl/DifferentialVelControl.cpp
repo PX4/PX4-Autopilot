@@ -127,9 +127,8 @@ void DifferentialVelControl::generateVelocitySetpoint()
 	if (offboard_vel_control && velocity_in_local_frame.isAllFinite()) {
 		differential_velocity_setpoint_s differential_velocity_setpoint{};
 		differential_velocity_setpoint.timestamp = _timestamp;
-		differential_velocity_setpoint.velocity_ned[0] = velocity_in_local_frame(0);
-		differential_velocity_setpoint.velocity_ned[1] = velocity_in_local_frame(1);
-		differential_velocity_setpoint.backwards = false;
+		differential_velocity_setpoint.speed = velocity_in_local_frame.norm();
+		differential_velocity_setpoint.bearing = atan2f(velocity_in_local_frame(1), velocity_in_local_frame(0));
 		_differential_velocity_setpoint_pub.publish(differential_velocity_setpoint);
 	}
 }
@@ -140,61 +139,43 @@ void DifferentialVelControl::generateAttitudeAndThrottleSetpoint()
 		_differential_velocity_setpoint_sub.copy(&_differential_velocity_setpoint);
 	}
 
-	// Catch spot turning
-	if (PX4_ISFINITE(_differential_velocity_setpoint.yaw)) {
-		rover_attitude_setpoint_s rover_attitude_setpoint{};
-		rover_attitude_setpoint.timestamp = _timestamp;
-		rover_attitude_setpoint.yaw_setpoint = _differential_velocity_setpoint.yaw;
-		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
-		rover_throttle_setpoint_s rover_throttle_setpoint{};
-		rover_throttle_setpoint.timestamp = _timestamp;
-		rover_throttle_setpoint.throttle_body_x = RoverControl::speedControl(_speed_setpoint, _pid_speed,
-				0.f, _vehicle_speed_body_x, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
-				_param_ro_max_thr_speed.get(), _dt);
-		rover_throttle_setpoint.throttle_body_y = 0.f;
-		_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
-		return;
-	}
-
 	// Attitude Setpoint
-	if (fabsf(_differential_velocity_setpoint.velocity_ned[1]) < FLT_EPSILON
-	    && fabsf(_differential_velocity_setpoint.velocity_ned[0]) < FLT_EPSILON) {
-		rover_attitude_setpoint_s rover_attitude_setpoint{};
-		rover_attitude_setpoint.timestamp = _timestamp;
-		rover_attitude_setpoint.yaw_setpoint = _vehicle_yaw;
-		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
-
-	} else {
-		rover_attitude_setpoint_s rover_attitude_setpoint{};
-		rover_attitude_setpoint.timestamp = _timestamp;
-		const float yaw_setpoint = atan2f(_differential_velocity_setpoint.velocity_ned[1],
-						  _differential_velocity_setpoint.velocity_ned[0]);
-		rover_attitude_setpoint.yaw_setpoint = _differential_velocity_setpoint.backwards ? matrix::wrap_pi(
-				yaw_setpoint + M_PI_F) : yaw_setpoint;
-		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
-	}
+	rover_attitude_setpoint_s rover_attitude_setpoint{};
+	rover_attitude_setpoint.timestamp = _timestamp;
+	rover_attitude_setpoint.yaw_setpoint = _differential_velocity_setpoint.bearing;
+	_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
 
 	// Throttle Setpoint
-	float speed_magnitude = math::min(sqrtf(powf(_differential_velocity_setpoint.velocity_ned[0],
-						2) + powf(_differential_velocity_setpoint.velocity_ned[1], 2)), _param_ro_speed_limit.get());
+	const float heading_error = matrix::wrap_pi(_differential_velocity_setpoint.bearing - _vehicle_yaw);
 
-	if (_param_ro_max_thr_speed.get() > FLT_EPSILON) {
+	if (_current_state == DrivingState::DRIVING && fabsf(heading_error) > _param_rd_trans_drv_trn.get()) {
+		_current_state = DrivingState::SPOT_TURNING;
 
-		const float speed_body_x_setpoint_normalized = math::interpolate<float>(speed_magnitude,
+	} else if (_current_state == DrivingState::SPOT_TURNING && fabsf(heading_error) < _param_rd_trans_trn_drv.get()) {
+		_current_state = DrivingState::DRIVING;
+	}
+
+	float speed_body_x_setpoint = 0.f;
+
+	if (_current_state == DrivingState::DRIVING) {
+		speed_body_x_setpoint = math::constrain(_differential_velocity_setpoint.speed, -_param_ro_speed_limit.get(),
+							_param_ro_speed_limit.get());
+
+		const float speed_body_x_setpoint_normalized = math::interpolate<float>(speed_body_x_setpoint,
 				-_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get(), -1.f, 1.f);
 
 		if (_rover_steering_setpoint_sub.updated()) {
 			_rover_steering_setpoint_sub.copy(&_rover_steering_setpoint);
 		}
 
-		if (fabsf(speed_body_x_setpoint_normalized) > 1.f -
-		    fabsf(_rover_steering_setpoint.normalized_speed_diff)) { // Adjust speed setpoint if it is infeasible due to the desired speed difference of the left/right wheels
-			speed_magnitude = math::interpolate<float>(1.f - fabsf(_rover_steering_setpoint.normalized_speed_diff), -1.f, 1.f,
-					  -_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get());
+		if (fabsf(speed_body_x_setpoint_normalized) > 1.f - fabsf(
+			    _rover_steering_setpoint.normalized_speed_diff)) { // Adjust speed setpoint if it is infeasible due to the desired speed difference of the left/right wheels
+			speed_body_x_setpoint = math::interpolate<float>(sign(speed_body_x_setpoint_normalized) * (1.f - fabsf(
+							_rover_steering_setpoint.normalized_speed_diff)), -1.f, 1.f,
+						- _param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get());
 		}
 	}
 
-	const float speed_body_x_setpoint = _differential_velocity_setpoint.backwards ? -speed_magnitude : speed_magnitude;
 	rover_throttle_setpoint_s rover_throttle_setpoint{};
 	rover_throttle_setpoint.timestamp = _timestamp;
 	rover_throttle_setpoint.throttle_body_x = RoverControl::speedControl(_speed_setpoint, _pid_speed,
