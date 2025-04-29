@@ -322,7 +322,7 @@ void Navigator::run()
 					// (4) Loiter direction / yaw (param4)
 					if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 						// param4 >= 1 => counter-clockwise, else default CW
-						rep->current.loiter_direction_counter_clockwise = (PX4_ISFINITE(cmd.param4) && (cmd.param4 >= 1.0f));
+						rep->current.loiter_direction_counter_clockwise = (PX4_ISFINITE(cmd.param4) && (cmd.param4 >= FLT_EPSILON));
 						rep->current.yaw = NAN;
 
 					} else {
