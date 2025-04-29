@@ -39,7 +39,7 @@ MecanumVelControl::MecanumVelControl(ModuleParams *parent) : ModuleParams(parent
 {
 	_rover_throttle_setpoint_pub.advertise();
 	_rover_attitude_setpoint_pub.advertise();
-	_mecanum_velocity_setpoint_pub.advertise();
+	_rover_velocity_setpoint_pub.advertise();
 	_rover_velocity_status_pub.advertise();
 	updateParams();
 }
@@ -131,27 +131,27 @@ void MecanumVelControl::generateVelocitySetpoint()
 	const Vector2f velocity_in_local_frame(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
 
 	if (offboard_vel_control && velocity_in_local_frame.isAllFinite()) {
-		mecanum_velocity_setpoint_s mecanum_velocity_setpoint{};
-		mecanum_velocity_setpoint.timestamp = _timestamp;
-		mecanum_velocity_setpoint.speed = velocity_in_local_frame.norm();
-		mecanum_velocity_setpoint.bearing = atan2f(velocity_in_local_frame(1), velocity_in_local_frame(0));
-		mecanum_velocity_setpoint.yaw = _vehicle_yaw;
-		_mecanum_velocity_setpoint_pub.publish(mecanum_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = velocity_in_local_frame.norm();
+		rover_velocity_setpoint.bearing = atan2f(velocity_in_local_frame(1), velocity_in_local_frame(0));
+		rover_velocity_setpoint.yaw = _vehicle_yaw;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 
 	}
 }
 
 void MecanumVelControl::generateAttitudeAndThrottleSetpoint()
 {
-	if (_mecanum_velocity_setpoint_sub.updated()) {
-		_mecanum_velocity_setpoint_sub.copy(&_mecanum_velocity_setpoint);
+	if (_rover_velocity_setpoint_sub.updated()) {
+		_rover_velocity_setpoint_sub.copy(&_rover_velocity_setpoint);
 	}
 
 	// Attitude Setpoint
-	if (PX4_ISFINITE(_mecanum_velocity_setpoint.yaw)) {
+	if (PX4_ISFINITE(_rover_velocity_setpoint.yaw)) {
 		rover_attitude_setpoint_s rover_attitude_setpoint{};
 		rover_attitude_setpoint.timestamp = _timestamp;
-		rover_attitude_setpoint.yaw_setpoint = _mecanum_velocity_setpoint.yaw;
+		rover_attitude_setpoint.yaw_setpoint = _rover_velocity_setpoint.yaw;
 		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
 		_last_attitude_setpoint_update = _timestamp;
 
@@ -167,10 +167,10 @@ void MecanumVelControl::generateAttitudeAndThrottleSetpoint()
 	float speed_body_x_setpoint{0.f};
 	float speed_body_y_setpoint{0.f};
 
-	if (fabsf(_mecanum_velocity_setpoint.speed) > FLT_EPSILON) {
-		const Vector3f velocity_in_local_frame(_mecanum_velocity_setpoint.speed * cosf(
-				_mecanum_velocity_setpoint.bearing),
-						       _mecanum_velocity_setpoint.speed * sinf(_mecanum_velocity_setpoint.bearing), 0.f);
+	if (fabsf(_rover_velocity_setpoint.speed) > FLT_EPSILON) {
+		const Vector3f velocity_in_local_frame(_rover_velocity_setpoint.speed * cosf(
+				_rover_velocity_setpoint.bearing),
+						       _rover_velocity_setpoint.speed * sinf(_rover_velocity_setpoint.bearing), 0.f);
 		const Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
 		speed_body_x_setpoint = velocity_in_body_frame(0);
 		speed_body_y_setpoint = velocity_in_body_frame(1);
