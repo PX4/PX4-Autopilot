@@ -33,7 +33,7 @@
 
 /**
  * @file pwm_esc.cpp
- * Driver for the NuttX PWM driver controleed escs
+ * Driver for the NuttX PWM driver controlled escs
  *
  */
 
@@ -352,19 +352,25 @@ PWMESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigne
 	} else {
 		// In hitl, publish actuator_outputs_sim
 		// Only publish once we receive actuator_controls (important for lock-step to work correctly)
-		actuator_outputs_s actuator_outputs_sim{};
 
 		if (num_control_groups_updated > 0) {
+			actuator_outputs_s actuator_outputs_sim{};
+			actuator_outputs_sim.noutputs = num_outputs;
+
+			const uint32_t reversible_outputs = _mixing_output.reversibleOutputs();
+
 			for (int i = 0; i < (int)num_outputs; i++) {
 				uint16_t disarmed = _mixing_output.disarmedValue(i);
 				uint16_t min = _mixing_output.minValue(i);
 				uint16_t max = _mixing_output.maxValue(i);
 
 				OutputFunction function = _mixing_output.outputFunction(i);
+				bool is_reversible = reversible_outputs & (1u << i);
 				float output = outputs[i];
 
-				if (((int)function >= (int)OutputFunction::Motor1 && (int)function <= (int)OutputFunction::MotorMax)) {
-					// Scale motors to [0, 1]
+				if (((int)function >= (int)OutputFunction::Motor1 && (int)function <= (int)OutputFunction::MotorMax
+				     && !is_reversible)) {
+					// Scale non-reversible motors to [0, 1]
 					actuator_outputs_sim.output[i] = (output - disarmed) / (max - disarmed);
 
 				} else {
@@ -633,7 +639,7 @@ int PWMESC::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Driver for PWM outputs.
+Driver for PWM outputs. Used also in HITL mode.
 
 )DESCR_STR");
 

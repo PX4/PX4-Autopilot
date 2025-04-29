@@ -44,11 +44,7 @@
 
 #include "mixer_module.hpp"
 
-#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
 #define PARAM_PREFIX "PWM_MAIN"
-#else
-#define PARAM_PREFIX "HIL_ACT"
-#endif
 
 static constexpr int MAX_NUM_OUTPUTS = 8;
 static constexpr int DISARMED_VALUE = 900;
