@@ -37,7 +37,7 @@ using namespace time_literals;
 
 MecanumPosControl::MecanumPosControl(ModuleParams *parent) : ModuleParams(parent)
 {
-	_mecanum_velocity_setpoint_pub.advertise();
+	_rover_velocity_setpoint_pub.advertise();
 	_rover_position_setpoint_pub.advertise();
 	_pure_pursuit_status_pub.advertise();
 
@@ -158,12 +158,12 @@ void MecanumPosControl::manualPositionMode()
 		_pos_ctl_yaw_setpoint = NAN;
 		const float yaw_setpoint = matrix::wrap_pi(_vehicle_yaw + yaw_delta);
 		const Vector3f velocity_setpoint_local = _vehicle_attitude_quaternion.rotateVector(velocity_setpoint_body);
-		mecanum_velocity_setpoint_s mecanum_velocity_setpoint{};
-		mecanum_velocity_setpoint.timestamp = _timestamp;
-		mecanum_velocity_setpoint.speed = velocity_setpoint_body.norm();
-		mecanum_velocity_setpoint.bearing = atan2f(velocity_setpoint_local(1), velocity_setpoint_local(0));
-		mecanum_velocity_setpoint.yaw = yaw_setpoint;
-		_mecanum_velocity_setpoint_pub.publish(mecanum_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = velocity_setpoint_body.norm();
+		rover_velocity_setpoint.bearing = atan2f(velocity_setpoint_local(1), velocity_setpoint_local(0));
+		rover_velocity_setpoint.yaw = yaw_setpoint;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 
 	} else { // Course control if the steering input is zero (keep driving on a straight line)
 		const Vector3f velocity = Vector3f(velocity_setpoint_body(0), velocity_setpoint_body(1), 0.f);
@@ -194,12 +194,12 @@ void MecanumPosControl::manualPositionMode()
 					       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _pos_ctl_start_position_ned,
 					       _curr_pos_ned, velocity_magnitude_setpoint);
 		_pure_pursuit_status_pub.publish(pure_pursuit_status);
-		mecanum_velocity_setpoint_s mecanum_velocity_setpoint{};
-		mecanum_velocity_setpoint.timestamp = _timestamp;
-		mecanum_velocity_setpoint.speed = velocity_magnitude_setpoint;
-		mecanum_velocity_setpoint.bearing = bearing_setpoint;
-		mecanum_velocity_setpoint.yaw = _pos_ctl_yaw_setpoint;
-		_mecanum_velocity_setpoint_pub.publish(mecanum_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = velocity_magnitude_setpoint;
+		rover_velocity_setpoint.bearing = bearing_setpoint;
+		rover_velocity_setpoint.yaw = _pos_ctl_yaw_setpoint;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 	}
 }
 
@@ -241,12 +241,12 @@ void MecanumPosControl::autoPositionMode()
 	}
 
 	if (auto_stop) {
-		mecanum_velocity_setpoint_s mecanum_velocity_setpoint{};
-		mecanum_velocity_setpoint.timestamp = _timestamp;
-		mecanum_velocity_setpoint.speed = 0.f;
-		mecanum_velocity_setpoint.bearing = 0.f;
-		mecanum_velocity_setpoint.yaw = _vehicle_yaw;
-		_mecanum_velocity_setpoint_pub.publish(mecanum_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = 0.f;
+		rover_velocity_setpoint.bearing = 0.f;
+		rover_velocity_setpoint.yaw = _vehicle_yaw;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 
 	} else { // Regular guidance algorithm
 		const float velocity_magnitude = calcVelocityMagnitude(_auto_speed, distance_to_curr_wp, _param_ro_decel_limit.get(),
@@ -258,12 +258,12 @@ void MecanumPosControl::autoPositionMode()
 					       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _curr_wp_ned, _prev_wp_ned, _curr_pos_ned,
 					       velocity_magnitude);
 		_pure_pursuit_status_pub.publish(pure_pursuit_status);
-		mecanum_velocity_setpoint_s mecanum_velocity_setpoint{};
-		mecanum_velocity_setpoint.timestamp = _timestamp;
-		mecanum_velocity_setpoint.speed = velocity_magnitude;
-		mecanum_velocity_setpoint.bearing = bearing_setpoint;
-		mecanum_velocity_setpoint.yaw = _auto_yaw;
-		_mecanum_velocity_setpoint_pub.publish(mecanum_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = velocity_magnitude;
+		rover_velocity_setpoint.bearing = bearing_setpoint;
+		rover_velocity_setpoint.yaw = _auto_yaw;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 	}
 }
 
@@ -313,20 +313,20 @@ void MecanumPosControl::goToPositionMode()
 					       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _curr_pos_ned,
 					       _curr_pos_ned, fabsf(speed_setpoint));
 		_pure_pursuit_status_pub.publish(pure_pursuit_status);
-		mecanum_velocity_setpoint_s mecanum_velocity_setpoint{};
-		mecanum_velocity_setpoint.timestamp = _timestamp;
-		mecanum_velocity_setpoint.speed = speed_setpoint;
-		mecanum_velocity_setpoint.bearing = bearing_setpoint;
-		mecanum_velocity_setpoint.yaw = _pos_ctl_yaw_setpoint;
-		_mecanum_velocity_setpoint_pub.publish(mecanum_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = speed_setpoint;
+		rover_velocity_setpoint.bearing = bearing_setpoint;
+		rover_velocity_setpoint.yaw = _pos_ctl_yaw_setpoint;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 
 	} else {
-		mecanum_velocity_setpoint_s mecanum_velocity_setpoint{};
-		mecanum_velocity_setpoint.timestamp = _timestamp;
-		mecanum_velocity_setpoint.speed = 0.f;
-		mecanum_velocity_setpoint.bearing = 0.f;
-		mecanum_velocity_setpoint.yaw = _vehicle_yaw;
-		_mecanum_velocity_setpoint_pub.publish(mecanum_velocity_setpoint);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = 0.f;
+		rover_velocity_setpoint.bearing = 0.f;
+		rover_velocity_setpoint.yaw = _vehicle_yaw;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 	}
 }
 

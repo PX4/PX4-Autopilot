@@ -50,7 +50,7 @@
 #include <uORB/topics/rover_steering_setpoint.h>
 #include <uORB/topics/rover_throttle_setpoint.h>
 #include <uORB/topics/rover_velocity_status.h>
-#include <uORB/topics/differential_velocity_setpoint.h>
+#include <uORB/topics/rover_velocity_setpoint.h>
 #include <uORB/topics/rover_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/trajectory_setpoint.h>
@@ -121,7 +121,7 @@ private:
 	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _differential_velocity_setpoint_sub{ORB_ID(differential_velocity_setpoint)};
+	uORB::Subscription _rover_velocity_setpoint_sub{ORB_ID(rover_velocity_setpoint)};
 	uORB::Subscription _rover_steering_setpoint_sub{ORB_ID(rover_steering_setpoint)};
 	vehicle_control_mode_s _vehicle_control_mode{};
 	offboard_control_mode_s _offboard_control_mode{};
@@ -131,8 +131,8 @@ private:
 	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
 	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
 	uORB::Publication<rover_velocity_status_s> _rover_velocity_status_pub{ORB_ID(rover_velocity_status)};
-	uORB::Publication<differential_velocity_setpoint_s> _differential_velocity_setpoint_pub{ORB_ID(differential_velocity_setpoint)};
-	differential_velocity_setpoint_s _differential_velocity_setpoint{};
+	uORB::Publication<rover_velocity_setpoint_s> _rover_velocity_setpoint_pub{ORB_ID(rover_velocity_setpoint)};
+	rover_velocity_setpoint_s _rover_velocity_setpoint{};
 
 	// Variables
 	hrt_abstime _timestamp{0};
