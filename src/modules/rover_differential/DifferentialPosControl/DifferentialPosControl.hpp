@@ -63,15 +63,6 @@
 using namespace matrix;
 
 /**
- * @brief Enum class for the different states of guidance.
- */
-enum class GuidanceState {
-	SPOT_TURNING, // The vehicle is currently turning on the spot.
-	DRIVING,      // The vehicle is currently driving.
-	STOPPED  // The vehicle is stopped.
-};
-
-/**
  * @brief Class for differential position control.
  */
 class DifferentialPosControl : public ModuleParams
@@ -197,10 +188,8 @@ private:
 
 	// Class Instances
 	MapProjection _global_ned_proj_ref{}; // Transform global to NED coordinates
-	GuidanceState _currentState{GuidanceState::DRIVING}; // The current state of the guidance.
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RD_TRANS_TRN_DRV>) _param_rd_trans_trn_drv,
 		(ParamFloat<px4::params::RD_TRANS_DRV_TRN>) _param_rd_trans_drv_trn,
 		(ParamFloat<px4::params::RD_MISS_SPD_GAIN>) _param_rd_miss_spd_gain,
 		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
@@ -215,6 +204,5 @@ private:
 		(ParamFloat<px4::params::PP_LOOKAHD_MIN>)   _param_pp_lookahd_min,
 		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
 		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad
-
 	)
 };

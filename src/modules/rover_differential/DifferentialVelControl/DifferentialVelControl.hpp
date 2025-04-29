@@ -61,6 +61,14 @@
 using namespace matrix;
 
 /**
+ * @brief Enum class for the different states of driving.
+ */
+enum class DrivingState {
+	SPOT_TURNING, // The vehicle is currently turning on the spot.
+	DRIVING      // The vehicle is currently driving.
+};
+
+/**
  * @brief Class for differential velocity control.
  */
 class DifferentialVelControl : public ModuleParams
@@ -134,12 +142,16 @@ private:
 	float _vehicle_yaw{0.f};
 	float _dt{0.f};
 	bool _prev_param_check_passed{false};
+	DrivingState _current_state{DrivingState::DRIVING};
+
 
 	// Controllers
 	PID _pid_speed;
 	SlewRate<float> _speed_setpoint;
 
 	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::RD_TRANS_TRN_DRV>) _param_rd_trans_trn_drv,
+		(ParamFloat<px4::params::RD_TRANS_DRV_TRN>) _param_rd_trans_drv_trn,
 		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
 		(ParamFloat<px4::params::RO_SPEED_P>) 	    _param_ro_speed_p,
 		(ParamFloat<px4::params::RO_SPEED_I>)       _param_ro_speed_i,
