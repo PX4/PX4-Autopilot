@@ -40,7 +40,7 @@
  *
  * @unit m/s
  * @min 0.5
- * @max 10
+ * @max 20
  * @decimal 1
  *
  * @group Land Detector
@@ -68,7 +68,7 @@ PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 1.0f);
  *
  * @unit m/s^2
  * @min 2
- * @max 15
+ * @max 30
  * @decimal 1
  *
  * @group Land Detector
@@ -82,7 +82,7 @@ PARAM_DEFINE_FLOAT(LNDFW_XYACC_MAX, 8.0f);
  *
  * @unit m/s
  * @min 2
- * @max 20
+ * @max 30
  * @decimal 1
  *
  * @group Land Detector
@@ -107,6 +107,7 @@ PARAM_DEFINE_FLOAT(LNDFW_TRIG_TIME, 2.f);
  * Fixed-wing land detector: max rotational speed
  *
  * Maximum allowed norm of the angular velocity in the landed state.
+ * Only used if neither airspeed nor groundspeed can be used for landing detection.
  *
  * @unit deg/s
  * @decimal 1

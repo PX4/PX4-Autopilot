@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# Forward is where the MIPI and ESC connectors are
+#
+# Auterion FMUv6S specific board sensors init
+#------------------------------------------------------------------------------
+
+# For system_power and battery_status
+board_adc start
+
+# IMU3 on SPI3, ROTATION_NONE=0
+bmi088 -A -R 0 -s start
+bmi088 -G -R 0 -s start
+
+if ver hwtypecmp V6S013 V6S015
+then
+	# Revision(s) with BMM150
+	# MAG on I2C4, ROTATION_ROLL_180=8
+	bmm150 -I -R 8 start
+else
+	# Revision(s) with BMM350
+	# MAG on I2C4, ROTATION_ROLL_180=8
+	bmm350 -I -R 8 start
+fi
+
+# External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
+ist8310 -X -b 1 -R 10 start
+
+# BARO on I2C4
+bmp388 -I -b 4 -a 0x77 start

@@ -34,7 +34,7 @@
 project(px4_gz_plugins)
 
 if(NOT DEFINED ENV{GZ_DISTRO} OR NOT "$ENV{GZ_DISTRO}"  STREQUAL "harmonic")
-    find_package(gz-transport NAMES gz-transport14 gz-transport13 gz-transport12)
+    find_package(gz-transport NAMES gz-transport14 gz-transport13)
     find_package(gz-sim NAMES gz-sim9 gz-sim8)
     find_package(gz-sensors NAMES gz-sensors9 gz-sensors8)
     find_package(gz-plugin NAMES gz-plugin3 gz-plugin2 COMPONENTS register)
@@ -55,7 +55,12 @@ if (gz-transport_FOUND)
     add_subdirectory(optical_flow)
     add_subdirectory(template_plugin)
     add_subdirectory(gstreamer)
+    add_subdirectory(moving_platform_controller)
 
     # Add an alias target for each plugin
-    add_custom_target(px4_gz_plugins ALL DEPENDS OpticalFlowSystem TemplatePlugin GstCameraSystem)
+    if (TARGET GstCameraSystem)
+        add_custom_target(px4_gz_plugins ALL DEPENDS OpticalFlowSystem MovingPlatformController TemplatePlugin GstCameraSystem)
+    else()
+        add_custom_target(px4_gz_plugins ALL DEPENDS OpticalFlowSystem MovingPlatformController TemplatePlugin)
+    endif()
 endif()

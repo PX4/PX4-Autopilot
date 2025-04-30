@@ -1,7 +1,7 @@
 # Debugging with GDB
 
 The [GNU DeBugger (GDB)](https://sourceware.org/gdb/documentation/) comes installed with the compiler toolchain in the form of the `arm-none-eabi-gdb` binary.
-调试器读取ELF文件内的调试富豪，以了解PX4固件的静态和动态内存布局。
+调试器读取ELF文件内的调试符号，以了解PX4固件的静态和动态内存布局。
 To access the PX4 autopilot microcontroller, it needs to connect to a [Remote Target](https://sourceware.org/gdb/current/onlinedocs/gdb.html/Connecting.html), which is provided by a [SWD debug probe](swd_debug.md).
 
 信息流看起来像这样：

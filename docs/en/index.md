@@ -137,3 +137,5 @@ The PX4 flight stack is hosted under the governance of the [Dronecode Project](h
 <a href="https://www.linuxfoundation.org/projects" style="padding:20px;"><img src="https://mavlink.io/assets/site/logo_linux_foundation.png" alt="Linux Foundation Logo" width="80px" /></a>
 
 <div style="padding:10px">&nbsp;</div>
+
+Doc build time: {{ $buildTime }}

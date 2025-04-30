@@ -64,16 +64,6 @@ Heater::Heater() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
-#ifdef HEATER_PX4IO
-	_io_fd = px4_open(IO_HEATER_DEVICE_PATH, O_RDWR);
-
-	if (_io_fd < 0) {
-		PX4_ERR("Unable to open heater device path");
-		return;
-	}
-
-#endif
-
 	_heater_status_pub.advertise();
 }
 
