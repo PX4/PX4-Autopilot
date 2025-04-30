@@ -289,6 +289,7 @@
       - [ARK 光流](dronecan/ark_flow.md)
       - [ARK Flow MR](dronecan/ark_flow_mr.md)
       - [PMW3901](sensor/pmw3901.md)
+      - [Upixels Flow](/sensor/upixels_flow.md)
       - [PX4FLOW (Deprecated)](sensor/px4flow.md)
     - [转速计（转数计数器）](sensor/tachometers.md)
       - [ThunderFly TFRPM01 转速传感器](sensor/thunderfly_tachometer.md)

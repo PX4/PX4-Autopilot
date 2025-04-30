@@ -289,6 +289,7 @@
       - [ARK Flow](/dronecan/ark_flow.md)
       - [ARK Flow MR](/dronecan/ark_flow_mr.md)
       - [PMW3901](/sensor/pmw3901.md)
+      - [Upixels Flow](/sensor/upixels_flow.md)
       - [PX4FLOW (Застаріла версія)](/sensor/px4flow.md)
     - [Тахометри (лічильники обертів)](/sensor/tachometers.md)
       - [Датчик тахометра ThunderFly TFRPM01](/sensor/thunderfly_tachometer.md)
