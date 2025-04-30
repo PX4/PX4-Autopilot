@@ -102,9 +102,13 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 	// Check if user wants to break
 	const bool apply_brake = fabsf(_sticks.getPositionExpo()(2)) <= FLT_EPSILON;
+	printf("apply_brake: %d ", apply_brake);
+	_constraints.apply_brake = apply_brake;
 
 	// Check if vehicle has stopped
 	const bool stopped = (_param_mpc_hold_max_z.get() < FLT_EPSILON || fabsf(_velocity(2)) < _param_mpc_hold_max_z.get());
+	printf("stopped: %d ", stopped);
+	_constraints.stopped = stopped;
 
 	// Manage transition between use of distance to ground and distance to local origin
 	// when terrain hold behaviour has been selected.
@@ -115,9 +119,12 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 		// Use presence of horizontal stick inputs as a transition criteria
 		float stick_xy = Vector2f(_sticks.getPitchRollExpo()).length();
 		bool stick_input = stick_xy > 0.001f;
+		printf("stick_input: %d ", stick_input);
+		_constraints.stick_input = stick_input;
 
 		if (_terrain_hold) {
 			bool too_fast = spd_xy > _param_mpc_hold_max_xy.get();
+			_constraints.too_fast = too_fast;
 
 			if (stick_input || too_fast || !PX4_ISFINITE(_dist_to_bottom)) {
 				// Stop using distance to ground
@@ -184,7 +191,15 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 		}
 	}
 
+	_constraints.terrain_hold = _terrain_hold;
+	_constraints.dist_to_bottom = _dist_to_bottom;
+	_constraints.dist_to_ground_lock = _dist_to_ground_lock;
+
+	printf("_dist_to_bottom: %.3f ", (double)_dist_to_bottom);
+	printf("_dist_to_ground_lock: %.3f ", (double)_dist_to_ground_lock);
+
 	_respectMaxAltitude();
+	printf("\n");
 }
 
 void FlightTaskManualAltitude::_respectMinAltitude()

@@ -660,13 +660,16 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		_local_position_ground_truth_pub.publish(local_position);
 	}
 
+	static float rise_counter = 0.f;
+
 	{
 		// publish global position groundtruth
 		vehicle_global_position_s global_position{};
 		global_position.timestamp_sample = time_now_us;
 		global_position.lat = _lla.latitude_deg();
 		global_position.lon = _lla.longitude_deg();
-		global_position.alt = _lla.altitude();
+		global_position.alt = _lla.altitude() + rise_counter;
+		rise_counter += 0.0001f;
 		global_position.alt_ellipsoid = global_position.alt;
 		global_position.terrain_alt = -_lpos(2);
 		global_position.timestamp = hrt_absolute_time();
