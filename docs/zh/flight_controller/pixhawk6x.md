@@ -9,30 +9,44 @@ _Pixhawk 6X_<sup>&reg;</sup> is the latest update to the successful family of Pi
 
 It is based on the [Pixhawk​​® Autopilot FMUv6X Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf), [Autopilot Bus Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf), and [Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 
-Equipped with a high performance H7 Processor, modular design, triple redundancy, temperature-controlled IMU board, isolated sensor domains, delivering incredible performance, reliability, and flexibility.
+Equipped with a high-performance H7 Processor, modular design, triple redundancy, temperature-controlled IMU board, and isolated sensor domains, delivering incredible performance, reliability, and flexibility.
 
-### Pixhawk 6X (Rev 3)
+### Pixhawk 6X (Rev 8)
 
-<img src="../../assets/flight_controller/pixhawk6x/pixhawk6x_hero_upright.png" width="230px" title="Pixhawk6X Upright Image" /> <img src="../../assets/flight_controller/pixhawk6x/pixhawk6x_exploded_diagram.png" width="400px" title="Pixhawk6X Exploded Image" />
+<img src="../../assets/flight_controller/pixhawk6x/HB_6X_rev8_V2A.png" width="420px"/><img src="../../assets/flight_controller/pixhawk6x/hb_6x_internal_v2.png" width="320px"/>
 
-### Pixhawk 6X (ICM-45686)
+#### Pixhawk 6X (Rev 3/4, discontinued)
+
+<img src="../../assets/flight_controller/pixhawk6x/pixhawk6x_hero_upright.png" width="150px" title="Pixhawk6X Upright Image" /> <img src="../../assets/flight_controller/pixhawk6x/pixhawk6x_exploded_diagram.png" width="280px" title="Pixhawk6X Exploded Image" />
+
+### Pixhawk 6X Baseboards Options
 
 :::: tabs
 
 :::tab Standard v2A
 
-![Pixhawk 6X Standard v2A](../../assets/flight_controller/pixhawk6x/pixhawk6x_icm_v2a.webp)
+![Pixhawk 6X Standard v2A](../../assets/flight_controller/pixhawk6x/HB_PH6X_V2A.jpg)
 
 :::
 
 :::tab Standard v2B
 
-![Pixhawk 6X Standard v2B](../../assets/flight_controller/pixhawk6x/pixhawk6x_icm_v2b.webp)
+![Pixhawk 6X Standard v2B](../../assets/flight_controller/pixhawk6x/HB_PH6X_V2B.jpg)
 :::
 
 :::tab Mini
 
-![Pixhawk 6X Mini](../../assets/flight_controller/pixhawk6x/pixhawk6x_icm_mini.webp)
+![Pixhawk 6X Mini](../../assets/flight_controller/pixhawk6x/HB_PH6X_Mini.jpg)
+:::
+
+:::tab Jetson Baseboard
+
+![Jetson Baseboard](../../assets/flight_controller/pixhawk6x/HB_Jetson_BB.jpg)
+:::
+
+:::tab CM4 Baseboard
+
+![Pixhawk 6X CM4](../../assets/flight_controller/pixhawk6x/HB_PH6X_CM4.jpg)
 :::
 
 ::::
@@ -53,15 +67,15 @@ An independent LDO powers every sensor set with independent power control. A vib
 
 External sensor bus (SPI5) has two chip select lines and data-ready signals for additional sensors and payload with SPI-interface, and with an integrated Microchip Ethernet PHY, high-speed communication with mission computers via ethernet is now possible.
 
-The Pixhawk®​ 6X is perfect for developers at corporate research labs, startups, academics (research, professors, students), and commercial application.
+The Pixhawk®​ 6X is perfect for developers at corporate research labs, startups, academics (research, professors, students), and commercial applications.
 
 ## Key Design Points
 
-- High performance STM32H753 Processor
+- High-performance STM32H753 Processor
 - Modular flight controller: separated IMU, FMU, and Base system connected by a 100-pin & a 50-pin Pixhawk®​ Autopilot Bus connector.
 - Redundancy: 3x IMU sensors & 2x Barometer sensors on separate buses
 - Triple redundancy domains: Completely isolated sensor domains with separate buses and separate power control
-- Newly designed vibration isolation system to filter out high frequency vibration and reduce noise to ensure accurate readings
+- Newly designed vibration isolation system to filter out high-frequency vibration and reduce noise to ensure accurate readings
 - Ethernet interface for high-speed mission computer integration
 - IMUs are temperature-controlled by onboard heating resistors, allowing optimum working temperature of IMUs&#x20;
 
@@ -71,7 +85,11 @@ The Pixhawk®​ 6X is perfect for developers at corporate research labs, startu
   - 32 Bit Arm® Cortex®-M7, 480MHz, 2MB flash memory, 1MB RAM
 - IO 处理器：STM32F100
   - 32 位 Arm® Cortex®-M3，24MHz，8KB SRAM
-- On-board sensors
+- On-board sensors (Shipping Currently, Rev 8)
+  - Accel/Gyro: 3x ICM-45686 (with BalancedGyro™ Technology)
+  - Barometer: ICP20100 & BMP388
+  - Mag: BMM150
+- On-board sensors (Rev 3/4, discontinued)
   - Accel/Gyro: ICM-20649 or BMI088
   - Accel/Gyro: ICM-42688-P
   - Accel/Gyro: ICM-42670-P
@@ -191,14 +209,14 @@ The **POWER1** & **POWER2** ports on the Pixhawk 6X uses the 6 circuit [2.00mm P
 
 **Normal Operation Maximum Ratings**
 
-Under these conditions all power sources will be used in this order to power the system:
+Under these conditions, all power sources will be used in this order to power the system:
 
 1. **POWER1** and **POWER2** inputs (4.9V to 5.5V)
 2. **USB** input (4.75V to 5.25V)
 
 **Absolute Maximum Ratings**
 
-Under these conditions the system will not draw any power (will not be operational), but will remain intact.
+Under these conditions, the system will not draw any power (will not be operational) but will remain intact.
 
 1. **POWER1** and **POWER2** inputs (operational range 4.1V to 5.7V, 0V to 10V undamaged)
 2. **USB** input (operational range 4.1V to 5.7V, 0V to 6V undamaged)
@@ -209,7 +227,7 @@ Under these conditions the system will not draw any power (will not be operation
 Digital I2C battery monitoring is enabled by default (see [Quickstart > Power](../assembly/quick_start_pixhawk6x.md#power)).
 
 :::info
-Analog battery monitoring via an ADC is not supported on this particular board, but may be supported in variations of this flight controller with a different baseboard.
+Analog battery monitoring via an ADC is not supported on this particular board but may be supported in variations of this flight controller with a different baseboard.
 :::
 
 ## 编译固件
