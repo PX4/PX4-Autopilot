@@ -341,6 +341,7 @@ The used types also define the compatibility with different vehicle types.
 The following sections provide a list of supported setpoint types:
 
 - [GotoSetpointType](#go-to-setpoint-gotosetpointtype): Smooth position and (optionally) heading control
+- [FwLateralLongitudinalSetpointType](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpoint): Direct control of lateral and longitudinal fixed wing dynamics
 - [DirectActuatorsSetpointType](#direct-actuator-control-setpoint-directactuatorssetpointtype): Direct control of motors and flight surface servo setpoints
 
 :::tip
@@ -399,6 +400,96 @@ _goto_setpoint->update(
   std::nullopt,
   max_heading_rate_rad_s);
 ```
+
+#### Fixed-Wing Lateral and Longitudinal Setpoint (FwLateralLongitudinalSetpoint)
+
+::: info
+This setpoint type is only supported for fixed-wing vehicles.
+:::
+
+[//]: # (TODO: ADD LINKS TO CODE BLOBS AFTER MERGING)
+Use the px4_ros2::FwLateralLongitudinalSetpointType to directly control the lateral and longitudinal dynamics of a fixed-wing vehicle. This setpoint is streamed to the PX4 FwLateralLongitudinalControl module, which decouples lateral and longitudinal inputs while ensuring that vehicle limits are respected.
+
+For a clear explanation of the minimum required set of compatible inputs, refer to the message definitions.
+(TODO: ADD LINK HERE)
+
+##### Basic Usage
+
+In the simplest case, you can provide only a course and altitude setpoint:
+```cpp
+const float altitude_msl = 500.F;
+const float course = 0.F; // due North
+_fw_lateral_longitudinal_setpoint->update(altitude_msl, course);
+```
+PX4 will compute:
+
+- Lateral control output: required airspeed, airspeed direction (heading), lateral acceleration, and roll angle
+
+- Longitudinal control output: height rate, pitch angle, and throttle settings
+
+To additionally control the height rate, equivalent airspeed, or lateral acceleration, you can specify them as the third, fourth, and fifth arguments, respectively:
+
+```cpp
+const float altitude_msl = 500.F;
+const float course = 0.F; // due North
+const float equivalent_aspd = 15.F // m/s
+const float lateral_acceleration = 2.F // FRD, used as feedforward
+
+_fw_lateral_longitudinal_setpoint->update(altitude_msl,
+  course,
+  std::nullopt,
+  equivalent_aspd,
+  lateral_acceleration);
+```
+
+The height rate, equivalent airspeed, and lateral acceleration arguments are defined as `std::optional<float>`, so you can omit any of them by passing `std::nullopt`. In the example above, the height rate is left unset.
+
+::: tip
+If multiple lateral inputs are set, the lower level inputs are used as feedforward. If both altitude and height rate are set, *altitude is not controlled*.
+:::
+
+##### Full Control Using the Setpoint Struct
+
+For full flexibility, you can create and pass a `FwLateralLongitudinalSetpoint` struct. Each field is also templated with `std::optional<float>`. Please consult the message definitions for valid input combinations.
+(TODO: ADD LINK HERE)
+
+```cpp
+  px4_ros2::FwLateralLongitudinalSetpoint setpoint_s{};
+
+  setpoint_s.withCourse(0.F);
+  setpoint_s.withAirspeedDirection(0.2F); // feedforward
+  setpoint_s.withLateralAcceleration(2.F); // feedforward
+  //setpoint_s.withAltitude(500.F); // uncontrolled
+  setpoint_s.withHeightRate(2.F);
+  setpoint_s.withEquivalentAirspeed(15.F);
+
+  _fw_lateral_longitudinal_setpoint->update(setpoint_s);
+```
+
+##### Advanced Configuration (Optional)
+
+You can also pass a `FwControlConfiguration` struct along with the setpoint to override default control constraints such as pitch limits, throttle limits, and target sink/climb rates. This is intended for advanced users:
+
+```cpp
+  px4_ros2::FwLateralLongitudinalSetpoint setpoint_s{};
+
+  setpoint_s.withCourse(0.F);
+  setpoint_s.withLateralAcceleration(2.F); // feedforward
+  setpoint_s.withAltitude(500.F);
+  setpoint_s.withEquivalentAirspeed(15.F);
+
+  px4_ros2::FwControlConfiguration config_s{};
+
+  config_s.withTargetClimbRate(3.F);
+  config_s.withMaxAcceleration(5.F);
+  config_s.withThrottleLimits(0.4F, 0.6F);
+
+  _fw_lateral_longitudinal_setpoint->update(setpoint_s, config_s);
+```
+
+All configuration fields are also defined as std::optional<float>. Unset values will default to the PX4 configuration.
+
+Note: Overrides must remain within valid system constraints. For example, throttle limits must stay between `FW_THR_MIN` and `FW_THR_MAX`. (TODO: ADD LINK HERE)
 
 #### Direct Actuator Control Setpoint (DirectActuatorsSetpointType)
 
