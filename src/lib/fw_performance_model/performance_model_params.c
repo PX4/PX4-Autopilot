@@ -216,7 +216,7 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
 /**
  * Airspeed scale with full flaps
  *
- * Factor applied to min and stall speed when flaps are fully deployed.
+ * Factor applied to the minimum and stall airspeed when flaps are fully deployed.
  *
  * @min 0.5
  * @max 1
