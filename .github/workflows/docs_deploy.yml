@@ -80,13 +80,13 @@ jobs:
       - name: Deploy
         run: |
           git clone --single-branch --branch main --depth 1 https://${{ secrets.PX4BUILTBOT_PERSONAL_ACCESS_TOKEN }}@github.com/PX4/docs.px4.io.git
-          CURRENT_DATETIME=$(date +'%Y%m%d_%H_%M')
-          # make it an orphan branch
-          git checkout --orphan "${CURRENT_DATETIME}_main"
-          rm -rf docs.px4.io/${BRANCH_NAME}
-          mkdir -p docs.px4.io/${BRANCH_NAME}
-          cp -r ~/_book/* docs.px4.io/${BRANCH_NAME}/
+          # make it an orphan branch      
           cd docs.px4.io
+          CURRENT_DATETIME=$(date +'%Y%m%d_%H_%M')
+          git checkout --orphan "${CURRENT_DATETIME}_main"
+          rm -rf ${BRANCH_NAME}
+          mkdir -p ${BRANCH_NAME}
+          cp -r ~/_book/* ${BRANCH_NAME}/
           git config --global user.name "${{ secrets.PX4BUILDBOT_USER }}"
           git config --global user.email "${{ secrets.PX4BUILDBOT_EMAIL }}"
           git add .
