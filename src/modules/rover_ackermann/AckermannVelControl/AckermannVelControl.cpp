@@ -65,17 +65,7 @@ void AckermannVelControl::updateVelControl()
 
 	updateSubscriptions();
 
-	if ((_vehicle_control_mode.flag_control_velocity_enabled) && _vehicle_control_mode.flag_armed && runSanityChecks()) {
-		if (_vehicle_control_mode.flag_control_offboard_enabled) { // Offboard Velocity Control
-			generateVelocitySetpoint();
-		}
-
-		generateAttitudeAndThrottleSetpoint();
-
-	} else { // Reset controller and slew rate when position control is not active
-		_pid_speed.resetIntegral();
-		_speed_setpoint.setForcedValue(0.f);
-	}
+	generateAttitudeAndThrottleSetpoint();
 
 	// Publish position controller status (logging only)
 	rover_velocity_status_s rover_velocity_status;
@@ -91,10 +81,6 @@ void AckermannVelControl::updateVelControl()
 
 void AckermannVelControl::updateSubscriptions()
 {
-	if (_vehicle_control_mode_sub.updated()) {
-		_vehicle_control_mode_sub.copy(&_vehicle_control_mode);
-	}
-
 	if (_vehicle_attitude_sub.updated()) {
 		vehicle_attitude_s vehicle_attitude{};
 		_vehicle_attitude_sub.copy(&vehicle_attitude);
@@ -105,35 +91,12 @@ void AckermannVelControl::updateSubscriptions()
 	if (_vehicle_local_position_sub.updated()) {
 		vehicle_local_position_s vehicle_local_position{};
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
-
 		Vector3f velocity_ned(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
 		Vector3f velocity_xyz = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_ned);
 		Vector2f velocity_2d = Vector2f(velocity_xyz(0), velocity_xyz(1));
 		_vehicle_speed = velocity_2d.norm() > _param_ro_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
 	}
 
-}
-
-void AckermannVelControl::generateVelocitySetpoint()
-{
-	trajectory_setpoint_s trajectory_setpoint{};
-	_trajectory_setpoint_sub.copy(&trajectory_setpoint);
-
-	if (_offboard_control_mode_sub.updated()) {
-		_offboard_control_mode_sub.copy(&_offboard_control_mode);
-	}
-
-	const bool offboard_vel_control = _offboard_control_mode.velocity && !_offboard_control_mode.position;
-
-	const Vector2f velocity_in_local_frame(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
-
-	if (offboard_vel_control && velocity_in_local_frame.isAllFinite()) {
-		rover_velocity_setpoint_s rover_velocity_setpoint{};
-		rover_velocity_setpoint.timestamp = _timestamp;
-		rover_velocity_setpoint.speed = velocity_in_local_frame.norm();
-		rover_velocity_setpoint.bearing = atan2f(velocity_in_local_frame(1), velocity_in_local_frame(0));
-		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
-	}
 }
 
 void AckermannVelControl::generateAttitudeAndThrottleSetpoint()
@@ -179,14 +142,10 @@ bool AckermannVelControl::runSanityChecks()
 
 	if (_param_ro_speed_limit.get() < FLT_EPSILON) {
 		ret = false;
-
-		if (_prev_param_check_passed) {
-			events::send<float>(events::ID("ackermann_vel_control_conf_invalid_speed_lim"), events::Log::Error,
-					    "Invalid configuration of necessary parameter RO_SPEED_LIM", _param_ro_speed_limit.get());
-		}
+		events::send<float>(events::ID("ackermann_vel_control_conf_invalid_speed_lim"), events::Log::Error,
+				    "Invalid configuration of necessary parameter RO_SPEED_LIM", _param_ro_speed_limit.get());
 
 	}
 
-	_prev_param_check_passed = ret;
 	return ret;
 }

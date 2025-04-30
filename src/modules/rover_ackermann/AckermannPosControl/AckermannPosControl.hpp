@@ -51,11 +51,8 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/rover_position_setpoint.h>
 #include <uORB/topics/rover_velocity_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/position_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -92,6 +89,20 @@ public:
 	 */
 	void autoPositionMode();
 
+	/**
+	 * @brief Check if the necessary parameters are set.
+	 * @return True if all checks pass.
+	 */
+	bool runSanityChecks();
+
+	/**
+	 * @brief Reset position controller.
+	 */
+	void reset()
+	{
+		_pos_ctl_course_direction = Vector2f(NAN, NAN);
+	};
+
 protected:
 	/**
 	 * @brief Update the parameters of the module.
@@ -103,11 +114,6 @@ private:
 	 * @brief Update uORB subscriptions used in position controller.
 	 */
 	void updateSubscriptions();
-
-	/**
-	 * @brief Generate and publish roverPositionSetpoint from position of trajectorySetpoint.
-	 */
-	void generatePositionSetpoint();
 
 	/**
 	 * @brief Update global/NED waypoint coordinates and acceptance radius.
@@ -158,30 +164,14 @@ private:
 				float distance_to_curr_wp, float acc_rad, float prev_acc_rad, float waypoint_transition_angle,
 				float prev_waypoint_transition_angle, float max_yaw_rate);
 
-	/**
-	 * @brief Check if the necessary parameters are set.
-	 * @return True if all checks pass.
-	 */
-	bool runSanityChecks();
-
-	/**
-	 * @brief Generate RoverVelocitySetpoint from RoverPositionSetpoint
-	 */
-	void generateVelocitySetpoint();
-
 	// uORB subscriptions
-	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
-	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _rover_position_setpoint_sub{ORB_ID(rover_position_setpoint)};
 	uORB::Subscription _position_controller_status_sub{ORB_ID(position_controller_status)};
 	rover_position_setpoint_s _rover_position_setpoint{};
-	vehicle_control_mode_s _vehicle_control_mode{};
-	offboard_control_mode_s _offboard_control_mode{};
 
 	// uORB publications
 	uORB::Publication<rover_velocity_setpoint_s>    _rover_velocity_setpoint_pub{ORB_ID(rover_velocity_setpoint)};
@@ -199,8 +189,6 @@ private:
 	float _max_yaw_rate{0.f};
 	float _min_speed{0.f}; // Speed at which the maximum yaw rate limit is enforced given the maximum steer angle and wheel base.
 	int _curr_wp_type{position_setpoint_s::SETPOINT_TYPE_IDLE};
-	bool _course_control{false}; // Indicates if the rover is doing course control in manual position mode.
-	bool _prev_param_check_passed{true};
 
 	// Waypoint variables
 	Vector2f _curr_wp_ned{};

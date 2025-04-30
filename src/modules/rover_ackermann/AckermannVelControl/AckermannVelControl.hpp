@@ -51,10 +51,7 @@
 #include <uORB/topics/rover_velocity_setpoint.h>
 #include <uORB/topics/rover_velocity_status.h>
 #include <uORB/topics/rover_attitude_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/vehicle_local_position.h>
 
 using namespace matrix;
@@ -77,6 +74,17 @@ public:
 	 */
 	void updateVelControl();
 
+	/**
+	 * @brief Check if the necessary parameters are set.
+	 * @return True if all checks pass.
+	 */
+	bool runSanityChecks();
+
+	/**
+	 * @brief Reset velocity controller.
+	 */
+	void reset() {_pid_speed.resetIntegral();};
+
 protected:
 	/**
 	 * @brief Update the parameters of the module.
@@ -90,31 +98,15 @@ private:
 	void updateSubscriptions();
 
 	/**
-	 * @brief Generate and publish roverVelocitySetpoint from velocity of trajectorySetpoint.
-	 */
-	void generateVelocitySetpoint();
-
-	/**
 	 * @brief Generate and publish roverAttitudeSetpoint and roverThrottleSetpoint
 	 *        from roverVelocitySetpoint.
 	 */
 	void generateAttitudeAndThrottleSetpoint();
 
-	/**
-	 * @brief Check if the necessary parameters are set.
-	 * @return True if all checks pass.
-	 */
-	bool runSanityChecks();
-
 	// uORB subscriptions
-	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
-	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _rover_velocity_setpoint_sub{ORB_ID(rover_velocity_setpoint)};
-	vehicle_control_mode_s _vehicle_control_mode{};
-	offboard_control_mode_s _offboard_control_mode{};
 
 	// uORB publications
 	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
@@ -129,7 +121,6 @@ private:
 	float _vehicle_speed{0.f}; // [m/s] Positiv: Forwards, Negativ: Backwards
 	float _vehicle_yaw{0.f};
 	float _dt{0.f};
-	bool _prev_param_check_passed{true};
 
 	// Controllers
 	PID _pid_speed;

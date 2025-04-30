@@ -44,11 +44,11 @@
 // uORB includes
 #include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/actuator_servos.h>
 #include <uORB/topics/rover_steering_setpoint.h>
 #include <uORB/topics/rover_throttle_setpoint.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 /**
  * @brief Class for ackermann actuator control.
@@ -64,9 +64,14 @@ public:
 	~AckermannActControl() = default;
 
 	/**
-	 * @brief Update actuator controller.
+	 * @brief Generate and publish actuatorMotors/actuatorServos setpoints from roverThrottleSetpoint/roverSteeringSetpoint.
 	 */
 	void updateActControl();
+
+	/**
+	 * @brief Manual mode
+	 */
+	void manualMode();
 
 protected:
 	/**
@@ -76,20 +81,18 @@ protected:
 
 private:
 
-	/**
-	 * @brief Generate and publish actuatorMotors/actuatorServos setpoints from roverThrottleSetpoint/roverSteeringSetpoint.
-	 */
-	void generateActuatorSetpoint();
-
 	// uORB subscriptions
 	uORB::Subscription _actuator_servos_sub{ORB_ID(actuator_servos)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 	uORB::Subscription _rover_steering_setpoint_sub{ORB_ID(rover_steering_setpoint)};
 	uORB::Subscription _rover_throttle_setpoint_sub{ORB_ID(rover_throttle_setpoint)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 
 	// uORB publications
-	uORB::PublicationMulti<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
+	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
 	uORB::Publication<actuator_servos_s> _actuator_servos_pub{ORB_ID(actuator_servos)};
+	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
+	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
 
 	// Variables
 	hrt_abstime _timestamp{0};

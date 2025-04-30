@@ -60,10 +60,6 @@ void AckermannRateControl::updateRateControl()
 	_timestamp = hrt_absolute_time();
 	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
 
-	if (_vehicle_control_mode_sub.updated()) {
-		_vehicle_control_mode_sub.copy(&_vehicle_control_mode);
-	}
-
 	if (_vehicle_angular_velocity_sub.updated()) {
 		vehicle_angular_velocity_s vehicle_angular_velocity{};
 		_vehicle_angular_velocity_sub.copy(&vehicle_angular_velocity);
@@ -71,26 +67,16 @@ void AckermannRateControl::updateRateControl()
 				    vehicle_angular_velocity.xyz[2] : 0.f;
 	}
 
-	if (_vehicle_control_mode.flag_control_rates_enabled  && _vehicle_control_mode.flag_armed && runSanityChecks()) {
-		// Estimate forward speed based on throttle
-		if (_actuator_motors_sub.updated()) {
-			actuator_motors_s actuator_motors;
-			_actuator_motors_sub.copy(&actuator_motors);
-			_estimated_speed_body_x = math::interpolate<float>(actuator_motors.control[0], -1.f, 1.f,
-						  -_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get());
-			_estimated_speed_body_x = fabsf(_estimated_speed_body_x) >  _param_ro_speed_th.get() ? _estimated_speed_body_x : 0.f;
-		}
-
-		if (_vehicle_control_mode.flag_control_manual_enabled) {
-			generateRateAndThrottleSetpoint();
-		}
-
-		generateSteeringSetpoint();
-
-	} else { // Reset controller and slew rate when rate control is not active
-		_pid_yaw_rate.resetIntegral();
-		_yaw_rate_setpoint.setForcedValue(0.f);
+	// Estimate forward speed based on throttle
+	if (_actuator_motors_sub.updated()) {
+		actuator_motors_s actuator_motors;
+		_actuator_motors_sub.copy(&actuator_motors);
+		_estimated_speed_body_x = math::interpolate<float>(actuator_motors.control[0], -1.f, 1.f,
+					  -_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get());
+		_estimated_speed_body_x = fabsf(_estimated_speed_body_x) >  _param_ro_speed_th.get() ? _estimated_speed_body_x : 0.f;
 	}
+
+	generateSteeringSetpoint();
 
 	// Publish rate controller status (logging only)
 	rover_rate_status_s rover_rate_status;
@@ -102,28 +88,20 @@ void AckermannRateControl::updateRateControl()
 
 }
 
-void AckermannRateControl::generateRateAndThrottleSetpoint()
+void AckermannRateControl::acroMode()
 {
-	const bool acro_mode_enabled = _vehicle_control_mode.flag_control_manual_enabled
-				       && !_vehicle_control_mode.flag_control_position_enabled && !_vehicle_control_mode.flag_control_attitude_enabled;
-
-	if (acro_mode_enabled && _manual_control_setpoint_sub.updated()) { // Acro Mode
-		manual_control_setpoint_s manual_control_setpoint{};
-
-		if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-			rover_throttle_setpoint_s rover_throttle_setpoint{};
-			rover_throttle_setpoint.timestamp = _timestamp;
-			rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
-			rover_throttle_setpoint.throttle_body_y = 0.f;
-			_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
-			rover_rate_setpoint_s rover_rate_setpoint{};
-			rover_rate_setpoint.timestamp = _timestamp;
-			rover_rate_setpoint.yaw_rate_setpoint = matrix::sign(_estimated_speed_body_x) * math::interpolate<float>
-								(manual_control_setpoint.roll, -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
-			_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
-		}
-
-	}
+	manual_control_setpoint_s manual_control_setpoint{};
+	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+	rover_throttle_setpoint_s rover_throttle_setpoint{};
+	rover_throttle_setpoint.timestamp = hrt_absolute_time();
+	rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
+	rover_throttle_setpoint.throttle_body_y = 0.f;
+	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+	rover_rate_setpoint_s rover_rate_setpoint{};
+	rover_rate_setpoint.timestamp = hrt_absolute_time();
+	rover_rate_setpoint.yaw_rate_setpoint = matrix::sign(manual_control_setpoint.throttle) * math::interpolate<float>
+						(manual_control_setpoint.roll, -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
+	_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
 }
 
 void AckermannRateControl::generateSteeringSetpoint()
@@ -180,44 +158,31 @@ bool AckermannRateControl::runSanityChecks()
 
 	if (_param_ro_max_thr_speed.get() < FLT_EPSILON) {
 		ret = false;
-
-		if (_prev_param_check_passed) {
-			events::send<float>(events::ID("ackermann_rate_control_conf_invalid_max_thr_speed"), events::Log::Error,
-					    "Invalid configuration of necessary parameter RO_MAX_THR_SPEED", _param_ro_max_thr_speed.get());
-		}
+		events::send<float>(events::ID("ackermann_rate_control_conf_invalid_max_thr_speed"), events::Log::Error,
+				    "Invalid configuration of necessary parameter RO_MAX_THR_SPEED", _param_ro_max_thr_speed.get());
 
 	}
 
 	if (_param_ra_wheel_base.get() < FLT_EPSILON) {
 		ret = false;
-
-		if (_prev_param_check_passed) {
-			events::send<float>(events::ID("ackermann_rate_control_conf_invalid_wheel_base"), events::Log::Error,
-					    "Invalid configuration of necessary parameter RA_WHEEL_BASE", _param_ra_wheel_base.get());
-		}
+		events::send<float>(events::ID("ackermann_rate_control_conf_invalid_wheel_base"), events::Log::Error,
+				    "Invalid configuration of necessary parameter RA_WHEEL_BASE", _param_ra_wheel_base.get());
 
 	}
 
 	if (_param_ra_max_str_ang.get() < FLT_EPSILON) {
 		ret = false;
-
-		if (_prev_param_check_passed) {
-			events::send<float>(events::ID("ackermann_rate_control_conf_invalid_max_str_ang"), events::Log::Error,
-					    "Invalid configuration of necessary parameter RA_MAX_STR_ANG", _param_ra_max_str_ang.get());
-		}
+		events::send<float>(events::ID("ackermann_rate_control_conf_invalid_max_str_ang"), events::Log::Error,
+				    "Invalid configuration of necessary parameter RA_MAX_STR_ANG", _param_ra_max_str_ang.get());
 
 	}
 
 	if (_param_ro_yaw_rate_limit.get() < FLT_EPSILON) {
 		ret = false;
-
-		if (_prev_param_check_passed) {
-			events::send<float>(events::ID("ackermann_rate_control_conf_invalid_yaw_rate_lim"), events::Log::Error,
-					    "Invalid configuration of necessary parameter RO_YAW_RATE_LIM", _param_ro_yaw_rate_limit.get());
-		}
+		events::send<float>(events::ID("ackermann_rate_control_conf_invalid_yaw_rate_lim"), events::Log::Error,
+				    "Invalid configuration of necessary parameter RO_YAW_RATE_LIM", _param_ro_yaw_rate_limit.get());
 
 	}
 
-	_prev_param_check_passed = ret;
 	return ret;
 }

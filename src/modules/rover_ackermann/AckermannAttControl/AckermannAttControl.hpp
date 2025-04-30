@@ -48,7 +48,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/rover_rate_setpoint.h>
 #include <uORB/topics/rover_throttle_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/rover_attitude_status.h>
@@ -73,6 +72,22 @@ public:
 	 */
 	void updateAttControl();
 
+	/**
+	 * @brief Stabilized mode
+	 */
+	void stabMode();
+
+	/**
+	 * @brief Reset attitude controller.
+	 */
+	void reset() {_pid_yaw.resetIntegral(); _stab_yaw_setpoint = NAN;};
+
+	/**
+	 * @brief Check if the necessary parameters are set.
+	 * @return True if all checks pass.
+	 */
+	bool runSanityChecks();
+
 protected:
 	/**
 	 * @brief Update the parameters of the module.
@@ -81,31 +96,15 @@ protected:
 
 private:
 	/**
-	 * @brief Generate and publish roverAttitudeSetpoint and roverThrottleSetpoint from manualControlSetpoint (Stab Mode).
-	 */
-	void generateAttitudeAndThrottleSetpoint();
-
-	/**
 	 * @brief Generate and publish roverRateSetpoint from roverAttitudeSetpoint.
 	 */
 	void generateRateSetpoint();
 
-	/**
-	 * @brief Check if the necessary parameters are set.
-	 * @return True if all checks pass.
-	 */
-	bool runSanityChecks();
-
 	// uORB subscriptions
-	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 	uORB::Subscription _rover_attitude_setpoint_sub{ORB_ID(rover_attitude_setpoint)};
-	uORB::Subscription _rover_rate_setpoint_sub{ORB_ID(rover_rate_setpoint)};
-	vehicle_control_mode_s _vehicle_control_mode{};
-	rover_attitude_setpoint_s _rover_attitude_setpoint{};
-	rover_rate_setpoint_s _rover_rate_setpoint{};
 
 	// uORB publications
 	uORB::Publication<rover_rate_setpoint_s> _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
@@ -116,13 +115,11 @@ private:
 	// Variables
 	float _vehicle_yaw{0.f};
 	hrt_abstime _timestamp{0};
-	hrt_abstime _last_rate_setpoint_update{0};
 	float _dt{0.f};
 	float _max_yaw_rate{0.f};
 	float _estimated_speed_body_x{0.f}; /*Vehicle speed estimated by interpolating [actuatorMotorSetpoint,  _estimated_speed_body_x]
 					       between [0, 0] and [1, _param_ro_max_thr_speed].*/
-	float _stab_yaw_setpoint{0.f}; // Yaw setpoint if rover is doing yaw control in stab mode
-	bool _stab_yaw_ctl{false}; // Indicates if rover is doing yaw control in stab mode
+	float _stab_yaw_setpoint{0.f}; // Yaw setpoint for heading control stab mode (NAN heading not controlled)
 
 	// Controllers
 	PID _pid_yaw;

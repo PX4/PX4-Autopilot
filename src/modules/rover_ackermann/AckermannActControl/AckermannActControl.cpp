@@ -59,12 +59,6 @@ void AckermannActControl::updateActControl()
 	_timestamp = hrt_absolute_time();
 	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
 
-	generateActuatorSetpoint();
-
-}
-
-void AckermannActControl::generateActuatorSetpoint()
-{
 	// Motor control
 	rover_throttle_setpoint_s rover_throttle_setpoint{};
 	_rover_throttle_setpoint_sub.copy(&rover_throttle_setpoint);
@@ -102,4 +96,20 @@ void AckermannActControl::generateActuatorSetpoint()
 	actuator_servos.control[0] = _servo_setpoint.getState();
 	actuator_servos.timestamp = _timestamp;
 	_actuator_servos_pub.publish(actuator_servos);
+
+}
+
+void AckermannActControl::manualMode()
+{
+	manual_control_setpoint_s manual_control_setpoint{};
+	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+	rover_steering_setpoint_s rover_steering_setpoint{};
+	rover_steering_setpoint.timestamp = hrt_absolute_time();
+	rover_steering_setpoint.normalized_steering_angle = manual_control_setpoint.roll;
+	_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
+	rover_throttle_setpoint_s rover_throttle_setpoint{};
+	rover_throttle_setpoint.timestamp = hrt_absolute_time();
+	rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
+	rover_throttle_setpoint.throttle_body_y = 0.f;
+	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 }
