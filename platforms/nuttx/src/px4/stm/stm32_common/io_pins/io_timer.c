@@ -95,6 +95,12 @@ static int io_timer_handler7(int irq, void *context, void *arg);
 #define BOARD_PWM_FREQ 1000000
 #endif
 
+#if !defined(CONFIG_BOARD_PWM_FREQ) && !defined(BOARD_PWM_FREQ)
+#define BOARD_PWM_FREQ 1000000
+#elif defined(CONFIG_BOARD_PWM_FREQ) && !defined(BOARD_PWM_FREQ)
+#define BOARD_PWM_FREQ CONFIG_BOARD_PWM_FREQ
+#endif
+
 #if !defined(BOARD_ONESHOT_FREQ)
 #define BOARD_ONESHOT_FREQ 8000000
 #endif
