@@ -68,19 +68,19 @@ public:
 	~AckermannAttControl() = default;
 
 	/**
-	 * @brief Update attitude controller.
+	 * @brief Generate and publish roverRateSetpoint from roverAttitudeSetpoint.
 	 */
 	void updateAttControl();
 
 	/**
-	 * @brief Stabilized mode
+	 * @brief Generate and publish roverThrottleSetpoint and RoverAttitudeSetpoint from manualControlSetpoint.
 	 */
-	void stabMode();
+	void manualStabMode();
 
 	/**
 	 * @brief Reset attitude controller.
 	 */
-	void reset() {_pid_yaw.resetIntegral(); _stab_yaw_setpoint = NAN;};
+	void reset() {_pid_yaw.resetIntegral(); _stab_yaw_setpoint = NAN; _yaw_setpoint = NAN;};
 
 	/**
 	 * @brief Check if the necessary parameters are set.
@@ -97,8 +97,9 @@ protected:
 private:
 	/**
 	 * @brief Generate and publish roverRateSetpoint from roverAttitudeSetpoint.
+	 * @param dt [s] Time since last update.
 	 */
-	void generateRateSetpoint();
+	void generateRateSetpoint(float dt);
 
 	// uORB subscriptions
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
@@ -107,19 +108,19 @@ private:
 	uORB::Subscription _rover_attitude_setpoint_sub{ORB_ID(rover_attitude_setpoint)};
 
 	// uORB publications
-	uORB::Publication<rover_rate_setpoint_s> _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
+	uORB::Publication<rover_rate_setpoint_s>     _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
 	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
 	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
-	uORB::Publication<rover_attitude_status_s> _rover_attitude_status_pub{ORB_ID(rover_attitude_status)};
+	uORB::Publication<rover_attitude_status_s>   _rover_attitude_status_pub{ORB_ID(rover_attitude_status)};
 
 	// Variables
 	float _vehicle_yaw{0.f};
 	hrt_abstime _timestamp{0};
-	float _dt{0.f};
 	float _max_yaw_rate{0.f};
 	float _estimated_speed_body_x{0.f}; /*Vehicle speed estimated by interpolating [actuatorMotorSetpoint,  _estimated_speed_body_x]
 					       between [0, 0] and [1, _param_ro_max_thr_speed].*/
-	float _stab_yaw_setpoint{0.f}; // Yaw setpoint for heading control stab mode (NAN heading not controlled)
+	float _stab_yaw_setpoint{0.f}; // Yaw setpoint for heading control stab mode (NAN: heading not controlled)
+	float _yaw_setpoint{NAN};
 
 	// Controllers
 	PID _pid_yaw;

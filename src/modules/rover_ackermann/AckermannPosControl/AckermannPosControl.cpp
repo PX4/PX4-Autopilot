@@ -67,7 +67,6 @@ void AckermannPosControl::updatePosControl()
 		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
 	}
 
-
 	if (_position_controller_status_sub.updated()) {
 		position_controller_status_s position_controller_status{};
 		_position_controller_status_sub.copy(&position_controller_status);

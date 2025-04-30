@@ -46,8 +46,6 @@
 // uORB includes
 #include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/actuator_servos.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
@@ -99,10 +97,9 @@ private:
 	void manualControl();
 
 	/**
-	 * @brief Handle offboard control
-	 * @return True if actuator control needs to be handled by the module
+	 * @brief Translate trajectorySetpoint to roverSetpoints and publish them
 	 */
-	bool offboardControl();
+	void offboardControl();
 
 	/**
 	 * @brief Update the controllers
@@ -110,7 +107,11 @@ private:
 	void updateControllers();
 
 	/**
-	 * @brief Run sanity checks for the controllers
+	 * @brief Check proper parameter setup for the controllers
+	 *
+	 * Modifies:
+	 *
+	 *   - _sanity_checks_passed: true if checks for all active controllers pass
 	 */
 	void runSanityChecks();
 
@@ -125,8 +126,6 @@ private:
 	// uORB publications
 	uORB::Publication<rover_velocity_setpoint_s> _rover_velocity_setpoint_pub{ORB_ID(rover_velocity_setpoint)};
 	uORB::Publication<rover_position_setpoint_s> _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
-	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
-	uORB::Publication<actuator_servos_s> _actuator_servos_pub{ORB_ID(actuator_servos)};
 
 	// Class instances
 	AckermannActControl  _ackermann_act_control{this};
@@ -136,13 +135,7 @@ private:
 	AckermannPosControl  _ackermann_pos_control{this};
 
 	// Variables
-	hrt_abstime _timestamp{0};
-	float _dt{0.f};
-	int _nav_state{0};
-	bool _sanity_checks_passed{true};
-
-	// Parameters
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
-	)
+	int _nav_state{0}; // Navigation state of the vehicle
+	bool _sanity_checks_passed{true}; // True if checks for all active controllers pass
+	bool _was_armed{false}; // True if the vehicle was armed before the last reset
 };

@@ -70,7 +70,7 @@ public:
 	~AckermannVelControl() = default;
 
 	/**
-	 * @brief Update velocity controller.
+	 * @brief Generate and publish roverAttitudeSetpoint and RoverThrottleSetpoint from roverVelocitySetpoint.
 	 */
 	void updateVelControl();
 
@@ -83,7 +83,7 @@ public:
 	/**
 	 * @brief Reset velocity controller.
 	 */
-	void reset() {_pid_speed.resetIntegral();};
+	void reset() {_pid_speed.resetIntegral(); _speed_setpoint = NAN; _bearing_setpoint = NAN; _adjusted_speed_setpoint.setForcedValue(0.f);};
 
 protected:
 	/**
@@ -93,15 +93,11 @@ protected:
 
 private:
 	/**
-	 * @brief Update uORB subscriptions used in velocity controller.
-	 */
-	void updateSubscriptions();
-
-	/**
 	 * @brief Generate and publish roverAttitudeSetpoint and roverThrottleSetpoint
 	 *        from roverVelocitySetpoint.
+	 * @param dt [s] Time since last update.
 	 */
-	void generateAttitudeAndThrottleSetpoint();
+	void generateAttitudeAndThrottleSetpoint(float dt);
 
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
@@ -113,18 +109,18 @@ private:
 	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
 	uORB::Publication<rover_velocity_status_s>   _rover_velocity_status_pub{ORB_ID(rover_velocity_status)};
 	uORB::Publication<rover_velocity_setpoint_s> _rover_velocity_setpoint_pub{ORB_ID(rover_velocity_setpoint)};
-	rover_velocity_setpoint_s _rover_velocity_setpoint{};
 
 	// Variables
 	hrt_abstime _timestamp{0};
 	Quatf _vehicle_attitude_quaternion{};
 	float _vehicle_speed{0.f}; // [m/s] Positiv: Forwards, Negativ: Backwards
 	float _vehicle_yaw{0.f};
-	float _dt{0.f};
+	float _speed_setpoint{NAN};
+	float _bearing_setpoint{NAN};
 
 	// Controllers
 	PID _pid_speed;
-	SlewRate<float> _speed_setpoint;
+	SlewRate<float> _adjusted_speed_setpoint;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,

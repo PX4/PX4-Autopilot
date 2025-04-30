@@ -68,14 +68,14 @@ public:
 	~AckermannRateControl() = default;
 
 	/**
-	 * @brief Update rate controller.
+	 * @brief Generate and publish roverSteeringSetpoint from roverRateSetpoint.
 	 */
 	void updateRateControl();
 
 	/**
 	 * @brief Generate and publish roverThrottleSetpoint and RoverRateSetpoint from manualControlSetpoint.
 	 */
-	void acroMode();
+	void manualAcroMode();
 
 	/**
 	 * @brief Check if the necessary parameters are set.
@@ -86,7 +86,7 @@ public:
 	/**
 	 * @brief Reset rate controller.
 	 */
-	void reset() {_pid_yaw_rate.resetIntegral();};
+	void reset() {_pid_yaw_rate.resetIntegral(); _yaw_rate_setpoint = NAN;};
 
 protected:
 	/**
@@ -97,15 +97,15 @@ protected:
 private:
 	/**
 	 * @brief Generate and publish roverSteeringSetpoint from RoverRateSetpoint.
+	 * @param dt [s] Time since last update.
 	 */
-	void generateSteeringSetpoint();
+	void generateSteeringSetpoint(float dt);
 
 	// uORB subscriptions
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _rover_rate_setpoint_sub{ORB_ID(rover_rate_setpoint)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
-	rover_rate_setpoint_s _rover_rate_setpoint{};
 
 	// uORB publications
 	uORB::Publication<rover_rate_setpoint_s>     _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
@@ -114,16 +114,16 @@ private:
 	uORB::Publication<rover_rate_status_s>       _rover_rate_status_pub{ORB_ID(rover_rate_status)};
 
 	// Variables
-	float _estimated_speed_body_x{0.f}; /*Vehicle speed estimated by interpolating [actuatorMotorSetpoint,  _estimated_speed_body_x]
+	float _estimated_speed{0.f}; /*Vehicle speed estimated by interpolating [actuatorMotorSetpoint,  _estimated_speed]
 					       between [0, 0] and [1, _param_ro_max_thr_speed].*/
 	float _max_yaw_rate{0.f};
 	float _vehicle_yaw_rate{0.f};
+	float _yaw_rate_setpoint{NAN};
 	hrt_abstime _timestamp{0};
-	float _dt{0.f}; // Time since last update [s].
 
 	// Controllers
 	PID _pid_yaw_rate;
-	SlewRate<float> _yaw_rate_setpoint{0.f};
+	SlewRate<float> _adjusted_yaw_rate_setpoint{0.f};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,

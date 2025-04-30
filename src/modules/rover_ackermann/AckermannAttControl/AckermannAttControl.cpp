@@ -52,9 +52,12 @@ void AckermannAttControl::updateParams()
 		_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
 	}
 
+	// Set up PID controller
 	_pid_yaw.setGains(_param_ro_yaw_p.get(), 0.f, 0.f);
 	_pid_yaw.setIntegralLimit(0.f);
 	_pid_yaw.setOutputLimit(_max_yaw_rate);
+
+	// Set up slew rate
 	_adjusted_yaw_setpoint.setSlewRate(_max_yaw_rate);
 }
 
@@ -62,7 +65,7 @@ void AckermannAttControl::updateAttControl()
 {
 	hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
-	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
+	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
 
 	if (_vehicle_attitude_sub.updated()) {
 		vehicle_attitude_s vehicle_attitude{};
@@ -79,7 +82,7 @@ void AckermannAttControl::updateAttControl()
 					  -_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get());
 	}
 
-	generateRateSetpoint();
+	generateRateSetpoint(dt);
 
 	// Publish attitude controller status (logging only)
 	rover_attitude_status_s rover_attitude_status;
@@ -90,7 +93,7 @@ void AckermannAttControl::updateAttControl()
 
 }
 
-void AckermannAttControl::stabMode()
+void AckermannAttControl::manualStabMode()
 {
 	if (_vehicle_attitude_sub.updated()) {
 		vehicle_attitude_s vehicle_attitude{};
@@ -132,23 +135,35 @@ void AckermannAttControl::stabMode()
 	}
 }
 
-void AckermannAttControl::generateRateSetpoint()
+void AckermannAttControl::generateRateSetpoint(const float dt)
 {
-	rover_attitude_setpoint_s rover_attitude_setpoint{};
-	_rover_attitude_setpoint_sub.copy(&rover_attitude_setpoint);
+	if (_rover_attitude_setpoint_sub.updated()) {
+		rover_attitude_setpoint_s rover_attitude_setpoint{};
+		_rover_attitude_setpoint_sub.copy(&rover_attitude_setpoint);
+		_yaw_setpoint = rover_attitude_setpoint.yaw_setpoint;
+	}
 
-	// Calculate yaw rate limit for slew rate
-	float max_possible_yaw_rate = fabsf(_estimated_speed_body_x) * tanf(_param_ra_max_str_ang.get()) /
-				      _param_ra_wheel_base.get(); // Maximum possible yaw rate at current velocity
-	float yaw_slew_rate = math::min(max_possible_yaw_rate, _max_yaw_rate);
+	if (PX4_ISFINITE(_yaw_setpoint)) {
+		// Calculate yaw rate limit for slew rate
+		float max_possible_yaw_rate = fabsf(_estimated_speed_body_x) * tanf(_param_ra_max_str_ang.get()) /
+					      _param_ra_wheel_base.get(); // Maximum possible yaw rate at current velocity
+		float yaw_slew_rate = math::min(max_possible_yaw_rate, _max_yaw_rate);
 
-	float yaw_rate_setpoint = RoverControl::attitudeControl(_adjusted_yaw_setpoint, _pid_yaw, yaw_slew_rate,
-				  _vehicle_yaw, rover_attitude_setpoint.yaw_setpoint, _dt);
+		float yaw_rate_setpoint = RoverControl::attitudeControl(_adjusted_yaw_setpoint, _pid_yaw, yaw_slew_rate,
+					  _vehicle_yaw, _yaw_setpoint, dt);
 
-	rover_rate_setpoint_s rover_rate_setpoint{};
-	rover_rate_setpoint.timestamp = _timestamp;
-	rover_rate_setpoint.yaw_rate_setpoint = math::constrain(yaw_rate_setpoint, -_max_yaw_rate, _max_yaw_rate);
-	_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
+		rover_rate_setpoint_s rover_rate_setpoint{};
+		rover_rate_setpoint.timestamp = _timestamp;
+		rover_rate_setpoint.yaw_rate_setpoint = math::constrain(yaw_rate_setpoint, -_max_yaw_rate, _max_yaw_rate);
+		_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
+
+	} else {
+		rover_rate_setpoint_s rover_rate_setpoint{};
+		rover_rate_setpoint.timestamp = _timestamp;
+		rover_rate_setpoint.yaw_rate_setpoint = 0.f;
+		_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
+	}
+
 }
 
 bool AckermannAttControl::runSanityChecks()

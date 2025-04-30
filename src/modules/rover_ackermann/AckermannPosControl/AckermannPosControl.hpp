@@ -75,7 +75,7 @@ public:
 	~AckermannPosControl() = default;
 
 	/**
-	 * @brief Update position control
+	 * @brief Generate and publish roverVelocitySetpoint from roverPositionSetpoint.
 	 */
 	void updatePosControl();
 
@@ -98,10 +98,7 @@ public:
 	/**
 	 * @brief Reset position controller.
 	 */
-	void reset()
-	{
-		_pos_ctl_course_direction = Vector2f(NAN, NAN);
-	};
+	void reset() {_pos_ctl_course_direction = Vector2f(NAN, NAN);};
 
 protected:
 	/**
@@ -148,18 +145,18 @@ private:
 			       float waypoint_transition_angle, float max_yaw_rate);
 
 	/**
-	* @brief Calculate the cruising speed setpoint. During cornering the speed is restricted based on the radius of the corner.
-	* @param cruising_speed Cruising speed [m/s].
-	* @param miss_speed_min Minimum speed setpoint [m/s].
-	* @param distance_to_prev_wp Distance to the previous waypoint [m].
-	* @param distance_to_curr_wp Distance to the current waypoint [m].
-	* @param acc_rad Acceptance radius of the current waypoint [m].
-	* @param prev_acc_rad Acceptance radius of the previous waypoint [m].
-	* @param waypoint_transition_angle Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
-	* @param prev_waypoint_transition_angle Previous angle between the prevWP-currWP and currWP-nextWP line segments [rad]
-	*  @param max_yaw_rate Maximum yaw rate setpoint [rad/s]
-	* @return Speed setpoint [m/s].
-	*/
+	 * @brief Calculate the cruising speed setpoint. During cornering the speed is restricted based on the radius of the corner.
+	 * @param cruising_speed Cruising speed [m/s].
+	 * @param miss_speed_min Minimum speed setpoint [m/s].
+	 * @param distance_to_prev_wp Distance to the previous waypoint [m].
+	 * @param distance_to_curr_wp Distance to the current waypoint [m].
+	 * @param acc_rad Acceptance radius of the current waypoint [m].
+	 * @param prev_acc_rad Acceptance radius of the previous waypoint [m].
+	 * @param waypoint_transition_angle Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
+	 * @param prev_waypoint_transition_angle Previous angle between the prevWP-currWP and currWP-nextWP line segments [rad]
+	 *  @param max_yaw_rate Maximum yaw rate setpoint [rad/s]
+	 * @return Speed setpoint [m/s].
+	 */
 	float autoCruisingSpeed(float cruising_speed, float miss_speed_min, float distance_to_prev_wp,
 				float distance_to_curr_wp, float acc_rad, float prev_acc_rad, float waypoint_transition_angle,
 				float prev_waypoint_transition_angle, float max_yaw_rate);
@@ -182,15 +179,17 @@ private:
 	// Variables
 	Quatf _vehicle_attitude_quaternion{};
 	Vector2f _curr_pos_ned{};
-	Vector2f _pos_ctl_course_direction{};
-	Vector2f _pos_ctl_start_position_ned{};
 	Vector2f _start_ned{};
 	float _vehicle_yaw{0.f};
 	float _max_yaw_rate{0.f};
 	float _min_speed{0.f}; // Speed at which the maximum yaw rate limit is enforced given the maximum steer angle and wheel base.
 	int _curr_wp_type{position_setpoint_s::SETPOINT_TYPE_IDLE};
 
-	// Waypoint variables
+	// Manual position mode variables
+	Vector2f _pos_ctl_course_direction{};
+	Vector2f _pos_ctl_start_position_ned{};
+
+	// Auto Mode Variables
 	Vector2f _curr_wp_ned{};
 	Vector2f _prev_wp_ned{};
 	Vector2f _next_wp_ned{};
