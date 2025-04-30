@@ -432,8 +432,8 @@ To additionally control the height rate, equivalent airspeed, or lateral acceler
 ```cpp
 const float altitude_msl = 500.F;
 const float course = 0.F; // due North
-const float equivalent_aspd = 15.F // m/s
-const float lateral_acceleration = 2.F // FRD, used as feedforward
+const float equivalent_aspd = 15.F; // m/s
+const float lateral_acceleration = 2.F; // FRD, used as feedforward
 
 _fw_lateral_longitudinal_setpoint->update(altitude_msl,
   course,
