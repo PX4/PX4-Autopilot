@@ -78,9 +78,19 @@ public:
 	~AckermannPosControl() = default;
 
 	/**
-	 * @brief Update position controller.
+	 * @brief Update position control
 	 */
 	void updatePosControl();
+
+	/**
+	 * @brief Generate and publish roverVelocitySetpoint from manualControlSetpoint.
+	 */
+	void manualPositionMode();
+
+	/**
+	 * @brief Generate and publish roverVelocitySetpoint from positionSetpointTriplet.
+	 */
+	void autoPositionMode();
 
 protected:
 	/**
@@ -98,27 +108,6 @@ private:
 	 * @brief Generate and publish roverPositionSetpoint from position of trajectorySetpoint.
 	 */
 	void generatePositionSetpoint();
-
-	/**
-	 * @brief Generate and publish roverVelocitySetpoint from manualControlSetpoint (Position Mode) or
-	 * 	  positionSetpointTriplet (Auto Mode) or roverPositionSetpoint.
-	 */
-	void generateVelocitySetpoint();
-
-	/**
-	 * @brief Generate and publish roverVelocitySetpoint from manualControlSetpoint.
-	 */
-	void manualPositionMode();
-
-	/**
-	 * @brief Generate and publish roverVelocitySetpoint from positionSetpointTriplet.
-	 */
-	void autoPositionMode();
-
-	/**
-	 * @brief Generate and publish roverVelocitySetpoint from roverPositionSetpoint.
-	 */
-	void goToPositionMode();
 
 	/**
 	 * @brief Update global/NED waypoint coordinates and acceptance radius.
@@ -140,32 +129,45 @@ private:
 				     float acceptance_radius_gain, float acceptance_radius_max, float wheel_base, float max_steer_angle);
 
 	/**
-	 * @brief Calculate the speed setpoint. During cornering the speed is restricted based on the radius of the corner.
-	 * On straight lines it is based on a speed trajectory such that the rover will arrive at the next corner with the
-	 * desired cornering speed under consideration of the maximum deceleration and jerk.
+	 * @brief Calculate the speed at which the rover should arrive at the current waypoint based on the upcoming corner.
 	 * @param cruising_speed Cruising speed [m/s].
 	 * @param miss_speed_min Minimum speed setpoint [m/s].
-	 * @param distance_to_prev_wp Distance to the previous waypoint [m].
-	 * @param distance_to_curr_wp Distance to the current waypoint [m].
 	 * @param acc_rad Acceptance radius of the current waypoint [m].
-	 * @param prev_acc_rad Acceptance radius of the previous waypoint [m].
-	 * @param max_decel Maximum allowed deceleration [m/s^2].
-	 * @param max_jerk Maximum allowed jerk [m/s^3].
 	 * @param curr_wp_type Type of the current waypoint.
 	 * @param waypoint_transition_angle Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
-	 * @param prev_waypoint_transition_angle Previous angle between the prevWP-currWP and currWP-nextWP line segments [rad]
-	 * @param max_speed Maximum speed setpoint [m/s]
+	 * @param max_yaw_rate Maximum yaw rate setpoint [rad/s]
 	 * @return Speed setpoint [m/s].
 	 */
-	float calcSpeedSetpoint(float cruising_speed, float miss_speed_min, float distance_to_prev_wp,
-				float distance_to_curr_wp, float acc_rad, float prev_acc_rad, float max_decel, float max_jerk, int curr_wp_type,
-				float waypoint_transition_angle, float prev_waypoint_transition_angle, float max_speed);
+	float autoArrivalSpeed(float cruising_speed, float miss_speed_min, float acc_rad, int curr_wp_type,
+			       float waypoint_transition_angle, float max_yaw_rate);
+
+	/**
+	* @brief Calculate the cruising speed setpoint. During cornering the speed is restricted based on the radius of the corner.
+	* @param cruising_speed Cruising speed [m/s].
+	* @param miss_speed_min Minimum speed setpoint [m/s].
+	* @param distance_to_prev_wp Distance to the previous waypoint [m].
+	* @param distance_to_curr_wp Distance to the current waypoint [m].
+	* @param acc_rad Acceptance radius of the current waypoint [m].
+	* @param prev_acc_rad Acceptance radius of the previous waypoint [m].
+	* @param waypoint_transition_angle Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
+	* @param prev_waypoint_transition_angle Previous angle between the prevWP-currWP and currWP-nextWP line segments [rad]
+	*  @param max_yaw_rate Maximum yaw rate setpoint [rad/s]
+	* @return Speed setpoint [m/s].
+	*/
+	float autoCruisingSpeed(float cruising_speed, float miss_speed_min, float distance_to_prev_wp,
+				float distance_to_curr_wp, float acc_rad, float prev_acc_rad, float waypoint_transition_angle,
+				float prev_waypoint_transition_angle, float max_yaw_rate);
 
 	/**
 	 * @brief Check if the necessary parameters are set.
 	 * @return True if all checks pass.
 	 */
 	bool runSanityChecks();
+
+	/**
+	 * @brief Generate RoverVelocitySetpoint from RoverPositionSetpoint
+	 */
+	void generateVelocitySetpoint();
 
 	// uORB subscriptions
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
@@ -176,9 +178,10 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _rover_position_setpoint_sub{ORB_ID(rover_position_setpoint)};
+	uORB::Subscription _position_controller_status_sub{ORB_ID(position_controller_status)};
+	rover_position_setpoint_s _rover_position_setpoint{};
 	vehicle_control_mode_s _vehicle_control_mode{};
 	offboard_control_mode_s _offboard_control_mode{};
-	rover_position_setpoint_s _rover_position_setpoint{};
 
 	// uORB publications
 	uORB::Publication<rover_velocity_setpoint_s>    _rover_velocity_setpoint_pub{ORB_ID(rover_velocity_setpoint)};
@@ -187,15 +190,14 @@ private:
 	uORB::Publication<rover_position_setpoint_s>	_rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
 
 	// Variables
-	hrt_abstime _timestamp{0};
 	Quatf _vehicle_attitude_quaternion{};
 	Vector2f _curr_pos_ned{};
 	Vector2f _pos_ctl_course_direction{};
 	Vector2f _pos_ctl_start_position_ned{};
+	Vector2f _start_ned{};
 	float _vehicle_yaw{0.f};
 	float _max_yaw_rate{0.f};
 	float _min_speed{0.f}; // Speed at which the maximum yaw rate limit is enforced given the maximum steer angle and wheel base.
-	float _dt{0.f};
 	int _curr_wp_type{position_setpoint_s::SETPOINT_TYPE_IDLE};
 	bool _course_control{false}; // Indicates if the rover is doing course control in manual position mode.
 	bool _prev_param_check_passed{true};
