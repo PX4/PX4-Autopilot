@@ -75,6 +75,8 @@ World with walls that is designed for testing [collision prevention](../computer
 
 ## Moving Platform
 
+<Badge type="tip" text="main (planned for: PX4 v1.16+)" />
+
 [Empty world](#default) with the addition of a flat moving platform, to simulate drone operations from moving vehicles like ships or trucks. The platform is controlled by a plugin which is included in the world. The platform is at a height of 2m, so place the vehicle on it with:
 
 ```
@@ -89,6 +91,11 @@ The plugin can be configured with the following environment variables:
 [PX4-gazebo-models/main/worlds/moving_platform.sdf](https://github.com/PX4/PX4-gazebo-models/blob/main/worlds/moving_platform.sdf)
 
 ![screenshot of moving platform world](../../assets/simulation/gazebo/worlds/moving_platform.png)
+
+::: tip
+The moving platform plugin can also be used within other worlds.
+For more information, see the plugin [README](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/gz_plugins/moving_platform_controller/README.md).
+:::
 
 ## Model Specific Worlds {#model_specific_worlds}
 
