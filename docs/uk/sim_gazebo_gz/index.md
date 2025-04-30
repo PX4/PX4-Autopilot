@@ -185,7 +185,7 @@ For example, to run the Gazebo simulation of the X500 frame at 2 times the real 
 PX4_SIM_SPEED_FACTOR=2 make px4_sitl gz_x500
 ```
 
-Запустити в половину реального часу:
+To run at half real-time:
 
 ```sh
 PX4_SIM_SPEED_FACTOR=0.5 make px4_sitl gz_x500

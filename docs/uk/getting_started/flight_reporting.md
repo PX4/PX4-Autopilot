@@ -13,6 +13,12 @@ Logs can be downloaded using [QGroundControl](http://qgroundcontrol.com/): **[An
 
 ![Flight Log Download](../../assets/qgc/analyze/log_download.jpg)
 
+:::tip
+Encrypted logs cannot be downloaded with QGroundControl, or uploaded to the public Flight Review service.
+The easiest way to download and extract encrypted logs is to use the [Log Encryption Tools](../dev_log/log_encryption.md).
+You can also host a [private Flight Review server](../dev_log/log_encryption.md#flight-review-encrypted-logs) that automatically decrypts logs on upload using your private key.
+:::
+
 ## Аналіз журналів
 
 Upload the log file to the online [Flight Review](http://logs.px4.io) tool.
