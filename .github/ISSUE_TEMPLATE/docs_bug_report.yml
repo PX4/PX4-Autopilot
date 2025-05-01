@@ -3,7 +3,7 @@ description: Create a report to help us improve the docs
 title: "[Docs] [Bug] "
 labels: ["Documentation 📑"]
 body:
-  - type: markdown
+  - type: textarea
     attributes:
       label: Describe the bug
       description: A clear and concise description of the bug.
