@@ -31,7 +31,7 @@ uint16 max_error # Max error, expected margin of error in the state-of-charge ca
 uint8 id # ID number of a battery. Should be unique and consistent for the lifetime of a vehicle. 1-indexed.
 uint16 interface_error # Interface error counter
 
-float32[14] voltage_cell_v # Battery individual cell voltages, 0 if unknown
+float32[14] voltage_cell_v # Battery individual cell voltages [V] [@invalid 0]
 float32 max_cell_voltage_delta # Max difference between individual cell voltages
 
 bool is_powering_off # Power off event imminent indication, false if unknown
