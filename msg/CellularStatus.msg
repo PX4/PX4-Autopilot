@@ -31,4 +31,4 @@ uint8 CELLULAR_NETWORK_RADIO_TYPE_LTE = 4
 uint8 quality # Cellular network RSSI/RSRP in dBm, absolute value
 uint16 mcc # Mobile country code. UINT16_MAX if unknown
 uint16 mnc # Mobile network code. UINT16_MAX if unknown
-uint16 lac # Location area code. 0 if unknown
+uint16 lac # Location area code. [@invalid 0]
