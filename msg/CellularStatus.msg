@@ -26,7 +26,7 @@ uint8 FAILURE_REASON_UNKNOWN = 1 # Error state is unknown
 uint8 FAILURE_REASON_SIM_MISSING = 2 # SIM is required for the modem but missing
 uint8 FAILURE_REASON_SIM_ERROR = 3 # SIM is available, but not usable for connection
 
-uint8 type # Cellular network radio type 0: none 1: gsm 2: cdma 3: wcdma 4: lte
+uint8 type # Cellular network radio type [@enum CELLULAR_NETWORK_RADIO_TYPE]
 uint8 CELLULAR_NETWORK_RADIO_TYPE_NONE = 0
 uint8 CELLULAR_NETWORK_RADIO_TYPE_GSM = 1
 uint8 CELLULAR_NETWORK_RADIO_TYPE_CDMA = 2
