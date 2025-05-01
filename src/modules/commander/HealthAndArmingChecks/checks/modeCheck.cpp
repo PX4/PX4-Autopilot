@@ -86,16 +86,27 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.clearCanRunBits(local_position_modes);
 	}
 
+	NavModes global_position_modes = NavModes::None;
+
 	if (reporter.failsafeFlags().global_position_invalid && reporter.failsafeFlags().mode_req_global_position != 0) {
+		global_position_modes = (NavModes)reporter.failsafeFlags().mode_req_global_position;
+	}
+
+	if (reporter.failsafeFlags().global_position_invalid_relaxed
+	    && reporter.failsafeFlags().mode_req_global_position_relaxed != 0) {
+		global_position_modes = global_position_modes | (NavModes)reporter.failsafeFlags().mode_req_global_position_relaxed;
+	}
+
+	if (global_position_modes != NavModes::None) {
 		/* EVENT
 		 * @description
 		 * The available positioning data is not sufficient to execute the selected mode.
 		 */
-		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_global_position,
+		reporter.armingCheckFailure(global_position_modes,
 					    health_component_t::global_position_estimate,
 					    events::ID("check_modes_global_pos"),
 					    events::Log::Error, "Navigation error: No valid global position estimate");
-		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_global_position);
+		reporter.clearCanRunBits(global_position_modes);
 	}
 
 	if (reporter.failsafeFlags().local_altitude_invalid && reporter.failsafeFlags().mode_req_local_alt != 0) {

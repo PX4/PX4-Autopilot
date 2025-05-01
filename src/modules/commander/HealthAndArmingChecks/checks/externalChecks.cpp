@@ -173,6 +173,8 @@ void ExternalChecks::checkAndReport(const Context &context, Report &reporter)
 							  reporter.failsafeFlags().mode_req_local_position_relaxed);
 				setOrClearRequirementBits(reply.mode_req_global_position, nav_mode_id, replaces_nav_state,
 							  reporter.failsafeFlags().mode_req_global_position);
+				setOrClearRequirementBits(reply.mode_req_global_position_relaxed, nav_mode_id, replaces_nav_state,
+							  reporter.failsafeFlags().mode_req_global_position_relaxed);
 				setOrClearRequirementBits(reply.mode_req_mission, nav_mode_id, replaces_nav_state,
 							  reporter.failsafeFlags().mode_req_mission);
 				setOrClearRequirementBits(reply.mode_req_home_position, nav_mode_id, replaces_nav_state,
