@@ -28,7 +28,7 @@ uint8 CELLULAR_NETWORK_RADIO_TYPE_CDMA = 2
 uint8 CELLULAR_NETWORK_RADIO_TYPE_WCDMA = 3
 uint8 CELLULAR_NETWORK_RADIO_TYPE_LTE = 4
 
-uint8 quality # Cellular network RSSI/RSRP in dBm, absolute value
+uint8 quality # Cellular network RSSI/RSRP, absolute value [dBm]
 uint16 mcc # Mobile country code. [@invalid UINT16_MAX]
 uint16 mnc # Mobile network code. UINT16_MAX if unknown
 uint16 lac # Location area code. [@invalid 0]
