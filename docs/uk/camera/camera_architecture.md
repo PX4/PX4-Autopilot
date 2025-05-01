@@ -88,9 +88,9 @@ PX4 повторно видає пункти камери, знайдені в �
   - Предмети місії виконуються, коли вони активовані.
   - `issue_command(_mission_item)` викликається в кінці цього, щоб відправити поточну непунктову команду
     - [`MissionBlock::видача_команди(const mission_item_s &item)`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/mission_block.cpp#L543-L562)
-      - Створює команду для місії транспортного засобу, а потім викликає `publish_vehicle_command` для публікації її (`_navigator->publish_vehicle_command(vehicle_command);`)
+      - Creates a vehicle command for the mission item then calls `publish_vehicle_command` to publish it (`_navigator->publish_vehicle_command(vehicle_command);`)
         - [`void Navigator::publish_vehicle_command(vehicle_command_s &vehicle_command)`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/navigator_main.cpp#L1395)
-          - Для деяких команд камери це встановлює ідентифікатор компонента на ідентифікатор компонента камери (`vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA`)
+          - For some camera commands it sets the component ID to the camera component id (`vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA`)
           - Усі інші просто публікуються під стандартний компонент ID.
           - Тема UORB `VehicleCommand` публікується.
 
