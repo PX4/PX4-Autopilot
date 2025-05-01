@@ -27,7 +27,7 @@ uint16 average_time_to_empty # Predicted remaining battery capacity based on the
 uint16 serial_number # Serial number of the battery pack
 uint16 manufacture_date # Manufacture date, part of serial number of the battery pack. Formatted as: Day + Month×32 + (Year–1980)×512
 uint16 state_of_health # State of health. FullChargeCapacity/DesignCapacity [%] [@range 0, 100].
-uint16 max_error # Max error, expected margin of error in % in the state-of-charge calculation with a range of 1 to 100%
+uint16 max_error # Max error, expected margin of error in the state-of-charge calculation [%] [@range 1, 100]
 uint8 id # ID number of a battery. Should be unique and consistent for the lifetime of a vehicle. 1-indexed.
 uint16 interface_error # Interface error counter
 
