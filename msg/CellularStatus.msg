@@ -5,7 +5,7 @@
 
 uint64 timestamp # Time since system start [us]
 
-uint16 status # Status bitmap 1: Roaming is active
+uint16 status # Status bitmap 1: Roaming is active [@enum STATUS_FLAG]
 uint16 STATUS_FLAG_UNKNOWN = 1 # State unknown or not reportable
 uint16 STATUS_FLAG_FAILED = 2 # Modem is unusable
 uint16 STATUS_FLAG_INITIALIZING = 4 # Modem is being initialized
