@@ -1,3 +1,8 @@
+# Cellular status
+#
+# This is currently used only for logging a cell status
+# provided over MAVLink.
+
 uint64 timestamp # Time since system start [us]
 
 uint16 status # Status bitmap 1: Roaming is active
