@@ -47,9 +47,27 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-/* LEDs */
-// LED1 - GPIO 25 - Green
-#define GPIO_LED1       PX4_MAKE_GPIO_OUTPUT_CLEAR(25) // Take a look at rpi_common micro_hal.h
+// https://datasheets.raspberrypi.com/picow/pico-w-datasheet.pdf
+
+#ifdef RP2040_BOARD_W
+	/* LEDs */
+	// WL_GPIO0 OP connected to user LED
+	// FIXME: conflict with UART0 - for now use a dummy GPIO? !!!
+	// W: is LED connected to WL chip and not RP2040?
+	#define GPIO_LED1       PX4_MAKE_GPIO_OUTPUT_CLEAR(20) // FIXME - Take a look at rpi_common micro_hal.h
+	// W doc: WL_GPIO1 OP controls the on-board SMPS power save pin (Section 3.4)
+	// W doc: WL_GPIO2 IP VBUS sense - high if VBUS is present, else low -- FIXME: probably not connected to GPIO02?
+	#define GPIO_USB_VBUS_VALID     (2 | GPIO_FUN(RP2040_GPIO_FUNC_SIO))    // Used in usb.c
+	// W doc: GPIO24 OP/IP wireless SPI data/IRQ
+	// W doc: GPIO25 OP wireless SPI CS - when high also enables GPIO29 ADC pin to read VSYS
+	// W doc: GPIO29 OP/IP wireless SPI CLK/ADC mode (ADC3) to measure VSYS/3
+#else
+	// LED1 - GPIO 25 - Green
+	#define GPIO_LED1       PX4_MAKE_GPIO_OUTPUT_CLEAR(25) // Take a look at rpi_common micro_hal.h
+	// USB Bus Sense
+	#define GPIO_USB_VBUS_VALID     (24 | GPIO_FUN(RP2040_GPIO_FUNC_SIO))    // Used in usb.c
+#endif
+
 #define GPIO_LED_BLUE   GPIO_LED1
 
 #define BOARD_OVERLOAD_LED     LED_BLUE
@@ -78,12 +96,6 @@
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 #define BOARD_CONSOLE_BUFFER_SIZE (1024*3)
-
-/* USB
- *
- *  VBUS detection is on 29  ADC_DPM0 and PTE8
- */
-#define GPIO_USB_VBUS_VALID     (24 | GPIO_FUN(RP2040_GPIO_FUNC_SIO))    // Used in usb.c
 
 /* PWM
  *

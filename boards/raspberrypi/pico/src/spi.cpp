@@ -36,9 +36,11 @@
 #include <nuttx/spi/spi.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
+	#ifdef CONFIG_RP2040_SPI0
 	initSPIBus(SPI::Bus::SPI0, {
-		initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::Pin5}),
+		//initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::Pin5}),
 	}),
+	#endif
 	initSPIBusExternal(SPI::Bus::SPI1, {
 		initSPIConfigExternal(SPI::CS{GPIO::Pin13}),
 		initSPIConfigExternal(SPI::CS{GPIO::Pin14}),

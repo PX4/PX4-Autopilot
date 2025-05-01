@@ -88,6 +88,12 @@ SECTIONS
         _edata = ABSOLUTE(.);
     } > sram AT > flash
 
+    .flash_section : {
+        . = ALIGN(4*1024);
+        *(.flash.*)
+    } > flash
+
+
     .bss : {
         _sbss = ABSOLUTE(.);
         *(.bss .bss.*)
