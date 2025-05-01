@@ -639,8 +639,6 @@ bool VTEPosition::initializeEstimator(const ObservationValidMask &vte_fusion_aid
 
 	PX4_INFO("VTE Position Estimator properly initialized.");
 	_estimator_initialized = true;
-	_uav_gps_vel.valid = false;
-	_target_gps_vel.valid = false;
 	_last_update = hrt_absolute_time();
 	_last_predict = _last_update;
 	return true;
