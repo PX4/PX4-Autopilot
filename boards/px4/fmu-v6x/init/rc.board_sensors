@@ -59,6 +59,9 @@ fi
 if ver hwbasecmp 009 010 011
 then
 	pm_selector_auterion start
+
+	# Auterion's INA238 uses a shunt value of 0.0003 instead of 0.0005.
+	param set-default INA238_SHUNT 0.0003
 else
 	if [ $INA_CONFIGURED = no ]
 	then
