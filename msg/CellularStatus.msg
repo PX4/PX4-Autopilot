@@ -20,7 +20,7 @@ uint16 STATUS_FLAG_DISCONNECTING = 1024 # Modem is disconnecting and deactivatin
 uint16 STATUS_FLAG_CONNECTING = 2048 # Modem is activating and connecting the first packet data bearer. Subsequent bearer activations when another bearer is already active do not cause this state to be entered
 uint16 STATUS_FLAG_CONNECTED = 4096 # One or more packet data bearers is active and connected
 
-uint8 failure_reason # Failure reason for status STATUS_FLAG_FAILED
+uint8 failure_reason # Failure reason [@enum STATUS_FLAG_FAILED]
 uint8 FAILURE_REASON_NONE = 0 # No error
 uint8 FAILURE_REASON_UNKNOWN = 1 # Error state is unknown
 uint8 FAILURE_REASON_SIM_MISSING = 2 # SIM is required for the modem but missing
