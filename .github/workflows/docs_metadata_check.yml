@@ -14,7 +14,7 @@ on:
 jobs:
   uorb-graph-check:
     name: Check uORB graph JSONs
-    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=true]
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=true,extras=s3-cache]
     container:
       image: ghcr.io/px4/px4-dev:v1.16.0-rc1
 
@@ -22,5 +22,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Mark all directories safe for Git
+        run: git config --system --add safe.directory '*'
+
       - name: Run uORB graph docs check
-        run: Tools/ci/metadata_uorb_graph.sh --test-only --debug
+        run: Tools/ci/metadata_uorb_graph.sh --test-only
