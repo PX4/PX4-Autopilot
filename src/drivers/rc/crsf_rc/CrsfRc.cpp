@@ -51,6 +51,11 @@ using namespace time_literals;
 #define CRSF_BAUDRATE 420000
 uint32_t CrsfRc::baudrate = CRSF_BAUDRATE;
 
+static void write_uint8_t(uint8_t *buf, int &offset, uint8_t value);
+static void write_uint16_t(uint8_t *buf, int &offset, uint16_t value);
+static void write_uint24_t(uint8_t *buf, int &offset, int value);
+static void write_int32_t(uint8_t *buf, int &offset, int32_t value);
+
 CrsfRc::CrsfRc(const char *device) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq("/dev/ttyS0"))
@@ -176,6 +181,31 @@ void CrsfRc::Run()
 			// tcflush(_rc_fd, TCIOFLUSH);
 
 			Crc8Init(0xd5);
+
+			param_get(param_find("RC_CRSF_BUTTON1"), &_pwm_out[0].button);
+			param_get(param_find("RC_CRSF_PWMCHN1"), &_pwm_out[0].channel);
+			param_get(param_find("RC_CRSF_PWMVAL1"), &_pwm_out[0].value);
+			param_get(param_find("RC_CRSF_BUTTON2"), &_pwm_out[1].button);
+			param_get(param_find("RC_CRSF_PWMCHN2"), &_pwm_out[1].channel);
+			param_get(param_find("RC_CRSF_PWMVAL2"), &_pwm_out[1].value);
+			param_get(param_find("RC_CRSF_BUTTON3"), &_pwm_out[2].button);
+			param_get(param_find("RC_CRSF_PWMCHN3"), &_pwm_out[2].channel);
+			param_get(param_find("RC_CRSF_PWMVAL3"), &_pwm_out[2].value);
+			param_get(param_find("RC_CRSF_BUTTON4"), &_pwm_out[3].button);
+			param_get(param_find("RC_CRSF_PWMCHN4"), &_pwm_out[3].channel);
+			param_get(param_find("RC_CRSF_PWMVAL4"), &_pwm_out[3].value);
+			param_get(param_find("RC_CRSF_BUTTON5"), &_pwm_out[4].button);
+			param_get(param_find("RC_CRSF_PWMCHN5"), &_pwm_out[4].channel);
+			param_get(param_find("RC_CRSF_PWMVAL5"), &_pwm_out[4].value);
+			param_get(param_find("RC_CRSF_BUTTON6"), &_pwm_out[5].button);
+			param_get(param_find("RC_CRSF_PWMCHN6"), &_pwm_out[5].channel);
+			param_get(param_find("RC_CRSF_PWMVAL6"), &_pwm_out[5].value);
+			param_get(param_find("RC_CRSF_BUTTON7"), &_pwm_out[6].button);
+			param_get(param_find("RC_CRSF_PWMCHN7"), &_pwm_out[6].channel);
+			param_get(param_find("RC_CRSF_PWMVAL7"), &_pwm_out[6].value);
+			param_get(param_find("RC_CRSF_BUTTON8"), &_pwm_out[7].button);
+			param_get(param_find("RC_CRSF_PWMCHN8"), &_pwm_out[7].channel);
+			param_get(param_find("RC_CRSF_PWMVAL8"), &_pwm_out[7].value);
 		}
 
 		_input_rc.rssi_dbm = NAN;
@@ -351,6 +381,52 @@ void CrsfRc::Run()
 			_telemetry_update_last = _input_rc.timestamp;
 			_next_type = (_next_type + 1) % num_data_types;
 		}
+	}
+
+	// Check for pwm output command updates
+	manual_control_setpoint_s manual_control_input{};
+	if (_manual_control_input_sub.update(&manual_control_input)) {
+		uint16_t buttons1 = (uint16_t) manual_control_input.aux5;
+		uint16_t buttons2 = (uint16_t) manual_control_input.aux6;
+		uint32_t buttons_state = buttons1 | (buttons2 << 16);
+
+		for (int i = 0; i < MAX_PWM_MAPPINGS; i++) {
+			if (_pwm_out[i].button) {
+				uint32_t button_mask = (1 << (_pwm_out[i].button - 1));
+				if (button_mask & buttons_state) {
+					_pwm_out[i].enabled = true;
+				} else {
+					_pwm_out[i].enabled = false;
+				}
+			}
+		}
+	}
+
+	// Send pwm commands every 100ms
+	if (hrt_elapsed_time(&_last_pwm_cmd_sent) > 100_ms) {
+		_last_pwm_cmd_sent = hrt_absolute_time();
+		const int cmd_len = 10;
+		uint8_t buf[cmd_len * MAX_PWM_MAPPINGS];
+		int offset = 0;
+		// Put all pwm commands into a single UART transmission
+		for (int i = 0; i < MAX_PWM_MAPPINGS; i++) {
+			if (_pwm_out[i].enabled) {
+				int start_offset = offset;
+				write_uint8_t(buf, offset, 0xEC);
+				write_uint8_t(buf, offset, 0x08);
+				write_uint8_t(buf, offset, 0x32);
+				write_uint8_t(buf, offset, 0xEC);
+				write_uint8_t(buf, offset, 0xC8);
+				write_uint8_t(buf, offset, 0xF4);
+				write_uint8_t(buf, offset, _pwm_out[i].channel);
+				write_uint16_t(buf, offset, _pwm_out[i].value);
+				int tmp_offset = offset - start_offset;
+				WriteFrameCrc(&buf[start_offset], tmp_offset, cmd_len);
+				offset += 1;
+			}
+		}
+
+		if (offset) qurt_uart_write(_rc_fd, (char *) &buf[0], offset);
 	}
 
 	// If no communication

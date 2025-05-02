@@ -2102,6 +2102,9 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	manual_control_setpoint.aux3 = _vfc_pwm_value;
 	manual_control_setpoint.aux4 = 1000.0f + (_turtle_pwm_value * 1000.0f);
 
+	manual_control_setpoint.aux5 = (float) mavlink_manual_control.buttons;
+	manual_control_setpoint.aux6 = (float) mavlink_manual_control.buttons2;
+
 	_manual_control_input_pub.publish(manual_control_setpoint);
 }
 

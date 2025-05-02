@@ -52,6 +52,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 class CrsfRc : public ModuleBase<CrsfRc>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -95,6 +96,15 @@ private:
 	uint8_t _rcs_buf[RC_MAX_BUFFER_SIZE] {};
 	uint32_t _bytes_rx{0};
 
+	static constexpr int MAX_PWM_MAPPINGS{8};
+	struct pwm_button {
+		int32_t button;
+		int32_t channel;
+		int32_t value;
+		bool    enabled;
+	} _pwm_out[MAX_PWM_MAPPINGS];
+	hrt_abstime _last_pwm_cmd_sent{0};
+
 	hrt_abstime _last_packet_seen{0};
 
 	CrsfParserStatistics_t _packet_parser_statistics{0};
@@ -108,6 +118,7 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _manual_control_input_sub{ORB_ID(manual_control_input)};
 
 	enum class crsf_frame_type_t : uint8_t {
 		gps = 0x02,
