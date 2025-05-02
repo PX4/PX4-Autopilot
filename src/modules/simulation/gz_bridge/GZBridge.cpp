@@ -70,6 +70,7 @@ int GZBridge::init()
 	// if we publish a 0 timestamp it screws up the EKF.
 	while (1) {
 		px4_usleep(25000);
+
 		if (_realtime_clock_set) {
 			px4_usleep(25000);
 			break;
@@ -409,7 +410,6 @@ void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
 	report.temperature = this->_temperature;
 	_sensor_baro_pub.publish(report);
 }
-
 
 void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
 {
@@ -934,8 +934,6 @@ void GZBridge::rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::m
 	// final rotation composition
 	q_FRD_to_NED = q_ENU_to_NED * q_FLU_to_ENU * q_FLU_to_FRD.Inverse();
 }
-
-
 
 int GZBridge::task_spawn(int argc, char *argv[])
 {
