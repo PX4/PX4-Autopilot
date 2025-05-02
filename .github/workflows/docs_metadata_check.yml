@@ -1,6 +1,5 @@
 name: Docs Metadata Checks
 
-# Grant write permission so PR workflows can commit updated JSONs back
 permissions:
   contents: write
 
@@ -14,7 +13,7 @@ on:
 jobs:
   uorb-graph-check:
     name: Check uORB graph JSONs
-    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=true,extras=s3-cache]
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=true]
     container:
       image: ghcr.io/px4/px4-dev:v1.16.0-rc1
 
@@ -27,3 +26,19 @@ jobs:
 
       - name: Run uORB graph docs check
         run: Tools/ci/metadata_uorb_graph.sh --test-only
+
+  failsafe-web-check:
+    name: Check failsafe web metadata files
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=true]
+    container:
+      image: ghcr.io/px4/px4-dev:v1.16.0-rc1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Mark all directories safe for Git
+        run: git config --system --add safe.directory '*'
+
+      - name: Run failsafe web metadata check
+        run: Tools/ci/metadata_failsafe_web.sh --test-only
