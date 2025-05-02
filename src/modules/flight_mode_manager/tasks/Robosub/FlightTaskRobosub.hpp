@@ -51,7 +51,7 @@
 #include <lib/motion_planning/PositionSmoothing.hpp>
 #include "Sticks.hpp"
 #include "StickAccelerationXY.hpp"
-#include "StickYaw.hpp"
+#include <lib/stick_yaw/StickYaw.hpp>
 
 /**
  * This enum has to agree with position_setpoint_s type definition
