@@ -108,6 +108,18 @@ private:
 
 	void Run() override;
 
+	bool subscribeClock(bool required);
+	bool subscribePoseInfo(bool required);
+	bool subscribeImu(bool required);
+	bool subscribeMag(bool required);
+	bool subscribeOdometry(bool required);
+	bool subscribeLaserScan(bool required);
+	bool subscribeDistanceSensor(bool required);
+	bool subscribeAirspeed(bool required);
+	bool subscribeAirPressure(bool required);
+	bool subscribeNavsat(bool required);
+	bool subscribeOpticalFlow(bool required);
+
 	void clockCallback(const gz::msgs::Clock &msg);
 	void airspeedCallback(const gz::msgs::AirSpeed &msg);
 	void airPressureCallback(const gz::msgs::FluidPressure &msg);
@@ -121,6 +133,8 @@ private:
 	void magnetometerCallback(const gz::msgs::Magnetometer &msg);
 
 	static void rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU);
+
+	static float generate_wgn();
 
 	void addGpsNoise(double &latitude, double &longitude, double &altitude,
 			 float &vel_north, float &vel_east, float &vel_down);
