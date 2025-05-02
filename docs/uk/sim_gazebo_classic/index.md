@@ -1,8 +1,9 @@
 # Симуляція Gazebo Classic
 
 :::warning
-_Gazebo Classic_ is supported with PX4 up to Ubuntu Linux 20.04.
-In Ubuntu 22.04 and later you must use [Gazebo](../sim_gazebo_gz/index.md) (which was [formerly known](https://www.openrobotics.org/blog/2022/4/6/a-new-era-for-gazebo) as "Gazebo Ignition").
+[Gazebo](../sim_gazebo_gz/index.md) is nearing feature-parity with Gazebo Classic on PX4, and will soon replace it.
+Until then you can continue to use Gazebo-Classic on Ubuntu 22.04 for the few cases where you still need to.
+For more information see [PX4-Autopilot#23602: GZ Feature tracker](https://github.com/PX4/PX4-Autopilot/issues/23602).
 :::
 
 Gazebo Classic - це потужне середовище 3D симуляції для автономних систем яке зокрема підходить для перевірки уникання об'єктів та комп'ютерного зору.
@@ -32,11 +33,8 @@ See [Simulation](../simulation/index.md) for general information about simulator
 If you plan to use PX4 with ROS you **should follow the** [ROS Instructions](../simulation/ros_interface.md) to install both ROS and Gazebo Classic (and thereby avoid installation conflicts).
 :::
 
-Gazebo Classic setup is included in our [standard build instructions](../dev_setup/dev_env.md) for macOS, Ubuntu 18.04 and 20.04, and Windows on WSL2 for the same hosts.
-
-For Ubuntu 22.04 LTS and later, the installation script ([/Tools/setup/ubuntu.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/ubuntu.sh)) installs the [Gazebo](../sim_gazebo_gz/index.md) simulator instead.
-
-If you want to use Gazebo Classic on Ubuntu 22.04 you can use the following commands to remove [Gazebo](../sim_gazebo_gz/index.md) (Harmonic) and then reinstall Gazebo-Classic 11:
+The standard installation script ([/Tools/setup/ubuntu.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/ubuntu.sh)) installs the [Gazebo](../sim_gazebo_gz/index.md) (Harmonic) simulator.
+If you want to use Gazebo Classic on _Ubuntu 22.04 (only)_ you can use the following commands to remove Gazebo and then reinstall Gazebo-Classic 11:
 
 ```sh
 sudo apt remove gz-harmonic
@@ -47,17 +45,17 @@ sudo aptitude install gazebo libgazebo11 libgazebo-dev
 Note that `aptitude` is needed because it can resolve dependency conflicts (by removing certain packages) that `apt` is unable to handle.
 
 :::tip
-You could also modify the installation script to install Gazebo Classic on later versions before it is run for the first time.
-:::
+You could also modify the installation script to install Gazebo Classic on Ubuntu 22.04 before it is run for the first time.
 
 Additional installation instructions can be found on gazebosim.org.
+:::
 
 ## Запуск симуляції
 
-Виконайте симуляцію запустивши PX4 SITL та Gazebo Classic з налаштуванням планеру для завантаження (підтримуються мультикоптери, літаки, ВЗІП, оптичний потік так симуляції кількох засобів).
+Run a simulation by starting PX4 SITL and Gazebo Classic with the airframe configuration to load (multicopters, planes, VTOL, optical flow and multi-vehicle simulations are supported).
 
 The easiest way to do this is to open a terminal in the root directory of the PX4 _PX4-Autopilot_ repository and call `make` for the desired target.
-Наприклад для запуску симуляції квадрокоптера (за замовчуванням):
+For example, to start a quadrotor simulation (the default):
 
 ```sh
 cd /path/to/PX4-Autopilot
@@ -93,7 +91,7 @@ The [Installing Files and Code](../dev_setup/dev_env.md) guide is a useful refer
 :::
 
 Вищенаведені команди запускають єдиний засіб з повним користувацьким інтерфейсом.
-Інші варіанти включають:
+Other options include:
 
 - [Starting PX4 and Gazebo separately](#starting-gazebo-and-px4-separately) so that you can keep Gazebo Classic running and only re-launch PX4 when needed (quicker than restarting both).
 - Run the simulation in [Headless Mode](#headless-mode), which does not start the Gazebo Classic UI (this uses fewer resources and is much faster).
@@ -102,7 +100,7 @@ The [Installing Files and Code](../dev_setup/dev_env.md) guide is a useful refer
 
 The `make` commands above first build PX4, and then run it along with the Gazebo Classic simulator.
 
-Після запуску PX4 запуститься оболонка PX4, як показано нижче.
+Once PX4 has started it will launch the PX4 shell as shown below.
 
 ```sh
 ______  __   __    ___
@@ -127,7 +125,7 @@ http://gazebosim.org
 INFO  [ecl/EKF] 5188000: commencing GPS fusion
 ```
 
-Консоль буде виводити статус поки PX4 завантажує файли ініціалізації та параметрів для певного планера, чекати та підключатися до симулятора.
+The console will print out status as PX4 loads the airframe-specific initialisation and parameter files, waits for (and connects to) the simulator.
 Once there is an INFO print that [ecl/EKF] is `commencing GPS fusion` the vehicle is ready to arm.
 
 :::info
@@ -153,7 +151,7 @@ Options that apply to all simulators are covered in the top level [Simulation](.
 ### Режим без інтерфейсу
 
 Gazebo Classic can be run in a _headless_ mode in which the Gazebo Classic UI is not launched.
-Цей режим запускається швидше та використовує менше системних ресурсів (тобто більш "легкий" спосіб запускати симуляцію).
+This starts up more quickly and uses less system resources (i.e. it is a more "lightweight" way to run the simulation).
 
 Simply prefix the normal `make` command with `HEADLESS=1` as shown:
 
@@ -165,7 +163,7 @@ HEADLESS=1 make px4_sitl gazebo-classic_plane
 
 ### Встановлення власного місця зльоту
 
-Місце зльоту в Gazebo Classic можна встановити використовуючи змінні середовища.
+The takeoff location in Gazebo Classic can be set using environment variables.
 This will override both the default takeoff location, and any value [set for the world](#set-world-location).
 
 The variables to set are: `PX4_HOME_LAT`, `PX4_HOME_LON`, and `PX4_HOME_ALT`.
@@ -189,7 +187,7 @@ To run at double real-time:
 PX4_SIM_SPEED_FACTOR=2 make px4_sitl_default gazebo-classic
 ```
 
-Запустити в половину реального часу:
+To run at half real-time:
 
 ```sh
 PX4_SIM_SPEED_FACTOR=0.5  make px4_sitl_default gazebo-classic
@@ -202,7 +200,7 @@ export PX4_SIM_SPEED_FACTOR=2
 make px4_sitl_default gazebo-classic
 ```
 
-### Зміна швидкості вітру
+### Change Wind Speed
 
 To simulate wind speed, add this plugin to your world file and set `windVelocityMean` in m/s (replace `SET_YOUR_WIND_SPEED` with your desired speed).
 If needed, adapt the `windVelocityMax` parameter so that it is greater than `windVelocityMean`:
@@ -227,8 +225,8 @@ If needed, adapt the `windVelocityMax` parameter so that it is greater than `win
     </plugin>
 ```
 
-Напрямок вітру передається як вектор напрямку (за стандартною конвенцією ENU), який буде нормалізовано в плагіні gazebo.
-Додатково ви можете вказати відхилення швидкості вітру у (м/с)² та відхилення у напрямку на основі нормального розподілу, щоб додати випадковий фактор в симуляцію.
+Wind direction is passed as a direction vector (standard ENU convention), which will be normalized in the gazebo plugin.
+Additionally you can state wind velocity variance in (m/s)² and direction variance based on a normal distribution to add some random factor into the simulation.
 Gust is internally handled in the same way as wind, with the slight difference that you can state start time and duration with the following two parameters `windGustStart` and `windGustDuration`.
 
 You can see how this is done in [PX4/PX4-SITL_gazebo-classic/worlds/windy.world](https://github.com/PX4/PX4-SITL_gazebo-classic/blob/main/worlds/windy.world#L15-L31).
@@ -237,24 +235,24 @@ You can see how this is done in [PX4/PX4-SITL_gazebo-classic/worlds/windy.world]
 
 Joystick and thumb-joystick support are supported through _QGroundControl_ ([setup instructions here](../simulation/index.md#joystick-gamepad-integration)).
 
-### Підвищення ефективності сенсору відстані
+### Improving Distance Sensor Performance
 
 The current default world is [PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds/**iris.world**](https://github.com/PX4/PX4-SITL_gazebo-classic/tree/main/worlds)), which uses a heightmap as ground.
 
-Це може викликати труднощі під час використання датчика відстані.
+This can cause difficulty when using a distance sensor.
 If there are unexpected results we recommend you change the model in **iris.model** from `uneven_ground` to `asphalt_plane`.
 
-### Симуляція шуму GPS
+### Simulating GPS Noise
 
-Gazebo Classic може симулювати шум GPS подібний до того, який зазвичай можна знайти в реальних системах (в іншому випадку значення GPS що передаються будуть вільними від шуму або ідеальними).
-Це корисно, якщо ви працюєте над додатками, на які може вплинути шум GPS, наприклад точного позиціювання.
+Gazebo Classic can simulate GPS noise that is similar to that typically found in real systems (otherwise reported GPS values will be noise-free/perfect).
+This is useful when working on applications that might be impacted by GPS noise - e.g. precision positioning.
 
 GPS noise is enabled if the target vehicle's SDF file contains a value for the `gpsNoise` element (i.e. it has the line: `<gpsNoise>true</gpsNoise>`).
 It is enabled by default in many vehicle SDF files: **solo.sdf**, **iris.sdf**, **standard_vtol.sdf**, **delta_wing.sdf**, **plane.sdf**, **typhoon_h480**, **tailsitter.sdf**.
 
-Щоб увімкнути/вимкнути шум GPS:
+To enable/disable GPS noise:
 
-1. Зберіть будь-яку ціль збірки gazebo, щоб згенерувати SDF файл (для всіх засобів).
+1. Build any gazebo target in order to generate SDF files (for all vehicles).
   Наприклад:
 
   ```sh
@@ -277,19 +275,19 @@ It is enabled by default in many vehicle SDF files: **solo.sdf**, **iris.sdf**, 
   </plugin>
   ```
 
-  - Якщо він присутній, GPS включений.
+  - If it is present, GPS is enabled.
     You can disable it by deleting the line: `<gpsNoise>true</gpsNoise>`
-  - Якщо він відсутній, GPS вимкнено.
+  - If it is not present, GPS is disabled.
     You can enable it by adding the `gpsNoise` element to the `gps_plugin` section (as shown above).
 
-Наступного разу, коли ви зберете/перезапустите Gazebo Classic він буде використовувати нове налаштування шуму GPS.
+The next time you build/restart Gazebo Classic it will use the new GPS noise setting.
 
-## Завантаження певного світу
+## Loading a Specific World
 
 PX4 supports a number of [Worlds](../sim_gazebo_classic/worlds.md), which are stored in [PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds](https://github.com/PX4/PX4-SITL_gazebo-classic/tree/main/worlds).
 By default Gazebo Classic displays a flat featureless plane, as defined in [empty.world](https://github.com/PX4/PX4-SITL_gazebo-classic/blob/main/worlds/empty.world).
 
-Можна завантажити будь-який зі світів вказавши їх як завершальний параметр в налаштуваннях цілі збірки PX4.
+You can load any of the worlds by specifying them as the final option in the PX4 configuration target.
 
 For example, to load the _warehouse_ world, you can append it as shown:
 
@@ -303,30 +301,30 @@ See [Building the Code > PX4 Make Build Targets](../dev_setup/building_px4.md#px
 :::
 
 You can also specify the full path to a world to load using the `PX4_SITL_WORLD` environment variable.
-Це підходить при тестуванні нового світу, який ще не включений до PX4.
+This is useful if testing a new world that is not yet included with PX4.
 
 :::tip
 If the loaded world does not align with the map, you may need to [set the world location](#set-world-location).
 :::
 
-## Встановлення розташування світу
+## Set World Location
 
-Рухомий засіб відтворюється дуже близько до початкового положення моделі світу у певному симульованому GPS розташуванні.
+The vehicle gets spawned very close to the origin of the world model at some simulated GPS location.
 
 :::info
 The vehicle is not spawned exactly at the Gazebo origin (0,0,0), but using a slight offset, which can highlight a number of common coding issues.
 :::
 
-При використанні світу, що відтворює реальне місце (наприклад певний аеропорт) це може призвести до доволі наявної невідповідності між тим що показується у світі, що симулюється та тим, що показується на мапі наземної станції.
-Для подолання цієї проблеми ви можете встановити місце розташування початкового положення світу до GPS координат, де воно буде в "реальному житті".
+If using a world that recreates a real location (e.g. a particular airport) this can result in a very obvious mismatch between what is displayed in the simulated world, and what is shown on the ground station map.
+To overcome this problem you can set the location of the world origin to the GPS coordinates where it would be in "real life".
 
 :::info
 You can also set a [Custom Takeoff Location](#custom_takeoff_location) that does the same thing.
-Однак додавання розташування на мапу простіше (і воно все ще може бути змінене шляхом встановлення користувацького розташування при необхідності).
+However adding the location to the map is easier (and can still be over-ridden by setting a custom location if needed).
 :::
 
 The location of the world is defined in the **.world** file by specifying the location of the origin using the `spherical_coordinates` tag.
-Щоб це було коректним, обов'язково треба вказати широту, довготу та висоту над рівнем моря.
+The latitude, longitude, elevation must all be specified (for this to be a valid).
 
 An example can be found in the [sonoma_raceway.world](https://github.com/PX4/PX4-SITL_gazebo-classic/blob/main/worlds/sonoma_raceway.world):
 
@@ -345,18 +343,18 @@ You can test this by spawning a rover in the [Sonoma Raceway World](../sim_gazeb
 make px4_sitl gazebo-classic_rover__sonoma_raceway
 ```
 
-У наведеному нижче відео видно, що розташування середовища збігається зі світом:
+The video below shows that the location of the environment is aligned with the world:
 
 <lite-youtube videoid="-a2WWLni5do" title="Driving a simulated PX4 Rover in the Sonoma Raceway"/>
 
-## Запуск Gazebo та PX4 окремо
+## Starting Gazebo and PX4 Separately
 
-Для розширених сеансів розробки можливо більш зручно запускати Gazebo Classic та PX4 окремо або навіть з IDE.
+For extended development sessions it might be more convenient to start Gazebo Classic and PX4 separately or even from within an IDE.
 
 In addition to the existing cmake targets that run `sitl_run.sh` with parameters for px4 to load the correct model it creates a launcher targets named `px4_<mode>` that is a thin wrapper around original sitl px4 app.
-Ця тонка обгортка просто містить аргументи застосунку типу поточної робочої директорії та шляху до файлу моделі.
+This thin wrapper simply embeds app arguments like current working directories and the path to the model file.
 
-Щоб запустити Gazebo Classic та PX4 окремо:
+To start Gazebo Classic and PX4 separately:
 
 - Run gazebo classic (or any other sim) server and client viewers via the terminal specifying an `_ide` variant:
 
@@ -372,15 +370,15 @@ In addition to the existing cmake targets that run `sitl_run.sh` with parameters
 
 - In your IDE select `px4_<mode>` target you want to debug (e.g. `px4_iris`)
 
-- Запустіть сеанс налагодження безпосередньо з IDE
+- Start the debug session directly from IDE
 
-Цей підхід суттєво зменшує час циклу налагодження, оскільки симулятор завжди працює у фоновому режимі та ви перезавантажуєте тільки процес px4, який дуже легкий.
+This approach significantly reduces the debug cycle time because simulator is always running in background and you only re-run the px4 process which is very light.
 
-## Симуляція камери спостереження
+## Simulated Survey Camera
 
 The _Gazebo Classic_ survey camera simulates a [MAVLink camera](https://mavlink.io/en/services/camera.html) that captures geotagged JPEG images and sends camera capture information to a connected ground station.
-Камера також підтримує відеотрансляцію.
-Вона може бути використана для перевірки захоплення камери, зокрема в політних завданнях спостереження.
+The camera also supports video streaming.
+It can be used to test camera capture, in particular within survey missions.
 
 The camera emits the [CAMERA_IMAGE_CAPTURED](https://mavlink.io/en/messages/common.html#CAMERA_IMAGE_CAPTURED) message every time an image is captured.
 The captured images are saved to: `PX4-Autopilot/build/px4_sitl_default/src/modules/simulation/simulator_mavlink/frames/DSC_n.jpg` (where _n_ starts as 00000 and is iterated by one on each capture).
@@ -518,18 +516,18 @@ Lockstep makes it possible to [change the simulation speed](#change-simulation-s
 
 #### Lockstep Sequence
 
-Послідовність кроків для lockstep наступна:
+The sequence of steps for lockstep are:
 
 1. The simulation sends a sensor message [HIL_SENSOR](https://mavlink.io/en/messages/common.html#HIL_SENSOR) including a timestamp `time_usec` to update the sensor state and time of PX4.
 2. PX4 receives this and does one iteration of state estimation, controls, etc. and eventually sends an actuator message [HIL_ACTUATOR_CONTROLS](https://mavlink.io/en/messages/common.html#HIL_ACTUATOR_CONTROLS).
-3. Симуляція чекає, поки не отримає повідомлення від приводу/двигуна, потім моделює фізику і обчислює наступне повідомлення від датчика, яке знову надсилається до PX4.
+3. The simulation waits until it receives the actuator/motor message, then simulates the physics and calculates the next sensor message to send to PX4 again.
 
-Система починається з "вільного ходу", під час якого симуляція надсилає повідомлення від датчиків, зокрема про час, і, таким чином, запускає PX4, доки він не ініціалізується і не надішле відповідне повідомлення від приводу.
+The system starts with a "freewheeling" period where the simulation sends sensor messages including time and therefore runs PX4 until it has initialized and responds with an actuator message.
 
 #### Disabling Lockstep
 
-Lockstep симуляцію можна вимкнути, якщо, наприклад, SITL потрібно використовувати з тренажером, який не підтримує цю функцію.
-У цьому випадку симулятор і PX4 використовують системний час хоста і не чекають один на одного.
+The lockstep simulation can be disabled if, for example, SITL is to be used with a simulator that does not support this feature.
+In this case the simulator and PX4 use the host system time and do not wait on each other.
 
 To disable lockstep in:
 

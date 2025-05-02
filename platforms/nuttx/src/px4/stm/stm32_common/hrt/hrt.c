@@ -156,8 +156,17 @@
 # if CONFIG_STM32_TIM11
 #  error must not set CONFIG_STM32_TIM11=y and HRT_TIMER=11
 # endif
+#elif HRT_TIMER == 12
+# define HRT_TIMER_BASE		STM32_TIM12_BASE
+# define HRT_TIMER_POWER_REG	STM32_RCC_APB1ENR
+# define HRT_TIMER_POWER_BIT	RCC_APB1LENR_TIM12EN
+# define HRT_TIMER_VECTOR	STM32_IRQ_TIM12
+# define HRT_TIMER_CLOCK	STM32_APB1_TIM12_CLKIN
+# if CONFIG_STM32_TIM12
+#  error must not set CONFIG_STM32_TIM12=y and HRT_TIMER=12
+# endif
 #else
-# error HRT_TIMER must be a value between 1 and 11
+# error HRT_TIMER must be a value between 1 and 12
 #endif
 
 /*

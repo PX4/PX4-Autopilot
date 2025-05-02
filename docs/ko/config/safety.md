@@ -146,6 +146,12 @@ The Data Link Loss failsafe is triggered if a telemetry link (connection to grou
 | 데이터 연결불량 시간 초과 | [COM_DL_LOSS_T](../advanced_config/parameter_reference.md#COM_DL_LOSS_T) | 데이터 연결이 끊어진 후 안전 장치가 동작하기 전까지의 시간입니다.                           |
 | 안전장치 동작        | [NAV_DLL_ACT](../advanced_config/parameter_reference.md#NAV_DLL_ACT)                          | Disabled, Hold mode, Return mode, Land mode, Disarm, Terminate. |
 
+다음 설정도 가능하지만 QGC UI에 표시되지 않습니다.
+
+| 설정                                                          | 매개변수                                                                                                                 | 설명                                                                   |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| <a id="COM_DLL_EXCEPT"></a>Mode exceptions for DLL failsafe | [COM_DLL_EXCEPT](../advanced_config/parameter_reference.md#COM_DLL_EXCEPT) | Set modes where DL loss will not trigger a failsafe. |
+
 ## Geofence 안전장치
 
 The _Geofence Failsafe_ is triggered when the drone breaches a "virtual" perimeter.

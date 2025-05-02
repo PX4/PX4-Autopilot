@@ -8,7 +8,7 @@ PX4 is the _Professional Autopilot_.
 它由来自业界和学术界的世界级开发商开发，并得到活跃的全球社区的支持，为从竞速和物流无人机到地面车辆和潜水艇的各种载具提供动力。
 
 :::tip
-This guide contains everything you need to assemble, configure, and safely fly a PX4-based vehicle. 对贡献感兴趣吗 Check out the [Development](development/development.md) section.
+这份指南包含组装、配置、安全使用 PX4 的设备的各种只是。 对贡献感兴趣吗 Check out the [Development](development/development.md) section.
 
 :::
 
@@ -21,7 +21,7 @@ Documented changes since the stable release are captured in the evolving [releas
 
 ## 如何开始？
 
-[Basic Concepts](getting_started/px4_basic_concepts.md) should be read by all users!
+所有用户都应该先阅读[基本概念](getting_started/px4_basic_concepts.md) !
 It provides an overview of PX4, including features provided by the flight stack (flight modes and safety features) and the supported hardware (flight controller, vehicle types, telemetry systems, RC control systems).
 
 根据您想要实现的目标，以下提示将帮助您浏览本指南：
@@ -30,7 +30,7 @@ It provides an overview of PX4, including features provided by the flight stack 
 
 In the [Multicopter](frames_multicopter/index.md), [VTOL](frames_vtol/index.md), and [Plane (Fixed-Wing)](frames_plane/index.md) sections you'll find topics like the following (these links are for multicopter):
 
-- [Complete Vehicles](complete_vehicles_mc/index.md) list "Ready to Fly" (RTF) pre-built vehicles
+- [完整的载具](complete_vehicles_mc/index.md)列出了到手飞(RTF)的硬件
 - [Kits](frames_multicopter/kits.md) lists drones that you have to build yourself from a set of preselected parts
 - [DIY Builds](frames_multicopter/diy_builds.md) shows some examples of drones that have been built using parts that were sourced individually
 
