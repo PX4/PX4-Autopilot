@@ -3,25 +3,21 @@
 # update_uorb_graphs.sh — generate, compare, and sync uORB graph JSONs
 #
 # Usage:
-#	./scripts/update_uorb_graphs.sh [--test-only] [--debug]
+#   ./scripts/update_uorb_graphs.sh [--test-only] [--debug]
 #
 # Options:
-#	--test-only	Run generation and comparison only; exit 1 if diffs found, without copying files
-#	--debug		Echo debug info for missing or differing files
+#   --test-only   Run generation and comparison only; exit 1 if diffs found, without copying files
+#   --debug       Echo debug info for missing or differing files and show full make output
 #
 # Examples:
-#	# CI mode: fail if docs need updates
-#	./scripts/update_uorb_graphs.sh --test-only
+#   # CI mode: fail if docs need updates
+#   ./scripts/update_uorb_graphs.sh --test-only
 #
-#	# Developer mode: regenerate and sync JSONs
-#	./scripts/update_uorb_graphs.sh
+#   # Developer mode: regenerate and sync JSONs
+#   ./scripts/update_uorb_graphs.sh
 #
 set -euo pipefail
 
-# Usage:
-#	./scripts/update_uorb_graphs.sh [--test-only] [--debug]
-
-# Enable nullglob so patterns with no matches expand to empty list
 shopt -s nullglob
 
 # Parse flags
@@ -48,9 +44,14 @@ done
 graph_dir="Tools/uorb_graph"
 dest_dir="docs/public/middleware"
 
-# Generate
-echo "🔧 Generating uORB message graphs"
-make uorb_graphs > /dev/null 2>&1
+# Generate uORB graphs (conditionally silent)
+if [ "$debug" = true ]; then
+	echo "🔧 Generating uORB message graphs (verbose output)"
+	make uorb_graphs
+else
+	echo "🔧 Generating uORB message graphs"
+	make uorb_graphs > /dev/null 2>&1
+fi
 
 # Verify generation
 src_files=("$graph_dir"/*.json)
@@ -59,33 +60,24 @@ if [ ${#src_files[@]} -eq 0 ]; then
 	exit 1
 fi
 
-# Prepare dest
 echo "🔍 Checking for updated uORB graph JSONs"
 mkdir -p "$dest_dir"
 
 changed=()
-# Compare each generated file
 for src in "${src_files[@]}"; do
 	name=$(basename "$src")
 	dst="$dest_dir/$name"
 
-	# missing file
 	if [[ ! -f "$dst" ]]; then
-		if [ "$debug" = true ]; then
-			echo "DEBUG: $dst missing"
-		fi
+		[ "$debug" = true ] && echo "DEBUG: $dst missing"
 		changed+=("$name")
 
-	# content differs
 	elif ! cmp -s "$src" "$dst"; then
-		if [ "$debug" = true ]; then
-			echo "DEBUG: cmp -s '$src' '$dst'; echo \$?"
-		fi
+		[ "$debug" = true ] && echo "DEBUG: cmp -s '$src' '$dst'; echo \$?"
 		changed+=("$name")
 	fi
 done
 
-# No changes? All good.
 if [ ${#changed[@]} -eq 0 ]; then
 	echo "✅ All uORB graph JSONs are already in sync."
 	exit 0
@@ -96,25 +88,19 @@ for name in "${changed[@]}"; do
 	echo "	- $name"
 done
 
-# Test-only mode: list and exit
 if [ "$test_only" = true ]; then
 	echo
 	echo "🚨 uORB graph docs need updating! Rerun without --test-only to apply changes."
 	exit 1
 fi
 
-# Copy updated files and prompt commit
-# Note: ensure debug/test flags don't affect copying
-	echo
 echo
-
 echo "📂 Copying updated files over"
 for name in "${changed[@]}"; do
 	cp -v "$graph_dir/$name" "$dest_dir/$name"
 done
 
 echo
-
 echo "🚨 uORB graph docs need updating! Review above, then run:"
 echo "	git status -s $dest_dir/"
 echo "	git add $dest_dir/*.json"
