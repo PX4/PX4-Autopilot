@@ -23,4 +23,4 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run uORB graph docs check
-        run: Tools/ci/metadata_uorb_graph.sh --test-only
+        run: Tools/ci/metadata_uorb_graph.sh --test-only --debug
