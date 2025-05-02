@@ -28,6 +28,7 @@ if(MAVSDK_FOUND)
         test_multicopter_mission.cpp
         test_multicopter_offboard.cpp
         test_multicopter_manual.cpp
+        test_fw_mission.cpp
         test_vtol_mission.cpp
         test_vtol_figure_eight.cpp
         test_vtol_rtl.cpp
@@ -49,6 +50,15 @@ if(MAVSDK_FOUND)
             -Wextra
             -Werror
             -Wno-error=deprecated-declarations
+    )
+
+    add_executable(mavsdk_preparing
+        mavsdk_preparing.cpp
+    )
+
+    target_link_libraries(mavsdk_preparing
+        MAVSDK::mavsdk
+        ${CMAKE_THREAD_LIBS_INIT}
     )
 else()
     message("MAVSDK C++ not found, skipping mavsdk_tests build..")
