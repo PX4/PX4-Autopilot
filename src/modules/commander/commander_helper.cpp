@@ -125,7 +125,7 @@ bool is_ground_vehicle(const vehicle_status_s &current_status)
 
 bool is_spacecraft(const vehicle_status_s &current_status)
 {
-	return (current_status.system_type == VEHICLE_TYPE_SPACECRAFT);
+	return (current_status.system_type == VEHICLE_TYPE_SPACECRAFT_ORBITER);
 }
 
 // End time for currently blinking LED message, 0 if no blink message
