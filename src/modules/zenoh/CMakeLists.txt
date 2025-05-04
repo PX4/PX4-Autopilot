@@ -60,6 +60,7 @@ target_compile_options(zenohpico_static PUBLIC -Wno-cast-align
 			-Wno-type-limits
 			-Wno-unused-variable
 			-Wno-maybe-uninitialized
+			-DZ_FEATURE_UNSTABLE_API
 			-DZ_BATCH_SIZE_RX=512
 			-DZ_BATCH_SIZE_TX=512)
 
