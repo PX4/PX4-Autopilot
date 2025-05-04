@@ -148,15 +148,16 @@ PX4_GZ_WORLD=windy make px4_sitl gz_x500
 
 The [supported worlds](../sim_gazebo_gz/worlds.md) are listed below.
 
-| World      | Команда                    | Опис                                                        |
-| ---------- | -------------------------- | ----------------------------------------------------------- |
-| `default`  | `make px4_sitl *`          | Порожній світ (сіра площина)             |
-| `aruco`    | `make px4_sitl *_aruco`    | Empty world with aruco marker for testing precision landing |
-| `baylands` | `make px4_sitl *_baylands` | Світ Baylands оточений водою                                |
-| `lawn`     | `make px4_sitl *_lawn`     | Lawn world for testing rovers                               |
-| `rover`    | `make px4_sitl *_rover`    | Rover world (optimised/preferred)        |
-| `walls`    | `make px4_sitl *_walls`    | Wall world for testing collision prevention                 |
-| `windy`    | `make px4_sitl *_windy`    | Порожній світ з увімкненим вітром                           |
+| World             | Команда                           | Опис                                                        |
+| ----------------- | --------------------------------- | ----------------------------------------------------------- |
+| `default`         | `make px4_sitl *`                 | Порожній світ (сіра площина)             |
+| `aruco`           | `make px4_sitl *_aruco`           | Empty world with aruco marker for testing precision landing |
+| `baylands`        | `make px4_sitl *_baylands`        | Світ Baylands оточений водою                                |
+| `lawn`            | `make px4_sitl *_lawn`            | Lawn world for testing rovers                               |
+| `rover`           | `make px4_sitl *_rover`           | Rover world (optimised/preferred)        |
+| `walls`           | `make px4_sitl *_walls`           | Wall world for testing collision prevention                 |
+| `windy`           | `make px4_sitl *_windy`           | Порожній світ з увімкненим вітром                           |
+| `moving_platform` | `make px4_sitl *_moving_platform` | World with moving takeoff / landing platform                |
 
 :::warning
 Note that if no world is specified, PX4 will use the `default` world.
@@ -263,6 +264,9 @@ where `ARGS` is a list of environment variables including:
 
   - Ця змінна ігнорується, якщо наявна модель вже запущена.
   - This value should be [specified for the selected airframe](#adding-new-worlds-and-models) but may be overridden using this argument.
+  - If the [moving platform world](../sim_gazebo_gz/worlds.md#moving-platform) is selected using `PX4_GZ_WORLD=moving_platform` (or any world using the moving platform plugin), the platform can be configured using environment variables:
+    - `PX4_GZ_PLATFORM_VEL`: Platform speed (m/s).
+    - `PX4_GZ_PLATFORM_HEADING_DEG`: Platform heading and direction of velocity (degrees). 0 = east, positive direction is counterclockwise.
 
 - `PX4_SIMULATOR=GZ`:
   Sets the simulator, which for Gazebo must be `gz`.
