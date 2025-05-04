@@ -60,7 +60,7 @@
 #define KEYEXPR_RIHS01_SIZE sizeof("RIHS01_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
 #define KEYEXPR_MSG_NAME "px4_msgs::msg::dds_::"
 #define KEYEXPR_MSG_NAME_SIZE sizeof(KEYEXPR_MSG_NAME)
-#define TOPIC_INFO_SIZE (64)
+#define TOPIC_INFO_SIZE (96)
 #define MAX_LINE_SIZE (2 * TOPIC_INFO_SIZE)
 #define KEYEXPR_SIZE (MAX_LINE_SIZE + KEYEXPR_MSG_NAME_SIZE + KEYEXPR_RIHS01_SIZE + 128)
 
@@ -89,6 +89,7 @@ public:
 	{
 		return getPubSubMapping(topic, type, ZENOH_SUB_CONFIG_PATH);
 	}
+	int closePubSubMapping();
 
 
 private:
