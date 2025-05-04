@@ -1,8 +1,6 @@
 #!/bin/sh
 # shellcheck disable=SC2154
 
-echo "INFO  [init] Gazebo simulator"
-
 # Enforce minimum gz version as Harmonic (gz-sim8)
 MIN_GZ_VERSION="8.0.0"
 GZ_SIM_VERSION=$(gz sim --versions 2>/dev/null | head -n 1 | tr -d ' ')
@@ -17,6 +15,8 @@ if [ "$(printf '%s\n' "$GZ_SIM_VERSION" "$MIN_GZ_VERSION" | sort -V | head -n1)"
 	gz_command="gz"
 	gz_sub_command="sim"
 
+	echo "INFO  [init] Gazebo simulator $GZ_SIM_VERSION"
+
 	# Specify render engine if `GZ_SIM_RENDER_ENGINE` is set
 	# (for example, if you want to use Ogre 1.x instead of Ogre 2.x):
 	if [ -n "${PX4_GZ_SIM_RENDER_ENGINE}" ]; then
@@ -24,7 +24,7 @@ if [ "$(printf '%s\n' "$GZ_SIM_VERSION" "$MIN_GZ_VERSION" | sort -V | head -n1)"
 		gz_sub_command="${gz_sub_command} --render-engine ${PX4_GZ_SIM_RENDER_ENGINE}"
 	fi
 else
-    echo "ERROR [init] Gazebo gz sim version is too old ($GZ_SIM_VERSION). Minimum required version is $MIN_GZ_VERSION"
+    echo "ERROR [init] Gazebo version too hold ($GZ_SIM_VERSION). Minimum required version is $MIN_GZ_VERSION"
     exit 1
 fi
 
