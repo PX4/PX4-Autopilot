@@ -261,6 +261,19 @@ int Zenoh_Config::getLineCount(const char *filename)
 	return lines;
 }
 
+int Zenoh_Config::closePubSubMapping()
+{
+	if (fp_mapping != NULL) {
+		//Close the file
+		fclose(fp_mapping);
+		fp_mapping = NULL;
+		return 0;
+	}
+
+	return 0;
+}
+
+
 // Very rudamentary here but we've to wait for a more advanced param system
 int Zenoh_Config::getPubSubMapping(char *topic, char *type, const char *filename)
 {
@@ -272,6 +285,8 @@ int Zenoh_Config::getPubSubMapping(char *topic, char *type, const char *filename
 
 	if (fp_mapping) {
 		while (fgets(buffer, MAX_LINE_SIZE, fp_mapping) != NULL) {
+			printf("getPubSubMapping %s", buffer);
+
 			if (buffer[0] != '\n') {
 				const char *config_type = get_csv_field(buffer, 2);
 				const char *config_topic = get_csv_field(buffer, 1);
@@ -294,9 +309,7 @@ int Zenoh_Config::getPubSubMapping(char *topic, char *type, const char *filename
 	}
 
 	//Close the file
-	fclose(fp_mapping);
-	fp_mapping = NULL;
-	return 0;
+	return closePubSubMapping();
 
 }
 
