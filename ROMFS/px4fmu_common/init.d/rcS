@@ -2,7 +2,7 @@
 # Un comment and use set +e to ignore and set -e to enable 'exit on error control'
 set +e
 # Un comment the line below to help debug scripts by printing a trace of the script commands
-#set -x
+# set -x
 # PX4FMU startup script.
 #
 # NOTE: environment variable references:
@@ -251,7 +251,7 @@ else
 		param set SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
 		param set SYS_AUTOCONFIG 1
 		param save
-		#FIXME reboot
+		reboot
 	fi
 
 	#

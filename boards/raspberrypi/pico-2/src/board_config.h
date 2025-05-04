@@ -91,15 +91,15 @@
 
 #define ADC_BATTERY_VOLTAGE_CHANNEL  1			// Corresponding GPIO 27. Used in init.c for disabling GPIO_IE
 #define ADC_BATTERY_CURRENT_CHANNEL  2			// Corresponding GPIO 28. Used in init.c for disabling GPIO_IE
-#define ADC_RC_RSSI_CHANNEL          0
+//#define ADC_RC_RSSI_CHANNEL          0
 
 /* High-resolution timer */
-// FIXME
+// FIXME HRT_TIMER needed for ADC (linking issue otherwise)? but it implies GPIO_PPM_IN
 #define HRT_TIMER 1
 #define HRT_TIMER_CHANNEL 1
-#define HRT_PPM_CHANNEL 1	// Number really doesn't matter for this board
-#define GPIO_PPM_IN		(16 | GPIO_FUN(RP23XX_GPIO_FUNC_SIO))  // FIXME: PPM is not needed for me
-#define RC_SERIAL_PORT               "/dev/ttyS3"
+//#define HRT_PPM_CHANNEL 1	// Number really doesn't matter for this board
+//#define GPIO_PPM_IN		(16 | GPIO_FUN(RP23XX_GPIO_FUNC_SIO))  // FIXME: PPM is not needed for me
+#define RC_SERIAL_PORT               "/dev/ttyS1" // FIXME !!!
 #define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 /* This board provides a DMA pool and APIs */			// Needs to be figured out
@@ -134,10 +134,8 @@
 
 #endif
 
-/* PWM
- *
- * Alternatively CH3/CH4 could be assigned to UART6_TX/RX
- */
+// PWM
+// Pin 18-21, mapping is defined in timer_config.cpp
 #define DIRECT_PWM_OUTPUT_CHANNELS      4
 
 // Has pwm outputs

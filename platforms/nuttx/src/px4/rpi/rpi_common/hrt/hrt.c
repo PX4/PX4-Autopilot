@@ -138,12 +138,29 @@
 #define rTIMERAWL	REG(0x28)	// Raw read from bits 31:0 of time
 #define rDBGPAUSE	REG(0x2c)	// Set bits high to enable pause when the corresponding debug ports are active
 #define rPAUSE		REG(0x30)	// Set high to pause the timer
-#define rINTR		REG(0x34)	// Raw Interrupts
-#define rINTE		REG(0x38)	// Interrupt Enable
-#define rINTF		REG(0x3c)	// Interrupt Force
-#define rINTS		REG(0x40)	// Interrupt status after masking & forcing
 
 #ifdef CONFIG_ARCH_CHIP_RP23XX
+	// FIXME - below are different register addresses in RP2350!
+
+	// From datasheet:
+	// 0x34 LOCKED Set locked bit to disable write access to timer
+        //   Once set, cannot be cleared (without a reset)
+
+	// 0x38 SOURCE Selects the source for the timer. Defaults to the normal tick
+	//           configured in the ticks block (typically configured to 1
+	//           microsecond). Writing to 1 will ignore the tick and count clk_sys
+	//           cycles instead.
+
+	//           0x3c INTR Raw Interrupts
+	//           0x40 INTE Interrupt Enable
+	//           0x44 INTF Interrupt Force
+	//           0x48 INTS Interrupt status after masking & forcing
+
+	#define rINTR		REG(0x3c)	// Raw Interrupts
+        #define rINTE		REG(0x40)	// Interrupt Enable
+        #define rINTF		REG(0x44)	// Interrupt Force
+        #define rINTS		REG(0x48)	// Interrupt status after masking & forcing
+
 	#if HRT_TIMER_CHANNEL == 1
 	# define HRT_TIMER_VECTOR	RP23XX_TIMER0_IRQ_0	// Timer alarm interrupt vector //
 	# define HRT_ALARM_VALUE	rALARM0			// Alarm register for HRT (similar to compare register for other MCUs) //
@@ -164,6 +181,12 @@
 	# error HRT_TIMER_CHANNEL must be a value between 1 and 4
 	#endif
 #else
+
+	#define rINTR		REG(0x34)	// Raw Interrupts
+        #define rINTE		REG(0x38)	// Interrupt Enable
+        #define rINTF		REG(0x3c)	// Interrupt Force
+        #define rINTS		REG(0x40)	// Interrupt status after masking & forcing
+
 	/*
 	 * Specific registers and bits used by HRT sub-functions
 	 */
@@ -490,6 +513,7 @@ hrt_tim_isr(int irq, void *context, void *arg)
 	return OK;
 }
 
+#ifdef HRT_PPM_CHANNEL
 /**
  * Handle the compare interrupt by calling the callout dispatcher
  * and then re-scheduling the next deadline.
@@ -507,6 +531,7 @@ hrt_ppm_isr(int irq, void *context, void *arg)
 	hrt_ppm_decode(counter);
 	return OK;
 }
+#endif
 
 /**
  * Fetch a never-wrapping absolute time value in microseconds from
@@ -546,6 +571,7 @@ void hrt_store_absolute_time(volatile hrt_abstime *t)
 void
 hrt_init(void)
 {
+	syslog(LOG_INFO, "[boot] hrt_init\n");
 	sq_init(&callout_queue);
 	hrt_tim_init();
 

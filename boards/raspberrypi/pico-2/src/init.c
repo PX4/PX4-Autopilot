@@ -252,7 +252,12 @@ rp23xx_boardinitialize(void)
 	rp23xx_gpio_set_pulls(CONFIG_RP23XX_I2C1_GPIO + 1, true, false);
 #endif
 
+
 	// // TODO: power peripherals
+
+	// configure VBUS sense GPIO
+	rp23xx_usbinitialize();
+
 	// ///* configure power supply control/sense pins */
 	// FIXME: stm32_configgpio(GPIO_PERIPH_3V3_EN);
 	// //stm32_configgpio(GPIO_VDD_BRICK_VALID);
@@ -436,23 +441,31 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 
  #ifdef CONFIG_RP23XX_FLASH_FILE_SYSTEM
+   syslog(LOG_INFO, "[boot] initializing params in FLASH - rp23xx_flash_mtd_initialize\n");
+   up_udelay(300000);
    struct mtd_dev_s *mtd_dev;
    mtd_dev = rp23xx_flash_mtd_initialize();
 
    if (mtd_dev == NULL)
      {
        syslog(LOG_ERR, "ERROR: flash_mtd_initialize failed: %d\n", errno);
+       up_udelay(200);
      }
    else
      {
+       syslog(LOG_INFO, "[boot] initializing params in FLASH - smart_initialize\n");
+       up_udelay(200);
        int ret = smart_initialize(0, mtd_dev, NULL);
 
        if (ret < 0)
          {
            syslog(LOG_ERR, "ERROR: smart_initialize failed: %d\n", -ret);
+           up_udelay(200);
          }
        else if (sizeof(CONFIG_RP23XX_FLASH_MOUNT_POINT) > 1)
          {
+           syslog(LOG_INFO, "[boot] initializing params in FLASH - nx_mount\n");
+           up_udelay(200);
            mkdir(CONFIG_RP23XX_FLASH_MOUNT_POINT, 0777);
 
            /* Mount the file system */
@@ -469,15 +482,20 @@ __EXPORT int board_app_initialize(uintptr_t arg)
                      " 0, NULL) failed: %d\n",
                      CONFIG_RP23XX_FLASH_MOUNT_POINT,
                      ret);
+               up_udelay(200);
              }
          }
+       syslog(LOG_INFO, "[boot] initializing params in FLASH - done\n");
+       up_udelay(200);
      }
-
  #endif
 
 	/* Configure the HW based on the manifest */
-
+        syslog(LOG_INFO, "[boot] px4_platform_configure - starting\n");
+        up_udelay(200);
 	px4_platform_configure();
+	syslog(LOG_INFO, "[boot] init done\n");
+        up_udelay(200);
 
 	return OK;
 }
