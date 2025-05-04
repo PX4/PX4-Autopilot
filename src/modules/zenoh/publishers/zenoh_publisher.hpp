@@ -48,6 +48,9 @@
 #include <containers/List.hpp>
 #include <zenoh-pico.h>
 
+
+#define RMW_GID_STORAGE_SIZE 16u
+
 class Zenoh_Publisher : public ListNode<Zenoh_Publisher *>
 {
 public:
@@ -68,6 +71,6 @@ protected:
 	z_owned_publisher_t _pub;
 	int64_t sequence_number;
 
-	/* 16 bytes DDS-Like GID */
+	/* RMW_GID_STORAGE_SIZE bytes DDS-Like GID */
 	uint8_t *rmw_gid;
 };
