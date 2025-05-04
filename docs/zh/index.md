@@ -4,87 +4,87 @@
 
 [![Releases](https://img.shields.io/badge/release-main-blue.svg)](https://github.com/PX4/PX4-Autopilot/releases) [![Discuss](https://img.shields.io/badge/discuss-px4-ff69b4.svg)](https://discuss.px4.io//) [![Discord](https://discordapp.com/api/guilds/1022170275984457759/widget.png?style=shield)](https://discord.gg/dronecode)
 
-PX4 is the _Professional Autopilot_.
+_PX4_ 是一款专业级飞控。
 它由来自业界和学术界的世界级开发商开发，并得到活跃的全球社区的支持，为从竞速和物流无人机到地面车辆和潜水艇的各种载具提供动力。
 
 :::tip
-这份指南包含组装、配置、安全使用 PX4 的设备的各种只是。 对贡献感兴趣吗 Check out the [Development](development/development.md) section.
+这份指南包含组装、配置、安全使用 PX4 的设备的各种只是。 对贡献感兴趣吗 查看 [Development](development/development.md) 部分。
 
 :::
 
 :::warning
-This guide is for the _development_ version of PX4 (`main` branch).
-Use the **Version** selector to find the current _stable_ version.
+本指南适用于_development_ version of PX4 (`main` 分支)。
+使用 **版本** 选择器查找当前的 _稳定_ 版本。
 
-Documented changes since the stable release are captured in the evolving [release note](releases/main.md).
+自稳定版本发布以来的已记录变更，收录在不断更新的(releases/main.md ) 中。
 :::
 
 ## 如何开始？
 
-所有用户都应该先阅读[基本概念](getting_started/px4_basic_concepts.md) !
-It provides an overview of PX4, including features provided by the flight stack (flight modes and safety features) and the supported hardware (flight controller, vehicle types, telemetry systems, RC control systems).
+所有用户都应该先阅读[基本概念](getting_started/px4_basic_concepts.md) ！
+它概述了PX4，包括由飞行堆栈提供的功能（飞行模式和安全特征）和支持的硬件（飞行控制器、载具类型、数传系统、遥控控制系统）。
 
 根据您想要实现的目标，以下提示将帮助您浏览本指南：
 
 ### 我想要一个能与PX4配合使用的载具
 
-In the [Multicopter](frames_multicopter/index.md), [VTOL](frames_vtol/index.md), and [Plane (Fixed-Wing)](frames_plane/index.md) sections you'll find topics like the following (these links are for multicopter):
+在 [多旋翼](frames_multicopter/index.md), [VTOL](frames_vtol/index.md), 和 [平面(固定翼)](frames_plane/index.md)部分你会找到如下主题（这些链接针对多旋翼飞行器）：
 
 - [完整的载具](complete_vehicles_mc/index.md)列出了到手飞(RTF)的硬件
-- [Kits](frames_multicopter/kits.md) lists drones that you have to build yourself from a set of preselected parts
-- [DIY Builds](frames_multicopter/diy_builds.md) shows some examples of drones that have been built using parts that were sourced individually
+- [套件(frames_multicopter/kits.md) 列出了需要你利用一组预先选定的部件自行组装的无人机。
+- [DIY 组装](frames_multicopter/diy_builds.md) 展示了一些使用单独采购的零部件组装而成的无人机示例。
 
-Both kits and complete vehicles usually include everything you need except for a battery and RC System.
-Kits are usually not hard to build, provide a good introduction to how drones fit together, and are relatively inexpensive.
-We provide generic instructions for assembly, such as [Assembling a Multicopter](assembly/assembly_mc.md), and most kits come with specific instructions too.
+无论是套件还是成品飞行器，通常都包含你所需的一切，除了电池和遥控系统。
+套装通常不难建造，可以很好地介绍无人机如何合在一起，而且费用相对较低。
+我们提供了一般的组装指示，例如[组装一个多旋翼机](assembly/assembly_mc.md)，大多数套装也附有具体的指示。
 
-If the kits and complete drones aren't quite right for you then you can build a vehicle from scratch, but this requires more knowledge.
-[Airframe Builds](airframes/index.md) lists the supported frame starting points to give you some idea of what is possible.
+如果套件和成品无人机不太符合你的需求，那么你可以从零开始打造一架飞行器，但这需要更多专业知识。
+[机身构建](airframes/index.md) 列出了受支持的机身起点，让你了解哪些方案是可行的。
 
-Once you have a vehicle that supports PX4 you will need to configure it and calibrate the sensors.
-Each vehicle type has its own configuration section that explains the main steps, such as [Multicopter Configuration/Tuning](config_mc/index.md).
+一旦你拥有支持PX4的载具，你将需要配置它并校准传感器。
+每种飞行器类型都有其专属的配置章节，阐述主要步骤，比如[多旋翼飞行器配置 / 调校](config_mc/index.md))。
 
-### I want to add a payload/camera
+### 我想添加一个有效载荷/相机
 
-The [Payloads](payloads/index.md) section describes how to add a camera and how to configure PX4 to enable you to deliver packages.
+[有效载荷](payloads/index.md部分描述了如何添加相机，以及如何配置 PX4 以实现交付包裹。
 
-### I am modifying a supported vehicle
+### 我正在修改一个支持的载具
 
-The [Hardware Selection & Setup](hardware/drone_parts.md) section provides both high level and product-specific information about hardware that you might use with PX4 and its configuration.
-This is the first place you should look if you want to modify a drone and add new components.
+[硬件选择和设置](hardware/drone_parts.md)部分提供了关于您可能使用 PX4 的硬件及其配置的高层次和特定产品信息。
+如果你想改装无人机并添加新组件，这里是你首先应该查看的地方。
 
-### I want to fly
+### 我想飞行
 
-Before you fly you should read [Operations](config/operations.md) to understand how to set up the safety features of your vehicle and the common behaviours of all frame types.
-Once you've done that you're ready to fly.
+在飞行之前，您应该阅读 [Operations](config/operations.md)来了解如何设置您的载具的安全性能和所有机型的常见特性。
+完成后，你可以准备飞行。
 
-Basic instructions for flying each vehicle type are provided in the respective sections, such as [Basic Flying (Multicopter)](flying/basic_flying_mc.md).
+每种飞行器类型的基本飞行说明在各自对应部分给出，例如[基本飞行（多旋翼飞行器）](flying/basic_flying_mc.md)。
 
-### I want to run PX4 on a new Flight Controller and extend the platform
+### 我想在一个新的飞行控制器上运行 PX4并扩展平台
 
-The [Development](development/development.md) section explains how to support new airframes and types of vehicles, modify flight algorithms, add new modes, integrate new hardware, communicate with PX4 from outside the flight controller, and contribute to PX4.
+[开发](development/development.md)部分解释了如何支持新的机体和车辆类型，修改飞行算法添加新模式，整合新的硬件，与飞行控制器外的 PX4 进行沟通，并为PX4 作出贡献。
 
 ## 获取帮助
 
-The [Support](contribute/support.md) page explains how to get help from the core dev team and the wider community.
+[支持](contribute/support.md页解释了如何从核心开发团队和更广泛的社区获得帮助。
 
 除此以外，它还包括了：
 
-- [Forums where you can get help](contribute/support.md#forums-and-chat)
-- [Diagnosing issues](contribute/support.md#diagnosing-problems)
-- [How to report bugs](contribute/support.md#issue-bug-reporting)
-- [Weekly dev call](contribute/support.md#weekly-dev-call)
+- [您可以获得帮助的论坛](contribute/support.md#forums-and-chat)
+- [诊断问题](contribute/support.md#diagnosing-problems)
+- [如何报告bug](contribute/support.md#issue-bug-reporting)
+- [每周开发会议](contribute/support.md#weekly-dev-call)
 
-## Reporting Bugs & Issues
+## 报告错误和问题
 
-If you have any problems using PX4 first post them on the [support forums](contribute/support.md#forums-and-chat) (as they may be caused by vehicle configuration).
+如果您在使用 PX4 首次发布时遇到任何问题，请在[支持论坛](contribute/support.md#forums-and-chat) 上(因为它们可能是由载具配置引起)。
 
-If directed by the development team, code issues may be raised on [Github here](https://github.com/PX4/PX4-Autopilot/issues).
-Where possible provide [flight logs](getting_started/flight_reporting.md) and other information requested in the issue template.
+如果开发团队指示，代码问题可以在 [Github](https://github.com/PX4/PX4-Autopilot/issues) 上提出。
+尽可能提供 [飞行日志](getting_started/flight_reporting.md) 和问题模板中要求的其他信息。
 
 ## 参与贡献
 
-Information on how to contribute to code and documentation can be found in the [Contributing](contribute/index.md) section:
+如何贡献代码和文档的信息可以在 [贡献](contribute/index.md部分中找到：
 
 - [Code](contribute/index.md)
 - [Documentation](contribute/docs.md)
@@ -92,22 +92,22 @@ Information on how to contribute to code and documentation can be found in the [
 
 ## 翻译
 
-There are several [translations](contribute/translation.md) of this guide.
-您可以从语言菜单中访问到它们（右上角）：
+本指南有多种 [译文](contribute/translation.md)。
+您可以从语言菜单中访问到它们 （右上角）：
 
-![Language Selector](../assets/vuepress/language_selector.png)
+![语言选择器](../assets/vuepress/language_selector.png)
 
 <!--@include: _contributors.md-->
 
 ## 许可证
 
-PX4 code is free to use and modify under the terms of the permissive [BSD 3-clause license](https://opensource.org/licenses/BSD-3-Clause).
-This documentation is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-For more information see: [Licences](contribute/licenses.md).
+PX4 代码可依据宽松的 [BSD 3-clause license](https://opensource.org/licenses/BSD-3-Clause) 免费使用和修改。
+此文档已使用 [CC BY 4.0]授权。(https://creativecommons.org/licenses/by/4.0/)。
+详情见： [Licences](contribute/licenses.md)。
 
-## Calendar & Events
+## 日历和活动
 
-The _Dronecode Calendar_ shows important community events for platform users and developers.
+_Dronecode 日历_ 展示了面向平台用户和开发者的重要社区活动。
 选择以下链接将其显示在您所在的时区日历中(并将其添加到您自己的日历中)：
 
 - [Switzerland – Zurich](https://calendar.google.com/calendar/embed?src=linuxfoundation.org_g21tvam24m7pm7jhev01bvlqh8%40group.calendar.google.com&ctz=Europe%2FZurich)
@@ -115,7 +115,7 @@ The _Dronecode Calendar_ shows important community events for platform users and
 - [Australia – Melbourne/Sydney/Hobart](https://calendar.google.com/calendar/embed?src=linuxfoundation.org_g21tvam24m7pm7jhev01bvlqh8%40group.calendar.google.com&ctz=Australia%2FSydney)
 
 :::tip
-The calendar default timezone is Central European Time (CET).
+日历的默认时区为中欧时间（CET）。
 
 :::
 
@@ -125,14 +125,16 @@ The calendar default timezone is Central European Time (CET).
 
 此库中使用的以下图标是单独授权的（如下所示）：
 
-<img src="../assets/site/position_fixed.svg" title="Position fix required (e.g. GPS)" width="30px" /> _placeholder_ icon made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.
+<img src="../assets/site/position_fixed.svg" title="Position fix required (e.g. GPS)" width="30px" /> _placeholder_icon 由 <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> 通过 <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> 创作，使用 <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 By</a> 授权。
 
-<img src="../assets/site/automatic_mode.svg" title="Automatic mode" width="30px" /> _camera-automatic-mode_ icon made by <a href="https://www.freepik.com" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.
+<0/> _camera-automatic-mode_ 图标由 <1>Freepik</1> 通过 <2>www.flaticon.com</2> 创作，使用 <3>CC 3.0 BY</3> 授权。
 
 ## 治理
 
-The PX4 flight stack is hosted under the governance of the [Dronecode Project](https://www.dronecode.org/).
+PX4 飞行控制架构由[Dronecode Project](https://www.dronecode.org/)负责管理。
 
 <a href="https://www.dronecode.org/" style="padding:20px" ><img src="https://mavlink.io/assets/site/logo_dronecode.png" alt="Dronecode Logo" width="110px"/></a> <a href="https://www.linuxfoundation.org/projects" style="padding:20px;"><img src="https://mavlink.io/assets/site/logo_linux_foundation.png" alt="Linux Foundation Logo" width="80px" /></a>
 
 <div style="padding:10px">&nbsp;</div>
+
+Doc build time: {{ $buildTime }}
