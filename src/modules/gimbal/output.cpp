@@ -254,13 +254,14 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 			_angle_outputs[i] += dt * _angle_velocity[i];
 		}
 
-		if (compensate[i] && PX4_ISFINITE(euler_vehicle(i))) {
-			_angle_outputs[i] -= euler_vehicle(i);
-		}
+		float compensation = (compensate[i] && PX4_ISFINITE(euler_vehicle(i)) ? euler_vehicle(i) : 0.f);
+
+		_angle_outputs_compensated[i] = _angle_outputs[i] - compensation;
 
 		if (PX4_ISFINITE(_angle_outputs[i]) && _parameters.mnt_rc_in_mode == 0) {
 			// if we are in angle input mode, we bring angles into proper range [-pi, pi]
 			_angle_outputs[i] = matrix::wrap_pi(_angle_outputs[i]);
+			_angle_outputs_compensated[i] = matrix::wrap_pi(_angle_outputs_compensated[i]);
 		}
 	}
 
@@ -274,10 +275,10 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 
 	// constrain pitch to [MNT_LND_P_MIN, MNT_LND_P_MAX] if landed
 	if (_landed) {
-		if (PX4_ISFINITE(_angle_outputs[1])) {
-			_angle_outputs[1] = math::constrain(_angle_outputs[1],
-							    math::radians(_parameters.mnt_lnd_p_min),
-							    math::radians(_parameters.mnt_lnd_p_max));
+		if (PX4_ISFINITE(_angle_outputs_compensated[1])) {
+			_angle_outputs_compensated[1] = math::constrain(_angle_outputs_compensated[1],
+							math::radians(_parameters.mnt_lnd_p_min),
+							math::radians(_parameters.mnt_lnd_p_max));
 		}
 	}
 }
