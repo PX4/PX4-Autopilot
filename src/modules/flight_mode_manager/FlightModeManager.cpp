@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "FlightModeManager.hpp"
+#include "tasks/Cruise/FlightTaskCruise.hpp"
 
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
@@ -183,6 +184,20 @@ void FlightModeManager::start_flight_task()
 			matching_task_running = false;
 			task_failure = true;
 		}
+	}
+
+	// Cruise Mode updated one
+	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_CRUISE) {
+		found_some_task = true;
+		FlightTaskError error = switchTask(FlightTaskIndex::Cruise);
+
+    			if (error != FlightTaskError::NoError) {
+       		    PX4_ERR("Failed to switch to Cruise task: %s", errorToString(error));
+     			    task_failure = true;
+   			 } else {
+       		    task_failure = false;
+  			 }
+               matching_task_running = matching_task_running && !task_failure;
 	}
 
 	// Navigator interface for autonomous modes

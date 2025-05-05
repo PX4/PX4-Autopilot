@@ -75,6 +75,10 @@
                             "name": "rtl",
                             "description": "RTL"
                         },
+                        "128": {
+                            "name": "cruise",
+                            "description": "Cruise mode"
+                        },
                         "1024": {
                             "name": "acro",
                             "description": "Acro"
@@ -603,6 +607,11 @@
                         "23": {
                             "name": "external8",
                             "description": "External 8"
+                        },
+                        
+                        "24": {
+                            "name": "cruise",
+                            "description": "auto_cruise"
                         },
                         "255": {
                             "name": "unknown",

@@ -35,6 +35,7 @@ add_subdirectory(GeofenceBreachAvoidance)
 add_subdirectory(MissionFeasibility)
 
 set(NAVIGATOR_SOURCES
+        cruise.cpp
 	navigator_main.cpp
 	navigator_mode.cpp
 	mission_base.cpp

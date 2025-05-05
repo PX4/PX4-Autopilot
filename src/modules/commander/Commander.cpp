@@ -417,7 +417,12 @@ int Commander::custom_command(int argc, char *argv[])
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
 						     PX4_CUSTOM_SUB_MODE_EXTERNAL1);
 
-			} else {
+			} 
+			else if (!strcmp(argv[1], "auto:cruise")) {
+      				 send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
+                        			     PX4_CUSTOM_SUB_MODE_AUTO_CRUISE);
+}
+			else {
 				PX4_ERR("argument %s unsupported.", argv[1]);
 			}
 
@@ -817,6 +822,11 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						case PX4_CUSTOM_SUB_MODE_AUTO_LOITER:
 							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 							break;
+							
+							// changed for cruise
+						case PX4_CUSTOM_SUB_MODE_AUTO_CRUISE:
+                                 		       desired_nav_state = vehicle_status_s::NAVIGATION_STATE_CRUISE;
+                  					break;
 
 						case PX4_CUSTOM_SUB_MODE_AUTO_MISSION:
 							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
