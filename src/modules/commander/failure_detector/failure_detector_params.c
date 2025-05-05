@@ -107,6 +107,73 @@ PARAM_DEFINE_FLOAT(FD_FAIL_R_TTRI, 0.3);
 PARAM_DEFINE_FLOAT(FD_FAIL_P_TTRI, 0.3);
 
 /**
+ * Low altitude roll failure threshold
+ *
+ * Roll angle (degrees) at which the roll failure detector triggers when the altitude is less than 1 meter.
+ *
+ * @min 0
+ * @max 180
+ * @unit deg
+ * @group Failure Detector
+ */
+PARAM_DEFINE_INT32(FD_FAIL_LOW_R, 3);
+
+/**
+ * Low altitude pitch failure threshold
+ *
+ * Pitch angle (degrees) at which the pitch failure detector triggers when the altitude is less than 1 meter.
+ *
+ * @min 0
+ * @max 180
+ * @unit deg
+ * @group Failure Detector
+ */
+PARAM_DEFINE_INT32(FD_FAIL_LOW_P, 3);
+
+/**
+ * Low altitude roll failure trigger time
+ *
+ * Seconds (decimal) that roll has to exceed FD_FAIL_LOW_R before being considered as a failure.
+ *
+ * @unit s
+ * @min 0.02
+ * @max 5
+ * @decimal 2
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_FLOAT(FD_FAIL_LOW_R_TR, 0.3);
+
+/**
+ * Low altitude pitch failure trigger time
+ *
+ * Seconds (decimal) that pitch has to exceed FD_FAIL_LOW_P before being considered as a failure.
+ *
+ * @unit s
+ * @min 0.02
+ * @max 5
+ * @decimal 2
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_FLOAT(FD_FAIL_LOW_P_TR, 0.3);
+
+/**
+ * Low altitude failure meter
+ *
+ * The altitude, in meters, at which the maximum roll and pitch angles at takeoff are to be determined.
+ *
+ * @unit m
+ * @min 0.0
+ * @max 1.0
+ * @decimal 1
+ * @increment 0.1
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_FLOAT(FD_FAIL_LOW_ALT, 0.3f);
+
+/**
  * Enable PWM input on for engaging failsafe from an external automatic trigger system (ATS).
  *
  * Enabled on either AUX5 or MAIN5 depending on board.
