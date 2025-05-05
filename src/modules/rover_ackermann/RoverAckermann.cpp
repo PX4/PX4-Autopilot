@@ -141,7 +141,7 @@ void RoverAckermann::manualControl()
 	}
 }
 
-bool RoverAckermann::offboardControl()
+void RoverAckermann::offboardControl()
 {
 	offboard_control_mode_s offboard_control_mode{};
 	_offboard_control_mode_sub.copy(&offboard_control_mode);
@@ -170,8 +170,6 @@ bool RoverAckermann::offboardControl()
 		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 
 	}
-
-	return !offboard_control_mode.direct_actuator;
 }
 
 void RoverAckermann::updateControllers()

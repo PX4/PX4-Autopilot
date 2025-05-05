@@ -132,26 +132,35 @@ private:
 				     float acceptance_radius_gain, float acceptance_radius_max, float wheel_base, float max_steer_angle);
 
 	/**
-	 * @brief Calculate the speed setpoint. During cornering the speed is restricted based on the radius of the corner.
-	 * On straight lines it is based on a speed trajectory such that the rover will arrive at the next corner with the
-	 * desired cornering speed under consideration of the maximum deceleration and jerk.
+	 * @brief Calculate the speed at which the rover should arrive at the current waypoint based on the upcoming corner.
+	 * @param cruising_speed Cruising speed [m/s].
+	 * @param miss_speed_min Minimum speed setpoint [m/s].
+	 * @param acc_rad Acceptance radius of the current waypoint [m].
+	 * @param curr_wp_type Type of the current waypoint.
+	 * @param waypoint_transition_angle Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
+	 * @param max_yaw_rate Maximum yaw rate setpoint [rad/s]
+	 * @return Speed setpoint [m/s].
+	 */
+	float autoArrivalSpeed(float cruising_speed, float miss_speed_min, float acc_rad, int curr_wp_type,
+			       float waypoint_transition_angle, float max_yaw_rate);
+
+	/**
+	 * @brief Calculate the cruising speed setpoint. During cornering the speed is restricted based on the radius of the corner.
 	 * @param cruising_speed Cruising speed [m/s].
 	 * @param miss_speed_min Minimum speed setpoint [m/s].
 	 * @param distance_to_prev_wp Distance to the previous waypoint [m].
 	 * @param distance_to_curr_wp Distance to the current waypoint [m].
 	 * @param acc_rad Acceptance radius of the current waypoint [m].
 	 * @param prev_acc_rad Acceptance radius of the previous waypoint [m].
-	 * @param max_decel Maximum allowed deceleration [m/s^2].
-	 * @param max_jerk Maximum allowed jerk [m/s^3].
-	 * @param curr_wp_type Type of the current waypoint.
 	 * @param waypoint_transition_angle Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
 	 * @param prev_waypoint_transition_angle Previous angle between the prevWP-currWP and currWP-nextWP line segments [rad]
-	 * @param max_speed Maximum speed setpoint [m/s]
+	*  @param max_yaw_rate Maximum yaw rate setpoint [rad/s]
 	 * @return Speed setpoint [m/s].
 	 */
-	float calcSpeedSetpoint(float cruising_speed, float miss_speed_min, float distance_to_prev_wp,
-				float distance_to_curr_wp, float acc_rad, float prev_acc_rad, float max_decel, float max_jerk, int curr_wp_type,
-				float waypoint_transition_angle, float prev_waypoint_transition_angle, float max_speed);
+	float autoCruisingSpeed(float cruising_speed, float miss_speed_min, float distance_to_prev_wp,
+				float distance_to_curr_wp, float acc_rad, float prev_acc_rad, float waypoint_transition_angle,
+				float prev_waypoint_transition_angle, float max_yaw_rate);
+
 
 	// uORB subscriptions
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
@@ -159,6 +168,7 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _rover_position_setpoint_sub{ORB_ID(rover_position_setpoint)};
+	uORB::Subscription _position_controller_status_sub{ORB_ID(position_controller_status)};
 	rover_position_setpoint_s _rover_position_setpoint{};
 
 	// uORB publications

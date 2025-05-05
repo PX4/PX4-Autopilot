@@ -83,7 +83,7 @@ public:
 	/**
 	 * @brief Reset velocity controller.
 	 */
-	void reset() {_pid_speed.resetIntegral(); _speed_setpoint = NAN; _bearing_setpoint = NAN;};
+	void reset() {_pid_speed.resetIntegral(); _speed_setpoint = NAN; _bearing_setpoint = NAN; _adjusted_speed_setpoint.setForcedValue(0.f);};
 
 protected:
 	/**

@@ -67,6 +67,12 @@ void AckermannPosControl::updatePosControl()
 		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
 	}
 
+	if (_position_controller_status_sub.updated()) {
+		position_controller_status_s position_controller_status{};
+		_position_controller_status_sub.copy(&position_controller_status);
+		_acceptance_radius = position_controller_status.acceptance_radius;
+	}
+
 	const Vector2f target_waypoint_ned(_rover_position_setpoint.position_ned[0], _rover_position_setpoint.position_ned[1]);
 	float distance_to_target = target_waypoint_ned.isAllFinite() ? (target_waypoint_ned - _curr_pos_ned).norm() : NAN;
 
@@ -74,8 +80,9 @@ void AckermannPosControl::updatePosControl()
 
 		float arrival_speed = PX4_ISFINITE(_rover_position_setpoint.arrival_speed) ? _rover_position_setpoint.arrival_speed :
 				      0.f;
+		const float distance = arrival_speed > 0.f + FLT_EPSILON ? distance_to_target - _acceptance_radius : distance_to_target;
 		float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
-				       _param_ro_decel_limit.get(), distance_to_target, fabsf(arrival_speed));
+				       _param_ro_decel_limit.get(), distance, fabsf(arrival_speed));
 		speed_setpoint = math::min(speed_setpoint, _param_ro_speed_limit.get());
 
 		if (PX4_ISFINITE(_rover_position_setpoint.cruising_speed)) {
@@ -200,43 +207,19 @@ void AckermannPosControl::autoPositionMode()
 	const float distance_to_curr_wp = sqrt(powf(_curr_pos_ned(0) - _curr_wp_ned(0),
 					       2) + powf(_curr_pos_ned(1) - _curr_wp_ned(1), 2));
 
-	// Check stopping conditions
-	bool auto_stop{false};
-
-	if (_curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND
-	    || _curr_wp_type == position_setpoint_s::SETPOINT_TYPE_IDLE
-	    || !_next_wp_ned.isAllFinite()) {
-		auto_stop = distance_to_curr_wp < _param_nav_acc_rad.get();
-	}
-
-	if (auto_stop) {
-		rover_position_setpoint_s rover_position_setpoint{};
-		rover_position_setpoint.timestamp = hrt_absolute_time();
-		rover_position_setpoint.position_ned[0] = _curr_pos_ned(0);
-		rover_position_setpoint.position_ned[1] = _curr_pos_ned(1);
-		rover_position_setpoint.start_ned[0] = _curr_pos_ned(0);
-		rover_position_setpoint.start_ned[1] = _curr_pos_ned(0);
-		rover_position_setpoint.arrival_speed = NAN;
-		rover_position_setpoint.cruising_speed = 0.f;
-		rover_position_setpoint.yaw = NAN;
-		_rover_position_setpoint_pub.publish(rover_position_setpoint);
-
-	} else { // Regular guidance algorithm
-		const float speed_setpoint = calcSpeedSetpoint(_cruising_speed, _min_speed, distance_to_prev_wp,
-					     distance_to_curr_wp, _acceptance_radius, _prev_acceptance_radius, _param_ro_decel_limit.get(),
-					     _param_ro_jerk_limit.get(), _curr_wp_type, _waypoint_transition_angle, _prev_waypoint_transition_angle,
-					     _param_ro_speed_limit.get());
-		rover_position_setpoint_s rover_position_setpoint{};
-		rover_position_setpoint.timestamp = hrt_absolute_time();
-		rover_position_setpoint.position_ned[0] = _curr_wp_ned(0);
-		rover_position_setpoint.position_ned[1] = _curr_wp_ned(1);
-		rover_position_setpoint.start_ned[0] = _prev_wp_ned(0);
-		rover_position_setpoint.start_ned[1] = _prev_wp_ned(1);
-		rover_position_setpoint.arrival_speed = speed_setpoint;
-		rover_position_setpoint.cruising_speed = speed_setpoint;
-		rover_position_setpoint.yaw = NAN;
-		_rover_position_setpoint_pub.publish(rover_position_setpoint);
-	}
+	rover_position_setpoint_s rover_position_setpoint{};
+	rover_position_setpoint.timestamp = hrt_absolute_time();
+	rover_position_setpoint.position_ned[0] = _curr_wp_ned(0);
+	rover_position_setpoint.position_ned[1] = _curr_wp_ned(1);
+	rover_position_setpoint.start_ned[0] = _prev_wp_ned(0);
+	rover_position_setpoint.start_ned[1] = _prev_wp_ned(1);
+	rover_position_setpoint.arrival_speed = autoArrivalSpeed(_cruising_speed, _min_speed, _acceptance_radius, _curr_wp_type,
+						_waypoint_transition_angle, _max_yaw_rate);
+	rover_position_setpoint.cruising_speed = autoCruisingSpeed(_cruising_speed, _min_speed, distance_to_prev_wp,
+			distance_to_curr_wp, _acceptance_radius, _prev_acceptance_radius, _waypoint_transition_angle,
+			_prev_waypoint_transition_angle, _max_yaw_rate);
+	rover_position_setpoint.yaw = NAN;
+	_rover_position_setpoint_pub.publish(rover_position_setpoint);
 }
 
 void AckermannPosControl::updateWaypointsAndAcceptanceRadius()
@@ -292,48 +275,42 @@ float AckermannPosControl::updateAcceptanceRadius(const float waypoint_transitio
 	return acceptance_radius;
 }
 
-float AckermannPosControl::calcSpeedSetpoint(const float cruising_speed, const float miss_speed_min,
-		const float distance_to_prev_wp, const float distance_to_curr_wp, const float acc_rad,
-		const float prev_acc_rad, const float max_decel, const float max_jerk, const int curr_wp_type,
-		const float waypoint_transition_angle, const float prev_waypoint_transition_angle, const float max_speed)
+float AckermannPosControl::autoArrivalSpeed(const float cruising_speed, const float miss_speed_min, const float acc_rad,
+		const int curr_wp_type, const float waypoint_transition_angle, const float max_yaw_rate)
+{
+	if (!PX4_ISFINITE(waypoint_transition_angle)
+	    || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND
+	    || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+		return 0.f; // Stop at the waypoint
+
+	} else {
+		const float turning_circle = acc_rad * tanf(waypoint_transition_angle / 2.f);
+		const float cornering_speed = max_yaw_rate * turning_circle;
+		return math::constrain(cornering_speed, miss_speed_min, cruising_speed); // Slow down for cornering
+	}
+}
+
+float AckermannPosControl::autoCruisingSpeed(const float cruising_speed, const float miss_speed_min,
+		const float distance_to_prev_wp, const float distance_to_curr_wp, const float acc_rad, const float prev_acc_rad,
+		const float waypoint_transition_angle, const float prev_waypoint_transition_angle, const float max_yaw_rate)
 {
 	// Catch improper values
 	if (miss_speed_min < -FLT_EPSILON  || miss_speed_min > cruising_speed) {
 		return cruising_speed;
 	}
 
-	// Upcoming stop
-	if (max_decel > FLT_EPSILON && max_jerk > FLT_EPSILON && (!PX4_ISFINITE(waypoint_transition_angle)
-			|| curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND
-			|| curr_wp_type == position_setpoint_s::SETPOINT_TYPE_IDLE)) {
-		const float straight_line_speed = math::trajectory::computeMaxSpeedFromDistance(max_jerk,
-						  max_decel, distance_to_curr_wp, 0.f);
-		return math::min(straight_line_speed, cruising_speed);
-	}
-
 	// Cornering slow down effect
 	if (distance_to_prev_wp <= prev_acc_rad && prev_acc_rad > FLT_EPSILON && PX4_ISFINITE(prev_waypoint_transition_angle)) {
 		const float turning_circle = prev_acc_rad * tanf(prev_waypoint_transition_angle / 2.f);
-		const float cornering_speed = _max_yaw_rate * turning_circle;
+		const float cornering_speed = max_yaw_rate * turning_circle;
 		return math::constrain(cornering_speed, miss_speed_min, cruising_speed);
 
 	}
 
 	if (distance_to_curr_wp <= acc_rad && acc_rad > FLT_EPSILON && PX4_ISFINITE(waypoint_transition_angle)) {
 		const float turning_circle = acc_rad * tanf(waypoint_transition_angle / 2.f);
-		const float cornering_speed = _max_yaw_rate * turning_circle;
+		const float cornering_speed = max_yaw_rate * turning_circle;
 		return math::constrain(cornering_speed, miss_speed_min, cruising_speed);
-
-	}
-
-	// Straight line speed
-	if (max_decel > FLT_EPSILON && max_jerk > FLT_EPSILON && acc_rad > FLT_EPSILON) {
-		const float turning_circle = acc_rad * tanf(waypoint_transition_angle / 2.f);
-		float cornering_speed = _max_yaw_rate * turning_circle;
-		cornering_speed = math::constrain(cornering_speed, miss_speed_min, cruising_speed);
-		const float straight_line_speed = math::trajectory::computeMaxSpeedFromDistance(max_jerk,
-						  max_decel, distance_to_curr_wp - acc_rad, cornering_speed);
-		return math::min(straight_line_speed, cruising_speed);
 
 	}
 

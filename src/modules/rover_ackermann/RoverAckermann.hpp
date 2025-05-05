@@ -98,9 +98,8 @@ private:
 
 	/**
 	 * @brief Translate trajectorySetpoint to roverSetpoints and publish them
-	 * @return True if actuator control needs to be handled by the module
 	 */
-	bool offboardControl();
+	void offboardControl();
 
 	/**
 	 * @brief Update the controllers
