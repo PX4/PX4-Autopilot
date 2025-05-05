@@ -58,17 +58,46 @@ namespace trajectory
  *
  * @return maximum speed
  */
-inline float computeMaxSpeedFromDistance(const float jerk, const float accel, const float braking_distance,
-		const float final_speed)
+inline float computeMaxSpeedFromDistance(float jerk,
+                                         float accel,
+                                         float x,
+                                         float v_f)
 {
-	auto sqr = [](float f) {return f * f;};
-	float b =  4.0f * sqr(accel) / jerk;
-	float c = - 2.0f * accel * braking_distance - sqr(final_speed);
-	float max_speed = 0.5f * (-b + sqrtf(sqr(b) - 4.0f * c));
+    auto sqr = [](float w){ return w*w; };
 
-	// don't slow down more than the end speed, even if the conservative accel ramp time requests it
-	return fmaxf(max_speed, final_speed);
+    // 1) linear term b = 2 * a^2 / j
+    float b = 2.0f * accel*accel / jerk;
+
+    // 2) constant term c = -2*a*x - v_f^2 - (a^4)/(3*j^2)
+    float  jerk2 = jerk*jerk;
+    float  a4    = accel*accel*accel*accel;
+    float  c     = -2.0f * accel * x
+                   - sqr(v_f)
+                   - (a4 / (3.0f * jerk2));
+
+    // 3) solve quadratic
+    float disc = b*b - 4.0f * c;
+    if (disc <= 0.0f) {
+        // no real solution → can’t brake from anything > v_f
+        return v_f;
+    }
+
+    float v_i = 0.5f * ( -b + sqrtf(disc) );
+
+    // 4) never suggest below your target end‐speed
+    return fmaxf(v_i, v_f);
 }
+// inline float computeMaxSpeedFromDistance(const float jerk, const float accel, const float braking_distance,
+// 		const float final_speed)
+// {
+// 	auto sqr = [](float f) {return f * f;};
+// 	float b =  4.0f * sqr(accel) / jerk;
+// 	float c = - 2.0f * accel * braking_distance - sqr(final_speed);
+// 	float max_speed = 0.5f * (-b + sqrtf(sqr(b) - 4.0f * c));
+
+// 	// don't slow down more than the end speed, even if the conservative accel ramp time requests it
+// 	return fmaxf(max_speed, final_speed);
+// }
 
 /* Compute the maximum tangential speed in a circle defined by two line segments of length "d"
  * forming a V shape, opened by an angle "alpha". The circle is tangent to the end of the
