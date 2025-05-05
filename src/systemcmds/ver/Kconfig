@@ -4,6 +4,15 @@ menuconfig SYSTEMCMDS_VER
 	---help---
 		Enable support for ver
 
+if SYSTEMCMDS_VER
+    config VER_GIT_DIFF
+        bool "Include Git diff"
+        default n
+        depends on SYSTEMCMDS_VER
+        help
+            Generate diff for config and list modified files in firmware.
+endif #SYSTEMCMDS_VER
+
 menuconfig USER_VER
 	bool "ver running as userspace module"
 	default n
