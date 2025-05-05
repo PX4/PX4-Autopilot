@@ -429,14 +429,10 @@ hrt_call_invoke()
 			break;
 		}
 
-		sq_rem(&call->link, &callout_queue);
 		//PX4_INFO("call pop");
 
 		/* save the intended deadline for periodic calls */
 		deadline = call->deadline;
-
-		/* zero the deadline, as the call has occurred */
-		call->deadline = 0;
 
 		/* invoke the callout (if there is one) */
 		if (call->callout) {
@@ -448,6 +444,11 @@ hrt_call_invoke()
 
 			hrt_lock();
 		}
+
+		/* zero the deadline, as the call has occurred */
+		call->deadline = 0;
+
+		sq_rem(&call->link, &callout_queue);
 
 		/* if the callout has a non-zero period, it has to be re-entered */
 		if (call->period != 0) {
