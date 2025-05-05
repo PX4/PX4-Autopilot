@@ -106,6 +106,7 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 		vehicle_control_mode.flag_control_allocation_enabled = true;
 		break;
 
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL_DR:
 	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 		vehicle_control_mode.flag_control_auto_enabled = true;
 		vehicle_control_mode.flag_control_climb_rate_enabled = true;
