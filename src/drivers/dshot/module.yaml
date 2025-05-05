@@ -1,6 +1,6 @@
 module_name: DShot Driver
 serial_config:
-    - command: dshot telemetry ${SERIAL_DEV}
+    - command: dshot telemetry -d ${SERIAL_DEV}
       port_config_param:
         name: DSHOT_TEL_CFG
         group: DShot
