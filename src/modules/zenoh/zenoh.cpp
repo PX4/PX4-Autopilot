@@ -113,7 +113,7 @@ int ZENOH::generate_rmw_zenoh_topic_keyexpr(const char *topic, const uint8_t *ri
 	if (type_name) {
 		strcpy(type, type_name);
 		toCamelCase(type); // Convert uORB type to camel case
-		return snprintf(keyexpr, KEYEXPR_SIZE, "%" PRId32 "/%s/"
+		return snprintf(keyexpr, KEYEXPR_SIZE, "%" PRId32 "%s/"
 				KEYEXPR_MSG_NAME "%s_/RIHS01_"
 				"%02x%02x%02x%02x%02x%02x%02x%02x"
 				"%02x%02x%02x%02x%02x%02x%02x%02x"
@@ -156,7 +156,7 @@ int ZENOH::generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const c
 	return snprintf(keyexpr, KEYEXPR_SIZE,
 			"@ros2_lv/%" PRId32 "/"
 			"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x/"
-			"0/11/%s/%%/%%/px4_%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x/%%%s/"
+			"0/11/%s/%%/%%/px4_%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x/%s/"
 			KEYEXPR_MSG_NAME "%s_/RIHS01_"
 			"%02x%02x%02x%02x%02x%02x%02x%02x"
 			"%02x%02x%02x%02x%02x%02x%02x%02x"
@@ -330,7 +330,6 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 
 		for (i = 0; i < _pub_count; i++) {
 			if (_config.getPublisherMapping(topic, type)) {
-				printf("Index %i ret %i Topic %s Type %s", i, ret, topic, type);
 				_zenoh_publishers[i] = genPublisher(type);
 				const uint8_t *rihs_hash = getRIHS01_Hash(type);
 
