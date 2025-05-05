@@ -51,8 +51,10 @@
 
 
 const char *default_net_config = Z_CONFIG_MODE_DEFAULT ";" CONFIG_ZENOH_DEFAULT_LOCATOR;
-const char *default_pub_config = "";
-const char *default_sub_config = ""; //TODO maybe use YAML
+
+// Default config generated from default_topics.c.em and dds_topics.yaml
+extern const char *default_pub_config;
+extern const char *default_sub_config;
 
 
 Zenoh_Config::Zenoh_Config()
@@ -285,7 +287,6 @@ int Zenoh_Config::getPubSubMapping(char *topic, char *type, const char *filename
 
 	if (fp_mapping) {
 		while (fgets(buffer, MAX_LINE_SIZE, fp_mapping) != NULL) {
-			printf("getPubSubMapping %s", buffer);
 
 			if (buffer[0] != '\n') {
 				const char *config_type = get_csv_field(buffer, 2);

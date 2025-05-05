@@ -74,6 +74,19 @@ if(CONFIG_ZENOH_SERIAL)
     target_compile_options(zenohpico_static PRIVATE -DZ_LINK_SERIAL)
 endif()
 
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/default_topics.c
+COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../uxrce_dds_client/generate_dds_topics.py
+	--client-outdir ${CMAKE_CURRENT_BINARY_DIR}
+	--dds-topics-file ${CMAKE_CURRENT_SOURCE_DIR}/../uxrce_dds_client/dds_topics.yaml
+	--template_file ${CMAKE_CURRENT_SOURCE_DIR}/default_topics.c.em
+DEPENDS
+	${CMAKE_CURRENT_SOURCE_DIR}/../uxrce_dds_client/generate_dds_topics.py
+	${CMAKE_CURRENT_SOURCE_DIR}/../uxrce_dds_client/dds_topics.yaml
+	${CMAKE_CURRENT_SOURCE_DIR}/default_topics.c.em
+COMMENT "Generating Default config"
+)
+add_custom_target(default_topics_config DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/default_topics.c)
+
 
 px4_add_module(
 		MODULE modules__zenoh
@@ -83,6 +96,7 @@ px4_add_module(
 		zenoh_config.cpp
 		publishers/zenoh_publisher.cpp
 		subscribers/zenoh_subscriber.cpp
+		${CMAKE_CURRENT_BINARY_DIR}/default_topics.c
 		MODULE_CONFIG
 			module.yaml
 		DEPENDS
@@ -92,6 +106,7 @@ px4_add_module(
 			zenohpico_static
 			zenoh_topics
 			git_zenoh-pico
+			default_topics_config
 		INCLUDES
 			${PX4_BINARY_DIR}/msg
 			zenoh-pico/include
