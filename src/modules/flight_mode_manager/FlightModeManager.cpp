@@ -152,7 +152,9 @@ void FlightModeManager::start_flight_task()
 	bool found_some_task = false;
 	bool matching_task_running = true;
 	bool task_failure = false;
+
 	const bool nav_state_descend = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND);
+	const bool nav_state_rtl_dr = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL_DR);
 
 	// Follow me
 	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {
@@ -187,7 +189,8 @@ void FlightModeManager::start_flight_task()
 
 	// Navigator interface for autonomous modes
 	if (_vehicle_control_mode_sub.get().flag_control_auto_enabled
-	    && !nav_state_descend) {
+	    && !nav_state_descend
+	    && !nav_state_rtl_dr) {
 		found_some_task = true;
 
 		if (switchTask(FlightTaskIndex::Auto) != FlightTaskError::NoError) {
@@ -247,6 +250,13 @@ void FlightModeManager::start_flight_task()
 
 		task_failure = (error != FlightTaskError::NoError);
 		matching_task_running = matching_task_running && !task_failure;
+	}
+
+	// Dead-Reckoning Return
+	if (nav_state_rtl_dr) {
+		found_some_task = true;
+		PX4_INFO("Going into Dead-Reckoning Return mode");
+		task_failure = false;
 	}
 
 	// Emergency descend
