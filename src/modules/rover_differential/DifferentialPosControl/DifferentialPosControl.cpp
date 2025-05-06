@@ -37,13 +37,9 @@ using namespace time_literals;
 
 DifferentialPosControl::DifferentialPosControl(ModuleParams *parent) : ModuleParams(parent)
 {
-	_rover_velocity_setpoint_pub.advertise();
-	_rover_position_setpoint_pub.advertise();
 	_pure_pursuit_status_pub.advertise();
-
-	// Initially set to NaN to indicate that the rover has no position setpoint
-	_rover_position_setpoint.position_ned[0] = NAN;
-	_rover_position_setpoint.position_ned[1] = NAN;
+	_rover_position_setpoint_pub.advertise();
+	_rover_velocity_setpoint_pub.advertise();
 
 	updateParams();
 }
@@ -65,6 +61,13 @@ void DifferentialPosControl::updatePosControl()
 	if (_vehicle_control_mode.flag_control_position_enabled && _vehicle_control_mode.flag_armed && runSanityChecks()) {
 		if (_vehicle_control_mode.flag_control_offboard_enabled) {
 			generatePositionSetpoint();
+
+		} else 	if (_vehicle_control_mode.flag_control_manual_enabled && _vehicle_control_mode.flag_control_position_enabled) {
+			manualPositionMode();
+
+		} else if (_vehicle_control_mode.flag_control_auto_enabled) {
+			autoPositionMode();
+
 		}
 
 		generateVelocitySetpoint();
@@ -120,10 +123,13 @@ void DifferentialPosControl::generatePositionSetpoint()
 
 	// Translate trajectory setpoint to rover position setpoint
 	rover_position_setpoint_s rover_position_setpoint{};
-	rover_position_setpoint.timestamp = _timestamp;
+	rover_position_setpoint.timestamp = hrt_absolute_time();
 	rover_position_setpoint.position_ned[0] = trajectory_setpoint.position[0];
 	rover_position_setpoint.position_ned[1] = trajectory_setpoint.position[1];
-	rover_position_setpoint.cruising_speed = _param_ro_speed_limit.get();
+	rover_position_setpoint.start_ned[0] = NAN;
+	rover_position_setpoint.start_ned[1] = NAN;
+	rover_position_setpoint.cruising_speed = NAN;
+	rover_position_setpoint.arrival_speed = NAN;
 	rover_position_setpoint.yaw = NAN;
 	_rover_position_setpoint_pub.publish(rover_position_setpoint);
 
@@ -131,15 +137,50 @@ void DifferentialPosControl::generatePositionSetpoint()
 
 void DifferentialPosControl::generateVelocitySetpoint()
 {
-	if (_vehicle_control_mode.flag_control_manual_enabled && _vehicle_control_mode.flag_control_position_enabled) {
-		manualPositionMode();
+	if (_rover_position_setpoint_sub.updated()) {
+		_rover_position_setpoint_sub.copy(&_rover_position_setpoint);
+		_start_ned = Vector2f(_rover_position_setpoint.start_ned[0], _rover_position_setpoint.start_ned[1]);
+		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
+	}
 
-	} else if (_vehicle_control_mode.flag_control_auto_enabled) {
-		autoPositionMode();
+	const Vector2f target_waypoint_ned(_rover_position_setpoint.position_ned[0], _rover_position_setpoint.position_ned[1]);
+	float distance_to_target = target_waypoint_ned.isAllFinite() ? (target_waypoint_ned - _curr_pos_ned).norm() : NAN;
 
-	} else if (_rover_position_setpoint_sub.copy(&_rover_position_setpoint)
-		   && PX4_ISFINITE(_rover_position_setpoint.position_ned[0]) && PX4_ISFINITE(_rover_position_setpoint.position_ned[1])) {
-		goToPositionMode();
+	if (PX4_ISFINITE(distance_to_target) && distance_to_target > _param_nav_acc_rad.get()) {
+
+		float arrival_speed = PX4_ISFINITE(_rover_position_setpoint.arrival_speed) ? _rover_position_setpoint.arrival_speed :
+				      0.f;
+		const float distance = arrival_speed > 0.f + FLT_EPSILON ? distance_to_target - _param_nav_acc_rad.get() :
+				       distance_to_target;
+		float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
+				       _param_ro_decel_limit.get(), distance, fabsf(arrival_speed));
+		speed_setpoint = math::min(speed_setpoint, _param_ro_speed_limit.get());
+
+		if (PX4_ISFINITE(_rover_position_setpoint.cruising_speed)) {
+			speed_setpoint = sign(_rover_position_setpoint.cruising_speed) * math::min(speed_setpoint,
+					 fabsf(_rover_position_setpoint.cruising_speed));
+		}
+
+		pure_pursuit_status_s pure_pursuit_status{};
+		pure_pursuit_status.timestamp = _timestamp;
+
+		const float yaw_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
+					   _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _start_ned,
+					   _curr_pos_ned, fabsf(speed_setpoint));
+		_pure_pursuit_status_pub.publish(pure_pursuit_status);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = speed_setpoint;
+		rover_velocity_setpoint.bearing = speed_setpoint > -FLT_EPSILON ? yaw_setpoint : matrix::wrap_pi(
+				yaw_setpoint + M_PI_F);
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
+
+	} else {
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = _timestamp;
+		rover_velocity_setpoint.speed = 0.f;
+		rover_velocity_setpoint.bearing = _vehicle_yaw;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 	}
 
 }
@@ -156,29 +197,28 @@ void DifferentialPosControl::manualPositionMode()
 	const float bearing_delta = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
 				    _param_ro_yaw_stick_dz.get()), -1.f, 1.f, -bearing_scaling, bearing_scaling);
 
-	if (fabsf(speed_setpoint) < FLT_EPSILON) { // Turn on spot
-		_course_control = false;
-		const float bearing_setpoint = matrix::wrap_pi(_vehicle_yaw + bearing_delta);
-		rover_velocity_setpoint_s rover_velocity_setpoint{};
-		rover_velocity_setpoint.timestamp = _timestamp;
-		rover_velocity_setpoint.speed = 0.f;
-		rover_velocity_setpoint.bearing = bearing_setpoint;
-		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
-
-	} else if (fabsf(bearing_delta) > FLT_EPSILON) { // Closed loop yaw rate control
-		_course_control = false;
-		const float bearing_setpoint = matrix::wrap_pi(_vehicle_yaw + bearing_delta);
-		rover_velocity_setpoint_s rover_velocity_setpoint{};
-		rover_velocity_setpoint.timestamp = _timestamp;
-		rover_velocity_setpoint.speed = speed_setpoint;
-		rover_velocity_setpoint.bearing = bearing_setpoint;
-		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
+	if (fabsf(bearing_delta) > FLT_EPSILON || fabsf(speed_setpoint) < FLT_EPSILON) {
+		_pos_ctl_course_direction = Vector2f(NAN, NAN);
+		// Construct a 'target waypoint' for course control s.t. it is never within the maximum lookahead of the rover
+		const float yaw_setpoint = matrix::wrap_pi(_vehicle_yaw + bearing_delta);
+		const Vector2f pos_ctl_course_direction = Vector2f(cos(yaw_setpoint), sin(yaw_setpoint));
+		const Vector2f target_waypoint_ned = _curr_pos_ned + sign(speed_setpoint) * _param_pp_lookahd_max.get() *
+						     pos_ctl_course_direction;
+		rover_position_setpoint_s rover_position_setpoint{};
+		rover_position_setpoint.timestamp = hrt_absolute_time();
+		rover_position_setpoint.position_ned[0] = target_waypoint_ned(0);
+		rover_position_setpoint.position_ned[1] = target_waypoint_ned(1);
+		rover_position_setpoint.start_ned[0] = NAN;
+		rover_position_setpoint.start_ned[1] = NAN;
+		rover_position_setpoint.arrival_speed = NAN;
+		rover_position_setpoint.cruising_speed = speed_setpoint;
+		rover_position_setpoint.yaw = NAN;
+		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 
 	} else { // Course control if the steering input is zero (keep driving on a straight line)
-		if (!_course_control) {
+		if (!_pos_ctl_course_direction.isAllFinite()) {
 			_pos_ctl_course_direction = Vector2f(cos(_vehicle_yaw), sin(_vehicle_yaw));
 			_pos_ctl_start_position_ned = _curr_pos_ned;
-			_course_control = true;
 		}
 
 		// Construct a 'target waypoint' for course control s.t. it is never within the maximum lookahead of the rover
@@ -186,18 +226,16 @@ void DifferentialPosControl::manualPositionMode()
 		const float vector_scaling = fabsf(start_to_curr_pos * _pos_ctl_course_direction) + _param_pp_lookahd_max.get();
 		const Vector2f target_waypoint_ned = _pos_ctl_start_position_ned + sign(speed_setpoint) *
 						     vector_scaling * _pos_ctl_course_direction;
-		pure_pursuit_status_s pure_pursuit_status{};
-		pure_pursuit_status.timestamp = _timestamp;
-		const float bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
-					       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _pos_ctl_start_position_ned,
-					       _curr_pos_ned, fabsf(speed_setpoint));
-		_pure_pursuit_status_pub.publish(pure_pursuit_status);
-		rover_velocity_setpoint_s rover_velocity_setpoint{};
-		rover_velocity_setpoint.timestamp = _timestamp;
-		rover_velocity_setpoint.speed = speed_setpoint;
-		rover_velocity_setpoint.bearing = speed_setpoint > -FLT_EPSILON ? bearing_setpoint : matrix::wrap_pi(
-				bearing_setpoint + M_PI_F);
-		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
+		rover_position_setpoint_s rover_position_setpoint{};
+		rover_position_setpoint.timestamp = hrt_absolute_time();
+		rover_position_setpoint.position_ned[0] = target_waypoint_ned(0);
+		rover_position_setpoint.position_ned[1] = target_waypoint_ned(1);
+		rover_position_setpoint.start_ned[0] = _pos_ctl_start_position_ned(0);
+		rover_position_setpoint.start_ned[1] = _pos_ctl_start_position_ned(1);
+		rover_position_setpoint.arrival_speed = NAN;
+		rover_position_setpoint.cruising_speed = speed_setpoint;
+		rover_position_setpoint.yaw = NAN;
+		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 	}
 }
 
@@ -216,105 +254,39 @@ void DifferentialPosControl::autoPositionMode()
 		// Waypoint cruising speed
 		_cruising_speed = position_setpoint_triplet.current.cruising_speed > 0.f ? math::constrain(
 					  position_setpoint_triplet.current.cruising_speed, 0.f, _param_ro_speed_limit.get()) : _param_ro_speed_limit.get();
+
+		rover_position_setpoint_s rover_position_setpoint{};
+		rover_position_setpoint.timestamp = hrt_absolute_time();
+		rover_position_setpoint.position_ned[0] = _curr_wp_ned(0);
+		rover_position_setpoint.position_ned[1] = _curr_wp_ned(1);
+		rover_position_setpoint.start_ned[0] = _prev_wp_ned(0);
+		rover_position_setpoint.start_ned[1] = _prev_wp_ned(1);
+		rover_position_setpoint.arrival_speed = autoArrivalSpeed(_cruising_speed, _waypoint_transition_angle,
+							_param_ro_speed_limit.get(), _param_rd_trans_drv_trn.get(), _param_rd_miss_spd_gain.get(), _curr_wp_type);
+		rover_position_setpoint.cruising_speed = _cruising_speed;
+		rover_position_setpoint.yaw = NAN;
+		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 	}
-
-	// Distances to waypoints
-	const float distance_to_curr_wp = sqrt(powf(_curr_pos_ned(0) - _curr_wp_ned(0),
-					       2) + powf(_curr_pos_ned(1) - _curr_wp_ned(1), 2));
-
-	// Check stopping conditions
-	bool auto_stop{false};
-
-	if (_curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND
-	    || _curr_wp_type == position_setpoint_s::SETPOINT_TYPE_IDLE
-	    || !_next_wp_ned.isAllFinite()) { // Check stopping conditions
-		auto_stop = distance_to_curr_wp < _param_nav_acc_rad.get();
-	}
-
-	if (auto_stop) {
-		rover_velocity_setpoint_s rover_velocity_setpoint{};
-		rover_velocity_setpoint.timestamp = _timestamp;
-		rover_velocity_setpoint.speed = 0.f;
-		rover_velocity_setpoint.bearing = _vehicle_yaw;
-		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
-
-	} else {
-		const float speed_setpoint = calcSpeedSetpoint(_cruising_speed, distance_to_curr_wp, _param_ro_decel_limit.get(),
-					     _param_ro_jerk_limit.get(), _waypoint_transition_angle, _param_ro_speed_limit.get(), _param_rd_trans_drv_trn.get(),
-					     _param_rd_miss_spd_gain.get(), _curr_wp_type);
-		pure_pursuit_status_s pure_pursuit_status{};
-		pure_pursuit_status.timestamp = _timestamp;
-		const float bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
-					       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _curr_wp_ned, _prev_wp_ned, _curr_pos_ned,
-					       fabsf(speed_setpoint));
-		_pure_pursuit_status_pub.publish(pure_pursuit_status);
-		rover_velocity_setpoint_s rover_velocity_setpoint{};
-		rover_velocity_setpoint.timestamp = _timestamp;
-		rover_velocity_setpoint.speed = speed_setpoint;
-		rover_velocity_setpoint.bearing = bearing_setpoint;
-		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
-	}
-
 }
 
-float DifferentialPosControl::calcSpeedSetpoint(const float cruising_speed, const float distance_to_curr_wp,
-		const float max_decel, const float max_jerk, const float waypoint_transition_angle, const float max_speed,
-		const float trans_drv_trn, const float miss_spd_gain, int curr_wp_type)
+float DifferentialPosControl::autoArrivalSpeed(const float cruising_speed, const float waypoint_transition_angle,
+		const float max_speed, const float trans_drv_trn, const float miss_spd_gain, int curr_wp_type)
 {
 	// Upcoming stop
-	if (max_decel > FLT_EPSILON && max_jerk > FLT_EPSILON && (!PX4_ISFINITE(waypoint_transition_angle)
-			|| _waypoint_transition_angle < M_PI_F - trans_drv_trn || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND
-			|| curr_wp_type == position_setpoint_s::SETPOINT_TYPE_IDLE)) {
-		const float straight_line_speed = math::trajectory::computeMaxSpeedFromDistance(max_jerk,
-						  max_decel, distance_to_curr_wp, 0.f);
-		return math::min(straight_line_speed, cruising_speed);
+	if (!PX4_ISFINITE(waypoint_transition_angle) || waypoint_transition_angle < M_PI_F - trans_drv_trn
+	    || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+		return 0.f;
 	}
 
 	// Straight line speed
-	if (max_jerk > FLT_EPSILON && max_decel > FLT_EPSILON && miss_spd_gain > FLT_EPSILON) {
-		const float speed_reduction = math::constrain(miss_spd_gain * math::interpolate(M_PI_F - _waypoint_transition_angle,
+	if (miss_spd_gain > FLT_EPSILON) {
+		const float speed_reduction = math::constrain(miss_spd_gain * math::interpolate(M_PI_F - waypoint_transition_angle,
 					      0.f, M_PI_F, 0.f, 1.f), 0.f, 1.f);
-		const float straight_line_speed = math::trajectory::computeMaxSpeedFromDistance(max_jerk, max_decel,
-						  distance_to_curr_wp,
-						  max_speed * (1.f - speed_reduction));
-		return math::min(straight_line_speed, cruising_speed);
+		return max_speed * (1.f - speed_reduction);
 	}
 
 	return cruising_speed; // Fallthrough
 
-}
-
-void DifferentialPosControl::goToPositionMode()
-{
-	const Vector2f target_waypoint_ned(_rover_position_setpoint.position_ned[0], _rover_position_setpoint.position_ned[1]);
-	const float distance_to_target = (target_waypoint_ned - _curr_pos_ned).norm();
-
-	if (distance_to_target > _param_nav_acc_rad.get()) {
-		float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
-				       _param_ro_decel_limit.get(), distance_to_target, 0.f);
-		const float max_speed = PX4_ISFINITE(_rover_position_setpoint.cruising_speed) ?
-					_rover_position_setpoint.cruising_speed :
-					_param_ro_speed_limit.get();
-		speed_setpoint = math::min(speed_setpoint, max_speed);
-		pure_pursuit_status_s pure_pursuit_status{};
-		pure_pursuit_status.timestamp = _timestamp;
-		const float bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
-					       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _curr_pos_ned,
-					       _curr_pos_ned, fabsf(speed_setpoint));
-		_pure_pursuit_status_pub.publish(pure_pursuit_status);
-		rover_velocity_setpoint_s rover_velocity_setpoint{};
-		rover_velocity_setpoint.timestamp = _timestamp;
-		rover_velocity_setpoint.speed = speed_setpoint;
-		rover_velocity_setpoint.bearing = bearing_setpoint;
-		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
-
-	} else {
-		rover_velocity_setpoint_s rover_velocity_setpoint{};
-		rover_velocity_setpoint.timestamp = _timestamp;
-		rover_velocity_setpoint.speed = 0.f;
-		rover_velocity_setpoint.bearing = _vehicle_yaw;
-		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
-	}
 }
 
 bool DifferentialPosControl::runSanityChecks()

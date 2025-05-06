@@ -50,7 +50,6 @@
 #include <uORB/topics/rover_velocity_setpoint.h>
 #include <uORB/topics/pure_pursuit_status.h>
 #include <uORB/topics/rover_position_setpoint.h>
-#include <uORB/topics/rover_velocity_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/trajectory_setpoint.h>
@@ -98,35 +97,24 @@ private:
 	void generatePositionSetpoint();
 
 	/**
-	 * @brief Generate and publish roverVelocitySetpoint from manualControlSetpoint (Position Mode) or
-	 * 	  positionSetpointTriplet (Auto Mode) or roverPositionSetpoint.
+	 * @brief Generate and publish roverVelocitySetpoint from roverPositionSetpoint.
 	 */
 	void generateVelocitySetpoint();
 
 	/**
-	 * @brief Generate and publish roverVelocitySetpoint from manualControlSetpoint.
+	 * @brief Generate and publish roverPositionSetpoint from manualControlSetpoint.
 	 */
 	void manualPositionMode();
 
 	/**
-	 * @brief Generate and publish roverVelocitySetpoint from positionSetpointTriplet.
+	 * @brief Generate and publish roverPositionSetpoint from positionSetpointTriplet.
 	 */
 	void autoPositionMode();
 
 	/**
-	 * @brief Generate and publish roverVelocitySetpoint from roverPositionSetpoint.
-	 */
-	void goToPositionMode();
-
-	/**
-	 * @brief Calculate the speed setpoint. During waypoint transition the speed is restricted to
+	 * @brief Calculate the speed at which the rover should arrive at the current waypoint. During waypoint transition the speed is restricted to
 	 * Maximum_speed * (1 - normalized_transition_angle * RM_MISS_VEL_GAIN).
-	 * On straight lines it is based on a speed trajectory such that the rover will arrive at the next waypoint transition
-	 * with the desired waypoiny transition speed under consideration of the maximum deceleration and jerk.
 	 * @param cruising_speed Cruising speed [m/s].
-	 * @param distance_to_curr_wp Distance to the current waypoint [m].
-	 * @param max_decel Maximum allowed deceleration [m/s^2].
-	 * @param max_jerk Maximum allowed jerk [m/s^3].
 	 * @param waypoint_transition_angle Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
 	 * @param max_speed Maximum speed setpoint [m/s]
 	 * @param trans_drv_trn Heading error threshold to switch from driving to turning [rad].
@@ -134,9 +122,8 @@ private:
 	 * @param curr_wp_type Type of the current waypoint.
 	 * @return Speed setpoint [m/s].
 	 */
-	float calcSpeedSetpoint(float cruising_speed, float distance_to_curr_wp, float max_decel, float max_jerk,
-				float waypoint_transition_angle, float max_speed, float trans_drv_trn, float miss_spd_gain, int curr_wp_type);
-
+	float autoArrivalSpeed(const float cruising_speed, const float waypoint_transition_angle, const float max_speed,
+			       const float trans_drv_trn, const float miss_spd_gain, int curr_wp_type);
 
 	/**
 	 * @brief Check if the necessary parameters are set.
@@ -160,7 +147,6 @@ private:
 
 
 	// uORB publications
-	uORB::Publication<rover_velocity_status_s>   _rover_velocity_status_pub{ORB_ID(rover_velocity_status)};
 	uORB::Publication<rover_velocity_setpoint_s> _rover_velocity_setpoint_pub{ORB_ID(rover_velocity_setpoint)};
 	uORB::Publication<pure_pursuit_status_s>     _pure_pursuit_status_pub{ORB_ID(pure_pursuit_status)};
 	uORB::Publication<rover_position_setpoint_s> _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
@@ -169,6 +155,7 @@ private:
 	hrt_abstime _timestamp{0};
 	Quatf _vehicle_attitude_quaternion{};
 	Vector2f _curr_pos_ned{};
+	Vector2f _start_ned{};
 	Vector2f _pos_ctl_course_direction{};
 	Vector2f _pos_ctl_start_position_ned{};
 	float _vehicle_speed{0.f}; // [m/s] Positiv: Forwards, Negativ: Backwards
@@ -176,7 +163,6 @@ private:
 	float _max_yaw_rate{0.f};
 	float _dt{0.f};
 	int _curr_wp_type{position_setpoint_s::SETPOINT_TYPE_IDLE};
-	bool _course_control{false}; // Indicates if the rover is doing course control in manual position mode.
 	bool _prev_param_check_passed{true};
 
 	// Waypoint variables
