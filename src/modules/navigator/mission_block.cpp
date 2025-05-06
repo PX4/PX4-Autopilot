@@ -736,11 +736,21 @@ MissionBlock::setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s 
 {
 	setLoiterItemCommonFields(item);
 
-	_navigator->preproject_stop_point(item->lat, item->lon);
+	auto global = _navigator->get_global_position();
 
-	item->altitude = _navigator->get_global_position()->alt;
-	item->loiter_radius = _navigator->get_loiter_radius();
-	item->yaw = NAN;
+	if (global->lat_lon_valid && global->alt_valid) {
+		_navigator->preproject_stop_point(item->lat, item->lon);
+		item->altitude = global->alt;
+		item->loiter_radius = _navigator->get_loiter_radius();
+		item->yaw = NAN;
+
+	} else {
+		item->lat = (double)NAN;
+		item->lon = (double)NAN;
+		item->altitude = NAN;
+		item->loiter_radius = NAN;
+		item->yaw = NAN;
+	}
 }
 
 void
