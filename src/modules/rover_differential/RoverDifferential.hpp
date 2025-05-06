@@ -40,22 +40,13 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-// Libraries
-#include <lib/rover_control/RoverControl.hpp>
-#include <lib/slew_rate/SlewRate.hpp>
-
 // uORB includes
 #include <uORB/Subscription.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/rover_steering_setpoint.h>
-#include <uORB/topics/rover_throttle_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/manual_control_setpoint.h>
 
 // Local includes
+#include "DifferentialActControl/DifferentialActControl.hpp"
 #include "DifferentialRateControl/DifferentialRateControl.hpp"
 #include "DifferentialAttControl/DifferentialAttControl.hpp"
 #include "DifferentialVelControl/DifferentialVelControl.hpp"
@@ -91,59 +82,15 @@ protected:
 private:
 	void Run() override;
 
-	/**
-	 * @brief Generate and publish roverSteeringSetpoint and roverThrottleSetpoint from manualControlSetpoint (Manual Mode).
-	 */
-	void generateSteeringAndThrottleSetpoint();
-
-	/**
-	 * @brief Generate and publish actuatorMotors setpoints from roverThrottleSetpoint/roverSteeringSetpoint.
-	 */
-	void generateActuatorSetpoint();
-
-	/**
-	 * @brief Compute normalized motor commands based on normalized setpoints.
-	 * @param throttle_body_x Normalized speed in body x direction [-1, 1].
-	 * @param speed_diff_normalized Speed difference between left and right wheels [-1, 1].
-	 * @return Motor speeds for the right and left motors [-1, 1].
-	 */
-	Vector2f computeInverseKinematics(float throttle_body_x, float speed_diff_normalized);
-
 	// uORB subscriptions
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription _rover_steering_setpoint_sub{ORB_ID(rover_steering_setpoint)};
-	uORB::Subscription _rover_throttle_setpoint_sub{ORB_ID(rover_throttle_setpoint)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 	vehicle_control_mode_s _vehicle_control_mode{};
-	rover_steering_setpoint_s _rover_steering_setpoint{};
-	rover_throttle_setpoint_s _rover_throttle_setpoint{};
-
-	// uORB publications
-	uORB::PublicationMulti<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
-	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
-	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
 
 	// Class instances
+	DifferentialActControl _differential_act_control{this};
 	DifferentialRateControl _differential_rate_control{this};
 	DifferentialAttControl _differential_att_control{this};
 	DifferentialVelControl _differential_vel_control{this};
 	DifferentialPosControl _differential_pos_control{this};
-
-	// Variables
-	hrt_abstime _timestamp{0};
-	float _dt{0.f};
-	float _current_throttle_body_x{0.f};
-
-	// Controllers
-	SlewRate<float> _throttle_body_x_setpoint{0.f};
-
-	// Parameters
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::CA_R_REV>)           _param_r_rev,
-		(ParamFloat<px4::params::RO_ACCEL_LIM>)     _param_ro_accel_limit,
-		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_limit,
-		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed
-	)
 };

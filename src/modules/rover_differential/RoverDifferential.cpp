@@ -39,8 +39,6 @@ RoverDifferential::RoverDifferential() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
-	_rover_throttle_setpoint_pub.advertise();
-	_rover_steering_setpoint_pub.advertise();
 	updateParams();
 }
 
@@ -53,10 +51,6 @@ bool RoverDifferential::init()
 void RoverDifferential::updateParams()
 {
 	ModuleParams::updateParams();
-
-	if (_param_ro_accel_limit.get() > FLT_EPSILON && _param_ro_max_thr_speed.get() > FLT_EPSILON) {
-		_throttle_body_x_setpoint.setSlewRate(_param_ro_accel_limit.get() / _param_ro_max_thr_speed.get());
-	}
 }
 
 void RoverDifferential::Run()
@@ -64,10 +58,6 @@ void RoverDifferential::Run()
 	if (_parameter_update_sub.updated()) {
 		updateParams();
 	}
-
-	const hrt_abstime timestamp_prev = _timestamp;
-	_timestamp = hrt_absolute_time();
-	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
 
 	_differential_pos_control.updatePosControl();
 	_differential_vel_control.updateVelControl();
@@ -83,72 +73,16 @@ void RoverDifferential::Run()
 					      && !_vehicle_control_mode.flag_control_rates_enabled;
 
 	if (full_manual_mode_enabled) { // Manual mode
-		generateSteeringAndThrottleSetpoint();
+		_differential_act_control.manualManualMode();
 	}
 
 	if (_vehicle_control_mode.flag_armed) {
-		generateActuatorSetpoint();
+		_differential_act_control.updateActControl();
 
+	} else {
+		_differential_act_control.stopVehicle();
 	}
 
-}
-
-void RoverDifferential::generateSteeringAndThrottleSetpoint()
-{
-	manual_control_setpoint_s manual_control_setpoint{};
-
-	if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-		rover_steering_setpoint_s rover_steering_setpoint{};
-		rover_steering_setpoint.timestamp = _timestamp;
-		rover_steering_setpoint.normalized_speed_diff = manual_control_setpoint.roll;
-		_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
-		rover_throttle_setpoint_s rover_throttle_setpoint{};
-		rover_throttle_setpoint.timestamp = _timestamp;
-		rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
-		rover_throttle_setpoint.throttle_body_y = 0.f;
-		_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
-	}
-}
-
-void RoverDifferential::generateActuatorSetpoint()
-{
-	if (_rover_throttle_setpoint_sub.updated()) {
-		_rover_throttle_setpoint_sub.copy(&_rover_throttle_setpoint);
-	}
-
-	if (_actuator_motors_sub.updated()) {
-		actuator_motors_s actuator_motors{};
-		_actuator_motors_sub.copy(&actuator_motors);
-		_current_throttle_body_x = (actuator_motors.control[0] + actuator_motors.control[1]) / 2.f;
-	}
-
-	if (_rover_steering_setpoint_sub.updated()) {
-		_rover_steering_setpoint_sub.copy(&_rover_steering_setpoint);
-	}
-
-	const float throttle_body_x = RoverControl::throttleControl(_throttle_body_x_setpoint,
-				      _rover_throttle_setpoint.throttle_body_x, _current_throttle_body_x, _param_ro_accel_limit.get(),
-				      _param_ro_decel_limit.get(), _param_ro_max_thr_speed.get(), _dt);
-	actuator_motors_s actuator_motors{};
-	actuator_motors.reversible_flags = _param_r_rev.get();
-	computeInverseKinematics(throttle_body_x,
-				 _rover_steering_setpoint.normalized_speed_diff).copyTo(actuator_motors.control);
-	actuator_motors.timestamp = _timestamp;
-	_actuator_motors_pub.publish(actuator_motors);
-}
-
-Vector2f RoverDifferential::computeInverseKinematics(float throttle_body_x, const float speed_diff_normalized)
-{
-	float max_motor_command = fabsf(throttle_body_x) + fabsf(speed_diff_normalized);
-
-	if (max_motor_command > 1.0f) { // Prioritize yaw rate if a normalized motor command exceeds limit of 1
-		float excess = fabsf(max_motor_command - 1.0f);
-		throttle_body_x -= sign(throttle_body_x) * excess;
-	}
-
-	// Calculate the left and right wheel speeds
-	return Vector2f(throttle_body_x - speed_diff_normalized,
-			throttle_body_x + speed_diff_normalized);
 }
 
 int RoverDifferential::task_spawn(int argc, char *argv[])
