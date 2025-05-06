@@ -40,6 +40,9 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
+// Library includes
+#include <math.h>
+
 // uORB includes
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
@@ -51,6 +54,9 @@
 #include "DifferentialAttControl/DifferentialAttControl.hpp"
 #include "DifferentialVelControl/DifferentialVelControl.hpp"
 #include "DifferentialPosControl/DifferentialPosControl.hpp"
+#include "DifferentialDriveModes/DifferentialAutoMode/DifferentialAutoMode.hpp"
+#include "DifferentialDriveModes/DifferentialManualMode/DifferentialManualMode.hpp"
+#include "DifferentialDriveModes/DifferentialOffboardMode/DifferentialOffboardMode.hpp"
 
 class RoverDifferential : public ModuleBase<RoverDifferential>, public ModuleParams,
 	public px4::ScheduledWorkItem
@@ -82,15 +88,46 @@ protected:
 private:
 	void Run() override;
 
+	/**
+	 * @brief Handle manual control
+	 */
+	void manualControl();
+
+	/**
+	 * @brief Update the controllers
+	 */
+	void updateControllers();
+
+	/**
+	 * @brief Check proper parameter setup for the controllers
+	 *
+	 * Modifies:
+	 *
+	 *   - _sanity_checks_passed: true if checks for all active controllers pass
+	 */
+	void runSanityChecks();
+
+	/**
+	 * @brief Reset controllers and manual mode variables.
+	 */
+	void reset();
+
 	// uORB subscriptions
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	vehicle_control_mode_s _vehicle_control_mode{};
 
 	// Class instances
-	DifferentialActControl _differential_act_control{this};
-	DifferentialRateControl _differential_rate_control{this};
-	DifferentialAttControl _differential_att_control{this};
-	DifferentialVelControl _differential_vel_control{this};
-	DifferentialPosControl _differential_pos_control{this};
+	DifferentialActControl   _differential_act_control{this};
+	DifferentialRateControl  _differential_rate_control{this};
+	DifferentialAttControl   _differential_att_control{this};
+	DifferentialVelControl   _differential_vel_control{this};
+	DifferentialPosControl   _differential_pos_control{this};
+	DifferentialAutoMode	 _auto_mode{this};
+	DifferentialManualMode 	 _manual_mode{this};
+	DifferentialOffboardMode _offboard_mode{this};
+
+	// Variables
+	bool _sanity_checks_passed{true}; // True if checks for all active controllers pass
+	bool _was_armed{false}; // True if the vehicle was armed before the last reset
 };
