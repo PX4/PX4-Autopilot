@@ -230,7 +230,7 @@ protected:
 
 		(ParamInt<px4::params::RC_FAILS_THR>) _param_rc_fails_thr,
 
-		(ParamInt<px4::params::RC_MAP_PAY_SW>) _param_rc_map_payload_sw,
+		(ParamInt<px4::params::RC_MAP_PAY_SW>) _param_rc_map_pay_sw,
 
 		(ParamFloat<px4::params::RC_LOITER_TH>) _param_rc_loiter_th,
 		(ParamFloat<px4::params::RC_OFFB_TH>) _param_rc_offb_th,

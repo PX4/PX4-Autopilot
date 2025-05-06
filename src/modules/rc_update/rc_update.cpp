@@ -220,7 +220,7 @@ void RCUpdate::update_rc_functions()
 	_rc.function[rc_channels_s::FUNCTION_AUX_5] = _param_rc_map_aux5.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_AUX_6] = _param_rc_map_aux6.get() - 1;
 
-	_rc.function[rc_channels_s::FUNCTION_PAYLOAD_POWER] = _param_rc_map_payload_sw.get() - 1;
+	_rc.function[rc_channels_s::FUNCTION_PAYLOAD_POWER] = _param_rc_map_pay_sw.get() - 1;
 
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		_rc.function[rc_channels_s::FUNCTION_PARAM_1 + i] = _parameters.rc_map_param[i] - 1;
