@@ -82,3 +82,21 @@ jobs:
 
       - name: Run parameter docs check
         run: Tools/ci/metadata_parameters.sh --test-only
+
+  airframe-check:
+    name: Check airframe reference metadata
+    runs-on: [runs-on,runner=2cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=true]
+    container:
+      image: ghcr.io/px4/px4-dev:v1.16.0-rc1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Mark all directories safe for Git
+        run: git config --system --add safe.directory '*'
+
+      - name: Run airframe docs check
+        run: Tools/ci/metadata_airframe.sh --test-only
