@@ -118,6 +118,9 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		bison \
 		build-essential \
 		curl \
+		clang \
+		clang-tidy \
+		clang-format \
 		flex \
 		gdb-multiarch \
 		genromfs \
@@ -137,6 +140,8 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		libstdc++-arm-none-eabi-newlib \
 		libtool \
 		libunwind-dev \
+		lldb \
+		lld \
 		pkg-config \
 		screen \
 		texinfo \
