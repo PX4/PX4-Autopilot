@@ -63,6 +63,14 @@ public:
 	// Update the uORB Subscription and broadcast a Zenoh ROS2 message
 	virtual int8_t update() override
 	{
+#ifdef CONFIG_ZENOH_PUB_ON_MATCHING
+		z_matching_status_t status;
+
+		if (z_publisher_get_matching_status(z_loan(_pub), &status) == _Z_RES_OK && !status.matching) {
+			return _Z_RES_OK;
+		}
+
+#endif
 		uint8_t data[_uorb_meta->o_size];
 		orb_copy(_uorb_meta, _uorb_sub, data);
 
@@ -96,6 +104,11 @@ public:
 	{
 		printf("uORB %s -> ", _uorb_meta->o_name);
 		Zenoh_Publisher::print();
+	}
+
+	const char *getName()
+	{
+		return _uorb_meta->o_name;
 	}
 
 private:

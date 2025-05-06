@@ -419,7 +419,7 @@ void ZENOH::run()
 					ret = _zenoh_publishers[i]->update();
 
 					if (ret < 0) {
-						PX4_WARN("Publisher error %i", ret);
+						PX4_WARN("%s Publisher error %i", _zenoh_publishers[i]->getName(), ret);
 
 					}
 				}
@@ -502,17 +502,21 @@ int ZENOH::print_status()
 
 	PX4_INFO("Publishers");
 
-	for (int i = 0; i < _pub_count; i++) {
-		if (_zenoh_publishers[i]) {
-			_zenoh_publishers[i]->print();
+	if (_zenoh_publishers) {
+		for (int i = 0; i < _pub_count; i++) {
+			if (_zenoh_publishers[i]) {
+				_zenoh_publishers[i]->print();
+			}
 		}
 	}
 
 	PX4_INFO("Subscribers");
 
-	for (int i = 0; i < _sub_count; i++) {
-		if (_zenoh_subscribers[i]) {
-			_zenoh_subscribers[i]->print();
+	if (_zenoh_subscribers) {
+		for (int i = 0; i < _sub_count; i++) {
+			if (_zenoh_subscribers[i]) {
+				_zenoh_subscribers[i]->print();
+			}
 		}
 	}
 
