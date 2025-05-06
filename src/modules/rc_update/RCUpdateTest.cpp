@@ -128,16 +128,19 @@ public:
 		EXPECT_EQ(manual_control_switches_sub.get().return_switch, expected_position);
 	}
 
-	void checkPayloadPowerSwitch(float channel_value, float threshold, uint8_t expected_position)
+	void checkPayloadPowerSwitch(float channel_value, float on_threshold, float mid_threshold, uint8_t expected_position)
 	{
 		// GIVEN: First channel is configured as payload power switch
 		_param_rc_map_pay_sw.set(1);
 		_param_rc_map_pay_sw.commit();
-		_param_rc_payload_th.set(threshold);
+		_param_rc_payload_th.set(on_threshold);
 		_param_rc_payload_th.commit();
+		_param_rc_payload_midth.set(mid_threshold);
+		_param_rc_payload_midth.commit();
 		_rc_update.updateParams();
 		EXPECT_EQ(_param_rc_map_pay_sw.get(), 1);
-		EXPECT_FLOAT_EQ(_param_rc_payload_th.get(), threshold);
+		EXPECT_FLOAT_EQ(_param_rc_payload_th.get(), on_threshold);
+		EXPECT_FLOAT_EQ(_param_rc_payload_midth.get(), mid_threshold);
 		// GIVEN: First channel has some value
 		_rc_update.setChannel(0, channel_value);
 
@@ -160,7 +163,8 @@ public:
 		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th,
 
 		(ParamInt<px4::params::RC_MAP_PAY_SW>) _param_rc_map_pay_sw,
-		(ParamFloat<px4::params::RC_PAYLOAD_TH>) _param_rc_payload_th
+		(ParamFloat<px4::params::RC_PAYLOAD_TH>) _param_rc_payload_th,
+		(ParamFloat<px4::params::RC_PAYLOAD_MIDTH>) _param_rc_payload_midth
 	)
 };
 
@@ -260,43 +264,65 @@ TEST_F(RCUpdateTest, ReturnSwitchNegativeThresholds)
 	checkReturnSwitch(-1.f, -.001f, 1); // Slightly below minimum threshold -> SWITCH_POS_OFF
 }
 
-TEST_F(RCUpdateTest, PayloadPowerSwitchPositiveThresholds)
+TEST_F(RCUpdateTest, PayloadPower2WaySwitchPositiveThresholds)
 {
-	checkPayloadPowerSwitch(-1.f, 0.5f, 3); // Below threshold -> SWITCH_POS_OFF
-	checkPayloadPowerSwitch(0.f, 0.5f, 3); // On threshold -> SWITCH_POS_OFF
-	checkPayloadPowerSwitch(.001f, 0.5f, 1); // Slightly above threshold -> SWITCH_POS_ON
-	checkPayloadPowerSwitch(1.f, 0.5f, 1); // Above threshold -> SWITCH_POS_ON
+	checkPayloadPowerSwitch(-1.f, 0.5f, 0.5f, 3); // Below threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(0.f, 0.5f, 0.5f, 3); // On threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(.001f, 0.5f, 0.5f, 1); // Slightly above threshold -> SWITCH_POS_ON
+	checkPayloadPowerSwitch(1.f, 0.5f, 0.5f, 1); // Above threshold -> SWITCH_POS_ON
 
-	checkPayloadPowerSwitch(-1.f, 0.75f, 3); // Below threshold -> SWITCH_POS_OFF
-	checkPayloadPowerSwitch(0.f, 0.75f, 3); // Below threshold -> SWITCH_POS_OFF
-	checkPayloadPowerSwitch(.5f, 0.75f, 3); // On threshold -> SWITCH_POS_OFF
-	checkPayloadPowerSwitch(.501f, 0.75f, 1); // Slightly above threshold -> SWITCH_POS_ON
-	checkPayloadPowerSwitch(1.f, 0.75f, 1); // Above threshold -> SWITCH_POS_ON
+	checkPayloadPowerSwitch(-1.f, 0.75f, 0.75f, 3); // Below threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(0.f, 0.75f, 0.75f, 3); // Below threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(.5f, 0.75f, 0.75f, 3); // On threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(.501f, 0.75f, 0.75f, 1); // Slightly above threshold -> SWITCH_POS_ON
+	checkPayloadPowerSwitch(1.f, 0.75f, 0.75f, 1); // Above threshold -> SWITCH_POS_ON
 
-	checkPayloadPowerSwitch(-1.f, 0.f, 3); // On minimum threshold -> SWITCH_POS_OFF
-	checkPayloadPowerSwitch(-.999f, 0.f, 1); // Slightly above minimum threshold -> SWITCH_POS_ON
-	checkPayloadPowerSwitch(1.f, 0.f, 1); // Above minimum threshold -> SWITCH_POS_ON
+	checkPayloadPowerSwitch(-1.f, 0.f, 0.f, 3); // On minimum threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(-.999f, 0.f, 0.f, 1); // Slightly above minimum threshold -> SWITCH_POS_ON
+	checkPayloadPowerSwitch(1.f, 0.f, 0.f, 1); // Above minimum threshold -> SWITCH_POS_ON
 
-	checkPayloadPowerSwitch(-1.f, 1.f, 3); // Below maximum threshold -> SWITCH_POS_OFF
-	checkPayloadPowerSwitch(1.f, 1.f, 3); // On maximum threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(-1.f, 1.f, 1.f, 3); // Below maximum threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(1.f, 1.f, 1.f, 3); // On maximum threshold -> SWITCH_POS_OFF
 }
 
-TEST_F(RCUpdateTest, PayloadPowerSwitchNegativeThresholds)
+TEST_F(RCUpdateTest, PayloadPower3WaySwitchPositiveThresholds)
 {
-	checkPayloadPowerSwitch(1.f, -0.5f, 3); // Above threshold -> SWITCH_POS_OFF
-	checkPayloadPowerSwitch(0.f, -0.5f, 3); // On threshold -> SWITCH_POS_OFF
-	checkPayloadPowerSwitch(-.001f, -0.5f, 1); // Slightly below threshold -> SWITCH_POS_ON
-	checkPayloadPowerSwitch(-1.f, -0.5f, 1); // Below threshold -> SWITCH_POS_ON
+	checkPayloadPowerSwitch(-1.f, 0.75f, 0.25f, 3); // Below mid_threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(-0.5f, 0.75f, 0.25f, 3); // On mid_threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(-0.449f, 0.75f, 0.25f, 2); // Slightly above mid_threshold -> SWITCH_POS_MIDDLE
+	checkPayloadPowerSwitch(0.f, 0.75f, 0.25f, 2); // Between mid_threshold and on_threshold -> SWITCH_POS_MIDDLE
+	checkPayloadPowerSwitch(0.5f, 0.75f, 0.25f, 2); // On on_threshold -> SWITCH_POS_MIDDLE
+	checkPayloadPowerSwitch(0.501f, 0.75f, 0.25f, 1); // Slightly above on_threshold -> SWITCH_POS_ON
+	checkPayloadPowerSwitch(1.f, 0.75f, 0.25f, 1); // Above on_threshold -> SWITCH_POS_ON
+}
 
-	checkPayloadPowerSwitch(1.f, -0.75f, 3); // Above threshold -> SWITCH_POS_OFF
-	checkPayloadPowerSwitch(.5f, -0.75f, 3); // On threshold -> SWITCH_POS_OFF
-	checkPayloadPowerSwitch(.499f, -0.75f, 1); // Slightly below threshold -> SWITCH_POS_ON
-	checkPayloadPowerSwitch(-1.f, -0.75f, 1); // Below threshold -> SWITCH_POS_ON
+TEST_F(RCUpdateTest, PayloadPower2WaySwitchNegativeThresholds)
+{
+	checkPayloadPowerSwitch(1.f, -0.5f, -0.5f, 3); // Above threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(0.f, -0.5f, -0.5f, 3); // On threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(-.001f, -0.5f, -0.5f, 1); // Slightly below threshold -> SWITCH_POS_ON
+	checkPayloadPowerSwitch(-1.f, -0.5f, -0.5f, 1); // Below threshold -> SWITCH_POS_ON
 
-	checkPayloadPowerSwitch(1.f, -1.f, 3); // On maximum threshold -> SWITCH_POS_OFF
-	checkPayloadPowerSwitch(.999f, -1.f, 1); // Slighly below maximum threshold -> SWITCH_POS_ON
-	checkPayloadPowerSwitch(-1.f, -1.f, 1); // Below minimum threshold -> SWITCH_POS_ON
+	checkPayloadPowerSwitch(1.f, -0.75f, -0.75f, 3); // Above threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(.5f, -0.75f, -0.75f, 3); // On threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(.499f, -0.75f, -0.75f, 1); // Slightly below threshold -> SWITCH_POS_ON
+	checkPayloadPowerSwitch(-1.f, -0.75f, -0.75f, 1); // Below threshold -> SWITCH_POS_ON
 
-	checkPayloadPowerSwitch(1.f, -.001f, 3); // Above minimum threshold -> SWITCH_POS_OFF
-	checkPayloadPowerSwitch(-1.f, -.001f, 1); // Slightly below minimum threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(1.f, -1.f, -1.f, 3); // On maximum threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(.999f, -1.f, -1.f, 1); // Slighly below maximum threshold -> SWITCH_POS_ON
+	checkPayloadPowerSwitch(-1.f, -1.f, -1.f, 1); // Below minimum threshold -> SWITCH_POS_ON
+
+	checkPayloadPowerSwitch(1.f, -.001f, -.001f, 3); // Above minimum threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(-1.f, -.001f, -.001f, 1); // Slightly below minimum threshold -> SWITCH_POS_OFF
+}
+
+TEST_F(RCUpdateTest, PayloadPower3WaySwitchNegativeThresholds)
+{
+	checkPayloadPowerSwitch(1.f, -0.75f, -0.25f, 3); // Above on_threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(0.5f, -0.75f, -0.25f, 3); // On on_threshold -> SWITCH_POS_OFF
+	checkPayloadPowerSwitch(0.449f, -0.75f, -0.25f, 2); // Slightly below on_threshold -> SWITCH_POS_MIDDLE
+	checkPayloadPowerSwitch(0.f, -0.75f, -0.25f, 2); // Between on_threshold and mid_threshold -> SWITCH_POS_MIDDLE
+	checkPayloadPowerSwitch(-0.5f, -0.75f, -0.25f, 2); // On mid_threshold -> SWITCH_POS_MIDDLE
+	checkPayloadPowerSwitch(-0.501f, -0.75f, -0.25f, 1); // Slightly above on_threshold -> SWITCH_POS_ON
+	checkPayloadPowerSwitch(-1.f, -0.75f, -0.25f, 1); // Above on_threshold -> SWITCH_POS_ON
 }
