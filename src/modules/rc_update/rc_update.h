@@ -126,6 +126,15 @@ protected:
 	switch_pos_t getRCSwitchOnOffPosition(uint8_t function, float threshold) const;
 
 	/**
+	 * Get 3-way switch position from the RC channel of the specified function
+	 *
+	 * @param function according to rc_channels_s::FUNCTION_XXX
+	 * @param on_threshold according to RC_XXX_TH parameters, negative means comparison is flipped
+	 * @param mid_threshold according to RC_XXX_MIDTH parameters, negative means comparison is flipped
+	 */
+	switch_pos_t getRCSwitch3WayPosition(uint8_t function, float on_threshold, float mid_threshold) const;
+
+	/**
 	 * Update parameters from RC channels if the functionality is activated and the
 	 * input has changed since the last update
 	 */
@@ -241,6 +250,7 @@ protected:
 		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th,
 		(ParamFloat<px4::params::RC_ENG_MOT_TH>) _param_rc_eng_mot_th,
 		(ParamFloat<px4::params::RC_PAYLOAD_TH>) _param_rc_payload_th,
+		(ParamFloat<px4::params::RC_PAYLOAD_MIDTH>) _param_rc_payload_midth,
 
 		(ParamInt<px4::params::RC_CHAN_CNT>) _param_rc_chan_cnt
 	)

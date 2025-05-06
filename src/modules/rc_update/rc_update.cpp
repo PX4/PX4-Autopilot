@@ -544,6 +544,28 @@ switch_pos_t RCUpdate::getRCSwitchOnOffPosition(uint8_t function, float threshol
 	return manual_control_switches_s::SWITCH_POS_NONE;
 }
 
+switch_pos_t RCUpdate::getRCSwitch3WayPosition(uint8_t function, float on_threshold, float mid_threshold) const
+{
+	if (_rc.function[function] >= 0) {
+		const bool on_inverted = (on_threshold < 0.f);
+		const bool mid_inverted = (mid_threshold < 0.f);
+
+		const float value = 0.5f * _rc.channels[_rc.function[function]] + 0.5f;
+
+		if (on_inverted ? value < -mid_threshold : value > on_threshold) {
+			return manual_control_switches_s::SWITCH_POS_ON;
+
+		} else if (mid_inverted ? value < -on_threshold : value > mid_threshold) {
+			return manual_control_switches_s::SWITCH_POS_MIDDLE;
+
+		} else {
+			return manual_control_switches_s::SWITCH_POS_OFF;
+		}
+	}
+
+	return manual_control_switches_s::SWITCH_POS_NONE;
+}
+
 void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 {
 	manual_control_switches_s switches{};
@@ -619,8 +641,8 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 	switches.video_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_AUX_4, 0.5f);
 #endif
 
-	switches.payload_power_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_PAYLOAD_POWER,
-					_param_rc_payload_th.get());
+	switches.payload_power_switch = getRCSwitch3WayPosition(rc_channels_s::FUNCTION_PAYLOAD_POWER,
+					_param_rc_payload_th.get(), _param_rc_payload_midth.get());
 
 	// last 2 switch updates identical within 1 second (simple protection from bad RC data)
 	if ((switches == _manual_switches_previous)
