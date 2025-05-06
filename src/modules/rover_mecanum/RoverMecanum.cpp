@@ -39,8 +39,6 @@ RoverMecanum::RoverMecanum() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
-	_rover_throttle_setpoint_pub.advertise();
-	_rover_steering_setpoint_pub.advertise();
 	updateParams();
 }
 
@@ -53,11 +51,6 @@ bool RoverMecanum::init()
 void RoverMecanum::updateParams()
 {
 	ModuleParams::updateParams();
-
-	if (_param_ro_accel_limit.get() > FLT_EPSILON && _param_ro_max_thr_speed.get() > FLT_EPSILON) {
-		_throttle_body_x_setpoint.setSlewRate(_param_ro_accel_limit.get() / _param_ro_max_thr_speed.get());
-		_throttle_body_y_setpoint.setSlewRate(_param_ro_accel_limit.get() / _param_ro_max_thr_speed.get());
-	}
 }
 
 void RoverMecanum::Run()
@@ -65,10 +58,6 @@ void RoverMecanum::Run()
 	if (_parameter_update_sub.updated()) {
 		updateParams();
 	}
-
-	const hrt_abstime timestamp_prev = _timestamp;
-	_timestamp = hrt_absolute_time();
-	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
 
 	_mecanum_pos_control.updatePosControl();
 	_mecanum_vel_control.updateVelControl();
@@ -84,88 +73,14 @@ void RoverMecanum::Run()
 					      && !_vehicle_control_mode.flag_control_rates_enabled;
 
 	if (full_manual_mode_enabled) { // Manual mode
-		generateSteeringAndThrottleSetpoint();
+		_mecanum_act_control.manualManualMode();
 	}
 
 	if (_vehicle_control_mode.flag_armed) {
-		generateActuatorSetpoint();
+		_mecanum_act_control.updateActControl();
 
 	}
 
-}
-
-void RoverMecanum::generateSteeringAndThrottleSetpoint()
-{
-	manual_control_setpoint_s manual_control_setpoint{};
-
-	if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-		rover_steering_setpoint_s rover_steering_setpoint{};
-		rover_steering_setpoint.timestamp = _timestamp;
-		rover_steering_setpoint.normalized_speed_diff = manual_control_setpoint.yaw;
-		_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
-		rover_throttle_setpoint_s rover_throttle_setpoint{};
-		rover_throttle_setpoint.timestamp = _timestamp;
-		rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
-		rover_throttle_setpoint.throttle_body_y = manual_control_setpoint.roll;
-		_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
-	}
-}
-
-void RoverMecanum::generateActuatorSetpoint()
-{
-	if (_rover_throttle_setpoint_sub.updated()) {
-		_rover_throttle_setpoint_sub.copy(&_rover_throttle_setpoint);
-	}
-
-	if (_actuator_motors_sub.updated()) {
-		actuator_motors_s actuator_motors{};
-		_actuator_motors_sub.copy(&actuator_motors);
-		_current_throttle_body_x = (actuator_motors.control[0] + actuator_motors.control[1]) / 2.f;
-		_current_throttle_body_y = (actuator_motors.control[2] - actuator_motors.control[0]) / 2.f;
-	}
-
-	if (_rover_steering_setpoint_sub.updated()) {
-		_rover_steering_setpoint_sub.copy(&_rover_steering_setpoint);
-	}
-
-	const float throttle_body_x = RoverControl::throttleControl(_throttle_body_x_setpoint,
-				      _rover_throttle_setpoint.throttle_body_x, _current_throttle_body_x, _param_ro_accel_limit.get(),
-				      _param_ro_decel_limit.get(), _param_ro_max_thr_speed.get(), _dt);
-	const float throttle_body_y = RoverControl::throttleControl(_throttle_body_y_setpoint,
-				      _rover_throttle_setpoint.throttle_body_y, _current_throttle_body_y, _param_ro_accel_limit.get(),
-				      _param_ro_decel_limit.get(), _param_ro_max_thr_speed.get(), _dt);
-	actuator_motors_s actuator_motors{};
-	actuator_motors.reversible_flags = _param_r_rev.get();
-	computeInverseKinematics(throttle_body_x, throttle_body_y,
-				 _rover_steering_setpoint.normalized_speed_diff).copyTo(actuator_motors.control);
-	actuator_motors.timestamp = _timestamp;
-	_actuator_motors_pub.publish(actuator_motors);
-
-
-}
-
-Vector4f RoverMecanum::computeInverseKinematics(float throttle_body_x, float throttle_body_y,
-		const float speed_diff_normalized)
-{
-	const float total_speed = fabsf(throttle_body_x) + fabsf(throttle_body_y) + fabsf(speed_diff_normalized);
-
-	if (total_speed > 1.f) { // Adjust speed setpoints if infeasible
-		const float theta = atan2f(fabsf(throttle_body_y), fabsf(throttle_body_x));
-		const float magnitude = (1.f - fabsf(speed_diff_normalized)) / (sinf(theta) + cosf(theta));
-		const float normalization = 1.f / (sqrtf(powf(throttle_body_x, 2.f) + powf(throttle_body_y, 2.f)));
-		throttle_body_x *= magnitude * normalization;
-		throttle_body_y *= magnitude * normalization;
-
-	}
-
-	// Calculate motor commands
-	const float input_data[3] = {throttle_body_x, throttle_body_y, speed_diff_normalized};
-	const Matrix<float, 3, 1> input(input_data);
-	const float m_data[12] = {1.f, -1.f, -1.f, 1.f, 1.f, 1.f, 1.f, 1.f, -1.f, 1.f, -1.f, 1.f};
-	const Matrix<float, 4, 3> m(m_data);
-	const Vector4f motor_commands = m * input;
-
-	return motor_commands;
 }
 
 int RoverMecanum::task_spawn(int argc, char *argv[])
