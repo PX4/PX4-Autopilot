@@ -499,7 +499,7 @@ A valid ULog parser must fulfill the following requirements:
 - [PlotJuggler](https://github.com/facontidavide/PlotJuggler): C++/Qt application to plot logs and time series. Supports ULog since version 2.1.3.
 - [ulogreader](https://github.com/maxsun/ulogreader): Javascript, ULog reader and parser outputs log in JSON object format.
 - [Foxglove](https://foxglove.dev): an integrated visualization and diagnosis tool for robotics data that supports ULog files.
-- [Typescript ULog parser](https://github.com/foxglove/ulog): Typescript, ULog reader that outputs JS objects.
+- [TypeScript ULog parser](https://github.com/foxglove/ulog): TypeScript, ULog reader that outputs JS objects.
 
 ## File Format Version History
 
