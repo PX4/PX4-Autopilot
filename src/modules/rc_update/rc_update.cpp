@@ -619,10 +619,8 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 	switches.video_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_AUX_4, 0.5f);
 #endif
 
-#if defined(PAYLOAD_POWER_EN)
 	switches.payload_power_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_PAYLOAD_POWER,
 					_param_rc_payload_th.get());
-#endif
 
 	// last 2 switch updates identical within 1 second (simple protection from bad RC data)
 	if ((switches == _manual_switches_previous)
