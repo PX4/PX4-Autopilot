@@ -48,6 +48,16 @@ if(NOT DEFINED CONFIG_NET_TCPPROTO_OPTIONS AND CONFIG_PLATFORM_NUTTX)
     set(Z_FEATURE_TCP_NODELAY 0 CACHE STRING "Toggle TCP_NODELAY")
 endif()
 
+if(NOT DEFINED CONFIG_PTHREAD_MUTEX_TYPES AND CONFIG_PLATFORM_NUTTX)
+    message( SEND_ERROR "Pthread mutex is diabled, Zenoh will not function." )
+endif()
+
+set(FRAG_MAX_SIZE 512 CACHE STRING "Use this to override the maximum size for fragmented messages")
+set(BATCH_UNICAST_SIZE 256 CACHE STRING "Use this to override the maximum unicast batch size")
+set(BATCH_MULTICAST_SIZE 256 CACHE STRING "Use this to override the maximum multicast batch size")
+
+set(Z_FEATURE_UNSTABLE_API 1 CACHE STRING "Toggle unstable Zenoh-C API")
+
 px4_add_git_submodule(TARGET git_zenoh-pico PATH "zenoh-pico")
 add_subdirectory(zenoh-pico)
 unset(MESSAGE_QUIET)
@@ -59,11 +69,7 @@ target_compile_options(zenohpico_static PUBLIC -Wno-cast-align
 			-Wno-unused-result
 			-Wno-type-limits
 			-Wno-unused-variable
-			-Wno-maybe-uninitialized
-			-DZ_FEATURE_UNSTABLE_API
-			-DZ_BATCH_SIZE_RX=512
-			-DZ_BATCH_SIZE_TX=512)
-
+			-Wno-maybe-uninitialized)
 
 target_compile_options(zenohpico_static PRIVATE -Wno-missing-prototypes)
 if(CONFIG_PLATFORM_NUTTX)

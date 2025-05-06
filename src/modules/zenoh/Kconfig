@@ -28,6 +28,13 @@ if MODULES_ZENOH
                 Declares liveliness tokens with key expressions in the way rmw_zenoh expects them
                 Allowing to construct ROS2 graphs
 
+    config ZENOH_PUB_ON_MATCHING
+        bool "[EXPERIMENTAL] Only publish data when having matching subscribers"
+        default n
+        ---help---
+                Uses the Zenoh matching feature to check whether a publisher has subscribers.
+                If so, only then publish the data. This is still experimental
+
 
     # Choose exactly one item
     choice ZENOH_PUBSUB_SELECTION

@@ -44,6 +44,8 @@
 
 Zenoh_Publisher::Zenoh_Publisher()
 {
+	attachment.sequence_number = 0;
+	attachment.rmw_gid_size = RMW_GID_STORAGE_SIZE;
 }
 
 Zenoh_Publisher::~Zenoh_Publisher()
@@ -61,8 +63,6 @@ int Zenoh_Publisher::declare_publisher(z_owned_session_t s, const char *keyexpr,
 {
 	z_view_keyexpr_t ke;
 
-	this->rmw_gid = gid;
-
 	if (z_view_keyexpr_from_str(&ke, keyexpr) < 0) {
 		printf("%s is not a valid key expression\n", keyexpr);
 		return -1;
@@ -73,6 +73,8 @@ int Zenoh_Publisher::declare_publisher(z_owned_session_t s, const char *keyexpr,
 		return -1;
 	}
 
+	memcpy(attachment.rmw_gid, gid, RMW_GID_STORAGE_SIZE);
+
 	return 0;
 }
 
@@ -81,18 +83,13 @@ int8_t Zenoh_Publisher::publish(const uint8_t *buf, int size)
 	z_publisher_put_options_t options;
 	z_publisher_put_options_default(&options);
 
-	z_owned_bytes_t attachment;
-	z_bytes_empty(&attachment);
+	attachment.sequence_number++;
+	attachment.time = hrt_absolute_time();
 
-	ze_owned_serializer_t serializer;
-	ze_serializer_empty(&serializer);
+	z_owned_bytes_t z_attachment;
+	z_bytes_from_static_buf(&z_attachment, (const uint8_t *)&attachment, RMW_ATTACHEMENT_SIZE);
 
-	ze_serializer_serialize_int64(z_loan_mut(serializer), this->sequence_number++);
-	ze_serializer_serialize_int64(z_loan_mut(serializer), hrt_absolute_time());
-	ze_serializer_serialize_buf(z_loan_mut(serializer), rmw_gid, RMW_GID_STORAGE_SIZE);
-
-	ze_serializer_finish(z_move(serializer), &attachment);
-	options.attachment = z_move(attachment);
+	options.attachment = z_move(z_attachment);
 
 	z_owned_bytes_t payload;
 	z_bytes_copy_from_buf(&payload, buf, size);

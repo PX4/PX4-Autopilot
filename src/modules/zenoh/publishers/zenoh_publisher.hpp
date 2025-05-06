@@ -48,8 +48,15 @@
 #include <containers/List.hpp>
 #include <zenoh-pico.h>
 
-
 #define RMW_GID_STORAGE_SIZE 16u
+#define RMW_ATTACHEMENT_SIZE (8u + 8u + 1u + RMW_GID_STORAGE_SIZE)
+
+typedef struct __attribute__((__packed__)) RmwAttachment {
+	int64_t sequence_number;
+	int64_t time;
+	uint8_t rmw_gid_size;
+	uint8_t rmw_gid[RMW_GID_STORAGE_SIZE];
+} RmwAttachment;
 
 class Zenoh_Publisher : public ListNode<Zenoh_Publisher *>
 {
@@ -69,8 +76,5 @@ protected:
 	int8_t publish(const uint8_t *, int size);
 
 	z_owned_publisher_t _pub;
-	int64_t sequence_number;
-
-	/* RMW_GID_STORAGE_SIZE bytes DDS-Like GID */
-	uint8_t *rmw_gid;
+	RmwAttachment attachment;
 };
