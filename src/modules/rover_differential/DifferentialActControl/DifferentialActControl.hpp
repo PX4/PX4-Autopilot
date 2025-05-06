@@ -68,11 +68,6 @@ public:
 	void updateActControl();
 
 	/**
-	 * @brief Publish roverThrottleSetpoint and roverSteeringSetpoint from manualControlSetpoint.
-	 */
-	void manualManualMode();
-
-	/**
 	 * @brief Stop the vehicle by sending 0 commands to motors and servos.
 	 */
 	void stopVehicle();
@@ -96,12 +91,9 @@ private:
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 	uORB::Subscription _rover_steering_setpoint_sub{ORB_ID(rover_steering_setpoint)};
 	uORB::Subscription _rover_throttle_setpoint_sub{ORB_ID(rover_throttle_setpoint)};
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 
 	// uORB publications
-	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
-	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
-	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
+	uORB::Publication<actuator_motors_s> 	     _actuator_motors_pub{ORB_ID(actuator_motors)};
 
 	// Variables
 	hrt_abstime _timestamp{0};
