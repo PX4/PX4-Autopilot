@@ -6,7 +6,6 @@ cp **/**/*.elf artifacts/
 for build_dir_path in build/*/ ; do
   build_dir_path=${build_dir_path::${#build_dir_path}-1}
   build_dir=${build_dir_path#*/}
-  target_name=$build_dir
   mkdir artifacts/$build_dir
   find artifacts/ -maxdepth 1 -type f -name "*$build_dir*"
   # Airframe

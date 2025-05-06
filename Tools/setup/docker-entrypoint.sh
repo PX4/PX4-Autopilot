@@ -1,8 +1,8 @@
 #!/bin/bash
 
 GREEN='\033[0;32m'
-NC='\033[0m' # No Color
-SCRIPTID="${GREEN}[docker-entrypoint.sh]${NC}"
+NO_COLOR='\033[0m' # No Color
+SCRIPTID="${GREEN}[docker-entrypoint.sh]${NO_COLOR}"
 
 echo -e "$SCRIPTID Starting"
 

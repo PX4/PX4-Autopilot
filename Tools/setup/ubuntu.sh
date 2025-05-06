@@ -110,7 +110,7 @@ fi
 if [[ $INSTALL_NUTTX == "true" ]]; then
 
 	echo
-	echo "[ubuntu.sh] NuttX Installing Dependencies"
+	echo "[ubuntu.sh] NuttX Installing Dependencies ($INSTALL_ARCH)"
 	sudo apt-get update -y --quiet
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		automake \
@@ -144,10 +144,6 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		util-linux \
 		vim-common \
 		;
-
-
-	echo
-	echo "[ubuntu.sh] NuttX Installing Dependencies ($INSTALL_ARCH)"
 
 	if [[ "${INSTALL_ARCH}" == "x86_64" ]]; then
 		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
