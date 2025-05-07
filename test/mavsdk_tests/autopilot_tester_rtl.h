@@ -59,15 +59,13 @@ public:
 	void connect(const std::string uri);
 	void check_rally_point_within(float acceptance_radius_m);
 	void check_rtl_approaches(float acceptance_radius_m, std::chrono::seconds timeout);
-	/* NOTE mavsdk mission upload should be used when possible. Only use this when uploading a mission which is not yet suppported by mavsdk.
-	 * Used here to to test the new way of uploading approaches for rally points. */
-	void upload_custom_mission(std::chrono::seconds timeout);
+	void upload_rally_points();
 
 
 private:
 	void add_approaches_to_point(mavsdk::geometry::CoordinateTransformation::LocalCoordinate local_coordinate);
 
 	std::unique_ptr<mavsdk::Failure> _failure{};
-	std::vector<mavlink_mission_item_int_t> _custom_mission{};
-	std::vector<mavsdk::geometry::CoordinateTransformation::LocalCoordinate> _rally_points{};
+	std::vector<mavsdk::MissionRaw::MissionItem> _rally_points{};
+	std::vector<mavsdk::geometry::CoordinateTransformation::LocalCoordinate> _local_rally_points{};
 };

@@ -191,6 +191,7 @@ public:
 protected:
 	mavsdk::Param *getParams() const { return _param.get();}
 	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
+	mavsdk::MissionRaw *getMissionRaw() const { return _mission_raw.get();}
 	mavsdk::ManualControl *getManualControl() const { return _manual_control.get();}
 	MavlinkPassthrough *getMavlinkPassthrough() const { return _mavlink_passthrough.get();}
 	std::shared_ptr<System> get_system() { return _mavsdk.systems().at(0);}
