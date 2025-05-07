@@ -79,10 +79,12 @@ void AutopilotTesterRtl::upload_custom_mission(std::chrono::seconds timeout)
 
 		if (request_int_message.mission_type == mission_type) {
 			// send requested element.
-			mavlink_message_t mission_item_int_mavlink_message;
-			mavlink_msg_mission_item_int_encode(getMavlinkPassthrough()->get_our_sysid(), getMavlinkPassthrough()->get_our_compid(),
-							    &mission_item_int_mavlink_message, &(_custom_mission[request_int_message.seq]));
-			send_custom_mavlink_message(mission_item_int_mavlink_message);
+			getMavlinkPassthrough()->queue_message([&](MavlinkAddress mavlink_address, uint8_t channel) {
+				mavlink_message_t message;
+				mavlink_msg_mission_item_int_encode_chan(mavlink_address.system_id, mavlink_address.component_id, channel,
+						&message, &(_custom_mission[request_int_message.seq]));
+				return message;
+			});
 
 			if (request_int_message.seq + 1U == _custom_mission.size()) {
 				add_mavlink_message_callback(MAVLINK_MSG_ID_MISSION_REQUEST_INT, nullptr);
@@ -102,7 +104,12 @@ void AutopilotTesterRtl::upload_custom_mission(std::chrono::seconds timeout)
 	mavlink_msg_mission_count_encode(getMavlinkPassthrough()->get_our_sysid(), getMavlinkPassthrough()->get_our_compid(),
 					 &mission_count_mavlink_message, &mission_count_message);
 
-	send_custom_mavlink_message(mission_count_mavlink_message);
+	getMavlinkPassthrough()->queue_message([&](MavlinkAddress mavlink_address, uint8_t channel) {
+		mavlink_message_t message;
+		mavlink_msg_mission_count_encode_chan(mavlink_address.system_id, mavlink_address.component_id, channel,
+						      &message, &mission_count_message);
+		return message;
+	});
 
 	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
 }
@@ -222,7 +229,8 @@ void AutopilotTesterRtl::check_rtl_approaches(float acceptance_radius_m, std::ch
 	REQUIRE(return_rtl_alt.first == Param::Result::Success);
 	REQUIRE(descend_rtl_alt.first == Param::Result::Success);
 
-	getTelemetry()->subscribe_position_velocity_ned([&prom, acceptance_radius_m, return_rtl_alt, descend_rtl_alt, ct,
+	Telemetry::PositionVelocityNedHandle handle = getTelemetry()->subscribe_position_velocity_ned(
+				[&prom, &handle, acceptance_radius_m, return_rtl_alt, descend_rtl_alt, ct,
 	       this](Telemetry::PositionVelocityNed position_velocity_ned) {
 
 		if ((-position_velocity_ned.position.down_m < return_rtl_alt.second - 3.)
@@ -242,7 +250,7 @@ void AutopilotTesterRtl::check_rtl_approaches(float acceptance_radius_m, std::ch
 
 						if (-position_velocity_ned.position.down_m < descend_rtl_alt.second + 3.) {
 							// We reached the altitude
-							getTelemetry()->subscribe_position_velocity_ned(nullptr);
+							getTelemetry()->unsubscribe_position_velocity_ned(handle);
 							prom.set_value(true);
 							return;
 
@@ -252,7 +260,7 @@ void AutopilotTesterRtl::check_rtl_approaches(float acceptance_radius_m, std::ch
 			}
 
 			if (!on_approach_loiter) {
-				getTelemetry()->subscribe_position_velocity_ned(nullptr);
+				getTelemetry()->unsubscribe_position_velocity_ned(handle);
 				prom.set_value(false);
 
 			}
