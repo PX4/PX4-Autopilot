@@ -1,5 +1,7 @@
 # Rover Position Setpoint
 
+uint32 MESSAGE_VERSION = 0
+
 uint64     timestamp      # Time since system start [us]
 float32[2] position_ned   # Target position [m] [@range -inf, inf] [@frame NED]
 float32[2] start_ned	  # Start position which specifies a line for the rover to track [m] [@range -inf, inf] [@frame NED] [@invalid NaN Defaults to vehicle position]

@@ -163,5 +163,23 @@ subscriptions:
   - topic: /fmu/in/aux_global_position
     type: px4_msgs::msg::VehicleGlobalPosition
 
+  - topic: /fmu/in/rover_position_setpoint
+    type: px4_msgs::msg::RoverPositionSetpoint
+
+  - topic: /fmu/in/rover_velocity_setpoint
+    type: px4_msgs::msg::RoverVelocitySetpoint
+
+  - topic: /fmu/in/rover_attitude_setpoint
+    type: px4_msgs::msg::RoverAttitudeSetpoint
+
+  - topic: /fmu/in/rover_rate_setpoint
+    type: px4_msgs::msg::RoverRateSetpoint
+
+  - topic: /fmu/in/rover_throttle_setpoint
+    type: px4_msgs::msg::RoverThrottleSetpoint
+
+  - topic: /fmu/in/rover_steering_setpoint
+    type: px4_msgs::msg::RoverSteeringSetpoint
+
 # Create uORB::PublicationMulti
 subscriptions_multi:
