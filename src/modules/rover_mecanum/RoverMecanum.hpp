@@ -40,20 +40,13 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-// Libraries
-#include <lib/rover_control/RoverControl.hpp>
-#include <lib/slew_rate/SlewRate.hpp>
+// Library includes
+#include <math.h>
 
 // uORB includes
 #include <uORB/Subscription.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/rover_steering_setpoint.h>
-#include <uORB/topics/rover_throttle_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/manual_control_setpoint.h>
 
 // Local includes
 #include "MecanumActControl/MecanumActControl.hpp"
@@ -61,6 +54,9 @@
 #include "MecanumAttControl/MecanumAttControl.hpp"
 #include "MecanumVelControl/MecanumVelControl.hpp"
 #include "MecanumPosControl/MecanumPosControl.hpp"
+#include "MecanumDriveModes/MecanumAutoMode/MecanumAutoMode.hpp"
+#include "MecanumDriveModes/MecanumManualMode/MecanumManualMode.hpp"
+#include "MecanumDriveModes/MecanumOffboardMode/MecanumOffboardMode.hpp"
 
 class RoverMecanum : public ModuleBase<RoverMecanum>, public ModuleParams,
 	public px4::ScheduledWorkItem
@@ -92,15 +88,46 @@ protected:
 private:
 	void Run() override;
 
+	/**
+	 * @brief Handle manual control
+	 */
+	void manualControl();
+
+	/**
+	 * @brief Update the controllers
+	 */
+	void updateControllers();
+
+	/**
+	 * @brief Check proper parameter setup for the controllers
+	 *
+	 * Modifies:
+	 *
+	 *   - _sanity_checks_passed: true if checks for all active controllers pass
+	 */
+	void runSanityChecks();
+
+	/**
+	 * @brief Reset controllers and manual mode variables.
+	 */
+	void reset();
+
 	// uORB subscriptions
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	vehicle_control_mode_s    _vehicle_control_mode{};
+	vehicle_control_mode_s _vehicle_control_mode{};
 
 	// Class instances
-	MecanumActControl _mecanum_act_control{this};
-	MecanumRateControl _mecanum_rate_control{this};
-	MecanumAttControl  _mecanum_att_control{this};
-	MecanumVelControl  _mecanum_vel_control{this};
-	MecanumPosControl  _mecanum_pos_control{this};
+	MecanumActControl   _mecanum_act_control{this};
+	MecanumRateControl  _mecanum_rate_control{this};
+	MecanumAttControl   _mecanum_att_control{this};
+	MecanumVelControl   _mecanum_vel_control{this};
+	MecanumPosControl   _mecanum_pos_control{this};
+	MecanumAutoMode	    _auto_mode{this};
+	MecanumManualMode   _manual_mode{this};
+	MecanumOffboardMode _offboard_mode{this};
+
+	// Variables
+	bool _sanity_checks_passed{true}; // True if checks for all active controllers pass
+	bool _was_armed{false}; // True if the vehicle was armed before the last reset
 };
