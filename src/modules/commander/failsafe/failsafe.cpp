@@ -661,8 +661,9 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 	switch (position_control_navigation_loss_response(_param_com_posctl_navl.get())) {
 	case position_control_navigation_loss_response::Altitude_Manual: // AltCtrl/Manual
 
-		// PosCtrl -> AltCtrl
-		if (user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL
+		// PosCtrl/PositionSlow -> AltCtrl
+		if ((user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL ||
+		     user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW)
 		    && !modeCanRun(status_flags, user_intended_mode)) {
 			action = Action::FallbackAltCtrl;
 			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
@@ -679,8 +680,9 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 
 	case position_control_navigation_loss_response::Land_Descend: // Land/Terminate
 
-		// PosCtrl -> Land
-		if (user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL
+		// PosCtrl/PositionSlow -> Land
+		if ((user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL ||
+		     user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW)
 		    && !modeCanRun(status_flags, user_intended_mode)) {
 			action = Action::Land;
 			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;

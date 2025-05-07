@@ -24,6 +24,10 @@ on:
       - 'docs/**'
       - '.github/**'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   group_targets:
     name: Scan for Board Targets
