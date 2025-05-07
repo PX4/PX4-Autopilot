@@ -84,10 +84,10 @@ protected:
 
 private:
 	/**
-	 * @brief Generate and publish roverAttitudeSetpoint from manualControlSetpoint (Stab Mode)
+	 * @brief Generate and publish roverAttitudeSetpoint and roverThrottleSetpoint from manualControlSetpoint (Stab Mode)
 	 * 	  or trajectorySetpoint (Offboard attitude control).
 	 */
-	void generateAttitudeSetpoint();
+	void generateAttitudeAndThrottleSetpoint();
 
 	/**
 	 * @brief Generate and publish roverRateSetpoint from roverAttitudeSetpoint.
@@ -126,7 +126,7 @@ private:
 	float _vehicle_yaw{0.f};
 	float _dt{0.f};
 	float _max_yaw_rate{0.f};
-	float _stab_yaw_setpoint{0.f}; // Yaw setpoint for stab mode, NAN if yaw rate is manually controlled [rad]
+	float _stab_yaw_setpoint{NAN}; // Yaw setpoint for stab mode, NAN if yaw rate is manually controlled [rad]
 	bool _prev_param_check_passed{true};
 
 	// Controllers

@@ -123,13 +123,14 @@ FixedwingRateControl::vehicle_manual_poll()
 
 			} else {
 				// Manual/direct control, filled in FW-frame. Note that setpoints will get transformed to body frame prior publishing.
+				const float airspeed_scaling_sq = _airspeed_scaling * _airspeed_scaling;
 
 				_vehicle_torque_setpoint.xyz[0] = math::constrain(_manual_control_setpoint.roll * _param_fw_man_r_sc.get() +
-								  _param_trim_roll.get(), -1.f, 1.f);
+								  _param_trim_roll.get() * airspeed_scaling_sq, -1.f, 1.f);
 				_vehicle_torque_setpoint.xyz[1] = math::constrain(-_manual_control_setpoint.pitch * _param_fw_man_p_sc.get() +
-								  _param_trim_pitch.get(), -1.f, 1.f);
+								  _param_trim_pitch.get() * airspeed_scaling_sq, -1.f, 1.f);
 				_vehicle_torque_setpoint.xyz[2] = math::constrain(_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() +
-								  _param_trim_yaw.get(), -1.f, 1.f);
+								  _param_trim_yaw.get() * airspeed_scaling_sq, -1.f, 1.f);
 
 				_vehicle_thrust_setpoint.xyz[0] = math::constrain((_manual_control_setpoint.throttle + 1.f) * .5f, 0.f, 1.f);
 			}
@@ -325,6 +326,7 @@ void FixedwingRateControl::Run()
 
 			/* bi-linear interpolation over airspeed for actuator trim scheduling */
 			Vector3f trim(_param_trim_roll.get(), _param_trim_pitch.get(), _param_trim_yaw.get());
+			trim *= _airspeed_scaling * _airspeed_scaling;
 
 			if (airspeed < _param_fw_airspd_trim.get()) {
 				trim(0) += interpolate(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(),

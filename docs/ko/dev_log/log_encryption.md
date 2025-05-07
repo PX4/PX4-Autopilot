@@ -376,3 +376,31 @@ This section explains how you might manually run the same steps as the script (s
   ```sh
   CONFIG_PUBLIC_KEY1="../../../keys/public/public_key.pub"
   ```
+
+## Flight Review & Encrypted logs
+
+If your logs are secret enough to require encryption it is likely that you will not trust them on the public [Flight Review](../getting_started/flight_reporting.md) server (this is not particularly hardened against data loss or theft).
+
+:::info
+The public [Flight Review](../getting_started/flight_reporting.md) service does not support encrypted logs.
+If you wish to use the service you can use the tools here to download and decrypt the files first.
+:::
+
+This section explains how you can host a _private_ instance of the Flight Review server.
+This can use logs that you have downloaded and decrypted yourself, or you can include your private key in the server for automatic decryption of logs on upload.
+
+단계는 다음과 같습니다:
+
+1. Follow the Flight Review [installation and setup](https://github.com/PX4/flight_review?tab=readme-ov-file#installation-and-setup) instructions to clone and setup the server.
+
+2. Put your private key in the source code at: `flight_review/app/private_key/private_key.pem`
+
+3. Add this key location into the server config file: `flight_review/app/config_default.ini`.
+
+  The line to add should look something like this (for the file above):
+
+  ```sh
+  ulge_private_key = ../private_key/private_key.pem
+  ```
+
+4. Follow the Flight Review Instructions to start your server.

@@ -75,10 +75,10 @@ By default, PX4 uses commonly established UDP ports for MAVLink communication wi
 These ports are:
 
 - PX4's remote UDP Port **14550** is used for communication with ground control stations.
-  期望外接 APIs 监听此端口上的连接。
-  _QGroundControl_ listens to this port by default.
+  期望 GCS 侦听此端口上的连接。
+  _QGroundControl_ 默认侦听此端口。
 - PX4's remote UDP Port **14540** is used for communication with offboard APIs.
-  期望 GCS 将侦听此端口上的连接。
+  期望 Offboard APIs 侦听此端口上的连接。
   ::: info
   Multi-vehicle simulations use a separate remote port for each instance, allocated sequentially from `14540` to `14549`
   (additional instances all use port `14549`).

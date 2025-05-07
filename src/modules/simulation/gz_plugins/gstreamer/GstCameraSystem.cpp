@@ -175,10 +175,6 @@ void GstCameraSystem::findCameraTopic()
 			}
 		}
 	}
-
-	if (!_initialized) {
-		gzdbg << "No camera topics found yet, will check again next update" << std::endl;
-	}
 }
 
 //////////////////////////////////////////////////
@@ -282,7 +278,7 @@ void GstCameraSystem::gstThreadFunc()
 				     NULL);
 
 		} else {
-			gzerr << "NVIDIA H.264 encoder not available, falling back to software encoder" << std::endl;
+			gzwarn << "NVIDIA H.264 encoder not available, falling back to software encoder" << std::endl;
 			encoder = gst_element_factory_make("x264enc", nullptr);
 			g_object_set(G_OBJECT(encoder),
 				     "bitrate", 4000,
