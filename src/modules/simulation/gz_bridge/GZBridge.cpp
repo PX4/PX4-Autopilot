@@ -402,11 +402,14 @@ void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
 	id.devid_s.bus = 1;
 	id.devid_s.address = 1;
 
+    _baro_noise = _baro_markov_time * _baro_noise +
+                 _baro_random_walk * generate_wgn() * _baro_noise_amplitude;
+
 	sensor_baro_s report{};
 	report.timestamp = timestamp;
 	report.timestamp_sample = timestamp;
 	report.device_id = id.devid;
-	report.pressure = msg.pressure();
+	report.pressure = (float)msg.pressure() + _baro_noise;
 	report.temperature = this->_temperature;
 	_sensor_baro_pub.publish(report);
 }
