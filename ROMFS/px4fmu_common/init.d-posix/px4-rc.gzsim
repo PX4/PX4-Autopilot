@@ -6,8 +6,8 @@ MIN_GZ_VERSION="8.0.0"
 GZ_SIM_VERSION=$(gz sim --versions 2>/dev/null | head -n 1 | tr -d ' ')
 
 if [ -z "$GZ_SIM_VERSION" ]; then
-    echo "ERROR [init] Gazebo gz sim not found. Please install gz-harmonic"
-    exit 1
+	echo "ERROR [init] Gazebo gz sim not found. Please install gz-harmonic"
+	exit 1
 fi
 
 # Use sort compare, check that MIN_GZ_VERSION is ordered last
@@ -24,8 +24,8 @@ if [ "$(printf '%s\n' "$GZ_SIM_VERSION" "$MIN_GZ_VERSION" | sort -V | head -n1)"
 		gz_sub_command="${gz_sub_command} --render-engine ${PX4_GZ_SIM_RENDER_ENGINE}"
 	fi
 else
-    echo "ERROR [init] Gazebo version too hold ($GZ_SIM_VERSION). Minimum required version is $MIN_GZ_VERSION"
-    exit 1
+	echo "ERROR [init] Gazebo version too hold ($GZ_SIM_VERSION). Minimum required version is $MIN_GZ_VERSION"
+	exit 1
 fi
 
 # If not standalone
@@ -88,6 +88,21 @@ while [ $ATTEMPTS -gt 0 ]; do
 	echo "INFO  [init] Waiting for Gazebo world..."
 	sleep 1
 done
+
+# World is ready, check if custom location is provided
+if [ -n "${PX4_HOME_LAT}" ] || [ -n "${PX4_HOME_LON}" ] || [ -n "${PX4_HOME_ALT}" ]; then
+	# must have all three
+	if [ -z "${PX4_HOME_LAT}" ] || [ -z "${PX4_HOME_LON}" ] || [ -z "${PX4_HOME_ALT}" ]; then
+		echo "ERROR [init] PX4_HOME_LAT, PX4_HOME_LON and PX4_HOME_ALT must all be set"
+		exit 1
+	fi
+	echo "INFO  [init] Setting world origin to lat: ${PX4_HOME_LAT}, lon: ${PX4_HOME_LON}, alt: ${PX4_HOME_ALT}"
+	${gz_command} service -s "/world/${PX4_GZ_WORLD}/set_spherical_coordinates" \
+		--reqtype gz.msgs.SphericalCoordinates \
+		--reptype gz.msgs.Boolean \
+		--timeout 1000 \
+		--req "surface_model: EARTH_WGS84, latitude_deg: ${PX4_HOME_LAT}, longitude_deg: ${PX4_HOME_LON}, elevation: ${PX4_HOME_ALT}" > /dev/null 2>&1
+fi
 
 # Start gz_bridge - either spawn a model or connect to existing one
 if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
