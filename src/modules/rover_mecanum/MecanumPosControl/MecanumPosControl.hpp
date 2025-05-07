@@ -96,7 +96,7 @@ private:
 	/**
 	 * @brief Generate and publish roverPositionSetpoint from position of trajectorySetpoint.
 	 */
-	void generatePositionSetpoint();
+	void offboardPositionMode();
 
 	/**
 	 * @brief Generate and publish roverVelocitySetpoint from manualControlSetpoint (Position Mode) or
@@ -110,37 +110,23 @@ private:
 	void manualPositionMode();
 
 	/**
-	 * @brief Generate and publish roverAttitudeSetpoint from velocity of trajectorySetpoint.
-	 */
-	void offboardVelocityMode();
-
-	/**
 	 * @brief Generate and publish roverVelocitySetpoint from positionSetpointTriplet.
 	 */
 	void autoPositionMode();
 
 	/**
-	 * @brief Generate and publish roverVelocitySetpoint from roverPositionSetpoint.
-	 */
-	void goToPositionMode();
-
-	/**
-	 * @brief Calculate the velocity magnitude setpoint. During waypoint transition the speed is restricted to
+	 * @brief Calculate the speed at which the rover should arrive at the current waypoint. During waypoint transition the speed is restricted to
 	 * Maximum_speed * (1 - normalized_transition_angle * RM_MISS_VEL_GAIN).
-	 * On straight lines it is based on a speed trajectory such that the rover will arrive at the next waypoint transition
-	 * with the desired waypoiny transition speed under consideration of the maximum deceleration and jerk.
 	 * @param auto_speed Default auto speed [m/s].
-	 * @param distance_to_curr_wp Distance to the current waypoint [m].
-	 * @param max_decel Maximum allowed deceleration [m/s^2].
-	 * @param max_jerk Maximum allowed jerk [m/s^3].
 	 * @param waypoint_transition_angle Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
 	 * @param max_speed Maximum velocity magnitude setpoint [m/s]
 	 * @param miss_spd_gain Tuning parameter for the speed reduction during waypoint transition.
 	 * @param curr_wp_type Type of the current waypoint.
 	 * @return Velocity magnitude setpoint [m/s].
 	 */
-	float calcVelocityMagnitude(float auto_speed, float distance_to_curr_wp, float max_decel, float max_jerk,
-				    float waypoint_transition_angle, float max_speed, float miss_spd_gain, int curr_wp_type);
+	float autoArrivalSpeed(float auto_speed, float waypoint_transition_angle, float max_speed, float miss_spd_gain,
+			       int curr_wp_type);
+
 
 	/**
 	 * @brief Check if the necessary parameters are set.
@@ -168,17 +154,17 @@ private:
 
 
 	// Variables
-	hrt_abstime _timestamp{0};
 	Quatf _vehicle_attitude_quaternion{};
 	Vector2f _curr_pos_ned{};
 	Vector2f _pos_ctl_course_direction{};
 	Vector2f _pos_ctl_start_position_ned{};
+	Vector2f _start_ned{};
 	float _vehicle_yaw{0.f};
 	float _max_yaw_rate{0.f};
 	float _pos_ctl_yaw_setpoint{0.f}; // Yaw setpoint for manual position mode, NAN if yaw rate is manually controlled [rad]
-	float _dt{0.f};
 	float _auto_speed{0.f};
 	float _auto_yaw{0.f};
+	float _yaw_setpoint{NAN};
 	int _curr_wp_type{position_setpoint_s::SETPOINT_TYPE_IDLE};
 	bool _prev_param_check_passed{true};
 
