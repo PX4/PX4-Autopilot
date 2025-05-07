@@ -100,7 +100,7 @@ if [ -n "${PX4_HOME_LAT}" ] || [ -n "${PX4_HOME_LON}" ] || [ -n "${PX4_HOME_ALT}
 	${gz_command} service -s "/world/${PX4_GZ_WORLD}/set_spherical_coordinates" \
 		--reqtype gz.msgs.SphericalCoordinates \
 		--reptype gz.msgs.Boolean \
-		--timeout 5000 \
+		--timeout 1000 \
 		--req "surface_model: EARTH_WGS84, latitude_deg: ${PX4_HOME_LAT}, longitude_deg: ${PX4_HOME_LON}, elevation: ${PX4_HOME_ALT}" > /dev/null 2>&1
 fi
 
