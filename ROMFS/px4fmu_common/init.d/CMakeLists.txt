@@ -44,6 +44,9 @@ px4_add_romfs_files(
 	# TODO
 	rc.balloon_apps
 	rc.balloon_defaults
+
+	#HITL
+	rc.hitl_testing
 )
 
 if(CONFIG_MODULES_AIRSHIP_ATT_CONTROL)
