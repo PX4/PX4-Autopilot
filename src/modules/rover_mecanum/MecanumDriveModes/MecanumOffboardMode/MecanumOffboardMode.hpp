@@ -35,51 +35,40 @@
 
 // PX4 includes
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/events.h>
 
 // Libraries
-#include <lib/rover_control/RoverControl.hpp>
-#include <lib/pid/PID.hpp>
-#include <lib/slew_rate/SlewRateYaw.hpp>
 #include <math.h>
 #include <matrix/matrix/math.hpp>
 
 // uORB includes
-#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/rover_rate_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/rover_attitude_status.h>
 #include <uORB/topics/rover_attitude_setpoint.h>
+#include <uORB/topics/rover_velocity_setpoint.h>
+#include <uORB/topics/rover_position_setpoint.h>
+#include <uORB/topics/offboard_control_mode.h>
+#include <uORB/topics/trajectory_setpoint.h>
+
+using namespace matrix;
 
 /**
- * @brief Class for mecanum attitude control.
+ * @brief Class for Mecanum manual mode.
  */
-class MecanumAttControl : public ModuleParams
+class MecanumOffboardMode : public ModuleParams
 {
 public:
 	/**
-	 * @brief Constructor for MecanumAttControl.
+	 * @brief Constructor for MecanumOffboardMode.
 	 * @param parent The parent ModuleParams object.
 	 */
-	MecanumAttControl(ModuleParams *parent);
-	~MecanumAttControl() = default;
+	MecanumOffboardMode(ModuleParams *parent);
+	~MecanumOffboardMode() = default;
 
 	/**
-	 * @brief Generate and publish roverRateSetpoint from roverAttitudeSetpoint.
+	 * @brief Generate and publish roverSetpoints from trajectorySetpoint.
 	 */
-	void updateAttControl();
-
-	/**
-	 * @brief Reset attitude controller.
-	 */
-	void reset() {_pid_yaw.resetIntegral(); _yaw_setpoint = NAN;};
-
-	/**
-	 * @brief Check if the necessary parameters are set.
-	 * @return True if all checks pass.
-	 */
-	bool runSanityChecks();
+	void offboardControl();
 
 protected:
 	/**
@@ -88,29 +77,13 @@ protected:
 	void updateParams() override;
 
 private:
-
 	// uORB subscriptions
-	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _rover_attitude_setpoint_sub{ORB_ID(rover_attitude_setpoint)};
+	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
+	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 
 	// uORB publications
-	uORB::Publication<rover_rate_setpoint_s>   _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
-	uORB::Publication<rover_attitude_status_s> _rover_attitude_status_pub{ORB_ID(rover_attitude_status)};
-
-	// Variables
-	float _vehicle_yaw{0.f};
-	hrt_abstime _timestamp{0};
-	float _max_yaw_rate{0.f};
-	float _yaw_setpoint{NAN};
-
-	// Controllers
-	PID _pid_yaw;
-	SlewRateYaw<float> _adjusted_yaw_setpoint;
-
-	// Parameters
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_YAW_RATE_LIM>) _param_ro_yaw_rate_limit,
-		(ParamFloat<px4::params::RO_YAW_P>)        _param_ro_yaw_p,
-		(ParamFloat<px4::params::RO_YAW_STICK_DZ>) _param_ro_yaw_stick_dz
-	)
+	uORB::Publication<rover_rate_setpoint_s>     _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
+	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
+	uORB::Publication<rover_velocity_setpoint_s> _rover_velocity_setpoint_pub{ORB_ID(rover_velocity_setpoint)};
+	uORB::Publication<rover_position_setpoint_s> _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
 };

@@ -35,51 +35,35 @@
 
 // PX4 includes
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/events.h>
 
 // Libraries
 #include <lib/rover_control/RoverControl.hpp>
-#include <lib/pid/PID.hpp>
-#include <lib/slew_rate/SlewRateYaw.hpp>
 #include <math.h>
-#include <matrix/matrix/math.hpp>
 
 // uORB includes
-#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_rate_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/rover_attitude_status.h>
-#include <uORB/topics/rover_attitude_setpoint.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/rover_position_setpoint.h>
 
 /**
- * @brief Class for mecanum attitude control.
+ * @brief Class for Mecanum auto mode.
  */
-class MecanumAttControl : public ModuleParams
+class MecanumAutoMode : public ModuleParams
 {
 public:
 	/**
-	 * @brief Constructor for MecanumAttControl.
+	 * @brief Constructor for auto mode.
 	 * @param parent The parent ModuleParams object.
 	 */
-	MecanumAttControl(ModuleParams *parent);
-	~MecanumAttControl() = default;
+	MecanumAutoMode(ModuleParams *parent);
+	~MecanumAutoMode() = default;
 
 	/**
-	 * @brief Generate and publish roverRateSetpoint from roverAttitudeSetpoint.
+	 * @brief Generate and publish roverPositionSetpoint from positionSetpointTriplet.
 	 */
-	void updateAttControl();
-
-	/**
-	 * @brief Reset attitude controller.
-	 */
-	void reset() {_pid_yaw.resetIntegral(); _yaw_setpoint = NAN;};
-
-	/**
-	 * @brief Check if the necessary parameters are set.
-	 * @return True if all checks pass.
-	 */
-	bool runSanityChecks();
+	void autoControl();
 
 protected:
 	/**
@@ -88,29 +72,28 @@ protected:
 	void updateParams() override;
 
 private:
+	/**
+	 * @brief Calculate the speed at which the rover should arrive at the current waypoint. During waypoint transition the speed is restricted to
+	 * Maximum_speed * (1 - normalized_transition_angle * RM_MISS_VEL_GAIN).
+	 * @param cruising_speed Cruising speed [m/s].
+	 * @param waypoint_transition_angle Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
+	 * @param max_speed Maximum speed setpoint [m/s]
+	 * @param miss_spd_gain Tuning parameter for the speed reduction during waypoint transition.
+	 * @param curr_wp_type Type of the current waypoint.
+	 * @return Speed setpoint [m/s].
+	 */
+	float arrivalSpeed(const float cruising_speed, const float waypoint_transition_angle, const float max_speed,
+			   const float miss_spd_gain, int curr_wp_type);
 
 	// uORB subscriptions
-	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _rover_attitude_setpoint_sub{ORB_ID(rover_attitude_setpoint)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 
 	// uORB publications
-	uORB::Publication<rover_rate_setpoint_s>   _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
-	uORB::Publication<rover_attitude_status_s> _rover_attitude_status_pub{ORB_ID(rover_attitude_status)};
+	uORB::Publication<rover_position_setpoint_s>    _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
 
-	// Variables
-	float _vehicle_yaw{0.f};
-	hrt_abstime _timestamp{0};
-	float _max_yaw_rate{0.f};
-	float _yaw_setpoint{NAN};
-
-	// Controllers
-	PID _pid_yaw;
-	SlewRateYaw<float> _adjusted_yaw_setpoint;
-
-	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_YAW_RATE_LIM>) _param_ro_yaw_rate_limit,
-		(ParamFloat<px4::params::RO_YAW_P>)        _param_ro_yaw_p,
-		(ParamFloat<px4::params::RO_YAW_STICK_DZ>) _param_ro_yaw_stick_dz
+		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
+		(ParamFloat<px4::params::RM_MISS_SPD_GAIN>) _param_rm_miss_spd_gain
 	)
 };
