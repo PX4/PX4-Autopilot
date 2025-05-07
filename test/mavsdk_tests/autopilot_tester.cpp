@@ -245,6 +245,8 @@ void AutopilotTester::prepare_square_mission(MissionOptions mission_options)
 	_mission->set_return_to_launch_after_mission(mission_options.rtl_at_end);
 
 	REQUIRE(_mission->upload_mission(mission_plan) == Mission::Result::Success);
+	// PX4 needs time to realize that it now has a mission available, so we need to wait a bit here.
+	sleep_for(std::chrono::seconds(1));
 }
 
 void AutopilotTester::prepare_straight_mission(MissionOptions mission_options)
@@ -261,6 +263,8 @@ void AutopilotTester::prepare_straight_mission(MissionOptions mission_options)
 	_mission->set_return_to_launch_after_mission(mission_options.rtl_at_end);
 
 	REQUIRE(_mission->upload_mission(mission_plan) == Mission::Result::Success);
+	// PX4 needs time to realize that it now has a mission available, so we need to wait a bit here.
+	sleep_for(std::chrono::seconds(1));
 }
 
 void AutopilotTester::execute_mission()
@@ -390,6 +394,8 @@ void AutopilotTester::load_qgc_mission_raw_and_move_here(const std::string &plan
 	move_mission_raw_here(import_result.second.mission_items);
 
 	REQUIRE(_mission_raw->upload_mission(import_result.second.mission_items) == MissionRaw::Result::Success);
+	// PX4 needs time to realize that it now has a mission available, so we need to wait a bit here.
+	sleep_for(std::chrono::seconds(1));
 }
 
 void AutopilotTester::execute_mission_raw()
