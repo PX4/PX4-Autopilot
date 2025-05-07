@@ -1,4 +1,5 @@
-uint64 timestamp # time since system start (microseconds)
+# Rover Attitude Status
 
-float32 measured_yaw          # [rad/s] Measured yaw rate
-float32 adjusted_yaw_setpoint # [rad/s] Yaw setpoint that is being tracked (Applied slew rates)
+uint64  timestamp             # Time since system start [us]
+float32 measured_yaw          # Measured yaw [rad] [@range -pi, pi] [@frame NED]
+float32 adjusted_yaw_setpoint # Yaw setpoint that is being tracked (Applied slew rates) [rad] [@range -pi, pi] [@frame NED]

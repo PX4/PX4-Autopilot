@@ -1,5 +1,6 @@
-uint64 timestamp # time since system start (microseconds)
+# Rover Velocity Setpoint
 
-float32 speed   # [m/s] [-inf, inf] Speed setpoint (Backwards driving if negative)
-float32 bearing # [rad] [-pi,pi] from North.
-float32 yaw 	# [rad] [-pi, pi] (Mecanum only, Optional, defaults to current vehicle yaw) Vehicle yaw setpoint in NED frame
+uint64  timestamp # Time since system start [us]
+float32 speed     # Speed setpoint [m/s] [@range -inf (Backwards), inf (Forwards)]
+float32 bearing   # Bearing setpoint [rad] [@range -pi,pi] [@frame NED]
+float32 yaw 	  # Mecanum only: Yaw setpoint [rad] [@range -pi, pi] [@frame NED] [@invalid NaN Defaults to vehicle yaw]
