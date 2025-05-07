@@ -88,15 +88,6 @@ void MecanumActControl::updateActControl()
 		actuator_motors.timestamp = _timestamp;
 		_actuator_motors_pub.publish(actuator_motors);
 
-	} else {
-		actuator_motors_s actuator_motors{};
-		actuator_motors.reversible_flags = _param_r_rev.get();
-		actuator_motors.control[0] = 0.f;
-		actuator_motors.control[1] = 0.f;
-		actuator_motors.control[2] = 0.f;
-		actuator_motors.control[3] = 0.f;
-		actuator_motors.timestamp = _timestamp;
-		_actuator_motors_pub.publish(actuator_motors);
 	}
 
 }
@@ -123,21 +114,6 @@ Vector4f MecanumActControl::computeInverseKinematics(float throttle_body_x, floa
 	const Vector4f motor_commands = m * input;
 
 	return motor_commands;
-}
-
-void MecanumActControl::manualManualMode()
-{
-	manual_control_setpoint_s manual_control_setpoint{};
-	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
-	rover_steering_setpoint_s rover_steering_setpoint{};
-	rover_steering_setpoint.timestamp = _timestamp;
-	rover_steering_setpoint.normalized_speed_diff = manual_control_setpoint.yaw;
-	_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
-	rover_throttle_setpoint_s rover_throttle_setpoint{};
-	rover_throttle_setpoint.timestamp = _timestamp;
-	rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
-	rover_throttle_setpoint.throttle_body_y = manual_control_setpoint.roll;
-	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 }
 
 void MecanumActControl::stopVehicle()
