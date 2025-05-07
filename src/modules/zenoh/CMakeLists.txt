@@ -52,6 +52,8 @@ if(NOT DEFINED CONFIG_PTHREAD_MUTEX_TYPES AND CONFIG_PLATFORM_NUTTX)
     message( SEND_ERROR "Pthread mutex is diabled, Zenoh will not function." )
 endif()
 
+set(Z_TRANSPORT_LEASE 60000 CACHE STRING "Link lease duration in milliseconds to announce to other zenoh nodes") # Match ROS2 RMW_ZENOH
+
 set(FRAG_MAX_SIZE 512 CACHE STRING "Use this to override the maximum size for fragmented messages")
 set(BATCH_UNICAST_SIZE 256 CACHE STRING "Use this to override the maximum unicast batch size")
 set(BATCH_MULTICAST_SIZE 256 CACHE STRING "Use this to override the maximum multicast batch size")
