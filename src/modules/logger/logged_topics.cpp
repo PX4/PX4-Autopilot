@@ -60,6 +60,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("cpuload");
 	add_optional_topic("differential_velocity_setpoint", 100);
 	add_topic("distance_sensor_mode_change_request");
+	add_topic_multi("dronecan_node_status", 250);
 	add_optional_topic("external_ins_attitude");
 	add_optional_topic("external_ins_global_position");
 	add_optional_topic("external_ins_local_position");
