@@ -147,7 +147,6 @@ private:
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
 		(ParamFloat<px4::params::MPC_TILTMAX_AIR>)  _param_mpc_tiltmax_air,
 		(ParamFloat<px4::params::MPC_THR_HOVER>)    _param_mpc_thr_hover,
-		(ParamBool<px4::params::MPC_USE_HTE>)       _param_mpc_use_hte,
 		(ParamBool<px4::params::MPC_ACC_DECOUPLE>)  _param_mpc_acc_decouple,
 
 		(ParamFloat<px4::params::MPC_VEL_LP>)       _param_mpc_vel_lp,

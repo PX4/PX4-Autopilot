@@ -89,18 +89,16 @@ private:
 
 	struct {
 		param_t minThrottle;
-		param_t hoverThrottle;
+		param_t mpc_thr_hover;
 		param_t minManThrottle;
-		param_t useHoverThrustEstimate;
 		param_t landSpeed;
 		param_t crawlSpeed;
 	} _paramHandle{};
 
 	struct {
 		float minThrottle;
-		float hoverThrottle;
+		float mpc_thr_hover;
 		float minManThrottle;
-		bool useHoverThrustEstimate;
 		float landSpeed;
 		float crawlSpeed;
 	} _params{};
@@ -112,11 +110,11 @@ private:
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _takeoff_status_sub{ORB_ID(takeoff_status)};
 
+	float _hover_thrust_estimate{NAN};
 	hrt_abstime _hover_thrust_estimate_last_valid{0};
 	bool _hover_thrust_estimate_valid{false};
 
 	bool _flag_control_climb_rate_enabled{false};
-	bool _hover_thrust_initialized{false};
 
 	float _vehicle_thrust_setpoint_throttle{0.f};
 

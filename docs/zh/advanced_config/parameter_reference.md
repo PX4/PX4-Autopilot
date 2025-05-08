@@ -17118,7 +17118,7 @@ table {
 </tr>
 <tr>
  <td><strong id="MPC_THR_HOVER">MPC_THR_HOVER</strong> (FLOAT)</td>
- <td>Vertical thrust required to hover <p><strong>Comment:</strong> Mapped to center throttle stick in Stabilized mode (see MPC_THR_CURVE). Used for initialization of the hover thrust estimator (see MPC_USE_HTE). The estimated hover thrust is used as base for zero vertical acceleration in altitude control. The hover thrust is important for land detection to work correctly.</p>   </td>
+ <td>Vertical thrust required to hover <p><strong>Comment:</strong> Mapped to center throttle stick in Stabilized mode (see MPC_THR_CURVE). Used for initialization of the hover thrust estimator. The estimated hover thrust is used as base for zero vertical acceleration in altitude control. The hover thrust is important for land detection to work correctly.</p>   </td>
  <td>[0.1, 0.8] (0.01)</td>
  <td>0.5</td>
  <td>norm</td>
@@ -17171,13 +17171,6 @@ table {
  <td>[1, 5] </td>
  <td>1.5</td>
  <td>m/s</td>
-</tr>
-<tr>
- <td><strong id="MPC_USE_HTE">MPC_USE_HTE</strong> (INT32)</td>
- <td>Hover thrust estimator <p><strong>Comment:</strong> Disable to use the fixed parameter MPC_THR_HOVER Enable to use the hover thrust estimator</p>   </td>
- <td></td>
- <td>Enabled (1)</td>
- <td></td>
 </tr>
 <tr>
  <td><strong id="MPC_VELD_LP">MPC_VELD_LP</strong> (FLOAT)</td>
