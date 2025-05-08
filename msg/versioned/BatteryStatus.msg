@@ -37,7 +37,7 @@ float32 max_cell_voltage_delta # Max difference between individual cell voltages
 bool is_powering_off # Power off event imminent indication, false if unknown
 bool is_required # Set if the battery is explicitly required before arming
 
-uint8 warning # Current battery warning [@enum WARNING]
+uint8 warning # Current battery warning [@enum WARNING STATE]
 uint8 WARNING_NONE = 0 # No battery low voltage warning active
 uint8 WARNING_LOW = 1 # Low voltage warning
 uint8 WARNING_CRITICAL = 2 # Critical voltage, return / abort immediately
