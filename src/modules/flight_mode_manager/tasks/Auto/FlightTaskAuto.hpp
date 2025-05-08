@@ -47,12 +47,12 @@
 #include <uORB/topics/vehicle_status.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <lib/motion_planning/HeadingSmoothing.hpp>
 #include <lib/motion_planning/PositionSmoothing.hpp>
 #include <lib/stick_yaw/StickYaw.hpp>
 #include <lib/weather_vane/WeatherVane.hpp>
 #include "Sticks.hpp"
 #include "StickAccelerationXY.hpp"
-#include "HeadingSmoothing.hpp"
 
 /**
  * This enum has to agree with position_setpoint_s type definition
@@ -137,6 +137,7 @@ protected:
 	State _current_state{State::none};
 	float _target_acceptance_radius{0.0f}; /**< Acceptances radius of the target */
 
+	float _yaw_setpoint_previous{NAN}; /**< Used because _yaw_setpoint is overwritten in multiple places */
 	HeadingSmoothing _heading_smoothing;
 	bool _yaw_sp_aligned{false};
 
