@@ -96,26 +96,27 @@ private:
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
 
+	// TODO_RS _vehicle_thrust_setpoint AND _vehicle_torque_setpoint
 	vehicle_control_mode_s _vcontrol_mode{};
 
 	perf_counter_t	_loop_perf;
 
-	DEFINE_PARAMETERS(
-		// (ParamFloat<px4::params::UUV_ROLL_P>) _param_roll_p,
-		// (ParamFloat<px4::params::UUV_ROLL_D>) _param_roll_d,
-		// (ParamFloat<px4::params::UUV_PITCH_P>) _param_pitch_p,
-		// (ParamFloat<px4::params::UUV_PITCH_D>) _param_pitch_d,
-		// (ParamFloat<px4::params::UUV_YAW_P>) _param_yaw_p,
-		// (ParamFloat<px4::params::UUV_YAW_D>) _param_yaw_d,
-		// control/input modes
-		// (ParamInt<px4::params::UUV_INPUT_MODE>) _param_input_mode,
-		// (ParamInt<px4::params::UUV_SKIP_CTRL>) _param_skip_ctrl,
-		// direct access to inputs
-		(ParamFloat<px4::params::UUV_DIRCT_ROLL>) _param_direct_roll,
-		(ParamFloat<px4::params::UUV_DIRCT_PITCH>) _param_direct_pitch,
-		(ParamFloat<px4::params::UUV_DIRCT_YAW>) _param_direct_yaw,
-		(ParamFloat<px4::params::UUV_DIRCT_THRUST>) _param_direct_thrust
-	)
+	// DEFINE_PARAMETERS(
+	// 	(ParamFloat<px4::params::UUV_ROLL_P>) _param_roll_p,
+	// 	(ParamFloat<px4::params::UUV_ROLL_D>) _param_roll_d,
+	// 	(ParamFloat<px4::params::UUV_PITCH_P>) _param_pitch_p,
+	// 	(ParamFloat<px4::params::UUV_PITCH_D>) _param_pitch_d,
+	// 	(ParamFloat<px4::params::UUV_YAW_P>) _param_yaw_p,
+	// 	(ParamFloat<px4::params::UUV_YAW_D>) _param_yaw_d,
+	// 	// control/input modes
+	// 	(ParamInt<px4::params::UUV_INPUT_MODE>) _param_input_mode,
+	// 	(ParamInt<px4::params::UUV_SKIP_CTRL>) _param_skip_ctrl,
+	// 	// direct access to inputs
+	// 	(ParamFloat<px4::params::UUV_DIRCT_ROLL>) _param_direct_roll,
+	// 	(ParamFloat<px4::params::UUV_DIRCT_PITCH>) _param_direct_pitch,
+	// 	(ParamFloat<px4::params::UUV_DIRCT_YAW>) _param_direct_yaw,
+	// 	(ParamFloat<px4::params::UUV_DIRCT_THRUST>) _param_direct_thrust
+	// )
 
 	void Run() override;
 	/**
@@ -124,12 +125,15 @@ private:
 	void parameters_update(bool force = false);
 
 	/**
-	 * Read gyro
+	 * @brief Control actuator based on gyro
+	 *
+	 * @param attitude
 	 */
-	void read_gyro(const vehicle_attitude_s &attitude);
-	/**
-	 * Blink a Led
-	 */
-	void led_test(int function, float value, int timeout_ms, bool release_control);
+	void control_gyro(const vehicle_attitude_s &attitude);
+	void constrain_actuator_commands(float pitch_u);
 
+	/*
+	* @brief Test actuator
+	*/
+	void actuator_test(int function, float value, int timeout_ms, bool release_control);
 };

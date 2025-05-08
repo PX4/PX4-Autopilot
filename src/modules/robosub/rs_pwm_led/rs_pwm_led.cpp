@@ -85,6 +85,42 @@ void RobosubPwmLed::parameters_update(bool force)
 	}
 }
 
+/* unit vect*/
+/**
+ * @brief constrains values and runs actuator_test.
+ *
+ * Borrow from UUVAttitudeControl::constrain_actuator_commands
+ * @param pitch_u float
+ */
+void RobosubPwmLed::constrain_actuator_commands(float pitch_u)
+{
+	// if (PX4_ISFINITE(roll_u)) {
+	// 	roll_u = math::constrain(roll_u, -1.0f, 1.0f);
+	// 	_vehicle_torque_setpoint.xyz[0] = roll_u;
+
+	// } else {
+	// 	_vehicle_torque_setpoint.xyz[0] = 0.0f;
+	// }
+
+	if (PX4_ISFINITE(pitch_u)) {
+		pitch_u = math::constrain(pitch_u, -1.0f, 1.0f);
+		// _vehicle_torque_setpoint.xyz[1] = pitch_u;
+		actuator_test(101, pitch_u, 0, false);
+
+	} else {
+		// _vehicle_torque_setpoint.xyz[1] = 0.0f;
+	}
+
+	// if (PX4_ISFINITE(yaw_u)) {
+	// 	yaw_u = math::constrain(yaw_u, -1.0f, 1.0f);
+	// 	_vehicle_torque_setpoint.xyz[2] = yaw_u;
+
+	// } else {
+	// 	_vehicle_torque_setpoint.xyz[2] = 0.0f;
+	// }
+}
+
+
 void RobosubPwmLed::Run()
 {
 	PX4_INFO("RobosubPwmLed::Run()");
@@ -112,53 +148,60 @@ void RobosubPwmLed::Run()
 		// get angular velocity
 		// vehicle_angular_velocity_s angular_velocity {};
 		// _angular_velocity_sub.copy(&angular_velocity);
-
-		read_gyro(attitude);
+		PX4_INFO("roll data");
+		control_gyro(attitude);
 	}
 
-	PX4_INFO("roll data");
 
+	/* Only publish if any of the proper modes are enabled */
+	if (_vcontrol_mode.flag_control_manual_enabled ||
+		_vcontrol_mode.flag_control_attitude_enabled)
+		{
+
+		}
 
 	perf_end(_loop_perf);
 }
 
-void RobosubPwmLed::led_test(int function, float us, int timeout_ms, bool release_control)
+void RobosubPwmLed::actuator_test(int function, float value, int timeout_ms, bool release_control)
 {
-	// led_control_s
+	PX4_DEBUG("actuator_test value: %.2f", (double) value);
+
 	actuator_test_s actuator_test{};
 	actuator_test.timestamp = hrt_absolute_time();
 	actuator_test.function = function;
-	actuator_test.value = us;
+	actuator_test.value = value;
 	actuator_test.action = release_control ? actuator_test_s::ACTION_RELEASE_CONTROL : actuator_test_s::ACTION_DO_CONTROL;
 	actuator_test.timeout_ms = timeout_ms;
 
-  	uORB::Publication<actuator_test_s> actuator_test_pub{ORB_ID(actuator_test)};
-  	actuator_test_pub.publish(actuator_test);
+	uORB::Publication<actuator_test_s> actuator_test_pub{ORB_ID(actuator_test)};
+	actuator_test_pub.publish(actuator_test);
 }
 
 /**
  * @brief Reads the gyroscope data and extracts the roll of the PX4 device.
  *
  * This function processes the vehicle attitude quaternion to compute the roll,
- * pitch, and yaw angles. It specifically logs the roll value for debugging purposes.
+ * pitch, and yaw angles. It specifically logs the gyroscope value for debugging purposes.
  *
  * @param attitude The vehicle attitude structure containing quaternion data.
  */
-void RobosubPwmLed::read_gyro(const vehicle_attitude_s &attitude)
+void RobosubPwmLed::control_gyro(const vehicle_attitude_s &attitude)
 {
 	/* get attitude setpoint rotational matrix */
 	// Dcmf rot_des = Eulerf(roll_body, pitch_body, yaw_body);
 
 	Eulerf euler_angles(matrix::Quatf(attitude.q));
-        // Extract roll, pitch, and yaw
-        float roll = euler_angles.phi();   // Roll angle in radians
-        float pitch = euler_angles.theta(); // Pitch angle in radians
-        float yaw = euler_angles.psi();    // Yaw angle in radians
 
-        // Log the roll value
-        PX4_INFO("Roll: %d ", (int) roll);
-        PX4_INFO("pitch: %d ", (int) pitch);
-        PX4_INFO("yaw: %d ", (int) yaw);
+        // Extract roll, pitch, and yaw
+        float roll = euler_angles.phi();    // Roll angle in radians
+        float pitch = euler_angles.theta(); // Pitch angle in radians
+        float yaw = euler_angles.psi();     // Yaw angle in radians
+
+        // Log the gyro data
+        PX4_INFO("roll: %f", (double) roll);
+        PX4_INFO("pitch: %f",(double) pitch);
+        PX4_INFO("yaw: %f", (double) yaw);
 
 	// /* get current rotation matrix from control state quaternions */
 	// Quatf q_att(attitude.q);
@@ -166,6 +209,12 @@ void RobosubPwmLed::read_gyro(const vehicle_attitude_s &attitude)
 
 	// Vector3f e_R_vec;
 	// Vector3f torques;
+
+	// Map pitch from rads [-π/2, π/2] to [-1, 1]
+	float pitch_u = pitch / (float) M_PI_2;
+
+	constrain_actuator_commands(pitch_u);
+	/* gyro controller End*/
 }
 
 
