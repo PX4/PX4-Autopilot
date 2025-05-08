@@ -28,7 +28,7 @@ else
 	exit 1
 fi
 
-# If not standalone
+# If not standalone launch the world
 if [ -z "${PX4_GZ_STANDALONE}" ]; then
 
 	# Look for an already running world
