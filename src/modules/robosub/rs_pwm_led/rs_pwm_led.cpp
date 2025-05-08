@@ -211,7 +211,8 @@ void RobosubPwmLed::control_gyro(const vehicle_attitude_s &attitude)
 	// Vector3f torques;
 
 	// Map pitch from rads [-π/2, π/2] to [-1, 1]
-	float pitch_u = pitch / (float) M_PI_2;
+	// float pitch_u = pitch / (float) M_PI_2);
+	float pitch_u = pitch / (float) M_PI_4;
 
 	constrain_actuator_commands(pitch_u);
 	/* gyro controller End*/
