@@ -214,8 +214,10 @@ FixedwingPositionControl::airspeed_poll()
 
 		_eas2tas = 1.0f; //this is the default value, taken in case of invalid airspeed
 
+		// do not use synthetic airspeed as this would create a thrust loop
 		if (PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
-		    && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)) {
+		    && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
+		    && airspeed_validated.airspeed_source != airspeed_validated_s::SYNTHETIC) {
 
 			airspeed_valid = true;
 
@@ -486,8 +488,6 @@ FixedwingPositionControl::status_publish()
 
 	pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(_current_latitude, _current_longitude,
 				  _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
-
-	pos_ctrl_status.yaw_acceptance = NAN;
 
 	pos_ctrl_status.timestamp = hrt_absolute_time();
 
@@ -1318,7 +1318,15 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 
 		} else {
 			// continue straight until vehicle has sufficient altitude
+			// keep flaps in landing configuration if the airspeed is below the min airspeed (keep deployed if airspeed not valid)
 			roll_body = 0.0f;
+
+			if (!_airspeed_valid || _airspeed_eas < _performance_model.getMinimumCalibratedAirspeed()) {
+				_flaps_setpoint =  _param_fw_flaps_lnd_scl.get();
+
+			} else {
+				_flaps_setpoint = 0.f;
+			}
 		}
 
 		is_low_height = true; // In low-height flight, TECS will control altitude tighter
@@ -1858,8 +1866,10 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 							     POST_TOUCHDOWN_CLAMP_TIME, 0.0f,
 							     1.0f);
 
-			pitch_max_rad = touchdown_interpolator * _param_rwto_psp.get() + (1.0f - touchdown_interpolator) * pitch_max_rad;
-			pitch_min_rad = touchdown_interpolator * _param_rwto_psp.get() + (1.0f - touchdown_interpolator) * pitch_min_rad;
+			pitch_max_rad = touchdown_interpolator * math::radians(_param_rwto_psp.get()) + (1.0f - touchdown_interpolator) *
+					pitch_max_rad;
+			pitch_min_rad = touchdown_interpolator * math::radians(_param_rwto_psp.get()) + (1.0f - touchdown_interpolator) *
+					pitch_min_rad;
 		}
 
 		// idle throttle may be >0 for internal combustion engines
@@ -2078,8 +2088,10 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 			const float touchdown_interpolator = math::constrain((seconds_since_flare_start - touchdown_time) /
 							     POST_TOUCHDOWN_CLAMP_TIME, 0.0f, 1.0f);
 
-			pitch_max_rad = touchdown_interpolator * _param_rwto_psp.get() + (1.0f - touchdown_interpolator) * pitch_max_rad;
-			pitch_min_rad = touchdown_interpolator * _param_rwto_psp.get() + (1.0f - touchdown_interpolator) * pitch_min_rad;
+			pitch_max_rad = touchdown_interpolator * math::radians(_param_rwto_psp.get()) + (1.0f - touchdown_interpolator) *
+					pitch_max_rad;
+			pitch_min_rad = touchdown_interpolator * math::radians(_param_rwto_psp.get()) + (1.0f - touchdown_interpolator) *
+					pitch_min_rad;
 		}
 
 		// idle throttle may be >0 for internal combustion engines

@@ -78,7 +78,6 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_thrust_setpoint_1 = _attc->get_thrust_setpoint_1();
 	_local_pos = _attc->get_local_pos();
 	_local_pos_sp = _attc->get_local_pos_sp();
-	_airspeed_validated = _attc->get_airspeed();
 	_tecs_status = _attc->get_tecs_status();
 	_land_detected = _attc->get_land_detected();
 }
@@ -100,8 +99,6 @@ void VtolType::parameters_update()
 
 void VtolType::update_mc_state()
 {
-	resetAccelToPitchPitchIntegrator();
-
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 
@@ -113,7 +110,6 @@ void VtolType::update_mc_state()
 
 void VtolType::update_fw_state()
 {
-	resetAccelToPitchPitchIntegrator();
 	_last_thr_in_fw_mode =  _vehicle_thrust_setpoint_virtual_fw->xyz[0];
 
 	// copy virtual attitude setpoint to real attitude setpoint
@@ -178,8 +174,7 @@ bool VtolType::isFrontTransitionCompleted()
 bool VtolType::isFrontTransitionCompletedBase()
 {
 	// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
-	const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
-			&& _param_fw_use_airspd.get();
+	const bool airspeed_triggers_transition = PX4_ISFINITE(_attc->get_calibrated_airspeed());
 	const bool minimum_trans_time_elapsed = _time_since_trans_start > getMinimumFrontTransitionTime();
 	const bool openloop_trans_time_elapsed = _time_since_trans_start > getOpenLoopFrontTransitionTime();
 
@@ -187,7 +182,7 @@ bool VtolType::isFrontTransitionCompletedBase()
 
 	if (airspeed_triggers_transition) {
 		transition_to_fw = minimum_trans_time_elapsed
-				   && _airspeed_validated->calibrated_airspeed_m_s >= getTransitionAirspeed();
+				   && _attc->get_calibrated_airspeed() >= getTransitionAirspeed();
 
 	} else {
 		transition_to_fw = openloop_trans_time_elapsed;
@@ -332,10 +327,13 @@ bool VtolType::isRollExceeded()
 bool VtolType::isFrontTransitionTimeout()
 {
 	// check front transition timeout
-	if (getFrontTransitionTimeout()  > FLT_EPSILON && _common_vtol_mode == mode::TRANSITION_TO_FW) {
+	if (_common_vtol_mode == mode::TRANSITION_TO_FW) {
+		// when we use airspeed, we can timeout earlier if airspeed is not increasing fast enough
+		if (PX4_ISFINITE(_attc->get_calibrated_airspeed()) && _time_since_trans_start > getOpenLoopFrontTransitionTime()
+		    && _attc->get_calibrated_airspeed() < getBlendAirspeed()) {
+			return true;
 
-		if (_time_since_trans_start > getFrontTransitionTimeout()) {
-			// transition timeout occured, abort transition
+		} else if (_time_since_trans_start > getFrontTransitionTimeout()) {
 			return true;
 		}
 	}

@@ -1,6 +1,6 @@
 # Encodes the system state of the vehicle published by commander
 
-uint32 MESSAGE_VERSION = 0
+uint32 MESSAGE_VERSION = 1
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -87,13 +87,11 @@ uint8 hil_state
 uint8 HIL_STATE_OFF = 0
 uint8 HIL_STATE_ON = 1
 
-# If it's a VTOL, then the value will be VEHICLE_TYPE_ROTARY_WING while flying as a multicopter, and VEHICLE_TYPE_FIXED_WING when flying as a fixed-wing
+# Current vehicle locomotion method. A vehicle can have different methods (e.g. VTOL transitions from RW to FW method)
 uint8 vehicle_type
-uint8 VEHICLE_TYPE_UNKNOWN = 0
-uint8 VEHICLE_TYPE_ROTARY_WING = 1
-uint8 VEHICLE_TYPE_FIXED_WING = 2
-uint8 VEHICLE_TYPE_ROVER = 3
-uint8 VEHICLE_TYPE_AIRSHIP = 4
+uint8 VEHICLE_TYPE_ROTARY_WING = 0
+uint8 VEHICLE_TYPE_FIXED_WING = 1
+uint8 VEHICLE_TYPE_ROVER = 2
 
 uint8 FAILSAFE_DEFER_STATE_DISABLED = 0
 uint8 FAILSAFE_DEFER_STATE_ENABLED = 1
@@ -130,9 +128,6 @@ bool open_drone_id_system_healthy
 
 bool parachute_system_present
 bool parachute_system_healthy
-
-bool avoidance_system_required                    # Set to true if avoidance system is enabled via COM_OBS_AVOID parameter
-bool avoidance_system_valid                       # Status of the obstacle avoidance system
 
 bool rc_calibration_in_progress
 bool calibration_enabled

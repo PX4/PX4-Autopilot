@@ -20,16 +20,16 @@ uint8 GPS_CHECK_FAIL_SPOOFED = 10		# 10 : GPS signal is spoofed
 uint64 control_mode_flags	# Bitmask to indicate EKF logic state
 uint8 CS_TILT_ALIGN = 0		# 0 - true if the filter tilt alignment is complete
 uint8 CS_YAW_ALIGN = 1		# 1 - true if the filter yaw alignment is complete
-uint8 CS_GPS = 2		# 2 - true if GPS measurements are being fused
+uint8 CS_GNSS_POS = 2		# 2 - true if GNSS position measurements are being fused
 uint8 CS_OPT_FLOW = 3		# 3 - true if optical flow measurements are being fused
 uint8 CS_MAG_HDG = 4		# 4 - true if a simple magnetic yaw heading is being fused
 uint8 CS_MAG_3D = 5		# 5 - true if 3-axis magnetometer measurement are being fused
 uint8 CS_MAG_DEC = 6		# 6 - true if synthetic magnetic declination measurements are being fused
 uint8 CS_IN_AIR = 7		# 7 - true when thought to be airborne
 uint8 CS_WIND = 8		# 8 - true when wind velocity is being estimated
-uint8 CS_BARO_HGT = 9		# 9 - true when baro height is being fused as a primary height reference
-uint8 CS_RNG_HGT = 10		# 10 - true when range finder height is being fused as a primary height reference
-uint8 CS_GPS_HGT = 11		# 11 - true when GPS height is being fused as a primary height reference
+uint8 CS_BARO_HGT = 9		# 9 - true when baro data is being fused
+uint8 CS_RNG_HGT = 10		# 10 - true when range finder data is being fused for height aiding
+uint8 CS_GPS_HGT = 11		# 11 - true when GPS altitude is being fused
 uint8 CS_EV_POS = 12		# 12 - true when local position data from external vision is being fused
 uint8 CS_EV_YAW = 13		# 13 - true when yaw data from external vision measurements is being fused
 uint8 CS_EV_HGT = 14		# 14 - true when height data from external vision measurements is being fused
@@ -47,6 +47,7 @@ uint8 CS_SYNTHETIC_MAG_Z = 25	# 25 - true when we are using a synthesized measur
 uint8 CS_VEHICLE_AT_REST = 26	# 26 - true when the vehicle is at rest
 uint8 CS_GPS_YAW_FAULT = 27	# 27 - true when the GNSS heading has been declared faulty and is no longer being used
 uint8 CS_RNG_FAULT = 28		# 28 - true when the range finder has been declared faulty and is no longer being used
+uint8 CS_GNSS_VEL = 44		# 44 - true if GNSS velocity measurements are being fused
 
 uint32 filter_fault_flags	# Bitmask to indicate EKF internal faults
 # 0 - true if the fusion of the magnetometer X-axis has encountered a numerical error

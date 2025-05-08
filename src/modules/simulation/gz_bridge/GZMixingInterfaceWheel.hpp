@@ -51,10 +51,9 @@ class GZMixingInterfaceWheel : public OutputModuleInterface
 public:
 	static constexpr int MAX_ACTUATORS = MixingOutput::MAX_ACTUATORS;
 
-	GZMixingInterfaceWheel(gz::transport::Node &node, pthread_mutex_t &node_mutex) :
+	GZMixingInterfaceWheel(gz::transport::Node &node) :
 		OutputModuleInterface(MODULE_NAME "-actuators-wheel", px4::wq_configurations::rate_ctrl),
-		_node(node),
-		_node_mutex(node_mutex)
+		_node(node)
 	{}
 
 	bool updateOutputs(bool stop_wheels, uint16_t outputs[MAX_ACTUATORS],
@@ -78,7 +77,7 @@ private:
 	void wheelSpeedCallback(const gz::msgs::Actuators &actuators);
 
 	gz::transport::Node &_node;
-	pthread_mutex_t &_node_mutex;
+	pthread_mutex_t _node_mutex;
 
 	MixingOutput _mixing_output{"SIM_GZ_WH", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 

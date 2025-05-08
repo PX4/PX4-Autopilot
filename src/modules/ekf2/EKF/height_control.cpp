@@ -205,7 +205,7 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 		checks[1] = {ReferenceType::GNSS, _aid_src_gnss_hgt.innovation, _aid_src_gnss_hgt.innovation_variance};
 	}
 
-	if (_control_status.flags.gps) {
+	if (_control_status.flags.gnss_vel) {
 		checks[2] = {ReferenceType::GNSS, _aid_src_gnss_vel.innovation[2], _aid_src_gnss_vel.innovation_variance[2]};
 	}
 

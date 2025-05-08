@@ -77,7 +77,7 @@ void RtlDirect::on_activation()
 
 	parameters_update();
 
-	_rtl_state = getActivationLandState();
+	_rtl_state = getActivationState();
 
 	// reset cruising speed and throttle to default for RTL
 	_navigator->reset_cruising_speed();
@@ -110,7 +110,7 @@ void RtlDirect::on_active()
 		updateAltToAvoidTerrainCollisionAndRepublishTriplet(_mission_item);
 	}
 
-	if (_rtl_state == RTLState::LAND && _param_rtl_pld_md.get() > 0) {
+	if (_rtl_state == RTLState::LAND && _mission_item.land_precision > 0) {
 		// Need to update the position and type on the current setpoint triplet.
 		_navigator->get_precland()->on_active();
 
@@ -355,6 +355,7 @@ void RtlDirect::set_rtl_item()
 			pos_yaw_sp.alt = loiter_altitude;
 			pos_yaw_sp.yaw = !_param_wv_en.get() ? _destination.yaw : NAN; // set final yaw if weather vane is disabled
 
+			altitude_acceptance_radius = FLT_MAX;
 			setMoveToPositionMissionItem(_mission_item, pos_yaw_sp);
 			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 
@@ -368,7 +369,9 @@ void RtlDirect::set_rtl_item()
 
 			_mission_item.land_precision = _param_rtl_pld_md.get();
 
-			startPrecLand(_mission_item.land_precision);
+			if (_mission_item.land_precision > 0) {
+				startPrecLand(_mission_item.land_precision);
+			}
 
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at destination\t");
 			events::send(events::ID("rtl_land_at_destination"), events::Log::Info, "RTL: land at destination");
@@ -402,24 +405,28 @@ void RtlDirect::set_rtl_item()
 	publish_rtl_direct_navigator_mission_item(); // for logging
 }
 
-RtlDirect::RTLState RtlDirect::getActivationLandState()
+RtlDirect::RTLState RtlDirect::getActivationState()
 {
 	_land_detected_sub.update();
 
-	RTLState land_state;
+	RTLState activation_state;
 
-	if (_land_detected_sub.get().landed) {
+	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+		// Skip to LAND state if we are a rover
+		activation_state = RTLState::LAND;
+
+	} else if (_land_detected_sub.get().landed) {
 		// For safety reasons don't go into RTL if landed.
-		land_state = RTLState::IDLE;
+		activation_state = RTLState::IDLE;
 
 	} else if ((_global_pos_sub.get().alt < _rtl_alt) || _enforce_rtl_alt) {
-		land_state = RTLState::CLIMBING;
+		activation_state = RTLState::CLIMBING;
 
 	} else {
-		land_state = RTLState::MOVE_TO_LOITER;
+		activation_state = RTLState::MOVE_TO_LOITER;
 	}
 
-	return land_state;
+	return activation_state;
 }
 
 rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
@@ -435,7 +442,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 		start_state_for_estimate = _rtl_state;
 
 	} else {
-		start_state_for_estimate = getActivationLandState();
+		start_state_for_estimate = getActivationState();
 	}
 
 	// Calculate RTL time estimate only when there is a valid destination

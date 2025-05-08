@@ -62,8 +62,8 @@ public:
 	 *
 	 * Both parameters have to be provided in the same units.
 	 *
-	 * @param sample_interval interval between two samples
-	 * @param time_constant filter time constant determining convergence
+	 * @param sample_interval interval between two samples in seconds
+	 * @param time_constant filter time constant determining convergence in seconds
 	 */
 	void setParameters(float sample_interval, float time_constant)
 	{
@@ -87,6 +87,16 @@ public:
 
 		setParameters(1.f / sample_freq, 1.f / (M_TWOPI_F * cutoff_freq));
 		return true;
+	}
+
+	void setCutoffFreq(float cutoff_freq)
+	{
+		if (cutoff_freq > FLT_EPSILON) {
+			_time_constant = 1.f / (M_TWOPI_F * cutoff_freq);
+
+		} else {
+			_time_constant = 0.f;
+		}
 	}
 
 	/**

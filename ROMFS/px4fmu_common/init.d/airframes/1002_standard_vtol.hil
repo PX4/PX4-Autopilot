@@ -5,6 +5,15 @@
 # @type Standard VTOL
 # @class VTOL
 #
+# @output Motor1 MC motor front right
+# @output Motor2 MC motor back left
+# @output Motor3 MC motor front left
+# @output Motor4 MC motor back right
+# @output Motor5 Forward thrust motor
+# @output Servo1 Aileron
+# @output Servo2 Elevator
+# @output Servo3 Rudder
+#
 # @maintainer Roman Bapst <roman@auterion.com>
 #
 # @board px4_fmu-v2 exclude

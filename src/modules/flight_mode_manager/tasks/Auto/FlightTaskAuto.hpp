@@ -46,19 +46,12 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <lib/geo/geo.h>
-#include <lib/weather_vane/WeatherVane.hpp>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/motion_planning/PositionSmoothing.hpp>
+#include <lib/stick_yaw/StickYaw.hpp>
+#include <lib/weather_vane/WeatherVane.hpp>
 #include "Sticks.hpp"
 #include "StickAccelerationXY.hpp"
-#include "StickYaw.hpp"
-
-// TODO: make this switchable in the board config, like a module
-#if CONSTRAINED_FLASH
-#include <lib/avoidance/ObstacleAvoidance_dummy.hpp>
-#else
-#include <lib/avoidance/ObstacleAvoidance.hpp>
-#endif
 
 /**
  * This enum has to agree with position_setpoint_s type definition
@@ -147,8 +140,6 @@ protected:
 	AlphaFilter<float> _yawspeed_filter;
 	bool _yaw_sp_aligned{false};
 
-	ObstacleAvoidance _obstacle_avoidance{this}; /**< class adjusting setpoints according to external avoidance module's input */
-
 	PositionSmoothing _position_smoothing;
 	Vector3f _unsmoothed_velocity_setpoint;
 	Sticks _sticks{this};
@@ -165,7 +156,6 @@ protected:
 					(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
 					_param_nav_mc_alt_rad, //vertical acceptance radius at which waypoints are updated
 					(ParamInt<px4::params::MPC_YAW_MODE>) _param_mpc_yaw_mode, // defines how heading is executed,
-					(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid, // obstacle avoidance active
 					(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
 					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err, // yaw-error threshold
 					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, // acceleration in flight
@@ -175,20 +165,16 @@ protected:
 					(ParamFloat<px4::params::MPC_XY_TRAJ_P>) _param_mpc_xy_traj_p,
 					(ParamFloat<px4::params::MPC_XY_ERR_MAX>) _param_mpc_xy_err_max,
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
-					(ParamFloat<px4::params::MPC_LAND_CRWL>) _param_mpc_land_crawl_speed,
+					(ParamFloat<px4::params::MPC_LAND_CRWL>) _param_mpc_land_crwl,
 					(ParamInt<px4::params::MPC_LAND_RC_HELP>) _param_mpc_land_rc_help,
 					(ParamFloat<px4::params::MPC_LAND_RADIUS>) _param_mpc_land_radius,
-					(ParamFloat<px4::params::MPC_LAND_ALT1>)
-					_param_mpc_land_alt1, // altitude at which we start ramping down speed
-					(ParamFloat<px4::params::MPC_LAND_ALT2>)
-					_param_mpc_land_alt2, // altitude at which we descend at land speed
-					(ParamFloat<px4::params::MPC_LAND_ALT3>)
-					_param_mpc_land_alt3, // altitude where we switch to crawl speed, if LIDAR available
+					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1,
+					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2,
+					(ParamFloat<px4::params::MPC_LAND_ALT3>) _param_mpc_land_alt3,
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) _param_mpc_z_v_auto_up,
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn,
 					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
-					(ParamFloat<px4::params::MPC_TKO_RAMP_T>)
-					_param_mpc_tko_ramp_t // time constant for smooth takeoff ramp
+					(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _param_mpc_tko_ramp_t
 				       );
 
 private:

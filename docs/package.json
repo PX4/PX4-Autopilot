@@ -1,0 +1,27 @@
+{
+  "name": "px4_user_guide",
+  "version": "1.0.1",
+  "repository": "https://github.com/PX4/px4_user_guide.git",
+  "license": "CC-BY-4.0",
+  "scripts": {
+    "docs:dev": "vitepress dev .",
+    "docs:build": "yarn docs:build_ubuntu",
+    "docs:buildwin": "set NODE_OPTIONS=--max_old_space_size=8192 && vitepress build .",
+    "docs:build_ubuntu": "NODE_OPTIONS='--max-old-space-size=8192' vitepress build .",
+    "docs:preview": "vitepress preview .",
+    "docs:sitemap": "python3 ./scripts/gen_sitemap.py",
+    "docs:gen_alt_sidebar_ubuntu": "python3 ./scripts/gen_alt_sidebar.py",
+    "docs:get_alt_sidebar_windows": "python ./scripts/gen_alt_sidebar.py",
+    "start": "yarn docs:dev",
+    "linkcheck": "markdown_link_checker_sc -r .. -d docs -e en -i assets"
+  },
+  "dependencies": {
+    "@red-asuka/vitepress-plugin-tabs": "^0.0.3",
+    "lite-youtube-embed": "^0.3.2",
+    "markdown-it-mathjax3": "^4.3.2",
+    "medium-zoom": "^1.1.0",
+    "open-editor": "^5.0.0",
+    "vitepress": "^1.6.3",
+    "vue3-tabs-component": "^1.3.7"
+  }
+}

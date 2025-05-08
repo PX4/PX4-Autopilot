@@ -77,10 +77,12 @@ float32 evv				# Standard deviation of vertical velocity error, (metres/sec)
 bool dead_reckoning                     # True if this position is estimated through dead-reckoning
 
 # estimator specified vehicle limits
-float32 vxy_max				# maximum horizontal speed - set to 0 when limiting not required (meters/sec)
-float32 vz_max				# maximum vertical speed - set to 0 when limiting not required (meters/sec)
-float32 hagl_min			# minimum height above ground level - set to 0 when limiting not required (meters)
-float32 hagl_max			# maximum height above ground level - set to 0 when limiting not required (meters)
+# set to INFINITY when limiting not required
+float32 vxy_max				# maximum horizontal speed (meters/sec)
+float32 vz_max				# maximum vertical speed (meters/sec)
+float32 hagl_min			# minimum height above ground level (meters)
+float32 hagl_max_z			# maximum height above ground level for z-control (meters)
+float32 hagl_max_xy			# maximum height above ground level for xy-control (meters)
 
 # TOPICS vehicle_local_position vehicle_local_position_groundtruth external_ins_local_position
 # TOPICS estimator_local_position

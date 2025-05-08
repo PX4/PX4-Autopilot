@@ -72,8 +72,8 @@ void Ekf::controlEvYawFusion(const imuSample &imu_sample, const extVisionSample 
 					     && PX4_ISFINITE(aid_src.observation)
 					     && PX4_ISFINITE(aid_src.observation_variance);
 
-	// if GPS enabled don't allow EV yaw if EV isn't NED
-	if (_control_status.flags.gps && _control_status.flags.yaw_align
+	// if GNSS is enabled don't allow EV yaw if EV isn't NED
+	if ((_control_status.flags.gnss_vel || _control_status.flags.gnss_pos) && _control_status.flags.yaw_align
 	    && (ev_sample.pos_frame != PositionFrame::LOCAL_FRAME_NED)
 	   ) {
 		continuing_conditions_passing = false;

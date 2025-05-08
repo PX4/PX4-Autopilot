@@ -262,7 +262,7 @@ void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv) const
 	if (_horizontal_deadreckon_time_exceeded) {
 #if defined(CONFIG_EKF2_GNSS)
 
-		if (_control_status.flags.gps) {
+		if (_control_status.flags.gnss_pos) {
 			hpos_err = math::max(hpos_err, Vector2f(_aid_src_gnss_pos.innovation).norm());
 		}
 
@@ -302,8 +302,12 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 
 #if defined(CONFIG_EKF2_GNSS)
 
-		if (_control_status.flags.gps) {
+		if (_control_status.flags.gnss_pos) {
 			vel_err_conservative = math::max(vel_err_conservative, Vector2f(_aid_src_gnss_pos.innovation).norm());
+		}
+
+		if (_control_status.flags.gnss_vel) {
+			vel_err_conservative = math::max(vel_err_conservative, Vector2f(_aid_src_gnss_vel.innovation).norm());
 		}
 
 #endif // CONFIG_EKF2_GNSS
@@ -327,13 +331,15 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 	*ekf_evv = sqrtf(P(State::vel.idx + 2, State::vel.idx + 2));
 }
 
-void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max) const
+void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max_z,
+			      float *hagl_max_xy) const
 {
 	// Do not require limiting by default
 	*vxy_max = NAN;
 	*vz_max = NAN;
 	*hagl_min = NAN;
-	*hagl_max = NAN;
+	*hagl_max_z = NAN;
+	*hagl_max_xy = NAN;
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// Calculate range finder limits
@@ -345,10 +351,9 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 	// TODO : calculate visual odometry limits
 	const bool relying_on_rangefinder = isOnlyActiveSourceOfVerticalPositionAiding(_control_status.flags.rng_hgt);
 
-	// Keep within range sensor limit when using rangefinder as primary height source
 	if (relying_on_rangefinder) {
 		*hagl_min = rangefinder_hagl_min;
-		*hagl_max = rangefinder_hagl_max;
+		*hagl_max_z = rangefinder_hagl_max;
 	}
 
 # if defined(CONFIG_EKF2_OPTICAL_FLOW)
@@ -371,11 +376,12 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		const float flow_constrained_height = math::constrain(getHagl(), flow_hagl_min, flow_hagl_max);
 
 		// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion
-		const float flow_vxy_max = 0.5f * _flow_max_rate * flow_constrained_height;
+		float flow_vxy_max = 0.5f * _flow_max_rate * flow_constrained_height;
+		flow_hagl_max = math::max(flow_hagl_max * 0.9f, flow_hagl_max - 1.0f);
 
 		*vxy_max = flow_vxy_max;
 		*hagl_min = flow_hagl_min;
-		*hagl_max = flow_hagl_max;
+		*hagl_max_xy = flow_hagl_max;
 	}
 
 # endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -444,7 +450,7 @@ float Ekf::getHorizontalVelocityInnovationTestRatio() const
 
 #if defined(CONFIG_EKF2_GNSS)
 
-	if (_control_status.flags.gps) {
+	if (_control_status.flags.gnss_vel) {
 		for (int i = 0; i < 2; i++) { // only xy
 			test_ratio = math::max(test_ratio, fabsf(_aid_src_gnss_vel.test_ratio_filtered[i]));
 		}
@@ -486,7 +492,7 @@ float Ekf::getVerticalVelocityInnovationTestRatio() const
 
 #if defined(CONFIG_EKF2_GNSS)
 
-	if (_control_status.flags.gps) {
+	if (_control_status.flags.gnss_vel) {
 		test_ratio = math::max(test_ratio, fabsf(_aid_src_gnss_vel.test_ratio_filtered[2]));
 	}
 
@@ -514,7 +520,7 @@ float Ekf::getHorizontalPositionInnovationTestRatio() const
 
 #if defined(CONFIG_EKF2_GNSS)
 
-	if (_control_status.flags.gps) {
+	if (_control_status.flags.gnss_pos) {
 		for (auto &test_ratio_filtered : _aid_src_gnss_pos.test_ratio_filtered) {
 			test_ratio = math::max(test_ratio, fabsf(test_ratio_filtered));
 		}
@@ -704,7 +710,7 @@ uint16_t Ekf::get_ekf_soln_status() const
 	soln_status.flags.pos_vert_agl = isTerrainEstimateValid();
 #endif // CONFIG_EKF2_TERRAIN
 
-	// 128	ESTIMATOR_CONST_POS_MODE	True if the EKF is in a constant position mode and is not using external measurements (eg GPS or optical flow)
+	// 128	ESTIMATOR_CONST_POS_MODE	True if the EKF is in a constant position mode and is not using external measurements (eg GNSS or optical flow)
 	soln_status.flags.const_pos_mode = _control_status.flags.fake_pos || _control_status.flags.valid_fake_pos
 					   || _control_status.flags.vehicle_at_rest;
 
@@ -712,13 +718,13 @@ uint16_t Ekf::get_ekf_soln_status() const
 	soln_status.flags.pred_pos_horiz_rel = isHorizontalAidingActive();
 
 	// 512	ESTIMATOR_PRED_POS_HORIZ_ABS	True if the EKF has sufficient data to enter a mode that will provide a (absolute) position estimate
-	soln_status.flags.pred_pos_horiz_abs = _control_status.flags.gps || _control_status.flags.aux_gpos;
+	soln_status.flags.pred_pos_horiz_abs = _control_status.flags.gnss_pos || _control_status.flags.aux_gpos;
 
-	// 1024	ESTIMATOR_GPS_GLITCH	True if the EKF has detected a GPS glitch
+	// 1024	ESTIMATOR_GPS_GLITCH	True if the EKF has detected a GNSS glitch
 #if defined(CONFIG_EKF2_GNSS)
-	const bool gps_vel_innov_bad = Vector3f(_aid_src_gnss_vel.test_ratio).max() > 1.f;
-	const bool gps_pos_innov_bad = Vector2f(_aid_src_gnss_pos.test_ratio).max() > 1.f;
-	soln_status.flags.gps_glitch = (gps_vel_innov_bad || gps_pos_innov_bad);
+	const bool gnss_vel_innov_bad = Vector3f(_aid_src_gnss_vel.test_ratio).max() > 1.f;
+	const bool gnss_pos_innov_bad = Vector2f(_aid_src_gnss_pos.test_ratio).max() > 1.f;
+	soln_status.flags.gps_glitch = (gnss_vel_innov_bad || gnss_pos_innov_bad);
 #endif // CONFIG_EKF2_GNSS
 
 	// 2048	ESTIMATOR_ACCEL_ERROR	True if the EKF has detected bad accelerometer data
@@ -797,14 +803,14 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 	bool aiding_expected_in_air = false;
 
 	// velocity aiding active
-	if ((_control_status.flags.gps || _control_status.flags.ev_vel)
+	if ((_control_status.flags.gnss_vel || _control_status.flags.ev_vel)
 	    && isRecent(_time_last_hor_vel_fuse, _params.no_aid_timeout_max)
 	   ) {
 		inertial_dead_reckoning = false;
 	}
 
 	// position aiding active
-	if ((_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.aux_gpos)
+	if ((_control_status.flags.gnss_pos || _control_status.flags.ev_pos || _control_status.flags.aux_gpos)
 	    && isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
 	   ) {
 		inertial_dead_reckoning = false;
@@ -1011,8 +1017,8 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 		} else if (_control_status.flags.fake_hgt) {
 			is_bias_observable = false;
 
-		} else if (_control_status.flags.fake_pos) {
-			// when using fake position (but not fake height) only consider an accel bias observable if aligned with the gravity vector
+		} else if (_control_status.flags.fake_pos || _control_status.flags.gravity_vector) {
+			// only consider an accel bias observable if aligned with the gravity vector
 			is_bias_observable = (fabsf(_R_to_earth(2, index)) > 0.966f); // cos 15 degrees ~= 0.966
 		}
 
@@ -1253,16 +1259,6 @@ void Ekf::clearInhibitedStateKalmanGains(VectorState &K) const
 	}
 
 #endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_WIND)
-
-	if (!_control_status.flags.wind) {
-		for (unsigned i = 0; i < State::wind_vel.dof; i++) {
-			K(State::wind_vel.idx + i) = 0.f;
-		}
-	}
-
-#endif // CONFIG_EKF2_WIND
 }
 
 float Ekf::getHeadingInnov() const

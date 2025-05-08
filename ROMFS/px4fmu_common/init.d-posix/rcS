@@ -126,6 +126,15 @@ then
 	set AUTOCNF yes
 fi
 
+# Allow overriding parameters via env variables: export PX4_PARAM_{name}={value}
+env | while IFS='=' read -r line; do
+  value=${line#*=}
+  name=${line%%=*}
+  case $name in
+    "PX4_PARAM_"*) param set "${name#PX4_PARAM_}" "$value" ;;
+  esac
+done
+
 # multi-instance setup
 # shellcheck disable=SC2154
 param set MAV_SYS_ID $((px4_instance+1))
@@ -152,8 +161,6 @@ then
 fi
 
 param set-default BAT1_N_CELLS 4
-
-param set-default CBRK_SUPPLY_CHK 894281
 
 # disable check, no CPU load reported on posix yet
 param set-default COM_CPU_MAX -1
@@ -229,9 +236,6 @@ then
 	exit 1
 fi
 
-#user defined params for instances can be in PATH
-. px4-rc.params
-
 dataman start
 
 # only start the simulator if not in replay mode, as both control the lockstep time
@@ -246,6 +250,8 @@ if param compare SIM_BAT_ENABLE 1
 then
 	battery_simulator start
 fi
+
+system_power_simulator start
 
 tone_alarm start
 rc_update start
@@ -335,6 +341,11 @@ fi
 if param compare -s PD_GRIPPER_EN 1
 then
 	payload_deliverer start
+fi
+
+if param compare -s ICE_EN 1
+then
+	internal_combustion_engine_control start
 fi
 
 #user defined mavlink streams for instances can be in PATH
