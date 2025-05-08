@@ -496,7 +496,6 @@ add_custom_target(uorb_graph DEPENDS ${uorb_graph_config})
 include(bloaty)
 
 
-include(doxygen)
 include(metadata)
 include(package)
 
