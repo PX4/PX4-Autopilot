@@ -1,7 +1,6 @@
 # Cellular status
 #
-# This is currently used only for logging cell status
-# from MAVLink.
+# This is currently used only for logging cell status from MAVLink.
 
 uint64 timestamp # Time since system start [us]
 
