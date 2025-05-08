@@ -127,6 +127,9 @@
 #define SPI6_nRESET_EXTERNAL1       /* PF10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTF|GPIO_PIN10)
 #define SPI6_RESET(on_true)          px4_arch_gpiowrite(SPI6_nRESET_EXTERNAL1, !(on_true))
 
+// ADIS16507 hardware reset
+#define GPIO_ADIS16507_RESET(reset) SPI6_RESET(reset)
+
 /* I2C busses */
 
 /* Devices on the onboard buses.
