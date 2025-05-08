@@ -6,7 +6,7 @@
 uint32 MESSAGE_VERSION = 0
 
 uint64 timestamp # Time since system start [us]
-uint64 timestamp_sample # Timestamp of the data this control response is based on was sampled [us]
+uint64 timestamp_sample # Sampling timestamp of the data this control response is based on [us]
 
 uint16 reversible_flags # Bitset indicating which motors are configured to be reversible
 
