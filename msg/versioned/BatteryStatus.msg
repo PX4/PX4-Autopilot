@@ -21,7 +21,7 @@ uint8 SOURCE_EXTERNAL = 1 # External
 uint8 SOURCE_ESCS = 2 # ESCs
 
 uint8 priority # Zero based priority is the connection on the Power Controller V1..Vn AKA BrickN-1
-uint16 capacity # Actual capacity of the battery [Ah]
+uint16 capacity # Actual capacity of the battery [mAh]
 uint16 cycle_count # Number of discharge cycles the battery has experienced
 uint16 average_time_to_empty # Predicted remaining battery capacity based on the average rate of discharge [minutes]
 uint16 serial_number # Serial number of the battery pack
