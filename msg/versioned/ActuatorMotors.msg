@@ -1,15 +1,16 @@
 # Motor control message
+#
+# Normalised thrust setpoint for up to 12 motors.
+# This is scaled by output drivers to particular output, such as PWM or CAN.
 
 uint32 MESSAGE_VERSION = 0
 
-uint64 timestamp			# time since system start (microseconds)
-uint64 timestamp_sample	    # the timestamp the data this control response is based on was sampled
+uint64 timestamp # Time since system start [us]
+uint64 timestamp_sample # Timestamp of the data this control response is based on was sampled [us]
 
-uint16 reversible_flags     # bitset which motors are configured to be reversible
+uint16 reversible_flags # Bitset indicating which motors are configured to be reversible
 
 uint8 ACTUATOR_FUNCTION_MOTOR1 = 101
 
 uint8 NUM_CONTROLS = 12
-float32[12] control # range: [-1, 1], where 1 means maximum positive thrust,
-                    # -1 maximum negative (if not supported by the output, <0 maps to NaN),
-                    # and NaN maps to disarmed (stop the motors)
+float32[12] control # Normalized thrust. [@range -1, 1] where 1 means maximum positive thrust, -1 maximum negative (if not supported by the output, <0 maps to NaN). NaN maps to disarmed (stop the motors).
