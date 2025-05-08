@@ -77,6 +77,7 @@ uint16 VEHICLE_CMD_DO_SET_STANDARD_MODE=262		# Enable the specified standard MAV
 uint16 VEHICLE_CMD_GIMBAL_DEVICE_INFORMATION = 283	# Command to ask information about a low level gimbal
 
 uint16 VEHICLE_CMD_MISSION_START = 300			# start running a mission |first_item: the first mission item to run| last_item:  the last mission item to run (after this item is run, the mission ends)|
+uint16 VEHICLE_CMD_DO_PREFLIGHT_CS_CHECK = 309          # Do control surface preflight check. Axis | value | Empty | Empty | Empty | Empty | Empty
 uint16 VEHICLE_CMD_ACTUATOR_TEST = 310			# Actuator testing command|value [-1,1]|timeout [s]|Empty|Empty|output function|
 uint16 VEHICLE_CMD_CONFIGURE_ACTUATOR = 311		# Actuator configuration command|configuration|Empty|Empty|Empty|output function|
 uint16 VEHICLE_CMD_COMPONENT_ARM_DISARM = 400		# Arms / Disarms a component |1 to arm, 0 to disarm
@@ -176,6 +177,12 @@ int8 ARMING_ACTION_ARM = 1
 # param2 in VEHICLE_CMD_DO_GRIPPER
 uint8 GRIPPER_ACTION_RELEASE = 0
 uint8 GRIPPER_ACTION_GRAB = 1
+
+# param1 in VEHICLE_CMD_DO_PREFLIGHT_CS_CHECK
+uint8 AXIS_ROLL = 0
+uint8 AXIS_PITCH = 1
+uint8 AXIS_YAW = 2
+uint8 AXIS_COLLECTIVE_TILT = 3
 
 uint8 ORB_QUEUE_LENGTH = 8
 
