@@ -7,7 +7,7 @@
         "C_Cpp.default.browse.limitSymbolsToIncludedHeaders": true,
         "C_Cpp.default.cppStandard": "c++14",
         "C_Cpp.default.cStandard": "c11",
-        "C_Cpp.formatting": "Disabled",
+        "C_Cpp.formatting": "clangFormat",
         "C_Cpp.intelliSenseEngine": "Default",
         "C_Cpp.vcpkg.enabled": false,
         "C_Cpp.workspaceParsingPriority": "low",
@@ -29,7 +29,7 @@
                 "esc"
         ],
         "debug.toolBarLocation": "docked",
-        "editor.defaultFormatter": "chiehyu.vscode-astyle",
+        "editor.defaultFormatter": "xaver.clang-format",
         "editor.insertSpaces": false,
         "editor.minimap.maxColumn": 120,
         "editor.minimap.renderCharacters": false,
@@ -129,4 +129,6 @@
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
         },
+        "C_Cpp.clang_format_sortIncludes": false,
+        "C_Cpp.clang_format_style": "{ BasedOnStyle: LLVM, BreakBeforeBraces: Allman, ColumnLimit: 80, IndentWidth: 8, IndentPPDirectives: None, SortIncludes: false}"
 }
