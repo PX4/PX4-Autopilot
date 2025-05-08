@@ -1,7 +1,7 @@
 # Motor control message
 #
 # Normalised thrust setpoint for up to 12 motors.
-# This is scaled by output drivers to particular output, such as PWM or CAN.
+# Published by the vehicle's allocation and consumed by the ESC protocol drivers e.g. PWM, DSHOT, UAVCAN.
 
 uint32 MESSAGE_VERSION = 0
 
