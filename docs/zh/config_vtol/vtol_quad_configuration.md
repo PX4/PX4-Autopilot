@@ -83,6 +83,22 @@ This is the airspeed which, when reached, will trigger the transition out of mul
 It is critical that you have properly calibrated your airspeed sensor.
 It is also important that you pick an airspeed that is comfortably above your airframes stall speed (check `FW_AIRSPD_MIN`) as this is currently not checked.
 
+#### Openloop Transition Time
+
+Parameter: [VT_F_TR_OL_TM](../advanced_config/parameter_reference.md#VT_F_TR_OL_TM)
+
+This specifies the duration of the front transition in seconds when no airspeed feedback is available (e.g. no airspeed sensor present).
+It should be set to a value which ensures that the vehicle reaches a high enough airspeed to complete the transition, e.g. airspeed should exceed [VT_ARSP_TRANS](../advanced_config/parameter_reference.md#VT_ARSP_TRANS).
+
+#### Transition Timeout
+
+[VT_TRANS_TIMEOUT](../advanced_config/parameter_reference.md#VT_TRANS_TIMEOUT)
+
+This specifies the upper limit for the duration of the front transition. If the vehicle has not reached the transition airspeed after this time, then the transition will be aborted and a [Quadchute](../config/safety.md#quad-chute-failsafe) event will be triggered.
+:::note
+Additionally, if an airspeed sensor is present, the transition will also be aborted if the airspeed has not reached [VT_ARSP_BLEND](../advanced_config/parameter_reference.md#VT_ARSP_BLEND) after the openloop transition time [VT_F_TR_OL_TM](../advanced_config/parameter_reference.md#VT_F_TR_OL_TM) has elapsed. This checks is used to avoid a scenario where the vehicle gains excessive speed when the airspeed sensor is faulty.
+:::
+
 ### 过渡模式小提示
 
 As already mentioned make sure you have a well tuned multirotor mode.

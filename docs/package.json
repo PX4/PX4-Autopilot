@@ -13,7 +13,7 @@
     "docs:gen_alt_sidebar_ubuntu": "python3 ./scripts/gen_alt_sidebar.py",
     "docs:get_alt_sidebar_windows": "python ./scripts/gen_alt_sidebar.py",
     "start": "yarn docs:dev",
-    "linkcheck": "markdown_link_checker_sc -d en -i assets"
+    "linkcheck": "markdown_link_checker_sc -r .. -d docs -e en -i assets"
   },
   "dependencies": {
     "@red-asuka/vitepress-plugin-tabs": "^0.0.3",

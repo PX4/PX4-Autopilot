@@ -81,15 +81,19 @@ export default defineConfig({
               ? ({ filePath, frontmatter }) => {
                   if (frontmatter.newEditLink) {
                     //newEditLink defines a frontmatter key you can use to append a path to main
-                    return `https://github.com/PX4/PX4-Autopilot/edit/main/${frontmatter.newEditLink}`;
+                    return `https://github.com/PX4/PX4-Autopilot/edit/main/docs/${frontmatter.newEditLink}`;
                   } else {
-                    return `https://github.com/PX4/PX4-Autopilot/edit/main/${filePath}`;
+                    return `https://github.com/PX4/PX4-Autopilot/edit/main/docs/${filePath}`;
                   }
                 }
               : (c) =>
                   `${
                     window.location.origin
-                  }/__open-in-editor?file=${encodeURIComponent(c.filePath)}`,
+                  }/__open-in-editor?file=${encodeURIComponent(
+                    c.frontmatter.newEditLink
+                      ? c.frontmatter.newEditLink
+                      : c.filePath
+                  )}`,
         },
       },
     },

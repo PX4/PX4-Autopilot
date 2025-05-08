@@ -231,6 +231,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: bitcraze_crazyflie_default
+    bluerobotics_navigator_default:
+      short: bluerobotics_navigator
+      buildType: MinSizeRel
+      settings:
+        CONFIG: bluerobotics_navigator_default
     cuav_can-gps-v1_default:
       short: cuav_can-gps-v1_default
       buildType: MinSizeRel

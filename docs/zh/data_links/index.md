@@ -11,3 +11,7 @@ This section provides information about various radio systems that you can use, 
 - [FrSky Telemetry](../peripherals/frsky_telemetry.md) — Telemetry on your (FRSky) RC Receiver
 - [TBS Crossfire (CRSF) Telemetry](../telemetry/crsf_telemetry.md) — Telemetry on your (TBS Crossfire) RC Receiver
 - [Satellite Comms (Iridium/RockBlock)](../advanced_features/satcom_roadblock.md) — High-latency comms via satellite
+
+## See Also
+
+- [Safety Configuration > Data Link Loss Failsafe](../config/safety.md#data-link-loss-failsafe)

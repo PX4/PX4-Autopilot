@@ -75,6 +75,12 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 			_mag_lpf.reset(mag_sample.mag);
 			_mag_counter = 1;
 
+			if (!_control_status.flags.in_air) {
+				// Assume that a reset on the ground is caused by a change in mag calibration
+				// Clear alignment to force a clean reset
+				_control_status.flags.yaw_align = false;
+			}
+
 		} else {
 			_mag_lpf.update(mag_sample.mag);
 			_mag_counter++;
@@ -204,9 +210,11 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 
 			if (continuing_conditions_passing && _control_status.flags.yaw_align) {
 
-				if (checkHaglYawResetReq() || (wmm_updated && no_ne_aiding_or_not_moving)) {
+				if ((checkHaglYawResetReq() && (_control_status.flags.mag_hdg || _control_status.flags.mag_3D))
+				    || (wmm_updated && no_ne_aiding_or_not_moving)) {
 					ECL_INFO("reset to %s", AID_SRC_NAME);
-					resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
+					const bool reset_heading = _control_status.flags.mag_hdg || _control_status.flags.mag_3D;
+					resetMagStates(_mag_lpf.getState(), reset_heading);
 					aid_src.time_last_fuse = imu_sample.time_us;
 
 				} else {
@@ -233,13 +241,13 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 						    && PX4_ISFINITE(_wmm_declination_rad)
 						   ) {
 							// using declination from the world magnetic model
-							fuseDeclination(_wmm_declination_rad, 0.5f, update_all_states);
+							fuseDeclination(_wmm_declination_rad, 0.5f, update_all_states, update_tilt);
 
 						} else if ((_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)
 							   && PX4_ISFINITE(_params.mag_declination_deg) && (fabsf(_params.mag_declination_deg) > 0.f)
 							  ) {
 							// using previously saved declination
-							fuseDeclination(math::radians(_params.mag_declination_deg), R_DECL, update_all_states);
+							fuseDeclination(math::radians(_params.mag_declination_deg), R_DECL, update_all_states, update_tilt);
 
 						} else {
 							// if there is no aiding coming from an inertial frame we need to fuse some declination
@@ -440,7 +448,7 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 	}
 
 	// record the start time for the magnetic field alignment
-	if (_control_status.flags.in_air) {
+	if (_control_status.flags.in_air && reset_heading) {
 		_control_status.flags.mag_aligned_in_flight = true;
 		_flt_mag_align_start_time = _time_delayed_us;
 	}

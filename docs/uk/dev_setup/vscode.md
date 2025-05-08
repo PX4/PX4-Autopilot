@@ -5,7 +5,7 @@
 Є багато причин використання VSCode для розробки PX4:
 
 - Getting setup _really_ only takes a few minutes.
-- A rich extension ecosystem that enables a huge range of tools needed for PX4 development: C/C++ (with solid _cmake_ integration), _Python_, _Jinja2_, ROS messages, and even DroneCAN dsdl.
+- A rich extension ecosystem that enables a huge range of tools needed for PX4 development: C/C++ (with solid _cmake_ integration), _Python_, _Jinja2_, ROS messages, and even DroneCAN DSDL.
 - Чудова інтеграція з Github.
 
 Цей розділ пояснює, як налаштувати IDE і почати розробку.
@@ -26,7 +26,9 @@ You must already have installed the command line [PX4 developer environment](../
 2. Відкрийте VSCode і додайте вихідний код PX4:
 
    - Select _Open folder ..._ option on the welcome page (or using the menu: **File > Open Folder**):
+
       ![Open Folder](../../assets/toolchain/vscode/welcome_open_folder.jpg)
+
    - З'явиться діалогове вікно вибору файлу.
       Select the **PX4-Autopilot** directory and then press **OK**.
 

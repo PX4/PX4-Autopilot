@@ -41,7 +41,7 @@ jobs:
           pull_request_base_branch_name: 'main'
           pull_request_title: New PX4 guide translations (Crowdin) - ${{ matrix.lc }}
           pull_request_body: 'New PX4 guide Crowdin translations by [Crowdin GH Action](https://github.com/crowdin/github-action) for ${{ matrix.lc }}'
-          pull_request_labels: Documentation
+          pull_request_labels: 'Documentation 📑'
           pull_request_reviewers: hamishwillee
           download_language: ${{ matrix.lc }}
         env:

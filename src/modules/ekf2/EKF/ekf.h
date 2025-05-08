@@ -668,7 +668,8 @@ private:
 
 	// fuse magnetometer declination measurement
 	//  R: declination observation variance (rad**2)
-	bool fuseDeclination(const float decl_measurement_rad, const float R, bool update_all_states = false);
+	bool fuseDeclination(const float decl_measurement_rad, const float R, bool update_all_states = false,
+			     bool update_tilt = false);
 
 #endif // CONFIG_EKF2_MAGNETOMETER
 
@@ -791,6 +792,7 @@ private:
 	// calculate optical flow body angular rate compensation
 	void calcOptFlowBodyRateComp(const flowSample &flow_sample);
 
+	float predictFlowHagl() const;
 	float predictFlowRange() const;
 	Vector2f predictFlow(const Vector3f &flow_gyro) const;
 
