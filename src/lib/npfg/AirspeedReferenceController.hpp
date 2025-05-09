@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,51 +31,45 @@
  *
  ****************************************************************************/
 
-/**
- * @file launchdetection_params.c
+/*
+ * @file AirspeedRefController.hpp
  *
- * Parameters for launchdetection
+ * Original Author:  Thomas Stastny <tstastny@ethz.ch>
+ * Refactored to better suite new control API: Roman Bapst <roman@auterion.com>
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * * Notes:
+ * - The wind estimate should be dynamic enough to capture ~1-2 second length gusts,
+ *   Otherwise the performance will suffer.
+ *
+ * Acknowledgements and References:
+ *
+ * The logic is mostly based on [1] and Paper III of [2].
+ * TODO: Concise, up to date documentation and stability analysis for the following
+ *       implementation.
+ *
+ * [1] T. Stastny and R. Siegwart. "On Flying Backwards: Preventing Run-away of
+ *     Small, Low-speed, Fixed-wing UAVs in Strong Winds". IEEE International Conference
+ *     on Intelligent Robots and Systems (IROS). 2019.
+ *     https://arxiv.org/pdf/1908.01381.pdf
+ * [2] T. Stastny. "Low-Altitude Control and Local Re-Planning Strategies for Small
+ *     Fixed-Wing UAVs". Doctoral Thesis, ETH Zürich. 2020.
+ *     https://tstastny.github.io/pdf/tstastny_phd_thesis_wcover.pdf
  */
 
-/**
- * Trigger acceleration threshold
- *
- * Launch is detected when acceleration in body forward direction is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
- *
- * @unit m/s^2
- * @min 0
- * @decimal 1
- * @increment 0.5
- * @group FW Launch detection
- */
-PARAM_DEFINE_FLOAT(FW_LAUN_AC_THLD, 30.0f);
+#ifndef PX4_AIRSPEEDREFERENCECONTROLLER_HPP
+#define PX4_AIRSPEEDREFERENCECONTROLLER_HPP
 
-/**
- * Trigger time
- *
- * Launch is detected when acceleration in body forward direction is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
- *
- * @unit s
- * @min 0.0
- * @max 5.0
- * @decimal 2
- * @increment 0.05
- * @group FW Launch detection
- */
-PARAM_DEFINE_FLOAT(FW_LAUN_AC_T, 0.05f);
+class AirspeedReferenceController
+{
+public:
 
-/**
- * Motor delay
- *
- * Start the motor(s) this amount of seconds after launch is detected.
- *
- * @unit s
- * @min 0.0
- * @max 10.0
- * @decimal 1
- * @increment 0.5
- * @group FW Launch detection
- */
-PARAM_DEFINE_FLOAT(FW_LAUN_MOT_DEL, 0.0f);
+	AirspeedReferenceController();
+
+
+	float controlHeading(const float heading_sp, const float heading, const float airspeed) const;
+
+private:
+	float p_gain_{0.8885f}; // proportional gain (computed from period_ and damping_) [rad/s]
+};
+
+#endif //PX4_AIRSPEEDREFERENCECONTROLLER_HPP
