@@ -76,6 +76,9 @@
 #include <px4_platform/board_dma_alloc.h>
 #include <px4_platform/gpio/mcp23009.hpp>
 
+#include "stm32_fdcan_sock.h"
+#include "stm32_ethernet.h"
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -294,6 +297,16 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif /* !defined(BOOTLOADER) */
+
+#if STM32H7_NETHERNET > 0 && defined(CONFIG_STM32H7_ETHMAC)
+	stm32_ethinitialize(0);
+#endif
+#ifdef CONFIG_STM32H7_FDCAN1
+	stm32_fdcansockinitialize(0);
+#endif
+#ifdef CONFIG_STM32H7_FDCAN2
+	stm32_fdcansockinitialize(1);
+#endif
 
 	return OK;
 }
