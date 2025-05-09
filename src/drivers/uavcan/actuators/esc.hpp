@@ -128,4 +128,10 @@ private:
 	float _last_motor_temperature[esc_status_s::CONNECTED_ESC_MAX];
 	uint16_t _motor_temperature_counter{0};
 
+
+	/*
+	* Temperature check values
+	*/
+	float _warn_esc_temp{343.f}; // 70 degrees
+	float _over_esc_temp{363.f}; // 90 degrees
 };

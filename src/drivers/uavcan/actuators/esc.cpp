@@ -144,6 +144,23 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		ref.esc_rpm           = msg.rpm;
 		ref.esc_errorcount    = msg.error_count;
 
+		// Temp bitmasks
+		if (msg.temperature > _over_esc_temp) {
+			// Critical: Set OVER_TEMP, clear WARN
+			ref.failures |= (1 << esc_report_s::FAILURE_OVER_ESC_TEMPERATURE);
+			ref.failures &= ~(1 << esc_report_s::FAILURE_WARN_ESC_TEMPERATURE);
+
+		} else if (msg.temperature > _warn_esc_temp) {
+			// Warning: Set WARN, clear OVER_TEMP
+			ref.failures |= (1 << esc_report_s::FAILURE_WARN_ESC_TEMPERATURE);
+			ref.failures &= ~(1 << esc_report_s::FAILURE_OVER_ESC_TEMPERATURE);
+
+		} else {
+			// Normal: clear flags
+			ref.failures &= ~((1 << esc_report_s::FAILURE_OVER_ESC_TEMPERATURE) | (1 <<
+					  esc_report_s::FAILURE_WARN_ESC_TEMPERATURE));
+		}
+
 		_esc_status.esc_count = _rotor_count;
 		_esc_status.counter += 1;
 		_esc_status.motor_temperature_counter = _motor_temperature_counter;
