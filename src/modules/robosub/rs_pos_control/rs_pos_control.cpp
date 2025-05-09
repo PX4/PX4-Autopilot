@@ -33,34 +33,36 @@
 
 /**
  *
- * This module controls brightness of an led connected to THE pwm HEADER
+ * This module is a modification of the hippocampus control module and is designed for the
+ * HU Robosub.
  *
  * @author Daan Smienk <daansmienk10@gmail.com>
  * @author Jannick Bloemendal <jannick.bloemendal@student.hu.nl.
  */
 
-#include "rs_pwm_led.hpp"
+#include "rs_pos_control.hpp"
+
 
 /**
- * Robosub pwm led app start / stop handling function
+ * Robosub pos_controller app start / stop handling function
  *
  * @ingroup apps
  */
-extern "C" __EXPORT int rs_pwm_led_main(int argc, char *argv[]);
+extern "C" __EXPORT int rs_pos_control_main(int argc, char *argv[]);
 
-RobosubPwmLed::RobosubPwmLed()
+RobosubPOSControl::RobosubPOSControl()
     : ModuleParams(nullptr), WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
       /* performance counters */
       _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle"))
 {
 }
 
-RobosubPwmLed::~RobosubPwmLed()
+RobosubPOSControl::~RobosubPOSControl()
 {
 	perf_free(_loop_perf);
 }
 
-bool RobosubPwmLed::init()
+bool RobosubPOSControl::init()
 {
 	// Execute the Run() function everytime an input_rc is publiced
 	if (!_vehicle_attitude_sub.registerCallback()) {
@@ -68,11 +70,11 @@ bool RobosubPwmLed::init()
 		return false;
 	}
 
-	PX4_DEBUG("RobosubPwmLed::init()");
+	// PX4_DEBUG("RobosubPOSControl::init()");
 	return true;
 }
 
-void RobosubPwmLed::parameters_update(bool force)
+void RobosubPOSControl::parameters_update(bool force)
 {
 	// check for parameter updates
 	if (_parameter_update_sub.updated() || force) {
@@ -85,14 +87,78 @@ void RobosubPwmLed::parameters_update(bool force)
 	}
 }
 
-/* unit vect*/
+/**
+ * @brief from UUVPOSControl
+ * TODO_RS should also publish
+ */
+// void RobosubPOSControl::publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
+// 	const float roll_des, const float pitch_des, const float yaw_des)
+// {
+// // watch if inputs are not to high
+// vehicle_attitude_setpoint_s vehicle_attitude_setpoint = {};
+// vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
+
+// const Quatf attitude_setpoint(Eulerf(roll_des, pitch_des, yaw_des));
+// attitude_setpoint.copyTo(vehicle_attitude_setpoint.q_d);
+
+// vehicle_attitude_setpoint.thrust_body[0] = thrust_x;
+// vehicle_attitude_setpoint.thrust_body[1] = thrust_y;
+// vehicle_attitude_setpoint.thrust_body[2] = thrust_z;
+
+
+// _att_sp_pub.publish(vehicle_attitude_setpoint);
+// }
+
+/**
+ * @brief from UUVPOSControl
+
+ */
+// void RobosubPOSControl::pose_controller_6dof(const Vector3f &pos_des,
+// 	const float roll_des, const float pitch_des, const float yaw_des,
+// 	vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
+// {
+// //get current rotation of vehicle
+// Quatf q_att(vehicle_attitude.q);
+
+// Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get()
+// 				     * vlocal_pos.vx,
+// 				     _param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y) - _param_pose_gain_d_y.get() * vlocal_pos.vy,
+// 				     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z) - _param_pose_gain_d_z.get() * vlocal_pos.vz);
+
+// Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
+
+// publish_attitude_setpoint(rotated_input(0),
+// 			  rotated_input(1),
+// 			  rotated_input(2),
+// 			  roll_des, pitch_des, yaw_des);
+
+// }
+
+// void RobosubPOSControl::stabilization_controller_6dof(const Vector3f &pos_des,
+// 	const float roll_des, const float pitch_des, const float yaw_des,
+// 	vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
+// {
+// //get current rotation of vehicle
+// Quatf q_att(vehicle_attitude.q);
+
+// Vector3f p_control_output = Vector3f(0,
+// 				     0,
+// 				     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z));
+// //potential d controller missing
+// Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
+
+// publish_attitude_setpoint(rotated_input(0) + pos_des(0), rotated_input(1) + pos_des(1), rotated_input(2),
+// 			  roll_des, pitch_des, yaw_des);
+
+// }
+
 /**
  * @brief constrains values and runs actuator_test.
  *
  * Borrow from UUVAttitudeControl::constrain_actuator_commands
  * @param pitch_u float
  */
-void RobosubPwmLed::constrain_actuator_commands(float pitch_u)
+void RobosubPOSControl::constrain_actuator_commands(float pitch_u)
 {
 	// if (PX4_ISFINITE(roll_u)) {
 	// 	roll_u = math::constrain(roll_u, -1.0f, 1.0f);
@@ -121,9 +187,9 @@ void RobosubPwmLed::constrain_actuator_commands(float pitch_u)
 }
 
 
-void RobosubPwmLed::Run()
+void RobosubPOSControl::Run()
 {
-	PX4_INFO("RobosubPwmLed::Run()");
+	PX4_INFO("RobosubPOSControl::Run()");
 
 	if (should_exit()) {
 		//  _vehicle_attitude_sub.unregisterCallback();
@@ -163,7 +229,13 @@ void RobosubPwmLed::Run()
 	perf_end(_loop_perf);
 }
 
-void RobosubPwmLed::actuator_test(int function, float value, int timeout_ms, bool release_control)
+/**
+ * @brief constrains values and runs actuator_test.
+ *
+ * Borrow from UUVAttitudeControl::constrain_actuator_commands
+ * @param pitch_u float
+ */
+void RobosubPOSControl::actuator_test(int function, float value, int timeout_ms, bool release_control)
 {
 	PX4_DEBUG("actuator_test value: %.2f", (double) value);
 
@@ -186,7 +258,7 @@ void RobosubPwmLed::actuator_test(int function, float value, int timeout_ms, boo
  *
  * @param attitude The vehicle attitude structure containing quaternion data.
  */
-void RobosubPwmLed::control_gyro(const vehicle_attitude_s &attitude)
+void RobosubPOSControl::control_gyro(const vehicle_attitude_s &attitude)
 {
 	/* get attitude setpoint rotational matrix */
 	// Dcmf rot_des = Eulerf(roll_body, pitch_body, yaw_body);
@@ -218,10 +290,9 @@ void RobosubPwmLed::control_gyro(const vehicle_attitude_s &attitude)
 	/* gyro controller End*/
 }
 
-
-int RobosubPwmLed::task_spawn(int argc, char *argv[])
+int RobosubPOSControl::task_spawn(int argc, char *argv[])
 {
-	RobosubPwmLed *instance = new RobosubPwmLed();
+	RobosubPOSControl *instance = new RobosubPOSControl();
 
 	if (instance) {
 		_object.store(instance);
@@ -242,13 +313,13 @@ int RobosubPwmLed::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int RobosubPwmLed::custom_command(int argc, char *argv[])
+int RobosubPOSControl::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
 
-int RobosubPwmLed::print_usage(const char *reason)
+int RobosubPOSControl::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -269,20 +340,20 @@ Currently, this implementation supports only a few modes:
 
 ### Examples
 CLI usage example:
-$ rs_motor_control start
-$ rs_motor_control status
-$ rs_motor_control stop
+$ rs_pos_control start
+$ rs_pos_control status
+$ rs_pos_control stop
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("_robosub_motor_control", "controller");
+	PRINT_MODULE_USAGE_NAME("_robosub_pos_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start")
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
 }
 
-int rs_pwm_led_main(int argc, char *argv[])
+int rs_pos_control_main(int argc, char *argv[])
 {
-	return RobosubPwmLed::main(argc, argv);
+	return RobosubPOSControl::main(argc, argv);
 }

@@ -70,11 +70,11 @@ using uORB::SubscriptionData;
 
 using namespace time_literals;
 
-class RobosubPwmLed: public ModuleBase<RobosubPwmLed>, public ModuleParams, public px4::WorkItem
+class RobosubPOSControl: public ModuleBase<RobosubPOSControl>, public ModuleParams, public px4::WorkItem
 {
 public:
-	RobosubPwmLed();
-	~RobosubPwmLed();
+	RobosubPOSControl();
+	~RobosubPOSControl();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
