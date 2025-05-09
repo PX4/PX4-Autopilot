@@ -50,9 +50,13 @@ using namespace time_literals;
 UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_node(node),
 	_uavcan_pub_raw_cmd(node),
-	_uavcan_sub_status(node)
+	_uavcan_sub_status(node),
+	_uavcan_sub_status_extended(node)
+
 {
 	_uavcan_pub_raw_cmd.setPriority(uavcan::TransferPriority::NumericallyMin); // Highest priority
+	memset(_last_motor_temperature, 0, sizeof(_last_motor_temperature)); // Set bytes to 0
+
 }
 
 int
@@ -75,6 +79,14 @@ UavcanEscController::init()
 	}
 
 	_initialized = true;
+
+	// ESC status extended subscription
+	res = _uavcan_sub_status_extended.start(StatusExtendedCbBinder(this, &UavcanEscController::esc_status_extended_sub_cb));
+
+	if (res < 0) {
+		PX4_ERR("ESC status extended sub failed %i", res);
+		return res;
+	}
 
 	return res;
 }
@@ -107,21 +119,34 @@ UavcanEscController::set_rotor_count(uint8_t count)
 }
 
 void
+UavcanEscController::esc_status_extended_sub_cb(const
+		uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended> &msg)
+{
+	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
+
+		_last_motor_temperature[msg.esc_index] = msg.motor_temperature_degC;
+		_motor_temperature_counter += 1; // Keep counter to monitor callbacks
+	}
+}
+
+void
 UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
 {
 	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
 		auto &ref = _esc_status.esc[msg.esc_index];
 
-		ref.timestamp       = hrt_absolute_time();
-		ref.esc_address = msg.getSrcNodeID().get();
-		ref.esc_voltage     = msg.voltage;
-		ref.esc_current     = msg.current;
-		ref.esc_temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
-		ref.esc_rpm         = msg.rpm;
-		ref.esc_errorcount  = msg.error_count;
+		ref.timestamp         = hrt_absolute_time();
+		ref.esc_address       = msg.getSrcNodeID().get();
+		ref.esc_voltage       = msg.voltage;
+		ref.esc_current       = msg.current;
+		ref.esc_temperature   = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
+		ref.motor_temperature = _last_motor_temperature[msg.esc_index];
+		ref.esc_rpm           = msg.rpm;
+		ref.esc_errorcount    = msg.error_count;
 
 		_esc_status.esc_count = _rotor_count;
 		_esc_status.counter += 1;
+		_esc_status.motor_temperature_counter = _motor_temperature_counter;
 		_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
 		_esc_status.esc_online_flags = check_escs_status();
 		_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
