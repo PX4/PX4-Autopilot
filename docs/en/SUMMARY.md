@@ -43,6 +43,7 @@
       - [NanoMind 110](complete_vehicles_mc/nanomind110.md)
     - [Holybro Kopis 2](complete_vehicles_mc/holybro_kopis2.md)
     - [Bitcraze Crazyflie 2.1](complete_vehicles_mc/crazyflie21.md)
+    - [Amov F410 Drone](complete_vehicles_mc/amov_F410_drone.md)
   - [Kits](frames_multicopter/kits.md)
     - [X500 v2 (Pixhawk 6C)](frames_multicopter/holybro_x500v2_pixhawk6c.md)
     - [X500 v2 (Pixhawk 5X)](frames_multicopter/holybro_x500V2_pixhawk5x.md)
