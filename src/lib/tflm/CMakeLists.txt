@@ -31,26 +31,15 @@
 #
 ############################################################################
 
-include(ExternalProject)
-
 if(CONFIG_LIB_TFLM)
-
-	ExternalProject_Add(tflm
-		GIT_REPOSITORY https://github.com/SindreMHegre/tflite-micro.git
-		GIT_TAG main
-		PREFIX ${CMAKE_BINARY_DIR}
-		SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro
-		CONFIGURE_COMMAND ""
-		BUILD_COMMAND ""
-		INSTALL_COMMAND ""
-		TEST_COMMAND ""
-	)
+	px4_add_git_submodule(TARGET git_tflite-micro PATH tflite_micro)
 
 	set(TFLITE_DOWNLOADS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/px4)
 
 	get_directory_property(FLAGS COMPILE_OPTIONS)
 	list(REMOVE_ITEM FLAGS "-Wcast-align")
 	set_directory_properties(PROPERTIES COMPILE_OPTIONS "${FLAGS}")
+
 
 	file(GLOB TFLITE_MICRO_SRCS
 	${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/tensorflow/lite/*.cc
@@ -68,18 +57,21 @@ if(CONFIG_LIB_TFLM)
 	${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/tensorflow/compiler/mlir/lite/core/api/*.cc
 	${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/tensorflow/compiler/mlir/lite/schema/*.cc
 	)
-
 	# Filter out tests as they cause errors
 	list(FILTER TFLITE_MICRO_SRCS EXCLUDE REGEX ".*_test.*\\.cc$")
+
 
 	set(TFLM_INCLUDE_DIRS
 	${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro
 	${TFLITE_DOWNLOADS_DIR}
+	#${TFLITE_DOWNLOADS_DIR}/flatbuffers/include
 	${TFLITE_DOWNLOADS_DIR}/ruy
 	${TFLITE_DOWNLOADS_DIR}/gemmlowp
 	${TFLITE_DOWNLOADS_DIR}/cmsis/Cortex_DFP/Device/ARMCM7/Include
 	${TFLITE_DOWNLOADS_DIR}/cmsis/CMSIS/Core/Include
 	${TFLITE_DOWNLOADS_DIR}/cmsis
+	#${TFLITE_DOWNLOADS_DIR}/cmsis_nn
+	#${TFLITE_DOWNLOADS_DIR}/cmsis_nn/Include
 	)
 
 	# Add C++ 17 std lib if building for NuttX
@@ -90,13 +82,12 @@ if(CONFIG_LIB_TFLM)
 	)
 	endif()
 
-	px4_add_library(tflm_lib ${TFLITE_MICRO_SRCS})
+	px4_add_library(tflm ${TFLITE_MICRO_SRCS})
 
-	target_include_directories(tflm_lib PUBLIC ${TFLM_INCLUDE_DIRS})
+	target_include_directories(tflm PUBLIC ${TFLM_INCLUDE_DIRS})
 
-	target_compile_options(tflm_lib PUBLIC
+	target_compile_options(tflm PUBLIC
 	-Wno-float-equal
 	-Wno-shadow
 	)
-
 endif()

@@ -49,6 +49,6 @@ px4_add_module(
 		px4_work_queue
 		mathlib
 )
-target_link_libraries(mc_nn_control PRIVATE tflm_lib)
+target_link_libraries(mc_nn_control PRIVATE tflm)
 target_include_directories(mc_nn_control PRIVATE
-    ${CMAKE_SOURCE_DIR}/src/lib/tflm)
+	${CMAKE_SOURCE_DIR}/src/lib/tflm)
