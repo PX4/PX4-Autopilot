@@ -33,7 +33,7 @@
 
 /**
  * @file mc_nn_control.h
- * Multicopter Neural Network Control module, from position setpoints to actuator motors.
+ * Multicopter Neural Network Control module, from position setpoints to control allocator.
  *
  * @author Sindre Meyer Hegre <sindre.hegre@gmail.com>
  * @author Welf Rehberg <welf.rehberg@ntnu.no>
