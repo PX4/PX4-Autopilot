@@ -301,6 +301,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: holybro_durandal-v1_default
+    holybro_kakuteh7dualimu_default:
+      short: holybro_kakuteh7dualimu
+      buildType: MinSizeRel
+      settings:
+        CONFIG: holybro_kakuteh7dualimu_default
     matek_h743-slim_default:
       short: matek_h743-slim
       buildType: MinSizeRel
