@@ -158,6 +158,18 @@ void ToneAlarm::Run()
 					case tune_control_s::TUNE_ID_HOME_SET:
 						PX4_INFO("home set");
 						break;
+
+					case tune_control_s::TUNE_ID_TAKEOFF_NEXT_STEP:
+						PX4_INFO("TAKEOFF: Next step");
+						break;
+
+					case tune_control_s::TUNE_ID_TAKEOFF_ERROR:
+						PX4_INFO("TAKEOFF: error");
+						break;
+
+					case tune_control_s::TUNE_ID_TAKEOFF_RELEASE:
+						PX4_INFO("TAKEOFF: Release me");
+						break;
 					}
 
 #endif // (!TONE_ALARM_TIMER && !GPIO_TONE_ALARM_GPIO) || DEBUG_BUILD
