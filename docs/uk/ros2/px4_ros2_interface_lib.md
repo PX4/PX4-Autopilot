@@ -54,20 +54,4 @@
 
 При відкритті запиту на PX4, CI запускає тест з інтеграції до бібліотеки.
 
-Тести можуть також бути виконані локально з PX4:
-
-```sh
-./test/ros_test_runner.py
-```
-
-І щоб керувати лише одним випадком:
-
-```sh
-./test/ros_test_runner.py --verbose --case <case>
-```
-
-Ви можете скласти список доступних тестових кейсів з:
-
-```sh
-./test/ros_test_runner.py --list-cases
-```
+For more information see [PX4 ROS2 Interface Library Integration Testing](../test_and_ci/integration_testing_px4_ros2_interface.md).
