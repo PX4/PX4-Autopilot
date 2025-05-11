@@ -77,7 +77,7 @@ These ports are:
 - PX4's remote UDP Port **14550** is used for communication with ground control stations.
   期望 GCS 侦听此端口上的连接。
   _QGroundControl_ 默认侦听此端口。
-- PX4's remote UDP Port **14540** is used for communication with offboard APIs.
+- PX4的远程UDP端口 **14540** 用于与 offboard API 通信。
   期望 Offboard APIs 侦听此端口上的连接。
   ::: info
   Multi-vehicle simulations use a separate remote port for each instance, allocated sequentially from `14540` to `14549`
@@ -157,9 +157,8 @@ make px4_sitl none_iris
 
 The simulation can be further configured via environment variables:
 
-- `PX4_ESTIMATOR`: This variable configures which estimator to use.
-  Possible options are: `ekf2` (default), `lpe` (deprecated).
-  It can be set via `export PX4_ESTIMATOR=lpe` before running the simulation.
+- Any of the [PX4 parameters](../advanced_config/parameter_reference.md) can be overridden via `export PX4_PARAM_{name}={value}`.
+  For example changing the estimator: `export PX4_PARAM_EKF2_EN=0; export PX4_PARAM_ATT_EN=1`.
 
 The syntax described here is simplified, and there are many other options that you can configure via _make_ - for example, to set that you wish to connect to an IDE or debugger.
 For more information see: [Building the Code > PX4 Make Build Targets](../dev_setup/building_px4.md#px4-make-build-targets).
