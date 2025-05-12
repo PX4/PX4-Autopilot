@@ -167,7 +167,7 @@ void MecanumVelControl::generateAttitudeAndThrottleSetpoint()
 	float speed_body_x_setpoint{0.f};
 	float speed_body_y_setpoint{0.f};
 
-	if (fabsf(_rover_velocity_setpoint.speed) > FLT_EPSILON) {
+	if (fabsf(_rover_velocity_setpoint.speed) > FLT_EPSILON && PX4_ISFINITE(_rover_velocity_setpoint.bearing)) {
 		const Vector3f velocity_in_local_frame(_rover_velocity_setpoint.speed * cosf(
 				_rover_velocity_setpoint.bearing),
 						       _rover_velocity_setpoint.speed * sinf(_rover_velocity_setpoint.bearing), 0.f);
@@ -175,6 +175,9 @@ void MecanumVelControl::generateAttitudeAndThrottleSetpoint()
 		speed_body_x_setpoint = velocity_in_body_frame(0);
 		speed_body_y_setpoint = velocity_in_body_frame(1);
 
+	} else {
+		speed_body_x_setpoint = _rover_velocity_setpoint.speed;
+		speed_body_y_setpoint = 0.f;
 	}
 
 	if (_param_ro_max_thr_speed.get() > FLT_EPSILON) { // Adjust speed setpoints if infeasible
