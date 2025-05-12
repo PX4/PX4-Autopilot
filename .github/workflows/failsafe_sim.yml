@@ -39,6 +39,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Git ownership workaround
+        run: git config --system --add safe.directory '*'
+
       - name: Install empscripten
         run: |
           git clone https://github.com/emscripten-core/emsdk.git _emscripten_sdk
