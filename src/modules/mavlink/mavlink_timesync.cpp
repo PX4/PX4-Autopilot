@@ -87,13 +87,13 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 			px4_clock_gettime(CLOCK_REALTIME, &tv);
 
 			// Set the system time if we are lagging behind by more than a minute
-			hrt_abstime seconds_behind = 60;
-			hrt_abstime local_time = tv.tv_sec;
-			hrt_abstime remote_time = time.time_unix_usec / 1000000;
+			time_t seconds_behind = 60;
+			time_t local_time = tv.tv_sec;
+			time_t remote_time = time.time_unix_usec / 1000000;
 			bool update = (remote_time > PX4_EPOCH_SECS) && (remote_time > local_time + seconds_behind);
 
 			if (update) {
-				PX4_INFO("Setting system clock");
+				PX4_INFO("Setting system clock from SYSTEM_TIME sent by %d/%d", msg->sysid, msg->compid);
 				tv.tv_sec = time.time_unix_usec / 1000000ULL;
 				tv.tv_nsec = (time.time_unix_usec % 1000000ULL) * 1000ULL;
 
