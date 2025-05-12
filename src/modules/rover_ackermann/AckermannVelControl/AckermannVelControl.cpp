@@ -149,7 +149,7 @@ void AckermannVelControl::generateAttitudeAndThrottleSetpoint()
 		rover_attitude_setpoint.yaw_setpoint = _vehicle_yaw;
 		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
 
-	} else {
+	} else if (PX4_ISFINITE(_rover_velocity_setpoint.bearing)) {
 		rover_attitude_setpoint_s rover_attitude_setpoint{};
 		rover_attitude_setpoint.timestamp = _timestamp;
 		rover_attitude_setpoint.yaw_setpoint = _rover_velocity_setpoint.bearing;
