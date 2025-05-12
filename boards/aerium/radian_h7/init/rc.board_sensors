@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# aerium radian h7 specific board sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+bmi270 -s start
+bmm150 -I -b 1 start
+icm42688p -R 0 -s start
+lps22hb -s start
+bmp280 -s start
+lis3mdl -s start

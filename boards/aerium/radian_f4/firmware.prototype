@@ -1,0 +1,13 @@
+{
+    "board_id": 90,
+    "magic": "radian_f4",
+    "description": "Firmware for the radian f4 board",
+    "image": "",
+    "build_time": 0,
+    "summary": "PX4/radian_f4",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1032192,
+    "git_identity": "",
+    "board_revision": 0
+}
