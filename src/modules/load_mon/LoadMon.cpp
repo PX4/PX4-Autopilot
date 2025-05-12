@@ -214,6 +214,14 @@ void LoadMon::cpuload()
 
 			cpuload.ram_usage = (float)mem_used / kb_main_total;
 
+			if (_param_com_ram_max.get() > FLT_EPSILON) {
+				float percent_ram_used = cpuload.ram_usage * 100.0f;
+
+				if (percent_ram_used > _param_com_ram_max.get()) {
+					mavlink_log_critical(&_mavlink_log_pub, "System RAM usage too high: %3.1f%%. Land immediately!", (double) percent_ram_used);
+				}
+			}
+
 		} else {
 			PX4_ERR("Could not parse /proc/meminfo");
 			cpuload.ram_usage = -1;

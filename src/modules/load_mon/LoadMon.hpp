@@ -51,6 +51,7 @@
 
 #if defined(__PX4_LINUX)
 #include <sys/times.h>
+#include <lib/systemlib/mavlink_log.h>
 #endif
 
 namespace load_mon
@@ -98,6 +99,7 @@ private:
 	/* calculate usage directly from clock ticks on Linux */
 	clock_t _last_total_time_stamp{};
 	clock_t _last_spent_time_stamp{};
+	orb_advert_t _mavlink_log_pub{nullptr};
 #elif defined(__PX4_NUTTX)
 	hrt_abstime _last_idle_time {0};
 	hrt_abstime _last_idle_time_sample{0};
@@ -106,7 +108,8 @@ private:
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::SYS_STCK_EN>) _param_sys_stck_en
+		(ParamBool<px4::params::SYS_STCK_EN>) _param_sys_stck_en,
+		(ParamFloat<px4::params::COM_RAM_MAX>) _param_com_ram_max
 	)
 };
 
