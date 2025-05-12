@@ -105,8 +105,7 @@ def process_target(px4board_file, target_name):
                 else:
                     if verbose: print(f'unmatched toolchain: {toolchain}')
         elif platform == 'nuttx':
-            # TODO remove once newer container is validated
-            container = 'px4io/px4-dev-nuttx-focal:2022-08-12'
+            container = 'px4io/px4-dev:v1.16.0-ondemand'
             group = 'nuttx'
         else:
             if verbose: print(f'unmatched platform: {platform}')
