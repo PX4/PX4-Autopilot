@@ -140,10 +140,12 @@ void DifferentialVelControl::generateAttitudeAndThrottleSetpoint()
 	}
 
 	// Attitude Setpoint
-	rover_attitude_setpoint_s rover_attitude_setpoint{};
-	rover_attitude_setpoint.timestamp = _timestamp;
-	rover_attitude_setpoint.yaw_setpoint = _rover_velocity_setpoint.bearing;
-	_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
+	if (PX4_ISFINITE(_rover_velocity_setpoint.bearing)) {
+		rover_attitude_setpoint_s rover_attitude_setpoint{};
+		rover_attitude_setpoint.timestamp = _timestamp;
+		rover_attitude_setpoint.yaw_setpoint = _rover_velocity_setpoint.bearing;
+		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
+	}
 
 	// Throttle Setpoint
 	const float heading_error = matrix::wrap_pi(_rover_velocity_setpoint.bearing - _vehicle_yaw);
