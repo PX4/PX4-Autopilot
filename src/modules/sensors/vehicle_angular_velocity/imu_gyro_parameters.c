@@ -45,6 +45,8 @@
 * @min 0
 * @max 1000
 * @unit Hz
+* @increment 0.1
+* @decimal 1
 * @reboot_required false
 * @group Sensors
 */
@@ -60,6 +62,8 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_NF0_FRQ, 0.0f);
 * @min 0
 * @max 100
 * @unit Hz
+* @increment 0.1
+* @decimal 1
 * @reboot_required false
 * @group Sensors
 */
@@ -79,6 +83,8 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_NF0_BW, 20.0f);
 * @min 0
 * @max 1000
 * @unit Hz
+* @increment 0.1
+* @decimal 1
 * @reboot_required false
 * @group Sensors
 */
@@ -94,6 +100,8 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_NF1_FRQ, 0.0f);
 * @min 0
 * @max 100
 * @unit Hz
+* @increment 0.1
+* @decimal 1
 * @reboot_required false
 * @group Sensors
 */
@@ -112,6 +120,8 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_NF1_BW, 20.0f);
 * @min 0
 * @max 1000
 * @unit Hz
+* @increment 0.1
+* @decimal 1
 * @reboot_required false
 * @group Sensors
 */
@@ -154,6 +164,8 @@ PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 400);
 * @min 0
 * @max 1000
 * @unit Hz
+* @increment 0.1
+* @decimal 1
 * @reboot_required false
 * @group Sensors
 */
@@ -179,6 +191,8 @@ PARAM_DEFINE_INT32(IMU_GYRO_DNF_EN, 0);
 *
 * @group Sensors
 * @unit Hz
+* @increment 0.1
+* @decimal 1
 * @min 5
 * @max 30
 */
@@ -202,5 +216,7 @@ PARAM_DEFINE_INT32(IMU_GYRO_DNF_HMC, 3);
 *
 * @group Sensors
 * @unit Hz
+* @increment 0.1
+* @decimal 1
 */
 PARAM_DEFINE_FLOAT(IMU_GYRO_DNF_MIN, 25.f);

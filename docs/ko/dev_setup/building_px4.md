@@ -33,30 +33,21 @@ If needed you can also [get the source code specific to a particular release](..
 먼저 콘솔 환경에서 시뮬레이션 대상을 빌드합니다.
 이를 통하여 실제 하드웨어와 IDE로 사용전에 시스템 설정을 검증할 수 있습니다.
 
-Navigate into the **PX4-Autopilot** directory.
-Depending on your operating system you will have installed either [Gazebo SITL](../sim_gazebo_gz/index.md) or [Gazebo Classic SITL](../sim_gazebo_classic/index.md) (if you don't know which you can try both).
-
-:::: tabs
-
-:::tab Gazebo
-Start [Gazebo SITL](../sim_gazebo_gz/index.md) using the following command:
+Navigate into the **PX4-Autopilot** directory and start [Gazebo SITL](../sim_gazebo_gz/index.md) using the following command:
 
 ```sh
 make px4_sitl gz_x500
 ```
 
-:::
-
-:::tab Gazebo-Classic
-Start [Gazebo SITL](../sim_gazebo_gz/index.md) using the following command:
+:::details
+If you installed Gazebo Classic
+Start  [Gazebo Classic SITL](../sim_gazebo_classic/index.md) using the following command:
 
 ```sh
 make px4_sitl gazebo-classic
 ```
 
 :::
-
-::::
 
 This will bring up the PX4 console:
 
@@ -73,19 +64,9 @@ The drone can be flown by typing the following command (as shown in the console 
 pxh> commander takeoff
 ```
 
-The vehicle will take off and you'll see this in the simulator UI:
+The vehicle will take off and you'll see this in the Gazebo simulator UI:
 
-:::: tabs
-
-:::tab Gazebo
 ![Gazebo UI with vehicle taking off](../../assets/toolchain/gazebo_takeoff.png)
-:::
-
-:::tab Gazebo-Classic
-![Gazebo Classic UI with vehicle taking off](../../assets/toolchain/gazebo_classic_takeoff.png)
-:::
-
-::::
 
 The drone can be landed by typing `commander land` and the whole simulation can be stopped by doing **CTRL+C** (or by entering `shutdown`).
 

@@ -70,7 +70,8 @@ void RoverMecanum::Run()
 	_timestamp = hrt_absolute_time();
 	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
 
-	_mecanum_pos_vel_control.updatePosControl();
+	_mecanum_pos_control.updatePosControl();
+	_mecanum_vel_control.updateVelControl();
 	_mecanum_att_control.updateAttControl();
 	_mecanum_rate_control.updateRateControl();
 
@@ -83,7 +84,7 @@ void RoverMecanum::Run()
 					      && !_vehicle_control_mode.flag_control_rates_enabled;
 
 	if (full_manual_mode_enabled) { // Manual mode
-		generateSteeringSetpoint();
+		generateSteeringAndThrottleSetpoint();
 	}
 
 	if (_vehicle_control_mode.flag_armed) {
@@ -93,7 +94,7 @@ void RoverMecanum::Run()
 
 }
 
-void RoverMecanum::generateSteeringSetpoint()
+void RoverMecanum::generateSteeringAndThrottleSetpoint()
 {
 	manual_control_setpoint_s manual_control_setpoint{};
 
