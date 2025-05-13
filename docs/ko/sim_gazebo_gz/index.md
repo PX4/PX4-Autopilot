@@ -131,6 +131,21 @@ The simulation can be run in headless mode by prefixing the command with the `HE
 HEADLESS=1 make px4_sitl gz_x500
 ```
 
+### Set Custom Takeoff Location
+
+The takeoff location in Gazebo Classic can be set using environment variables.
+
+The variables to set are: PX4_HOME_LAT, PX4_HOME_LON, and PX4_HOME_ALT.
+
+예:
+
+```
+export PX4_HOME_LAT=51.1788
+export PX4_HOME_LON=-1.8263
+export PX4_HOME_ALT=101
+make px4_sitl gz_x500
+```
+
 ### Specify World
 
 The simulation can be run inside a particular world by concatenating the desired world to the name of the desired vehicle.
