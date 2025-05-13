@@ -56,19 +56,6 @@ s2pi_handle_t s2pi_ = { .GPIOs = { [ S2PI_CLK ]  = BROADCOM_AFBR_S50_S2PI_CLK,
 
 static perf_counter_t irq_perf = NULL;
 
-/*!***************************************************************************
-* @brief Initialize the S2PI module.
-* @details Setup the board as a S2PI master, this also sets up up the S2PI
-* pins.
-* The SPI interface is initialized with the corresponding default
-* SPI slave (i.e. CS and IRQ lines) and the default baud rate.
-*
-* @param defaultSlave The default SPI slave to be addressed right after
-* module initialization.
-* @param baudRate_Bps The default SPI baud rate in bauds-per-second.
-*
-* @return Returns the \link #status_t status\endlink (#STATUS_OK on success).
-*****************************************************************************/
 class AFBRS50_SPI :  public px4::ScheduledWorkItem
 {
 public:
@@ -91,8 +78,6 @@ AFBRS50_SPI::AFBRS50_SPI():
 {
 	// Anything to do?
 }
-
-static AFBRS50_SPI *_spi_iface = nullptr;
 
 void AFBRS50_SPI::Run()
 {
@@ -133,17 +118,21 @@ void AFBRS50_SPI::schedule_clear()
 	ScheduleClear();
 }
 
-static int gpio_falling_edge(int irq, void *context, void *arg)
-{
-	if (s2pi_.IrqCallback != 0) {
-		perf_begin(irq_perf);
-		s2pi_.IrqCallback(s2pi_.IrqCallbackData);
-		perf_end(irq_perf);
-	}
+static AFBRS50_SPI *_spi_iface = nullptr;
 
-	return 0;
-}
-
+/*!***************************************************************************
+* @brief Initialize the S2PI module.
+* @details Setup the board as a S2PI master, this also sets up up the S2PI
+* pins.
+* The SPI interface is initialized with the corresponding default
+* SPI slave (i.e. CS and IRQ lines) and the default baud rate.
+*
+* @param defaultSlave The default SPI slave to be addressed right after
+* module initialization.
+* @param baudRate_Bps The default SPI baud rate in bauds-per-second.
+*
+* @return Returns the \link #status_t status\endlink (#STATUS_OK on success).
+*****************************************************************************/
 status_t S2PI_Init(s2pi_slave_t defaultSlave, uint32_t baudRate_Bps)
 {
 	(void)defaultSlave;
@@ -152,10 +141,21 @@ status_t S2PI_Init(s2pi_slave_t defaultSlave, uint32_t baudRate_Bps)
 
 	s2pi_.spidev = px4_spibus_initialize(BROADCOM_AFBR_S50_S2PI_SPI_BUS);
 
+	// Falling edge callback
+	auto callback = [](int irq, void *context, void *arg) -> int {
+		if (s2pi_.IrqCallback != 0)
+		{
+			perf_begin(irq_perf);
+			s2pi_.IrqCallback(s2pi_.IrqCallbackData);
+			perf_end(irq_perf);
+		}
+
+		return 0;
+	};
 	// NOTE: we enable the interrupt event here but do not configure the GPIO.
 	// We configure the GPIO and enable the interrupt after the device mode
 	// has been configured. This prevents erroneous interrupts from occuring.
-	px4_arch_gpiosetevent(BROADCOM_AFBR_S50_S2PI_IRQ, false, true, false, &gpio_falling_edge, NULL);
+	px4_arch_gpiosetevent(BROADCOM_AFBR_S50_S2PI_IRQ, false, true, false, callback, NULL);
 
 	irq_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": irq callback");
 

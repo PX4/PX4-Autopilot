@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,11 +32,13 @@
  ****************************************************************************/
 
 #include "AFBRS50.hpp"
+#include "s2pi.h"
 
 #include <lib/drivers/device/Device.hpp>
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
+
+using namespace time_literals;
 
 AFBRS50 *g_dev{nullptr};
 
@@ -68,7 +70,7 @@ AFBRS50::~AFBRS50()
 	perf_free(_not_ready_perf);
 }
 
-status_t AFBRS50::measurement_ready_callback(status_t status, argus_hnd_t *hnd)
+status_t AFBRS50::measurementReadyCallback(status_t status, argus_hnd_t *hnd)
 {
 	// Called from the SPI comms thread context
 
@@ -156,7 +158,7 @@ int AFBRS50::init()
 	S2PI_Init(BROADCOM_AFBR_S50_S2PI_SPI_BUS, SPI_BAUD_RATE);
 
 	// Initialize device with initial mode
-	status_t status = Argus_InitMode(_hnd, BROADCOM_AFBR_S50_S2PI_SPI_BUS, argus_mode_from_param());
+	status_t status = Argus_InitMode(_hnd, BROADCOM_AFBR_S50_S2PI_SPI_BUS, argusModeFromParameter());
 
 	if (status != STATUS_OK) {
 		PX4_ERR("Argus_InitMode failed: %ld", status);
@@ -243,7 +245,7 @@ void AFBRS50::Run()
 	switch (_state) {
 	case STATE::CONFIGURE: {
 			_current_rate = (uint32_t)_p_sens_afbr_s_rate.get();
-			status_t status = set_rate_and_dfm(_current_rate, DFM_MODE_OFF);
+			status_t status = setRateAndDfm(_current_rate, DFM_MODE_OFF);
 
 			if (status != STATUS_OK) {
 				PX4_ERR("CONFIGURE status not okay: %i", (int)status);
@@ -278,7 +280,7 @@ void AFBRS50::Run()
 
 			// Trigger continuous measurement mode. An hrt_call_after will trigger
 			// measurements periodically -- see API/Src/timer.c
-			status_t status = Argus_StartMeasurementTimer(_hnd, measurement_ready_callback);
+			status_t status = Argus_StartMeasurementTimer(_hnd, measurementReadyCallback);
 
 			if (status != STATUS_OK) {
 				PX4_ERR("Argus_TriggerMeasurement status not okay: %i", (int)status);
@@ -324,7 +326,7 @@ void AFBRS50::updateMeasurementRateFromRange()
 		    && (_current_rate != (uint32_t)_p_sens_afbr_l_rate.get())) {
 
 			_current_rate = (uint32_t)_p_sens_afbr_l_rate.get();
-			status = set_rate_and_dfm(_current_rate, DFM_MODE_8X);
+			status = setRateAndDfm(_current_rate, DFM_MODE_8X);
 
 			if (status != STATUS_OK) {
 				PX4_ERR("set_rate status not okay: %i", (int)status);
@@ -338,7 +340,7 @@ void AFBRS50::updateMeasurementRateFromRange()
 			   && (_current_rate != (uint32_t)_p_sens_afbr_s_rate.get())) {
 
 			_current_rate = (uint32_t)_p_sens_afbr_s_rate.get();
-			status = set_rate_and_dfm(_current_rate, DFM_MODE_OFF);
+			status = setRateAndDfm(_current_rate, DFM_MODE_OFF);
 
 			if (status != STATUS_OK) {
 				PX4_ERR("set_rate status not okay: %i", (int)status);
@@ -351,7 +353,7 @@ void AFBRS50::updateMeasurementRateFromRange()
 	}
 }
 
-status_t AFBRS50::set_rate_and_dfm(uint32_t rate_hz, argus_dfm_mode_t dfm_mode)
+status_t AFBRS50::setRateAndDfm(uint32_t rate_hz, argus_dfm_mode_t dfm_mode)
 {
 	while (Argus_GetStatus(_hnd) != STATUS_IDLE) {
 		px4_usleep(1_ms);
@@ -385,7 +387,7 @@ status_t AFBRS50::set_rate_and_dfm(uint32_t rate_hz, argus_dfm_mode_t dfm_mode)
 	return status;
 }
 
-argus_mode_t AFBRS50::argus_mode_from_param()
+argus_mode_t AFBRS50::argusModeFromParameter()
 {
 	int32_t mode_param = _p_sens_afbr_mode.get();
 	argus_mode_t mode = ARGUS_MODE_SHORT_RANGE;
@@ -419,7 +421,7 @@ argus_mode_t AFBRS50::argus_mode_from_param()
 	return mode;
 }
 
-void AFBRS50::print_info()
+void AFBRS50::printInfo()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -462,7 +464,7 @@ static int status()
 		return PX4_ERROR;
 	}
 
-	g_dev->print_info();
+	g_dev->printInfo();
 
 	return PX4_OK;
 }

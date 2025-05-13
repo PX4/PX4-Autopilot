@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,18 +31,9 @@
  *
  ****************************************************************************/
 
-/**
- * @file AFBRS50.hpp
- *
- * Driver for the Broadcom AFBR-S50 connected via SPI.
- *
- */
 #pragma once
 
 #include "argus.h"
-#include "s2pi.h"
-#include "timer.h"
-#include "argus_hal_test.h"
 
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
@@ -54,8 +45,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
 
-using namespace time_literals;
-
 class AFBRS50 : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
@@ -63,25 +52,22 @@ public:
 	~AFBRS50() override;
 
 	int init();
-	void print_info();
+	void printInfo();
 
 private:
 	void Run() override;
 
+	void recordCommsError();
 	void scheduleCollect();
-
+	void processMeasurement();
 	void updateMeasurementRateFromRange();
 
-	void processMeasurement();
+	static status_t measurementReadyCallback(status_t status, argus_hnd_t *hnd);
 
-	void recordCommsError();
+	status_t setRateAndDfm(uint32_t rate_hz, argus_dfm_mode_t dfm_mode);
+	argus_mode_t argusModeFromParameter();
 
-	static status_t measurement_ready_callback(status_t status, argus_hnd_t *hnd);
-
-	status_t set_rate_and_dfm(uint32_t rate_hz, argus_dfm_mode_t dfm_mode);
-
-	argus_mode_t argus_mode_from_param();
-
+private:
 	argus_hnd_t *_hnd {nullptr};
 
 	enum class STATE : uint8_t {
@@ -110,9 +96,9 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_AFBR_MODE>)   _p_sens_afbr_mode,
-		(ParamInt<px4::params::SENS_AFBR_S_RATE>)  _p_sens_afbr_s_rate,
-		(ParamInt<px4::params::SENS_AFBR_L_RATE>)  _p_sens_afbr_l_rate,
+		(ParamInt<px4::params::SENS_AFBR_S_RATE>) _p_sens_afbr_s_rate,
+		(ParamInt<px4::params::SENS_AFBR_L_RATE>) _p_sens_afbr_l_rate,
 		(ParamInt<px4::params::SENS_AFBR_THRESH>) _p_sens_afbr_thresh,
-		(ParamInt<px4::params::SENS_AFBR_HYSTER>)    _p_sens_afbr_hyster
+		(ParamInt<px4::params::SENS_AFBR_HYSTER>) _p_sens_afbr_hyster
 	);
 };
