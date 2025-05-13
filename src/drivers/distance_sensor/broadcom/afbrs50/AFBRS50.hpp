@@ -40,6 +40,9 @@
 #pragma once
 
 #include "argus.h"
+#include "s2pi.h"
+#include "timer.h"
+#include "argus_hal_test.h"
 
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
@@ -78,22 +81,27 @@ public:
 private:
 	void Run() override;
 
+	void scheduleCollect();
+
 	void Evaluate_rate();
 
-	void ProcessMeasurement(argus_hnd_t *hnd);
+	void ProcessMeasurement();
+
+	void recordCommsError();
 
 	static status_t measurement_ready_callback(status_t status, argus_hnd_t *hnd);
 
-	void get_info();
 	status_t set_rate_and_dfm(uint32_t rate_hz, argus_dfm_mode_t dfm_mode);
 
-	argus_hnd_t *_hnd{nullptr};
+	argus_hnd_t* _hnd {nullptr};
 
 	enum class STATE : uint8_t {
 		TEST,
 		CONFIGURE,
+		TRIGGER,
 		COLLECT,
-		STOP
+		STOP,
+		WATCHDOG
 	} _state{STATE::CONFIGURE};
 
 	PX4Rangefinder _px4_rangefinder;
@@ -101,9 +109,10 @@ private:
 	hrt_abstime _measurement_time{0};
 	hrt_abstime _last_rate_switch{0};
 
-	perf_counter_t _sample_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": sample interval")};
+	perf_counter_t _sample_perf{perf_alloc(PC_COUNT, MODULE_NAME": sample count")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": comms error")};
+	perf_counter_t _not_ready_perf{perf_alloc(PC_COUNT, MODULE_NAME": not ready")};
 
-	uint32_t _measure_interval{1000000 / 50}; // 50Hz
 	float _current_distance{0};
 	int8_t _current_quality{0};
 	float _max_distance;
@@ -111,6 +120,15 @@ private:
 	uint32_t _current_rate{0};
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+
+	uint32_t _measurement_inverval {1000000 / 50}; // 50Hz
+
+	int _error_count = 0;
+	int32_t _first_few_errors[10] = {0};
+	uint32_t sample_count = 0;
+	static uint32_t _ready_callback;
+
+	hrt_abstime _trigger_time = {};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_AFBR_MODE>)   _p_sens_afbr_mode,
