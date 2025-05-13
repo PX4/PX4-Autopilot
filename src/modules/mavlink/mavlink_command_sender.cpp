@@ -48,7 +48,7 @@ px4_sem_t MavlinkCommandSender::_lock;
 
 void MavlinkCommandSender::initialize()
 {
-	px4_sem_init(&_lock, 1, 1);
+	px4_mutex_init(&_lock, 0);
 
 	if (_instance == nullptr) {
 		_instance = new MavlinkCommandSender();

@@ -285,7 +285,7 @@ static int work_hrtthread(int argc, char *argv[])
 
 void hrt_work_queue_init(void)
 {
-	px4_sem_init(&_hrt_work_lock, 0, 1);
+	px4_mutex_init(&_hrt_work_lock, 0);
 	memset(&g_hrt_work, 0, sizeof(g_hrt_work));
 
 	// Create high priority worker thread

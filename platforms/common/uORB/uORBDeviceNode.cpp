@@ -334,7 +334,7 @@ uORB::DeviceNode::DeviceNode(const ORB_ID id, const uint8_t instance, const char
 	_orb_id(id),
 	_instance(instance)
 {
-	int ret = px4_sem_init(&_lock, 1, 1);
+	int ret = px4_mutex_init(&_lock, 1);
 
 	if (ret != 0) {
 		PX4_DEBUG("SEM INIT FAIL: ret %d", ret);

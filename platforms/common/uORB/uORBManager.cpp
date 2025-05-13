@@ -184,7 +184,7 @@ uORB::Manager::Manager()
 
 #endif /* ORB_USE_PUBLISHER_RULES */
 
-	ret = px4_sem_init(&_lock, 1, 1);
+	ret = px4_mutex_init(&_lock, 1);
 
 	if (ret != 0) {
 		PX4_DEBUG("SEM INIT FAIL: ret %d", ret);
@@ -464,7 +464,7 @@ int uORB::Manager::orb_poll(orb_poll_struct_t *fds, unsigned int nfds, int timeo
 int8_t
 uORB::Manager::launchCallbackThread()
 {
-	if (px4_sem_init(&per_process_cb_list_mutex, 1, 1) != 0) {
+	if (px4_mutex_init(&per_process_cb_list_mutex, 0) != 0) {
 		PX4_ERR("Can't initialize cb mutex");
 		return -1;
 	}
@@ -614,7 +614,7 @@ void uORB::Manager::GlobalSemPool::init(void)
 		sem.init();
 	}
 
-	px4_sem_init(&_semLock, 1, 1);
+	px4_mutex_init(&_semLock, 1);
 }
 
 void uORB::Manager::GlobalSemPool::free(int8_t i)

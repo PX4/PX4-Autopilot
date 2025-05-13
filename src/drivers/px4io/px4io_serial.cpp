@@ -89,7 +89,7 @@ PX4IO_serial::init(IOPacket *io_buffer)
 	_io_buffer_ptr = io_buffer;
 	/* create semaphores */
 	// in case the sub-class impl fails, the semaphore is cleaned up by destructor.
-	px4_sem_init(&_bus_semaphore, 0, 1);
+	px4_mutex_init(&_bus_semaphore, 0);
 
 	return 0;
 }

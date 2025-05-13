@@ -38,7 +38,7 @@ namespace px4
 
 atomic_block::atomic_block(void)
 {
-	px4_sem_init(&_lock, 0, 1);
+	px4_mutex_init(&_lock, 0);
 }
 
 atomic_block::~atomic_block(void)

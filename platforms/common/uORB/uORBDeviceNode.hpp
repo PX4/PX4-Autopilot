@@ -302,7 +302,7 @@ private:
 			static bool initialized = false;
 
 			if (!initialized) {
-				px4_sem_init(&g_cache_lock, 0, 1);
+				px4_mutex_init(&g_cache_lock, 0);
 				initialized = true;
 			}
 		}

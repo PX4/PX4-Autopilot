@@ -241,7 +241,7 @@ void MavlinkULog::initialize()
 		return;
 	}
 
-	px4_sem_init(&_lock, 1, 1);
+	px4_mutex_init(&_lock, 0);
 	_init = true;
 }
 

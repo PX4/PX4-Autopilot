@@ -52,7 +52,7 @@ void PX4Crypto::px4_crypto_init()
 		return;
 	}
 
-	px4_sem_init(&PX4Crypto::_lock, 0, 1);
+	px4_mutex_init(&PX4Crypto::_lock, 0);
 
 	// Initialize nuttx random pool, if it is being used by crypto
 #ifdef CONFIG_CRYPTO_RANDOM_POOL

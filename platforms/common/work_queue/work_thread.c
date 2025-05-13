@@ -199,10 +199,10 @@ static void work_process(struct wqueue_s *wqueue, int lock_id)
  ****************************************************************************/
 void work_queues_init(void)
 {
-	px4_sem_init(&_work_lock[HPWORK], 0, 1);
-	px4_sem_init(&_work_lock[LPWORK], 0, 1);
+	px4_mutex_init(&_work_lock[HPWORK], 0);
+	px4_mutex_init(&_work_lock[LPWORK], 0);
 #ifdef CONFIG_SCHED_USRWORK
-	px4_sem_init(&_work_lock[USRWORK], 0, 1);
+	px4_mutex_init(&_work_lock[USRWORK], 0);
 #endif
 
 	// Create high priority worker thread

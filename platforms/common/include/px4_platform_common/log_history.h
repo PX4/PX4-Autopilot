@@ -46,7 +46,7 @@
 class LogHistory
 {
 public:
-	LogHistory() { px4_sem_init(&_lock, 0, 1); }
+	LogHistory() { px4_mutex_init(&_lock, 0); }
 	~LogHistory() { px4_sem_destroy(&_lock); }
 
 	void write(const char *buffer);

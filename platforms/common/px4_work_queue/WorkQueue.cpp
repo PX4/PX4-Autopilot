@@ -55,7 +55,7 @@ WorkQueue::WorkQueue(const wq_config_t &config) :
 #endif
 
 #ifndef __PX4_NUTTX
-	px4_sem_init(&_qlock, 0, 1);
+	px4_mutex_init(&_qlock, 0);
 #endif /* __PX4_NUTTX */
 
 	px4_sem_init(&_process_lock, 0, 0);
