@@ -50,14 +50,7 @@
 
 #if defined(BOARD_HAS_HW_VERSIONING)
 
-#define DIR_READ     0x80
-#define WHO_AMI_I    0x75
-#define REG_BANK_SEL 0x76
-
 #define HW_INFO_SIZE HW_INFO_VER_DIGITS + HW_INFO_REV_DIGITS
-
-#define DEFAULT_SPI ((1 << 28) | DRV_IMU_DEVTYPE_ICM45686)
-
 
 /****************************************************************************
  * Private Data
@@ -163,42 +156,7 @@ __EXPORT int board_get_hw_revision()
 
 int board_determine_hw_info()
 {
-	struct spi_dev_s *spi = px4_spibus_initialize(3);
-
-	SPI_SETFREQUENCY(spi, 8 * 1000 * 1000);
-	SPI_SETMODE(spi, SPIDEV_MODE3);
-	SPI_SETBITS(spi, 8);
-
-	/* ICM Select bank 0 */
-	SPI_SELECT(spi, DEFAULT_SPI, true);
-	uint8_t cmd_bank_sel[2] = {0};
-	cmd_bank_sel[0] = REG_BANK_SEL;
-	cmd_bank_sel[1] = 0;
-	SPI_EXCHANGE(spi, cmd_bank_sel, cmd_bank_sel, sizeof(cmd_bank_sel));
-	SPI_SELECT(spi, DEFAULT_SPI, false);
-
-	/* ICM Read WHOAM */
-	SPI_SELECT(spi, DEFAULT_SPI, true);
-	uint8_t cmd[2] = {0};
-	cmd[0] = (WHO_AMI_I) | DIR_READ;
-	SPI_EXCHANGE(spi, cmd, cmd, sizeof(cmd_bank_sel));
-	SPI_SELECT(spi, DEFAULT_SPI, false);
-
-	// Default is TROPIC_0 icm45686
-
-	if (cmd[1] == 0x47) { // TROPIC_1 icm42688p
-		hw_revision = 1;
-
-	} else if (cmd[1] == 0x44) { // TROPIC_2 icm42686p
-		hw_revision = 2;
-	}
-
-	/* Default bus 1 to 8MHz and de-assert the known chip selects.
-	 */
-
-	SPI_SETFREQUENCY(spi, 8 * 1000 * 1000);
-	SPI_SETBITS(spi, 8);
-	SPI_SETMODE(spi, SPIDEV_MODE3);
+	hw_revision = 0; //TODO Read fuses
 
 	sprintf(hw_info, "%03d", hw_revision);
 

@@ -73,7 +73,7 @@
 /* Register accessors */
 #define _REG(_addr)	(*(volatile uint16_t *)(_addr))
 #define _REG16(_base, _reg)	(*(volatile uint16_t *)(_base + _reg))
-#define FLEXPWMREG(_tmr, _sm, _reg)		_REG16(FLEXPWM_TIMER_BASE + ((_sm) * SM_SPACING), (_reg))
+#define FLEXPWMREG(_tmr, _sm, _reg)		_REG16(_tmr + ((_sm) * SM_SPACING), (_reg))
 
 /* FlexPWM Registers for LED_G */
 #define rINIT(_tim, _sm)       FLEXPWMREG(_tim, _sm,IMXRT_FLEXPWM_SM0INIT_OFFSET)       /* Initial Count Register */
@@ -93,64 +93,90 @@
 #define rDTSRCSEL(_tim)        FLEXPWMREG(_tim,  0, IMXRT_FLEXPWM_DTSRCSEL_OFFSET)      /* PWM Source Select Register */
 #define rMCTRL(_tim)           FLEXPWMREG(_tim,  0, IMXRT_FLEXPWM_MCTRL_OFFSET)         /* Master Control Register */
 
-#define FLEXPWM_TIMER 2
-#define FLEXPWM_SM 3
+#define OUTEN_A_MASK 0x1
+#define OUTEN_B_MASK 0x2
 
 #define FREQ
 
-static void flexpwm_led_green(uint16_t cvalue)
+static void flexpwm_led(uint32_t timer, uint32_t sm, uint16_t cvalue, uint32_t gpio_mux, uint32_t pwm_mux,
+			uint32_t out_mask)
 {
 	if (cvalue == 0) {
-		rMCTRL(FLEXPWM_TIMER) &= ~MCTRL_RUN(1 << FLEXPWM_SM);
-		px4_arch_configgpio(GPIO_nLED_GREEN);
+		//rMCTRL(timer) &= ~MCTRL_RUN(1 << sm);
+		px4_arch_configgpio(gpio_mux);
 
 	} else {
-		rMCTRL(FLEXPWM_TIMER) |= (1 << (FLEXPWM_SM + MCTRL_CLDOK_SHIFT));
-		rVAL1(FLEXPWM_TIMER, FLEXPWM_SM) = (FLEXPWM_FREQ / LED_PWM_FREQ) - 1;
-		rVAL5(FLEXPWM_TIMER, FLEXPWM_SM) = (FLEXPWM_FREQ / LED_PWM_FREQ) - (cvalue * 3);
-		rMCTRL(FLEXPWM_TIMER) |= MCTRL_LDOK(1 << FLEXPWM_SM) | MCTRL_RUN(1 << FLEXPWM_SM);
-		px4_arch_configgpio(PWM_LED_GREEN);
+		rMCTRL(timer) |= (1 << (sm + MCTRL_CLDOK_SHIFT));
+		rVAL1(timer, sm) = (FLEXPWM_FREQ / LED_PWM_FREQ) - 1;
+
+		if (out_mask & OUTEN_A_MASK) {
+			rVAL3(timer, sm) = (FLEXPWM_FREQ / LED_PWM_FREQ) - (cvalue);
+
+		} else if (out_mask & OUTEN_B_MASK) {
+			rVAL5(timer, sm) = (FLEXPWM_FREQ / LED_PWM_FREQ) - (cvalue);
+		}
+
+		rMCTRL(timer) |= MCTRL_LDOK(1 << sm) | MCTRL_RUN(1 << sm);
+		px4_arch_configgpio(pwm_mux);
 	}
 }
 
 int
 led_pwm_servo_set(unsigned channel, uint8_t cvalue)
 {
-	if (channel == 2) {
+	if (channel == 0) {
+		flexpwm_led(IMXRT_FLEXPWM3_BASE, 2, cvalue, GPIO_nLED_RED, PWM_LED_RED, OUTEN_A_MASK);
 
 	} else if (channel == 1) {
-		flexpwm_led_green(cvalue);
+		flexpwm_led(IMXRT_FLEXPWM1_BASE, 3, cvalue, GPIO_nLED_GREEN, PWM_LED_GREEN, OUTEN_A_MASK);
 
-	} else if (channel == 0) {
+	} else if (channel == 2) {
+		flexpwm_led(IMXRT_FLEXPWM3_BASE, 2, cvalue * 3, GPIO_nLED_BLUE, PWM_LED_BLUE, OUTEN_B_MASK);
 	}
 
 	return 0;
 }
 
+void flexpwm_init(uint32_t timer, uint32_t sm, uint32_t out_mask)
+{
+	/* Clear all Faults */
+	rFSTS0(timer) = FSTS_FFLAG_MASK;
+	rMCTRL(timer) |= (1 << (sm + MCTRL_CLDOK_SHIFT));
+
+	rCTRL2(timer, sm) = SMCTRL2_CLK_SEL_EXT_CLK | SMCTRL2_DBGEN | SMCTRL2_INDEP;
+	rCTRL(timer, sm)  = SMCTRL_PRSC_DIV16 | SMCTRL_FULL;
+	/* Edge aligned at 0 */
+	rINIT(timer, sm) = 0;
+	rVAL0(timer, sm) = 0;
+	rVAL2(timer, sm) = 0;
+	rVAL4(timer, sm) = 0;
+	rFFILT0(timer) &= ~FFILT_FILT_PER_MASK;
+	rDISMAP0(timer, sm) = 0xf000;
+	rDISMAP1(timer, sm) = 0xf000;
+
+
+	if (out_mask & OUTEN_A_MASK) {
+		rOUTEN(timer) |= OUTEN_PWMA_EN(1 << sm);
+	}
+
+	if (out_mask & OUTEN_B_MASK) {
+		rOUTEN(timer) |= OUTEN_PWMB_EN(1 << sm);
+	}
+
+	rDTSRCSEL(timer) = 0;
+	rMCTRL(timer) |= MCTRL_LDOK(1 << sm);
+}
+
 int led_pwm_servo_init()
 {
 	/* PWM_LED_GREEN - FLEXPWM2_PWMB03 */
-	imxrt_clockall_pwm2();
+	imxrt_clockall_pwm1();
+	imxrt_clockall_pwm3();
 
-	/* Clear all Faults */
-	rFSTS0(FLEXPWM_TIMER) = FSTS_FFLAG_MASK;
-	rMCTRL(FLEXPWM_TIMER) |= (1 << (FLEXPWM_SM + MCTRL_CLDOK_SHIFT));
+	flexpwm_init(IMXRT_FLEXPWM3_BASE, 2, OUTEN_A_MASK | OUTEN_B_MASK); // GPIO_FLEXPWM3_PWMA02_1
+	flexpwm_init(IMXRT_FLEXPWM1_BASE, 3, OUTEN_A_MASK); // GPIO_FLEXPWM1_PWMA03_2
 
-	rCTRL2(FLEXPWM_TIMER, FLEXPWM_SM) = SMCTRL2_CLK_SEL_EXT_CLK | SMCTRL2_DBGEN | SMCTRL2_INDEP;
-	rCTRL(FLEXPWM_TIMER, FLEXPWM_SM)  = SMCTRL_PRSC_DIV16 | SMCTRL_FULL;
-	/* Edge aligned at 0 */
-	rINIT(FLEXPWM_TIMER, FLEXPWM_SM) = 0;
-	rVAL0(FLEXPWM_TIMER, FLEXPWM_SM) = 0;
-	rVAL2(FLEXPWM_TIMER, FLEXPWM_SM) = 0;
-	rVAL4(FLEXPWM_TIMER, FLEXPWM_SM) = 0;
-	rFFILT0(FLEXPWM_TIMER) &= ~FFILT_FILT_PER_MASK;
-	rDISMAP0(FLEXPWM_TIMER, FLEXPWM_SM) = 0xf000;
-	rDISMAP1(FLEXPWM_TIMER, FLEXPWM_SM) = 0xf000;
 
-	rOUTEN(FLEXPWM_TIMER) |= OUTEN_PWMB_EN(1 << FLEXPWM_SM);
-
-	rDTSRCSEL(FLEXPWM_TIMER) = 0;
-	rMCTRL(FLEXPWM_TIMER) |= MCTRL_LDOK(1 << FLEXPWM_SM);
 
 	return OK;
 }

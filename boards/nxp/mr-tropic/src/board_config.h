@@ -67,9 +67,9 @@
 /* An RGB LED is connected through GPIO as shown below:
  */
 #define LED_IOMUX (IOMUX_OPENDRAIN | IOMUX_PULL_NONE | IOMUX_DRIVE_33OHM | IOMUX_SPEED_MEDIUM | IOMUX_SLEW_SLOW)
-#define GPIO_nLED_RED   /* GPIO_AD_B0_02 GPIO1_IO02 */ (GPIO_PORT1 | GPIO_PIN2  | GPIO_OUTPUT | GPIO_OUTPUT_ONE | LED_IOMUX)
-#define GPIO_nLED_GREEN /* GPIO_B1_03    GPIO2_IO19 */ (GPIO_PORT2 | GPIO_PIN19 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | LED_IOMUX)
-#define GPIO_nLED_BLUE  /* GPIO_AD_B0_03 GPIO1_IO03 */ (GPIO_PORT1 | GPIO_PIN3  | GPIO_OUTPUT | GPIO_OUTPUT_ONE | LED_IOMUX)
+#define GPIO_nLED_RED   /* GPIO_EMC_33 GPIO3_IO19 */ (GPIO_PORT3 | GPIO_PIN19 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | LED_IOMUX)
+#define GPIO_nLED_BLUE  /* GPIO_EMC_34 GPIO3_IO20 */ (GPIO_PORT3 | GPIO_PIN20 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | LED_IOMUX)
+#define GPIO_nLED_GREEN /* GPIO_EMC_38 GPIO3_IO24 */ (GPIO_PORT3 | GPIO_PIN24 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | LED_IOMUX)
 
 #define BOARD_HAS_CONTROL_STATUS_LEDS   1
 #define BOARD_OVERLOAD_LED              LED_RED
@@ -149,9 +149,9 @@
 #define BOARD_LED_PWM_DRIVE_ACTIVE_LOW 1
 #define BOARD_HAS_CUSTOM_LED_PWM       1
 
-#define PWM_LED_RED   /* GPIO_EMC_33 */ (GPIO_FLEXPWM3_PWMA02_1 | GENERAL_OUTPUT_IOMUX)
-#define PWM_LED_GREEN /* GPIO_EMC_34 */ (GPIO_FLEXPWM3_PWMB02_1 | GENERAL_OUTPUT_IOMUX)
-#define PWM_LED_BLUE  /* GPIO_EMC_38 */ (GPIO_FLEXPWM1_PWMA03_2 | GENERAL_OUTPUT_IOMUX)
+#define PWM_LED_RED    /* GPIO_EMC_33 */ (GPIO_FLEXPWM3_PWMA02_1 | GENERAL_OUTPUT_IOMUX)
+#define PWM_LED_BLUE   /* GPIO_EMC_34 */ (GPIO_FLEXPWM3_PWMB02_1 | GENERAL_OUTPUT_IOMUX)
+#define PWM_LED_GREEN  /* GPIO_EMC_38 */ (GPIO_FLEXPWM1_PWMA03_2 | GENERAL_OUTPUT_IOMUX)
 
 
 /* ETHERNET GPIO */
@@ -183,9 +183,9 @@
 #define HRT_TIMER_CHANNEL       1  /* use capture/compare channel 1 */
 
 #define RC_SERIAL_PORT                  "/dev/ttyS5"
-#define RC_SERIAL_SINGLEWIRE            1 // Suport Single wire wiring
-#define RC_SERIAL_SWAP_RXTX             1 // Set Swap (but not supported in HW) to use Single wire
-#define RC_SERIAL_SWAP_USING_SINGLEWIRE 1 // Set to use Single wire swap as HW does not support swap
+//#define RC_SERIAL_SINGLEWIRE            1 // Suport Single wire wiring
+//#define RC_SERIAL_SWAP_RXTX             1 // Set Swap (but not supported in HW) to use Single wire
+//#define RC_SERIAL_SWAP_USING_SINGLEWIRE 1 // Set to use Single wire swap as HW does not support swap
 #define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 /* Safety Switch is HW version dependent on having an PX4IO
