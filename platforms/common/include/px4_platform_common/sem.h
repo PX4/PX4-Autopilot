@@ -48,6 +48,9 @@
 #define SEM_PRIO_INHERIT          1
 #define SEM_PRIO_PROTECT          2
 #define sem_setprotocol(s,p)
+#define px4_mutex_init(m,s)       px4_sem_init(m, s, 1)
+#else
+#define px4_mutex_init(m,s)       nxmutex_init((mutex_t *)m)
 #endif
 
 #if (defined(__PX4_DARWIN) || defined(__PX4_CYGWIN) || defined(__PX4_POSIX)) && !defined(__PX4_QURT)
