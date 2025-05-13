@@ -172,8 +172,8 @@ private:
 	)
 
 	hrt_abstime _last_time_loop_ran{};
-	uint8_t _z_reset_counter{0};
-	uint64_t _time_airspeed_last_valid{0};
+	uint8_t _z_reset_counter{UINT8_C(0)};
+	uint64_t _time_airspeed_last_valid{UINT64_C(0)};
 	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};
 	// Smooths changes in the altitude tracking error time constant value
 	SlewRate<float> _tecs_alt_time_const_slew_rate;

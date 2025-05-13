@@ -10,4 +10,4 @@ float32 bearing_feas_on_track   # [0,1] on-track bearing feasibility
 float32 signed_track_error      # [m] signed track error
 float32 track_error_bound       # [m] track error bound
 float32 adapted_period          # [s] adapted period (if auto-tuning enabled)
-uint8 wind_est_valid            # (boolean) true = wind estimate is valid and/or being used by controller (also indicates if wind est usage is disabled despite being valid)
+uint8 wind_est_valid            # (boolean) true = wind estimate is valid and/or being used by controller (also indicates if wind estimate usage is disabled despite being valid)
