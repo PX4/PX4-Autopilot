@@ -82,7 +82,7 @@ private:
 
 	argus_mode_t argus_mode_from_param();
 
-	argus_hnd_t* _hnd {nullptr};
+	argus_hnd_t *_hnd {nullptr};
 
 	enum class STATE : uint8_t {
 		CONFIGURE,

@@ -92,7 +92,7 @@ AFBRS50_SPI::AFBRS50_SPI():
 	// Anything to do?
 }
 
-static AFBRS50_SPI* _spi_iface = nullptr;
+static AFBRS50_SPI *_spi_iface = nullptr;
 
 void AFBRS50_SPI::Run()
 {
@@ -402,7 +402,6 @@ status_t S2PI_TransferFrame(s2pi_slave_t spi_slave, uint8_t const *txData, uint8
 {
 	/* Verify arguments. */
 	if (!txData || frameSize == 0 || frameSize >= 0x10000) {
-		printf("EEEEK\n");
 		return ERROR_INVALID_ARGUMENT;
 	}
 
@@ -417,7 +416,6 @@ status_t S2PI_TransferFrame(s2pi_slave_t spi_slave, uint8_t const *txData, uint8
 
 	if (status != STATUS_IDLE) {
 		IRQ_UNLOCK();
-		printf("status != STATUS_IDLE\n");
 		return status;
 	}
 

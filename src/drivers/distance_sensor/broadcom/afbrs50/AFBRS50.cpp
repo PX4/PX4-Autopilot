@@ -78,7 +78,7 @@ status_t AFBRS50::measurement_ready_callback(status_t status, argus_hnd_t *hnd)
 		return ERROR_FAIL;
 	}
 
-	if ((g_dev == nullptr)|| (status != STATUS_OK)) {
+	if ((g_dev == nullptr) || (status != STATUS_OK)) {
 		g_dev->recordCommsError();
 		return ERROR_FAIL;
 	}
