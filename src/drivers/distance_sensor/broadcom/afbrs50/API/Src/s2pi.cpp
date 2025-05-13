@@ -54,13 +54,7 @@ s2pi_handle_t s2pi_ = { .GPIOs = { [ S2PI_CLK ]  = BROADCOM_AFBR_S50_S2PI_CLK,
 				 }
 		      };
 
-static struct work_s broadcom_s2pi_transfer_work = {};
-
-static perf_counter_t s2pi_irq_callback_perf = NULL;
-
-hrt_abstime last_irq_time = {};
-hrt_abstime irq_times[10] = {};
-status_t last_status[10] = {};
+static perf_counter_t irq_perf = NULL;
 
 /*!***************************************************************************
 * @brief Initialize the S2PI module.
@@ -79,9 +73,8 @@ class AFBRS50_SPI :  public px4::ScheduledWorkItem
 {
 public:
 	AFBRS50_SPI();
-	~AFBRS50_SPI() override;
-
-	void schedule();
+	void schedule_now();
+	void schedule_clear();
 
 private:
 
@@ -90,18 +83,16 @@ private:
 };
 
 AFBRS50_SPI::AFBRS50_SPI():
+	// NOTE: we use SPI0 WQ since it is the 2nd highest priority thread (behind rate_ctrl).
+	// TODO: we should fix how SPI comms work. Async SPI comms is
+	// undesirable. We should use SPI TX DMA complete callback
+	// instead of relying on a high priority thread.
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::SPI0)
 {
-
-}
-
-AFBRS50_SPI::~AFBRS50_SPI()
-{
-	// TODO:
+	// Anything to do?
 }
 
 static AFBRS50_SPI* _spi_iface = nullptr;
-
 
 void AFBRS50_SPI::Run()
 {
@@ -109,10 +100,16 @@ void AFBRS50_SPI::Run()
 	SPI_EXCHANGE(s2pi_.spidev, s2pi_.spi_tx_data, s2pi_.spi_rx_data, s2pi_.spi_frame_size);
 	px4_arch_gpiowrite(s2pi_.GPIOs[S2PI_CS], 1);
 
-	// NOTE: after writing we have ~60us to execute the below
+	//// WARNING!
+	// After the last SPI TX we have ~60us to execute the below
 	// callback otherwise the IRQ will fire and we're screwed.
+	// The proper way to solve this problem is to either fix
+	// the API or to configure SPI TX DMA callback complete
+	// to execute the below callback immediately.
 
-	// px4_arch_gpiowrite(GPIO_I2C_SDA, false);
+
+	// If we are pre-empted here and the IRQ fires before the
+	// callback has been invoked -- we're screwed.
 
 	IRQ_LOCK();
 	s2pi_.Status = STATUS_IDLE;
@@ -120,54 +117,28 @@ void AFBRS50_SPI::Run()
 	if (s2pi_.Callback != 0) {
 		s2pi_callback_t callback = s2pi_.Callback;
 		s2pi_.Callback = 0;
-
-		// px4_arch_gpiowrite(GPIO_I2C_SCL, true);
 		callback(STATUS_OK, s2pi_.CallbackData);
-		// px4_arch_gpiowrite(GPIO_I2C_SCL, false);
-
 	}
 
 	IRQ_UNLOCK();
 }
 
-void AFBRS50_SPI::schedule()
+void AFBRS50_SPI::schedule_now()
 {
 	ScheduleNow();
+}
+
+void AFBRS50_SPI::schedule_clear()
+{
+	ScheduleClear();
 }
 
 static int gpio_falling_edge(int irq, void *context, void *arg)
 {
 	if (s2pi_.IrqCallback != 0) {
-		perf_begin(s2pi_irq_callback_perf);
+		perf_begin(irq_perf);
 		s2pi_.IrqCallback(s2pi_.IrqCallbackData);
-		perf_end(s2pi_irq_callback_perf);
-
-		auto now = hrt_absolute_time();
-		auto elapsed = now - last_irq_time;
-
-		irq_times[0] = irq_times[1];
-		irq_times[1] = irq_times[2];
-		irq_times[2] = irq_times[3];
-		irq_times[3] = irq_times[4];
-		irq_times[4] = irq_times[5];
-		irq_times[5] = irq_times[6];
-		irq_times[6] = irq_times[7];
-		irq_times[7] = irq_times[8];
-		irq_times[8] = irq_times[9];
-		irq_times[9] = elapsed;
-
-		last_irq_time = now;
-
-		last_status[0] = last_status[1];
-		last_status[1] = last_status[2];
-		last_status[2] = last_status[3];
-		last_status[3] = last_status[4];
-		last_status[4] = last_status[5];
-		last_status[5] = last_status[6];
-		last_status[6] = last_status[7];
-		last_status[7] = last_status[8];
-		last_status[8] = last_status[9];
-		last_status[9] = s2pi_.Status;
+		perf_end(irq_perf);
 	}
 
 	return 0;
@@ -181,13 +152,12 @@ status_t S2PI_Init(s2pi_slave_t defaultSlave, uint32_t baudRate_Bps)
 
 	s2pi_.spidev = px4_spibus_initialize(BROADCOM_AFBR_S50_S2PI_SPI_BUS);
 
-	// px4_arch_configgpio(BROADCOM_AFBR_S50_S2PI_IRQ);
+	// NOTE: we enable the interrupt event here but do not configure the GPIO.
+	// We configure the GPIO and enable the interrupt after the device mode
+	// has been configured. This prevents erroneous interrupts from occuring.
 	px4_arch_gpiosetevent(BROADCOM_AFBR_S50_S2PI_IRQ, false, true, false, &gpio_falling_edge, NULL);
 
-	// px4_arch_configgpio(GPIO_I2C_SCL);
-	// px4_arch_configgpio(GPIO_I2C_SDA);
-
-	s2pi_irq_callback_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": irq callback");
+	irq_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": irq callback");
 
 	_spi_iface = new AFBRS50_SPI();
 
@@ -427,23 +397,6 @@ status_t S2PI_CycleCsPin(s2pi_slave_t slave)
 * was not started.
 *****************************************************************************/
 
-// static void broadcom_s2pi_transfer_callout(void *arg)
-// {
-// 	perf_begin(s2pi_transfer_perf);
-// 	px4_arch_gpiowrite(s2pi_.GPIOs[S2PI_CS], 0);
-// 	SPI_EXCHANGE(s2pi_.spidev, s2pi_.spi_tx_data, s2pi_.spi_rx_data, s2pi_.spi_frame_size);
-// 	px4_arch_gpiowrite(s2pi_.GPIOs[S2PI_CS], 1);
-// 	perf_end(s2pi_transfer_perf);
-// 	s2pi_.Status = STATUS_IDLE;
-
-// 	/* Invoke callback if there is one */
-// 	if (s2pi_.Callback != 0) {
-// 		s2pi_callback_t callback = s2pi_.Callback;
-// 		s2pi_.Callback = 0;
-// 		callback(STATUS_OK, s2pi_.CallbackData);
-// 	}
-// }
-
 status_t S2PI_TransferFrame(s2pi_slave_t spi_slave, uint8_t const *txData, uint8_t *rxData, size_t frameSize,
 			    s2pi_callback_t callback, void *callbackData)
 {
@@ -477,10 +430,8 @@ status_t S2PI_TransferFrame(s2pi_slave_t spi_slave, uint8_t const *txData, uint8
 	s2pi_.spi_tx_data = (uint8_t *)txData;
 	s2pi_.spi_rx_data = rxData;
 	s2pi_.spi_frame_size = frameSize;
-	// work_queue(HPWORK, &broadcom_s2pi_transfer_work, broadcom_s2pi_transfer_callout, NULL, 0);
 
-	// px4_arch_gpiowrite(GPIO_I2C_SDA, true);
-	_spi_iface->schedule();
+	_spi_iface->schedule_now();
 
 	IRQ_UNLOCK();
 
@@ -506,7 +457,7 @@ status_t S2PI_Abort(s2pi_slave_t slave)
 
 	/* Abort SPI transfer. */
 	if (status == STATUS_BUSY) {
-		work_cancel(HPWORK, &broadcom_s2pi_transfer_work);
+		_spi_iface->schedule_clear();
 	}
 
 	return STATUS_OK;

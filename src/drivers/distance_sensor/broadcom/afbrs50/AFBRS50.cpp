@@ -31,7 +31,6 @@
  *
  ****************************************************************************/
 
-/* Include Files */
 #include "AFBRS50.hpp"
 
 #include <lib/drivers/device/Device.hpp>
@@ -39,16 +38,7 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-/*! Define the SPI baud rate (to be used in the SPI module). */
-#define SPI_BAUD_RATE 5000000
-
 AFBRS50 *g_dev{nullptr};
-
-uint32_t AFBRS50::_ready_callback = 0;
-
-extern hrt_abstime irq_times[10];
-extern status_t last_status[10];
-extern hrt_abstime last_irq_time;
 
 AFBRS50::AFBRS50(uint8_t device_orientation):
 	ModuleParams(nullptr),
@@ -67,7 +57,11 @@ AFBRS50::AFBRS50(uint8_t device_orientation):
 
 AFBRS50::~AFBRS50()
 {
-	stop();
+	ScheduleClear();
+
+	Argus_StopMeasurementTimer(_hnd);
+	Argus_Deinit(_hnd);
+	Argus_DestroyHandle(_hnd);
 
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
@@ -76,7 +70,8 @@ AFBRS50::~AFBRS50()
 
 status_t AFBRS50::measurement_ready_callback(status_t status, argus_hnd_t *hnd)
 {
-	_ready_callback++;
+	// Called from the SPI comms thread context
+
 	if (up_interrupt_context()) {
 		// We cannot be in interrupt context
 		g_dev->recordCommsError();
@@ -104,46 +99,37 @@ void AFBRS50::recordCommsError()
 	perf_count(_comms_errors);
 }
 
-void AFBRS50::ProcessMeasurement()
+void AFBRS50::processMeasurement()
 {
 	perf_count(_sample_perf);
-	sample_count++;
 
 	argus_results_t res{};
 	status_t evaluate_status = Argus_EvaluateData(_hnd, &res);
 
-	if ((evaluate_status == STATUS_OK) && (res.Status == STATUS_OK)) {
-		uint32_t result_mm = res.Bin.Range / (Q9_22_ONE / 1000);
-		float result_m = static_cast<float>(result_mm) / 1000.f;
-		int8_t quality = res.Bin.SignalQuality;
-
-		// Signal quality indicates 100% for good signals, 50% and lower for weak signals.
-		// 1% is an errored signal (not reliable). Signal Quality of 0% is unknown.
-		if (quality == 1) {
-			quality = 0;
-		}
-
-		// distance quality check
-		if (result_m > _max_distance) {
-			result_m = 0.0;
-			quality = 0;
-		}
-
-		_current_distance = result_m;
-		_current_quality = quality;
-		_px4_rangefinder.update(((res.TimeStamp.sec * 1000000ULL) + res.TimeStamp.usec), result_m, quality);
-	} else {
-		// TODO: why does this occur
-		// NOTE: getting response -6 (ERROR_TIMEOUT)
-		// TODO: why is the perf counter not working...
+	if ((evaluate_status != STATUS_OK) || (res.Status != STATUS_OK)) {
 		perf_count(_comms_errors);
-		if (_error_count < 9) {
-			_first_few_errors[_error_count] = (int32_t)res.Status;
-			_error_count++;
-			PX4_INFO("PROCESS MEASUREMENT FAILED");
-			PX4_INFO("sample_count: %lu", sample_count);
-		}
+		return;
 	}
+
+	uint32_t result_mm = res.Bin.Range / (Q9_22_ONE / 1000);
+	float distance = static_cast<float>(result_mm) / 1000.f;
+	int8_t quality = res.Bin.SignalQuality;
+
+	// Signal quality indicates 100% for good signals, 50% and lower for weak signals.
+	// 1% is an errored signal (not reliable). Signal Quality of 0% is unknown.
+	if (quality == 1) {
+		quality = 0;
+	}
+
+	// TODO: I don't think we need this..
+	if (distance > _max_distance) {
+		distance = 0.0;
+		quality = 0;
+	}
+
+	_current_distance = distance;
+	_current_quality = quality;
+	_px4_rangefinder.update(((res.TimeStamp.sec * 1000000ULL) + res.TimeStamp.usec), distance, quality);
 }
 
 int AFBRS50::init()
@@ -153,8 +139,6 @@ int AFBRS50::init()
 	}
 
 	if (_hnd != nullptr) {
-		// TODO: re-evaluate if retries are necessary
-		// retry
 		Argus_Deinit(_hnd);
 		Argus_DestroyHandle(_hnd);
 		_hnd = nullptr;
@@ -168,41 +152,11 @@ int AFBRS50::init()
 	}
 
 	// Initialize the S2PI hardware required by the API.
-	// Sets up the interrupt on falling edge
-	// TODO: move interrupt setup after mode config
+	static constexpr uint32_t SPI_BAUD_RATE = 5000000;
 	S2PI_Init(BROADCOM_AFBR_S50_S2PI_SPI_BUS, SPI_BAUD_RATE);
 
-	int32_t mode_param = _p_sens_afbr_mode.get();
-
-	if (mode_param < 0 || mode_param > 3) {
-		PX4_ERR("Invalid mode parameter: %li", mode_param);
-		return PX4_ERROR;
-	}
-
-	argus_mode_t mode = ARGUS_MODE_SHORT_RANGE;
-
-	switch (mode_param) {
-	case 0:
-		mode = ARGUS_MODE_SHORT_RANGE;
-		break;
-
-	case 1:
-		mode = ARGUS_MODE_LONG_RANGE;
-		break;
-
-	case 2:
-		mode = ARGUS_MODE_HIGH_SPEED_SHORT_RANGE;
-		break;
-
-	case 3:
-		mode = ARGUS_MODE_HIGH_SPEED_LONG_RANGE;
-		break;
-
-	default:
-		break;
-	}
-
-	status_t status = Argus_InitMode(_hnd, BROADCOM_AFBR_S50_S2PI_SPI_BUS, mode);
+	// Initialize device with initial mode
+	status_t status = Argus_InitMode(_hnd, BROADCOM_AFBR_S50_S2PI_SPI_BUS, argus_mode_from_param());
 
 	if (status != STATUS_OK) {
 		PX4_ERR("Argus_InitMode failed: %ld", status);
@@ -215,78 +169,64 @@ int AFBRS50::init()
 	uint8_t b = (value >> 16) & 0xFFU;
 	uint8_t c = value & 0xFFFFU;
 	PX4_INFO("AFBR-S50 Chip ID: %u, API Version: %u v%d.%d.%d", (uint)id, (uint)value, a, b, c);
-	PX4_INFO_RAW("Module: ");
 
+	char module_string[20] = {};
 	argus_module_version_t mv = Argus_GetModuleVersion(_hnd);
+
+	float min_distance = 0.f;
+	float max_distance = 30.f;
+	float fov_degrees = 6.f;
 
 	switch (mv) {
 	case AFBR_S50MV85G_V1:
 	case AFBR_S50MV85G_V2:
 	case AFBR_S50MV85G_V3:
-		_min_distance = 0.0f;
-		_max_distance = 10.f;
-		_px4_rangefinder.set_min_distance(_min_distance);
-		_px4_rangefinder.set_max_distance(_max_distance);
-		_px4_rangefinder.set_fov(math::radians(6.f));
-		PX4_INFO_RAW("AFBR-S50MV85G\n");
+		max_distance = 10.f;
+		fov_degrees = 6.f;
+		snprintf(module_string, sizeof(module_string), "AFBR-S50MV85G");
 		break;
 
 	case AFBR_S50LV85D_V1:
-		_min_distance = 0.0f;
-		_max_distance = 30.f;
-		_px4_rangefinder.set_min_distance(_min_distance);
-		_px4_rangefinder.set_max_distance(_max_distance);
-		_px4_rangefinder.set_fov(math::radians(6.f));
-		PX4_INFO_RAW("AFBR-S50LV85D\n");
+		max_distance = 30.f;
+		fov_degrees = 6.f;
+		snprintf(module_string, sizeof(module_string), "AFBR-S50LV85D");
 		break;
 
 	case AFBR_S50LX85D_V1:
-		_min_distance = 0.0f;
-		_max_distance = 50.f;
-		_px4_rangefinder.set_min_distance(_min_distance);
-		_px4_rangefinder.set_max_distance(_max_distance);
-		_px4_rangefinder.set_fov(math::radians(6.f));
-		PX4_INFO_RAW("AFBR-S50LX85D\n");
+		max_distance = 50.f;
+		fov_degrees = 6.f;
+		snprintf(module_string, sizeof(module_string), "AFBR-S50LX85D");
 		break;
 
 	case AFBR_S50MV68B_V1:
-		_min_distance = 0.0f;
-		_max_distance = 10.f;
-		_px4_rangefinder.set_min_distance(_min_distance);
-		_px4_rangefinder.set_max_distance(_max_distance);
-		_px4_rangefinder.set_fov(math::radians(1.f));
-		PX4_INFO_RAW("AFBR-S50MV68B (v1)\n");
+		max_distance = 10.f;
+		fov_degrees = 1.f;
+		snprintf(module_string, sizeof(module_string), "AFBR-S50MV68B");
 		break;
 
 	case AFBR_S50MV85I_V1:
-		_min_distance = 0.0f;
-		_max_distance = 5.f;
-		_px4_rangefinder.set_min_distance(_min_distance);
-		_px4_rangefinder.set_max_distance(_max_distance);
-		_px4_rangefinder.set_fov(math::radians(6.f));
-		PX4_INFO_RAW("AFBR-S50MV85I (v1)\n");
+		max_distance = 5.f;
+		fov_degrees = 6.f;
+		snprintf(module_string, sizeof(module_string), "AFBR-S50MV85I");
 		break;
 
 	case AFBR_S50SV85K_V1:
-		_min_distance = 0.0f;
-		_max_distance = 10.f;
-		_px4_rangefinder.set_min_distance(_min_distance);
-		_px4_rangefinder.set_max_distance(_max_distance);
-		_px4_rangefinder.set_fov(math::radians(4.f));
-		PX4_INFO_RAW("AFBR-S50SV85K (v1)\n");
+		max_distance = 10.f;
+		fov_degrees = 4.f;
+		snprintf(module_string, sizeof(module_string), "AFBR-S50SV85K");
 		break;
 
 	default:
 		break;
 	}
 
-	if (_testing) {
-		_state = STATE::TEST;
+	PX4_INFO("Module: %s", module_string);
+	_max_distance = max_distance;
+	_px4_rangefinder.set_min_distance(min_distance);
+	_px4_rangefinder.set_max_distance(max_distance);
+	_px4_rangefinder.set_fov(math::radians(fov_degrees));
 
-	} else {
-		_state = STATE::CONFIGURE;
-	}
-
+	_state = STATE::CONFIGURE;
 	// Initialization Time is 300ms
 	ScheduleDelayed(350_ms);
 	return PX4_OK;
@@ -294,36 +234,21 @@ int AFBRS50::init()
 
 void AFBRS50::Run()
 {
-	// PX4_INFO("RUN");
 	if (_parameter_update_sub.updated()) {
-		// clear update
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
-
-		// update parameters from storage
 		ModuleParams::updateParams();
 	}
 
 	switch (_state) {
-	case STATE::TEST: {
-			if (_testing) {
-				Argus_VerifyHALImplementation(Argus_GetSPISlave(_hnd));
-				_testing = false;
-
-			} else {
-				_state = STATE::CONFIGURE;
-			}
-		}
-		break;
-
 	case STATE::CONFIGURE: {
 			_current_rate = (uint32_t)_p_sens_afbr_s_rate.get();
 			status_t status = set_rate_and_dfm(_current_rate, DFM_MODE_OFF);
 
 			if (status != STATUS_OK) {
 				PX4_ERR("CONFIGURE status not okay: %i", (int)status);
-				_state = STATE::STOP;
-				ScheduleNow();
+				ScheduleDelayed(350_ms);
+				return;
 			}
 
 			status = Argus_SetConfigurationSmartPowerSaveEnabled(_hnd, false);
@@ -335,88 +260,60 @@ void AFBRS50::Run()
 				return;
 			}
 
-			// TODO: delay after configure?
 			// Enable interrupt on falling edge
 			px4_arch_configgpio(BROADCOM_AFBR_S50_S2PI_IRQ);
-
-			PX4_INFO("jake Scheduling trigger after configure");
 			_state = STATE::TRIGGER;
-
-			// TODO: figure out this delay time. Even large delays don't prevent error -110
-			ScheduleDelayed(50_ms);
+			// TODO: delay after configure?
+			ScheduleNow();
+			// ScheduleDelayed(50_ms);
 		}
 		break;
 
 	case STATE::TRIGGER: {
-			// Only start a new measurement if one is not ongoing
-			if (Argus_GetStatus(_hnd) == STATUS_IDLE) {
-				// PX4_INFO("Argus_TriggerMeasurement");
-				// status_t status = Argus_TriggerMeasurement(_hnd, measurement_ready_callback);
-    			status_t status = Argus_StartMeasurementTimer(_hnd, measurement_ready_callback);
-
-				// IRQ callback will reschedule
-				// _trigger_time = hrt_absolute_time();
-
-				if (status != STATUS_OK) {
-					PX4_ERR("Argus_TriggerMeasurement status not okay: %i", (int)status);
-					// TODO: delay and why this might happen
-					ScheduleDelayed(50_ms);
-				}
-			} else {
+			if (Argus_GetStatus(_hnd) != STATUS_IDLE) {
 				perf_count(_not_ready_perf);
 				ScheduleDelayed(10_ms);
+				return;
 			}
 
-			// TODO: rename based on what it does
-			Evaluate_rate();
+			// Trigger continuous measurement mode. An hrt_call_after will trigger
+			// measurements periodically -- see API/Src/timer.c
+			status_t status = Argus_StartMeasurementTimer(_hnd, measurement_ready_callback);
+
+			if (status != STATUS_OK) {
+				PX4_ERR("Argus_TriggerMeasurement status not okay: %i", (int)status);
+				perf_count(_not_ready_perf);
+				ScheduleDelayed(50_ms);
+			}
 		}
 		break;
+
 	case STATE::COLLECT: {
-			ProcessMeasurement();
+			processMeasurement();
 
+			// Change measurement rate and mode based on range
+			updateMeasurementRateFromRange();
+
+			// Rechedule watchdog, push back by 2x measurement rate
 			_state = STATE::WATCHDOG;
-			ScheduleDelayed(40_ms);
-
-			// hrt_abstime schedule_delay = 0;
-			// auto elapsed = hrt_elapsed_time(&_trigger_time);
-
-			// if (elapsed < _measurement_inverval) {
-			// 	schedule_delay = _measurement_inverval - elapsed;
-			// }
-
-			// _state = STATE::TRIGGER;
-			// ScheduleDelayed(schedule_delay);
-		}
-		break;
-
-	case STATE::STOP: {
-			Argus_StopMeasurementTimer(_hnd);
-			Argus_Deinit(_hnd);
-			Argus_DestroyHandle(_hnd);
+			ScheduleDelayed(_measurement_inverval * 2);
 		}
 		break;
 
 	case STATE::WATCHDOG: {
-			PX4_INFO("watchdog triggered");
-			auto elapsed = hrt_elapsed_time(&last_irq_time);
-			PX4_INFO("time since irq: %llu", elapsed);
-
-
-			// PX4_INFO("rescheduling");
-			// _state = STATE::TRIGGER;
-			// ScheduleNow();
+			PX4_WARN("watchdog triggered, rescheduling");
+			_state = STATE::TRIGGER;
+			// When this occurs the device locks up for ~160ms
+			ScheduleDelayed(160_ms);
 		}
 		break;
 
 	default:
 		break;
 	}
-
-	// TODO: schedule watchdog backup
-	// ScheduleDelayed(_measurement_inverval);
 }
 
-void AFBRS50::Evaluate_rate()
+void AFBRS50::updateMeasurementRateFromRange()
 {
 	// only update mode if _current_distance is a valid measurement and if the last rate switch was more than 1 second ago
 	if ((_current_distance > 0) && (_current_quality > 0) && ((hrt_absolute_time() - _last_rate_switch) > 1_s)) {
@@ -454,49 +351,6 @@ void AFBRS50::Evaluate_rate()
 	}
 }
 
-void AFBRS50::stop()
-{
-	_state = STATE::STOP;
-	ScheduleNow();
-}
-
-int AFBRS50::test()
-{
-	_testing = true;
-
-	// TODO: re-implement init retries?
-	init();
-
-	return PX4_OK;
-}
-
-void AFBRS50::print_info()
-{
-	perf_print_counter(_sample_perf);
-	perf_print_counter(_comms_errors);
-	perf_print_counter(_not_ready_perf);
-	PX4_INFO("_error_count: %d", _error_count);
-	PX4_INFO("_ready_callback: %lu", _ready_callback);
-
-	PX4_INFO("IRQ_TIME:");
-
-	for (int i = 0; i < 10; i++) {
-		PX4_INFO("irq_times[%d]: %llu", i, irq_times[i]);
-	}
-
-	for (int i = 0; i < 10; i++) {
-		PX4_INFO("last_status[%d]: %ld", i, last_status[i]);
-	}
-
-	PX4_INFO_RAW("distance: %.3fm\n", (double)_current_distance);
-	PX4_INFO_RAW("rate: %u Hz\n", (uint)(1000000 / _measurement_inverval));
-
-	PX4_INFO_RAW("errors:\n");
-	for (int i = 0; i < 10; i++) {
-		PX4_INFO_RAW("%ld\n", _first_few_errors[i]);
-	}
-}
-
 status_t AFBRS50::set_rate_and_dfm(uint32_t rate_hz, argus_dfm_mode_t dfm_mode)
 {
 	while (Argus_GetStatus(_hnd) != STATUS_IDLE) {
@@ -529,6 +383,49 @@ status_t AFBRS50::set_rate_and_dfm(uint32_t rate_hz, argus_dfm_mode_t dfm_mode)
 	}
 
 	return status;
+}
+
+argus_mode_t AFBRS50::argus_mode_from_param()
+{
+	int32_t mode_param = _p_sens_afbr_mode.get();
+	argus_mode_t mode = ARGUS_MODE_SHORT_RANGE;
+
+	if (mode_param < 0 || mode_param > 3) {
+		PX4_ERR("Invalid mode parameter: %li", mode_param);
+		return mode;
+	}
+
+	switch (mode_param) {
+	case 0:
+		mode = ARGUS_MODE_SHORT_RANGE;
+		break;
+
+	case 1:
+		mode = ARGUS_MODE_LONG_RANGE;
+		break;
+
+	case 2:
+		mode = ARGUS_MODE_HIGH_SPEED_SHORT_RANGE;
+		break;
+
+	case 3:
+		mode = ARGUS_MODE_HIGH_SPEED_LONG_RANGE;
+		break;
+
+	default:
+		break;
+	}
+
+	return mode;
+}
+
+void AFBRS50::print_info()
+{
+	perf_print_counter(_sample_perf);
+	perf_print_counter(_comms_errors);
+	perf_print_counter(_not_ready_perf);
+	PX4_INFO_RAW("distance: %.3fm\n", (double)_current_distance);
+	PX4_INFO_RAW("rate: %u Hz\n", (uint)(1000000 / _measurement_inverval));
 }
 
 namespace afbrs50
@@ -586,30 +483,6 @@ static int stop()
 	return PX4_OK;
 }
 
-static int test(const uint8_t rotation)
-{
-	if (g_dev != nullptr) {
-		PX4_ERR("already started");
-		return PX4_ERROR;
-	}
-
-	g_dev = new AFBRS50(rotation);
-
-	if (g_dev == nullptr) {
-		PX4_ERR("object instantiate failed");
-		return PX4_ERROR;
-	}
-
-	if (g_dev->test() != PX4_OK) {
-		PX4_ERR("driver test failed");
-		delete g_dev;
-		g_dev = nullptr;
-		return PX4_ERROR;
-	}
-
-	return PX4_OK;
-}
-
 static int usage()
 {
 	PRINT_MODULE_DESCRIPTION(
@@ -631,7 +504,6 @@ $ afbrs50 stop
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 25, 0, 25, "Sensor rotation - downward facing by default", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
 	return PX4_OK;
 }
@@ -671,9 +543,6 @@ extern "C" __EXPORT int afbrs50_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[myoptind], "stop")) {
 		return afbrs50::stop();
-
-	} else if (!strcmp(argv[myoptind], "test")) {
-		return afbrs50::test(rotation);
 
 	}
 

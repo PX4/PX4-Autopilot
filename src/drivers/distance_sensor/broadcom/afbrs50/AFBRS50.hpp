@@ -63,29 +63,16 @@ public:
 	~AFBRS50() override;
 
 	int init();
-
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
 	void print_info();
-
-	/**50
-	 * Stop the automatic measurement state machine.
-	 */
-	void stop();
-
-	int test();
-
-	bool _testing = false;
 
 private:
 	void Run() override;
 
 	void scheduleCollect();
 
-	void Evaluate_rate();
+	void updateMeasurementRateFromRange();
 
-	void ProcessMeasurement();
+	void processMeasurement();
 
 	void recordCommsError();
 
@@ -93,20 +80,19 @@ private:
 
 	status_t set_rate_and_dfm(uint32_t rate_hz, argus_dfm_mode_t dfm_mode);
 
+	argus_mode_t argus_mode_from_param();
+
 	argus_hnd_t* _hnd {nullptr};
 
 	enum class STATE : uint8_t {
-		TEST,
 		CONFIGURE,
 		TRIGGER,
 		COLLECT,
-		STOP,
 		WATCHDOG
 	} _state{STATE::CONFIGURE};
 
 	PX4Rangefinder _px4_rangefinder;
 
-	hrt_abstime _measurement_time{0};
 	hrt_abstime _last_rate_switch{0};
 
 	perf_counter_t _sample_perf{perf_alloc(PC_COUNT, MODULE_NAME": sample count")};
@@ -115,20 +101,12 @@ private:
 
 	float _current_distance{0};
 	int8_t _current_quality{0};
-	float _max_distance;
-	float _min_distance;
+	float _max_distance{30.f};
 	uint32_t _current_rate{0};
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
 	uint32_t _measurement_inverval {1000000 / 50}; // 50Hz
-
-	int _error_count = 0;
-	int32_t _first_few_errors[10] = {0};
-	uint32_t sample_count = 0;
-	static uint32_t _ready_callback;
-
-	hrt_abstime _trigger_time = {};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_AFBR_MODE>)   _p_sens_afbr_mode,
