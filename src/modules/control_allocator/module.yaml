@@ -591,6 +591,35 @@ parameters:
                 0: Ignore
                 1: Remove first failed motor from effectiveness
             default: 0
+        PWM_OUT_W_MAX:
+            description:
+                short: test
+                long: |
+                    test
+            type: float
+            min: 0
+            max: 1
+            default: 0.2
+        PWM_ON_W_MAX:
+            description:
+                short: test
+                long: |
+                    test
+            type: float
+            min: 0
+            max: 1
+            default: 0.2
+        PWM_IN_W_MAX:
+            description:
+                short: test
+                long: |
+                    test
+            type: float
+            min: 0
+            max: 1
+            default: 1.0
+
+
 
 # Mixer
 mixer:
