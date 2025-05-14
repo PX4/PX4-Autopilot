@@ -44,19 +44,49 @@
 #pragma once
 
 #include <lib/pid/PID.hpp>
-#include <px4_platform_common/module_params.h>
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/rpm.h>
 
-class RpmControl : public ModuleParams
+#include <drivers/drv_hrt.h>
+#include <lib/geo/geo.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/perf/perf_counter.h>
+#include <matrix/math.hpp>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/uORB.h>
+
+#include <px4_platform_common/log.h>
+
+
+
+class RpmControl :  public ModuleParams, public px4::WorkItem
 {
 public:
-	RpmControl(ModuleParams *parent);
-	~RpmControl() = default;
+    	RpmControl();
+   	~RpmControl();
 
-	void setSpoolupProgress(float spoolup_progress);
-	float getActuatorCorrection();
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
+
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+    	void setSpoolupProgress(float spoolup_progress);
+    	float getActuatorCorrection();
+
+	bool init();
+
 
 private:
 	static constexpr float SPOOLUP_PROGRESS_WITH_CONTROLLER_ENGAGED = .8f; // [0,1]
@@ -69,9 +99,21 @@ private:
 	hrt_abstime _timestamp_last_measurement{0}; // for dt and timeout
 	float _actuator_correction{0.f};
 
+	perf_counter_t _loop_perf;
+
+	void thrusterSafety();
+
+	void Run() override;
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::CA_HELI_RPM_SP>) _param_ca_heli_rpm_sp,
 		(ParamFloat<px4::params::CA_HELI_RPM_P>) _param_ca_heli_rpm_p,
-		(ParamFloat<px4::params::CA_HELI_RPM_I>) _param_ca_heli_rpm_i
+		(ParamFloat<px4::params::CA_HELI_RPM_I>) _param_ca_heli_rpm_i,
+		(ParamFloat<px4::params::PWM_OUT_W_MAX>) _param_pwm_out_w_max,
+		(ParamFloat<px4::params::PWM_ON_W_MAX>) _param_pwm_on_w_max,
+		(ParamFloat<px4::params::PWM_IN_W_MAX>) _param_pwm_in_w_max
 	)
+
+
 };
+
