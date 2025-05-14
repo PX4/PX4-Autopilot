@@ -8,7 +8,8 @@ This section explains how to connect and configure a [gripper](../peripherals/gr
 
 The following PWM-connected servos have been tested with PX4:
 
-- [R4-EM-R22-161 : push-to-close latch electronic lock](https://southco.com/en_any_int/r4-em-r22-161).
+- [R4-EM-R22-161 push-to-close latch electronic lock](https://southco.com/en_any_int/r4-em-r22-161) (SouthCo)
+- [FluxGrip FG40 electro-permanent magnetic gripper](http://zubax.com/fg40) (Zubax)
 
 ## Connecting a PWM-controlled Gripper
 
