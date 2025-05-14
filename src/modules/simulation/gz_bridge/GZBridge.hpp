@@ -72,6 +72,26 @@
 
 using namespace time_literals;
 
+/**
+ * Refer to control allocator module for original definition of CA_AIRFRAME parameter
+ */
+enum class AirframeType : int32_t {
+	NONE = -1,
+	MULTIROTOR = 0,
+	FIXEDWING,
+	STANDARD_VTOL,
+	TILTROTOR_VTOL,
+	TAILSITTER_VTOL,
+	ROVER_ACKERMANN,
+	ROVER_DIFFERENTIAL,
+	MOTORS_6DOF,
+	MULTIROTOR_WITH_TILT,
+	CUSTOM,
+	HELICOPTER_TAIL_ESC,
+	HELICOPTER_TAIL_SERVO,
+	HELICOPTER_COAXIAL
+};
+
 class GZBridge : public ModuleBase<GZBridge>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
@@ -163,7 +183,7 @@ private:
 	const std::string _model_sim;
 	const std::string _model_pose;
 
-	int32_t _airframe;
+	AirframeType _airframe{AirframeType::NONE};
 
 	float _rover_max_speed{0.0};
 

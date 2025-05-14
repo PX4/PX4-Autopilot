@@ -57,11 +57,13 @@ GZBridge::GZBridge(const char *world, const char *name, const char *model, const
 
 	updateParams();
 
-	// get current simulated vehicle airframe type
-	param_get(param_find("CA_AIRFRAME"), &_airframe);
+	param_t param_handle = param_find("CA_AIRFRAME");
+	int32_t airframe_param_value = -1;
 
-	// get rover max speed
-	if (_airframe == 6) {
+	if (param_handle != PARAM_INVALID
+	    && param_get(param_handle, &airframe_param_value) == PX4_OK
+	    && (_airframe = static_cast<AirframeType>(airframe_param_value)) == AirframeType::ROVER_DIFFERENTIAL) {
+		// get rover max speed
 		param_get(param_find("GND_SPEED_MAX"), &_rover_max_speed);
 	}
 }
@@ -249,7 +251,7 @@ int GZBridge::init()
 	}
 
 	// output (rover airframe type) eg /model/$MODEL_NAME/cmd_vel
-	if (_airframe == 6) {
+	if (_airframe == AirframeType::ROVER_DIFFERENTIAL) {
 		std::string cmd_vel_topic = "/model/" + _model_name + "/cmd_vel";
 		_cmd_vel_pub = _node.Advertise<gz::msgs::Twist>(cmd_vel_topic);
 
@@ -850,7 +852,7 @@ void GZBridge::Run()
 	}
 
 	// In case of differential drive rover airframe type, publish gz cmd_vel
-	if (_airframe == 6) { updateCmdVel(); }
+	if (_airframe == AirframeType::ROVER_DIFFERENTIAL) { updateCmdVel(); }
 
 	ScheduleDelayed(10_ms);
 
