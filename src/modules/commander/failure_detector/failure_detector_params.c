@@ -212,3 +212,16 @@ PARAM_DEFINE_FLOAT(FD_ACT_MOT_C2T, 2.0f);
  * @increment 100
  */
 PARAM_DEFINE_INT32(FD_ACT_MOT_TOUT, 100);
+
+/**
+ * ESC Failure Time Threshold
+ *
+ * ESC failure triggers only if ESC failure persists for this time.
+ *
+ * @group Failure Detector
+ * @unit ms
+ * @min 10
+ * @max 10000
+ * @increment 100
+ */
+PARAM_DEFINE_INT32(FD_ESC_TOUT, 300);

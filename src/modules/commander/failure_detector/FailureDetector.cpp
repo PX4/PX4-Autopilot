@@ -288,7 +288,7 @@ void FailureDetector::updateEscsStatus(const vehicle_status_s &vehicle_status, c
 			is_esc_failure = is_esc_failure || (esc_status.esc[i].failures > 0);
 		}
 
-		_esc_failure_hysteresis.set_hysteresis_time_from(false, 300_ms);
+		_esc_failure_hysteresis.set_hysteresis_time_from(false, _param_fd_esc_failure_time_thres.get() * 1000);
 		_esc_failure_hysteresis.set_state_and_update(is_esc_failure, time_now);
 
 		if (_esc_failure_hysteresis.get_state()) {

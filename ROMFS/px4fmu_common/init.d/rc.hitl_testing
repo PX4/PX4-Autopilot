@@ -27,3 +27,6 @@ param set-default NAV_RCL_ACT 1
 
 # Disable RC input requirement
 param set-default COM_RC_IN_MODE 1
+
+# Set ESC failure time threshold
+param set-default FD_ESC_TOUT 1000
