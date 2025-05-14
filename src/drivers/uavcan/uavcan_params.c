@@ -250,6 +250,36 @@ PARAM_DEFINE_INT32(UAVCAN_LGT_NAV, 3);
 PARAM_DEFINE_INT32(UAVCAN_LGT_LAND, 0);
 
 /**
+ * UAVCAN motor over temperature value
+ *
+ * This parameter defines the temperature at which the motor over temperature bit is set in esc_status.failures. Should be higher than UAVCAN_MOT_W_TMP.
+ *
+ * @min 80.0
+ * @max 120.0
+ * @unit deg
+ * @decimal 1
+ * @increment 1.0
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_FLOAT(UAVCAN_MOT_O_TMP, 90.0f);
+
+/**
+ * UAVCAN motor warning temperature value.
+ *
+ * This parameter defines the temperature at which the motor warning temperature bit is set in esc_status.failures. Should be lower than UAVCAN_MOT_O_TMP.
+ *
+ * @min 50.0
+ * @max 100.0
+ * @unit deg
+ * @decimal 1
+ * @increment 1.0
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_FLOAT(UAVCAN_MOT_W_TMP, 70.0f);
+
+/**
  * publish Arming Status stream
  *
  * Enable UAVCAN Arming Status stream publication

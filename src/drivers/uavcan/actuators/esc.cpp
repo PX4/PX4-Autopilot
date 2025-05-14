@@ -66,6 +66,8 @@ UavcanEscController::init()
 	// Initialize warn and over temp values from params
 	param_get(param_find("UAVCAN_ESC_W_TMP"), &_param_warn_esc_temp);
 	param_get(param_find("UAVCAN_ESC_O_TMP"), &_param_over_esc_temp);
+	param_get(param_find("UAVCAN_MOT_W_TMP"), &_param_warn_motor_temp);
+	param_get(param_find("UAVCAN_MOT_O_TMP"), &_param_over_motor_temp);
 
 	// ESC status subscription
 	int res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanEscController::esc_status_sub_cb));
@@ -149,21 +151,29 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		ref.esc_rpm           = msg.rpm;
 		ref.esc_errorcount    = msg.error_count;
 
-		// Temp bitmasks
+		// Clear ESC and motor temperature failures flags
+		constexpr uint16_t temp_flags_mask =
+			(1 << esc_report_s::FAILURE_WARN_ESC_TEMPERATURE) |
+			(1 << esc_report_s::FAILURE_OVER_ESC_TEMPERATURE) |
+			(1 << esc_report_s::FAILURE_MOTOR_WARN_TEMPERATURE) |
+			(1 << esc_report_s::FAILURE_MOTOR_OVER_TEMPERATURE);
+
+		ref.failures &= ~temp_flags_mask;
+
+		// Check ESC temperature
 		if (msg.temperature > _param_over_esc_temp) {
-			// Critical: Set OVER_TEMP, clear WARN
 			ref.failures |= (1 << esc_report_s::FAILURE_OVER_ESC_TEMPERATURE);
-			ref.failures &= ~(1 << esc_report_s::FAILURE_WARN_ESC_TEMPERATURE);
 
 		} else if (msg.temperature > _param_warn_esc_temp) {
-			// Warning: Set WARN, clear OVER_TEMP
 			ref.failures |= (1 << esc_report_s::FAILURE_WARN_ESC_TEMPERATURE);
-			ref.failures &= ~(1 << esc_report_s::FAILURE_OVER_ESC_TEMPERATURE);
+		}
 
-		} else {
-			// Normal: clear flags
-			ref.failures &= ~((1 << esc_report_s::FAILURE_OVER_ESC_TEMPERATURE) | (1 <<
-					  esc_report_s::FAILURE_WARN_ESC_TEMPERATURE));
+		// Check motor temperature
+		if (_last_motor_temperature[msg.esc_index] > _param_over_motor_temp) {
+			ref.failures |= (1 << esc_report_s::FAILURE_MOTOR_OVER_TEMPERATURE);
+
+		} else if (_last_motor_temperature[msg.esc_index] > _param_warn_motor_temp) {
+			ref.failures |= (1 << esc_report_s::FAILURE_MOTOR_WARN_TEMPERATURE);
 		}
 
 		_esc_status.esc_count = _rotor_count;

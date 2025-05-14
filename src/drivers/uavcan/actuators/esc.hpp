@@ -133,5 +133,6 @@ private:
 	*/
 	float _param_warn_esc_temp{0.0f};
 	float _param_over_esc_temp{0.0f};
-
+	float _param_warn_motor_temp{0.0f};
+	float _param_over_motor_temp{0.0f};
 };
