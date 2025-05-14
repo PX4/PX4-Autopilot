@@ -247,7 +247,7 @@ PWMESC::PWMESC(bool hitl) :
 	_task(-1),
 	_task_should_exit(false),
 	_perf_update(perf_alloc(PC_ELAPSED, "pwm update")),
-	_mixing_output(hitl ? "PWM_MAIN" : PARAM_PREFIX, PWMESC_N_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto,
+	_mixing_output(PARAM_PREFIX, PWMESC_N_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto,
 		       true),
 	_hitl_mode(hitl)
 {
