@@ -137,7 +137,15 @@ int INA238::init()
 		return ret;
 	}
 
-	return Reset();
+	ret = Reset();
+
+	if (ret) {
+		return ret;
+	}
+
+	start();
+
+	return 0;
 }
 
 int INA238::force_init()
