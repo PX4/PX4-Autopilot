@@ -42,6 +42,7 @@
 #include <parameters/param.h>
 #include <drivers/drv_hrt.h>
 #include <lib/atmosphere/atmosphere.h>
+#include <parameters/param.h>
 
 #define MOTOR_BIT(x) (1<<(x))
 
@@ -62,6 +63,10 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 int
 UavcanEscController::init()
 {
+	// Initialize warn and over temp values from params
+	param_get(param_find("UAVCAN_ESC_W_TMP"), &_param_warn_esc_temp);
+	param_get(param_find("UAVCAN_ESC_O_TMP"), &_param_over_esc_temp);
+
 	// ESC status subscription
 	int res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanEscController::esc_status_sub_cb));
 
@@ -145,12 +150,12 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		ref.esc_errorcount    = msg.error_count;
 
 		// Temp bitmasks
-		if (msg.temperature > _over_esc_temp) {
+		if (msg.temperature > _param_over_esc_temp) {
 			// Critical: Set OVER_TEMP, clear WARN
 			ref.failures |= (1 << esc_report_s::FAILURE_OVER_ESC_TEMPERATURE);
 			ref.failures &= ~(1 << esc_report_s::FAILURE_WARN_ESC_TEMPERATURE);
 
-		} else if (msg.temperature > _warn_esc_temp) {
+		} else if (msg.temperature > _param_warn_esc_temp) {
 			// Warning: Set WARN, clear OVER_TEMP
 			ref.failures |= (1 << esc_report_s::FAILURE_WARN_ESC_TEMPERATURE);
 			ref.failures &= ~(1 << esc_report_s::FAILURE_OVER_ESC_TEMPERATURE);
