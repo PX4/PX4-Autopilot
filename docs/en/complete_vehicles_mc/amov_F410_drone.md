@@ -7,7 +7,7 @@ It can be used immediately after receiving, capable of meeting indoor/outdoor st
 
 ::: tip
 The vehicle comes with everything needed to fly, including the battery and a remote control.
-It is pre-installed with PX4 v1.13.
+It is pre-installed with PX4 v1.15.4.
 :::
 
 ## Overview
