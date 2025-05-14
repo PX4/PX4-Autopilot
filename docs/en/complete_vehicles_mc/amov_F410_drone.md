@@ -5,16 +5,16 @@ It can be used immediately after receiving, capable of meeting indoor/outdoor st
 
 ![Amovlab f410 Hero Image](../../assets/airframes/multicopter/amovlab_f410/hero.jpg)
 
-::: tip
+::: info
 The vehicle comes with everything needed to fly, including the battery and a remote control.
-It is pre-installed with PX4 v1.15.4.
+It is pre-installed with PX4 v1.15.4 at time of writing (a more recent version may be used in future).
 :::
 
 ## Overview
 
 1. Can serve as a basic flight platform, paired with Pixhawk 6C flight controller to achieve optical flow and GPS fusion positioning, enabling stable flight both indoors and outdoors.
    It is one of the most stable basic flight platforms on the market.
-2. Sturdy and reliable structure, with key parts made of aluminum alloy and carbon fiber, high strength and not easily damaged.
+2. Sturdy and reliable structure, with key parts made of aluminium alloy and carbon fibre, high strength and not easily damaged.
 3. High stability, providing industrial-grade stability assurance, friendly to beginners, offering simplified version of interactive PC to enhance flight experience, can be initially used for outdoor aerial photography and image collection.
 4. Has rich open-source code support, and can be used with PX4, FMT, and ArduPilot.
 5. Video can be streamed from the UAV webcam to QGroundControl.
@@ -106,6 +106,15 @@ It is pre-installed with PX4 v1.15.4.
 
 - Tutorials [English](https://docs.amovlab.com/f450-v6c-wiki/#/en/)/[Chinese](https://docs.amovlab.com/F450-V6C-wiki/#/src/%E8%A7%84%E6%A0%BC%E5%8F%82%E6%95%B0/%E8%A7%84%E6%A0%BC%E5%8F%82%E6%95%B0) (docs.amovlab.com/)
 
-### Videos
+## Upgrading
+
+Amovlab previously supplied this vehicle with PX4 v1.13.
+
+In order to upgrade to PX4 v1.15, you should select the [X500 airframe](../config/airframe.md) and import [this parameter file](https://github.com/PX4/PX4-Autopilot/blob/main/docs/assets/airframes/multicopter/amovlab_f410/amovlabf410_drone_v1.15.4.params) to apply the new [actuator output configuration](../config/actuators.md) (used from PX4 v1.14).
+Then retune as necessary.
+
+Contact Amovlab for information about upgrading to other versions.
+
+## Videos
 
 <lite-youtube videoid="RzmI1d5093I" title="F410 Mid-Axis UAVs"/>
