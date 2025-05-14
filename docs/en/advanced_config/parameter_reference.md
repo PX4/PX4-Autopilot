@@ -13171,21 +13171,20 @@ Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; | 0 | 31 |  | 7 |  
 
-### ASPD_FALLBACK_GW (`INT32`) {#ASPD_FALLBACK_GW}
+### ASPD_FALLBACK (`INT32`) {#ASPD_FALLBACK}
 
-Enable fallback to sensor-less airspeed estimation.
-
-If set to true and airspeed checks are enabled, it will use a sensor-less airspeed estimation based on groundspeed minus windspeed if no other airspeed sensor available to fall back to.
+Fallback options.
 
 **Values:**
 
-- `0`: Disable fallback to sensor-less estimation
-- `1`: Enable fallback to sensor-less estimation
+- `0`: Fallback only to other airspeed sensors
+- `1`: Fallback to groundspeed-minus-windspeed airspeed estimation
+- `2`: Fallback to thrust based airspeed estimation
 
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | Disabled (0) |  
+&nbsp; |  |  |  | 0 |  
 
 ### ASPD_FP_T_WINDOW (`FLOAT`) {#ASPD_FP_T_WINDOW}
 
@@ -13247,6 +13246,7 @@ Index or primary airspeed measurement source.
 - `1`: First airspeed sensor
 - `2`: Second airspeed sensor
 - `3`: Third airspeed sensor
+- `4`: Thrust based airspeed
 
 
 Reboot | minValue | maxValue | increment | default | unit
@@ -14582,6 +14582,23 @@ Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; |  |  | 0.1 | 10.0 | s 
 
+### COM_DLL_EXCEPT (`INT32`) {#COM_DLL_EXCEPT}
+
+Datalink loss exceptions.
+
+Specify modes in which datalink loss is ignored and the failsafe action not triggered.
+
+**Bitmask:**
+
+- `0`: Mission
+- `1`: Hold
+- `2`: Offboard
+
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 7 |  | 0 |  
+
 ### COM_DL_LOSS_T (`INT32`) {#COM_DL_LOSS_T}
 
 GCS connection loss time threshold.
@@ -15254,7 +15271,7 @@ Specify modes in which RC loss is ignored and the failsafe action not triggered.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 31 |  | 0 |  
+&nbsp; | 0 | 7 |  | 0 |  
 
 ### COM_RC_ARM_HYST (`INT32`) {#COM_RC_ARM_HYST}
 
@@ -18930,9 +18947,9 @@ Reboot | minValue | maxValue | increment | default | unit
 
 ### PPS_CAP_ENABLE (`INT32`) {#PPS_CAP_ENABLE}
 
-PPS Capture Enable.
+PPS capture enable.
 
-Enables the PPS capture module. This switches mode of FMU channel 7 to be the PPS input channel.
+Enables the PPS capture module to refine the GPS time from pulses detected on a PWM pin configured as "PPS Input".
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
@@ -19238,7 +19255,7 @@ Reboot | minValue | maxValue | increment | default | unit
 
 Control allocation method.
 
-Selects the algorithm and desaturation method. If set to Automtic, the selection is based on the airframe (CA_AIRFRAME).
+Selects the algorithm and desaturation method. If set to Automatic, the selection is based on the airframe (CA_AIRFRAME).
 
 **Values:**
 
@@ -22010,13 +22027,13 @@ Maximum airspeed allowed in the landed state
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 2 | 20 |  | 6.00 | m/s 
+&nbsp; | 2 | 30 |  | 6.00 | m/s 
 
 ### LNDFW_ROT_MAX (`FLOAT`) {#LNDFW_ROT_MAX}
 
 Fixed-wing land detector: max rotational speed.
 
-Maximum allowed norm of the angular velocity in the landed state.
+Maximum allowed norm of the angular velocity in the landed state. Only used if neither airspeed nor groundspeed can be used for landing detection.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
@@ -22040,7 +22057,7 @@ Maximum horizontal velocity allowed in the landed state. A factor of 0.7 is appl
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.5 | 10 |  | 5.0 | m/s 
+&nbsp; | 0.5 | 20 |  | 5.0 | m/s 
 
 ### LNDFW_VEL_Z_MAX (`FLOAT`) {#LNDFW_VEL_Z_MAX}
 
@@ -22060,7 +22077,7 @@ Maximum horizontal (x,y body axes) acceleration allowed in the landed state
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 2 | 15 |  | 8.0 | m/s^2 
+&nbsp; | 2 | 30 |  | 8.0 | m/s^2 
 
 ### LNDMC_ALT_GND (`FLOAT`) {#LNDMC_ALT_GND}
 
@@ -22710,6 +22727,7 @@ The MAVLink Mode defines the set of streamed messages (for example the vehicle's
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
 - `12`: uAvionix
+- `13`: Low Bandwidth
 
 
 Reboot | minValue | maxValue | increment | default | unit
@@ -22856,6 +22874,7 @@ The MAVLink Mode defines the set of streamed messages (for example the vehicle's
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
 - `12`: uAvionix
+- `13`: Low Bandwidth
 
 
 Reboot | minValue | maxValue | increment | default | unit
@@ -23002,6 +23021,7 @@ The MAVLink Mode defines the set of streamed messages (for example the vehicle's
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
 - `12`: uAvionix
+- `13`: Low Bandwidth
 
 
 Reboot | minValue | maxValue | increment | default | unit
@@ -24138,7 +24158,7 @@ Reboot | minValue | maxValue | increment | default | unit
 
 Altitude for 3. step of slow landing.
 
-Below this altitude descending velocity gets limited to "MPC_LAND_CRWL", if LIDAR available. No effect if LIDAR not available
+If a valid distance sensor measurement to the ground is available, limit descending velocity to "MPC_LAND_CRWL" below this altitude.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
@@ -24337,9 +24357,9 @@ Reboot | minValue | maxValue | increment | default | unit
 
 ### MPC_USE_HTE (`INT32`) {#MPC_USE_HTE}
 
-Hover thrust estimator.
+Use hover thrust estimate for altitude control.
 
-Disable to use the fixed parameter MPC_THR_HOVER. Enable to use the hover thrust estimator. This parameter does not influence Stabilized mode throttle curve (see MPC_THR_CURVE).
+Disable to use the fixed parameter MPC_THR_HOVER instead of the hover thrust estimate in the position controller. This parameter does not influence Stabilized mode throttle curve (see MPC_THR_CURVE).
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
@@ -27477,6 +27497,7 @@ Return mode destination and flight path (home location, rally point, mission lan
 - `1`: Return to closest safe point other than home (mission landing pattern or rally point), via direct path. If no mission landing or rally points are defined return home via direct path. Always chose closest safe landing point if vehicle is a VTOL in hover mode.
 - `2`: Return to a planned mission landing, if available, using the mission path, else return to home via the reverse mission path. Do not consider rally points.
 - `3`: Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the destination is a mission landing pattern, follow the pattern to land.
+- `4`: Return to the planned mission landing, or to home via the reverse mission path, whichever is closer by counting waypoints. Do not consider rally points.
 
 
 Reboot | minValue | maxValue | increment | default | unit
@@ -30335,6 +30356,16 @@ Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; |  |  |  | 0.0 |  
 
+### SENS_DPRES_REV (`INT32`) {#SENS_DPRES_REV}
+
+Reverse differential pressure sensor readings.
+
+Reverse the raw measurements of all differential pressure sensors. This can be enabled if the sensors have static and dynamic ports swapped.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | Disabled (0) |  
+
 ### SENS_FLOW_MAXHGT (`FLOAT`) {#SENS_FLOW_MAXHGT}
 
 Maximum height above ground when reliant on optical flow.
@@ -30486,7 +30517,7 @@ The cutoff frequency for the 2nd order butterworth filter used on the time deriv
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 |  | 30.0 | Hz 
+&check; | 0 | 1000 | 0.1 | 30.0 | Hz 
 
 ### IMU_GYRO_CAL_EN (`INT32`) {#IMU_GYRO_CAL_EN}
 
@@ -30504,7 +30535,7 @@ The cutoff frequency for the 2nd order butterworth filter on the primary gyro. T
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 |  | 40.0 | Hz 
+&check; | 0 | 1000 | 0.1 | 40.0 | Hz 
 
 ### IMU_GYRO_DNF_BW (`FLOAT`) {#IMU_GYRO_DNF_BW}
 
@@ -30514,7 +30545,7 @@ Bandwidth per notch filter when using dynamic notch filtering with ESC RPM.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 5 | 30 |  | 15. | Hz 
+&nbsp; | 5 | 30 | 0.1 | 15. | Hz 
 
 ### IMU_GYRO_DNF_EN (`INT32`) {#IMU_GYRO_DNF_EN}
 
@@ -30550,7 +30581,7 @@ Minimum notch filter frequency in Hz.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 25. | Hz 
+&nbsp; |  |  | 0.1 | 25. | Hz 
 
 ### IMU_GYRO_FFT_EN (`INT32`) {#IMU_GYRO_FFT_EN}
 
@@ -30608,7 +30639,7 @@ The frequency width of the stop band for the 2nd order notch filter on the prima
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&check; | 0 | 100 |  | 20.0 | Hz 
+&check; | 0 | 100 | 0.1 | 20.0 | Hz 
 
 ### IMU_GYRO_NF0_FRQ (`FLOAT`) {#IMU_GYRO_NF0_FRQ}
 
@@ -30618,7 +30649,7 @@ The center frequency for the 2nd order notch filter on the primary gyro. This fi
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 |  | 0.0 | Hz 
+&check; | 0 | 1000 | 0.1 | 0.0 | Hz 
 
 ### IMU_GYRO_NF1_BW (`FLOAT`) {#IMU_GYRO_NF1_BW}
 
@@ -30628,7 +30659,7 @@ The frequency width of the stop band for the 2nd order notch filter on the prima
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&check; | 0 | 100 |  | 20.0 | Hz 
+&check; | 0 | 100 | 0.1 | 20.0 | Hz 
 
 ### IMU_GYRO_NF1_FRQ (`FLOAT`) {#IMU_GYRO_NF1_FRQ}
 
@@ -30638,7 +30669,7 @@ The center frequency for the 2nd order notch filter on the primary gyro. This fi
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 |  | 0.0 | Hz 
+&check; | 0 | 1000 | 0.1 | 0.0 | Hz 
 
 ### IMU_GYRO_RATEMAX (`INT32`) {#IMU_GYRO_RATEMAX}
 
@@ -31402,7 +31433,7 @@ Configure on which serial port to run Lightware SF45 Rangefinder (serial).
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 102 |  
+&check; |  |  |  | 0 |  
 
 ### SENS_EN_SHT3X (`INT32`) {#SENS_EN_SHT3X}
 
@@ -32396,6 +32427,23 @@ Configure on which serial port to run Benewake TFmini Rangefinder.
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &check; |  |  |  | 0 |  
+
+### SENS_TFMINI_HW (`INT32`) {#SENS_TFMINI_HW}
+
+Hardware Model.
+
+Models differ in range and FoV.
+
+**Values:**
+
+- `1`: TFMINI
+- `2`: ISTRA24
+- `3`: ISTRA24_100m
+
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&check; | 1 | 3 |  | 1 |  
 
 ### SENS_ULAND_CFG (`INT32`) {#SENS_ULAND_CFG}
 
@@ -33792,11 +33840,13 @@ Reboot | minValue | maxValue | increment | default | unit
 
 Dataman storage backend.
 
+If the board supports persistent storage (i.e., the KConfig variable DATAMAN_PERSISTENT_STORAGE is set), the 'Default storage' backend uses a file on persistent storage. If not supported, this backend uses non-persistent storage in RAM.
+
 **Values:**
 
-- `-1`: Disabled
-- `0`: default (SD card)
-- `1`: RAM (not persistent)
+- `-1`: Dataman disabled
+- `0`: Default storage
+- `1`: RAM storage
 
 
 Reboot | minValue | maxValue | increment | default | unit
@@ -36119,6 +36169,14 @@ Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; | 20000 | 1000000 |  | 1000000 |  
 
+### CANNODE_PUB_IMU (`INT32`) {#CANNODE_PUB_IMU}
+
+Enable RawIMU pub.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; |  | 1 |  | Disabled (0) |  
+
 ### CANNODE_PUB_MBD (`INT32`) {#CANNODE_PUB_MBD}
 
 Enable MovingBaselineData publication.
@@ -37271,17 +37329,17 @@ Reboot | minValue | maxValue | increment | default | unit
 
 Use fixed-wing actuation in hover to accelerate forward.
 
-This feature can be used to avoid the plane having to pitch nose down in order to move forward. Prevents large, negative lift from pitching nose down into wind. Fixed-wing forward actuators refers to puller/pusher (standard VTOL), or forward-tilt (tiltrotor VTOL). Only active if demanded down pitch is below VT_PITCH_MIN. Use VT_FWD_THRUST_SC to tune it. Descend mode is treated as Landing too. Only active (if enabled) in Altitude, Position and Auto modes, not in Stabilized.
+Prevents downforce from pitching the body down when facing wind. Uses puller/pusher (standard VTOL), or forward-tilt (tiltrotor VTOL) to accelerate forward instead. Only active if demanded pitch  is below VT_PITCH_MIN. Use VT_FWD_THRUST_SC to tune it. Descend mode is treated as Landing too. Only active (if enabled) in height-rate controlled modes.
 
 **Values:**
 
 - `0`: Disabled
 - `1`: Enabled (except LANDING)
-- `2`: Enabled if distance to ground above MPC_LAND_ALT1
-- `3`: Enabled if distance to ground above MPC_LAND_ALT2
+- `2`: Enabled if above MPC_LAND_ALT1
+- `3`: Enabled if above MPC_LAND_ALT2
 - `4`: Enabled constantly
-- `5`: Enabled if distance to ground above MPC_LAND_ALT1 (except LANDING)
-- `6`: Enabled if distance to ground above MPC_LAND_ALT2 (except LANDING)
+- `5`: Enabled if above MPC_LAND_ALT1 (except LANDING)
+- `6`: Enabled if above MPC_LAND_ALT2 (except LANDING)
 
 
 Reboot | minValue | maxValue | increment | default | unit
@@ -37290,13 +37348,13 @@ Reboot | minValue | maxValue | increment | default | unit
 
 ### VT_FWD_THRUST_SC (`FLOAT`) {#VT_FWD_THRUST_SC}
 
-Fixed-wing actuation thrust scale for hover forward flight.
+Fixed-wing actuation thrust scale in hover.
 
-Scale applied to the demanded down-pitch to get the fixed-wing forward actuation in hover mode. Enabled via VT_FWD_THRUST_EN.
+Scale applied to the demanded pitch (below VT_PITCH_MIN) to get the fixed-wing forward actuation in hover mode. Enabled via VT_FWD_THRUST_EN.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 2.0 | 0.01 | 0.7 |  
+&nbsp; | 0.0 | 5.0 | 0.01 | 0.7 |  
 
 ### VT_FW_DIFTHR_EN (`INT32`) {#VT_FW_DIFTHR_EN}
 
