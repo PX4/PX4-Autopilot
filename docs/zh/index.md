@@ -86,7 +86,7 @@ _PX4_ 是一款专业级飞控。
 
 如何贡献代码和文档的信息可以在 [贡献](contribute/index.md部分中找到：
 
-- [Code](contribute/index.md)
+- [代码](contribute/index.md)
 - [Documentation](contribute/docs.md)
 - [Translation](contribute/translation.md)
 
@@ -133,8 +133,8 @@ _Dronecode 日历_ 展示了面向平台用户和开发者的重要社区活动�
 
 PX4 飞行控制架构由[Dronecode Project](https://www.dronecode.org/)负责管理。
 
-<a href="https://www.dronecode.org/" style="padding:20px" ><img src="https://mavlink.io/assets/site/logo_dronecode.png" alt="Dronecode Logo" width="110px"/></a> <a href="https://www.linuxfoundation.org/projects" style="padding:20px;"><img src="https://mavlink.io/assets/site/logo_linux_foundation.png" alt="Linux Foundation Logo" width="80px" /></a>
+<a href="https://www.dronecode.org/" style="padding:20px" ><img src="../assets/site/logo_dronecode.png" alt="Dronecode Logo" width="110px"/></a> <a href="https://www.linuxfoundation.org/projects" style="padding:20px;"><img src="../assets/site/logo_linux_foundation.png" alt="Linux Foundation Logo" width="80px" /></a>
 
 <div style="padding:10px">&nbsp;</div>
 
-Doc build time: {{ $buildTime }}
+文档构建时间：{{ $buildTime }}
