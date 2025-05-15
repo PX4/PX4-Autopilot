@@ -51,14 +51,16 @@ param set-default CA_ROTOR3_KM 0
 param set-default CA_ROTOR3_PX 0
 param set-default CA_ROTOR3_PY -0.3
 param set-default CA_ROTOR3_PZ 0.3
-param set-default PWM_MAIN_OUT 1234  # Enable channels 1-4 for PWM
-param set-default PWM_MAIN_RATE 400  # Set PWM frequency to 400 Hz
+# param set-default PWM_MAIN_OUT 1234   # Enable channels 1-4 for PWM
+param set-default PWM_MAIN_TIM0 50      # Set PWM frequency to 50 Hz
 param set-default PWM_MAIN_DISARM 1500  # Stop (neutral) when disarmed
-param set-default PWM_MAIN_MIN 1100     # Minimum PWM value (full reverse)
-param set-default PWM_MAIN_MAX 1900     # Maximum PWM value (full forward)
+param set-default PWM_MAIN_MIN1 1100    # Minimum PWM value (full reverse)
+param set-default PWM_MAIN_MAX1 1900    # Maximum PWM value (full forward)
 
 param set-default PWM_MAIN_FUNC1 101
 
-rs_motor_control start
+# rs_motor_control start
 control_allocator start
 land_detector start rover
+
+rs_pos_control start

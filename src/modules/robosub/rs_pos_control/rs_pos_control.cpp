@@ -214,7 +214,6 @@ void RobosubPOSControl::Run()
 		// get angular velocity
 		// vehicle_angular_velocity_s angular_velocity {};
 		// _angular_velocity_sub.copy(&angular_velocity);
-		PX4_INFO("roll data");
 		control_gyro(attitude);
 	}
 
