@@ -85,8 +85,8 @@ public:
 	~FailureDetector() = default;
 
 	bool update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode);
-	const failure_detector_status_u &getStatus() const { return _status; }
-	const decltype(failure_detector_status_u::flags) &getStatusFlags() const { return _status.flags; }
+	const failure_detector_status_u &getStatus() const { return _failure_detector_status; }
+	const decltype(failure_detector_status_u::flags) &getStatusFlags() const { return _failure_detector_status.flags; }
 	float getImbalancedPropMetric() const { return _imbalanced_prop_lpf.getState(); }
 	uint16_t getMotorFailures() const { return _motor_failure_esc_timed_out_mask | _motor_failure_esc_under_current_mask; }
 	uint16_t getMotorStopMask() { return _failure_injector.getMotorStopMask(); }
@@ -98,7 +98,7 @@ private:
 	void updateMotorStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
 	void updateImbalancedPropStatus();
 
-	failure_detector_status_u _status{};
+	failure_detector_status_u _failure_detector_status{};
 
 	systemlib::Hysteresis _roll_failure_hysteresis{false};
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
