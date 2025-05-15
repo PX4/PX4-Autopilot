@@ -123,7 +123,7 @@ private:
 
 	void enable_dshot_outputs(const bool enabled);
 
-	void init_telemetry(const char *device);
+	void init_telemetry(const char *device, bool swap_rxtx);
 
 	int handle_new_telemetry_data(const int telemetry_index, const DShotTelemetry::EscData &data, bool ignore_rpm);
 
@@ -149,6 +149,7 @@ private:
 	uORB::PublicationMultiData<esc_status_s> esc_status_pub{ORB_ID(esc_status)};
 
 	static char _telemetry_device[20];
+	static bool _telemetry_swap_rxtx;
 	static px4::atomic_bool _request_telemetry_init;
 
 	px4::atomic<Command *> _new_command{nullptr};
