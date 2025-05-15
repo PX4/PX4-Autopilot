@@ -137,6 +137,7 @@ ActuatorEffectivenessRotors::addActuators(Configuration &configuration)
 	int num_actuators = computeEffectivenessMatrix(_geometry,
 			    configuration.effectiveness_matrices[configuration.selected_matrix],
 			    configuration.num_actuators_matrix[configuration.selected_matrix]);
+	configuration.effectiveness_matrices[configuration.selected_matrix].print();
 	configuration.actuatorsAdded(ActuatorType::MOTORS, num_actuators);
 	return true;
 }
