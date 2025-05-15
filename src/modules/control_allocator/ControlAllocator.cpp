@@ -316,6 +316,7 @@ ControlAllocator::Run()
 
 	perf_begin(_loop_perf);
 
+
 #ifndef ENABLE_LOCKSTEP_SCHEDULER // Backup schedule would interfere with lockstep
 	// Push backup schedule
 	ScheduleDelayed(50_ms);
@@ -469,6 +470,9 @@ ControlAllocator::Run()
 
 		_last_status_pub = now;
 	}
+
+	//function
+	_rpm_control.thrusterSafety();
 
 	perf_end(_loop_perf);
 }

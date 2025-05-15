@@ -218,5 +218,5 @@ private:
 		(ParamInt<px4::params::CA_FAILURE_MODE>) _param_ca_failure_mode,
 		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
 	)
-
+	RpmControl _rpm_control {this};
 };

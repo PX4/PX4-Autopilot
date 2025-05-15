@@ -37,11 +37,25 @@
 
 using namespace time_literals;
 
-RpmControl::RpmControl(ModuleParams *parent) : ModuleParams(parent)
+RpmControl::RpmControl(ModuleParams *parent) : ModuleParams(parent),
+WorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 	_pid.setOutputLimit(PID_OUTPUT_LIMIT);
 	_pid.setIntegralLimit(PID_OUTPUT_LIMIT);
+	PX4_DEBUG("RUNS");
+
+	ScheduleNow();
 };
+
+RpmControl::~RpmControl()
+{
+
+}
+
+void RpmControl::Run()
+{
+
+}
 
 void RpmControl::setSpoolupProgress(float spoolup_progress)
 {
@@ -82,4 +96,22 @@ float RpmControl::getActuatorCorrection()
 	}
 
 	return _actuator_correction;
+}
+
+void RpmControl::thrusterSafety()
+{
+	bool onWater = false;
+	bool inWater = false;
+
+	if (!onWater && !inWater) {
+		_pid.setOutputLimit(_param_pwm_out_w_max.get());
+
+	} else if (onWater && !inWater) {
+		_pid.setOutputLimit(_param_pwm_on_w_max.get());
+
+	} else if (onWater && inWater) {
+		_pid.setOutputLimit(_param_pwm_in_w_max.get());
+	}
+
+	PX4_INFO("thrusterSafety logic executed");
 }
