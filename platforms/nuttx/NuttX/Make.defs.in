@@ -213,3 +213,10 @@ LDELFFLAGS += $(addprefix -T, $(ELFLDNAME))
 ifeq ($(CONFIG_BINFMT_ELF_RELOCATABLE),y)
 	LDELFFLAGS += -r
 endif
+
+# Add RISC-V 64-bit specific linker flag
+ifeq ($(CONFIG_ARCH_RISCV),y)
+  ifeq ($(CONFIG_ARCH_RV64),y)
+    LDELFFLAGS += -melf64lriscv
+  endif
+endif
