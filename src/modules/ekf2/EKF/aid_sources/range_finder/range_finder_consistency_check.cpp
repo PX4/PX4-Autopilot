@@ -36,56 +36,130 @@
  */
 
 #include <aid_sources/range_finder/range_finder_consistency_check.hpp>
+#include "ekf_derivation/generated/range_validation_filter_h.h"
+#include "ekf_derivation/generated/range_validation_filter_P_init.h"
 
-void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_var, float vz, float vz_var,
-		bool horizontal_motion, uint64_t time_us)
+using namespace matrix;
+
+void RangeFinderConsistencyCheck::init(const float z, const float z_var, const float dist_bottom,
+				       const float dist_bottom_var)
 {
-	if (horizontal_motion) {
-		_time_last_horizontal_motion = time_us;
-	}
+	_P = sym::RangeValidationFilterPInit(z_var, dist_bottom_var);
+	_Ht = sym::RangeValidationFilterH<float>();
 
+	_x(RangeFilter::z.idx) = z;
+	_x(RangeFilter::terrain.idx) = z - dist_bottom;
+	_initialized = true;
+	_test_ratio_lpf.reset(0.f);
+	_t_since_first_sample = 0.f;
+}
+
+void RangeFinderConsistencyCheck::update(const float z, const float z_var, const float vz, const float vz_var,
+		const float dist_bottom, const float dist_bottom_var, const uint64_t time_us)
+{
 	const float dt = static_cast<float>(time_us - _time_last_update_us) * 1e-6f;
 
-	if ((_time_last_update_us == 0)
-	    || (dt < 0.001f) || (dt > 0.5f)) {
+	if (dt > 1.f) {
 		_time_last_update_us = time_us;
-		_dist_bottom_prev = dist_bottom;
+		_initialized = false;
+		return;
+
+	} else if (!_initialized) {
+		init(z, z_var, dist_bottom, dist_bottom_var);
 		return;
 	}
 
-	const float vel_bottom = (dist_bottom - _dist_bottom_prev) / dt;
-	_innov = -vel_bottom - vz; // vel_bottom is +up while vz is +down
-
-	// Variance of the time derivative of a random variable: var(dz/dt) = 2*var(z) / dt^2
-	const float var = 2.f * dist_bottom_var / (dt * dt);
-	_innov_var = var + vz_var;
-
-	const float normalized_innov_sq = (_innov * _innov) / _innov_var;
-	_test_ratio = normalized_innov_sq / (_gate * _gate);
-	_signed_test_ratio_lpf.setParameters(dt, _signed_test_ratio_tau);
-	const float signed_test_ratio = matrix::sign(_innov) * _test_ratio;
-	_signed_test_ratio_lpf.update(signed_test_ratio);
-
-	updateConsistency(vz, time_us);
-
+	// prediction step
 	_time_last_update_us = time_us;
-	_dist_bottom_prev = dist_bottom;
+	_x(RangeFilter::z.idx) -= dt * vz;
+	_P(RangeFilter::z.idx, RangeFilter::z.idx) += dt * dt * vz_var;
+	_P(RangeFilter::terrain.idx, RangeFilter::terrain.idx) += _terrain_process_noise;
+
+	// iterate through both measurements (z and dist_bottom)
+	const Vector2f measurements{z, dist_bottom};
+
+	for (int measurement_idx = 0; measurement_idx < 2; measurement_idx++) {
+
+		float R;
+		Vector2f H;
+
+		if (measurement_idx == 0) {
+			// direct state measurement
+			H(RangeFilter::z.idx) = 1.f;
+			H(RangeFilter::terrain.idx) = 0.f;
+			R = z_var;
+
+		} else if (measurement_idx == 1) {
+			H = _Ht;
+			R = dist_bottom_var;
+		}
+
+		// residual
+		const float measurement_pred = H * _x;
+		const float y = measurements(measurement_idx) - measurement_pred;
+
+		// for H as col-vector:
+		// innovation variance S = H^T * P * H + R
+		// kalman gain K = P * H / S
+		const float S = (H.transpose() * _P * H + R)(0, 0);
+		Vector2f K = (_P * H / S);
+
+		if (measurement_idx == 0) {
+			K(RangeFilter::z.idx) = 1.f;
+
+		} else if (measurement_idx == 1) {
+			_innov = y;
+			const float test_ratio = fminf(sq(y) / (sq(_gate) * S), 4.f); // limit to 4 to limit sensitivity to outliers
+			_test_ratio_lpf.setParameters(dt, _t_to_init);
+			_test_ratio_lpf.update(sign(_innov) * test_ratio);
+		}
+
+		// update step
+		_x(RangeFilter::z.idx)       += K(RangeFilter::z.idx) * y;
+		_x(RangeFilter::terrain.idx) += K(RangeFilter::terrain.idx) * y;
+
+		// covariance update with Joseph form:
+		// P = (I - K H) P (I - K H)^T + K R K^T
+		Matrix2f I;
+		I.setIdentity();
+		Matrix2f IKH = I - K.multiplyByTranspose(H);
+		_P = IKH * _P * IKH.transpose() + (K * R).multiplyByTranspose(K);
+	}
+
+	evaluateState(dt, vz, vz_var);
 }
 
-void RangeFinderConsistencyCheck::updateConsistency(float vz, uint64_t time_us)
+void RangeFinderConsistencyCheck::evaluateState(const float dt, const float vz, const float vz_var)
 {
-	if (fabsf(_signed_test_ratio_lpf.getState()) >= 1.f) {
-		if ((time_us - _time_last_horizontal_motion) > _signed_test_ratio_tau) {
-			_is_kinematically_consistent = false;
-			_time_last_inconsistent_us = time_us;
+	// start the consistency check after 1s
+	if (_t_since_first_sample > _t_to_init) {
+		if (fabsf(_test_ratio_lpf.getState()) < 1.f) {
+			const bool vertical_motion = sq(vz) > fmaxf(vz_var, 0.1f);
+
+			if (!horizontal_motion && vertical_motion) {
+				_state = KinematicState::CONSISTENT;
+
+			} else if (_state == KinematicState::CONSISTENT || vertical_motion) {
+				_state = KinematicState::UNKNOWN;
+			}
+
+		} else {
+			_t_since_first_sample = 0.f;
+			_state = KinematicState::INCONSISTENT;
 		}
 
 	} else {
-		if ((fabsf(vz) > _min_vz_for_valid_consistency)
-		    && (_test_ratio < 1.f)
-		    && ((time_us - _time_last_inconsistent_us) > _consistency_hyst_time_us)
-		   ) {
-			_is_kinematically_consistent = true;
-		}
+		_t_since_first_sample += dt;
 	}
+}
+
+void RangeFinderConsistencyCheck::run(const float z, const float z_var, const float vz, const float vz_var,
+				      const float dist_bottom, const float dist_bottom_var, const uint64_t time_us)
+{
+	if (!_initialized || current_posD_reset_count != _last_posD_reset_count) {
+		_last_posD_reset_count = current_posD_reset_count;
+		_initialized = false;
+	}
+
+	update(z, z_var, vz, vz_var, dist_bottom, dist_bottom_var, time_us);
 }
