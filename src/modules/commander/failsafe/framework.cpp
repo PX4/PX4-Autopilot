@@ -238,6 +238,8 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 				{events::Log::Critical, events::LogInternal::Warning},
 				"Failsafe activated: Autopilot disengaged, switching to {2}", mavlink_mode, failsafe_action);
 
+				mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated\t");
+
 			} else {
 				/* EVENT
 				* @type append_health_and_arming_messages
@@ -246,6 +248,8 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 					events::ID("commander_failsafe_enter_generic"),
 				{events::Log::Critical, events::LogInternal::Warning},
 				"Failsafe activated: switching to {2}", mavlink_mode, failsafe_action);
+
+				mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated\t");
 			}
 
 		} else {
@@ -287,10 +291,11 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 					events::ID("commander_failsafe_enter"),
 				{events::Log::Critical, events::LogInternal::Warning},
 				"{3}: switching to {2}", mavlink_mode, failsafe_action, failsafe_cause);
+
+				mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated\t");
 			}
 		}
 
-		mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated\t");
 	}
 
 #endif /* EMSCRIPTEN_BUILD */
