@@ -77,7 +77,7 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 			updateEscsStatus(vehicle_status, esc_status);
 		}
 
-		if (_param_fd_actuator_en.get()) {
+		if (_param_fd_act_en.get()) {
 			updateMotorStatus(vehicle_status, esc_status);
 		}
 	}
@@ -306,9 +306,9 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 					esc_throttle = fabsf(actuator_motors.control[i_esc]);
 				}
 
-				const bool throttle_above_threshold = esc_throttle > _param_fd_motor_throttle_thres.get();
+				const bool throttle_above_threshold = esc_throttle > _param_fd_act_mot_thr.get();
 				const bool current_too_low = cur_esc_report.esc_current < esc_throttle *
-							     _param_fd_motor_current2throttle_thres.get();
+							     _param_fd_act_mot_c2t.get();
 
 				if (throttle_above_threshold && current_too_low && !esc_timed_out) {
 					if (_motor_failure_undercurrent_start_time[i_esc] == 0) {
@@ -322,7 +322,7 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 				}
 
 				if (_motor_failure_undercurrent_start_time[i_esc] != 0
-				    && now > (_motor_failure_undercurrent_start_time[i_esc] + (_param_fd_motor_time_thres.get() * 1_ms))
+				    && now > (_motor_failure_undercurrent_start_time[i_esc] + (_param_fd_act_mot_tout.get() * 1_ms))
 				    && (_motor_failure_esc_under_current_mask & (1 << i_esc)) == 0) {
 					// Set flag
 					_motor_failure_esc_under_current_mask |= (1 << i_esc);

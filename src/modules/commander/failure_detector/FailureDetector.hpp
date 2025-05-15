@@ -137,9 +137,9 @@ private:
 		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr,
 
 		// Actuator failure
-		(ParamBool<px4::params::FD_ACT_EN>) _param_fd_actuator_en,
-		(ParamFloat<px4::params::FD_ACT_MOT_THR>) _param_fd_motor_throttle_thres,
-		(ParamFloat<px4::params::FD_ACT_MOT_C2T>) _param_fd_motor_current2throttle_thres,
-		(ParamInt<px4::params::FD_ACT_MOT_TOUT>) _param_fd_motor_time_thres
+		(ParamBool<px4::params::FD_ACT_EN>) _param_fd_act_en,
+		(ParamFloat<px4::params::FD_ACT_MOT_THR>) _param_fd_act_mot_thr,
+		(ParamFloat<px4::params::FD_ACT_MOT_C2T>) _param_fd_act_mot_c2t,
+		(ParamInt<px4::params::FD_ACT_MOT_TOUT>) _param_fd_act_mot_tout
 	)
 };
