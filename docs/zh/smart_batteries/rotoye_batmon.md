@@ -1,6 +1,6 @@
 # 补充信息
 
-[Rotoye Batmon](https://rotoye.com/batmon/) is a kit for adding smart battery functionality to off-the-shelf Lithium-Ion and LiPo batteries.
+[Rotoye 电池监测器](https://rotoye.com/batmon/) 是一款套件，用于为现成的锂离子和锂聚合物电池增添智能电池功能。
 It can be purchased as a standalone unit or as part of a factory-assembled smart-battery.
 
 :::info
@@ -8,27 +8,27 @@ At time of writing you can only use Batmon by [building a custom branch of PX4](
 Support in the codeline is pending [PR approval](https://github.com/PX4/PX4-Autopilot/pull/16723).
 :::
 
-![Rotoye Batmon Board](../../assets/hardware/smart_batteries/rotoye_batmon/smart-battery-rotoye.jpg)
+![Rotoye 电池监控板](../../assets/hardware/smart_batteries/rotoye_batmon/smart-battery-rotoye.jpg)
 
-![Pre-assembled Rotoye smart battery](../../assets/hardware/smart_batteries/rotoye_batmon/smart-battery-rotoye-pack.jpg)
+![组装的罗托耶智能电池](../../assets/hardware/smart_batteries/rotoye_batmon/smart-battery-rotoye-pack.jpg)
 
 ## 购买渠道
 
-[Rotoye Store](https://rotoye.com/batmon/): Batmon kits, custom smart-batteries, and accessories
+[Rotoye 商店](https://rotoye.com/batmon/)：电池套件、自定义智能电池和配件
 
 ## Wiring/Connections
 
-The Rotoye Batmon system uses an XT-90 battery connector with I2C pins, and an opti-isolator board to transmit data.
+Rotoye 电池监测系统系统采用带有 I2C 引脚的 XT - 90 电池连接器，以及一块光隔离板来传输数据。
 
-![Board connections](../../assets/hardware/smart_batteries/rotoye_batmon/smart-battery-rotoye-connection.png)
+![连接监控板](../../assets/hardware/smart_batteries/rotoye_batmon/smart-battery-rotoye-connection.png)
 
-More details can be found [here](https://github.com/rotoye/batmon_reader)
+更多详细信息在[这里](https://github.com/rotoye/batmon_reader)可以找到
 
 ## 软件设置
 
 ### Build PX4 Firmware
 
-1. Clone or download [Rotoye's fork of PX4:](https://github.com/rotoye/PX4-Autopilot/tree/batmon_4.03)
+1. 克隆或下载 [Rotoye的 PX4 分支：](https://github.com/rotoye/PX4-Autopilot/tree/batmon_4.03)
    ```sh
    git clone https://github.com/rotoye/PX4-Autopilot.git
    cd PX4-Autopilot
@@ -58,4 +58,4 @@ In _QGroundControl_:
 
 ## 更多信息
 
-[Quick Start Guide](https://rotoye.com/batmon-tutorial/) (Rotoye)
+快速入门指南(https://rotoye.com/batmon-tutorial/) (Rotoye)
