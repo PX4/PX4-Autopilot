@@ -256,6 +256,9 @@ void VehicleAirData::Run()
 
 	if (!_relative_calibration_done) {
 		_relative_calibration_done = UpdateRelativeCalibrations(time_now_us);
+
+	} else if (!_baro_gnss_calibration_done && !estimator_status_flags.cs_in_air && estimator_status_flags.cs_gps_hgt) {
+		_baro_gnss_calibration_done = BaroGNSSAltitudeOffset();
 	}
 
 	// Publish
@@ -336,7 +339,7 @@ bool VehicleAirData::UpdateRelativeCalibrations(const hrt_abstime time_now_us)
 		_calibration_t_first = time_now_us;
 	}
 
-	if (time_now_us - _calibration_t_first > 1_s) {
+	if (time_now_us - _calibration_t_first > 1_s && _data_sum_count[_selected_sensor_sub_index] > 0) {
 		const float pressure_primary = _data_sum[_selected_sensor_sub_index] / _data_sum_count[_selected_sensor_sub_index];
 
 		for (int instance = 0; instance < MAX_SENSOR_COUNT; ++instance) {
@@ -467,6 +470,76 @@ void VehicleAirData::PrintStatus()
 			_calibration[i].PrintStatus();
 		}
 	}
+}
+
+bool VehicleAirData::BaroGNSSAltitudeOffset()
+{
+	param_t param_hgt_ref = param_find("EKF2_HGT_REF");
+	int32_t hgt_ref;
+
+	if (param_hgt_ref != PARAM_INVALID) {
+		param_get(param_hgt_ref, &hgt_ref);
+	}
+
+	// not optimal to compare to , otherwise more overhead in msg or more dependencies
+	static constexpr int HeightSensor_GNSS = 1;
+
+	if (hgt_ref != HeightSensor_GNSS) {
+		return false;
+	}
+
+	param_t param_qnh = param_find("SENS_BARO_QNH");
+	float qnh = 1013.25f; // Default QNH value in hPa
+
+	if (param_qnh != PARAM_INVALID) {
+		param_get(param_qnh, &qnh);
+	}
+
+	const float pressure_sealevel = qnh * 100.0f;
+
+	sensor_gps_s gps_pos;
+
+	if (!_vehicle_gps_position_sub.copy(&gps_pos)) {
+		return false;
+	}
+
+	const float baro_pressure = _data_sum[_selected_sensor_sub_index] / _data_sum_count[_selected_sensor_sub_index];
+	const float target_altitude = static_cast<float>(gps_pos.altitude_msl_m);
+
+	// Binary search
+	float low = -10000.0f;
+	float high = 10000.0f;
+	float offset = NAN;
+	const float tolerance = 0.1f;
+	static constexpr int iterations = 100;
+
+	for (int i = 0; i < iterations; ++i) {
+		float mid = low + (high - low) / 2.0f;
+		float calibrated_altitude = getAltitudeFromPressure(baro_pressure - mid, pressure_sealevel);
+
+		if (calibrated_altitude > target_altitude + tolerance) {
+			high = mid;
+
+		} else if (calibrated_altitude < target_altitude - tolerance) {
+			low = mid;
+
+		} else {
+			offset = mid;
+			break;
+		}
+	}
+
+	// add new offset to existing relative offsets
+	for (int instance = 0; instance < MAX_SENSOR_COUNT; ++instance) {
+		if (_calibration[instance].device_id() != 0
+		    && _data_sum_count[instance] > 0) {
+			_calibration[instance].set_offset(_calibration[instance].offset() + offset);
+			_calibration[instance].ParametersSave(instance);
+			param_notify_changes();
+		}
+	}
+
+	return true;
 }
 
 }; // namespace sensors
