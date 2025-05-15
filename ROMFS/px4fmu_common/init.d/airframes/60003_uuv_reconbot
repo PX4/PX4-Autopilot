@@ -89,20 +89,20 @@ param set-default PWM_MAIN_MAX5 2200
 param set-default PWM_MAIN_MAX6 2200
 
 # minimum PWM when armed
-param set-default PWM_MAIN_MIN1 1000
-param set-default PWM_MAIN_MIN2 1000
-param set-default PWM_MAIN_MIN3 1000
-param set-default PWM_MAIN_MIN4 1000
-param set-default PWM_MAIN_MIN5 1000
-param set-default PWM_MAIN_MIN6 1000
+param set-default PWM_MAIN_MIN1 500
+param set-default PWM_MAIN_MIN2 500
+param set-default PWM_MAIN_MIN3 500
+param set-default PWM_MAIN_MIN4 500
+param set-default PWM_MAIN_MIN5 500
+param set-default PWM_MAIN_MIN6 500
 
 #output value for MAIN when disarmed
-param set-default PWM_MAIN_DIS1 800
-param set-default PWM_MAIN_DIS2 800
-param set-default PWM_MAIN_DIS3 800
-param set-default PWM_MAIN_DIS4 800
-param set-default PWM_MAIN_DIS5 800
-param set-default PWM_MAIN_DIS6 800
+param set-default PWM_MAIN_DIS1 1250
+param set-default PWM_MAIN_DIS2 1250
+param set-default PWM_MAIN_DIS3 1250
+param set-default PWM_MAIN_DIS4 1250
+param set-default PWM_MAIN_DIS5 1250
+param set-default PWM_MAIN_DIS6 1250
 
 #Output Protocol Configuration for PWM
 param set-default PWM_MAIN_TIM0 400 #MAIN 1-2
@@ -111,20 +111,20 @@ param set-default PWM_MAIN_TIM2 400 #MAIN 5-8
 
 
 #Assign AUX motors
-param set-default PWM_AUX_FUNC1 101
-param set-default PWM_AUX_FUNC2 102
-param set-default PWM_AUX_FUNC3 103
-param set-default PWM_AUX_FUNC4 104
-param set-default PWM_AUX_FUNC5 105
-param set-default PWM_AUX_FUNC6 106
+param set-default PWM_AUX_FUNC1 2
+param set-default PWM_AUX_FUNC2 2
+param set-default PWM_AUX_FUNC3 2
+param set-default PWM_AUX_FUNC4 2
+param set-default PWM_AUX_FUNC5 2
+param set-default PWM_AUX_FUNC6 2
 
 # maximum PWM output for AUX when not disarmed
 param set-default PWM_AUX_MAX1 2200
-param set-default PWM_AUX_MAX2 2200 
-param set-default PWM_AUX_MAX3 2200 
-param set-default PWM_AUX_MAX4 2200 
-param set-default PWM_AUX_MAX5 2200 
-param set-default PWM_AUX_MAX6 2200 
+param set-default PWM_AUX_MAX2 2200
+param set-default PWM_AUX_MAX3 2200
+param set-default PWM_AUX_MAX4 2200
+param set-default PWM_AUX_MAX5 2200
+param set-default PWM_AUX_MAX6 2200
 
 #set PWM rates for AUX
 param set-default PWM_AUX_TIM0 400 #AUX 1-2

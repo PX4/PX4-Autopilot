@@ -12,4 +12,4 @@ float32[4] delta_q_reset        # Amount by which quaternion has changed during 
 uint8 quat_reset_counter        # Quaternion reset counter
 
 # TOPICS vehicle_attitude vehicle_attitude_groundtruth external_ins_attitude
-# TOPICS estimator_attitude
+# TOPICS estimator_attitude external_vehicle_attitude

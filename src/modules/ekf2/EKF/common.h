@@ -442,6 +442,7 @@ struct parameters {
 	float ev_hgt_bias_nsd{0.13f};           ///< process noise for vision height bias estimation (m/s/sqrt(Hz))
 
 	Vector3f ev_pos_body{};                 ///< xyz position of VI-sensor focal point in body frame (m)
+	int32_t  ekf2_ext_pos{0}; 			///< external position estimate flag
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)

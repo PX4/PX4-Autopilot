@@ -119,3 +119,9 @@ parameters:
       default: 0.0
       unit: m
       decimal: 3
+    EKF2_EXT_POS:
+      description:
+        short: Set to 1 to use external position instead of EKF2.
+        long: Enable to use EKF2 estimates from external INS
+      type: boolean
+      default: 1

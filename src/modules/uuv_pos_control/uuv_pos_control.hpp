@@ -103,13 +103,13 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};
-
 	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
+
+	uORB::SubscriptionCallbackWorkItem _external_vehicle_angular_velocity_sub{this, ORB_ID(external_vehicle_angular_velocity)};
 
 	vehicle_attitude_s _vehicle_attitude{};
 	trajectory_setpoint_s _trajectory_setpoint{};
 	vehicle_control_mode_s _vcontrol_mode{};
-
 	perf_counter_t	_loop_perf;
 
 	DEFINE_PARAMETERS(

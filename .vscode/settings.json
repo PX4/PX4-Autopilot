@@ -129,5 +129,8 @@
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
         },
-        "ros.distro": "humble"
+        "ros.distro": "humble",
+        "[json]": {
+                "editor.defaultFormatter": "vscode.json-language-features"
+        }
 }
