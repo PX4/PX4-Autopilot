@@ -92,12 +92,10 @@ Explanations and requirements:
     Disabled,
     ```
 
-  ```
   - Above we specify a separate external and internal log level, which are the levels displayed to GCS users and in the log file, respectively: `{events::Log::Error, events::LogInternal::Info}`.
     For the majority of cases you can pass a single log level, and this will be used for both exernal and internal cases.
   There are cases it makes sense to have two different log levels.
   For example an RTL failsafe action: the user should see it as Warning/Error, whereas in the log, it is an expected system response, so it can be set to `Info`.
-  ```
 
 - **Event Message**:
   - Single-line, short message of the event.
