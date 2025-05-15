@@ -1956,21 +1956,7 @@ void Commander::run()
 			_vehicle_status.timestamp = hrt_absolute_time();
 			_vehicle_status_pub.publish(_vehicle_status);
 
-			// failure_detector_status publish
-			failure_detector_status_s fd_status{};
-			fd_status.fd_roll = _failure_detector.getStatusFlags().roll;
-			fd_status.fd_pitch = _failure_detector.getStatusFlags().pitch;
-			fd_status.fd_alt = _failure_detector.getStatusFlags().alt;
-			fd_status.fd_ext = _failure_detector.getStatusFlags().ext;
-			fd_status.fd_arm_escs = _failure_detector.getStatusFlags().arm_escs;
-			fd_status.fd_battery = _failure_detector.getStatusFlags().battery;
-			fd_status.fd_imbalanced_prop = _failure_detector.getStatusFlags().imbalanced_prop;
-			fd_status.fd_motor = _failure_detector.getStatusFlags().motor;
-			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
-			fd_status.motor_failure_mask = _failure_detector.getMotorFailures();
-			fd_status.motor_stop_mask = _failure_detector.getMotorStopMask();
-			fd_status.timestamp = hrt_absolute_time();
-			_failure_detector_status_pub.publish(fd_status);
+			_failure_detector.publishStatus();
 		}
 
 		checkWorkerThread();
