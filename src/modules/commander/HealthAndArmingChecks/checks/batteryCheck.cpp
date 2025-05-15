@@ -222,7 +222,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 						    log_level, "Low battery");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_emergency(reporter.mavlink_log_pub(), "Low battery\t");
+				mavlink_log_warning(reporter.mavlink_log_pub(), "Low battery\t");
 			}
 
 			break;
@@ -240,7 +240,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 						    log_level, "Critical battery");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_emergency(reporter.mavlink_log_pub(), "Critical battery\t");
+				mavlink_log_warning(reporter.mavlink_log_pub(), "Critical battery\t");
 			}
 
 			break;
