@@ -80,10 +80,10 @@
 #define PX4_ADC_GPIO  \
 	/* PC4  */  GPIO_ADC12_INP4, \
 	/* PC5  */  GPIO_ADC12_INP8
-	// /* PC0  */  GPIO_ADC123_INP10,
-	// /* PC1  */  GPIO_ADC123_INP11,
-	// /* PA4  */  GPIO_ADC12_INP18,
-	// /* PA7  */  GPIO_ADC12_INP7,
+// /* PC0  */  GPIO_ADC123_INP10,
+// /* PC1  */  GPIO_ADC123_INP11,
+// /* PA4  */  GPIO_ADC12_INP18,
+// /* PA7  */  GPIO_ADC12_INP7,
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
 #define ADC_BATTERY_VOLTAGE_CHANNEL     /* PC0  */  ADC1_CH(10)
