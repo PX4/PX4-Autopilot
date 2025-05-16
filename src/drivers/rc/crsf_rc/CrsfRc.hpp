@@ -53,6 +53,8 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 
 using namespace device;
 
@@ -90,10 +92,13 @@ private:
 
 	bool SendTelemetryFlightMode(const char *flight_mode);
 
+	bool BindCRSF();
+
 	Serial *_uart = nullptr; ///< UART interface to RC
 
 	char _device[20] {}; ///< device / serial port path
 	bool _is_singlewire{false};
+	bool _armed{false};
 
 	static constexpr size_t RC_MAX_BUFFER_SIZE{64};
 	uint8_t _rcs_buf[RC_MAX_BUFFER_SIZE] {};
@@ -111,6 +116,7 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_cmd_sub{ORB_ID(vehicle_command)};
 
 	enum class crsf_frame_type_t : uint8_t {
 		gps = 0x02,
@@ -136,6 +142,32 @@ private:
 		rc_channels = 22, ///< 11 bits per channel * 16 channels = 22 bytes.
 		attitude = 6,
 	};
+
+	enum class crsf_sync_t : uint8_t {
+		sync = 0xC8
+	};
+
+	enum class crsf_sub_command_t : uint8_t {
+		subcmd_rx = 0x10,
+		subcmd_general = 0x0A,
+		subcmd_rx_bind = 0x01,
+	};
+
+	enum class crsf_address_t : uint8_t {
+		broadcast = 0x00,
+		usb = 0x10,
+		tbs_core_pnp_pro = 0x80,
+		reserved1 = 0x8A,
+		current_sensor = 0xC0,
+		gps = 0xC2,
+		tbs_blackbox = 0xC4,
+		flight_controller = 0xC8,
+		reserved2 = 0xCA,
+		race_tag = 0xCC,
+		radio_transmitter = 0xEA,
+		crsf_receiver = 0xEC,
+		crsf_transmitter = 0xEE
+	} ;
 
 	void WriteFrameHeader(uint8_t *buf, int &offset, const crsf_frame_type_t type, const uint8_t payload_size);
 	void WriteFrameCrc(uint8_t *buf, int &offset, const int buf_size);
