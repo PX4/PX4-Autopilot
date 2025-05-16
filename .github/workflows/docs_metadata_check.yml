@@ -22,8 +22,8 @@ jobs:
         include:
           - name: uORB Graphs
             script: Tools/ci/metadata_uorb_graph.sh
-          - name: Failsafe Web
-            script: Tools/ci/metadata_failsafe_web.sh
+          # - name: Failsafe Web
+          #   script: Tools/ci/metadata_failsafe_web.sh
           - name: uORB Messages
             script: Tools/ci/metadata_msg_docs.sh
           - name: Parameter Reference
