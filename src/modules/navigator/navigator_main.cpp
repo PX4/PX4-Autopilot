@@ -1579,6 +1579,10 @@ void Navigator::publish_vehicle_command(vehicle_command_s &vehicle_command)
 		vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA
 		break;
 
+	case NAV_CMD_WAYPOINT_USER_1:
+		vehicle_command.target_component = 193; // MAV_COMP_ID_COMPUTER3
+		break;
+
 	default:
 		vehicle_command.target_component = 0;
 		break;

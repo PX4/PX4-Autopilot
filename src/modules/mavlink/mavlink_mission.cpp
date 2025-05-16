@@ -1647,6 +1647,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_DO_SET_ACTUATOR:
 		case MAV_CMD_DO_AUTOTUNE_ENABLE:
 		case MAV_CMD_COMPONENT_ARM_DISARM:
+		case MAV_CMD_WAYPOINT_USER_1:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 			break;
 
@@ -1739,6 +1740,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_SET_CAMERA_ZOOM:
 		case NAV_CMD_SET_CAMERA_FOCUS:
 		case NAV_CMD_DO_VTOL_TRANSITION:
+		case NAV_CMD_WAYPOINT_USER_1:
 			break;
 
 		default:

@@ -286,7 +286,8 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 	    mission_item.nav_cmd != NAV_CMD_SET_CAMERA_SOURCE &&
 	    mission_item.nav_cmd != NAV_CMD_SET_CAMERA_ZOOM &&
 	    mission_item.nav_cmd != NAV_CMD_SET_CAMERA_FOCUS &&
-	    mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
+	    mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION &&
+	    mission_item.nav_cmd != NAV_CMD_WAYPOINT_USER_1) {
 
 		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: item %i: unsupported cmd: %d\t",
 				     (int)(current_index + 1),
@@ -372,7 +373,8 @@ bool FeasibilityChecker::checkTakeoff(mission_item_s &mission_item)
 					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_SOURCE &&
 					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_ZOOM &&
 					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_FOCUS &&
-					     mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION);
+					     mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION &&
+					     mission_item.nav_cmd != NAV_CMD_WAYPOINT_USER_1);
 	}
 
 	return true;
