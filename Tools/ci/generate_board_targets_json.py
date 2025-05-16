@@ -214,6 +214,7 @@ if (args.group):
     if(verbose):
         print(f'=:Architectures: [{grouped_targets.keys()}]')
     for arch in grouped_targets:
+        runner = 'x64' if arch == 'nuttx' else 'arm64'
         if(verbose):
             print(f'=:Processing: [{arch}]')
         temp_group = []
@@ -231,6 +232,7 @@ if (args.group):
                     "container": grouped_targets[arch]['container'],
                     "targets": targets,
                     "arch": arch,
+                    "runner": runner,
                     "group": group_name,
                     "len": len(grouped_targets[arch]['manufacturers'][man])
                 })
@@ -248,6 +250,7 @@ if (args.group):
                         "container": grouped_targets[arch]['container'],
                         "targets": targets,
                         "arch": arch,
+                        "runner": runner,
                         "group": group_name,
                         "len": len(chunk),
                     })
@@ -268,6 +271,7 @@ if (args.group):
                 "container": grouped_targets[arch]['container'],
                 "targets": targets,
                 "arch": arch,
+                "runner": runner,
                 "group": group_name,
                 "len": temp_len
             })
@@ -285,6 +289,7 @@ if (args.group):
                     "container": grouped_targets[arch]['container'],
                     "targets": targets,
                     "arch": arch,
+                    "runner": runner,
                     "group": group_name,
                     "len": len(chunk),
                 })
