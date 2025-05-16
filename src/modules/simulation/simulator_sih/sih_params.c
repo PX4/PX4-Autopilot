@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +33,7 @@
 
 /**
  * @file sih_params.c
- * Parameters for quadcopter X simulator in hardware.
+ * Parameters for simulator in hardware.
  *
  * @author Romain Chiappinelli <romain.chiap@gmail.com>
  * February 2019
@@ -329,10 +329,11 @@ PARAM_DEFINE_FLOAT(SIH_T_TAU, 0.05f);
 /**
  * Vehicle type
  *
- * @value 0 Multicopter
+ * @value 0 Quadcopter
  * @value 1 Fixed-Wing
  * @value 2 Tailsitter
  * @value 3 Standard VTOL
+ * @value 4 Hexacopter
  * @reboot_required true
  * @group Simulation In Hardware
  */

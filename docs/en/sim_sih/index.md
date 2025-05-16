@@ -58,6 +58,7 @@ To set up/start SIH:
 1. Open QGroundControl and wait for the flight controller too boot and connect.
 1. Open [Vehicle Setup > Airframe](../config/airframe.md) then select the desired frame:
    - [SIH Quadcopter X](../airframes/airframe_reference.md#copter_simulation_sih_quadcopter_x)
+   - SIH Hexacopter X currently only has an airframe for SITL to safe flash so on flight control hardware it has to be manually configured equivalently.
    - [SIH plane AERT](../airframes/airframe_reference.md#plane_simulation_sih_plane_aert)
    - [SIH Tailsitter Duo](../airframes/airframe_reference.md#vtol_simulation_sih_tailsitter_duo)
    - [SIH Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_simulation_sih_standard_vtol_quadplane)
@@ -114,25 +115,31 @@ To run SIH as SITL:
 1. Install the [PX4 Development toolchain](../dev_setup/dev_env.md).
 1. Run the appropriate make command for each vehicle type (at the root of the PX4-Autopilot repository):
 
-   - quadrotor:
+   - Quadcopter
 
      ```sh
      make px4_sitl sihsim_quadx
      ```
 
-   - Fixed-wing (plane):
+   - Hexacopter
+
+     ```sh
+     make px4_sitl sihsim_hex
+     ```
+
+   - Fixed-wing (plane)
 
      ```sh
      make px4_sitl sihsim_airplane
      ```
 
-   - XVert VTOL tailsitter:
+   - XVert VTOL tailsitter
 
      ```sh
      make px4_sitl sihsim_xvert
      ```
 
-   - Standard VTOL: 
+   - Standard VTOL
 
      ```sh
      make px4_sitl sihsim_standard_vtol
@@ -231,7 +238,8 @@ For specific examples see the `_sihsim_` airframes in [ROMFS/px4fmu_common/init.
 
 The dynamic models for the various vehicles are:
 
-- Quadrotor: [pdf report](https://github.com/PX4/PX4-user_guide/raw/main/assets/simulation/SIH_dynamic_model.pdf).
+- Quadcopter: [pdf report](https://github.com/PX4/PX4-user_guide/raw/main/assets/simulation/SIH_dynamic_model.pdf).
+- Hexacopter: Equivalent to the Quadcopter but with a symmetric hexacopter x actuation setup.
 - Fixed-wing: Inspired by the PhD thesis: "Dynamics modeling of agile fixed-wing unmanned aerial vehicles." Khan, Waqas, supervised by Nahon, Meyer, McGill University, PhD thesis, 2016.
 - Tailsitter: Inspired by the master's thesis: "Modeling and control of a flying wing tailsitter unmanned aerial vehicle." Chiappinelli, Romain, supervised by Nahon, Meyer, McGill University, Masters thesis, 2018.
 

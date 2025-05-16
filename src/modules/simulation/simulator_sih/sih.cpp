@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,8 +75,9 @@ void Sih::run()
 	_last_run = task_start;
 	_airspeed_time = task_start;
 	_dist_snsr_time = task_start;
-	_vehicle = (VehicleType)constrain(_sih_vtype.get(), static_cast<typeof _sih_vtype.get()>(0),
-					  static_cast<typeof _sih_vtype.get()>(3));
+	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
+					    static_cast<int32_t>(VehicleType::First),
+					    static_cast<int32_t>(VehicleType::Last)));
 
 	_actuator_out_sub = uORB::Subscription{ORB_ID(actuator_outputs_sim)};
 
@@ -319,13 +320,28 @@ void Sih::read_motors(const float dt)
 
 void Sih::generate_force_and_torques()
 {
-	if (_vehicle == VehicleType::Multicopter) {
+	if (_vehicle == VehicleType::Quadcopter) {
 		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
 				 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
 				 _Q_MAX * (+_u[0] + _u[1] - _u[2] - _u[3]));
 		_Fa_E = -_KDV * _v_E;   // first order drag to slow down the aircraft
 		_Ma_B = -_KDW * _w_B;   // first order angular damper
+
+	} else if (_vehicle == VehicleType::Hexacopter) {
+		/*     m5    m0      ┬
+		         \  /      √3/2
+		    m4 -- + -- m1    ┴
+		         /  \
+		       m3    m2
+		          ├1/2┤
+		          ├  1  ┤    */
+		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3] + _u[4] + _u[5]));
+		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-.5f * _u[0] - _u[1] - .5f * _u[2] + .5f * _u[3] + _u[4] + .5f * _u[5]),
+				 _L_PITCH * _T_MAX * (M_SQRT3_F / 2.f) * (+_u[0] - _u[2] - _u[3] + _u[5]),
+				 _Q_MAX * (+_u[0] - _u[1] + _u[2] - _u[3] + _u[4] - _u[5]));
+		_Fa_E = -_KDV * _v_E; // first order drag to slow down the aircraft
+		_Ma_B = -_KDW * _w_B; // first order angular damper
 
 	} else if (_vehicle == VehicleType::FixedWing) {
 		_T_B = Vector3f(_T_MAX * _u[3], 0.0f, 0.0f); 	// forward thruster
@@ -429,7 +445,8 @@ void Sih::equations_of_motion(const float dt)
 	Vector3f ground_force_E;
 
 	if ((_lla.altitude() - _lpos_ref_alt) < 0.f && force_down > 0.f) {
-		if (_vehicle == VehicleType::Multicopter
+		if (_vehicle == VehicleType::Quadcopter
+		    || _vehicle == VehicleType::Hexacopter
 		    || _vehicle == VehicleType::TailsitterVTOL
 		    || _vehicle == VehicleType::StandardVTOL) {
 			ground_force_E = -sum_of_forces_E;
@@ -715,20 +732,23 @@ int Sih::print_status()
 	PX4_INFO("Achieved speedup: %.2fX", (double)_achieved_speedup);
 #endif
 
-	if (_vehicle == VehicleType::Multicopter) {
-		PX4_INFO("Running MultiCopter");
+	if (_vehicle == VehicleType::Quadcopter) {
+		PX4_INFO("Quadcopter");
+
+	} else if (_vehicle == VehicleType::Hexacopter) {
+		PX4_INFO("Hexacopter");
 
 	} else if (_vehicle == VehicleType::FixedWing) {
-		PX4_INFO("Running Fixed-Wing");
+		PX4_INFO("Fixed-Wing");
 
 	} else if (_vehicle == VehicleType::TailsitterVTOL) {
-		PX4_INFO("Running TailSitter");
+		PX4_INFO("TailSitter");
 		PX4_INFO("aoa [deg]: %d", (int)(degrees(_ts[4].get_aoa())));
 		PX4_INFO("v segment (m/s)");
 		_ts[4].get_vS().print();
 
 	} else if (_vehicle == VehicleType::StandardVTOL) {
-		PX4_INFO("Running Standard VTOL");
+		PX4_INFO("Standard VTOL");
 	}
 
 	PX4_INFO("vehicle landed: %d", _grounded);
