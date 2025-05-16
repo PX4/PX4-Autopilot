@@ -45,6 +45,7 @@
 #include <mavsdk/plugins/offboard/offboard.h>
 #include <mavsdk/plugins/telemetry/telemetry.h>
 #include <mavsdk/plugins/param/param.h>
+#include <mavsdk/plugins/events/events.h>
 #include "catch2/catch.hpp"
 #include <atomic>
 #include <chrono>
@@ -293,6 +294,7 @@ private:
 	std::unique_ptr<mavsdk::Offboard> _offboard{};
 	std::unique_ptr<mavsdk::Param> _param{};
 	std::unique_ptr<mavsdk::Telemetry> _telemetry{};
+	std::unique_ptr<mavsdk::Events> _events{};
 
 	Telemetry::GroundTruth _home{NAN, NAN, NAN};
 
@@ -300,4 +302,6 @@ private:
 
 	std::atomic<bool> _should_exit {false};
 	std::thread _real_time_report_thread {};
+
+	mavsdk::Events::EventsHandle _events_handle{};
 };
