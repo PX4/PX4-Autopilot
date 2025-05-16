@@ -36,50 +36,46 @@
 // PX4 includes
 #include <px4_platform_common/module_params.h>
 
-// Library includes
+// Libraries
 #include <lib/rover_control/RoverControl.hpp>
-#include <lib/pid/PID.hpp>
-#include <lib/slew_rate/SlewRateYaw.hpp>
 #include <math.h>
-#include <matrix/matrix/math.hpp>
 
 // uORB includes
-#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_rate_setpoint.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/rover_attitude_status.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/rover_throttle_setpoint.h>
+#include <uORB/topics/rover_steering_setpoint.h>
+#include <uORB/topics/rover_rate_setpoint.h>
 #include <uORB/topics/rover_attitude_setpoint.h>
-#include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/rover_velocity_setpoint.h>
+#include <uORB/topics/rover_position_setpoint.h>
 
 /**
- * @brief Class for ackermann attitude control.
+ * @brief Class for ackermann manual mode.
  */
-class AckermannAttControl : public ModuleParams
+class ManualMode : public ModuleParams
 {
 public:
 	/**
-	 * @brief Constructor for AckermannAttControl.
+	 * @brief Constructor for ManualMode.
 	 * @param parent The parent ModuleParams object.
 	 */
-	AckermannAttControl(ModuleParams *parent);
-	~AckermannAttControl() = default;
+	ManualMode(ModuleParams *parent);
+	~ManualMode() = default;
 
 	/**
-	 * @brief Generate and publish roverRateSetpoint from roverAttitudeSetpoint.
+	 * @brief Generate and publish roverSetpoints from manualControlSetpoints.
 	 */
-	void updateAttControl();
+	void manualControl(int nav_state);
 
 	/**
-	 * @brief Reset attitude controller.
+	 * @brief Reset manual mode variables.
 	 */
-	void reset() {_pid_yaw.resetIntegral(); _yaw_setpoint = NAN;};
-
-	/**
-	 * @brief Check if the necessary parameters are set.
-	 * @return True if all checks pass.
-	 */
-	bool runSanityChecks();
+	void reset();
 
 protected:
 	/**
@@ -89,38 +85,53 @@ protected:
 
 private:
 	/**
-	 * @brief Update uORB subscriptions used in attitude controller.
+	 * @brief Publish roverThrottleSetpoint and roverSteeringSetpoint from manualControlSetpoint.
 	 */
-	void updateSubscriptions();
+	void manual();
+
+	/**
+	 * @brief Generate and publish roverThrottleSetpoint and RoverRateSetpoint from manualControlSetpoint.
+	 */
+	void acro();
+
+	/**
+	 * @brief Generate and publish roverThrottleSetpoint and RoverAttitudeSetpoint from manualControlSetpoint.
+	 */
+	void stab();
+
+	/**
+	 * @brief Generate and publish roverVelocitySetpoint from manualControlSetpoint.
+	 */
+	void position();
 
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
-	uORB::Subscription _rover_attitude_setpoint_sub{ORB_ID(rover_attitude_setpoint)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 
 	// uORB publications
+	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
+	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
 	uORB::Publication<rover_rate_setpoint_s>     _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
-	uORB::Publication<rover_attitude_status_s>   _rover_attitude_status_pub{ORB_ID(rover_attitude_status)};
+	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
+	uORB::Publication<rover_velocity_setpoint_s> _rover_velocity_setpoint_pub{ORB_ID(rover_velocity_setpoint)};
+	uORB::Publication<rover_position_setpoint_s> _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
 
 	// Variables
-	float _vehicle_yaw{0.f};
-	hrt_abstime _timestamp{0};
-	float _max_yaw_rate{0.f};
-	float _estimated_speed_body_x{0.f}; /*Vehicle speed estimated by interpolating [actuatorMotorSetpoint,  _estimated_speed_body_x]
-					       between [0, 0] and [1, _param_ro_max_thr_speed].*/
-	float _yaw_setpoint{NAN};
+	MapProjection _global_ned_proj_ref{}; // Transform global to NED coordinates
+	Quatf _vehicle_attitude_quaternion{};
+	Vector2f _pos_ctl_course_direction{NAN, NAN};
+	Vector2f _pos_ctl_start_position_ned{NAN, NAN};
+	Vector2f _curr_pos_ned{NAN, NAN};
+	float _stab_yaw_setpoint{NAN};
+	float _vehicle_yaw{NAN};
+	float _max_yaw_rate{NAN};
 
-	// Controllers
-	PID _pid_yaw;
-	SlewRateYaw<float> _adjusted_yaw_setpoint;
-
-	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
-		(ParamFloat<px4::params::RA_WHEEL_BASE>)    _param_ra_wheel_base,
-		(ParamFloat<px4::params::RA_MAX_STR_ANG>)   _param_ra_max_str_ang,
 		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
 		(ParamFloat<px4::params::RO_YAW_P>)         _param_ro_yaw_p,
-		(ParamFloat<px4::params::RO_YAW_STICK_DZ>)  _param_ro_yaw_stick_dz
+		(ParamFloat<px4::params::RO_YAW_STICK_DZ>)  _param_ro_yaw_stick_dz,
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
+		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit
 	)
 };

@@ -36,50 +36,41 @@
 // PX4 includes
 #include <px4_platform_common/module_params.h>
 
-// Library includes
+// Libraries
 #include <lib/rover_control/RoverControl.hpp>
-#include <lib/pid/PID.hpp>
-#include <lib/slew_rate/SlewRateYaw.hpp>
+#include <lib/slew_rate/SlewRate.hpp>
 #include <math.h>
-#include <matrix/matrix/math.hpp>
 
 // uORB includes
-#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_rate_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/rover_attitude_status.h>
-#include <uORB/topics/rover_attitude_setpoint.h>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/actuator_servos.h>
+#include <uORB/topics/rover_steering_setpoint.h>
+#include <uORB/topics/rover_throttle_setpoint.h>
 
 /**
- * @brief Class for ackermann attitude control.
+ * @brief Class for ackermann actuator control.
  */
-class AckermannAttControl : public ModuleParams
+class AckermannActControl : public ModuleParams
 {
 public:
 	/**
-	 * @brief Constructor for AckermannAttControl.
+	 * @brief Constructor for AckermannActControl.
 	 * @param parent The parent ModuleParams object.
 	 */
-	AckermannAttControl(ModuleParams *parent);
-	~AckermannAttControl() = default;
+	AckermannActControl(ModuleParams *parent);
+	~AckermannActControl() = default;
 
 	/**
-	 * @brief Generate and publish roverRateSetpoint from roverAttitudeSetpoint.
+	 * @brief Generate and publish actuatorMotors/actuatorServos setpoints from roverThrottleSetpoint/roverSteeringSetpoint.
 	 */
-	void updateAttControl();
+	void updateActControl();
 
 	/**
-	 * @brief Reset attitude controller.
+	 * @brief Stop the vehicle by sending 0 commands to motors and servos.
 	 */
-	void reset() {_pid_yaw.resetIntegral(); _yaw_setpoint = NAN;};
-
-	/**
-	 * @brief Check if the necessary parameters are set.
-	 * @return True if all checks pass.
-	 */
-	bool runSanityChecks();
+	void stopVehicle();
 
 protected:
 	/**
@@ -88,39 +79,33 @@ protected:
 	void updateParams() override;
 
 private:
-	/**
-	 * @brief Update uORB subscriptions used in attitude controller.
-	 */
-	void updateSubscriptions();
 
 	// uORB subscriptions
-	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _actuator_servos_sub{ORB_ID(actuator_servos)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
-	uORB::Subscription _rover_attitude_setpoint_sub{ORB_ID(rover_attitude_setpoint)};
+	uORB::Subscription _rover_steering_setpoint_sub{ORB_ID(rover_steering_setpoint)};
+	uORB::Subscription _rover_throttle_setpoint_sub{ORB_ID(rover_throttle_setpoint)};
 
 	// uORB publications
-	uORB::Publication<rover_rate_setpoint_s>     _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
-	uORB::Publication<rover_attitude_status_s>   _rover_attitude_status_pub{ORB_ID(rover_attitude_status)};
+	uORB::Publication<actuator_motors_s> 	     _actuator_motors_pub{ORB_ID(actuator_motors)};
+	uORB::Publication<actuator_servos_s> 	     _actuator_servos_pub{ORB_ID(actuator_servos)};
 
 	// Variables
-	float _vehicle_yaw{0.f};
 	hrt_abstime _timestamp{0};
-	float _max_yaw_rate{0.f};
-	float _estimated_speed_body_x{0.f}; /*Vehicle speed estimated by interpolating [actuatorMotorSetpoint,  _estimated_speed_body_x]
-					       between [0, 0] and [1, _param_ro_max_thr_speed].*/
-	float _yaw_setpoint{NAN};
+	float _throttle_setpoint{NAN};
+	float _steering_setpoint{NAN};
 
 	// Controllers
-	PID _pid_yaw;
-	SlewRateYaw<float> _adjusted_yaw_setpoint;
+	SlewRate<float> _servo_setpoint{0.f};
+	SlewRate<float> _motor_setpoint{0.f};
 
 	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
-		(ParamFloat<px4::params::RA_WHEEL_BASE>)    _param_ra_wheel_base,
+		(ParamInt<px4::params::CA_R_REV>) 	    _param_r_rev,
+		(ParamFloat<px4::params::RA_STR_RATE_LIM>)  _param_ra_str_rate_limit,
 		(ParamFloat<px4::params::RA_MAX_STR_ANG>)   _param_ra_max_str_ang,
-		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
-		(ParamFloat<px4::params::RO_YAW_P>)         _param_ro_yaw_p,
-		(ParamFloat<px4::params::RO_YAW_STICK_DZ>)  _param_ro_yaw_stick_dz
+		(ParamFloat<px4::params::RO_ACCEL_LIM>)     _param_ro_accel_limit,
+		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_limit,
+		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed
 	)
 };
