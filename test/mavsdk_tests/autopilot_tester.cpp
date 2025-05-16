@@ -52,6 +52,7 @@ AutopilotTester::AutopilotTester() :
 
 AutopilotTester::~AutopilotTester()
 {
+	_events->unsubscribe_events(_events_handle);
 	_should_exit = true;
 	_real_time_report_thread.join();
 }
@@ -76,14 +77,26 @@ void AutopilotTester::connect(const std::string uri)
 	_offboard.reset(new Offboard(system));
 	_param.reset(new Param(system));
 	_telemetry.reset(new Telemetry(system));
+	_events.reset(new Events(system));
 	_mavlink_passthrough.reset(new MavlinkPassthrough(system));
+
+	_events_handle = _events->subscribe_events([](const Events::Event & event) {
+		std::cout << "[" << event.log_level << "] " << event.message << std::endl;
+
+		if (!event.description.empty()) {
+			std::cout << "    Description: " << event.description << std::endl;
+		}
+
+		std::cout << "    Event name: " << event.event_namespace << "/" << event.event_name
+			  << std::endl;
+	});
 }
 
 void AutopilotTester::wait_until_ready()
 {
 	std::cout << time_str() << "Waiting for system to be ready (system health ok & able to arm)" << std::endl;
 
-	// Wiat until the system is healthy
+	// Wait until the system is healthy
 	CHECK(poll_condition_with_timeout(
 	[this]() { return _telemetry->health_all_ok(); }, std::chrono::seconds(30)));
 
