@@ -284,7 +284,8 @@ if (CONFIG_BUILD_KERNEL)
 		COMMAND mkdir -p ${PX4_BINARY_DIR}/bin
 		COMMAND make -C ${NUTTX_SRC_DIR}/apps install --no-print-directory --silent
 			ARCHCRT0OBJ="${CRT0_OBJ}"
-			BINDIR="${PX4_BINARY_DIR}/bin"
+			BINDIR="${PX4_BINARY_DIR}/bin_debug"
+			BINDIR_DEBUG="${PX4_BINARY_DIR}/bin"
 			TOPDIR="${NUTTX_DIR}"
 			ELFLDNAME="${LDSCRIPT}"
 			USERLIBS="${userlibs}" > ${CMAKE_CURRENT_BINARY_DIR}/nuttx_apps_install.log
