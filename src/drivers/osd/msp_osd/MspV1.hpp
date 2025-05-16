@@ -39,6 +39,7 @@ public:
 	MspV1(int fd);
 	int GetMessageSize(int message_type);
 	bool Send(const uint8_t message_id, const void *payload);
+	bool Send(const uint8_t message_id, const void *payload, uint32_t payload_size);
 
 private:
 	int _fd{-1};
