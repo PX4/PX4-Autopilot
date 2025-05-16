@@ -8,6 +8,15 @@ menuconfig MODULES_SIMULATION_SIMULATOR_SIH
 	---help---
 		Enable support for simulator_sih
 
+if MODULES_SIMULATION_SIMULATOR_SIH
+    config SIH_SIM_BOAT
+        bool "Enable Boat Simulation features (SIH)"
+        default n
+	depends on MODULES_SIMULATION_SIMULATOR_SIH
+        ---help---
+            Enable boat support for SIH simulator.
+endif # MODULES_SIMULATION_SIMULATOR_SIH
+
 menuconfig USER_SIH
 	bool "simulator_sih running as userspace module"
 	default y

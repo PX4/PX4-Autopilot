@@ -9,7 +9,7 @@ It may or may not work with current versions of PX4 (known to work in PX4 v1.14)
 See [Toolchain Installation](../dev_setup/dev_env.md) for information about the environments and tools supported by the core development team.
 :::
 
-Simulation-In-Hardware (SIH) is an alternative to [Hardware In The Loop simulation (HITL)](../simulation/hitl.md) for quadrotors, fixed-wing vehicles (airplane), and VTOL tailsitters.
+Simulation-In-Hardware (SIH) is an alternative to [Hardware In The Loop simulation (HITL)](../simulation/hitl.md) for quadrotors, fixed-wing vehicles (airplane), VTOL tailsitters and boats.
 
 SIH can be used by new PX4 users to get familiar with PX4 and the different modes and features, and of course to learn to fly a vehicle using an RC controller in simulation, which is not possible using SITL.
 
@@ -27,6 +27,7 @@ The Desktop computer is only used to display the virtual vehicle.
 - SIH for fixed-wing (airplane) and VTOL tailsitter are supported from PX4 v1.13.
 - SIH as SITL (without hardware) from PX4 v1.14.
 - SIH for Standard VTOL from PX4 v1.16.
+- SIH for boats from PX4 v1.16.
 
 ### Benefits
 
@@ -61,6 +62,7 @@ To set up/start SIH:
    - [SIH plane AERT](../airframes/airframe_reference.md#plane_simulation_sih_plane_aert)
    - [SIH Tailsitter Duo](../airframes/airframe_reference.md#vtol_simulation_sih_tailsitter_duo)
    - [SIH Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_simulation_sih_standard_vtol_quadplane)
+   - Boat uses [Rover Ackermann](../airframes/airframe_reference.md#rover_rover_generic_rover_ackermann) as CA model
 
 The autopilot will then reboot.
 The `sih` module is started on reboot, and the vehicle should be displayed on the ground control station map.
@@ -132,10 +134,16 @@ To run SIH as SITL:
      make px4_sitl sihsim_xvert
      ```
 
-   - Standard VTOL: 
+   - Standard VTOL:
 
      ```sh
      make px4_sitl sihsim_standard_vtol
+     ```
+
+   - Boat:
+
+     ```sh
+     make px4_sitl sihsim_boat
      ```
 
 ### Change Simulation Speed
