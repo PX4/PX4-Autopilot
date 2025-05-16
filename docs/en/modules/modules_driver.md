@@ -1108,8 +1108,12 @@ px4io <command> [arguments...]
 ```
 
 ## rgbled
+<<<<<<< HEAD
 
 Source: [drivers/lights/rgbled_ncp5623c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_ncp5623c)
+=======
+Source: [drivers/lights/rgbled](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled)
+>>>>>>> 5b409a45c1 (docs: update module reference metadata)
 
 ### Usage {#rgbled_usage}
 
@@ -1124,9 +1128,7 @@ rgbled <command> [arguments...]
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
-                 default: 57
-     [-o <val>]  RGB PWM Assignment
-                 default: 123
+                 default: 85
 
    stop
 
