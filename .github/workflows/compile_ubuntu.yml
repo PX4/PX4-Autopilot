@@ -17,6 +17,9 @@ on:
       - 'docs/**'
       - '.github/**'
 
+env:
+  RUNS_IN_DOCKER: true
+
 jobs:
   build_and_test:
     name: Build and Test

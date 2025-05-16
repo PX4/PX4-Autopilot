@@ -55,20 +55,4 @@ To get started using the library within an existing ROS 2 workspace:
 When opening a pull request to PX4, CI runs the library integration tests.
 These test that mode registration, failsafes, and mode replacement, work as expected.
 
-The tests can also be run locally from PX4:
-
-```sh
-./test/ros_test_runner.py
-```
-
-And to run only a single case:
-
-```sh
-./test/ros_test_runner.py --verbose --case <case>
-```
-
-You can list the available test cases with:
-
-```sh
-./test/ros_test_runner.py --list-cases
-```
+For more information see [PX4 ROS2 Interface Library Integration Testing](../test_and_ci/integration_testing_px4_ros2_interface.md).

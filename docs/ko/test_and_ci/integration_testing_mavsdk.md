@@ -7,6 +7,10 @@ PX4 can be tested end to end to using integration tests based on [MAVSDK](https:
 
 아래 지침은 로컬에서 테스트를 설정하고 진행하는 방법을 설명합니다.
 
+:::note
+This is the recommended integration test framework for PX4.
+:::
+
 ## 준비 사항
 
 ### 개발 환경 설정
@@ -47,21 +51,21 @@ To run all SITL tests as defined in [sitl.json](https://github.com/PX4/PX4-Autop
 test/mavsdk_tests/mavsdk_test_runner.py test/mavsdk_tests/configs/sitl.json --speed-factor 10
 ```
 
-그러면, 모든 테스트가 나열되고 순차적으로 실행됩니다.
+This will list all the tests and then run them sequentially.
 
 To see all possible command line arguments use the `-h` argument:
 
 ```sh
 test/mavsdk_tests/mavsdk_test_runner.py -h
 
-usage: mavsdk_test_runner.py [-h] [--log-dir LOG_DIR] [--speed-factor SPEED_FACTOR] [--iterations ITERATIONS] [--abort-early] [--gui] [--model MODEL]
-                             [--case CASE] [--debugger DEBUGGER] [--verbose]
-                             config_file
+usage: mavsdk_test_runner.py [-h] [--log-dir LOG_DIR] [--speed-factor SPEED_FACTOR] [--iterations ITERATIONS] [--abort-early]
+                             [--gui] [--model MODEL] [--case CASE] [--debugger DEBUGGER] [--upload] [--force-color]
+                             [--verbose] [--build-dir BUILD_DIR]
 
 positional arguments:
   config_file           JSON config file to use
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --log-dir LOG_DIR     Directory for log files
   --speed-factor SPEED_FACTOR
@@ -71,9 +75,13 @@ optional arguments:
   --abort-early         abort on first unsuccessful test
   --gui                 display the visualization for a simulation
   --model MODEL         only run tests for one model
-  --case CASE           only run tests for one case
+  --case CASE           only run tests for one case (or multiple cases with wildcard '*')
   --debugger DEBUGGER   choice from valgrind, callgrind, gdb, lldb
+  --upload              Upload logs to logs.px4.io
+  --force-color         Force colorized output
   --verbose             enable more verbose output
+  --build-dir BUILD_DIR
+                        relative path where the built files are stored
 ```
 
 ## 단일 테스트 실행

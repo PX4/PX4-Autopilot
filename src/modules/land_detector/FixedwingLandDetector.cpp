@@ -93,10 +93,15 @@ bool FixedwingLandDetector::_get_landed_state()
 		airspeed_validated_s airspeed_validated{};
 		_airspeed_validated_sub.copy(&airspeed_validated);
 
+		const bool airspeed_from_sensor = airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_1
+						  || airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_2
+						  || airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_3;
+
 		bool airspeed_invalid = false;
 
-		// set _airspeed_filtered to 0 if airspeed data is invalid
-		if (!PX4_ISFINITE(airspeed_validated.true_airspeed_m_s) || hrt_elapsed_time(&airspeed_validated.timestamp) > 1_s) {
+		// set _airspeed_filtered to 0 if airspeed data is invalid or not from an actual airspeed sensor
+		if (!airspeed_from_sensor || !PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
+		    || hrt_elapsed_time(&airspeed_validated.timestamp) > 1_s) {
 			_airspeed_filtered = 0.0f;
 			airspeed_invalid = true;
 

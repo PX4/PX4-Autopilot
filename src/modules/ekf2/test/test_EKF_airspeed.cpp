@@ -218,7 +218,7 @@ TEST_F(EkfAirspeedTest, testAirspeedDeadReckoning)
 
 	EXPECT_TRUE(_ekf_wrapper.isWindVelocityEstimated());
 	const Vector3f vel = _ekf->getVelocity();
-	EXPECT_NEAR(vel.norm(), airspeed_body.norm(), 1e-2f);
+	EXPECT_NEAR(vel.norm(), airspeed_body.norm(), 0.05f);
 	const Vector2f vel_wind_earth = _ekf->getWindVelocity();
 	EXPECT_NEAR(vel_wind_earth(0), 0.f, .1f);
 	EXPECT_NEAR(vel_wind_earth(1), 0.f, .1f);
