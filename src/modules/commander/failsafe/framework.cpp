@@ -290,8 +290,11 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 			}
 		}
 
-		mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated\t");
+		if (action != Action::Warn) {
+			mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated\t");
+		};
 	}
+
 
 #endif /* EMSCRIPTEN_BUILD */
 }
