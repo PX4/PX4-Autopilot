@@ -526,6 +526,7 @@ This module parses the CRSF RC uplink protocol and generates CRSF downlink telem
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("crsf_rc", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("radio_control");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS3", "<file:dev>", "RC device", true);
 
