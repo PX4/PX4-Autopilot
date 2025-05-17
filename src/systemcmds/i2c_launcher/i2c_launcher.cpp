@@ -40,11 +40,17 @@
 
 constexpr I2CLauncher::I2CDevice I2CLauncher::_devices[];
 
-I2CLauncher::I2CLauncher(int bus) :
+I2CLauncher::I2CLauncher(int bus, int batt_index) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(bus)),
 	_bus(bus)
 {
+	if (_batt_index == -1) {
+		_batt_index = bus;
+
+	}  else {
+		_batt_index = batt_index;
+	}
 }
 
 I2CLauncher::~I2CLauncher()
@@ -87,10 +93,10 @@ void I2CLauncher::Run()
 		return;
 	}
 
-	scan_i2c_bus(_bus);
+	scan_i2c_bus(_bus, _batt_index);
 }
 
-void I2CLauncher::scan_i2c_bus(int bus)
+void I2CLauncher::scan_i2c_bus(int bus, int batt_index)
 {
 	struct i2c_master_s *i2c_dev = px4_i2cbus_initialize(bus);
 
@@ -163,7 +169,7 @@ void I2CLauncher::scan_i2c_bus(int bus)
 
 		if (found) {
 			char buf[32];
-			snprintf(buf, sizeof(buf), "%s -X -b %d -t %d start", _devices[i].cmd, bus, bus);
+			snprintf(buf, sizeof(buf), "%s -X -b %d -t %d start", _devices[i].cmd, bus, batt_index);
 
 			PX4_INFO("Found address 0x%x, running '%s'\n", _devices[i].i2c_addr, buf);
 
@@ -204,6 +210,7 @@ Daemon that starts drivers based on found I2C devices.
 	PRINT_MODULE_USAGE_NAME("i2c_launcher", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 1, 4, "Bus number", false);
+	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 3, "battery index for calibration values (1 or 3)", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
@@ -215,16 +222,21 @@ extern "C" __EXPORT int i2c_launcher_main(int argc, char *argv[])
 
 	static I2CLauncher* instances[I2C_BUS_MAX_BUS_ITEMS];
 	int bus = -1;
+	int batt_index = -1;
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
 
 	const char *verb = argv[1];
 
-	while ((ch = px4_getopt(argc, argv, "b:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:t:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			bus = strtol(myoptarg, nullptr, 10);
+			break;
+
+		case 't':
+			batt_index = strtol(myoptarg, nullptr, 10);
 			break;
 
 		default:
@@ -250,7 +262,7 @@ extern "C" __EXPORT int i2c_launcher_main(int argc, char *argv[])
 
 	if (strcmp(verb, "start") == 0) {
 
-		instances[bus] = new I2CLauncher(bus);
+		instances[bus] = new I2CLauncher(bus, batt_index);
 
 		if (instances[bus]) {
 
