@@ -10,5 +10,6 @@ uint8 TAKEOFF_STATE_RAMPUP            = 4
 uint8 TAKEOFF_STATE_FLIGHT            = 5
 
 uint8 takeoff_state
+uint64 time_in_state
 
 float32 tilt_limit # limited tilt feasibility during takeoff, contains maximum tilt otherwise
