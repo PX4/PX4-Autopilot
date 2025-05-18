@@ -48,7 +48,7 @@ These parameters cannot directly be set in missions and have no specific setter 
 A ground station can use any feature exposed by the camera.
 PX4 has no role in this interaction other than forwarding MAVLink traffic between the camera and ground station or SDK, if needed.
 
-### Camera Commands in Missions
+### 任务中的相机命令
 
 PX4 allows the following subset of [Camera Protocol v2](https://mavlink.io/en/services/camera.html) commands in missions:
 
