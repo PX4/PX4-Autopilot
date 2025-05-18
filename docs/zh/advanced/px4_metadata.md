@@ -1,4 +1,4 @@
-# PX4 Metadata
+# PX4 元数据
 
 PX4 使用并生成人类和机器可读的元数据:
 
@@ -48,7 +48,7 @@ PX4 元数据是在 PX4 源代码及其相关数据中定义的。
 元数据是通过 [github CI](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/metadata.yml) 上传的，用于所有构建目标（因此只有在参数被合并到主体后才能使用）。
 
 :::info
-You can identify memory constrained boards because they specify `CONFIG_BOARD_CONSTRAINED_FLASH=y` in their [px4board definition file](https://github.com/PX4/PX4-Autopilot/blob/main/boards/omnibus/f4sd/default.px4board).
+你可以识别出内存受限的开发板，因为它们在[px4board定义文件](https://github.com/PX4/PX4-Autopilot/blob/main/boards/omnibus/f4sd/default.px4board) 中指定了`CONFIG_BOARD_CONSTRAINED_FLASH=y` 。
 
 如果在 FLASH 受限板上进行自定义开发，您可以调整此处的 URL 以指向另一台服务器[here](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/component_information/CMakeLists.txt#L41)。
 :::
