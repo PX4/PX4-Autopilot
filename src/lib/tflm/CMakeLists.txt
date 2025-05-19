@@ -34,7 +34,8 @@
 if(CONFIG_LIB_TFLM)
 	px4_add_git_submodule(TARGET git_tflite-micro PATH tflite_micro)
 
-	set(TFLITE_DOWNLOADS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/px4)
+	#set(TFLITE_DOWNLOADS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/px4)
+	set(TFLITE_DOWNLOADS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/tensorflow/lite/micro/tools/make/downloads)
 
 	get_directory_property(FLAGS COMPILE_OPTIONS)
 	list(REMOVE_ITEM FLAGS "-Wcast-align")
@@ -64,6 +65,7 @@ if(CONFIG_LIB_TFLM)
 	set(TFLM_INCLUDE_DIRS
 	${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro
 	${TFLITE_DOWNLOADS_DIR}
+	${TFLITE_DOWNLOADS_DIR}/flatbuffers/include
 	${TFLITE_DOWNLOADS_DIR}/ruy
 	${TFLITE_DOWNLOADS_DIR}/gemmlowp
 	${TFLITE_DOWNLOADS_DIR}/cmsis/Cortex_DFP/Device/ARMCM7/Include
@@ -71,26 +73,59 @@ if(CONFIG_LIB_TFLM)
 	${TFLITE_DOWNLOADS_DIR}/cmsis
 	)
 
-	#add_custom_command()
+	set(TFLM_BUILD_TIMESTAMP ${CMAKE_CURRENT_BINARY_DIR}/tflm_build_complete.timestamp)
+	add_custom_command(
+		OUTPUT ${TFLM_BUILD_TIMESTAMP}
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			${CMAKE_CURRENT_SOURCE_DIR}/generate_cc_arrays.py
+			${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/tensorflow/lite/micro/tools/generate_cc_arrays.py
+		# TODO maybe change this if building for other architectures
+		COMMAND make -f tensorflow/lite/micro/tools/make/Makefile MICRO_LITE_EXAMPLE_TESTS= MICRO_LITE_BENCHMARKS= MICRO_LITE_TEST_SRCS= MICRO_LITE_INTEGRATION_TESTS= TARGET=cortex_m_generic TARGET_ARCH=cortex-m7 third_party_downloads
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			${CMAKE_CURRENT_SOURCE_DIR}/ctype_base.h
+			${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1/arm-none-eabi/bits/ctype_base.h
+		# Create timestamp file to mark completion
+		COMMAND ${CMAKE_COMMAND} -E touch ${TFLM_BUILD_TIMESTAMP}
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro
+		COMMENT "Building TFLM with native build system"
+		DEPENDS git_tflite-micro
+		VERBATIM
+	)
+	add_custom_target(build_tflm_native
+		DEPENDS ${TFLM_BUILD_TIMESTAMP}
+	)
 
 	px4_add_library(tflm ${TFLITE_MICRO_SRCS})
 
+
 	# Add C++ 17 std lib if building for NuttX
 	if(CONFIG_BOARD_TOOLCHAIN STREQUAL "arm-none-eabi")
-		list(APPEND TFLM_INCLUDE_DIRS
-			${TFLITE_DOWNLOADS_DIR}/include/13.2.1
-			${TFLITE_DOWNLOADS_DIR}/include/13.2.1/arm-none-eabi
-		)
-		get_target_property(_inc_dirs tflm INCLUDE_DIRECTORIES)
+	get_target_property(_inc_dirs tflm INCLUDE_DIRECTORIES)
 		list(FILTER _inc_dirs EXCLUDE REGEX ".*/platforms/nuttx/NuttX/include/cxx$")
+		list(FILTER _inc_dirs EXCLUDE REGEX ".*/platforms/nuttx/NuttX/nuttx/include/cxx$")
 		set_target_properties(tflm PROPERTIES INCLUDE_DIRECTORIES "${_inc_dirs}")
+		# get_target_property(_opts tflm COMPILE_OPTIONS)
+		# list(FILTER _opts EXCLUDE REGEX "-nostdinc\\+\\+")
+		# set_target_properties(tflm PROPERTIES COMPILE_OPTIONS "${_opts}")
+		list(APPEND TFLM_INCLUDE_DIRS
+			${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1
+			${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1/arm-none-eabi
+		)
+		# list(INSERT TFLM_INCLUDE_DIRS 0
+		# 	${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1
+		# 	${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1/arm-none-eabi
+		# )
+
+		# # Force-remove NuttX C++ include paths from TFLM target only
+		# target_compile_options(tflm PRIVATE
+		# 	-nostdinc++
+		# 	-isystem${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1
+		# 	-isystem${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1/arm-none-eabi
+		# )
 	endif()
-	# bring in the compiler’s standard C++ headers so <functional> etc. resolve:
-	# get_target_property(_opts tflm COMPILE_OPTIONS)
-	# list(FILTER _opts EXCLUDE REGEX "-nostdinc\\+\\+")
-	# set_target_properties(tflm PROPERTIES COMPILE_OPTIONS "${_opts}")
 
 	target_include_directories(tflm PUBLIC ${TFLM_INCLUDE_DIRS})
+	add_dependencies(tflm build_tflm_native)
 
 
 	target_compile_options(tflm PUBLIC

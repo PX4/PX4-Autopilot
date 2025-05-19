@@ -4,15 +4,15 @@
 This is an experimental module. All flying at your own risk.
 :::
 
-There are several reasons you might want to use neural networks inside of PX4, this documentation together with an example module will help you to get started with this. The code is made to run directly on an embedded flight controller (FCU), but it can easily be modified to run on a more powerful companion computer as well.
+There are several reasons you might want to use neural networks inside of PX4. This documentation together with an example module will help you to get started with this. The code is made to run directly on an embedded flight controller (FCU), but it can easily be modified to run on a more powerful companion computer as well.
 
-The example module only handles inference as of now, so you will need to train the network in another framework and import it here. You can find a guide for how this was done together with the open-source software [Aerial Gym Simulator](https://ntnu-arl.github.io/aerial_gym_simulator/) for this example module. Aerial gym supports RL both for control and perception.
+The example module only handles inference as of now, so you will need to train the network in another framework and import it here. You can find a guide for how this was done together with the open-source software [Aerial Gym Simulator](https://ntnu-arl.github.io/aerial_gym_simulator/9_sim2real/) for this example module. Aerial gym supports RL both for control and vision-based navigation tasks.
 
 This page toghether with the subpages explain how the example module works, both in terms of PX4 specific code and TFLM specific code. By looking through these pages the goal is for you to quickly be able to shape the model to your needs and make your own experimental NN modules.
 
 ## Inference library
 
-First of all we need a way to run inference on the neural network. In this example implementation TensorFlow Lite Micro ([TFLM](https://github.com/tensorflow/tflite-micro)) is used, but there are several other possibilities, like [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) and [Executorch](https://pytorch.org/executorch-overview). Do note however that importing new libraries into PX4 can be quite cumbersome.
+First of all we need a way to run inference on the neural network. In this module TensorFlow Lite Micro ([TFLM](https://github.com/tensorflow/tflite-micro)) is used, but there are several other possibilities, like [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) and [Executorch](https://pytorch.org/executorch-overview). Do note however that importing new libraries into PX4 can be quite cumbersome.
 
 TFLM already has support for several architectures, so there is a high likelihood that you can build it for the board you want to use. The build is already tested for three configurations and can be created with the following commands:
 
@@ -29,7 +29,7 @@ TFLM already has support for several architectures, so there is a high likelihoo
    ```
 
 :::tip
-If you have a board you want to test neural control on, which is supported by px4, but not part of the examples: got to boards/"your board" and add "CONFIG_MODULES_MC_NN_CONTROL=y" to your .px4board file
+If you have a board you want to test neural control on, which is supported by px4, but not part of the examples: got to boards/"your board" and add "CONFIG_LIB_TFLM=y" and "CONFIG_MODULES_MC_NN_CONTROL=y" to your .px4board file
 :::
 
 
