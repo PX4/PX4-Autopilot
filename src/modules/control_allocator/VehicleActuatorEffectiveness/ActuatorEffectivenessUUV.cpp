@@ -53,8 +53,6 @@ bool ActuatorEffectivenessUUV::getEffectivenessMatrix(Configuration &configurati
 	const bool rotors_added_successfully = _rotors.addActuators(configuration);
 	_motors_mask = _rotors.getMotors();
 
-	PX4_INFO("This Runs! (MAtrix)");
-
 	return rotors_added_successfully;
 }
 
@@ -62,6 +60,5 @@ void ActuatorEffectivenessUUV::updateSetpoint(const matrix::Vector<float, NUM_AX
 		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
 		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
 {
-	PX4_INFO("This Runs! (setpoint)");
 	stopMaskedMotorsWithZeroThrust(_motors_mask, actuator_sp);
 }

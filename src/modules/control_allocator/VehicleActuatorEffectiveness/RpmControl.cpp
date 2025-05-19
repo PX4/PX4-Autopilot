@@ -33,10 +33,6 @@
 
 #include "RpmControl.hpp"
 
-#include <drivers/drv_hrt.h>
-
-using namespace time_literals;
-
 RpmControl::RpmControl(ModuleParams *parent) : ModuleParams(parent),
 WorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
@@ -98,20 +94,39 @@ float RpmControl::getActuatorCorrection()
 	return _actuator_correction;
 }
 
+uint8_t powerModuleSensor = false;
+uint8_t mainbrainSensor = false;
+
 void RpmControl::thrusterSafety()
 {
-	bool onWater = false;
-	bool inWater = false;
+	if(_water_detection_sub.update(&_water_detection))
+	{
+		powerModuleSensor 	= _water_detection.power_module_sensor;
+		mainbrainSensor 	= _water_detection.mainbrain_sensor;
 
-	if (!onWater && !inWater) {
-		_pid.setOutputLimit(_param_pwm_out_w_max.get());
+		if (!powerModuleSensor && ! mainbrainSensor) {
+			_pid.setOutputLimit(_param_pwm_out_w_max.get());
+			droneStateMsg(OFF);
+			PX4_DEBUG("Drone is out of the water");
 
-	} else if (onWater && !inWater) {
-		_pid.setOutputLimit(_param_pwm_on_w_max.get());
+		} else if (powerModuleSensor && ! mainbrainSensor) {
+			_pid.setOutputLimit(_param_pwm_on_w_max.get());
+			droneStateMsg(ON);
+			PX4_DEBUG("Drone is on top of the water");
 
-	} else if (onWater && inWater) {
-		_pid.setOutputLimit(_param_pwm_in_w_max.get());
+		} else if (powerModuleSensor &&  mainbrainSensor) {
+			_pid.setOutputLimit(_param_pwm_in_w_max.get());
+			droneStateMsg(ON);
+			PX4_DEBUG("Drone is in the water");
+		}
+
+		PX4_INFO("thrusterSafety logic executed");
 	}
+}
 
-	PX4_INFO("thrusterSafety logic executed");
+void RpmControl::droneStateMsg(uint8_t state)
+{
+	_water_contact_state.timestamp = hrt_absolute_time();
+	_water_contact_state.contact_state = state;
+	_water_contact_state_pub.publish(_water_contact_state);
 }

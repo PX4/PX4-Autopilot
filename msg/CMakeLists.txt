@@ -263,8 +263,9 @@ set(msg_files
 	versioned/VehicleRatesSetpoint.msg
 	versioned/VehicleStatus.msg
 	versioned/VtolVehicleStatus.msg
-	robosub/WaterPresence.msg
 	robosub/RawCanfd.msg
+	robosub/waterDetection.msg
+	robosub/waterContactState.msg
 )
 list(SORT msg_files)
 
