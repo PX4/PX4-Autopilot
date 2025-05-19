@@ -1,6 +1,6 @@
 # Neural Network Module Utilities
 
-This page will explain the parts of the module that do not directly concern something with the neural network, but PX4 related implementations, so that you more easily can shape the module to your needs.
+This page will explain the parts of the module that do not directly concern something with the neural network, but PX4 related implementations, so that you easily can shape the module to your needs.
 
 To learn more about how PX4 works in general, it is recommended to start with [Getting started](../dev_setup/getting_started.md).
 

@@ -89,7 +89,6 @@
 [submodule "src/drivers/uavcan/libdronecan/libuavcan/dsdl_compiler/pydronecan"]
 	path = src/drivers/uavcan/libdronecan/libuavcan/dsdl_compiler/pydronecan
 	url = https://github.com/dronecan/pydronecan
-[submodule "tflm"]
+[submodule "src/lib/tflm/tflite_micro"]
 	path = src/lib/tflm/tflite_micro
-	url = https://github.com/SindreMHegre/tflite-micro.git
-	branch = main
+	url = https://github.com/tensorflow/tflite-micro.git

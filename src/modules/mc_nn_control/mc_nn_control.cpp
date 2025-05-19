@@ -87,8 +87,6 @@ bool MulticopterNeuralNetworkControl::init()
 int MulticopterNeuralNetworkControl::InitializeNetwork()
 {
 	// Initialize the neural network
-	// Load the model
-	// TODO: Replace with your model data variable
 	const tflite::Model *control_model = ::tflite::GetModel(control_net_tflite);
 
 	// Set up the interpreter
@@ -163,11 +161,10 @@ void MulticopterNeuralNetworkControl::ConfigureNeuralFlightMode(int8 mode_id)
 	vehicle_control_mode_s config_control_setpoints{};
 	config_control_setpoints.timestamp = hrt_absolute_time();
 	config_control_setpoints.source_id = mode_id;
-	// TODO: Which of these flags should be set?
 	config_control_setpoints.flag_multicopter_position_control_enabled = false;
 	config_control_setpoints.flag_control_manual_enabled = false;
 	config_control_setpoints.flag_control_offboard_enabled = false;
-	config_control_setpoints.flag_control_position_enabled = true;
+	config_control_setpoints.flag_control_position_enabled = false;
 	//  config_control_setpoints.flag_control_velocity_enabled = true;
 	//  config_control_setpoints.flag_control_altitude_enabled = true;
 	config_control_setpoints.flag_control_climb_rate_enabled = true;
@@ -443,6 +440,15 @@ void MulticopterNeuralNetworkControl::Run()
 
 		if (_position_sub.updated()) {
 			_position_sub.copy(&_position);
+
+			// If there is no position setpoint, use the position when switching mode as the setpoint
+			if (!PX4_ISFINITE(_trajectory_setpoint.position[0])
+			    && !PX4_ISFINITE(_trajectory_setpoint.position[1])
+			    && !PX4_ISFINITE(_trajectory_setpoint.position[2])) {
+				_trajectory_setpoint.position[0] = _position.x;
+				_trajectory_setpoint.position[1] = _position.y;
+				_trajectory_setpoint.position[2] = _position.z;
+			}
 		}
 
 		if (_trajectory_setpoint_sub.updated()) {
@@ -458,9 +464,7 @@ void MulticopterNeuralNetworkControl::Run()
 
 		PopulateInputTensor();
 
-		// Run inference
 		int32_t start_time2 = GetTime();
-		// Inference
 		TfLiteStatus invoke_status = _interpreter->Invoke();
 		int32_t inference_time = GetTime() - start_time2;
 
@@ -469,7 +473,6 @@ void MulticopterNeuralNetworkControl::Run()
 			return;
 		}
 
-		// Get the output tensor
 		_output_tensor = _interpreter->output(0);
 
 		if (_output_tensor == nullptr) {
@@ -480,7 +483,6 @@ void MulticopterNeuralNetworkControl::Run()
 		// Convert the output tensor to actuator values
 		RescaleActions();
 
-		// Publish the actuator values
 		PublishOutput(_output_tensor->data.f);
 
 		int32_t full_controller_time = GetTime() - start_time1;

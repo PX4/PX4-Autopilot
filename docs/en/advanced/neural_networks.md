@@ -6,7 +6,7 @@ This is an experimental module. All flying at your own risk.
 
 There are several reasons you might want to use neural networks inside of PX4. This documentation together with an example module will help you to get started with this. The code is made to run directly on an embedded flight controller (FCU), but it can easily be modified to run on a more powerful companion computer as well.
 
-The example module only handles inference as of now, so you will need to train the network in another framework and import it here. You can find a guide for how this was done together with the open-source software [Aerial Gym Simulator](https://ntnu-arl.github.io/aerial_gym_simulator/9_sim2real/) for this example module. Aerial gym supports RL both for control and vision-based navigation tasks.
+The example module only handles inference as of now, so you will need to train the network in another framework and import it here. You can find a guide for how this was done together with the open-source software [Aerial Gym Simulator](https://github.com/ntnu-arl/aerial_gym_simulator) for this example module. Aerial gym supports RL both for control and vision-based navigation tasks.
 
 This page toghether with the subpages explain how the example module works, both in terms of PX4 specific code and TFLM specific code. By looking through these pages the goal is for you to quickly be able to shape the model to your needs and make your own experimental NN modules.
 
@@ -34,7 +34,7 @@ If you have a board you want to test neural control on, which is supported by px
 
 
 ## Neural Control
-Nerual networks can be used for a broad range of implementations, like estimation and computer vision, in the example module it is used to replace the [controllers](../flight_stack/controller_diagrams.md). In the controller diagram you can see the uORB message flow where you can replace whatever by subscribing to the previous message and publishing the next. More about [uORB](../middleware/uorb.md) can be read here. And you also need to stop the module publishing the topic you want to replace, this is covered in [NN Module Utilities](nn_module_utilities.md)
+Nerual networks can be used for a broad range of implementations, like estimation and computer vision, in the example module it is used to replace the [controllers](../flight_stack/controller_diagrams.md). In the controller diagram you can see the uORB message flow where you can replace whatever you want by subscribing to the previous message and publishing the next. More about [uORB](../middleware/uorb.md) can be read here. And you also need to stop the module publishing the topic you want to replace, this is covered in [NN Module Utilities](nn_module_utilities.md)
 
 The module is called mc_nn_control and replaces the entire controller structure as well as the control allocator.
 
@@ -52,12 +52,12 @@ The input can be changed to whatever you want. Set ut the input you want to use 
  ENU and NED are just rotation representations, the translational difference is only there so both can be seen in the same figure.
 
 ## Output
-The output consists of 4 values, the motor forces, one for each motor. These are transformed in the RescaleActions() function. This is done because PX4 expects normalized motor commands while the Aerial Gym Simulator uses physical values. So the output from the network needs to be normalized before they can be sent to the motors in PX4. The network is currently trained for a drone platform used in the [Autonomous Robots Lab (ARL)](https://www.autonomousrobotslab.com/) at NTNU. But the controller is somewhat robust, so it could work directly on other platforms, but performing system identification and training a new network is recommended. You can find instructions for this in the [Aerial Gym Documentation](TODO).
+The output consists of 4 values, the motor forces, one for each motor. These are transformed in the RescaleActions() function. This is done because PX4 expects normalized motor commands while the Aerial Gym Simulator uses physical values. So the output from the network needs to be normalized before they can be sent to the motors in PX4. The network is currently trained for the [X500 V2](../frames_multicopter/holybro_x500v2_pixhawk6c.md). But the controller is somewhat robust, so it could work directly on other platforms, but performing system identification and training a new network is recommended. You can find instructions for this in the [Aerial Gym Documentation](https://ntnu-arl.github.io/aerial_gym_simulator/9_sim2real/).
 
  And then the commands are published to the [ActuatorMotors](../msg_docs/ActuatorMotors.md) topic. The reordering and the publishing is handled in PublishOutput(float* command_actions) function.
 
  ## Training your own network
- Since the Aerial Gym Simulator is open-source you can download it and train your own networks as long as you have access to an NVIDIA GPU. If you want to train a control network optimized for your platform you can use the configuration used in [this example](TODO). You need one system identification flight for this and an approximate inertia matrix for your platform. On the sys-id flight you need ESC telemetry, you can read more about that in [DSHOT](../peripherals/dshot.md). Then do the following steps.
+ Since the Aerial Gym Simulator is open-source you can download it and train your own networks as long as you have access to an NVIDIA GPU. If you want to train a control network optimized for your platform you can follow the instructions in the [Aerial Gym Documentation](https://ntnu-arl.github.io/aerial_gym_simulator/9_sim2real/). You need one system identification flight for this and an approximate inertia matrix for your platform. On the sys-id flight you need ESC telemetry, you can read more about that in [DSHOT](../peripherals/dshot.md). Then do the following steps.
 
  - Do a hover flight
  - Read of the logs what RPM is required for the drone to hover.

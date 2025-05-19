@@ -34,7 +34,6 @@
 if(CONFIG_LIB_TFLM)
 	px4_add_git_submodule(TARGET git_tflite-micro PATH tflite_micro)
 
-	#set(TFLITE_DOWNLOADS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/px4)
 	set(TFLITE_DOWNLOADS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/tensorflow/lite/micro/tools/make/downloads)
 
 	get_directory_property(FLAGS COMPILE_OPTIONS)
@@ -104,24 +103,10 @@ if(CONFIG_LIB_TFLM)
 		list(FILTER _inc_dirs EXCLUDE REGEX ".*/platforms/nuttx/NuttX/include/cxx$")
 		list(FILTER _inc_dirs EXCLUDE REGEX ".*/platforms/nuttx/NuttX/nuttx/include/cxx$")
 		set_target_properties(tflm PROPERTIES INCLUDE_DIRECTORIES "${_inc_dirs}")
-		# get_target_property(_opts tflm COMPILE_OPTIONS)
-		# list(FILTER _opts EXCLUDE REGEX "-nostdinc\\+\\+")
-		# set_target_properties(tflm PROPERTIES COMPILE_OPTIONS "${_opts}")
 		list(APPEND TFLM_INCLUDE_DIRS
 			${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1
 			${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1/arm-none-eabi
 		)
-		# list(INSERT TFLM_INCLUDE_DIRS 0
-		# 	${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1
-		# 	${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1/arm-none-eabi
-		# )
-
-		# # Force-remove NuttX C++ include paths from TFLM target only
-		# target_compile_options(tflm PRIVATE
-		# 	-nostdinc++
-		# 	-isystem${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1
-		# 	-isystem${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1/arm-none-eabi
-		# )
 	endif()
 
 	target_include_directories(tflm PUBLIC ${TFLM_INCLUDE_DIRS})
