@@ -77,12 +77,6 @@ void AckermannActControl::updateActControl()
 		actuator_motors.timestamp = _timestamp;
 		_actuator_motors_pub.publish(actuator_motors);
 
-	} else {
-		actuator_motors_s actuator_motors{};
-		actuator_motors.reversible_flags = _param_r_rev.get();
-		actuator_motors.control[0] = 0.f;
-		actuator_motors.timestamp = _timestamp;
-		_actuator_motors_pub.publish(actuator_motors);
 	}
 
 	// Servo control
@@ -114,15 +108,7 @@ void AckermannActControl::updateActControl()
 		actuator_servos.control[0] = _servo_setpoint.getState();
 		actuator_servos.timestamp = _timestamp;
 		_actuator_servos_pub.publish(actuator_servos);
-
-	} else {
-		actuator_servos_s actuator_servos{};
-		actuator_servos.control[0] = 0.f;
-		actuator_servos.timestamp = _timestamp;
-		_actuator_servos_pub.publish(actuator_servos);
 	}
-
-
 }
 
 void AckermannActControl::stopVehicle()

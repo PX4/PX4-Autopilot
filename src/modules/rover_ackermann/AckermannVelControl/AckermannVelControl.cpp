@@ -87,12 +87,6 @@ void AckermannVelControl::updateVelControl()
 		rover_throttle_setpoint.throttle_body_y = NAN;
 		_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 
-	} else {
-		rover_throttle_setpoint_s rover_throttle_setpoint{};
-		rover_throttle_setpoint.timestamp = _timestamp;
-		rover_throttle_setpoint.throttle_body_x = 0.f;
-		rover_throttle_setpoint.throttle_body_y = NAN;
-		_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 	}
 
 	// Publish position controller status (logging only)

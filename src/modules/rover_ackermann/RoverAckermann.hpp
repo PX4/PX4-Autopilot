@@ -48,7 +48,6 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_status.h>
 
 // Local includes
 #include "AckermannActControl/AckermannActControl.hpp"
@@ -91,6 +90,11 @@ private:
 	void Run() override;
 
 	/**
+	 * @brief Generate and publish roverSetpoints from manualControlSetpoints.
+	 */
+	void manualControl();
+
+	/**
 	 * @brief Update the active controllers.
 	 */
 	void updateControllers();
@@ -112,7 +116,6 @@ private:
 	// uORB subscriptions
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	vehicle_control_mode_s _vehicle_control_mode{};
 
 	// Class instances
@@ -126,7 +129,6 @@ private:
 	OffboardMode 	     _offboard_mode{this};
 
 	// Variables
-	int _nav_state{0}; // Navigation state of the vehicle
 	bool _sanity_checks_passed{true}; // True if checks for all active controllers pass
 	bool _was_armed{false}; // True if the vehicle was armed before the last reset
 };
