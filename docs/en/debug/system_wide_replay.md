@@ -126,8 +126,7 @@ In EKF2 mode, the replay will automatically create the ORB publisher rules descr
 
 To perform an EKF2 replay:
 
-- Record the original log.
-  Optionally set `SDLOG_MODE` to `1` to log from boot.
+- Record the original log with `SDLOG_MODE` set to `1` to log from boot.
 
 - In addition to the `replay` environment variable, set `replay_mode` to `ekf2`:
 
