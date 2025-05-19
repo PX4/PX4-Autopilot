@@ -31,13 +31,4 @@
  *
  ****************************************************************************/
 
-/**
- * Offset in volt as seen by the ADC input of the current sensor.
- *
- * This offset will be subtracted before calculating the battery
- * current based on the voltage.
- *
- * @group Battery Calibration
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(BAT_V_OFFS_CURR, 0.0);
+
