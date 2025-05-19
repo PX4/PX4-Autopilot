@@ -50,3 +50,14 @@ PARAM_DEFINE_INT32(SENS_EN_GPSSIM, 0);
  * @group Simulator
  */
 PARAM_DEFINE_INT32(SIM_GPS_USED, 10);
+
+/**
+ * simulated GPS RTK enabled
+ *
+ * @min 0
+ * @max  1
+ * @group Simulator
+ * @value 0 Disabled
+ * @value 1 Enabled
+ */
+PARAM_DEFINE_INT32(SIM_GPS_RTK, 0);

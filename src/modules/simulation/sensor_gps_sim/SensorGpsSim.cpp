@@ -114,11 +114,23 @@ void SensorGpsSim::Run()
 		vehicle_global_position_s gpos{};
 		_vehicle_global_position_sub.copy(&gpos);
 
-		double latitude = gpos.lat + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
-		double longitude = gpos.lon + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
-		double altitude = (double)(gpos.alt + (generate_wgn() * 0.5f));
-
-		Vector3f gps_vel = Vector3f{lpos.vx, lpos.vy, lpos.vz} + noiseGauss3f(0.06f, 0.077f, 0.158f);
+		double latitude;
+		double longitude;
+		float altitude;
+		Vector3f gps_vel;
+		if (_sim_gps_rtk.get()){
+			// RTK mode: reduce noise
+			latitude = gpos.lat + math::degrees((double)generate_wgn() * 0.015 / CONSTANTS_RADIUS_OF_EARTH);
+			longitude = gpos.lon + math::degrees((double)generate_wgn() * 0.015 / CONSTANTS_RADIUS_OF_EARTH);
+			altitude = gpos.alt + (generate_wgn() * 0.03f);
+			gps_vel = Vector3f{lpos.vx, lpos.vy, lpos.vz} + noiseGauss3f(0.01f, 0.01f, 0.02f);
+		} else {
+			// Non-RTK mode: keep default noise levels
+			latitude = gpos.lat + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
+			longitude = gpos.lon + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
+			altitude = gpos.alt + (generate_wgn() * 0.5f);
+			gps_vel = Vector3f{lpos.vx, lpos.vy, lpos.vz} + noiseGauss3f(0.06f, 0.077f, 0.158f);
+		}
 
 		// device id
 		device::Device::DeviceId device_id;
@@ -130,14 +142,24 @@ void SensorGpsSim::Run()
 		sensor_gps_s sensor_gps{};
 
 		if (_sim_gps_used.get() >= 4) {
-			// fix
-			sensor_gps.fix_type = 3; // 3D fix
-			sensor_gps.s_variance_m_s = 0.4f;
-			sensor_gps.c_variance_rad = 0.1f;
-			sensor_gps.eph = 0.9f;
-			sensor_gps.epv = 1.78f;
-			sensor_gps.hdop = 0.7f;
-			sensor_gps.vdop = 1.1f;
+			if (_sim_gps_rtk.get()){
+				sensor_gps.fix_type = 6; // RTK Fixed
+				sensor_gps.s_variance_m_s = 0.1f;
+				sensor_gps.c_variance_rad = 0.01f;
+				sensor_gps.eph = 0.02f;
+				sensor_gps.epv = 0.04f;
+				sensor_gps.hdop = 0.1f;
+				sensor_gps.vdop = 0.2f;
+			}else{
+				// fix
+				sensor_gps.fix_type = 3; // 3D fix
+				sensor_gps.s_variance_m_s = 0.5f;
+				sensor_gps.c_variance_rad = 0.1f;
+				sensor_gps.eph = 0.9f;
+				sensor_gps.epv = 1.78f;
+				sensor_gps.hdop = 0.7f;
+				sensor_gps.vdop = 1.1f;
+			}
 
 		} else {
 			// no fix
