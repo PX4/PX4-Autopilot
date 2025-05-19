@@ -44,6 +44,7 @@
 #include <lib/atmosphere/atmosphere.h>
 #include <parameters/param.h>
 
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 #define MOTOR_BIT(x) (1<<(x))
 
 using namespace time_literals;
@@ -53,11 +54,12 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_uavcan_pub_raw_cmd(node),
 	_uavcan_sub_status(node),
 	_uavcan_sub_status_extended(node)
-
 {
+	/* Ensure that future changes do not cause any out-of-bounds access */
+	static_assert(ARRAY_SIZE(_esc_status.esc) == esc_status_s::CONNECTED_ESC_MAX);
+
 	_uavcan_pub_raw_cmd.setPriority(uavcan::TransferPriority::NumericallyMin); // Highest priority
 	memset(_last_motor_temperature, 0, sizeof(_last_motor_temperature)); // Set bytes to 0
-
 }
 
 int
