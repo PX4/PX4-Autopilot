@@ -132,11 +132,16 @@
 
 #define GPIO_VTX_9V_EN                  /* PE3  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
 
+#define GPIO_CAM_SWITCH                 /* PC13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
+
 /* Define True logic Power Control in arch agnostic form */
 
 #define VDD_3V3_SENSORS_EN(on_true)       px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, (on_true))
 
 #define VTX_9V_EN(on_true)                px4_arch_gpiowrite(GPIO_VTX_9V_EN, (on_true))
+
+#define CAM_SWITCH_CAM1                   px4_arch_gpiowrite(GPIO_CAM_SWITCH, false) // low is CAM1
+#define CAM_SWITCH_CAM2                   px4_arch_gpiowrite(GPIO_CAM_SWITCH, true)  // high is CAM2
 
 /* Tone alarm output */
 
@@ -214,6 +219,7 @@
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_PPM_IN,                      \
 		GPIO_VTX_9V_EN,                   \
+		GPIO_CAM_SWITCH,                  \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
