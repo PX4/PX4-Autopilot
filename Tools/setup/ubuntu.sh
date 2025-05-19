@@ -58,6 +58,12 @@ fi
 # check ubuntu version
 # otherwise warn and point to docker?
 UBUNTU_RELEASE="`lsb_release -rs`"
+UBUNTU_RELEASE_NUMERIC=""
+
+if [[ "$UBUNTU_RELEASE" =~ ^[0-9]{2}\.[0-9]{2}$ ]]; then
+    UBUNTU_RELEASE_NUMERIC=$(echo "$UBUNTU_RELEASE" | awk -F. '{ printf("%02d%02d\n", $1, $2) }')
+fi
+
 echo "[ubuntu.sh] Ubuntu ${UBUNTU_RELEASE}"
 echo "[ubuntu.sh] Installing PX4 general dependencies"
 
@@ -153,9 +159,32 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	if [[ "${INSTALL_ARCH}" == "x86_64" ]]; then
 		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 			g++-multilib \
-			gcc-arm-none-eabi \
-			gcc-multilib \
 			;
+
+		# Backwards compatibility with old ubuntu releases that contain older GCC versions
+		if [[ -n "$UBUNTU_RELEASE_NUMERIC" && "$UBUNTU_RELEASE_NUMERIC" -lt 2404 ]]; then
+			NUTTX_GCC_VERSION="13.2.rel1"
+
+			# download and extract GCC
+			echo "Installing arm-none-eabi-gcc-${NUTTX_GCC_VERSION}";
+			wget -O /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.xz https://developer.arm.com/-/media/Files/downloads/gnu/${NUTTX_GCC_VERSION}/binrel/arm-gnu-toolchain-${NUTTX_GCC_VERSION}-${INSTALL_ARCH}-arm-none-eabi.tar.xz && \
+				sudo mkdir -p /opt/gcc-arm-none-eabi-${NUTTX_GCC_VERSION} && \
+				sudo tar --strip-components=1 -xf /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.xz -C /opt/gcc-arm-none-eabi-${NUTTX_GCC_VERSION};
+
+			# add arm-none-eabi-gcc to user's PATH
+			exportline="export PATH=/opt/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}/bin:\$PATH"
+
+			if grep -Fxq "$exportline" $HOME/.profile; then
+				echo "${NUTTX_GCC_VERSION} path already set.";
+			else
+				echo $exportline >> $HOME/.profile;
+			fi
+		else
+			sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+				gcc-arm-none-eabi \
+				gcc-multilib \
+				;
+		fi
 	fi
 
 	if [[ "${INSTALL_ARCH}" == "aarch64" ]]; then
@@ -237,4 +266,12 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		echo "export SVGA_VGPU10=0" >> ~/.profile
 	fi
 
+fi
+
+if [[ $INSTALL_NUTTX == "true" ]]; then
+	# Backwards compatibility with old ubuntu releases that contain older GCC versions
+	if [[ -n "$UBUNTU_RELEASE_NUMERIC" && "$UBUNTU_RELEASE_NUMERIC" -lt 2404 ]]; then
+		echo "To apply changes and be able to compile NuttX targets, run:"
+		echo "  source ~/.profile"
+	fi
 fi
