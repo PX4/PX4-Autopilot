@@ -49,10 +49,8 @@ The generated files will be written to the `modules` directory.
             subcategories = module_groups[category]
 
             if len(subcategories) > 1:
-                sorted_subcategories = {key: subcategories[key] for key in sorted(subcategories.keys())}
                 result += 'Subcategories:\n\n'
-
-                for subcategory in sorted_subcategories:
+                for subcategory in sorted(subcategories): 
                     if subcategory == '':
                         continue
                     subcategory_label = subcategory.replace('_', ' ').title()
