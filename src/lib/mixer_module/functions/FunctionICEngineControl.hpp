@@ -55,6 +55,7 @@ public:
 		internal_combustion_engine_control_s internal_combustion_engine_control;
 
 		// map [0, 1] to [-1, 1] which is the interface for non-motor PWM channels
+		// NAN is mapped to disarmed
 		if (_internal_combustion_engine_control_sub.update(&internal_combustion_engine_control)) {
 			_data[0] = internal_combustion_engine_control.ignition_on * 2.f - 1.f;
 			_data[1] = internal_combustion_engine_control.throttle_control * 2.f - 1.f;
