@@ -775,7 +775,7 @@ private:
 	 * @param desired_max_climb_rate The desired max climb rate commandable when altitude errors are large [m/s]
 	 * @param is_low_height Define whether we are in low-height flight for tighter altitude tracking
 	 * @param disable_underspeed_detection True if underspeed detection should be disabled
-	 * @param hgt_rate_sp Height rate setpoint [m/s]
+	 * @param hgt_rate_sp Height rate setpoint (positive equals going up) [m/s]
 	 */
 	void tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp, float pitch_min_rad,
 					float pitch_max_rad, float throttle_min, float throttle_max,
