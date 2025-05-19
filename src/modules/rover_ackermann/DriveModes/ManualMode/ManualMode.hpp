@@ -68,23 +68,6 @@ public:
 	~ManualMode() = default;
 
 	/**
-	 * @brief Generate and publish roverSetpoints from manualControlSetpoints.
-	 */
-	void manualControl(int nav_state);
-
-	/**
-	 * @brief Reset manual mode variables.
-	 */
-	void reset();
-
-protected:
-	/**
-	 * @brief Update the parameters of the module.
-	 */
-	void updateParams() override;
-
-private:
-	/**
 	 * @brief Publish roverThrottleSetpoint and roverSteeringSetpoint from manualControlSetpoint.
 	 */
 	void manual();
@@ -104,6 +87,18 @@ private:
 	 */
 	void position();
 
+	/**
+	 * @brief Reset manual mode variables.
+	 */
+	void reset();
+
+protected:
+	/**
+	 * @brief Update the parameters of the module.
+	 */
+	void updateParams() override;
+
+private:
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};

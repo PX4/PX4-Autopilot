@@ -52,27 +52,6 @@ void ManualMode::updateParams()
 	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
 }
 
-void ManualMode::manualControl(const int nav_state)
-{
-	switch (nav_state) {
-	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-		manual();
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_ACRO:
-		acro();
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_STAB:
-		stab();
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-		position();
-		break;
-	}
-}
-
 void ManualMode::manual()
 {
 	manual_control_setpoint_s manual_control_setpoint{};
@@ -121,20 +100,24 @@ void ManualMode::stab()
 	rover_throttle_setpoint.throttle_body_y = 0.f;
 	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 
-	const float yaw_delta = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
-				_param_ro_yaw_stick_dz.get()), -1.f, 1.f, -_max_yaw_rate / _param_ro_yaw_p.get(),
-				_max_yaw_rate / _param_ro_yaw_p.get());
-
-	if (fabsf(yaw_delta) > FLT_EPSILON
-	    || fabsf(rover_throttle_setpoint.throttle_body_x) < FLT_EPSILON) { // Closed loop yaw rate control
+	if (fabsf(manual_control_setpoint.roll) > FLT_EPSILON
+	    || fabsf(rover_throttle_setpoint.throttle_body_x) < FLT_EPSILON) {
 		_stab_yaw_setpoint = NAN;
-		const float yaw_setpoint = matrix::wrap_pi(_vehicle_yaw + matrix::sign(manual_control_setpoint.throttle) * yaw_delta);
+
+		// Rate control
+		rover_rate_setpoint_s rover_rate_setpoint{};
+		rover_rate_setpoint.timestamp = hrt_absolute_time();
+		rover_rate_setpoint.yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
+							_param_ro_yaw_stick_dz.get()), -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);;
+		_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
+
+		// Set uncontrolled setpoint invalid
 		rover_attitude_setpoint_s rover_attitude_setpoint{};
 		rover_attitude_setpoint.timestamp = hrt_absolute_time();
-		rover_attitude_setpoint.yaw_setpoint = yaw_setpoint;
+		rover_attitude_setpoint.yaw_setpoint = NAN;
 		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
 
-	} else { // Closed loop yaw control if the yaw rate input is zero (keep current yaw)
+	} else { // Heading control
 		if (!PX4_ISFINITE(_stab_yaw_setpoint)) {
 			_stab_yaw_setpoint = _vehicle_yaw;
 		}
@@ -173,30 +156,44 @@ void ManualMode::position()
 
 	const float speed_setpoint = math::interpolate<float>(manual_control_setpoint.throttle,
 				     -1.f, 1.f, -_param_ro_speed_limit.get(), _param_ro_speed_limit.get());
-	const float yaw_delta = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
-				_param_ro_yaw_stick_dz.get()), -1.f, 1.f, -_max_yaw_rate / _param_ro_yaw_p.get(),
-				_max_yaw_rate / _param_ro_yaw_p.get());
 
-	if (fabsf(yaw_delta) > FLT_EPSILON
-	    || fabsf(speed_setpoint) < FLT_EPSILON) { // Closed loop yaw rate control
+	if (fabsf(manual_control_setpoint.roll) > FLT_EPSILON
+	    || fabsf(speed_setpoint) < FLT_EPSILON) {
 		_pos_ctl_course_direction = Vector2f(NAN, NAN);
-		// Construct a 'target waypoint' for course control s.t. it is never within the maximum lookahead of the rover
-		const float yaw_setpoint = matrix::wrap_pi(_vehicle_yaw + sign(speed_setpoint) * yaw_delta);
-		const Vector2f pos_ctl_course_direction = Vector2f(cos(yaw_setpoint), sin(yaw_setpoint));
-		const Vector2f target_waypoint_ned = _curr_pos_ned + sign(speed_setpoint) * _param_pp_lookahd_max.get() *
-						     pos_ctl_course_direction;
+
+		// Speed control
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = hrt_absolute_time();
+		rover_velocity_setpoint.speed = speed_setpoint;
+		rover_velocity_setpoint.bearing = NAN;
+		rover_velocity_setpoint.yaw = NAN;
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
+
+		// Rate control
+		rover_rate_setpoint_s rover_rate_setpoint{};
+		rover_rate_setpoint.timestamp = hrt_absolute_time();
+		rover_rate_setpoint.yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
+							_param_ro_yaw_stick_dz.get()), -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);;
+		_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
+
+		// Set uncontrolled setpoints invalid
+		rover_attitude_setpoint_s rover_attitude_setpoint{};
+		rover_attitude_setpoint.timestamp = hrt_absolute_time();
+		rover_attitude_setpoint.yaw_setpoint = NAN;
+		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
+
 		rover_position_setpoint_s rover_position_setpoint{};
 		rover_position_setpoint.timestamp = hrt_absolute_time();
-		rover_position_setpoint.position_ned[0] = target_waypoint_ned(0);
-		rover_position_setpoint.position_ned[1] = target_waypoint_ned(1);
+		rover_position_setpoint.position_ned[0] = NAN;
+		rover_position_setpoint.position_ned[1] = NAN;
 		rover_position_setpoint.start_ned[0] = NAN;
 		rover_position_setpoint.start_ned[1] = NAN;
 		rover_position_setpoint.arrival_speed = NAN;
-		rover_position_setpoint.cruising_speed = speed_setpoint;
+		rover_position_setpoint.cruising_speed = NAN;
 		rover_position_setpoint.yaw = NAN;
 		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 
-	} else { // Course control if the steering input is zero (keep driving on a straight line)
+	} else { // Course control
 		if (!_pos_ctl_course_direction.isAllFinite()) {
 			_pos_ctl_course_direction = Vector2f(cos(_vehicle_yaw), sin(_vehicle_yaw));
 			_pos_ctl_start_position_ned = _curr_pos_ned;

@@ -64,47 +64,49 @@ void AckermannRateControl::updateRateControl()
 	_timestamp = hrt_absolute_time();
 	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
 
-	if (fabsf(_estimated_speed) > FLT_EPSILON && PX4_ISFINITE(_yaw_rate_setpoint)) {
-		// Set up feasible yaw rate setpoint
-		float steering_setpoint{0.f};
-		float max_possible_yaw_rate = fabsf(_estimated_speed) * tanf(_param_ra_max_str_ang.get()) /
-					      _param_ra_wheel_base.get(); // Maximum possible yaw rate at current velocity
-		float yaw_rate_limit = math::min(max_possible_yaw_rate, _max_yaw_rate);
-		float constrained_yaw_rate = math::constrain(_yaw_rate_setpoint, -yaw_rate_limit, yaw_rate_limit);
+	if (PX4_ISFINITE(_yaw_rate_setpoint)) {
+		if (fabsf(_estimated_speed) > FLT_EPSILON) {
+			// Set up feasible yaw rate setpoint
+			float steering_setpoint{0.f};
+			float max_possible_yaw_rate = fabsf(_estimated_speed) * tanf(_param_ra_max_str_ang.get()) /
+						      _param_ra_wheel_base.get(); // Maximum possible yaw rate at current velocity
+			float yaw_rate_limit = math::min(max_possible_yaw_rate, _max_yaw_rate);
+			float constrained_yaw_rate = math::constrain(_yaw_rate_setpoint, -yaw_rate_limit, yaw_rate_limit);
 
-		if (_param_ro_yaw_accel_limit.get() > FLT_EPSILON) { // Apply slew rate if configured
-			if (fabsf(_adjusted_yaw_rate_setpoint.getState() - _vehicle_yaw_rate) > fabsf(constrained_yaw_rate -
-					_vehicle_yaw_rate)) {
-				_adjusted_yaw_rate_setpoint.setForcedValue(_vehicle_yaw_rate);
+			if (_param_ro_yaw_accel_limit.get() > FLT_EPSILON) { // Apply slew rate if configured
+				if (fabsf(_adjusted_yaw_rate_setpoint.getState() - _vehicle_yaw_rate) > fabsf(constrained_yaw_rate -
+						_vehicle_yaw_rate)) {
+					_adjusted_yaw_rate_setpoint.setForcedValue(_vehicle_yaw_rate);
+				}
+
+				_adjusted_yaw_rate_setpoint.update(constrained_yaw_rate, dt);
+
+			} else {
+				_adjusted_yaw_rate_setpoint.setForcedValue(constrained_yaw_rate);
 			}
 
-			_adjusted_yaw_rate_setpoint.update(constrained_yaw_rate, dt);
+			// Feed forward
+			steering_setpoint = atanf(_adjusted_yaw_rate_setpoint.getState() * _param_ra_wheel_base.get() / _estimated_speed);
+
+			// Feedback (Only when driving forwards because backwards driving is NMP and can introduce instability)
+			if (_estimated_speed > FLT_EPSILON) {
+				_pid_yaw_rate.setSetpoint(_adjusted_yaw_rate_setpoint.getState());
+				steering_setpoint += _pid_yaw_rate.update(_vehicle_yaw_rate, dt);
+			}
+
+			rover_steering_setpoint_s rover_steering_setpoint{};
+			rover_steering_setpoint.timestamp = _timestamp;
+			rover_steering_setpoint.normalized_steering_angle = math::interpolate<float>(steering_setpoint,
+					-_param_ra_max_str_ang.get(), _param_ra_max_str_ang.get(), -1.f, 1.f); // Normalize steering setpoint
+			_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
 
 		} else {
-			_adjusted_yaw_rate_setpoint.setForcedValue(constrained_yaw_rate);
+			_pid_yaw_rate.resetIntegral();
+			rover_steering_setpoint_s rover_steering_setpoint{};
+			rover_steering_setpoint.timestamp = _timestamp;
+			rover_steering_setpoint.normalized_steering_angle = 0.f;
+			_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
 		}
-
-		// Feed forward
-		steering_setpoint = atanf(_adjusted_yaw_rate_setpoint.getState() * _param_ra_wheel_base.get() / _estimated_speed);
-
-		// Feedback (Only when driving forwards because backwards driving is NMP and can introduce instability)
-		if (_estimated_speed > FLT_EPSILON) {
-			_pid_yaw_rate.setSetpoint(_adjusted_yaw_rate_setpoint.getState());
-			steering_setpoint += _pid_yaw_rate.update(_vehicle_yaw_rate, dt);
-		}
-
-		rover_steering_setpoint_s rover_steering_setpoint{};
-		rover_steering_setpoint.timestamp = _timestamp;
-		rover_steering_setpoint.normalized_steering_angle = math::interpolate<float>(steering_setpoint,
-				-_param_ra_max_str_ang.get(), _param_ra_max_str_ang.get(), -1.f, 1.f); // Normalize steering setpoint
-		_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
-
-	} else {
-		_pid_yaw_rate.resetIntegral();
-		rover_steering_setpoint_s rover_steering_setpoint{};
-		rover_steering_setpoint.timestamp = _timestamp;
-		rover_steering_setpoint.normalized_steering_angle = 0.f;
-		_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
 	}
 
 
