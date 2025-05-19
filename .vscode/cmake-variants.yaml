@@ -6,6 +6,11 @@ CONFIG:
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_default
+    px4_sitl_spacecraft:
+      short: px4_sitl_spacecraft
+      buildType: RelWithDebInfo
+      settings:
+        CONFIG: px4_sitl_spacecraft
     px4_sitl_nolockstep:
       short: px4_sitl_nolockstep
       buildType: RelWithDebInfo
