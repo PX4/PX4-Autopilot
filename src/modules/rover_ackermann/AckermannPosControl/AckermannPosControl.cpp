@@ -57,53 +57,49 @@ void AckermannPosControl::updatePosControl()
 	hrt_abstime timestamp = hrt_absolute_time();
 
 	const Vector2f target_waypoint_ned(_rover_position_setpoint.position_ned[0], _rover_position_setpoint.position_ned[1]);
-	float distance_to_target = target_waypoint_ned.isAllFinite() ? (target_waypoint_ned - _curr_pos_ned).norm() : NAN;
 
-	if (PX4_ISFINITE(distance_to_target) && distance_to_target > _acceptance_radius) {
+	if (target_waypoint_ned.isAllFinite()) {
+		float distance_to_target = (target_waypoint_ned - _curr_pos_ned).norm();
 
-		float arrival_speed = PX4_ISFINITE(_rover_position_setpoint.arrival_speed) ? _rover_position_setpoint.arrival_speed :
-				      0.f;
-		const float distance = arrival_speed > 0.f + FLT_EPSILON ? distance_to_target - _acceptance_radius : distance_to_target;
-		float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
-				       _param_ro_decel_limit.get(), distance, fabsf(arrival_speed));
-		speed_setpoint = math::min(speed_setpoint, _param_ro_speed_limit.get());
+		if (distance_to_target > _acceptance_radius) {
+			float arrival_speed = PX4_ISFINITE(_rover_position_setpoint.arrival_speed) ? _rover_position_setpoint.arrival_speed :
+					      0.f;
+			const float distance = arrival_speed > 0.f + FLT_EPSILON ? distance_to_target - _acceptance_radius : distance_to_target;
+			float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
+					       _param_ro_decel_limit.get(), distance, fabsf(arrival_speed));
+			speed_setpoint = math::min(speed_setpoint, _param_ro_speed_limit.get());
 
-		if (PX4_ISFINITE(_rover_position_setpoint.cruising_speed)) {
-			speed_setpoint = sign(_rover_position_setpoint.cruising_speed) * math::min(speed_setpoint,
-					 fabsf(_rover_position_setpoint.cruising_speed));
+			if (PX4_ISFINITE(_rover_position_setpoint.cruising_speed)) {
+				speed_setpoint = sign(_rover_position_setpoint.cruising_speed) * math::min(speed_setpoint,
+						 fabsf(_rover_position_setpoint.cruising_speed));
+			}
+
+			pure_pursuit_status_s pure_pursuit_status{};
+			pure_pursuit_status.timestamp = timestamp;
+
+			const float bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
+						       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _start_ned,
+						       _curr_pos_ned, fabsf(speed_setpoint));
+			_pure_pursuit_status_pub.publish(pure_pursuit_status);
+			rover_velocity_setpoint_s rover_velocity_setpoint{};
+			rover_velocity_setpoint.timestamp = timestamp;
+			rover_velocity_setpoint.speed = speed_setpoint;
+			rover_velocity_setpoint.bearing = speed_setpoint > -FLT_EPSILON ? bearing_setpoint : matrix::wrap_pi(
+					bearing_setpoint + M_PI_F);
+			_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
+
+		} else {
+			rover_velocity_setpoint_s rover_velocity_setpoint{};
+			rover_velocity_setpoint.timestamp = timestamp;
+			rover_velocity_setpoint.speed = 0.f;
+			rover_velocity_setpoint.bearing = _vehicle_yaw;
+			_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 		}
-
-		pure_pursuit_status_s pure_pursuit_status{};
-		pure_pursuit_status.timestamp = timestamp;
-
-		const float bearing_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
-					       _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _start_ned,
-					       _curr_pos_ned, fabsf(speed_setpoint));
-		_pure_pursuit_status_pub.publish(pure_pursuit_status);
-		rover_velocity_setpoint_s rover_velocity_setpoint{};
-		rover_velocity_setpoint.timestamp = timestamp;
-		rover_velocity_setpoint.speed = speed_setpoint;
-		rover_velocity_setpoint.bearing = speed_setpoint > -FLT_EPSILON ? bearing_setpoint : matrix::wrap_pi(
-				bearing_setpoint + M_PI_F);
-		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
-
-	} else {
-		rover_velocity_setpoint_s rover_velocity_setpoint{};
-		rover_velocity_setpoint.timestamp = timestamp;
-		rover_velocity_setpoint.speed = 0.f;
-		rover_velocity_setpoint.bearing = _vehicle_yaw;
-		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 	}
 }
 
 void AckermannPosControl::updateSubscriptions()
 {
-	if (_rover_position_setpoint_sub.updated()) {
-		_rover_position_setpoint_sub.copy(&_rover_position_setpoint);
-		_start_ned = Vector2f(_rover_position_setpoint.start_ned[0], _rover_position_setpoint.start_ned[1]);
-		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
-	}
-
 	if (_position_controller_status_sub.updated()) {
 		position_controller_status_s position_controller_status{};
 		_position_controller_status_sub.copy(&position_controller_status);
@@ -128,6 +124,12 @@ void AckermannPosControl::updateSubscriptions()
 		}
 
 		_curr_pos_ned = Vector2f(vehicle_local_position.x, vehicle_local_position.y);
+	}
+
+	if (_rover_position_setpoint_sub.updated()) {
+		_rover_position_setpoint_sub.copy(&_rover_position_setpoint);
+		_start_ned = Vector2f(_rover_position_setpoint.start_ned[0], _rover_position_setpoint.start_ned[1]);
+		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
 	}
 
 }

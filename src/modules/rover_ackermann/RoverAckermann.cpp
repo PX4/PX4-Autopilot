@@ -66,13 +66,18 @@ void RoverAckermann::Run()
 		vehicle_control_mode_s vehicle_control_mode{};
 		_vehicle_control_mode_sub.copy(&vehicle_control_mode);
 
-		// Run sanity checks if the control mode changes (Note: This has to be done this way, because the topic is periodically updated and not on changes)
-		if (vehicle_control_mode.flag_control_position_enabled != _vehicle_control_mode.flag_control_position_enabled ||
-		    vehicle_control_mode.flag_control_velocity_enabled != _vehicle_control_mode.flag_control_velocity_enabled ||
-		    vehicle_control_mode.flag_control_attitude_enabled != _vehicle_control_mode.flag_control_attitude_enabled ||
-		    vehicle_control_mode.flag_control_rates_enabled != _vehicle_control_mode.flag_control_rates_enabled) {
+		// Run sanity checks if the control mode changes (Note: This has to be done this way, because the topic is periodically updated at 2 Hz)
+		if (_vehicle_control_mode.flag_control_manual_enabled != vehicle_control_mode.flag_control_manual_enabled ||
+		    _vehicle_control_mode.flag_control_auto_enabled != vehicle_control_mode.flag_control_auto_enabled ||
+		    _vehicle_control_mode.flag_control_offboard_enabled != vehicle_control_mode.flag_control_offboard_enabled ||
+		    _vehicle_control_mode.flag_control_position_enabled != vehicle_control_mode.flag_control_position_enabled ||
+		    _vehicle_control_mode.flag_control_velocity_enabled != vehicle_control_mode.flag_control_velocity_enabled ||
+		    _vehicle_control_mode.flag_control_attitude_enabled != vehicle_control_mode.flag_control_attitude_enabled ||
+		    _vehicle_control_mode.flag_control_rates_enabled != vehicle_control_mode.flag_control_rates_enabled ||
+		    _vehicle_control_mode.flag_control_allocation_enabled != vehicle_control_mode.flag_control_allocation_enabled) {
 			_vehicle_control_mode = vehicle_control_mode;
 			runSanityChecks();
+			reset();
 
 		} else {
 			_vehicle_control_mode = vehicle_control_mode;
@@ -80,20 +85,13 @@ void RoverAckermann::Run()
 
 	}
 
-	if (_vehicle_status_sub.updated()) {
-		vehicle_status_s vehicle_status{};
-		_vehicle_status_sub.copy(&vehicle_status);
-
-		// Reset all controllers if the navigation state changes
-		if (vehicle_status.nav_state != _nav_state) { reset();}
-
-		_nav_state = vehicle_status.nav_state;
-	}
-
 	if (_vehicle_control_mode.flag_armed && _sanity_checks_passed) {
+
+		_was_armed = true;
+
 		// Generate setpoints
 		if (_vehicle_control_mode.flag_control_manual_enabled) {
-			_manual_mode.manualControl(_nav_state);
+			manualControl();
 
 		} else if (_vehicle_control_mode.flag_control_auto_enabled) {
 			_auto_mode.autoControl();
@@ -110,6 +108,22 @@ void RoverAckermann::Run()
 		_was_armed = false;
 	}
 
+}
+
+void RoverAckermann::manualControl()
+{
+	if (_vehicle_control_mode.flag_control_position_enabled) {
+		_manual_mode.position();
+
+	} else if (_vehicle_control_mode.flag_control_attitude_enabled) {
+		_manual_mode.stab();
+
+	} else if (_vehicle_control_mode.flag_control_rates_enabled) {
+		_manual_mode.acro();
+
+	} else if (_vehicle_control_mode.flag_control_allocation_enabled) {
+		_manual_mode.manual();
+	}
 }
 
 void RoverAckermann::updateControllers()

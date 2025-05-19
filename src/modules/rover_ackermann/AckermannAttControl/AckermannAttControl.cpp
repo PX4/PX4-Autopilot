@@ -81,11 +81,6 @@ void AckermannAttControl::updateAttControl()
 		rover_rate_setpoint.yaw_rate_setpoint = math::constrain(yaw_rate_setpoint, -_max_yaw_rate, _max_yaw_rate);
 		_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
 
-	} else {
-		rover_rate_setpoint_s rover_rate_setpoint{};
-		rover_rate_setpoint.timestamp = _timestamp;
-		rover_rate_setpoint.yaw_rate_setpoint = 0.f;
-		_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
 	}
 
 	// Publish attitude controller status (logging only)
