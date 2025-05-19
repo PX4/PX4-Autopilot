@@ -1,0 +1,40 @@
+# Generic Dodecacopter in X coax configuration, top half
+
+[info]
+key = "6m"
+description = "Generic Dodecacopter in X coax configuration, top half"
+
+[rotor_default]
+axis      = [0.0, 0.0, -1.0]
+Ct        = 1.0
+Cm        = 0.05
+
+[[rotors]]
+name      = "mid_right_top"
+position  = [0.0, 1.0, -0.1]
+direction = "CW"
+
+[[rotors]]
+name      = "mid_left_top"
+position  = [0.0, -1.0, -0.1]
+direction = "CCW"
+
+[[rotors]]
+name      = "front_left_top"
+position  = [0.866025, -0.5, -0.1]
+direction = "CW"
+
+[[rotors]]
+name      = "rear_right_top"
+position  = [-0.866025, 0.5, -0.1]
+direction = "CCW"
+
+[[rotors]]
+name      = "front_right_top"
+position  = [0.866025, 0.5, -0.1]
+direction = "CCW"
+
+[[rotors]]
+name      = "rear_left_top"
+position  = [-0.866025, -0.5, -0.1]
+direction = "CW"
