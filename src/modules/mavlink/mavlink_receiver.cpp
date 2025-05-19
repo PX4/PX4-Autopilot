@@ -2548,7 +2548,7 @@ MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 	t.lon = adsb.lon * 1e-7;
 	t.altitude_type = adsb.altitude_type;
 	t.altitude = adsb.altitude / 1000.0f;
-	t.heading = adsb.heading / 100.0f / 180.0f * M_PI_F - M_PI_F;
+	t.heading = adsb.heading / 100.0f / 180.0f * M_PI_F;
 	t.hor_velocity = adsb.hor_velocity / 100.0f;
 	t.ver_velocity = adsb.ver_velocity / 100.0f;
 	memcpy(&t.callsign[0], &adsb.callsign[0], sizeof(t.callsign));
