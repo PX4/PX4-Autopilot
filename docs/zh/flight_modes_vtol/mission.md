@@ -54,4 +54,4 @@ A VTOL mission requires a `VTOL Takeoff` mission item (`MAV_CMD_NAV_VTOL_TAKEOFF
 - [Mission Mode (MC)](../flight_modes_mc/mission.md)
 - [Mission Mode (FW)](../flight_modes_fw/mission.md)
 - [Missions](../flying/missions.md)
-  - [Package Delivery Mission](../flying/package_delivery_mission.md)
+  - [包裹投递任务](../flying/package_delivery_mission.md)
