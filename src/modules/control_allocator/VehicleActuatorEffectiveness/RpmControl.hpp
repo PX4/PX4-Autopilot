@@ -19,12 +19,18 @@
 #include <drivers/drv_hrt.h>
 
 #include <lib/pid/PID.hpp>
-
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/rpm.h>
+#include <uORB/topics/water_detection.h>
+#include <uORB/topics/water_contact_state.h>
 
 
 using namespace time_literals;
+
+using uORB::SubscriptionData;
 
 class RpmControl : public ModuleParams, public px4::WorkItem
 {
@@ -39,18 +45,32 @@ public:
 	void thrusterSafety();
 
 private:
-	uORB::Subscription _rpm_sub{ORB_ID(rpm)};  // ✅ RPM uORB subscription
+
+	#define OFF 	0
+	#define ON 	1
+
+	uORB::Subscription _rpm_sub{ORB_ID(rpm)};
+
+	// uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
+	uORB::SubscriptionCallbackWorkItem _water_detection_sub{this, ORB_ID(water_detection)};
+	uORB::Publication<water_contact_state_s> _water_contact_state_pub{ORB_ID(water_contact_state)};
+
+	// uORB::Publication<water_contact_state_s>    	_water_contact_state_pub;
+	water_detection_s 	_water_detection{};
+	water_contact_state_s 	_water_contact_state{};
+
 	PID _pid;
 
 	static constexpr float SPOOLUP_PROGRESS_WITH_CONTROLLER_ENGAGED = .8f; // [0,1]
 	static constexpr float PID_OUTPUT_LIMIT = .5f; // [0,1]
 
-	bool _rpm_invalid{true};  // ✅ declare this to fix the error
+	bool _rpm_invalid{true};
 	float _actuator_correction{0.f};
 	float _spoolup_progress{1.f};
 	uint64_t _timestamp_last_measurement{0};
 
-
+	void droneStateMsg(uint8_t state);
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::CA_HELI_RPM_SP>) _param_ca_heli_rpm_sp,

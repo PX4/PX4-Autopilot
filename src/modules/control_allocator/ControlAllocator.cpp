@@ -471,10 +471,22 @@ ControlAllocator::Run()
 		_last_status_pub = now;
 	}
 
-	//function
+	senduORB(); // test function
+
 	_rpm_control.thrusterSafety();
 
 	perf_end(_loop_perf);
+}
+
+void ControlAllocator::senduORB(void)
+{
+	_water_detection.timestamp = hrt_absolute_time();
+	if(_water_detection.power_module_sensor == 1) _water_detection.power_module_sensor = 0;
+	else _water_detection.power_module_sensor = 1;
+	if(_water_detection.mainbrain_sensor == 1) _water_detection.mainbrain_sensor = 0;
+	else _water_detection.mainbrain_sensor = 1;
+	_water_detection_pub.publish(_water_detection);
+
 }
 
 void
