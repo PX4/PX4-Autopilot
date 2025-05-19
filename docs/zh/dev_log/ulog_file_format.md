@@ -499,8 +499,8 @@ Since the Definitions and Data Sections use the same message header format, they
 - [MAVGAnalysis](https://github.com/ecmnet/MAVGCL): Java, ULog streaming via MAVLink and parser for plotting and analysis.
 - [PlotJuggler](https://github.com/facontidavide/PlotJuggler): C++/Qt application to plot logs and time series. 自版本2.1.3支持 ULog。
 - [ulogreader](https://github.com/maxsun/ulogreader): Javascript, ULog reader and parser outputs log in JSON object format.
-- [Foxglove Studio](https://github.com/foxglove/studio): an integrated visualization and diagnosis tool for robotics
-  (Typescript ULog parser: https://github.com/foxglove/ulog).
+- [Foxglove](https://foxglove.dev): an integrated visualization and diagnosis tool for robotics data that supports ULog files.
+- [TypeScript ULog parser](https://github.com/foxglove/ulog): TypeScript, ULog reader that outputs JS objects.
 
 ## 文件格式版本历史
 

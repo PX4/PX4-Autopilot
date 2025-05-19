@@ -293,6 +293,8 @@ using namespace time_literals;
 #define INA228_VSCALE                        1.95e-04f  /* LSB of voltage is 195.3125 uV/LSB */
 #define INA228_TSCALE                        7.8125e-03f /* LSB of temperature is 7.8125 mDegC/LSB */
 
+#define INA228_ADCRANGE_LOW_V_SENSE          0.04096f // ± 40.96 mV
+
 #define swap16(w)                            __builtin_bswap16((w))
 #define swap32(d)                            __builtin_bswap32((d))
 #define swap64(q)                            __builtin_bswap64((q))

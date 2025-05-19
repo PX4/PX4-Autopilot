@@ -38,7 +38,7 @@ The Pixhawk® 5X is perfect for developers at corporate research labs, startups,
 
 - Modular flight controller
   - separated IMU, FMU, and Base system connected by a 100-pin & a 50-pin Pixhawk® Autopilot Bus connector, designed for flexible and customizable systems
-- Redundancy
+- 冗余
   - 3x IMU sensors & 2x Barometer sensors on separate buses, allowing parallel and continuous operation even in the event of a hardware failure
 - Triple redundancy domains
   - Completely isolated sensor domains with separate buses and separate power control
