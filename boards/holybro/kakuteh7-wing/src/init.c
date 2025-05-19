@@ -121,6 +121,8 @@ __EXPORT void board_peripheral_reset(int ms)
 	board_control_spi_sensors_power(true, 0xffff);
 	VDD_3V3_SENSORS_EN(true);
 	VTX_9V_EN(true);
+
+	CAM_SWITCH_CAM1;
 }
 
 /************************************************************************************
