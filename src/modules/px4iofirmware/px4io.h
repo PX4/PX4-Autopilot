@@ -80,6 +80,7 @@ extern volatile uint16_t	r_page_status[];	/* PX4IO_PAGE_STATUS */
 extern uint16_t			r_page_servos[];	/* PX4IO_PAGE_SERVOS */
 extern uint16_t			r_page_direct_pwm[];	/* PX4IO_PAGE_DIRECT_PWM */
 extern uint16_t			r_page_raw_rc_input[];	/* PX4IO_PAGE_RAW_RC_INPUT */
+extern uint16_t 		r_page_raw_adc_input[]; /* PX4IO_PAGE_RAW_ADC_INPUT */
 
 extern volatile uint16_t	r_page_setup[];		/* PX4IO_PAGE_SETUP */
 extern uint16_t			r_page_servo_failsafe[]; /* PX4IO_PAGE_FAILSAFE_PWM */
@@ -96,6 +97,8 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 #define r_raw_rc_count		r_page_raw_rc_input[PX4IO_P_RAW_RC_COUNT]
 #define r_raw_rc_values		(&r_page_raw_rc_input[PX4IO_P_RAW_RC_BASE])
 #define r_raw_rc_flags		r_page_raw_rc_input[PX4IO_P_RAW_RC_FLAGS]
+
+#define r_raw_adc_values 	r_page_raw_adc_input[PX4IO_P_RAW_ADC_BASE]
 
 #define r_setup_features	r_page_setup[PX4IO_P_SETUP_FEATURES]
 #define r_setup_arming		r_page_setup[PX4IO_P_SETUP_ARMING]
