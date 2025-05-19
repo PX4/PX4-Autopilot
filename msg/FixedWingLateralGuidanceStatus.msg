@@ -3,7 +3,7 @@
 
 uint64 timestamp                # time since system start (microseconds)
 
-float32 course_setpoint         # [rad] [-pi, pi] Bearing angle. Same as course over ground setpoint, w.r.t. North.
+float32 course_setpoint         # [rad] [-pi, pi] Desired direction of travel over ground w.r.t (true) North. Set by guidance law
 float32 lateral_acceleration_ff # [m/s^2] [FRD] lateral acceleration demand only for maintaining curvature
 float32 bearing_feas            # [0,1] bearing feasibility
 float32 bearing_feas_on_track   # [0,1] on-track bearing feasibility
