@@ -49,6 +49,14 @@ then
 	# Start ackermann drive rover apps.
 	. ${R}etc/init.d/rc.rover_ackermann_apps
 fi
+#
+# Boat setup.
+#
+if [ $VEHICLE_TYPE = boat ]
+then
+	# Start boat apps.
+	. ${R}etc/init.d/rc.boat_apps
+fi
 
 #
 # Mecanum Rover setup.
