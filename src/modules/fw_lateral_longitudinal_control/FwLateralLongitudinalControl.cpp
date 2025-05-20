@@ -85,6 +85,9 @@ void
 FwLateralLongitudinalControl::parameters_update()
 {
 	updateParams();
+	_performance_model.updateParameters();
+	_performance_model.runSanityChecks();
+
 	_tecs.set_max_climb_rate(_performance_model.getMaximumClimbRate(_air_density));
 	_tecs.set_max_sink_rate(_param_fw_t_sink_max.get());
 	_tecs.set_min_sink_rate(_performance_model.getMinimumSinkRate(_air_density));
@@ -108,9 +111,6 @@ FwLateralLongitudinalControl::parameters_update()
 	_tecs.set_airspeed_rate_measurement_std_dev(_param_speed_rate_standard_dev.get());
 	_tecs.set_airspeed_filter_process_std_dev(_param_process_noise_standard_dev.get());
 
-	_performance_model.runSanityChecks();
-
-	_performance_model.updateParameters();
 	_roll_slew_rate.setSlewRate(radians(_param_fw_pn_r_slew_max.get()));
 
 	_tecs_alt_time_const_slew_rate.setSlewRate(TECS_ALT_TIME_CONST_SLEW_RATE);
