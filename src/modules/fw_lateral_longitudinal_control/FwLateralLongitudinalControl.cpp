@@ -256,8 +256,7 @@ void FwLateralLongitudinalControl::Run()
 			}
 
 			if (PX4_ISFINITE(_lat_control_sp.airspeed_direction)) {
-				airspeed_direction_sp = PX4_ISFINITE(airspeed_direction_sp) ? airspeed_direction_sp +
-							_lat_control_sp.airspeed_direction : _lat_control_sp.airspeed_direction;
+				airspeed_direction_sp = _lat_control_sp.airspeed_direction;
 			}
 
 			if (PX4_ISFINITE(airspeed_direction_sp)) {
