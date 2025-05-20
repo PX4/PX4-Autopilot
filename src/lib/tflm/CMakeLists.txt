@@ -111,7 +111,7 @@ if(CONFIG_LIB_TFLM)
 
 	target_include_directories(tflm PUBLIC ${TFLM_INCLUDE_DIRS})
 	add_dependencies(tflm build_tflm_native)
-
+	target_compile_features(tflm PRIVATE cxx_std_17)
 
 	target_compile_options(tflm PUBLIC
 	-Wno-float-equal
