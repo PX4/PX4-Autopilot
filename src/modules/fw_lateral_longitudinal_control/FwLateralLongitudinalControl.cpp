@@ -271,6 +271,10 @@ void FwLateralLongitudinalControl::Run()
 						   _lat_control_sp.lateral_acceleration;
 			}
 
+			if (!PX4_ISFINITE(lateral_accel_sp)) {
+				lateral_accel_sp = 0.f; // mitigation if no valid setpoint is received: 0 lateral acceleration
+			}
+
 			lateral_accel_sp = getCorrectedLateralAccelSetpoint(lateral_accel_sp);
 			lateral_accel_sp = math::constrain(lateral_accel_sp, -_lateral_configuration.lateral_accel_max,
 							   _lateral_configuration.lateral_accel_max);
