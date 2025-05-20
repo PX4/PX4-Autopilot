@@ -185,15 +185,6 @@ SpacecraftAttitudeControl::updateAttitudeControl()
 		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
 
-		if (_vehicle_status_sub.updated()) {
-			vehicle_status_s vehicle_status;
-
-			if (_vehicle_status_sub.copy(&vehicle_status)) {
-				_vehicle_type_spacecraft = (vehicle_status.system_type == vehicle_status_s::VEHICLE_TYPE_SPACECRAFT);
-
-			}
-		}
-
 		if (_vehicle_local_position_sub.updated()) {
 			vehicle_local_position_s vehicle_local_position;
 
