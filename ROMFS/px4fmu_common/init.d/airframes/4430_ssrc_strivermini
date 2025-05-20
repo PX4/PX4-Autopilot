@@ -70,8 +70,7 @@ param set-default PWM_AUX_FUNC4 204
 param set-default PWM_AUX_FUNC5 205
 param set-default PWM_AUX_FUNC6 105
 
-param set-default PWM_MAIN_REV 6
-param set-default PWM_MAIN_REV 8
+param set-default PWM_MAIN_REV 160
 
 # Start airspeed sensor driver
 param set-default SENS_EN_MS4525DO 1
