@@ -6,7 +6,7 @@
 
 改动的数量，因此对文件所做的更改次数可以指示哪些文件/部件可能需要重构。
 
-To find churn metrics a tool such as [Churn](https://github.com/danmayer/churn) can be used:
+要查找变更量指标，可以使用诸如[Churn](https://github.com/danmayer/churn)这样的工具：
 
 ```sh
 gem install churn

@@ -186,12 +186,12 @@ lightware_sf45_serial <command> [arguments...]
    stop          Stop driver
 ```
 ## ll40ls
-Source: [drivers/distance_sensor/ll40ls](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/ll40ls)
+Source: [drivers/distance_sensor/ll40ls_pwm](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/ll40ls_pwm)
 
 
 ### Description
 
-I2C bus driver for LidarLite rangefinders.
+PWM driver for LidarLite rangefinders.
 
 The sensor/driver must be enabled using the parameter SENS_EN_LL40LS.
 
@@ -202,23 +202,13 @@ Setup/usage information: https://docs.px4.io/main/en/sensor/lidar_lite.html
 ```
 ll40ls <command> [arguments...]
  Commands:
-   start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
-                 (default=1))
-     [-f <val>]  bus frequency in kHz
-     [-q]        quiet startup (no message if no device found)
-     [-a <val>]  I2C address
-                 default: 98
+   start         Start driver
      [-R <val>]  Sensor rotation - downward facing by default
                  default: 25
 
-   regdump
+   status        Print driver status information
 
-   stop
-
-   status        print status info
+   stop          Stop driver
 ```
 ## mappydot
 Source: [drivers/distance_sensor/mappydot](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/mappydot)
@@ -439,8 +429,6 @@ tfmini <command> [arguments...]
    status        Driver status
 
    stop          Stop driver
-
-   test          Test driver (basic functional tests)
 
    status        Print driver status
 ```

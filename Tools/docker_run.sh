@@ -33,10 +33,10 @@ fi
 # docker hygiene
 
 #Delete all stopped containers (including data-only containers)
-#docker rm $(docker ps -a -q)
+# docker container prune
 
 #Delete all 'untagged/dangling' (<none>) images
-#docker rmi $(docker images -q -f dangling=true)
+# docker image prune
 
 echo "PX4_DOCKER_REPO: $PX4_DOCKER_REPO";
 

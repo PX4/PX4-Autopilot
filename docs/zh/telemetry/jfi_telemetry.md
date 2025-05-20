@@ -21,7 +21,7 @@ Operating in the 2.4GHz frequency band, it allows unrestricted global use withou
 - **Frequency Band:** 2.4GHz
 - **Speed:** Up to 11 Mbps (adjustable)
 - **Range:** Up to 500 meters (varies upon environments)
-- **Payload Capacity:** Up to 1400 bytes
+- **Payload Capacity:** Up to 1024 bytes
 
 ### Network Schemes
 
@@ -124,7 +124,7 @@ However if you change the baud rate from 57600 you will need to create and use a
 - **Smart device:** Connect to Wi-Fi network named `J.Fi-xxxxxx` (x: alphanumeric characters)
 - **Browser:** Go to `192.168.4.1` to open the **configuration page**.
 - **Configuration page:** Adjust settings as needed, then click **Save**
-  - _LED 1_ blinks once upon saving
+  - _LED 2_ blinks once upon saving
 
 ![J.Fi Wireless Telemetry Broadcast Communication](../../assets/hardware/telemetry/jmarple/jfi_telemetry_config.jpg)
 
