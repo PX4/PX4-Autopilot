@@ -599,3 +599,10 @@ failsafe_web:
 run_failsafe_web_server: failsafe_web
 	@cd build/px4_sitl_default_failsafe_web && \
 		python3 -m http.server
+
+# Generate reference documentation for uORB messages
+.PHONY: msg_docs
+msg_docs:
+	$(call colorecho,'Generating uORB message reference docs')
+	@mkdir -p build/msg_docs
+	@./Tools/msg/generate_msg_docs.py -d build/msg_docs
