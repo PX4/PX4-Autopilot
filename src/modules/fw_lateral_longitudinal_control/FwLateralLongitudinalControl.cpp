@@ -238,7 +238,9 @@ void FwLateralLongitudinalControl::Run()
 			float lateral_accel_sp {NAN};
 			const Vector2f airspeed_vector = _lateral_control_state.ground_speed - _lateral_control_state.wind_speed;
 
-			if (PX4_ISFINITE(_lat_control_sp.course)) {
+			if (PX4_ISFINITE(_lat_control_sp.course) && !PX4_ISFINITE(_lat_control_sp.airspeed_direction)) {
+				// only use the course setpoint if it's finite but airspeed_direction is not
+
 				airspeed_direction_sp = _course_to_airspeed.mapCourseSetpointToHeadingSetpoint(
 								_lat_control_sp.course, _lateral_control_state.wind_speed,
 								airspeed_sp_eas);
@@ -251,12 +253,14 @@ void FwLateralLongitudinalControl::Run()
 								      max_true_airspeed, _param_fw_gnd_spd_min.get())
 							      / _long_control_state.eas2tas;
 
+			} else if (PX4_ISFINITE(_lat_control_sp.airspeed_direction)) {
+				// If the airspeed_direction is finite we use that instead of the course.
+
+				airspeed_direction_sp = _lat_control_sp.airspeed_direction;
+				_min_airspeed_from_guidance = 0.f; // reset if no longer in course control
+
 			} else {
 				_min_airspeed_from_guidance = 0.f; // reset if no longer in course control
-			}
-
-			if (PX4_ISFINITE(_lat_control_sp.airspeed_direction)) {
-				airspeed_direction_sp = _lat_control_sp.airspeed_direction;
 			}
 
 			if (PX4_ISFINITE(airspeed_direction_sp)) {
