@@ -30,6 +30,7 @@ mc_pos_control start vtol
 mc_att_control start vtol
 mc_rate_control start vtol
 fw_mode_manager start
+fw_lat_lon_control start
 fw_att_control start vtol
 airspeed_selector start
 
