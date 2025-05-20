@@ -262,7 +262,7 @@ void FwLateralLongitudinalControl::Run()
 
 			if (PX4_ISFINITE(airspeed_direction_sp)) {
 				const float heading = atan2f(airspeed_vector(1), airspeed_vector(0));
-				lateral_accel_sp = _airspeed_ref_control.controlHeading(airspeed_direction_sp, heading,
+				lateral_accel_sp = _airspeed_direction_control.controlHeading(airspeed_direction_sp, heading,
 						   airspeed_vector.norm());
 			}
 

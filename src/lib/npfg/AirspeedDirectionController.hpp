@@ -31,34 +31,45 @@
  *
  ****************************************************************************/
 
-#include "AirspeedReferenceController.hpp"
-#include <matrix/math.hpp>
-#include <lib/mathlib/mathlib.h>
+/*
+ * @file AirspeedDirectionController.hpp
+ *
+ * Original Author:  Thomas Stastny <tstastny@ethz.ch>
+ * Refactored to better suite new control API: Roman Bapst <roman@auterion.com>
+ *
+ * * Notes:
+ * - The wind estimate should be dynamic enough to capture ~1-2 second length gusts,
+ *   Otherwise the performance will suffer.
+ *
+ * Acknowledgements and References:
+ *
+ * The logic is mostly based on [1] and Paper III of [2].
+ * TODO: Concise, up to date documentation and stability analysis for the following
+ *       implementation.
+ *
+ * [1] T. Stastny and R. Siegwart. "On Flying Backwards: Preventing Run-away of
+ *     Small, Low-speed, Fixed-wing UAVs in Strong Winds". IEEE International Conference
+ *     on Intelligent Robots and Systems (IROS). 2019.
+ *     https://arxiv.org/pdf/1908.01381.pdf
+ * [2] T. Stastny. "Low-Altitude Control and Local Re-Planning Strategies for Small
+ *     Fixed-Wing UAVs". Doctoral Thesis, ETH Zürich. 2020.
+ *     https://tstastny.github.io/pdf/tstastny_phd_thesis_wcover.pdf
+ */
 
-using matrix::Vector2f;
-AirspeedReferenceController::AirspeedReferenceController()
+#ifndef PX4_AIRSPEEDDIRECTIONONTROLLER_HPP
+#define PX4_AIRSPEEDDIRECTIONONTROLLER_HPP
+
+class AirspeedDirectionController
 {
-	// Constructor
-}
+public:
 
-float AirspeedReferenceController::controlHeading(const float heading_sp, const float heading,
-		const float airspeed) const
-{
+	AirspeedDirectionController();
 
-	const Vector2f airspeed_vector = Vector2f{cosf(heading), sinf(heading)} * airspeed;
-	const Vector2f airspeed_sp_vector_unit = Vector2f{cosf(heading_sp), sinf(heading_sp)};
 
-	const float dot_air_vel_err = airspeed_vector.dot(airspeed_sp_vector_unit);
-	const float cross_air_vel_err = airspeed_vector.cross(airspeed_sp_vector_unit);
+	float controlHeading(const float heading_sp, const float heading, const float airspeed) const;
 
-	if (dot_air_vel_err < 0.0f) {
-		// hold max lateral acceleration command above 90 deg heading error
-		return p_gain_ * ((cross_air_vel_err < 0.0f) ? -airspeed : airspeed);
+private:
+	float p_gain_{0.8885f}; // proportional gain (computed from period_ and damping_) [rad/s]
+};
 
-	} else {
-		// airspeed/airspeed_ref is used to scale any incremented airspeed reference back to the current airspeed
-		// for acceleration commands in a "feedback" sense (i.e. at the current vehicle airspeed)
-		// todo use airspeed_ref or adapt comment
-		return p_gain_ * cross_air_vel_err;
-	}
-}
+#endif //PX4_AIRSPEEDDIRECTIONONTROLLER_HPP

@@ -45,7 +45,7 @@
 #include <lib/geo/geo.h>
 #include <lib/atmosphere/atmosphere.h>
 #include <lib/npfg/CourseToAirspeedRefMapper.hpp>
-#include <lib/npfg/AirspeedReferenceController.hpp>
+#include <lib/npfg/AirspeedDirectionController.hpp>
 #include <lib/tecs/TECS.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
@@ -206,7 +206,7 @@ private:
 	PerformanceModel _performance_model;
 	TECS _tecs;
 	CourseToAirspeedRefMapper _course_to_airspeed;
-	AirspeedReferenceController _airspeed_ref_control;
+	AirspeedDirectionController _airspeed_direction_control;
 
 	float _min_airspeed_from_guidance{0.f}; // need to store it bc we only update after running longitudinal controller
 
