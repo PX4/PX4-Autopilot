@@ -13,5 +13,5 @@ float32 throttle_max 			# [0,1] defaults to FW_THR_MAX if NAN.
 float32 climb_rate_target 		# [m/s] target climbrate to change altitude. Defaults to FW_T_CLIMB_MAX if NAN. Not used if height_rate is directly set in FixedWingLongitudinalSetpoint.
 float32 sink_rate_target 		# [m/s] target sinkrate to change altitude. Defaults to FW_T_SINK_MAX if NAN. Not used if height_rate is directly set in FixedWingLongitudinalSetpoint.
 float32 speed_weight 			# [0,2], 0=pitch controls altitude only, 2=pitch controls airspeed only
-bool enforce_low_height_condition 	# if true, total energy controller will use lower altitude control time constant
-bool disable_underspeed_protection 	# if true, underspeed handling is disabled in the total energy controller
+bool enforce_low_height_condition 	# if true, the altitude controller is configured with an alternative timeconstant for tighter altitude tracking
+bool disable_underspeed_protection 	# if true, underspeed handling is disabled in the altitude controller
