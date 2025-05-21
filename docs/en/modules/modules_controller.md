@@ -1,6 +1,9 @@
 # Modules Reference: Controller
 
+
+
 ## airship_att_control
+
 Source: [modules/airship_att_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/airship_att_control)
 
 
@@ -15,8 +18,8 @@ Currently it is feeding the `manual_control_setpoint` topic directly to the actu
 To reduce control latency, the module directly polls on the gyro topic published by the IMU driver.
 
 
-<a id="airship_att_control_usage"></a>
-### Usage
+### Usage {#airship_att_control_usage}
+
 ```
 airship_att_control <command> [arguments...]
  Commands:
@@ -26,7 +29,9 @@ airship_att_control <command> [arguments...]
 
    status        print status info
 ```
+
 ## control_allocator
+
 Source: [modules/control_allocator](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/control_allocator)
 
 
@@ -34,8 +39,8 @@ Source: [modules/control_allocator](https://github.com/PX4/PX4-Autopilot/tree/ma
 This implements control allocation. It takes torque and thrust setpoints
 as inputs and outputs actuator setpoint messages.
 
-<a id="control_allocator_usage"></a>
-### Usage
+### Usage {#control_allocator_usage}
+
 ```
 control_allocator <command> [arguments...]
  Commands:
@@ -45,7 +50,9 @@ control_allocator <command> [arguments...]
 
    status        print status info
 ```
+
 ## flight_mode_manager
+
 Source: [modules/flight_mode_manager](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/flight_mode_manager)
 
 
@@ -54,8 +61,8 @@ This implements the setpoint generation for all modes. It takes the current mode
 and outputs setpoints for controllers.
 
 
-<a id="flight_mode_manager_usage"></a>
-### Usage
+### Usage {#flight_mode_manager_usage}
+
 ```
 flight_mode_manager <command> [arguments...]
  Commands:
@@ -65,7 +72,9 @@ flight_mode_manager <command> [arguments...]
 
    status        print status info
 ```
+
 ## fw_att_control
+
 Source: [modules/fw_att_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/fw_att_control)
 
 
@@ -73,8 +82,8 @@ Source: [modules/fw_att_control](https://github.com/PX4/PX4-Autopilot/tree/main/
 fw_att_control is the fixed wing attitude controller.
 
 
-<a id="fw_att_control_usage"></a>
-### Usage
+### Usage {#fw_att_control_usage}
+
 ```
 fw_att_control <command> [arguments...]
  Commands:
@@ -85,7 +94,9 @@ fw_att_control <command> [arguments...]
 
    status        print status info
 ```
+
 ## fw_pos_control
+
 Source: [modules/fw_pos_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/fw_pos_control)
 
 
@@ -93,8 +104,8 @@ Source: [modules/fw_pos_control](https://github.com/PX4/PX4-Autopilot/tree/main/
 fw_pos_control is the fixed-wing position controller.
 
 
-<a id="fw_pos_control_usage"></a>
-### Usage
+### Usage {#fw_pos_control_usage}
+
 ```
 fw_pos_control <command> [arguments...]
  Commands:
@@ -105,7 +116,9 @@ fw_pos_control <command> [arguments...]
 
    status        print status info
 ```
+
 ## fw_rate_control
+
 Source: [modules/fw_rate_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/fw_rate_control)
 
 
@@ -113,8 +126,8 @@ Source: [modules/fw_rate_control](https://github.com/PX4/PX4-Autopilot/tree/main
 fw_rate_control is the fixed-wing rate controller.
 
 
-<a id="fw_rate_control_usage"></a>
-### Usage
+### Usage {#fw_rate_control_usage}
+
 ```
 fw_rate_control <command> [arguments...]
  Commands:
@@ -125,7 +138,9 @@ fw_rate_control <command> [arguments...]
 
    status        print status info
 ```
+
 ## mc_att_control
+
 Source: [modules/mc_att_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/mc_att_control)
 
 
@@ -143,8 +158,8 @@ Institute for Dynamic Systems and Control (IDSC), ETH Zurich
 https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth-7387-01.pdf
 
 
-<a id="mc_att_control_usage"></a>
-### Usage
+### Usage {#mc_att_control_usage}
+
 ```
 mc_att_control <command> [arguments...]
  Commands:
@@ -155,7 +170,9 @@ mc_att_control <command> [arguments...]
 
    status        print status info
 ```
+
 ## mc_pos_control
+
 Source: [modules/mc_pos_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/mc_pos_control)
 
 
@@ -167,8 +184,8 @@ Output of the velocity controller is thrust vector that is split to thrust direc
 The controller doesn't use Euler angles for its work, they are generated only for more human-friendly control and
 logging.
 
-<a id="mc_pos_control_usage"></a>
-### Usage
+### Usage {#mc_pos_control_usage}
+
 ```
 mc_pos_control <command> [arguments...]
  Commands:
@@ -179,7 +196,9 @@ mc_pos_control <command> [arguments...]
 
    status        print status info
 ```
+
 ## mc_rate_control
+
 Source: [modules/mc_rate_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/mc_rate_control)
 
 
@@ -190,8 +209,8 @@ via `manual_control_setpoint` topic) as inputs and outputs actuator control mess
 The controller has a PID loop for angular rate error.
 
 
-<a id="mc_rate_control_usage"></a>
-### Usage
+### Usage {#mc_rate_control_usage}
+
 ```
 mc_rate_control <command> [arguments...]
  Commands:
@@ -202,7 +221,9 @@ mc_rate_control <command> [arguments...]
 
    status        print status info
 ```
+
 ## navigator
+
 Source: [modules/navigator](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/navigator)
 
 
@@ -219,8 +240,8 @@ Navigator publishes position setpoint triplets (`position_setpoint_triplet_s`), 
 controller.
 
 
-<a id="navigator_usage"></a>
-### Usage
+### Usage {#navigator_usage}
+
 ```
 navigator <command> [arguments...]
  Commands:
@@ -234,15 +255,17 @@ navigator <command> [arguments...]
 
    status        print status info
 ```
+
 ## rover_ackermann
+
 Source: [modules/rover_ackermann](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/rover_ackermann)
 
 
 ### Description
 Rover ackermann module.
 
-<a id="rover_ackermann_usage"></a>
-### Usage
+### Usage {#rover_ackermann_usage}
+
 ```
 rover_ackermann <command> [arguments...]
  Commands:
@@ -252,15 +275,17 @@ rover_ackermann <command> [arguments...]
 
    status        print status info
 ```
+
 ## rover_differential
+
 Source: [modules/rover_differential](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/rover_differential)
 
 
 ### Description
 Rover differential module.
 
-<a id="rover_differential_usage"></a>
-### Usage
+### Usage {#rover_differential_usage}
+
 ```
 rover_differential <command> [arguments...]
  Commands:
@@ -270,15 +295,17 @@ rover_differential <command> [arguments...]
 
    status        print status info
 ```
+
 ## rover_mecanum
+
 Source: [modules/rover_mecanum](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/rover_mecanum)
 
 
 ### Description
 Rover mecanum module.
 
-<a id="rover_mecanum_usage"></a>
-### Usage
+### Usage {#rover_mecanum_usage}
+
 ```
 rover_mecanum <command> [arguments...]
  Commands:
@@ -288,7 +315,9 @@ rover_mecanum <command> [arguments...]
 
    status        print status info
 ```
+
 ## rover_pos_control
+
 Source: [modules/rover_pos_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/rover_pos_control)
 
 
@@ -313,8 +342,8 @@ rover_pos_control stop
 ```
 
 
-<a id="rover_pos_control_usage"></a>
-### Usage
+### Usage {#rover_pos_control_usage}
+
 ```
 rover_pos_control <command> [arguments...]
  Commands:
@@ -324,7 +353,9 @@ rover_pos_control <command> [arguments...]
 
    status        print status info
 ```
+
 ## spacecraft
+
 Source: [modules/spacecraft](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/spacecraft)
 
 
@@ -333,8 +364,8 @@ Source: [modules/spacecraft](https://github.com/PX4/PX4-Autopilot/tree/main/src/
 	It takes torque and thrust setpoints as inputs and outputs
 	actuator setpoint messages.
 	
-<a id="spacecraft_usage"></a>
-### Usage
+### Usage {#spacecraft_usage}
+
 ```
 spacecraft <command> [arguments...]
  Commands:
@@ -344,7 +375,9 @@ spacecraft <command> [arguments...]
 
    status        print status info
 ```
+
 ## uuv_att_control
+
 Source: [modules/uuv_att_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/uuv_att_control)
 
 
@@ -368,8 +401,8 @@ uuv_att_control stop
 ```
 
 
-<a id="uuv_att_control_usage"></a>
-### Usage
+### Usage {#uuv_att_control_usage}
+
 ```
 uuv_att_control <command> [arguments...]
  Commands:
@@ -379,7 +412,9 @@ uuv_att_control <command> [arguments...]
 
    status        print status info
 ```
+
 ## uuv_pos_control
+
 Source: [modules/uuv_pos_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/uuv_pos_control)
 
 
@@ -398,8 +433,8 @@ uuv_pos_control status
 uuv_pos_control stop
 ```
 
-<a id="uuv_pos_control_usage"></a>
-### Usage
+### Usage {#uuv_pos_control_usage}
+
 ```
 uuv_pos_control <command> [arguments...]
  Commands:
@@ -409,15 +444,17 @@ uuv_pos_control <command> [arguments...]
 
    status        print status info
 ```
+
 ## vtol_att_control
+
 Source: [modules/vtol_att_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/vtol_att_control)
 
 
 ### Description
 fw_att_control is the fixed wing attitude controller.
 
-<a id="vtol_att_control_usage"></a>
-### Usage
+### Usage {#vtol_att_control_usage}
+
 ```
 vtol_att_control <command> [arguments...]
  Commands:
