@@ -43,17 +43,10 @@
 
 #include <mathlib/mathlib.h>
 
-// GPS pre-flight check bit locations
-#define MASK_GPS_NSATS   (1<<0)
-#define MASK_GPS_PDOP    (1<<1)
-#define MASK_GPS_HACC    (1<<2)
-#define MASK_GPS_VACC    (1<<3)
-#define MASK_GPS_SACC    (1<<4)
-#define MASK_GPS_HDRIFT  (1<<5)
-#define MASK_GPS_VDRIFT  (1<<6)
-#define MASK_GPS_HSPD    (1<<7)
-#define MASK_GPS_VSPD    (1<<8)
-#define MASK_GPS_SPOOFED (1<<9)
+bool Ekf::isGnssCheckEnabled(GnssChecksMask check)
+{
+	return (_params.gps_check_mask & static_cast<int32_t>(check));
+}
 
 bool Ekf::runGnssChecks(const gnssSample &gnss)
 {
@@ -99,16 +92,16 @@ bool Ekf::runGnssChecks(const gnssSample &gnss)
 	// if any user selected checks have failed, record the fail time
 	if (
 		_gps_check_fail_status.flags.fix ||
-		(_gps_check_fail_status.flags.nsats   && (_params.gps_check_mask & MASK_GPS_NSATS)) ||
-		(_gps_check_fail_status.flags.pdop    && (_params.gps_check_mask & MASK_GPS_PDOP)) ||
-		(_gps_check_fail_status.flags.hacc    && (_params.gps_check_mask & MASK_GPS_HACC)) ||
-		(_gps_check_fail_status.flags.vacc    && (_params.gps_check_mask & MASK_GPS_VACC)) ||
-		(_gps_check_fail_status.flags.sacc    && (_params.gps_check_mask & MASK_GPS_SACC)) ||
-		(_gps_check_fail_status.flags.hdrift  && (_params.gps_check_mask & MASK_GPS_HDRIFT)) ||
-		(_gps_check_fail_status.flags.vdrift  && (_params.gps_check_mask & MASK_GPS_VDRIFT)) ||
-		(_gps_check_fail_status.flags.hspeed  && (_params.gps_check_mask & MASK_GPS_HSPD)) ||
-		(_gps_check_fail_status.flags.vspeed  && (_params.gps_check_mask & MASK_GPS_VSPD)) ||
-		(_gps_check_fail_status.flags.spoofed && (_params.gps_check_mask & MASK_GPS_SPOOFED))
+		(_gps_check_fail_status.flags.nsats   && isGnssCheckEnabled(GnssChecksMask::kNsats)) ||
+		(_gps_check_fail_status.flags.pdop    && isGnssCheckEnabled(GnssChecksMask::kPdop)) ||
+		(_gps_check_fail_status.flags.hacc    && isGnssCheckEnabled(GnssChecksMask::kHacc)) ||
+		(_gps_check_fail_status.flags.vacc    && isGnssCheckEnabled(GnssChecksMask::kVacc)) ||
+		(_gps_check_fail_status.flags.sacc    && isGnssCheckEnabled(GnssChecksMask::kSacc)) ||
+		(_gps_check_fail_status.flags.hdrift  && isGnssCheckEnabled(GnssChecksMask::kHdrift)) ||
+		(_gps_check_fail_status.flags.vdrift  && isGnssCheckEnabled(GnssChecksMask::kVdrift)) ||
+		(_gps_check_fail_status.flags.hspeed  && isGnssCheckEnabled(GnssChecksMask::kHspd)) ||
+		(_gps_check_fail_status.flags.vspeed  && isGnssCheckEnabled(GnssChecksMask::kVspd)) ||
+		(_gps_check_fail_status.flags.spoofed && isGnssCheckEnabled(GnssChecksMask::kSpoofed))
 	) {
 		_last_gps_fail_us = _time_delayed_us;
 		return false;
