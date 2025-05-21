@@ -402,8 +402,8 @@ protected:
 	float _gps_vertical_position_drift_rate_m_s{NAN};   // Vertical position drift rate (m/s)
 	float _gps_filtered_horizontal_velocity_m_s{NAN};   // Filtered horizontal velocity (m/s)
 
-	MapProjection _gps_pos_prev{}; // Contains WGS-84 position latitude and longitude of the previous GPS message
-	float _gps_alt_prev{0.0f};	// height from the previous GPS message (m)
+	MapProjection _gnss_pos_prev{}; // Contains WGS-84 position latitude and longitude of the previous GPS message
+	float _gnss_alt_prev{0.0f};	// height from the previous GPS message (m)
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// innovation consistency check monitoring ratios
