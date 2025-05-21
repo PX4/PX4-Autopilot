@@ -739,6 +739,7 @@
       - [磁罗盘](modules/modules_driver_magnetometer.md)
       - [光流](modules/modules_driver_optical_flow.md)
       - [Rpm Sensor](modules/modules_driver_rpm_sensor.md)
+      - [Radio Control](modules/modules_driver_radio_control.md)
       - [Transponder](modules/modules_driver_transponder.md)
     - [估计器](modules/modules_estimator.md)
     - [仿真](modules/modules_simulation.md)
