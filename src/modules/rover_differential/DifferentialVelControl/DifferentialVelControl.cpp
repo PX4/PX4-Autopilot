@@ -60,11 +60,13 @@ void DifferentialVelControl::updateParams()
 
 void DifferentialVelControl::updateVelControl()
 {
+	updateSubscriptions();
+
 	const hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
 	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
+	float max_speed = _param_ro_speed_limit.get();
 
-	updateSubscriptions();
 
 	// Attitude Setpoint
 	if (PX4_ISFINITE(_bearing_setpoint)) {
@@ -72,11 +74,18 @@ void DifferentialVelControl::updateVelControl()
 		rover_attitude_setpoint.timestamp = _timestamp;
 		rover_attitude_setpoint.yaw_setpoint = _bearing_setpoint;
 		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
+
+		if (_param_ro_speed_red.get() > FLT_EPSILON) {
+			const float course_error = fabsf(matrix::wrap_pi(_bearing_setpoint - _vehicle_yaw));
+			const float speed_reduction = math::constrain(_param_ro_speed_red.get() * math::interpolate(course_error,
+						      0.f, M_PI_F, 0.f, 1.f), 0.f, 1.f);
+			max_speed = math::constrain(_param_ro_max_thr_speed.get() * (1.f - speed_reduction), 0.f, max_speed);
+		}
 	}
 
 	// Throttle Setpoint
 	if (PX4_ISFINITE(_speed_setpoint)) {
-		const float speed_setpoint = calcSpeedSetpoint();
+		const float speed_setpoint = calcSpeedSetpoint(max_speed);
 		rover_throttle_setpoint_s rover_throttle_setpoint{};
 		rover_throttle_setpoint.timestamp = _timestamp;
 		rover_throttle_setpoint.throttle_body_x = RoverControl::speedControl(_adjusted_speed_setpoint, _pid_speed,
@@ -126,7 +135,7 @@ void DifferentialVelControl::updateSubscriptions()
 
 }
 
-float DifferentialVelControl::calcSpeedSetpoint()
+float DifferentialVelControl::calcSpeedSetpoint(const float max_speed)
 {
 	const float heading_error = matrix::wrap_pi(_bearing_setpoint - _vehicle_yaw);
 
@@ -140,8 +149,7 @@ float DifferentialVelControl::calcSpeedSetpoint()
 	float speed_setpoint = 0.f;
 
 	if (_current_state == DrivingState::DRIVING) {
-		speed_setpoint = math::constrain(_speed_setpoint, -_param_ro_speed_limit.get(),
-						 _param_ro_speed_limit.get());
+		speed_setpoint = math::constrain(_speed_setpoint, -max_speed, max_speed);
 
 		const float speed_setpoint_normalized = math::interpolate<float>(speed_setpoint,
 							-_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get(), -1.f, 1.f);

@@ -32,23 +32,6 @@ parameters:
         decimal: 2
         default: 0
 
-      RM_MISS_SPD_GAIN:
-        description:
-          short: Tuning parameter for the speed reduction during waypoint transition
-          long: |
-            The waypoint transition speed is calculated as:
-            Transition_speed = Maximum_speed * (1 - normalized_transition_angle * RM_MISS_VEL_GAIN)
-            The normalized transition angle is the angle between the line segment from prev-curr waypoint and
-            curr-next waypoint interpolated from [0, 180] -> [0, 1].
-            Higher value -> More speed reduction during waypoint transitions.
-            Set to -1 to disable any speed reduction during waypoint transition.
-        type: float
-        min: -1
-        max: 100
-        increment: 0.01
-        decimal: 2
-        default: -1
-
       RM_COURSE_CTL_TH:
         description:
           short: Threshold to update course control in manual position mode
