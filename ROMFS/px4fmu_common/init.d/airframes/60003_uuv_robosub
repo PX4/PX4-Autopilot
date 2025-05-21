@@ -60,5 +60,6 @@ param set-default PWM_MAIN_MAX 1900     # Maximum PWM value (full forward)
 param set-default PWM_MAIN_FUNC1 101
 
 rs_motor_control start
+rs_remote_control start
 control_allocator start
 land_detector start rover

@@ -101,7 +101,7 @@ px4_add_module(
 	MAIN mavlink
 	COMPILE_FLAGS
 		-Wno-enum-compare # ROTATION <-> MAV_SENSOR_ROTATION
-		#-DDEBUG_BUILD
+		-DDEBUG_BUILD
 	SRCS
 		mavlink.c
 		mavlink_command_sender.cpp

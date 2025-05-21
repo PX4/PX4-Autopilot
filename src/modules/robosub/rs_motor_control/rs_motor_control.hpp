@@ -82,6 +82,8 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
+	void actuator_test(int function, float value, int timeout_ms, bool release_control);
+
 	bool init();
 
 private:
@@ -112,7 +114,5 @@ private:
 	* Update our local parameter cache.
 	*/
 	void parameters_update(bool force = false);
-
-	void actuator_test(int function, float value, int timeout_ms, bool release_control);
 
 };

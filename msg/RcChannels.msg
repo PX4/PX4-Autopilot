@@ -33,7 +33,7 @@ uint8 FUNCTION_PAYLOAD_POWER = 28
 uint8 FUNCTION_FLTBTN_SLOT_COUNT = 6
 
 uint64 timestamp_last_valid					# Timestamp of last valid RC signal
-float32[18] channels						# Scaled to -1..1 (throttle: 0..1)
+float32[18] channels						# Scaled to -1..1 (throttle: 0..1)+
 uint8 channel_count						# Number of valid channels
 int8[29] function						# Functions mapping
 uint8 rssi							# Receive signal strength index
