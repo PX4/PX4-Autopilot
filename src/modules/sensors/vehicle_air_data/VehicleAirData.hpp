@@ -143,7 +143,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh,
-		(ParamFloat<px4::params::SENS_BARO_RATE>) _param_sens_baro_rate
+		(ParamFloat<px4::params::SENS_BARO_RATE>) _param_sens_baro_rate,
+		(ParamBool<px4::params::SENS_BAR_AUTOCAL>) _param_sens_baro_autocal
 	)
 };
 }; // namespace sensors

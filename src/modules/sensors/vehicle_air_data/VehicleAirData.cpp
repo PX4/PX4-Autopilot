@@ -257,7 +257,8 @@ void VehicleAirData::Run()
 	if (!_relative_calibration_done) {
 		_relative_calibration_done = UpdateRelativeCalibrations(time_now_us);
 
-	} else if (!_baro_gnss_calibration_done && !estimator_status_flags.cs_in_air && estimator_status_flags.cs_gps_hgt) {
+	} else if (!_baro_gnss_calibration_done && _param_sens_baro_autocal.get()
+		   && !estimator_status_flags.cs_in_air && estimator_status_flags.cs_gps_hgt) {
 		_baro_gnss_calibration_done = BaroGNSSAltitudeOffset();
 	}
 
@@ -474,35 +475,13 @@ void VehicleAirData::PrintStatus()
 
 bool VehicleAirData::BaroGNSSAltitudeOffset()
 {
-	param_t param_hgt_ref = param_find("EKF2_HGT_REF");
-	int32_t hgt_ref = 0;
-
-	if (param_hgt_ref != PARAM_INVALID) {
-		param_get(param_hgt_ref, &hgt_ref);
-	}
-
-	// not optimal to compare to , otherwise more overhead in msg or more dependencies
-	static constexpr int HeightSensor_GNSS = 1;
-
-	if (hgt_ref != HeightSensor_GNSS) {
-		return false;
-	}
-
-	param_t param_qnh = param_find("SENS_BARO_QNH");
-	float qnh = 1013.25f; // Default QNH value in hPa
-
-	if (param_qnh != PARAM_INVALID) {
-		param_get(param_qnh, &qnh);
-	}
-
-	const float pressure_sealevel = qnh * 100.0f;
-
 	sensor_gps_s gps_pos;
 
 	if (!_vehicle_gps_position_sub.copy(&gps_pos)) {
 		return false;
 	}
 
+	const float pressure_sealevel = _param_sens_baro_qnh.get() * 100.0f;
 	const float baro_pressure = _data_sum[_selected_sensor_sub_index] / _data_sum_count[_selected_sensor_sub_index];
 	const float target_altitude = static_cast<float>(gps_pos.altitude_msl_m);
 
@@ -531,8 +510,7 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 
 	// add new offset to existing relative offsets
 	for (int instance = 0; instance < MAX_SENSOR_COUNT; ++instance) {
-		if (_calibration[instance].device_id() != 0
-		    && _data_sum_count[instance] > 0) {
+		if (_calibration[instance].device_id() != 0 && _data_sum_count[instance] > 0) {
 			_calibration[instance].set_offset(_calibration[instance].offset() + offset);
 			_calibration[instance].ParametersSave(instance);
 			param_notify_changes();
