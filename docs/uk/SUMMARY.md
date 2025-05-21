@@ -739,6 +739,7 @@
       - [Магнітометр](modules/modules_driver_magnetometer.md)
       - [Оптичний потік](modules/modules_driver_optical_flow.md)
       - [Датчик швидкості обертання](modules/modules_driver_rpm_sensor.md)
+      - [Radio Control](modules/modules_driver_radio_control.md)
       - [Транспондер](modules/modules_driver_transponder.md)
     - [Естіматори](modules/modules_estimator.md)
     - [Симуляції](modules/modules_simulation.md)
