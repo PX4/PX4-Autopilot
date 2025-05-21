@@ -66,7 +66,7 @@ uint16 VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT=220		# Mission command to control a cam
 uint16 VEHICLE_CMD_DO_GUIDED_MASTER=221			# Set id of master controller. |System ID| Component ID|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_GUIDED_LIMITS=222			# Set limits for external control. |timeout - maximum time (in seconds) that external controller will be allowed to control vehicle. 0 means no timeout| absolute altitude min (in meters, AMSL) - if vehicle moves below this alt, the command will be aborted and the mission will continue.  0 means no lower altitude limit| absolute altitude max (in meters)- if vehicle moves above this alt, the command will be aborted and the mission will continue.  0 means no upper altitude limit| horizontal move limit (in meters, AMSL) - if vehicle moves more than this distance from it's location at the moment the command was executed, the command will be aborted and the mission will continue. 0 means no horizontal altitude limit|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_LAST = 240			# NOP - This command is only used to mark the upper limit of the DO commands in the enumeration. |Unused|Unused|Unused|Unused|Unused|Unused|Unused|
-uint16 VEHICLE_CMD_PREFLIGHT_CALIBRATION = 241		# Trigger calibration. This command will be only accepted if in pre-flight mode. See mavlink spec MAV_CMD_PREFLIGHT_CALIBRATION.
+uint16 VEHICLE_CMD_PREFLIGHT_CALIBRATION = 241		# Trigger calibration. This command will be only accepted if in pre-flight mode. See MAVLink spec MAV_CMD_PREFLIGHT_CALIBRATION.
 uint16 PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION = 3# Param value for VEHICLE_CMD_PREFLIGHT_CALIBRATION to start temperature calibration.
 uint16 VEHICLE_CMD_PREFLIGHT_SET_SENSOR_OFFSETS = 242	# Set sensor offsets. This command will be only accepted if in pre-flight mode. |Sensor to adjust the offsets for: 0: gyros, 1: accelerometer, 2: magnetometer, 3: barometer, 4: optical flow| X axis offset (or generic dimension 1), in the sensor's raw units| Y axis offset (or generic dimension 2), in the sensor's raw units| Z axis offset (or generic dimension 3), in the sensor's raw units| Generic dimension 4, in the sensor's raw units| Generic dimension 5, in the sensor's raw units| Generic dimension 6, in the sensor's raw units|
 uint16 VEHICLE_CMD_PREFLIGHT_UAVCAN = 243		# UAVCAN configuration. If param 1 == 1 actuator mapping and direction assignment should be started.
@@ -112,17 +112,17 @@ uint32 VEHICLE_CMD_PX4_INTERNAL_START    = 65537        # Start of PX4 internal 
 uint32 VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN = 100000       # Sets the GPS coordinates of the vehicle local origin (0,0,0) position. |Unused|Unused|Unused|Unused|Latitude (WGS-84)|Longitude (WGS-84)|Altitude [m] (AMSL from GNSS, positive above ground)|
 uint32 VEHICLE_CMD_SET_NAV_STATE = 100001               # Change mode by specifying nav_state directly. |nav_state|Unused|Unused|Unused|Unused|Unused|Unused|
 
-uint8 VEHICLE_MOUNT_MODE_RETRACT = 0			# Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization. |
-uint8 VEHICLE_MOUNT_MODE_NEUTRAL = 1			# Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory. |
-uint8 VEHICLE_MOUNT_MODE_MAVLINK_TARGETING = 2		# Load neutral position and start MAVLink Roll,Pitch,Yaw control with stabilization. |
-uint8 VEHICLE_MOUNT_MODE_RC_TARGETING = 3		# Load neutral position and start RC Roll,Pitch,Yaw control with stabilization. |
-uint8 VEHICLE_MOUNT_MODE_GPS_POINT = 4			# Load neutral position and start to point to Lat,Lon,Alt. |
+uint8 VEHICLE_MOUNT_MODE_RETRACT = 0			# Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization.
+uint8 VEHICLE_MOUNT_MODE_NEUTRAL = 1			# Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory.
+uint8 VEHICLE_MOUNT_MODE_MAVLINK_TARGETING = 2		# Load neutral position and start MAVLink Roll,Pitch,Yaw control with stabilization.
+uint8 VEHICLE_MOUNT_MODE_RC_TARGETING = 3		# Load neutral position and start RC Roll,Pitch,Yaw control with stabilization.
+uint8 VEHICLE_MOUNT_MODE_GPS_POINT = 4			# Load neutral position and start to point to Lat,Lon,Alt.
 uint8 VEHICLE_MOUNT_MODE_ENUM_END = 5			#
 
-uint8 VEHICLE_ROI_NONE = 0                         	# No region of interest. |
-uint8 VEHICLE_ROI_WPNEXT = 1                       	# Point toward next MISSION. |
-uint8 VEHICLE_ROI_WPINDEX = 2                     	# Point toward given MISSION. |
-uint8 VEHICLE_ROI_LOCATION = 3                    	# Point toward fixed location. |
+uint8 VEHICLE_ROI_NONE = 0                         	# No region of interest.
+uint8 VEHICLE_ROI_WPNEXT = 1                       	# Point toward next MISSION.
+uint8 VEHICLE_ROI_WPINDEX = 2                     	# Point toward given MISSION.
+uint8 VEHICLE_ROI_LOCATION = 3                    	# Point toward fixed location.
 uint8 VEHICLE_ROI_TARGET = 4                       	# Point toward target.
 uint8 VEHICLE_ROI_ENUM_END = 5
 
