@@ -257,8 +257,7 @@ void VehicleAirData::Run()
 	if (!_relative_calibration_done) {
 		_relative_calibration_done = UpdateRelativeCalibrations(time_now_us);
 
-	} else if (!_baro_gnss_calibration_done && _param_sens_baro_autocal.get()
-		   && !estimator_status_flags.cs_in_air && estimator_status_flags.cs_gps_hgt) {
+	} else if (!_baro_gnss_calibration_done && _param_sens_baro_autocal.get()) {
 		_baro_gnss_calibration_done = BaroGNSSAltitudeOffset();
 	}
 
@@ -475,9 +474,13 @@ void VehicleAirData::PrintStatus()
 
 bool VehicleAirData::BaroGNSSAltitudeOffset()
 {
+	static constexpr float kEpvReq = 8.f;
+	static constexpr float kDeltaOffsetTolerance = 4.f;
+	static constexpr uint64_t kLpfWindow = 2_s;
+
 	sensor_gps_s gps_pos;
 
-	if (!_vehicle_gps_position_sub.copy(&gps_pos)) {
+	if (!_vehicle_gps_position_sub.update(&gps_pos)) {
 		return false;
 	}
 
@@ -485,21 +488,57 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 	const float baro_pressure = _data_sum[_selected_sensor_sub_index] / _data_sum_count[_selected_sensor_sub_index];
 	const float target_altitude = static_cast<float>(gps_pos.altitude_msl_m);
 
+	const float delta_alt =  getAltitudeFromPressure(baro_pressure, pressure_sealevel) - target_altitude;
+	bool gnss_baro_offset_stable = false;
+
+	if (gps_pos.epv > kEpvReq || _t_first_gnss_sample == 0) {
+		_calibration_t_first = 0;
+		_t_first_gnss_sample = gps_pos.timestamp;
+		return false;
+	}
+
+	_delta_baro_gnss_lpf.update(delta_alt);
+
+	if (_calibration_t_first == 0) {
+		_calibration_t_first = gps_pos.timestamp;
+		const float dt = (_calibration_t_first - _t_first_gnss_sample) * 1.e-6f;
+		_delta_baro_gnss_lpf.setParameters(dt, kLpfWindow * 1.e-6f);
+		_delta_baro_gnss_lpf.reset(delta_alt);
+	}
+
+	if (gps_pos.timestamp - _calibration_t_first > kLpfWindow && !PX4_ISFINITE(_baro_gnss_offset_t1)) {
+		_baro_gnss_offset_t1 = _delta_baro_gnss_lpf.getState();
+
+	} else if (gps_pos.timestamp - _calibration_t_first > 2 * kLpfWindow && PX4_ISFINITE(_baro_gnss_offset_t1)) {
+		if (fabsf(_delta_baro_gnss_lpf.getState() - _baro_gnss_offset_t1) > kDeltaOffsetTolerance) {
+			_baro_gnss_offset_t1 = NAN;
+			_calibration_t_first = 0;
+			_t_first_gnss_sample = 0;
+
+		} else {
+			gnss_baro_offset_stable = true;
+		}
+	}
+
+	if (!gnss_baro_offset_stable) {
+		return false;
+	}
+
 	// Binary search
 	float low = -10000.0f;
 	float high = 10000.0f;
 	float offset = NAN;
-	const float tolerance = 0.1f;
-	static constexpr int iterations = 100;
+	static constexpr float kTolerance = 0.1f;
+	static constexpr int kIterations = 100;
 
-	for (int i = 0; i < iterations; ++i) {
+	for (int i = 0; i < kIterations; ++i) {
 		float mid = low + (high - low) / 2.0f;
 		float calibrated_altitude = getAltitudeFromPressure(baro_pressure - mid, pressure_sealevel);
 
-		if (calibrated_altitude > target_altitude + tolerance) {
+		if (calibrated_altitude > target_altitude + kTolerance) {
 			high = mid;
 
-		} else if (calibrated_altitude < target_altitude - tolerance) {
+		} else if (calibrated_altitude < target_altitude - kTolerance) {
 			low = mid;
 
 		} else {
