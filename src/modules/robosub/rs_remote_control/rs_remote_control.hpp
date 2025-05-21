@@ -37,24 +37,27 @@
  #include <px4_platform_common/module_params.h>
  #include <uORB/SubscriptionInterval.hpp>
  #include <uORB/topics/parameter_update.h>
+ #include <lib/perf/perf_counter.h>
+ #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+ #include <uORB/topics/input_rc.h>
 
  using namespace time_literals;
 
  extern "C" __EXPORT int rs_remote_control_main(int argc, char *argv[]);
 
 
- class RobosubRemoteControl : public ModuleBase<RobosubRemoteControl>, public ModuleParams
+ class RobosubRemoteControl : public ModuleBase<RobosubRemoteControl>,  public ModuleParams, public px4::ScheduledWorkItem
  {
  public:
-	 RobosubRemoteControl(int example_param, bool example_flag);
+	 RobosubRemoteControl();
+	~RobosubRemoteControl();
 
-	 virtual ~RobosubRemoteControl() = default;
+	void receiver();
 
 	 /** @see ModuleBase */
 	 static int task_spawn(int argc, char *argv[]);
 
-	 /** @see ModuleBase */
-	 static RobosubRemoteControl *instantiate(int argc, char *argv[]);
+	 bool init();
 
 	 /** @see ModuleBase */
 	 static int custom_command(int argc, char *argv[]);
@@ -63,7 +66,8 @@
 	 static int print_usage(const char *reason = nullptr);
 
 	 /** @see ModuleBase::run() */
-	 void run() override;
+	 void Run() override;
+
 
 	 /** @see ModuleBase::print_status() */
 	 int print_status() override;
@@ -75,6 +79,8 @@
 	  * @param parameter_update_sub uorb subscription to parameter_update
 	  * @param force for a parameter update
 	  */
+	perf_counter_t	_loop_perf;
+
 	 void parameters_update(bool force = false);
 
 
@@ -85,5 +91,8 @@
 
 	 // Subscriptions
 	 uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	 uORB::Subscription _input_rc_sub{ORB_ID(input_rc)};
+
+	 input_rc_s _input_rc{};
 
  };
