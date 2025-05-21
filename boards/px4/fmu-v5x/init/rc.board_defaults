@@ -13,6 +13,9 @@ then
 	param set-default UXRCE_DDS_PTCFG 2
 	param set-default UXRCE_DDS_AG_IP 170461697
 	param set-default UXRCE_DDS_CFG 1000
+
+	# The buzzer draws too much power (0.2A) on the GPS power rail (limit 0.45A).
+	param set-default CBRK_BUZZER 782097
 else
 	# Mavlink ethernet (CFG 1000)
 	param set-default MAV_2_CONFIG 1000
