@@ -129,15 +129,18 @@ void MecanumVelControl::updateSubscriptions()
 		rover_velocity_setpoint_s rover_velocity_setpoint;
 		_rover_velocity_setpoint_sub.copy(&rover_velocity_setpoint);
 
+		const float speed_setpoint = math::constrain(rover_velocity_setpoint.speed, -_param_ro_speed_limit.get(),
+					     _param_ro_speed_limit.get());
+
 		if (PX4_ISFINITE(rover_velocity_setpoint.speed) && PX4_ISFINITE(rover_velocity_setpoint.bearing)) {
-			const Vector3f velocity_in_local_frame(rover_velocity_setpoint.speed * cosf(rover_velocity_setpoint.bearing),
-							       rover_velocity_setpoint.speed * sinf(rover_velocity_setpoint.bearing), 0.f);
+			const Vector3f velocity_in_local_frame(speed_setpoint * cosf(rover_velocity_setpoint.bearing),
+							       speed_setpoint * sinf(rover_velocity_setpoint.bearing), 0.f);
 			const Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
 			_speed_x_setpoint = velocity_in_body_frame(0);
 			_speed_y_setpoint = velocity_in_body_frame(1);
 
 		} else if (PX4_ISFINITE(rover_velocity_setpoint.speed)) {
-			_speed_x_setpoint = rover_velocity_setpoint.speed;
+			_speed_x_setpoint = speed_setpoint;
 			_speed_y_setpoint = 0.f;
 
 		} else {
@@ -157,6 +160,8 @@ Vector2f MecanumVelControl::calcSpeedSetpoint()
 		_normalized_speed_diff = rover_steering_setpoint.normalized_steering_setpoint;
 	}
 
+	Vector2f speed_setpoint = Vector2f(_speed_x_setpoint, _speed_y_setpoint);
+
 	float speed_x_setpoint_normalized = math::interpolate<float>(_speed_x_setpoint,
 					    -_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get(), -1.f, 1.f);
 
@@ -165,8 +170,6 @@ Vector2f MecanumVelControl::calcSpeedSetpoint()
 
 	const float total_speed = fabsf(speed_x_setpoint_normalized) + fabsf(speed_y_setpoint_normalized) + fabsf(
 					  _normalized_speed_diff);
-
-	Vector2f speed_setpoint = Vector2f(_speed_x_setpoint, _speed_y_setpoint);
 
 	if (total_speed > 1.f) {
 		const float theta = atan2f(fabsf(speed_y_setpoint_normalized), fabsf(speed_x_setpoint_normalized));

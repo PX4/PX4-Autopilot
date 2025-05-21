@@ -253,3 +253,21 @@ PARAM_DEFINE_FLOAT(RO_JERK_LIM, -1.f);
  * @group Rover Velocity Control
  */
 PARAM_DEFINE_FLOAT(RO_SPEED_TH, 0.1f);
+
+/**
+ * Tuning parameter for the speed reduction based on the course error
+ *
+ * Reduced_speed = RO_MAX_THR_SPEED * (1 - normalized_course_error * RO_SPEED_RED)
+ * The normalized course error is the angle between the current course and the bearing setpoint
+ * interpolated from [0, 180] -> [0, 1].
+ * Higher value -> More speed reduction.
+ * Note: This is also used to calculate the speed at which the vehicle arrives at a waypoint in auto modes.
+ * Set to -1 to disable bearing error based speed reduction.
+ *
+ * @min -1
+ * @max 100
+ * @increment 0.01
+ * @decimal 2
+ * @group Rover Velocity Control
+ */
+PARAM_DEFINE_FLOAT(RO_SPEED_RED, -1.f);

@@ -43,7 +43,6 @@
 // uORB includes
 #include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/position_controller_status.h>
@@ -96,35 +95,17 @@ private:
 	/**
 	 * @brief Calculate the speed at which the rover should arrive at the current waypoint based on the upcoming corner.
 	 * @param cruising_speed Cruising speed [m/s].
-	 * @param miss_speed_min Minimum speed setpoint [m/s].
+	 * @param min_speed Minimum speed setpoint [m/s].
 	 * @param acc_rad Acceptance radius of the current waypoint [m].
 	 * @param curr_wp_type Type of the current waypoint.
 	 * @param waypoint_transition_angle Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
 	 * @param max_yaw_rate Maximum yaw rate setpoint [rad/s]
 	 * @return Speed setpoint [m/s].
 	 */
-	float arrivalSpeed(float cruising_speed, float miss_speed_min, float acc_rad, int curr_wp_type,
+	float arrivalSpeed(float cruising_speed, float min_speed, float acc_rad, int curr_wp_type,
 			   float waypoint_transition_angle, float max_yaw_rate);
 
-	/**
-	 * @brief Calculate the cruising speed setpoint. During cornering the speed is restricted based on the radius of the corner.
-	 * @param cruising_speed Cruising speed [m/s].
-	 * @param miss_speed_min Minimum speed setpoint [m/s].
-	 * @param distance_to_prev_wp Distance to the previous waypoint [m].
-	 * @param distance_to_curr_wp Distance to the current waypoint [m].
-	 * @param acc_rad Acceptance radius of the current waypoint [m].
-	 * @param prev_acc_rad Acceptance radius of the previous waypoint [m].
-	 * @param waypoint_transition_angle Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
-	 * @param prev_waypoint_transition_angle Previous angle between the prevWP-currWP and currWP-nextWP line segments [rad]
-	 *  @param max_yaw_rate Maximum yaw rate setpoint [rad/s]
-	 * @return Speed setpoint [m/s].
-	 */
-	float cruisingSpeed(float cruising_speed, float miss_speed_min, float distance_to_prev_wp,
-			    float distance_to_curr_wp, float acc_rad, float prev_acc_rad, float waypoint_transition_angle,
-			    float prev_waypoint_transition_angle, float max_yaw_rate);
-
 	// uORB subscriptions
-	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 
@@ -134,18 +115,14 @@ private:
 
 	// Variables
 	MapProjection _global_ned_proj_ref{}; // Transform global to NED coordinates
-	Quatf _vehicle_attitude_quaternion{};
 	Vector2f _curr_wp_ned{NAN, NAN};
 	Vector2f _prev_wp_ned{NAN, NAN};
 	Vector2f _next_wp_ned{NAN, NAN};
 	Vector2f _curr_pos_ned{NAN, NAN};
 	float _acceptance_radius{0.5f};
-	float _prev_acceptance_radius{0.5f};
 	float _cruising_speed{0.f};
 	float _waypoint_transition_angle{0.f}; // Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
-	float _prev_waypoint_transition_angle{0.f}; // Previous Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
 	float _max_yaw_rate{NAN};
-	float _vehicle_yaw{NAN};
 	float _min_speed{NAN}; // Speed at which the maximum yaw rate limit is enforced given the maximum steer angle and wheel base.
 	int _curr_wp_type{position_setpoint_s::SETPOINT_TYPE_IDLE};
 
@@ -156,6 +133,8 @@ private:
 		(ParamFloat<px4::params::RA_MAX_STR_ANG>)   _param_ra_max_str_ang,
 		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad,
 		(ParamFloat<px4::params::RA_ACC_RAD_MAX>)   _param_ra_acc_rad_max,
-		(ParamFloat<px4::params::RA_ACC_RAD_GAIN>)  _param_ra_acc_rad_gain
+		(ParamFloat<px4::params::RA_ACC_RAD_GAIN>)  _param_ra_acc_rad_gain,
+		(ParamFloat<px4::params::RO_SPEED_RED>)     _param_ro_speed_red,
+		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed
 	)
 };
