@@ -883,6 +883,21 @@ private:
 	 * Checks are adjusted using the EKF2_REQ_* parameters
 	*/
 	bool runGnssChecks(const gnssSample &gps);
+
+	enum class GnssChecksMask : int32_t {
+		kNsats   = (1 << 0),
+		kPdop    = (1 << 1),
+		kHacc    = (1 << 2),
+		kVacc    = (1 << 3),
+		kSacc    = (1 << 4),
+		kHdrift  = (1 << 5),
+		kVdrift  = (1 << 6),
+		kHspd    = (1 << 7),
+		kVspd    = (1 << 8),
+		kSpoofed = (1 << 9)
+	};
+
+	bool isGnssCheckEnabled(GnssChecksMask check);
 	void runOnGroundGnssChecks(const gnssSample &gnss);
 
 	void controlGnssHeightFusion(const gnssSample &gps_sample);
