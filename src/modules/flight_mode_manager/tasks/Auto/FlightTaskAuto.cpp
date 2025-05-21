@@ -235,7 +235,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	bool range_dist_available = PX4_ISFINITE(_dist_to_bottom);
 
 	if (range_dist_available && _dist_to_bottom <= _param_mpc_land_alt3.get()) {
-		vertical_speed = _param_mpc_land_crawl_speed.get();
+		vertical_speed = _param_mpc_land_crwl.get();
 	}
 
 	if (_type_previous != WaypointType::land) {

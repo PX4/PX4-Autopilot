@@ -4,3 +4,20 @@ serial_config:
       port_config_param:
         name: SENS_TFMINI_CFG
         group: Sensors
+
+parameters:
+    - group: Sensors
+      definitions:
+        SENS_TFMINI_HW:
+            description:
+                short: Hardware Model
+                long: Models differ in range and FoV.
+            type: enum
+            values:
+                1: TFMINI
+                2: ISTRA24
+                3: ISTRA24_100m
+            min: 1
+            max: 3
+            default: 1
+            reboot_required: true

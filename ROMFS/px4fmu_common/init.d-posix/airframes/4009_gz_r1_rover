@@ -37,8 +37,8 @@ param set-default RO_YAW_P 5
 
 # Rover Position Control Parameters
 param set-default RO_SPEED_LIM 2
-param set-default RO_SPEED_I 0.5
-param set-default RO_SPEED_P 1
+param set-default RO_SPEED_I 0.01
+param set-default RO_SPEED_P 0.1
 
 # Pure Pursuit parameters
 param set-default PP_LOOKAHD_GAIN 1

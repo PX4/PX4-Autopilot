@@ -61,112 +61,82 @@ GZBridge::~GZBridge()
 
 int GZBridge::init()
 {
-	// clock
-	std::string clock_topic = "/world/" + _world_name + "/clock";
-
-	if (!_node.Subscribe(clock_topic, &GZBridge::clockCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", clock_topic.c_str());
+	// REQUIRED:
+	if (!subscribeClock(true)) {
 		return PX4_ERROR;
 	}
 
-	// pose: /world/$WORLD/pose/info
-	std::string world_pose_topic = "/world/" + _world_name + "/pose/info";
+	// We must wait for clock before subscribing to other topics. This is because
+	// if we publish a 0 timestamp it screws up the EKF.
+	while (1) {
+		px4_usleep(25000);
 
-	if (!_node.Subscribe(world_pose_topic, &GZBridge::poseInfoCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", world_pose_topic.c_str());
+		if (_realtime_clock_set) {
+			px4_usleep(25000);
+			break;
+		}
+	}
+
+	if (!subscribePoseInfo(true)) {
 		return PX4_ERROR;
 	}
 
-	// IMU: /world/$WORLD/model/$MODEL/link/base_link/sensor/imu_sensor/imu
-	std::string imu_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/base_link/sensor/imu_sensor/imu";
-
-	if (!_node.Subscribe(imu_topic, &GZBridge::imuCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", imu_topic.c_str());
+	if (!subscribeImu(true)) {
 		return PX4_ERROR;
 	}
 
-	// mag: /world/$WORLD/model/$MODEL/link/base_link/sensor/magnetometer_sensor/magnetometer
-	std::string mag_topic = "/world/" + _world_name + "/model/" + _model_name +
-				"/link/base_link/sensor/magnetometer_sensor/magnetometer";
-
-	if (!_node.Subscribe(mag_topic, &GZBridge::magnetometerCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", mag_topic.c_str());
+	if (!subscribeMag(true)) {
 		return PX4_ERROR;
 	}
 
-	// odom: /world/$WORLD/model/$MODEL/link/base_link/odometry_with_covariance
-	std::string odometry_topic = "/model/" + _model_name + "/odometry_with_covariance";
-
-	if (!_node.Subscribe(odometry_topic, &GZBridge::odometryCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", odometry_topic.c_str());
+	// OPTIONAL:
+	if (!subscribeNavsat(false)) {
 		return PX4_ERROR;
 	}
 
-	// Laser Scan: optional
-	std::string laser_scan_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/link/sensor/lidar_2d_v2/scan";
-
-	if (!_node.Subscribe(laser_scan_topic, &GZBridge::laserScanCallback, this)) {
-		PX4_WARN("failed to subscribe to %s", laser_scan_topic.c_str());
-	}
-
-	// Distance Sensor(AFBRS50): optional
-	std::string lidar_sensor = "/world/" + _world_name + "/model/" + _model_name +
-				   "/link/lidar_sensor_link/sensor/lidar/scan";
-
-	if (!_node.Subscribe(lidar_sensor, &GZBridge::laserScantoLidarSensorCallback, this)) {
-		PX4_WARN("failed to subscribe to %s", lidar_sensor.c_str());
-	}
-
-	// Airspeed: /world/$WORLD/model/$MODEL/link/airspeed_link/sensor/air_speed/air_speed
-	std::string airspeed_topic = "/world/" + _world_name + "/model/" + _model_name +
-				     "/link/airspeed_link/sensor/air_speed/air_speed";
-
-	if (!_node.Subscribe(airspeed_topic, &GZBridge::airspeedCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", airspeed_topic.c_str());
+	if (!subscribeAirPressure(false)) {
 		return PX4_ERROR;
 	}
 
-	// Air pressure: /world/$WORLD/model/$MODEL/link/base_link/sensor/air_pressure_sensor/air_pressure
-	std::string air_pressure_topic = "/world/" + _world_name + "/model/" + _model_name +
-					 "/link/base_link/sensor/air_pressure_sensor/air_pressure";
-
-	if (!_node.Subscribe(air_pressure_topic, &GZBridge::barometerCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", air_pressure_topic.c_str());
+	if (!subscribeDistanceSensor(false)) {
 		return PX4_ERROR;
 	}
 
-	// GPS: /world/$WORLD/model/$MODEL/link/base_link/sensor/navsat_sensor/navsat
-	std::string nav_sat_topic = "/world/" + _world_name + "/model/" + _model_name +
-				    "/link/base_link/sensor/navsat_sensor/navsat";
-
-	if (!_node.Subscribe(nav_sat_topic, &GZBridge::navSatCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", nav_sat_topic.c_str());
+	if (!subscribeAirspeed(false)) {
 		return PX4_ERROR;
 	}
 
-	std::string flow_topic = "/world/" + _world_name + "/model/" + _model_name +
-				 "/link/flow_link/sensor/optical_flow/optical_flow";
-
-	if (!_node.Subscribe(flow_topic, &GZBridge::opticalFlowCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", flow_topic.c_str());
+	if (!subscribeOpticalFlow(false)) {
 		return PX4_ERROR;
 	}
 
+	if (!subscribeOdometry(false)) {
+		return PX4_ERROR;
+	}
+
+	if (!subscribeLaserScan(false)) {
+		return PX4_ERROR;
+	}
+
+	// ESC mixing interface
 	if (!_mixing_interface_esc.init(_model_name)) {
 		PX4_ERR("failed to init ESC output");
 		return PX4_ERROR;
 	}
 
+	// Servo mixing interface
 	if (!_mixing_interface_servo.init(_model_name)) {
 		PX4_ERR("failed to init servo output");
 		return PX4_ERROR;
 	}
 
+	// Wheel mixing interface
 	if (!_mixing_interface_wheel.init(_model_name)) {
 		PX4_ERR("failed to init motor output");
 		return PX4_ERROR;
 	}
 
+	// Gimbal mixing interface
 	if (!_gimbal.init(_world_name, _model_name)) {
 		PX4_ERR("failed to init gimbal");
 		return PX4_ERROR;
@@ -174,6 +144,174 @@ int GZBridge::init()
 
 	ScheduleNow();
 	return OK;
+}
+
+void GZBridge::Run()
+{
+	if (should_exit()) {
+		ScheduleClear();
+
+		_mixing_interface_esc.stop();
+		_mixing_interface_servo.stop();
+		_mixing_interface_wheel.stop();
+		_gimbal.stop();
+
+		exit_and_cleanup();
+		return;
+	}
+
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		updateParams();
+
+		_mixing_interface_esc.updateParams();
+		_mixing_interface_servo.updateParams();
+		_mixing_interface_wheel.updateParams();
+		_gimbal.updateParams();
+	}
+
+	ScheduleDelayed(10_ms);
+}
+
+bool GZBridge::subscribeClock(bool required)
+{
+	std::string clock_topic = "/world/" + _world_name + "/clock";
+
+	if (!_node.Subscribe(clock_topic, &GZBridge::clockCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", clock_topic.c_str());
+		return required ? false : true;
+	}
+
+	return true;
+}
+
+bool GZBridge::subscribePoseInfo(bool required)
+{
+	std::string world_pose_topic = "/world/" + _world_name + "/pose/info";
+
+	if (!_node.Subscribe(world_pose_topic, &GZBridge::poseInfoCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", world_pose_topic.c_str());
+		return required ? false : true;
+	}
+
+	return true;
+}
+
+bool GZBridge::subscribeImu(bool required)
+{
+	std::string imu_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/base_link/sensor/imu_sensor/imu";
+
+	if (!_node.Subscribe(imu_topic, &GZBridge::imuCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", imu_topic.c_str());
+		return required ? false : true;
+	}
+
+	return true;
+}
+
+bool GZBridge::subscribeMag(bool required)
+{
+	std::string mag_topic = "/world/" + _world_name + "/model/" + _model_name +
+				"/link/base_link/sensor/magnetometer_sensor/magnetometer";
+
+	if (!_node.Subscribe(mag_topic, &GZBridge::magnetometerCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", mag_topic.c_str());
+		return required ? false : true;
+	}
+
+	return true;
+}
+
+bool GZBridge::subscribeOdometry(bool required)
+{
+	// odom: /world/$WORLD/model/$MODEL/link/base_link/odometry_with_covariance
+	std::string odometry_topic = "/model/" + _model_name + "/odometry_with_covariance";
+
+	if (!_node.Subscribe(odometry_topic, &GZBridge::odometryCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", odometry_topic.c_str());
+		return required ? false : true;
+	}
+
+	return true;
+}
+
+bool GZBridge::subscribeLaserScan(bool required)
+{
+	std::string laser_scan_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/link/sensor/lidar_2d_v2/scan";
+
+	if (!_node.Subscribe(laser_scan_topic, &GZBridge::laserScanCallback, this)) {
+		PX4_WARN("failed to subscribe to %s", laser_scan_topic.c_str());
+		return required ? false : true;
+	}
+
+	return true;
+}
+
+bool GZBridge::subscribeDistanceSensor(bool required)
+{
+	std::string lidar_sensor = "/world/" + _world_name + "/model/" + _model_name +
+				   "/link/lidar_sensor_link/sensor/lidar/scan";
+
+	if (!_node.Subscribe(lidar_sensor, &GZBridge::laserScantoLidarSensorCallback, this)) {
+		PX4_WARN("failed to subscribe to %s", lidar_sensor.c_str());
+		return required ? false : true;
+	}
+
+	return true;
+}
+
+bool GZBridge::subscribeAirspeed(bool required)
+{
+	std::string airspeed_topic = "/world/" + _world_name + "/model/" + _model_name +
+				     "/link/airspeed_link/sensor/air_speed/air_speed";
+
+	if (!_node.Subscribe(airspeed_topic, &GZBridge::airspeedCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", airspeed_topic.c_str());
+		return required ? false : true;
+	}
+
+	return true;
+}
+
+bool GZBridge::subscribeAirPressure(bool required)
+{
+	std::string air_pressure_topic = "/world/" + _world_name + "/model/" + _model_name +
+					 "/link/base_link/sensor/air_pressure_sensor/air_pressure";
+
+	if (!_node.Subscribe(air_pressure_topic, &GZBridge::airPressureCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", air_pressure_topic.c_str());
+		return required ? false : true;
+	}
+
+	return true;
+}
+
+bool GZBridge::subscribeNavsat(bool required)
+{
+	std::string nav_sat_topic = "/world/" + _world_name + "/model/" + _model_name +
+				    "/link/base_link/sensor/navsat_sensor/navsat";
+
+	if (!_node.Subscribe(nav_sat_topic, &GZBridge::navSatCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", nav_sat_topic.c_str());
+		return required ? false : true;
+	}
+
+	return true;
+}
+
+bool GZBridge::subscribeOpticalFlow(bool required)
+{
+	std::string flow_topic = "/world/" + _world_name + "/model/" + _model_name +
+				 "/link/flow_link/sensor/optical_flow/optical_flow";
+
+	if (!_node.Subscribe(flow_topic, &GZBridge::opticalFlowCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", flow_topic.c_str());
+		return required ? false : true;
+	}
+
+	return true;
 }
 
 void GZBridge::clockCallback(const gz::msgs::Clock &msg)
@@ -254,7 +392,7 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
 	_sensor_mag_pub.publish(report);
 }
 
-void GZBridge::barometerCallback(const gz::msgs::FluidPressure &msg)
+void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
 {
 	const uint64_t timestamp = hrt_absolute_time();
 
@@ -272,7 +410,6 @@ void GZBridge::barometerCallback(const gz::msgs::FluidPressure &msg)
 	report.temperature = this->_temperature;
 	_sensor_baro_pub.publish(report);
 }
-
 
 void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
 {
@@ -495,7 +632,7 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &msg)
 	_visual_odometry_pub.publish(report);
 }
 
-static float generate_wgn()
+float GZBridge::generate_wgn()
 {
 	// generate white Gaussian noise sample with std=1
 
@@ -796,35 +933,6 @@ void GZBridge::rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::m
 
 	// final rotation composition
 	q_FRD_to_NED = q_ENU_to_NED * q_FLU_to_ENU * q_FLU_to_FRD.Inverse();
-}
-
-void GZBridge::Run()
-{
-	if (should_exit()) {
-		ScheduleClear();
-
-		_mixing_interface_esc.stop();
-		_mixing_interface_servo.stop();
-		_mixing_interface_wheel.stop();
-		_gimbal.stop();
-
-		exit_and_cleanup();
-		return;
-	}
-
-	if (_parameter_update_sub.updated()) {
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
-
-		updateParams();
-
-		_mixing_interface_esc.updateParams();
-		_mixing_interface_servo.updateParams();
-		_mixing_interface_wheel.updateParams();
-		_gimbal.updateParams();
-	}
-
-	ScheduleDelayed(10_ms);
 }
 
 int GZBridge::task_spawn(int argc, char *argv[])

@@ -45,7 +45,6 @@ using namespace px4::logger;
 
 void LoggedTopics::add_default_topics()
 {
-	add_optional_topic("ackermann_velocity_setpoint", 100);
 	add_topic("action_request");
 	add_topic("actuator_armed");
 	add_optional_topic("actuator_controls_status_0", 300);
@@ -113,6 +112,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("rover_rate_status", 100);
 	add_optional_topic("rover_steering_setpoint", 100);
 	add_optional_topic("rover_throttle_setpoint", 100);
+	add_optional_topic("rover_velocity_setpoint", 100);
 	add_optional_topic("rover_velocity_status", 100);
 	add_topic("rtl_time_estimate", 1000);
 	add_topic("rtl_status", 2000);

@@ -7,6 +7,10 @@ PX4 can be tested end to end to using integration tests based on [MAVSDK](https:
 
 测试需要将MAVSAK C++库安装到系统目录（如： <code>/usr/lib</code> or <code>/usr/local/lib</code>）
 
+:::note
+This is the recommended integration test framework for PX4.
+:::
+
 ## 系统必备组件
 
 ### 运行所有PX4测试
@@ -47,33 +51,37 @@ To run all SITL tests as defined in [sitl.json](https://github.com/PX4/PX4-Autop
 test/mavsdk_tests/mavsdk_test_runner.py test/mavsdk_tests/configs/sitl.json --speed-factor 10
 ```
 
-This will list all of the tests and then run them sequentially.
+This will list all the tests and then run them sequentially.
 
 To see all possible command line arguments use the `-h` argument:
 
 ```sh
 test/mavsdk_tests/mavsdk_test_runner.py -h
 
-用法：mavsdk_test_runner。 y [-h] [--log-dir LOG_DIR] [--speed-factor SPEED_FACTOR] [--trerations ITERATION] [--abort-early] [--gui] [--model MODEL]
-                             [--case CASE] [--debugger DEBUGER] [--verbose]
-                             config_file
+usage: mavsdk_test_runner.py [-h] [--log-dir LOG_DIR] [--speed-factor SPEED_FACTOR] [--iterations ITERATIONS] [--abort-early]
+                             [--gui] [--model MODEL] [--case CASE] [--debugger DEBUGGER] [--upload] [--force-color]
+                             [--verbose] [--build-dir BUILD_DIR]
 
-posital 参数：
-  config_file JSON 使用的JSON配置文件
+positional arguments:
+  config_file           JSON config file to use
 
-optional 参数：
-  -h, --help 显示此帮助信息并退出
-  --log-dir LOG_DIR 日志文件目录
+options:
+  -h, --help            show this help message and exit
+  --log-dir LOG_DIR     Directory for log files
   --speed-factor SPEED_FACTOR
-                        模拟运行的速度因子
-  --迭代ITERATION
-                        在首次失败的测试中运行所有测试的频率
-  --abort-early 中止
-  --guide 显示模拟的可视化化
-  MODEL 只为一个模型运行测试
-  --case CASE 只运行测试一个案例
-  --debugger DEBUGER 调试器：callgrind, gdb, lldb
-  --verbose 启用更详细的输出
+                        how fast to run the simulation
+  --iterations ITERATIONS
+                        how often to run all tests
+  --abort-early         abort on first unsuccessful test
+  --gui                 display the visualization for a simulation
+  --model MODEL         only run tests for one model
+  --case CASE           only run tests for one case (or multiple cases with wildcard '*')
+  --debugger DEBUGGER   choice from valgrind, callgrind, gdb, lldb
+  --upload              Upload logs to logs.px4.io
+  --force-color         Force colorized output
+  --verbose             enable more verbose output
+  --build-dir BUILD_DIR
+                        relative path where the built files are stored
 ```
 
 ## 关于实现的说明
