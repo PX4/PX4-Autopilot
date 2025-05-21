@@ -38,6 +38,9 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/parameter_update.h>
 
+
+
+
 int RoboSubCANFDReceiver::print_status()
 {
         PX4_INFO("Running");
@@ -65,67 +68,72 @@ int RoboSubCANFDReceiver::custom_command(int argc, char *argv[])
 
 int RoboSubCANFDReceiver::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("module",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_DEFAULT,
-				      1024,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	RoboSubCANFDReceiver *instance = new RoboSubCANFDReceiver();
 
-	if (_task_id < 0) {
-		_task_id = -1;
-		return -errno;
+	if(instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
 	}
 
-	return 0;
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
 }
 
-RoboSubCANFDReceiver *RoboSubCANFDReceiver::instantiate(int argc, char *argv[])
+bool RoboSubCANFDReceiver::init()
 {
-        int example_param = 0;
-        bool example_flag = false;
-        bool error_flag = false;
-        int myoptind = 1;
-        int ch;
-        const char *myoptarg = nullptr;
-        // parse CLI arguments
-        while ((ch = px4_getopt(argc, argv, "p:f", &myoptind, &myoptarg)) != EOF) {
-                switch (ch) {
-                case 'p':
-                        example_param = (int)strtol(myoptarg, nullptr, 10);
-                        break;
-                case 'f':
-                        example_flag = true;
-                        break;
-                case '?':
-                        error_flag = true;
-                        break;
-                default:
-                        PX4_WARN("unrecognized flag");
-                        error_flag = true;
-                        break;
-                }
-        }
-        if (error_flag) {
-                return nullptr;
-        }
-        RoboSubCANFDReceiver *instance = new RoboSubCANFDReceiver(example_param, example_flag);
-        if (instance == nullptr) {
-                PX4_ERR("alloc failed");
-        }
-        return instance;
+	iov.iov_base = &frame;
+	msg.msg_name = &addr;
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+	msg.msg_control = &ctrlmsg;
+
+	ScheduleOnInterval(1000000_us); // 2000 us interval, 200 Hz rate
+
+        return true;
 }
 
-RoboSubCANFDReceiver::RoboSubCANFDReceiver(int exampleparam, bool exampleflag)
-        : ModuleParams(nullptr)
-	// WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-	/* performance counters */
+RoboSubCANFDReceiver::RoboSubCANFDReceiver()
+        : ModuleParams(nullptr),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)	/* performance counters */
 	// _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	_last_sent = hrt_absolute_time();
+	s = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+    	if (s < 0) {
+        	PX4_ERR("Failed to open CAN socket");
+        	return;
+    	}
+
+	// struct sockaddr_can addr;
+	ifr.ifr_flags = IFF_UP;
+	strcpy(ifr.ifr_name, "can0");
+	int reti = ioctl(s, SIOCGIFINDEX, &ifr);
+	if(reti == 0) {
+		PX4_INFO("test");
+	}
+	addr.can_family = AF_CAN;
+	addr.can_ifindex = ifr.ifr_ifindex;
+	int ret = bind(s, (struct sockaddr *)&addr, sizeof(addr));
+	if(ret == 0) {
+		PX4_INFO("test");
+	}
+	// Enable CAN FD frames
+	int enable_canfd = 1;
+	setsockopt(s, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &enable_canfd, sizeof(enable_canfd));
+	PX4_INFO("Enabled can socker");
+
 }
 
-void RoboSubCANFDReceiver::run()
+void RoboSubCANFDReceiver::Run()
 {
 	PX4_INFO("RoboSubCANFDReceiver::Run()");
 
@@ -138,6 +146,27 @@ void RoboSubCANFDReceiver::run()
 
 	// initialize parameters
 	parameters_update();
+	iov.iov_len = sizeof(frame);
+	msg.msg_namelen = sizeof(addr);
+	msg.msg_controllen = sizeof(ctrlmsg);
+	msg.msg_flags = 0;
+
+	nbytes = read(s, &frame, sizeof(struct canfd_frame));
+	// ssize_t nbytes = recvmsg(s, &msg, 0);
+	PX4_INFO("Received CAN frame: ID=0x%lu, Length=%d", frame.can_id, frame.len);
+	if (nbytes < 0) {
+		PX4_ERR("Failed to read CAN frame");
+	}
+		// if (nbytes >= (int)sizeof(struct can_frame)) {
+		// can_msg.timestamp = hrt_absolute_time();
+		// can_msg.can_id = frame.can_id;
+		// can_msg.len = frame.len;
+		// memcpy(can_msg.data, frame.data, frame.len > 64 ? 64 : frame.len);
+		// can_msg.bus_id = 0; // Adjust if you have multiple CAN interfaces
+
+		// raw_can_fd_pub.publish(can_msg);
+		// }
+
 
 }
 
