@@ -107,7 +107,32 @@ bool MspV1::Send(const uint8_t message_id, const void *payload)
 
 	packet[0] = '$';
 	packet[1] = 'M';
-	packet[2] = '<';
+	packet[2] = '>';
+	packet[3] = payload_size;
+	packet[4] = message_id;
+
+	crc = payload_size ^ message_id;
+
+	memcpy(packet + MSP_FRAME_START_SIZE, payload, payload_size);
+
+	for (uint32_t i = 0; i < payload_size; i ++) {
+		crc ^= packet[MSP_FRAME_START_SIZE + i];
+	}
+
+	packet[MSP_FRAME_START_SIZE + payload_size] = crc;
+
+	int packet_size =  MSP_FRAME_START_SIZE + payload_size + MSP_CRC_SIZE;
+	return  write(_fd, packet, packet_size) == packet_size;
+}
+
+bool MspV1::Send(const uint8_t message_id, const void *payload, uint32_t payload_size)
+{
+	uint8_t packet[MSP_FRAME_START_SIZE + payload_size + MSP_CRC_SIZE];
+	uint8_t crc;
+
+	packet[0] = '$';
+	packet[1] = 'M';
+	packet[2] = '>';
 	packet[3] = payload_size;
 	packet[4] = message_id;
 
