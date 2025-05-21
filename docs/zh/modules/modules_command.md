@@ -8,9 +8,7 @@ Source: [systemcmds/actuator_test](https://github.com/PX4/PX4-Autopilot/tree/mai
 
 警告：在使用此命令之前移除所有螺旋桨。
 
-<a id="actuator_test_usage"></a>
-
-### 用法
+### Usage {#actuator_test_usage}
 
 ```
 actuator_test <command> [arguments...]
@@ -34,9 +32,9 @@ actuator_test <command> [arguments...]
 
 Source: [systemcmds/bl_update](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/bl_update)
 
-Utility to flash the bootloader from a file <a id="bl_update_usage"></a>
+Utility to flash the bootloader from a file
 
-### 用法
+### Usage {#bl_update_usage}
 
 ```
 bl_update [arguments...]
@@ -50,9 +48,9 @@ bl_update [arguments...]
 
 Source: [systemcmds/bsondump](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/bsondump)
 
-Utility to read BSON from a file and print or output document size. <a id="bsondump_usage"></a>
+Utility to read BSON from a file and print or output document size.
 
-### 用法
+### Usage {#bsondump_usage}
 
 ```
 bsondump [arguments...]
@@ -63,9 +61,9 @@ bsondump [arguments...]
 
 Source: [systemcmds/dumpfile](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/dumpfile)
 
-转储文件实用程序。 以二进制模式（不要用 CR LF 替换 LF）将文件大小和内容打印到标准输出。 <a id="dumpfile_usage"></a>
+Dump file utility. Prints file size and contents in binary mode (don't replace LF with CR LF) to stdout.
 
-### 用法
+### Usage {#dumpfile_usage}
 
 ```
 dumpfile [arguments...]
@@ -78,7 +76,7 @@ Source: [systemcmds/dyn](https://github.com/PX4/PX4-Autopilot/tree/main/src/syst
 
 ### 描述
 
-加载并运行一个没有被编译进 PX4 的二进制文件的动态 PX4 模块
+Load and run a dynamic PX4 module, which was not compiled into the PX4 binary.
 
 ### Example
 
@@ -86,9 +84,7 @@ Source: [systemcmds/dyn](https://github.com/PX4/PX4-Autopilot/tree/main/src/syst
 dyn ./hello.px4mod start
 ```
 
-<a id="dyn_usage"></a>
-
-### 用法
+### Usage {#dyn_usage}
 
 ```
 dyn [arguments...]
@@ -102,21 +98,19 @@ Source: [systemcmds/failure](https://github.com/PX4/PX4-Autopilot/tree/main/src/
 
 ### 描述
 
-向系统中注入故障。
+Inject failures into system.
 
 ### 实现
 
-此系统命令通过 uORB 发送一个机体命令来出发故障。
+This system command sends a vehicle command over uORB to trigger failure.
 
 ### 示例
 
-通过停止GPS来测试GPS故障保护:
+Test the GPS failsafe by stopping GPS:
 
 failure gps off
 
-<a id="failure_usage"></a>
-
-### 用法
+### Usage {#failure_usage}
 
 ```
 failure [arguments...]
@@ -135,7 +129,7 @@ Source: [systemcmds/gpio](https://github.com/PX4/PX4-Autopilot/tree/main/src/sys
 
 ### 描述
 
-此命令用于读写GPIO
+This command is used to read and write GPIOs
 
 ```
 gpio read <PORT><PIN>/<DEVICE> [PULLDOWN|PULLUP] [--force]
@@ -144,7 +138,7 @@ gpio write <PORT><PIN>/<DEVICE> <VALUE> [PUSHPULL|OPENDRAIN] [--force]
 
 ### 示例
 
-读取配置为上拉的 PH4 引脚，它的值为高
+Read the value on port H pin 4 configured as pullup, and it is high
 
 ```
 gpio read H4 PULLUP
@@ -152,7 +146,7 @@ gpio read H4 PULLUP
 
 1 OK
 
-设置 PE7 的输出值为高
+Set the output value on Port E pin 7 to high
 
 ```
 gpio write E7 1 --force
@@ -164,9 +158,7 @@ Set the output value on device /dev/gpio1 to high
 gpio write /dev/gpio1 1
 ```
 
-<a id="gpio_usage"></a>
-
-### 用法
+### Usage {#gpio_usage}
 
 ```
 gpio [arguments...]
@@ -186,13 +178,11 @@ gpio [arguments...]
 
 Source: [systemcmds/hardfault_log](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/hardfault_log)
 
-Hardfault 实用程序
+Hardfault utility
 
-在启动脚本中用于处理 hardfaults。
+Used in startup scripts to handle hardfaults
 
-<a id="hardfault_log_usage"></a>
-
-### 用法
+### Usage {#hardfault_log_usage}
 
 ```
 hardfault_log <command> [arguments...]
@@ -219,9 +209,9 @@ hardfault_log <command> [arguments...]
 
 Source: [systemcmds/hist](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/hist)
 
-Command-line tool to show the px4 message history. There are no arguments. <a id="hist_usage"></a>
+Command-line tool to show the px4 message history. There are no arguments.
 
-### 用法
+### Usage {#hist_usage}
 
 ```
 hist [arguments...]
@@ -231,9 +221,9 @@ hist [arguments...]
 
 Source: [systemcmds/i2cdetect](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/i2cdetect)
 
-Utility to scan for I2C devices on a particular bus. <a id="i2cdetect_usage"></a>
+Utility to scan for I2C devices on a particular bus.
 
-### 用法
+### Usage {#i2cdetect_usage}
 
 ```
 i2cdetect [arguments...]
@@ -249,21 +239,21 @@ Source: [systemcmds/led_control](https://github.com/PX4/PX4-Autopilot/tree/main/
 
 Command-line tool to control & test the (external) LED's.
 
-要使用它，请确保有一个处理 led_control 的 uorb 主题的设备正在运行。
+To use it make sure there's a driver running, which handles the led_control uorb topic.
 
-有不同的优先级，例如一个模块可以设置低优先级的颜色，另一个模块可以高优先级闪烁 N 次，闪烁后 LED 自动返回低优先级状态。 The `reset` command can also be used to return to a lower priority.
+There are different priorities, such that for example one module can set a color with low priority, and another
+module can blink N times with high priority, and the LED's automatically return to the lower priority state
+after the blinking. The `reset` command can also be used to return to a lower priority.
 
 ### 示例
 
-第一个 LED 闪烁蓝光 5 次：
+Blink the first LED 5 times in blue:
 
 ```
 led_control blink -c blue -l 0 -n 5
 ```
 
-<a id="led_control_usage"></a>
-
-### 用法
+### Usage {#led_control_usage}
 
 ```
 led_control <command> [arguments...]
@@ -299,13 +289,11 @@ led_control <command> [arguments...]
 
 Source: [systemcmds/topic_listener](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/topic_listener)
 
-监听 uORB 主题并将数据打印到控制台的实用程序。
+Utility to listen on uORB topics and print the data to the console.
 
-可以通过按 Ctrl+C、Esc 或 Q 随时退出侦听器。
+The listener can be exited any time by pressing Ctrl+C, Esc, or Q.
 
-<a id="listener_usage"></a>
-
-### 用法
+### Usage {#listener_usage}
 
 ```
 listener <command> [arguments...]
@@ -323,9 +311,9 @@ listener <command> [arguments...]
 
 Source: [systemcmds/mft](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/mft)
 
-Utility interact with the manifest <a id="mfd_usage"></a>
+Utility interact with the manifest
 
-### 用法
+### Usage {#mfd_usage}
 
 ```
 mfd <command> [arguments...]
@@ -337,9 +325,9 @@ mfd <command> [arguments...]
 
 Source: [systemcmds/mft_cfg](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/mft_cfg)
 
-Tool to set and get manifest configuration <a id="mft_cfg_usage"></a>
+Tool to set and get manifest configuration
 
-### 用法
+### Usage {#mft_cfg_usage}
 
 ```
 mft_cfg <command> [arguments...]
@@ -358,9 +346,9 @@ mft_cfg <command> [arguments...]
 
 Source: [systemcmds/mtd](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/mtd)
 
-Utility to mount and test partitions (based on FRAM/EEPROM storage as defined by the board) <a id="mtd_usage"></a>
+Utility to mount and test partitions (based on FRAM/EEPROM storage as defined by the board)
 
-### 用法
+### Usage {#mtd_usage}
 
 ```
 mtd <command> [arguments...]
@@ -386,14 +374,12 @@ mtd <command> [arguments...]
 
 Source: [systemcmds/nshterm](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/nshterm)
 
-在指定端口启动一个 NSH shell。
+Start an NSH shell on a given port.
 
-该命令此前被用于在 USB 串口端口开启一个 shell。
-现在运行mavlink，并且可以在mavlink 上使用shell。
+This was previously used to start a shell on the USB serial port.
+Now there runs mavlink, and it is possible to use a shell over mavlink.
 
-<a id="nshterm_usage"></a>
-
-### 用法
+### Usage {#nshterm_usage}
 
 ```
 nshterm [arguments...]
@@ -406,22 +392,24 @@ Source: [systemcmds/param](https://github.com/PX4/PX4-Autopilot/tree/main/src/sy
 
 ### 描述
 
-通过 shell 或脚本访问和操作参数的命令。
+Command to access and manipulate parameters via shell or script.
 
-例如，这在启动脚本中用于设置特定于机身的参数。
+This is used for example in the startup script to set airframe-specific parameters.
 
-Parameters are automatically saved when changed, eg. with `param set`. 它们通常存储在 FRAM 或 SD 卡中。 `param select` can be used to change the storage location for subsequent saves (this will
+Parameters are automatically saved when changed, eg. with `param set`. They are typically stored to FRAM
+or to the SD card. `param select` can be used to change the storage location for subsequent saves (this will
 need to be (re-)configured on every boot).
 
 If the FLASH-based backend is enabled (which is done at compile time, e.g. for the Intel Aero or Omnibus),
 `param select` has no effect and the default is always the FLASH backend. However `param save/load <file>`
 can still be used to write to/read from files.
 
-每个参数有一个“已使用”的标志，此标志在启动过程参数被读取后被置位。 它只是用于向地面控制站显示相关参数。
+Each parameter has a 'used' flag, which is set when it's read during boot. It is used to only show relevant
+parameters to a ground control station.
 
 ### 示例
 
-更改机身并确保已加载机身的默认参数：
+Change the airframe and make sure the airframe's default parameters are loaded:
 
 ```
 param set SYS_AUTOSTART 4001
@@ -429,9 +417,7 @@ param set SYS_AUTOCONFIG 1
 reboot
 ```
 
-<a id="param_usage"></a>
-
-### 用法
+### Usage {#param_usage}
 
 ```
 param <command> [arguments...]
@@ -509,9 +495,7 @@ Source: [modules/payload_deliverer](https://github.com/PX4/PX4-Autopilot/tree/ma
 Handles payload delivery with either Gripper or a Winch with an appropriate timeout / feedback sensor setting,
 and communicates back the delivery result as an acknowledgement internally
 
-<a id="payload_deliverer_usage"></a>
-
-### 用法
+### Usage {#payload_deliverer_usage}
 
 ```
 payload_deliverer <command> [arguments...]
@@ -533,9 +517,9 @@ payload_deliverer <command> [arguments...]
 
 Source: [systemcmds/perf](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/perf)
 
-Tool to print performance counters <a id="perf_usage"></a>
+Tool to print performance counters
 
-### 用法
+### Usage {#perf_usage}
 
 ```
 perf [arguments...]
@@ -550,9 +534,9 @@ perf [arguments...]
 
 Source: [systemcmds/reboot](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/reboot)
 
-Reboot the system <a id="reboot_usage"></a>
+Reboot the system
 
-### 用法
+### Usage {#reboot_usage}
 
 ```
 reboot [arguments...]
@@ -565,9 +549,9 @@ reboot [arguments...]
 
 Source: [systemcmds/sd_bench](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/sd_bench)
 
-Test the speed of an SD Card <a id="sd_bench_usage"></a>
+Test the speed of an SD Card
 
-### 用法
+### Usage {#sd_bench_usage}
 
 ```
 sd_bench [arguments...]
@@ -588,9 +572,9 @@ sd_bench [arguments...]
 
 Source: [systemcmds/sd_stress](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/sd_stress)
 
-Test operations on an SD Card <a id="sd_stress_usage"></a>
+Test operations on an SD Card
 
-### 用法
+### Usage {#sd_stress_usage}
 
 ```
 sd_stress [arguments...]
@@ -604,13 +588,11 @@ sd_stress [arguments...]
 
 Source: [systemcmds/serial_passthru](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/serial_passthru)
 
-把数据从一个设备传输到另一个设备。
+Pass data from one device to another.
 
 This can be used to use u-center connected to USB with a GPS on a serial port.
 
-<a id="serial_passthru_usage"></a>
-
-### 用法
+### Usage {#serial_passthru_usage}
 
 ```
 serial_passthru [arguments...]
@@ -623,7 +605,7 @@ serial_passthru [arguments...]
      [-t]        Track the External devices baudrate on internal device
 ```
 
-## 系统时间
+## system_time
 
 Source: [systemcmds/system_time](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/system_time)
 
@@ -640,9 +622,7 @@ system_time set 1600775044
 system_time get
 ```
 
-<a id="system_time_usage"></a>
-
-### 用法
+### Usage {#system_time_usage}
 
 ```
 system_time <command> [arguments...]
@@ -656,9 +636,9 @@ system_time <command> [arguments...]
 
 Source: [systemcmds/top](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/top)
 
-Monitor running processes and their CPU, stack usage, priority and state <a id="top_usage"></a>
+Monitor running processes and their CPU, stack usage, priority and state
 
-### 用法
+### Usage {#top_usage}
 
 ```
 top [arguments...]
@@ -670,9 +650,9 @@ top [arguments...]
 Source: [systemcmds/usb_connected](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/usb_connected)
 
 Utility to check if USB is connected. Was previously used in startup scripts.
-A return value of 0 means USB is connected, 1 otherwise. <a id="usb_connected_usage"></a>
+A return value of 0 means USB is connected, 1 otherwise.
 
-### 用法
+### Usage {#usb_connected_usage}
 
 ```
 usb_connected [arguments...]
@@ -682,9 +662,9 @@ usb_connected [arguments...]
 
 Source: [systemcmds/ver](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/ver)
 
-Tool to print various version information <a id="ver_usage"></a>
+Tool to print various version information
 
-### 用法
+### Usage {#ver_usage}
 
 ```
 ver <command> [arguments...]
