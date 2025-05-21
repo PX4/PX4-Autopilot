@@ -16,15 +16,13 @@ Source: [templates/template_module](https://github.com/PX4/PX4-Autopilot/tree/ma
 
 ### 예
 
-CLI 사용 예:
+CLI usage example:
 
 ```
 module start -f -p 42
 ```
 
-<a id="module_usage"></a>
-
-### 사용법
+### Usage {#module_usage}
 
 ```
 module <command> [arguments...]
@@ -47,9 +45,7 @@ Source: [examples/work_item](https://github.com/PX4/PX4-Autopilot/tree/main/src/
 
 작업 대기열에서 실행되는 간단한 모듈의 예입니다.
 
-<a id="work_item_example_usage"></a>
-
-### 사용법
+### Usage {#work_item_example_usage}
 
 ```
 work_item_example <command> [arguments...]

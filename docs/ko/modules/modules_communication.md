@@ -4,9 +4,9 @@
 
 Source: [drivers/telemetry/frsky_telemetry](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/telemetry/frsky_telemetry)
 
-FrSky 텔레메트리를 지원합니다. D 또는 S.PORT 프로토콜을 자동으로 감지합니다. <a id="frsky_telemetry_usage"></a>
+FrSky 텔레메트리를 지원합니다. D 또는 S.PORT 프로토콜을 자동으로 감지합니다.
 
-### 사용법
+### Usage {#frsky_telemetry_usage}
 
 ```
 frsky_telemetry <command> [arguments...]
@@ -64,9 +64,7 @@ mavlink start -u 14556 -r 1000000
 mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 ```
 
-<a id="mavlink_usage"></a>
-
-### 사용법
+### Usage {#mavlink_usage}
 
 ```
 mavlink <command> [arguments...]
@@ -129,30 +127,29 @@ Source: [systemcmds/uorb](https://github.com/PX4/PX4-Autopilot/tree/main/src/sys
 
 ### 설명
 
-uORB는 모듈 간의 통신에 사용되는 내부 pub-sub 메시징 시스템입니다.
+uORB is the internal pub-sub messaging system, used for communication between modules.
 
 ### 구현
 
-구현은 비동기식이며 잠금이 없습니다. 게시자는 구독자를 기다리지 않으며, 그 반대도 마찬가지입니다.
-이것은 발행자와 구독자 사이에 별도의 버퍼를 가짐으로써 달성됩니다.
+The implementation is asynchronous and lock-free, ie. a publisher does not wait for a subscriber and vice versa.
+This is achieved by having a separate buffer between a publisher and a subscriber.
 
-코드는 메모리 공간과 메시지 교환 대기 시간을 최소화하도록 최적화되었습니다.
+The code is optimized to minimize the memory footprint and the latency to exchange messages.
 
-Messages are defined in the `/msg` directory. 빌드 타임에 C/C++ 코드로 변환됩니다.
+Messages are defined in the `/msg` directory. They are converted into C/C++ code at build-time.
 
-ORB_USE_PUBLISHER_RULES로 컴파일하면, uORB 게시 규칙이 있는 파일을 사용하여, 어떤 모듈이 어떤 주제를 게시할 수 있는 지 설정할 수 있습니다. 이것은 시스템 전체 재생에 사용됩니다.
+If compiled with ORB_USE_PUBLISHER_RULES, a file with uORB publication rules can be used to configure which
+modules are allowed to publish which topics. This is used for system-wide replay.
 
 ### 예
 
-주제 게시 비율을 모니터링합니다. Besides `top`, this is an important command for general system inspection:
+Monitor topic publication rates. Besides `top`, this is an important command for general system inspection:
 
 ```
 uorb top
 ```
 
-<a id="uorb_usage"></a>
-
-### 사용법
+### Usage {#uorb_usage}
 
 ```
 uorb <command> [arguments...]
