@@ -644,7 +644,7 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 		position_valid_but_low_accuracy = (_param_com_low_eph.get() > FLT_EPSILON && lpos.eph > _param_com_low_eph.get());
 	}
 
-	if (!reporter.failsafeFlags().local_position_accuracy_low && position_valid_but_low_accuracy
+	if (!reporter.failsafeFlags().position_accuracy_low && position_valid_but_low_accuracy
 	    && _param_com_pos_low_act.get()) {
 
 		// only report if armed
@@ -666,7 +666,7 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 		}
 	}
 
-	reporter.failsafeFlags().local_position_accuracy_low = position_valid_but_low_accuracy;
+	reporter.failsafeFlags().position_accuracy_low = position_valid_but_low_accuracy;
 }
 
 void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,
