@@ -108,21 +108,21 @@ __END_DECLS
  ************************************************************************************/
 __EXPORT void board_peripheral_reset(int ms)
 {
-	/* set the peripheral rails off */
+	/* off */
+	VTX_9V_EN(false);
+	VDD_3V3_SENSORS_EN(false);
 
-	VDD_5V_PERIPH_EN(false);
 	board_control_spi_sensors_power(false, 0xffff);
 
-	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
 	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
 
 	/* re-enable power */
-
-	/* switch the peripheral rail back on */
 	board_control_spi_sensors_power(true, 0xffff);
-	VDD_5V_PERIPH_EN(true);
+	VDD_3V3_SENSORS_EN(true);
+	VTX_9V_EN(true);
 
+	CAM_SWITCH_CAM1;
 }
 
 /************************************************************************************
@@ -210,10 +210,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 {
 #if !defined(BOOTLOADER)
 
-	/* Power on Interfaces */
-	VDD_5V_PERIPH_EN(true);
-	VDD_5V_HIPOWER_EN(true);
-
 	/* Need hrt running before using the ADC */
 
 	px4_platform_init();
@@ -254,6 +250,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #if defined(FLASH_BASED_PARAMS)
 	static sector_descriptor_t params_sector_map[] = {
+		{14, 128 * 1024, 0x081C0000},
 		{15, 128 * 1024, 0x081E0000},
 		{0, 0, 0},
 	};

@@ -114,7 +114,6 @@
 
 #define BOARD_NUMBER_BRICKS 2
 
-// TODO: fix
 #define GPIO_nVDD_BRICK1_VALID          (1) /* Brick 1 Is Chosen */
 #define GPIO_nVDD_BRICK2_VALID          (0) /* Brick 2 Is Chosen  */
 
@@ -129,17 +128,20 @@
  */
 #define UAVCAN_NUM_IFACES_RUNTIME  1
 
-#define GPIO_VDD_5V_PERIPH_nEN          /* PE2  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN2)
-#define GPIO_VDD_5V_PERIPH_nOC          /* PE3  */ (GPIO_INPUT |GPIO_FLOAT|GPIO_PORTE|GPIO_PIN3)
-#define GPIO_VDD_5V_HIPOWER_nEN         /* PC10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN10)
-#define GPIO_VDD_5V_HIPOWER_nOC         /* PC11 */ (GPIO_INPUT |GPIO_FLOAT|GPIO_PORTC|GPIO_PIN11)
-#define GPIO_VDD_3V3_SENSORS_EN         /* PB2  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN2)
+#define GPIO_VDD_3V3_SENSORS_EN         /* PB2  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN2)
+
+#define GPIO_VTX_9V_EN                  /* PE3  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
+
+#define GPIO_CAM_SWITCH                 /* PC13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
 
 /* Define True logic Power Control in arch agnostic form */
 
-#define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_nEN, !(on_true))
-#define VDD_5V_HIPOWER_EN(on_true)         px4_arch_gpiowrite(GPIO_VDD_5V_HIPOWER_nEN, !(on_true))
-#define VDD_3V3_SENSORS_EN(on_true)       px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS4_EN, (on_true))
+#define VDD_3V3_SENSORS_EN(on_true)       px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, (on_true))
+
+#define VTX_9V_EN(on_true)                px4_arch_gpiowrite(GPIO_VTX_9V_EN, (on_true))
+
+#define CAM_SWITCH_CAM1                   px4_arch_gpiowrite(GPIO_CAM_SWITCH, false) // low is CAM1
+#define CAM_SWITCH_CAM2                   px4_arch_gpiowrite(GPIO_CAM_SWITCH, true)  // high is CAM2
 
 /* Tone alarm output */
 
@@ -196,11 +198,10 @@
 
 #define BOARD_ADC_SERVO_VALID     (1)
 
-#define BOARD_ADC_BRICK1_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK1_VALID))
-#define BOARD_ADC_BRICK2_VALID  (!px4_arch_gpioread(GPIO_nVDD_BRICK2_VALID))
+#define BOARD_ADC_BRICK1_VALID  (1)
+#define BOARD_ADC_BRICK2_VALID  (1)
 
-#define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_VDD_5V_PERIPH_nOC))
-#define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_VDD_5V_HIPOWER_nOC))
+#define BOARD_ADC_SERVO_VALID   (1)
 
 
 /* This board provides a DMA pool and APIs */
@@ -217,6 +218,8 @@
 		GPIO_VDD_3V3_SENSORS_EN,          \
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_PPM_IN,                      \
+		GPIO_VTX_9V_EN,                   \
+		GPIO_CAM_SWITCH,                  \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
