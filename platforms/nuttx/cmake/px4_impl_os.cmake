@@ -50,9 +50,12 @@
 #
 function(px4_os_add_flags)
 
-	if(NOT CONFIG_LIB_TFLM)
+	include_directories(BEFORE SYSTEM
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include
+	)
+
+	if(NOT CONFIG_LIB_TFLM) # TFLM does not use NuttX headers
 		include_directories(BEFORE SYSTEM
-			${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include
 			${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include/cxx
 			${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/include/cxx	# custom new
 		)
@@ -76,7 +79,7 @@ function(px4_os_add_flags)
 	)
 
 	if(NOT CONFIG_LIB_TFLM)
-		list(APPEND cxx_flags -nostdinc++) # prevent using the toolchain's std c++ library
+		list(APPEND cxx_flags -nostdinc++) # prevent using the toolchain's std c++ library if building for anything else than tflm
 	endif()
 
 	foreach(flag ${cxx_flags})

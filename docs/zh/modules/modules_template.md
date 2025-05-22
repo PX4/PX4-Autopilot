@@ -22,9 +22,7 @@ CLI usage example:
 module start -f -p 42
 ```
 
-<a id="module_usage"></a>
-
-### 用法
+### Usage {#module_usage}
 
 ```
 module <command> [arguments...]
@@ -47,9 +45,7 @@ Source: [examples/work_item](https://github.com/PX4/PX4-Autopilot/tree/main/src/
 
 Example of a simple module running out of a work queue.
 
-<a id="work_item_example_usage"></a>
-
-### 用法
+### Usage {#work_item_example_usage}
 
 ```
 work_item_example <command> [arguments...]

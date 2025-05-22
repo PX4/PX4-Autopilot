@@ -30755,7 +30755,7 @@ INA226 Power Monitor Config.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 65535 | 1 | 18139 |  
+&check; | 0 | 65535 | 1 | 18139 |  
 
 ### INA226_CURRENT (`FLOAT`) {#INA226_CURRENT}
 
@@ -30763,7 +30763,7 @@ INA226 Power Monitor Max Current.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 200.0 | 0.1 | 164.0 |  
+&check; | 0.1 | 200.0 | 0.1 | 164.0 |  
 
 ### INA226_SHUNT (`FLOAT`) {#INA226_SHUNT}
 
@@ -30771,7 +30771,7 @@ INA226 Power Monitor Shunt.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.000000001 | 0.1 | .000000001 | 0.0005 |  
+&check; | 0.000000001 | 0.1 | .000000001 | 0.0005 |  
 
 ### INA228_CONFIG (`INT32`) {#INA228_CONFIG}
 
@@ -30779,7 +30779,7 @@ INA228 Power Monitor Config.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 65535 | 1 | 63779 |  
+&check; | 0 | 65535 | 1 | 63779 |  
 
 ### INA228_CURRENT (`FLOAT`) {#INA228_CURRENT}
 
@@ -30787,7 +30787,7 @@ INA228 Power Monitor Max Current.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 327.68 | 0.1 | 327.68 |  
+&check; | 0.1 | 327.68 | 0.1 | 327.68 |  
 
 ### INA228_SHUNT (`FLOAT`) {#INA228_SHUNT}
 
@@ -30795,7 +30795,7 @@ INA228 Power Monitor Shunt.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.000000001 | 0.1 | .000000001 | 0.0005 |  
+&check; | 0.000000001 | 0.1 | .000000001 | 0.0005 |  
 
 ### INA238_CURRENT (`FLOAT`) {#INA238_CURRENT}
 
@@ -30803,7 +30803,7 @@ INA238 Power Monitor Max Current.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 327.68 | 0.1 | 327.68 |  
+&check; | 0.1 | 327.68 | 0.1 | 327.68 |  
 
 ### INA238_SHUNT (`FLOAT`) {#INA238_SHUNT}
 
@@ -30811,7 +30811,7 @@ INA238 Power Monitor Shunt.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.000000001 | 0.1 | .000000001 | 0.0003 |  
+&check; | 0.000000001 | 0.1 | .000000001 | 0.0005 |  
 
 ### PCF8583_MAGNET (`INT32`) {#PCF8583_MAGNET}
 
@@ -33642,10 +33642,11 @@ Vehicle type.
 
 **Values:**
 
-- `0`: Multicopter
+- `0`: Quadcopter
 - `1`: Fixed-Wing
 - `2`: Tailsitter
 - `3`: Standard VTOL
+- `4`: Hexacopter
 
 
 Reboot | minValue | maxValue | increment | default | unit
