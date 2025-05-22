@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #######################################################################################
 #
 # DeltaTag: enhanced geo-referencing survey images
@@ -15,8 +15,8 @@
 # Note: DeltaTag does not make copies, it writes the Exif information directly to the images
 #
 # Install: pip install pyulog piexif Pillow numpy
-# Run: python geotag_images_ulog.py [logfile] [image dir] (optional offset)
-# eg: python geotag_images_ulog.py mylog.ulg ./images
+# Run: python3 geotag_images_ulog.py [logfile] [image dir] (optional offset)
+# eg: python3 geotag_images_ulog.py mylog.ulg ./images
 #
 # Parameters
 # logfile: a ulog formatted logfile containing camera_capture events (survey missions)
@@ -39,8 +39,8 @@ from fractions import Fraction
 
 
 if(len(sys.argv)) < 3:
-    print("Usage: python geotag_images_ulog.py [logfile] [image dir]")
-    print("Example: python geotag_images_ulog.py mylog.ulg ./images")
+    print("Usage: python3 geotag_images_ulog.py [logfile] [image dir]")
+    print("Example: python3 geotag_images_ulog.py mylog.ulg ./images")
     print(len(sys.argv))
     sys.exit()
 
