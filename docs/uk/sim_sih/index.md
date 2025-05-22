@@ -58,6 +58,7 @@ To set up/start SIH:
 2. Відкрийте QGroundControl і зачекайте, поки контролер польоту також завантажиться та підключиться.
 3. Open [Vehicle Setup > Airframe](../config/airframe.md) then select the desired frame:
   - [SIH Quadcopter X](../airframes/airframe_reference.md#copter_simulation_sih_quadcopter_x)
+  - SIH Hexacopter X currently only has an airframe for SITL to safe flash so on flight control hardware it has to be manually configured equivalently.
   - [SIH plane AERT](../airframes/airframe_reference.md#plane_simulation_sih_plane_aert)
   - [SIH Tailsitter Duo](../airframes/airframe_reference.md#vtol_simulation_sih_tailsitter_duo)
   - [SIH Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_simulation_sih_standard_vtol_quadplane)
@@ -116,25 +117,31 @@ In this case you don't need the flight controller hardware.
 1. Install the [PX4 Development toolchain](../dev_setup/dev_env.md).
 2. Виконайте відповідну команду make для кожного типу транспортного засобу (в корені репозиторію PX4-Autopilot):
 
-  - квадротор:
+  - Quadcopter
 
     ```sh
     make px4_sitl sihsim_quadx
     ```
 
-  - Закріплені крила (літаки):
+  - Hexacopter
+
+    ```sh
+    make px4_sitl sihsim_hex
+    ```
+
+  - Fixed-wing (plane)
 
     ```sh
     make px4_sitl sihsim_airplane
     ```
 
-  - XVert VTOL tailsitter:
+  - XVert VTOL tailsitter
 
     ```sh
     make px4_sitl sihsim_xvert
     ```
 
-  - Standard VTOL:
+  - Standard VTOL
 
     ```sh
     make px4_sitl sihsim_standard_vtol
@@ -235,9 +242,10 @@ For specific examples see the `_sihsim_` airframes in [ROMFS/px4fmu_common/init.
 
 Динамічні моделі для різних транспортних засобів:
 
-- Quadrotor: [pdf report](https://github.com/PX4/PX4-user_guide/raw/main/assets/simulation/SIH_dynamic_model.pdf).
-- Fixed-wing: Inspired by the PhD thesis: "Dynamics modeling of agile fixed-wing unmanned aerial vehicles." Khan, Waqas, під керівництвом Nahon, Meyer, Університет Макгілла, докторська дисертація, 2016.
-- Tailsitter: Inspired by the master's thesis: "Modeling and control of a flying wing tailsitter unmanned aerial vehicle." Chiappinelli, Romain, під керівництвом Nahon, Meyer, Університет Макгілла, магістерська робота, 2018.
+- Quadcopter: [pdf report](https://github.com/PX4/PX4-user_guide/raw/main/assets/simulation/SIH_dynamic_model.pdf).
+- Hexacopter: Equivalent to the Quadcopter but with a symmetric hexacopter x actuation setup.
+- Fixed-wing: Inspired by the PhD thesis: "Dynamics modeling of agile fixed-wing unmanned aerial vehicles." Khan, Waqas, supervised by Nahon, Meyer, McGill University, PhD thesis, 2016.
+- Tailsitter: Inspired by the master's thesis: "Modeling and control of a flying wing tailsitter unmanned aerial vehicle." Chiappinelli, Romain, supervised by Nahon, Meyer, McGill University, Masters thesis, 2018.
 
 ## Відео
 
