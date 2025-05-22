@@ -14,7 +14,7 @@ public:
 	static_assert(MessageOlder::MESSAGE_VERSION == 0);
 
 	using MessageNewer = px4_msgs::msg::VehicleStatus;
-	static_assert(MessageNewer::MESSAGE_VERSION == 1);
+	static_assert(MessageNewer::MESSAGE_VERSION == 2);
 
 	static constexpr const char* kTopic = "fmu/out/vehicle_status";
 
