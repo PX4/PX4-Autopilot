@@ -1,7 +1,9 @@
 menu "nuttx"
+menu "STM32"
 menuconfig BOARD_PWM_FREQ
     int "Board default PWM frequency"
     default 1000000
     ---help---
         Board default PWM frequency.
+endmenu
 endmenu
