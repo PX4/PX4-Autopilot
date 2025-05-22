@@ -56,7 +56,6 @@ enum class AllocationMethod {
 enum class ActuatorType {
 	MOTORS = 0,
 	SERVOS,
-	THRUSTERS,
 
 	COUNT
 };
