@@ -365,7 +365,7 @@ coverity_scan: px4_sitl_default
 
 # Documentation
 # --------------------------------------------------------------------
-.PHONY: parameters_metadata airframe_metadata module_documentation extract_events px4_metadata doxygen
+.PHONY: parameters_metadata airframe_metadata module_documentation extract_events px4_metadata
 
 parameters_metadata:
 	@$(MAKE) --no-print-directory px4_sitl_default metadata_parameters ver_gen
@@ -380,12 +380,6 @@ extract_events:
 	@$(MAKE) --no-print-directory px4_sitl_default metadata_extract_events ver_gen
 
 px4_metadata: parameters_metadata airframe_metadata module_documentation extract_events
-
-doxygen:
-	@mkdir -p "$(SRC_DIR)"/build/doxygen
-	@cd "$(SRC_DIR)"/build/doxygen && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=px4_sitl_default -DBUILD_DOXYGEN=ON
-	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/doxygen
-	@touch "$(SRC_DIR)"/build/doxygen/Documentation/.nojekyll
 
 # Style
 # --------------------------------------------------------------------
