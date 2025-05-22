@@ -79,14 +79,11 @@ if(CONFIG_LIB_TFLM)
 			${CMAKE_CURRENT_SOURCE_DIR}/generate_cc_arrays.py
 			${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/tensorflow/lite/micro/tools/generate_cc_arrays.py
 		# TODO maybe change this if building for other architectures
-		COMMAND make -f tensorflow/lite/micro/tools/make/Makefile MICRO_LITE_EXAMPLE_TESTS= MICRO_LITE_BENCHMARKS= MICRO_LITE_TEST_SRCS= MICRO_LITE_INTEGRATION_TESTS= TARGET=cortex_m_generic TARGET_ARCH=cortex-m7 third_party_downloads
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different
-			${CMAKE_CURRENT_SOURCE_DIR}/ctype_base.h
-			${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1/arm-none-eabi/bits/ctype_base.h
+		COMMAND make -f tensorflow/lite/micro/tools/make/Makefile MICRO_LITE_EXAMPLE_TESTS= MICRO_LITE_BENCHMARKS= MICRO_LITE_TEST_SRCS= MICRO_LITE_INTEGRATION_TESTS= third_party_downloads
 		# Create timestamp file to mark completion
 		COMMAND ${CMAKE_COMMAND} -E touch ${TFLM_BUILD_TIMESTAMP}
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro
-		COMMENT "Building TFLM with native build system"
+		COMMENT "Downloading TFLM third party dependencies"
 		DEPENDS git_tflite-micro
 		VERBATIM
 	)
@@ -94,26 +91,32 @@ if(CONFIG_LIB_TFLM)
 		DEPENDS ${TFLM_BUILD_TIMESTAMP}
 	)
 
-	px4_add_library(tflm ${TFLITE_MICRO_SRCS})
+	px4_add_library(tensorflow_lite_micro ${TFLITE_MICRO_SRCS})
 
 
 	# Add C++ 17 std lib if building for NuttX
 	if(CONFIG_BOARD_TOOLCHAIN STREQUAL "arm-none-eabi")
-	get_target_property(_inc_dirs tflm INCLUDE_DIRECTORIES)
+	get_target_property(_inc_dirs tensorflow_lite_micro INCLUDE_DIRECTORIES)
 		list(FILTER _inc_dirs EXCLUDE REGEX ".*/platforms/nuttx/NuttX/include/cxx$")
 		list(FILTER _inc_dirs EXCLUDE REGEX ".*/platforms/nuttx/NuttX/nuttx/include/cxx$")
-		set_target_properties(tflm PROPERTIES INCLUDE_DIRECTORIES "${_inc_dirs}")
-		list(APPEND TFLM_INCLUDE_DIRS
-			${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1
-			${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1/arm-none-eabi
-		)
+		set_target_properties(tensorflow_lite_micro PROPERTIES INCLUDE_DIRECTORIES "${_inc_dirs}")
+		# get_target_property(_opts tensorflow_lite_micro COMPILE_OPTIONS)
+		# list(FILTER _opts EXCLUDE REGEX "-nostdinc\\+\\+")
+		# set_target_properties(tensorflow_lite_micro PROPERTIES COMPILE_OPTIONS "${_opts}")
+		# get_directory_property(FLAGS COMPILE_OPTIONS)
+		# list(REMOVE_ITEM FLAGS "-nostdinc++")
+		# set_directory_properties(PROPERTIES COMPILE_OPTIONS "${FLAGS}")
+		# list(APPEND TFLM_INCLUDE_DIRS
+		# 	${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1
+		# 	${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1/arm-none-eabi
+		# )
 	endif()
 
-	target_include_directories(tflm PUBLIC ${TFLM_INCLUDE_DIRS})
-	add_dependencies(tflm build_tflm_native)
-	target_compile_features(tflm PRIVATE cxx_std_17)
+	target_include_directories(tensorflow_lite_micro PUBLIC ${TFLM_INCLUDE_DIRS})
+	add_dependencies(tensorflow_lite_micro build_tflm_native)
+	target_compile_features(tensorflow_lite_micro PRIVATE cxx_std_17)
 
-	target_compile_options(tflm PUBLIC
+	target_compile_options(tensorflow_lite_micro PUBLIC
 	-Wno-float-equal
 	-Wno-shadow
 	)

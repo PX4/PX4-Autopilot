@@ -50,11 +50,13 @@
 #
 function(px4_os_add_flags)
 
-	include_directories(BEFORE SYSTEM
-		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include
-		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include/cxx
-		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/include/cxx	# custom new
-	)
+	if(NOT CONFIG_LIB_TFLM)
+		include_directories(BEFORE SYSTEM
+			${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include
+			${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include/cxx
+			${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/include/cxx	# custom new
+		)
+	endif()
 
 	include_directories(
 		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/${CONFIG_ARCH}/src/${CONFIG_ARCH_FAMILY}
@@ -71,8 +73,11 @@ function(px4_os_add_flags)
 		-fno-rtti
 		-fno-sized-deallocation
 		-fno-threadsafe-statics
-		-nostdinc++ # prevent using the toolchain's std c++ library
 	)
+
+	if(NOT CONFIG_LIB_TFLM)
+		list(APPEND cxx_flags -nostdinc++) # prevent using the toolchain's std c++ library
+	endif()
 
 	foreach(flag ${cxx_flags})
 		add_compile_options($<$<COMPILE_LANGUAGE:CXX>:${flag}>)

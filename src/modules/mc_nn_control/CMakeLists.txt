@@ -45,10 +45,10 @@ px4_add_module(
 		control_net.cpp
 		control_net.hpp
 	DEPENDS
-		tflm
+		tensorflow_lite_micro
 		px4_work_queue
 		mathlib
 )
-target_link_libraries(mc_nn_control PRIVATE tflm)
+target_link_libraries(mc_nn_control PRIVATE tensorflow_lite_micro)
 target_include_directories(mc_nn_control PRIVATE
-	${CMAKE_SOURCE_DIR}/src/lib/tflm)
+	${CMAKE_SOURCE_DIR}/src/lib/tensorflow_lite_micro)
