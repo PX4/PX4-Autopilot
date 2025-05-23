@@ -47,9 +47,6 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/rover_rate_setpoint.h>
-#include <uORB/topics/rover_throttle_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/rover_steering_setpoint.h>
 #include <uORB/topics/rover_rate_status.h>
@@ -69,9 +66,20 @@ public:
 	~AckermannRateControl() = default;
 
 	/**
-	 * @brief Update rate controller.
+	 * @brief Generate and publish roverSteeringSetpoint from roverRateSetpoint.
 	 */
 	void updateRateControl();
+
+	/**
+	 * @brief Check if the necessary parameters are set.
+	 * @return True if all checks pass.
+	 */
+	bool runSanityChecks();
+
+	/**
+	 * @brief Reset rate controller.
+	 */
+	void reset() {_pid_yaw_rate.resetIntegral(); _yaw_rate_setpoint = NAN;};
 
 protected:
 	/**
@@ -80,50 +88,31 @@ protected:
 	void updateParams() override;
 
 private:
-
 	/**
-	 * @brief Generate and publish roverRateSetpoint and roverThrottleSetpoint from manualControlSetpoint (Acro Mode).
+	 * @brief Update uORB subscriptions used in rate controller.
 	 */
-	void generateRateAndThrottleSetpoint();
-
-	/**
-	 * @brief Generate and publish roverSteeringSetpoint from RoverRateSetpoint.
-	 */
-	void generateSteeringSetpoint();
-
-	/**
-	 * @brief Check if the necessary parameters are set.
-	 * @return True if all checks pass.
-	 */
-	bool runSanityChecks();
+	void updateSubscriptions();
 
 	// uORB subscriptions
-	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _rover_rate_setpoint_sub{ORB_ID(rover_rate_setpoint)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
-	vehicle_control_mode_s _vehicle_control_mode{};
-	rover_rate_setpoint_s _rover_rate_setpoint{};
 
 	// uORB publications
-	uORB::Publication<rover_rate_setpoint_s> _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
-	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
 	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
-	uORB::Publication<rover_rate_status_s> _rover_rate_status_pub{ORB_ID(rover_rate_status)};
+	uORB::Publication<rover_rate_status_s>       _rover_rate_status_pub{ORB_ID(rover_rate_status)};
 
 	// Variables
-	float _estimated_speed_body_x{0.f}; /*Vehicle speed estimated by interpolating [actuatorMotorSetpoint,  _estimated_speed_body_x]
+	float _estimated_speed{0.f}; /*Vehicle speed estimated by interpolating [actuatorMotorSetpoint,  _estimated_speed]
 					       between [0, 0] and [1, _param_ro_max_thr_speed].*/
 	float _max_yaw_rate{0.f};
 	float _vehicle_yaw_rate{0.f};
+	float _yaw_rate_setpoint{NAN};
 	hrt_abstime _timestamp{0};
-	float _dt{0.f}; // Time since last update [s].
-	bool _prev_param_check_passed{true};
 
 	// Controllers
 	PID _pid_yaw_rate;
-	SlewRate<float> _yaw_rate_setpoint{0.f};
+	SlewRate<float> _adjusted_yaw_rate_setpoint{0.f};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
