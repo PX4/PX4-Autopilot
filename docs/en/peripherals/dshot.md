@@ -36,7 +36,7 @@ Remove propellers before changing ESC configuration parameters!
 
 Enable DShot for your required outputs in the [Actuator Configuration](../config/actuators.md).
 
-DShot comes with different speed options: _DShot150_, _DShot300_, _DShot600_ and _DShot1200_, where the number indicates the speed in kilo-bits/second.
+DShot comes with different speed options: _DShot150_, _DShot300_, and _DShot600_ where the number indicates the speed in kilo-bits/second.
 You should set the parameter to the highest speed supported by your ESC (according to its datasheet).
 
 Then connect the battery and arm the vehicle.
@@ -146,4 +146,21 @@ ERROR [dshot] No data received. If telemetry is setup correctly, try again.
 ```
 
 Check manufacturer documentation for confirmation/details.
+:::
+
+
+## Bidirectional DShot
+
+Bidirectional DShot enables ESC RPM (eRPM) data collection from each ESC at high frequencies. This enhanced telemetry significantly improves the performance of [Dynamic Notch Filters](../config_mc/filter_tuning.md#dynamic-notch-filters) and enables more precise vehicle tuning.
+
+### Configuration
+
+To enable bidirectional DShot, set the [DSHOT_BIDIR_EN](../advanced_config/parameter_reference.md#DSHOT_BIDIR_EN) parameter.
+
+:::info
+The system calculates actual motor RPM from the received eRPM data using the [MOT_POLE_COUNT](../advanced_config/parameter_reference.md#MOT_POLE_COUNT) parameter. This parameter must be set correctly for accurate RPM reporting.
+:::info
+
+:::warning
+Bidirectional DShot is currently supported on H7 targets only, with support limited to 4 motor outputs.
 :::
