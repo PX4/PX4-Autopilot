@@ -1,20 +1,24 @@
 # Ubuntu LTS/Debian Linux 的开发环境
 
-The following instructions use a bash script to set up the PX4 development environment on the [Ubuntu Linux LTS](https://wiki.ubuntu.com/LTS) versions supported by PX4: Ubuntu 22.04 (Jammy Jellyfish), 20.04 (Focal Fossa), and 18.04 (Bionic Beaver).
+The following instructions use a bash script to set up the PX4 development environment on the [Ubuntu Linux LTS](https://wiki.ubuntu.com/LTS) versions supported by PX4: Ubuntu 24.04 (Nimble Numbat) and Ubuntu 22.04 (Jammy Jellyfish).
 
 The environment includes:
 
-- [Gazebo Simulator](../sim_gazebo_gz/index.md) ("Harmonic") on Ubuntu 22.04
-- [Gazebo Classic Simulator](../sim_gazebo_classic/index.md) on Ubuntu 20.04 and Ubuntu 18.04
+- [Gazebo Simulator](../sim_gazebo_gz/index.md) ("Harmonic")
 - [Build toolchain for Pixhawk (and other NuttX-based hardware)](../dev_setup/building_px4.md#nuttx-pixhawk-based-boards).
 
-:::info
-The build toolchain for other flight controllers, simulators, and working with ROS are discussed in the [Other Targets](#other-targets) section below.
-:::
+On Ubuntu 22.04:
 
-:::tip
-if you need to use Gazebo on Ubuntu 20.04 you can [manually install Gazebo "Garden"](../sim_gazebo_gz/index.md#installation-ubuntu-linux), with the caveat that this is end-of-life in November 2024.
-If you want to use Gazebo Classic on Ubuntu 22.04 (say) then you can manually install it by following the instructions in [Gazebo Classic > Installation](../sim_gazebo_classic/index.md#installation).
+- [Gazebo Classic Simulator](../sim_gazebo_classic/index.md) can be used instead of Gazebo.
+  Gazebo is nearing feature-parity with Gazebo-Classic on PX4, and will soon replace it for all use cases.
+
+The build toolchain for other flight controllers, simulators, and working with ROS are discussed in the [Other Targets](#other-targets) section below.
+
+:::details
+Can I use an older version of Ubuntu?
+PX4 supports the current and last Ubuntu LTS release where possible.
+Older releases are not supported (so you can't raise defects against them), but may still work.
+For example, Gazebo Classic setup is included in our standard build instructions for macOS, Ubuntu 18.04 and 20.04, and Windows on WSL2 for the same hosts.
 :::
 
 ## Simulation and NuttX (Pixhawk) Targets
@@ -48,7 +52,9 @@ To install the toolchain:
   - 在安装过程中确认并通过所有的提示。
   - You can use the `--no-nuttx` and `--no-sim-tools` options to omit the NuttX and/or simulation tools.
 
-3. 完成后重新启动计算机。
+3. If you need Gazebo Classic (Ubuntu 22.04 only) then you can manually remove Gazebo and install it by following the instructions in [Gazebo Classic > Installation](../sim_gazebo_classic/index.md#installation).
+
+4. 完成后重新启动计算机。
 
 :::details
 Additional notes
@@ -62,8 +68,8 @@ These notes are provided "for information only":
   ```sh
   $arm-none-eabi-gcc --version
 
-  arm-none-eabi-gcc (GNU Arm Embedded Toolchain 9-2020-q2-update) 9.3.1 20200408 (release)
-  Copyright (C) 2019 Free Software Foundation, Inc.
+  arm-none-eabi-gcc (15:13.2.rel1-2) 13.2.1 20231009
+  Copyright (C) 2023 Free Software Foundation, Inc.
   This is free software; see the source for copying conditions.  There is NO
   warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
   ```
@@ -79,17 +85,6 @@ These notes are provided "for information only":
 
 
 :::
-
-## 一键安装脚本
-
-This video shows how to install the toolchain for NuttX and simulation targets ([as covered below](#simulation-and-nuttx-pixhawk-targets)) along with the basic testing covered in [Building PX4 Software](../dev_setup/building_px4.md).
-
-:::warning
-The video suggests that you build source using JMAVSim, entering the command: `make px4_sitl jmavsim`.
-As JMAVSim is now community-supported, you should instead build using Gazebo or Gazebo Classic, as shown in [Building the Code](../dev_setup/building_px4.md#first-build-using-a-simulator)
-:::
-
-<lite-youtube videoid="OtValQdAdrU" title=" Setting up your PX4 development environment on Linux"/>
 
 ## Other Targets
 

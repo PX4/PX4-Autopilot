@@ -47,6 +47,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <lib/motion_planning/HeadingSmoothing.hpp>
 #include <lib/motion_planning/PositionSmoothing.hpp>
 #include <lib/stick_yaw/StickYaw.hpp>
 #include <lib/weather_vane/WeatherVane.hpp>
@@ -136,8 +137,8 @@ protected:
 	State _current_state{State::none};
 	float _target_acceptance_radius{0.0f}; /**< Acceptances radius of the target */
 
-	float _yaw_sp_prev{NAN};
-	AlphaFilter<float> _yawspeed_filter;
+	float _yaw_setpoint_previous{NAN}; /**< Used because _yaw_setpoint is overwritten in multiple places */
+	HeadingSmoothing _heading_smoothing;
 	bool _yaw_sp_aligned{false};
 
 	PositionSmoothing _position_smoothing;
@@ -156,6 +157,7 @@ protected:
 					(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
 					_param_nav_mc_alt_rad, //vertical acceptance radius at which waypoints are updated
 					(ParamInt<px4::params::MPC_YAW_MODE>) _param_mpc_yaw_mode, // defines how heading is executed,
+					(ParamFloat<px4::params::MPC_YAWRAUTO_ACC>) _param_mpc_yawrauto_acc,
 					(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
 					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err, // yaw-error threshold
 					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, // acceleration in flight
@@ -201,7 +203,7 @@ private:
 
 	matrix::Vector3f _initial_land_position;
 
-	void _limitYawRate(); /**< Limits the rate of change of the yaw setpoint. */
+	void _smoothYaw(); /**< Smoothen the yaw setpoint. */
 	bool _evaluateTriplets(); /**< Checks and sets triplets. */
 	bool _isFinite(const position_setpoint_s &sp); /**< Checks if all waypoint triplets are finite. */
 	bool _evaluateGlobalReference(); /**< Check is global reference is available. */

@@ -75,6 +75,8 @@ using namespace ina238;
 #define INA238_VSCALE                        3.125e-03f  /* LSB of voltage is 3.1255 mV/LSB */
 #define INA238_TSCALE                        7.8125e-03f /* LSB of temperature is 7.8125 mDegC/LSB */
 
+#define INA238_ADCRANGE_LOW_V_SENSE          0.04096f // ± 40.96 mV
+
 #define DEFAULT_MAX_CURRENT                  327.68f    /* Amps */
 #define DEFAULT_SHUNT                        0.0003f   /* Shunt is 300 uOhm */
 

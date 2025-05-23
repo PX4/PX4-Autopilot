@@ -48,7 +48,7 @@ These parameters cannot directly be set in missions and have no specific setter 
 A ground station can use any feature exposed by the camera.
 PX4 has no role in this interaction other than forwarding MAVLink traffic between the camera and ground station or SDK, if needed.
 
-### Camera Commands in Missions
+### 任务中的相机命令
 
 PX4 allows the following subset of [Camera Protocol v2](https://mavlink.io/en/services/camera.html) commands in missions:
 
@@ -83,7 +83,7 @@ void Mission::setActiveMissionItems() => https://github.com/PX4/PX4-Autopilot/bl
 Issuing command:
 MissionBlock::issue_command(const mission_item_s &item) =>  https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/mission_block.cpp#L543-L562
   At end this publishes the current vehicle command
-  _navigator->publish_vehicle_command(vehicle_command);
+  _navigator.publish_vehicle_command(vehicle_command);
 
 Publishing command:
 void Navigator::publish_vehicle_command(vehicle_command_s &vehicle_command)  => https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/navigator_main.cpp#L1395

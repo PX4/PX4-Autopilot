@@ -1,5 +1,5 @@
 param set-default ASPD_DO_CHECKS 19
-param set-default ASPD_FALLBACK_GW 1
+param set-default ASPD_FALLBACK 1
 param set-default BAT1_N_CELLS 4
 param set-default BAT1_V_CHARGED 4.2000
 param set-default BAT1_V_EMPTY 2.9000

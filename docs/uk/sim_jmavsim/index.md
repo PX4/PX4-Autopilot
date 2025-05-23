@@ -136,7 +136,7 @@ To run at double real-time:
 PX4_SIM_SPEED_FACTOR=2 make px4_sitl_default jmavsim
 ```
 
-Запустити в половину реального часу:
+To run at half real-time:
 
 ```sh
 PX4_SIM_SPEED_FACTOR=0.5  make px4_sitl_default jmavsim
@@ -194,18 +194,18 @@ Lockstep makes it possible to [change the simulation speed](#change-simulation-s
 
 #### Lockstep Sequence
 
-Послідовність кроків для lockstep наступна:
+The sequence of steps for lockstep are:
 
 1. The simulation sends a sensor message [HIL_SENSOR](https://mavlink.io/en/messages/common.html#HIL_SENSOR) including a timestamp `time_usec` to update the sensor state and time of PX4.
 2. PX4 receives this and does one iteration of state estimation, controls, etc. and eventually sends an actuator message [HIL_ACTUATOR_CONTROLS](https://mavlink.io/en/messages/common.html#HIL_ACTUATOR_CONTROLS).
-3. Симуляція чекає, поки не отримає повідомлення від приводу/двигуна, потім моделює фізику і обчислює наступне повідомлення від датчика, яке знову надсилається до PX4.
+3. The simulation waits until it receives the actuator/motor message, then simulates the physics and calculates the next sensor message to send to PX4 again.
 
-Система починається з "вільного ходу", під час якого симуляція надсилає повідомлення від датчиків, зокрема про час, і, таким чином, запускає PX4, доки він не ініціалізується і не надішле відповідне повідомлення від приводу.
+The system starts with a "freewheeling" period where the simulation sends sensor messages including time and therefore runs PX4 until it has initialized and responds with an actuator message.
 
 #### Disabling Lockstep
 
-Lockstep симуляцію можна вимкнути, якщо, наприклад, SITL потрібно використовувати з тренажером, який не підтримує цю функцію.
-У цьому випадку симулятор і PX4 використовують системний час хоста і не чекають один на одного.
+The lockstep simulation can be disabled if, for example, SITL is to be used with a simulator that does not support this feature.
+In this case the simulator and PX4 use the host system time and do not wait on each other.
 
 To disable lockstep in:
 
