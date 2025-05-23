@@ -38,6 +38,7 @@
 #include <px4_platform_common/sem.hpp>
 
 char DShot::_telemetry_device[] {};
+bool DShot::_telemetry_swap_rxtx{false};
 px4::atomic_bool DShot::_request_telemetry_init{false};
 
 DShot::DShot() :
@@ -189,7 +190,7 @@ void DShot::update_num_motors()
 	_num_motors = motor_count;
 }
 
-void DShot::init_telemetry(const char *device)
+void DShot::init_telemetry(const char *device, bool swap_rxtx)
 {
 	if (!_telemetry) {
 		_telemetry = new DShotTelemetry{};
@@ -201,7 +202,7 @@ void DShot::init_telemetry(const char *device)
 	}
 
 	if (device != NULL) {
-		int ret = _telemetry->init(device);
+		int ret = _telemetry->init(device, swap_rxtx);
 
 		if (ret != 0) {
 			PX4_ERR("telemetry init failed (%i)", ret);
@@ -574,7 +575,7 @@ void DShot::Run()
 
 	// telemetry device update request?
 	if (_request_telemetry_init.load()) {
-		init_telemetry(_telemetry_device);
+		init_telemetry(_telemetry_device, _telemetry_swap_rxtx);
 		_request_telemetry_init.store(false);
 	}
 
@@ -703,31 +704,42 @@ int DShot::custom_command(int argc, char *argv[])
 {
 	const char *verb = argv[0];
 
-	if (!strcmp(verb, "telemetry")) {
-		if (argc > 1) {
-			// telemetry can be requested before the module is started
-			strncpy(_telemetry_device, argv[1], sizeof(_telemetry_device) - 1);
-			_telemetry_device[sizeof(_telemetry_device) - 1] = '\0';
-			_request_telemetry_init.store(true);
-		}
-
-		return 0;
-	}
-
 	int motor_index = -1; // select motor index, default: -1=all
 	int myoptind = 1;
+	bool swap_rxtx = false;
+	const char *device_name = nullptr;
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "m:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "m:xd:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'm':
 			motor_index = strtol(myoptarg, nullptr, 10) - 1;
 			break;
 
+		case 'x':
+			swap_rxtx = true;
+			break;
+
+		case 'd':
+			device_name = myoptarg;
+			break;
+
 		default:
 			return print_usage("unrecognized flag");
 		}
+	}
+
+	if (!strcmp(verb, "telemetry")) {
+		if (device_name) {
+			// telemetry can be requested before the module is started
+			strncpy(_telemetry_device, device_name, sizeof(_telemetry_device) - 1);
+			_telemetry_device[sizeof(_telemetry_device) - 1] = '\0';
+			_telemetry_swap_rxtx = swap_rxtx;
+			_request_telemetry_init.store(true);
+		}
+
+		return 0;
 	}
 
 	struct VerbCommand {
@@ -844,7 +856,8 @@ After saving, the reversed direction will be regarded as the normal one. So to r
 	PRINT_MODULE_USAGE_COMMAND("start");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("telemetry", "Enable Telemetry on a UART");
-	PRINT_MODULE_USAGE_ARG("<device>", "UART device", false);
+	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<device>", "UART device", false);
+	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Swap RX/TX pins", true);
 
 	// DShot commands
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reverse", "Reverse motor direction");

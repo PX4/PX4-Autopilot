@@ -49,7 +49,7 @@ DShotTelemetry::~DShotTelemetry()
 	deinit();
 }
 
-int DShotTelemetry::init(const char *uart_device)
+int DShotTelemetry::init(const char *uart_device, bool swap_rxtx)
 {
 	deinit();
 	_uart_fd = ::open(uart_device, O_RDONLY | O_NOCTTY);
@@ -57,6 +57,19 @@ int DShotTelemetry::init(const char *uart_device)
 	if (_uart_fd < 0) {
 		PX4_ERR("failed to open serial port: %s err: %d", uart_device, errno);
 		return -errno;
+	}
+
+	if (swap_rxtx) {
+		// Swap RX/TX pins if the device supports it
+		int rv = ioctl(_uart_fd, TIOCSSWAP, SER_SWAP_ENABLED);
+
+		// For other devices we can still place RX on TX pin via half-duplex single-wire mode
+		if (rv) { rv = ioctl(_uart_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED); }
+
+		if (rv) {
+			PX4_ERR("failed to swap rx/tx pins: %s err: %d", uart_device, rv);
+			return rv;
+		}
 	}
 
 	_num_timeouts = 0;
