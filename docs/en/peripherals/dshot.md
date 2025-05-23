@@ -162,5 +162,5 @@ The system calculates actual motor RPM from the received eRPM data using the [MO
 :::info
 
 :::warning
-Bidirectional DShot is currently supported on H7 targets only, with support limited to 4 motor outputs.
+**Limited hardware support:** 4 outputs only on STM32H7 targets, 8 putputs on the i.MXRT (V6X-RT & Tropic).
 :::
