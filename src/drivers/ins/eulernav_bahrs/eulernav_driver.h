@@ -160,9 +160,6 @@ private:
 	/// @return CRC value
 	static uint32_t crc32(const uint32_t *buf, size_t len);
 
-	using VehicleAttitude = px4::msg::VehicleAttitude;
-	using PressureData = px4::msg::SensorBaro;
-
 	device::Serial _serial_port; ///< Serial port object to read data from
 	Ringbuffer _data_buffer; ///< A buffer for RX data stream
 	uint8_t _serial_read_buffer[Config::SERIAL_READ_BUFFER_SIZE]; ///< A buffer for serial port read operation
@@ -172,6 +169,6 @@ private:
 	bool _is_initialized{false}; ///< Initialization flag
 	PX4Accelerometer _px4_accel; ///< Accelerometer sensor object for publishing acceleration data
 	PX4Gyroscope _px4_gyro; ///< Gyroscope sensor object for publishing angular rate data
-	uORB::PublicationMulti<VehicleAttitude> _attitude_pub{ORB_ID(vehicle_attitude)}; ///< Vehicle attitude publisher
-	uORB::PublicationMulti<PressureData> _barometer_pub{ORB_ID(sensor_baro)}; ///< Pressure data publisher
+	uORB::PublicationMulti<px4::msg::VehicleAttitude> _attitude_pub{ORB_ID(vehicle_attitude)}; ///< Vehicle attitude publisher
+	uORB::PublicationMulti<px4::msg::SensorBaro> _barometer_pub{ORB_ID(sensor_baro)}; ///< Pressure data publisher
 };
