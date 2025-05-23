@@ -322,7 +322,7 @@ PARAM_DEFINE_INT32(COM_IMB_PROP_ACT, 0);
 PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 1.0f);
 
 /**
- * Set command after a quadchute
+ * Set action after a quadchute
  *
  * @value -1 Warning only
  * @value  0 Return mode
@@ -615,13 +615,27 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
  * Specify modes in which RC loss is ignored and the failsafe action not triggered.
  *
  * @min 0
- * @max 31
+ * @max 7
  * @bit 0 Mission
  * @bit 1 Hold
  * @bit 2 Offboard
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
+
+/**
+ * Datalink loss exceptions
+ *
+ * Specify modes in which datalink loss is ignored and the failsafe action not triggered.
+ *
+ * @min 0
+ * @max 7
+ * @bit 0 Mission
+ * @bit 1 Hold
+ * @bit 2 Offboard
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_DLL_EXCEPT, 0);
 
 /**
  * Set the actuator failure failsafe mode

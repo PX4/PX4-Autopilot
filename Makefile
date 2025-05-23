@@ -300,6 +300,8 @@ uorb_graphs:
 	@$(MAKE) --no-print-directory px4_fmu-v2_default uorb_graph
 	@$(MAKE) --no-print-directory px4_fmu-v4_default uorb_graph
 	@$(MAKE) --no-print-directory px4_fmu-v5_default uorb_graph
+	@$(MAKE) --no-print-directory px4_fmu-v5x_default uorb_graph
+	@$(MAKE) --no-print-directory px4_fmu-v6x_default uorb_graph
 	@$(MAKE) --no-print-directory px4_sitl_default uorb_graph
 
 px4io_update:

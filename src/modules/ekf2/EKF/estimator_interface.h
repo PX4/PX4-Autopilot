@@ -105,6 +105,7 @@ public:
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	void setAirspeedData(const airspeedSample &airspeed_sample);
+	void setSyntheticAirspeed(const bool synthetic_airspeed) { _synthetic_airspeed = synthetic_airspeed; }
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -227,6 +228,7 @@ public:
 	// the flags considered are opt_flow, gps, ev_vel and ev_pos
 	bool isHorizontalAidingActive() const;
 	bool isVerticalAidingActive() const;
+	bool isNorthEastAidingActive() const;
 
 	int getNumberOfActiveHorizontalAidingSources() const;
 	int getNumberOfActiveHorizontalPositionAidingSources() const;
@@ -434,6 +436,7 @@ protected:
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	RingBuffer<airspeedSample> *_airspeed_buffer {nullptr};
+	bool _synthetic_airspeed{false};
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)

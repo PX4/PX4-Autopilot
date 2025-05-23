@@ -65,6 +65,7 @@ ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *p
 	_param_handles.yaw_throttle_scale = param_find("CA_HELI_YAW_TH_S");
 	_param_handles.yaw_ccw = param_find("CA_HELI_YAW_CCW");
 	_param_handles.spoolup_time = param_find("COM_SPOOLUP_TIME");
+	_param_handles.max_servo_throw = param_find("CA_MAX_SVO_THROW");
 
 	updateParams();
 }
@@ -101,6 +102,21 @@ void ActuatorEffectivenessHelicopter::updateParams()
 	int32_t yaw_ccw = 0;
 	param_get(_param_handles.yaw_ccw, &yaw_ccw);
 	_geometry.yaw_sign = (yaw_ccw == 1) ? -1.f : 1.f;
+	float max_servo_throw_deg = 0.f;
+	param_get(_param_handles.max_servo_throw, &max_servo_throw_deg);
+
+	if (max_servo_throw_deg > 0.f) {
+		// linearization feature enabled
+		_geometry.linearize_servos = 1;
+		const float max_servo_throw = math::radians(max_servo_throw_deg);
+		_geometry.max_servo_height = sinf(max_servo_throw);
+		_geometry.inverse_max_servo_throw = 1.f / max_servo_throw;
+
+	} else {
+		// handle any undefined behaviour if disabled
+		_geometry.linearize_servos = 0;
+		_geometry.max_servo_height = _geometry.inverse_max_servo_throw = 0.f;
+	}
 }
 
 bool ActuatorEffectivenessHelicopter::getEffectivenessMatrix(Configuration &configuration,
@@ -168,6 +184,11 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 				- control_sp(ControlAxis::ROLL) * roll_coeff
 				+ _geometry.swash_plate_servos[i].trim;
 
+		// Apply linearization to the actuator setpoint if enabled
+		if (_geometry.linearize_servos) {
+			actuator_sp(_first_swash_plate_servo_index + i) = getLinearServoOutput(actuator_sp(_first_swash_plate_servo_index + i));
+		}
+
 		// Saturation check for roll & pitch
 		if (actuator_sp(_first_swash_plate_servo_index + i) < actuator_min(_first_swash_plate_servo_index + i)) {
 			setSaturationFlag(roll_coeff, _saturation_flags.roll_pos, _saturation_flags.roll_neg);
@@ -178,6 +199,17 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 			setSaturationFlag(pitch_coeff, _saturation_flags.pitch_pos, _saturation_flags.pitch_neg);
 		}
 	}
+}
+
+float ActuatorEffectivenessHelicopter::getLinearServoOutput(float input) const
+{
+	input = math::constrain(input, -1.f, 1.f);
+
+	// make sure a the maximal input of [-1,1] maps to the maximal vertical deflection the servo can reach of sin(CA_MAX_SVO_THROW)
+	float servo_height = _geometry.max_servo_height * input;
+
+	// mulitply by 1 over max arm roation in radians to normalise
+	return _geometry.inverse_max_servo_throw * asinf(servo_height);
 }
 
 bool ActuatorEffectivenessHelicopter::mainMotorEnaged()

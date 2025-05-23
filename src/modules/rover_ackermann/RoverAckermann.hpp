@@ -60,7 +60,8 @@
 // Local includes
 #include "AckermannRateControl/AckermannRateControl.hpp"
 #include "AckermannAttControl/AckermannAttControl.hpp"
-#include "AckermannPosVelControl/AckermannPosVelControl.hpp"
+#include "AckermannVelControl/AckermannVelControl.hpp"
+#include "AckermannPosControl/AckermannPosControl.hpp"
 
 class RoverAckermann : public ModuleBase<RoverAckermann>, public ModuleParams,
 	public px4::ScheduledWorkItem
@@ -93,9 +94,9 @@ private:
 	void Run() override;
 
 	/**
-	 * @brief Generate and publish roverSteeringSetpoint from manualControlSetpoint (Manual Mode).
+	 * @brief Generate and publish roverSteeringSetpoint and roverThrottleSetpoint from manualControlSetpoint (Manual Mode).
 	 */
-	void generateSteeringSetpoint();
+	void generateSteeringAndThrottleSetpoint();
 
 	/**
 	 * @brief Generate and publish actuatorMotors/actuatorServos setpoints from roverThrottleSetpoint/roverSteeringSetpoint.
@@ -122,8 +123,9 @@ private:
 
 	// Class instances
 	AckermannRateControl _ackermann_rate_control{this};
-	AckermannAttControl _ackermann_att_control{this};
-	AckermannPosVelControl _ackermann_pos_vel_control{this};
+	AckermannAttControl  _ackermann_att_control{this};
+	AckermannVelControl  _ackermann_vel_control{this};
+	AckermannPosControl  _ackermann_pos_control{this};
 
 	// Variables
 	hrt_abstime _timestamp{0};

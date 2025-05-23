@@ -533,7 +533,8 @@ void EKF2::Run()
 			} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE) {
 
 				if ((_ekf.control_status_flags().wind_dead_reckoning || _ekf.control_status_flags().inertial_dead_reckoning
-				     || (!_ekf.control_status_flags().in_air && !_ekf.control_status_flags().gps)) && PX4_ISFINITE(vehicle_command.param2)
+				     || (!_ekf.control_status_flags().in_air && !_ekf.control_status_flags().gnss_pos))
+				    && PX4_ISFINITE(vehicle_command.param2)
 				    && PX4_ISFINITE(vehicle_command.param5) && PX4_ISFINITE(vehicle_command.param6)
 				   ) {
 
@@ -1892,7 +1893,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.control_status_changes   = _filter_control_status_changes;
 		status_flags.cs_tilt_align            = _ekf.control_status_flags().tilt_align;
 		status_flags.cs_yaw_align             = _ekf.control_status_flags().yaw_align;
-		status_flags.cs_gps                   = _ekf.control_status_flags().gps;
+		status_flags.cs_gnss_pos              = _ekf.control_status_flags().gnss_pos;
 		status_flags.cs_opt_flow              = _ekf.control_status_flags().opt_flow;
 		status_flags.cs_mag_hdg               = _ekf.control_status_flags().mag_hdg;
 		status_flags.cs_mag_3d                = _ekf.control_status_flags().mag_3D;
@@ -1934,6 +1935,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_valid_fake_pos      = _ekf.control_status_flags().valid_fake_pos;
 		status_flags.cs_constant_pos        = _ekf.control_status_flags().constant_pos;
 		status_flags.cs_baro_fault	    = _ekf.control_status_flags().baro_fault;
+		status_flags.cs_gnss_vel            = _ekf.control_status_flags().gnss_vel;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
@@ -2064,8 +2066,11 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 		if (_airspeed_validated_sub.update(&airspeed_validated)) {
 
 			if (PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
-			    && (airspeed_validated.selected_airspeed_index > 0)
+			    && (airspeed_validated.airspeed_source > airspeed_validated_s::GROUND_MINUS_WIND)
 			   ) {
+
+				_ekf.setSyntheticAirspeed(airspeed_validated.airspeed_source == airspeed_validated_s::SYNTHETIC);
+
 				float cas2tas = 1.f;
 
 				if (PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
@@ -2195,26 +2200,26 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 		const Vector3f ev_odom_vel(ev_odom.velocity);
 		const Vector3f ev_odom_vel_var(ev_odom.velocity_variance);
 
+		bool velocity_frame_valid = false;
+
+		switch (ev_odom.velocity_frame) {
+		case vehicle_odometry_s::VELOCITY_FRAME_NED:
+			ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_NED;
+			velocity_frame_valid = true;
+			break;
+
+		case vehicle_odometry_s::VELOCITY_FRAME_FRD:
+			ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_FRD;
+			velocity_frame_valid = true;
+			break;
+
+		case vehicle_odometry_s::VELOCITY_FRAME_BODY_FRD:
+			ev_data.vel_frame = VelocityFrame::BODY_FRAME_FRD;
+			velocity_frame_valid = true;
+			break;
+		}
+
 		if (ev_odom_vel.isAllFinite()) {
-			bool velocity_frame_valid = false;
-
-			switch (ev_odom.velocity_frame) {
-			case vehicle_odometry_s::VELOCITY_FRAME_NED:
-				ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_NED;
-				velocity_frame_valid = true;
-				break;
-
-			case vehicle_odometry_s::VELOCITY_FRAME_FRD:
-				ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_FRD;
-				velocity_frame_valid = true;
-				break;
-
-			case vehicle_odometry_s::VELOCITY_FRAME_BODY_FRD:
-				ev_data.vel_frame = VelocityFrame::BODY_FRAME_FRD;
-				velocity_frame_valid = true;
-				break;
-			}
-
 			if (velocity_frame_valid) {
 				ev_data.vel = ev_odom_vel;
 
@@ -2239,21 +2244,21 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 		const Vector3f ev_odom_pos(ev_odom.position);
 		const Vector3f ev_odom_pos_var(ev_odom.position_variance);
 
+		bool position_frame_valid = false;
+
+		switch (ev_odom.pose_frame) {
+		case vehicle_odometry_s::POSE_FRAME_NED:
+			ev_data.pos_frame = PositionFrame::LOCAL_FRAME_NED;
+			position_frame_valid = true;
+			break;
+
+		case vehicle_odometry_s::POSE_FRAME_FRD:
+			ev_data.pos_frame = PositionFrame::LOCAL_FRAME_FRD;
+			position_frame_valid = true;
+			break;
+		}
+
 		if (ev_odom_pos.isAllFinite()) {
-			bool position_frame_valid = false;
-
-			switch (ev_odom.pose_frame) {
-			case vehicle_odometry_s::POSE_FRAME_NED:
-				ev_data.pos_frame = PositionFrame::LOCAL_FRAME_NED;
-				position_frame_valid = true;
-				break;
-
-			case vehicle_odometry_s::POSE_FRAME_FRD:
-				ev_data.pos_frame = PositionFrame::LOCAL_FRAME_FRD;
-				position_frame_valid = true;
-				break;
-			}
-
 			if (position_frame_valid) {
 				ev_data.pos = ev_odom_pos;
 

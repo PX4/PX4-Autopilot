@@ -404,6 +404,14 @@ else
 		fi
 	fi
 
+	# Heater driver for temperature regulated IMUs.
+	# The heater needs to start after px4io.
+	if param compare -s SENS_EN_THERMAL 1
+	then
+		heater start
+	fi
+
+
 	#
 	# RC update (map raw RC input to calibrate manual control)
 	#  start before commander
@@ -488,11 +496,14 @@ else
 	rc_input start $RC_INPUT_ARGS
 
 	# Manages USB interface
-	if ! cdcacm_autostart start
+	if param greater -s SYS_USB_AUTO -1
 	then
-		sercon
-		echo "Starting MAVLink on /dev/ttyACM0"
-		mavlink start -d /dev/ttyACM0
+		if ! cdcacm_autostart start
+		then
+			sercon
+			echo "Starting MAVLink on /dev/ttyACM0"
+			mavlink start -d /dev/ttyACM0
+		fi
 	fi
 
 	#

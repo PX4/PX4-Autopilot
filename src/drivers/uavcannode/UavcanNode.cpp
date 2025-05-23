@@ -77,6 +77,10 @@
 #include "Publishers/RawAirData.hpp"
 #endif // CONFIG_UAVCANNODE_RAW_AIR_DATA
 
+#if defined(CONFIG_UAVCANNODE_RAW_IMU)
+#include "Publishers/RawIMU.hpp"
+#endif // CONFIG_UAVCANNODE_RAW_IMU
+
 #if defined(CONFIG_UAVCANNODE_SAFETY_BUTTON)
 #include "Publishers/SafetyButton.hpp"
 #endif // CONFIG_UAVCANNODE_SAFETY_BUTTON
@@ -391,6 +395,16 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_publisher_list.add(new RawAirData(this, _node));
 #endif // CONFIG_UAVCANNODE_RAW_AIR_DATA
 
+#if defined(CONFIG_UAVCANNODE_RAW_IMU)
+	int32_t cannode_pub_raw_imu = 0;
+	param_get(param_find("CANNODE_PUB_IMU"), &cannode_pub_raw_imu);
+
+	if (cannode_pub_raw_imu == 1) {
+		_publisher_list.add(new RawIMU(this, _node));
+	}
+
+#endif // CONFIG_UAVCANNODE_RAW_IMU
+
 #if defined(CONFIG_UAVCANNODE_RTK_DATA)
 	_publisher_list.add(new RelPosHeadingPub(this, _node));
 
@@ -685,6 +699,13 @@ void UavcanNode::PrintInfo()
 	printf("\tTransfer errors:   %llu\n", _node.getDispatcher().getTransferPerfCounter().getErrorCount());
 	printf("\tRX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getRxTransferCount());
 	printf("\tTX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getTxTransferCount());
+
+	printf("\n");
+
+	// UAVCAN Time
+	printf("UAVCAN Time:\n");
+	printf("\tMonotonic time: %llu\n", _node.getMonotonicTime().toUSec());
+	printf("\tUtc time:       %llu\n", _node.getUtcTime().toUSec());
 
 	printf("\n");
 
