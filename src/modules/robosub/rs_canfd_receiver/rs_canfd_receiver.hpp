@@ -76,11 +76,32 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
-	struct msghdr msg;
-	struct iovec iov;
-	struct canfd_frame frame;
 	struct sockaddr_can addr;
 	struct ifreq ifr;
+
+	bool can_fd = 1;
+
+	uint32_t index = 0;
+
+
+	// struct msghdr msg;
+	// struct iovec iov;
+	// struct canfd_frame frame;
+
+	struct iovec       _send_iov {};
+	struct canfd_frame _send_frame {};
+	struct msghdr      _send_msg {};
+	struct cmsghdr     *_send_cmsg {};
+	struct timeval     *_send_tv {};  /* TX deadline timestamp */
+	uint8_t            _send_control[sizeof(struct cmsghdr) + sizeof(struct timeval)] {};
+
+	//// Receive msg structure
+	struct iovec       _recv_iov {};
+	struct canfd_frame _recv_frame {};
+	struct msghdr      _recv_msg {};
+	struct cmsghdr     *_recv_cmsg {};
+	uint8_t            _recv_control[sizeof(struct cmsghdr) + sizeof(struct timeval)] {};
+
 	char ctrlmsg[CMSG_SPACE(sizeof(struct timeval) + 3*sizeof(struct timespec) + sizeof(uint32_t))];
 	int nbytes;
 

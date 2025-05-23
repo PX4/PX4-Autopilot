@@ -37,6 +37,7 @@
 #include <px4_platform_common/log.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/parameter_update.h>
+#include <sys/ioctl.h>
 
 
 
@@ -90,11 +91,7 @@ int RoboSubCANFDReceiver::task_spawn(int argc, char *argv[])
 
 bool RoboSubCANFDReceiver::init()
 {
-	iov.iov_base = &frame;
-	msg.msg_name = &addr;
-	msg.msg_iov = &iov;
-	msg.msg_iovlen = 1;
-	msg.msg_control = &ctrlmsg;
+
 
 	ScheduleOnInterval(1000000_us); // 2000 us interval, 200 Hz rate
 
@@ -107,29 +104,121 @@ RoboSubCANFDReceiver::RoboSubCANFDReceiver()
 	// _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	_last_sent = hrt_absolute_time();
+
+	// iov.iov_base = &frame;
+	// msg.msg_name = &addr;
+	// msg.msg_iov = &iov;
+	// msg.msg_iovlen = 1;
+	// msg.msg_control = &ctrlmsg;
+
 	s = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     	if (s < 0) {
         	PX4_ERR("Failed to open CAN socket");
         	return;
     	}
 
-	// struct sockaddr_can addr;
-	ifr.ifr_flags = IFF_UP;
-	strcpy(ifr.ifr_name, "can0");
-	int reti = ioctl(s, SIOCGIFINDEX, &ifr);
-	if(reti == 0) {
-		PX4_INFO("test");
+	snprintf(ifr.ifr_name, IFNAMSIZ, "can%li", index);
+	ifr.ifr_name[IFNAMSIZ - 1] = '\0';
+	ifr.ifr_ifindex = if_nametoindex(ifr.ifr_name);
+
+	if (!ifr.ifr_ifindex) {
+		PX4_ERR("if_nametoindex");
+		return;
 	}
+
+	memset(&addr, 0, sizeof(addr));
 	addr.can_family = AF_CAN;
 	addr.can_ifindex = ifr.ifr_ifindex;
-	int ret = bind(s, (struct sockaddr *)&addr, sizeof(addr));
-	if(ret == 0) {
-		PX4_INFO("test");
+
+	const int on = 1;
+
+	if (setsockopt(s, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0) {
+		PX4_ERR("SO_TIMESTAMP is disabled");
+		return;
 	}
-	// Enable CAN FD frames
-	int enable_canfd = 1;
-	setsockopt(s, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &enable_canfd, sizeof(enable_canfd));
-	PX4_INFO("Enabled can socker");
+
+	if (setsockopt(s, SOL_CAN_RAW, CAN_RAW_TX_DEADLINE, &on, sizeof(on)) < 0) {
+		PX4_ERR("CAN_RAW_TX_DEADLINE is disabled");
+		return;
+	}
+
+	if (can_fd) {
+		if (setsockopt(s, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &on, sizeof(on)) < 0) {
+			PX4_ERR("no CAN FD support");
+			return;
+		}
+	}
+
+	if (bind(s, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+		PX4_ERR("bind");
+		return;
+	}
+
+	_send_iov.iov_base = &_send_frame;
+
+	if (can_fd) {
+		_send_iov.iov_len = sizeof(struct canfd_frame);
+
+	} else {
+		_send_iov.iov_len = sizeof(struct can_frame);
+	}
+
+	memset(&_send_control, 0x00, sizeof(_send_control));
+
+	_send_msg.msg_iov    = &_send_iov;
+	_send_msg.msg_iovlen = 1;
+	_send_msg.msg_control = &_send_control;
+	_send_msg.msg_controllen = sizeof(_send_control);
+
+	_send_cmsg = CMSG_FIRSTHDR(&_send_msg);
+	_send_cmsg->cmsg_level = SOL_CAN_RAW;
+	_send_cmsg->cmsg_type = CAN_RAW_TX_DEADLINE;
+	_send_cmsg->cmsg_len = sizeof(struct timeval);
+	_send_tv = (struct timeval *)CMSG_DATA(_send_cmsg);
+
+	// Setup RX msg
+	_recv_iov.iov_base = &_recv_frame;
+
+	if (can_fd) {
+		_recv_iov.iov_len = sizeof(struct canfd_frame);
+
+	} else {
+		_recv_iov.iov_len = sizeof(struct can_frame);
+	}
+
+	memset(_recv_control, 0x00, sizeof(_recv_control));
+
+	_recv_msg.msg_iov = &_recv_iov;
+	_recv_msg.msg_iovlen = 1;
+	_recv_msg.msg_control = &_recv_control;
+	_recv_msg.msg_controllen = sizeof(_recv_control);
+	_recv_cmsg = CMSG_FIRSTHDR(&_recv_msg);
+
+	_recv_msg.msg_name = &addr;
+	_recv_msg.msg_namelen = sizeof(addr);
+
+	// strcpy(ifr.ifr_name, "can0");
+
+	// int ret = ioctl(s, SIOCGIFINDEX, &ifr);
+	// if(ret == 0) {
+	// 	PX4_INFO("test");
+	// }
+
+	// // struct sockaddr_can addr;
+	// ifr.ifr_flags = IFF_UP;
+
+	// addr.can_family = AF_CAN;
+	// addr.can_ifindex = ifr.ifr_ifindex;
+	// ret = bind(s, (struct sockaddr *)&addr, sizeof(addr));
+	// if(ret == 0) {
+	// 	PX4_INFO("test");
+	// }
+	// // Enable CAN FD frames
+	// ret = setsockopt(s, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &enable_canfd, sizeof(enable_canfd));
+	// if(ret == 0) {
+	// 	PX4_INFO("test");
+	// }
+	// PX4_INFO("Enabled can socker");
 
 }
 
@@ -146,14 +235,20 @@ void RoboSubCANFDReceiver::Run()
 
 	// initialize parameters
 	parameters_update();
-	iov.iov_len = sizeof(frame);
-	msg.msg_namelen = sizeof(addr);
-	msg.msg_controllen = sizeof(ctrlmsg);
-	msg.msg_flags = 0;
+	// iov.iov_len = sizeof(frame);
+	// msg.msg_namelen = sizeof(addr);
+	// msg.msg_controllen = sizeof(ctrlmsg);
+	// msg.msg_flags = 0;
 
-	nbytes = read(s, &frame, sizeof(struct canfd_frame));
+	if (fcntl(s, F_GETFD) == -1 && errno == EBADF) {
+		PX4_ERR("Socket FD is bad");
+	}
+	int test_fd = fcntl(s, F_GETFD);
+	PX4_INFO("test_fd: %i", test_fd);
+	nbytes = recvmsg(s, &_recv_msg, MSG_DONTWAIT);
+	// nbytes = read(s, &frame, sizeof(struct canfd_frame));
 	// ssize_t nbytes = recvmsg(s, &msg, 0);
-	PX4_INFO("Received CAN frame: ID=0x%lu, Length=%d", frame.can_id, frame.len);
+	PX4_INFO("Received CAN frame: ID=0x%lu, Length=%d", _recv_frame.can_id, _recv_frame.len);
 	if (nbytes < 0) {
 		PX4_ERR("Failed to read CAN frame");
 	}
