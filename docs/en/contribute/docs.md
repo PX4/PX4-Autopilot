@@ -175,9 +175,13 @@ Build the library locally to test that any changes you have made have rendered p
 
    First specify a local text editor file using the `EDITOR` environment variable, before calling `yarn start` to preview the library.
    For example, on Windows command line you can enable VSCode as your default editor by entering:
-
+* For Windows
    ```sh
    set EDITOR=code
+   ```
+* For Linux
+   ```sh
+   export EDITOR=code
    ```
 
    The **Open in your editor** link at the bottom of each page will then open the current page in the editor (this replaces the _Open in GitHub_ link).
