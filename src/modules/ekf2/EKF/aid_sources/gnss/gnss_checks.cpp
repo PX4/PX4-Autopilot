@@ -50,7 +50,7 @@ bool GnssChecks::run(const gnssSample &gnss, uint64_t time_us)
 	bool passed = false;
 
 	if (_initial_checks_passed) {
-		if (runInitialFixChecks(gnss)) {
+		if (runSimplifiedChecks(gnss)) {
 			_time_last_pass_us = time_us;
 			passed = isTimedOut(_time_last_fail_us, time_us, math::max((uint64_t)1e6, (uint64_t)_params.min_health_time_us / 10));
 
@@ -76,6 +76,34 @@ bool GnssChecks::run(const gnssSample &gnss, uint64_t time_us)
 	_alt_prev = gnss.alt;
 
 	_passed = passed;
+	return passed;
+}
+
+bool GnssChecks::runSimplifiedChecks(const gnssSample &gnss)
+{
+	_check_fail_status.flags.fix = (gnss.fix_type < 3);
+
+	// Check the reported horizontal and vertical position accuracy
+	_check_fail_status.flags.hacc = (gnss.hacc > 50.f);
+	_check_fail_status.flags.vacc = (gnss.vacc > 50.f);
+
+	// Check the reported speed accuracy
+	_check_fail_status.flags.sacc = (gnss.sacc > 10.f);
+
+	_check_fail_status.flags.spoofed = gnss.spoofed;
+
+	bool passed = true;
+
+	if (
+		_check_fail_status.flags.fix ||
+		(_check_fail_status.flags.hacc    && isCheckEnabled(GnssChecksMask::kHacc)) ||
+		(_check_fail_status.flags.vacc    && isCheckEnabled(GnssChecksMask::kVacc)) ||
+		(_check_fail_status.flags.sacc    && isCheckEnabled(GnssChecksMask::kSacc)) ||
+		(_check_fail_status.flags.spoofed && isCheckEnabled(GnssChecksMask::kSpoofed))
+	) {
+		passed = false;
+	}
+
 	return passed;
 }
 
