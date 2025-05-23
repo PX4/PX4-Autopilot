@@ -46,6 +46,7 @@
 #include "estimator_interface.h"
 
 #if defined(CONFIG_EKF2_GNSS)
+# include "aid_sources/gnss/gnss_checks.hpp"
 # include "yaw_estimator/EKFGSF_yaw.h"
 #endif // CONFIG_EKF2_GNSS
 
@@ -376,10 +377,10 @@ public:
 	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
 
-	const gps_check_fail_status_u &gps_check_fail_status() const { return _gps_check_fail_status; }
-	const decltype(gps_check_fail_status_u::flags) &gps_check_fail_status_flags() const { return _gps_check_fail_status.flags; }
+	const GnssChecks::gps_check_fail_status_u &gps_check_fail_status() const { return _gnss_checks.getFailStatus(); }
+	const decltype(GnssChecks::gps_check_fail_status_u::flags) &gps_check_fail_status_flags() const { return _gnss_checks.getFailStatus().flags; }
 
-	bool gps_checks_passed() const { return _gps_checks_passed; };
+	bool gps_checks_passed() const { return _gnss_checks.passed(); };
 
 	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
 
@@ -554,17 +555,6 @@ private:
 #if defined(CONFIG_EKF2_GNSS)
 	bool _gps_data_ready {false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
 
-	// variables used for the GPS quality checks
-	Vector3f _gps_pos_deriv_filt{};	///< GPS NED position derivative (m/sec)
-	Vector2f _gps_velNE_filt{};	///< filtered GPS North and East velocity (m/sec)
-
-	float _gps_vel_d_filt{0.0f};		///< GNSS filtered Down velocity (m/sec)
-	uint64_t _last_gps_fail_us{0};		///< last system time in usec that the GPS failed it's checks
-	uint64_t _last_gps_pass_us{0};		///< last system time in usec that the GPS passed it's checks
-	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
-	bool _gps_checks_passed{false};		///> true when all active GPS checks have passed
-
-	gps_check_fail_status_u _gps_check_fail_status{};
 	// height sensor status
 	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
 
@@ -877,33 +867,8 @@ private:
 	void resetHorizontalPositionToGnss(estimator_aid_source2d_s &aid_src);
 	bool shouldResetGpsFusion() const;
 
-	/*
-	 * Return true if the GPS solution quality is adequate.
-	 * Checks are activated using the EKF2_GPS_CHECK bitmask parameter
-	 * Checks are adjusted using the EKF2_REQ_* parameters
-	*/
-	bool runGnssChecks(const gnssSample &gps);
-
-	enum class GnssChecksMask : int32_t {
-		kNsats   = (1 << 0),
-		kPdop    = (1 << 1),
-		kHacc    = (1 << 2),
-		kVacc    = (1 << 3),
-		kSacc    = (1 << 4),
-		kHdrift  = (1 << 5),
-		kVdrift  = (1 << 6),
-		kHspd    = (1 << 7),
-		kVspd    = (1 << 8),
-		kSpoofed = (1 << 9)
-	};
-
-	bool isGnssCheckEnabled(GnssChecksMask check);
-	void runOnGroundGnssChecks(const gnssSample &gnss);
-
 	void controlGnssHeightFusion(const gnssSample &gps_sample);
 	void stopGpsHgtFusion();
-
-	void resetGpsDriftCheckFilters();
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	void controlGnssYawFusion(const gnssSample &gps_sample);
