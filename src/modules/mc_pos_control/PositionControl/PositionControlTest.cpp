@@ -63,8 +63,6 @@ TEST(PositionControlTest, EmptySetpoint)
 	EXPECT_FLOAT_EQ(attitude.yaw_sp_move_rate, 0.f);
 	EXPECT_EQ(Quatf(attitude.q_d), Quatf(1.f, 0.f, 0.f, 0.f));
 	EXPECT_EQ(Vector3f(attitude.thrust_body), Vector3f(0.f, 0.f, 0.f));
-	EXPECT_EQ(attitude.reset_integral, false);
-	EXPECT_EQ(attitude.fw_control_yaw_wheel, false);
 }
 
 class PositionControlBasicTest : public ::testing::Test

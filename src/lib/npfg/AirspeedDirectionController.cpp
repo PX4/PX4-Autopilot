@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,51 +31,34 @@
  *
  ****************************************************************************/
 
-/**
- * @file launchdetection_params.c
- *
- * Parameters for launchdetection
- *
- * @author Thomas Gubler <thomasgubler@gmail.com>
- */
+#include "AirspeedDirectionController.hpp"
+#include <matrix/math.hpp>
+#include <lib/mathlib/mathlib.h>
 
-/**
- * Trigger acceleration threshold
- *
- * Launch is detected when acceleration in body forward direction is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
- *
- * @unit m/s^2
- * @min 0
- * @decimal 1
- * @increment 0.5
- * @group FW Launch detection
- */
-PARAM_DEFINE_FLOAT(FW_LAUN_AC_THLD, 30.0f);
+using matrix::Vector2f;
+AirspeedDirectionController::AirspeedDirectionController()
+{
+	// Constructor
+}
 
-/**
- * Trigger time
- *
- * Launch is detected when acceleration in body forward direction is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
- *
- * @unit s
- * @min 0.0
- * @max 5.0
- * @decimal 2
- * @increment 0.05
- * @group FW Launch detection
- */
-PARAM_DEFINE_FLOAT(FW_LAUN_AC_T, 0.05f);
+float AirspeedDirectionController::controlHeading(const float heading_sp, const float heading,
+		const float airspeed) const
+{
 
-/**
- * Motor delay
- *
- * Start the motor(s) this amount of seconds after launch is detected.
- *
- * @unit s
- * @min 0.0
- * @max 10.0
- * @decimal 1
- * @increment 0.5
- * @group FW Launch detection
- */
-PARAM_DEFINE_FLOAT(FW_LAUN_MOT_DEL, 0.0f);
+	const Vector2f airspeed_vector = Vector2f{cosf(heading), sinf(heading)} * airspeed;
+	const Vector2f airspeed_sp_vector_unit = Vector2f{cosf(heading_sp), sinf(heading_sp)};
+
+	const float dot_air_vel_err = airspeed_vector.dot(airspeed_sp_vector_unit);
+	const float cross_air_vel_err = airspeed_vector.cross(airspeed_sp_vector_unit);
+
+	if (dot_air_vel_err < 0.0f) {
+		// hold max lateral acceleration command above 90 deg heading error
+		return p_gain_ * ((cross_air_vel_err < 0.0f) ? -airspeed : airspeed);
+
+	} else {
+		// airspeed/airspeed_ref is used to scale any incremented airspeed reference back to the current airspeed
+		// for acceleration commands in a "feedback" sense (i.e. at the current vehicle airspeed)
+		// todo use airspeed_ref or adapt comment
+		return p_gain_ * cross_air_vel_err;
+	}
+}
