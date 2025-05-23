@@ -332,6 +332,16 @@ bool crypto_signature_check(crypto_session_handle_t handle,
 			const ltc_ecc_curve *cu;
 			ecc_key key;
 
+			/* In the DER format secp384r1 pubkey the raw key part is always the last 97 bytes.
+			 * This simple "parsing" works for both "raw" key and DER format
+			 */
+			if (keylen < 97) {
+				return false;
+			}
+
+			public_key += keylen - 97;
+			keylen = 97;
+
 			initialize_tomcrypt();
 
 			if (ecc_find_curve("SECP384R1", &cu) != CRYPT_OK) {
