@@ -46,8 +46,7 @@ public:
 	GnssChecks(int32_t &check_mask, int32_t &req_nsats, float &req_pdop, float &req_hacc, float &req_vacc, float &req_sacc,
 		   float &req_hdrift, float &req_vdrift, float &velocity_limit, uint32_t &min_health_time_us,
 		   filter_control_status_u &control_status):
-		_params{check_mask, req_nsats, req_pdop, req_hacc, req_vacc, req_sacc, req_hdrift, req_vdrift, velocity_limit},
-		_min_gps_health_time_us(min_health_time_us),
+		_params{check_mask, req_nsats, req_pdop, req_hacc, req_vacc, req_sacc, req_hdrift, req_vdrift, velocity_limit, min_health_time_us},
 		_control_status(control_status)
 	{};
 
@@ -76,28 +75,26 @@ public:
 
 	void reset()
 	{
-		_checks_passed = false;
-		_last_gps_pass_us = 0;
-		_last_gps_fail_us = 0;
-		resetGpsDriftCheckFilters();
+		_passed = false;
+		_time_last_pass_us = 0;
+		_time_last_fail_us = 0;
+		resetDriftFilters();
 	}
 
 	/*
-	 * Return true if the GPS solution quality is adequate.
-	 * Checks are activated using the EKF2_GPS_CHECK bitmask parameter
-	 * Checks are adjusted using the EKF2_REQ_* parameters
+	 * Return true if the GNSS solution quality is adequate.
 	*/
-	bool runGnssChecks(const gnssSample &gps, uint64_t time_us);
-	bool passed() const { return _checks_passed; }
+	bool run(const gnssSample &gnss, uint64_t time_us);
+	bool passed() const { return _passed; }
 	bool initialChecksPassed() const { return _initial_checks_passed; }
-	uint64_t getLastPassUs() const { return _last_gps_pass_us; }
-	uint64_t getLastFailUs() const { return _last_gps_fail_us; }
+	uint64_t getLastPassUs() const { return _time_last_pass_us; }
+	uint64_t getLastFailUs() const { return _time_last_fail_us; }
 
-	const gps_check_fail_status_u &getFailStatus() const { return _gps_check_fail_status; }
+	const gps_check_fail_status_u &getFailStatus() const { return _check_fail_status; }
 
-	float horizontal_position_drift_rate_m_s() const { return _gps_horizontal_position_drift_rate_m_s; }
-	float vertical_position_drift_rate_m_s() const { return _gps_vertical_position_drift_rate_m_s; }
-	float filtered_horizontal_velocity_m_s() const { return _gps_filtered_horizontal_velocity_m_s; }
+	float horizontal_position_drift_rate_m_s() const { return _horizontal_position_drift_rate_m_s; }
+	float vertical_position_drift_rate_m_s() const { return _vertical_position_drift_rate_m_s; }
+	float filtered_horizontal_velocity_m_s() const { return _filtered_horizontal_velocity_m_s; }
 
 private:
 	enum class GnssChecksMask : int32_t {
@@ -113,36 +110,35 @@ private:
 		kSpoofed = (1 << 9)
 	};
 
-	bool isGnssCheckEnabled(GnssChecksMask check) { return (_params.check_mask & static_cast<int32_t>(check)); }
+	bool isCheckEnabled(GnssChecksMask check) { return (_params.check_mask & static_cast<int32_t>(check)); }
 
 	bool runInitialFixChecks(const gnssSample &gnss);
 	void runOnGroundGnssChecks(const gnssSample &gnss);
 
-	void resetGpsDriftCheckFilters();
+	void resetDriftFilters();
 
 	bool isTimedOut(uint64_t timestamp_to_check_us, uint64_t now_us, uint64_t timeout_period) const
 	{
 		return (timestamp_to_check_us == 0) || (timestamp_to_check_us + timeout_period < now_us);
 	}
 
-	gps_check_fail_status_u _gps_check_fail_status{};
+	gps_check_fail_status_u _check_fail_status{};
 
-	float _gps_horizontal_position_drift_rate_m_s{NAN}; // Horizontal position drift rate (m/s)
-	float _gps_vertical_position_drift_rate_m_s{NAN};   // Vertical position drift rate (m/s)
-	float _gps_filtered_horizontal_velocity_m_s{NAN};   // Filtered horizontal velocity (m/s)
+	float _horizontal_position_drift_rate_m_s{NAN};
+	float _vertical_position_drift_rate_m_s{NAN};
+	float _filtered_horizontal_velocity_m_s{NAN};
 
-	MapProjection _gnss_pos_prev{}; // Contains WGS-84 position latitude and longitude of the previous GPS message
-	float _gnss_alt_prev{0.0f};	// height from the previous GPS message (m)
+	MapProjection lat_lon_prev{};
+	float _alt_prev{0.0f};
 
-	// variables used for the GPS quality checks
-	Vector3f _gps_pos_deriv_filt{};
-	Vector2f _gps_velNE_filt{};	///< filtered GPS North and East velocity (m/sec)
+	Vector3f _lat_lon_alt_deriv_filt{};
+	Vector2f _vel_ne_filt{};
 
-	float _gps_vel_d_filt{0.0f};		///< GNSS filtered Down velocity (m/sec)
-	uint64_t _last_gps_fail_us{0};
-	uint64_t _last_gps_pass_us{0};
+	float _vel_d_filt{0.0f};		///< GNSS filtered Down velocity (m/sec)
+	uint64_t _time_last_fail_us{0};
+	uint64_t _time_last_pass_us{0};
 	bool _initial_checks_passed{false};
-	bool _checks_passed{false};
+	bool _passed{false};
 
 	struct Params {
 		const int32_t &check_mask;
@@ -154,10 +150,10 @@ private:
 		const float &req_hdrift;
 		const float &req_vdrift;
 		const float &velocity_limit;
+		const uint32_t &min_health_time_us;
 	};
 
 	const Params _params;
-	const uint32_t &_min_gps_health_time_us; ///< GPS is marked as healthy only after this amount of time
 	const filter_control_status_u &_control_status;
 };
 }; // namespace estimator
