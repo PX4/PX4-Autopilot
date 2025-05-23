@@ -161,6 +161,8 @@ public:
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
+	void mixerChanged() override;
+
 	MixingOutput &mixingOutput() { return _mixing_output; }
 
 protected:
