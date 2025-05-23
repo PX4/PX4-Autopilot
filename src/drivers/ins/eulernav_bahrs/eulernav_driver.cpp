@@ -44,10 +44,7 @@ EulerNavDriver::EulerNavDriver(const char *device_name)
 	, _data_buffer{}
 	, _px4_accel{DRV_INS_DEVTYPE_BAHRS}
 	, _px4_gyro{DRV_INS_DEVTYPE_BAHRS}
-	, _attitude_pub{ORB_ID(vehicle_attitude)}
-	, _barometer_pub{ORB_ID(sensor_baro)}
 {
-	initialize();
 }
 
 EulerNavDriver::~EulerNavDriver()
@@ -94,7 +91,16 @@ EulerNavDriver *EulerNavDriver::instantiate(int argc, char *argv[])
 		}
 	}
 
-	return new EulerNavDriver(device_name);
+	auto *instance = new EulerNavDriver(device_name);
+
+	if (nullptr != instance) {
+		instance->initialize();
+	}
+	else {
+		PX4_ERR("Failed to initialize EULER-NAV driver.");
+	}
+
+	return instance;
 }
 
 int EulerNavDriver::custom_command(int argc, char *argv[])
@@ -176,8 +182,8 @@ void EulerNavDriver::run()
 		}
 		else
 		{
-			px4_usleep(1'000'000);
-			initialize();
+			// The driver failed to initialize in the instantiate() method, so we exit the loop.
+			request_stop();
 		}
 	}
 }
@@ -186,9 +192,7 @@ void EulerNavDriver::initialize()
 {
 	if (false == _is_initialized)
 	{
-		_serial_port.open();
-
-		if (_serial_port.isOpen())
+		if (_serial_port.open())
 		{
 			PX4_INFO("Serial port opened successfully.");
 			_is_initialized = true;
@@ -207,16 +211,11 @@ void EulerNavDriver::initialize()
 			}
 		}
 
-		if (false == _is_initialized)
-		{
-			deinitialize();
-		}
-		else
+		if (_is_initialized)
 		{
 			_attitude_pub.advertise();
 			_barometer_pub.advertise();
 		}
-
 	}
 }
 

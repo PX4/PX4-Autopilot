@@ -172,6 +172,6 @@ private:
 	bool _is_initialized{false}; ///< Initialization flag
 	PX4Accelerometer _px4_accel; ///< Accelerometer sensor object for publishing acceleration data
 	PX4Gyroscope _px4_gyro; ///< Gyroscope sensor object for publishing angular rate data
-	uORB::PublicationMulti<VehicleAttitude> _attitude_pub; ///< Vehicle attitude publisher
-	uORB::PublicationMulti<PressureData> _barometer_pub; ///< Pressure data publisher
+	uORB::PublicationMulti<VehicleAttitude> _attitude_pub{ORB_ID(vehicle_attitude)}; ///< Vehicle attitude publisher
+	uORB::PublicationMulti<PressureData> _barometer_pub{ORB_ID(sensor_baro)}; ///< Pressure data publisher
 };
