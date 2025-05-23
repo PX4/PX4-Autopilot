@@ -155,7 +155,7 @@ void EulerNavDriver::run()
 {
 	_statistics._start_time = hrt_absolute_time();
 
-	while(false == should_exit())
+	while(!should_exit())
 	{
 		if (_is_initialized)
 		{
@@ -176,8 +176,7 @@ void EulerNavDriver::run()
 		}
 		else
 		{
-			deinitialize();
-			px4_usleep(1000000);
+			px4_usleep(1'000'000);
 			initialize();
 		}
 	}
