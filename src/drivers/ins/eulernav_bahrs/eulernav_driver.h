@@ -91,7 +91,7 @@ private:
 		static constexpr uint32_t TASK_STACK_SIZE{2048}; ///< Driver task stack size
 		static constexpr uint32_t SERIAL_READ_BUFFER_SIZE{128}; ///< Buffer size for serial port read operations
 		static constexpr uint32_t MIN_BYTES_TO_READ{16}; ///< Minimum number of bytes to wait for when reading from a serial port
-		static constexpr uint32_t SERIAL_READ_TIMEOUT_US{5000}; ///< A timeout for serial port read operation
+		static constexpr uint32_t SERIAL_READ_TIMEOUT_MS{5}; ///< A timeout for serial port read operation
 		static constexpr uint32_t DATA_BUFFER_SIZE{512}; ///< Size of a ring buffer for storing RX data stream
 		static constexpr int32_t MIN_MESSAGE_LENGTH{12}; ///< Min length of a valid message. 5 bytes header + 4 bytes CRC + padding to 12 (multiple of 32 bit words)
 	};

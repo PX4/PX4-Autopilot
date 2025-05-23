@@ -166,7 +166,7 @@ void EulerNavDriver::run()
 		if (_is_initialized)
 		{
 			const auto bytes_read{_serial_port.readAtLeast(_serial_read_buffer, sizeof(_serial_read_buffer),
-								       Config::MIN_BYTES_TO_READ, Config::SERIAL_READ_TIMEOUT_US)};
+								       Config::MIN_BYTES_TO_READ, Config::SERIAL_READ_TIMEOUT_MS)};
 
 			_statistics._total_bytes_received += bytes_read;
 
