@@ -63,11 +63,11 @@
 constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSIONS] = {
 	initSPIFmumID(TROPIC_0, {
 		initSPIBus(SPI::Bus::LPSPI3, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::Port1, GPIO::Pin28}), /* GPIO_AD_B1_12 GPIO1_IO28 */
+			initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::Port1, GPIO::Pin28}, SPI::DRDY{GPIO::Port3, GPIO::Pin18}), /* GPIO_AD_B1_12 GPIO1_IO28 */
 		}),
 		initSPIBus(SPI::Bus::LPSPI4, {
-			initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::Port2, GPIO::Pin18}),  /* GPIO_B1_02 GPIO2_IO18 */
-			initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::Port2, GPIO::Pin0}), /* GPIO_B0_00 GPIO2_IO00 */
+			initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::Port2, GPIO::Pin18}, SPI::DRDY{GPIO::Port2, GPIO::Pin10}),  /* GPIO_B1_02 GPIO2_IO18 */
+			initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::Port2, GPIO::Pin0}, SPI::DRDY{GPIO::Port1, GPIO::Pin25}), /* GPIO_B0_00 GPIO2_IO00 */
 		}),
 	}),
 

@@ -20,28 +20,28 @@ board_adc start
 if param compare SENS_EN_INA226 1
 then
 	# Start Digital power monitors
-	ina226 -X -b 1 -t 1 -k start
+	ina226 -X -b 3 -t 1 -k start
 	set INA_CONFIGURED yes
 fi
 
 if param compare SENS_EN_INA228 1
 then
 	# Start Digital power monitors
-	ina228 -X -b 1 -t 1 -k start
+	ina228 -X -b 3 -t 1 -k start
 	set INA_CONFIGURED yes
 fi
 
 if param compare SENS_EN_INA238 1
 then
 	# Start Digital power monitors
-	ina238 -X -b 1 -t 1 -k start
+	ina238 -X -b 3 -t 1 -k start
 	set INA_CONFIGURED yes
 fi
 
 if [ $INA_CONFIGURED = no ]
 then
 	# INA226, INA228, INA238 auto-start
-	i2c_launcher start -b 3
+	i2c_launcher start -b 3 -t 1
 fi
 
 
