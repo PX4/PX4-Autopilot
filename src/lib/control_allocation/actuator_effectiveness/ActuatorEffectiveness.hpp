@@ -219,6 +219,20 @@ public:
 	 */
 	virtual void stopMaskedMotorsWithZeroThrust(uint32_t stoppable_motors_mask, ActuatorVector &actuator_sp);
 
+	/**
+	 * If overridden by derived classes, optionally bypass the info usually
+	 * contained in tiltrotor_extra_controls -- normalised collective thrust
+	 * and tilt setpoints.
+	 *
+	 * Base class implementation is empty.
+	 *
+	 * @param bypass Flag indicating whether or not to use the other
+	 * arguments to bypass setpoints
+	 * @param collective_tilt Collective tilt normalized setpoint, in [0, 1]. 0: vertical, 1: horizontal.
+	 * @param collective_thrust Collective thrust normalized setpoint, in [0, 1].
+	 */
+	virtual void setBypassTiltrotorControls(bool bypass, float collective_tilt, float collective_thrust);
+
 protected:
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};
 	uint32_t _stopped_motors_mask{0};

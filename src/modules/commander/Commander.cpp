@@ -302,6 +302,38 @@ int Commander::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(argv[0], "cs_check")) {
+
+		// hardcoded values. intended just for testing, remove before PR.
+
+		if (argc > 1) {
+			if (!strcmp(argv[1], "roll")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_PREFLIGHT_CS_CHECK, vehicle_command_s::AXIS_ROLL, 1.0);
+
+			} else if (!strcmp(argv[1], "pitch")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_PREFLIGHT_CS_CHECK, vehicle_command_s::AXIS_PITCH, 1.0);
+
+			} else if (!strcmp(argv[1], "yaw")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_PREFLIGHT_CS_CHECK, vehicle_command_s::AXIS_YAW, 1.0);
+
+			} else if (!strcmp(argv[1], "tilt")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_PREFLIGHT_CS_CHECK, vehicle_command_s::AXIS_COLLECTIVE_TILT,
+						     1.0);
+
+			} else {
+				PX4_ERR("argument %s unsupported.", argv[1]);
+				return 1;
+			}
+
+			return 0;
+
+		} else {
+			PX4_ERR("missing argument");
+		}
+
+		return 0;
+	}
+
 	if (!strcmp(argv[0], "arm")) {
 		float param2 = 0.f;
 
@@ -1517,6 +1549,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_DO_GRIPPER:
 	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE:
 	case vehicle_command_s::VEHICLE_CMD_REQUEST_CAMERA_INFORMATION:
+	case vehicle_command_s::VEHICLE_CMD_DO_PREFLIGHT_CS_CHECK:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -3011,6 +3044,7 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_ARG("mag|baro|accel|gyro|level|esc|airspeed", "Calibration type", false);
 	PRINT_MODULE_USAGE_ARG("quick", "Quick calibration [mag, accel (not recommended)]", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("check", "Run preflight checks");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("cs_check", "Run control surface preflight checks");
 	PRINT_MODULE_USAGE_COMMAND("arm");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Force arming (do not run preflight checks)", true);
 	PRINT_MODULE_USAGE_COMMAND("disarm");
