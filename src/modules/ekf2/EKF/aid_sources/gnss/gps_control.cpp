@@ -65,7 +65,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 		const bool initial_checks_passed_prev = _gnss_checks.initialChecksPassed();
 
-		if (_gnss_checks.runGnssChecks(gnss_sample, _time_delayed_us)) {
+		if (_gnss_checks.run(gnss_sample, _time_delayed_us)) {
 			if (_gnss_checks.initialChecksPassed() && !initial_checks_passed_prev) {
 				// First time checks are passing, latching.
 				_information_events.flags.gps_checks_passed = true;
