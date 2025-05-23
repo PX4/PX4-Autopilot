@@ -112,6 +112,7 @@ private:
 
 	bool isCheckEnabled(GnssChecksMask check) { return (_params.check_mask & static_cast<int32_t>(check)); }
 
+	bool runSimplifiedChecks(const gnssSample &gnss);
 	bool runInitialFixChecks(const gnssSample &gnss);
 	void runOnGroundGnssChecks(const gnssSample &gnss);
 
