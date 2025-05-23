@@ -11,7 +11,7 @@
 . ${R}etc/init.d/rc.sc_defaults
 
 param set-default CA_AIRFRAME 14
-param set-default MAV_TYPE 99
+param set-default MAV_TYPE 45
 
 param set-default CA_THRUSTER_CNT 8
 param set-default CA_R_REV 0
