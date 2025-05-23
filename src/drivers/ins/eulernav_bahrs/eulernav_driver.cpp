@@ -95,8 +95,8 @@ EulerNavDriver *EulerNavDriver::instantiate(int argc, char *argv[])
 
 	if (nullptr != instance) {
 		instance->initialize();
-	}
-	else {
+
+	} else {
 		PX4_ERR("Failed to initialize EULER-NAV driver.");
 	}
 
