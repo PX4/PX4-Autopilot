@@ -40,93 +40,92 @@
 
 namespace estimator
 {
-bool GnssChecks::runGnssChecks(const gnssSample &gnss, uint64_t time_us)
+bool GnssChecks::run(const gnssSample &gnss, uint64_t time_us)
 {
 	// assume failed first time through
-	if (_last_gps_fail_us == 0) {
-		_last_gps_fail_us = time_us;
+	if (_time_last_fail_us == 0) {
+		_time_last_fail_us = time_us;
 	}
 
 	bool passed = false;
 
 	if (_initial_checks_passed) {
 		if (runInitialFixChecks(gnss)) {
-			_last_gps_pass_us = time_us;
-			passed = isTimedOut(_last_gps_fail_us, time_us, math::max((uint64_t)1e6, (uint64_t)_min_gps_health_time_us / 10));
+			_time_last_pass_us = time_us;
+			passed = isTimedOut(_time_last_fail_us, time_us, math::max((uint64_t)1e6, (uint64_t)_params.min_health_time_us / 10));
 
 		} else {
-			_last_gps_fail_us = time_us;
+			_time_last_fail_us = time_us;
 		}
 
 	} else {
 		if (runInitialFixChecks(gnss)) {
-			_last_gps_pass_us = time_us;
+			_time_last_pass_us = time_us;
 
-			if (isTimedOut(_last_gps_fail_us, time_us, (uint64_t)_min_gps_health_time_us)) {
+			if (isTimedOut(_time_last_fail_us, time_us, (uint64_t)_params.min_health_time_us)) {
 				_initial_checks_passed = true;
 				passed = true;
 			}
 
 		} else {
-			_last_gps_fail_us = time_us;
+			_time_last_fail_us = time_us;
 		}
 	}
 
-	// save GPS fix for next time
-	_gnss_pos_prev.initReference(gnss.lat, gnss.lon, gnss.time_us);
-	_gnss_alt_prev = gnss.alt;
+	lat_lon_prev.initReference(gnss.lat, gnss.lon, gnss.time_us);
+	_alt_prev = gnss.alt;
 
-	_checks_passed = passed;
+	_passed = passed;
 	return passed;
 }
 
 bool GnssChecks::runInitialFixChecks(const gnssSample &gnss)
 {
 	// Check the fix type
-	_gps_check_fail_status.flags.fix = (gnss.fix_type < 3);
+	_check_fail_status.flags.fix = (gnss.fix_type < 3);
 
 	// Check the number of satellites
-	_gps_check_fail_status.flags.nsats = (gnss.nsats < _params.req_nsats);
+	_check_fail_status.flags.nsats = (gnss.nsats < _params.req_nsats);
 
 	// Check the position dilution of precision
-	_gps_check_fail_status.flags.pdop = (gnss.pdop > _params.req_pdop);
+	_check_fail_status.flags.pdop = (gnss.pdop > _params.req_pdop);
 
 	// Check the reported horizontal and vertical position accuracy
-	_gps_check_fail_status.flags.hacc = (gnss.hacc > _params.req_hacc);
-	_gps_check_fail_status.flags.vacc = (gnss.vacc > _params.req_vacc);
+	_check_fail_status.flags.hacc = (gnss.hacc > _params.req_hacc);
+	_check_fail_status.flags.vacc = (gnss.vacc > _params.req_vacc);
 
 	// Check the reported speed accuracy
-	_gps_check_fail_status.flags.sacc = (gnss.sacc > _params.req_sacc);
+	_check_fail_status.flags.sacc = (gnss.sacc > _params.req_sacc);
 
-	_gps_check_fail_status.flags.spoofed = gnss.spoofed;
+	_check_fail_status.flags.spoofed = gnss.spoofed;
 
 	runOnGroundGnssChecks(gnss);
 
 	// force horizontal speed failure if above the limit
 	if (gnss.vel.xy().longerThan(_params.velocity_limit)) {
-		_gps_check_fail_status.flags.hspeed = true;
+		_check_fail_status.flags.hspeed = true;
 	}
 
 	// force vertical speed failure if above the limit
 	if (fabsf(gnss.vel(2)) > _params.velocity_limit) {
-		_gps_check_fail_status.flags.vspeed = true;
+		_check_fail_status.flags.vspeed = true;
 	}
 
 	bool passed = true;
 
 	// if any user selected checks have failed, record the fail time
 	if (
-		_gps_check_fail_status.flags.fix ||
-		(_gps_check_fail_status.flags.nsats   && isGnssCheckEnabled(GnssChecksMask::kNsats)) ||
-		(_gps_check_fail_status.flags.pdop    && isGnssCheckEnabled(GnssChecksMask::kPdop)) ||
-		(_gps_check_fail_status.flags.hacc    && isGnssCheckEnabled(GnssChecksMask::kHacc)) ||
-		(_gps_check_fail_status.flags.vacc    && isGnssCheckEnabled(GnssChecksMask::kVacc)) ||
-		(_gps_check_fail_status.flags.sacc    && isGnssCheckEnabled(GnssChecksMask::kSacc)) ||
-		(_gps_check_fail_status.flags.hdrift  && isGnssCheckEnabled(GnssChecksMask::kHdrift)) ||
-		(_gps_check_fail_status.flags.vdrift  && isGnssCheckEnabled(GnssChecksMask::kVdrift)) ||
-		(_gps_check_fail_status.flags.hspeed  && isGnssCheckEnabled(GnssChecksMask::kHspd)) ||
-		(_gps_check_fail_status.flags.vspeed  && isGnssCheckEnabled(GnssChecksMask::kVspd)) ||
-		(_gps_check_fail_status.flags.spoofed && isGnssCheckEnabled(GnssChecksMask::kSpoofed))
+		_check_fail_status.flags.fix ||
+		(_check_fail_status.flags.nsats   && isCheckEnabled(GnssChecksMask::kNsats)) ||
+		(_check_fail_status.flags.pdop    && isCheckEnabled(GnssChecksMask::kPdop)) ||
+		(_check_fail_status.flags.hacc    && isCheckEnabled(GnssChecksMask::kHacc)) ||
+		(_check_fail_status.flags.vacc    && isCheckEnabled(GnssChecksMask::kVacc)) ||
+		(_check_fail_status.flags.sacc    && isCheckEnabled(GnssChecksMask::kSacc)) ||
+		(_check_fail_status.flags.hdrift  && isCheckEnabled(GnssChecksMask::kHdrift)) ||
+		(_check_fail_status.flags.vdrift  && isCheckEnabled(GnssChecksMask::kVdrift)) ||
+		(_check_fail_status.flags.hspeed  && isCheckEnabled(GnssChecksMask::kHspd)) ||
+		(_check_fail_status.flags.vspeed  && isCheckEnabled(GnssChecksMask::kVspd)) ||
+		(_check_fail_status.flags.spoofed && isCheckEnabled(GnssChecksMask::kSpoofed))
 	) {
 		passed = false;
 	}
@@ -139,12 +138,12 @@ void GnssChecks::runOnGroundGnssChecks(const gnssSample &gnss)
 	if (_control_status.flags.in_air) {
 		// These checks are always declared as passed when flying
 		// If on ground and moving, the last result before movement commenced is kept
-		_gps_check_fail_status.flags.hdrift = false;
-		_gps_check_fail_status.flags.vdrift = false;
-		_gps_check_fail_status.flags.hspeed = false;
-		_gps_check_fail_status.flags.vspeed = false;
+		_check_fail_status.flags.hdrift = false;
+		_check_fail_status.flags.vdrift = false;
+		_check_fail_status.flags.hspeed = false;
+		_check_fail_status.flags.vspeed = false;
 
-		resetGpsDriftCheckFilters();
+		resetDriftFilters();
 		return;
 	}
 
@@ -152,7 +151,7 @@ void GnssChecks::runOnGroundGnssChecks(const gnssSample &gnss)
 		// Calculate time lapsed since last update, limit to prevent numerical errors and calculate a lowpass filter coefficient
 		constexpr float filt_time_const = 10.0f;
 		const float dt = math::constrain(float(int64_t(gnss.time_us) - int64_t(
-				_gnss_pos_prev.getProjectionReferenceTimestamp()))
+				lat_lon_prev.getProjectionReferenceTimestamp()))
 						 * 1e-6f, 0.001f, filt_time_const);
 		const float filter_coef = dt / filt_time_const;
 
@@ -160,64 +159,64 @@ void GnssChecks::runOnGroundGnssChecks(const gnssSample &gnss)
 		float delta_pos_n = 0.0f;
 		float delta_pos_e = 0.0f;
 
-		// calculate position movement since last GPS fix
-		if (_gnss_pos_prev.getProjectionReferenceTimestamp() > 0) {
-			_gnss_pos_prev.project(gnss.lat, gnss.lon, delta_pos_n, delta_pos_e);
+		// calculate position movement since last fix
+		if (lat_lon_prev.getProjectionReferenceTimestamp() > 0) {
+			lat_lon_prev.project(gnss.lat, gnss.lon, delta_pos_n, delta_pos_e);
 
 		} else {
 			// no previous position has been set
-			_gnss_pos_prev.initReference(gnss.lat, gnss.lon, gnss.time_us);
-			_gnss_alt_prev = gnss.alt;
+			lat_lon_prev.initReference(gnss.lat, gnss.lon, gnss.time_us);
+			_alt_prev = gnss.alt;
 		}
 
 		// Calculate the horizontal and vertical drift velocity components and limit to 10x the threshold
 		const Vector3f vel_limit(_params.req_hdrift, _params.req_hdrift, _params.req_vdrift);
-		Vector3f delta_pos(delta_pos_n, delta_pos_e, (_gnss_alt_prev - gnss.alt));
+		Vector3f delta_pos(delta_pos_n, delta_pos_e, (_alt_prev - gnss.alt));
 
 		// Apply a low pass filter
-		_gps_pos_deriv_filt = delta_pos / dt * filter_coef + _gps_pos_deriv_filt * (1.0f - filter_coef);
+		_lat_lon_alt_deriv_filt = delta_pos / dt * filter_coef + _lat_lon_alt_deriv_filt * (1.0f - filter_coef);
 
 		// Apply anti-windup to the state instead of the input to avoid generating a bias on asymmetric signals
-		_gps_pos_deriv_filt = matrix::constrain(_gps_pos_deriv_filt, -10.0f * vel_limit, 10.0f * vel_limit);
+		_lat_lon_alt_deriv_filt = matrix::constrain(_lat_lon_alt_deriv_filt, -10.0f * vel_limit, 10.0f * vel_limit);
 
 		// hdrift: calculate the horizontal drift speed and fail if too high
-		_gps_horizontal_position_drift_rate_m_s = Vector2f(_gps_pos_deriv_filt.xy()).norm();
-		_gps_check_fail_status.flags.hdrift = (_gps_horizontal_position_drift_rate_m_s > _params.req_hdrift);
+		_horizontal_position_drift_rate_m_s = Vector2f(_lat_lon_alt_deriv_filt.xy()).norm();
+		_check_fail_status.flags.hdrift = (_horizontal_position_drift_rate_m_s > _params.req_hdrift);
 
 		// vdrift: fail if the vertical drift speed is too high
-		_gps_vertical_position_drift_rate_m_s = fabsf(_gps_pos_deriv_filt(2));
-		_gps_check_fail_status.flags.vdrift = (_gps_vertical_position_drift_rate_m_s > _params.req_vdrift);
+		_vertical_position_drift_rate_m_s = fabsf(_lat_lon_alt_deriv_filt(2));
+		_check_fail_status.flags.vdrift = (_vertical_position_drift_rate_m_s > _params.req_vdrift);
 
 		// hspeed: check the magnitude of the filtered horizontal GNSS velocity
-		const Vector2f gps_velNE = matrix::constrain(Vector2f(gnss.vel.xy()),
-					   -10.0f * _params.req_hdrift,
-					   10.0f * _params.req_hdrift);
-		_gps_velNE_filt = gps_velNE * filter_coef + _gps_velNE_filt * (1.0f - filter_coef);
-		_gps_filtered_horizontal_velocity_m_s = _gps_velNE_filt.norm();
-		_gps_check_fail_status.flags.hspeed = (_gps_filtered_horizontal_velocity_m_s > _params.req_hdrift);
+		const Vector2f vel_ne = matrix::constrain(Vector2f(gnss.vel.xy()),
+					-10.0f * _params.req_hdrift,
+					10.0f * _params.req_hdrift);
+		_vel_ne_filt = vel_ne * filter_coef + _vel_ne_filt * (1.0f - filter_coef);
+		_filtered_horizontal_velocity_m_s = _vel_ne_filt.norm();
+		_check_fail_status.flags.hspeed = (_filtered_horizontal_velocity_m_s > _params.req_hdrift);
 
 		// vspeed: check the magnitude of the filtered vertical GNSS velocity
 		const float gnss_vz_limit = 10.f * _params.req_vdrift;
 		const float gnss_vz = math::constrain(gnss.vel(2), -gnss_vz_limit, gnss_vz_limit);
-		_gps_vel_d_filt = gnss_vz * filter_coef + _gps_vel_d_filt * (1.f - filter_coef);
+		_vel_d_filt = gnss_vz * filter_coef + _vel_d_filt * (1.f - filter_coef);
 
-		_gps_check_fail_status.flags.vspeed = (fabsf(_gps_vel_d_filt) > _params.req_vdrift);
+		_check_fail_status.flags.vspeed = (fabsf(_vel_d_filt) > _params.req_vdrift);
 
 	} else {
 		// This is the case where the vehicle is on ground and IMU movement is blocking the drift calculation
-		resetGpsDriftCheckFilters();
+		resetDriftFilters();
 	}
 }
 
-void GnssChecks::resetGpsDriftCheckFilters()
+void GnssChecks::resetDriftFilters()
 {
-	_gps_velNE_filt.setZero();
-	_gps_vel_d_filt = 0.f;
+	_vel_ne_filt.setZero();
+	_vel_d_filt = 0.f;
 
-	_gps_pos_deriv_filt.setZero();
+	_lat_lon_alt_deriv_filt.setZero();
 
-	_gps_horizontal_position_drift_rate_m_s = NAN;
-	_gps_vertical_position_drift_rate_m_s = NAN;
-	_gps_filtered_horizontal_velocity_m_s = NAN;
+	_horizontal_position_drift_rate_m_s = NAN;
+	_vertical_position_drift_rate_m_s = NAN;
+	_filtered_horizontal_velocity_m_s = NAN;
 }
 }; // namespace estimator
