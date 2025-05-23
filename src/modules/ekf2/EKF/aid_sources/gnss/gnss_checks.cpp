@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,26 +32,56 @@
  ****************************************************************************/
 
 /**
- * @file gps_checks.cpp
- * Perform pre-flight and in-flight GPS quality checks
- *
- * @author Paul Riseborough <p_riseborough@live.com.au>
- *
+ * @file gnss_checks.cpp
+ * Perform pre-flight and in-flight GNSS quality checks
  */
 
-#include "ekf.h"
+#include "aid_sources/gnss/gnss_checks.hpp"
 
-#include <mathlib/mathlib.h>
-
-bool Ekf::isGnssCheckEnabled(GnssChecksMask check)
+namespace estimator
 {
-	return (_params.gps_check_mask & static_cast<int32_t>(check));
+bool GnssChecks::runGnssChecks(const gnssSample &gnss, uint64_t time_us)
+{
+	// assume failed first time through
+	if (_last_gps_fail_us == 0) {
+		_last_gps_fail_us = time_us;
+	}
+
+	bool passed = false;
+
+	if (_initial_checks_passed) {
+		if (runInitialFixChecks(gnss)) {
+			_last_gps_pass_us = time_us;
+			passed = isTimedOut(_last_gps_fail_us, time_us, math::max((uint64_t)1e6, (uint64_t)_min_gps_health_time_us / 10));
+
+		} else {
+			_last_gps_fail_us = time_us;
+		}
+
+	} else {
+		if (runInitialFixChecks(gnss)) {
+			_last_gps_pass_us = time_us;
+
+			if (isTimedOut(_last_gps_fail_us, time_us, (uint64_t)_min_gps_health_time_us)) {
+				_initial_checks_passed = true;
+				passed = true;
+			}
+
+		} else {
+			_last_gps_fail_us = time_us;
+		}
+	}
+
+	// save GPS fix for next time
+	_gnss_pos_prev.initReference(gnss.lat, gnss.lon, gnss.time_us);
+	_gnss_alt_prev = gnss.alt;
+
+	_checks_passed = passed;
+	return passed;
 }
 
-bool Ekf::runGnssChecks(const gnssSample &gnss)
+bool GnssChecks::runInitialFixChecks(const gnssSample &gnss)
 {
-	_gps_check_fail_status.flags.spoofed = gnss.spoofed;
-
 	// Check the fix type
 	_gps_check_fail_status.flags.fix = (gnss.fix_type < 3);
 
@@ -68,6 +98,8 @@ bool Ekf::runGnssChecks(const gnssSample &gnss)
 	// Check the reported speed accuracy
 	_gps_check_fail_status.flags.sacc = (gnss.sacc > _params.req_sacc);
 
+	_gps_check_fail_status.flags.spoofed = gnss.spoofed;
+
 	runOnGroundGnssChecks(gnss);
 
 	// force horizontal speed failure if above the limit
@@ -80,14 +112,7 @@ bool Ekf::runGnssChecks(const gnssSample &gnss)
 		_gps_check_fail_status.flags.vspeed = true;
 	}
 
-	// save GPS fix for next time
-	_gnss_pos_prev.initReference(gnss.lat, gnss.lon, gnss.time_us);
-	_gnss_alt_prev = gnss.alt;
-
-	// assume failed first time through
-	if (_last_gps_fail_us == 0) {
-		_last_gps_fail_us = _time_delayed_us;
-	}
+	bool passed = true;
 
 	// if any user selected checks have failed, record the fail time
 	if (
@@ -103,16 +128,13 @@ bool Ekf::runGnssChecks(const gnssSample &gnss)
 		(_gps_check_fail_status.flags.vspeed  && isGnssCheckEnabled(GnssChecksMask::kVspd)) ||
 		(_gps_check_fail_status.flags.spoofed && isGnssCheckEnabled(GnssChecksMask::kSpoofed))
 	) {
-		_last_gps_fail_us = _time_delayed_us;
-		return false;
-
-	} else {
-		_last_gps_pass_us = _time_delayed_us;
-		return true;
+		passed = false;
 	}
+
+	return passed;
 }
 
-void Ekf::runOnGroundGnssChecks(const gnssSample &gnss)
+void GnssChecks::runOnGroundGnssChecks(const gnssSample &gnss)
 {
 	if (_control_status.flags.in_air) {
 		// These checks are always declared as passed when flying
@@ -187,7 +209,7 @@ void Ekf::runOnGroundGnssChecks(const gnssSample &gnss)
 	}
 }
 
-void Ekf::resetGpsDriftCheckFilters()
+void GnssChecks::resetGpsDriftCheckFilters()
 {
 	_gps_velNE_filt.setZero();
 	_gps_vel_d_filt = 0.f;
@@ -198,3 +220,4 @@ void Ekf::resetGpsDriftCheckFilters()
 	_gps_vertical_position_drift_rate_m_s = NAN;
 	_gps_filtered_horizontal_velocity_m_s = NAN;
 }
+}; // namespace estimator
