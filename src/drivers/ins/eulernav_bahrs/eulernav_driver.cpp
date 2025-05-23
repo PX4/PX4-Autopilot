@@ -438,7 +438,7 @@ void EulerNavDriver::handleNavigationDataMessage(const uint8_t* data)
 			const float yaw{CSerialProtocol::skfAngleScale_ * static_cast<float>(nav_data.uMagneticHeading_)};
 
 			const matrix::Quaternionf quat{matrix::Eulerf{roll, pitch, yaw}};
-			VehicleAttitude attitude{};
+			px4::msg::VehicleAttitude attitude{};
 
 			attitude.q[0] = quat(0);
 			attitude.q[1] = quat(1);
@@ -456,7 +456,7 @@ void EulerNavDriver::handleNavigationDataMessage(const uint8_t* data)
 		if (height_valid)
 		{
 			const float height{(CSerialProtocol::skfHeightScale_ * static_cast<float>(nav_data.uPressureHeight_)) - CSerialProtocol::skfHeighOffset_};
-			PressureData pressure{};
+			px4::msg::SensorBaro pressure{};
 
 			pressure.pressure = atmosphere::getPressureFromAltitude(height);
 
