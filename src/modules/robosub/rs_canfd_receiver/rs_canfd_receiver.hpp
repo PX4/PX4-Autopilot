@@ -45,8 +45,6 @@
 #include <nuttx/can.h>
 #include <sys/time.h>
 
-
-
 using namespace time_literals;
 
 extern "C" __EXPORT int rs_canfd_receiver_main(int argc, char *argv[]);
@@ -96,8 +94,6 @@ public:
 
 	char ctrlmsg[CMSG_SPACE(sizeof(struct timeval) + 3*sizeof(struct timespec) + sizeof(uint32_t))];
 	int nbytes;
-
-
 private:
 	// perf_counter_t	_loop_perf;
 
@@ -125,5 +121,4 @@ private:
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
 };

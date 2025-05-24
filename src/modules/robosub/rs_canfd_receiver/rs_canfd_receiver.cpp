@@ -39,9 +39,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <sys/ioctl.h>
 
-
-
-
 int RoboSubCANFDReceiver::print_status()
 {
         PX4_INFO("Running");
@@ -51,7 +48,6 @@ int RoboSubCANFDReceiver::print_status()
 
 int RoboSubCANFDReceiver::custom_command(int argc, char *argv[])
 {
-
 	if (!is_running()) {
 		print_usage("not running");
 		return 1;
@@ -91,29 +87,6 @@ int RoboSubCANFDReceiver::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-// int RoboSubCANFDReceiver::run_trampoline(int argc, char *argv[])
-// {
-// 	RoboSubCANFDReceiver *instance = get_instance();
-
-// 	if (instance) {
-// 		instance->run();
-// 		return 0;
-// 	}
-
-// 	return -1;
-// }
-
-
-// void RoboSubCANFDReceiver::exit_and_cleanup()
-// {
-// 	_should_exit = true;
-
-// 	// Wait for thread to exit
-// 	while (_task_id != -1) {
-// 		usleep(100000);
-// 	}
-// }
-
 RoboSubCANFDReceiver *RoboSubCANFDReceiver::instantiate(int argc, char *argv[])
 {
 
@@ -125,7 +98,6 @@ RoboSubCANFDReceiver *RoboSubCANFDReceiver::instantiate(int argc, char *argv[])
 
 	return instance;
 }
-
 
 RoboSubCANFDReceiver::RoboSubCANFDReceiver()
         : ModuleParams(nullptr)
@@ -252,10 +224,7 @@ void RoboSubCANFDReceiver::run()
 			PX4_ERR("Received error frame: ID=0x%lx, Length=%d", _recv_frame.can_id, _recv_frame.len);
 			continue;
 		}
-
-
 	}
-
 	// cleanup
 	close(s);
 	PX4_INFO("RoboSubCANFDReceiver thread exiting");
