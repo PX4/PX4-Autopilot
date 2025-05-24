@@ -147,7 +147,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/px4.pdat.in ${CMAKE_CURRENT_BINARY_DI
 # APPS
 
 # libapps.a
-file(GLOB_RECURSE nuttx_apps_files LIST_DIRECTORIES false
+file(GLOB_RECURSE nuttx_apps_files FOLLOW_SYMLINKS LIST_DIRECTORIES false
 	${APPS_DIR}/*.c
 	${APPS_DIR}/*.h
 )
