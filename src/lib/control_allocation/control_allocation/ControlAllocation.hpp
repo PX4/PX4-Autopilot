@@ -230,18 +230,19 @@ public:
 
 protected:
 	friend class ControlAllocator; // for _actuator_sp
+	friend class SpacecraftControlAllocator;
 
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness;  ///< Effectiveness matrix
 	matrix::Vector<float, NUM_AXES> _control_allocation_scale;  	///< Scaling applied during allocation
-	matrix::Vector<float, NUM_ACTUATORS> _actuator_trim; 	///< Neutral actuator values
-	matrix::Vector<float, NUM_ACTUATORS> _actuator_min; 	///< Minimum actuator values
-	matrix::Vector<float, NUM_ACTUATORS> _actuator_max; 	///< Maximum actuator values
-	matrix::Vector<float, NUM_ACTUATORS> _actuator_slew_rate_limit; 	///< Slew rate limit
+	matrix::Vector<float, NUM_ACTUATORS> _actuator_trim; 		///< Neutral actuator values
+	matrix::Vector<float, NUM_ACTUATORS> _actuator_min; 		///< Minimum actuator values
+	matrix::Vector<float, NUM_ACTUATORS> _actuator_max; 		///< Maximum actuator values
+	matrix::Vector<float, NUM_ACTUATORS> _actuator_slew_rate_limit; ///< Slew rate limit
 	matrix::Vector<float, NUM_ACTUATORS> _prev_actuator_sp;  	///< Previous actuator setpoint
-	matrix::Vector<float, NUM_ACTUATORS> _actuator_sp;  	///< Actuator setpoint
-	matrix::Vector<float, NUM_AXES> _control_sp;   		///< Control setpoint
-	matrix::Vector<float, NUM_AXES> _control_trim; 		///< Control at trim actuator values
+	matrix::Vector<float, NUM_ACTUATORS> _actuator_sp;  		///< Actuator setpoint
+	matrix::Vector<float, NUM_AXES> _control_sp;   			///< Control setpoint
+	matrix::Vector<float, NUM_AXES> _control_trim; 			///< Control at trim actuator values
 	int _num_actuators{0};
-	bool _normalize_rpy{false};				///< if true, normalize roll, pitch and yaw columns
+	bool _normalize_rpy{false};					///< if true, normalize roll, pitch and yaw columns
 	bool _had_actuator_failure{false};
 };
