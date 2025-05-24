@@ -124,7 +124,6 @@
 
 
 /* RC Serial port */
-#define RC_SERIAL_PORT          "/dev/ttyS4"
 #define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 /* SD Card */
