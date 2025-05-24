@@ -50,9 +50,7 @@
 using namespace time_literals;
 
 extern "C" __EXPORT int rs_canfd_receiver_main(int argc, char *argv[]);
-
-
-class RoboSubCANFDReceiver : public ModuleBase<RoboSubCANFDReceiver>, public ModuleParams, public px4::ScheduledWorkItem
+class RoboSubCANFDReceiver : public ModuleBase<RoboSubCANFDReceiver>, public ModuleParams
 {
 public:
 	__attribute__((optimize(0))) RoboSubCANFDReceiver();
@@ -63,15 +61,16 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	bool init();
-
-	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
+	/** @see ModuleBase */
+	static RoboSubCANFDReceiver *instantiate(int argc, char *argv[]);
 
+	/** @see ModuleBase::run() */
+	void __attribute__((optimize(0))) run();
 
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
@@ -79,14 +78,7 @@ public:
 	struct sockaddr_can addr;
 	struct ifreq ifr;
 
-	bool can_fd = 1;
-
 	uint32_t index = 0;
-
-
-	// struct msghdr msg;
-	// struct iovec iov;
-	// struct canfd_frame frame;
 
 	struct iovec       _send_iov {};
 	struct canfd_frame _send_frame {};
@@ -95,7 +87,7 @@ public:
 	struct timeval     *_send_tv {};  /* TX deadline timestamp */
 	uint8_t            _send_control[sizeof(struct cmsghdr) + sizeof(struct timeval)] {};
 
-	//// Receive msg structure
+	// Receive msg structure
 	struct iovec       _recv_iov {};
 	struct canfd_frame _recv_frame {};
 	struct msghdr      _recv_msg {};
@@ -107,12 +99,11 @@ public:
 
 
 private:
-	hrt_abstime _last_sent{0};
-	bool _first_message_sent{false};
 	// perf_counter_t	_loop_perf;
 
-	// /** @see ModuleBase::run() */
-	void __attribute__((optimize(0))) Run() override;
+	int s = 0;
+	const int on = 1;
+	const bool can_fd = 1;
 
 	/**
 	 * Check for parameter changes and update them if needed.
@@ -121,10 +112,11 @@ private:
 	 */
 	void parameters_update(bool force = false);
 
-	// uORB::Subscription _raw_can_fd{ORB_ID(raw_can_fd)};
-	// uORB::SubscriptionCallback _raw_can_fd{this, ORB_ID(raw_can_fd)};
-
-
+	/**
+	 * Setup the can socket
+	 * @return False if failed, True if succeded
+	 */
+	bool setup_can_socket();
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
@@ -133,6 +125,5 @@ private:
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	int s = 0;
 
 };
