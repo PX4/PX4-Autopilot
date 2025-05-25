@@ -52,8 +52,29 @@ typedef union _standard_version {
 #endif
 } standard_version_t;
 
+
+#ifdef CONFIG_ARCH_FAMILY_IMXRT106x
+
 /*!
- * @brief Interface for the ROM FLEXSPI NOR flash driver.
+ * @brief Interface for the IMXRT106X ROM FLEXSPI NOR flash driver.
+ */
+typedef struct {
+	uint32_t version;
+	status_t (*init)(uint32_t instance, flexspi_nor_config_t *config);
+	status_t (*page_program)(uint32_t instance, flexspi_nor_config_t *config, uint32_t dst_addr, const uint32_t *src);
+	status_t (*erase_all)(uint32_t instance, flexspi_nor_config_t *config);
+	status_t (*erase)(uint32_t instance, flexspi_nor_config_t *config, uint32_t start, uint32_t length);
+	status_t (*read)(uint32_t instance, flexspi_nor_config_t *config, uint32_t *dst, uint32_t start, uint32_t bytes);
+	void (*clear_cache)(uint32_t instance);
+	status_t (*xfer)(uint32_t instance, flexspi_xfer_t *xfer);
+	status_t (*update_lut)(uint32_t instance, uint32_t seqIndex, const uint32_t *lutBase, uint32_t numberOfSeq);
+	status_t (*get_config)(uint32_t instance, flexspi_nor_config_t *config,	serial_nor_config_option_t *option);
+} flexspi_nor_driver_interface_t;
+
+#elif defined(CONFIG_ARCH_FAMILY_IMXRT117x)
+
+/*!
+ * @brief Interface for the IMXRT117X ROM FLEXSPI NOR flash driver.
  */
 typedef struct {
 	uint32_t version;
@@ -73,6 +94,33 @@ typedef struct {
 	const uint32_t reserved1[2]; /*!< Reserved */
 } flexspi_nor_driver_interface_t;
 
+#endif
+
+
+#ifdef CONFIG_ARCH_FAMILY_IMXRT106x
+
+/*!
+* @brief Root of the bootloader api tree.
+*
+* An instance of this struct resides in read-only memory in the bootloader. It
+* provides a user application access to APIs exported by the bootloader.
+*
+* @note The order of existing fields must not be changed.
+*/
+typedef struct {
+	const uint32_t version; //!< Bootloader version	number
+	const char *copyright; //!< Bootloader Copyright
+	void (*runBootloader)(void *arg); //!< Function to start the bootloader executing
+	const uint32_t *reserved0; //!< Reserved
+	const flexspi_nor_driver_interface_t *flexSpiNorDriver; //!< FlexSPI NOR Flash API
+	const uint32_t *reserved1; //!< Reserved
+	const uint32_t *unused_rtwdogDriver;
+	const uint32_t *unused_wdogDriver;
+	const uint32_t *reserved2;
+} bootloader_api_entry_t;
+
+#elif defined(CONFIG_ARCH_FAMILY_IMXRT117x)
+
 /*!
  * @brief Root of the bootloader api tree.
  *
@@ -89,6 +137,8 @@ typedef struct {
 	const uint32_t reserved[8];                             /*!< Reserved */
 } bootloader_api_entry_t;
 
+#endif
+
 /*******************************************************************************
  * Variables
  ******************************************************************************/
@@ -104,6 +154,9 @@ static bootloader_api_entry_t *g_bootloaderTree = NULL;
 locate_code(".ramfunc")
 void ROM_API_Init(void)
 {
+#ifdef CONFIG_ARCH_FAMILY_IMXRT106x
+	g_bootloaderTree = ((bootloader_api_entry_t *) * (uint32_t *)0x0020001cU);
+#else
 
 	if ((getreg32(IMXRT_ANADIG_MISC_MISC_DIFPROG) & ANADIG_MISC_MISC_DIFPROG_CHIPID(0x10U)) != 0U) {
 		g_bootloaderTree = ((bootloader_api_entry_t *) * (uint32_t *)0x0021001cU);
@@ -111,6 +164,8 @@ void ROM_API_Init(void)
 	} else {
 		g_bootloaderTree = ((bootloader_api_entry_t *) * (uint32_t *)0x0020001cU);
 	}
+
+#endif
 }
 
 /*!
@@ -193,6 +248,8 @@ status_t ROM_FLEXSPI_NorFlash_Erase(uint32_t instance, flexspi_nor_config_t *con
 	return g_bootloaderTree->flexSpiNorDriver->erase(instance, config, start, length);
 }
 
+#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
+
 /*!
  * @brief Erase one sector specified by address.
  *
@@ -219,6 +276,8 @@ status_t ROM_FLEXSPI_NorFlash_EraseBlock(uint32_t instance, flexspi_nor_config_t
 	return g_bootloaderTree->flexSpiNorDriver->erase_block(instance, config, start);
 }
 
+#endif
+
 /*! @brief Erase all the Serial NOR devices connected on FLEXSPI. */
 locate_code(".ramfunc")
 status_t ROM_FLEXSPI_NorFlash_EraseAll(uint32_t instance, flexspi_nor_config_t *config)
@@ -242,6 +301,19 @@ status_t ROM_FLEXSPI_NorFlash_UpdateLut(uint32_t instance,
 	return g_bootloaderTree->flexSpiNorDriver->update_lut(instance, seqIndex, lutBase, seqNumber);
 }
 
+
+#ifdef CONFIG_ARCH_FAMILY_IMXRT106x
+
+/*! @brief Software reset for the FLEXSPI logic. */
+locate_code(".ramfunc")
+void ROM_FLEXSPI_NorFlash_ClearCache(uint32_t instance)
+{
+	g_bootloaderTree->flexSpiNorDriver->clear_cache(instance);
+}
+
+
+#elif defined(CONFIG_ARCH_FAMILY_IMXRT117x)
+
 /*! @brief Software reset for the FLEXSPI logic. */
 locate_code(".ramfunc")
 void ROM_FLEXSPI_NorFlash_ClearCache(uint32_t instance)
@@ -259,6 +331,9 @@ void ROM_FLEXSPI_NorFlash_ClearCache(uint32_t instance)
 	MISRA_CAST(clearCacheCommand_t, clearCacheCommand, uint32_t, clearCacheFunctionAddress);
 	(void)clearCacheCommand(instance);
 }
+#endif
+
+#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
 
 /*! @brief Wait until device is idle*/
 locate_code(".ramfunc")
@@ -269,3 +344,5 @@ status_t ROM_FLEXSPI_NorFlash_WaitBusy(uint32_t instance,
 {
 	return g_bootloaderTree->flexSpiNorDriver->wait_busy(instance, config, isParallelMode, address);
 }
+
+#endif

@@ -45,6 +45,12 @@
 
 #ifdef CONFIG_ARCH_FAMILY_IMXRT117x
 #include <hardware/rt117x/imxrt117x_snvs.h>
+#elif defined CONFIG_ARCH_FAMILY_IMXRT106x
+#  include <hardware/imxrt_snvs.h>
+#  define SNVS_LPCR_GPR_Z_DIS             (1 << 24)  /* Bit 24: General Purpose Registers Zeroization Disable */
+#endif
+
+#ifdef BOARD_HAS_ISP_BOOTLOADER
 #include <px4_arch/imxrt_flexspi_nor_flash.h>
 #include <px4_arch/imxrt_romapi.h>
 #endif
@@ -59,13 +65,9 @@
 
 static int board_reset_enter_bootloader()
 {
-#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
 	uint32_t regvalue = BOOT_RTC_SIGNATURE;
 	modifyreg32(IMXRT_SNVS_LPCR, 0, SNVS_LPCR_GPR_Z_DIS);
 	putreg32(regvalue, PX4_IMXRT_RTC_REBOOT_REG_ADDRESS);
-#elif defined(BOARD_HAS_TEENSY_BOOTLOADER)
-	asm("BKPT #251"); /* Enter Teensy MKL02 bootloader */
-#endif
 	return OK;
 }
 
@@ -75,15 +77,16 @@ int board_reset(int status)
 		board_reset_enter_bootloader();
 	}
 
-#if defined(BOARD_HAS_ISP_BOOTLOADER)
-
 	else if (status == REBOOT_TO_ISP) {
+#ifdef BOARD_HAS_TEENSY_BOOTLOADER
+		asm("BKPT #251"); /* Enter Teensy MKL02 bootloader */
+#elif defined(BOARD_HAS_ISP_BOOTLOADER)
 		uint32_t arg = 0xeb100000;
 		ROM_API_Init();
 		ROM_RunBootloader(&arg);
+#endif
 	}
 
-#endif
 
 #if defined(BOARD_HAS_ON_RESET)
 	board_on_reset(status);
