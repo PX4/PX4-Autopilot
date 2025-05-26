@@ -49,6 +49,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_rate_limiter.h"
@@ -136,8 +137,11 @@ private:
 
 	static bool		_transfer_in_progress;			///< Global variable checking for current transmission
 
-	uORB::Subscription	_mission_result_sub{ORB_ID(mission_result)};
 	uORB::SubscriptionData<mission_s> 	_mission_sub{ORB_ID(mission)};
+	uORB::SubscriptionData<mission_result_s> _mission_result_data{ORB_ID(mission_result)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+
+	vehicle_status_s _vehicle_status;
 
 	uORB::Publication<mission_s>	_offboard_mission_pub{ORB_ID(mission)};
 
@@ -165,6 +169,9 @@ private:
 
 	/** get the crc32 checksum for the current _mission_type */
 	uint32_t get_current_mission_type_crc();
+
+	/** fills mission_state according to MISSION_STATE MAVLink definitions */
+	uint8_t get_mission_state();
 
 	/* do not allow top copying this class */
 	MavlinkMissionManager(MavlinkMissionManager &);
