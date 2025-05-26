@@ -129,14 +129,4 @@
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
         },
-<<<<<<< HEAD
-=======
-        "ros.distro": "humble",
-        "python.autoComplete.extraPaths": [
-                "/opt/ros/foxy/lib/python3.8/site-packages"
-        ],
-        "python.analysis.extraPaths": [
-                "/opt/ros/foxy/lib/python3.8/site-packages"
-        ]
->>>>>>> 40b07c8cc2 (wip, working nsh and mtd status)
 }
