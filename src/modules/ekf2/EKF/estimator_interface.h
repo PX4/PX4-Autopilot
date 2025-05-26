@@ -247,6 +247,7 @@ public:
 	int getNumberOfActiveVerticalVelocityAidingSources() const;
 
 	const matrix::Quatf &getQuaternion() const { return _output_predictor.getQuaternion(); }
+	Vector3f getAngularVelocityAndResetAccumulator() { return _output_predictor.getAngularVelocityAndResetAccumulator(); }
 	float getUnaidedYaw() const { return _output_predictor.getUnaidedYaw(); }
 	Vector3f getVelocity() const { return _output_predictor.getVelocity(); }
 
