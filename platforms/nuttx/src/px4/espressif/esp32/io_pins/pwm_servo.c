@@ -124,46 +124,44 @@ uint32_t prescaler = 0;
 uint32_t shift = 0;
 uint32_t timer_rate = 0;
 
-void get_optimal_timer_setup(uint32_t desired_freq){
+void get_optimal_timer_setup(uint32_t desired_freq)
+{
 
 	uint32_t shifted = 1;
 	timer_rate = desired_freq;
 	reload = (20480000000 / desired_freq + LEDC_CLKDIV_MAX) / LEDC_CLKDIV_MAX;
 
-  	if (reload == 0)
-    	{
-      		reload = 1;
-    	}
-  	else if (reload > LEDC_RELOAD_MAX)
-    	{
-      		reload = LEDC_RELOAD_MAX;
-    	}
+	if (reload == 0) {
+		reload = 1;
 
-  	for (uint32_t c = 2; c <= LEDC_RELOAD_MAX; c *= 2)
-    	{
-      		if (c * 2 > reload)
-        	{
-          		reload = c;
-          	break;
-        	}
+	} else if (reload > LEDC_RELOAD_MAX) {
+		reload = LEDC_RELOAD_MAX;
+	}
 
-      		shifted++;
-    	}
+	for (uint32_t c = 2; c <= LEDC_RELOAD_MAX; c *= 2) {
+		if (c * 2 > reload) {
+			reload = c;
+			break;
+		}
+
+		shifted++;
+	}
+
 	shift = shifted;
 	prescaler = (20480000000 / reload) / desired_freq;
 }
 
 int up_pwm_servo_set(unsigned channel, uint16_t value)
 {
-	uint32_t duty = (value*timer_rate)*0.065535;
+	uint32_t duty = (value * timer_rate) * 0.065535;
 	uint32_t regval = b16toi(duty * reload + b16HALF);
 
-  	irqstate_t flags;
+	irqstate_t flags;
 
 	flags = px4_enter_critical_section();
-  	SET_CHAN_REG(channel, LEDC_LSCH0_DUTY_REG, regval << 4);
-  	SET_CHAN_BITS(channel, LEDC_LSCH0_CONF0_REG, LEDC_PARA_UP_LSCH0);
-  	px4_leave_critical_section(flags);
+	SET_CHAN_REG(channel, LEDC_LSCH0_DUTY_REG, regval << 4);
+	SET_CHAN_BITS(channel, LEDC_LSCH0_CONF0_REG, LEDC_PARA_UP_LSCH0);
+	px4_leave_critical_section(flags);
 
 	return OK;
 }
@@ -176,9 +174,9 @@ uint16_t up_pwm_servo_get(unsigned channel)
 int up_pwm_servo_init(uint32_t channel_mask)
 {
 	// pause the timer
-  	SET_TIMER_BITS(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, LEDC_LSTIMER0_PAUSE);
+	SET_TIMER_BITS(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, LEDC_LSTIMER0_PAUSE);
 	// reset the timer
-  	SET_TIMER_BITS(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, LEDC_LSTIMER0_RST);
+	SET_TIMER_BITS(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, LEDC_LSTIMER0_RST);
 
 	// We are going to use REF_Tick as our source, which is set at 1Mhz.
 	// our prescaler is thus 0
@@ -187,22 +185,22 @@ int up_pwm_servo_init(uint32_t channel_mask)
 	shift = 0;
 	get_optimal_timer_setup(400);
 
-  	flags = px4_enter_critical_section();
+	flags = px4_enter_critical_section();
 
 	setbits(DPORT_LEDC_CLK_EN, DPORT_PERIP_CLK_EN_REG);
-      	resetbits(DPORT_LEDC_RST, DPORT_PERIP_RST_EN_REG);
-      	putreg32(LEDC_CLK_RES, LEDC_CONF_REG);
+	resetbits(DPORT_LEDC_RST, DPORT_PERIP_RST_EN_REG);
+	putreg32(LEDC_CLK_RES, LEDC_CONF_REG);
 
-  	uint32_t regval = (shift << LEDC_LSTIMER0_DUTY_RES_S) | (prescaler << LEDC_DIV_NUM_LSTIMER0_S);
-  	SET_TIMER_REG(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, regval);
+	uint32_t regval = (shift << LEDC_LSTIMER0_DUTY_RES_S) | (prescaler << LEDC_DIV_NUM_LSTIMER0_S);
+	SET_TIMER_REG(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, regval);
 
-  	/* Setup to timer to use APB clock (80MHz) */
-  	SET_TIMER_BITS(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, LEDC_TICK_SEL_LSTIMER0);
+	/* Setup to timer to use APB clock (80MHz) */
+	SET_TIMER_BITS(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, LEDC_TICK_SEL_LSTIMER0);
 
-  	/* Update clock divide and reload to hardware */
-  	SET_TIMER_BITS(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, LEDC_LSTIMER0_PARA_UP);
+	/* Update clock divide and reload to hardware */
+	SET_TIMER_BITS(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, LEDC_LSTIMER0_PARA_UP);
 
-  	px4_leave_critical_section(flags);
+	px4_leave_critical_section(flags);
 
 	return channel_mask;
 }
@@ -215,29 +213,29 @@ void up_pwm_servo_deinit(uint32_t channel_mask)
 
 int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 {
-	if(group == 0 || group == 1 || group == 2 || group == 3)
-	{
+	if (group == 0 || group == 1 || group == 2 || group == 3) {
 		irqstate_t flags;
 		shift = 0;
 		prescaler = 0;
 		get_optimal_timer_setup(rate);
 
-  		flags = px4_enter_critical_section();
+		flags = px4_enter_critical_section();
 
-  		uint32_t regval = (shift << LEDC_LSTIMER0_DUTY_RES_S) | (prescaler << LEDC_DIV_NUM_LSTIMER0_S);
-  		SET_TIMER_REG(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, regval);
+		uint32_t regval = (shift << LEDC_LSTIMER0_DUTY_RES_S) | (prescaler << LEDC_DIV_NUM_LSTIMER0_S);
+		SET_TIMER_REG(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, regval);
 
-  		/* Setup to timer to use APB clock (80MHz) */
-  		SET_TIMER_BITS(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, LEDC_TICK_SEL_LSTIMER0);
+		/* Setup to timer to use APB clock (80MHz) */
+		SET_TIMER_BITS(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, LEDC_TICK_SEL_LSTIMER0);
 
-  		/* Update clock divide and reload to hardware */
-  		SET_TIMER_BITS(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, LEDC_LSTIMER0_PARA_UP);
+		/* Update clock divide and reload to hardware */
+		SET_TIMER_BITS(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, LEDC_LSTIMER0_PARA_UP);
 
-  		px4_leave_critical_section(flags);
+		px4_leave_critical_section(flags);
 
 		return OK;
 
 	}
+
 	return ERROR;
 }
 
@@ -250,29 +248,29 @@ void up_pwm_update(unsigned channels_mask)
 uint32_t up_pwm_servo_get_rate_group(unsigned group)
 {
 
-	if(group == 0){
-		#if defined(CONFIG_ESP32_LEDC_TIM0_CHANNELS)
-			return (1 << CONFIG_ESP32_LEDC_TIM0_CHANNELS) - 1;
-		#endif
+	if (group == 0) {
+#if defined(CONFIG_ESP32_LEDC_TIM0_CHANNELS)
+		return (1 << CONFIG_ESP32_LEDC_TIM0_CHANNELS) - 1;
+#endif
 		return -1;
-	}
-	else if(group == 1){
 
-		#if defined(CONFIG_ESP32_LEDC_TIM1_CHANNELS)
-			return ( 1 << CONFIG_ESP32_LEDC_TIM1_CHANNELS) -1;
-		#endif
+	} else if (group == 1) {
+
+#if defined(CONFIG_ESP32_LEDC_TIM1_CHANNELS)
+		return (1 << CONFIG_ESP32_LEDC_TIM1_CHANNELS) - 1;
+#endif
 		return -1;
-	}
-	else if(group == 2){
-		#if defined(CONFIG_ESP32_LEDC_TIM2_CHANNELS)
-			return (1 << CONFIG_ESP32_LEDC_TIM2_CHANNELS) - -1;
-		#endif
+
+	} else if (group == 2) {
+#if defined(CONFIG_ESP32_LEDC_TIM2_CHANNELS)
+		return (1 << CONFIG_ESP32_LEDC_TIM2_CHANNELS) - -1;
+#endif
 		return -1;
-	}
-	else if(group == 3){
-		#if defined(CONFIG_ESP32_LEDC_TIM3_CHANNELS)
-			return (1 << CONFIG_ESP32_LEDC_TIM3_CHANNELS) -1;
-		#endif
+
+	} else if (group == 3) {
+#if defined(CONFIG_ESP32_LEDC_TIM3_CHANNELS)
+		return (1 << CONFIG_ESP32_LEDC_TIM3_CHANNELS) - 1;
+#endif
 		return -1;
 	}
 
@@ -282,43 +280,42 @@ uint32_t up_pwm_servo_get_rate_group(unsigned group)
 void
 up_pwm_servo_arm(bool armed, uint32_t channel_mask)
 {
-	if(armed)
-	{
-		for(uint8_t chan = 0; chan < 4; chan++){
+	if (armed) {
+		for (uint8_t chan = 0; chan < 4; chan++) {
 
 			irqstate_t flags;
-  			flags = px4_enter_critical_section();
+			flags = px4_enter_critical_section();
 
-  			/* Reset config 0 & 1 registers */
-  			SET_CHAN_REG(chan, LEDC_LSCH0_CONF0_REG, 0);
-  			SET_CHAN_REG(chan, LEDC_LSCH0_CONF1_REG, 0);
+			/* Reset config 0 & 1 registers */
+			SET_CHAN_REG(chan, LEDC_LSCH0_CONF0_REG, 0);
+			SET_CHAN_REG(chan, LEDC_LSCH0_CONF1_REG, 0);
 
-  			/* Set pulse phase 0 */
-  			SET_CHAN_REG(chan, LEDC_LSCH0_HPOINT_REG, 0);
+			/* Set pulse phase 0 */
+			SET_CHAN_REG(chan, LEDC_LSCH0_HPOINT_REG, 0);
 
-  			/* Start GPIO output  */
-  			SET_CHAN_BITS(chan, LEDC_LSCH0_CONF0_REG, LEDC_SIG_OUT_EN_LSCH0);
+			/* Start GPIO output  */
+			SET_CHAN_BITS(chan, LEDC_LSCH0_CONF0_REG, LEDC_SIG_OUT_EN_LSCH0);
 
-  			/* Start Duty counter  */
-  			SET_CHAN_BITS(chan, LEDC_LSCH0_CONF1_REG, LEDC_DUTY_START_LSCH0);
+			/* Start Duty counter  */
+			SET_CHAN_BITS(chan, LEDC_LSCH0_CONF1_REG, LEDC_DUTY_START_LSCH0);
 
-  			/* Update duty and phase to hardware */
-  			SET_CHAN_BITS(chan, LEDC_LSCH0_CONF0_REG, LEDC_PARA_UP_LSCH0);
+			/* Update duty and phase to hardware */
+			SET_CHAN_BITS(chan, LEDC_LSCH0_CONF0_REG, LEDC_PARA_UP_LSCH0);
 
-  			px4_leave_critical_section(flags);
+			px4_leave_critical_section(flags);
 		}
-	}else
-	{
+
+	} else {
 		irqstate_t flags;
 
-  		flags = px4_enter_critical_section();
+		flags = px4_enter_critical_section();
 
-  		/* Stop timer */
-  		SET_TIMER_BITS(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, LEDC_LSTIMER0_PAUSE);
+		/* Stop timer */
+		SET_TIMER_BITS(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, LEDC_LSTIMER0_PAUSE);
 
-  		/* Reset timer */
-  		SET_TIMER_BITS(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, LEDC_LSTIMER0_RST);
+		/* Reset timer */
+		SET_TIMER_BITS(io_timers[0].base, LEDC_LSTIMER0_CONF_REG, LEDC_LSTIMER0_RST);
 
-  		px4_leave_critical_section(flags);
+		px4_leave_critical_section(flags);
 	}
 }

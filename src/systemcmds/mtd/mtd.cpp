@@ -212,7 +212,9 @@ int mtd_readtest(const mtd_instance_s &instance)
 			PX4_ERR("Failed to open partition");
 			return 1;
 		}
+
 		printf("read");
+
 		while (read(fd, v, sizeof(v)) == sizeof(v)) {
 			count += sizeof(v);
 			printf("c %d \n", count);

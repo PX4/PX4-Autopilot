@@ -61,31 +61,32 @@
 
 int board_wlan_init(void)
 {
-  int ret = OK;
+	int ret = OK;
 
 
 #ifdef ESP32_WLAN_HAS_STA
-  // ret = esp32_wlan_sta_initialize();
-  // if (ret)
-  //   {
-  //     printf("ERROR: Failed to initialize Wi-Fi station\n");
-  //     return ret;
-  //   }
+	// ret = esp32_wlan_sta_initialize();
+	// if (ret)
+	//   {
+	//     printf("ERROR: Failed to initialize Wi-Fi station\n");
+	//     return ret;
+	//   }
 #endif
 
 
 #ifdef ESP32_WLAN_HAS_SOFTAP
-  ret = esp32_wlan_softap_initialize();
-  if (ret)
-    {
-      wlerr("ERROR: Failed to initialize Wi-Fi softAP\n");
-      return ret;
-    }
+	ret = esp32_wlan_softap_initialize();
+
+	if (ret) {
+		wlerr("ERROR: Failed to initialize Wi-Fi softAP\n");
+		return ret;
+	}
+
 #endif
 
-  // netlib_ifup("wlan1");
-  // dhcpd_start("wlan1");
+	// netlib_ifup("wlan1");
+	// dhcpd_start("wlan1");
 
-  return ret;
+	return ret;
 }
 

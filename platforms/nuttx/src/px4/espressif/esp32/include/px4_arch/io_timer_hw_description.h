@@ -59,48 +59,51 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 	bool multiple_timers_configure = false;
 	bool timer_configured = false;
 
-	#if defined(CONFIG_ESP32_LEDC_TIM0_CHANNELS)
-		multiple_timers_configure = timer_configured;
-		timer_configured = true;
-	#endif
-	#if defined(CONFIG_ESP32_LEDC_TIM1_CHANNELS)
-		multiple_timers_configure = timer_configured;
-		timer_configured = true;
+#if defined(CONFIG_ESP32_LEDC_TIM0_CHANNELS)
+	multiple_timers_configure = timer_configured;
+	timer_configured = true;
+#endif
+#if defined(CONFIG_ESP32_LEDC_TIM1_CHANNELS)
+	multiple_timers_configure = timer_configured;
+	timer_configured = true;
 
-	#endif
-	#if defined(CONFIG_ESP32_LEDC_TIM2_CHANNELS)
-		multiple_timers_configure = timer_configured;
-		timer_configured = true;
-	#endif
-	#if defined(CONFIG_ESP32_LEDC_TIM3_CHANNELS)
-		multiple_timers_configure = timer_configured;
-		timer_configured = true;
-	#endif
+#endif
+#if defined(CONFIG_ESP32_LEDC_TIM2_CHANNELS)
+	multiple_timers_configure = timer_configured;
+	timer_configured = true;
+#endif
+#if defined(CONFIG_ESP32_LEDC_TIM3_CHANNELS)
+	multiple_timers_configure = timer_configured;
+	timer_configured = true;
+#endif
 
 	int channel = timer.channel;
 
-	switch (channel)
-	{
+	switch (channel) {
 	case 0:
-		#if defined(CONFIG_ESP32_LEDC_CHANNEL0_PIN)
-			nuttx_incorrect_mapping = pin.pin == CONFIG_ESP32_LEDC_CHANNEL0_PIN;
-		#endif
+#if defined(CONFIG_ESP32_LEDC_CHANNEL0_PIN)
+		nuttx_incorrect_mapping = pin.pin == CONFIG_ESP32_LEDC_CHANNEL0_PIN;
+#endif
 		break;
+
 	case 1:
-		#if defined(CONFIG_ESP32_LEDC_CHANNEL1_PIN)
-			nuttx_incorrect_mapping = pin.pin == CONFIG_ESP32_LEDC_CHANNEL1_PIN;
-		#endif
+#if defined(CONFIG_ESP32_LEDC_CHANNEL1_PIN)
+		nuttx_incorrect_mapping = pin.pin == CONFIG_ESP32_LEDC_CHANNEL1_PIN;
+#endif
 		break;
+
 	case 2:
-		#if defined(CONFIG_ESP32_LEDC_CHANNEL2_PIN)
-			nuttx_incorrect_mapping = pin.pin == CONFIG_ESP32_LEDC_CHANNEL2_PIN;
-		#endif
+#if defined(CONFIG_ESP32_LEDC_CHANNEL2_PIN)
+		nuttx_incorrect_mapping = pin.pin == CONFIG_ESP32_LEDC_CHANNEL2_PIN;
+#endif
 		break;
+
 	case 3:
-		#if defined(CONFIG_ESP32_LEDC_CHANNEL3_PIN)
-			nuttx_incorrect_mapping = pin.pin == CONFIG_ESP32_LEDC_CHANNEL3_PIN;
-		#endif
+#if defined(CONFIG_ESP32_LEDC_CHANNEL3_PIN)
+		nuttx_incorrect_mapping = pin.pin == CONFIG_ESP32_LEDC_CHANNEL3_PIN;
+#endif
 		break;
+
 	default:
 		break;
 	}
@@ -141,12 +144,14 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer)
 		nuttx_config_timer_enabled = true;
 #endif
 		break;
+
 	case Timer::Timer2: // refers to MCPWM peripheral 2
 		ret.base = 2;
 #if defined(CONFIG_ESP32_LEDC_TIM2)
 		nuttx_config_timer_enabled = true;
 #endif
 		break;
+
 	case Timer::Timer3: // refers to MCPWM peripheral 2
 		ret.base = 4;
 #if defined(CONFIG_ESP32_LEDC_TIM3)
@@ -157,7 +162,8 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer)
 	default: break;
 	}
 
-	constexpr_assert(nuttx_config_timer_enabled, "IO Timer requires NuttX timer config to be Enabled (CONFIG_ESP32_LEDC_TIMx)");
+	constexpr_assert(nuttx_config_timer_enabled,
+			 "IO Timer requires NuttX timer config to be Enabled (CONFIG_ESP32_LEDC_TIMx)");
 
 
 	return ret;

@@ -74,9 +74,9 @@
 
 int board_reset(int status)
 {
-  up_systemreset();
+	up_systemreset();
 
-  return 0;
+	return 0;
 }
 #endif /* CONFIG_BOARDCTL_RESET */
 

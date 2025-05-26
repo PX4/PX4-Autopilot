@@ -87,30 +87,29 @@ int esp32_partition_init(void);
 
 static int init_ota_partitions(void)
 {
-  struct mtd_dev_s *mtd;
-  char blockdev[18];
-  int ret = OK;
+	struct mtd_dev_s *mtd;
+	char blockdev[18];
+	int ret = OK;
 
-    mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_STORAGE_MTD_OFFSET, CONFIG_ESP32_STORAGE_MTD_SIZE, false);
+	mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_STORAGE_MTD_OFFSET, CONFIG_ESP32_STORAGE_MTD_SIZE, false);
 
-    ret = ftl_initialize(0, mtd);
+	ret = ftl_initialize(0, mtd);
 
-    if (ret < 0)
-      {
-        PX4_INFO("ERROR: Failed to initialize the FTL layer: %d\n", ret);
-        return ret;
-      }
+	if (ret < 0) {
+		PX4_INFO("ERROR: Failed to initialize the FTL layer: %d\n", ret);
+		return ret;
+	}
 
-      snprintf(blockdev, sizeof(blockdev), "/dev/mtdblock%d", 0);
+	snprintf(blockdev, sizeof(blockdev), "/dev/mtdblock%d", 0);
 
-      ret = bchdev_register(blockdev, "/fs/mtd_params", false);
-      if (ret < 0)
-        {
-          PX4_INFO("ERROR: bchdev_register %s failed: %d\n", "/fs/mtd_params", ret);
-          return ret;
-        }
+	ret = bchdev_register(blockdev, "/fs/mtd_params", false);
 
-  return ret;
+	if (ret < 0) {
+		PX4_INFO("ERROR: bchdev_register %s failed: %d\n", "/fs/mtd_params", ret);
+		return ret;
+	}
+
+	return ret;
 }
 
 /****************************************************************************
@@ -149,32 +148,32 @@ static int init_ota_partitions(void)
  ****************************************************************************/
 
 static int setup_littlefs(const char *path, struct mtd_dev_s *mtd,
-                          const char *mnt_pt, int priv)
+			  const char *mnt_pt, int priv)
 {
-  int ret = OK;
+	int ret = OK;
 
-  ret = register_mtddriver(path, mtd, priv, NULL);
-  if (ret < 0)
-    {
-      PX4_INFO("ERROR: Failed to register MTD: %d\n", ret);
-      return -ENOMEM;
-    }
+	ret = register_mtddriver(path, mtd, priv, NULL);
 
-  // if (mnt_pt != NULL)
-  //   {
-  //     ret = nx_mount(path, "/mnt/lfs", "littlefs", 0, "");
-  //     if (ret < 0)
-  //       {
-  //         ret = nx_mount(path, "/fs/lfs", "littlefs", 0, "forceformat");
-  //         if (ret < 0)
-  //           {
-  //             PX4_INFO("ERROR: Failed to mount the FS volume: %d\n", ret);
-  //             return ret;
-  //           }
-  //       }
-  //   }
+	if (ret < 0) {
+		PX4_INFO("ERROR: Failed to register MTD: %d\n", ret);
+		return -ENOMEM;
+	}
 
-  return OK;
+	// if (mnt_pt != NULL)
+	//   {
+	//     ret = nx_mount(path, "/mnt/lfs", "littlefs", 0, "");
+	//     if (ret < 0)
+	//       {
+	//         ret = nx_mount(path, "/fs/lfs", "littlefs", 0, "forceformat");
+	//         if (ret < 0)
+	//           {
+	//             PX4_INFO("ERROR: Failed to mount the FS volume: %d\n", ret);
+	//             return ret;
+	//           }
+	//       }
+	//   }
+
+	return OK;
 }
 
 /****************************************************************************
@@ -195,28 +194,27 @@ static int setup_littlefs(const char *path, struct mtd_dev_s *mtd,
  ****************************************************************************/
 
 static int setup_spiffs(const char *path, struct mtd_dev_s *mtd,
-                        const char *mnt_pt, int priv)
+			const char *mnt_pt, int priv)
 {
-  int ret = OK;
+	int ret = OK;
 
-  ret = register_mtddriver(path, mtd, priv, NULL);
-  if (ret < 0)
-    {
-      ferr("ERROR: Failed to register MTD: %d\n", ret);
-      return -ENOMEM;
-    }
+	ret = register_mtddriver(path, mtd, priv, NULL);
 
-  if (mnt_pt != NULL)
-    {
-      ret = nx_mount(path, mnt_pt, "spiffs", 0, NULL);
-      if (ret < 0)
-        {
-          ferr("ERROR: Failed to mount the FS volume: %d\n", ret);
-          return ret;
-        }
-    }
+	if (ret < 0) {
+		ferr("ERROR: Failed to register MTD: %d\n", ret);
+		return -ENOMEM;
+	}
 
-  return ret;
+	if (mnt_pt != NULL) {
+		ret = nx_mount(path, mnt_pt, "spiffs", 0, NULL);
+
+		if (ret < 0) {
+			ferr("ERROR: Failed to mount the FS volume: %d\n", ret);
+			return ret;
+		}
+	}
+
+	return ret;
 }
 
 /****************************************************************************
@@ -237,26 +235,25 @@ static int setup_spiffs(const char *path, struct mtd_dev_s *mtd,
 #ifdef CONFIG_ESP32_SPIFLASH_NXFFS
 static int setup_nxffs(struct mtd_dev_s *mtd, const char *mnt_pt)
 {
-  int ret = OK;
+	int ret = OK;
 
-  ret = nxffs_initialize(mtd);
-  if (ret < 0)
-    {
-      ferr("ERROR: NXFFS init failed: %d\n", ret);
-      return ret;
-    }
+	ret = nxffs_initialize(mtd);
 
-  if (mnt_pt != NULL)
-    {
-      ret = nx_mount(NULL, mnt_pt, "nxffs", 0, NULL);
-      if (ret < 0)
-        {
-          ferr("ERROR: Failed to mount the FS volume: %d\n", ret);
-          return ret;
-        }
-    }
+	if (ret < 0) {
+		ferr("ERROR: NXFFS init failed: %d\n", ret);
+		return ret;
+	}
 
-  return ret;
+	if (mnt_pt != NULL) {
+		ret = nx_mount(NULL, mnt_pt, "nxffs", 0, NULL);
+
+		if (ret < 0) {
+			ferr("ERROR: Failed to mount the FS volume: %d\n", ret);
+			return ret;
+		}
+	}
+
+	return ret;
 }
 #endif
 
@@ -274,37 +271,37 @@ static int setup_nxffs(struct mtd_dev_s *mtd, const char *mnt_pt)
 
 static int init_storage_partition(void)
 {
-  int ret = OK;
-  struct mtd_dev_s *mtd;
+	int ret = OK;
+	struct mtd_dev_s *mtd;
 
 
-  mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_STORAGE_MTD_OFFSET,
-                                     CONFIG_ESP32_STORAGE_MTD_SIZE,
-                                     STORAGE_ENCRYPT);
-  if (!mtd)
-    {
-      PX4_INFO("ERROR: Failed to alloc MTD partition of SPI Flash\n");
-      return -ENOMEM;
-    }
+	mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_STORAGE_MTD_OFFSET,
+					   CONFIG_ESP32_STORAGE_MTD_SIZE,
+					   STORAGE_ENCRYPT);
 
-  const char *path = "/dev/esp32flash";
-  ret = setup_littlefs(path, mtd, "/mnt/esp32", 0755);
-  if (ret < 0)
-    {
-      PX4_INFO("ERROR: Failed to setup littlefs\n");
-      return ret;
-    }
+	if (!mtd) {
+		PX4_INFO("ERROR: Failed to alloc MTD partition of SPI Flash\n");
+		return -ENOMEM;
+	}
 
-  // const char *path = "/dev/esp32flash";
-  // ret = setup_spiffs(path, mtd, "/mnt/spiffs/", 0755);
-  // if (ret < 0)
-  //   {
-  //     ferr("ERROR: Failed to setup spiffs\n");
-  //     return ret;
-  //   }
+	const char *path = "/dev/esp32flash";
+	ret = setup_littlefs(path, mtd, "/mnt/esp32", 0755);
+
+	if (ret < 0) {
+		PX4_INFO("ERROR: Failed to setup littlefs\n");
+		return ret;
+	}
+
+	// const char *path = "/dev/esp32flash";
+	// ret = setup_spiffs(path, mtd, "/mnt/spiffs/", 0755);
+	// if (ret < 0)
+	//   {
+	//     ferr("ERROR: Failed to setup spiffs\n");
+	//     return ret;
+	//   }
 
 
-  return ret;
+	return ret;
 }
 
 /****************************************************************************
@@ -328,29 +325,29 @@ static int init_storage_partition(void)
 
 int esp32_spiflash_init(void)
 {
-  int ret = OK;
+	int ret = OK;
 
-  ret = init_ota_partitions();
-  PX4_INFO("ret = %d = init_ota_paritions()\n", ret);
-  if (ret < 0)
-    {
-      return ret;
-    }
+	ret = init_ota_partitions();
+	PX4_INFO("ret = %d = init_ota_paritions()\n", ret);
 
-  // ret = esp32_partition_init();
-  // if (ret < 0)
-  //   {
-  //     syslog(LOG_ERR, "ERROR: Failed to initialize partition error=%d\n",
-  //            ret);
-  //   }
+	if (ret < 0) {
+		return ret;
+	}
+
+	// ret = esp32_partition_init();
+	// if (ret < 0)
+	//   {
+	//     syslog(LOG_ERR, "ERROR: Failed to initialize partition error=%d\n",
+	//            ret);
+	//   }
 //
-  // ret = init_storage_partition();
-  // PX4_INFO("ret = %d = init_storage_paritions()\n", ret);
+	// ret = init_storage_partition();
+	// PX4_INFO("ret = %d = init_storage_paritions()\n", ret);
 
-  // if (ret < 0)
-  //   {
-  //     return ret;
-  //   }
+	// if (ret < 0)
+	//   {
+	//     return ret;
+	//   }
 
-  return ret;
+	return ret;
 }

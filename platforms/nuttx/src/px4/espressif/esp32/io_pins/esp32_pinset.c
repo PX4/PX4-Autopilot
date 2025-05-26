@@ -13,7 +13,8 @@ int px4_esp32_configgpio(uint32_t pinset)
 	if ((pinset & GPIO_NUM_MASK) >= ESP32_NGPIOS) {
 		return -EINVAL;
 	}
-	return esp32_configgpio((int)(pinset & GPIO_NUM_MASK),(uint16_t)(pinset >> GPIO_SET_SHIFT));
+
+	return esp32_configgpio((int)(pinset & GPIO_NUM_MASK), (uint16_t)(pinset >> GPIO_SET_SHIFT));
 }
 
 int px4_esp32_unconfiggpio(uint32_t pinset)
@@ -41,31 +42,33 @@ int px4_esp32_unconfiggpio(uint32_t pinset)
  *
  ****************************************************************************/
 int esp32_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
-                       bool event, xcpt_t func, void *arg)
+		       bool event, xcpt_t func, void *arg)
 {
 	uint32_t pin = pinset & GPIO_NUM_MASK;
 	int irq = ESP32_PIN2IRQ(pin);
 
-	if(event == true)
-	{
+	if (event == true) {
 		int ret = irq_attach(irq, func, arg);
-		if (ret < 0)
-		{
-		syslog(LOG_ERR, "ERROR: irq_attach() failed: %d\n", ret);
-		return ret;
+
+		if (ret < 0) {
+			syslog(LOG_ERR, "ERROR: irq_attach() failed: %d\n", ret);
+			return ret;
 		}
 
-		if(risingedge == true && fallingedge == true)
+		if (risingedge == true && fallingedge == true) {
 			esp32_gpioirqenable(irq, CHANGE);
-		else if(risingedge == true && fallingedge == false)
+
+		} else if (risingedge == true && fallingedge == false) {
 			esp32_gpioirqenable(irq, RISING);
-		else if(risingedge == false && fallingedge == true)
+
+		} else if (risingedge == false && fallingedge == true) {
 			esp32_gpioirqenable(irq, FALLING);
-	}
-	else{
+		}
+
+	} else {
 		esp32_gpioirqdisable(irq);
 	}
 
 	//syslog(LOG_INFO, "esp32_gpiosetevent: %d\n", ret);
-  	return OK;
+	return OK;
 }

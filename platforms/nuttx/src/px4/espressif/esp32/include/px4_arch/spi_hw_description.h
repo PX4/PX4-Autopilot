@@ -44,17 +44,18 @@
 static inline constexpr px4_spi_bus_device_t initSPIDevice(uint32_t devid, SPI::CS cs_gpio, SPI::DRDY drdy_gpio = {})
 {
 	px4_spi_bus_device_t ret{};
-	if(cs_gpio.pin == -1)
-	{
+
+	if (cs_gpio.pin == -1) {
 		ret.cs_gpio = 0;
-	}else{
+
+	} else {
 		ret.cs_gpio = (cs_gpio.pin | GPIO_PULLUP | GPIO_OUTPUT);
 	}
 
-	if(drdy_gpio.pin == -1)
-	{
+	if (drdy_gpio.pin == -1) {
 		ret.drdy_gpio = 0;
-	}else{
+
+	} else {
 		ret.drdy_gpio = (drdy_gpio.pin | GPIO_INPUT);
 	}
 
@@ -102,10 +103,10 @@ static inline constexpr px4_spi_bus_t initSPIBus(SPI::Bus bus, const px4_spi_bus
 	ret.bus = (int)bus;
 	ret.is_external = false;
 
-	if(power_enable.pin == -1)
-	{
+	if (power_enable.pin == -1) {
 		ret.power_enable_gpio = 0;
-	}else{
+
+	} else {
 		ret.power_enable_gpio = (power_enable.pin | GPIO_OUTPUT | GPIO_PULLUP);
 	}
 
@@ -204,7 +205,7 @@ constexpr bool validateSPIConfig(const px4_spi_bus_t spi_busses_conf[SPI_BUS_MAX
 		bool found_bus = false;
 
 		for (int j = 0; j < SPI_BUS_MAX_BUS_ITEMS; ++j) {
-			if (spi_busses_conf[j].bus == (int)i+1) {
+			if (spi_busses_conf[j].bus == (int)i + 1) {
 				found_bus = true;
 			}
 		}

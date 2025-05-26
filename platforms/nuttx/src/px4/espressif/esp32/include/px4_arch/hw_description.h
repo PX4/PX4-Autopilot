@@ -75,8 +75,11 @@ static inline constexpr uint32_t timerBaseRegister(Timer::Timer timer)
 {
 	switch (timer) {
 	case Timer::Timer0: return DR_REG_PWM_BASE + 0x04;
+
 	case Timer::Timer1: return DR_REG_PWM1_BASE + 0x04;
+
 	case Timer::Timer2: return DR_REG_PWM1_BASE + 0x04;
+
 	case Timer::Timer3: return DR_REG_PWM1_BASE + 0x04;
 	}
 

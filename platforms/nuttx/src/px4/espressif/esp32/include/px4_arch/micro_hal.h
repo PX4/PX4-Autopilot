@@ -95,7 +95,7 @@ __BEGIN_DECLS
 
 int px4_esp32_configgpio(uint32_t pinset);
 int px4_esp32_unconfiggpio(uint32_t pinset);
-int esp32_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,bool event, xcpt_t func, void *arg);
+int esp32_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge, bool event, xcpt_t func, void *arg);
 #define PX4_BUS_OFFSET       1
 #define px4_arch_configgpio(pinset)			px4_esp32_configgpio(pinset)
 #define px4_arch_unconfiggpio(pinset)			px4_esp32_unconfiggpio(pinset)

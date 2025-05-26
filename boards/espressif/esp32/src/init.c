@@ -230,6 +230,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	px4_platform_init();
 
 	/* configure the DMA allocator */				// Needs to be figured out
+
 	if (board_dma_alloc_init() < 0) {
 		syslog(LOG_ERR, "DMA alloc FAILED\n");
 	}
@@ -270,11 +271,11 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif
-  	int ret = esp32_spiflash_init();
-  	if (ret)
-    	{
-      		syslog(LOG_ERR, "ERROR: Failed to initialize SPI Flash\n");
-    	}
+	int ret = esp32_spiflash_init();
+
+	if (ret) {
+		syslog(LOG_ERR, "ERROR: Failed to initialize SPI Flash\n");
+	}
 
 	esp32_rt_timer_init();
 

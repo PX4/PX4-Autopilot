@@ -76,11 +76,10 @@
  ****************************************************************************/
 
 #ifdef CONFIG_ESP32_HAVE_OTA_PARTITION
-struct ota_partition_s
-{
-  uint32_t    offset;          /* Partition offset from the beginning of MTD */
-  uint32_t    size;            /* Partition size in bytes */
-  const char *devpath;         /* Partition device path */
+struct ota_partition_s {
+	uint32_t    offset;          /* Partition offset from the beginning of MTD */
+	uint32_t    size;            /* Partition size in bytes */
+	const char *devpath;         /* Partition device path */
 };
 #endif
 
@@ -97,23 +96,22 @@ static int init_ota_partitions(void);
  ****************************************************************************/
 
 #ifdef CONFIG_ESP32_HAVE_OTA_PARTITION
-static const struct ota_partition_s g_ota_partition_table[] =
-{
-  {
-    .offset  = CONFIG_ESP32_OTA_PRIMARY_SLOT_OFFSET,
-    .size    = CONFIG_ESP32_OTA_SLOT_SIZE,
-    .devpath = CONFIG_ESP32_OTA_PRIMARY_SLOT_DEVPATH
-  },
-  {
-    .offset  = CONFIG_ESP32_OTA_SECONDARY_SLOT_OFFSET,
-    .size    = CONFIG_ESP32_OTA_SLOT_SIZE,
-    .devpath = CONFIG_ESP32_OTA_SECONDARY_SLOT_DEVPATH
-  },
-  {
-    .offset  = CONFIG_ESP32_OTA_SCRATCH_OFFSET,
-    .size    = CONFIG_ESP32_OTA_SCRATCH_SIZE,
-    .devpath = CONFIG_ESP32_OTA_SCRATCH_DEVPATH
-  }
+static const struct ota_partition_s g_ota_partition_table[] = {
+	{
+		.offset  = CONFIG_ESP32_OTA_PRIMARY_SLOT_OFFSET,
+		.size    = CONFIG_ESP32_OTA_SLOT_SIZE,
+		.devpath = CONFIG_ESP32_OTA_PRIMARY_SLOT_DEVPATH
+	},
+	{
+		.offset  = CONFIG_ESP32_OTA_SECONDARY_SLOT_OFFSET,
+		.size    = CONFIG_ESP32_OTA_SLOT_SIZE,
+		.devpath = CONFIG_ESP32_OTA_SECONDARY_SLOT_DEVPATH
+	},
+	{
+		.offset  = CONFIG_ESP32_OTA_SCRATCH_OFFSET,
+		.size    = CONFIG_ESP32_OTA_SCRATCH_SIZE,
+		.devpath = CONFIG_ESP32_OTA_SCRATCH_DEVPATH
+	}
 };
 #endif
 
@@ -124,38 +122,38 @@ static const struct ota_partition_s g_ota_partition_table[] =
 #ifdef CONFIG_ESP32_HAVE_OTA_PARTITION
 static int init_ota_partitions(void)
 {
-  struct mtd_dev_s *mtd;
+	struct mtd_dev_s *mtd;
 #ifdef CONFIG_BCH
-  char blockdev[18];
+	char blockdev[18];
 #endif
-  int ret = OK;
+	int ret = OK;
 
-  for (int i = 0; i < ARRAYSIZE(g_ota_partition_table); ++i)
-    {
-      const struct ota_partition_s *part = &g_ota_partition_table[i];
-      mtd = esp32_spiflash_alloc_mtdpart(part->offset, part->size,
-                                         OTA_ENCRYPT);
+	for (int i = 0; i < ARRAYSIZE(g_ota_partition_table); ++i) {
+		const struct ota_partition_s *part = &g_ota_partition_table[i];
+		mtd = esp32_spiflash_alloc_mtdpart(part->offset, part->size,
+						   OTA_ENCRYPT);
 
-      ret = ftl_initialize(i, mtd);
-      if (ret < 0)
-        {
-          ferr("ERROR: Failed to initialize the FTL layer: %d\n", ret);
-          return ret;
-        }
+		ret = ftl_initialize(i, mtd);
+
+		if (ret < 0) {
+			ferr("ERROR: Failed to initialize the FTL layer: %d\n", ret);
+			return ret;
+		}
 
 #ifdef CONFIG_BCH
-      snprintf(blockdev, sizeof(blockdev), "/dev/mtdblock%d", i);
+		snprintf(blockdev, sizeof(blockdev), "/dev/mtdblock%d", i);
 
-      ret = bchdev_register(blockdev, part->devpath, false);
-      if (ret < 0)
-        {
-          ferr("ERROR: bchdev_register %s failed: %d\n", part->devpath, ret);
-          return ret;
-        }
+		ret = bchdev_register(blockdev, part->devpath, false);
+
+		if (ret < 0) {
+			ferr("ERROR: bchdev_register %s failed: %d\n", part->devpath, ret);
+			return ret;
+		}
+
 #endif
-    }
+	}
 
-  return ret;
+	return ret;
 }
 #endif
 
@@ -179,44 +177,43 @@ static int init_ota_partitions(void)
 
 #ifdef CONFIG_ESP32_SPIFLASH_SMARTFS
 static int setup_smartfs(int smartn, struct mtd_dev_s *mtd,
-                         const char *mnt_pt)
+			 const char *mnt_pt)
 {
-  int ret = OK;
-  char path[22];
+	int ret = OK;
+	char path[22];
 
-  ret = smart_initialize(smartn, mtd, NULL);
-  if (ret < 0)
-    {
-      finfo("smart_initialize failed, Trying to erase first...\n");
-      ret = mtd->ioctl(mtd, MTDIOC_BULKERASE, 0);
-      if (ret < 0)
-        {
-          ferr("ERROR: ioctl(BULKERASE) failed: %d\n", ret);
-          return ret;
-        }
+	ret = smart_initialize(smartn, mtd, NULL);
 
-      finfo("Erase successful, initializing it again.\n");
-      ret = smart_initialize(smartn, mtd, NULL);
-      if (ret < 0)
-        {
-          ferr("ERROR: smart_initialize failed: %d\n", ret);
-          return ret;
-        }
-    }
+	if (ret < 0) {
+		finfo("smart_initialize failed, Trying to erase first...\n");
+		ret = mtd->ioctl(mtd, MTDIOC_BULKERASE, 0);
 
-  if (mnt_pt != NULL)
-    {
-      snprintf(path, sizeof(path), "/dev/smart%d", smartn);
+		if (ret < 0) {
+			ferr("ERROR: ioctl(BULKERASE) failed: %d\n", ret);
+			return ret;
+		}
 
-      ret = nx_mount(path, mnt_pt, "smartfs", 0, NULL);
-      if (ret < 0)
-        {
-          ferr("ERROR: Failed to mount the FS volume: %d\n", ret);
-          return ret;
-        }
-    }
+		finfo("Erase successful, initializing it again.\n");
+		ret = smart_initialize(smartn, mtd, NULL);
 
-  return ret;
+		if (ret < 0) {
+			ferr("ERROR: smart_initialize failed: %d\n", ret);
+			return ret;
+		}
+	}
+
+	if (mnt_pt != NULL) {
+		snprintf(path, sizeof(path), "/dev/smart%d", smartn);
+
+		ret = nx_mount(path, mnt_pt, "smartfs", 0, NULL);
+
+		if (ret < 0) {
+			ferr("ERROR: Failed to mount the FS volume: %d\n", ret);
+			return ret;
+		}
+	}
+
+	return ret;
 }
 #endif
 
@@ -239,32 +236,31 @@ static int setup_smartfs(int smartn, struct mtd_dev_s *mtd,
 
 #ifdef CONFIG_ESP32_SPIFLASH_LITTLEFS
 static int setup_littlefs(const char *path, struct mtd_dev_s *mtd,
-                          const char *mnt_pt, int priv)
+			  const char *mnt_pt, int priv)
 {
-  int ret = OK;
+	int ret = OK;
 
-  ret = register_mtddriver(path, mtd, priv, NULL);
-  if (ret < 0)
-    {
-      ferr("ERROR: Failed to register MTD: %d\n", ret);
-      return -ENOMEM;
-    }
+	ret = register_mtddriver(path, mtd, priv, NULL);
 
-  if (mnt_pt != NULL)
-    {
-      ret = nx_mount(path, mnt_pt, "littlefs", 0, NULL);
-      if (ret < 0)
-        {
-          ret = nx_mount(path, mnt_pt, "littlefs", 0, "forceformat");
-          if (ret < 0)
-            {
-              ferr("ERROR: Failed to mount the FS volume: %d\n", ret);
-              return ret;
-            }
-        }
-    }
+	if (ret < 0) {
+		ferr("ERROR: Failed to register MTD: %d\n", ret);
+		return -ENOMEM;
+	}
 
-  return OK;
+	if (mnt_pt != NULL) {
+		ret = nx_mount(path, mnt_pt, "littlefs", 0, NULL);
+
+		if (ret < 0) {
+			ret = nx_mount(path, mnt_pt, "littlefs", 0, "forceformat");
+
+			if (ret < 0) {
+				ferr("ERROR: Failed to mount the FS volume: %d\n", ret);
+				return ret;
+			}
+		}
+	}
+
+	return OK;
 }
 #endif
 
@@ -287,28 +283,27 @@ static int setup_littlefs(const char *path, struct mtd_dev_s *mtd,
 
 #ifdef CONFIG_ESP32_SPIFLASH_SPIFFS
 static int setup_spiffs(const char *path, struct mtd_dev_s *mtd,
-                        const char *mnt_pt, int priv)
+			const char *mnt_pt, int priv)
 {
-  int ret = OK;
+	int ret = OK;
 
-  ret = register_mtddriver(path, mtd, priv, NULL);
-  if (ret < 0)
-    {
-      ferr("ERROR: Failed to register MTD: %d\n", ret);
-      return -ENOMEM;
-    }
+	ret = register_mtddriver(path, mtd, priv, NULL);
 
-  if (mnt_pt != NULL)
-    {
-      ret = nx_mount(path, mnt_pt, "spiffs", 0, NULL);
-      if (ret < 0)
-        {
-          ferr("ERROR: Failed to mount the FS volume: %d\n", ret);
-          return ret;
-        }
-    }
+	if (ret < 0) {
+		ferr("ERROR: Failed to register MTD: %d\n", ret);
+		return -ENOMEM;
+	}
 
-  return ret;
+	if (mnt_pt != NULL) {
+		ret = nx_mount(path, mnt_pt, "spiffs", 0, NULL);
+
+		if (ret < 0) {
+			ferr("ERROR: Failed to mount the FS volume: %d\n", ret);
+			return ret;
+		}
+	}
+
+	return ret;
 }
 #endif
 
@@ -330,26 +325,25 @@ static int setup_spiffs(const char *path, struct mtd_dev_s *mtd,
 #ifdef CONFIG_ESP32_SPIFLASH_NXFFS
 static int setup_nxffs(struct mtd_dev_s *mtd, const char *mnt_pt)
 {
-  int ret = OK;
+	int ret = OK;
 
-  ret = nxffs_initialize(mtd);
-  if (ret < 0)
-    {
-      ferr("ERROR: NXFFS init failed: %d\n", ret);
-      return ret;
-    }
+	ret = nxffs_initialize(mtd);
 
-  if (mnt_pt != NULL)
-    {
-      ret = nx_mount(NULL, mnt_pt, "nxffs", 0, NULL);
-      if (ret < 0)
-        {
-          ferr("ERROR: Failed to mount the FS volume: %d\n", ret);
-          return ret;
-        }
-    }
+	if (ret < 0) {
+		ferr("ERROR: NXFFS init failed: %d\n", ret);
+		return ret;
+	}
 
-  return ret;
+	if (mnt_pt != NULL) {
+		ret = nx_mount(NULL, mnt_pt, "nxffs", 0, NULL);
+
+		if (ret < 0) {
+			ferr("ERROR: Failed to mount the FS volume: %d\n", ret);
+			return ret;
+		}
+	}
+
+	return ret;
 }
 #endif
 
@@ -367,55 +361,55 @@ static int setup_nxffs(struct mtd_dev_s *mtd, const char *mnt_pt)
 #ifdef CONFIG_ESP32_WIFI_SAVE_PARAM
 static int init_wifi_partition(void)
 {
-  int ret = OK;
-  struct mtd_dev_s *mtd;
+	int ret = OK;
+	struct mtd_dev_s *mtd;
 
-  mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_WIFI_MTD_OFFSET,
-                                     CONFIG_ESP32_WIFI_MTD_SIZE,
-                                     WIFI_ENCRYPT);
-  if (!mtd)
-    {
-      ferr("ERROR: Failed to alloc MTD partition of SPI Flash\n");
-      return -ENOMEM;
-    }
+	mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_WIFI_MTD_OFFSET,
+					   CONFIG_ESP32_WIFI_MTD_SIZE,
+					   WIFI_ENCRYPT);
+
+	if (!mtd) {
+		ferr("ERROR: Failed to alloc MTD partition of SPI Flash\n");
+		return -ENOMEM;
+	}
 
 #ifdef CONFIG_ESP32_SPIFLASH_SMARTFS
 
-  ret = setup_smartfs(1, mtd, CONFIG_ESP32_WIFI_FS_MOUNTPT);
-  if (ret < 0)
-    {
-      ferr("ERROR: Failed to setup smartfs\n");
-      return ret;
-    }
+	ret = setup_smartfs(1, mtd, CONFIG_ESP32_WIFI_FS_MOUNTPT);
+
+	if (ret < 0) {
+		ferr("ERROR: Failed to setup smartfs\n");
+		return ret;
+	}
 
 #elif defined(CONFIG_ESP32_SPIFLASH_LITTLEFS)
 
-  const char *path = "/dev/mtdblock1";
-  ret = setup_littlefs(path, mtd, CONFIG_ESP32_WIFI_FS_MOUNTPT, 0777);
-  if (ret < 0)
-    {
-      ferr("ERROR: Failed to setup littlefs\n");
-      return ret;
-    }
+	const char *path = "/dev/mtdblock1";
+	ret = setup_littlefs(path, mtd, CONFIG_ESP32_WIFI_FS_MOUNTPT, 0777);
+
+	if (ret < 0) {
+		ferr("ERROR: Failed to setup littlefs\n");
+		return ret;
+	}
 
 #elif defined(CONFIG_ESP32_SPIFLASH_SPIFFS)
 
-  const char *path = "/dev/mtdblock1";
-  ret = setup_spiffs(path, mtd, CONFIG_ESP32_WIFI_FS_MOUNTPT, 0777);
-  if (ret < 0)
-    {
-      ferr("ERROR: Failed to setup spiffs\n");
-      return ret;
-    }
+	const char *path = "/dev/mtdblock1";
+	ret = setup_spiffs(path, mtd, CONFIG_ESP32_WIFI_FS_MOUNTPT, 0777);
+
+	if (ret < 0) {
+		ferr("ERROR: Failed to setup spiffs\n");
+		return ret;
+	}
 
 #else
 
-    ferr("ERROR: No supported FS selected. Wi-Fi partition "
-         "should be mounted before Wi-Fi initialization\n");
+	ferr("ERROR: No supported FS selected. Wi-Fi partition "
+	     "should be mounted before Wi-Fi initialization\n");
 
 #endif
 
-  return ret;
+	return ret;
 }
 #endif
 
@@ -432,67 +426,67 @@ static int init_wifi_partition(void)
 
 static int init_storage_partition(void)
 {
-  int ret = OK;
-  struct mtd_dev_s *mtd;
+	int ret = OK;
+	struct mtd_dev_s *mtd;
 
-  mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_STORAGE_MTD_OFFSET,
-                                     CONFIG_ESP32_STORAGE_MTD_SIZE,
-                                     STORAGE_ENCRYPT);
-  if (!mtd)
-    {
-      ferr("ERROR: Failed to alloc MTD partition of SPI Flash\n");
-      return -ENOMEM;
-    }
+	mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_STORAGE_MTD_OFFSET,
+					   CONFIG_ESP32_STORAGE_MTD_SIZE,
+					   STORAGE_ENCRYPT);
+
+	if (!mtd) {
+		ferr("ERROR: Failed to alloc MTD partition of SPI Flash\n");
+		return -ENOMEM;
+	}
 
 #ifdef CONFIG_ESP32_SPIFLASH_SMARTFS
 
-  ret = setup_smartfs(0, mtd, NULL);
-  if (ret < 0)
-    {
-      ferr("ERROR: Failed to setup smartfs\n");
-      return ret;
-    }
+	ret = setup_smartfs(0, mtd, NULL);
+
+	if (ret < 0) {
+		ferr("ERROR: Failed to setup smartfs\n");
+		return ret;
+	}
 
 #elif defined(CONFIG_ESP32_SPIFLASH_NXFFS)
 
-  ret = setup_nxffs(mtd, "/mnt");
-  if (ret < 0)
-    {
-      ferr("ERROR: Failed to setup nxffs\n");
-      return ret;
-    }
+	ret = setup_nxffs(mtd, "/mnt");
+
+	if (ret < 0) {
+		ferr("ERROR: Failed to setup nxffs\n");
+		return ret;
+	}
 
 #elif defined(CONFIG_ESP32_SPIFLASH_LITTLEFS)
 
-  const char *path = "/dev/esp32flash";
-  ret = setup_littlefs(path, mtd, NULL, 0755);
-  if (ret < 0)
-    {
-      ferr("ERROR: Failed to setup littlefs\n");
-      return ret;
-    }
+	const char *path = "/dev/esp32flash";
+	ret = setup_littlefs(path, mtd, NULL, 0755);
+
+	if (ret < 0) {
+		ferr("ERROR: Failed to setup littlefs\n");
+		return ret;
+	}
 
 #elif defined(CONFIG_ESP32_SPIFLASH_SPIFFS)
-  const char *path = "/dev/esp32flash";
-  ret = setup_spiffs(path, mtd, NULL, 0755);
-  if (ret < 0)
-    {
-      ferr("ERROR: Failed to setup spiffs\n");
-      return ret;
-    }
+	const char *path = "/dev/esp32flash";
+	ret = setup_spiffs(path, mtd, NULL, 0755);
+
+	if (ret < 0) {
+		ferr("ERROR: Failed to setup spiffs\n");
+		return ret;
+	}
 
 #else
 
-  ret = register_mtddriver("/dev/esp32flash", mtd, 0755, NULL);
-  if (ret < 0)
-    {
-      ferr("ERROR: Failed to register MTD: %d\n", ret);
-      return ret;
-    }
+	ret = register_mtddriver("/dev/esp32flash", mtd, 0755, NULL);
+
+	if (ret < 0) {
+		ferr("ERROR: Failed to register MTD: %d\n", ret);
+		return ret;
+	}
 
 #endif
 
-  return ret;
+	return ret;
 }
 
 #define CONFIG_ESP32_PARAM_MTD_OFFSET   0x330000
@@ -500,26 +494,26 @@ static int init_storage_partition(void)
 
 static int init_param_partition(void)
 {
-  int ret = OK;
-  struct mtd_dev_s *mtd;
+	int ret = OK;
+	struct mtd_dev_s *mtd;
 
-  mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_PARAM_MTD_OFFSET,
-                                     CONFIG_ESP32_PARAM_MTD_SIZE,
-                                     STORAGE_ENCRYPT);
-  if (!mtd)
-    {
-      ferr("ERROR: Failed to alloc PARAM MTD partition of SPI Flash\n");
-      return -ENOMEM;
-    }
+	mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_PARAM_MTD_OFFSET,
+					   CONFIG_ESP32_PARAM_MTD_SIZE,
+					   STORAGE_ENCRYPT);
 
-  ret = register_mtddriver("/fs/mtd_params", mtd, 0755, NULL);
-  if (ret < 0)
-    {
-      ferr("ERROR: Failed to register PARAM MTD: %d\n", ret);
-      return ret;
-    }
+	if (!mtd) {
+		ferr("ERROR: Failed to alloc PARAM MTD partition of SPI Flash\n");
+		return -ENOMEM;
+	}
 
-  return ret;
+	ret = register_mtddriver("/fs/mtd_params", mtd, 0755, NULL);
+
+	if (ret < 0) {
+		ferr("ERROR: Failed to register PARAM MTD: %d\n", ret);
+		return ret;
+	}
+
+	return ret;
 }
 
 /****************************************************************************
@@ -543,36 +537,38 @@ static int init_param_partition(void)
 
 int esp32_spiflash_init(void)
 {
-  int ret = OK;
+	int ret = OK;
 
 #ifdef CONFIG_ESP32_HAVE_OTA_PARTITION
-  ret = init_ota_partitions();
-  if (ret < 0)
-    {
-      return ret;
-    }
+	ret = init_ota_partitions();
+
+	if (ret < 0) {
+		return ret;
+	}
+
 #endif
 
 #ifdef CONFIG_ESP32_WIFI_SAVE_PARAM
-  ret = init_wifi_partition();
-  if (ret < 0)
-    {
-      return ret;
-    }
+	ret = init_wifi_partition();
+
+	if (ret < 0) {
+		return ret;
+	}
+
 #endif
 
-  ret = init_storage_partition();
-  if (ret < 0)
-    {
-      return ret;
-    }
+	ret = init_storage_partition();
 
-  ret = init_param_partition();
-  if (ret < 0)
-    {
-      return ret;
-    }
+	if (ret < 0) {
+		return ret;
+	}
+
+	ret = init_param_partition();
+
+	if (ret < 0) {
+		return ret;
+	}
 
 
-  return ret;
+	return ret;
 }
