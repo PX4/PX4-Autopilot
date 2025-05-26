@@ -125,8 +125,8 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	// _battery_status[instance].cycle_count = msg.;
 	_battery_status[instance].time_remaining_s = NAN;
 	// _battery_status[instance].average_time_to_empty = msg.;
-	_battery_status[instance].serial_number = msg.model_instance_id;
-	_battery_status[instance].id = msg.getSrcNodeID().get();
+	itoa(msg.model_instance_id, _battery_info[instance].serial_number, 10);
+	_battery_info[instance].id = _battery_status[instance].id = msg.getSrcNodeID().get();
 
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
 		// Mavlink 2 needs individual cell voltages or cell[0] if cell voltages are not available.
@@ -145,6 +145,9 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
 		publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+		const uint16_t id = math::constrain(msg.getSrcNodeID().get(),
+						    (uint8_t)0, (uint8_t)(battery_status_s::MAX_INSTANCES - 1));
+		_battery_info_pub[id].publish(_battery_info[id]);
 	}
 }
 
@@ -238,8 +241,11 @@ UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equi
 	/* Override data that is expected to arrive from UAVCAN msg*/
 	_battery_status[instance] = _battery[instance]->getBatteryStatus();
 	_battery_status[instance].temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
-	_battery_status[instance].serial_number = msg.model_instance_id;
+	itoa(msg.model_instance_id, _battery_info[instance].serial_number, 10);
 	_battery_status[instance].id = msg.getSrcNodeID().get(); // overwrite zeroed index from _battery
 
 	publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+	const uint16_t id = math::constrain(msg.getSrcNodeID().get(),
+					    (uint8_t)0, (uint8_t)(battery_status_s::MAX_INSTANCES - 1));
+	_battery_info_pub[id].publish(_battery_info[id]);
 }
