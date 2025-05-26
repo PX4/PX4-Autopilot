@@ -35,8 +35,6 @@
 
 __BEGIN_DECLS
 
-// #include "/home/henry/autonosky/px4-autopilot_private/platforms/nuttx/NuttX/nuttx/include/nuttx/irq.h"
-
 /* For historical reasons (NuttX STM32 numbering) PX4 bus numbering is 1 based
  * All PX4 code, including, board code is written to assuming 1 based numbering.
  * The following macros are used to allow the board config to define the bus

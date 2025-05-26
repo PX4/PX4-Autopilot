@@ -266,65 +266,6 @@ if(CONFIG_ARCH_CHIP_ESP32)
 	${PX4_STARTUP_DIR}/esp32_wdt.o
 	)
 
-
-	# set(NUTTX_STARTUP_OBJS
-	# ${PX4_STARTUP_DIR}/xtensa_assert.o
-	# ${PX4_STARTUP_DIR}/xtensa_blocktask.o
-	# ${PX4_STARTUP_DIR}/xtensa_checkstack.o
-	# ${PX4_STARTUP_DIR}/xtensa_context.o
-	# ${PX4_STARTUP_DIR}/xtensa_cpenable.o
-	# ${PX4_STARTUP_DIR}/xtensa_cpuint.o
-	# ${PX4_STARTUP_DIR}/xtensa_createstack.o
-	# # ${PX4_STARTUP_DIR}/xtensa_dumpstate.o
-	# ${PX4_STARTUP_DIR}/xtensa_exit.o
-	# ${PX4_STARTUP_DIR}/xtensa_initialize.o
-	# ${PX4_STARTUP_DIR}/xtensa_initialstate.o
-	# ${PX4_STARTUP_DIR}/xtensa_int_handlers.o
-	# ${PX4_STARTUP_DIR}/xtensa_irqdispatch.o
-	# ${PX4_STARTUP_DIR}/xtensa_lowputs.o
-	# ${PX4_STARTUP_DIR}/xtensa_mdelay.o
-	# ${PX4_STARTUP_DIR}/xtensa_modifyreg8.o
-	# ${PX4_STARTUP_DIR}/xtensa_modifyreg16.o
-	# ${PX4_STARTUP_DIR}/xtensa_modifyreg32.o
-	# ${PX4_STARTUP_DIR}/xtensa_nputs.o
-	# ${PX4_STARTUP_DIR}/xtensa_panic.o
-	# ${PX4_STARTUP_DIR}/xtensa_releasepending.o
-	# ${PX4_STARTUP_DIR}/xtensa_releasestack.o
-	# ${PX4_STARTUP_DIR}/xtensa_reprioritizertr.o
-	# ${PX4_STARTUP_DIR}/xtensa_saveusercontext.o
-	# ${PX4_STARTUP_DIR}/xtensa_schedsigaction.o
-	# ${PX4_STARTUP_DIR}/xtensa_sigdeliver.o
-	# ${PX4_STARTUP_DIR}/xtensa_stackframe.o
-	# ${PX4_STARTUP_DIR}/xtensa_swint.o
-	# ${PX4_STARTUP_DIR}/xtensa_udelay.o
-	# ${PX4_STARTUP_DIR}/xtensa_unblocktask.o
-	# ${PX4_STARTUP_DIR}/xtensa_user_handler.o
-	# ${PX4_STARTUP_DIR}/xtensa_usestack.o
-	# ${PX4_STARTUP_DIR}/xtensa_vectors.o
-	# ${PX4_STARTUP_DIR}/xtensa_window_vector.o
-	# ${PX4_STARTUP_DIR}/xtensa_windowspill.o
-
-	# ${PX4_STARTUP_DIR}/esp32_allocateheap.o
-	# ${PX4_STARTUP_DIR}/esp32_clockconfig.o
-	# ${PX4_STARTUP_DIR}/esp32_dma.o
-	# ${PX4_STARTUP_DIR}/esp32_gpio.o
-	# ${PX4_STARTUP_DIR}/esp32_idle.o
-	# ${PX4_STARTUP_DIR}/esp32_irq.o
-	# ${PX4_STARTUP_DIR}/esp32_region.o
-	# ${PX4_STARTUP_DIR}/esp32_resetcause.o
-	# ${PX4_STARTUP_DIR}/esp32_rtc.o
-	# ${PX4_STARTUP_DIR}/esp32_start.o
-	# ${PX4_STARTUP_DIR}/esp32_serial.o
-	# ${PX4_STARTUP_DIR}/esp32_spi.o
-	# ${PX4_STARTUP_DIR}/esp32_spicache.o
-	# ${PX4_STARTUP_DIR}/esp32_spiflash.o
-	# ${PX4_STARTUP_DIR}/esp32_systemreset.o
-	# ${PX4_STARTUP_DIR}/esp32_timerisr.o
-	# ${PX4_STARTUP_DIR}/esp32_user.o
-	# ${PX4_STARTUP_DIR}/esp32_wdt.o
-	# ${PX4_STARTUP_DIR}/esp32_partition.o
-	# )
-
 	set(NUTTX_NETWORK_LIB
 	libcore.a
 	librtc.a
