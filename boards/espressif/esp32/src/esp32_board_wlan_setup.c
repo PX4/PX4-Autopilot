@@ -89,4 +89,3 @@ int board_wlan_init(void)
 
 	return ret;
 }
-
