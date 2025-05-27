@@ -264,6 +264,7 @@ set(msg_files
 	versioned/VehicleStatus.msg
 	versioned/VtolVehicleStatus.msg
 	robosub/RawCanfd.msg
+	robosub/DroneTask.msg
 	robosub/waterDetection.msg
 	robosub/waterContactState.msg
 )
