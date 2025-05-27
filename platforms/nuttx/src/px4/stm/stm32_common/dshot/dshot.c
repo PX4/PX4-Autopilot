@@ -202,11 +202,11 @@ static void init_timers_dma_up(void)
 		timer_configs[timer_index].dma_handle = stm32_dmachannel(io_timers[timer_index].dshot.dma_map_up);
 
 		if (timer_configs[timer_index].dma_handle == NULL) {
-			PX4_DEBUG("Failed to allocate Timer %u DMA UP", timer_index);
+			PX4_WARN("Failed to allocate Timer %u DMA UP", timer_index);
 			continue;
 		}
 
-		PX4_DEBUG("Allocated DMA UP Timer Index %u", timer_index);
+		PX4_INFO("Allocated DMA UP (%lu) Timer Index %u", io_timers[timer_index].dshot.dma_map_up, timer_index);
 		timer_configs[timer_index].initialized = true;
 	}
 
@@ -215,7 +215,7 @@ static void init_timers_dma_up(void)
 		if (timer_configs[timer_index].dma_handle != NULL) {
 			stm32_dmafree(timer_configs[timer_index].dma_handle);
 			timer_configs[timer_index].dma_handle = NULL;
-			PX4_DEBUG("Freed DMA UP Timer Index %u", timer_index);
+			PX4_INFO("Freed DMA UP Timer Index %u", timer_index);
 		}
 	}
 }
