@@ -37,9 +37,14 @@
  #include <px4_platform_common/module_params.h>
  #include <uORB/SubscriptionInterval.hpp>
  #include <uORB/topics/parameter_update.h>
+ #include <uORB/Subscription.hpp>
+ #include <uORB/SubscriptionCallback.hpp>
+ #include <uORB/Publication.hpp>
  #include <lib/perf/perf_counter.h>
  #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
  #include <uORB/topics/input_rc.h>
+ #include <uORB/topics/water_detection.h>
+ #include <uORB/topics/drone_task.h>
 
  using namespace time_literals;
 
@@ -78,8 +83,20 @@
 	  * Check for parameter changes and update them if needed.
 	  * @param parameter_update_sub uorb subscription to parameter_update
 	  * @param force for a parameter update
+
 	  */
+
+	#define TASK_INIT 0b000
+	#define TASK_DEFAULT 0b001
+	#define TASK_REMOTE_CONTROLLED 0b111
+
 	perf_counter_t	_loop_perf;
+
+	uORB::SubscriptionCallbackWorkItem _water_detection_sub{this, ORB_ID(water_detection)};
+
+	water_detection_s 	_water_detection{};
+
+	void taskStat();
 
 	 void parameters_update(bool force = false);
 
@@ -93,6 +110,9 @@
 	 uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	 uORB::Subscription _input_rc_sub{ORB_ID(input_rc)};
 
+	 uORB::Publication<drone_task_s>    _drone_task_pub{ORB_ID(drone_task)};
+
+	 drone_task_s _drone_task{};
 	 input_rc_s _input_rc{};
 
  };

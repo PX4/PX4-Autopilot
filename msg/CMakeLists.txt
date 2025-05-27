@@ -263,6 +263,7 @@ set(msg_files
 	versioned/VehicleRatesSetpoint.msg
 	versioned/VehicleStatus.msg
 	versioned/VtolVehicleStatus.msg
+	robosub/DroneTask.msg
 	robosub/waterDetection.msg
 	robosub/waterContactState.msg
 )

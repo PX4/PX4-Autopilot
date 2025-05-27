@@ -124,6 +124,8 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
  {
 	perf_begin(_loop_perf);
 
+	taskStat();
+
 	receiver();
 
 	// Schedule();
@@ -131,54 +133,126 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
  }
 
  float normalized[8];
+ float range = 1.0f;
+ uint8_t bitReg = 0;
+ uint8_t update1 = 0;
+
+ void RobosubRemoteControl::taskStat()
+ {
+	update1 = 0;
+	if(_input_rc_sub.update(&_input_rc))
+	{
+		update1 = 1;
+		input_rc_s rc_data{};
+		_input_rc_sub.copy(&rc_data);
+		normalized[4] = (rc_data.values[4] - 1500) / 400.0f;
+		normalized[5] = (rc_data.values[5] - 1500) / 400.0f;
+		normalized[6] = (rc_data.values[6] - 1500) / 400.0f;
+ 		normalized[7] = (rc_data.values[7] - 1500) / 400.0f;
+
+		normalized[4] = math::constrain(normalized[4], -range, range);
+		normalized[5] = math::constrain(normalized[5], -range, range);
+		normalized[6] = math::constrain(normalized[6], -range, range);
+		normalized[7] = math::constrain(normalized[7], -range, range);
+
+		uint8_t stateEnable((normalized[4] > 0.0f) ? 1 : 0);
+
+		drone_task_s drone_task{};
+
+		if(stateEnable == 1)
+		{
+			bitReg =
+    			((normalized[5] > 0.0f) ? 1 : 0) |
+    			((normalized[6] > 0.0f) ? 1 : 0) << 1 |
+    			((normalized[7] > 0.0f) ? 1 : 0) << 2;
+			switch(bitReg)
+			{
+				case 0b1000:
+					drone_task.task = TASK_INIT;
+				break;
+				case 0b1001:
+					drone_task.task = TASK_DEFAULT;
+				break;
+				case 0b1111:
+					drone_task.task = TASK_REMOTE_CONTROLLED;
+				break;
+				default:
+
+				break;
+			}
+
+			drone_task.timestamp = hrt_absolute_time();
+
+			_drone_task_pub.publish(drone_task);
+
+		}
+
+	}
+ }
+
+ uint8_t sensor1 = false;
+ uint8_t sensor2 = false;
 
  void RobosubRemoteControl::receiver()
  {
 	RobosubMotorControl robosub_motor_control;
-	if (_input_rc_sub.update(&_input_rc)) {
-		input_rc_s rc_data {};
-		_input_rc_sub.copy(&rc_data);
 
-		// Debug print the rc data
-		for (unsigned i = 0; i < rc_data.channel_count; ++i) {
-			PX4_INFO("rc_data[%u]: %d", i, rc_data.values[i]);
-		}
-
-		// Normalize the rc data to a value between -1 and 1
-		normalized[0] = (rc_data.values[1] - 1500) / 400.0f;
-		normalized[1] = (rc_data.values[2] - 1500) / 400.0f;
-		normalized[2] = (rc_data.values[3] - 1500) / 400.0f;
-		normalized[3] = (rc_data.values[4] - 1500) / 400.0f;
-		normalized[4] = (rc_data.values[5] - 1500) / 400.0f;
-		normalized[5] = (rc_data.values[6] - 1500) / 400.0f;
-		normalized[6] = (rc_data.values[7] - 1500) / 400.0f;
-		normalized[7] = (rc_data.values[8] - 1500) / 400.0f;
-
-		normalized[0] = math::constrain(normalized[0], -1.0f, 1.0f);
-		normalized[1] = math::constrain(normalized[1], -1.0f, 1.0f);
-		normalized[2] = math::constrain(normalized[2], -1.0f, 1.0f);
-		normalized[3] = math::constrain(normalized[3], -1.0f, 1.0f);
-		normalized[4] = math::constrain(normalized[4], -1.0f, 1.0f);
-		normalized[5] = math::constrain(normalized[5], -1.0f, 1.0f);
-		normalized[6] = math::constrain(normalized[6], -1.0f, 1.0f);
-		normalized[7] = math::constrain(normalized[7], -1.0f, 1.0f);
-
-		robosub_motor_control.actuator_test(101, normalized[0], 0, false);
-		robosub_motor_control.actuator_test(102, normalized[0], 0, false);
-		robosub_motor_control.actuator_test(103, normalized[1], 0, false);
-		robosub_motor_control.actuator_test(104, normalized[1] * 0.5f, 0, false);
-		robosub_motor_control.actuator_test(105, normalized[1] * 0.5f, 0, false);
-		if(normalized[2] > 0.1f || normalized[2] < -0.1f)
+		if (update1)
 		{
-			robosub_motor_control.actuator_test(106, normalized[2], 0, false);
-			robosub_motor_control.actuator_test(107, normalized[2], 0, false);
+			if(bitReg == TASK_REMOTE_CONTROLLED)
+			{
+				input_rc_s rc_data {};
+				_input_rc_sub.copy(&rc_data);
+
+				_water_detection_sub.update(&_water_detection);
+
+				sensor1 	= 1;//= _water_detection.power_module_sensor;
+				sensor2 	= 1;//= _water_detection.mainbrain_sensor;
+
+
+				if (!sensor1 && ! sensor2)
+				{
+					range = 0.1f;
+
+				} else if (sensor1 && ! sensor2)
+				{
+					range = 0.2f;
+
+				} else if (sensor1 &&  sensor2)
+				{
+					range = 1.0f;
+				}
+
+				// Normalize the rc data to a value between -1 and 1
+				normalized[0] = (rc_data.values[1] - 1500) / 400.0f;
+				normalized[1] = (rc_data.values[2] - 1500) / 400.0f;
+				normalized[2] = (rc_data.values[3] - 1500) / 400.0f;
+				normalized[3] = (rc_data.values[0] - 1500) / 400.0f;
+
+				normalized[0] = math::constrain(normalized[0], -range, range);
+				normalized[1] = math::constrain(normalized[1], -range, range);
+				normalized[2] = math::constrain(normalized[2], -range, range);
+				normalized[3] = math::constrain(normalized[3], -range, range);
+
+
+				robosub_motor_control.actuator_test(101, normalized[0], 0, false);
+				robosub_motor_control.actuator_test(102, normalized[0], 0, false);
+				robosub_motor_control.actuator_test(103, normalized[1], 0, false);
+				robosub_motor_control.actuator_test(104, (normalized[1] * 0.5f), 0, false);
+				robosub_motor_control.actuator_test(105, (normalized[1] * 0.5f), 0, false);
+				if(normalized[2] > 0.1f || normalized[2] < -0.1f)
+				{
+					robosub_motor_control.actuator_test(106, normalized[2], 0, false);
+					robosub_motor_control.actuator_test(107, normalized[2], 0, false);
+				}
+				 else
+				{
+					robosub_motor_control.actuator_test(106, -normalized[3], 0, false);
+					robosub_motor_control.actuator_test(107, normalized[3], 0, false);
+				}
+			}
+			update1 = 0;
 		}
-		else
-		{
-			robosub_motor_control.actuator_test(106, -normalized[3], 0, false);
-			robosub_motor_control.actuator_test(107, normalized[3], 0, false);
-		}
-	}
 
  }
 
