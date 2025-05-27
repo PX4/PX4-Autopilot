@@ -39,6 +39,7 @@
 
 #include "esc.hpp"
 #include <systemlib/err.h>
+#include <parameters/param.h>
 #include <drivers/drv_hrt.h>
 
 #define MOTOR_BIT(x) (1<<(x))
@@ -65,6 +66,12 @@ UavcanEscController::init()
 	}
 
 	_esc_status_pub.advertise();
+
+	int32_t iface_mask{0xFF};
+
+	if (param_get(param_find("UAVCAN_ESC_IFACE"), &iface_mask) == OK) {
+		_uavcan_pub_raw_cmd.getTransferSender().setIfaceMask(iface_mask);
+	}
 
 	return res;
 }

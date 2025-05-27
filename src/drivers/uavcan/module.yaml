@@ -1,4 +1,29 @@
 module_name: UAVCAN
+parameters:
+- group: UAVCAN
+  definitions:
+    UAVCAN_ESC_IFACE:
+      description:
+        short: Which CAN interfaces to output ESC messages on.
+        long: |
+          Since ESC messages are high priority and sent at a high rate, it is
+          recommended to only enable the interfaces that are actually used.
+          Otherwise, the ESC messages will arbitrate lower priority messages and
+          starve other nodes on the bus.
+      type: bitmask
+      bit:
+        0: CAN1
+        1: CAN2
+        2: CAN3
+        3: CAN4
+        4: CAN5
+        5: CAN6
+        6: CAN7
+        7: CAN8
+      default: 255
+      min: 1
+      max: 255
+      reboot_required: true
 actuator_output:
   show_subgroups_if: 'UAVCAN_ENABLE>=3'
   config_parameters:
