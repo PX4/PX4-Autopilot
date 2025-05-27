@@ -32,6 +32,7 @@
 ############################################################################
 
 if(CONFIG_LIB_TFLM)
+	#add_definitions(-D__LIB_TFLM=1)
 	px4_add_git_submodule(TARGET git_tflite-micro PATH tflite_micro)
 
 	set(TFLITE_DOWNLOADS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/tensorflow/lite/micro/tools/make/downloads)
@@ -93,23 +94,15 @@ if(CONFIG_LIB_TFLM)
 
 	px4_add_library(tensorflow_lite_micro ${TFLITE_MICRO_SRCS})
 
-
-	# Add C++ 17 std lib if building for NuttX
 	if(CONFIG_BOARD_TOOLCHAIN STREQUAL "arm-none-eabi")
-	get_target_property(_inc_dirs tensorflow_lite_micro INCLUDE_DIRECTORIES)
-		list(FILTER _inc_dirs EXCLUDE REGEX ".*/platforms/nuttx/NuttX/include/cxx$")
-		list(FILTER _inc_dirs EXCLUDE REGEX ".*/platforms/nuttx/NuttX/nuttx/include/cxx$")
-		set_target_properties(tensorflow_lite_micro PROPERTIES INCLUDE_DIRECTORIES "${_inc_dirs}")
-		# get_target_property(_opts tensorflow_lite_micro COMPILE_OPTIONS)
-		# list(FILTER _opts EXCLUDE REGEX "-nostdinc\\+\\+")
-		# set_target_properties(tensorflow_lite_micro PROPERTIES COMPILE_OPTIONS "${_opts}")
-		# get_directory_property(FLAGS COMPILE_OPTIONS)
-		# list(REMOVE_ITEM FLAGS "-nostdinc++")
-		# set_directory_properties(PROPERTIES COMPILE_OPTIONS "${FLAGS}")
-		# list(APPEND TFLM_INCLUDE_DIRS
-		# 	${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1
-		# 	${TFLITE_DOWNLOADS_DIR}/gcc_embedded/arm-none-eabi/include/c++/13.2.1/arm-none-eabi
+		# add_definitions(
+		# 	#-include "${CMAKE_CURRENT_SOURCE_DIR}/include/bits/ctype_base_fix.h" Did not work with target_compile_options at least
+		# 	-include "${CMAKE_CURRENT_SOURCE_DIR}/include/bits/px4_tflm_adapter.h"
 		# )
+	 	# # This header is for some reason problematic with the arm-none-eabi toolchain
+		add_definitions(-include "${CMAKE_CURRENT_SOURCE_DIR}/include/bits/px4_tflm_fix.h")
+	 	#include_directories(BEFORE SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/include)
+		#include_directories(BEFORE SYSTEM "${CMAKE_CURRENT_SOURCE_DIR}/include")
 	endif()
 
 	target_include_directories(tensorflow_lite_micro PUBLIC ${TFLM_INCLUDE_DIRS})

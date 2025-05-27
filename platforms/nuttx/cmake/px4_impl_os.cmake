@@ -54,11 +54,17 @@ function(px4_os_add_flags)
 		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include
 	)
 
-	if(NOT CONFIG_LIB_TFLM) # TFLM does not use NuttX headers
+	if(CONFIG_LIB_TFLM) # Since TFLM uses the standard C++ library, we need to exclude the NuttX C++ include path
+		#add_definitions(-D__LIB_TFLM=1)
+		include_directories(BEFORE SYSTEM
+			${PX4_SOURCE_DIR}/src/lib/tensorflow_lite_micro/include
+		)
+	else()
 		include_directories(BEFORE SYSTEM
 			${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include/cxx
 			${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/include/cxx	# custom new
 		)
+
 	endif()
 
 	include_directories(
@@ -79,7 +85,7 @@ function(px4_os_add_flags)
 	)
 
 	if(NOT CONFIG_LIB_TFLM)
-		list(APPEND cxx_flags -nostdinc++) # prevent using the toolchain's std c++ library if building for anything else than tflm
+		list(APPEND cxx_flags -nostdinc++) # prevent using the toolchain's std c++ library if building for anything else than TFLM
 	endif()
 
 	foreach(flag ${cxx_flags})

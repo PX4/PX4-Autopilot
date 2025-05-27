@@ -110,6 +110,12 @@
 // symbols in cannode.
 #endif // !defined(__PX4_NUTTX)
 
+// When building with TFLM, provide a stub for system() which cstdlib expects
+#if defined(__LIB_TFLM)
+extern "C" {
+inline int system(const char *) { return -1; }
+}
+#endif // D__LIB_TFLM
 
 /* On NuttX we call clearenv() so we cannot use getenv() and others (see
  * px4_task_spawn_cmd() in px4_nuttx_tasks.c).

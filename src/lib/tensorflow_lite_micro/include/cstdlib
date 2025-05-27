@@ -1,0 +1,137 @@
+//***************************************************************************
+// include/cxx/cstdlib
+//
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.  The
+// ASF licenses this file to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance with the
+// License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+// License for the specific language governing permissions and limitations
+// under the License.
+//
+//***************************************************************************
+
+#ifndef __INCLUDE_CXX_CSTDLIB
+#define __INCLUDE_CXX_CSTDLIB
+
+//***************************************************************************
+// Included Files
+//***************************************************************************
+
+#include <nuttx/config.h>
+#include <stdlib.h>
+
+//***************************************************************************
+// Namespace
+//***************************************************************************
+
+namespace std
+{
+  // Random number generation
+
+  using ::srand;
+  using ::rand;
+  using ::random;
+
+  // Environment variable support
+
+  using ::getenv;
+  using ::putenv;
+  using ::clearenv;
+  using ::setenv;
+  using ::unsetenv;
+
+  // Process exit functions
+
+  using ::exit;
+  using ::abort;
+  using ::atexit;
+  using ::on_exit;
+
+#ifndef __KERNEL__
+  // System command
+
+  using ::system;
+#endif
+
+  // String to binary conversions
+
+  using ::atof;
+  using ::atoi;
+  using ::atol;
+  using ::strtol;
+  using ::strtoul;
+#ifdef CONFIG_HAVE_LONG_LONG
+  using ::strtoll;
+  using ::strtoull;
+#endif
+  using ::strtof;
+#ifdef CONFIG_HAVE_DOUBLE
+  using ::strtod;
+#endif
+#ifdef CONFIG_HAVE_LONG_DOUBLE
+  using ::strtold;
+#endif
+
+  // Binary to string conversions
+
+  using ::itoa;
+
+  // Wide character operations
+
+  using ::mbtowc;
+  using ::wctomb;
+
+  // Memory Management
+
+  using ::malloc;
+  using ::free;
+  using ::realloc;
+  using ::memalign;
+  using ::zalloc;
+  using ::calloc;
+
+#ifdef CONFIG_PSEUDOTERM
+  // Pseudo-Terminals
+
+  using ::ptsname;
+  using ::ptsname_r;
+  using ::unlockpt;
+#endif
+
+  // Arithmetic
+
+  using ::abs;
+  using ::labs;
+#ifdef CONFIG_HAVE_LONG_LONG
+  using ::llabs;
+#endif
+
+  using ::div;
+  using ::ldiv;
+#ifdef CONFIG_HAVE_LONG_LONG
+  using ::lldiv;
+#endif
+
+  // Temporary files
+
+  using ::mktemp;
+  using ::mkstemp;
+
+  // Sorting
+
+  using ::qsort;
+
+  // Binary search
+
+  using ::bsearch;
+}
+
+#endif // __INCLUDE_CXX_CSTDLIB
