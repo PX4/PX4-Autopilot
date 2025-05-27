@@ -497,13 +497,14 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 		return false;
 	}
 
-	_delta_baro_gnss_lpf.update(delta_alt);
-
 	if (_calibration_t_first == 0) {
 		_calibration_t_first = gps_pos.timestamp;
 		const float dt = (_calibration_t_first - _t_first_gnss_sample) * 1.e-6f;
 		_delta_baro_gnss_lpf.setParameters(dt, kLpfWindow * 1.e-6f);
 		_delta_baro_gnss_lpf.reset(delta_alt);
+
+	} else {
+		_delta_baro_gnss_lpf.update(delta_alt);
 	}
 
 	if (gps_pos.timestamp - _calibration_t_first > kLpfWindow && !PX4_ISFINITE(_baro_gnss_offset_t1)) {
