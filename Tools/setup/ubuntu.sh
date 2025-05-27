@@ -156,9 +156,9 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 			gcc-arm-none-eabi \
 			gcc-multilib \
 			;
-			wget -P ~/ https://github.com/espressif/crosstool-NG/releases/download/esp-13.2.0_20240530/xtensa-esp-elf-13.2.0_20240530-x86_64-linux-gnu.tar.xz
-			tar -xvf ~/xtensa-esp-elf-13.2.0_20240530-x86_64-linux-gnu.tar.xz
-			ENV PATH=$PATH:~/xtensa-esp-elf/xtensa-esp-elf/bin/
+			wget -P /opt/ https://github.com/espressif/crosstool-NG/releases/download/esp-13.2.0_20240530/xtensa-esp-elf-13.2.0_20240530-x86_64-linux-gnu.tar.xz
+			tar -xvf /opt/xtensa-esp-elf-13.2.0_20240530-x86_64-linux-gnu.tar.xz
+			export PATH=$PATH:/opt/xtensa-esp-elf/xtensa-esp-elf/bin/
 	fi
 
 	if [[ "${INSTALL_ARCH}" == "aarch64" ]]; then
