@@ -47,6 +47,11 @@ ICM20602::ICM20602(const I2CSPIDriverConfig &config) :
 	_px4_accel(get_device_id(), config.rotation),
 	_px4_gyro(get_device_id(), config.rotation)
 {
+	_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
+	_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
+	_px4_gyro.set_scale(math::radians(2000.f / 32768.f));
+	_px4_gyro.set_range(math::radians(2000.f));
+
 	if (_drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
 	}
@@ -56,6 +61,7 @@ ICM20602::ICM20602(const I2CSPIDriverConfig &config) :
 
 ICM20602::~ICM20602()
 {
+	perf_free(_configure_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_fifo_empty_perf);
@@ -73,7 +79,21 @@ int ICM20602::init()
 		return ret;
 	}
 
-	return Reset() ? 0 : -1;
+	_state = STATE::CHECK_CONFIGURATION;
+	ScheduleNow();
+	return 0;
+}
+
+int ICM20602::probe()
+{
+	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
+
+	if (whoami != WHOAMI) {
+		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
 }
 
 bool ICM20602::Reset()
@@ -97,6 +117,7 @@ void ICM20602::print_status()
 
 	PX4_INFO("FIFO empty interval: %d us (%.1f Hz)", _fifo_empty_interval_us, 1e6 / _fifo_empty_interval_us);
 
+	perf_print_counter(_configure_perf);
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_fifo_empty_perf);
@@ -129,18 +150,6 @@ bool ICM20602::StoreCheckedRegisterValue(Register reg)
 	return false;
 }
 
-int ICM20602::probe()
-{
-	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
-
-	if (whoami != WHOAMI) {
-		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
-		return PX4_ERROR;
-	}
-
-	return PX4_OK;
-}
-
 void ICM20602::RunImpl()
 {
 	const hrt_abstime now = hrt_absolute_time();
@@ -162,21 +171,6 @@ void ICM20602::RunImpl()
 		if ((RegisterRead(Register::WHO_AM_I) == WHOAMI)
 		    && (RegisterRead(Register::PWR_MGMT_1) == 0x41)
 		    && (RegisterRead(Register::CONFIG) == 0x80)) {
-
-			// offset registers (factory calibration) should not change during normal operation
-			StoreCheckedRegisterValue(Register::XG_OFFS_TC_H);
-			StoreCheckedRegisterValue(Register::XG_OFFS_TC_L);
-			StoreCheckedRegisterValue(Register::YG_OFFS_TC_H);
-			StoreCheckedRegisterValue(Register::YG_OFFS_TC_L);
-			StoreCheckedRegisterValue(Register::ZG_OFFS_TC_H);
-			StoreCheckedRegisterValue(Register::ZG_OFFS_TC_L);
-
-			StoreCheckedRegisterValue(Register::XA_OFFSET_H);
-			StoreCheckedRegisterValue(Register::XA_OFFSET_L);
-			StoreCheckedRegisterValue(Register::YA_OFFSET_H);
-			StoreCheckedRegisterValue(Register::YA_OFFSET_L);
-			StoreCheckedRegisterValue(Register::ZA_OFFSET_H);
-			StoreCheckedRegisterValue(Register::ZA_OFFSET_L);
 
 			// Disable I2C, wakeup, and reset digital signal path
 			RegisterWrite(Register::I2C_IF, I2C_IF_BIT::I2C_IF_DIS); // set immediately to prevent switching into I2C mode
@@ -206,6 +200,27 @@ void ICM20602::RunImpl()
 	case STATE::CONFIGURE:
 		if (Configure()) {
 			// if configure succeeded then start reading from FIFO
+			_state = STATE::CHECK_CONFIGURATION;
+			ScheduleDelayed(10_ms);
+
+		} else {
+			// CONFIGURE not complete
+			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+				PX4_DEBUG("Configure failed, resetting");
+				_state = STATE::RESET;
+
+			} else {
+				PX4_DEBUG("Configure failed, retrying");
+			}
+
+			ScheduleDelayed(10_ms);
+		}
+
+		break;
+
+	case STATE::CHECK_CONFIGURATION:
+		if (CheckConfiguration()) {
+			// if configuration is correct then start reading from FIFO
 			_state = STATE::FIFO_READ;
 
 			if (DataReadyInterruptConfigure()) {
@@ -222,16 +237,9 @@ void ICM20602::RunImpl()
 			FIFOReset();
 
 		} else {
-			// CONFIGURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Configure failed, resetting");
-				_state = STATE::RESET;
-
-			} else {
-				PX4_DEBUG("Configure failed, retrying");
-			}
-
-			ScheduleDelayed(100_ms);
+			// not fully configured, try again
+			_state = STATE::CONFIGURE;
+			ScheduleDelayed(10_ms);
 		}
 
 		break;
@@ -333,59 +341,22 @@ void ICM20602::RunImpl()
 	}
 }
 
-void ICM20602::ConfigureAccel()
+void ICM20602::RecordSensorOffsets()
 {
-	const uint8_t ACCEL_FS_SEL = RegisterRead(Register::ACCEL_CONFIG) & (Bit4 | Bit3); // [4:3] ACCEL_FS_SEL[1:0]
+	// offset registers (factory calibration) should not change during normal operation
+	StoreCheckedRegisterValue(Register::XG_OFFS_TC_H);
+	StoreCheckedRegisterValue(Register::XG_OFFS_TC_L);
+	StoreCheckedRegisterValue(Register::YG_OFFS_TC_H);
+	StoreCheckedRegisterValue(Register::YG_OFFS_TC_L);
+	StoreCheckedRegisterValue(Register::ZG_OFFS_TC_H);
+	StoreCheckedRegisterValue(Register::ZG_OFFS_TC_L);
 
-	switch (ACCEL_FS_SEL) {
-	case ACCEL_FS_SEL_2G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 16384.f);
-		_px4_accel.set_range(2.f * CONSTANTS_ONE_G);
-		break;
-
-	case ACCEL_FS_SEL_4G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
-		_px4_accel.set_range(4.f * CONSTANTS_ONE_G);
-		break;
-
-	case ACCEL_FS_SEL_8G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 4096.f);
-		_px4_accel.set_range(8.f * CONSTANTS_ONE_G);
-		break;
-
-	case ACCEL_FS_SEL_16G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
-		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
-		break;
-	}
-}
-
-void ICM20602::ConfigureGyro()
-{
-	const uint8_t FS_SEL = RegisterRead(Register::GYRO_CONFIG) & (Bit4 | Bit3); // [4:3] FS_SEL[1:0]
-
-	float range_dps = 0.f;
-
-	switch (FS_SEL) {
-	case FS_SEL_250_DPS:
-		range_dps = 250.f;
-		break;
-
-	case FS_SEL_500_DPS:
-		range_dps = 500.f;
-		break;
-
-	case FS_SEL_1000_DPS:
-		range_dps = 1000.f;
-		break;
-
-	case FS_SEL_2000_DPS:
-		range_dps = 2000.f;
-		break;
-	}
-
-	_px4_gyro.set_scale(math::radians(range_dps / 32768.f));
-	_px4_gyro.set_range(math::radians(range_dps));
+	StoreCheckedRegisterValue(Register::XA_OFFSET_H);
+	StoreCheckedRegisterValue(Register::XA_OFFSET_L);
+	StoreCheckedRegisterValue(Register::YA_OFFSET_H);
+	StoreCheckedRegisterValue(Register::YA_OFFSET_L);
+	StoreCheckedRegisterValue(Register::ZA_OFFSET_H);
+	StoreCheckedRegisterValue(Register::ZA_OFFSET_L);
 }
 
 void ICM20602::ConfigureSampleRate(int sample_rate)
@@ -422,11 +393,11 @@ void ICM20602::ConfigureFIFOWatermark(uint8_t samples)
 	}
 }
 
-bool ICM20602::Configure()
+bool ICM20602::CheckConfiguration()
 {
-	// first set and clear all configured register bits
-	for (const auto &reg_cfg : _register_cfg) {
-		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
+	// store sensor's offsets if we've never run before
+	if (_reset_timestamp == 0) {
+		RecordSensorOffsets();
 	}
 
 	// now check that all are configured
@@ -438,10 +409,22 @@ bool ICM20602::Configure()
 		}
 	}
 
-	ConfigureAccel();
-	ConfigureGyro();
-
 	return success;
+}
+
+bool ICM20602::Configure()
+{
+	perf_count(_configure_perf);
+
+	// first set and clear all configured register bits
+	for (const auto &reg_cfg : _register_cfg) {
+		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
+	}
+
+	// store sensor side offsets for runtime verification
+	RecordSensorOffsets();
+
+	return CheckConfiguration();
 }
 
 int ICM20602::DataReadyInterruptCallback(int irq, void *context, void *arg)
