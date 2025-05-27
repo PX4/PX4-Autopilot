@@ -454,16 +454,16 @@ MavlinkMissionManager::get_mission_state()
 
 		} else {
 			// mission started but not finished
-			if (_vehicle_status_sub.updated()) {
-				_vehicle_status_sub.copy(&_vehicle_status);
+			vehicle_status_s vehicle_status;
+
+			if (_vehicle_status_sub.update(&vehicle_status)) {
+				_nav_state = vehicle_status.nav_state;
 			}
 
-			const uint8_t nav_state = _vehicle_status.nav_state;
-
-			if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+			if (_nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 				mission_state = MISSION_STATE_ACTIVE;
 
-			} else if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+			} else if (_nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
 				mission_state = MISSION_STATE_PAUSED;
 			}
 		}

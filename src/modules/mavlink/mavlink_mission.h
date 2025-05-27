@@ -141,7 +141,7 @@ private:
 	uORB::SubscriptionData<mission_result_s> _mission_result_data{ORB_ID(mission_result)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
-	vehicle_status_s _vehicle_status;
+	uint8_t 		_nav_state;
 
 	uORB::Publication<mission_s>	_offboard_mission_pub{ORB_ID(mission)};
 
