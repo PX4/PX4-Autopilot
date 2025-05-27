@@ -44,6 +44,8 @@
 #include <sys/socket.h>
 #include <nuttx/can.h>
 #include <sys/time.h>
+#include <uORB/topics/water_presence.h>
+#include <uORB/Publication.hpp>
 
 using namespace time_literals;
 
@@ -121,4 +123,21 @@ private:
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
+	union can_id_u {
+		uint32_t can_id;
+		struct  {
+			uint8_t emergency : 2; // Emergency status
+			uint8_t module_id_src : 5;
+			uint8_t client_id_src : 5;
+			uint8_t module_id_des : 5;
+			uint8_t client_id_des : 5;
+			uint8_t session : 3;
+			uint8_t command_type : 4;
+			uint8_t rest : 3;
+		} can_id_seg;
+	};
+	can_id_u received_id;
+
+	uORB::Publication<px4::msg::WaterPresence> water_presence_pub{ORB_ID(water_presence)};
 };
