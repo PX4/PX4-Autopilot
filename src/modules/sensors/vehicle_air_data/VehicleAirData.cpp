@@ -477,6 +477,7 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 	static constexpr float kEpvReq = 8.f;
 	static constexpr float kDeltaOffsetTolerance = 4.f;
 	static constexpr uint64_t kLpfWindow = 2_s;
+	static constexpr float kLpfTimeConstant = static_cast<float>(kLpfWindow) * 1.e-6f;
 
 	sensor_gps_s gps_pos;
 
@@ -500,7 +501,7 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 	if (_calibration_t_first == 0) {
 		_calibration_t_first = gps_pos.timestamp;
 		const float dt = (_calibration_t_first - _t_first_gnss_sample) * 1.e-6f;
-		_delta_baro_gnss_lpf.setParameters(dt, kLpfWindow * 1.e-6f);
+		_delta_baro_gnss_lpf.setParameters(dt, kLpfTimeConstant);
 		_delta_baro_gnss_lpf.reset(delta_alt);
 
 	} else {
