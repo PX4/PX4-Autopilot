@@ -10,9 +10,11 @@ publications:
 
   - topic: /fmu/out/arming_check_request
     type: px4_msgs::msg::ArmingCheckRequest
+    rate_limit: 5.
 
   - topic: /fmu/out/mode_completed
     type: px4_msgs::msg::ModeCompleted
+    rate_limit: 50.
 
   - topic: /fmu/out/battery_status
     type: px4_msgs::msg::BatteryStatus
@@ -20,66 +22,80 @@ publications:
 
   - topic: /fmu/out/collision_constraints
     type: px4_msgs::msg::CollisionConstraints
+    rate_limit: 50.
 
   - topic: /fmu/out/estimator_status_flags
     type: px4_msgs::msg::EstimatorStatusFlags
+    rate_limit: 5.
 
   - topic: /fmu/out/failsafe_flags
     type: px4_msgs::msg::FailsafeFlags
+    rate_limit: 5.
 
   - topic: /fmu/out/manual_control_setpoint
     type: px4_msgs::msg::ManualControlSetpoint
+    rate_limit: 25.
 
   - topic: /fmu/out/message_format_response
     type: px4_msgs::msg::MessageFormatResponse
 
   - topic: /fmu/out/position_setpoint_triplet
     type: px4_msgs::msg::PositionSetpointTriplet
+    rate_limit: 5.
 
   - topic: /fmu/out/sensor_combined
     type: px4_msgs::msg::SensorCombined
 
   - topic: /fmu/out/timesync_status
     type: px4_msgs::msg::TimesyncStatus
+    rate_limit: 10.
 
   # - topic: /fmu/out/vehicle_angular_velocity
   #   type: px4_msgs::msg::VehicleAngularVelocity
 
   - topic: /fmu/out/vehicle_land_detected
     type: px4_msgs::msg::VehicleLandDetected
+    rate_limit: 5.
 
   - topic: /fmu/out/vehicle_attitude
     type: px4_msgs::msg::VehicleAttitude
 
   - topic: /fmu/out/vehicle_control_mode
     type: px4_msgs::msg::VehicleControlMode
+    rate_limit: 50.
 
   - topic: /fmu/out/vehicle_command_ack
     type: px4_msgs::msg::VehicleCommandAck
 
   - topic: /fmu/out/vehicle_global_position
     type: px4_msgs::msg::VehicleGlobalPosition
+    rate_limit: 50.
 
   - topic: /fmu/out/vehicle_gps_position
     type: px4_msgs::msg::SensorGps
+    rate_limit: 50.
 
   - topic: /fmu/out/vehicle_local_position
     type: px4_msgs::msg::VehicleLocalPosition
+    rate_limit: 50.
 
   - topic: /fmu/out/vehicle_odometry
     type: px4_msgs::msg::VehicleOdometry
 
   - topic: /fmu/out/vehicle_status
     type: px4_msgs::msg::VehicleStatus
+    rate_limit: 5.
 
   - topic: /fmu/out/airspeed_validated
     type: px4_msgs::msg::AirspeedValidated
+    rate_limit: 50.
 
   - topic: /fmu/out/vtol_vehicle_status
     type: px4_msgs::msg::VtolVehicleStatus
 
   - topic: /fmu/out/home_position
     type: px4_msgs::msg::HomePosition
+    rate_limit: 5.
 
 # Create uORB::Publication
 subscriptions:
