@@ -94,7 +94,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("mission_result");
 	add_topic("navigator_mission_item");
 	add_topic("navigator_status");
-	add_topic("npfg_status", 100);
 	add_topic("offboard_control_mode", 100);
 	add_topic("onboard_computer_status", 10);
 	add_topic("parameter_update");
@@ -149,6 +148,13 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_status");
 	add_optional_topic("vtol_vehicle_status", 200);
 	add_topic("wind", 1000);
+	add_topic("fixed_wing_lateral_setpoint");
+	add_topic("fixed_wing_longitudinal_setpoint");
+	add_topic("longitudinal_control_configuration");
+	add_topic("lateral_control_configuration");
+	add_optional_topic("fixed_wing_lateral_guidance_status", 100);
+	add_optional_topic("fixed_wing_lateral_status", 100);
+	add_optional_topic("fixed_wing_runway_control", 100);
 
 	// multi topics
 	add_optional_topic_multi("actuator_outputs", 100, 3);
@@ -356,6 +362,14 @@ void LoggedTopics::add_system_identification_topics()
 	add_topic("vehicle_torque_setpoint");
 	add_topic("vehicle_acceleration");
 	add_topic("actuator_motors");
+}
+
+void LoggedTopics::add_high_rate_sensors_topics()
+{
+	add_topic_multi("distance_sensor", 0, 4);
+	add_topic_multi("sensor_optical_flow", 0, 2);
+	add_topic_multi("sensor_gps", 0, 4);
+	add_topic_multi("sensor_mag", 0, 4);
 }
 
 void LoggedTopics::add_mavlink_tunnel()
@@ -572,5 +586,9 @@ void LoggedTopics::initialize_configured_topics(SDLogProfileMask profile)
 
 	if (profile & SDLogProfileMask::MAVLINK_TUNNEL) {
 		add_mavlink_tunnel();
+	}
+
+	if (profile & SDLogProfileMask::HIGH_RATE_SENSORS) {
+		add_high_rate_sensors_topics();
 	}
 }
