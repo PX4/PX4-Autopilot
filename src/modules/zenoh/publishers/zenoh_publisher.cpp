@@ -100,5 +100,5 @@ void Zenoh_Publisher::print()
 {
 	z_view_string_t keystr;
 	z_keyexpr_as_view_string(z_publisher_keyexpr(z_loan(_pub)), &keystr);
-	printf("Topic: %s\n", z_string_data(z_loan(keystr)));
+	printf("Topic: %.*s\n", (int)z_string_len(z_loan(keystr)), z_string_data(z_loan(keystr)));
 }
