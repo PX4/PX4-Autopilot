@@ -96,5 +96,6 @@ void Zenoh_Subscriber::print(const char *type_string, const char *topic_string)
 {
 	z_view_string_t keystr;
 	z_keyexpr_as_view_string(z_subscriber_keyexpr(z_loan(_sub)), &keystr);
-	printf("Topic: %s -> %s %s \n", z_string_data(z_loan(keystr)), type_string, topic_string);
+	printf("Topic: %.*s -> %s %s \n", (int)z_string_len(z_loan(keystr)), z_string_data(z_loan(keystr)), type_string,
+	       topic_string);
 }
