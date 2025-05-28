@@ -140,7 +140,7 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		ref.esc_address = msg.getSrcNodeID().get();
 		ref.esc_voltage     = msg.voltage;
 		ref.esc_current     = msg.current;
-		ref.esc_temperature = msg.temperature;
+		ref.esc_temperature = msg.temperature - 273.15f; // Kelvin to Celsius
 		ref.esc_rpm         = msg.rpm;
 		ref.esc_errorcount  = msg.error_count;
 
