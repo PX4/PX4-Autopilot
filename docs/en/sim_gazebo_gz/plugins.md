@@ -71,7 +71,7 @@ GZ_ADD_PLUGIN(YourCustomSystem, gz::sim::System,
 GZ_ADD_PLUGIN_ALIAS(YourCustomSystem, "custom::YourCustomSystem")
 ```
 
-## Enabling a plugin
+## Enabling a Plugin
 
 For world plugins all you need to do is [register the plugin](#plugin-registration) (add it to the `server.config`).
 It will then be available to all worlds and vehicles.
