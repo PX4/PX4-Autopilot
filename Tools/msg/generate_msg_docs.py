@@ -46,7 +46,7 @@ def generate_dds_yaml_doc(allMessageFiles, output_file = 'dds_topics.md'):
         messagesNotExported = all_messages_in_source - all_message_types
 
         # write out the dds file
-        dds_markdown="""# dds_topics.yaml
+        dds_markdown="""# dds_topics.yaml — PX4 Topics Exposed to ROS 2
 
 ::: info
 This document is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/msg/generate_msg_docs.py) from the source code.
@@ -66,7 +66,7 @@ Topic | Type| Rate Limit
         for message in data["publications"]:
             type = message['type']
             px4Type=type.split("::")[-1]
-            dds_markdown += f"`{message['topic']}` | [{type}](../msg_docs/{px4Type}.md) | {message.get('rate','')}\n"
+            dds_markdown += f"`{message['topic']}` | [{type}](../msg_docs/{px4Type}.md) | {message.get('rate_limit','')}\n"
 
         dds_markdown += "\n## Subscriptions\n\nTopic | Type\n--- | ---\n"
 
