@@ -32,7 +32,6 @@
 ############################################################################
 
 if(CONFIG_LIB_TFLM)
-	#add_definitions(-D__LIB_TFLM=1)
 	px4_add_git_submodule(TARGET git_tflite-micro PATH tflite_micro)
 
 	set(TFLITE_DOWNLOADS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tflite_micro/tensorflow/lite/micro/tools/make/downloads)
@@ -95,14 +94,7 @@ if(CONFIG_LIB_TFLM)
 	px4_add_library(tensorflow_lite_micro ${TFLITE_MICRO_SRCS})
 
 	if(CONFIG_BOARD_TOOLCHAIN STREQUAL "arm-none-eabi")
-		# add_definitions(
-		# 	#-include "${CMAKE_CURRENT_SOURCE_DIR}/include/bits/ctype_base_fix.h" Did not work with target_compile_options at least
-		# 	-include "${CMAKE_CURRENT_SOURCE_DIR}/include/bits/px4_tflm_adapter.h"
-		# )
-	 	# # This header is for some reason problematic with the arm-none-eabi toolchain
-		add_definitions(-include "${CMAKE_CURRENT_SOURCE_DIR}/include/bits/px4_tflm_fix.h")
-	 	#include_directories(BEFORE SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/include)
-		#include_directories(BEFORE SYSTEM "${CMAKE_CURRENT_SOURCE_DIR}/include")
+		add_definitions(-include "${CMAKE_CURRENT_SOURCE_DIR}/include/px4_tflm_fix.h")
 	endif()
 
 	target_include_directories(tensorflow_lite_micro PUBLIC ${TFLM_INCLUDE_DIRS})
