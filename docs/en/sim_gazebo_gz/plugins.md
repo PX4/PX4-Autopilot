@@ -41,8 +41,8 @@ Plugins must be registered in the [server.config](https://github.com/PX4/PX4-Aut
 
 When developing new plugins:
 
-1. **Follow the plugin architecture** - Implement appropriate interfaces (`ISystemPreUpdate`, `ISystemPostUpdate`, etc.)
-2. **Register your plugin** - Add it to `server.config` for discovery
+1. **Follow the plugin architecture** - Implement desired interfaces. You can start by copying the [Template plugin](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/simulation/gz_plugins/template_plugin) which is a simple example that only implements `ISystemPreUpdate` and `ISystemPostUpdate`. The interfaces are specified in the official [Gazebo documentation](https://gazebosim.org/api/sim/9/createsystemplugins.html).
+2. **Register your plugin** - Add it to [server.config](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/gz_bridge/server.config) for discovery
 3. **Use the custom namespace** - Follow the pattern `custom::YourPluginName`
 
 ### Example Plugin Structure
@@ -70,7 +70,7 @@ GZ_ADD_PLUGIN_ALIAS(YourCustomSystem, "custom::YourCustomSystem")
 ## Resources
 
 - **PX4 Plugins**: [Repository source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/simulation/gz_plugins)
-- **Official Gazebo Documentation**: [System Plugins Guide](https://gazebosim.org/api/sim/8/createsystemplugins.html)
+- **Official Gazebo Documentation**: [System Plugins Guide](https://gazebosim.org/api/sim/9/createsystemplugins.html)
 - **Server Configuration**: [Configuration Reference](https://gazebosim.org/api/sim/9/server_config.html)
 - **PX4 Gazebo-classic Plugins**: [PX4 Gazebo Classic Plugins](https://github.com/PX4/PX4-SITL_gazebo-classic/tree/main/src)
 
