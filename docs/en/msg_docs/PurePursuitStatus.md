@@ -13,6 +13,4 @@ float32 crosstrack_error     # [m] Shortest distance from the vehicle to the pat
 float32 distance_to_waypoint # [m] Distance from the vehicle to the current waypoint
 float32 bearing_to_waypoint  # [rad] Bearing towards current waypoint
 
-# TOPICS pure_pursuit_status
-
 ```
