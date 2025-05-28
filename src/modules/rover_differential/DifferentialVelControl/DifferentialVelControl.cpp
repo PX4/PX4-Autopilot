@@ -149,7 +149,7 @@ float DifferentialVelControl::calcSpeedSetpoint()
 		if (_rover_steering_setpoint_sub.updated()) {
 			rover_steering_setpoint_s rover_steering_setpoint{};
 			_rover_steering_setpoint_sub.copy(&rover_steering_setpoint);
-			_normalized_speed_diff = rover_steering_setpoint.normalized_speed_diff;
+			_normalized_speed_diff = rover_steering_setpoint.normalized_steering_setpoint;
 		}
 
 		if (fabsf(speed_setpoint_normalized) > 1.f - fabsf(

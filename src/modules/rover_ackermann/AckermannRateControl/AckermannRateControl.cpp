@@ -96,7 +96,7 @@ void AckermannRateControl::updateRateControl()
 
 			rover_steering_setpoint_s rover_steering_setpoint{};
 			rover_steering_setpoint.timestamp = _timestamp;
-			rover_steering_setpoint.normalized_steering_angle = math::interpolate<float>(steering_setpoint,
+			rover_steering_setpoint.normalized_steering_setpoint = math::interpolate<float>(steering_setpoint,
 					-_param_ra_max_str_ang.get(), _param_ra_max_str_ang.get(), -1.f, 1.f); // Normalize steering setpoint
 			_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
 
@@ -104,7 +104,7 @@ void AckermannRateControl::updateRateControl()
 			_pid_yaw_rate.resetIntegral();
 			rover_steering_setpoint_s rover_steering_setpoint{};
 			rover_steering_setpoint.timestamp = _timestamp;
-			rover_steering_setpoint.normalized_steering_angle = 0.f;
+			rover_steering_setpoint.normalized_steering_setpoint = 0.f;
 			_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
 		}
 	}
