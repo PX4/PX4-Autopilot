@@ -543,11 +543,55 @@ For example to control a quadrotor, you need to set the first 4 motors according
 If you want to control an actuator that does not control the vehicle's motion, but for example a payload servo, see [below](#controlling-an-independent-actuator-servo).
 :::
 
+### Controlling a VTOL
+
+<Badge type="warning" text="Experimental" />
+
+To control a VTOL in an external flight mode, ensure you're returning the correct setpoint type based on the current flight configuration:
+
+- Multicopter mode: use a setpoint type that is compatible with multicopter control. For example: either the [`GotoSetpointType`](#go-to-setpoint-gotosetpointtype) or the [`TrajectorySetpointType`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1TrajectorySetpointType.html).
+- Fixed-wing mode: Use the [`FwLateralLongitudinalSetpointType`](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype).
+
+As long as the VTOL remains in either multicopter or fixed-wing mode throughout the external mode, no additional handling is required.
+
+If you would like to command a VTOL transition in your external mode, you need to use the [VTOL API](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1VTOL.html). The VTOL API provides the functionality to command a transition and query the current state of the vehicle.
+
+Use this API with caution!
+Commanding transitions externally makes the user partially responsible for ensuring smooth and safe behavior, unlike onboard transitions (e.g. via RC switch) where PX4 handles the full process:
+
+1. Ensure that both the `TrajectorySetpointType` and the `FwLateralLongitudinalSetpointType` are available to your mode.
+2. Create an instance of `px4_ros2::VTOL` in the constructor of your mode.
+3. To command a transition, you can use the `toMulticopter()` or `toFixedwing()` methods on your VTOL object to set the desired state.
+4. During transition, send the following combination of setpoints:
+
+   ```cpp
+   // Assuming the instance of the px4_ros2::VTOL object is called vtol
+
+   // Send TrajectorySetpointType as follows:
+   Eigen::Vector3f acceleration_sp = vtol.computeAccelerationSetpointDuringTransition();
+   Eigen::Vector3f velocity_sp{NAN, NAN, 0.f};
+
+   _trajectory_setpoint->update(velocity_sp, acceleration_sp);
+
+   // Send FwLateralLongitudinalSetpointType with lateral input to realign vehicle as desired
+
+   float course_sp = 0.F; // North
+
+   _fw_lateral_longitudinal_setpoint->updateWithAltitude(NAN, course_sp)
+   ```
+
+   This will ensure that the transition is handled properly within PX4.
+   You can optionally pass a deceleration setpoint to `computeAccelerationSetpointDuringTransition()` to be used during back-transitions.
+
+To check the current state of the vehicle, use the `getCurrentState()` method on your `px4_ros2::VTOL` object.
+
+See [this external flight mode implementation](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/modes/vtol) for a practical example on how to use this API.
+
 ### Controlling an Independent Actuator/Servo
 
 If you want to control an independent actuator (a servo), follow these steps:
 
-1. [Configure the output](../payloads/generic_actuator_control.md#generic-actuator-control-with-mavlink)
+1. [Configure the output](../payloads/generic_actuator_control.md#generic-actuator-control-with-mavlink).
 2. Create an instance of [px4_ros2::PeripheralActuatorControls](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1PeripheralActuatorControls.html) in the constructor of your mode.
 3. Call the `set()` method to control the actuator(s).
    This can be done independently of any active setpoints.
