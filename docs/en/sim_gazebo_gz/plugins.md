@@ -41,9 +41,13 @@ Plugins must be registered in the [server.config](https://github.com/PX4/PX4-Aut
 
 When developing new plugins:
 
-1. **Follow the plugin architecture** - Implement desired interfaces. You can start by copying the [Template plugin](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/simulation/gz_plugins/template_plugin) which is a simple example that only implements `ISystemPreUpdate` and `ISystemPostUpdate`. The interfaces are specified in the official [Gazebo documentation](https://gazebosim.org/api/sim/9/createsystemplugins.html).
-2. **Register your plugin** - Add it to [server.config](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/gz_bridge/server.config) for discovery
-3. **Use the custom namespace** - Follow the pattern `custom::YourPluginName`
+1. **Follow the plugin architecture** - Implement desired interfaces.
+
+   You can start by copying the [Template plugin](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/simulation/gz_plugins/template_plugin) which is a simple example that only implements `ISystemPreUpdate` and `ISystemPostUpdate`.
+   The interfaces are specified in the official [Gazebo documentation](https://gazebosim.org/api/sim/9/createsystemplugins.html).
+
+2. **Register your plugin** - Add it to [server.config](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/gz_bridge/server.config) for discovery.
+3. **Use the custom namespace** - Follow the pattern `custom::YourPluginName`.
 
 ### Example Plugin Structure
 
@@ -66,6 +70,14 @@ GZ_ADD_PLUGIN(YourCustomSystem, gz::sim::System,
               YourCustomSystem::ISystemPostUpdate)
 GZ_ADD_PLUGIN_ALIAS(YourCustomSystem, "custom::YourCustomSystem")
 ```
+
+## Enabling a plugin
+
+For world plugins all you need to do is [register the plugin](#plugin-registration) (add it to the `server.config`).
+It will then be available to all worlds and vehicles.
+
+The process for adding vehicle model/sensor plugins is not documented.
+This can tracked through [PX4-Autopilot#2493](https://github.com/PX4/PX4-Autopilot/issues/24939).
 
 ## Resources
 
