@@ -82,7 +82,7 @@ void MecanumRateControl::updateRateControl()
 						    _param_ro_yaw_decel_limit.get() * M_DEG_TO_RAD_F, _param_rm_wheel_track.get(), dt);
 		rover_steering_setpoint_s rover_steering_setpoint{};
 		rover_steering_setpoint.timestamp = _timestamp;
-		rover_steering_setpoint.normalized_speed_diff = speed_diff_normalized;
+		rover_steering_setpoint.normalized_steering_setpoint = speed_diff_normalized;
 		_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
 
 	} else {

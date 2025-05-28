@@ -154,7 +154,7 @@ Vector2f MecanumVelControl::calcSpeedSetpoint()
 	if (_rover_steering_setpoint_sub.updated()) {
 		rover_steering_setpoint_s rover_steering_setpoint{};
 		_rover_steering_setpoint_sub.copy(&rover_steering_setpoint);
-		_normalized_speed_diff = rover_steering_setpoint.normalized_speed_diff;
+		_normalized_speed_diff = rover_steering_setpoint.normalized_steering_setpoint;
 	}
 
 	float speed_x_setpoint_normalized = math::interpolate<float>(_speed_x_setpoint,
