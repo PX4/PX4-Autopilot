@@ -5,6 +5,7 @@ Gazebo plugins extend the simulator with custom functionality not provided by de
 ## Plugin Types
 
 Plugins can be attached to these entity types:
+
 - **World** - Global simulation behavior
 - **Model** - Specific model functionality
 - **Sensor** - Custom sensor implementations
@@ -14,14 +15,10 @@ Plugins can be attached to these entity types:
 
 PX4 currently supports these plugins:
 
-#### OpticalFlowSystem
-Provides optical flow sensor simulation using OpenCV-based flow calculation.
-
-#### GstCameraSystem
-Streams camera feeds via UDP (RTP/H.264) or RTMP with optional NVIDIA CUDA hardware acceleration.
-
-#### MovingPlatformController
-Controls moving platforms (ships, trucks, etc.) for takeoff and landing scenarios. Includes configurable velocity, heading, and random fluctuations.
+- [OpticalFlowSystem](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/simulation/gz_plugins/optical_flow): Provides optical flow sensor simulation using OpenCV-based flow calculation.
+- [GstCameraSystem](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/simulation/gz_plugins/gstreamer): Streams camera feeds via UDP (RTP/H.264) or RTMP with optional NVIDIA CUDA hardware acceleration.
+- [MovingPlatformController](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/simulation/gz_plugins/moving_platform_controller): Controls moving platforms (ships, trucks, etc.) for takeoff and landing scenarios.
+  Includes configurable velocity, heading, and random fluctuations.
 
 ## Plugin Registration
 
