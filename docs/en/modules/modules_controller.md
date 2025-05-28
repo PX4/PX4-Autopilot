@@ -95,22 +95,45 @@ fw_att_control <command> [arguments...]
    status        print status info
 ```
 
-## fw_pos_control
+## fw_lat_lon_control
 
-Source: [modules/fw_pos_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/fw_pos_control)
+Source: [modules/fw_lateral_longitudinal_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/fw_lateral_longitudinal_control)
 
 
 ### Description
-fw_pos_control is the fixed-wing position controller.
+fw_lat_lon_control computes attitude and throttle setpoints from lateral and longitudinal control setpoints.
 
 
-### Usage {#fw_pos_control_usage}
+### Usage {#fw_lat_lon_control_usage}
 
 ```
-fw_pos_control <command> [arguments...]
+fw_lat_lon_control <command> [arguments...]
  Commands:
    start
      [vtol]      VTOL mode
+
+   stop
+
+   status        print status info
+```
+
+## fw_mode_manager
+
+Source: [modules/fw_mode_manager](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/fw_mode_manager)
+
+
+### Description
+This implements the setpoint generation for all PX4-internal fixed-wing modes, height-rate control and higher.
+It takes the current mode state of the vehicle as input and outputs setpoints consumed by the fixed-wing
+lateral-longitudinal controller and and controllers below that (attitude, rate).
+
+
+### Usage {#fw_mode_manager_usage}
+
+```
+fw_mode_manager <command> [arguments...]
+ Commands:
+   start
 
    stop
 
