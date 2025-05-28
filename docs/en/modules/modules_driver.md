@@ -290,7 +290,9 @@ dshot <command> [arguments...]
    start
 
    telemetry     Enable Telemetry on a UART
-     <device>    UART device
+     -d <val>    UART device
+                 values: <device>
+     [-x]        Swap RX/TX pins
 
    reverse       Reverse motor direction
      [-m <val>]  Motor index (1-based, default=all)
