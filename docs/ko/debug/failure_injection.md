@@ -61,7 +61,7 @@ failure <component> <failure_type> [-i <instance_number>]
 - _instance number_ (optional): Instance number of affected sensor.
   0 (기본값) 지정된 유형의 모든 센서를 나타냅니다.
 
-### 예
+### Example
 
 To simulate losing RC signal without having to turn off your RC controller:
 

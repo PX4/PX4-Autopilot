@@ -71,7 +71,7 @@ For ExpressLRS receivers wire to the flight controller UART as shown below (wiri
 ### Firmware Configuration/Build
 
 CRSF telemetry support is not included in any PX4 firmware by default.
-To use this feature you must build and upload custom firmware that includes [crsf-rc](../modules/modules_driver.md#crsf-rc) and removes [rc_input](../modules/modules_driver.md#rc-input).
+To use this feature you must build and upload custom firmware that includes [crsf-rc](../modules/modules_driver_radio_control.md#crsf-rc) and removes [rc_input](../modules/modules_driver_radio_control.md#rc-input).
 
 The steps are:
 
