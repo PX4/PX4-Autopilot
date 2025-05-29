@@ -543,24 +543,6 @@ union innovation_fault_status_u {
 	uint16_t value;
 };
 
-// publish the status of various GPS quality checks
-union gps_check_fail_status_u {
-	struct {
-		uint16_t fix    : 1; ///< 0 - true if the fix type is insufficient (no 3D solution)
-		uint16_t nsats  : 1; ///< 1 - true if number of satellites used is insufficient
-		uint16_t pdop   : 1; ///< 2 - true if position dilution of precision is insufficient
-		uint16_t hacc   : 1; ///< 3 - true if reported horizontal accuracy is insufficient
-		uint16_t vacc   : 1; ///< 4 - true if reported vertical accuracy is insufficient
-		uint16_t sacc   : 1; ///< 5 - true if reported speed accuracy is insufficient
-		uint16_t hdrift : 1; ///< 6 - true if horizontal drift is excessive (can only be used when stationary on ground)
-		uint16_t vdrift : 1; ///< 7 - true if vertical drift is excessive (can only be used when stationary on ground)
-		uint16_t hspeed : 1; ///< 8 - true if horizontal speed is excessive (can only be used when stationary on ground)
-		uint16_t vspeed : 1; ///< 9 - true if vertical speed error is excessive
-		uint16_t spoofed: 1; ///< 10 - true if the GNSS data is spoofed
-	} flags;
-	uint16_t value;
-};
-
 // bitmask containing filter control status
 union filter_control_status_u {
 	struct {

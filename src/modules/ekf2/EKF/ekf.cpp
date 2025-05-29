@@ -94,8 +94,7 @@ void Ekf::reset()
 	_innov_check_fail_status.value = 0;
 
 #if defined(CONFIG_EKF2_GNSS)
-	resetGpsDriftCheckFilters();
-	_gps_checks_passed = false;
+	_gnss_checks.resetHard();
 #endif // CONFIG_EKF2_GNSS
 	_local_origin_alt = NAN;
 
