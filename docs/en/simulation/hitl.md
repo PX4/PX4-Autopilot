@@ -60,6 +60,17 @@ In summary, HITL runs PX4 on the actual hardware using standard firmware, but SI
 
 ## Setting up HITL
 
+:::warning
+Make sure these parameters have been set for the firmware uploaded to flight controller
+```
+CONFIG_MODULES_SIMULATION_PWM_OUT_SIM=y
+CONFIG_MODULES_SIMULATION_SENSOR_BARO_SIM =y
+CONFIG_MODULES_SIMULATION_SENSOR_GPS_SIM =y
+CONFIG_MODULES_SIMULATION_SENSOR_MAG_SIM =y
+```
+example: for cubeorange plus board edit PX4-Autopilot/boards/cubepilot/cubeorangeplus/default.px4board and enable above modules
+:::
+
 ### PX4 Configuration
 
 1. Connect the autopilot directly to _QGroundControl_ via USB.
@@ -69,6 +80,11 @@ In summary, HITL runs PX4 on the actual hardware using standard firmware, but SI
    1. Enable HITL mode by selecting **Enabled** from the _HITL Enabled_ list:
 
       ![QGroundControl HITL configuration](../../assets/gcs/qgc_hitl_config.png)
+
+   :::info
+   HITL can be also enabled by setting parameter SYS_HITL to "HITL Enabled"
+   :::
+   ![QGroundControl SYS_HITL configuration](../../assets/gcs/qgc_sys_hitl.png)
 
 1. Select Airframe
 
@@ -159,6 +175,23 @@ Make sure _QGroundControl_ is not running!
 
 1. Start _QGroundControl_.
    It should autoconnect to PX4 and jMAVSim.
+
+## Common Problems
+Problem: Simulator in HITL not receiving motor commands
+
+Solution: Map the functions for your airframe. For a standard Quadcopter X:
+
+`HIL_ACT_FUNC1`: Set to Motor 1 (Value typically 101)
+
+`HIL_ACT_FUNC2`: Set to Motor 2 (Value typically 102)
+
+`HIL_ACT_FUNC3`: Set to Motor 3 (Value typically 103)
+
+`HIL_ACT_FUNC4`: Set to Motor 4 (Value typically 104)
+
+Leave others Disabled unless needed.
+![HITL ACTUATOR FUNCTIONS](../../assets/gcs/qgc_hil_debug.png)
+
 
 ## Fly an Autonomous Mission in HITL
 
