@@ -87,9 +87,11 @@ Topic | Type| Rate Limit
 
         if messagesNotExported:
             # Print the topics that are not exported to DDS
-            dds_markdown += "\n## Messages Not Published/Subscribed\n\nThese messages are not listed in the yaml file, and hence are neither published or subscribed\n\n"
+            dds_markdown += "\n## Messages Exported\n\nThese messages are not listed in the yaml file, and hence are neither published or subscribed."
+            dds_markdown += "\n\n::: details See messages\n"
             for item in  messagesNotExported:
-                dds_markdown += f"[{item}](../msg_docs/{item}.md), "
+                dds_markdown += f"\n- [{item}](../msg_docs/{item}.md)"
+            dds_markdown += "\n:::\n" # End of details block
 
         #print(dds_markdown)
         with open(output_file_path, 'w') as content_file:
