@@ -5,4 +5,5 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		rs_canfd_receiver.cpp
+		rs_canfd_receiver.hpp
 	)

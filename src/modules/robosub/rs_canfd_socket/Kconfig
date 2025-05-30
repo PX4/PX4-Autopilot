@@ -1,0 +1,12 @@
+menuconfig MODULES_ROBOSUB_RS_CANFD_SOCKET
+	bool "robosub_canfd_socket"
+	default n
+	---help---
+		Enable support for robosub_canfd_socket
+
+menuconfig USER_ROBOSUB_RS_CANFD_SOCKET
+	bool "robosub_canfd_socket running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_ROBOSUB_RS_CANFD_SOCKET
+	---help---
+		Put robosub_canfd_sender in userspace memory

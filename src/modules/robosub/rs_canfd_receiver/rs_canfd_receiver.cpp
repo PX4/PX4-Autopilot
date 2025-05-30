@@ -65,181 +65,64 @@ int RoboSubCANFDReceiver::task_spawn(int argc, char *argv[])
 {
 	RoboSubCANFDReceiver *instance = new RoboSubCANFDReceiver();
 
-	if (!instance) {
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
 		PX4_ERR("alloc failed");
-		return -1;
 	}
 
-	_object.store(instance);
-	_task_id = px4_task_spawn_cmd("rs_canfd_receiver",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_DEFAULT,
-				      2000,
-				      (px4_main_t)&run_trampoline,
-				      argv);
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
 
-	if (_task_id < 0) {
-		delete instance;
-		_object.store(nullptr);
-		return -1;
-	}
-
-	return 0;
+	return PX4_ERROR;
 }
 
-RoboSubCANFDReceiver *RoboSubCANFDReceiver::instantiate(int argc, char *argv[])
+bool RoboSubCANFDReceiver::init()
 {
-
-	RoboSubCANFDReceiver *instance = new RoboSubCANFDReceiver();
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
+	if (!_raw_canfd_sub.registerCallback()) {
+		PX4_ERR("callback registration failed");
+		return false;
 	}
-
-	return instance;
+	PX4_DEBUG("RoboSubCANFDReceiver::init()");
+	return true;
 }
 
 RoboSubCANFDReceiver::RoboSubCANFDReceiver()
-        : ModuleParams(nullptr)
+        : ModuleParams(nullptr),
+	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 	/* performance counters */
 	// _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
+	// perf_free(_loop_perf);
 }
 
-bool RoboSubCANFDReceiver::setup_can_socket()
-{
-	PX4_INFO("RoboSubCANFDReceiver::setup_can_socket()");
 
-	s = socket(PF_CAN, SOCK_RAW, CAN_RAW);
-    	if (s < 0) {
-        	PX4_ERR("Failed to open CAN socket");
-        	return 0;
-    	}
-
-	snprintf(ifr.ifr_name, IFNAMSIZ, "can%li", index);
-	ifr.ifr_name[IFNAMSIZ - 1] = '\0';
-	ifr.ifr_ifindex = if_nametoindex(ifr.ifr_name);
-
-	if (!ifr.ifr_ifindex) {
-		PX4_ERR("if_nametoindex");
-		return 0;
-	}
-
-	memset(&addr, 0, sizeof(addr));
-	addr.can_family = AF_CAN;
-	addr.can_ifindex = ifr.ifr_ifindex;
-
-	if (setsockopt(s, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0) {
-		PX4_ERR("SO_TIMESTAMP is disabled");
-		return 0;
-	}
-
-	if (setsockopt(s, SOL_CAN_RAW, CAN_RAW_TX_DEADLINE, &on, sizeof(on)) < 0) {
-		PX4_ERR("CAN_RAW_TX_DEADLINE is disabled");
-		return 0;
-	}
-
-	if (can_fd) {
-		if (setsockopt(s, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &on, sizeof(on)) < 0) {
-			PX4_ERR("no CAN FD support");
-			return 0;
-		}
-	}
-
-	if (bind(s, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-		PX4_ERR("bind");
-		return 0;
-	}
-
-	_send_iov.iov_base = &_send_frame;
-
-	if (can_fd) {
-		_send_iov.iov_len = sizeof(struct canfd_frame);
-
-	} else {
-		_send_iov.iov_len = sizeof(struct can_frame);
-	}
-
-	memset(&_send_control, 0x00, sizeof(_send_control));
-
-	_send_msg.msg_iov    = &_send_iov;
-	_send_msg.msg_iovlen = 1;
-	_send_msg.msg_control = &_send_control;
-	_send_msg.msg_controllen = sizeof(_send_control);
-
-	_send_cmsg = CMSG_FIRSTHDR(&_send_msg);
-	_send_cmsg->cmsg_level = SOL_CAN_RAW;
-	_send_cmsg->cmsg_type = CAN_RAW_TX_DEADLINE;
-	_send_cmsg->cmsg_len = sizeof(struct timeval);
-	_send_tv = (struct timeval *)CMSG_DATA(_send_cmsg);
-
-	_recv_iov.iov_base = &_recv_frame;
-
-	if (can_fd) {
-		_recv_iov.iov_len = sizeof(struct canfd_frame);
-
-	} else {
-		_recv_iov.iov_len = sizeof(struct can_frame);
-	}
-
-	memset(_recv_control, 0x00, sizeof(_recv_control));
-
-	_recv_msg.msg_iov = &_recv_iov;
-	_recv_msg.msg_iovlen = 1;
-	_recv_msg.msg_control = &_recv_control;
-	_recv_msg.msg_controllen = sizeof(_recv_control);
-	_recv_cmsg = CMSG_FIRSTHDR(&_recv_msg);
-
-	_recv_msg.msg_name = &addr;
-	_recv_msg.msg_namelen = sizeof(addr);
-
-	return 1;
-}
-
-void RoboSubCANFDReceiver::run()
+void RoboSubCANFDReceiver::Run()
 {
 	PX4_INFO("RoboSubCANFDReceiver::Run()");
 	parameters_update();
 
-	if (!setup_can_socket()) {
-		PX4_ERR("Failed to init CAN socket");
-		return;
-	}
+	_raw_canfd_sub.update(&_raw_canfd_msg);
 
-	while (!should_exit()) {
-		nbytes = recvmsg(s, &_recv_msg, 0);
+	received_id.id = _raw_canfd_msg.id; // Put the received can id in the union to parse the id.
 
-		if (nbytes < 0) {
-			if (errno != EAGAIN && errno != EWOULDBLOCK) {
-				PX4_ERR("recvmsg failed: %d", errno);
-			}
-			usleep(10000); // avoid spinning
-			continue;
-		}
-		if (nbytes < (int)sizeof(struct canfd_frame)) { // check if theres enough bytes received to be a valid canfd message
-			PX4_ERR("Received short CAN frame: %d bytes", nbytes);
-			continue;
-		}
-		if (_recv_frame.can_id & CAN_ERR_FLAG) { // check for error flags
-			PX4_ERR("Received error frame: ID=0x%lx, Length=%d", _recv_frame.can_id, _recv_frame.len);
-			continue;
-		}
+	if (received_id.can_id_seg.module_id_src == 0x02) { // Check if the src module is 0x02 (mainbrain)
+		if (received_id.can_id_seg.client_id_src == 0x04) { // check if the src client id is 0x04 (LP4 GPIO non contact water level)
+			water_presence_s water_presence_msg{}; // create the temp message struct
+			water_presence_msg.timestamp = hrt_absolute_time(); // set the timestamp
+			water_presence_msg.water_detected = _raw_canfd_msg.data[0]; // set the water detected bit, this should be the first byte
 
-		received_id.can_id = _recv_frame.can_id; // But the received can id in the union to parse the id.
-
-		if (received_id.can_id_seg.module_id_src == 0x02) { // Check if the src module is 0x02 (mainbrain)
-			if (received_id.can_id_seg.client_id_src == 0x04) { // check if the src client id is 0x04 (LP4 GPIO non contact water level)
-				water_presence_s water_presence_msg{}; // create the temp message struct
-				water_presence_msg.timestamp = hrt_absolute_time(); // set the timestamp
-				water_presence_msg.water_detected = _recv_frame.data[0]; // setthe water detected bit, this should be the first byte
-
-				water_presence_pub.publish(water_presence_msg); // publish the data
-			}
+			water_presence_pub.publish(water_presence_msg); // publish the data
 		}
 	}
-	// cleanup
-	close(s);
-	PX4_INFO("RoboSubCANFDReceiver thread exiting");
+
 	return;
 }
 
