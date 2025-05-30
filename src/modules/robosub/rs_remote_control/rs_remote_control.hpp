@@ -54,8 +54,26 @@
  class RobosubRemoteControl : public ModuleBase<RobosubRemoteControl>,  public ModuleParams, public px4::ScheduledWorkItem
  {
  public:
+
+	#define TASK_INIT 0b000
+	#define TASK_DEFAULT 0b001
+	#define TASK_AUTONOMOUS 0b010
+	#define TASK_REMOTE_CONTROLLED 0b111
+
+	enum MotorID {
+    	MOTOR_FORWARDS1  = 101,
+    	MOTOR_FORWARDS2	 = 102,
+    	MOTOR_UP1   	 = 103,
+    	MOTOR_UP2 	 = 104,
+    	MOTOR_UP3 	 = 105,
+    	MOTOR_SIDE1 	 = 106,
+    	MOTOR_SIDE2  	 = 107
+	};
+
 	 RobosubRemoteControl();
 	~RobosubRemoteControl();
+
+
 
 	void receiver();
 
@@ -85,10 +103,6 @@
 	  * @param force for a parameter update
 
 	  */
-
-	#define TASK_INIT 0b000
-	#define TASK_DEFAULT 0b001
-	#define TASK_REMOTE_CONTROLLED 0b111
 
 	perf_counter_t	_loop_perf;
 
