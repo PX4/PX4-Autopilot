@@ -173,6 +173,9 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 				case 0b1001:
 					drone_task.task = TASK_DEFAULT;
 				break;
+				case 0b1010:
+					drone_task.task = TASK_AUTONOMOUS;
+				break;
 				case 0b1111:
 					drone_task.task = TASK_REMOTE_CONTROLLED;
 				break;
@@ -235,20 +238,20 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 				normalized[3] = math::constrain(normalized[3], -range, range);
 
 
-				robosub_motor_control.actuator_test(101, normalized[0], 0, false);
-				robosub_motor_control.actuator_test(102, normalized[0], 0, false);
-				robosub_motor_control.actuator_test(103, normalized[1], 0, false);
-				robosub_motor_control.actuator_test(104, (normalized[1] * 0.5f), 0, false);
-				robosub_motor_control.actuator_test(105, (normalized[1] * 0.5f), 0, false);
+				robosub_motor_control.actuator_test(MOTOR_FORWARDS1, 	normalized[0], 0, false);
+				robosub_motor_control.actuator_test(MOTOR_FORWARDS2, 	normalized[0], 0, false);
+				robosub_motor_control.actuator_test(MOTOR_UP1, 		normalized[1], 0, false);
+				robosub_motor_control.actuator_test(MOTOR_UP2, 		(normalized[1] * 0.5f), 0, false);
+				robosub_motor_control.actuator_test(MOTOR_UP3, 		(normalized[1] * 0.5f), 0, false);
 				if(normalized[2] > 0.1f || normalized[2] < -0.1f)
 				{
-					robosub_motor_control.actuator_test(106, normalized[2], 0, false);
-					robosub_motor_control.actuator_test(107, normalized[2], 0, false);
+					robosub_motor_control.actuator_test(MOTOR_SIDE1, normalized[2], 0, false);
+					robosub_motor_control.actuator_test(MOTOR_SIDE2, normalized[2], 0, false);
 				}
 				 else
 				{
-					robosub_motor_control.actuator_test(106, -normalized[3], 0, false);
-					robosub_motor_control.actuator_test(107, normalized[3], 0, false);
+					robosub_motor_control.actuator_test(MOTOR_SIDE1, -normalized[3], 0, false);
+					robosub_motor_control.actuator_test(MOTOR_SIDE2, normalized[3], 0, false);
 				}
 			}
 			update1 = 0;

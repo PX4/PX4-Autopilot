@@ -38,6 +38,7 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <matrix/math.hpp>
+#include "rs_remote_control.hpp"
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
@@ -50,6 +51,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/drone_task.h>
 #include <uORB/uORB.h>
 
 using matrix::Eulerf;
@@ -62,7 +64,7 @@ using uORB::SubscriptionData;
 
 using namespace time_literals;
 
-class RobosubPosControl: public ModuleBase<RobosubPosControl>, public ModuleParams, public px4::WorkItem
+class RobosubPosControl: public ModuleBase<RobosubPosControl>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	RobosubPosControl();
@@ -76,12 +78,28 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	void actuator_test(int function, float value, int timeout_ms, bool release_control);
-
 	bool init();
 
 private:
+	// PID state
+	float _integral = 0.0f;
+	float _previous_error = 0.0f;
+
+	// PID gains
+	float _Kp = 2.0f;
+	float _Ki = 0.5f;
+	float _Kd = 0.1f;
+
+	// Constants
+	const float SURFACE_PRESSURE = 1.0f;     // bar
+	const float METER_PER_BAR = 10.0f;       // 1 bar = 10 meters
+	const float SETPOINT = 0.5f;             // meters
+
+
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _drone_task_sub{ORB_ID(drone_task)};
+
+	drone_task_s _drone_task{};
 
 	perf_counter_t	_loop_perf;
 
@@ -91,5 +109,6 @@ private:
 	* Update our local parameter cache.
 	*/
 	void parameters_update(bool force = false);
+	void posControl();
 
 };

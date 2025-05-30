@@ -39,6 +39,7 @@
 */
 
 #include "rs_pos_control.hpp"
+#include "../rs_motor_control/rs_motor_control.hpp"
 #include "px4_platform_common/defines.h"
 #include "px4_platform_common/log.h"
 
@@ -53,7 +54,7 @@ extern "C" __EXPORT int rs_pos_control_main(int argc, char *argv[]);
 
 RobosubPosControl::RobosubPosControl():
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
@@ -66,7 +67,7 @@ RobosubPosControl::~RobosubPosControl()
 
 bool RobosubPosControl::init()
 {
-	ScheduleNow();
+	ScheduleOnInterval(100_ms);
 	PX4_DEBUG("RobosubPosControl::init()");
 	return true;
 }
@@ -96,15 +97,55 @@ void RobosubPosControl::Run()
 
 	perf_begin(_loop_perf);
 
-	/* check vehicle control mode for changes to publication state */
-	//  _vcontrol_mode_sub.update(&_vcontrol_mode);
-	_vcontrol_mode_sub.update(&_vcontrol_mode);
 
 	/* update parameters from storage */
 	parameters_update();
+	posControl();
 
 	perf_end(_loop_perf);
 }
+
+void RobosubPosControl::posControl()
+{
+	if (_drone_task_sub.update(&_drone_task)) {
+		drone_task_s drone_task{};
+		_drone_task_sub.copy(&drone_task);
+
+		if (drone_task.task == TASK_AUTONOMOUS) {
+
+			// Constants
+			const float setpointPressure = SURFACE_PRESSURE + (SETPOINT / METER_PER_BAR);
+
+			// Simulated or subscribed current pressure
+			// Replace with actual sensor input when available
+			float currentPressure = _drone_task.current_pressure; // e.g., 1.02 bar
+
+			// PID calculation
+			float error = setpointPressure - currentPressure;
+
+			// PX4 delta time calculation
+			const hrt_abstime now = hrt_absolute_time();
+			static hrt_abstime last_time = now;
+			const float dt = math::constrain((now - last_time) / 1e6f, 0.001f, 1.0f); // dt in seconds
+			last_time = now;
+
+			_integral += error * dt;
+			float derivative = (error - _previous_error) / dt;
+			_previous_error = error;
+
+			float thrust = _Kp * error + _Ki * _integral + _Kd * derivative;
+
+			// Clamp thrust between -1.0 and 1.0
+			thrust = math::constrain(thrust, -1.0f, 1.0f);
+
+			// Output thrust to the motors
+			robosub_motor_control.actuator_test(MOTOR_UP1, 		thrust, 0, false);
+			robosub_motor_control.actuator_test(MOTOR_UP2, 		(thrust * 0.5f), 0, false);
+			robosub_motor_control.actuator_test(MOTOR_UP3, 		(thrust * 0.5f), 0, false);
+		}
+	}
+}
+
 
 int RobosubPosControl::task_spawn(int argc, char *argv[])
 {
