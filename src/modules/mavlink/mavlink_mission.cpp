@@ -463,9 +463,10 @@ MavlinkMissionManager::get_mission_state()
 
 		} else {
 			// mission started but not finished
-			vehicle_status_s vehicle_status;
 
-			if (_vehicle_status_sub.update(&vehicle_status)) {
+			if (_vehicle_status_sub.updated()) {
+				vehicle_status_s vehicle_status;
+				_vehicle_status_sub.copy(&vehicle_status);
 				_nav_state = vehicle_status.nav_state;
 			}
 
