@@ -440,6 +440,15 @@ MavlinkMissionManager::get_current_mission_type_crc()
 uint8_t
 MavlinkMissionManager::get_mission_state()
 {
+
+	// This function may be called even when there is no new MissionResult message,
+	// since MissionResult is not published at a fixed interval. As a result,
+	// we can't distinguish between:
+	//   a) a true mode change (e.g., exiting mission mode),
+	//   b) or simply a lack of new MissionResult data.
+	// To work around this, we use the current navigation state (nav_state) to help
+	// determine if the vehicle is still actively executing a mission.
+
 	uint8_t mission_state = MISSION_STATE_UNKNOWN;
 
 	const mission_result_s &mission_result = _mission_result_data.get();
