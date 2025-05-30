@@ -228,7 +228,6 @@ endif()
 # project definition
 #
 project(px4 CXX C ASM)
-
 # CMake build type (Debug Release RelWithDebInfo MinSizeRel Coverage)
 if(NOT CMAKE_BUILD_TYPE)
 	if(${PX4_PLATFORM} STREQUAL "nuttx")

@@ -181,7 +181,6 @@ void PWMOut::Run()
 		// clear update
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
-
 		// update parameters from storage
 		update_params();
 	}

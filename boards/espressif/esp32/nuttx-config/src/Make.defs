@@ -1,0 +1,72 @@
+############################################################################
+# boards/xtensa/esp32/esp32-devkitc/scripts/Make.defs
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.  The
+# ASF licenses this file to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance with the
+# License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+############################################################################
+
+include $(TOPDIR)/.config
+include $(TOPDIR)/tools/Config.mk
+include $(TOPDIR)/tools/esp32/Config.mk
+include $(TOPDIR)/arch/xtensa/src/lx6/Toolchain.defs
+
+ARCHSCRIPT += $(BOARD_COMMON_DIR)$(DELIM)scripts$(DELIM)esp32_rom.ld
+
+# Pick the linker scripts from the board level if they exist, if not
+# pick the common linker scripts.
+
+ifeq ($(CONFIG_BUILD_PROTECTED),y)
+  ARCHSCRIPT += $(call FINDSCRIPT,protected_memory.ld)
+  ARCHSCRIPT += $(call FINDSCRIPT,kernel-space.ld)
+else
+  ARCHSCRIPT += $(call FINDSCRIPT,flat_memory.ld)
+
+  ifeq ($(CONFIG_ESP32_APP_FORMAT_MCUBOOT),y)
+    ARCHSCRIPT += $(call FINDSCRIPT,mcuboot_sections.ld)
+  else
+    ARCHSCRIPT += $(call FINDSCRIPT,legacy_sections.ld)
+  endif
+endif
+
+ARCHPICFLAGS = -fpic
+
+# if SPIRAM/PSRAM is used then we need to include a workaround
+
+ifeq ($(CONFIG_ESP32_SPIRAM),y)
+  ARCHCFLAGS += -mfix-esp32-psram-cache-issue
+endif
+
+CFLAGS := $(ARCHCFLAGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRAFLAGS) -pipe
+CPICFLAGS = $(ARCHPICFLAGS) $(CFLAGS)
+CXXFLAGS := $(ARCHCXXFLAGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(ARCHXXINCLUDES) $(ARCHDEFINES) $(EXTRAFLAGS) -pipe
+CXXPICFLAGS = $(ARCHPICFLAGS) $(CXXFLAGS)
+CPPFLAGS := $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRAFLAGS)
+AFLAGS := $(CFLAGS) -D__ASSEMBLY__
+
+# Loadable module definitions
+
+CMODULEFLAGS = $(CFLAGS) -mtext-section-literals
+
+LDMODULEFLAGS = -r -e module_initialize
+LDMODULEFLAGS += -T $(call CONVERT_PATH,$(TOPDIR)/libs/libc/modlib/gnu-elf.ld)
+
+# ELF module definitions
+
+CELFFLAGS = $(CFLAGS) -mtext-section-literals
+CXXELFFLAGS = $(CXXFLAGS) -mtext-section-literals
+
+LDELFFLAGS = -r -e main
+LDELFFLAGS += -T $(call CONVERT_PATH,$(TOPDIR)$(DELIM)binfmt$(DELIM)libelf$(DELIM)gnu-elf.ld)
