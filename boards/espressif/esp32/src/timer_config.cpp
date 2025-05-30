@@ -38,10 +38,10 @@ constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
 };
 
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
-	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel0}, {GPIO::Pin2}),
-	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel1}, {GPIO::Pin13}),
-	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel2}, {GPIO::Pin16}),
-	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel3}, {GPIO::Pin17}),
+	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel0}, {GPIO::Pin(CONFIG_ESP32_LEDC_CHANNEL0_PIN)}),
+	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel1}, {GPIO::Pin(CONFIG_ESP32_LEDC_CHANNEL1_PIN)}),
+	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel2}, {GPIO::Pin(CONFIG_ESP32_LEDC_CHANNEL2_PIN)}),
+	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel3}, {GPIO::Pin(CONFIG_ESP32_LEDC_CHANNEL3_PIN)}),
 };
 
 // constexpr io_timers_channel_mapping_t io_timers_channel_mapping = initIOTimerChannelMapping(io_timers,

@@ -37,13 +37,13 @@
 const constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 #ifdef CONFIG_ESP32_SPI2
 	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::Pin4}),
+		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::Pin(CONFIG_ESP32_SPI2_CSPIN)}),
 
 	}),
 #endif
 #ifdef CONFIG_ESP32_SPI3
 	initSPIBus(SPI::Bus::SPI3, {
-		initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::Pin5})
+		initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::Pin(CONFIG_ESP32_SPI3_CSPIN)})
 
 	}),
 #endif
