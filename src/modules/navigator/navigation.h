@@ -46,16 +46,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#if defined(MEMORY_CONSTRAINED_SYSTEM)
-#  define NUM_MISSIONS_SUPPORTED 50
-#elif defined(__PX4_POSIX)
-#  define NUM_MISSIONS_SUPPORTED (UINT16_MAX-1) // This is allocated as needed.
-#elif defined(RAM_BASED_MISSIONS)
-#  define NUM_MISSIONS_SUPPORTED 500
-#else
-#  define NUM_MISSIONS_SUPPORTED 500
-#endif
-
 /* compatible to mavlink MAV_CMD */
 enum NAV_CMD {
 	NAV_CMD_IDLE = 0,
@@ -86,6 +76,7 @@ enum NAV_CMD {
 	NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL = 214,
 	NAV_CMD_DO_SET_CAM_TRIGG_DIST = 206,
 	NAV_CMD_OBLIQUE_SURVEY = 260,
+	NAV_CMD_COMPONENT_ARM_DISARM = 400,
 	NAV_CMD_SET_CAMERA_MODE = 530,
 	NAV_CMD_SET_CAMERA_SOURCE = 534,
 	NAV_CMD_SET_CAMERA_ZOOM = 531,

@@ -100,10 +100,12 @@ public:
 			}
 
 			// reading_type
+			const float tolerance = 1e-6;
+
 			if (dist.current_distance > dist.max_distance) {
 				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_TOO_FAR;
 
-			} else if (dist.current_distance < dist.min_distance) {
+			} else if (dist.current_distance < dist.min_distance - tolerance) {
 				range_sensor.reading_type = uavcan::equipment::range_sensor::Measurement::READING_TYPE_TOO_CLOSE;
 
 			} else if (dist.signal_quality != 0) {

@@ -16,6 +16,7 @@ publications:
 
   - topic: /fmu/out/battery_status
     type: px4_msgs::msg::BatteryStatus
+    rate_limit: 1.
 
   - topic: /fmu/out/collision_constraints
     type: px4_msgs::msg::CollisionConstraints
@@ -73,6 +74,12 @@ publications:
 
   - topic: /fmu/out/airspeed_validated
     type: px4_msgs::msg::AirspeedValidated
+
+  - topic: /fmu/out/vtol_vehicle_status
+    type: px4_msgs::msg::VtolVehicleStatus
+
+  - topic: /fmu/out/home_position
+    type: px4_msgs::msg::HomePosition
 
 # Create uORB::Publication
 subscriptions:
@@ -156,6 +163,18 @@ subscriptions:
 
   - topic: /fmu/in/aux_global_position
     type: px4_msgs::msg::VehicleGlobalPosition
+
+  - topic: /fmu/in/fixed_wing_longitudinal_setpoint
+    type: px4_msgs::msg::FixedWingLongitudinalSetpoint
+
+  - topic: /fmu/in/fixed_wing_lateral_setpoint
+    type: px4_msgs::msg::FixedWingLateralSetpoint
+
+  - topic: /fmu/in/longitudinal_control_configuration
+    type: px4_msgs::msg::LongitudinalControlConfiguration
+
+  - topic: /fmu/in/lateral_control_configuration
+    type: px4_msgs::msg::LateralControlConfiguration
 
 # Create uORB::PublicationMulti
 subscriptions_multi:

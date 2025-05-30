@@ -91,6 +91,7 @@ px4_add_romfs_files(
 	4018_gz_quadtailsitter
 	4019_gz_x500_gimbal
 	4020_gz_tiltrotor
+	4021_gz_x500_flow
 
 	6011_gazebo-classic_typhoon_h480
 	6011_gazebo-classic_typhoon_h480.post
@@ -108,6 +109,7 @@ px4_add_romfs_files(
 	10041_sihsim_airplane
 	10042_sihsim_xvert
 	10043_sihsim_standard_vtol
+	10044_sihsim_hex
 
 	17001_flightgear_tf-g1
 	17002_flightgear_tf-g2

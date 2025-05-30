@@ -617,14 +617,15 @@ bool EstimatorInterface::isOtherSourceOfHorizontalPositionAidingThan(const bool 
 
 int EstimatorInterface::getNumberOfActiveHorizontalPositionAidingSources() const
 {
-	return int(_control_status.flags.gps)
+	return int(_control_status.flags.gnss_pos)
 	       + int(_control_status.flags.ev_pos)
 	       + int(_control_status.flags.aux_gpos);
 }
 
 int EstimatorInterface::getNumberOfActiveHorizontalVelocityAidingSources() const
 {
-	return int(_control_status.flags.opt_flow)
+	return int(_control_status.flags.gnss_vel)
+	       + int(_control_status.flags.opt_flow)
 	       + int(_control_status.flags.ev_vel)
 	       // Combined airspeed and sideslip fusion allows sustained wind relative dead reckoning
 	       // and so is treated as a single aiding source.
@@ -672,8 +673,15 @@ bool EstimatorInterface::isVerticalVelocityAidingActive() const
 
 int EstimatorInterface::getNumberOfActiveVerticalVelocityAidingSources() const
 {
-	return int(_control_status.flags.gps)
+	return int(_control_status.flags.gnss_vel)
 	       + int(_control_status.flags.ev_vel);
+}
+
+bool EstimatorInterface::isNorthEastAidingActive() const
+{
+	return _control_status.flags.gnss_pos
+	       || _control_status.flags.gnss_vel
+	       || _control_status.flags.aux_gpos;
 }
 
 void EstimatorInterface::printBufferAllocationFailed(const char *buffer_name)
