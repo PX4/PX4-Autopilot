@@ -95,6 +95,8 @@ public:
 
 	const matrix::Quatf &getQuaternion() const { return _output_new.quat_nominal; }
 
+	matrix::Vector3f getAngularVelocityAndResetAccumulator();
+
 	// get a yaw value solely based on bias-removed gyro integration
 	float getUnaidedYaw() const { return _unaided_yaw; }
 
@@ -192,6 +194,8 @@ private:
 
 	matrix::Vector3f _imu_pos_body{};                ///< xyz position of IMU in body frame (m)
 
+	matrix::Quatf _delta_angle_sum{};
+	float _delta_angle_sum_dt{0.f};
 	float _unaided_yaw{};
 
 	// output complementary filter tuning

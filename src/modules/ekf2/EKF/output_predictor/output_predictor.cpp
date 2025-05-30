@@ -113,6 +113,9 @@ void OutputPredictor::reset()
 	_delta_vel_sum.setZero();
 	_delta_vel_dt = 0.f;
 
+	_delta_angle_sum.setIdentity();
+	_delta_angle_sum_dt = 0.f;
+
 	_delta_angle_corr.setZero();
 
 	_vel_err_integ.setZero();
@@ -247,13 +250,18 @@ void OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector
 
 	// update auxiliary yaw estimate
 	// rotate the state quternion by the delta quaternion only corrected for bias without EKF corrections
-	const Vector3f delta_angle_unaided = delta_angle - delta_angle_bias_scaled;
+	const Quatf delta_quat_unaided = Quatf(AxisAnglef(delta_angle - delta_angle_bias_scaled));
 	const float yaw_state = Eulerf(quat_nominal_before_update).psi();
-	const Quatf quat_unaided = quat_nominal_before_update * Quatf(AxisAnglef(delta_angle_unaided));
+	const Quatf quat_unaided = quat_nominal_before_update * delta_quat_unaided;
 	const float yaw_without_aiding = Eulerf(quat_unaided).psi();
 	// Yaw before delta quaternion applied and yaw after. The difference is the delta yaw. Accumulate it.
 	const float unaided_delta_yaw = yaw_without_aiding - yaw_state;
 	_unaided_yaw = matrix::wrap_pi(_unaided_yaw + unaided_delta_yaw);
+
+	// angular velocity downsampling
+	_delta_angle_sum *= delta_quat_unaided;
+	_delta_angle_sum.normalize();
+	_delta_angle_sum_dt += delta_angle_dt;
 }
 
 void OutputPredictor::correctOutputStates(const uint64_t time_delayed_us,
@@ -411,4 +419,18 @@ void OutputPredictor::resetVelocityDerivativeAccumulation()
 {
 	_delta_vel_dt = 0.f;
 	_delta_vel_sum.setZero();
+}
+
+Vector3f OutputPredictor::getAngularVelocityAndResetAccumulator()
+{
+	Vector3f angular_velocity;
+
+	if (_delta_angle_sum_dt > FLT_EPSILON) {
+		angular_velocity = AxisAnglef(_delta_angle_sum) / _delta_angle_sum_dt;
+	}
+
+	_delta_angle_sum.setIdentity();
+	_delta_angle_sum_dt = 0.f;
+
+	return angular_velocity;
 }

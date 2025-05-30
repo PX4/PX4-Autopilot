@@ -1676,9 +1676,7 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sa
 	_ekf.getVelocity().copyTo(odom.velocity);
 
 	// angular_velocity
-	const Vector3f rates{imu_sample.delta_ang / imu_sample.delta_ang_dt};
-	const Vector3f angular_velocity = rates - _ekf.getGyroBias();
-	angular_velocity.copyTo(odom.angular_velocity);
+	_ekf.getAngularVelocityAndResetAccumulator().copyTo(odom.angular_velocity);
 
 	// velocity covariances
 	_ekf.getVelocityVariance().copyTo(odom.velocity_variance);
