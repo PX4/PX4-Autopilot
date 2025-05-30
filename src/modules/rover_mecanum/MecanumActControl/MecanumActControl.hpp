@@ -35,51 +35,41 @@
 
 // PX4 includes
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/events.h>
 
 // Libraries
 #include <lib/rover_control/RoverControl.hpp>
-#include <lib/pid/PID.hpp>
-#include <lib/slew_rate/SlewRateYaw.hpp>
+#include <lib/slew_rate/SlewRate.hpp>
 #include <math.h>
-#include <matrix/matrix/math.hpp>
 
 // uORB includes
-#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_rate_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/rover_attitude_status.h>
-#include <uORB/topics/rover_attitude_setpoint.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/rover_steering_setpoint.h>
+#include <uORB/topics/rover_throttle_setpoint.h>
 
 /**
- * @brief Class for mecanum attitude control.
+ * @brief Class for mecanum actuator control.
  */
-class MecanumAttControl : public ModuleParams
+class MecanumActControl : public ModuleParams
 {
 public:
 	/**
-	 * @brief Constructor for MecanumAttControl.
+	 * @brief Constructor for MecanumActControl.
 	 * @param parent The parent ModuleParams object.
 	 */
-	MecanumAttControl(ModuleParams *parent);
-	~MecanumAttControl() = default;
+	MecanumActControl(ModuleParams *parent);
+	~MecanumActControl() = default;
 
 	/**
-	 * @brief Generate and publish roverRateSetpoint from roverAttitudeSetpoint.
+	 * @brief Generate and publish actuatorMotors setpoints from roverThrottleSetpoint/roverSteeringSetpoint.
 	 */
-	void updateAttControl();
+	void updateActControl();
 
 	/**
-	 * @brief Reset attitude controller.
+	 * @brief Stop the vehicle by sending 0 commands to motors and servos.
 	 */
-	void reset() {_pid_yaw.resetIntegral(); _yaw_setpoint = NAN;};
-
-	/**
-	 * @brief Check if the necessary parameters are set.
-	 * @return True if all checks pass.
-	 */
-	bool runSanityChecks();
+	void stopVehicle();
 
 protected:
 	/**
@@ -88,29 +78,38 @@ protected:
 	void updateParams() override;
 
 private:
+	/**
+	 * @brief Compute normalized motor commands based on normalized setpoints.
+	 * @param throttle_body_x Normalized speed in body x direction [-1, 1].
+	 * @param throttle_body_y Normalized speed in body y direction [-1, 1].
+	 * @param speed_diff_normalized Speed difference between left and right wheels [-1, 1].
+	 * @return Motor speeds [-1, 1].
+	 */
+	Vector4f computeInverseKinematics(float throttle_body_x, float throttle_body_y, const float speed_diff_normalized);
 
 	// uORB subscriptions
-	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _rover_attitude_setpoint_sub{ORB_ID(rover_attitude_setpoint)};
+	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
+	uORB::Subscription _rover_steering_setpoint_sub{ORB_ID(rover_steering_setpoint)};
+	uORB::Subscription _rover_throttle_setpoint_sub{ORB_ID(rover_throttle_setpoint)};
 
 	// uORB publications
-	uORB::Publication<rover_rate_setpoint_s> _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
-	uORB::Publication<rover_attitude_status_s> _rover_attitude_status_pub{ORB_ID(rover_attitude_status)};
+	uORB::Publication<actuator_motors_s> 	     _actuator_motors_pub{ORB_ID(actuator_motors)};
 
 	// Variables
-	float _vehicle_yaw{0.f};
 	hrt_abstime _timestamp{0};
-	float _max_yaw_rate{0.f};
-	float _yaw_setpoint{NAN};
+	float _throttle_x_setpoint{NAN};
+	float _throttle_y_setpoint{NAN};
+	float _speed_diff_setpoint{NAN};
 
 	// Controllers
-	PID _pid_yaw;
-	SlewRateYaw<float> _adjusted_yaw_setpoint;
+	SlewRate<float> _adjusted_throttle_x_setpoint{0.f};
+	SlewRate<float> _adjusted_throttle_y_setpoint{0.f};
 
 	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
-		(ParamFloat<px4::params::RO_YAW_P>)         _param_ro_yaw_p,
-		(ParamFloat<px4::params::RO_YAW_STICK_DZ>)  _param_ro_yaw_stick_dz
+		(ParamInt<px4::params::CA_R_REV>) _param_r_rev,
+		(ParamFloat<px4::params::RO_ACCEL_LIM>) _param_ro_accel_limit,
+		(ParamFloat<px4::params::RO_DECEL_LIM>) _param_ro_decel_limit,
+		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed
 	)
 };
