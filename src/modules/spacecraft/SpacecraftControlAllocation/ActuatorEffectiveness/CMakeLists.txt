@@ -1,0 +1,24 @@
+px4_add_library(SpacecraftActuatorEffectivenessLibrary
+	ActuatorEffectivenessControlSurfaces.cpp
+	ActuatorEffectivenessControlSurfaces.hpp
+	ActuatorEffectivenessCustom.cpp
+	ActuatorEffectivenessCustom.hpp
+	ActuatorEffectivenessMultirotor.cpp
+	ActuatorEffectivenessMultirotor.hpp
+	ActuatorEffectivenessRotors.cpp
+	ActuatorEffectivenessRotors.hpp
+	ActuatorEffectivenessSpacecraft.cpp
+	ActuatorEffectivenessSpacecraft.hpp
+	ActuatorEffectivenessTilts.cpp
+	ActuatorEffectivenessTilts.hpp
+	ActuatorEffectivenessThrusters.cpp
+	ActuatorEffectivenessThrusters.hpp
+)
+
+target_compile_options(SpacecraftActuatorEffectivenessLibrary PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_include_directories(SpacecraftActuatorEffectivenessLibrary PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(SpacecraftActuatorEffectivenessLibrary
+	PRIVATE
+		mathlib
+		ActuatorEffectiveness
+)
