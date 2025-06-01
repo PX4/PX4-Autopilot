@@ -1393,6 +1393,17 @@ Mavlink::update_radio_status(const radio_status_s &radio_status)
 	pthread_mutex_unlock(&_radio_status_mutex);
 }
 
+bool
+Mavlink::get_radio_status(radio_status_s &radio_status) const
+{
+	if (_radio_status_available) {
+		radio_status = _rstatus;
+		return true;
+	}
+
+	return false;
+}
+
 int
 Mavlink::configure_streams_to_default(const char *configure_single_stream)
 {

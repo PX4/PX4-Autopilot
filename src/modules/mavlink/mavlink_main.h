@@ -449,6 +449,8 @@ public:
 
 	void			update_radio_status(const radio_status_s &radio_status);
 
+	bool			get_radio_status(radio_status_s &radio_status) const;
+
 	unsigned		get_system_type() { return _param_mav_type.get(); }
 
 	Protocol 		get_protocol() const { return _protocol; }

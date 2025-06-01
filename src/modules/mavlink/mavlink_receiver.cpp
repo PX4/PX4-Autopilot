@@ -2006,7 +2006,20 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 	input_rc_s rc{};
 	// metadata
 	rc.timestamp = rc.timestamp_last_signal = hrt_absolute_time();
-	rc.rssi = input_rc_s::RSSI_MAX;
+
+	radio_status_s radio_status{};
+
+	if (_mavlink.get_radio_status(radio_status)) {
+		rc.rssi_dbm = -(float)(radio_status.remote_rssi);
+		rc.link_quality = (int8_t)(radio_status.rssi / 2.55); // convert to percentage
+
+	} else {
+		rc.rssi_dbm = NAN;
+		rc.link_quality = -1;
+	}
+
+	rc.rssi = rc.link_quality;
+
 	rc.rc_failsafe = false;
 	rc.rc_lost = false;
 	rc.rc_lost_frame_count = 0;
@@ -2070,9 +2083,6 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 			break;
 		}
 	}
-
-	rc.link_quality = -1;
-	rc.rssi_dbm = NAN;
 
 	// publish uORB message
 	_rc_pub.publish(rc);
