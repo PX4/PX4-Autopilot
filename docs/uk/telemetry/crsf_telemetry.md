@@ -71,7 +71,7 @@ For ExpressLRS receivers wire to the flight controller UART as shown below (wiri
 ### Конфігурація прошивки/збірка
 
 Підтримка телеметрії CRSF не включена в жодне ПЗ PX4 за замовчуванням.
-To use this feature you must build and upload custom firmware that includes [crsf-rc](../modules/modules_driver.md#crsf-rc) and removes [rc_input](../modules/modules_driver.md#rc-input).
+To use this feature you must build and upload custom firmware that includes [crsf-rc](../modules/modules_driver_radio_control.md#crsf-rc) and removes [rc_input](../modules/modules_driver_radio_control.md#rc-input).
 
 Кроки наступні:
 

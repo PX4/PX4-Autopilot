@@ -15,10 +15,18 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 
 - [ActuatorMotors](ActuatorMotors.md) — Motor control message
 - [ActuatorServos](ActuatorServos.md) — Servo control message
+- [AirspeedValidated](AirspeedValidated.md)
 - [ArmingCheckReply](ArmingCheckReply.md)
 - [ArmingCheckRequest](ArmingCheckRequest.md)
 - [BatteryStatus](BatteryStatus.md)
 - [ConfigOverrides](ConfigOverrides.md) — Configurable overrides by (external) modes or mode executors
+- [FixedWingLateralSetpoint](FixedWingLateralSetpoint.md) — Fixed Wing Lateral Setpoint message
+  Used by the fw_lateral_longitudinal_control module
+  At least one of course, airspeed_direction, or lateral_acceleration must be finite.
+- [FixedWingLongitudinalSetpoint](FixedWingLongitudinalSetpoint.md) — Fixed Wing Longitudinal Setpoint message
+  Used by the fw_lateral_longitudinal_control module
+  If pitch_direct and throttle_direct are not both finite, then the controller relies on altitude/height_rate and equivalent_airspeed to control vertical motion.
+  If both altitude and height_rate are NAN, the controller maintains the current altitude.
 - [GotoSetpoint](GotoSetpoint.md) — Position and (optional) heading setpoints with corresponding speed constraints
   Setpoints are intended as inputs to position and heading smoothers, respectively
   Setpoints do not need to be kinematically consistent
@@ -26,6 +34,11 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
   Unset optional setpoints are not controlled
   Unset optional constraints default to vehicle specifications
 - [HomePosition](HomePosition.md) — GPS home position in WGS84 coordinates.
+- [LateralControlConfiguration](LateralControlConfiguration.md) — Fixed Wing Lateral Control Configuration message
+  Used by the fw_lateral_longitudinal_control module to constrain FixedWingLateralSetpoint messages.
+- [LongitudinalControlConfiguration](LongitudinalControlConfiguration.md) — Fixed Wing Longitudinal Control Configuration message
+  Used by the fw_lateral_longitudinal_control module and TECS to constrain FixedWingLongitudinalSetpoint messages
+  and configure the resultant setpoints.
 - [ManualControlSetpoint](ManualControlSetpoint.md)
 - [ModeCompleted](ModeCompleted.md) — Mode completion result, published by an active mode.
   Можливі значення nav_state визначені в повідомленні VehicleStatus.
@@ -76,8 +89,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 
 - [Airspeed](Airspeed.md)
 
-- [AirspeedValidated](AirspeedValidated.md)
-
 - [AirspeedWind](AirspeedWind.md)
 
 - [AutotuneAttitudeControlStatus](AutotuneAttitudeControlStatus.md)
@@ -92,7 +103,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 
 - [CanInterfaceStatus](CanInterfaceStatus.md)
 
-- [CellularStatus](CellularStatus.md)
+- [CellularStatus](CellularStatus.md) — Cellular status
 
 - [CollisionConstraints](CollisionConstraints.md) — Local setpoint constraints in NED frame
   setting something to NaN means that no limit is provided
@@ -160,6 +171,14 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [FailureDetectorStatus](FailureDetectorStatus.md)
 
 - [FigureEightStatus](FigureEightStatus.md)
+
+- [FixedWingLateralGuidanceStatus](FixedWingLateralGuidanceStatus.md) — Fixed Wing Lateral Guidance Status message
+  Published by fw_pos_control module to report the resultant lateral setpoints and NPFG debug outputs
+
+- [FixedWingLateralStatus](FixedWingLateralStatus.md) — Fixed Wing Lateral Status message
+  Published by the fw_lateral_longitudinal_control module to report the resultant lateral setpoint
+
+- [FixedWingRunwayControl](FixedWingRunwayControl.md) — Auxiliary control fields for fixed-wing runway takeoff/landing
 
 - [FlightPhaseEstimation](FlightPhaseEstimation.md)
 
@@ -267,8 +286,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 
 - [NormalizedUnsignedSetpoint](NormalizedUnsignedSetpoint.md)
 
-- [NpfgStatus](NpfgStatus.md)
-
 - [ObstacleDistance](ObstacleDistance.md) — Obstacle distances in front of the sensor.
 
 - [OffboardControlMode](OffboardControlMode.md) — Off-board control mode
@@ -340,6 +357,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 
 - [RoverAttitudeStatus](RoverAttitudeStatus.md)
 
+- [RoverPositionSetpoint](RoverPositionSetpoint.md)
+
 - [RoverRateSetpoint](RoverRateSetpoint.md)
 
 - [RoverRateStatus](RoverRateStatus.md)
@@ -347,6 +366,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [RoverSteeringSetpoint](RoverSteeringSetpoint.md)
 
 - [RoverThrottleSetpoint](RoverThrottleSetpoint.md)
+
+- [RoverVelocitySetpoint](RoverVelocitySetpoint.md)
 
 - [RoverVelocityStatus](RoverVelocityStatus.md)
 
@@ -415,6 +436,9 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 
 - [TimesyncStatus](TimesyncStatus.md)
 
+- [TrajectorySetpoint6dof](TrajectorySetpoint6dof.md) — Trajectory setpoint in NED frame
+  Input to position controller.
+
 - [TransponderReport](TransponderReport.md)
 
 - [TuneControl](TuneControl.md) — This message is used to control the tunes, when the tune_id is set to CUSTOM
@@ -466,5 +490,9 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [Wind](Wind.md)
 
 - [YawEstimatorStatus](YawEstimatorStatus.md)
+
+- [AirspeedValidatedV0](AirspeedValidatedV0.md)
+
+- [VehicleAttitudeSetpointV0](VehicleAttitudeSetpointV0.md)
 
 - [VehicleStatusV0](VehicleStatusV0.md) — Encodes the system state of the vehicle published by commander
