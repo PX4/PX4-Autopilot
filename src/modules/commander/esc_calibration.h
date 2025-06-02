@@ -46,6 +46,4 @@
 
 int do_esc_calibration(orb_advert_t *mavlink_log_pub);
 
-bool check_battery_disconnected(orb_advert_t *mavlink_log_pub);
-
 #endif
