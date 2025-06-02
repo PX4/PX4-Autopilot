@@ -276,15 +276,35 @@ MavlinkMissionManager::send_mission_ack(uint8_t sysid, uint8_t compid, uint8_t t
 }
 
 void
-MavlinkMissionManager::send_mission_current(uint16_t seq)
+MavlinkMissionManager::send_mission_current(uint16_t seq, mission_result_s mission_result)
 {
-	mavlink_mission_current_t wpc{};
-	wpc.seq = seq;
-	wpc.total = _count[MAV_MISSION_TYPE_MISSION] > 0 ? _count[MAV_MISSION_TYPE_MISSION] : UINT16_MAX;
-	wpc.mission_id = _crc32[MAV_MISSION_TYPE_MISSION];
-	wpc.fence_id = _crc32[MAV_MISSION_TYPE_FENCE];
-	wpc.rally_points_id = _crc32[MAV_MISSION_TYPE_RALLY];
-	mavlink_msg_mission_current_send_struct(_mavlink.get_channel(), &wpc);
+	mavlink_mission_current_t mavlink_mission_current{};
+	mavlink_mission_current.seq = seq;
+	mavlink_mission_current.total = _count[MAV_MISSION_TYPE_MISSION] > 0 ? _count[MAV_MISSION_TYPE_MISSION] : UINT16_MAX;
+
+	if (!mission_result.valid) {
+		mavlink_mission_current.mission_state = MISSION_STATE::MISSION_STATE_NO_MISSION;
+
+	} else if (mission_result.valid && mission_result.seq_current == 0) {
+		mavlink_mission_current.mission_state = MISSION_STATE::MISSION_STATE_NOT_STARTED;
+
+	} else if (mission_result.valid && mission_result.seq_current > 0) {
+		mavlink_mission_current.mission_state = MISSION_STATE::MISSION_STATE_ACTIVE;
+
+	} else if (false/* Mission mode only? mission result is also updated by land, takeoff, VTOL takeoff */) {
+		mavlink_mission_current.mission_state = MISSION_STATE::MISSION_STATE_PAUSED;
+
+	} else if (mission_result.finished) {
+		mavlink_mission_current.mission_state = MISSION_STATE::MISSION_STATE_COMPLETE;
+
+	} else {
+		mavlink_mission_current.mission_state = MISSION_STATE::MISSION_STATE_UNKNOWN;
+	}
+
+	mavlink_mission_current.mission_id = _crc32[MAV_MISSION_TYPE_MISSION];
+	mavlink_mission_current.fence_id = _crc32[MAV_MISSION_TYPE_FENCE];
+	mavlink_mission_current.rally_points_id = _crc32[MAV_MISSION_TYPE_RALLY];
+	mavlink_msg_mission_current_send_struct(_mavlink.get_channel(), &mavlink_mission_current);
 
 	PX4_DEBUG("WPM: Send MISSION_CURRENT seq %d", seq);
 }
@@ -506,7 +526,7 @@ MavlinkMissionManager::send()
 
 			if (mission_result.seq_total > 0) {
 				if (mission_result.seq_current < mission_result.seq_total) {
-					send_mission_current(_current_seq);
+					send_mission_current(_current_seq, mission_result);
 
 				} else {
 					_mavlink.send_statustext_critical("ERROR: wp index out of bounds\t");
@@ -541,7 +561,7 @@ MavlinkMissionManager::send()
 		}
 
 	} else if (_slow_rate_limiter.check(hrt_absolute_time())) {
-		send_mission_current(_current_seq);
+		send_mission_current(_current_seq, mission_result);
 
 		if ((_count[MAV_MISSION_TYPE_MISSION] > 0) && (_current_seq >= 0)) {
 			// send the reached message another 10 times
