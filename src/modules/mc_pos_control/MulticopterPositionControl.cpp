@@ -593,6 +593,15 @@ void MulticopterPositionControl::Run()
 			// an update is necessary here because otherwise the takeoff state doesn't get skipped with non-altitude-controlled modes
 			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f, true,
 						    vehicle_local_position.timestamp_sample);
+
+			const float tilt_limit_deg = (_takeoff.getTakeoffState() < TakeoffState::flight)
+						     ? _param_mpc_tiltmax_lnd.get() : _param_mpc_tiltmax_air.get();
+			_tilt_limit_slew_rate.update(math::radians(tilt_limit_deg), dt);
+
+			if (_takeoff.getTakeoffState() < TakeoffState::flight) {
+				_control.setHoverThrust(_param_mpc_thr_hover.get());
+			}
+
 			_control.resetIntegral();
 		}
 
