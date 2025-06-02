@@ -462,7 +462,7 @@ struct msp_rendor_satellites_used_t {
 	uint8_t iconIndex = 0x1E; //satellites icon
 	uint8_t iconIndex2 = 0x1F; //satellites icon
 
-	char str[2]; // 99
+	char str[3]; // 99
 } __attribute__((packed));
 
 
