@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,7 +43,6 @@
 #include <ardupilot/equipment/power/BatteryInfoAux.hpp>
 #include <battery/battery.h>
 #include <drivers/drv_hrt.h>
-#include <px4_platform_common/module_params.h>
 
 using namespace time_literals;
 
