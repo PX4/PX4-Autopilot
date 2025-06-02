@@ -82,7 +82,7 @@ public:
 	static constexpr uint8_t NUM_ACTUATORS = ActuatorEffectiveness::NUM_ACTUATORS;
 	static constexpr uint8_t NUM_AXES = ActuatorEffectiveness::NUM_AXES;
 
-	typedef matrix::Vector<float, NUM_ACTUATORS> ActuatorVector;
+	using ActuatorVector = matrix::Vector<float, NUM_ACTUATORS>;
 
 	enum ControlAxis {
 		ROLL = 0,
@@ -121,7 +121,7 @@ public:
 	 *
 	 * @return Actuator vector
 	 */
-	const matrix::Vector<float, NUM_ACTUATORS> &getActuatorSetpoint() const { return _actuator_sp; }
+	const ActuatorVector &getActuatorSetpoint() const { return _actuator_sp; }
 
 	/**
 	 * Set the desired control vector
@@ -157,28 +157,28 @@ public:
 	 *
 	 * @param actuator_min Minimum actuator values
 	 */
-	void setActuatorMin(const matrix::Vector<float, NUM_ACTUATORS> &actuator_min) { _actuator_min = actuator_min; }
+	void setActuatorMin(const ActuatorVector &actuator_min) { _actuator_min = actuator_min; }
 
 	/**
 	 * Get the minimum actuator values
 	 *
 	 * @return Minimum actuator values
 	 */
-	const matrix::Vector<float, NUM_ACTUATORS> &getActuatorMin() const { return _actuator_min; }
+	const ActuatorVector &getActuatorMin() const { return _actuator_min; }
 
 	/**
 	 * Set the maximum actuator values
 	 *
 	 * @param actuator_max Maximum actuator values
 	 */
-	void setActuatorMax(const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) { _actuator_max = actuator_max; }
+	void setActuatorMax(const ActuatorVector &actuator_max) { _actuator_max = actuator_max; }
 
 	/**
 	 * Get the maximum actuator values
 	 *
 	 * @return Maximum actuator values
 	 */
-	const matrix::Vector<float, NUM_ACTUATORS> &getActuatorMax() const { return _actuator_max; }
+	const ActuatorVector &getActuatorMax() const { return _actuator_max; }
 
 	/**
 	 * Set the current actuator setpoint.
@@ -189,9 +189,9 @@ public:
 	 *
 	 * @param actuator_sp Actuator setpoint
 	 */
-	void setActuatorSetpoint(const matrix::Vector<float, NUM_ACTUATORS> &actuator_sp);
+	void setActuatorSetpoint(const ActuatorVector &actuator_sp);
 
-	void setSlewRateLimit(const matrix::Vector<float, NUM_ACTUATORS> &slew_rate_limit)
+	void setSlewRateLimit(const ActuatorVector &slew_rate_limit)
 	{ _actuator_slew_rate_limit = slew_rate_limit; }
 
 	/**
@@ -206,7 +206,7 @@ public:
 	 *
 	 * @param actuator Actuator vector to clip
 	 */
-	void clipActuatorSetpoint(matrix::Vector<float, NUM_ACTUATORS> &actuator) const;
+	void clipActuatorSetpoint(ActuatorVector &actuator) const;
 
 	void clipActuatorSetpoint() { clipActuatorSetpoint(_actuator_sp); }
 
@@ -219,7 +219,7 @@ public:
 	 *
 	 * @return Clipped actuator setpoint
 	 */
-	matrix::Vector<float, NUM_ACTUATORS> normalizeActuatorSetpoint(const matrix::Vector<float, NUM_ACTUATORS> &actuator)
+	ActuatorVector normalizeActuatorSetpoint(const ActuatorVector &actuator)
 	const;
 
 	virtual void updateParameters() {}
@@ -233,12 +233,12 @@ protected:
 
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness;  ///< Effectiveness matrix
 	matrix::Vector<float, NUM_AXES> _control_allocation_scale;  	///< Scaling applied during allocation
-	matrix::Vector<float, NUM_ACTUATORS> _actuator_trim; 	///< Neutral actuator values
-	matrix::Vector<float, NUM_ACTUATORS> _actuator_min; 	///< Minimum actuator values
-	matrix::Vector<float, NUM_ACTUATORS> _actuator_max; 	///< Maximum actuator values
-	matrix::Vector<float, NUM_ACTUATORS> _actuator_slew_rate_limit; 	///< Slew rate limit
-	matrix::Vector<float, NUM_ACTUATORS> _prev_actuator_sp;  	///< Previous actuator setpoint
-	matrix::Vector<float, NUM_ACTUATORS> _actuator_sp;  	///< Actuator setpoint
+	ActuatorVector _actuator_trim; 	///< Neutral actuator values
+	ActuatorVector _actuator_min; 	///< Minimum actuator values
+	ActuatorVector _actuator_max; 	///< Maximum actuator values
+	ActuatorVector _actuator_slew_rate_limit; 	///< Slew rate limit
+	ActuatorVector _prev_actuator_sp;  	///< Previous actuator setpoint
+	ActuatorVector _actuator_sp;  	///< Actuator setpoint
 	matrix::Vector<float, NUM_AXES> _control_sp;   		///< Control setpoint
 	matrix::Vector<float, NUM_AXES> _control_trim; 		///< Control at trim actuator values
 	int _num_actuators{0};

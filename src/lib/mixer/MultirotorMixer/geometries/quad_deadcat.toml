@@ -1,0 +1,30 @@
+# SK450 DeadCat Quadcopter.
+# Same geometry as quad_wide, except CG is located at intersection of rear arms, so front motors are more loaded.
+
+[info]
+key = "4dc"
+description = "SK450 DeadCat Quadcopter, CG at intersection of rear arms"
+
+[rotor_default]
+direction = "CW"
+axis      = [0.0, 0.0, -1.0]
+Ct        = 1.0
+Cm        = 0.01
+
+[[rotors]]
+name      = "front_right"
+position  = [0.1155, 0.245, 0.0]
+direction = "CCW"
+
+[[rotors]]
+name      = "rear_left"
+position  = [-0.1875, -0.1875, 0.0]
+direction = "CCW"
+
+[[rotors]]
+name     = "front_left"
+position = [0.1155, -0.245, 0.0]
+
+[[rotors]]
+name     = "rear_right"
+position = [-0.1875, 0.1875, 0.0]
