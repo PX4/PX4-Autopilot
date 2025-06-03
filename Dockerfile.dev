@@ -1,0 +1,8 @@
+FROM px4io/px4-dev-simulation-focal:latest
+
+# 避免每次進 container 手動 make submodules
+WORKDIR /home/user/px4
+
+RUN git submodule update --init --recursive
+
+CMD ["bash"]
