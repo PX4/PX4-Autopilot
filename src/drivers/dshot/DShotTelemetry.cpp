@@ -51,6 +51,7 @@ DShotTelemetry::~DShotTelemetry()
 
 int DShotTelemetry::init(const char *uart_device, bool swap_rxtx)
 {
+	int ret = OK;
 	deinit();
 	_uart_fd = ::open(uart_device, O_RDONLY | O_NOCTTY);
 
@@ -59,23 +60,31 @@ int DShotTelemetry::init(const char *uart_device, bool swap_rxtx)
 		return -errno;
 	}
 
+	ret = setBaudrate(DSHOT_TELEMETRY_UART_BAUDRATE);
+
+	if (ret) {
+		PX4_ERR("failed to set baurate: %s err: %d", uart_device, ret);
+		return ret;
+	}
+
 	if (swap_rxtx) {
 		// Swap RX/TX pins if the device supports it
-		int rv = ioctl(_uart_fd, TIOCSSWAP, SER_SWAP_ENABLED);
+		ret = ioctl(_uart_fd, TIOCSSWAP, SER_SWAP_ENABLED);
 
 		// For other devices we can still place RX on TX pin via half-duplex single-wire mode
-		if (rv) { rv = ioctl(_uart_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED); }
+		if (ret) { ret = ioctl(_uart_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED); }
 
-		if (rv) {
-			PX4_ERR("failed to swap rx/tx pins: %s err: %d", uart_device, rv);
-			return rv;
+		if (ret) {
+			PX4_ERR("failed to swap rx/tx pins: %s err: %d", uart_device, ret);
+			return ret;
 		}
 	}
 
 	_num_timeouts = 0;
 	_num_successful_responses = 0;
 	_current_motor_index_request = -1;
-	return setBaudrate(DSHOT_TELEMETRY_UART_BAUDRATE);
+
+	return ret;
 }
 
 void DShotTelemetry::deinit()
