@@ -1,0 +1,95 @@
+module_name: Nanoradar mmWAVE Radar (CAN)
+
+parameters:
+    - group: Sensors
+      definitions:
+          SENS_EN_NRXX:
+              description:
+                  short: Controls whether the system reads Nanoradar Data
+                  long: |
+                      Controls whether the system reads Nanoradar Data
+              type: int32
+              values:
+                  0: Disable
+                  1: Enable
+              reboot_required: true
+              num_instances: 1
+              default: 0
+
+          SENS_NR_CAN:
+              description:
+                  short: Select CAN Interface
+              type: int32
+              values:
+                  0: Unused
+                  1: CAN1
+                  2: CAN2
+              reboot_required: true
+              num_instances: 1
+              default: 0
+
+          SENS_NR_RNG_ORI:
+              description:
+                  short: Rangefinder Orientation Yaw0~Yaw315 or Face Upward and Downward
+                  long: |
+                      Radiation orientation of the radar antenna Yaw0~Yaw315 or Face Upward and Downward
+              type: enum
+              values:
+                0:  Yaw 0
+                1:  Yaw 45
+                2:  Yaw 90
+                3:  Yaw 135
+                4:  Yaw 180
+                5:  Yaw 225
+                6:  Yaw 270
+                7:  Yaw 315
+                24: Pitch 90 Face Upward
+                25: Pitch 270 Face Downward
+              reboot_required: true
+              num_instances: 1
+              default: 25
+
+          SENS_NR_RNG_MIN:
+              description:
+                  short: Rangefinder measurement minimum distance
+              type: float
+              unit: 'm'
+              reboot_required: true
+              num_instances: 1
+              default: 0.2
+
+          SENS_NR_RNG_MAX:
+              description:
+                  short: Rangefinder measurement maximum distance
+              type: float
+              unit: 'm'
+              reboot_required: true
+              num_instances: 1
+              default: 50.0
+
+          SENS_NR_OBS_OFT:
+              description:
+                  short: Obstacle radar installation offset angle
+              type: float
+              unit: 'deg'
+              reboot_required: true
+              num_instances: 1
+              default: 0.0
+
+          SENS_NR_OBS_MIN:
+              description:
+                  short: Obstacle radar measurement minimum distance
+              type: float
+              unit: 'm'
+              reboot_required: true
+              num_instances: 1
+              default: 0.3
+
+          SENS_NR_OBS_MAX:
+              description:
+                  short: Obstacle radar measurement maximum distance
+              type: float
+              unit: 'm'
+              reboot_required: true
+              num_instances: 1
+              default: 50.0
