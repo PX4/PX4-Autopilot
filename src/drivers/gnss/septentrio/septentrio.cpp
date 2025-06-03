@@ -144,10 +144,12 @@ uint32_t SeptentrioDriver::k_supported_baud_rates[] {0, 38400, 57600, 115200, 23
 uint32_t SeptentrioDriver::k_default_baud_rate {230400};
 orb_advert_t SeptentrioDriver::k_mavlink_log_pub {nullptr};
 
-SeptentrioDriver::SeptentrioDriver(const char *device_path, Instance instance, uint32_t baud_rate) :
+SeptentrioDriver::SeptentrioDriver(const char *device_path, Instance instance, uint32_t baud_rate,
+				   bool single_wire_uart) :
 	Device(MODULE_NAME),
 	_instance(instance),
-	_chosen_baud_rate(baud_rate)
+	_chosen_baud_rate(baud_rate),
+	_single_wire_uart(single_wire_uart)
 {
 	strncpy(_port, device_path, sizeof(_port) - 1);
 	// Enforce null termination.
@@ -253,7 +255,8 @@ int SeptentrioDriver::print_status()
 		break;
 	}
 
-	PX4_INFO("health: %s, port: %s, baud rate: %lu", is_healthy() ? "OK" : "NOT OK", _port, _uart.getBaudrate());
+	PX4_INFO("health: %s, port: %s, baud rate: %lu, single wire UART: %u", is_healthy() ? "OK" : "NOT OK", _port,
+		 _uart.getBaudrate(), _single_wire_uart);
 	PX4_INFO("controller -> receiver data rate: %lu B/s", output_data_rate());
 	PX4_INFO("receiver -> controller data rate: %lu B/s", input_data_rate());
 	PX4_INFO("sat info: %s", (_message_satellite_info != nullptr) ? "enabled" : "disabled");
@@ -278,6 +281,10 @@ void SeptentrioDriver::run()
 				_uart.setPort(_port);
 
 				if (_uart.open()) {
+					if (_single_wire_uart) {
+						_uart.setSingleWireMode();
+					}
+
 					_state = State::DetectingBaudRate;
 
 				} else {
@@ -465,7 +472,8 @@ SeptentrioDriver *SeptentrioDriver::instantiate(int argc, char *argv[], Instance
 	if (instance == Instance::Main) {
 		if (Serial::validatePort(arguments.device_path_main)) {
 			gps = new SeptentrioDriver(arguments.device_path_main, instance,
-						   valid_chosen_baud_rate ? arguments.baud_rate_main : k_default_baud_rate);
+						   valid_chosen_baud_rate ? arguments.baud_rate_main : k_default_baud_rate,
+						   arguments.single_wire_uart_main);
 
 		} else {
 			PX4_ERR("Invalid device (-d) %s", arguments.device_path_main ? arguments.device_path_main : "");
@@ -482,7 +490,8 @@ SeptentrioDriver *SeptentrioDriver::instantiate(int argc, char *argv[], Instance
 	} else {
 		if (Serial::validatePort(arguments.device_path_secondary)) {
 			gps = new SeptentrioDriver(arguments.device_path_secondary, instance,
-						   valid_chosen_baud_rate ? arguments.baud_rate_secondary : k_default_baud_rate);
+						   valid_chosen_baud_rate ? arguments.baud_rate_secondary : k_default_baud_rate,
+						   arguments.single_wire_uart_secondary);
 
 		} else {
 			PX4_ERR("Invalid secondary device (-e) %s", arguments.device_path_secondary ? arguments.device_path_secondary : "");
@@ -570,6 +579,8 @@ $ gps reset warm
 	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 57600, 1500000, "Primary receiver baud rate", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('e', nullptr, "<file:dev>", "Secondary receiver port", true);
 	PRINT_MODULE_USAGE_PARAM_INT('g', 0, 57600, 1500000, "Secondary receiver baud rate", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('s', "Primary receiver, use single wire UART", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('t', "Secondary receiver, use single wire UART", true);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset connected receiver");
@@ -627,7 +638,7 @@ int SeptentrioDriver::parse_cli_arguments(int argc, char *argv[], ModuleArgument
 	int myoptind{1};
 	const char *myoptarg{nullptr};
 
-	while ((ch = px4_getopt(argc, argv, "d:e:b:g:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:e:b:g:st", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			if (px4_get_parameter_value(myoptarg, arguments.baud_rate_main) != 0) {
@@ -647,6 +658,14 @@ int SeptentrioDriver::parse_cli_arguments(int argc, char *argv[], ModuleArgument
 
 		case 'e':
 			arguments.device_path_secondary = myoptarg;
+			break;
+
+		case 's':
+			arguments.single_wire_uart_main = true;
+			break;
+
+		case 't':
+			arguments.single_wire_uart_secondary = true;
 			break;
 
 		case '?':
