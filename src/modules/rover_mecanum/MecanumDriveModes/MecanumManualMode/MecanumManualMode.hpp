@@ -35,49 +35,63 @@
 
 // PX4 includes
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/events.h>
 
 // Libraries
-#include <lib/rover_control/RoverControl.hpp>
-#include <matrix/matrix/math.hpp>
-#include <lib/pure_pursuit/PurePursuit.hpp>
-#include <lib/geo/geo.h>
 #include <math.h>
+#include <matrix/matrix/math.hpp>
 
 // uORB includes
-#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_velocity_setpoint.h>
-#include <uORB/topics/rover_position_setpoint.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/pure_pursuit_status.h>
+#include <uORB/topics/rover_throttle_setpoint.h>
+#include <uORB/topics/rover_steering_setpoint.h>
+#include <uORB/topics/rover_rate_setpoint.h>
+#include <uORB/topics/rover_attitude_setpoint.h>
+#include <uORB/topics/rover_velocity_setpoint.h>
+#include <uORB/topics/rover_position_setpoint.h>
 
 using namespace matrix;
 
 /**
- * @brief Class for mecanum position control.
+ * @brief Class for Mecanum manual mode.
  */
-class MecanumPosControl : public ModuleParams
+class MecanumManualMode : public ModuleParams
 {
 public:
 	/**
-	 * @brief Constructor for MecanumPosControl.
+	 * @brief Constructor for MecanumManualMode.
 	 * @param parent The parent ModuleParams object.
 	 */
-	MecanumPosControl(ModuleParams *parent);
-	~MecanumPosControl() = default;
+	MecanumManualMode(ModuleParams *parent);
+	~MecanumManualMode() = default;
 
 	/**
-	 * @brief Generate and publish roverVelocitySetpoint from roverPositionSetpoint.
+	 * @brief Publish roverThrottleSetpoint and roverSteeringSetpoint from manualControlSetpoint.
 	 */
-	void updatePosControl();
+	void manual();
 
 	/**
-	 * @brief Check if the necessary parameters are set.
-	 * @return True if all checks pass.
+	 * @brief Generate and publish roverThrottleSetpoint/RoverRateSetpoint from manualControlSetpoint.
 	 */
-	bool runSanityChecks();
+	void acro();
+
+	/**
+	 * @brief Generate and publish roverSetpoints from manualControlSetpoint.
+	 */
+	void stab();
+
+	/**
+	 * @brief Generate and publish roverSetpoints from manualControlSetpoint.
+	 */
+	void position();
+
+	/**
+	 * @brief Reset manual mode variables.
+	 */
+	void reset();
 
 protected:
 	/**
@@ -86,50 +100,34 @@ protected:
 	void updateParams() override;
 
 private:
-	/**
-	 * @brief Update uORB subscriptions used in position controller.
-	 */
-	void updateSubscriptions();
-
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _rover_position_setpoint_sub{ORB_ID(rover_position_setpoint)};
-	rover_position_setpoint_s _rover_position_setpoint{};
 
 	// uORB publications
+	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
+	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
+	uORB::Publication<rover_rate_setpoint_s>     _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
+	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
 	uORB::Publication<rover_velocity_setpoint_s> _rover_velocity_setpoint_pub{ORB_ID(rover_velocity_setpoint)};
-	uORB::Publication<pure_pursuit_status_s>       _pure_pursuit_status_pub{ORB_ID(pure_pursuit_status)};
+	uORB::Publication<rover_position_setpoint_s> _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
 
 	// Variables
-	Quatf _vehicle_attitude_quaternion{};
-	Vector2f _curr_pos_ned{};
-	Vector2f _start_ned{};
-	float _vehicle_yaw{0.f};
-	float _max_yaw_rate{0.f};
-	float _yaw_setpoint{NAN};
-
-	// Class Instances
-	MapProjection _global_ned_proj_ref{}; // Transform global to NED coordinates
+	Vector2f _pos_ctl_course_direction{NAN, NAN};
+	Vector2f _pos_ctl_start_position_ned{NAN, NAN};
+	Vector2f _curr_pos_ned{NAN, NAN};
+	Quatf _vehicle_attitude_quaternion;
+	float _pos_ctl_yaw_setpoint{NAN};
+	float _stab_yaw_setpoint{NAN};
+	float _vehicle_yaw{NAN};
+	float _max_yaw_rate{NAN};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RM_MISS_SPD_GAIN>) _param_rm_miss_spd_gain,
-		(ParamFloat<px4::params::RM_COURSE_CTL_TH>) _param_rm_course_ctl_th,
-		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
-		(ParamFloat<px4::params::RO_SPEED_P>) 	    _param_ro_speed_p,
-		(ParamFloat<px4::params::RO_SPEED_I>)       _param_ro_speed_i,
-		(ParamFloat<px4::params::RO_YAW_STICK_DZ>)  _param_ro_yaw_stick_dz,
-		(ParamFloat<px4::params::RO_ACCEL_LIM>)     _param_ro_accel_limit,
-		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_limit,
-		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_limit,
-		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
-		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th,
-		(ParamFloat<px4::params::PP_LOOKAHD_GAIN>)  _param_pp_lookahd_gain,
-		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
-		(ParamFloat<px4::params::PP_LOOKAHD_MIN>)   _param_pp_lookahd_min,
 		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
-		(ParamFloat<px4::params::RO_YAW_P>)  	    _param_ro_yaw_p,
-		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad
-
+		(ParamFloat<px4::params::RO_YAW_STICK_DZ>)  _param_ro_yaw_stick_dz,
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
+		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
+		(ParamFloat<px4::params::RM_COURSE_CTL_TH>) _param_rm_course_ctl_th
 	)
 };

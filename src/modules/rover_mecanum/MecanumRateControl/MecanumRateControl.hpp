@@ -47,15 +47,9 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/rover_rate_setpoint.h>
-#include <uORB/topics/rover_throttle_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/rover_steering_setpoint.h>
 #include <uORB/topics/rover_rate_status.h>
-#include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/offboard_control_mode.h>
-#include <uORB/topics/trajectory_setpoint.h>
 
 /**
  * @brief Class for mecanum rate control.
@@ -71,9 +65,20 @@ public:
 	~MecanumRateControl() = default;
 
 	/**
-	 * @brief Update rate controller.
+	 * @brief Generate and publish roverSteeringSetpoint from roverRateSetpoint.
 	 */
 	void updateRateControl();
+
+	/**
+	 * @brief Check if the necessary parameters are set.
+	 * @return True if all checks pass.
+	 */
+	bool runSanityChecks();
+
+	/**
+	 * @brief Reset rate controller.
+	 */
+	void reset() {_pid_yaw_rate.resetIntegral(); _yaw_rate_setpoint = NAN;};
 
 protected:
 	/**
@@ -83,48 +88,18 @@ protected:
 
 private:
 
-	/**
-	 * @brief Generate and publish roverRateSetpoint and roverThrottleSetpoint from manualControlSetpoint (Acro Mode).
-	 */
-	void generateRateAndThrottleSetpoint();
-
-	/**
-	 * @brief Generate and publish roverSteeringSetpoint from RoverRateSetpoint.
-	 */
-	void generateSteeringSetpoint();
-
-	/**
-	 * @brief Check if the necessary parameters are set.
-	 * @return True if all checks pass.
-	 */
-	bool runSanityChecks();
-
 	// uORB subscriptions
-	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
-	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 	uORB::Subscription _rover_rate_setpoint_sub{ORB_ID(rover_rate_setpoint)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
-	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
-	vehicle_control_mode_s  _vehicle_control_mode{};
-	offboard_control_mode_s _offboard_control_mode{};
-	rover_rate_setpoint_s   _rover_rate_setpoint{};
 
 	// uORB publications
-	uORB::Publication<rover_rate_setpoint_s>     _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
-	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
 	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
 	uORB::Publication<rover_rate_status_s>       _rover_rate_status_pub{ORB_ID(rover_rate_status)};
 
 	// Variables
 	hrt_abstime _timestamp{0};
-	float _max_yaw_rate{0.f};
-	float _max_yaw_accel{0.f};
-	float _max_yaw_decel{0.f};
 	float _vehicle_yaw_rate{0.f};
-	float _dt{0.f}; // Time since last update [s].
-	bool _prev_param_check_passed{true};
+	float _yaw_rate_setpoint{NAN};
 
 	// Controllers
 	PID _pid_yaw_rate;
