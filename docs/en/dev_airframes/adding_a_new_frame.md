@@ -26,7 +26,7 @@ The recommended process for developing a new frame configuration is:
 1. Configure the [geometry and actuator outputs](../config/actuators.md).
 1. Perform other [basic configuration](../config/index.md).
 1. Tune the vehicle.
-1. Run the [`param show-for-airframe`](../modules/modules_command.md#param) console command to list the parameter difference compared to the original generic airfame.
+1. Run the [`param show-for-airframe`](../modules/modules_command.md#param) console command to list the parameter difference compared to the original generic airframe.
 
 Once you have the parameters you can create a new frame configuration file by copying the configuration file for the generic configuration, and appending the new parameters.
 
@@ -64,6 +64,23 @@ These aspects are mostly independent, which means that many configurations share
 ::: info
 New frame configuration files are only automatically added to the build system after a clean build (run `make clean`).
 :::
+
+## Force Reset of Airframe Parameters on Update
+
+Sometimes airframe or PX4 changes are such that "system parameters" need to be reset when the airframe configuration is first loaded.
+
+This can be done by setting the value of `PARAM_DEFAULTS_VER` in your airframe configuration to a number greater than the default version number set in [ROMFS/px4fmu_common/init.d/rcS](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/rcS#L40) (currently `1`).
+
+For example, at time of writing you would add the current line to your airframe file:
+
+```sh
+set PARAM_DEFAULTS_VER 2
+```
+
+This number is compared to the value in the (internal) [SYS_PARAM_VER](../advanced_config/parameter_reference.html#SYS_PARAM_VER) parameter when the airframe is updated, and if it is different the "system parameters" are all reset.
+
+Note that system parameters primarily include those related to the vehicle airframe configuration.
+Parameters such as accumulating flight hours, RC and sensor calibrations, are preserved.
 
 ### Example - Generic Quadcopter Frame Config
 
