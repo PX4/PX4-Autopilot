@@ -110,10 +110,11 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
 		sumDischarged(_battery_status[instance].timestamp, _battery_status[instance].current_a);
 		_battery_status[instance].discharged_mah = _discharged_mah;
+		_battery_status[instance].time_remaining_s = NAN;
 	}
 
 	_battery_status[instance].remaining = msg.state_of_charge_pct / 100.0f; // between 0 and 1
-	// _battery_status[instance].scale = msg.; // Power scaling factor, >= 1, or -1 if unknown
+	_battery_status[instance].scale = -1.f;
 	_battery_status[instance].temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
 	// _battery_status[instance].cell_count = msg.;
 	_battery_status[instance].connected = true;
@@ -123,7 +124,6 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	_battery_status[instance].full_charge_capacity_wh = msg.full_charge_capacity_wh;
 	_battery_status[instance].remaining_capacity_wh = msg.remaining_capacity_wh;
 	// _battery_status[instance].cycle_count = msg.;
-	_battery_status[instance].time_remaining_s = NAN;
 	// _battery_status[instance].average_time_to_empty = msg.;
 	_battery_status[instance].id = msg.getSrcNodeID().get();
 
@@ -182,7 +182,7 @@ UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardu
 	_battery_status[instance].cycle_count = msg.cycle_count;
 	_battery_status[instance].over_discharge_count = msg.over_discharge_count;
 	_battery_status[instance].nominal_voltage = msg.nominal_voltage;
-	_battery_status[instance].time_remaining_s = math::isZero(_battery_status[instance].current_a) ? 0 :
+	_battery_status[instance].time_remaining_s = math::isZero(_battery_status[instance].current_a) ? NAN :
 			(_battery_status[instance].remaining_capacity_wh /
 			 _battery_status[instance].nominal_voltage / _battery_status[instance].current_a * 3600);
 	_battery_status[instance].is_powering_off = msg.is_powering_off;
@@ -191,7 +191,10 @@ UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardu
 		_battery_status[instance].voltage_cell_v[i] = msg.voltage_cell[i];
 	}
 
-	publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+	// Publish the message once populated with the standard BatteryInfo data
+	if (_battery_status[instance].timestamp != 0) {
+		publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+	}
 }
 
 void
