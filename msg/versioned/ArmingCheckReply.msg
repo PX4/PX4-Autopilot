@@ -1,4 +1,4 @@
-uint32 MESSAGE_VERSION = 0
+uint32 MESSAGE_VERSION = 1
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -25,6 +25,7 @@ bool mode_req_local_alt
 bool mode_req_local_position
 bool mode_req_local_position_relaxed
 bool mode_req_global_position
+bool mode_req_global_position_relaxed
 bool mode_req_mission
 bool mode_req_home_position
 bool mode_req_prevent_arming

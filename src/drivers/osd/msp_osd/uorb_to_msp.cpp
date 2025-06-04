@@ -378,6 +378,7 @@ msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const sensor_gps_s &vehicl
 	num.screenYPosition = 0x08;
 	num.screenXPosition = 0x29;
 
+	memset(&num.str[0], 0, sizeof(num.str));
 	snprintf(&num.str[0], sizeof(num.str), "%d", vehicle_gps_position.satellites_used);
 
 	return num;
@@ -485,6 +486,7 @@ msp_rendor_pitch_t  construct_rendor_PITCH(const vehicle_attitude_s &vehicle_att
 	double pitch_deg = (double)math::degrees(euler_attitude.theta());
 	// attitude.roll = math::degrees(euler_attitude.phi()) * 10;
 
+	memset(&pit.str[0], 0, sizeof(pit.str));
 	snprintf(&pit.str[0], sizeof(pit.str), "%.1f", pitch_deg);
 
 	return pit;
@@ -503,6 +505,7 @@ msp_rendor_roll_t  construct_rendor_ROLL(const vehicle_attitude_s &vehicle_attit
 	// double pitch = (double)math::degrees(euler_attitude.theta());
 	double roll_deg = (double)math::degrees(euler_attitude.phi());
 
+	memset(&roll.str[0], 0, sizeof(roll.str));
 	snprintf(&roll.str[0], sizeof(roll.str), "%.1f", roll_deg);
 
 	return roll;

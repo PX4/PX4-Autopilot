@@ -142,6 +142,9 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  *
  * Set home position automatically if possible.
  *
+ * During missions, the home position is locked and will not reset during intermediate landings.
+ * It will only update once the mission is complete or landed outside of a mission.
+ *
  * @group Commander
  * @reboot_required true
  * @boolean
@@ -513,12 +516,13 @@ PARAM_DEFINE_INT32(COM_ARM_AUTH_MET, 0);
 PARAM_DEFINE_FLOAT(COM_ARM_AUTH_TO, 1);
 
 /**
- * Horizontal position error threshold.
+ * Horizontal position error threshold for hovering systems
  *
  * This is the horizontal position error (EPH) threshold that will trigger a failsafe.
- * The default is appropriate for a multicopter. Can be increased for a fixed-wing.
  * If the previous position error was below this threshold, there is an additional
  * factor of 2.5 applied (threshold for invalidation 2.5 times the one for validation).
+ * Only used for multicopters and VTOLs in hover mode.
+ * Independent from estimator positioning data timeout threshold (see EKF2_NOAID_TOUT).
  *
  * Set to -1 to disable.
  *
