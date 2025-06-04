@@ -34,7 +34,7 @@ The generator uses the uORB message definitions in the source tree: [PX4-Autopil
 ROS 2 applications need to be built in a workspace that has the _same_ message definitions that were used to create the uXRCE-DDS client module in the PX4 Firmware.
 You can include these by cloning the interface package [PX4/px4_msgs](https://github.com/PX4/px4_msgs) into your ROS 2 workspace (branches in the repo correspond to the messages for different PX4 releases).
 
-Starting from PX4 v1.16 (main) in which [message versioning](../middleware/uorb.md#message-versioning) was introduced, ROS2 applications may use a different version of message definitions than those used to build PX4.
+Starting from PX4 v1.16, in which [message versioning](../middleware/uorb.md#message-versioning) was introduced, ROS2 applications may use a different version of message definitions than those used to build PX4.
 This requires the [ROS 2 Message Translation Node](../ros2/px4_ros2_msg_translation_node.md) to be running to ensure that messages can be converted and exchanged correctly.
 
 Note that the micro XRCE-DDS _agent_ itself has no dependency on client-side code.
@@ -367,7 +367,7 @@ accelerometer_integral_dt: 4739
 
 #### (Optional) Starting the Translation Node
 
-<Badge type="tip" text="main (planned for: PX4 v1.16+)" /> <Badge type="tip" />  <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="PX4 v1.16" /> <Badge type="warning" text="Experimental" />
 
 This example is built with PX4 and ROS2 versions that use the same message definitions.
 If you were to use incompatible [message versions](../middleware/uorb.md#message-versioning) you would need to install and run the [Message Translation Node](./px4_ros2_msg_translation_node.md) as well, before running the example:
