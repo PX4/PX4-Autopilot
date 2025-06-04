@@ -255,8 +255,12 @@ void FlightModeManager::start_flight_task()
 	// Dead-Reckoning Return
 	if (nav_state_rtl_dr) {
 		found_some_task = true;
-		PX4_INFO("Going into Dead-Reckoning Return mode");
-		task_failure = false;
+
+		FlightTaskError error = switchTask(FlightTaskIndex::ReturnDeadReckoning);
+
+		task_failure = (error != FlightTaskError::NoError);
+
+		matching_task_running = matching_task_running && !task_failure;
 	}
 
 	// Emergency descend
