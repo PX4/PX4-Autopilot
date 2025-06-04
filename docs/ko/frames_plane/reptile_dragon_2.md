@@ -325,7 +325,7 @@ Access to this cable can be accomplished by simply removing the rear hatch and u
 
 ## Firmware Build
 
-You can't use prebuilt PX4 release (or main) firmware for this vehicle, as it depends on PX4 modules [crsf_rc](../modules/modules_driver.md#crsf-rc) and [msp_osd](../modules/modules_driver.md#msp-osd) that are not included by default.
+You can't use prebuilt PX4 release (or main) firmware for this vehicle, as it depends on PX4 modules [crsf_rc](../modules/modules_driver_radio_control.md#crsf-rc) and [msp_osd](../modules/modules_driver.md#msp-osd) that are not included by default.
 
 These require some custom configuration to enable.
 

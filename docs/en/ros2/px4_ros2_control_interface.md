@@ -341,6 +341,7 @@ The used types also define the compatibility with different vehicle types.
 The following sections provide a list of supported setpoint types:
 
 - [GotoSetpointType](#go-to-setpoint-gotosetpointtype): Smooth position and (optionally) heading control
+- [FwLateralLongitudinalSetpointType](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype): <Badge type="tip" text="main (planned for: PX4 v1.17)" /> Direct control of lateral and longitudinal fixed wing dynamics
 - [DirectActuatorsSetpointType](#direct-actuator-control-setpoint-directactuatorssetpointtype): Direct control of motors and flight surface servo setpoints
 
 :::tip
@@ -355,7 +356,7 @@ You can add your own setpoint types by adding a class that inherits from `px4_ro
 This setpoint type is currently only supported for multicopters.
 :::
 
-Smoothly control position and (optionally) heading setpoints with the [px4_ros2::GotoSetpointType](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/goto.hpp) setpoint type.
+Smoothly control position and (optionally) heading setpoints with the [`px4_ros2::GotoSetpointType`](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/goto.hpp) setpoint type.
 The setpoint type is streamed to FMU based position and heading smoothers formulated with time-optimal, maximum-jerk trajectories, with velocity and acceleration constraints.
 
 The most trivial use is simply inputting a 3D position into the update method:
@@ -400,6 +401,137 @@ _goto_setpoint->update(
   max_heading_rate_rad_s);
 ```
 
+#### Fixed-Wing Lateral and Longitudinal Setpoint (FwLateralLongitudinalSetpointType)
+
+<Badge type="warning" text="Fixed wing only" /> <Badge type="tip" text="main (planned for: PX4 v1.17)" />
+
+::: info
+This setpoint type is supported for fixed-wing vehicles and for VTOLs in fixed-wing mode.
+:::
+
+Use the [`px4_ros2::FwLateralLongitudinalSetpointType`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1FwLateralLongitudinalSetpointType.html) to directly control the lateral and longitudinal dynamics of a fixed-wing vehicle — that is, side-to-side motion (turning/banking) and forward/vertical motion (speeding up and climbing/descending), respectively.
+This setpoint is streamed to the PX4 [_FwLateralLongitudinalControl_ module](../modules/modules_controller.md#fw-lat-lon-control), which decouples lateral and longitudinal inputs while ensuring that vehicle limits are respected.
+
+To control the vehicle, at least one lateral **and** one longitudinal setpoint must be provided:
+
+1. Of the longitudinal inputs: either `altitude` or `height_rate` must be finite to control vertical motion.
+   If both are set to `NAN`, the vehicle will maintain its current altitude.
+2. Of the lateral inputs: at least one of `course`, `airspeed_direction`, or `lateral_acceleration` must be finite.
+
+For a detailed description of the controllable parameters, please refer to message definitions ([FixedWingLateralSetpoint](../msg_docs/FixedWingLateralSetpoint.md) and [FixedWingLongitudinalSetpoint](../msg_docs/FixedWingLongitudinalSetpoint.md)).
+
+##### Basic Usage
+
+This type has a number of update methods, each allowing you to specify an increasing number of setpoints.
+
+The simplest method is `updateWithAltitude()`, which allows you to specify a `course` and `altitude` target setpoint:
+
+```cpp
+const float altitude_msl = 500.F;
+const float course = 0.F; // due North
+_fw_lateral_longitudinal_setpoint->updateWithAltitude(altitude_msl, course);
+```
+
+PX4 uses the setpoints to compute the _roll angle_, _pitch angle_ and _throttle_ setpoints that are sent to lower level controllers.
+Note that the commanded flight is expected to be relatively gentle/unaggressive when using this method.
+This is done as follows:
+
+- Lateral control output:
+
+  course setpoint (set by user) &rarr; airspeed direction (heading) setpoint &rarr; lateral acceleration setpoint &rarr; roll angle setpoint.
+
+- Longitudinal control output:
+
+  altitude setpoint (set by user) &rarr; height rate setpoint &rarr; pitch angle setpoint and throttle settings.
+
+The `updateWithHeightRate()` method allows you to set a target `course` and `height_rate` (this is useful if the speed of ascent or descent matters, or needs to be dynamically controlled):
+
+```cpp
+const float height_rate = 2.F;
+const float course = 0.F; // due North
+_fw_lateral_longitudinal_setpoint->updateWithHeightRate(height_rate, course);
+```
+
+The `updateWithAltitude()` and `updateWithHeightRate()` methods allow you to additionally control the equivalent airspeed or lateral acceleration by specifying them as the third and fourth arguments, respectively:
+
+```cpp
+const float altitude_msl = 500.F;
+const float course = 0.F; // due North
+const float equivalent_aspd = 15.F; // m/s
+const float lateral_acceleration = 2.F; // FRD, used as feedforward
+
+_fw_lateral_longitudinal_setpoint->updateWithAltitude(altitude_msl,
+  course,
+  equivalent_aspd,
+  lateral_acceleration);
+```
+
+The equivalent airspeed and lateral acceleration arguments are defined as `std::optional<float>`, so you can omit any of them by passing `std::nullopt`.
+
+::: tip
+If both lateral acceleration and course setpoints are provided, the lateral acceleration setpoint will be used as feedforward.
+:::
+
+##### Full Control Using the Setpoint Struct
+
+For full flexibility, you can create and pass a [`FwLateralLongitudinalSetpoint`](https://auterion.github.io/px4-ros2-interface-lib/structpx4__ros2_1_1FwLateralLongitudinalSetpoint.html) struct.
+Each field is templated with `std::optional<float>`.
+
+::: tip
+If both course and airspeed direction are set: airspeed direction takes precedence, course is not controlled.
+Lateral acceleration is treated as feedforward if either course or airspeed direction are also finite.
+If both altitude and height rate are set: height rate takes precedence, altitude is not controlled.
+:::
+
+```cpp
+px4_ros2::FwLateralLongitudinalSetpoint setpoint_s;
+
+setpoint_s.withCourse(0.F);
+// setpoint_s.withAirspeedDirection(0.2F); // uncontrolled
+setpoint_s.withLateralAcceleration(2.F); // feedforward
+//setpoint_s.withAltitude(500.F); // uncontrolled
+setpoint_s.withHeightRate(2.F);
+setpoint_s.withEquivalentAirspeed(15.F);
+
+_fw_lateral_longitudinal_setpoint->update(setpoint_s);
+```
+
+The diagram below illustrates the interaction between the `FwLateralLongitudinalSetpointType` and PX4 when all inputs are set.
+
+![FW ROS Interaction](../../assets/middleware/ros2/px4_ros2_interface_lib/fw_lat_long_ros_interaction.svg)
+
+##### Advanced Configuration (Optional)
+
+You can also pass a [`FwControlConfiguration`](https://auterion.github.io/px4-ros2-interface-lib/structpx4__ros2_1_1FwControlConfiguration.html) struct along with the setpoint to override default controller settings and constraints such as pitch limits, throttle limits, and target sink/climb rates.
+This is intended for advanced users:
+
+```cpp
+px4_ros2::FwLateralLongitudinalSetpoint setpoint_s;
+
+setpoint_s.withAirspeedDirection(0.F);
+setpoint_s.withLateralAcceleration(2.F); // feedforward
+setpoint_s.withAltitude(500.F);
+setpoint_s.withEquivalentAirspeed(15.F);
+
+px4_ros2::FwControlConfiguration config_s;
+
+config_s.withTargetClimbRate(3.F);
+config_s.withMaxAcceleration(5.F);
+config_s.withThrottleLimits(0.4F, 0.6F);
+
+_fw_lateral_longitudinal_setpoint->update(setpoint_s, config_s);
+```
+
+All configuration fields are defined as `std::optional<float>`.
+Unset values will default to the PX4 configuration.
+See [LateralControlConfiguration](../msg_docs/LateralControlConfiguration.md) and [FixedWingLongitudinalConfiguration](../msg_docs/LongitudinalControlConfiguration.md) for more information on configuration options.
+
+:::info
+For safety, PX4 automatically limits configuration values to stay within the vehicle’s constraints.
+For example, throttle overrides are clamped to remain between [`FW_THR_MIN`](../advanced_config/parameter_reference.md#FW_THR_MIN)
+and [`FW_THR_MAX`](../advanced_config/parameter_reference.md#FW_THR_MAX).
+:::
+
 #### Direct Actuator Control Setpoint (DirectActuatorsSetpointType)
 
 Actuators can be directly controlled using the [px4_ros2::DirectActuatorsSetpointType](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1DirectActuatorsSetpointType.html) setpoint type.
@@ -411,11 +543,55 @@ For example to control a quadrotor, you need to set the first 4 motors according
 If you want to control an actuator that does not control the vehicle's motion, but for example a payload servo, see [below](#controlling-an-independent-actuator-servo).
 :::
 
+### Controlling a VTOL
+
+<Badge type="tip" text="main (planned for: PX4 v1.17)" /> <Badge type="warning" text="Experimental" />
+
+To control a VTOL in an external flight mode, ensure you're returning the correct setpoint type based on the current flight configuration:
+
+- Multicopter mode: use a setpoint type that is compatible with multicopter control. For example: either the [`GotoSetpointType`](#go-to-setpoint-gotosetpointtype) or the [`TrajectorySetpointType`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1TrajectorySetpointType.html).
+- Fixed-wing mode: Use the [`FwLateralLongitudinalSetpointType`](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype).
+
+As long as the VTOL remains in either multicopter or fixed-wing mode throughout the external mode, no additional handling is required.
+
+If you would like to command a VTOL transition in your external mode, you need to use the [VTOL API](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1VTOL.html). The VTOL API provides the functionality to command a transition and query the current state of the vehicle.
+
+Use this API with caution!
+Commanding transitions externally makes the user partially responsible for ensuring smooth and safe behavior, unlike onboard transitions (e.g. via RC switch) where PX4 handles the full process:
+
+1. Ensure that both the `TrajectorySetpointType` and the `FwLateralLongitudinalSetpointType` are available to your mode.
+2. Create an instance of `px4_ros2::VTOL` in the constructor of your mode.
+3. To command a transition, you can use the `toMulticopter()` or `toFixedwing()` methods on your VTOL object to set the desired state.
+4. During transition, send the following combination of setpoints:
+
+   ```cpp
+   // Assuming the instance of the px4_ros2::VTOL object is called vtol
+
+   // Send TrajectorySetpointType as follows:
+   Eigen::Vector3f acceleration_sp = vtol.computeAccelerationSetpointDuringTransition();
+   Eigen::Vector3f velocity_sp{NAN, NAN, 0.f};
+
+   _trajectory_setpoint->update(velocity_sp, acceleration_sp);
+
+   // Send FwLateralLongitudinalSetpointType with lateral input to realign vehicle as desired
+
+   float course_sp = 0.F; // North
+
+   _fw_lateral_longitudinal_setpoint->updateWithAltitude(NAN, course_sp)
+   ```
+
+   This will ensure that the transition is handled properly within PX4.
+   You can optionally pass a deceleration setpoint to `computeAccelerationSetpointDuringTransition()` to be used during back-transitions.
+
+To check the current state of the vehicle, use the `getCurrentState()` method on your `px4_ros2::VTOL` object.
+
+See [this external flight mode implementation](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/modes/vtol) for a practical example on how to use this API.
+
 ### Controlling an Independent Actuator/Servo
 
 If you want to control an independent actuator (a servo), follow these steps:
 
-1. [Configure the output](../payloads/generic_actuator_control.md#generic-actuator-control-with-mavlink)
+1. [Configure the output](../payloads/generic_actuator_control.md#generic-actuator-control-with-mavlink).
 2. Create an instance of [px4_ros2::PeripheralActuatorControls](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1PeripheralActuatorControls.html) in the constructor of your mode.
 3. Call the `set()` method to control the actuator(s).
    This can be done independently of any active setpoints.
@@ -427,6 +603,7 @@ You can access PX4 telemetry topics directly via the following classes:
 - [OdometryGlobalPosition](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1OdometryGlobalPosition.html): Global position
 - [OdometryLocalPosition](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1OdometryLocalPosition.html): Local position, velocity, acceleration, and heading
 - [OdometryAttitude](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1OdometryAttitude.html): Vehicle attitude
+- [OdometryAirspeed](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1OdometryAirspeed.html): Airspeed
 
 For example, you can query the vehicle's current position estimate as follows:
 
