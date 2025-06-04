@@ -74,6 +74,106 @@ By default this message definition will be compiled to a single topic with an id
 This is the simplest form of a message.
 See the existing [`msg`](../msg_docs/index.md) files for other examples of how messages are defined.
 
+### Fields
+
+Messages define one or more fields, which are the message variables that are written and read by publishers and subscribers, respectively.
+
+A typical field might look like this:
+
+```sh
+float64 lat # [deg] Latitude (WGS84).
+```
+
+Each field minimally has a _type_ followed by a _name_, and should also have a _comment_ with optional _metadata_ and a comment
+The format is as shown:
+
+```sh
+<type> <name> # [metadata] <description>
+```
+
+- `type`:
+  - A primitive data type: `bool`, `char`, `uint8`, `uint32`, `uint64`, `int8`, `int16`, `int32`, `float32` and `float64`.
+  - Another UORB message name, when creating complex types using [nested messages](#nested-messages).
+- `name`
+  - Any message-unique string.
+    By convention use lower case `underline_snake_case`.
+- `metadata`
+  - Provides information about the field, such as units and allowed values.
+    - `[<unit>]`
+      - The units inside square brackets (note, no delineator). For example `[m]` or `[deg]`.
+        Typical units include: `m`, `deg`, `m/s`, `rad`, `rad/s`, and so on.
+    - `[@enum <enum_name> <enum_name>]`
+      - An enum name (or space-separated names) that indicate sets of allowed constant values.
+        Enums are not specifically defined in the file, but all constants that share the enum prefix listed can be used in the field.
+    - `[@range <lower_value>, <upper_l_value>]`
+      - The allowed range of the field. Either the lower or upper value can be omitted to indicate an unbounded value.
+        For example `[@range 0, 3]`, `[@range 5.3, ]`
+    - `[@invalid <value> <description>]`
+      - The value to set the field to indicate that the value is unknown. The description is optional.
+- `description`
+  - A terse description of the purpose of the field and allowed values.
+    Take care to include any information that can't be inferred from the name!
+    The description is a sentence: use capital first letter and terminate in a full stop.
+    It should all be on one line.
+
+#### Array Fields
+
+A array field defines multiple variables in an array, where all values have the same type.
+The number of elements are given using square brackets after the type.
+Array fields are otherwise defined (and documented) in the same way as other fields.
+
+For example:
+
+```sh
+int32[12] raw_data # ADC channel raw value, accept negative value.
+```
+
+#### Mandatory fields
+
+All message definitions **must** include following fields:
+
+- `uint64_t timestamp`
+  - This should be filled in when publishing the associated topic(s).
+    It is needed in order for the logger to be able to record UORB topics.
+
+### Constants and Enums
+
+A message may define any number of constants.
+These define predefined values for fields, such as indicators of states, and flag values.
+
+For example, here are two constants for indicating battery warnings.
+
+```sh
+uint8 WARNING_NONE = 0 # No battery low voltage warning active.
+uint8 WARNING_LOW = 1	# Warning of low voltage.
+```
+
+A constant is a field with a value.
+It has a _type_ followed by a _name_, and should also have a _comment_ with a description.
+Unlike fields, there are no "array constants" and there is no need for metatdata.
+
+The format is as shown:
+
+```sh
+<type> <name> = <value> # <description>
+```
+
+- `type`:
+  - Must match the `type` in the field with which it is to be used.
+- `name`
+  - An message-unique string which is by convention upper-cased and uses `underline_snake_case`.
+  - Constant names that can be used with a field should share the same prefix where possible and should indicate the value's purpose.
+- `description`
+  - A terse description of the purpose of the constant.
+    The description is a sentence: use capital first letter and terminate in a full stop.
+    It should all be on one line.
+
+An enum is a set of enumerated constants that can be used as values to assign a particular field.
+UORB has no formal syntax to define enums, but they are effectively defined by convention.
+Constants that share similar purposes should be grouped together in the message, and given the same prefix.
+This prefix is the enum name, and is referenced in the field documentation using the `[@enum <>]` metadata.
+A field can specify multiple enum values in its metadata, so you don't have to name unlike constants together to suit the field.
+
 ### Multi-Topic Messages
 
 Sometimes it is useful to use the same message definition for multiple topics.
