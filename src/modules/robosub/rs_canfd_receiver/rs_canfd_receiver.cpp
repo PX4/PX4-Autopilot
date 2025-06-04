@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "rs_canfd_receiver.hpp"
+#include "../rs_canfd_common/rs_canfd_common.hpp"
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
@@ -39,6 +40,8 @@
 #include <uORB/topics/parameter_update.h>
 #include <sys/ioctl.h>
 #include <uORB/topics/water_detection.h>
+#include <uORB/topics/internal_sensors.h>
+
 
 
 int RoboSubCANFDReceiver::print_status()
@@ -148,13 +151,29 @@ void RoboSubCANFDReceiver::Run()
 	received_id.id = _raw_canfd_msg.id; // Put the received can id in the union to parse the id.
 
 	if (received_id.can_id_seg.module_id_des == 0x01) { // Check if the dest module is 0x01 (Pixhawk)
-		switch (received_id.can_id_seg.client_id_src) { // check if the src client id is 0x04 (LP4 GPIO non contact water level)
+		switch (received_id.can_id_seg.client_id_src) { // switch on the client id source
+			case 0x00: // Internal humidity sensor
+			case 0x01: // Internal temperature sensor
+			case 0x02: {// Internal pressure sensor
+				converter conv;
+				memcpy(conv.bytes, _raw_canfd_msg.data, sizeof(conv.bytes));
+
+				internal_sensors_s internal_sensor_msg{}; // create the temp message struct
+				internal_sensor_msg.timestamp = hrt_absolute_time(); // set the timestamp
+				internal_sensor_msg.module = received_id.can_id_seg.module_id_src; // set the module id
+				internal_sensor_msg.sensor = received_id.can_id_seg.client_id_src; // set the sensor id
+				internal_sensor_msg.value = conv.value; // set the value
+
+				internal_sensors_pub.publish(internal_sensor_msg); // publish the data
+				break;
+			}
 			case 0x04: {// LP4 GPIO non contact water level
 				water_detection_s water_detection_msg{}; // create the temp message struct
 				water_detection_msg.timestamp = hrt_absolute_time(); // set the timestamp
 				water_detection_msg.mainbrain_sensor = _raw_canfd_msg.data[0]; // set the water detected bit, this should be the first byte
 
 				water_detection_pub.publish(water_detection_msg); // publish the data
+				break;
 			}
 		}
 	}

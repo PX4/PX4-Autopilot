@@ -6,4 +6,5 @@ px4_add_module(
 	SRCS
 		rs_canfd_receiver.cpp
 		rs_canfd_receiver.hpp
+		../rs_canfd_common/rs_canfd_common.hpp
 	)

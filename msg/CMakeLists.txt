@@ -267,6 +267,7 @@ set(msg_files
 	robosub/DroneTask.msg
 	robosub/waterDetection.msg
 	robosub/waterContactState.msg
+	robosub/InternalSensors.msg
 )
 list(SORT msg_files)
 

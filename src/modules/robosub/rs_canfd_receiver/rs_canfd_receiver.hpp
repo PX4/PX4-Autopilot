@@ -49,6 +49,7 @@
 
 #include <uORB/topics/water_detection.h>
 #include <uORB/topics/raw_canfd.h>
+#include <uORB/topics/internal_sensors.h>
 
 using namespace time_literals;
 
@@ -122,5 +123,6 @@ private:
 	can_id_u received_id;
 	uORB::Publication<px4::msg::waterDetection> water_detection_pub{ORB_ID(water_detection)};
 	uORB::Publication<px4::msg::RawCanfd> send_raw_canfd_pub{ORB_ID(send_raw_canfd)};
+	uORB::Publication<px4::msg::InternalSensors> internal_sensors_pub{ORB_ID(internal_sensors)};
 
 };
