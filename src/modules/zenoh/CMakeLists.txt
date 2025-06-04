@@ -71,7 +71,8 @@ target_compile_options(zenohpico_static PUBLIC -Wno-cast-align
 			-Wno-unused-result
 			-Wno-type-limits
 			-Wno-unused-variable
-			-Wno-maybe-uninitialized)
+			-Wno-maybe-uninitialized
+			-Wno-conversion)
 
 target_compile_options(zenohpico_static PRIVATE -Wno-missing-prototypes)
 if(CONFIG_PLATFORM_NUTTX)
