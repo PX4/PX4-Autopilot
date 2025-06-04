@@ -277,13 +277,16 @@ void RobosubPosControl::Run()
 	/* update parameters from storage */
 	parameters_update();
 
-	// vehicle_attitude_s attitude;
+	vehicle_attitude_s attitude;
 	vehicle_local_position_s vlocal_pos;
 
 	/* only run position controller if attitude changed */
 	// if (_vehicle_attitude_sub.update(&attitude))
 	/* only run controller if local_pos changed */
-	if (_vehicle_local_position_sub.update(&vlocal_pos)){
+	// if (_vehicle_local_position_sub.update(&vlocal_pos)){
+
+	// TODO_RS IS THIS CORRECT OR ONLY ON OF THESE? only run controller if local_pos or attitude changed
+	if (_vehicle_local_position_sub.update(&vlocal_pos) || _vehicle_attitude_sub.update(&attitude)){
 		vehicle_angular_velocity_s angular_velocity {};
 		_angular_velocity_sub.copy(&angular_velocity); // get angular velocity
 
