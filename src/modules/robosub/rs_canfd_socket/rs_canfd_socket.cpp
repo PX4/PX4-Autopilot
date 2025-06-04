@@ -60,7 +60,7 @@ int RoboSubCANFDSocket::custom_command(int argc, char *argv[])
 
 
 	if (!strcmp(argv[0], "init")) {
-		get_instance()->send_init();
+		get_instance()->send_init_bool = true;
 		return 0;
 	}
 
@@ -268,6 +268,20 @@ void RoboSubCANFDSocket::run()
 					PX4_ERR("Failed to send raw CAN FD message");
 					continue;
 				}
+			}
+			else if (!has_sent_init) { // automatically send init message if it has not been sent yet
+				has_sent_init = true;
+				if(!send_init()) {
+					PX4_ERR("Failed to send init CAN FD message");
+					continue;
+				}
+			}
+			else if (send_init_bool) { // This is definatly a dirty hack to manualy send the init, but calling the function directly did not work because the socket breaks somehow.
+				if(!send_init()) {
+					PX4_ERR("Failed to send init CAN FD message");
+					continue;
+				}
+				send_init_bool = false;
 			}
 			usleep(10000); // avoid spinning
 			continue;

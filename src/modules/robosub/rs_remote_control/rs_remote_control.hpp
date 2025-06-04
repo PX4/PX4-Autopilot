@@ -106,7 +106,7 @@
 
 	perf_counter_t	_loop_perf;
 
-	uORB::SubscriptionCallbackWorkItem _water_detection_sub{this, ORB_ID(water_detection)};
+	uORB::Subscription _water_detection_sub{ORB_ID(water_detection)};
 
 	water_detection_s 	_water_detection{};
 
@@ -122,7 +122,7 @@
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	uORB::Subscription _input_rc_sub{ORB_ID(input_rc)};
+	uORB::SubscriptionCallbackWorkItem _input_rc_sub{this, ORB_ID(input_rc)};
 
 	uORB::Publication<drone_task_s>    _drone_task_pub{ORB_ID(drone_task)};
 

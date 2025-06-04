@@ -124,6 +124,9 @@ private:
 
 	bool send_init();
 
+	bool send_init_bool = false;
+	bool has_sent_init = false; // Flag to check if the init message has been sent
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
 		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
@@ -149,5 +152,7 @@ private:
 
 	uORB::Publication<px4::msg::RawCanfd> raw_canfd_pub{ORB_ID(raw_canfd)};
 	uORB::Subscription send_raw_canfd_sub{ORB_ID(send_raw_canfd)};
+
+
 
 };

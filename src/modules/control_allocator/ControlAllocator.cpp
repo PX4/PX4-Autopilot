@@ -471,7 +471,7 @@ ControlAllocator::Run()
 		_last_status_pub = now;
 	}
 
-	senduORB(); // test function
+	// senduORB(); // test function
 
 	_rpm_control.thrusterSafety();
 
