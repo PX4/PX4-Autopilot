@@ -36,6 +36,7 @@
 #include "data_validator/DataValidatorGroup.hpp"
 
 #include <lib/sensor_calibration/Barometer.hpp>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
@@ -55,6 +56,7 @@
 #include <uORB/topics/sensors_status.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/estimator_status_flags.h>
+#include <uORB/topics/sensor_gps.h>
 
 using namespace time_literals;
 
@@ -86,6 +88,7 @@ private:
 	bool ParametersUpdate(bool force = false);
 	void UpdateStatus();
 	bool UpdateRelativeCalibrations(hrt_abstime time_now_us);
+	bool BaroGNSSAltitudeOffset();
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
@@ -105,6 +108,8 @@ private:
 		{this, ORB_ID(sensor_baro), 2},
 		{this, ORB_ID(sensor_baro), 3},
 	};
+
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 
 	calibration::Barometer _calibration[MAX_SENSOR_COUNT];
 
@@ -134,11 +139,16 @@ private:
 	bool _last_status_baro_fault{false};
 
 	bool _relative_calibration_done{false};
+	bool _baro_gnss_calibration_done{false};
 	uint64_t _calibration_t_first{0};
+	AlphaFilter<float> _delta_baro_gnss_lpf{};
+	float _baro_gnss_offset_t1{NAN};
+	uint64_t _t_first_gnss_sample{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh,
-		(ParamFloat<px4::params::SENS_BARO_RATE>) _param_sens_baro_rate
+		(ParamFloat<px4::params::SENS_BARO_RATE>) _param_sens_baro_rate,
+		(ParamBool<px4::params::SENS_BAR_AUTOCAL>) _param_sens_baro_autocal
 	)
 };
 }; // namespace sensors

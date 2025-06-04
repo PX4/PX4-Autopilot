@@ -82,6 +82,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_DO_MOUNT_CONFIGURE:
 	case NAV_CMD_DO_MOUNT_CONTROL:
 	case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
+	case NAV_CMD_COMPONENT_ARM_DISARM:
 	case NAV_CMD_DO_SET_ROI:
 	case NAV_CMD_DO_SET_ROI_LOCATION:
 	case NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET:
@@ -95,6 +96,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_SET_CAMERA_FOCUS:
 	case NAV_CMD_DO_CHANGE_SPEED:
 	case NAV_CMD_DO_SET_HOME:
+
 		return true;
 
 	// Indefinite Waypoints

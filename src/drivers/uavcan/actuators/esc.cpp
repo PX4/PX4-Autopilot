@@ -39,7 +39,9 @@
 
 #include "esc.hpp"
 #include <systemlib/err.h>
+#include <parameters/param.h>
 #include <drivers/drv_hrt.h>
+#include <lib/atmosphere/atmosphere.h>
 
 #define MOTOR_BIT(x) (1<<(x))
 
@@ -65,6 +67,12 @@ UavcanEscController::init()
 	}
 
 	_esc_status_pub.advertise();
+
+	int32_t iface_mask{0xFF};
+
+	if (param_get(param_find("UAVCAN_ESC_IFACE"), &iface_mask) == OK) {
+		_uavcan_pub_raw_cmd.getTransferSender().setIfaceMask(iface_mask);
+	}
 
 	return res;
 }
@@ -140,7 +148,7 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		ref.esc_address = msg.getSrcNodeID().get();
 		ref.esc_voltage     = msg.voltage;
 		ref.esc_current     = msg.current;
-		ref.esc_temperature = msg.temperature;
+		ref.esc_temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
 		ref.esc_rpm         = msg.rpm;
 		ref.esc_errorcount  = msg.error_count;
 
