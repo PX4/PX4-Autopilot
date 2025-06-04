@@ -6,21 +6,23 @@
 # @class Underwater Robot
 # PWM Channel - Thruster
 #
-# @output Motor1 motor 1 - T200, starboard horizontal, propeller ?CW
-# @output Motor2 motor 2 - Stern horizontal, propeller ?CW
-# @output Motor3 motor 3 - Bow port, propeller ?CW
-# @output Motor4 motor 4 - Bow starboard, propeller ?CW
-# @output Motor5 motor 5 - Stern horizontal, propeller ?CW
-# @output Motor6 motor 6 - T200, port horizontal, propeller ?CW
-# @output Motor7 motor 7 - Bow horizontal, propeller ?CW
+# @output Motor1 motor 1 - T200, starboard horizontal, propeller
+# @output Motor2 motor 2 - Stern horizontal, propeller
+# @output Motor3 motor 3 - Bow port, propeller
+# @output Motor4 motor 4 - Bow starboard, propeller
+# @output Motor5 motor 5 - Stern horizontal, propeller
+# @output Motor6 motor 6 - T200, port horizontal, propeller
+# @output Motor7 motor 7 - Bow horizontal, propeller
 #
 # @maintainer
 #
 # @board px4_fmu-v6x_robosub exclude
 #
 
+set VEHICLE_TYPE uuv
+
 # MAV_TYPE_SUBMARINE 12
-. ${R}etc/init.d/rc.uuv_defaults
+param set-default MAV_TYPE 12
 
 param set-default SER_TEL1_BAUD 115200
 
@@ -54,7 +56,7 @@ param set-default CA_ROTOR2_AZ -1
 param set-default CA_ROTOR2_PX -0.5
 param set-default CA_ROTOR2_PY 0.5
 param set-default CA_ROTOR2_PZ 0
-param set-default CA_ROTOR2_CT 0.5 # Limit thrust output to 50% for vertical bow thrusters
+param set-default CA_ROTOR2_CT 0.5 # Limit thrust output to 50 percent for vertical bow thrusters
 
 # Bow starboard vertical (4)
 param set-default CA_ROTOR3_AX 0
@@ -63,7 +65,7 @@ param set-default CA_ROTOR3_AZ -1
 param set-default CA_ROTOR3_PX 0.5
 param set-default CA_ROTOR3_PY 0.5
 param set-default CA_ROTOR3_PZ 0
-param set-default CA_ROTOR3_CT 0.5 # Limit thrust output to 50% for vertical bow thrusters
+param set-default CA_ROTOR3_CT 0.5 # Limit thrust output to 50 percent for vertical bow thrusters
 
 # Stern horizontal (5)
 param set-default CA_ROTOR4_AX 1
@@ -78,7 +80,7 @@ param set-default CA_ROTOR5_AX 0
 param set-default CA_ROTOR5_AY 1
 param set-default CA_ROTOR5_AZ 0
 param set-default CA_ROTOR5_KM 0
-param set-default CA_ROTOR5_PX -0.5 #
+param set-default CA_ROTOR5_PX -0.5
 param set-default CA_ROTOR5_PY 0
 param set-default CA_ROTOR5_PZ 0
 
@@ -92,9 +94,9 @@ param set-default CA_ROTOR6_PZ 0
 
 param set-default PWM_MAIN_OUT 1234567  # Enable channels 1-7 for PWM
 param set-default PWM_MAIN_RATE 400     # Set PWM frequency to 400 Hz
-param set-default PWM_MAIN_DISARM 1500  # Stop (neutral) when disarmed
-param set-default PWM_MAIN_MIN1 1100    # Minimum PWM value (full reverse)
-param set-default PWM_MAIN_MAX1 1900    # Maximum PWM value (full forward)
+param set-default PWM_MAIN_DISARM 1500  # Stop neutral when disarmed
+param set-default PWM_MAIN_MIN 1100     # Minimum PWM value full reverse
+param set-default PWM_MAIN_MAX 1900     # Maximum PWM value full forward
 
 param set-default PWM_MAIN_FUNC1 101
 param set-default PWM_MAIN_FUNC2 102
