@@ -112,21 +112,29 @@
 
 	void taskStat();
 
-	 void parameters_update(bool force = false);
+	void parameters_update(bool force = false);
 
 
-	 DEFINE_PARAMETERS(
-		 (ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
-		 (ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
-	 )
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
+		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
+	)
 
-	 // Subscriptions
-	 uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	 uORB::Subscription _input_rc_sub{ORB_ID(input_rc)};
+	// Subscriptions
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _input_rc_sub{ORB_ID(input_rc)};
 
-	 uORB::Publication<drone_task_s>    _drone_task_pub{ORB_ID(drone_task)};
+	uORB::Publication<drone_task_s>    _drone_task_pub{ORB_ID(drone_task)};
 
-	 drone_task_s _drone_task{};
-	 input_rc_s _input_rc{};
+	drone_task_s _drone_task{};
+	input_rc_s _input_rc{};
+
+	float normalized[8];
+	float range = 1.0f;
+	uint8_t bitReg = 0;
+	uint8_t update1 = 0;
+
+	bool sensor_mainbrain = false;
+	bool sensor_power = false;
 
  };

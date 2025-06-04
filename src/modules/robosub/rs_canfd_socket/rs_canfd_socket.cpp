@@ -289,17 +289,6 @@ void RoboSubCANFDSocket::run()
 		memcpy(raw_canfd_msg.data, _recv_frame.data, sizeof(_recv_frame.data)); // copy the data from the can frame to the message struct
 		raw_canfd_pub.publish(raw_canfd_msg); // publish the raw canfd message
 
-		received_id.can_id = _recv_frame.can_id; // Put the received can id in the union to parse the id.
-
-		if (received_id.can_id_seg.module_id_src == 0x02) { // Check if the src module is 0x02 (mainbrain)
-			if (received_id.can_id_seg.client_id_src == 0x04) { // check if the src client id is 0x04 (LP4 GPIO non contact water level)
-				water_presence_s water_presence_msg{}; // create the temp message struct
-				water_presence_msg.timestamp = hrt_absolute_time(); // set the timestamp
-				water_presence_msg.water_detected = _recv_frame.data[0]; // setthe water detected bit, this should be the first byte
-
-				water_presence_pub.publish(water_presence_msg); // publish the data
-			}
-		}
 	}
 	// cleanup
 	close(s);

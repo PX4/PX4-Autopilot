@@ -47,7 +47,7 @@
 #include <sys/time.h>
 #include <uORB/Publication.hpp>
 
-#include <uORB/topics/water_presence.h>
+#include <uORB/topics/water_detection.h>
 #include <uORB/topics/raw_canfd.h>
 
 using namespace time_literals;
@@ -120,7 +120,7 @@ private:
 	};
 
 	can_id_u received_id;
-	uORB::Publication<px4::msg::WaterPresence> water_presence_pub{ORB_ID(water_presence)};
+	uORB::Publication<px4::msg::waterDetection> water_detection_pub{ORB_ID(water_detection)};
 	uORB::Publication<px4::msg::RawCanfd> send_raw_canfd_pub{ORB_ID(send_raw_canfd)};
 
 };

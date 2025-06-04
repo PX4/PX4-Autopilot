@@ -38,7 +38,7 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/parameter_update.h>
 #include <sys/ioctl.h>
-#include <uORB/topics/water_presence.h>
+#include <uORB/topics/water_detection.h>
 
 
 int RoboSubCANFDReceiver::print_status()
@@ -150,11 +150,11 @@ void RoboSubCANFDReceiver::Run()
 	if (received_id.can_id_seg.module_id_des == 0x01) { // Check if the dest module is 0x01 (Pixhawk)
 		switch (received_id.can_id_seg.client_id_src) { // check if the src client id is 0x04 (LP4 GPIO non contact water level)
 			case 0x04: {// LP4 GPIO non contact water level
-				water_presence_s water_presence_msg{}; // create the temp message struct
-				water_presence_msg.timestamp = hrt_absolute_time(); // set the timestamp
-				water_presence_msg.water_detected = _raw_canfd_msg.data[0]; // set the water detected bit, this should be the first byte
+				water_detection_s water_detection_msg{}; // create the temp message struct
+				water_detection_msg.timestamp = hrt_absolute_time(); // set the timestamp
+				water_detection_msg.mainbrain_sensor = _raw_canfd_msg.data[0]; // set the water detected bit, this should be the first byte
 
-				water_presence_pub.publish(water_presence_msg); // publish the data
+				water_detection_pub.publish(water_detection_msg); // publish the data
 			}
 		}
 	}

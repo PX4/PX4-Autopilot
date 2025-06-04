@@ -132,10 +132,7 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 	perf_end(_loop_perf);
  }
 
- float normalized[8];
- float range = 1.0f;
- uint8_t bitReg = 0;
- uint8_t update1 = 0;
+
 
  void RobosubRemoteControl::taskStat()
  {
@@ -193,8 +190,7 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 	}
  }
 
- uint8_t sensor1 = false;
- uint8_t sensor2 = false;
+
 
  void RobosubRemoteControl::receiver()
  {
@@ -209,19 +205,19 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 
 				_water_detection_sub.update(&_water_detection);
 
-				sensor1 	= 1;//= _water_detection.power_module_sensor;
-				sensor2 	= 1;//= _water_detection.mainbrain_sensor;
+				sensor_mainbrain 	= true;//= _water_detection.power_module_sensor;
+				sensor_power 	= true;//= _water_detection.mainbrain_sensor;
 
 
-				if (!sensor1 && ! sensor2)
+				if (!sensor_mainbrain && ! sensor_power)
 				{
 					range = 0.1f;
 
-				} else if (sensor1 && ! sensor2)
+				} else if (sensor_mainbrain && ! sensor_power)
 				{
 					range = 0.2f;
 
-				} else if (sensor1 &&  sensor2)
+				} else if (sensor_mainbrain &&  sensor_power)
 				{
 					range = 1.0f;
 				}
