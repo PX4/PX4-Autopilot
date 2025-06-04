@@ -61,12 +61,12 @@ For example the [VelocityLimits](../msg_docs/VelocityLimits.md) message definiti
 ```text
 # Velocity and yaw rate limits for a multicopter position slow mode only
 
-uint64 timestamp # time since system start (microseconds)
+uint64 timestamp # [us] Time since system start.
 
 # absolute speeds, NAN means use default limit
-float32 horizontal_velocity # [m/s]
-float32 vertical_velocity # [m/s]
-float32 yaw_rate # [rad/s]
+float32 horizontal_velocity # [m/s] Horizontal velocity.
+float32 vertical_velocity # [m/s] Vertical velocity.
+float32 yaw_rate # [rad/s] Yaw rate.
 ```
 
 By default this message definition will be compiled to a single topic with an id `velocity_limits`, a direct conversion from the CamelCase name to a snake_case version.
@@ -92,13 +92,28 @@ To nest a message, simply include the nested message type in the parent message 
 
 ```text
 # Global position setpoint triplet in WGS84 coordinates.
+#
 # This are the three next waypoints (or just the next two or one).
 
-uint64 timestamp		# time since system start (microseconds)
+uint64 timestamp # [us] Time since system start.
 
 PositionSetpoint previous
 PositionSetpoint current
 PositionSetpoint next
+```
+
+### uORB Buffer Length
+
+uORB messages have a single buffer by default, which may be overwritten if the message publication rate is too high.
+Subscribers will then be able to read up to four messages in sequence before losing information, rather than just the last one sent.
+
+You can create a message buffer using the named constant `ORB_QUEUE_LENGTH`.
+The value is the length of the queue, which must be a power of 2 (so 2, 4, 8, ...).
+
+For example, to create a four-message queue, add the following line to your message definition:
+
+```sh
+uint8 ORB_QUEUE_LENGTH = 4
 ```
 
 ### Message/Field Deprecation {#deprecation}
