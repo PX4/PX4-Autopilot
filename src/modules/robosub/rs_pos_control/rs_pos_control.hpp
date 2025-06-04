@@ -48,14 +48,18 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
+// #include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/input_rc.h>
-#include <uORB/topics/actuator_test.h>
+// #include <uORB/topics/actuator_test.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/uORB.h>
 
 #include <px4_platform_common/log.h>
@@ -70,11 +74,11 @@ using uORB::SubscriptionData;
 
 using namespace time_literals;
 
-class RobosubPOSControl: public ModuleBase<RobosubPOSControl>, public ModuleParams, public px4::WorkItem
+class RobosubPosControl: public ModuleBase<RobosubPosControl>, public ModuleParams, public px4::WorkItem
 {
 public:
-	RobosubPOSControl();
-	~RobosubPOSControl();
+	RobosubPosControl();
+	~RobosubPosControl();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -87,53 +91,76 @@ public:
 	bool init();
 
 private:
+	void publishTorqueSetpoint(const hrt_abstime &timestamp_sample);
+	void publishThrustSetpoint(const hrt_abstime &timestamp_sample);
+
+	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
+
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	// uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};/**< vehicle attitude setpoint */
-
-	// uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity)}; /**< vehicle angular velocity subscription */
-	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)}; /**< vehicle status subscription */
+	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};/**< vehicle attitude setpoint */
+	/* TODO_RS angular vehicle_rates_setpoint */ 	// uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)}; /**< vehicle bodyrates setpoint subscriber */
+	uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity)}; /**< vehicle angular velocity subscription */
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};	/**< notification of manual control updates */
+	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)}; /**< vehicle status subscription TaskModeManager */
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
 
-	// TODO_RS _vehicle_thrust_setpoint AND _vehicle_torque_setpoint
+	vehicle_thrust_setpoint_s _vehicle_thrust_setpoint{};
+	vehicle_torque_setpoint_s _vehicle_torque_setpoint{};
+	manual_control_setpoint_s _manual_control_setpoint{};
+	vehicle_attitude_setpoint_s _attitude_setpoint{};
+	// vehicle_rates_setpoint_s _rates_setpoint{};
 	vehicle_control_mode_s _vcontrol_mode{};
 
 	perf_counter_t	_loop_perf;
 
-	// DEFINE_PARAMETERS(
-	// 	(ParamFloat<px4::params::UUV_ROLL_P>) _param_roll_p,
-	// 	(ParamFloat<px4::params::UUV_ROLL_D>) _param_roll_d,
-	// 	(ParamFloat<px4::params::UUV_PITCH_P>) _param_pitch_p,
-	// 	(ParamFloat<px4::params::UUV_PITCH_D>) _param_pitch_d,
-	// 	(ParamFloat<px4::params::UUV_YAW_P>) _param_yaw_p,
-	// 	(ParamFloat<px4::params::UUV_YAW_D>) _param_yaw_d,
-	// 	// control/input modes
-	// 	(ParamInt<px4::params::UUV_INPUT_MODE>) _param_input_mode,
-	// 	(ParamInt<px4::params::UUV_SKIP_CTRL>) _param_skip_ctrl,
-	// 	// direct access to inputs
-	// 	(ParamFloat<px4::params::UUV_DIRCT_ROLL>) _param_direct_roll,
-	// 	(ParamFloat<px4::params::UUV_DIRCT_PITCH>) _param_direct_pitch,
-	// 	(ParamFloat<px4::params::UUV_DIRCT_YAW>) _param_direct_yaw,
-	// 	(ParamFloat<px4::params::UUV_DIRCT_THRUST>) _param_direct_thrust
-	// )
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::RS_GAIN_X_P>) _param_pose_gain_x,
+		(ParamFloat<px4::params::RS_GAIN_Y_P>) _param_pose_gain_y,
+		(ParamFloat<px4::params::RS_GAIN_Z_P>) _param_pose_gain_z,
+		(ParamFloat<px4::params::RS_GAIN_X_D>) _param_pose_gain_d_x,
+		(ParamFloat<px4::params::RS_GAIN_Y_D>) _param_pose_gain_d_y,
+		(ParamFloat<px4::params::RS_GAIN_Z_D>) _param_pose_gain_d_z,
+
+		(ParamFloat<px4::params::RS_ROLL_P>) _param_roll_p,
+		(ParamFloat<px4::params::RS_ROLL_D>) _param_roll_d,
+		(ParamFloat<px4::params::RS_PITCH_P>) _param_pitch_p,
+		(ParamFloat<px4::params::RS_PITCH_D>) _param_pitch_d,
+		(ParamFloat<px4::params::RS_YAW_P>) _param_yaw_p,
+		(ParamFloat<px4::params::RS_YAW_D>) _param_yaw_d,
+		// control/input modes
+		(ParamInt<px4::params::RS_INPUT_MODE>) _param_input_mode,
+		(ParamInt<px4::params::RS_STAB_MODE>) _param_stabilization,
+		(ParamInt<px4::params::RS_SKIP_CTRL>) _param_skip_ctrl, /** < Whether to skip geometric controller */
+		// direct access to inputs
+		(ParamFloat<px4::params::RS_DIRCT_ROLL>) _param_direct_roll,
+		(ParamFloat<px4::params::RS_DIRCT_PITCH>) _param_direct_pitch,
+		(ParamFloat<px4::params::RS_DIRCT_YAW>) _param_direct_yaw,
+		(ParamFloat<px4::params::RS_DIRCT_THRUST>) _param_direct_thrust
+	)
 
 	void Run() override;
 	/**
 	* Update our local parameter cache.
 	*/
-	void parameters_update(bool force = false);
+	void parameteUpdate(bool force = false);
 
 	/**
-	 * @brief Control actuator based on gyro
-	 *
-	 * @param attitude
+	 * @brief Control Attitude geometric controller
 	 */
-	void control_gyro(const vehicle_attitude_s &attitude);
-	void constrain_actuator_commands(float pitch_u);
+	void control_attitude_geo(const vehicle_attitude_s &attitude, const vehicle_attitude_setpoint_s &attitude_setpoint,
+				  const vehicle_angular_velocity_s &angular_velocity, const vehicle_rates_setpoint_s &rates_setpoint);
 
-	/*
-	* @brief Test actuator
-	*/
-	void actuator_test(int function, float value, int timeout_ms, bool release_control);
+	void constrain_actuator_commands(float roll_u, float pitch_u, float yaw_u,
+					 float thrust_x, float thrust_y, float thrust_z);
+
+	/* TODO_RS 6DOF controller*/
+	// void pose_controller_6dof(const Vector3f &pos_des,
+	// 			  const float roll_des, const float pitch_des, const float yaw_des,
+	// 			  vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
+	// void stabilization_controller_6dof(const Vector3f &pos_des,
+	// 				   const float roll_des, const float pitch_des, const float yaw_des,
+	// 				   vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
 };

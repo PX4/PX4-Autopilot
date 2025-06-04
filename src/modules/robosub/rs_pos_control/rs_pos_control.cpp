@@ -33,7 +33,7 @@
 
 /**
  *
- * This module is a modification of the hippocampus control module and is designed for the
+ * This module is a modification of the uuv_ hippocampus control module and is designed for the
  * HU Robosub.
  *
  * @author Daan Smienk <daansmienk10@gmail.com>
@@ -43,6 +43,7 @@
 #include "rs_pos_control.hpp"
 
 
+
 /**
  * Robosub pos_controller app start / stop handling function
  *
@@ -50,31 +51,33 @@
  */
 extern "C" __EXPORT int rs_pos_control_main(int argc, char *argv[]);
 
-RobosubPOSControl::RobosubPOSControl()
+RobosubPosControl::RobosubPosControl()
     : ModuleParams(nullptr), WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
       /* performance counters */
       _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle"))
 {
 }
 
-RobosubPOSControl::~RobosubPOSControl()
+RobosubPosControl::~RobosubPosControl()
 {
 	perf_free(_loop_perf);
 }
 
-bool RobosubPOSControl::init()
+bool RobosubPosControl::init()
 {
-	// Execute the Run() function everytime an input_rc is publiced
-	if (!_vehicle_attitude_sub.registerCallback()) {
+	// attitude
+	// if (!_vehicle_attitude_sub.registerCallback()) {
+	// 	PX4_ERR("callback registration failed");
+	// 	return false;
+	// }
+	if (!_vehicle_local_position_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
-
-	// PX4_DEBUG("RobosubPOSControl::init()");
 	return true;
 }
 
-void RobosubPOSControl::parameters_update(bool force)
+void RobosubPosControl::parameters_update(bool force)
 {
 	// check for parameter updates
 	if (_parameter_update_sub.updated() || force) {
@@ -86,113 +89,182 @@ void RobosubPOSControl::parameters_update(bool force)
 		updateParams();
 	}
 }
-
 /**
- * @brief from UUVPOSControl
- * TODO_RS should also publish
+ * @brief Publishes attitude setpoint
  */
-// void RobosubPOSControl::publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
-// 	const float roll_des, const float pitch_des, const float yaw_des)
-// {
-// // watch if inputs are not to high
-// vehicle_attitude_setpoint_s vehicle_attitude_setpoint = {};
-// vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
+void RobosubPosControl::publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
+	const float roll_des, const float pitch_des, const float yaw_des)
+{
+	// watch if inputs are not to high
+	vehicle_attitude_setpoint_s vehicle_attitude_setpoint = {};
+	vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
 
-// const Quatf attitude_setpoint(Eulerf(roll_des, pitch_des, yaw_des));
-// attitude_setpoint.copyTo(vehicle_attitude_setpoint.q_d);
+	const Quatf attitude_setpoint(Eulerf(roll_des, pitch_des, yaw_des));
+	attitude_setpoint.copyTo(vehicle_attitude_setpoint.q_d);
 
-// vehicle_attitude_setpoint.thrust_body[0] = thrust_x;
-// vehicle_attitude_setpoint.thrust_body[1] = thrust_y;
-// vehicle_attitude_setpoint.thrust_body[2] = thrust_z;
+	vehicle_attitude_setpoint.thrust_body[0] = thrust_x;
+	vehicle_attitude_setpoint.thrust_body[1] = thrust_y;
+	vehicle_attitude_setpoint.thrust_body[2] = thrust_z;
 
 
-// _att_sp_pub.publish(vehicle_attitude_setpoint);
-// }
+	_att_sp_pub.publish(vehicle_attitude_setpoint);
+}
 
-/**
- * @brief from UUVPOSControl
-
- */
-// void RobosubPOSControl::pose_controller_6dof(const Vector3f &pos_des,
-// 	const float roll_des, const float pitch_des, const float yaw_des,
-// 	vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
-// {
-// //get current rotation of vehicle
-// Quatf q_att(vehicle_attitude.q);
-
-// Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get()
-// 				     * vlocal_pos.vx,
-// 				     _param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y) - _param_pose_gain_d_y.get() * vlocal_pos.vy,
-// 				     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z) - _param_pose_gain_d_z.get() * vlocal_pos.vz);
-
-// Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
-
-// publish_attitude_setpoint(rotated_input(0),
-// 			  rotated_input(1),
-// 			  rotated_input(2),
-// 			  roll_des, pitch_des, yaw_des);
-
-// }
-
-// void RobosubPOSControl::stabilization_controller_6dof(const Vector3f &pos_des,
-// 	const float roll_des, const float pitch_des, const float yaw_des,
-// 	vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
-// {
-// //get current rotation of vehicle
-// Quatf q_att(vehicle_attitude.q);
-
-// Vector3f p_control_output = Vector3f(0,
-// 				     0,
-// 				     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z));
-// //potential d controller missing
-// Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
-
-// publish_attitude_setpoint(rotated_input(0) + pos_des(0), rotated_input(1) + pos_des(1), rotated_input(2),
-// 			  roll_des, pitch_des, yaw_des);
-
-// }
 
 /**
- * @brief constrains values and runs actuator_test.
+ * @brief constrains values and setpoint
  *
  * Borrow from UUVAttitudeControl::constrain_actuator_commands
  * @param pitch_u float
  */
-void RobosubPOSControl::constrain_actuator_commands(float pitch_u)
+void RobosubPosControl::constrain_actuator_commands(float roll_u, float pitch_u, float yaw_u,
+		float thrust_x, float thrust_y, float thrust_z)
 {
-	// if (PX4_ISFINITE(roll_u)) {
-	// 	roll_u = math::constrain(roll_u, -1.0f, 1.0f);
-	// 	_vehicle_torque_setpoint.xyz[0] = roll_u;
+	if (PX4_ISFINITE(roll_u)) {
+		roll_u = math::constrain(roll_u, -1.0f, 1.0f);
+		_vehicle_torque_setpoint.xyz[0] = roll_u;
 
-	// } else {
-	// 	_vehicle_torque_setpoint.xyz[0] = 0.0f;
-	// }
+	} else {
+		_vehicle_torque_setpoint.xyz[0] = 0.0f;
+	}
 
 	if (PX4_ISFINITE(pitch_u)) {
 		pitch_u = math::constrain(pitch_u, -1.0f, 1.0f);
-		// _vehicle_torque_setpoint.xyz[1] = pitch_u;
-		actuator_test(101, pitch_u, 0, false);
+		_vehicle_torque_setpoint.xyz[1] = pitch_u;
 
 	} else {
-		// _vehicle_torque_setpoint.xyz[1] = 0.0f;
+		_vehicle_torque_setpoint.xyz[1] = 0.0f;
 	}
 
-	// if (PX4_ISFINITE(yaw_u)) {
-	// 	yaw_u = math::constrain(yaw_u, -1.0f, 1.0f);
-	// 	_vehicle_torque_setpoint.xyz[2] = yaw_u;
+	if (PX4_ISFINITE(yaw_u)) {
+		yaw_u = math::constrain(yaw_u, -1.0f, 1.0f);
+		_vehicle_torque_setpoint.xyz[2] = yaw_u;
 
-	// } else {
-	// 	_vehicle_torque_setpoint.xyz[2] = 0.0f;
-	// }
+	} else {
+		_vehicle_torque_setpoint.xyz[2] = 0.0f;
+	}
+
+	if (PX4_ISFINITE(thrust_x)) {
+		thrust_x = math::constrain(thrust_x, -1.0f, 1.0f);
+		_vehicle_thrust_setpoint.xyz[0] = thrust_x;
+
+	} else {
+		_vehicle_thrust_setpoint.xyz[0] = 0.0f;
+	}
 }
 
-
-void RobosubPOSControl::Run()
+void RobosubPosControl::control_attitude_geo(const vehicle_attitude_s &attitude,
+		const vehicle_attitude_setpoint_s &attitude_setpoint, const vehicle_angular_velocity_s &angular_velocity,
+		const vehicle_rates_setpoint_s &rates_setpoint)
 {
-	PX4_INFO("RobosubPOSControl::Run()");
+	/** Geometric Controller
+	 *
+	 * based on
+	 * D. Mellinger, V. Kumar, "Minimum Snap Trajectory Generation and Control for Quadrotors", IEEE ICRA 2011, pp. 2520-2525.
+	 * D. A. Duecker, A. Hackbarth, T. Johannink, E. Kreuzer, and E. Solowjow, “Micro Underwater Vehicle Hydrobatics: A SubmergedFuruta Pendulum,” IEEE ICRA 2018, pp. 7498–7503.
+	 */
+	Eulerf euler_angles(matrix::Quatf(attitude.q));
+
+	const Eulerf setpoint_euler_angles(matrix::Quatf(attitude_setpoint.q_d));
+	const float roll_body = setpoint_euler_angles(0);
+	const float pitch_body = setpoint_euler_angles(1);
+	const float yaw_body = setpoint_euler_angles(2);
+
+	float roll_rate_desired = rates_setpoint.roll;
+	float pitch_rate_desired = rates_setpoint.pitch;
+	float yaw_rate_desired = rates_setpoint.yaw;
+
+	/* get attitude setpoint rotational matrix */
+	Dcmf rot_des = Eulerf(roll_body, pitch_body, yaw_body);
+
+	/* get current rotation matrix from control state quaternions */
+	Quatf q_att(attitude.q);
+	Matrix3f rot_att =  matrix::Dcm<float>(q_att);
+
+	Vector3f e_R_vec;
+	Vector3f torques;
+
+	/* Compute matrix: attitude error */
+	Matrix3f e_R = (rot_des.transpose() * rot_att - rot_att.transpose() * rot_des) * 0.5;
+
+	/* vee-map the error to get a vector instead of matrix e_R */
+	e_R_vec(0) = e_R(2, 1);  /**< Roll  */
+	e_R_vec(1) = e_R(0, 2);  /**< Pitch */
+	e_R_vec(2) = e_R(1, 0);  /**< Yaw   */
+
+	Vector3f omega{angular_velocity.xyz};
+	omega(0) -= roll_rate_desired;
+	omega(1) -= pitch_rate_desired;
+	omega(2) -= yaw_rate_desired;
+
+	/**< P-Control */
+	torques(0) = - e_R_vec(0) * _param_roll_p.get();	/**< Roll  */
+	torques(1) = - e_R_vec(1) * _param_pitch_p.get();	/**< Pitch */
+	torques(2) = - e_R_vec(2) * _param_yaw_p.get();		/**< Yaw   */
+
+	/**< PD-Control */
+	torques(0) = torques(0) - omega(0) * _param_roll_d.get();  /**< Roll  */
+	torques(1) = torques(1) - omega(1) * _param_pitch_d.get(); /**< Pitch */
+	torques(2) = torques(2) - omega(2) * _param_yaw_d.get();   /**< Yaw   */
+
+	float roll_u = torques(0);
+	float pitch_u = torques(1);
+	float yaw_u = torques(2);
+
+	// take thrust as
+	float thrust_x = attitude_setpoint.thrust_body[0];
+	float thrust_y = attitude_setpoint.thrust_body[1];
+	float thrust_z = attitude_setpoint.thrust_body[2];
+
+	constrain_actuator_commands(roll_u, pitch_u, yaw_u, thrust_x, thrust_y, thrust_z);
+	/* Geometric Controller END*/
+}
+
+/* TODO_RS 6DOF controller*/
+// void RobosubPoseControl::pos_controller_6dof(const Vector3f &pos_des,
+// 	const float roll_des, const float pitch_des, const float yaw_des,
+// 	vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
+// {
+// 	//get current rotation of vehicle
+// 	Quatf q_att(vehicle_attitude.q);
+
+// 	Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get()
+// 					     * vlocal_pos.vx,
+// 					     _param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y) - _param_pose_gain_d_y.get() * vlocal_pos.vy,
+// 					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z) - _param_pose_gain_d_z.get() * vlocal_pos.vz);
+
+// 	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
+
+// 	publish_attitude_setpoint(rotated_input(0),
+// 				  rotated_input(1),
+// 				  rotated_input(2),
+// 				  roll_des, pitch_des, yaw_des);
+
+// }
+
+// void RobosubPosControl::stabilization_controller_6dof(const Vector3f &pos_des,
+// 	const float roll_des, const float pitch_des, const float yaw_des,
+// 	vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
+// {
+// 	//get current rotation of vehicle
+// 	Quatf q_att(vehicle_attitude.q);
+
+// 	Vector3f p_control_output = Vector3f(0,
+// 					     0,
+// 					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z));
+// 	//potential d controller missing
+// 	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
+
+// 	publish_attitude_setpoint(rotated_input(0) + pos_des(0), rotated_input(1) + pos_des(1), rotated_input(2),
+// 				  roll_des, pitch_des, yaw_des);
+// }
+
+void RobosubPosControl::Run()
+{
+	PX4_INFO("RobosubPosControl::Run()");
 
 	if (should_exit()) {
-		//  _vehicle_attitude_sub.unregisterCallback();
+		 _vehicle_attitude_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -200,98 +272,94 @@ void RobosubPOSControl::Run()
 	perf_begin(_loop_perf);
 
 	/* check vehicle control mode for changes to publication state */
-	//  _vcontrol_mode_sub.update(&_vcontrol_mode);
 	_vcontrol_mode_sub.update(&_vcontrol_mode);
 
 	/* update parameters from storage */
 	parameters_update();
 
-	vehicle_attitude_s attitude;
+	// vehicle_attitude_s attitude;
+	vehicle_local_position_s vlocal_pos;
 
-	/* only run  if attitude changed */
-	if (_vehicle_attitude_sub.update(&attitude))
-	{
-		// get angular velocity
-		// vehicle_angular_velocity_s angular_velocity {};
-		// _angular_velocity_sub.copy(&angular_velocity);
-		control_gyro(attitude);
+	/* only run position controller if attitude changed */
+	// if (_vehicle_attitude_sub.update(&attitude))
+	/* only run controller if local_pos changed */
+	if (_vehicle_local_position_sub.update(&vlocal_pos)){
+		vehicle_angular_velocity_s angular_velocity {};
+		_angular_velocity_sub.copy(&angular_velocity); // get angular velocity
+
+		/* Run geometric attitude controllers if NOT manual mode*/
+		if (!_vcontrol_mode.flag_control_manual_enabled
+		    && _vcontrol_mode.flag_control_attitude_enabled
+		    && _vcontrol_mode.flag_control_rates_enabled){
+
+			int input_mode = _param_input_mode.get();
+
+			_vehicle_attitude_setpoint_sub.update(&_attitude_setpoint);
+			_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
+
+			if (input_mode == 1) { // process manual data
+				Quatf attitude_setpoint(Eulerf(_param_direct_roll.get(), _param_direct_pitch.get(), _param_direct_yaw.get()));
+				attitude_setpoint.copyTo(_attitude_setpoint.q_d);
+				_attitude_setpoint.thrust_body[0] = _param_direct_thrust.get();
+				_attitude_setpoint.thrust_body[1] = 0.f;
+				_attitude_setpoint.thrust_body[2] = 0.f;
+			}
+
+			/* Geometric Attitude Control*/
+			int skip_controller = _param_skip_ctrl.get();
+
+			if (skip_controller == 0) { // Control using geo controller
+				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint);
+
+			} else { // Skip geometric controller
+				constrain_actuator_commands(_rates_setpoint.roll, _rates_setpoint.pitch, _rates_setpoint.yaw,
+							    _rates_setpoint.thrust_body[0], _rates_setpoint.thrust_body[1], _rates_setpoint.thrust_body[2]);
+			}
+
+			/* Stabilization Controller keep pos and hold depth + angle) vs position controller(global + yaw) */
+			// int enable_stabilization = _param_stabilization.get();
+			// if (_param_stabilization.get() == 0) {
+			// 	pos_controller_6dof(Vector3f(_trajectory_setpoint.position),
+			// 			     roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
+
+			// } else {
+			// 	stabilization_controller_6dof(Vector3f(_trajectory_setpoint.position),
+			// 				      roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
+			// }
+		}
 	}
 
+	/* Manual Control mode - raw feedthrough no assistance */
+	if (_manual_control_setpoint_sub.update(&_manual_control_setpoint)) {
+		// This should be copied even if not in manual mode. Otherwise, the poll(...) call will keep
+		// returning immediately and this loop will eat up resources.
+		if (_vcontrol_mode.flag_control_manual_enabled && !_vcontrol_mode.flag_control_rates_enabled) {
+			/* manual/direct control */
+			constrain_actuator_commands(_manual_control_setpoint.roll, -_manual_control_setpoint.pitch,
+						    _manual_control_setpoint.yaw,
+						    _manual_control_setpoint.throttle, 0.f, 0.f);
+		}
+	}
 
 	/* Only publish if any of the proper modes are enabled */
 	if (_vcontrol_mode.flag_control_manual_enabled ||
-		_vcontrol_mode.flag_control_attitude_enabled)
-		{
+	    _vcontrol_mode.flag_control_attitude_enabled) {
 
-		}
+		_vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
+		_vehicle_thrust_setpoint.timestamp_sample = 0.f;
+		_vehicle_thrust_setpoint_pub.publish(_vehicle_thrust_setpoint);
+
+		_vehicle_torque_setpoint.timestamp = hrt_absolute_time();
+		_vehicle_torque_setpoint.timestamp_sample = 0.f;
+		_vehicle_torque_setpoint_pub.publish(_vehicle_torque_setpoint);
+	}
 
 	perf_end(_loop_perf);
 }
 
-/**
- * @brief constrains values and runs actuator_test.
- *
- * Borrow from UUVAttitudeControl::constrain_actuator_commands
- * @param pitch_u float
- */
-void RobosubPOSControl::actuator_test(int function, float value, int timeout_ms, bool release_control)
+int RobosubPosControl::task_spawn(int argc, char *argv[])
 {
-	PX4_DEBUG("actuator_test value: %.2f", (double) value);
-
-	actuator_test_s actuator_test{};
-	actuator_test.timestamp = hrt_absolute_time();
-	actuator_test.function = function;
-	actuator_test.value = value;
-	actuator_test.action = release_control ? actuator_test_s::ACTION_RELEASE_CONTROL : actuator_test_s::ACTION_DO_CONTROL;
-	actuator_test.timeout_ms = timeout_ms;
-
-	uORB::Publication<actuator_test_s> actuator_test_pub{ORB_ID(actuator_test)};
-	actuator_test_pub.publish(actuator_test);
-}
-
-/**
- * @brief Reads the gyroscope data and extracts the roll of the PX4 device.
- *
- * This function processes the vehicle attitude quaternion to compute the roll,
- * pitch, and yaw angles. It specifically logs the gyroscope value for debugging purposes.
- *
- * @param attitude The vehicle attitude structure containing quaternion data.
- */
-void RobosubPOSControl::control_gyro(const vehicle_attitude_s &attitude)
-{
-	/* get attitude setpoint rotational matrix */
-	// Dcmf rot_des = Eulerf(roll_body, pitch_body, yaw_body);
-
-	Eulerf euler_angles(matrix::Quatf(attitude.q));
-
-        // Extract roll, pitch, and yaw
-        float roll = euler_angles.phi();    // Roll angle in radians
-        float pitch = euler_angles.theta(); // Pitch angle in radians
-        float yaw = euler_angles.psi();     // Yaw angle in radians
-
-        // Log the gyro data
-        PX4_INFO("roll: %f", (double) roll);
-        PX4_INFO("pitch: %f",(double) pitch);
-        PX4_INFO("yaw: %f", (double) yaw);
-
-	// /* get current rotation matrix from control state quaternions */
-	// Quatf q_att(attitude.q);
-	// Matrix3f rot_att =  matrix::Dcm<float>(q_att);
-
-	// Vector3f e_R_vec;
-	// Vector3f torques;
-
-	// Map pitch from rads [-π/2, π/2] to [-1, 1]
-	// float pitch_u = pitch / (float) M_PI_2);
-	float pitch_u = pitch / (float) M_PI_4;
-
-	constrain_actuator_commands(pitch_u);
-	/* gyro controller End*/
-}
-
-int RobosubPOSControl::task_spawn(int argc, char *argv[])
-{
-	RobosubPOSControl *instance = new RobosubPOSControl();
+	RobosubPosControl *instance = new RobosubPosControl();
 
 	if (instance) {
 		_object.store(instance);
@@ -312,13 +380,13 @@ int RobosubPOSControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int RobosubPOSControl::custom_command(int argc, char *argv[])
+int RobosubPosControl::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
 
-int RobosubPOSControl::print_usage(const char *reason)
+int RobosubPosControl::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -327,7 +395,7 @@ int RobosubPOSControl::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Controls the attitude of an unmanned underwater vehicle (UUV).
+Controls the posistion and attitude of a Hu Robosub unmanned underwater vehicle (UUV).
 
 Publishes `vehicle_thrust_setpont` and `vehicle_torque_setpoint` messages at a constant 250Hz.
 
@@ -354,5 +422,5 @@ $ rs_pos_control stop
 
 int rs_pos_control_main(int argc, char *argv[])
 {
-	return RobosubPOSControl::main(argc, argv);
+	return RobosubPosControl::main(argc, argv);
 }
