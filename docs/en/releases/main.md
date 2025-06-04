@@ -16,7 +16,7 @@ const { site } = useData();
 This contains changes to PX4 `main` branch since the last major release ([PX v1.16](../releases/1.16.md)).
 
 ::: warning
-The PX4 v1.16 release is in beta testing, pending release.
+PX4 v1.16 is in candidate-release testing, pending release.
 Update these notes with features that are going to be in `main` but not the PX4 v1.16 release.
 :::
 
@@ -64,7 +64,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### uXRCE-DDS / ROS2
 
-- TBD
+- [PX4 ROS 2 Interface Library](../ros2/px4_ros2_control_interface.md) support for [Fixed Wing lateral/longitudinal setpoint](../ros2/px4_ros2_control_interface.md#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype) (`FwLateralLongitudinalSetpointType`) and [VTOL transitions](../ros2/px4_ros2_control_interface.md#controlling-a-vtol). ([PX4-Autopilot#24056](https://github.com/PX4/PX4-Autopilot/pull/24056)).
 
 ### MAVLink
 
