@@ -45,6 +45,7 @@
 #include <nuttx/can.h>
 #include <sys/time.h>
 #include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
 
 #include <uORB/topics/water_presence.h>
 #include <uORB/topics/raw_canfd.h>
@@ -105,6 +106,8 @@ private:
 	const int on = 1;
 	const bool can_fd = 1;
 
+	raw_canfd_s _raw_canfd_msg{};
+
 	/**
 	 * Check for parameter changes and update them if needed.
 	 * @param parameter_update_sub uorb subscription to parameter_update
@@ -117,6 +120,10 @@ private:
 	 * @return False if failed, True if succeded
 	 */
 	bool setup_can_socket();
+
+	bool send_raw_canfd_msg();
+
+	bool send_init();
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
@@ -141,6 +148,10 @@ private:
 	};
 	can_id_u received_id;
 
+
+
 	uORB::Publication<px4::msg::WaterPresence> water_presence_pub{ORB_ID(water_presence)};
 	uORB::Publication<px4::msg::RawCanfd> raw_canfd_pub{ORB_ID(raw_canfd)};
+	uORB::Subscription send_raw_canfd_sub{ORB_ID(send_raw_canfd)};
+
 };

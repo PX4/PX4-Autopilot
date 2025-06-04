@@ -58,6 +58,12 @@ int RoboSubCANFDSocket::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
+
+	if (!strcmp(argv[0], "init")) {
+		get_instance()->send_init();
+		return 0;
+	}
+
 	return print_usage("unknown command");
 }
 
@@ -196,6 +202,50 @@ bool RoboSubCANFDSocket::setup_can_socket()
 	return 1;
 }
 
+bool RoboSubCANFDSocket::send_raw_canfd_msg()
+{
+	// Check if the message is valid
+	if (_raw_canfd_msg.len > sizeof(_send_frame.data)) {
+		PX4_ERR("Invalid CAN frame length: %d", _raw_canfd_msg.len);
+		return false;
+	}
+
+	_send_frame.can_id = _raw_canfd_msg.id; // set the can id
+	_send_frame.len = _raw_canfd_msg.len; // set the length of the can frame
+	memcpy(_send_frame.data, _raw_canfd_msg.data, sizeof(_raw_canfd_msg.data)); // copy the data from the message struct to the can frame
+
+	gettimeofday(_send_tv, NULL);
+	_send_tv->tv_usec += 500000; // add 500ms to the timestamp
+	if (_send_tv->tv_usec >= 1000000) {
+		_send_tv->tv_sec++;
+		_send_tv->tv_usec -= 1000000;
+	}
+
+	if (sendmsg(s, &_send_msg, 0) < 0) {
+		PX4_ERR("Failed to send CAN frame: %d", errno);
+		return false;
+	}
+
+	return true;
+}
+
+bool RoboSubCANFDSocket::send_init() {
+	_raw_canfd_msg.id = (0x8001083 | CAN_EFF_FLAG);
+	_raw_canfd_msg.data[0] = 0x01;
+	_raw_canfd_msg.len = 1;
+
+	if(!send_raw_canfd_msg()) {
+		PX4_ERR("Failed to send initial CAN frame");
+		return false;
+	}
+	_raw_canfd_msg.data[0] = 0x02;
+	if(!send_raw_canfd_msg()) {
+		PX4_ERR("Failed to send second CAN frame");
+		return false;
+	}
+	return true;
+}
+
 void RoboSubCANFDSocket::run()
 {
 	PX4_INFO("RoboSubCANFDSocket::Run()");
@@ -207,11 +257,17 @@ void RoboSubCANFDSocket::run()
 	}
 
 	while (!should_exit()) {
-		nbytes = recvmsg(s, &_recv_msg, 0);
+		nbytes = recvmsg(s, &_recv_msg, MSG_DONTWAIT);
 
 		if (nbytes < 0) {
 			if (errno != EAGAIN && errno != EWOULDBLOCK) {
 				PX4_ERR("recvmsg failed: %d", errno);
+			}
+			if (send_raw_canfd_sub.update(&_raw_canfd_msg)) {
+				if(!send_raw_canfd_msg()) {
+					PX4_ERR("Failed to send raw CAN FD message");
+					continue;
+				}
 			}
 			usleep(10000); // avoid spinning
 			continue;
@@ -232,7 +288,6 @@ void RoboSubCANFDSocket::run()
 		raw_canfd_msg.len = _recv_frame.len; // set the length of the can frame
 		memcpy(raw_canfd_msg.data, _recv_frame.data, sizeof(_recv_frame.data)); // copy the data from the can frame to the message struct
 		raw_canfd_pub.publish(raw_canfd_msg); // publish the raw canfd message
-
 
 		received_id.can_id = _recv_frame.can_id; // Put the received can id in the union to parse the id.
 

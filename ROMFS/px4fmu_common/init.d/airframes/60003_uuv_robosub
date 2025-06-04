@@ -63,3 +63,4 @@ rs_motor_control start
 control_allocator start
 land_detector start rover
 rs_canfd_socket start
+rs_canfd_receiver start

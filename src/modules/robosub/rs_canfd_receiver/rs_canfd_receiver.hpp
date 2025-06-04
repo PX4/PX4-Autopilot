@@ -87,9 +87,10 @@ private:
 	void parameters_update(bool force = false);
 
 	/**
-	 * Setup the can socket
-	 * @return False if failed, True if succeded
+	 * Send a test message
 	 */
+	void send_0x01();
+	void send_0x02();
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
@@ -101,21 +102,25 @@ private:
 	uORB::SubscriptionCallbackWorkItem _raw_canfd_sub{this, ORB_ID(raw_canfd)}; /**< raw canfd subscription */
 
 	raw_canfd_s _raw_canfd_msg{}; /**< raw canfd message */
+	raw_canfd_s _send_raw_canfd_msg{};
 
 
 	union can_id_u {
 		uint32_t id;
 		struct  {
-			uint8_t emergency : 2; // Emergency status
-			uint8_t module_id_src : 5;
-			uint8_t client_id_src : 5;
-			uint8_t module_id_des : 5;
-			uint8_t client_id_des : 5;
-			uint8_t session : 3;
-			uint8_t command_type : 4;
-			uint8_t rest : 3;
+            		uint32_t command_type : 4;
+            		uint32_t session : 3;
+            		uint32_t client_id_src : 5;
+            		uint32_t module_id_src : 5;
+			uint32_t client_id_des : 5;
+            		uint32_t module_id_des : 5;
+			uint32_t emergency : 2; // Emergency status
+			uint32_t rest : 3;
 		} can_id_seg;
 	};
+
 	can_id_u received_id;
 	uORB::Publication<px4::msg::WaterPresence> water_presence_pub{ORB_ID(water_presence)};
+	uORB::Publication<px4::msg::RawCanfd> send_raw_canfd_pub{ORB_ID(send_raw_canfd)};
+
 };

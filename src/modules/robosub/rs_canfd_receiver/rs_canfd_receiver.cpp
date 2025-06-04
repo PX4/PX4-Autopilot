@@ -38,6 +38,8 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/parameter_update.h>
 #include <sys/ioctl.h>
+#include <uORB/topics/water_presence.h>
+
 
 int RoboSubCANFDReceiver::print_status()
 {
@@ -57,6 +59,16 @@ int RoboSubCANFDReceiver::custom_command(int argc, char *argv[])
 		get_instance()->exit_and_cleanup();
 		return 0;
 	}
+	if (!strcmp(argv[0], "0x01")) {
+		get_instance()->send_0x01();
+		return 0;
+	}
+
+	if (!strcmp(argv[0], "0x02")) {
+		get_instance()->send_0x02();
+		return 0;
+	}
+
 
 	return print_usage("unknown command");
 }
@@ -103,6 +115,28 @@ RoboSubCANFDReceiver::RoboSubCANFDReceiver()
 	// perf_free(_loop_perf);
 }
 
+void RoboSubCANFDReceiver::send_0x01(){
+	_send_raw_canfd_msg.timestamp = hrt_absolute_time();
+	_send_raw_canfd_msg.id = (0x8001083 | CAN_EFF_FLAG); // Example CAN ID
+	_send_raw_canfd_msg.data[0] = 0x01; // Example data byte
+	_send_raw_canfd_msg.len = 1; // Example length of the CAN frame
+	// Publish the test message
+	send_raw_canfd_pub.publish(_send_raw_canfd_msg);
+
+	// PX4_INFO("Test message sent with ID: 0x%08x", _send_raw_canfd_msg.id);
+}
+
+void RoboSubCANFDReceiver::send_0x02(){
+	_send_raw_canfd_msg.timestamp = hrt_absolute_time();
+	_send_raw_canfd_msg.id = (0x8001083 | CAN_EFF_FLAG); // Example CAN ID
+	_send_raw_canfd_msg.data[0] = 0x02; // Example data byte
+	_send_raw_canfd_msg.len = 1; // Example length of the CAN frame
+	// Publish the test message
+	send_raw_canfd_pub.publish(_send_raw_canfd_msg);
+
+	// PX4_INFO("Test message sent with ID: 0x%08x", _send_raw_canfd_msg.id);
+}
+
 
 void RoboSubCANFDReceiver::Run()
 {
@@ -113,14 +147,21 @@ void RoboSubCANFDReceiver::Run()
 
 	received_id.id = _raw_canfd_msg.id; // Put the received can id in the union to parse the id.
 
-	if (received_id.can_id_seg.module_id_src == 0x02) { // Check if the src module is 0x02 (mainbrain)
-		if (received_id.can_id_seg.client_id_src == 0x04) { // check if the src client id is 0x04 (LP4 GPIO non contact water level)
-			water_presence_s water_presence_msg{}; // create the temp message struct
-			water_presence_msg.timestamp = hrt_absolute_time(); // set the timestamp
-			water_presence_msg.water_detected = _raw_canfd_msg.data[0]; // set the water detected bit, this should be the first byte
+	if (received_id.can_id_seg.module_id_des == 0x01) { // Check if the dest module is 0x01 (Pixhawk)
+		switch (received_id.can_id_seg.client_id_src) { // check if the src client id is 0x04 (LP4 GPIO non contact water level)
+			case 0x04: {// LP4 GPIO non contact water level
+				water_presence_s water_presence_msg{}; // create the temp message struct
+				water_presence_msg.timestamp = hrt_absolute_time(); // set the timestamp
+				water_presence_msg.water_detected = _raw_canfd_msg.data[0]; // set the water detected bit, this should be the first byte
 
-			water_presence_pub.publish(water_presence_msg); // publish the data
+				water_presence_pub.publish(water_presence_msg); // publish the data
+			}
 		}
+	}
+	else { // if the hardware filters are set up correctly, this should never happen
+		PX4_ERR("Received message from unknown source: module_id_src=%d, client_id_src=%d",
+			received_id.can_id_seg.module_id_src, received_id.can_id_seg.client_id_src);
+
 	}
 
 	return;
