@@ -37,7 +37,7 @@ These services are known to be supported in some form:
 - [Parameter Protocol Extended](https://mavlink.io/en/services/parameter_ext.html) — Allows setting string parameters. Used for setting string parameters set in camera definition files.
 - [Payload Protocol](https://mavlink.io/en/services/payload.html)
 - [Ping Protocol](https://mavlink.io/en/services/ping.html)
-- [Standard Modes Protocol](mavlink/standard_modes.md)
+- [Standard Modes Protocol](../mavlink/standard_modes.md)
 - [Terrain Protocol](https://mavlink.io/en/services/terrain.html)
 - [Time Synchronization](https://mavlink.io/en/services/timesync.html)
 - [Traffic Management (UTM/ADS-B)](https://mavlink.io/en/services/traffic_management.html)
