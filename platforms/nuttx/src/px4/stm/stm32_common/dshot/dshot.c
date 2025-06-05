@@ -48,6 +48,8 @@
 #include <stdio.h>
 #include <drivers/drv_input_capture.h>
 
+#include <lib/perf/perf_counter.h>
+
 // This can be overriden for a specific board.
 #ifndef BOARD_DMA_NUM_DSHOT_CHANNELS
 #define BOARD_DMA_NUM_DSHOT_CHANNELS 1
@@ -137,6 +139,8 @@ static uint32_t read_fail_nibble[MAX_NUM_CHANNELS_PER_TIMER] = {};
 static uint32_t read_fail_crc[MAX_NUM_CHANNELS_PER_TIMER] = {};
 static uint32_t read_fail_zero[MAX_NUM_CHANNELS_PER_TIMER] = {};
 
+static perf_counter_t hrt_callback_perf = NULL;
+
 static void init_timer_config(uint32_t channel_mask)
 {
 	// Mark timers in use, channels in use, and timers for bidir dshot
@@ -206,7 +210,7 @@ static void init_timers_dma_up(void)
 			continue;
 		}
 
-		PX4_DEBUG("Allocated DMA UP Timer Index %u", timer_index);
+		PX4_INFO("Allocated DMA UP Timer Index %u", timer_index);
 		timer_configs[timer_index].initialized = true;
 	}
 
@@ -215,7 +219,7 @@ static void init_timers_dma_up(void)
 		if (timer_configs[timer_index].dma_handle != NULL) {
 			stm32_dmafree(timer_configs[timer_index].dma_handle);
 			timer_configs[timer_index].dma_handle = NULL;
-			PX4_DEBUG("Freed DMA UP Timer Index %u", timer_index);
+			PX4_INFO("Freed DMA UP Timer Index %u", timer_index);
 		}
 	}
 }
@@ -275,6 +279,7 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bi
 
 	if (_bidirectional) {
 		PX4_INFO("Bidirectional DShot enabled, only one timer will be used");
+		hrt_callback_perf = perf_alloc(PC_ELAPSED, "dshot: callback perf");
 	}
 
 	// NOTE: if bidirectional is enabled only 1 timer can be used. This is because Burst mode uses 1 DMA channel per timer
@@ -485,6 +490,8 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 
 static void capture_complete_callback(void *arg)
 {
+	perf_begin(hrt_callback_perf);
+
 	uint8_t timer_index = *((uint8_t *)arg);
 
 	// Unallocate the timer as CaptureDMA
@@ -525,6 +532,8 @@ static void capture_complete_callback(void *arg)
 
 	// Enable all channels configured as DShotInverted
 	io_timer_set_enable(true, IOTimerChanMode_DshotInverted, IO_TIMER_ALL_MODES_CHANNELS);
+
+	perf_end(hrt_callback_perf);
 }
 
 void process_capture_results(uint8_t timer_index, uint8_t channel_index)
