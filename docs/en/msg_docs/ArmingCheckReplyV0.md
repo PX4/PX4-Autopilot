@@ -1,5 +1,7 @@
 # ArmingCheckReplyV0 (UORB message)
 
+
+
 [source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/ArmingCheckReplyV0.msg)
 
 ```c
