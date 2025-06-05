@@ -97,3 +97,14 @@ parameters:
             min: 100
             max: 10000
             default: 500
+
+        # RC Stick input
+        OSD_RC_STICK:
+            description:
+                short: OSD RC Stick commands
+                long: |
+                    Forward RC stick input to VTX when disarmed
+            type: int32
+            min: 0
+            max: 1
+            default: 1
