@@ -162,5 +162,5 @@ The system calculates actual motor RPM from the received eRPM data using the [MO
 :::info
 
 :::warning
-**Limited hardware support:** 4 outputs only on STM32H7 targets, 8 putputs on the i.MXRT (V6X-RT & Tropic).
+**Limited hardware support:** 4 outputs only on STM32H7 targets, 8 outputs on the [i.MXRT](../flight_controller/nxp_mr_vmu_rt1176.md) (V6X-RT & Tropic).
 :::
