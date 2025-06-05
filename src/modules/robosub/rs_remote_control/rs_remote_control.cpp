@@ -124,9 +124,24 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
  {
 	perf_begin(_loop_perf);
 
-	taskStat();
+	if (!force_overide) {
+		taskStat();
 
-	receiver();
+		receiver();
+	}
+	else {
+		PX4_WARN("Force override active, motors will be forced to go up");
+		RobosubMotorControl robosub_motor_control;
+		robosub_motor_control.actuator_test(MOTOR_FORWARDS1, 0.0f, 0, false);
+		robosub_motor_control.actuator_test(MOTOR_FORWARDS2, 0.0f, 0, false);
+		robosub_motor_control.actuator_test(MOTOR_SIDE1, 0.0f, 0, false);
+		robosub_motor_control.actuator_test(MOTOR_SIDE2, 0.0f, 0, false);
+		robosub_motor_control.actuator_test(MOTOR_UP1, 1.0f, 0, false);
+		robosub_motor_control.actuator_test(MOTOR_UP2, 1.0f, 0, false);
+		robosub_motor_control.actuator_test(MOTOR_UP3, 1.0f, 0, false);
+	}
+
+	check_internal_state(); // Check if the internal state of the module is correct and if something is wrong force the motors to go up.
 
 	// Schedule();
 	perf_end(_loop_perf);
@@ -255,6 +270,81 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 		}
 
  }
+
+ void RobosubRemoteControl::check_internal_state()
+ {
+	// Check if the internal state of the module is correct and if something is wrong force the motors to go up.
+	if (_internal_sensors_sub.updated()) {
+		internal_sensors_s internal_sensors{};
+		_internal_sensors_sub.copy(&internal_sensors);
+
+		// Apply running average filter based on sensor type
+		switch (internal_sensors.sensor) {
+		case internal_sensors_s::SENSOR_HUMIDITY:
+			_filtered_humidity = update_running_average(_humidity_filter, internal_sensors.value);
+			if (_filtered_humidity > _humidity_filter.initial_average + _param_offset_rel_humidity.get()) {
+			PX4_WARN("High humidity detected: %.2f%%", (double)_filtered_humidity);
+				force_overide = true;
+			}
+			break;
+
+		case internal_sensors_s::SENSOR_TEMPERATURE:
+			_filtered_temperature = update_running_average(_temperature_filter, internal_sensors.value);
+			if (_filtered_temperature > _temperature_filter.initial_average + _param_offset_temperature.get()) {
+			PX4_WARN("High temperature detected: %.2f°C", (double)_filtered_temperature);
+				force_overide = true;
+			}
+			break;
+
+		case internal_sensors_s::SENSOR_PRESSURE:
+			_filtered_pressure = update_running_average(_pressure_filter, internal_sensors.value);
+			if (_filtered_pressure > _pressure_filter.initial_average + _param_offset_pressure.get()) {
+			PX4_WARN("Abnormal pressure detected: %.2f hPa", (double)_filtered_pressure);
+				force_overide = true;
+			}
+			break;
+
+		default:
+			PX4_ERR("Unknown sensor type: %d", internal_sensors.sensor);
+			break;
+		}
+		if (_temperature_filter.updated && _humidity_filter.updated ) {
+			_filtered_absolute_humidity = update_running_average(_absolute_humidity_filter, ((float)13.25 * _filtered_humidity * expf(((float)17.67 * _filtered_temperature) / (_filtered_temperature + (float)243.5))) / (_filtered_temperature + (float)273.15));
+			_temperature_filter.updated = false;
+			_humidity_filter.updated = false;
+			if(_filtered_absolute_humidity > _absolute_humidity_filter.initial_average + _param_offset_abs_humidity.get()) {
+				PX4_WARN("High absolute humidity detected: %.2f g/m³", (double)_filtered_absolute_humidity);
+				force_overide = true;
+			}
+		}
+	}
+ }
+
+
+ float RobosubRemoteControl::update_running_average(SensorFilter& filter, float new_value)
+{
+	// Remove old value from sum if buffer is full
+	if (filter.count >= FILTER_SIZE) {
+		if (fabsf(filter.initial_average ) <= 1e-5f) {
+			filter.initial_average = filter.sum / filter.count;
+		}
+		filter.sum -= filter.values[filter.index];
+	}
+
+	// Add new value
+	filter.values[filter.index] = new_value;
+	filter.sum += new_value;
+
+	// Update index and count
+	filter.index = (filter.index + 1) % FILTER_SIZE;
+	if (filter.count < FILTER_SIZE) {
+		filter.count++;
+	}
+
+	// Return average
+	return filter.sum / filter.count;
+	filter.updated = true;
+}
 
 
  void RobosubRemoteControl::parameters_update(bool force)

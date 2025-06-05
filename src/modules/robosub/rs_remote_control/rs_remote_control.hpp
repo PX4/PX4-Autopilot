@@ -45,6 +45,7 @@
  #include <uORB/topics/input_rc.h>
  #include <uORB/topics/water_detection.h>
  #include <uORB/topics/drone_task.h>
+ #include <uORB/topics/internal_sensors.h>
 
  using namespace time_literals;
 
@@ -110,19 +111,26 @@
 
 	water_detection_s 	_water_detection{};
 
+	float calculate_absolute_humidity( float temperature, float humidity);
+
 	void taskStat();
 
 	void parameters_update(bool force = false);
 
+	void check_internal_state();
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
-		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
+		(ParamFloat<px4::params::OFF_A_HUMIDITY>) _param_offset_abs_humidity,
+		(ParamFloat<px4::params::OFF_TEMPERATURE>) _param_offset_temperature,
+		(ParamFloat<px4::params::OFF_PRESSURE>) _param_offset_pressure,
+		(ParamFloat<px4::params::OFF_R_HUMIDITY>) _param_offset_rel_humidity
 	)
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::SubscriptionCallbackWorkItem _input_rc_sub{this, ORB_ID(input_rc)};
+	uORB::SubscriptionCallbackWorkItem _internal_sensors_sub{this, ORB_ID(internal_sensors)};
+
 
 	uORB::Publication<drone_task_s>    _drone_task_pub{ORB_ID(drone_task)};
 
@@ -134,7 +142,42 @@
 	uint8_t bitReg = 0;
 	uint8_t update1 = 0;
 
+	bool force_overide = false;
+
 	bool sensor_mainbrain = false;
 	bool sensor_power = false;
+
+	// Running average filter variables
+	static constexpr size_t FILTER_SIZE = 10;
+
+	struct SensorFilter {
+		float values[FILTER_SIZE];
+		size_t index;
+		size_t count;
+		float sum;
+		float initial_average = 0.0f;
+		bool updated = false;
+
+		SensorFilter() : index(0), count(0), sum(0.0f) {
+		for (size_t i = 0; i < FILTER_SIZE; i++) {
+			values[i] = 0.0f;
+		}
+		}
+	};
+
+	SensorFilter _humidity_filter;
+	SensorFilter _temperature_filter;
+	SensorFilter _pressure_filter;
+	SensorFilter _absolute_humidity_filter; // A bit overkill, but it makes sense to have it for consistency
+
+
+	float _filtered_humidity = 0.0f;
+	float _filtered_temperature = 0.0f;
+	float _filtered_pressure = 0.0f;
+	float _filtered_absolute_humidity = 0.0f;
+
+
+	// Helper function to update running average
+	float update_running_average(SensorFilter& filter, float new_value);
 
  };

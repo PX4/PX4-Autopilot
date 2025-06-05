@@ -120,7 +120,7 @@ RoboSubCANFDReceiver::RoboSubCANFDReceiver()
 
 void RoboSubCANFDReceiver::send_0x01(){
 	_send_raw_canfd_msg.timestamp = hrt_absolute_time();
-	_send_raw_canfd_msg.id = (0x8001083 | CAN_EFF_FLAG); // Example CAN ID
+	_send_raw_canfd_msg.id = (0x8001003 | CAN_EFF_FLAG); // Example CAN ID
 	_send_raw_canfd_msg.data[0] = 0x01; // Example data byte
 	_send_raw_canfd_msg.len = 1; // Example length of the CAN frame
 	// Publish the test message
@@ -131,7 +131,7 @@ void RoboSubCANFDReceiver::send_0x01(){
 
 void RoboSubCANFDReceiver::send_0x02(){
 	_send_raw_canfd_msg.timestamp = hrt_absolute_time();
-	_send_raw_canfd_msg.id = (0x8001083 | CAN_EFF_FLAG); // Example CAN ID
+	_send_raw_canfd_msg.id = (0x8001003 | CAN_EFF_FLAG); // Example CAN ID
 	_send_raw_canfd_msg.data[0] = 0x02; // Example data byte
 	_send_raw_canfd_msg.len = 1; // Example length of the CAN frame
 	// Publish the test message
@@ -155,6 +155,7 @@ void RoboSubCANFDReceiver::Run()
 			case 0x00: // Internal humidity sensor
 			case 0x01: // Internal temperature sensor
 			case 0x02: {// Internal pressure sensor
+				// TODO: Add check to see if theres enough data in the raw canfd data.
 				converter conv;
 				memcpy(conv.bytes, _raw_canfd_msg.data, sizeof(conv.bytes));
 

@@ -230,7 +230,7 @@ bool RoboSubCANFDSocket::send_raw_canfd_msg()
 }
 
 bool RoboSubCANFDSocket::send_init() {
-	_raw_canfd_msg.id = (0x8001083 | CAN_EFF_FLAG);
+	_raw_canfd_msg.id = (0x8001003 | CAN_EFF_FLAG);
 	_raw_canfd_msg.data[0] = 0x01;
 	_raw_canfd_msg.len = 1;
 
