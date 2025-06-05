@@ -44,6 +44,12 @@ if [ ${#src_files[@]} -eq 0 ]; then
   exit 1
 fi
 
+# ─── Strip trailing whitespace from all generated module docs ─────────────────────────────
+echo "✂️ Removing trailing whitespace from generated module docs"
+for src in "${src_files[@]}"; do
+  sed -i 's/[[:space:]]\+$//' "$src"
+done
+
 echo "🔍 Checking module reference docs in $dest_dir"
 mkdir -p "$dest_dir"
 
