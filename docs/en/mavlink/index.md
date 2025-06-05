@@ -25,7 +25,7 @@ _Messages_ are simplest and most "fundamental" definition in MAVLink, consisting
 They are deliberately lightweight, with a constrained size, and no semantics for resending and acknowledgement.
 Stand-alone messages are commonly used for streaming telemetry or status information, and for sending commands where no acknowledgement is required - such as setpoint commands sent at high rate.
 
-The [Command Protocol](https://mavlink.io/en/services/command.html) is a higher level protocol for sending commands that may need acknowledgement.
+The [Command Protocol](https://mavlink.io/en/services/command.html) is a higher level protocol for sending commands that may need acknowledgement and retransmission (quality of service).
 Specific commands are defined as values of the [MAV_CMD](https://mavlink.io/en/messages/common.html#mav_commands) enumeration, such as the takeoff command [MAV_CMD_NAV_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_TAKEOFF), and include up to 7 numeric "param" values.
 The protocol sends a command by packaging the parameter values in a `COMMAND_INT` or `COMMAND_LONG` message, and waits for an acknowledgement with a result in a `COMMAND_ACK`.
 The command is resent automatically if no acknowledgment is received.
