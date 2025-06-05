@@ -148,18 +148,19 @@ ERROR [dshot] No data received. If telemetry is setup correctly, try again.
 Check manufacturer documentation for confirmation/details.
 :::
 
+## Bidirectional DShot (Telemetry)
 
-## Bidirectional DShot
+<Badge type="tip" text="PX4 v1.16" />
 
-Bidirectional DShot enables ESC RPM (eRPM) data collection from each ESC at high frequencies. This enhanced telemetry significantly improves the performance of [Dynamic Notch Filters](../config_mc/filter_tuning.md#dynamic-notch-filters) and enables more precise vehicle tuning.
+Bidirectional DShot enables ESC RPM (eRPM) data collection from each ESC at high frequencies.
+This enhanced telemetry significantly improves the performance of [Dynamic Notch Filters](../config_mc/filter_tuning.md#dynamic-notch-filters) and enables more precise vehicle tuning.
 
-### Configuration
+### Configuration {#bidirectional-dshot-configuration}
 
 To enable bidirectional DShot, set the [DSHOT_BIDIR_EN](../advanced_config/parameter_reference.md#DSHOT_BIDIR_EN) parameter.
 
-:::info
-The system calculates actual motor RPM from the received eRPM data using the [MOT_POLE_COUNT](../advanced_config/parameter_reference.md#MOT_POLE_COUNT) parameter. This parameter must be set correctly for accurate RPM reporting.
-:::info
+The system calculates actual motor RPM from the received eRPM data using the [MOT_POLE_COUNT](../advanced_config/parameter_reference.md#MOT_POLE_COUNT) parameter.
+This parameter must be set correctly for accurate RPM reporting.
 
 :::warning
 **Limited hardware support:** 4 outputs only on STM32H7 targets, 8 outputs on the [i.MXRT](../flight_controller/nxp_mr_vmu_rt1176.md) (V6X-RT & Tropic).
