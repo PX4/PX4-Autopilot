@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# metadata_modules.sh — generate and sync PX4 module reference documentation
+# metadata_modules.sh - generate and sync PX4 module reference documentation
 #
 # Usage:
 #   Tools/ci/metadata_modules.sh [--test-only] [--debug]
@@ -44,11 +44,15 @@ if [ ${#src_files[@]} -eq 0 ]; then
   exit 1
 fi
 
-# ─── Strip trailing whitespace from all generated module docs ─────────────────────────────
-echo "✂️ Removing trailing whitespace from generated module docs"
-for src in "${src_files[@]}"; do
-  sed -i 's/[[:space:]]\+$//' "$src"
-done
+# ─── Strip trailing whitespace from all generated module docs (unless test-only) ─────────────
+if [ "$test_only" = false ]; then
+  echo "✂️ Removing trailing whitespace from generated module docs"
+  for src in "${src_files[@]}"; do
+    sed -i 's/[[:space:]]\+$//' "$src"
+  done
+else
+  [ "$debug" = true ] && echo "🧪 Test-only mode: skipping whitespace removal"
+fi
 
 echo "🔍 Checking module reference docs in $dest_dir"
 mkdir -p "$dest_dir"
@@ -61,9 +65,12 @@ for src in "${src_files[@]}"; do
   if [[ ! -e "$dst" ]]; then
     [ "$debug" = true ] && echo "DEBUG: missing $dst"
     changed+=("$name")
-  elif ! cmp -s "$src" "$dst"; then
-    [ "$debug" = true ] && echo "DEBUG: cmp -s '$src' '$dst'; echo \$?"
-    changed+=("$name")
+  else
+    # Use diff -q -b (ignore whitespace changes) and --strip-trailing-cr (ignore CRLF vs LF)
+    if ! diff -q -b --strip-trailing-cr "$src" "$dst" > /dev/null; then
+      [ "$debug" = true ] && echo "DEBUG: diff -q -b --strip-trailing-cr '$src' '$dst'  (exit_code=$?)"
+      changed+=("$name")
+    fi
   fi
 done
 
@@ -81,7 +88,9 @@ if [ "$test_only" = true ]; then
 fi
 
 echo "📂 Copying updated module docs to $dest_dir"
-for f in "${changed[@]}"; do cp -rv "$src_dir/$f" "$dest_dir/$f"; done
+for f in "${changed[@]}"; do
+  cp -rv "$src_dir/$f" "$dest_dir/$f"
+done
 
 echo "🚨 Module reference docs updated; please commit changes:"
 echo "    git status -s $dest_dir"
