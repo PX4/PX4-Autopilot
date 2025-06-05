@@ -1108,12 +1108,8 @@ px4io <command> [arguments...]
 ```
 
 ## rgbled
-<<<<<<< HEAD
 
-Source: [drivers/lights/rgbled_ncp5623c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_ncp5623c)
-=======
 Source: [drivers/lights/rgbled](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled)
->>>>>>> 5b409a45c1 (docs: update module reference metadata)
 
 ### Usage {#rgbled_usage}
 
