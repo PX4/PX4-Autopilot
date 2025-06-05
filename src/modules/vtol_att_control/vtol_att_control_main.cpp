@@ -81,8 +81,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_spoilers_setpoint_pub.advertise();
 	_vtol_vehicle_status_pub.advertise();
 	_vehicle_thrust_setpoint0_pub.advertise();
-	_vehicle_torque_setpoint0_pub.advertise();
 	_vehicle_thrust_setpoint1_pub.advertise();
+	_vehicle_torque_setpoint0_pub.advertise();
 	_vehicle_torque_setpoint1_pub.advertise();
 }
 
@@ -449,10 +449,10 @@ VtolAttitudeControl::Run()
 
 		_vtol_type->fill_actuator_outputs();
 
-		_vehicle_torque_setpoint0_pub.publish(_torque_setpoint_0);
-		_vehicle_torque_setpoint1_pub.publish(_torque_setpoint_1);
 		_vehicle_thrust_setpoint0_pub.publish(_thrust_setpoint_0);
 		_vehicle_thrust_setpoint1_pub.publish(_thrust_setpoint_1);
+		_vehicle_torque_setpoint0_pub.publish(_torque_setpoint_0);
+		_vehicle_torque_setpoint1_pub.publish(_torque_setpoint_1);
 
 		// Advertise/publish vtol vehicle status -- immediately if changed, otherwise at 1 Hz
 		const bool vtol_vehicle_status_changed =
