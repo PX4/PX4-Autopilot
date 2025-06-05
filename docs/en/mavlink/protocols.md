@@ -16,16 +16,14 @@ These services are known to be supported in some form:
 - Camera Protocols
   - [Camera Protocol v2](https://mavlink.io/en/services/camera.html)
     - [Camera Definition](https://mavlink.io/en/services/camera_def.html)
-  - [Camera Protocol v1 (Simple Trigger Protocol)](https://mavlink.io/en/services/camera_v1.html)
 - [Command Protocol](https://mavlink.io/en/services/command.html)
-- [Component Metadata Protocol (WIP)](https://mavlink.io/en/services/component_information.html)
-- [Events Interface (WIP)](https://mavlink.io/en/services/events.html)
+- [Component Metadata Protocol](https://mavlink.io/en/services/component_information.html)
+- [Events Interface](https://mavlink.io/en/services/events.html)
 - [File Transfer Protocol (FTP)](https://mavlink.io/en/services/ftp.html)
 - Gimbal Protocols
   - [Gimbal Protocol v2](https://mavlink.io/en/services/gimbal_v2.html)
     - Can be enabled by [Gimbal Configuration](../advanced/gimbal_control.md#mavlink-gimbal-mnt-mode-out-mavlink)
     - PX4 an act as a MAVLink Gimbal for one FC-connected Gimbal
-  - [Gimbal Protocol v1 (superseded)](https://mavlink.io/en/services/gimbal.html)
 - [Heartbeat/Connection Protocol](https://mavlink.io/en/services/heartbeat.html)
 - [High Latency Protocol](https://mavlink.io/en/services/high_latency.html) — PX4 streams [HIGH_LATENCY2](https://mavlink.io/en/messages/common.html#HIGH_LATENCY2)
 - [Image Transmission Protocol](https://mavlink.io/en/services/image_transmission.html)
