@@ -1141,7 +1141,7 @@ px4io <command> [arguments...]
 
 ## rgbled
 
-Source: [drivers/lights/rgbled_ncp5623c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_ncp5623c)
+Source: [drivers/lights/rgbled](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled)
 
 ### Usage {#rgbled_usage}
 
@@ -1156,9 +1156,7 @@ rgbled <command> [arguments...]
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
-                 default: 57
-     [-o <val>]  RGB PWM Assignment
-                 default: 123
+                 default: 85
 
    stop
 
@@ -1479,7 +1477,7 @@ Start the driver with a given device:
 ```
 uwb start -d /dev/ttyS2
 ```
-	
+
 ### Usage {#uwb_usage}
 
 ```
@@ -1639,7 +1637,7 @@ Source: [modules/zenoh](https://github.com/PX4/PX4-Autopilot/tree/main/src/modul
 ### Description
 
 Zenoh demo bridge
-	
+
 ### Usage {#zenoh_usage}
 
 ```
