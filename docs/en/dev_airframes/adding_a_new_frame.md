@@ -77,7 +77,7 @@ For example, at time of writing you would add the current line to your airframe 
 set PARAM_DEFAULTS_VER 2
 ```
 
-This number is compared to the value in the (internal) [SYS_PARAM_VER](../advanced_config/parameter_reference.html#SYS_PARAM_VER) parameter when the airframe is updated, and if it is different the "system parameters" are all reset.
+This number is compared to the value in the (internal) [SYS_PARAM_VER](../advanced_config/parameter_reference.md#SYS_PARAM_VER) parameter when the airframe is updated, and if it is different the "system parameters" are all reset.
 
 Note that system parameters primarily include those related to the vehicle airframe configuration.
 Parameters such as accumulating flight hours, RC and sensor calibrations, are preserved.
