@@ -36,6 +36,10 @@ else
   make $make_target > /dev/null 2>&1
 fi
 
+# ─── Strip trailing whitespace from the newly generated Markdown ────────────────────────────────
+echo "✂️ Removing trailing whitespace from $src_file"
+sed -i 's/[[:space:]]\+$//' "$src_file"
+
 # Verify build output
 if [[ ! -f "$src_file" ]]; then
   echo "❌ Generated file not found: $src_file"
