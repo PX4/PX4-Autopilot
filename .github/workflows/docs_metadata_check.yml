@@ -43,3 +43,7 @@ jobs:
 
       - name: Run ${{ matrix.name }} metadata check
         run: ${{ matrix.script }} --test-only
+
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
