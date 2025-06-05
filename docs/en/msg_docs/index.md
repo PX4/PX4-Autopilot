@@ -16,10 +16,11 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [ActuatorMotors](ActuatorMotors.md) — Motor control message
 - [ActuatorServos](ActuatorServos.md) — Servo control message
 - [AirspeedValidated](AirspeedValidated.md)
-- [ArmingCheckReply](ArmingCheckReply.md)
-- [ArmingCheckRequest](ArmingCheckRequest.md)
+- [ArmingCheckReply](ArmingCheckReply.md) — Arming check reply.
+- [ArmingCheckRequest](ArmingCheckRequest.md) — Arming check request.
 - [BatteryStatus](BatteryStatus.md)
 - [ConfigOverrides](ConfigOverrides.md) — Configurable overrides by (external) modes or mode executors
+- [Event](Event.md) — Events interface
 - [FixedWingLateralSetpoint](FixedWingLateralSetpoint.md) — Fixed Wing Lateral Setpoint message
 Used by the fw_lateral_longitudinal_control module
 At least one of course, airspeed_direction, or lateral_acceleration must be finite.
@@ -124,7 +125,6 @@ scale errors, in-run bias and thermal drift (if thermal compensation is enabled 
 - [EstimatorStates](EstimatorStates.md)
 - [EstimatorStatus](EstimatorStatus.md)
 - [EstimatorStatusFlags](EstimatorStatusFlags.md)
-- [Event](Event.md) — Events interface
 - [FailsafeFlags](FailsafeFlags.md) — Input flags for the failsafe state machine set by the arming & health checks.
 - [FailureDetectorStatus](FailureDetectorStatus.md)
 - [FigureEightStatus](FigureEightStatus.md)
@@ -298,6 +298,9 @@ NaN means the state was not controlled
 - [Wind](Wind.md)
 - [YawEstimatorStatus](YawEstimatorStatus.md)
 - [AirspeedValidatedV0](AirspeedValidatedV0.md)
+- [ArmingCheckReplyV0](ArmingCheckReplyV0.md)
+- [EventV0](EventV0.md) — this message is required here in the msg_old folder because other msg are depending on it
+Events interface
 - [VehicleAttitudeSetpointV0](VehicleAttitudeSetpointV0.md)
 - [VehicleStatusV0](VehicleStatusV0.md) — Encodes the system state of the vehicle published by commander
 
