@@ -25,16 +25,17 @@ _Messages_ are simplest and most "fundamental" definition in MAVLink, consisting
 They are deliberately lightweight, with a constrained size, and no semantics for resending and acknowledgement.
 Stand-alone messages are commonly used for streaming telemetry or status information, and for sending commands where no acknowledgement is required - such as setpoint commands sent at high rate.
 
-The [Command Protocol](https://mavlink.io/en/services/command.html) is a higher level protocol for sending commands that may need acknowledgement and retransmission (quality of service).
+[Microservices](../mavlink/protocols.md) are "meta protocols" built on top of MAVLink messages.
+They are used to communicate information that cannot be sent in a single message.
+
+For example, the [Command Protocol](https://mavlink.io/en/services/command.html) is a service for sending commands that may need acknowledgement and retransmission (quality of service).
 Specific commands are defined as values of the [MAV_CMD](https://mavlink.io/en/messages/common.html#mav_commands) enumeration, such as the takeoff command [MAV_CMD_NAV_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_TAKEOFF), and include up to 7 numeric "param" values.
 The protocol sends a command by packaging the parameter values in a `COMMAND_INT` or `COMMAND_LONG` message, and waits for an acknowledgement with a result in a `COMMAND_ACK`.
-The command is resent automatically if no acknowledgment is received.
+The command is automatically resent a number of times if no acknowledgment is received.
 Note that [MAV_CMD](https://mavlink.io/en/messages/common.html#mav_commands) definitions are also used to define mission actions, and that not all definitions are supported for use in commands/missions on PX4.
 
-[Microservices](https://mavlink.io/en/services/) are other higher level protocols built on top of MAVLink messages.
-They are used to communicate information that cannot be sent in a single message, and to deliver features such as reliable communication.
-The command protocol described above is one such service.
-Others include the [File Transfer Protocol](https://mavlink.io/en/services/ftp.html), [Camera Protocol](https://mavlink.io/en/services/camera.html) and [Mission Protocol](https://mavlink.io/en/services/mission.html).
+Others services include the [File Transfer Protocol](https://mavlink.io/en/services/ftp.html), [Camera Protocol](https://mavlink.io/en/services/camera.html), [Parameter Protocol](https://mavlink.io/en/services/parameter.html), and [Mission Protocol](https://mavlink.io/en/services/mission.html).
+For more information on what PX4 supports see [Microservices](../mavlink/protocols.md).
 
 MAVLink messages, commands and enumerations are defined in [XML definition files](https://mavlink.io/en/guide/define_xml_element.html).
 The MAVLink toolchain includes code generators that create programming-language-specific libraries from these definitions for sending and receiving messages.
