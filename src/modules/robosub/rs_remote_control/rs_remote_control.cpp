@@ -38,9 +38,17 @@
  #include <px4_platform_common/getopt.h>
  #include <px4_platform_common/log.h>
  #include <px4_platform_common/posix.h>
+ #include <px4_platform_common/defines.h>
+ #include <px4_platform_common/time.h>
+ #include <math.h> // for fabsf and expf
 
  #include <uORB/topics/parameter_update.h>
  #include <uORB/topics/sensor_combined.h>
+
+ // PX4 defines for InternalSensors.msg
+ #define SENSOR_HUMIDITY 0
+ #define SENSOR_TEMPERATURE 1
+ #define SENSOR_PRESSURE 2
 
 extern "C" __EXPORT int rs_remote_control_main(int argc, char *argv[]);
 
@@ -277,45 +285,65 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 	if (_internal_sensors_sub.updated()) {
 		internal_sensors_s internal_sensors{};
 		_internal_sensors_sub.copy(&internal_sensors);
+		uint8_t module_index = internal_sensors.module - 2;
 
-		// Apply running average filter based on sensor type
+		float *filtered_value = nullptr;
+		SensorFilter *filter = nullptr;
+		float param_offset = 0.0f;
+		const char *warn_msg = nullptr;
+
 		switch (internal_sensors.sensor) {
-		case internal_sensors_s::SENSOR_HUMIDITY:
-			_filtered_humidity = update_running_average(_humidity_filter, internal_sensors.value);
-			if (_filtered_humidity > _humidity_filter.initial_average + _param_offset_rel_humidity.get()) {
-			PX4_WARN("High humidity detected: %.2f%%", (double)_filtered_humidity);
-				force_overide = true;
-			}
+		case SENSOR_HUMIDITY:
+			filtered_value = &_filtered_humidity[module_index];
+			filter = &_humidity_filter[module_index];
+			param_offset = _param_offset_rel_humidity.get();
+			warn_msg = "High humidity detected: %.2f%%";
 			break;
-
-		case internal_sensors_s::SENSOR_TEMPERATURE:
-			_filtered_temperature = update_running_average(_temperature_filter, internal_sensors.value);
-			if (_filtered_temperature > _temperature_filter.initial_average + _param_offset_temperature.get()) {
-			PX4_WARN("High temperature detected: %.2f°C", (double)_filtered_temperature);
-				force_overide = true;
-			}
+		case SENSOR_TEMPERATURE:
+			filtered_value = &_filtered_temperature[module_index];
+			filter = &_temperature_filter[module_index];
+			param_offset = _param_offset_temperature.get();
+			warn_msg = "High temperature detected: %.2f°C";
 			break;
-
-		case internal_sensors_s::SENSOR_PRESSURE:
-			_filtered_pressure = update_running_average(_pressure_filter, internal_sensors.value);
-			if (_filtered_pressure > _pressure_filter.initial_average + _param_offset_pressure.get()) {
-			PX4_WARN("Abnormal pressure detected: %.2f hPa", (double)_filtered_pressure);
-				force_overide = true;
-			}
+		case SENSOR_PRESSURE:
+			filtered_value = &_filtered_pressure[module_index];
+			filter = &_pressure_filter[module_index];
+			param_offset = _param_offset_pressure.get();
+			warn_msg = "Abnormal pressure detected: %.2f hPa";
 			break;
-
 		default:
 			PX4_ERR("Unknown sensor type: %d", internal_sensors.sensor);
 			break;
 		}
-		if (_temperature_filter.updated && _humidity_filter.updated ) {
-			_filtered_absolute_humidity = update_running_average(_absolute_humidity_filter, ((float)13.25 * _filtered_humidity * expf(((float)17.67 * _filtered_temperature) / (_filtered_temperature + (float)243.5))) / (_filtered_temperature + (float)273.15));
-			_temperature_filter.updated = false;
-			_humidity_filter.updated = false;
-			if(_filtered_absolute_humidity > _absolute_humidity_filter.initial_average + _param_offset_abs_humidity.get()) {
-				PX4_WARN("High absolute humidity detected: %.2f g/m³", (double)_filtered_absolute_humidity);
+
+		if (filter && filtered_value) {
+			*filtered_value = update_running_average(*filter, internal_sensors.value);
+			if (*filtered_value > filter->initial_average + param_offset) {
+				PX4_WARN(warn_msg, (double)*filtered_value);
 				force_overide = true;
 			}
+		}
+
+		// Only calculate absolute humidity if temperature and humidity were updated close in time
+		const uint64_t ABS_HUMIDITY_MAX_DELTA_US = 200000; // 200 ms
+		if (_temperature_filter[module_index].updated && _humidity_filter[module_index].updated) {
+			uint64_t temp_time = _temperature_filter[module_index].last_update;
+			uint64_t hum_time = _humidity_filter[module_index].last_update;
+			uint64_t delta = (temp_time > hum_time) ? (temp_time - hum_time) : (hum_time - temp_time);
+			if (delta <= ABS_HUMIDITY_MAX_DELTA_US) {
+				_filtered_absolute_humidity[module_index] = update_running_average(
+					_absolute_humidity_filter[module_index],
+					calculate_absolute_humidity(_filtered_humidity[module_index], _filtered_temperature[module_index])
+				);
+				if (_filtered_absolute_humidity[module_index] > _absolute_humidity_filter[module_index].initial_average + _param_offset_abs_humidity.get()) {
+					PX4_WARN("High absolute humidity detected: %.2f g/m³", (double)_filtered_absolute_humidity[module_index]);
+					force_overide = true;
+				}
+			} else {
+				// Skipping absolute humidity calculation due to large delta
+			}
+			_temperature_filter[module_index].updated = false;
+			_humidity_filter[module_index].updated = false;
 		}
 	}
  }
@@ -325,7 +353,7 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	// Remove old value from sum if buffer is full
 	if (filter.count >= FILTER_SIZE) {
-		if (fabsf(filter.initial_average ) <= 1e-5f) {
+		if (fabsf(filter.initial_average) <= 1e-5f) {
 			filter.initial_average = filter.sum / filter.count;
 		}
 		filter.sum -= filter.values[filter.index];
@@ -341,9 +369,17 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 		filter.count++;
 	}
 
+	filter.updated = true;
+	filter.last_update = hrt_absolute_time();
 	// Return average
 	return filter.sum / filter.count;
-	filter.updated = true;
+}
+
+// Helper function for absolute humidity calculation
+float RobosubRemoteControl::calculate_absolute_humidity(float rel_humidity, float temperature)
+{
+	// Formula: 13.25 * RH * exp(17.67 * T / (T + 243.5)) / (T + 273.15)
+	return 13.25f * rel_humidity * expf(17.67f * temperature / (temperature + 243.5f)) / (temperature + 273.15f);
 }
 
 

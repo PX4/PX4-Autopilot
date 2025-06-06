@@ -111,7 +111,7 @@
 
 	water_detection_s 	_water_detection{};
 
-	float calculate_absolute_humidity( float temperature, float humidity);
+	float calculate_absolute_humidity(float rel_humidity, float temperature);
 
 	void taskStat();
 
@@ -149,6 +149,8 @@
 
 	// Running average filter variables
 	static constexpr size_t FILTER_SIZE = 10;
+	static constexpr size_t N_MODULES = 2;
+
 
 	struct SensorFilter {
 		float values[FILTER_SIZE];
@@ -157,24 +159,25 @@
 		float sum;
 		float initial_average = 0.0f;
 		bool updated = false;
+		uint64_t last_update = 0;
 
-		SensorFilter() : index(0), count(0), sum(0.0f) {
+		SensorFilter() : index(0), count(0), sum(0.0f), last_update(0) {
 		for (size_t i = 0; i < FILTER_SIZE; i++) {
 			values[i] = 0.0f;
 		}
 		}
 	};
 
-	SensorFilter _humidity_filter;
-	SensorFilter _temperature_filter;
-	SensorFilter _pressure_filter;
-	SensorFilter _absolute_humidity_filter; // A bit overkill, but it makes sense to have it for consistency
+	SensorFilter _humidity_filter[N_MODULES];
+	SensorFilter _temperature_filter[N_MODULES];
+	SensorFilter _pressure_filter[N_MODULES];
+	SensorFilter _absolute_humidity_filter[N_MODULES]; // A bit overkill, but it makes sense to have it for consistency
 
 
-	float _filtered_humidity = 0.0f;
-	float _filtered_temperature = 0.0f;
-	float _filtered_pressure = 0.0f;
-	float _filtered_absolute_humidity = 0.0f;
+	float _filtered_humidity[N_MODULES] = {0.0f};
+	float _filtered_temperature[N_MODULES] = {0.0f};
+	float _filtered_pressure[N_MODULES] = {0.0f};
+	float _filtered_absolute_humidity[N_MODULES] = {0.0f};
 
 
 	// Helper function to update running average
