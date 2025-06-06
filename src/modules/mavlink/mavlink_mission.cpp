@@ -284,6 +284,7 @@ MavlinkMissionManager::send_mission_current(uint16_t seq)
 	wpc.mission_id = _crc32[MAV_MISSION_TYPE_MISSION];
 	wpc.fence_id = _crc32[MAV_MISSION_TYPE_FENCE];
 	wpc.rally_points_id = _crc32[MAV_MISSION_TYPE_RALLY];
+	wpc.mission_state = get_mission_state();
 	mavlink_msg_mission_current_send_struct(_mavlink.get_channel(), &wpc);
 
 	PX4_DEBUG("WPM: Send MISSION_CURRENT seq %d", seq);
@@ -436,6 +437,51 @@ MavlinkMissionManager::get_current_mission_type_crc()
 	return _crc32[_mission_type];
 }
 
+uint8_t
+MavlinkMissionManager::get_mission_state()
+{
+
+	// This function may be called even when there is no new MissionResult message,
+	// since MissionResult is not published at a fixed interval. As a result,
+	// we can't distinguish between:
+	//   a) a true mode change (e.g., exiting mission mode),
+	//   b) or simply a lack of new MissionResult data.
+	// To work around this, we use the current navigation state (nav_state) to help
+	// determine if the vehicle is still actively executing a mission.
+
+	uint8_t mission_state = MISSION_STATE_UNKNOWN;
+
+	const mission_result_s &mission_result = _mission_result_data.get();
+
+	if (mission_result.valid && mission_result.seq_total > 0) {
+
+		if (mission_result.seq_reached < 0) {
+			mission_state = MISSION_STATE_NOT_STARTED;
+
+		} else if (mission_result.finished) {
+			mission_state = MISSION_STATE_COMPLETE;
+
+		} else {
+			// mission started but not finished
+
+			if (_vehicle_status_sub.updated()) {
+				vehicle_status_s vehicle_status;
+				_vehicle_status_sub.copy(&vehicle_status);
+				_nav_state = vehicle_status.nav_state;
+			}
+
+			if (_nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+				mission_state = MISSION_STATE_ACTIVE;
+
+			} else if (_nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+				mission_state = MISSION_STATE_PAUSED;
+			}
+		}
+	}
+
+	return mission_state;
+}
+
 void
 MavlinkMissionManager::send_mission_request(uint8_t sysid, uint8_t compid, uint16_t seq)
 {
@@ -494,9 +540,9 @@ MavlinkMissionManager::send()
 		return;
 	}
 
-	mission_result_s mission_result{};
 
-	if (_mission_result_sub.update(&mission_result)) {
+	if (_mission_result_data.update()) {
+		const mission_result_s &mission_result = _mission_result_data.get();
 
 		if (_current_seq != mission_result.seq_current) {
 
