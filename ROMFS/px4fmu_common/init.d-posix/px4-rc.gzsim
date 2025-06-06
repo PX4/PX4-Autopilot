@@ -110,6 +110,8 @@ if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
 	MODEL_NAME="${PX4_SIM_MODEL#*gz_}"
 	MODEL_NAME_INSTANCE="${MODEL_NAME}_${px4_instance}"
 
+	sdf_pose_str=""
+
 	if [ -n "${PX4_GZ_MODEL_POSE}" ]; then
 		pose_x=$(echo "${PX4_GZ_MODEL_POSE}" | awk -F',' '{print $1}')
 		pose_y=$(echo "${PX4_GZ_MODEL_POSE}" | awk -F',' '{print $2}')
@@ -117,19 +119,22 @@ if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
 		pose_roll=$(echo "${PX4_GZ_MODEL_POSE}" | awk -F',' '{print $4}')
 		pose_pitch=$(echo "${PX4_GZ_MODEL_POSE}" | awk -F',' '{print $5}')
 		pose_yaw=$(echo "${PX4_GZ_MODEL_POSE}" | awk -F',' '{print $6}')
+
+		pose_x=${pose_x:-0}
+		pose_y=${pose_y:-0}
+		pose_z=${pose_z:-0}
+		pose_roll=${pose_roll:-0}
+		pose_pitch=${pose_pitch:-0}
+		pose_yaw=${pose_yaw:-0}
+
+		sdf_pose_str="<pose> ${pose_x} ${pose_y} ${pose_z} ${pose_roll} ${pose_pitch} ${pose_yaw} </pose>"
+		echo "INFO  [init] Gazebo model pose: ${pose_x} ${pose_y} ${pose_z} ${pose_roll} ${pose_pitch} ${pose_yaw}"
 	fi
 
-	pose_x=${pose_x:-0}
-	pose_y=${pose_y:-0}
-	pose_z=${pose_z:-0}
-	pose_roll=${pose_roll:-0}
-	pose_pitch=${pose_pitch:-0}
-	pose_yaw=${pose_yaw:-0}
+	echo "INFO  [init] Spawning Gazebo model"
 
-	echo "INFO  [init] Spawning Gazebo model with pose: ${pose_x} ${pose_y} ${pose_z} ${pose_roll} ${pose_pitch} ${pose_yaw}"
-
-	# include the actual SDF in this one containing the pose in x y z roll pitch yaw format
-	sdf_str="<sdf version=\"1.6\"> <include> <uri>file:///${PX4_GZ_MODELS}/${MODEL_NAME}/model.sdf</uri> <pose> ${pose_x} ${pose_y} ${pose_z} ${pose_roll} ${pose_pitch} ${pose_yaw} </pose> </include> </sdf>"
+	# include the actual SDF in this one, containing the pose if given
+	sdf_str="<sdf version=\"1.6\"> <include> <uri>file://${PX4_GZ_MODELS}/${MODEL_NAME}/model.sdf</uri> ${sdf_pose_str} </include> </sdf>"
 
 	# Spawn model
 	${gz_command} service -s "/world/${PX4_GZ_WORLD}/create" --reqtype gz.msgs.EntityFactory \
