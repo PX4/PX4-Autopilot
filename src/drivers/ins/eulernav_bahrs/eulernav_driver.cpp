@@ -267,47 +267,43 @@ void EulerNavDriver::processDataBuffer()
 			{
 				// The message is unknown, not supported, or does not fit into the temporary storage.
 				_next_message_info.is_detected = false;
+				continue;
 			}
 
-			if (_next_message_info.is_detected)
-			{
-				const int32_t bytes_to_retrieve{message_length - static_cast<int32_t>(sizeof(CSerialProtocol::SMessageHeader))};
+			const int32_t bytes_to_retrieve{message_length - static_cast<int32_t>(sizeof(CSerialProtocol::SMessageHeader))};
 
-				if (static_cast<int32_t>(_data_buffer.space_used()) < bytes_to_retrieve)
+			if (static_cast<int32_t>(_data_buffer.space_used()) < bytes_to_retrieve)
+			{
+				// Do nothing and wait for more bytes to arrive.
+				break;
+			}
+
+			// Get message from the data buffer
+			uint8_t* bytes{reinterpret_cast<uint8_t*>(_message_storage)};
+
+			bytes[0] = CSerialProtocol::uMarker1_;
+			bytes[1] = CSerialProtocol::uMarker2_;
+			bytes[2] = reinterpret_cast<uint8_t*>(&_next_message_info.protocol_version)[0];
+			bytes[3] = reinterpret_cast<uint8_t*>(&_next_message_info.protocol_version)[1];
+			bytes[4] = _next_message_info.message_code;
+
+			if (static_cast<size_t>(bytes_to_retrieve) == _data_buffer.pop_front(bytes + sizeof(CSerialProtocol::SMessageHeader), bytes_to_retrieve))
+			{
+				const uint32_t message_length_in_words{message_length / sizeof(uint32_t)};
+				const uint32_t actual_crc{crc32(_message_storage, message_length_in_words - 1)};
+				const uint32_t expected_crc = _message_storage[message_length_in_words - 1];
+
+				if (expected_crc != actual_crc)
 				{
-					// Do nothing and wait for more bytes to arrive.
-					break;
+					++_statistics.crc_failures;
 				}
 				else
 				{
-					// Get message from the data buffer
-					uint8_t* bytes{reinterpret_cast<uint8_t*>(_message_storage)};
-
-					bytes[0] = CSerialProtocol::uMarker1_;
-					bytes[1] = CSerialProtocol::uMarker2_;
-					bytes[2] = reinterpret_cast<uint8_t*>(&_next_message_info.protocol_version)[0];
-					bytes[3] = reinterpret_cast<uint8_t*>(&_next_message_info.protocol_version)[1];
-					bytes[4] = _next_message_info.message_code;
-
-					if (static_cast<size_t>(bytes_to_retrieve) == _data_buffer.pop_front(bytes + sizeof(CSerialProtocol::SMessageHeader), bytes_to_retrieve))
-					{
-						const uint32_t message_length_in_words{message_length / sizeof(uint32_t)};
-						const uint32_t actual_crc{crc32(_message_storage, message_length_in_words - 1)};
-						const uint32_t expected_crc = _message_storage[message_length_in_words - 1];
-
-						if (expected_crc != actual_crc)
-						{
-							++_statistics.crc_failures;
-						}
-						else
-						{
-							decodeMessageAndPublishData(bytes, message_id);
-						}
-					}
-
-					_next_message_info.is_detected = false;
+					decodeMessageAndPublishData(bytes, message_id);
 				}
 			}
+
+			_next_message_info.is_detected = false;
 		}
 	}
 }
