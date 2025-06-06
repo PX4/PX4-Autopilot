@@ -320,21 +320,14 @@ bool EulerNavDriver::findNextMessageHeader(Ringbuffer& buffer)
 	{
 		uint8_t sync_byte{0U};
 
-		if (1 == buffer.pop_front(&sync_byte, 1))
+		if ((1 == buffer.pop_front(&sync_byte, 1)) && (CSerialProtocol::uMarker1_ == sync_byte))
 		{
-			if (CSerialProtocol::uMarker1_ == sync_byte)
+			sync_byte = 0U;
+
+			if ((1 == buffer.pop_front(&sync_byte, 1)) && (CSerialProtocol::uMarker2_ == sync_byte))
 			{
-				sync_byte = 0U;
-
-				if (1 == buffer.pop_front(&sync_byte, 1))
-				{
-					if (CSerialProtocol::uMarker2_ == sync_byte)
-					{
-						result = true;
-						break;
-					}
-				}
-
+				result = true;
+				break;
 			}
 		}
 	}
