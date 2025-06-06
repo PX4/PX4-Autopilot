@@ -159,7 +159,7 @@ int Decoder::parse(QualityInd *message) const
 
 int Decoder::parse(RFStatus *message) const
 {
-	if (can_parse() && id() == BlockID::PVTGeodetic) {
+	if (can_parse() && id() == BlockID::RFStatus) {
 		memcpy(message, _message.payload, sizeof(RFStatus) - sizeof(RFStatus::rf_band));
 
 		for (uint8_t i = 0; i < math::min(message->n, k_max_rfband_blocks); i++) {
