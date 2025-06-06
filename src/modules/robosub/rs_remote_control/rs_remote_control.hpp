@@ -63,11 +63,11 @@
 
 	enum MotorID {
     	MOTOR_FORWARDS1  = 101,
-    	MOTOR_FORWARDS2	 = 102,
+    	MOTOR_FORWARDS2	 = 106,
     	MOTOR_UP1   	 = 103,
     	MOTOR_UP2 	 = 104,
-    	MOTOR_UP3 	 = 105,
-    	MOTOR_SIDE1 	 = 106,
+    	MOTOR_UP3 	 = 102,
+    	MOTOR_SIDE1 	 = 105,
     	MOTOR_SIDE2  	 = 107
 	};
 
@@ -110,6 +110,7 @@
 	uORB::Subscription _water_detection_sub{ORB_ID(water_detection)};
 
 	water_detection_s 	_water_detection{};
+	water_detection_s 	water_detection_msg{}; // create the temp message struct
 
 	float calculate_absolute_humidity(float rel_humidity, float temperature);
 

@@ -169,10 +169,17 @@ void RoboSubCANFDReceiver::Run()
 				break;
 			}
 			case 0x04: {// LP4 GPIO non contact water level
-				water_detection_s water_detection_msg{}; // create the temp message struct
-				water_detection_msg.timestamp = hrt_absolute_time(); // set the timestamp
-				water_detection_msg.mainbrain_sensor = _raw_canfd_msg.data[0]; // set the water detected bit, this should be the first byte
 
+
+				water_detection_msg.timestamp = hrt_absolute_time(); // set the timestamp
+				if(received_id.can_id_seg.module_id_src == 0x02)
+				{
+					water_detection_msg.mainbrain_sensor = _raw_canfd_msg.data[0]; // set the water detected bit, this should be the first byte
+				}
+				else if(received_id.can_id_seg.module_id_src == 0x03)
+				{
+					water_detection_msg.power_module_sensor = _raw_canfd_msg.data[0]; // set the water detected bit, this should be the first byte
+				}
 				water_detection_pub.publish(water_detection_msg); // publish the data
 				break;
 			}

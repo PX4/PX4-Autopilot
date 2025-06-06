@@ -228,10 +228,8 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 
 				if(_water_detection_sub.update(&_water_detection)){
 					sensor_mainbrain 	=  _water_detection.mainbrain_sensor;
-					sensor_power 	= true;//= _water_detection.mainbrain_sensor;
+					sensor_power 		= _water_detection.power_module_sensor;
 				}
-				// sensor_mainbrain 	= false;//= _water_detection.power_module_sensor;
-
 
 				if (!sensor_mainbrain && ! sensor_power)
 				{
