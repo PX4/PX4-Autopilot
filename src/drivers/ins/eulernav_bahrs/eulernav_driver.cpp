@@ -501,24 +501,24 @@ int32_t EulerNavDriver::getMessageLength(CSerialProtocol::EMessageIds messsage_i
 
 uint32_t EulerNavDriver::crc32(const uint32_t* buffer, size_t length)
 {
-  uint32_t crc = 0xFFFFFFFF;
+	uint32_t crc = 0xFFFFFFFF;
 
-  for (size_t i = 0; i < length; ++i)
-  {
-    crc = crc ^ buffer[i];
+	for (size_t i = 0; i < length; ++i)
+	{
+		crc = crc ^ buffer[i];
 
-    for (uint8_t j = 0; j < 32; j++)
-    {
-      if (crc & 0x80000000)
-      {
-        crc = (crc << 1) ^ 0x04C11DB7;
-      }
-      else
-      {
-        crc = (crc << 1);
-      }
-    }
-  }
+		for (uint8_t j = 0; j < 32; j++)
+		{
+			if (crc & 0x80000000)
+			{
+				crc = (crc << 1) ^ 0x04C11DB7;
+			}
+			else
+			{
+				crc = (crc << 1);
+			}
+		}
+	}
 
-  return crc;
+	return crc;
 }
