@@ -126,4 +126,10 @@ msp_rendor_distanceToHome_t construct_rendor_distanceToHome(const home_position_
 // construct an MSP_ESC_SENSOR_DATA struct
 msp_esc_sensor_data_dji_t construct_ESC_SENSOR_DATA();
 
+// construct an MSP_RC struct
+msp_rc_t construct_MSP_RC(const input_rc_s &input_rc);
+
+// construct an MSP_STATUS struct
+msp_status_t construct_MSP_STATUS(const vehicle_status_s &vehicle_status);
+
 } // namespace msp_osd

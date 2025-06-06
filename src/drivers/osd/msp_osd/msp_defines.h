@@ -48,6 +48,8 @@
 #define MSP_ARMING_CONFIG         61
 #define MSP_RX_MAP                64 // get channel map (also returns number of channels total)
 #define MSP_LOOP_TIME             73 // FC cycle time i.e looptime parameter
+#define MSP_GET_VTX_CONFIG        88
+#define MSP_SET_VTX_CONFIG        89
 #define MSP_STATUS               101
 #define MSP_RAW_IMU              102
 #define MSP_SERVO                103
@@ -75,10 +77,12 @@
 #define MSP_SET_PID              202 // set P I D coeff
 
 // commands
-#define MSP_SET_HEAD             211 // define a new heading hold direction
-#define MSP_SET_RAW_RC           200 // 8 rc chan
-#define MSP_SET_RAW_GPS          201 // fix, numsat, lat, lon, alt, speed
-#define MSP_SET_WP               209 // sets a given WP (WP#, lat, lon, alt, flags)
+#define MSP_SET_HEAD                211 // define a new heading hold direction
+#define MSP_SET_RAW_RC              200 // 8 rc chan
+#define MSP_SET_RAW_GPS             201 // fix, numsat, lat, lon, alt, speed
+#define MSP_SET_WP                  209 // sets a given WP (WP#, lat, lon, alt, flags)
+#define MSP_SET_VTXTABLE_BAND       227
+#define MSP_SET_VTXTABLE_POWERLEVEL 228
 
 // bits of getActiveModes() return value
 #define MSP_MODE_ARM          0
@@ -894,6 +898,58 @@ struct msp_status_BF_t {
 	uint32_t arming_disable_flags;
 	uint8_t  extra_flags;
 } __attribute__((packed));
+
+struct msp_set_vtx_config_t {
+	uint16_t new_freq; //  if setting frequency then full uint16 is the frequency in MHz (ie. 5800)
+	//if setting band channel than band is high 8 bits and channel is low 8 bits
+	uint8_t power_level;
+	uint8_t pit_mode; // 0 = off, 1 = on
+	uint8_t low_power_disarm;
+	uint16_t pit_freq;
+	uint8_t user_band;
+	uint8_t user_channel;
+	uint16_t user_freq; // in MHz, 0 if using band & channel
+	uint8_t band_count;
+	uint8_t channel_count;
+	uint8_t power_count;
+	uint8_t clear_vtxtable; // Bool
+} __attribute__((packed));
+
+struct msp_get_vtx_config_t {
+	uint8_t vtx_type;
+	uint8_t band;
+	uint8_t channel;
+	uint8_t power_index;
+	uint8_t pit_mode; // 0 = off, 1 = on
+	uint16_t freq; // in MHz, 0 if using band & channel
+	uint8_t device_ready;
+	uint8_t low_power_disarm;
+} __attribute__((packed));
+
+struct msp_set_vtxtable_powerlevel_t {
+	uint8_t index;
+	uint16_t power_value;
+	uint8_t power_label_length;
+	uint8_t power_label_name[3];
+} __attribute__((packed));
+
+#define VTX_TABLE_BAND_NAME_LENGTH 8
+#define VTXDEV_MSP 5
+
+//29 bytes
+
+struct msp_set_vtxtable_band_t {
+	uint8_t band;
+	uint8_t band_name_length;
+	uint8_t band_label_name[VTX_TABLE_BAND_NAME_LENGTH];
+	uint8_t band_letter;
+	uint8_t is_factory_band;
+	uint8_t channel_count;
+	uint16_t frequency[8];
+} __attribute__((packed));
+
+
+
 
 ////ArduPlane
 enum arduPlaneModes_e {
