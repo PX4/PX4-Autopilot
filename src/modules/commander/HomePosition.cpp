@@ -308,6 +308,22 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 	_local_position_sub.update();
 	_global_position_sub.update();
 
+	if (_vehicle_air_data_sub.updated()) {
+		vehicle_air_data_s baro_data;
+		_vehicle_air_data_sub.copy(&baro_data);
+		const float baro_alt = baro_data.baro_alt_meter;
+
+		if (_last_baro_timestamp != 0) {
+			const float dt = baro_data.timestamp - _last_baro_timestamp;
+			lpf_baro.update(baro_alt, dt);
+
+		} else {
+			lpf_baro.reset(baro_alt);
+		}
+
+		_last_baro_timestamp = baro_data.timestamp;
+	}
+
 	if (_vehicle_gps_position_sub.updated()) {
 		sensor_gps_s vehicle_gps_position;
 		_vehicle_gps_position_sub.copy(&vehicle_gps_position);
@@ -319,12 +335,50 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 		_gps_epv = vehicle_gps_position.epv;
 
 		const hrt_abstime now = hrt_absolute_time();
-		const bool time = (now < vehicle_gps_position.timestamp + 1_s);
-		const bool fix = vehicle_gps_position.fix_type >= kHomePositionGPSRequiredFixType;
-		const bool eph = vehicle_gps_position.eph < kHomePositionGPSRequiredEPH;
-		const bool epv = vehicle_gps_position.epv < kHomePositionGPSRequiredEPV;
-		const bool evh = vehicle_gps_position.s_variance_m_s < kHomePositionGPSRequiredEVH;
-		_gps_position_for_home_valid = time && fix && eph && epv && evh;
+		const bool time_valid = now < (vehicle_gps_position.timestamp + 1_s);
+		const bool fix_valid = vehicle_gps_position.fix_type >= kHomePositionGPSRequiredFixType;
+		const bool eph_valid = vehicle_gps_position.eph < kHomePositionGPSRequiredEPH;
+		const bool epv_valid = vehicle_gps_position.epv < kHomePositionGPSRequiredEPV;
+		const bool evh_valid = vehicle_gps_position.s_variance_m_s < kHomePositionGPSRequiredEVH;
+
+		_gps_position_for_home_valid = time_valid && fix_valid && eph_valid && epv_valid && evh_valid;
+
+		if (_gps_position_for_home_valid && _last_gps_timestamp != 0 && _last_baro_timestamp != 0) {
+
+			const float gps_alt = static_cast<float>(_gps_alt);
+
+			if (_gps_vel_integral < FLT_EPSILON) {
+				_gps_vel_integral = gps_alt;
+				_baro_gps_static_offset = gps_alt - lpf_baro.getState();
+			}
+
+			_gps_vel_integral += 1e-6f * (vehicle_gps_position.timestamp - _last_gps_timestamp) * (-vehicle_gps_position.vel_d_m_s);
+
+			const float baro_alt = lpf_baro.getState() + _baro_gps_static_offset;
+			const float gps_alt_error = gps_alt + _baro_gps_home_offset;
+
+			if (fabsf(baro_alt - _gps_vel_integral) < fabsf(baro_alt - gps_alt_error) &&
+			    fabsf(baro_alt - _gps_vel_integral) < fabsf(_gps_vel_integral - gps_alt_error)) {
+
+				home_position_s home = _home_position_pub.get();
+				const float home_new_alt = home.alt + baro_alt - gps_alt - _baro_gps_home_offset;
+
+				if (fabsf(home_new_alt - home.alt) > 1.0f) {
+					const float offset = baro_alt - gps_alt - _baro_gps_home_offset;
+
+					home.alt -= offset;
+					home.z += offset;
+					home.timestamp = now;
+					home.manual_home = false;
+					home.update_count = _home_position_pub.get().update_count + 1U;
+
+					_home_position_pub.update(home);
+					_baro_gps_home_offset = baro_alt - gps_alt;
+				}
+			}
+		}
+
+		_last_gps_timestamp = vehicle_gps_position.timestamp;
 	}
 
 	const vehicle_local_position_s &lpos = _local_position_sub.get();

@@ -40,6 +40,8 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/failsafe_flags.h>
+#include <uORB/topics/vehicle_air_data.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
 static constexpr int kHomePositionGPSRequiredFixType = 2;
 static constexpr float kHomePositionGPSRequiredEPH = 5.f;
@@ -76,6 +78,14 @@ private:
 
 	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
+
+	uint64_t _last_gps_timestamp{0};
+	uint64_t _last_baro_timestamp{0};
+	AlphaFilter<float> lpf_baro{5.f};
+	float _gps_vel_integral{0.f};
+	float _baro_gps_home_offset{0.f};
+	float _baro_gps_static_offset{0.f};
 
 	uORB::PublicationData<home_position_s>			_home_position_pub{ORB_ID(home_position)};
 
