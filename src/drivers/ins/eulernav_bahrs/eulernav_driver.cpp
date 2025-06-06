@@ -243,12 +243,15 @@ void EulerNavDriver::processDataBuffer()
 		{
 			_next_message_info.is_detected = findNextMessageHeader(_data_buffer);
 
-			if (_next_message_info.is_detected)
+			if (!_next_message_info.is_detected)
 			{
-				if (!retrieveProtocolVersionAndMessageType(_data_buffer, _next_message_info.protocol_version, _next_message_info.message_code))
-				{
-					_next_message_info.is_detected = false;
-				}
+				// No message header found, wait for more bytes to arrive.
+				break;
+			}
+
+			if (!retrieveProtocolVersionAndMessageType(_data_buffer, _next_message_info.protocol_version, _next_message_info.message_code))
+			{
+				_next_message_info.is_detected = false;
 			}
 		}
 
@@ -305,10 +308,8 @@ void EulerNavDriver::processDataBuffer()
 					_next_message_info.is_detected = false;
 				}
 			}
-
 		}
 	}
-
 }
 
 bool EulerNavDriver::findNextMessageHeader(Ringbuffer& buffer)
