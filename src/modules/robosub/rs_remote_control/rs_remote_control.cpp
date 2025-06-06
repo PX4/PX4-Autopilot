@@ -132,7 +132,8 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
  {
 	perf_begin(_loop_perf);
 
-	if (!force_overide) {
+	// if (!force_overide) {
+	if(1){
 		taskStat();
 
 		receiver();
