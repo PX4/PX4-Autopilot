@@ -604,6 +604,10 @@
                             "name": "external8",
                             "description": "External 8"
                         },
+                        "24": {
+                            "name": "auto_rtl_dr",
+                            "description": "Dead-Reckoning RTL"
+                        },
                         "255": {
                             "name": "unknown",
                             "description": "[Unknown]"
