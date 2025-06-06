@@ -77,11 +77,11 @@ private:
 	class Statistics
 	{
 	public:
-		uint32_t _total_bytes_received{0U}; ///< Total number of received bytes
-		uint32_t _inertial_message_counter{0U}; ///< Total number of received inertial data messages
-		uint32_t _navigation_message_counter{0U}; ///< Total number of received navigation messages
-		uint32_t _crc_failures{0U}; ///< CRC failure counter
-		hrt_abstime _start_time{0U}; ///< Driver start time, [us]
+		uint32_t total_bytes_received{0U}; ///< Total number of received bytes
+		uint32_t inertial_message_counter{0U}; ///< Total number of received inertial data messages
+		uint32_t navigation_message_counter{0U}; ///< Total number of received navigation messages
+		uint32_t crc_failures{0U}; ///< CRC failure counter
+		hrt_abstime start_time{0U}; ///< Driver start time, [us]
 	};
 
 	/// @brief  Configuration constants
@@ -100,9 +100,9 @@ private:
 	class NextMessageInfo
 	{
 	public:
-		bool _is_detected{false}; ///< A flag to indicate that the next message header was detected
-		uint16_t _protocol_version{0U}; ///< Protocol version retrieved from the next message header
-		uint8_t _message_code{0U}; ///< Message code retrieved from the next message header
+		bool is_detected{false}; ///< A flag to indicate that the next message header was detected
+		uint16_t protocol_version{0U}; ///< Protocol version retrieved from the next message header
+		uint8_t message_code{0U}; ///< Message code retrieved from the next message header
 	};
 
 	/// @brief Perform initialization

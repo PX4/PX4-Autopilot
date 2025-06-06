@@ -142,11 +142,11 @@ int EulerNavDriver::print_status()
 {
 	if (_is_initialized)
 	{
-		PX4_INFO("Elapsed time: %llu [us].\n", hrt_elapsed_time(&_statistics._start_time));
-		PX4_INFO("Total bytes received: %lu.\n", _statistics._total_bytes_received);
+		PX4_INFO("Elapsed time: %llu [us].\n", hrt_elapsed_time(&_statistics.start_time));
+		PX4_INFO("Total bytes received: %lu.\n", _statistics.total_bytes_received);
 		PX4_INFO("Inertial messages received: %lu. Navigation messages received: %lu.\n",
-			_statistics._inertial_message_counter, _statistics._navigation_message_counter);
-		PX4_INFO("Failed CRC count: %lu.\n", _statistics._crc_failures);
+			_statistics.inertial_message_counter, _statistics.navigation_message_counter);
+		PX4_INFO("Failed CRC count: %lu.\n", _statistics.crc_failures);
 
 	}
 	else
@@ -159,7 +159,7 @@ int EulerNavDriver::print_status()
 
 void EulerNavDriver::run()
 {
-	_statistics._start_time = hrt_absolute_time();
+	_statistics.start_time = hrt_absolute_time();
 
 	while(!should_exit())
 	{
@@ -168,7 +168,7 @@ void EulerNavDriver::run()
 			const auto bytes_read{_serial_port.readAtLeast(_serial_read_buffer, sizeof(_serial_read_buffer),
 								       Config::MIN_BYTES_TO_READ, Config::SERIAL_READ_TIMEOUT_MS)};
 
-			_statistics._total_bytes_received += bytes_read;
+			_statistics.total_bytes_received += bytes_read;
 
 			if (bytes_read > 0)
 			{
@@ -239,34 +239,34 @@ void EulerNavDriver::processDataBuffer()
 
 	while (_data_buffer.space_used() >= Config::MIN_MESSAGE_LENGTH)
 	{
-		if (false == _next_message_info._is_detected)
+		if (false == _next_message_info.is_detected)
 		{
-			_next_message_info._is_detected = findNextMessageHeader(_data_buffer);
+			_next_message_info.is_detected = findNextMessageHeader(_data_buffer);
 
-			if (_next_message_info._is_detected)
+			if (_next_message_info.is_detected)
 			{
-				if (false == retrieveProtocolVersionAndMessageType(_data_buffer, _next_message_info._protocol_version, _next_message_info._message_code))
+				if (false == retrieveProtocolVersionAndMessageType(_data_buffer, _next_message_info.protocol_version, _next_message_info.message_code))
 				{
-					_next_message_info._is_detected = false;
+					_next_message_info.is_detected = false;
 				}
 			}
 		}
 
-		if (_next_message_info._is_detected)
+		if (_next_message_info.is_detected)
 		{
 			static_assert(sizeof(CSerialProtocol::SMessageHeader) < Config::MIN_MESSAGE_LENGTH);
 
-			const EMessageIds message_id{static_cast<EMessageIds>(_next_message_info._message_code)};
+			const EMessageIds message_id{static_cast<EMessageIds>(_next_message_info.message_code)};
 			const int32_t message_length{getMessageLength(message_id)};
 
 			if ((message_length < 0) || (message_length < Config::MIN_MESSAGE_LENGTH) ||
 			    (message_length > static_cast<int32_t>(sizeof(_message_storage))) || ((message_length % sizeof(uint32_t)) != 0U))
 			{
 				// The message is unknown, not supported, or does not fit into the temporary storage.
-				_next_message_info._is_detected = false;
+				_next_message_info.is_detected = false;
 			}
 
-			if (_next_message_info._is_detected)
+			if (_next_message_info.is_detected)
 			{
 				const int32_t bytes_to_retrieve{message_length - static_cast<int32_t>(sizeof(CSerialProtocol::SMessageHeader))};
 
@@ -282,9 +282,9 @@ void EulerNavDriver::processDataBuffer()
 
 					bytes[0] = CSerialProtocol::uMarker1_;
 					bytes[1] = CSerialProtocol::uMarker2_;
-					bytes[2] = reinterpret_cast<uint8_t*>(&_next_message_info._protocol_version)[0];
-					bytes[3] = reinterpret_cast<uint8_t*>(&_next_message_info._protocol_version)[1];
-					bytes[4] = _next_message_info._message_code;
+					bytes[2] = reinterpret_cast<uint8_t*>(&_next_message_info.protocol_version)[0];
+					bytes[3] = reinterpret_cast<uint8_t*>(&_next_message_info.protocol_version)[1];
+					bytes[4] = _next_message_info.message_code;
 
 					if (static_cast<size_t>(bytes_to_retrieve) == _data_buffer.pop_front(bytes + sizeof(CSerialProtocol::SMessageHeader), bytes_to_retrieve))
 					{
@@ -294,7 +294,7 @@ void EulerNavDriver::processDataBuffer()
 
 						if (expected_crc != actual_crc)
 						{
-							++_statistics._crc_failures;
+							++_statistics.crc_failures;
 						}
 						else
 						{
@@ -302,7 +302,7 @@ void EulerNavDriver::processDataBuffer()
 						}
 					}
 
-					_next_message_info._is_detected = false;
+					_next_message_info.is_detected = false;
 				}
 			}
 
@@ -415,7 +415,7 @@ void EulerNavDriver::handleInertialDataMessage(const uint8_t* data)
 			_px4_gyro.update(time, gyro_x, gyro_y, gyro_z);
 		}
 
-		++_statistics._inertial_message_counter;
+		++_statistics.inertial_message_counter;
 	}
 }
 
@@ -463,7 +463,7 @@ void EulerNavDriver::handleNavigationDataMessage(const uint8_t* data)
 			// EULER-NAV Baro-Inertial AHRS provides height estimate from a Kalman filter. It has got low noise and resolution
 			// of about 17 cm. It causes PX4 autopilot to mistakenly report that pressure signal is stale. In order to prevent
 			// the false alarms we add a small noise to the received height data.
-			if (_statistics._navigation_message_counter % 2U == 0)
+			if (_statistics.navigation_message_counter % 2U == 0)
 			{
 				pressure.pressure += 0.01F;
 			}
@@ -476,7 +476,7 @@ void EulerNavDriver::handleNavigationDataMessage(const uint8_t* data)
 			_barometer_pub.publish(pressure);
 		}
 
-		++_statistics._navigation_message_counter;
+		++_statistics.navigation_message_counter;
 	}
 }
 
