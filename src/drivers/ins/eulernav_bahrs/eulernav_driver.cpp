@@ -172,7 +172,7 @@ void EulerNavDriver::run()
 
 			if (bytes_read > 0)
 			{
-				if (false == _data_buffer.push_back(_serial_read_buffer, bytes_read))
+				if (!_data_buffer.push_back(_serial_read_buffer, bytes_read))
 				{
 					PX4_ERR("No space in data buffer");
 				}
@@ -190,7 +190,7 @@ void EulerNavDriver::run()
 
 void EulerNavDriver::initialize()
 {
-	if (false == _is_initialized)
+	if (!_is_initialized)
 	{
 		if (_serial_port.open())
 		{
@@ -204,7 +204,7 @@ void EulerNavDriver::initialize()
 
 		if (_is_initialized)
 		{
-			if (false == _data_buffer.allocate(Config::DATA_BUFFER_SIZE))
+			if (!_data_buffer.allocate(Config::DATA_BUFFER_SIZE))
 			{
 				PX4_ERR("Failed to allocate data buffer");
 				_is_initialized = false;
@@ -239,13 +239,13 @@ void EulerNavDriver::processDataBuffer()
 
 	while (_data_buffer.space_used() >= Config::MIN_MESSAGE_LENGTH)
 	{
-		if (false == _next_message_info.is_detected)
+		if (!_next_message_info.is_detected)
 		{
 			_next_message_info.is_detected = findNextMessageHeader(_data_buffer);
 
 			if (_next_message_info.is_detected)
 			{
-				if (false == retrieveProtocolVersionAndMessageType(_data_buffer, _next_message_info.protocol_version, _next_message_info.message_code))
+				if (!retrieveProtocolVersionAndMessageType(_data_buffer, _next_message_info.protocol_version, _next_message_info.message_code))
 				{
 					_next_message_info.is_detected = false;
 				}
