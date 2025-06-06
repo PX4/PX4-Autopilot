@@ -104,8 +104,7 @@ private:
 
 	raw_canfd_s _raw_canfd_msg{}; /**< raw canfd message */
 	raw_canfd_s _send_raw_canfd_msg{};
-	water_detection_s 	water_detection_msg{}; // create the temp message struct
-
+	water_detection_s water_detection_msg{};
 
 
 	union can_id_u {

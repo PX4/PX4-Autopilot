@@ -230,7 +230,7 @@ bool RoboSubCANFDSocket::send_raw_canfd_msg()
 }
 
 bool RoboSubCANFDSocket::send_init() {
-	_raw_canfd_msg.id = (0x8001003 | CAN_EFF_FLAG);
+	_raw_canfd_msg.id = (0x8010003 | CAN_EFF_FLAG);
 	_raw_canfd_msg.data[0] = 0x01;
 	_raw_canfd_msg.len = 1;
 
@@ -255,7 +255,7 @@ void RoboSubCANFDSocket::run()
 		PX4_ERR("Failed to init CAN socket");
 		return;
 	}
-
+	// uint8_t shitty_hotfix_counter = 0;
 	while (!should_exit()) {
 		nbytes = recvmsg(s, &_recv_msg, MSG_DONTWAIT);
 
@@ -269,7 +269,11 @@ void RoboSubCANFDSocket::run()
 					continue;
 				}
 			}
-			else if (!has_sent_init) { // automatically send init message if it has not been sent yet
+			else if (!has_sent_init ) { // automatically send init message if it has not been sent yet
+				// if ( shitty_hotfix_counter <= 100){shitty_hotfix_counter++;} // This is a dirty hack to avoid the socket breaking after a few seconds, it seems like the socket is not ready to receive messages yet.
+				// else {
+				// 	continue; // if the socket is not ready to receive messages, skip the rest of the loop
+				// }
 				has_sent_init = true;
 				if(!send_init()) {
 					PX4_ERR("Failed to send init CAN FD message");

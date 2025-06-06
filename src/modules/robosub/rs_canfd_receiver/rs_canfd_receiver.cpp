@@ -120,7 +120,7 @@ RoboSubCANFDReceiver::RoboSubCANFDReceiver()
 
 void RoboSubCANFDReceiver::send_0x01(){
 	_send_raw_canfd_msg.timestamp = hrt_absolute_time();
-	_send_raw_canfd_msg.id = (0x8001003 | CAN_EFF_FLAG); // Example CAN ID
+	_send_raw_canfd_msg.id = (0x8010003 | CAN_EFF_FLAG); // Example CAN ID
 	_send_raw_canfd_msg.data[0] = 0x01; // Example data byte
 	_send_raw_canfd_msg.len = 1; // Example length of the CAN frame
 	// Publish the test message
@@ -131,7 +131,7 @@ void RoboSubCANFDReceiver::send_0x01(){
 
 void RoboSubCANFDReceiver::send_0x02(){
 	_send_raw_canfd_msg.timestamp = hrt_absolute_time();
-	_send_raw_canfd_msg.id = (0x8001003 | CAN_EFF_FLAG); // Example CAN ID
+	_send_raw_canfd_msg.id = (0x8010003 | CAN_EFF_FLAG); // Example CAN ID
 	_send_raw_canfd_msg.data[0] = 0x02; // Example data byte
 	_send_raw_canfd_msg.len = 1; // Example length of the CAN frame
 	// Publish the test message
@@ -139,7 +139,6 @@ void RoboSubCANFDReceiver::send_0x02(){
 
 	// PX4_INFO("Test message sent with ID: 0x%08x", _send_raw_canfd_msg.id);
 }
-
 
 void RoboSubCANFDReceiver::Run()
 {
@@ -169,14 +168,12 @@ void RoboSubCANFDReceiver::Run()
 				break;
 			}
 			case 0x04: {// LP4 GPIO non contact water level
-
-
 				water_detection_msg.timestamp = hrt_absolute_time(); // set the timestamp
-				if(received_id.can_id_seg.module_id_src == 0x02)
+				if(received_id.can_id_seg.module_id_src == 0x11)
 				{
 					water_detection_msg.mainbrain_sensor = _raw_canfd_msg.data[0]; // set the water detected bit, this should be the first byte
 				}
-				else if(received_id.can_id_seg.module_id_src == 0x03)
+				else if(received_id.can_id_seg.module_id_src == 0x08)
 				{
 					water_detection_msg.power_module_sensor = _raw_canfd_msg.data[0]; // set the water detected bit, this should be the first byte
 				}
@@ -188,9 +185,7 @@ void RoboSubCANFDReceiver::Run()
 	else { // if the hardware filters are set up correctly, this should never happen
 		PX4_ERR("Received message from unknown source: module_id_src=%d, client_id_src=%d",
 			received_id.can_id_seg.module_id_src, received_id.can_id_seg.client_id_src);
-
 	}
-
 	return;
 }
 
