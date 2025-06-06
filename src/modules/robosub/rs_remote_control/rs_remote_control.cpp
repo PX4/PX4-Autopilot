@@ -286,8 +286,11 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 	if (_internal_sensors_sub.updated()) {
 		internal_sensors_s internal_sensors{};
 		_internal_sensors_sub.copy(&internal_sensors);
-		uint8_t module_index = internal_sensors.module - 2;
-
+		int module_index = get_module_index(internal_sensors.module);
+		if (module_index < 0) {
+			PX4_ERR("Unknown module: %d", internal_sensors.module);
+			return;
+		}
 		float *filtered_value = nullptr;
 		SensorFilter *filter = nullptr;
 		float param_offset = 0.0f;
@@ -382,6 +385,7 @@ float RobosubRemoteControl::calculate_absolute_humidity(float rel_humidity, floa
 	// Formula: 13.25 * RH * exp(17.67 * T / (T + 243.5)) / (T + 273.15)
 	return 13.25f * rel_humidity * expf(17.67f * temperature / (temperature + 243.5f)) / (temperature + 273.15f);
 }
+
 
 
  void RobosubRemoteControl::parameters_update(bool force)

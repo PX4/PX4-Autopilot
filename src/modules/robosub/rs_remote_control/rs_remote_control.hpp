@@ -181,8 +181,18 @@
 	float _filtered_pressure[N_MODULES] = {0.0f};
 	float _filtered_absolute_humidity[N_MODULES] = {0.0f};
 
-
 	// Helper function to update running average
 	float update_running_average(SensorFilter& filter, float new_value);
+
+	int get_module_index(uint8_t module) {
+		switch (module) {
+			case internal_sensors_s::MODULE_MAINBRAIN:   return 0;
+			case internal_sensors_s::MODULE_POWER:       return 1;
+			case internal_sensors_s::MODULE_BUOYANCY:    return 2;
+			case internal_sensors_s::MODULE_HYDRAULIC:   return 3;
+			// Add more as needed
+			default:                 return -1; // Invalid module
+		}
+	}
 
  };

@@ -150,7 +150,7 @@ void RoboSubCANFDReceiver::Run()
 
 	received_id.id = _raw_canfd_msg.id; // Put the received can id in the union to parse the id.
 
-	if (received_id.can_id_seg.module_id_des == 0x01) { // Check if the dest module is 0x01 (Pixhawk)
+	if (received_id.can_id_seg.module_id_des == 0x10) { // Check if the dest module is 0x01 (Pixhawk)
 		switch (received_id.can_id_seg.client_id_src) { // switch on the client id source
 			case 0x00: // Internal humidity sensor
 			case 0x01: // Internal temperature sensor

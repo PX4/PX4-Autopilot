@@ -1,8 +1,8 @@
 uint64 timestamp		# time since system start (microseconds)
 
 # modules
-uint8 MODULE_MAINBRAIN = 2
-uint8 MODULE_POWER = 3
+uint8 MODULE_MAINBRAIN = 1
+uint8 MODULE_POWER = 8
 uint8 MODULE_BUOYANCY = 4
 uint8 MODULE_HYDRAULIC = 5
 
