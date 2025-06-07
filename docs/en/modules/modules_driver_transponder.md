@@ -22,7 +22,7 @@ Source: [drivers/transponder/sagetech_mxs](https://github.com/PX4/PX4-Autopilot/
 	$ sagetech_mxs opmode 0/1/2/3
 	Set the Squawk Code
 	$ sagetech_mxs squawk 1200
-	
+
 ### Usage {#sagetech_mxs_usage}
 
 ```

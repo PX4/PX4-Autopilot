@@ -386,7 +386,7 @@ Source: [modules/spacecraft](https://github.com/PX4/PX4-Autopilot/tree/main/src/
 	This implements control allocation for spacecraft vehicles.
 	It takes torque and thrust setpoints as inputs and outputs
 	actuator setpoint messages.
-	
+
 ### Usage {#spacecraft_usage}
 
 ```
