@@ -80,8 +80,8 @@ public:
 		if (z_bytes_get_contiguous_view(payload, &view) == Z_OK) {
 			const uint8_t *ptr = z_slice_data(z_loan(view));
 
-			dds_istream_t is = {.m_buffer = (unsigned char *)(ptr), .m_size = static_cast<int>(len),
-					    .m_index = 4, .m_xcdr_version = DDSI_RTPS_CDR_ENC_VERSION_2
+			dds_istream_t is = {.m_buffer = (unsigned char *)(ptr + 4), .m_size = static_cast<int>(len),
+					    .m_index = 0, .m_xcdr_version = DDSI_RTPS_CDR_ENC_VERSION_1
 					   };
 			dds_stream_read(&is, data, &dds_allocator, _cdr_ops);
 
@@ -92,8 +92,8 @@ public:
 			z_bytes_reader_t reader = z_bytes_get_reader(payload);
 			z_bytes_reader_read(&reader, reassembled_payload, len);
 
-			dds_istream_t is = {.m_buffer = reassembled_payload, .m_size = static_cast<int>(len),
-					    .m_index = 4, .m_xcdr_version = DDSI_RTPS_CDR_ENC_VERSION_2
+			dds_istream_t is = {.m_buffer = &reassembled_payload[4], .m_size = static_cast<int>(len),
+					    .m_index = 0, .m_xcdr_version = DDSI_RTPS_CDR_ENC_VERSION_1
 					   };
 			dds_stream_read(&is, data, &dds_allocator, _cdr_ops);
 		}

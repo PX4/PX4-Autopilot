@@ -78,10 +78,10 @@ public:
 		memcpy(buf, ros2_header, sizeof(ros2_header));
 
 		dds_ostream_t os;
-		os.m_buffer = buf;
-		os.m_index = (uint32_t)sizeof(ros2_header);
+		os.m_buffer = &buf[4];
+		os.m_index = 0;
 		os.m_size = (uint32_t)sizeof(ros2_header) + _uorb_meta->o_size + CDR_SAFETY_MARGIN;
-		os.m_xcdr_version = DDSI_RTPS_CDR_ENC_VERSION_2;
+		os.m_xcdr_version = DDSI_RTPS_CDR_ENC_VERSION_1;
 
 		if (dds_stream_write(&os,
 				     &dds_allocator,
