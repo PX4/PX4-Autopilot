@@ -273,10 +273,11 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 	{
 		char topic[TOPIC_INFO_SIZE];
 		char type[TOPIC_INFO_SIZE];
+		int instance_no;
 
 		for (i = 0; i < _sub_count; i++) {
-			if (_config.getSubscriberMapping(topic, type)) {
-				_zenoh_subscribers[i] = genSubscriber(type);
+			if (_config.getSubscriberMapping(topic, type, &instance_no)) {
+				_zenoh_subscribers[i] = genSubscriber(type, instance_no);
 				const uint8_t *rihs_hash = getRIHS01_Hash(type);
 
 				if (rihs_hash != NULL && _zenoh_subscribers[i] != 0 &&
@@ -312,7 +313,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 			}
 		}
 
-		if (_config.getSubscriberMapping(topic, type) < 0) {
+		if (_config.getSubscriberMapping(topic, type, &instance_no) < 0) {
 			PX4_WARN("Subscriber mapping parsing error");
 		}
 
@@ -327,10 +328,11 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 	{
 		char topic[TOPIC_INFO_SIZE];
 		char type[TOPIC_INFO_SIZE];
+		int instance;
 
 		for (i = 0; i < _pub_count; i++) {
-			if (_config.getPublisherMapping(topic, type)) {
-				_zenoh_publishers[i] = genPublisher(type);
+			if (_config.getPublisherMapping(topic, type, &instance)) {
+				_zenoh_publishers[i] = genPublisher(type, instance);
 				const uint8_t *rihs_hash = getRIHS01_Hash(type);
 
 				if (rihs_hash && _zenoh_publishers[i] != 0 &&
@@ -367,7 +369,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 			}
 		}
 
-		if (_config.getSubscriberMapping(topic, type) < 0) {
+		if (_config.getPublisherMapping(topic, type, &instance) < 0) {
 			PX4_WARN("Publisher mapping parsing error");
 		}
 
@@ -487,8 +489,10 @@ Zenoh demo bridge
 	PRINT_MODULE_USAGE_COMMAND("stop");
 	PRINT_MODULE_USAGE_COMMAND("status");
 	PRINT_MODULE_USAGE_COMMAND("config");
-	PX4_INFO_RAW("     addpublisher  <zenoh_topic> <uorb_topic>  Publish uORB topic to Zenoh\n");
-	PX4_INFO_RAW("     addsubscriber <zenoh_topic> <uorb_topic>  Publish Zenoh topic to uORB\n");
+	PX4_INFO_RAW("     add publisher  <zenoh_topic> <uorb_topic> <optional uorb_instance>  Publish uORB topic to Zenoh\n");
+	PX4_INFO_RAW("     add subscriber <zenoh_topic> <uorb_topic> <optional uorb_instance>  Publish Zenoh topic to uORB\n");
+	PX4_INFO_RAW("     delete publisher  <zenoh_topic>\n");
+	PX4_INFO_RAW("     delete subscriber <zenoh_topic>\n");
 	PX4_INFO_RAW("     net           <mode> <locator>            Zenoh network mode\n");
 	PX4_INFO_RAW("          <mode>    values: client|peer   \n");
 	PX4_INFO_RAW("          <locator> client: locator address e.g. tcp/10.41.10.1:7447#iface=eth0\n");

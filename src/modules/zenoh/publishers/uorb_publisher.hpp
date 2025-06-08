@@ -50,12 +50,17 @@
 class uORB_Zenoh_Publisher : public Zenoh_Publisher
 {
 public:
-	uORB_Zenoh_Publisher(const orb_metadata *meta, const uint32_t *ops) :
+	uORB_Zenoh_Publisher(const orb_metadata *meta, const uint32_t *ops, int instance) :
 		Zenoh_Publisher(),
 		_uorb_meta{meta},
 		_cdr_ops(ops)
 	{
-		_uorb_sub = orb_subscribe(meta);
+		if (instance <= 0) { // default (<0) or =0
+			_uorb_sub = orb_subscribe(meta);
+
+		} else { // otherwise
+			_uorb_sub = orb_subscribe_multi(meta, instance);
+		}
 	};
 
 	~uORB_Zenoh_Publisher() override = default;

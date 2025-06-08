@@ -18,15 +18,15 @@ import os
 
 const char* default_pub_config =
 @[    for pub in publications]@
-	"@(pub['topic']);@(pub['simple_base_type'])\n"
+	"@(pub['topic']);@(pub['simple_base_type']);0\n"
 @[    end for]@
 ;
 
 const char* default_sub_config =
 @[    for sub in subscriptions]@
-	"@(sub['topic']);@(sub['simple_base_type'])\n"
+	"@(sub['topic']);@(sub['simple_base_type']);0\n"
 @[    end for]@
 @[    for sub in subscriptions_multi]@
-	"@(sub['topic']);@(sub['simple_base_type'])\n"
+	"@(sub['topic']);@(sub['simple_base_type']);-1\n"
 @[    end for]@
 ;
