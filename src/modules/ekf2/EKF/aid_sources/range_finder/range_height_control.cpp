@@ -67,6 +67,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
 				_range_sensor.setRange(_range_sensor.getRange() + pos_offset_earth(2) / _range_sensor.getCosTilt());
 
+				// TODO: this is a constant
 				const float dist_var = getRngVar();
 				_rng_consistency_check.current_posD_reset_count = get_posD_reset_count();
 
@@ -79,6 +80,8 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				_rng_consistency_check.horizontal_motion = updated_horizontal_motion;
 				const float z_var = P(State::pos.idx + 2, State::pos.idx + 2);
 				const float vz_var = P(State::vel.idx + 2, State::vel.idx + 2);
+
+				// TODO: review -- variance
 				_rng_consistency_check.run(_gpos.altitude(), z_var, _state.vel(2), vz_var, _range_sensor.getDistBottom(),
 							   dist_var, imu_sample.time_us);
 

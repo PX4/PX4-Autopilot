@@ -315,6 +315,10 @@ void LoggedTopics::add_estimator_replay_topics()
 	add_topic("vehicle_visual_odometry");
 	add_topic("aux_global_position");
 	add_topic_multi("distance_sensor");
+	add_topic("vehicle_local_position");
+	add_topic("estimator_states");
+	add_topic("estimator_status");
+	add_topic("estimator_aid_src_rng_hgt");
 }
 
 void LoggedTopics::add_thermal_calibration_topics()

@@ -48,7 +48,7 @@ parameters:
       description:
         short: Measurement noise for range finder fusion
       type: float
-      default: 0.1
+      default: 0.05
       min: 0.01
       unit: m
       decimal: 2
@@ -122,7 +122,7 @@ parameters:
         short: Range finder range dependent noise scaler
         long: Specifies the increase in range finder noise with range.
       type: float
-      default: 0.05
+      default: 0.01
       min: 0.0
       max: 0.2
       unit: m/m
