@@ -204,12 +204,12 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 		const bool critical_or_higher = reporter.failsafeFlags().battery_warning >= battery_status_s::WARNING_CRITICAL;
 		NavModes affected_modes = (!configured_arm_threshold_in_use && critical_or_higher)
 					  || (configured_arm_threshold_in_use && below_configured_arm_threshold) ? NavModes::All : NavModes::None;
-		events::LogLevel log_level = critical_or_higher || below_configured_arm_threshold
-					     ? events::Log::Critical : events::Log::Warning;
 
 		switch (reporter.failsafeFlags().battery_warning) {
 		default:
 		case battery_status_s::WARNING_LOW:
+			// This is declared critical so QGC displays a yellow box and reads "low battery" out loud making the user aware
+
 			/* EVENT
 			* @description
 			* The lowest battery state of charge is below the low threshold.
@@ -219,10 +219,10 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 			* </profile>
 			*/
 			reporter.armingCheckFailure(affected_modes, health_component_t::battery, events::ID("check_battery_low"),
-						    log_level, "Low battery");
+						    events::Log::Critical, "Low battery");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_emergency(reporter.mavlink_log_pub(), "Low battery\t");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Low battery\t");
 			}
 
 			break;
@@ -237,10 +237,10 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 			* </profile>
 			*/
 			reporter.armingCheckFailure(affected_modes, health_component_t::battery, events::ID("check_battery_critical"),
-						    log_level, "Critical battery");
+						    events::Log::Critical, "Critical battery");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_emergency(reporter.mavlink_log_pub(), "Critical battery\t");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Critical battery\t");
 			}
 
 			break;
@@ -255,7 +255,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 			* </profile>
 			*/
 			reporter.armingCheckFailure(affected_modes, health_component_t::battery, events::ID("check_battery_emergency"),
-						    log_level, "Emergency battery level");
+						    events::Log::Emergency, "Emergency battery level");
 
 			if (reporter.mavlink_log_pub()) {
 				mavlink_log_emergency(reporter.mavlink_log_pub(), "Emergency battery level\t");

@@ -39,7 +39,7 @@ set VEHICLE_TYPE none
 # Airframe parameter versioning
 # Value set to 1 by default but can optionally be overridden in the airframe configuration startup script.
 # Airframe maintainers can ensure a reset to the airframe defaults during an update by increasing by one.
-# e.g. add line "set PARAM_DEFAULTS_VER 2" in your airframe file to build the first update that enfoces a reset.
+# e.g. add line "set PARAM_DEFAULTS_VER 2" in your airframe file to build the first update that enforces a reset.
 set PARAM_DEFAULTS_VER 1
 
 #

@@ -3,7 +3,6 @@
 *(.text.arm_doirq)
 *(.text.arm_svcall)
 *(.text.arm_switchcontext)
-*(.text.board_autoled_on)
 *(.text.clock_timer)
 *(.text.exception_common)
 *(.text.flexio_irq_handler)
@@ -20,7 +19,6 @@
 *(.text.imxrt_endwait)
 *(.text.imxrt_enet_interrupt)
 *(.text.imxrt_enet_interrupt_work)
-*(.text.imxrt_gpio3_16_31_interrupt)
 *(.text.imxrt_interrupt)
 *(.text.imxrt_lpi2c_isr)
 *(.text.imxrt_lpspi_exchange)
@@ -105,13 +103,12 @@
 *(.text.devif_event_trigger)
 *(.text.devif_poll_icmp)
 *(.text.icmp_poll)
-*(.text.devif_packet_conversion)
 *(.text.arp_out)
 *(.text.arp_find)
 *(.text.arp_format)
-*(.text.net_ipv4addr_hdrcmp)
-*(.text.net_ipv4addr_copy)
-*(.text.net_ipv4addr_broadcast)
+*(.text.net_ipv4addr_hdrcmp) /* itcm-check-ignore */
+*(.text.net_ipv4addr_copy) /* itcm-check-ignore */
+*(.text.net_ipv4addr_broadcast) /* itcm-check-ignore */
 *(.text.wd_start)
 *(.text.arp_arpin)
 *(.text.ipv4_input)

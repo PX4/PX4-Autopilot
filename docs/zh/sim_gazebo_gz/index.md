@@ -396,6 +396,11 @@ As long as the world file and the model file are in the Gazebo search path (`GZ_
 However, `make px4_sitl gz_<model>_<world>` won't work with them.
 :::
 
+## Extending Gazebo with Plugins
+
+World, vehicle (model), and sensor behaviour can be customised using plugins.
+For more information see [Gazebo Plugins](../sim_gazebo_gz/plugins.md).
+
 ## 基于gazebo的多飞行器仿真
 
 Multi-Vehicle simulation is supported on Linux hosts.

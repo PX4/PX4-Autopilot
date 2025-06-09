@@ -1,6 +1,9 @@
 # Modules Reference: Simulation
 
+
+
 ## simulator_sih
+
 Source: [modules/simulation/simulator_sih](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/simulation/simulator_sih)
 
 
@@ -22,8 +25,8 @@ Most of the variables are declared global in the .hpp file to avoid stack overfl
 
 
 
-<a id="simulator_sih_usage"></a>
-### Usage
+### Usage {#simulator_sih_usage}
+
 ```
 simulator_sih <command> [arguments...]
  Commands:

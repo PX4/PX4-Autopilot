@@ -20,15 +20,13 @@ Attempt to start driver on a specified serial device.
 thoneflow start -d /dev/ttyS1
 ```
 
-设置/使用 信息： https://docs.px4.io/master/en/sensor/leddar_one.html
+Stop driver
 
 ```
 thoneflow stop
 ```
 
-<a id="thoneflow_usage"></a>
-
-### 用法
+### Usage {#thoneflow_usage}
 
 ```
 thoneflow <command> [arguments...]
