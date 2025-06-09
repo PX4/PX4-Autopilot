@@ -167,9 +167,10 @@ set(msg_files
 	PurePursuitStatus.msg
 	PwmInput.msg
 	Px4ioStatus.msg
-	QshellReq.msg
-	QshellRetval.msg
-	RadioStatus.msg
+        QshellReq.msg
+        QshellRetval.msg
+        QuadrupedLegCommand.msg
+        RadioStatus.msg
 	RateCtrlStatus.msg
 	RcChannels.msg
 	RcParameterMap.msg
@@ -180,10 +181,10 @@ set(msg_files
 	RoverRateStatus.msg
 	RoverSteeringSetpoint.msg
 	RoverThrottleSetpoint.msg
-	RoverVelocitySetpoint.msg
-	RoverVelocityStatus.msg
-	Rpm.msg
-	RtlStatus.msg
+        RoverVelocitySetpoint.msg
+        RoverVelocityStatus.msg
+        Rpm.msg
+        RtlStatus.msg
 	RtlTimeEstimate.msg
 	SatelliteInfo.msg
 	SensorAccel.msg
