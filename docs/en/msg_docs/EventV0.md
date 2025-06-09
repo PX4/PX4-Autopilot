@@ -1,12 +1,15 @@
-# Event (UORB message)
+# EventV0 (UORB message)
 
+this message is required here in the msg_old folder because other msg are depending on it
 Events interface
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/Event.msg)
+[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/EventV0.msg)
 
 ```c
+# this message is required here in the msg_old folder because other msg are depending on it
 # Events interface
-uint32 MESSAGE_VERSION = 1
+
+uint32 MESSAGE_VERSION = 0
 
 uint64 timestamp			# time since system start (microseconds)
 
