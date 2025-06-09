@@ -180,9 +180,10 @@ set(msg_files
 	RoverRateStatus.msg
 	RoverSteeringSetpoint.msg
 	RoverThrottleSetpoint.msg
-	RoverVelocitySetpoint.msg
-	RoverVelocityStatus.msg
-	Rpm.msg
+        RoverVelocitySetpoint.msg
+        RoverVelocityStatus.msg
+        QuadrupedLegCommand.msg
+        Rpm.msg
 	RtlStatus.msg
 	RtlTimeEstimate.msg
 	SatelliteInfo.msg

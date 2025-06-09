@@ -17,6 +17,7 @@ PX4 is highly portable, OS-independent and supports Linux, NuttX and MacOS out o
   * [VTOL](https://docs.px4.io/main/en/frames_vtol/)
   * [Autogyro](https://docs.px4.io/main/en/frames_autogyro/)
   * [Rover](https://docs.px4.io/main/en/frames_rover/)
+  * Quadruped
   * many more experimental types (Blimps, Boats, Submarines, High Altitude Balloons, Spacecraft, etc)
 * Releases: [Downloads](https://github.com/PX4/PX4-Autopilot/releases)
 

@@ -1,0 +1,4 @@
+module_name: quadruped
+keywords: [quadruped]
+module_description: "Basic quadruped control module based on rover functionality"
+parameters: []
