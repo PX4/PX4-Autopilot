@@ -12,14 +12,18 @@ import sys
 
 import yaml
 
-def generate_dds_yaml_doc(allMessageFiles, output_file = 'dds_topics.md'):
+def generate_dds_yaml_doc(allMessageFiles, output_dir):
     """
     Generates human readable version of dds_topics.yaml.
     Default output is to docs/en/middleware/dds_topics.md
     """
+    output_file = 'dds_topics.md'
+    if not os.path.isdir(output_dir):
+        print("Output directory not found")
+        sys.exit(1)
 
     dds_file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"../../src/modules/uxrce_dds_client/dds_topics.yaml")
-    output_file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),f"../../docs/en/middleware/{output_file}")
+    output_file_path = os.path.join(output_dir, output_file)
 
     try:
         with open(dds_file_path, 'r') as file:
@@ -127,6 +131,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Generate docs from .msg files')
     parser.add_argument('-d', dest='dir', help='output directory', required=True)
+    parser.add_argument('-dds_yaml', dest='dds_yaml', help='Generate dds yaml doc', required=False, default=False)
     args = parser.parse_args()
 
     output_dir = args.dir
@@ -136,6 +141,9 @@ if __name__ == "__main__":
     msg_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"../../msg")
     msg_files = get_msgs_list(msg_path)
     msg_files.sort()
+
+    if args.dds_yaml:
+        generate_dds_yaml_doc(msg_files, output_dir)
 
     versioned_msgs_list = ''
     unversioned_msgs_list = ''
@@ -227,5 +235,3 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
     index_file = os.path.join(output_dir, 'index.md')
     with open(index_file, 'w') as content_file:
             content_file.write(index_text)
-
-    generate_dds_yaml_doc(msg_files)
