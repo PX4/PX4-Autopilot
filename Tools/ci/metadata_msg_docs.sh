@@ -44,6 +44,29 @@ if [ ${#src_files[@]} -eq 0 ]; then
   exit 1
 fi
 
+# ─── Strip trailing whitespace from generated files (unless test-only) ──────────────────
+if [ "$test_only" = false ]; then
+  echo "✂️ Stripping trailing whitespace from generated files…"
+
+  # pick proper in-place flag for sed
+  if sed --version >/dev/null 2>&1; then
+    # GNU sed
+    SED_OPTS=(-i)
+  else
+    # BSD sed (macOS)
+    SED_OPTS=(-i '' )
+  fi
+
+  for src in "${src_files[@]}"; do
+    # only process real files
+    if [[ -f "$src" ]]; then
+      sed "${SED_OPTS[@]}" 's/[[:space:]]\+$//' "$src"
+    fi
+  done
+else
+  [ "$debug" = true ] && echo "🧪 Test-only: skipping whitespace strip"
+fi
+
 echo "🔍 Checking uORB message docs in $dest_dir"
 mkdir -p "$dest_dir"
 
