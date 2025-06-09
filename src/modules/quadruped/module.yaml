@@ -1,6 +1,6 @@
 module_name: quadruped
 keywords: [quadruped]
-module_description: "Basic quadruped control module based on rover functionality"
+module_description: "Quadruped control module that accepts rover throttle, steering and velocity setpoints and maps them into gait control"
 parameters:
     - group: Quadruped
       definitions:
@@ -27,3 +27,11 @@ parameters:
             default: 0.2
             min: 0.0
             max: 1.0
+
+        QDP_MAX_SPEED:
+            description:
+                short: Maximum rover speed for normalization [m/s]
+            type: float
+            default: 1.0
+            min: 0.1
+            max: 10.0
