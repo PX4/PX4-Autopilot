@@ -155,9 +155,9 @@ px4_add_module(
 		safety_state.cpp
 		safety_state.hpp
 
-		# Main
-		uavcan_main.cpp
-		uavcan_servers.cpp
+                # Main
+                uavcan_main.cpp
+                $<$<OR:$<STREQUAL:${PX4_PLATFORM},posix>,$<STREQUAL:${PX4_PLATFORM},ros2>>:uavcan_servers.cpp>
 
 		# Actuators
 		actuators/esc.cpp

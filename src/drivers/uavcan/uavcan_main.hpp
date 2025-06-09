@@ -367,5 +367,7 @@ private:
 
 	bool _check_fw{false};
 
-	UavcanServers   *_servers{nullptr};
+#if defined(__PX4_POSIX)
+       UavcanServers   *_servers{nullptr};
+#endif
 };

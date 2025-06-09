@@ -126,10 +126,12 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 
 UavcanNode::~UavcanNode()
 {
-	if (_servers != nullptr) {
-		delete _servers;
-		_servers = nullptr;
-	}
+#if defined(__PX4_POSIX)
+       if (_servers != nullptr) {
+               delete _servers;
+               _servers = nullptr;
+       }
+#endif
 
 	if (_instance) {
 
@@ -623,17 +625,19 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	int32_t uavcan_enable = 1;
 	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
 
-	if (uavcan_enable > 1) {
-		_servers = new UavcanServers(_node, _node_info_retriever);
+       if (uavcan_enable > 1) {
+#if defined(__PX4_POSIX)
+               _servers = new UavcanServers(_node, _node_info_retriever);
 
-		if (_servers) {
-			int rv = _servers->init();
+               if (_servers) {
+                       int rv = _servers->init();
 
-			if (rv < 0) {
-				PX4_ERR("UavcanServers init: %d", rv);
-			}
-		}
-	}
+                       if (rv < 0) {
+                               PX4_ERR("UavcanServers init: %d", rv);
+                       }
+               }
+#endif
+       }
 
 	// Start the Node
 	return _node.start();
