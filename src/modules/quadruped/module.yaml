@@ -1,4 +1,29 @@
 module_name: quadruped
 keywords: [quadruped]
 module_description: "Basic quadruped control module based on rover functionality"
-parameters: []
+parameters:
+    - group: Quadruped
+      definitions:
+        QDP_PERIOD_MS:
+            description:
+                short: Gait cycle period in milliseconds
+            type: int32
+            default: 2000
+            min: 500
+            max: 5000
+
+        QDP_STEP_AMP:
+            description:
+                short: Step amplitude
+            type: float
+            default: 0.5
+            min: 0.0
+            max: 1.0
+
+        QDP_ROTATE_AMP:
+            description:
+                short: Leg rotate amplitude
+            type: float
+            default: 0.2
+            min: 0.0
+            max: 1.0

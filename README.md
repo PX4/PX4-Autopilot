@@ -29,6 +29,8 @@ Release notes and supporting information for PX4 releases can be found on the [D
 
 The [PX4 User Guide](https://docs.px4.io/main/en/) explains how to assemble [supported vehicles](https://docs.px4.io/main/en/airframes/airframe_reference.html) and fly drones with PX4. See the [forum and chat](https://docs.px4.io/main/en/#getting-help) if you need help!
 
+To build the codebase or run checks you need the required dependencies. Run `Tools/setup/ubuntu.sh` (or install the Python packages manually, e.g. `pip3 install kconfiglib`) before executing `make check`.
+
 
 ## Changing Code and Contributing
 
