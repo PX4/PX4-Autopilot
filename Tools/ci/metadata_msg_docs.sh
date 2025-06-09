@@ -25,8 +25,9 @@ done
 
 # Paths and make target
 make_target="msg_docs"
-src_dir="build/msg_docs"
+src_dir="build/px4_sitl_default/msg_docs"
 dest_dir="docs/en/msg_docs"
+middleware_dir="docs/en/middleware"
 
 # Run make target
 if [ "$debug" = true ]; then
@@ -50,7 +51,13 @@ mkdir -p "$dest_dir"
 changed=()
 for src in "${src_files[@]}"; do
   name=$(basename "$src")
-  dst="$dest_dir/$name"
+
+  # special-case dds_topics.md
+  if [[ "$name" == "dds_topics.md" ]]; then
+    dst="$middleware_dir/$name"
+  else
+    dst="$dest_dir/$name"
+  fi
 
   if [[ ! -f "$dst" ]]; then
     [ "$debug" = true ] && echo "DEBUG: missing $dst"
@@ -75,7 +82,13 @@ if [ "$test_only" = true ]; then
 fi
 
 echo "📂 Copying updated doc files to $dest_dir"
-for f in "${changed[@]}"; do cp -v "$src_dir/$f" "$dest_dir/$f"; done
+for f in "${changed[@]}"; do
+  if [[ "$f" == "dds_topics.md" ]]; then
+    cp -v "$src_dir/$f" "$middleware_dir/$f"
+  else
+    cp -v "$src_dir/$f" "$dest_dir/$f"
+  fi
+done
 
 echo "🚨 uORB message docs updated; please commit changes:"
 echo "    git status -s $dest_dir"
