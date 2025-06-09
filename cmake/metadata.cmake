@@ -116,10 +116,18 @@ add_custom_target(metadata_extract_events
 	USES_TERMINAL
 )
 
+add_custom_target(metadata_msg_documentation
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/msg_docs
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/generate_msg_docs.py -d ${PX4_BINARY_DIR}/msg_docs
+	COMMENT "Generating uORB message documentation"
+	USES_TERMINAL
+)
+
 add_custom_target(all_metadata
 	DEPENDS
 		metadata_airframes
 		metadata_parameters
 		metadata_module_documentation
 		metadata_extract_events
+		metadata_msg_documentation
 )
