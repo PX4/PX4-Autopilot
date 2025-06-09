@@ -235,6 +235,33 @@ ll40ls <command> [arguments...]
    status        print status info
 ```
 
+## ll40ls_pwm
+
+Source: [drivers/distance_sensor/ll40ls_pwm](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/ll40ls_pwm)
+
+
+### Description
+
+PWM driver for LidarLite rangefinders.
+
+The sensor/driver must be enabled using the parameter SENS_EN_LL40LS.
+
+Setup/usage information: https://docs.px4.io/main/en/sensor/lidar_lite.html
+
+### Usage {#ll40ls_pwm_usage}
+
+```
+ll40ls_pwm <command> [arguments...]
+ Commands:
+   start         Start driver
+     [-R <val>]  Sensor rotation - downward facing by default
+                 default: 25
+
+   status        Print driver status information
+
+   stop          Stop driver
+```
+
 ## mappydot
 
 Source: [drivers/distance_sensor/mappydot](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/mappydot)
