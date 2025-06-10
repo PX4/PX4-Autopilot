@@ -159,7 +159,7 @@ Verify if everything works by running, for example, SITL:
 
 ```sh
 cd src/PX4-Autopilot    #This is <container_src>
-make px4_sitl_default gazebo-classic
+make px4_sitl gazebo-classic
 ```
 
 ### Re-enter the Container

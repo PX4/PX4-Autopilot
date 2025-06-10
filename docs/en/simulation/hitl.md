@@ -111,7 +111,7 @@ Make sure _QGroundControl_ is not running!
 
    ```sh
    cd <Firmware_clone>
-   DONT_RUN=1 make px4_sitl_default gazebo-classic
+   DONT_RUN=1 make px4_sitl gazebo-classic
    ```
 
 1. Open the vehicle model's sdf file (e.g. **Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/iris_hitl/iris_hitl.sdf**).
