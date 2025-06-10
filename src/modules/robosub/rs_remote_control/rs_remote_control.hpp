@@ -112,6 +112,11 @@
 	water_detection_s 	_water_detection{};
 	water_detection_s 	water_detection_msg{}; // create the temp message struct
 
+	float outputT200 = 0.0f;
+	float kP = 1.0f;
+	float kI = 1.0f;
+	float kD = 1.0f;
+
 
 	float calculate_absolute_humidity(float rel_humidity, float temperature);
 

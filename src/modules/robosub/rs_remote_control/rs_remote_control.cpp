@@ -238,13 +238,13 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 
 				} else if (! sensor_mainbrain && sensor_power)
 				{
-					range = 0.2f;
+					range = 0.3f;
 
 				} else if (sensor_mainbrain &&  sensor_power)
 				{
-					range = 0.2f;
+					range = 1.0f;
 				}
-				range = 0.2f;
+				// range = 0.2f;
 
 				// Normalize the rc data to a value between -1 and 1
 				normalized[0] = (rc_data.values[1] - 1500) / 400.0f;
@@ -253,14 +253,37 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 				normalized[3] = (rc_data.values[0] - 1500) / 400.0f;
 
 				// normalized[0] = math::constrain(normalized[0],  -range, range);
-				normalized[0] = math::constrain(normalized[0], -0.2f, 0.2f);
+				normalized[0] = math::constrain(normalized[0], -range, range);
 				normalized[1] = math::constrain(normalized[1], -range, range);
 				normalized[2] = math::constrain(normalized[2], -range, range);
 				normalized[3] = math::constrain(normalized[3], -range, range);
 
+				if(normalized[0] > 0)
+				{
+					if(normalized[0] < outputT200)
+					{
+						for(; outputT200 <= normalized[0]; outputT200 =- 0.001f);
+					}
+					else
+					{
+						outputT200 = normalized[0];
+					}
+				}
 
-				robosub_motor_control.actuator_test(MOTOR_FORWARDS1, 	normalized[0], 0, false);
-				robosub_motor_control.actuator_test(MOTOR_FORWARDS2, 	normalized[0], 0, false);
+				else if(normalized[0] < 0)
+				{
+					if(-normalized[0] < -outputT200)
+					{
+						for(;outputT200 >= normalized[0]; outputT200 =+ 0.001f);
+					}
+					else
+					{
+						outputT200 = normalized[0];
+					}
+				}
+
+				robosub_motor_control.actuator_test(MOTOR_FORWARDS1, 	outputT200, 0, false);
+				robosub_motor_control.actuator_test(MOTOR_FORWARDS2, 	outputT200, 0, false);
 				robosub_motor_control.actuator_test(MOTOR_UP1, 		-normalized[1], 0, false);
 				robosub_motor_control.actuator_test(MOTOR_UP2, 		(normalized[1] * 0.5f), 0, false);
 				robosub_motor_control.actuator_test(MOTOR_UP3, 		(-normalized[1] * 0.5f), 0, false);
