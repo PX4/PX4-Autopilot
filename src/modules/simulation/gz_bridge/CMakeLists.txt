@@ -53,6 +53,8 @@ if (gz-transport_FOUND)
 			GZMixingInterfaceESC.hpp
 			GZMixingInterfaceServo.cpp
 			GZMixingInterfaceServo.hpp
+			GZMixingInterfaceThruster.cpp
+			GZMixingInterfaceThruster.hpp
 			GZMixingInterfaceWheel.cpp
 			GZMixingInterfaceWheel.hpp
 			GZGimbal.cpp
