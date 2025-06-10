@@ -252,7 +252,8 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 				normalized[2] = (rc_data.values[3] - 1500) / 400.0f;
 				normalized[3] = (rc_data.values[0] - 1500) / 400.0f;
 
-				normalized[0] = math::constrain(normalized[0], -range, range);
+				// normalized[0] = math::constrain(normalized[0],  -range, range);
+				normalized[0] = math::constrain(normalized[0], -0.2f, 0.2f);
 				normalized[1] = math::constrain(normalized[1], -range, range);
 				normalized[2] = math::constrain(normalized[2], -range, range);
 				normalized[3] = math::constrain(normalized[3], -range, range);
