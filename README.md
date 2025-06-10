@@ -17,6 +17,7 @@ PX4 is highly portable, OS-independent and supports Linux, NuttX and MacOS out o
   * [VTOL](https://docs.px4.io/main/en/frames_vtol/)
   * [Autogyro](https://docs.px4.io/main/en/frames_autogyro/)
   * [Rover](https://docs.px4.io/main/en/frames_rover/)
+  * Quadruped
   * many more experimental types (Blimps, Boats, Submarines, High Altitude Balloons, Spacecraft, etc)
 * Releases: [Downloads](https://github.com/PX4/PX4-Autopilot/releases)
 
@@ -27,6 +28,8 @@ Release notes and supporting information for PX4 releases can be found on the [D
 ## Building a PX4 based drone, rover, boat or robot
 
 The [PX4 User Guide](https://docs.px4.io/main/en/) explains how to assemble [supported vehicles](https://docs.px4.io/main/en/airframes/airframe_reference.html) and fly drones with PX4. See the [forum and chat](https://docs.px4.io/main/en/#getting-help) if you need help!
+
+To build the codebase or run checks you need the required dependencies. Run `Tools/setup/ubuntu.sh` (or install the Python packages manually, e.g. `pip3 install kconfiglib`) before executing `make check`.
 
 
 ## Changing Code and Contributing
