@@ -52,9 +52,13 @@
 #include "uavcan_main.hpp"
 #include "uavcan_servers.hpp"
 
+#if defined(__PX4_POSIX)
 #include <uavcan_posix/dynamic_node_id_server/file_event_tracer.hpp>
 #include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
 #include <uavcan_posix/firmware_version_checker.hpp>
+#endif
+
+#if defined(__PX4_POSIX)
 
 /**
  * @file uavcan_servers.cpp
@@ -274,3 +278,4 @@ int UavcanServers::copyFw(const char *dst, const char *src)
 
 	return rv;
 }
+#endif

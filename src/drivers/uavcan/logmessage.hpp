@@ -85,7 +85,7 @@ private:
 
 		char module_name_buffer[80];
 		snprintf(module_name_buffer, sizeof(module_name_buffer), "uavcan:%d:%s", msg.getSrcNodeID().get(), msg.source.c_str());
-		px4_log_modulename(px4_level, module_name_buffer, msg.text.c_str());
+               px4_log_modulename(px4_level, module_name_buffer, "%s", msg.text.c_str());
 	}
 
 	uavcan::Subscriber<uavcan::protocol::debug::LogMessage, LogMessageCbBinder> _sub_logmessage;
