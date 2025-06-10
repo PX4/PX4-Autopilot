@@ -553,7 +553,7 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 
 	} else {
 		// Convert the period to eRPM
-		_erpms[output_channel] = (1000000 * 60) / period;
+		_erpms[output_channel] = (1000000 * 60 / 100 + period / 2) / period;
 	}
 
 	// We set it ready anyway, not to hold up other channels when used in round robin.
