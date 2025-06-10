@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sdf version='1.9'>
+  <model name="uuv_bluerov2_heavy">
+    <pose>0 0 0 0 0 0</pose>
+
+    <!-- Base Link -->
+    <link name="base_link">
+      <inertial>
+        <mass>11</mass>
+        <inertia>
+          <ixx>0.1</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.1</iyy>
+          <iyz>0</iyz>
+          <izz>0.1</izz>
+        </inertia>
+      </inertial>
+
+      <visual name="base_link_visual">
+        <geometry>
+          <mesh>
+            <uri>model://uuv_bluerov2_heavy/meshes/BlueROV2heavy.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+    </link>
+
+    <!-- IMU Link -->
+    <link name="imu_link">
+      <pose>0 0 0 0 0 0</pose>
+      <inertial>
+        <mass>0.015</mass>
+        <inertia>
+          <ixx>1e-05</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>1e-05</iyy>
+          <iyz>0</iyz>
+          <izz>1e-05</izz>
+        </inertia>
+      </inertial>
+    </link>
+
+    <!-- IMU Sensor (Gazebo Garden uses sensor elements) -->
+    <sensor name="imu_sensor" type="imu">
+      <always_on>true</always_on>
+      <update_rate>250</update_rate>
+      <imu>
+        <angular_velocity>
+          <x>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.0008726646</stddev>
+            </noise>
+          </x>
+          <y>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.0008726646</stddev>
+            </noise>
+          </y>
+          <z>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.0008726646</stddev>
+            </noise>
+          </z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.00637</stddev>
+            </noise>
+          </x>
+          <y>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.00637</stddev>
+            </noise>
+          </y>
+          <z>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.00686</stddev>
+            </noise>
+          </z>
+        </linear_acceleration>
+      </imu>
+    </sensor>
+
+    <!-- GPS Sensor (Gazebo Garden may require different handling) -->
+    <include>
+      <uri>model://gps</uri>
+      <pose>0 0 0 0 0 0</pose>
+      <name>gps</name>
+    </include>
+
+    <!-- Thruster Motor Plugins (converted to Gazebo Garden syntax) -->
+    <plugin filename="gz-sim-multicopter-motor-model-system" name="thruster1_model">
+      <jointName>thruster1_joint</jointName>
+      <linkName>thruster1</linkName>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1100</maxRotVelocity>
+      <motorConstant>10</motorConstant>
+      <momentConstant>0.01</momentConstant>
+      <rotorDragCoefficient>0</rotorDragCoefficient>
+      <rollingMomentCoefficient>0</rollingMomentCoefficient>
+      <commandSubTopic>/gazebo/command/motor_speed</commandSubTopic>
+      <motorNumber>0</motorNumber>
+      <motorSpeedPubTopic>/motor_speed/0</motorSpeedPubTopic>
+      <rotorVelocitySlowdownSim>0.025</rotorVelocitySlowdownSim>
+    </plugin>
+
+    <!-- Repeat similar plugin entries for thruster2 to thruster8 -->
+
+    <!-- Magnetometer Sensor (converted) -->
+    <sensor name="magnetometer_sensor" type="magnetometer">
+      <always_on>true</always_on>
+      <update_rate>100</update_rate>
+      <magnetometer>
+        <x>
+          <noise type="gaussian">
+            <stddev>0.0001</stddev>
+          </noise>
+        </x>
+        <y>
+          <noise type="gaussian">
+            <stddev>0.0001</stddev>
+          </noise>
+        </y>
+        <z>
+          <noise type="gaussian">
+            <stddev>0.0001</stddev>
+          </noise>
+        </z>
+      </magnetometer>
+    </sensor>
+
+    <!-- Barometer Sensor (converted) -->
+    <sensor name="barometer_sensor" type="barometric">
+      <always_on>true</always_on>
+      <update_rate>50</update_rate>
+      <barometric>
+        <pressure>
+          <noise type="gaussian">
+            <mean>0</mean>
+            <stddev>3</stddev>
+          </noise>
+        </pressure>
+      </barometric>
+    </sensor>
+
+
+
+    <!-- Buoyancy Plugin (may require custom handling in Gazebo Garden) -->
+    <!-- TODO: Convert buoyancy plugin to Gazebo Garden syntax -->
+
+  </model>
+</sdf>
