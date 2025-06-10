@@ -206,7 +206,7 @@ static void init_timers_dma_up(void)
 		timer_configs[timer_index].dma_handle = stm32_dmachannel(io_timers[timer_index].dshot.dma_map_up);
 
 		if (timer_configs[timer_index].dma_handle == NULL) {
-			PX4_DEBUG("Failed to allocate Timer %u DMA UP", timer_index);
+			PX4_WARN("Failed to allocate Timer %u DMA UP", timer_index);
 			continue;
 		}
 
@@ -214,12 +214,16 @@ static void init_timers_dma_up(void)
 		timer_configs[timer_index].initialized = true;
 	}
 
-	// Free the allocated DMA channels
-	for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
-		if (timer_configs[timer_index].dma_handle != NULL) {
-			stm32_dmafree(timer_configs[timer_index].dma_handle);
-			timer_configs[timer_index].dma_handle = NULL;
-			PX4_INFO("Freed DMA UP Timer Index %u", timer_index);
+	// Bidirectional DShot will free/allocate DMA stream on every update event. This is required
+	// in order to reconfigure the DMA stream between Timer Burst and CaptureCompare.
+	if (_bidirectional) {
+		// Free the allocated DMA channels
+		for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
+			if (timer_configs[timer_index].dma_handle != NULL) {
+				stm32_dmafree(timer_configs[timer_index].dma_handle);
+				timer_configs[timer_index].dma_handle = NULL;
+				PX4_INFO("Freed DMA UP Timer Index %u", timer_index);
+			}
 		}
 	}
 }
@@ -341,8 +345,15 @@ void up_dshot_trigger()
 
 			io_timer_set_dshot_burst_mode(timer_index, _dshot_frequency, channel_count);
 
-			// Allocate DMA
-			if (timer_configs[timer_index].dma_handle == NULL) {
+			if (_bidirectional) {
+				// Deallocate DMA from previous transaction
+				if (timer_configs[timer_index].dma_handle != NULL) {
+					stm32_dmastop(timer_configs[timer_index].dma_handle);
+					stm32_dmafree(timer_configs[timer_index].dma_handle);
+					timer_configs[timer_index].dma_handle = NULL;
+				}
+
+				// Allocate DMA
 				timer_configs[timer_index].dma_handle = stm32_dmachannel(io_timers[timer_index].dshot.dma_map_up);
 
 				if (timer_configs[timer_index].dma_handle == NULL) {
@@ -502,11 +513,8 @@ static void capture_complete_callback(void *arg)
 	// Disable capture DMA
 	io_timer_capture_dma_req(timer_index, capture_channel, false);
 
-	if (timer_configs[timer_index].dma_handle != NULL) {
-		stm32_dmastop(timer_configs[timer_index].dma_handle);
-		stm32_dmafree(timer_configs[timer_index].dma_handle);
-		timer_configs[timer_index].dma_handle = NULL;
-	}
+	// Stop DMA (should already be finished)
+	stm32_dmastop(timer_configs[timer_index].dma_handle);
 
 	// Re-initialize all output channels on this timer
 	for (uint8_t output_channel = 0; output_channel < MAX_TIMER_IO_CHANNELS; output_channel++) {
