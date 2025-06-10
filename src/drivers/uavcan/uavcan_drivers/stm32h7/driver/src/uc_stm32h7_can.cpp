@@ -1120,7 +1120,11 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks &inout_masks,
 		return 1;
 	}
 
-	(void)update_event_.wait(blocking_deadline - time); // Block until timeout expires or any iface updates
+	(void)update_event0_.wait(blocking_deadline - time); // Block until timeout expires or any iface updates
+#if UAVCAN_STM32H7_NUM_IFACES > 1
+	(void)update_event1_.wait(blocking_deadline - time);
+#endif
+
 	inout_masks = makeSelectMasks(pending_tx);  // Return what we got even if none of the requested events are set
 	return 1;                                   // Return value doesn't matter as long as it is non-negative
 }
@@ -1231,10 +1235,46 @@ fail:
 CanIface *CanDriver::getIface(uavcan::uint8_t iface_index)
 {
 	if (iface_index < UAVCAN_STM32H7_NUM_IFACES) {
-		return ifaces[iface_index];
+		if (((1 << iface_index) & usedUavcanInterfaces_) > 0) {
+			return ifaces[iface_index];
+		}
 	}
 
 	return UAVCAN_NULLPTR;
+}
+
+void CanDriver::setUavcanUsedInterfaces(uavcan::uint8_t iface_index)
+{
+	usedUavcanInterfaces_ |= (1 << iface_index);
+}
+
+CanIface *CanDriver::getIface(uavcan::uint8_t iface_index, bool exter)
+{
+	if (exter) {
+		if (iface_index < UAVCAN_STM32H7_NUM_IFACES) {
+			// The UAVCAN function is not enabled on the CAN interface
+			if (((1 << iface_index) & usedUavcanInterfaces_) == 0) {
+				return ifaces[iface_index];
+			}
+		}
+
+	} else {
+		return getIface(iface_index);
+	}
+
+	return nullptr;
+}
+
+BusEvent &CanDriver::updateEvent(uavcan::uint8_t iface_index)
+{
+#if UAVCAN_STM32H7_NUM_IFACES > 1
+
+	if (iface_index == 1) {
+		return update_event1_;
+	}
+
+#endif
+	return update_event0_;
 }
 
 bool CanDriver::hadActivity()

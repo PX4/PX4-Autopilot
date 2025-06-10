@@ -229,12 +229,14 @@ public:
  */
 class CanDriver : public uavcan::ICanDriver, uavcan::Noncopyable
 {
-	BusEvent update_event_;
+	BusEvent update_event0_;
 	CanIface if0_;
 #if UAVCAN_STM32_NUM_IFACES > 1
+	BusEvent update_event1_;
 	CanIface if1_;
 #endif
 	uint32_t enabledInterfaces_;
+	uint32_t usedUavcanInterfaces_;
 
 	virtual uavcan::int16_t select(uavcan::CanSelectMasks &inout_masks,
 				       const uavcan::CanFrame * (& pending_tx)[uavcan::MaxCanIfaces],
@@ -245,12 +247,14 @@ class CanDriver : public uavcan::ICanDriver, uavcan::Noncopyable
 public:
 	template <unsigned RxQueueCapacity>
 	CanDriver(CanRxItem(&rx_queue_storage)[UAVCAN_STM32_NUM_IFACES][RxQueueCapacity])
-		: update_event_(*this)
-		, if0_(bxcan::Can[0], update_event_, 0, rx_queue_storage[0], RxQueueCapacity)
+		: update_event0_(*this)
+		, if0_(bxcan::Can[0], update_event0_, 0, rx_queue_storage[0], RxQueueCapacity)
 #if UAVCAN_STM32_NUM_IFACES > 1
-		, if1_(bxcan::Can[1], update_event_, 1, rx_queue_storage[1], RxQueueCapacity)
+		, update_event1_(*this)
+		, if1_(bxcan::Can[1], update_event1_, 1, rx_queue_storage[1], RxQueueCapacity)
 #endif
 		, enabledInterfaces_(0x7)
+		, usedUavcanInterfaces_(0)
 	{
 		uavcan::StaticAssert < (RxQueueCapacity <= CanIface::MaxRxQueueCapacity) >::check();
 	}
@@ -271,7 +275,19 @@ public:
 	 */
 	int init(const uavcan::uint32_t bitrate, const CanIface::OperatingMode mode, const uavcan::uint32_t EnabledInterfaces);
 
+	/**
+	 * Set the CAN interface to enable the use of uavcan
+	 */
+	void setUavcanUsedInterfaces(uavcan::uint8_t iface_index);
+
 	virtual CanIface *getIface(uavcan::uint8_t iface_index);
+
+	/**
+	 * Some external CNA devices obtain the CAN interface
+	 * when extra is equal to true
+	 * when exter is false, calling the getIface(iface_index)
+	 */
+	CanIface *getIface(uavcan::uint8_t iface_index, bool exter);
 
 	virtual uavcan::uint8_t getNumIfaces() const { return UAVCAN_STM32_NUM_IFACES; }
 
@@ -281,7 +297,9 @@ public:
 	 */
 	bool hadActivity();
 
-	BusEvent &updateEvent() { return update_event_; }
+	BusEvent &updateEvent() { return update_event0_; }
+
+	BusEvent &updateEvent(uavcan::uint8_t iface_index);
 };
 
 /**
@@ -294,6 +312,8 @@ class CanInitHelper
 {
 	CanRxItem queue_storage_[UAVCAN_STM32_NUM_IFACES][RxQueueCapacity];
 
+	bool bitrateInit_;
+
 public:
 	enum { BitRateAutoDetect = 0 };
 
@@ -301,6 +321,7 @@ public:
 	uint32_t enabledInterfaces_;
 
 	CanInitHelper(const uavcan::uint32_t EnabledInterfaces = 0x7) :
+		bitrateInit_(false),
 		driver(queue_storage_),
 		enabledInterfaces_(EnabledInterfaces)
 	{ }
@@ -313,7 +334,15 @@ public:
 	 */
 	int init(uavcan::uint32_t bitrate)
 	{
-		return driver.init(bitrate, CanIface::NormalMode, enabledInterfaces_);
+		if (bitrateInit_) {
+			return 0;
+		}
+
+		int res = driver.init(bitrate, CanIface::NormalMode, enabledInterfaces_);
+
+		bitrateInit_ = true;
+
+		return res;
 	}
 
 	/**

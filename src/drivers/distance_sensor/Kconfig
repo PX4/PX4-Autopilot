@@ -12,6 +12,7 @@ menu "Distance sensors"
         select DRIVERS_DISTANCE_SENSOR_ULANDING_RADAR
         select DRIVERS_DISTANCE_SENSOR_VL53L0X
         select DRIVERS_DISTANCE_SENSOR_VL53L1X
+        select DRIVERS_DISTANCE_SENSOR_NANORADAR_CAN if DRIVERS_UAVCAN
         ---help---
             Enable default set of distance sensor drivers
 
