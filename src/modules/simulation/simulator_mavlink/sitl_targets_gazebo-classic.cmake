@@ -242,14 +242,23 @@ if(gazebo_FOUND)
 	add_custom_target(gazebo DEPENDS gazebo-classic_iris) # alias
 
 	# mavsdk tests currently depend on sitl_gazebo
-	ExternalProject_Add(mavsdk_tests
-		SOURCE_DIR ${PX4_SOURCE_DIR}/test/mavsdk_tests
-		CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
-		BINARY_DIR ${PX4_BINARY_DIR}/mavsdk_tests
-		INSTALL_COMMAND ""
-		USES_TERMINAL_CONFIGURE true
-		USES_TERMINAL_BUILD true
-		EXCLUDE_FROM_ALL true
-		BUILD_ALWAYS 1
-	)
+        ExternalProject_Add(mavsdk_tests
+                SOURCE_DIR ${PX4_SOURCE_DIR}/test/mavsdk_tests
+                CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+                BINARY_DIR ${PX4_BINARY_DIR}/mavsdk_tests
+                INSTALL_COMMAND ""
+                USES_TERMINAL_CONFIGURE true
+                USES_TERMINAL_BUILD true
+                EXCLUDE_FROM_ALL true
+                BUILD_ALWAYS 1
+        )
+else()
+        message(WARNING "gazebo-classic not found. Gazebo Classic targets will be disabled")
+
+        # create stub targets that print a helpful message
+        add_custom_target(gazebo-classic
+                COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --red
+                        "gazebo-classic not found. Please install Gazebo Classic to run the simulation."
+        )
+        add_custom_target(gazebo DEPENDS gazebo-classic) # alias for compatibility
 endif()
