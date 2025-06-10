@@ -376,7 +376,7 @@ class Graph(object):
             self._print_topics = sorted(subscribed_topics | published_topics)
             self._print_scopes = scopes_with_topic
         else:
-            self._print_topics = subscribed_topics & published_topics
+            self._print_topics = sorted(subscribed_topics & published_topics)
 
             # cull scopes to only those that pub or sub to a topic that has both
             intersect_scopes = {}
@@ -687,8 +687,8 @@ class OutputJSON(object):
 
 
         # edges
-        for name,scope in output_scopes.items():
-            for topic in scope.publications:
+        for name,scope in sorted(output_scopes.items(), key=lambda kv: kv[0]):
+            for topic in sorted(scope.publications):
                 if topic in output_topics:
                     edge = {}
                     edge['source'] = 'm_'+name
@@ -697,8 +697,8 @@ class OutputJSON(object):
                     edge['style'] = 'dashed'
                     edges.append(edge)
 
-        for name,scope in output_scopes.items():
-            for topic in scope.subscriptions:
+        for name,scope in sorted(output_scopes.items(), key=lambda kv: kv[0]):
+            for topic in sorted(scope.subscriptions):
                 if topic in output_topics:
                     edge = {}
                     edge['source'] = 't_'+topic

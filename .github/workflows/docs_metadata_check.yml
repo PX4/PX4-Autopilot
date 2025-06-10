@@ -1,4 +1,4 @@
-name: Docs Metadata Checks
+name: Docs Metadata
 
 permissions:
   contents: write
