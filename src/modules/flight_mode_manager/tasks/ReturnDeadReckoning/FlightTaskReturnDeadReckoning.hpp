@@ -50,16 +50,27 @@ public:
 	FlightTaskReturnDeadReckoning() = default;
 	virtual ~FlightTaskReturnDeadReckoning() = default;
 
-	bool update() override;
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
+	bool update() override;
 
 private:
 	uORB::SubscriptionData<vehicle_global_position_s> _sub_vehicle_global_position{ORB_ID(vehicle_global_position)};
 
+	/**
+	 * Update the flight task state machine
+	 */
 	void _updateState();
 
+	/**
+	 * Update the trajectory setpoints according to the current state
+	 */
 	void _updateSetpoints();
 
+	/**
+	 * Update bearing to home position with the last available GNSS position
+	 * @return true on success, false on error
+	 */
+	bool _updateBearingToHome();
 
 	/**
 	 * Initialize home position
@@ -73,15 +84,12 @@ private:
 	 */
 	bool _readGlobalPosition(matrix::Vector3d &global_position);
 
-
-	bool _updateBearingToHome();
-
 	/**
 	 * Compute bearing to home position
 	 * @return true on success, false on error
 	 */
 	float _computeBearing(const matrix::Vector3d &_global_position_start,
-				const matrix::Vector3d &_global_position_end);
+			      const matrix::Vector3d &_global_position_end);
 
 	/**
 	 * Computes return altitude velocity
@@ -90,24 +98,35 @@ private:
 	bool _computeReturnParameters();
 
 	/**
+	 * Update uORB subscriptions
+	 */
+	void _updateSubscriptions();
+
+	/**
 	 * Initialize the trajectory setpoint smoothers
 	 * @return true on success, false on error
 	 */
 	bool _initializeSmoothers();
 
-	void _updateSubscriptions();
+	/**
+	 * Check if the global position is valid
+	 * @return true if valid, false otherwise
+	 */
+	bool _isGlobalPositionValid() const;
 
-	bool _isGlobalPositionValid() const
-	{
-		return _sub_vehicle_global_position.get().lat_lon_valid && _sub_vehicle_global_position.get().alt_valid;
-	}
-
+	/**
+	 * Check if the vehicle is above the return altitude
+	 * @return true if above, false otherwise
+	 */
 	bool _isAboveReturnAltitude() const;
 
+	/**
+	 * Check if the vehicle is within the home position waypoint acceptance radius
+	 * @return true if within, false otherwise
+	 */
 	bool _isWithinHomePositionRadius();
 
 
-	// Variable storing the home position
 	matrix::Vector3d _home_position;			/**< Stores home position */
 	matrix::Vector3d _start_vehicle_global_position;	/**< Stores vehicle last known GNSS position */
 	float _bearing_to_home{0.0f};				/**< Stores bearing between home and last GNSS position */
@@ -115,12 +134,13 @@ private:
 	HeadingSmoothing _heading_smoothing;			/**< Smoother for heading */
 	SlewRate<float> _slew_rate_acceleration_x{0.0f};	/**< Slew rate for x-acceleration setpoint */
 	SlewRate<float> _slew_rate_acceleration_y{0.0f};	/**< Slew rate for y-acceleration setpoint */
-	SlewRate<float> _slew_rate_velocity_z{0.0f};		/**< Smoother for vertical velocity */
+	SlewRate<float> _slew_rate_velocity_z{0.0f};		/**< Slew rate for vertical velocity */
 
 
-	float _rtl_alt{0.0f};			/**< Return altitude */
-	float _rtl_acc{0.0f};			/**< Return acceleration */
+	float _rtl_alt{0.0f};					/**< Return altitude */
+	float _rtl_acc{0.0f};					/**< Return acceleration */
 
+	/**< State machine for flight task */
 	enum class State {
 		UNKNOWN = 0,
 		INIT,
@@ -128,7 +148,7 @@ private:
 		RETURN,
 		HOLD
 	};
-	State _state{State::UNKNOWN};		/**< State machine for flight task */
+	State _state{State::UNKNOWN};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) _param_mpc_acc_hor_max,

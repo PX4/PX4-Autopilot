@@ -40,6 +40,7 @@
 bool FlightTaskReturnDeadReckoning::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	PX4_INFO("FlightTaskReturnDeadReckoning::activate");
+
 	if (!FlightTask::activate(last_setpoint)) {
 		PX4_ERR("Failed to activate task");
 		return false;
@@ -75,7 +76,7 @@ bool FlightTaskReturnDeadReckoning::update()
 	_updateSubscriptions();
 
 	if (_isGlobalPositionValid()) {
-		// Update the bearing to home
+		// Update the bearing to home if global position is valid
 		if (!_updateBearingToHome()) {
 			PX4_ERR("Failed to compute bearing to home");
 			return false;
@@ -91,84 +92,88 @@ bool FlightTaskReturnDeadReckoning::update()
 void FlightTaskReturnDeadReckoning::_updateState()
 {
 	switch (_state) {
-		case State::INIT:
-			if (_isAboveReturnAltitude()) {
-				_state = State::RETURN;
-				PX4_INFO("Returning to home position at %.2fm (MSL) with bearing %.2f deg",
-					 (double) _rtl_alt, (double) math::degrees(_bearing_to_home));
-			} else {
-				_state = State::ASCENT;
-				PX4_INFO("Ascending to return altitude %.2fm (MSL) with bearing %.2f deg",
-					 (double) _rtl_alt, (double) math::degrees(_bearing_to_home));
-			}
-			break;
+	case State::INIT:
+		if (_isAboveReturnAltitude()) {
+			_state = State::RETURN;
+			PX4_INFO("Returning to home position at %.2fm (MSL) with bearing %.2f deg",
+				 (double) _rtl_alt, (double) math::degrees(_bearing_to_home));
 
-		case State::ASCENT:
-			if (_isAboveReturnAltitude()) {
-				_state = State::RETURN;
-				PX4_INFO("Returning to home position at %.2fm (MSL) with bearing %.2f deg",
-					 (double) _rtl_alt, (double) math::degrees(_bearing_to_home));
-			}
-			break;
+		} else {
+			_state = State::ASCENT;
+			PX4_INFO("Ascending to return altitude %.2fm (MSL) with bearing %.2f deg",
+				 (double) _rtl_alt, (double) math::degrees(_bearing_to_home));
+		}
 
-		case State::RETURN:
-			if (_isWithinHomePositionRadius()) {
-				_state = State::HOLD;
-				PX4_INFO("Holding altitude at %.2fm (MSL) over home position", (double) _rtl_alt);
-			}
-			break;
+		break;
 
-		case State::HOLD:
-			break;
+	case State::ASCENT:
+		if (_isAboveReturnAltitude()) {
+			_state = State::RETURN;
+			PX4_INFO("Returning to home position at %.2fm (MSL) with bearing %.2f deg",
+				 (double) _rtl_alt, (double) math::degrees(_bearing_to_home));
+		}
 
-		default:
-			PX4_ERR("Unknown state");
-			return;
+		break;
+
+	case State::RETURN:
+		if (_isWithinHomePositionRadius()) {
+			_state = State::HOLD;
+			PX4_INFO("Holding altitude at %.2fm (MSL) over home position", (double) _rtl_alt);
+		}
+
+		break;
+
+	case State::HOLD:
+		break;
+
+	default:
+		PX4_ERR("Unknown state");
+		return;
 	}
 }
 
 void FlightTaskReturnDeadReckoning::_updateSetpoints()
 {
 	switch (_state) {
-		case State::INIT:
-			_slew_rate_acceleration_x.update(0.0f, _deltatime);
-			_slew_rate_acceleration_y.update(0.0f, _deltatime);
-			_slew_rate_velocity_z.update(0.0f, _deltatime);
+	case State::INIT:
+		_slew_rate_acceleration_x.update(0.0f, _deltatime);
+		_slew_rate_acceleration_y.update(0.0f, _deltatime);
+		_slew_rate_velocity_z.update(0.0f, _deltatime);
 
-			// Hold current altitude
-			_velocity_setpoint(2) = _slew_rate_velocity_z.getState();
-			break;
+		// Hold current altitude
+		_velocity_setpoint(2) = _slew_rate_velocity_z.getState();
+		break;
 
-		case State::ASCENT:
-			_slew_rate_acceleration_x.update(0.0f, _deltatime);
-			_slew_rate_acceleration_y.update(0.0f, _deltatime);
-			_slew_rate_velocity_z.update(-_param_mpc_z_v_auto_up.get(), _deltatime);
+	case State::ASCENT:
+		_slew_rate_acceleration_x.update(0.0f, _deltatime);
+		_slew_rate_acceleration_y.update(0.0f, _deltatime);
+		_slew_rate_velocity_z.update(-_param_mpc_z_v_auto_up.get(), _deltatime);
 
-			// Ascent until reaching the return altitude
-			_velocity_setpoint(2) = _slew_rate_velocity_z.getState();
-			break;
+		// Ascent until reaching the return altitude
+		_velocity_setpoint(2) = _slew_rate_velocity_z.getState();
+		break;
 
-		case State::RETURN:
-			_slew_rate_acceleration_x.update(_rtl_acc*cosf(_bearing_to_home), _deltatime);
-			_slew_rate_acceleration_y.update(_rtl_acc*sinf(_bearing_to_home), _deltatime);
-			_slew_rate_velocity_z.update(0.0f, _deltatime);
+	case State::RETURN:
+		_slew_rate_acceleration_x.update(_rtl_acc * cosf(_bearing_to_home), _deltatime);
+		_slew_rate_acceleration_y.update(_rtl_acc * sinf(_bearing_to_home), _deltatime);
+		_slew_rate_velocity_z.update(0.0f, _deltatime);
 
-			// Stay at the return altitude
-			_position_setpoint(2) = -(_rtl_alt - (float) _home_position(2));
-			break;
+		// Stay at the return altitude
+		_position_setpoint(2) = -(_rtl_alt - (float) _home_position(2));
+		break;
 
-		case State::HOLD:
-			_slew_rate_acceleration_x.update(0.0f, _deltatime);
-			_slew_rate_acceleration_y.update(0.0f, _deltatime);
-			_slew_rate_velocity_z.update(0.0f, _deltatime);
+	case State::HOLD:
+		_slew_rate_acceleration_x.update(0.0f, _deltatime);
+		_slew_rate_acceleration_y.update(0.0f, _deltatime);
+		_slew_rate_velocity_z.update(0.0f, _deltatime);
 
-			// Stay at the return altitude
-			_position_setpoint(2) = -(_rtl_alt - (float) _home_position(2));
-			break;
+		// Stay at the return altitude
+		_position_setpoint(2) = -(_rtl_alt - (float) _home_position(2));
+		break;
 
-		default:
-			PX4_ERR("Unknown state");
-			return;
+	default:
+		PX4_ERR("Unknown state");
+		return;
 
 	};
 
@@ -179,16 +184,20 @@ void FlightTaskReturnDeadReckoning::_updateSetpoints()
 
 	// Acceleration setpoint
 	_acceleration_setpoint.xy() = matrix::Vector2f(
-		_slew_rate_acceleration_x.getState(),
-		_slew_rate_acceleration_y.getState()
-	);
+					      _slew_rate_acceleration_x.getState(),
+					      _slew_rate_acceleration_y.getState()
+				      );
 
 	return;
 }
 
-void FlightTaskReturnDeadReckoning::_updateSubscriptions()
+bool FlightTaskReturnDeadReckoning::_updateBearingToHome()
 {
-	_sub_vehicle_global_position.update();
+	if (_readGlobalPosition(_start_vehicle_global_position) && _readHomePosition(_home_position)) {
+		_bearing_to_home = _computeBearing(_start_vehicle_global_position, _home_position);
+	}
+
+	return !isnanf(_bearing_to_home);
 }
 
 bool FlightTaskReturnDeadReckoning::_readHomePosition(matrix::Vector3d &home_position)
@@ -218,21 +227,14 @@ bool FlightTaskReturnDeadReckoning::_readGlobalPosition(matrix::Vector3d &global
 	return true;
 }
 
-bool FlightTaskReturnDeadReckoning::_updateBearingToHome()
-{
-	if (_readGlobalPosition(_start_vehicle_global_position) && _readHomePosition(_home_position)) {
-		_bearing_to_home = _computeBearing(_start_vehicle_global_position, _home_position);
-	}
-
-	return !isnanf(_bearing_to_home);
-}
-
-float FlightTaskReturnDeadReckoning::_computeBearing(const matrix::Vector3d &_global_position_start, const matrix::Vector3d &_global_position_end)
+float FlightTaskReturnDeadReckoning::_computeBearing(const matrix::Vector3d &_global_position_start,
+		const matrix::Vector3d &_global_position_end)
 {
 	float bearing = NAN;
+
 	if (_global_position_start.isAllFinite() && _global_position_end.isAllFinite()) {
 		bearing = get_bearing_to_next_waypoint(_global_position_start(0), _global_position_start(1),
-				     		       _global_position_end(0), _global_position_end(1));
+						       _global_position_end(0), _global_position_end(1));
 	}
 
 	return bearing;
@@ -246,6 +248,11 @@ bool FlightTaskReturnDeadReckoning::_computeReturnParameters()
 	_rtl_acc = _param_mpc_acc_hor_max.get();
 
 	return true;
+}
+
+void FlightTaskReturnDeadReckoning::_updateSubscriptions()
+{
+	_sub_vehicle_global_position.update();
 }
 
 bool FlightTaskReturnDeadReckoning::_initializeSmoothers()
@@ -268,9 +275,14 @@ bool FlightTaskReturnDeadReckoning::_initializeSmoothers()
 	return true;
 }
 
+bool FlightTaskReturnDeadReckoning::_isGlobalPositionValid() const
+{
+	return _sub_vehicle_global_position.get().lat_lon_valid && _sub_vehicle_global_position.get().alt_valid;
+}
+
 bool FlightTaskReturnDeadReckoning::_isAboveReturnAltitude() const
 {
-	float current_alt =_sub_vehicle_global_position.get().alt;
+	float current_alt = _sub_vehicle_global_position.get().alt;
 	float target_alt = _rtl_alt - _param_nav_mc_alt_rad.get();
 	return current_alt > target_alt;
 }
@@ -280,10 +292,9 @@ bool FlightTaskReturnDeadReckoning::_isWithinHomePositionRadius()
 	if (_isGlobalPositionValid()) {
 		_readGlobalPosition(_start_vehicle_global_position);
 		return get_distance_to_next_waypoint(
-			_start_vehicle_global_position(0), _start_vehicle_global_position(1),
-			_home_position(0), _home_position(1)) < _param_nav_acc_rad.get();
+			       _start_vehicle_global_position(0), _start_vehicle_global_position(1),
+			       _home_position(0), _home_position(1)) < _param_nav_acc_rad.get();
 	}
+
 	return false;
 }
-
-
