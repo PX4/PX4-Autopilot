@@ -397,12 +397,32 @@ perf_set_elapsed(perf_counter_t handle, int64_t elapsed)
 					pce->time_most = elapsed;
 				}
 
-				// maintain mean and variance of the elapsed time in seconds
-				// Knuth/Welford recursive mean and variance of update intervals (via Wikipedia)
-				float dt = elapsed / 1e6f;
-				float delta_intvl = dt - pce->mean;
-				pce->mean += delta_intvl / pce->event_count;
-				pce->M2 += delta_intvl * (dt - pce->mean);
+#ifdef CONFIG_BUILD_FLAT
+				// Floating point arithmetics must not be done from interrupt.
+				// This would corrupt the tasks FP registers
+
+				DEBUGASSERT(!up_interrupt_context());
+
+				if (!up_interrupt_context()) {
+#endif
+					// maintain mean and variance of the elapsed time in seconds
+					// Knuth/Welford recursive mean and variance of update intervals (via Wikipedia)
+					float dt = elapsed / 1e6f;
+					float delta_intvl = dt - pce->mean;
+					pce->mean += delta_intvl / pce->event_count;
+					pce->M2 += delta_intvl * (dt - pce->mean);
+
+#ifdef CONFIG_BUILD_FLAT
+
+				} else {
+					static int perf_err_printed = 0;
+
+					if (perf_err_printed++ < 10) {
+						PX4_ERR("perf_set_elapsed called from interrupt!\n");
+					}
+				}
+
+#endif
 
 				pce->time_start = 0;
 			}
@@ -448,12 +468,31 @@ perf_count_interval(perf_counter_t handle, hrt_abstime now)
 						pci->time_most = (uint32_t)interval;
 					}
 
-					// maintain mean and variance of interval in seconds
-					// Knuth/Welford recursive mean and variance of update intervals (via Wikipedia)
-					float dt = interval / 1e6f;
-					float delta_intvl = dt - pci->mean;
-					pci->mean += delta_intvl / pci->event_count;
-					pci->M2 += delta_intvl * (dt - pci->mean);
+#ifdef CONFIG_BUILD_FLAT
+					// Floating point arithmetics must not be done from interrupt.
+					// This would corrupt the tasks FP registers
+
+					DEBUGASSERT(!up_interrupt_context());
+
+					if (!up_interrupt_context()) {
+#endif
+						// maintain mean and variance of interval in seconds
+						// Knuth/Welford recursive mean and variance of update intervals (via Wikipedia)
+						float dt = interval / 1e6f;
+						float delta_intvl = dt - pci->mean;
+						pci->mean += delta_intvl / pci->event_count;
+						pci->M2 += delta_intvl * (dt - pci->mean);
+#ifdef CONFIG_BUILD_FLAT
+
+					} else {
+						static int perf_err_printed = 0;
+
+						if (perf_err_printed++ < 10) {
+							PX4_ERR("perf_set_elapsed called from interrupt!\n");
+						}
+					}
+
+#endif
 					break;
 				}
 			}
