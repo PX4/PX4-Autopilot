@@ -35,7 +35,7 @@ By default SITL is launched without a debugger attached when using any simulator
 
 ```sh
 make px4_sitl_default gz
-make px4_sitl_default gazebo-classic
+make px4_sitl gazebo-classic
 make px4_sitl_default jmavsim
 ```
 
@@ -43,8 +43,8 @@ For Gazebo Classic (only) you can also start the simulator with a debugger attac
 Note however, that you must provide the vehicle type in the simulator target, as shown below:
 
 ```sh
-make px4_sitl_default gazebo-classic_iris_gdb
-make px4_sitl_default gazebo-classic_iris_lldb
+make px4_sitl gazebo-classic_iris_gdb
+make px4_sitl gazebo-classic_iris_lldb
 ```
 
 This will start the debugger and launch the SITL application with Gazebo and the Iris simulator.
@@ -79,7 +79,7 @@ After that the lldb or gdb shells behave like normal sessions, please refer to t
 The last parameter, the &lt;viewer_model_debugger&gt; triplet, is actually passed to make in the build directory, so
 
 ```sh
-make px4_sitl_default gazebo-classic_iris_gdb
+make px4_sitl gazebo-classic_iris_gdb
 ```
 
 is equivalent with
@@ -102,7 +102,7 @@ You can also start your simulation, and _then_ attach `gdb`:
 1. In one terminal screen enter the command to start your simulation:
 
    ```sh
-   make px4_sitl_default gazebo-classic
+   make px4_sitl gazebo-classic
    ```
 
    As the script runs, note the **SITL COMMAND:** output text located right above the large "PX4" text.

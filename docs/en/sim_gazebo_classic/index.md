@@ -184,20 +184,20 @@ The simulation speed can be increased or decreased with respect to realtime usin
 To run at double real-time:
 
 ```sh
-PX4_SIM_SPEED_FACTOR=2 make px4_sitl_default gazebo-classic
+PX4_SIM_SPEED_FACTOR=2 make px4_sitl gazebo-classic
 ```
 
 To run at half real-time:
 
 ```sh
-PX4_SIM_SPEED_FACTOR=0.5  make px4_sitl_default gazebo-classic
+PX4_SIM_SPEED_FACTOR=0.5  make px4_sitl gazebo-classic
 ```
 
 To apply a factor to all SITL runs in the current session, use `EXPORT`:
 
 ```sh
 export PX4_SIM_SPEED_FACTOR=2
-make px4_sitl_default gazebo-classic
+make px4_sitl gazebo-classic
 ```
 
 ### Change Wind Speed
@@ -290,7 +290,7 @@ You can load any of the worlds by specifying them as the final option in the PX4
 For example, to load the _warehouse_ world, you can append it as shown:
 
 ```sh
-make px4_sitl_default gazebo-classic_plane_cam__warehouse
+make px4_sitl gazebo-classic_plane_cam__warehouse
 ```
 
 ::: info
@@ -382,7 +382,7 @@ The captured images are saved to: `PX4-Autopilot/build/px4_sitl_default/src/modu
 To simulate a plane with this camera:
 
 ```sh
-make px4_sitl_default gazebo-classic_plane_cam
+make px4_sitl gazebo-classic_plane_cam
 ```
 
 ::: info
