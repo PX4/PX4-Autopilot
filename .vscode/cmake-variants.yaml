@@ -306,6 +306,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: holybro_durandal-v1_default
+    holybro_kakuteh7-wing_default:
+      short: holybro_kakuteh7-wing
+      buildType: MinSizeRel
+      settings:
+        CONFIG: holybro_kakuteh7-wing_default
     holybro_kakuteh7dualimu_default:
       short: holybro_kakuteh7dualimu
       buildType: MinSizeRel
