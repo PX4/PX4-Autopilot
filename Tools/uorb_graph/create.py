@@ -59,7 +59,7 @@ def get_N_colors(N, s=0.8, v=0.9):
 def topic_filename(topic):
     MSG_PATH = 'msg/'
 
-    file_list = os.listdir(MSG_PATH)
+    file_list = sorted(os.listdir(MSG_PATH))
     msg_files = [file.replace('.msg', '') for file in file_list if file.endswith(".msg")]
 
     if topic in msg_files:
@@ -369,9 +369,11 @@ class Graph(object):
             if not scope.is_empty():
                 scopes_with_topic[name] = scope
 
+        # scopes_with_topic = sorted(scopes_with_topic)
+
         self._print_ambiguities = ambiguous_topics
         if use_topic_pubsub_union:
-            self._print_topics = subscribed_topics | published_topics
+            self._print_topics = sorted(subscribed_topics | published_topics)
             self._print_scopes = scopes_with_topic
         else:
             self._print_topics = subscribed_topics & published_topics
@@ -392,7 +394,7 @@ class Graph(object):
             log.debug('ignoring excluded path '+path)
             return
 
-        entries = os.listdir(path)
+        entries = sorted(os.listdir(path))
 
         # check if entering a new scope
         cmake_file = 'CMakeLists.txt'
@@ -723,10 +725,16 @@ if "__main__" == __name__:
             log.setLevel(logging.DEBUG)
             print("set log level to DEBUG")
 
+
+    print('')
+    print('== Starting uorb_graph/create.py ==')
+    if args.file:
+        print('  =Filename:', os.path.basename(args.file))
+
     # ignore topics that are subscribed/published by many topics, but are not really
     # useful to show in the graph
     topic_blacklist = [ 'parameter_update', 'mavlink_log', 'log_message' ]
-    print('Excluded topics: '+str(topic_blacklist))
+    print('  =Excluded Topics: '+str(topic_blacklist))
 
     if len(args.modules) == 0:
         scope_whitelist = []
@@ -757,7 +765,7 @@ if "__main__" == __name__:
     if 0 < len(args.exclude_path):
         path_blacklist = args.exclude_path
     if path_blacklist:
-        print('Excluded Path: '+str(path_blacklist))
+        print('  =Excluded Path: '+str(path_blacklist))
 
     graph.build(source_paths, path_blacklist=path_blacklist, use_topic_pubsub_union=args.use_topic_union, merge_depends=args.merge_depends)
 
@@ -784,3 +792,6 @@ if "__main__" == __name__:
         pass
     else:
         print('Error: unknown output format '+args.output)
+
+    print("== Completed uorb_graph/create.py ==")
+    print("")
