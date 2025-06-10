@@ -258,39 +258,17 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 				normalized[2] = math::constrain(normalized[2], -range, range);
 				normalized[3] = math::constrain(normalized[3], -range, range);
 
-				if(normalized[0] > 0)
-				{
-					if(normalized[0] < outputT200)
-					{
-						for(; outputT200 <= normalized[0]; outputT200 =- 0.001f);
-					}
-					else
-					{
-						outputT200 = normalized[0];
-					}
-				}
 
-				else if(normalized[0] < 0)
-				{
-					if(-normalized[0] < -outputT200)
-					{
-						for(;outputT200 >= normalized[0]; outputT200 =+ 0.001f);
-					}
-					else
-					{
-						outputT200 = normalized[0];
-					}
-				}
 
-				robosub_motor_control.actuator_test(MOTOR_FORWARDS1, 	outputT200, 0, false);
-				robosub_motor_control.actuator_test(MOTOR_FORWARDS2, 	outputT200, 0, false);
+				robosub_motor_control.actuator_test(MOTOR_FORWARDS1, 	normalized[0], 0, false);
+				robosub_motor_control.actuator_test(MOTOR_FORWARDS2, 	normalized[0], 0, false);
 				robosub_motor_control.actuator_test(MOTOR_UP1, 		-normalized[1], 0, false);
 				robosub_motor_control.actuator_test(MOTOR_UP2, 		(normalized[1] * 0.5f), 0, false);
 				robosub_motor_control.actuator_test(MOTOR_UP3, 		(-normalized[1] * 0.5f), 0, false);
 				if(normalized[2] > 0.1f || normalized[2] < -0.1f)
 				{
-					robosub_motor_control.actuator_test(MOTOR_SIDE1, normalized[2], 0, false);
-					robosub_motor_control.actuator_test(MOTOR_SIDE2, -normalized[2], 0, false);
+					robosub_motor_control.actuator_test(MOTOR_SIDE1, -normalized[2], 0, false);
+					robosub_motor_control.actuator_test(MOTOR_SIDE2, normalized[2], 0, false);
 				}
 				 else
 				{
