@@ -175,4 +175,4 @@ Events can have a fixed set of arguments that can be inserted into the message o
 Для отримання додаткової інформації див. <a href="../advanced/px4_metadata.md"> Метадані PX4 (трансляція і публікація)</a>.
 
 Цей процес такий самий як і для [метаданих параметрів](../advanced/parameters_and_configurations.md#publishing-parameter-metadata-to-a-gcs).
-Для отримання додаткової інформації див. [Метадані PX4 (трансляція і публікація)](../advanced/px4_metadata.md)
+For more information see [PX4 Metadata (Translation & Publication)](../advanced/px4_metadata.md)

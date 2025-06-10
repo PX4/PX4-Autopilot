@@ -116,9 +116,9 @@ As there are external tools using uORB messages from log files, such as [Flight 
 
 ## Message Versioning
 
-<Badge type="tip" text="main (planned for: PX4 v1.16+)" />
+<Badge type="tip" text="PX4 v1.16" />
 
-Optional message versioning was introduced in the `main` branch (planned for PX4 v1.16+) to make it easier to maintain compatibility between PX4 and ROS 2 versions compiled against different message definitions.
+Optional message versioning was introduced PX4 v1.16 to make it easier to maintain compatibility between PX4 and ROS 2 versions compiled against different message definitions.
 Versioned messages are designed to remain more stable over time compared to their non-versioned counterparts, as they are intended to be used across multiple releases of PX4 and external systems, ensuring greater compatibility over longer periods.
 
 Versioned messages include an additional field `uint32 MESSAGE_VERSION = x`, where `x` corresponds to the current version of the message.
