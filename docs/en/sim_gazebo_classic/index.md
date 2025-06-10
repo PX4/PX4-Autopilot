@@ -59,6 +59,7 @@ For example, to start a quadrotor simulation (the default):
 
 ```sh
 cd /path/to/PX4-Autopilot
+git submodule update --init --recursive Tools/simulation/gz  # fetch Gazebo Classic models
 make px4_sitl gazebo-classic
 ```
 
