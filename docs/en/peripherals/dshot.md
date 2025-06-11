@@ -110,17 +110,18 @@ The most important ones are:
 
   :::
 
-## Telemetry
+## ESC Telemetry
 
-Some ESCs are capable of sending telemetry back to the flight controller, including:
-
-- temperature
-- voltage
-- current
-- accumulated current consumption
-- RPM values
-
+Some ESCs are capable of sending telemetry back to the flight controller through a UART RX port.
 These DShot ESCs will have an additional telemetry wire.
+
+The provided telemetry includes:
+
+- Temperature
+- Voltage
+- Current
+- Accumulated current consumption
+- RPM values
 
 To enable this feature (on ESCs that support it):
 
@@ -152,8 +153,31 @@ Check manufacturer documentation for confirmation/details.
 
 <Badge type="tip" text="PX4 v1.16" />
 
-Bidirectional DShot enables ESC RPM (eRPM) data collection from each ESC at high frequencies.
-This enhanced telemetry significantly improves the performance of [Dynamic Notch Filters](../config_mc/filter_tuning.md#dynamic-notch-filters) and enables more precise vehicle tuning.
+Bidirectional DShot is a protocol that can provide telemetry including: high rate ESC RPM data, voltage, current, and temperature with a single wire.
+
+The PX4 implementation currently enables only ESC RPM (eRPM) data collection from each ESC at high frequencies.
+This telemetry significantly improves the performance of [Dynamic Notch Filters](../config_mc/filter_tuning.md#dynamic-notch-filters) and enables more precise vehicle tuning.
+
+::: info
+The [ESC Telemetry](#esc-telemetry) described above is currently still necessary if you want voltage, current, or temperature information.
+It's setup and use is independent of bidirectional DShot.
+:::
+
+### Hardware Setup
+
+The ESC must be connected to FMU outputs only.
+These will be labeled `MAIN` on flight controllers that only have one PWM bus, and `AUX` on controllers that have both `MAIN` and `AUX` ports (i.e. FCs that have an IO board).
+
+:::warning **Limited hardware support**
+This feature is only supported on flight controllers with the following processors:
+
+- STM32H7: First four FMU outputs
+  - Must be connected to the first 4 FMU outputs, and these outputs must also be mapped to the same timer.
+  - [KakuteH7](../flight_controller/kakuteh7v2.md) is not supported because the outputs are not mapped to the same timer.
+- [i.MXRT](../flight_controller/nxp_mr_vmu_rt1176.md) (V6X-RT & Tropic): 8 FMU outputs.
+
+No other boards are supported.
+:::
 
 ### Configuration {#bidirectional-dshot-configuration}
 
@@ -161,7 +185,3 @@ To enable bidirectional DShot, set the [DSHOT_BIDIR_EN](../advanced_config/param
 
 The system calculates actual motor RPM from the received eRPM data using the [MOT_POLE_COUNT](../advanced_config/parameter_reference.md#MOT_POLE_COUNT) parameter.
 This parameter must be set correctly for accurate RPM reporting.
-
-:::warning
-**Limited hardware support:** 4 outputs only on STM32H7 targets, 8 outputs on the [i.MXRT](../flight_controller/nxp_mr_vmu_rt1176.md) (V6X-RT & Tropic).
-:::
