@@ -36,7 +36,7 @@ param set-default CA_ROTOR0_AX 0
 param set-default CA_ROTOR0_AY 1
 param set-default CA_ROTOR0_AZ 0
 param set-default CA_ROTOR0_KM 0
-param set-default CA_ROTOR0_PX 0.5
+param set-default CA_ROTOR0_PX 1
 param set-default CA_ROTOR0_PY 0
 param set-default CA_ROTOR0_PZ 0
 
@@ -46,33 +46,33 @@ param set-default CA_ROTOR1_AY 0
 param set-default CA_ROTOR1_AZ -1
 param set-default CA_ROTOR1_KM 0
 param set-default CA_ROTOR1_PX 0
-param set-default CA_ROTOR1_PY -0.5
+param set-default CA_ROTOR1_PY -1
 param set-default CA_ROTOR1_PZ 0
 
 # Bow port vertical (3)
 param set-default CA_ROTOR2_AX 0
 param set-default CA_ROTOR2_AY 0
 param set-default CA_ROTOR2_AZ -1
-param set-default CA_ROTOR2_PX -0.5
-param set-default CA_ROTOR2_PY 0.5
+param set-default CA_ROTOR2_PX -0.3
+param set-default CA_ROTOR2_PY 1
 param set-default CA_ROTOR2_PZ 0
-param set-default CA_ROTOR2_CT 0.5 # Limit thrust output to 50 percent for vertical bow thrusters
+param set-default CA_ROTOR2_CT 0.7 # Limit thrust output to 70 percent for vertical bow thrusters
 
 # Bow starboard vertical (4)
 param set-default CA_ROTOR3_AX 0
 param set-default CA_ROTOR3_AY 0
 param set-default CA_ROTOR3_AZ -1
-param set-default CA_ROTOR3_PX 0.5
-param set-default CA_ROTOR3_PY 0.5
+param set-default CA_ROTOR3_PX 0.3
+param set-default CA_ROTOR3_PY 1
 param set-default CA_ROTOR3_PZ 0
-param set-default CA_ROTOR3_CT 0.5 # Limit thrust output to 50 percent for vertical bow thrusters
+param set-default CA_ROTOR3_CT 0.7 # Limit thrust output to 70 percent for vertical bow thrusters
 
-# Stern horizontal (5)
+# Bow horizontal (5)
 param set-default CA_ROTOR4_AX 1
 param set-default CA_ROTOR4_AY 0
 param set-default CA_ROTOR4_AZ 0
 param set-default CA_ROTOR4_PX 0
-param set-default CA_ROTOR4_PY -0.5 # facing along x-axis
+param set-default CA_ROTOR4_PY 0.5
 param set-default CA_ROTOR4_PZ 0
 
 # T200 - Port horizontal (6)
@@ -80,16 +80,16 @@ param set-default CA_ROTOR5_AX 0
 param set-default CA_ROTOR5_AY 1
 param set-default CA_ROTOR5_AZ 0
 param set-default CA_ROTOR5_KM 0
-param set-default CA_ROTOR5_PX -0.5
+param set-default CA_ROTOR5_PX -1
 param set-default CA_ROTOR5_PY 0
 param set-default CA_ROTOR5_PZ 0
 
-# Bow horizontal (7)
+# Stern horizontal (7)
 param set-default CA_ROTOR6_AX 1
 param set-default CA_ROTOR6_AY 0
 param set-default CA_ROTOR6_AZ 0
 param set-default CA_ROTOR6_PX 0
-param set-default CA_ROTOR6_PY 0.5 # facing along x-axis
+param set-default CA_ROTOR6_PY -0.8
 param set-default CA_ROTOR6_PZ 0
 
 param set-default PWM_MAIN_OUT 1234567  # Enable channels 1-7 for PWM
