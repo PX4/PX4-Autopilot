@@ -212,7 +212,7 @@ The steps are:
      type: px4_msgs::msg::ObstacleDistance
    ```
 
-   For more information see [DDS Topics YAML](../middleware/uxrce_dds.md#dds-topics-yaml) in _uXRCE-DDS (PX4-ROS 2/DDS Bridge)_.
+   For more information see [DDS Topics YAML](../middleware/uxrce_dds.md#dds-topics-yaml) in [uXRCE-DDS](../middleware/uxrce_dds.md) (PX4-ROS 2/DDS Bridge)_.
 
 3. Open PlotJuggler and navigate to the **Tools > Reactive Script Editor** section.
    In the **Script Editor** tab, add following scripts in the appropriate sections:
