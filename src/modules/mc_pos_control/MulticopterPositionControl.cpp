@@ -426,9 +426,12 @@ void MulticopterPositionControl::Run()
 
 		PositionControlStates states{set_vehicle_states(vehicle_local_position, dt)};
 
-		// if a goto setpoint available this publishes a trajectory setpoint to go there
-		if (_goto_control.checkForSetpoint(vehicle_local_position.timestamp_sample,
-						   _vehicle_control_mode.flag_multicopter_position_control_enabled)) {
+		// If a goto setpoint is available this publishes a trajectory setpoint to go there
+		// If trajectory_setpoint is published elsewhere, do not use the goto setpoint
+		const bool goto_setpoint_enable = _vehicle_control_mode.flag_multicopter_position_control_enabled
+						  && !_trajectory_setpoint_sub.updated();
+
+		if (_goto_control.checkForSetpoint(vehicle_local_position.timestamp_sample, goto_setpoint_enable)) {
 			_goto_control.update(dt, states.position, states.yaw);
 		}
 
