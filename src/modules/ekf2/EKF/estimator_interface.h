@@ -71,6 +71,10 @@
 # include "aid_sources/range_finder/sensor_range_finder.hpp"
 #endif // CONFIG_EKF2_RANGE_FINDER
 
+#if defined(CONFIG_EKF2_GNSS)
+# include "aid_sources/gnss/gnss_checks.hpp"
+#endif // CONFIG_EKF2_GNSS
+
 #include <lib/atmosphere/atmosphere.h>
 #include <lib/lat_lon_alt/lat_lon_alt.hpp>
 #include <matrix/math.hpp>
@@ -89,9 +93,9 @@ public:
 
 	const gnssSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
 
-	float gps_horizontal_position_drift_rate_m_s() const { return _gps_horizontal_position_drift_rate_m_s; }
-	float gps_vertical_position_drift_rate_m_s() const { return _gps_vertical_position_drift_rate_m_s; }
-	float gps_filtered_horizontal_velocity_m_s() const { return _gps_filtered_horizontal_velocity_m_s; }
+	float gps_horizontal_position_drift_rate_m_s() const { return _gnss_checks.horizontal_position_drift_rate_m_s(); }
+	float gps_vertical_position_drift_rate_m_s() const { return _gnss_checks.vertical_position_drift_rate_m_s(); }
+	float gps_filtered_horizontal_velocity_m_s() const { return _gnss_checks.filtered_horizontal_velocity_m_s(); }
 
 #endif // CONFIG_EKF2_GNSS
 
@@ -243,6 +247,7 @@ public:
 	int getNumberOfActiveVerticalVelocityAidingSources() const;
 
 	const matrix::Quatf &getQuaternion() const { return _output_predictor.getQuaternion(); }
+	Vector3f getAngularVelocityAndResetAccumulator() { return _output_predictor.getAngularVelocityAndResetAccumulator(); }
 	float getUnaidedYaw() const { return _output_predictor.getUnaidedYaw(); }
 	Vector3f getVelocity() const { return _output_predictor.getVelocity(); }
 
@@ -398,12 +403,18 @@ protected:
 
 	gnssSample _gps_sample_delayed{};
 
-	float _gps_horizontal_position_drift_rate_m_s{NAN}; // Horizontal position drift rate (m/s)
-	float _gps_vertical_position_drift_rate_m_s{NAN};   // Vertical position drift rate (m/s)
-	float _gps_filtered_horizontal_velocity_m_s{NAN};   // Filtered horizontal velocity (m/s)
-
-	MapProjection _gps_pos_prev{}; // Contains WGS-84 position latitude and longitude of the previous GPS message
-	float _gps_alt_prev{0.0f};	// height from the previous GPS message (m)
+	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
+	GnssChecks _gnss_checks{_params.gps_check_mask,
+			   _params.req_nsats,
+			   _params.req_pdop,
+			   _params.req_hacc,
+			   _params.req_vacc,
+			   _params.req_sacc,
+			   _params.req_hdrift,
+			   _params.req_vdrift,
+			   _params.velocity_limit,
+			   _min_gps_health_time_us,
+			   _control_status};
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// innovation consistency check monitoring ratios
