@@ -102,19 +102,23 @@ PositionSetpoint current
 PositionSetpoint next
 ```
 
-### uORB Buffer Length
+### uORB Buffer Length (ORB_QUEUE_LENGTH)
 
-uORB messages have a single buffer by default, which may be overwritten if the message publication rate is too high.
-Subscribers will then be able to read up to four messages in sequence before losing information, rather than just the last one sent.
+uORB messages have a single-message buffer by default, which may be overwritten if the message publication rate is too high.
+In most cases this does not matter: either we are only interested in the latest sample of a topic, such as a sensor value or a setpoint, or losing a few samples is not a particular problem.
+For relatively few cases, such as vehicle commands, it is important that we don't drop topics.
 
-You can create a message buffer using the named constant `ORB_QUEUE_LENGTH`.
-The value is the length of the queue, which must be a power of 2 (so 2, 4, 8, ...).
-
+In order to reduce the chance that messages will be dropped we can use named constant `ORB_QUEUE_LENGTH` to create a buffer of the specified length.
 For example, to create a four-message queue, add the following line to your message definition:
 
 ```sh
 uint8 ORB_QUEUE_LENGTH = 4
 ```
+
+As long as subscribers are able to read messages out of the buffer quickly enough than it isn't ever fully filled to the queue length (by publishers), they will be able to get all messages that are sent.
+Messages will still be lost they are published when the queue is filled.
+
+Note that the queue length value must be a power of 2 (so 2, 4, 8, ...).
 
 ### Message/Field Deprecation {#deprecation}
 
