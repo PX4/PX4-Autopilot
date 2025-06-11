@@ -733,6 +733,7 @@
       - [Protocols/Microservices](mavlink/protocols.md)
         - [Standard Modes Protocol](mavlink/standard_modes.md)
     - [uXRCE-DDS (PX4-ROS 2/DDS Bridge)](middleware/uxrce_dds.md)
+      - [UORB Bridged to ROS 2](middleware/dds_topics.md)
   - [Модулі & Команди](modules/modules_main.md)
     - [Автоматичне підлаштування](modules/modules_autotune.md)
     - [Команди](modules/modules_command.md)

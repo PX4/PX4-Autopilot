@@ -347,7 +347,7 @@ CONFIG_DRIVERS_RPM_CAPTURE=y
 Additionally, to enable the module:
 
 - Set [ICE_EN](../advanced_config/parameter_reference.md#ICE_EN)
- to true and adjust the other `ICE_` module parameters according to your needs.
+  to true and adjust the other `ICE_` module parameters according to your needs.
 - Set [RPM_CAP_ENABLE](../advanced_config/parameter_reference.md#RPM_CAP_ENABLE) to true.
 
 The module outputs control signals for ignition, throttle, and choke,
@@ -367,8 +367,8 @@ The state machine:
 
 - Checks if [Rpm.msg](../msg_docs/Rpm.md) is updated to know if the engine is running
 - Allows for user inputs from:
- - AUX{N}
- - Arming state in [VehicleStatus.msg](../msg_docs/VehicleStatus.md)
+  - AUX{N}
+  - Arming state in [VehicleStatus.msg](../msg_docs/VehicleStatus.md)
 
 The module publishes [InternalCombustionEngineControl.msg](../msg_docs/InternalCombustionEngineControl.md).
 
@@ -484,7 +484,7 @@ The normal log is always a superset of the mission log.
 The implementation uses two threads:
 
 - The main thread, running at a fixed rate (or polling on a topic if started with -p) and checking for
- data updates
+  data updates
 - The writer thread, writing data to the file
 
 In between there is a write buffer with configurable size (and another fixed-size buffer for
@@ -688,9 +688,9 @@ There are 2 environment variables used for configuration: `replay`, which must b
 the log file to be replayed. The second is the mode, specified via `replay_mode`:
 
 - `replay_mode=ekf2`: specific EKF2 replay mode. It can only be used with the ekf2 module, but allows the replay
- to run as fast as possible.
+  to run as fast as possible.
 - Generic otherwise: this can be used to replay any module(s), but the replay will be done with the same speed as the
- log was recorded.
+  log was recorded.
 
 The module is typically used together with uORB publisher rules, to specify which messages should be replayed.
 The replay module will just publish all messages that are found in the log. It also applies the parameters from
@@ -842,12 +842,12 @@ it into a more usable form, and publishes it for the rest of the system.
 The provided functionality includes:
 
 - Read the output from the sensor drivers (`SensorGyro`, etc.).
- If there are multiple of the same type, do voting and failover handling.
- Then apply the board rotation and temperature calibration (if enabled). And finally publish the data; one of the
- topics is `SensorCombined`, used by many parts of the system.
+  If there are multiple of the same type, do voting and failover handling.
+  Then apply the board rotation and temperature calibration (if enabled). And finally publish the data; one of the
+  topics is `SensorCombined`, used by many parts of the system.
 - Make sure the sensor drivers get the updated calibration parameters (scale & offset) when the parameters change or
- on startup. The sensor drivers use the ioctl interface for parameter updates. For this to work properly, the
- sensor drivers must already be running when `sensors` is started.
+  on startup. The sensor drivers use the ioctl interface for parameter updates. For this to work properly, the
+  sensor drivers must already be running when `sensors` is started.
 - Do sensor consistency checks and publish the `SensorsStatusImu` topic.
 
 ### Імплементація
