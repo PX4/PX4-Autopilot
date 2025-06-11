@@ -39,9 +39,7 @@
 
 // Libraries
 #include <lib/rover_control/RoverControl.hpp>
-#include <lib/pid/PID.hpp>
 #include <matrix/matrix/math.hpp>
-#include <lib/slew_rate/SlewRate.hpp>
 #include <lib/pure_pursuit/PurePursuit.hpp>
 #include <lib/geo/geo.h>
 #include <math.h>
@@ -51,13 +49,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/rover_velocity_setpoint.h>
 #include <uORB/topics/rover_position_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/offboard_control_mode.h>
-#include <uORB/topics/position_setpoint.h>
-#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/pure_pursuit_status.h>
 
@@ -77,9 +69,15 @@ public:
 	~MecanumPosControl() = default;
 
 	/**
-	 * @brief Update position controller.
+	 * @brief Generate and publish roverVelocitySetpoint from roverPositionSetpoint.
 	 */
 	void updatePosControl();
+
+	/**
+	 * @brief Check if the necessary parameters are set.
+	 * @return True if all checks pass.
+	 */
+	bool runSanityChecks();
 
 protected:
 	/**
@@ -93,101 +91,23 @@ private:
 	 */
 	void updateSubscriptions();
 
-	/**
-	 * @brief Generate and publish roverPositionSetpoint from position of trajectorySetpoint.
-	 */
-	void generatePositionSetpoint();
-
-	/**
-	 * @brief Generate and publish roverVelocitySetpoint from manualControlSetpoint (Position Mode) or
-	 * 	  positionSetpointTriplet (Auto Mode) or roverPositionSetpoint.
-	 */
-	void generateVelocitySetpoint();
-
-	/**
-	 * @brief Generate and publish roverVelocitySetpoint from manualControlSetpoint.
-	 */
-	void manualPositionMode();
-
-	/**
-	 * @brief Generate and publish roverAttitudeSetpoint from velocity of trajectorySetpoint.
-	 */
-	void offboardVelocityMode();
-
-	/**
-	 * @brief Generate and publish roverVelocitySetpoint from positionSetpointTriplet.
-	 */
-	void autoPositionMode();
-
-	/**
-	 * @brief Generate and publish roverVelocitySetpoint from roverPositionSetpoint.
-	 */
-	void goToPositionMode();
-
-	/**
-	 * @brief Calculate the velocity magnitude setpoint. During waypoint transition the speed is restricted to
-	 * Maximum_speed * (1 - normalized_transition_angle * RM_MISS_VEL_GAIN).
-	 * On straight lines it is based on a speed trajectory such that the rover will arrive at the next waypoint transition
-	 * with the desired waypoiny transition speed under consideration of the maximum deceleration and jerk.
-	 * @param auto_speed Default auto speed [m/s].
-	 * @param distance_to_curr_wp Distance to the current waypoint [m].
-	 * @param max_decel Maximum allowed deceleration [m/s^2].
-	 * @param max_jerk Maximum allowed jerk [m/s^3].
-	 * @param waypoint_transition_angle Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
-	 * @param max_speed Maximum velocity magnitude setpoint [m/s]
-	 * @param miss_spd_gain Tuning parameter for the speed reduction during waypoint transition.
-	 * @param curr_wp_type Type of the current waypoint.
-	 * @return Velocity magnitude setpoint [m/s].
-	 */
-	float calcVelocityMagnitude(float auto_speed, float distance_to_curr_wp, float max_decel, float max_jerk,
-				    float waypoint_transition_angle, float max_speed, float miss_spd_gain, int curr_wp_type);
-
-	/**
-	 * @brief Check if the necessary parameters are set.
-	 * @return True if all checks pass.
-	 */
-	bool runSanityChecks();
-
 	// uORB subscriptions
-	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
-	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _rover_position_setpoint_sub{ORB_ID(rover_position_setpoint)};
-	vehicle_control_mode_s    _vehicle_control_mode{};
-	offboard_control_mode_s   _offboard_control_mode{};
 	rover_position_setpoint_s _rover_position_setpoint{};
 
 	// uORB publications
 	uORB::Publication<rover_velocity_setpoint_s> _rover_velocity_setpoint_pub{ORB_ID(rover_velocity_setpoint)};
-	uORB::Publication<pure_pursuit_status_s>       _pure_pursuit_status_pub{ORB_ID(pure_pursuit_status)};
-	uORB::Publication<rover_position_setpoint_s>   _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
-
+	uORB::Publication<pure_pursuit_status_s>     _pure_pursuit_status_pub{ORB_ID(pure_pursuit_status)};
 
 	// Variables
-	hrt_abstime _timestamp{0};
 	Quatf _vehicle_attitude_quaternion{};
 	Vector2f _curr_pos_ned{};
-	Vector2f _pos_ctl_course_direction{};
-	Vector2f _pos_ctl_start_position_ned{};
+	Vector2f _start_ned{};
 	float _vehicle_yaw{0.f};
 	float _max_yaw_rate{0.f};
-	float _pos_ctl_yaw_setpoint{0.f}; // Yaw setpoint for manual position mode, NAN if yaw rate is manually controlled [rad]
-	float _dt{0.f};
-	float _auto_speed{0.f};
-	float _auto_yaw{0.f};
-	int _curr_wp_type{position_setpoint_s::SETPOINT_TYPE_IDLE};
-	bool _prev_param_check_passed{true};
-
-	// Waypoint variables
-	Vector2f _curr_wp_ned{};
-	Vector2f _prev_wp_ned{};
-	Vector2f _next_wp_ned{};
-	float _cruising_speed{0.f};
-	float _waypoint_transition_angle{0.f}; // Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
+	float _yaw_setpoint{NAN};
 
 	// Class Instances
 	MapProjection _global_ned_proj_ref{}; // Transform global to NED coordinates

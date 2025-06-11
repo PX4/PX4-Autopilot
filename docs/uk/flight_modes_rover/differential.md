@@ -115,7 +115,7 @@ The mission is typically created and uploaded with a Ground Control Station (GCS
 
 #### Mission commands
 
-The following commands can be used in missions at time of writing (`main`/planned for `PX4 v1.16+`):
+The following commands can be used in missions at time of writing (PX4 v1.16):
 
 | QGC mission item                      | Команда                                                                                                                        | Опис                                                                                             |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |

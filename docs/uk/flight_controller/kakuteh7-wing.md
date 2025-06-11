@@ -1,4 +1,6 @@
-# Holybro Kakute H7 V2
+# Holybro Kakute H743-Wing
+
+<Badge type="tip" text="PX4 v1.16" />
 
 :::warning
 PX4 не розробляє цей (або будь-який інший) автопілот.
@@ -31,9 +33,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 | Buz-, Buz+       | Piezo buzzer                      |                                                               |
 | M1 to M14        | Motor signal outputs              |                                                               |
 
-<a id="bootloader"></a>
-
-## Оновлення завантажувача PX4
+## PX4 Bootloader Update {#bootloader}
 
 The board comes pre-installed with [Betaflight](https://github.com/betaflight/betaflight/wiki).
 Before the PX4 firmware can be installed, the _PX4 bootloader_ must be flashed.
@@ -50,7 +50,7 @@ make holybro_kakuteh7-wing_default
 ## Встановлення прошивки PX4
 
 :::info
-KakuteH7-wing is supported with PX4 master & PX4 v1.16 or newer..
+KakuteH7-wing is supported in PX4 v1.16 or newer.
 До випуску вам потрібно буде вручну зібрати та встановити прошивку.
 :::
 

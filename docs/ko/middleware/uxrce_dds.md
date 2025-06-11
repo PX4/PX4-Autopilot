@@ -430,16 +430,17 @@ publications:
 
   - topic: /fmu/out/collision_constraints
     type: px4_msgs::msg::CollisionConstraints
+    rate_limit: 50.  # Limit max publication rate to 50 Hz
 
   ...
 
   - topic: /fmu/out/vehicle_odometry
     type: px4_msgs::msg::VehicleOdometry
-    rate_limit: 150.
+    # Use default publication rate limit of 100 Hz
 
   - topic: /fmu/out/vehicle_status
     type: px4_msgs::msg::VehicleStatus
-    rate_limit: 50.
+    rate_limit: 5.
 
   - topic: /fmu/out/vehicle_trajectory_waypoint_desired
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
