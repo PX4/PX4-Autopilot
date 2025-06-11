@@ -12,14 +12,25 @@ import sys
 
 import yaml
 
-def generate_dds_yaml_doc(allMessageFiles, output_file = 'dds_topics.md'):
+def sort_dds_topics(topics):
+    return sorted(
+        topics,
+        key=lambda pub: pub["type"].rsplit("::", 1)[-1]
+    )
+
+def generate_dds_yaml_doc(allMessageFiles, output_dir):
     """
     Generates human readable version of dds_topics.yaml.
     Default output is to docs/en/middleware/dds_topics.md
     """
+    output_file = 'dds_topics.md'
+    dds_markdown = ""
+    if not os.path.isdir(output_dir):
+        print("Output directory not found")
+        sys.exit(1)
 
     dds_file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"../../src/modules/uxrce_dds_client/dds_topics.yaml")
-    output_file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),f"../../docs/en/middleware/{output_file}")
+    output_file_path = os.path.join(output_dir, output_file)
 
     try:
         with open(dds_file_path, 'r') as file:
@@ -43,7 +54,7 @@ def generate_dds_yaml_doc(allMessageFiles, output_file = 'dds_topics.md'):
                 all_topics.add(message['topic'].split('/')[-1])
         for message in allMessageFiles:
             all_messages_in_source.add(message.split('/')[-1].split('.')[0])
-        messagesNotExported = all_messages_in_source - all_message_types
+        messagesNotExported = sorted(all_messages_in_source - all_message_types)
 
         # write out the dds file
         dds_markdown="""# dds_topics.yaml — PX4 Topics Exposed to ROS 2
@@ -63,14 +74,14 @@ Topic | Type| Rate Limit
 --- | --- | ---
 """
 
-        for message in data["publications"]:
+        for message in sort_dds_topics(data["publications"]):
             type = message['type']
             px4Type=type.split("::")[-1]
             dds_markdown += f"`{message['topic']}` | [{type}](../msg_docs/{px4Type}.md) | {message.get('rate_limit','')}\n"
 
         dds_markdown += "\n## Subscriptions\n\nTopic | Type\n--- | ---\n"
 
-        for message in data["subscriptions"]:
+        for message in sort_dds_topics(data["subscriptions"]):
             type = message['type']
             px4Type=type.split("::")[-1]
             dds_markdown += f"{message['topic']} | [{type}](../msg_docs/{px4Type}.md)\n"
@@ -82,18 +93,17 @@ Topic | Type| Rate Limit
         else:
             print("Warning - we now have subscription_multi data - check format")
             dds_markdown += "Topic | Type\n--- | ---\n"
-            for message in data["subscriptions_multi"]:
+            for message in sort_dds_topics(data["subscriptions_multi"]):
                 dds_markdown += f"{message['topic']} | {message['type']}\n"
 
         if messagesNotExported:
             # Print the topics that are not exported to DDS
             dds_markdown += "\n## Not Exported\n\nThese messages are not listed in the yaml file.\nThey are not build into the module, and hence are neither published or subscribed."
             dds_markdown += "\n\n::: details See messages\n"
-            for item in  messagesNotExported:
+            for item in sorted(messagesNotExported):
                 dds_markdown += f"\n- [{item}](../msg_docs/{item}.md)"
             dds_markdown += "\n:::\n" # End of details block
 
-        #print(dds_markdown)
         with open(output_file_path, 'w') as content_file:
                 content_file.write(dds_markdown)
 
@@ -127,6 +137,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Generate docs from .msg files')
     parser.add_argument('-d', dest='dir', help='output directory', required=True)
+    parser.add_argument('--dds_topics', dest='dds_topics', help='Generate dds yaml doc', action='store_true')
     args = parser.parse_args()
 
     output_dir = args.dir
@@ -136,6 +147,9 @@ if __name__ == "__main__":
     msg_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"../../msg")
     msg_files = get_msgs_list(msg_path)
     msg_files.sort()
+
+    if args.dds_topics:
+        generate_dds_yaml_doc(msg_files, output_dir)
 
     versioned_msgs_list = ''
     unversioned_msgs_list = ''
@@ -227,5 +241,3 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
     index_file = os.path.join(output_dir, 'index.md')
     with open(index_file, 'w') as content_file:
             content_file.write(index_text)
-
-    generate_dds_yaml_doc(msg_files)

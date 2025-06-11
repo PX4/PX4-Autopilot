@@ -379,7 +379,10 @@ module_documentation:
 extract_events:
 	@$(MAKE) --no-print-directory px4_sitl_default metadata_extract_events ver_gen
 
-px4_metadata: parameters_metadata airframe_metadata module_documentation extract_events
+msg_docs:
+	@$(MAKE) --no-print-directory px4_sitl_default metadata_msg_documentation ver_gen
+
+px4_metadata: parameters_metadata airframe_metadata module_documentation extract_events msg_docs
 
 doxygen:
 	@mkdir -p "$(SRC_DIR)"/build/doxygen
