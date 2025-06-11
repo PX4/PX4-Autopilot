@@ -335,9 +335,10 @@ uORB::DeviceNode::DeviceNode(const ORB_ID id, const uint8_t instance, const char
 	_instance(instance)
 {
 	int ret = px4_mutex_init(&_lock, 1);
+	int ret2 = px4_mutex_init(&_cb_lock, 1);
 
-	if (ret != 0) {
-		PX4_DEBUG("SEM INIT FAIL: ret %d", ret);
+	if (ret != 0 || ret2 != 0) {
+		PX4_DEBUG("SEM INIT FAIL: _lock %d, _cb_lock %d", ret, ret2);
 	}
 
 #if defined(CONFIG_BUILD_FLAT)
@@ -371,6 +372,7 @@ uORB::DeviceNode::~DeviceNode()
 	free(_devname);
 #endif
 	px4_sem_destroy(&_lock);
+	px4_sem_destroy(&_cb_lock);
 }
 
 /**
@@ -443,47 +445,58 @@ uORB::DeviceNode::write(const char *buffer, const orb_metadata *meta, orb_advert
 	/* Mark at least one data has been published */
 	_data_valid = true;
 
+	unlock();
+
 	IndexedStackHandle<CB_LIST_T> callbacks(_callbacks);
 
-	uorb_cb_handle_t cb = callbacks.head();
+	/* First quick-check if there might be callbacks to avoid unnecessary call to lock_cb
+	 * Note that while this is a race condition, the head is checked again in the while
+	 * below, after the callback list is locked
+	 */
 
-	while (callbacks.handle_valid(cb)) {
-		EventWaitItem *item = callbacks.peek(cb);
+	if (!callbacks.empty()) {
+		lock_cb();
 
-		if (item->interval_us == 0 || hrt_elapsed_time(&item->last_update) >= item->interval_us) {
+		uorb_cb_handle_t cb = callbacks.head();
+
+		while (callbacks.handle_valid(cb)) {
+			EventWaitItem *item = callbacks.peek(cb);
+
+			if (item->interval_us == 0 || hrt_elapsed_time(&item->last_update) >= item->interval_us) {
 
 #ifdef CONFIG_BUILD_FLAT
 
-			if (item->subscriber != nullptr) {
-				// execute callback
-				item->subscriber->call();
+				if (item->subscriber != nullptr) {
+					// execute callback
+					item->subscriber->call();
 
-			} else {
-				// release poll
-				Manager::unlockThread(item->lock);
-			}
+				} else {
+					// release poll
+					Manager::unlockThread(item->lock);
+				}
 
 #else
 
-			// Release poll waiters and callback threads
-			if (item->cb_triggered < CB_ALIVE_MAX_VALUE) {
-				__atomic_fetch_add(&item->cb_triggered, 1, __ATOMIC_SEQ_CST);
-				Manager::unlockThread(item->lock);
+				// Release poll waiters and callback threads
+				if (item->cb_triggered < CB_ALIVE_MAX_VALUE) {
+					__atomic_fetch_add(&item->cb_triggered, 1, __ATOMIC_SEQ_CST);
+					Manager::unlockThread(item->lock);
 
-			} else if (item->cb_triggered == CB_ALIVE_MAX_VALUE) {
-				// Callbacks are not being handled? Post once more and print an error
-				__atomic_fetch_add(&item->cb_triggered, 1, __ATOMIC_SEQ_CST);
-				Manager::unlockThread(item->lock);
-				PX4_ERR("CB triggered from %s is not being handled?\n", get_name());
-			}
+				} else if (item->cb_triggered == CB_ALIVE_MAX_VALUE) {
+					// Callbacks are not being handled? Post once more and print an error
+					__atomic_fetch_add(&item->cb_triggered, 1, __ATOMIC_SEQ_CST);
+					Manager::unlockThread(item->lock);
+					PX4_ERR("CB triggered from %s is not being handled?\n", get_name());
+				}
 
 #endif
+			}
+
+			cb = callbacks.next(cb);
 		}
 
-		cb = callbacks.next(cb);
+		unlock_cb();
 	}
-
-	unlock();
 
 	return o_size;
 }
@@ -548,14 +561,9 @@ int16_t uORB::DeviceNode::topic_advertised(const orb_metadata *meta)
 bool
 uORB::DeviceNode::print_statistics(int max_topic_length)
 {
-	lock();
-
 	const uint8_t instance = get_instance();
 	const int8_t sub_count = subscriber_count();
 	const uint8_t queue_size = get_queue_size();
-
-	unlock();
-
 	const orb_metadata *meta = get_meta();
 
 	PX4_INFO_RAW("%-*s %2i %4i %2i %4i %s\n", max_topic_length, meta->o_name, (int)instance, (int)sub_count,
@@ -694,9 +702,10 @@ uORB::DeviceNode::_register_callback(uORB::SubscriptionCallback *cb_sub,
 
 	IndexedStackHandle<CB_LIST_T> callbacks(_callbacks);
 
-	lock();
-
+	lock_cb();
 	cb_handle = callbacks.pop_free();
+	unlock_cb();
+
 	EventWaitItem *item = callbacks.peek(cb_handle);
 
 #ifdef CONFIG_BUILD_FLAT
@@ -718,13 +727,13 @@ uORB::DeviceNode::_register_callback(uORB::SubscriptionCallback *cb_sub,
 #endif
 		item->last_update = last_update;
 		item->interval_us = interval_us;
+		lock_cb();
 		callbacks.push(cb_handle);
+		unlock_cb();
 
 	} else {
 		PX4_ERR("register fail\n");
 	}
-
-	unlock();
 
 	return uorb_cb_handle_valid(cb_handle);
 }
@@ -738,7 +747,7 @@ uORB::DeviceNode::_unregister_callback(uorb_cb_handle_t &cb_handle)
 #endif
 	int ret = 0;
 
-	lock();
+	lock_cb();
 
 	bool ret_rm = callbacks.rm(cb_handle);
 
@@ -753,7 +762,7 @@ uORB::DeviceNode::_unregister_callback(uorb_cb_handle_t &cb_handle)
 		cb_handle = UORB_INVALID_CB_HANDLE;
 	}
 
-	unlock();
+	unlock_cb();
 
 	return ret;
 }

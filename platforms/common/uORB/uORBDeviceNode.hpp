@@ -351,7 +351,11 @@ private:
 
 	void		lock() { do {} while (px4_sem_wait(&_lock) != 0); }
 	void		unlock() { px4_sem_post(&_lock); }
-	px4_sem_t	_lock; /**< lock to protect access to all class members */
+	void		lock_cb() { do {} while (px4_sem_wait(&_cb_lock) != 0); }
+	void		unlock_cb() { px4_sem_post(&_cb_lock); }
+
+	px4_sem_t	_lock;     /**< lock to protect access to uORB data */
+	px4_sem_t	_cb_lock;  /**< lock to protect access to callback queue */
 
 #ifdef CONFIG_BUILD_FLAT
 	char *_devname;
