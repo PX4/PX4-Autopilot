@@ -12,7 +12,7 @@ To use it you will need to build firmware with this feature enabled and then upl
 :::
 
 :::tip
-Log encryption was has been improved in PX4 main (v1.16+) to generate a single encrypted log file that contains both encrypted log data, and an encrypted symmetric key that you can use to decrypt it (provided you can decrypt the symmetric key).
+Log encryption was has been improved in PX4 v1.16 to generate a single encrypted log file that contains both encrypted log data, and an encrypted symmetric key that you can use to decrypt it (provided you can decrypt the symmetric key).
 
 In earlier versions the encrypted symmetric key was stored in a separate file.
 For more information see the [Log Encryption (PX4 v1.15)](https://docs.px4.io/v1.15/en/dev_log/log_encryption.html).

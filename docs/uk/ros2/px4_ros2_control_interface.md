@@ -346,7 +346,7 @@ private:
 Наступні розділи надають список підтримуваних типів установок:
 
 - GotoSetpointType: Плавне позиціонування та (за бажанням) керування курсом
-- [FwLateralLongitudinalSetpointType](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype): Direct control of lateral and longitudinal fixed wing dynamics
+- [FwLateralLongitudinalSetpointType](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype): <Badge type="tip" text="main (planned for: PX4 v1.17)" /> Direct control of lateral and longitudinal fixed wing dynamics
 - DirectActuatorsSetpointType: Пряме керування моторами та установками сервоприводів польотних поверхонь
 
 :::tip
@@ -408,7 +408,7 @@ _goto_setpoint->update(
 
 #### Fixed-Wing Lateral and Longitudinal Setpoint (FwLateralLongitudinalSetpointType)
 
-<Badge type="warning" text="Fixed wing only" />
+<Badge type="warning" text="Fixed wing only" /> <Badge type="tip" text="main (planned for: PX4 v1.17)" />
 
 :::info
 This setpoint type is supported for fixed-wing vehicles and for VTOLs in fixed-wing mode.
@@ -550,7 +550,7 @@ and [`FW_THR_MAX`](../advanced_config/parameter_reference.md#FW_THR_MAX).
 
 ### Controlling a VTOL
 
-<Badge type="warning" text="Experimental" />
+<Badge type="tip" text="main (planned for: PX4 v1.17)" /> <Badge type="warning" text="Experimental" />
 
 To control a VTOL in an external flight mode, ensure you're returning the correct setpoint type based on the current flight configuration:
 
