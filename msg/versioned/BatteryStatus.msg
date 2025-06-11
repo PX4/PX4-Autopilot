@@ -1,19 +1,19 @@
 # Battery status.
 #
-# Battery status information for up to four battery instances.
-# These are populated from power module device drivers, and one battery updated from MAVLink.
-# Battery instance information is also logged and streamed from MAVLink.
+# Battery status information for up to 4 battery instances.
+# These are populated from power module and smart battery device drivers, and one battery updated from MAVLink.
+# Battery instance information is also logged and streamed in MAVLink telemetry.
 
 uint32 MESSAGE_VERSION = 0
 
 uint64 timestamp # [us] Time since system start.
-bool connected # Whether or not a battery is connected, based on a voltage threshold
+bool connected # Whether or not a battery is connected. For power modules this is based on a voltage threshold.
 float32 voltage_v # [V] [@invalid 0] Battery voltage.
 float32 current_a # [A] [@invalid -1] Battery current.
 float32 current_average_a # [A] [@invalid -1] Battery current average (for FW average in level flight).
 float32 discharged_mah # [mAh] [@invalid -1] Discharged amount.
 float32 remaining # [@range 0,1] [@invalid -1] Remaining capacity.
-float32 scale # [@range 1,] [@invalid -1] Power scaling factor.
+float32 scale # [@range 1,] [@invalid -1] Scaling factor to compensate for lower actuation power caused by voltage sag.
 float32 time_remaining_s # [s] [@invalid NaN] Predicted time remaining until battery is empty under previous averaged load.
 float32 temperature # [°C] [@invalid NaN] Temperature of the battery.
 uint8 cell_count # [@invalid 0] Number of cells.
@@ -25,7 +25,7 @@ uint8 SOURCE_EXTERNAL = 1 # External.
 uint8 SOURCE_ESCS = 2 # ESCs.
 
 uint8 priority # Zero based priority is the connection on the Power Controller V1..Vn AKA BrickN-1
-uint16 capacity # [mAh] Actual capacity of the battery.
+uint16 capacity # [mAh] Capacity of the battery when fully charged.
 uint16 cycle_count # Number of discharge cycles the battery has experienced.
 uint16 average_time_to_empty # [minutes] Predicted remaining battery capacity based on the average rate of discharge.
 uint16 serial_number # Serial number of the battery pack.
@@ -47,7 +47,6 @@ uint8 WARNING_LOW = 1 # Low voltage warning.
 uint8 WARNING_CRITICAL = 2 # Critical voltage, return / abort immediately.
 uint8 WARNING_EMERGENCY = 3 # Immediate landing required.
 uint8 WARNING_FAILED = 4 # Battery has failed completely.
-
 uint8 STATE_UNHEALTHY = 6 # Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field.
 uint8 STATE_CHARGING = 7 # Battery is charging
 
