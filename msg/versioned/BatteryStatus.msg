@@ -5,6 +5,7 @@
 # Battery instance information is also logged and streamed in MAVLink telemetry.
 
 uint32 MESSAGE_VERSION = 0
+uint8 MAX_INSTANCES = 4
 
 uint64 timestamp # [us] Time since system start.
 bool connected # Whether or not a battery is connected. For power modules this is based on a voltage threshold.
@@ -63,8 +64,6 @@ uint8 FAULT_INCOMPATIBLE_MODEL = 8 # Battery model is not supported by the syste
 uint8 FAULT_HARDWARE_FAILURE = 9 # hardware problem.
 uint8 FAULT_FAILED_TO_ARM = 10 # Battery had a problem while arming.
 uint8 FAULT_COUNT = 11 # Counter - keep it as last element!
-
-uint8 MAX_INSTANCES = 4
 
 float32 full_charge_capacity_wh # [Wh] The compensated battery capacity.
 float32 remaining_capacity_wh # [Wh] The compensated battery capacity remaining.
