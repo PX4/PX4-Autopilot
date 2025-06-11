@@ -26,8 +26,8 @@ public:
 	bool rm(H handle) { return _stack.rm(handle); }
 	H head() {return _stack._head;}
 	H next(H handle) {return peek(handle)->next;}
-	bool empty() {return !_stack.handle_valid(_stack.head());}
-	T *peek(H handle) { return _stack.handle_valid(handle) ? _stack.peek(handle) : nullptr; }
+	bool empty() {return !handle_valid(head());}
+	T *peek(H handle) { return handle_valid(handle) ? _stack.peek(handle) : nullptr; }
 	bool handle_valid(H handle) {return _stack.handle_valid(handle); }
 
 private:
