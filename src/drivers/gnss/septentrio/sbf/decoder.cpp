@@ -243,7 +243,7 @@ bool Decoder::done() const
 
 bool Decoder::can_parse() const
 {
-	return done()
+	return done() && _message.header.length <= sizeof(_message)
 	       && _message.header.crc == buffer_crc16(reinterpret_cast<const uint8_t *>(&_message) + 4, _message.header.length - 4);
 }
 
