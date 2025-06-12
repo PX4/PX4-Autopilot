@@ -1,6 +1,6 @@
 # Neural Network Module Utilities
 
-This page will explain the parts of the module that do not directly concern something with the neural network, but PX4 related implementations, so that you easily can shape the module to your needs.
+This page explains the parts of a [neural control module](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/mc_nn_control) that do not directly concern the neural network. The module is named mc_nn_control and implements an end-to-end controller utilizing neural networks. This page explains the PX4 related implementations, so that you easily can shape the module to your needs and make it compatible with the rest of the PX4 autopilot.
 
 To learn more about how PX4 works in general, it is recommended to start with [Getting started](../dev_setup/getting_started.md).
 

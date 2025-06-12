@@ -3,7 +3,7 @@
 [TFLM](https://github.com/tensorflow/tflite-micro) is a mature inference library intended for use on embedded devices. It is therefore a solid library for doing inference on an FCU within PX4. This is a guide on how to use the TFLM library and the implementation in the mc_nn_control module. The TFLM guide can be found in their [docs](https://ai.google.dev/edge/litert/microcontrollers/get_started).
 
 ## Network Format
-The netorks should be in the tflite format, but since many microcontrollers do not have native filesystem support the tflite file is again converted to a C++ source and header file. In the module you can see it as control_net.cpp and control_net.hpp. If you have a .tflite network you can convert it in the ubuntu terminal with this command:
+The netorks should be in the [tflite format](https://ai.google.dev/edge/litert/models/convert), but since many microcontrollers do not have native filesystem support the tflite file is again converted to a C++ source and header file. In the module you can see it as control_net.cpp and control_net.hpp. If you have a .tflite network you can convert it in the ubuntu terminal with this command:
 
 ```sh
 xxd -i converted_model.tflite > model_data.cc
