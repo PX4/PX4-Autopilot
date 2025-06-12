@@ -56,7 +56,7 @@ function(px4_os_add_flags)
 
 	if(CONFIG_LIB_TFLM) # Since TFLM uses the standard C++ library, we need to exclude the NuttX C++ include path
 		include_directories(BEFORE SYSTEM
-			${PX4_SOURCE_DIR}/src/lib/tensorflow_lite_micro/include
+			${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include/cxx/cstdlib
 		)
 	else()
 		include_directories(BEFORE SYSTEM
