@@ -16,15 +16,11 @@ on:
       - 'release/**'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
-      - 'Tools/**'
   pull_request:
     branches:
       - '*'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
-      - 'Tools/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -58,7 +54,13 @@ jobs:
         run: echo "::set-output name=timestamp::$(date +"%Y%m%d%H%M%S")"
 
       - id: set-branch
-        run: echo "::set-output name=branchname::${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+        run: |
+          echo "branchname=${{
+            github.event_name == 'pull_request' &&
+            format('pr-{0}', github.event.pull_request.number) ||
+            github.head_ref ||
+            github.ref_name
+          }}" >> $GITHUB_OUTPUT
 
       - name: Debug Matrix Output
         if: runner.debug == '1'
@@ -70,7 +72,7 @@ jobs:
   setup:
     name: Build Group [${{ matrix.group }}][${{ matrix.arch == 'nuttx' && 'x86' || 'arm64' }}]
     # runs-on: ubuntu-latest
-    runs-on: [runs-on,"runner=8cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}",spot=false]
+    runs-on: [runs-on,"runner=8cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",spot=false]
     needs: group_targets
     strategy:
       matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}

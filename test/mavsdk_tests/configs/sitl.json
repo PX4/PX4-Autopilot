@@ -1,7 +1,7 @@
 {
     "mode": "sitl",
     "simulator": "gazebo",
-    "mavlink_connection": "udp://:14540",
+    "mavlink_connection": "udpin://0.0.0.0:14540",
     "tests":
     [
         {

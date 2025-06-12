@@ -31,7 +31,7 @@ jobs:
     - name: Build PX4 and Run Test [${{ matrix.config }}]
       uses: addnab/docker-run-action@v3
       with:
-        image: px4io/px4-dev-nuttx-focal:2022-08-12
+        image: px4io/px4-dev:v1.16.0-ondemand
         options: -v ${{ github.workspace }}:/workspace
         run: |
           cd /workspace

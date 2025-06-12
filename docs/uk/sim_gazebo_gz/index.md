@@ -131,6 +131,21 @@ The simulation can be run in headless mode by prefixing the command with the `HE
 HEADLESS=1 make px4_sitl gz_x500
 ```
 
+### Встановлення власного місця зльоту
+
+The takeoff location in Gazebo Classic can be set using environment variables.
+
+The variables to set are: PX4_HOME_LAT, PX4_HOME_LON, and PX4_HOME_ALT.
+
+Наприклад:
+
+```
+export PX4_HOME_LAT=51.1788
+export PX4_HOME_LON=-1.8263
+export PX4_HOME_ALT=101
+make px4_sitl gz_x500
+```
+
 ### Вказання світу
 
 Симуляція може бути запущена в певному світі додаванням бажаного світу до імені бажаного рухомого засобу.
@@ -380,6 +395,11 @@ SDF files, mesh files, textures and anything else to do with the functionality a
 As long as the world file and the model file are in the Gazebo search path (`GZ_SIM_RESOURCE_PATH`) it is not necessary to add them to the PX4 world and model directories.
 However, `make px4_sitl gz_<model>_<world>` won't work with them.
 :::
+
+## Extending Gazebo with Plugins
+
+World, vehicle (model), and sensor behaviour can be customised using plugins.
+For more information see [Gazebo Plugins](../sim_gazebo_gz/plugins.md).
 
 ## Симуляція кількох рухомих засобів
 

@@ -338,9 +338,11 @@ If motors/servos were connected to different outputs than suggested, you will ne
 
   ![Tilt Servo adjustment](../../assets/airframes/vtol/omp_hobby_zmo_fpv/tilt-limits-01.jpg)
 
-3. Adjust the minimum or maximum value that the servo is pointing vertical up.
+3. Adjust the minimum (or, if revesed: maximum) value such that the rotor thrust can point backward (needed for proper yaw allocation in Multicopter mode).
 
-4. Then type `commander transition` into the MAVLink shell to adjust the horizontal position.
+4. Adjust the parameter `VT_TILT_MC` such that the rotors point exactly upwards when given zero input.
+
+5. Then type `commander transition` into the MAVLink shell to adjust the horizontal position.
 
 #### Control Surfaces
 
@@ -368,8 +370,8 @@ The direction can't be changed in software because the vehicle does not use [DSh
 ## 첫 번째 비행
 
 - Check tilt rotor reactions in [Stabilized mode](../flight_modes_fw/stabilized.md). Keep the throttle stick at the minimum and place the vehicle at the ground. To enable the tilt servos you need to arm the vehicle.
-  - Yaw the vehicle to the right (nose to the right) -> left motor should tilt down
-  - Yaw the vehicle to the left (nose to the left) -> right motor should tilt down
+  - Command a yaw to the right (nose to the right) -> left motor should tilt forward, right motor should tilt backward
+  - Command a yaw to the left (nose to the left) -> left motor should tilt backward, right motor should tilt forward
 - Mount the propellers.
 - Check center of gravity (GG).
   Switch the vehicle into forward flight mode.

@@ -60,7 +60,7 @@ public:
 
 	~DShotTelemetry();
 
-	int init(const char *uart_device);
+	int init(const char *uart_device, bool swap_rxtx);
 
 	void deinit();
 

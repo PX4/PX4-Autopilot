@@ -34,9 +34,7 @@ In particular:
 
 [Setup/usage information](../camera/index.md).
 
-<a id="camera_trigger_usage"></a>
-
-### 사용법
+### Usage {#camera_trigger_usage}
 
 ```
 camera_trigger <command> [arguments...]

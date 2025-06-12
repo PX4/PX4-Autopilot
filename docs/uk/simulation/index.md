@@ -157,9 +157,8 @@ make px4_sitl none_iris
 
 Симуляцію можна додатково налаштувати за допомогою змінних середовища:
 
-- `PX4_ESTIMATOR`: This variable configures which estimator to use.
-  Possible options are: `ekf2` (default), `lpe` (deprecated).
-  It can be set via `export PX4_ESTIMATOR=lpe` before running the simulation.
+- Any of the [PX4 parameters](../advanced_config/parameter_reference.md) can be overridden via `export PX4_PARAM_{name}={value}`.
+  For example changing the estimator: `export PX4_PARAM_EKF2_EN=0; export PX4_PARAM_ATT_EN=1`.
 
 The syntax described here is simplified, and there are many other options that you can configure via _make_ - for example, to set that you wish to connect to an IDE or debugger.
 For more information see: [Building the Code > PX4 Make Build Targets](../dev_setup/building_px4.md#px4-make-build-targets).

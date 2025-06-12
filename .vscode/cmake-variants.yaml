@@ -6,6 +6,11 @@ CONFIG:
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_default
+    px4_sitl_spacecraft:
+      short: px4_sitl_spacecraft
+      buildType: RelWithDebInfo
+      settings:
+        CONFIG: px4_sitl_spacecraft
     px4_sitl_nolockstep:
       short: px4_sitl_nolockstep
       buildType: RelWithDebInfo
@@ -301,6 +306,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: holybro_durandal-v1_default
+    holybro_kakuteh7-wing_default:
+      short: holybro_kakuteh7-wing
+      buildType: MinSizeRel
+      settings:
+        CONFIG: holybro_kakuteh7-wing_default
+    holybro_kakuteh7dualimu_default:
+      short: holybro_kakuteh7dualimu
+      buildType: MinSizeRel
+      settings:
+        CONFIG: holybro_kakuteh7dualimu_default
     matek_h743-slim_default:
       short: matek_h743-slim
       buildType: MinSizeRel

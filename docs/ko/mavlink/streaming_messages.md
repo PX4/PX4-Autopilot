@@ -153,31 +153,39 @@ Most streaming classes are very similar (see examples in [/src/modules/mavlink/s
   We iterate the array and use `update()` on each subscription to check if the associated battery instance has changed (and update a structure with the current data).
   This allows us to send the MAVLink message _only_ if the associated battery uORB topic has changed:
 
-    // Struct to hold current topic data.
-    battery_status_s battery_status;
-    
-    // update() populates battery_status and returns true if the status has changed
-    if (battery_sub.update(&battery_status)) {
-       // Use battery_status to populate message and send
-    }
+  ```cpp
+  // Struct to hold current topic data.
+  battery_status_s battery_status;
+
+  // update() populates battery_status and returns true if the status has changed
+  if (battery_sub.update(&battery_status)) {
+     // Use battery_status to populate message and send
+  }
+  ```
 
   If wanted to send a MAVLink message whether or not the data changed, we could instead use `copy()` as shown:
 
-    battery_status_s battery_status;
-    battery_sub.copy(&battery_status);
+  ```cpp
+  battery_status_s battery_status;
+  battery_sub.copy(&battery_status);
+  ```
 
   ::: info
   For a single-instance topic like [VehicleStatus](../msg_docs/VehicleStatus.md) we would subscribe like this:
 
-    // Create subscription _vehicle_status_sub
-    uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+  ```cpp
+  // Create subscription _vehicle_status_sub
+  uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+  ```
 
   And we could use the resulting subscription in the same way with update or copy.
 
-    vehicle_status_s vehicle_status{}; // vehicle_status_s is the definition of the uORB topic
-    if (_vehicle_status_sub.update(&vehicle_status)) {
-      // Use the vehicle_status as it has been updated.
-    }
+  ```cpp
+  vehicle_status_s vehicle_status{}; // vehicle_status_s is the definition of the uORB topic
+  if (_vehicle_status_sub.update(&vehicle_status)) {
+    // Use the vehicle_status as it has been updated.
+  }
+  ```
 
 
 :::

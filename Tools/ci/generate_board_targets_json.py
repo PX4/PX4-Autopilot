@@ -86,27 +86,17 @@ def process_target(px4board_file, target_name):
     assert platform, f"PLATFORM not found in {px4board_file}"
 
     if platform not in excluded_platforms:
-        # get the container based on the platform and toolchain
-        # TODO enable once newer container is validated
-        # container = 'ghcr.io/px4/px4-dev:v1.16.0-alpha2-419-gd48631e2ce'
+        container = 'ghcr.io/px4/px4-dev:v1.16.0-ondemand'
         if platform == 'posix':
-            # TODO remove once newer container is validated
-            container = 'px4io/px4-dev-base-focal:2021-09-08'
             group = 'base'
             if toolchain:
                 if toolchain.startswith('aarch64'):
-                    # TODO remove once newer container is validated
-                    container = 'px4io/px4-dev-aarch64:2022-08-12'
                     group = 'aarch64'
                 elif toolchain == 'arm-linux-gnueabihf':
-                    # TODO remove once newer container is validated
-                    container = 'px4io/px4-dev-armhf:2023-06-26'
                     group = 'armhf'
                 else:
                     if verbose: print(f'unmatched toolchain: {toolchain}')
         elif platform == 'nuttx':
-            # TODO remove once newer container is validated
-            container = 'px4io/px4-dev-nuttx-focal:2022-08-12'
             group = 'nuttx'
         else:
             if verbose: print(f'unmatched platform: {platform}')
@@ -130,10 +120,7 @@ if(verbose):
 # - Events
 metadata_targets = ['airframe_metadata', 'parameters_metadata', 'extract_events']
 grouped_targets['base'] = {}
-# TODO remove once newer container is validated
-grouped_targets['base']['container'] = 'px4io/px4-dev-base-focal:2021-09-08'
-# TODO enable once newer container is validated
-#grouped_targets['base']['container'] = 'ghcr.io/px4/px4-dev:v1.16.0-alpha2-419-gd48631e2ce'
+grouped_targets['base']['container'] = 'ghcr.io/px4/px4-dev:v1.16.0-ondemand'
 grouped_targets['base']['manufacturers'] = {}
 grouped_targets['base']['manufacturers']['px4'] = []
 grouped_targets['base']['manufacturers']['px4'] += metadata_targets
@@ -215,6 +202,7 @@ if (args.group):
     if(verbose):
         print(f'=:Architectures: [{grouped_targets.keys()}]')
     for arch in grouped_targets:
+        runner = 'x64' if arch == 'nuttx' else 'arm64'
         if(verbose):
             print(f'=:Processing: [{arch}]')
         temp_group = []
@@ -232,6 +220,7 @@ if (args.group):
                     "container": grouped_targets[arch]['container'],
                     "targets": targets,
                     "arch": arch,
+                    "runner": runner,
                     "group": group_name,
                     "len": len(grouped_targets[arch]['manufacturers'][man])
                 })
@@ -249,6 +238,7 @@ if (args.group):
                         "container": grouped_targets[arch]['container'],
                         "targets": targets,
                         "arch": arch,
+                        "runner": runner,
                         "group": group_name,
                         "len": len(chunk),
                     })
@@ -269,6 +259,7 @@ if (args.group):
                 "container": grouped_targets[arch]['container'],
                 "targets": targets,
                 "arch": arch,
+                "runner": runner,
                 "group": group_name,
                 "len": temp_len
             })
@@ -286,6 +277,7 @@ if (args.group):
                     "container": grouped_targets[arch]['container'],
                     "targets": targets,
                     "arch": arch,
+                    "runner": runner,
                     "group": group_name,
                     "len": len(chunk),
                 })

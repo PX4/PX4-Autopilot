@@ -13171,21 +13171,20 @@ Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; | 0 | 31 |  | 7 |  
 
-### ASPD_FALLBACK_GW (`INT32`) {#ASPD_FALLBACK_GW}
+### ASPD_FALLBACK (`INT32`) {#ASPD_FALLBACK}
 
-Enable fallback to sensor-less airspeed estimation.
-
-If set to true and airspeed checks are enabled, it will use a sensor-less airspeed estimation based on groundspeed minus windspeed if no other airspeed sensor available to fall back to.
+Fallback options.
 
 **Values:**
 
-- `0`: Disable fallback to sensor-less estimation
-- `1`: Enable fallback to sensor-less estimation
+- `0`: Fallback only to other airspeed sensors
+- `1`: Fallback to groundspeed-minus-windspeed airspeed estimation
+- `2`: Fallback to thrust based airspeed estimation
 
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | Disabled (0) |  
+&nbsp; |  |  |  | 0 |  
 
 ### ASPD_FP_T_WINDOW (`FLOAT`) {#ASPD_FP_T_WINDOW}
 
@@ -13247,6 +13246,7 @@ Index or primary airspeed measurement source.
 - `1`: First airspeed sensor
 - `2`: Second airspeed sensor
 - `3`: Third airspeed sensor
+- `4`: Thrust based airspeed
 
 
 Reboot | minValue | maxValue | increment | default | unit
@@ -14582,6 +14582,23 @@ Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; |  |  | 0.1 | 10.0 | s 
 
+### COM_DLL_EXCEPT (`INT32`) {#COM_DLL_EXCEPT}
+
+Datalink loss exceptions.
+
+Specify modes in which datalink loss is ignored and the failsafe action not triggered.
+
+**Bitmask:**
+
+- `0`: Mission
+- `1`: Hold
+- `2`: Offboard
+
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 7 |  | 0 |  
+
 ### COM_DL_LOSS_T (`INT32`) {#COM_DL_LOSS_T}
 
 GCS connection loss time threshold.
@@ -15254,7 +15271,7 @@ Specify modes in which RC loss is ignored and the failsafe action not triggered.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 31 |  | 0 |  
+&nbsp; | 0 | 7 |  | 0 |  
 
 ### COM_RC_ARM_HYST (`INT32`) {#COM_RC_ARM_HYST}
 
@@ -17287,14 +17304,6 @@ Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; | 0.2 | 1.0 | 0.05 | 0.4 | s 
 
-### FW_SPOILERS_LND (`FLOAT`) {#FW_SPOILERS_LND}
-
-Spoiler landing setting.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 1.0 | 0.01 | 0. | norm 
-
 ### FW_WR_FF (`FLOAT`) {#FW_WR_FF}
 
 Wheel steering rate feed forward.
@@ -17360,6 +17369,16 @@ Reboot | minValue | maxValue | increment | default | unit
 &nbsp; | 0.0 | 180 | 0.5 | 50.0 | deg/s 
 
 ## FW Auto Landing
+
+### FW_FLAPS_LND_SCL (`FLOAT`) {#FW_FLAPS_LND_SCL}
+
+Flaps setting during landing.
+
+Sets a fraction of full flaps during landing. Also applies to flaperons if enabled in the mixer/allocation.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1.0 | 0.01 | 1.0 | norm 
 
 ### FW_LND_ABORT (`INT32`) {#FW_LND_ABORT}
 
@@ -17519,29 +17538,25 @@ Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; | 0 | 2 |  | 1 |  
 
-## FW Geometry
+### FW_SPOILERS_LND (`FLOAT`) {#FW_SPOILERS_LND}
 
-### FW_WING_HEIGHT (`FLOAT`) {#FW_WING_HEIGHT}
-
-Height (AGL) of the wings when the aircraft is on the ground.
-
-This is used to constrain a minimum altitude below which we keep wings level to avoid wing tip strike. It's safer to give a slight margin here (> 0m)
+Spoiler landing setting.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 |  | 1 | 0.5 | m 
+&nbsp; | 0.0 | 1.0 | 0.01 | 0. | norm 
 
-### FW_WING_SPAN (`FLOAT`) {#FW_WING_SPAN}
+## FW Auto Takeoff
 
-The aircraft's wing span (length from tip to tip).
+### FW_FLAPS_TO_SCL (`FLOAT`) {#FW_FLAPS_TO_SCL}
 
-This is used for limiting the roll setpoint near the ground. (if multiple wings, take the longest span)
+Flaps setting during take-off.
+
+Sets a fraction of full flaps during take-off. Also applies to flaperons if enabled in the mixer/allocation.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 |  | 0.1 | 3.0 | m 
-
-## FW Launch detection
+&nbsp; | 0.0 | 1.0 | 0.01 | 0.0 | norm 
 
 ### FW_LAUN_AC_T (`FLOAT`) {#FW_LAUN_AC_T}
 
@@ -17583,6 +17598,374 @@ Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; | 0.0 | 10.0 | 0.5 | 0.0 | s 
 
+### FW_TKO_AIRSPD (`FLOAT`) {#FW_TKO_AIRSPD}
+
+Takeoff Airspeed.
+
+The calibrated airspeed setpoint during the takeoff climbout. If set <= 0, FW_AIRSPD_MIN will be set by default.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | -1.0 |  | 0.1 | -1.0 | m/s 
+
+### FW_TKO_PITCH_MIN (`FLOAT`) {#FW_TKO_PITCH_MIN}
+
+Minimum pitch during takeoff.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | -5.0 | 30.0 | 0.5 | 10.0 | deg 
+
+## FW General
+
+### FW_GPSF_LT (`INT32`) {#FW_GPSF_LT}
+
+GPS failure loiter time.
+
+The time the system should do open loop loiter and wait for GPS recovery before it starts descending. Set to 0 to disable. Roll angle is set to FW_GPSF_R. Does only apply for fixed-wing vehicles or VTOLs with NAV_FORCE_VT set to 0.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 3600 |  | 30 | s 
+
+### FW_GPSF_R (`FLOAT`) {#FW_GPSF_R}
+
+GPS failure fixed roll angle.
+
+Roll angle in GPS failure loiter mode.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 30.0 | 0.5 | 15.0 | deg 
+
+### FW_POS_STK_CONF (`INT32`) {#FW_POS_STK_CONF}
+
+Custom stick configuration.
+
+Applies in manual Position and Altitude flight modes.
+
+**Bitmask:**
+
+- `0`: Alternative stick configuration (height rate on throttle stick, airspeed on pitch stick)
+- `1`: Enable airspeed setpoint via sticks in altitude and position flight mode
+
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 3 |  | 2 |  
+
+### FW_P_LIM_MAX (`FLOAT`) {#FW_P_LIM_MAX}
+
+Maximum pitch angle setpoint.
+
+Applies in any altitude controlled flight mode.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 60.0 | 0.5 | 30.0 | deg 
+
+### FW_P_LIM_MIN (`FLOAT`) {#FW_P_LIM_MIN}
+
+Minimum pitch angle setpoint.
+
+Applies in any altitude controlled flight mode.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | -60.0 | 0.0 | 0.5 | -30.0 | deg 
+
+### FW_R_LIM (`FLOAT`) {#FW_R_LIM}
+
+Maximum roll angle setpoint.
+
+Applies in any altitude controlled flight mode.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 35.0 | 65.0 | 0.5 | 50.0 | deg 
+
+### FW_THR_IDLE (`FLOAT`) {#FW_THR_IDLE}
+
+Idle throttle.
+
+This is the minimum throttle while on the ground ("landed") in auto modes.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 0.4 | 0.01 | 0.0 | norm 
+
+### FW_THR_MAX (`FLOAT`) {#FW_THR_MAX}
+
+Throttle limit max.
+
+Applies in any altitude controlled flight mode. Should be set accordingly to achieve FW_T_CLMB_MAX.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1.0 | 0.01 | 1.0 | norm 
+
+### FW_THR_MIN (`FLOAT`) {#FW_THR_MIN}
+
+Throttle limit min.
+
+Applies in any altitude controlled flight mode. Usually set to 0 but can be increased to prevent the motor from stopping when descending, which can increase achievable descent rates.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1.0 | 0.01 | 0.0 | norm 
+
+### FW_T_CLMB_R_SP (`FLOAT`) {#FW_T_CLMB_R_SP}
+
+Default target climbrate.
+
+In auto modes: default climb rate output by controller to achieve altitude setpoints. In manual modes: maximum climb rate setpoint.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.5 | 15 | 0.01 | 3.0 | m/s 
+
+### FW_T_SINK_R_SP (`FLOAT`) {#FW_T_SINK_R_SP}
+
+Default target sinkrate.
+
+In auto modes: default sink rate output by controller to achieve altitude setpoints. In manual modes: maximum sink rate setpoint.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.5 | 15 | 0.01 | 2.0 | m/s 
+
+### FW_T_SPDWEIGHT (`FLOAT`) {#FW_T_SPDWEIGHT}
+
+Speed <--> Altitude weight.
+
+Adjusts the amount of weighting that the pitch control applies to speed vs height errors. 0 -> control height only 2 -> control speed only (gliders)
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 2.0 | 1.0 | 1.0 |  
+
+### FW_WING_HEIGHT (`FLOAT`) {#FW_WING_HEIGHT}
+
+Height (AGL) of the wings when the aircraft is on the ground.
+
+This is used to constrain a minimum altitude below which we keep wings level to avoid wing tip strike. It's safer to give a slight margin here (> 0m)
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 |  | 1 | 0.5 | m 
+
+### FW_WING_SPAN (`FLOAT`) {#FW_WING_SPAN}
+
+The aircraft's wing span (length from tip to tip).
+
+This is used for limiting the roll setpoint near the ground. (if multiple wings, take the longest span)
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 |  | 0.1 | 3.0 | m 
+
+## FW Lateral Control
+
+### FW_PN_R_SLEW_MAX (`FLOAT`) {#FW_PN_R_SLEW_MAX}
+
+Path navigation roll slew rate limit.
+
+Maximum change in roll angle setpoint per second. Applied in all Auto modes, plus manual Position & Altitude modes.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0 |  | 1 | 90.0 | deg/s 
+
+## FW Longitudinal Control
+
+### FW_GND_SPD_MIN (`FLOAT`) {#FW_GND_SPD_MIN}
+
+Minimum groundspeed.
+
+The controller will increase the commanded airspeed to maintain this minimum groundspeed to the next waypoint.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 40 | 0.5 | 5.0 | m/s 
+
+### FW_THR_SLEW_MAX (`FLOAT`) {#FW_THR_SLEW_MAX}
+
+Throttle max slew rate.
+
+Maximum slew rate for the commanded throttle
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1.0 | 0.01 | 0.0 |  
+
+### FW_T_ALT_TC (`FLOAT`) {#FW_T_ALT_TC}
+
+Altitude error time constant.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 2.0 |  | 0.5 | 5.0 |  
+
+### FW_T_F_ALT_ERR (`FLOAT`) {#FW_T_F_ALT_ERR}
+
+Fast descend: minimum altitude error.
+
+Minimum altitude error needed to descend with max airspeed and minimal throttle. A negative value disables fast descend.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | -1.0 |  |  | -1.0 |  
+
+### FW_T_HRATE_FF (`FLOAT`) {#FW_T_HRATE_FF}
+
+Height rate feed forward.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1.0 | 0.05 | 0.3 |  
+
+### FW_T_I_GAIN_PIT (`FLOAT`) {#FW_T_I_GAIN_PIT}
+
+Integrator gain pitch.
+
+Increase it to trim out speed and height offsets faster, with the downside of possible overshoots and oscillations.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 2.0 | 0.05 | 0.1 |  
+
+### FW_T_PTCH_DAMP (`FLOAT`) {#FW_T_PTCH_DAMP}
+
+Pitch damping gain.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 2.0 | 0.1 | 0.1 |  
+
+### FW_T_RLL2THR (`FLOAT`) {#FW_T_RLL2THR}
+
+Roll -> Throttle feedforward.
+
+Is used to compensate for the additional drag created by turning. Increase this gain if the aircraft initially loses energy in turns and reduce if the aircraft initially gains energy in turns.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 20.0 | 0.5 | 15.0 |  
+
+### FW_T_SEB_R_FF (`FLOAT`) {#FW_T_SEB_R_FF}
+
+Specific total energy balance rate feedforward gain.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.5 | 3 | 0.01 | 1.0 |  
+
+### FW_T_SINK_MAX (`FLOAT`) {#FW_T_SINK_MAX}
+
+Maximum descent rate.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 1.0 | 15.0 | 0.5 | 5.0 | m/s 
+
+### FW_T_SPD_DEV_STD (`FLOAT`) {#FW_T_SPD_DEV_STD}
+
+Airspeed rate measurement standard deviation.
+
+For the airspeed filter in TECS.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.01 | 10.0 | 0.1 | 0.2 | m/s^2 
+
+### FW_T_SPD_PRC_STD (`FLOAT`) {#FW_T_SPD_PRC_STD}
+
+Process noise standard deviation for the airspeed rate.
+
+This is defining the noise in the airspeed rate for the constant airspeed rate model of the TECS airspeed filter.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.01 | 10.0 | 0.1 | 0.2 | m/s^2 
+
+### FW_T_SPD_STD (`FLOAT`) {#FW_T_SPD_STD}
+
+Airspeed measurement standard deviation.
+
+For the airspeed filter in TECS.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.01 | 10.0 | 0.1 | 0.07 | m/s 
+
+### FW_T_STE_R_TC (`FLOAT`) {#FW_T_STE_R_TC}
+
+Specific total energy rate first order filter time constant.
+
+This filter is applied to the specific total energy rate used for throttle damping.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 2 | 0.01 | 0.4 |  
+
+### FW_T_TAS_TC (`FLOAT`) {#FW_T_TAS_TC}
+
+True airspeed error time constant.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 2.0 |  | 0.5 | 5.0 |  
+
+### FW_T_THR_DAMPING (`FLOAT`) {#FW_T_THR_DAMPING}
+
+Throttle damping factor.
+
+This is the damping gain for the throttle demand loop.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1.0 | 0.01 | 0.05 |  
+
+### FW_T_THR_INTEG (`FLOAT`) {#FW_T_THR_INTEG}
+
+Integrator gain throttle.
+
+Increase it to trim out speed and height offsets faster, with the downside of possible overshoots and oscillations.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1.0 | 0.005 | 0.02 |  
+
+### FW_T_THR_LOW_HGT (`FLOAT`) {#FW_T_THR_LOW_HGT}
+
+Low-height threshold for tighter altitude tracking.
+
+Height above ground threshold below which tighter altitude tracking gets enabled (see FW_LND_THRTC_SC). Below this height, TECS smoothly (1 sec / sec) transitions the altitude tracking time constant from FW_T_ALT_TC to FW_LND_THRTC_SC*FW_T_ALT_TC. -1 to disable.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | -1 |  | 1 | -1. | m 
+
+### FW_T_VERT_ACC (`FLOAT`) {#FW_T_VERT_ACC}
+
+Maximum vertical acceleration.
+
+This is the maximum vertical acceleration either up or down that the controller will use to correct speed or height errors.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 1.0 | 10.0 | 0.5 | 7.0 | m/s^2 
+
+### FW_WIND_ARSP_SC (`FLOAT`) {#FW_WIND_ARSP_SC}
+
+Wind-based airspeed scaling factor.
+
+Multiplying this factor with the current absolute wind estimate gives the airspeed offset added to the minimum airspeed setpoint limit. This helps to make the system more robust against disturbances (turbulence) in high wind.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0 |  | 0.01 | 0. |  
+
 ## FW NPFG Control
 
 ### NPFG_DAMPING (`FLOAT`) {#NPFG_DAMPING}
@@ -17594,24 +17977,6 @@ Damping ratio of NPFG control law.
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; | 0.10 | 1.00 | 0.01 | 0.7 |  
-
-### NPFG_EN_MIN_GSP (`INT32`) {#NPFG_EN_MIN_GSP}
-
-Enable minimum forward ground speed maintaining excess wind handling logic.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | Enabled (1) |  
-
-### NPFG_GSP_MAX_TK (`FLOAT`) {#NPFG_GSP_MAX_TK}
-
-Maximum, minimum forward ground speed for track keeping in excess wind.
-
-The maximum value of the minimum forward ground speed that may be commanded by the track keeping excess wind handling logic. Commanded in full at the normalized track error fraction of the track error boundary and reduced to zero on track.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 10.0 | 0.5 | 5.0 | m/s 
 
 ### NPFG_LB_PERIOD (`INT32`) {#NPFG_LB_PERIOD}
 
@@ -17663,14 +18028,6 @@ Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; | 0.1 | 1.0 | 0.01 | 0.32 |  
 
-### NPFG_TRACK_KEEP (`INT32`) {#NPFG_TRACK_KEEP}
-
-Enable track keeping excess wind handling logic.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | Enabled (1) |  
-
 ### NPFG_UB_PERIOD (`INT32`) {#NPFG_UB_PERIOD}
 
 Enable automatic upper bound on the NPFG period.
@@ -17681,63 +18038,17 @@ Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; |  |  |  | Enabled (1) |  
 
-### NPFG_WIND_REG (`INT32`) {#NPFG_WIND_REG}
-
-Enable wind excess regulation.
-
-Disabling this parameter further disables all other airspeed incrementation options.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | Enabled (1) |  
-
-## FW Path Control
-
-### FW_PN_R_SLEW_MAX (`FLOAT`) {#FW_PN_R_SLEW_MAX}
-
-Path navigation roll slew rate limit.
-
-Maximum change in roll angle setpoint per second. Applied in all Auto modes, plus manual Position & Altitude modes.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0 |  | 1 | 90.0 | deg/s 
-
-### FW_POS_STK_CONF (`INT32`) {#FW_POS_STK_CONF}
-
-Custom stick configuration.
-
-Applies in manual Position and Altitude flight modes.
-
-**Bitmask:**
-
-- `0`: Alternative stick configuration (height rate on throttle stick, airspeed on pitch stick)
-- `1`: Enable airspeed setpoint via sticks in altitude and position flight mode
-
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 3 |  | 2 |  
-
-### FW_R_LIM (`FLOAT`) {#FW_R_LIM}
-
-Maximum roll angle setpoint.
-
-Applies in any altitude controlled flight mode.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 35.0 | 65.0 | 0.5 | 50.0 | deg 
-
-### FW_TKO_PITCH_MIN (`FLOAT`) {#FW_TKO_PITCH_MIN}
-
-Minimum pitch during takeoff.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | -5.0 | 30.0 | 0.5 | 10.0 | deg 
-
 ## FW Performance
+
+### FW_AIRSPD_FLP_SC (`FLOAT`) {#FW_AIRSPD_FLP_SC}
+
+Airspeed scale with full flaps.
+
+Factor applied to the minimum and stall airspeed when flaps are fully deployed.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.5 | 1 | 0.01 | 1. |  
 
 ### FW_AIRSPD_MAX (`FLOAT`) {#FW_AIRSPD_MAX}
 
@@ -17975,26 +18286,6 @@ Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; | -0.5 | 0.5 | 0.01 | 0.0 |  
 
-### FW_FLAPS_LND_SCL (`FLOAT`) {#FW_FLAPS_LND_SCL}
-
-Flaps setting during landing.
-
-Sets a fraction of full flaps during landing. Also applies to flaperons if enabled in the mixer/allocation.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 1.0 | 0.01 | 1.0 | norm 
-
-### FW_FLAPS_TO_SCL (`FLOAT`) {#FW_FLAPS_TO_SCL}
-
-Flaps setting during take-off.
-
-Sets a fraction of full flaps during take-off. Also applies to flaperons if enabled in the mixer/allocation.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 1.0 | 0.01 | 0.0 | norm 
-
 ### FW_MAN_P_SC (`FLOAT`) {#FW_MAN_P_SC}
 
 Manual pitch scale.
@@ -18189,286 +18480,6 @@ Yaw rate proportional gain.
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; | 0.0 | 10 | 0.005 | 0.05 | %/rad/s 
-
-## FW TECS
-
-### FW_GND_SPD_MIN (`FLOAT`) {#FW_GND_SPD_MIN}
-
-Minimum groundspeed.
-
-The controller will increase the commanded airspeed to maintain this minimum groundspeed to the next waypoint.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 40 | 0.5 | 5.0 | m/s 
-
-### FW_P_LIM_MAX (`FLOAT`) {#FW_P_LIM_MAX}
-
-Maximum pitch angle setpoint.
-
-Applies in any altitude controlled flight mode.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 60.0 | 0.5 | 30.0 | deg 
-
-### FW_P_LIM_MIN (`FLOAT`) {#FW_P_LIM_MIN}
-
-Minimum pitch angle setpoint.
-
-Applies in any altitude controlled flight mode.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | -60.0 | 0.0 | 0.5 | -30.0 | deg 
-
-### FW_THR_IDLE (`FLOAT`) {#FW_THR_IDLE}
-
-Idle throttle.
-
-This is the minimum throttle while on the ground ("landed") in auto modes.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 0.4 | 0.01 | 0.0 | norm 
-
-### FW_THR_MAX (`FLOAT`) {#FW_THR_MAX}
-
-Throttle limit max.
-
-Applies in any altitude controlled flight mode. Should be set accordingly to achieve FW_T_CLMB_MAX.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 1.0 | 0.01 | 1.0 | norm 
-
-### FW_THR_MIN (`FLOAT`) {#FW_THR_MIN}
-
-Throttle limit min.
-
-Applies in any altitude controlled flight mode. Usually set to 0 but can be increased to prevent the motor from stopping when descending, which can increase achievable descent rates.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 1.0 | 0.01 | 0.0 | norm 
-
-### FW_THR_SLEW_MAX (`FLOAT`) {#FW_THR_SLEW_MAX}
-
-Throttle max slew rate.
-
-Maximum slew rate for the commanded throttle
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 1.0 | 0.01 | 0.0 |  
-
-### FW_TKO_AIRSPD (`FLOAT`) {#FW_TKO_AIRSPD}
-
-Takeoff Airspeed.
-
-The calibrated airspeed setpoint during the takeoff climbout. If set <= 0, FW_AIRSPD_MIN will be set by default.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | -1.0 |  | 0.1 | -1.0 | m/s 
-
-### FW_T_ALT_TC (`FLOAT`) {#FW_T_ALT_TC}
-
-Altitude error time constant.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 2.0 |  | 0.5 | 5.0 |  
-
-### FW_T_CLMB_R_SP (`FLOAT`) {#FW_T_CLMB_R_SP}
-
-Default target climbrate.
-
-In auto modes: default climb rate output by controller to achieve altitude setpoints. In manual modes: maximum climb rate setpoint.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.5 | 15 | 0.01 | 3.0 | m/s 
-
-### FW_T_F_ALT_ERR (`FLOAT`) {#FW_T_F_ALT_ERR}
-
-Fast descend: minimum altitude error.
-
-Minimum altitude error needed to descend with max airspeed and minimal throttle. A negative value disables fast descend.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | -1.0 |  |  | -1.0 |  
-
-### FW_T_HRATE_FF (`FLOAT`) {#FW_T_HRATE_FF}
-
-Height rate feed forward.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 1.0 | 0.05 | 0.3 |  
-
-### FW_T_I_GAIN_PIT (`FLOAT`) {#FW_T_I_GAIN_PIT}
-
-Integrator gain pitch.
-
-Increase it to trim out speed and height offsets faster, with the downside of possible overshoots and oscillations.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 2.0 | 0.05 | 0.1 |  
-
-### FW_T_PTCH_DAMP (`FLOAT`) {#FW_T_PTCH_DAMP}
-
-Pitch damping gain.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 2.0 | 0.1 | 0.1 |  
-
-### FW_T_RLL2THR (`FLOAT`) {#FW_T_RLL2THR}
-
-Roll -> Throttle feedforward.
-
-Is used to compensate for the additional drag created by turning. Increase this gain if the aircraft initially loses energy in turns and reduce if the aircraft initially gains energy in turns.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 20.0 | 0.5 | 15.0 |  
-
-### FW_T_SEB_R_FF (`FLOAT`) {#FW_T_SEB_R_FF}
-
-Specific total energy balance rate feedforward gain.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.5 | 3 | 0.01 | 1.0 |  
-
-### FW_T_SINK_MAX (`FLOAT`) {#FW_T_SINK_MAX}
-
-Maximum descent rate.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 1.0 | 15.0 | 0.5 | 5.0 | m/s 
-
-### FW_T_SINK_R_SP (`FLOAT`) {#FW_T_SINK_R_SP}
-
-Default target sinkrate.
-
-In auto modes: default sink rate output by controller to achieve altitude setpoints. In manual modes: maximum sink rate setpoint.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.5 | 15 | 0.01 | 2.0 | m/s 
-
-### FW_T_SPDWEIGHT (`FLOAT`) {#FW_T_SPDWEIGHT}
-
-Speed <--> Altitude weight.
-
-Adjusts the amount of weighting that the pitch control applies to speed vs height errors. 0 -> control height only 2 -> control speed only (gliders)
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 2.0 | 1.0 | 1.0 |  
-
-### FW_T_SPD_DEV_STD (`FLOAT`) {#FW_T_SPD_DEV_STD}
-
-Airspeed rate measurement standard deviation.
-
-For the airspeed filter in TECS.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.01 | 10.0 | 0.1 | 0.2 | m/s^2 
-
-### FW_T_SPD_PRC_STD (`FLOAT`) {#FW_T_SPD_PRC_STD}
-
-Process noise standard deviation for the airspeed rate.
-
-This is defining the noise in the airspeed rate for the constant airspeed rate model of the TECS airspeed filter.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.01 | 10.0 | 0.1 | 0.2 | m/s^2 
-
-### FW_T_SPD_STD (`FLOAT`) {#FW_T_SPD_STD}
-
-Airspeed measurement standard deviation.
-
-For the airspeed filter in TECS.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.01 | 10.0 | 0.1 | 0.07 | m/s 
-
-### FW_T_STE_R_TC (`FLOAT`) {#FW_T_STE_R_TC}
-
-Specific total energy rate first order filter time constant.
-
-This filter is applied to the specific total energy rate used for throttle damping.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 2 | 0.01 | 0.4 |  
-
-### FW_T_TAS_TC (`FLOAT`) {#FW_T_TAS_TC}
-
-True airspeed error time constant.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 2.0 |  | 0.5 | 5.0 |  
-
-### FW_T_THR_DAMPING (`FLOAT`) {#FW_T_THR_DAMPING}
-
-Throttle damping factor.
-
-This is the damping gain for the throttle demand loop.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 1.0 | 0.01 | 0.05 |  
-
-### FW_T_THR_INTEG (`FLOAT`) {#FW_T_THR_INTEG}
-
-Integrator gain throttle.
-
-Increase it to trim out speed and height offsets faster, with the downside of possible overshoots and oscillations.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 1.0 | 0.005 | 0.02 |  
-
-### FW_T_THR_LOW_HGT (`FLOAT`) {#FW_T_THR_LOW_HGT}
-
-Low-height threshold for tighter altitude tracking.
-
-Height above ground threshold below which tighter altitude tracking gets enabled (see FW_LND_THRTC_SC). Below this height, TECS smoothly (1 sec / sec) transitions the altitude tracking time constant from FW_T_ALT_TC to FW_LND_THRTC_SC*FW_T_ALT_TC. -1 to disable.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | -1 |  | 1 | -1. | m 
-
-### FW_T_VERT_ACC (`FLOAT`) {#FW_T_VERT_ACC}
-
-Maximum vertical acceleration.
-
-This is the maximum vertical acceleration either up or down that the controller will use to correct speed or height errors.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 1.0 | 10.0 | 0.5 | 7.0 | m/s^2 
-
-### FW_WIND_ARSP_SC (`FLOAT`) {#FW_WIND_ARSP_SC}
-
-Wind-based airspeed scaling factor.
-
-Multiplying this factor with the current absolute wind estimate gives the airspeed offset added to the minimum airspeed setpoint limit. This helps to make the system more robust against disturbances (turbulence) in high wind.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0 |  | 0.01 | 0. |  
 
 ## Failure Detector
 
@@ -18930,9 +18941,9 @@ Reboot | minValue | maxValue | increment | default | unit
 
 ### PPS_CAP_ENABLE (`INT32`) {#PPS_CAP_ENABLE}
 
-PPS Capture Enable.
+PPS capture enable.
 
-Enables the PPS capture module. This switches mode of FMU channel 7 to be the PPS input channel.
+Enables the PPS capture module to refine the GPS time from pulses detected on a PWM pin configured as "PPS Input".
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
@@ -19238,7 +19249,7 @@ Reboot | minValue | maxValue | increment | default | unit
 
 Control allocation method.
 
-Selects the algorithm and desaturation method. If set to Automtic, the selection is based on the airframe (CA_AIRFRAME).
+Selects the algorithm and desaturation method. If set to Automatic, the selection is based on the airframe (CA_AIRFRAME).
 
 **Values:**
 
@@ -22010,13 +22021,13 @@ Maximum airspeed allowed in the landed state
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 2 | 20 |  | 6.00 | m/s 
+&nbsp; | 2 | 30 |  | 6.00 | m/s 
 
 ### LNDFW_ROT_MAX (`FLOAT`) {#LNDFW_ROT_MAX}
 
 Fixed-wing land detector: max rotational speed.
 
-Maximum allowed norm of the angular velocity in the landed state.
+Maximum allowed norm of the angular velocity in the landed state. Only used if neither airspeed nor groundspeed can be used for landing detection.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
@@ -22040,7 +22051,7 @@ Maximum horizontal velocity allowed in the landed state. A factor of 0.7 is appl
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.5 | 10 |  | 5.0 | m/s 
+&nbsp; | 0.5 | 20 |  | 5.0 | m/s 
 
 ### LNDFW_VEL_Z_MAX (`FLOAT`) {#LNDFW_VEL_Z_MAX}
 
@@ -22060,7 +22071,7 @@ Maximum horizontal (x,y body axes) acceleration allowed in the landed state
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 2 | 15 |  | 8.0 | m/s^2 
+&nbsp; | 2 | 30 |  | 8.0 | m/s^2 
 
 ### LNDMC_ALT_GND (`FLOAT`) {#LNDMC_ALT_GND}
 
@@ -22710,6 +22721,7 @@ The MAVLink Mode defines the set of streamed messages (for example the vehicle's
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
 - `12`: uAvionix
+- `13`: Low Bandwidth
 
 
 Reboot | minValue | maxValue | increment | default | unit
@@ -22856,6 +22868,7 @@ The MAVLink Mode defines the set of streamed messages (for example the vehicle's
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
 - `12`: uAvionix
+- `13`: Low Bandwidth
 
 
 Reboot | minValue | maxValue | increment | default | unit
@@ -23002,6 +23015,7 @@ The MAVLink Mode defines the set of streamed messages (for example the vehicle's
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
 - `12`: uAvionix
+- `13`: Low Bandwidth
 
 
 Reboot | minValue | maxValue | increment | default | unit
@@ -23267,26 +23281,6 @@ Reboot | minValue | maxValue | increment | default | unit
 &nbsp; | -1 | 15 |  | -1. | s 
 
 ## Mission
-
-### FW_GPSF_LT (`INT32`) {#FW_GPSF_LT}
-
-GPS failure loiter time.
-
-The time the system should do open loop loiter and wait for GPS recovery before it starts descending. Set to 0 to disable. Roll angle is set to FW_GPSF_R. Does only apply for fixed-wing vehicles or VTOLs with NAV_FORCE_VT set to 0.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 3600 |  | 30 | s 
-
-### FW_GPSF_R (`FLOAT`) {#FW_GPSF_R}
-
-GPS failure fixed roll angle.
-
-Roll angle in GPS failure loiter mode.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 30.0 | 0.5 | 15.0 | deg 
 
 ### MIS_COMMAND_TOUT (`FLOAT`) {#MIS_COMMAND_TOUT}
 
@@ -23937,7 +23931,7 @@ Limits the acceleration of the yaw setpoint to avoid large control output and mi
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 5 | 360 | 5 | 60. | deg/s^2 
+&nbsp; | 5 | 360 | 5 | 20. | deg/s^2 
 
 ### MPC_YAWRAUTO_MAX (`FLOAT`) {#MPC_YAWRAUTO_MAX}
 
@@ -23947,7 +23941,7 @@ Limits the rate of change of the yaw setpoint to avoid large control output and 
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 5 | 360 | 5 | 45. | deg/s 
+&nbsp; | 5 | 360 | 5 | 60. | deg/s 
 
 ## Multicopter Position Control
 
@@ -24138,7 +24132,7 @@ Reboot | minValue | maxValue | increment | default | unit
 
 Altitude for 3. step of slow landing.
 
-Below this altitude descending velocity gets limited to "MPC_LAND_CRWL", if LIDAR available. No effect if LIDAR not available
+If a valid distance sensor measurement to the ground is available, limit descending velocity to "MPC_LAND_CRWL" below this altitude.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
@@ -24337,9 +24331,9 @@ Reboot | minValue | maxValue | increment | default | unit
 
 ### MPC_USE_HTE (`INT32`) {#MPC_USE_HTE}
 
-Hover thrust estimator.
+Use hover thrust estimate for altitude control.
 
-Disable to use the fixed parameter MPC_THR_HOVER. Enable to use the hover thrust estimator. This parameter does not influence Stabilized mode throttle curve (see MPC_THR_CURVE).
+Disable to use the fixed parameter MPC_THR_HOVER instead of the hover thrust estimate in the position controller. This parameter does not influence Stabilized mode throttle curve (see MPC_THR_CURVE).
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
@@ -27477,6 +27471,7 @@ Return mode destination and flight path (home location, rally point, mission lan
 - `1`: Return to closest safe point other than home (mission landing pattern or rally point), via direct path. If no mission landing or rally points are defined return home via direct path. Always chose closest safe landing point if vehicle is a VTOL in hover mode.
 - `2`: Return to a planned mission landing, if available, using the mission path, else return to home via the reverse mission path. Do not consider rally points.
 - `3`: Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the destination is a mission landing pattern, follow the pattern to land.
+- `4`: Return to the planned mission landing, or to home via the reverse mission path, whichever is closer by counting waypoints. Do not consider rally points.
 
 
 Reboot | minValue | maxValue | increment | default | unit
@@ -28051,37 +28046,13 @@ Reboot | minValue | maxValue | increment | default | unit
 
 ## Runway Takeoff
 
-### RWTO_HDG (`INT32`) {#RWTO_HDG}
-
-Specifies which heading should be held during the runway takeoff ground roll.
-
-0: airframe heading when takeoff is initiated 1: position control along runway direction (bearing defined from vehicle position on takeoff initiation to MAV_CMD_TAKEOFF position defined by operator)
-
-**Values:**
-
-- `0`: Airframe
-- `1`: Runway
-
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 1 |  | 0 |  
-
 ### RWTO_MAX_THR (`FLOAT`) {#RWTO_MAX_THR}
 
-Max throttle during runway takeoff.
+Throttle during runway takeoff.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; | 0.0 | 1.0 | 0.01 | 1.0 | norm 
-
-### RWTO_NPFG_PERIOD (`FLOAT`) {#RWTO_NPFG_PERIOD}
-
-NPFG period while steering on runway.
-
-Reboot | minValue | maxValue | increment | default | unit
---- | --- | --- | --- | --- | ---
-&nbsp; | 1.0 | 100.0 | 0.1 | 5.0 | s 
 
 ### RWTO_NUDGE (`INT32`) {#RWTO_NUDGE}
 
@@ -28253,11 +28224,12 @@ This integer bitmask controls the set and rates of logged topics. The default al
 - `8`: Raw FIFO high-rate IMU (Gyro)
 - `9`: Raw FIFO high-rate IMU (Accel)
 - `10`: Mavlink tunnel message logging
+- `11`: High rate sensors
 
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&check; | 0 | 2047 |  | 1 |  
+&check; | 0 | 4095 |  | 1 |  
 
 ### SDLOG_UTC_OFFSET (`INT32`) {#SDLOG_UTC_OFFSET}
 
@@ -30335,6 +30307,16 @@ Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; |  |  |  | 0.0 |  
 
+### SENS_DPRES_REV (`INT32`) {#SENS_DPRES_REV}
+
+Reverse differential pressure sensor readings.
+
+Reverse the raw measurements of all differential pressure sensors. This can be enabled if the sensors have static and dynamic ports swapped.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | Disabled (0) |  
+
 ### SENS_FLOW_MAXHGT (`FLOAT`) {#SENS_FLOW_MAXHGT}
 
 Maximum height above ground when reliant on optical flow.
@@ -30486,7 +30468,7 @@ The cutoff frequency for the 2nd order butterworth filter used on the time deriv
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 |  | 30.0 | Hz 
+&check; | 0 | 1000 | 0.1 | 30.0 | Hz 
 
 ### IMU_GYRO_CAL_EN (`INT32`) {#IMU_GYRO_CAL_EN}
 
@@ -30504,7 +30486,7 @@ The cutoff frequency for the 2nd order butterworth filter on the primary gyro. T
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 |  | 40.0 | Hz 
+&check; | 0 | 1000 | 0.1 | 40.0 | Hz 
 
 ### IMU_GYRO_DNF_BW (`FLOAT`) {#IMU_GYRO_DNF_BW}
 
@@ -30514,7 +30496,7 @@ Bandwidth per notch filter when using dynamic notch filtering with ESC RPM.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 5 | 30 |  | 15. | Hz 
+&nbsp; | 5 | 30 | 0.1 | 15. | Hz 
 
 ### IMU_GYRO_DNF_EN (`INT32`) {#IMU_GYRO_DNF_EN}
 
@@ -30550,7 +30532,7 @@ Minimum notch filter frequency in Hz.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 25. | Hz 
+&nbsp; |  |  | 0.1 | 25. | Hz 
 
 ### IMU_GYRO_FFT_EN (`INT32`) {#IMU_GYRO_FFT_EN}
 
@@ -30608,7 +30590,7 @@ The frequency width of the stop band for the 2nd order notch filter on the prima
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&check; | 0 | 100 |  | 20.0 | Hz 
+&check; | 0 | 100 | 0.1 | 20.0 | Hz 
 
 ### IMU_GYRO_NF0_FRQ (`FLOAT`) {#IMU_GYRO_NF0_FRQ}
 
@@ -30618,7 +30600,7 @@ The center frequency for the 2nd order notch filter on the primary gyro. This fi
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 |  | 0.0 | Hz 
+&check; | 0 | 1000 | 0.1 | 0.0 | Hz 
 
 ### IMU_GYRO_NF1_BW (`FLOAT`) {#IMU_GYRO_NF1_BW}
 
@@ -30628,7 +30610,7 @@ The frequency width of the stop band for the 2nd order notch filter on the prima
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&check; | 0 | 100 |  | 20.0 | Hz 
+&check; | 0 | 100 | 0.1 | 20.0 | Hz 
 
 ### IMU_GYRO_NF1_FRQ (`FLOAT`) {#IMU_GYRO_NF1_FRQ}
 
@@ -30638,7 +30620,7 @@ The center frequency for the 2nd order notch filter on the primary gyro. This fi
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 |  | 0.0 | Hz 
+&check; | 0 | 1000 | 0.1 | 0.0 | Hz 
 
 ### IMU_GYRO_RATEMAX (`INT32`) {#IMU_GYRO_RATEMAX}
 
@@ -30724,7 +30706,7 @@ INA226 Power Monitor Config.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 65535 | 1 | 18139 |  
+&check; | 0 | 65535 | 1 | 18139 |  
 
 ### INA226_CURRENT (`FLOAT`) {#INA226_CURRENT}
 
@@ -30732,7 +30714,7 @@ INA226 Power Monitor Max Current.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 200.0 | 0.1 | 164.0 |  
+&check; | 0.1 | 200.0 | 0.1 | 164.0 |  
 
 ### INA226_SHUNT (`FLOAT`) {#INA226_SHUNT}
 
@@ -30740,7 +30722,7 @@ INA226 Power Monitor Shunt.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.000000001 | 0.1 | .000000001 | 0.0005 |  
+&check; | 0.000000001 | 0.1 | .000000001 | 0.0005 |  
 
 ### INA228_CONFIG (`INT32`) {#INA228_CONFIG}
 
@@ -30748,7 +30730,7 @@ INA228 Power Monitor Config.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 65535 | 1 | 63779 |  
+&check; | 0 | 65535 | 1 | 63779 |  
 
 ### INA228_CURRENT (`FLOAT`) {#INA228_CURRENT}
 
@@ -30756,7 +30738,7 @@ INA228 Power Monitor Max Current.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 327.68 | 0.1 | 327.68 |  
+&check; | 0.1 | 327.68 | 0.1 | 327.68 |  
 
 ### INA228_SHUNT (`FLOAT`) {#INA228_SHUNT}
 
@@ -30764,7 +30746,7 @@ INA228 Power Monitor Shunt.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.000000001 | 0.1 | .000000001 | 0.0005 |  
+&check; | 0.000000001 | 0.1 | .000000001 | 0.0005 |  
 
 ### INA238_CURRENT (`FLOAT`) {#INA238_CURRENT}
 
@@ -30772,7 +30754,7 @@ INA238 Power Monitor Max Current.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 327.68 | 0.1 | 327.68 |  
+&check; | 0.1 | 327.68 | 0.1 | 327.68 |  
 
 ### INA238_SHUNT (`FLOAT`) {#INA238_SHUNT}
 
@@ -30780,7 +30762,7 @@ INA238 Power Monitor Shunt.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.000000001 | 0.1 | .000000001 | 0.0003 |  
+&check; | 0.000000001 | 0.1 | .000000001 | 0.0005 |  
 
 ### PCF8583_MAGNET (`INT32`) {#PCF8583_MAGNET}
 
@@ -31402,7 +31384,7 @@ Configure on which serial port to run Lightware SF45 Rangefinder (serial).
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 102 |  
+&check; |  |  |  | 0 |  
 
 ### SENS_EN_SHT3X (`INT32`) {#SENS_EN_SHT3X}
 
@@ -32396,6 +32378,23 @@ Configure on which serial port to run Benewake TFmini Rangefinder.
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &check; |  |  |  | 0 |  
+
+### SENS_TFMINI_HW (`INT32`) {#SENS_TFMINI_HW}
+
+Hardware Model.
+
+Models differ in range and FoV.
+
+**Values:**
+
+- `1`: TFMINI
+- `2`: ISTRA24
+- `3`: ISTRA24_100m
+
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&check; | 1 | 3 |  | 1 |  
 
 ### SENS_ULAND_CFG (`INT32`) {#SENS_ULAND_CFG}
 
@@ -33594,10 +33593,11 @@ Vehicle type.
 
 **Values:**
 
-- `0`: Multicopter
+- `0`: Quadcopter
 - `1`: Fixed-Wing
 - `2`: Tailsitter
 - `3`: Standard VTOL
+- `4`: Hexacopter
 
 
 Reboot | minValue | maxValue | increment | default | unit
@@ -33792,11 +33792,13 @@ Reboot | minValue | maxValue | increment | default | unit
 
 Dataman storage backend.
 
+If the board supports persistent storage (i.e., the KConfig variable DATAMAN_PERSISTENT_STORAGE is set), the 'Default storage' backend uses a file on persistent storage. If not supported, this backend uses non-persistent storage in RAM.
+
 **Values:**
 
-- `-1`: Disabled
-- `0`: default (SD card)
-- `1`: RAM (not persistent)
+- `-1`: Dataman disabled
+- `0`: Default storage
+- `1`: RAM storage
 
 
 Reboot | minValue | maxValue | increment | default | unit
@@ -36119,6 +36121,14 @@ Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
 &nbsp; | 20000 | 1000000 |  | 1000000 |  
 
+### CANNODE_PUB_IMU (`INT32`) {#CANNODE_PUB_IMU}
+
+Enable RawIMU pub.
+
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; |  | 1 |  | Disabled (0) |  
+
 ### CANNODE_PUB_MBD (`INT32`) {#CANNODE_PUB_MBD}
 
 Enable MovingBaselineData publication.
@@ -37271,17 +37281,17 @@ Reboot | minValue | maxValue | increment | default | unit
 
 Use fixed-wing actuation in hover to accelerate forward.
 
-This feature can be used to avoid the plane having to pitch nose down in order to move forward. Prevents large, negative lift from pitching nose down into wind. Fixed-wing forward actuators refers to puller/pusher (standard VTOL), or forward-tilt (tiltrotor VTOL). Only active if demanded down pitch is below VT_PITCH_MIN. Use VT_FWD_THRUST_SC to tune it. Descend mode is treated as Landing too. Only active (if enabled) in Altitude, Position and Auto modes, not in Stabilized.
+Prevents downforce from pitching the body down when facing wind. Uses puller/pusher (standard VTOL), or forward-tilt (tiltrotor VTOL) to accelerate forward instead. Only active if demanded pitch  is below VT_PITCH_MIN. Use VT_FWD_THRUST_SC to tune it. Descend mode is treated as Landing too. Only active (if enabled) in height-rate controlled modes.
 
 **Values:**
 
 - `0`: Disabled
 - `1`: Enabled (except LANDING)
-- `2`: Enabled if distance to ground above MPC_LAND_ALT1
-- `3`: Enabled if distance to ground above MPC_LAND_ALT2
+- `2`: Enabled if above MPC_LAND_ALT1
+- `3`: Enabled if above MPC_LAND_ALT2
 - `4`: Enabled constantly
-- `5`: Enabled if distance to ground above MPC_LAND_ALT1 (except LANDING)
-- `6`: Enabled if distance to ground above MPC_LAND_ALT2 (except LANDING)
+- `5`: Enabled if above MPC_LAND_ALT1 (except LANDING)
+- `6`: Enabled if above MPC_LAND_ALT2 (except LANDING)
 
 
 Reboot | minValue | maxValue | increment | default | unit
@@ -37290,13 +37300,13 @@ Reboot | minValue | maxValue | increment | default | unit
 
 ### VT_FWD_THRUST_SC (`FLOAT`) {#VT_FWD_THRUST_SC}
 
-Fixed-wing actuation thrust scale for hover forward flight.
+Fixed-wing actuation thrust scale in hover.
 
-Scale applied to the demanded down-pitch to get the fixed-wing forward actuation in hover mode. Enabled via VT_FWD_THRUST_EN.
+Scale applied to the demanded pitch (below VT_PITCH_MIN) to get the fixed-wing forward actuation in hover mode. Enabled via VT_FWD_THRUST_EN.
 
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 2.0 | 0.01 | 0.7 |  
+&nbsp; | 0.0 | 5.0 | 0.01 | 0.7 |  
 
 ### VT_FW_DIFTHR_EN (`INT32`) {#VT_FW_DIFTHR_EN}
 
