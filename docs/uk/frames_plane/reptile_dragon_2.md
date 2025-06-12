@@ -20,12 +20,12 @@ The Reptile Dragon 2 is a twin motor RC airplane specifically designed for effic
 - Видалення V-хвоста або варіанти звичайного хвоста включені
 - Різьбові вставки в крилах та верхній частині фюзеляжу для зовнішнього монтажу
 - Чимало кріплень-ознак
- - Отвір для верхньої антени
- - Верхнє покриття GPS
- - Кріплення антени біля гільзи "T"
- - Задній електронний лоток
- - Виріз "екшн камери" на передній панелі
- - Виріз для камери FPV спереду
+  - Отвір для верхньої антени
+  - Верхнє покриття GPS
+  - Кріплення антени біля гільзи "T"
+  - Задній електронний лоток
+  - Виріз "екшн камери" на передній панелі
+  - Виріз для камери FPV спереду
 - Знімні крила
 - Низька швидкість стійки
 - Лагідна обробка
@@ -69,10 +69,10 @@ The Reptile Dragon 2 is a twin motor RC airplane specifically designed for effic
 - [6s2p 18650 LiIon flight battery](https://www.upgradeenergytech.com/product-page/6s-22-2v-5600mah-30c-dark-lithium-liion-drone-battery) (select XT60 connector)
 
 - [Custom designed 3D printed parts](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/reptile_dragon_2/rd2_3d_printed_parts.zip)
- - Монтаж платформи ARK6X
- - Кріплення для каркасу Holybro Pixhawk 5x
- - FPV модуль та кріплення камери
- - Адаптер "заглушка" статичного зонда Піто
+  - Монтаж платформи ARK6X
+  - Кріплення для каркасу Holybro Pixhawk 5x
+  - FPV модуль та кріплення камери
+  - Адаптер "заглушка" статичного зонда Піто
 
 - [Custom designed power distribution PCB](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/reptile_dragon_2/xt30_power_distro_pcb.zip)
 
@@ -425,15 +425,15 @@ With the propellers removed, power the airplane up and use the [Actuator](../con
 Я рекомендую перевірити наступні елементи:
 
 - Калібрування датчиків (QGC)
- - Калібрування магнітів
- - Калібрування акселерометра
- - Калібрування швидкості повітря
- - Калібрування рівня горизонту
+  - Калібрування магнітів
+  - Калібрування акселерометра
+  - Калібрування швидкості повітря
+  - Калібрування рівня горизонту
 - Перевірка контролю над відхиленням поверхні
 - Right stick -> Right aileron goes up, left aileron goes down
 - Left stick -> Left aileron goes up, right aileron goes down
 - Stick back -> elevator goes up
- -Stick forward -> elevator goes down
+  -Stick forward -> elevator goes down
 - Left rudder -> Rudder goes left
 - Right rudder -> Rudder goes right
 - Check Px4 inputs (in `stabilized mode`)
