@@ -173,6 +173,9 @@ PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
  * This parameter defines a rotational offset in degrees around the Y (Pitch) axis. It allows the user
  * to fine tune the board offset in the event of misalignment.
  *
+ * @min -45.0
+ * @max 45.0
+ * @decimal 1
  * @unit deg
  * @group Sensors
  */
@@ -185,6 +188,9 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_Y_OFF, 0.0f);
  * to fine tune the board offset in the event of misalignment.
  *
  * @unit deg
+ * @min -45.0
+ * @max 45.0
+ * @decimal 1
  * @group Sensors
  */
 PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
@@ -195,6 +201,9 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
  * This parameter defines a rotational offset in degrees around the Z (Yaw) axis. It allows the user
  * to fine tune the board offset in the event of misalignment.
  *
+ * @min -45.0
+ * @max 45.0
+ * @decimal 1
  * @unit deg
  * @group Sensors
  */
