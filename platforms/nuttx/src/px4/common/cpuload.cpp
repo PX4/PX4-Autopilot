@@ -58,6 +58,7 @@ __EXPORT struct system_load_s system_load;
 #define HASH(i) ((i) & (hashtab_size - 1))
 
 struct system_load_taskinfo_s **hashtab;
+static spinlock_t g_hashtab_lock = SP_UNLOCKED;
 volatile int hashtab_size;
 
 void init_task_hash(void)
@@ -69,33 +70,34 @@ void init_task_hash(void)
 static struct system_load_taskinfo_s *get_task_info(pid_t pid)
 {
 	struct system_load_taskinfo_s *ret = NULL;
-	irqstate_t flags = px4_enter_critical_section();
+	irqstate_t flags = spin_lock_irqsave_notrace(&g_hashtab_lock);
 
 	if (hashtab) {
 		ret = hashtab[HASH(pid)];
 	}
 
-	px4_leave_critical_section(flags);
+	spin_unlock_irqrestore_notrace(&g_hashtab_lock, flags);
 	return ret;
 }
 
 static void drop_task_info(pid_t pid)
 {
-	irqstate_t flags = px4_enter_critical_section();
+	irqstate_t flags = spin_lock_irqsave_notrace(&g_hashtab_lock);
 	hashtab[HASH(pid)] = NULL;
-	px4_leave_critical_section(flags);
+	spin_unlock_irqrestore_notrace(&g_hashtab_lock, flags);
 }
 
 static int hash_task_info(struct system_load_taskinfo_s *task_info, pid_t pid)
 {
 	struct system_load_taskinfo_s **newtab;
+	struct system_load_taskinfo_s **oldtab;
 	void *temp;
 	int hash;
 	int i;
 
 	/* Use critical section to protect the hash table */
 
-	irqstate_t flags = px4_enter_critical_section();
+	irqstate_t flags = spin_lock_irqsave_notrace(&g_hashtab_lock);
 
 	/* Keep trying until we get it or run out of memory */
 
@@ -109,17 +111,31 @@ retry:
 
 	if (hashtab[hash] == NULL || task_info->tcb->pid == hashtab[hash]->tcb->pid) {
 		hashtab[hash] = task_info;
-		px4_leave_critical_section(flags);
+		spin_unlock_irqrestore_notrace(&g_hashtab_lock, flags);
 		return OK;
 	}
 
 	/* No can do, double the size of the hash table */
 
+	oldtab = hashtab;
+	spin_unlock_irqrestore_notrace(&g_hashtab_lock, flags);
 	newtab = (struct system_load_taskinfo_s **)kmm_zalloc(hashtab_size * 2 * sizeof(*newtab));
+	flags = spin_lock_irqsave_notrace(&g_hashtab_lock);
 
 	if (newtab == NULL) {
-		px4_leave_critical_section(flags);
+		spin_unlock_irqrestore_notrace(&g_hashtab_lock, flags);
 		return -ENOMEM;
+	}
+
+	/* Did someone else already re-alloc the table ? */
+
+	if (oldtab != hashtab) {
+		/* Yes, free the allocated table and try again */
+
+		spin_unlock_irqrestore_notrace(&g_hashtab_lock, flags);
+		kmm_free(newtab);
+		flags = spin_lock_irqsave_notrace(&g_hashtab_lock);
+		goto retry;
 	}
 
 	hashtab_size *= 2;
