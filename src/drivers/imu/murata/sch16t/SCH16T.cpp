@@ -113,9 +113,11 @@ int SCH16T::probe()
 	if (asic_id == 0x21 && comp_id == 0x23) {
 		_detected_version = ChipVersion::REV_1;
 
-	} else if ((asic_id == 0x20 && comp_id == 0x17) || (asic_id == 0x21 && comp_id == 0x24)) {
+	} else if ((asic_id == 0x20 && comp_id == 0x17) || (asic_id == 0x21 && comp_id == 0x24) ||
+		   (asic_id == 0x21 && comp_id == 0x21)) {
 		// ASIC_ID = 0x20, COMP_ID = 0x17 is a B13 variant of REV_2
 		// ASIC_ID = 0x21, COMP_ID = 0x24 is a B10 variant of REV_2
+		// ASIC_ID = 0x21, COMP_ID = 0x21 is a production K10
 		_detected_version = ChipVersion::REV_2;
 
 	} else {
