@@ -2,32 +2,32 @@ menu "nuttx"
 depends on PLATFORM_NUTTX
 menu "STM32"
 menuconfig BOARD_PWM_FREQ
-    int "Board default PWM frequency"
-    default 1000000
-    ---help---
-        Board default PWM frequency.
+	int "Board default PWM frequency"
+	default 1000000
+	---help---
+		Board default PWM frequency
 endmenu
 menu "RPI"
 menuconfig BOARD_PWM_FREQ
-    int "Board default PWM frequency"
-    default 1000000
-    ---help---
-        Board default PWM frequency.
+	int "Board default PWM frequency"
+	default 1000000
+	---help---
+		Board default PWM frequency
 endmenu
 menu "NXP"
 menu "common"
 menuconfig BOARD_PWM_FREQ
-    int "Board default PWM frequency"
-    default 1000000
-    ---help---
-        Board default PWM frequency.
+	int "Board default PWM frequency"
+	default 1000000
+	---help---
+		Board default PWM frequency
 endmenu
 menu "s32k3xx"
 menuconfig BOARD_PWM_FREQ_S32K3XX
-    int "Board default PWM frequency"
-    default 160000000
-    ---help---
-        Board default PWM frequency.
+	int "Board default PWM frequency"
+	default 160000000
+	---help---
+		Board default PWM frequency
 endmenu
 endmenu
 endmenu
