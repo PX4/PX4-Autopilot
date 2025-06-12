@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/imxrt/teensy-4.x/scripts/flash.ld
+ * boards/nxp/tropic-community/nuttx-config/scripts/script.ld
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -22,7 +22,7 @@
 
 MEMORY
 {
-  flash (rx)  : ORIGIN = 0x60000000, LENGTH = 7936K
+  flash (rx)  : ORIGIN = 0x60000000, LENGTH = 7936K - 128K
   sram  (rwx) : ORIGIN = 0x20200000, LENGTH = 512K
   itcm  (rwx) : ORIGIN = 0x00000000, LENGTH = 384K
   dtcm  (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
@@ -67,6 +67,7 @@ SECTIONS
         _sitcmfuncs = ABSOLUTE(.);
         FILL(0xFF)
         . = 0x40 ;
+        *(.ram_vectors)
         INCLUDE "itcm_static_functions.ld"
         INCLUDE "itcm_functions_includes.ld"
         . = ALIGN(8);
@@ -74,19 +75,6 @@ SECTIONS
     } > itcm AT > flash
 
     _fitcmfuncs = LOADADDR(.itcmfunc);
-
-    /* The RAM vector table (if present) should lie at the beginning of SRAM */
-
-    .ram_vectors (COPY) : {
-        *(.ram_vectors)
-    } > dtcm
-
-
-    /* Workaround for ethernet issue, by placing g_desc_pool into DTCM,
-       which effectively puts it into a no-cache region */
-    .dtcm : {
-        *(.bss.g_desc_pool)
-    } > dtcm
 
     .text :
     {

@@ -1,0 +1,68 @@
+#!/bin/sh
+# Un comment and use set +e to ignore and set -e to enable 'exit on error control'
+set +e
+# Un comment the line below to help debug scripts by printing a trace of the script commands
+#set -x
+# PX4FMU startup script.
+#
+# NOTE: environment variable references:
+#    If the dollar sign ('$') is followed by a left bracket ('{') then the
+#    variable name is terminated with the right bracket character ('}').
+#    Otherwise, the variable name goes to the end of the argument.
+#
+#
+# NOTE: COMMENT LINES ARE REMOVED BEFORE STORED IN ROMFS.
+#
+#------------------------------------------------------------------------------
+set R /
+
+#
+# Print full system version.
+#
+ver all
+
+#
+# Set the parameter file the board supports params on
+# MTD device.
+#
+if mft query -q -k MTD -s MTD_PARAMETERS -v /fs/mtd_params
+then
+	set PARAM_FILE /fs/mtd_params
+fi
+
+#
+# Load parameters.
+#
+# if the board has a storage for (factory) calibration data
+if mft query -q -k MTD -s MTD_CALDATA -v /fs/mtd_caldata
+then
+	param load /fs/mtd_caldata
+fi
+
+#
+# Load parameters.
+#
+param select $PARAM_FILE
+if ! param load
+then
+	param reset_all
+fi
+
+#
+# Try to mount the microSD card.
+#
+mount -t vfat /dev/mmcsd0 /fs/microsd
+if [ $? = 0 ]
+then
+	echo "SD card mounted at /fs/microsd"
+else
+	echo "No SD card found"
+fi
+
+unset R
+
+echo ""
+echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+echo "!!!!!!     This is the PERFORMANCE TESTING firmware! WARNs and ERRORs are expected!     !!!!!"
+echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+echo ""

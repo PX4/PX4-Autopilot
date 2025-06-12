@@ -543,40 +543,22 @@ union innovation_fault_status_u {
 	uint16_t value;
 };
 
-// publish the status of various GPS quality checks
-union gps_check_fail_status_u {
-	struct {
-		uint16_t fix    : 1; ///< 0 - true if the fix type is insufficient (no 3D solution)
-		uint16_t nsats  : 1; ///< 1 - true if number of satellites used is insufficient
-		uint16_t pdop   : 1; ///< 2 - true if position dilution of precision is insufficient
-		uint16_t hacc   : 1; ///< 3 - true if reported horizontal accuracy is insufficient
-		uint16_t vacc   : 1; ///< 4 - true if reported vertical accuracy is insufficient
-		uint16_t sacc   : 1; ///< 5 - true if reported speed accuracy is insufficient
-		uint16_t hdrift : 1; ///< 6 - true if horizontal drift is excessive (can only be used when stationary on ground)
-		uint16_t vdrift : 1; ///< 7 - true if vertical drift is excessive (can only be used when stationary on ground)
-		uint16_t hspeed : 1; ///< 8 - true if horizontal speed is excessive (can only be used when stationary on ground)
-		uint16_t vspeed : 1; ///< 9 - true if vertical speed error is excessive
-		uint16_t spoofed: 1; ///< 10 - true if the GNSS data is spoofed
-	} flags;
-	uint16_t value;
-};
-
 // bitmask containing filter control status
 union filter_control_status_u {
 	struct {
 		uint64_t tilt_align              : 1; ///< 0 - true if the filter tilt alignment is complete
 		uint64_t yaw_align               : 1; ///< 1 - true if the filter yaw alignment is complete
-		uint64_t gps                     : 1; ///< 2 - true if GPS measurement fusion is intended
+		uint64_t gnss_pos                : 1; ///< 2 - true if GNSS position measurement fusion is intended
 		uint64_t opt_flow                : 1; ///< 3 - true if optical flow measurements fusion is intended
 		uint64_t mag_hdg                 : 1; ///< 4 - true if a simple magnetic yaw heading fusion is intended
 		uint64_t mag_3D                  : 1; ///< 5 - true if 3-axis magnetometer measurement fusion is intended
 		uint64_t mag_dec                 : 1; ///< 6 - true if synthetic magnetic declination measurements fusion is intended
 		uint64_t in_air                  : 1; ///< 7 - true when the vehicle is airborne
 		uint64_t wind                    : 1; ///< 8 - true when wind velocity is being estimated
-		uint64_t baro_hgt                : 1; ///< 9 - true when baro height is being fused as a primary height reference
+		uint64_t baro_hgt                : 1; ///< 9 - true when baro data is being fused
 uint64_t rng_hgt                 :
-		1; ///< 10 - true when range finder height is being fused as a primary height reference
-		uint64_t gps_hgt                 : 1; ///< 11 - true when GPS height is being fused as a primary height reference
+		1; ///< 10 - true when range finder data is being fused for height aiding
+		uint64_t gps_hgt                 : 1; ///< 11 - true when GPS altitude is being fused
 		uint64_t ev_pos                  : 1; ///< 12 - true when local position data fusion from external vision is intended
 		uint64_t ev_yaw                  : 1; ///< 13 - true when yaw data from external vision measurements fusion is intended
 		uint64_t ev_hgt                  : 1; ///< 14 - true when height data from external vision measurements is being fused
@@ -620,7 +602,8 @@ uint64_t mag_heading_consistent  :
 		uint64_t opt_flow_terrain        : 1; ///< 40 - true if we are fusing flow data for terrain
 		uint64_t valid_fake_pos          : 1; ///< 41 - true if a valid constant position is being fused
 		uint64_t constant_pos            : 1; ///< 42 - true if the vehicle is at a constant position
-
+		uint64_t baro_fault              : 1; ///< 43 - true when the baro has been declared faulty and is no longer being used
+		uint64_t gnss_vel                : 1; ///< 44 - true if GNSS velocity measurement fusion is intended
 	} flags;
 	uint64_t value;
 };

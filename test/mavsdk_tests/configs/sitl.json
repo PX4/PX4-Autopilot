@@ -1,20 +1,24 @@
 {
     "mode": "sitl",
     "simulator": "gazebo",
-    "mavlink_connection": "udp://:14540",
+    "mavlink_connection": "udpin://0.0.0.0:14540",
     "tests":
     [
         {
             "model": "iris",
             "vehicle": "iris",
-            "test_filter": "[multicopter],[offboard][offboard_attitude]",
+            "test_filter": "[multicopter],[offboard],[offboard_attitude]",
             "timeout_min": 10
         },
         {
             "model": "iris",
             "vehicle": "iris",
             "test_filter": "[offboard_attitude]",
-            "timeout_min": 10
+            "timeout_min": 10,
+            "env": {
+                "PX4_PARAM_EKF2_EN": 0,
+                "PX4_PARAM_ATT_EN": 1
+            }
         },
         {
             "model": "standard_vtol",

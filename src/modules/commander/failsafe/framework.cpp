@@ -290,7 +290,9 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 			}
 		}
 
-		mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated\t");
+		if (action != Action::Warn) {
+			mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated\t");
+		}
 	}
 
 #endif /* EMSCRIPTEN_BUILD */
@@ -695,6 +697,7 @@ bool FailsafeBase::modeCanRun(const failsafe_flags_s &status_flags, uint8_t mode
 		(!status_flags.local_position_invalid || ((status_flags.mode_req_local_position & mode_mask) == 0)) &&
 		(!status_flags.local_position_invalid_relaxed || ((status_flags.mode_req_local_position_relaxed & mode_mask) == 0)) &&
 		(!status_flags.global_position_invalid || ((status_flags.mode_req_global_position & mode_mask) == 0)) &&
+		(!status_flags.global_position_invalid_relaxed || ((status_flags.mode_req_global_position_relaxed & mode_mask) == 0)) &&
 		(!status_flags.local_altitude_invalid || ((status_flags.mode_req_local_alt & mode_mask) == 0)) &&
 		(!status_flags.auto_mission_missing || ((status_flags.mode_req_mission & mode_mask) == 0)) &&
 		(!status_flags.offboard_control_signal_lost || ((status_flags.mode_req_offboard_signal & mode_mask) == 0)) &&

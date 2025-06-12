@@ -6,16 +6,16 @@ uint64 timestamp_sample                   # the timestamp of the raw data (micro
 uint32 control_status_changes # number of filter control status (cs) changes
 bool cs_tilt_align            #  0 - true if the filter tilt alignment is complete
 bool cs_yaw_align             #  1 - true if the filter yaw alignment is complete
-bool cs_gps                   #  2 - true if GPS measurement fusion is intended
+bool cs_gnss_pos              #  2 - true if GNSS position measurement fusion is intended
 bool cs_opt_flow              #  3 - true if optical flow measurements fusion is intended
 bool cs_mag_hdg               #  4 - true if a simple magnetic yaw heading fusion is intended
 bool cs_mag_3d                #  5 - true if 3-axis magnetometer measurement fusion is intended
 bool cs_mag_dec               #  6 - true if synthetic magnetic declination measurements fusion is intended
 bool cs_in_air                #  7 - true when the vehicle is airborne
 bool cs_wind                  #  8 - true when wind velocity is being estimated
-bool cs_baro_hgt              #  9 - true when baro height is being fused as a primary height reference
-bool cs_rng_hgt               # 10 - true when range finder height is being fused as a primary height reference
-bool cs_gps_hgt               # 11 - true when GPS height is being fused as a primary height reference
+bool cs_baro_hgt              #  9 - true when baro data is being fused
+bool cs_rng_hgt               # 10 - true when range finder data is being fused for height aiding
+bool cs_gps_hgt               # 11 - true when GPS altitude is being fused
 bool cs_ev_pos                # 12 - true when local position data fusion from external vision is intended
 bool cs_ev_yaw                # 13 - true when yaw data from external vision measurements fusion is intended
 bool cs_ev_hgt                # 14 - true when height data from external vision measurements is being fused
@@ -47,6 +47,8 @@ bool cs_rng_terrain             # 39 - true if we are fusing range finder data f
 bool cs_opt_flow_terrain        # 40 - true if we are fusing flow data for terrain
 bool cs_valid_fake_pos          # 41 - true if a valid constant position is being fused
 bool cs_constant_pos            # 42 - true if the vehicle is at a constant position
+bool cs_baro_fault	        # 43 - true when the current baro has been declared faulty and is no longer being used
+bool cs_gnss_vel                # 44 - true if GNSS velocity measurement fusion is intended
 
 # fault status
 uint32 fault_status_changes   # number of filter fault status (fs) changes

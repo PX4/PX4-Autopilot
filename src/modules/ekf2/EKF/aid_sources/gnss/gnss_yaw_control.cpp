@@ -66,7 +66,7 @@ void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
 				2 * GNSS_YAW_MAX_INTERVAL);
 
 		const bool starting_conditions_passing = continuing_conditions_passing
-				&& _gps_checks_passed
+				&& _gnss_checks.passed()
 				&& !is_gnss_yaw_data_intermittent
 				&& !_gps_intermittent;
 
@@ -96,11 +96,10 @@ void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
 		} else {
 			if (starting_conditions_passing) {
 				// Try to activate GNSS yaw fusion
-				const bool not_using_ne_aiding = !_control_status.flags.gps && !_control_status.flags.aux_gpos;
 
 				if (!_control_status.flags.in_air
 				    || !_control_status.flags.yaw_align
-				    || not_using_ne_aiding) {
+				    || !isNorthEastAidingActive()) {
 
 					// Reset before starting the fusion
 					if (resetYawToGnss(gnss_sample.yaw, gnss_sample.yaw_offset)) {

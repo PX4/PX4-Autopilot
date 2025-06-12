@@ -131,6 +131,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_can-flow_canbootloader
+    ark_can-flow-mr_canbootloader:
+      short: ark_can-flow-mr_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-flow-mr_canbootloader
     ark_can-gps_default:
       short: ark_can-gps_default
       buildType: MinSizeRel
@@ -166,6 +171,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_septentrio-gps_canbootloader
+    ark_teseo-gps_canbootloader:
+      short: ark_teseo-gps_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_teseo-gps_canbootloader
     ark_cannode_default:
       short: ark_cannode_default
       buildType: MinSizeRel
@@ -221,6 +231,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: bitcraze_crazyflie_default
+    bluerobotics_navigator_default:
+      short: bluerobotics_navigator
+      buildType: MinSizeRel
+      settings:
+        CONFIG: bluerobotics_navigator_default
     cuav_can-gps-v1_default:
       short: cuav_can-gps-v1_default
       buildType: MinSizeRel
@@ -286,6 +301,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: holybro_durandal-v1_default
+    holybro_kakuteh7dualimu_default:
+      short: holybro_kakuteh7dualimu
+      buildType: MinSizeRel
+      settings:
+        CONFIG: holybro_kakuteh7dualimu_default
     matek_h743-slim_default:
       short: matek_h743-slim
       buildType: MinSizeRel
@@ -301,6 +321,11 @@ CONFIG:
       buildType: MiniSizeRel
       settings:
         CONFIG: matek_gnss-m9n-f4_default
+    micoair_h743_bootloader:
+      short: micoair_h743_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: micoair_h743_bootloader
     micoair_h743_default:
       short: micoair_h743
       buildType: MinSizeRel
@@ -316,6 +341,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: micoair_h743-aio_default
+    micoair_h743-v2_bootloader:
+      short: micoair_h743-v2_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: micoair_h743-v2_bootloader
+    micoair_h743-v2_default:
+      short: micoair_h743-v2
+      buildType: MinSizeRel
+      settings:
+        CONFIG: micoair_h743-v2_default
     modalai_fc-v1_default:
       short: modalai_fc-v1
       buildType: MinSizeRel

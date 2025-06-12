@@ -1,0 +1,92 @@
+#!/bin/sh
+#
+# @name SIH Standard VTOL QuadPlane
+#
+# @type Simulation
+# @class VTOL
+#
+# @output Motor1 MC motor front right
+# @output Motor2 MC motor back left
+# @output Motor3 MC motor front left
+# @output Motor4 MC motor back right
+# @output Motor5 Forward thrust motor
+# @output Servo1 Ailerons (single channel)
+# @output Servo2 Elevator
+# @output Servo3 Rudder
+#
+# @board px4_fmu-v2 exclude
+#
+
+. ${R}etc/init.d/rc.vtol_defaults
+
+param set UAVCAN_ENABLE 0
+
+param set-default VT_TYPE 2
+param set-default MPC_MAN_Y_MAX 60
+param set-default MC_PITCH_P 5
+
+param set-default CA_AIRFRAME 2
+param set-default CA_ROTOR_COUNT 5
+param set-default CA_ROTOR0_KM 0.05
+param set-default CA_ROTOR0_PX 0.2
+param set-default CA_ROTOR0_PY 0.2
+param set-default CA_ROTOR1_KM 0.05
+param set-default CA_ROTOR1_PX -0.2
+param set-default CA_ROTOR1_PY -0.2
+param set-default CA_ROTOR2_PX 0.2
+param set-default CA_ROTOR2_PY -0.2
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.2
+param set-default CA_ROTOR3_PY 0.2
+param set-default CA_ROTOR3_KM -0.05
+param set-default CA_ROTOR4_PX -0.3
+param set-default CA_ROTOR4_KM 0.05
+param set-default CA_ROTOR4_AX 1
+param set-default CA_ROTOR4_AZ 0
+
+# SIH for now hardcodes this configuration which we need to match in the airframe files.
+param set-default CA_SV_CS_COUNT 3
+param set-default CA_SV_CS0_TRQ_R 1
+param set-default CA_SV_CS0_TYPE 15  # single channel aileron
+param set-default CA_SV_CS1_TRQ_P 1
+param set-default CA_SV_CS1_TYPE 3  # elevator
+param set-default CA_SV_CS2_TRQ_Y 1
+param set-default CA_SV_CS2_TYPE 4  # rudder
+
+param set-default FW_AIRSPD_MIN 7
+param set-default FW_AIRSPD_TRIM 10
+param set-default FW_AIRSPD_MAX 12
+
+param set-default HIL_ACT_FUNC1 101
+param set-default HIL_ACT_FUNC2 102
+param set-default HIL_ACT_FUNC3 103
+param set-default HIL_ACT_FUNC4 104
+param set-default HIL_ACT_FUNC5 201
+param set-default HIL_ACT_FUNC6 202
+param set-default HIL_ACT_FUNC7 203
+param set-default HIL_ACT_FUNC8 105
+
+param set-default MAV_TYPE 22
+
+# set SYS_HITL to 2 to start the SIH and avoid sensors startup
+param set-default SYS_HITL 2
+
+# disable some checks to allow to fly:
+# - without real battery
+param set-default CBRK_SUPPLY_CHK 894281
+
+param set-default SENS_DPRES_OFF 0.001
+
+param set SIH_T_MAX 2.0
+param set SIH_Q_MAX 0.0165
+param set SIH_MASS 0.2
+# IXX and IZZ are inverted from the thesis as the body frame is pitched by 90 deg
+param set SIH_IXX 0.00354
+param set SIH_IYY 0.000625
+param set SIH_IZZ 0.00300
+param set SIH_IXZ 0
+param set SIH_KDV 0.2
+param set SIH_L_ROLL 0.2
+
+# sih as standard vtol
+param set SIH_VEHICLE_TYPE 3

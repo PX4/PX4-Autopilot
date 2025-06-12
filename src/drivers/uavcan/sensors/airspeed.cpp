@@ -104,7 +104,6 @@ UavcanAirspeedBridge::ias_sub_cb(const
 	report.timestamp   		= hrt_absolute_time();
 	report.indicated_airspeed_m_s   = msg.indicated_airspeed;
 	report.true_airspeed_m_s   	= _last_tas_m_s;
-	report.air_temperature_celsius 	= _last_outside_air_temp_k + atmosphere::kAbsoluteNullCelsius;
 
 	publish(msg.getSrcNodeID().get(), &report);
 }

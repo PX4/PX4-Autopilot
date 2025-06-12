@@ -32,3 +32,4 @@
 ############################################################################
 
 px4_add_library(airspeed airspeed.cpp)
+target_link_libraries(airspeed PRIVATE atmosphere)

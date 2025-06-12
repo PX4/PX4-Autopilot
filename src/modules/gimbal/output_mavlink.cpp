@@ -109,6 +109,9 @@ void OutputMavlinkV1::update(const ControlData &control_data, bool new_setpoints
 
 	_stream_device_attitude_status();
 
+	// If the output is MAVLink v1, then we signal this by referring to compid 1.
+	gimbal_device_id = 1;
+
 	_last_update = now;
 }
 
@@ -162,7 +165,7 @@ void OutputMavlinkV2::update(const ControlData &control_data, bool new_setpoints
 			_last_update = now;
 		}
 
-		gimbal_device_id = _gimbal_device_found ? _gimbal_device_compid : 0;
+		gimbal_device_id = _gimbal_device_found ? _gimbal_device_id : 0;
 
 		_publish_gimbal_device_set_attitude();
 	}
@@ -191,7 +194,7 @@ void OutputMavlinkV2::_check_for_gimbal_device_information()
 
 	if (_gimbal_device_information_sub.update(&gimbal_device_information)) {
 		_gimbal_device_found = true;
-		_gimbal_device_compid = gimbal_device_information.gimbal_device_compid;
+		_gimbal_device_id = gimbal_device_information.gimbal_device_id;
 	}
 }
 
@@ -210,7 +213,7 @@ void OutputMavlinkV2::print_status() const
 		     (double)_angle_velocity[2]);
 
 	if (_gimbal_device_found) {
-		PX4_INFO_RAW("  gimbal device compid found: %d\n", _gimbal_device_compid);
+		PX4_INFO_RAW("  gimbal device compid found: %d\n", _gimbal_device_id);
 
 	} else {
 		PX4_INFO_RAW("  gimbal device compid not found\n");
@@ -222,7 +225,7 @@ void OutputMavlinkV2::_publish_gimbal_device_set_attitude()
 	gimbal_device_set_attitude_s set_attitude{};
 	set_attitude.timestamp = hrt_absolute_time();
 	set_attitude.target_system = (uint8_t)_parameters.mav_sysid;
-	set_attitude.target_component = _gimbal_device_compid;
+	set_attitude.target_component = _gimbal_device_id;
 
 	set_attitude.angular_velocity_x = _angle_velocity[0];
 	set_attitude.angular_velocity_y = _angle_velocity[1];

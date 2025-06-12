@@ -113,7 +113,7 @@ static int gimbal_thread_main(int argc, char *argv[])
 	thread_data.input_objs[thread_data.input_objs_len++] = thread_data.test_input;
 
 	switch (params.mnt_mode_in) {
-	case 0:
+	case MNT_MODE_IN_AUTO:
 		// Automatic
 		// MAVLINK_V2 as well as RC input are supported together.
 		// Whichever signal is updated last, gets control, for RC there is a deadzone
@@ -123,19 +123,19 @@ static int gimbal_thread_main(int argc, char *argv[])
 		thread_data.input_objs[thread_data.input_objs_len++] = new InputRC(params);
 		break;
 
-	case 1: // RC only
+	case MNT_MODE_IN_RC: // RC only
 		thread_data.input_objs[thread_data.input_objs_len++] = new InputRC(params);
 		break;
 
-	case 2: // MAVLINK_ROI commands only (to be deprecated)
+	case MNT_MODE_IN_MAVLINK_ROI: // MAVLINK_ROI commands only (to be deprecated)
 		thread_data.input_objs[thread_data.input_objs_len++] = new InputMavlinkROI(params);
 		break;
 
-	case 3: // MAVLINK_DO_MOUNT commands only (to be deprecated)
+	case MNT_MODE_IN_MAVLINK_DO_MOUNT: // MAVLINK_DO_MOUNT commands only (to be deprecated)
 		thread_data.input_objs[thread_data.input_objs_len++] = new InputMavlinkCmdMount(params);
 		break;
 
-	case 4: //MAVLINK_V2
+	case MNT_MODE_IN_MAVLINK_V2: //MAVLINK_V2
 		thread_data.input_objs[thread_data.input_objs_len++] = new InputMavlinkGimbalV2(params);
 		break;
 
@@ -165,21 +165,21 @@ static int gimbal_thread_main(int argc, char *argv[])
 	}
 
 	switch (params.mnt_mode_out) {
-	case 0: //AUX
+	case MNT_MODE_OUT_AUX: //AUX
 		thread_data.output_obj = new OutputRC(params);
 
 		if (!thread_data.output_obj) { alloc_failed = true; }
 
 		break;
 
-	case 1: //MAVLink gimbal v1 protocol
+	case MNT_MODE_OUT_MAVLINK_V1: //MAVLink gimbal v1 protocol
 		thread_data.output_obj = new OutputMavlinkV1(params);
 
 		if (!thread_data.output_obj) { alloc_failed = true; }
 
 		break;
 
-	case 2: //MAVLink gimbal v2 protocol
+	case MNT_MODE_OUT_MAVLINK_V2: //MAVLink gimbal v2 protocol
 		thread_data.output_obj = new OutputMavlinkV2(params);
 
 		if (!thread_data.output_obj) { alloc_failed = true; }
@@ -276,7 +276,7 @@ static int gimbal_thread_main(int argc, char *argv[])
 
 			// Only publish the mount orientation if the mode is not mavlink v1 or v2
 			// If the gimbal speaks mavlink it publishes its own orientation.
-			if (params.mnt_mode_out != 1 && params.mnt_mode_out != 2) { // 1 = MAVLink v1, 2 = MAVLink v2
+			if (params.mnt_mode_out != MNT_MODE_OUT_MAVLINK_V1 && params.mnt_mode_out != MNT_MODE_OUT_MAVLINK_V2) {
 				thread_data.output_obj->publish();
 			}
 

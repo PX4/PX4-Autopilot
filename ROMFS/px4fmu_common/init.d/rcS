@@ -39,7 +39,7 @@ set VEHICLE_TYPE none
 # Airframe parameter versioning
 # Value set to 1 by default but can optionally be overridden in the airframe configuration startup script.
 # Airframe maintainers can ensure a reset to the airframe defaults during an update by increasing by one.
-# e.g. add line "set PARAM_DEFAULTS_VER 2" in your airframe file to build the first update that enfoces a reset.
+# e.g. add line "set PARAM_DEFAULTS_VER 2" in your airframe file to build the first update that enforces a reset.
 set PARAM_DEFAULTS_VER 1
 
 #
@@ -302,80 +302,14 @@ else
 		. $FCONFIG
 	fi
 
-	if px4io supported
-	then
-	# Check if PX4IO present and update firmware if needed.
-		if [ -f $IOFW ]
-		then
-			if ! px4io checkcrc ${IOFW}
-			then
-				# tune Program PX4IO
-				tune_control play -t 16 # tune 16 = PROG_PX4IO
-
-				if px4io update ${IOFW}
-				then
-					usleep 10000
-					tune_control stop
-					if px4io checkcrc ${IOFW}
-					then
-						tune_control play -t 17 # tune 17 = PROG_PX4IO_OK
-					else
-						tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
-					fi
-				else
-					tune_control stop
-				fi
-			fi
-
-			if ! px4io start
-			then
-				echo "PX4IO start failed"
-				set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
-			fi
-		fi
-	fi
-
-	#
-	# RC update (map raw RC input to calibrate manual control)
-	#  start before commander
-	#
-	rc_update start
-	manual_control start
-
-	# Start camera trigger, capture and PPS before pwm_out as they might access
-	# pwm pins
-	if param greater -s TRIG_MODE 0
-	then
-		camera_trigger start
-		camera_feedback start
-	fi
-	# PPS capture driver
-	if param greater -s PPS_CAP_ENABLE 0
-	then
-		pps_capture start
-	fi
-	# Camera capture driver
-	if param greater -s CAM_CAP_FBACK 0
-	then
-		if camera_capture start
-		then
-			camera_capture on
-		fi
-	fi
 
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run).
-	# Commander needs to be this early for in-air-restarts.
 	#
 	if param greater SYS_HITL 0
 	then
-		if ! pwm_out_sim start -m hil
-		then
-			tune_control play error
-		fi
-
 		sensors start -h
-		commander start -h
+
 		# disable GPS
 		param set GPS_1_CONFIG 0
 
@@ -414,14 +348,11 @@ else
 		fi
 
 		sensors start
-		commander start
-
-		dshot start
-		pwm_out start
 	fi
 
 	#
 	# state estimator selection
+	#
 	if param compare -s EKF2_EN 1
 	then
 		ekf2 start &
@@ -435,6 +366,102 @@ else
 	if param compare -s ATT_EN 1
 	then
 		attitude_estimator_q start
+	fi
+
+	#
+	# px4io
+	#
+	if px4io supported
+	then
+	# Check if PX4IO present and update firmware if needed.
+		if [ -f $IOFW ]
+		then
+			if ! px4io checkcrc ${IOFW}
+			then
+				# tune Program PX4IO
+				tune_control play -t 16 # tune 16 = PROG_PX4IO
+
+				if px4io update ${IOFW}
+				then
+					usleep 10000
+					tune_control stop
+					if px4io checkcrc ${IOFW}
+					then
+						tune_control play -t 17 # tune 17 = PROG_PX4IO_OK
+					else
+						tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
+					fi
+				else
+					tune_control stop
+				fi
+			fi
+
+			if ! px4io start
+			then
+				echo "PX4IO start failed"
+				set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
+			fi
+		fi
+	fi
+
+	# Heater driver for temperature regulated IMUs.
+	# The heater needs to start after px4io.
+	if param compare -s SENS_EN_THERMAL 1
+	then
+		heater start
+	fi
+
+
+	#
+	# RC update (map raw RC input to calibrate manual control)
+	#  start before commander
+	#
+	rc_update start
+	manual_control start
+
+	# Start camera trigger, capture and PPS before pwm_out as they might access
+	# pwm pins
+	if param greater -s TRIG_MODE 0
+	then
+		camera_trigger start
+		camera_feedback start
+	fi
+	# PPS capture driver
+	if param greater -s PPS_CAP_ENABLE 0
+	then
+		pps_capture start
+	fi
+	# RPM capture driver
+	if param greater -s RPM_CAP_ENABLE 0
+	then
+		rpm_capture start
+	fi
+	# Camera capture driver
+	if param greater -s CAM_CAP_FBACK 0
+	then
+		if camera_capture start
+		then
+			camera_capture on
+		fi
+	fi
+
+	#
+	# Commander
+	#
+	if param greater SYS_HITL 0
+	then
+		commander start -h
+
+		if ! pwm_out_sim start -m hil
+		then
+			tune_control play error
+		fi
+
+	else
+		commander start
+
+		dshot start
+		pwm_out start
 	fi
 
 	#
@@ -469,11 +496,14 @@ else
 	rc_input start $RC_INPUT_ARGS
 
 	# Manages USB interface
-	if ! cdcacm_autostart start
+	if param greater -s SYS_USB_AUTO -1
 	then
-		sercon
-		echo "Starting MAVLink on /dev/ttyACM0"
-		mavlink start -d /dev/ttyACM0
+		if ! cdcacm_autostart start
+		then
+			sercon
+			echo "Starting MAVLink on /dev/ttyACM0"
+			mavlink start -d /dev/ttyACM0
+		fi
 	fi
 
 	#
@@ -534,6 +564,11 @@ else
 	if param compare -s PD_GRIPPER_EN 1
 	then
 		payload_deliverer start
+	fi
+
+	if param compare -s ICE_EN 1
+	then
+		internal_combustion_engine_control start
 	fi
 
 	#

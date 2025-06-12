@@ -142,6 +142,9 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  *
  * Set home position automatically if possible.
  *
+ * During missions, the home position is locked and will not reset during intermediate landings.
+ * It will only update once the mission is complete or landed outside of a mission.
+ *
  * @group Commander
  * @reboot_required true
  * @boolean
@@ -322,7 +325,7 @@ PARAM_DEFINE_INT32(COM_IMB_PROP_ACT, 0);
 PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 1.0f);
 
 /**
- * Set command after a quadchute
+ * Set action after a quadchute
  *
  * @value -1 Warning only
  * @value  0 Return mode
@@ -513,12 +516,13 @@ PARAM_DEFINE_INT32(COM_ARM_AUTH_MET, 0);
 PARAM_DEFINE_FLOAT(COM_ARM_AUTH_TO, 1);
 
 /**
- * Horizontal position error threshold.
+ * Horizontal position error threshold for hovering systems
  *
  * This is the horizontal position error (EPH) threshold that will trigger a failsafe.
- * The default is appropriate for a multicopter. Can be increased for a fixed-wing.
  * If the previous position error was below this threshold, there is an additional
  * factor of 2.5 applied (threshold for invalidation 2.5 times the one for validation).
+ * Only used for multicopters and VTOLs in hover mode.
+ * Independent from estimator positioning data timeout threshold (see EKF2_NOAID_TOUT).
  *
  * Set to -1 to disable.
  *
@@ -615,13 +619,27 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
  * Specify modes in which RC loss is ignored and the failsafe action not triggered.
  *
  * @min 0
- * @max 31
+ * @max 7
  * @bit 0 Mission
  * @bit 1 Hold
  * @bit 2 Offboard
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
+
+/**
+ * Datalink loss exceptions
+ *
+ * Specify modes in which datalink loss is ignored and the failsafe action not triggered.
+ *
+ * @min 0
+ * @max 7
+ * @bit 0 Mission
+ * @bit 1 Hold
+ * @bit 2 Offboard
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_DLL_EXCEPT, 0);
 
 /**
  * Set the actuator failure failsafe mode
@@ -639,14 +657,6 @@ PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_ACT_FAIL_ACT, 0);
-
-/**
- * Flag to enable obstacle avoidance.
- *
- * @boolean
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);
 
 /**
  * Expect and require a healthy MAVLink parachute system
@@ -1018,3 +1028,14 @@ PARAM_DEFINE_FLOAT(COM_THROW_SPEED, 5);
  * @increment 1
  */
 PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 3);
+
+/**
+ * Allow external mode registration while armed.
+ *
+ * By default disabled for safety reasons
+ *
+ * @group Commander
+ * @boolean
+ *
+ */
+PARAM_DEFINE_INT32(COM_MODE_ARM_CHK, 0);

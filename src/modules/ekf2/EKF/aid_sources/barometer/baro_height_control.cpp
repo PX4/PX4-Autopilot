@@ -65,6 +65,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 			if ((_baro_counter == 0) || baro_sample.reset) {
 				_baro_lpf.reset(measurement);
 				_baro_counter = 1;
+				_control_status.flags.baro_fault = false;
 
 			} else {
 				_baro_lpf.update(measurement);
@@ -113,7 +114,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 		const bool continuing_conditions_passing = (_params.baro_ctrl == 1)
 				&& measurement_valid
 				&& (_baro_counter > _obs_buffer_length)
-				&& !_baro_hgt_faulty;
+				&& !_control_status.flags.baro_fault;
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& isNewestSampleRecent(_time_last_baro_buffer_push, 2 * BARO_MAX_INTERVAL);
@@ -148,7 +149,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 
 					if (isRecent(_time_last_hgt_fuse, _params.hgt_fusion_timeout_max)) {
 						// Some other height source is still working
-						_baro_hgt_faulty = true;
+						_control_status.flags.baro_fault = true;
 					}
 				}
 
