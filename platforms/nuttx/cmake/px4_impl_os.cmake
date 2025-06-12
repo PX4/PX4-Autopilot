@@ -55,8 +55,14 @@ function(px4_os_add_flags)
 	)
 
 	if(CONFIG_LIB_TFLM) # Since TFLM uses the standard C++ library, we need to exclude the NuttX C++ include path
+		add_custom_target(copy_header ALL
+		COMMAND ${CMAKE_COMMAND} -E copy # One of the header files from nuttx is needed
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include/cxx/cstdlib
+		${PX4_SOURCE_DIR}/src/lib/tensorflow_lite_micro/include/cstdlib
+		)
+
 		include_directories(BEFORE SYSTEM
-			${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include/cxx/cstdlib
+			${PX4_SOURCE_DIR}/src/lib/tensorflow_lite_micro/include
 		)
 	else()
 		include_directories(BEFORE SYSTEM
