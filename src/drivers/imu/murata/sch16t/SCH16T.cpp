@@ -93,7 +93,7 @@ int SCH16T::probe()
 	}
 
 	RegisterRead(COMP_ID);
-	uint16_t comp_id = SPI48_DATA_UINT16(RegisterRead(ASIC_ID));
+	uint16_t comp_id = SPI48_DATA_UINT16(RegisterRead(COMP_ID));
 	uint16_t asic_id = SPI48_DATA_UINT16(RegisterRead(ASIC_ID));
 
 	RegisterRead(SN_ID1);
