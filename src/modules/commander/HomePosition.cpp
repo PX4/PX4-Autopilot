@@ -315,7 +315,8 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 
 		if (_last_baro_timestamp != 0) {
 			const float dt = baro_data.timestamp - _last_baro_timestamp;
-			lpf_baro.update(baro_alt, dt);
+			lpf_baro.setParameters(dt, kLpfBaroTimeConst);
+			lpf_baro.update(baro_alt);
 
 		} else {
 			lpf_baro.reset(baro_alt);
@@ -347,9 +348,10 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 
 			const float gps_alt = static_cast<float>(_gps_alt);
 
-			if (_gps_vel_integral < FLT_EPSILON) {
+			if (!_gps_vel_integral_init) {
 				_gps_vel_integral = gps_alt;
 				_baro_gps_static_offset = gps_alt - lpf_baro.getState();
+				_gps_vel_integral_init = true;
 			}
 
 			_gps_vel_integral += 1e-6f * (vehicle_gps_position.timestamp - _last_gps_timestamp) * (-vehicle_gps_position.vel_d_m_s);

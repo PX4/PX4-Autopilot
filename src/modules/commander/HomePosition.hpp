@@ -49,6 +49,7 @@ static constexpr float kHomePositionGPSRequiredEPV = 10.f;
 static constexpr float kHomePositionGPSRequiredEVH = 1.f;
 static constexpr float kMinHomePositionChangeEPH = 1.f;
 static constexpr float kMinHomePositionChangeEPV = 1.5f;
+static constexpr float kLpfBaroTimeConst = 5.f;
 
 class HomePosition
 {
@@ -82,7 +83,8 @@ private:
 
 	uint64_t _last_gps_timestamp{0};
 	uint64_t _last_baro_timestamp{0};
-	AlphaFilter<float> lpf_baro{5.f};
+	AlphaFilter<float> lpf_baro{kLpfBaroTimeConst};
+	bool _gps_vel_integral_init{false};
 	float _gps_vel_integral{0.f};
 	float _baro_gps_home_offset{0.f};
 	float _baro_gps_static_offset{0.f};
