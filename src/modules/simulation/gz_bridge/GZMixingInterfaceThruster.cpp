@@ -35,7 +35,6 @@
 
 bool GZMixingInterfaceThruster::init(const std::string &model_name)
 {
-	std::cout << "Init Thruster Plugin first: " << std::endl;
 	// ESC feedback: /x500/command/motor_speed
 	std::string motor_speed_topic = "/" + model_name + "/command/motor_speed";
 
@@ -43,11 +42,10 @@ bool GZMixingInterfaceThruster::init(const std::string &model_name)
 		PX4_ERR("failed to subscribe to %s", motor_speed_topic.c_str());
 		return false;
 	}
-
+	// output eg /uuv_bluerov2_heavy_0/thrust_3
 	for (int i = 0; i < 8; i++) {
 		std::string joint_name = "thrust_" + std::to_string(i);
-		std::string thrust_topic = "/model/" + model_name + "/" + joint_name;
-		// std::cout << "thrust topic: " << thrust_topic << std::endl;
+		std::string thrust_topic = "/" + model_name + "/" + joint_name;
 		_thruster_pub.push_back(_node.Advertise<gz::msgs::Double>(thrust_topic));
 
 		if (!_thruster_pub.back().Valid()) {
@@ -56,26 +54,20 @@ bool GZMixingInterfaceThruster::init(const std::string &model_name)
 		}
 
 	}
-	std::cout << "Thruster initialized " << std::endl;
 
 	std::string actuator_topic = "/" + model_name + "/command/thruster/motor_speed";
-
-
-
-	// output eg /X500/command/motor_speed
+	// output eg /uuv_bluerov2_heavy_0/command/motor_speed
 
 	_actuators_pub = _node.Advertise<gz::msgs::Actuators>(actuator_topic);
 	if (!_actuators_pub.Valid()) {
 		PX4_ERR("failed to advertise %s", actuator_topic.c_str());
 		return false;
 	}
-	std::cout << "actuator initialized " << std::endl;
 
 	if (!_node.Subscribe(actuator_topic, &GZMixingInterfaceThruster::thrusterSpeedCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", actuator_topic.c_str());
 		return false;
 	}
-	std::cout << "subscribed to thrusterspeed " << std::endl;
 
 	_esc_status_pub.advertise();
 
@@ -165,11 +157,11 @@ void GZMixingInterfaceThruster::thrusterSpeedCallback(const gz::msgs::Actuators 
 		if (_mixing_output.isFunctionSet(i)) {
 			gz::msgs::Double thruster_output;
 
-			// double output_range = _mixing_output.maxValue(i) - _mixing_output.minValue(i);
+			double output_range = _mixing_output.maxValue(i) - _mixing_output.minValue(i);
 			// double output = _angle_min_rad[i] + _angular_range_rad[i] * (outputs[i] - _mixing_output.minValue(i)) / output_range;
 			// std::cout << "outputs[" << i << "]: " << 0.1 << std::endl;
 			// std::cout << "  output: " << output << std::endl;
-			thruster_output.set_data(double(actuators.velocity(i)-500.0)/500.0);
+			thruster_output.set_data(double(actuators.velocity(i)-_mixing_output.disarmedValue(i))/(output_range/2));
 
 			if (thruster_pub.Valid()) {
 				thruster_pub.Publish(thruster_output);
