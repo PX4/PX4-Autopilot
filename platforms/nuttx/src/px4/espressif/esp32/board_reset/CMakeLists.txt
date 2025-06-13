@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,23 +31,13 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE modules__logger
-	MAIN logger
-	PRIORITY "SCHED_PRIORITY_MAX-30"
-	STACK_MAIN 3000
-	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
-		-Wno-cast-align # TODO: fix and enable
-	SRCS
-		logged_topics.cpp
-		logger.cpp
-		log_writer.cpp
-		log_writer_file.cpp
-		log_writer_mavlink.cpp
-		util.cpp
-		watchdog.cpp
-	DEPENDS
-		version
-		component_general_json # for checksums.h
-	)
+px4_add_library(arch_board_reset
+	board_reset.cpp
+)
+
+# up_systemreset
+if (NOT DEFINED CONFIG_BUILD_FLAT)
+	target_link_libraries(arch_board_reset PRIVATE nuttx_karch)
+else()
+	target_link_libraries(arch_board_reset PRIVATE nuttx_arch)
+endif()
