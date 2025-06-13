@@ -341,8 +341,8 @@ struct parameters {
 	float req_sacc{1.0f};                   ///< maximum acceptable speed error (m/s)
 	int32_t req_nsats{6};                   ///< minimum acceptable satellite count
 	float req_pdop{2.0f};                   ///< maximum acceptable position dilution of precision
-	float req_hdrift{0.3f};                 ///< maximum acceptable horizontal drift speed (m/s)
-	float req_vdrift{0.5f};                 ///< maximum acceptable vertical drift speed (m/s)
+	float ekf2_req_hdrift{0.3f};            ///< maximum acceptable horizontal drift speed (m/s)
+	float ekf2_req_vdrift{0.5f};            ///< maximum acceptable vertical drift speed (m/s)
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// GNSS heading fusion
