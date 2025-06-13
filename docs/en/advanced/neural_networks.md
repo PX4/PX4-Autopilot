@@ -53,7 +53,7 @@ The module is called mc_nn_control and replaces the entire controller structure 
 ## Input
 
 The input can be changed to whatever you want.
-Set ut the input you want to use during training and then provide the same input in PX4.
+Set up the input you want to use during training and then provide the same input in PX4.
 In the Neural Control module the input is an array of 15 numbers, and consists of these values in this order:
 
 - [3] Local position error. (goal position - current position)
