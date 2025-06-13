@@ -39,8 +39,6 @@
 #include <lib/geo/geo.h>
 #include "commander_helper.h"
 
-using namespace time_literals;
-
 HomePosition::HomePosition(const failsafe_flags_s &failsafe_flags)
 	: _failsafe_flags(failsafe_flags)
 {
@@ -315,11 +313,10 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 
 		if (_last_baro_timestamp != 0) {
 			const float dt = baro_data.timestamp - _last_baro_timestamp;
-			lpf_baro.setParameters(dt, kLpfBaroTimeConst);
-			lpf_baro.update(baro_alt);
+			_lpf_baro.update(baro_alt, dt);
 
 		} else {
-			lpf_baro.reset(baro_alt);
+			_lpf_baro.reset(baro_alt);
 		}
 
 		_last_baro_timestamp = baro_data.timestamp;
@@ -344,29 +341,30 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 
 		_gps_position_for_home_valid = time_valid && fix_valid && eph_valid && epv_valid && evh_valid;
 
-		if (_gps_position_for_home_valid && _last_gps_timestamp != 0 && _last_baro_timestamp != 0) {
+		if (_gps_position_for_home_valid && _last_gps_timestamp != 0 && _last_baro_timestamp != 0
+		    && _takeoff_time != 0 && now - _takeoff_time < kHomePositionCorrectionTimeWindow) {
 
 			const float gps_alt = static_cast<float>(_gps_alt);
 
-			if (!_gps_vel_integral_init) {
-				_gps_vel_integral = gps_alt;
-				_baro_gps_static_offset = gps_alt - lpf_baro.getState();
-				_gps_vel_integral_init = true;
+			if (!PX4_ISFINITE(_gps_vel_integral)) {
+				_gps_vel_integral = gps_alt; // initialize the gps-vel-integral at same altitude as gps-pos
+				_baro_gps_static_offset = gps_alt - _lpf_baro.getState();
 			}
 
 			_gps_vel_integral += 1e-6f * (vehicle_gps_position.timestamp - _last_gps_timestamp) * (-vehicle_gps_position.vel_d_m_s);
 
-			const float baro_alt = lpf_baro.getState() + _baro_gps_static_offset;
+			// correct baro_alt with offset from GPS alt from when the drift integral was initialized
+			const float baro_alt_corrected = _lpf_baro.getState() + _baro_gps_static_offset;
 			const float gps_alt_error = gps_alt + _baro_gps_home_offset;
 
-			if (fabsf(baro_alt - _gps_vel_integral) < fabsf(baro_alt - gps_alt_error) &&
-			    fabsf(baro_alt - _gps_vel_integral) < fabsf(_gps_vel_integral - gps_alt_error)) {
+			if (fabsf(baro_alt_corrected - _gps_vel_integral) < fabsf(baro_alt_corrected - gps_alt_error) &&
+			    fabsf(baro_alt_corrected - _gps_vel_integral) < fabsf(_gps_vel_integral - gps_alt_error)) {
 
 				home_position_s home = _home_position_pub.get();
-				const float home_new_alt = home.alt + baro_alt - gps_alt - _baro_gps_home_offset;
+				const float home_new_alt = home.alt + baro_alt_corrected - gps_alt - _baro_gps_home_offset;
 
-				if (fabsf(home_new_alt - home.alt) > 1.0f) {
-					const float offset = baro_alt - gps_alt - _baro_gps_home_offset;
+				if (fabsf(home_new_alt - home.alt) > kAltitudeDifferenceThreshold) {
+					const float offset = baro_alt_corrected - gps_alt - _baro_gps_home_offset;
 
 					home.alt -= offset;
 					home.z += offset;
@@ -375,7 +373,7 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 					home.update_count = _home_position_pub.get().update_count + 1U;
 
 					_home_position_pub.update(home);
-					_baro_gps_home_offset = baro_alt - gps_alt;
+					_baro_gps_home_offset = baro_alt_corrected - gps_alt; // offset present when home position was last corrected
 				}
 			}
 		}
