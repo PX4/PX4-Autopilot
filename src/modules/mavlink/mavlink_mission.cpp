@@ -278,9 +278,14 @@ MavlinkMissionManager::send_mission_ack(uint8_t sysid, uint8_t compid, uint8_t t
 void
 MavlinkMissionManager::send_mission_current(uint16_t seq)
 {
+	// Update mission state before sending
+	update_mission_state();
+
 	mavlink_mission_current_t wpc{};
 	wpc.seq = seq;
 	wpc.total = _count[MAV_MISSION_TYPE_MISSION] > 0 ? _count[MAV_MISSION_TYPE_MISSION] : UINT16_MAX;
+	wpc.mission_state = static_cast<uint8_t>(_mission_state);
+	wpc.mission_mode = static_cast<uint8_t>(_mission_mode);
 	wpc.mission_id = _crc32[MAV_MISSION_TYPE_MISSION];
 	wpc.fence_id = _crc32[MAV_MISSION_TYPE_FENCE];
 	wpc.rally_points_id = _crc32[MAV_MISSION_TYPE_RALLY];
@@ -911,6 +916,7 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 			_transfer_partner_compid = msg->compid;
 			_mission_type = (MAV_MISSION_TYPE)wpc.mission_type;
 			_transfer_current_crc32 = 0;
+			_last_reached = -1; // Reset last reached waypoint when new mission starts
 
 			if (wpc.count > current_max_item_count()) {
 				PX4_DEBUG("WPM: MISSION_COUNT ERROR: too many waypoints (%d), supported: %d", wpc.count, current_max_item_count());
@@ -1906,4 +1912,46 @@ uint32_t MavlinkMissionManager::crc32_for_mission_item(const mavlink_mission_ite
 	u.item.params[6] = mission_item.z;
 
 	return crc32part(u.raw, sizeof(u), prev_crc32);
+}
+
+void
+MavlinkMissionManager::update_mission_state()
+{
+	// Get vehicle status
+	_vehicle_status_sub.update();
+	vehicle_status_s vehicle_status = _vehicle_status_sub.get();
+
+	// Get mission result
+	mission_result_s mission_result;
+	_mission_result_sub.copy(&mission_result);
+
+	// Update mission mode
+	if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ||
+	    vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
+	    vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
+		_mission_mode = MISSION_MODE_ACTIVE;
+
+	} else {
+		_mission_mode = MISSION_MODE_SUSPENDED;
+	}
+
+	// Update mission state
+	if (_count[MAV_MISSION_TYPE_MISSION] == 0) {
+		_mission_state = MISSION_STATE_NO_MISSION;
+
+	} else if (mission_result.finished) {
+		// Mission is complete if the navigator says it's finished
+		_mission_state = MISSION_STATE_COMPLETE;
+
+	} else if (_mission_mode == MISSION_MODE_ACTIVE
+		   && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		_mission_state = MISSION_STATE_ACTIVE;
+
+	} else if (_mission_mode == MISSION_MODE_SUSPENDED && _last_reached >= 0) {
+		// Only PAUSED if we were actually in the middle of a mission
+		_mission_state = MISSION_STATE_PAUSED;
+
+	} else {
+		_mission_state = MISSION_STATE_NOT_STARTED;
+	}
 }

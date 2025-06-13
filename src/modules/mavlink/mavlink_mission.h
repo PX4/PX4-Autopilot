@@ -49,6 +49,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_rate_limiter.h"
@@ -58,6 +59,13 @@ enum MAVLINK_WPM_STATES {
 	MAVLINK_WPM_STATE_SENDLIST,
 	MAVLINK_WPM_STATE_GETLIST,
 	MAVLINK_WPM_STATE_ENUM_END
+};
+
+// Mission mode states
+enum MISSION_MODE {
+	MISSION_MODE_UNKNOWN = 0,
+	MISSION_MODE_ACTIVE = 1,
+	MISSION_MODE_SUSPENDED = 2
 };
 
 enum MAVLINK_WPM_CODES {
@@ -94,8 +102,13 @@ public:
 private:
 	enum MAVLINK_WPM_STATES _state {MAVLINK_WPM_STATE_IDLE};	///< Current state
 	enum MAV_MISSION_TYPE _mission_type {MAV_MISSION_TYPE_MISSION};	///< mission type of current transmission (only one at a time possible)
+	enum MISSION_STATE _mission_state {MISSION_STATE_UNKNOWN}; ///< Current mission state machine state
+	enum MISSION_MODE _mission_mode {MISSION_MODE_UNKNOWN}; ///< Current mission mode
 
 	DatamanClient _dataman_client{};
+	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};	///< vehicle status subscription
+
+	void update_mission_state();
 
 	uint64_t		_time_last_recv{0};
 	uint64_t		_time_last_sent{0};
