@@ -125,7 +125,6 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	// _battery_status[instance].cycle_count = msg.;
 	_battery_status[instance].time_remaining_s = NAN;
 	// _battery_status[instance].average_time_to_empty = msg.;
-	_battery_status[instance].serial_number = msg.model_instance_id;
 	_battery_status[instance].id = msg.getSrcNodeID().get();
 
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
@@ -143,8 +142,14 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	determineWarning(_battery_status[instance].remaining);
 	_battery_status[instance].warning = _warning;
 
+	_battery_info[instance].timestamp = _battery_status[instance].timestamp;
+	_battery_info[instance].id = _battery_status[instance].id;
+	snprintf(_battery_info[instance].serial_number, sizeof(_battery_info[instance].serial_number), "%" PRIu32,
+		 msg.model_instance_id);
+
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
 		publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+		_battery_info_pub[instance].publish(_battery_info[instance]);
 	}
 }
 
@@ -238,8 +243,13 @@ UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equi
 	/* Override data that is expected to arrive from UAVCAN msg*/
 	_battery_status[instance] = _battery[instance]->getBatteryStatus();
 	_battery_status[instance].temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
-	_battery_status[instance].serial_number = msg.model_instance_id;
 	_battery_status[instance].id = msg.getSrcNodeID().get(); // overwrite zeroed index from _battery
 
 	publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+
+	_battery_info[instance].timestamp = _battery_status[instance].timestamp;
+	_battery_info[instance].id = _battery_status[instance].id;
+	snprintf(_battery_info[instance].serial_number, sizeof(_battery_info[instance].serial_number), "%" PRIu32,
+		 msg.model_instance_id);
+	_battery_info_pub[instance].publish(_battery_info[instance]);
 }

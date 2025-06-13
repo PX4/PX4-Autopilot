@@ -34,6 +34,7 @@
 #ifndef BATTERY_INFO_HPP
 #define BATTERY_INFO_HPP
 
+#include <uORB/topics/battery_info.h>
 #include <uORB/topics/battery_status.h>
 
 class MavlinkStreamBatteryInfo : public MavlinkStream
@@ -57,21 +58,43 @@ private:
 	explicit MavlinkStreamBatteryInfo(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
+	uORB::SubscriptionMultiArray<battery_info_s, battery_status_s::MAX_INSTANCES> _battery_info_subs{ORB_ID::battery_info};
+
+	uint8_t _serial_number_ids[battery_status_s::MAX_INSTANCES] {};
+	char _serial_numbers[battery_status_s::MAX_INSTANCES][32] {}; ///< keep track of serial numbers until all static battery info is split out
 
 	bool send() override
 	{
 		bool updated = false;
 
+		for (int i = 0; i < _battery_info_subs.size(); ++i) {
+			battery_info_s battery_info;
+
+			if (_battery_info_subs[i].update(&battery_info)) {
+				_serial_number_ids[i] = battery_info.id;
+				memcpy(_serial_numbers[i], battery_info.serial_number, sizeof(_serial_numbers[0]));
+			}
+		}
+
 		for (auto &battery_sub : _battery_status_subs) {
 			battery_status_s battery_status;
 
 			if (battery_sub.update(&battery_status)) {
-				if (battery_status.serial_number == 0) {
-					// Required to emit
-					continue;
+				mavlink_battery_info_t msg{};
+				bool battery_has_serial_number = false;
+
+				// load serial number from battery_info message until all static information fields were moved
+				for (int i = 0; i < battery_status_s::MAX_INSTANCES; ++i) {
+					if ((_serial_number_ids[i] != 0) && (_serial_number_ids[i] == battery_status.id)) {
+						snprintf(msg.serial_number, sizeof(msg.serial_number), "%s", _serial_numbers[i]);
+						battery_has_serial_number = true;
+					}
 				}
 
-				mavlink_battery_info_t msg{};
+				if (!battery_has_serial_number) {
+					// Only publish BATTERY_INFO if the battery has a serial number
+					continue;
+				}
 
 				msg.id = battery_status.id - 1;
 				msg.design_capacity = (float)(battery_status.capacity * 1000);
@@ -82,17 +105,9 @@ private:
 					uint16_t day = battery_status.manufacture_date % 32;
 					uint16_t month = (battery_status.manufacture_date >> 5) % 16;
 					uint16_t year = (80 + (battery_status.manufacture_date >> 9));
-					uint16_t year2dig = year % 100;
 
 					//Formatted as 'ddmmyyyy' (maxed 9 chars)
 					snprintf(msg.manufacture_date, sizeof(msg.manufacture_date), "%d%d%d", day, month, year);
-					//Formatted as 'dd/mm/yy-123456' (maxed 15 + 1 chars)
-					snprintf(msg.serial_number, sizeof(msg.serial_number), "%d/%d/%d-%d", day, month, year2dig,
-						 battery_status.serial_number);
-
-				} else {
-
-					snprintf(msg.serial_number, sizeof(msg.serial_number), "%d", battery_status.serial_number);
 				}
 
 				// Not supported by PX4 (not in battery_status uorb topic)
