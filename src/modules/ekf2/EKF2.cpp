@@ -89,11 +89,11 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_gps_p_gate(_params->gps_pos_innov_gate),
 	_param_ekf2_gps_v_gate(_params->gps_vel_innov_gate),
 	_param_ekf2_gps_check(_params->ekf2_gps_check),
-	_param_ekf2_req_eph(_params->req_hacc),
-	_param_ekf2_req_epv(_params->req_vacc),
-	_param_ekf2_req_sacc(_params->req_sacc),
-	_param_ekf2_req_nsats(_params->req_nsats),
-	_param_ekf2_req_pdop(_params->req_pdop),
+	_param_ekf2_req_eph(_params->req_hacc), // TODO: eph
+	_param_ekf2_req_epv(_params->req_vacc), // TODO: epv
+	_param_ekf2_req_sacc(_params->ekf2_req_sacc),
+	_param_ekf2_req_nsats(_params->ekf2_req_nsats),
+	_param_ekf2_req_pdop(_params->ekf2_req_pdop),
 	_param_ekf2_req_hdrift(_params->ekf2_req_hdrift),
 	_param_ekf2_req_vdrift(_params->ekf2_req_vdrift),
 	_param_ekf2_gsf_tas_default(_params->EKFGSF_tas_default),
