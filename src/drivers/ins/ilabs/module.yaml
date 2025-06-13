@@ -1,0 +1,22 @@
+module_name: InertialLabs
+
+serial_config:
+    - command: ilabs start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_ILABS_CFG
+        group: Sensors
+
+parameters:
+    - group: Sensors
+      definitions:
+
+        ILABS_MODE:
+            description:
+                short: InertialLabs driver mode
+                long: INS or sensors
+            category: System
+            type: enum
+            values:
+                0: Sensors Only (default)
+                1: INS
+            default: 0
