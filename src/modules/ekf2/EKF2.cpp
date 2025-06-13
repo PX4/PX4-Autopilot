@@ -88,7 +88,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_gps_p_noise(_params->gps_pos_noise),
 	_param_ekf2_gps_p_gate(_params->gps_pos_innov_gate),
 	_param_ekf2_gps_v_gate(_params->gps_vel_innov_gate),
-	_param_ekf2_gps_check(_params->gps_check_mask),
+	_param_ekf2_gps_check(_params->ekf2_gps_check),
 	_param_ekf2_req_eph(_params->req_hacc),
 	_param_ekf2_req_epv(_params->req_vacc),
 	_param_ekf2_req_sacc(_params->req_sacc),
@@ -1790,7 +1790,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 #if defined(CONFIG_EKF2_GNSS)
 	// only report enabled GPS check failures (the param indexes are shifted by 1 bit, because they don't include
 	// the GPS Fix bit, which is always checked)
-	status.gps_check_fail_flags = _ekf.gps_check_fail_status().value & (((uint16_t)_params->gps_check_mask << 1) | 1);
+	status.gps_check_fail_flags = _ekf.gps_check_fail_status().value & (((uint16_t)_params->ekf2_gps_check << 1) | 1);
 #endif // CONFIG_EKF2_GNSS
 
 	status.control_mode_flags = _ekf.control_status().value;

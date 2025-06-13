@@ -335,7 +335,7 @@ struct parameters {
 
 	// these parameters control the strictness of GPS quality checks used to determine if the GPS is
 	// good enough to set a local origin and commence aiding
-	int32_t gps_check_mask{21};             ///< bitmask used to control which GPS quality checks are used
+	int32_t ekf2_gps_check{21};             ///< bitmask used to control which GPS quality checks are used
 	float req_hacc{5.0f};                   ///< maximum acceptable horizontal position error (m)
 	float req_vacc{8.0f};                   ///< maximum acceptable vertical position error (m)
 	float req_sacc{1.0f};                   ///< maximum acceptable speed error (m/s)
