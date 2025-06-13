@@ -29,7 +29,7 @@ The following table shows the basic information of the module
 
 The installation directions of T101-Plus and T201 are shown in the following figure. The direction indicated by the red arrow is the nose
 
-![Installation direction](../../assets/hardware/sensors/upixels_flow/Installation_direction.png)
+![Installation direction](../../assets/hardware/sensors/upixels_flow/Direction.png)
 
 - The diagram shows the relative board and vehicle orientations that correspond to `SENS_FLOW_ROT=0`
 
