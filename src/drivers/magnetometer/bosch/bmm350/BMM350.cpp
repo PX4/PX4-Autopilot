@@ -34,6 +34,8 @@
 #include "BMM350.hpp"
 using namespace time_literals;
 
+#define MAX(a,b)          (a > b ? a : b)
+
 BMM350::BMM350(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
@@ -318,7 +320,7 @@ void BMM350::RunImpl()
 				_state = STATE::RESET;
 			}
 
-			ScheduleDelayed(OdrToUs(_mag_odr_mode));
+			ScheduleDelayed(MAX(6000_us, OdrToUs(_mag_odr_mode)));
 			break;
 		}
 
