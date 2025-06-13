@@ -404,14 +404,14 @@ protected:
 	gnssSample _gps_sample_delayed{};
 
 	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
-	GnssChecks _gnss_checks{_params.gps_check_mask,
-			   _params.req_nsats,
-			   _params.req_pdop,
-			   _params.req_hacc,
-			   _params.req_vacc,
-			   _params.req_sacc,
-			   _params.req_hdrift,
-			   _params.req_vdrift,
+	GnssChecks _gnss_checks{_params.ekf2_gps_check,
+			   _params.ekf2_req_nsats,
+			   _params.ekf2_req_pdop,
+			   _params.req_hacc, // TODO: eph
+			   _params.req_vacc, // TODO: epv
+			   _params.ekf2_req_sacc,
+			   _params.ekf2_req_hdrift,
+			   _params.ekf2_req_vdrift,
 			   _params.velocity_limit,
 			   _min_gps_health_time_us,
 			   _control_status};
