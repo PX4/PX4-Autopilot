@@ -22,7 +22,7 @@ The following table shows the basic information of the module
 
 | Module | Interface | Flow | Rangefinder | Voltage (V) | Size (mm) | Max Height (m) |
 | :-------: | :---------: | :----: | :-----------: | :-------------: | :---------: | :-----------: |
-| T101-Puls | Uart | Y | Y | 3.3 - 5.0 | 20 x 14 x 9.55 | 15 |
+| T101-Puls | Uart | Y | Y | 3.3 - 5.0 | 20 x 14 x 9.55 | 4 |
 | T201 | Uart | Y | Y | 3.3 - 5.0 | 25 x 25 x 14.25 | 15 |
 
 ## °²×°
