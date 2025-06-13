@@ -128,8 +128,7 @@ To enable recording for EKF replay you must set the parameters to enable a [sing
 
 Для виконання повторення EKF2:
 
-- Запишіть оригінальний журнал.
-  Optionally set `SDLOG_MODE` to `1` to log from boot.
+- Record the original log with `SDLOG_MODE` set to `1` to log from boot.
 
 - In addition to the `replay` environment variable, set `replay_mode` to `ekf2`:
 

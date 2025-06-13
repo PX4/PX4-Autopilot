@@ -37,8 +37,6 @@ using namespace time_literals;
 
 MecanumRateControl::MecanumRateControl(ModuleParams *parent) : ModuleParams(parent)
 {
-	_rover_rate_setpoint_pub.advertise();
-	_rover_throttle_setpoint_pub.advertise();
 	_rover_steering_setpoint_pub.advertise();
 	_rover_rate_status_pub.advertise();
 	updateParams();
@@ -47,24 +45,21 @@ MecanumRateControl::MecanumRateControl(ModuleParams *parent) : ModuleParams(pare
 void MecanumRateControl::updateParams()
 {
 	ModuleParams::updateParams();
-	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
-	_max_yaw_accel = _param_ro_yaw_accel_limit.get() * M_DEG_TO_RAD_F;
-	_max_yaw_decel = _param_ro_yaw_decel_limit.get() * M_DEG_TO_RAD_F;
+
+	// Set up PID controller
 	_pid_yaw_rate.setGains(_param_ro_yaw_rate_p.get(), _param_ro_yaw_rate_i.get(), 0.f);
 	_pid_yaw_rate.setIntegralLimit(1.f);
 	_pid_yaw_rate.setOutputLimit(1.f);
-	_adjusted_yaw_rate_setpoint.setSlewRate(_max_yaw_accel);
+
+	// Set up slew rate
+	_adjusted_yaw_rate_setpoint.setSlewRate(_param_ro_yaw_accel_limit.get() * M_DEG_TO_RAD_F);
 }
 
 void MecanumRateControl::updateRateControl()
 {
-	const hrt_abstime timestamp_prev = _timestamp;
+	hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
-	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
-
-	if (_vehicle_control_mode_sub.updated()) {
-		_vehicle_control_mode_sub.copy(&_vehicle_control_mode);
-	}
+	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
 
 	if (_vehicle_angular_velocity_sub.updated()) {
 		vehicle_angular_velocity_s vehicle_angular_velocity{};
@@ -73,16 +68,25 @@ void MecanumRateControl::updateRateControl()
 				    vehicle_angular_velocity.xyz[2] : 0.f;
 	}
 
-	if (_vehicle_control_mode.flag_control_rates_enabled  && _vehicle_control_mode.flag_armed && runSanityChecks()) {
-		if (_vehicle_control_mode.flag_control_manual_enabled || _vehicle_control_mode.flag_control_offboard_enabled) {
-			generateRateAndThrottleSetpoint();
-		}
+	if (_rover_rate_setpoint_sub.updated()) {
+		rover_rate_setpoint_s rover_rate_setpoint{};
+		_rover_rate_setpoint_sub.copy(&rover_rate_setpoint);
+		_yaw_rate_setpoint = rover_rate_setpoint.yaw_rate_setpoint;
+	}
 
-		generateSteeringSetpoint();
+	if (PX4_ISFINITE(_yaw_rate_setpoint)) {
+		const float yaw_rate_setpoint = fabsf(_yaw_rate_setpoint) > _param_ro_yaw_rate_th.get() * M_DEG_TO_RAD_F ?
+						_yaw_rate_setpoint : 0.f;
+		const float speed_diff_normalized = RoverControl::rateControl(_adjusted_yaw_rate_setpoint, _pid_yaw_rate,
+						    yaw_rate_setpoint, _vehicle_yaw_rate, _param_rm_max_thr_yaw_r.get(), _param_ro_yaw_accel_limit.get() * M_DEG_TO_RAD_F,
+						    _param_ro_yaw_decel_limit.get() * M_DEG_TO_RAD_F, _param_rm_wheel_track.get(), dt);
+		rover_steering_setpoint_s rover_steering_setpoint{};
+		rover_steering_setpoint.timestamp = _timestamp;
+		rover_steering_setpoint.normalized_speed_diff = speed_diff_normalized;
+		_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
 
-	} else { // Reset controller and slew rate when rate control is not active
+	} else {
 		_pid_yaw_rate.resetIntegral();
-		_adjusted_yaw_rate_setpoint.setForcedValue(0.f);
 	}
 
 	// Publish rate controller status (logging only)
@@ -95,96 +99,25 @@ void MecanumRateControl::updateRateControl()
 
 }
 
-void MecanumRateControl::generateRateAndThrottleSetpoint()
-{
-	const bool acro_mode_enabled = _vehicle_control_mode.flag_control_manual_enabled
-				       && !_vehicle_control_mode.flag_control_position_enabled && !_vehicle_control_mode.flag_control_attitude_enabled;
-
-	if (acro_mode_enabled && _manual_control_setpoint_sub.updated()) { // Acro Mode
-		manual_control_setpoint_s manual_control_setpoint{};
-
-		if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-			rover_throttle_setpoint_s rover_throttle_setpoint{};
-			rover_throttle_setpoint.timestamp = _timestamp;
-			rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
-			rover_throttle_setpoint.throttle_body_y = manual_control_setpoint.roll;
-			_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
-			rover_rate_setpoint_s rover_rate_setpoint{};
-			rover_rate_setpoint.timestamp = _timestamp;
-			rover_rate_setpoint.yaw_rate_setpoint = math::interpolate<float> (manual_control_setpoint.yaw, -1.f, 1.f,
-								-_max_yaw_rate, _max_yaw_rate);
-			_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
-		}
-
-	} else if (_vehicle_control_mode.flag_control_offboard_enabled) { // Offboard rate control
-		trajectory_setpoint_s trajectory_setpoint{};
-		_trajectory_setpoint_sub.copy(&trajectory_setpoint);
-
-		if (_offboard_control_mode_sub.updated()) {
-			_offboard_control_mode_sub.copy(&_offboard_control_mode);
-		}
-
-		const bool offboard_rate_control = _offboard_control_mode.body_rate && !_offboard_control_mode.attitude;
-
-		if (offboard_rate_control && PX4_ISFINITE(trajectory_setpoint.yawspeed)) {
-			rover_rate_setpoint_s rover_rate_setpoint{};
-			rover_rate_setpoint.timestamp = _timestamp;
-			rover_rate_setpoint.yaw_rate_setpoint = trajectory_setpoint.yawspeed;
-			_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
-		}
-	}
-}
-
-void MecanumRateControl::generateSteeringSetpoint()
-{
-	if (_rover_rate_setpoint_sub.updated()) {
-		_rover_rate_setpoint_sub.copy(&_rover_rate_setpoint);
-
-	}
-
-	float speed_diff_normalized{0.f};
-
-	if (PX4_ISFINITE(_rover_rate_setpoint.yaw_rate_setpoint) && PX4_ISFINITE(_vehicle_yaw_rate)) {
-		const float yaw_rate_setpoint = fabsf(_rover_rate_setpoint.yaw_rate_setpoint) > _param_ro_yaw_rate_th.get() *
-						M_DEG_TO_RAD_F ?
-						_rover_rate_setpoint.yaw_rate_setpoint : 0.f;
-		speed_diff_normalized = RoverControl::rateControl(_adjusted_yaw_rate_setpoint, _pid_yaw_rate,
-					yaw_rate_setpoint, _vehicle_yaw_rate, _param_rm_max_thr_yaw_r.get(), _max_yaw_accel,
-					_max_yaw_decel, _param_rm_wheel_track.get(), _dt);
-	}
-
-	rover_steering_setpoint_s rover_steering_setpoint{};
-	rover_steering_setpoint.timestamp = _timestamp;
-	rover_steering_setpoint.normalized_speed_diff = speed_diff_normalized;
-	_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
-}
-
 bool MecanumRateControl::runSanityChecks()
 {
 	bool ret = true;
 
 	if (_param_ro_yaw_rate_limit.get() < FLT_EPSILON) {
 		ret = false;
-
-		if (_prev_param_check_passed) {
-			events::send<float>(events::ID("mecanum_rate_control_conf_invalid_yaw_rate_lim"), events::Log::Error,
-					    "Invalid configuration of necessary parameter RO_YAW_RATE_LIM", _param_ro_yaw_rate_limit.get());
-		}
+		events::send<float>(events::ID("mecanum_rate_control_conf_invalid_yaw_rate_lim"), events::Log::Error,
+				    "Invalid configuration of necessary parameter RO_YAW_RATE_LIM", _param_ro_yaw_rate_limit.get());
 
 	}
 
 	if ((_param_rm_wheel_track.get() < FLT_EPSILON || _param_rm_max_thr_yaw_r.get() < FLT_EPSILON)
 	    && _param_ro_yaw_rate_p.get() < FLT_EPSILON) {
 		ret = false;
-
-		if (_prev_param_check_passed) {
-			events::send<float, float, float>(events::ID("mecanum_rate_control_conf_invalid_rate_control"), events::Log::Error,
-							  "Invalid configuration for rate control: Neither feed forward (RM_MAX_THR_YAW_R) nor feedback (RO_YAW_RATE_P) is setup",
-							  _param_rm_wheel_track.get(),
-							  _param_rm_max_thr_yaw_r.get(), _param_ro_yaw_rate_p.get());
-		}
+		events::send<float, float, float>(events::ID("mecanum_rate_control_conf_invalid_rate_control"), events::Log::Error,
+						  "Invalid configuration for rate control: Neither feed forward (RM_MAX_THR_YAW_R) nor feedback (RO_YAW_RATE_P) is setup",
+						  _param_rm_wheel_track.get(),
+						  _param_rm_max_thr_yaw_r.get(), _param_ro_yaw_rate_p.get());
 	}
 
-	_prev_param_check_passed = ret;
 	return ret;
 }

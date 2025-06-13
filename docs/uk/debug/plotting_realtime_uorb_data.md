@@ -96,13 +96,13 @@ Exporting the messages allows ROS 2 and the uXRCE-DDS agent to be independent of
 
 While `px4_msgs` has messages for all uORB topics in PX4, not all messages in `px4_msgs` are available to ROS 2/PlotJuggler by default.
 The set that are available must be built into the client running on PX4.
-These are defined in [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml).
+These are defined in [dds_topics.yaml](../middleware/dds_topics.md).
 
 The instructions below explain the changes needed to monitor topics that are not available by default.
 
 ### Missing Topics
 
-If a normal uORB topic is not available in PlotJuggler you will need to modify the [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml) to include the topic and rebuild PX4.
+If a normal uORB topic is not available in PlotJuggler you will need to modify the [dds_topics.yaml](../middleware/dds_topics.md) ([source](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml)) to include the topic and rebuild PX4.
 
 If working with real hardware you will need to build and [install](../config/firmware.md#installing-px4-main-beta-or-custom-firmware) custom firmware after changing the YAML file.
 
@@ -122,7 +122,7 @@ cd ~/ros2_ws/ && colcon build
 
 ### Custom Topics
 
-After defining the topic, follow the instructions above to add the topic to [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml), and export the new message into your ROS 2 workspace.
+After defining the topic, follow the instructions above to add the topic to [dds_topics.yaml](../middleware/dds_topics.md), and export the new message into your ROS 2 workspace.
 
 ## Дивись також
 

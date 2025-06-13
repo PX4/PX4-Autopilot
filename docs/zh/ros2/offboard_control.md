@@ -37,63 +37,63 @@ This is needed because, by default, you cannot arm a vehicle without a connectio
 
 2. 使用以下方法创建并切换至新的 colcon工作目录：
 
- ```sh
- mkdir -p ~/ws_offboard_control/src/
- cd ~/ws_offboard_control/src/
- ```
+   ```sh
+   mkdir -p ~/ws_offboard_control/src/
+   cd ~/ws_offboard_control/src/
+   ```
 
 3. Clone the [px4_msgs](https://github.com/PX4/px4_msgs) repo to the `/src` directory (this repo is needed in every ROS 2 PX4 workspace!):
 
- ```sh
- git clone https://github.com/PX4/px4_msgs.git
- # checkout the matching release branch if not using PX4 main.
- ```
+   ```sh
+   git clone https://github.com/PX4/px4_msgs.git
+   # checkout the matching release branch if not using PX4 main.
+   ```
 
 4. Clone the example repository [px4_ros_com](https://github.com/PX4/px4_ros_com) to the `/src` directory:
 
- ```sh
- git clone https://github.com/PX4/px4_ros_com.git
- ```
+   ```sh
+   git clone https://github.com/PX4/px4_ros_com.git
+   ```
 
 5. Source the ROS 2 development environment into the current terminal and compile the workspace using `colcon`:
 
- :::: tabs
+   :::: tabs
 
- ::: tab humble
+   ::: tab humble
 
- ```sh
- cd ..
- source /opt/ros/humble/setup.bash
- colcon build
- ```
-
-
-:::
-
- ::: tab foxy
-
- ```sh
- cd ..
- source /opt/ros/foxy/setup.bash
- colcon build
- ```
+   ```sh
+   cd ..
+   source /opt/ros/humble/setup.bash
+   colcon build
+   ```
 
 
 :::
 
- ::::
+   ::: tab foxy
+
+   ```sh
+   cd ..
+   source /opt/ros/foxy/setup.bash
+   colcon build
+   ```
+
+
+:::
+
+   ::::
 
 6. Source the `local_setup.bash`:
 
- ```sh
- source install/local_setup.bash
- ```
+   ```sh
+   source install/local_setup.bash
+   ```
 
 7. 启动例程。
 
- ```
- ros2 run px4_ros_com offboard_control
- ```
+   ```
+   ros2 run px4_ros_com offboard_control
+   ```
 
 飞行器将解锁、起飞至5米并悬停等待（永久）。
 

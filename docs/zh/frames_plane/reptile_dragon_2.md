@@ -20,12 +20,12 @@ Key airframe features:
 - Removable V tail or conventional tail options included
 - Threaded inserts in the wings and fuselage top for external mounting
 - Numerous mounting features
- - Top antenna hole
- - Top GPS cover
- - Side "T" antenna mounts
- - Rear electronics tray
- - Front facing "action cam" cutout
- - Front facing FPV camera cutout
+  - Top antenna hole
+  - Top GPS cover
+  - Side "T" antenna mounts
+  - Rear electronics tray
+  - Front facing "action cam" cutout
+  - Front facing FPV camera cutout
 - Removable wings
 - Low stall speed
 - Gentle handling
@@ -69,10 +69,10 @@ Key build features
 - [6s2p 18650 LiIon flight battery](https://www.upgradeenergytech.com/product-page/6s-22-2v-5600mah-30c-dark-lithium-liion-drone-battery) (select XT60 connector)
 
 - [Custom designed 3D printed parts](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/reptile_dragon_2/rd2_3d_printed_parts.zip)
- - ARK6X carrier mount
- - Holybro Pixhawk 5x carrier mount
- - FPV pod and camera mount
- - Pitot static probe "plug" adapter
+  - ARK6X carrier mount
+  - Holybro Pixhawk 5x carrier mount
+  - FPV pod and camera mount
+  - Pitot static probe "plug" adapter
 
 - [Custom designed power distribution PCB](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/reptile_dragon_2/xt30_power_distro_pcb.zip)
 
@@ -426,15 +426,15 @@ Prior to the first flight, a comprehensive preflight must be conducted.
 I recommend checking the following items:
 
 - Sensor calibration (QGC)
- - Mag calibration
- - Accelerometer calibration
- - Airspeed calibration
- - Level horizon calibration
+  - Mag calibration
+  - Accelerometer calibration
+  - Airspeed calibration
+  - Level horizon calibration
 - Check control surface deflection
 - Right stick -> Right aileron goes up, left aileron goes down
 - Left stick -> Left aileron goes up, right aileron goes down
 - Stick back -> elevator goes up
- -Stick forward -> elevator goes down
+  -Stick forward -> elevator goes down
 - Left rudder -> Rudder goes left
 - Right rudder -> Rudder goes right
 - Check Px4 inputs (in `stabilized mode`)

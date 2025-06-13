@@ -28,7 +28,7 @@ The agent acts as a proxy for the client to publish and subscribe to topics in t
 
 The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) is generated at build time and included in PX4 firmware by default.
 It includes both the "generic" micro XRCE-DDS client code, and PX4-specific translation code that it uses to publish to/from uORB topics.
-The subset of uORB messages that are generated into the client are listed in [PX4-Autopilot/src/modules/uxrce_dds_client/dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml).
+The subset of uORB messages that are generated into the client are specified in [dds_topics.yaml](../middleware/dds_topics.md).
 The generator uses the uORB message definitions in the source tree: [PX4-Autopilot/msg](https://github.com/PX4/PX4-Autopilot/tree/main/msg) to create the code for sending ROS 2 messages.
 
 ROS 2 applications need to be built in a workspace that has the _same_ message definitions that were used to create the uXRCE-DDS client module in the PX4 Firmware.
@@ -394,7 +394,7 @@ To control applications, ROS 2 applications:
 - subscribe to (listen to) telemetry topics published by PX4
 - publish to topics that cause PX4 to perform some action.
 
-The topics that you can use are defined in [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml), and you can get more information about their data in the [uORB Message Reference](../msg_docs/index.md).
+The topics that you can use are defined in [dds_topics.yaml](../middleware/dds_topics.md), and you can get more information about their data in the [uORB Message Reference](../msg_docs/index.md).
 For example, [VehicleGlobalPosition](../msg_docs/VehicleGlobalPosition.md) can be used to get the vehicle global position, while [VehicleCommand](../msg_docs/VehicleCommand.md) can be used to command actions such as takeoff and land.
 
 The [ROS 2 Example applications](#ros-2-example-applications) examples below provide concrete examples of how to use these topics.
@@ -728,7 +728,7 @@ Custom topic and service namespaces can be applied at build time (changing [dds_
 - A custom namespace can be provided for simulations (only) by setting the environment variable `PX4_UXRCE_DDS_NS` before starting the simulation.
 
 ::: info
-Changing the namespace at runtime will append the desired namespace as a prefix to all `topic` fields in [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml) and all [service servers](#px4-ros-2-service-servers).
+Changing the namespace at runtime will append the desired namespace as a prefix to all `topic` fields in [dds_topics.yaml](../middleware/dds_topics.md) and all [service servers](#px4-ros-2-service-servers).
 Therefore, commands like:
 
 ```sh

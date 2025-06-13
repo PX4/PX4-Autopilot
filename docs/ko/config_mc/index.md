@@ -38,9 +38,9 @@ A frame configuration can define everything about a vehicle, from it's geometry 
 When you're bringing up a new vehicle though, the frame will usually contain a fairly minimal configuration:
 
 - Frames named with "Generic" define the vehicle type, number of rotors, and "placeholder" rotor positions.
- After selecting the airframe you define the actual geometry and then configure outputs.
+  After selecting the airframe you define the actual geometry and then configure outputs.
 - Frames named with model/brand will define the vehicle type, number of rotors, actual rotor positions, and motor directions.
- After selecting the airframe you usually still have to configure outputs.
+  After selecting the airframe you usually still have to configure outputs.
 
 :::
 
@@ -52,7 +52,7 @@ This ensures that all ESC provide exactly the same output for a given input (ide
 The final step is [Motor Configuration](../config/actuators.md#motor-configuration):
 
 - [Reverse any motors](../config/actuators.md#reversing-motors) that don't match the spin direction configured in the Geometry.
- For DShot ESC you can do this through the Acuator Testing UI.
+  For DShot ESC you can do this through the Acuator Testing UI.
 - PWM, OneShot, and CAN ESC, set the motor input limits for disarmed, low and high speed (not needed for DShot ESC)
 
 Relevant topics:
@@ -123,14 +123,14 @@ Tuning is the final step, carried out only after most other setup and configurat
 
 - [Autotune](../config/autotune_mc.md) — Automates tuning PX4 rate and attitude controllers (recommended).
 
- ::: info
- Automatic tuning works on frames that have reasonable authority and dynamics around all the body axes.
- It has primarily been tested on racing quads and X500, and is expected to be less effective on tricopters with a tiltable rotor.
+  ::: info
+  Automatic tuning works on frames that have reasonable authority and dynamics around all the body axes.
+  It has primarily been tested on racing quads and X500, and is expected to be less effective on tricopters with a tiltable rotor.
 
- Manual tuning using these guides are only needed if there is a problem with autotune:
+  Manual tuning using these guides are only needed if there is a problem with autotune:
 
- - [MC PID Tuning (Manual/Basic)](../config_mc/pid_tuning_guide_multicopter_basic.md) — Manual tuning basic how to.
- - [MC PID Tuning Guide (Manual/Detailed)](../config_mc/pid_tuning_guide_multicopter.md) — Manual tuning with detailed explanation.
+  - [MC PID Tuning (Manual/Basic)](../config_mc/pid_tuning_guide_multicopter_basic.md) — Manual tuning basic how to.
+  - [MC PID Tuning Guide (Manual/Detailed)](../config_mc/pid_tuning_guide_multicopter.md) — Manual tuning with detailed explanation.
 
 
 :::
@@ -138,7 +138,7 @@ Tuning is the final step, carried out only after most other setup and configurat
 - [MC Filter/Control Latency Tuning](../config_mc/filter_tuning.md) — Trade off control latency and noise filtering.
 
 - [MC Setpoint Tuning (Trajectory Generator)](../config_mc/mc_trajectory_tuning.md)
- - [MC Jerk-limited Type Trajectory](../config_mc/mc_jerk_limited_type_trajectory.md)
+  - [MC Jerk-limited Type Trajectory](../config_mc/mc_jerk_limited_type_trajectory.md)
 
 - [Multicopter Racer Setup](../config_mc/racer_setup.md)
 
@@ -167,7 +167,7 @@ Yes but it must be physically feasible. E.g. if you make a quadrotor where all m
 - [Flight Controller Peripherals](../peripherals/index.md) - Setup specific sensors, optional sensors, actuators, and so on.
 - [Advanced Configuration](../advanced_config/index.md) - Factory/OEM calibration, configuring advanced features, less-common configuration.
 - Vehicle-Centric Config/Tuning:
- - **Multicopter Config/Tuning**
- - [Helicopter Config/Tuning](../config_heli/index.md)
- - [Fixed Wing Config/Tuning](../config_fw/index.md)
- - [VTOL Config/Tuning](../config_vtol/index.md)
+  - **Multicopter Config/Tuning**
+  - [Helicopter Config/Tuning](../config_heli/index.md)
+  - [Fixed Wing Config/Tuning](../config_fw/index.md)
+  - [VTOL Config/Tuning](../config_vtol/index.md)

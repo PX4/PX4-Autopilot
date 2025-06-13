@@ -89,9 +89,10 @@ uint8 HIL_STATE_ON = 1
 
 # Current vehicle locomotion method. A vehicle can have different methods (e.g. VTOL transitions from RW to FW method)
 uint8 vehicle_type
-uint8 VEHICLE_TYPE_ROTARY_WING = 0
-uint8 VEHICLE_TYPE_FIXED_WING = 1
-uint8 VEHICLE_TYPE_ROVER = 2
+uint8 VEHICLE_TYPE_UNSPECIFIED = 0
+uint8 VEHICLE_TYPE_ROTARY_WING = 1
+uint8 VEHICLE_TYPE_FIXED_WING = 2
+uint8 VEHICLE_TYPE_ROVER = 3
 
 uint8 FAILSAFE_DEFER_STATE_DISABLED = 0
 uint8 FAILSAFE_DEFER_STATE_ENABLED = 1

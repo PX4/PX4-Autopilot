@@ -33,6 +33,9 @@
 
 #pragma once
 
+#define MSP_FRAME_START_SIZE 5
+#define MSP_CRC_SIZE 1
+
 class MspV1
 {
 public:
@@ -40,7 +43,10 @@ public:
 	int GetMessageSize(int message_type);
 	bool Send(const uint8_t message_id, const void *payload);
 	bool Send(const uint8_t message_id, const void *payload, uint32_t payload_size);
+	int Receive(uint8_t *payload, uint8_t *message_id);
 
 private:
 	int _fd{-1};
+	uint8_t header[MSP_FRAME_START_SIZE + MSP_CRC_SIZE];
+	bool has_header{false};
 };

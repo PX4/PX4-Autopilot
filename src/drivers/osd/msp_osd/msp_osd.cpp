@@ -47,6 +47,7 @@
 #include <unistd.h>
 #include <termios.h>
 #include <string.h>
+#include <ctype.h>
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
@@ -239,6 +240,7 @@ void MspOsd::SendConfig()
 
 	_msp.Send(MSP_OSD_CONFIG, &msp_osd_config);
 }
+
 // extract it to MSPOSD_BF_Run() and MSPOSD_DJIFPV_Run() for compatibility?
 void MspOsd::Run()
 {
@@ -278,6 +280,23 @@ void MspOsd::Run()
 		_msp = MspV1(_msp_fd);
 
 		_is_initialized = true;
+	}
+
+	if (change_channel) {
+		msp_get_vtx_config_t vtx_set_config{0};
+		vtx_set_config.low_power_disarm = vtx_config.low_power_disarm;
+		vtx_set_config.pit_mode = vtx_config.pit_mode;
+		vtx_set_config.vtx_type = VTXDEV_MSP;
+		vtx_set_config.band = vtx_config.user_band;
+		vtx_set_config.channel = vtx_config.user_channel;
+		this->Send(MSP_GET_VTX_CONFIG, &vtx_set_config, sizeof(msp_get_vtx_config_t));
+		change_channel = false;
+	}
+
+	this->Receive();
+
+	if (!has_vtx_config) {
+		this->Send(MSP_GET_VTX_CONFIG, nullptr, 0);
 	}
 
 	// avoid premature pessimization; if skip processing if we're effectively disabled
@@ -420,6 +439,32 @@ void MspOsd::Run()
 	{
 
 	}
+
+	// MSP_RC
+	{
+		if (_param_osd_rc_stick.get() == 1) {
+			vehicle_status_s vehicle_status{};
+			_vehicle_status_sub.copy(&vehicle_status);
+
+			if (vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+				input_rc_s input_rc{};
+				_input_rc_sub.copy(&input_rc);
+				const auto msg = msp_osd::construct_MSP_RC(input_rc);
+				this->Send(MSP_RC, &msg, sizeof(msp_rc_t));
+			}
+		}
+
+	}
+
+	// MSP_STATUS
+	{
+		vehicle_status_s vehicle_status{};
+		_vehicle_status_sub.copy(&vehicle_status);
+
+		const auto msg = msp_osd::construct_MSP_STATUS(vehicle_status);
+		this->Send(MSP_STATUS, &msg, sizeof(msp_status_t));
+	}
+
 	subcmd = MSP_DP_DRAW_SCREEN;
 	this->Send(MSP_CMD_DISPLAYPORT, &subcmd, 1);
 }
@@ -441,6 +486,58 @@ void MspOsd::Send(const unsigned int message_type, const void *payload, int32_t 
 	} else {
 		_performance_data.unsuccessful_sends++;
 	}
+}
+
+void MspOsd::Receive()
+{
+	uint8_t packet[255];
+	uint8_t message_id;
+	int ret;
+
+	while ((ret = _msp.Receive(packet, &message_id)) != -EWOULDBLOCK) {
+		if (ret >= 0) {
+			switch (message_id) {
+
+			case MSP_SET_VTX_CONFIG: {
+					if (ret == 0xF) {
+						memcpy((void *)&vtx_config, packet, sizeof(vtx_config));
+						has_vtx_config = true;
+					}
+
+					break;
+				}
+
+			case MSP_SET_VTXTABLE_BAND: {
+					msp_set_vtxtable_band_t *band_info = (msp_set_vtxtable_band_t *)&packet[0];
+
+					// Only supported fixed name lenght and < 8 channels for now
+					if (band_info->band <= BAND_COUNT && band_info->band_name_length == 8 && band_info->channel_count <= 8) {
+						memcpy((void *)&vtx_bands[band_info->band - 1], packet, sizeof(msp_set_vtxtable_band_t));
+
+						if (has_vtx_config && band_info->band == vtx_config.band_count) {
+							has_vtx_bands = true;
+						}
+					}
+
+					break;
+				}
+
+			case MSP_SET_VTXTABLE_POWERLEVEL: {
+					if ((packet[0] - 1) < POWER_LEVEL_COUNT) {
+						memcpy((void *)&power_levels[packet[0] - 1], packet, sizeof(msp_set_vtxtable_powerlevel_t));
+						has_power_config = true;
+					}
+
+					break;
+				}
+
+			default:
+				break;
+
+			}
+		}
+	}
+
 }
 
 void MspOsd::parameters_update()
@@ -523,11 +620,102 @@ int MspOsd::print_status()
 	_display.get(msg, hrt_absolute_time());
 	PX4_INFO("Current message: \n\t%s", msg);
 
+	if (has_vtx_config) {
+		PX4_INFO("=== VTX Configuration ===");
+
+		if (has_vtx_bands) {
+			PX4_INFO("Channel: %c%u", vtx_bands[vtx_config.user_band - 1].band_letter, vtx_config.user_channel);
+
+		} else {
+			PX4_INFO("Band: %u", vtx_config.user_band);
+			PX4_INFO("Channel: %u", vtx_config.user_channel);
+		}
+
+		PX4_INFO("Frequency: %u MHz", vtx_config.user_freq);
+
+		if (has_power_config && (vtx_config.power_level - 1) < POWER_LEVEL_COUNT) {
+			PX4_INFO("Transmit power: %.*s mW", power_levels[vtx_config.power_level - 1].power_label_length,
+				 power_levels[vtx_config.power_level - 1].power_label_name);
+
+		} else {
+			PX4_INFO("Power Level: %u/%u", vtx_config.power_level,  vtx_config.power_count);
+
+		}
+
+		PX4_INFO("PIT Mode: %s", vtx_config.pit_mode ? "On" : "Off");
+
+		const char *disarm_modes[] = {
+			"Off",
+			"Always",
+			"Until First Arm"
+		};
+
+		if (vtx_config.low_power_disarm < 3) {
+			PX4_INFO("Low Power Disarm: %s", disarm_modes[vtx_config.low_power_disarm]);
+
+		} else {
+			PX4_INFO("Low Power Disarm: Unknown (%u)", vtx_config.low_power_disarm);
+		}
+
+		PX4_INFO("PIT Frequency: %u MHz", vtx_config.pit_freq);
+
+	} else {
+		PX4_INFO("No VTX Configuration available, can't do channel switching");
+	}
+
 	return 0;
+}
+
+int MspOsd::set_channel(char *new_channel)
+{
+	char band_letter = toupper(new_channel[0]);
+
+	if (!has_vtx_bands) {
+		return -2;
+	}
+
+	for (int i = 0; i < BAND_COUNT; i++) {
+		if (vtx_bands[i].band != 0) {
+			if (band_letter == toupper(vtx_bands[i].band_letter)) {
+				int channel = atoi(&new_channel[1]);
+
+				if (channel > 0 && channel <= vtx_config.channel_count && vtx_bands[i].frequency[channel - 1] != 0) {
+					vtx_config.user_band = vtx_bands[i].band;
+					vtx_config.user_channel = channel;
+					vtx_config.user_freq = vtx_bands[i].frequency[channel - 1];
+					change_channel = true;
+					return 0;
+				}
+
+			}
+		}
+	}
+
+	return -1;
 }
 
 int MspOsd::custom_command(int argc, char *argv[])
 {
+	if (argc > 0 && strcmp("channel", argv[0]) == 0) {
+		if (argc == 1) {
+			PX4_INFO("Please provide a channel");
+
+		} else if (is_running() && _object.load()) {
+			MspOsd *object = _object.load();
+			int ret = object->set_channel(argv[1]);
+
+			if (ret == -1) {
+				PX4_INFO("Channel not found");
+
+			} else if (ret == -2) {
+				PX4_INFO("No VTX Channel table available");
+			}
+
+		} else {
+			PX4_INFO("not running");
+		}
+	}
+
 	return 0;
 }
 
@@ -553,6 +741,7 @@ $ msp_osd
 
 	PRINT_MODULE_USAGE_NAME("msp_osd", "driver");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+	PRINT_MODULE_USAGE_COMMAND_DESCR("channel", "Change VTX channel");
 
 	return 0;
 }

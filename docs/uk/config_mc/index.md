@@ -38,9 +38,9 @@ Selecting an airframe applies a [frame configuration file](../dev_airframes/addi
 Коли ви виводите новий транспортний засіб, рама зазвичай містить досить мінімальну конфігурацію:
 
 - Кадри з назвою "Загальний" визначають тип транспортного засобу, кількість роторів та позиції роторів-заповнювачі.
- Після вибору конструкції фюзеляжу ви визначаєте фактичну геометрію, а потім налаштовуєте виходи.
+  Після вибору конструкції фюзеляжу ви визначаєте фактичну геометрію, а потім налаштовуєте виходи.
 - Кадри з назвою моделі/бренду визначать тип транспортного засобу, кількість роторів, фактичні позиції роторів та напрямки руху двигуна.
- Після вибору конструкції фюзеляжу вам зазвичай все ще потрібно налаштувати виводи.
+  Після вибору конструкції фюзеляжу вам зазвичай все ще потрібно налаштувати виводи.
 
 :::
 
@@ -52,7 +52,7 @@ If using PWM ESCs and OneShot ESCs (but not DShot and DroneCAN/Cyphal ESC) you s
 The final step is [Motor Configuration](../config/actuators.md#motor-configuration):
 
 - [Reverse any motors](../config/actuators.md#reversing-motors) that don't match the spin direction configured in the Geometry.
- Для DShot ESC ви можете це зробити через інтерфейс тестування приводу.
+  Для DShot ESC ви можете це зробити через інтерфейс тестування приводу.
 - PWM, OneShot та CAN ESC встановлюють ліміти введення мотора для режимів роззброєння, низької та високої швидкості (не потрібно для DShot ESC)
 
 Відповідні теми:
@@ -123,14 +123,14 @@ PX4 може бути налаштований для автоматичної �
 
 - [Autotune](../config/autotune_mc.md) — Automates tuning PX4 rate and attitude controllers (recommended).
 
- ::: info
- Automatic tuning works on frames that have reasonable authority and dynamics around all the body axes.
- Це було перевірено в основному на гоночних квадрокоптерах та X500, і очікується, що воно буде менш ефективним на трикоптерах з нахилом ротора.
+  ::: info
+  Automatic tuning works on frames that have reasonable authority and dynamics around all the body axes.
+  Це було перевірено в основному на гоночних квадрокоптерах та X500, і очікується, що воно буде менш ефективним на трикоптерах з нахилом ротора.
 
- Manual tuning using these guides are only needed if there is a problem with autotune:
+  Manual tuning using these guides are only needed if there is a problem with autotune:
 
- - [MC PID Tuning (Manual/Basic)](../config_mc/pid_tuning_guide_multicopter_basic.md) — Manual tuning basic how to.
- - [MC PID Tuning Guide (Manual/Detailed)](../config_mc/pid_tuning_guide_multicopter.md) — Manual tuning with detailed explanation.
+  - [MC PID Tuning (Manual/Basic)](../config_mc/pid_tuning_guide_multicopter_basic.md) — Manual tuning basic how to.
+  - [MC PID Tuning Guide (Manual/Detailed)](../config_mc/pid_tuning_guide_multicopter.md) — Manual tuning with detailed explanation.
 
 
 :::
@@ -138,7 +138,7 @@ PX4 може бути налаштований для автоматичної �
 - [MC Filter/Control Latency Tuning](../config_mc/filter_tuning.md) — Trade off control latency and noise filtering.
 
 - [MC Setpoint Tuning (Trajectory Generator)](../config_mc/mc_trajectory_tuning.md)
- - [MC Jerk-limited Type Trajectory](../config_mc/mc_jerk_limited_type_trajectory.md)
+  - [MC Jerk-limited Type Trajectory](../config_mc/mc_jerk_limited_type_trajectory.md)
 
 - [Multicopter Racer Setup](../config_mc/racer_setup.md)
 
@@ -167,7 +167,7 @@ Yes but it must be physically feasible. E.g. if you make a quadrotor where all m
 - [Периферія контролера польоту](../peripherals/README.md) - налаштування конкретних датчиків, опціональних датчиків, приводів тощо.
 - [Advanced Configuration](../advanced_config/index.md) - Factory/OEM calibration, configuring advanced features, less-common configuration.
 - Конфігурація/налаштування, що залежать від апарату:
- - **Multicopter Config/Tuning**
- - [Конфігурація/налаштування гелікоптера](../config_heli/index.md)
- - [Fixed Wing Config/Tuning](../config_fw/index.md)
- - [Конфігурація/налаштування VTOL](../config_vtol/index.md)
+  - **Multicopter Config/Tuning**
+  - [Конфігурація/налаштування гелікоптера](../config_heli/index.md)
+  - [Fixed Wing Config/Tuning](../config_fw/index.md)
+  - [Конфігурація/налаштування VTOL](../config_vtol/index.md)
