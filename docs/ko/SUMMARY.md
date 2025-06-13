@@ -291,7 +291,7 @@
       - [ARK Flow MR](dronecan/ark_flow_mr.md)
       - [PMW3901](sensor/pmw3901.md)
       - [PX4FLOW (Deprecated)](sensor/px4flow.md)
-      - [UPixels Flow](/sensor/upixels_flow.md)
+      - [UPixels Flow](sensor/upixels_flow.md)
     - [회전계(회전 계수기)](sensor/tachometers.md)
       - [ThunderFly TFRPM01 타코미터 센서](sensor/thunderfly_tachometer.md)
     - [IMU Factory Calibration](advanced_config/imu_factory_calibration.md)
