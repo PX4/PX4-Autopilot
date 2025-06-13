@@ -1,4 +1,10 @@
-# Neural control message
+# Neural Control Message
+#
+# Debugging topic for the Neural controller, logs the inputs and output vectors of the neural network, and the time it takes to run
+# Publisher: mc_nn_control
+# Subscriber: logger
+
+uint64 timestamp			# time since system start (microseconds)
 
 uint64 timestamp # [us] Time since system start
 
