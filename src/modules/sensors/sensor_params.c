@@ -168,33 +168,44 @@ PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0);
 PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
 
 /**
- * Board rotation Y (Pitch) offset
+ * Board rotation Y (pitch) offset
  *
- * This parameter defines a rotational offset in degrees around the Y (Pitch) axis. It allows the user
- * to fine tune the board offset in the event of misalignment.
+ * Rotation from flight controller board to vehicle body frame.
+ * This parameter gets set during the "level horizon" calibration or can be
+ * set manually.
  *
+ * @min -45.0
+ * @max 45.0
+ * @decimal 1
  * @unit deg
  * @group Sensors
  */
 PARAM_DEFINE_FLOAT(SENS_BOARD_Y_OFF, 0.0f);
 
 /**
- * Board rotation X (Roll) offset
+ * Board rotation X (roll) offset
  *
- * This parameter defines a rotational offset in degrees around the X (Roll) axis It allows the user
- * to fine tune the board offset in the event of misalignment.
+ * Rotation from flight controller board to vehicle body frame.
+ * This parameter gets set during the "level horizon" calibration or can be
+ * set manually.
  *
  * @unit deg
+ * @min -45.0
+ * @max 45.0
+ * @decimal 1
  * @group Sensors
  */
 PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
 
 /**
- * Board rotation Z (YAW) offset
+ * Board rotation Z (yaw) offset
  *
- * This parameter defines a rotational offset in degrees around the Z (Yaw) axis. It allows the user
- * to fine tune the board offset in the event of misalignment.
+ * Rotation from flight controller board to vehicle body frame.
+ * Has to be set manually (not set by any calibration).
  *
+ * @min -45.0
+ * @max 45.0
+ * @decimal 1
  * @unit deg
  * @group Sensors
  */
