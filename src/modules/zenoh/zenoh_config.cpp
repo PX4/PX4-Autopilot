@@ -234,21 +234,28 @@ int Zenoh_Config::cli(int argc, char *argv[])
 {
 	if (argc == 1) {
 		dump_config();
+
 	} else if (argc == 2) {
 		if (strcmp(argv[1], "delete") == 0) {
 			printf("The type of resource to be deleted (publisher/subscriber) must be specified.\n");
+
 		} else if (strcmp(argv[1], "add") == 0) {
 			printf("The type of resource to be added (publisher/subscriber) must be specified.\n");
+
 		} else {
 			printf("Unrecognized command\n");
 		}
+
 	} else if (argc == 3) {
 		if (strcmp(argv[1], "net") == 0) {
 			SetNetworkConfig(argv[2], 0);
+
 		} else if (strcmp(argv[1], "delete") == 0) {
 			printf("The name of the resource to be deleted needs to be specified.\n");
+
 		} else if (strcmp(argv[1], "add") == 0) {
 			printf("The name of the Zenoh/uOrb topic pair to be linked needs to be specified.\n");
+
 		} else {
 			printf("Unrecognized command\n");
 		}
@@ -256,6 +263,7 @@ int Zenoh_Config::cli(int argc, char *argv[])
 	} else if (argc == 4) {
 		if (strcmp(argv[1], "net") == 0) {
 			SetNetworkConfig(argv[2], argv[3]);
+
 		} else if (strcmp(argv[1], "delete") == 0) {
 			if (strcmp(argv[2], "publisher") == 0) {
 				int res = DeletePubSub(argv[3], ZENOH_PUB_CONFIG_PATH);
@@ -270,12 +278,15 @@ int Zenoh_Config::cli(int argc, char *argv[])
 				if (res < 0) {
 					printf("Could not delete subscriber topic %s\n", argv[3]);
 				}
+
 			} else {
 				printf("Unrecognized command\n");
 			}
+
 		} else {
 			printf("Unrecognized command\n");
 		}
+
 	} else if (argc >= 5) {
 		if (strcmp(argv[1], "add") == 0) {
 			if (strcmp(argv[2], "publisher") == 0) {
@@ -312,9 +323,11 @@ int Zenoh_Config::cli(int argc, char *argv[])
 				} else {
 					printf("Could not add %s -> uORB %s to subscribers\n",  argv[3], argv[4]);
 				}
+
 			} else {
 				printf("Unrecognized command\n");
 			}
+
 		} else {
 			printf("Unrecognized command\n");
 		}

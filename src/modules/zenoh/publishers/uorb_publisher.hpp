@@ -56,7 +56,7 @@ public:
 		_cdr_ops(ops)
 	{
 		if (instance <= 0) { // default (<0) or =0
-			_uorb_sub = orb_subscribe(meta);
+			_uorb_sub = orb_subscribe(meta); // orb_subscribe subscribes to the 0th/first instance by default
 
 		} else { // otherwise
 			_uorb_sub = orb_subscribe_multi(meta, instance);
