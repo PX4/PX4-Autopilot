@@ -49,13 +49,19 @@
 class uORB_Zenoh_Subscriber : public Zenoh_Subscriber
 {
 public:
-	uORB_Zenoh_Subscriber(const orb_metadata *meta, const uint32_t *ops) :
+	// d_instance: < (default if not in CSV) if we should create a new instance (safe), nonzero if we should use the 0 instance
+	uORB_Zenoh_Subscriber(const orb_metadata *meta, const uint32_t *ops, int d_instance) :
 		Zenoh_Subscriber(),
 		_uorb_meta{meta},
 		_cdr_ops(ops)
 	{
-		int instance = 0;
-		_uorb_pub_handle = orb_advertise_multi(_uorb_meta, nullptr, &instance);
+		if (d_instance < 0) { // default=-1; allocate a new instance
+			int instance;
+			_uorb_pub_handle = orb_advertise_multi(_uorb_meta, nullptr, &instance);
+
+		} else {
+			_uorb_pub_handle = orb_advertise(_uorb_meta, nullptr);
+		}
 	};
 
 	~uORB_Zenoh_Subscriber()

@@ -132,11 +132,11 @@ topic_names = datatypes_with_topics[topic_name]
 @[end for]
 };
 
-uORB_Zenoh_Publisher* genPublisher(const orb_metadata *meta) {
+uORB_Zenoh_Publisher* genPublisher(const orb_metadata *meta, int instance) {
     for (auto &pub : _topics) {
         for(int i = 0; i < pub.orb_topics_size; i++) {
             if(pub.orb_topic[i]->o_id == meta->o_id) {
-                return new uORB_Zenoh_Publisher(meta, pub.ops);
+                return new uORB_Zenoh_Publisher(meta, pub.ops, instance);
             }
         }
     }
@@ -144,11 +144,11 @@ uORB_Zenoh_Publisher* genPublisher(const orb_metadata *meta) {
 }
 
 
-uORB_Zenoh_Publisher* genPublisher(const char *name) {
+uORB_Zenoh_Publisher* genPublisher(const char *name, int instance) {
     for (auto &pub : _topics) {
         for(int i = 0; i < pub.orb_topics_size; i++) {
             if(strcmp(pub.orb_topic[i]->o_name, name) == 0) {
-                return new uORB_Zenoh_Publisher(pub.orb_topic[i], pub.ops);
+                return new uORB_Zenoh_Publisher(pub.orb_topic[i], pub.ops, instance);
             }
         }
     }
@@ -156,11 +156,11 @@ uORB_Zenoh_Publisher* genPublisher(const char *name) {
 }
 
 
-Zenoh_Subscriber* genSubscriber(const orb_metadata *meta) {
+Zenoh_Subscriber* genSubscriber(const orb_metadata *meta, int instance) {
     for (auto &sub : _topics) {
         for(int i = 0; i < sub.orb_topics_size; i++) {
             if(sub.orb_topic[i]->o_id == meta->o_id) {
-                return new uORB_Zenoh_Subscriber(meta, sub.ops);
+                return new uORB_Zenoh_Subscriber(meta, sub.ops, instance);
             }
         }
     }
@@ -168,11 +168,11 @@ Zenoh_Subscriber* genSubscriber(const orb_metadata *meta) {
 }
 
 
-Zenoh_Subscriber* genSubscriber(const char *name) {
+Zenoh_Subscriber* genSubscriber(const char *name, int instance) {
     for (auto &sub : _topics) {
         for(int i = 0; i < sub.orb_topics_size; i++) {
             if(strcmp(sub.orb_topic[i]->o_name, name) == 0) {
-                return new uORB_Zenoh_Subscriber(sub.orb_topic[i], sub.ops);
+                return new uORB_Zenoh_Subscriber(sub.orb_topic[i], sub.ops, instance);
             }
         }
     }
