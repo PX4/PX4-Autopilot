@@ -234,16 +234,28 @@ int Zenoh_Config::cli(int argc, char *argv[])
 {
 	if (argc == 1) {
 		dump_config();
-
+	} else if (argc == 2) {
+		if (strcmp(argv[1], "delete") == 0) {
+			printf("The type of resource to be deleted (publisher/subscriber) must be specified.\n");
+		} else if (strcmp(argv[1], "add") == 0) {
+			printf("The type of resource to be added (publisher/subscriber) must be specified.\n");
+		} else {
+			printf("Unrecognized command\n");
+		}
 	} else if (argc == 3) {
 		if (strcmp(argv[1], "net") == 0) {
 			SetNetworkConfig(argv[2], 0);
+		} else if (strcmp(argv[1], "delete") == 0) {
+			printf("The name of the resource to be deleted needs to be specified.\n");
+		} else if (strcmp(argv[1], "add") == 0) {
+			printf("The name of the Zenoh/uOrb topic pair to be linked needs to be specified.\n");
+		} else {
+			printf("Unrecognized command\n");
 		}
 
 	} else if (argc == 4) {
 		if (strcmp(argv[1], "net") == 0) {
 			SetNetworkConfig(argv[2], argv[3]);
-
 		} else if (strcmp(argv[1], "delete") == 0) {
 			if (strcmp(argv[2], "publisher") == 0) {
 				int res = DeletePubSub(argv[3], ZENOH_PUB_CONFIG_PATH);
@@ -258,9 +270,12 @@ int Zenoh_Config::cli(int argc, char *argv[])
 				if (res < 0) {
 					printf("Could not delete subscriber topic %s\n", argv[3]);
 				}
+			} else {
+				printf("Unrecognized command\n");
 			}
+		} else {
+			printf("Unrecognized command\n");
 		}
-
 	} else if (argc >= 5) {
 		if (strcmp(argv[1], "add") == 0) {
 			if (strcmp(argv[2], "publisher") == 0) {
@@ -297,9 +312,13 @@ int Zenoh_Config::cli(int argc, char *argv[])
 				} else {
 					printf("Could not add %s -> uORB %s to subscribers\n",  argv[3], argv[4]);
 				}
+			} else {
+				printf("Unrecognized command\n");
 			}
+		} else {
+			printf("Unrecognized command\n");
 		}
-	}
+	} // doesn't need an else because negative argc would be... weird
 
 	//TODO make CLI to modify configuration now you would have to manually modify the files
 	return 0;
@@ -346,13 +365,12 @@ void Zenoh_Config::getNetworkConfig(char *mode, char *locator)
 		const char *fields[2];
 		int nfields = parse_csv_line(buffer, fields, 2);
 
-		if (nfields < 2) {
-			PX4_ERR("Invalid Zenoh net config file (must contain the mode and locator separated by a ;).");
+		if (nfields < 1) {
+			PX4_ERR("Invalid Zenoh net config file (must contain the mode and optional locator separated by a ;).");
 			fclose(fp);
 			return;
 		}
 
-		const char *config_locator = fields[1];
 		char *config_mode = (char *)fields[0];
 
 		if (config_mode) {
@@ -363,7 +381,8 @@ void Zenoh_Config::getNetworkConfig(char *mode, char *locator)
 			mode[0] = 0;
 		}
 
-		if (config_locator) {
+		if (nfields >= 2) {
+			const char *config_locator = fields[1];
 			strncpy(locator, config_locator, NET_LOCATOR_SIZE);
 
 		} else {
