@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,41 +32,23 @@
  ****************************************************************************/
 
 /**
- * @file zenoh_publisher.hpp
+ * @file rmw_attachment.h
  *
- * Defines basic functionality of Zenoh publisher class
+ * ROS2 RMW Attachment helper
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
 
-#pragma once
-
-#include "../rmw_attachment.h"
-
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/log.h>
-
-#include <lib/parameters/param.h>
-#include <containers/List.hpp>
 #include <zenoh-pico.h>
 
-class Zenoh_Publisher : public ListNode<Zenoh_Publisher *>
-{
-public:
-	Zenoh_Publisher();
-	virtual ~Zenoh_Publisher();
+#pragma once
 
-	virtual int declare_publisher(z_owned_session_t s, const char *keyexpr, uint8_t *gid);
+#define RMW_GID_STORAGE_SIZE 16u
+#define RMW_ATTACHEMENT_SIZE (8u + 8u + 1u + RMW_GID_STORAGE_SIZE)
 
-	virtual int undeclare_publisher();
-
-	virtual int8_t update() = 0;
-
-	virtual void print();
-
-protected:
-	int8_t publish(const uint8_t *, int size);
-
-	z_owned_publisher_t _pub;
-	RmwAttachment attachment;
-};
+typedef struct __attribute__((__packed__)) RmwAttachment {
+	int64_t sequence_number;
+	int64_t time;
+	uint8_t rmw_gid_size;
+	uint8_t rmw_gid[RMW_GID_STORAGE_SIZE];
+} RmwAttachment;
