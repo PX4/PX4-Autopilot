@@ -17,8 +17,39 @@ VALID_FIELDS = { #Note, also have to add the message types as those can be field
     'uint32'
 }
 
-ALLOWED_UNITS = set(["m", "m/s", "rad", "rad/s", "rpm" ,"V", "A", "mA", "mAh", "W", "dBm", "s", "ms", "us", "Ohm", "MB", "Kb/s"])
+ALLOWED_UNITS = set(["m", "m/s", "m/s^2", "rad", "rad/s", "rpm" ,"V", "A", "mA", "mAh", "W", "dBm", "s", "ms", "us", "Ohm", "MB", "Kb/s", "degC"])
 invalid_units = set()
+
+
+class Error:
+    def __init__(self, type, message, linenumber=None, issueString = None, field = None):
+        self.type = type
+        self.message = message
+        self.linenumber = linenumber
+        self.issueString = issueString
+        self.field = field
+
+        #self.display_info()
+
+    def display_error(self):
+        #print(f"Debug: Error: display_error")
+        if 'internal_comment' in self.type:
+            print(f"NOTE: Internal Comment ({self.message}: {self.linenumber})\n {self.issueString}")
+        elif 'summary_missing' in self.type:
+            print(f"WARNING: No message description ({self.message})")
+        elif 'topic_error' in self.type:
+            print(f"NOTE: TOPIC ISSUE: {self.issueString}")
+        elif 'unknown_unit' in self.type:
+            print(f"WARNING: Unknown Unit: [{self.issueString}] on `{self.field}` ({self.message}: {self.linenumber})")
+        elif 'constant_not_in_assigned_enum' in self.type:
+            print(f"WARNING: `{self.issueString}` constant: Prefix not in `@enum` field metadata ({self.message}: {self.linenumber})")
+
+        else:
+            self.display_info()
+
+    def display_info(self):
+        print(f"Debug: Error: display_info")
+        print(f" type: {self.type}, message: {self.message}, linenumber: {self.linenumber}, issueString: {self.issueString}, field: {self.field}")
 
 class Enum:
     def __init__(self, name, parentMessage):
@@ -31,6 +62,24 @@ class Enum:
         print(f" name: {self.name}")
         for key, value in self.enumValues.items():
             value.display_info()
+
+class EnumValue:
+    def __init__(self, name, type, value, comment, line_number):
+        self.name = name.strip()
+        self.type = type.strip()
+        self.value = value.strip()
+        self.comment = comment
+        self.line_number = line_number
+
+        if not self.value:
+            print(f"Debug WARNING: NO VALUE in enumValue: {self.name}")  ## TODO make into ERROR
+            exit()
+
+        # TODO if value or name are empty, error
+
+    def display_info(self):
+        print(f"Debug: EnumValue: display_info")
+        print(f" name: {self.name}, type: {self.type}, value: {self.value}, comment: {self.comment}, line: {self.line_number}")
 
 class MessageField:
     def __init__(self, name, type, comment, line_number, parentMessage):
@@ -64,7 +113,11 @@ class MessageField:
                     self.unit = item
                     if self.unit not in ALLOWED_UNITS:
                         invalid_units.add(self.unit)
-                        print(f"Invalid Unit [{self.unit}] on {self.name} ({self.parent.filename}: {self.lineNumber})")
+                        error = Error("unknown_unit", self.parent.filename, self.lineNumber, self.unit, self.name)
+                        #error.display_error()
+                        if not "unknown_unit" in self.parent.errors:
+                            self.parent.errors["unknown_unit"] = []
+                        self.parent.errors["unknown_unit"].append(error)
                         # TODO turn this into an error or warning thingy stored at top level.
                         # Would allow filtering on the types of things to report by file.
                 elif item.startswith('@enum'):
@@ -83,29 +136,14 @@ class MessageField:
                     self.invalidValue = item[8:].strip()
                 else:
                     print(f"WARNING: Unhandled metadata in message comment: {item}")
+                    # TODO - report errors for different kinds of metadata
                     exit()
 
     def display_info(self):
         print(f"Debug: MessageField: display_info")
         print(f" name: {self.name}, type: {self.type}, description: {self.description}, enums: {self.enums}, minValue: {self.minValue}, maxValue: {self.maxValue}, invalidValue: {self.invalidValue}")
 
-class EnumValue:
-    def __init__(self, name, type, value, comment, line_number):
-        self.name = name.strip()
-        self.type = type.strip()
-        self.value = value.strip()
-        self.comment = comment
-        self.line_number = line_number
 
-        if not self.value:
-            print(f"WARNING: NO VALUE in enumValue: {self.name}")
-            exit()
-
-        # TODO if value or name are empty, error
-
-    def display_info(self):
-        print(f"Debug: EnumValue: display_info")
-        print(f" name: {self.name}, type: {self.type}, value: {self.value}, comment: {self.comment}")
 
 class UORBMessage:
     def __init__(self, filename):
@@ -120,9 +158,29 @@ class UORBMessage:
         self.enumValues = dict()
         self.enums = dict()
         self.output_file = os.path.join(output_dir, f"{self.name}.md")
+        self.topics = []
+        self.errors = dict()
 
         self.parseFile()
 
+
+
+        if args.errors:
+            #print(f"DEBUG: args.errors: {args.errors}")
+            if args.error_messages:
+                messages = args.error_messages.split(" ")
+                #print(f"DEBUG: args.errors: {messages},self.name: {self.name}")
+                if self.name in messages:
+                    self.reportErrors()
+                    #print(f"Debug: {self.name} in {messages}")
+            else:
+              self.reportErrors()
+
+    def reportErrors(self):
+        #print(f"Debug: UORBMessage: reportErrors()")
+        for errorType, errors in self.errors.items():
+            for error in errors:
+               error.display_error()
 
     def markdown_out(self):
         #print(f"Debug: UORBMessage: markdown_out()")
@@ -133,6 +191,9 @@ class UORBMessage:
         ## Append description info if present
         markdown += f"{self.shortDescription}\n\n" if self.shortDescription else ""
         markdown += f"{self.longDescription}\n\n" if self.longDescription else ""
+
+        topicList = " ".join(self.topics)
+        markdown += f"**TOPICS:** {topicList}\n\n"
 
         # Generate field docs
         markdown += f"## Fields\n\n"
@@ -227,7 +288,7 @@ class UORBMessage:
             self.enumValues[enumvalue].display_info()
 
     def handleField(self, line, line_number, parentMessage):
-        #print(f"handleField: (line): \n XX{line}XX")
+        #print(f"debug: handleField: (line): \n {line}")
         fieldOrConstant = line.strip()
         comment = None
         if "#" in line:
@@ -290,21 +351,53 @@ class UORBMessage:
                 if gettingFields:
                     if not stripped_line:
                         continue # empty line
-                    if stripped_line.startswith("# TOPICS"):
-                        print("WARNING - DONT HANDLE TOPICS YET") # TODO
+                    if stripped_line.startswith("# TOPICS "):
+                        stripped_line =  stripped_line[9:]
+                        stripped_line = stripped_line.split(" ")
+                        self.topics+= stripped_line
+                        # Note, default topic and topic errors handled after all lines parsed
                         continue
                     if stripped_line.startswith("#"):
                         stripped_line=stripped_line[1:].strip()
                         if not stripped_line:
                             pass # Empty comment
                         else:
-                            print(f"{self.filename}: Internal comment: [{line_number}]\n {line}")
-                            # TODO report error?
-                            # TODO handle topics.
+                            #print(f"{self.filename}: Internal comment: [{line_number}]\n {line}")
+                            error = Error("internal_comment", self.filename, line_number, line)
+                            if not "internal_comment" in self.errors:
+                                self.errors["internal_comment"] = []
+                            self.errors["internal_comment"].append(error)
                         continue
                     else:
                         #print(f"Field? {stripped_line}")
                         self.handleField(stripped_line, line_number, parentMessage=self)
+
+            # Fix up topics if the topic is empty
+            def camel_to_snake(name):
+                # Match upper case not at start of string
+                s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+                # Handle cases with multiple capital first letter
+                return re.sub('([A-Z]+)([A-Z][a-z]*)', r'\1_\2', s1).lower()
+
+            defaultTopic = camel_to_snake(self.name)
+            #print(f"debug: defaultTopic: {defaultTopic}")
+            if len(self.topics) == 0:
+                # We have no topic declared, so set the default topic
+                self.topics.append(defaultTopic)
+            elif len(self.topics) == 1:
+                # We have 1 topic declared - either it is default or there is some issue.
+                if defaultTopic in self.topics:
+                    # Declared topic is default topic
+                    error = Error("topic_error", self.filename, "", f"WARNING: TOPIC {defaultTopic} unnecessarily declared for {self.name}")
+                else:
+                    # Declared topic is not default topic
+                    error = Error("topic_error", self.filename, "", f"NOTE: TOPIC {self.topics[1]}: Only Declared topic is not default topic {defaultTopic} for {self.name}")
+                if not "topic_error" in self.errors:
+                    self.errors["topic_error"] = []
+                    self.errors["topic_error"].append(error)
+            elif len(self.topics) > 1:
+                if defaultTopic not in self.topics:
+                    error = Error("topic_error", self.filename, "", f"NOTE: TOPIC - Default topic {defaultTopic} for {self.name} not in {self.topics}")
 
             # Parse our short and long description
             #print(f"TODO: initial_block_lines: {initial_block_lines}")
@@ -322,7 +415,12 @@ class UORBMessage:
                     self.longDescription += f"{summaryline}\n"
 
             else:
-                print("WARNING: No summary")
+                # Summary has not been defined
+                error = Error("summary_missing", self.filename)
+                if not "summary_missing" in self.errors:
+                    self.errors["summary_missing"] = []
+                self.errors["summary_missing"].append(error)
+
             if self.longDescription:
                 self.longDescription.strip()
 
@@ -341,10 +439,16 @@ class UORBMessage:
                 del self.enumValues[enumValName]
             unassignedEnumValues = len(self.enumValues)
             if unassignedEnumValues > 0:
-                print(f"Debug: WARNING unassignedEnumValues: {unassignedEnumValues}")
-                # TODO Attempt to work out name of enum and report error.
+                #print(f"Debug: WARNING unassignedEnumValues: {unassignedEnumValues}")
+                for enumValueName, enumValue in self.enumValues.items():
+                    #print(f"  Debug: {enumValueName}")
+                    error = Error("constant_not_in_assigned_enum", self.filename, enumValue.line_number, enumValueName)
+                    if not "constant_not_in_assigned_enum" in self.errors:
+                        self.errors["constant_not_in_assigned_enum"] = []
+                    self.errors["constant_not_in_assigned_enum"].append(error)
+                # TODO Maybe present as list of possible enums.
 
-            #self.display_info()
+
 
 
 import yaml
@@ -464,7 +568,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Generate docs from .msg files')
     parser.add_argument('-d', dest='dir', help='output directory', required=True)
-    parser.add_argument('-m', dest='messages', help='Message names, space separated, to run on specific messages')
+    parser.add_argument('-e', dest='errors', action='store_true', help='Report errors')
+    parser.add_argument('-m', dest='error_messages', help='Message to report errors against (by default all)')
     args = parser.parse_args()
 
     output_dir = args.dir
@@ -475,26 +580,7 @@ if __name__ == "__main__":
     msg_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"../../msg")
     msg_files = get_msgs_list(msg_path)
 
-    if args.messages:
-        messageListToParse = args.messages.split(" ")
-        print(messageListToParse)
-        allFoundMessageNames = []
-
-        for message in messageListToParse:
-            messageFound = False
-            for item in msg_files:
-                if message in item:
-                    allFoundMessageNames.append(item)
-                    messageFound = True
-                    continue
-            if not messageFound:
-                print(f"EXIT: Message not found: {message}")
-                exit()
-        print(f"Parsing: {allFoundMessageNames}")
-        msg_files = allFoundMessageNames
-
     msg_files.sort()
-
 
     versioned_msgs_list = ''
     unversioned_msgs_list = ''
