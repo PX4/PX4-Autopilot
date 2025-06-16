@@ -31,55 +31,49 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "AckermannOffboardMode.hpp"
 
-// PX4 includes
-#include <px4_platform_common/module_params.h>
+using namespace time_literals;
 
-// Libraries
-#include <math.h>
-#include <matrix/matrix/math.hpp>
-
-// uORB includes
-#include <uORB/Subscription.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/rover_velocity_setpoint.h>
-#include <uORB/topics/rover_position_setpoint.h>
-#include <uORB/topics/offboard_control_mode.h>
-#include <uORB/topics/trajectory_setpoint.h>
-
-using namespace matrix;
-
-/**
- * @brief Class for ackermann manual mode.
- */
-class OffboardMode : public ModuleParams
+AckermannOffboardMode::AckermannOffboardMode(ModuleParams *parent) : ModuleParams(parent)
 {
-public:
-	/**
-	 * @brief Constructor for OffboardMode.
-	 * @param parent The parent ModuleParams object.
-	 */
-	OffboardMode(ModuleParams *parent);
-	~OffboardMode() = default;
+	updateParams();
+	_rover_velocity_setpoint_pub.advertise();
+	_rover_position_setpoint_pub.advertise();
+}
 
-	/**
-	 * @brief Generate and publish roverSetpoints from trajectorySetpoint.
-	 */
-	void offboardControl();
+void AckermannOffboardMode::updateParams()
+{
+	ModuleParams::updateParams();
+}
 
-protected:
-	/**
-	 * @brief Update the parameters of the module.
-	 */
-	void updateParams() override;
+void AckermannOffboardMode::offboardControl()
+{
+	offboard_control_mode_s offboard_control_mode{};
+	_offboard_control_mode_sub.copy(&offboard_control_mode);
 
-private:
-	// uORB subscriptions
-	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
-	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
+	trajectory_setpoint_s trajectory_setpoint{};
+	_trajectory_setpoint_sub.copy(&trajectory_setpoint);
 
-	// uORB publications
-	uORB::Publication<rover_velocity_setpoint_s> _rover_velocity_setpoint_pub{ORB_ID(rover_velocity_setpoint)};
-	uORB::Publication<rover_position_setpoint_s> _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
-};
+	if (offboard_control_mode.position) {
+		rover_position_setpoint_s rover_position_setpoint{};
+		rover_position_setpoint.timestamp = hrt_absolute_time();
+		rover_position_setpoint.position_ned[0] = trajectory_setpoint.position[0];
+		rover_position_setpoint.position_ned[1] = trajectory_setpoint.position[1];
+		rover_position_setpoint.start_ned[0] = NAN;
+		rover_position_setpoint.start_ned[1] = NAN;
+		rover_position_setpoint.cruising_speed = NAN;
+		rover_position_setpoint.arrival_speed = NAN;
+		rover_position_setpoint.yaw = NAN;
+		_rover_position_setpoint_pub.publish(rover_position_setpoint);
+
+	} else if (offboard_control_mode.velocity) {
+		const Vector2f velocity_ned(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
+		rover_velocity_setpoint_s rover_velocity_setpoint{};
+		rover_velocity_setpoint.timestamp = hrt_absolute_time();
+		rover_velocity_setpoint.speed = velocity_ned.norm();
+		rover_velocity_setpoint.bearing = atan2f(velocity_ned(1), velocity_ned(0));
+		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
+
+	}
+}

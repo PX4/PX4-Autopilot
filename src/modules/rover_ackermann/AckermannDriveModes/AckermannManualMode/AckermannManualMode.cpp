@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 
-#include "ManualMode.hpp"
+#include "AckermannManualMode.hpp"
 
 using namespace time_literals;
 
-ManualMode::ManualMode(ModuleParams *parent) : ModuleParams(parent)
+AckermannManualMode::AckermannManualMode(ModuleParams *parent) : ModuleParams(parent)
 {
 	updateParams();
 	_rover_throttle_setpoint_pub.advertise();
@@ -46,13 +46,13 @@ ManualMode::ManualMode(ModuleParams *parent) : ModuleParams(parent)
 	_rover_position_setpoint_pub.advertise();
 }
 
-void ManualMode::updateParams()
+void AckermannManualMode::updateParams()
 {
 	ModuleParams::updateParams();
 	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
 }
 
-void ManualMode::manual()
+void AckermannManualMode::manual()
 {
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
@@ -67,7 +67,7 @@ void ManualMode::manual()
 	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 }
 
-void ManualMode::acro()
+void AckermannManualMode::acro()
 {
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
@@ -83,7 +83,7 @@ void ManualMode::acro()
 	_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
 }
 
-void ManualMode::stab()
+void AckermannManualMode::stab()
 {
 	if (_vehicle_attitude_sub.updated()) {
 		vehicle_attitude_s vehicle_attitude{};
@@ -129,7 +129,7 @@ void ManualMode::stab()
 	}
 }
 
-void ManualMode::position()
+void AckermannManualMode::position()
 {
 	if (_vehicle_attitude_sub.updated()) {
 		vehicle_attitude_s vehicle_attitude{};
@@ -217,7 +217,7 @@ void ManualMode::position()
 	}
 }
 
-void ManualMode::reset()
+void AckermannManualMode::reset()
 {
 	_stab_yaw_setpoint = NAN;
 	_pos_ctl_course_direction = Vector2f(NAN, NAN);

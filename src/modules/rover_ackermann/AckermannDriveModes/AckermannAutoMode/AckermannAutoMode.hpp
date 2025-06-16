@@ -51,15 +51,15 @@
 /**
  * @brief Class for ackermann auto mode.
  */
-class AutoMode : public ModuleParams
+class AckermannAutoMode : public ModuleParams
 {
 public:
 	/**
 	 * @brief Constructor for auto mode.
 	 * @param parent The parent ModuleParams object.
 	 */
-	AutoMode(ModuleParams *parent);
-	~AutoMode() = default;
+	AckermannAutoMode(ModuleParams *parent);
+	~AckermannAutoMode() = default;
 
 	/**
 	 * @brief Generate and publish roverPositionSetpoint from positionSetpointTriplet.
