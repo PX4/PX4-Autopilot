@@ -120,4 +120,3 @@ PARAM_DEFINE_FLOAT(UUV_PGM_VEL, 0.5f);
  * @group UUV Position Control
  */
 PARAM_DEFINE_INT32(UUV_POS_MODE, 1);
-
