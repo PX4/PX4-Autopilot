@@ -91,7 +91,7 @@ mavlink stream -u 14556 -s GLOBAL_POSITION_INT -r 30
 mavlink start -x -u 14558 -o 14559 -r 100000 -n lo
 
 # Start logging and use timestamps for log files when possible.
-logger start -t -b 256
+logger start -b 256
 
 /bin/sleep 1
 
