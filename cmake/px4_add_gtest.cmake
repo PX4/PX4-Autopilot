@@ -57,7 +57,7 @@ function(px4_add_unit_gtest)
 		add_executable(${TESTNAME} EXCLUDE_FROM_ALL ${SRC} ${EXTRA_SRCS})
 
 		# link the libary to test and gtest
-		target_link_libraries(${TESTNAME} ${LINKLIBS} gtest_main)
+		target_link_libraries(${TESTNAME} PRIVATE ${LINKLIBS})
 
 		if(COMPILE_FLAGS)
 			target_compile_options(${TESTNAME} PRIVATE ${COMPILE_FLAGS})
@@ -66,6 +66,7 @@ function(px4_add_unit_gtest)
 		if(INCLUDES)
 			target_include_directories(${TESTNAME} PRIVATE ${INCLUDES})
 		endif()
+		link_fuzztest(${TESTNAME})
 
 		# add the test to the ctest plan
 		add_test(NAME ${TESTNAME}
@@ -97,7 +98,7 @@ function(px4_add_functional_gtest)
 		add_executable(${TESTNAME} EXCLUDE_FROM_ALL ${SRC} ${EXTRA_SRCS})
 
 		# link the libary to test and gtest
-		target_link_libraries(${TESTNAME} ${LINKLIBS} gtest_functional_main
+		target_link_libraries(${TESTNAME} PRIVATE ${LINKLIBS} gtest_functional_main
 		                                              px4_layer
 		                                              px4_platform
 		                                              uORB
@@ -111,7 +112,9 @@ function(px4_add_functional_gtest)
 		                                              perf
 		                                              tinybson
 		                                              uorb_msgs
-		                                              test_stubs)  #put test_stubs last
+		                                              fuzztest::fuzztest # Do not use link_fuzztest() here because that
+				                                      # also links to fuzztest_gtest_main
+		                                              test_stubs)  # put test_stubs last
 
 		if(COMPILE_FLAGS)
 			target_compile_options(${TESTNAME} PRIVATE ${COMPILE_FLAGS})
