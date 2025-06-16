@@ -1,39 +1,32 @@
 #!/bin/sh
 #
-# @name BlueROV2 (Heavy Configuration)
+# @name BlueROV2 Heavy
 #
-# @type Vectored 6 DOF UUV
-# @class Underwater Robot
+# @type UUV
 #
-# @output Motor1 motor 1 CCW, bow starboard horizontal, , propeller CCW
-# @output Motor2 motor 2 CCW, bow port horizontal, propeller CCW
-# @output Motor3 motor 3 CCW, stern starboard horizontal, propeller CW
-# @output Motor4 motor 4 CCW, stern port horizontal, propeller CW
-# @output Motor5 motor 5 CCW, bow starboard vertical, propeller CCW
-# @output Motor6 motor 6 CCW, bow port vertical, propeller CW
-# @output Motor7 motor 7 CCW, stern starboard vertical, propeller CW
-# @output Motor8 motor 8 CCW, stern port vertical, propeller CCW
-#
-# @maintainer Thies Lennart Alff <thies.lennart.alff@tuhh.de>
-#
-# @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
+# @maintainer Pedro Roque <padr@kth.se>
+# @maintainer Nicola De Carli <ndc@kth.se>
 #
 
-. ${R}etc/init.d/rc.uuv_defaults
+# Source PX4 parameters and configuration
+. ${R}/etc/init.d/rc.uuv_defaults
 
-# param set-default MAV_1_CONFIG 102
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=underwater}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=uuv_bluerov2_heavy}
 
-param set-default BAT1_A_PER_V 37.8798
-param set-default BAT1_CAPACITY 18000
-param set-default BAT1_V_DIV 11
-param set-default BAT1_N_CELLS 4
-param set-default BAT_V_OFFS_CURR 0.33
+param set-default SIM_GZ_EN 1
 
 # Set parameters using `param` utility for SITL
 param set-default CA_AIRFRAME 7
 param set-default CA_METHOD 0
 param set-default MAV_TYPE 12
+
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 1
+param set-default SENS_EN_MAGSIM 1
+param set-default COM_ARM_CHK_ESCS 0  # We don't have ESCs
+param set-default FD_ESCS_EN 0 # We don't have ESCs - but maybe we need this later?
 
 # Set proper failsafes
 param set-default COM_ACT_FAIL_ACT 0
@@ -47,7 +40,6 @@ param set-default COM_POSCTL_NAVL 2
 param set-default FD_FAIL_P 0
 param set-default FD_FAIL_R 0
 
-
 param set-default CA_ROTOR_COUNT 8
 param set-default CA_R_REV 255
 
@@ -58,6 +50,7 @@ param set-default CA_ROTOR0_KM 0
 param set-default CA_ROTOR0_PX 0.14
 param set-default CA_ROTOR0_PY 0.10
 param set-default CA_ROTOR0_PZ 0.06
+#param set-default CA_ROTOR0_PZ 0.0
 
 param set-default CA_ROTOR1_AX 1
 param set-default CA_ROTOR1_AY 1
@@ -66,6 +59,7 @@ param set-default CA_ROTOR1_KM 0
 param set-default CA_ROTOR1_PX 0.14
 param set-default CA_ROTOR1_PY -0.10
 param set-default CA_ROTOR1_PZ 0.06
+#param set-default CA_ROTOR1_PZ 0.0
 
 param set-default CA_ROTOR2_AX -1
 param set-default CA_ROTOR2_AY -1
@@ -74,6 +68,7 @@ param set-default CA_ROTOR2_KM 0
 param set-default CA_ROTOR2_PX -0.14
 param set-default CA_ROTOR2_PY 0.10
 param set-default CA_ROTOR2_PZ 0.06
+#param set-default CA_ROTOR2_PZ 0.0
 
 param set-default CA_ROTOR3_AX -1
 param set-default CA_ROTOR3_AY 1
@@ -82,6 +77,7 @@ param set-default CA_ROTOR3_KM 0
 param set-default CA_ROTOR3_PX -0.14
 param set-default CA_ROTOR3_PY -0.10
 param set-default CA_ROTOR3_PZ 0.06
+#param set-default CA_ROTOR3_PZ 0.0
 
 param set-default CA_ROTOR4_AX 0
 param set-default CA_ROTOR4_AY 0
@@ -115,14 +111,32 @@ param set-default CA_ROTOR7_PX -0.12
 param set-default CA_ROTOR7_PY -0.22
 param set-default CA_ROTOR7_PZ 0
 
-param set-default PWM_MAIN_FUNC1 101
-param set-default PWM_MAIN_FUNC2 102
-param set-default PWM_MAIN_FUNC3 103
-param set-default PWM_MAIN_FUNC4 104
-param set-default PWM_MAIN_FUNC5 105
-param set-default PWM_MAIN_FUNC6 106
-param set-default PWM_MAIN_FUNC7 107
-param set-default PWM_MAIN_FUNC8 108
+param set-default SIM_GZ_EC_FUNC1 101
+param set-default SIM_GZ_EC_FUNC2 102
+param set-default SIM_GZ_EC_FUNC3 103
+param set-default SIM_GZ_EC_FUNC4 104
+param set-default SIM_GZ_EC_FUNC5 105
+param set-default SIM_GZ_EC_FUNC6 106
+param set-default SIM_GZ_EC_FUNC7 107
+param set-default SIM_GZ_EC_FUNC8 108
+
+param set-default SIM_GZ_EC_MIN1 1000
+param set-default SIM_GZ_EC_MIN2 1000
+param set-default SIM_GZ_EC_MIN3 1000
+param set-default SIM_GZ_EC_MIN4 1000
+param set-default SIM_GZ_EC_MIN5 1000
+param set-default SIM_GZ_EC_MIN6 1000
+param set-default SIM_GZ_EC_MIN7 1000
+param set-default SIM_GZ_EC_MIN8 1000
+
+param set-default SIM_GZ_EC_MAX1 2000
+param set-default SIM_GZ_EC_MAX2 2000
+param set-default SIM_GZ_EC_MAX3 2000
+param set-default SIM_GZ_EC_MAX4 2000
+param set-default SIM_GZ_EC_MAX5 2000
+param set-default SIM_GZ_EC_MAX6 2000
+param set-default SIM_GZ_EC_MAX7 2000
+param set-default SIM_GZ_EC_MAX8 2000
 
 # Control parameters
 param set-default UUV_STAB_MODE 0
