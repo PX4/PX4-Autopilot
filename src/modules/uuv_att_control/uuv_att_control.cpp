@@ -124,6 +124,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	} else {
 		_vehicle_thrust_setpoint.xyz[0] = 0.0f;
 	}
+
 	if (PX4_ISFINITE(thrust_y)) {
 		thrust_y = math::constrain(thrust_y, -1.0f, 1.0f);
 		_vehicle_thrust_setpoint.xyz[1] = thrust_y;
@@ -131,6 +132,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	} else {
 		_vehicle_thrust_setpoint.xyz[1] = 0.0f;
 	}
+
 	if (PX4_ISFINITE(thrust_z)) {
 		thrust_z = math::constrain(thrust_z, -1.0f, 1.0f);
 		_vehicle_thrust_setpoint.xyz[2] = thrust_z;

@@ -42,6 +42,7 @@ bool GZMixingInterfaceThruster::init(const std::string &model_name)
 		PX4_ERR("failed to subscribe to %s", motor_speed_topic.c_str());
 		return false;
 	}
+
 	// output eg /uuv_bluerov2_heavy_0/thrust_3
 	for (int i = 0; i < 8; i++) {
 		std::string joint_name = "thrust_" + std::to_string(i);
@@ -59,6 +60,7 @@ bool GZMixingInterfaceThruster::init(const std::string &model_name)
 	// output eg /uuv_bluerov2_heavy_0/command/motor_speed
 
 	_actuators_pub = _node.Advertise<gz::msgs::Actuators>(actuator_topic);
+
 	if (!_actuators_pub.Valid()) {
 		PX4_ERR("failed to advertise %s", actuator_topic.c_str());
 		return false;
@@ -153,12 +155,13 @@ void GZMixingInterfaceThruster::thrusterSpeedCallback(const gz::msgs::Actuators 
 
 	pthread_mutex_lock(&_node_mutex);
 	int i = 0;
+
 	for (auto &thruster_pub : _thruster_pub) {
 		if (_mixing_output.isFunctionSet(i)) {
 			gz::msgs::Double thruster_output;
 
 			double output_range = _mixing_output.maxValue(i) - _mixing_output.minValue(i);
-			thruster_output.set_data(double(actuators.velocity(i)-_mixing_output.disarmedValue(i))/(output_range/2));
+			thruster_output.set_data(double(actuators.velocity(i) - _mixing_output.disarmedValue(i)) / (output_range / 2));
 
 			if (thruster_pub.Valid()) {
 				thruster_pub.Publish(thruster_output);
