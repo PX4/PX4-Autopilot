@@ -89,3 +89,6 @@
 [submodule "src/drivers/uavcan/libdronecan/libuavcan/dsdl_compiler/pydronecan"]
 	path = src/drivers/uavcan/libdronecan/libuavcan/dsdl_compiler/pydronecan
 	url = https://github.com/dronecan/pydronecan
+[submodule "test/fuzztest"]
+	path = test/fuzztest
+	url = https://github.com/google/fuzztest.git
