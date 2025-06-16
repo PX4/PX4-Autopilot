@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -87,6 +87,16 @@ I2CSPIDriverBase *Batmon::instantiate(const I2CSPIDriverConfig &config, int runt
 	// Setting the BAT_SOURCE to "external"
 	int32_t battsource = 1;
 	param_set(param_find("BAT_SOURCE"), &battsource);
+	uint32_t fullSerial[4];
+	const uint8_t fullSerialLength = 16;
+	ret = interface->block_read(BATT_SMBUS_MANUFACTURER_DATA, fullSerial, fullSerialLength, true);
+
+	if (ret != PX4_OK) {
+		PX4_ERR("could not read serial");
+	}
+
+	PX4_INFO("Serial number: %08lX%08lX%08lX%08lX, %04X", fullSerial[3], fullSerial[2], fullSerial[1], fullSerial[0],
+		 instance->_serial_number);
 
 	instance->ScheduleOnInterval(SBS_MEASUREMENT_INTERVAL_US);
 
