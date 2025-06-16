@@ -134,10 +134,12 @@ private:
 		(ParamInt<px4::params::UUV_INPUT_MODE>) _param_input_mode,
 		(ParamInt<px4::params::UUV_SKIP_CTRL>) _param_skip_ctrl,
 		// direct access to inputs
-		(ParamFloat<px4::params::UUV_DIRCT_ROLL>) _param_direct_roll,
-		(ParamFloat<px4::params::UUV_DIRCT_PITCH>) _param_direct_pitch,
-		(ParamFloat<px4::params::UUV_DIRCT_YAW>) _param_direct_yaw,
-		(ParamFloat<px4::params::UUV_DIRCT_THRUST>) _param_direct_thrust
+		(ParamFloat<px4::params::UUV_D_ROLL>) _param_direct_roll,
+		(ParamFloat<px4::params::UUV_D_PITCH>) _param_direct_pitch,
+		(ParamFloat<px4::params::UUV_D_YAW>) _param_direct_yaw,
+		(ParamFloat<px4::params::UUV_D_THRUST_X>) _param_direct_thrust_x,
+		(ParamFloat<px4::params::UUV_D_THRUST_Y>) _param_direct_thrust_y,
+		(ParamFloat<px4::params::UUV_D_THRUST_Z>) _param_direct_thrust_z
 	)
 
 	void Run() override;

@@ -124,6 +124,20 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	} else {
 		_vehicle_thrust_setpoint.xyz[0] = 0.0f;
 	}
+	if (PX4_ISFINITE(thrust_y)) {
+		thrust_y = math::constrain(thrust_y, -1.0f, 1.0f);
+		_vehicle_thrust_setpoint.xyz[1] = thrust_y;
+
+	} else {
+		_vehicle_thrust_setpoint.xyz[1] = 0.0f;
+	}
+	if (PX4_ISFINITE(thrust_z)) {
+		thrust_z = math::constrain(thrust_z, -1.0f, 1.0f);
+		_vehicle_thrust_setpoint.xyz[2] = thrust_z;
+
+	} else {
+		_vehicle_thrust_setpoint.xyz[2] = 0.0f;
+	}
 }
 
 void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude,
@@ -230,17 +244,18 @@ void UUVAttitudeControl::Run()
 			if (input_mode == 1) { // process manual data
 				Quatf attitude_setpoint(Eulerf(_param_direct_roll.get(), _param_direct_pitch.get(), _param_direct_yaw.get()));
 				attitude_setpoint.copyTo(_attitude_setpoint.q_d);
-				_attitude_setpoint.thrust_body[0] = _param_direct_thrust.get();
-				_attitude_setpoint.thrust_body[1] = 0.f;
-				_attitude_setpoint.thrust_body[2] = 0.f;
+				_attitude_setpoint.thrust_body[0] = _param_direct_thrust_x.get();
+				_attitude_setpoint.thrust_body[1] = _param_direct_thrust_y.get();
+				_attitude_setpoint.thrust_body[2] = _param_direct_thrust_z.get();
 			}
 
 			/* Geometric Control*/
 			int skip_controller = _param_skip_ctrl.get();
 
 			if (skip_controller) {
-				constrain_actuator_commands(_rates_setpoint.roll, _rates_setpoint.pitch, _rates_setpoint.yaw,
-							    _rates_setpoint.thrust_body[0], _rates_setpoint.thrust_body[1], _rates_setpoint.thrust_body[2]);
+				Eulerf euler_angles(matrix::Quatf(_attitude_setpoint.q_d));
+				constrain_actuator_commands(euler_angles(0), euler_angles(1), euler_angles(2),
+							    _attitude_setpoint.thrust_body[0], _attitude_setpoint.thrust_body[1], _attitude_setpoint.thrust_body[2]);
 
 			} else {
 				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint);

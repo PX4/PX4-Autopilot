@@ -126,25 +126,39 @@ PARAM_DEFINE_INT32(UUV_SKIP_CTRL, 0);
  *
  * @group UUV Attitude Control
  */
-PARAM_DEFINE_FLOAT(UUV_DIRCT_ROLL, 0.0f);
+PARAM_DEFINE_FLOAT(UUV_D_ROLL, 0.0f);
 
 /**
  * Direct pitch input
  *
  * @group UUV Attitude Control
  */
-PARAM_DEFINE_FLOAT(UUV_DIRCT_PITCH, 0.0f);
+PARAM_DEFINE_FLOAT(UUV_D_PITCH, 0.0f);
 
 /**
  * Direct yaw input
  *
  * @group UUV Attitude Control
  */
-PARAM_DEFINE_FLOAT(UUV_DIRCT_YAW, 0.0f);
+PARAM_DEFINE_FLOAT(UUV_D_YAW, 0.0f);
 
 /**
  * Direct thrust input
  *
  * @group UUV Attitude Control
  */
-PARAM_DEFINE_FLOAT(UUV_DIRCT_THRUST, 0.0f);
+PARAM_DEFINE_FLOAT(UUV_D_THRUST_X, 0.0f);
+
+/**
+ * Direct thrust input
+ *
+ * @group UUV Attitude Control
+ */
+PARAM_DEFINE_FLOAT(UUV_D_THRUST_Y, 0.0f);
+
+/**
+ * Direct thrust input
+ *
+ * @group UUV Attitude Control
+ */
+PARAM_DEFINE_FLOAT(UUV_D_THRUST_Z, 0.0f);
