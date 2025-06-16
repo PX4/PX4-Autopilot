@@ -158,14 +158,6 @@ if(CONFIG_MODULES_ROVER_MECANUM)
 	)
 endif()
 
-if(CONFIG_MODULES_ROVER_POS_CONTROL)
-	px4_add_romfs_files(
-		# [59000, 59999] Rover position control (deprecated)
-		59000_generic_ground_vehicle
-		59001_nxpcup_car_dfrobot_gpx
-	)
-endif()
-
 if(CONFIG_MODULES_UUV_ATT_CONTROL)
 	px4_add_romfs_files(
 		# [60000, 61000] (Unmanned) Underwater Robots
