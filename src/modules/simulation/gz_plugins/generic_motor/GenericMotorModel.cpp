@@ -387,6 +387,7 @@ void GenericMotorModel::Configure(const Entity &_entity,
 
 		if (motorType == "velocity") {
 			this->dataPtr->motorType = MotorType::kVelocity;
+
 		} else if (motorType == "position") {
 			this->dataPtr->motorType = MotorType::kPosition;
 			gzerr << "motorType 'position' not implemented" << std::endl;
@@ -908,7 +909,7 @@ void GenericMotorModelPrivate::UpdateForcesAndMoments(
 
 			const auto jointVelCmd = _ecm.Component<components::JointVelocityCmd>(
 							 this->jointEntity);
-			*jointVelCmd = components::JointVelocityCmd( {
+			*jointVelCmd = components::JointVelocityCmd({
 				this->turningDirection *refMotorRotVel
 				/ this->rotorVelocitySlowdownSim});
 		}

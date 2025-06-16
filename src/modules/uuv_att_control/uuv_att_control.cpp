@@ -191,7 +191,7 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 	omega(2) -= yaw_rate_desired;
 
 	/**< P-Control */
-	if(attitude_control_enabled){
+	if (attitude_control_enabled) {
 		torques(0) = - e_R_vec(0) * _param_roll_p.get();	/**< Roll  */
 		torques(1) = - e_R_vec(1) * _param_pitch_p.get();	/**< Pitch */
 		torques(2) = - e_R_vec(2) * _param_yaw_p.get();		/**< Yaw   */
@@ -212,7 +212,8 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 
 
 		constrain_actuator_commands(roll_u, pitch_u, yaw_u, thrust_x, thrust_y, thrust_z);
-	}else{
+
+	} else {
 		// take thrust from rates message
 		float thrust_x = _rates_setpoint.thrust_body[0];
 		float thrust_y = _rates_setpoint.thrust_body[1];
@@ -230,6 +231,7 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 
 		constrain_actuator_commands(roll_u, pitch_u, yaw_u, thrust_x, thrust_y, thrust_z);
 	}
+
 	/* Geometric Controller END*/
 }
 
@@ -299,17 +301,17 @@ void UUVAttitudeControl::Run()
 
 		/* Check that we are not in position / velocity / altitude modes
 		   and that we are using manual inputs */
-		if(_vcontrol_mode.flag_control_manual_enabled
-		&& !_vcontrol_mode.flag_control_position_enabled
-		&& !_vcontrol_mode.flag_control_velocity_enabled
-		&& !_vcontrol_mode.flag_control_altitude_enabled) {
+		if (_vcontrol_mode.flag_control_manual_enabled
+		    && !_vcontrol_mode.flag_control_position_enabled
+		    && !_vcontrol_mode.flag_control_velocity_enabled
+		    && !_vcontrol_mode.flag_control_altitude_enabled) {
 
 			/* Update manual setpoints */
 			_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 
 			/* Run stabilized mode */
 			if (_vcontrol_mode.flag_control_attitude_enabled
-				&& _vcontrol_mode.flag_control_rates_enabled) {
+			    && _vcontrol_mode.flag_control_rates_enabled) {
 
 				_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
 
@@ -319,24 +321,26 @@ void UUVAttitudeControl::Run()
 				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint, true);
 
 
-			/* Run Rate mode */
+				/* Run Rate mode */
+
 			} else if (!_vcontrol_mode.flag_control_attitude_enabled
-					&& _vcontrol_mode.flag_control_rates_enabled) {
+				   && _vcontrol_mode.flag_control_rates_enabled) {
 				/* Generate atttiude setpoint from sticks */
 				generate_rates_setpoint(dt);
 
 				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint, false);
 
-			/* Manual Control mode (e.g. gamepad,...) - raw feedthrough no assistance */
+				/* Manual Control mode (e.g. gamepad,...) - raw feedthrough no assistance */
+
 			} else if (!_vcontrol_mode.flag_control_attitude_enabled
-				&& !_vcontrol_mode.flag_control_rates_enabled) {
+				   && !_vcontrol_mode.flag_control_rates_enabled) {
 				/* manual/direct control */
 				constrain_actuator_commands(_manual_control_setpoint.roll * _param_mgm_roll.get(),
-							-_manual_control_setpoint.pitch * _param_mgm_pitch.get(),
-							_manual_control_setpoint.yaw * _param_mgm_yaw.get(),
-							_manual_control_setpoint.throttle * _param_mgm_thrtl.get(),
-							0.f,
-							0.f);
+							    -_manual_control_setpoint.pitch * _param_mgm_pitch.get(),
+							    _manual_control_setpoint.yaw * _param_mgm_yaw.get(),
+							    _manual_control_setpoint.throttle * _param_mgm_thrtl.get(),
+							    0.f,
+							    0.f);
 			}
 
 		} else {
@@ -355,8 +359,8 @@ void UUVAttitudeControl::Run()
 
 		/* Only publish if any of the proper modes are enabled */
 		if (_vcontrol_mode.flag_control_manual_enabled ||
-		_vcontrol_mode.flag_control_rates_enabled ||
-		_vcontrol_mode.flag_control_attitude_enabled) {
+		    _vcontrol_mode.flag_control_rates_enabled ||
+		    _vcontrol_mode.flag_control_attitude_enabled) {
 
 			_vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
 			_vehicle_thrust_setpoint.timestamp_sample = 0.f;
@@ -367,6 +371,7 @@ void UUVAttitudeControl::Run()
 			_vehicle_torque_setpoint_pub.publish(_vehicle_torque_setpoint);
 		}
 	}
+
 	perf_end(_loop_perf);
 }
 
