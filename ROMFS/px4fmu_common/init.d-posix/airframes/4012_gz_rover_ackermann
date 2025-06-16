@@ -30,6 +30,7 @@ param set-default RO_MAX_THR_SPEED 3.1
 param set-default RO_YAW_RATE_I 0.1
 param set-default RO_YAW_RATE_P 1
 param set-default RO_YAW_RATE_LIM 180
+param set-default RO_YAW_RATE_CORR 1
 
 # Rover Attitude Control Parameters
 param set-default RO_YAW_P 3

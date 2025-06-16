@@ -78,7 +78,8 @@ void DifferentialRateControl::updateRateControl()
 		const float yaw_rate_setpoint = fabsf(_yaw_rate_setpoint) > _param_ro_yaw_rate_th.get() * M_DEG_TO_RAD_F ?
 						_yaw_rate_setpoint : 0.f;
 		const float speed_diff_normalized = RoverControl::rateControl(_adjusted_yaw_rate_setpoint, _pid_yaw_rate,
-						    yaw_rate_setpoint, _vehicle_yaw_rate, _param_rd_max_thr_yaw_r.get(), _param_ro_yaw_accel_limit.get() * M_DEG_TO_RAD_F,
+						    yaw_rate_setpoint, _vehicle_yaw_rate, _param_ro_max_thr_speed.get(), _param_ro_yaw_rate_corr.get(),
+						    _param_ro_yaw_accel_limit.get() * M_DEG_TO_RAD_F,
 						    _param_ro_yaw_decel_limit.get() * M_DEG_TO_RAD_F, _param_rd_wheel_track.get(), dt);
 		rover_steering_setpoint_s rover_steering_setpoint{};
 		rover_steering_setpoint.timestamp = _timestamp;
@@ -103,12 +104,12 @@ bool DifferentialRateControl::runSanityChecks()
 {
 	bool ret = true;
 
-	if ((_param_rd_wheel_track.get() < FLT_EPSILON || _param_rd_max_thr_yaw_r.get() < FLT_EPSILON)
+	if ((_param_rd_wheel_track.get() < FLT_EPSILON || _param_ro_max_thr_speed.get() < FLT_EPSILON)
 	    && _param_ro_yaw_rate_p.get() < FLT_EPSILON) {
 		ret = false;
 		events::send<float, float, float>(events::ID("differential_rate_control_conf_invalid_rate_control"), events::Log::Error,
 						  "Invalid configuration for rate control: Neither feed forward nor feedback is setup", _param_rd_wheel_track.get(),
-						  _param_rd_max_thr_yaw_r.get(), _param_ro_yaw_rate_p.get());
+						  _param_ro_max_thr_speed.get(), _param_ro_yaw_rate_p.get());
 	}
 
 	return ret;
