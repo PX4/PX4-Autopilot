@@ -76,6 +76,8 @@ struct ModuleArguments {
 	int baud_rate_secondary {0};
 	const char *device_path_main {nullptr};
 	const char *device_path_secondary {nullptr};
+	bool single_wire_uart_main {false};
+	bool single_wire_uart_secondary {false};
 };
 
 /**
@@ -229,7 +231,7 @@ enum class ReceiverOutputTracker {
 class SeptentrioDriver : public ModuleBase<SeptentrioDriver>, public device::Device
 {
 public:
-	SeptentrioDriver(const char *device_path, Instance instance, uint32_t baud_rate);
+	SeptentrioDriver(const char *device_path, Instance instance, uint32_t baud_rate, bool single_wire_uart);
 	~SeptentrioDriver() override;
 
 	/** @see ModuleBase */
@@ -715,6 +717,7 @@ private:
 	bool                                   _time_synced {false};                                         ///< Receiver time in sync with GPS time
 	const Instance                         _instance {Instance::Main};                                   ///< The receiver that this instance of the driver controls
 	uint32_t                               _chosen_baud_rate {0};                                        ///< The baud rate requested by the user
+	bool                                   _single_wire_uart {false};                                    ///< Whether single wire UART should be used
 	static px4::atomic<SeptentrioDriver *> _secondary_instance;
 	hrt_abstime                            _sleep_end {0};                                               ///< End time for sleeping
 	State                                  _resume_state {State::OpeningSerialPort};                     ///< Resume state after sleep
