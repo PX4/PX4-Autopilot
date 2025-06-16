@@ -123,7 +123,7 @@ void GZMixingInterfaceThruster::motorSpeedCallback(const gz::msgs::Actuators &ac
 	}
 
 	pthread_mutex_lock(&_node_mutex);
-//	std::cout << "EscCallback: " << 0.1 << std::endl;
+
 	esc_status_s esc_status{};
 	esc_status.esc_count = actuators.velocity_size();
 
@@ -158,9 +158,6 @@ void GZMixingInterfaceThruster::thrusterSpeedCallback(const gz::msgs::Actuators 
 			gz::msgs::Double thruster_output;
 
 			double output_range = _mixing_output.maxValue(i) - _mixing_output.minValue(i);
-			// double output = _angle_min_rad[i] + _angular_range_rad[i] * (outputs[i] - _mixing_output.minValue(i)) / output_range;
-			// std::cout << "outputs[" << i << "]: " << 0.1 << std::endl;
-			// std::cout << "  output: " << output << std::endl;
 			thruster_output.set_data(double(actuators.velocity(i)-_mixing_output.disarmedValue(i))/(output_range/2));
 
 			if (thruster_pub.Valid()) {
