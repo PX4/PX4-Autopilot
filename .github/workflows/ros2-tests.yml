@@ -1,0 +1,79 @@
+name: PX4 SITL with ROS2 Integration Tests
+on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+    branches:
+      - '*'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {ros_version: "humble", ubuntu: "jammy"}
+          - {ros_version: "jazzy", ubuntu: "noble"}
+
+    container:
+      image: rostooling/setup-ros-docker:ubuntu-${{ matrix.config.ubuntu }}-latest
+
+    steps:
+      - name: Setup ROS 2 (${{ matrix.config.ros_version }})
+        uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: ${{ matrix.config.ros_version }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Ownership workaround
+        run: git config --system --add safe.directory '*'
+
+      - name: Install Python Dependencies
+        run: |
+          pip install --user -U empy==3.3.4 pyros-genmsg setuptools
+
+      - name: Clone and Setup PX4
+        run: |
+          git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+          bash ./PX4-Autopilot/Tools/setup/ubuntu.sh --no-sim-tools
+          cd PX4-Autopilot
+          make px4_sitl
+
+      - name: Setup XRCE-DDS Agent
+        run: |
+          git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+          cd Micro-XRCE-DDS-Agent
+          mkdir build
+          cd build
+          cmake ..
+          make
+          sudo make install
+          sudo ldconfig /usr/local/lib/
+
+      - name: Build ROS2 Workspace
+        run: |
+          mkdir -p ~/ros2_ws/src
+          cp -r ${{ github.workspace }}/* ~/ros2_ws/src/
+          cd ~/ros2_ws
+          source /opt/ros/${{ matrix.config.ros_version }}/setup.bash
+          colcon build
+
+      - name: Start Simulation and Agent
+        run: |
+          MicroXRCEAgent udp4 -p 8888 > agent.log 2>&1 &
+          sleep 5
+          cd PX4-Autopilot
+          make px4_sitl gz_x500 > px4.log 2>&1 &
+          sleep 10
