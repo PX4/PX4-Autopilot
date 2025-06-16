@@ -310,7 +310,7 @@ private:
 	 * The result of trying to configure the receiver.
 	 */
 	enum class ConfigureResult : int32_t {
-		OK               = 0,
+		Ok               = 0,
 		FailedCompletely = 1 << 0,
 		NoLogging        = 1 << 1,
 	};
