@@ -15,23 +15,6 @@ parameters:
           decimal: 3
           default: 0
 
-      RD_MAX_THR_YAW_R:
-        description:
-          short: Yaw rate turning left/right wheels at max speed in opposite directions
-          long: |
-            This parameter is used to calculate the feedforward term of the closed loop yaw rate control.
-            The controller first calculates the required speed difference between the left and right motor to achieve the desired yaw rate.
-            This desired speed difference is then linearly mapped to normalized motor commands.
-            A good starting point is half the speed the rover drives at maximum throttle (RD_MAX_THR_SPD)).
-            Increase this parameter if the rover turns faster than the setpoint, and decrease if the rover turns slower.
-        type: float
-        unit: m/s
-        min: 0
-        max: 100
-        increment: 0.01
-        decimal: 2
-        default: 0
-
       RD_TRANS_TRN_DRV:
         description:
             short: Yaw error threshhold to switch from spot turning to driving

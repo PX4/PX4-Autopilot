@@ -86,7 +86,8 @@ void AckermannRateControl::updateRateControl()
 			}
 
 			// Feed forward
-			steering_setpoint = atanf(_adjusted_yaw_rate_setpoint.getState() * _param_ra_wheel_base.get() / _estimated_speed);
+			steering_setpoint = atanf(_adjusted_yaw_rate_setpoint.getState() * _param_ra_wheel_base.get() / _estimated_speed) *
+					    _param_ro_yaw_rate_corr.get();
 
 			// Feedback (Only when driving forwards because backwards driving is NMP and can introduce instability)
 			if (_estimated_speed > FLT_EPSILON) {
