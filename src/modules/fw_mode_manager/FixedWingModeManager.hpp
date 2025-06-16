@@ -227,6 +227,7 @@ private:
 		FW_POSCTRL_MODE_AUTO_ALTITUDE,
 		FW_POSCTRL_MODE_AUTO_CLIMBRATE,
 		FW_POSCTRL_MODE_AUTO_TAKEOFF,
+		FW_POSCTRL_MODE_AUTO_TAKEOFF_NO_NAV,
 		FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT,
 		FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR,
 		FW_POSCTRL_MODE_AUTO_PATH,
@@ -569,6 +570,16 @@ private:
 	 */
 	void control_auto_takeoff(const hrt_abstime &now, const float control_interval, const Vector2d &global_position,
 				  const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr);
+
+	/**
+	 * @brief Controls automatic takeoff without navigation.
+	 *
+	 * @param now Current system time [us]
+	 * @param control_interval Time since last position control call [s]
+	 * @param altitude_setpoint_amsl Altitude setpoint, AMSL [m]
+	 */
+	void control_auto_takeoff_no_nav(const hrt_abstime &now, const float control_interval,
+					 const float altitude_setpoint_amsl);
 
 	/**
 	 * @brief Controls automatic landing with straight approach.
