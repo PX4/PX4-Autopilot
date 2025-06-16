@@ -253,6 +253,7 @@ TEST(MatrixDualTest, Dual)
 
 		// set our starting point, requesting partial derivatives of x and y in column 0 and 1
 		Vector3<D> dualPoint(D(0.5f, 0), D(-0.8f, 1), D(2.f));
+		EXPECT_EQ(D(0.5f, 0), D(-0.8f, 1));
 
 		Dual<float, 2> dualResult = testFunction(dualPoint);
 
