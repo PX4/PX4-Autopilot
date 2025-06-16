@@ -112,12 +112,12 @@ constexpr const char *k_command_reset_hot = "erst,soft,none\n";
 constexpr const char *k_command_reset_warm = "erst,soft,PVTData\n";
 constexpr const char *k_command_reset_cold = "erst,hard,SatData\n";
 constexpr const char *k_command_sbf_output_pvt =
-	"sso,Stream%lu,%s,PVTGeodetic+VelCovGeodetic+DOP+AttEuler+AttCovEuler+EndOfPVT+ReceiverStatus,%s\n";
+	"sso,Stream%" PRIu32 ",%s,PVTGeodetic+VelCovGeodetic+DOP+AttEuler+AttCovEuler+EndOfPVT+ReceiverStatus,%s\n";
 constexpr const char *k_command_set_sbf_output =
-	"sso,Stream%lu,%s,%s%s,%s\n";
-constexpr const char *k_command_clear_sbf = "sso,Stream%lu,%s,none,off\n";
+	"sso,Stream%" PRIu32 ",%s,%s%s,%s\n";
+constexpr const char *k_command_clear_sbf = "sso,Stream%" PRIu32 ",%s,none,off\n";
 constexpr const char *k_command_set_baud_rate =
-	"scs,%s,baud%lu\n"; // The receiver sends the reply at the new baud rate!
+	"scs,%s,baud%" PRIu32 "\n"; // The receiver sends the reply at the new baud rate!
 constexpr const char *k_command_set_dynamics = "srd,%s,UAV\n";
 constexpr const char *k_command_set_attitude_offset = "sto,%.3f,%.3f\n";
 constexpr const char *k_command_set_data_io = "sdio,%s,Auto,%s\n";
@@ -253,9 +253,9 @@ int SeptentrioDriver::print_status()
 		break;
 	}
 
-	PX4_INFO("health: %s, port: %s, baud rate: %lu", is_healthy() ? "OK" : "NOT OK", _port, _uart.getBaudrate());
-	PX4_INFO("controller -> receiver data rate: %lu B/s", output_data_rate());
-	PX4_INFO("receiver -> controller data rate: %lu B/s", input_data_rate());
+	PX4_INFO("health: %s, port: %s, baud rate: %" PRIu32 "", is_healthy() ? "OK" : "NOT OK", _port, _uart.getBaudrate());
+	PX4_INFO("controller -> receiver data rate: %" PRIu32 " B/s", output_data_rate());
+	PX4_INFO("receiver -> controller data rate: %" PRIu32 " B/s", input_data_rate());
 	PX4_INFO("sat info: %s", (_message_satellite_info != nullptr) ? "enabled" : "disabled");
 
 	if (first_gps_uorb_message_created() && _state == State::ReceivingData) {
@@ -458,7 +458,7 @@ SeptentrioDriver *SeptentrioDriver::instantiate(int argc, char *argv[], Instance
 	}
 
 	if (!valid_chosen_baud_rate) {
-		mavlink_log_critical(&k_mavlink_log_pub, "Septentrio: Baud rate %d is unsupported, falling back to default %lu",
+		mavlink_log_critical(&k_mavlink_log_pub, "Septentrio: Baud rate %d is unsupported, falling back to default %" PRIu32,
 				     instance == Instance::Main ? arguments.baud_rate_main : arguments.baud_rate_secondary, k_default_baud_rate);
 	}
 
@@ -805,7 +805,7 @@ SeptentrioDriver::ConfigureResult SeptentrioDriver::configure()
 {
 	char msg[k_max_command_size] {};
 	char com_port[5] {};
-	ConfigureResult result {ConfigureResult::OK};
+	ConfigureResult result {ConfigureResult::Ok};
 
 	// Passively detect receiver port.
 	if (detect_serial_port(com_port) != PX4_OK) {
@@ -816,7 +816,7 @@ SeptentrioDriver::ConfigureResult SeptentrioDriver::configure()
 	// We should definitely match baud rates and detect used port, but don't do other configuration if not requested.
 	// This will force input on the receiver. That shouldn't be a problem as it's on our own connection.
 	if (!_automatic_configuration) {
-		return ConfigureResult::OK;
+		return ConfigureResult::Ok;
 	}
 
 	// If user requested specific baud rate, set it now. Otherwise keep detected baud rate.
