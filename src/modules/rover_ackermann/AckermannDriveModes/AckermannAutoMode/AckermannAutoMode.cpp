@@ -31,17 +31,17 @@
  *
  ****************************************************************************/
 
-#include "AutoMode.hpp"
+#include "AckermannAutoMode.hpp"
 
 using namespace time_literals;
 
-AutoMode::AutoMode(ModuleParams *parent) : ModuleParams(parent)
+AckermannAutoMode::AckermannAutoMode(ModuleParams *parent) : ModuleParams(parent)
 {
 	updateParams();
 	_rover_position_setpoint_pub.advertise();
 }
 
-void AutoMode::updateParams()
+void AckermannAutoMode::updateParams()
 {
 	ModuleParams::updateParams();
 	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
@@ -52,7 +52,7 @@ void AutoMode::updateParams()
 	}
 }
 
-void AutoMode::autoControl()
+void AckermannAutoMode::autoControl()
 {
 	if (_position_setpoint_triplet_sub.updated()) {
 		if (_vehicle_local_position_sub.updated()) {
@@ -85,7 +85,7 @@ void AutoMode::autoControl()
 
 }
 
-void AutoMode::updateWaypointsAndAcceptanceRadius()
+void AckermannAutoMode::updateWaypointsAndAcceptanceRadius()
 {
 	position_setpoint_triplet_s position_setpoint_triplet{};
 	_position_setpoint_triplet_sub.copy(&position_setpoint_triplet);
@@ -110,9 +110,9 @@ void AutoMode::updateWaypointsAndAcceptanceRadius()
 				  position_setpoint_triplet.current.cruising_speed, 0.f, _param_ro_speed_limit.get()) : _param_ro_speed_limit.get();
 }
 
-float AutoMode::updateAcceptanceRadius(const float waypoint_transition_angle,
-				       const float default_acceptance_radius, const float acceptance_radius_gain,
-				       const float acceptance_radius_max, const float wheel_base, const float max_steer_angle)
+float AckermannAutoMode::updateAcceptanceRadius(const float waypoint_transition_angle,
+		const float default_acceptance_radius, const float acceptance_radius_gain,
+		const float acceptance_radius_max, const float wheel_base, const float max_steer_angle)
 {
 	// Calculate acceptance radius s.t. the rover cuts the corner tangential to the current and next line segment
 	float acceptance_radius = default_acceptance_radius;
@@ -135,8 +135,8 @@ float AutoMode::updateAcceptanceRadius(const float waypoint_transition_angle,
 	return acceptance_radius;
 }
 
-float AutoMode::arrivalSpeed(const float cruising_speed, const float min_speed, const float acc_rad,
-			     const int curr_wp_type, const float waypoint_transition_angle, const float max_yaw_rate)
+float AckermannAutoMode::arrivalSpeed(const float cruising_speed, const float min_speed, const float acc_rad,
+				      const int curr_wp_type, const float waypoint_transition_angle, const float max_yaw_rate)
 {
 	if (!PX4_ISFINITE(waypoint_transition_angle)
 	    || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND

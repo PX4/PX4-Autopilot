@@ -31,6 +31,8 @@
 #
 ############################################################################
 
-add_subdirectory(AutoMode)
-add_subdirectory(ManualMode)
-add_subdirectory(OffboardMode)
+px4_add_library(AckermannAutoMode
+	AckermannAutoMode.cpp
+)
+
+target_include_directories(AckermannAutoMode PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
