@@ -39,10 +39,8 @@
 #include <lib/geo/geo.h>
 #include "commander_helper.h"
 
-HomePosition::HomePosition(const failsafe_flags_s &failsafe_flags)
-	: _failsafe_flags(failsafe_flags)
-{
-}
+HomePosition::HomePosition(const failsafe_flags_s &failsafe_flags): ModuleParams(nullptr),
+	_failsafe_flags(failsafe_flags) {}
 
 bool HomePosition::hasMovedFromCurrentHomeLocation()
 {
@@ -341,7 +339,7 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 
 		_gps_position_for_home_valid = time_valid && fix_valid && eph_valid && epv_valid && evh_valid;
 
-		if (_gps_position_for_home_valid && _last_gps_timestamp != 0 && _last_baro_timestamp != 0
+		if (_param_com_home_en.get() && _gps_position_for_home_valid && _last_gps_timestamp != 0 && _last_baro_timestamp != 0
 		    && _takeoff_time != 0 && now - _takeoff_time < kHomePositionCorrectionTimeWindow) {
 
 			const float gps_alt = static_cast<float>(_gps_alt);
@@ -355,10 +353,12 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 
 			// correct baro_alt with offset from GPS alt from when the drift integral was initialized
 			const float baro_alt_corrected = _lpf_baro.getState() + _baro_gps_static_offset;
-			const float gps_alt_error = gps_alt + _baro_gps_home_offset;
+			const float gps_alt_with_home_offset = gps_alt + _baro_gps_home_offset;
 
-			if (fabsf(baro_alt_corrected - _gps_vel_integral) < fabsf(baro_alt_corrected - gps_alt_error) &&
-			    fabsf(baro_alt_corrected - _gps_vel_integral) < fabsf(_gps_vel_integral - gps_alt_error)) {
+			// Apply home altitude correction only if the GPS velocity-integrated altitude and baro altitude
+			// are more consistent with each other than either is with the GPS altitude (with home offset).
+			if (fabsf(baro_alt_corrected - _gps_vel_integral) < fabsf(baro_alt_corrected - gps_alt_with_home_offset) &&
+			    fabsf(baro_alt_corrected - _gps_vel_integral) < fabsf(_gps_vel_integral - gps_alt_with_home_offset)) {
 
 				home_position_s home = _home_position_pub.get();
 				const float home_new_alt = home.alt + baro_alt_corrected - gps_alt - _baro_gps_home_offset;
@@ -376,6 +376,9 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 					_baro_gps_home_offset = baro_alt_corrected - gps_alt; // offset present when home position was last corrected
 				}
 			}
+
+		} else {
+			_gps_vel_integral = NAN;
 		}
 
 		_last_gps_timestamp = vehicle_gps_position.timestamp;

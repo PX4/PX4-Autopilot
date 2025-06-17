@@ -42,6 +42,7 @@
 #include <uORB/topics/failsafe_flags.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <px4_platform_common/module_params.h>
 
 using namespace time_literals;
 
@@ -55,7 +56,7 @@ static constexpr float kLpfBaroTimeConst = 5.f;
 static constexpr float kAltitudeDifferenceThreshold = 1.f; // altitude difference after which home position gets updated
 static constexpr uint64_t kHomePositionCorrectionTimeWindow = 120_s;
 
-class HomePosition
+class HomePosition: public ModuleParams
 {
 public:
 	HomePosition(const failsafe_flags_s &failsafe_flags);
@@ -105,4 +106,8 @@ private:
 	double							_gps_alt{0};
 	float							_gps_eph{0.f};
 	float							_gps_epv{0.f};
+
+	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::COM_HOME_EN>) _param_com_home_en
+	)
 };

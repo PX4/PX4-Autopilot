@@ -144,6 +144,7 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  *
  * During missions, the home position is locked and will not reset during intermediate landings.
  * It will only update once the mission is complete or landed outside of a mission.
+ * However, the altitude of the home position can be updated if vertical drift in the GNSS-position is detected.
  *
  * @group Commander
  * @reboot_required true
