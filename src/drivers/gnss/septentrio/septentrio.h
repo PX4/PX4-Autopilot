@@ -282,6 +282,13 @@ public:
 	 * Default baud rate, used when the user requested an invalid baud rate.
 	 */
 	static uint32_t k_default_baud_rate;
+
+	/**
+	 * @brief Parse the next byte of a received message from the receiver.
+	 *
+	 * @return 0 = decoding, 1 = message handled, 2 = sat info message handled
+	 */
+	int parse_char(const uint8_t byte);
 private:
 	enum class State {
 		OpeningSerialPort,
@@ -406,13 +413,6 @@ private:
 	 * @return `ConfigureResult::OK` if configured, or error.
 	 */
 	ConfigureResult configure();
-
-	/**
-	 * @brief Parse the next byte of a received message from the receiver.
-	 *
-	 * @return 0 = decoding, 1 = message handled, 2 = sat info message handled
-	 */
-	int parse_char(const uint8_t byte);
 
 	/**
 	 * @brief Process a fully received message from the receiver.
