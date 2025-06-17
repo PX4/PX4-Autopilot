@@ -16,6 +16,7 @@ on:
       - 'release/**'
     paths-ignore:
       - 'docs/**'
+      - '.github/**'
   pull_request:
     branches:
       - '**'
