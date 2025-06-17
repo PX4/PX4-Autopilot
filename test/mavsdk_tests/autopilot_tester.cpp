@@ -324,8 +324,8 @@ void AutopilotTester::execute_mission_and_lose_mag()
 	// We except the mission to continue without mag just fine.
 	REQUIRE(poll_condition_with_timeout(
 	[this]() {
-		auto progress = _mission->mission_progress();
-		return progress.current == progress.total;
+		auto result = _mission->is_mission_finished();
+		return result.first == Mission::Result::Success && result.second;
 	}, std::chrono::seconds(90)));
 }
 
@@ -340,8 +340,8 @@ void AutopilotTester::execute_mission_and_lose_baro()
 	// We except the mission to continue without baro just fine.
 	REQUIRE(poll_condition_with_timeout(
 	[this]() {
-		auto progress = _mission->mission_progress();
-		return progress.current == progress.total;
+		auto result = _mission->is_mission_finished();
+		return result.first == Mission::Result::Success && result.second;
 	}, std::chrono::seconds(90)));
 }
 
@@ -356,8 +356,8 @@ void AutopilotTester::execute_mission_and_get_baro_stuck()
 	// We except the mission to continue with a stuck baro just fine.
 	REQUIRE(poll_condition_with_timeout(
 	[this]() {
-		auto progress = _mission->mission_progress();
-		return progress.current == progress.total;
+		auto result = _mission->is_mission_finished();
+		return result.first == Mission::Result::Success && result.second;
 	}, std::chrono::seconds(90)));
 }
 
@@ -372,8 +372,8 @@ void AutopilotTester::execute_mission_and_get_mag_stuck()
 	// We except the mission to continue with a stuck mag just fine.
 	REQUIRE(poll_condition_with_timeout(
 	[this]() {
-		auto progress = _mission->mission_progress();
-		return progress.current == progress.total;
+		auto result = _mission->is_mission_finished();
+		return result.first == Mission::Result::Success && result.second;
 	}, std::chrono::seconds(120)));
 }
 
@@ -974,34 +974,20 @@ void AutopilotTester::wait_until_speed_lower_than(float speed, std::chrono::seco
 
 void AutopilotTester::wait_for_mission_finished(std::chrono::seconds timeout)
 {
-	auto prom = std::promise<void> {};
-	auto fut = prom.get_future();
-
-	Mission::MissionProgressHandle handle = _mission->subscribe_mission_progress(
-	[&prom, &handle, this](Mission::MissionProgress progress) {
-		if (progress.current == progress.total) {
-			_mission->unsubscribe_mission_progress(handle);
-			prom.set_value();
-		}
-	});
-
-	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
+	REQUIRE(poll_condition_with_timeout(
+	[ = ]() {
+		auto result = _mission->is_mission_finished();
+		return result.first == Mission::Result::Success && result.second;
+	}, timeout));
 }
 
 void AutopilotTester::wait_for_mission_raw_finished(std::chrono::seconds timeout)
 {
-	auto prom = std::promise<void> {};
-	auto fut = prom.get_future();
-
-	MissionRaw::MissionProgressHandle handle = _mission_raw->subscribe_mission_progress(
-	[&prom, &handle, this](MissionRaw::MissionProgress progress) {
-		if (progress.current == progress.total) {
-			_mission_raw->unsubscribe_mission_progress(handle);
-			prom.set_value();
-		}
-	});
-
-	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
+	REQUIRE(poll_condition_with_timeout(
+	[ = ]() {
+		auto result = _mission_raw->is_mission_finished();
+		return result.first == MissionRaw::Result::Success && result.second;
+	}, timeout));
 }
 
 void AutopilotTester::move_mission_raw_here(std::vector<MissionRaw::MissionItem> &mission_items)
