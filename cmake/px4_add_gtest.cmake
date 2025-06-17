@@ -116,6 +116,8 @@ function(px4_add_functional_gtest)
 				                                      # also links to fuzztest_gtest_main
 		                                              test_stubs)  # put test_stubs last
 
+		target_compile_definitions(${TESTNAME} PRIVATE MODULE_NAME="${TESTNAME}")
+
 		if(COMPILE_FLAGS)
 			target_compile_options(${TESTNAME} PRIVATE ${COMPILE_FLAGS})
 		endif()
