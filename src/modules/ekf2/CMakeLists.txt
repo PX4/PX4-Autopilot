@@ -32,7 +32,6 @@
 #############################################################################
 
 option(EKF2_SYMFORCE_GEN "ekf2 generate symforce output" OFF)
-
 # Symforce code generation TODO:fixme
 execute_process(
     COMMAND ${PYTHON_EXECUTABLE} -m symforce.symbolic
@@ -241,7 +240,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		${MAX_CUSTOM_OPT_LEVEL}
 		-fno-associative-math
-		#-DDEBUG_BUILD
+		-DDEBUG_BUILD
 		#-O0
 	INCLUDES
 		EKF
