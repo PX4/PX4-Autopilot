@@ -107,6 +107,8 @@ AirspeedValidator::get_wind_estimator_states(uint64_t timestamp)
 	wind_est.tas_scale_raw = _wind_estimator.get_tas_scale();
 	wind_est.tas_scale_raw_var = _wind_estimator.get_tas_scale_var();
 	wind_est.tas_scale_validated = _CAS_scale_validated;
+	wind_est.tas_innov_integ_test_ratio = _tas_innov_integ_threshold > FLT_EPSILON ? _aspd_innov_integ_state /
+					      _tas_innov_integ_threshold : 0.f;
 	return wind_est;
 }
 

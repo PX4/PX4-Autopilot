@@ -9,6 +9,7 @@ float32 variance_east		# Wind estimate error variance in east / Y direction (m/s
 
 float32 tas_innov 		# True airspeed innovation
 float32 tas_innov_var 		# True airspeed innovation variance
+float32 tas_innov_integ_test_ratio  # Value > 1 indicates that innovation failure check has triggered
 
 float32 tas_scale_raw 		# Estimated true airspeed scale factor (not validated)
 float32 tas_scale_raw_var 	# True airspeed scale factor variance
