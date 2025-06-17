@@ -77,6 +77,7 @@ BATT_SMBUS::BATT_SMBUS(const I2CSPIDriverConfig &config, SMBus *interface) :
 
 BATT_SMBUS::~BATT_SMBUS()
 {
+	orb_unadvertise(_battery_info_topic);
 	orb_unadvertise(_batt_topic);
 	perf_free(_cycle);
 
@@ -165,7 +166,6 @@ void BATT_SMBUS::RunImpl()
 	if (ret == PX4_OK) {
 		new_report.capacity = _batt_capacity;
 		new_report.cycle_count = _cycle_count;
-		new_report.serial_number = _serial_number;
 		new_report.max_cell_voltage_delta = _max_cell_voltage_delta;
 		new_report.cell_count = _cell_count;
 		new_report.state_of_health = _state_of_health;
@@ -191,6 +191,13 @@ void BATT_SMBUS::RunImpl()
 
 		int instance = 0;
 		orb_publish_auto(ORB_ID(battery_status), &_batt_topic, &new_report, &instance);
+
+		battery_info_s battery_info{};
+		battery_info.timestamp = new_report.timestamp;
+		battery_info.id = new_report.id;
+		snprintf(battery_info.serial_number, sizeof(battery_info.serial_number), "%" PRIu16, _serial_number);
+		orb_publish_auto(ORB_ID(battery_info), &_battery_info_topic, &battery_info, &instance);
+
 
 		_last_report = new_report;
 	}

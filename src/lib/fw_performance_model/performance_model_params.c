@@ -128,7 +128,6 @@ PARAM_DEFINE_FLOAT(WEIGHT_GROSS, -1.0f);
  *
  * @unit m/s
  * @min 1.0
- * @max 15.0
  * @decimal 1
  * @increment 0.5
  * @group FW Performance
@@ -144,7 +143,6 @@ PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
  *
  * @unit m/s
  * @min 1.0
- * @max 5.0
  * @decimal 1
  * @increment 0.5
  * @group FW Performance
