@@ -11,7 +11,7 @@ on:
       - 'docs/**'
   pull_request:
     branches:
-      - '*'
+      - '**'
     paths-ignore:
       - 'docs/**'
 
