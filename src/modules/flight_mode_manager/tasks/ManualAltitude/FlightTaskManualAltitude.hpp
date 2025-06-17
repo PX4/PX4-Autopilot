@@ -93,19 +93,20 @@ protected:
 					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) _param_mpc_hold_max_z,
 					(ParamInt<px4::params::MPC_ALT_MODE>) _param_mpc_alt_mode,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) _param_mpc_hold_max_xy,
-					(ParamFloat<px4::params::MPC_Z_P>) _param_mpc_z_p, /**< position controller altitude propotional gain */
-					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1, /**< altitude at which to start downwards slowdown */
-					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2, /**< altitude below which to land with land speed */
-					(ParamFloat<px4::params::MPC_LAND_SPEED>)
-					_param_mpc_land_speed, /**< desired downwards speed when approaching the ground */
-					(ParamFloat<px4::params::MPC_TKO_SPEED>)
-					_param_mpc_tko_speed /**< desired upwards speed when still close to the ground */
+					(ParamFloat<px4::params::MPC_Z_P>) _param_mpc_z_p,
+					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1,
+					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2,
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
+					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
+					(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
+					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
+					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max
 				       )
 private:
 
-	void handle_terrain_hold_mode();
-	void handle_terrain_follow_mode();
-	void handle_altitude_follow_mode();
+	void _terrain_hold_mode();
+	void _terrain_follow_mode();
+	void _altitude_follow_mode();
 	/**
 	 * Terrain following.
 	 * During terrain following, the position setpoint is adjusted
@@ -130,8 +131,6 @@ private:
 	 * To ensure a slowdown to land speed before hitting the ground.
 	 */
 	void _respectGroundSlowdown();
-
-	void setGearAccordingToSwitch();
 
 	bool _updateYawCorrection();
 

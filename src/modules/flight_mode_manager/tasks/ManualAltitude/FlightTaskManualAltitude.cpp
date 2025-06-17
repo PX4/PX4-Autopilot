@@ -101,25 +101,58 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 	// - check if no vertical motion (altitude lock) (noisy baro, increase default threshold)
 	// - check if horizontal motion is within limit (altitude lock)
 
+	// First check if user is controlling Z velocity with sticks
+	if (fabsf(_sticks.getPositionExpo()(2)) > 0.001f) {
+		if (PX4_ISFINITE(_position_setpoint(2)) || PX4_ISFINITE(_dist_to_bottom_lock)) {
+			// PX4_INFO("Setting position sp to NAN");
+			_current_mode = AltitudeMode::None;
+			_position_setpoint(2) = NAN;
+			_dist_to_bottom_lock = NAN;
+			_constraints.lock_dist_bottom = false;
+		}
+
+		return;
+	}
+
 	switch ((AltitudeMode)_param_mpc_alt_mode.get()) {
 	case AltitudeMode::AltitudeFollow: {
 			// Altitude following - relative earth frame origin which may drift due to sensors
-			// TODO
+			// - No user throttle
+			_altitude_follow_mode();
 			break;
 		}
 
 	case AltitudeMode::TerrainFollow: {
-			// Terrain following - relative to ground (requires distance sensor) which changes with terrain variation
-			// TODO
+			// Terrain following - relative to ground which changes with terrain variation
+			// - distance sensor valid
+			// - No user throttle
+
+			// Cannot perform terrain follow without distance sensor
+			if (PX4_ISFINITE(_dist_to_bottom)) {
+				_terrain_follow_mode();
+
+			} else {
+				_altitude_follow_mode();
+				break;
+			}
 			break;
 		}
 
 	case AltitudeMode::TerrainHold: {
-			// Terrain hold - relative to ground when within thresholds (No Z vel, limited XY vel)
-			// - MPC_HOLD_MAX_Z
-			// - MPC_HOLD_MAX_XY
-			handle_terrain_hold_mode();
-			break;
+			// Terrain hold - relative to ground when within thresholds
+			// - distance sensor valid
+			// - No user throttle
+			// - XY vel low
+			// - Z vel stopped
+
+			// Cannot perform terrain hold without distance sensor
+			if (PX4_ISFINITE(_dist_to_bottom)) {
+				_terrain_hold_mode();
+
+			} else {
+				_altitude_follow_mode();
+				break;
+			}
 		}
 
 	case AltitudeMode::None: {
@@ -129,180 +162,67 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 	}
 }
 
-void FlightTaskManualAltitude::handle_terrain_hold_mode()
+void FlightTaskManualAltitude::_terrain_hold_mode()
 {
-	// TODO:
-	// - check dist_bottom_valid before using dist_bottom
-	// - use dist_bottom_var as heuristic for distance lock
-
-	if (!PX4_ISFINITE(_dist_to_bottom)) {
-		// Cannot perform terrain hold without distance sensor
-		// TODO: log error?
-		return;
-	}
-
-	// Check if user is adjusting throttle, velocity setpoint mode
-	if (fabsf(_sticks.getPositionExpo()(2)) > 0.001f) {
-		// PX4_INFO("USER IN CONTROL");
-		if (PX4_ISFINITE(_position_setpoint(2)) || PX4_ISFINITE(_dist_to_bottom_lock)) {
-			PX4_INFO("Setting position sp to NAN");
-			_current_mode = AltitudeMode::None;
-			_position_setpoint(2) = NAN;
-			_dist_to_bottom_lock = NAN;
-		}
-
-		return;
-	}
-
-	// Check if Z and XY velocities are within limit to active Terrain Hold
-	bool z_vel_okay = fabsf(_velocity(2)) < _param_mpc_hold_max_z.get();
+	// Check if XY velocity is within limit to activate Terrain Hold
 	bool xy_vel_okay = Vector2f(_velocity).length() < _param_mpc_hold_max_xy.get();
 
-	if (z_vel_okay && xy_vel_okay) {
-		// XYZ all within limit for Terrain Hold
-		// Update position setpoint to keep fixed distance from terrain
-		if (_current_mode != AltitudeMode::TerrainHold) {
-			_current_mode = AltitudeMode::TerrainHold;
-
-			// TODO: Estimate distance until stopped and use that distance as the alt lock distance
-
-			// Lock to dist_to_bottom
-			PX4_INFO("Locking to dist bottom: %f", (double)_dist_to_bottom);
-			_dist_to_bottom_lock = _dist_to_bottom;
-			_position_setpoint(2) = _position(2);
-
-		} else {
-			// TODO: we shouldn't need to check NAN of _dist_to_bottom_lock
-			if (PX4_ISFINITE(_dist_to_bottom_lock)) {
-				float delta_distance = _dist_to_bottom - _dist_to_bottom_lock;
-				// PX4_INFO("Updating setpoint: delta_distance %f", (double)delta_distance);
-				// PX4_INFO("delta_distance: %f", (double)delta_distance);
-				_position_setpoint(2) = _position(2) + delta_distance;
-				// PX4_INFO("_position_setpoint(2): %f", (double)_position_setpoint(2));
-			} else {
-				PX4_INFO("_dist_to_bottom_lock is NAN, this shouldn't happen");
-			}
-		}
-
-	} else {
-		// Either Z_vel or XY_vel are above threshold, just follow altitude setpoint
+	if (!xy_vel_okay) {
+		// XY_vel is above threshold, just follow altitude setpoint
 		// Lock the position setpoint to the current Z position estimate
 		if (_current_mode != AltitudeMode::AltitudeFollow) {
 			_current_mode = AltitudeMode::AltitudeFollow;
 
-			PX4_INFO("Locking to Z estimate");
+			// PX4_INFO("Locking to Z estimate");
 			_position_setpoint(2) = _position(2);
 			_dist_to_bottom_lock = NAN;
-		} else {
-			// Nothing to do, we do not adjust the setpoint
+			_constraints.lock_dist_bottom = false;
 		}
 
-	}
-}
-
-void FlightTaskManualAltitude::handle_terrain_follow_mode()
-{
-
-}
-
-void FlightTaskManualAltitude::handle_altitude_follow_mode()
-{
-
-}
-
-#ifdef false
-void FlightTaskManualAltitude::_updateAltitudeLock()
-{
-	// Depending on stick inputs and velocity, position is locked.
-	// If not locked, altitude setpoint is set to NAN.
-
-	// Check if user wants to break
-	const bool apply_brake = fabsf(_sticks.getPositionExpo()(2)) <= FLT_EPSILON;
-
-	// Check if vehicle has stopped
-	const bool stopped = (_param_mpc_hold_max_z.get() < FLT_EPSILON || fabsf(_velocity(2)) < _param_mpc_hold_max_z.get());
-
-	// Manage transition between use of distance to ground and distance to local origin
-	// when terrain hold behaviour has been selected.
-	if (_param_mpc_alt_mode.get() == 2) {
-		// Use horizontal speed as a transition criteria
-		float spd_xy = Vector2f(_velocity).length();
-
-		// Use presence of horizontal stick inputs as a transition criteria
-		float stick_xy = Vector2f(_sticks.getPitchRollExpo()).length();
-		bool stick_input = stick_xy > 0.001f;
-
-		if (_terrain_hold) {
-			bool too_fast = spd_xy > _param_mpc_hold_max_xy.get();
-
-			if (stick_input || too_fast || !PX4_ISFINITE(_dist_to_bottom)) {
-				// Stop using distance to ground
-				_terrain_hold = false;
-
-				// Adjust the setpoint to maintain the same height error to reduce control transients
-				if (PX4_ISFINITE(_dist_to_bottom_lock) && PX4_ISFINITE(_dist_to_bottom)) {
-					_position_setpoint(2) = _position(2) - (_dist_to_bottom_lock - _dist_to_bottom);
-
-				} else {
-					_position_setpoint(2) = _position(2);
-					_dist_to_bottom_lock = NAN;
-				}
-			}
-
-		} else {
-			bool not_moving = spd_xy < 0.5f * _param_mpc_hold_max_xy.get() && stopped;
-
-			if (!stick_input && not_moving && PX4_ISFINITE(_dist_to_bottom)) {
-				// Start using distance to ground
-				_terrain_hold = true;
-
-				// Adjust the setpoint to maintain the same height error to reduce control transients
-				if (PX4_ISFINITE(_position_setpoint(2))) {
-					_dist_to_bottom_lock = _dist_to_bottom - (_position_setpoint(2) - _position(2));
-				}
-			}
-		}
-
+		return;
 	}
 
-	if ((_param_mpc_alt_mode.get() == 1 || _terrain_hold) && PX4_ISFINITE(_dist_to_bottom)) {
-		// terrain following
-		_terrainFollowing(apply_brake, stopped);
+	if (_current_mode != AltitudeMode::TerrainHold) {
+		// Set velocity setpoint to 0, switch into TerrainHold
+		_current_mode = AltitudeMode::TerrainHold;
+		_velocity_setpoint(2) = 0.f;
+		return;
+	}
 
-	} else {
-		// normal mode where height is dependent on local frame
-
-		if (apply_brake && stopped && !PX4_ISFINITE(_position_setpoint(2))) {
-			// lock position
+	if (!PX4_ISFINITE(_dist_to_bottom_lock)) {
+		// Wait for Z to come to a stop before locking in the distance
+		if (fabsf(_velocity(2)) < 0.1f) {
+			_dist_to_bottom_lock = _dist_to_bottom;
 			_position_setpoint(2) = _position(2);
-
-			// Ensure that minimum altitude is respected if
-			// there is a distance sensor and distance to bottom is below minimum.
-			if (PX4_ISFINITE(_dist_to_bottom) && _dist_to_bottom < _min_distance_to_ground) {
-				_terrainFollowing(apply_brake, stopped);
-
-			} else {
-				_dist_to_bottom_lock = NAN;
-			}
-
-		} else if (PX4_ISFINITE(_position_setpoint(2)) && apply_brake) {
-			// Position is locked but check if a reset event has happened.
-			// We will shift the setpoints.
-			if (_sub_vehicle_local_position.get().z_reset_counter != _reset_counter) {
-				_position_setpoint(2) = _position(2);
-				_reset_counter = _sub_vehicle_local_position.get().z_reset_counter;
-			}
-
-		} else  {
-			// user demands velocity change
-			_position_setpoint(2) = NAN;
-			// ensure that maximum altitude is respected
+			_constraints.lock_dist_bottom = true;
+			// PX4_INFO("Locking distance to %f", (double)_dist_to_bottom);
 		}
+
+		return;
 	}
 
-	_respectMaxAltitude();
+	// TODO:
+	// - use dist_bottom_var as heuristic for distance lock
+
+	// All criteria met
+	// - distance sensor valid
+	// - No user throttle
+	// - XY vel low
+	// - Z vel stopped
+	// Update position setpoint to keep fixed distance from terrain
+	float delta_distance = _dist_to_bottom - _dist_to_bottom_lock;
+	_position_setpoint(2) = _position(2) + delta_distance;
 }
-#endif
+
+void FlightTaskManualAltitude::_terrain_follow_mode()
+{
+
+}
+
+void FlightTaskManualAltitude::_altitude_follow_mode()
+{
+
+}
 
 void FlightTaskManualAltitude::_respectMinAltitude()
 {
