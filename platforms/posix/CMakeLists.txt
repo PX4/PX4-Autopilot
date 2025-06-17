@@ -35,6 +35,37 @@ else()
 		)
 endif()
 
+if (BUILD_TESTING)
+	# Build mavlink fuzz tests. These run other modules and thus cannot be a functional/unit test
+	add_executable(mavlink_fuzz_tests EXCLUDE_FROM_ALL
+		src/px4/common/mavlink_fuzz_tests.cpp
+		apps.cpp
+	)
+	set_target_properties(mavlink_fuzz_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PX4_BINARY_DIR}")
+	target_include_directories(mavlink_fuzz_tests PRIVATE SYSTEM "${CMAKE_BINARY_DIR}/mavlink")
+	add_dependencies(test_results mavlink_fuzz_tests)
+	link_fuzztest(mavlink_fuzz_tests)
+	target_link_libraries(mavlink_fuzz_tests
+		PRIVATE
+			${module_libraries}
+			m
+			parameters
+	)
+	target_compile_options(mavlink_fuzz_tests
+		PRIVATE
+			# There warnings come from within fuzztest
+			-Wno-float-equal
+			-Wno-sign-compare
+			-Wno-shadow
+			-Wno-extra
+			-Wno-non-template-friend
+
+			# From mavlink
+			-Wno-cast-align
+			-Wno-address-of-packed-member
+	)
+endif()
+
 target_link_libraries(px4
 	PRIVATE
 		${module_libraries}
