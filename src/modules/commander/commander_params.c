@@ -127,6 +127,7 @@ PARAM_DEFINE_INT32(COM_HLDL_REG_T, 0);
  *
  * The time in seconds without a new setpoint from RC or Joystick, after which the connection is considered lost.
  * This must be kept short as the vehicle will use the last supplied setpoint until the timeout triggers.
+ * **Note:** Setting this value too low may trigger an incorrect RC failsafe. This value can be longer on resource-constrained hardware or under high system load. It is recommended to carefully test and adjust this value based on the specific hardware performance.
  *
  * @group Commander
  * @unit s
