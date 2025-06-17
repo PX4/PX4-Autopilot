@@ -240,6 +240,20 @@ if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE ${PX4_BUILD_TYPE} CACHE STRING "Build type" FORCE)
 endif()
 
+if (CMAKE_BUILD_TYPE STREQUAL Coverage)
+	# Coverage instrumentation plus atomic updates
+	set(COVERAGE_FLAGS
+		--coverage
+		-fprofile-update=atomic
+	)
+
+	# Apply to every compile and link invocation
+	add_compile_options(${COVERAGE_FLAGS})
+	add_link_options(${COVERAGE_FLAGS})
+
+	message(STATUS "Coverage instrumentation enabled with flags: ${COVERAGE_FLAGS}")
+endif()
+
 if((CMAKE_BUILD_TYPE STREQUAL "Debug") OR (CMAKE_BUILD_TYPE STREQUAL "Coverage"))
 	set(MAX_CUSTOM_OPT_LEVEL -O0)
 elseif(CMAKE_BUILD_TYPE MATCHES "Sanitizer")
@@ -425,7 +439,6 @@ if(BUILD_TESTING)
 			WORKING_DIRECTORY ${PX4_BINARY_DIR})
 	set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
 endif()
-
 
 #=============================================================================
 # subdirectories
