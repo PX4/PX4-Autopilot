@@ -31,8 +31,6 @@
  *
  ****************************************************************************/
 
-#define MODULE_NAME "manual_control"
-
 #include <gtest/gtest.h>
 #include "ManualControl.hpp"
 
