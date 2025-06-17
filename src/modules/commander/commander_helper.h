@@ -57,6 +57,9 @@ bool is_vtol_tailsitter(const vehicle_status_s &current_status);
 bool is_fixed_wing(const vehicle_status_s &current_status);
 bool is_ground_vehicle(const vehicle_status_s &current_status);
 
+// check if vehicle type should allow auto-centered throttled
+bool allow_center_throttle(const vehicle_status_s &current_status);
+
 int buzzer_init(void);
 void buzzer_deinit(void);
 
