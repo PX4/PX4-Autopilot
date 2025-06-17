@@ -11,7 +11,7 @@ on:
       - 'v*'
   pull_request:
     branches:
-      - '*'
+      - '**'
     paths:
       - '.github/workflows/dev_container.yml'
       - 'Tools/setup/ubuntu.sh'
