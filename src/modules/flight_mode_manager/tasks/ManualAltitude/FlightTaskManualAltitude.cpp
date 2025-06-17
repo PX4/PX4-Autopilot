@@ -316,7 +316,7 @@ void FlightTaskManualAltitude::_updateSetpoints()
 	_acceleration_setpoint.xy() = _stick_tilt_xy.generateAccelerationSetpoints(_sticks.getPitchRoll(), _deltatime, _yaw,
 				      _yaw_setpoint);
 	_updateAltitudeLock();
-	_respectGroundSlowdown();
+	// _respectGroundSlowdown();
 }
 
 bool FlightTaskManualAltitude::_checkTakeoff()
