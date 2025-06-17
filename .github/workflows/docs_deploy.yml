@@ -9,7 +9,7 @@ on:
       - 'docs/en/**'
   pull_request:
     branches:
-      - '*'
+      - '**'
     paths:
       - 'docs/en/**'
 
@@ -80,7 +80,7 @@ jobs:
       - name: Deploy
         run: |
           git clone --single-branch --branch main --depth 1 https://${{ secrets.PX4BUILTBOT_PERSONAL_ACCESS_TOKEN }}@github.com/PX4/docs.px4.io.git
-          # make it an orphan branch      
+          # make it an orphan branch
           cd docs.px4.io
           CURRENT_DATETIME=$(date +'%Y%m%d_%H_%M')
           git checkout --orphan "${CURRENT_DATETIME}_main"
