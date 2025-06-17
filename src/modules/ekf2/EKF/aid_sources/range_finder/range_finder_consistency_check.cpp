@@ -39,11 +39,16 @@
 #include "ekf_derivation/generated/range_validation_filter_h.h"
 #include "ekf_derivation/generated/range_validation_filter_P_init.h"
 
+#include <px4_platform_common/log.h>
+
+
 using namespace matrix;
 
 void RangeFinderConsistencyCheck::init(const float z, const float z_var, const float dist_bottom,
 				       const float dist_bottom_var)
 {
+	PX4_INFO("RangeFinderConsistencyCheck::init");
+
 	_P = sym::RangeValidationFilterPInit(z_var, dist_bottom_var);
 	_Ht = sym::RangeValidationFilterH<float>();
 
@@ -89,7 +94,6 @@ void RangeFinderConsistencyCheck::update(const float z, const float z_var, const
 			H(RangeFilter::z.idx) = 1.f;
 			H(RangeFilter::terrain.idx) = 0.f;
 			R = z_var;
-
 		}
 
 		// residual
@@ -130,25 +134,19 @@ void RangeFinderConsistencyCheck::update(const float z, const float z_var, const
 void RangeFinderConsistencyCheck::evaluateState(const float dt, const float vz, const float vz_var)
 {
 	// start the consistency check after 1s
-	if (_t_since_first_sample > _t_to_init) {
-		if (fabsf(_test_ratio_lpf.getState()) < 1.f) {
-			const bool vertical_motion = sq(vz) > fmaxf(vz_var, 0.1f);
-
-			if (!horizontal_motion && vertical_motion) {
-				_state = KinematicState::CONSISTENT;
-
-			} else if (_state == KinematicState::CONSISTENT || vertical_motion) {
-				_state = KinematicState::UNKNOWN;
-			}
-
-		} else {
-			_t_since_first_sample = 0.f;
-			_state = KinematicState::INCONSISTENT;
-		}
-
-	} else {
+	if (_t_since_first_sample < _t_to_init) {
 		_t_since_first_sample += dt;
+		return;
 	}
+
+	if (fabsf(_test_ratio_lpf.getState()) > 1.f) {
+		PX4_INFO("_test_ratio_lpf failed (>1)");
+		_t_since_first_sample = 0.f;
+		_state = KinematicState::INCONSISTENT;
+		return;
+	}
+
+	_state = KinematicState::CONSISTENT;
 }
 
 void RangeFinderConsistencyCheck::run(const float z, const float z_var, const float vz, const float vz_var,
