@@ -5,7 +5,6 @@
 # @type Quadrotor x
 # @class Copter
 #
-# @maintainer
 # @board px4_fmu-v2 exclude
 # @board cuav_x7pro exclude
 # @board px4_fmu-v4pro exclude
