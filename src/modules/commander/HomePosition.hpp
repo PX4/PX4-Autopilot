@@ -91,7 +91,7 @@ private:
 	uint64_t _last_baro_timestamp{0};
 	AlphaFilter<float> _lpf_baro{kLpfBaroTimeConst};
 	float _gps_vel_integral{NAN};
-	float _baro_gps_home_offset{0.f};
+	float _home_altitude_offset_applied{0.f};
 	float _baro_gps_static_offset{0.f};
 	uint64_t _takeoff_time{0};
 
