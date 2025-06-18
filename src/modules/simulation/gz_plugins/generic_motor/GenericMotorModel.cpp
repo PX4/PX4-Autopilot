@@ -193,6 +193,11 @@ public: double maxDutyCycle = 0.0;
 	/// \brief Minimum duty cycle value
 public: double minDutyCycle = 0.0;
 
+	/// \brief Bidirectional-capable motor. Set to true if it mimics an ESC
+	/// with bidirectional control. Zero input will be middle of max and min
+	/// duty cycles.
+public: int bidirectionalMotor = 0;
+
 	/// \brief Moment constant for computing drag torque based on thrust
 	/// with units of length (m).
 	/// The default value is taken from gazebo_motor_model.h
@@ -525,6 +530,8 @@ void GenericMotorModel::Configure(const Entity &_entity,
 			      this->dataPtr->motorConstant, this->dataPtr->motorConstant);
 	sdfClone->Get<double>("momentConstant",
 			      this->dataPtr->momentConstant, this->dataPtr->momentConstant);
+	sdfClone->Get<int>("bidirectionalMotor",
+			      this->dataPtr->bidirectionalMotor, this->dataPtr->bidirectionalMotor);
 
 	sdfClone->Get<double>("timeConstantUp",
 			      this->dataPtr->timeConstantUp, this->dataPtr->timeConstantUp);
@@ -707,8 +714,7 @@ void GenericMotorModelPrivate::UpdateForcesAndMoments(
 			   this->controlMethod == ControlMethod::kDutyCycle &&
 			   msg->velocity(this->actuatorNumber) >= this->minDutyCycle) {
 			// Create normalized reference based on the duty cycle
-			this->refMotorInput = ((msg->velocity(this->actuatorNumber) / (this->maxDutyCycle - this->minDutyCycle)) - 1) * 2 - 1;
-
+			this->refMotorInput = ((msg->velocity(this->actuatorNumber) - (this->minDutyCycle + (this->maxDutyCycle - this->minDutyCycle) * this->bidirectionalMotor / 2.0)) / ((this->maxDutyCycle - this->minDutyCycle) - (this->maxDutyCycle - this->minDutyCycle) * this->bidirectionalMotor / 2.0));
 		}
 
 		//  else if (this->motorType == MotorType::kPosition)
