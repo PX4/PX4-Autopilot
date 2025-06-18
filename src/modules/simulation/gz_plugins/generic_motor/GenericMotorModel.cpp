@@ -716,9 +716,7 @@ void GenericMotorModelPrivate::UpdateForcesAndMoments(
 			// Create normalized reference based on the duty cycle
 			this->refMotorInput = ((msg->velocity(this->actuatorNumber) - (this->minDutyCycle + (this->maxDutyCycle - this->minDutyCycle) * this->bidirectionalMotor / 2.0)) / ((this->maxDutyCycle - this->minDutyCycle) - (this->maxDutyCycle - this->minDutyCycle) * this->bidirectionalMotor / 2.0));
 		}
-
-		//  else if (this->motorType == MotorType::kPosition)
-		else { // if (this->motorType == MotorType::kForce) {
+		else {
 			this->refMotorInput = msg->velocity(this->actuatorNumber);
 		}
 	}
