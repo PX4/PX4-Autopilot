@@ -224,7 +224,7 @@ private:
 	bool can_parse() const;
 
 	State _state{State::SearchingSync1};
-	uint16_t _current_index;
+	uint16_t _current_index{0};
 	message_t _message;
 };
 

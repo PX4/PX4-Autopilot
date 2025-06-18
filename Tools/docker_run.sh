@@ -15,7 +15,7 @@ fi
 
 # otherwise default to nuttx
 if [ -z ${PX4_DOCKER_REPO+x} ]; then
-	PX4_DOCKER_REPO="px4io/px4-dev:v1.16.0-ondemand"
+	PX4_DOCKER_REPO="px4io/px4-dev:v1.16.0-rc1-258-g0369abd556"
 fi
 
 echo "PX4_DOCKER_REPO: $PX4_DOCKER_REPO";
