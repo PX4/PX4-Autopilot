@@ -1219,13 +1219,12 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 							   _param_fw_thr_idle.get() : NAN;
 			const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 				.timestamp = now,
-				.altitude = altitude_setpoint_amsl,
-				.height_rate = NAN,
+				.altitude = NAN,
+				.height_rate = _param_fw_t_clmb_max.get(),
 				.equivalent_airspeed = takeoff_airspeed,
 				.pitch_direct = NAN,
 				.throttle_direct = NAN
 			};
-
 
 			_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
