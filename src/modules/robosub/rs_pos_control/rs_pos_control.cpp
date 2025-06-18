@@ -202,7 +202,7 @@ void RobosubPosControl::control_attitude_geo(const vehicle_attitude_s &attitude,
 	 * D. Mellinger, V. Kumar, "Minimum Snap Trajectory Generation and Control for Quadrotors", IEEE ICRA 2011, pp. 2520-2525.
 	 * D. A. Duecker, A. Hackbarth, T. Johannink, E. Kreuzer, and E. Solowjow, “Micro Underwater Vehicle Hydrobatics: A SubmergedFuruta Pendulum,” IEEE ICRA 2018, pp. 7498–7503.
 	 */
-	Eulerf euler_angles(matrix::Quatf(attitude.q));
+		Eulerf euler_angles(matrix::Quatf(attitude.q));
 
 	const Eulerf setpoint_euler_angles(matrix::Quatf(attitude_setpoint.q_d));
 	const float roll_body = setpoint_euler_angles(0);
@@ -282,8 +282,7 @@ void RobosubPosControl::Run()
 
 	// TODO_RS IS THIS CORRECT OR ONLY ON OF THESE? only run controller if changed in vlocal_pos OR changed in _vehicle_attitude?
 	/* only run position controller if attitude changed */
-	// if (_vehicle_attitude_sub.update(&attitude))
-	/* only run controller if local_pos changed */
+	/* only run pos controller if local_pos changed */
 	if (_vehicle_local_position_sub.update(&vlocal_pos)){
 
 		/* Run geometric attitude controllers if NOT manual mode*/
@@ -291,12 +290,9 @@ void RobosubPosControl::Run()
 		    && _vcontrol_mode.flag_control_attitude_enabled
 		    && _vcontrol_mode.flag_control_rates_enabled){
 
-			_vehicle_attitude_sub.update(&_vehicle_attitude); // get current vehicle attitude
-
 			// setpoints
+			_vehicle_attitude_sub.update(&_vehicle_attitude); // get current vehicle attitude
 			_trajectory_setpoint_sub.update(&_trajectory_setpoint);
-			_vehicle_attitude_setpoint_sub.update(&_attitude_setpoint);
-			_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
 
 			float roll_des = 0;
 			float pitch_des = 0;
@@ -312,30 +308,43 @@ void RobosubPosControl::Run()
 				stabilization_controller_6dof(Vector3f(_trajectory_setpoint.position),
 							      roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
 			}
+		}
+	}
 
-			// TODO_RS
-			// TODO_RS remove prevent unused error
-			PX4_DEBUG("attitude.q: [%f, %f, %f, %f]", (double)attitude.q[0], (double)attitude.q[1], (double)attitude.q[2], (double)attitude.q[3]);
-			/* Geometric Attitude Control */
-			// int input_mode = _param_input_mode.get();
-			// if (input_mode == 1) { // process manual data
-			// 	Quatf attitude_setpoint(Eulerf(_param_direct_roll.get(), _param_direct_pitch.get(), _param_direct_yaw.get()));
-			// 	attitude_setpoint.copyTo(_attitude_setpoint.q_d);
-			// 	_attitude_setpoint.thrust_body[0] = _param_direct_thrust.get();
-			// 	_attitude_setpoint.thrust_body[1] = 0.f;
-			// 	_attitude_setpoint.thrust_body[2] = 0.f;
-			// }
+	/* Attitude controller */
+	/* only run controller if attitude changed */
+	if (_vehicle_attitude_sub.update(&attitude)) {
+		vehicle_angular_velocity_s angular_velocity {};
+		_angular_velocity_sub.copy(&angular_velocity);
 
-			// /* Geometric Attitude Control */
-			// int skip_controller = _param_skip_ctrl.get();
+		/* Run geometric attitude controllers if NOT manual mode*/
+		if (!_vcontrol_mode.flag_control_manual_enabled
+		    && _vcontrol_mode.flag_control_attitude_enabled
+		    && _vcontrol_mode.flag_control_rates_enabled) {
 
-			// if (skip_controller == 0) { // Control using geo controller
-			// 	control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint);
+			int input_mode = _param_input_mode.get();
 
-			// } else { // Skip geometric controller
-			// 	constrain_actuator_commands(_rates_setpoint.roll, _rates_setpoint.pitch, _rates_setpoint.yaw,
-			// 				    _rates_setpoint.thrust_body[0], _rates_setpoint.thrust_body[1], _rates_setpoint.thrust_body[2]);
-			// }
+			_vehicle_attitude_setpoint_sub.update(&_attitude_setpoint);
+			_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
+
+			if (input_mode == 1) { // process manual data
+				Quatf attitude_setpoint(Eulerf(_param_direct_roll.get(), _param_direct_pitch.get(), _param_direct_yaw.get()));
+				attitude_setpoint.copyTo(_attitude_setpoint.q_d);
+				_attitude_setpoint.thrust_body[0] = _param_direct_thrust.get();
+				_attitude_setpoint.thrust_body[1] = 0.f;
+				_attitude_setpoint.thrust_body[2] = 0.f;
+			}
+
+			/* Geometric Control */
+			int skip_controller = _param_skip_ctrl.get();
+
+			if (skip_controller == 0) { // Control using geo controller
+				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint);
+
+			} else { // Skip geometric controller
+				constrain_actuator_commands(_rates_setpoint.roll, _rates_setpoint.pitch, _rates_setpoint.yaw,
+							    _rates_setpoint.thrust_body[0], _rates_setpoint.thrust_body[1], _rates_setpoint.thrust_body[2]);
+			}
 
 		}
 	}
