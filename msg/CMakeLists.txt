@@ -226,6 +226,7 @@ set(msg_files
 	VehicleImu.msg
 	VehicleImuStatus.msg
 	VehicleLocalPositionSetpoint.msg
+	TaskLocalPositionSetpoint.msg
 	VehicleMagnetometer.msg
 	VehicleOpticalFlow.msg
 	VehicleOpticalFlowVel.msg

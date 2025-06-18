@@ -39,14 +39,12 @@ uint8 CS_FIXED_WING = 17	# 17 - true when thought to be operating as a fixed win
 uint8 CS_MAG_FAULT = 18		# 18 - true when the magnetometer has been declared faulty and is no longer being used
 uint8 CS_ASPD = 19		# 19 - true when airspeed measurements are being fused
 uint8 CS_GND_EFFECT = 20	# 20 - true when when protection from ground effect induced static pressure rise is active
-uint8 CS_RNG_STUCK = 21		# 21 - true when a stuck range finder sensor has been detected
 uint8 CS_GPS_YAW = 22		# 22 - true when yaw (not ground course) data from a GPS receiver is being fused
 uint8 CS_MAG_ALIGNED = 23	# 23 - true when the in-flight mag field alignment has been completed
 uint8 CS_EV_VEL = 24		# 24 - true when local frame velocity data fusion from external vision measurements is intended
 uint8 CS_SYNTHETIC_MAG_Z = 25	# 25 - true when we are using a synthesized measurement for the magnetometer Z component
 uint8 CS_VEHICLE_AT_REST = 26	# 26 - true when the vehicle is at rest
 uint8 CS_GPS_YAW_FAULT = 27	# 27 - true when the GNSS heading has been declared faulty and is no longer being used
-uint8 CS_RNG_FAULT = 28		# 28 - true when the range finder has been declared faulty and is no longer being used
 uint8 CS_GNSS_VEL = 44		# 44 - true if GNSS velocity measurements are being fused
 
 uint32 filter_fault_flags	# Bitmask to indicate EKF internal faults

@@ -173,7 +173,7 @@ void FlightTaskManualAltitude::_terrain_hold_mode()
 		if (_current_mode != AltitudeMode::AltitudeFollow) {
 			_current_mode = AltitudeMode::AltitudeFollow;
 
-			// PX4_INFO("Locking to Z estimate");
+			PX4_INFO("Locking to Z estimate");
 			_position_setpoint(2) = _position(2);
 			_dist_to_bottom_lock = NAN;
 			_constraints.lock_dist_bottom = false;
@@ -186,6 +186,7 @@ void FlightTaskManualAltitude::_terrain_hold_mode()
 		// Set velocity setpoint to 0, switch into TerrainHold
 		_current_mode = AltitudeMode::TerrainHold;
 		_velocity_setpoint(2) = 0.f;
+		PX4_INFO("setting terrain hold");
 		return;
 	}
 
@@ -195,7 +196,7 @@ void FlightTaskManualAltitude::_terrain_hold_mode()
 			_dist_to_bottom_lock = _dist_to_bottom;
 			_position_setpoint(2) = _position(2);
 			_constraints.lock_dist_bottom = true;
-			// PX4_INFO("Locking distance to %f", (double)_dist_to_bottom);
+			PX4_INFO("Locking distance to %f", (double)_dist_to_bottom);
 		}
 
 		return;

@@ -148,7 +148,7 @@ enum class GnssCtrl : uint8_t {
 	YAW  = (1 << 3)
 };
 
-enum class RngCtrl : uint8_t {
+enum RngCtrl : uint8_t {
 	DISABLED    = 0,
 	CONDITIONAL = 1,
 	ENABLED     = 2
@@ -572,8 +572,6 @@ uint64_t mag_fault               :
 		uint64_t fuse_aspd               : 1; ///< 19 - true when airspeed measurements are being fused
 uint64_t gnd_effect              :
 		1; ///< 20 - true when protection from ground effect induced static pressure rise is active
-uint64_t rng_stuck               :
-		1; ///< 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
 uint64_t gnss_yaw                 :
 		1; ///< 22 - true when yaw (not ground course) data fusion from a GPS receiver is intended
 		uint64_t mag_aligned_in_flight   : 1; ///< 23 - true when the in-flight mag field alignment has been completed
@@ -584,8 +582,6 @@ uint64_t synthetic_mag_z         :
 		uint64_t vehicle_at_rest         : 1; ///< 26 - true when the vehicle is at rest
 uint64_t gnss_yaw_fault           :
 		1; ///< 27 - true when the GNSS heading has been declared faulty and is no longer being used
-uint64_t rng_fault               :
-		1; ///< 28 - true when the range finder has been declared faulty and is no longer being used
 uint64_t inertial_dead_reckoning :
 		1; ///< 29 - true if we are no longer fusing measurements that constrain horizontal velocity drift
 		uint64_t wind_dead_reckoning     : 1; ///< 30 - true if we are navigationg reliant on wind relative measurements
@@ -606,7 +602,6 @@ uint64_t mag_heading_consistent  :
 		uint64_t constant_pos            : 1; ///< 42 - true if the vehicle is at a constant position
 		uint64_t baro_fault              : 1; ///< 43 - true when the baro has been declared faulty and is no longer being used
 		uint64_t gnss_vel                : 1; ///< 44 - true if GNSS velocity measurement fusion is intended
-		uint64_t rng_kin_unknown	 : 1; ///< 45 - true when the range finder kinematic consistency check is not running
 	} flags;
 	uint64_t value;
 };

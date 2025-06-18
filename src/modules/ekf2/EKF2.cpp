@@ -1917,14 +1917,12 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_mag_fault             = _ekf.control_status_flags().mag_fault;
 		status_flags.cs_fuse_aspd             = _ekf.control_status_flags().fuse_aspd;
 		status_flags.cs_gnd_effect            = _ekf.control_status_flags().gnd_effect;
-		status_flags.cs_rng_stuck             = _ekf.control_status_flags().rng_stuck;
 		status_flags.cs_gnss_yaw               = _ekf.control_status_flags().gnss_yaw;
 		status_flags.cs_mag_aligned_in_flight = _ekf.control_status_flags().mag_aligned_in_flight;
 		status_flags.cs_ev_vel                = _ekf.control_status_flags().ev_vel;
 		status_flags.cs_synthetic_mag_z       = _ekf.control_status_flags().synthetic_mag_z;
 		status_flags.cs_vehicle_at_rest       = _ekf.control_status_flags().vehicle_at_rest;
 		status_flags.cs_gnss_yaw_fault         = _ekf.control_status_flags().gnss_yaw_fault;
-		status_flags.cs_rng_fault             = _ekf.control_status_flags().rng_fault;
 		status_flags.cs_inertial_dead_reckoning = _ekf.control_status_flags().inertial_dead_reckoning;
 		status_flags.cs_wind_dead_reckoning     = _ekf.control_status_flags().wind_dead_reckoning;
 		status_flags.cs_rng_kin_consistent      = _ekf.control_status_flags().rng_kin_consistent;
@@ -1941,7 +1939,6 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_constant_pos        = _ekf.control_status_flags().constant_pos;
 		status_flags.cs_baro_fault	    = _ekf.control_status_flags().baro_fault;
 		status_flags.cs_gnss_vel            = _ekf.control_status_flags().gnss_vel;
-		status_flags.cs_rng_kin_unknown     = _ekf.control_status_flags().rng_kin_unknown;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;

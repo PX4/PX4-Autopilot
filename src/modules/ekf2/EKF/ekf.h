@@ -762,9 +762,18 @@ private:
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// range height
 	void controlRangeHaglFusion(const imuSample &imu_delayed);
+
+
+	void fuseRangeAsHeightSource();
+	void fuseRangeAsHeightAiding();
+
 	bool isConditionalRangeAidSuitable();
-	void stopRngHgtFusion();
-	void stopRngTerrFusion();
+	bool rangeAidConditionsPassed();
+
+
+	void stopRangeAltitudeFusion();
+	void stopRangeTerrainFusion();
+
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)

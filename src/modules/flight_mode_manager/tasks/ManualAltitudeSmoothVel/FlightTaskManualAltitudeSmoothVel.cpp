@@ -117,4 +117,17 @@ void FlightTaskManualAltitudeSmoothVel::_setOutputState()
 	}
 
 	_terrain_hold_previous = _current_mode == AltitudeMode::TerrainHold;
+
+	task_local_position_setpoint_s msg = {};
+
+	msg.timestamp = hrt_absolute_time();
+
+	msg.x = _position_setpoint(0);
+	msg.y = _position_setpoint(1);
+	msg.z = _position_setpoint(2);
+	msg.vx = _velocity_setpoint(0);
+	msg.vy = _velocity_setpoint(1);
+	msg.vz = _velocity_setpoint(2);
+
+	_setpoint_pub.publish(msg);
 }
