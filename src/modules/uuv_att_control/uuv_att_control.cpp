@@ -97,7 +97,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 		float thrust_x, float thrust_y, float thrust_z)
 {
 	if (PX4_ISFINITE(roll_u)) {
-		roll_u = math::constrain(roll_u, -0.1f, 0.1f);
+		roll_u = math::constrain(roll_u, -_param_torque_sat.get(), _param_torque_sat.get());
 		_vehicle_torque_setpoint.xyz[0] = roll_u;
 
 	} else {
@@ -105,7 +105,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	}
 
 	if (PX4_ISFINITE(pitch_u)) {
-		pitch_u = math::constrain(pitch_u, -0.1f, 0.1f);
+		pitch_u = math::constrain(pitch_u, -_param_torque_sat.get(), _param_torque_sat.get());
 		_vehicle_torque_setpoint.xyz[1] = pitch_u;
 
 	} else {
@@ -113,7 +113,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	}
 
 	if (PX4_ISFINITE(yaw_u)) {
-		yaw_u = math::constrain(yaw_u, -0.1f, 0.1f);
+		yaw_u = math::constrain(yaw_u, -_param_torque_sat.get(), _param_torque_sat.get());
 		_vehicle_torque_setpoint.xyz[2] = yaw_u;
 
 	} else {
@@ -121,7 +121,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	}
 
 	if (PX4_ISFINITE(thrust_x)) {
-		thrust_x = math::constrain(thrust_x, -0.3f, 0.3f);
+		thrust_x = math::constrain(thrust_x, -_param_thrust_sat.get(), _param_thrust_sat.get());
 		_vehicle_thrust_setpoint.xyz[0] = thrust_x;
 
 	} else {
@@ -129,7 +129,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	}
 
 	if (PX4_ISFINITE(thrust_y)) {
-		thrust_y = math::constrain(thrust_y, -0.3f, 0.3f);
+		thrust_y = math::constrain(thrust_y, -_param_thrust_sat.get(), _param_thrust_sat.get());
 		_vehicle_thrust_setpoint.xyz[1] = thrust_y;
 
 	} else {
@@ -137,7 +137,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	}
 
 	if (PX4_ISFINITE(thrust_z)) {
-		thrust_z = math::constrain(thrust_z, -0.3f, 0.3f);
+		thrust_z = math::constrain(thrust_z, -_param_thrust_sat.get(), _param_thrust_sat.get());
 		_vehicle_thrust_setpoint.xyz[2] = thrust_z;
 
 	} else {
@@ -321,8 +321,7 @@ void UUVAttitudeControl::Run()
 				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint, true);
 
 
-				/* Run Rate mode */
-
+			/* Run Rate mode */
 			} else if (!_vcontrol_mode.flag_control_attitude_enabled
 				   && _vcontrol_mode.flag_control_rates_enabled) {
 				/* Generate atttiude setpoint from sticks */
@@ -330,8 +329,7 @@ void UUVAttitudeControl::Run()
 
 				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint, false);
 
-				/* Manual Control mode (e.g. gamepad,...) - raw feedthrough no assistance */
-
+			/* Manual Control mode (e.g. gamepad,...) - raw feedthrough no assistance */
 			} else if (!_vcontrol_mode.flag_control_attitude_enabled
 				   && !_vcontrol_mode.flag_control_rates_enabled) {
 				/* manual/direct control */

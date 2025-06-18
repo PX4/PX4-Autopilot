@@ -109,94 +109,126 @@ PARAM_DEFINE_FLOAT(UUV_YAW_D, 2.0f);
  * Roll gain for manual inputs in attitude control mode
  *
  * @group UUV Attitude Control
+ * @min 0.0
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_SGM_ROLL, 5.0f);
 
 /**
- * Roll gain for manual inputs in attitude control mode
+ * Pitch gain for manual inputs in attitude control mode
  *
  * @group UUV Attitude Control
+ * @min 0.0
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_SGM_PITCH, 5.0f);
 
 /**
- * Roll gain for manual inputs in attitude control mode
+ * Yaw gain for manual inputs in attitude control mode
  *
  * @group UUV Attitude Control
+ * @min 0.0
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_SGM_YAW, 5.0f);
 
 /**
- * Roll gain for manual inputs in attitude control mode
+ * Throttle gain for manual inputs in attitude control mode
  *
  * @group UUV Attitude Control
+ * @min 0.0
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_SGM_THRTL, 0.1f);
 
 /**
- * Roll gain for manual inputs in attitude control mode
+ * Roll gain for manual inputs in rate control mode
  *
  * @group UUV Attitude Control
+ * @min 0.0
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_RGM_ROLL, 100.0f);
 
 /**
- * Roll gain for manual inputs in attitude control mode
+ * Pitch gain for manual inputs in rate control mode
  *
  * @group UUV Attitude Control
+ * @min 0.0
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_RGM_PITCH, 100.0f);
 
 /**
- * Roll gain for manual inputs in attitude control mode
+ * Yaw gain for manual inputs in rate control mode
  *
  * @group UUV Attitude Control
+ * @min 0.0
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_RGM_YAW, 100.0f);
 
 /**
- * Roll gain for manual inputs in attitude control mode
+ * Throttle gain for manual inputs in rate control mode
  *
  * @group UUV Attitude Control
+ * @min 0.0
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_RGM_THRTL, 10.0f);
 
 /**
- * Roll gain for manual inputs in attitude control mode
+ * Roll gain for manual inputs in manual control mode
  *
  * @group UUV Attitude Control
+ * @min 0.0
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_MGM_ROLL, 0.05f);
 
 /**
- * Roll gain for manual inputs in attitude control mode
+ * Pitch gain for manual inputs in manual control mode
  *
  * @group UUV Attitude Control
+ * @min 0.0
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_MGM_PITCH, 0.05f);
 
 /**
- * Roll gain for manual inputs in attitude control mode
+ * Yaw gain for manual inputs in manual control mode
  *
  * @group UUV Attitude Control
+ * @min 0.0
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_MGM_YAW, 0.05f);
 
 /**
- * Roll gain for manual inputs in attitude control mode
+ * Throttle gain for manual inputs in manual control mode
  *
  * @group UUV Attitude Control
+ * @min 0.0
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_MGM_THRTL, 0.1f);
+
+/**
+ * UUV Torque setpoint Saturation
+ *
+ * @group UUV Attitude Control
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_TORQUE_SAT, 1.0f);
+
+/**
+ * UUV Thrust setpoint Saturation
+ *
+ * @group UUV Attitude Control
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_THRUST_SAT, 1.0f);

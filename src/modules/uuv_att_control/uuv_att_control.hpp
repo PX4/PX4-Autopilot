@@ -146,7 +146,10 @@ private:
 		(ParamFloat<px4::params::UUV_MGM_ROLL>) _param_mgm_roll,
 		(ParamFloat<px4::params::UUV_MGM_PITCH>) _param_mgm_pitch,
 		(ParamFloat<px4::params::UUV_MGM_YAW>) _param_mgm_yaw,
-		(ParamFloat<px4::params::UUV_MGM_THRTL>) _param_mgm_thrtl
+		(ParamFloat<px4::params::UUV_MGM_THRTL>) _param_mgm_thrtl,
+		(ParamFloat<px4::params::UUV_TORQUE_SAT>) _param_torque_sat,
+		(ParamFloat<px4::params::UUV_THRUST_SAT>) _param_thrust_sat
+
 	)
 
 	void Run() override;
