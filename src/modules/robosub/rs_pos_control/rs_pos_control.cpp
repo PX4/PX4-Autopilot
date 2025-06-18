@@ -285,6 +285,8 @@ void RobosubPosControl::Run()
 	/* only run pos controller if local_pos changed */
 	if (_vehicle_local_position_sub.update(&vlocal_pos)){
 
+		// PX4_INFO("attitude.q: [%f, %f, %f, %f]", (double)attitude.q[0], (double)attitude.q[1], (double)attitude.q[2], (double)attitude.q[3]);
+
 		/* Run geometric attitude controllers if NOT manual mode*/
 		if (!_vcontrol_mode.flag_control_manual_enabled
 		    && _vcontrol_mode.flag_control_attitude_enabled
@@ -316,6 +318,11 @@ void RobosubPosControl::Run()
 	if (_vehicle_attitude_sub.update(&attitude)) {
 		vehicle_angular_velocity_s angular_velocity {};
 		_angular_velocity_sub.copy(&angular_velocity);
+
+		PX4_INFO("angular_velocity: [x:%f, y:%f, z:%f]",
+			(double)angular_velocity.xyz[0],
+			(double)angular_velocity.xyz[1],
+			(double)angular_velocity.xyz[2]);
 
 		/* Run geometric attitude controllers if NOT manual mode*/
 		if (!_vcontrol_mode.flag_control_manual_enabled

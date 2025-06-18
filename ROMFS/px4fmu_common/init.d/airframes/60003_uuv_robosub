@@ -106,7 +106,7 @@ param set-default PWM_MAIN_FUNC5 105
 param set-default PWM_MAIN_FUNC6 106
 param set-default PWM_MAIN_FUNC7 107
 
-rs_motor_control start
+# rs_motor_control start
 control_allocator start
-land_detector start rover
+# land_detector start rover
 rs_pos_control start
