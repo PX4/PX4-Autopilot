@@ -814,6 +814,7 @@
       - [Test MC_04 - Failsafe Testing](test_cards/mc_04_failsafe_testing.md)
       - [Test MC_05 - Indoor Flight (Manual Modes)](test_cards/mc_05_indoor_flight_manual_modes.md)
     - [Unit Tests](test_and_ci/unit_tests.md)
+      - [Fuzz Tests](test_and_ci/fuzz_tests.md)
     - [Continuous Integration](test_and_ci/continous_integration.md)
     - [Integration Testing](test_and_ci/integration_testing.md)
       - [MAVSDK Integration Testing](test_and_ci/integration_testing_mavsdk.md)
