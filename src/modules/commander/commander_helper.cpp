@@ -123,7 +123,7 @@ bool is_ground_vehicle(const vehicle_status_s &current_status)
 		current_status.system_type == VEHICLE_TYPE_GROUND_ROVER);
 }
 
-bool allow_center_throttle(const vehicle_status_s &current_status)
+bool is_uuv_vehicle(const vehicle_status_s &current_status)
 {
 	// Allow center throttle for multirotors, VTOLs and fixed wing aircraft
 	return is_ground_vehicle(current_status) ||
