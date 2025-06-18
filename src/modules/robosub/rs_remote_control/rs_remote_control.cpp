@@ -33,7 +33,6 @@
 
  #include "rs_remote_control.hpp"
 
- #include "../rs_motor_control/rs_motor_control.hpp"
 
  #include <px4_platform_common/getopt.h>
  #include <px4_platform_common/log.h>
@@ -45,10 +44,7 @@
  #include <uORB/topics/parameter_update.h>
  #include <uORB/topics/sensor_combined.h>
 
- // PX4 defines for InternalSensors.msg
- #define SENSOR_HUMIDITY 0
- #define SENSOR_TEMPERATURE 1
- #define SENSOR_PRESSURE 2
+RobosubMotorControl RobosubRemoteControl::robosub_motor_control;
 
 extern "C" __EXPORT int rs_remote_control_main(int argc, char *argv[]);
 
@@ -140,7 +136,6 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 	}
 	else {
 		PX4_WARN("Force override active, motors will be forced to go up");
-		RobosubMotorControl robosub_motor_control;
 		robosub_motor_control.actuator_test(MOTOR_FORWARDS1, 0.0f, 0, false);
 		robosub_motor_control.actuator_test(MOTOR_FORWARDS2, 0.0f, 0, false);
 		robosub_motor_control.actuator_test(MOTOR_SIDE1, 0.0f, 0, false);
@@ -188,17 +183,17 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
     			((normalized[7] > 0.0f) ? 1 : 0) << 2;
 			switch(bitReg)
 			{
-				case 0b1000:
-					drone_task.task = TASK_INIT;
+				case 0b000:
+					drone_task.task = drone_task_s::TASK_INIT;
 				break;
-				case 0b1001:
-					drone_task.task = TASK_DEFAULT;
+				case 0b001:
+					drone_task.task = drone_task_s::TASK_DEFAULT;
 				break;
-				case 0b1010:
-					drone_task.task = TASK_AUTONOMOUS;
-				break;
-				case 0b1111:
-					drone_task.task = TASK_REMOTE_CONTROLLED;
+				case 0b010:
+					drone_task.task = drone_task_s::TASK_AUTONOMOUS;
+					break;
+				case 0b111:
+					drone_task.task = drone_task_s::TASK_REMOTE_CONTROLLED;
 				break;
 				default:
 
@@ -218,11 +213,10 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 
  void RobosubRemoteControl::receiver()
  {
-	RobosubMotorControl robosub_motor_control;
 
 		if (update1)
 		{
-			if(bitReg == TASK_REMOTE_CONTROLLED)
+			if(bitReg == drone_task_s::TASK_REMOTE_CONTROLLED)
 			{
 				input_rc_s rc_data {};
 				_input_rc_sub.copy(&rc_data);
@@ -260,8 +254,8 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 
 
 
-				robosub_motor_control.actuator_test(MOTOR_FORWARDS1, 	normalized[0]/2, 0, false);
-				robosub_motor_control.actuator_test(MOTOR_FORWARDS2, 	normalized[0]/2, 0, false);
+				robosub_motor_control.actuator_test(MOTOR_FORWARDS1, 	normalized[0], 0, false);
+				robosub_motor_control.actuator_test(MOTOR_FORWARDS2, 	normalized[0], 0, false);
 				robosub_motor_control.actuator_test(MOTOR_UP1, 		-normalized[1], 0, false);
 				robosub_motor_control.actuator_test(MOTOR_UP2, 		(normalized[1]), 0, false);
 				robosub_motor_control.actuator_test(MOTOR_UP3, 		(-normalized[1]), 0, false);
@@ -298,19 +292,19 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 		const char *warn_msg = nullptr;
 
 		switch (internal_sensors.sensor) {
-		case SENSOR_HUMIDITY:
+		case internal_sensors_s::SENSOR_HUMIDITY:
 			filtered_value = &_filtered_humidity[module_index];
 			filter = &_humidity_filter[module_index];
 			param_offset = _param_offset_rel_humidity.get();
 			warn_msg = "High humidity detected: %.2f%%";
 			break;
-		case SENSOR_TEMPERATURE:
+		case internal_sensors_s::SENSOR_TEMPERATURE:
 			filtered_value = &_filtered_temperature[module_index];
 			filter = &_temperature_filter[module_index];
 			param_offset = _param_offset_temperature.get();
 			warn_msg = "High temperature detected: %.2f°C";
 			break;
-		case SENSOR_PRESSURE:
+		case internal_sensors_s::SENSOR_PRESSURE:
 			filtered_value = &_filtered_pressure[module_index];
 			filter = &_pressure_filter[module_index];
 			param_offset = _param_offset_pressure.get();

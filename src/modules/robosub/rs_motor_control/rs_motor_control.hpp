@@ -30,6 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#pragma once
 
 #include <float.h>
 
@@ -67,6 +68,16 @@ using matrix::Dcmf;
 using uORB::SubscriptionData;
 
 using namespace time_literals;
+
+enum MotorID {
+    	MOTOR_FORWARDS1  = 101,
+    	MOTOR_FORWARDS2	 = 106,
+    	MOTOR_UP1   	 = 102,
+    	MOTOR_UP2 	 = 104,
+    	MOTOR_UP3 	 = 103,
+    	MOTOR_SIDE1 	 = 105,
+    	MOTOR_SIDE2  	 = 107
+	};
 
 class RobosubMotorControl: public ModuleBase<RobosubMotorControl>, public ModuleParams, public px4::WorkItem
 {

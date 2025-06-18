@@ -43,6 +43,9 @@
 #include "px4_platform_common/defines.h"
 #include "px4_platform_common/log.h"
 
+RobosubMotorControl RobosubPosControl::robosub_motor_control;
+
+
 
 /**
 * Robosub motor control app start / stop handling function
@@ -111,41 +114,118 @@ void RobosubPosControl::posControl()
 		drone_task_s drone_task{};
 		_drone_task_sub.copy(&drone_task);
 
-		if (drone_task.task == TASK_AUTONOMOUS) {
-
-			// Constants
-			const float setpointPressure = SURFACE_PRESSURE + (SETPOINT / METER_PER_BAR);
-
-			// Simulated or subscribed current pressure
-			// Replace with actual sensor input when available
-			float currentPressure = _drone_task.current_pressure; // e.g., 1.02 bar
-
-			// PID calculation
-			float error = setpointPressure - currentPressure;
-
-			// PX4 delta time calculation
-			const hrt_abstime now = hrt_absolute_time();
-			static hrt_abstime last_time = now;
-			const float dt = math::constrain((now - last_time) / 1e6f, 0.001f, 1.0f); // dt in seconds
-			last_time = now;
-
-			_integral += error * dt;
-			float derivative = (error - _previous_error) / dt;
-			_previous_error = error;
-
-			float thrust = _Kp * error + _Ki * _integral + _Kd * derivative;
-
-			// Clamp thrust between -1.0 and 1.0
-			thrust = math::constrain(thrust, -1.0f, 1.0f);
-
-			// Output thrust to the motors
-			robosub_motor_control.actuator_test(MOTOR_UP1, 		thrust, 0, false);
-			robosub_motor_control.actuator_test(MOTOR_UP2, 		(thrust * 0.5f), 0, false);
-			robosub_motor_control.actuator_test(MOTOR_UP3, 		(thrust * 0.5f), 0, false);
+		if (drone_task.task == drone_task_s::TASK_AUTONOMOUS) {
+			AltitudeControl();
+			HorizontalControl();
 		}
 	}
 }
 
+
+void RobosubPosControl::AltitudeControl() {
+	// Constants
+	const float setpointPressure = SURFACE_PRESSURE + (SETPOINT / METER_PER_BAR);
+
+	// Simulated or subscribed current pressure
+	// Replace with actual sensor input when available
+	// float currentPressure = _drone_task.current_pressure; // e.g., 1.02 bar DOES NOT COMPILE
+	float currentPressure = 1;
+
+	// PID calculation
+	float error = setpointPressure - currentPressure;
+
+	// PX4 delta time calculation
+	const hrt_abstime now = hrt_absolute_time();
+	static hrt_abstime last_time = now;
+	const float dt = math::constrain((now - last_time) / 1e6f, 0.001f, 1.0f); // dt in seconds
+	last_time = now;
+
+	_integral += error * dt;
+	float derivative = (error - _previous_error) / dt;
+	_previous_error = error;
+
+	float thrust = _Kp * error + _Ki * _integral + _Kd * derivative;
+
+	// Clamp thrust between -1.0 and 1.0
+	thrust = math::constrain(thrust, -1.0f, 1.0f);
+
+	// Output thrust to the motors
+	robosub_motor_control.actuator_test(MOTOR_UP1, 		thrust, 0, false);
+	robosub_motor_control.actuator_test(MOTOR_UP2, 		(thrust * 0.5f), 0, false);
+	robosub_motor_control.actuator_test(MOTOR_UP3, 		(thrust * 0.5f), 0, false);
+}
+
+void RobosubPosControl::HorizontalControl() {
+	vehicle_local_position_s local_pos{};
+	if (_vehicle_local_position_sub.update(&local_pos)) {
+		matrix::Vector3f current_pos(local_pos.x, local_pos.y, local_pos.z);
+
+		switch (_auto_move_state) {
+		case AutoMoveState::INIT:
+		_origin_position = current_pos;
+		_state_entry_time = hrt_absolute_time();
+		_auto_move_state = AutoMoveState::MOVE_FORWARD;
+		break;
+
+		case AutoMoveState::MOVE_FORWARD:
+		send_position_setpoint(_origin_position + matrix::Vector3f(2.f, 0.f, 0.f));
+		if (distance_to(current_pos, _origin_position + matrix::Vector3f(2.f, 0.f, 0.f)) < 0.2f) {
+			_state_entry_time = hrt_absolute_time();
+			_auto_move_state = AutoMoveState::WAIT_FORWARD;
+		}
+		break;
+
+		case AutoMoveState::WAIT_FORWARD:
+		if (hrt_elapsed_time(&_state_entry_time) > 1000000) { // 1s
+			_auto_move_state = AutoMoveState::MOVE_ORIGIN;
+		}
+		break;
+
+		case AutoMoveState::MOVE_ORIGIN:
+		send_position_setpoint(_origin_position);
+		if (distance_to(current_pos, _origin_position) < 0.2f) {
+			_state_entry_time = hrt_absolute_time();
+			_auto_move_state = AutoMoveState::WAIT_ORIGIN;
+		}
+		break;
+
+		case AutoMoveState::WAIT_ORIGIN:
+		if (hrt_elapsed_time(&_state_entry_time) > 1000000) {
+			_auto_move_state = AutoMoveState::MOVE_BACKWARD;
+		}
+		break;
+
+		case AutoMoveState::MOVE_BACKWARD:
+		send_position_setpoint(_origin_position + matrix::Vector3f(-2.f, 0.f, 0.f));
+		if (distance_to(current_pos, _origin_position + matrix::Vector3f(-2.f, 0.f, 0.f)) < 0.2f) {
+			_state_entry_time = hrt_absolute_time();
+			_auto_move_state = AutoMoveState::WAIT_BACKWARD;
+		}
+		break;
+
+		case AutoMoveState::WAIT_BACKWARD:
+		if (hrt_elapsed_time(&_state_entry_time) > 1000000) {
+			_auto_move_state = AutoMoveState::DONE;
+		}
+		break;
+
+		case AutoMoveState::DONE:
+		// Hold position or stop
+		send_position_setpoint(current_pos);
+		break;
+		}
+	}
+}
+
+void RobosubPosControl::send_position_setpoint(const matrix::Vector3f &pos) {
+	vehicle_local_position_setpoint_s setpoint{};
+	setpoint.timestamp = hrt_absolute_time();
+	setpoint.x = pos(0);
+	setpoint.y = pos(1);
+	setpoint.z = pos(2);
+
+	local_pos_setpoint_pub.publish(setpoint);
+}
 
 int RobosubPosControl::task_spawn(int argc, char *argv[])
 {

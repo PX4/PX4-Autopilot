@@ -38,7 +38,7 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <matrix/math.hpp>
-#include "rs_remote_control.hpp"
+// #include "rs_remote_control.hpp"
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
@@ -52,7 +52,11 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/drone_task.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/uORB.h>
+#include "../rs_motor_control/rs_motor_control.hpp"
+
 
 using matrix::Eulerf;
 using matrix::Quatf;
@@ -98,11 +102,30 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _drone_task_sub{ORB_ID(drone_task)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+
+	static RobosubMotorControl robosub_motor_control;
+
 
 	drone_task_s _drone_task{};
 
 	perf_counter_t	_loop_perf;
 
+	enum class AutoMoveState {
+		INIT,
+		MOVE_FORWARD,
+		WAIT_FORWARD,
+		MOVE_ORIGIN,
+		WAIT_ORIGIN,
+		MOVE_BACKWARD,
+		WAIT_BACKWARD,
+		DONE
+	};
+
+	AutoMoveState _auto_move_state{AutoMoveState::INIT};
+	matrix::Vector3f _origin_position{};
+	hrt_abstime _state_entry_time{0};
+	uORB::Publication<vehicle_local_position_setpoint_s> local_pos_setpoint_pub{ORB_ID(vehicle_local_position_setpoint)};
 
 	void Run() override;
 	/**
@@ -110,5 +133,10 @@ private:
 	*/
 	void parameters_update(bool force = false);
 	void posControl();
+	void AltitudeControl();
+	void HorizontalControl();
+	float distance_to(const matrix::Vector3f &a, const matrix::Vector3f &b) { return (a - b).norm(); }
+	void send_position_setpoint(const matrix::Vector3f &pos);
+
 
 };

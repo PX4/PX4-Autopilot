@@ -46,6 +46,7 @@
  #include <uORB/topics/water_detection.h>
  #include <uORB/topics/drone_task.h>
  #include <uORB/topics/internal_sensors.h>
+ #include "../rs_motor_control/rs_motor_control.hpp"
 
  using namespace time_literals;
 
@@ -56,20 +57,7 @@
  {
  public:
 
-	#define TASK_INIT 0b000
-	#define TASK_DEFAULT 0b001
-	#define TASK_AUTONOMOUS 0b010
-	#define TASK_REMOTE_CONTROLLED 0b111
 
-	enum MotorID {
-    	MOTOR_FORWARDS1  = 101,
-    	MOTOR_FORWARDS2	 = 106,
-    	MOTOR_UP1   	 = 102,
-    	MOTOR_UP2 	 = 104,
-    	MOTOR_UP3 	 = 103,
-    	MOTOR_SIDE1 	 = 105,
-    	MOTOR_SIDE2  	 = 107
-	};
 
 	 RobosubRemoteControl();
 	~RobosubRemoteControl();
@@ -132,6 +120,8 @@
 		(ParamFloat<px4::params::OFF_PRESSURE>) _param_offset_pressure,
 		(ParamFloat<px4::params::OFF_R_HUMIDITY>) _param_offset_rel_humidity
 	)
+
+	static RobosubMotorControl robosub_motor_control;
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
