@@ -144,7 +144,7 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -30.0f);
  *
  * @unit deg
  * @min 0.0
- * @max 60.0
+ * @max 80.0
  * @decimal 1
  * @increment 0.5
  * @group FW General
@@ -158,7 +158,7 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 30.0f);
  *
  * @unit deg
  * @min 35.0
- * @max 65.0
+ * @max 75.0
  * @decimal 1
  * @increment 0.5
  * @group FW General
@@ -203,7 +203,7 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
  *
  * @unit norm
  * @min 0.0
- * @max 0.4
+ * @max 1.0
  * @decimal 2
  * @increment 0.01
  * @group FW General
@@ -218,7 +218,7 @@ PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.0f);
  *
  * @unit deg
  * @min 1.0
- * @max 15.0
+ * @max 45.0
  * @decimal 1
  * @increment 0.5
  * @group FW Auto Landing
@@ -230,7 +230,7 @@ PARAM_DEFINE_FLOAT(FW_LND_ANG, 5.0f);
  *
  * @unit deg
  * @min -5.0
- * @max 30.0
+ * @max 80.0
  * @decimal 1
  * @increment 0.5
  * @group FW Auto Takeoff
@@ -390,8 +390,7 @@ PARAM_DEFINE_INT32(FW_POS_STK_CONF, 2);
  * In manual modes: maximum climb rate setpoint.
  *
  * @unit m/s
- * @min 0.5
- * @max 15
+ * @min 0.1
  * @decimal 2
  * @increment 0.01
  * @group FW General
@@ -405,8 +404,7 @@ PARAM_DEFINE_FLOAT(FW_T_CLMB_R_SP, 3.0f);
  * In manual modes: maximum sink rate setpoint.
  *
  * @unit m/s
- * @min 0.5
- * @max 15
+ * @min 0.1
  * @decimal 2
  * @increment 0.01
  * @group FW General
@@ -422,7 +420,6 @@ PARAM_DEFINE_FLOAT(FW_T_SINK_R_SP, 2.0f);
  *
  * @unit s
  * @min 0
- * @max 3600
  * @group FW General
  */
 PARAM_DEFINE_INT32(FW_GPSF_LT, 30);
@@ -434,7 +431,7 @@ PARAM_DEFINE_INT32(FW_GPSF_LT, 30);
  *
  * @unit deg
  * @min 0.0
- * @max 30.0
+ * @max 60.0
  * @decimal 1
  * @increment 0.5
  * @group FW General

@@ -46,6 +46,8 @@ AckermannVelControl::AckermannVelControl(ModuleParams *parent) : ModuleParams(pa
 void AckermannVelControl::updateParams()
 {
 	ModuleParams::updateParams();
+	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	_min_speed = _param_ra_wheel_base.get() * _max_yaw_rate / tanf(_param_ra_max_str_ang.get());
 
 	// Set up PID controller
 	_pid_speed.setGains(_param_ro_speed_p.get(), _param_ro_speed_i.get(), 0.f);
@@ -57,6 +59,7 @@ void AckermannVelControl::updateParams()
 		_adjusted_speed_setpoint.setSlewRate(_param_ro_accel_limit.get());
 	}
 
+
 }
 
 void AckermannVelControl::updateVelControl()
@@ -66,6 +69,7 @@ void AckermannVelControl::updateVelControl()
 	const hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
 	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
+	float max_speed = _param_ro_speed_limit.get();
 
 	// Attitude Setpoint
 	if (PX4_ISFINITE(_bearing_setpoint)) {
@@ -73,12 +77,18 @@ void AckermannVelControl::updateVelControl()
 		rover_attitude_setpoint.timestamp = _timestamp;
 		rover_attitude_setpoint.yaw_setpoint = _bearing_setpoint;
 		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
+
+		if (_param_ro_speed_red.get() > FLT_EPSILON) {
+			const float course_error = fabsf(matrix::wrap_pi(_bearing_setpoint - _vehicle_yaw));
+			const float speed_reduction = math::constrain(_param_ro_speed_red.get() * math::interpolate(course_error,
+						      0.f, M_PI_F, 0.f, 1.f), 0.f, 1.f);
+			max_speed = math::constrain(_param_ro_max_thr_speed.get() * (1.f - speed_reduction), _min_speed, max_speed);
+		}
 	}
 
 	// Throttle Setpoint
 	if (PX4_ISFINITE(_speed_setpoint)) {
-		const float speed_setpoint = math::constrain(_speed_setpoint, -_param_ro_speed_limit.get(),
-					     _param_ro_speed_limit.get());
+		const float speed_setpoint = math::constrain(_speed_setpoint, -max_speed, max_speed);
 		rover_throttle_setpoint_s rover_throttle_setpoint{};
 		rover_throttle_setpoint.timestamp = _timestamp;
 		rover_throttle_setpoint.throttle_body_x = RoverControl::speedControl(_adjusted_speed_setpoint, _pid_speed,
