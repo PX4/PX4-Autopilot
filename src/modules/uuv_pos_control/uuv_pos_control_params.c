@@ -97,16 +97,14 @@ PARAM_DEFINE_FLOAT(UUV_GAIN_Z_D, 0.2f);
 PARAM_DEFINE_INT32(UUV_STAB_MODE, 0);
 
 /**
- * Stabilization mode(1) or Position Control(0)
+ * Deadband for changing position setpoint
  *
- * @value 0 Tracks previous attitude setpoint
- * @value 1 Tracks horizontal attitude (allows yaw change)
  * @group UUV Position Control
  */
 PARAM_DEFINE_FLOAT(UUV_POS_STICK_DB, 0.1f);
 
 /**
- * Stabilization mode(1) or Position Control(0)
+ * Gain for position control velocity setpoint update
  *
  * @group UUV Position Control
  */
