@@ -48,10 +48,12 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	}
 
 	bool sample_valid = false;
+	bool kinematically_consistent = false;
+
 	// Pop rangefinder measurement from buffer of samples into active sample
 	sensor::rangeSample sample = {};
-	if (_range_buffer->pop_first_older_than(imu_sample.time_us, &sample)) {
-
+	bool sample_ready = _range_buffer->pop_first_older_than(imu_sample.time_us, &sample);
+	if (sample_ready) {
 		// Set all of the parameters
 		_range_sensor.setPitchOffset(_params.ekf2_rng_pitch);
 		_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
@@ -74,7 +76,6 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 			// Correct the range data for position offset relative to the IMU
 			const Vector3f rng_pos_body = { _params.ekf2_rng_pos_x, _params.ekf2_rng_pos_y, _params.ekf2_rng_pos_z };
-			// const Vector3f imu_pos_body = { _params.ekf2_imu_pos_x, _params.ekf2_imu_pos_y, _params.ekf2_imu_pos_z };
 			const Vector3f imu_pos_body = _params.imu_pos_body;
 			const Vector3f pos_offset_body = rng_pos_body - imu_pos_body;
 			const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
@@ -84,9 +85,26 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 			_range_sensor.setSample(sample);
 
 			// Check kinematic consistency of rangefinder measurement w.r.t Altitude Estimate
+			_rng_consistency_check.current_posD_reset_count = get_posD_reset_count();
 
-			// Passes kinematic consistency check?
-			sample_valid = true;
+			const float z = _gpos.altitude();
+			const float vz = _state.vel(2);
+			const float dist = _range_sensor.getDistBottom(); // NOTE: applies rotation into world frame
+			const float dist_var = 0.05;
+			const float z_var = P(State::pos.idx + 2, State::pos.idx + 2);
+			const float vz_var = P(State::vel.idx + 2, State::vel.idx + 2);
+
+			// Run the kinematic consistency check
+			_rng_consistency_check.run(z, z_var, vz, vz_var, dist, dist_var, imu_sample.time_us);
+
+			kinematically_consistent = _rng_consistency_check.isKinematicallyConsistent();
+
+			if (kinematically_consistent) {
+				sample_valid = true;
+			}
+
+			// Publish EstimatorAidSource1d (observation, variance, rejected, fused)
+			updateRangeHagl(_aid_src_rng_hgt);
 		}
 	}
 
@@ -96,7 +114,11 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		// TODO: handle timeout
 	}
 
-	if (!sample_valid) {
+	// If the sample is valid conditionally fuse into Altitude and Terrain estimates
+	if (sample_valid) {
+
+	} else {
+
 		// Sample is invalid
 		// - Timeout
 		// - Quality
@@ -106,10 +128,47 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		// - RangeAidChecks...
 		//   - Horizontal Velocity
 		//   - aid_src_rng_hgt.test_ratio
+
+		// If sample is invalid
+		// - Don't fuse
+		// -
+
 		return;
 	}
 
-	// Publish EstimatorAidSource1d (observation, variance, rejected, fused)
 
 	// Conditionally enable/disable rangefinder fusion for Altitude Estimate and Terrain Estimate
+}
+
+void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
+{
+	const float measurement = math::max(_range_sensor.getDistBottom(), _params.rng_gnd_clearance);
+	const float measurement_variance = getRngVar();
+
+	float innovation_variance;
+	sym::ComputeHaglInnovVar(P, measurement_variance, &innovation_variance);
+
+	const float innov_gate = math::max(_params.range_innov_gate, 1.f);
+	updateAidSourceStatus(aid_src,
+			      _range_sensor.sample()->time_us, // sample timestamp
+			      measurement,                               // observation
+			      measurement_variance,                      // observation variance
+			      getHagl() - measurement,                   // innovation
+			      innovation_variance,                       // innovation variance
+			      innov_gate);                               // innovation gate
+
+	// z special case if there is bad vertical acceleration data, then don't reject measurement,
+	// but limit innovation to prevent spikes that could destabilise the filter
+	if (_fault_status.flags.bad_acc_vertical && aid_src.innovation_rejected) {
+		const float innov_limit = innov_gate * sqrtf(aid_src.innovation_variance);
+		aid_src.innovation = math::constrain(aid_src.innovation, -innov_limit, innov_limit);
+		aid_src.innovation_rejected = false;
+	}
+}
+
+float Ekf::getRngVar() const
+{
+	const float dist_dependant_var = sq(_params.ekf2_rng_sfe * _range_sensor.getDistBottom());
+	const float dist_var = sq(_params.range_noise) + dist_dependant_var;
+	return dist_var;
 }
