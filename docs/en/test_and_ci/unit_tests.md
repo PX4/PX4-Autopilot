@@ -23,7 +23,7 @@ The steps to create new unit tests are as follows:
 Tests can be run via `make tests`, after which you will find the binary in `build/px4_sitl_test/unit-MyNewUnit`.
 It can be run directly in a debugger.
 
-## Writing a GTest Functional Test{#functional-test}
+## Writing a GTest Functional Test {#functional-test}
 
 GTest functional tests should be used when the test or the components being tested depend on parameters, uORB messages and/or advanced GTest functionality.
 Additionally, functional tests can contain local usage of STL data structures (although be careful of platform differences between e.g. macOS and Linux).
@@ -172,51 +172,8 @@ For example:
 - `make tests TESTFILTER=Attitude` only run the `AttitudeControl` test
 
 ## Fuzz Testing
-Fuzz tests are a generalized form of unit tests that are run on a large number of inputs to ensure the code is robust against any input.
-They can be written like unit tests with possible assertions (`EXPECT_EQ`, etc), and have a set of input parameters.
-The fuzzer then tries to find inputs that cause the code to crash (with enabled Address Sanitizer) or trigger an assertion.
 
-### Writing a Fuzz Test
-1. Start by writing a [functional test](#functional-test).
-1. Make sure the file name contains `fuzz` (lower case). For example `my_driver_fuzz_tests.cpp`.
-1. Add one or more fuzz tests to the file. The file can also contain normal tests.
-   For example:
-   ```cpp
-   #include <gtest/gtest.h>
-   #include <fuzztest/fuzztest.h>
+Fuzz tests are a generalised form of unit test that ensures code is robust against any input.
+They are run as part of the unit tests, and also more extensively in their own testing mode.
 
-   void myDriverNeverCrashes(const std::string& s) {
-      MyDriver driver;
-      driver.handleInput(s);
-   }
-   FUZZ_TEST(MyDriverFuzzTests, myDriverNeverCrashes);
-   ```
-   For further details, see https://github.com/google/fuzztest.
-
-### Running a Fuzz Test
-Fuzz tests can be run in two modes:
-- As part of normal unit tests with `make tests`. This will only create a small number of inputs and not use coverage information.
-- In fuzzing mode: this runs a single fuzz test with coverage information over a longer period of time (either fixed or indefinitely).
-  The fuzzer will try to find inputs that cover all reachable code paths.
-  It requires compilation with Clang and can be run with the following commands:
-   ```sh
-   rm -rf build/px4_sitl_tests
-   export CC=clang
-   export CXX=clang++
-   make tests TESTFILTER=__no_tests__
-   cd build/px4_sitl_tests
-   ./functional-<my-test> --fuzz=<test-name>
-   ```
-
-### Seeds
-Depending on the code complexity, it might be hard for the fuzzer to find inputs that pass certain conditions.
-For this it is possible to provide one or more seeds, which the fuzzer will use as first inputs.
-[The documentation](https://github.com/google/fuzztest/blob/main/doc/fuzz-test-macro.md#initial-seeds-initial-seeds) contains more details.
-
-You can also use the `FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION` macro for conditional code compilation, for example to exclude CRC checks.
-
-More information about efficient fuzzing can be found on [this page](https://chromium.googlesource.com/chromium/src/+/main/testing/libfuzzer/efficient_fuzzing.md).
-
-### CI
-Fuzz tests are run as part of the normal unit tests in CI for each pull request.
-In addition, the fuzz tests are run daily for 15 minutes on the main branch.
+For more information see [Fuzz Tests](../test_and_ci/fuzz_tests.md).
