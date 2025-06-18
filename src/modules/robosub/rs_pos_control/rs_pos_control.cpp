@@ -66,10 +66,10 @@ RobosubPosControl::~RobosubPosControl()
 bool RobosubPosControl::init()
 {
 	// attitude
-	// if (!_vehicle_attitude_sub.registerCallback()) {
-	// 	PX4_ERR("callback registration failed");
-	// 	return false;
-	// }
+	if (!_vehicle_attitude_sub.registerCallback()) {
+		PX4_ERR("callback registration failed");
+		return false;
+	}
 	if (!_vehicle_local_position_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -110,6 +110,44 @@ void RobosubPosControl::publish_attitude_setpoint(const float thrust_x, const fl
 	_att_sp_pub.publish(vehicle_attitude_setpoint);
 }
 
+/* TODO_RS 6DOF controller*/
+void RobosubPosControl::pos_controller_6dof(const Vector3f &pos_des,
+	const float roll_des, const float pitch_des, const float yaw_des,
+	vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
+{
+	//get current rotation of vehicle
+	Quatf q_att(vehicle_attitude.q);
+
+	Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get()
+					     * vlocal_pos.vx,
+					     _param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y) - _param_pose_gain_d_y.get() * vlocal_pos.vy,
+					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z) - _param_pose_gain_d_z.get() * vlocal_pos.vz);
+
+	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
+
+	publish_attitude_setpoint(rotated_input(0),
+				  rotated_input(1),
+				  rotated_input(2),
+				  roll_des, pitch_des, yaw_des);
+
+}
+
+void RobosubPosControl::stabilization_controller_6dof(const Vector3f &pos_des,
+	const float roll_des, const float pitch_des, const float yaw_des,
+	vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
+{
+	//get current rotation of vehicle
+	Quatf q_att(vehicle_attitude.q);
+
+	Vector3f p_control_output = Vector3f(0,
+					     0,
+					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z));
+	//potential d controller missing
+	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
+
+	publish_attitude_setpoint(rotated_input(0) + pos_des(0), rotated_input(1) + pos_des(1), rotated_input(2),
+				  roll_des, pitch_des, yaw_des);
+}
 
 /**
  * @brief constrains values and setpoint
@@ -220,45 +258,6 @@ void RobosubPosControl::control_attitude_geo(const vehicle_attitude_s &attitude,
 	/* Geometric Controller END*/
 }
 
-/* TODO_RS 6DOF controller*/
-// void RobosubPoseControl::pos_controller_6dof(const Vector3f &pos_des,
-// 	const float roll_des, const float pitch_des, const float yaw_des,
-// 	vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
-// {
-// 	//get current rotation of vehicle
-// 	Quatf q_att(vehicle_attitude.q);
-
-// 	Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get()
-// 					     * vlocal_pos.vx,
-// 					     _param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y) - _param_pose_gain_d_y.get() * vlocal_pos.vy,
-// 					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z) - _param_pose_gain_d_z.get() * vlocal_pos.vz);
-
-// 	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
-
-// 	publish_attitude_setpoint(rotated_input(0),
-// 				  rotated_input(1),
-// 				  rotated_input(2),
-// 				  roll_des, pitch_des, yaw_des);
-
-// }
-
-// void RobosubPosControl::stabilization_controller_6dof(const Vector3f &pos_des,
-// 	const float roll_des, const float pitch_des, const float yaw_des,
-// 	vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
-// {
-// 	//get current rotation of vehicle
-// 	Quatf q_att(vehicle_attitude.q);
-
-// 	Vector3f p_control_output = Vector3f(0,
-// 					     0,
-// 					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z));
-// 	//potential d controller missing
-// 	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
-
-// 	publish_attitude_setpoint(rotated_input(0) + pos_des(0), rotated_input(1) + pos_des(1), rotated_input(2),
-// 				  roll_des, pitch_des, yaw_des);
-// }
-
 void RobosubPosControl::Run()
 {
 	PX4_INFO("RobosubPosControl::Run()");
@@ -280,12 +279,12 @@ void RobosubPosControl::Run()
 	vehicle_attitude_s attitude;
 	vehicle_local_position_s vlocal_pos;
 
+	// TODO_RS IS THIS CORRECT OR ONLY ON OF THESE? only run controller if changed in vlocal_pos OR changed in _vehicle_attitude?
 	/* only run position controller if attitude changed */
 	// if (_vehicle_attitude_sub.update(&attitude))
 	/* only run controller if local_pos changed */
 	// if (_vehicle_local_position_sub.update(&vlocal_pos)){
 
-	// TODO_RS IS THIS CORRECT OR ONLY ON OF THESE? only run controller if local_pos or attitude changed
 	if (_vehicle_local_position_sub.update(&vlocal_pos) || _vehicle_attitude_sub.update(&attitude)){
 		vehicle_angular_velocity_s angular_velocity {};
 		_angular_velocity_sub.copy(&angular_velocity); // get angular velocity
@@ -297,8 +296,17 @@ void RobosubPosControl::Run()
 
 			int input_mode = _param_input_mode.get();
 
+			// setpoints
 			_vehicle_attitude_setpoint_sub.update(&_attitude_setpoint);
 			_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
+			_trajectory_setpoint_sub.update(&_trajectory_setpoint);
+
+			// vehicle attitude
+			_vehicle_attitude_sub.update(&_vehicle_attitude);//get current vehicle attitude
+
+			float roll_des = 0;
+			float pitch_des = 0;
+			float yaw_des = _trajectory_setpoint.yaw;
 
 			if (input_mode == 1) { // process manual data
 				Quatf attitude_setpoint(Eulerf(_param_direct_roll.get(), _param_direct_pitch.get(), _param_direct_yaw.get()));
@@ -320,15 +328,15 @@ void RobosubPosControl::Run()
 			}
 
 			/* Stabilization Controller keep pos and hold depth + angle) vs position controller(global + yaw) */
-			// int enable_stabilization = _param_stabilization.get();
-			// if (_param_stabilization.get() == 0) {
-			// 	pos_controller_6dof(Vector3f(_trajectory_setpoint.position),
-			// 			     roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
+			int enable_stabilization = _param_stabilization.get();
+			if (enable_stabilization) {
+				pos_controller_6dof(Vector3f(_trajectory_setpoint.position),
+						     roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
 
-			// } else {
-			// 	stabilization_controller_6dof(Vector3f(_trajectory_setpoint.position),
-			// 				      roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
-			// }
+			} else {
+				stabilization_controller_6dof(Vector3f(_trajectory_setpoint.position),
+							      roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
+			}
 		}
 	}
 
