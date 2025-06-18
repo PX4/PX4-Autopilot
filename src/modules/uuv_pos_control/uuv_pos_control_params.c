@@ -94,7 +94,7 @@ PARAM_DEFINE_FLOAT(UUV_GAIN_Z_D, 0.2f);
  * @value 1 Tracks horizontal attitude (allows yaw change)
  * @group UUV Position Control
  */
-PARAM_DEFINE_INT32(UUV_STAB_MODE, 0);
+PARAM_DEFINE_INT32(UUV_STAB_MODE, 1);
 
 /**
  * Deadband for changing position setpoint

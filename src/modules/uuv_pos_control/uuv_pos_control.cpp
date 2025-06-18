@@ -184,8 +184,7 @@ void UUVPOSControl::generate_trajectory_setpoint(vehicle_local_position_s &vloca
 
 	_trajectory_setpoint.timestamp = hrt_absolute_time();
 
-	if (_param_pos_mode.get()) {
-		PX4_INFO("world frame");
+	if (!_param_pos_mode.get()) {
 		_trajectory_setpoint.position[0] = _trajectory_setpoint.position[0] + vx_sp * dt; // X in world frame
 		_trajectory_setpoint.position[1] = _trajectory_setpoint.position[1] + vy_sp * dt; // Y in world frame
 		_trajectory_setpoint.position[2] = _trajectory_setpoint.position[2] + vz_sp * dt; // Z in world frame
