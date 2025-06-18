@@ -136,7 +136,3 @@ param set-default SIM_GZ_EC_MAX5 1900
 param set-default SIM_GZ_EC_MAX6 1900
 param set-default SIM_GZ_EC_MAX7 1900
 param set-default SIM_GZ_EC_MAX8 1900
-
-# Control parameters
-param set-default UUV_STAB_MODE 0
-param set-default UUV_POS_MODE 0

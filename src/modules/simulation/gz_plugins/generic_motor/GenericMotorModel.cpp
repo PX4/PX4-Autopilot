@@ -531,7 +531,7 @@ void GenericMotorModel::Configure(const Entity &_entity,
 	sdfClone->Get<double>("momentConstant",
 			      this->dataPtr->momentConstant, this->dataPtr->momentConstant);
 	sdfClone->Get<int>("bidirectionalMotor",
-			      this->dataPtr->bidirectionalMotor, this->dataPtr->bidirectionalMotor);
+			   this->dataPtr->bidirectionalMotor, this->dataPtr->bidirectionalMotor);
 
 	sdfClone->Get<double>("timeConstantUp",
 			      this->dataPtr->timeConstantUp, this->dataPtr->timeConstantUp);
@@ -714,9 +714,11 @@ void GenericMotorModelPrivate::UpdateForcesAndMoments(
 			   this->controlMethod == ControlMethod::kDutyCycle &&
 			   msg->velocity(this->actuatorNumber) >= this->minDutyCycle) {
 			// Create normalized reference based on the duty cycle
-			this->refMotorInput = ((msg->velocity(this->actuatorNumber) - (this->minDutyCycle + (this->maxDutyCycle - this->minDutyCycle) * this->bidirectionalMotor / 2.0)) / ((this->maxDutyCycle - this->minDutyCycle) - (this->maxDutyCycle - this->minDutyCycle) * this->bidirectionalMotor / 2.0));
-		}
-		else {
+			this->refMotorInput = ((msg->velocity(this->actuatorNumber) - (this->minDutyCycle +
+						(this->maxDutyCycle - this->minDutyCycle) * this->bidirectionalMotor / 2.0)) / ((this->maxDutyCycle -
+								this->minDutyCycle) - (this->maxDutyCycle - this->minDutyCycle) * this->bidirectionalMotor / 2.0));
+
+		} else {
 			this->refMotorInput = msg->velocity(this->actuatorNumber);
 		}
 	}
