@@ -640,6 +640,10 @@ void Navigator::run()
 
 				rep->next.valid = false;
 
+				// after the straight climbout the vehicle will establish on a loiter at this position
+				_takeoff.setLoiterPosition(matrix::Vector2d(cmd.param5, cmd.param6));
+				_takeoff.setLoiterAltitudeAmsl(cmd.param7);
+
 				// CMD_NAV_TAKEOFF is acknowledged by commander
 
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
