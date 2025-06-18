@@ -418,7 +418,6 @@
     - [Mecanum Rovers](frames_rover/mecanum.md)
       - [Drive Modes](flight_modes_rover/mecanum.md)
       - [Configuration/Tuning](config_rover/mecanum.md)
-    - [(Deprecated) Rover Position Control](frames_rover/rover_position_control.md)
   - [Submarines (experimental)](frames_sub/index.md)
     - [BlueROV2](frames_sub/bluerov2.md)
   - [Airframes Reference](airframes/airframe_reference.md)
