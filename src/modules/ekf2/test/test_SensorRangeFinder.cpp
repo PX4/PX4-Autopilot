@@ -51,7 +51,6 @@ public:
 		_range_finder.setPitchOffset(0.f);
 		_range_finder.setCosMaxTilt(0.707f);
 		_range_finder.setLimits(_min_range, _max_range);
-		_range_finder.setMaxFogDistance(2.f);
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
@@ -118,9 +117,8 @@ TEST_F(SensorRangeFinderTest, setRange)
 	sample.time_us = 1e6;
 	sample.quality = 9;
 
-	_range_finder.setRange(sample.rng);
-	_range_finder.setDataReadiness(true);
-	_range_finder.setValidity(true);
+	_range_finder.setSample(sample)
+
 	EXPECT_TRUE(_range_finder.isDataHealthy());
 	EXPECT_TRUE(_range_finder.isHealthy());
 }
@@ -363,7 +361,7 @@ TEST_F(SensorRangeFinderTest, blockedByFog)
 
 	// WHEN: sensor is then blocked by fog
 	// range jumps to value below 2m
-	uint64_t t_now_us = _range_finder.getSampleAddress()->time_us;
+	uint64_t t_now_us = _range_finder.sample()->time_us;
 	rangeSample sample{t_now_us, 1.f, 100};
 	updateSensorAtRate(sample, duration_us, dt_update_us, dt_sensor_us);
 
@@ -373,7 +371,7 @@ TEST_F(SensorRangeFinderTest, blockedByFog)
 
 	// WHEN: the sensor is not blocked by fog anymore
 	sample.rng = 5.f;
-	sample.time_us = _range_finder.getSampleAddress()->time_us;
+	sample.time_us = _range_finder.sample()->time_us;
 	updateSensorAtRate(sample, duration_us, dt_update_us, dt_sensor_us);
 
 	// THEN: the data should be marked as healthy again

@@ -39,15 +39,12 @@
 #include "ekf_derivation/generated/range_validation_filter_h.h"
 #include "ekf_derivation/generated/range_validation_filter_P_init.h"
 
-#include <px4_platform_common/log.h>
-
-
 using namespace matrix;
 
 void RangeFinderConsistencyCheck::init(const float z, const float z_var, const float dist_bottom,
 				       const float dist_bottom_var)
 {
-	PX4_INFO("RangeFinderConsistencyCheck::init");
+	printf("RangeFinderConsistencyCheck::init\n");
 
 	_P = sym::RangeValidationFilterPInit(z_var, dist_bottom_var);
 	_Ht = sym::RangeValidationFilterH<float>();
@@ -140,7 +137,7 @@ void RangeFinderConsistencyCheck::evaluateState(const float dt, const float vz, 
 	}
 
 	if (fabsf(_test_ratio_lpf.getState()) > 1.f) {
-		PX4_INFO("_test_ratio_lpf failed (>1)");
+		printf("_test_ratio_lpf failed (>1)\n");
 		_t_since_first_sample = 0.f;
 		_state = KinematicState::INCONSISTENT;
 		return;

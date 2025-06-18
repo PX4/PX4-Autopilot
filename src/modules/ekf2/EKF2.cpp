@@ -155,18 +155,17 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_rng_ctrl(_params->rng_ctrl),
 	_param_ekf2_rng_delay(_params->range_delay_ms),
 	_param_ekf2_rng_noise(_params->range_noise),
-	_param_ekf2_rng_sfe(_params->range_noise_scaler),
+	_param_ekf2_rng_sfe(_params->ekf2_rng_sfe),
 	_param_ekf2_rng_gate(_params->range_innov_gate),
-	_param_ekf2_rng_pitch(_params->rng_sens_pitch),
+	_param_ekf2_rng_pitch(_params->ekf2_rng_pitch),
 	_param_ekf2_rng_a_vmax(_params->max_vel_for_range_aid),
 	_param_ekf2_rng_a_hmax(_params->max_hagl_for_range_aid),
 	_param_ekf2_rng_a_igate(_params->range_aid_innov_gate),
-	_param_ekf2_rng_qlty_t(_params->range_valid_quality_s),
 	_param_ekf2_rng_k_gate(_params->range_kin_consistency_gate),
 	_param_ekf2_rng_fog(_params->rng_fog),
-	_param_ekf2_rng_pos_x(_params->rng_pos_body(0)),
-	_param_ekf2_rng_pos_y(_params->rng_pos_body(1)),
-	_param_ekf2_rng_pos_z(_params->rng_pos_body(2)),
+	_param_ekf2_rng_pos_x(_params->ekf2_rng_pos_x),
+	_param_ekf2_rng_pos_y(_params->ekf2_rng_pos_y),
+	_param_ekf2_rng_pos_z(_params->ekf2_rng_pos_z),
 #endif // CONFIG_EKF2_RANGE_FINDER
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	_param_ekf2_ev_delay(_params->ev_delay_ms),
@@ -1610,8 +1609,6 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.dist_bottom = math::max(_ekf.getHagl(), 0.f);
 	// TODO: review, we should use sensor variance not terrain
 	lpos.dist_bottom_var = _ekf.getTerrainVariance();
-	// Variance can be hardcoded to: EKF2_RNG_NOISE + (distance * EKF2_RNG_SFE)
-	// lpos.dist_bottom_var = _params->range_noise + (_params->range_noise_scaler);
 
 	_ekf.get_hagl_reset(&lpos.delta_dist_bottom, &lpos.dist_bottom_reset_counter);
 

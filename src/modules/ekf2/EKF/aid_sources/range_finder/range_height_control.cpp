@@ -49,14 +49,16 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	}
 
 	// Get range data from buffer and check validity
-	bool rng_data_ready = _range_buffer->pop_first_older_than(imu_sample.time_us, _range_sensor.getSampleAddress());
+	bool rng_data_ready = _range_buffer->pop_first_older_than(imu_sample.time_us, _range_sensor.sample());
+
+	_range_sensor.setSample();
+
 	_range_sensor.setDataReadiness(rng_data_ready);
 
 	if (_range_sensor.isDataReady()) {
 
 		_range_sensor.setPitchOffset(_params.rng_sens_pitch);
 		_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
-		_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
 		_range_sensor.setMaxFogDistance(_params.rng_fog);
 		_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
 
@@ -96,7 +98,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 	auto &aid_src = _aid_src_rng_hgt;
 
-	if (_range_sensor.isDataReady() && _range_sensor.getSampleAddress()) {
+	if (_range_sensor.isDataReady() && _range_sensor.sample()) {
 
 		updateRangeHagl(aid_src);
 		const bool measurement_valid = PX4_ISFINITE(aid_src.observation) && PX4_ISFINITE(aid_src.observation_variance);
@@ -254,7 +256,7 @@ void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
 
 	const float innov_gate = math::max(_params.range_innov_gate, 1.f);
 	updateAidSourceStatus(aid_src,
-			      _range_sensor.getSampleAddress()->time_us, // sample timestamp
+			      _range_sensor.sample()->time_us, // sample timestamp
 			      measurement,                               // observation
 			      measurement_variance,                      // observation variance
 			      getHagl() - measurement,                   // innovation
