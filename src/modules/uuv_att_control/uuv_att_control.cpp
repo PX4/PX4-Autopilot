@@ -309,10 +309,9 @@ void UUVAttitudeControl::Run()
 			/* Update manual setpoints */
 			_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 
-			/* Run stabilized mode */
 			if (_vcontrol_mode.flag_control_attitude_enabled
 			    && _vcontrol_mode.flag_control_rates_enabled) {
-
+				/* Run stabilized mode */
 				_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
 
 				/* Generate atttiude setpoint from sticks */
@@ -320,19 +319,16 @@ void UUVAttitudeControl::Run()
 
 				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint, true);
 
-
-			/* Run Rate mode */
 			} else if (!_vcontrol_mode.flag_control_attitude_enabled
 				   && _vcontrol_mode.flag_control_rates_enabled) {
-				/* Generate atttiude setpoint from sticks */
+				/* Run Rate mode */
 				generate_rates_setpoint(dt);
 
 				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint, false);
 
-			/* Manual Control mode (e.g. gamepad,...) - raw feedthrough no assistance */
 			} else if (!_vcontrol_mode.flag_control_attitude_enabled
 				   && !_vcontrol_mode.flag_control_rates_enabled) {
-				/* manual/direct control */
+				/* Manual Control mode (e.g. gamepad,...) - raw feedthrough no assistance */
 				constrain_actuator_commands(_manual_control_setpoint.roll * _param_mgm_roll.get(),
 							    -_manual_control_setpoint.pitch * _param_mgm_pitch.get(),
 							    _manual_control_setpoint.yaw * _param_mgm_yaw.get(),
