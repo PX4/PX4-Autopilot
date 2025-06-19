@@ -221,21 +221,10 @@ SeptentrioDriver::~SeptentrioDriver()
 		}
 	}
 
-	if (_message_data_from_receiver) {
-		delete _message_data_from_receiver;
-	}
-
-	if (_message_data_to_receiver) {
-		delete _message_data_to_receiver;
-	}
-
-	if (_message_satellite_info) {
-		delete _message_satellite_info;
-	}
-
-	if (_rtcm_decoder) {
-		delete _rtcm_decoder;
-	}
+	delete _message_data_from_receiver;
+	delete _message_data_to_receiver;
+	delete _message_satellite_info;
+	delete _rtcm_decoder;
 }
 
 int SeptentrioDriver::print_status()
@@ -1622,12 +1611,12 @@ void SeptentrioDriver::dump_gps_data(const uint8_t *data, size_t len, DataDirect
 
 bool SeptentrioDriver::should_dump_incoming() const
 {
-	return _message_data_from_receiver != 0;
+	return _message_data_from_receiver != nullptr;
 }
 
 bool SeptentrioDriver::should_dump_outgoing() const
 {
-	return _message_data_to_receiver != 0;
+	return _message_data_to_receiver != nullptr;
 }
 
 void SeptentrioDriver::start_update_monitoring_interval()
@@ -1702,11 +1691,7 @@ void SeptentrioDriver::set_clock(timespec rtc_gps_time)
 
 bool SeptentrioDriver::is_healthy() const
 {
-	if (_state == State::ReceivingData && receiver_configuration_healthy()) {
-		return true;
-	}
-
-	return false;
+	return _state == State::ReceivingData && receiver_configuration_healthy();
 }
 
 void SeptentrioDriver::reset_gps_state_message()
