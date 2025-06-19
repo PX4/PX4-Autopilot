@@ -826,7 +826,7 @@ private:
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// control fusion of external vision observations
-	void controlExternalVisionFusion(const imuSample &imu_sample);
+	void __attribute__((optimize(0))) controlExternalVisionFusion(const imuSample &imu_sample);
 	void updateEvAttitudeErrorFilter(extVisionSample &ev_sample, bool ev_reset);
 	void controlEvHeightFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
 				   const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
@@ -834,7 +834,7 @@ private:
 	void controlEvPosFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
 				const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
 				estimator_aid_source2d_s &aid_src);
-	void controlEvVelFusion(ExternalVisionVel &ev, const bool common_starting_conditions_passing, const bool ev_reset,
+	void __attribute__((optimize(0))) controlEvVelFusion(ExternalVisionVel &ev, const bool common_starting_conditions_passing, const bool ev_reset,
 				const bool quality_sufficient, estimator_aid_source3d_s &aid_src);
 	void controlEvYawFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
 				const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
@@ -852,7 +852,7 @@ private:
 	void stopEvHgtFusion();
 	void stopEvVelFusion();
 	void stopEvYawFusion();
-	bool fuseEvVelocity(estimator_aid_source3d_s &aid_src, const extVisionSample &ev_sample);
+	bool __attribute__((optimize(0))) fuseEvVelocity(estimator_aid_source3d_s &aid_src, const extVisionSample &ev_sample);
 	void fuseBodyVelocity(estimator_aid_source1d_s &aid_src, float &innov_var, VectorState &H)
 	{
 		VectorState Kfusion = P * H / innov_var;

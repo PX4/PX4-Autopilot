@@ -33,13 +33,24 @@
 
  #include "rs_remote_control.hpp"
 
+ #include "../rs_motor_control/rs_motor_control.hpp"
+
  #include <px4_platform_common/getopt.h>
  #include <px4_platform_common/log.h>
  #include <px4_platform_common/posix.h>
+ #include <px4_platform_common/defines.h>
+ #include <px4_platform_common/time.h>
+ #include <math.h> // for fabsf and expf
 
  #include <uORB/topics/parameter_update.h>
  #include <uORB/topics/sensor_combined.h>
 
+ // PX4 defines for InternalSensors.msg
+ #define SENSOR_HUMIDITY 0
+ #define SENSOR_TEMPERATURE 1
+ #define SENSOR_PRESSURE 2
+
+extern "C" __EXPORT int rs_remote_control_main(int argc, char *argv[]);
 
  int RobosubRemoteControl::print_status()
  {
@@ -70,110 +81,313 @@
 
  int RobosubRemoteControl::task_spawn(int argc, char *argv[])
  {
-	 _task_id = px4_task_spawn_cmd("module",
-				       SCHED_DEFAULT,
-				       SCHED_PRIORITY_DEFAULT,
-				       1024,
-				       (px4_main_t)&run_trampoline,
-				       (char *const *)argv);
+	 RobosubRemoteControl *instance = new RobosubRemoteControl();
 
-	 if (_task_id < 0) {
-		 _task_id = -1;
-		 return -errno;
-	 }
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
 
-	 return 0;
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
+	}
+
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
  }
 
- RobosubRemoteControl *RobosubRemoteControl::instantiate(int argc, char *argv[])
+bool RobosubRemoteControl::init()
+{
+	// Execute the Run() function everytime an input_rc is publiced
+	// if (!.registerCallback()) {
+	// 	PX4_ERR("callback registration failed");
+	// 	return true;
+	// }
+
+	ScheduleOnInterval(100_ms);
+	PX4_DEBUG("RobosubRemoteControl::init()");
+	return true;
+}
+
+RobosubRemoteControl::RobosubRemoteControl() :
+ModuleParams(nullptr),
+ScheduledWorkItem(MODULE_NAME, px4:: wq_configurations::nav_and_controllers),
+_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
  {
-	 int example_param = 0;
-	 bool example_flag = false;
-	 bool error_flag = false;
 
-	 int myoptind = 1;
-	 int ch;
-	 const char *myoptarg = nullptr;
-
-	 // parse CLI arguments
-	 while ((ch = px4_getopt(argc, argv, "p:f", &myoptind, &myoptarg)) != EOF) {
-		 switch (ch) {
-		 case 'p':
-			 example_param = (int)strtol(myoptarg, nullptr, 10);
-			 break;
-
-		 case 'f':
-			 example_flag = true;
-			 break;
-
-		 case '?':
-			 error_flag = true;
-			 break;
-
-		 default:
-			 PX4_WARN("unrecognized flag");
-			 error_flag = true;
-			 break;
-		 }
-	 }
-
-	 if (error_flag) {
-		 return nullptr;
-	 }
-
-	 RobosubRemoteControl *instance = new RobosubRemoteControl(example_param, example_flag);
-
-	 if (instance == nullptr) {
-		 PX4_ERR("alloc failed");
-	 }
-
-	 return instance;
  }
 
- RobosubRemoteControl::RobosubRemoteControl(int example_param, bool example_flag)
-	 : ModuleParams(nullptr)
+ RobosubRemoteControl::~RobosubRemoteControl()
+{
+    // clean up if necessary
+}
+
+ void RobosubRemoteControl::Run()
  {
+	perf_begin(_loop_perf);
+
+	// if (!force_overide) {
+	if(1){
+		taskStat();
+
+		receiver();
+	}
+	else {
+		PX4_WARN("Force override active, motors will be forced to go up");
+		RobosubMotorControl robosub_motor_control;
+		robosub_motor_control.actuator_test(MOTOR_FORWARDS1, 0.0f, 0, false);
+		robosub_motor_control.actuator_test(MOTOR_FORWARDS2, 0.0f, 0, false);
+		robosub_motor_control.actuator_test(MOTOR_SIDE1, 0.0f, 0, false);
+		robosub_motor_control.actuator_test(MOTOR_SIDE2, 0.0f, 0, false);
+		robosub_motor_control.actuator_test(MOTOR_UP1, 1.0f, 0, false);
+		robosub_motor_control.actuator_test(MOTOR_UP2, 1.0f, 0, false);
+		robosub_motor_control.actuator_test(MOTOR_UP3, 1.0f, 0, false);
+	}
+
+	check_internal_state(); // Check if the internal state of the module is correct and if something is wrong force the motors to go up.
+
+	// Schedule();
+	perf_end(_loop_perf);
  }
 
- void RobosubRemoteControl::run()
+
+
+ void RobosubRemoteControl::taskStat()
  {
-	 // Example: run the loop synchronized to the sensor_combined topic publication
-	 int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
+	update1 = 0;
+	if(_input_rc_sub.update(&_input_rc))
+	{
+		update1 = 1;
+		input_rc_s rc_data{};
+		_input_rc_sub.copy(&rc_data);
+		normalized[4] = (rc_data.values[4] - 1500) / 400.0f;
+		normalized[5] = (rc_data.values[5] - 1500) / 400.0f;
+		normalized[6] = (rc_data.values[6] - 1500) / 400.0f;
+ 		normalized[7] = (rc_data.values[7] - 1500) / 400.0f;
 
-	 px4_pollfd_struct_t fds[1];
-	 fds[0].fd = sensor_combined_sub;
-	 fds[0].events = POLLIN;
+		normalized[4] = math::constrain(normalized[4], -range, range);
+		normalized[5] = math::constrain(normalized[5], -range, range);
+		normalized[6] = math::constrain(normalized[6], -range, range);
+		normalized[7] = math::constrain(normalized[7], -range, range);
 
-	 // initialize parameters
-	 parameters_update(true);
+		uint8_t stateEnable((normalized[4] > 0.0f) ? 1 : 0);
 
-	 while (!should_exit()) {
+		drone_task_s drone_task{};
 
-		 // wait for up to 1000ms for data
-		 int pret = px4_poll(fds, (sizeof(fds) / sizeof(fds[0])), 1000);
+		if(stateEnable == 1)
+		{
+			bitReg =
+    			((normalized[5] > 0.0f) ? 1 : 0) |
+    			((normalized[6] > 0.0f) ? 1 : 0) << 1 |
+    			((normalized[7] > 0.0f) ? 1 : 0) << 2;
+			switch(bitReg)
+			{
+				case 0b1000:
+					drone_task.task = TASK_INIT;
+				break;
+				case 0b1001:
+					drone_task.task = TASK_DEFAULT;
+				break;
+				case 0b1010:
+					drone_task.task = TASK_AUTONOMOUS;
+				break;
+				case 0b1111:
+					drone_task.task = TASK_REMOTE_CONTROLLED;
+				break;
+				default:
 
-		 if (pret == 0) {
-			 // Timeout: let the loop run anyway, don't do `continue` here
+				break;
+			}
 
-		 } else if (pret < 0) {
-			 // this is undesirable but not much we can do
-			 PX4_ERR("poll error %d, %d", pret, errno);
-			 px4_usleep(50000);
-			 continue;
+			drone_task.timestamp = hrt_absolute_time();
 
-		 } else if (fds[0].revents & POLLIN) {
+			_drone_task_pub.publish(drone_task);
 
-			 struct sensor_combined_s sensor_combined;
-			 orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor_combined);
-			 // TODO: do something with the data...
+		}
 
-		 }
-
-		 parameters_update();
-	 }
-
-	 orb_unsubscribe(sensor_combined_sub);
+	}
  }
+
+
+
+ void RobosubRemoteControl::receiver()
+ {
+	RobosubMotorControl robosub_motor_control;
+
+		if (update1)
+		{
+			if(bitReg == TASK_REMOTE_CONTROLLED)
+			{
+				input_rc_s rc_data {};
+				_input_rc_sub.copy(&rc_data);
+
+				if(_water_detection_sub.update(&_water_detection)){
+					sensor_mainbrain 	=  _water_detection.mainbrain_sensor;
+					sensor_power 		= _water_detection.power_module_sensor;
+				}
+
+				if (!sensor_mainbrain && ! sensor_power)
+				{
+					range = 0.2f;
+
+				} else if (! sensor_mainbrain && sensor_power)
+				{
+					range = 0.3f;
+
+				} else if (sensor_mainbrain &&  sensor_power)
+				{
+					range = 1.0f;
+				}
+				range = 1.0f;
+
+				// Normalize the rc data to a value between -1 and 1
+				normalized[0] = (rc_data.values[1] - 1500) / 400.0f;
+				normalized[1] = (rc_data.values[2] - 1500) / 400.0f;
+				normalized[2] = (rc_data.values[3] - 1500) / 400.0f;
+				normalized[3] = (rc_data.values[0] - 1500) / 400.0f;
+
+				// normalized[0] = math::constrain(normalized[0],  -range, range);
+				normalized[0] = math::constrain(normalized[0], -range, range);
+				normalized[1] = math::constrain(normalized[1], -range, range);
+				normalized[2] = math::constrain(normalized[2], -range, range);
+				normalized[3] = math::constrain(normalized[3], -range, range);
+
+
+
+				robosub_motor_control.actuator_test(MOTOR_FORWARDS1, 	normalized[0]/2, 0, false);
+				robosub_motor_control.actuator_test(MOTOR_FORWARDS2, 	normalized[0]/2, 0, false);
+				robosub_motor_control.actuator_test(MOTOR_UP1, 		-normalized[1], 0, false);
+				robosub_motor_control.actuator_test(MOTOR_UP2, 		(normalized[1]), 0, false);
+				robosub_motor_control.actuator_test(MOTOR_UP3, 		(-normalized[1]), 0, false);
+				if(normalized[2] > 0.1f || normalized[2] < -0.1f)
+				{
+					robosub_motor_control.actuator_test(MOTOR_SIDE1, -normalized[2], 0, false);
+					robosub_motor_control.actuator_test(MOTOR_SIDE2, normalized[2], 0, false);
+				}
+				 else
+				{
+					robosub_motor_control.actuator_test(MOTOR_SIDE1, -normalized[3], 0, false);
+					robosub_motor_control.actuator_test(MOTOR_SIDE2, -normalized[3], 0, false);
+				}
+			}
+			update1 = 0;
+		}
+
+ }
+
+ void RobosubRemoteControl::check_internal_state()
+ {
+	// Check if the internal state of the module is correct and if something is wrong force the motors to go up.
+	if (_internal_sensors_sub.updated()) {
+		internal_sensors_s internal_sensors{};
+		_internal_sensors_sub.copy(&internal_sensors);
+		int module_index = get_module_index(internal_sensors.module);
+		if (module_index < 0) {
+			PX4_ERR("Unknown module: %d", internal_sensors.module);
+			return;
+		}
+		float *filtered_value = nullptr;
+		SensorFilter *filter = nullptr;
+		float param_offset = 0.0f;
+		const char *warn_msg = nullptr;
+
+		switch (internal_sensors.sensor) {
+		case SENSOR_HUMIDITY:
+			filtered_value = &_filtered_humidity[module_index];
+			filter = &_humidity_filter[module_index];
+			param_offset = _param_offset_rel_humidity.get();
+			warn_msg = "High humidity detected: %.2f%%";
+			break;
+		case SENSOR_TEMPERATURE:
+			filtered_value = &_filtered_temperature[module_index];
+			filter = &_temperature_filter[module_index];
+			param_offset = _param_offset_temperature.get();
+			warn_msg = "High temperature detected: %.2f°C";
+			break;
+		case SENSOR_PRESSURE:
+			filtered_value = &_filtered_pressure[module_index];
+			filter = &_pressure_filter[module_index];
+			param_offset = _param_offset_pressure.get();
+			warn_msg = "Abnormal pressure detected: %.2f hPa";
+			break;
+		default:
+			PX4_ERR("Unknown sensor type: %d", internal_sensors.sensor);
+			break;
+		}
+
+		if (filter && filtered_value) {
+			*filtered_value = update_running_average(*filter, internal_sensors.value);
+			if (*filtered_value > filter->initial_average + param_offset) {
+				PX4_WARN(warn_msg, (double)*filtered_value);
+				force_overide = true;
+			}
+		}
+
+		// Only calculate absolute humidity if temperature and humidity were updated close in time
+		const uint64_t ABS_HUMIDITY_MAX_DELTA_US = 200000; // 200 ms
+		if (_temperature_filter[module_index].updated && _humidity_filter[module_index].updated) {
+			uint64_t temp_time = _temperature_filter[module_index].last_update;
+			uint64_t hum_time = _humidity_filter[module_index].last_update;
+			uint64_t delta = (temp_time > hum_time) ? (temp_time - hum_time) : (hum_time - temp_time);
+			if (delta <= ABS_HUMIDITY_MAX_DELTA_US) {
+				_filtered_absolute_humidity[module_index] = update_running_average(
+					_absolute_humidity_filter[module_index],
+					calculate_absolute_humidity(_filtered_humidity[module_index], _filtered_temperature[module_index])
+				);
+				if (_filtered_absolute_humidity[module_index] > _absolute_humidity_filter[module_index].initial_average + _param_offset_abs_humidity.get()) {
+					PX4_WARN("High absolute humidity detected: %.2f g/m³", (double)_filtered_absolute_humidity[module_index]);
+					force_overide = true;
+				}
+			} else {
+				// Skipping absolute humidity calculation due to large delta
+			}
+			_temperature_filter[module_index].updated = false;
+			_humidity_filter[module_index].updated = false;
+		}
+	}
+ }
+
+
+ float RobosubRemoteControl::update_running_average(SensorFilter& filter, float new_value)
+{
+	// Remove old value from sum if buffer is full
+	if (filter.count >= FILTER_SIZE) {
+		if (fabsf(filter.initial_average) <= 1e-5f) {
+			filter.initial_average = filter.sum / filter.count;
+		}
+		filter.sum -= filter.values[filter.index];
+	}
+
+	// Add new value
+	filter.values[filter.index] = new_value;
+	filter.sum += new_value;
+
+	// Update index and count
+	filter.index = (filter.index + 1) % FILTER_SIZE;
+	if (filter.count < FILTER_SIZE) {
+		filter.count++;
+	}
+
+	filter.updated = true;
+	filter.last_update = hrt_absolute_time();
+	// Return average
+	return filter.sum / filter.count;
+}
+
+// Helper function for absolute humidity calculation
+float RobosubRemoteControl::calculate_absolute_humidity(float rel_humidity, float temperature)
+{
+	// Formula: 13.25 * RH * exp(17.67 * T / (T + 243.5)) / (T + 273.15)
+	return 13.25f * rel_humidity * expf(17.67f * temperature / (temperature + 243.5f)) / (temperature + 273.15f);
+}
+
+
 
  void RobosubRemoteControl::parameters_update(bool force)
  {
@@ -218,6 +432,7 @@
 
 	 return 0;
  }
+
 
  int rs_remote_control_main(int argc, char *argv[])
  {

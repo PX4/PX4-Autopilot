@@ -197,7 +197,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_RC_CHANNELS:
-		handle_message_rc_channels(msg);
+		// handle_message_rc_channels(msg);
 		break;
 
 	case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:

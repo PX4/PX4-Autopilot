@@ -39,13 +39,14 @@ ActuatorEffectivenessUUV::ActuatorEffectivenessUUV(ModuleParams *parent)
 	: ModuleParams(parent),
 	  _rotors(this)
 {
+	PX4_INFO("ActuatorEffectivenessUUV");
 }
 
 bool ActuatorEffectivenessUUV::getEffectivenessMatrix(Configuration &configuration,
 		EffectivenessUpdateReason external_update)
 {
 	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
-		return false;
+		// return false;
 	}
 
 	// Motors
