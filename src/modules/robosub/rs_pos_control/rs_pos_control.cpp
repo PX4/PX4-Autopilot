@@ -218,13 +218,13 @@ void RobosubPosControl::HorizontalControl() {
 }
 
 void RobosubPosControl::send_position_setpoint(const matrix::Vector3f &pos) {
-	vehicle_local_position_setpoint_s setpoint{};
+	trajectory_setpoint_s setpoint{};
 	setpoint.timestamp = hrt_absolute_time();
-	setpoint.x = pos(0);
-	setpoint.y = pos(1);
-	setpoint.z = pos(2);
+	setpoint.position[0] = pos(0);
+	setpoint.position[1] = pos(1);
+	setpoint.position[2] = pos(2);
 
-	local_pos_setpoint_pub.publish(setpoint);
+	trajectory_setpoint_pub.publish(setpoint);
 }
 
 int RobosubPosControl::task_spawn(int argc, char *argv[])

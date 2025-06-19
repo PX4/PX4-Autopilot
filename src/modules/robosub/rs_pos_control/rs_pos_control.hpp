@@ -52,7 +52,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/drone_task.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/uORB.h>
 #include "../rs_motor_control/rs_motor_control.hpp"
@@ -125,7 +125,7 @@ private:
 	AutoMoveState _auto_move_state{AutoMoveState::INIT};
 	matrix::Vector3f _origin_position{};
 	hrt_abstime _state_entry_time{0};
-	uORB::Publication<vehicle_local_position_setpoint_s> local_pos_setpoint_pub{ORB_ID(vehicle_local_position_setpoint)};
+	uORB::Publication<trajectory_setpoint_s> trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
 
 	void Run() override;
 	/**
