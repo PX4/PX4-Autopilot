@@ -64,7 +64,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 #endif // CONFIG_EKF2_WIND
 	_params(_ekf.getParamHandle()),
 	_param_ekf2_predict_us(_params->ekf2_predict_us),
-	_param_ekf2_delay_max(_params->delay_max_ms),
+	_param_ekf2_delay_max(_params->ekf2_delay_max),
 	_param_ekf2_imu_ctrl(_params->imu_ctrl),
 	_param_ekf2_vel_lim(_params->velocity_limit),
 #if defined(CONFIG_EKF2_AUXVEL)
