@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "GZMixingInterfaceESC.hpp"
+#include "GZMixingInterfaceMotor.hpp"
 #include "GZMixingInterfaceServo.hpp"
 #include "GZMixingInterfaceWheel.hpp"
 #include "GZGimbal.hpp"
@@ -157,7 +157,7 @@ private:
 	uORB::PublicationMulti<sensor_optical_flow_s> _optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
 
-	GZMixingInterfaceESC   _mixing_interface_esc{_node};
+	GZMixingInterfaceMotor   _mixing_interface_motor{_node};
 	GZMixingInterfaceServo _mixing_interface_servo{_node};
 	GZMixingInterfaceWheel _mixing_interface_wheel{_node};
 

@@ -7,14 +7,14 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *	notice, this list of conditions and the following disclaimer.
+ *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *	notice, this list of conditions and the following disclaimer in
- *	the documentation and/or other materials provided with the
- *	distribution.
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
  * 3. Neither the name PX4 nor the names of its contributors may be
- *	used to endorse or promote products derived from this software
- *	without specific prior written permission.
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -31,17 +31,32 @@
  *
  ****************************************************************************/
 
-#include "GZMixingInterfaceESC.hpp"
+#include "GZMixingInterfaceMotor.hpp"
 
-bool GZMixingInterfaceESC::init(const std::string &model_name)
+bool GZMixingInterfaceMotor::init(const std::string &model_name)
 {
+	pthread_mutex_init(&_node_mutex, nullptr);
 
-	// ESC feedback: /x500/command/motor_speed
-	std::string motor_speed_topic = "/" + model_name + "/command/motor_speed";
+	// Update mixing output count such that the interface can be configured as ESC mixer or PWM mixer
+	pthread_mutex_lock(&_node_mutex);
+	_mixing_output.updateSubscriptions(false);
+	pthread_mutex_unlock(&_node_mutex);
 
-	if (!_node.Subscribe(motor_speed_topic, &GZMixingInterfaceESC::motorSpeedCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", motor_speed_topic.c_str());
-		return false;
+	if (isESCInterface()) {
+		// ESC feedback: /x500/command/motor_speed
+		std::string motor_speed_topic = "/" + model_name + "/command/motor_speed";
+
+		if (!_node.Subscribe(motor_speed_topic, &GZMixingInterfaceMotor::motorSpeedCallback, this)) {
+			PX4_ERR("failed to subscribe to %s", motor_speed_topic.c_str());
+			return false;
+		}
+
+		PX4_INFO("GZ bridge Motor interface configured as ESC interface, reporting ESC telemetry");
+
+		_esc_status_pub.advertise();
+
+	} else {
+		PX4_INFO("GZ bridge Motor interface configured as PWM interface, not reporting ESC telemetry");
 	}
 
 	// output eg /X500/command/motor_speed
@@ -53,16 +68,13 @@ bool GZMixingInterfaceESC::init(const std::string &model_name)
 		return false;
 	}
 
-	_esc_status_pub.advertise();
-
-	pthread_mutex_init(&_node_mutex, nullptr);
 
 	ScheduleNow();
 
 	return true;
 }
 
-bool GZMixingInterfaceESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool GZMixingInterfaceMotor::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
 	unsigned active_output_count = 0;
@@ -92,7 +104,23 @@ bool GZMixingInterfaceESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsign
 	return false;
 }
 
-void GZMixingInterfaceESC::Run()
+bool GZMixingInterfaceMotor::isESCInterface()
+{
+	unsigned active_output_count = 0;
+
+	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+		if (_mixing_output.isFunctionSet(i)) {
+			active_output_count++;
+
+		} else {
+			break;
+		}
+	}
+
+	return (active_output_count <= MAX_DSHOT_ESCS);
+}
+
+void GZMixingInterfaceMotor::Run()
 {
 	pthread_mutex_lock(&_node_mutex);
 	_mixing_output.update();
@@ -100,7 +128,7 @@ void GZMixingInterfaceESC::Run()
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-void GZMixingInterfaceESC::motorSpeedCallback(const gz::msgs::Actuators &actuators)
+void GZMixingInterfaceMotor::motorSpeedCallback(const gz::msgs::Actuators &actuators)
 {
 	if (hrt_absolute_time() == 0) {
 		return;
@@ -109,8 +137,7 @@ void GZMixingInterfaceESC::motorSpeedCallback(const gz::msgs::Actuators &actuato
 	pthread_mutex_lock(&_node_mutex);
 
 	esc_status_s esc_status{};
-	// Limit to max supported ESCs while allowing for a larger number of system actuators
-	esc_status.esc_count = math::min(actuators.velocity_size(), static_cast<int>(esc_status_s::CONNECTED_ESC_MAX));
+	esc_status.esc_count = actuators.velocity_size() ;
 
 	for (int i = 0; i < esc_status.esc_count; i++) {
 		esc_status.esc[i].timestamp = hrt_absolute_time();
