@@ -137,7 +137,7 @@ void GZMixingInterfaceMotor::motorSpeedCallback(const gz::msgs::Actuators &actua
 	pthread_mutex_lock(&_node_mutex);
 
 	esc_status_s esc_status{};
-	esc_status.esc_count = actuators.velocity_size() ;
+	esc_status.esc_count = actuators.velocity_size();
 
 	for (int i = 0; i < esc_status.esc_count; i++) {
 		esc_status.esc[i].timestamp = hrt_absolute_time();
