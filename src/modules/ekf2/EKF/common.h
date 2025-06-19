@@ -69,7 +69,7 @@ using math::Utilities::updateYawInRotMat;
 static constexpr uint64_t BARO_MAX_INTERVAL     =
 	200e3;  ///< Maximum allowable time interval between pressure altitude measurements (uSec)
 static constexpr uint64_t EV_MAX_INTERVAL       =
-	200e3;  ///< Maximum allowable time interval between external vision system measurements (uSec)
+	500e3;  ///< Maximum allowable time interval between external vision system measurements (uSec)
 static constexpr uint64_t GNSS_MAX_INTERVAL     =
 	500e3;  ///< Maximum allowable time interval between GNSS measurements (uSec)
 static constexpr uint64_t GNSS_YAW_MAX_INTERVAL =
