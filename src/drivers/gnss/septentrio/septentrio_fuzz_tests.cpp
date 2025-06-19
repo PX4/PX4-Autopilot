@@ -45,7 +45,7 @@ TEST(SeptentrioTestDecoding, decodeMessage)
 	septentrio::sbf::message_t m{};
 	m.header.sync1 = '$';
 	m.header.sync2 = '@';
-	m.header.id_number = septentrio::sbf::BlockID::PVTGeodetic;
+	m.header.id_number = static_cast<uint16_t>(septentrio::sbf::BlockID::PVTGeodetic);
 	m.header.length = sizeof(m.header) + sizeof(septentrio::sbf::PVTGeodetic);
 	septentrio::sbf::PVTGeodetic pvt{};
 	pvt.latitude = 123;
