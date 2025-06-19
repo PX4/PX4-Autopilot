@@ -1,22 +1,24 @@
-# Neural Network Module Utilities
+# Neural Network Module: System Integration
 
-This page explains the parts of a [neural control module](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/mc_nn_control) that do not directly concern the neural network.
-The module is named `mc_nn_control` and implements an end-to-end controller utilizing neural networks.
-This page explains the PX4 related implementations, so that you easily can shape the module to your needs and make it compatible with the rest of the PX4 autopilot.
+The neural control module ([mc_nn_control](../modules/modules_controller.md#mc_nn_control)) implements an end-to-end controller utilizing neural networks.
 
-To learn more about how PX4 works in general, it is recommended to start with [Getting started](../dev_setup/getting_started.md).
+The parts of the module directly concerned with generating the code for the trained neural network and integrating it into the module are covered in [TensorFlow Lite Micro (TFLM)](../advanced/tflm.md).
+The topic covers the changes that were made to integrate the module into PX4, both within the module, and in larger system configuration.
+
+::: tip
+This topic should help you to shape the module to your own needs.
+
+You will need some familiarity with PX4 development.
+For more information see the developer [Getting Started](../dev_setup/getting_started.md).
+:::
 
 ## Autostart
 
-In the PX4-Autopilot source code there are startup scripts, in these I have added a line for the `mc_nn_control` module in `ROMFS/px4fmu_common/init.d/rc`.`mc_apps` it checks wether the module is included by looking for the parameter MC_NN_EN.
-If this is set to `1`, which is the default value, the module will be started when booting PX4.
-Similarly you could create other parameters in the `src/modules/mc_nn_control/mc_nn_control_params.c` file for other startup script checks.
+A line to autostart the [mc_nn_control](../modules/modules_controller.md#mc_nn_control) module has been added in the [`ROMFS/px4fmu_common/init.d/rc.mc_apps`](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/rc.mc_apps) startup script.
 
-:::info
-Note that it's only the first time you build that the default param value will overwrite the current one.
-So if you change it in the param file it will not be changed when flashing to the controller again.
-To do this you can change it in QGC or in the [terminal](../modules/modules_command.md#param).
-:::
+It checks whether the module is included by looking for the parameter [MC_NN_EN](../advanced_config/parameter_reference.md#MC_NN_EN).
+If this is set to `1` (the default value), the module will be started when booting PX4.
+Similarly you could create other parameters in the [`mc_nn_control_params.c`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mc_nn_control/mc_nn_control_params.c) file for other startup script checks.
 
 ## Custom Flight Mode
 
@@ -25,13 +27,13 @@ This is done by using the [ROS 2 Interface Library](../ros2/px4_ros2_interface_l
 This involves several steps:
 
 :::info
-The module does not actually use ROS 2, it just uses the internal API that is exposed through uORB topics.
+The module does not actually use ROS 2, it just uses the API exposed through uORB topics.
 :::
 
 :::info
 In some QGC versions this does not work, as of 17 March 2025.
 You can use v4.4.0 release candidate 1, which can be found among the [QGC releases](https://github.com/mavlink/qgroundcontrol/releases/).
-This only works for some flight controllers, so you might have to use a RC controller to switch to the correct external flight mode.
+This only works for some flight controllers, so you might have to use an RC controller to switch to the correct external flight mode.
 :::
 
 1. Publish a [RegisterExtComponentRequest](../msg_docs/RegisterExtComponentRequest.md).
@@ -43,7 +45,7 @@ This only works for some flight controllers, so you might have to use a RC contr
    Here you can configure what other modules run in parallel.
    The example controller replaces everything, so it turns off allocation.
    If you want to replace other parts you can enable or disable the modules accordingly.
-4. [Optional] With the mode id, publish a [ConfigOverrides](../msg_docs/ConfigOverrides.md) on the config_overrides_request topic.
+4. [Optional] With the mode id, publish a [ConfigOverrides](../msg_docs/ConfigOverrides.md) on the `config_overrides_request` topic.
    (This is not done in the example module) This will let you defer failsafes or stop it from automatically disarming.
 5. When the mode has been registered a [ArmingCheckRequest](../msg_docs/ArmingCheckRequest.md) will be sent, asking if your mode has everything it needs to run.
    This message must be answered with a [ArmingCheckReply](../msg_docs/ArmingCheckReply.md) so the mode is not flagged as unresponsive.
@@ -52,20 +54,20 @@ This only works for some flight controllers, so you might have to use a RC contr
    It is also important to set health_component_index and num_events to 0 to not get a segmentation fault.
    Unless you have a health component or events.
 6. Listen to the [VehicleStatus](../msg_docs/VehicleStatus.md) topic.
-   If the nav_state equals the assigned mode_id, then the Neural Controller is activated.
+   If the nav_state equals the assigned `mode_id`, then the Neural Controller is activated.
 7. When active the module will run the controller and publish to [ActuatorMotors](../msg_docs/ActuatorMotors.md).
    If you want to replace a different part of the controller, you should find the appropriate topic to publish to.
 
-To see how the requests are handled you can check out src/modules/commander/ModeManagement.cpp.
+To see how the requests are handled you can check out [src/modules/commander/ModeManagement.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeManagement.cpp).
 
 ## Logging
 
-To add module specific logging a new topic has been added to [uORB](../middleware/uorb.md) called [NeuralControl](../msg_docs/NeuralControl.md).
-The message definition is also added in msg/CMakeLists.txt, and to `src/modules/logger/logged_topics.cpp` under the debug category.
-So for these messages to be saved in you ulog logs you need to include debug in the `SDLOG_PROFILE` parameter.
+To add module-specific logging a new topic has been added to [uORB](../middleware/uorb.md) called [NeuralControl](../msg_docs/NeuralControl.md).
+The message definition is also added in `msg/CMakeLists.txt`, and to [`src/modules/logger/logged_topics.cpp`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/logger/logged_topics.cpp) under the debug category.
+For these messages to be saved in your logs you need to include `debug` in the [SDLOG_PROFILE](../advanced_config/parameter_reference.md#SDLOG_PROFILE) parameter.
 
 ## Timing
 
 The module has two includes for measuring the inference times.
-The first one is a driver that works on the actual flight controller units, but a second one, chrono, is loaded for SITL testing.
+The first one is a driver that works on the actual flight controller units, but a second one, `chrono`, is loaded for SITL testing.
 Which timing library is included and used is based on wether PX4 is built with NUTTX or not.
