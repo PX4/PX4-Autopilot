@@ -188,16 +188,16 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
     			((normalized[7] > 0.0f) ? 1 : 0) << 2;
 			switch(bitReg)
 			{
-				case 0b1000:
+				case 0b000:
 					drone_task.task = TASK_INIT;
 				break;
-				case 0b1001:
+				case 0b001:
 					drone_task.task = TASK_DEFAULT;
 				break;
-				case 0b1010:
+				case 0b010:
 					drone_task.task = TASK_AUTONOMOUS;
 				break;
-				case 0b1111:
+				case 0b111:
 					drone_task.task = TASK_REMOTE_CONTROLLED;
 				break;
 				default:
@@ -258,13 +258,12 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 				normalized[2] = math::constrain(normalized[2], -range, range);
 				normalized[3] = math::constrain(normalized[3], -range, range);
 
-
-
 				robosub_motor_control.actuator_test(MOTOR_FORWARDS1, 	normalized[0]/2, 0, false);
 				robosub_motor_control.actuator_test(MOTOR_FORWARDS2, 	normalized[0]/2, 0, false);
 				robosub_motor_control.actuator_test(MOTOR_UP1, 		-normalized[1], 0, false);
 				robosub_motor_control.actuator_test(MOTOR_UP2, 		(normalized[1]), 0, false);
 				robosub_motor_control.actuator_test(MOTOR_UP3, 		(-normalized[1]), 0, false);
+
 				if(normalized[2] > 0.1f || normalized[2] < -0.1f)
 				{
 					robosub_motor_control.actuator_test(MOTOR_SIDE1, -normalized[2], 0, false);
