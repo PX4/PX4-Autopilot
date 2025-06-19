@@ -4,7 +4,7 @@ The PX4 [Multicopter Neural Network](advanced/neural_networks.md) module ([mc_nn
 
 This is a mature inference library intended for use on embedded devices, and is hence a suitable choice for PX4.
 
-This guide explains how the TFLM library is integrated into the [mc_nn_control](../modules/modules_controller.md#mc_nn_control) module, and the changes you would have to make to use it your own neural network.
+This guide explains how the TFLM library is integrated into the [mc_nn_control](../modules/modules_controller.md#mc_nn_control) module, and the changes you would have to make to use it for your own neural network.
 
 ::: tip
 For more information, see the [TFLM guide](https://ai.google.dev/edge/litert/microcontrollers/get_started).
@@ -22,7 +22,9 @@ The tflight neural network is represented in code by the files [`control_net.cpp
 
 There are many online resource for generating networks in the `.tflite` format.
 
-For this example we trained the network in the [Aerial Gym Simulator](https://ntnu-arl.github.io/aerial_gym_simulator/).
+For this example we trained the network in the open source [Aerial Gym Simulator](https://ntnu-arl.github.io/aerial_gym_simulator/).
+Aerial Gym includes a guide, and supports RL both for control and vision-based navigation tasks.
+
 The project includes conversion code for `PyTorch -> TFLM` in the resources/conversion folder.
 
 ### Updating `mc_nn_control` with your own NN
