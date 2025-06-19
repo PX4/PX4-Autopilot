@@ -27,7 +27,7 @@ jobs:
           "failsafe_web",
         ]
     container:
-      image: px4io/px4-dev:v1.16.0-ondemand
+      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
       - name: Install Node v20.18.0

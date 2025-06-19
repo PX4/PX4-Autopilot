@@ -4,7 +4,7 @@
 # These are populated from power module and smart battery device drivers, and one battery updated from MAVLink.
 # Battery instance information is also logged and streamed in MAVLink telemetry.
 
-uint32 MESSAGE_VERSION = 1
+uint32 MESSAGE_VERSION = 0
 uint8 MAX_INSTANCES = 4
 
 uint64 timestamp # [us] Time since system start
@@ -29,6 +29,7 @@ uint8 priority # Zero based priority is the connection on the Power Controller V
 uint16 capacity # [mAh] Capacity of the battery when fully charged
 uint16 cycle_count # Number of discharge cycles the battery has experienced
 uint16 average_time_to_empty # [minutes] Predicted remaining battery capacity based on the average rate of discharge
+uint16 serial_number # Serial number of the battery pack
 uint16 manufacture_date # Manufacture date, part of serial number of the battery pack. Formatted as: Day + Month×32 + (Year–1980)×512
 uint16 state_of_health # [%] [@range 0, 100] State of health. FullChargeCapacity/DesignCapacity
 uint16 max_error # [%] [@range 1, 100] Max error, expected margin of error in the state-of-charge calculation

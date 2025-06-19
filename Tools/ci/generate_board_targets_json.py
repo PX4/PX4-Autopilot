@@ -35,6 +35,7 @@ if args.filter:
     for board in args.filter.split(','):
         board_filter.append(board)
 
+default_container = 'ghcr.io/px4/px4-dev:v1.16.0-rc1-258-g0369abd556'
 build_configs = []
 grouped_targets = {}
 excluded_boards = ['modalai_voxl2', 'px4_ros2']  # TODO: fix and enable
@@ -86,7 +87,7 @@ def process_target(px4board_file, target_name):
     assert platform, f"PLATFORM not found in {px4board_file}"
 
     if platform not in excluded_platforms:
-        container = 'ghcr.io/px4/px4-dev:v1.16.0-ondemand'
+        container = default_container
         if platform == 'posix':
             group = 'base'
             if toolchain:
@@ -120,7 +121,7 @@ if(verbose):
 # - Events
 metadata_targets = ['airframe_metadata', 'parameters_metadata', 'extract_events']
 grouped_targets['base'] = {}
-grouped_targets['base']['container'] = 'ghcr.io/px4/px4-dev:v1.16.0-ondemand'
+grouped_targets['base']['container'] = default_container
 grouped_targets['base']['manufacturers'] = {}
 grouped_targets['base']['manufacturers']['px4'] = []
 grouped_targets['base']['manufacturers']['px4'] += metadata_targets
