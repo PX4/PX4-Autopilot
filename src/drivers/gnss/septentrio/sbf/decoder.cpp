@@ -102,7 +102,7 @@ Decoder::State Decoder::add_byte(uint8_t byte)
 
 BlockID Decoder::id() const
 {
-	return _state == State::Done ? _message.header.id_number : BlockID::Invalid;
+	return _state == State::Done ? static_cast<BlockID>(_message.header.id_number) : BlockID::Invalid;
 }
 
 int Decoder::parse(Header *header) const

@@ -1075,7 +1075,7 @@ int SeptentrioDriver::process_message()
 			PVTGeodetic pvt_geodetic;
 
 			if (_sbf_decoder.parse(&header) == PX4_OK && _sbf_decoder.parse(&pvt_geodetic) == PX4_OK) {
-				switch (pvt_geodetic.mode_type) {
+				switch (static_cast<sbf::PVTGeodetic::ModeType>(pvt_geodetic.mode_type)) {
 				case ModeType::NoPVT:
 					_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_NONE;
 					break;
@@ -1242,8 +1242,8 @@ int SeptentrioDriver::process_message()
 
 			if (_sbf_decoder.parse(&att_euler) == PX4_OK &&
 			    !att_euler.error_not_requested &&
-			    att_euler.error_aux1 == Error::None &&
-			    att_euler.error_aux2 == Error::None &&
+			    static_cast<AttEuler::Error>(att_euler.error_aux1) == Error::None &&
+			    static_cast<AttEuler::Error>(att_euler.error_aux2) == Error::None &&
 			    att_euler.heading > k_dnu_f4_value) {
 				float heading = att_euler.heading * M_PI_F / 180.0f; // Range of degrees to range of radians in [0, 2PI].
 
@@ -1267,8 +1267,8 @@ int SeptentrioDriver::process_message()
 
 			if (_sbf_decoder.parse(&att_cov_euler) == PX4_OK &&
 			    !att_cov_euler.error_not_requested &&
-			    att_cov_euler.error_aux1 == Error::None &&
-			    att_cov_euler.error_aux2 == Error::None &&
+			    static_cast<AttCovEuler::Error>(att_cov_euler.error_aux1) == Error::None &&
+			    static_cast<AttCovEuler::Error>(att_cov_euler.error_aux2) == Error::None &&
 			    att_cov_euler.cov_headhead > k_dnu_f4_value) {
 				_message_gps_state.heading_accuracy = att_cov_euler.cov_headhead * M_PI_F / 180.0f; // Convert range of degrees to range of radians in [0, 2PI]
 			}
