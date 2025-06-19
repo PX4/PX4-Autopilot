@@ -1,0 +1,34 @@
+#
+#  Kconfig for indi_att_control module
+#
+
+menu "INDI Attitude Control Module"
+
+#
+# Top‐level switch: include or exclude indi_att_control entirely
+#
+config MODULES_INDI_ATT_CONTROL
+    bool "indi_att_control"
+    default n
+    help
+      Enable compilation of the INDI‐based attitude‐control module
+      (indi_att_control).  When set to 'y', the build system will compile
+      and link in the files under src/modules/indi_att_control/ so that
+      you can run an INDI‐based inner‐loop in place of the stock PID loop.
+
+#
+# If you want indi_att_control to run in userspace (protected memory),
+# you must enable BOARD_PROTECTED and also have MODULES_INDI_ATT_CONTROL=y.
+#
+config USER_INDI_ATT_CONTROL
+    bool "indi_att_control running as a userspace module"
+    default n
+    depends on BOARD_PROTECTED && MODULES_INDI_ATT_CONTROL
+    help
+      Run indi_att_control in userspace (rather than in the NuttX kernel).
+      This requires that your chosen board is built with BOARD_PROTECTED=y
+      (i.e. a protected‐mode/NX configuration).  If you do not need/isolate
+      the module into userspace, simply leave this off.
+
+
+endmenu
