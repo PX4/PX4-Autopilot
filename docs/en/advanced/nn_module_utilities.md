@@ -3,7 +3,7 @@
 The neural control module ([mc_nn_control](../modules/modules_controller.md#mc_nn_control)) implements an end-to-end controller utilizing neural networks.
 
 The parts of the module directly concerned with generating the code for the trained neural network and integrating it into the module are covered in [TensorFlow Lite Micro (TFLM)](../advanced/tflm.md).
-The topic covers the changes that were made to integrate the module into PX4, both within the module, and in larger system configuration.
+This page covers the changes that were made to integrate the module into PX4, both within the module, and in larger system configuration.
 
 ::: tip
 This topic should help you to shape the module to your own needs.

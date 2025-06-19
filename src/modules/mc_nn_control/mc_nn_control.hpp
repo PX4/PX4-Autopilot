@@ -153,8 +153,8 @@ private:
 	vehicle_attitude_s _attitude;
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MAX_RPM>) _param_max_rpm,
-		(ParamInt<px4::params::MIN_RPM>) _param_min_rpm,
-		(ParamFloat<px4::params::THRUST_COEFF>) _param_thrust_coeff
+		(ParamInt<px4::params::NN_MAX_RPM>) _param_max_rpm,
+		(ParamInt<px4::params::NN_MIN_RPM>) _param_min_rpm,
+		(ParamFloat<px4::params::NN_THRUST_COEFF>) _param_thrust_coeff
 	)
 };

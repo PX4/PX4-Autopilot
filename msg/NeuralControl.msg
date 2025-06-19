@@ -1,4 +1,4 @@
-# Neural Control Message
+# Neural control
 #
 # Debugging topic for the Neural controller, logs the inputs and output vectors of the neural network, and the time it takes to run
 # Publisher: mc_nn_control

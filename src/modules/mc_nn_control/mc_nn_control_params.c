@@ -53,7 +53,7 @@ PARAM_DEFINE_INT32(MC_NN_EN, 1);
  * @max 80000
  * @group Neural Control
  */
-PARAM_DEFINE_INT32(MAX_RPM, 22000);
+PARAM_DEFINE_INT32(NN_MAX_RPM, 22000);
 
 /**
  * The minimum RPM of the motors. Used to normalize the output of the neural network.
@@ -62,7 +62,7 @@ PARAM_DEFINE_INT32(MAX_RPM, 22000);
  * @max 80000
  * @group Neural Control
  */
-PARAM_DEFINE_INT32(MIN_RPM, 1000);
+PARAM_DEFINE_INT32(NN_MIN_RPM, 1000);
 
 /**
  * Thrust coefficient of the motors. Used to normalize the output of the neural network. Divided by 100 000
@@ -71,4 +71,4 @@ PARAM_DEFINE_INT32(MIN_RPM, 1000);
  * @max 5.0
  * @group Neural Control
  */
-PARAM_DEFINE_FLOAT(THRUST_COEFF, 1.2f);
+PARAM_DEFINE_FLOAT(NN_THRUST_COEFF, 1.2f);

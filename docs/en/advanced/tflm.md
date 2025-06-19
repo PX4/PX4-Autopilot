@@ -18,14 +18,14 @@ However, since many microcontrollers do not have native filesystem support, a tf
 This is what is done in `mc_nn_control`.
 The tflight neural network is represented in code by the files [`control_net.cpp`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mc_nn_control/control_net.cpp) and [`control_net.hpp`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mc_nn_control/control_net.hpp).
 
-### Getting a Network in tflight Format
+### Getting a Network in tflite Format
 
 There are many online resource for generating networks in the `.tflite` format.
 
 For this example we trained the network in the open source [Aerial Gym Simulator](https://ntnu-arl.github.io/aerial_gym_simulator/).
 Aerial Gym includes a guide, and supports RL both for control and vision-based navigation tasks.
 
-The project includes conversion code for `PyTorch -> TFLM` in the resources/conversion folder.
+The project includes conversion code for `PyTorch -> TFLM` in the [resources/conversion](https://github.com/ntnu-arl/aerial_gym_simulator/tree/main/resources/conversion) folder.
 
 ### Updating `mc_nn_control` with your own NN
 
