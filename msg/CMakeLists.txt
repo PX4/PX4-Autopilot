@@ -174,14 +174,8 @@ set(msg_files
 	RateCtrlStatus.msg
 	RcChannels.msg
 	RcParameterMap.msg
-	RoverAttitudeSetpoint.msg
 	RoverAttitudeStatus.msg
-	RoverPositionSetpoint.msg
-	RoverRateSetpoint.msg
 	RoverRateStatus.msg
-	RoverSteeringSetpoint.msg
-	RoverThrottleSetpoint.msg
-	RoverVelocitySetpoint.msg
 	RoverVelocityStatus.msg
 	Rpm.msg
 	RtlStatus.msg
@@ -254,6 +248,12 @@ set(msg_files
 	versioned/ModeCompleted.msg
 	versioned/RegisterExtComponentReply.msg
 	versioned/RegisterExtComponentRequest.msg
+	versioned/RoverAttitudeSetpoint.msg
+	versioned/RoverPositionSetpoint.msg
+	versioned/RoverRateSetpoint.msg
+	versioned/RoverSteeringSetpoint.msg
+	versioned/RoverThrottleSetpoint.msg
+	versioned/RoverVelocitySetpoint.msg
 	versioned/TrajectorySetpoint.msg
 	versioned/UnregisterExtComponent.msg
 	versioned/VehicleAngularVelocity.msg
