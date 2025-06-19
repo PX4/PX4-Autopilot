@@ -4,59 +4,107 @@
 #
 # @type Underwater Robot
 # @class Underwater Robot
+# PWM Channel - Thruster
+#
+# @output Motor1 motor 1 - T200, starboard horizontal, propeller
+# @output Motor2 motor 2 - Stern horizontal, propeller
+# @output Motor3 motor 3 - Bow port, propeller
+# @output Motor4 motor 4 - Bow starboard, propeller
+# @output Motor5 motor 5 - Stern horizontal, propeller
+# @output Motor6 motor 6 - T200, port horizontal, propeller
+# @output Motor7 motor 7 - Bow horizontal, propeller
 #
 # @maintainer
 #
 # @board px4_fmu-v2 exclude
 #
 
-
-
 set VEHICLE_TYPE uuv
 
 # MAV_TYPE_SUBMARINE 12
 param set-default MAV_TYPE 12
 
-
 param set-default SER_TEL1_BAUD 115200
 
 param set-default CA_AIRFRAME 7
-param set-default CA_ROTOR_COUNT 4
+
+param set-default CA_ROTOR_COUNT 7 # number of rotors
 param set-default CA_R_REV 255
-param set-default CA_ROTOR0_AX 1
-param set-default CA_ROTOR0_AY 0
+
+# T200 starboard horizontal (1)
+param set-default CA_ROTOR0_AX 0
+param set-default CA_ROTOR0_AY 1
 param set-default CA_ROTOR0_AZ 0
 param set-default CA_ROTOR0_KM 0
-param set-default CA_ROTOR0_PX 0
-param set-default CA_ROTOR0_PY -0.3
-param set-default CA_ROTOR0_PZ -0.3
-param set-default CA_ROTOR1_AX 1
+param set-default CA_ROTOR0_PX 1
+param set-default CA_ROTOR0_PY 0
+param set-default CA_ROTOR0_PZ 0
+
+# Stern vertical (2)
+param set-default CA_ROTOR1_AX 0
 param set-default CA_ROTOR1_AY 0
-param set-default CA_ROTOR1_AZ 0
+param set-default CA_ROTOR1_AZ -1
 param set-default CA_ROTOR1_KM 0
 param set-default CA_ROTOR1_PX 0
-param set-default CA_ROTOR1_PY 0.3
-param set-default CA_ROTOR1_PZ -0.3
-param set-default CA_ROTOR2_AX 1
-param set-default CA_ROTOR2_AY 0
-param set-default CA_ROTOR2_AZ 0
-param set-default CA_ROTOR2_KM 0
-param set-default CA_ROTOR2_PX 0
-param set-default CA_ROTOR2_PY 0.3
-param set-default CA_ROTOR2_PZ 0.3
-param set-default CA_ROTOR3_AX 1
-param set-default CA_ROTOR3_AY 0
-param set-default CA_ROTOR3_AZ 0
-param set-default CA_ROTOR3_KM 0
-param set-default CA_ROTOR3_PX 0
-param set-default CA_ROTOR3_PY -0.3
-param set-default CA_ROTOR3_PZ 0.3
+param set-default CA_ROTOR1_PY -1
+param set-default CA_ROTOR1_PZ 0
 
-param set-default PWM_OUT_W_MAX 0.2
-param set-default PWM_ON_W_MAX 0.2
-param set-default PWM_IN_W_MAX 1.0
+# Bow port vertical (3)
+param set-default CA_ROTOR2_AX 0
+param set-default CA_ROTOR2_AY 0
+param set-default CA_ROTOR2_AZ -1
+param set-default CA_ROTOR2_PX -0.3
+param set-default CA_ROTOR2_PY 1
+param set-default CA_ROTOR2_PZ 0
+param set-default CA_ROTOR2_CT 0.7 # Limit thrust output to 70 percent for vertical bow thrusters
+
+# Bow starboard vertical (4)
+param set-default CA_ROTOR3_AX 0
+param set-default CA_ROTOR3_AY 0
+param set-default CA_ROTOR3_AZ -1
+param set-default CA_ROTOR3_PX 0.3
+param set-default CA_ROTOR3_PY 1
+param set-default CA_ROTOR3_PZ 0
+param set-default CA_ROTOR3_CT 0.7 # Limit thrust output to 70 percent for vertical bow thrusters
+
+# Bow horizontal (5)
+param set-default CA_ROTOR4_AX 1
+param set-default CA_ROTOR4_AY 0
+param set-default CA_ROTOR4_AZ 0
+param set-default CA_ROTOR4_PX 0
+param set-default CA_ROTOR4_PY 0.5
+param set-default CA_ROTOR4_PZ 0
+
+# T200 - Port horizontal (6)
+param set-default CA_ROTOR5_AX 0
+param set-default CA_ROTOR5_AY 1
+param set-default CA_ROTOR5_AZ 0
+param set-default CA_ROTOR5_KM 0
+param set-default CA_ROTOR5_PX -1
+param set-default CA_ROTOR5_PY 0
+param set-default CA_ROTOR5_PZ 0
+
+# Stern horizontal (7)
+param set-default CA_ROTOR6_AX 1
+param set-default CA_ROTOR6_AY 0
+param set-default CA_ROTOR6_AZ 0
+param set-default CA_ROTOR6_PX 0
+param set-default CA_ROTOR6_PY -0.8
+param set-default CA_ROTOR6_PZ 0
+
+param set-default PWM_MAIN_OUT 1234567  # Enable channels 1-7 for PWM
+param set-default PWM_MAIN_RATE 400     # Set PWM frequency to 400 Hz
+param set-default PWM_MAIN_DISARM 1500  # Stop neutral when disarmed
+param set-default PWM_MAIN_MIN 1100     # Minimum PWM value full reverse
+param set-default PWM_MAIN_MAX 1900     # Maximum PWM value full forward
 
 param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
+param set-default PWM_MAIN_FUNC5 105
+param set-default PWM_MAIN_FUNC6 106
+param set-default PWM_MAIN_FUNC7 107
 
 param set-default EKF2_EV_CTRL 4
 
