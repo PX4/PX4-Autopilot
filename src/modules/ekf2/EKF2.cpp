@@ -63,7 +63,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_wind_pub(multi_mode ? ORB_ID(estimator_wind) : ORB_ID(wind)),
 #endif // CONFIG_EKF2_WIND
 	_params(_ekf.getParamHandle()),
-	_param_ekf2_predict_us(_params->filter_update_interval_us),
+	_param_ekf2_predict_us(_params->ekf2_predict_us),
 	_param_ekf2_delay_max(_params->delay_max_ms),
 	_param_ekf2_imu_ctrl(_params->imu_ctrl),
 	_param_ekf2_vel_lim(_params->velocity_limit),

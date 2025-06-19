@@ -508,6 +508,6 @@ protected:
 
 	void printBufferAllocationFailed(const char *buffer_name);
 
-	ImuDownSampler _imu_down_sampler{_params.filter_update_interval_us};
+	ImuDownSampler _imu_down_sampler{_params.ekf2_predict_us};
 };
 #endif // !EKF_ESTIMATOR_INTERFACE_H

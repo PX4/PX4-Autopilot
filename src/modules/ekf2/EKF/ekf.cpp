@@ -151,7 +151,7 @@ bool Ekf::update()
 
 		// calculate an average filter update time
 		// limit input between -50% and +100% of nominal value
-		const float filter_update_s = 1e-6f * _params.filter_update_interval_us;
+		const float filter_update_s = 1e-6f * _params.ekf2_predict_us;
 		const float input = math::constrain(0.5f * (imu_sample_delayed.delta_vel_dt + imu_sample_delayed.delta_ang_dt),
 						    0.5f * filter_update_s,
 						    2.f * filter_update_s);

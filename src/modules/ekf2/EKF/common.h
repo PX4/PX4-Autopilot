@@ -266,7 +266,7 @@ struct systemFlagUpdate {
 
 struct parameters {
 
-	int32_t filter_update_interval_us{10000}; ///< filter update interval in microseconds
+	int32_t ekf2_predict_us{10000}; ///< filter update interval in microseconds
 
 	int32_t imu_ctrl{static_cast<int32_t>(ImuCtrl::GyroBias) | static_cast<int32_t>(ImuCtrl::AccelBias)};
 

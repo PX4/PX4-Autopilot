@@ -97,7 +97,7 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 		imuSample imu_downsampled = _imu_down_sampler.getDownSampledImuAndTriggerReset();
 
 		// as a precaution constrain the integration delta time to prevent numerical problems
-		const float filter_update_period_s = _params.filter_update_interval_us * 1e-6f;
+		const float filter_update_period_s = _params.ekf2_predict_us * 1e-6f;
 		const float imu_min_dt = 0.5f * filter_update_period_s;
 		const float imu_max_dt = 2.0f * filter_update_period_s;
 
@@ -538,7 +538,7 @@ void EstimatorInterface::setDragData(const imuSample &imu)
 
 bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 {
-	const float filter_update_period_ms = _params.filter_update_interval_us / 1000.f;
+	const float filter_update_period_ms = _params.ekf2_predict_us / 1000.f;
 
 	// calculate the IMU buffer length required to accomodate the maximum delay with some allowance for jitter
 	_imu_buffer_length = math::max(2, (int)ceilf(_params.delay_max_ms / filter_update_period_ms));
