@@ -232,9 +232,9 @@ void Ekf::fuseRangeAsHeightAiding()
 				// PX4_INFO("FIRST range terrain fusion, resetting terrain to range");
 				PX4_INFO("FIRST range terrain fusion, resetting terrain to range");
 
+				resetTerrainToRng(_aid_src_rng_hgt);
 				resetAidSourceStatusZeroInnovation(_aid_src_rng_hgt);
 				resetAltitudeTo(_aid_src_rng_hgt.observation - _state.terrain);
-				resetTerrainToRng(_aid_src_rng_hgt);
 			}
 		}
 
@@ -242,8 +242,8 @@ void Ekf::fuseRangeAsHeightAiding()
 		if (!optical_flow_for_terrain && innovation_rejected
 				&& kinematically_consistent) {
 			PX4_INFO("range terrain fusion, resetting terrain to range");
-			resetAidSourceStatusZeroInnovation(_aid_src_rng_hgt);
 			resetTerrainToRng(_aid_src_rng_hgt);
+			resetAidSourceStatusZeroInnovation(_aid_src_rng_hgt);
 		}
 
 		// Fuse

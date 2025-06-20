@@ -307,7 +307,7 @@ void FlightTaskManualAltitude::_ekfResetHandlerHeading(float delta_psi)
 
 void FlightTaskManualAltitude::_ekfResetHandlerHagl(float delta_hagl)
 {
-	PX4_INFO("_ekfResetHandlerHagl");
+	// PX4_INFO("_ekfResetHandlerHagl");
 	_dist_to_bottom_lock = NAN;
 }
 
