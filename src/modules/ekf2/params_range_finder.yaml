@@ -119,7 +119,7 @@ parameters:
     EKF2_RNG_POS_X:
       description:
         short: X position of range finder origin in body frame
-        long: Forward axis with origin relative to vehicle centre of gravity
+        long: Forward axis (roll) with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
@@ -127,7 +127,7 @@ parameters:
     EKF2_RNG_POS_Y:
       description:
         short: Y position of range finder origin in body frame
-        long: Forward axis with origin relative to vehicle centre of gravity
+        long: Right axis (pitch) with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
@@ -135,7 +135,7 @@ parameters:
     EKF2_RNG_POS_Z:
       description:
         short: Z position of range finder origin in body frame
-        long: Forward axis with origin relative to vehicle centre of gravity
+        long: Down axis (yaw) with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
