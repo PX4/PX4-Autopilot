@@ -53,13 +53,14 @@ The `mc_nn_control` module takes up roughly 50KB, and many of the `default.px4bo
 
 ## Example Module Overview
 
-The example module replaces the entire controller structure as well as the control allocator. This can be seen in the picture below.
+The example module replaces the entire controller structure as well as the control allocator, as shown in the diagram below:
+
+![neural_control](../../assets/advanced/neural_control.png)
 
 In the [controller diagram](../flight_stack/controller_diagrams.md) you can see the [uORB message](../middleware/uorb.md) flow.
 We hook into this flow by subscribing to messages at particular points, using our neural network to calculate outputs, and then publishing them into the next point in the flow.
 We also need to stop the module publishing the topic to be replaced, which is covered in [Neural Network Module: System Integration](nn_module_utilities.md)
 
-![neural_control](../../assets/advanced/neural_control.png)
 
 ### Input
 
@@ -91,7 +92,7 @@ The commands are published to the [ActuatorMotors](../msg_docs/ActuatorMotors.md
 The publishing is handled in `PublishOutput(float* command_actions)` function.
 
 :::tip
-If the neural control mode is too aggressive or unresponsive the NN_THRUST_COEFF parameter can be tuned.
+If the neural control mode is too aggressive or unresponsive the [MC_NN_THRST_COEF](../advanced_config/parameter_reference.md#MC_NN_THRST_COEF) parameter can be tuned.
 Decrease it for more thrust.
 :::
 

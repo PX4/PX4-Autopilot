@@ -24,17 +24,18 @@ Similarly you could create other parameters in the [`mc_nn_control_params.c`](ht
 
 The module creates its own flight mode "Neural Control" which lets you choose it from the flight mode menu in QGC and bind it to a switch on you RC controller.
 This is done by using the [ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) internally.
-This involves several steps:
+This involves several steps and is visualized here:
 
 :::info
 The module does not actually use ROS 2, it just uses the API exposed through uORB topics.
 :::
 
 :::info
-In some QGC versions this does not work, as of 17 March 2025.
-You can use v4.4.0 release candidate 1, which can be found among the [QGC releases](https://github.com/mavlink/qgroundcontrol/releases/).
+In some QGC versions the flight mode does not show up, so make sure to update to the newest version.
 This only works for some flight controllers, so you might have to use an RC controller to switch to the correct external flight mode.
 :::
+
+![neural_mode_registration](../../assets/advanced/neural_mode_registration.png)
 
 1. Publish a [RegisterExtComponentRequest](../msg_docs/RegisterExtComponentRequest.md).
    This specifies what you want to create, you can read more about this in the [Control Interface](../ros2/px4_ros2_control_interface.md).
