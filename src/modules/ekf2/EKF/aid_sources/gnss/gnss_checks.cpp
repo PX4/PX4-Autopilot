@@ -130,12 +130,12 @@ bool GnssChecks::runInitialFixChecks(const gnssSample &gnss)
 	runOnGroundGnssChecks(gnss);
 
 	// force horizontal speed failure if above the limit
-	if (gnss.vel.xy().longerThan(_params.velocity_limit)) {
+	if (gnss.vel.xy().longerThan(_params.ekf2_vel_lim)) {
 		_check_fail_status.flags.hspeed = true;
 	}
 
 	// force vertical speed failure if above the limit
-	if (fabsf(gnss.vel(2)) > _params.velocity_limit) {
+	if (fabsf(gnss.vel(2)) > _params.ekf2_vel_lim) {
 		_check_fail_status.flags.vspeed = true;
 	}
 

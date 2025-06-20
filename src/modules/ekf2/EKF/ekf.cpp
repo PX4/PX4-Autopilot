@@ -270,7 +270,7 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_state.pos(2) = -_gpos.altitude();
 
 	// constrain states
-	_state.vel = matrix::constrain(_state.vel, -_params.velocity_limit, _params.velocity_limit);
+	_state.vel = matrix::constrain(_state.vel, -_params.ekf2_vel_lim, _params.ekf2_vel_lim);
 
 	// calculate a filtered horizontal acceleration this are used for manoeuvre detection elsewhere
 	_accel_horiz_lpf.update(corrected_delta_vel_ef.xy() / imu_delayed.delta_vel_dt, imu_delayed.delta_vel_dt);

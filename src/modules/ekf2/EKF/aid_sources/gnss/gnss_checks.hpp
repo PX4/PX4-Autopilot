@@ -44,9 +44,9 @@ class GnssChecks final
 {
 public:
 	GnssChecks(int32_t &check_mask, int32_t &req_nsats, float &req_pdop, float &req_hacc, float &req_vacc, float &req_sacc,
-		   float &ekf2_req_hdrift, float &ekf2_req_vdrift, float &velocity_limit, uint32_t &min_health_time_us,
+		   float &ekf2_req_hdrift, float &ekf2_req_vdrift, float &ekf2_vel_lim, uint32_t &min_health_time_us,
 		   filter_control_status_u &control_status):
-		_params{check_mask, req_nsats, req_pdop, req_hacc, req_vacc, req_sacc, ekf2_req_hdrift, ekf2_req_vdrift, velocity_limit, min_health_time_us},
+		_params{check_mask, req_nsats, req_pdop, req_hacc, req_vacc, req_sacc, ekf2_req_hdrift, ekf2_req_vdrift, ekf2_vel_lim, min_health_time_us},
 		_control_status(control_status)
 	{};
 
@@ -150,7 +150,7 @@ private:
 		const float &req_sacc;
 		const float &ekf2_req_hdrift;
 		const float &ekf2_req_vdrift;
-		const float &velocity_limit;
+		const float &ekf2_vel_lim;
 		const uint32_t &min_health_time_us;
 	};
 
