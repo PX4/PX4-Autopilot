@@ -279,7 +279,7 @@ struct parameters {
 	float ekf2_delay_max{110.f};              ///< maximum time delay of all the aiding sensors. Sets the size of the observation buffers. (mSec)
 
 	// input noise
-	float gyro_noise{1.5e-2f};              ///< IMU angular rate noise used for covariance prediction (rad/sec)
+	float ekf2_gyr_noise{1.5e-2f};              ///< IMU angular rate noise used for covariance prediction (rad/sec)
 	float accel_noise{3.5e-1f};             ///< IMU acceleration noise use for covariance prediction (m/sec**2)
 
 	// process noise

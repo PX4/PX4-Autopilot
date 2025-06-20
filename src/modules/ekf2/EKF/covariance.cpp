@@ -116,7 +116,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	const float dt = 0.5f * (imu_delayed.delta_vel_dt + imu_delayed.delta_ang_dt);
 
 	// gyro noise variance
-	float gyro_noise = _params.gyro_noise;
+	float gyro_noise = _params.ekf2_gyr_noise;
 	const float gyro_var = sq(gyro_noise);
 
 	// accel noise variance

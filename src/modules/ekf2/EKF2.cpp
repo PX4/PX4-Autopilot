@@ -70,7 +70,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 #if defined(CONFIG_EKF2_AUXVEL)
 	_param_ekf2_avel_delay(_params->ekf2_avel_delay),
 #endif // CONFIG_EKF2_AUXVEL
-	_param_ekf2_gyr_noise(_params->gyro_noise),
+	_param_ekf2_gyr_noise(_params->ekf2_gyr_noise),
 	_param_ekf2_acc_noise(_params->accel_noise),
 	_param_ekf2_gyr_b_noise(_params->gyro_bias_p_noise),
 	_param_ekf2_acc_b_noise(_params->accel_bias_p_noise),
