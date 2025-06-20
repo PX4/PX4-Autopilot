@@ -59,7 +59,7 @@ void Ekf::controlEvYawFusion(const imuSample &imu_sample, const extVisionSample 
 			      obs_var,                                     // observation variance
 			      innov,                                       // innovation
 			      innov_var,                                   // innovation variance
-			      math::max(_params.heading_innov_gate, 1.f)); // innovation gate
+			      math::max(_params.ekf2_hdg_gate, 1.f)); // innovation gate
 
 	if (ev_reset) {
 		_control_status.flags.ev_yaw_fault = false;

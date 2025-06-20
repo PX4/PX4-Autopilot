@@ -262,10 +262,10 @@ public:
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// Get the value of magnetic declination in degrees to be saved for use at the next startup
 	// Returns true when the declination can be saved
-	// At the next startup, set param.mag_declination_deg to the value saved
+	// At the next startup, set param.ekf2_mag_decl to the value saved
 	bool get_mag_decl_deg(float &val) const
 	{
-		if (PX4_ISFINITE(_wmm_declination_rad) && (_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)) {
+		if (PX4_ISFINITE(_wmm_declination_rad) && (_params.ekf2_decl_type & GeoDeclinationMask::SAVE_GEO_DECL)) {
 			val = math::degrees(_wmm_declination_rad);
 			return true;
 

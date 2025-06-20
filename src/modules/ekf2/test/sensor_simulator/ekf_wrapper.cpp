@@ -217,22 +217,22 @@ bool EkfWrapper::isMagHeadingConsistent() const
 
 void EkfWrapper::setMagFuseTypeNone()
 {
-	_ekf_params->mag_fusion_type = MagFuseType::NONE;
+	_ekf_params->ekf2_mag_type = MagFuseType::NONE;
 }
 
 void EkfWrapper::enableMagStrengthCheck()
 {
-	_ekf_params->mag_check |= static_cast<int32_t>(MagCheckMask::STRENGTH);
+	_ekf_params->ekf2_mag_check |= static_cast<int32_t>(MagCheckMask::STRENGTH);
 }
 
 void EkfWrapper::enableMagInclinationCheck()
 {
-	_ekf_params->mag_check |= static_cast<int32_t>(MagCheckMask::INCLINATION);
+	_ekf_params->ekf2_mag_check |= static_cast<int32_t>(MagCheckMask::INCLINATION);
 }
 
 void EkfWrapper::enableMagCheckForceWMM()
 {
-	_ekf_params->mag_check |= static_cast<int32_t>(MagCheckMask::FORCE_WMM);
+	_ekf_params->ekf2_mag_check |= static_cast<int32_t>(MagCheckMask::FORCE_WMM);
 }
 
 bool EkfWrapper::isWindVelocityEstimated() const
@@ -288,7 +288,7 @@ void EkfWrapper::setDragFusionParameters(const float &bcoef_x, const float &bcoe
 
 float EkfWrapper::getMagHeadingNoise() const
 {
-	return _ekf_params->mag_heading_noise;
+	return _ekf_params->ekf2_head_noise;
 }
 
 void EkfWrapper::enableGyroBiasEstimation()

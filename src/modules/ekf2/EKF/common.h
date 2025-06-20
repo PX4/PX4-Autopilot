@@ -100,13 +100,13 @@ enum class VelocityFrame : uint8_t {
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 enum GeoDeclinationMask : uint8_t {
-	// Bit locations for mag_declination_source
+	// Bit locations for ekf2_decl_type
 	USE_GEO_DECL  = (1 << 0), ///< set to true to use the declination from the geo library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value
 	SAVE_GEO_DECL = (1 << 1) ///< set to true to set the EKF2_MAG_DECL parameter to the value returned by the geo library
 };
 
 enum MagFuseType : uint8_t {
-	// Integer definitions for mag_fusion_type
+	// Integer definitions for ekf2_mag_type
 	AUTO    = 0,   	///< The selection of either heading or 3D magnetometer fusion will be automatic
 	HEADING = 1,   	///< Simple yaw angle fusion will always be used. This is less accurate, but less affected by earth field distortions. It should not be used for pitch angles outside the range from -60 to +60 deg
 	NONE    = 5,   	///< Do not use magnetometer under any circumstance.
@@ -358,28 +358,28 @@ struct parameters {
 
 	float ekf2_noaid_noise{10.0f};           ///< observation noise for non-aiding position fusion (m)
 
-	float heading_innov_gate{2.6f};         ///< heading fusion innovation consistency gate size (STD)
-	float mag_heading_noise{3.0e-1f};       ///< measurement noise used for simple heading fusion (rad)
+	float ekf2_hdg_gate{2.6f};         ///< heading fusion innovation consistency gate size (STD)
+	float ekf2_head_noise{3.0e-1f};       ///< measurement noise used for simple heading fusion (rad)
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	float mag_delay_ms {0.0f};              ///< magnetometer measurement delay relative to the IMU (mSec)
+	float ekf2_mag_delay {0.0f};              ///< magnetometer measurement delay relative to the IMU (mSec)
 
-	float mage_p_noise{1.0e-3f};            ///< process noise for earth magnetic field prediction (Gauss/sec)
-	float magb_p_noise{1.0e-4f};            ///< process noise for body magnetic field prediction (Gauss/sec)
+	float ekf2_mag_e_noise{1.0e-3f};            ///< process noise for earth magnetic field prediction (Gauss/sec)
+	float ekf2_mag_b_noise{1.0e-4f};            ///< process noise for body magnetic field prediction (Gauss/sec)
 
 	// magnetometer fusion
-	float mag_noise{5.0e-2f};               ///< measurement noise used for 3-axis magnetometer fusion (Gauss)
-	float mag_declination_deg{0.0f};        ///< magnetic declination (degrees)
-	float mag_innov_gate{3.0f};             ///< magnetometer fusion innovation consistency gate size (STD)
-	int32_t mag_declination_source{3};      ///< bitmask used to control the handling of declination data
-	int32_t mag_fusion_type{0};             ///< integer used to specify the type of magnetometer fusion used
-	float mag_acc_gate{0.5f};               ///< when in auto select mode, heading fusion will be used when manoeuvre accel is lower than this (m/sec**2)
+	float ekf2_mag_noise{5.0e-2f};               ///< measurement noise used for 3-axis magnetometer fusion (Gauss)
+	float ekf2_mag_decl{0.0f};        ///< magnetic declination (degrees)
+	float ekf2_mag_gate{3.0f};             ///< magnetometer fusion innovation consistency gate size (STD)
+	int32_t ekf2_decl_type{3};      ///< bitmask used to control the handling of declination data
+	int32_t ekf2_mag_type{0};             ///< integer used to specify the type of magnetometer fusion used
+	float ekf2_mag_acclim{0.5f};               ///< when in auto select mode, heading fusion will be used when manoeuvre accel is lower than this (m/sec**2)
 
 	// compute synthetic magnetomter Z value if possible
-	int32_t synthesize_mag_z{0};
-	int32_t mag_check{0};
-	float mag_check_strength_tolerance_gs{0.2f};
-	float mag_check_inclination_tolerance_deg{20.f};
+	int32_t ekf2_synt_mag_z{0};
+	int32_t ekf2_mag_check{0};
+	float ekf2_mag_chk_str{0.2f};
+	float ekf2_mag_chk_inc{20.f};
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_AIRSPEED)
@@ -479,7 +479,7 @@ struct parameters {
 	const unsigned no_aid_timeout_max{1'000'000};     ///< maximum lapsed time from last fusion of a measurement that constrains horizontal velocity drift before the EKF will determine that the sensor is no longer contributing to aiding (uSec)
 	const unsigned hgt_fusion_timeout_max{5'000'000}; ///< maximum time we allow height fusion to fail before attempting a reset or stopping the fusion aiding (uSec)
 
-	int32_t valid_timeout_max{5'000'000};     ///< amount of time spent inertial dead reckoning before the estimator reports the state estimates as invalid (uSec)
+	int32_t ekf2_noaid_tout{5'000'000};     ///< amount of time spent inertial dead reckoning before the estimator reports the state estimates as invalid (uSec)
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	// multi-rotor drag specific force fusion

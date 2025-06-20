@@ -877,7 +877,7 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 	}
 
 	if (inertial_dead_reckoning) {
-		if (isTimedOut(_time_last_horizontal_aiding, (uint64_t)_params.valid_timeout_max)) {
+		if (isTimedOut(_time_last_horizontal_aiding, (uint64_t)_params.ekf2_noaid_tout)) {
 			// deadreckon time exceeded
 			if (!_horizontal_deadreckon_time_exceeded) {
 				ECL_WARN("horizontal dead reckon time exceeded");
@@ -903,7 +903,7 @@ void Ekf::updateVerticalDeadReckoningStatus()
 		_time_last_v_pos_aiding = _time_last_hgt_fuse;
 		_vertical_position_deadreckon_time_exceeded = false;
 
-	} else if (isTimedOut(_time_last_v_pos_aiding, (uint64_t)_params.valid_timeout_max)) {
+	} else if (isTimedOut(_time_last_v_pos_aiding, (uint64_t)_params.ekf2_noaid_tout)) {
 		_vertical_position_deadreckon_time_exceeded = true;
 	}
 
@@ -911,7 +911,7 @@ void Ekf::updateVerticalDeadReckoningStatus()
 		_time_last_v_vel_aiding = _time_last_ver_vel_fuse;
 		_vertical_velocity_deadreckon_time_exceeded = false;
 
-	} else if (isTimedOut(_time_last_v_vel_aiding, (uint64_t)_params.valid_timeout_max)
+	} else if (isTimedOut(_time_last_v_vel_aiding, (uint64_t)_params.ekf2_noaid_tout)
 		   && _vertical_position_deadreckon_time_exceeded) {
 
 		_vertical_velocity_deadreckon_time_exceeded = true;

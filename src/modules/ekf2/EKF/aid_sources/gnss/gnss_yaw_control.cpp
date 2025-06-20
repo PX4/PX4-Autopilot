@@ -151,7 +151,7 @@ void Ekf::updateGnssYaw(const gnssSample &gnss_sample)
 			      R_YAW,                                       // observation variance
 			      wrap_pi(heading_pred - measured_hdg),        // innovation
 			      heading_innov_var,                           // innovation variance
-			      math::max(_params.heading_innov_gate, 1.f)); // innovation gate
+			      math::max(_params.ekf2_hdg_gate, 1.f)); // innovation gate
 }
 
 void Ekf::fuseGnssYaw(float antenna_yaw_offset)
