@@ -115,10 +115,11 @@ private:
 	 */
 	void setHeadingSmootherLimits(const goto_setpoint_s &goto_setpoint);
 
-	uORB::SubscriptionData<goto_setpoint_s> _goto_setpoint_sub{ORB_ID(goto_setpoint)};
+	uORB::Subscription _goto_setpoint_sub{ORB_ID(goto_setpoint)};
 	uORB::Publication<trajectory_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
 	uORB::Publication<vehicle_constraints_s> _vehicle_constraints_pub{ORB_ID(vehicle_constraints)};
 
+	goto_setpoint_s _goto_setpoint{};
 	PositionSmoothing _position_smoothing;
 	HeadingSmoothing _heading_smoothing;
 

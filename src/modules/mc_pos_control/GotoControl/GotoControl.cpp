@@ -45,9 +45,16 @@ using namespace time_literals;
 
 bool GotoControl::checkForSetpoint(const hrt_abstime &now, const bool enabled)
 {
-	_goto_setpoint_sub.update();
-	const bool timestamp_initialized = _goto_setpoint_sub.get().timestamp != 0;
-	const bool no_timeout = now < (_goto_setpoint_sub.get().timestamp + 500_ms);
+	_goto_setpoint_sub.update(&_goto_setpoint);
+
+	if (!enabled) {
+		// Flag the setpoint as invalid if disabled, so if it is enabled in near future,
+		// we don't use an old setpoint
+		_goto_setpoint.timestamp = 0;
+	}
+
+	const bool timestamp_initialized = _goto_setpoint.timestamp != 0;
+	const bool no_timeout = now < (_goto_setpoint.timestamp + 500_ms);
 	const bool need_to_run = timestamp_initialized && no_timeout && enabled;
 
 	if (!need_to_run) {
@@ -65,9 +72,7 @@ void GotoControl::update(const float dt, const matrix::Vector3f &position, const
 		_is_initialized = true;
 	}
 
-	const goto_setpoint_s &goto_setpoint = _goto_setpoint_sub.get();
-
-	const Vector3f position_setpoint(_goto_setpoint_sub.get().position);
+	const Vector3f position_setpoint(_goto_setpoint.position);
 
 	if (!position_setpoint.isAllFinite()) {
 		// TODO: error messaging
@@ -85,7 +90,7 @@ void GotoControl::update(const float dt, const matrix::Vector3f &position, const
 		resetPositionSmoother(position);
 	}
 
-	setPositionSmootherLimits(goto_setpoint);
+	setPositionSmootherLimits(_goto_setpoint);
 
 	const Vector3f feedforward_velocity{};
 	const bool force_zero_velocity_setpoint = false;
@@ -99,13 +104,13 @@ void GotoControl::update(const float dt, const matrix::Vector3f &position, const
 	out_setpoints.acceleration.copyTo(trajectory_setpoint.acceleration);
 	out_setpoints.jerk.copyTo(trajectory_setpoint.jerk);
 
-	if (goto_setpoint.flag_control_heading && PX4_ISFINITE(goto_setpoint.heading) && PX4_ISFINITE(heading)) {
+	if (_goto_setpoint.flag_control_heading && PX4_ISFINITE(_goto_setpoint.heading) && PX4_ISFINITE(heading)) {
 		if (!_controlling_heading || _need_smoother_reset) {
 			resetHeadingSmoother(heading);
 		}
 
-		setHeadingSmootherLimits(goto_setpoint);
-		_heading_smoothing.update(goto_setpoint.heading, dt);
+		setHeadingSmootherLimits(_goto_setpoint);
+		_heading_smoothing.update(_goto_setpoint.heading, dt);
 
 		trajectory_setpoint.yaw = _heading_smoothing.getSmoothedHeading();
 		trajectory_setpoint.yawspeed = _heading_smoothing.getSmoothedHeadingRate();
@@ -121,11 +126,11 @@ void GotoControl::update(const float dt, const matrix::Vector3f &position, const
 
 	_need_smoother_reset = false;
 
-	trajectory_setpoint.timestamp = goto_setpoint.timestamp;
+	trajectory_setpoint.timestamp = hrt_absolute_time();
 	_trajectory_setpoint_pub.publish(trajectory_setpoint);
 
 	vehicle_constraints_s vehicle_constraints{
-		.timestamp = goto_setpoint.timestamp,
+		.timestamp = trajectory_setpoint.timestamp,
 		.speed_up = NAN,
 		.speed_down = NAN,
 		.want_takeoff = false
