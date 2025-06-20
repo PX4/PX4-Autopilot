@@ -7,14 +7,14 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *	notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
+ *	notice, this list of conditions and the following disclaimer in
+ *	the documentation and/or other materials provided with the
+ *	distribution.
  * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ *	used to endorse or promote products derived from this software
+ *	without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -35,25 +35,13 @@
 
 bool GZMixingInterfaceESC::init(const std::string &model_name)
 {
-	pthread_mutex_init(&_node_mutex, nullptr);
 
-	pthread_mutex_lock(&_node_mutex);
-	_mixing_output.updateSubscriptions(false);
-	pthread_mutex_unlock(&_node_mutex);
+	// ESC feedback: /x500/command/motor_speed
+	std::string motor_speed_topic = "/" + model_name + "/command/motor_speed";
 
-	if (canReportTelemetry()) { // If less than or equal to MAX_TELEM_ESCs are configured telemetry can be reported
-		// ESC feedback: /x500/command/motor_speed
-		std::string motor_speed_topic = "/" + model_name + "/command/motor_speed";
-
-		if (!_node.Subscribe(motor_speed_topic, &GZMixingInterfaceESC::motorSpeedCallback, this)) {
-			PX4_ERR("failed to subscribe to %s", motor_speed_topic.c_str());
-			return false;
-		}
-
-		_esc_status_pub.advertise();
-
-	} else {
-		PX4_INFO("GZMixingInterfaceESC: ESCs configured as PWM outputs, ESC telemetry will not be reported");
+	if (!_node.Subscribe(motor_speed_topic, &GZMixingInterfaceESC::motorSpeedCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", motor_speed_topic.c_str());
+		return false;
 	}
 
 	// output eg /X500/command/motor_speed
@@ -65,6 +53,9 @@ bool GZMixingInterfaceESC::init(const std::string &model_name)
 		return false;
 	}
 
+	_esc_status_pub.advertise();
+
+	pthread_mutex_init(&_node_mutex, nullptr);
 
 	ScheduleNow();
 
@@ -101,22 +92,6 @@ bool GZMixingInterfaceESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_
 	return false;
 }
 
-bool GZMixingInterfaceESC::canReportTelemetry()
-{
-	unsigned active_output_count = 0;
-
-	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
-		if (_mixing_output.isFunctionSet(i)) {
-			active_output_count++;
-
-		} else {
-			break;
-		}
-	}
-
-	return (active_output_count <= MAX_TELEM_ESCS);
-}
-
 void GZMixingInterfaceESC::Run()
 {
 	pthread_mutex_lock(&_node_mutex);
@@ -134,15 +109,20 @@ void GZMixingInterfaceESC::motorSpeedCallback(const gz::msgs::Actuators &actuato
 	pthread_mutex_lock(&_node_mutex);
 
 	esc_status_s esc_status{};
-	esc_status.esc_count = actuators.velocity_size();
+	int limited_escs = math::min(actuators.velocity_size(), (int)esc_status_s::CONNECTED_ESC_MAX);
+	esc_status.esc_count = limited_escs;
 
-	for (int i = 0; i < esc_status.esc_count; i++) {
+	for (int i = 0; i < limited_escs; i++) {
 		esc_status.esc[i].timestamp = hrt_absolute_time();
 		esc_status.esc[i].esc_rpm = actuators.velocity(i);
 		esc_status.esc_online_flags |= 1 << i;
 
+		// This is a race condition with the failure detector, for smaller models it always resolves before
+		// the failure detector runs, but for larger models (with more than 8 ESCs) the failure detector
+		// can run before the velocity of some escs is set > 0. To mitigate this, if one esc has a velocity > 0,
+		// we assume all escs are armed.
 		if (actuators.velocity(i) > 0) {
-			esc_status.esc_armed_flags |= 1 << i;
+			esc_status.esc_armed_flags = (1 << limited_escs) - 1;
 		}
 	}
 
