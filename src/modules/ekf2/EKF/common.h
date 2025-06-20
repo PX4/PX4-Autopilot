@@ -497,7 +497,7 @@ struct parameters {
 
 #if defined(CONFIG_EKF2_AUXVEL)
 	// auxiliary velocity fusion
-	float auxvel_delay_ms{5.0f};            ///< auxiliary velocity measurement delay relative to the IMU (mSec)
+	float ekf2_avel_delay{5.0f};            ///< auxiliary velocity measurement delay relative to the IMU (mSec)
 	const float auxvel_noise{0.5f};         ///< minimum observation noise, uses reported noise if greater (m/s)
 	const float auxvel_gate{5.0f};          ///< velocity fusion innovation consistency gate size (STD)
 #endif // CONFIG_EKF2_AUXVEL

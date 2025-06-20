@@ -419,7 +419,7 @@ void EstimatorInterface::setAuxVelData(const auxVelSample &auxvel_sample)
 	}
 
 	const int64_t time_us = auxvel_sample.time_us
-				- static_cast<int64_t>(_params.auxvel_delay_ms * 1000)
+				- static_cast<int64_t>(_params.ekf2_avel_delay * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	// limit data rate to prevent data being lost

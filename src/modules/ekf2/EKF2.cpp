@@ -68,7 +68,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_imu_ctrl(_params->imu_ctrl),
 	_param_ekf2_vel_lim(_params->ekf2_vel_lim),
 #if defined(CONFIG_EKF2_AUXVEL)
-	_param_ekf2_avel_delay(_params->auxvel_delay_ms),
+	_param_ekf2_avel_delay(_params->ekf2_avel_delay),
 #endif // CONFIG_EKF2_AUXVEL
 	_param_ekf2_gyr_noise(_params->gyro_noise),
 	_param_ekf2_acc_noise(_params->accel_noise),
