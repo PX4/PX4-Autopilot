@@ -283,7 +283,7 @@ void EkfWrapper::setDragFusionParameters(const float &bcoef_x, const float &bcoe
 {
 	_ekf_params->ekf2_bcoef_x = bcoef_x;
 	_ekf_params->ekf2_bcoef_y = bcoef_y;
-	_ekfparams->ekf2_mcoef = mcoef;
+	_ekf_params->ekf2_mcoef = mcoef;
 }
 
 float EkfWrapper::getMagHeadingNoise() const
