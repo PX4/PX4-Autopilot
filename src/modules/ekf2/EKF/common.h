@@ -283,7 +283,7 @@ struct parameters {
 	float ekf2_acc_noise{3.5e-1f};             ///< IMU acceleration noise use for covariance prediction (m/sec**2)
 
 	// process noise
-	float gyro_bias_p_noise{1.0e-3f};       ///< process noise for IMU rate gyro bias prediction (rad/sec**2)
+	float ekf2_gyr_b_noise{1.0e-3f};       ///< process noise for IMU rate gyro bias prediction (rad/sec**2)
 	float accel_bias_p_noise{1.0e-2f};      ///< process noise for IMU accelerometer bias prediction (m/sec**3)
 
 #if defined(CONFIG_EKF2_WIND)

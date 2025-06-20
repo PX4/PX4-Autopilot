@@ -144,7 +144,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 	// gyro bias: add process noise
 	{
-		const float gyro_bias_sig = dt * _params.gyro_bias_p_noise;
+		const float gyro_bias_sig = dt * _params.ekf2_gyr_b_noise;
 		const float gyro_bias_process_noise = sq(gyro_bias_sig);
 
 		for (unsigned index = 0; index < State::gyro_bias.dof; index++) {
