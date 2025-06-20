@@ -293,9 +293,9 @@ struct parameters {
 #endif // CONFIG_EKF2_WIND
 
 	// initialization errors
-	float switch_on_gyro_bias{0.1f};        ///< 1-sigma gyro bias uncertainty at switch on (rad/sec)
-	float switch_on_accel_bias{0.2f};       ///< 1-sigma accelerometer bias uncertainty at switch on (m/sec**2)
-	float initial_tilt_err{0.1f};           ///< 1-sigma tilt error after initial alignment using gravity vector (rad)
+	float ekf2_gbias_init{0.1f};        ///< 1-sigma gyro bias uncertainty at switch on (rad/sec)
+	float ekf2_abias_init{0.2f};       ///< 1-sigma accelerometer bias uncertainty at switch on (m/sec**2)
+	float ekf2_angerr_init{0.1f};           ///< 1-sigma tilt error after initial alignment using gravity vector (rad)
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	int32_t ekf2_baro_ctrl{1};
@@ -446,20 +446,20 @@ struct parameters {
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	// gravity fusion
-	float gravity_noise{1.0f};              ///< accelerometer measurement gaussian noise (m/s**2)
+	float ekf2_grav_noise{1.0f};              ///< accelerometer measurement gaussian noise (m/s**2)
 #endif // CONFIG_EKF2_GRAVITY_FUSION
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	int32_t flow_ctrl {0};
-	int32_t flow_gyro_src {static_cast<int32_t>(FlowGyroSource::Auto)};
-	float flow_delay_ms{5.0f};              ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
+	int32_t ekf2_of_ctrl {0};
+	int32_t ekf2_of_gyr_src {static_cast<int32_t>(FlowGyroSource::Auto)};
+	float ekf2_of_delay{5.0f};              ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
 
 	// optical flow fusion
-	float flow_noise{0.15f};                ///< observation noise for optical flow LOS rate measurements (rad/sec)
-	float flow_noise_qual_min{0.5f};        ///< observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)
-	int32_t flow_qual_min{1};               ///< minimum acceptable quality integer from  the flow sensor
-	int32_t flow_qual_min_gnd{0};           ///< minimum acceptable quality integer from  the flow sensor when on ground
-	float flow_innov_gate{3.0f};            ///< optical flow fusion innovation consistency gate size (STD)
+	float ekf2_of_n_min{0.15f};                ///< observation noise for optical flow LOS rate measurements (rad/sec)
+	float ekf2_of_n_max{0.5f};        ///< observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)
+	int32_t ekf2_of_qmin{1};               ///< minimum acceptable quality integer from  the flow sensor
+	int32_t ekf2_of_qmin_gnd{0};           ///< minimum acceptable quality integer from  the flow sensor when on ground
+	float ekf2_of_gate{3.0f};            ///< optical flow fusion innovation consistency gate size (STD)
 
 	Vector3f flow_pos_body{};               ///< xyz position of range sensor focal point in body frame (m)
 #endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -468,12 +468,12 @@ struct parameters {
 	Vector3f imu_pos_body{};                ///< xyz position of IMU in body frame (m)
 
 	// accel bias learning control
-	float acc_bias_lim{0.4f};               ///< maximum accel bias magnitude (m/sec**2)
-	float acc_bias_learn_acc_lim{25.0f};    ///< learning is disabled if the magnitude of the IMU acceleration vector is greater than this (m/sec**2)
-	float acc_bias_learn_gyr_lim{3.0f};     ///< learning is disabled if the magnitude of the IMU angular rate vector is greater than this (rad/sec)
-	float acc_bias_learn_tc{0.5f};          ///< time constant used to control the decaying envelope filters applied to the accel and gyro magnitudes (sec)
+	float ekf2_abl_lim{0.4f};               ///< maximum accel bias magnitude (m/sec**2)
+	float ekf2_abl_acclim{25.0f};    ///< learning is disabled if the magnitude of the IMU acceleration vector is greater than this (m/sec**2)
+	float ekf2_abl_gyrlim{3.0f};     ///< learning is disabled if the magnitude of the IMU angular rate vector is greater than this (rad/sec)
+	float ekf2_abl_tau{0.5f};          ///< time constant used to control the decaying envelope filters applied to the accel and gyro magnitudes (sec)
 
-	float gyro_bias_lim{0.4f};              ///< maximum gyro bias magnitude (rad/sec)
+	float ekf2_gyr_b_lim{0.4f};              ///< maximum gyro bias magnitude (rad/sec)
 
 	const unsigned reset_timeout_max{7'000'000};      ///< maximum time we allow horizontal inertial dead reckoning before attempting to reset the states to the measurement or change _control_status if the data is unavailable (uSec)
 	const unsigned no_aid_timeout_max{1'000'000};     ///< maximum lapsed time from last fusion of a measurement that constrains horizontal velocity drift before the EKF will determine that the sensor is no longer contributing to aiding (uSec)
@@ -483,11 +483,11 @@ struct parameters {
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	// multi-rotor drag specific force fusion
-	int32_t drag_ctrl{0};
-	float drag_noise{2.5f};                 ///< observation noise variance for drag specific force measurements (m/sec**2)**2
-	float bcoef_x{100.0f};                  ///< bluff body drag ballistic coefficient for the X-axis (kg/m**2)
-	float bcoef_y{100.0f};                  ///< bluff body drag ballistic coefficient for the Y-axis (kg/m**2)
-	float mcoef{0.1f};                      ///< rotor momentum drag coefficient for the X and Y axes (1/s)
+	int32_t ekf2_drag_ctrl{0};
+	float ekf2_drag_noise{2.5f};                 ///< observation noise variance for drag specific force measurements (m/sec**2)**2
+	float ekf2_bcoef_x{100.0f};                  ///< bluff body drag ballistic coefficient for the X-axis (kg/m**2)
+	float ekf2_bcoef_y{100.0f};                  ///< bluff body drag ballistic coefficient for the Y-axis (kg/m**2)
+	float ekf2_mcoef{0.1f};                      ///< rotor momentum drag coefficient for the X and Y axes (1/s)
 #endif // CONFIG_EKF2_DRAG_FUSION
 
 	// control of accel error detection and mitigation (IMU clipping)

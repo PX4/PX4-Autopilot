@@ -825,7 +825,7 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 		inertial_dead_reckoning = false;
 
 	} else {
-		if (!_control_status.flags.in_air && (_params.flow_ctrl == 1)
+		if (!_control_status.flags.in_air && (_params.ekf2_of_ctrl == 1)
 		    && isRecent(_aid_src_optical_flow.timestamp_sample, _params.no_aid_timeout_max)
 		   ) {
 			// currently landed, but optical flow aiding should be possible once in air
@@ -975,7 +975,7 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 	{
 		const Vector3f gyro_corrected = imu_delayed.delta_ang / imu_delayed.delta_ang_dt - _state.gyro_bias;
 
-		const float alpha = math::constrain((imu_delayed.delta_ang_dt / _params.acc_bias_learn_tc), 0.f, 1.f);
+		const float alpha = math::constrain((imu_delayed.delta_ang_dt / _params.ekf2_abl_tau), 0.f, 1.f);
 		const float beta = 1.f - alpha;
 
 		_ang_rate_magnitude_filt = fmaxf(gyro_corrected.norm(), beta * _ang_rate_magnitude_filt);
@@ -984,15 +984,15 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 	{
 		const Vector3f accel_corrected = imu_delayed.delta_vel / imu_delayed.delta_vel_dt - _state.accel_bias;
 
-		const float alpha = math::constrain((imu_delayed.delta_vel_dt / _params.acc_bias_learn_tc), 0.f, 1.f);
+		const float alpha = math::constrain((imu_delayed.delta_vel_dt / _params.ekf2_abl_tau), 0.f, 1.f);
 		const float beta = 1.f - alpha;
 
 		_accel_magnitude_filt = fmaxf(accel_corrected.norm(), beta * _accel_magnitude_filt);
 	}
 
 
-	const bool is_manoeuvre_level_high = (_ang_rate_magnitude_filt > _params.acc_bias_learn_gyr_lim)
-					     || (_accel_magnitude_filt > _params.acc_bias_learn_acc_lim);
+	const bool is_manoeuvre_level_high = (_ang_rate_magnitude_filt > _params.ekf2_abl_gyrlim)
+					     || (_accel_magnitude_filt > _params.ekf2_abl_acclim);
 
 
 	// gyro bias inhibit

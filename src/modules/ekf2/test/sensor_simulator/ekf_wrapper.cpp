@@ -137,12 +137,12 @@ bool EkfWrapper::isIntendingGpsHeadingFusion() const
 
 void EkfWrapper::enableFlowFusion()
 {
-	_ekf_params->flow_ctrl = 1;
+	_ekf_params->ekf2_of_ctrl = 1;
 }
 
 void EkfWrapper::disableFlowFusion()
 {
-	_ekf_params->flow_ctrl = 0;
+	_ekf_params->ekf2_of_ctrl = 0;
 }
 
 bool EkfWrapper::isIntendingFlowFusion() const
@@ -271,19 +271,19 @@ int EkfWrapper::getQuaternionResetCounter() const
 
 void EkfWrapper::enableDragFusion()
 {
-	_ekf_params->drag_ctrl = 1;
+	_ekf_params->ekf2_drag_ctrl = 1;
 }
 
 void EkfWrapper::disableDragFusion()
 {
-	_ekf_params->drag_ctrl = 0;
+	_ekf_params->ekf2_drag_ctrl = 0;
 }
 
 void EkfWrapper::setDragFusionParameters(const float &bcoef_x, const float &bcoef_y, const float &mcoef)
 {
-	_ekf_params->bcoef_x = bcoef_x;
-	_ekf_params->bcoef_y = bcoef_y;
-	_ekf_params->mcoef = mcoef;
+	_ekf_params->ekf2_bcoef_x = bcoef_x;
+	_ekf_params->ekf2_bcoef_y = bcoef_y;
+	_ekfparams->ekf2_mcoef = mcoef;
 }
 
 float EkfWrapper::getMagHeadingNoise() const

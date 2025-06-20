@@ -182,39 +182,39 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_ev_pos_z(_params->ev_pos_body(2)),
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	_param_ekf2_of_ctrl(_params->flow_ctrl),
-	_param_ekf2_of_gyr_src(_params->flow_gyro_src),
-	_param_ekf2_of_delay(_params->flow_delay_ms),
-	_param_ekf2_of_n_min(_params->flow_noise),
-	_param_ekf2_of_n_max(_params->flow_noise_qual_min),
-	_param_ekf2_of_qmin(_params->flow_qual_min),
-	_param_ekf2_of_qmin_gnd(_params->flow_qual_min_gnd),
-	_param_ekf2_of_gate(_params->flow_innov_gate),
+	_param_ekf2_of_ctrl(_params->ekf2_of_ctrl),
+	_param_ekf2_of_gyr_src(_params->ekf2_of_gyr_src),
+	_param_ekf2_of_delay(_params->ekf2_of_delay),
+	_param_ekf2_of_n_min(_params->ekf2_of_n_min),
+	_param_ekf2_of_n_max(_params->ekf2_of_n_max),
+	_param_ekf2_of_qmin(_params->ekf2_of_qmin),
+	_param_ekf2_of_qmin_gnd(_params->ekf2_of_qmin_gnd),
+	_param_ekf2_of_gate(_params->ekf2_of_gate),
 	_param_ekf2_of_pos_x(_params->flow_pos_body(0)),
 	_param_ekf2_of_pos_y(_params->flow_pos_body(1)),
 	_param_ekf2_of_pos_z(_params->flow_pos_body(2)),
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_DRAG_FUSION)
-	_param_ekf2_drag_ctrl(_params->drag_ctrl),
-	_param_ekf2_drag_noise(_params->drag_noise),
-	_param_ekf2_bcoef_x(_params->bcoef_x),
-	_param_ekf2_bcoef_y(_params->bcoef_y),
-	_param_ekf2_mcoef(_params->mcoef),
+	_param_ekf2_drag_ctrl(_params->ekf2_drag_ctrl),
+	_param_ekf2_drag_noise(_params->ekf2_drag_noise),
+	_param_ekf2_bcoef_x(_params->ekf2_bcoef_x),
+	_param_ekf2_bcoef_y(_params->ekf2_bcoef_y),
+	_param_ekf2_mcoef(_params->ekf2_mcoef),
 #endif // CONFIG_EKF2_DRAG_FUSION
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
-	_param_ekf2_grav_noise(_params->gravity_noise),
+	_param_ekf2_grav_noise(_params->ekf2_grav_noise),
 #endif // CONFIG_EKF2_GRAVITY_FUSION
 	_param_ekf2_imu_pos_x(_params->imu_pos_body(0)),
 	_param_ekf2_imu_pos_y(_params->imu_pos_body(1)),
 	_param_ekf2_imu_pos_z(_params->imu_pos_body(2)),
-	_param_ekf2_gbias_init(_params->switch_on_gyro_bias),
-	_param_ekf2_abias_init(_params->switch_on_accel_bias),
-	_param_ekf2_angerr_init(_params->initial_tilt_err),
-	_param_ekf2_abl_lim(_params->acc_bias_lim),
-	_param_ekf2_abl_acclim(_params->acc_bias_learn_acc_lim),
-	_param_ekf2_abl_gyrlim(_params->acc_bias_learn_gyr_lim),
-	_param_ekf2_abl_tau(_params->acc_bias_learn_tc),
-	_param_ekf2_gyr_b_lim(_params->gyro_bias_lim)
+	_param_ekf2_gbias_init(_params->ekf2_gbias_init),
+	_param_ekf2_abias_init(_params->ekf2_abias_init),
+	_param_ekf2_angerr_init(_params->ekf2_angerr_init),
+	_param_ekf2_abl_lim(_params->ekf2_abl_lim),
+	_param_ekf2_abl_acclim(_params->ekf2_abl_acclim),
+	_param_ekf2_abl_gyrlim(_params->ekf2_abl_gyrlim),
+	_param_ekf2_abl_tau(_params->ekf2_abl_tau),
+	_param_ekf2_gyr_b_lim(_params->ekf2_gyr_b_lim)
 {
 	AdvertiseTopics();
 }

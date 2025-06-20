@@ -341,7 +341,7 @@ void EstimatorInterface::setOpticalFlowData(const flowSample &flow)
 	}
 
 	const int64_t time_us = flow.time_us
-				- static_cast<int64_t>(_params.flow_delay_ms * 1000)
+				- static_cast<int64_t>(_params.ekf2_of_delay * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	// limit data rate to prevent data being lost
@@ -477,7 +477,7 @@ void EstimatorInterface::setDragData(const imuSample &imu)
 {
 	// down-sample the drag specific force data by accumulating and calculating the mean when
 	// sufficient samples have been collected
-	if (_params.drag_ctrl > 0) {
+	if (_params.ekf2_drag_ctrl > 0) {
 
 		// Allocate the required buffer size if not previously done
 		if (_drag_buffer == nullptr) {

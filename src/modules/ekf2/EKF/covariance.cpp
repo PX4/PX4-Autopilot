@@ -313,7 +313,7 @@ void Ekf::constrainStateVarLimitRatio(const IdxDof &state, float min, float max,
 
 void Ekf::resetQuatCov(const float yaw_noise)
 {
-	const float tilt_var = sq(math::max(_params.initial_tilt_err, 0.01f));
+	const float tilt_var = sq(math::max(_params.ekf2_angerr_init, 0.01f));
 	float yaw_var = sq(0.01f);
 
 	// update the yaw angle variance using the variance of the measurement
@@ -334,19 +334,19 @@ void Ekf::resetGyroBiasCov()
 {
 	// Zero the corresponding covariances and set
 	// variances to the values use for initial alignment
-	P.uncorrelateCovarianceSetVariance<State::gyro_bias.dof>(State::gyro_bias.idx, sq(_params.switch_on_gyro_bias));
+	P.uncorrelateCovarianceSetVariance<State::gyro_bias.dof>(State::gyro_bias.idx, sq(_params.ekf2_gbias_init));
 }
 
 void Ekf::resetGyroBiasZCov()
 {
-	P.uncorrelateCovarianceSetVariance<1>(State::gyro_bias.idx + 2, sq(_params.switch_on_gyro_bias));
+	P.uncorrelateCovarianceSetVariance<1>(State::gyro_bias.idx + 2, sq(_params.ekf2_gbias_init));
 }
 
 void Ekf::resetAccelBiasCov()
 {
 	// Zero the corresponding covariances and set
 	// variances to the values use for initial alignment
-	P.uncorrelateCovarianceSetVariance<State::accel_bias.dof>(State::accel_bias.idx, sq(_params.switch_on_accel_bias));
+	P.uncorrelateCovarianceSetVariance<State::accel_bias.dof>(State::accel_bias.idx, sq(_params.ekf2_abias_init));
 }
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
