@@ -158,7 +158,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 	// accel bias: add process noise
 	{
-		const float accel_bias_sig = dt * _params.accel_bias_p_noise;
+		const float accel_bias_sig = dt * _params.ekf2_acc_b_noise;
 		const float accel_bias_process_noise = sq(accel_bias_sig);
 
 		for (unsigned index = 0; index < State::accel_bias.dof; index++) {

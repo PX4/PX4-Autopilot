@@ -376,7 +376,7 @@ void Ekf::updateParameters()
 	_params.ekf2_acc_noise = math::constrain(_params.ekf2_acc_noise, 0.f, 1.f);
 
 	_params.ekf2_gyr_b_noise = math::constrain(_params.ekf2_gyr_b_noise, 0.f, 1.f);
-	_params.accel_bias_p_noise = math::constrain(_params.accel_bias_p_noise, 0.f, 1.f);
+	_params.ekf2_acc_b_noise = math::constrain(_params.ekf2_acc_b_noise, 0.f, 1.f);
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	_params.mage_p_noise = math::constrain(_params.mage_p_noise, 0.f, 1.f);

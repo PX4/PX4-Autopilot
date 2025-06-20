@@ -73,7 +73,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_gyr_noise(_params->ekf2_gyr_noise),
 	_param_ekf2_acc_noise(_params->ekf2_acc_noise),
 	_param_ekf2_gyr_b_noise(_params->ekf2_gyr_b_noise),
-	_param_ekf2_acc_b_noise(_params->accel_bias_p_noise),
+	_param_ekf2_acc_b_noise(_params->ekf2_acc_b_noise),
 #if defined(CONFIG_EKF2_WIND)
 	_param_ekf2_wind_nsd(_params->wind_vel_nsd),
 #endif // CONFIG_EKF2_WIND

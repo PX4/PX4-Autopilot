@@ -284,7 +284,7 @@ struct parameters {
 
 	// process noise
 	float ekf2_gyr_b_noise{1.0e-3f};       ///< process noise for IMU rate gyro bias prediction (rad/sec**2)
-	float accel_bias_p_noise{1.0e-2f};      ///< process noise for IMU accelerometer bias prediction (m/sec**3)
+	float ekf2_acc_b_noise{1.0e-2f};      ///< process noise for IMU accelerometer bias prediction (m/sec**3)
 
 #if defined(CONFIG_EKF2_WIND)
 	const float initial_wind_uncertainty {1.0f};    ///< 1-sigma initial uncertainty in wind velocity (m/sec)
