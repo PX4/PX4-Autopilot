@@ -384,7 +384,7 @@ void Ekf::updateParameters()
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)
-	_params.wind_vel_nsd = math::constrain(_params.wind_vel_nsd, 0.f, 1.f);
+	_params.ekf2_wind_nsd = math::constrain(_params.ekf2_wind_nsd, 0.f, 1.f);
 #endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)

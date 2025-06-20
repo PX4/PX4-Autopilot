@@ -288,7 +288,7 @@ struct parameters {
 
 #if defined(CONFIG_EKF2_WIND)
 	const float initial_wind_uncertainty {1.0f};    ///< 1-sigma initial uncertainty in wind velocity (m/sec)
-	float wind_vel_nsd{1.0e-2f};        ///< process noise spectral density for wind velocity prediction (m/sec**2/sqrt(Hz))
+	float ekf2_wind_nsd{1.0e-2f};        ///< process noise spectral density for wind velocity prediction (m/sec**2/sqrt(Hz))
 	const float wind_vel_nsd_scaler{0.5f};      ///< scaling of wind process noise with vertical velocity
 #endif // CONFIG_EKF2_WIND
 
