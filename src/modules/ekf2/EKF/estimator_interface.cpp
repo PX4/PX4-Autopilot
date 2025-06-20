@@ -380,7 +380,7 @@ void EstimatorInterface::setExtVisionData(const extVisionSample &evdata)
 
 	// calculate the system time-stamp for the mid point of the integration period
 	const int64_t time_us = evdata.time_us
-				- static_cast<int64_t>(_params.ev_delay_ms * 1000)
+				- static_cast<int64_t>(_params.ekf2_ev_delay * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	// limit data rate to prevent data being lost

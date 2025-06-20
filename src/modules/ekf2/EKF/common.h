@@ -430,15 +430,15 @@ struct parameters {
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// vision position fusion
-	int32_t ev_ctrl{0};
-	float ev_delay_ms{175.0f};              ///< off-board vision measurement delay relative to the IMU (mSec)
+	int32_t ekf2_ev_ctrl{0};
+	float ekf2_ev_delay{175.0f};              ///< off-board vision measurement delay relative to the IMU (mSec)
 
-	float ev_vel_noise{0.1f};               ///< minimum allowed observation noise for EV velocity fusion (m/sec)
-	float ev_pos_noise{0.1f};               ///< minimum allowed observation noise for EV position fusion (m)
-	float ev_att_noise{0.1f};               ///< minimum allowed observation noise for EV attitude fusion (rad/sec)
-	int32_t ev_quality_minimum{0};          ///< vision minimum acceptable quality integer
-	float ev_vel_innov_gate{3.0f};          ///< vision velocity fusion innovation consistency gate size (STD)
-	float ev_pos_innov_gate{5.0f};          ///< vision position fusion innovation consistency gate size (STD)
+	float ekf2_evv_noise{0.1f};               ///< minimum allowed observation noise for EV velocity fusion (m/sec)
+	float ekf2_evp_noise{0.1f};               ///< minimum allowed observation noise for EV position fusion (m)
+	float ekf2_eva_noise{0.1f};               ///< minimum allowed observation noise for EV attitude fusion (rad/sec)
+	int32_t ekf2_ev_qmin{0};          ///< vision minimum acceptable quality integer
+	float ekf2_evv_gate{3.0f};          ///< vision velocity fusion innovation consistency gate size (STD)
+	float ekf2_evp_gate{5.0f};          ///< vision position fusion innovation consistency gate size (STD)
 	float ev_hgt_bias_nsd{0.13f};           ///< process noise for vision height bias estimation (m/s/sqrt(Hz))
 
 	Vector3f ev_pos_body{};                 ///< xyz position of VI-sensor focal point in body frame (m)
