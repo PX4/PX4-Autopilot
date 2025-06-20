@@ -258,8 +258,8 @@ void Ekf::updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s 
 	if (!isOtherSourceOfHorizontalAidingThan(_control_status.flags.gnss_pos)) {
 		// if we are not using another source of aiding, then we are reliant on the GNSS
 		// observations to constrain attitude errors and must limit the observation noise value.
-		if (pos_noise > _params.pos_noaid_noise) {
-			pos_noise = _params.pos_noaid_noise;
+		if (pos_noise > _params.ekf2_noaid_noise) {
+			pos_noise = _params.ekf2_noaid_noise;
 		}
 	}
 

@@ -78,7 +78,7 @@ void Ekf::initialiseCovariance()
 	}
 
 #else
-	const float xy_pos_var = sq(fmaxf(_params.pos_noaid_noise, 0.01f));
+	const float xy_pos_var = sq(fmaxf(_params.ekf2_noaid_noise, 0.01f));
 #endif
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)

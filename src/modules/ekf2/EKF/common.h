@@ -356,7 +356,7 @@ struct parameters {
 
 #endif // CONFIG_EKF2_GNSS
 
-	float pos_noaid_noise{10.0f};           ///< observation noise for non-aiding position fusion (m)
+	float ekf2_noaid_noise{10.0f};           ///< observation noise for non-aiding position fusion (m)
 
 	float heading_innov_gate{2.6f};         ///< heading fusion innovation consistency gate size (STD)
 	float mag_heading_noise{3.0e-1f};       ///< measurement noise used for simple heading fusion (rad)

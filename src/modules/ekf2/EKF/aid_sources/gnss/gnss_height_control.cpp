@@ -55,8 +55,8 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 		if (!isOnlyActiveSourceOfVerticalPositionAiding(_control_status.flags.gps_hgt)) {
 			// if we are not using another source of aiding, then we are reliant on the GPS
 			// observations to constrain attitude errors and must limit the observation noise value.
-			if (noise > _params.pos_noaid_noise) {
-				noise = _params.pos_noaid_noise;
+			if (noise > _params.ekf2_noaid_noise) {
+				noise = _params.ekf2_noaid_noise;
 			}
 		}
 

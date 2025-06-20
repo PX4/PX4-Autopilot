@@ -77,7 +77,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 #if defined(CONFIG_EKF2_WIND)
 	_param_ekf2_wind_nsd(_params->ekf2_wind_nsd),
 #endif // CONFIG_EKF2_WIND
-	_param_ekf2_noaid_noise(_params->pos_noaid_noise),
+	_param_ekf2_noaid_noise(_params->ekf2_noaid_noise),
 #if defined(CONFIG_EKF2_GNSS)
 	_param_ekf2_gps_ctrl(_params->gnss_ctrl),
 	_param_ekf2_gps_delay(_params->gps_delay_ms),
