@@ -59,7 +59,7 @@ bool SensorRangeFinder::timedOut(uint64_t time_now) const
 	}
 
 	// TODO: 200ms?
-	return time_now - _sample.time_us > 200'000;
+	return time_now > _sample.time_us + 200'000;
 }
 
 void SensorRangeFinder::setPitchOffset(float new_pitch_offset)
