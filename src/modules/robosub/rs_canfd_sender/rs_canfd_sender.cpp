@@ -48,77 +48,46 @@ int RoboSubCANFDSender::print_status()
 
 int RoboSubCANFDSender::custom_command(int argc, char *argv[])
 {
-	/*
-	if (!is_running()) {
-		print_usage("not running");
-		return 1;
-	}
-
-	// additional custom commands can be handled like this:
-	if (!strcmp(argv[0], "do-something")) {
-		get_instance()->do_something();
-		return 0;
-	}
-	 */
-
 	return print_usage("unknown command");
 }
 
 int RoboSubCANFDSender::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("module",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_DEFAULT,
-				      1024,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	RoboSubCANFDSender *instance = new RoboSubCANFDSender();
 
-	if (_task_id < 0) {
-		_task_id = -1;
-		return -errno;
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
 	}
 
-	return 0;
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
 }
 
-RoboSubCANFDSender *RoboSubCANFDSender::instantiate(int argc, char *argv[])
+bool RoboSubCANFDSender::init()
 {
-        int example_param = 0;
-        bool example_flag = false;
-        bool error_flag = false;
-        int myoptind = 1;
-        int ch;
-        const char *myoptarg = nullptr;
-        // parse CLI arguments
-        while ((ch = px4_getopt(argc, argv, "p:f", &myoptind, &myoptarg)) != EOF) {
-                switch (ch) {
-                case 'p':
-                        example_param = (int)strtol(myoptarg, nullptr, 10);
-                        break;
-                case 'f':
-                        example_flag = true;
-                        break;
-                case '?':
-                        error_flag = true;
-                        break;
-                default:
-                        PX4_WARN("unrecognized flag");
-                        error_flag = true;
-                        break;
-                }
-        }
-        if (error_flag) {
-                return nullptr;
-        }
-        RoboSubCANFDSender *instance = new RoboSubCANFDSender(example_param, example_flag);
-        if (instance == nullptr) {
-                PX4_ERR("alloc failed");
-        }
-        return instance;
+	if (!_raw_canfd_sub.registerCallback()) {
+		PX4_ERR("callback registration failed");
+		return false;
+	}
+	PX4_DEBUG("RoboSubCANFDSender::init()");
+	return true;
 }
 
-RoboSubCANFDSender::RoboSubCANFDSender(int exampleparam, bool exampleflag)
-        : ModuleParams(nullptr)
+
+RoboSubCANFDSender::RoboSubCANFDSender()
+        : ModuleParams(nullptr),
+	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 	// WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	/* performance counters */
 	// _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
@@ -126,7 +95,7 @@ RoboSubCANFDSender::RoboSubCANFDSender(int exampleparam, bool exampleflag)
 	_last_sent = hrt_absolute_time();
 }
 
-void RoboSubCANFDSender::run()
+void RoboSubCANFDSender::Run()
 {
 	PX4_INFO("RoboSubCANFDSender::Run()");
 

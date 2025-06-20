@@ -43,18 +43,15 @@ using namespace time_literals;
 extern "C" __EXPORT int rs_canfd_sender_main(int argc, char *argv[]);
 
 
-class RoboSubCANFDSender : public ModuleBase<RoboSubCANFDSender>, public ModuleParams
+class RoboSubCANFDSender : public ModuleBase<RoboSubCANFDSender>, public ModuleParams, public px4::WorkItem
 {
 public:
-	RoboSubCANFDSender(int example_param, bool example_flag);
+	RoboSubCANFDSender();
 
 	virtual ~RoboSubCANFDSender() = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static RoboSubCANFDSender *instantiate(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
@@ -63,10 +60,13 @@ public:
 	static int print_usage(const char *reason = nullptr);
 
 	// /** @see ModuleBase::run() */
-	void run() override;
+	void Run();
 
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
+
+	bool init();
+
 
 private:
 	hrt_abstime _last_sent{0};
@@ -82,8 +82,6 @@ private:
 
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
-		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
 	)
 
 	// Subscriptions
