@@ -57,7 +57,7 @@ void Ekf::initialiseCovariance()
 
 	// velocity
 #if defined(CONFIG_EKF2_GNSS)
-	const float vel_var = sq(fmaxf(_params.gps_vel_noise, 0.01f));
+	const float vel_var = sq(fmaxf(_params.ekf2_gps_v_noise, 0.01f));
 #else
 	const float vel_var = sq(0.5f);
 #endif
@@ -71,10 +71,10 @@ void Ekf::initialiseCovariance()
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_GNSS)
-	const float xy_pos_var = sq(fmaxf(_params.gps_pos_noise, 0.01f));
+	const float xy_pos_var = sq(fmaxf(_params.ekf2_gps_p_noise, 0.01f));
 
 	if (_control_status.flags.gps_hgt) {
-		z_pos_var = sq(fmaxf(1.5f * _params.gps_pos_noise, 0.01f));
+		z_pos_var = sq(fmaxf(1.5f * _params.ekf2_gps_p_noise, 0.01f));
 	}
 
 #else

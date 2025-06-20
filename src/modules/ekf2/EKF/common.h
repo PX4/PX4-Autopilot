@@ -321,23 +321,23 @@ struct parameters {
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_GNSS)
-	int32_t gnss_ctrl {static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL)};
-	float gps_delay_ms{110.0f};             ///< GPS measurement delay relative to the IMU (mSec)
+	int32_t ekf2_gps_ctrl {static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL)};
+	float ekf2_gps_delay{110.0f};             ///< GPS measurement delay relative to the IMU (mSec)
 
 	Vector3f gps_pos_body{};                ///< xyz position of the GPS antenna in body frame (m)
 
 	// position and velocity fusion
-	float gps_vel_noise{0.5f};           ///< minimum allowed observation noise for gps velocity fusion (m/sec)
-	float gps_pos_noise{0.5f};              ///< minimum allowed observation noise for gps position fusion (m)
+	float ekf2_gps_v_noise{0.5f};           ///< minimum allowed observation noise for gps velocity fusion (m/sec)
+	float ekf2_gps_p_noise{0.5f};              ///< minimum allowed observation noise for gps position fusion (m)
 	float gps_hgt_bias_nsd{0.13f};          ///< process noise for gnss height bias estimation (m/s/sqrt(Hz))
-	float gps_pos_innov_gate{5.0f};         ///< GPS horizontal position innovation consistency gate size (STD)
-	float gps_vel_innov_gate{5.0f};         ///< GPS velocity innovation consistency gate size (STD)
+	float ekf2_gps_p_gate{5.0f};         ///< GPS horizontal position innovation consistency gate size (STD)
+	float ekf2_gps_v_gate{5.0f};         ///< GPS velocity innovation consistency gate size (STD)
 
 	// these parameters control the strictness of GPS quality checks used to determine if the GPS is
 	// good enough to set a local origin and commence aiding
 	int32_t ekf2_gps_check{21};             ///< bitmask used to control which GPS quality checks are used
-	float req_hacc{5.0f};                   ///< maximum acceptable horizontal position error (m)
-	float req_vacc{8.0f};                   ///< maximum acceptable vertical position error (m)
+	float ekf2_req_eph{5.0f};                   ///< maximum acceptable horizontal position error (m)
+	float ekf2_req_epv{8.0f};                   ///< maximum acceptable vertical position error (m)
 	float req_sacc{1.0f};                   ///< maximum acceptable speed error (m/s)
 	int32_t req_nsats{6};                   ///< minimum acceptable satellite count
 	float req_pdop{2.0f};                   ///< maximum acceptable position dilution of precision

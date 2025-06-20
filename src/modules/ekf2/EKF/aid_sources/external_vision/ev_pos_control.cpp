@@ -131,7 +131,7 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 	// increase minimum variance if GNSS is active (position reference)
 	if (_control_status.flags.gnss_pos) {
 		for (int i = 0; i < 2; i++) {
-			pos_cov(i, i) = math::max(pos_cov(i, i), sq(_params.gps_pos_noise));
+			pos_cov(i, i) = math::max(pos_cov(i, i), sq(_params.ekf2_gps_p_noise));
 		}
 	}
 

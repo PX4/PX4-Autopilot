@@ -43,10 +43,10 @@ namespace estimator
 class GnssChecks final
 {
 public:
-	GnssChecks(int32_t &check_mask, int32_t &req_nsats, float &req_pdop, float &req_hacc, float &req_vacc, float &req_sacc,
+	GnssChecks(int32_t &check_mask, int32_t &req_nsats, float &req_pdop, float &ekf2_req_eph, float &ekf2_req_epv, float &req_sacc,
 		   float &ekf2_req_hdrift, float &ekf2_req_vdrift, float &ekf2_vel_lim, uint32_t &min_health_time_us,
 		   filter_control_status_u &control_status):
-		_params{check_mask, req_nsats, req_pdop, req_hacc, req_vacc, req_sacc, ekf2_req_hdrift, ekf2_req_vdrift, ekf2_vel_lim, min_health_time_us},
+		_params{check_mask, req_nsats, req_pdop, ekf2_req_eph, ekf2_req_epv, req_sacc, ekf2_req_hdrift, ekf2_req_vdrift, ekf2_vel_lim, min_health_time_us},
 		_control_status(control_status)
 	{};
 
@@ -145,8 +145,8 @@ private:
 		const int32_t &check_mask;
 		const int32_t &req_nsats;
 		const float &req_pdop;
-		const float &req_hacc;
-		const float &req_vacc;
+		const float &ekf2_req_eph;
+		const float &ekf2_req_epv;
 		const float &req_sacc;
 		const float &ekf2_req_hdrift;
 		const float &ekf2_req_vdrift;

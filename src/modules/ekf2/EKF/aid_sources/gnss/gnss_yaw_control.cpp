@@ -47,7 +47,7 @@
 
 void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
 {
-	if (!(_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::YAW))
+	if (!(_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::YAW))
 	    || _control_status.flags.gnss_yaw_fault) {
 
 		stopGnssYawFusion();
