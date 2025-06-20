@@ -51,6 +51,7 @@ bool GZMixingInterfaceESC::init(const std::string &model_name)
 		}
 
 		_esc_status_pub.advertise();
+
 	} else {
 		PX4_INFO("GZMixingInterfaceESC: ESCs configured as PWM outputs, ESC telemetry will not be reported");
 	}
