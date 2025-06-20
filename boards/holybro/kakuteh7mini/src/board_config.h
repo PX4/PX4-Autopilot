@@ -125,7 +125,6 @@
 
 // So we can run CRSF on ttyS4, which corresponds to the TX6/RX6 pins
 /* RC Serial port */
-#define RC_SERIAL_PORT          "/dev/ttyS4"
 #define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
