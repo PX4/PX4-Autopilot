@@ -112,7 +112,7 @@ constexpr const char *k_command_reset_hot = "erst,soft,none\n";
 constexpr const char *k_command_reset_warm = "erst,soft,PVTData\n";
 constexpr const char *k_command_reset_cold = "erst,hard,SatData\n";
 constexpr const char *k_command_sbf_output_pvt =
-	"sso,Stream%lu,%s,PVTGeodetic+VelCovGeodetic+DOP+AttEuler+AttCovEuler+EndOfPVT+ReceiverStatus,%s\n";
+	"sso,Stream%lu,%s,PVTGeodetic+VelCovGeodetic+DOP+AttEuler+AttCovEuler+EndOfPVT+ReceiverStatus+RFStatus,%s\n";
 constexpr const char *k_command_set_sbf_output =
 	"sso,Stream%lu,%s,%s%s,%s\n";
 constexpr const char *k_command_clear_sbf = "sso,Stream%lu,%s,none,off\n";
@@ -1212,6 +1212,16 @@ int SeptentrioDriver::process_message()
 		}
 		case BlockID::RFStatus: {
 			SEP_TRACE_PARSING("Processing RFStatus SBF message");
+
+			RFStatus rf_status;
+
+			if (_sbf_decoder.parse(&rf_status) == PX4_OK) {
+				// The signal may be jammed or spoofed. No clear indication, so report as a jamming warning.
+				_message_gps_state.jamming_state = rf_status.flags_inauthentic_gnss_signals ? sensor_gps_s::JAMMING_STATE_WARNING : sensor_gps_s::JAMMING_STATE_OK;
+				// The message authentication failed, good spoofing indicator.
+				_message_gps_state.spoofing_state = rf_status.flags_inauthentic_navigation_message ? sensor_gps_s::SPOOFING_STATE_INDICATED : sensor_gps_s::SPOOFING_STATE_NONE;
+			}
+
 			break;
 		}
 		case BlockID::GALAuthStatus: {
