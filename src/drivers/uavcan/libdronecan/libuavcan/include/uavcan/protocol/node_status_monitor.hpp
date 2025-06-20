@@ -24,14 +24,18 @@ class UAVCAN_EXPORT NodeStatusMonitor
 public:
     struct NodeStatus
     {
+        uint32_t uptime_sec;
         uint8_t health   : 2;
         uint8_t mode     : 3;
         uint8_t sub_mode : 3;
+        uint16_t vendor_specific_status_code;
 
         NodeStatus() :
+            uptime_sec(0),
             health(protocol::NodeStatus::HEALTH_CRITICAL),
             mode(protocol::NodeStatus::MODE_OFFLINE),
-            sub_mode(0)
+            sub_mode(0),
+            vendor_specific_status_code(0)
         {
             StaticAssert<protocol::NodeStatus::FieldTypes::health::BitLen   == 2>::check();
             StaticAssert<protocol::NodeStatus::FieldTypes::mode::BitLen     == 3>::check();
@@ -123,9 +127,11 @@ private:
     {
         Entry new_entry;
         new_entry.time_since_last_update_ms100 = 0;
+        new_entry.status.uptime_sec = msg.uptime_sec;
         new_entry.status.health   = msg.health   & ((1 << protocol::NodeStatus::FieldTypes::health::BitLen) - 1);
         new_entry.status.mode     = msg.mode     & ((1 << protocol::NodeStatus::FieldTypes::mode::BitLen) - 1);
         new_entry.status.sub_mode = msg.sub_mode & ((1 << protocol::NodeStatus::FieldTypes::sub_mode::BitLen) - 1);
+        new_entry.status.vendor_specific_status_code = msg.vendor_specific_status_code;
 
         changeNodeStatus(msg.getSrcNodeID(), new_entry);
 
