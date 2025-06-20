@@ -950,7 +950,7 @@ void Ekf::updateGroundEffect()
 		if (isTerrainEstimateValid()) {
 			// automatically set ground effect if terrain is valid
 			float height = getHagl();
-			_control_status.flags.gnd_effect = (height < _params.gnd_effect_max_hgt);
+			_control_status.flags.gnd_effect = (height < _params.ekf2_gnd_max_hgt);
 
 		} else
 #endif // CONFIG_EKF2_TERRAIN

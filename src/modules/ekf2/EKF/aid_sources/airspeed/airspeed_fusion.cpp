@@ -72,7 +72,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 	if (_control_status.flags.fixed_wing) {
 		if (_control_status.flags.in_air && !_control_status.flags.vehicle_at_rest) {
 			if (!_control_status.flags.fuse_aspd) {
-				_yawEstimator.setTrueAirspeed(_params.EKFGSF_tas_default);
+				_yawEstimator.setTrueAirspeed(_params.ekf2_gsf_tas);
 			}
 
 		} else {

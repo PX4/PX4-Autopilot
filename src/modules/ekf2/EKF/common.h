@@ -298,25 +298,25 @@ struct parameters {
 	float initial_tilt_err{0.1f};           ///< 1-sigma tilt error after initial alignment using gravity vector (rad)
 
 #if defined(CONFIG_EKF2_BAROMETER)
-	int32_t baro_ctrl {1};
-	float baro_delay_ms{0.0f};              ///< barometer height measurement delay relative to the IMU (mSec)
-	float baro_noise{2.0f};                 ///< observation noise for barometric height fusion (m)
+	int32_t ekf2_baro_ctrl{1};
+	float ekf2_baro_delay{0.0f};              ///< barometer height measurement delay relative to the IMU (mSec)
+	float ekf2_baro_noise{2.0f};                 ///< observation noise for barometric height fusion (m)
 	float baro_bias_nsd{0.13f};             ///< process noise for barometric height bias estimation (m/s/sqrt(Hz))
-	float baro_innov_gate{5.0f};            ///< barometric and GPS height innovation consistency gate size (STD)
+	float ekf2_baro_gate{5.0f};            ///< barometric and GPS height innovation consistency gate size (STD)
 
-	float gnd_effect_deadzone{5.0f};        ///< Size of deadzone applied to negative baro innovations when ground effect compensation is active (m)
-	float gnd_effect_max_hgt{0.5f};         ///< Height above ground at which baro ground effect becomes insignificant (m)
+	float ekf2_gnd_eff_dz{5.0f};        ///< Size of deadzone applied to negative baro innovations when ground effect compensation is active (m)
+	float ekf2_gnd_max_hgt{0.5f};         ///< Height above ground at which baro ground effect becomes insignificant (m)
 
 # if defined(CONFIG_EKF2_BARO_COMPENSATION)
 	// static barometer pressure position error coefficient along body axes
-	float static_pressure_coef_xp{0.0f};    // (-)
-	float static_pressure_coef_xn{0.0f};    // (-)
-	float static_pressure_coef_yp{0.0f};    // (-)
-	float static_pressure_coef_yn{0.0f};    // (-)
-	float static_pressure_coef_z{0.0f};     // (-)
+	float ekf2_pcoef_xp{0.0f};    // (-)
+	float ekf2_pcoef_xn{0.0f};    // (-)
+	float ekf2_pcoef_yp{0.0f};    // (-)
+	float ekf2_pcoef_yn{0.0f};    // (-)
+	float ekf2_pcoef_z{0.0f};     // (-)
 
 	// upper limit on airspeed used for correction  (m/s**2)
-	float max_correction_airspeed{20.0f};
+	float ekf2_aspd_max{20.0f};
 # endif // CONFIG_EKF2_BARO_COMPENSATION
 #endif // CONFIG_EKF2_BAROMETER
 
@@ -338,9 +338,9 @@ struct parameters {
 	int32_t ekf2_gps_check{21};             ///< bitmask used to control which GPS quality checks are used
 	float ekf2_req_eph{5.0f};                   ///< maximum acceptable horizontal position error (m)
 	float ekf2_req_epv{8.0f};                   ///< maximum acceptable vertical position error (m)
-	float req_sacc{1.0f};                   ///< maximum acceptable speed error (m/s)
-	int32_t req_nsats{6};                   ///< minimum acceptable satellite count
-	float req_pdop{2.0f};                   ///< maximum acceptable position dilution of precision
+	float ekf2_req_sacc{1.0f};                   ///< maximum acceptable speed error (m/s)
+	int32_t ekf2_req_nsats{6};                   ///< minimum acceptable satellite count
+	float ekf2_req_pdop{2.0f};                   ///< maximum acceptable position dilution of precision
 	float ekf2_req_hdrift{0.3f};            ///< maximum acceptable horizontal drift speed (m/s)
 	float ekf2_req_vdrift{0.5f};            ///< maximum acceptable vertical drift speed (m/s)
 
@@ -350,7 +350,7 @@ struct parameters {
 # endif // CONFIG_EKF2_GNSS_YAW
 
 	// Parameters used to control when yaw is reset to the EKF-GSF yaw estimator value
-	float EKFGSF_tas_default{15.0f};                ///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
+	float ekf2_gsf_tas{15.0f};                ///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
 	const unsigned EKFGSF_reset_delay{1000000};     ///< Number of uSec of bad innovations on main filter in immediate post-takeoff phase before yaw is reset to EKF-GSF value
 	const float EKFGSF_yaw_err_max{0.262f};         ///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
 

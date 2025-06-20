@@ -201,7 +201,7 @@ public:
 	void set_is_fixed_wing(bool is_fixed_wing) { _control_status.flags.fixed_wing = is_fixed_wing; }
 
 	// set flag if static pressure rise due to ground effect is expected
-	// use _params.gnd_effect_deadzone to adjust for expected rise in static pressure
+	// use _params.ekf2_gnd_eff_dz to adjust for expected rise in static pressure
 	// flag will clear after GNDEFFECT_TIMEOUT uSec
 	void set_gnd_effect()
 	{
@@ -405,11 +405,11 @@ protected:
 
 	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
 	GnssChecks _gnss_checks{_params.ekf2_gps_check,
-			   _params.req_nsats,
-			   _params.req_pdop,
+			   _params.ekf2_req_nsats,
+			   _params.ekf2_req_pdop,
 			   _params.ekf2_req_eph,
 			   _params.ekf2_req_epv,
-			   _params.req_sacc,
+			   _params.ekf2_req_sacc,
 			   _params.ekf2_req_hdrift,
 			   _params.ekf2_req_vdrift,
 			   _params.ekf2_vel_lim,

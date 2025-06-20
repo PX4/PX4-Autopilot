@@ -113,17 +113,17 @@ bool GnssChecks::runInitialFixChecks(const gnssSample &gnss)
 	_check_fail_status.flags.fix = (gnss.fix_type < 3);
 
 	// Check the number of satellites
-	_check_fail_status.flags.nsats = (gnss.nsats < _params.req_nsats);
+	_check_fail_status.flags.nsats = (gnss.nsats < _params.ekf2_req_nsats);
 
 	// Check the position dilution of precision
-	_check_fail_status.flags.pdop = (gnss.pdop > _params.req_pdop);
+	_check_fail_status.flags.pdop = (gnss.pdop > _params.ekf2_req_pdop);
 
 	// Check the reported horizontal and vertical position accuracy
 	_check_fail_status.flags.hacc = (gnss.hacc > _params.ekf2_req_eph);
 	_check_fail_status.flags.vacc = (gnss.vacc > _params.ekf2_req_epv);
 
 	// Check the reported speed accuracy
-	_check_fail_status.flags.sacc = (gnss.sacc > _params.req_sacc);
+	_check_fail_status.flags.sacc = (gnss.sacc > _params.ekf2_req_sacc);
 
 	_check_fail_status.flags.spoofed = gnss.spoofed;
 

@@ -65,7 +65,7 @@ void Ekf::initialiseCovariance()
 
 	// position
 #if defined(CONFIG_EKF2_BAROMETER)
-	float z_pos_var = sq(fmaxf(_params.baro_noise, 0.01f));
+	float z_pos_var = sq(fmaxf(_params.ekf2_baro_noise, 0.01f));
 #else
 	float z_pos_var = sq(1.f);
 #endif // CONFIG_EKF2_BAROMETER

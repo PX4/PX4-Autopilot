@@ -17,12 +17,12 @@ void EkfWrapper::setBaroHeightRef()
 
 void EkfWrapper::enableBaroHeightFusion()
 {
-	_ekf_params->baro_ctrl = 1;
+	_ekf_params->ekf2_baro_ctrl = 1;
 }
 
 void EkfWrapper::disableBaroHeightFusion()
 {
-	_ekf_params->baro_ctrl = 0;
+	_ekf_params->ekf2_baro_ctrl = 0;
 }
 
 bool EkfWrapper::isIntendingBaroHeightFusion() const
