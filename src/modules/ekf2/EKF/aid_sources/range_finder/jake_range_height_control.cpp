@@ -160,35 +160,6 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	}
 }
 
-void Ekf::fuseRangeAsHeightSource()
-{
-	// When primary height source is RANGE, we always fuse it
-	// I don't think conditional range aid mode makes sense in the context of RANGE = primary
-
-	// Fusion init logic
-	if (_height_sensor_ref != HeightSensor::RANGE) {
-
-		_height_sensor_ref = HeightSensor::RANGE;
-		_information_events.flags.reset_hgt_to_rng = true;
-
-		// Reset aid source innovation
-		resetAidSourceStatusZeroInnovation(_aid_src_rng_hgt);
-
-		// Reset altitude to RANGE
-		resetAltitudeTo(_aid_src_rng_hgt.observation, _aid_src_rng_hgt.observation_variance);
-		_control_status.flags.rng_hgt = true;
-
-		// Cannot have terrain estimate fusion while RANGE is primary
-		stopRangeTerrainFusion();
-		_state.terrain = 0.f;
-
-		// TODO: needed? It's set above in --> resetAidSourceStatusZeroInnovation()
-		// _aid_src_rng_hgt.time_last_fuse = imu_sample.time_us;
-	}
-
-
-}
-
 void Ekf::fuseRangeAsHeightAiding()
 {
 	bool range_aid_conditional = _params.rng_ctrl == RngCtrl::CONDITIONAL;
@@ -216,7 +187,6 @@ void Ekf::fuseRangeAsHeightAiding()
 			// Fusion init logic
 			PX4_INFO("starting RNG Altitude fusion");
 			_control_status.flags.rng_hgt = true;
-			_height_sensor_ref = HeightSensor::RANGE;
 
 			// TODO: do we really need to stop terrain fusion here?
 			stopRangeTerrainFusion();
@@ -254,12 +224,14 @@ void Ekf::fuseRangeAsHeightAiding()
 			PX4_INFO("starting RNG Terrain fusion");
 			_control_status.flags.rng_terrain = true;
 
-			static bool first_init = true;
 			// Reset terrain when we first init
+			static bool first_init = true;
 			if (!optical_flow_for_terrain && first_init) {
 				first_init = false;
 				// Reset aid source and then reset terrain estimate
+				// PX4_INFO("FIRST range terrain fusion, resetting terrain to range");
 				PX4_INFO("FIRST range terrain fusion, resetting terrain to range");
+
 				resetAidSourceStatusZeroInnovation(_aid_src_rng_hgt);
 				resetAltitudeTo(_aid_src_rng_hgt.observation - _state.terrain);
 				resetTerrainToRng(_aid_src_rng_hgt);
@@ -286,27 +258,58 @@ void Ekf::fuseRangeAsHeightAiding()
 		// PX4_INFO("fusing: %f", (double)_aid_src_rng_hgt.observation);
 		// PX4_INFO("_control_status.flags.rng_hgt: %d", _control_status.flags.rng_hgt);
 		// PX4_INFO("_control_status.flags.rng_terrain: %d", _control_status.flags.rng_terrain);
+		// PX4_INFO("_height_sensor_ref: %d", (int)_height_sensor_ref);
+
 		fuseHaglRng(_aid_src_rng_hgt, _control_status.flags.rng_hgt, _control_status.flags.rng_terrain);
 
 		// commander takeoff
 
-		// TODO: _height_sensor_ref == HeightSensor::RANGE  is redundant
-		if (isHeightResetRequired() && _control_status.flags.rng_hgt && (_height_sensor_ref == HeightSensor::RANGE)) {
-			PX4_INFO("RNG height fusion reset required, all height sources failing");
+	}
+}
 
-			uint64_t timestamp = _aid_src_rng_hgt.timestamp;
-			_information_events.flags.reset_hgt_to_rng = true;
-			resetAltitudeTo(_aid_src_rng_hgt.observation - _state.terrain);
-			resetAidSourceStatusZeroInnovation(_aid_src_rng_hgt);
+void Ekf::fuseRangeAsHeightSource()
+{
+	// When primary height source is RANGE, we always fuse it
+	// I don't think conditional range aid mode makes sense in the context of RANGE = primary
 
-			// reset vertical velocity if no valid sources available
-			if (!isVerticalVelocityAidingActive()) {
-				PX4_INFO("resetting vertical velocity");
-				resetVerticalVelocityToZero();
-			}
+	// Fusion init logic
+	if (_height_sensor_ref != HeightSensor::RANGE) {
 
-			_aid_src_rng_hgt.time_last_fuse = timestamp;
+		_height_sensor_ref = HeightSensor::RANGE;
+		_information_events.flags.reset_hgt_to_rng = true;
+
+		// Reset aid source innovation
+		resetAidSourceStatusZeroInnovation(_aid_src_rng_hgt);
+
+		// Reset altitude to RANGE
+		resetAltitudeTo(_aid_src_rng_hgt.observation, _aid_src_rng_hgt.observation_variance);
+		_control_status.flags.rng_hgt = true;
+
+		// Cannot have terrain estimate fusion while RANGE is primary
+		stopRangeTerrainFusion();
+		_state.terrain = 0.f;
+
+		// TODO: needed? It's set above in --> resetAidSourceStatusZeroInnovation()
+		// _aid_src_rng_hgt.time_last_fuse = imu_sample.time_us;
+	}
+
+	// TODO:
+	// When RNG is primary height source
+	if (isHeightResetRequired() && _control_status.flags.rng_hgt && (_height_sensor_ref == HeightSensor::RANGE)) {
+		PX4_INFO("RNG height fusion reset required, all height sources failing");
+
+		uint64_t timestamp = _aid_src_rng_hgt.timestamp;
+		_information_events.flags.reset_hgt_to_rng = true;
+		resetAltitudeTo(_aid_src_rng_hgt.observation - _state.terrain);
+		resetAidSourceStatusZeroInnovation(_aid_src_rng_hgt);
+
+		// reset vertical velocity if no valid sources available
+		if (!isVerticalVelocityAidingActive()) {
+			PX4_INFO("resetting vertical velocity");
+			resetVerticalVelocityToZero();
 		}
+
+		_aid_src_rng_hgt.time_last_fuse = timestamp;
 	}
 }
 
