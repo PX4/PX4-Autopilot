@@ -420,7 +420,12 @@ tests_coverage:
 	@$(MAKE) clean
 	@$(MAKE) --no-print-directory tests PX4_CMAKE_BUILD_TYPE=Coverage
 	@mkdir -p coverage
-	@lcov --directory build/px4_sitl_test --base-directory build/px4_sitl_test --gcov-tool gcov --capture -o coverage/lcov.info
+	@lcov --directory build/px4_sitl_test \
+		--base-directory build/px4_sitl_test \
+		--gcov-tool gcov \
+		--capture \
+		--ignore-errors mismatch \
+		-o coverage/lcov.info
 
 
 rostest: px4_sitl_default
