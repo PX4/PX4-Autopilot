@@ -42,22 +42,23 @@
 #include <uORB/topics/esc_status.h>
 
 /**
- * GZBridge mixing class for Motors.
+ * GZBridge mixing class for ESCs.
  * It is separate from GZBridge to have separate WorkItems and therefore allowing independent scheduling
  * All work items are expected to run on the same work queue.
  *
  * Simulates behavior of (Dshot/UAVCAN) escs or PWM escs based on how many actuators are configured with SIM_GZ_EC function.
- * If less than 8 actuators are configured, esc telemetry can be reported via esc_status uORB topic. But if its more than 8
- * it cannot be reported, and the interface will behave as a PWM interface.
+ * If less than 8 actuators are configured, esc telemetry can be reported via esc_status uORB topic (esc_status only supports
+ * reporting telemetry for 8 escs). If more than 8 actuators are configured, the interface will not report telemetry for any
+ * ESCs thereby simulating the behaviour of PWM ESCs.
  */
-class GZMixingInterfaceMotor : public OutputModuleInterface
+class GZMixingInterfaceESC : public OutputModuleInterface
 {
 public:
 	static constexpr int MAX_ACTUATORS = MixingOutput::MAX_ACTUATORS;
-	static constexpr int MAX_DSHOT_ESCS = 8; // Maximum number of DShot ESCs supported
+	static constexpr int MAX_TELEM_ESCS = 8; // Maximum number of ESCs that can be reported via esc_status uORB topic
 
-	GZMixingInterfaceMotor(gz::transport::Node &node) :
-		OutputModuleInterface(MODULE_NAME "-actuators-motor", px4::wq_configurations::rate_ctrl),
+	GZMixingInterfaceESC(gz::transport::Node &node) :
+		OutputModuleInterface(MODULE_NAME "-actuators-esc", px4::wq_configurations::rate_ctrl),
 		_node(node)
 	{}
 
@@ -82,7 +83,7 @@ private:
 
 	void motorSpeedCallback(const gz::msgs::Actuators &actuators);
 
-	bool isESCInterface();
+	bool canReportTelemetry();
 
 	gz::transport::Node &_node;
 	pthread_mutex_t _node_mutex;

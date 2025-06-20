@@ -31,32 +31,28 @@
  *
  ****************************************************************************/
 
-#include "GZMixingInterfaceMotor.hpp"
+#include "GZMixingInterfaceESC.hpp"
 
-bool GZMixingInterfaceMotor::init(const std::string &model_name)
+bool GZMixingInterfaceESC::init(const std::string &model_name)
 {
 	pthread_mutex_init(&_node_mutex, nullptr);
 
-	// Update mixing output count such that the interface can be configured as ESC mixer or PWM mixer
 	pthread_mutex_lock(&_node_mutex);
 	_mixing_output.updateSubscriptions(false);
 	pthread_mutex_unlock(&_node_mutex);
 
-	if (isESCInterface()) {
+	if (canReportTelemetry()) { // If less than or equal to MAX_TELEM_ESCs are configured telemetry can be reported
 		// ESC feedback: /x500/command/motor_speed
 		std::string motor_speed_topic = "/" + model_name + "/command/motor_speed";
 
-		if (!_node.Subscribe(motor_speed_topic, &GZMixingInterfaceMotor::motorSpeedCallback, this)) {
+		if (!_node.Subscribe(motor_speed_topic, &GZMixingInterfaceESC::motorSpeedCallback, this)) {
 			PX4_ERR("failed to subscribe to %s", motor_speed_topic.c_str());
 			return false;
 		}
 
-		PX4_INFO("GZ bridge Motor interface configured as ESC interface, reporting ESC telemetry");
-
 		_esc_status_pub.advertise();
-
 	} else {
-		PX4_INFO("GZ bridge Motor interface configured as PWM interface, not reporting ESC telemetry");
+		PX4_INFO("GZMixingInterfaceESC: ESCs configured as PWM outputs, ESC telemetry will not be reported");
 	}
 
 	// output eg /X500/command/motor_speed
@@ -74,7 +70,7 @@ bool GZMixingInterfaceMotor::init(const std::string &model_name)
 	return true;
 }
 
-bool GZMixingInterfaceMotor::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool GZMixingInterfaceESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
 	unsigned active_output_count = 0;
@@ -104,7 +100,7 @@ bool GZMixingInterfaceMotor::updateOutputs(bool stop_motors, uint16_t outputs[MA
 	return false;
 }
 
-bool GZMixingInterfaceMotor::isESCInterface()
+bool GZMixingInterfaceESC::canReportTelemetry()
 {
 	unsigned active_output_count = 0;
 
@@ -117,10 +113,10 @@ bool GZMixingInterfaceMotor::isESCInterface()
 		}
 	}
 
-	return (active_output_count <= MAX_DSHOT_ESCS);
+	return (active_output_count <= MAX_TELEM_ESCS);
 }
 
-void GZMixingInterfaceMotor::Run()
+void GZMixingInterfaceESC::Run()
 {
 	pthread_mutex_lock(&_node_mutex);
 	_mixing_output.update();
@@ -128,7 +124,7 @@ void GZMixingInterfaceMotor::Run()
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-void GZMixingInterfaceMotor::motorSpeedCallback(const gz::msgs::Actuators &actuators)
+void GZMixingInterfaceESC::motorSpeedCallback(const gz::msgs::Actuators &actuators)
 {
 	if (hrt_absolute_time() == 0) {
 		return;

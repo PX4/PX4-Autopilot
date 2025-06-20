@@ -133,8 +133,8 @@ int GZBridge::init()
 	}
 
 	// ESC mixing interface
-	if (!_mixing_interface_motor.init(_model_name)) {
-		PX4_ERR("failed to init motor output");
+	if (!_mixing_interface_esc.init(_model_name)) {
+		PX4_ERR("failed to init ESC output");
 		return PX4_ERROR;
 	}
 
@@ -165,7 +165,7 @@ void GZBridge::Run()
 	if (should_exit()) {
 		ScheduleClear();
 
-		_mixing_interface_motor.stop();
+		_mixing_interface_esc.stop();
 		_mixing_interface_servo.stop();
 		_mixing_interface_wheel.stop();
 		_gimbal.stop();
@@ -180,7 +180,7 @@ void GZBridge::Run()
 
 		updateParams();
 
-		_mixing_interface_motor.updateParams();
+		_mixing_interface_esc.updateParams();
 		_mixing_interface_servo.updateParams();
 		_mixing_interface_wheel.updateParams();
 		_gimbal.updateParams();
@@ -999,7 +999,7 @@ int GZBridge::task_spawn(int argc, char *argv[])
 int GZBridge::print_status()
 {
 	PX4_INFO_RAW("ESC outputs:\n");
-	_mixing_interface_motor.mixingOutput().printStatus();
+	_mixing_interface_esc.mixingOutput().printStatus();
 
 	PX4_INFO_RAW("Servo outputs:\n");
 	_mixing_interface_servo.mixingOutput().printStatus();
