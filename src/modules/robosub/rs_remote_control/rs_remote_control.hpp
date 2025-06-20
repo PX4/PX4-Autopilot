@@ -130,7 +130,9 @@
 		(ParamFloat<px4::params::OFF_A_HUMIDITY>) _param_offset_abs_humidity,
 		(ParamFloat<px4::params::OFF_TEMPERATURE>) _param_offset_temperature,
 		(ParamFloat<px4::params::OFF_PRESSURE>) _param_offset_pressure,
-		(ParamFloat<px4::params::OFF_R_HUMIDITY>) _param_offset_rel_humidity
+		(ParamFloat<px4::params::OFF_R_HUMIDITY>) _param_offset_rel_humidity,
+		(ParamFloat<px4::params::UP_MOTOR_RED>) _param_front_up_motor_reduction,
+		(ParamFloat<px4::params::TILT_MODIFY>) _param_tilt_modifier
 	)
 
 	// Subscriptions

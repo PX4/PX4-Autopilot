@@ -253,6 +253,7 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 				normalized[3] = (rc_data.values[0] - 1500) / 400.0f;
 
 				// normalized[0] = math::constrain(normalized[0],  -range, range);
+<<<<<<< HEAD
 				normalized[0] = math::constrain(normalized[0], -range, range);
 				normalized[1] = math::constrain(normalized[1], -range, range);
 				normalized[2] = math::constrain(normalized[2], -range, range);
@@ -264,6 +265,13 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 				robosub_motor_control.actuator_test(MOTOR_UP2, 		(normalized[1]), 0, false);
 				robosub_motor_control.actuator_test(MOTOR_UP3, 		(-normalized[1]), 0, false);
 
+=======
+				robosub_motor_control.actuator_test(MOTOR_FORWARDS1, 	normalized[0], 0, false);
+				robosub_motor_control.actuator_test(MOTOR_FORWARDS2, 	normalized[0], 0, false);
+				robosub_motor_control.actuator_test(MOTOR_UP1, 		-normalized[1], 0, false);
+				robosub_motor_control.actuator_test(MOTOR_UP2, 		(normalized[1] * _param_front_up_motor_reduction.get()), 0, false);
+				robosub_motor_control.actuator_test(MOTOR_UP3, 		(-normalized[1] * _param_front_up_motor_reduction.get()), 0, false);
+>>>>>>> e0b6bcbc5d (Added parameter for tilting)
 				if(normalized[2] > 0.1f || normalized[2] < -0.1f)
 				{
 					robosub_motor_control.actuator_test(MOTOR_SIDE1, -normalized[2], 0, false);
@@ -271,13 +279,17 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 				}
 				 else
 				{
-					robosub_motor_control.actuator_test(MOTOR_SIDE1, -normalized[3], 0, false);
-					robosub_motor_control.actuator_test(MOTOR_SIDE2, -normalized[3], 0, false);
+					if(normalized[3] <= 0)
+					robosub_motor_control.actuator_test(MOTOR_UP1, -normalized[3], 0, false);
+					else if(normalized[3] >= 0)
+					{
+						robosub_motor_control.actuator_test(MOTOR_UP2, (-normalized[3] * (_param_tilt_modifier.get() * _param_front_up_motor_reduction.get())), 0, false);
+						robosub_motor_control.actuator_test(MOTOR_UP3, (-normalized[3] * (_param_tilt_modifier.get() * _param_front_up_motor_reduction.get())), 0, false);
+					}
 				}
 			}
 			update1 = 0;
 		}
-
  }
 
  void RobosubRemoteControl::check_internal_state()
