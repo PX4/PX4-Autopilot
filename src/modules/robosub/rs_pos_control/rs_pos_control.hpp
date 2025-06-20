@@ -134,9 +134,5 @@ private:
 	void parameters_update(bool force = false);
 	void posControl();
 	void AltitudeControl();
-	void HorizontalControl();
-	float distance_to(const matrix::Vector3f &a, const matrix::Vector3f &b) { return (a - b).norm(); }
-	void send_position_setpoint(const matrix::Vector3f &pos);
-
 
 };
