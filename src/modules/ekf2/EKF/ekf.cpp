@@ -373,7 +373,7 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 void Ekf::updateParameters()
 {
 	_params.ekf2_gyr_noise = math::constrain(_params.ekf2_gyr_noise, 0.f, 1.f);
-	_params.accel_noise = math::constrain(_params.accel_noise, 0.f, 1.f);
+	_params.ekf2_acc_noise = math::constrain(_params.ekf2_acc_noise, 0.f, 1.f);
 
 	_params.gyro_bias_p_noise = math::constrain(_params.gyro_bias_p_noise, 0.f, 1.f);
 	_params.accel_bias_p_noise = math::constrain(_params.accel_bias_p_noise, 0.f, 1.f);

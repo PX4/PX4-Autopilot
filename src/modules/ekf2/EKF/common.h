@@ -280,7 +280,7 @@ struct parameters {
 
 	// input noise
 	float ekf2_gyr_noise{1.5e-2f};              ///< IMU angular rate noise used for covariance prediction (rad/sec)
-	float accel_noise{3.5e-1f};             ///< IMU acceleration noise use for covariance prediction (m/sec**2)
+	float ekf2_acc_noise{3.5e-1f};             ///< IMU acceleration noise use for covariance prediction (m/sec**2)
 
 	// process noise
 	float gyro_bias_p_noise{1.0e-3f};       ///< process noise for IMU rate gyro bias prediction (rad/sec**2)
