@@ -160,11 +160,6 @@ else
 		override CMAKE_ARGS += -DCMAKE_BUILD_TYPE=UndefinedBehaviorSanitizer
 	endif
 
-	# Fuzz Testing
-	ifdef PX4_FUZZ
-		override CMAKE_ARGS += -DCMAKE_BUILD_TYPE=FuzzTesting
-	endif
-
 endif
 
 # Pick up specific Python path if set

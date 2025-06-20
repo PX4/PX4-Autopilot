@@ -21,18 +21,42 @@ px4_posix_generate_alias(
 	PREFIX ${PX4_SHELL_COMMAND_PREFIX}
 )
 
-if (CMAKE_BUILD_TYPE STREQUAL FuzzTesting)
-	add_executable(px4
-		src/px4/common/main_fuzztesting.cpp
-		apps.cpp
-		)
-else()
-	add_definitions(-DPX4_SOURCE_DIR="${PX4_SOURCE_DIR}" -DPX4_BINARY_DIR="${PX4_BINARY_DIR}")
+add_definitions(-DPX4_SOURCE_DIR="${PX4_SOURCE_DIR}" -DPX4_BINARY_DIR="${PX4_BINARY_DIR}")
 
-	add_executable(px4
-		src/px4/common/main.cpp
+add_executable(px4
+	src/px4/common/main.cpp
+	apps.cpp
+	)
+
+if (BUILD_TESTING)
+	# Build mavlink fuzz tests. These run other modules and thus cannot be a functional/unit test
+	add_executable(mavlink_fuzz_tests EXCLUDE_FROM_ALL
+		src/px4/common/mavlink_fuzz_tests.cpp
 		apps.cpp
-		)
+	)
+	set_target_properties(mavlink_fuzz_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PX4_BINARY_DIR}")
+	target_include_directories(mavlink_fuzz_tests PRIVATE SYSTEM "${CMAKE_BINARY_DIR}/mavlink")
+	add_dependencies(test_results mavlink_fuzz_tests)
+	link_fuzztest(mavlink_fuzz_tests)
+	target_link_libraries(mavlink_fuzz_tests
+		PRIVATE
+			${module_libraries}
+			m
+			parameters
+	)
+	target_compile_options(mavlink_fuzz_tests
+		PRIVATE
+			# There warnings come from within fuzztest
+			-Wno-float-equal
+			-Wno-sign-compare
+			-Wno-shadow
+			-Wno-extra
+			-Wno-non-template-friend
+
+			# From mavlink
+			-Wno-cast-align
+			-Wno-address-of-packed-member
+	)
 endif()
 
 target_link_libraries(px4
@@ -51,11 +75,6 @@ if(NOT ANDROID)
 endif()
 
 target_link_libraries(px4 PRIVATE uORB)
-
-if (CMAKE_BUILD_TYPE STREQUAL FuzzTesting)
-	target_include_directories(px4 PRIVATE SYSTEM "${CMAKE_BINARY_DIR}/mavlink}")
-	target_compile_options(px4 PRIVATE "-Wno-cast-align")
-endif()
 
 #=============================================================================
 # install
