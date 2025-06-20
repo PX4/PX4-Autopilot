@@ -45,10 +45,10 @@
 class ExternalVisionVel
 {
 public:
-	ExternalVisionVel(Ekf &ekf_instance, const extVisionSample &vision_sample, const float ev_vel_noise,
+	ExternalVisionVel(Ekf &ekf_instance, const extVisionSample &vision_sample, const float ekf2_evv_noise,
 			  const imuSample &imu_sample) : _ekf(ekf_instance), _sample(vision_sample)
 	{
-		_min_variance = sq(ev_vel_noise);
+		_min_variance = sq(ekf2_evv_noise);
 		const Vector3f angular_velocity = imu_sample.delta_ang / imu_sample.delta_ang_dt - _ekf._state.gyro_bias;
 		Vector3f position_offset_body = _ekf._params.ev_pos_body - _ekf._params.imu_pos_body;
 		_velocity_offset_body = angular_velocity % position_offset_body;
@@ -93,9 +93,9 @@ public:
 class EvVelBodyFrameFrd : public ExternalVisionVel
 {
 public:
-	EvVelBodyFrameFrd(Ekf &ekf_instance, extVisionSample &vision_sample, const float ev_vel_noise,
+	EvVelBodyFrameFrd(Ekf &ekf_instance, extVisionSample &vision_sample, const float ekf2_evv_noise,
 			  const imuSample &imu_sample) :
-		ExternalVisionVel(ekf_instance, vision_sample, ev_vel_noise, imu_sample)
+		ExternalVisionVel(ekf_instance, vision_sample, ekf2_evv_noise, imu_sample)
 	{
 		_measurement = _sample.vel - _velocity_offset_body;
 		_measurement_var = _sample.velocity_var;
@@ -132,9 +132,9 @@ public:
 class EvVelLocalFrameNed : public ExternalVisionVel
 {
 public:
-	EvVelLocalFrameNed(Ekf &ekf_instance, extVisionSample &vision_sample, const float ev_vel_noise,
+	EvVelLocalFrameNed(Ekf &ekf_instance, extVisionSample &vision_sample, const float ekf2_evv_noise,
 			   const imuSample &imu_sample) :
-		ExternalVisionVel(ekf_instance, vision_sample, ev_vel_noise, imu_sample)
+		ExternalVisionVel(ekf_instance, vision_sample, ekf2_evv_noise, imu_sample)
 	{
 		const Vector3f velocity_offset_earth = _ekf._R_to_earth * _velocity_offset_body;
 
@@ -149,9 +149,9 @@ public:
 class EvVelLocalFrameFrd : public ExternalVisionVel
 {
 public:
-	EvVelLocalFrameFrd(Ekf &ekf_instance, extVisionSample &vision_sample, const float ev_vel_noise,
+	EvVelLocalFrameFrd(Ekf &ekf_instance, extVisionSample &vision_sample, const float ekf2_evv_noise,
 			   const imuSample &imu_sample) :
-		ExternalVisionVel(ekf_instance,	vision_sample, ev_vel_noise, imu_sample)
+		ExternalVisionVel(ekf_instance,	vision_sample, ekf2_evv_noise, imu_sample)
 	{
 		const Vector3f velocity_offset_earth = _ekf._R_to_earth * _velocity_offset_body;
 

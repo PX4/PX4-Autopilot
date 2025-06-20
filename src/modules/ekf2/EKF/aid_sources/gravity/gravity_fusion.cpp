@@ -50,7 +50,7 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 {
 	// get raw accelerometer reading at delayed horizon and expected measurement noise (gaussian)
 	const Vector3f measurement = Vector3f(imu.delta_vel / imu.delta_vel_dt - _state.accel_bias).unit();
-	const float measurement_var = math::max(sq(_params.gravity_noise), sq(0.01f));
+	const float measurement_var = math::max(sq(_params.ekf2_grav_noise), sq(0.01f));
 
 	const float upper_accel_limit = CONSTANTS_ONE_G * 1.1f;
 	const float lower_accel_limit = CONSTANTS_ONE_G * 0.9f;

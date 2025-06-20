@@ -82,7 +82,7 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H
 			// constrain the innovation to the maximum set by the gate
 			// we need to delay this forced fusion to avoid starting it
 			// immediately after touchdown, when the drone is still armed
-			const float gate_sigma = math::max(_params.heading_innov_gate, 1.f);
+			const float gate_sigma = math::max(_params.ekf2_hdg_gate, 1.f);
 			const float gate_limit = sqrtf((sq(gate_sigma) * aid_src_status.innovation_variance));
 			aid_src_status.innovation = math::constrain(aid_src_status.innovation, -gate_limit, gate_limit);
 

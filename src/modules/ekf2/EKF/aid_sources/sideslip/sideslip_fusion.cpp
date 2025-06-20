@@ -49,7 +49,7 @@
 
 void Ekf::controlBetaFusion(const imuSample &imu_delayed)
 {
-	_control_status.flags.fuse_beta = _params.beta_fusion_enabled
+	_control_status.flags.fuse_beta = _params.ekf2_fuse_beta
 					  && (_control_status.flags.fixed_wing || _control_status.flags.fuse_aspd)
 					  && _control_status.flags.in_air
 					  && !_control_status.flags.fake_pos;
@@ -77,7 +77,7 @@ void Ekf::controlBetaFusion(const imuSample &imu_delayed)
 void Ekf::updateSideslip(estimator_aid_source1d_s &aid_src) const
 {
 	float observation = 0.f;
-	const float R = math::max(sq(_params.beta_noise), sq(0.01f)); // observation noise variance
+	const float R = math::max(sq(_params.ekf2_beta_noise), sq(0.01f)); // observation noise variance
 	const float epsilon = 1e-3f;
 	float innov;
 	float innov_var;
@@ -89,7 +89,7 @@ void Ekf::updateSideslip(estimator_aid_source1d_s &aid_src) const
 			      R,                                        // observation variance
 			      innov,                                    // innovation
 			      innov_var,                                // innovation variance
-			      math::max(_params.beta_innov_gate, 1.f)); // innovation gate
+			      math::max(_params.ekf2_beta_gate, 1.f)); // innovation gate
 }
 
 bool Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
