@@ -851,8 +851,8 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 		_control_status.flags.wind_dead_reckoning = false;
 
 		if (!_control_status.flags.in_air && _control_status.flags.fixed_wing
-		    && (_params.beta_fusion_enabled == 1)
-		    && (_params.arsp_thr > 0.f) && isRecent(_aid_src_airspeed.timestamp_sample, _params.no_aid_timeout_max)
+		    && (_params.ekf2_fuse_beta == 1)
+		    && (_params.ekf2_arsp_thr > 0.f) && isRecent(_aid_src_airspeed.timestamp_sample, _params.no_aid_timeout_max)
 		   ) {
 			// currently landed, but air data aiding should be possible once in air
 			aiding_expected_in_air = true;

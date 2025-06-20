@@ -264,7 +264,7 @@ void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
 	}
 
 	const int64_t time_us = airspeed_sample.time_us
-				- static_cast<int64_t>(_params.airspeed_delay_ms * 1000)
+				- static_cast<int64_t>(_params.ekf2_asp_delay * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	// limit data rate to prevent data being lost

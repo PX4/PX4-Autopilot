@@ -384,17 +384,17 @@ struct parameters {
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	// airspeed fusion
-	float airspeed_delay_ms{100.0f};        ///< airspeed measurement delay relative to the IMU (mSec)
-	float tas_innov_gate{5.0f};             ///< True Airspeed innovation consistency gate size (STD)
-	float eas_noise{1.4f};                  ///< EAS measurement noise standard deviation used for airspeed fusion (m/s)
-	float arsp_thr{2.0f};                   ///< Airspeed fusion threshold. A value of zero will deactivate airspeed fusion
+	float ekf2_asp_delay{100.0f};        ///< airspeed measurement delay relative to the IMU (mSec)
+	float ekf2_tas_gate{5.0f};             ///< True Airspeed innovation consistency gate size (STD)
+	float ekf2_eas_noise{1.4f};                  ///< EAS measurement noise standard deviation used for airspeed fusion (m/s)
+	float ekf2_arsp_thr{2.0f};                   ///< Airspeed fusion threshold. A value of zero will deactivate airspeed fusion
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_SIDESLIP)
 	// synthetic sideslip fusion
-	int32_t beta_fusion_enabled{0};
-	float beta_innov_gate{5.0f};            ///< synthetic sideslip innovation consistency gate size in standard deviation (STD)
-	float beta_noise{0.3f};                 ///< synthetic sideslip noise (rad)
+	int32_t ekf2_fuse_beta{0};
+	float ekf2_beta_gate{5.0f};            ///< synthetic sideslip innovation consistency gate size in standard deviation (STD)
+	float ekf2_beta_noise{0.3f};                 ///< synthetic sideslip noise (rad)
 	const float beta_avg_ft_us{150000.0f};  ///< The average time between synthetic sideslip measurements (uSec)
 #endif // CONFIG_EKF2_SIDESLIP
 

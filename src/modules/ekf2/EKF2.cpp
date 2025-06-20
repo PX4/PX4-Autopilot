@@ -115,15 +115,15 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 # endif // CONFIG_EKF2_BARO_COMPENSATION
 #endif // CONFIG_EKF2_BAROMETER
 #if defined(CONFIG_EKF2_AIRSPEED)
-	_param_ekf2_asp_delay(_params->airspeed_delay_ms),
-	_param_ekf2_tas_gate(_params->tas_innov_gate),
-	_param_ekf2_eas_noise(_params->eas_noise),
-	_param_ekf2_arsp_thr(_params->arsp_thr),
+	_param_ekf2_asp_delay(_params->ekf2_asp_delay),
+	_param_ekf2_tas_gate(_params->ekf2_tas_gate),
+	_param_ekf2_eas_noise(_params->ekf2_eas_noise),
+	_param_ekf2_arsp_thr(_params->ekf2_arsp_thr),
 #endif // CONFIG_EKF2_AIRSPEED
 #if defined(CONFIG_EKF2_SIDESLIP)
-	_param_ekf2_beta_gate(_params->beta_innov_gate),
-	_param_ekf2_beta_noise(_params->beta_noise),
-	_param_ekf2_fuse_beta(_params->beta_fusion_enabled),
+	_param_ekf2_beta_gate(_params->ekf2_beta_gate),
+	_param_ekf2_beta_noise(_params->ekf2_beta_noise),
+	_param_ekf2_fuse_beta(_params->ekf2_fuse_beta),
 #endif // CONFIG_EKF2_SIDESLIP
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	_param_ekf2_mag_delay(_params->mag_delay_ms),
@@ -2599,7 +2599,7 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 #if defined(CONFIG_EKF2_SIDESLIP)
 
-			if (vehicle_status.is_vtol_tailsitter && _params->beta_fusion_enabled) {
+			if (vehicle_status.is_vtol_tailsitter && _params->ekf2_fuse_beta) {
 				PX4_WARN("Disable EKF beta fusion as unsupported for tailsitter");
 				_param_ekf2_fuse_beta.set(0);
 				_param_ekf2_fuse_beta.commit_no_notification();

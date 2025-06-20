@@ -87,12 +87,12 @@ bool EkfWrapper::isIntendingExternalVisionHeightFusion() const
 
 void EkfWrapper::enableBetaFusion()
 {
-	_ekf_params->beta_fusion_enabled = true;
+	_ekf_params->ekf2_fuse_beta = true;
 }
 
 void EkfWrapper::disableBetaFusion()
 {
-	_ekf_params->beta_fusion_enabled = false;
+	_ekf_params->ekf2_fuse_beta = false;
 }
 
 bool EkfWrapper::isIntendingBetaFusion() const
