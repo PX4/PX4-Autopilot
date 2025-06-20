@@ -65,12 +65,14 @@ void Ekf::controlDragFusion(const imuSample &imu_delayed)
 
 void Ekf::fuseDrag(const dragSample &drag_sample)
 {
-	const float R_ACC = fmaxf(_params.ekf2_drag_noise, 0.5f); // observation noise variance in specific force drag (m/sec**2)**2
+	const float R_ACC = fmaxf(_params.ekf2_drag_noise,
+				  0.5f); // observation noise variance in specific force drag (m/sec**2)**2
 	const float rho = fmaxf(_air_density, 0.1f); // air density (kg/m**3)
 
 	// correct rotor momentum drag for increase in required rotor mass flow with altitude
 	// obtained from momentum disc theory
-	const float mcoef_corrrected = fmaxf(_params.ekf2_mcoef * sqrtf(rho / atmosphere::kAirDensitySeaLevelStandardAtmos), 0.f);
+	const float mcoef_corrrected = fmaxf(_params.ekf2_mcoef * sqrtf(rho / atmosphere::kAirDensitySeaLevelStandardAtmos),
+					     0.f);
 
 	// drag model parameters
 	const bool using_bcoef_x = _params.ekf2_bcoef_x > 1.0f;
