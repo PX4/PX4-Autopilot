@@ -120,8 +120,6 @@ public:
 	{
 		_range_sensor.setLimits(min_distance, max_distance);
 	}
-
-	const estimator::sensor::rangeSample &get_rng_sample_delayed() { return *(_range_sensor.getSampleAddress()); }
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)

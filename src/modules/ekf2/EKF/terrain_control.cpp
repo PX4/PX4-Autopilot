@@ -54,7 +54,6 @@ void Ekf::controlTerrainFakeFusion()
 	// If we are on ground, store the local position and time to use as a reference
 	if (!_control_status.flags.in_air) {
 		_last_on_ground_posD = -_gpos.altitude();
-		_control_status.flags.rng_fault = false;
 
 	} else if (!_control_status_prev.flags.in_air) {
 		// Let the estimator run freely before arming for bench testing purposes, but reset on takeoff

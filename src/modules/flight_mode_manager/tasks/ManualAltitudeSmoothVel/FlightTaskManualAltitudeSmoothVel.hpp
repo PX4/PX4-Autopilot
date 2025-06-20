@@ -42,6 +42,9 @@
 #include "FlightTaskManualAltitude.hpp"
 #include <motion_planning/ManualVelocitySmoothingZ.hpp>
 
+#include <uORB/Publication.hpp>
+#include <uORB/topics/task_local_position_setpoint.h>
+
 class FlightTaskManualAltitudeSmoothVel : public FlightTaskManualAltitude
 {
 public:
@@ -62,12 +65,7 @@ protected:
 
 	ManualVelocitySmoothingZ _smoothing; ///< Smoothing in z direction
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualAltitude,
-					(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
-					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
-					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max
-				       )
-
 private:
+	uORB::Publication<task_local_position_setpoint_s> _setpoint_pub{ORB_ID(task_local_position_setpoint)};
 	bool _terrain_hold_previous{false}; /**< true when vehicle was controlling height above a static ground position in the previous iteration */
 };

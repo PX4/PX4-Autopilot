@@ -44,64 +44,61 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 {
 	static constexpr const char *HGT_SRC_NAME = "RNG";
 
-	bool rng_data_ready = false;
-
-	if (_range_buffer) {
-		// Get range data from buffer and check validity
-		rng_data_ready = _range_buffer->pop_first_older_than(imu_sample.time_us, _range_sensor.getSampleAddress());
-		_range_sensor.setDataReadiness(rng_data_ready);
-
-		if (_range_sensor.isDataReady()) {
-
-			_range_sensor.setPitchOffset(_params.rng_sens_pitch);
-			_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
-			_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
-			_range_sensor.setMaxFogDistance(_params.rng_fog);
-			_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
-
-			_range_sensor.runChecks(imu_sample.time_us, _R_to_earth);
-
-			if (_range_sensor.isDataHealthy()) {
-				// correct the range data for position offset relative to the IMU
-				const Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
-				const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-				_range_sensor.setRange(_range_sensor.getRange() + pos_offset_earth(2) / _range_sensor.getCosTilt());
-
-				const float dist_var = getRngVar();
-				_rng_consistency_check.current_posD_reset_count = get_posD_reset_count();
-
-				const bool updated_horizontal_motion = sq(_state.vel(0)) + sq(_state.vel(1)) > fmaxf(P.trace<2>(State::vel.idx), 0.1f);
-
-				if (!updated_horizontal_motion && _rng_consistency_check.horizontal_motion) {
-					_rng_consistency_check.reset();
-				}
-
-				_rng_consistency_check.horizontal_motion = updated_horizontal_motion;
-				const float z_var = P(State::pos.idx + 2, State::pos.idx + 2);
-				const float vz_var = P(State::vel.idx + 2, State::vel.idx + 2);
-				_rng_consistency_check.run(_gpos.altitude(), z_var, _state.vel(2), vz_var, _range_sensor.getDistBottom(),
-							   dist_var, imu_sample.time_us);
-
-			} else if (_range_sensor.isRegularlySendingData() && !_control_status.flags.in_air) {
-				_range_sensor.setRange(_params.rng_gnd_clearance);
-				_range_sensor.setValidity(true);
-
-			} else {
-				_rng_consistency_check.reset();
-			}
-		}
-
-		_control_status.flags.rng_kin_consistent = _rng_consistency_check.isKinematicallyConsistent();
-		_control_status.flags.rng_kin_unknown = !_rng_consistency_check.isKinematicallyConsistent()
-							&& _rng_consistency_check.isNotKinematicallyInconsistent();
-
-	} else {
+	if (!_range_buffer) {
 		return;
 	}
 
+	// Get range data from buffer and check validity
+	bool rng_data_ready = _range_buffer->pop_first_older_than(imu_sample.time_us, _range_sensor.sample());
+
+	_range_sensor.setSample();
+
+	_range_sensor.setDataReadiness(rng_data_ready);
+
+	if (_range_sensor.isDataReady()) {
+
+		_range_sensor.setPitchOffset(_params.rng_sens_pitch);
+		_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
+		_range_sensor.setMaxFogDistance(_params.rng_fog);
+		_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
+
+		_range_sensor.runChecks(imu_sample.time_us, _R_to_earth);
+
+		if (_range_sensor.isDataHealthy()) {
+			// correct the range data for position offset relative to the IMU
+			const Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
+			const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+			_range_sensor.setRange(_range_sensor.getRange() + pos_offset_earth(2) / _range_sensor.getCosTilt());
+
+			// TODO: this is a constant
+			const float dist_var = getRngVar();
+			_rng_consistency_check.current_posD_reset_count = get_posD_reset_count();
+
+			const float z_var = P(State::pos.idx + 2, State::pos.idx + 2);
+			const float vz_var = P(State::vel.idx + 2, State::vel.idx + 2);
+
+			// TODO: review -- variance
+			_rng_consistency_check.run(_gpos.altitude(), z_var, _state.vel(2), vz_var, _range_sensor.getDistBottom(),
+						   dist_var, imu_sample.time_us);
+
+		} else if (_range_sensor.isRegularlySendingData() && !_control_status.flags.in_air) {
+			_range_sensor.setRange(_params.rng_gnd_clearance);
+			_range_sensor.setValidity(true);
+
+		} else {
+			_rng_consistency_check.reset();
+		}
+	}
+
+	_control_status.flags.rng_kin_consistent = _rng_consistency_check.isKinematicallyConsistent();
+
+	_control_status.flags.rng_kin_unknown = !_rng_consistency_check.isKinematicallyConsistent()
+						&& _rng_consistency_check.isNotKinematicallyInconsistent();
+
+
 	auto &aid_src = _aid_src_rng_hgt;
 
-	if (_range_sensor.isDataReady() && _range_sensor.getSampleAddress()) {
+	if (_range_sensor.isDataReady() && _range_sensor.sample()) {
 
 		updateRangeHagl(aid_src);
 		const bool measurement_valid = PX4_ISFINITE(aid_src.observation) && PX4_ISFINITE(aid_src.observation_variance);
@@ -113,6 +110,8 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				&& _range_sensor.isDataHealthy()
 				&& _rng_consistency_check.isNotKinematicallyInconsistent();
 
+		// SUS: _rng_consistency_check.isNotKinematicallyInconsistent()
+
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& isNewestSampleRecent(_time_last_range_buffer_push, 2 * estimator::sensor::RNG_MAX_INTERVAL)
 				&& _range_sensor.isRegularlySendingData();
@@ -121,12 +120,14 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 						      && (_params.rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL))
 						      && isConditionalRangeAidSuitable();
 
+		// SUS: isConditionalRangeAidSuitable()
+
 		const bool do_range_aid = (_control_status.flags.rng_terrain || _control_status.flags.rng_hgt)
 					  && (_params.rng_ctrl == static_cast<int32_t>(RngCtrl::ENABLED));
 
 		if (_control_status.flags.rng_hgt) {
 			if (!(do_conditional_range_aid || do_range_aid)) {
-				ECL_INFO("stopping %s fusion", HGT_SRC_NAME);
+				PX4_INFO("stopping %s fusion", HGT_SRC_NAME);
 				stopRngHgtFusion();
 			}
 
@@ -134,7 +135,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 			if (_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::RANGE)) {
 				if (do_conditional_range_aid) {
 					// Range finder is used while hovering to stabilize the height estimate. Don't reset but use it as height reference.
-					ECL_INFO("starting conditional %s height fusion", HGT_SRC_NAME);
+					PX4_INFO("starting conditional %s height fusion", HGT_SRC_NAME);
 					_height_sensor_ref = HeightSensor::RANGE;
 
 					_control_status.flags.rng_hgt = true;
@@ -149,7 +150,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				} else if (do_range_aid) {
 					// Range finder is the primary height source, the ground is now the datum used
 					// to compute the local vertical position
-					ECL_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);
+					PX4_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);
 					_height_sensor_ref = HeightSensor::RANGE;
 
 					_information_events.flags.reset_hgt_to_rng = true;
@@ -164,7 +165,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 			} else {
 				if (do_conditional_range_aid || do_range_aid) {
-					ECL_INFO("starting %s height fusion", HGT_SRC_NAME);
+					PX4_INFO("starting %s height fusion", HGT_SRC_NAME);
 					_control_status.flags.rng_hgt = true;
 
 					if (!_control_status.flags.opt_flow_terrain && aid_src.innovation_rejected
@@ -185,7 +186,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 				if (isHeightResetRequired() && _control_status.flags.rng_hgt && (_height_sensor_ref == HeightSensor::RANGE)) {
 					// All height sources are failing
-					ECL_WARN("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
+					PX4_INFO("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
 
 					_information_events.flags.reset_hgt_to_rng = true;
 					resetAltitudeTo(aid_src.observation - _state.terrain);
@@ -201,7 +202,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				} else if (is_fusion_failing) {
 					// Some other height source is still working
 					if (_control_status.flags.opt_flow_terrain && isTerrainEstimateValid()) {
-						ECL_WARN("stopping %s fusion, fusion failing", HGT_SRC_NAME);
+						PX4_INFO("stopping %s fusion, fusion failing", HGT_SRC_NAME);
 						stopRngHgtFusion();
 						stopRngTerrFusion();
 
@@ -212,7 +213,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				}
 
 			} else {
-				ECL_WARN("stopping %s fusion, continuing conditions failing", HGT_SRC_NAME);
+				PX4_INFO("stopping %s fusion, continuing conditions failing", HGT_SRC_NAME);
 				stopRngHgtFusion();
 				stopRngTerrFusion();
 			}
@@ -239,7 +240,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	} else if ((_control_status.flags.rng_hgt || _control_status.flags.rng_terrain)
 		   && !isNewestSampleRecent(_time_last_range_buffer_push, 2 * estimator::sensor::RNG_MAX_INTERVAL)) {
 		// No data anymore. Stop until it comes back.
-		ECL_WARN("stopping %s fusion, no data", HGT_SRC_NAME);
+		PX4_INFO("stopping %s fusion, no data", HGT_SRC_NAME);
 		stopRngHgtFusion();
 		stopRngTerrFusion();
 	}
@@ -255,7 +256,7 @@ void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
 
 	const float innov_gate = math::max(_params.range_innov_gate, 1.f);
 	updateAidSourceStatus(aid_src,
-			      _range_sensor.getSampleAddress()->time_us, // sample timestamp
+			      _range_sensor.sample()->time_us, // sample timestamp
 			      measurement,                               // observation
 			      measurement_variance,                      // observation variance
 			      getHagl() - measurement,                   // innovation

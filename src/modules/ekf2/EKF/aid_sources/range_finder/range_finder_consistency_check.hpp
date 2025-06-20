@@ -73,7 +73,6 @@ public:
 	}
 
 	uint8_t current_posD_reset_count{0};
-	bool horizontal_motion{false};
 
 private:
 

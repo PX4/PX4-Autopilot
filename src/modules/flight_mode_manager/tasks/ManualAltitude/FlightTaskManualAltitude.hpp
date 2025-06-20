@@ -45,6 +45,13 @@
 #include "StickTiltXY.hpp"
 #include <uORB/Subscription.hpp>
 
+enum class AltitudeMode : int {
+	AltitudeFollow,
+	TerrainFollow,
+	TerrainHold,
+	None,
+};
+
 class FlightTaskManualAltitude : public FlightTask
 {
 public:
@@ -76,7 +83,8 @@ protected:
 	StickYaw _stick_yaw{this};
 
 	bool _sticks_data_required = true; ///< let inherited task-class define if it depends on stick data
-	bool _terrain_hold{false}; /**< true when vehicle is controlling height above a static ground position */
+	// bool _terrain_hold{false}; /**< true when vehicle is controlling height above a static ground position */
+	AltitudeMode _current_mode = AltitudeMode::AltitudeFollow;
 
 	float _velocity_constraint_up{INFINITY};
 	float _velocity_constraint_down{INFINITY};
@@ -85,15 +93,20 @@ protected:
 					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) _param_mpc_hold_max_z,
 					(ParamInt<px4::params::MPC_ALT_MODE>) _param_mpc_alt_mode,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) _param_mpc_hold_max_xy,
-					(ParamFloat<px4::params::MPC_Z_P>) _param_mpc_z_p, /**< position controller altitude propotional gain */
-					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1, /**< altitude at which to start downwards slowdown */
-					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2, /**< altitude below which to land with land speed */
-					(ParamFloat<px4::params::MPC_LAND_SPEED>)
-					_param_mpc_land_speed, /**< desired downwards speed when approaching the ground */
-					(ParamFloat<px4::params::MPC_TKO_SPEED>)
-					_param_mpc_tko_speed /**< desired upwards speed when still close to the ground */
+					(ParamFloat<px4::params::MPC_Z_P>) _param_mpc_z_p,
+					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1,
+					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2,
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
+					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
+					(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
+					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
+					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max
 				       )
 private:
+
+	void _terrain_hold_mode();
+	void _terrain_follow_mode();
+	void _altitude_follow_mode();
 	/**
 	 * Terrain following.
 	 * During terrain following, the position setpoint is adjusted
@@ -119,8 +132,6 @@ private:
 	 */
 	void _respectGroundSlowdown();
 
-	void setGearAccordingToSwitch();
-
 	bool _updateYawCorrection();
 
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
@@ -132,7 +143,7 @@ private:
 	 * Distance to ground during terrain following.
 	 * If user does not demand velocity change in D-direction and the vehcile
 	 * is in terrain-following mode, then height to ground will be locked to
-	 * _dist_to_ground_lock.
+	 * _dist_to_bottom_lock.
 	 */
-	float _dist_to_ground_lock = NAN;
+	float _dist_to_bottom_lock = NAN;
 };

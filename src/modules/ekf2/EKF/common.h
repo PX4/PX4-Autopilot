@@ -148,7 +148,7 @@ enum class GnssCtrl : uint8_t {
 	YAW  = (1 << 3)
 };
 
-enum class RngCtrl : uint8_t {
+enum RngCtrl : uint8_t {
 	DISABLED    = 0,
 	CONDITIONAL = 1,
 	ENABLED     = 2
@@ -415,17 +415,19 @@ struct parameters {
 	float range_delay_ms{5.0f};             ///< range finder measurement delay relative to the IMU (mSec)
 	float range_noise{0.1f};                ///< observation noise for range finder measurements (m)
 	float range_innov_gate{5.0f};           ///< range finder fusion innovation consistency gate size (STD)
-	float rng_sens_pitch{0.0f};             ///< Pitch offset of the range sensor (rad). Sensor points out along Z axis when offset is zero. Positive rotation is RH about Y axis.
-	float range_noise_scaler{0.0f};         ///< scaling from range measurement to noise (m/m)
+	float ekf2_rng_pitch{0.0f};             ///< Pitch offset of the range sensor (rad). Sensor points out along Z axis when offset is zero. Positive rotation is RH about Y axis.
+	float ekf2_rng_sfe{0.0f};         ///< scaling from range measurement to noise (m/m)
 	float max_hagl_for_range_aid{5.0f};     ///< maximum height above ground for which we allow to use the range finder as height source (if rng_control == 1)
 	float max_vel_for_range_aid{1.0f};      ///< maximum ground velocity for which we allow to use the range finder as height source (if rng_control == 1)
 	float range_aid_innov_gate{1.0f};       ///< gate size used for innovation consistency checks for range aid fusion
-	float range_valid_quality_s{1.0f};      ///< minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
 	float range_cos_max_tilt{0.7071f};      ///< cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data
 	float range_kin_consistency_gate{0.5f}; ///< gate size used by the range finder kinematic consistency check
 	float rng_fog{0.f};                 	///< max distance which a blocked range sensor measures (fog, dirt) [m]
 
-	Vector3f rng_pos_body{};                ///< xyz position of range sensor in body frame (m)
+	float ekf2_rng_pos_x{0.f};
+	float ekf2_rng_pos_y{0.f};
+	float ekf2_rng_pos_z{0.f};
+
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
@@ -570,8 +572,6 @@ uint64_t mag_fault               :
 		uint64_t fuse_aspd               : 1; ///< 19 - true when airspeed measurements are being fused
 uint64_t gnd_effect              :
 		1; ///< 20 - true when protection from ground effect induced static pressure rise is active
-uint64_t rng_stuck               :
-		1; ///< 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
 uint64_t gnss_yaw                 :
 		1; ///< 22 - true when yaw (not ground course) data fusion from a GPS receiver is intended
 		uint64_t mag_aligned_in_flight   : 1; ///< 23 - true when the in-flight mag field alignment has been completed
@@ -582,8 +582,6 @@ uint64_t synthetic_mag_z         :
 		uint64_t vehicle_at_rest         : 1; ///< 26 - true when the vehicle is at rest
 uint64_t gnss_yaw_fault           :
 		1; ///< 27 - true when the GNSS heading has been declared faulty and is no longer being used
-uint64_t rng_fault               :
-		1; ///< 28 - true when the range finder has been declared faulty and is no longer being used
 uint64_t inertial_dead_reckoning :
 		1; ///< 29 - true if we are no longer fusing measurements that constrain horizontal velocity drift
 		uint64_t wind_dead_reckoning     : 1; ///< 30 - true if we are navigationg reliant on wind relative measurements
@@ -604,7 +602,6 @@ uint64_t mag_heading_consistent  :
 		uint64_t constant_pos            : 1; ///< 42 - true if the vehicle is at a constant position
 		uint64_t baro_fault              : 1; ///< 43 - true when the baro has been declared faulty and is no longer being used
 		uint64_t gnss_vel                : 1; ///< 44 - true if GNSS velocity measurement fusion is intended
-		uint64_t rng_kin_unknown	 : 1; ///< 45 - true when the range finder kinematic consistency check is not running
 	} flags;
 	uint64_t value;
 };
