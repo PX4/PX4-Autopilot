@@ -613,7 +613,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 	events::send<events::px4::enums::arm_disarm_reason_t>(events::ID("commander_armed_by"), events::Log::Info,
 			"Armed by {1}", calling_reason);
 
-	if (_param_com_home_en.get()) {
+	if (_param_com_home_en.get() && !_mission_in_progress) {
 		_home_position.setHomePosition();
 	}
 
@@ -688,7 +688,7 @@ Commander::Commander() :
 	_vehicle_status.system_id = 1;
 	_vehicle_status.component_id = 1;
 	_vehicle_status.system_type = 0;
-	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_UNSPECIFIED;
 	_vehicle_status.nav_state = _user_mode_intention.get();
 	_vehicle_status.nav_state_user_intention = _user_mode_intention.get();
 	_vehicle_status.nav_state_timestamp = hrt_absolute_time();
@@ -1809,7 +1809,10 @@ void Commander::run()
 
 		vtolStatusUpdate();
 
-		_home_position.update(_param_com_home_en.get(), !isArmed() && _vehicle_land_detected.landed);
+		_mission_in_progress = (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
+				       && !_mission_result_sub.get().finished;
+
+		_home_position.update(_param_com_home_en.get(), !isArmed() && _vehicle_land_detected.landed && !_mission_in_progress);
 
 		handleAutoDisarm();
 
@@ -2107,10 +2110,11 @@ void Commander::landDetectorUpdate()
 				events::send(events::ID("commander_takeoff_detected"), events::Log::Info, "Takeoff detected");
 				_vehicle_status.takeoff_time = hrt_absolute_time();
 				_have_taken_off_since_arming = true;
+				_home_position.setTakeoffTime(_vehicle_status.takeoff_time);
 			}
 
 			// automatically set or update home position
-			if (_param_com_home_en.get()) {
+			if (_param_com_home_en.get() && !_mission_in_progress) {
 				// set the home position when taking off
 				if (!_vehicle_land_detected.landed) {
 					if (was_landed) {
@@ -2252,9 +2256,7 @@ void Commander::handleAutoDisarm()
 		// Check for auto-disarm on landing or pre-flight
 		if (_param_com_disarm_land.get() > 0 || _param_com_disarm_prflt.get() > 0) {
 
-			const bool landed_amid_mission = (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
-							 && !_mission_result_sub.get().finished;
-			const bool auto_disarm_land_enabled = _param_com_disarm_land.get() > 0 && !landed_amid_mission
+			const bool auto_disarm_land_enabled = _param_com_disarm_land.get() > 0 && !_mission_in_progress
 							      && !_config_overrides.disable_auto_disarm;
 
 			if (auto_disarm_land_enabled && _have_taken_off_since_arming) {

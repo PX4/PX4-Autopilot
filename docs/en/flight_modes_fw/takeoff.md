@@ -50,6 +50,7 @@ Parameters that affect both catapult/hand-launch and runway takeoffs:
 | <a id="FW_TKO_PITCH_MIN"></a>[FW_TKO_PITCH_MIN](../advanced_config/parameter_reference.md#FW_TKO_PITCH_MIN) | This is the minimum pitch angle setpoint during the climbout phase                                                               |
 | <a id="FW_T_CLMB_MAX"></a>[FW_T_CLMB_MAX](../advanced_config/parameter_reference.md#FW_T_CLMB_MAX)          | Maximum climb rate.                                                                                                              |
 | <a id="FW_FLAPS_TO_SCL"></a>[FW_FLAPS_TO_SCL](../advanced_config/parameter_reference.md#FW_FLAPS_TO_SCL)    | Flaps setpoint during takeoff                                                                                                    |
+| <a id="FW_AIRSPD_FLP_SC"></a>[FW_AIRSPD_FLP_SC](../advanced_config/parameter_reference.md#FW_AIRSPD_FLP_SC)    | Factor applied to the minimum airspeed when flaps are fully deployed. Necessary if FW_TKO_AIRSPD is below FW_AIRSPD_MIN.                                                                                             |
 
 ::: info
 The vehicle always respects normal FW max/min throttle settings during takeoff ([FW_THR_MIN](../advanced_config/parameter_reference.md#FW_THR_MIN), [FW_THR_MAX](../advanced_config/parameter_reference.md#FW_THR_MAX)).
@@ -101,7 +102,7 @@ The _runway takeoff mode_ has the following phases:
 
 ::: info
 For a smooth takeoff, the runway wheel controller possibly needs to be tuned.
-It consists of a rate controller (P-I-FF-controller with the parameters [FW_WR_P](../advanced_config/parameter_reference.md#FW_WR_P), [FW_WR_I](../advanced_config/parameter_reference.md#FW_WR_I), [FW_WR_FF](../advanced_config/parameter_reference.md#FW_WR_FF)) and an outer loop that calculates heading setpoints from course errors and can be tuned via [RWTO_NPFG_PERIOD](#RWTO_NPFG_PERIOD).
+It consists of a rate controller (P-I-FF-controller with the parameters [FW_WR_P](../advanced_config/parameter_reference.md#FW_WR_P), [FW_WR_I](../advanced_config/parameter_reference.md#FW_WR_I), [FW_WR_FF](../advanced_config/parameter_reference.md#FW_WR_FF)).
 :::
 
 ### Parameters (Runway Takeoff)
@@ -120,7 +121,6 @@ Runway takeoff is affected by the following parameters:
 | <a id="RWTO_NUDGE"></a>[RWTO_NUDGE](../advanced_config/parameter_reference.md#RWTO_NUDGE)                   | Enable wheel controller nudging while on the runway                                                                          |
 | <a id="FW_WING_SPAN"></a>[FW_WING_SPAN](../advanced_config/parameter_reference.md#FW_WING_SPAN)             | The wingspan of the vehicle. Used to prevent wingstrikes.                                                                    |
 | <a id="FW_WING_HEIGHT"></a>[FW_WING_HEIGHT](../advanced_config/parameter_reference.md#FW_WING_HEIGHT)       | The height of the wings above ground (ground clearance). Used to prevent wingstrikes.                                        |
-| <a id="RWTO_NPFG_PERIOD"></a>[RWTO_NPFG_PERIOD](../advanced_config/parameter_reference.md#RWTO_NPFG_PERIOD) | L1 period while steering on runway. Increase for less aggressive response to course errors.                                  |
 
 ## See Also
 

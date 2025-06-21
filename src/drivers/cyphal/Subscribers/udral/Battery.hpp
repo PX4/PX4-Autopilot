@@ -41,6 +41,7 @@
 
 #pragma once
 
+#include <uORB/topics/battery_info.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/PublicationMulti.hpp>
 
@@ -120,6 +121,10 @@ public:
 			// TODO uORB publication rate limiting
 			_battery_status_pub.publish(bat_status);
 
+			_battery_info.timestamp = bat_status.timestamp;
+			_battery_info.id = bat_status.id;
+			_battery_info_pub.publish(_battery_info);
+
 		} else if (receive.metadata.port_id == _status_sub._canard_sub.port_id) {
 			reg_udral_service_battery_Status_0_2 bat {};
 			size_t bat_size_in_bytes = receive.payload_size;
@@ -163,7 +168,7 @@ public:
 
 			bat_status.capacity = parameters.design_capacity.coulomb / 3.6f; // Coulomb -> mAh
 			bat_status.cycle_count = parameters.cycle_count;
-			bat_status.serial_number = parameters.unique_id & 0xFFFF;
+			snprintf(_battery_info.serial_number, sizeof(_battery_info.serial_number), "%" PRIu64, parameters.unique_id);
 			bat_status.state_of_health = parameters.state_of_health_pct;
 			bat_status.max_error = 1; // UAVCAN didn't spec'ed this, but we're optimistic
 			bat_status.id = 0; //TODO instancing
@@ -174,6 +179,7 @@ public:
 private:
 	float _nominal_voltage = NAN;
 
+	uORB::PublicationMulti<battery_info_s> _battery_info_pub{ORB_ID(battery_info)};
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
 	SubjectSubscription _status_sub;
@@ -182,5 +188,6 @@ private:
 	const char *_status_name = "battery_status";
 	const char *_parameters_name = "battery_parameters";
 
+	battery_info_s _battery_info{};
 	battery_status_s bat_status {0};
 };

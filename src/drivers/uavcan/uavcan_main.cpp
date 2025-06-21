@@ -546,7 +546,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 #endif
 
-#if defined(CONFIG_UAVCAN_SAFETY_CONTROLLER)
+#if defined(CONFIG_UAVCAN_SAFETY_STATE_CONTROLLER)
 	ret = _safety_state_controller.init();
 
 	if (ret < 0) {

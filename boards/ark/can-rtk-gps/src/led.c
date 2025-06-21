@@ -67,7 +67,7 @@ void rgb_led(int r, int g, int b, int freqs)
 	if (!once) {
 		once = 1;
 
-		/* Enabel Clock to Block */
+		/* Enable Clock to Block */
 		modifyreg32(STM32_RCC_APB2ENR, 0, RCC_APB2ENR_TIM1EN);
 
 		/* Reload */

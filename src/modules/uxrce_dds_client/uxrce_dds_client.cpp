@@ -54,29 +54,19 @@ static constexpr uint8_t TIMESYNC_MAX_TIMEOUTS = 10;
 
 using namespace time_literals;
 
-static void on_time(uxrSession *session, int64_t current_time, int64_t received_timestamp, int64_t transmit_timestamp,
-		    int64_t originate_timestamp, void *args)
+static void on_time(uxrSession *session, int64_t current_time, int64_t client_transmit_timestamp,
+		    int64_t agent_receive_timestamp, int64_t originate_timestamp, void *args)
 {
-	// latest round trip time (RTT)
-	int64_t rtt = current_time - originate_timestamp;
-
-	// HRT to AGENT
-	int64_t offset_1 = (received_timestamp - originate_timestamp) - (rtt / 2);
-	int64_t offset_2 = (transmit_timestamp - current_time) - (rtt / 2);
-
-	session->time_offset = (offset_1 + offset_2) / 2;
-
 	if (args) {
 		Timesync *timesync = static_cast<Timesync *>(args);
-		timesync->update(current_time / 1000, transmit_timestamp, originate_timestamp);
+		timesync->update(current_time / 1000, agent_receive_timestamp, originate_timestamp);
 
 		session->time_offset = -timesync->offset() * 1000; // us -> ns
 	}
 }
 
-static void on_time_no_sync(uxrSession *session, int64_t current_time, int64_t received_timestamp,
-			    int64_t transmit_timestamp,
-			    int64_t originate_timestamp, void *args)
+static void on_time_no_sync(uxrSession *session, int64_t current_time, int64_t client_transmit_timestamp,
+			    int64_t agent_receive_timestamp, int64_t originate_timestamp, void *args)
 {
 	session->time_offset = 0;
 }
@@ -366,6 +356,11 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 		return false;
 	}
 
+	if (!_subs->init(session, _reliable_out, reliable_in, best_effort_in, _participant_id, _client_namespace)) {
+		PX4_ERR("subs init failed");
+		return false;
+	}
+
 	// create VehicleCommand replier
 	if (_num_of_repliers < MAX_NUM_REPLIERS) {
 		if (add_replier(new VehicleCommandSrv(session, _reliable_out, reliable_in, _participant_id, _client_namespace,
@@ -386,11 +381,6 @@ void UxrceddsClient::deleteSession(uxrSession *session)
 	if (_session_created) {
 		uxr_delete_session_retries(session, _connected ? 1 : 0);
 		_session_created = false;
-	}
-
-	if (_subs_initialized) {
-		_subs->reset();
-		_subs_initialized = false;
 	}
 
 	_last_payload_tx_rate = 0;
@@ -650,9 +640,6 @@ void UxrceddsClient::run()
 		int poll_error_counter = 0;
 		resetConnectivityCounters();
 
-		_subs->init();
-		_subs_initialized = true;
-
 		while (!should_exit() && _connected) {
 			perf_begin(_loop_perf);
 			perf_count(_loop_interval_perf);
@@ -696,7 +683,6 @@ void UxrceddsClient::run()
 			if (_synchronize_timestamps && hrt_elapsed_time(&last_sync_session) > 1_s) {
 
 				if (uxr_sync_session(&session, 10) && _timesync.sync_converged()) {
-					//PX4_INFO("synchronized with time offset %-5" PRId64 "ns", session.time_offset);
 					last_sync_session = hrt_absolute_time();
 
 					if (_param_uxrce_dds_syncc.get() > 0) {
@@ -705,10 +691,10 @@ void UxrceddsClient::run()
 				}
 
 				if (!_timesync_converged && _timesync.sync_converged()) {
-					PX4_INFO("time sync converged");
+					PX4_DEBUG("time sync converged");
 
 				} else if (_timesync_converged && !_timesync.sync_converged()) {
-					PX4_WARN("time sync no longer converged");
+					PX4_DEBUG("time sync no longer converged");
 				}
 
 				_timesync_converged = _timesync.sync_converged();

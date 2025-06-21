@@ -31,9 +31,12 @@
 #
 ############################################################################
 
+add_subdirectory(DifferentialActControl)
 add_subdirectory(DifferentialRateControl)
 add_subdirectory(DifferentialAttControl)
-add_subdirectory(DifferentialPosVelControl)
+add_subdirectory(DifferentialVelControl)
+add_subdirectory(DifferentialPosControl)
+add_subdirectory(DifferentialDriveModes)
 
 px4_add_module(
 	MODULE modules__rover_differential
@@ -42,9 +45,14 @@ px4_add_module(
 		RoverDifferential.cpp
 		RoverDifferential.hpp
 	DEPENDS
+		DifferentialActControl
 		DifferentialRateControl
 		DifferentialAttControl
-		DifferentialPosVelControl
+		DifferentialVelControl
+		DifferentialPosControl
+		DifferentialAutoMode
+		DifferentialManualMode
+		DifferentialOffboardMode
 		px4_work_queue
 		rover_control
 		pure_pursuit

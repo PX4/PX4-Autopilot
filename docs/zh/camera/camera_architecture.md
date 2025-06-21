@@ -60,7 +60,7 @@ The driver tracks these intervals, but with the "MAVLink backend" does not need 
 When the camera would trigger the driver publishes a [CameraTrigger](../msg_docs/CameraTrigger.md) topic (with `feedback` field set to `false`) that causes a [CAMERA_TRIGGER](https://mavlink.io/en/messages/common.html#CAMERA_TRIGGER) MAVLink message to be emitted.
 The `camera_feedback` module should then log a corresponding `CameraCapture` topic.
 
-## Camera Commands in Missions
+## 任务中的相机命令
 
 PX4 re-emits camera items found in missions as MAVLink commands for all supported [Camera Protocol v2](https://mavlink.io/en/services/camera.html) and [Camera Protocol v1](https://mavlink.io/en/services/camera.html) commands.
 The system id of the emitted commands is the same as the ID of the autopilot.
@@ -88,9 +88,9 @@ Commands supported in missions, including camera commands, are shown in these me
   - Mission items are executed when set active.
   - `issue_command(_mission_item)` is called at the end of this to send the current non-waypoint command
     - [`MissionBlock::issue_command(const mission_item_s &item)`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/mission_block.cpp#L543-L562)
-      - Creates a vehicle command for the mission item then calls `publish_vehicle_cmd` to publish it (`_navigator->publish_vehicle_cmd(&vcmd);`)
-        - [`void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/navigator_main.cpp#L1358)
-          - For some camera commands it sets the component ID to the camera component id (`vcmd->target_component = 100; // MAV_COMP_ID_CAMERA`)
+      - Creates a vehicle command for the mission item then calls `publish_vehicle_command` to publish it (`_navigator->publish_vehicle_command(vehicle_command);`)
+        - [`void Navigator::publish_vehicle_command(vehicle_command_s &vehicle_command)`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/navigator_main.cpp#L1395)
+          - For some camera commands it sets the component ID to the camera component id (`vehicle_command.target_component = 100; // MAV_COMP_ID_CAMERA`)
           - All others just get published to default component ID.
           - The `VehicleCommand` UORB topic is published.
 
