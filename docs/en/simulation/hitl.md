@@ -22,7 +22,6 @@ The set of compatible airframes vs simulators is:
 | ---------------------------------------------------------------------------------------------------------------- | --------------- | -------------- | ------- |
 | [HIL Quadcopter X](../airframes/airframe_reference.md#copter_simulation_hil_quadcopter_x)                        | 1001            | Y              | Y       |
 | [HIL Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_standard_vtol_hil_standard_vtol_quadplane) | 1002            | Y              |
-| [Generic Quadrotor x](../airframes/airframe_reference.md#copter_quadrotor_x_generic_quadcopter) copter           | 4001            | Y              | Y       |
 
 <a id="simulation_environment"></a>
 
@@ -63,20 +62,19 @@ In summary, HITL runs PX4 on the actual hardware using standard firmware, but SI
 ### PX4 Configuration
 
 1. Connect the autopilot directly to _QGroundControl_ via USB.
-1. Enable HITL Mode
+1. Ensure your PX4 version was build with [`pwm_out_sim`](../modules/modules_driver.md#pwm-out-sim).
 
-   1. Open **Setup > Safety** section.
-   1. Enable HITL mode by selecting **Enabled** from the _HITL Enabled_ list:
-
-      ![QGroundControl HITL configuration](../../assets/gcs/qgc_hitl_config.png)
+   1. Open **Analyze Tools > Mavlink Console**.
+   1. Type `pwm_out_sim status` in the console.
+   1. If the returned value is `nsh: pwm_out_sim: command not found`, then you don't have the module installed and you need to recompile your target with it.
+   Add `CONFIG_MODULES_SIMULATION_PWM_OUT_SIM=y` to your board configuration file, re-built it and re-flash it.
+   You can also use `make YOUR_TARGET boardconfig` and interactively enable it: **modules > Simulation > pwm_out_sim**.
 
 1. Select Airframe
 
    1. Open **Setup > Airframes**
    1. Select a [compatible airframe](#compatible_airframe) you want to test.
       Then click **Apply and Restart** on top-right of the _Airframe Setup_ page.
-
-      ![Select Airframe](../../assets/gcs/qgc_hil_config.png)
 
 1. Calibrate your RC or Joystick, if needed.
 1. Setup UDP
