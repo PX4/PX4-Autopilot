@@ -56,6 +56,14 @@ From PX4 v1.14 you can run SIH "as SITL", in which case a flight controller is n
 To set up/start SIH:
 
 1. Connect the flight controller to the desktop computer with a USB cable.
+1. Ensure your PX4 version was build with [`pwm_out_sim`](../modules/modules_driver.md#pwm-out-sim), [`sensor_baro_sim`](../modules/modules_system.md#sensor-baro-sim), [`sensor_gps_sim`](../modules/modules_system.md#sensor-gps-sim) and [`sensor_mag_sim`](../modules/modules_system.md#sensor-mag-sim).
+
+   1. Open **Analyze Tools > Mavlink Console**.
+   1. Type `pwm_out_sim status`,  `sensor_baro_sim status`,  `sensor_gps_sim status `and  `sensor_mag_sim status`, in the console.
+   1. If any of the returned values are `nsh: MODULENAME: command not found`, then you don't have the module installed and you need to recompile your target with it.
+   Add `CONFIG_MODULES_SIMULATION_PWM_OUT_SIM=y` (or `CONFIG_MODULES_SIMULATION_SENSOR_BARO_SIM`, `CONFIG_MODULES_SIMULATION_SENSOR_GPS_SIM`, `CONFIG_MODULES_SIMULATION_SENSOR_MAG_SIM`) to your board configuration file, re-built it and re-flash it.
+   You can also use `make YOUR_TARGET boardconfig` and interactively enable all of them at once: **modules > Simulation > simulator_sih**.
+
 1. Open QGroundControl and wait for the flight controller too boot and connect.
 1. Open [Vehicle Setup > Airframe](../config/airframe.md) then select the desired frame:
    - [SIH Quadcopter X](../airframes/airframe_reference.md#copter_simulation_sih_quadcopter_x)
