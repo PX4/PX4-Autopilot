@@ -20,7 +20,6 @@
         "uavcan.dsdl",
         "wholroyd.jinja",
         "zixuanwang.linkerscript",
-        "ms-vscode.makefile-tools",
-        "xaver.clang-format"
+        "ms-vscode.makefile-tools"
     ]
 }
