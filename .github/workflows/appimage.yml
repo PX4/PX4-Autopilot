@@ -11,8 +11,13 @@ jobs:
     container:
       image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Git ownership workaround
+        run: git config --system --add safe.directory '*'
 
       - name: Install PX4 dependencies
         run: |
