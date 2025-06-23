@@ -360,7 +360,7 @@ struct msp_rendor_rssi_t {
 // MSP_ARMING_CONFIG reply
 struct msp_arming_config_t {
 	uint8_t auto_disarm_delay;
-	uint8_t disarm_kill_switch;
+	uint8_t disarm_emergency_stop_switch;
 } __attribute__((packed));
 
 

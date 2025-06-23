@@ -51,7 +51,7 @@ static bool operator ==(const manual_control_switches_s &a, const manual_control
 		a.return_switch == b.return_switch &&
 		a.loiter_switch == b.loiter_switch &&
 		a.offboard_switch == b.offboard_switch &&
-		a.kill_switch == b.kill_switch &&
+		a.emergency_stop_switch == b.emergency_stop_switch &&
 		a.arm_switch == b.arm_switch &&
 		a.transition_switch == b.transition_switch &&
 		a.gear_switch == b.gear_switch &&
@@ -198,7 +198,7 @@ void RCUpdate::update_rc_functions()
 	_rc.function[rc_channels_s::FUNCTION_RETURN] = _param_rc_map_return_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_LOITER] = _param_rc_map_loiter_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_OFFBOARD] = _param_rc_map_offb_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_KILLSWITCH] = _param_rc_map_kill_sw.get() - 1;
+	_rc.function[rc_channels_s::FUNCTION_EMERGENCYSTOPSWITCH] = _param_rc_map_kill_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_TERMINATION] = _param_rc_map_term_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_ARMSWITCH] = _param_rc_map_arm_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_TRANSITION] = _param_rc_map_trans_sw.get() - 1;
@@ -620,7 +620,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 	switches.return_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_RETURN, _param_rc_return_th.get());
 	switches.loiter_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_LOITER, _param_rc_loiter_th.get());
 	switches.offboard_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_OFFBOARD, _param_rc_offb_th.get());
-	switches.kill_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_KILLSWITCH, _param_rc_killswitch_th.get());
+	switches.emergency_stop_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_EMERGENCYSTOPSWITCH, _param_rc_killswitch_th.get());
 	switches.termination_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_TERMINATION, .75f);
 	switches.arm_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_ARMSWITCH, _param_rc_armswitch_th.get());
 	switches.transition_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_TRANSITION, _param_rc_trans_th.get());

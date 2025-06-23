@@ -471,8 +471,8 @@
                             "description": "preflight inaction"
                         },
                         "8": {
-                            "name": "kill_switch",
-                            "description": "kill switch"
+                            "name": "emergency_stop_switch",
+                            "description": "emergency stop"
                         },
                         "13": {
                             "name": "rc_button",

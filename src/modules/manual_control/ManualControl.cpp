@@ -228,12 +228,12 @@ void ManualControl::processSwitches(hrt_abstime &now)
 					}
 				}
 
-				if (switches.kill_switch != _previous_switches.kill_switch) {
-					if (switches.kill_switch == manual_control_switches_s::SWITCH_POS_ON) {
-						sendActionRequest(action_request_s::ACTION_KILL, action_request_s::SOURCE_RC_SWITCH);
+				if (switches.emergency_stop_switch != _previous_switches.emergency_stop_switch) {
+					if (switches.emergency_stop_switch == manual_control_switches_s::SWITCH_POS_ON) {
+						sendActionRequest(action_request_s::ACTION_EMERGENGY_STOP, action_request_s::SOURCE_RC_SWITCH);
 
-					} else if (switches.kill_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-						sendActionRequest(action_request_s::ACTION_UNKILL, action_request_s::SOURCE_RC_SWITCH);
+					} else if (switches.emergency_stop_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+						sendActionRequest(action_request_s::ACTION_REVERT_EMERGENGY_STOP, action_request_s::SOURCE_RC_SWITCH);
 					}
 				}
 
@@ -396,7 +396,7 @@ void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 		_stick_kill_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_lower_right, input.timestamp);
 
 		if (!previous_stick_kill_hysteresis && _stick_kill_hysteresis.get_state()) {
-			sendActionRequest(action_request_s::ACTION_KILL, action_request_s::SOURCE_STICK_GESTURE);
+			sendActionRequest(action_request_s::ACTION_EMERGENGY_STOP, action_request_s::SOURCE_STICK_GESTURE);
 		}
 	}
 }

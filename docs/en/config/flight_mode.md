@@ -24,7 +24,7 @@ Most users should set the following modes and functions, as these make the vehic
 It is also common to map switches to:
 
 - **Mission mode** — This mode runs a pre-programmed mission sent by the ground control station.
-- <a id="kill_switch"></a> [Kill Switch](../config/safety.md#kill-switch) - Immediately stops all motor outputs (the vehicle will crash, which may in some circumstances be more desirable than allowing it to continue flying).
+- <a id="emergency_stop_switch"></a> [Kill Switch](../config/safety.md#kill-switch) - Immediately stops all motor outputs (the vehicle will crash, which may in some circumstances be more desirable than allowing it to continue flying).
 
 ## Flight Mode Selection
 
@@ -49,7 +49,7 @@ To configure single-channel flight mode selection:
    * Select the flight mode that you want triggered for each switch position.
 1. Specify *Switch Settings*:
    * Select the channels that you want to map to specific actions - e.g.: *Return* mode, *Kill switch*, *offboard* mode, etc. (if you have spare switches and channels on your transmitter).
-   
+
 1. Test that the modes are mapped to the right transmitter switches:
    * Check the *Channel Monitor* to confirm that the expected channel is changed by each switch.
    * Select each mode switch on your transmitter in turn, and check that the desired flight mode is activated (the text turns yellow on *QGroundControl* for the active mode).

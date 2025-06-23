@@ -1212,7 +1212,7 @@ PARAM_DEFINE_INT32(RC_MAP_LOITER_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
 
 /**
- * Emergency Kill switch channel
+ * Emergency stop switch channel
  *
  * This channel immediately sets all outputs to their disarmed values, parachutes are NOT deployed.
  * Unlike termination this can be undone. Quickly flipping the switch back restores control.
