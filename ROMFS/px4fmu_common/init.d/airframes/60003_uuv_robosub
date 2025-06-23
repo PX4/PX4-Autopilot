@@ -112,6 +112,8 @@ param set-default UXRCE_DDS_CFG 1
 param set-default UXRCE_DDS_AG_IP -1856423239
 param set-default UXRCE_DDS_PRT 8888
 
+param set-default SENS_EN_INA228 1
+
 rs_motor_control start
 rs_remote_control start
 control_allocator start
