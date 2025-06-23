@@ -140,11 +140,11 @@ void RoboSubCANFDReceiver::Run() {
 
         received_id.id = _raw_canfd_msg.id; // Put the received can id in the union to parse the id.
 
-        if (received_id.can_id_seg.module_id_des == 0x10) {     // Check if the dest module is 0x01 (Pixhawk)
-                switch (received_id.can_id_seg.client_id_src) { // switch on the client id source
-                case 0x00:                                      // Internal humidity sensor
-                case 0x01:                                      // Internal temperature sensor
-                case 0x02: {                                    // Internal pressure sensor
+        if (received_id.can_id_seg.module_id_des == MAINBRAIN) { // Check if the dest module is 0x01 (Pixhawk)
+                switch (received_id.can_id_seg.client_id_src) {  // switch on the client id source
+                case 0x00:                                       // Internal humidity sensor
+                case 0x01:                                       // Internal temperature sensor
+                case 0x02: {                                     // Internal pressure sensor
                         // TODO: Add check to see if theres enough data in the raw canfd data.
                         converter conv;
                         memcpy(conv.bytes, _raw_canfd_msg.data, sizeof(conv.bytes));
@@ -160,15 +160,22 @@ void RoboSubCANFDReceiver::Run() {
                 }
                 case 0x04: {                                                 // LP4 GPIO non contact water level
                         water_detection_msg.timestamp = hrt_absolute_time(); // set the timestamp
-                        if (received_id.can_id_seg.module_id_src == 0x11) {
+                        if (received_id.can_id_seg.module_id_src == MAINBRAIN) {
                                 water_detection_msg.mainbrain_sensor =
                                     _raw_canfd_msg.data[0]; // set the water detected bit, this should be the first byte
-                        } else if (received_id.can_id_seg.module_id_src == 0x08) {
+                        } else if (received_id.can_id_seg.module_id_src == POWER) {
                                 water_detection_msg.power_module_sensor =
                                     _raw_canfd_msg.data[0]; // set the water detected bit, this should be the first byte
                         }
                         water_detection_pub.publish(water_detection_msg); // publish the data
                         break;
+                }
+                case 0x0A: { // ClientID Thruster ESC telemetery
+                        if (received_id.can_id_seg.module_id_src == MAINBRAIN) {
+                                memcpy(esc_telem.payload, _raw_canfd_msg.data,
+                                       sizeof(esc_telem.payload)); // Put the received data in union
+                                send_esc_status(&esc_telem);
+                        }
                 }
                 }
         } else { // if the hardware filters are set up correctly, this should never happen
@@ -190,6 +197,40 @@ void RoboSubCANFDReceiver::parameters_update(bool force) {
                 updateParams();
         }
         // perf_end(_loop_perf);
+}
+
+/**
+ * @brief Set ESC status based on CAN telemetry message and publish to uORB.
+ *
+ * Partyly taken from from dsp_hitl.cpp void send_esc_status(mavlink_hil_actuator_controls_t hil_act_control)
+ */
+void RoboSubCANFDReceiver::send_esc_status(const esc_payload_u *esc_data) {
+        esc_status_s esc_status{};
+        esc_status.timestamp = hrt_absolute_time();
+        const int max_esc_count = 7; // TODO_RS Change to 'smarter' math:min(num, CONNECTED_ESC_MAX)
+        // math::min(actuator_outputs_s::NUM_ACTUATOR_OUTPUTS, esc_status_s::CONNECTED_ESC_MAX);
+
+        int max_esc_index = 0;
+
+        for (int i = 0; i < max_esc_count; i++) {
+                // if (_output_functions[i] != 0) {
+                if (1) { // is this motor is not disabled?
+                        max_esc_index = i;
+                }
+
+                esc_status.esc[i].timestamp = esc_status.timestamp;
+                esc_status.esc[i].esc_errorcount = 0; // TODO_RS
+                esc_status.esc[i].esc_voltage = (float)esc_data->esc_payload_seg[0].voltData;
+                esc_status.esc[i].esc_current = -1.0f; // TODO_RS
+                esc_status.esc[i].esc_rpm = (float)esc_data->esc_payload_seg[0].rpmData;
+                esc_status.esc[i].esc_temperature = (float)esc_data->esc_payload_seg[0].tempData;
+        }
+
+        esc_status.esc_count = max_esc_index + 1;
+        esc_status.esc_armed_flags = (1u << esc_status.esc_count) - 1;
+        esc_status.esc_online_flags = (1u << esc_status.esc_count) - 1;
+
+        _esc_status_pub.publish(esc_status);
 }
 
 int RoboSubCANFDReceiver::print_usage(const char *reason) {
