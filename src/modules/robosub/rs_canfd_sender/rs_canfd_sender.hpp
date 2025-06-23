@@ -36,7 +36,14 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/control_lamp.h>
+#include <nuttx/can.h>
+#include <uORB/topics/raw_canfd.h>
+#include <uORB/Publication.hpp>
+#include <netpacket/can.h>
+#include "../rs_canfd_common/rs_canfd_common.hpp"
 
 using namespace time_literals;
 
@@ -81,10 +88,16 @@ private:
 	void parameters_update(bool force = false);
 
 
-	DEFINE_PARAMETERS(
-	)
+	raw_canfd_s _send_raw_canfd_msg{};
+
+	can_id_u send_id;
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Publication<px4::msg::RawCanfd> send_raw_canfd_pub{ORB_ID(send_raw_canfd)};
+	uORB::SubscriptionCallbackWorkItem control_lamp_sub{this, ORB_ID(control_lamp)};
+
+	control_lamp_s control_lamp_msg{};
+
 
 };

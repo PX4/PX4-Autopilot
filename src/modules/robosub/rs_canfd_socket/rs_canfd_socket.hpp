@@ -48,6 +48,8 @@
 #include <uORB/Subscription.hpp>
 
 #include <uORB/topics/raw_canfd.h>
+#include "../rs_canfd_common/rs_canfd_common.hpp"
+
 
 using namespace time_literals;
 
@@ -135,20 +137,6 @@ private:
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	// To understand how this works see the following link: https://godbolt.org/z/9edexce1j
-	union can_id_u {
-		uint32_t can_id;
-		struct  {
-			uint8_t emergency : 2; // Emergency status
-			uint8_t module_id_src : 5;
-			uint8_t client_id_src : 5;
-			uint8_t module_id_des : 5;
-			uint8_t client_id_des : 5;
-			uint8_t session : 3;
-			uint8_t command_type : 4;
-			uint8_t rest : 3;
-		} can_id_seg;
-	};
 	can_id_u received_id;
 
 	uORB::Publication<px4::msg::RawCanfd> raw_canfd_pub{ORB_ID(raw_canfd)};

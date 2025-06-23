@@ -166,5 +166,8 @@ subscriptions:
   - topic: /fmu/in/opi_detection
     type: px4_msgs::msg::OpiDetection
 
+  - topic: /fmu/in/control_lamp
+    type: px4_msgs::msg::ControlLamp
+
 # Create uORB::PublicationMulti
 subscriptions_multi:

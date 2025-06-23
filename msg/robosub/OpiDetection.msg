@@ -20,7 +20,6 @@ uint8 COLOR_RED = 2
 uint8 COLOR_BLACK = 3
 uint8 COLOR_YELLOW = 4
 
-
 # OPI information
 uint64 distance
 float32 angle_hor

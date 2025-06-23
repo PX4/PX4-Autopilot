@@ -51,6 +51,8 @@
 #include <uORB/topics/raw_canfd.h>
 #include <uORB/topics/internal_sensors.h>
 
+#include "../rs_canfd_common/rs_canfd_common.hpp"
+
 using namespace time_literals;
 
 extern "C" __EXPORT int rs_canfd_receiver_main(int argc, char *argv[]);
@@ -105,22 +107,6 @@ private:
 	raw_canfd_s _raw_canfd_msg{}; /**< raw canfd message */
 	raw_canfd_s _send_raw_canfd_msg{};
 	water_detection_s 	water_detection_msg{}; // create the temp message struct
-
-
-
-	union can_id_u {
-		uint32_t id;
-		struct  {
-            		uint32_t command_type : 4;
-            		uint32_t session : 3;
-            		uint32_t client_id_src : 5;
-            		uint32_t module_id_src : 5;
-			uint32_t client_id_des : 5;
-            		uint32_t module_id_des : 5;
-			uint32_t emergency : 2; // Emergency status
-			uint32_t rest : 3;
-		} can_id_seg;
-	};
 
 	can_id_u received_id;
 	uORB::Publication<px4::msg::waterDetection> water_detection_pub{ORB_ID(water_detection)};

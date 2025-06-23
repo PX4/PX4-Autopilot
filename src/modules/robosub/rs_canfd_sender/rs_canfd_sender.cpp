@@ -76,7 +76,7 @@ int RoboSubCANFDSender::task_spawn(int argc, char *argv[])
 
 bool RoboSubCANFDSender::init()
 {
-	if (!_raw_canfd_sub.registerCallback()) {
+	if (!control_lamp_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -88,9 +88,6 @@ bool RoboSubCANFDSender::init()
 RoboSubCANFDSender::RoboSubCANFDSender()
         : ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
-	// WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-	/* performance counters */
-	// _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	_last_sent = hrt_absolute_time();
 }
@@ -103,11 +100,25 @@ void RoboSubCANFDSender::Run()
 		exit_and_cleanup();
 		return;
 	}
-
-	// perf_begin(_loop_perf);
-
 	// initialize parameters
 	parameters_update();
+
+	if (control_lamp_sub.update(&control_lamp_msg)) {
+		send_id.can_id_seg.module_id_src = MODULE_ID;
+		send_id.can_id_seg.client_id_src = 0x0A;
+		send_id.can_id_seg.module_id_des = 0x11;
+		send_id.can_id_seg.client_id_des = 0x06;
+		send_id.can_id_seg.command_type = 0x05; // Control lamp command
+		send_id.can_id_seg.rest = 0x00; // Rest of the ID is 0
+
+		_send_raw_canfd_msg.id = (send_id.id | CAN_EFF_FLAG);
+		_send_raw_canfd_msg.data[0] = 0x0A;
+		memcpy(_send_raw_canfd_msg.data + 1, control_lamp_msg.color, 4);
+		_send_raw_canfd_msg.len = 5;
+		_send_raw_canfd_msg.timestamp = hrt_absolute_time();
+		// Publish the test message
+		send_raw_canfd_pub.publish(_send_raw_canfd_msg);
+	}
 
 }
 
