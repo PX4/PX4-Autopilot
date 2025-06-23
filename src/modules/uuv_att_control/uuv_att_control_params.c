@@ -232,3 +232,10 @@ PARAM_DEFINE_FLOAT(UUV_TORQUE_SAT, 0.3f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(UUV_THRUST_SAT, 0.1f);
+
+/**
+ * Maximum time (in seconds) before resetting setpoint
+ *
+ * @group UUV Attitude Control
+ */
+PARAM_DEFINE_FLOAT(UUV_SP_MAX_AGE, 2.0f);

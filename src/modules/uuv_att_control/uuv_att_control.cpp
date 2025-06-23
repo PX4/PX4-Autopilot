@@ -273,6 +273,27 @@ void UUVAttitudeControl::generate_rates_setpoint(float dt)
 
 }
 
+void UUVAttitudeControl::check_setpoint_validity(vehicle_attitude_s &v_att)
+{
+	const float _setpoint_age = (hrt_absolute_time() - _attitude_setpoint.timestamp) * 1e-6f;
+
+	if (_setpoint_age < 0.0f || _setpoint_age > _param_setpoint_max_age.get()) {
+		reset_attitude_setpoint(v_att);
+	}
+}
+
+void UUVAttitudeControl::reset_attitude_setpoint(vehicle_attitude_s &v_att)
+{
+	_attitude_setpoint.timestamp = hrt_absolute_time();
+	_attitude_setpoint.q_d[0] = v_att.q[0];
+	_attitude_setpoint.q_d[1] = v_att.q[1];
+	_attitude_setpoint.q_d[2] = v_att.q[2];
+	_attitude_setpoint.q_d[3] = v_att.q[3];
+	_attitude_setpoint.thrust_body[0] = 0.f;
+	_attitude_setpoint.thrust_body[1] = 0.f;
+	_attitude_setpoint.thrust_body[2] = 0.f;
+}
+
 void UUVAttitudeControl::Run()
 {
 	if (should_exit()) {
@@ -313,6 +334,9 @@ void UUVAttitudeControl::Run()
 			    && _vcontrol_mode.flag_control_rates_enabled) {
 				/* Run stabilized mode */
 				_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
+
+				// Check setpoint validty
+				check_setpoint_validity(attitude);
 
 				/* Generate atttiude setpoint from sticks */
 				generate_attitude_setpoint(dt);
