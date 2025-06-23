@@ -108,7 +108,7 @@ int SCH16T::probe()
 	PX4_INFO("COMP_ID:\t 0x%0x", comp_id);
 	PX4_INFO("ASIC_ID:\t 0x%0x", asic_id);
 
-	bool success = asic_id == 0x21 && comp_id == 0x23;
+	bool success = asic_id == 0x21 && comp_id == 0x21;
 
 	return success ? PX4_OK : PX4_ERROR;
 }
@@ -376,7 +376,7 @@ void SCH16T::ConfigurationFromParameters()
 	acc3_ctrl.bits.DYN_ACC_XYZ3 = 	ACC3_RANGE_260;
 
 	_px4_gyro.set_range(math::radians(327.5f)); 		// 327.5 °/sec
-	_px4_gyro.set_scale(math::radians(1.f / 1600.f)); 	// 1600 LSB/(°/sec)
+	_px4_gyro.set_scale(math::radians(1.f / 100.f)); 	// 1600 LSB/(°/sec)
 	_px4_accel.set_range(163.4f); 		// 163.4 m/s2
 	_px4_accel.set_scale(1.f / 3200.f); // 3200 LSB/(m/s2)
 
