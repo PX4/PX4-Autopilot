@@ -100,20 +100,12 @@ void INDIController::parameters_updated()
     // init G to a small diagonal guess, e.g. G = [G1·diag(ω_f) G2]. Goal is to overwrite via LMS.
     _G = matrix::Matrix<float,3,8>::Zero();
 
-    const float m = 0.75f;          // quad mass [kg]
-    const float ct = 1.0f;          // thrust coefficient (from your param)
-    const float cq = 2.37e-8f;       // torque coeff
-    const float l  = 0.14f;         // arm length [m]
-    const float beta = 56.0f * (M_PI_F/180.0f);  // geometry angle
-    const float Ip = 0.002f;        // rotor inertia [kg·m²]
-    const float Ivx = 0.0025f, Ivy = 0.0021f, Ivz = 0.0043f; // vehicle inertia
-
     // row 0 constants for G1 (roll)
-    //     [ -l*ct, +l*ct, +l*ct, -l*ct ] / Ivx
-    _G1_base(0,0) = -l*ct / Ivx;
-    _G1_base(0,1) = +l*ct / Ivx;
-    _G1_base(0,2) = +l*ct / Ivx;
-    _G1_base(0,3) = -l*ct / Ivx;
+    //     [ -b*ct, +b*ct, +b*ct, -b*ct ] / Ivx
+    _G1_base(0,0) = -b*ct / Ivx;
+    _G1_base(0,1) = +b*ct / Ivx;
+    _G1_base(0,2) = +b*ct / Ivx;
+    _G1_base(0,3) = -b*ct / Ivx;
 
     // row 1 constants for G1 (pitch)
     //     [ -l*ct, -l*ct, +l*ct, +l*ct ] / Ivy
@@ -133,7 +125,6 @@ void INDIController::parameters_updated()
 
     //NOTE: this is NOT a completed G2! Still need to divide by Ts (the inner loop speed) which I pass when I call
     // the INDI function as dt.
-    const float Ip  = 0.0020f;     // rotor inertia
     float Ts = param_indi_inner_loop_f.get(); //Assume 400H, in seconds (0.0025 s = 2.5ms)
 
     float scale = Ip / (Ivz) / Ts;

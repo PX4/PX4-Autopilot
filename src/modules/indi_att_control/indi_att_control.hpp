@@ -97,6 +97,18 @@ private:
 	matrix::Matrix<float,3,4>  _G1_base;       // G1 constants computed at init
 	matrix::Matrix<float,3,4>  _G1_diag;       // reused each cycle
 
+	//NOTE: Values gotten from /Tools/simulation/gz/models/x500/x500_base/model.sdf
+	// Inertial matrix calculated using parallel axis theorem and python script to combine base w rotors
+	const float m = 2 + 4 * 0.016076923076923075;          // quad mass [kg]
+	const float ct = 8.54858e-6;          // thrust coefficient (from your param)
+	const float cq = 0.016f;       // torque coeff
+	const float l  = 0.174f;         // "half" arm length, length in axis components [m]
+	const float b  = 0.174f;         // "half" arm length, length in axis components [m]
+	const float Ip = 2.649868234714004e-5;        // rotor inertia [kg·m²] (also Ir_zz, rotors inertia around spinn axis)
+	const float Ivx = 0.0238466927,
+	 	    Ivy = 0.0239496175,
+		    Ivz = 0.0439999537; // vehicle inertia
+
 	// LMS adaptation gains: (for later implementation)
 	float	_mu2_roll{1e-4f};
 	float	_mu2_pitch{1e-4f};
