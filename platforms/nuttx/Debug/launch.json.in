@@ -7,7 +7,7 @@
             "device": "@DEBUG_DEVICE@",
             "svdFile": "@DEBUG_SVD_FILE_PATH@",
             "rtos": "@JLINK_RTOS_PATH@",
-            "executable": "${command:cmake.launchTargetPath}",
+            "executable": "${workspaceFolder}/build/px4_fmu-v6x_robosub/px4_fmu-v6x_robosub.elf",
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "jlink",

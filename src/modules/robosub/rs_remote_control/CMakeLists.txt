@@ -5,4 +5,9 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		rs_remote_control.cpp
+		rs_remote_control.hpp
+	MODULE_CONFIG
+		rs_remote_control.yaml
+	DEPENDS
+		px4_work_queue
 	)

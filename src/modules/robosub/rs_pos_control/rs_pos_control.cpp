@@ -1,60 +1,61 @@
 /****************************************************************************
- *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- ****************************************************************************/
+*
+*   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions
+* are met:
+*
+* 1. Redistributions of source code must retain the above copyright
+*    notice, this list of conditions and the following disclaimer.
+* 2. Redistributions in binary form must reproduce the above copyright
+*    notice, this list of conditions and the following disclaimer in
+*    the documentation and/or other materials provided with the
+*    distribution.
+* 3. Neither the name PX4 nor the names of its contributors may be
+*    used to endorse or promote products derived from this software
+*    without specific prior written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+* OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+* AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*
+****************************************************************************/
 
 /**
- *
- * This module is a modification of the uuv_ hippocampus control module and is designed for the
- * HU Robosub.
- *
- * @author Daan Smienk <daansmienk10@gmail.com>
- * @author Jannick Bloemendal <jannick.bloemendal@student.hu.nl.
- */
+*
+* This module is a first test for the robosub motor control.
+*
+* @author Daan Smienk <daansmienk10@gmail.com>
+*/
 
 #include "rs_pos_control.hpp"
-
+#include "../rs_motor_control/rs_motor_control.hpp"
+#include "px4_platform_common/defines.h"
+#include "px4_platform_common/log.h"
 
 
 /**
- * Robosub pos_controller app start / stop handling function
- *
- * @ingroup apps
- */
-extern "C" __EXPORT int rs_pos_control_main(int argc, char *argv[]);
+* Robosub motor control app start / stop handling function
+*
+* @ingroup apps
+*/
 
-RobosubPosControl::RobosubPosControl()
-    : ModuleParams(nullptr), WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-      /* performance counters */
-      _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle"))
+
+RobosubPosControl::RobosubPosControl():
+	ModuleParams(nullptr),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
+	/* performance counters */
+	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 }
 
@@ -202,7 +203,7 @@ void RobosubPosControl::control_attitude_geo(const vehicle_attitude_s &attitude,
 	 * D. Mellinger, V. Kumar, "Minimum Snap Trajectory Generation and Control for Quadrotors", IEEE ICRA 2011, pp. 2520-2525.
 	 * D. A. Duecker, A. Hackbarth, T. Johannink, E. Kreuzer, and E. Solowjow, “Micro Underwater Vehicle Hydrobatics: A SubmergedFuruta Pendulum,” IEEE ICRA 2018, pp. 7498–7503.
 	 */
-	Eulerf euler_angles(matrix::Quatf(attitude.q));
+		Eulerf euler_angles(matrix::Quatf(attitude.q));
 
 	const Eulerf setpoint_euler_angles(matrix::Quatf(attitude_setpoint.q_d));
 	const float roll_body = setpoint_euler_angles(0);
@@ -259,7 +260,7 @@ void RobosubPosControl::control_attitude_geo(const vehicle_attitude_s &attitude,
 	/* Geometric Controller END*/
 }
 
-void RobosubPosControl::Run()
+void RobosubPosControl::run()
 {
 	PX4_INFO("RobosubPosControl::Run()");
 
@@ -383,6 +384,48 @@ void RobosubPosControl::Run()
 
 	perf_end(_loop_perf);
 }
+
+void RobosubPosControl::posControl()
+{
+	if (_drone_task_sub.update(&_drone_task)) {
+		drone_task_s drone_task{};
+		_drone_task_sub.copy(&drone_task);
+
+		if (drone_task.task == TASK_AUTONOMOUS) {
+
+			// Constants
+			const float setpointPressure = SURFACE_PRESSURE + (SETPOINT / METER_PER_BAR);
+
+			// Simulated or subscribed current pressure
+			// Replace with actual sensor input when available
+			float currentPressure = _drone_task.current_pressure; // e.g., 1.02 bar
+
+			// PID calculation
+			float error = setpointPressure - currentPressure;
+
+			// PX4 delta time calculation
+			const hrt_abstime now = hrt_absolute_time();
+			static hrt_abstime last_time = now;
+			const float dt = math::constrain((now - last_time) / 1e6f, 0.001f, 1.0f); // dt in seconds
+			last_time = now;
+
+			_integral += error * dt;
+			float derivative = (error - _previous_error) / dt;
+			_previous_error = error;
+
+			float thrust = _Kp * error + _Ki * _integral + _Kd * derivative;
+
+			// Clamp thrust between -1.0 and 1.0
+			thrust = math::constrain(thrust, -1.0f, 1.0f);
+
+			// Output thrust to the motors
+			robosub_motor_control.actuator_test(MOTOR_UP1, 		thrust, 0, false);
+			robosub_motor_control.actuator_test(MOTOR_UP2, 		(thrust * 0.5f), 0, false);
+			robosub_motor_control.actuator_test(MOTOR_UP3, 		(thrust * 0.5f), 0, false);
+		}
+	}
+}
+
 
 int RobosubPosControl::task_spawn(int argc, char *argv[])
 {

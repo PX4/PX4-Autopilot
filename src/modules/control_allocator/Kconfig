@@ -13,7 +13,7 @@ menuconfig USER_CONTROL_ALLOCATOR
 
 menuconfig CONTROL_ALLOCATOR_RPM_CONTROL
 	bool "Include RPM control for Helicopter rotor"
-	default n
+	default y
 	depends on MODULES_CONTROL_ALLOCATOR
 	---help---
 		Add support for controlling the helicopter main rotor rpm

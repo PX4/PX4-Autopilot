@@ -35,6 +35,8 @@
 
 #include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
+#include "RpmControl.hpp"
+
 
 class ActuatorEffectivenessUUV : public ModuleParams, public ActuatorEffectiveness
 {
@@ -64,4 +66,7 @@ protected:
 	ActuatorEffectivenessRotors _rotors;
 
 	uint32_t _motors_mask{};
+
+private:
+	RpmControl _rpm_control {this};
 };

@@ -72,6 +72,7 @@ bool RobosubMotorControl::init()
 		return false;
 	}
 
+
 	PX4_DEBUG("RobosubMotorControl::init()");
 	return true;
 }

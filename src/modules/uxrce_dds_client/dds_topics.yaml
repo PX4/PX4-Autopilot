@@ -163,5 +163,11 @@ subscriptions:
   - topic: /fmu/in/aux_global_position
     type: px4_msgs::msg::VehicleGlobalPosition
 
+  - topic: /fmu/in/opi_detection
+    type: px4_msgs::msg::OpiDetection
+
+  - topic: /fmu/in/control_lamp
+    type: px4_msgs::msg::ControlLamp
+
 # Create uORB::PublicationMulti
 subscriptions_multi:
