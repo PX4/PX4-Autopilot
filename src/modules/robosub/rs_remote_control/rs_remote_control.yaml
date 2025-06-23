@@ -72,6 +72,16 @@ parameters:
             This parameter modifies how much power the front and back motors give when the drone wants to tilt
         type: float
         default: 0.5
+        min: 0.0 
+        max: 1.0
+        decimal: 1
+      T200_THRUST:
+        description:
+          short: Modifies how much max thrust the T200 can give
+          long: |
+            This parameter limits the T200 thrusters to a certain threshold, 0.5 is 50% power.
+        type: float
+        default: 0.5
         min: 0.0
         max: 1.0
         decimal: 1

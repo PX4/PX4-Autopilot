@@ -253,25 +253,11 @@ _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 				normalized[3] = (rc_data.values[0] - 1500) / 400.0f;
 
 				// normalized[0] = math::constrain(normalized[0],  -range, range);
-<<<<<<< HEAD
-				normalized[0] = math::constrain(normalized[0], -range, range);
-				normalized[1] = math::constrain(normalized[1], -range, range);
-				normalized[2] = math::constrain(normalized[2], -range, range);
-				normalized[3] = math::constrain(normalized[3], -range, range);
-
-				robosub_motor_control.actuator_test(MOTOR_FORWARDS1, 	normalized[0]/2, 0, false);
-				robosub_motor_control.actuator_test(MOTOR_FORWARDS2, 	normalized[0]/2, 0, false);
-				robosub_motor_control.actuator_test(MOTOR_UP1, 		-normalized[1], 0, false);
-				robosub_motor_control.actuator_test(MOTOR_UP2, 		(normalized[1]), 0, false);
-				robosub_motor_control.actuator_test(MOTOR_UP3, 		(-normalized[1]), 0, false);
-
-=======
-				robosub_motor_control.actuator_test(MOTOR_FORWARDS1, 	normalized[0], 0, false);
-				robosub_motor_control.actuator_test(MOTOR_FORWARDS2, 	normalized[0], 0, false);
+				robosub_motor_control.actuator_test(MOTOR_FORWARDS1, 	normalized[0] * _param_thrust_t200_limiter.get(), 0, false);
+				robosub_motor_control.actuator_test(MOTOR_FORWARDS2, 	normalized[0] * _param_thrust_t200_limiter.get(), 0, false);
 				robosub_motor_control.actuator_test(MOTOR_UP1, 		-normalized[1], 0, false);
 				robosub_motor_control.actuator_test(MOTOR_UP2, 		(normalized[1] * _param_front_up_motor_reduction.get()), 0, false);
 				robosub_motor_control.actuator_test(MOTOR_UP3, 		(-normalized[1] * _param_front_up_motor_reduction.get()), 0, false);
->>>>>>> e0b6bcbc5d (Added parameter for tilting)
 				if(normalized[2] > 0.1f || normalized[2] < -0.1f)
 				{
 					robosub_motor_control.actuator_test(MOTOR_SIDE1, -normalized[2], 0, false);
