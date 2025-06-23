@@ -123,17 +123,18 @@ void UUVPOSControl::pose_controller_6dof(const Vector3f &pos_des, vehicle_attitu
 void UUVPOSControl::check_setpoint_validity(vehicle_local_position_s &vlocal_pos)
 {
 	const float _setpoint_age = (hrt_absolute_time() - _trajectory_setpoint.timestamp) * 1e-6f;
+
 	if (_setpoint_age < 0.0f || _setpoint_age > _param_setpoint_max_age.get()) {
 		reset_trajectory_setpoint(vlocal_pos);
+
 	} else if (
 		!PX4_ISFINITE(_trajectory_setpoint.position[0]) ||
 		!PX4_ISFINITE(_trajectory_setpoint.position[1]) ||
-	    	!PX4_ISFINITE(_trajectory_setpoint.position[2]) ||
-	    	!PX4_ISFINITE(_trajectory_setpoint.quaternion[0]) ||
-	    	!PX4_ISFINITE(_trajectory_setpoint.quaternion[1]) ||
-	    	!PX4_ISFINITE(_trajectory_setpoint.quaternion[2]) ||
-	    	!PX4_ISFINITE(_trajectory_setpoint.quaternion[3]))
-	{
+		!PX4_ISFINITE(_trajectory_setpoint.position[2]) ||
+		!PX4_ISFINITE(_trajectory_setpoint.quaternion[0]) ||
+		!PX4_ISFINITE(_trajectory_setpoint.quaternion[1]) ||
+		!PX4_ISFINITE(_trajectory_setpoint.quaternion[2]) ||
+		!PX4_ISFINITE(_trajectory_setpoint.quaternion[3])) {
 		reset_trajectory_setpoint(vlocal_pos);
 	}
 }
