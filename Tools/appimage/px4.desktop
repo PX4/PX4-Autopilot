@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=PX4 Autopilot SITL
+Exec=px4 %F
+Icon=px4
+Categories=Development;

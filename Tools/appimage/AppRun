@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -e
+
+export LD_LIBRARY_PATH="$APPDIR/usr/lib:$LD_LIBRARY_PATH"
+WORKDIR=$(mktemp -d)
+cp -a "$APPDIR/usr/share/px4/romfs/." "$WORKDIR"
+export PATH="$WORKDIR/bin:$WORKDIR:$PATH"
+exec "$APPDIR/usr/bin/px4" -w "$WORKDIR" "$@"

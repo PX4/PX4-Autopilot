@@ -264,6 +264,26 @@ px4fmu_firmware: \
 	check_px4_fmu-v5x_default \
 	sizes
 
+# Create a one-file AppImage for PX4 SITL
+.PHONY: AppImage
+appimage: build/px4_sitl_default/bin/px4 build/px4_sitl_default/romfs_files.tar
+	@$(MAKE) px4_sitl_default  # ensure the SITL binary & romfs tar are up-to-date
+	@$(RM) -rf build/px4.AppDir
+	@mkdir -p \
+		build/px4.AppDir/usr/bin \
+		build/px4.AppDir/usr/share/px4/romfs/etc \
+		build/px4.AppDir/usr/share/px4/romfs/bin \
+		build/px4.AppDir/usr/share/applications \
+		build/px4.AppDir/usr/share/icons/hicolor/scalable/apps
+	@cp build/px4_sitl_default/bin/px4 build/px4.AppDir/usr/bin/
+	@tar xf build/px4_sitl_default/romfs_files.tar -C build/px4.AppDir/usr/share/px4/romfs/etc
+	@cp build/px4_sitl_default/bin/px4-* build/px4.AppDir/usr/share/px4/romfs/bin/
+	@cp Tools/appimage/px4.desktop build/px4.AppDir/
+	@cp Tools/appimage/px4.svg build/px4.AppDir/
+	@cp Tools/appimage/AppRun build/px4.AppDir/
+	@chmod +x build/px4.AppDir/AppRun
+	@cd build && appimagetool px4.AppDir
+
 misc_qgc_extra_firmware: \
 	check_nxp_fmuk66-v3_default \
 	check_mro_x21_default \
