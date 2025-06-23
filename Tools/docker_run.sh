@@ -1,18 +1,5 @@
 #! /bin/bash
 
-if [ -z ${PX4_DOCKER_REPO+x} ]; then
-	echo "guessing PX4_DOCKER_REPO based on input";
-	if [[ $@ =~ .*clang.* ]] || [[ $@ =~ .*scan-build.* ]]; then
-		# clang tools
-		PX4_DOCKER_REPO="px4io/px4-dev-clang:2021-02-04"
-	elif [[ $@ =~ .*tests* ]]; then
-		# run all tests with simulation
-		PX4_DOCKER_REPO="px4io/px4-dev-simulation-bionic:2021-12-11"
-	fi
-else
-	echo "PX4_DOCKER_REPO is set to '$PX4_DOCKER_REPO'";
-fi
-
 # otherwise default to nuttx
 if [ -z ${PX4_DOCKER_REPO+x} ]; then
 	PX4_DOCKER_REPO="px4io/px4-dev:v1.16.0-rc1-258-g0369abd556"
