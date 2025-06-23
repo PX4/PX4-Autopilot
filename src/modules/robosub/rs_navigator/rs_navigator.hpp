@@ -31,30 +31,32 @@
  *
  ****************************************************************************/
 
- #pragma once
+#pragma once
 
- #include <px4_platform_common/module.h>
- #include <px4_platform_common/module_params.h>
- #include <uORB/SubscriptionInterval.hpp>
- #include <uORB/topics/parameter_update.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/drone_task.h>
+#include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
  using namespace time_literals;
 
  extern "C" __EXPORT int rs_navigator_main(int argc, char *argv[]);
-
-
- class RobosubNavigator : public ModuleBase<RobosubNavigator>, public ModuleParams
+ class RobosubNavigator : public ModuleBase<RobosubNavigator>, public ModuleParams, public px4::WorkItem
  {
  public:
-	 RobosubNavigator(int example_param, bool example_flag);
+	 RobosubNavigator();
 
-	 virtual ~RobosubNavigator() = default;
+	~RobosubNavigator() override;
 
 	 /** @see ModuleBase */
 	 static int task_spawn(int argc, char *argv[]);
-
-	 /** @see ModuleBase */
-	 static RobosubNavigator *instantiate(int argc, char *argv[]);
 
 	 /** @see ModuleBase */
 	 static int custom_command(int argc, char *argv[]);
@@ -63,10 +65,12 @@
 	 static int print_usage(const char *reason = nullptr);
 
 	 /** @see ModuleBase::run() */
-	 void run() override;
+	 void Run() override;
 
 	 /** @see ModuleBase::print_status() */
 	 int print_status() override;
+
+	 bool init();
 
  private:
 
@@ -77,13 +81,37 @@
 	  */
 	 void parameters_update(bool force = false);
 
+	enum class NavTaskType {
+		MOVE_XYZ,
+		WAIT,
+	};
 
-	 DEFINE_PARAMETERS(
-		 (ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
-		 (ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
-	 )
+	struct NavTask {
+		NavTaskType type;
+		matrix::Vector3f target;
+		float wait_time_s;
+	};
+	static constexpr int MAX_TASKS = 8;
+	NavTask _task_queue[MAX_TASKS];
+	int _task_head = 0;
+	int _task_tail = 0;
+	bool _task_active = false;
+	hrt_abstime _task_start_time = 0;
+
+	void process_task(const matrix::Vector3f &current_pos);
+	void add_task(const NavTask &task);
+
+	uORB::Publication<trajectory_setpoint_s> trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
+	uORB::Subscription _drone_task_sub{ORB_ID(drone_task)};
+	drone_task_s _drone_task{};
+
+
+	void movement_test();
+	float distance_to(const matrix::Vector3f &a, const matrix::Vector3f &b) { return (a - b).norm(); }
+	void send_position_setpoint(const matrix::Vector3f &pos);
+	void search_grid();
 
 	 // Subscriptions
 	 uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
  };
