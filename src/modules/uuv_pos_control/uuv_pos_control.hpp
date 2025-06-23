@@ -127,6 +127,8 @@ private:
 		(ParamInt<px4::params::UUV_STAB_MODE>) _param_stab_mode,
 		(ParamFloat<px4::params::UUV_POS_STICK_DB>) _param_pos_stick_db,
 		(ParamFloat<px4::params::UUV_PGM_VEL>) _param_pgm_vel,
+		(ParamFloat<px4::params::UUV_PGM_ATT>) _param_pgm_att,
+		(ParamFloat<px4::params::UUV_SP_MAX_AGE>) _param_setpoint_max_age,
 		(ParamInt<px4::params::UUV_POS_MODE>) _param_pos_mode
 	)
 
@@ -148,5 +150,5 @@ private:
 					   vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
 	void generate_trajectory_setpoint(vehicle_local_position_s &vlocal_pos, vehicle_attitude_s &vehicle_attitude, float dt);
 	void reset_trajectory_setpoint(vehicle_local_position_s &vlocal_pos);
-	void reset_trajectory_setpoint_if_nans(vehicle_local_position_s &vlocal_pos);
+	void check_setpoint_validity(vehicle_local_position_s &vlocal_pos);
 };

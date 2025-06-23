@@ -120,13 +120,32 @@ void UUVPOSControl::pose_controller_6dof(const Vector3f &pos_des, vehicle_attitu
 	_attitude_setpoint.thrust_body[2] = rotated_input(2);
 }
 
+void UUVPOSControl::check_setpoint_validity(vehicle_local_position_s &vlocal_pos)
+{
+	const float _setpoint_age = (hrt_absolute_time() - _trajectory_setpoint.timestamp) * 1e-6f;
+	if (_setpoint_age < 0.0f || _setpoint_age > _param_setpoint_max_age.get()) {
+		reset_trajectory_setpoint(vlocal_pos);
+	} else if (
+		!PX4_ISFINITE(_trajectory_setpoint.position[0]) ||
+		!PX4_ISFINITE(_trajectory_setpoint.position[1]) ||
+	    	!PX4_ISFINITE(_trajectory_setpoint.position[2]) ||
+	    	!PX4_ISFINITE(_trajectory_setpoint.quaternion[0]) ||
+	    	!PX4_ISFINITE(_trajectory_setpoint.quaternion[1]) ||
+	    	!PX4_ISFINITE(_trajectory_setpoint.quaternion[2]) ||
+	    	!PX4_ISFINITE(_trajectory_setpoint.quaternion[3]))
+	{
+		reset_trajectory_setpoint(vlocal_pos);
+	}
+}
+
 void UUVPOSControl::generate_trajectory_setpoint(vehicle_local_position_s &vlocal_pos,
 		vehicle_attitude_s &vehicle_attitude,
 		float dt)
 {
 	// Avoid accumulating absolute yaw error with arming stick gesture
-	float roll = Eulerf(matrix::Quatf(vehicle_attitude.q)).phi();
-	float pitch = Eulerf(matrix::Quatf(vehicle_attitude.q)).theta();
+	check_setpoint_validity(vlocal_pos);
+	float roll = Eulerf(matrix::Quatf(_trajectory_setpoint.quaternion)).phi();
+	float pitch = Eulerf(matrix::Quatf(_trajectory_setpoint.quaternion)).theta();
 	float yaw = Eulerf(matrix::Quatf(_trajectory_setpoint.quaternion)).psi();
 
 	// Integrate manual control inputs
@@ -144,27 +163,32 @@ void UUVPOSControl::generate_trajectory_setpoint(vehicle_local_position_s &vloca
 	if (_param_stab_mode.get()) {
 		roll_setpoint = 0.0;
 		pitch_setpoint = 0.0;
+
 	} else {
 		// Update target roll and pitch setpoint with D-pad
 		switch (_manual_control_setpoint.buttons) {
 		case 2048:
-			pitch_setpoint -= dt * 100;
+			pitch_setpoint -= dt * _param_pgm_att.get();
 			break;
+
 		case 4096:
-			pitch_setpoint += dt * 100;
+			pitch_setpoint += dt * _param_pgm_att.get();
 			break;
+
 		case 8192:
-			roll_setpoint -= dt * 100;
+			roll_setpoint -= dt * _param_pgm_att.get();
 			break;
+
 		case 16384:
-			roll_setpoint += dt * 100;
+			roll_setpoint += dt * _param_pgm_att.get();
 			break;
+
 		default:
 			break;
 		}
 	}
 
-	float yaw_setpoint = yaw + _manual_control_setpoint.yaw * dt * 0.5f;
+	float yaw_setpoint = yaw + _manual_control_setpoint.yaw * dt * _param_pgm_att.get();
 
 	// Update position setpoints based on manual control inputs
 	float vx_sp = 0.0;
@@ -235,22 +259,6 @@ void UUVPOSControl::reset_trajectory_setpoint(vehicle_local_position_s &vlocal_p
 	_trajectory_setpoint.quaternion[3] = _vehicle_attitude.q[3];
 }
 
-void UUVPOSControl::reset_trajectory_setpoint_if_nans(vehicle_local_position_s &vlocal_pos)
-{
-	// Reset trajectory setpoint if it contains NaNs
-	if (PX4_ISFINITE(_trajectory_setpoint.position[0]) &&
-	    PX4_ISFINITE(_trajectory_setpoint.position[1]) &&
-	    PX4_ISFINITE(_trajectory_setpoint.position[2]) &&
-	    PX4_ISFINITE(_trajectory_setpoint.quaternion[0]) &&
-	    PX4_ISFINITE(_trajectory_setpoint.quaternion[1]) &&
-	    PX4_ISFINITE(_trajectory_setpoint.quaternion[2]) &&
-	    PX4_ISFINITE(_trajectory_setpoint.quaternion[3])) {
-		return;
-	}
-
-	reset_trajectory_setpoint(vlocal_pos);
-}
-
 void UUVPOSControl::Run()
 {
 	if (should_exit()) {
@@ -275,6 +283,9 @@ void UUVPOSControl::Run()
 		const float dt = math::constrain(((vlocal_pos.timestamp_sample - _last_run) * 1e-6f), 0.0002f, 0.02f);
 		_last_run = vlocal_pos.timestamp_sample;
 
+		// Update vehicle attitude
+		_vehicle_attitude_sub.update(&_vehicle_attitude);
+
 		/* Run position or altitude mode from manual setpoints*/
 		if (_vcontrol_mode.flag_control_manual_enabled
 		    && (_vcontrol_mode.flag_control_altitude_enabled
@@ -285,11 +296,8 @@ void UUVPOSControl::Run()
 
 			_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 
-			// get current vehicle attitude to generate thrust in body frame
-			_vehicle_attitude_sub.update(&_vehicle_attitude);
-
-			// Ensure no nan in setpoints
-			reset_trajectory_setpoint_if_nans(vlocal_pos);
+			// Ensure no nan and sufficiently recent setpoint
+			check_setpoint_validity(vlocal_pos);
 
 			// Generate _trajectory_setpoint -> creates _trajectory_setpoint
 			generate_trajectory_setpoint(vlocal_pos, _vehicle_attitude, dt);
@@ -305,9 +313,6 @@ void UUVPOSControl::Run()
 			const bool altitude_only_flag = _vcontrol_mode.flag_control_altitude_enabled
 							&& ! _vcontrol_mode.flag_control_position_enabled;
 
-			// get current vehicle attitude to generate thrust in body frame
-			_vehicle_attitude_sub.update(&_vehicle_attitude);
-
 			// get manual control setpoint
 			_trajectory_setpoint_sub.update(&_trajectory_setpoint);
 
@@ -316,7 +321,7 @@ void UUVPOSControl::Run()
 
 		} else {
 			// Reset if not in a valid mode (like attitude, rate, manual) to clear setpoint
-			reset_trajectory_setpoint(vlocal_pos);
+			check_setpoint_validity(vlocal_pos);
 		}
 	}
 

@@ -111,6 +111,20 @@ PARAM_DEFINE_FLOAT(UUV_POS_STICK_DB, 0.1f);
 PARAM_DEFINE_FLOAT(UUV_PGM_VEL, 0.5f);
 
 /**
+ * Gain for position control attitude setpoint update
+ *
+ * @group UUV Position Control
+ */
+PARAM_DEFINE_FLOAT(UUV_PGM_ATT, 0.5f);
+
+/**
+ * Maximum time (in seconds) before resetting trajectory setpoint
+ *
+ * @group UUV Position Control
+ */
+PARAM_DEFINE_FLOAT(UUV_SP_MAX_AGE, 2.0f);
+
+/**
  * Stabilization mode(1) or Position Control(0)
  *
  * @value 0 Moves position setpoint in world frame
