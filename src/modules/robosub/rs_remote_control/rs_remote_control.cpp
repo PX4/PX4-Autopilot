@@ -215,7 +215,7 @@ void RobosubRemoteControl::receiver() {
                         } else if (sensor_mainbrain && sensor_power) {
                                 range = 1.0f;
                         }
-                        range = 1.0f; // Disable safety water detection force range to 100 perc
+                        // range = 1.0f; // Disable safety water detection force range to 100 perc
 
                         // Normalize the rc data to a value between -1 and 1
                         normalized[0] = (rc_data.values[1] - 1500) / 400.0f;
