@@ -111,13 +111,6 @@ PARAM_DEFINE_FLOAT(UUV_POS_STICK_DB, 0.1f);
 PARAM_DEFINE_FLOAT(UUV_PGM_VEL, 0.5f);
 
 /**
- * Gain for position control attitude setpoint update
- *
- * @group UUV Position Control
- */
-PARAM_DEFINE_FLOAT(UUV_PGM_ATT, 0.5f);
-
-/**
  * Maximum time (in seconds) before resetting trajectory setpoint
  *
  * @group UUV Position Control

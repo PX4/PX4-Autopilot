@@ -127,7 +127,9 @@ private:
 		(ParamInt<px4::params::UUV_STAB_MODE>) _param_stab_mode,
 		(ParamFloat<px4::params::UUV_POS_STICK_DB>) _param_pos_stick_db,
 		(ParamFloat<px4::params::UUV_PGM_VEL>) _param_pgm_vel,
-		(ParamFloat<px4::params::UUV_PGM_ATT>) _param_pgm_att,
+		(ParamFloat<px4::params::UUV_SGM_ROLL>) _param_sgm_roll,
+		(ParamFloat<px4::params::UUV_SGM_PITCH>) _param_sgm_pitch,
+		(ParamFloat<px4::params::UUV_SGM_YAW>) _param_sgm_yaw,
 		(ParamFloat<px4::params::UUV_SP_MAX_AGE>) _param_setpoint_max_age,
 		(ParamInt<px4::params::UUV_POS_MODE>) _param_pos_mode
 	)

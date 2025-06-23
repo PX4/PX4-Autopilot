@@ -126,15 +126,15 @@ void UUVPOSControl::check_setpoint_validity(vehicle_local_position_s &vlocal_pos
 
 	if (_setpoint_age < 0.0f || _setpoint_age > _param_setpoint_max_age.get()) {
 		reset_trajectory_setpoint(vlocal_pos);
+	}
 
-	} else if (
-		!PX4_ISFINITE(_trajectory_setpoint.position[0]) ||
-		!PX4_ISFINITE(_trajectory_setpoint.position[1]) ||
-		!PX4_ISFINITE(_trajectory_setpoint.position[2]) ||
-		!PX4_ISFINITE(_trajectory_setpoint.quaternion[0]) ||
-		!PX4_ISFINITE(_trajectory_setpoint.quaternion[1]) ||
-		!PX4_ISFINITE(_trajectory_setpoint.quaternion[2]) ||
-		!PX4_ISFINITE(_trajectory_setpoint.quaternion[3])) {
+	if (!PX4_ISFINITE(_trajectory_setpoint.position[0]) ||
+	    !PX4_ISFINITE(_trajectory_setpoint.position[1]) ||
+	    !PX4_ISFINITE(_trajectory_setpoint.position[2]) ||
+	    !PX4_ISFINITE(_trajectory_setpoint.quaternion[0]) ||
+	    !PX4_ISFINITE(_trajectory_setpoint.quaternion[1]) ||
+	    !PX4_ISFINITE(_trajectory_setpoint.quaternion[2]) ||
+	    !PX4_ISFINITE(_trajectory_setpoint.quaternion[3])) {
 		reset_trajectory_setpoint(vlocal_pos);
 	}
 }
@@ -167,19 +167,19 @@ void UUVPOSControl::generate_trajectory_setpoint(vehicle_local_position_s &vloca
 		// Update target roll and pitch setpoint with D-pad
 		switch (_manual_control_setpoint.buttons) {
 		case 2048:
-			pitch_setpoint -= dt * _param_pgm_att.get();
+			pitch_setpoint -= dt * _param_sgm_pitch.get();
 			break;
 
 		case 4096:
-			pitch_setpoint += dt * _param_pgm_att.get();
+			pitch_setpoint += dt * _param_sgm_pitch.get();
 			break;
 
 		case 8192:
-			roll_setpoint -= dt * _param_pgm_att.get();
+			roll_setpoint -= dt * _param_sgm_roll.get();
 			break;
 
 		case 16384:
-			roll_setpoint += dt * _param_pgm_att.get();
+			roll_setpoint += dt * _param_sgm_roll.get();
 			break;
 
 		default:
@@ -187,7 +187,7 @@ void UUVPOSControl::generate_trajectory_setpoint(vehicle_local_position_s &vloca
 		}
 	}
 
-	float yaw_setpoint = yaw + _manual_control_setpoint.yaw * dt * _param_pgm_att.get();
+	float yaw_setpoint = yaw + _manual_control_setpoint.yaw * dt * _param_sgm_yaw.get();
 
 	// Update position setpoints based on manual control inputs
 	float vx_sp = 0.0;
@@ -288,7 +288,9 @@ void UUVPOSControl::Run()
 		/* Run position or altitude mode from manual setpoints*/
 		if (_vcontrol_mode.flag_control_manual_enabled
 		    && (_vcontrol_mode.flag_control_altitude_enabled
-			|| _vcontrol_mode.flag_control_position_enabled)) {/* Update manual setpoints */
+			|| _vcontrol_mode.flag_control_position_enabled)
+		    && _vcontrol_mode.flag_armed) {
+			/* Update manual setpoints */
 
 			const bool altitude_only_flag = _vcontrol_mode.flag_control_altitude_enabled
 							&& ! _vcontrol_mode.flag_control_position_enabled;
@@ -303,12 +305,12 @@ void UUVPOSControl::Run()
 
 			pose_controller_6dof(Vector3f(_trajectory_setpoint.position), _vehicle_attitude,
 					     vlocal_pos, altitude_only_flag);
-			/* Autonomous position mode - no manual inputs are used */
 
 		} else if (!_vcontrol_mode.flag_control_manual_enabled
 			   && (_vcontrol_mode.flag_control_altitude_enabled
-			       || _vcontrol_mode.flag_control_position_enabled)) {
-
+			       || _vcontrol_mode.flag_control_position_enabled)
+			   && _vcontrol_mode.flag_armed) {
+			/* Autonomous position mode - no manual inputs are used */
 			const bool altitude_only_flag = _vcontrol_mode.flag_control_altitude_enabled
 							&& ! _vcontrol_mode.flag_control_position_enabled;
 

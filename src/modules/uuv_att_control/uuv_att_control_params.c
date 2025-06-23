@@ -112,7 +112,7 @@ PARAM_DEFINE_FLOAT(UUV_YAW_D, 2.0f);
  * @min 0.0
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(UUV_SGM_ROLL, 5.0f);
+PARAM_DEFINE_FLOAT(UUV_SGM_ROLL, 0.5f);
 
 /**
  * Pitch gain for manual inputs in attitude control mode
@@ -121,7 +121,7 @@ PARAM_DEFINE_FLOAT(UUV_SGM_ROLL, 5.0f);
  * @min 0.0
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(UUV_SGM_PITCH, 5.0f);
+PARAM_DEFINE_FLOAT(UUV_SGM_PITCH, 0.5f);
 
 /**
  * Yaw gain for manual inputs in attitude control mode
@@ -130,7 +130,7 @@ PARAM_DEFINE_FLOAT(UUV_SGM_PITCH, 5.0f);
  * @min 0.0
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(UUV_SGM_YAW, 5.0f);
+PARAM_DEFINE_FLOAT(UUV_SGM_YAW, 0.5f);
 
 /**
  * Throttle gain for manual inputs in attitude control mode
