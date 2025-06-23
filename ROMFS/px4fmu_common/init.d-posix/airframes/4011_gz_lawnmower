@@ -22,26 +22,26 @@ param set-default RD_TRANS_DRV_TRN 0.349066
 param set-default RD_TRANS_TRN_DRV 0.174533
 
 # Rover Control Parameters
-param set-default RO_ACCEL_LIM 0.1
-param set-default RO_DECEL_LIM 0.8
-param set-default RO_JERK_LIM 10
-param set-default RO_MAX_THR_SPEED 2.1
+param set-default RO_ACCEL_LIM 1.5
+param set-default RO_DECEL_LIM 5
+param set-default RO_JERK_LIM 15
+param set-default RO_MAX_THR_SPEED 2.7
 
 # Rover Rate Control Parameters
-param set-default RO_YAW_RATE_I 0.1
-param set-default RO_YAW_RATE_P 0.5
+param set-default RO_YAW_RATE_I 0.2
+param set-default RO_YAW_RATE_P 1.0
 param set-default RO_YAW_RATE_LIM 60
 param set-default RO_YAW_ACCEL_LIM 50
 param set-default RO_YAW_DECEL_LIM 1000
 param set-default RO_YAW_RATE_CORR 1.0
 
 # Rover Attitude Control Parameters
-param set-default RO_YAW_P 0.8
+param set-default RO_YAW_P 5
 
 # Rover Velocity Control Parameters
-param set-default RO_SPEED_LIM 0.5
+param set-default RO_SPEED_LIM 2.1
 param set-default RO_SPEED_I 0.01
-param set-default RO_SPEED_P 0.05
+param set-default RO_SPEED_P 0.1
 param set-defatul RO_SPEED_RED 1.0
 
 # Pure pursuit parameters
@@ -53,16 +53,16 @@ param set-default PP_LOOKAHD_MIN 1
 
 # "Motors" - motor channels 0 (Right) and 1 (Left) - via Wheels GZ bridge:
 param set-default SIM_GZ_WH_FUNC1 101 # right wheel
-#param set-default SIM_GZ_WH_MIN1 0
-#param set-default SIM_GZ_WH_MAX1 200
-#param set-default SIM_GZ_WH_DIS1 100
-#param set-default SIM_GZ_WH_FAIL1 100
+param set-default SIM_GZ_WH_MIN1 87
+param set-default SIM_GZ_WH_MAX1 113
+param set-default SIM_GZ_WH_DIS1 100
+param set-default SIM_GZ_WH_FAIL1 100
 
 param set-default SIM_GZ_WH_FUNC2 102 # left wheel
-#param set-default SIM_GZ_WH_MIN2 0
-#param set-default SIM_GZ_WH_MAX2 200
-#param set-default SIM_GZ_WH_DIS2 100
-#param set-default SIM_GZ_WH_FAIL2 100
+param set-default SIM_GZ_WH_MIN2 87
+param set-default SIM_GZ_WH_MAX2 113
+param set-default SIM_GZ_WH_DIS2 100
+param set-default SIM_GZ_WH_FAIL2 100
 
 param set-default SIM_GZ_WH_REV 0 # no need to reverse any wheels
 
