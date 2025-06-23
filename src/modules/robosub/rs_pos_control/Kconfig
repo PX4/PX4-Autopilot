@@ -4,7 +4,7 @@ menuconfig MODULES_ROBOSUB_RS_POS_CONTROL
 	---help---
 		Enable support for robosub_pos_control
 
-menuconfig USER_ROBOSUB_RS_MOTOR_CONTROL
+menuconfig USER_ROBOSUB_RS_POS_CONTROL
 	bool "robosub_pos_control running as userspace module"
 	default y
 	depends on BOARD_PROTECTED && MODULES_ROBOSUB_RS_POS_CONTROL

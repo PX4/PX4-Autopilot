@@ -36,30 +36,26 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
-#include <sys/socket.h>
-#include <net/if.h>
-#include <netpacket/can.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <sys/socket.h>
+#include <uORB/topics/control_lamp.h>
 #include <nuttx/can.h>
-#include <sys/time.h>
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
-
 #include <uORB/topics/raw_canfd.h>
+#include <uORB/Publication.hpp>
+#include <netpacket/can.h>
 #include "../rs_canfd_common/rs_canfd_common.hpp"
-
 
 using namespace time_literals;
 
-extern "C" __EXPORT int rs_canfd_socket_main(int argc, char *argv[]);
-class RoboSubCANFDSocket : public ModuleBase<RoboSubCANFDSocket>, public ModuleParams
+extern "C" __EXPORT int rs_canfd_sender_main(int argc, char *argv[]);
+
+
+class RoboSubCANFDSender : public ModuleBase<RoboSubCANFDSender>, public ModuleParams, public px4::WorkItem
 {
 public:
-	__attribute__((optimize(0))) RoboSubCANFDSocket();
+	RoboSubCANFDSender();
 
-	virtual ~RoboSubCANFDSocket() = default;
+	virtual ~RoboSubCANFDSender() = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -70,44 +66,19 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	/** @see ModuleBase */
-	static RoboSubCANFDSocket *instantiate(int argc, char *argv[]);
-
-	/** @see ModuleBase::run() */
-	void __attribute__((optimize(0))) run();
+	// /** @see ModuleBase::run() */
+	void Run();
 
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
-	struct sockaddr_can addr;
-	struct ifreq ifr;
+	bool init();
 
-	uint32_t index = 0;
 
-	struct iovec       _send_iov {};
-	struct canfd_frame _send_frame {};
-	struct msghdr      _send_msg {};
-	struct cmsghdr     *_send_cmsg {};
-	struct timeval     *_send_tv {};  /* TX deadline timestamp */
-	uint8_t            _send_control[sizeof(struct cmsghdr) + sizeof(struct timeval)] {};
-
-	// Receive msg structure
-	struct iovec       _recv_iov {};
-	struct canfd_frame _recv_frame {};
-	struct msghdr      _recv_msg {};
-	struct cmsghdr     *_recv_cmsg {};
-	uint8_t            _recv_control[sizeof(struct cmsghdr) + sizeof(struct timeval)] {};
-
-	char ctrlmsg[CMSG_SPACE(sizeof(struct timeval) + 3*sizeof(struct timespec) + sizeof(uint32_t))];
-	int nbytes;
 private:
+	hrt_abstime _last_sent{0};
+	bool _first_message_sent{false};
 	// perf_counter_t	_loop_perf;
-
-	int s = 0;
-	const int on = 1;
-	const bool can_fd = 1;
-
-	raw_canfd_s _raw_canfd_msg{};
 
 	/**
 	 * Check for parameter changes and update them if needed.
@@ -116,32 +87,17 @@ private:
 	 */
 	void parameters_update(bool force = false);
 
-	/**
-	 * Setup the can socket
-	 * @return False if failed, True if succeded
-	 */
-	bool setup_can_socket();
 
-	bool send_raw_canfd_msg();
+	raw_canfd_s _send_raw_canfd_msg{};
 
-	bool send_init();
-
-	bool send_init_bool = false;
-	bool has_sent_init = false; // Flag to check if the init message has been sent
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
-		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
-	)
+	can_id_u send_id;
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Publication<px4::msg::RawCanfd> send_raw_canfd_pub{ORB_ID(send_raw_canfd)};
+	uORB::SubscriptionCallbackWorkItem control_lamp_sub{this, ORB_ID(control_lamp)};
 
-	can_id_u received_id;
-
-	uORB::Publication<px4::msg::RawCanfd> raw_canfd_pub{ORB_ID(raw_canfd)};
-	uORB::Subscription send_raw_canfd_sub{ORB_ID(send_raw_canfd)};
-
+	control_lamp_s control_lamp_msg{};
 
 
 };
