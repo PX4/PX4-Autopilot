@@ -1,9 +1,0 @@
-Language: C
-BasedOnStyle: LLVM
-BreakBeforeBraces: Attach
-IndentWidth: 8
-TabWidth: 8
-UseTab: Never
-ColumnLimit: 120
-SortIncludes: false
-IndentPPDirectives: None
