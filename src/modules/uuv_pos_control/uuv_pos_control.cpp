@@ -131,14 +131,37 @@ void UUVPOSControl::generate_trajectory_setpoint(vehicle_local_position_s &vloca
 
 	// Integrate manual control inputs
 	// Info:
-	//   - only yaw is updated in position mode, roll and pitch are uncontrolled
-	//   - throttle is Z, roll is Y, pitch is X
+	//  - throttle is Z, roll is Y, pitch is X
+	//  - if param_stab_mode == 1:
+	//	- roll = 0
+	//	- pitch = 0
+	//  - if param_stab_mode == 0:
+	//      - roll can be updated with D-pad  (joystick)
+	//      - pitch can be updated with D-pad (joystick)
 	float roll_setpoint = roll;
 	float pitch_setpoint = pitch;
 
 	if (_param_stab_mode.get()) {
 		roll_setpoint = 0.0;
 		pitch_setpoint = 0.0;
+	} else {
+		// Update target roll and pitch setpoint with D-pad
+		switch (_manual_control_setpoint.buttons) {
+		case 2048:
+			pitch_setpoint -= dt * 100;
+			break;
+		case 4096:
+			pitch_setpoint += dt * 100;
+			break;
+		case 8192:
+			roll_setpoint -= dt * 100;
+			break;
+		case 16384:
+			roll_setpoint += dt * 100;
+			break;
+		default:
+			break;
+		}
 	}
 
 	float yaw_setpoint = yaw + _manual_control_setpoint.yaw * dt * 0.5f;
