@@ -206,7 +206,7 @@ source "src/examples/Kconfig"
 endmenu
 
 menu "platforms"
-depends on PLATFORM_QURT || PLATFORM_POSIX
+depends on PLATFORM_QURT || PLATFORM_POSIX || PLATFORM_NUTTX
 source "platforms/Kconfig"
 endmenu
 
