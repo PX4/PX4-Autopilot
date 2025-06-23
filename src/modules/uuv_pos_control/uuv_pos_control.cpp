@@ -143,8 +143,6 @@ void UUVPOSControl::generate_trajectory_setpoint(vehicle_local_position_s &vloca
 		vehicle_attitude_s &vehicle_attitude,
 		float dt)
 {
-	// Avoid accumulating absolute yaw error with arming stick gesture
-	check_setpoint_validity(vlocal_pos);
 	float roll = Eulerf(matrix::Quatf(_trajectory_setpoint.quaternion)).phi();
 	float pitch = Eulerf(matrix::Quatf(_trajectory_setpoint.quaternion)).theta();
 	float yaw = Eulerf(matrix::Quatf(_trajectory_setpoint.quaternion)).psi();
