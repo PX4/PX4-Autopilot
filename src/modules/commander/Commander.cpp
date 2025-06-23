@@ -688,7 +688,7 @@ Commander::Commander() :
 	_vehicle_status.system_id = 1;
 	_vehicle_status.component_id = 1;
 	_vehicle_status.system_type = 0;
-	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_UNSPECIFIED;
 	_vehicle_status.nav_state = _user_mode_intention.get();
 	_vehicle_status.nav_state_user_intention = _user_mode_intention.get();
 	_vehicle_status.nav_state_timestamp = hrt_absolute_time();
@@ -2110,6 +2110,7 @@ void Commander::landDetectorUpdate()
 				events::send(events::ID("commander_takeoff_detected"), events::Log::Info, "Takeoff detected");
 				_vehicle_status.takeoff_time = hrt_absolute_time();
 				_have_taken_off_since_arming = true;
+				_home_position.setTakeoffTime(_vehicle_status.takeoff_time);
 			}
 
 			// automatically set or update home position

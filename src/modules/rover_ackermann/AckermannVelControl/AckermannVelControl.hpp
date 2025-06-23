@@ -112,9 +112,11 @@ private:
 	hrt_abstime _timestamp{0};
 	Quatf _vehicle_attitude_quaternion{};
 	float _vehicle_speed{0.f}; // [m/s] Positiv: Forwards, Negativ: Backwards
-	float _vehicle_yaw{0.f};
+	float _vehicle_yaw{0.f}; // [rad] Yaw angle of the vehicle
 	float _speed_setpoint{NAN};
 	float _bearing_setpoint{NAN};
+	float _min_speed{NAN};
+	float _max_yaw_rate{NAN};
 
 	// Controllers
 	PID _pid_speed;
@@ -128,6 +130,10 @@ private:
 		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_limit,
 		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_limit,
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
-		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th
+		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th,
+		(ParamFloat<px4::params::RO_SPEED_RED>)     _param_ro_speed_red,
+		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
+		(ParamFloat<px4::params::RA_WHEEL_BASE>)    _param_ra_wheel_base,
+		(ParamFloat<px4::params::RA_MAX_STR_ANG>)   _param_ra_max_str_ang
 	)
 };

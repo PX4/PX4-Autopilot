@@ -31,23 +31,23 @@
  *
  ****************************************************************************/
 
-#include "OffboardMode.hpp"
+#include "AckermannOffboardMode.hpp"
 
 using namespace time_literals;
 
-OffboardMode::OffboardMode(ModuleParams *parent) : ModuleParams(parent)
+AckermannOffboardMode::AckermannOffboardMode(ModuleParams *parent) : ModuleParams(parent)
 {
 	updateParams();
 	_rover_velocity_setpoint_pub.advertise();
 	_rover_position_setpoint_pub.advertise();
 }
 
-void OffboardMode::updateParams()
+void AckermannOffboardMode::updateParams()
 {
 	ModuleParams::updateParams();
 }
 
-void OffboardMode::offboardControl()
+void AckermannOffboardMode::offboardControl()
 {
 	offboard_control_mode_s offboard_control_mode{};
 	_offboard_control_mode_sub.copy(&offboard_control_mode);

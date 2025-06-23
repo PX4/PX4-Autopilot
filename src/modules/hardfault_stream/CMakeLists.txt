@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016-2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,9 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-px4_add_library(AutoMode
-	AutoMode.cpp
+px4_add_module(
+	MODULE modules__hardfault_stream
+	MAIN hardfault_stream
+	COMPILE_FLAGS
+	SRCS
+		HardfaultStream.cpp
+		HardfaultStream.hpp
+	DEPENDS
+		px4_work_queue
 )
-
-target_include_directories(AutoMode PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

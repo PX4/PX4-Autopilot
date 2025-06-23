@@ -180,7 +180,7 @@ bool AdsbConflict::handle_traffic_conflict()
 
 	case TRAFFIC_STATE::ADD_CONFLICT:
 	case TRAFFIC_STATE::REMIND_CONFLICT: {
-			take_action = send_traffic_warning((int)(math::degrees(_transponder_report.heading) + 180.f),
+			take_action = send_traffic_warning((int)math::degrees(_transponder_report.heading),
 							   (int)fabsf(_crosstrack_error.distance), _transponder_report.flags,
 							   _transponder_report.callsign,
 							   _transponder_report.icao_address,
