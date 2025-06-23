@@ -130,7 +130,7 @@ void RobosubPosControl::apply_water_safety(float &roll_u, float &pitch_u, float 
         if (_water_detection_sub.update(&_water_detection)) { // update water detection sensors
                 sensor_mainbrain = _water_detection.mainbrain_sensor;
                 sensor_power = _water_detection.power_module_sensor;
-        }
+        }sensor_power
 
         if (!sensor_mainbrain && !sensor_power) // Limit to 20 percent if no water detected
         {
