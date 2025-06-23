@@ -415,16 +415,7 @@ void AutopilotTester::execute_mission_raw()
 {
 	REQUIRE(_mission->start_mission() == Mission::Result::Success);
 
-	float speed_factor = 1.0f;
-
-	if (_info != nullptr) {
-		speed_factor = _info->get_speed_factor().second;
-	}
-
-	const float waiting_time_simulation_time_s = 300.f; // currently this is tuned for the VTOL wind test
-	float waiting_time_absolute_s = waiting_time_simulation_time_s / speed_factor;
-
-	wait_for_mission_raw_finished(std::chrono::seconds(static_cast<int>(waiting_time_absolute_s)));
+	wait_for_mission_raw_finished(std::chrono::seconds(300));
 }
 
 void AutopilotTester::execute_rtl()
