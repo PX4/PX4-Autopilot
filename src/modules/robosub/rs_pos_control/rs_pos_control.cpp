@@ -202,7 +202,7 @@ void RobosubPosControl::control_attitude_geo(const vehicle_attitude_s &attitude,
 	 * D. Mellinger, V. Kumar, "Minimum Snap Trajectory Generation and Control for Quadrotors", IEEE ICRA 2011, pp. 2520-2525.
 	 * D. A. Duecker, A. Hackbarth, T. Johannink, E. Kreuzer, and E. Solowjow, “Micro Underwater Vehicle Hydrobatics: A SubmergedFuruta Pendulum,” IEEE ICRA 2018, pp. 7498–7503.
 	 */
-		Eulerf euler_angles(matrix::Quatf(attitude.q));
+	Eulerf euler_angles(matrix::Quatf(attitude.q));
 
 	const Eulerf setpoint_euler_angles(matrix::Quatf(attitude_setpoint.q_d));
 	const float roll_body = setpoint_euler_angles(0);

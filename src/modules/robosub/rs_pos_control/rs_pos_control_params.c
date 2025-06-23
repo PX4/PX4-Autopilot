@@ -94,7 +94,7 @@ PARAM_DEFINE_FLOAT(RS_GAIN_Z_D, 0.2f);
  * @value 1 Stabilization Mode
  * @group RS Position Control
  */
-PARAM_DEFINE_INT32(RS_STAB_MODE, 1);
+PARAM_DEFINE_INT32(RS_STAB_MODE, 0);
 
 // Roll gains
 /**
