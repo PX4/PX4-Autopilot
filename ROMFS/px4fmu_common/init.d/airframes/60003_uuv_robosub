@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# @name Robosub UUV (Unmanned Underwater Vehicle)
+# @name HU Robosub UUV (Unmanned Underwater Vehicle)
 #
 # @type Underwater Robot
 # @class Underwater Robot
@@ -16,7 +16,7 @@
 #
 # @maintainer
 #
-# @board px4_fmu-v2 exclude
+# @board px4_fmu-v6x_robosub exclude
 #
 
 set VEHICLE_TYPE uuv
@@ -118,78 +118,9 @@ rs_motor_control start
 rs_remote_control start
 control_allocator start
 land_detector start rover
+
 rs_canfd_socket start
 rs_canfd_receiver start
 rs_canfd_sender start
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+rs_pos_control start
