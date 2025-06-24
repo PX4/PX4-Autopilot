@@ -1,8 +1,48 @@
 #!/usr/bin/env bash
 set -e
 
+DEBUG=false
+for arg; do
+	case "$arg" in
+	--debug)
+		DEBUG=true
+		shift
+		;;
+	*)
+		break
+		;;
+	esac
+done
+
+if $DEBUG; then
+	set -x
+	echo "[DEBUG] Running in debug mode" >&2
+fi
+
+# pick up bundled libs first
 export LD_LIBRARY_PATH="$APPDIR/usr/lib:$LD_LIBRARY_PATH"
+
+# figure out a stable logs directory
+STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+LOG_DIR="$STATE_HOME/px4/logs"
+mkdir -p "$LOG_DIR"
+
+if $DEBUG; then
+	echo "[DEBUG] LOG_DIR = $LOG_DIR" >&2
+fi
+
+# make a temporary workdir for ROMFS & other runtime files
 WORKDIR=$(mktemp -d)
+if $DEBUG; then
+	echo "[DEBUG] WORKDIR = $WORKDIR" >&2
+fi
+
+# symlink PX4's ./log folder to our XDG location
+ln -s "$LOG_DIR" "$WORKDIR/log"
+
+# copy the rest of the ROMFS into WORKDIR, etc.
 cp -a "$APPDIR/usr/share/px4/romfs/." "$WORKDIR"
+
+# add the px4-* helpers to PATH, then launch
 export PATH="$WORKDIR/bin:$WORKDIR:$PATH"
 exec "$APPDIR/usr/bin/px4" -w "$WORKDIR" "$@"
