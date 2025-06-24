@@ -272,7 +272,7 @@ appimage: build/px4_sitl_default/bin/px4 build/px4_sitl_default/romfs_files.tar
 	@mkdir -p \
 		build/px4.AppDir/usr/bin \
 		build/px4.AppDir/usr/share/px4/romfs/etc \
-		build/px4.AppDir/usr/share/px4/romfs/bin \
+		build/px4.AppDir/usr/share/px4/romfs/bin
 	@cp build/px4_sitl_default/bin/px4 build/px4.AppDir/usr/bin/
 	@tar xf build/px4_sitl_default/romfs_files.tar -C build/px4.AppDir/usr/share/px4/romfs/etc
 	@cp build/px4_sitl_default/bin/px4-* build/px4.AppDir/usr/share/px4/romfs/bin/
