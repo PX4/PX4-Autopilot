@@ -274,6 +274,19 @@ appimage: build/px4_sitl_default/bin/px4 build/px4_sitl_default/romfs_files.tar
 		build/px4.AppDir/usr/share/px4/romfs/etc \
 		build/px4.AppDir/usr/share/px4/romfs/bin
 	@cp build/px4_sitl_default/bin/px4 build/px4.AppDir/usr/bin/
+
+	# bundle required Gazebo transport libs (arch‐agnostic lookup)
+	@for lib in libgz-transport13.so.13 libgz-msgs10.so.10; do \
+		echo "Looking up $$lib…"; \
+		path=$$(ldconfig -p | awk '/$$lib/ { print $$4; exit }'); \
+		if [ -z "$$path" ]; then \
+			echo "ERROR: $$lib not found in ldconfig" >&2; \
+			exit 1; \
+		fi; \
+		echo "Bundling $$path" ; \
+		cp "$$path" build/px4.AppDir/usr/lib/; \
+	done
+
 	@tar xf build/px4_sitl_default/romfs_files.tar -C build/px4.AppDir/usr/share/px4/romfs/etc
 	@cp build/px4_sitl_default/bin/px4-* build/px4.AppDir/usr/share/px4/romfs/bin/
 	@cp Tools/appimage/px4.desktop build/px4.AppDir/
