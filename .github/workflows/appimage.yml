@@ -36,7 +36,7 @@ jobs:
       - name: Build PX4 SITL and AppImage
         env:
           # avoid FUSE by extracting the AppImage in‐place
-	  APPIMAGE_EXTRACT_AND_RUN: "1"
+          APPIMAGE_EXTRACT_AND_RUN: "1"
         run: |
           make appimage
 
