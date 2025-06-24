@@ -267,14 +267,12 @@ px4fmu_firmware: \
 # Create a one-file AppImage for PX4 SITL
 .PHONY: AppImage
 appimage: build/px4_sitl_default/bin/px4 build/px4_sitl_default/romfs_files.tar
-	@$(MAKE) px4_sitl_default  # ensure the SITL binary & romfs tar are up-to-date
+	@$(MAKE) px4_sitl_default
 	@$(RM) -rf build/px4.AppDir
 	@mkdir -p \
 		build/px4.AppDir/usr/bin \
 		build/px4.AppDir/usr/share/px4/romfs/etc \
 		build/px4.AppDir/usr/share/px4/romfs/bin \
-		build/px4.AppDir/usr/share/applications \
-		build/px4.AppDir/usr/share/icons/hicolor/scalable/apps
 	@cp build/px4_sitl_default/bin/px4 build/px4.AppDir/usr/bin/
 	@tar xf build/px4_sitl_default/romfs_files.tar -C build/px4.AppDir/usr/share/px4/romfs/etc
 	@cp build/px4_sitl_default/bin/px4-* build/px4.AppDir/usr/share/px4/romfs/bin/
