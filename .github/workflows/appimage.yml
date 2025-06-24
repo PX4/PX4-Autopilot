@@ -23,6 +23,9 @@ jobs:
       - name: Git ownership workaround
         run: git config --system --add safe.directory '*'
 
+      - name: Install FUSE support
+        run: sudo apt-get update && sudo apt-get install -y libfuse2
+
       - name: Install appimagetool
         run: |
           wget -O appimagetool-x86_64.AppImage \

@@ -129,6 +129,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		kconfig-frontends \
 		libelf-dev \
 		libexpat-dev \
+		libfuse2 \
 		libgmp-dev \
 		libisl-dev \
 		libmpc-dev \
