@@ -271,20 +271,21 @@ appimage: build/px4_sitl_default/bin/px4 build/px4_sitl_default/romfs_files.tar
 	@$(RM) -rf build/px4.AppDir
 	@mkdir -p \
 		build/px4.AppDir/usr/bin \
+		build/px4.AppDir/usr/lib \
 		build/px4.AppDir/usr/share/px4/romfs/etc \
 		build/px4.AppDir/usr/share/px4/romfs/bin
 	@cp build/px4_sitl_default/bin/px4 build/px4.AppDir/usr/bin/
 
 	# bundle required Gazebo transport libs (arch‐agnostic lookup)
-	@for lib in libgz-transport13.so.13 libgz-msgs10.so.10; do \
-		echo "Looking up $$lib…"; \
-		path=$$(ldconfig -p | awk '/$$lib/ { print $$4; exit }'); \
-		if [ -z "$$path" ]; then \
-			echo "ERROR: $$lib not found in ldconfig" >&2; \
+	@for lib in libgz-transport*.so* libgz-msgs*.so*; do \
+		echo "→ locating $$lib …"; \
+		src=$$(find /usr /usr/local -type f -name "$$lib" 2>/dev/null | head -n1); \
+		if [ -z "$$src" ]; then \
+			echo "ERROR: $$lib not found under /usr or /usr/local" >&2; \
 			exit 1; \
 		fi; \
-		echo "Bundling $$path" ; \
-		cp "$$path" build/px4.AppDir/usr/lib/; \
+		echo "→ bundling $$src" ; \
+		cp "$$src" build/px4.AppDir/usr/lib/ ; \
 	done
 
 	@tar xf build/px4_sitl_default/romfs_files.tar -C build/px4.AppDir/usr/share/px4/romfs/etc
