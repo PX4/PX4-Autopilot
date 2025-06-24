@@ -126,6 +126,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		genromfs \
 		gettext \
 		gperf \
+		fuse \
 		kconfig-frontends \
 		libelf-dev \
 		libexpat-dev \
