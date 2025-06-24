@@ -1,8 +1,8 @@
 # Onboard parameters for Vehicle 1
 #
 # Stack: PX4 Pro
-# Vehicle: ∂‡–˝“Ì
-# Version: 1.15.4 
+# Vehicle: Multi-Rotor
+# Version: 1.15.4
 # Git Revision: 99c40407ff000000
 #
 # Vehicle-Id Component-Id Name Value Type
@@ -318,7 +318,6 @@
 1	1	COM_OBS_AVOID	0	6
 1	1	COM_OF_LOSS_T	1.000000000000000000	9
 1	1	COM_PARACHUTE	0	6
-1	1	COM_POSCTL_NAVL	0	6
 1	1	COM_POS_FS_DELAY	1	6
 1	1	COM_POS_FS_EPH	5.000000000000000000	9
 1	1	COM_POS_LOW_EPH	-1.000000000000000000	9
