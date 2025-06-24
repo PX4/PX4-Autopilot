@@ -11,9 +11,8 @@ permissions:
 
 jobs:
   build-appimage:
-    runs-on: ubuntu-latest
-    container:
-      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
+    name: "Create px4_sitl AppImage"
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,15 +22,8 @@ jobs:
       - name: Git ownership workaround
         run: git config --system --add safe.directory '*'
 
-      - name: Install FUSE support
-        run: sudo apt-get update && sudo apt-get install -y libfuse2 fuse
-
-      - name: Install appimagetool
-        run: |
-          wget -O appimagetool-x86_64.AppImage \
-            https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-          chmod +x appimagetool-x86_64.AppImage
-          sudo mv appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
+      - name: Install Dependencies
+        run: ./Tools/setup.sh
 
       - name: Build PX4 SITL and AppImage
         env:
