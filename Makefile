@@ -277,16 +277,16 @@ appimage: build/px4_sitl_default/bin/px4 build/px4_sitl_default/romfs_files.tar
 	@cp build/px4_sitl_default/bin/px4 build/px4.AppDir/usr/bin/
 
 	# bundle required Gazebo transport libs (arch‐agnostic lookup)
-	@for lib in libgz-transport*.so* libgz-msgs*.so*; do \
-		echo "→ locating $$lib …"; \
-		src=$$(find /usr /usr/local -type f -name "$$lib" 2>/dev/null | head -n1); \
-		if [ -z "$$src" ]; then \
-			echo "ERROR: $$lib not found under /usr or /usr/local" >&2; \
-			exit 1; \
-		fi; \
-		echo "→ bundling $$src" ; \
-		cp "$$src" build/px4.AppDir/usr/lib/ ; \
-	done
+	echo "→ Gathering shared-lib dependencies for px4..."
+	@ldd build/px4_sitl_default/bin/px4 \
+		| awk '/=>/ { print $$3 }' \
+		| grep -E '^/' \
+		| grep -Ev '/lib(c|gcc|stdc\+\+)\.so' \
+		| sort -u \
+		| while read lib; do \
+			echo "	→ bundling $$lib"; \
+			cp "$$lib" build/px4.AppDir/usr/lib/; \
+		done
 
 	@tar xf build/px4_sitl_default/romfs_files.tar -C build/px4.AppDir/usr/share/px4/romfs/etc
 	@cp build/px4_sitl_default/bin/px4-* build/px4.AppDir/usr/share/px4/romfs/bin/
