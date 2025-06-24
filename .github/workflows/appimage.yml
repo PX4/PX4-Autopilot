@@ -26,9 +26,6 @@ jobs:
       - name: Install FUSE support
         run: sudo apt-get update && sudo apt-get install -y libfuse2 fuse
 
-      - name: run modprobe
-        run: sudo modprobe fuse
-
       - name: Install appimagetool
         run: |
           wget -O appimagetool-x86_64.AppImage \
@@ -37,6 +34,9 @@ jobs:
           sudo mv appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
 
       - name: Build PX4 SITL and AppImage
+        env:
+          # avoid FUSE by extracting the AppImage in‐place
+	  APPIMAGE_EXTRACT_AND_RUN: "1"
         run: |
           make appimage
 
