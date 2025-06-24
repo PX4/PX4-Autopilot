@@ -206,6 +206,8 @@ source "src/examples/Kconfig"
 endmenu
 
 menu "platforms"
+depends on PLATFORM_QURT || PLATFORM_POSIX
+source "platforms/common/Kconfig"
 endmenu
 
 source "src/lib/*/Kconfig"
