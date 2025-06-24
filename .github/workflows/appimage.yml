@@ -19,9 +19,6 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - name: Git ownership workaround
-        run: git config --system --add safe.directory '*'
-
       - name: Install Dependencies
         run: ./Tools/setup.sh
 
