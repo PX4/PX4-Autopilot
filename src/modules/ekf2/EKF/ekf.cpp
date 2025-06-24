@@ -151,7 +151,7 @@ bool Ekf::update()
 
 		// calculate an average filter update time
 		// limit input between -50% and +100% of nominal value
-		const float filter_update_s = 1e-6f * _params.filter_update_interval_us;
+		const float filter_update_s = 1e-6f * _params.ekf2_predict_us;
 		const float input = math::constrain(0.5f * (imu_sample_delayed.delta_vel_dt + imu_sample_delayed.delta_ang_dt),
 						    0.5f * filter_update_s,
 						    2.f * filter_update_s);
@@ -270,7 +270,7 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_state.pos(2) = -_gpos.altitude();
 
 	// constrain states
-	_state.vel = matrix::constrain(_state.vel, -_params.velocity_limit, _params.velocity_limit);
+	_state.vel = matrix::constrain(_state.vel, -_params.ekf2_vel_lim, _params.ekf2_vel_lim);
 
 	// calculate a filtered horizontal acceleration this are used for manoeuvre detection elsewhere
 	_accel_horiz_lpf.update(corrected_delta_vel_ef.xy() / imu_delayed.delta_vel_dt, imu_delayed.delta_vel_dt);
@@ -372,19 +372,19 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 
 void Ekf::updateParameters()
 {
-	_params.gyro_noise = math::constrain(_params.gyro_noise, 0.f, 1.f);
-	_params.accel_noise = math::constrain(_params.accel_noise, 0.f, 1.f);
+	_params.ekf2_gyr_noise = math::constrain(_params.ekf2_gyr_noise, 0.f, 1.f);
+	_params.ekf2_acc_noise = math::constrain(_params.ekf2_acc_noise, 0.f, 1.f);
 
-	_params.gyro_bias_p_noise = math::constrain(_params.gyro_bias_p_noise, 0.f, 1.f);
-	_params.accel_bias_p_noise = math::constrain(_params.accel_bias_p_noise, 0.f, 1.f);
+	_params.ekf2_gyr_b_noise = math::constrain(_params.ekf2_gyr_b_noise, 0.f, 1.f);
+	_params.ekf2_acc_b_noise = math::constrain(_params.ekf2_acc_b_noise, 0.f, 1.f);
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	_params.mage_p_noise = math::constrain(_params.mage_p_noise, 0.f, 1.f);
-	_params.magb_p_noise = math::constrain(_params.magb_p_noise, 0.f, 1.f);
+	_params.ekf2_mag_e_noise = math::constrain(_params.ekf2_mag_e_noise, 0.f, 1.f);
+	_params.ekf2_mag_b_noise = math::constrain(_params.ekf2_mag_b_noise, 0.f, 1.f);
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)
-	_params.wind_vel_nsd = math::constrain(_params.wind_vel_nsd, 0.f, 1.f);
+	_params.ekf2_wind_nsd = math::constrain(_params.ekf2_wind_nsd, 0.f, 1.f);
 #endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
