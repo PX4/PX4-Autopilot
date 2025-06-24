@@ -113,7 +113,7 @@ bool is_vtol_tailsitter(const vehicle_status_s &current_status)
 }
 
 bool is_fixed_wing(const vehicle_status_s &current_status)
-{\
+{
 	return current_status.system_type == VEHICLE_TYPE_FIXED_WING;
 }
 
