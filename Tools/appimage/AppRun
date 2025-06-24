@@ -37,6 +37,15 @@ if $DEBUG; then
 	echo "[DEBUG] WORKDIR = $WORKDIR" >&2
 fi
 
+# ensure we clean up the workdir on exit
+cleanup() {
+	if $DEBUG; then
+		echo "[DEBUG] Cleaning up WORKDIR: $WORKDIR" >&2
+	fi
+	rm -rf "$WORKDIR"
+}
+trap cleanup EXIT
+
 # symlink PX4's ./log folder to our XDG location
 ln -s "$LOG_DIR" "$WORKDIR/log"
 
