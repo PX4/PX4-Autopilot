@@ -187,8 +187,15 @@ void RobosubRemoteControl::taskStat() {
                         }
 
                         drone_task.timestamp = hrt_absolute_time();
+			_vehicle_command_arm.timestamp = hrt_absolute_time();
+			_vehicle_command_arm.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
+			_vehicle_command_arm.param1 = vehicle_command_s::ARMING_ACTION_ARM;
+			_vehicle_command_arm.param2 = 21196; // Some magic number to force the arm command
 
                         _drone_task_pub.publish(drone_task);
+			_vehicle_command_pub.publish(_vehicle_command_arm);
+
+
                 }
         }
 }

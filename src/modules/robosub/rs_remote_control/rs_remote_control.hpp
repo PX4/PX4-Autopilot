@@ -46,6 +46,7 @@
 #include <uORB/topics/water_detection.h>
 #include <uORB/topics/drone_task.h>
 #include <uORB/topics/internal_sensors.h>
+#include <uORB/topics/vehicle_command.h>
 
 using namespace time_literals;
 
@@ -134,9 +135,13 @@ class RobosubRemoteControl : public ModuleBase<RobosubRemoteControl>,
         uORB::SubscriptionCallbackWorkItem _internal_sensors_sub{this, ORB_ID(internal_sensors)};
 
         uORB::Publication<drone_task_s> _drone_task_pub{ORB_ID(drone_task)};
+	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
+
 
         drone_task_s _drone_task{};
         input_rc_s _input_rc{};
+	vehicle_command_s _vehicle_command_arm{};
+	
 
         float normalized[8];
         float range = 1.0f;
