@@ -201,7 +201,7 @@ public:
 	void set_is_fixed_wing(bool is_fixed_wing) { _control_status.flags.fixed_wing = is_fixed_wing; }
 
 	// set flag if static pressure rise due to ground effect is expected
-	// use _params.gnd_effect_deadzone to adjust for expected rise in static pressure
+	// use _params.ekf2_gnd_eff_dz to adjust for expected rise in static pressure
 	// flag will clear after GNDEFFECT_TIMEOUT uSec
 	void set_gnd_effect()
 	{
@@ -262,10 +262,10 @@ public:
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// Get the value of magnetic declination in degrees to be saved for use at the next startup
 	// Returns true when the declination can be saved
-	// At the next startup, set param.mag_declination_deg to the value saved
+	// At the next startup, set param.ekf2_mag_decl to the value saved
 	bool get_mag_decl_deg(float &val) const
 	{
-		if (PX4_ISFINITE(_wmm_declination_rad) && (_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)) {
+		if (PX4_ISFINITE(_wmm_declination_rad) && (_params.ekf2_decl_type & GeoDeclinationMask::SAVE_GEO_DECL)) {
 			val = math::degrees(_wmm_declination_rad);
 			return true;
 
@@ -404,15 +404,15 @@ protected:
 	gnssSample _gps_sample_delayed{};
 
 	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
-	GnssChecks _gnss_checks{_params.gps_check_mask,
-			   _params.req_nsats,
-			   _params.req_pdop,
-			   _params.req_hacc,
-			   _params.req_vacc,
-			   _params.req_sacc,
-			   _params.req_hdrift,
-			   _params.req_vdrift,
-			   _params.velocity_limit,
+	GnssChecks _gnss_checks{_params.ekf2_gps_check,
+			   _params.ekf2_req_nsats,
+			   _params.ekf2_req_pdop,
+			   _params.ekf2_req_eph,
+			   _params.ekf2_req_epv,
+			   _params.ekf2_req_sacc,
+			   _params.ekf2_req_hdrift,
+			   _params.ekf2_req_vdrift,
+			   _params.ekf2_vel_lim,
 			   _min_gps_health_time_us,
 			   _control_status};
 
@@ -508,6 +508,6 @@ protected:
 
 	void printBufferAllocationFailed(const char *buffer_name);
 
-	ImuDownSampler _imu_down_sampler{_params.filter_update_interval_us};
+	ImuDownSampler _imu_down_sampler{_params.ekf2_predict_us};
 };
 #endif // !EKF_ESTIMATOR_INTERFACE_H
