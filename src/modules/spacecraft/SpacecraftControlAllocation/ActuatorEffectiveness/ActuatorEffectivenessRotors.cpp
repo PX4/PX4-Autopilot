@@ -129,7 +129,7 @@ void ActuatorEffectivenessRotors::updateParams()
 bool
 ActuatorEffectivenessRotors::addActuators(Configuration &configuration)
 {
-	if (configuration.num_actuators[(int)ActuatorType::SERVOS] > 0) {
+	if (configuration.num_actuators[(int)SpacecraftActuatorType::SERVOS] > 0) {
 		PX4_ERR("Wrong actuator ordering: servos need to be after motors");
 		return false;
 	}
@@ -137,7 +137,7 @@ ActuatorEffectivenessRotors::addActuators(Configuration &configuration)
 	int num_actuators = computeEffectivenessMatrix(_geometry,
 			    configuration.effectiveness_matrices[configuration.selected_matrix],
 			    configuration.num_actuators_matrix[configuration.selected_matrix]);
-	configuration.actuatorsAdded(ActuatorType::MOTORS, num_actuators);
+	configuration.actuatorsAdded(SpacecraftActuatorType::MOTORS, num_actuators);
 	return true;
 }
 
@@ -299,9 +299,9 @@ uint32_t ActuatorEffectivenessRotors::getForwardsMotors() const
 
 bool
 ActuatorEffectivenessRotors::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
+		SpacecraftEffectivenessUpdateReason external_update)
 {
-	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
+	if (external_update == SpacecraftEffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
 

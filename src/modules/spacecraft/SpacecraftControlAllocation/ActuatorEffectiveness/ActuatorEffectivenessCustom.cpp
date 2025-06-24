@@ -42,9 +42,9 @@ ActuatorEffectivenessCustom::ActuatorEffectivenessCustom(ModuleParams *parent)
 
 bool
 ActuatorEffectivenessCustom::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
+		SpacecraftEffectivenessUpdateReason external_update)
 {
-	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
+	if (external_update == SpacecraftEffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
 

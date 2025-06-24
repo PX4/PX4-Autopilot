@@ -87,7 +87,7 @@ void ActuatorEffectivenessTilts::updateParams()
 bool ActuatorEffectivenessTilts::addActuators(Configuration &configuration)
 {
 	for (int i = 0; i < _count; i++) {
-		configuration.addActuator(ActuatorType::SERVOS, _torque[i], Vector3f{});
+		configuration.addActuator(SpacecraftActuatorType::SERVOS, _torque[i], Vector3f{});
 	}
 
 	return true;

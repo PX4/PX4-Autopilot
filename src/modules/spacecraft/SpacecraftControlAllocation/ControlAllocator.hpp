@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include <control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp>
+#include "ActuatorEffectiveness/ActuatorEffectiveness.hpp"
 #include "ActuatorEffectiveness/ActuatorEffectivenessSpacecraft.hpp"
 
 #include <control_allocation/control_allocation/ControlAllocation.hpp>
@@ -78,7 +78,7 @@ public:
 	static constexpr int MAX_NUM_THRUSTERS = actuator_motors_s::NUM_CONTROLS;
 	static constexpr int MAX_NUM_SERVOS = actuator_servos_s::NUM_CONTROLS;
 
-	using ActuatorVector = ActuatorEffectiveness::ActuatorVector;
+	using ActuatorVector = SpacecraftActuatorEffectiveness::ActuatorVector;
 
 	SpacecraftControlAllocator(ModuleParams *parent);
 
@@ -108,7 +108,7 @@ private:
 	void update_allocation_method(bool force);
 	bool update_effectiveness_source();
 
-	void update_effectiveness_matrix_if_needed(EffectivenessUpdateReason reason);
+	void update_effectiveness_matrix_if_needed(SpacecraftEffectivenessUpdateReason reason);
 
 	void check_for_motor_failures();
 
@@ -116,8 +116,8 @@ private:
 
 	void publish_actuator_controls();
 
-	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
-	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations
+	SpacecraftAllocationMethod _allocation_method_id{SpacecraftAllocationMethod::NONE};
+	ControlAllocation *_control_allocation[SpacecraftActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations
 	int _num_control_allocation{0};
 	hrt_abstime _last_effectiveness_update{0};
 
@@ -133,10 +133,10 @@ private:
 	};
 
 	EffectivenessSource _effectiveness_source_id{EffectivenessSource::NONE};
-	ActuatorEffectiveness *_actuator_effectiveness{nullptr}; 	///< class providing actuator effectiveness
+	SpacecraftActuatorEffectiveness *_actuator_effectiveness{nullptr}; 	///< class providing actuator effectiveness
 
-	uint8_t _control_allocation_selection_indexes[NUM_ACTUATORS * ActuatorEffectiveness::MAX_NUM_MATRICES] {};
-	int _num_actuators[(int)ActuatorType::COUNT] {};
+	uint8_t _control_allocation_selection_indexes[NUM_ACTUATORS * SpacecraftActuatorEffectiveness::MAX_NUM_MATRICES] {};
+	int _num_actuators[(int)SpacecraftActuatorType::COUNT] {};
 
 	// Inputs
 	uORB::Subscription _vehicle_torque_setpoint_sub{ORB_ID(vehicle_torque_setpoint)};  /**< vehicle torque setpoint subscription */

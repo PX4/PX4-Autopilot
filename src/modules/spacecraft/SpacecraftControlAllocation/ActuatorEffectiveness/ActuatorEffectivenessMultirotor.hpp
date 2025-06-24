@@ -33,20 +33,20 @@
 
 #pragma once
 
-#include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
+#include "ActuatorEffectiveness/ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
 
-class ActuatorEffectivenessMultirotor : public ModuleParams, public ActuatorEffectiveness
+class ActuatorEffectivenessMultirotor : public ModuleParams, public SpacecraftActuatorEffectiveness
 {
 public:
 	ActuatorEffectivenessMultirotor(ModuleParams *parent);
 	virtual ~ActuatorEffectivenessMultirotor() = default;
 
-	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
+	bool getEffectivenessMatrix(Configuration &configuration, SpacecraftEffectivenessUpdateReason external_update) override;
 
-	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
+	void getDesiredSpacecraftAllocationMethod(SpacecraftAllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
 	{
-		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
+		allocation_method_out[0] = SpacecraftAllocationMethod::SEQUENTIAL_DESATURATION;
 	}
 
 	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override

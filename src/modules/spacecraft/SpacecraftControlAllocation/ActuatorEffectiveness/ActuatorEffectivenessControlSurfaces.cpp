@@ -154,7 +154,7 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 bool ActuatorEffectivenessControlSurfaces::addActuators(Configuration &configuration)
 {
 	for (int i = 0; i < _count; i++) {
-		int actuator_idx = configuration.addActuator(ActuatorType::SERVOS, _params[i].torque, Vector3f{});
+		int actuator_idx = configuration.addActuator(SpacecraftActuatorType::SERVOS, _params[i].torque, Vector3f{});
 
 		if (actuator_idx >= 0) {
 			configuration.trim[configuration.selected_matrix](actuator_idx) = _params[i].trim;

@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp>
+#include "ActuatorEffectiveness.hpp"
 
 #include <px4_platform_common/module_params.h>
 #include <lib/slew_rate/SlewRate.hpp>
@@ -41,7 +41,7 @@
 static constexpr float kFlapSlewRate = 0.5f; // slew rate for normalized flaps setpoint [1/s]
 static constexpr float kSpoilersSlewRate = 0.5f; // slew rate for normalized spoilers setpoint [1/s]
 
-class ActuatorEffectivenessControlSurfaces : public ModuleParams, public ActuatorEffectiveness
+class ActuatorEffectivenessControlSurfaces : public ModuleParams, public SpacecraftActuatorEffectiveness
 {
 public:
 

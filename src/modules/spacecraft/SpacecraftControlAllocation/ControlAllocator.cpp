@@ -73,7 +73,7 @@ SpacecraftControlAllocator::SpacecraftControlAllocator(ModuleParams *parent) :
 
 SpacecraftControlAllocator::~SpacecraftControlAllocator()
 {
-	for (int i = 0; i < ActuatorEffectiveness::MAX_NUM_MATRICES; ++i) {
+	for (int i = 0; i < SpacecraftActuatorEffectiveness::MAX_NUM_MATRICES; ++i) {
 		delete _control_allocation[i];
 	}
 
@@ -105,13 +105,13 @@ SpacecraftControlAllocator::updateParams()
 		_control_allocation[i]->updateParameters();
 	}
 
-	update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::CONFIGURATION_UPDATE);
+	update_effectiveness_matrix_if_needed(SpacecraftEffectivenessUpdateReason::CONFIGURATION_UPDATE);
 }
 
 void
 SpacecraftControlAllocator::update_allocation_method(bool force)
 {
-	AllocationMethod configured_method = (AllocationMethod)_param_ca_method.get();
+	SpacecraftAllocationMethod configured_method = (SpacecraftAllocationMethod)_param_ca_method.get();
 
 	if (!_actuator_effectiveness) {
 		PX4_ERR("_actuator_effectiveness null");
@@ -120,10 +120,10 @@ SpacecraftControlAllocator::update_allocation_method(bool force)
 
 	if (_allocation_method_id != configured_method || force) {
 
-		matrix::Vector<float, NUM_ACTUATORS> actuator_sp[ActuatorEffectiveness::MAX_NUM_MATRICES];
+		matrix::Vector<float, NUM_ACTUATORS> actuator_sp[SpacecraftActuatorEffectiveness::MAX_NUM_MATRICES];
 
 		// Cleanup first
-		for (int i = 0; i < ActuatorEffectiveness::MAX_NUM_MATRICES; ++i) {
+		for (int i = 0; i < SpacecraftActuatorEffectiveness::MAX_NUM_MATRICES; ++i) {
 			// Save current state
 			if (_control_allocation[i] != nullptr) {
 				actuator_sp[i] = _control_allocation[i]->getActuatorSetpoint();
@@ -135,21 +135,21 @@ SpacecraftControlAllocator::update_allocation_method(bool force)
 
 		_num_control_allocation = _actuator_effectiveness->numMatrices();
 
-		AllocationMethod desired_methods[ActuatorEffectiveness::MAX_NUM_MATRICES];
-		_actuator_effectiveness->getDesiredAllocationMethod(desired_methods);
+		SpacecraftAllocationMethod desired_methods[SpacecraftActuatorEffectiveness::MAX_NUM_MATRICES];
+		_actuator_effectiveness->getDesiredSpacecraftAllocationMethod(desired_methods);
 
-		bool normalize_rpy[ActuatorEffectiveness::MAX_NUM_MATRICES];
+		bool normalize_rpy[SpacecraftActuatorEffectiveness::MAX_NUM_MATRICES];
 		_actuator_effectiveness->getNormalizeRPY(normalize_rpy);
 
 		for (int i = 0; i < _num_control_allocation; ++i) {
-			AllocationMethod method = configured_method;
+			SpacecraftAllocationMethod method = configured_method;
 
-			if (configured_method == AllocationMethod::AUTO) {
+			if (configured_method == SpacecraftAllocationMethod::AUTO) {
 				method = desired_methods[i];
 			}
 
 			switch (method) {
-			case AllocationMethod::PSEUDO_INVERSE:
+			case SpacecraftAllocationMethod::PSEUDO_INVERSE:
 				_control_allocation[i] = new ControlAllocationPseudoInverse();
 				break;
 
@@ -180,7 +180,7 @@ SpacecraftControlAllocator::update_effectiveness_source()
 	if (_effectiveness_source_id != source) {
 
 		// try to instanciate new effectiveness source
-		ActuatorEffectiveness *tmp = nullptr;
+		SpacecraftActuatorEffectiveness *tmp = nullptr;
 
 		switch (source) {
 		case EffectivenessSource::SPACECRAFT_2D:
@@ -277,7 +277,7 @@ SpacecraftControlAllocator::generateActuationSignals()
 
 		check_for_motor_failures();
 
-		update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::NO_EXTERNAL_UPDATE);
+		update_effectiveness_matrix_if_needed(SpacecraftEffectivenessUpdateReason::NO_EXTERNAL_UPDATE);
 
 		// Set control setpoint vector(s)
 		matrix::Vector<float, NUM_AXES> c[ActuatorEffectiveness::MAX_NUM_MATRICES];
@@ -342,11 +342,11 @@ SpacecraftControlAllocator::generateActuationSignals()
 }
 
 void
-SpacecraftControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReason reason)
+SpacecraftControlAllocator::update_effectiveness_matrix_if_needed(SpacecraftEffectivenessUpdateReason reason)
 {
-	ActuatorEffectiveness::Configuration config{};
+	SpacecraftActuatorEffectiveness::Configuration config{};
 
-	if (reason == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE
+	if (reason == SpacecraftEffectivenessUpdateReason::NO_EXTERNAL_UPDATE
 	    && hrt_elapsed_time(&_last_effectiveness_update) < 100_ms) { // rate-limit updates
 		return;
 	}
@@ -358,16 +358,16 @@ SpacecraftControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessU
 		       sizeof(_control_allocation_selection_indexes));
 
 		// Get the minimum and maximum depending on type and configuration
-		ActuatorEffectiveness::ActuatorVector minimum[ActuatorEffectiveness::MAX_NUM_MATRICES];
-		ActuatorEffectiveness::ActuatorVector maximum[ActuatorEffectiveness::MAX_NUM_MATRICES];
-		ActuatorEffectiveness::ActuatorVector slew_rate[ActuatorEffectiveness::MAX_NUM_MATRICES];
+		SpacecraftActuatorEffectiveness::ActuatorVector minimum[SpacecraftActuatorEffectiveness::MAX_NUM_MATRICES];
+		SpacecraftActuatorEffectiveness::ActuatorVector maximum[SpacecraftActuatorEffectiveness::MAX_NUM_MATRICES];
+		SpacecraftActuatorEffectiveness::ActuatorVector slew_rate[SpacecraftActuatorEffectiveness::MAX_NUM_MATRICES];
 		int actuator_idx = 0;
-		int actuator_idx_matrix[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
+		int actuator_idx_matrix[SpacecraftActuatorEffectiveness::MAX_NUM_MATRICES] {};
 
 		actuator_servos_trim_s trims{};
 		static_assert(actuator_servos_trim_s::NUM_CONTROLS == actuator_servos_s::NUM_CONTROLS, "size mismatch");
 
-		for (int actuator_type = 0; actuator_type < (int)ActuatorType::COUNT; ++actuator_type) {
+		for (int actuator_type = 0; actuator_type < (int)SpacecraftActuatorType::COUNT; ++actuator_type) {
 			_num_actuators[actuator_type] = config.num_actuators[actuator_type];
 
 			for (int actuator_type_idx = 0; actuator_type_idx < config.num_actuators[actuator_type]; ++actuator_type_idx) {
@@ -379,7 +379,7 @@ SpacecraftControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessU
 
 				int selected_matrix = _control_allocation_selection_indexes[actuator_idx];
 
-				if ((ActuatorType)actuator_type == ActuatorType::MOTORS) {
+				if ((SpacecraftActuatorType)actuator_type == SpacecraftActuatorType::MOTORS) {
 					if (actuator_type_idx >= MAX_NUM_MOTORS) {
 						PX4_ERR("Too many motors");
 						_num_actuators[actuator_type] = 0;
@@ -395,7 +395,7 @@ SpacecraftControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessU
 
 					slew_rate[selected_matrix](actuator_idx_matrix[selected_matrix]) = _params.slew_rate_motors[actuator_type_idx];
 
-				} else if ((ActuatorType)actuator_type == ActuatorType::THRUSTERS) {
+				} else if ((SpacecraftActuatorType)actuator_type == SpacecraftActuatorType::THRUSTERS) {
 					if (actuator_type_idx >= MAX_NUM_THRUSTERS) {
 						PX4_ERR("Too many thrusters");
 						_num_actuators[actuator_type] = 0;
@@ -404,7 +404,7 @@ SpacecraftControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessU
 
 					minimum[selected_matrix](actuator_idx_matrix[selected_matrix]) = 0.f;
 
-				} else if ((ActuatorType)actuator_type == ActuatorType::SERVOS) {
+				} else if ((SpacecraftActuatorType)actuator_type == SpacecraftActuatorType::SERVOS) {
 					if (actuator_type_idx >= MAX_NUM_SERVOS) {
 						PX4_ERR("Too many servos");
 						_num_actuators[actuator_type] = 0;
@@ -435,7 +435,7 @@ SpacecraftControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessU
 				int selected_matrix = _control_allocation_selection_indexes[actuator_idx];
 
 				if (_handled_motor_failure_bitmask & (1 << motors_idx)) {
-					ActuatorEffectiveness::EffectivenessMatrix &matrix = config.effectiveness_matrices[selected_matrix];
+					SpacecraftActuatorEffectiveness::EffectivenessMatrix &matrix = config.effectiveness_matrices[selected_matrix];
 
 					for (int i = 0; i < NUM_AXES; i++) {
 						matrix(i, actuator_idx_matrix[selected_matrix]) = 0.0f;
@@ -456,7 +456,7 @@ SpacecraftControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessU
 			// That ensures that the algorithm doesn't try to control axes with only marginal control authority,
 			// which in turn would degrade the control of the main axes that actually should and can be controlled.
 
-			ActuatorEffectiveness::EffectivenessMatrix &matrix = config.effectiveness_matrices[i];
+			SpacecraftActuatorEffectiveness::EffectivenessMatrix &matrix = config.effectiveness_matrices[i];
 
 			for (int n = 0; n < NUM_AXES; n++) {
 				bool all_entries_small = true;
@@ -475,7 +475,7 @@ SpacecraftControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessU
 			// Assign control effectiveness matrix
 			int total_num_actuators = config.num_actuators_matrix[i];
 			_control_allocation[i]->setEffectivenessMatrix(config.effectiveness_matrices[i], config.trim[i],
-					config.linearization_point[i], total_num_actuators, reason == EffectivenessUpdateReason::CONFIGURATION_UPDATE);
+					config.linearization_point[i], total_num_actuators, reason == SpacecraftEffectivenessUpdateReason::CONFIGURATION_UPDATE);
 		}
 
 		trims.timestamp = hrt_absolute_time();
@@ -553,15 +553,15 @@ SpacecraftControlAllocator::publish_actuator_controls()
 	actuator_motors.reversible_flags = _param_r_rev.get();
 
 	int actuator_idx = 0;
-	int actuator_idx_matrix[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
+	int actuator_idx_matrix[SpacecraftActuatorEffectiveness::MAX_NUM_MATRICES] {};
 
 	uint32_t stopped_motors = _actuator_effectiveness->getStoppedMotors() | _handled_motor_failure_bitmask;
 
 	// Setpoint for motors and servos
 	int actuator_type = 0;
 
-	if (_num_actuators[(int)ActuatorType::THRUSTERS] > 0) {
-		actuator_type = (int)ActuatorType::THRUSTERS;
+	if (_num_actuators[(int)SpacecraftActuatorType::THRUSTERS] > 0) {
+		actuator_type = (int)SpacecraftActuatorType::THRUSTERS;
 	}
 
 	// motors
@@ -632,7 +632,7 @@ SpacecraftControlAllocator::check_for_motor_failures()
 								_control_allocation[i]->setHadActuatorFailure(true);
 							}
 
-							update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::MOTOR_ACTIVATION_UPDATE);
+							update_effectiveness_matrix_if_needed(SpacecraftEffectivenessUpdateReason::MOTOR_ACTIVATION_UPDATE);
 						}
 					}
 					break;
@@ -652,7 +652,7 @@ SpacecraftControlAllocator::check_for_motor_failures()
 				_control_allocation[i]->setHadActuatorFailure(false);
 			}
 
-			update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::MOTOR_ACTIVATION_UPDATE);
+			update_effectiveness_matrix_if_needed(SpacecraftEffectivenessUpdateReason::MOTOR_ACTIVATION_UPDATE);
 		}
 	}
 }
@@ -663,19 +663,19 @@ int SpacecraftControlAllocator::print_status()
 
 	// Print current allocation method
 	switch (_allocation_method_id) {
-	case AllocationMethod::NONE:
+	case SpacecraftAllocationMethod::NONE:
 		PX4_INFO("Method: None");
 		break;
 
-	case AllocationMethod::PSEUDO_INVERSE:
+	case SpacecraftAllocationMethod::PSEUDO_INVERSE:
 		PX4_INFO("Method: Pseudo-inverse");
 		break;
 
-	case AllocationMethod::SEQUENTIAL_DESATURATION:
+	case SpacecraftAllocationMethod::SEQUENTIAL_DESATURATION:
 		PX4_INFO("Method: Sequential desaturation");
 		break;
 
-	case AllocationMethod::AUTO:
+	case SpacecraftAllocationMethod::AUTO:
 		PX4_INFO("Method: Auto");
 		break;
 	}
@@ -687,7 +687,7 @@ int SpacecraftControlAllocator::print_status()
 
 	// Print current effectiveness matrix
 	for (int i = 0; i < _num_control_allocation; ++i) {
-		const ActuatorEffectiveness::EffectivenessMatrix &effectiveness = _control_allocation[i]->getEffectivenessMatrix();
+		const SpacecraftActuatorEffectiveness::EffectivenessMatrix &effectiveness = _control_allocation[i]->getEffectivenessMatrix();
 
 		if (_num_control_allocation > 1) {
 			PX4_INFO("Instance: %i", i);

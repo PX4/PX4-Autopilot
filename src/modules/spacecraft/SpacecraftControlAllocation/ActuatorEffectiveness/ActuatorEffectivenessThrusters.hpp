@@ -41,8 +41,7 @@
 
 #pragma once
 
-#include <control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp>
-
+#include "ActuatorEffectiveness/ActuatorEffectiveness.hpp"
 #include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
@@ -51,7 +50,7 @@ class ActuatorEffectivenessTilts;
 
 using namespace time_literals;
 
-class ActuatorEffectivenessThrusters : public ModuleParams, public ActuatorEffectiveness
+class ActuatorEffectivenessThrusters : public ModuleParams, public SpacecraftActuatorEffectiveness
 {
 public:
 	enum class AxisConfiguration {
@@ -75,12 +74,12 @@ public:
 				       bool tilt_support = false);
 	virtual ~ActuatorEffectivenessThrusters() = default;
 
-	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
+	bool getEffectivenessMatrix(Configuration &configuration, SpacecraftEffectivenessUpdateReason external_update) override;
 
-	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
+	void getDesiredSpacecraftAllocationMethod(SpacecraftAllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
 	{
 		allocation_method_out[0] =
-			AllocationMethod::SEQUENTIAL_DESATURATION;  // TODO(@Jaeyoung-Lim): needs to be updated based on metric mixer
+			SpacecraftAllocationMethod::SEQUENTIAL_DESATURATION;  // TODO(@Jaeyoung-Lim): needs to be updated based on metric mixer
 	}
 
 	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override

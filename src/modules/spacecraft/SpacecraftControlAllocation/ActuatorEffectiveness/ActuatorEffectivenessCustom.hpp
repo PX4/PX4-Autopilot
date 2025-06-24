@@ -33,17 +33,17 @@
 
 #pragma once
 
-#include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
+#include "ActuatorEffectiveness/ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
 #include "ActuatorEffectivenessControlSurfaces.hpp"
 
-class ActuatorEffectivenessCustom : public ModuleParams, public ActuatorEffectiveness
+class ActuatorEffectivenessCustom : public ModuleParams, public SpacecraftActuatorEffectiveness
 {
 public:
 	ActuatorEffectivenessCustom(ModuleParams *parent);
 	virtual ~ActuatorEffectivenessCustom() = default;
 
-	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
+	bool getEffectivenessMatrix(Configuration &configuration, SpacecraftEffectivenessUpdateReason external_update) override;
 
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,

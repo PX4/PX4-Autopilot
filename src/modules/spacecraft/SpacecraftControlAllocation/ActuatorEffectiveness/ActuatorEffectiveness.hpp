@@ -32,11 +32,13 @@
  ****************************************************************************/
 
 /**
- * @file ActuatorEffectiveness.hpp
+ * @file SpacecraftActuatorEffectiveness.hpp
  *
- * Interface for Actuator Effectiveness
+ * Interface for Actuator Effectiveness. Mimicks library ActuatorEffectiveness
+ * but adds Thruster for spacecraft vehicles.
  *
  * @author Julien Lecoeur <julien.lecoeur@gmail.com>
+ * @author Pedro Roque <padr@kth.se>
  */
 
 #pragma once
@@ -46,14 +48,14 @@
 #include <matrix/matrix/math.hpp>
 #include <uORB/topics/control_allocator_status.h>
 
-enum class AllocationMethod {
+enum class SpacecraftAllocationMethod {
 	NONE = -1,
 	PSEUDO_INVERSE = 0,
 	SEQUENTIAL_DESATURATION = 1,
 	AUTO = 2,
 };
 
-enum class ActuatorType {
+enum class SpacecraftActuatorType {
 	MOTORS = 0,
 	SERVOS,
 	THRUSTERS,
@@ -61,18 +63,18 @@ enum class ActuatorType {
 	COUNT
 };
 
-enum class EffectivenessUpdateReason {
+enum class SpacecraftEffectivenessUpdateReason {
 	NO_EXTERNAL_UPDATE = 0,
 	CONFIGURATION_UPDATE = 1,
 	MOTOR_ACTIVATION_UPDATE = 2,
 };
 
 
-class ActuatorEffectiveness
+class SpacecraftActuatorEffectiveness
 {
 public:
-	ActuatorEffectiveness() = default;
-	virtual ~ActuatorEffectiveness() = default;
+	SpacecraftActuatorEffectiveness() = default;
+	virtual ~SpacecraftActuatorEffectiveness() = default;
 
 	static constexpr int NUM_ACTUATORS = 16;
 	static constexpr int NUM_AXES = 6;
@@ -102,12 +104,12 @@ public:
 		/**
 		 * Add an actuator to the selected matrix, returning the index, or -1 on error
 		 */
-		int addActuator(ActuatorType type, const matrix::Vector3f &torque, const matrix::Vector3f &thrust);
+		int addActuator(SpacecraftActuatorType type, const matrix::Vector3f &torque, const matrix::Vector3f &thrust);
 
 		/**
 		 * Call this after manually adding N actuators to the selected matrix
 		 */
-		void actuatorsAdded(ActuatorType type, int count);
+		void actuatorsAdded(SpacecraftActuatorType type, int count);
 
 		int totalNumActuators() const;
 
@@ -122,7 +124,7 @@ public:
 		int selected_matrix;
 
 		uint8_t matrix_selection_indexes[NUM_ACTUATORS * MAX_NUM_MATRICES];
-		int num_actuators[(int)ActuatorType::COUNT];
+		int num_actuators[(int)SpacecraftActuatorType::COUNT];
 	};
 
 	/**
@@ -144,10 +146,10 @@ public:
 	/**
 	 * Get the desired allocation method(s) for each matrix, if configured as AUTO
 	 */
-	virtual void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const
+	virtual void getDesiredSpacecraftAllocationMethod(SpacecraftAllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const
 	{
 		for (int i = 0; i < MAX_NUM_MATRICES; ++i) {
-			allocation_method_out[i] = AllocationMethod::PSEUDO_INVERSE;
+			allocation_method_out[i] = SpacecraftAllocationMethod::PSEUDO_INVERSE;
 		}
 	}
 
@@ -166,7 +168,7 @@ public:
 	 *
 	 * @return true if updated and matrix is set
 	 */
-	virtual bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) { return false;}
+	virtual bool getEffectivenessMatrix(Configuration &configuration, SpacecraftEffectivenessUpdateReason external_update) { return false;}
 
 	/**
 	 * Get the current flight phase

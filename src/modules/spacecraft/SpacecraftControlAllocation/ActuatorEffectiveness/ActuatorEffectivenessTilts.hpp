@@ -33,12 +33,12 @@
 
 #pragma once
 
-#include <control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp>
+#include "ActuatorEffectiveness/ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
 
 #include <px4_platform_common/module_params.h>
 
-class ActuatorEffectivenessTilts : public ModuleParams, public ActuatorEffectiveness
+class ActuatorEffectivenessTilts : public ModuleParams, public SpacecraftActuatorEffectiveness
 {
 public:
 
