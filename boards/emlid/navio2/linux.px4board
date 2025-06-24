@@ -1,0 +1,2 @@
+CONFIG_BOARD_ROOT_PATH="./"
+CONFIG_BOARD_PARAM_FILE="./parameters.bson"
