@@ -253,5 +253,5 @@ void Ekf::resetHorizontalPositionToLastKnown()
 
 	// Used when falling back to non-aiding mode of operation
 	resetHorizontalPositionTo(_last_known_gpos.latitude_deg(), _last_known_gpos.longitude_deg(),
-				  sq(_params.pos_noaid_noise));
+				  sq(_params.ekf2_noaid_noise));
 }

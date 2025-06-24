@@ -2,9 +2,9 @@
 #
 # This is currently used only for logging cell status from MAVLink.
 
-uint64 timestamp # Time since system start [us]
+uint64 timestamp # [us] Time since system start
 
-uint16 status # Status bitmap [@enum STATUS_FLAG]
+uint16 status # [@enum STATUS_FLAG] Status bitmap
 uint16 STATUS_FLAG_UNKNOWN = 1 # State unknown or not reportable
 uint16 STATUS_FLAG_FAILED = 2 # Modem is unusable
 uint16 STATUS_FLAG_INITIALIZING = 4 # Modem is being initialized
@@ -19,20 +19,20 @@ uint16 STATUS_FLAG_DISCONNECTING = 1024 # Modem is disconnecting and deactivatin
 uint16 STATUS_FLAG_CONNECTING = 2048 # Modem is activating and connecting the first packet data bearer. Subsequent bearer activations when another bearer is already active do not cause this state to be entered
 uint16 STATUS_FLAG_CONNECTED = 4096 # One or more packet data bearers is active and connected
 
-uint8 failure_reason # Failure reason [@enum FAILURE_REASON]
+uint8 failure_reason # [@enum FAILURE_REASON] Failure reason
 uint8 FAILURE_REASON_NONE = 0 # No error
 uint8 FAILURE_REASON_UNKNOWN = 1 # Error state is unknown
 uint8 FAILURE_REASON_SIM_MISSING = 2 # SIM is required for the modem but missing
 uint8 FAILURE_REASON_SIM_ERROR = 3 # SIM is available, but not usable for connection
 
-uint8 type # Cellular network radio type [@enum CELLULAR_NETWORK_RADIO_TYPE]
-uint8 CELLULAR_NETWORK_RADIO_TYPE_NONE = 0
-uint8 CELLULAR_NETWORK_RADIO_TYPE_GSM = 1
-uint8 CELLULAR_NETWORK_RADIO_TYPE_CDMA = 2
-uint8 CELLULAR_NETWORK_RADIO_TYPE_WCDMA = 3
-uint8 CELLULAR_NETWORK_RADIO_TYPE_LTE = 4
+uint8 type # [@enum CELLULAR_NETWORK_RADIO_TYPE] Cellular network radio type
+uint8 CELLULAR_NETWORK_RADIO_TYPE_NONE = 0 # None
+uint8 CELLULAR_NETWORK_RADIO_TYPE_GSM = 1 # GSM
+uint8 CELLULAR_NETWORK_RADIO_TYPE_CDMA = 2 # CDMA
+uint8 CELLULAR_NETWORK_RADIO_TYPE_WCDMA = 3 # WCDMA
+uint8 CELLULAR_NETWORK_RADIO_TYPE_LTE = 4 # LTE
 
-uint8 quality # Cellular network RSSI/RSRP, absolute value [dBm]
-uint16 mcc # Mobile country code. [@invalid UINT16_MAX]
-uint16 mnc # Mobile network code. [@invalid UINT16_MAX]
-uint16 lac # Location area code. [@invalid 0]
+uint8 quality # [dBm] Cellular network RSSI/RSRP, absolute value
+uint16 mcc # [@invalid UINT16_MAX] Mobile country code
+uint16 mnc # [@invalid UINT16_MAX] Mobile network code
+uint16 lac # [@invalid 0] Location area code

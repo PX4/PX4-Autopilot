@@ -75,7 +75,7 @@ World with walls that is designed for testing [collision prevention](../computer
 
 ## Moving Platform
 
-<Badge type="tip" text="main (planned for: PX4 v1.16+)" />
+<Badge type="tip" text="PX4 v1.16" />
 
 [Empty world](#default) with the addition of a flat moving platform, to simulate drone operations from moving vehicles like ships or trucks. The platform is controlled by a plugin which is included in the world. The platform is at a height of 2m, so place the vehicle on it with:
 

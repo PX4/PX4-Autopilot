@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2019-2025 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -218,11 +218,10 @@ private:
 	matrix::Vector3f    _v_E_dot{};
 	matrix::Dcmf        _R_N2E;           // local navigation to ECEF frame rotation matrix
 
-	float       _u[NUM_ACTUATORS_MAX] {};         // thruster signals
+	float _u[NUM_ACTUATORS_MAX] {}; // thruster signals
 
-	enum class VehicleType {Multicopter, FixedWing, TailsitterVTOL, StandardVTOL};
-
-	VehicleType _vehicle = VehicleType::Multicopter;
+	enum class VehicleType {Quadcopter, FixedWing, TailsitterVTOL, StandardVTOL, Hexacopter, First = Quadcopter, Last = Hexacopter}; // numbering dependent on parameter SIH_VEHICLE_TYPE
+	VehicleType _vehicle = VehicleType::Quadcopter;
 
 	// aerodynamic segments for the fixedwing
 	AeroSeg _wing_l = AeroSeg(SPAN / 2.0f, MAC, -4.0f, matrix::Vector3f(0.0f, -SPAN / 4.0f, 0.0f), 3.0f,

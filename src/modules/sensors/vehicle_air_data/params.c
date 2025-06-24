@@ -53,3 +53,15 @@ PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
  * @unit Hz
  */
 PARAM_DEFINE_FLOAT(SENS_BARO_RATE, 20.0f);
+
+/**
+ * Barometer auto calibration
+ *
+ * Automatically calibrate barometer based on the GNSS height
+ *
+ * @boolean
+ *
+ * @category system
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(SENS_BAR_AUTOCAL, 0);

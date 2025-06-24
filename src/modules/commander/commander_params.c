@@ -127,6 +127,7 @@ PARAM_DEFINE_INT32(COM_HLDL_REG_T, 0);
  *
  * The time in seconds without a new setpoint from RC or Joystick, after which the connection is considered lost.
  * This must be kept short as the vehicle will use the last supplied setpoint until the timeout triggers.
+ * Ensure the value is not set lower than the update interval of the RC or Joystick.
  *
  * @group Commander
  * @unit s
@@ -141,6 +142,10 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  * Home position enabled
  *
  * Set home position automatically if possible.
+ *
+ * During missions, the latitude/longitude of the home position is locked and will not reset during intermediate landings.
+ * It will only update once the mission is complete or landed outside of a mission.
+ * However, the altitude is still being adjusted to correct for GNSS vertical drift in the first 2 minutes after takeoff.
  *
  * @group Commander
  * @reboot_required true
@@ -513,12 +518,13 @@ PARAM_DEFINE_INT32(COM_ARM_AUTH_MET, 0);
 PARAM_DEFINE_FLOAT(COM_ARM_AUTH_TO, 1);
 
 /**
- * Horizontal position error threshold.
+ * Horizontal position error threshold for hovering systems
  *
  * This is the horizontal position error (EPH) threshold that will trigger a failsafe.
- * The default is appropriate for a multicopter. Can be increased for a fixed-wing.
  * If the previous position error was below this threshold, there is an additional
  * factor of 2.5 applied (threshold for invalidation 2.5 times the one for validation).
+ * Only used for multicopters and VTOLs in hover mode.
+ * Independent from estimator positioning data timeout threshold (see EKF2_NOAID_TOUT).
  *
  * Set to -1 to disable.
  *

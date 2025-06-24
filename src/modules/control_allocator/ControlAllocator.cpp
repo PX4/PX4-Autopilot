@@ -95,11 +95,6 @@ ControlAllocator::init()
 		return false;
 	}
 
-	if (!_vehicle_thrust_setpoint_sub.registerCallback()) {
-		PX4_ERR("callback registration failed");
-		return false;
-	}
-
 #ifndef ENABLE_LOCKSTEP_SCHEDULER // Backup schedule would interfere with lockstep
 	ScheduleDelayed(50_ms);
 #endif
@@ -309,7 +304,6 @@ ControlAllocator::Run()
 {
 	if (should_exit()) {
 		_vehicle_torque_setpoint_sub.unregisterCallback();
-		_vehicle_thrust_setpoint_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -396,15 +390,8 @@ ControlAllocator::Run()
 
 	}
 
-	// Also run allocator on thrust setpoint changes if the torque setpoint
-	// has not been updated for more than 5ms
 	if (_vehicle_thrust_setpoint_sub.update(&vehicle_thrust_setpoint)) {
 		_thrust_sp = matrix::Vector3f(vehicle_thrust_setpoint.xyz);
-
-		if (dt > 0.005f) {
-			do_update = true;
-			_timestamp_sample = vehicle_thrust_setpoint.timestamp_sample;
-		}
 	}
 
 	if (do_update) {

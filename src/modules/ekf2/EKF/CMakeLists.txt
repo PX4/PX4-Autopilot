@@ -90,8 +90,8 @@ endif()
 
 if(CONFIG_EKF2_GNSS)
 	list(APPEND EKF_SRCS
+		aid_sources/gnss/gnss_checks.cpp
 		aid_sources/gnss/gnss_height_control.cpp
-		aid_sources/gnss/gps_checks.cpp
 		aid_sources/gnss/gps_control.cpp
 	)
 
