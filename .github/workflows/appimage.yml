@@ -11,8 +11,15 @@ permissions:
 
 jobs:
   build-appimage:
-    name: "Create px4_sitl AppImage"
-    runs-on: ubuntu-22.04
+    name: "AppImage ${{ matrix.arch }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        - arch: amd64
+          runs-on: ubuntu-22.04
+        - arch: arm64
+          runs-on: ubuntu-22.04-arm64
+    runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,5 +39,5 @@ jobs:
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: px4-sitl-appimage
+          name: px4-sitl-appimage-${{ matrix.arch }}
           path: build/*.AppImage
