@@ -58,7 +58,7 @@ void DifferentialManualMode::manual()
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 	rover_steering_setpoint_s rover_steering_setpoint{};
 	rover_steering_setpoint.timestamp = hrt_absolute_time();
-	rover_steering_setpoint.normalized_speed_diff = manual_control_setpoint.roll;
+	rover_steering_setpoint.normalized_steering_setpoint = manual_control_setpoint.roll;
 	_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
 	rover_throttle_setpoint_s rover_throttle_setpoint{};
 	rover_throttle_setpoint.timestamp = hrt_absolute_time();

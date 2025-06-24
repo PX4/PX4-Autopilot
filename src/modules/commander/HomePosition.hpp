@@ -40,6 +40,11 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/failsafe_flags.h>
+#include <uORB/topics/vehicle_air_data.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <px4_platform_common/module_params.h>
+
+using namespace time_literals;
 
 static constexpr int kHomePositionGPSRequiredFixType = 2;
 static constexpr float kHomePositionGPSRequiredEPH = 5.f;
@@ -47,8 +52,11 @@ static constexpr float kHomePositionGPSRequiredEPV = 10.f;
 static constexpr float kHomePositionGPSRequiredEVH = 1.f;
 static constexpr float kMinHomePositionChangeEPH = 1.f;
 static constexpr float kMinHomePositionChangeEPV = 1.5f;
+static constexpr float kLpfBaroTimeConst = 5.f;
+static constexpr float kAltitudeDifferenceThreshold = 1.f; // altitude difference after which home position gets updated
+static constexpr uint64_t kHomePositionCorrectionTimeWindow = 120_s;
 
-class HomePosition
+class HomePosition: public ModuleParams
 {
 public:
 	HomePosition(const failsafe_flags_s &failsafe_flags);
@@ -57,6 +65,7 @@ public:
 	bool setHomePosition(bool force = false);
 	void setInAirHomePosition();
 	bool setManually(double lat, double lon, float alt, float yaw);
+	void setTakeoffTime(uint64_t takeoff_time) { _takeoff_time = takeoff_time; }
 
 	void update(bool set_automatically, bool check_if_changed);
 
@@ -76,6 +85,15 @@ private:
 
 	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
+
+	uint64_t _last_gps_timestamp{0};
+	uint64_t _last_baro_timestamp{0};
+	AlphaFilter<float> _lpf_baro{kLpfBaroTimeConst};
+	float _gps_vel_integral{NAN};
+	float _home_altitude_offset_applied{0.f};
+	float _baro_gps_static_offset{0.f};
+	uint64_t _takeoff_time{0};
 
 	uORB::PublicationData<home_position_s>			_home_position_pub{ORB_ID(home_position)};
 
@@ -88,4 +106,8 @@ private:
 	double							_gps_alt{0};
 	float							_gps_eph{0.f};
 	float							_gps_epv{0.f};
+
+	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::COM_HOME_EN>) _param_com_home_en
+	)
 };

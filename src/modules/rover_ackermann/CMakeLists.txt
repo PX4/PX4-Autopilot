@@ -36,7 +36,7 @@ add_subdirectory(AckermannRateControl)
 add_subdirectory(AckermannAttControl)
 add_subdirectory(AckermannVelControl)
 add_subdirectory(AckermannPosControl)
-add_subdirectory(DriveModes)
+add_subdirectory(AckermannDriveModes)
 
 px4_add_module(
 	MODULE modules__rover_ackermann
@@ -50,9 +50,9 @@ px4_add_module(
 		AckermannAttControl
 		AckermannVelControl
 		AckermannPosControl
-		AutoMode
-		ManualMode
-		OffboardMode
+		AckermannAutoMode
+		AckermannManualMode
+		AckermannOffboardMode
 		px4_work_queue
 		rover_control
 		pure_pursuit

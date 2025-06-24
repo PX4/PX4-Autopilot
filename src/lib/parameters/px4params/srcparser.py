@@ -184,7 +184,6 @@ class SourceParser(object):
     re_cut_type_specifier = re.compile(r'[a-z]+$')
     re_is_a_number = re.compile(r'^-?[0-9\.]')
     re_remove_dots = re.compile(r'\.+$')
-    re_remove_carriage_return = re.compile('\n+')
 
     valid_tags = set(["group", "board", "min", "max", "unit", "decimal", "increment", "reboot_required", "value", "boolean", "bit", "category", "volatile"])
 
@@ -311,7 +310,6 @@ class SourceParser(object):
                                 raise Exception('short description too long (150 max, is {:}, parameter: {:})'.format(len(short_desc), name))
                             param.SetField("short_desc", self.re_remove_dots.sub('', short_desc))
                         if long_desc is not None:
-                            long_desc = self.re_remove_carriage_return.sub(' ', long_desc)
                             param.SetField("long_desc", long_desc)
                         for tag in tags:
                             if tag == "group":

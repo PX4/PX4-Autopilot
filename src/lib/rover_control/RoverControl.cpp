@@ -161,7 +161,8 @@ float speedControl(SlewRate<float> &speed_with_rate_limit, PID &pid_speed, const
 }
 
 float rateControl(SlewRate<float> &adjusted_yaw_rate_setpoint, PID &pid_yaw_rate, const float yaw_rate_setpoint,
-		  const float vehicle_yaw_rate, const float max_thr_yaw_r, const float max_yaw_accel, const float max_yaw_decel,
+		  const float vehicle_yaw_rate, const float max_thr_speed, const float yaw_rate_corr, const float max_yaw_accel,
+		  const float max_yaw_decel,
 		  const float wheel_track, const float dt)
 {
 	// Apply acceleration and deceleration limit
@@ -194,11 +195,11 @@ float rateControl(SlewRate<float> &adjusted_yaw_rate_setpoint, PID &pid_yaw_rate
 	// Transform yaw rate into speed difference
 	float speed_diff_normalized{0.f};
 
-	if (wheel_track > FLT_EPSILON && max_thr_yaw_r > FLT_EPSILON) { // Feedforward
-		const float speed_diff = adjusted_yaw_rate_setpoint.getState() * wheel_track /
-					 2.f;
-		speed_diff_normalized = math::interpolate<float>(speed_diff, -max_thr_yaw_r,
-					max_thr_yaw_r, -1.f, 1.f);
+	if (wheel_track > FLT_EPSILON && max_thr_speed > FLT_EPSILON) { // Feedforward
+		const float speed_diff = (adjusted_yaw_rate_setpoint.getState() * wheel_track /
+					  2.f) * yaw_rate_corr;
+		speed_diff_normalized = math::interpolate<float>(speed_diff, -max_thr_speed,
+					max_thr_speed, -1.f, 1.f);
 	}
 
 	// Feedback control

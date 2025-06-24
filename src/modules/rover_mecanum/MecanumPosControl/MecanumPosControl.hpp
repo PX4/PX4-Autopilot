@@ -113,7 +113,6 @@ private:
 	MapProjection _global_ned_proj_ref{}; // Transform global to NED coordinates
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RM_MISS_SPD_GAIN>) _param_rm_miss_spd_gain,
 		(ParamFloat<px4::params::RM_COURSE_CTL_TH>) _param_rm_course_ctl_th,
 		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
 		(ParamFloat<px4::params::RO_SPEED_P>) 	    _param_ro_speed_p,
@@ -130,6 +129,5 @@ private:
 		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
 		(ParamFloat<px4::params::RO_YAW_P>)  	    _param_ro_yaw_p,
 		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad
-
 	)
 };

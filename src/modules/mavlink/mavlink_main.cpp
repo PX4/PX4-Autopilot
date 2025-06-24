@@ -2236,6 +2236,7 @@ Mavlink::task_main(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
+	pthread_mutex_init(&_mavlink_shell_mutex, nullptr);
 	pthread_mutex_init(&_message_buffer_mutex, nullptr);
 	pthread_mutex_init(&_send_mutex, nullptr);
 	pthread_mutex_init(&_radio_status_mutex, nullptr);
@@ -2374,21 +2375,7 @@ Mavlink::task_main(int argc, char *argv[])
 		handleStatus();
 		handleCommands();
 		handleAndGetCurrentCommandAck();
-
-		/* check for shell output */
-		if (_mavlink_shell && _mavlink_shell->available() > 0) {
-			if (get_free_tx_buf() >= MAVLINK_MSG_ID_SERIAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
-				mavlink_serial_control_t msg;
-				msg.baudrate = 0;
-				msg.flags = SERIAL_CONTROL_FLAG_REPLY;
-				msg.timeout = 0;
-				msg.device = SERIAL_CONTROL_DEV_SHELL;
-				msg.count = _mavlink_shell->read(msg.data, sizeof(msg.data));
-				msg.target_system = _mavlink_shell->targetSysid();
-				msg.target_component = _mavlink_shell->targetCompid();
-				mavlink_msg_serial_control_send_struct(get_channel(), &msg);
-			}
-		}
+		handleMavlinkShellOutput();
 
 		check_requested_subscriptions();
 
@@ -2521,6 +2508,7 @@ Mavlink::task_main(int argc, char *argv[])
 		_mavlink_ulog = nullptr;
 	}
 
+	pthread_mutex_destroy(&_mavlink_shell_mutex);
 	pthread_mutex_destroy(&_send_mutex);
 	pthread_mutex_destroy(&_radio_status_mutex);
 	pthread_mutex_destroy(&_message_buffer_mutex);
@@ -2559,6 +2547,34 @@ void Mavlink::handleStatus()
 							     "Enabling transmitting with IRIDIUM mavlink on instance {1}", _instance_id);
 				}
 			}
+		}
+	}
+}
+
+void Mavlink::handleMavlinkShellOutput()
+{
+	if (_mavlink_shell) { // First do a fast check before taking the lock
+		mavlink_serial_control_t msg;
+		msg.count = 0;
+		{
+			const LockGuard lg{_mavlink_shell_mutex};
+
+			if (_mavlink_shell && _mavlink_shell->available() > 0) {
+				if (get_free_tx_buf() >= MAVLINK_MSG_ID_SERIAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
+					msg.baudrate = 0;
+					msg.flags = SERIAL_CONTROL_FLAG_REPLY;
+					msg.timeout = 0;
+					msg.device = SERIAL_CONTROL_DEV_SHELL;
+					msg.count = _mavlink_shell->read(msg.data, sizeof(msg.data));
+					msg.target_system = _mavlink_shell->targetSysid();
+					msg.target_component = _mavlink_shell->targetCompid();
+				}
+			}
+		}
+
+		// Send message without lock
+		if (msg.count > 0) {
+			mavlink_msg_serial_control_send_struct(get_channel(), &msg);
 		}
 	}
 }

@@ -216,12 +216,33 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 		if(CONFIG_SYSTEMCMDS_BL_UPDATE)
 			# generate rc.board_bootloader_upgrade
 			set(BOARD_FIRMWARE_BIN "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
-			configure_file(${PX4_SOURCE_DIR}/platforms/nuttx/init/rc.board_bootloader_upgrade.in ${romfs_gen_root_dir}/init.d/rc.board_bootloader_upgrade @ONLY)
+			message(STATUS "ROMFS:  Adding platforms/nuttx/init/rc.board_bootloader_upgrade -> /etc/init.d/rc.board_bootloader_upgrade")
+
+			# Generate the file using configure_file at configure time to a temporary location
+			set(bootloader_upgrade_tmp ${CMAKE_CURRENT_BINARY_DIR}/rc.board_bootloader_upgrade.tmp)
+			configure_file(${PX4_SOURCE_DIR}/platforms/nuttx/init/rc.board_bootloader_upgrade.in ${bootloader_upgrade_tmp} @ONLY)
+
+			# Then copy it at build time with proper dependencies
+			add_custom_command(
+				OUTPUT
+					${romfs_gen_root_dir}/init.d/rc.board_bootloader_upgrade
+					rc.board_bootloader_upgrade.stamp
+				COMMAND ${CMAKE_COMMAND} -E copy_if_different ${bootloader_upgrade_tmp} ${romfs_gen_root_dir}/init.d/rc.board_bootloader_upgrade
+				COMMAND ${CMAKE_COMMAND} -E touch rc.board_bootloader_upgrade.stamp
+				DEPENDS
+					${bootloader_upgrade_tmp}
+					${PX4_SOURCE_DIR}/platforms/nuttx/init/rc.board_bootloader_upgrade.in
+					romfs_copy.stamp
+				COMMENT "ROMFS: copying rc.board_bootloader_upgrade"
+			)
+
+			list(APPEND extras_dependencies
+				rc.board_bootloader_upgrade.stamp
+			)
 		else()
 			# remove bootloader from extras
 			list(REMOVE_ITEM OPTIONAL_BOARD_EXTRAS ${board_extra_file})
 		endif()
-
 	endif()
 endforeach()
 

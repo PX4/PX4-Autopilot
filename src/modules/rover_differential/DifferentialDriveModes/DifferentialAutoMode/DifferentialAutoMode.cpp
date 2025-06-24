@@ -85,7 +85,7 @@ void DifferentialAutoMode::autoControl()
 		rover_position_setpoint.start_ned[0] = prev_wp_ned(0);
 		rover_position_setpoint.start_ned[1] = prev_wp_ned(1);
 		rover_position_setpoint.arrival_speed = arrivalSpeed(cruising_speed, waypoint_transition_angle,
-							_param_ro_speed_limit.get(), _param_rd_trans_drv_trn.get(), _param_rd_miss_spd_gain.get(), curr_wp_type);
+							_param_ro_speed_limit.get(), _param_rd_trans_drv_trn.get(), _param_ro_speed_red.get(), curr_wp_type);
 		rover_position_setpoint.cruising_speed = cruising_speed;
 		rover_position_setpoint.yaw = NAN;
 		_rover_position_setpoint_pub.publish(rover_position_setpoint);
@@ -93,7 +93,7 @@ void DifferentialAutoMode::autoControl()
 }
 
 float DifferentialAutoMode::arrivalSpeed(const float cruising_speed, const float waypoint_transition_angle,
-		const float max_speed, const float trans_drv_trn, const float miss_spd_gain, int curr_wp_type)
+		const float max_speed, const float trans_drv_trn, const float speed_red, int curr_wp_type)
 {
 	// Upcoming stop
 	if (!PX4_ISFINITE(waypoint_transition_angle) || waypoint_transition_angle < M_PI_F - trans_drv_trn
@@ -102,8 +102,8 @@ float DifferentialAutoMode::arrivalSpeed(const float cruising_speed, const float
 	}
 
 	// Straight line speed
-	if (miss_spd_gain > FLT_EPSILON) {
-		const float speed_reduction = math::constrain(miss_spd_gain * math::interpolate(M_PI_F - waypoint_transition_angle,
+	if (speed_red > FLT_EPSILON) {
+		const float speed_reduction = math::constrain(speed_red * math::interpolate(M_PI_F - waypoint_transition_angle,
 					      0.f, M_PI_F, 0.f, 1.f), 0.f, 1.f);
 		return max_speed * (1.f - speed_reduction);
 	}

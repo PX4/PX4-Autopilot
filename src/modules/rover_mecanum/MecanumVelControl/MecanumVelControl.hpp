@@ -141,6 +141,5 @@ private:
 		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_limit,
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
 		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th
-
 	)
 };

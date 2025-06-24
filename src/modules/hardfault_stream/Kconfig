@@ -1,0 +1,6 @@
+menuconfig MODULES_HARDFAULT_STREAM
+	bool "hardfault_stream"
+	default n
+	depends on PLATFORM_NUTTX
+	---help---
+		Enable support for hardfault_stream

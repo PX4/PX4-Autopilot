@@ -2110,6 +2110,7 @@ void Commander::landDetectorUpdate()
 				events::send(events::ID("commander_takeoff_detected"), events::Log::Info, "Takeoff detected");
 				_vehicle_status.takeoff_time = hrt_absolute_time();
 				_have_taken_off_since_arming = true;
+				_home_position.setTakeoffTime(_vehicle_status.takeoff_time);
 			}
 
 			// automatically set or update home position

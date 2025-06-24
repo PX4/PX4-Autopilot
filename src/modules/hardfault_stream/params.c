@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,55 +31,14 @@
  *
  ****************************************************************************/
 
-#pragma once
-
-// PX4 includes
-#include <px4_platform_common/module_params.h>
-
-// Libraries
-#include <math.h>
-#include <matrix/matrix/math.hpp>
-
-// uORB includes
-#include <uORB/Subscription.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/rover_velocity_setpoint.h>
-#include <uORB/topics/rover_position_setpoint.h>
-#include <uORB/topics/offboard_control_mode.h>
-#include <uORB/topics/trajectory_setpoint.h>
-
-using namespace matrix;
-
 /**
- * @brief Class for ackermann manual mode.
+ * Enable FMU SD card hardfault streaming
+ *
+ * When this is enabled all the hardfaults on the SD card are streamed
+ * over MAVLink. This is useful for cases where the FMU does reset in-flight due
+ * to a hardfault and the SD card may not survive a crash.
+ *
+ * @group System
+ * @boolean
  */
-class OffboardMode : public ModuleParams
-{
-public:
-	/**
-	 * @brief Constructor for OffboardMode.
-	 * @param parent The parent ModuleParams object.
-	 */
-	OffboardMode(ModuleParams *parent);
-	~OffboardMode() = default;
-
-	/**
-	 * @brief Generate and publish roverSetpoints from trajectorySetpoint.
-	 */
-	void offboardControl();
-
-protected:
-	/**
-	 * @brief Update the parameters of the module.
-	 */
-	void updateParams() override;
-
-private:
-	// uORB subscriptions
-	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
-	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
-
-	// uORB publications
-	uORB::Publication<rover_velocity_setpoint_s> _rover_velocity_setpoint_pub{ORB_ID(rover_velocity_setpoint)};
-	uORB::Publication<rover_position_setpoint_s> _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
-};
+PARAM_DEFINE_INT32(SYS_HF_MAV, 1);

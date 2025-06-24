@@ -281,6 +281,14 @@ else
 	send_event start
 
 	#
+	# Start the hardfault streamer.
+	#
+	if param compare -s SYS_HF_MAV 1
+	then
+		hardfault_stream start
+	fi
+
+	#
 	# Start the resource load monitor.
 	#
 	load_mon start

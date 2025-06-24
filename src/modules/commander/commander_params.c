@@ -127,6 +127,7 @@ PARAM_DEFINE_INT32(COM_HLDL_REG_T, 0);
  *
  * The time in seconds without a new setpoint from RC or Joystick, after which the connection is considered lost.
  * This must be kept short as the vehicle will use the last supplied setpoint until the timeout triggers.
+ * Ensure the value is not set lower than the update interval of the RC or Joystick.
  *
  * @group Commander
  * @unit s
@@ -142,8 +143,9 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  *
  * Set home position automatically if possible.
  *
- * During missions, the home position is locked and will not reset during intermediate landings.
+ * During missions, the latitude/longitude of the home position is locked and will not reset during intermediate landings.
  * It will only update once the mission is complete or landed outside of a mission.
+ * However, the altitude is still being adjusted to correct for GNSS vertical drift in the first 2 minutes after takeoff.
  *
  * @group Commander
  * @reboot_required true

@@ -31,8 +31,8 @@
 #
 ############################################################################
 
-px4_add_library(OffboardMode
-	OffboardMode.cpp
+px4_add_library(AckermannManualMode
+	AckermannManualMode.cpp
 )
 
-target_include_directories(OffboardMode PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(AckermannManualMode PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

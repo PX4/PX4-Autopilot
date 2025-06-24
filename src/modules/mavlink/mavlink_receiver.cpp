@@ -62,6 +62,7 @@
 #include "mavlink_receiver.h"
 
 #include <lib/drivers/device/Device.hpp> // For DeviceId union
+#include <containers/LockGuard.hpp>
 
 #ifdef CONFIG_NET
 #define MAVLINK_RECEIVER_NET_ADDED_STACK 1360
@@ -1846,6 +1847,7 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 		return;
 	}
 
+	const LockGuard lg{_mavlink.get_shell_mutex()};
 	MavlinkShell *shell = _mavlink.get_shell();
 
 	if (shell) {
@@ -2548,7 +2550,7 @@ MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 	t.lon = adsb.lon * 1e-7;
 	t.altitude_type = adsb.altitude_type;
 	t.altitude = adsb.altitude / 1000.0f;
-	t.heading = adsb.heading / 100.0f / 180.0f * M_PI_F - M_PI_F;
+	t.heading = adsb.heading / 100.0f / 180.0f * M_PI_F;
 	t.hor_velocity = adsb.hor_velocity / 100.0f;
 	t.ver_velocity = adsb.ver_velocity / 100.0f;
 	memcpy(&t.callsign[0], &adsb.callsign[0], sizeof(t.callsign));
