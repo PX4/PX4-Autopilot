@@ -47,7 +47,7 @@ Note that `aptitude` is needed because it can resolve dependency conflicts (by r
 :::tip
 You could also modify the installation script to install Gazebo Classic on Ubuntu 22.04 before it is run for the first time.
 
-Additional installation instructions can be found on gazebosim.org.
+Additional installation instructions can be found on [gazebosim.org](http://gazebosim.org/tutorials?cat=guided_b&tut=guided_b1).
 :::
 
 ## Running the Simulation
