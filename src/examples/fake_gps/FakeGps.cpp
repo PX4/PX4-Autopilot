@@ -80,10 +80,10 @@ void FakeGps::Run()
 	sensor_gps.timestamp_time_relative = 0;
 	sensor_gps.heading = NAN;
 	sensor_gps.heading_offset = 0.0000;
-	sensor_gps.quality_corrections = UINT8_MAX;
-	sensor_gps.quality_receiver = UINT8_MAX;
-	sensor_gps.quality_gnss_signals = UINT8_MAX;
-	sensor_gps.quality_post_processing = UINT8_MAX;
+	sensor_gps.quality_corrections = 9;
+	sensor_gps.quality_receiver = 10;
+	sensor_gps.quality_gnss_signals = 8;
+	sensor_gps.quality_post_processing = 7;
 	sensor_gps.fix_type = 4;
 	sensor_gps.jamming_state = 0;
 	sensor_gps.spoofing_state = 0;

@@ -46,7 +46,6 @@
 #endif
 
 #include <cstring>
-#include <cstdint>
 
 #include <drivers/drv_sensor.h>
 #include <lib/drivers/device/Device.hpp>
@@ -317,10 +316,6 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 
 	_report_gps_pos.heading = NAN;
 	_report_gps_pos.heading_offset = NAN;
-	_report_gps_pos.quality_corrections = UINT8_MAX;
-	_report_gps_pos.quality_receiver = UINT8_MAX;
-	_report_gps_pos.quality_gnss_signals = UINT8_MAX;
-	_report_gps_pos.quality_post_processing = UINT8_MAX;
 
 	int32_t enable_sat_info = 0;
 	param_get(param_find("GPS_SAT_INFO"), &enable_sat_info);
@@ -922,10 +917,6 @@ GPS::run()
 			memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
 			_report_gps_pos.heading = NAN;
 			_report_gps_pos.heading_offset = heading_offset;
-			_report_gps_pos.quality_corrections = UINT8_MAX;
-			_report_gps_pos.quality_receiver = UINT8_MAX;
-			_report_gps_pos.quality_gnss_signals = UINT8_MAX;
-			_report_gps_pos.quality_post_processing = UINT8_MAX;
 
 			if (_mode == gps_driver_mode_t::UBX) {
 
@@ -1213,15 +1204,11 @@ GPS::publish()
 		// Heading/yaw data can be updated at a lower rate than the other navigation data.
 		// The uORB message definition requires this data to be set to a NAN if no new valid data is available.
 		_report_gps_pos.heading = NAN;
-		_report_gps_pos.quality_corrections = UINT8_MAX;
-		_report_gps_pos.quality_receiver = UINT8_MAX;
-		_report_gps_pos.quality_gnss_signals = UINT8_MAX;
-		_report_gps_pos.quality_post_processing = UINT8_MAX;
 		_is_gps_main_advertised.store(true);
 
 		if (_report_gps_pos.spoofing_state != _spoofing_state) {
 
-			if (_report_gps_pos.spoofing_state > sensor_gps_s::SPOOFING_STATE_NONE) {
+			if (_report_gps_pos.spoofing_state > sensor_gps_s::SPOOFING_STATE_OK) {
 				PX4_WARN("GPS spoofing detected! (state: %d)", _report_gps_pos.spoofing_state);
 			}
 
@@ -1230,7 +1217,7 @@ GPS::publish()
 
 		if (_report_gps_pos.jamming_state != _jamming_state) {
 
-			if (_report_gps_pos.jamming_state > sensor_gps_s::JAMMING_STATE_WARNING) {
+			if (_report_gps_pos.jamming_state > sensor_gps_s::JAMMING_STATE_OK) {
 				PX4_WARN("GPS jamming detected! (state: %d) (indicator: %d)", _report_gps_pos.jamming_state,
 					 (uint8_t)_report_gps_pos.jamming_indicator);
 			}

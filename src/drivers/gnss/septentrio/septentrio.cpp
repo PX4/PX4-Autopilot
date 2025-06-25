@@ -1251,7 +1251,7 @@ int SeptentrioDriver::process_message()
 						_message_gps_state.quality_post_processing = quality_ind.indicators[i].value;
 						break;
 					case Type::GNSSSignalsMainAntenna:
-						_message_gps_state.quality_gnss_signals += quality_ind.indicators[i].value;
+						_message_gps_state.quality_gnss_signals = quality_ind.indicators[i].value;
 						break;
 					default:
 						break;
@@ -1270,27 +1270,23 @@ int SeptentrioDriver::process_message()
 
 			if (_sbf_decoder.parse(&rf_status) == PX4_OK) {
 				_message_gps_state.jamming_state = sensor_gps_s::JAMMING_STATE_OK;
+				_message_gps_state.spoofing_state = sensor_gps_s::SPOOFING_STATE_OK;
+
 				for (int i = 0; i < math::min(rf_status.n, static_cast<uint8_t>(sizeof(rf_status.rf_band) / sizeof(rf_status.rf_band[0]))); i++) {
-					switch (rf_status.rf_band[i].info_mode) {
-					case InfoMode::Interference:
-						_message_gps_state.jamming_state = sensor_gps_s::JAMMING_STATE_CRITICAL;
-						break;
-					case InfoMode::Suppressed:
-					case InfoMode::Mitigated:
-						// Don't report mitigated when there is unmitigated interference in one band.
-						if (_message_gps_state.spoofing_state != sensor_gps_s::JAMMING_STATE_CRITICAL) {
-							_message_gps_state.jamming_state = sensor_gps_s::JAMMING_STATE_MITIGATED;
-						}
-						break;
-					default:
-						break;
+					InfoMode status = rf_status.rf_band[i].info_mode;
+
+					if(status == InfoMode::Interference){
+						_message_gps_state.jamming_state = sensor_gps_s::JAMMING_STATE_DETECTED;
+						break; // Worst case, we don't need to check the other bands
+					}
+
+					if(status == InfoMode::Suppressed || status == InfoMode::Mitigated){
+						_message_gps_state.jamming_state = sensor_gps_s::JAMMING_STATE_MITIGATED;
 					}
 				}
+
 				if (rf_status.flags_inauthentic_gnss_signals || rf_status.flags_inauthentic_navigation_message) {
-					_message_gps_state.spoofing_state = sensor_gps_s::SPOOFING_STATE_INDICATED;
-				}
-				else {
-					_message_gps_state.spoofing_state = sensor_gps_s::SPOOFING_STATE_NONE;
+					_message_gps_state.spoofing_state = sensor_gps_s::SPOOFING_STATE_DETECTED;
 				}
 			}
 
@@ -1315,7 +1311,7 @@ int SeptentrioDriver::process_message()
 				case OSNMAStatus::InitFailedInconsistentTime:
 				case OSNMAStatus::InitFailedKROOTInvalid:
 				case OSNMAStatus::InitFailedInvalidParam:
-					_message_gps_state.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_FAILED;
+					_message_gps_state.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_ERROR;
 					break;
 				case OSNMAStatus::Authenticating:
 					_message_gps_state.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_OK;
@@ -1654,7 +1650,7 @@ void SeptentrioDriver::publish()
 
 	if (_message_gps_state.spoofing_state != _spoofing_state) {
 
-		if (_message_gps_state.spoofing_state > sensor_gps_s::SPOOFING_STATE_NONE) {
+		if (_message_gps_state.spoofing_state > sensor_gps_s::SPOOFING_STATE_OK) {
 			SEP_WARN("GPS spoofing detected! (state: %d)", _message_gps_state.spoofing_state);
 		}
 
@@ -1663,7 +1659,7 @@ void SeptentrioDriver::publish()
 
 	if (_message_gps_state.jamming_state != _jamming_state) {
 
-		if (_message_gps_state.jamming_state > sensor_gps_s::JAMMING_STATE_WARNING) {
+		if (_message_gps_state.jamming_state > sensor_gps_s::JAMMING_STATE_OK) {
 			SEP_WARN("GPS jamming detected! (state: %d) (indicator: %d)", _message_gps_state.jamming_state,
 					(uint8_t)_message_gps_state.jamming_indicator);
 		}

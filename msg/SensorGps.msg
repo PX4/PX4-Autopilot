@@ -32,23 +32,21 @@ uint16 automatic_gain_control   # Automatic gain control monitor
 
 uint8 JAMMING_STATE_UNKNOWN   = 0 #default
 uint8 JAMMING_STATE_OK        = 1
-uint8 JAMMING_STATE_WARNING   = 2
-uint8 JAMMING_STATE_CRITICAL  = 3
-uint8 JAMMING_STATE_MITIGATED = 4
-uint8 jamming_state		# indicates whether jamming has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Warning, 3: Critical
-int32 jamming_indicator		# indicates jamming is occurring
+uint8 JAMMING_STATE_MITIGATED = 2
+uint8 JAMMING_STATE_DETECTED  = 3
+uint8 jamming_state	      # indicates whether jamming has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Mitigated, 3: Detected
+int32 jamming_indicator	      # indicates jamming is occurring
 
 uint8 SPOOFING_STATE_UNKNOWN   = 0 #default
-uint8 SPOOFING_STATE_NONE      = 1
-uint8 SPOOFING_STATE_INDICATED = 2
-uint8 SPOOFING_STATE_MULTIPLE  = 3
-uint8 SPOOFING_STATE_MITIGATED = 4
-uint8 spoofing_state		# indicates whether spoofing has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Warning, 3: Critical
+uint8 SPOOFING_STATE_OK      = 1
+uint8 SPOOFING_STATE_MITIGATED = 2
+uint8 SPOOFING_STATE_DETECTED  = 3
+uint8 spoofing_state	       # indicates whether spoofing has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Mitigated, 3: Detected
 
 # Combined authentication state (e.g. Galileo OSNMA)
 uint8 AUTHENTICATION_STATE_UNKNOWN      = 0 #default
 uint8 AUTHENTICATION_STATE_INITIALIZING = 1
-uint8 AUTHENTICATION_STATE_FAILED       = 2
+uint8 AUTHENTICATION_STATE_ERROR        = 2
 uint8 AUTHENTICATION_STATE_OK           = 3
 uint8 AUTHENTICATION_STATE_DISABLED     = 4
 uint8 authentication_state      # GPS signal authentication state

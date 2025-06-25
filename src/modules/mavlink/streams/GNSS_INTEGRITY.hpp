@@ -69,102 +69,14 @@ private:
 
 		if (_sensor_gps_sub.update(&gps)) {
 			msg.id = gps.device_id;
-
-			if (gps.system_error & sensor_gps_s::SYSTEM_ERROR_ANTENNA) {
-				msg.system_errors |= 8;
-			}
-
-			if (gps.system_error & sensor_gps_s::SYSTEM_ERROR_SOFTWARE) {
-				msg.system_errors |= 4;
-			}
-
-			if (gps.system_error & sensor_gps_s::SYSTEM_ERROR_CPU_OVERLOAD) {
-				msg.system_errors |= 32;
-			}
-
-			if (gps.system_error & sensor_gps_s::SYSTEM_ERROR_CONFIGURATION) {
-				msg.system_errors |= 2;
-			}
-
-			if (gps.system_error & sensor_gps_s::SYSTEM_ERROR_EVENT_CONGESTION) {
-				msg.system_errors |= 16;
-			}
-
-			if (gps.system_error & sensor_gps_s::SYSTEM_ERROR_OUTPUT_CONGESTION) {
-				msg.system_errors |= 64;
-			}
-
-			if (gps.system_error & sensor_gps_s::SYSTEM_ERROR_INCOMING_CORRECTIONS) {
-				msg.system_errors |= 1;
-			}
-
-			switch (gps.authentication_state) {
-			case sensor_gps_s::AUTHENTICATION_STATE_UNKNOWN:
-				msg.authentication_state = 0;
-				break;
-
-			case sensor_gps_s::AUTHENTICATION_STATE_DISABLED:
-				msg.authentication_state = 4;
-				break;
-
-			case sensor_gps_s::AUTHENTICATION_STATE_INITIALIZING:
-				msg.authentication_state = 1;
-				break;
-
-			case sensor_gps_s::AUTHENTICATION_STATE_FAILED:
-				msg.authentication_state = 2;
-				break;
-
-			case sensor_gps_s::AUTHENTICATION_STATE_OK:
-				msg.authentication_state = 3;
-				break;
-			}
-
-			switch (gps.jamming_state) {
-			case sensor_gps_s::JAMMING_STATE_UNKNOWN:
-				msg.jamming_state = 0;
-				break;
-
-			case sensor_gps_s::JAMMING_STATE_OK:
-				msg.jamming_state = 1;
-				break;
-
-			case sensor_gps_s::JAMMING_STATE_MITIGATED:
-				msg.jamming_state = 2;
-				break;
-
-			case sensor_gps_s::JAMMING_STATE_WARNING:
-			case sensor_gps_s::JAMMING_STATE_CRITICAL:
-				msg.jamming_state = 3;
-				break;
-			}
-
-			switch (gps.spoofing_state) {
-			case sensor_gps_s::SPOOFING_STATE_UNKNOWN:
-				msg.spoofing_state = 0;
-				break;
-
-			case sensor_gps_s::SPOOFING_STATE_NONE:
-				msg.spoofing_state = 1;
-				break;
-
-			case sensor_gps_s::SPOOFING_STATE_MITIGATED:
-				msg.spoofing_state = 2;
-				break;
-
-			case sensor_gps_s::SPOOFING_STATE_INDICATED:
-			case sensor_gps_s::SPOOFING_STATE_MULTIPLE:
-				msg.spoofing_state = 3;
-				break;
-			}
+			msg.system_errors = gps.system_error;
+			msg.authentication_state = gps.authentication_state;
+			msg.jamming_state = gps.jamming_state;
+			msg.spoofing_state = gps.spoofing_state;
 
 			msg.raim_state = 0;
 			msg.raim_hfom = UINT16_MAX;
 			msg.raim_vfom = UINT16_MAX;
-			msg.corrections_quality = gps.quality_corrections;
-			msg.system_status_summary = gps.quality_receiver;
-			msg.gnss_signal_quality = gps.quality_gnss_signals;
-			msg.post_processing_quality = gps.quality_post_processing;
 
 			mavlink_msg_gnss_integrity_send_struct(_mavlink->get_channel(), &msg);
 			_last_send_ts = gps.timestamp;
@@ -174,10 +86,6 @@ private:
 		} else if (_last_send_ts != 0 && (now = hrt_absolute_time()) > _last_send_ts + kNoGpsSendInterval) {
 			msg.raim_hfom = UINT16_MAX;
 			msg.raim_vfom = UINT16_MAX;
-			msg.corrections_quality = UINT8_MAX;
-			msg.system_status_summary = UINT8_MAX;
-			msg.gnss_signal_quality = UINT8_MAX;
-			msg.post_processing_quality = UINT8_MAX;
 
 			mavlink_msg_gnss_integrity_send_struct(_mavlink->get_channel(), &msg);
 			_last_send_ts = now;
