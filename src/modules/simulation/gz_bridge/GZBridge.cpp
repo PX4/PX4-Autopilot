@@ -136,12 +136,6 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-	// Thruster mixing interface
-	if (!_mixing_interface_thruster.init(_model_name)) {
-		PX4_ERR("failed to init thruster output");
-		return PX4_ERROR;
-	}
-
 	// Gimbal mixing interface
 	if (!_gimbal.init(_world_name, _model_name)) {
 		PX4_ERR("failed to init gimbal");
@@ -160,7 +154,6 @@ void GZBridge::Run()
 		_mixing_interface_esc.stop();
 		_mixing_interface_servo.stop();
 		_mixing_interface_wheel.stop();
-		_mixing_interface_thruster.stop();
 		_gimbal.stop();
 
 		exit_and_cleanup();
@@ -176,7 +169,6 @@ void GZBridge::Run()
 		_mixing_interface_esc.updateParams();
 		_mixing_interface_servo.updateParams();
 		_mixing_interface_wheel.updateParams();
-		_mixing_interface_thruster.updateParams();
 		_gimbal.updateParams();
 	}
 
@@ -1000,9 +992,6 @@ int GZBridge::print_status()
 
 	PX4_INFO_RAW("Wheel outputs:\n");
 	_mixing_interface_wheel.mixingOutput().printStatus();
-
-	PX4_INFO_RAW("Thruster outputs:\n");
-	_mixing_interface_thruster.mixingOutput().printStatus();
 
 	return 0;
 }

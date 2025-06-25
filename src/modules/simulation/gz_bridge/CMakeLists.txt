@@ -55,8 +55,6 @@ if (gz-transport_FOUND)
 			GZMixingInterfaceServo.hpp
 			GZMixingInterfaceWheel.cpp
 			GZMixingInterfaceWheel.hpp
-			GZMixingInterfaceThruster.cpp
-			GZMixingInterfaceThruster.hpp
 			GZGimbal.cpp
 			GZGimbal.hpp
 		DEPENDS
