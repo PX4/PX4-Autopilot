@@ -44,28 +44,53 @@ SIH provides several benefits over HITL:
 
 To run the SIH, you will need a:
 
-- [Flight controller](../flight_controller/index.md), such as a Pixhawk-series board
+- [Flight controller](../flight_controller/index.md), such as a Pixhawk-series board.
+
+  ::: info
+  From PX4 v1.14 you can run [SIH "as SITL"](#sih-as-sitl-no-fc), in which case a flight controller is not required.
+  :::
+
 - [Manual controller](../getting_started/px4_basic_concepts.md#manual-control): either a [radio control system](../getting_started/rc_transmitter_receiver.md) or a [joystick](../config/joystick.md).
 - QGroundControl for flying the vehicle via GCS.
 - Development computer for visualizing the virtual vehicle (optional).
 
-From PX4 v1.14 you can run SIH "as SITL", in which case a flight controller is not required.
+## Add SIH to Firmware
+
+The modules required for SIH are not built into all PX4 firmware by default, so you are likely to need to add them to the configuration and then rebuild and install the firmware.
+
+The following keys must be present in the configuration file for your target flight controller (such as [boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board) FMUv6x based boards).
+
+```text
+CONFIG_MODULES_SIMULATION_PWM_OUT_SIM=y
+CONFIG_MODULES_SIMULATION_SENSOR_BARO_SIM=y
+CONFIG_MODULES_SIMULATION_SENSOR_GPS_SIM=y
+CONFIG_MODULES_SIMULATION_SENSOR_MAG_SIM=y
+```
+
+Add the keys if necessary then re-built the firmware and flash it to the board.
+
+You can alternatively use the following command to launch a GUI configuration tool, and interactively enable them at the path: **modules > Simulation > simulator_sih**.
+For example, to update the fmu-v6x configuration you would use:
+
+```sh
+make px4_fmu-v6x boardconfig
+```
+
+After uploading the following modules should be present on the board: [`pwm_out_sim`](../modules/modules_driver.md#pwm-out-sim), [`sensor_baro_sim`](../modules/modules_system.md#sensor-baro-sim), [`sensor_gps_sim`](../modules/modules_system.md#sensor-gps-sim) and [`sensor_mag_sim`](../modules/modules_system.md#sensor-mag-sim).
+
+You can check that the modules are present using QGroundControl:
+
+1. Open **Analyze Tools > Mavlink Console**.
+2. Type `pwm_out_sim status`, `sensor_baro_sim status`, `sensor_gps_sim status `and `sensor_mag_sim status`, in the console.
+3. If any of the returned values are `nsh: MODULENAME: command not found`, then you don't have the module installed and you need to recompile your target with it.
 
 ## Starting SIH
 
 To set up/start SIH:
 
 1. Connect the flight controller to the desktop computer with a USB cable.
-1. Ensure your PX4 version was build with [`pwm_out_sim`](../modules/modules_driver.md#pwm-out-sim), [`sensor_baro_sim`](../modules/modules_system.md#sensor-baro-sim), [`sensor_gps_sim`](../modules/modules_system.md#sensor-gps-sim) and [`sensor_mag_sim`](../modules/modules_system.md#sensor-mag-sim).
-
-   1. Open **Analyze Tools > Mavlink Console**.
-   1. Type `pwm_out_sim status`,  `sensor_baro_sim status`,  `sensor_gps_sim status `and  `sensor_mag_sim status`, in the console.
-   1. If any of the returned values are `nsh: MODULENAME: command not found`, then you don't have the module installed and you need to recompile your target with it.
-   Add `CONFIG_MODULES_SIMULATION_PWM_OUT_SIM=y` (or `CONFIG_MODULES_SIMULATION_SENSOR_BARO_SIM`, `CONFIG_MODULES_SIMULATION_SENSOR_GPS_SIM`, `CONFIG_MODULES_SIMULATION_SENSOR_MAG_SIM`) to your board configuration file, re-built it and re-flash it.
-   You can also use `make YOUR_TARGET boardconfig` and interactively enable all of them at once: **modules > Simulation > simulator_sih**.
-
-1. Open QGroundControl and wait for the flight controller too boot and connect.
-1. Open [Vehicle Setup > Airframe](../config/airframe.md) then select the desired frame:
+2. Open QGroundControl and wait for the flight controller too boot and connect.
+3. Open [Vehicle Setup > Airframe](../config/airframe.md) then select the desired frame:
    - [SIH Quadcopter X](../airframes/airframe_reference.md#copter_simulation_sih_quadcopter_x)
    - **SIH Hexacopter X** (currently only has an airframe for SITL to safe flash so on flight control hardware it has to be manually configured equivalently).
    - [SIH plane AERT](../airframes/airframe_reference.md#plane_simulation_sih_plane_aert)
@@ -122,7 +147,7 @@ In this case you don't need the flight controller hardware.
 To run SIH as SITL:
 
 1. Install the [PX4 Development toolchain](../dev_setup/dev_env.md).
-1. Run the appropriate make command for each vehicle type (at the root of the PX4-Autopilot repository):
+2. Run the appropriate make command for each vehicle type (at the root of the PX4-Autopilot repository):
 
    - Quadcopter
 
