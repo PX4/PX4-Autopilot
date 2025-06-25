@@ -32,7 +32,6 @@
 ############################################################################
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-# add_subdirectory(SpacecraftControlAllocation)
 add_subdirectory(SpacecraftRateControl)
 add_subdirectory(SpacecraftAttitudeControl)
 add_subdirectory(SpacecraftPositionControl)
@@ -53,5 +52,4 @@ px4_add_module(
 		SpacecraftRateControl
 		SpacecraftAttitudeControl
 		SpacecraftPositionControl
-		# SpacecraftControlAllocation
 )
