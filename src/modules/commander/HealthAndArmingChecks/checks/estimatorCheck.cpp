@@ -594,38 +594,38 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 
 void EstimatorChecks::checkGps(const Context &context, Report &reporter, const sensor_gps_s &vehicle_gps_position) const
 {
-	if (vehicle_gps_position.jamming_state == sensor_gps_s::JAMMING_STATE_CRITICAL) {
+	if (vehicle_gps_position.jamming_state == sensor_gps_s::JAMMING_STATE_DETECTED) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
 					    events::ID("check_estimator_gps_jamming_critical"),
-					    events::Log::Critical, "GPS reports critical jamming state");
+					    events::Log::Critical, "GPS reports jamming detected");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports critical jamming state\t");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports jamming detected\t");
 		}
 	}
 
-	if (vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_INDICATED) {
+	if (vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_MITIGATED) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
 					    events::ID("check_estimator_gps_spoofing_indicated"),
-					    events::Log::Critical, "GPS reports spoofing indicated");
+					    events::Log::Critical, "GPS reports spoofing mitigated");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports spoofing indicated\t");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports spoofing mitigated\t");
 		}
 
-	} else if (vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_MULTIPLE) {
+	} else if (vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_DETECTED) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
 					    events::ID("check_estimator_gps_multiple_spoofing_indicated"),
-					    events::Log::Critical, "GPS reports multiple spoofing indicated");
+					    events::Log::Critical, "GPS reports spoofing detected");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports multiple spoofing indicated\t");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports spoofing detected\t");
 		}
 	}
 }
