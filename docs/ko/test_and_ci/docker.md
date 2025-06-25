@@ -58,7 +58,7 @@ For example, the partial hierarchy below shows that the docker container with nu
 
 The most recent version can be accessed using the `latest` tag: `px4io/px4-dev-nuttx-focal:latest`
 (available tags are listed for each container on _hub.docker.com_.
-For example, the `px4io/px4-dev-nuttx-focal` tags can be found here).
+For example, the `px4io/px4-dev-nuttx-focal` tags can be found [here](https://hub.docker.com/r/px4io/px4-dev-nuttx-focal/tags?page=1&ordering=last_updated)).
 
 :::tip
 Typically you should use a recent container, but not necessarily the `latest` (as this changes too often).

@@ -132,7 +132,7 @@ To switch between branches:
 ## 특정 릴리스 가져오기
 
 Specific PX4 point releases are made as tags of the [release branches](#get-a-release-branch), and are named using the format `v<release>`.
-These are listed on Github here (or you can query all tags using `git tag -l`).
+These are [listed on Github here](https://github.com/PX4/PX4-Autopilot/releases?q=release&expanded=true) (or you can query all tags using `git tag -l`).
 
 To get the source code for a _specific older release_ (tag):
 
