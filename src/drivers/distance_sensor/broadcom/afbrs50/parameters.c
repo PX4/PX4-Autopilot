@@ -80,12 +80,12 @@ PARAM_DEFINE_INT32(SENS_AFBR_L_RATE, 25);
  * The mode will switch from long to short range when the distance is less than the threshold minus the hysteresis.
  *
  * @unit m
- * @min 1
- * @max 50
+ * @min 0.1
+ * @max 100
  * @group Sensors
  *
  */
-PARAM_DEFINE_INT32(SENS_AFBR_THRESH, 4);
+PARAM_DEFINE_FLOAT(SENS_AFBR_THRESH, 4);
 
 
 /**
@@ -94,9 +94,9 @@ PARAM_DEFINE_INT32(SENS_AFBR_THRESH, 4);
  * This parameter defines the hysteresis for switching between short and long range mode.
  *
  * @unit m
- * @min 1
+ * @min 0.1
  * @max 10
  * @group Sensors
  *
  */
-PARAM_DEFINE_INT32(SENS_AFBR_HYSTER, 1);
+PARAM_DEFINE_FLOAT(SENS_AFBR_HYSTER, 1);

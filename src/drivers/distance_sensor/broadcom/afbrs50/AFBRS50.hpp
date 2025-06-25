@@ -98,7 +98,7 @@ private:
 		(ParamInt<px4::params::SENS_AFBR_MODE>)   _p_sens_afbr_mode,
 		(ParamInt<px4::params::SENS_AFBR_S_RATE>) _p_sens_afbr_s_rate,
 		(ParamInt<px4::params::SENS_AFBR_L_RATE>) _p_sens_afbr_l_rate,
-		(ParamInt<px4::params::SENS_AFBR_THRESH>) _p_sens_afbr_thresh,
-		(ParamInt<px4::params::SENS_AFBR_HYSTER>) _p_sens_afbr_hyster
+		(ParamFloat<px4::params::SENS_AFBR_THRESH>) _p_sens_afbr_thresh,
+		(ParamFloat<px4::params::SENS_AFBR_HYSTER>) _p_sens_afbr_hyster
 	);
 };
