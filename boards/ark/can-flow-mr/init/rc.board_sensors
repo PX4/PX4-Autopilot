@@ -9,7 +9,6 @@ param set-default SENS_IMU_CLPNOTI 0
 
 param set-default SENS_AFBR_S_RATE 25
 param set-default SENS_AFBR_L_RATE 5
-param set-default SENS_AFBR_MODE 1
 param set-default SENS_AFBR_THRESH 1.5
 param set-default SENS_AFBR_HYSTER 0.5
 
