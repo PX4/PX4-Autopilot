@@ -66,9 +66,9 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 [CUAV Store](https://store.cuav.net/shop/v5-nano/)
 
-CUAV Aliexpress (international users)
+[CUAV Aliexpress](https://www.aliexpress.com/item/33050770314.html?storeId=3257035&spm=2114.12010612.8148356.9.dbe6790bjW2hpH) (international users)
 
-CUAV Taobao (China Mainland users)
+[CUAV Taobao](https://item.taobao.com/item.htm?spm=a230r.1.14.8.26ab5258veQJRu&id=569404317857&ns=1&abbucket=13#detail) (China Mainland users)
 
 :::info
 Autopilot may be purchased with included Neo GPS module
