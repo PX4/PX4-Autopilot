@@ -35,7 +35,8 @@
 
 #include <px4_platform_common/log.h>
 
-int SpacecraftActuatorEffectiveness::Configuration::addActuator(SpacecraftActuatorType type, const matrix::Vector3f &torque,
+int SpacecraftActuatorEffectiveness::Configuration::addActuator(SpacecraftActuatorType type,
+		const matrix::Vector3f &torque,
 		const matrix::Vector3f &thrust)
 {
 	int actuator_idx = num_actuators_matrix[selected_matrix];
@@ -53,9 +54,12 @@ int SpacecraftActuatorEffectiveness::Configuration::addActuator(SpacecraftActuat
 	effectiveness_matrices[selected_matrix](SpacecraftActuatorEffectiveness::ControlAxis::ROLL, actuator_idx) = torque(0);
 	effectiveness_matrices[selected_matrix](SpacecraftActuatorEffectiveness::ControlAxis::PITCH, actuator_idx) = torque(1);
 	effectiveness_matrices[selected_matrix](SpacecraftActuatorEffectiveness::ControlAxis::YAW, actuator_idx) = torque(2);
-	effectiveness_matrices[selected_matrix](SpacecraftActuatorEffectiveness::ControlAxis::THRUST_X, actuator_idx) = thrust(0);
-	effectiveness_matrices[selected_matrix](SpacecraftActuatorEffectiveness::ControlAxis::THRUST_Y, actuator_idx) = thrust(1);
-	effectiveness_matrices[selected_matrix](SpacecraftActuatorEffectiveness::ControlAxis::THRUST_Z, actuator_idx) = thrust(2);
+	effectiveness_matrices[selected_matrix](SpacecraftActuatorEffectiveness::ControlAxis::THRUST_X,
+						actuator_idx) = thrust(0);
+	effectiveness_matrices[selected_matrix](SpacecraftActuatorEffectiveness::ControlAxis::THRUST_Y,
+						actuator_idx) = thrust(1);
+	effectiveness_matrices[selected_matrix](SpacecraftActuatorEffectiveness::ControlAxis::THRUST_Z,
+						actuator_idx) = thrust(2);
 	matrix_selection_indexes[totalNumActuators()] = selected_matrix;
 	++num_actuators[(int)type];
 	return num_actuators_matrix[selected_matrix]++;
@@ -84,7 +88,8 @@ int SpacecraftActuatorEffectiveness::Configuration::totalNumActuators() const
 	return total_count;
 }
 
-void SpacecraftActuatorEffectiveness::stopMaskedMotorsWithZeroThrust(uint32_t stoppable_motors_mask, ActuatorVector &actuator_sp)
+void SpacecraftActuatorEffectiveness::stopMaskedMotorsWithZeroThrust(uint32_t stoppable_motors_mask,
+		ActuatorVector &actuator_sp)
 {
 	for (int actuator_idx = 0; actuator_idx < NUM_ACTUATORS; actuator_idx++) {
 		const uint32_t motor_mask = (1u << actuator_idx);

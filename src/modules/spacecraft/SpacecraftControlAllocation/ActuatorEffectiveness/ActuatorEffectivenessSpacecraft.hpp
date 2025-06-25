@@ -44,7 +44,8 @@ public:
 
 	bool getEffectivenessMatrix(Configuration &configuration, SpacecraftEffectivenessUpdateReason external_update) override;
 
-	void getDesiredSpacecraftAllocationMethod(SpacecraftAllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
+	void getDesiredSpacecraftAllocationMethod(SpacecraftAllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const
+	override
 	{
 		// TODO(@Jaeyoung-Lim): to be updated
 		allocation_method_out[0] = SpacecraftAllocationMethod::SEQUENTIAL_DESATURATION;

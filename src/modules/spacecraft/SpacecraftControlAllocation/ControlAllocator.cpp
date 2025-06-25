@@ -475,7 +475,8 @@ SpacecraftControlAllocator::update_effectiveness_matrix_if_needed(SpacecraftEffe
 			// Assign control effectiveness matrix
 			int total_num_actuators = config.num_actuators_matrix[i];
 			_control_allocation[i]->setEffectivenessMatrix(config.effectiveness_matrices[i], config.trim[i],
-					config.linearization_point[i], total_num_actuators, reason == SpacecraftEffectivenessUpdateReason::CONFIGURATION_UPDATE);
+					config.linearization_point[i], total_num_actuators,
+					reason == SpacecraftEffectivenessUpdateReason::CONFIGURATION_UPDATE);
 		}
 
 		trims.timestamp = hrt_absolute_time();
@@ -687,7 +688,8 @@ int SpacecraftControlAllocator::print_status()
 
 	// Print current effectiveness matrix
 	for (int i = 0; i < _num_control_allocation; ++i) {
-		const SpacecraftActuatorEffectiveness::EffectivenessMatrix &effectiveness = _control_allocation[i]->getEffectivenessMatrix();
+		const SpacecraftActuatorEffectiveness::EffectivenessMatrix &effectiveness =
+			_control_allocation[i]->getEffectivenessMatrix();
 
 		if (_num_control_allocation > 1) {
 			PX4_INFO("Instance: %i", i);

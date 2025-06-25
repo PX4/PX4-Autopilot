@@ -146,7 +146,8 @@ public:
 	/**
 	 * Get the desired allocation method(s) for each matrix, if configured as AUTO
 	 */
-	virtual void getDesiredSpacecraftAllocationMethod(SpacecraftAllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const
+	virtual void getDesiredSpacecraftAllocationMethod(SpacecraftAllocationMethod allocation_method_out[MAX_NUM_MATRICES])
+	const
 	{
 		for (int i = 0; i < MAX_NUM_MATRICES; ++i) {
 			allocation_method_out[i] = SpacecraftAllocationMethod::PSEUDO_INVERSE;
