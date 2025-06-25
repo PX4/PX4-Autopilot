@@ -265,16 +265,20 @@ px4fmu_firmware: \
 	sizes
 
 # Create a one-file AppImage for PX4 SITL
+PX4_VERSION := $(shell git describe --tags --match "v[0-9]*" 2>/dev/null || echo "v0.0.0")
 .PHONY: AppImage
 appimage: build/px4_sitl_default/bin/px4 build/px4_sitl_default/romfs_files.tar
+
 	@$(MAKE) px4_sitl_default
 	@$(RM) -rf build/px4.AppDir
+
 	@mkdir -p \
 		build/px4.AppDir/usr/bin \
 		build/px4.AppDir/usr/lib \
 		build/px4.AppDir/usr/share/px4/romfs/etc \
 		build/px4.AppDir/usr/share/px4/romfs/bin
 	@cp build/px4_sitl_default/bin/px4 build/px4.AppDir/usr/bin/
+	@echo "${PX4_VERSION}" > build/px4.AppDir/version.txt
 
 	# bundle required Gazebo transport libs (arch‐agnostic lookup)
 	echo "→ Gathering shared-lib dependencies for px4..."

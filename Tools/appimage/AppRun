@@ -3,55 +3,59 @@ set -e
 
 DEBUG=false
 for arg; do
-	case "$arg" in
-	--debug)
-		DEBUG=true
-		shift
-		;;
-	*)
-		break
-		;;
-	esac
+  case "$arg" in
+  --debug)
+    DEBUG=true
+    shift
+    ;;
+  *)
+    break
+    ;;
+  esac
 done
 
 if $DEBUG; then
-	set -x
-	echo "[DEBUG] Running in debug mode" >&2
+  echo "[DEBUG] Running in debug mode" >&2
 fi
 
-# pick up bundled libs first
-export LD_LIBRARY_PATH="$APPDIR/usr/lib:$LD_LIBRARY_PATH"
+CUR_VER=$(<"$APPDIR/version.txt")
+$DEBUG && echo "[DEBUG] PX4_VERSION = $CUR_VER" >&2
 
 # figure out a stable logs directory
 STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+ROMFS_DIR="$DATA_HOME/px4/romfs"
+mkdir -p "$DATA_HOME/px4" "$STATE_HOME/px4"
+
+$DEBUG && echo "[DEBUG] STATE_HOME = $STATE_HOME" >&2
+$DEBUG && echo "[DEBUG] DATA_HOME = $STATE_HOME" >&2
+
+# Read last unpacked version
+LAST_VER_FILE="$STATE_HOME/px4/version"
+LAST_VER=""
+[ -f "$LAST_VER_FILE" ] && LAST_VER=$(<"$LAST_VER_FILE")
+
+# if versions differ, refresh the payload
+if [ "$CUR_VER" != "$LAST_VER" ]; then
+  $DEBUG && echo "[DEBUG] Version changed ($LAST_VER → $CUR_VER); updating ROMFS..." >&2
+  rm -fr "$ROMFS_DIR"
+  mkdir -p "$ROMFS_DIR"
+  cp -a "$APPDIR/usr/share/px4/romfs/." "$ROMFS_DIR"
+  echo "$CUR_VER" > "$LAST_VER_FILE"
+else
+  if $DEBUG; then
+    echo "[DEBUG] Using cached ROMFS version $CUR_VER" >&2
+  fi
+fi
+
 LOG_DIR="$STATE_HOME/px4/logs"
 mkdir -p "$LOG_DIR"
+$DEBUG && echo "[DEBUG] LOG_DIR = $LOG_DIR" >&2
 
-if $DEBUG; then
-	echo "[DEBUG] LOG_DIR = $LOG_DIR" >&2
-fi
+# pick up bundled libs first
+export LD_LIBRARY_PATH="$APPDIR/usr/lib:$LD_LIBRARY_PATH"
+export PATH="$ROMFS_DIR/bin:$ROMFS_DIR:$PATH"
 
-# make a temporary workdir for ROMFS & other runtime files
-WORKDIR=$(mktemp -d)
-if $DEBUG; then
-	echo "[DEBUG] WORKDIR = $WORKDIR" >&2
-fi
 
-# ensure we clean up the workdir on exit
-cleanup() {
-	if $DEBUG; then
-		echo "[DEBUG] Cleaning up WORKDIR: $WORKDIR" >&2
-	fi
-	rm -rf "$WORKDIR"
-}
-trap cleanup EXIT
-
-# symlink PX4's ./log folder to our XDG location
-ln -s "$LOG_DIR" "$WORKDIR/log"
-
-# copy the rest of the ROMFS into WORKDIR, etc.
-cp -a "$APPDIR/usr/share/px4/romfs/." "$WORKDIR"
-
-# add the px4-* helpers to PATH, then launch
-export PATH="$WORKDIR/bin:$WORKDIR:$PATH"
-exec "$APPDIR/usr/bin/px4" -w "$WORKDIR" "$@"
+$DEBUG && echo "[DEBUG] Launching: $APPDIR/usr/bin/px4 -w $ROMFS_DIR $*" >&2
+exec "$APPDIR/usr/bin/px4" -w "$ROMFS_DIR" "$@"
