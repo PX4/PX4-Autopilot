@@ -32,7 +32,7 @@
 ############################################################################
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-add_subdirectory(SpacecraftControlAllocation)
+# add_subdirectory(SpacecraftControlAllocation)
 add_subdirectory(SpacecraftRateControl)
 add_subdirectory(SpacecraftAttitudeControl)
 add_subdirectory(SpacecraftPositionControl)
@@ -47,13 +47,11 @@ px4_add_module(
 	SRCS
 		SpacecraftHandler.cpp
 		SpacecraftHandler.hpp
-	MODULE_CONFIG
-		module.yaml
 	DEPENDS
 		mathlib
 		px4_work_queue
 		SpacecraftRateControl
 		SpacecraftAttitudeControl
 		SpacecraftPositionControl
-		SpacecraftControlAllocation
+		# SpacecraftControlAllocation
 )

@@ -66,7 +66,6 @@
 #include "SpacecraftRateControl/SpacecraftRateControl.hpp"
 #include "SpacecraftAttitudeControl/SpacecraftAttitudeControl.hpp"
 #include "SpacecraftPositionControl/SpacecraftPositionControl.hpp"
-#include "SpacecraftControlAllocation/ControlAllocator.hpp"
 
 class SpacecraftHandler : public ModuleBase<SpacecraftHandler>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -112,7 +111,6 @@ private:
 	SpacecraftRateControl _spacecraft_rate_control{this};
 	SpacecraftAttitudeControl _spacecraft_attitude_control{this};
 	SpacecraftPositionControl _spacecraft_position_control{this};
-	SpacecraftControlAllocator _spacecraft_control_allocation{this};
 
 	// Variables
 	hrt_abstime _timestamp{0};

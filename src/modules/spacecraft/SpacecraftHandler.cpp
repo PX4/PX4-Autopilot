@@ -80,11 +80,6 @@ void SpacecraftHandler::Run()
 	_spacecraft_attitude_control.updateAttitudeControl();
 	_spacecraft_rate_control.updateRateControl();
 
-	// TODO: Prepare allocation
-	if (_vehicle_control_mode.flag_armed) {
-		_spacecraft_control_allocation.generateActuationSignals();
-	}
-
 }
 
 int SpacecraftHandler::task_spawn(int argc, char *argv[])
