@@ -45,7 +45,7 @@ private:
 	// 1) Subscriptions (uORB)
 	// ------------------------------------------------------------------------
 	uORB::Subscription	_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription	_vehicle_rates_sub{ORB_ID(vehicle_rates_setpoint)};
+	uORB::Subscription	_vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription	_gyro_sub{ORB_ID(sensor_gyro)};
 	uORB::Subscription	_esc_sub{ORB_ID(esc_status)};
 
@@ -75,9 +75,7 @@ private:
 	matrix::Vector4f	_omega_c;    // commanded motor RPM (output)
 
 	// Desired body-rate setpoint:
-	float _p_des{0.f};
-	float _q_des{0.f};
-	float _r_des{0.f};
+	matrix::Quatf _q_sp;
 
 
 
@@ -98,7 +96,7 @@ private:
 	matrix::Matrix<float,3,4>  _G1_diag;       // reused each cycle
 
 	//NOTE: Values gotten from /Tools/simulation/gz/models/x500/x500_base/model.sdf
-	// Inertial matrix calculated using parallel axis theorem and python script to combine base w rotors
+	// Inertial matrix calculated using parallel axis theorem and python script to combine base w/ rotors
 	const float m = 2 + 4 * 0.016076923076923075;          // quad mass [kg]
 	const float ct = 8.54858e-6;          // thrust coefficient (from your param)
 	const float cq = 0.016f;       // torque coeff
@@ -108,6 +106,7 @@ private:
 	const float Ivx = 0.0238466927,
 	 	    Ivy = 0.0239496175,
 		    Ivz = 0.0439999537; // vehicle inertia
+	float _max_rpm = 10000;
 
 	// LMS adaptation gains: (for later implementation)
 	float	_mu2_roll{1e-4f};

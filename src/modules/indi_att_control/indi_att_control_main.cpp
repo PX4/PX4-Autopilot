@@ -36,6 +36,7 @@
 #include <px4_platform_common/px4_kmalloc.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/math.h>
 
 using namespace matrix;
 
@@ -97,6 +98,8 @@ void INDIController::parameters_updated()
         _rpm_filter[j].setCutoffFrequency(wn_rpm, z_rpm);
     }
 
+    _max_rpm = _param_indi_max_rpm.get();
+
     // init G to a small diagonal guess, e.g. G = [G1·diag(ω_f) G2]. Goal is to overwrite via LMS.
     _G = matrix::Matrix<float,3,8>::Zero();
 
@@ -123,8 +126,6 @@ void INDIController::parameters_updated()
 
     // the rest stay small/zero until adapted
 
-    //NOTE: this is NOT a completed G2! Still need to divide by Ts (the inner loop speed) which I pass when I call
-    // the INDI function as dt.
     float Ts = param_indi_inner_loop_f.get(); //Assume 400H, in seconds (0.0025 s = 2.5ms)
 
     float scale = Ip / (Ivz) / Ts;
@@ -181,11 +182,9 @@ void INDIController::Run()
     }
 
     // 3) read desired body‐rates:
-    vehicle_rates_setpoint_s rates_sp{};
-    if (_vehicle_rates_sub.copy(&rates_sp)) {
-        _p_des = rates_sp.roll;
-        _q_des = rates_sp.pitch;
-        _r_des = rates_sp.yaw;
+    vehicle_attitude_setpoint_s att_sp{};
+    if (_vehicle_attitude_setpoint_sub.copy(&att_sp)) {
+        _q_sp = matrix::Quatf(att_sp.q_d);
     }
 
     // 4) read ESC status -> actual RPM
@@ -198,7 +197,7 @@ void INDIController::Run()
             static_cast<float>(esc.esc_rpm[3])
         };
 
-        rpm_raw = rpm_raw / 60 * 2 * PI; // Convert rpm readings from esc to rad/s
+        rpm_raw = rpm_raw / 60.0 * 2.0 * M_PI_F; // Convert rpm readings from esc to rad/s
 
         if (_first_rpm_sample) {
             _omega_f     = rpm_raw;
@@ -216,17 +215,16 @@ void INDIController::Run()
     }
 
     // 5) compute desired angular acceleration ν (nu) (3×1) via tilt‐prioritized law:
-    vector::Vector3f nu = computeNU();  // tilt‐prioritized quaternion error + rate‐PD
+    vector::Vector3f nu = computeNU(_q);  // tilt‐prioritized quaternion error + rate‐PD
 
     // 6) Compute Δω via INDI pseudoinverse: ω_c = ω_f + Δω
     computeINIDelta(nu, dt);
 
     // 7) publish actuator_controls_0 (4 commanded RPMs)
-    float max_rpm = _param_indi_max_rpm.get();
-    actuator_sp.control[0] = _omega_c(0) * (60 / 2 / PI) / max_rpm; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
-    actuator_sp.control[1] = _omega_c(1)* (60 / 2 / PI) / max_rpm; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
-    actuator_sp.control[2] = _omega_c(2)* (60 / 2 / PI) / max_rpm; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
-    actuator_sp.control[3] = _omega_c(3)* (60 / 2 / PI) / max_rpm; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
+    actuator_sp.control[0] = _omega_c(0) * (60.0 / 2.0 / M_PI_F) / _max_rpm; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
+    actuator_sp.control[1] = _omega_c(1)* (60.0 / 2.0 / M_PI_F) / _max_rpm; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
+    actuator_sp.control[2] = _omega_c(2)* (60.0 / 2.0 / M_PI_F) / _max_rpm; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
+    actuator_sp.control[3] = _omega_c(3)* (60.0 / 2.0 / M_PI_F) / _max_rpm; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
     actuator_sp.timestamp = hrt_absolute_time();
     _actuator_pub.publish(actuator_sp);
 
@@ -237,40 +235,44 @@ void INDIController::Run()
     // 9) loop back: WorkItem will schedule the next Run() automatically
 }
 
-vector::Vector3f INDIController::computeNU()
+vector::Vector3f INDIController::computeNU(matrix::Quatf curr_q)
 {
-    // 1) Build quaternion error q_e = q_des * q ^ -1
-    //    NOTE: here “q_des” is indirectly encoded by (p_des,q_des,r_des) -> we do tilt‐prioritized directly.
-    //    From other papers, normally they take the current quaternion _q, compute “desired tilt quaternion”
-    //    from (p_des,q_des) as a small AxisAnglef( roll_sp, pitch_sp, 0 ), then combine with yaw_sp
-    //
-    // For simplicity, I assume _p_des/_q_des/_r_des already come from a higher‐level “tilt‐prioritized”
-    // attitude setpoint (from NMPC)
-    // FIXME: if not then reconstruct q_sp from (p_des,q_des,r_des) here
+    // 1) Build full quaternion‐error: q_e = q_sp x q_current^-1
+    matrix::Quaternion q_e  = _q_sp * curr_q.inversed();
 
-    // *** INDI paper uses feedforward: nu = [p_dot_des + k1*(p_des - p) ;  q_Δω̇__dot_fdot_des + k2*(q_des - q) ;  r_dot_des + k3*(r_des - r) ]
-    // but in this “simple” template, I assume no feed‐forward p_dot_des, r_dot_des (or set them to zero)
-    // FIXME: See if feedfoward is actually necessary
+    // 2) Tilt‐prioritized split into “reduced‐attitude” and yaw:
+    //    reduced‐attitude error (qe_red) only x,y part, yaw error (qe_yaw) only z
+    float q_e_w = q_e(0);
+    float q_e_x = q_e(1);
+    float q_e_y = q_e(2);
+    float q_e_z = q_e(3);
 
-    vector::Vector3f omega_f_body = _Omega_f; // (p, q, r)
-    vector::Vector3f omega_err;
-    omega_err(0) = _p_des - omega_f_body(0);
-    omega_err(1) = _q_des - omega_f_body(1);
-    omega_err(2) = _r_des - omega_f_body(2);
+    float denom = sqrtf(q_e_w*q_e_w + q_e_z*q_e_z);
+    Vector3f qe_red {
+        (q_e_w*q_e_x - q_e_y*q_e_z) / denom,
+        (q_e_w*q_e_y + q_e_x*q_e_z) / denom,
+         0.0f
+    };
+    Vector3f qe_yaw{ 0.0f, 0.0f, (q_e_z / denom) };
 
-    // FIXME: tune gains in QGroundControl
-    float k1 = _params_indi_kp_roll.get();
-    float k2 = _params_indi_kp_pitch.get();
-    float k3 = _params_indi_kp_yaw.get();
+    // 3) PD gains from parameters:
+    float k_red = _param_indi_kq_red.get();
+    float k_yaw = _param_indi_kq_yaw.get();
 
-    vector::Vector3f rate_term;
-    rate_term(0) = k1 * omega_err(0);
-    rate_term(1) = k2 * omega_err(1);
-    rate_term(2) = k3 * omega_err(2);
+    // 4) Rate‐feedback to damp:
+    /* TODO Add Deriviatve control. Will be much easier with MPC and praying just P control works for now
+    Vector3f
+    Vector3f rate_err = - _Omega_f;                    // want zero body‐rates
+    rate_err(0) *= _param_indi_kp_roll.get();
+    rate_err(1) *= _param_indi_kp_pitch.get();
+    rate_err(2) *= _param_indi_kp_yaw.get();
+    */
 
-    // FIXME: No explicit feed‐forward p_dot_des; if there is jerk/snap from NMPC add it here. (KIND OF NECESSARY!)
-
-    vector::Vector3f nu = rate_term;
+    // 5) combine into ν:
+    //TODO: add feedforward jerk/snap from NMPC, and accel feed forward
+    Vector3f nu = qe_red * k_red
+                 + qe_yaw * (k_yaw * (q_e_w >= 0 ? +1.0f : -1.0f));
+                 //+ rate_err;
     return nu;
 }
 
@@ -322,7 +324,7 @@ void INDIController::computeINIDelta(const vector::Vector3f &nu, const float dt)
     _omega_c = _omega_f + delta;
 
     // saturate/clamp each between [rpm_min, rpm_max]
-    const float rpm_min = 0.0f, rpm_max = _param_indi_max_rpm.get() * 60 / 2/ PI; // clamp and convert to rad / s from max rpm
+    const float rpm_min = 0.0f, rpm_max = _param_indi_max_rpm.get() * 60.0 / 2.0/ M_PI_F; // clamp and convert to rad / s from max rpm
     for (int i = 0; i < 4; i++) {
         _omega_c(i) = math::constrain(_omega_c(i), rpm_min, rpm_max);
     }
