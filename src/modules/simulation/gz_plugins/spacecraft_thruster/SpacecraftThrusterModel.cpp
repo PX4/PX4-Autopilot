@@ -57,317 +57,305 @@ using namespace systems;
 
 class gz::sim::systems::SpacecraftThrusterModelPrivate
 {
-  /// \brief Callback for actuator commands.
-  public: void OnActuatorMsg(const msgs::Actuators &_msg);
+	/// \brief Callback for actuator commands.
+public: void OnActuatorMsg(const msgs::Actuators &_msg);
 
-  /// \brief Apply link forces and moments based on propeller state.
-  public: void UpdateForcesAndMoments(EntityComponentManager &_ecm);
+	/// \brief Apply link forces and moments based on propeller state.
+public: void UpdateForcesAndMoments(EntityComponentManager &_ecm);
 
-  /// \brief Link Entity
-  public: Entity linkEntity;
+	/// \brief Link Entity
+public: Entity linkEntity;
 
-  /// \brief Link name
-  public: std::string linkName;
+	/// \brief Link name
+public: std::string linkName;
 
-  /// \brief Model interface
-  public: Model model{kNullEntity};
+	/// \brief Model interface
+public: Model model{kNullEntity};
 
-  /// \brief sub topic for actuator commands.
-  public: std::string subTopic;
+	/// \brief sub topic for actuator commands.
+public: std::string subTopic;
 
-  /// \brief Topic namespace.
-  public: std::string topic;
+	/// \brief Topic namespace.
+public: std::string topic;
 
-  /// \brief Simulation time tracker
-  public: double simTime = 0.01;
+	/// \brief Simulation time tracker
+public: double simTime = 0.01;
 
-  /// \brief Index of motor in Actuators msg on multirotor_base.
-  public: int actuatorNumber = 0;
+	/// \brief Index of motor in Actuators msg on multirotor_base.
+public: int actuatorNumber = 0;
 
-  /// \brief Duty cycle frequency
-  public: double dutyCycleFrequency = 10.0;
+	/// \brief Duty cycle frequency
+public: double dutyCycleFrequency = 10.0;
 
-  /// \brief Cycle start time
-  public: double cycleStartTime = 0.0;
+	/// \brief Cycle start time
+public: double cycleStartTime = 0.0;
 
-  /// \brief Sampling time with the cycle period.
-  public: double samplingTime = 0.01;
+	/// \brief Sampling time with the cycle period.
+public: double samplingTime = 0.01;
 
-  /// \brief Actuator maximum thrust
-  public: double maxThrust = 0.0;
+	/// \brief Actuator maximum thrust
+public: double maxThrust = 0.0;
 
-  /// \brief Received Actuators message. This is nullopt if no message has been
-  /// received.
-  public: std::optional<msgs::Actuators> recvdActuatorsMsg;
+	/// \brief Received Actuators message. This is nullopt if no message has been
+	/// received.
+public: std::optional<msgs::Actuators> recvdActuatorsMsg;
 
-  /// \brief Mutex to protect recvdActuatorsMsg.
-  public: std::mutex recvdActuatorsMsgMutex;
+	/// \brief Mutex to protect recvdActuatorsMsg.
+public: std::mutex recvdActuatorsMsgMutex;
 
-  /// \brief Gazebo communication node.
-  public: transport::Node node;
+	/// \brief Gazebo communication node.
+public: transport::Node node;
 };
 
 //////////////////////////////////////////////////
 SpacecraftThrusterModel::SpacecraftThrusterModel()
-  : dataPtr(std::make_unique<SpacecraftThrusterModelPrivate>())
+	: dataPtr(std::make_unique<SpacecraftThrusterModelPrivate>())
 {
 }
 
 //////////////////////////////////////////////////
 void SpacecraftThrusterModel::Configure(const Entity &_entity,
-    const std::shared_ptr<const sdf::Element> &_sdf,
-    EntityComponentManager &_ecm,
-    EventManager &/*_eventMgr*/)
+					const std::shared_ptr<const sdf::Element> &_sdf,
+					EntityComponentManager &_ecm,
+					EventManager &/*_eventMgr*/)
 {
-  this->dataPtr->model = Model(_entity);
+	this->dataPtr->model = Model(_entity);
 
-  if (!this->dataPtr->model.Valid(_ecm))
-  {
-    gzerr << "SpacecraftThrusterModel plugin should be attached to a model "
-          << "entity. Failed to initialize." << std::endl;
-    return;
-  }
+	if (!this->dataPtr->model.Valid(_ecm)) {
+		gzerr << "SpacecraftThrusterModel plugin should be attached to a model "
+		      << "entity. Failed to initialize." << std::endl;
+		return;
+	}
 
-  auto sdfClone = _sdf->Clone();
+	auto sdfClone = _sdf->Clone();
 
-  this->dataPtr->topic.clear();
+	this->dataPtr->topic.clear();
 
-  if (sdfClone->HasElement("topic"))
-  {
-    this->dataPtr->topic =
-        sdfClone->Get<std::string>("topic");
-  }
-  else
-  {
-    gzwarn << "No topic set using entity name.\n";
-    this->dataPtr->topic = this->dataPtr->model.Name(_ecm);
-  }
+	if (sdfClone->HasElement("topic")) {
+		this->dataPtr->topic =
+			sdfClone->Get<std::string>("topic");
 
-  if (sdfClone->HasElement("link_name"))
-  {
-    this->dataPtr->linkName = sdfClone->Get<std::string>("link_name");
-  }
+	} else {
+		gzwarn << "No topic set using entity name.\n";
+		this->dataPtr->topic = this->dataPtr->model.Name(_ecm);
+	}
 
-  if (this->dataPtr->linkName.empty())
-  {
-    gzerr << "SpacecraftThrusterModel found an empty link_name parameter. "
-           << "Failed to initialize.";
-    return;
-  }
+	if (sdfClone->HasElement("link_name")) {
+		this->dataPtr->linkName = sdfClone->Get<std::string>("link_name");
+	}
 
-  if (sdfClone->HasElement("actuator_number"))
-  {
-    this->dataPtr->actuatorNumber =
-      sdfClone->GetElement("actuator_number")->Get<int>();
-  }
-  else
-  {
-    gzerr << "Please specify a actuator_number.\n";
-  }
+	if (this->dataPtr->linkName.empty()) {
+		gzerr << "SpacecraftThrusterModel found an empty link_name parameter. "
+		      << "Failed to initialize.";
+		return;
+	}
 
-  if (sdfClone->HasElement("max_thrust"))
-  {
-    this->dataPtr->maxThrust =
-      sdfClone->GetElement("max_thrust")->Get<double>();
-  }
-  else
-  {
-    gzerr << "Please specify actuator "
-          << this->dataPtr->actuatorNumber <<" max_thrust.\n";
-  }
+	if (sdfClone->HasElement("actuator_number")) {
+		this->dataPtr->actuatorNumber =
+			sdfClone->GetElement("actuator_number")->Get<int>();
 
-  if (sdfClone->HasElement("duty_cycle_frequency"))
-  {
-    this->dataPtr->dutyCycleFrequency =
-          sdfClone->GetElement("duty_cycle_frequency")->Get<double>();
-  }
-  else
-  {
-    gzerr << "Please specify actuator "
-          << this->dataPtr->actuatorNumber <<" duty_cycle_frequency.\n";
-  }
+	} else {
+		gzerr << "Please specify a actuator_number.\n";
+	}
 
-  std::string topic;
-  if (sdfClone->HasElement("sub_topic"))
-  {
-    this->dataPtr->subTopic =
-        sdfClone->Get<std::string>("sub_topic");
-    topic = transport::TopicUtils::AsValidTopic(
-      this->dataPtr->topic + "/" + this->dataPtr->subTopic);
-  }
-  else
-  {
-    topic = transport::TopicUtils::AsValidTopic(
-      this->dataPtr->topic);
-  }
+	if (sdfClone->HasElement("max_thrust")) {
+		this->dataPtr->maxThrust =
+			sdfClone->GetElement("max_thrust")->Get<double>();
 
-  // Subscribe to actuator command message
-  if (topic.empty())
-  {
-    gzerr << "Failed to create topic for [" << this->dataPtr->topic
-           << "]" << std::endl;
-    return;
-  }
-  else
-  {
-    gzdbg << "Listening to topic: " << topic << std::endl;
-  }
-  this->dataPtr->node.Subscribe(topic,
-      &SpacecraftThrusterModelPrivate::OnActuatorMsg, this->dataPtr.get());
+	} else {
+		gzerr << "Please specify actuator "
+		      << this->dataPtr->actuatorNumber << " max_thrust.\n";
+	}
 
-  // Look for components
-  // If the link hasn't been identified yet, look for it
-  if (this->dataPtr->linkEntity == kNullEntity)
-  {
-    this->dataPtr->linkEntity =
-        this->dataPtr->model.LinkByName(_ecm, this->dataPtr->linkName);
-  }
+	if (sdfClone->HasElement("duty_cycle_frequency")) {
+		this->dataPtr->dutyCycleFrequency =
+			sdfClone->GetElement("duty_cycle_frequency")->Get<double>();
 
-  if ( this->dataPtr->linkEntity == kNullEntity)
-  {
-    gzerr << "Failed to find link entity. "
-          << "Failed to initialize." << std::endl;
-    return;
-  }
+	} else {
+		gzerr << "Please specify actuator "
+		      << this->dataPtr->actuatorNumber << " duty_cycle_frequency.\n";
+	}
 
-  // skip UpdateForcesAndMoments if needed components are missing
-  bool providedAllComponents = true;
-  if (!_ecm.Component<components::WorldPose>(this->dataPtr->linkEntity))
-  {
-    _ecm.CreateComponent(this->dataPtr->linkEntity, components::WorldPose());
-  }
+	std::string topic;
 
-  if (!providedAllComponents) {
-    gzdbg << "Created necessary components." << std::endl;
-  }
+	if (sdfClone->HasElement("sub_topic")) {
+		this->dataPtr->subTopic =
+			sdfClone->Get<std::string>("sub_topic");
+		topic = transport::TopicUtils::AsValidTopic(
+				this->dataPtr->topic + "/" + this->dataPtr->subTopic);
+
+	} else {
+		topic = transport::TopicUtils::AsValidTopic(
+				this->dataPtr->topic);
+	}
+
+	// Subscribe to actuator command message
+	if (topic.empty()) {
+		gzerr << "Failed to create topic for [" << this->dataPtr->topic
+		      << "]" << std::endl;
+		return;
+
+	} else {
+		gzdbg << "Listening to topic: " << topic << std::endl;
+	}
+
+	this->dataPtr->node.Subscribe(topic,
+				      &SpacecraftThrusterModelPrivate::OnActuatorMsg, this->dataPtr.get());
+
+	// Look for components
+	// If the link hasn't been identified yet, look for it
+	if (this->dataPtr->linkEntity == kNullEntity) {
+		this->dataPtr->linkEntity =
+			this->dataPtr->model.LinkByName(_ecm, this->dataPtr->linkName);
+	}
+
+	if (this->dataPtr->linkEntity == kNullEntity) {
+		gzerr << "Failed to find link entity. "
+		      << "Failed to initialize." << std::endl;
+		return;
+	}
+
+	// skip UpdateForcesAndMoments if needed components are missing
+	bool providedAllComponents = true;
+
+	if (!_ecm.Component<components::WorldPose>(this->dataPtr->linkEntity)) {
+		_ecm.CreateComponent(this->dataPtr->linkEntity, components::WorldPose());
+	}
+
+	if (!providedAllComponents) {
+		gzdbg << "Created necessary components." << std::endl;
+	}
 
 }
 
 //////////////////////////////////////////////////
 void SpacecraftThrusterModelPrivate::OnActuatorMsg(
-    const msgs::Actuators &_msg)
+	const msgs::Actuators &_msg)
 {
-  std::lock_guard<std::mutex> lock(this->recvdActuatorsMsgMutex);
-  this->recvdActuatorsMsg = _msg;
-  if (this->actuatorNumber == 0)
-    gzdbg << "Received actuator message!" << std::endl;
+	std::lock_guard<std::mutex> lock(this->recvdActuatorsMsgMutex);
+	this->recvdActuatorsMsg = _msg;
+
+	if (this->actuatorNumber == 0) {
+		gzdbg << "Received actuator message!" << std::endl;
+	}
 }
 
 //////////////////////////////////////////////////
 void SpacecraftThrusterModel::PreUpdate(const UpdateInfo &_info,
-    EntityComponentManager &_ecm)
+					EntityComponentManager &_ecm)
 {
-  GZ_PROFILE("SpacecraftThrusterModel::PreUpdate");
-  // \TODO(anyone) Support rewind
-  if (_info.dt < std::chrono::steady_clock::duration::zero())
-  {
-    gzwarn << "Detected jump back in time ["
-        << std::chrono::duration_cast<std::chrono::seconds>(_info.dt).count()
-        << "s]. System may not work properly." << std::endl;
-  }
+	GZ_PROFILE("SpacecraftThrusterModel::PreUpdate");
 
-  // Nothing left to do if paused.
-  if (_info.paused)
-    return;
+	// \TODO(anyone) Support rewind
+	if (_info.dt < std::chrono::steady_clock::duration::zero()) {
+		gzwarn << "Detected jump back in time ["
+		       << std::chrono::duration_cast<std::chrono::seconds>(_info.dt).count()
+		       << "s]. System may not work properly." << std::endl;
+	}
 
-  this->dataPtr->simTime = std::chrono::duration<double>(_info.simTime).count();
-  this->dataPtr->UpdateForcesAndMoments(_ecm);
+	// Nothing left to do if paused.
+	if (_info.paused) {
+		return;
+	}
+
+	this->dataPtr->simTime = std::chrono::duration<double>(_info.simTime).count();
+	this->dataPtr->UpdateForcesAndMoments(_ecm);
 }
 
 //////////////////////////////////////////////////
 void SpacecraftThrusterModelPrivate::UpdateForcesAndMoments(
-    EntityComponentManager &_ecm)
+	EntityComponentManager &_ecm)
 {
-  GZ_PROFILE("SpacecraftThrusterModelPrivate::UpdateForcesAndMoments");
-  std::optional<msgs::Actuators> msg;
-  auto actuatorMsgComp =
-      _ecm.Component<components::Actuators>(this->model.Entity());
+	GZ_PROFILE("SpacecraftThrusterModelPrivate::UpdateForcesAndMoments");
+	std::optional<msgs::Actuators> msg;
+	auto actuatorMsgComp =
+		_ecm.Component<components::Actuators>(this->model.Entity());
 
-  // Actuators messages can come in from transport or via a component. If a
-  // component is available, it takes precedence.
-  if (actuatorMsgComp)
-  {
-    msg = actuatorMsgComp->Data();
-  }
-  else
-  {
-    std::lock_guard<std::mutex> lock(this->recvdActuatorsMsgMutex);
-    if (this->recvdActuatorsMsg.has_value())
-    {
-      msg = *this->recvdActuatorsMsg;
-    }
-  }
+	// Actuators messages can come in from transport or via a component. If a
+	// component is available, it takes precedence.
+	if (actuatorMsgComp) {
+		msg = actuatorMsgComp->Data();
 
-  if (msg.has_value())
-  {
-    if (this->actuatorNumber > msg->velocity_size() - 1)
-    {
-      gzerr << "You tried to access index " << this->actuatorNumber
-        << " of the Actuator array which is of size "
-        << msg->velocity_size() << std::endl;
-      return;
-    }
-  }
-  else
-  {
-    return;
-  }
+	} else {
+		std::lock_guard<std::mutex> lock(this->recvdActuatorsMsgMutex);
 
-  // METHOD:
-  //
-  // targetDutyCycle starts as a normalized value between 0 and 1, so we
-  // need to convert it to the corresponding time in the duty cycle
-  // period
-  //   |________|    |________
-  //   |    ^   |    |        |
-  // __|    |   |____|        |__
-  //   a    b    c   d
-  // a: cycle start time
-  // b: sampling time
-  // c: target duty cycle
-  // d: cycle period
-  double targetDutyCycle =
-    msg->velocity(this->actuatorNumber) * (1.0 / this->dutyCycleFrequency);
-  if (this->actuatorNumber == 0)
-    gzdbg << this->actuatorNumber
-              << ": target duty cycle: " << targetDutyCycle << std::endl;
+		if (this->recvdActuatorsMsg.has_value()) {
+			msg = *this->recvdActuatorsMsg;
+		}
+	}
 
-  // Calculate cycle start time
-  if (this->samplingTime >= 1.0/this->dutyCycleFrequency) {
-    if (this->actuatorNumber == 0)
-      gzdbg << this->actuatorNumber
-                << ": Cycle completed. Resetting cycle start time."
-                << std::endl;
-    this->cycleStartTime = this->simTime;
-  }
+	if (msg.has_value()) {
+		if (this->actuatorNumber > msg->velocity_size() - 1) {
+			gzerr << "You tried to access index " << this->actuatorNumber
+			      << " of the Actuator array which is of size "
+			      << msg->velocity_size() << std::endl;
+			return;
+		}
 
-  // Calculate sampling time instant within the cycle
-  this->samplingTime = this->simTime - this->cycleStartTime;
-  if (this->actuatorNumber == 0)
-    gzdbg << this->actuatorNumber
-              << ": PWM Period: " << 1.0/this->dutyCycleFrequency
-              << " Cycle Start time: " << this->cycleStartTime
-              << " Sampling time: " << this->samplingTime << std::endl;
+	} else {
+		return;
+	}
 
-  // Apply force if the sampling time is less than the target ON duty cycle
-  double force = this->samplingTime <= targetDutyCycle ? this->maxThrust : 0.0;
-  if(targetDutyCycle < 1e-9) force = 0.0;
+	// METHOD:
+	//
+	// targetDutyCycle starts as a normalized value between 0 and 1, so we
+	// need to convert it to the corresponding time in the duty cycle
+	// period
+	//   |________|    |________
+	//   |    ^   |    |        |
+	// __|    |   |____|        |__
+	//   a    b    c   d
+	// a: cycle start time
+	// b: sampling time
+	// c: target duty cycle
+	// d: cycle period
+	double targetDutyCycle =
+		msg->velocity(this->actuatorNumber) * (1.0 / this->dutyCycleFrequency);
 
-  if (this->actuatorNumber == 0)
-    gzdbg << this->actuatorNumber
-              << ": Force: " << force
-              << "  Sampling time: " << this->samplingTime
-              << "  Tgt duty cycle: " << targetDutyCycle << std::endl;
+	if (this->actuatorNumber == 0)
+		gzdbg << this->actuatorNumber
+		      << ": target duty cycle: " << targetDutyCycle << std::endl;
 
-  // Apply force to the link
-  Link link(this->linkEntity);
-  const auto worldPose = link.WorldPose(_ecm);
-  link.AddWorldForce(_ecm,
-    worldPose->Rot().RotateVector(math::Vector3d(0, 0, force)));
-  if (this->actuatorNumber == 0)
-    gzdbg << this->actuatorNumber
-              << ": Input Value: " << msg->velocity(this->actuatorNumber)
-              << "  Calc. Force: " << force << std::endl;
+	// Calculate cycle start time
+	if (this->samplingTime >= 1.0 / this->dutyCycleFrequency) {
+		if (this->actuatorNumber == 0)
+			gzdbg << this->actuatorNumber
+			      << ": Cycle completed. Resetting cycle start time."
+			      << std::endl;
+
+		this->cycleStartTime = this->simTime;
+	}
+
+	// Calculate sampling time instant within the cycle
+	this->samplingTime = this->simTime - this->cycleStartTime;
+
+	if (this->actuatorNumber == 0)
+		gzdbg << this->actuatorNumber
+		      << ": PWM Period: " << 1.0 / this->dutyCycleFrequency
+		      << " Cycle Start time: " << this->cycleStartTime
+		      << " Sampling time: " << this->samplingTime << std::endl;
+
+	// Apply force if the sampling time is less than the target ON duty cycle
+	double force = this->samplingTime <= targetDutyCycle ? this->maxThrust : 0.0;
+
+	if (targetDutyCycle < 1e-9) { force = 0.0; }
+
+	if (this->actuatorNumber == 0)
+		gzdbg << this->actuatorNumber
+		      << ": Force: " << force
+		      << "  Sampling time: " << this->samplingTime
+		      << "  Tgt duty cycle: " << targetDutyCycle << std::endl;
+
+	// Apply force to the link
+	Link link(this->linkEntity);
+	const auto worldPose = link.WorldPose(_ecm);
+	link.AddWorldForce(_ecm,
+			   worldPose->Rot().RotateVector(math::Vector3d(0, 0, force)));
+
+	if (this->actuatorNumber == 0)
+		gzdbg << this->actuatorNumber
+		      << ": Input Value: " << msg->velocity(this->actuatorNumber)
+		      << "  Calc. Force: " << force << std::endl;
 }
 
 GZ_ADD_PLUGIN(SpacecraftThrusterModel,
