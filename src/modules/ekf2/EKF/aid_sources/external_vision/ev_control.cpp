@@ -52,14 +52,14 @@ void Ekf::controlExternalVisionFusion(const imuSample &imu_sample)
 		bool ev_reset = (ev_sample.reset_counter != _ev_sample_prev.reset_counter);
 
 		// determine if we should use the horizontal position observations
-		bool quality_sufficient = (_params.ev_quality_minimum <= 0) || (ev_sample.quality >= _params.ev_quality_minimum);
+		bool quality_sufficient = (_params.ekf2_ev_qmin <= 0) || (ev_sample.quality >= _params.ekf2_ev_qmin);
 
 		const bool starting_conditions_passing = quality_sufficient
 				&& ((ev_sample.time_us - _ev_sample_prev.time_us) < EV_MAX_INTERVAL)
-				&& ((_params.ev_quality_minimum <= 0)
-				    || (_ev_sample_prev.quality >= _params.ev_quality_minimum)) // previous quality sufficient
-				&& ((_params.ev_quality_minimum <= 0)
-				    || (_ext_vision_buffer->get_newest().quality >= _params.ev_quality_minimum)) // newest quality sufficient
+				&& ((_params.ekf2_ev_qmin <= 0)
+				    || (_ev_sample_prev.quality >= _params.ekf2_ev_qmin)) // previous quality sufficient
+				&& ((_params.ekf2_ev_qmin <= 0)
+				    || (_ext_vision_buffer->get_newest().quality >= _params.ekf2_ev_qmin)) // newest quality sufficient
 				&& isNewestSampleRecent(_time_last_ext_vision_buffer_push, EV_MAX_INTERVAL);
 
 		updateEvAttitudeErrorFilter(ev_sample, ev_reset);
@@ -68,19 +68,19 @@ void Ekf::controlExternalVisionFusion(const imuSample &imu_sample)
 
 		switch (ev_sample.vel_frame) {
 		case VelocityFrame::BODY_FRAME_FRD: {
-				EvVelBodyFrameFrd ev_vel_body(*this, ev_sample, _params.ev_vel_noise, imu_sample);
+				EvVelBodyFrameFrd ev_vel_body(*this, ev_sample, _params.ekf2_evv_noise, imu_sample);
 				controlEvVelFusion(ev_vel_body, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
 				break;
 			}
 
 		case VelocityFrame::LOCAL_FRAME_NED: {
-				EvVelLocalFrameNed ev_vel_ned(*this, ev_sample, _params.ev_vel_noise, imu_sample);
+				EvVelLocalFrameNed ev_vel_ned(*this, ev_sample, _params.ekf2_evv_noise, imu_sample);
 				controlEvVelFusion(ev_vel_ned, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
 				break;
 			}
 
 		case VelocityFrame::LOCAL_FRAME_FRD: {
-				EvVelLocalFrameFrd ev_vel_frd(*this, ev_sample, _params.ev_vel_noise, imu_sample);
+				EvVelLocalFrameFrd ev_vel_frd(*this, ev_sample, _params.ekf2_evv_noise, imu_sample);
 				controlEvVelFusion(ev_vel_frd, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
 				break;
 			}

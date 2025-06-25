@@ -207,13 +207,13 @@ void EKFGSF_yaw::ahrsPredict(const uint8_t model_index, const Vector3f &delta_an
 	}
 
 	// Gyro bias estimation
-	constexpr float gyro_bias_limit = 0.05f;
+	constexpr float ekf2_gyr_b_limit = 0.05f;
 	const float spin_rate = ang_rate.length();
 
 	if (spin_rate < math::radians(10.f)) {
 		_ahrs_ekf_gsf[model_index].gyro_bias -= tilt_correction * (_gyro_bias_gain * delta_ang_dt);
 		_ahrs_ekf_gsf[model_index].gyro_bias = matrix::constrain(_ahrs_ekf_gsf[model_index].gyro_bias,
-						       -gyro_bias_limit, gyro_bias_limit);
+						       -ekf2_gyr_b_limit, ekf2_gyr_b_limit);
 	}
 
 	// delta angle from previous to current frame
