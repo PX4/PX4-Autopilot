@@ -55,9 +55,9 @@
 #include "AckermannAttControl/AckermannAttControl.hpp"
 #include "AckermannVelControl/AckermannVelControl.hpp"
 #include "AckermannPosControl/AckermannPosControl.hpp"
-#include "DriveModes/AutoMode/AutoMode.hpp"
-#include "DriveModes/ManualMode/ManualMode.hpp"
-#include "DriveModes/OffboardMode/OffboardMode.hpp"
+#include "AckermannDriveModes/AckermannAutoMode/AckermannAutoMode.hpp"
+#include "AckermannDriveModes/AckermannManualMode/AckermannManualMode.hpp"
+#include "AckermannDriveModes/AckermannOffboardMode/AckermannOffboardMode.hpp"
 
 class RoverAckermann : public ModuleBase<RoverAckermann>, public ModuleParams,
 	public px4::ScheduledWorkItem
@@ -124,9 +124,9 @@ private:
 	AckermannAttControl  _ackermann_att_control{this};
 	AckermannVelControl  _ackermann_vel_control{this};
 	AckermannPosControl  _ackermann_pos_control{this};
-	AutoMode	     _auto_mode{this};
-	ManualMode 	     _manual_mode{this};
-	OffboardMode 	     _offboard_mode{this};
+	AckermannAutoMode	     _auto_mode{this};
+	AckermannManualMode 	     _manual_mode{this};
+	AckermannOffboardMode 	     _offboard_mode{this};
 
 	// Variables
 	bool _sanity_checks_passed{true}; // True if checks for all active controllers pass

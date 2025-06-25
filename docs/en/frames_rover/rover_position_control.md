@@ -4,7 +4,7 @@
 
 ::: warning
 This information applies to the original generic rover module that was derived from the fixed wing controller.
-It has been replaced with new modules for [Ackermann](../frames_rover/ackermann.md) and [Differential-steering](../frames_rover/differential.md) rovers.
+It has been replaced with new modules for [Ackermann](../frames_rover/index.md#ackermann) and [Differential-steering](../frames_rover/index.md#differential) rovers.
 This module is no longer supported and will receive no updates.
 :::
 
