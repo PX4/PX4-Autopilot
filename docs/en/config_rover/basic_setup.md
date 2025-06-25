@@ -1,44 +1,45 @@
 # Basic Setup
 
-## Configure the rover frame and outputs:
+## Configure the rover frame and outputs
 
-   1. Enable Rover support by flashing the [PX4 rover build](../config_rover/index.md#flashing-the-rover-build) onto your flight controller.
-      Note that this is a special build that contains rover-specific modules.
+1. Enable Rover support by flashing the [PX4 rover build](../config_rover/index.md#flashing-the-rover-build) onto your flight controller.
+   Note that this is a special build that contains rover-specific modules.
 
-   2. In the [Airframe](../config/airframe.md) configuration select the your rover type: _Generic Rover Ackermann_/_Generic Rover Differential_/_Generic Rover Mecanum_:
+2. In the [Airframe](../config/airframe.md) configuration select the your rover type: _Generic Rover Ackermann_/_Generic Rover Differential_/_Generic Rover Mecanum_:
 
-      ![QGC screenshot showing selection of the airframe 'Generic ackermann rover'](../../assets/config/airframe/airframe_generic_rover_ackermann.png)
+   ![QGC screenshot showing selection of the airframe 'Generic ackermann rover'](../../assets/config/airframe/airframe_generic_rover_ackermann.png)
 
-      Select the **Apply and Restart** button.
+   Select the **Apply and Restart** button.
 
-      ::: info
-      If this airframe is not displayed and you have checked that you are using rover firmware (not the default), you can alternatively enable this frame by setting the [SYS_AUTOSTART](../advanced_config/parameter_reference.md#SYS_AUTOSTART) parameter directly to the following value:
+   ::: info
+   If this airframe is not displayed and you have checked that you are using rover firmware (not the default), you can alternatively enable this frame by setting the [SYS_AUTOSTART](../advanced_config/parameter_reference.md#SYS_AUTOSTART) parameter directly to the following value:
 
-      | Rover Type   | Value   |
-      | ------------ | ------- |
-      | Ackermann    | `51000` |
-      | Differential | `50000` |
-      | Mecanum      | `52000` |
-      :::
+   | Rover Type   | Value   |
+   | ------------ | ------- |
+   | Ackermann    | `51000` |
+   | Differential | `50000` |
+   | Mecanum      | `52000` |
 
-   3. Open the [Actuators Configuration & Testing](../config/actuators.md) to map the motor/servo functions to flight controller outputs.
+   :::
 
-This already covers the minimum setup required to use the rover in [Manual mode](../flight_modes_rover/manual.md#manual-mode).
+3. Open the [Actuators Configuration & Testing](../config/actuators.md) to map the motor/servo functions to flight controller outputs.
 
-This mode is also affected by (optional) acceleration/deceleration limits.
-As configuration of these limits becomes mandatory later, we do this setup here.
+That is the minimum setup to use the rover in [Manual mode](../flight_modes_rover/manual.md#manual-mode).
 
-Navigate to [Parameters](../advanced_config/parameters.md) in QGroundControl and set the following parameters:
+## Geometric Parameters
 
-## Geometric Paramters
-The geometric parameters are dependant on your rover type:
+Manual mode is also affected by (optional) acceleration/deceleration limits set using the geometric described below.
+These limits are mandatory for all other modes.
 
 ![Geometric parameters](../../assets/config/rover/geometric_parameters.png)
 
+Navigate to [Parameters](../advanced_config/parameters.md) in QGroundControl and set the parameters in the group for your frame type.
+
 ### Ackermann
+
 1. [RA_WHEEL_BASE](#RA_WHEEL_BASE) [m]: Measure the distance from the back to the front wheels.
-1. [RA_MAX_STR_ANG](#RA_MAX_STR_ANG) [deg]: Measure the maximum steering angle.
-1. (Optional) [RA_STR_RATE_LIM](#RA_STR_RATE_LIM) [deg/s]: Maximum steering rate you want to allow for your rover.
+2. [RA_MAX_STR_ANG](#RA_MAX_STR_ANG) [deg]: Measure the maximum steering angle.
+3. (Optional) [RA_STR_RATE_LIM](#RA_STR_RATE_LIM) [deg/s]: Maximum steering rate you want to allow for your rover.
 
    :::tip
    This value depends on your rover and use case.
@@ -53,9 +54,11 @@ The geometric parameters are dependant on your rover type:
    :::
 
 ### Differential
+
 1. [RD_WHEEL_TRACK](#RD_WHEEL_TRACK) [m]: Measure the distance from the centre of the right wheel to the centre of the left wheel.
 
 ### Mecanum
+
 1. [RM_WHEEL_TRACK](#RM_WHEEL_TRACK) [m]: Measure the distance from the centre of the right wheel to the centre of the left wheel.
 
 ## Speed Parameters
@@ -67,7 +70,7 @@ The geometric parameters are dependant on your rover type:
    It will be further adjusted in the [velocity tuning](velocity_tuning.md) step.
    :::
 
-1. (Optional) [RO_ACCEL_LIM](#RO_ACCEL_LIM) [m/s^2]: Maximum acceleration you want to allow for your rover.
+2. (Optional) [RO_ACCEL_LIM](#RO_ACCEL_LIM) [m/s^2]: Maximum acceleration you want to allow for your rover.
 
    <a id="RO_ACCEL_LIM_CONSIDERATIONS"></a>
 
@@ -89,7 +92,7 @@ The geometric parameters are dependant on your rover type:
    3. Set [RO_ACCEL_LIM](#RO_ACCEL_LIM) to the highest value that does not cause the rover to lift up.
       :::
 
-1. (Optional) [RO_DECEL_LIM](#RO_DECEL_LIM) [m/s^2]: Maximum deceleration you want to allow for your rover.
+3. (Optional) [RO_DECEL_LIM](#RO_DECEL_LIM) [m/s^2]: Maximum deceleration you want to allow for your rover.
 
    :::tip
    The same [considerations](#RO_ACCEL_LIM_CONSIDERATIONS) as in the configuration of [RO_ACCEL_LIM](#RO_ACCEL_LIM) apply.
@@ -122,7 +125,6 @@ You can now continue the configuration process with [rate tuning](rate_tuning.md
 | Parameter                                                                                             | Description | Unit |
 | ----------------------------------------------------------------------------------------------------- | ----------- | ---- |
 | <a id="RD_WHEEL_TRACK"></a>[RD_WHEEL_TRACK](../advanced_config/parameter_reference.md#RD_WHEEL_TRACK) | Wheel track | m    |
-
 
 ### Mecanum Specific
 
