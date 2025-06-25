@@ -98,7 +98,10 @@ void INDIController::parameters_updated()
         _rpm_filter[j].setCutoffFrequency(wn_rpm, z_rpm);
     }
 
+    // TODO: Didnt finish!!! Just pasted this in.... Needs imp in .pp and the params file!!!!! deleted max-rpm nonsense and replace the clamping in the Run();
     _max_rpm = _param_indi_max_rpm.get();
+    const float minimum_thrust = flying ? _param_mpc_thr_min.get() : 0.f;
+    _control.setThrustLimits(minimum_thrust, _param_mpc_thr_max.get());
 
     // init G to a small diagonal guess, e.g. G = [G1·diag(ω_f) G2]. Goal is to overwrite via LMS.
     _G = matrix::Matrix<float,3,8>::Zero();
@@ -221,10 +224,11 @@ void INDIController::Run()
     computeINIDelta(nu, dt);
 
     // 7) publish actuator_controls_0 (4 commanded RPMs)
-    actuator_sp.control[0] = _omega_c(0) * (60.0 / 2.0 / M_PI_F) / _max_rpm; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
-    actuator_sp.control[1] = _omega_c(1)* (60.0 / 2.0 / M_PI_F) / _max_rpm; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
-    actuator_sp.control[2] = _omega_c(2)* (60.0 / 2.0 / M_PI_F) / _max_rpm; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
-    actuator_sp.control[3] = _omega_c(3)* (60.0 / 2.0 / M_PI_F) / _max_rpm; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
+    // FIXME: Find max thrust location!!
+    actuator_sp.control[0] = _thrust_c(0) / _max_thrust; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
+    actuator_sp.control[1] = _thrust_c(1) / _max_thrust; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
+    actuator_sp.control[2] = _thrust_c(2) / _max_thrust; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
+    actuator_sp.control[3] = _thrust_c(3) / _max_thrust; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
     actuator_sp.timestamp = hrt_absolute_time();
     _actuator_pub.publish(actuator_sp);
 
@@ -316,8 +320,10 @@ void INDIController::computeINIDelta(const vector::Vector3f &nu, const float dt)
         G_eff_pinv = GtG_inv * Gt;  // result is 4×3
     }
 
-    // Δ = G_eff⁺ * (ν – Ω̇_dot_f)
-    vector::Vector3f diff = (nu - _Omega_dot_f);
+    Vector4f delta_omega = _prev_omega_c - _omega_f;
+
+    // Δ = G_eff⁺ * (ν – Ω̇_dot_f + G2 * prev_delta_omega)
+    vector::Vector3f diff = (nu - _Omega_dot_f + G2_part * _prev_delta_omega);
     vector::Vector4f delta = G_eff_pinv * diff;
 
     // new commanded RPM = ω_f + Δ
@@ -326,8 +332,12 @@ void INDIController::computeINIDelta(const vector::Vector3f &nu, const float dt)
     // saturate/clamp each between [rpm_min, rpm_max]
     const float rpm_min = 0.0f, rpm_max = _param_indi_max_rpm.get() * 60.0 / 2.0/ M_PI_F; // clamp and convert to rad / s from max rpm
     for (int i = 0; i < 4; i++) {
-        _omega_c(i) = math::constrain(_omega_c(i), rpm_min, rpm_max);
+        _omega_c(i) = math::constrain(_omega_c(i), rpm_min, rpm_max);\
+        _thrust_c(i) = ct * (_omega_c(i) ** 2);
     }
+
+    _prev_delta_omega = delta_omega;
+    _prev_omega_c = _omega_c;
 }
 
 //TODO: see if this works and tune the learning gains

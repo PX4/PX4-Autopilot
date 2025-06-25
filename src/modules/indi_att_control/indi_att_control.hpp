@@ -72,7 +72,10 @@ private:
 	matrix::Vector4f	_omega_prev;
 	matrix::Vector4f	_omega_dot_prev;
 
-	matrix::Vector4f	_omega_c;    // commanded motor RPM (output)
+	matrix::Vector4f	_omega_c;    // commanded motor RPM
+	matrix::Vector4f	_thrust_c;	// commanded motor thrust
+	matrix::Vector4f	_prev_delta_omega = Vector4f::zero();
+	matrix::Vector4f	_prev_omega_c = Vector4f::zero();
 
 	// Desired body-rate setpoint:
 	matrix::Quatf _q_sp;
@@ -106,7 +109,8 @@ private:
 	const float Ivx = 0.0238466927,
 	 	    Ivy = 0.0239496175,
 		    Ivz = 0.0439999537; // vehicle inertia
-	float _max_rpm = 10000;
+	float _minimum_thrust;
+	float _max_thrust;
 
 	// LMS adaptation gains: (for later implementation)
 	float	_mu2_roll{1e-4f};
