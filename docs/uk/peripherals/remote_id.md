@@ -158,7 +158,7 @@ To only allow arming when a Remote ID is ready, [set](../advanced_config/paramet
 Це найлегше зробити за допомогою стороннього додатку на вашому мобільному пристрої:
 
 - [Drone Scanner](https://github.com/dronetag/drone-scanner) (Google Play or Apple App store)
-- OpenDroneID OSM (Google Play)
+- [OpenDroneID OSM](https://play.google.com/store/apps/details?id=org.opendroneid.android_osm&hl=en&gl=US) (Google Play)
 
 ## Імплементація
 
