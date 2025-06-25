@@ -599,10 +599,10 @@ void EstimatorChecks::checkGps(const Context &context, Report &reporter, const s
 		 */
 		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
 					    events::ID("check_estimator_gps_jamming_critical"),
-					    events::Log::Critical, "GPS reports jamming detected");
+					    events::Log::Critical, "GPS jamming detected");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports jamming detected\t");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS jamming detected\t");
 		}
 	}
 
@@ -611,10 +611,10 @@ void EstimatorChecks::checkGps(const Context &context, Report &reporter, const s
 		 */
 		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
 					    events::ID("check_estimator_gps_spoofing_indicated"),
-					    events::Log::Critical, "GPS reports spoofing mitigated");
+					    events::Log::Critical, "GPS spoofing mitigated");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports spoofing mitigated\t");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS spoofing mitigated\t");
 		}
 
 	} else if (vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_DETECTED) {
@@ -622,10 +622,10 @@ void EstimatorChecks::checkGps(const Context &context, Report &reporter, const s
 		 */
 		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
 					    events::ID("check_estimator_gps_multiple_spoofing_indicated"),
-					    events::Log::Critical, "GPS reports spoofing detected");
+					    events::Log::Critical, "GPS spoofing detected");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports spoofing detected\t");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS spoofing detected\t");
 		}
 	}
 }

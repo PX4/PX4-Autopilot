@@ -451,9 +451,6 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			sensor_gps.hdop = dop.hDOP;
 			sensor_gps.vdop = dop.vDOP;
 
-			sensor_gps.heading = NAN;
-			sensor_gps.heading_offset = NAN;
-
 			sensor_gps.eph = sqrtf(sq(positionUncertaintyGpsNed.c[0]) + sq(positionUncertaintyGpsNed.c[1]));
 			sensor_gps.epv = positionUncertaintyGpsNed.c[2];
 
