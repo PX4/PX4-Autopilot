@@ -1,4 +1,5 @@
 # Rover Configuration/Tuning
+
 This topic provides a step-by-step guide for setting up your rover.
 
 Successive steps enable [drive modes](../flight_modes_rover/index.md) with more autopilot support and features:
@@ -12,8 +13,7 @@ Successive steps enable [drive modes](../flight_modes_rover/index.md) with more 
 | 5    | [Position Tuning](position_tuning.md) | [Auto modes](../flight_modes_rover/auto.md)                               |
 
 ::: warning
-Each step is dependent on the previous steps having been completed.
-Drive modes will only work properly if the preceding modes have been unlocked.
+A drive mode will only work properly if all the configuration for the preceding modes has been completed.
 :::
 
 ## Flashing the Rover Build

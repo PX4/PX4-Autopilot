@@ -1,7 +1,8 @@
 # Auto Modes
 
 In auto modes the autopilot takes over control of the vehicle to run missions, return to launch, or perform other autonomous navigation tasks.
-For the tuning process see the configuration for [Auto modes](../config_rover/position_tuning.md).
+
+To use auto modes **all** the configuration/tuning steps in [Rover Configuration/Tuning](../config_rover/index.md) must be followed (from [Basic Setup](../config_rover/basic_setup.html) to [Position tuning](../config_rover/position_tuning.md)).
 
 ## Mission Mode
 
