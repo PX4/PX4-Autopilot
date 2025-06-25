@@ -162,7 +162,7 @@ void MulticopterNeuralNetworkControl::ConfigureNeuralFlightMode(int8 mode_id)
 	config_control_setpoints.timestamp = hrt_absolute_time();
 	config_control_setpoints.source_id = mode_id;
 	config_control_setpoints.flag_multicopter_position_control_enabled = false;
-	config_control_setpoints.flag_control_manual_enabled = _param_manual_control.get();
+	config_control_setpoints.flag_control_manual_enabled = false;
 	config_control_setpoints.flag_control_offboard_enabled = false;
 	config_control_setpoints.flag_control_position_enabled = false;
 	//  config_control_setpoints.flag_control_velocity_enabled = true;
@@ -195,7 +195,7 @@ void MulticopterNeuralNetworkControl::ReplyToArmingCheck(int8 request_id)
 	arming_check_reply.mode_req_mission = false;
 	arming_check_reply.mode_req_global_position = false;
 	arming_check_reply.mode_req_prevent_arming = false;
-	arming_check_reply.mode_req_manual_control = _param_manual_control.get();
+	arming_check_reply.mode_req_manual_control = false;
 	_arming_check_reply_pub.publish(arming_check_reply);
 }
 

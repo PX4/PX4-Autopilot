@@ -73,11 +73,3 @@ PARAM_DEFINE_INT32(MC_NN_MIN_RPM, 1000);
  */
 PARAM_DEFINE_FLOAT(MC_NN_THRST_COEF, 1.2f);
 
-/**
- * If true the neural network controller setpoint can be changed with manual sticks
- *
- * @boolean
- * @reboot_required true
- * @group Neural Control
- */
-PARAM_DEFINE_INT32(MC_NN_MAN_CTRL, 0);
