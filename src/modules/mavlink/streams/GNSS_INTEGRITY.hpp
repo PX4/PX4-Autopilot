@@ -74,7 +74,6 @@ private:
 			msg.jamming_state = gps.jamming_state;
 			msg.spoofing_state = gps.spoofing_state;
 
-			msg.raim_state = 0;
 			msg.raim_hfom = UINT16_MAX;
 			msg.raim_vfom = UINT16_MAX;
 
@@ -84,6 +83,7 @@ private:
 			return true;
 
 		} else if (_last_send_ts != 0 && (now = hrt_absolute_time()) > _last_send_ts + kNoGpsSendInterval) {
+
 			msg.raim_hfom = UINT16_MAX;
 			msg.raim_vfom = UINT16_MAX;
 
