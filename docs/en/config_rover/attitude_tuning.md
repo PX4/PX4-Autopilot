@@ -1,10 +1,12 @@
 # Attitude Tuning
 
+Attitude tuning is required to use [Stabilized mode](../flight_modes_rover/manual.md#stabilized-mode) and all later modes.
+
 ::: warning
 The [rate tuning](rate_tuning.md) must've already been completed before this step!
 :::
 
-To tune the attitude controller and unlock [Stabilized mode](../flight_modes_rover/manual.md#stabilized-mode) configure the following [parameters](../advanced_config/parameters.md) in QGroundControl:
+Configure the following [parameters](../advanced_config/parameters.md) in QGroundControl:
 
 1. [RO_YAW_P](#RO_YAW_P) [-]: Proportional gain for the closed loop yaw controller.
 

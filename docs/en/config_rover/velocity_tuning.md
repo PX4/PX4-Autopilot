@@ -4,7 +4,7 @@
 The [attitude tuning](attitude_tuning.md) must've already been completed before this step!
 :::
 
-:::note
+::: info
 To tune we will be using the manual [Position mode](../flight_modes_rover/manual.md#position-mode).
 This mode requires a global position estimate (GPS) and tuning of some parameters that go beyond the velocity controller.
 If you use a custom external flight mode that controls velocity but does not require a global position estimate you can ignore the [manual position mode parameters](#manual-position-mode-parameters).
@@ -16,7 +16,7 @@ To tune the velocity controller configure the following [parameters](../advanced
 
 1. [RO_SPEED_LIM](#RO_SPEED_LIM) [m/s]: This is the maximum speed you want to allow for your rover.
    This will define the stick-to-speed mapping for [Position mode](../flight_modes_rover/manual.md#position-mode) and set an upper limit for the speed setpoint.
-1. [RO_MAX_THR_SPEED](#RO_MAX_THR_SPEED) [m/s]: This parameter is used to calculate the feed-forward term of the closed loop speed control which linearly maps desired speeds to normalized motor commands.
+2. [RO_MAX_THR_SPEED](#RO_MAX_THR_SPEED) [m/s]: This parameter is used to calculate the feed-forward term of the closed loop speed control which linearly maps desired speeds to normalized motor commands.
    As mentioned in the [Manual mode](../flight_modes_rover/manual.md#manual-mode) configuration , a good starting point is the observed ground speed when the rover drives at maximum throttle in [Manual mode](../flight_modes_rover/manual.md#manual-mode).
 
    <a id="RA_SPEED_TUNING"></a>
@@ -37,20 +37,20 @@ To tune the velocity controller configure the following [parameters](../advanced
    If your rover oscillates when driving a straight line in [Position mode](../flight_modes_rover/manual.md#position-mode), set this parameter to the observed ground speed at maximum throttle in [Manual mode](../flight_modes_rover/manual.md#manual-mode) and complete the tuning of the [manual position mode parameters](#manual-position-mode-parameters) first before continuing the tuning of the closed loop speed control.
    :::
 
-2. [RO_SPEED_P](#RO_SPEED_P) [-]: Proportional gain of the closed loop speed controller.
+3. [RO_SPEED_P](#RO_SPEED_P) [-]: Proportional gain of the closed loop speed controller.
 
    ::: tip
    This parameter can be tuned the same way as [RO_MAX_THR_SPEED](#RA_SPEED_TUNING).
    If you tuned [RO_MAX_THR_SPEED](#RO_MAX_THR_SPEED) well, you might only need a very small value.
    :::
 
-3. [RO_SPEED_I](#RO_SPEED_I) [-]: Integral gain for the closed loop speed controller.
+4. [RO_SPEED_I](#RO_SPEED_I) [-]: Integral gain for the closed loop speed controller.
 
    ::: tip
    For the closed loop speed control an integrator gain is useful because this setpoint is often constant for a while and an integrator eliminates steady state errors that can cause the rover to never reach the setpoint.
    :::
 
-4. (Advanced) [RO_SPEED_TH](#RO_SPEED_TH) [m/s]: The minimum threshold for the speed measurement not to be interpreted as zero.
+5. (Advanced) [RO_SPEED_TH](#RO_SPEED_TH) [m/s]: The minimum threshold for the speed measurement not to be interpreted as zero.
    This can be used to cut off measurement noise when the rover is standing still.
 
 ## Manual Position Mode Parameters
@@ -91,6 +91,7 @@ The rover is now ready to drive in [Position mode](../flight_modes_rover/manual.
 This section provides additional information for developers and people with experience in control system design.
 
 The velocity vector is defined by the following two values:
+
 1. The absolute speed [$m/s$]
 2. The direction (bearing) [$rad$]
 
@@ -105,20 +106,20 @@ For ackermann and differential rovers the bearing is aligned with the vehicle ya
 For mecanum vehicles, the bearing and yaw are decoupled. The direction is controlled by splitting the velocity vector into one speed component in body x direction and one in body y direction.
 Both these setpoint are then sent to their own closed loop speed controllers.
 
-## Parmeter Overview
+## Parameter Overview
 
-| Parameter                                                                                                   | Description                                                                    | Unit    |
-| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------- |
-| <a id="RO_MAX_THR_SPEED"></a>[RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED) | Speed the rover drives at maximum throttle                                     | $m/s$   |
-| <a id="RO_SPEED_LIM"></a>[RO_SPEED_LIM](../advanced_config/parameter_reference.md#RO_SPEED_LIM)             | Maximum allowed speed                                                          | $m/s$   |
-| <a id="RO_SPEED_P"></a>[RO_SPEED_P](../advanced_config/parameter_reference.md#RO_SPEED_P)                   | Proportional gain for speed controller                                         | -       |
-| <a id="RO_SPEED_I"></a>[RO_SPEED_I](../advanced_config/parameter_reference.md#RO_SPEED_I)                   | Integral gain for speed controller                                             | -       |
-| <a id="RO_SPEED_TH"></a>[RO_SPEED_TH](../advanced_config/parameter_reference.md#RO_SPEED_TH)                | (Advanced) Speed measurement threshold                                         | $m/s$   |
+| Parameter                                                                                                   | Description                                | Unit  |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ----- |
+| <a id="RO_MAX_THR_SPEED"></a>[RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED) | Speed the rover drives at maximum throttle | $m/s$ |
+| <a id="RO_SPEED_LIM"></a>[RO_SPEED_LIM](../advanced_config/parameter_reference.md#RO_SPEED_LIM)             | Maximum allowed speed                      | $m/s$ |
+| <a id="RO_SPEED_P"></a>[RO_SPEED_P](../advanced_config/parameter_reference.md#RO_SPEED_P)                   | Proportional gain for speed controller     | -     |
+| <a id="RO_SPEED_I"></a>[RO_SPEED_I](../advanced_config/parameter_reference.md#RO_SPEED_I)                   | Integral gain for speed controller         | -     |
+| <a id="RO_SPEED_TH"></a>[RO_SPEED_TH](../advanced_config/parameter_reference.md#RO_SPEED_TH)                | (Advanced) Speed measurement threshold     | $m/s$ |
 
 ### Pure Pursuit
 
-| Parameter                                                                                                | Description                                                                   | Unit |
-| -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ---- |
-| <a id="PP_LOOKAHD_GAIN"></a>[PP_LOOKAHD_GAIN](../advanced_config/parameter_reference.md#PP_LOOKAHD_GAIN) | Pure pursuit: Main tuning parameter                                           | -    |
-| <a id="PP_LOOKAHD_MAX"></a>[PP_LOOKAHD_MAX](../advanced_config/parameter_reference.md#PP_LOOKAHD_MAX)    | Pure pursuit: Maximum value for the look ahead radius                         | m    |
-| <a id="PP_LOOKAHD_MIN"></a>[PP_LOOKAHD_MIN](../advanced_config/parameter_reference.md#PP_LOOKAHD_MIN)    | Pure pursuit: Minimum value for the look ahead radius                         | m    |
+| Parameter                                                                                                | Description                                           | Unit |
+| -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ---- |
+| <a id="PP_LOOKAHD_GAIN"></a>[PP_LOOKAHD_GAIN](../advanced_config/parameter_reference.md#PP_LOOKAHD_GAIN) | Pure pursuit: Main tuning parameter                   | -    |
+| <a id="PP_LOOKAHD_MAX"></a>[PP_LOOKAHD_MAX](../advanced_config/parameter_reference.md#PP_LOOKAHD_MAX)    | Pure pursuit: Maximum value for the look ahead radius | m    |
+| <a id="PP_LOOKAHD_MIN"></a>[PP_LOOKAHD_MIN](../advanced_config/parameter_reference.md#PP_LOOKAHD_MIN)    | Pure pursuit: Minimum value for the look ahead radius | m    |
