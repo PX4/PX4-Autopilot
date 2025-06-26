@@ -67,6 +67,7 @@
 #include "arm_internal.h"
 #include "arm_internal.h"
 #include "imxrt_flexspi_nor_boot.h"
+#include <px4_arch/imxrt_flexspi_nor_flash.h>
 #include "imxrt_iomuxc.h"
 #include "imxrt_flexcan.h"
 #include "imxrt_enet.h"
@@ -144,6 +145,30 @@ __EXPORT void board_on_reset(int status)
 	}
 }
 
+/****************************************************************************
+ * Name: imxrt_flash_romapi_initialize
+ *
+ * Description:
+ *
+ ****************************************************************************/
+struct flexspi_nor_config_s g_bootConfig;
+
+locate_code(".ramfunc")
+void imxrt_flash_romapi_initialize(void)
+{
+	memcpy((struct flexspi_nor_config_s *)&g_bootConfig, &g_flash_config,
+	       sizeof(struct flexspi_nor_config_s));
+	g_bootConfig.memConfig.tag = FLEXSPI_CFG_BLK_TAG;
+
+	ROM_API_Init();
+
+	ROM_FLEXSPI_NorFlash_Init(0, (struct flexspi_nor_config_s *)&g_bootConfig);
+	ROM_FLEXSPI_NorFlash_ClearCache(0);
+
+	ARM_DSB();
+	ARM_ISB();
+	ARM_DMB();
+}
 
 locate_code(".ramfunc")
 void imxrt_flash_setup_prefetch_partition(void)
