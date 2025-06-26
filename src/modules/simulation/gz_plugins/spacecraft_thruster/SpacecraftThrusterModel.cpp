@@ -96,6 +96,11 @@ public: double samplingTime = 0.01;
 	/// \brief Actuator maximum thrust
 public: double maxThrust = 0.0;
 
+	/// \brief Maximum duty cycle value. Use the same value as in PX4
+	/// maximum PWM_<channel>_MAXi value. For the thruster, it is assumed
+	/// that the minimum value is 0 (solenoid closed).
+public: double maxDutyCycle = 10000.0;
+
 	/// \brief Received Actuators message. This is nullopt if no message has been
 	/// received.
 public: std::optional<msgs::Actuators> recvdActuatorsMsg;
@@ -174,6 +179,20 @@ void SpacecraftThrusterModel::Configure(const Entity &_entity,
 	} else {
 		gzerr << "Please specify actuator "
 		      << this->dataPtr->actuatorNumber << " duty_cycle_frequency.\n";
+	}
+
+	if(sdfClone->HasElement("max_duty_cycle")) {
+		this->dataPtr->maxDutyCycle =
+			sdfClone->GetElement("max_duty_cycle")->Get<double>();
+
+		if (this->dataPtr->maxDutyCycle <= 0.0) {
+			gzerr << "Please specify a positive max_duty_cycle.\n";
+			return;
+		}
+
+	} else {
+		gzerr << "Please specify actuator "
+		      << this->dataPtr->actuatorNumber << " max_duty_cycle.\n";
 	}
 
 	std::string topic;
@@ -295,6 +314,9 @@ void SpacecraftThrusterModelPrivate::UpdateForcesAndMoments(
 	} else {
 		return;
 	}
+	// Normalize input
+	double normalizedInput =
+		msg->velocity(this->actuatorNumber) / this->maxDutyCycle;
 
 	// METHOD:
 	//
@@ -309,8 +331,7 @@ void SpacecraftThrusterModelPrivate::UpdateForcesAndMoments(
 	// b: sampling time
 	// c: target duty cycle
 	// d: cycle period
-	double targetDutyCycle =
-		msg->velocity(this->actuatorNumber) * (1.0 / this->dutyCycleFrequency);
+	double targetDutyCycle = normalizedInput * (1.0 / this->dutyCycleFrequency);
 
 	if (this->actuatorNumber == 0)
 		gzdbg << this->actuatorNumber
