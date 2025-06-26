@@ -9,13 +9,11 @@ on:
       - 'main'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
   pull_request:
     branches:
       - '*'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
 
 jobs:
   check_itcm:
