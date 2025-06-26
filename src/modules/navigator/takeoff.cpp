@@ -43,7 +43,8 @@
 #include <px4_platform_common/events.h>
 
 Takeoff::Takeoff(Navigator *navigator) :
-	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF)
+	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF),
+	ModuleParams(navigator)
 {
 }
 
@@ -54,41 +55,109 @@ Takeoff::on_activation()
 
 	// reset cruising speed to default
 	_navigator->reset_cruising_speed();
+
+	_fw_takeoff_state = fw_takeoff_state::CLIMBOUT; // only used for fixed-wing takeoff
 }
 
 void
 Takeoff::on_active()
 {
-	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
+	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 
-	if (rep->current.valid) {
-		// reset the position
-		set_takeoff_position();
+		switch (_fw_takeoff_state) {
+		case fw_takeoff_state::CLIMBOUT: {
+				if (_navigator->get_local_position()->z < _climbout_alt_z) {
 
-	} else if (is_mission_item_reached_or_completed() && !_navigator->get_mission_result()->finished) {
-		_navigator->get_mission_result()->finished = true;
-		_navigator->set_mission_result_updated();
-		_navigator->mode_completed(getNavigatorStateId());
+					setLoiterItemCommonFields(&_mission_item);
 
-		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+					_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 
-		// set loiter item so position controllers stop doing takeoff logic
-		if (_navigator->get_land_detected()->landed) {
-			_mission_item.nav_cmd = NAV_CMD_IDLE;
+					position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-		} else {
-			if (pos_sp_triplet->current.valid
-			    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-				setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
+					// we need the vehicle to loiter indefinitely but also we want this mission item to be reached as soon
+					// as the loiter is established. therefore, set a small loiter time so that the mission item will be reached quickly,
+					// however it will just continue loitering as there is no next mission item
+					_mission_item.time_inside = 1.f;
+					_mission_item.loiter_radius = _navigator->get_loiter_radius();
+					_mission_item.acceptance_radius  = _navigator->get_acceptance_radius();
+					_mission_item.altitude = _navigator->get_local_position()->ref_alt - _loiter_height_z;
 
-			} else {
-				setLoiterItemFromCurrentPosition(&_mission_item);
+					mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+					pos_sp_triplet->current.lat = _loiter_position_lat_lon(0) > DBL_EPSILON ?
+								      _loiter_position_lat_lon(0) : _navigator->get_global_position()->lat;
+					pos_sp_triplet->current.lon = _loiter_position_lat_lon(1) > DBL_EPSILON ?
+								      _loiter_position_lat_lon(1) : _navigator->get_global_position()->lon;
+					pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+					pos_sp_triplet->current.cruising_speed = -1.f;
+					pos_sp_triplet->current.cruising_throttle = -1.f;
+
+					_mission_item.lat = pos_sp_triplet->current.lat;
+					_mission_item.lon = pos_sp_triplet->current.lon;
+
+					_navigator->set_position_setpoint_triplet_updated();
+
+					reset_mission_item_reached();
+
+					_fw_takeoff_state = fw_takeoff_state::GO_TO_LOITER;
+					_climbout_alt_z = NAN; // reset for next takeoff command
+				}
+
+				break;
 			}
+
+		case fw_takeoff_state::GO_TO_LOITER: {
+
+				// consider reached once above the altitude acceptance radius of the loiter altitude
+				if (_navigator->get_local_position()->z < _loiter_height_z + _navigator->get_altitude_acceptance_radius()) {
+
+					position_setpoint_triplet_s *reposition_triplet = _navigator->get_reposition_triplet();
+					_navigator->reset_position_setpoint(reposition_triplet->previous);
+					_navigator->reset_position_setpoint(reposition_triplet->current);
+					_navigator->reset_position_setpoint(reposition_triplet->next);
+
+					// the FW takeoff mode is completed, exit to Hold (handled by Commander)
+					_navigator->get_mission_result()->finished = true;
+					_navigator->set_mission_result_updated();
+					_navigator->mode_completed(getNavigatorStateId());
+
+					_loiter_height_z = NAN; // reset for next takeoff command
+				}
+
+				break;
+			}
+
+		default:
+			break;
 		}
 
-		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+	} else { // rotary-wing takeoff
+		struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
 
-		_navigator->set_position_setpoint_triplet_updated();
+		if (rep->current.valid) {
+			// reset the position
+			set_takeoff_position();
+
+		} else if (is_mission_item_reached_or_completed() && !_navigator->get_mission_result()->finished) {
+			_navigator->get_mission_result()->finished = true;
+			_navigator->set_mission_result_updated();
+			_navigator->mode_completed(getNavigatorStateId());
+
+			position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+			// set loiter item so position controllers stop doing takeoff logic
+			if (_navigator->get_land_detected()->landed) {
+				_mission_item.nav_cmd = NAV_CMD_IDLE;
+
+			} else {
+				if (pos_sp_triplet->current.valid
+				    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+					setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
+				}
+			}
+
+			mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+			_navigator->set_position_setpoint_triplet_updated();
+		}
 	}
 }
 
@@ -97,13 +166,21 @@ Takeoff::set_takeoff_position()
 {
 	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
 
-	float takeoff_altitude_amsl = 0.f;
+	_takeoff_init_z = _navigator->get_local_position()->z;
+	const float alt_ref = PX4_ISFINITE(_navigator->get_local_position()->ref_alt) ?
+			      _navigator->get_local_position()->ref_alt : 0.f;
 
-	if (rep->current.valid && PX4_ISFINITE(rep->current.alt)) {
-		takeoff_altitude_amsl = rep->current.alt;
+	float takeoff_setpoint_z = 0.f;
+
+	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+	    && _param_tko_clmb_out_alt.get() > FLT_EPSILON) {
+		takeoff_setpoint_z = - (_param_tko_clmb_out_alt.get() - _takeoff_init_z);
+
+	} else if (rep->current.valid && PX4_ISFINITE(rep->current.alt)) {
+		takeoff_setpoint_z = - (rep->current.alt - alt_ref);
 
 	} else {
-		takeoff_altitude_amsl = _navigator->get_global_position()->alt + _navigator->get_param_mis_takeoff_alt();
+		takeoff_setpoint_z = - (_navigator->get_param_mis_takeoff_alt() - _takeoff_init_z);
 		mavlink_log_info(_navigator->get_mavlink_log_pub(),
 				 "Using default takeoff altitude: %.1f m\t", (double)_navigator->get_param_mis_takeoff_alt());
 
@@ -112,16 +189,27 @@ Takeoff::set_takeoff_position()
 				    _navigator->get_param_mis_takeoff_alt());
 	}
 
-	if (takeoff_altitude_amsl < _navigator->get_global_position()->alt) {
+	if (takeoff_setpoint_z > _takeoff_init_z) {
 		// If the suggestion is lower than our current alt, let's not go down.
-		takeoff_altitude_amsl = _navigator->get_global_position()->alt;
+		takeoff_setpoint_z = _takeoff_init_z;
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already higher than takeoff altitude\t");
 		events::send(events::ID("navigator_takeoff_already_higher"), {events::Log::Error, events::LogInternal::Info},
 			     "Already higher than takeoff altitude (not descending)");
 	}
 
+	_climbout_alt_z = takeoff_setpoint_z; // only for FW takeoff
+
+	if (!PX4_ISFINITE(_loiter_height_z)) {
+		if (_navigator->get_loiter_min_alt() > FLT_EPSILON) {
+			_loiter_height_z = - (_navigator->get_loiter_min_alt() - _takeoff_init_z);
+
+		} else {
+			_loiter_height_z = takeoff_setpoint_z;
+		}
+	}
+
 	// set current mission item to takeoff
-	set_takeoff_item(&_mission_item, takeoff_altitude_amsl);
+	set_takeoff_item(&_mission_item, alt_ref - takeoff_setpoint_z);
 	_navigator->get_mission_result()->finished = false;
 	_navigator->set_mission_result_updated();
 	reset_mission_item_reached();
@@ -150,4 +238,15 @@ Takeoff::set_takeoff_position()
 	}
 
 	_navigator->set_position_setpoint_triplet_updated();
+}
+
+void
+Takeoff::setLoiterAltitudeLocalZ(const float height_m)
+{
+	if (PX4_ISFINITE(_navigator->get_local_position()->ref_alt)) {
+		_loiter_height_z = - (height_m - _navigator->get_local_position()->ref_alt);
+
+	} else {
+		_loiter_height_z = - height_m;
+	}
 }
