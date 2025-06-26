@@ -75,7 +75,11 @@ Which timing library is included and used is based on wether PX4 is built with N
 
 ## Changing the setpoint
 
-The module uses the [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) message’s position fields to define its target. To follow a trajectory, you can send updated setpoints. For an example of how to do this in a px4 module, see the [mc_nn_testing](https://github.com/SindreMHegre/PX4-Autopilot-public/tree/main/src/modules/mc_nn_testing) module in this fork. Note that this is not included in upstream PX4. To use it, copy the module folder from the linked repository into your workspace, and enable it by adding the following line to your `.px4board` file:
+The module uses the [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) message’s position fields to define its target.
+To follow a trajectory, you can send updated setpoints.
+For an example of how to do this in a PX4 module, see the [mc_nn_testing](https://github.com/SindreMHegre/PX4-Autopilot-public/tree/main/src/modules/mc_nn_testing) module in this fork.
+Note that this is not included in upstream PX4.
+To use it, copy the module folder from the linked repository into your workspace, and enable it by adding the following line to your `.px4board` file:
 
 ```sh
 CONFIG_MODULES_MC_NN_TESTING=y
