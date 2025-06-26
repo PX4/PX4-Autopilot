@@ -1,27 +1,23 @@
 # DATAGNSS GEM1305 RTK Receiver with antenna
 
-GEM1305 is a RTK receiver with antenna designed and manufactured by [DATAGNSS](https://www.datagnss.com/).
+GEM1305 is an [RTK GNSS](../gps_compass/rtk_gps.md) receiver with antenna designed and manufactured by [DATAGNSS](https://www.datagnss.com/).
 
 GEM1305 is based on the new generation CYNOSURE IV dual-core GNSS SoC.
 It supports RTK functionality with a maximum data update rate of 10Hz, and comes with cables for connecting to GPS ports on most Pixhawk devices.
 
-GEM1305 supports base and rover options.
+GEM1305 supports both base and rover options.
 
-GEM1305 is equipped with an IST8310 compass.
-
-<img src="../../assets/hardware/gps/datagnss_gem1305/datagnss-gem1305-02.png" width="500px" alt="DATAGNSS GEM1305 RTK Receiver">
+![DATAGNSS GEM1305 RTK Receiver](../../assets/hardware/gps/datagnss_gem1305/datagnss-gem1305-02.png)
 
 ::: info
-
-- GEM1305 RTK doesn't support moving base mode yet.
-
+GEM1305 RTK doesn't (yet) support moving base mode.
 :::
 
 ## Where to Buy
 
 - [GEM1305 RTK receiver with antenna](https://www.datagnss.com/collections/gnss-for-drone/products/gem1305) (www.datagnss.com)
 
-  <img src="../../assets/hardware/gps/datagnss_gem1305/gem1305_hero.png" width="500px" alt="DATAGNSS GEM1305 RTK Receiver">
+  ![DATAGNSS GEM1305 RTK Receiver](../../assets/hardware/gps/datagnss_gem1305/gem1305_hero.png)
 
 - [DGM10 RTK Receiver](https://www.datagnss.com/collections/gnss-for-drone/products/dgm10-rtk-receiver) (same receiver in a casing).
 
@@ -31,6 +27,7 @@ GEM1305 is equipped with an IST8310 compass.
 
 - Full constellation, multi-frequency GNSS satellite receiver
 - Support RTK with up to 10hz output rate
+- IST8310 compass
 - Standard UART serial interface
 - Lightweight only 50g or 26g(NANO RTK receiver)
 - High performance antenna

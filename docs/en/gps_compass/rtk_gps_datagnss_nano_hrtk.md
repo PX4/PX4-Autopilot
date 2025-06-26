@@ -6,9 +6,7 @@ It is a high performance dual-band RTK receiver with compass, which is based on 
 
 NANO HRTK receiver support compass. It is designed for UAV, RTK, and other applications.
 
-<img src="../../assets/hardware/gps/datagnss_nano_hrtk/NANO-HRTK-case-400x.png" width="400px" alt="DATAGNSS NANO HRTK Receiver">
-
-<img src="../../assets/hardware/gps/datagnss_nano_hrtk/NANO-HRTK-ANTENNA-600x.png" width="600px" alt="DATAGNSS NANO HRTK Receiver">
+![DATAGNSS NANO HRTK Receiver](../../assets/hardware/gps/datagnss_nano_hrtk/nano_hrtk_case.png)![DATAGNSS NANO HRTK Antenna](../../assets/hardware/gps/datagnss_nano_hrtk/nano_hrtk_antenna.png)
 
 ::: info
 
@@ -20,9 +18,6 @@ NANO HRTK receiver support compass. It is designed for UAV, RTK, and other appli
 ## Where to Buy
 
 - [NANO HRTK receiver](https://www.datagnss.com/collections/gnss-for-drone/products/nano-helix-rtk-receiver) (www.datagnss.com)
-
-  <img src="../../assets/hardware/gps/datagnss_nano_hrtk/NANO-HRTK-case-400x.png" width="300px" alt="DATAGNSS NANO HRTK Receiver">
-
 
 ## Key Features
 
@@ -47,7 +42,7 @@ NANO HRTK receiver support compass. It is designed for UAV, RTK, and other appli
 
 ## Interface
 
-- UART *2 : 230400bps default
+- UART \*2 : 230400bps default
 - SMA connector for antenna
 - Output rate 5Hz default, up to 10Hz
 - Main power supply: 4.7~5.2V
@@ -70,11 +65,11 @@ NANO HRTK receiver support compass. It is designed for UAV, RTK, and other appli
 
 The board is connected to the autopilot via UART interface.
 
-![NANO HRTK Receiver](../../assets/hardware/gps/datagnss_nano_hrtk/nano-hrtk-rcv-line-400.png)
+![NANO HRTK Receiver](../../assets/hardware/gps/datagnss_nano_hrtk/nano_hrtk_rcv_line_drawing.png)
 
 The 1.25mm pitch 6P connector supports UART for GNSS and I2C for compass.
 
-![PINOUT](../../assets/hardware/gps/datagnss_nano_hrtk/HELIX-RTK-PINOUT.png)
+![PINOUT](../../assets/hardware/gps/datagnss_nano_hrtk/helix_rtk_pinout.png)
 
 ## Hardware Setup
 
@@ -93,7 +88,7 @@ The base station connections are shown in the diagram below, along with the conn
 
 Note that for the base we recommend the [NANO RTK Receiver](https://www.datagnss.com/collections/gnss-for-drone/products/multi-band-rtk-receiver-package) because it is easier to setup.
 
-<img src="../../assets/hardware/gps/datagnss_gem1305/nano_rtk_with_case.png" width="500px" alt="DATAGNSS NANO RTK Receiver">
+![DATAGNSS NANO RTK Receiver with case](../../assets/hardware/gps/datagnss_gem1305/nano_rtk_with_case.png)
 
 See to [How to setup Base station](https://wiki.datagnss.com/index.php/GEM1305-autopilot#Base_station_setup) for information on how to configure the module for use as a base station (not including step 6 and later, for which you would QGroundControl instead of Mission Planner).
 
@@ -101,7 +96,7 @@ See to [How to setup Base station](https://wiki.datagnss.com/index.php/GEM1305-a
 
 The rover setup showing connections to a GPS port and the (required) connection to a telemetry radio are shown in the diagram below.
 
-![Rover module and pixhawk big picture connections](../../assets/hardware/gps/datagnss_nano_hrtk/rover_gnss_setup.png)
+![Rover module and Pixhawk big picture connections](../../assets/hardware/gps/datagnss_nano_hrtk/rover_gnss_setup.png)
 
 The diagram below shows the wiring from the `GPS2` port on the Pixhawk 6c flight controller.
 Note that an appropriate cable is supplied for this purpose.
