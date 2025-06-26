@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,7 +65,6 @@
 #include <nuttx/mm/gran.h>
 
 #include "arm_internal.h"
-#include "arm_internal.h"
 #include "imxrt_flexspi_nor_boot.h"
 #include <px4_arch/imxrt_flexspi_nor_flash.h>
 #include "imxrt_iomuxc.h"
@@ -85,9 +84,11 @@
 #include <drivers/drv_board_led.h>
 #include <systemlib/px4_macros.h>
 #include <px4_arch/io_timer.h>
+#include <px4_arch/imxrt_romapi.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_dma_alloc.h>
+#include <px4_platform/board_determine_hw_info.h>
 
 /* Configuration ************************************************************/
 
@@ -232,6 +233,8 @@ __EXPORT void imxrt_boardinitialize(void)
 {
 	imxrt_flash_setup_prefetch_partition();
 
+	imxrt_flash_romapi_initialize();
+
 	board_on_reset(-1); /* Reset PWM first thing */
 
 	/* configure LEDs */
@@ -242,10 +245,6 @@ __EXPORT void imxrt_boardinitialize(void)
 
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	px4_gpio_init(gpio, arraySize(gpio));
-
-	/* configure SPI interfaces */
-
-	imxrt_spidev_initialize();
 
 	imxrt_usb_initialize();
 
@@ -355,13 +354,19 @@ void imxrt_flexio_clocking(void)
  ****************************************************************************/
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
+	int ret = OK;
+
+#if !defined(BOOTLOADER)
+
 	imxrt_flexio_clocking();
 
 	/* Power on Interfaces */
 
-	board_spi_reset(10, 0xffff);
-
 	px4_platform_init();
+
+	imxrt_spiinitialize();
+
+	board_determine_hw_info();
 
 	/* configure the DMA allocator */
 
@@ -375,14 +380,13 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)imxrt_serial_dma_poll, NULL);
 #endif
 
-	int ret = OK;
 #if defined(CONFIG_IMXRT_USDHC)
 	ret = fmurt1062_usdhc_initialize();
 #endif
 
-	/* Configure SPI-based devices */
+	imxrt_spiinitialize();
 
-	ret = imxrt1062_spi_bus_initialize();
+	board_spi_reset(10, 0xffff);
 
 #ifdef CONFIG_IMXRT_ENET
 	imxrt_netinitialize(0);
@@ -392,7 +396,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	imxrt_caninitialize(3);
 #endif
 
-#ifdef CONFIG_IMXRT_FLEXSPI
 	ret = imxrt_flexspi_storage_initialize();
 
 	if (ret < 0) {
@@ -400,7 +403,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		       "ERROR: imxrt_flexspi_nor_initialize failed: %d\n", ret);
 	}
 
-#endif
+#endif /* !defined(BOOTLOADER) */
 
 	return ret;
 }

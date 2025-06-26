@@ -80,6 +80,13 @@ SECTIONS
     {
         _stext = ABSOLUTE(.);
         *(.vectors)
+	. = ALIGN(32);
+	/*
+	This signature provides the bootloader with a way to delay booting
+	*/
+	_bootdelay_signature = ABSOLUTE(.);
+	FILL(0xffecc2925d7d05c5)
+	. += 8;
         *(.text .text.*)
         *(.fixup)
         *(.gnu.warning)
@@ -162,6 +169,10 @@ SECTIONS
     .debug_line 0 : { *(.debug_line) }
     .debug_pubnames 0 : { *(.debug_pubnames) }
     .debug_aranges 0 : { *(.debug_aranges) }
+
+    _boot_loadaddr = ORIGIN(flash);
+    _boot_size = LENGTH(flash);
+    _ram_size = LENGTH(sram);
     _sdtcm = ORIGIN(dtcm);
     _edtcm = ORIGIN(dtcm) + LENGTH(dtcm);
 }

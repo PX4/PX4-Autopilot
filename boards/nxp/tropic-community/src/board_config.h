@@ -112,7 +112,6 @@
 
 #define GPIO_DRDY_OFF_SPI4_DRDY7_EXTERNAL1   _PIN_OFF(GPIO_SPI4_DRDY7_EXTERNAL1)
 
-
 #define ADC_IOMUX (IOMUX_CMOS_INPUT | IOMUX_PULL_NONE | IOMUX_DRIVE_HIZ)
 
 #define ADC1_CH(n)                  (n)
@@ -262,6 +261,18 @@ static inline int board_read_usb2_vbus_state(void)
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
+
+/* To detect IMU */
+#define BOARD_HAS_HW_VERSIONING  1
+#define BOARD_HAS_HW_SPLIT_VERSIONING 1
+#define HW_INFO_INIT_PREFIX    "TROPIC"
+
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 3
+//                 Base/FMUM
+#define TROPIC_0   HW_FMUM_ID(0x0) // ICM42688
+#define TROPIC_1   HW_FMUM_ID(0x1) // ICM42688
+#define TROPIC_2   HW_FMUM_ID(0x2) // ICM45686
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
@@ -316,6 +327,8 @@ extern int imxrt1062_spi_bus_initialize(void);
  *
  ************************************************************************************/
 
+extern void imxrt_spiinitialize(void);
+
 extern int imxrt_usb_initialize(void);
 
 extern void imxrt_usbinitialize(void);
@@ -325,6 +338,8 @@ extern void board_peripheral_reset(int ms);
 extern void fmurt1062_timer_initialize(void);
 
 #include <px4_platform_common/board_common.h>
+
+void imxrt_flash_romapi_initialize(void);
 
 int imxrt_flexspi_storage_initialize(void);
 

@@ -30,28 +30,57 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
+	add_compile_definitions(BOOTLOADER)
+	add_library(drivers_board
+		bootloader_main.c
+		init.c
+		usb.c
+		imxrt_flexspi_nor_boot.c
+		imxrt_flexspi_nor_flash.c
+		timer_config.cpp
+	)
+	target_link_libraries(drivers_board
+		PRIVATE
+			nuttx_arch # sdio
+			nuttx_drivers # sdio
+			px4_layer #gpio
+			arch_io_pins # iotimer
+			arch_board_romapi
+			bootloader
+	)
+	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/bootloader/common)
 
-px4_add_library(drivers_board
-	i2c.cpp
-	init.c
-	sdhc.c
-	spi.cpp
-	timer_config.cpp
-	tropic_led_pwm.cpp
-	usb.c
-	imxrt_flexspi_nor_boot.c
-	imxrt_flexspi_nor_flash.c
-	imxrt_flexspi_storage.c
-	imxrt_ocram_initialize.c
-)
+else()
 
-# Force compiler not to use builtin functions (like memcpy)
-# to optimize for loops in init.c (imxrt_ocram_initialize)
-set_source_files_properties(imxrt_ocram_initialize.c PROPERTIES COMPILE_FLAGS -fno-builtin)
+	px4_add_library(drivers_board
+		i2c.cpp
+		init.c
+		sdhc.c
+		spi.cpp
+		timer_config.cpp
+		tropic_led_pwm.cpp
+		usb.c
+		imxrt_flexspi_nor_boot.c
+		imxrt_flexspi_nor_flash.c
+		imxrt_flexspi_storage.c
+		imxrt_ocram_initialize.c
+		hw_rev_ver_tropic.c
+		manifest.c
+	)
 
-target_link_libraries(drivers_board
-	PRIVATE
-		nuttx_arch # sdio
-		nuttx_drivers # sdio
-		px4_layer
-)
+
+	# Force compiler not to use builtin functions (like memcpy)
+	# to optimize for loops in init.c (imxrt_ocram_initialize)
+	set_source_files_properties(imxrt_ocram_initialize.c PROPERTIES COMPILE_FLAGS -fno-builtin)
+
+	target_link_libraries(drivers_board
+		PRIVATE
+			arch_board_romapi
+			arch_spi
+			nuttx_arch # sdio
+			nuttx_drivers # sdio
+			px4_layer
+	)
+
+endif()
