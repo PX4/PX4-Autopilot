@@ -181,7 +181,7 @@ void SpacecraftThrusterModel::Configure(const Entity &_entity,
 		      << this->dataPtr->actuatorNumber << " duty_cycle_frequency.\n";
 	}
 
-	if(sdfClone->HasElement("max_duty_cycle")) {
+	if (sdfClone->HasElement("max_duty_cycle")) {
 		this->dataPtr->maxDutyCycle =
 			sdfClone->GetElement("max_duty_cycle")->Get<double>();
 
@@ -314,6 +314,7 @@ void SpacecraftThrusterModelPrivate::UpdateForcesAndMoments(
 	} else {
 		return;
 	}
+
 	// Normalize input
 	double normalizedInput =
 		msg->velocity(this->actuatorNumber) / this->maxDutyCycle;
