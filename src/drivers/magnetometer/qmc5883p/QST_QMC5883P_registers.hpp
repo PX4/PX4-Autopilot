@@ -106,7 +106,7 @@ enum CNTL2_BIT : uint8_t {
     SELF_TEST       = Bit6, //1: self_test enable, auto clear after the data is updated
 
     // SOFT_RST[7]
-    SOFT_RST        = 0, //1: Soft reset, restore default value of all registers��0: no reset
+    SOFT_RST        = 0, //1: Soft reset, restore default value of all registers, 0: no reset
 };
 
 } // namespace QMC5883P

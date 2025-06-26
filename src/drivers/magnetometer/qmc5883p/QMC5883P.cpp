@@ -132,10 +132,10 @@ void QMC5883P::RunImpl()
 
 		} else {
 			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+			if (hrt_elapsed_time(&_reset_timestamp) > 1_s) {
 				PX4_DEBUG("Reset failed, retrying");
 				_state = STATE::RESET;
-				ScheduleDelayed(100_ms);
+				ScheduleDelayed(10_ms);
 
 			} else {
 				PX4_DEBUG("Reset not complete, check again in 10 ms");
@@ -153,7 +153,7 @@ void QMC5883P::RunImpl()
 
         } else {
                 // CONFIGURE not complete
-			    if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+			    if (hrt_elapsed_time(&_reset_timestamp) > 1_s) {
 				    PX4_DEBUG("Configure failed, resetting");
 				    _state = STATE::RESET;
 
@@ -187,18 +187,18 @@ void QMC5883P::RunImpl()
 					    int16_t y = combine(buffer.Y_MSB, buffer.Y_LSB);
 					    int16_t z = combine(buffer.Z_MSB, buffer.Z_LSB);
 
-					if (x != _prev_data[0] || y != _prev_data[1] || z != _prev_data[2]) {
+					if (buffer.STATUS & STATUS_BIT::DRDY) {
 						_prev_data[0] = x;
 						_prev_data[1] = y;
 						_prev_data[2] = z;
 
-						// Sensor orientation(Amovlab_F410)
-						//  Forward X := Z
-						//  Right   Y := Y
-						//  Down    Z := -X
-						int16_t new_x = (z == INT16_MIN) ? INT16_MAX : z;
-						int16_t new_y = (y == INT16_MIN) ? INT16_MAX : y;
-						int16_t new_z = (x == INT16_MIN) ? INT16_MAX : -x;
+						// Sensor orientation
+						//  Forward X := -Y
+						//  Right   Y := -X
+						//  Down    Z := -Z
+						int16_t new_x = (y == INT16_MIN) ? INT16_MAX : -y;
+						int16_t new_y = (x == INT16_MIN) ? INT16_MAX : -x;
+						int16_t new_z = (z == INT16_MIN) ? INT16_MAX : -z;
 
 						_px4_mag.update(now, new_x, new_y, new_z);
 
@@ -246,6 +246,7 @@ bool QMC5883P::Configure()
 	// first set and clear all configured register bits
 	for (const auto &reg_cfg : _register_cfg) {
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
+		ScheduleDelayed(10_ms);
 	}
 
 	// now check that all are configured
