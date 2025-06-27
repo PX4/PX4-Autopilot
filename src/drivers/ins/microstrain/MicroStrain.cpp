@@ -1267,7 +1267,7 @@ void MicroStrain::filterCallback(void *user, const mip_packet *packet, mip::Time
 					      att_quat.sample.q[3]));
 		float yaw = euler_attitude.psi();
 
-		vp.heading_good_for_control = (yaw != NAN);
+		vp.heading_good_for_control = (!std::isnan(yaw));
 		vp.heading = yaw;
 		vp.heading_var = att_euler_uncert.sample.yaw;
 
