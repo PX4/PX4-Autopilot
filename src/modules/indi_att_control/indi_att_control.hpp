@@ -18,6 +18,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <lib/mathlib/math/filter/LowPass2p.hpp>  // PX4’s 2nd-order Butterworth class
+#include <modules/mc_att_control/AttitudeControl/AttitudeControl.hpp>
 
 using namespace time_literals;
 
@@ -51,7 +52,7 @@ private:
 
 	sensor_gyro_s gyro{};
 	esc_status_s esc{};
-	actuator_controls_s actuator_sp{};
+	actuator_controls_s {};
 
 	// ------------------------------------------------------------------------
 	// 2) Publication
@@ -66,6 +67,7 @@ private:
 	matrix::Vector3f	_Omega_dot_f;// filtered body-acc (d(p,q,r)/dt)
 	matrix::Vector3f	_Omega_prev; // last step’s filtered gyro
 	matrix::Vector3f	_Omega_dot_prev;
+	matrix::Vector3f	_rates_sp;
 
 	matrix::Vector4f	_omega_f;    // filtered motor RPM (if you have esc_status)
 	matrix::Vector4f	_omega_dot_f; // filtered derivative of motor RPM
@@ -73,11 +75,12 @@ private:
 	matrix::Vector4f	_omega_dot_prev;
 
 	matrix::Vector4f	_omega_c;    // commanded motor RPM
-	matrix::Vector4f	_thrust_c;	// commanded motor thrust
+	matrix::Vector4f	_torque_c;	// commanded motor torque
 	matrix::Vector4f	_prev_delta_omega = Vector4f::zero();
 	matrix::Vector4f	_prev_omega_c = Vector4f::zero();
 
-	// Desired body-rate setpoint:
+
+	// Desired att setpoint:
 	matrix::Quatf _q_sp;
 
 
@@ -112,6 +115,8 @@ private:
 	float _minimum_thrust;
 	float _max_thrust;
 
+	AttitudeControl _attitude_control; /**< class for attitude control calculations, used EXCLUSIVELY for finding angular rate setpoints, with mpc this is no longer needed **/
+
 	// LMS adaptation gains: (for later implementation)
 	float	_mu2_roll{1e-4f};
 	float	_mu2_pitch{1e-4f};
@@ -125,6 +130,7 @@ private:
 
 	// time of last gyro sample, for dt
 	hrt_abstime	_last_gyro_time{0};
+	hrt_abstime	_last_attitude_setpoint{0};
 
 	// ------------------------------------------------------------------------
 	// 6) Parameter definitions (PX4 param framework)
@@ -159,8 +165,13 @@ private:
 		(ParamFloat<px4::params::INDI_KP_PITCH>)	_param_indi_kp_pitch,
 		(ParamFloat<px4::params::INDI_KP_YAW>)		_param_indi_kp_yaw,
 
-		// MAX Motor RPM
-		(ParamFloat<px4::params::INDI_MAX_MOTOR_RPM>)	_param_indi_max_rpm
+		(ParamFloat<px4::params::MPC_THR_MIN>)      _param_mpc_thr_min,
+		(ParamFloat<px4::params::MPC_THR_MAX>)      _param_mpc_thr_max,
+
+		(ParamFloat<px4::params::MC_ROLLRATE_MAX>)  _param_mc_rollrate_max,
+		(ParamFloat<px4::params::MC_PITCHRATE_MAX>) _param_mc_pitchrate_max,
+		(ParamFloat<px4::params::MC_YAWRATE_MAX>)   _param_mc_yawrate_max,
+
 	)
 
 	// ------------------------------------------------------------------------

@@ -98,10 +98,14 @@ void INDIController::parameters_updated()
         _rpm_filter[j].setCutoffFrequency(wn_rpm, z_rpm);
     }
 
-    // TODO: Didnt finish!!! Just pasted this in.... Needs imp in .pp and the params file!!!!! deleted max-rpm nonsense and replace the clamping in the Run();
-    _max_rpm = _param_indi_max_rpm.get();
-    const float minimum_thrust = flying ? _param_mpc_thr_min.get() : 0.f;
-    _control.setThrustLimits(minimum_thrust, _param_mpc_thr_max.get());
+    // angular rate limits
+	using math::radians;
+	_attitude_control.setRateLimit(Vector3f(radians(_param_mc_rollrate_max.get()), radians(_param_mc_pitchrate_max.get()),
+						radians(_param_mc_yawrate_max.get())));
+
+    // thrust limits
+    _max_thrust = _param_mpc_thr_max.get();
+    _minimum_thrust = _param_mpc_thr_min.get();
 
     // init G to a small diagonal guess, e.g. G = [G1·diag(ω_f) G2]. Goal is to overwrite via LMS.
     _G = matrix::Matrix<float,3,8>::Zero();
@@ -149,23 +153,16 @@ void INDIController::Run()
         return;
     }
 
-    // Copy vehicle_attitude (this is what triggers the 400 Hz loop)
-    vehicle_attitude_s v_att{};
-    if (!_vehicle_attitude_sub.update(&v_att)) {
-        return; // no new attitude -> skip
-    }
-
-    // compute dt from raw gyro timestamp:
-    hrt_abstime now = hrt_absolute_time();
-    float dt = (now - _last_gyro_time) * 1e-6f; // seconds
-    dt = math::constrain(dt, 0.001f, 0.01f);    // clamp between 1 ms and 10 ms
-    _last_gyro_time = now;
-
-    // 1) copy quat:
-    _q = matrix::Quatf(v_att.q);
+    const hrt_abstime now = hrt_absolute_time();
 
     // 2) read raw gyro:
     if (_gyro_sub.copy(&gyro)) {
+    //FIXME: rotate into NED
+        // compute dt from raw gyro timestamp:
+        float dt = (now - _last_gyro_time) * 1e-6f; // micros => seconds
+        dt = math::constrain(dt, 0.001f, 0.01f);    // clamp between 1 ms and 10 ms
+        _last_gyro_time = gyro.timestamp;
+
         matrix::Vector3f gyro_raw{gyro.x, gyro.y, gyro.z};
 
         // 2a) filter each axis:
@@ -184,11 +181,8 @@ void INDIController::Run()
         }
     }
 
-    // 3) read desired body‐rates:
-    vehicle_attitude_setpoint_s att_sp{};
-    if (_vehicle_attitude_setpoint_sub.copy(&att_sp)) {
-        _q_sp = matrix::Quatf(att_sp.q_d);
-    }
+
+
 
     // 4) read ESC status -> actual RPM
     // FIXED!: likely need to convert from RPM -> rad/s... needs checking
@@ -217,18 +211,71 @@ void INDIController::Run()
         }
     }
 
-    // 5) compute desired angular acceleration ν (nu) (3×1) via tilt‐prioritized law:
-    vector::Vector3f nu = computeNU(_q);  // tilt‐prioritized quaternion error + rate‐PD
 
-    // 6) Compute Δω via INDI pseudoinverse: ω_c = ω_f + Δω
-    computeINIDelta(nu, dt);
+    // Check for new attitude setpoint
+    if (_vehicle_attitude_setpoint_sub.updated()) {
+        vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
 
-    // 7) publish actuator_controls_0 (4 commanded RPMs)
-    // FIXME: Find max thrust location!!
-    actuator_sp.control[0] = _thrust_c(0) / _max_thrust; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
-    actuator_sp.control[1] = _thrust_c(1) / _max_thrust; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
-    actuator_sp.control[2] = _thrust_c(2) / _max_thrust; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
-    actuator_sp.control[3] = _thrust_c(3) / _max_thrust; // Converts rad/s -> rpm -> fraction of max speed for actuator publisher
+        if (_vehicle_attitude_setpoint_sub.copy(&vehicle_attitude_setpoint)
+            && (vehicle_attitude_setpoint.timestamp > _last_attitude_setpoint)) {
+                //FIXME: add these global constants
+            _attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
+            _last_attitude_setpoint = vehicle_attitude_setpoint.timestamp;
+            _q_sp = matrix::Quatf(vehicle_rates_setpoint.q_d);
+        }
+    }
+
+    // Copy vehicle_attitude (this is what triggers the 400 Hz loop) //FIXME: fix Hz loop lengths
+    vehicle_attitude_s v_att{};
+    if (_vehicle_attitude_sub.update(&v_att)) {
+        // 1) copy quat:
+        _q = matrix::Quatf(v_att.q);
+
+        _rates_sp = _attitude_control.update(_q);
+
+
+        autotune_attitude_control_status_s pid_autotune;
+
+        if (_autotune_attitude_control_status_sub.copy(&pid_autotune)) {
+            if ((pid_autotune.state == autotune_attitude_control_status_s::STATE_ROLL
+                    || pid_autotune.state == autotune_attitude_control_status_s::STATE_PITCH
+                    || pid_autotune.state == autotune_attitude_control_status_s::STATE_YAW
+                    || pid_autotune.state == autotune_attitude_control_status_s::STATE_TEST)
+                && ((now - pid_autotune.timestamp) < 1_s)) {
+                _rates_sp += Vector3f(pid_autotune.rate_sp);
+            }
+        }
+
+        // publish rate setpoint
+        vehicle_rates_setpoint_s rates_setpoint{};
+        rates_setpoint.roll = _rates_sp(0);
+        rates_setpoint.pitch = _rates_sp(1);
+        rates_setpoint.yaw = _rates_sp(2);
+        rates_setpoint.timestamp = hrt_absolute_time();
+
+        _vehicle_rates_setpoint_pub.publish(rates_setpoint); //not sure if this is necceassry but could be useful for urob debugging
+
+        // 5) compute desired angular acceleration ν (nu) (3×1) via tilt‐prioritized law:
+        matrix::Vector3f nu = computeNU(_q);  // tilt‐prioritized quaternion error + rate‐PD
+
+        // 6) Compute Δω via INDI pseudoinverse: ω_c = ω_f + Δω
+        computeINIDelta(nu);
+
+
+    }
+
+
+
+
+
+    // 7) publish actuator_controls_0 (4 commanded torques)
+
+    //FIXME: convert torque of each motor to body frame xyz torque
+
+    actuator_sp.control[0] = _torque_c(0);
+    actuator_sp.control[1] = _torque_c(1) / _max_thrust;
+    actuator_sp.control[2] = _torque_c(2) / _max_thrust;
+    actuator_sp.control[3] = _torque_c(3) / _max_thrust;
     actuator_sp.timestamp = hrt_absolute_time();
     _actuator_pub.publish(actuator_sp);
 
@@ -239,7 +286,7 @@ void INDIController::Run()
     // 9) loop back: WorkItem will schedule the next Run() automatically
 }
 
-vector::Vector3f INDIController::computeNU(matrix::Quatf curr_q)
+vector::Vector3f INDIController::computeNU(matrix::Quatf &curr_q)
 {
     // 1) Build full quaternion‐error: q_e = q_sp x q_current^-1
     matrix::Quaternion q_e  = _q_sp * curr_q.inversed();
@@ -264,23 +311,20 @@ vector::Vector3f INDIController::computeNU(matrix::Quatf curr_q)
     float k_yaw = _param_indi_kq_yaw.get();
 
     // 4) Rate‐feedback to damp:
-    /* TODO Add Deriviatve control. Will be much easier with MPC and praying just P control works for now
-    Vector3f
-    Vector3f rate_err = - _Omega_f;                    // want zero body‐rates
+    Vector3f rate_err = _rates_sp - _Omega_f;                    // want zero body‐rates
     rate_err(0) *= _param_indi_kp_roll.get();
     rate_err(1) *= _param_indi_kp_pitch.get();
     rate_err(2) *= _param_indi_kp_yaw.get();
-    */
 
     // 5) combine into ν:
     //TODO: add feedforward jerk/snap from NMPC, and accel feed forward
     Vector3f nu = qe_red * k_red
-                 + qe_yaw * (k_yaw * (q_e_w >= 0 ? +1.0f : -1.0f));
-                 //+ rate_err;
+                 + qe_yaw * (k_yaw * (q_e_w >= 0 ? +1.0f : -1.0f))
+                 + rate_err;
     return nu;
 }
 
-void INDIController::computeINIDelta(const vector::Vector3f &nu, const float dt)
+void INDIController::computeINIDelta(const vector::Vector3f &nu)
 {
     // Build G_eff = [G1·diag(ω_f)  +  G2] using current _omega_f. Then compute pseudo-inverse.
     //
@@ -320,20 +364,20 @@ void INDIController::computeINIDelta(const vector::Vector3f &nu, const float dt)
         G_eff_pinv = GtG_inv * Gt;  // result is 4×3
     }
 
-    Vector4f delta_omega = _prev_omega_c - _omega_f;
+    matrix::Vector4f delta_omega = _prev_omega_c - _omega_f;
 
     // Δ = G_eff⁺ * (ν – Ω̇_dot_f + G2 * prev_delta_omega)
-    vector::Vector3f diff = (nu - _Omega_dot_f + G2_part * _prev_delta_omega);
-    vector::Vector4f delta = G_eff_pinv * diff;
+    matrix::Vector3f diff = (nu - _Omega_dot_f + G2_part * _prev_delta_omega);
+    matrix::Vector4f delta = G_eff_pinv * diff;
 
     // new commanded RPM = ω_f + Δ
     _omega_c = _omega_f + delta;
 
-    // saturate/clamp each between [rpm_min, rpm_max]
-    const float rpm_min = 0.0f, rpm_max = _param_indi_max_rpm.get() * 60.0 / 2.0/ M_PI_F; // clamp and convert to rad / s from max rpm
+    // saturate/clamp each between [torque min, max]
+    //FIXME: find toque min max
     for (int i = 0; i < 4; i++) {
         _omega_c(i) = math::constrain(_omega_c(i), rpm_min, rpm_max);\
-        _thrust_c(i) = ct * (_omega_c(i) ** 2);
+        _torque_c(i) = ct * (_omega_c(i) ** 2);
     }
 
     _prev_delta_omega = delta_omega;
@@ -344,15 +388,15 @@ void INDIController::computeINIDelta(const vector::Vector3f &nu, const float dt)
 void INDIController::updateAdaptiveLMS()
 {
     // z(k) = [ Δω_f  ;  Δω̇_dot_f ]  an 8×1 vector
-    vector::Vector<float,8> z;
+    matrix::Vector<float,8> z;
     for (int i = 0; i < 4; i++) {
         z(i)   = _omega_f(i)   - _omega_prev(i);      // Δω_f
         z(i+4) = _omega_dot_f(i) - _omega_dot_prev(i);// Δω̇__dot_f
     }
 
     // error e = G * z  –  ΔΩ̇_f  (3×1)
-    vector::Vector3f dOmega_dot = _Omega_dot_f - _Omega_dot_prev;
-    vector::Vector3f e = (_G * z) - dOmega_dot;
+    matrix::Vector3f dOmega_dot = _Omega_dot_f - _Omega_dot_prev;
+    matrix::Vector3f e = (_G * z) - dOmega_dot;
 
     // Update each row of G: G(i,:) <- G(i,:)  –  μ2(i) * e(i) * z^T * μ1
     //FIXME: When this is implemented make m1 all the same var. Mu1 should NOT change per axis (aka change mu1[j] to just mu1)

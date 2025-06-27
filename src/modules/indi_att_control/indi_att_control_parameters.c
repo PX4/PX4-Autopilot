@@ -245,18 +245,3 @@ PARAM_DEFINE_FLOAT(INDI_KP_PITCH, 50.0f);
  */
 PARAM_DEFINE_FLOAT(INDI_KP_YAW, 20.0f);
 
-/**
- * INDI maximum motor RPM
- *
- * Maximum allowable rotor speed (ESC feedback) that the INDI controller
- * can command. Commands will be saturated to this value.
- *
- * @unit rpm
- * @min 0.0
- * @max 500000.0
- * @decimal 1
- * @increment 1000
- * @group INDI Attitude Control
- */
-PARAM_DEFINE_FLOAT(INDI_MAX_MOTOR_RPM, 250000.0f);
-
