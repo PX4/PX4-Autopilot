@@ -69,7 +69,6 @@ function(px4_add_common_flags)
 		-Wall
 		-Wextra
 		-Werror
-		-Wno-error=address
 
 		-Warray-bounds
 		-Wcast-align
