@@ -33,69 +33,42 @@
 
 /**
  * @file board_mcu_version.c
- * Implementation of RP2040 based SoC version API
+ * Implementation of ESP32 based SoC version API
  */
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 
-#define RP2040_CPUID_BASE	(0 + 0xed00)
-
-/* magic numbers from reference manual */
-
-enum MCU_REV {
-	MCU_REV_RP2040_REV_1 = 0x1
-};
 
 /* Define any issues with the Silicon as lines separated by \n
  * omitting the last \n
  */
-#define RP2040_ERRATA "This device does not have a unique id!"
-
-
-// RP2040 datasheet CPUID register
-# define REVID_MASK    0xF
-# define DEVID_MASK    0xFFFFFFF0
-
-# define RP2040_DEVICE_ID	0x410CC60
+#define ESP32_ERRATA "No unique CPU ID, using MAC address."
+#define EFUSE_BLK0_RDATA3_REG (0x3ff5a000 + 0x00c)
+#define REG_READ(_r) (*(volatile uint32_t *)(_r))
 
 
 int board_mcu_version(char *rev, const char **revstr, const char **errata)
 {
-	// uint32_t abc = getreg32(rp2040_cpuid_base);
-	uint32_t abc = 0;//
+	uint32_t lower3 = (REG_READ(EFUSE_BLK0_RDATA3_REG) >> 9) & 0x7;
+	uint32_t upper1 = (REG_READ(EFUSE_BLK0_RDATA3_REG) >> 2) & 0x1;
 
-	int32_t chip_version = (abc & DEVID_MASK) > 4;
-	enum MCU_REV revid = abc & REVID_MASK;
-	const char *chip_errata = NULL;
+	uint8_t revid = (upper1 << 3) | lower3;
 
-	switch (chip_version) {
-
-
-	case RP2040_DEVICE_ID:
-		*revstr = "RP2040";
-		chip_errata = RP2040_ERRATA;
-		break;
-
-	default:
-		*revstr = "RPI???";
-		break;
-	}
-
-	switch (revid) {
-
-	case MCU_REV_RP2040_REV_1:
+	switch (revid)
+	{
+	case 29:
+		*revstr = "ESP32 v3";
 		*rev = '1';
 		break;
-
-	default:
-		*rev = '?';
-		revid = -1;
+	case 28:
+		*revstr = "ESP32 v3";
+		*rev = '0';
 		break;
-	}
-
-	if (errata) {
-		*errata = chip_errata;
+	default:
+		*revstr = "ESP32 v?";
+		*rev = '?';
+		break;
 	}
 
 	return revid;
