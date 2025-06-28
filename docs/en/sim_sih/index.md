@@ -58,16 +58,13 @@ To run the SIH, you will need a:
 
 The modules required for SIH are not built into all PX4 firmware by default, so you are likely to need to add them to the configuration and then rebuild and install the firmware.
 
-The following keys must be present in the configuration file for your target flight controller (such as [boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board) FMUv6x based boards).
+The following key must be present in the configuration file for your target flight controller (such as [boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board) FMUv6x based boards).
 
 ```text
-CONFIG_MODULES_SIMULATION_PWM_OUT_SIM=y
-CONFIG_MODULES_SIMULATION_SENSOR_BARO_SIM=y
-CONFIG_MODULES_SIMULATION_SENSOR_GPS_SIM=y
-CONFIG_MODULES_SIMULATION_SENSOR_MAG_SIM=y
+CONFIG_MODULES_SIMULATION_SIMULATOR_SIH=y
 ```
 
-Add the keys if necessary then re-built the firmware and flash it to the board.
+Add the key if necessary then re-built the firmware and flash it to the board.
 
 You can alternatively use the following command to launch a GUI configuration tool, and interactively enable them at the path: **modules > Simulation > simulator_sih**.
 For example, to update the fmu-v6x configuration you would use:
