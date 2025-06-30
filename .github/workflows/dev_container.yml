@@ -11,7 +11,7 @@ on:
       - 'v*'
   pull_request:
     branches:
-      - '*'
+      - '**'
     paths:
       - '.github/workflows/dev_container.yml'
       - 'Tools/setup/ubuntu.sh'
@@ -29,6 +29,10 @@ on:
         required: false
         type: boolean
         default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   setup:
