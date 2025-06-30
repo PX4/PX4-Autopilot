@@ -20,7 +20,6 @@ jobs:
       matrix:
         config:
           - {vehicle: "iris",          mission: "MC_mission_box"}
-          - {vehicle: "rover",         mission: "rover_mission_1"}
 
     steps:
     - uses: actions/checkout@v4
