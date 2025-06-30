@@ -1,12 +1,22 @@
 module_name: Septentrio
 
 serial_config:
-    - command: set DUAL_GPS_ARGS "-e ${SERIAL_DEV} -g p:${BAUD_PARAM}"
+    - command: |
+        if param compare SEP_PORT2_S_WIRE 1
+        then
+            set DUAL_SEP_ARGS "${DUAL_SEP_ARGS} -t"
+        fi
+        set DUAL_GPS_ARGS "-e ${SERIAL_DEV} -g p:${BAUD_PARAM} ${DUAL_SEP_ARGS}"
       port_config_param:
         name: SEP_PORT2_CFG
         group: Septentrio
       label: Secondary GPS port
-    - command: septentrio start -d ${SERIAL_DEV} -b p:${BAUD_PARAM} ${DUAL_GPS_ARGS}
+    - command: |
+        if param compare SEP_PORT1_S_WIRE 1
+        then
+            set SEP_ARGS "${SEP_ARGS} -s"
+        fi
+        septentrio start -d ${SERIAL_DEV} -b p:${BAUD_PARAM} ${SEP_ARGS} ${DUAL_GPS_ARGS}
       port_config_param:
         name: SEP_PORT1_CFG
         group: Septentrio
@@ -15,6 +25,22 @@ serial_config:
 parameters:
   - group: Septentrio
     definitions:
+      SEP_PORT1_S_WIRE:
+        description:
+          short: Use single wire UART on SEP_PORT1
+          long: |
+            Sets whether single wire UART should be used on SEP_PORT1.
+        type: boolean
+        default: 0
+        reboot_required: true
+      SEP_PORT2_S_WIRE:
+        description:
+          short: Use single wire UART on SEP_PORT2
+          long: |
+            Sets whether single wire UART should be used on SEP_PORT2.
+        type: boolean
+        default: 0
+        reboot_required: true
       SEP_STREAM_MAIN:
         description:
           short: Main stream used during automatic configuration
