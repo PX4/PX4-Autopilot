@@ -43,7 +43,7 @@ The image below depicts the parts required for one wing.
 
 ![QuadRanger Parts](../../assets/airframes/vtol/quadranger_rangerex_pixhawk/quadranger_vtol_parts_for_one_wing.jpg)
 
- 
+
 The tools required for the conversion are;
 
 -   A Dremel or similar rotary tool
@@ -58,7 +58,7 @@ The tools required for the conversion are;
 ## Wing conversion
 
 ::: info
-Please note that the conversion in this build log is performed on a wing that shows damage from a previous conversion. 
+Please note that the conversion in this build log is performed on a wing that shows damage from a previous conversion.
 :::
 
 Cut both 800mm square carbon tubes to a length of 570mm and 230mm.
@@ -87,7 +87,7 @@ When using the Afro ESC be sure to connect at least signal and ground wire.
 
 ![QuadRanger motor and esc](../../assets/airframes/vtol/quadranger_rangerex_pixhawk/quadranger_vtol_motor_and_esc.jpg)
 
-## Wiring 
+## Wiring
 
 The outputs of Pixhawk should be wired like this (orientation as seen
 like "sitting in the plane").
@@ -99,7 +99,7 @@ MAIN 2   | Back left motor, CCW
 MAIN 3   | Front left motor, CW
 MAIN 4   | Back right motor, CW
 AUX  1   | Left aileron
-AUX  2   | Right aileron 
+AUX  2   | Right aileron
 AUX  3   | Elevator
 AUX  4   | Rudder
 AUX  5   | Throttle
@@ -108,7 +108,7 @@ AUX  5   | Throttle
 ::: info
 The servo direction can be reversed using the PWM\_REV parameters in the PWM\_OUTPUT group of QGroundControl (cogwheel tab, last item in the left menu)
 :::
-  
+
 For further instructions on wiring and configurations please see: [Standard VTOL Wiring and Configuration](../config_vtol/vtol_quad_configuration.md)
 
 
@@ -122,4 +122,3 @@ Configure the frame as shown in QGroundControl below (do not forget to click **A
 ## Support
 
 If you have any questions regarding your VTOL conversion or configuration please visit <https://discuss.px4.io/c/px4/vtol>.
-

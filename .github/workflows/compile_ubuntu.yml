@@ -9,13 +9,11 @@ on:
       - 'release/**'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
   pull_request:
     branches:
       - '*'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
 
 env:
   RUNS_IN_DOCKER: true
