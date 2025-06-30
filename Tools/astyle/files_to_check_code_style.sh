@@ -24,6 +24,7 @@ exec find boards msg src platforms test \
     -path src/modules/ekf2/EKF/yaw_estimator/derivation/generated -prune -o \
     -path src/modules/gyro_fft/CMSIS_5 -prune -o \
     -path src/modules/mavlink/mavlink -prune -o \
+    -path test/fuzztest -prune -o \
     -path test/mavsdk_tests/catch2 -prune -o \
     -path src/lib/crypto/monocypher -prune -o \
     -path src/lib/crypto/libtomcrypt -prune -o \

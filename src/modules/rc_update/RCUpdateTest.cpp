@@ -31,8 +31,6 @@
  *
  ****************************************************************************/
 
-#define MODULE_NAME "rc_update"
-
 #include <gtest/gtest.h>
 #include "rc_update.h"
 
