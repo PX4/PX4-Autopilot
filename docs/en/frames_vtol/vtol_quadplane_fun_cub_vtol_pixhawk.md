@@ -49,7 +49,7 @@ For example, you might wire it up like this example (orientation as if "sitting 
 
 
 Port | Connection
---- | --- 
+--- | ---
 MAIN 1 | Front right motor (CCW)
 MAIN 2 | Back left motor (CCW)
 MAIN 3 | Front left motor (CW)
@@ -60,7 +60,7 @@ AUX 3  | Elevator
 AUX 4  | Rudder
 AUX 5  | Throttle
 
-For further instructions on wiring and configurations please see: 
+For further instructions on wiring and configurations please see:
 [Standard VTOL Wiring and Configuration](../config_vtol/vtol_quad_configuration.md). <!-- replace with Pixhawk Wiring Quickstart -->
 
 ## Airframe Configuration
@@ -72,7 +72,7 @@ For further instructions on wiring and configurations please see:
 1. Configure the outputs and geometry following the instructions in [Actuators Configuration](../config/actuators.md)
 1. The default parameters are often sufficient for stable flight. For more detailed tuning information see [Standard VTOL Wiring and Configuration](../config_vtol/vtol_quad_configuration.md).
 
-After you finish calibration the VTOL is ready to fly. 
+After you finish calibration the VTOL is ready to fly.
 
 
 ## Video
@@ -82,4 +82,3 @@ After you finish calibration the VTOL is ready to fly.
 ## Support
 
 If you have any questions regarding your VTOL conversion or configuration please visit <https://discuss.px4.io/c/px4/vtol>.
-
