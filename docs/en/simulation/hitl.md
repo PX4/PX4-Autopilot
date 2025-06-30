@@ -22,7 +22,6 @@ The set of compatible airframes vs simulators is:
 | ---------------------------------------------------------------------------------------------------------------- | --------------- | -------------- | ------- |
 | [HIL Quadcopter X](../airframes/airframe_reference.md#copter_simulation_hil_quadcopter_x)                        | 1001            | Y              | Y       |
 | [HIL Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_standard_vtol_hil_standard_vtol_quadplane) | 1002            | Y              |
-| [Generic Quadrotor x](../airframes/airframe_reference.md#copter_quadrotor_x_generic_quadcopter) copter           | 4001            | Y              | Y       |
 
 <a id="simulation_environment"></a>
 
@@ -34,7 +33,7 @@ The simulator acts as gateway to share MAVLink data between PX4 and _QGroundCont
 
 ::: info
 The simulator can also be connected via UDP if the flight controller has networking support and uses a stable, low-latency connection (e.g. a wired Ethernet connection - WiFi is usually not sufficiently reliable).
-For example, this configuration has been tested with PX4 running on a Raspberry Pi connected via Ethernet to the computer (a startup configuration that includes the command for running jMAVSim can be found [here](https://github.com/PX4/PX4-Autopilot/blob/main/posix-configs/rpi/px4_hil.config)).
+For example, this configuration has been tested with PX4 running on a Raspberry Pi connected via Ethernet to the computer (a startup configuration that includes the command for running jMAVSim can be found in [px4_hil.config](https://github.com/PX4/PX4-Autopilot/blob/main/posix-configs/rpi/px4_hil.config)).
 :::
 
 The diagram below shows the simulation environment:
@@ -60,32 +59,48 @@ In summary, HITL runs PX4 on the actual hardware using standard firmware, but SI
 
 ## Setting up HITL
 
+## Add HITL to Firmware
+
+The modules required for HITL are not built into all PX4 firmware by default, so you may need to add them to the configuration and then rebuild and install the firmware.
+
+You can check that the modules are present using QGroundControl:
+
+1. Open **Analyze Tools > Mavlink Console**.
+2. Type `pwm_out_sim status` in the console.
+3. If the returned value is `nsh: pwm_out_sim: command not found`, then you don't have the module installed.
+
+If it is not present you can add it to the configuration file for your target flight controller (such as [boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board) FMUv6x based boards).
+
+```text
+CONFIG_MODULES_SIMULATION_PWM_OUT_SIM=y
+```
+
+Add the keys if necessary then re-built the firmware and flash it to the board.
+
+You can alternatively use the following command to launch a GUI configuration tool, and interactively enable them at the path: **modules > Simulation > pwm_out_sim**.
+For example, to update fmu-v6x you would use:
+
+```sh
+make px4_fmu-v6x boardconfig
+```
+
 ### PX4 Configuration
 
 1. Connect the autopilot directly to _QGroundControl_ via USB.
-1. Enable HITL Mode
-
-   1. Open **Setup > Safety** section.
-   1. Enable HITL mode by selecting **Enabled** from the _HITL Enabled_ list:
-
-      ![QGroundControl HITL configuration](../../assets/gcs/qgc_hitl_config.png)
-
-1. Select Airframe
+2. Select Airframe
 
    1. Open **Setup > Airframes**
-   1. Select a [compatible airframe](#compatible_airframe) you want to test.
+   2. Select a [compatible airframe](#compatible_airframe) you want to test.
       Then click **Apply and Restart** on top-right of the _Airframe Setup_ page.
 
-      ![Select Airframe](../../assets/gcs/qgc_hil_config.png)
-
-1. Calibrate your RC or Joystick, if needed.
-1. Setup UDP
+3. Calibrate your RC or Joystick, if needed.
+4. Setup UDP
 
    1. Under the _General_ tab of the settings menu, uncheck all _AutoConnect_ boxes except for **UDP**.
 
       ![QGC Auto-connect settings for HITL](../../assets/gcs/qgc_hitl_autoconnect.png)
 
-1. (Optional) Configure Joystick and Failsafe.
+5. (Optional) Configure Joystick and Failsafe.
    Set the following [parameters](../advanced_config/parameters.md) in order to use a joystick instead of an RC remote control transmitter:
 
    - [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) to "Joystick/No RC Checks". This allows joystick input and disables RC input checks.
