@@ -1,0 +1,6 @@
+menuconfig DRIVERS_DISTANCE_SENSOR_NANORADAR_CAN
+	bool "nanoradar can"
+	depends on DRIVERS_UAVCAN
+	default n
+	---help---
+		Enable support for nanoradar can interface
