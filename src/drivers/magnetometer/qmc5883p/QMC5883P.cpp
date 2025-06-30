@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,37 +41,37 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 }
 
 QMC5883P::QMC5883P(const I2CSPIDriverConfig &config) :
-    I2C(config),
-    I2CSPIDriver(config),
-    _px4_mag(get_device_id(), config.rotation)
+	I2C(config),
+	I2CSPIDriver(config),
+	_px4_mag(get_device_id(), config.rotation)
 {
 }
 
 QMC5883P::~QMC5883P()
 {
-    perf_free(_reset_perf);
-    perf_free(_bad_register_perf);
-    perf_free(_bad_transfer_perf);
+	perf_free(_reset_perf);
+	perf_free(_bad_register_perf);
+	perf_free(_bad_transfer_perf);
 }
 
 int QMC5883P::init()
 {
-    int ret = I2C::init();
+	int ret = I2C::init();
 
-    if (ret != PX4_OK){
-        DEVICE_DEBUG("I2C::init failed (%i)", ret);
-        return ret;
-    }
+	if (ret != PX4_OK) {
+		DEVICE_DEBUG("I2C::init failed (%i)", ret);
+		return ret;
+	}
 
-    return Reset() ? 0 : -1;
+	return Reset() ? 0 : -1;
 }
 
 bool QMC5883P::Reset()
 {
-    _state = STATE::RESET;
-    ScheduleClear();
-    ScheduleNow();
-    return true;
+	_state = STATE::RESET;
+	ScheduleClear();
+	ScheduleNow();
+	return true;
 }
 
 void QMC5883P::print_status()
@@ -106,86 +106,88 @@ int QMC5883P::probe()
 
 void QMC5883P::RunImpl()
 {
-    const hrt_abstime now = hrt_absolute_time();
+	const hrt_abstime now = hrt_absolute_time();
 
-    switch (_state) {
-    case STATE::RESET:
-        {
-	// CNTL2: Software Reset
-        RegisterWrite(Register::CNTL2, CNTL2_BIT::SOFT_RST);
-	_reset_timestamp = now;
-        _failure_count = 0;
-        _state = STATE::WAIT_FOR_RESET;
-        perf_count(_reset_perf);
-        ScheduleDelayed(100_ms); // POR Completion Time
-        break;
-	}
-    case STATE::WAIT_FOR_RESET:
-	{
-        	// SOFT_RST: This bit is automatically reset to zero after POR routine
-		if ((RegisterRead(Register::CHIP_ID) == Chip_ID)
-		    && ((RegisterRead(Register::CNTL2) & CNTL2_BIT::SOFT_RST) == 0)) {
+	switch (_state) {
+	case STATE::RESET: {
+			// CNTL2: Software Reset
+			RegisterWrite(Register::CNTL2, CNTL2_BIT::SOFT_RST);
+			_reset_timestamp = now;
+			_failure_count = 0;
+			_state = STATE::WAIT_FOR_RESET;
+			perf_count(_reset_perf);
+			ScheduleDelayed(100_ms); // POR Completion Time
+			break;
+		}
 
-			// if reset succeeded then configure
-			_state = STATE::CONFIGURE;
-			ScheduleDelayed(10_ms);
+	case STATE::WAIT_FOR_RESET: {
+			// SOFT_RST: This bit is automatically reset to zero after POR routine
+			if ((RegisterRead(Register::CHIP_ID) == Chip_ID)
+			    && ((RegisterRead(Register::CNTL2) & CNTL2_BIT::SOFT_RST) == 0)) {
 
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1_s) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
+				// if reset succeeded then configure
+				_state = STATE::CONFIGURE;
 				ScheduleDelayed(10_ms);
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
-				ScheduleDelayed(10_ms);
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1_s) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(10_ms);
+
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 10 ms");
+					ScheduleDelayed(10_ms);
+				}
 			}
+
+			break;
+		}
+
+	case STATE::CONFIGURE:
+		if (Configure()) {
+			// if configure succeeded then start reading every 20 ms (50 Hz)
+			_state = STATE::READ;
+			ScheduleOnInterval(20_ms, 20_ms);
+
+		} else {
+			// CONFIGURE not complete
+			if (hrt_elapsed_time(&_reset_timestamp) > 1_s) {
+				PX4_DEBUG("Configure failed, resetting");
+				_state = STATE::RESET;
+
+			} else {
+				PX4_DEBUG("Configure failed, retrying");
+			}
+
+			ScheduleDelayed(100_ms);
 		}
 
 		break;
-	}
-    case STATE::CONFIGURE:
-        if (Configure()) {
-            // if configure succeeded then start reading every 20 ms (50 Hz)
-            _state = STATE::READ;
-            ScheduleOnInterval(20_ms, 20_ms);
 
-        } else {
-                // CONFIGURE not complete
-			    if (hrt_elapsed_time(&_reset_timestamp) > 1_s) {
-				    PX4_DEBUG("Configure failed, resetting");
-				    _state = STATE::RESET;
+	case STATE::READ: {
+			struct TransferBuffer {
+				uint8_t X_LSB;
+				uint8_t X_MSB;
+				uint8_t Y_LSB;
+				uint8_t Y_MSB;
+				uint8_t Z_LSB;
+				uint8_t Z_MSB;
+				uint8_t N_LSB;
+				uint8_t N_MSB;
+				uint8_t STATUS;
+			} buffer{};
 
-			    } else {
-				    PX4_DEBUG("Configure failed, retrying");
-			    }
+			bool success = false;
+			uint8_t cmd = static_cast<uint8_t>(Register::X_LSB);
 
-            ScheduleDelayed(100_ms);
-        }
-
-        break;
-
-    case STATE::READ: {
-                    struct TransferBuffer{
-                        uint8_t X_LSB;
-				        uint8_t X_MSB;
-				        uint8_t Y_LSB;
-				        uint8_t Y_MSB;
-				        uint8_t Z_LSB;
-				        uint8_t Z_MSB;
-				        uint8_t STATUS;
-                    }buffer{};
-
-                	bool success = false;
-			        uint8_t cmd = static_cast<uint8_t>(Register::X_LSB);
-
-                    if (transfer(&cmd, 1, (uint8_t *)&buffer, sizeof(buffer)) == PX4_OK) {
-                    // process data if successful transfer, no overflow
-				    if ((buffer.STATUS & STATUS_BIT::OVL) == 0) {
-					    int16_t x = combine(buffer.X_MSB, buffer.X_LSB);
-					    int16_t y = combine(buffer.Y_MSB, buffer.Y_LSB);
-					    int16_t z = combine(buffer.Z_MSB, buffer.Z_LSB);
+			if (transfer(&cmd, 1, (uint8_t *)&buffer, sizeof(buffer)) == PX4_OK) {
+				// process data if successful transfer, no overflow
+				if ((buffer.STATUS & STATUS_BIT::OVL) == 0) {
+					int16_t x = combine(buffer.X_MSB, buffer.X_LSB);
+					int16_t y = combine(buffer.Y_MSB, buffer.Y_LSB);
+					int16_t z = combine(buffer.Z_MSB, buffer.Z_LSB);
 
 					if (buffer.STATUS & STATUS_BIT::DRDY) {
 						_prev_data[0] = x;
@@ -201,7 +203,6 @@ void QMC5883P::RunImpl()
 						int16_t new_z = (z == INT16_MIN) ? INT16_MAX : -z;
 
 						_px4_mag.update(now, new_x, new_y, new_z);
-
 						success = true;
 
 						if (_failure_count > 0) {
@@ -237,8 +238,8 @@ void QMC5883P::RunImpl()
 				}
 			}
 		}
-        break;
-    }
+		break;
+	}
 }
 
 bool QMC5883P::Configure()

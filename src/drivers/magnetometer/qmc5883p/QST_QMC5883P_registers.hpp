@@ -65,48 +65,50 @@ static constexpr uint8_t Chip_ID = 0x80;
 //static constexpr uint8_t XYZ_SIGN_CONFIG = 0x29; // XYZ symbol configuration value
 enum class Register : uint8_t {
 //  Register          addr
-    X_LSB           = 0x01, // Data Output X LSB Register XOUT[7:0]
+	X_LSB           = 0x01, // Data Output X LSB Register XOUT[7:0]
 	X_MSB           = 0x02, // Data Output X MSB Register XOUT[15:8]
 	Y_LSB           = 0x03, // Data Output Y LSB Register YOUT[7:0]
 	Y_MSB           = 0x04, // Data Output Y MSB Register YOUT[15:8]
 	Z_LSB           = 0x05, // Data Output Z LSB Register ZOUT[7:0]
 	Z_MSB           = 0x06, // Data Output Z MSB Register ZOUT[15:8]
-    STATUS          = 0x09, // Status Register 1
+	N_LSB           = 0X07, // No Use
+	N_MSB           = 0X08, // No Use
+	STATUS          = 0x09, // Status Register 1
 
-    CNTL1           = 0x0A, // Control Register 1
-    CNTL2           = 0x0B, // Control Register 2
+	CNTL1           = 0x0A, // Control Register 1
+	CNTL2           = 0x0B, // Control Register 2
 
-    CHIP_ID         = 0x00,
+	CHIP_ID         = 0x00,
 };
 
 // STATUS
 enum STATUS_BIT : uint8_t {
-    DRDY            = Bit0, // Data Ready
-    OVL             = Bit1, // Overflow flag
+	DRDY            = Bit0, // 0: no new data, 1: new data is ready
+	OVL             = Bit1, // 0: no data overflow occurs, 1: data overflow occurs
 };
 
 // CNTL1
 enum CNTL1_BIT : uint8_t {
-    // OSR2[7:6]
-    OSR2_8          =  Bit7 | Bit6, // 00
-    // OSR1[5:4]
-    OSR1_8          =  Bit5 | Bit4, // 11
-    // ODR[3:2]
-    ODR_50HZ        =  Bit2,        // 01
-    // MODE[1:0]
-    MODE_CONTINUOUS = Bit1 | Bit0,  // 11
+	// OSR2[7:6]
+	OSR2_8          =  Bit7 | Bit6, // 00
+	// OSR1[5:4]
+	OSR1_8          =  Bit5 | Bit4, // 11
+	// ODR[3:2]
+	ODR_50HZ        =  Bit2,        // 01
+	// MODE[1:0]
+	MODE_CONTINUOUS = Bit1 | Bit0,  // 11
 };
 
 // CNTL2
 enum CNTL2_BIT : uint8_t {
-    // RNG[3:2]
-    RNG_2G          = Bit3 | Bit2,  // 11
+	// RNG[3:2]
+	RNG_2G          = Bit3 | Bit2,  // 11
 
-    // SELF_TEST[6]
-    SELF_TEST       = Bit6, //1: self_test enable, auto clear after the data is updated
+	// SELF_TEST[6]
+	SELF_TEST       = Bit6, //1: self_test enable, auto clear after the data is updated
 
-    // SOFT_RST[7]
-    SOFT_RST        = 0, //1: Soft reset, restore default value of all registers, 0: no reset
+	// SOFT_RST[7]
+	SOFT_RST        = 0, //1: Soft reset, restore default value of all registers, 0: no reset
 };
 
 } // namespace QMC5883P

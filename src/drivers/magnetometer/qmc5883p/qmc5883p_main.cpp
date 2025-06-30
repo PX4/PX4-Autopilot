@@ -38,51 +38,52 @@
 
 void QMC5883P::print_usage()
 {
-    PRINT_MODULE_USAGE_NAME("qmc5883p", "driver");
-    PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
-    PRINT_MODULE_USAGE_COMMAND("start");
-    PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-    PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x2C);
-    PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
-    PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+	PRINT_MODULE_USAGE_NAME("qmc5883p", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x2C);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
 extern "C" int qmc5883p_main(int argc, char *argv[])
 {
-    int ch;
-    using ThisDriver = QMC5883P;
-    BusCLIArguments cli{true, false};
-    cli.default_i2c_frequency = I2C_SPEED;
-    cli.i2c_address = I2C_ADDRESS_DEFAULT;
+	int ch;
+	using ThisDriver = QMC5883P;
+	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = I2C_SPEED;
+	cli.i2c_address = I2C_ADDRESS_DEFAULT;
 
-    while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
-        switch (ch) {
-        case 'R':
-            cli.rotation = (enum Rotation)atoi(cli.optArg());
-            break;
-        }
-    }
+	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
+		switch (ch) {
+		case 'R':
+			cli.rotation = (enum Rotation)atoi(cli.optArg());
+			break;
+		}
+	}
 
-    const char *verb = cli.optArg();
+	const char *verb = cli.optArg();
 
-    if (!verb) {
-        ThisDriver::print_usage();
-        return -1;
-    }
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
+	}
 
-    BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_QMC5883P);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_QMC5883P);
 
-    if (!strcmp(verb, "start")) {
-        return ThisDriver::module_start(cli, iterator);
-    }
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
+	}
 
-    if (!strcmp(verb, "stop")) {
-        return ThisDriver::module_stop(iterator);
-    }
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+	}
 
-    if (!strcmp(verb, "status")) {
-        return ThisDriver::module_status(iterator);
-    }
-    ThisDriver::print_usage();
-    return -1;
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
 }
