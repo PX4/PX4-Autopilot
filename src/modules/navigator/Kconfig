@@ -27,12 +27,3 @@ menuconfig NAVIGATOR_ADSB
 	---help---
 		Add support for acting on ADSB transponder_report or ADSB_VEHICLE MAVLink messages.
 		Actions are warnings, Loiter, Land and RTL without climb.
-
-menuconfig NUM_MISSION_ITMES_SUPPORTED
-	int "Maximum number of mission items"
-	default 500
-	depends on MODULES_NAVIGATOR
-	---help---
-		This limit always applies if mission items are stored on the SD card or in RAM. It should be set
-		adequately per boards such that if the items are stored in RAM they still fit the available memory.
-		The runtime parameter to configure the storage option is `SYS_DM_BACKEND`.
