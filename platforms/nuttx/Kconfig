@@ -1,0 +1,37 @@
+menu "nuttx"
+	menu "STM32"
+	depends on ARCH_CHIP_STM32 || ARCH_CHIP_STM32H7 || ARCH_CHIP_STM32F7
+	menuconfig BOARD_PWM_FREQ
+		int "Board default PWM frequency"
+		default 1000000
+		---help---
+			Board default PWM frequency
+	endmenu
+	menu "RPI"
+	depends on ARCH_CHIP_RP2040
+	menuconfig BOARD_PWM_FREQ
+		int "Board default PWM frequency"
+		default 1000000
+		---help---
+			Board default PWM frequency
+	endmenu
+	menu "NXP"
+	depends on ARCH_CHIP_IMXRT || ARCH_CHIP_KINETIS || ARCH_CHIP_S32K1XX || ARCH_CHIP_S32K344 || ARCH_CHIP_S32K3XX
+		menu "common"
+		depends on ARCH_CHIP_IMXRT || ARCH_CHIP_KINETIS || ARCH_CHIP_S32K1XX || ARCH_CHIP_S32K344
+		menuconfig BOARD_PWM_FREQ
+			int "Board default PWM frequency"
+			default 1000000
+			---help---
+				Board default PWM frequency
+		endmenu
+		menu "s32k3xx"
+		depends on ARCH_CHIP_S32K3XX
+		menuconfig BOARD_PWM_FREQ_S32K3XX
+			int "Board default PWM frequency"
+			default 160000000
+			---help---
+				Board default PWM frequency
+		endmenu
+	endmenu
+endmenu
