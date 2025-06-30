@@ -155,3 +155,15 @@ PARAM_DEFINE_INT32(MAV_HB_FORW_EN, 1);
  * @max 250
  */
 PARAM_DEFINE_INT32(MAV_RADIO_TOUT, 5);
+
+/**
+ * Time interval in seconds between parameters
+ *
+ * Used to throttle the parameters transmission when using low bandwidth links between PX4 and the GCS.
+ *
+ * @group MAVLink
+ * @unit s
+ * @decimal 3
+ * @min 0.0
+ */
+PARAM_DEFINE_FLOAT(MAV_PRM_WAIT_S, 0.0);
