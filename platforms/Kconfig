@@ -1,1 +1,3 @@
-rsource "*/Kconfig"
+if PLATFORM_NUTTX
+rsource "nuttx/Kconfig"
+endif

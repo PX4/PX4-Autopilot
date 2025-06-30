@@ -79,8 +79,8 @@ static int io_timer_handler7(int irq, void *context, void *arg);
 
 #define BOARD_PWM_PRESCALER 20
 
-#ifdef CONFIG_BOARD_PWM_FREQ_S32K3XX
-#define BOARD_PWM_FREQ CONFIG_BOARD_PWM_FREQ_S32K3XX
+#ifdef CONFIG_BOARD_PWM_FREQ
+#define BOARD_PWM_FREQ CONFIG_BOARD_PWM_FREQ
 #endif
 
 #if !defined(BOARD_PWM_FREQ)

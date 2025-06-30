@@ -1,54 +1,26 @@
-menu "nuttx"
+choice
+	prompt "NuttX platform"
+	---help---
+		This automatically gets set by the NuttX defconfig
+	config ARCH_CHIP_UNSET
+		bool "Unset"
+	config ARCH_CHIP_STM32H7
+		bool "STM32H7"
+	config ARCH_CHIP_STM32F7
+		bool "STM32F7"
+	config ARCH_CHIP_STM32F4
+		bool "STM32F4"
+	config ARCH_CHIP_IMXRT
+		bool "IMXRT"
+	config ARCH_CHIP_S32K3XX
+		bool "S32K3XX"
+	config ARCH_CHIP_RP2040
+		bool "RP2040"
+endchoice
 
-	config PLATFORM_NUTTX_STM32
-		bool
-		default n
-
-	config PLATFORM_NUTTX_RPI
-		bool
-		default n
-
-	config PLATFORM_NUTTX_NXP_DEFAULT
-		bool
-		default n
-
-	config PLATFORM_NUTTX_NXP_S32K3XX
-		bool
-		default n
-
-	menu "STM32"
-	depends on PLATFORM_NUTTX_STM32
-	menuconfig BOARD_PWM_FREQ
-		int "Board default PWM frequency"
-		default 1000000
-		---help---
-			Board default PWM frequency
-	endmenu
-	menu "RPI"
-	depends on PLATFORM_NUTTX_RPI
-	menuconfig BOARD_PWM_FREQ
-		int "Board default PWM frequency"
-		default 1000000
-		---help---
-			Board default PWM frequency
-	endmenu
-	menu "NXP"
-	depends on PLATFORM_NUTTX_NXP_DEFAULT || PLATFORM_NUTTX_NXP_S32K3XX
-		menu "common"
-		depends on PLATFORM_NUTTX_NXP_DEFAULT
-		menuconfig BOARD_PWM_FREQ
-			int "Board default PWM frequency"
-			default 1000000
-			---help---
-				Board default PWM frequency
-		endmenu
-		menu "s32k3xx"
-		depends on PLATFORM_NUTTX_NXP_S32K3XX
-		menuconfig BOARD_PWM_FREQ_S32K3XX
-			int "Board default PWM frequency"
-			default 160000000
-			---help---
-				Board default PWM frequency
-		endmenu
-	endmenu
-endmenu
+config BOARD_PWM_FREQ
+	int "Board default PWM frequency"
+	default 160000000 if ARCH_CHIP_S32K3XX
+	default 1000000 if !ARCH_CHIP_S32K3XX
+	---help---
+		Board default PWM frequency

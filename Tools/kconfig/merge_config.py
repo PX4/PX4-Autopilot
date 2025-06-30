@@ -113,13 +113,16 @@ def main(kconfig_file, config1, config2):
         #pprint.pprint(line)
         if match is not None:
             sym_name = match.group(1)
-            kconf.syms[sym_name].unset_value()
+            try:
+                kconf.syms[sym_name].unset_value()
 
-            if kconf.syms[sym_name].type is BOOL:
-                for default, cond in kconf.syms[sym_name].orig_defaults:
-                    if(cond.str_value == 'y'):
-                        # Default is y, our diff is unset thus we've set it to no
-                        kconf.syms[sym_name].set_value(0)
+                if kconf.syms[sym_name].type is BOOL:
+                    for default, cond in kconf.syms[sym_name].orig_defaults:
+                        if(cond.str_value == 'y'):
+                            # Default is y, our diff is unset thus we've set it to no
+                            kconf.syms[sym_name].set_value(0)
+            except KeyError:
+                pass
 
     f.close()
 
