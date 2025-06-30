@@ -76,9 +76,8 @@ ActuatorEffectivenessMCTilt::getEffectivenessMatrix(Configuration &configuration
 	return (rotors_added_successfully && tilts_added_successfully);
 }
 
-void ActuatorEffectivenessMCTilt::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
+void ActuatorEffectivenessMCTilt::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
+		ActuatorVector &actuator_sp, const ActuatorVector &actuator_min, const ActuatorVector &actuator_max)
 {
 	actuator_sp += _tilt_offsets;
 	// TODO: dynamic matrix update
