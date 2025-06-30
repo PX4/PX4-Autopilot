@@ -266,11 +266,11 @@ ControlAllocator::update_effectiveness_source()
 			break;
 
 		case EffectivenessSource::SPACECRAFT_2D:
-			// spacecraft_allocation does allocation and publishes directly to actuator_motors topic
+			tmp = new ActuatorEffectivenessSpacecraft(this);
 			break;
 
 		case EffectivenessSource::SPACECRAFT_3D:
-			// spacecraft_allocation does allocation and publishes directly to actuator_motors topic
+			tmp = new ActuatorEffectivenessSpacecraft(this);
 			break;
 
 		default:
