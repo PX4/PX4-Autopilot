@@ -257,6 +257,7 @@ private:
 	Battery			_battery;
 	static constexpr unsigned _battery_report_interval{100_ms};
 	hrt_abstime		_last_battery_report_time;
+	hrt_abstime		_last_uart_passthru{0};
 
 	bool			_device_initialized{false};
 
