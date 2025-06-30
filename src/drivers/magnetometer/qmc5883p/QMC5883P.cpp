@@ -306,5 +306,3 @@ void QMC5883P::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t cl
 		RegisterWrite(reg, val);
 	}
 }
-
-
