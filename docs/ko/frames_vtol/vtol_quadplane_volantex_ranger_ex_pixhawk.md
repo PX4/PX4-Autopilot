@@ -116,4 +116,3 @@ Configure the frame as shown in QGroundControl below (do not forget to click **A
 ## 지원
 
 If you have any questions regarding your VTOL conversion or configuration please visit <https://discuss.px4.io/c/px4/vtol>.
-
