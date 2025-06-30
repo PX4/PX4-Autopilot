@@ -23,10 +23,11 @@ The Desktop computer is only used to display the virtual vehicle.
 ### Compatibility
 
 - SIH is compatible with all PX4 supported boards except those based on FMUv2.
-- SIH for quadrotor is supported from PX4 v1.9.
-- SIH for fixed-wing (airplane) and VTOL tailsitter are supported from PX4 v1.13.
+- SIH for MC quadrotor is supported from PX4 v1.9.
+- SIH for FW (airplane) and VTOL tailsitter are supported from PX4 v1.13.
 - SIH as SITL (without hardware) from PX4 v1.14.
 - SIH for Standard VTOL from PX4 v1.16.
+- SIH for MC Hexacopter X from `main` (expected to be PX4 v1.17).
 
 ### Benefits
 
@@ -58,7 +59,7 @@ To set up/start SIH:
 1. Open QGroundControl and wait for the flight controller too boot and connect.
 1. Open [Vehicle Setup > Airframe](../config/airframe.md) then select the desired frame:
    - [SIH Quadcopter X](../airframes/airframe_reference.md#copter_simulation_sih_quadcopter_x)
-   - SIH Hexacopter X currently only has an airframe for SITL to safe flash so on flight control hardware it has to be manually configured equivalently.
+   - **SIH Hexacopter X** (currently only has an airframe for SITL to safe flash so on flight control hardware it has to be manually configured equivalently).
    - [SIH plane AERT](../airframes/airframe_reference.md#plane_simulation_sih_plane_aert)
    - [SIH Tailsitter Duo](../airframes/airframe_reference.md#vtol_simulation_sih_tailsitter_duo)
    - [SIH Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_simulation_sih_standard_vtol_quadplane)
