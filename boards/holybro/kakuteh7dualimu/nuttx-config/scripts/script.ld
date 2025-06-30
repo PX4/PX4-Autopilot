@@ -110,7 +110,7 @@
 MEMORY
 {
 	ITCM_RAM  (rwx) : ORIGIN = 0x00000000, LENGTH =   64K
-	FLASH      (rx) : ORIGIN = 0x08020000, LENGTH = 1792K /* params in last sector */
+	FLASH      (rx) : ORIGIN = 0x08020000, LENGTH = 1664K /* params in last two sectors */
 
 	DTCM1_RAM (rwx) : ORIGIN = 0x20000000, LENGTH =   64K
 	DTCM2_RAM (rwx) : ORIGIN = 0x20010000, LENGTH =   64K
