@@ -54,4 +54,3 @@ Select the mode-specific sidebar topics for more detailed technical information.
 - [Flight Modes (Fixed-Wing)](../flight_modes_fw/index.md)
 - [Flight Modes (VTOL)](../flight_modes_vtol/index.md)
 - [Drive Modes (Rover)](../flight_modes_rover/index.md)
-

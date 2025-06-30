@@ -69,4 +69,3 @@ PX4/PX4-Autopilot contains a template for writing a new application (module) tha
   documented [in the source code](https://github.com/PX4/PX4-Autopilot/blob/v1.8.0/src/platforms/px4_module.h#L381)):
   - They are used to print the command-line usage when entering `module help` on the console.
   - They are automatically extracted via script to generate the [Modules & Commands Reference](../modules/modules_main.md) page.
-
