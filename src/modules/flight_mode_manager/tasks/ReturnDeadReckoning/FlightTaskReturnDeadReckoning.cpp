@@ -37,6 +37,8 @@
 
 #include "FlightTaskReturnDeadReckoning.hpp"
 
+#include <px4_platform_common/events.h>
+
 bool FlightTaskReturnDeadReckoning::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	PX4_INFO("FlightTaskReturnDeadReckoning::activate");
@@ -49,18 +51,8 @@ bool FlightTaskReturnDeadReckoning::activate(const trajectory_setpoint_s &last_s
 	_updateSubscriptions();
 	_state = State::INIT;
 
-	if (!_updateBearingToHome()) {
-		PX4_ERR("Failed to compute bearing to home");
-		return false;
-	}
-
-	if (!_computeReturnParameters()) {
-		PX4_ERR("Failed to compute return parameters");
-		return false;
-	}
-
-	if (!_initializeSmoothers()) {
-		PX4_ERR("Failed to initialize smoothers");
+	if (!(_updateBearingToHome() && _computeReturnParameters() && _initializeSmoothers())) {
+		PX4_ERR("Failed to initialize task");
 		return false;
 	}
 
@@ -95,13 +87,14 @@ void FlightTaskReturnDeadReckoning::_updateState()
 	case State::INIT:
 		if (_isAboveReturnAltitude()) {
 			_state = State::RETURN;
-			PX4_INFO("Returning to home position at %.2fm (MSL) with bearing %.2f deg",
-				 (double) _rtl_alt, (double) math::degrees(_bearing_to_home));
+			events::send<float, float>(events::ID("dead_reckon_rtl_return_direct"), events::Log::Info,
+						   "Returning to home position to home position at {1:.2m_v} with bearing {2:.2} deg", _rtl_alt,
+						   math::degrees(_bearing_to_home));
 
 		} else {
 			_state = State::ASCENT;
-			PX4_INFO("Ascending to return altitude %.2fm (MSL) with bearing %.2f deg",
-				 (double) _rtl_alt, (double) math::degrees(_bearing_to_home));
+			events::send<float, float>(events::ID("dead_reckon_rtl_ascent"), events::Log::Info,
+				     "Ascending to return altitude {1:.2m_v} with bearing {2:.2} deg", _rtl_alt, math::degrees(_bearing_to_home));
 		}
 
 		break;
@@ -109,8 +102,9 @@ void FlightTaskReturnDeadReckoning::_updateState()
 	case State::ASCENT:
 		if (_isAboveReturnAltitude()) {
 			_state = State::RETURN;
-			PX4_INFO("Returning to home position at %.2fm (MSL) with bearing %.2f deg",
-				 (double) _rtl_alt, (double) math::degrees(_bearing_to_home));
+			events::send<float, float>(events::ID("dead_reckon_rtl_return"), events::Log::Info,
+						   "Returning to home position to home position at {1:.2m_v} with bearing {2:.2} deg", _rtl_alt,
+						   math::degrees(_bearing_to_home));
 		}
 
 		break;
@@ -118,7 +112,8 @@ void FlightTaskReturnDeadReckoning::_updateState()
 	case State::RETURN:
 		if (_isWithinHomePositionRadius()) {
 			_state = State::HOLD;
-			PX4_INFO("Holding altitude at %.2fm (MSL) over home position", (double) _rtl_alt);
+			events::send<float>(events::ID("dead_reckon_rtl_hold"), events::Log::Info,
+					    "Holding altitude at {1:.2m_v} over home position", _rtl_alt);
 		}
 
 		break;
@@ -193,7 +188,8 @@ void FlightTaskReturnDeadReckoning::_updateSetpoints()
 
 bool FlightTaskReturnDeadReckoning::_updateBearingToHome()
 {
-	if (_readGlobalPosition(_start_vehicle_global_position) && _readHomePosition(_home_position)) {
+	if (_readHomePosition(_home_position)) {
+		_readGlobalPosition(_start_vehicle_global_position);
 		_bearing_to_home = _computeBearing(_start_vehicle_global_position, _home_position);
 	}
 
@@ -215,7 +211,7 @@ bool FlightTaskReturnDeadReckoning::_readHomePosition(matrix::Vector3d &home_pos
 	return false;
 }
 
-bool FlightTaskReturnDeadReckoning::_readGlobalPosition(matrix::Vector3d &global_position)
+void FlightTaskReturnDeadReckoning::_readGlobalPosition(matrix::Vector3d &global_position)
 {
 
 	global_position.setNaN();
@@ -223,8 +219,6 @@ bool FlightTaskReturnDeadReckoning::_readGlobalPosition(matrix::Vector3d &global
 	global_position(0) = _sub_vehicle_global_position.get().lat;
 	global_position(1) = _sub_vehicle_global_position.get().lon;
 	global_position(2) = (double) _sub_vehicle_global_position.get().alt;
-
-	return true;
 }
 
 float FlightTaskReturnDeadReckoning::_computeBearing(const matrix::Vector3d &_global_position_start,
