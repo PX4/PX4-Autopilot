@@ -2016,7 +2016,11 @@ void Commander::checkForMissionUpdate()
 
 			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 				// Transition to loiter when the mission is cleared and/or finished, and we are still in mission mode.
-				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+
+				// However, only do so if there's no pending mode change, so there isn't already a pending change (like RTL).
+				if (_user_mode_intention.get() == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+				}
 			}
 		}
 	}
