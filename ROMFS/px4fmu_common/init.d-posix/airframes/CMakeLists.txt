@@ -114,6 +114,8 @@ px4_add_romfs_files(
 	17001_flightgear_tf-g1
 	17002_flightgear_tf-g2
 
+	50000_gz_rover_differential
+
 	71001_gz_atmos
 	71002_gz_spacecraft_2d
 

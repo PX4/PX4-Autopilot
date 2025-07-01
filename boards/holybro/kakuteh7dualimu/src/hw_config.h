@@ -72,7 +72,7 @@
 #define BOARD_TYPE                     5409
 #define BOARD_FLASH_SECTORS            (14)
 #define BOARD_FLASH_SIZE               (16 * 128 * 1024)
-#define APP_RESERVATION_SIZE           (1 * 128 * 1024)
+#define APP_RESERVATION_SIZE           (2 * 128 * 1024)
 
 #define OSC_FREQ                       8
 
