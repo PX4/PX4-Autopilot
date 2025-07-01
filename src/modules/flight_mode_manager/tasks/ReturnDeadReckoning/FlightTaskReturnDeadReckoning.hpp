@@ -80,9 +80,8 @@ private:
 
 	/**
 	 * Reads current GNSS position
-	 * @return true on success, false on error
 	 */
-	bool _readGlobalPosition(matrix::Vector3d &global_position);
+	void _readGlobalPosition(matrix::Vector3d &global_position);
 
 	/**
 	 * Compute bearing to home position
