@@ -45,11 +45,11 @@ __BEGIN_DECLS
 
 #include <esp32_gpio.h>
 
-# define PX4_CPU_UUID_WORD32_UNIQUE_H            2 /* Most significant digits change the least */
+# define PX4_CPU_UUID_WORD32_UNIQUE_H            1 /* Most significant digits change the least */
 # define PX4_CPU_UUID_WORD32_UNIQUE_M            1 /* Middle significant digits */
 # define PX4_CPU_UUID_WORD32_UNIQUE_L            0 /* Least significant digits change the most */
 
-#define PX4_CPU_UUID_BYTE_LENGTH                12
+#define PX4_CPU_UUID_BYTE_LENGTH                8
 #define PX4_CPU_UUID_WORD32_LENGTH              (PX4_CPU_UUID_BYTE_LENGTH/sizeof(uint32_t))
 #define PX4_CPU_MFGUID_BYTE_LENGTH              PX4_CPU_UUID_BYTE_LENGTH
 

@@ -44,30 +44,55 @@
  * omitting the last \n
  */
 #define ESP32_ERRATA "No unique CPU ID, using MAC address."
-#define EFUSE_BLK0_RDATA3_REG (0x3ff5a000 + 0x00c)
+#define DR_REG_EFUSE_BASE 0x3ff5a000
+#define DR_REG_SYSCON_BASE 0x60026000
+#define EFUSE_BLK0_RDATA3_REG (DR_REG_EFUSE_BASE + 0x00c)
+#define EFUSE_BLK0_RDATA5_REG (DR_REG_EFUSE_BASE + 0x014)
+#define SYSCON_DATE_REG       (DR_REG_SYSCON_BASE + 0x3FC)
+
 #define REG_READ(_r) (*(volatile uint32_t *)(_r))
 
 
 int board_mcu_version(char *rev, const char **revstr, const char **errata)
 {
-	uint32_t lower3 = (REG_READ(EFUSE_BLK0_RDATA3_REG) >> 9) & 0x7;
-	uint32_t upper1 = (REG_READ(EFUSE_BLK0_RDATA3_REG) >> 2) & 0x1;
+	/*
+	 comes from esp-idf in efuse_hal_get_major_chip_version
+	 and efuse_hal_get_minor_chip_version
+	*/
+	uint8_t eco_bit0 = (REG_READ(EFUSE_BLK0_RDATA3_REG) >> 15) & 0x1;
+	uint8_t eco_bit1 = (REG_READ(EFUSE_BLK0_RDATA5_REG) >> 20) & 0x1;
+	uint8_t eco_bit2 = (REG_READ(SYSCON_DATE_REG) & 0x80000000) >> 31;
+	uint32_t combine_value = (eco_bit2 << 2) | (eco_bit1 << 1) | eco_bit0;
+	uint8_t minor_revision = (REG_READ(EFUSE_BLK0_RDATA5_REG) >> 24) & 0x3;
 
-	uint8_t revid = (upper1 << 3) | lower3;
+	int revid;
 
-	switch (revid)
+	switch (combine_value)
 	{
-	case 29:
-		*revstr = "ESP32 v3";
-		*rev = '1';
+	case 0:
+		*revstr = "ESP32 v0";
+		*rev = minor_revision + 48;
+		revid = minor_revision;
 		break;
-	case 28:
+	case 1:
+		*revstr = "ESP32 v1";
+		*rev = minor_revision + 48;
+		revid = minor_revision;
+		break;
+	case 3:
+		*revstr = "ESP32 v2";
+		*rev = minor_revision + 48;
+		revid = minor_revision;
+		break;
+	case 7:
 		*revstr = "ESP32 v3";
-		*rev = '0';
+		*rev = minor_revision + 48;
+		revid = minor_revision;
 		break;
 	default:
 		*revstr = "ESP32 v?";
 		*rev = '?';
+		revid = 0;
 		break;
 	}
 
