@@ -112,7 +112,7 @@ endforeach()
 # Generate boardconfig from default.px4board and CONFIG_ARCH_CHIP
 execute_process(
 	COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
-	${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/merge_config.py Kconfig ${BOARD_CONFIG} ${PX4_BOARD_DIR}/default.px4board ${PX4_BINARY_DIR}/NuttX/nuttx/.config
+	${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/merge_config.py Kconfig ${BOARD_CONFIG} ${BOARD_CONFIG} ${PX4_BINARY_DIR}/NuttX/nuttx/.config
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	OUTPUT_VARIABLE DUMMY_RESULTS
 )

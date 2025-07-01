@@ -101,7 +101,6 @@ def main(kconfig_file, config1, config2):
     # load_config() and write_config() returns a message to print.
     print(kconf.load_config(config1, replace=False))
     print(kconf.load_config(config2, replace=False))
-
     # Modification for PX4 unset all symbols (INT,HEX etc) from 2nd config
 
     f = open(config2, 'r')
