@@ -55,22 +55,16 @@ TEST(ControlAllocationSequentialDesaturationTest, SetGetActuatorSetpoint)
 	EXPECT_EQ(control_allocation.getActuatorSetpoint(), actuator_setpoint);
 }
 
-// Make protected updateParams() function available to the unit test to change airmode after initialization
-class TestControlAllocationSequentialDesaturation : public ::ControlAllocationSequentialDesaturation
-{
-public:
-	void updateParams() { ControlAllocationSequentialDesaturation::updateParams(); }
-};
-
 class ControlAllocationSequentialDesaturationTestQuadX : public ::testing::Test
 {
 public:
 	static constexpr uint8_t NUM_ACTUATORS = 4;
-	TestControlAllocationSequentialDesaturation _control_allocation;
+	ControlAllocationSequentialDesaturation _control_allocation;
 
 	void SetUp() override
 	{
 		param_control_autosave(false); // Disable autosaving parameters to avoid busy loop in param_set()
+		setAirmode(0); // No airmode by default
 
 		// Quadrotor x geometry
 		ActuatorEffectivenessRotors::Geometry quadx_geometry{};
@@ -108,7 +102,7 @@ public:
 	{
 		param_t param = param_find("MC_AIRMODE");
 		param_set(param, &mode);
-		_control_allocation.updateParams();
+		_control_allocation.updateParameters();
 	}
 
 	Vector4f allocate(float roll, float pitch, float yaw, float thrust)
@@ -154,7 +148,6 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, CollectiveThrust)
 
 TEST_F(ControlAllocationSequentialDesaturationTestQuadX, RollPitchYaw)
 {
-	setAirmode(0); // Airmode disabled
 	EXPECT_EQ(allocate(1.f, 0.f, 0.f, -.5f), Vector4f(.25f, .25f, .75f, .75f));
 	EXPECT_EQ(allocate(-1.f, 0.f, 0.f, -.5f), Vector4f(.75f, .75f, .25f, .25f));
 	EXPECT_EQ(allocate(0.f, 1.f, 0.f, -.5f), Vector4f(.75f, .25f, .25f, .75f));
@@ -165,7 +158,6 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, RollPitchYaw)
 
 TEST_F(ControlAllocationSequentialDesaturationTestQuadX, RollPitchYawFullThrust)
 {
-	setAirmode(0); // Airmode disabled
 	EXPECT_EQ(allocate(1.f, 0.f, 0.f, -1.f), Vector4f(.5f, .5f, 1.f, 1.f));
 	EXPECT_EQ(allocate(-1.f, 0.f, 0.f, -1.f), Vector4f(1.f, 1.f, .5f, .5f));
 	EXPECT_EQ(allocate(0.f, 1.f, 0.f, -1.f), Vector4f(1.f, .5f, .5f, 1.f));
@@ -177,7 +169,6 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, RollPitchYawFullThrust)
 
 TEST_F(ControlAllocationSequentialDesaturationTestQuadX, RollPitchYawZeroThrust)
 {
-	setAirmode(0); // Airmode disabled
 	// No axis is allocated
 	EXPECT_EQ(allocate(1.f, 0.f, 0.f, 0.f), Vector4f());
 	EXPECT_EQ(allocate(-1.f, 0.f, 0.f, 0.f), Vector4f());
@@ -216,7 +207,6 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, RollPitchYawZeroThrustA
 // allocation.
 TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledOnlyYaw)
 {
-	setAirmode(0); // Airmode disabled
 	EXPECT_EQ(allocate(0.f, 0.f, 1.f, 0.f), Vector4f(0.f, 0.f, 0.f, 0.f));
 }
 
@@ -225,7 +215,6 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledOnlyYaw)
 // control setpoint.
 TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledThrustZ)
 {
-	setAirmode(0); // Airmode disabled
 	constexpr float THRUST = 0.75f;
 	EXPECT_EQ(allocate(0.f, 0.f, 0.f, -THRUST), Vector4f(THRUST, THRUST, THRUST, THRUST));
 }
@@ -234,7 +223,6 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledThrustZ)
 // This test does not saturate the yaw response.
 TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledThrustAndYaw)
 {
-	setAirmode(0); // Airmode disabled
 	constexpr float THRUST = 0.75f;
 	constexpr float YAW_TORQUE = 0.02f;
 	constexpr float YAW = YAW_TORQUE / NUM_ACTUATORS;
@@ -245,7 +233,6 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledThrustAn
 // This test saturates the yaw response, but does not reduce total thrust.
 TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledThrustAndSaturatedYaw)
 {
-	setAirmode(0); // Airmode disabled
 	constexpr float THRUST = 0.75f;
 	constexpr float YAW_TORQUE = 1.f;
 	constexpr float YAW = YAW_TORQUE / NUM_ACTUATORS;
@@ -256,7 +243,6 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledThrustAn
 // This test does not saturate the pitch response.
 TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledThrustAndPitch)
 {
-	setAirmode(0); // Airmode disabled
 	constexpr float THRUST = 0.75f;
 	constexpr float PITCH_TORQUE = 0.1f;
 	constexpr float PITCH = PITCH_TORQUE / NUM_ACTUATORS;
@@ -268,7 +254,6 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledThrustAn
 // This test saturates yaw and demonstrates reduction of thrust for yaw.
 TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledReducedThrustAndYaw)
 {
-	setAirmode(0); // Airmode disabled
 	constexpr float YAW_MARGIN = ControlAllocationSequentialDesaturation::MINIMUM_YAW_MARGIN;
 	EXPECT_EQ(allocate(0.f, 0.f, 1.f, -3.2f), Vector4f(1.f, 1.f - (2.f * YAW_MARGIN), 1.f, 1.f - (2.f * YAW_MARGIN)));
 }
@@ -277,6 +262,5 @@ TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledReducedT
 // This test saturates the pitch response such that thrust is reduced to (partially) compensate.
 TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledReducedThrustAndPitch)
 {
-	setAirmode(0); // Airmode disabled
 	EXPECT_EQ(allocate(0.f, 2.f, 0.f, -3.f), Vector4f(1.f, 0.f, 0.f, 1.f));
 }
