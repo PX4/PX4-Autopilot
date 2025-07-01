@@ -53,6 +53,7 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/gps_status.h>
 #include <uORB/topics/gps_dump.h>
 #include <uORB/topics/gps_inject_data.h>
 #include <drivers/drv_hrt.h>
@@ -540,6 +541,11 @@ private:
 	void publish_satellite_info();
 
 	/**
+	 * @brief Publish new GPS status data with uORB.
+	 */
+	void publish_gps_status();
+
+	/**
 	 * @brief Check whether the driver has created its first complete `SensorGPS` uORB message.
 	 *
 	 * @return `true` if the driver has created its first complete `SensorGPS` uORB message, `false` if still waiting.
@@ -740,10 +746,12 @@ private:
 
 	// uORB topics and subscriptions
 	sensor_gps_s                                   _message_gps_state {};                          ///< uORB topic for position
+	gps_status_s                                   _message_gps_status {};                         ///< uORB topic for gps status
 	gps_dump_s                                     *_message_data_to_receiver {nullptr};           ///< uORB topic for dumping data to the receiver
 	gps_dump_s                                     *_message_data_from_receiver {nullptr};         ///< uORB topic for dumping data from the receiver
 	satellite_info_s                               *_message_satellite_info {nullptr};             ///< uORB topic for satellite info
 	uORB::PublicationMulti<sensor_gps_s>           _sensor_gps_pub {ORB_ID(sensor_gps)};           ///< uORB publication for gps position
+	uORB::PublicationMulti<gps_status_s>           _gps_status_pub {ORB_ID(gps_status)};           ///< uORB publication for gps status
 	uORB::Publication<gps_dump_s>                  _gps_dump_pub {ORB_ID(gps_dump)};               ///< uORB publication for dump GPS data
 	uORB::Publication<gps_inject_data_s>           _gps_inject_data_pub {ORB_ID(gps_inject_data)}; ///< uORB publication for injected data to the receiver
 	uORB::PublicationMulti<satellite_info_s>       _satellite_info_pub {ORB_ID(satellite_info)};   ///< uORB publication for satellite info

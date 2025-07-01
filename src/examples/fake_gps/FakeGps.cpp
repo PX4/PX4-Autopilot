@@ -80,10 +80,6 @@ void FakeGps::Run()
 	sensor_gps.timestamp_time_relative = 0;
 	sensor_gps.heading = NAN;
 	sensor_gps.heading_offset = 0.0000;
-	sensor_gps.quality_corrections = 0;
-	sensor_gps.quality_receiver = 1;
-	sensor_gps.quality_gnss_signals = 10;
-	sensor_gps.quality_post_processing = 11;
 	sensor_gps.fix_type = 4;
 	sensor_gps.jamming_state = 0;
 	sensor_gps.spoofing_state = 0;
@@ -91,6 +87,13 @@ void FakeGps::Run()
 	sensor_gps.satellites_used = 14;
 	sensor_gps.timestamp = hrt_absolute_time();
 	_sensor_gps_pub.publish(sensor_gps);
+
+	gps_status_s gps_status{};
+	gps_status.quality_corrections = 0;
+	gps_status.quality_receiver = 9;
+	gps_status.quality_gnss_signals = 10;
+	gps_status.quality_post_processing = 255;
+	_gps_status_pub.publish(gps_status);
 }
 
 int FakeGps::task_spawn(int argc, char *argv[])

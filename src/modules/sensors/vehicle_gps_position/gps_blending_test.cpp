@@ -80,10 +80,6 @@ sensor_gps_s GpsBlendingTest::getDefaultGpsData()
 	gps_data.timestamp_time_relative = 0;
 	gps_data.heading = NAN;
 	gps_data.heading_offset = 0.f;
-	gps_data.quality_corrections = 9;
-	gps_data.quality_receiver = 10;
-	gps_data.quality_gnss_signals = 8;
-	gps_data.quality_post_processing = 7;
 	gps_data.fix_type = 4;
 	gps_data.vel_ned_valid = true;
 	gps_data.satellites_used = 8;

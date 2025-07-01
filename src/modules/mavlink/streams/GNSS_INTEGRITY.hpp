@@ -35,6 +35,7 @@
 #define GNSS_INTEGRITY_HPP
 
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/gps_status.h>
 
 using namespace time_literals;
 
@@ -58,32 +59,60 @@ private:
 	explicit MavlinkStreamGNSSIntegrity(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _sensor_gps_sub{ORB_ID(sensor_gps), 0};
+	uORB::Subscription _gps_status_sub{ORB_ID(gps_status), 0};
+
 	hrt_abstime _last_send_ts {};
+	hrt_abstime _last_gps_update_ts {};
+	hrt_abstime _last_status_update_ts {};
 	static constexpr hrt_abstime kNoGpsSendInterval {1_s};
 
 	bool send() override
 	{
 		sensor_gps_s gps;
-		mavlink_gnss_integrity_t msg{};
-		hrt_abstime now{};
+		gps_status_s status;
 
+		bool send_msg = false;
+		mavlink_gnss_integrity_t msg{};
+		hrt_abstime now = hrt_absolute_time();
+
+		// Handling sensor_gps
 		if (_sensor_gps_sub.update(&gps)) {
+			_last_gps_update_ts = now;
+			send_msg = true;
+		}
+
+		if(now - _last_gps_update_ts < kNoGpsSendInterval){
 			msg.id = gps.device_id;
 			msg.system_errors = gps.system_error;
 			msg.authentication_state = gps.authentication_state;
 			msg.jamming_state = gps.jamming_state;
 			msg.spoofing_state = gps.spoofing_state;
+		}
 
-			msg.raim_hfom = UINT16_MAX;
-			msg.raim_vfom = UINT16_MAX;
+		// Handling gps_status
+		if (_gps_status_sub.update(&status)) {
+			_last_status_update_ts = now;
+			send_msg = true;
+		}
 
-			mavlink_msg_gnss_integrity_send_struct(_mavlink->get_channel(), &msg);
-			_last_send_ts = gps.timestamp;
+		if(now - _last_status_update_ts < kNoGpsSendInterval){
+			msg.corrections_quality	= status.quality_corrections;
+			msg.system_status_summary = status.quality_receiver;
+			msg.gnss_signal_quality = status.quality_gnss_signals;
+			msg.post_processing_quality = status.quality_post_processing;
+		}else{
+			msg.corrections_quality	= 255;
+			msg.system_status_summary = 255;
+			msg.gnss_signal_quality = 255;
+			msg.post_processing_quality = 255;
+		}
 
-			return true;
+		// Send message
+		if (_last_send_ts != 0 && now > _last_send_ts + kNoGpsSendInterval) {
+			send_msg = true;
+		}
 
-		} else if (_last_send_ts != 0 && (now = hrt_absolute_time()) > _last_send_ts + kNoGpsSendInterval) {
-
+		if(send_msg){
 			msg.raim_hfom = UINT16_MAX;
 			msg.raim_vfom = UINT16_MAX;
 

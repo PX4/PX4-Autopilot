@@ -87,9 +87,4 @@ uint8 RTCM_MSG_USED_NOT_USED = 1
 uint8 RTCM_MSG_USED_USED = 2
 uint8 rtcm_msg_used		# Indicates if the RTCM message was used successfully by the receiver
 
-uint8 quality_corrections       # Abstract corrections quality from 1 to 11, or 0 (default) if not available
-uint8 quality_receiver          # Abstract overall receiver operating status from 1 to 11, or 0 (default) if not available
-uint8 quality_gnss_signals      # Abstract quality of GNSS signals from 1 to 11, or 0 (default) if not available
-uint8 quality_post_processing   # Abstract expected post processing quality from 1 to 11, or 0 (default) if not available
-
 # TOPICS sensor_gps vehicle_gps_position

@@ -1238,25 +1238,36 @@ int SeptentrioDriver::process_message()
 			QualityInd quality_ind;
 
 			if (_sbf_decoder.parse(&quality_ind) == PX4_OK) {
-				_message_gps_state.quality_gnss_signals = 0;
+				_message_gps_status.quality_corrections = 255;
+				_message_gps_status.quality_receiver = 255;
+				_message_gps_status.quality_post_processing = 255;
+				_message_gps_status.quality_gnss_signals = 255;
+
 				for (int i = 0; i < math::min(quality_ind.n, static_cast<uint8_t>(sizeof(quality_ind.indicators) / sizeof(quality_ind.indicators[0]))); i++) {
 					switch (quality_ind.indicators[i].type) {
 					case Type::BaseStationMeasurements:
-						_message_gps_state.quality_corrections = 1 + quality_ind.indicators[i].value; // 0 is for Unknown, shift all values by 1
+						_message_gps_status.quality_corrections = quality_ind.indicators[i].value;
 						break;
 					case Type::Overall:
-						_message_gps_state.quality_receiver = 1 + quality_ind.indicators[i].value;
+						_message_gps_status.quality_receiver = quality_ind.indicators[i].value;
 						break;
 					case Type::RTKPostProcessing:
-						_message_gps_state.quality_post_processing = 1 + quality_ind.indicators[i].value;
+						_message_gps_status.quality_post_processing = quality_ind.indicators[i].value;
 						break;
 					case Type::GNSSSignalsMainAntenna:
-						_message_gps_state.quality_gnss_signals = 1 + quality_ind.indicators[i].value;
+						_message_gps_status.quality_gnss_signals = quality_ind.indicators[i].value;
 						break;
 					default:
 						break;
 					}
 				}
+
+				// For debugging purpose
+				if(quality_ind.n == 0){
+					break;
+				}
+
+				_gps_status_pub.publish(_message_gps_status);
 			}
 
 			break;
