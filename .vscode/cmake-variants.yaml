@@ -236,6 +236,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_pi6x_default
+    ark_x20-gps_default:
+      short: ark_x20-gps_default:
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_x20-gps_default:
+    ark_x20-gps_canbootloader:
+      short: ark_x20-gps_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_x20-gps_canbootloader
     atl_mantis-edu_default:
       short: atl_mantis-edu
       buildType: MinSizeRel
