@@ -1945,15 +1945,14 @@ MavlinkMissionManager::update_mission_state()
 		// Mission is complete if the navigator says it's finished
 		_mission_state = MISSION_STATE_COMPLETE;
 
-	} else if (_mission_mode == MISSION_MODE_ACTIVE
-		   && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+	} else if (_mission_mode == MISSION_MODE_ACTIVE) {
 		_mission_state = MISSION_STATE_ACTIVE;
 
 	} else if (_mission_mode == MISSION_MODE_SUSPENDED && mission_result.seq_reached >= 0) {
 		// Only PAUSED if we were actually in the middle of a mission
 		_mission_state = MISSION_STATE_PAUSED;
 
-	} else {
+	} else if (mission_result.seq_reached < 0 && mission_result.seq_current < 1) {
 		_mission_state = MISSION_STATE_NOT_STARTED;
 	}
 }
