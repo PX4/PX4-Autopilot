@@ -52,7 +52,7 @@ static inline uint32_t getValidNavStates()
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_RTL_DR) |
+	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_RTL_DEAD_RECKONING) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_ACRO) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_TERMINATION) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_OFFBOARD) |

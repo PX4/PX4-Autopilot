@@ -154,7 +154,8 @@ void FlightModeManager::start_flight_task()
 	bool task_failure = false;
 
 	const bool nav_state_descend = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND);
-	const bool nav_state_rtl_dr = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL_DR);
+	const bool nav_state_rtl_dr = (_vehicle_status_sub.get().nav_state ==
+				       vehicle_status_s::NAVIGATION_STATE_AUTO_RTL_DEAD_RECKONING);
 
 	// Follow me
 	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {

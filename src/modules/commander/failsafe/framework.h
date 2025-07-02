@@ -61,7 +61,7 @@ public:
 
 		Hold,
 		RTL,
-		DeadReckonRTL,
+		DeadReckoningRTL,
 		Land,
 		Descend,
 		Disarm,
@@ -106,7 +106,7 @@ public:
 
 		case Action::RTL: return "RTL";
 
-		case Action::DeadReckonRTL: return "Dead Reckoning RTL";
+		case Action::DeadReckoningRTL: return "Dead Reckoning RTL";
 
 		case Action::Land: return "Land";
 
