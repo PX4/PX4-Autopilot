@@ -5,12 +5,11 @@ GEM1305 is an [RTK GNSS](../gps_compass/rtk_gps.md) receiver with antenna design
 GEM1305 is based on the new generation CYNOSURE IV dual-core GNSS SoC.
 It supports RTK functionality with a maximum data update rate of 10Hz, and comes with cables for connecting to GPS ports on most Pixhawk devices.
 
-GEM1305 supports both base and rover options.
-
 ![DATAGNSS GEM1305 RTK Receiver](../../assets/hardware/gps/datagnss_gem1305/datagnss-gem1305-02.png)
 
 ::: info
-GEM1305 RTK doesn't (yet) support moving base mode.
+GEM1305 supports both base and rover options.
+It does not yet support _moving base_ mode.
 :::
 
 ## Where to Buy

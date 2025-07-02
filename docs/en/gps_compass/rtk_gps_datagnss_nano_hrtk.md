@@ -2,17 +2,17 @@
 
 NANO HRTK receiver is a RTK receiver designed and manufactured by [DATAGNSS](https://www.datagnss.com/).
 
-It is a high performance dual-band RTK receiver with compass, which is based on CYNOSURE series chipset. It supports global civil navigation systems, including GPS, BDS, GLONASS, Galileo, QZSS, and SBAS.
+It is a high performance dual-band RTK receiver with compass, which is based on CYNOSURE series chipset.
+It supports global civil navigation systems, including GPS, BDS, GLONASS, Galileo, QZSS, and SBAS.
 
-NANO HRTK receiver support compass. It is designed for UAV, RTK, and other applications.
+NANO HRTK receiver support compass.
+It is designed for UAV, RTK, and other applications.
 
 ![DATAGNSS NANO HRTK Receiver](../../assets/hardware/gps/datagnss_nano_hrtk/nano_hrtk_case.png)![DATAGNSS NANO HRTK Antenna](../../assets/hardware/gps/datagnss_nano_hrtk/nano_hrtk_antenna.png)
 
 ::: info
-
-- NANO HRTK Receiver doesn't support moving base mode yet.
-- NANO HRTK Receiver support base and rover options.
-
+The NANO HRTK Receiver supports both base and rover options.
+It does not yet support _moving base_ mode.
 :::
 
 ## Where to Buy
@@ -74,7 +74,7 @@ The 1.25mm pitch 6P connector supports UART for GNSS and I2C for compass.
 ## Hardware Setup
 
 RTK requires a base RTK module attached to the ground station, and a rover RTK module on the vehicle.
-The data from the base needs to be transmitted to the drone via telemetry radio and inputed into the RTK receiver on the rover.
+The data from the base needs to be transmitted to the drone via telemetry radio and sent to the RTK receiver on the rover.
 
 ![RTK setup overview](../../assets/hardware/gps/datagnss_nano_hrtk/setup_overview.png)
 
