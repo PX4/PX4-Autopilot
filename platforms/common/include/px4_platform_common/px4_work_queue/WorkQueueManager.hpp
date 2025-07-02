@@ -97,7 +97,11 @@ static constexpr wq_config_t lp_default{"wq:lp_default", CONFIG_WQ_LP_DEFAULT_ST
 static constexpr wq_config_t test1{"wq:test1", 2000, 0};
 static constexpr wq_config_t test2{"wq:test2", 2000, 0};
 
-
+// FREEFLY CUSTOM
+// The driver needs to run with highest priority to guarantee that it can actually run at 1kHz
+// Having it in the normal hq_default work_queue introduced some high jitter on the CAN line when sending commands (up to 1ms).
+// With prio set to -7 there jitter remains within 200uS which is acceptable (and does not generate CAN collisions).
+static constexpr wq_config_t ff_escs{"wq:ff_escs", 1632, -7};
 } // namespace wq_configurations
 
 /**

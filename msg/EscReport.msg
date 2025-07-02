@@ -28,3 +28,7 @@ uint8 FAILURE_MOTOR_WARN_TEMPERATURE = 7 # (1 << 7)
 uint8 FAILURE_WARN_ESC_TEMPERATURE = 8 # (1 << 8)
 uint8 FAILURE_OVER_ESC_TEMPERATURE = 9 # (1 << 9)
 uint8 ESC_FAILURE_COUNT = 10 # Counter - keep it as last element!
+
+# FREEFLY CUSTOM
+uint8 esc_control_state # ESC operating state- open loop, closed loop, ramp, stall restart, etc.
+uint8 motor_flux # estimate of motor flux, wb*100000

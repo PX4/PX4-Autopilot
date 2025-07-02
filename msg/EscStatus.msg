@@ -1,5 +1,5 @@
 uint64 timestamp # [us] Time since system start
-uint8 CONNECTED_ESC_MAX = 12 # The number of ESCs supported (Motor1-Motor12)
+uint8 CONNECTED_ESC_MAX = 4 # The number of ESCs supported (Motor1-Motor12)
 
 uint8 ESC_CONNECTION_TYPE_PPM = 0 # Traditional PPM ESC
 uint8 ESC_CONNECTION_TYPE_SERIAL = 1 # Serial Bus connected ESC
@@ -29,4 +29,4 @@ uint16 esc_online_flags               # Bitmask indicating which ESC is online/o
 
 uint16 esc_armed_flags # [-] Bitmask indicating which ESC is armed (in motor order)
 
-EscReport[12] esc
+EscReport[4] esc

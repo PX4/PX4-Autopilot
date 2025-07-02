@@ -1,0 +1,5 @@
+menuconfig DRIVERS_FREEFLY_ESCS
+	bool "ff_escs"
+	default n
+	---help---
+		Enable support for ff_escs
