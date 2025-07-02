@@ -1,0 +1,5 @@
+menuconfig DRIVERS_FREEFLY_SMARTBATTERY
+	bool "ff_smartbattery"
+	default n
+	---help---
+		Enable support for freefly smart battery
