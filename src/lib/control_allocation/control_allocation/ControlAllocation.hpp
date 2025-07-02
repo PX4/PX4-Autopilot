@@ -230,7 +230,6 @@ public:
 
 protected:
 	friend class ControlAllocator; // for _actuator_sp
-	friend class SpacecraftControlAllocator;
 
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness;  ///< Effectiveness matrix
 	matrix::Vector<float, NUM_AXES> _control_allocation_scale;  	///< Scaling applied during allocation
