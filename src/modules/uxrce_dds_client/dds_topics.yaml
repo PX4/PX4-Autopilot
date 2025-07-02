@@ -97,14 +97,6 @@ publications:
     type: px4_msgs::msg::HomePosition
     rate_limit: 5.
 
-  - topic: /fmu/out/actuator_motors
-    type: px4_msgs::msg::ActuatorMotors
-    rate_limit: 50.
-
-  - topic: /fmu/out/actuator_outputs
-    type: px4_msgs::msg::ActuatorOutputs
-    rate_limit: 50.
-
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
