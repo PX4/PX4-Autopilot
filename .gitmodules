@@ -1,7 +1,7 @@
 [submodule "src/modules/mavlink/mavlink"]
 	path = src/modules/mavlink/mavlink
-	url = https://github.com/Louis-max-H/mavlink.git
-	branch = pr-resilience
+	url = https://github.com/mavlink/mavlink.git
+	branch = master
 [submodule "Tools/simulation/jmavsim/jMAVSim"]
 	path = Tools/simulation/jmavsim/jMAVSim
 	url = https://github.com/PX4/jMAVSim.git
