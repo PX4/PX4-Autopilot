@@ -67,6 +67,11 @@ private:
 	void _updateSetpoints();
 
 	/**
+	 * Update estimated flown distance since the last time home bearing was updated
+	 */
+	void _updateDistanceFlownEstimate();
+
+	/**
 	 * Update bearing to home position with the last available GNSS position
 	 * @return true on success, false on error
 	 */
@@ -91,10 +96,9 @@ private:
 			      const matrix::Vector3d &_global_position_end);
 
 	/**
-	 * Computes return altitude velocity
-	 * @return true on success, false on error
+	 * Computes return altitude and acceleration
 	 */
-	bool _computeReturnParameters();
+	void _computeReturnParameters();
 
 	/**
 	 * Update uORB subscriptions
@@ -120,15 +124,17 @@ private:
 	bool _isAboveReturnAltitude() const;
 
 	/**
-	 * Check if the vehicle is within the home position waypoint acceptance radius
-	 * @return true if within, false otherwise
+	 * Check if the vehicle is within the home position waypoint acceptance radius, or if the distance traveled is greater than the initial distance to home (times a factor)
+	 * @return true if completed, false otherwise
 	 */
-	bool _isWithinHomePositionRadius();
+	bool _isReturnComplete();
 
 
 	matrix::Vector3d _home_position;			/**< Stores home position */
 	matrix::Vector3d _start_vehicle_global_position;	/**< Stores vehicle last known GNSS position */
 	float _bearing_to_home{0.0f};				/**< Stores bearing between home and last GNSS position */
+	float _initial_distance_to_home{0.0f};			/**< Initial distance to home position */
+	float _distance_flown_estimate{0.0f};
 
 	HeadingSmoothing _heading_smoothing;			/**< Smoother for heading */
 	SlewRate<float> _slew_rate_acceleration_x{0.0f};	/**< Slew rate for x-acceleration setpoint */
@@ -157,6 +163,7 @@ private:
 					(ParamFloat<px4::params::MPC_JERK_AUTO>) _param_mpc_jerk_auto,		//< maximum jerk in auto modes
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) _param_mpc_z_v_auto_up,	//< max vertical velocity up
 					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,	//< max vertical acceleration up
+					(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _param_mpc_xy_vel_max,	//< max horizontal velocity
 					(ParamFloat<px4::params::NAV_MC_ALT_RAD>) _param_nav_mc_alt_rad,	//< max vertical error
 					(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad		//< max horizontal error
 				       );

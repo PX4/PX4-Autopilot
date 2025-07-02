@@ -51,10 +51,12 @@ bool FlightTaskReturnDeadReckoning::activate(const trajectory_setpoint_s &last_s
 	_updateSubscriptions();
 	_state = State::INIT;
 
-	if (!(_updateBearingToHome() && _computeReturnParameters() && _initializeSmoothers())) {
+	if (!(_updateBearingToHome() && _initializeSmoothers())) {
 		PX4_ERR("Failed to initialize task");
 		return false;
 	}
+
+	_computeReturnParameters();
 
 	return true;
 }
@@ -77,6 +79,7 @@ bool FlightTaskReturnDeadReckoning::update()
 
 	_updateState();
 	_updateSetpoints();
+	_updateDistanceFlownEstimate();
 
 	return true;
 }
@@ -110,7 +113,7 @@ void FlightTaskReturnDeadReckoning::_updateState()
 		break;
 
 	case State::RETURN:
-		if (_isWithinHomePositionRadius()) {
+		if (_isReturnComplete()) {
 			_state = State::HOLD;
 			events::send<float>(events::ID("dead_reckon_rtl_hold"), events::Log::Info,
 					    "Holding altitude at {1:.2m_v} over home position", _rtl_alt);
@@ -186,11 +189,23 @@ void FlightTaskReturnDeadReckoning::_updateSetpoints()
 	return;
 }
 
+void FlightTaskReturnDeadReckoning::_updateDistanceFlownEstimate()
+{
+	if (_state == State::RETURN) {
+		_distance_flown_estimate += _param_mpc_xy_vel_max.get() * _deltatime;
+	}
+}
+
 bool FlightTaskReturnDeadReckoning::_updateBearingToHome()
 {
 	if (_readHomePosition(_home_position)) {
 		_readGlobalPosition(_start_vehicle_global_position);
 		_bearing_to_home = _computeBearing(_start_vehicle_global_position, _home_position);
+
+		_distance_flown_estimate = .0f;
+		_initial_distance_to_home = get_distance_to_next_waypoint(
+			_start_vehicle_global_position(0), _start_vehicle_global_position(1),
+			_home_position(0), _home_position(1));
 	}
 
 	return !isnanf(_bearing_to_home);
@@ -234,14 +249,11 @@ float FlightTaskReturnDeadReckoning::_computeBearing(const matrix::Vector3d &_gl
 	return bearing;
 }
 
-bool FlightTaskReturnDeadReckoning::_computeReturnParameters()
+void FlightTaskReturnDeadReckoning::_computeReturnParameters()
 {
-	_rtl_alt = _param_rtl_return_alt.get();
-	_rtl_alt = math::max((float) _start_vehicle_global_position(2), (float) _home_position(2) + _rtl_alt);
+	_rtl_alt = math::max((float) _start_vehicle_global_position(2), (float) _home_position(2) + _param_rtl_return_alt.get());
 
 	_rtl_acc = _param_mpc_acc_hor_max.get();
-
-	return true;
 }
 
 void FlightTaskReturnDeadReckoning::_updateSubscriptions()
@@ -281,14 +293,20 @@ bool FlightTaskReturnDeadReckoning::_isAboveReturnAltitude() const
 	return current_alt > target_alt;
 }
 
-bool FlightTaskReturnDeadReckoning::_isWithinHomePositionRadius()
+bool FlightTaskReturnDeadReckoning::_isReturnComplete()
 {
+	bool ret = false;
 	if (_isGlobalPositionValid()) {
+		// Close enough to home posititon
 		_readGlobalPosition(_start_vehicle_global_position);
-		return get_distance_to_next_waypoint(
+		ret = get_distance_to_next_waypoint(
 			       _start_vehicle_global_position(0), _start_vehicle_global_position(1),
 			       _home_position(0), _home_position(1)) < _param_nav_acc_rad.get();
 	}
 
-	return false;
+	if (!ret) {
+		ret = _distance_flown_estimate > 2.5f * _initial_distance_to_home; // 2.5x the initial distance to home
+	}
+
+	return ret;
 }
