@@ -69,6 +69,7 @@
 #include <uORB/topics/register_ext_component_reply.h>
 #include <uORB/topics/arming_check_request.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 // Publications
 #include <uORB/topics/actuator_motors.h>
@@ -79,7 +80,6 @@
 #include <uORB/topics/arming_check_reply.h>
 
 using namespace time_literals; // For the 1_s in the subscription interval
-
 class MulticopterNeuralNetworkControl : public ModuleBase<MulticopterNeuralNetworkControl>, public ModuleParams,
 	public px4::WorkItem
 {
@@ -116,6 +116,9 @@ private:
 	void ConfigureNeuralFlightMode(int8 mode_id);
 	void ReplyToArmingCheck(int8 request_id);
 	void CheckModeRegistration();
+	void generate_trajectory_setpoint(float dt);
+	void reset_trajectory_setpoint(vehicle_local_position_s &_position);
+	void check_setpoint_validity(vehicle_local_position_s &_position);
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -125,6 +128,7 @@ private:
 	uORB::Subscription _position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::SubscriptionCallbackWorkItem _angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
 	// Publications
@@ -151,10 +155,12 @@ private:
 	vehicle_angular_velocity_s _angular_velocity;
 	vehicle_local_position_s _position;
 	vehicle_attitude_s _attitude;
+	manual_control_setpoint_s _manual_control_setpoint{};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MC_NN_MAX_RPM>) _param_max_rpm,
 		(ParamInt<px4::params::MC_NN_MIN_RPM>) _param_min_rpm,
-		(ParamFloat<px4::params::MC_NN_THRST_COEF>) _param_thrust_coeff
+		(ParamFloat<px4::params::MC_NN_THRST_COEF>) _param_thrust_coeff,
+		(ParamBool<px4::params::MC_NN_MANL_CTRL>) _param_manual_control
 	)
 };

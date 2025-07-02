@@ -72,3 +72,12 @@ PARAM_DEFINE_INT32(MC_NN_MIN_RPM, 1000);
  * @group Neural Control
  */
 PARAM_DEFINE_FLOAT(MC_NN_THRST_COEF, 1.2f);
+
+/**
+ * Enable or disable setting the trajectory setpoint with manual control.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group Neural Control
+ */
+PARAM_DEFINE_INT32(MC_NN_MANL_CTRL, 1);

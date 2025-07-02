@@ -162,15 +162,10 @@ void MulticopterNeuralNetworkControl::ConfigureNeuralFlightMode(int8 mode_id)
 	config_control_setpoints.timestamp = hrt_absolute_time();
 	config_control_setpoints.source_id = mode_id;
 	config_control_setpoints.flag_multicopter_position_control_enabled = false;
-	config_control_setpoints.flag_control_manual_enabled = false;
+	config_control_setpoints.flag_control_manual_enabled = _param_manual_control.get();
 	config_control_setpoints.flag_control_offboard_enabled = false;
 	config_control_setpoints.flag_control_position_enabled = false;
-	//  config_control_setpoints.flag_control_velocity_enabled = true;
-	//  config_control_setpoints.flag_control_altitude_enabled = true;
 	config_control_setpoints.flag_control_climb_rate_enabled = true;
-	//  config_control_setpoints.flag_control_acceleration_enabled = true;
-	//  config_control_setpoints.flag_control_attitude_enabled = true;
-	//  config_control_setpoints.flag_control_rates_enabled = true;
 	config_control_setpoints.flag_control_allocation_enabled = false;
 	config_control_setpoints.flag_control_termination_enabled = true;
 	_config_control_setpoints_pub.publish(config_control_setpoints);
@@ -214,6 +209,71 @@ void MulticopterNeuralNetworkControl::CheckModeRegistration()
 			break;
 		}
 	}
+}
+
+
+void MulticopterNeuralNetworkControl::check_setpoint_validity(vehicle_local_position_s &_position)
+{
+	const float _setpoint_age = (hrt_absolute_time() - _trajectory_setpoint.timestamp) * 1e-6f;
+
+	if (_setpoint_age < 0.0f || _setpoint_age > 1.0f) {
+		reset_trajectory_setpoint(_position);
+		PX4_INFO("Age: %.2f s, resetting trajectory setpoint to current position", (double)_setpoint_age);
+	}
+}
+
+void MulticopterNeuralNetworkControl::reset_trajectory_setpoint(vehicle_local_position_s &_position)
+{
+	// Reset trajectory setpoint to current position and attitude
+	_trajectory_setpoint.timestamp = hrt_absolute_time();
+	_trajectory_setpoint.position[0] = _position.x;
+	_trajectory_setpoint.position[1] = _position.y;
+	_trajectory_setpoint.position[2] = _position.z;
+}
+
+void MulticopterNeuralNetworkControl::generate_trajectory_setpoint(float dt)
+{
+	// Update position setpoints based on manual control inputs
+	float vx_sp = 0.0;
+
+	if (_manual_control_setpoint.pitch > 0.1f
+	    || _manual_control_setpoint.pitch < -0.1f) {
+		// If pitch is not zero, we use it to set the roll setpoint
+		vx_sp = _manual_control_setpoint.pitch * 0.5f;
+	}
+
+	float vy_sp = 0.0;
+
+	if (_manual_control_setpoint.roll > 0.1f
+	    || _manual_control_setpoint.roll < -0.1f) {
+		// If roll is not zero, we use it to set the pitch setpoint
+		vy_sp = _manual_control_setpoint.roll * 0.5f;
+	}
+
+	float vz_sp = 0.0;
+
+	if (_manual_control_setpoint.throttle > 0.1f
+	    || _manual_control_setpoint.throttle < -0.1f) {
+		// If throttle is not zero, we use it to set the vertical velocity
+		// Note: negative sign due to NED frame
+		vz_sp = -_manual_control_setpoint.throttle * 0.5f;
+	}
+
+	// Orient setpoint to vehicle
+	matrix::Vector3f velocity_setpoint(vx_sp, vy_sp, vz_sp);
+	float yaw = matrix::Eulerf(matrix::Quatf(_attitude.q)).psi();
+	matrix::Eulerf euler(0.0, 0.0, yaw);
+	matrix::Quatf q_yaw = euler;
+	matrix::Vector3f rotated_velocity_setpoint = q_yaw.rotateVector(velocity_setpoint);
+
+	// Build setpoint
+	_trajectory_setpoint.timestamp = hrt_absolute_time();
+	_trajectory_setpoint.position[0] = _trajectory_setpoint.position[0] + rotated_velocity_setpoint(
+			0) * dt; // X in world frame
+	_trajectory_setpoint.position[1] = _trajectory_setpoint.position[1] + rotated_velocity_setpoint(
+			1) * dt; // Y in world frame
+	_trajectory_setpoint.position[2] = _trajectory_setpoint.position[2] + rotated_velocity_setpoint(
+			2) * dt; // Z in world frame
 }
 
 
@@ -432,6 +492,7 @@ void MulticopterNeuralNetworkControl::Run()
 
 	// run controller on angular velocity updates
 	if (_angular_velocity_sub.update(&_angular_velocity)) {
+		const float dt = math::constrain(((_angular_velocity.timestamp_sample - _last_run) * 1e-6f), 0.0002f, 0.02f);
 		_last_run = _angular_velocity.timestamp_sample;
 
 		if (_attitude_sub.updated()) {
@@ -445,20 +506,31 @@ void MulticopterNeuralNetworkControl::Run()
 			if (!PX4_ISFINITE(_trajectory_setpoint.position[0])
 			    && !PX4_ISFINITE(_trajectory_setpoint.position[1])
 			    && !PX4_ISFINITE(_trajectory_setpoint.position[2])) {
-				_trajectory_setpoint.position[0] = _position.x;
-				_trajectory_setpoint.position[1] = _position.y;
-				_trajectory_setpoint.position[2] = _position.z;
+				reset_trajectory_setpoint(_position);
 			}
 		}
 
-		if (_trajectory_setpoint_sub.updated()) {
-			trajectory_setpoint_s _trajectory_setpoint_temp;
-			_trajectory_setpoint_sub.copy(&_trajectory_setpoint_temp);
+		if (_param_manual_control.get()) {
+			// Run manual control mode
+			_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 
-			// Make sure the trajectory setpoint is defined before using it
-			if (PX4_ISFINITE(_trajectory_setpoint_temp.position[0]) && PX4_ISFINITE(_trajectory_setpoint_temp.position[1]) &&
-			    PX4_ISFINITE(_trajectory_setpoint_temp.position[2])) {
-				_trajectory_setpoint = _trajectory_setpoint_temp;
+			// Ensure no nan and sufficiently recent setpoint
+			check_setpoint_validity(_position);
+
+			// Generate _trajectory_setpoint -> creates _trajectory_setpoint
+			generate_trajectory_setpoint(dt);
+
+		} else {
+			// Parse offboard trajectory setpoint
+			if (_trajectory_setpoint_sub.updated()) {
+				trajectory_setpoint_s _trajectory_setpoint_temp;
+				_trajectory_setpoint_sub.copy(&_trajectory_setpoint_temp);
+
+				// Make sure the trajectory setpoint is defined before using it
+				if (PX4_ISFINITE(_trajectory_setpoint_temp.position[0]) && PX4_ISFINITE(_trajectory_setpoint_temp.position[1]) &&
+				    PX4_ISFINITE(_trajectory_setpoint_temp.position[2])) {
+					_trajectory_setpoint = _trajectory_setpoint_temp;
+				}
 			}
 		}
 
