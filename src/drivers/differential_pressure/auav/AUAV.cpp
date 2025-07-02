@@ -240,14 +240,14 @@ int AUAV::read_calibration_eeprom(const uint8_t eeprom_address, uint16_t &data)
 void AUAV::process_calib_data_raw(const calib_data_raw_t calib_data_raw)
 {
 	/* Conversion of calib data as described in the datasheet */
-	_calib_data.a = (float)((calib_data_raw.a_hw << 16) | calib_data_raw.a_lw) / 0x7FFFFFFF;
-	_calib_data.b = (float)((calib_data_raw.b_hw << 16) | calib_data_raw.b_lw) / 0x7FFFFFFF;
-	_calib_data.c = (float)((calib_data_raw.c_hw << 16) | calib_data_raw.c_lw) / 0x7FFFFFFF;
-	_calib_data.d = (float)((calib_data_raw.d_hw << 16) | calib_data_raw.d_lw) / 0x7FFFFFFF;
+	_calib_data.a = (float)((int32_t)((calib_data_raw.a_hw << 16) | calib_data_raw.a_lw)) / 0x7FFFFFFF;
+	_calib_data.b = (float)((int32_t)((calib_data_raw.b_hw << 16) | calib_data_raw.b_lw)) / 0x7FFFFFFF;
+	_calib_data.c = (float)((int32_t)((calib_data_raw.c_hw << 16) | calib_data_raw.c_lw)) / 0x7FFFFFFF;
+	_calib_data.d = (float)((int32_t)((calib_data_raw.d_hw << 16) | calib_data_raw.d_lw)) / 0x7FFFFFFF;
 
-	_calib_data.tc50h = (float)(calib_data_raw.tc50 >> 8) / 0x7F;
-	_calib_data.tc50l = (float)(calib_data_raw.tc50 & 0xFF) / 0x7F;
-	_calib_data.es = (float)(calib_data_raw.es & 0xFF) / 0x7F;
+	_calib_data.tc50h = (float)((int8_t)(calib_data_raw.tc50 >> 8)) / 0x7F;
+	_calib_data.tc50l = (float)((int8_t)(calib_data_raw.tc50 & 0xFF)) / 0x7F;
+	_calib_data.es = (float)((int8_t)(calib_data_raw.es & 0xFF)) / 0x7F;
 }
 
 float AUAV::correct_pressure(const uint32_t pressure_raw, const uint32_t temperature_raw) const

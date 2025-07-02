@@ -1,13 +1,13 @@
 # 基本概念
 
-This topic provides a basic introduction to drones and using PX4 (it is meant mostly for novice users but is also a good introduction for more experienced users).
+这个话题提供了一次关于无人机的基本介绍，并使用了PX4（它主要针对新手用户，但也是对经验较丰富的用户的良好介绍）。
 
-If you are already familiar with the basic concepts, you can move on to [Basic Assembly](../assembly/index.md) to learn how to wire your specific autopilot hardware.
-To load firmware and set up the vehicle with _QGroundControl_, see [Basic Configuration](../config/index.md).
+如果你已经熟悉了基本概念，你可以转到 [基本组装](../assembly/index.md) 以了解如何连接特定的自驾仪硬件。
+要加载固件并使用 _QGC 地面站_ 设置机体，请查看 [基本配置](../config/index.md)。
 
 ## 无人机是什么？
 
-A drone, or Unmanned Vehicles (UV), is an unmanned "robotic" vehicle that can be manually or autonomously controlled.
+无人机，或者是无人驾驶的“机器人”设备（Vehicles，UV），它可以远程或自动控制。
 They can travel in air, on the ground, on/under the water, and are used for many [consumer, industrial, government and military applications](https://px4.io/ecosystem/commercial-systems/), including aerial photography/video, carrying cargo, racing, search and surveying, and so on.
 
 Drones are more formally referred to as Unmanned Aerial Vehicles (UAV), Unmanned Ground Vehicles (UGV), Unmanned Surface Vehicles (USV), Unmanned Underwater Vehicles (UUV).
@@ -335,8 +335,7 @@ An overview of the flight modes implemented within PX4 for each vehicle can be f
 - [Flight Modes (Multicopter)](../flight_modes_mc/index.md)
 - [Flight Modes (Fixed-Wing)](../flight_modes_fw/index.md)
 - [Flight Modes (VTOL)](../flight_modes_vtol/index.md)
-- [Drive Modes (Differential Rover)](../flight_modes_rover/differential.md)
-- [Drive Modes (Ackermann Rover)](../flight_modes_rover/ackermann.md)
+- [Drive Modes (Rover)](../flight_modes_rover/index.md)
 
 Instructions for how to set up your remote control switches to enable different flight modes is provided in [Flight Mode Configuration](../config/flight_mode.md).
 
