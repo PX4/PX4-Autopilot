@@ -37,6 +37,7 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/topics/battery_freefly.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/rtl_time_estimate.h>
 
@@ -51,10 +52,14 @@ public:
 private:
 	void rtlEstimateCheck(const Context &context, Report &reporter, float worst_battery_time_s);
 
+	uORB::SubscriptionMultiArray<battery_freefly_s, battery_status_s::MAX_INSTANCES> _battery_freefly_subs{ORB_ID::battery_freefly};
 	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 	uORB::Subscription					_rtl_time_estimate_sub{ORB_ID(rtl_time_estimate)};
 	bool _last_armed{false};
 	bool _battery_connected_at_arming[battery_status_s::MAX_INSTANCES] {};
+
+	uint8_t _custom_fault_ids[battery_status_s::MAX_INSTANCES] {};
+	uint32_t _custom_faults[battery_status_s::MAX_INSTANCES] {};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamFloat<px4::params::COM_ARM_BAT_MIN>) _param_com_arm_bat_min,

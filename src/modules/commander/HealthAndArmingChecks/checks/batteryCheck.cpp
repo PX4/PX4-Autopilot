@@ -95,6 +95,15 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 	int num_connected_batteries{0};
 	bool is_required_battery_missing{false};
 
+	for (int i = 0; i < _battery_freefly_subs.size(); ++i) {
+		battery_freefly_s battery_freefly;
+
+		if (_battery_freefly_subs[i].update(&battery_freefly)) {
+			_custom_fault_ids[i] = battery_freefly.id;
+			_custom_faults[i] = battery_freefly.custom_faults;
+		}
+	}
+
 	for (auto &battery_sub : _battery_status_subs) {
 		int index = battery_sub.get_instance();
 		battery_status_s battery;
@@ -159,13 +168,23 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 								events::px4::enums::suggested_action_t::land :
 								events::px4::enums::suggested_action_t::none;
 
+						uint32_t custom_faults = 0;
+
+						for (int i = 0; i < battery_status_s::MAX_INSTANCES; ++i) {
+							if ((_custom_fault_ids[i] != 0)
+							    && (_custom_fault_ids[i] == battery.id)) {
+								custom_faults = _custom_faults[i];
+							}
+						}
+
 						/* EVENT
 						 * @description
 						 * The battery reported a failure which might be dangerous to fly with.
+						 * Manufacturer error code: {4}
 						 */
-						reporter.healthFailure<uint8_t, battery_fault_reason_t, events::px4::enums::suggested_action_t>
+						reporter.healthFailure<uint8_t, battery_fault_reason_t, events::px4::enums::suggested_action_t, uint32_t>
 						(NavModes::All, health_component_t::battery, events::ID("check_battery_fault"), {events::Log::Emergency, events::LogInternal::Warning},
-						 "Battery {1}: {2}. {3}", index + 1, static_cast<battery_fault_reason_t>(fault_index), action);
+						 "Battery {1}: {2}. {3}", index + 1, static_cast<battery_fault_reason_t>(fault_index), action, custom_faults);
 
 						if (reporter.mavlink_log_pub()) {
 							mavlink_log_emergency(reporter.mavlink_log_pub(), "Battery %d: %s. %s \t", index + 1,

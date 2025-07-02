@@ -34,6 +34,7 @@
 #ifndef BATTERY_STATUS_HPP
 #define BATTERY_STATUS_HPP
 
+#include <uORB/topics/battery_freefly.h>
 #include <uORB/topics/battery_status.h>
 
 class MavlinkStreamBatteryStatus : public MavlinkStream
@@ -56,11 +57,24 @@ public:
 private:
 	explicit MavlinkStreamBatteryStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
+	uORB::SubscriptionMultiArray<battery_freefly_s, battery_status_s::MAX_INSTANCES> _battery_freefly_subs{ORB_ID::battery_freefly};
 	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
+
+	uint8_t _mode_ids[battery_status_s::MAX_INSTANCES] {};
+	uint8_t _modes[battery_status_s::MAX_INSTANCES] {};
 
 	bool send() override
 	{
 		bool updated = false;
+
+		for (int i = 0; i < _battery_freefly_subs.size(); ++i) {
+			battery_freefly_s battery_freefly;
+
+			if (_battery_freefly_subs[i].update(&battery_freefly)) {
+				_mode_ids[i] = battery_freefly.id;
+				_modes[i] = battery_freefly.mode;
+			}
+		}
 
 		for (auto &battery_sub : _battery_status_subs) {
 			battery_status_s battery_status;
@@ -115,6 +129,17 @@ private:
 				}
 
 				bat_msg.mode = MAV_BATTERY_MODE_UNKNOWN;
+
+				// report hotswap mode from separate message
+				for (int i = 0; i < battery_status_s::MAX_INSTANCES; ++i) {
+					if ((_mode_ids[i] != 0)
+					    && (_mode_ids[i] == battery_status.id)) {
+						if (_modes[i] == battery_freefly_s::BATTERY_MODE_HOTSWAP) {
+							bat_msg.mode = MAV_BATTERY_MODE_HOT_SWAP;
+						}
+					}
+				}
+
 				bat_msg.fault_bitmask = battery_status.faults;
 
 				// check if temperature valid
