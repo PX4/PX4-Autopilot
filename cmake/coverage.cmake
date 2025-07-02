@@ -36,6 +36,20 @@ find_program(GENHTML_PATH genhtml)
 
 message(STATUS "Building for code coverage")
 
+if (CMAKE_BUILD_TYPE STREQUAL Coverage)
+	# Coverage instrumentation plus atomic updates
+	set(COVERAGE_FLAGS
+		--coverage
+		-fprofile-update=atomic
+	)
+
+	# Apply to every compile and link invocation
+	add_compile_options(${COVERAGE_FLAGS})
+	add_link_options(${COVERAGE_FLAGS})
+
+	message(STATUS "Coverage instrumentation enabled with flags: ${COVERAGE_FLAGS}")
+endif()
+
 # add code coverage build type
 if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "AppleClang"))
 	set(CMAKE_C_FLAGS_COVERAGE "--coverage -ftest-coverage -fdiagnostics-absolute-paths -O0 -fprofile-arcs -fno-inline-functions"
