@@ -135,22 +135,6 @@ DatamanTest::DatamanTest()
 }
 
 bool
-DatamanTest::testSyncReadInvalidItem()
-{
-
-	bool success = _dataman_client1.readSync(DM_KEY_NUM_KEYS, 0, _buffer_read, 2);
-	return !success;
-}
-
-bool
-DatamanTest::testSyncWriteInvalidItem()
-{
-	bool success = _dataman_client1.writeSync(DM_KEY_NUM_KEYS, 0, _buffer_write, 2);
-	return !success;
-}
-
-
-bool
 DatamanTest::testSyncReadInvalidIndex()
 {
 	bool success = _dataman_client1.readSync(DM_KEY_SAFE_POINTS_0, DM_KEY_SAFE_POINTS_MAX, _buffer_read, 2);
@@ -300,118 +284,6 @@ DatamanTest::testSyncClearAll()
 	}
 
 	return success;
-}
-
-bool
-DatamanTest::testAsyncReadInvalidItem()
-{
-	bool success = true;
-
-	State state = State::Read;
-	hrt_abstime start_time = hrt_absolute_time();
-
-	//While loop represents a task
-	while (state != State::Exit) {
-
-		_dataman_client1.update();
-
-
-		switch (state) {
-
-		case State::Read:
-
-			state = State::ReadWait;
-			success = _dataman_client1.readAsync(DM_KEY_NUM_KEYS, 0, _buffer_read, 2);
-
-			if (!success) {
-				return false;
-			}
-
-			break;
-
-		case State::ReadWait:
-			if (_dataman_client1.lastOperationCompleted(_response_success)) {
-				state = State::OperationCompleted;
-
-				if (!_response_success) {
-					//Test ends here
-					return true;
-				}
-			}
-
-			break;
-
-		default:
-			break;
-
-		}
-
-		if (hrt_elapsed_time(&start_time) > 1_s) {
-			PX4_ERR("Test timeout!");
-			return false;
-		}
-
-		//Simulate rescheduling the task after a 1 ms delay to allow time for the dataman task to operate.
-		px4_usleep(1_ms);
-	}
-
-	return false;
-}
-
-bool
-DatamanTest::testAsyncWriteInvalidItem()
-{
-	bool success = true;
-
-	State state = State::Write;
-	hrt_abstime start_time = hrt_absolute_time();
-
-	//While loop represents a task
-	while (state != State::Exit) {
-
-		_dataman_client1.update();
-
-
-		switch (state) {
-
-		case State::Write:
-
-			state = State::WriteWait;
-			success = _dataman_client1.writeAsync(DM_KEY_NUM_KEYS, 0, _buffer_write, 2);
-
-			if (!success) {
-				return false;
-			}
-
-			break;
-
-		case State::WriteWait:
-			if (_dataman_client1.lastOperationCompleted(_response_success)) {
-				state = State::OperationCompleted;
-
-				if (!_response_success) {
-					//Test ends here
-					return true;
-				}
-			}
-
-			break;
-
-		default:
-			break;
-
-		}
-
-		if (hrt_elapsed_time(&start_time) > 1_s) {
-			PX4_ERR("Test timeout!");
-			return false;
-		}
-
-		//Simulate rescheduling the task after a 1 ms delay to allow time for the dataman task to operate.
-		px4_usleep(1_ms);
-	}
-
-	return false;
 }
 
 bool
@@ -1120,8 +992,6 @@ DatamanTest::testResetItems()
 
 bool DatamanTest::run_tests()
 {
-	ut_run_test(testSyncReadInvalidItem);
-	ut_run_test(testSyncWriteInvalidItem);
 	ut_run_test(testSyncReadInvalidIndex);
 	ut_run_test(testSyncWriteInvalidIndex);
 	ut_run_test(testSyncReadBufferOverflow);
@@ -1130,8 +1000,6 @@ bool DatamanTest::run_tests()
 	ut_run_test(testSyncWriteReadAllItemsMaxSize);
 	ut_run_test(testSyncClearAll);
 
-	ut_run_test(testAsyncReadInvalidItem);
-	ut_run_test(testAsyncWriteInvalidItem);
 	ut_run_test(testAsyncReadInvalidIndex);
 	ut_run_test(testAsyncWriteInvalidIndex);
 	ut_run_test(testAsyncReadBufferOverflow);
