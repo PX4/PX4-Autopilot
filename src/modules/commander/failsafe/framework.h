@@ -296,7 +296,8 @@ private:
 	void *_on_notify_user_arg{nullptr};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
-					(ParamFloat<px4::params::COM_FAIL_ACT_T>) 	_param_com_fail_act_t
+					(ParamFloat<px4::params::COM_FAIL_ACT_T>) 	_param_com_fail_act_t,
+					(ParamInt<px4::params::COM_POS_FS_ACT>)		_param_com_pos_fs_act
 				       );
 
 };

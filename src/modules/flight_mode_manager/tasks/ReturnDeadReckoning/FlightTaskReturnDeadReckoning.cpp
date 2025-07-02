@@ -97,7 +97,7 @@ void FlightTaskReturnDeadReckoning::_updateState()
 		} else {
 			_state = State::ASCENT;
 			events::send<float, float>(events::ID("dead_reckon_rtl_ascent"), events::Log::Info,
-				     "Ascending to return altitude {1:.2m_v} with bearing {2:.2} deg", _rtl_alt, math::degrees(_bearing_to_home));
+						   "Ascending to return altitude {1:.2m_v} with bearing {2:.2} deg", _rtl_alt, math::degrees(_bearing_to_home));
 		}
 
 		break;
@@ -204,8 +204,8 @@ bool FlightTaskReturnDeadReckoning::_updateBearingToHome()
 
 		_distance_flown_estimate = .0f;
 		_initial_distance_to_home = get_distance_to_next_waypoint(
-			_start_vehicle_global_position(0), _start_vehicle_global_position(1),
-			_home_position(0), _home_position(1));
+						    _start_vehicle_global_position(0), _start_vehicle_global_position(1),
+						    _home_position(0), _home_position(1));
 	}
 
 	return !isnanf(_bearing_to_home);
@@ -251,7 +251,8 @@ float FlightTaskReturnDeadReckoning::_computeBearing(const matrix::Vector3d &_gl
 
 void FlightTaskReturnDeadReckoning::_computeReturnParameters()
 {
-	_rtl_alt = math::max((float) _start_vehicle_global_position(2), (float) _home_position(2) + _param_rtl_return_alt.get());
+	_rtl_alt = math::max((float) _start_vehicle_global_position(2),
+			     (float) _home_position(2) + _param_rtl_return_alt.get());
 
 	_rtl_acc = _param_mpc_acc_hor_max.get();
 }
@@ -296,12 +297,13 @@ bool FlightTaskReturnDeadReckoning::_isAboveReturnAltitude() const
 bool FlightTaskReturnDeadReckoning::_isReturnComplete()
 {
 	bool ret = false;
+
 	if (_isGlobalPositionValid()) {
 		// Close enough to home posititon
 		_readGlobalPosition(_start_vehicle_global_position);
 		ret = get_distance_to_next_waypoint(
-			       _start_vehicle_global_position(0), _start_vehicle_global_position(1),
-			       _home_position(0), _home_position(1)) < _param_nav_acc_rad.get();
+			      _start_vehicle_global_position(0), _start_vehicle_global_position(1),
+			      _home_position(0), _home_position(1)) < _param_nav_acc_rad.get();
 	}
 
 	if (!ret) {

@@ -583,7 +583,8 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 
 	// fallthrough
 	case Action::DeadReckonRTL:
-		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL_DR)) {
+		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL_DR)
+		    && _param_com_pos_fs_act.get() == 1) {
 			selected_action = Action::DeadReckonRTL;
 			break;
 		}
