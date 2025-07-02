@@ -93,7 +93,7 @@ In this case you will have to add them to your board configuration and then rebu
 ### Adding SIH to the Firmware
 
 Add the following key to the configuration file for your flight controller to include all the required modules (for an example see [boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board)).
-Then re-built the firmware and flash it to the board.
+Then re-build the firmware and flash it to the board.
 
 ```text
 CONFIG_MODULES_SIMULATION_SIMULATOR_SIH=y
