@@ -54,32 +54,73 @@ To run the SIH, you will need a:
 - QGroundControl for flying the vehicle via GCS.
 - Development computer for visualizing the virtual vehicle (optional).
 
-## Add SIH to Firmware
+## Check if SIH is in Firmware
 
-The modules required for SIH are not built into all PX4 firmware by default, so you are likely to need to add them to the configuration and then rebuild and install the firmware.
+The modules required for SIH are built into most PX4 firmware by default.
+These include: [`pwm_out_sim`](../modules/modules_driver.md#pwm-out-sim), [`sensor_baro_sim`](../modules/modules_system.md#sensor-baro-sim), [`sensor_gps_sim`](../modules/modules_system.md#sensor-gps-sim) and [`sensor_mag_sim`](../modules/modules_system.md#sensor-mag-sim).
 
-The following key must be present in the configuration file for your target flight controller (such as [boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board) FMUv6x based boards).
+To check that these are present on your flight controller:
+
+1. Start QGroundControl.
+2. Open **Analyze Tools > Mavlink Console**.
+3. Enter the following commands in the console:
+
+   ```sh
+   pwm_out_sim status
+   ```
+
+   ```sh
+   sensor_baro_sim status
+   ```
+
+   ```sh
+   sensor_gps_sim status
+   ```
+
+   ```sh
+   sensor_mag_sim status
+   ```
+
+   ::: tip
+   Note that when using SIH on real hardware you do not need to additionally enable the modules using their corresponding parameters ([SENS_EN_GPSSIM](../advanced_config/parameter_reference.md#SENS_EN_GPSSIM), [SENS_EN_BAROSIM](../advanced_config/parameter_reference.md#SENS_EN_BAROSIM), [SENS_EN_MAGSIM](../advanced_config/parameter_reference.md#SENS_EN_MAGSIM)).
+   :::
+
+4. If a valid status is returned you can start using SIH.
+
+If any of the returned values above are `nsh: MODULENAME: command not found`, then you don't have the module installed.
+In this case you will have to add them to your board configuration and then rebuild and install the firmware.
+
+### Adding SIH to the Firmware
+
+Add the following key to the configuration file for your flight controller to include all the required modules (for an example see [boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board)).
+Then re-built the firmware and flash it to the board.
 
 ```text
 CONFIG_MODULES_SIMULATION_SIMULATOR_SIH=y
 ```
 
-Add the key if necessary then re-built the firmware and flash it to the board.
+::: details What does this do?
 
-You can alternatively use the following command to launch a GUI configuration tool, and interactively enable them at the path: **modules > Simulation > simulator_sih**.
+This installs the dependencies in [simulator_sih/Kconfig](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/simulator_sih/Kconfig).
+It is equivalent to:
+
+```text
+CONFIG_MODULES_SIMULATION_PWM_OUT_SIM=y
+CONFIG_MODULES_SIMULATION_SENSOR_BARO_SIM=y
+CONFIG_MODULES_SIMULATION_SENSOR_GPS_SIM=y
+CONFIG_MODULES_SIMULATION_SENSOR_MAG_SIM=y
+```
+
+:::
+
+As an alterative to updating configuration files manually, you can use the following command to launch a GUI configuration tool, and interactively enable the required modules at the path: **modules > Simulation > simulator_sih**.
 For example, to update the fmu-v6x configuration you would use:
 
 ```sh
 make px4_fmu-v6x boardconfig
 ```
 
-After uploading the following modules should be present on the board: [`pwm_out_sim`](../modules/modules_driver.md#pwm-out-sim), [`sensor_baro_sim`](../modules/modules_system.md#sensor-baro-sim), [`sensor_gps_sim`](../modules/modules_system.md#sensor-gps-sim) and [`sensor_mag_sim`](../modules/modules_system.md#sensor-mag-sim).
-
-You can check that the modules are present using QGroundControl:
-
-1. Open **Analyze Tools > Mavlink Console**.
-2. Type `pwm_out_sim status`, `sensor_baro_sim status`, `sensor_gps_sim status `and `sensor_mag_sim status`, in the console.
-3. If any of the returned values are `nsh: MODULENAME: command not found`, then you don't have the module installed and you need to recompile your target with it.
+After uploading, check that the required modules are present.
 
 ## Starting SIH
 
@@ -121,7 +162,6 @@ To display the simulated vehicle:
    ```
 
    where the flags are:
-
    - `-q` to allow the communication to _QGroundControl_ (optional).
    - `-d` to start the serial device `/dev/ttyACM0` on Linux.
      On macOS this would be `/dev/tty.usbmodem1`.
@@ -145,7 +185,6 @@ To run SIH as SITL:
 
 1. Install the [PX4 Development toolchain](../dev_setup/dev_env.md).
 2. Run the appropriate make command for each vehicle type (at the root of the PX4-Autopilot repository):
-
    - Quadcopter
 
      ```sh
@@ -284,7 +323,9 @@ SIH was originally developed by Coriolis g Corporation.
 The airplane model and tailsitter models were added by Altitude R&D inc.
 Both are Canadian companies:
 
-- Coriolis g developped a new type of Vertical Takeoff and Landing (VTOL) vehicles based on passive coupling systems;
+- Coriolis g developed a new type of Vertical Takeoff and Landing (VTOL) vehicles based on passive coupling systems;
 - [Altitude R&D](https://www.altitude-rd.com/) is specialized in dynamics, control, and real-time simulation (today relocated in Zurich).
 
 The simulator is released for free under BSD license.
+
+<!-- original author: @romain-chiap -->
