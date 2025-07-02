@@ -54,4 +54,3 @@ PX4 не дозволить переходити до цих режимів, д�
 - [Flight Modes (Fixed-Wing)](../flight_modes_fw/index.md)
 - [Flight Modes (VTOL)](../flight_modes_vtol/index.md)
 - [Drive Modes (Rover)](../flight_modes_rover/index.md)
-

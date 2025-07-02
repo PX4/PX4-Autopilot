@@ -320,6 +320,7 @@
     - [텔레메트리 무선통신](telemetry/index.md)
       - [SiK 무선통신](telemetry/sik_radio.md)
         - [RFD900 (SiK) 텔레메트리](telemetry/rfd900_telemetry.md)
+        - [ThunderFly TFSIK01 Telemetry Radio](telemetry/tfsik_telemetry.md)
         - [HolyBro (SIK) Telemetry Radio](telemetry/holybro_sik_radio.md)
       - [Wifi 텔레메트리](telemetry/telemetry_wifi.md)
         - [ESP8266 WiFi 모듈](telemetry/esp8266_wifi_module.md)
