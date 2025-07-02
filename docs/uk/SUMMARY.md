@@ -320,6 +320,7 @@
     - [Телеметричні радіостанції](telemetry/index.md)
       - [SiK Radio](telemetry/sik_radio.md)
         - [Телеметричне радіо RFD900 (SiK)](telemetry/rfd900_telemetry.md)
+        - [ThunderFly TFSIK01 Telemetry Radio](telemetry/tfsik_telemetry.md)
         - [HolyBro (SIK) Телеметричне радіо](telemetry/holybro_sik_radio.md)
       - [Телеметрія Wi-Fi](telemetry/telemetry_wifi.md)
         - [Модуль WiFi ESP8266](telemetry/esp8266_wifi_module.md)
