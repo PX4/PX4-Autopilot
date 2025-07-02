@@ -79,7 +79,7 @@ void INDIController::parameters_updated()
     _mu1[1] = _param_indi_mu1_1.get();
     _mu1[2] = _param_indi_mu1_2.get();
     _mu1[3] = _param_indi_mu1_3.get();
-    _mu1[4] = _param_indi_mu1_4.get();
+    _mu1[4] = _param_indi_mu1_4.get();-
     _mu1[5] = _param_indi_mu1_5.get();
     _mu1[6] = _param_indi_mu1_6.get();
     _mu1[7] = _param_indi_mu1_7.get();
