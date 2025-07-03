@@ -15,7 +15,7 @@ For example, a carrier board for a commercial inspection vehicle might include c
 Cube includes vibration isolation on two of the IMU's, with a third fixed IMU as a reference / backup.
 
 :::tip
-The manufacturer [Cube Docs](https://docs.cubepilot.org/user-guides/autopilot/the-cube-module-overview) contain detailed information, including an overview of the [Differences between Cube Colours](https://docs.cubepilot.org/user-guides/autopilot/the-cube-module-overview#differences-between-cube-colours).
+The manufacturer [Cube User Guide](https://docs.cubepilot.org/user-guides/autopilot/the-cube) contains detailed information, including an overview of the [Differences between Cube Colours](https://docs.cubepilot.org/user-guides/autopilot/the-cube/introduction/specifications).
 :::
 
 ## Key Features
@@ -140,6 +140,5 @@ CAN1 and CAN2 silk screen on the Cube are flipped (CAN1 is CAN2 and vice versa).
 
 - [Cube Wiring Quickstart](../assembly/quick_start_cube.md)
 - Cube Docs (Manufacturer):
-  - [Cube Module Overview](https://docs.cubepilot.org/user-guides/autopilot/the-cube-module-overview)
-  - [Cube User Manual](https://docs.cubepilot.org/user-guides/autopilot/the-cube-user-manual)
+  - [Cube User Guide](https://docs.cubepilot.org/user-guides/autopilot/the-cube)
   - [Mini Carrier Board](https://docs.cubepilot.org/user-guides/carrier-boards/mini-carrier-board)

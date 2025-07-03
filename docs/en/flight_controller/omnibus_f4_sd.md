@@ -67,13 +67,11 @@ These are the boards tested and known to work:
   :::
 
   Purchase from:
-
   - [Hobbywing XRotor F4 Flight Controller w/OSD](https://www.getfpv.com/hobbywing-xrotor-f4-flight-controller-w-osd.html) (getfpv)
 
 - Original Airbot Omnibus F4 SD
 
   Purchase from:
-
   - [Airbot (CN manufacturer)](https://store.myairbot.com/omnibusf4prov3.html)
   - [Ready To Fly Quads (US reseller)](https://quadsrtf.com/product/flip-32-f4-omnibus-rev-2/)
 
@@ -116,7 +114,6 @@ Some Omnibus F4 boards have a jumper connecting either or both the MCU SBUS and 
 ### UARTs
 
 - UART6: GPS port
-
   - TX: MCU pin PC6
   - RX: MCU pin PC7
 
@@ -125,7 +122,6 @@ Some Omnibus F4 boards have a jumper connecting either or both the MCU SBUS and 
   ![Omnibus F4 SD UART6](../../assets/flight_controller/omnibus_f4_sd/uart6.jpg)
 
 - UART4
-
   - TX: MCU pin PA0
   - RX: MCU pin PA1
   - 57600 baud
@@ -227,7 +223,7 @@ The schematics are provided by [Airbot](https://myairbot.com/): [OmnibusF4-Pro-S
 
 The board comes pre-installed with [Betaflight](https://github.com/betaflight/betaflight/wiki).
 Before PX4 firmware can be installed, the _PX4 bootloader_ must be flashed.
-Download the [omnibusf4sd_bl.hex](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/omnibus_f4_sd/omnibusf4sd_bl_d52b70cb39.hex) bootloader binary and read [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
+Download the [omnibusf4sd_bl.hex](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/omnibus_f4_sd/omnibusf4sd_bl_d52b70cb39.hex) bootloader binary and read [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
 
 ## Building Firmware
 

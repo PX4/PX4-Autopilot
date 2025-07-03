@@ -1,13 +1,12 @@
 # Reptile Dragon 2 (RD2) Build
 
-The Reptile Dragon 2 is a twin motor RC airplane specifically designed for efficient FPV [(first person view)](https://en.wikipedia.org/wiki/First-person_view_(radio_control)) flying.
-Being specific for FPV, the RD2 is optimized for easy mounting of cameras, sensors, logic electronics, large batteries, antennas, and other payload components which would be found on a typical FPV airplane. 
+The Reptile Dragon 2 is a twin motor RC airplane specifically designed for efficient FPV [(first person view)](<https://en.wikipedia.org/wiki/First-person_view_(radio_control)>) flying.
+Being specific for FPV, the RD2 is optimized for easy mounting of cameras, sensors, logic electronics, large batteries, antennas, and other payload components which would be found on a typical FPV airplane.
 This emphasis on payload makes this airplane an ideal candidate for a PX4 installation.
 
 ![Finished Reptile Dragon 2 airframe front](../../assets/airframes/fw/reptile_dragon_2/airframe_front.jpg)
 
 ![Finished Reptile Dragon 2 airframe rear](../../assets/airframes/fw/reptile_dragon_2/airframe_rear.jpg)
-
 
 ## Overview
 
@@ -26,7 +25,7 @@ Key airframe features:
   - Side "T" antenna mounts
   - Rear electronics tray
   - Front facing "action cam" cutout
-  - Front facing FPV camera cutout 
+  - Front facing FPV camera cutout
 - Removable wings
 - Low stall speed
 - Gentle handling
@@ -56,12 +55,12 @@ Key build features
 - [ExpressLRS Matek Diversity RX](http://www.mateksys.com/?portfolio=elrs-r24)
 - [5V BEC](https://www.readymaderc.com/products/details/rmrc-3a-power-regulator-5-to-6-volt-ubec)
 - [6s2p 18650 LiIon flight battery](https://www.upgradeenergytech.com/product-page/6s-22-2v-5600mah-30c-dark-lithium-liion-drone-battery) (select XT60 connector)
-- [Custom designed 3D printed parts](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/reptile_dragon_2/rd2_3d_printed_parts.zip)
+- [Custom designed 3D printed parts](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/fw/reptile_dragon_2/rd2_3d_printed_parts.zip)
   - ARK6X carrier mount
   - Holybro Pixhawk 5x carrier mount
   - FPV pod and camera mount
   - Pitot static probe "plug" adapter
-- [Custom designed power distribution PCB](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/reptile_dragon_2/xt30_power_distro_pcb.zip)
+- [Custom designed power distribution PCB](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/fw/reptile_dragon_2/xt30_power_distro_pcb.zip)
 - Misc hardware: M3 hardware (standoffs, washers, O-rings, bolts), M2.5 nylon standoffs and screws, XT30 connectors, hot glue, heatshrink, Molex Microfit connectors
 - Silicone wiring (14awg for high current, 16awg for low current, 22awg for low power and signals)
 
@@ -133,7 +132,7 @@ Just get it close enough to 90 degrees, and the remaining offset will be removed
 
 ## GPS/Compass Module Mounting
 
-The GPS/Compass should be mounted in the rear electronics shelf included with the RD2. 
+The GPS/Compass should be mounted in the rear electronics shelf included with the RD2.
 This location is far aft of power wiring (and anything else that might cause magnetic disturbances), which makes for an ideal location for the GPS/compass module
 
 ![GPS tray installed in the RD2 airframe](../../assets/airframes/fw/reptile_dragon_2/gps_tray.jpg)
@@ -142,7 +141,6 @@ The GPS module can be removed from its plastic case to allow the use of the moun
 Then use the nylon M3 hardware to attach it to the rear electronics shelf.
 
 Two of the three required holes are already coincidentally located in the electronics tray, so I used a marker and a drill to mark and drill the third hole.
-
 
 ## FPV Pod
 
@@ -163,7 +161,7 @@ Use the servo tester to center the servo.
 Attach the camera carrier servo horn directly to the top of the servo and secure it with the included screw.
 Secure the DJI FPV camera into the carrier with the two side screws.
 
-To finish the FPV pod assembly, install the Caddx Vista to the back of the pod using long M2 bolts, 1mm standoffs, and nylock nuts. 
+To finish the FPV pod assembly, install the Caddx Vista to the back of the pod using long M2 bolts, 1mm standoffs, and nylock nuts.
 
 ![FPV pod close up mounted on the RD2 airframe](../../assets/airframes/fw/reptile_dragon_2/fpv_pod.jpg)
 
@@ -205,7 +203,6 @@ Finally, the ARK6X was installed on top of the mount.
 
 ![ARK6X carrier installed](../../assets/airframes/fw/reptile_dragon_2/ark_carrier_installed.jpg)
 
-
 ### Holybro 5X Carrier (Optional)
 
 An alternative carrier board is the Holybro Pixhawk 5X carrier.
@@ -232,7 +229,6 @@ The images above show the fully completed and connected Holybro 5X carrier insta
 ![Flight computer mount](../../assets/airframes/fw/reptile_dragon_2/holybro_electronics_0.jpg)
 ![Flight computer mount](../../assets/airframes/fw/reptile_dragon_2/holybro_electronics_1.jpg)
 
-
 ## Electrical
 
 ### Battery Power Distribution
@@ -248,7 +244,6 @@ The servo power BEC is also shown in this image.
 
 ![Alternative power distribution harness](../../assets/airframes/fw/reptile_dragon_2/alt_harness.jpg)
 
-
 ### Servo Power
 
 Because the Holybro carrier does not include an onboard servo power supply, an external ["BEC"](https://en.wikipedia.org/wiki/Battery_eliminator_circuit) is used to provide power to the servos.
@@ -260,15 +255,15 @@ The output of the BEC can be plugged into any unused servo output (I chose IO ou
 ![Esc and motor](../../assets/airframes/fw/reptile_dragon_2/esc_motor.jpg)
 
 Bullet connectors were soldered to 16awg leads, which were then soldered to each phase output on each ESC.
-Heatshrink was shrunk over the finished ESCs and the bullet connectors from the ESCs were connected to their respective motors. 
+Heatshrink was shrunk over the finished ESCs and the bullet connectors from the ESCs were connected to their respective motors.
 
 Motor direction depends on the order of the motor leads connected to the ESC.
-For now, take a guess on each side. If either motor is spinning the wrong way, the direction can be swapped by swapping any two connections. 
+For now, take a guess on each side. If either motor is spinning the wrong way, the direction can be swapped by swapping any two connections.
 Correct motor direction will be checked in the final preflight checks.
 
 ### Servos & ESC Signal Leads
 
-Servos were wired to the FMU out port in the order left aileron, right aileron, left ESC, right ESC, elevator, rudder, FPV pan. 
+Servos were wired to the FMU out port in the order left aileron, right aileron, left ESC, right ESC, elevator, rudder, FPV pan.
 
 ::: info
 [DSHOT ESC](../peripherals/dshot.md#wiring-connections) were used (not PWM as for the servos).
@@ -293,7 +288,7 @@ A custom cable was made to connect the ELRS RX to the JST GH `TELEM2` port of th
 ![ExpressLRS to telem port cable](../../assets/airframes/fw/reptile_dragon_2/elrs_cable.jpg)
 
 The other end of the cable was terminated to a Dupont connector to connect to the standard spaced headers on the ELRS RX.
-The ELRS RX was connected to the cable, and then heatshrink was used to secure the two together. 
+The ELRS RX was connected to the cable, and then heatshrink was used to secure the two together.
 
 ![ExpressLRS RX attached to telem port cable](../../assets/airframes/fw/reptile_dragon_2/elrs_rx_cable.jpg)
 
@@ -318,7 +313,7 @@ You can't use prebuilt PX4 release (or main) firmware for this vehicle, as it de
 
 These require some custom configuration to enable.
 
-First, follow [this guide to setup a development environment](../dev_setup/dev_env.md ) and [this guide to get the PX4 source code](../dev_setup/building_px4.md).
+First, follow [this guide to setup a development environment](../dev_setup/dev_env.md) and [this guide to get the PX4 source code](../dev_setup/building_px4.md).
 
 Once a build environment has been setup, open a terminal and `cd` into the `PX4-Autopilot` directory.
 To launch the [PX4 board config tool (`menuconfig`)](../hardware/porting_guide_config.md#px4-menuconfig-setup) run:
@@ -366,8 +361,7 @@ make ark_fmu-v6x_default upload
 This param file contains the custom PX4 parameter configuration for this build, including radio setup, tuning and sensor config.
 Load the file via QGC using the instructions at [Parameters> Tools](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/parameters.html#tools) (QGC User Guide).
 
-- [Snapshot of PX4 airframe params](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/reptile_dragon_2/reptile_dragon_2_params.params)
-
+- [Snapshot of PX4 airframe params](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/fw/reptile_dragon_2/reptile_dragon_2_params.params)
 
 You may need to modify some parameters for your build
 In particular you should check:
@@ -421,18 +415,17 @@ I recommend checking the following items:
   - Airspeed calibration
   - Level horizon calibration
 - Check control surface deflection
- - Right stick -> Right aileron goes up, left aileron goes down
- - Left stick -> Left aileron goes up, right aileron goes down
- - Stick back -> elevator goes up
- -Stick forward -> elevator goes down
- - Left rudder -> Rudder goes left
- - Right rudder -> Rudder goes right
+- Right stick -> Right aileron goes up, left aileron goes down
+- Left stick -> Left aileron goes up, right aileron goes down
+- Stick back -> elevator goes up
+  -Stick forward -> elevator goes down
+- Left rudder -> Rudder goes left
+- Right rudder -> Rudder goes right
 - Check Px4 inputs (in `stabilized mode`)
- - Roll right -> Right Aileron goes down
- - Roll left -> Left aileron goes down
- - Pitch up -> Elevator goes down
- - Pitch down -> Elevator goes up
-
+- Roll right -> Right Aileron goes down
+- Roll left -> Left aileron goes down
+- Pitch up -> Elevator goes down
+- Pitch down -> Elevator goes up
 
 ## First Flight
 
