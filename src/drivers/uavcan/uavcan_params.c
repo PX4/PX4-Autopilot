@@ -57,7 +57,7 @@ PARAM_DEFINE_INT32(UAVCAN_ENABLE, 0);
 /**
  * UAVCAN Node ID.
  *
- * Read the specs at http://uavcan.org to learn more about Node ID.
+ * Read the specs at https://dronecan.github.io/ to learn more about Node ID.
  *
  * @min 1
  * @max 125
