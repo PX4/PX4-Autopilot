@@ -1,0 +1,51 @@
+#!/bin/sh
+#
+# Freefly Astro specific board extras init
+#------------------------------------------------------------------------------
+
+if [ -d "/fs/microsd" ]; then
+	set FREEFLY_VERSION /fs/microsd/ext_autostart/extras/freefly/astro/loaded_versions.txt
+	set EXT_COMP_PATH /fs/microsd/ext_component_updated
+	set WANT_UPDATE 0
+
+	if [ ! -f $FREEFLY_VERSION ]
+	then
+		set WANT_UPDATE 1
+	fi
+
+	if [ ! -f $EXT_COMP_PATH ]
+	then
+		set WANT_UPDATE 1
+	fi
+
+	if [ $WANT_UPDATE = 1 ]
+	then
+		echo "[SystemLoader] External components need updating..."
+		FF_SystemLoad load # CAN ESCs update firmware with identification via IO PWM
+	fi
+
+	unset FREEFLY_VERSION
+	unset EXT_COMP_PATH
+	unset WANT_UPDATE
+
+	FF_SystemLoad ver
+else
+	echo "[Freefly] SD card not detected - skip SystemLoader update"
+fi
+
+FF_SystemLoad jump # CAN ESCs jump from bootloader into application
+
+# Start CAN ESC driver if not in simulation
+if param compare SYS_HITL 0
+then
+	ff_escs start
+fi
+
+# Enable PWM outputs on payload-panel (needed for power enable)
+if param compare SYS_HITL 2
+then
+	pwm_out start
+fi
+
+# Start smart battery driver
+ff_smartbattery start

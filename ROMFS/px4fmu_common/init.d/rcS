@@ -516,6 +516,22 @@ else
 		fi
 	fi
 
+	# FREEFLY CUSTOM
+	# Run board_extras earlier such that ESC update happens
+	# - after airframe -> IO motor assignment loaded
+	# - after px4io -> IO updated and IO PWM output to use as GPIO
+	# - before commander/MAVLink to not get connection and error spam
+	# Optional board supplied extras: rc.board_extras
+	#
+	set BOARD_RC_EXTRAS ${R}etc/init.d/rc.board_extras
+	if [ -f $BOARD_RC_EXTRAS ]
+	then
+		echo "Board extras: ${BOARD_RC_EXTRAS}"
+		. $BOARD_RC_EXTRAS
+	fi
+	unset BOARD_RC_EXTRAS
+	# FREEFLY CUSTOM
+
 	#
 	# Commander
 	#
@@ -655,17 +671,6 @@ else
 	then
 		internal_combustion_engine_control start
 	fi
-
-	#
-	# Optional board supplied extras: rc.board_extras
-	#
-	set BOARD_RC_EXTRAS ${R}etc/init.d/rc.board_extras
-	if [ -f $BOARD_RC_EXTRAS ]
-	then
-		echo "Board extras: ${BOARD_RC_EXTRAS}"
-		. $BOARD_RC_EXTRAS
-	fi
-	unset BOARD_RC_EXTRAS
 
 	#
 	# Start any custom addons from the sdcard.
