@@ -1,9 +1,7 @@
 - [Introduction](index.md)
-
   - [Basic Concepts](getting_started/px4_basic_concepts.md)
 
 - [Multicopters](frames_multicopter/index.md)
-
   - [Features](features_mc/index.md)
     - [Flight Modes](flight_modes_mc/index.md)
       - [Position Mode (MC)](flight_modes_mc/position.md)
@@ -57,7 +55,6 @@
     - [DJI F450 (CUAV v5 nano)](frames_multicopter/dji_f450_cuav_5nano.md)
 
 - [Planes (Fixed-Wing)](frames_plane/index.md)
-
   - [Assembly](assembly/assembly_fw.md)
   - [Config/Tuning](config_fw/index.md)
     - [Auto-tune](config/autotune_fw.md)
@@ -85,7 +82,6 @@
     - [Wing Wing Z84 (Pixracer)](frames_plane/wing_wing_z84.md)
 
 - [VTOL](frames_vtol/index.md)
-
   - [Assembly](assembly/assembly_vtol.md)
   - [VTOL Config/Tuning](config_vtol/index.md)
     - [Auto-tune](config/autotune_vtol.md)
@@ -110,7 +106,6 @@
   - [Complete Vehicles](complete_vehicles_vtol/index.md)
 
 - [Operations](config/operations.md)
-
   - [Safety](config/safety_intro.md)
     - [Safety Configuration (Failsafes)](config/safety.md)
     - [Failsafe Simulation](config/safety_simulation.md)
@@ -131,7 +126,6 @@
     - [QGroundControl Flight-Readiness Status](flying/pre_flight_checks.md)
 
 - [Hardware Selection & Setup](hardware/drone_parts.md)
-
   - [Flight Controllers (Autopilots)](flight_controller/index.md)
     - [Flight Controller Selection](getting_started/flight_controller_selection.md)
     - [Pixhawk Series](flight_controller/pixhawk_series.md)
@@ -174,7 +168,6 @@
         - [Wiring Quickstart](assembly/quick_start_cuav_v5_plus.md)
       - [CUAV V5 nano (FMUv5)](flight_controller/cuav_v5_nano.md)
         - [CUAV V5 nano Wiring Quickstart](assembly/quick_start_cuav_v5_nano.md)
-      - [CUAV Pixhack v3 (FMUv3)](flight_controller/pixhack_v3.md)
       - [CubePilot Cube Orange+ (CubePilot)](flight_controller/cubepilot_cube_orangeplus.md)
       - [CubePilot Cube Orange (CubePilot)](flight_controller/cubepilot_cube_orange.md)
       - [CubePilot Cube Yellow (CubePilot)](flight_controller/cubepilot_cube_yellow.md)
@@ -209,6 +202,7 @@
       - [Bitcraze Crazyflie 2.0 ](complete_vehicles_mc/crazyflie2.md)
       - [Aerotenna OcPoC-Zynq Mini](flight_controller/ocpoc_zynq.md)
       - [CUAV v5](flight_controller/cuav_v5.md)
+      - [CUAV Pixhack v3 (FMUv3)](flight_controller/pixhack_v3.md)
       - [Holybro Kakute F7](flight_controller/kakutef7.md)
       - [Holybro Pixfalcon](flight_controller/pixfalcon.md)
       - [Holybro pix32 (FMUv2)](flight_controller/holybro_pix32.md)
@@ -336,6 +330,7 @@
     - [FrSky Telemetry](peripherals/frsky_telemetry.md)
     - [TBS Crossfire (CRSF) Telemetry](telemetry/crsf_telemetry.md)
     - [Satellite Comms (Iridium/RockBlock)](advanced_features/satcom_roadblock.md)
+
   - [Power Systems](power_systems/index.md)
     - [Battery Estimation Tuning](config/battery.md)
     - [Battery Chemistry Overview](power_systems/battery_chemistry.md)
@@ -402,7 +397,6 @@
     - [Full Parameter Reference](advanced_config/parameter_reference.md)
 
 - [Other Vehicles](airframes/index.md)
-
   - [Airships (experimental)](frames_airship/index.md)
   - [Autogyros (experimental)](frames_autogyro/index.md)
     - [ThunderFly Auto-G2 (Holybro pix32)](frames_autogyro/thunderfly_auto_g2.md)
@@ -763,7 +757,7 @@
     - [Debugging with GDB](debug/gdb_debugging.md)
       - [SWD Debug Port](debug/swd_debug.md)
       - [JLink Probe](debug/probe_jlink.md)
-      - [Black Magic/DroneCode Probe](debug/probe_bmp.md)
+      - [Black Magic/Zubax BugFace BF1 Probe](debug/probe_bmp.md)
       - [STLink Probe](debug/probe_stlink.md)
       - [MCU-Link Probe](debug/probe_mculink.md)
       - [Hardfault Debugging](debug/gdb_hardfault.md)

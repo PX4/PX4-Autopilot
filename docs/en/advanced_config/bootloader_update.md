@@ -74,7 +74,7 @@ arm-none-eabi-objcopy -O ihex build/px4_fmu-v6x_bootloader/px4_fmu-v6x_bootloade
 
 ### PX4 Bootloader FMUv5X and earlier
 
-PX4 boards up to FMUv5X (before STM32H7) used the [PX4 bootloader](https://github.com/PX4/Bootloader) repository.
+PX4 boards up to FMUv5X (before STM32H7) used the [PX4 bootloader](https://github.com/PX4/PX4-Bootloader) repository.
 
 The instructions in the repo README explain how to use it.
 
@@ -86,7 +86,6 @@ The following steps explain how you can "manually" update the bootloader using a
 2. Get a [Debug Probe](../debug/swd_debug.md#debug-probes-for-px4-hardware).
    Connect the probe your PC via USB and setup the `gdbserver`.
 3. Go into the directory containing the binary and run the command for your target bootloader in the terminal:
-
    - FMUv6X
 
      ```sh
@@ -140,7 +139,7 @@ The following steps explain how you can "manually" update the bootloader using a
 7. Power on the Pixhawk with another USB cable and connect the probe to the `FMU-DEBUG` port.
 
    ::: info
-   If using a Dronecode probe you may need to remove the case in order to connect to the `FMU-DEBUG` port (e.g. on Pixhawk 4 you would do this using a T6 Torx screwdriver).
+   If using a Zubax BugFace BF1 you may need to remove the case in order to connect to the `FMU-DEBUG` port (e.g. on Pixhawk 4 you would do this using a T6 Torx screwdriver).
    :::
 
 8. Use the following command to scan for the Pixhawk`s SWD and connect to it:

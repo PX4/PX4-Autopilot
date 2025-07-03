@@ -85,7 +85,7 @@ For more information see: [Pixracer Wiring Quickstart > External Telemetry](../a
 
 ## Connectors
 
-All connectors follow the [Pixhawk connector standard](https://pixhawk.org/pixhawk-connector-standard/).
+All connectors follow the [Pixhawk connector standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 Unless noted otherwise all connectors are JST GH.
 
 ## Pinouts
@@ -204,8 +204,8 @@ The reference is provided as: [Altium Design Files](https://github.com/AUAV-Open
 
 The following PDF files are provided for _convenience only_:
 
-- [pixracer-rc12-12-06-2015-1330.pdf](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixracer/pixracer-rc12-12-06-2015-1330.pdf)
-- [pixracer-r14.pdf](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixracer/pixracer-r14.pdf) - R14 or RC14 is printed next to the SDCard socket
+- [pixracer-rc12-12-06-2015-1330.pdf](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixracer/pixracer-rc12-12-06-2015-1330.pdf)
+- [pixracer-r14.pdf](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixracer/pixracer-r14.pdf) - R14 or RC14 is printed next to the SDCard socket
 
 ## Building Firmware
 

@@ -42,7 +42,7 @@ These may or may not be updatable to run "vanilla" PX4.
 - [Yuneec Typhoon H Plus](https://us.yuneec.com/typhoon-h-plus/)
 - [Yuneec Mantis Q](https://px4.io/portfolio/yuneec-mantis-q/)
 - [Yuneec H520](https://px4.io/portfolio/yuneec-h520-hexacopter/)
-- [AeroSense Aerobo (AS-MC02-P)](https://px4.io/portfolio/aerosense-aerobo/)
+- [AeroSense Aerobo (AS-MC02-P)](https://px4.io/project/aerosense-aerobo/)
 
 ## See Also
 

@@ -63,13 +63,13 @@ has a much smaller footprint. Major differences are updated sensors and Rev 3 FM
 By default a mRo X2.1 might come preconfigured for ArduPilot<sup>&reg;</sup> rather than PX4. This
 can be seen during firmware update when the board is recognized as FMUv2 instead of X2.1.
 
-In this case you must update the BootLoader using [BL_Update_X21.zip](https://github.com/PX4/PX4-user_guide/raw/main/assets/hardware/BL_Update_X21.zip).
+In this case you must update the BootLoader using [BL_Update_X21.zip](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/hardware/BL_Update_X21.zip).
 If this correction is not carried out your compass direction will be wrong and the
 secondary IMU will not be detected.
 
 The update steps are:
 
-1. Download and extract [BL_Update_X21.zip](https://github.com/PX4/PX4-user_guide/raw/main/assets/hardware/BL_Update_X21.zip).
+1. Download and extract [BL_Update_X21.zip](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/hardware/BL_Update_X21.zip).
 2. Find the folder _BL_Update_X21_. This contains a **bin** file and a subfolder named **/etc** containing an **rc.txt** file
 3. Copy these files to your micro SD card's root directory and insert it into the mRO x2.1
 4. Power on the mRO x2.1 Wait for it to boot and then reboot 1 time.

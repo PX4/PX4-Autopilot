@@ -74,9 +74,9 @@ A subset of the products that are known to work with PX4 are listed below.
 
 ### QGroundControl {#qgc}
 
-The Dronecode GCS software is called [QGroundControl](http://qgroundcontrol.com/) ("QGC").
+The Dronecode GCS software is called [QGroundControl](https://qgroundcontrol.com/) ("QGC").
 It runs on Windows, Android, MacOS or Linux hardware, and supports a wide range of screen form factors.
-You can download it (for free) from [here](http://qgroundcontrol.com/downloads/).
+You can download it (for free) from [here](https://qgroundcontrol.com/downloads/).
 
 ![QGC Main Screen](../../assets/concepts/qgc_fly_view.png)
 

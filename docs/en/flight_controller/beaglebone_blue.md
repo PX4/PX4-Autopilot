@@ -9,7 +9,7 @@ Contact the [manufacturer](https://beagleboard.org/blue) for hardware support or
 
 [BeagleBone Blue](https://beagleboard.org/blue) is an all-in-one Linux-based computer.
 Although it is optimized for robotics, this compact and inexpensive board has all necessary sensors and peripherals needed by a flight controller.
-This topic shows how to set up the board to run PX4 with [librobotcontrol](https://github.com/StrawsonDesign/librobotcontrol) robotics package.
+This topic shows how to set up the board to run PX4 with [librobotcontrol](https://github.com/beagleboard/librobotcontrol) robotics package.
 
 ![BeagleBone - labelled diagram](../../assets/hardware/BeagleBone_Blue_balloons.jpg)
 
@@ -77,7 +77,6 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
 
 1. First set up _rsync_ (this is used to transfer files from the development computer to the target board over a network - WiFi or Ethernet).
    For _rsync_ over SSH with key authentication, follow the steps here (on the development machine):
-
    1. Generate an SSH key if you have not previously done so:
 
       ```
@@ -104,9 +103,7 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
    1. Enter root password
 
 1. Cross Compile Setup
-
    1. Toolchain download
-
       1. First install the toolchain into _/opt/bbblue_toolchain/gcc-arm-linux-gnueabihf_.
          Here is an example of using soft link to select which version of the toolchain you want to use:
 
@@ -208,6 +205,7 @@ Run the following commands on the BeagleBone Blue (i.e. via SSH):
    sudo apt-get update
    sudo apt-get install cmake python3-empy=3.3.4-2
    ```
+
 1. Clone the PX4 Firmware directly onto the BeagleBone Blue.
 1. Continue with the [standard build system installation](../dev_setup/dev_env_linux.md).
 
