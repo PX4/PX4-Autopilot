@@ -117,7 +117,8 @@ jobs:
         uses: docker/build-push-action@v6
         id: docker
         with:
-          context: Tools/sitl-container
+          context: .
+          file: Tools/sitl-container/Dockerfile
           tags: |
             ghcr.io/px4/px4-sitl:${{ needs.setup.outputs.px4_version }}-${{ matrix.arch }}
             px4io/px4-sitl:${{ needs.setup.outputs.px4_version }}-${{ matrix.arch }}
