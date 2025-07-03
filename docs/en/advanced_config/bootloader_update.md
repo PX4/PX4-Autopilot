@@ -109,7 +109,7 @@ The following steps explain how you can "manually" update the bootloader using a
    Bootloaders from [PX4/PX4-Bootloader](https://github.com/PX4/PX4-Bootloader) are named with the pattern `*_bl.elf`.
    :::
 
-4. The _gdb terminal_ appears and it should display the following output:
+4. The _gdb terminal_ appears and it should display (something like) the following output:
 
    ```sh
    GNU gdb (GNU Tools for Arm Embedded Processors 7-2017-q4-major) 8.0.50.20171128-git
@@ -121,9 +121,9 @@ The following steps explain how you can "manually" update the bootloader using a
    This GDB was configured as "--host=x86_64-linux-gnu --target=arm-none-eabi".
    Type "show configuration" for configuration details.
    For bug reporting instructions, please see:
-   <http://www.gnu.org/software/gdb/bugs/>.
+   <https://www.sourceware.org/gdb/bugs/>.
    Find the GDB manual and other documentation resources online at:
-   <http://www.gnu.org/software/gdb/documentation/>.
+   <https://www.sourceware.org/gdb/documentation/>.
    For help, type "help".
    Type "apropos word" to search for commands related to "word"...
    Reading symbols from px4fmuv5_bl.elf...done.

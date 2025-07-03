@@ -16,7 +16,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 
 ## Key Features
 
-- Main System-on-Chip: [STM32F427VIT6 rev.3](http://www.st.com/web/en/catalog/mmc/FM141/SC1169/SS1577/LN1789)
+- Main System-on-Chip: [STM32F427VIT6 rev.3](https://www.st.com/en/microcontrollers-microprocessors/stm32f427-437.html)
   - CPU: 180 MHz ARM Cortex<sup>&reg;</sup> M4 with single-precision FPU
   - RAM: 256 KB SRAM (L1)
 - Standard FPV form factor: 36x36 mm with standard 30.5 mm hole pattern
@@ -41,7 +41,8 @@ Accessories include:
 
 ## Kit
 
-The Pixracer is designed to use a separate avionics power supply. This is necessary to avoid current surges from motors or ESCs to flow back to the flight controller and disturb its delicate sensors.
+The Pixracer is designed to use a separate avionics power supply.
+This is necessary to avoid current surges from motors or ESCs to flow back to the flight controller and disturb its delicate sensors.
 
 - Power module (with voltage and current sensing)
 - I2C splitter (supporting AUAV, Hobbyking and 3DR<sup>&reg;</sup> peripherals)
@@ -53,7 +54,7 @@ One of the main features of the board is its ability to use Wifi for flashing ne
 This frees it of the need of any desktop system.
 
 - [ESP8266 Wifi](../telemetry/esp8266_wifi_module.md)
-- [Custom ESP8266 MAVLink firmware](https://github.com/dogmaphobic/mavesp8266)
+- [Custom ESP8266 MAVLink firmware](https://github.com/BeyondRobotix/mavesp8266)
 
 ::: info
 Firmware upgrade is not yet enabled over WiFi (it is supported by the default bootloader but not yet enabled).

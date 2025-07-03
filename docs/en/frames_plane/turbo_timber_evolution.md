@@ -46,7 +46,7 @@ Key Build Features:
 - MS4525DO differential pressure module and pitot tube
 - [Caddx Vista FPV air unit](https://caddxfpv.com/products/caddx-vista-kit)
 - [DJI FPV Goggles](https://www.dji.com/fpv)
-- [ExpressLRS Matek Diversity RX](http://www.mateksys.com/?portfolio=elrs-r24)
+- [ExpressLRS Matek Diversity RX](https://www.mateksys.com/?portfolio=elrs-r24)
 - [Custom designed 3D printed parts](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/fw/turbo_timber_evolution/3d_printed_parts.zip)
   - Pixhawk 4 Mini mount and top GPS mount
   - FPV pod and camera mount

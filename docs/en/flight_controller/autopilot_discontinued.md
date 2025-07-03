@@ -8,6 +8,7 @@ They are listed because you may be using them in an existing drone, and because 
 
 - [Drotek DroPix](../flight_controller/dropix.md) (FMUv2)
 - [Omnibus F4 SD](../flight_controller/omnibus_f4_sd.md)
+- [CUAV X7](../flight_controller/cuav_x7.md)
 - [CUAV v5](../flight_controller/cuav_v5.md) (Pixhawk FMUv5)
 - [CUAV Pixhack v3](../flight_controller/pixhack_v3.md) (FMUv3)
 - [Aerotenna OcPoC-Zynq Mini](../flight_controller/ocpoc_zynq.md)
@@ -16,6 +17,7 @@ They are listed because you may be using them in an existing drone, and because 
 - [Holybro Pixhawk Mini](../flight_controller/pixhawk_mini.md) (FMUv3)
 - [Holybro Pixfalcon](../flight_controller/pixfalcon.md) (Pixhawk FMUv2)
 - [Holybro Pix32](../flight_controller/holybro_pix32.md) (FMUv2)
+- [mRobotics-X2.1](../flight_controller/mro_x2.1.md) (FMUv2)
 - [mRo AUAV-X2](../flight_controller/auav_x2.md) (Pixhawk FMUv2)
 - [NXP FMUK66](../flight_controller/nxp_rddrone_fmuk66.md) (Discontinued)
 - [3DR Pixhawk 1](../flight_controller/pixhawk.md) (Pixhawk FMUv2)

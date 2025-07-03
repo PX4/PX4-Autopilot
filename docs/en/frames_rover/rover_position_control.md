@@ -110,8 +110,8 @@ The idea was to develop a platform that allows for easy control of wheeled UGVs 
 - [Pixhawk Mini (Discontinued)](../flight_controller/pixhawk_mini.md)
   - 3DR 10S Power Module
   - 3DR 433MHz Telemetry Module (EU)
-- [Spektrum Dxe Controller](http://www.spektrumrc.com/Products/Default.aspx?ProdId=SPM1000) or other PX4-compatible remotes
-- [Spektrum Quad Race Serial Receiver w/Diversity](http://www.spektrumrc.com/Products/Default.aspx?ProdID=SPM4648)
+- [Spektrum Dxe Controller](https://www.spektrumrc.com/product/dxe-dsmx-transmitter-with-ar610/SPM1000.html) or other PX4-compatible remotes
+- [Spektrum Quad Race Serial Receiver w/Diversity](https://www.spektrumrc.com/product/dsmx-quad-race-serial-receiver-with-diversity/SPM4648.html)
 - [PX4Flow](../sensor/px4flow.md) (Deprecated)
 
 ### Assembly

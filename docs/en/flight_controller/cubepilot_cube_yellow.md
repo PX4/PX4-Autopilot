@@ -49,7 +49,7 @@ The manufacturer [Cube User Guide](https://docs.cubepilot.org/user-guides/autopi
   - 400 MHz
   - 512 KB MB RAM
   - 2 MB Flash
-- **Failsafe co-processor:** <!-- inconsistent info on failsafe processor: 32 bit STM32F103 failsafe co-processor http://www.proficnc.com/all-products/191-pixhawk2-suite.html -->
+- **Failsafe co-processor:** <!-- inconsistent info on failsafe processor: 32 bit STM32F103 failsafe co-processor -->
   - STM32F100 (32bit _ARM Cortex-M3_)
   - 24 MHz
   - 8 KB SRAM
