@@ -237,10 +237,10 @@ CONFIG:
       settings:
         CONFIG: ark_pi6x_default
     ark_x20-gps_default:
-      short: ark_x20-gps_default:
+      short: ark_x20-gps_default
       buildType: MinSizeRel
       settings:
-        CONFIG: ark_x20-gps_default:
+        CONFIG: ark_x20-gps_default
     ark_x20-gps_canbootloader:
       short: ark_x20-gps_canbootloader
       buildType: MinSizeRel
