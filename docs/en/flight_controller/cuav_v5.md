@@ -1,6 +1,6 @@
 # CUAV v5 (Discontinued)
 
-<Badge type="info" text="Discontinued" />
+<Badge type="info" text="Discontinued" /> <!-- 202507 / PX4v1.16 -->
 
 :::warning
 This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
@@ -25,7 +25,6 @@ It is intended primarily for academic and commercial developers.
 - IO Processor: STM32F100
   - 32 Bit Arm® Cortex®-M3, 24MHz, 8KB SRAM
 - On-board sensors:
-
   - Accelerometer/Gyroscope: ICM-20689
   - Accelerometer/Gyroscope: BMI055
   - Magnetometer: IST8310
@@ -142,5 +141,4 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 ## Further info
 
 - [FMUv5 reference design pinout](https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY/edit#gid=912976165).
-- [CUAV v5 docs](http://doc.cuav.net/flight-controller/v5-autopilot/en/v5.html)
 - [CUAV Github](https://github.com/cuav)

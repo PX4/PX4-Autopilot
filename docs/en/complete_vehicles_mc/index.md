@@ -19,12 +19,12 @@ They may come either fully assembled or in parts.
 
 This section lists vehicles that are sold fully assembled and ready to fly (RTF), with PX4 installed.
 
-- [Teal One](https://tealdrones.com/teal-one/)
 - [ModalAI Starling](../complete_vehicles_mc/modalai_starling.md)
 - [ModalAI Sentinel](https://www.modalai.com/sentinel)
 - [MindRacer 210](../complete_vehicles_mc/mindracer210.md)
 - [NanoMind 110](../complete_vehicles_mc/nanomind110.md)
 - [Amovlab F410](../complete_vehicles_mc/amov_F410_drone.md)
+- [Teal One](https://px4.io/project/teal-one/) ([superseded](https://tealdrones.com/solutions/teal-2/))
 
 ## PX4 Compatible
 

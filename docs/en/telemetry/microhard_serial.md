@@ -1,6 +1,6 @@
 # Microhard Serial Telemetry Radios
 
-[Microhard Pico Serial Radios](http://microhardcorp.com/P900.php) integrate the [Microhard Pico Serial](http://microhardcorp.com/P900.php) P900 RF module.
+[Microhard Pico Serial Radios](https://microhardcorp.com/P900.php) integrate the _Microhard Pico Serial_ P900 RF module.
 
 This is a relatively small size and low cost radio that supports modes including point to point, point to multi-point, and mesh modes.
 It has configurable power output and can also be configured to use forward error correction.

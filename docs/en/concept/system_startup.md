@@ -31,7 +31,7 @@ For that to work, a few things are required:
   For that the `bin` directory with the symbolic links is added to the `PATH` variable right before executing the startup scripts.
 - The shell starts each module as a new (client) process.
   Each client process needs to communicate with the main instance of px4 (the server), where the actual modules are running as threads.
-  This is done through a [UNIX socket](http://man7.org/linux/man-pages/man7/unix.7.html).
+  This is done through a [UNIX socket](https://man7.org/linux/man-pages/man7/unix.7.html).
   The server listens on a socket, to which clients can connect and send a command.
   The server then sends the output and return code back to the client.
 - The startup scripts call the module directly, e.g. `commander start`, rather than using the `px4-` prefix.

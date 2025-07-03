@@ -187,9 +187,9 @@ If you use CRSF Telemetry you will need to build custom PX4 firmware.
 By contrast, FrSky telemetry can use prebuilt firmware.
 :::
 
-For Omnibus we recommend the [TBS Crossfire Nano RX](http://team-blacksheep.com/products/prod:crossfire_nano_rx), since it is specifically designed for small Quads.
+For Omnibus we recommend the [TBS Crossfire Nano RX](https://www.team-blacksheep.com/products/prod:crossfire_nano_rx), since it is specifically designed for small Quads.
 
-On the handheld controller (e.g. Taranis) you will also need a [Transmitter Module](http://team-blacksheep.com/shop/cat:rc_transmitters#product_listing).
+On the handheld controller (e.g. Taranis) you will also need a [Transmitter Module](https://www.team-blacksheep.com/shop/cat:tbs-crossfire-radio-transmitter#product_listing).
 This can be plugged into the back of the RC controller.
 
 ::: info
@@ -213,13 +213,9 @@ Instructions for this are provided in the [TBS Crossfire Manual](https://www.tea
 You will need to build custom firmware to use CRSF.
 For more information see [CRSF Telemetry](../telemetry/crsf_telemetry.md#px4-configuration).
 
-## Schematics
+<!-- no longer available 202507 -->
 
-The schematics are provided by [Airbot](https://myairbot.com/): [OmnibusF4-Pro-Sch.pdf](http://bit.ly/obf4pro).
-
-<a id="bootloader"></a>
-
-## PX4 Bootloader Update
+## PX4 Bootloader Update {#bootloader}
 
 The board comes pre-installed with [Betaflight](https://github.com/betaflight/betaflight/wiki).
 Before PX4 firmware can be installed, the _PX4 bootloader_ must be flashed.

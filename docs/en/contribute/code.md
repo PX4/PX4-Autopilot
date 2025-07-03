@@ -112,7 +112,7 @@ Currently we have two types of source-based documentation:
   - Do not add documentation that can trivially be inferred from C++ entity names.
   - ALWAYS specify units of variables, constants, and input/return parameters where they are defined.
   - Commonly you may want to add information about corner cases and error handling.
-  - [Doxgyen](http://www.doxygen.nl/) tags should be used if documentation is needed: `@class`, `@file`, `@param`, `@return`, `@brief`, `@var`, `@see`, `@note`.
+  - [Doxgyen](https://www.doxygen.nl/) tags should be used if documentation is needed: `@class`, `@file`, `@param`, `@return`, `@brief`, `@var`, `@see`, `@note`.
     A good example of usage is [src/modules/events/send_event.h](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/events/send_event.h).
 
 Please avoid "magic numbers", for example, where does this number in the conditional come from? What about the multiplier on yaw stick input?

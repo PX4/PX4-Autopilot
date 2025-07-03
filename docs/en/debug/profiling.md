@@ -9,7 +9,7 @@ PMSP is a shell script that operates by interrupting execution of the firmware p
 Sampled stack traces are appended into a text file.
 Once sampling is finished (which normally takes about an hour or more), the collected stack traces are _folded_.
 The result of _folding_ is another text file that contains the same stack traces, except that all similar stack traces (i.e. those that were obtained at the same point in the program) are joined together, and the number of their occurrences is recorded.
-The folded stacks are then fed into the visualization script, for which purpose we employ [FlameGraph - an open source stack trace visualizer](http://www.brendangregg.com/flamegraphs.html).
+The folded stacks are then fed into the visualization script, for which purpose we employ [FlameGraph - an open source stack trace visualizer](https://www.brendangregg.com/flamegraphs.html).
 
 ## Basic Usage
 
