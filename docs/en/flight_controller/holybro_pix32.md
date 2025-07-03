@@ -26,7 +26,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Key Features
 
-- Main System-on-Chip: [STM32F427](http://www.st.com/web/en/catalog/mmc/FM141/SC1169/SS1577/LN1789)
+- Main System-on-Chip: [STM32F427](https://www.st.com/en/microcontrollers-microprocessors/stm32f427-437.html)
   - CPU: 32-bit STM32F427 Cortex<sup>&reg;</sup> M4 core with FPU
   - RAM: 168 MHz/256 KB
   - Flash: 2 MB

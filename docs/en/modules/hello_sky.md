@@ -27,7 +27,6 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
 
 1. Create a new directory **PX4-Autopilot/src/examples/px4_simple_app**.
 1. Create a new C file in that directory named **px4_simple_app.c**:
-
    - Copy in the default header to the top of the page.
      This should be present in all contributed files!
 
@@ -145,7 +144,6 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
    ```
 
    The `px4_add_module()` method builds a static library from a module description.
-
    - The `MODULE` block is the Firmware-unique name of the module (by convention the module name is prefixed by parent directories back to `src`).
    - The `MAIN` block lists the entry point of the module, which registers the command with NuttX so that it can be called from the PX4 shell or SITL console.
 
@@ -303,7 +301,7 @@ int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
 
 The `sensor_sub_fd` is a topic handle and can be used to very efficiently perform a blocking wait for new data.
 The current thread goes to sleep and is woken up automatically by the scheduler once new data is available, not consuming any CPU cycles while waiting.
-To do this, we use the [poll()](http://pubs.opengroup.org/onlinepubs/007908799/xsh/poll.html) POSIX system call.
+To do this, we use the [poll()](https://pubs.opengroup.org/onlinepubs/007908799/xsh/poll.html) POSIX system call.
 
 Adding `poll()` to the subscription looks like (_pseudocode, look for the full implementation below_):
 

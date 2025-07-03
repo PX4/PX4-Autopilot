@@ -14,21 +14,17 @@ It is based on the **Pixhawk-project FMUv3** open hardware design and runs **PX4
 ## Specifications
 
 - Main Processor: STM32F427VIT6
-
   - 32bit ARM Cortex-M4, 168 MHz 256 KB RAM 2 MB Flash memory
 
 - IO Processor: STM32F100C8T6
-
   - ARM Cortex-M3, 32bit ARM Cortex-M3, 24 MHz, 8KB SRAM
 
 - On-board sensors
-
   - Accel/Gyro: ICM-20602
   - Accel/Gyro/Mag: MPU-9250
   - Barometer: MS5611
 
 - Interfaces
-
   - 8+6 PWM output (8 from IO, 6 from FMU)
   - Spektrum DSM / DSM2 / DSM-X Satellite compatible input
   - Futaba S.BUS compatible input and output
@@ -42,7 +38,6 @@ It is based on the **Pixhawk-project FMUv3** open hardware design and runs **PX4
   - Analog inputs for voltage / Current of 1 battery
 
 - Interfaces For Raspberry Pi CM3+
-
   - VBUS
   - DDR2 Connector: Raspberry Pi CM3+
   - 1x UART
@@ -103,4 +98,4 @@ make thepeach_r1_default
 
 ## Where to buy
 
-Order from [ThePeach](http://thepeach.shop/)
+Order from [ThePeach](https://thepeach.shop/)

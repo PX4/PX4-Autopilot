@@ -51,7 +51,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 
 ## Where to Buy
 
-[Cube Black](http://www.proficnc.com/61-system-kits) (ProfiCNC)
+[Cube Black](https://www.cubepilot.com/#/reseller/list) (Reseller list)
 
 ## Assembly
 

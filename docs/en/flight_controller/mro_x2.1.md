@@ -1,4 +1,10 @@
-# mRo-X2.1 Autopilot
+# mRo-X2.1 Autopilot (Discontinued)
+
+<Badge type="info" text="Discontinued" /> <!-- 202507 / PX4v1.16 -->
+
+:::warning
+This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
+:::
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
@@ -16,7 +22,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Quick Summary
 
-- Main System-on-Chip: [STM32F427](http://www.st.com/web/en/catalog/mmc/FM141/SC1169/SS1577/LN1789)
+- Main System-on-Chip: [STM32F427](https://www.st.com/en/microcontrollers-microprocessors/stm32f427-437.html)
   - CPU: STM32F427VIT6 ARM<sup>&reg;</sup> microcontroller - Revision 3
   - IO: STM32F100C8T6 ARM<sup>&reg;</sup> microcontroller
 - Sensors:
@@ -29,8 +35,10 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - Mounting Points: 30.5mm x 30.5mm 3.2mm diameter
   - Weight: 10.9g
 
-The diagram below provides a side-by-side comparison with a Pixhawk 1. The mRo features almost identical hardware and connectivity but
-has a much smaller footprint. Major differences are updated sensors and Rev 3 FMU.
+The diagram below provides a side-by-side comparison with a Pixhawk 1.
+The mRo features almost identical hardware and connectivity but
+has a much smaller footprint.
+Major differences are updated sensors and Rev 3 FMU.
 
 ![Mro Pixhawk 1 vs X2.1 comparison](../../assets/flight_controller/mro/px1_x21.jpg)
 

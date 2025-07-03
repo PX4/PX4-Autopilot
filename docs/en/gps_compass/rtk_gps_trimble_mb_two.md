@@ -18,7 +18,7 @@ The following firmware options need to be selected when buying the device:
 ## Antennas and Cable
 
 The Trimble MB-Two requires two dual-frequency (L1/L2) antennas.
-A good example is the [Maxtenna M1227HCT-A2-SMA](http://www.maxtena.com/products/helicore/m1227hct-a2-sma/)
+A good example is the [Maxtenna M1227HCT-A2-SMA](https://www.maxtena.com/products/helicore/m1227hct-a2-sma/)
 (which can be bought, for instance, from [Farnell](https://uk.farnell.com/maxtena/m1227hct-a2-sma/antenna-1-217-1-25-1-565-1-61ghz/dp/2484959)).
 
 The antenna connector type on the device is MMCX.
