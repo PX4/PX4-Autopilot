@@ -67,28 +67,31 @@ int board_mcu_version(char *rev, const char **revstr, const char **errata)
 
 	int revid;
 
-	switch (combine_value)
-	{
+	switch (combine_value) {
 	case 0:
 		*revstr = "ESP32 v0";
 		*rev = minor_revision + 48;
 		revid = minor_revision;
 		break;
+
 	case 1:
 		*revstr = "ESP32 v1";
 		*rev = minor_revision + 48;
 		revid = minor_revision;
 		break;
+
 	case 3:
 		*revstr = "ESP32 v2";
 		*rev = minor_revision + 48;
 		revid = minor_revision;
 		break;
+
 	case 7:
 		*revstr = "ESP32 v3";
 		*rev = minor_revision + 48;
 		revid = minor_revision;
 		break;
+
 	default:
 		*revstr = "ESP32 v?";
 		*rev = '?';

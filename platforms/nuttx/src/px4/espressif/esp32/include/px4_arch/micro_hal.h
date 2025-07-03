@@ -82,6 +82,14 @@ __BEGIN_DECLS
 #define GPIO_PULLDOWN	(1 << 10)
 #define GPIO_OPEN_DRAIN	(1 << 11)
 
+#define FUNCTION_SHIFT 6
+#define FUNCTION_1        (1 << FUNCTION_SHIFT)
+#define FUNCTION_2        (2 << FUNCTION_SHIFT)
+#define FUNCTION_3        (3 << FUNCTION_SHIFT)
+#define FUNCTION_4        (4 << FUNCTION_SHIFT)
+#define FUNCTION_5        (5 << FUNCTION_SHIFT)
+#define FUNCTION_6        (6 << FUNCTION_SHIFT)
+
 #define GPIO_FUN(func)	(func << 12)	// Function select
 
 #define GPIO_NUM_MASK		0x3f

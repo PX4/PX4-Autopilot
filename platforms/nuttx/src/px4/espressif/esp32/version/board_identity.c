@@ -27,11 +27,11 @@ typedef const uint8_t uuid_uint8_reorder_t[PX4_CPU_UUID_BYTE_LENGTH];
 
 static int emac_read_mac(uint32_t *mac)
 {
-  	/* The MAC address in register is from high byte to low byte */
+	/* The MAC address in register is from high byte to low byte */
 	mac[0] = REG_READ(MAC_ADDR0_LOWER);
 	mac[1] = REG_READ(MAC_ADDR1_HIGHER) & 0xffff;
 
-  	return 0;
+	return 0;
 }
 
 
