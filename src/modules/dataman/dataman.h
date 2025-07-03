@@ -67,10 +67,11 @@ typedef enum {
 } dm_function_t;
 
 /** The maximum number of instances for each item type */
+// FREEFLY custom: safe RAM with less rally and geofence points
 enum {
-	DM_KEY_SAFE_POINTS_MAX = 32,
+	DM_KEY_SAFE_POINTS_MAX = 8,
 	DM_KEY_SAFE_POINTS_STATE_MAX = 1,
-	DM_KEY_FENCE_POINTS_MAX = 64,
+	DM_KEY_FENCE_POINTS_MAX = 16,
 	DM_KEY_FENCE_POINTS_STATE_MAX = 1,
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX = CONFIG_NUM_MISSION_ITMES_SUPPORTED,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = CONFIG_NUM_MISSION_ITMES_SUPPORTED,
