@@ -106,7 +106,7 @@ Arming is prevented if:
 - The current mode requires an adequate global position estimate but the vehicle does not have GPS lock.
 - Many more (see [arming/disarming safety settings](../config/safety.md#arming-disarming-settings) for more information).
 
-The current failed checks can be viewed in QGroundControl (v4.2.0 and later) [Arming Check Report](../flying/pre_flight_checks.md#qgc-arming-check-report) (see also [Fly View > Arming and Preflight Checks](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/fly_view/fly_view.md#arm)).
+The current failed checks can be viewed in QGroundControl (v4.2.0 and later) [Arming Check Report](../flying/pre_flight_checks.md#qgc-arming-check-report) (see also [Fly View > Toolbar > Flight Status](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/fly_view/fly_view_toolbar.html#flight-status)).
 
 Note that internally PX4 runs arming checks at 10Hz.
 A list of the failed checks is kept, and if the list changes PX4 emits the current list using the [Events interface](../concept/events_interface.md).
@@ -155,7 +155,6 @@ The default startup sequence is:
    - System now prearmed: non-throttling actuators can move (e.g. ailerons).
    - System safety is off: Arming possible.
 1. Arm command is issued.
-
    - The system is armed.
    - All motors and actuators can move.
 
@@ -173,7 +172,6 @@ The startup sequence is:
    - _All actuators stay locked into disarmed position (same as disarmed)._
    - System safety is off: Arming possible.
 1. Arm command is issued.
-
    - The system is armed.
    - All motors and actuators can move.
 
