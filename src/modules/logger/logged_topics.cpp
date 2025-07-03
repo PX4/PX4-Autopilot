@@ -75,10 +75,16 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("flight_phase_estimation", 1000);
 	add_optional_topic("fuel_tank_status", 10);
 	add_optional_topic("gain_compression", 100);
-	add_topic("gimbal_manager_set_attitude", 500);
+	add_topic("gimbal_device_attitude_status", 100);
+	add_topic("gimbal_device_information");
+	add_topic("gimbal_device_set_attitude", 100);
+	add_topic("gimbal_manager_information");
+	add_topic("gimbal_manager_set_attitude", 100);
+	add_topic("gimbal_manager_set_manual_control", 100);
+	add_topic("gimbal_manager_status", 200);
 	add_optional_topic("generator_status");
 	add_topic("gps_dump");
-	add_optional_topic("gimbal_controls", 200);
+	add_topic("gimbal_controls", 200);
 	add_optional_topic("gripper");
 	add_optional_topic_multi("heater_status");
 	add_topic("home_position");
@@ -92,6 +98,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("landing_gear_wheel", 100);
 	add_optional_topic("landing_target_pose", 1000);
 	add_optional_topic("launch_detection_status", 200);
+	add_topic("lifetime_health_stats", 10000);
 	add_topic("logger_status", 200);
 	add_optional_topic("magnetometer_bias_estimate", 200);
 	add_topic("manual_control_setpoint", 200);
@@ -197,6 +204,8 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("yaw_estimator_status", 1000);
 
 	// log all raw sensors at minimal rate (at least 1 Hz)
+	add_topic_multi("battery_freefly", 1000, 2);
+	add_topic_multi("battery_info", 5000, 2);
 	add_topic_multi("battery_status", 200, 3);
 	add_topic_multi("differential_pressure", 1000, 2);
 	add_topic_multi("distance_sensor", 1000, 2);
@@ -282,8 +291,9 @@ void LoggedTopics::add_high_rate_topics()
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
+	add_topic_multi("battery_status", 40, 2);
 
-	add_topic("esc_status", 5);
+	add_topic("esc_status");
 	add_topic("actuator_motors");
 	add_topic("actuator_outputs_debug");
 	add_topic("actuator_servos");
