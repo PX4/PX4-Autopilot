@@ -1,6 +1,6 @@
-/***************************************************************************
+/****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -30,46 +30,28 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file takeoff.h
+ * @file takeoff_params.c
  *
- * Helper class to take off
+ * Parameters for the takeoff navigation mode.
  *
- * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#pragma once
-
-#include "navigator_mode.h"
-#include "mission_block.h"
-#include <lib/mathlib/mathlib.h>
-#include <px4_platform_common/module_params.h>
-
-class Takeoff : public MissionBlock,  public ModuleParams
-{
-public:
-	Takeoff(Navigator *navigator);
-	~Takeoff() = default;
-
-	void on_activation() override;
-	void on_active() override;
-
-	void setLoiterPosition(matrix::Vector2d loiter_location) { _loiter_position_lat_lon = loiter_location; }
-	void setLoiterAltitudeAmsl(const float height_m) { _loiter_altitude_msl = height_m; }
-
-private:
-
-	enum class fw_takeoff_state {
-		CLIMBOUT = 0,
-		GO_TO_LOITER
-	} _fw_takeoff_state;
-
-	void set_takeoff_position();
-	float _climbout_alt_msl{NAN};
-	matrix::Vector2d _loiter_position_lat_lon{static_cast<double>(NAN), static_cast<double>(NAN)};
-	float _loiter_altitude_msl{NAN};
-
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::TKO_CLMB_OUT_ALT>) _param_tko_clmb_out_alt
-	)
-};
+/**
+ * Takeoff relative climbout altitude
+ *
+ * Altitude relative to home at which the vehicle will stop with the straight
+ * climbout and start heading in nominal configuration to the defined Hold position.
+ * Only applies to fixed-wing takeoff mode (excluding Mission takeoffs).
+ *
+ * Not used if set to negative value, in which case the climbout altitude
+ * is set equal to the Hold altitude.
+ *
+ * @unit m
+ * @min -1
+ * @decimal 1
+ * @increment 1
+ * @group Takeoff
+ */
+PARAM_DEFINE_FLOAT(TKO_CLMB_OUT_ALT, -1);
