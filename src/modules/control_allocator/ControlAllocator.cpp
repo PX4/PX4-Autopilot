@@ -145,7 +145,7 @@ ControlAllocator::update_allocation_method(bool force)
 
 	if (_allocation_method_id != configured_method || force) {
 
-		matrix::Vector<float, NUM_ACTUATORS> actuator_sp[ActuatorEffectiveness::MAX_NUM_MATRICES];
+		ActuatorVector actuator_sp[ActuatorEffectiveness::MAX_NUM_MATRICES];
 
 		// Cleanup first
 		for (int i = 0; i < ActuatorEffectiveness::MAX_NUM_MATRICES; ++i) {
@@ -626,9 +626,9 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 			control_allocator_status.unallocated_thrust[2]).norm_squared() < 1e-6f);
 
 	// Actuator saturation
-	const matrix::Vector<float, NUM_ACTUATORS> &actuator_sp = _control_allocation[matrix_index]->getActuatorSetpoint();
-	const matrix::Vector<float, NUM_ACTUATORS> &actuator_min = _control_allocation[matrix_index]->getActuatorMin();
-	const matrix::Vector<float, NUM_ACTUATORS> &actuator_max = _control_allocation[matrix_index]->getActuatorMax();
+	const ActuatorVector &actuator_sp = _control_allocation[matrix_index]->getActuatorSetpoint();
+	const ActuatorVector &actuator_min = _control_allocation[matrix_index]->getActuatorMin();
+	const ActuatorVector &actuator_max = _control_allocation[matrix_index]->getActuatorMax();
 
 	for (int i = 0; i < NUM_ACTUATORS; i++) {
 		if (actuator_sp(i) > (actuator_max(i) - FLT_EPSILON)) {

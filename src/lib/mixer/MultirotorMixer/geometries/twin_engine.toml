@@ -1,0 +1,19 @@
+# Twin engine
+
+[info]
+key = "2-"
+description = "Twin engine"
+
+[rotor_default]
+axis      = [0.0, 0.0, -1.0]
+Ct        = 1.0
+Cm        = 0.0
+direction = "CW"
+
+[[rotors]]
+name      = "right"
+position  = [0.0, 1.0, 0.0]
+
+[[rotors]]
+name      = "left"
+position  = [0.0, -1.0, 0.0]
