@@ -124,7 +124,6 @@ To install ROS 2 and its dependencies:
 
    ::: tab foxy
    To install ROS 2 "Foxy" on Ubuntu 20.04:
-
    - Follow the official installation guide: [Install ROS 2 Foxy](https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html).
 
    You can install _either_ the desktop (`ros-foxy-desktop`) _or_ bare-bones versions (`ros-foxy-ros-base`), _and_ the development tools (`ros-dev-tools`).
@@ -187,7 +186,6 @@ To start the simulator (and client):
    :::: tabs
 
    ::: tab humble
-
    - Start a PX4 [Gazebo](../sim_gazebo_gz/index.md) simulation using:
 
      ```sh
@@ -197,7 +195,6 @@ To start the simulator (and client):
      :::
 
    ::: tab foxy
-
    - Start a PX4 [Gazebo Classic](../sim_gazebo_classic/index.md) simulation using:
 
      ```sh
@@ -433,7 +430,7 @@ The local/world and body frames used by ROS and PX4 are different.
 | World | FRD or NED (X **N**orth, Y **E**ast, Z **D**own) | FLU or ENU (X **E**ast, Y **N**orth, Z **U**p) |
 
 :::tip
-See [REP105: Coordinate Frames for Mobile Platforms](http://www.ros.org/reps/rep-0105.html) for more information about ROS frames.
+See [REP105: Coordinate Frames for Mobile Platforms](https://www.ros.org/reps/rep-0105.html) for more information about ROS frames.
 :::
 
 Both frames are shown in the image below (FRD on the left/FLU on the right).
@@ -444,7 +441,6 @@ The FRD (NED) conventions are adopted on **all** PX4 topics unless explicitly sp
 Therefore, ROS 2 nodes that want to interface with PX4 must take care of the frames conventions.
 
 - To rotate a vector from ENU to NED two basic rotations must be performed:
-
   - first a pi/2 rotation around the `Z`-axis (up),
   - then a pi rotation around the `X`-axis (old East/new North).
 

@@ -5,7 +5,7 @@ On NuttX they reside in the [ROMFS/px4fmu_common/init.d](https://github.com/PX4/
 The scripts that are only used on Posix are located in [ROMFS/px4fmu_common/init.d-posix](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d-posix).
 
 All files starting with a number and underscore (e.g. `10000_airplane`) are predefined airframe configurations.
-They are exported at build-time into an `airframes.xml` file which is parsed by [QGroundControl](http://qgroundcontrol.com) for the airframe selection UI.
+They are exported at build-time into an `airframes.xml` file which is parsed by [QGroundControl](https://qgroundcontrol.com) for the airframe selection UI.
 Adding a new configuration is covered [here](../dev_airframes/adding_a_new_frame.md).
 
 The remaining files are part of the general startup logic.
@@ -31,7 +31,7 @@ For that to work, a few things are required:
   For that the `bin` directory with the symbolic links is added to the `PATH` variable right before executing the startup scripts.
 - The shell starts each module as a new (client) process.
   Each client process needs to communicate with the main instance of px4 (the server), where the actual modules are running as threads.
-  This is done through a [UNIX socket](http://man7.org/linux/man-pages/man7/unix.7.html).
+  This is done through a [UNIX socket](https://man7.org/linux/man-pages/man7/unix.7.html).
   The server listens on a socket, to which clients can connect and send a command.
   The server then sends the output and return code back to the client.
 - The startup scripts call the module directly, e.g. `commander start`, rather than using the `px4-` prefix.

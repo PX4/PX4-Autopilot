@@ -58,7 +58,7 @@ The **.test** files launch the corresponding Python tests defined in `integratio
 This section explains how to write a new python test using ROS 1/MAVROS, test it, and add it to the PX4 test suite.
 
 We recommend you review the existing tests as examples/inspiration ([integrationtests/python_src/px4_it/mavros/](https://github.com/PX4/PX4-Autopilot/tree/main/integrationtests/python_src/px4_it/mavros)).
-The official ROS documentation also contains information on how to use [unittest](http://wiki.ros.org/unittest) (on which this test suite is based).
+The official ROS documentation also contains information on how to use [unittest](https://wiki.ros.org/unittest) (on which this test suite is based).
 
 To write a new test:
 
@@ -116,33 +116,30 @@ To write a new test:
    ```
 
 1. Run the new test only
+   - Start the simulator:
 
-    - Start the simulator:
+     ```sh
+     cd <PX4-Autopilot_clone>
+     source Tools/simulation/gazebo/setup_gazebo.bash
+     roslaunch launch/mavros_posix_sitl.launch
+     ```
 
-      ```sh
-      cd <PX4-Autopilot_clone>
-      source Tools/simulation/gazebo/setup_gazebo.bash
-      roslaunch launch/mavros_posix_sitl.launch
-      ```
+   - Run test (in a new shell):
 
-    - Run test (in a new shell):
-
-      ```sh
-      cd <PX4-Autopilot_clone>
-      source Tools/simulation/gazebo/setup_gazebo.bash
-      rosrun px4 mavros_new_test.py
-      ```
+     ```sh
+     cd <PX4-Autopilot_clone>
+     source Tools/simulation/gazebo/setup_gazebo.bash
+     rosrun px4 mavros_new_test.py
+     ```
 
 1. Add new test node to a launch file
-
-    - In `test/` create a new `<test_name>.test` ROS launch file.
-    - Call the test file using one of the base scripts _rostest_px4_run.sh_ or _rostest_avoidance_run.sh_
+   - In `test/` create a new `<test_name>.test` ROS launch file.
+   - Call the test file using one of the base scripts _rostest_px4_run.sh_ or _rostest_avoidance_run.sh_
 
 1. (Optional) Create a new target in the Makefile
-
-    - Open the Makefile
-    - Search the _Testing_ section
-    - Add a new target name and call the test
+   - Open the Makefile
+   - Search the _Testing_ section
+   - Add a new target name and call the test
 
    For example:
 
