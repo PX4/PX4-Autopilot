@@ -1,4 +1,10 @@
-# mRo-X2.1 Autopilot
+# mRo-X2.1 Autopilot (Discontinued)
+
+<Badge type="info" text="Discontinued" /> <!-- 202507 / PX4v1.16 -->
+
+:::warning
+This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
+:::
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
@@ -16,7 +22,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Quick Summary
 
-- Main System-on-Chip: [STM32F427](http://www.st.com/web/en/catalog/mmc/FM141/SC1169/SS1577/LN1789)
+- Main System-on-Chip: [STM32F427](https://www.st.com/en/microcontrollers-microprocessors/stm32f427-437.html)
   - CPU: STM32F427VIT6 ARM<sup>&reg;</sup> microcontroller - Revision 3
   - IO: STM32F100C8T6 ARM<sup>&reg;</sup> microcontroller
 - Sensors:
@@ -29,8 +35,10 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - Mounting Points: 30.5mm x 30.5mm 3.2mm diameter
   - Weight: 10.9g
 
-The diagram below provides a side-by-side comparison with a Pixhawk 1. The mRo features almost identical hardware and connectivity but
-has a much smaller footprint. Major differences are updated sensors and Rev 3 FMU.
+The diagram below provides a side-by-side comparison with a Pixhawk 1.
+The mRo features almost identical hardware and connectivity but
+has a much smaller footprint.
+Major differences are updated sensors and Rev 3 FMU.
 
 ![Mro Pixhawk 1 vs X2.1 comparison](../../assets/flight_controller/mro/px1_x21.jpg)
 
@@ -63,13 +71,13 @@ has a much smaller footprint. Major differences are updated sensors and Rev 3 FM
 By default a mRo X2.1 might come preconfigured for ArduPilot<sup>&reg;</sup> rather than PX4. This
 can be seen during firmware update when the board is recognized as FMUv2 instead of X2.1.
 
-In this case you must update the BootLoader using [BL_Update_X21.zip](https://github.com/PX4/PX4-user_guide/raw/main/assets/hardware/BL_Update_X21.zip).
+In this case you must update the BootLoader using [BL_Update_X21.zip](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/hardware/BL_Update_X21.zip).
 If this correction is not carried out your compass direction will be wrong and the
 secondary IMU will not be detected.
 
 The update steps are:
 
-1. Download and extract [BL_Update_X21.zip](https://github.com/PX4/PX4-user_guide/raw/main/assets/hardware/BL_Update_X21.zip).
+1. Download and extract [BL_Update_X21.zip](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/hardware/BL_Update_X21.zip).
 2. Find the folder _BL_Update_X21_. This contains a **bin** file and a subfolder named **/etc** containing an **rc.txt** file
 3. Copy these files to your micro SD card's root directory and insert it into the mRO x2.1
 4. Power on the mRO x2.1 Wait for it to boot and then reboot 1 time.
