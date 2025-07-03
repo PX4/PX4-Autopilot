@@ -720,6 +720,27 @@ PARAM_DEFINE_INT32(COM_PREARM_MODE, 0);
 PARAM_DEFINE_INT32(COM_FORCE_SAFETY, 0);
 
 /**
+ * Safety switch handling
+ *
+ * Defines how the safety switch behaves and what signaling is required to disable safety.
+ *
+ * - **Safety button mode**: Requires a HIGH signal for 1 second to disable safety.
+ *   Once disabled, safety will not be re-engaged automatically.
+ * - **Level triggered (LEVEL HIGH)**: Disables safety while the signal is HIGH.
+ *   When the signal goes LOW, safety is re-engaged.
+ * - **Level triggered (LEVEL LOW)**: Disables safety while the signal is LOW.
+ *   When the signal goes HIGH, safety is re-engaged.
+ *
+ * @value 0 Safety button
+ * @value 1 Level triggered (Level HIGH)
+ * @value 2 Level triggered (Level LOW)
+ *
+ * @group Commander
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(COM_SAFETY_MODE, 0);
+
+/**
  * Enable Actuator Testing
  *
  * If set, enables the actuator test interface via MAVLink (ACTUATOR_TEST), that

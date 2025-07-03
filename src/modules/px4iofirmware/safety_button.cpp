@@ -56,6 +56,11 @@ static struct hrt_call failsafe_call;
 static unsigned counter = 0;
 
 /*
+ * Stores the previous state of the safety switch to detect edges.
+ */
+static bool previous_safety_switch_state = false;
+
+/*
  * Define the various LED flash sequences for each system state.
  */
 #define LED_PATTERN_FMU_OK_TO_ARM		0x0003			/**< slow blinking			*/
@@ -88,13 +93,13 @@ failsafe_led_init(void)
 static void
 safety_button_check(void *arg)
 {
-	const bool safety_button_pressed = px4_arch_gpioread(GPIO_BTN_SAFETY);
+	const bool safety_switch_state = px4_arch_gpioread(GPIO_BTN_SAFETY);
 
 	/* Keep safety button pressed for one second to trigger safety button event.
 	 * The logic to prevent turning on safety again is in the commander.
 	 */
 
-	if (safety_button_pressed && !(r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_BUTTON_EVENT)) {
+	if (safety_switch_state && !(r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_BUTTON_EVENT)) {
 
 		counter++;
 
@@ -104,6 +109,18 @@ safety_button_check(void *arg)
 
 	} else {
 		counter = 0;
+	}
+
+	/* Pass the raw safety switch state to the FMU */
+	if (safety_switch_state != previous_safety_switch_state) {
+		if (safety_switch_state) {
+			atomic_modify_or(&r_status_flags, PX4IO_P_STATUS_FLAGS_SAFETY_SWITCH_STATE);
+
+		} else {
+			atomic_modify_clear(&r_status_flags, PX4IO_P_STATUS_FLAGS_SAFETY_SWITCH_STATE);
+		}
+
+		previous_safety_switch_state = safety_switch_state;
 	}
 
 	/* Select the appropriate LED flash pattern depending on the current IO/FMU arm state */

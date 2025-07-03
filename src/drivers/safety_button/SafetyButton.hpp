@@ -40,6 +40,10 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <button/ButtonPublisher.hpp>
 
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/safety_switch.h>
+
 class SafetyButton : public ModuleBase<SafetyButton>, public px4::ScheduledWorkItem
 {
 public:
@@ -60,20 +64,20 @@ public:
 private:
 	void Run() override;
 
-	void CheckSafetyRequest(bool button_pressed);
-	void CheckPairingRequest(bool button_pressed);
+	void CheckSafetyRequest(bool safety_switch_state);
+	void CheckPairingRequest(bool safety_switch_state);
 	void FlashButton();
 
 	bool			_has_px4io{false};
-	ButtonPublisher	_button_publisher;
+	ButtonPublisher		_button_publisher;
 	uint8_t			_button_counter{0};
 	uint8_t			_blink_counter{0};
-	bool			_button_prev_sate{false};	///< Previous state of the HW button
+	bool			_previous_safety_switch_state{false}; ///< Previous state of the input
 
 	// Pairing request
 	hrt_abstime		_pairing_start{0};
-	int				_pairing_button_counter{0};
+	int			_pairing_button_counter{0};
 
-	uORB::Subscription	_armed_sub{ORB_ID(actuator_armed)};
-
+	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
+	uORB::Publication<safety_switch_s> _safety_switch_pub{ORB_ID(safety_switch)};
 };

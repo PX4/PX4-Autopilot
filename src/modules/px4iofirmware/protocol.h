@@ -115,6 +115,7 @@
 #define PX4IO_P_STATUS_FLAGS_RC_ST24		(1 << 12) /* ST24 input is valid */
 #define PX4IO_P_STATUS_FLAGS_RC_SUMD		(1 << 13) /* SUMD input is valid */
 #define PX4IO_P_STATUS_FLAGS_SAFETY_BUTTON_EVENT	(1 << 14) /* px4io safety button was pressed for longer than 1 second */
+#define PX4IO_P_STATUS_FLAGS_SAFETY_SWITCH_STATE	(1 << 15) /* px4io safety switch state */
 
 #define PX4IO_P_STATUS_ALARMS			3	 /* alarm flags - alarms latch, write 1 to a bit to clear it */
 #define PX4IO_P_STATUS_ALARMS_RC_LOST           (1 << 0) /* timed out waiting for RC input */

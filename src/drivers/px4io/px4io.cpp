@@ -70,6 +70,7 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/input_rc.h>
+#include <uORB/topics/safety_switch.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_status.h>
@@ -211,9 +212,11 @@ private:
 	/* advertised topics */
 	uORB::PublicationMulti<input_rc_s>	_input_rc_pub{ORB_ID(input_rc)};
 	uORB::Publication<px4io_status_s>	_px4io_status_pub{ORB_ID(px4io_status)};
+	uORB::Publication<safety_switch_s>	_safety_switch_pub{ORB_ID(safety_switch)};
 
 	ButtonPublisher	_button_publisher;
 	bool _previous_safety_off{false};
+	bool _previous_safety_switch_state{false};
 
 	bool			_lockdown_override{false};	///< override the safety lockdown
 
@@ -861,6 +864,20 @@ int PX4IO::io_handle_status(uint16_t status)
 	if (safety_button_pressed) {
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SAFETY_BUTTON_ACK, 0);
 		_button_publisher.safetyButtonTriggerEvent();
+	}
+
+	/**
+	 * Get and handle the safety switch status
+	 */
+	const bool safety_switch_state = status & PX4IO_P_STATUS_FLAGS_SAFETY_SWITCH_STATE;
+
+	if (safety_switch_state != _previous_safety_switch_state) {
+		safety_switch_s safety_switch{};
+		safety_switch.timestamp = hrt_absolute_time();
+		safety_switch.state = safety_switch_state;
+		_safety_switch_pub.publish(safety_switch);
+
+		_previous_safety_switch_state = safety_switch_state;
 	}
 
 	/**
