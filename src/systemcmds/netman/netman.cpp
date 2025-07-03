@@ -61,7 +61,7 @@ constexpr char DEFAULT_NETMAN_CONFIG[] = CONFIG_BOARD_ROOT_PATH "/net.cfg";
 #endif
 #define DEFAULT_NETMASK   CONFIG_NETINIT_NETMASK
 #define DEFAULT_ROUTER    CONFIG_NETINIT_DRIPADDR
-#define DEFAULT_DNS       0
+#define DEFAULT_DNS       CONFIG_NETINIT_DRIPADDR
 
 static void usage(const char *reason);
 __BEGIN_DECLS
