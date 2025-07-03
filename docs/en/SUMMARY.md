@@ -421,7 +421,6 @@
       - [Position Tuning](config_rover/position_tuning.md)
     - [Complete Vehicles](complete_vehicles_rover/index.md)
       - [Aion Robotics R1](complete_vehicles_rover/aion_r1.md)
-    - [(Deprecated) Rover Position Control](frames_rover/rover_position_control.md)
   - [Submarines (experimental)](frames_sub/index.md)
     - [BlueROV2](frames_sub/bluerov2.md)
   - [Airframes Reference](airframes/airframe_reference.md)

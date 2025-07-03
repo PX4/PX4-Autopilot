@@ -423,7 +423,6 @@
       - [Position Tuning](config_rover/position_tuning.md)
     - [Complete Vehicles](complete_vehicles_rover/index.md)
       - [Aion Robotics R1](complete_vehicles_rover/aion_r1.md)
-    - [(Deprecated) Rover Position Control](frames_rover/rover_position_control.md)
   - [Submarines (experimental)](frames_sub/index.md)
     - [블루로브2](frames_sub/bluerov2.md)
   - [기체 프레임 정의서](airframes/airframe_reference.md)
