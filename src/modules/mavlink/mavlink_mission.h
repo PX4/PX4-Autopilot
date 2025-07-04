@@ -148,7 +148,7 @@ private:
 
 	static bool		_transfer_in_progress;			///< Global variable checking for current transmission
 
-	uORB::Subscription	_mission_result_sub{ORB_ID(mission_result)};
+	uORB::SubscriptionData<mission_result_s>	_mission_result_sub{ORB_ID(mission_result)};
 	uORB::SubscriptionData<mission_s> 	_mission_sub{ORB_ID(mission)};
 	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};	///< vehicle status subscription
 
