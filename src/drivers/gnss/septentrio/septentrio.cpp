@@ -1542,27 +1542,7 @@ void SeptentrioDriver::publish()
 	_message_gps_state.device_id = get_device_id();
 	_message_gps_state.selected_rtcm_instance = _selected_rtcm_instance;
 	_message_gps_state.rtcm_injection_rate = rtcm_injection_frequency();
-
 	_sensor_gps_pub.publish(_message_gps_state);
-
-	if (_message_gps_state.spoofing_state != _spoofing_state) {
-
-		if (_message_gps_state.spoofing_state > sensor_gps_s::SPOOFING_STATE_NONE) {
-			SEP_WARN("GPS spoofing detected! (state: %d)", _message_gps_state.spoofing_state);
-		}
-
-		_spoofing_state = _message_gps_state.spoofing_state;
-	}
-
-	if (_message_gps_state.jamming_state != _jamming_state) {
-
-		if (_message_gps_state.jamming_state > sensor_gps_s::JAMMING_STATE_WARNING) {
-			SEP_WARN("GPS jamming detected! (state: %d) (indicator: %d)", _message_gps_state.jamming_state,
-					(uint8_t)_message_gps_state.jamming_indicator);
-		}
-
-		_jamming_state = _message_gps_state.jamming_state;
-	}
 }
 
 void SeptentrioDriver::publish_satellite_info()

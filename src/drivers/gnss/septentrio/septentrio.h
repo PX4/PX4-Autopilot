@@ -710,8 +710,6 @@ private:
 	char                                   _port[20] {};                                                 ///< The path of the used serial device
 	hrt_abstime                            _last_rtcm_injection_time {0};                                ///< Time of last RTCM injection
 	uint8_t                                _selected_rtcm_instance {0};                                  ///< uORB instance that is being used for RTCM corrections
-	uint8_t                                _spoofing_state {0};                                          ///< Receiver spoofing state
-	uint8_t                                _jamming_state {0};                                           ///< Receiver jamming state
 	bool                                   _time_synced {false};                                         ///< Receiver time in sync with GPS time
 	const Instance                         _instance {Instance::Main};                                   ///< The receiver that this instance of the driver controls
 	uint32_t                               _chosen_baud_rate {0};                                        ///< The baud rate requested by the user
