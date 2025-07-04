@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,37 +31,14 @@
 #
 ############################################################################
 
-project(px4_gz_plugins)
+px4_add_library(AttitudeControlLibrary
+	AttitudeControl.cpp
+	AttitudeControl.hpp
+	AttitudeControlMath.hpp
+)
+target_compile_options(AttitudeControlLibrary PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_include_directories(AttitudeControlLibrary PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-if(NOT DEFINED ENV{GZ_DISTRO} OR NOT "$ENV{GZ_DISTRO}"  STREQUAL "harmonic")
-    find_package(gz-transport NAMES gz-transport14 gz-transport13)
-    find_package(gz-sim NAMES gz-sim9 gz-sim8)
-    find_package(gz-sensors NAMES gz-sensors9 gz-sensors8)
-    find_package(gz-plugin NAMES gz-plugin3 gz-plugin2 COMPONENTS register)
-else()
-    find_package(gz-transport NAMES gz-transport13)
-    find_package(gz-sim NAMES gz-sim8)
-    find_package(gz-sensors NAMES gz-sensors8)
-    find_package(gz-plugin NAMES gz-plugin2 COMPONENTS register)
-endif()
-
-if (gz-transport_FOUND)
-    # Create a flat output directory for all plugin libraries
-    set(PX4_GZ_PLUGIN_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "Directory for all Gazebo plugin libraries")
-    file(MAKE_DIRECTORY ${PX4_GZ_PLUGIN_OUTPUT_DIR})
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PX4_GZ_PLUGIN_OUTPUT_DIR})
-
-    # Add our plugins as subdirectories
-    add_subdirectory(optical_flow)
-    add_subdirectory(template_plugin)
-    add_subdirectory(gstreamer)
-    add_subdirectory(moving_platform_controller)
-    add_subdirectory(spacecraft_thruster)
-
-    # Add an alias target for each plugin
-    if (TARGET GstCameraSystem)
-        add_custom_target(px4_gz_plugins ALL DEPENDS OpticalFlowSystem MovingPlatformController SpacecraftThrusterModelPlugin TemplatePlugin GstCameraSystem)
-    else()
-        add_custom_target(px4_gz_plugins ALL DEPENDS OpticalFlowSystem MovingPlatformController SpacecraftThrusterModelPlugin TemplatePlugin)
-    endif()
-endif()
+# TODO: Add unit tests
+# px4_add_unit_gtest(SRC ScAttitudeControlTest.cpp LINKLIBS SpacecraftAttitudeControl)
+# px4_add_unit_gtest(SRC ScAttitudeControlMathTest.cpp LINKLIBS SpacecraftAttitudeControl)
