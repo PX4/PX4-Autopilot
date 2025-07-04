@@ -28,12 +28,12 @@ Key airframe features:
 
 Key Build Features:
 
-* Easy overall build with minimal airframe setup
-* Easy access to Pixhawk USB and debug connector
-* [First Person View (FPV)](https://en.wikipedia.org/wiki/First-person_view_(radio_control)) with camera pan mount
+- Easy overall build with minimal airframe setup
+- Easy access to Pixhawk USB and debug connector
+- [First Person View (FPV)](<https://en.wikipedia.org/wiki/First-person_view_(radio_control)>) with camera pan mount
 
-* Air data provided by wing slung pitot static pod
-* Long flight times (with Liion battery option > 24 minutes)
+- Air data provided by wing slung pitot static pod
+- Long flight times (with Liion battery option > 24 minutes)
 
 ## Parts List
 
@@ -46,8 +46,8 @@ Key Build Features:
 - MS4525DO differential pressure module and pitot tube
 - [Caddx Vista FPV air unit](https://caddxfpv.com/products/caddx-vista-kit)
 - [DJI FPV Goggles](https://www.dji.com/fpv)
-- [ExpressLRS Matek Diversity RX](http://www.mateksys.com/?portfolio=elrs-r24)
-- [Custom designed 3D printed parts](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/turbo_timber_evolution/3d_printed_parts.zip)
+- [ExpressLRS Matek Diversity RX](https://www.mateksys.com/?portfolio=elrs-r24)
+- [Custom designed 3D printed parts](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/fw/turbo_timber_evolution/3d_printed_parts.zip)
   - Pixhawk 4 Mini mount and top GPS mount
   - FPV pod and camera mount
   - Pitot static pod and wing hardpoint hanger
@@ -105,7 +105,7 @@ After the first flight, the lid was hot glued in place.
 
 ## Flight Computer Installation
 
-A custom mount for the PX4 Mini was designed and 3d printed (see [3D printed parts](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/turbo_timber_evolution/3d_printed_parts.zip) for all parts).
+A custom mount for the PX4 Mini was designed and 3d printed (see [3D printed parts](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/fw/turbo_timber_evolution/3d_printed_parts.zip) for all parts).
 This mount was carefully designed to use internal foam mold features of the stock TTE airframe to be securely attached and well aligned.
 The mount consists of two parts in a double-decker configuration, bolted together with M3 threaded standoffs.
 The bottom mount carries the Pixhawk and attaches to the airframe while the top mount carries the GPS and ExpressLRS RX.
@@ -123,7 +123,7 @@ The bottom mount carries the Pixhawk and attaches to the airframe while the top 
 First, the Pixhawk 4 Mini was placed in the lower mount.
 Hot glue was added to rigidly connect the fcu to the mount with two zipties providing additional security.
 The standoff mounts for the upper mount were installed, and the bolts securely tightened.
-Once the lower mount is installed, these screws are inaccessible, so attention was paid to making sure they were tightt enough so they cannot back out. 
+Once the lower mount is installed, these screws are inaccessible, so attention was paid to making sure they were tightt enough so they cannot back out.
 
 ## Electrical
 
@@ -132,7 +132,7 @@ Once the lower mount is installed, these screws are inaccessible, so attention w
 The Holybro power module was wired inline with the ESC.
 A spare 16awg power lead was also broken out, terminated to an XT30.
 This spare lead will be used to provide power to the Caddx Vista FPV unit, but could also be connected to a splitter to power more peripherals.
-Power for the servo and lighting will be provided by the "BEC" power supply in the ESC. 
+Power for the servo and lighting will be provided by the "BEC" power supply in the ESC.
 
 ![An image showing the completed power module](../../assets/airframes/fw/turbo_timber_evolution/power_module.jpg)
 
@@ -159,7 +159,7 @@ Access to the Pixhawk 4 Mini requires removal of the upper mount.
 While this isn't too difficult, it was a consideration for wanting to streamline debugging in the field.
 A short right angle USB micro extension was used to allow easy access to the Pixhawk 4 Mini's USB interface.
 The USB-A end of this cable was left dangling in the battery bay.
-Similarly, a JST PH to std spaced headers adapter was made, and it was also left easily accessible in the battery bay. 
+Similarly, a JST PH to std spaced headers adapter was made, and it was also left easily accessible in the battery bay.
 
 ### Peripherals
 
@@ -203,7 +203,6 @@ I use full flaps on landing to slow the otherwise slippery airframe.
 
 ![Turbo Timber Evolution field setup](../../assets/airframes/fw/turbo_timber_evolution/field_setup.jpg)
 
-
 ### Performance
 
 - Stall speed (no flaps): 14MPH indicated
@@ -227,7 +226,7 @@ I use full flaps on landing to slow the otherwise slippery airframe.
 
 ### Parameter File
 
-[Snapshot of PX4 airframe params](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/turbo_timber_evolution/tteparams.params)
+[Snapshot of PX4 airframe params](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/fw/turbo_timber_evolution/tteparams.params)
 
 This param file contains the custom PX4 parameter config for this build, including radio setup, tuning and sensor config.
 The param file can be loaded via QGC using the instructions at [Parameters> Tools ](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/parameters.html#tools) (QGC User Guide).
