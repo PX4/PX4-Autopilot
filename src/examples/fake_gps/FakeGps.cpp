@@ -88,12 +88,12 @@ void FakeGps::Run()
 	sensor_gps.timestamp = hrt_absolute_time();
 	_sensor_gps_pub.publish(sensor_gps);
 
-	gps_status_s gps_status{};
-	gps_status.quality_corrections = 0;
-	gps_status.quality_receiver = 9;
-	gps_status.quality_gnss_signals = 10;
-	gps_status.quality_post_processing = 255;
-	_gps_status_pub.publish(gps_status);
+	sensor_gnss_status_s sensor_gnss_status{};
+	sensor_gnss_status.quality_corrections = 0;
+	sensor_gnss_status.quality_receiver = 9;
+	sensor_gnss_status.quality_gnss_signals = 10;
+	sensor_gnss_status.quality_post_processing = 255;
+	_sensor_gnss_status_pub.publish(sensor_gnss_status);
 }
 
 int FakeGps::task_spawn(int argc, char *argv[])

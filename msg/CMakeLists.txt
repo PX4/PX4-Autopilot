@@ -111,7 +111,6 @@ set(msg_files
 	GpioRequest.msg
 	GpsDump.msg
 	GpsInjectData.msg
-	GpsStatus.msg
 	Gripper.msg
 	HealthReport.msg
 	HeaterStatus.msg
@@ -194,6 +193,7 @@ set(msg_files
 	SensorCombined.msg
 	SensorCorrection.msg
 	SensorGnssRelative.msg
+	SensorGnssStatus.msg
 	SensorGps.msg
 	SensorGyro.msg
 	SensorGyroFft.msg

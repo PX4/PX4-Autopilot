@@ -35,7 +35,7 @@
 #define GNSS_INTEGRITY_HPP
 
 #include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/gps_status.h>
+#include <uORB/topics/sensor_gnss_status.h>
 
 using namespace time_literals;
 
@@ -59,7 +59,7 @@ private:
 	explicit MavlinkStreamGNSSIntegrity(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _sensor_gps_sub{ORB_ID(sensor_gps), 0};
-	uORB::Subscription _gps_status_sub{ORB_ID(gps_status), 0};
+	uORB::Subscription _sensor_gnss_status_sub{ORB_ID(sensor_gnss_status), 0};
 
 	hrt_abstime _last_send_ts {};
 	hrt_abstime _last_gps_update_ts {};
@@ -69,7 +69,7 @@ private:
 	bool send() override
 	{
 		sensor_gps_s gps;
-		gps_status_s status;
+		sensor_gnss_status_s status;
 
 		bool send_msg = false;
 		mavlink_gnss_integrity_t msg{};
@@ -81,7 +81,7 @@ private:
 			send_msg = true;
 		}
 
-		if(now - _last_gps_update_ts < kNoGpsSendInterval){
+		if (now - _last_gps_update_ts < kNoGpsSendInterval) {
 			msg.id = gps.device_id;
 			msg.system_errors = gps.system_error;
 			msg.authentication_state = gps.authentication_state;
@@ -89,18 +89,19 @@ private:
 			msg.spoofing_state = gps.spoofing_state;
 		}
 
-		// Handling gps_status
-		if (_gps_status_sub.update(&status)) {
+		// Handling sensor_gnss_status
+		if (_sensor_gnss_status_sub.update(&status)) {
 			_last_status_update_ts = now;
 			send_msg = true;
 		}
 
-		if(now - _last_status_update_ts < kNoGpsSendInterval){
+		if (status.quality_available && now - _last_status_update_ts < kNoGpsSendInterval) {
 			msg.corrections_quality	= status.quality_corrections;
 			msg.system_status_summary = status.quality_receiver;
 			msg.gnss_signal_quality = status.quality_gnss_signals;
 			msg.post_processing_quality = status.quality_post_processing;
-		}else{
+
+		} else {
 			msg.corrections_quality	= 255;
 			msg.system_status_summary = 255;
 			msg.gnss_signal_quality = 255;
@@ -112,7 +113,7 @@ private:
 			send_msg = true;
 		}
 
-		if(send_msg){
+		if (send_msg) {
 			msg.raim_hfom = UINT16_MAX;
 			msg.raim_vfom = UINT16_MAX;
 

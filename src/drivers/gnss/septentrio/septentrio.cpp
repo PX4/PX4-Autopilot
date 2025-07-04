@@ -1238,36 +1238,36 @@ int SeptentrioDriver::process_message()
 			QualityInd quality_ind;
 
 			if (_sbf_decoder.parse(&quality_ind) == PX4_OK) {
-				_message_gps_status.quality_corrections = 255;
-				_message_gps_status.quality_receiver = 255;
-				_message_gps_status.quality_post_processing = 255;
-				_message_gps_status.quality_gnss_signals = 255;
+				_message_sensor_gnss_status.quality_available = true;
+				_message_sensor_gnss_status.device_id = get_device_id();
+
+				_message_sensor_gnss_status.quality_corrections = 255;
+				_message_sensor_gnss_status.quality_receiver = 255;
+				_message_sensor_gnss_status.quality_post_processing = 255;
+				_message_sensor_gnss_status.quality_gnss_signals = 255;
 
 				for (int i = 0; i < math::min(quality_ind.n, static_cast<uint8_t>(sizeof(quality_ind.indicators) / sizeof(quality_ind.indicators[0]))); i++) {
+					int quality = quality_ind.indicators[i].value;
+
 					switch (quality_ind.indicators[i].type) {
 					case Type::BaseStationMeasurements:
-						_message_gps_status.quality_corrections = quality_ind.indicators[i].value;
+						_message_sensor_gnss_status.quality_corrections = quality;
 						break;
 					case Type::Overall:
-						_message_gps_status.quality_receiver = quality_ind.indicators[i].value;
+						_message_sensor_gnss_status.quality_receiver = quality;
 						break;
 					case Type::RTKPostProcessing:
-						_message_gps_status.quality_post_processing = quality_ind.indicators[i].value;
+						_message_sensor_gnss_status.quality_post_processing = quality;
 						break;
 					case Type::GNSSSignalsMainAntenna:
-						_message_gps_status.quality_gnss_signals = quality_ind.indicators[i].value;
+						_message_sensor_gnss_status.quality_gnss_signals = quality;
 						break;
 					default:
 						break;
 					}
 				}
 
-				// For debugging purpose
-				if(quality_ind.n == 0){
-					break;
-				}
-
-				_gps_status_pub.publish(_message_gps_status);
+				_sensor_gnss_status_pub.publish(_message_sensor_gnss_status);
 			}
 
 			break;
