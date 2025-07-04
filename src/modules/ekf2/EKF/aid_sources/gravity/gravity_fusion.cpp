@@ -59,7 +59,7 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 					 && (accel_lpf_norm_sq < sq(upper_accel_limit));
 
 	// fuse gravity observation if our overall acceleration isn't too big
-	_control_status.flags.gravity_vector = (_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector))
+	_control_status.flags.gravity_vector = (_params.ekf2_imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector))
 					       && (accel_lpf_norm_good || _control_status.flags.vehicle_at_rest)
 					       && !isHorizontalAidingActive()
 					       && _control_status.flags.tilt_align; // Let fake position do the initial alignment (more robust before takeoff)

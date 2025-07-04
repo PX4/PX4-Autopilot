@@ -74,14 +74,14 @@ void Ekf::reset()
 	//
 #if defined(CONFIG_EKF2_TERRAIN)
 	// assume a ground clearance
-	_state.terrain = -_gpos.altitude() + _params.rng_gnd_clearance;
+	_state.terrain = -_gpos.altitude() + _params.ekf2_min_rng;
 #endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	_range_sensor.setPitchOffset(_params.rng_sens_pitch);
+	_range_sensor.setPitchOffset(_params.ekf2_rng_pitch);
 	_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
-	_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
-	_range_sensor.setMaxFogDistance(_params.rng_fog);
+	_range_sensor.setQualityHysteresis(_params.ekf2_rng_qlty_t);
+	_range_sensor.setMaxFogDistance(_params.ekf2_rng_fog);
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 	_control_status.value = 0;
