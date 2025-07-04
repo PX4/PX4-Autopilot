@@ -67,10 +67,7 @@ void RoverDifferential::Run()
 		_vehicle_control_mode_sub.copy(&vehicle_control_mode);
 
 		// Run sanity checks if the control mode changes (Note: This has to be done this way, because the topic is periodically updated at 2 Hz)
-		if (_vehicle_control_mode.flag_control_manual_enabled != vehicle_control_mode.flag_control_manual_enabled ||
-		    _vehicle_control_mode.flag_control_auto_enabled != vehicle_control_mode.flag_control_auto_enabled ||
-		    _vehicle_control_mode.flag_control_offboard_enabled != vehicle_control_mode.flag_control_offboard_enabled ||
-		    _vehicle_control_mode.flag_control_position_enabled != vehicle_control_mode.flag_control_position_enabled ||
+		if (_vehicle_control_mode.flag_control_position_enabled != vehicle_control_mode.flag_control_position_enabled ||
 		    _vehicle_control_mode.flag_control_velocity_enabled != vehicle_control_mode.flag_control_velocity_enabled ||
 		    _vehicle_control_mode.flag_control_attitude_enabled != vehicle_control_mode.flag_control_attitude_enabled ||
 		    _vehicle_control_mode.flag_control_rates_enabled != vehicle_control_mode.flag_control_rates_enabled ||
@@ -82,24 +79,12 @@ void RoverDifferential::Run()
 		} else {
 			_vehicle_control_mode = vehicle_control_mode;
 		}
-
 	}
 
 	if (_vehicle_control_mode.flag_armed && _sanity_checks_passed) {
 
 		_was_armed = true;
-
-		// Generate setpoints
-		if (_vehicle_control_mode.flag_control_manual_enabled) {
-			manualControl();
-
-		} else if (_vehicle_control_mode.flag_control_auto_enabled) {
-			_auto_mode.autoControl();
-
-		} else if (_vehicle_control_mode.flag_control_offboard_enabled) {
-			_offboard_mode.offboardControl();
-		}
-
+		generateSetpoints();
 		updateControllers();
 
 	} else if (_was_armed) { // Reset all controllers and stop the vehicle
@@ -110,20 +95,42 @@ void RoverDifferential::Run()
 
 }
 
-void RoverDifferential::manualControl()
+void RoverDifferential::generateSetpoints()
 {
-	if (_vehicle_control_mode.flag_control_position_enabled) {
-		_manual_mode.position();
+	vehicle_status_s vehicle_status{};
+	_vehicle_status_sub.update(&vehicle_status);
 
-	} else if (_vehicle_control_mode.flag_control_attitude_enabled) {
-		_manual_mode.stab();
+	switch (vehicle_status.nav_state) {
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+		_auto_mode.autoControl();
+		break;
 
-	} else if (_vehicle_control_mode.flag_control_rates_enabled) {
-		_manual_mode.acro();
+	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
+		_offboard_mode.offboardControl();
+		break;
 
-	} else if (_vehicle_control_mode.flag_control_allocation_enabled) {
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		_manual_mode.manual();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_ACRO:
+		_manual_mode.acro();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_STAB:
+		_manual_mode.stab();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+		_manual_mode.position();
+		break;
+
+	default:
+		break;
 	}
+
 }
 
 void RoverDifferential::updateControllers()
