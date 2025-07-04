@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -32,42 +32,17 @@
  ****************************************************************************/
 
 /**
- * @file zenoh_subscriber.hpp
+ * @file zenoh_params.c
  *
- * Defines basic functionality of Zenoh subscriber class
+ * Parameters defined by Zenoh
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
 
-#pragma once
-
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/log.h>
-
-#include <lib/parameters/param.h>
-#include <containers/List.hpp>
-#include <zenoh-pico.h>
-
-// CycloneDDS CDR Deserializer
-#include <dds/cdr/dds_cdrstream.h>
-#include <dds_serializer.h>
-
-class Zenoh_Subscriber : public ListNode<Zenoh_Subscriber *>
-{
-public:
-	Zenoh_Subscriber();
-	virtual ~Zenoh_Subscriber();
-
-	virtual int declare_subscriber(z_owned_session_t s, const char *keyexpr);
-
-	virtual int undeclare_subscriber();
-
-	virtual void data_handler(const z_loaned_sample_t *sample);
-
-	virtual void print();
-
-protected:
-	virtual void print(const char *type_string, const char *topic_string);
-
-	z_owned_subscriber_t _sub;
-};
+/**
+ * ROS2 RMW_ZENOH_CPP Domain id
+ *
+ * @min 0
+ * @max 232
+ */
+PARAM_DEFINE_INT32(ZENOH_DOMAIN_ID, 0);
