@@ -426,7 +426,6 @@ if(BUILD_TESTING)
 	set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
 endif()
 
-
 #=============================================================================
 # subdirectories
 #
