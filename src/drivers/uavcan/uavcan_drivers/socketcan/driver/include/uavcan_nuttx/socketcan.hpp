@@ -104,9 +104,12 @@ class CanDriver
 	CanIface if_[UAVCAN_SOCKETCAN_NUM_IFACES];
 	SystemClock clock;
 	struct pollfd pfds[UAVCAN_SOCKETCAN_NUM_IFACES];
+	uint32_t usedUavcanInterfaces_;
 
 public:
-	CanDriver() : update_event_(*this)
+	CanDriver()
+		: update_event_(*this)
+		, usedUavcanInterfaces_(0)
 	{}
 
 	uavcan::int32_t initIface(uint32_t index)
@@ -149,11 +152,25 @@ public:
 			       const uavcan::CanFrame * (&)[uavcan::MaxCanIfaces],
 			       uavcan::MonotonicTime blocking_deadline) override;
 
+	/**
+	 * Set the CAN interface to enable the use of uavcan
+	 */
+	void setUavcanUsedInterfaces(uavcan::uint8_t iface_index);
+
 	uavcan::ICanIface *getIface(uavcan::uint8_t iface_index) override;
+
+	/**
+	 * Some external CNA devices obtain the CAN interface
+	 * when extra is equal to true
+	 * when exter is false, calling the getIface(iface_index)
+	 */
+	uavcan::ICanIface *getIface(uavcan::uint8_t iface_index, bool exter);
 
 	uavcan::uint8_t getNumIfaces() const override;
 
 	BusEvent &updateEvent() { return update_event_; }
+
+	BusEvent &updateEvent(uavcan::uint8_t iface_index) { return update_event_; }
 };
 
 
@@ -162,12 +179,15 @@ class CanInitHelper
 {
 	//CanRxItem queue_storage_[UAVCAN_KINETIS_NUM_IFACES][RxQueueCapacity];
 
+	bool bitrateInit_;
+
 public:
 	enum { BitRateAutoDetect = 0 };
 
 	CanDriver driver;
 
 	CanInitHelper(uint32_t unused = 0x7) :
+		bitrateInit_(false),
 		driver()
 	{
 	}
@@ -180,11 +200,19 @@ public:
 	 */
 	int init(uavcan::uint32_t bitrate)
 	{
+		if (bitrateInit_) {
+			return 0;
+		}
+
 		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
 			driver.initIface(i);
 		}
 
-		return driver.init(bitrate);
+		int res = driver.init(bitrate);
+
+		bitrateInit_ = true;
+
+		return res;
 	}
 
 	/**
