@@ -1545,15 +1545,6 @@ void SeptentrioDriver::publish()
 
 	_sensor_gps_pub.publish(_message_gps_state);
 
-	if (_message_gps_state.spoofing_state != _spoofing_state) {
-
-		if (_message_gps_state.spoofing_state > sensor_gps_s::SPOOFING_STATE_NONE) {
-			SEP_WARN("GPS spoofing detected! (state: %d)", _message_gps_state.spoofing_state);
-		}
-
-		_spoofing_state = _message_gps_state.spoofing_state;
-	}
-
 	if (_message_gps_state.jamming_state != _jamming_state) {
 
 		if (_message_gps_state.jamming_state > sensor_gps_s::JAMMING_STATE_WARNING) {

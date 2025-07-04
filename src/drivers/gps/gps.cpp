@@ -190,7 +190,6 @@ private:
 
 	sensor_gps_s			_report_gps_pos{};				///< uORB topic for gps position
 	satellite_info_s		*_p_report_sat_info{nullptr};			///< pointer to uORB topic for satellite info
-	uint8_t                         _spoofing_state{0};                             ///< spoofing state
 	uint8_t                         _jamming_state{0};                              ///< jamming state
 
 	uORB::PublicationMulti<sensor_gps_s>	_report_gps_pos_pub{ORB_ID(sensor_gps)};	///< uORB pub for gps position
@@ -1205,15 +1204,6 @@ GPS::publish()
 		// The uORB message definition requires this data to be set to a NAN if no new valid data is available.
 		_report_gps_pos.heading = NAN;
 		_is_gps_main_advertised.store(true);
-
-		if (_report_gps_pos.spoofing_state != _spoofing_state) {
-
-			if (_report_gps_pos.spoofing_state > sensor_gps_s::SPOOFING_STATE_NONE) {
-				PX4_WARN("GPS spoofing detected! (state: %d)", _report_gps_pos.spoofing_state);
-			}
-
-			_spoofing_state = _report_gps_pos.spoofing_state;
-		}
 
 		if (_report_gps_pos.jamming_state != _jamming_state) {
 
