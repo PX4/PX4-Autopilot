@@ -3,4 +3,3 @@ menuconfig DRIVERS_LIGHTS_RGBLED_AW2023
 	default n
 	---help---
 		Enable support for rgbled_aw2023
-
