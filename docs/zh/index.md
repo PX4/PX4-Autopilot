@@ -101,7 +101,7 @@ _PX4_ 是一款专业级飞控。
 
 ## 许可证
 
-PX4 代码可依据宽松的 [BSD 3-clause license](https://opensource.org/licenses/BSD-3-Clause) 免费使用和修改。
+PX4 code is free to use and modify under the terms of the permissive [BSD 3-clause license](https://opensource.org/license/BSD-3-Clause).
 此文档已使用 [CC BY 4.0]授权。(https://creativecommons.org/licenses/by/4.0/)。
 详情见： [Licences](contribute/licenses.md)。
 
@@ -127,7 +127,7 @@ _Dronecode 日历_ 展示了面向平台用户和开发者的重要社区活动�
 
 <img src="../assets/site/position_fixed.svg" title="Position fix required (e.g. GPS)" width="30px" /> _placeholder_icon 由 <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> 通过 <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> 创作，使用 <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 By</a> 授权。
 
-<0/> _camera-automatic-mode_ 图标由 <1>Freepik</1> 通过 <2>www.flaticon.com</2> 创作，使用 <3>CC 3.0 BY</3> 授权。
+<img src="../assets/site/automatic_mode.svg" title="Automatic mode" width="30px" /> _camera-automatic-mode_ icon made by <a href="https://www.freepik.com" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.
 
 ## 治理
 
