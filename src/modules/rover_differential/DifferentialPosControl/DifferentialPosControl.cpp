@@ -64,14 +64,23 @@ void DifferentialPosControl::updatePosControl()
 
 	if (target_waypoint_ned.isAllFinite()) {
 		float distance_to_target = (target_waypoint_ned - _curr_pos_ned).norm();
+		float distance_from_start = (_curr_pos_ned - _start_ned).norm();
 
 		if (distance_to_target > _param_nav_acc_rad.get()) {
 			float arrival_speed = PX4_ISFINITE(_rover_position_setpoint.arrival_speed) ? _rover_position_setpoint.arrival_speed :
 					      0.f;
-			const float distance = arrival_speed > 0.f + FLT_EPSILON ? distance_to_target - _param_nav_acc_rad.get() :
+			float distance = arrival_speed > 0.f + FLT_EPSILON ? distance_to_target - _param_nav_acc_rad.get() :
 					       distance_to_target;
+
+			float accel_limit = _param_ro_decel_limit.get();
+			if(distance_from_start > FLT_EPSILON && distance_from_start < distance) {
+				distance = distance_from_start;
+				accel_limit = _param_ro_accel_limit.get();
+				arrival_speed = _ground_speed_abs;
+			}
+
 			float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
-					       _param_ro_decel_limit.get(), distance, fabsf(arrival_speed));
+					       accel_limit, distance, fabsf(arrival_speed));
 			speed_setpoint = math::min(speed_setpoint, _param_ro_speed_limit.get());
 
 			if (PX4_ISFINITE(_rover_position_setpoint.cruising_speed)) {
@@ -117,6 +126,13 @@ void DifferentialPosControl::updateSubscriptions()
 		vehicle_local_position_s vehicle_local_position{};
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
 		_curr_pos_ned = Vector2f(vehicle_local_position.x, vehicle_local_position.y);
+
+		if (vehicle_local_position.v_xy_valid) {
+			Vector3f ground_speed3f = Vector3f{vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz};
+			_ground_speed_abs = ground_speed3f.norm();
+		} else {
+			_ground_speed_abs = NAN;
+		}
 	}
 
 }
