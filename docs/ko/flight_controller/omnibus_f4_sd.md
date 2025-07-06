@@ -192,9 +192,9 @@ If you use CRSF Telemetry you will need to build custom PX4 firmware.
 By contrast, FrSky telemetry can use prebuilt firmware.
 :::
 
-For Omnibus we recommend the [TBS Crossfire Nano RX](http://team-blacksheep.com/products/prod:crossfire_nano_rx), since it is specifically designed for small Quads.
+For Omnibus we recommend the [TBS Crossfire Nano RX](https://www.team-blacksheep.com/products/prod:crossfire_nano_rx), since it is specifically designed for small Quads.
 
-On the handheld controller (e.g. Taranis) you will also need a [Transmitter Module](http://team-blacksheep.com/shop/cat:rc_transmitters#product_listing).
+On the handheld controller (e.g. Taranis) you will also need a [Transmitter Module](https://www.team-blacksheep.com/shop/cat:tbs-crossfire-radio-transmitter#product_listing).
 이것은 RC 콘트롤러의 뒷면에 장착할 수 있습니다.
 
 :::info
@@ -218,17 +218,13 @@ Instructions for this are provided in the [TBS Crossfire Manual](https://www.tea
 You will need to build custom firmware to use CRSF.
 For more information see [CRSF Telemetry](../telemetry/crsf_telemetry.md#px4-configuration).
 
-## 회로도
+<!-- no longer available 202507 -->
 
-The schematics are provided by [Airbot](https://myairbot.com/): [OmnibusF4-Pro-Sch.pdf](http://bit.ly/obf4pro).
-
-<a id="bootloader"></a>
-
-## 부트로더 업데이트
+## PX4 Bootloader Update {#bootloader}
 
 The board comes pre-installed with [Betaflight](https://github.com/betaflight/betaflight/wiki).
 Before PX4 firmware can be installed, the _PX4 bootloader_ must be flashed.
-Download the [omnibusf4sd_bl.hex](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/omnibus_f4_sd/omnibusf4sd_bl_d52b70cb39.hex) bootloader binary and read [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
+Download the [omnibusf4sd_bl.hex](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/omnibus_f4_sd/omnibusf4sd_bl_d52b70cb39.hex) bootloader binary and read [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
 
 ## 펌웨어 빌드
 
