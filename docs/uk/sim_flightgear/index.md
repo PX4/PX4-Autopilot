@@ -7,8 +7,8 @@ This simulator is [community supported and maintained](../simulation/community_s
 Дивіться [Встановлення інструментарію](../dev_setup/dev_env.md) для інформації про середовища та інструменти, що підтримуються основною командою розробників.
 :::
 
-[FlightGear](https://www.flightgear.org/) is a flight simulator with powerful [FDM engines](http://wiki.flightgear.org/Flight_Dynamics_Model).
-This allows FlightGear to simulate rotorcrafts under various meteorological conditions (which is why the bridge was originally developed by [ThunderFly s.r.o.](https://www.thunderfly.cz/)).
+[FlightGear](https://wiki.flightgear.org/Flight_Dynamics_Model) is a flight simulator with powerful [FDM engines](https://wiki.flightgear.org/Flight_Dynamics_Model).
+This allows FlightGear to simulate rotorcraft under various meteorological conditions (which is why the bridge was originally developed by [ThunderFly s.r.o.](https://www.thunderfly.cz/)).
 
 Ця сторінка описує використання FlightGear з одним транспортним засобом у реальному часі на віртуальному полігоні (SITL).
 For information about multi-vehicle use see: [Multi-Vehicle Simulation with FlightGear](../sim_flightgear/multi_vehicle.md).
@@ -190,7 +190,7 @@ In FlightGear you can display the frame rate by enabling it in: **View > View Op
 Встановлення змінної перевищить місце вильоту за замовчуванням.
 
 The variables which can be set are as follows: `--airport`, `--runway`, and `--offset-distance`.
-Other options can be found on [FlightGear wiki](http://wiki.flightgear.org/Command_line_options#Initial_Position_and_Orientation)
+Other options can be found on [FlightGear wiki](https://wiki.flightgear.org/Command_line_options#Initial_Position_and_Orientation)
 
 Наприклад:
 
@@ -198,7 +198,7 @@ Other options can be found on [FlightGear wiki](http://wiki.flightgear.org/Comma
 FG_ARGS_EX="--airport=PHNL"  make px4_sitl_nolockstep flightgear_rascal
 ```
 
-The example above starts the simulation on the [Honolulu international airport](http://wiki.flightgear.org/Suggested_airports)
+The example above starts the simulation on the [Honolulu international airport](https://wiki.flightgear.org/Suggested_airports)
 
 ### Використання джойстика
 

@@ -78,7 +78,6 @@ events::send<uint8_t, float>(events::ID("event_name"),
     Це означає, що до тих пір, поки ім'я події залишається однаковим, ID залишиться тим же.
 
 - **Рівень журналювання**:
-
   - припустимі рівні журналювання такі ж, як і у перерахуванні MAVLink [MAV_SEVERITY](https://mavlink.io/en/messages/common.html#MAV_SEVERITY).
     Рівні перелічені за зменшенням важливості:
 
@@ -117,7 +116,7 @@ Events can have a fixed set of arguments that can be inserted into the message o
 Формат тексту для опису повідомлення події:
 
 - Користувацькі або характерні для PX4 перерахування для подій повинні бути визначені у [src/lib/events/enums.json](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/events/enums.json), та можуть бути використані як аргументи події у формі `events::send<events::px4::enums::my_enum_t>(...)`.
-- "Загальні" події MAVLink визначені у [mavlink/libevents/events/common.json](https://github.com/mavlink/libevents/blob/master/events/common.json) та можуть бути використані як аргументи подій у формі `events::send<events::common::enums::my_enum_t>(...)`.
+- MAVLink "common" events are defined in [mavlink/libevents/events/common.json](https://github.com/mavlink/libevents/blob/main/events/common.json) and can be used as event argument in the form of `events::send<events::common::enums::my_enum_t>(...)`.
 
 #### Формат тексту
 
@@ -128,7 +127,6 @@ Events can have a fixed set of arguments that can be inserted into the message o
   Ці символи повинні бути екрановані: '\\\\', '\\<', '\\{'.
 
 - теги що підтримуються:
-
   - Профілі: `<profile name="[!]NAME">CONTENT</profile>`
 
     `CONTENT` буде показано, лише якщо назва збігається з налаштованим профілем.
@@ -142,7 +140,6 @@ Events can have a fixed set of arguments that can be inserted into the message o
   - не дозволено використовувати вкладені теги того ж типу
 
 - аргументи: шаблонні замінники, що відповідають синтаксису python з індексацією що починається з 1 (замість 0)
-
   - загальна форма: `{ARG_IDX[:.NUM_DECIMAL_DIGITS][UNIT]}`
 
     UNIT:

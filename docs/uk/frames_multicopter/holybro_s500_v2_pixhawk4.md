@@ -45,8 +45,8 @@ No LiPo battery is included.
 | Колісна база: 480мм          | 1         |
 | Кронштейн                                    | 4         |
 | Комплект шасі                                | 2         |
-| Гвинти M3\*8                                 | 18        |
-| Гвинти M2 5\*6                               | 24        |
+| M3\*8 screws                                 | 18        |
+| M2 5\*6 screws                               | 24        |
 | Ремені для акумуляторів                      | 1         |
 | Пропелер 1045 (версія V2) | 1         |
 
@@ -73,8 +73,8 @@ No LiPo battery is included.
 | USB кабель                                              | 1     |
 | Складне кріплення для п'єдесталу типу 'X'               | 1     |
 | 70mm & 140mm carbon rod standoff    | 2     |
-| Горизонтальний штифт 6\*3 з кроком 2,54 мм              | 1     |
-| Горизонтальний штифт 8\*3 з кроком 2,54 мм              | 2     |
+| 6\*3 2.54mm pitch Horizontal Pin        | 1     |
+| 8\*3 2.54mm pitch Horizontal Pin        | 2     |
 | Набір для піноутворення                                 | 1     |
 | Короткий посібник користувача Pixhawk4                  | 1     |
 | Розведення Pixhawk4                                     | 1     |
@@ -268,7 +268,7 @@ No LiPo battery is included.
 ## Конфігурація PX4
 
 _QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the QAV250 frame.
-[Download and install](http://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
+[Download and install](https://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
 
 :::tip
 Full instructions for installing and configuring PX4 can be found in [Basic Configuration](../config/index.md).
