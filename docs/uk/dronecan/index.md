@@ -55,7 +55,7 @@ DroneCAN was previously known as UAVCAN v0 (or just UAVCAN).
   - [Holybro DroneCAN H-RTK F9P Rover](https://holybro.com/products/dronecan-h-rtk-f9p-rover)
   - [Holybro DroneCAN H-RTK F9P Helical](https://holybro.com/products/dronecan-h-rtk-f9p-helical)
   - [RaccoonLab GNSS Modules](https://docs.raccoonlab.co/guide/gps_mag_baro/)
-  - [Zubax GNSS](https://zubax.com/products/gnss_2)
+  - [Zubax GNSS](https://shop.zubax.com/products/zubax-gnss-2)
 
 - Монітори живлення
   - [Pomegranate Systems Power Module](../dronecan/pomegranate_systems_pm.md)
@@ -70,7 +70,7 @@ DroneCAN was previously known as UAVCAN v0 (or just UAVCAN).
   - [ARK Flow](ark_flow.md)
   - [Ark Flow MR](ark_flow_mr.md)
   - [Avionics Anonymous Laser Altimeter UAVCAN Interface](../dronecan/avanon_laser_interface.md)
-  - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder)
+  - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder/)
 
 - Оптичний потік(Optical Flow)
   - [Ark Flow](ark_flow.md)
@@ -326,4 +326,4 @@ If successful, the firmware binary will be removed from the root directory and t
 - [Home Page](https://dronecan.github.io) (dronecan.github.io)
 - [Protocol Specification](https://dronecan.github.io/Specification) (dronecan.github.io)
 - [Implementations](https://dronecan.github.io/Implementations/) (dronecan.github.io)
-- [Cyphal/CAN Device Interconnection](https://kb.zubax.com/pages/viewpage.action?pageId=2195476) (kb.zubax.com)
+- [Cyphal/CAN Device Interconnection](https://wiki.zubax.com/public/cyphal/CyphalCAN-device-interconnection?pageId=2195476) (kb.zubax.com)
