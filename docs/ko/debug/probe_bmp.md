@@ -1,13 +1,13 @@
-# Black Magic Probe (and Dronecode Probe)
+# Black Magic Probe (and Zubax BugFace BF1)
 
 The [Black Magic Probe](https://black-magic.org) is an easy to use, mostly plug-and-play, JTAG/SWD debugger for embedded microcontrollers.
 Since the Black Magic Probe is a generic debug probe, you will need an adapter to connect to Pixhawk flight controllers, which can be purchased here:
 
 - [Drone Code Debug Adapter](https://1bitsquared.com/products/drone-code-debug-adapter) (1 BIT SQUARED).
 
-## Dronecode Probe
+## Zubax BugFace BF1 {#dronecode-probe}
 
-The [Dronecode Probe](https://kb.zubax.com/display/MAINKB/Dronecode+Probe+documentation) is a specialization of the Black Magic Probe for debugging PX4 autopilots.
+The [Zubax BugFace BF1](https://github.com/Zubax/bugface_bf1) (formerly known as "Dronecode Probe") is a specialization of the Black Magic Probe for debugging PX4 autopilots.
 
 The probe's USB interface exposes two separate virtual serial port interfaces: one for connecting to the [System Console](system_console.md) (UART) and the other for an embedded GDB server (SWD interface).
 
@@ -20,17 +20,17 @@ The _6-pos DF13_ connector that comes with the probe cannot be used for SWD debu
 ## Using the Probe
 
 :::info
-To debug STM32F7 or later (FMUv5 and newer) the Dronecode probe / Blackmagic probe likely requires a firmware update.
+To debug STM32F7 or later (FMUv5 and newer) the Zubax BugFace BF1 / Blackmagic probe likely requires a firmware update.
 You can find how to update the [blackmagic probe here](https://github.com/blacksphere/blackmagic/wiki/Upgrading-Firmware).
 :::
 
-GDB와 함께 Dronecode 프로브를 사용하려면, 현재 자동조종장치에서 플래싱된 정확한 ELF 파일로 GDB를 시작하십시오.
+To use a Zubax BugFace BF1 with GDB, start GDB with the exact ELF file that is currently flashed on the autopilot:
 
 ```sh
 arm-none-eabi-gdb build/px4_fmu-v5_default/px4_fmu-v5_default.elf
 ```
 
-그런 다음, Dronecode 프로브 인터페이스를 선택하여야 합니다. Linux에서는 다음과 같습니다.
+Then, you have to select the Zubax BugFace BF1 interface, on Linux this is e.g.:
 
 ```sh
 target ext /dev/serial/by-id/usb-Black_Sphere_Technologies_Black_Magic_Probe_f9414d5_7DB85DAC-if00

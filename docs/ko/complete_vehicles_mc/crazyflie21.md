@@ -65,7 +65,7 @@ After setting up the PX4 development environment, follow these steps to install 
 1. Download the source code of the PX4 Bootloader:
 
   ```sh
-  git clone https://github.com/PX4/Bootloader.git --recurse-submodules
+  git clone https://github.com/PX4/PX4-Bootloader.git --recurse-submodules
   ```
 
 2. Navigate into the top directory of the source code and compile it using:

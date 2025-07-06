@@ -1,6 +1,6 @@
 # CUAV v5 (단종)
 
-<Badge type="info" text="Discontinued" />
+<Badge type="info" text="Discontinued" /> <!-- 202507 / PX4v1.16 -->
 
 :::warning
 This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
@@ -27,7 +27,6 @@ It is intended primarily for academic and commercial developers.
   - 32 비트 Arm® Cortex®-M3, 24MHz, 8KB SRAM
 
 - 내장 센서 :
-
   - 가속도계/자이로스코프 : ICM-20689
   - 가속도계/자이로스코프 : BMI055
   - 자력계 : IST8310
@@ -147,5 +146,4 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 ## 추가 정보
 
 - [FMUv5 reference design pinout](https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY/edit#gid=912976165).
-- [CUAV v5 docs](http://doc.cuav.net/flight-controller/v5-autopilot/en/v5.html)
 - [CUAV Github](https://github.com/cuav)
