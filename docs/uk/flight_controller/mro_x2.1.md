@@ -1,4 +1,10 @@
-# mRo-X2.1 Autopilot
+# mRo-X2.1 Autopilot (Discontinued)
+
+<Badge type="info" text="Discontinued" /> <!-- 202507 / PX4v1.16 -->
+
+:::warning
+This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
+:::
 
 :::warning
 PX4 не розробляє цей (або будь-який інший) автопілот.
@@ -16,7 +22,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Короткий опис
 
-- Main System-on-Chip: [STM32F427](http://www.st.com/web/en/catalog/mmc/FM141/SC1169/SS1577/LN1789)
+- Main System-on-Chip: [STM32F427](https://www.st.com/en/microcontrollers-microprocessors/stm32f427-437.html)
   - CPU: STM32F427VIT6 ARM<sup>&reg;</sup> мікроконтроллер - Revision 3
   - ІО: мікроконтролер STM32F100C8T6 ARM<sup>&reg;</sup>
 - Датчики:
@@ -29,7 +35,9 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - Точки кріплення: 30,5 мм х 30,5 мм діаметр 3,2 мм
   - Вага: 10.9g
 
-Діаграма нижче надає порівняльний аналіз з Pixhawk 1. mRo має практично ідентичне апаратне забезпечення й підключення, але має значно менший слід. Основні відмінності - це оновлені датчики та Rev 3 FMU.
+Діаграма нижче надає порівняльний аналіз з Pixhawk 1.
+mRo має практично ідентичне апаратне забезпечення й підключення, але має значно менший слід.
+Основні відмінності - це оновлені датчики та Rev 3 FMU.
 
 ![Mro Pixhawk 1 vs X2.1 comparison](../../assets/flight_controller/mro/px1_x21.jpg)
 
@@ -61,12 +69,12 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 За замовчуванням mRo X2.1 може бути попередньо налаштований на ArduPilot<sup>&reg;</sup>, а не на PX4. Це можна побачити під час оновлення прошивки, коли плата визнається як FMUv2 замість X2.1.
 
-In this case you must update the BootLoader using [BL_Update_X21.zip](https://github.com/PX4/PX4-user_guide/raw/main/assets/hardware/BL_Update_X21.zip).
+In this case you must update the BootLoader using [BL_Update_X21.zip](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/hardware/BL_Update_X21.zip).
 Якщо це виправлення не буде зроблено, ваша пеленга буде відображена неправильно і надмірний інерціальний модуль не буде виявлено.
 
 Основні кроки:
 
-1. Download and extract [BL_Update_X21.zip](https://github.com/PX4/PX4-user_guide/raw/main/assets/hardware/BL_Update_X21.zip).
+1. Download and extract [BL_Update_X21.zip](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/hardware/BL_Update_X21.zip).
 2. Find the folder _BL_Update_X21_. This contains a **bin** file and a subfolder named **/etc** containing an **rc.txt** file
 3. Скопіюйте ці файли на кореневий каталог вашої micro SD-карти та вставте її в mRO x2.1
 4. Увімкніть mRO x2.1. Зачекайте, доки він завантажиться, а потім перезавантажте 1 раз.
