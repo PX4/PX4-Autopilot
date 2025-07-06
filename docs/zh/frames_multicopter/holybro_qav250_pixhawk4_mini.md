@@ -21,7 +21,7 @@ Key information
 
 ## Quickstart Guide
 
-[Pixhawk 4 Mini QAV250 Kit Quickstart Guide](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixhawk4mini/pixhawk4mini_qav250kit_quickstart_web.pdf)
+[Pixhawk 4 Mini QAV250 Kit Quickstart Guide](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixhawk4mini/pixhawk4mini_qav250kit_quickstart_web.pdf)
 
 ## Bill of materials
 
@@ -40,7 +40,7 @@ Additionally you will need a battery and receiver (+compatible transmitter).
 This build uses:
 
 - Receiver: [FrSSKY D4R-II](https://www.frsky-rc.com/product/d4r-ii/)
-- Battery: [4S 1300 mAh](http://www.getfpv.com/lumenier-1300mah-4s-60c-lipo-battery-xt60.html)
+- Battery: [4S 1300 mAh](https://www.getfpv.com/lumenier-1300mah-4s-60c-lipo-battery-xt60.html)
 
 ## 硬件
 
@@ -104,26 +104,37 @@ The following tools are used in this assembly:
 1. Attach arms to the button plate with the 15mm screws as shown:
 
   ![QAV250 Add arms to button plate](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/1_button_plate_add_arms.jpg)
+
 2. Put the short plate over the arms
 
   ![QAV250 Add short plate over arms](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/2_short_plate_over_arms.jpg)
+
 3. Put the nuts on the 15mm screws (shown next step)
+
 4. Insert the plastic screws into the indicated holes (note that this part of the frame faces down when the vehicle is complete).
   ![QAV250 Add nuts to 15mm screws and put  plastic nuts in holes](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/3_nuts_screws_holes.jpg)
+
 5. Add the plastic nuts to the screws (turn over, as shown)
   ![QAV250 Plastic nuts onto screws](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/4_plastic_nuts_on_screws.jpg)
+
 6. Lower the power module over the plastic screws and then add the plastics standoffs
   ![QAV250 Add power module and standoffs](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/5_power_module_on_screws.jpg)
+
 7. Put the flight controller plate on the standoffs (over the power module)
   ![QAV250 Add flight controller plate](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/6_flight_controller_plate.jpg)
+
 8. Attach the motors. The motors have an arrow indicating the direction of rotation.
   ![QAV250 Add motors](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/7_motors.jpg)
+
 9. Use double sided tape from kit to attach the _Pixhawk 4 Mini_ to the flight controller plate.
   ![QAV250 Add doublesided tape](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/8_double_sided_tape_controller.jpg)
+
 10. Connect the power module's "power" cable to _Pixhawk 4 mini_.
   ![QAV250 Power Pixhawk](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/9_power_module_power_pixhawk.jpg)
+
 11. Attach the aluminium standoffs to the button plate
   ![QAV250 Aluminium standoffs](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/10_aluminium_standoffs.jpg)
+
 12. Connect the Esc’s with the motors and hold. In this image shown the order of the motors and direction of the rotation.
   ![QAV250 Connect ESCs](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/11_escs.jpg)
 
@@ -135,19 +146,24 @@ The following tools are used in this assembly:
 :::
 
   ![QAV250 Connect ESCs to Power](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/11b_escs.jpg)
+
 13. Connect the signal ESC cables to the PWM outputs of the Pixhawk in the correct order (see previous image)
 
   ![QAV250 Connect ESCs to Pixhawk PWM](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/12_escs_pixhawk.jpg)
+
 14. Connect the receiver.
   - If using a PPM receiver connect to the PPM port.
 
     ![QAV250 Connect Receiver PPM](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/13_rc_receiver_ppm.jpg)
+
   - If using the SBUS receiver connect to the RC IN port
 
     ![QAV250 Connect Receiver SBUS](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/13_rc_receiver_sbus.jpg)
+
 15. Connect the telemetry module. Paste the module with double tape and connect on the port of the telemetry.
 
   ![QAV250 Telemetry module](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/14_telemetry.jpg)
+
 16. Connect the GPS module
 
   ![QAV250 Connect GPS](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/15a_connect_gps.jpg)
@@ -155,6 +171,7 @@ The following tools are used in this assembly:
   Attach the module on the top plate (using provided 3M tape, or paste). Then put the top plate on the standoffs as shown
 
   ![QAV250 Connect GPS](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/15b_attach_gps.jpg)
+
 17. The last "mandatory" assembly step is to add the velcro to hold the battery
 
   ![QAV250 Velcro battery strap](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/16_velcro_strap.jpg)
@@ -193,7 +210,7 @@ If you have to wire the system yourself, the diagram below shows all the connect
 ## PX4 配置
 
 _QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the QAV250 frame.
-[Download and install](http://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
+[Download and install](https://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
 
 :::tip
 Full instructions for installing and configuring PX4 can be found in [Basic Configuration](../config/index.md).

@@ -119,7 +119,7 @@ Please refer to the [Pixhawk 4 Mini Wiring Quick Start](../assembly/quick_start_
 | UART7  | /dev/ttyS5 | TELEM1                    | TELEM1           |
 | UART8  | /dev/ttyS6 | GPS2                      | GPS2             |
 
-<!-- See http://docs.px4.io/main/en/hardware/serial_port_mapping.html#serial-port-mapping -->
+<!-- See https://docs.px4.io/main/en/hardware/serial_port_mapping.html#serial-port-mapping -->
 
 ## 尺寸
 
