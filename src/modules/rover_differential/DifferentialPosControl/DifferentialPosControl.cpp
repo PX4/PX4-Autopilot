@@ -70,10 +70,11 @@ void DifferentialPosControl::updatePosControl()
 			float arrival_speed = PX4_ISFINITE(_rover_position_setpoint.arrival_speed) ? _rover_position_setpoint.arrival_speed :
 					      0.f;
 			float distance = arrival_speed > 0.f + FLT_EPSILON ? distance_to_target - _param_nav_acc_rad.get() :
-					       distance_to_target;
+					 distance_to_target;
 
 			float accel_limit = _param_ro_decel_limit.get();
-			if(distance_from_start > FLT_EPSILON && distance_from_start < distance) {
+
+			if (distance_from_start > FLT_EPSILON && distance_from_start < distance) {
 				distance = distance_from_start;
 				accel_limit = _param_ro_accel_limit.get();
 				arrival_speed = _ground_speed_abs;
@@ -130,6 +131,7 @@ void DifferentialPosControl::updateSubscriptions()
 		if (vehicle_local_position.v_xy_valid) {
 			Vector3f ground_speed3f = Vector3f{vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz};
 			_ground_speed_abs = ground_speed3f.norm();
+
 		} else {
 			_ground_speed_abs = NAN;
 		}
