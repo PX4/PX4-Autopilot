@@ -162,7 +162,7 @@ private:
 	matrix::Quatf vehicle_attitude_;
 
 	float _cal_airspeed{0.0f};
-	float _rho{1.0};
+	float _rho{1.225f};
 	float _true_airspeed{1.0};
 
 
@@ -204,8 +204,6 @@ private:
 		(ParamFloat<px4::params::FW_INDI_K_ROLL>) _param_rot_k_roll,
 		(ParamFloat<px4::params::FW_INDI_K_PITCH>) _param_rot_k_pitch
 	)
-
-	RateControl _rate_control; ///< class for rate control calculations
 
 	/**
 	 * Update our local parameter cache.
