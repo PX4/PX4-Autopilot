@@ -70,12 +70,17 @@ FixedwingIndiPosControl::parameters_update()
 {
 	_mass = _param_fw_mass.get();
 	_K_x *= 0.f;
-	_K_x(0,0) = _param_kp_x.get();
-	_K_x(1,1) = _param_kp_y.get();
-	_K_x(2,2) = _param_kp_z.get();
-	_K_q(0,0) = _param_rot_k_roll.get();
-	_K_q(1,1) = _param_rot_k_pitch.get();
-	_K_q(2,2) = 0.5;
+	_K_x(0, 0) = _param_kp_x.get();
+	_K_x(1, 1) = _param_kp_y.get();
+	_K_x(2, 2) = _param_kp_z.get();
+	_K_v *= 0.f;
+	_K_v(0, 0) = _param_kv_x.get();
+	_K_v(1, 1) = _param_kv_y.get();
+	_K_v(2, 2) = _param_kv_z.get();
+
+	_K_q(0, 0) = _param_rot_k_roll.get();
+	_K_q(1, 1) = _param_rot_k_pitch.get();
+	_K_q(2, 2) = 0.5;
 	return PX4_OK;
 }
 
@@ -187,15 +192,8 @@ FixedwingIndiPosControl::get_flat_attitude(Vector3f vel, Vector3f f)
 	Eulerf e(0.f, AoA, 0.f);
 	Dcmf R_pitch(e);
 	Dcmf Rotation(R_pitch * R_bi);
-	// switch from FRD to ENU frame
-	Rotation(1, 0) *= -1.f;
-	Rotation(1, 1) *= -1.f;
-	Rotation(1, 2) *= -1.f;
-	Rotation(2, 0) *= -1.f;
-	Rotation(2, 1) *= -1.f;
-	Rotation(2, 2) *= -1.f;
 
-	Quatf q(Rotation.transpose());
+	Quatf q(Rotation);
 	return q;
 }
 
@@ -421,12 +419,47 @@ void FixedwingIndiPosControl::Run()
 
 		}
 
-		///TODO: Need to handle invalid velocity (zero)
-		pos_ref_(2) = -30.0;
+		// static double getLineProgress(const Eigen::Vector3d position, const Eigen::Vector3d &segment_start,
+		// 	const Eigen::Vector3d &segment_end) {
+		// 	Eigen::Vector3d progress_vector = (segment_end - segment_start).normalized();
+		// 	double segment_length = (segment_end - segment_start).norm();
+		// 	Eigen::Vector3d error_vector = position - segment_start;
+		// 	// Get Path Progress
+		// 	double theta = error_vector.dot(progress_vector) / segment_length;
+		// 	return theta;
+		// }
 
-		vel_ref_(0) = 15.0;
-		vel_ref_(1) = 0.0;
-		vel_ref_(2) = 0.0;
+		///TODO: Need to handle invalid velocity (zero)
+		// ///TODO: Get closest point
+		// Vector3f loiter_center{0.0, 0.0, -30.0};
+		// float radius = 30.0;
+
+		// Vector3f radial_error = (vehicle_position_ - loiter_center);
+		// radial_error(0) = 0.0;
+		// radial_error.normalize();
+		// PX4_INFO("[PX4PosiNDI] radial_error: %f, %f, %f", double(radial_error(0)), double(radial_error(1)),
+		// 	 double(radial_error(2)));
+
+
+		// Vector3f closest_point = radius * radial_error;
+		// pos_ref_(0) = closest_point(0) + loiter_center(0);
+		// pos_ref_(1) = closest_point(1) + loiter_center(1);
+		// pos_ref_(2) = closest_point(2) + loiter_center(2);
+
+		// vel_ref_(0) = -radial_error(1);
+		// vel_ref_(1) = radial_error(0);
+		// vel_ref_(2) = 0.0;
+
+		Vector3f progress_vector = vehicle_velocity_;
+		progress_vector(2) = 0.0;
+		progress_vector.normalize();
+
+		Vector3f error_vector = vehicle_position_ - segment_start;
+		float progress = error_vector.dot(progress_vector);
+
+		Vector3f closest_point = progress * progress_vector + segment_start;
+		pos_ref_ = closest_point;
+		vel_ref_ = 15.0f* progress_vector;
 
 		// Compute bodyrate commands
 		Vector3f rate_command = computeIndi(pos_ref_, vel_ref_, acc_ref_);
@@ -452,6 +485,8 @@ void FixedwingIndiPosControl::Run()
 
 
 
+	} else {
+		segment_start = vehicle_position_;
 	}
 
 	// backup schedule

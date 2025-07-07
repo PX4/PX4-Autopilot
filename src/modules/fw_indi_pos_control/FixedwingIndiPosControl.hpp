@@ -151,11 +151,16 @@ private:
 	math::LowPassFilter2p<float> _lp_filter_ctrl0[3] {{_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}};	// force command stage 1
 	math::LowPassFilter2p<float> _lp_filter_rud {_sample_frequency, 10};	// rudder command
 
+	//Path parameters
+	matrix::Vector3f segment_start;
+
+
 	matrix::Vector3f vehicle_position_;
 	matrix::Vector3f vehicle_velocity_;
 	matrix::Vector3f _acc;
 	matrix::Vector3f wind_estimate_;
 	matrix::Quatf vehicle_attitude_;
+
 	float _cal_airspeed{0.0f};
 	float _rho{1.0};
 	float _true_airspeed{1.0};
@@ -193,6 +198,9 @@ private:
 		(ParamFloat<px4::params::FW_INDI_KP_X>) _param_kp_x,
 		(ParamFloat<px4::params::FW_INDI_KP_Y>) _param_kp_y,
 		(ParamFloat<px4::params::FW_INDI_KP_Z>) _param_kp_z,
+		(ParamFloat<px4::params::FW_INDI_KV_X>) _param_kv_x,
+		(ParamFloat<px4::params::FW_INDI_KV_Y>) _param_kv_y,
+		(ParamFloat<px4::params::FW_INDI_KV_Z>) _param_kv_z,
 		(ParamFloat<px4::params::FW_INDI_K_ROLL>) _param_rot_k_roll,
 		(ParamFloat<px4::params::FW_INDI_K_PITCH>) _param_rot_k_pitch
 	)
