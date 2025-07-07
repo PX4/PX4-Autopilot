@@ -139,6 +139,7 @@ void DifferentialPosControl::updatePosControl()
 			rover_velocity_setpoint.timestamp = timestamp;
 			rover_velocity_setpoint.speed = 0.f;
 			rover_velocity_setpoint.bearing = _vehicle_yaw;
+			//rover_velocity_setpoint.state = (int)_current_state; // would be nice to have this field published
 			_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 		}
 	}
