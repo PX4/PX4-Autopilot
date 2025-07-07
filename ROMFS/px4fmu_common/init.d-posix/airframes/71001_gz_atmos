@@ -17,7 +17,7 @@ param set-default SIM_GZ_EN 1
 
 param set-default SENS_EN_MAGSIM 1
 param set-default COM_ARM_CHK_ESCS 0  # We don't have ESCs
-param set-default FD_ESCS_EN 0 # We don't have ESCs - but maybe we need this later?
+param set-default FD_ESCS_EN 0
 
 param set-default CA_AIRFRAME 14
 param set-default MAV_TYPE 45
@@ -25,10 +25,8 @@ param set-default MAV_TYPE 45
 param set-default CA_ROTOR_COUNT 8
 param set-default CA_R_REV 0
 
-# param set-default FW_ARSP_MODE 1
-
 # Auto to be provided by Custom Airframe
-param set-default CA_METHOD 0  # 0 is PseudoInverse, 3 is Metric
+param set-default CA_METHOD 0
 
 # Set proper failsafes
 param set-default COM_ACT_FAIL_ACT 0
