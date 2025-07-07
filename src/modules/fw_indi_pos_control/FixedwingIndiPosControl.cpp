@@ -459,7 +459,7 @@ void FixedwingIndiPosControl::Run()
 
 		Vector3f closest_point = progress * progress_vector + segment_start;
 		pos_ref_ = closest_point;
-		vel_ref_ = 15.0f* progress_vector;
+		vel_ref_ = 15.0f * progress_vector;
 
 		// Compute bodyrate commands
 		Vector3f rate_command = computeIndi(pos_ref_, vel_ref_, acc_ref_);

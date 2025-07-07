@@ -103,31 +103,31 @@ PARAM_DEFINE_FLOAT(FW_INDI_KP_Z, 1.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
- PARAM_DEFINE_FLOAT(FW_INDI_KV_X, 0.1f);
+PARAM_DEFINE_FLOAT(FW_INDI_KV_X, 0.1f);
 
- /**
- * control gain of position PD-controller (body x-direction)
- *
- * @unit
- * @min 0
- * @max 100
- * @decimal 1
- * @increment 0.1
- * @group FW DYN SOAR Control
- */
- PARAM_DEFINE_FLOAT(FW_INDI_KV_Y, 0.1f);
+/**
+* control gain of position PD-controller (body x-direction)
+*
+* @unit
+* @min 0
+* @max 100
+* @decimal 1
+* @increment 0.1
+* @group FW DYN SOAR Control
+*/
+PARAM_DEFINE_FLOAT(FW_INDI_KV_Y, 0.1f);
 
- /**
- * control gain of position PD-controller (body x-direction)
- *
- * @unit
- * @min 0
- * @max 100
- * @decimal 1
- * @increment 0.1
- * @group FW DYN SOAR Control
- */
- PARAM_DEFINE_FLOAT(FW_INDI_KV_Z, 0.1f);
+/**
+* control gain of position PD-controller (body x-direction)
+*
+* @unit
+* @min 0
+* @max 100
+* @decimal 1
+* @increment 0.1
+* @group FW DYN SOAR Control
+*/
+PARAM_DEFINE_FLOAT(FW_INDI_KV_Z, 0.1f);
 
 /**
 * control gain of attitude PD-controller (body roll-direction)
