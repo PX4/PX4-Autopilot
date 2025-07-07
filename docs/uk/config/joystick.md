@@ -12,7 +12,7 @@ This approach may be used by manual control units that have an integrated ground
 :::
 
 :::info
-_QGroundControl_ uses the cross-platform [SDL2](http://www.libsdl.org/index.php) library to convert joystick movements to MAVLink [MANUAL_CONTROL](https://mavlink.io/en/messages/common.html#MANUAL_CONTROL) messages, which are then sent to PX4 over the telemetry channel.
+_QGroundControl_ uses the cross-platform [SDL2](https://www.libsdl.org/index.php) library to convert joystick movements to MAVLink [MANUAL_CONTROL](https://mavlink.io/en/messages/common.html#MANUAL_CONTROL) messages, which are then sent to PX4 over the telemetry channel.
 В результаті система керування на основі джойстика потребує надійного телеметричного каналу високої пропускної здатності, щоб забезпечити реагування транспортного засобу на рухи джойстика.
 :::
 

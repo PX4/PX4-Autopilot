@@ -41,7 +41,7 @@
 
 ## Встановлення ROS Indigo
 
-- Слідуйте інструкціям, наведеним у [посібнику з встановлення ROS Indigo](http://wiki.ros.org/indigo/Installation/Ubuntu):
+- Follow instructions given at [ROS indigo installation guide](https://wiki.ros.org/indigo/Installation/Ubuntu):
   - Встановити версію Desktop-Full.
   - Виконайте кроки, описані в розділах "Ініціалізація rosdep" та "Налаштування середовища".
 
@@ -54,7 +54,6 @@
   ```
 
 - Завантажте та встановіть драйвер:
-
   - Клонувати [репозиторій RealSense_ROS](https://github.com/bestmodule/RealSense_ROS):
 
     ```sh
@@ -62,7 +61,6 @@
     ```
 
 - Дотримуйтеся інструкцій, наведених [тут](https://github.com/bestmodule/RealSense_ROS/tree/master/r200_install).
-
   - Натисніть кнопку "Enter", коли з'явиться питання про встановлення наступних пакетів:
 
     ```sh
@@ -86,11 +84,9 @@
 - Після завершення встановлення перезавантажте віртуальну машину.
 
 - Тест драйвера камери:
-
   - Підключіть камеру Intel RealSense до комп'ютера за допомогою кабелю USB3, який вставлено в роз'єм USB3 на комп'ютері.
   - Натисніть на Пристрої->USB-> Intel Corp Intel RealSense 3D Camera R200 у меню панелі Virtual Box, щоб переслати підключення USB камери в віртуальну машину.
   - Виконайте файл [розпакованої теки]/Bin/DSReadCameraInfo:
-
     - Якщо з'явиться наступне повідомлення про помилку, відключіть камеру (фізично від'єднайте USB-кабель від комп'ютера). Підключіть його знову + Натисніть на Пристрої->USB-> Intel Corp Intel RealSense 3D Camera R200 у меню панелі Virtual Box знову і виконайте знову файл [розпакованої теки]/Bin/DSReadCameraInfo.
 
       ```sh

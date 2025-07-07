@@ -40,7 +40,6 @@ The manufacturer [CUAV Docs](https://doc.cuav.net/flight-controller/x7/en/nora.h
 - Головний FMU процесор: STM32H743
 
 - Бортові сенсори:
-
   - Акселерометр/Гіроскоп: ICM-20689
   - Прискорювач/гіроскоп: ICM-20649
   - Акселерометр/Гіроскоп: BMI088
@@ -173,5 +172,5 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 ## Подальша інформація
 
 - [Quick start](https://doc.cuav.net/flight-controller/x7/en/quick-start/quick-start-nora.html)
-- [CUAV docs](http://doc.cuav.net)
+- [CUAV docs](https://doc.cuav.net/)
 - [nora schematic](https://github.com/cuav/hardware/tree/master/X7_Autopilot)

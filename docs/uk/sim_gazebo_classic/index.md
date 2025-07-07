@@ -46,8 +46,6 @@ Note that `aptitude` is needed because it can resolve dependency conflicts (by r
 
 :::tip
 You could also modify the installation script to install Gazebo Classic on Ubuntu 22.04 before it is run for the first time.
-
-Additional installation instructions can be found on [gazebosim.org](http://gazebosim.org/tutorials?cat=guided_b&tut=guided_b1).
 :::
 
 ## Запуск симуляції
@@ -120,7 +118,7 @@ INFO  [simulator] Waiting for simulator to connect on TCP port 4560
 Gazebo multi-robot simulator, version 9.0.0
 Copyright (C) 2012 Open Source Robotics Foundation.
 Released under the Apache 2 License.
-http://gazebosim.org
+https://gazebosim.org/home
 ...
 INFO  [ecl/EKF] 5188000: commencing GPS fusion
 ```
