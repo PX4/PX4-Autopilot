@@ -99,8 +99,17 @@ MulticopterRateControl::parameters_updated()
 	_output_lpf_yaw.setCutoffFreq(_param_mc_yaw_tq_cutoff.get());
 
 	// INDI
-	for (int i = 0; i < ActuatorEffectiveness::MAX_NUM_ACTUATORS; i++) {
-		_rpm_lpf[i].setCutoffFreq(_param_imu_gyro_cutoff.get());
+	if (_param_imu_gyro_cutoff.get() > 0.f) {
+		// The perf_mean() function returns the average elapsed time of the counter in seconds.
+		const float avg_interval_s = perf_mean(_loop_perf) > 0.f ? perf_mean(_loop_perf) : 0.001f; //default to 1 kHz
+
+		if (avg_interval_s > 0.f) { // Avoid division by zero if the interval is not yet measured
+			const float sample_rate_hz = 1.f / avg_interval_s;
+
+			for (auto &radps_lpf : _radps_lpf) {
+				radps_lpf.set_cutoff_frequency(sample_rate_hz, _param_imu_gyro_cutoff.get());
+			}
+		}
 	}
 }
 
@@ -153,6 +162,8 @@ MulticopterRateControl::Run()
 			}
 		}
 
+		matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> filtered_radps_vec;
+
 		if (_vehicle_control_mode.flag_control_rates_indi_enabled) {
 
 			if (_actuator_effectiveness_matrix_sub.updated()) {
@@ -174,11 +185,9 @@ MulticopterRateControl::Run()
 				}
 			}
 
-			matrix::Vector<float, ActuatorEffectiveness::MAX_NUM_ACTUATORS> filtered_radps_vec;
-
 			if (_esc_status.timestamp > 0) { //check if atleast one esc status is available
 				for (int i = 0; i < _num_actuators; i++) {
-					float rad_per_sec = _esc_status.esc[i].rpm * 2.f * M_PI / 60.f;
+					float rad_per_sec = (float)(_esc_status.esc[i].esc_rpm) * 2.f * M_PI_F / 60.f;
 					filtered_radps_vec(i) = _radps_lpf[i].apply(rad_per_sec);
 				}
 			}
@@ -277,8 +286,10 @@ MulticopterRateControl::Run()
 			vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(torque_setpoint(1)) ? torque_setpoint(1) : 0.f;
 			vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(torque_setpoint(2)) ? torque_setpoint(2) : 0.f;
 
+			// TODO: a possible optimization is to manually multiply the G1 and G2 matrices with the radps_vec_squared and filtered_radps_vec - _prev_esc_rad_per_sec_filtered vectors
+			// as this would avoid the need to multiply by the full 16 vector, which is full of zeros for most cases (quadrotors)
 			if (_vehicle_control_mode.flag_control_rates_indi_enabled) {
-				matrix::Vector<float, _num_actuators> radps_vec_squared = filtered_radps_vec.emult(filtered_radps_vec);
+				matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> radps_vec_squared = filtered_radps_vec.emult(filtered_radps_vec);
 				Vector3f filtered_body_torque_setpoint = _G1 * (radps_vec_squared) + (_G2 * (filtered_radps_vec - _prev_esc_rad_per_sec_filtered)) / dt;
 				vehicle_torque_setpoint.xyz[0] += PX4_ISFINITE(filtered_body_torque_setpoint(0)) ? filtered_body_torque_setpoint(0) : 0.f;
 				vehicle_torque_setpoint.xyz[1] += PX4_ISFINITE(filtered_body_torque_setpoint(1)) ? filtered_body_torque_setpoint(1) : 0.f;

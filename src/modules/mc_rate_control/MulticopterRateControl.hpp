@@ -35,6 +35,7 @@
 
 #include <lib/rate_control/rate_control.hpp>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
@@ -44,7 +45,6 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp>
-#include <lib/matrix/matrix/filter/LowPassFilter2p.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
@@ -123,10 +123,10 @@ private:
 	esc_status_s _esc_status{};	// used for INDI
 
 	// Used for INDI
-	matrix::Matrix<float, 3, ActuatorEffectiveness::MAX_NUM_ACTUATORS> _G1; //16 is the max number of actuators as defined in the ActuatorEffectivenessMatrix
-	matrix::Matrix<float, 3, ActuatorEffectiveness::MAX_NUM_ACTUATORS> _G2;
+	matrix::Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> _G1; //16 is the max number of actuators as defined in the ActuatorEffectivenessMatrix
+	matrix::Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> _G2;
 	int _num_actuators{0};
-	matrix::Vector<float, ActuatorEffectiveness::MAX_NUM_ACTUATORS> _prev_esc_rad_per_sec_filtered;
+	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> _prev_esc_rad_per_sec_filtered;
 
 	bool _landed{true};
 	bool _maybe_landed{true};
@@ -147,7 +147,7 @@ private:
 
 	AlphaFilter<float> _output_lpf_yaw;
 
-	matrix::LowPassFilter2p<float> _radps_lpf[ActuatorEffectiveness::MAX_NUM_ACTUATORS]{};
+	LowPassFilter2p<float> _radps_lpf[ActuatorEffectiveness::NUM_ACTUATORS]{};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MC_ROLLRATE_P>) _param_mc_rollrate_p,
