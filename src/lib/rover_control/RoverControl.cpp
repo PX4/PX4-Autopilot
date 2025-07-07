@@ -112,30 +112,7 @@ float speedControl(SlewRate<float> &speed_with_rate_limit, PID &pid_speed, const
 		return NAN;
 	}
 
-	// Apply acceleration and deceleration limit
-	if (fabsf(speed_setpoint) >= fabsf(vehicle_speed) && max_accel > FLT_EPSILON) {
-		speed_with_rate_limit.setSlewRate(max_accel);
-		speed_with_rate_limit.update(speed_setpoint, dt);
-
-		// Reinitialize slew rate if current value is closer to setpoint than post slew rate value
-		if (fabsf(speed_with_rate_limit.getState() - vehicle_speed) > fabsf(
-			    speed_setpoint - vehicle_speed)) {
-			speed_with_rate_limit.setForcedValue(speed_setpoint);
-		}
-
-	} else if (fabsf(speed_setpoint) < fabsf(vehicle_speed) && max_decel > FLT_EPSILON) {
-		speed_with_rate_limit.setSlewRate(max_decel);
-		speed_with_rate_limit.update(speed_setpoint, dt);
-
-		// Reinitialize slew rate if current value is closer to setpoint than post slew rate value
-		if (fabsf(speed_with_rate_limit.getState() - vehicle_speed) > fabsf(
-			    speed_setpoint - vehicle_speed)) {
-			speed_with_rate_limit.setForcedValue(speed_setpoint);
-		}
-
-	} else { // Fallthrough if slew rate is not configured
-		speed_with_rate_limit.setForcedValue(speed_setpoint);
-	}
+	speed_with_rate_limit.setForcedValue(speed_setpoint);
 
 	// Calculate normalized forward speed setpoint
 	float forward_speed_normalized{0.f};

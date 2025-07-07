@@ -55,6 +55,14 @@
 using namespace matrix;
 
 /**
+ * @brief Enum class for the different states of driving.
+ */
+enum class DrivingState {
+	SPOT_TURNING, // The vehicle is currently turning on the spot.
+	DRIVING      // The vehicle is currently driving.
+};
+
+/**
  * @brief Class for differential position control.
  */
 class DifferentialPosControl : public ModuleParams
@@ -71,6 +79,8 @@ public:
 	 * @brief Generate and publish roverVelocitySetpoint from roverPositionSetpoint.
 	 */
 	void updatePosControl();
+
+	DrivingState getCurrentState() const { return _current_state; };
 
 	/**
 	 * @brief Check if the necessary parameters are set.
@@ -104,8 +114,14 @@ private:
 	Vector2f _curr_pos_ned{};
 	Vector2f _start_ned{};
 	float _vehicle_yaw{0.f};
+	float _ground_speed_abs{0.f};
+	DrivingState _current_state{DrivingState::DRIVING};
+	float _speed_setpoint{0.f};
 
 	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::RD_TRANS_TRN_DRV>) _param_rd_trans_trn_drv,
+		(ParamFloat<px4::params::RD_TRANS_DRV_TRN>) _param_rd_trans_drv_trn,
+		(ParamFloat<px4::params::RO_ACCEL_LIM>)     _param_ro_accel_limit,
 		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_limit,
 		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_limit,
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
