@@ -157,12 +157,16 @@ Quatf
 FixedwingIndiPosControl::get_flat_attitude(Vector3f vel, Vector3f f)
 {
 
-	Vector3f vel_air = vel - wind_estimate_;
+	const Vector3f vel_air = vel - wind_estimate_;
+
 	// compute force component projected onto lift axis
-	Vector3f vel_normalized = vel_air.normalized();
-	Vector3f f_lift = f - (f * vel_normalized) * vel_normalized;
-	Vector3f lift_normalized = f_lift.normalized();
-	Vector3f wing_normalized = -vel_normalized.cross(lift_normalized);
+	const Vector3f vel_normalized = vel_air.normalized();
+
+	Vector3f f_drag = (f * vel_normalized) * vel_normalized;
+	Vector3f f_lift = f - f_drag;
+
+	const Vector3f lift_normalized = f_lift.normalized();
+	const Vector3f wing_normalized = -vel_normalized.cross(lift_normalized);
 	// compute rotation matrix between ENU and FRD frame
 	Dcmf R_bi;
 	R_bi(0, 0) = vel_normalized(0);
