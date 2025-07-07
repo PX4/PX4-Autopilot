@@ -97,6 +97,11 @@ MulticopterRateControl::parameters_updated()
 				  radians(_param_mc_acro_y_max.get()));
 
 	_output_lpf_yaw.setCutoffFreq(_param_mc_yaw_tq_cutoff.get());
+
+	// INDI
+	for (int i = 0; i < ActuatorEffectiveness::MAX_NUM_ACTUATORS; i++) {
+		_rpm_lpf[i].setCutoffFreq(_param_imu_gyro_cutoff.get());
+	}
 }
 
 void
@@ -119,6 +124,8 @@ MulticopterRateControl::Run()
 		updateParams();
 		parameters_updated();
 	}
+
+	_esc_status_sub.update(&_esc_status);
 
 	/* run controller on gyro changes */
 	vehicle_angular_velocity_s angular_velocity;
@@ -146,7 +153,40 @@ MulticopterRateControl::Run()
 			}
 		}
 
-		_vehicle_status_sub.update(&_vehicle_status);
+		if (_vehicle_control_mode.flag_control_rates_indi_enabled) {
+
+			if (_actuator_effectiveness_matrix_sub.updated()) {
+				if (_actuator_effectiveness_matrix_sub.copy(&_actuator_effectiveness_matrix)) {
+					_num_actuators = _actuator_effectiveness_matrix.num_actuators;
+
+					// seperate the row major matrix into the torque (G1) and thrust (G2) matrices
+					for (int i = 0; i < 3; i++) {
+						for (int j = 0; j < _num_actuators; j++) {
+							_G1(i, j) = _actuator_effectiveness_matrix.effectiveness_matrix_row_major[i * 16 + j]; //every row has 16 columns (even if they are empty/not have 16 actuators)
+						}
+					}
+
+					for (int i = 0; i < 3; i++) {
+						for (int j = 0; j < _num_actuators; j++) {
+							_G2(i, j) = _actuator_effectiveness_matrix.effectiveness_matrix_row_major[(i + 3) * 16 + j]; //thrust comes 3 rows after torque, so offset by 3
+						}
+					}
+				}
+			}
+
+			matrix::Vector<float, ActuatorEffectiveness::MAX_NUM_ACTUATORS> filtered_radps_vec;
+
+			if (_esc_status.timestamp > 0) { //check if atleast one esc status is available
+				for (int i = 0; i < _num_actuators; i++) {
+					float rad_per_sec = _esc_status.esc[i].rpm * 2.f * M_PI / 60.f;
+					filtered_radps_vec(i) = _radps_lpf[i].apply(rad_per_sec);
+				}
+			}
+			else {
+				filtered_radps_vec.zero();
+				PX4_WARN("No ESC status available for INDI");
+			}
+		}
 
 		// use rates setpoint topic
 		vehicle_rates_setpoint_s vehicle_rates_setpoint{};
@@ -236,6 +276,15 @@ MulticopterRateControl::Run()
 			vehicle_torque_setpoint.xyz[0] = PX4_ISFINITE(torque_setpoint(0)) ? torque_setpoint(0) : 0.f;
 			vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(torque_setpoint(1)) ? torque_setpoint(1) : 0.f;
 			vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(torque_setpoint(2)) ? torque_setpoint(2) : 0.f;
+
+			if (_vehicle_control_mode.flag_control_rates_indi_enabled) {
+				matrix::Vector<float, _num_actuators> radps_vec_squared = filtered_radps_vec.emult(filtered_radps_vec);
+				Vector3f filtered_body_torque_setpoint = _G1 * (radps_vec_squared) + (_G2 * (filtered_radps_vec - _prev_esc_rad_per_sec_filtered)) / dt;
+				vehicle_torque_setpoint.xyz[0] += PX4_ISFINITE(filtered_body_torque_setpoint(0)) ? filtered_body_torque_setpoint(0) : 0.f;
+				vehicle_torque_setpoint.xyz[1] += PX4_ISFINITE(filtered_body_torque_setpoint(1)) ? filtered_body_torque_setpoint(1) : 0.f;
+				vehicle_torque_setpoint.xyz[2] += PX4_ISFINITE(filtered_body_torque_setpoint(2)) ? filtered_body_torque_setpoint(2) : 0.f;
+				_prev_esc_rad_per_sec_filtered = filtered_radps_vec;
+			}
 
 			// scale setpoints by battery status if enabled
 			if (_param_mc_bat_scale_en.get()) {

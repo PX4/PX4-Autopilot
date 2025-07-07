@@ -586,6 +586,13 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 			int total_num_actuators = config.num_actuators_matrix[i];
 			_control_allocation[i]->setEffectivenessMatrix(config.effectiveness_matrices[i], config.trim[i],
 					config.linearization_point[i], total_num_actuators, reason == EffectivenessUpdateReason::CONFIGURATION_UPDATE);
+
+			// Publish effectiveness matrix (0 for hover, 1 for forward flight)
+			actuator_effectiveness_matrix_s effectiveness_matrix_pub{};
+			effectiveness_matrix_pub.timestamp = hrt_absolute_time();
+			effectiveness_matrix_pub.effectiveness_matrix_row_major = config.effectiveness_matrices[i].data();
+			effectiveness_matrix_pub.num_actuators = total_num_actuators;
+			_actuator_effectiveness_matrix_pub[i].publish(effectiveness_matrix_pub);
 		}
 
 		trims.timestamp = hrt_absolute_time();

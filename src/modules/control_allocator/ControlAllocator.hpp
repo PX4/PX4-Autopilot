@@ -78,6 +78,7 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/failure_detector_status.h>
+#include <uORB/topics/actuator_effectiveness_matrix.h>
 
 class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -182,6 +183,8 @@ private:
 
 	// Outputs
 	uORB::PublicationMulti<control_allocator_status_s> _control_allocator_status_pub[2] {ORB_ID(control_allocator_status), ORB_ID(control_allocator_status)};
+
+	uORB::Publication<actuator_effectiveness_matrix_s> _actuator_effectiveness_matrix_pub[ActuatorEffectiveness::MAX_NUM_MATRICES]{ORB_ID(actuator_effectiveness_matrix), ORB_ID(actuator_effectiveness_matrix)};
 
 	uORB::Publication<actuator_motors_s>	_actuator_motors_pub{ORB_ID(actuator_motors)};
 	uORB::Publication<actuator_servos_s>	_actuator_servos_pub{ORB_ID(actuator_servos)};

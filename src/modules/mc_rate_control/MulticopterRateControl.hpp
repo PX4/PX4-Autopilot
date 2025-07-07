@@ -43,6 +43,8 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/systemlib/mavlink_log.h>
+#include <lib/control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp>
+#include <lib/matrix/matrix/filter/LowPassFilter2p.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
@@ -60,6 +62,9 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
+#include <uORB/topics/actuator_effectiveness_matrix.h>
+#include <uORB/topics/esc_status.h>
+
 
 using namespace time_literals;
 
@@ -99,6 +104,8 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _actuator_effectiveness_matrix_sub{ORB_ID(actuator_effectiveness_matrix)}; // subscribes to instance 0 (hover mode) automatically
+	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -112,6 +119,14 @@ private:
 
 	vehicle_control_mode_s	_vehicle_control_mode{};
 	vehicle_status_s	_vehicle_status{};
+	actuator_effectiveness_matrix_s _actuator_effectiveness_matrix{};
+	esc_status_s _esc_status{};	// used for INDI
+
+	// Used for INDI
+	matrix::Matrix<float, 3, ActuatorEffectiveness::MAX_NUM_ACTUATORS> _G1; //16 is the max number of actuators as defined in the ActuatorEffectivenessMatrix
+	matrix::Matrix<float, 3, ActuatorEffectiveness::MAX_NUM_ACTUATORS> _G2;
+	int _num_actuators{0};
+	matrix::Vector<float, ActuatorEffectiveness::MAX_NUM_ACTUATORS> _prev_esc_rad_per_sec_filtered;
 
 	bool _landed{true};
 	bool _maybe_landed{true};
@@ -131,6 +146,8 @@ private:
 	float _control_energy[4] {};
 
 	AlphaFilter<float> _output_lpf_yaw;
+
+	matrix::LowPassFilter2p<float> _radps_lpf[ActuatorEffectiveness::MAX_NUM_ACTUATORS]{};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MC_ROLLRATE_P>) _param_mc_rollrate_p,
@@ -163,6 +180,7 @@ private:
 		(ParamFloat<px4::params::MC_ACRO_SUPEXPO>) _param_mc_acro_supexpo,		/**< superexpo stick curve shape (roll & pitch) */
 		(ParamFloat<px4::params::MC_ACRO_SUPEXPOY>) _param_mc_acro_supexpoy,		/**< superexpo stick curve shape (yaw) */
 
-		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en
+		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en,
+		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff
 	)
 };
