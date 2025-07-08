@@ -41,3 +41,31 @@ if ver hwbasecmp 00a 008
 then
 	mcp23009 start -b 3 -X -D 0xf1 -O 0xf0 -P 0x0f -U 10
 fi
+
+ifup can0
+ifup can1
+
+# CAN1=can0 runs UAVCAN
+# started automatically
+
+# CAN2=can1 runs the Rudder actuator driver continuosly sending dummy messages.
+# Also prints any received messages on the console.
+rudder start
+
+# Try a loopback test with CAN1 connected to CAN1 and you should see some UAVCAN traffic.
+# INFO  [rudder] rudder recv can_id=0x9f043901, can_dlc=8, data=60, usec=101781000
+# INFO  [rudder] rudder recv can_id=0x9f043901, can_dlc=8, data=0, usec=101781000
+# INFO  [rudder] rudder recv can_id=0x904e2001, can_dlc=2, data=0, usec=101831000
+# INFO  [rudder] rudder recv can_id=0x9f043901, can_dlc=4, data=0, usec=101832000
+# INFO  [rudder] rudder recv can_id=0x9f043901, can_dlc=4, data=0, usec=101931000
+
+# Alternatively try the candump with a loopback test:
+# nsh> rudder stop
+# nsh> candump can1,0:0,#FFFFFFFF &
+#  can1  1F043901   [4]  00 00 00 DA
+#  can1  1F043901   [4]  00 F8 00 D9
+#  can1  1F043901   [4]  00 00 00 DC
+#  can1  1F043901   [4]  00 F8 00 DB
+#  can1  1F043901   [8]  00 F7 FF DF FE 00 00 7D
+#  can1  1F043901   [8]  3C 35 F6 00 00 F8 00 9D
+#  can1  1F043901   [4]  00 F8 00 DE

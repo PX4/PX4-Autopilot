@@ -1,0 +1,5 @@
+menuconfig DRIVERS_ACTUATORS_RUDDER
+	bool "rudder"
+	default n
+	---help---
+		Enable support for rudder

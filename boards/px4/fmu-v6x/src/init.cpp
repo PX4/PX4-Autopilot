@@ -62,6 +62,8 @@
 #include <nuttx/mm/gran.h>
 #include <chip.h>
 #include <stm32_uart.h>
+#include <stm32_ethernet.h>
+#include <stm32_fdcan_sock.h>
 #include <arch/board/board.h>
 #include "arm_internal.h"
 
@@ -292,6 +294,22 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 		return ret;
 	}
+
+#  if STM32H7_NETHERNET == 1
+	stm32_ethinitialize(0);
+#  endif /* STM32H7_NETHERNET */
+
+#  ifdef CONFIG_STM32H7_FDCAN1
+	stm32_fdcansockinitialize(0);
+#  endif /* CONFIG_STM32H7_FDCAN1 */
+
+#  ifdef CONFIG_STM32H7_FDCAN2
+	stm32_fdcansockinitialize(1);
+#  endif /* CONFIG_STM32H7_FDCAN2 */
+
+#  ifdef CONFIG_STM32H7_FDCAN3
+	stm32_fdcansockinitialize(2);
+#  endif /* CONFIG_STM32H7_FDCAN3 */
 
 #endif /* !defined(BOOTLOADER) */
 
