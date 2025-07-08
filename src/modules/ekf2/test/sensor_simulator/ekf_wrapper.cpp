@@ -12,7 +12,7 @@ EkfWrapper::~EkfWrapper()
 
 void EkfWrapper::setBaroHeightRef()
 {
-	_ekf_params->height_sensor_ref = static_cast<int32_t>(HeightSensor::BARO);
+	_ekf_params->ekf2_hgt_ref = static_cast<int32_t>(HeightSensor::BARO);
 }
 
 void EkfWrapper::enableBaroHeightFusion()
@@ -32,7 +32,7 @@ bool EkfWrapper::isIntendingBaroHeightFusion() const
 
 void EkfWrapper::setGpsHeightRef()
 {
-	_ekf_params->height_sensor_ref = static_cast<int32_t>(HeightSensor::GNSS);
+	_ekf_params->ekf2_hgt_ref = static_cast<int32_t>(HeightSensor::GNSS);
 }
 
 void EkfWrapper::enableGpsHeightFusion()
@@ -52,17 +52,17 @@ bool EkfWrapper::isIntendingGpsHeightFusion() const
 
 void EkfWrapper::setRangeHeightRef()
 {
-	_ekf_params->height_sensor_ref = static_cast<int32_t>(HeightSensor::RANGE);
+	_ekf_params->ekf2_hgt_ref = static_cast<int32_t>(HeightSensor::RANGE);
 }
 
 void EkfWrapper::enableRangeHeightFusion()
 {
-	_ekf_params->rng_ctrl = static_cast<int32_t>(RngCtrl::ENABLED);
+	_ekf_params->ekf2_rng_ctrl = static_cast<int32_t>(RngCtrl::ENABLED);
 }
 
 void EkfWrapper::disableRangeHeightFusion()
 {
-	_ekf_params->rng_ctrl = static_cast<int32_t>(RngCtrl::DISABLED);
+	_ekf_params->ekf2_rng_ctrl = static_cast<int32_t>(RngCtrl::DISABLED);
 }
 
 bool EkfWrapper::isIntendingRangeHeightFusion() const
@@ -72,7 +72,7 @@ bool EkfWrapper::isIntendingRangeHeightFusion() const
 
 void EkfWrapper::setExternalVisionHeightRef()
 {
-	_ekf_params->height_sensor_ref = static_cast<int32_t>(HeightSensor::EV);
+	_ekf_params->ekf2_hgt_ref = static_cast<int32_t>(HeightSensor::EV);
 }
 
 void EkfWrapper::enableExternalVisionHeightFusion()
@@ -293,10 +293,10 @@ float EkfWrapper::getMagHeadingNoise() const
 
 void EkfWrapper::enableGyroBiasEstimation()
 {
-	_ekf_params->imu_ctrl |= static_cast<int32_t>(ImuCtrl::GyroBias);
+	_ekf_params->ekf2_imu_ctrl |= static_cast<int32_t>(ImuCtrl::GyroBias);
 }
 
 void EkfWrapper::disableGyroBiasEstimation()
 {
-	_ekf_params->imu_ctrl &= ~static_cast<int32_t>(ImuCtrl::GyroBias);
+	_ekf_params->ekf2_imu_ctrl &= ~static_cast<int32_t>(ImuCtrl::GyroBias);
 }
