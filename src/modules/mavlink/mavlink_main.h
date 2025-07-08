@@ -482,6 +482,8 @@ public:
 
 	unsigned		get_main_loop_delay() const { return _main_loop_delay; }
 
+	float			get_mav_prm_wait_s() const { return _mav_prm_wait_s; }
+
 	/** get the Mavlink shell. Create a new one if there isn't one. It is *always* created via MavlinkReceiver thread.
 	 *  Returns nullptr if shell cannot be created */
 	MavlinkShell		*get_shell();
@@ -657,6 +659,8 @@ private:
 
 	pthread_mutex_t		_send_mutex {};
 	pthread_mutex_t         _radio_status_mutex {};
+
+	const float 		_mav_prm_wait_s{0.125};	///< Time to wait (in seconds) before sending the next parameter message (only if MAVLINK_MODE_LOW_BANDWIDTH)
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
