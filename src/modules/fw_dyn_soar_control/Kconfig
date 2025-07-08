@@ -1,0 +1,12 @@
+menuconfig MODULES_FW_DYN_SOAR_CONTROL
+	bool "fw_dyn_soar_control"
+	default n
+	---help---
+		Enable support for fw_dyn_soar_control
+
+menuconfig USER_FW_DYN_SOAR_CONTROL
+	bool "fw_dyn_soar_control running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_FW_DYN_SOAR_CONTROL
+	---help---
+		Put fw_dyn_soar_control in userspace memory
