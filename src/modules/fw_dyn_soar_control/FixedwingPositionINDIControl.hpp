@@ -18,13 +18,13 @@
 #include <string.h>
 
 #include <drivers/drv_hrt.h>
-#include "fw_att_control/ecl_pitch_controller.h"
-#include "fw_att_control/ecl_roll_controller.h"
-#include "fw_att_control/ecl_wheel_controller.h"
-#include "fw_att_control/ecl_yaw_controller.h"
-#include <lib/ecl/geo/geo.h>
+#include "fw_att_control/fw_pitch_controller.h"
+#include "fw_att_control/fw_roll_controller.h"
+#include "fw_att_control/fw_wheel_controller.h"
+#include "fw_att_control/fw_yaw_controller.h"
+#include <lib/geo/geo.h>
 #include <lib/l1/ECL_L1_Pos_Controller.hpp>
-#include <lib/landing_slope/Landingslope.hpp>
+// #include <lib/landing_slope/Landingslope.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/perf/perf_counter.h>
@@ -41,8 +41,8 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/airspeed_validated.h>
-#include <uORB/topics/airflow_aoa.h>
-#include <uORB/topics/airflow_slip.h>
+// #include <uORB/topics/airflow_aoa.h>
+// #include <uORB/topics/airflow_slip.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/parameter_update.h>
@@ -51,7 +51,6 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_angular_acceleration.h>
 #include <uORB/topics/vehicle_angular_acceleration_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -62,8 +61,8 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/rate_ctrl_status.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_status_flags.h>
-#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/soaring_controller_heartbeat.h>
 #include <uORB/topics/soaring_controller_position_setpoint.h>
 #include <uORB/topics/soaring_controller_position.h>
@@ -118,21 +117,22 @@ private:
     // Subscriptions
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};						// vehicle status
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};             // airspeed
-    uORB::Subscription _airflow_aoa_sub{ORB_ID(airflow_aoa)};                           // angle of attack
-    uORB::Subscription _airflow_slip_sub{ORB_ID(airflow_slip)};                         // angle of sideslip
+//     uORB::Subscription _airflow_aoa_sub{ORB_ID(airflow_aoa)};                           // angle of attack
+//     uORB::Subscription _airflow_slip_sub{ORB_ID(airflow_slip)};                         // angle of sideslip
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};     	// linear acceleration
     uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};     // local NED position
     uORB::Subscription _home_position_sub{ORB_ID(home_position)};						// home position
     uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};                 // vehicle attitude
-    uORB::Subscription _vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)}; // vehicle body accel
+//     uORB::Subscription _vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)}; // vehicle body accel
 	uORB::Subscription _soaring_controller_status_sub{ORB_ID(soaring_controller_status)};			// vehicle status flags
 	uORB::Subscription _soaring_estimator_shear_sub{ORB_ID(soaring_estimator_shear)};	// shear params for trajectory selection
-	uORB::Subscription _actuator_controls_sub{ORB_ID(actuator_controls_0)};
+	uORB::Subscription _actuator_controls_sub{ORB_ID(vehicle_torque_setpoint)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _rc_channels_sub{ORB_ID(rc_channels)};
 
     // Publishers
-	uORB::Publication<actuator_controls_s>							_actuators_0_pub;
+	uORB::Publication<vehicle_torque_setpoint_s>				_torque_sp_pub{ORB_ID(vehicle_torque_setpoint)};
+	uORB::Publication<vehicle_thrust_setpoint_s>				_thrust_sp_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<vehicle_attitude_setpoint_s>					_attitude_sp_pub;
 	uORB::Publication<vehicle_rates_setpoint_s>						_angular_vel_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Publication<vehicle_angular_acceleration_setpoint_s>		_angular_accel_sp_pub{ORB_ID(vehicle_angular_acceleration_setpoint)};
@@ -146,7 +146,8 @@ private:
 
     // Message structs
 	vehicle_angular_acceleration_setpoint_s _angular_accel_sp {};
-	actuator_controls_s			_actuators {};			// actuator commands
+	vehicle_torque_setpoint_s			_actuators {};			// actuator commands
+	vehicle_thrust_setpoint_s			_thrust_sp {};
 	manual_control_setpoint_s	_manual_control_setpoint {};			///< r/c channel data
 	rc_channels_s				_rc_channels {};		///< rc channels
 	vehicle_local_position_s	_local_pos {};			///< vehicle local position
@@ -155,9 +156,9 @@ private:
 	vehicle_attitude_setpoint_s	_attitude_sp {};		///< vehicle attitude setpoint
 	vehicle_angular_velocity_s 	_angular_vel {};		///< vehicle angular velocity
 	vehicle_rates_setpoint_s 	_angular_vel_sp {};		///< vehicle angular velocity setpoint
-	vehicle_angular_acceleration_s	_angular_accel {};	///< vehicle angular acceleration
+	matrix::Vector3f	_angular_accel {};	///< vehicle angular acceleration
 	home_position_s				_home_pos {};			///< home position
-	map_projection_reference_s 	_global_local_proj_ref{};
+	MapProjection 	_global_local_proj_ref{};
 	vehicle_control_mode_s		_control_mode {};		///< control mode
 	offboard_control_mode_s		_offboard_control_mode {};	///< offboard control mode
 	vehicle_status_s		    _vehicle_status {};		///< vehicle status
@@ -247,14 +248,13 @@ private:
 	// Update subscriptions
 	void        wind_poll();
 	void		airspeed_poll();
-	void		airflow_aoa_poll();
-	void 		airflow_slip_poll();
+	// void		airflow_aoa_poll();
+	// void 		airflow_slip_poll();
 
 	void		vehicle_local_position_poll();
 	void		vehicle_acceleration_poll();
 	void		vehicle_attitude_poll();
 	void		vehicle_angular_velocity_poll();
-	void		vehicle_angular_acceleration_poll();
 	void		actuator_controls_poll();
 
 	void		control_update();
@@ -330,21 +330,21 @@ private:
 	const float _sample_frequency = 200.f;
 	// Low-Pass filters stage 1
 	const float _cutoff_frequency_1 = 20.f;
-	math::LowPassFilter2p _lp_filter_accel[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// linear acceleration
-	math::LowPassFilter2p _lp_filter_force[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// force command
-	math::LowPassFilter2p _lp_filter_omega[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// body rates
+	math::LowPassFilter2p<float> _lp_filter_accel[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// linear acceleration
+	math::LowPassFilter2p<float> _lp_filter_force[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// force command
+	math::LowPassFilter2p<float> _lp_filter_omega[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// body rates
 	// smoothing filter to reject HF noise in control output
 	const float _cutoff_frequency_smoothing = 20.f; // we want to attenuate noise at 30Hz with -10dB -> need cutoff frequency 5 times lower (6Hz)
-	math::LowPassFilter2p _lp_filter_ctrl0[3] {{_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}};	// force command stage 1
-	math::LowPassFilter2p _lp_filter_rud {_sample_frequency, 10};	// rudder command
+	math::LowPassFilter2p<float> _lp_filter_ctrl0[3] {{_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}, {_sample_frequency, _cutoff_frequency_smoothing}};	// force command stage 1
+	math::LowPassFilter2p<float> _lp_filter_rud {_sample_frequency, 10};	// rudder command
 	// Low-Pass filters stage 2
 	const float _cutoff_frequency_2 = 20.f; // MUST MATCH PARAM "IMU_DGYRO_CUTOFF"
-	math::LowPassFilter2p _lp_filter_delay[3] {{_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}};	// filter to match acceleration processing delay
-	math::LowPassFilter2p _lp_filter_omega_2[3] {{_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}};	// body rates
+	math::LowPassFilter2p<float> _lp_filter_delay[3] {{_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}};	// filter to match acceleration processing delay
+	math::LowPassFilter2p<float> _lp_filter_omega_2[3] {{_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}};	// body rates
 	// Low-Pass filter for wind estimate
 	const float _cutoff_frequency_wind = 1.f;
-	math::LowPassFilter2p _lp_filter_wind[3] {{_sample_frequency, _cutoff_frequency_wind}, {_sample_frequency, _cutoff_frequency_wind}, {_sample_frequency, _cutoff_frequency_wind}};	// wind_estimate inside controller
-	math::LowPassFilter2p _lp_filter_wind_EKF[3] {{_sample_frequency, _cutoff_frequency_wind}, {_sample_frequency, _cutoff_frequency_wind}, {_sample_frequency, _cutoff_frequency_wind}};	// wind_estimate for EKF
+	math::LowPassFilter2p<float> _lp_filter_wind[3] {{_sample_frequency, _cutoff_frequency_wind}, {_sample_frequency, _cutoff_frequency_wind}, {_sample_frequency, _cutoff_frequency_wind}};	// wind_estimate inside controller
+	math::LowPassFilter2p<float> _lp_filter_wind_EKF[3] {{_sample_frequency, _cutoff_frequency_wind}, {_sample_frequency, _cutoff_frequency_wind}, {_sample_frequency, _cutoff_frequency_wind}};	// wind_estimate for EKF
 	uint _counter = 0;
 	hrt_abstime _last_time{0};
 

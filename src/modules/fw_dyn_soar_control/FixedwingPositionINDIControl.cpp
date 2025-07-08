@@ -53,7 +53,6 @@ using matrix::wrap_pi;
 FixedwingPositionINDIControl::FixedwingPositionINDIControl() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-    _actuators_0_pub(ORB_ID(actuator_controls_0)),
     _attitude_sp_pub(ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
@@ -172,13 +171,14 @@ FixedwingPositionINDIControl::parameters_update()
     // check if local NED reference frame origin has changed:
     // || (_local_pos.vxy_reset_counter != _pos_reset_counter
     // initialize projection
-    map_projection_init_timestamped(&_global_local_proj_ref, _local_pos.ref_lat, _local_pos.ref_lon,
-                    _local_pos.ref_timestamp);
-    // project the origin of the soaring ENU frame to the current NED frame
-    map_projection_project(&_global_local_proj_ref, _origin_lat, _origin_lon, &_origin_N, &_origin_E);
+    _global_local_proj_ref.initReference(_local_pos.ref_lat, _local_pos.ref_lon,
+        _local_pos.ref_timestamp);
+    matrix::Vector2f origin_NE = _global_local_proj_ref.project(_origin_lat, _origin_lon);
+    _origin_N = origin_NE(0);
+    _origin_E = origin_NE(1);
     _origin_D =  _local_pos.ref_alt - _origin_alt;
     PX4_INFO("local reference frame updated");
-    
+
     _thrust_pos = _param_thrust.get();
     _thrust = _thrust_pos;
     _switch_saturation = _param_switch_saturation.get();
@@ -231,58 +231,6 @@ FixedwingPositionINDIControl::airspeed_poll()
 }
 
 void
-FixedwingPositionINDIControl::airflow_aoa_poll()
-{
-	bool aoa_valid = _aoa_valid;
-	airflow_aoa_s aoa_validated;
-
-	if (_airflow_aoa_sub.update(&aoa_validated)) {
-
-		if (PX4_ISFINITE(aoa_validated.aoa_rad)
-		    && (aoa_validated.valid)) {
-
-			aoa_valid = true;
-
-			_aoa_last_valid = aoa_validated.timestamp;
-			_aoa = aoa_validated.aoa_rad;
-		}
-
-	} else {
-		// no aoa updates for one second
-		if (aoa_valid && (hrt_elapsed_time(&_aoa_last_valid) > 1_s)) {
-			aoa_valid = false;
-		}
-	}
-    _aoa_valid = aoa_valid;
-}
-
-void
-FixedwingPositionINDIControl::airflow_slip_poll()
-{
-	bool slip_valid = _slip_valid;
-	airflow_slip_s slip_validated;
-
-	if (_airflow_slip_sub.update(&slip_validated)) {
-
-		if (PX4_ISFINITE(slip_validated.slip_rad)
-		    && (slip_validated.valid)) {
-
-			slip_valid = true;
-
-			_slip_last_valid = slip_validated.timestamp;
-			_slip = slip_validated.slip_rad;
-		}
-
-	} else {
-		// no aoa updates for one second
-		if (slip_valid && (hrt_elapsed_time(&_slip_last_valid) > 1_s)) {
-			slip_valid = false;
-		}
-	}
-    _slip_valid = slip_valid;
-}
-
-void
 FixedwingPositionINDIControl::vehicle_status_poll()
 {
     if(_vehicle_status_sub.update(&_vehicle_status)){
@@ -295,7 +243,7 @@ FixedwingPositionINDIControl::manual_control_setpoint_poll()
 {
     if(_switch_manual){
         _manual_control_setpoint_sub.update(&_manual_control_setpoint);
-        _thrust = _manual_control_setpoint.z;
+        _thrust = _manual_control_setpoint.throttle;
     }
     else {
         _thrust = _thrust_pos;
@@ -339,19 +287,9 @@ FixedwingPositionINDIControl::vehicle_angular_velocity_poll()
     // no need to check if it was updated as the main loop is fired based on an update...
     //
     _omega = Vector3f(_angular_vel.xyz);
+    _alpha = Vector3f(_angular_vel.xyz_derivative);
     if(hrt_absolute_time()-_angular_vel.timestamp > 20_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
         PX4_ERR("angular velocity sample is too old");
-    }
-}
-
-void
-FixedwingPositionINDIControl::vehicle_angular_acceleration_poll()
-{
-	if (_vehicle_angular_acceleration_sub.update(&_angular_accel)) {
-		_alpha = Vector3f(_angular_accel.xyz);
-    }
-    if(hrt_absolute_time()-_angular_accel.timestamp > 20_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
-        PX4_ERR("angular acceleration sample is too old");
     }
 }
 
@@ -417,7 +355,7 @@ FixedwingPositionINDIControl::soaring_estimator_shear_poll()
             // the initial speed of the target trajectory can safely be updated during soaring :)
             _shear_aspd = _soaring_estimator_shear.aspd;
         }
-        
+
     }
 }
 
@@ -443,7 +381,7 @@ FixedwingPositionINDIControl::_compute_wind_estimate()
     // as L = alpha*Fx - Fz
     float Fx = cosf(_aoa_offset)*body_force(0) - sinf(_aoa_offset)*body_force(2);
     float Fz = -cosf(_aoa_offset)*body_force(2) - sinf(_aoa_offset)*body_force(0);
-    float AoA_approx = (((2.f*Fz)/(_rho*_area*(fmaxf(_cal_airspeed*_cal_airspeed,_stall_speed*_stall_speed))+0.001f) - _C_L0)/_C_L1) / 
+    float AoA_approx = (((2.f*Fz)/(_rho*_area*(fmaxf(_cal_airspeed*_cal_airspeed,_stall_speed*_stall_speed))+0.001f) - _C_L0)/_C_L1) /
                         (1 - ((2.f*Fx)/(_rho*_area*(fmaxf(_cal_airspeed*_cal_airspeed,_stall_speed*_stall_speed))+0.001f)/_C_L1));
     AoA_approx = constrain(AoA_approx,-0.2f,0.3f);
     float speed = fmaxf(_cal_airspeed, _stall_speed);
@@ -481,7 +419,7 @@ FixedwingPositionINDIControl::_compute_wind_estimate_EKF()
 
 void
 FixedwingPositionINDIControl::_set_wind_estimate(Vector3f wind)
-{   
+{
     // apply some filtering
     wind(0) = _lp_filter_wind[0].apply(wind(0));
     wind(1) = _lp_filter_wind[1].apply(wind(1));
@@ -492,7 +430,7 @@ FixedwingPositionINDIControl::_set_wind_estimate(Vector3f wind)
 
 void
 FixedwingPositionINDIControl::_set_wind_estimate_EKF(Vector3f wind)
-{   
+{
     // apply some filtering
     wind(0) = _lp_filter_wind_EKF[0].apply(wind(0));
     wind(1) = _lp_filter_wind_EKF[1].apply(wind(1));
@@ -502,7 +440,7 @@ FixedwingPositionINDIControl::_set_wind_estimate_EKF(Vector3f wind)
 }
 
 
-void 
+void
 FixedwingPositionINDIControl::_reverse(char* str, int len)
 {
     // copied from: https://www.geeksforgeeks.org/convert-floating-point-number-string/
@@ -516,7 +454,7 @@ FixedwingPositionINDIControl::_reverse(char* str, int len)
     }
 }
 
-int 
+int
 FixedwingPositionINDIControl::_int_to_str(int x, char str[], int d)
 {
     // copied from: https://www.geeksforgeeks.org/convert-floating-point-number-string/
@@ -525,12 +463,12 @@ FixedwingPositionINDIControl::_int_to_str(int x, char str[], int d)
         str[i++] = (x % 10) + '0';
         x = x / 10;
     }
- 
+
     // If number of digits required is more, then
     // add 0s at the beginning
     while (i < d)
         str[i++] = '0';
- 
+
     _reverse(str, i);
     str[i] = '\0';
     return i;
@@ -542,22 +480,22 @@ FixedwingPositionINDIControl::_float_to_str(float n, char* res, int afterpoint)
     // copied from: https://www.geeksforgeeks.org/convert-floating-point-number-string/
     // Extract integer part
     int ipart = (int)n;
- 
+
     // Extract floating part
     float fpart = n - (float)ipart;
- 
+
     // convert integer part to string
     int i = _int_to_str(ipart, res, 0);
- 
+
     // check for display option after point
     if (afterpoint != 0) {
         res[i] = '.'; // add dot
- 
+
         // Get the value of fraction part upto given no.
         // of points after dot. The third parameter
         // is needed to handle cases like 233.007
         fpart = fpart * (float)pow(10, afterpoint);
- 
+
         _int_to_str((int)fpart, res + i + 1, afterpoint);
     }
 }
@@ -601,22 +539,22 @@ FixedwingPositionINDIControl::_select_loiter_trajectory()
 
     /*
     Also, we need to place the current trajectory, centered around zero height and assuming wind from the west, into the soaring frame.
-    Since the necessary computations for position, velocity and acceleration require the basis coefficients, which are not easy to transform, 
+    Since the necessary computations for position, velocity and acceleration require the basis coefficients, which are not easy to transform,
     we choose to transform our position in soaring frame into the "trajectory frame", compute position vector and it's derivatives from the basis coeffs
     in the trajectory frame, and then transform these back to soaring frame for control purposes.
     Therefore we define a new transform between the soaring frame and the trajectory frame.
     */
-    
+
     _read_trajectory_coeffs_csv(filename);
 }
 
 void
 FixedwingPositionINDIControl::_select_soaring_trajectory()
 {
-    /* 
+    /*
     We read a trajectory based on initial energy available at the beginning of the trajectory.
     So the trajectory is selected based on two criteria, first the correct wind shear params (alpha and V_max) and the initial energy (potential + kinetic).
-    
+
     The filename structure of the trajectories is the following:
     trajec_<type>_<V_max>_<alpha>_<energy>_
     with
@@ -654,8 +592,8 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
     // =======================================================================
     bool error = false;
 
-    //char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
-    char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
+    char home_dir[200] = "/home/jaeyoung/src/PX4-Autopilot/src/modules/fw_dyn_soar_control/trajectories/";
+    // char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
     //PX4_ERR(home_dir);
     strcat(home_dir,filename);
     FILE* fp = fopen(home_dir, "r");
@@ -677,10 +615,10 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
         while (fgets(buffer,
                      buffersize, fp)) {
             column = 0;
- 
+
             // Splitting the data
             char* value = strtok(buffer, ",");
-            
+
             // loop over columns
             while (value) {
                 if (*value=='\0'||*value==' ') {
@@ -704,7 +642,7 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
                 //PX4_INFO("row: %d, col: %d, read value: %.3f", row, column, (double)atof(value));
                 value = strtok(NULL, ",");
                 column++;
-                
+
             }
             row++;
         }
@@ -786,7 +724,7 @@ FixedwingPositionINDIControl::Run()
 
     // only run controller if pos, vel, acc changed
 	if (_vehicle_angular_velocity_sub.update(&_angular_vel))
-    {   
+    {
         // only update parameters if they changed
 		bool params_updated = _parameter_update_sub.updated();
 
@@ -806,15 +744,27 @@ FixedwingPositionINDIControl::Run()
 
         // check if local NED reference frame origin has changed:
         // || (_local_pos.vxy_reset_counter != _pos_reset_counter
-        if (!map_projection_initialized(&_global_local_proj_ref)
-            || (_global_local_proj_ref.timestamp != _local_pos.ref_timestamp)
+        if (!_global_local_proj_ref.isInitialized()
+            || (_global_local_proj_ref.getProjectionReferenceTimestamp() != _local_pos.ref_timestamp)
 		    || (_local_pos.xy_reset_counter != _pos_reset_counter)
             || (_local_pos.z_reset_counter != _alt_reset_counter)) {
+
+            double reference_latitude = 0.;
+            double reference_longitude = 0.;
+
+            if (_local_pos.xy_global && PX4_ISFINITE(_local_pos.ref_lat) && PX4_ISFINITE(_local_pos.ref_lon)) {
+                reference_latitude = _local_pos.ref_lat;
+                reference_longitude = _local_pos.ref_lon;
+            }
+
             // initialize projection
-            map_projection_init_timestamped(&_global_local_proj_ref, _local_pos.ref_lat, _local_pos.ref_lon,
-                            _local_pos.ref_timestamp);
-            // project the origin of the soaring ENU frame to the current NED frame
-            map_projection_project(&_global_local_proj_ref, _origin_lat, _origin_lon, &_origin_N, &_origin_E);
+			_global_local_proj_ref.initReference(reference_latitude, reference_longitude,
+                _local_pos.ref_timestamp);
+
+            matrix::Vector2f origin_NE = _global_local_proj_ref.project(_origin_lat, _origin_lon);
+            _origin_N = origin_NE(0);
+            _origin_E = origin_NE(1);
+
             _origin_D =  _local_pos.ref_alt - _origin_alt;
             PX4_INFO("local reference frame updated");
         }
@@ -825,15 +775,12 @@ FixedwingPositionINDIControl::Run()
         // run polls
         vehicle_status_poll();
         airspeed_poll();
-        airflow_aoa_poll();
-        airflow_slip_poll();
         rc_channels_poll();
         manual_control_setpoint_poll();
         vehicle_local_position_poll();
         vehicle_attitude_poll();
         vehicle_acceleration_poll();
         vehicle_angular_velocity_poll();
-        vehicle_angular_acceleration_poll();
         soaring_controller_status_poll();
 
         // update the shear estimate, only target airspeed is updated in soaring mode
@@ -872,7 +819,7 @@ FixedwingPositionINDIControl::Run()
         // ============================
         // compute reference kinematics
         // ============================
-        // downscale velocity to match current one, 
+        // downscale velocity to match current one,
         // terminal time is determined such that current velocity is met
         Vector3f v_ref_ = _get_velocity_ref(t_ref, 1.0f);
         float T = sqrtf((v_ref_*v_ref_)/(_vel*_vel+0.001f));
@@ -898,13 +845,13 @@ FixedwingPositionINDIControl::Run()
         // publish offboard control commands
         // =================================
         offboard_control_mode_s ocm{};
-        ocm.actuator = true;
+        ocm.thrust_and_torque = true;
         ocm.timestamp = hrt_absolute_time();
         _offboard_control_mode_pub.publish(ocm);
 
         // Publish actuator controls only once in OFFBOARD
 		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
-            
+
             // ========================================
             // publish controller position in ENU frame
             // ========================================
@@ -933,7 +880,7 @@ FixedwingPositionINDIControl::Run()
             // =====================
             // publish control input
             // =====================
-            //_angular_accel_sp = {}; 
+            //_angular_accel_sp = {};
             _angular_accel_sp.timestamp = hrt_absolute_time();
             //_angular_accel_sp.timestamp_sample = hrt_absolute_time();
             _angular_accel_sp.xyz[0] = ctrl(0);
@@ -962,18 +909,17 @@ FixedwingPositionINDIControl::Run()
             _angular_vel_sp.pitch = omega_ref(1);
             _angular_vel_sp.yaw = omega_ref(2);
             _angular_vel_sp_pub.publish(_angular_vel_sp);
-            
+
             // =========================
             // publish acutator controls
             // =========================
-            //_actuators = {};
+            _actuators = {};
             _actuators.timestamp = hrt_absolute_time();
             _actuators.timestamp_sample = hrt_absolute_time();
-            _actuators.control[actuator_controls_s::INDEX_ROLL] = ctrl2(0);
-            _actuators.control[actuator_controls_s::INDEX_PITCH] = ctrl2(1);
-            _actuators.control[actuator_controls_s::INDEX_YAW] = ctrl2(2);
-            _actuators.control[actuator_controls_s::INDEX_THROTTLE] = _thrust;
-            _actuators_0_pub.publish(_actuators);
+            ctrl2.copyTo(_actuators.xyz);
+            _torque_sp_pub.publish(_actuators);
+            _thrust_sp.xyz[0] = _thrust;
+            _thrust_sp_pub.publish(_thrust_sp);
             //print_message(_actuators);
 
             // =====================
@@ -1052,9 +998,9 @@ FixedwingPositionINDIControl::Run()
         _debug_value.value = _slip;
         _debug_value_pub.publish(_debug_value);
 
-        perf_end(_loop_perf);  
+        perf_end(_loop_perf);
     }
-    
+
 }
 
 Vector<float, FixedwingPositionINDIControl::_num_basis_funs>
@@ -1096,7 +1042,7 @@ FixedwingPositionINDIControl::_get_d2_dt2_basis_funs(float t)
         float fun2 = exp(-powf((t-float(i)/_num_basis_funs),2)/sigma);
         vec(i) = fun2 * (fun1 * (4*powf((float(i)/_num_basis_funs-t),2) - \
                         sigma*(powf(M_PI_F,2)*sigma + 2)) + 4*M_PI_F*sigma*(float(i)/_num_basis_funs-t)*cosf(M_PI_F*t))/(powf(sigma,2));
- 
+
     }
     return vec;
 }
@@ -1182,8 +1128,8 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     Rotation(2,2) *= -1.f;
     // plausibility check
     /*
-    float determinant = Rotation(0,0)*(Rotation(1,1)*Rotation(2,2)-Rotation(2,1)*Rotation(1,2)) - 
-                        Rotation(1,0)*(Rotation(0,1)*Rotation(2,2)-Rotation(2,1)*Rotation(0,2)) + 
+    float determinant = Rotation(0,0)*(Rotation(1,1)*Rotation(2,2)-Rotation(2,1)*Rotation(1,2)) -
+                        Rotation(1,0)*(Rotation(0,1)*Rotation(2,2)-Rotation(2,1)*Rotation(0,2)) +
                         Rotation(2,0)*(Rotation(0,1)*Rotation(1,2)-Rotation(1,1)*Rotation(0,2));
     PX4_INFO("determinant: %.2f", (double)determinant);
     PX4_INFO("length: %.2f", (double)(wing_normalized*wing_normalized));
@@ -1353,7 +1299,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // compute expected aerodynamic force
     // ==================================
     Vector3f f_current;
-    Vector3f vel_body = R_bi*(_vel - _wind_estimate); 
+    Vector3f vel_body = R_bi*(_vel - _wind_estimate);
     float AoA = atan2f(vel_body(2), vel_body(0)) + _aoa_offset;
     float C_l = _C_L0 + _C_L1*AoA;
     float C_d = _C_D0 + _C_D1*AoA + _C_D2*powf(AoA,2);
@@ -1447,8 +1393,8 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // ====================================
     if (_switch_manual){
         // get an attitude setpoint from the current manual inputs
-        float roll_ref = 1.f * _manual_control_setpoint.y * 1.0f;
-        float pitch_ref = -1.f* _manual_control_setpoint.x * M_PI_4_F;
+        float roll_ref = 1.f * _manual_control_setpoint.roll * 1.0f;
+        float pitch_ref = -1.f* _manual_control_setpoint.pitch * M_PI_4_F;
         Eulerf E_current(Quatf(_attitude.q));
         float yaw_ref = E_current.psi();
         Dcmf R_ned_frd_ref(Eulerf(roll_ref, pitch_ref, yaw_ref));
@@ -1476,7 +1422,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
 
         // compute rot acc command
         rot_acc_command = _K_q*w_err + _K_w*(Vector3f{0.f,0.f,0.f}-_omega);
-        
+
     }
 
     // ==============================================================
@@ -1501,17 +1447,17 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
 
     // apply some smoothing since we don't want HF components in our rudder output
     omega_turn_ref(2) = _lp_filter_rud.apply(omega_turn_ref(2));
-    
+
     // transform rate vector to body frame
     float scaler = (_stall_speed*_stall_speed)/fmaxf(sqrtf(vel_body*vel_body)*vel_body(0), _stall_speed*_stall_speed);
     // not really an accel command, rather a FF-P command
     rot_acc_command(2) = _K_q(2,2)*omega_turn_ref(2)*scaler + _K_w(2,2)*(omega_turn_ref(2) - omega_filtered(2))* scaler*scaler;
 
-    
+
     return rot_acc_command;
 }
 
-Vector3f 
+Vector3f
 FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
 {
     // compute velocity in body frame
@@ -1521,15 +1467,15 @@ FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
 
     // compute moments
     Vector3f moment;
-    moment(0) = _k_ail*q*_actuators.control[actuator_controls_s::INDEX_ROLL] - _k_d_roll*q*_omega(0);
-    moment(1) = _k_ele*q*_actuators.control[actuator_controls_s::INDEX_PITCH] - _k_d_pitch*q*_omega(1);
+    moment(0) = _k_ail*q*_actuators.xyz[0] - _k_d_roll*q*_omega(0);
+    moment(1) = _k_ele*q*_actuators.xyz[1] - _k_d_pitch*q*_omega(1);
     moment(2) = 0.f;
 
     // introduce artificial time delay that is also present in acceleration
     Vector3f moment_filtered;
     moment_filtered(0) = _lp_filter_delay[0].apply(moment(0));
     moment_filtered(1) = _lp_filter_delay[1].apply(moment(1));
-    moment_filtered(2) = _lp_filter_delay[2].apply(moment(2)); 
+    moment_filtered(2) = _lp_filter_delay[2].apply(moment(2));
 
     // No filter for alpha, since it is already filtered...
     Vector3f alpha_filtered = _alpha;
@@ -1550,7 +1496,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
 
 Vector3f
 FixedwingPositionINDIControl::_compute_actuator_deflections(Vector3f ctrl)
-{   
+{
     // compute the normalized actuator deflection, including airspeed scaling
     Vector3f deflection = ctrl;
 
