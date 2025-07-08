@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,14 +31,12 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE modules__fw_indi_pos_control
-	MAIN fw_indi_pos_control
-	SRCS
-		FixedwingIndiPosControl.cpp
-		FixedwingIndiPosControl.hpp
-	DEPENDS
-		px4_work_queue
-		FixedWingIndiControl
-		SlewRate
-	)
+px4_add_library(FixedWingIndiControl
+	fw_indi_control.cpp
+	fw_indi_control.hpp
+)
+target_compile_options(FixedWingIndiControl PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_include_directories(FixedWingIndiControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(FixedWingIndiControl PRIVATE mathlib)
+
+px4_add_unit_gtest(SRC fw_indi_control_test.cpp LINKLIBS FixedWingIndiControl)

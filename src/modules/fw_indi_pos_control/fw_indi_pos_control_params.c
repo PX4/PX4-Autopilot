@@ -139,7 +139,7 @@ PARAM_DEFINE_FLOAT(FW_INDI_KV_Z, 0.1f);
 * @increment 0.1
 * @group FW DYN SOAR Control
 */
-PARAM_DEFINE_FLOAT(FW_INDI_K_ROLL, 30.0f);
+PARAM_DEFINE_FLOAT(FW_INDI_K_ROLL, 7.0f);
 
 /**
 * control gain of attitude PD-controller (body roll-direction)
@@ -151,4 +151,4 @@ PARAM_DEFINE_FLOAT(FW_INDI_K_ROLL, 30.0f);
 * @increment 0.1
 * @group FW DYN SOAR Control
 */
-PARAM_DEFINE_FLOAT(FW_INDI_K_PITCH, 10.0f);
+PARAM_DEFINE_FLOAT(FW_INDI_K_PITCH, 2.0f);

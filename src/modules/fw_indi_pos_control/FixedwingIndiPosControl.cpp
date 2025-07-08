@@ -153,8 +153,18 @@ FixedwingIndiPosControl::airspeed_poll()
 	_airspeed_valid = airspeed_valid;
 }
 
+void
+FixedwingIndiPosControl::vehicle_status_poll()
+{
+	vehicle_status_s vehicle_status;
+
+	if (_vehicle_status_sub.update(&vehicle_status)) {
+		_vehicle_status = vehicle_status;
+	}
+}
+
 Quatf
-FixedwingIndiPosControl::get_flat_attitude(Vector3f vel, Vector3f f)
+FixedwingIndiPosControl::get_flat_attitude(Vector3f vel, Vector3f f, float rho_corrected)
 {
 
 	const Vector3f vel_air = vel - wind_estimate_;
@@ -180,15 +190,6 @@ FixedwingIndiPosControl::get_flat_attitude(Vector3f vel, Vector3f f)
 	R_bi(2, 2) = lift_normalized(2);
 	R_bi.renormalize();
 
-	float rho_corrected;
-
-	if (_cal_airspeed >= _stall_speed) {
-		rho_corrected = _rho * powf(_cal_airspeed / _true_airspeed, 2);
-
-	} else {
-		rho_corrected = _rho;
-	}
-
 	// compute required AoA
 	Vector3f f_phi = R_bi * f_lift;
 	float AoA = ((2.f * f_phi(2)) / (rho_corrected * _area * (vel_air * vel_air) + 0.001f) - _C_L0) / _C_L1 - _aoa_offset;
@@ -201,19 +202,18 @@ FixedwingIndiPosControl::get_flat_attitude(Vector3f vel, Vector3f f)
 	return q;
 }
 
-Vector3f
+Quatf
 FixedwingIndiPosControl::computeIndi(Vector3f pos_ref, Vector3f vel_ref, Vector3f acc_ref)
 {
 	Dcmf R_ib(vehicle_attitude_);
 	Dcmf R_bi(R_ib.transpose());
 
 	// apply LP filter to acceleration & velocity
-	Vector3f acc_filtered;
 	// Poll acceleration
 	PX4_INFO("[PX4PosiNDI]   - _acc: %f, %f, %f", double(_acc(0)), double(_acc(1)), double(_acc(2)));
-	acc_filtered(0) = _lp_filter_accel[0].apply(_acc(0));
-	acc_filtered(1) = _lp_filter_accel[1].apply(_acc(1));
-	acc_filtered(2) = _lp_filter_accel[2].apply(_acc(2));
+	acc_filtered_(0) = _lp_filter_accel[0].apply(_acc(0));
+	acc_filtered_(1) = _lp_filter_accel[1].apply(_acc(1));
+	acc_filtered_(2) = _lp_filter_accel[2].apply(_acc(2));
 
 	// =========================================
 	// apply PD control law on the body position
@@ -226,8 +226,7 @@ FixedwingIndiPosControl::computeIndi(Vector3f pos_ref, Vector3f vel_ref, Vector3
 	// ==================================
 	// compute expected aerodynamic force
 	// ==================================
-	Vector3f _wind_estimate{0.0, 0.0, 0.0}; ///TODO: Plug in wind estimate
-	Vector3f airvel_body = R_bi * (vehicle_velocity_ - _wind_estimate);
+	Vector3f airvel_body = R_bi * (vehicle_velocity_ - wind_estimate_);
 
 	float angle_of_attack = atan2f(airvel_body(2), airvel_body(0)) + _aoa_offset;
 
@@ -258,7 +257,7 @@ FixedwingIndiPosControl::computeIndi(Vector3f pos_ref, Vector3f vel_ref, Vector3
 	// ================================
 	// get force command in world frame
 	// ================================
-	Vector3f f_command = _mass * (acc_command - acc_filtered) + f_current_filtered;
+	Vector3f f_command = _mass * (acc_command - acc_filtered_) + f_current_filtered;
 
 	// ============================================================================================================
 	// apply some filtering to the force command. This introduces some time delay,
@@ -300,10 +299,19 @@ FixedwingIndiPosControl::computeIndi(Vector3f pos_ref, Vector3f vel_ref, Vector3
 	// ==========================================================================
 	// get required attitude (assuming we can fly the target velocity), and error
 	// ==========================================================================
-	Dcmf R_ref(get_flat_attitude(vel_ref, f_command));
-	Quatf ref_attitude(R_ref);
+	Quatf ref_attitude = get_flat_attitude(vel_ref, f_command, rho_corrected);
+	return ref_attitude;
+}
+
+Vector3f FixedwingIndiPosControl::controlAttitude(Quatf ref_attitude)
+{
 	PX4_INFO("[PX4PosiNDI]   - R_ref: %f, %f, %f, %f", double(ref_attitude(0)), double(ref_attitude(1)),
 		 double(ref_attitude(2)), double(ref_attitude(3)));
+
+	Dcmf R_ref(ref_attitude);
+	Dcmf R_ib(vehicle_attitude_);
+	Dcmf R_bi(R_ib.transpose());
+
 	// get attitude error
 	Dcmf R_ref_true(R_ref.transpose()*R_ib);
 	// get required rotation vector (in body frame)
@@ -340,9 +348,9 @@ FixedwingIndiPosControl::computeIndi(Vector3f pos_ref, Vector3f vel_ref, Vector3
 	// ==============================================================
 	// overwrite rudder rot_acc_command with turn coordination values
 	// ==============================================================
-	Vector3f vel_air = vehicle_velocity_ - _wind_estimate;
+	Vector3f vel_air = vehicle_velocity_ - wind_estimate_;
 	Vector3f vel_normalized = vel_air.normalized();
-	Vector3f acc_normalized = acc_filtered.normalized();
+	Vector3f acc_normalized = acc_filtered_.normalized();
 	PX4_INFO("[PX4PosiNDI]   - acc_normalized: %f, %f, %f", double(acc_normalized(0)), double(acc_normalized(1)),
 		 double(acc_normalized(2)));
 
@@ -350,7 +358,7 @@ FixedwingIndiPosControl::computeIndi(Vector3f pos_ref, Vector3f vel_ref, Vector3
 	Vector3f omega_turn_ref_normalized = vel_normalized.cross(acc_normalized);
 	Vector3f omega_turn_ref;
 	// constuct acc perpendicular to flight path
-	Vector3f acc_perp = acc_filtered - (acc_filtered * vel_normalized) * vel_normalized;
+	Vector3f acc_perp = acc_filtered_ - (acc_filtered_ * vel_normalized) * vel_normalized;
 
 	if (_airspeed_valid && _cal_airspeed > _stall_speed) {
 		omega_turn_ref = sqrtf(acc_perp * acc_perp) / (_true_airspeed) * R_bi * omega_turn_ref_normalized.normalized();
@@ -397,6 +405,7 @@ void FixedwingIndiPosControl::Run()
 			parameters_update();
 		}
 
+		vehicle_status_poll();
 		// Poll local position
 		vehicle_attitude_poll();
 
@@ -466,18 +475,29 @@ void FixedwingIndiPosControl::Run()
 		vel_ref_ = 15.0f * progress_vector;
 
 		// Compute bodyrate commands
-		Vector3f rate_command = computeIndi(pos_ref_, vel_ref_, acc_ref_);
+		Quatf ref_attitude = computeIndi(pos_ref_, vel_ref_, acc_ref_);
+		// TODO: Place holder
+		// ref_attitude = Quatf(1.0, 0.0, 0.0, 0.0);
+		Vector3f rate_command = controlAttitude(ref_attitude);
 		PX4_INFO("[PX4PosiNDI] angular_rate_command: %f, %f, %f", double(rate_command(0)), double(rate_command(1)),
 			 double(rate_command(2)));
 
-		vehicle_rates_setpoint_s rates_sp;
-		rates_sp.thrust_body[0] = 0.5; ///TODO: Add some throttle
-		rates_sp.thrust_body[1] = 0.0;
-		rates_sp.thrust_body[2] = 0.0;
-		rates_sp.roll = rate_command(0);
-		rates_sp.pitch = rate_command(1);
-		rates_sp.yaw = rate_command(2);
-		_rate_sp_pub.publish(rates_sp);
+		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
+			vehicle_attitude_setpoint_s attitude_sp;
+			attitude_sp.timestamp = hrt_absolute_time();
+			ref_attitude.copyTo(attitude_sp.q_d);
+			_attitude_sp_pub.publish(attitude_sp);
+
+			vehicle_rates_setpoint_s rates_sp;
+			rates_sp.thrust_body[0] = 0.7; ///TODO: Add some throttle
+			rates_sp.thrust_body[1] = 0.0;
+			rates_sp.thrust_body[2] = 0.0;
+			rates_sp.roll = rate_command(0);
+			rates_sp.pitch = rate_command(1);
+			rates_sp.yaw = rate_command(2);
+			rates_sp.timestamp = hrt_absolute_time();
+			_rate_sp_pub.publish(rates_sp);
+		}
 
 		// =================================
 		// publish offboard control commands

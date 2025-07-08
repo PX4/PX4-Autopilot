@@ -64,6 +64,7 @@
 #include <uORB/topics/rate_ctrl_status.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
@@ -101,11 +102,23 @@ public:
 private:
 	void Run() override;
 
+	/**
+	 * Update our local parameter cache.
+	 */
+	int		parameters_update();
 
-	matrix::Quatf get_flat_attitude(matrix::Vector3f vel, matrix::Vector3f f);
+	void		airspeed_poll();
+	void		vehicle_acceleration_poll();
+	void 		vehicle_local_position_poll();
+	void		vehicle_attitude_poll();
+	void		vehicle_status_poll();
 
-	matrix::Vector3f computeIndi(matrix::Vector3f pos_ref, matrix::Vector3f vel_ref, matrix::Vector3f acc_ref);
 
+	matrix::Quatf get_flat_attitude(matrix::Vector3f vel, matrix::Vector3f f, float rho_corrected);
+
+	matrix::Quatf computeIndi(matrix::Vector3f pos_ref, matrix::Vector3f vel_ref, matrix::Vector3f acc_ref);
+
+	matrix::Vector3f controlAttitude(matrix::Quatf ref_attitude);
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
@@ -126,6 +139,7 @@ private:
 
 
 	uORB::Publication<vehicle_rates_setpoint_s>	_rate_sp_pub{ORB_ID(vehicle_rates_setpoint)};
+	uORB::Publication<vehicle_attitude_setpoint_s> _attitude_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<offboard_control_mode_s>	_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 
 	manual_control_setpoint_s		_manual_control_setpoint{};
@@ -158,11 +172,11 @@ private:
 	matrix::Vector3f vehicle_position_;
 	matrix::Vector3f vehicle_velocity_;
 	matrix::Vector3f _acc;
-	matrix::Vector3f wind_estimate_;
+	matrix::Vector3f wind_estimate_{0.0, 0.0, 0.0};
 	matrix::Quatf vehicle_attitude_;
 
 	float _cal_airspeed{0.0f};
-	float _rho{1.0};
+	float _rho{1.225f};
 	float _true_airspeed{1.0};
 
 
@@ -172,6 +186,7 @@ private:
 
 	matrix::Vector3f _f_command {};
 	matrix::Vector3f _m_command {};
+	matrix::Vector3f acc_filtered_{};
 
 	matrix::Matrix3f _K_x;
 	matrix::Matrix3f _K_v;
@@ -187,7 +202,7 @@ private:
 	float _C_D2{1.984};
 	float _area{0.4};
 	float _stall_speed{1.0};
-	float _mass{1.0};
+	float _mass{1.5};
 
 	bool _landed{true};
 	bool _switch_saturation{true};
@@ -204,16 +219,4 @@ private:
 		(ParamFloat<px4::params::FW_INDI_K_ROLL>) _param_rot_k_roll,
 		(ParamFloat<px4::params::FW_INDI_K_PITCH>) _param_rot_k_pitch
 	)
-
-	RateControl _rate_control; ///< class for rate control calculations
-
-	/**
-	 * Update our local parameter cache.
-	 */
-	int		parameters_update();
-
-	void		airspeed_poll();
-	void		vehicle_acceleration_poll();
-	void 		vehicle_local_position_poll();
-	void		vehicle_attitude_poll();
 };
