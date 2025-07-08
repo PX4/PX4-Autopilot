@@ -117,7 +117,7 @@ public:
 
 	float getHaglRateInnov() const { return _rng_consistency_check.getInnov(); }
 	float getHaglRateInnovVar() const { return _rng_consistency_check.getInnovVar(); }
-	float getHaglRateInnovRatio() const { return _rng_consistency_check.getSignedTestRatioLpf(); }
+	float getHaglRateInnovRatio() const { return _rng_consistency_check.getTestRatioLpf(); }
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
