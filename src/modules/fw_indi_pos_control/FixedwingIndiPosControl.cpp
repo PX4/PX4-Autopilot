@@ -312,6 +312,11 @@ Vector3f FixedwingIndiPosControl::controlAttitude(Quatf ref_attitude)
 	Dcmf R_ib(vehicle_attitude_);
 	Dcmf R_bi(R_ib.transpose());
 
+	// Vector3f omega_filtered;
+	// omega_filtered(0) = _lp_filter_omega[0].apply(_omega(0));
+	// omega_filtered(1) = _lp_filter_omega[1].apply(_omega(1));
+	// omega_filtered(2) = _lp_filter_omega[2].apply(_omega(2));
+
 	// get attitude error
 	Dcmf R_ref_true(R_ref.transpose()*R_ib);
 	// get required rotation vector (in body frame)
@@ -335,8 +340,10 @@ Vector3f FixedwingIndiPosControl::controlAttitude(Quatf ref_attitude)
 	// =========================================
 	// apply PD control law on the body attitude
 	// =========================================
-	// Vector3f rot_acc_command = _K_q*w_err + _K_w*(omega_ref-_omega) + alpha_ref;
-	Vector3f rot_vel_command = _K_q * w_err;
+	Vector3f alpha_ref{0.0, 0.0, 0.0};
+	Vector3f omega_ref{0.0, 0.0, 0.0};
+	Vector3f rot_acc_command = _K_q*w_err + _K_w*(omega_ref-_omega) + alpha_ref;
+	// Vector3f rot_vel_command = _K_q * w_err;
 	PX4_INFO("[PX4PosiNDI]   - w_err: %f, %f, %f", double(w_err(0)), double(w_err(1)), double(w_err(2)));
 
 	if (sqrtf(w_err * w_err) > M_PI_F) {
@@ -373,9 +380,13 @@ Vector3f FixedwingIndiPosControl::controlAttitude(Quatf ref_attitude)
 	omega_turn_ref(2) = _lp_filter_rud.apply(omega_turn_ref(2));
 	PX4_INFO("[PX4PosiNDI]   - omega_turn_ref: %f, %f, %f", double(omega_turn_ref(0)), double(omega_turn_ref(1)),
 		 double(omega_turn_ref(2)));
-	rot_vel_command(2) = omega_turn_ref(2);
 
-	return rot_vel_command;
+	// transform rate vector to body frame
+	float scaler = (_stall_speed*_stall_speed)/fmaxf(sqrtf(vel_body*vel_body)*vel_body(0), _stall_speed*_stall_speed);
+	// not really an accel command, rather a FF-P command
+	rot_acc_command(2) = _K_q(2,2)*omega_turn_ref(2)*scaler + _K_w(2,2)*(omega_turn_ref(2) - omega_filtered(2))* scaler*scaler;
+
+	return rot_acc_command;
 }
 
 void FixedwingIndiPosControl::Run()
@@ -389,6 +400,7 @@ void FixedwingIndiPosControl::Run()
 	perf_begin(_loop_perf);
 
 	// only run controller if angular velocity changed
+	vehicle_angular_velocity_s angular_velocity;
 	if (_vehicle_angular_velocity_sub.updated() || (hrt_elapsed_time(&_last_run) > 20_ms)) { //TODO rate!
 
 		// only update parameters if they changed

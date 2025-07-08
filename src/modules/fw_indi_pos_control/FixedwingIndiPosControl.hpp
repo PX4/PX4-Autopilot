@@ -192,6 +192,7 @@ private:
 	matrix::Matrix3f _K_v;
 	matrix::Matrix3f _K_a;
 	matrix::Matrix3f _K_q;
+	matrix::Matrix3f _K_w;
 
 	// Vehicle parameters (From Easyglider)
 	float _aoa_offset{0.07};
@@ -201,7 +202,7 @@ private:
 	float _C_D1{0.3783};
 	float _C_D2{1.984};
 	float _area{0.4};
-	float _stall_speed{1.0};
+	float _stall_speed{10.0};
 	float _mass{1.5};
 
 	bool _landed{true};
