@@ -385,7 +385,7 @@ private:
 	// controler switches
 	// ==================
 	// controller mode
-	bool _switch_manual;
+	bool _switch_manual{false};
 	// soaring mode
 	bool _switch_cl_soaring;
 	// force limit

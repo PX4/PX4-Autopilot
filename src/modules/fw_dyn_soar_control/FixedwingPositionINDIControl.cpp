@@ -102,7 +102,7 @@ FixedwingPositionINDIControl::init()
     }
 
     // initialize in manual feedthrough
-    _switch_manual = true;
+    _switch_manual = false;
 
     // fix sitl mode on startup (no switch at runtime)
     _switch_sitl = _param_switch_sitl.get();
@@ -824,6 +824,7 @@ FixedwingPositionINDIControl::Run()
         Vector3f v_ref_ = _get_velocity_ref(t_ref, 1.0f);
         float T = sqrtf((v_ref_*v_ref_)/(_vel*_vel+0.001f));
         Vector3f pos_ref = _get_position_ref(t_ref);                    // in inertial ENU
+        PX4_INFO("Reference Position: %f, %f, %f", double(pos_ref(0)), double(pos_ref(1)), double(pos_ref(2)));
         Vector3f vel_ref = _get_velocity_ref(t_ref,T);                  // in inertial ENU
         Vector3f acc_ref = _get_acceleration_ref(t_ref,T);              // gravity-corrected acceleration (ENU)
         Quatf q = _get_attitude_ref(t_ref,T);
@@ -1330,9 +1331,10 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // apply some filtering to the force command. This introduces some time delay,
     // which is not desired for stability reasons, but it rejects some of the noise fed to the low-level controller
     // ============================================================================================================
-    f_command(0) = _lp_filter_ctrl0[0].apply(f_command(0));
-    f_command(1) = _lp_filter_ctrl0[1].apply(f_command(1));
-    f_command(2) = _lp_filter_ctrl0[2].apply(f_command(2));
+    // f_command(0) = _lp_filter_ctrl0[0].apply(f_command(0));
+    // f_command(1) = _lp_filter_ctrl0[1].apply(f_command(1));
+    // f_command(2) = _lp_filter_ctrl0[2].apply(f_command(2));
+    // PX4_INFO("  - f_command - filtered: %f, %f, %f", double(f_command(0)), double(f_command(1)), double(f_command(2)));
     _f_command = f_command;
     // limit maximum lift force by the maximum lift force, the aircraft can produce (assume max force at 15° aoa)
 
