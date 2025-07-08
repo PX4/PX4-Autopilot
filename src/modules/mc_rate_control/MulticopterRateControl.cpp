@@ -294,6 +294,11 @@ MulticopterRateControl::Run()
 				vehicle_torque_setpoint.xyz[0] += PX4_ISFINITE(filtered_body_torque_setpoint(0)) ? filtered_body_torque_setpoint(0) : 0.f;
 				vehicle_torque_setpoint.xyz[1] += PX4_ISFINITE(filtered_body_torque_setpoint(1)) ? filtered_body_torque_setpoint(1) : 0.f;
 				vehicle_torque_setpoint.xyz[2] += PX4_ISFINITE(filtered_body_torque_setpoint(2)) ? filtered_body_torque_setpoint(2) : 0.f;
+
+				vehicle_torque_setpoint.filtered_xyz[0] = PX4_ISFINITE(filtered_body_torque_setpoint(0)) ? filtered_body_torque_setpoint(0) : 0.f;
+				vehicle_torque_setpoint.filtered_xyz[1] = PX4_ISFINITE(filtered_body_torque_setpoint(1)) ? filtered_body_torque_setpoint(1) : 0.f;
+				vehicle_torque_setpoint.filtered_xyz[2] = PX4_ISFINITE(filtered_body_torque_setpoint(2)) ? filtered_body_torque_setpoint(2) : 0.f;
+
 				_prev_esc_rad_per_sec_filtered = filtered_radps_vec;
 			}
 

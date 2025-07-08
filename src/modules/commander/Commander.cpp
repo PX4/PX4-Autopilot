@@ -2605,8 +2605,8 @@ void Commander::checkEscRpmFeedbackAvailability()
 		bool rpm_feedback_available = false;
 
 		// check if connection type is DShot and we have online ESCs
-		if (esc_status.esc_connectiontype == esc_status_s::ESC_CONNECTION_TYPE_DSHOT &&
-		    esc_status.esc_count > 0 &&
+		// FIXME: this is a hack to check if the ESCs are online, we should use the esc_status_s::ESC_CONNECTION_TYPE_DSHOT flag instead but gz_x500 does not support it
+		if (esc_status.esc_count > 0 &&
 		    esc_status.esc_online_flags > 0) {
 
 			rpm_feedback_available = true;

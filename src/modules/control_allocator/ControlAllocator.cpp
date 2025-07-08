@@ -445,6 +445,7 @@ ControlAllocator::Run()
 	// Publish actuator setpoint and allocator status
 	publish_actuator_controls();
 
+
 	// Publish status at limited rate, as it's somewhat expensive and we use it for slower dynamics
 	// (i.e. anti-integrator windup)
 	if (now - _last_status_pub >= 5_ms) {
@@ -452,6 +453,7 @@ ControlAllocator::Run()
 
 		if (_num_control_allocation > 1) {
 			publish_control_allocator_status(1);
+			publish_effectiveness_matrix();
 		}
 
 		_last_status_pub = now;
@@ -590,9 +592,7 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 			// Publish effectiveness matrix (0 for hover, 1 for forward flight)
 			actuator_effectiveness_matrix_s effectiveness_matrix_pub{};
 			effectiveness_matrix_pub.timestamp = hrt_absolute_time();
-			ActuatorEffectiveness::EffectivenessMatrix temp_matrix = config.effectiveness_matrices[i];
-			static_assert(sizeof(temp_matrix) == sizeof(effectiveness_matrix_pub.effectiveness_matrix_row_major), "size mismatch");
-			memcpy(effectiveness_matrix_pub.effectiveness_matrix_row_major, &temp_matrix, sizeof(temp_matrix));
+			memcpy(effectiveness_matrix_pub.effectiveness_matrix_row_major, &matrix, sizeof(matrix));
 			effectiveness_matrix_pub.num_actuators = total_num_actuators;
 			_actuator_effectiveness_matrix_pub[i].publish(effectiveness_matrix_pub);
 		}
@@ -716,6 +716,24 @@ ControlAllocator::publish_actuator_controls()
 
 		_actuator_servos_pub.publish(actuator_servos);
 	}
+}
+
+void
+ControlAllocator::publish_effectiveness_matrix()
+{
+	for (int i = 0; i < _num_control_allocation; ++i) {
+			const ActuatorEffectiveness::EffectivenessMatrix &matrix = _control_allocation[i]->getEffectivenessMatrix();
+
+			// Assign control effectiveness matrix
+			int total_num_actuators = _num_actuators[0];
+
+			// Publish effectiveness matrix (0 for hover, 1 for forward flight)
+			actuator_effectiveness_matrix_s effectiveness_matrix_pub{};
+			effectiveness_matrix_pub.timestamp = hrt_absolute_time();
+			memcpy(effectiveness_matrix_pub.effectiveness_matrix_row_major, &matrix, sizeof(matrix));
+			effectiveness_matrix_pub.num_actuators = total_num_actuators;
+			_actuator_effectiveness_matrix_pub[i].publish(effectiveness_matrix_pub);
+		}
 }
 
 void
