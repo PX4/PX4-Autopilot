@@ -162,5 +162,5 @@ protected:
 	Mavlink &_mavlink;
 
 	bool _first_send{false};
-	hrt_abstime _last_param_sent_timestamp{0};	// abstime at which the last parameter was sent
+	hrt_abstime _last_param_sent_timestamp{0}; // time at which the last parameter was sent
 };

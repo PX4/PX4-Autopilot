@@ -410,9 +410,9 @@ MavlinkParametersManager::send_one()
 {
 	const hrt_abstime now = hrt_absolute_time();
 
-	// If we are in low bandwidth mode, throttle parameter sending at 8Hz
+	// If in low-bandwidth mode, throttle parameter transmission to 8 Hz
 	if (_mavlink.get_mode() == Mavlink::MAVLINK_MODE_LOW_BANDWIDTH
-	    && now < _last_param_sent_timestamp + _mavlink.get_mav_prm_wait_s() * 1e6f) {
+	    && now < _last_param_sent_timestamp + 125_ms) {
 		return false;
 	}
 
