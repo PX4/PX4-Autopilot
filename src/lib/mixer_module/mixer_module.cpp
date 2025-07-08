@@ -541,8 +541,6 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 void
 MixingOutput::output_limit_calc(const bool armed, const int num_channels, const float output[MAX_ACTUATORS])
 {
-	const bool pre_armed = armNoThrottle();
-
 	// time to slowly ramp up the ESCs
 	static constexpr hrt_abstime RAMP_TIME_US = 500_ms;
 
@@ -589,7 +587,7 @@ MixingOutput::output_limit_calc(const bool armed, const int num_channels, const 
 	 */
 	auto local_limit_state = _output_state;
 
-	if (pre_armed) {
+	if (isPrearmed()) {
 		local_limit_state = OutputLimitState::ON;
 	}
 

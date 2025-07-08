@@ -209,7 +209,7 @@ protected:
 
 private:
 
-	bool armNoThrottle() const
+	bool isPrearmed() const
 	{
 		return (_armed.prearmed && !_armed.armed) || _armed.in_esc_calibration_mode;
 	}
