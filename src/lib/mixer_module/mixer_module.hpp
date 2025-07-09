@@ -79,14 +79,12 @@ public:
 
 	/**
 	 * Callback to update the (physical) actuator outputs in the driver
-	 * @param stop_motors if true, all motors must be stopped (if false, individual motors
-	 *                    might still be stopped via outputs[i] == disarmed_value)
 	 * @param outputs individual actuator outputs in range [min, max] or failsafe/disarmed value
 	 * @param num_outputs number of outputs (<= max_num_outputs)
 	 * @param num_control_groups_updated number of actuator_control groups updated
 	 * @return if true, the update got handled, and actuator_outputs can be published
 	 */
-	virtual bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	virtual bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 				   unsigned num_outputs, unsigned num_control_groups_updated) = 0;
 
 	/** called whenever the mixer gets updated/reset */

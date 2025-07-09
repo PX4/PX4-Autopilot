@@ -473,15 +473,11 @@ bool MixingOutput::update()
 void
 MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates)
 {
-	bool stop_motors = !_throttle_armed && !_actuator_test.inTestMode();
-
 	if (_armed.lockdown || _armed.manual_lockdown) {
 		// overwrite outputs in case of lockdown with disarmed values
 		for (size_t i = 0; i < _max_num_outputs; i++) {
 			_current_output_value[i] = _disarmed_value[i];
 		}
-
-		stop_motors = true;
 
 	} else if (_armed.force_failsafe) {
 		// overwrite outputs in case of force_failsafe with _failsafe_value values
@@ -513,7 +509,7 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 	}
 
 	/* now return the outputs to the driver */
-	if (_interface.updateOutputs(stop_motors, _current_output_value, _max_num_outputs, has_updates)) {
+	if (_interface.updateOutputs(_current_output_value, _max_num_outputs, has_updates)) {
 		actuator_outputs_s actuator_outputs{};
 		setAndPublishActuatorOutputs(_max_num_outputs, actuator_outputs);
 
