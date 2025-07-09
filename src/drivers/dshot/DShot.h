@@ -76,8 +76,6 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	void retrieve_and_print_esc_info_thread_safe(const int motor_index);
-
 	/**
 	 * Send a dshot command to one or all motors
 	 * This is expected to be called from another thread.
@@ -92,7 +90,7 @@ public:
 
 	bool telemetry_enabled() const { return _telemetry != nullptr; }
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
@@ -131,8 +129,6 @@ private:
 
 	int handle_new_bdshot_erpm(void);
 
-	int request_esc_info();
-
 	void Run() override;
 
 	void update_params();
@@ -140,6 +136,8 @@ private:
 	void update_num_motors();
 
 	void handle_vehicle_commands();
+
+	uint16_t convert_output_to_3d_scaling(uint16_t output);
 
 	MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 	uint32_t _reversible_outputs{};
@@ -154,11 +152,9 @@ private:
 
 	px4::atomic<Command *> _new_command{nullptr};
 
-	px4::atomic<DShotTelemetry::OutputBuffer *> _request_esc_info{nullptr};
 
 	bool _outputs_initialized{false};
 	bool _outputs_on{false};
-	bool _waiting_for_esc_info{false};
 	bool _bidirectional_dshot_enabled{false};
 
 	static constexpr unsigned _num_outputs{DIRECT_PWM_OUTPUT_CHANNELS};
@@ -167,6 +163,8 @@ private:
 	int _num_motors{0};
 
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t	_bdshot_rpm_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot rpm")};
+	perf_counter_t	_dshot_telem_perf{perf_alloc(PC_COUNT, MODULE_NAME": dshot telem")};
 
 	Command _current_command{};
 

@@ -276,7 +276,7 @@ int Voxl2IO::get_version_info()
 	return (got_response == true ? 0 : -1);
 }
 
-bool Voxl2IO::updateOutputs(bool stop_motors, uint16_t outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
+bool Voxl2IO::updateOutputs(uint16_t outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			    unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	// Stop Mixer while ESCs are being calibrated
@@ -305,13 +305,7 @@ bool Voxl2IO::updateOutputs(bool stop_motors, uint16_t outputs[input_rc_s::RC_IN
 			_pwm_on = true;
 		}
 
-		//Do we even need this condition? mixer should handle stopping motors anyway by sending the disable command, right?
-		if (0) { //(!_pwm_on || stop_motors) {
-			output_cmds[i] = _parameters.pwm_dis * MIXER_OUTPUT_TO_CMD_SCALE; //0; //convert to ns
-
-		} else {
-			output_cmds[i] = ((uint32_t)outputs[i]) * MIXER_OUTPUT_TO_CMD_SCALE;  //convert to ns
-		}
+		output_cmds[i] = ((uint32_t)outputs[i]) * MIXER_OUTPUT_TO_CMD_SCALE;  //convert to ns
 	}
 
 	Command cmd;

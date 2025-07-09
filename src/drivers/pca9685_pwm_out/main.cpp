@@ -70,7 +70,7 @@ public:
 	static int custom_command(int argc, char *argv[]);
 	static int print_usage(const char *reason = nullptr);
 
-	bool updateOutputs(bool stop_motors, uint16_t *outputs, unsigned num_outputs,
+	bool updateOutputs(uint16_t *outputs, unsigned num_outputs,
 			   unsigned num_control_groups_updated) override;
 
 	int print_status() override;
@@ -136,7 +136,7 @@ int PCA9685Wrapper::init()
 	return PX4_OK;
 }
 
-bool PCA9685Wrapper::updateOutputs(bool stop_motors, uint16_t *outputs, unsigned num_outputs,
+bool PCA9685Wrapper::updateOutputs(uint16_t *outputs, unsigned num_outputs,
 				   unsigned num_control_groups_updated)
 {
 	if (state != STATE::RUNNING) { return false; }

@@ -52,7 +52,7 @@ public:
 	UavcanServoController(uavcan::INode &node);
 	~UavcanServoController() = default;
 
-	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs);
+	void update_outputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs);
 
 private:
 	uavcan::INode								&_node;

@@ -82,7 +82,7 @@ public:
 	int print_status() override;
 
 	/** @see OutputModuleInterface */
-	bool updateOutputs(bool stop_motors, uint16_t outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
+	bool updateOutputs(uint16_t outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	virtual int	init();
