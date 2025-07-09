@@ -5,11 +5,11 @@
 ## 系统必备组件
 
 - 具有显示器、键盘或配置 ssh 连接的工作树莓派
-- 本指南假定您的 RPi 上安装了 Raspbian "JESSIE"。 如果没有：[安装它](https://www.raspberrypi.org/downloads/raspbian/) ，或者将你的树莓派操作系统Raspbian Wheezy [升级](http://raspberrypi.stackexchange.com/questions/27858/upgrade-to-raspbian-jessie)至Jessie版本。
+- 本指南假定您的 RPi 上安装了 Raspbian "JESSIE"。 If not: [install it](https://www.raspberrypi.org/downloads/raspbian/) or [upgrade](https://raspberrypi.stackexchange.com/questions/27858/upgrade-to-raspbian-jessie) your Raspbian Wheezy to Jessie.
 
 ## 安装
 
-请遵循[本指南](http://wiki.ros.org/ROSberryPi/Installing%20ROS%20Indigo%20on%20Raspberry%20Pi)来实际安装ROS Indigo。  注意：安装 "ROS-Comm" 变体。 桌面变体太臃肿了。
+Follow [this guide](https://wiki.ros.org/ROSberryPi/Installing%20ROS%20Indigo%20on%20Raspberry%20Pi) for the actual installation of ROS Indigo. 注意：安装 "ROS-Comm" 变体。 桌面变体太臃肿了。
 
 ### 安装程序包时出错
 

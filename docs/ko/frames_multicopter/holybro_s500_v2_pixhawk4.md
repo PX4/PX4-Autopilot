@@ -45,8 +45,8 @@ FrSky Taranis 무선 조종기를 사용하여 조립하는 경우를 예시로 
 | 축거 : 480mm             | 1  |
 | 암                                      | 4  |
 | 착륙 기어 세트                               | 2  |
-| M3\*8 나사                               | 18 |
-| M2 5\*6 나사                             | 24 |
+| M3\*8 screws                           | 18 |
+| M2 5\*6 screws                         | 24 |
 | 배터리 혁지                                 | 1  |
 | 프로펠러 1045 (V2 업데이트) | 1  |
 
@@ -73,8 +73,8 @@ FrSky Taranis 무선 조종기를 사용하여 조립하는 경우를 예시로 
 | USB 케이블                                                | 1   |
 | 'X'타입 접이식 받침대 마운트                                      | 1   |
 | 70mm & 140mm carbon rod standoff   | 2   |
-| 6\*3 2.54mm 피치 수평 핀                    | 1   |
-| 8\*3 2.54mm 피치 수평 핀                    | 2   |
+| 6\*3 2.54mm pitch Horizontal Pin       | 1   |
+| 8\*3 2.54mm pitch Horizontal Pin       | 2   |
 | 폼 세트                                                   | 1   |
 | Pixhawk 4 빠른 시작 가이드                                    | 1   |
 | Pixhawk4 핀아웃                                           | 1   |
@@ -268,7 +268,7 @@ M3X8 나사 (총 8개, 각 측면에 4개)로 연결합니다.
 ## PX4 설정
 
 _QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the QAV250 frame.
-[Download and install](http://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
+[Download and install](https://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
 
 :::tip
 Full instructions for installing and configuring PX4 can be found in [Basic Configuration](../config/index.md).

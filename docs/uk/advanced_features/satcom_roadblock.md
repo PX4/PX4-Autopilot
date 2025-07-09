@@ -9,7 +9,7 @@
 
 Для посилання на супутникове зв'язку потрібні наступні компоненти:
 
-- Модуль [Супутникового модему RockBlock 9603 Iridium](https://www.iridium.com/products/rock-seven-rockblock-9603/), підключений до Pixhawk, спалахнув за допомогою автопілота PX4.
+- A [RockBlock 9603 Iridium Satellite Modem](https://www.iridium.com/products/ground-control-rockblock-9603/) module connected to a Pixhawk flashed with the PX4 Autopilot.
 - Сервер повторного повідомлення працює Ubuntu Linux.
 - Автономний комп'ютер запущено _QGroundControl_ на Ubuntu Linux
 
@@ -21,7 +21,7 @@
 The setup was tested with the current release of _QGroundControl_ running on Ubuntu 14.04 and 16.04.
 
 - Можливо, можна запустити систему на інших наземних станціях і операційних системах, але це не було перевірено (і не гарантовано працює).
-- Також можна використовувати модуль [RockBlock MK2](https://www.groundcontrol.com/us/product/rockblock-9602-satellite-modem/).
+- The [RockBlock MK2](https://www.groundcontrol.com/product/rockblock-9602-satellite-modem/) module can also be used.
   Модуль RockBlock 9603 рекомендується оскільки він є меншим та легшим, одночасно забезпечує той самий функціонал.
 
 :::
@@ -34,7 +34,7 @@ The setup was tested with the current release of _QGroundControl_ running on Ubu
 - Кожне повідомлення, передане через систему, коштує один _кредит_ за 50 байт.
   Пакети кредитів можна купити від RockBlock за £0.04-£0.11 за кредит, в залежності від розміру пакета.
 
-Звертайтесь до [документації RockBlock](https://docs.rockblock.rock7.com/docs) для детального пояснення модулів, оперативних витрат та _RockBlock_ загалом.
+Refer to the [RockBlock Documentation](https://docs.groundcontrol.com/iot/rockblock) for a detailed explanation of the modules, running costs and _RockBlock_ in general.
 
 ## Налаштування транспорту
 
@@ -43,15 +43,15 @@ The setup was tested with the current release of _QGroundControl_ running on Ubu
 Підключіть модуль RockBlock до послідовного порту Pixhawk.
 Через вимоги до живлення модуля його можна живити лише через високопотужний послідовний порт, оскільки для роботи необхідно максимум 0,5 А при 5 В.
 Якщо жоден з них недоступний або вільний, то інший джерело живлення, яке має той самий рівень землі, що й Pixhawk і може забезпечити необхідну потужність, повинно бути налаштоване.
-Деталі щодо [роз'ємів](https://docs.rockblock.rock7.com/docs/connectors) та вимог до [живлення](https://docs.rockblock.rock7.com/docs/power-supply) можна знайти в документації RockBlock.
+The details of the [connectors](https://docs.groundcontrol.com/iot/rockblock/specification/connectors-wiring) and the [power requirements](https://docs.groundcontrol.com/iot/rockblock/electrical) can be found in the RockBlock documentation.
 
 ### Модулі
 
 Модуль може використовувати як внутрішню антену, так і зовнішню, підключену до роз'єму SMA.
-Для [перемикання між двома режимами антен](https://docs.rockblock.rock7.com/docs/switching-rockblock-9603-antenna-mode) потрібно змінити положення невеликого кабелю RF.
+To [switch between the two antennas modes](https://docs.groundcontrol.com/iot/rockblock/user-manual/9603-atenna-mode) the position of a small RF link cable needs to changed.
 Якщо використовується зовнішня антена, завжди переконуйтеся, що антена підключена до модуля перед включенням живлення, щоб уникнути пошкодження модуля.
 
-Стандартна швидкість передачі даних модуля - 19200. However, the PX4 _iridiumsbd_ driver requires a baud rate of 115200 so it needs to be changed using the [AT commands](https://www.groundcontrol.com/en/wp-content/uploads/2022/02/IRDM_ISU_ATCommandReferenceMAN0009_Rev2.0_ATCOMM_Oct2012.pdf).
+Стандартна швидкість передачі даних модуля - 19200. However, the PX4 _iridiumsbd_ driver requires a baud rate of 115200 so it needs to be changed using the [AT commands](https://www.groundcontrol.com/wp-content/uploads/2022/02/IRDM_ISU_ATCommandReferenceMAN0009_Rev2.0_ATCOMM_Oct2012.pdf).
 
 1. Connect to the module with using a 19200/8-N-1 setting and check if the communication is working using the command: `AT`.
   Відповідь має бути: `OK`.
@@ -101,7 +101,6 @@ drivers/telemetry/iridiumsbd
 Сервер relay має бути запущений або на Ubuntu 16.04 або 14.04 OS.
 
 1. Сервер, який працює як ретранслятор повідомлень, повинен мати статичну IP-адресу та два загальнодоступних відкритих TCP-порти:
-
   - `5672` для брокера повідомлень _RabbitMQ_ (можна змінити в налаштуваннях _rabbitmq_)
   - `45679` для інтерфейсу HTTP POST (можна змінити у файлі **relay.cfg**)
 
@@ -124,7 +123,7 @@ drivers/telemetry/iridiumsbd
   sudo rabbitmqctl set_permissions iridiumsbd ".*" ".*" ".*"
   ```
 
-5. Клонувати репозиторій [SatComInfrastructure](https://github.com/acfloria/SatComInfrastructure.git):
+5. Clone the [SatComInfrastructure](https://github.com/acfloria/SatComInfrastructure) repository:
 
   ```sh
   git clone https://github.com/acfloria/SatComInfrastructure.git
@@ -241,7 +240,6 @@ drivers/telemetry/iridiumsbd
 
 5. Супутникова система зв'язку тепер готова до використання.
   Пріоритетний зв'язок, через який надсилаються команди, визначається наступними способами:
-
   - Якщо користувач не вказав зв'язок, звичайний радіо телеметрійний зв'язок віддається перевагу перед високозапізнюваним зв'язком.
   - Автопілот та QGC перехоплюватимуть звичайний радіо телеметрійний зв'язок на високозапізнюваний зв'язок, якщо транспортний засіб зброєний, а радіо телеметрійний зв'язок втрачений (не отримано жодного повідомлення MAVLink протягом певного часу).
     Як тільки радіо телеметрійний зв'язок відновлюється, QGC та автопілот повертаються до нього.
@@ -256,7 +254,6 @@ drivers/telemetry/iridiumsbd
   - Перевірте налаштування реле-сервера і переконайтеся, що вони правильні, особливо IMEI.
 
 - Повідомлення з супутникового зв'язку від літака не надходять на наземну станцію:
-
   - Перевірте за допомогою системної консолі, чи запущено драйвер _iridiumsbd_, і якщо так, чи приймається сигнал від будь-якого супутника модулем:
 
     ```sh
@@ -268,7 +265,6 @@ drivers/telemetry/iridiumsbd
   - Перевірте, чи з'єднання активне, і чи налаштування в ньому правильні.
 
 - Драйвер IridiumSBD не запускається:
-
   - Перезапустіть транспортний засіб.
     Якщо це допомагає, збільште час затримки в `extras.txt`, перед тим як драйвер буде запущений.
     Якщо це не допомагає, переконайтеся, що Pixhawk і модуль мають одинаковий рівень ґрунту. Підтвердіть також, що швидкість передачі даних модуля встановлена на 115200.

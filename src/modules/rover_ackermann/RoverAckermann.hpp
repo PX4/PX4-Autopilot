@@ -48,6 +48,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_status.h>
 
 // Local includes
 #include "AckermannActControl/AckermannActControl.hpp"
@@ -90,9 +91,9 @@ private:
 	void Run() override;
 
 	/**
-	 * @brief Generate and publish roverSetpoints from manualControlSetpoints.
+	 * @brief Generate rover setpoints from supported PX4 internal modes
 	 */
-	void manualControl();
+	void generateSetpoints();
 
 	/**
 	 * @brief Update the active controllers.
@@ -115,6 +116,7 @@ private:
 
 	// uORB subscriptions
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	vehicle_control_mode_s _vehicle_control_mode{};
 

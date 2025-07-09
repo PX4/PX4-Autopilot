@@ -1656,7 +1656,6 @@ void SeptentrioDriver::publish()
 	_message_gps_state.device_id = get_device_id();
 	_message_gps_state.selected_rtcm_instance = _selected_rtcm_instance;
 	_message_gps_state.rtcm_injection_rate = rtcm_injection_frequency();
-
 	_sensor_gps_pub.publish(_message_gps_state);
 
 	if (_message_gps_state.spoofing_state != _spoofing_state) {

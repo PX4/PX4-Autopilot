@@ -78,7 +78,7 @@ arm-none-eabi-objcopy -O ihex build/px4_fmu-v6x_bootloader/px4_fmu-v6x_bootloade
 
 ### PX4 Bootloader FMUv5X та раніші версії
 
-Плата PX4 до FMUv5X (до STM32H7) використовувала репозиторій [завантажувача PX4](https://github.com/PX4/Bootloader).
+PX4 boards up to FMUv5X (before STM32H7) used the [PX4 bootloader](https://github.com/PX4/PX4-Bootloader) repository.
 
 Інструкції в README репозиторію пояснюють, як його використовувати.
 
@@ -116,7 +116,7 @@ arm-none-eabi-objcopy -O ihex build/px4_fmu-v6x_bootloader/px4_fmu-v6x_bootloade
 
 :::
 
-4. Термінал _gdb_ з'являється, і він повинен відображати такий вивід:
+4. The _gdb terminal_ appears and it should display (something like) the following output:
 
   ```sh
   GNU gdb (GNU Tools for Arm Embedded Processors 7-2017-q4-major) 8.0.50.20171128-git
@@ -128,9 +128,9 @@ arm-none-eabi-objcopy -O ihex build/px4_fmu-v6x_bootloader/px4_fmu-v6x_bootloade
   This GDB was configured as "--host=x86_64-linux-gnu --target=arm-none-eabi".
   Type "show configuration" for configuration details.
   For bug reporting instructions, please see:
-  <http://www.gnu.org/software/gdb/bugs/>.
+  <https://www.sourceware.org/gdb/bugs/>.
   Find the GDB manual and other documentation resources online at:
-  <http://www.gnu.org/software/gdb/documentation/>.
+  <https://www.sourceware.org/gdb/documentation/>.
   For help, type "help".
   Type "apropos word" to search for commands related to "word"...
   Reading symbols from px4fmuv5_bl.elf...done.
@@ -147,7 +147,7 @@ arm-none-eabi-objcopy -O ihex build/px4_fmu-v6x_bootloader/px4_fmu-v6x_bootloade
 7. Увімкніть Pixhawk за допомогою іншого USB-кабелю та під’єднайте зонд до порту `FMU-DEBUG`.
 
   ::: info
-  Якщо ви використовуєте зонд Dronecode, вам може знадобитися зняти футляр, щоб підключитися до порту `FMU-DEBUG` (наприклад, на Pixhawk 4 це можна зробити за допомогою викрутки T6 Torx).
+  If using a Zubax BugFace BF1 you may need to remove the case in order to connect to the `FMU-DEBUG` port (e.g. on Pixhawk 4 you would do this using a T6 Torx screwdriver).
 
 :::
 

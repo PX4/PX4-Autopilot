@@ -1,6 +1,6 @@
 # Trimble MB-Two
 
-The [Trimble MB-Two RTK GPS receiver](https://www.trimble.com/Precision-GNSS/MB-Two-Board.aspx) is a high-end, dual-frequency [RTK GPS module](../gps_compass/rtk_gps.md) that can be configured as either base or rover.
+The [Trimble MB-Two RTK GPS receiver](https://oemgnss.trimble.com/en/products/receiver-modules/mb-two) is a high-end, dual-frequency [RTK GPS module](../gps_compass/rtk_gps.md) that can be configured as either base or rover.
 
 Крім того, надаючи точну інформацію про положення, MB-Two може оцінити кут напрямку (він має підтримку двох антен). Це корисно для ситуацій, де компас не може надати надійну інформацію про напрямок, наприклад, при польоті близько до металевих конструкцій.
 
@@ -18,7 +18,7 @@ The [Trimble MB-Two RTK GPS receiver](https://www.trimble.com/Precision-GNSS/MB-
 ## Антени та кабель
 
 Для Trimble MB-Two потрібні дві двохчастотні (L1/L2) антени.
-A good example is the [Maxtenna M1227HCT-A2-SMA](http://www.maxtena.com/products/helicore/m1227hct-a2-sma/)
+A good example is the [Maxtenna M1227HCT-A2-SMA](https://www.maxtena.com/products/helicore/m1227hct-a2-sma/)
 (which can be bought, for instance, from [Farnell](https://uk.farnell.com/maxtena/m1227hct-a2-sma/antenna-1-217-1-25-1-565-1-61ghz/dp/2484959)).
 
 Тип роз'єму антени на пристрої - MMCX.

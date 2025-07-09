@@ -65,7 +65,7 @@ Crazyflie 2.1 може літати лише в режимі [Стабілізо
 1. Завантажте вихідний код завантажувача PX4:
 
   ```sh
-  git clone https://github.com/PX4/Bootloader.git --recurse-submodules
+  git clone https://github.com/PX4/PX4-Bootloader.git --recurse-submodules
   ```
 
 2. Перейдіть до верхньої директорії вихідного коду та скомпілюйте його за допомогою:
