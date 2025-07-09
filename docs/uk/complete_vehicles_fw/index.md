@@ -12,7 +12,7 @@
 Цей розділ містить споживчі транспортні засоби, які працюють на _спеціальній_ версії PX4 (підтримується їхніми постачальниками).
 Вони можуть оновлюватися або не оновлюватися для запуску "vanilla" PX4.
 
-- [Sentera PXH](https://sentera.com/products/fieldcapture/ag-drones/phx/)
+- [Sentera PXH](https://senterasensors.com/phx/)
 
 <!--
 ## Drone Development Kits/Reference Platforms

@@ -62,9 +62,9 @@ This might be implemented as a separate [companion computer](#offboard-companion
 - Supports many different vehicle frames/types, including: [multicopters](../frames_multicopter/index.md), [fixed-wing aircraft](../frames_plane/index.md) (planes), [VTOLs](../frames_vtol/index.md) (hybrid multicopter/fixed-wing), [ground vehicles](../frames_rover/index.md), and [underwater vehicles](../frames_sub/index.md).
 - Great choice of drone components for [flight controller](#flight-controller), [sensors](#sensors), [payloads](#payloads), and other peripherals.
 - Flexible and powerful [flight modes](#flight-modes) and [safety features](#safety-settings-failsafe).
-- Robust and deep integration with [companion computers](#offboard-companion-computer) and [robotics APIs](../robotics/index.md) such as [ROS 2](../ros2/user_guide.md) and [MAVSDK](http://mavsdk.mavlink.io).
+- Robust and deep integration with [companion computers](#offboard-companion-computer) and [robotics APIs](../robotics/index.md) such as [ROS 2](../ros2/user_guide.md) and [MAVSDK](https://mavsdk.mavlink.io/main/en/index.html).
 
-PX4 is a core part of a broader drone platform that includes the [QGroundControl](#qgc) ground station, [Pixhawk hardware](https://pixhawk.org/), and [MAVSDK](http://mavsdk.mavlink.io) for integration with companion computers, cameras and other hardware using the MAVLink protocol.
+PX4 is a core part of a broader drone platform that includes the [QGroundControl](#qgc) ground station, [Pixhawk hardware](https://pixhawk.org/), and [MAVSDK](https://mavsdk.mavlink.io/main/en/index.html) for integration with companion computers, cameras and other hardware using the MAVLink protocol.
 PX4 is supported by the [Dronecode Project](https://www.dronecode.org/).
 
 ## Наземні станції керування
@@ -74,9 +74,9 @@ PX4 is supported by the [Dronecode Project](https://www.dronecode.org/).
 
 ### QGroundControl {#qgc}
 
-The Dronecode GCS software is called [QGroundControl](http://qgroundcontrol.com/) ("QGC").
+The Dronecode GCS software is called [QGroundControl](https://qgroundcontrol.com/) ("QGC").
 Він працює на апаратному забезпеченні Windows, Android, MacOS або Linux і підтримує широкий спектр форм факторів екрану.
-You can download it (for free) from [here](http://qgroundcontrol.com/downloads/).
+You can download it (for free) from [here](https://qgroundcontrol.com/downloads/).
 
 ![QGC Main Screen](../../assets/concepts/qgc_fly_view.png)
 

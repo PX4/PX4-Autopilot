@@ -187,7 +187,7 @@ The M2 connector on the adaptor is 14-pin CN4 STDC14 (see the [STLinkv3-MINIE Us
 Some SWD [debug probes](#debug-probes) come with adapters/cables for connecting to common Pixhawk [debug ports](#debug-ports).
 Зонди, про які відомо, що поставляються з роз'ємами, перераховані нижче:
 
-- [DroneCode Probe](../debug/probe_bmp.md#dronecode-probe): comes with a connector for attaching to the [Pixhawk Debug Mini](#pixhawk-debug-mini)
+- [Zubax BugFace BF1](../debug/probe_bmp.md#dronecode-probe): comes with a connector for attaching to the [Pixhawk Debug Mini](#pixhawk-debug-mini)
 
 ### Адаптери, специфічні для плати
 

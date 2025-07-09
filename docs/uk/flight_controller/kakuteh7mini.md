@@ -80,7 +80,7 @@ PX4 runs on the H7 mini v1.3 and later.
 
 The board comes pre-installed with [Betaflight](https://github.com/betaflight/betaflight/wiki).
 Before the PX4 firmware can be installed, the _PX4 bootloader_ must be flashed.
-Download the [holybro_kakuteh7mini_bootloader.hex](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/kakuteh7mini/holybro_kakuteh7mini_bootloader.hex) bootloader binary and read [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
+Download the [holybro_kakuteh7mini_bootloader.hex](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/kakuteh7mini/holybro_kakuteh7mini_bootloader.hex) bootloader binary and read [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
 
 ## Збірка прошивки
 

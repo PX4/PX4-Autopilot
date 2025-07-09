@@ -155,7 +155,7 @@ if __name__ == "__main__":
 ## Code explanation
 
 The `mavros_msgs` package contains all of the custom messages required to operate services and topics provided by the MAVROS package.
-All services and topics as well as their corresponding message types are documented in the [mavros wiki](http://wiki.ros.org/mavros).
+All services and topics as well as their corresponding message types are documented in the [mavros wiki](https://wiki.ros.org/mavros).
 
 ```py
 import rospy
@@ -237,7 +237,7 @@ for i in range(100):
 ```
 
 We prepare the message request used to set the custom mode to `OFFBOARD`.
-A list of [supported modes](http://wiki.ros.org/mavros/CustomModes#PX4_native_flight_stack) is available for reference.
+A list of [supported modes](https://wiki.ros.org/mavros/CustomModes#PX4_native_flight_stack) is available for reference.
 
 ```py
 offb_set_mode = SetModeRequest()

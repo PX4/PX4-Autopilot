@@ -444,7 +444,7 @@ The local/world and body frames used by ROS and PX4 are different.
 | World | FRD or NED (X **N**orth, Y **E**ast, Z **D**own) | FLU or ENU (X **E**ast, Y **N**orth, Z **U**p) |
 
 :::tip
-See [REP105: Coordinate Frames for Mobile Platforms](http://www.ros.org/reps/rep-0105.html) for more information about ROS frames.
+See [REP105: Coordinate Frames for Mobile Platforms](https://www.ros.org/reps/rep-0105.html) for more information about ROS frames.
 :::
 
 Обидві системи координат показані на зображенні нижче (FRD зліва / FLU справа).
@@ -455,7 +455,6 @@ The FRD (NED) conventions are adopted on **all** PX4 topics unless explicitly sp
 Therefore, ROS 2 nodes that want to interface with PX4 must take care of the frames conventions.
 
 - Для повороту вектора з ENU на NED потрібно виконати дві основні обертання:
-
   - first a pi/2 rotation around the `Z`-axis (up),
   - then a pi rotation around the `X`-axis (old East/new North).
 
