@@ -138,7 +138,11 @@ public:
 		bool control_setpoint_update{false};
 	};
 
-	void update(bool armed, uint8_t user_intended_nav_state, bool failsafe_action_active, UpdateRequest &update_request);
+	void update(bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request);
+	void setFailsafeState(bool failsafe_action_active)
+	{
+		_failsafe_action_active = failsafe_action_active;
+	}
 
 	/**
 	 * Mode executor ID for who is currently in charge (and can send commands etc).
@@ -198,7 +202,8 @@ public:
 		bool control_setpoint_update{false};
 	};
 
-	void update(bool armed, uint8_t user_intended_nav_state, bool failsafe_action_active, UpdateRequest &update_request) {}
+	void update(bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request) {}
+	void setFailsafeState(bool failsafe_action_active) {}
 
 	int modeExecutorInCharge() const { return ModeExecutors::AUTOPILOT_EXECUTOR_ID; }
 
