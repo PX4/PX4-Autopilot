@@ -40,6 +40,8 @@
 #include "FlightTask.hpp"
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/wind.h>
+#include <uORB/topics/vehicle_air_data.h>
 #include <lib/motion_planning/HeadingSmoothing.hpp>
 #include <lib/motion_planning/PositionSmoothing.hpp>
 #include <lib/slew_rate/SlewRate.hpp>
@@ -55,6 +57,9 @@ public:
 
 private:
 	uORB::SubscriptionData<vehicle_global_position_s> _sub_vehicle_global_position{ORB_ID(vehicle_global_position)};
+	uORB::SubscriptionData<wind_s> _sub_wind{ORB_ID(wind)};
+	uORB::SubscriptionData<vehicle_air_data_s> _sub_vehicle_air_data{ORB_ID(vehicle_air_data)};
+	uORB::SubscriptionData<vehicle_attitude_s> _sub_vehicle_attitude{ORB_ID(vehicle_attitude)};
 
 	/**
 	 * Update the flight task state machine
@@ -67,6 +72,11 @@ private:
 	void _updateSetpoints();
 
 	/**
+	 * Update return acceleration setpoints.
+	 */
+	void _updateAccelerationSetpoints();
+
+	/**
 	 * Update estimated flown distance since the last time home bearing was updated
 	 */
 	void _updateDistanceFlownEstimate();
@@ -76,6 +86,11 @@ private:
 	 * @return true on success, false on error
 	 */
 	bool _updateBearingToHome();
+
+	/**
+	 * Save the the latests available wind estimate.
+	 */
+	void _readWindEstimate();
 
 	/**
 	 * Initialize home position
@@ -132,6 +147,7 @@ private:
 
 	matrix::Vector3d _home_position;			/**< Stores home position */
 	matrix::Vector3d _start_vehicle_global_position;	/**< Stores vehicle last known GNSS position */
+	matrix::Vector2f _wind_estimate{0.f, 0.f};		/**< Stores wind velocity estimate in North, East, Down frame */
 	float _bearing_to_home{0.0f};				/**< Stores bearing between home and last GNSS position */
 	float _initial_distance_to_home{0.0f};			/**< Initial distance to home position */
 	float _distance_flown_estimate{0.0f};
@@ -165,6 +181,9 @@ private:
 					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,	//< max vertical acceleration up
 					(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _param_mpc_xy_vel_max,	//< max horizontal velocity
 					(ParamFloat<px4::params::NAV_MC_ALT_RAD>) _param_nav_mc_alt_rad,	//< max vertical error
-					(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad		//< max horizontal error
+					(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad,		//< max horizontal error
+					(ParamInt<px4::params::EKF2_DRAG_CTRL>) _param_ekf2_drag_ctrl, 		//< wind esitmation control
+					(ParamFloat<px4::params::EKF2_BCOEF_X>) _param_ekf2_bcoef_x,		//< x-axis ballistic coefficient
+					(ParamFloat<px4::params::EKF2_BCOEF_Y>) _param_ekf2_bcoef_y		//< y-axis ballistic coefficient
 				       );
 };

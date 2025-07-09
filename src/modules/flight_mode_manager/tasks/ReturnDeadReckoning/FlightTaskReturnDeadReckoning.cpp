@@ -55,7 +55,7 @@ bool FlightTaskReturnDeadReckoning::activate(const trajectory_setpoint_s &last_s
 		PX4_ERR("Failed to initialize task");
 		return false;
 	}
-
+	_readWindEstimate();
 	_computeReturnParameters();
 
 	return true;
@@ -75,6 +75,7 @@ bool FlightTaskReturnDeadReckoning::update()
 			PX4_ERR("Failed to compute bearing to home");
 			return false;
 		}
+		_readWindEstimate();
 	}
 
 	_updateState();
@@ -132,10 +133,10 @@ void FlightTaskReturnDeadReckoning::_updateState()
 
 void FlightTaskReturnDeadReckoning::_updateSetpoints()
 {
+	_updateAccelerationSetpoints();
+
 	switch (_state) {
 	case State::INIT:
-		_slew_rate_acceleration_x.update(0.0f, _deltatime);
-		_slew_rate_acceleration_y.update(0.0f, _deltatime);
 		_slew_rate_velocity_z.update(0.0f, _deltatime);
 
 		// Hold current altitude
@@ -143,8 +144,6 @@ void FlightTaskReturnDeadReckoning::_updateSetpoints()
 		break;
 
 	case State::ASCENT:
-		_slew_rate_acceleration_x.update(0.0f, _deltatime);
-		_slew_rate_acceleration_y.update(0.0f, _deltatime);
 		_slew_rate_velocity_z.update(-_param_mpc_z_v_auto_up.get(), _deltatime);
 
 		// Ascent until reaching the return altitude
@@ -152,8 +151,6 @@ void FlightTaskReturnDeadReckoning::_updateSetpoints()
 		break;
 
 	case State::RETURN:
-		_slew_rate_acceleration_x.update(_rtl_acc * cosf(_bearing_to_home), _deltatime);
-		_slew_rate_acceleration_y.update(_rtl_acc * sinf(_bearing_to_home), _deltatime);
 		_slew_rate_velocity_z.update(0.0f, _deltatime);
 
 		// Stay at the return altitude
@@ -161,8 +158,6 @@ void FlightTaskReturnDeadReckoning::_updateSetpoints()
 		break;
 
 	case State::HOLD:
-		_slew_rate_acceleration_x.update(0.0f, _deltatime);
-		_slew_rate_acceleration_y.update(0.0f, _deltatime);
 		_slew_rate_velocity_z.update(0.0f, _deltatime);
 
 		// Stay at the return altitude
@@ -189,6 +184,43 @@ void FlightTaskReturnDeadReckoning::_updateSetpoints()
 	return;
 }
 
+void FlightTaskReturnDeadReckoning::_updateAccelerationSetpoints()
+{
+	matrix::Vector3f accel_wind_compensation_local{0.f, 0.f, 0.f};
+	matrix::Vector3f accel_wind_compensation{0.f, 0.f, 0.f};
+	matrix::Vector2f accel_return{0.f, 0.f};
+	matrix::Vector2f accel_setpoint{0.f, 0.f};
+	float density = _sub_vehicle_air_data.get().rho;
+
+	matrix::Quaternionf q = matrix::Quatf(_sub_vehicle_attitude.get().q);
+	Vector3f wind_estimate_local = q.rotateVectorInverse(matrix::Vector3f(_wind_estimate(0), _wind_estimate(1), 0.f));
+
+	accel_wind_compensation_local(0) = -0.5f * wind_estimate_local(0)*wind_estimate_local(0) * density / _param_ekf2_bcoef_x.get();
+	accel_wind_compensation_local(1) = -0.5f * wind_estimate_local(1)*wind_estimate_local(1) * density / _param_ekf2_bcoef_y.get();
+
+	accel_wind_compensation = q.rotateVector(accel_wind_compensation_local);
+
+	if (_state == State::RETURN) {
+		if (accel_wind_compensation.norm() > 0.8f * _rtl_acc) {
+			// Wind compensation acceleration is too high, limit it
+			accel_wind_compensation = accel_wind_compensation.normalized() * 0.8f * _rtl_acc;
+		}
+
+		float wind_compensation_factor = accel_wind_compensation.norm() / _rtl_acc;
+
+		accel_return(0) = _rtl_acc * cosf(_bearing_to_home) * (1.f - wind_compensation_factor);
+		accel_return(1) = _rtl_acc * sinf(_bearing_to_home) * (1.f - wind_compensation_factor);
+	}
+
+	accel_setpoint(0) = accel_return(0) + accel_wind_compensation(0);
+	accel_setpoint(1) = accel_return(1) + accel_wind_compensation(1);
+
+	_slew_rate_acceleration_x.update(accel_setpoint(0), _deltatime);
+	_slew_rate_acceleration_y.update(accel_setpoint(1), _deltatime);
+
+	return;
+}
+
 void FlightTaskReturnDeadReckoning::_updateDistanceFlownEstimate()
 {
 	if (_state == State::RETURN) {
@@ -211,6 +243,17 @@ bool FlightTaskReturnDeadReckoning::_updateBearingToHome()
 	return !isnanf(_bearing_to_home);
 }
 
+void FlightTaskReturnDeadReckoning::_readWindEstimate()
+{
+	_wind_estimate.setZero();
+
+	if (_param_ekf2_drag_ctrl.get() == 1) {
+		if (_sub_wind.get().timestamp_sample != 0) {
+			_wind_estimate = matrix::Vector2f(_sub_wind.get().windspeed_north, _sub_wind.get().windspeed_east);
+		}
+	}
+}
+
 bool FlightTaskReturnDeadReckoning::_readHomePosition(matrix::Vector3d &home_position)
 {
 	home_position.setNaN();
@@ -228,7 +271,6 @@ bool FlightTaskReturnDeadReckoning::_readHomePosition(matrix::Vector3d &home_pos
 
 void FlightTaskReturnDeadReckoning::_readGlobalPosition(matrix::Vector3d &global_position)
 {
-
 	global_position.setNaN();
 
 	global_position(0) = _sub_vehicle_global_position.get().lat;
@@ -260,6 +302,9 @@ void FlightTaskReturnDeadReckoning::_computeReturnParameters()
 void FlightTaskReturnDeadReckoning::_updateSubscriptions()
 {
 	_sub_vehicle_global_position.update();
+	_sub_wind.update();
+	_sub_vehicle_air_data.update();
+	_sub_vehicle_attitude.update();
 }
 
 bool FlightTaskReturnDeadReckoning::_initializeSmoothers()
@@ -307,7 +352,7 @@ bool FlightTaskReturnDeadReckoning::_isReturnComplete()
 	}
 
 	if (!ret) {
-		ret = _distance_flown_estimate > 2.5f * _initial_distance_to_home; // 2.5x the initial distance to home
+		ret = _distance_flown_estimate > 3.5f * _initial_distance_to_home; // 2.5x the initial distance to home
 	}
 
 	return ret;
