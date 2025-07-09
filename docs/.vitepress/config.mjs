@@ -66,7 +66,7 @@ export default defineConfig({
       label: "English",
       // other locale specific properties...
       themeConfig: {
-        sidebar: getSidebar.sidebar("en"),
+        sidebar: getSidebar.sidebar("en"), // Generated sidebar from SUMMARY.md files
         editLink: {
           text:
             /* We get a github link if CI env is defined,
@@ -209,6 +209,76 @@ export default defineConfig({
     socialLinks: [
       { icon: "github", link: "https://github.com/PX4/PX4-Autopilot" },
     ],
+  },
+
+  async transformHead({ page, siteData, pageData, title }) {
+    function joinUrlParts(hostname, base, path) {
+      // Join URL parts intelligently, ensuring no double slashes
+
+      // Ensure hostname has no trailing slash
+      const cleanHostname = hostname.endsWith("/")
+        ? hostname.slice(0, -1)
+        : hostname;
+
+      // Combine hostname and base first, then resolve path relative to that.
+      let baseUrlString = `${cleanHostname}${base}`;
+
+      // Use the URL constructor to correctly resolve the path relative to the base URL
+      // Note, the path should not start with a slash (makes it relative to the root)
+      try {
+        const url = new URL(path, baseUrlString);
+        return url.href;
+      } catch (error) {
+        console.error("Error constructing URL:", error);
+        return `${cleanHostname}${base}${path}`; // Fallback, though less robust
+      }
+    }
+
+    // Start with an empty array to accumulate all head tags
+    const head = [];
+
+    let canonicalUrlToAdd; // This will be undefined initially
+
+    // Get value from frontmatter if defined
+    // Assumed to be an absolute URL in the frontmatter
+    const frontmatterCanonicalUrl = pageData.frontmatter?.canonicalUrl;
+    if (frontmatterCanonicalUrl) {
+      canonicalUrlToAdd = frontmatterCanonicalUrl;
+      console.log(
+        `Debug: canonical URL: ${canonicalUrlToAdd} for page: ${pageData.relativePath}`
+      );
+    } else {
+      // No frontmatter override, generate default based on site config
+      // Hostname used for adding canonical URLs to pages
+      const hostname = "https://docs.px4.io/";
+
+      let path = pageData.relativePath.replace(/\.md$/, "");
+
+      if (path === "index") {
+        path = ""; // For the homepage (index.md), the path is empty
+      } else if (path.endsWith("/index")) {
+        path = path.slice(0, -"/index".length); // For directory index pages (e.g., /my-folder/index.md -> /my-folder/)
+      }
+
+      // Ensure fullPath does not start with a slash
+      const fullPath = path.startsWith("/") ? path.slice(1) : path;
+      console.log(
+        `Debug: fullPath: ${fullPath} for page: ${pageData.relativePath}`
+      );
+      // Construct the default canonical URL using hostname and site base
+      // siteData.base handles sub-directory deployments to main and versions
+      canonicalUrlToAdd = joinUrlParts(hostname, siteData.base, fullPath);
+    }
+
+    // Add canonical link to accumulated head array
+    if (canonicalUrlToAdd) {
+      head.push(["link", { rel: "canonical", href: canonicalUrlToAdd }]);
+    }
+
+    // Add any other custom head tags you might want later
+
+    // Return head that will be merged.
+    return head;
   },
 
   head: [
