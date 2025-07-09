@@ -1,9 +1,7 @@
 - [Введення](index.md)
-
   - [Основні поняття](getting_started/px4_basic_concepts.md)
 
 - [Мультикоптери](frames_multicopter/index.md)
-
   - [Функції](features_mc/index.md)
     - [Режим польоту](flight_modes_mc/index.md)
       - [Position Mode (MC)](flight_modes_mc/position.md)
@@ -57,7 +55,6 @@
     - [DJI F450 (CUAV v5 nano)](frames_multicopter/dji_f450_cuav_5nano.md)
 
 - [Літаки (з фіксованим крилом)](frames_plane/index.md)
-
   - [Збірка](assembly/assembly_fw.md)
   - [Конфігурація/підлаштування](config_fw/index.md)
     - [Auto-tune](config/autotune_fw.md)
@@ -85,7 +82,6 @@
     - [Wing Wing Z84 (Pixracer)](frames_plane/wing_wing_z84.md)
 
 - [VTOL (Вертикальний зліт та посадка)](frames_vtol/index.md)
-
   - [Assembly](assembly/assembly_vtol.md)
   - [Конфігурація/Налаштування VTOL](config_vtol/index.md)
     - [Auto-tune](config/autotune_vtol.md)
@@ -110,7 +106,6 @@
   - [Complete Vehicles](complete_vehicles_vtol/index.md)
 
 - [Operations](config/operations.md)
-
   - [Безпека](config/safety_intro.md)
     - [Конфігурація безпеки (запобіжники)](config/safety.md)
     - [Моделювання відмовостійкості](config/safety_simulation.md)
@@ -131,7 +126,6 @@
     - [QGroundControl Flight-Readiness Status](flying/pre_flight_checks.md)
 
 - [Вибір обладнання & Налаштування](hardware/drone_parts.md)
-
   - [Flight Controllers (Autopilots)](flight_controller/index.md)
     - [Польотні контролери](getting_started/flight_controller_selection.md)
     - [Серія Pixhawk](flight_controller/pixhawk_series.md)
@@ -168,13 +162,11 @@
       - [ARK Electronics ARKV6X](flight_controller/ark_v6x.md)
       - [ARK FPV Flight Controller](flight_controller/ark_fpv.md)
       - [ARK Pi6X Flow Flight Controller](flight_controller/ark_pi6x.md)
-      - [CUAV X7](flight_controller/cuav_x7.md)
       - [CUAV Nora](flight_controller/cuav_nora.md)
       - [CUAV V5+ (FMUv5)](flight_controller/cuav_v5_plus.md)
         - [Wiring Quickstart](assembly/quick_start_cuav_v5_plus.md)
       - [CUAV V5 nano (FMUv5)](flight_controller/cuav_v5_nano.md)
         - [Швидке підключення CUAV V5 nano](assembly/quick_start_cuav_v5_nano.md)
-      - [CUAV Pixhack v3 (FMUv3)](flight_controller/pixhack_v3.md)
       - [CubePilot Cube Orange+ (CubePilot)](flight_controller/cubepilot_cube_orangeplus.md)
       - [CubePilot Cube Orange (CubePilot)](flight_controller/cubepilot_cube_orange.md)
       - [CubePilot Cube Yellow (CubePilot)](flight_controller/cubepilot_cube_yellow.md)
@@ -190,8 +182,7 @@
       - [ModalAI Flight Core v1](flight_controller/modalai_fc_v1.md)
       - [ModalAI VOXL Flight](flight_controller/modalai_voxl_flight.md)
       - [ModalAI VOXL 2](flight_controller/modalai_voxl_2.md)
-      - [mRobotics-X2.1 (FMUv2)](flight_controller/mro_x2.1.md)
-      - [mRo Control Zero F7)](flight_controller/mro_control_zero_f7.md)
+      - [mRo Control Zero F7](flight_controller/mro_control_zero_f7.md)
       - [Sky-Drones AIRLink](flight_controller/airlink.md)
       - [SPRacing SPRacingH7EXTREME](flight_controller/spracingh7extreme.md)
       - [ThePeach FCC-K1](flight_controller/thepeach_k1.md)
@@ -208,10 +199,13 @@
       - [BetaFPV Beta75X 2S Brushless Whoop](complete_vehicles_mc/betafpv_beta75x.md)
       - [Bitcraze Crazyflie 2.0 ](complete_vehicles_mc/crazyflie2.md)
       - [Aerotenna OcPoC-Zynq Mini](flight_controller/ocpoc_zynq.md)
+      - [CUAV X7](flight_controller/cuav_x7.md)
       - [CUAV v5](flight_controller/cuav_v5.md)
+      - [CUAV Pixhack v3 (FMUv3)](flight_controller/pixhack_v3.md)
       - [Holybro Kakute F7](flight_controller/kakutef7.md)
       - [Holybro Pixfalcon](flight_controller/pixfalcon.md)
       - [Holybro pix32 (FMUv2)](flight_controller/holybro_pix32.md)
+      - [mRo X2.1 (FMUv2)](flight_controller/mro_x2.1.md)
       - [mRo AUAV-X2](flight_controller/auav_x2.md)
       - [NXP RDDRONE-FMUK66 FMU](flight_controller/nxp_rddrone_fmuk66.md)
       - [3DR Pixhawk 1](flight_controller/pixhawk.md)
@@ -228,7 +222,9 @@
     - [Оновлення завантажувача](advanced_config/bootloader_update.md)
       - [Оновлення бутлоадера FMUv6X-RT через USB](advanced_config/bootloader_update_v6xrt.md)
       - [Bootloader прошивка на системи Betaflight](advanced_config/bootloader_update_from_betaflight.md)
+
   - [Airframe Selection](config/airframe.md)
+
   - [Сенсори](sensor/index.md)
     - [Акселерометр](sensor/accelerometer.md)
       - [Калібрування](config/accelerometer.md)
@@ -271,6 +267,7 @@
       - [CUAV C-RTK](gps_compass/rtk_gps_cuav_c-rtk.md)
       - [CUAV C-RTK2 PPK/RTK GNSS](gps_compass/rtk_gps_cuav_c-rtk2.md)
       - [CUAV C-RTK 9Ps](gps_compass/rtk_gps_cuav_c-rtk-9ps.md)
+      - [DATAGNSS NANO HRTK GNSS](gps_compass/rtk_gps_datagnss_nano_hrtk.md)
       - [DATAGNSS GEM1305 RTK GNSS](gps_compass/rtk_gps_gem1305.md)
       - [Femtones MINI2 Receiver](gps_compass/rtk_gps_fem_mini2.md)
       - [Freefly RTK GPS](gps_compass/rtk_gps_freefly.md)
@@ -296,6 +293,7 @@
       - [Датчик тахометра ThunderFly TFRPM01](sensor/thunderfly_tachometer.md)
     - [Заводське калібрування IMU](advanced_config/imu_factory_calibration.md)
     - [Sensor Thermal Compensation](advanced_config/sensor_thermal_calibration.md)
+
   - [Актуатори](actuators/index.md)
     - [Розподіл приводу](config/actuators.md)
     - [Калібрування ESC (плати контролю двигунів)](advanced_config/esc_calibration.md)
@@ -310,10 +308,13 @@
           - [Zubax Orel](dronecan/zubax_orel.md)
       - [Vertiq](peripherals/vertiq.md)
       - [VESC](peripherals/vesc.md)
+
   - [Радіокерування (RC)](getting_started/rc_transmitter_receiver.md)
     - [Налаштування радіо](config/radio.md)
     - [Режими польоту](config/flight_mode.md)
+
   - [Джойстики](config/joystick.md)
+
   - [Посилання даних](data_links/index.md)
     - [MAVLink Telemetry (OSD/GCS)](peripherals/mavlink_peripherals.md)
 
@@ -338,6 +339,7 @@
     - [TBS Crossfire (CRSF) телеметрія](telemetry/crsf_telemetry.md)
 
     - [Супутниковий зв'язок (Iridium/RockBlock)](advanced_features/satcom_roadblock.md)
+
   - [Енергетичні системи](power_systems/index.md)
     - [Налаштування оцінки батареї](config/battery.md)
     - [Battery Chemistry Overview](power_systems/battery_chemistry.md)
@@ -356,6 +358,7 @@
       - [Sky-Drones SmartAP PDB](power_module/sky-drones_smartap-pdb.md)
     - [Акумулятори Smart/MAVLink](smart_batteries/index.md)
       - [Rotoye Batmon Комплект інтелектуального акумулятора](smart_batteries/rotoye_batmon.md)
+
   - [Вантажі & камери](payloads/index.md)
     - [Випадки використання](payloads/use_cases.md)
     - [Місія доставки посилок](flying/package_delivery_mission.md)
@@ -367,19 +370,25 @@
     - [Конфігурація Gimbal \(Mount\)](advanced/gimbal_control.md)
     - [Grippers](peripherals/gripper.md)
       - [Servo Gripper](peripherals/gripper_servo.md)
+
   - [Периферія](peripherals/index.md)
     - [ADSB/FLARM/UTM (уникнення трафіку)](peripherals/adsb_flarm.md)
     - [Парашут](peripherals/parachute.md)
     - [Remote ID](peripherals/remote_id.md)
+
   - [Периферійні пристрої I2C](sensor_bus/i2c_general.md)
     - [Прискорювачі шини I2C](sensor_bus/i2c_general.md#i2c-bus-accelerators)
     - [TFI2CADT01 Транслятор адреси I2C](sensor_bus/translator_tfi2cadt.md)
+
   - [Периферійні пристрої CAN](can/index.md)
+
   - [Периферійні пристрої DroneCAN](dronecan/index.md)
     - [Прошивка PX4 DroneCAN](dronecan/px4_cannode_fw.md)
     - [ARK CANnode](dronecan/ark_cannode.md)
     - [RaccoonLab CAN Nodes](dronecan/raccoonlab_nodes.md)
+
   - [Підключення дротів](assembly/cable_wiring.md)
+
   - [Комп’ютери-супутники](companion_computer/index.md)
     - [Налаштування Pixhawk + Companion](companion_computer/pixhawk_companion.md)
       - [RPi Pixhawk Companion](companion_computer/pixhawk_rpi.md)
@@ -395,16 +404,19 @@
         - [Realsense T265 Tracking Camera (VIO)](camera/camera_intel_realsense_t265_vio.md)
     - [Потокове відео](companion_computer/video_streaming.md)
       - [Потокове відео за допомогою WFB-ng Wi-Fi (далекий діапазон)](companion_computer/video_streaming_wfb_ng_wifi.md)
+
   - [Serial Port Configuration](peripherals/serial_configuration.md)
+
   - [PX4 Ethernet Setup](advanced_config/ethernet_setup.md)
+
   - [Стандартна конфігурація](config/index.md)
+
   - [Розширені налаштування](advanced_config/index.md)
     - [Using PX4's Navigation Filter (EKF2)](advanced_config/tuning_the_ecl_ekf.md)
     - [Finding/Updating Parameters](advanced_config/parameters.md)
     - [Full Parameter Reference](advanced_config/parameter_reference.md)
 
 - [Інші транспортні засоби](airframes/index.md)
-
   - [Airships (experimental)](frames_airship/index.md)
   - [Autogyros (experimental)](frames_autogyro/index.md)
     - [ThunderFly Auto-G2 (Holybro pix32)](frames_autogyro/thunderfly_auto_g2.md)
@@ -765,7 +777,7 @@
     - [Відлагодження з GDB](debug/gdb_debugging.md)
       - [Порт для налагодження SWD](debug/swd_debug.md)
       - [JLink адаптер](debug/probe_jlink.md)
-      - [Black Magic / Dronecode адаптери](debug/probe_bmp.md)
+      - [Black Magic/Zubax BugFace BF1 Probe](debug/probe_bmp.md)
       - [STLink адаптер](debug/probe_stlink.md)
       - [MCU-Link адаптер](debug/probe_mculink.md)
       - [Відлагодження Hardfault ](debug/gdb_hardfault.md)

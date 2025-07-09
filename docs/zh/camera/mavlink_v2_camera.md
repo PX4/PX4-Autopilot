@@ -137,9 +137,9 @@ Generic/extensible camera managers:
 - [MAVLink Camera Manager](https://github.com/mavlink/mavlink-camera-manager) - Extensible cross-platform MAVLink Camera Server built on top of GStreamer and Rust-MAVLink.
 - [Dronecode Camera Manager](https://camera-manager.dronecode.org/en/) - Adds Camera Protocol interface for cameras connected to Linux computer.
 
-Camera-specfic camera managers:
+Camera-specific camera managers:
 
-- [SIYI A8 mini camera manager](https://github.com/julianoes/siyi-a8-mini-camera-manager) - MAVSDK-plugin based camera manager for the [SIYI A8 mini](https://shop.siyi.biz/products/siyi-a8-mini) (includes tutorial).
+- [SIYI A8 mini camera manager](https://github.com/julianoes/siyi-a8-mini-camera-manager) - MAVSDK-plugin based camera manager for the [SIYI A8 mini](https://shop.siyi.biz/products/siyi-a8-mini-gimbal-camera) (includes tutorial).
 
   ::: tip
   This is a good example of how MAVSDK can be used to create a MAVLink camera protocol interface for a particular camera.
@@ -150,6 +150,6 @@ When using a camera manager you connect the companion computer to the flight con
 
 More information about camera manager and companion computer setups can be found in:
 
-- [SIYI A8 mini camera manager](https://github.com/julianoes/siyi-a8-mini-camera-manager) - Tutorial for integrating with the [SIYI A8 mini](https://shop.siyi.biz/products/siyi-a8-mini) using a MAVSDK-based camera manager running on a Raspberry Pi companion computer.
+- [SIYI A8 mini camera manager](https://github.com/julianoes/siyi-a8-mini-camera-manager) - Tutorial for integrating with the [SIYI A8 mini](https://shop.siyi.biz/products/siyi-a8-mini-gimbal-camera) using a MAVSDK-based camera manager running on a Raspberry Pi companion computer.
 - [Using a Companion Computer with Pixhawk Controllers](../companion_computer/pixhawk_companion.md)
 - [Companion Computers > Companion Computer Software](../companion_computer/index.md#companion-computer-software): In particular note [MAVLink-Router](https://github.com/mavlink-router/mavlink-router), which you can setup to route MAVLink traffic between a serial port and an IP link (or other camera manager interface).

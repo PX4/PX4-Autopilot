@@ -15,7 +15,7 @@ This topic provides full instructions for building the [Holybro X500 V2 ARF Kit]
 
 ### Payload and Battery Holder
 
-**Screw**-  Sunk Screw M2.5\*6 12pcs
+**Screw**- Sunk Screw M2.5\*6 12pcs
 
 1. Insert the hanger rubber ring gasket in each of their respective hangers.
   Do not use sharp objects to press the rubbers inside.
@@ -135,6 +135,7 @@ The following parts can be placed as per usual.
   [![Assembly20](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly20.png)](https://youtu.be/aiFxVJFjlos)
 
   This guide uses the GPS mount location suggested in Holybro’s guide.
+
 2. Screw the GPS mount’s bottom end on the payload holder side using Locknut M3 & Screw M3\*10
 
   [![Assembly21](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly21.png)](https://youtu.be/uG5UKy3FrIc)
@@ -170,7 +171,7 @@ Full instructions for installing and configuring PX4 can be found in [Basic Conf
 :::
 
 _QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the X500 frame.
-[Download and install](http://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
+[Download and install](https://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
 
 First update the firmware, airframe, and actuator mappings:
 

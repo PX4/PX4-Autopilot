@@ -108,7 +108,7 @@ You can then control the vehicles with _QGroundControl_ and MAVROS in a similar 
 
 ### Required
 
-- Current [PX4 ROS/Gazebo development environment](../ros/mavros_installation.md) (which includes the [MAVROS package](http://wiki.ros.org/mavros)).
+- Current [PX4 ROS/Gazebo development environment](../ros/mavros_installation.md) (which includes the [MAVROS package](https://wiki.ros.org/mavros)).
 - a clone of latest [PX4/PX4-Autopilot](https://github.com/PX4/PX4-Autopilot)
 
 ### Build and Test
@@ -234,7 +234,6 @@ To add a third iris to this simulation there are two main components to consider
   - select a different port for `mavlink_udp_port` arg for communication with Gazebo Classic
   - selects ports for MAVROS communication by modifying both port numbers in the `fcu_url` arg
 - create a startup file, and change the file as follows:
-
   - make a copy of an existing iris rcS startup file (`iris_1` or `iris_2`) and rename it `iris_3`
   - `MAV_SYS_ID` value to `3`
   - `SITL_UDP_PRT` value to match that of the `mavlink_udp_port` launch file arg
@@ -275,7 +274,6 @@ This method is similar to using the xacro except that the SITL/Gazebo Classic po
 To add a new vehicle, you need to make sure the model can be found (in order to spawn it in Gazebo Classic), and PX4 needs to have an appropriate corresponding startup script.
 
 1. You can choose to do either of:
-
   - modify the **single_vehicle_spawn_sdf.launch** file to point to the location of your model by changing the line below to point to your model:
 
     ```sh
@@ -298,5 +296,5 @@ To add a new vehicle, you need to make sure the model can be found (in order to 
 ## Additional Resources
 
 - See [Simulation](../simulation/index.md) for a description of the UDP port configuration.
-- See [URDF in Gazebo](http://wiki.ros.org/urdf/Tutorials/Using%20a%20URDF%20in%20Gazebo) for more information about spawning the model with xacro.
+- See [URDF in Gazebo](https://wiki.ros.org/urdf/Tutorials/Using%20a%20URDF%20in%20Gazebo) for more information about spawning the model with xacro.
 - See [RotorS](https://github.com/ethz-asl/rotors_simulator/tree/master/rotors_description/urdf) for more xacro models.

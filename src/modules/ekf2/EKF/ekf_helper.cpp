@@ -294,7 +294,7 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
 		if (_control_status.flags.opt_flow) {
-			float gndclearance = math::max(_params.rng_gnd_clearance, 0.1f);
+			float gndclearance = math::max(_params.ekf2_min_rng, 0.1f);
 			vel_err_conservative = math::max(getHagl(), gndclearance) * Vector2f(_aid_src_optical_flow.innovation).norm();
 		}
 
@@ -996,7 +996,7 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 
 
 	// gyro bias inhibit
-	const bool do_inhibit_all_gyro_axes = !(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GyroBias));
+	const bool do_inhibit_all_gyro_axes = !(_params.ekf2_imu_ctrl & static_cast<int32_t>(ImuCtrl::GyroBias));
 
 	for (unsigned index = 0; index < State::gyro_bias.dof; index++) {
 		bool is_bias_observable = true; // TODO: gyro bias conditions
@@ -1004,7 +1004,7 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 	}
 
 	// accel bias inhibit
-	const bool do_inhibit_all_accel_axes = !(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::AccelBias))
+	const bool do_inhibit_all_accel_axes = !(_params.ekf2_imu_ctrl & static_cast<int32_t>(ImuCtrl::AccelBias))
 					       || is_manoeuvre_level_high
 					       || _fault_status.flags.bad_acc_vertical;
 
