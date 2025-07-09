@@ -453,7 +453,6 @@ ControlAllocator::Run()
 
 		if (_num_control_allocation > 1) {
 			publish_control_allocator_status(1);
-			publish_effectiveness_matrix();
 		}
 
 		_last_status_pub = now;
@@ -718,23 +717,6 @@ ControlAllocator::publish_actuator_controls()
 	}
 }
 
-void
-ControlAllocator::publish_effectiveness_matrix()
-{
-	for (int i = 0; i < _num_control_allocation; ++i) {
-			const ActuatorEffectiveness::EffectivenessMatrix &matrix = _control_allocation[i]->getEffectivenessMatrix();
-
-			// Assign control effectiveness matrix
-			int total_num_actuators = _num_actuators[0];
-
-			// Publish effectiveness matrix (0 for hover, 1 for forward flight)
-			actuator_effectiveness_matrix_s effectiveness_matrix_pub{};
-			effectiveness_matrix_pub.timestamp = hrt_absolute_time();
-			memcpy(effectiveness_matrix_pub.effectiveness_matrix_row_major, &matrix, sizeof(matrix));
-			effectiveness_matrix_pub.num_actuators = total_num_actuators;
-			_actuator_effectiveness_matrix_pub[i].publish(effectiveness_matrix_pub);
-		}
-}
 
 void
 ControlAllocator::check_for_motor_failures()

@@ -130,4 +130,8 @@
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
         },
         "ros.distro": "humble",
+        "python.autoComplete.extraPaths": [
+                "/opt/ros/humble/lib/python3.10/site-packages",
+                "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        ],
 }

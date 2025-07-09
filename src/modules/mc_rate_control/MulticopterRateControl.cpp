@@ -171,18 +171,27 @@ MulticopterRateControl::Run()
 					_num_actuators = _actuator_effectiveness_matrix.num_actuators;
 
 					// seperate the row major matrix into the torque (G1) and thrust (G2) matrices
+					Vector3f G1_K = Vector3f(0.00000001f, 0.0000001f, 0.0000001f);
+					Vector3f G2_K = Vector3f(1.0f, 1.0f, 0.0000000001f);
 					for (int i = 0; i < 3; i++) {
+
 						for (int j = 0; j < _num_actuators; j++) {
-							_G1(i, j) = _actuator_effectiveness_matrix.effectiveness_matrix_row_major[i * 16 + j]; //every row has 16 columns (even if they are empty/not have 16 actuators)
+							_G1(i, j) = _actuator_effectiveness_matrix.effectiveness_matrix_row_major[i * 16 + j]  * G1_K(i); //row has 16 columns (even if they are empty/not have 16 actuators)
 						}
 					}
 
 					for (int i = 0; i < 3; i++) {
 						for (int j = 0; j < _num_actuators; j++) {
-							_G2(i, j) = _actuator_effectiveness_matrix.effectiveness_matrix_row_major[(i + 3) * 16 + j]; //thrust comes 3 rows after torque, so offset by 3
+							_G2(i, j) = _actuator_effectiveness_matrix.effectiveness_matrix_row_major[(i + 3) * 16 + j] * G2_K(i); //thrust comes 3 rows after torque, so offset by 3
 						}
 					}
 				}
+				PX4_INFO("G1: %f, %f, %f, %f", (double)_G1(0, 0), (double)_G1(0, 1), (double)_G1(0, 2), (double)_G1(0, 3));
+				PX4_INFO("G1: %f, %f, %f, %f", (double)_G1(1, 0), (double)_G1(1, 1), (double)_G1(1, 2), (double)_G1(1, 3));
+				PX4_INFO("G1: %f, %f, %f, %f", (double)_G1(2, 0), (double)_G1(2, 1), (double)_G1(2, 2), (double)_G1(2, 3));
+				PX4_INFO("G2: %f, %f, %f, %f", (double)_G2(0, 0), (double)_G2(0, 1), (double)_G2(0, 2), (double)_G2(0, 3));
+				PX4_INFO("G2: %f, %f, %f, %f", (double)_G2(1, 0), (double)_G2(1, 1), (double)_G2(1, 2), (double)_G2(1, 3));
+				PX4_INFO("G2: %f, %f, %f, %f", (double)_G2(2, 0), (double)_G2(2, 1), (double)_G2(2, 2), (double)_G2(2, 3));
 			}
 
 			if (_esc_status.timestamp > 0) { //check if atleast one esc status is available
@@ -285,15 +294,29 @@ MulticopterRateControl::Run()
 			vehicle_torque_setpoint.xyz[0] = PX4_ISFINITE(torque_setpoint(0)) ? torque_setpoint(0) : 0.f;
 			vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(torque_setpoint(1)) ? torque_setpoint(1) : 0.f;
 			vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(torque_setpoint(2)) ? torque_setpoint(2) : 0.f;
+			PX4_INFO("torque_setpoint: %f, %f, %f", (double)torque_setpoint(0), (double)torque_setpoint(1), (double)torque_setpoint(2));
 
 			// TODO: a possible optimization is to manually multiply the G1 and G2 matrices with the radps_vec_squared and filtered_radps_vec - _prev_esc_rad_per_sec_filtered vectors
 			// as this would avoid the need to multiply by the full 16 vector, which is full of zeros for most cases (quadrotors)
 			if (_vehicle_control_mode.flag_control_rates_indi_enabled) {
 				matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> radps_vec_squared = filtered_radps_vec.emult(filtered_radps_vec);
-				Vector3f filtered_body_torque_setpoint = _G1 * (radps_vec_squared) + (_G2 * (filtered_radps_vec - _prev_esc_rad_per_sec_filtered)) / dt;
+				//PX4_INFO("radps_vec_squared: %f, %f, %f", (double)radps_vec_squared(0), (double)radps_vec_squared(1), (double)radps_vec_squared(2));
+				//PX4_INFO("filtered_radps_vec: %f, %f, %f", (double)filtered_radps_vec(0), (double)filtered_radps_vec(1), (double)filtered_radps_vec(2));
+				Vector3f G1_term = _G1 * (radps_vec_squared);
+				Vector3f G2_term = (_G2 * (filtered_radps_vec - _prev_esc_rad_per_sec_filtered)) / dt;
+				Vector3f filtered_body_torque_setpoint = G1_term + G2_term;
+				//PX4_INFO("G1 term: %f, %f, %f", (double)G1_term(0), (double)G1_term(1), (double)G1_term(2));
+				//PX4_INFO("G2 term: %f, %f, %f", (double)G2_term(0), (double)G2_term(1), (double)G2_term(2));
 				vehicle_torque_setpoint.xyz[0] += PX4_ISFINITE(filtered_body_torque_setpoint(0)) ? filtered_body_torque_setpoint(0) : 0.f;
 				vehicle_torque_setpoint.xyz[1] += PX4_ISFINITE(filtered_body_torque_setpoint(1)) ? filtered_body_torque_setpoint(1) : 0.f;
 				vehicle_torque_setpoint.xyz[2] += PX4_ISFINITE(filtered_body_torque_setpoint(2)) ? filtered_body_torque_setpoint(2) : 0.f;
+
+				vehicle_torque_setpoint.g1_term[0] = PX4_ISFINITE(G1_term(0)) ? G1_term(0) : 0.f;
+				vehicle_torque_setpoint.g1_term[1] = PX4_ISFINITE(G1_term(1)) ? G1_term(1) : 0.f;
+				vehicle_torque_setpoint.g1_term[2] = PX4_ISFINITE(G1_term(2)) ? G1_term(2) : 0.f;
+				vehicle_torque_setpoint.g2_term[0] = PX4_ISFINITE(G2_term(0)) ? G2_term(0) : 0.f;
+				vehicle_torque_setpoint.g2_term[1] = PX4_ISFINITE(G2_term(1)) ? G2_term(1) : 0.f;
+				vehicle_torque_setpoint.g2_term[2] = PX4_ISFINITE(G2_term(2)) ? G2_term(2) : 0.f;
 
 				vehicle_torque_setpoint.filtered_xyz[0] = PX4_ISFINITE(filtered_body_torque_setpoint(0)) ? filtered_body_torque_setpoint(0) : 0.f;
 				vehicle_torque_setpoint.filtered_xyz[1] = PX4_ISFINITE(filtered_body_torque_setpoint(1)) ? filtered_body_torque_setpoint(1) : 0.f;
