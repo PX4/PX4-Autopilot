@@ -171,8 +171,8 @@ MulticopterRateControl::Run()
 					_num_actuators = _actuator_effectiveness_matrix.num_actuators;
 
 					// seperate the row major matrix into the torque (G1) and thrust (G2) matrices
-					Vector3f G1_K = Vector3f(0.00000001f, 0.0000001f, 0.0000001f);
-					Vector3f G2_K = Vector3f(1.0f, 1.0f, 0.0000000001f);
+					Vector3f G1_K = Vector3f(0.00002f, 0.00002f, 0.00002f);
+					Vector3f G2_K = Vector3f(1.0f, 1.0f, 0.00001f);
 					for (int i = 0; i < 3; i++) {
 
 						for (int j = 0; j < _num_actuators; j++) {
@@ -294,7 +294,11 @@ MulticopterRateControl::Run()
 			vehicle_torque_setpoint.xyz[0] = PX4_ISFINITE(torque_setpoint(0)) ? torque_setpoint(0) : 0.f;
 			vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(torque_setpoint(1)) ? torque_setpoint(1) : 0.f;
 			vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(torque_setpoint(2)) ? torque_setpoint(2) : 0.f;
-			PX4_INFO("torque_setpoint: %f, %f, %f", (double)torque_setpoint(0), (double)torque_setpoint(1), (double)torque_setpoint(2));
+
+			vehicle_torque_setpoint.delta_xyz[0] = PX4_ISFINITE(torque_setpoint(0)) ? torque_setpoint(0) : 0.f;
+			vehicle_torque_setpoint.delta_xyz[1] = PX4_ISFINITE(torque_setpoint(1)) ? torque_setpoint(1) : 0.f;
+			vehicle_torque_setpoint.delta_xyz[2] = PX4_ISFINITE(torque_setpoint(2)) ? torque_setpoint(2) : 0.f;
+			//PX4_INFO("torque_setpoint: %f, %f, %f", (double)torque_setpoint(0), (double)torque_setpoint(1), (double)torque_setpoint(2));
 
 			// TODO: a possible optimization is to manually multiply the G1 and G2 matrices with the radps_vec_squared and filtered_radps_vec - _prev_esc_rad_per_sec_filtered vectors
 			// as this would avoid the need to multiply by the full 16 vector, which is full of zeros for most cases (quadrotors)
