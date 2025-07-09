@@ -5,6 +5,6 @@
 
 
 # Add 'Documentation' label to any changes within 'docs' folder or any subfolders
-"Documentation+📑":
+"Documentation 📑":
 - changed-files:
   - any-glob-to-any-file: docs/**
