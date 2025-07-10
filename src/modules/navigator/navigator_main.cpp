@@ -640,7 +640,7 @@ void Navigator::run()
 
 				rep->next.valid = false;
 
-				// after the straight climbout the vehicle will establish on a loiter at this position
+				// Fixed-wing: vehicle will takeoff towards these coordinates and establish on a loiter there
 				_takeoff.setLoiterPosition(matrix::Vector2d(cmd.param5, cmd.param6));
 				_takeoff.setLoiterAltitudeAmsl(cmd.param7);
 

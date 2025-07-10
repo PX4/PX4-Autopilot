@@ -1180,18 +1180,19 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 			_takeoff_init_position = global_position;
 			_takeoff_ground_alt = _current_altitude;
 			_launch_current_yaw = _yaw;
-			// _airspeed_slew_rate_controller.setForcedValue(takeoff_airspeed); // TODO
 		}
 
 		const Vector2f launch_local_position = _global_local_proj_ref.project(_takeoff_init_position(0),
 						       _takeoff_init_position(1));
-		const Vector2f takeoff_waypoint_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 
 		// by default set the takeoff bearing to the takeoff yaw, but override in a mission takeoff with bearing to takeoff WP
 		float takeoff_bearing = _launch_current_yaw;
+		const float distance_to_takeoff_wp = get_distance_to_next_waypoint(_takeoff_init_position(0), _takeoff_init_position(1),
+						     pos_sp_curr.lat, pos_sp_curr.lon);
 
-		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
-			// the bearing from launch to the takeoff waypoint is followed until the clearance altitude is exceeded
+		if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF && distance_to_takeoff_wp > 10.f) {
+			// if a takeoff waypoint is set (and not straight above current location), use the bearing to the takeoff waypoint
+			const Vector2f takeoff_waypoint_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 			const Vector2f takeoff_bearing_vector = takeoff_waypoint_local - launch_local_position;
 
 			if (takeoff_bearing_vector.norm() > FLT_EPSILON) {
@@ -1206,6 +1207,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 			const DirectionalGuidanceOutput sp = navigateLine(launch_local_position, takeoff_bearing, local_2D_position,
 							     ground_speed,
 							     _wind_vel);
+
 			fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
 			fw_lateral_ctrl_sp.timestamp = now;
 			fw_lateral_ctrl_sp.course = sp.course_setpoint;
