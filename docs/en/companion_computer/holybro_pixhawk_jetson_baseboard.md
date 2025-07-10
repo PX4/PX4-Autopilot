@@ -20,7 +20,7 @@ This guide walks through the process of setting up the board and connecting to P
 You will temporarily need the following hardware in order to log into your Jetson and get its IP address, after which you will be able to log in via SSH:
 
 - External display.
-  If your display doesn't have a mini HDMI connector you will also need a [Mini HDMI to HDMI converter](https://a.co/d/6N815N9) if your external display has HDMI input
+  If your display doesn't have a mini HDMI connector you will also need a [Mini HDMI to HDMI converter](https://www.amazon.com/dp/B014I8UEGY/) if your external display has HDMI input
 - Ethernet cable
 - Mouse and keyboard (the baseboard has 4 USB ports exposed from Jetson, two of which are USB 3.0)
 
