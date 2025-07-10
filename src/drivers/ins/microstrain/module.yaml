@@ -1,4 +1,5 @@
 module_name: MICROSTRAIN
+
 parameters:
     - group: Sensors
       definitions:
@@ -10,6 +11,8 @@ parameters:
                     Setting to 1 will publish data from the device to the vehicle topics (global_position, attitude, local_position, odometry), estimator_status and sensor_selection
                     Setting to 0 will publish data from the device to the external_ins topics (global position, attitude, local position)
                     Restart Required
+
+                    This parameter is specific to the MicroStrain driver.
             type: int32
             default: 1
 
@@ -24,6 +27,8 @@ parameters:
                     The max limit should be divisible by the rate
                     eg: 1000 % MS_IMU_RATE_HZ = 0
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: int32
             default: 500
 
@@ -37,6 +42,8 @@ parameters:
                     The max limit should be divisible by the rate
                     eg: 1000 % MS_MAG_RATE_HZ = 0
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: int32
             default: 50
 
@@ -50,6 +57,8 @@ parameters:
                     The max limit should be divisible by the rate
                     eg: 1000 % MS_BARO_RATE_HZ = 0
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: int32
             default: 50
 
@@ -63,6 +72,8 @@ parameters:
                     The max limit should be divisible by the rate
                     eg: 1000 % MS_FILT_RATE_HZ = 0
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: int32
             default: 250
 
@@ -76,6 +87,8 @@ parameters:
                     0 - Disable GNSS datastream
                     eg: 5 % MS_GNSS_RATE_HZ = 0
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: int32
             default: 5
 
@@ -90,6 +103,8 @@ parameters:
                     Bit 2 - Magnetometer
                     Bit 3 - External Heading (first valid external heading will be used to initialize the filter)
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: int32
             default: 2
 
@@ -103,6 +118,8 @@ parameters:
                     3 = GNSS receiver 1 only
                     4 = GNSS receiver 2 only
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: int32
             default: 1
 
@@ -113,6 +130,8 @@ parameters:
                     0 = Disabled,
                     1 = Enabled
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: int32
             default: 0
 
@@ -124,6 +143,8 @@ parameters:
                     1 = Enabled
                     If dual antennas are supported (CV7-GNSS/INS). The filter will be configured to use dual antenna heading as an aiding measurement.
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: int32
             default: 0
 
@@ -135,6 +156,8 @@ parameters:
                     1 = Enabled
                     If enabled, the filter will be configured to accept external heading as an aiding meaurement.
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: int32
             default: 0
 
@@ -147,6 +170,8 @@ parameters:
                     If the sensor has a different orientation with respect to the vehicle. This will enable a transform to correct itself.
                     The transform is described by MS_SENSOR_ROLL, MS_SENSOR_PITCH, MS_SENSOR_YAW
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: int32
             default: 0
 
@@ -156,8 +181,10 @@ parameters:
                 long: |
                     -1 = Will not be configured, and will use the device default range,
                     Each adjustable range has a corresponding integer setting. Refer to the device's User Manual to check the available adjustment ranges.
-                    https://www.microstrain.com/inertial-sensors/all-sensors
+                    https://www.hbkworld.com/en/products/transducers/inertial-sensors#!ref_microstrain.com
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: int32
             default: -1
 
@@ -167,68 +194,82 @@ parameters:
                 long: |
                     -1 = Will not be configured, and will use the device default range,
                     Each adjustable range has a corresponding integer setting. Refer to the device's User Manual to check the available adjustment ranges.
-                    https://www.microstrain.com/inertial-sensors/all-sensors
+                    https://www.hbkworld.com/en/products/transducers/inertial-sensors#!ref_microstrain.com
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: int32
             default: -1
 
-        GNSS_OFFSET1_X:
+        MS_GNSS_OFF1_X:
             description:
                 short: GNSS lever arm offset 1 (X)
                 long: |
                     Lever arm offset (m) in the X direction for the external GNSS receiver
                     In the case of a dual antenna setup, this is antenna 1
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: float
             default: 0.0
 
-        GNSS_OFFSET1_Y:
+        MS_GNSS_OFF1_Y:
             description:
                 short: GNSS lever arm offset 1 (Y)
                 long: |
                     Lever arm offset (m) in the Y direction for the external GNSS receiver
                     In the case of a dual antenna setup, this is antenna 1
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: float
             default: 0.0
 
-        GNSS_OFFSET1_Z:
+        MS_GNSS_OFF1_Z:
             description:
                 short: GNSS lever arm offset 1 (Z)
                 long: |
                     Lever arm offset (m) in the Z direction for the external GNSS receiver
                     In the case of a dual antenna setup, this is antenna 1
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: float
             default: 0.0
 
-        GNSS_OFFSET2_X:
+        MS_GNSS_OFF2_X:
             description:
                 short: GNSS lever arm offset 2 (X)
                 long: |
                     Lever arm offset (m) in the X direction for antenna 2
                     This will only be used if the device supports a dual antenna setup
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: float
             default: 0.0
 
-        GNSS_OFFSET2_Y:
+        MS_GNSS_OFF2_Y:
             description:
                 short: GNSS lever arm offset 2 (Y)
                 long: |
                     Lever arm offset (m) in the Y direction for antenna 2
                     This will only be used if the device supports a dual antenna setup
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: float
             default: 0.0
 
-        GNSS_OFFSET2_Z:
+        MS_GNSS_OFF2_Z:
             description:
                 short: GNSS lever arm offset 2 (Z)
                 long: |
                     Lever arm offset (m) in the X direction for antenna 2
                     This will only be used if the device supports a dual antenna setup
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: float
             default: 0.0
 
@@ -239,6 +280,8 @@ parameters:
                     The orientation of the device (Radians) with respect to the vehicle frame around the x axis
                     Requires MS_SVT_EN to be enabled to be used
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: float
             default: 0.0
 
@@ -249,6 +292,8 @@ parameters:
                     The orientation of the device (Radians) with respect to the vehicle frame around the y axis
                     Requires MS_SVT_EN to be enabled to be used
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: float
             default: 0.0
 
@@ -259,5 +304,7 @@ parameters:
                     The orientation of the device (Radians) with respect to the vehicle frame around the z axis
                     Requires MS_SVT_EN to be enabled to be used
                     Restart required
+
+                    This parameter is specific to the MicroStrain driver.
             type: float
             default: 0.0

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -42,8 +42,6 @@ set(BUILD_EXAMPLES "OFF" CACHE BOOL "" FORCE)
 set(BUILD_TESTING "OFF" CACHE BOOL "" FORCE)
 add_subdirectory(mip_sdk)
 
-project(drivers__ins__microstrain LANGUAGES C CXX)
-
 px4_add_module(
 	MODULE drivers__ins__microstrain
 	MAIN microstrain
@@ -51,8 +49,6 @@ px4_add_module(
 	SRCS
 		MicroStrain.cpp
 		MicroStrain.hpp
-		modal_io_serial.cpp
-		modal_io_serial.hpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
 
 #include "MicroStrain.hpp"
 
-ModalIoSerial device_uart;
+device::Serial device_uart{};
 
 MicroStrain::MicroStrain(const char *uart_port) :
 	ModuleParams(nullptr),
@@ -77,19 +77,19 @@ MicroStrain::MicroStrain(const char *uart_port) :
 	_sensor_baro.temperature = 0;
 	_sensor_baro.error_count = 0;
 
-	gnss_antenna_offset1[0] = _param_gnss_offset1_x.get();
-	gnss_antenna_offset1[1] = _param_gnss_offset1_y.get();
-	gnss_antenna_offset1[2] = _param_gnss_offset1_z.get();
-	PX4_DEBUG("GNSS antenna offset 1: %f/%f/%f", (double)_param_gnss_offset1_x.get(),
-		  (double)_param_gnss_offset1_y.get(),
-		  (double)_param_gnss_offset1_z.get());
+	gnss_antenna_offset1[0] = _param_ms_gnss_offset1_x.get();
+	gnss_antenna_offset1[1] = _param_ms_gnss_offset1_y.get();
+	gnss_antenna_offset1[2] = _param_ms_gnss_offset1_z.get();
+	PX4_DEBUG("GNSS antenna offset 1: %f/%f/%f", (double)_param_ms_gnss_offset1_x.get(),
+		  (double)_param_ms_gnss_offset1_y.get(),
+		  (double)_param_ms_gnss_offset1_z.get());
 
-	gnss_antenna_offset2[0] = _param_gnss_offset2_x.get();
-	gnss_antenna_offset2[1] = _param_gnss_offset2_y.get();
-	gnss_antenna_offset2[2] = _param_gnss_offset2_z.get();
-	PX4_DEBUG("GNSS antenna offset 2: %f/%f/%f", (double)_param_gnss_offset2_x.get(),
-		  (double)_param_gnss_offset2_y.get(),
-		  (double)_param_gnss_offset2_z.get());
+	gnss_antenna_offset2[0] = _param_ms_gnss_offset2_x.get();
+	gnss_antenna_offset2[1] = _param_ms_gnss_offset2_y.get();
+	gnss_antenna_offset2[2] = _param_ms_gnss_offset2_z.get();
+	PX4_DEBUG("GNSS antenna offset 2: %f/%f/%f", (double)_param_ms_gnss_offset2_x.get(),
+		  (double)_param_ms_gnss_offset2_y.get(),
+		  (double)_param_ms_gnss_offset2_z.get());
 
 	rotation.euler[0] = _param_ms_sensor_roll.get();
 	rotation.euler[1] = _param_ms_sensor_pitch.get();
@@ -114,7 +114,7 @@ MicroStrain::MicroStrain(const char *uart_port) :
 MicroStrain::~MicroStrain()
 {
 	if (device_uart.isOpen()) {
-		device_uart.uartClose();
+		device_uart.close();
 	}
 
 	PX4_DEBUG("Destructor");
@@ -139,7 +139,7 @@ bool mipInterfaceUserRecvFromDevice(mip_interface *device, uint8_t *buffer, size
 
 	*timestamp_out = hrt_absolute_time();
 
-	int res = device_uart.uartRead(buffer, max_length);
+	int res = device_uart.read(buffer, max_length);
 
 	if (res == -1 && errno != EAGAIN) {
 		PX4_ERR("MicroStrain driver failed to read(%d): %s", errno, strerror(errno));
@@ -156,7 +156,7 @@ bool mipInterfaceUserRecvFromDevice(mip_interface *device, uint8_t *buffer, size
 
 bool mipInterfaceUserSendToDevice(mip_interface *device, const uint8_t *data, size_t length)
 {
-	int res = device_uart.uartWrite(const_cast<uint8_t *>(data), length);
+	int res = device_uart.write(const_cast<uint8_t *>(data), length);
 
 	if (res >= 0) {
 		return true;
@@ -188,13 +188,25 @@ mip_cmd_result MicroStrain::forceIdle()
 int MicroStrain::connectAtBaud(int32_t baud)
 {
 	if (device_uart.isOpen()) {
-		if (device_uart.uartSetBaud(baud) == PX4_ERROR) {
+		if (device_uart.setBaudrate(baud) == false) {
 			PX4_ERR("Failed to set UART %lu baud", baud);
 		}
 
-	} else if (device_uart.uartOpen(_port, baud) == PX4_ERROR) {
-		PX4_ERR("Could not open device port!");
-		return PX4_ERROR;
+	} else {
+		if (device_uart.setPort(_port) == false) {
+			PX4_ERR("Could not set device port!");
+			return PX4_ERROR;
+		}
+
+		if (device_uart.setBaudrate(baud) == false) {
+			PX4_ERR("Failed to set UART %lu baud", baud);
+			return PX4_ERROR;
+		}
+
+		if (device_uart.open() == false) {
+			PX4_ERR("Could not open device port!");
+			return PX4_ERROR;
+		}
 	}
 
 	PX4_INFO("Serial Port %s with baud of %lu baud", (device_uart.isOpen() ? "CONNECTED" : "NOT CONNECTED"), baud);
@@ -900,7 +912,7 @@ bool MicroStrain::initializeIns()
 		return false;
 	}
 
-	tcflush(device_uart.uartGetFd(), TCIOFLUSH);
+	device_uart.flush();
 
 	// Connecting using the desired baudrate
 	if (connectAtBaud(DESIRED_BAUDRATE) != PX4_OK) {
