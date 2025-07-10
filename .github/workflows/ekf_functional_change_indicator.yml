@@ -7,6 +7,11 @@ on:
     paths-ignore:
       - 'docs/**'
 
+# If two events are triggered within a short time in the same PR, cancel the run of the oldest event
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   unit_tests:
     runs-on: ubuntu-latest
