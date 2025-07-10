@@ -123,7 +123,6 @@ void AFBRS50::processMeasurement()
 		quality = 0;
 	}
 
-	// TODO: I don't think we need this..
 	if (distance > _max_distance) {
 		distance = 0.0;
 		quality = 0;
@@ -264,49 +263,51 @@ void AFBRS50::Run()
 
 			// Enable interrupt on falling edge
 			px4_arch_configgpio(BROADCOM_AFBR_S50_S2PI_IRQ);
-			_state = STATE::TRIGGER;
+
 			// TODO: delay after configure?
-			ScheduleNow();
-			// ScheduleDelayed(50_ms);
+			_state = STATE::TRIGGER;
+			ScheduleDelayed(_measurement_inverval);
 		}
 		break;
 
 	case STATE::TRIGGER: {
 			if (Argus_GetStatus(_hnd) != STATUS_IDLE) {
 				perf_count(_not_ready_perf);
-				ScheduleDelayed(10_ms);
+				ScheduleDelayed(_measurement_inverval / 4);
 				return;
 			}
 
-			// Trigger continuous measurement mode. An hrt_call_after will trigger
-			// measurements periodically -- see API/Src/timer.c
-			status_t status = Argus_StartMeasurementTimer(_hnd, measurementReadyCallback);
+			_trigger_time = hrt_absolute_time();
+			status_t status = Argus_TriggerMeasurement(_hnd, measurementReadyCallback);
 
 			if (status != STATUS_OK) {
-				PX4_ERR("Argus_TriggerMeasurement status not okay: %i", (int)status);
+				// PX4_ERR("Argus_TriggerMeasurement status not okay: %i", (int)status);
 				perf_count(_not_ready_perf);
-				ScheduleDelayed(50_ms);
+				// Reschedule another trigger
+				_state = STATE::TRIGGER;
+				ScheduleDelayed(_measurement_inverval / 4);
 			}
+
+			// We don't reschedule, the trigger callback will schedule a collect
 		}
 		break;
 
 	case STATE::COLLECT: {
+			// Process and publish the measurement
 			processMeasurement();
 
 			// Change measurement rate and mode based on range
 			updateMeasurementRateFromRange();
 
-			// Rechedule watchdog, push back by 2x measurement rate
-			_state = STATE::WATCHDOG;
-			ScheduleDelayed(_measurement_inverval * 2);
-		}
-		break;
-
-	case STATE::WATCHDOG: {
-			PX4_WARN("watchdog triggered, rescheduling");
 			_state = STATE::TRIGGER;
-			// When this occurs the device locks up for ~160ms
-			ScheduleDelayed(160_ms);
+
+			auto elapsed = hrt_elapsed_time(&_trigger_time);
+
+			if (elapsed > _measurement_inverval) {
+				ScheduleNow();
+			} else {
+				ScheduleDelayed(_measurement_inverval - elapsed);
+			}
 		}
 		break;
 
@@ -315,6 +316,9 @@ void AFBRS50::Run()
 	}
 }
 
+// TODO: fix this logic
+// Require 3 readings on same side of fence to mode switch
+// Require 3_s after ground_contact in vehicle_land_detected before switching to long range mode
 void AFBRS50::updateMeasurementRateFromRange()
 {
 	// only update mode if _current_distance is a valid measurement and if the last rate switch was more than 1 second ago
