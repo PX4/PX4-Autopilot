@@ -321,6 +321,11 @@ fi
 
 uxrce_dds_client start -t udp -h 127.0.0.1 -p $uxrce_dds_port $uxrce_dds_ns
 
+if param greater -s ZENOH_ENABLE 0
+then
+	zenoh start
+fi
+
 if param greater -s MNT_MODE_IN -1
 then
 	gimbal start
