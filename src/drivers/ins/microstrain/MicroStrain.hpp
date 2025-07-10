@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +37,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/Serial.hpp>
 
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
@@ -67,8 +68,6 @@
 
 #include "mip_sdk/src/mip/mip_all.h"
 #include "mip_sdk/src/mip/definitions/commands_aiding.h"
-
-#include "modal_io_serial.hpp"
 
 using namespace mip::C;
 
@@ -223,12 +222,12 @@ private:
 		(ParamInt<px4::params::MS_SVT_EN>) _param_ms_svt_en,
 		(ParamInt<px4::params::MS_ACCEL_RANGE>) _param_ms_accel_range_setting,
 		(ParamInt<px4::params::MS_GYRO_RANGE>) _param_ms_gyro_range_setting,
-		(ParamFloat<px4::params::GNSS_OFFSET1_X>) _param_gnss_offset1_x,
-		(ParamFloat<px4::params::GNSS_OFFSET1_Y>) _param_gnss_offset1_y,
-		(ParamFloat<px4::params::GNSS_OFFSET1_Z>) _param_gnss_offset1_z,
-		(ParamFloat<px4::params::GNSS_OFFSET2_X>) _param_gnss_offset2_x,
-		(ParamFloat<px4::params::GNSS_OFFSET2_Y>) _param_gnss_offset2_y,
-		(ParamFloat<px4::params::GNSS_OFFSET2_Z>) _param_gnss_offset2_z,
+		(ParamFloat<px4::params::MS_GNSS_OFF1_X>) _param_ms_gnss_offset1_x,
+		(ParamFloat<px4::params::MS_GNSS_OFF1_Y>) _param_ms_gnss_offset1_y,
+		(ParamFloat<px4::params::MS_GNSS_OFF1_Z>) _param_ms_gnss_offset1_z,
+		(ParamFloat<px4::params::MS_GNSS_OFF2_X>) _param_ms_gnss_offset2_x,
+		(ParamFloat<px4::params::MS_GNSS_OFF2_Y>) _param_ms_gnss_offset2_y,
+		(ParamFloat<px4::params::MS_GNSS_OFF2_Z>) _param_ms_gnss_offset2_z,
 		(ParamFloat<px4::params::MS_SENSOR_ROLL>) _param_ms_sensor_roll,
 		(ParamFloat<px4::params::MS_SENSOR_PTCH>) _param_ms_sensor_pitch,
 		(ParamFloat<px4::params::MS_SENSOR_YAW>) _param_ms_sensor_yaw
