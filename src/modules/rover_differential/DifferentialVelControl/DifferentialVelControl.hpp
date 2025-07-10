@@ -108,9 +108,10 @@ private:
 
 	/**
 	 * @brief Calculate the speed setpoint based on the current state.
+	 * @param max_speed Maximum speed limit [m/s].
 	 * @return Speed setpoint.
 	 */
-	float calcSpeedSetpoint();
+	float calcSpeedSetpoint(float max_speed);
 
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
@@ -147,7 +148,7 @@ private:
 		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_limit,
 		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_limit,
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
-		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th
-
+		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th,
+		(ParamFloat<px4::params::RO_SPEED_RED>)     _param_ro_speed_red
 	)
 };

@@ -8,30 +8,7 @@ While it can be controlled using traditional PWM input, it is designed to operat
 
 Multiple vendors sell ESC hardware that runs sapog firmware:
 
-- [Zubax Orel 20](https://zubax.com/products/orel_20)
 - [Holybro Kotleta20](https://holybro.com/products/kotleta20)
-
-<style>
-#image_container {
-  height: 100%;
-  width: 100%;
-  display: flex;
-}
-.image_column {
-  width: 33%;
-  text-align: center;
-}
-
-</style>
-
-<div id="image_container">
-  <div class="image_column">
-  <img src="../../assets/peripherals/esc_uavcan_zubax_orel20/orel20_top.jpg" alt="Orel20 - Top"/><br><a href="https://zubax.com/products/orel_20">Zubax Orel 20</a>
-  </div>
-  <div class="image_column">
-    <img src="../../assets/peripherals/esc_uavcan_holybro_kotleta20/kotleta20_top.jpg" alt="Holybro Kotleta20 top" /><br><a href="https://holybro.com/products/kotleta20">Holybro Kotleta20</a>
-  </div>
-</div>
 
 ## Hardware Setup
 

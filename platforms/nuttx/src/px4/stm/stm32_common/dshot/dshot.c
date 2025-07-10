@@ -48,6 +48,8 @@
 #include <stdio.h>
 #include <drivers/drv_input_capture.h>
 
+#include <lib/perf/perf_counter.h>
+
 // This can be overriden for a specific board.
 #ifndef BOARD_DMA_NUM_DSHOT_CHANNELS
 #define BOARD_DMA_NUM_DSHOT_CHANNELS 1
@@ -137,6 +139,8 @@ static uint32_t read_fail_nibble[MAX_NUM_CHANNELS_PER_TIMER] = {};
 static uint32_t read_fail_crc[MAX_NUM_CHANNELS_PER_TIMER] = {};
 static uint32_t read_fail_zero[MAX_NUM_CHANNELS_PER_TIMER] = {};
 
+static perf_counter_t hrt_callback_perf = NULL;
+
 static void init_timer_config(uint32_t channel_mask)
 {
 	// Mark timers in use, channels in use, and timers for bidir dshot
@@ -202,20 +206,24 @@ static void init_timers_dma_up(void)
 		timer_configs[timer_index].dma_handle = stm32_dmachannel(io_timers[timer_index].dshot.dma_map_up);
 
 		if (timer_configs[timer_index].dma_handle == NULL) {
-			PX4_DEBUG("Failed to allocate Timer %u DMA UP", timer_index);
+			PX4_WARN("Failed to allocate Timer %u DMA UP", timer_index);
 			continue;
 		}
 
-		PX4_DEBUG("Allocated DMA UP Timer Index %u", timer_index);
+		PX4_INFO("Allocated DMA UP Timer Index %u", timer_index);
 		timer_configs[timer_index].initialized = true;
 	}
 
-	// Free the allocated DMA channels
-	for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
-		if (timer_configs[timer_index].dma_handle != NULL) {
-			stm32_dmafree(timer_configs[timer_index].dma_handle);
-			timer_configs[timer_index].dma_handle = NULL;
-			PX4_DEBUG("Freed DMA UP Timer Index %u", timer_index);
+	// Bidirectional DShot will free/allocate DMA stream on every update event. This is required
+	// in order to reconfigure the DMA stream between Timer Burst and CaptureCompare.
+	if (_bidirectional) {
+		// Free the allocated DMA channels
+		for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
+			if (timer_configs[timer_index].dma_handle != NULL) {
+				stm32_dmafree(timer_configs[timer_index].dma_handle);
+				timer_configs[timer_index].dma_handle = NULL;
+				PX4_INFO("Freed DMA UP Timer Index %u", timer_index);
+			}
 		}
 	}
 }
@@ -275,6 +283,7 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bi
 
 	if (_bidirectional) {
 		PX4_INFO("Bidirectional DShot enabled, only one timer will be used");
+		hrt_callback_perf = perf_alloc(PC_ELAPSED, "dshot: callback perf");
 	}
 
 	// NOTE: if bidirectional is enabled only 1 timer can be used. This is because Burst mode uses 1 DMA channel per timer
@@ -336,8 +345,15 @@ void up_dshot_trigger()
 
 			io_timer_set_dshot_burst_mode(timer_index, _dshot_frequency, channel_count);
 
-			// Allocate DMA
-			if (timer_configs[timer_index].dma_handle == NULL) {
+			if (_bidirectional) {
+				// Deallocate DMA from previous transaction
+				if (timer_configs[timer_index].dma_handle != NULL) {
+					stm32_dmastop(timer_configs[timer_index].dma_handle);
+					stm32_dmafree(timer_configs[timer_index].dma_handle);
+					timer_configs[timer_index].dma_handle = NULL;
+				}
+
+				// Allocate DMA
 				timer_configs[timer_index].dma_handle = stm32_dmachannel(io_timers[timer_index].dshot.dma_map_up);
 
 				if (timer_configs[timer_index].dma_handle == NULL) {
@@ -485,6 +501,8 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 
 static void capture_complete_callback(void *arg)
 {
+	perf_begin(hrt_callback_perf);
+
 	uint8_t timer_index = *((uint8_t *)arg);
 
 	// Unallocate the timer as CaptureDMA
@@ -495,11 +513,8 @@ static void capture_complete_callback(void *arg)
 	// Disable capture DMA
 	io_timer_capture_dma_req(timer_index, capture_channel, false);
 
-	if (timer_configs[timer_index].dma_handle != NULL) {
-		stm32_dmastop(timer_configs[timer_index].dma_handle);
-		stm32_dmafree(timer_configs[timer_index].dma_handle);
-		timer_configs[timer_index].dma_handle = NULL;
-	}
+	// Stop DMA (should already be finished)
+	stm32_dmastop(timer_configs[timer_index].dma_handle);
 
 	// Re-initialize all output channels on this timer
 	for (uint8_t output_channel = 0; output_channel < MAX_TIMER_IO_CHANNELS; output_channel++) {
@@ -525,6 +540,8 @@ static void capture_complete_callback(void *arg)
 
 	// Enable all channels configured as DShotInverted
 	io_timer_set_enable(true, IOTimerChanMode_DshotInverted, IO_TIMER_ALL_MODES_CHANNELS);
+
+	perf_end(hrt_callback_perf);
 }
 
 void process_capture_results(uint8_t timer_index, uint8_t channel_index)
@@ -544,7 +561,7 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 
 	} else {
 		// Convert the period to eRPM
-		_erpms[output_channel] = (1000000 * 60) / period;
+		_erpms[output_channel] = (1000000 * 60 / 100 + period / 2) / period;
 	}
 
 	// We set it ready anyway, not to hold up other channels when used in round robin.

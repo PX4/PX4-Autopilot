@@ -104,7 +104,7 @@ It is pre-installed with PX4 v1.15.4 at time of writing (a more recent version m
 
 ## Посібники
 
-- Tutorials [English](https://docs.amovlab.com/f450-v6c-wiki/#/en/)/[Chinese](https://docs.amovlab.com/F450-V6C-wiki/#/src/%E8%A7%84%E6%A0%BC%E5%8F%82%E6%95%B0/%E8%A7%84%E6%A0%BC%E5%8F%82%E6%95%B0) (docs.amovlab.com/)
+- Tutorials [English](https://docs.amovlab.com/f450-v6c-wiki/#/en/)/[Chinese](https://docs.amovlab.com/f450-v6c-wiki/#/) (docs.amovlab.com/)
 
 ## Upgrading
 

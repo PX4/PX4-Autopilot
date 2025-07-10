@@ -28,9 +28,9 @@ ESP8266 모듈은 여러 곳에서 쉽게 구매할 수 있습니다.
   A plug and play ESP8266 module.
 
   The Kahuna comes with a cable to connect directly to the Pixhawk-standard `TELEM1` or `TELEM2` ports.
-  It is pre-flashed with the latest firmware, and has a u.fl connector for an external antenna.
+  It is pre-flashed with the latest firmware, and has a `u.fl` connector for an external antenna.
   At most you may need to set the baud rate parameter, which for `TELEM1` is `SER_TEL1_BAUD = 57600 (57600 8N1)`.
-  The User Guide include WiFi setup and other relevant information.
+  The [User Guide](https://docs.google.com/document/d/1VyOsp9_q6dIAdYdWuDFcWoqqrNy_vbFMANubZA3Uz5g/edit?pli=1&tab=t.0) include WiFi setup and other relevant information.
 
   ![Kahuna ESP8266 WiFi Module](../../assets/peripherals/telemetry/esp8266/beyond_robotics_kahuna_esp8266.png)
 
@@ -115,13 +115,9 @@ If you have any problem connecting, see [QGC Usage Problems](https://docs.qgroun
 다른 제조업체의 ESP8266 모듈에는 사전에 적절한 ESP8266 펌웨어가 설치되어 있지 않을 수 있습니다.
 아래 지침은 적절한 버전으로 라디오를 업데이트 방법을 설명합니다.
 
-### 사전 빌드 바이너리
-
-[MavLink ESP8266 Firmware V 1.2.2](http://www.grubba.com/mavesp8266/firmware-1.2.2.bin)
-
 ### 소스 빌드
 
-The [firmware repository](https://github.com/dogmaphobic/mavesp8266) contains instructions and all the tools needed for building and flashing the ESP8266 firmware.
+The [firmware repository](https://github.com/BeyondRobotix/mavesp8266) contains instructions and all the tools needed for building and flashing the ESP8266 firmware.
 
 ### 펌웨어 OTA 업데이트
 
@@ -136,7 +132,7 @@ This is the easiest way to update firmware!
 ### ESP8266 펌웨어 플래싱
 
 Before flashing, make sure you boot the ESP8266 in _Flash Mode_ as described below.
-If you cloned the [MavESP8266](https://github.com/dogmaphobic/mavesp8266) repository, you can build and flash the firmware using the provided [PlatformIO](http://platformio.org) tools and environment.
+If you cloned the [MavESP8266](https://github.com/BeyondRobotix/mavesp8266) repository, you can build and flash the firmware using the provided [PlatformIO](https://platformio.org/) tools and environment.
 If you downloaded the pre-built firmware above, download the [esptool](https://github.com/espressif/esptool) utility and use the command line below:
 
 ```sh

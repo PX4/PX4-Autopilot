@@ -45,7 +45,7 @@ It is not recommended as the low frame rate causes segmentation faults on some f
 
 ## Rover
 
-Rover world is optimised for rovers (and will be further optimised for rovers) and is the default world for [Ackermann Rover (4012)](../frames_rover/ackermann.md) (`make px4_sitl gz_rover_ackermann`) and [Differential Rover ((r1-rover (4009))](../frames_rover/differential.md) (`make px4_sitl gz_r1_rover`).
+Rover world is optimised for rovers (and will be further optimised for rovers) and is the default world for [Ackermann Rover (4012)](../frames_rover/index.md#ackermann) (`make px4_sitl gz_rover_ackermann`) and [Differential Rover ((r1-rover (4009))](../frames_rover/index.md#differential) (`make px4_sitl gz_r1_rover`).
 
 [PX4-gazebo-models/main/worlds/rover.sdf](https://github.com/PX4/PX4-gazebo-models/blob/main/worlds/rover.sdf)
 
@@ -75,7 +75,7 @@ World with walls that is designed for testing [collision prevention](../computer
 
 ## Moving Platform
 
-<Badge type="tip" text="main (planned for: PX4 v1.16+)" />
+<Badge type="tip" text="PX4 v1.16" />
 
 [Empty world](#default) with the addition of a flat moving platform, to simulate drone operations from moving vehicles like ships or trucks. The platform is controlled by a plugin which is included in the world. The platform is at a height of 2m, so place the vehicle on it with:
 

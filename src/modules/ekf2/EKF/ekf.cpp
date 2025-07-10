@@ -74,14 +74,14 @@ void Ekf::reset()
 	//
 #if defined(CONFIG_EKF2_TERRAIN)
 	// assume a ground clearance
-	_state.terrain = -_gpos.altitude() + _params.rng_gnd_clearance;
+	_state.terrain = -_gpos.altitude() + _params.ekf2_min_rng;
 #endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	_range_sensor.setPitchOffset(_params.rng_sens_pitch);
+	_range_sensor.setPitchOffset(_params.ekf2_rng_pitch);
 	_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
-	_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
-	_range_sensor.setMaxFogDistance(_params.rng_fog);
+	_range_sensor.setQualityHysteresis(_params.ekf2_rng_qlty_t);
+	_range_sensor.setMaxFogDistance(_params.ekf2_rng_fog);
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 	_control_status.value = 0;
@@ -94,8 +94,7 @@ void Ekf::reset()
 	_innov_check_fail_status.value = 0;
 
 #if defined(CONFIG_EKF2_GNSS)
-	resetGpsDriftCheckFilters();
-	_gps_checks_passed = false;
+	_gnss_checks.resetHard();
 #endif // CONFIG_EKF2_GNSS
 	_local_origin_alt = NAN;
 
@@ -152,7 +151,7 @@ bool Ekf::update()
 
 		// calculate an average filter update time
 		// limit input between -50% and +100% of nominal value
-		const float filter_update_s = 1e-6f * _params.filter_update_interval_us;
+		const float filter_update_s = 1e-6f * _params.ekf2_predict_us;
 		const float input = math::constrain(0.5f * (imu_sample_delayed.delta_vel_dt + imu_sample_delayed.delta_ang_dt),
 						    0.5f * filter_update_s,
 						    2.f * filter_update_s);
@@ -271,7 +270,7 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_state.pos(2) = -_gpos.altitude();
 
 	// constrain states
-	_state.vel = matrix::constrain(_state.vel, -_params.velocity_limit, _params.velocity_limit);
+	_state.vel = matrix::constrain(_state.vel, -_params.ekf2_vel_lim, _params.ekf2_vel_lim);
 
 	// calculate a filtered horizontal acceleration this are used for manoeuvre detection elsewhere
 	_accel_horiz_lpf.update(corrected_delta_vel_ef.xy() / imu_delayed.delta_vel_dt, imu_delayed.delta_vel_dt);
@@ -373,19 +372,19 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 
 void Ekf::updateParameters()
 {
-	_params.gyro_noise = math::constrain(_params.gyro_noise, 0.f, 1.f);
-	_params.accel_noise = math::constrain(_params.accel_noise, 0.f, 1.f);
+	_params.ekf2_gyr_noise = math::constrain(_params.ekf2_gyr_noise, 0.f, 1.f);
+	_params.ekf2_acc_noise = math::constrain(_params.ekf2_acc_noise, 0.f, 1.f);
 
-	_params.gyro_bias_p_noise = math::constrain(_params.gyro_bias_p_noise, 0.f, 1.f);
-	_params.accel_bias_p_noise = math::constrain(_params.accel_bias_p_noise, 0.f, 1.f);
+	_params.ekf2_gyr_b_noise = math::constrain(_params.ekf2_gyr_b_noise, 0.f, 1.f);
+	_params.ekf2_acc_b_noise = math::constrain(_params.ekf2_acc_b_noise, 0.f, 1.f);
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	_params.mage_p_noise = math::constrain(_params.mage_p_noise, 0.f, 1.f);
-	_params.magb_p_noise = math::constrain(_params.magb_p_noise, 0.f, 1.f);
+	_params.ekf2_mag_e_noise = math::constrain(_params.ekf2_mag_e_noise, 0.f, 1.f);
+	_params.ekf2_mag_b_noise = math::constrain(_params.ekf2_mag_b_noise, 0.f, 1.f);
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)
-	_params.wind_vel_nsd = math::constrain(_params.wind_vel_nsd, 0.f, 1.f);
+	_params.ekf2_wind_nsd = math::constrain(_params.ekf2_wind_nsd, 0.f, 1.f);
 #endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)

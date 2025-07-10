@@ -86,5 +86,3 @@ See the documentation [Ark Electronics GitBook](https://arkelectron.gitbook.io/a
 ## Pinout
 
 See the [DS-10 Pixhawk Autopilot Bus Standard](https://arkelectron.gitbook.io/ark-documentation/flight-controllers/ark-fpv/pinout)
-
-

@@ -1,6 +1,6 @@
 # STM32 부트로더
 
-The code for the PX4 bootloader is available from the Github [Bootloader](https://github.com/px4/bootloader) repository.
+The code for the PX4 bootloader is available from the Github [Bootloader](https://github.com/PX4/PX4-Bootloader) repository.
 
 ## 지원 보드
 
@@ -14,7 +14,7 @@ The code for the PX4 bootloader is available from the Github [Bootloader](https:
 ## 부트로더 빌드
 
 ```sh
-git clone https://github.com/PX4/Bootloader.git
+git clone https://github.com/PX4/PX4-Bootloader.git
 cd Bootloader
 git submodule init
 git submodule update
@@ -29,7 +29,7 @@ make
 The right power sequence is critical for some boards to allow JTAG / SWD access. 설명된 대로 정확히 다음 단계를 따르십시오.
 :::
 
-아래 지침은 Blackmagic/Dronecode 프로브에 유효합니다.
+The instructions below are valid for a Blackmagic / Zubax BugFace BF1 probe.
 다른 JTAG 프로브에는 유사한 단계가 필요합니다.
 부트로더를 플래싱하는 개발자는 필요한 지식을 숙지하여야 합니다.
 이 작업을 수행하는 방법을 모르는 경우에는 부트로더에 변경해야 할 사항이 있는지를 다 시 살펴보십시오.
@@ -40,7 +40,7 @@ The right power sequence is critical for some boards to allow JTAG / SWD access.
 2. USB 전원 케이블 연결
 3. JTAG 케이블 연결
 
-### 블랙 매직 / 드론코드 프로브
+### Black Magic / Zubax BugFace BF1 Probe
 
 #### 올바른 직렬 포트 사용
 

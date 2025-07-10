@@ -7,7 +7,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
 
-The [Holybro Kakute H7 mini](https://holybro.com/collections/autopilot-flight-controllers/products/kakute-h7-mini) flight controller is intended for lightweight frame builds (such as racers, etc.).
+The [Holybro Kakute H7 mini](https://holybro.com/products/kakute-h7-mini) flight controller is intended for lightweight frame builds (such as racers, etc.).
 
 This flight controller is full of features including HD camera plug, dual plug-and-play 4in1 ESC ports, VTX ON/OFF Pit Switch (Battery Voltage), barometer, OSD, 6x UARTs, 128MB Flash for logging (not supported with PX4 yet), 5V BEC, and bigger soldering pad with easy layout and much more.
 
@@ -80,7 +80,7 @@ The board can be bought from one of the following shops (for example):
 
 The board comes pre-installed with [Betaflight](https://github.com/betaflight/betaflight/wiki).
 Before the PX4 firmware can be installed, the _PX4 bootloader_ must be flashed.
-Download the [holybro_kakuteh7mini_bootloader.hex](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/kakuteh7mini/holybro_kakuteh7mini_bootloader.hex) bootloader binary and read [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
+Download the [holybro_kakuteh7mini_bootloader.hex](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/kakuteh7mini/holybro_kakuteh7mini_bootloader.hex) bootloader binary and read [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
 
 ## Building Firmware
 

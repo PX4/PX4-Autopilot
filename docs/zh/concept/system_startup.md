@@ -5,7 +5,7 @@ On NuttX they reside in the [ROMFS/px4fmu_common/init.d](https://github.com/PX4/
 The scripts that are only used on Posix are located in [ROMFS/px4fmu_common/init.d-posix](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d-posix).
 
 All files starting with a number and underscore (e.g. `10000_airplane`) are predefined airframe configurations.
-They are exported at build-time into an `airframes.xml` file which is parsed by [QGroundControl](http://qgroundcontrol.com) for the airframe selection UI.
+They are exported at build-time into an `airframes.xml` file which is parsed by [QGroundControl](https://qgroundcontrol.com) for the airframe selection UI.
 Adding a new configuration is covered [here](../dev_airframes/adding_a_new_frame.md).
 
 其它的文件则是系统常规启动逻辑的一部分。
@@ -33,7 +33,7 @@ The first executed file is the [init.d/rcS](https://github.com/PX4/PX4-Autopilot
 
 - Shell 将每个模块作为一个新的 (客户端) 进程进行启动，
   每个客户端进程都需要与 PX4 主实例（服务器）进行通讯，实际的模块以线程的形式运行。
-  This is done through a [UNIX socket](http://man7.org/linux/man-pages/man7/unix.7.html).
+  This is done through a [UNIX socket](https://man7.org/linux/man-pages/man7/unix.7.html).
   服务器侦听一个 socket，然后客户端将连接该 socket 并通过它发送指令。
   服务器收到客户端的指令后将指令运行的输出结果及返回代码重新发送给客户端。
 

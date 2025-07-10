@@ -40,7 +40,6 @@ They should be used by preference as they contain the most complete and up to da
 - Main FMU Processor: STM32H743
 
 - 内置传感器：
-
   - 加速度计/陀螺仪：ICM-20689
   - 加速度计/陀螺仪：ICM-20649
   - Accelerometer/Gyroscope: BMI088
@@ -173,5 +172,5 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 ## 更多信息
 
 - [Quick start](https://doc.cuav.net/flight-controller/x7/en/quick-start/quick-start-nora.html)
-- [CUAV docs](http://doc.cuav.net)
+- [CUAV docs](https://doc.cuav.net/)
 - [nora schematic](https://github.com/cuav/hardware/tree/master/X7_Autopilot)

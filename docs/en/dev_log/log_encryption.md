@@ -12,7 +12,7 @@ To use it you will need to build firmware with this feature enabled and then upl
 :::
 
 ::: tip
-Log encryption was has been improved in PX4 main (v1.16+) to generate a single encrypted log file that contains both encrypted log data, and an encrypted symmetric key that you can use to decrypt it (provided you can decrypt the symmetric key).
+Log encryption was has been improved in PX4 v1.16 to generate a single encrypted log file that contains both encrypted log data, and an encrypted symmetric key that you can use to decrypt it (provided you can decrypt the symmetric key).
 
 In earlier versions the encrypted symmetric key was stored in a separate file.
 For more information see the [Log Encryption (PX4 v1.15)](https://docs.px4.io/v1.15/en/dev_log/log_encryption.html).
@@ -190,7 +190,7 @@ You can now build and test.
 ## Download & Decrypt Log Files
 
 Before you can analyse your logs they must first be downloaded and decrypted.
-PX4 includes Python scripts in [Tools/log_encryption](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/) that make this process easier:
+PX4 includes Python scripts in [Tools/log_encryption](https://github.com/PX4/PX4-Autopilot/tree/main/Tools) that make this process easier:
 
 - [download_logs.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/log_encryption/download_logs.py): Downloads the logs to `/logs/encrypted`.
 - [decrypt_logs.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/log_encryption/decrypt_logs.py): Decrypts encrypted logs in `/logs/encrypted` to `/logs/decrypted` using a specified (or default) key.

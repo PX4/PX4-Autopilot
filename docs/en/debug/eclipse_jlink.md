@@ -21,7 +21,7 @@ Setup PX4 by following the normal guidelines:
 
 To install _Eclipse_:
 
-1. Download [Eclipse CDT for C/C++ Developers](https://github.com/gnu-mcu-eclipse/org.eclipse.epp.packages/releases/) (MCU GitHub).
+1. Download [Eclipse CDT for C/C++ Developers](https://github.com/eclipse-embed-cdt/org.eclipse.epp.packages/releases) (MCU GitHub).
 1. Extract the Eclipse folder and copy it anywhere (there is no need to run any install scripts).
 1. Run _Eclipse_ and choose a location for your initial workbench.
 
@@ -46,7 +46,6 @@ For more information, see: [https://gnu-mcu-eclipse.github.io/debug/jlink/instal
    Set it as shown in the screenshot below.
    ![Eclipse: Segger J-Link Path](../../assets/debug/eclipse_segger_jlink_path.png)
 1. Update packs:
-
    - Click the small icon on the top right called _Open Perspective_ and open the _Packs_ perspective.
      ![Eclipse: Workspace](../../assets/debug/eclipse_workspace_perspective.png)
    - Click the **update all** button.
@@ -61,7 +60,6 @@ For more information, see: [https://gnu-mcu-eclipse.github.io/debug/jlink/instal
    - The STM32Fxx devices are found in the Keil folder, install by right-clicking and then selecting **install** on the according device for F4 and F7.
 
 1. Setup debug configuration for target:
-
    - Right click project and open the _Settings_ (menu: **C/C++ Build > Settings**)
    - Choose the _Devices_ Tab, _Devices_ section (Not _Boards_).
    - Find the FMU chip you wish to debug.
@@ -73,7 +71,6 @@ For more information, see: [https://gnu-mcu-eclipse.github.io/debug/jlink/instal
 1. Then select _GDB SEGGER J-Link Debugging_ and then the **New config** button on the top left.
    ![Eclipse: GDB Segger Debug config](../../assets/debug/eclipse_settings_debug_config_gdb_segger.png)
 1. Setup build config:
-
    - Give it a name and set the _C/C++ Application_ to the corresponding **.elf** file.
    - Choose _Disable Auto build_
 
@@ -96,7 +93,6 @@ This is quite useful since PX4 tends to run many different tasks.
 To enable this feature for use in Eclipse:
 
 1. You first need to enable `CONFIG_DEBUG_TCBINFO` in the NuttX configuration for your build (to expose the TCB offsets).
-
    - Open a terminal in the root of your PX4-Autopilot source code
    - In the terminal, open `menuconfig` using the appropriate make target for the build.
      This will be something like:
@@ -136,7 +132,7 @@ Adding missing SVD files for the _Peripheral View_:
 
    ![Eclipse: MCU Packages](../../assets/debug/eclipse_mcu_packages.png)
 
-2. Download missing packages from: http://www.keil.com/dd2/Pack/
+2. Download missing packages from: https://www.keil.arm.com/devices/
 3. Open downloaded pack with a decompression tool, and extract the **.SVD** files from: **/CMSIS/SVD**.
 4. Select desired **.SVD** file in: **Debug Options > GDB SEGGER JLink Debugging > SVD Path**
 

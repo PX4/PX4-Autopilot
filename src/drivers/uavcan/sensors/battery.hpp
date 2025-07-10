@@ -38,9 +38,11 @@
 #pragma once
 
 #include "sensor_bridge.hpp"
+#include <uORB/topics/battery_info.h>
 #include <uORB/topics/battery_status.h>
 #include <uavcan/equipment/power/BatteryInfo.hpp>
 #include <ardupilot/equipment/power/BatteryInfoAux.hpp>
+#include <cuav/equipment/power/CBAT.hpp>
 #include <battery/battery.h>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
@@ -65,10 +67,12 @@ private:
 		Raw, // data from BatteryInfo message only
 		RawAux, // data combination from BatteryInfo and BatteryInfoAux messages
 		Filter, // filter data from BatteryInfo message with Battery library
+		CBAT, // CBAT messages
 	};
 
 	void battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg);
 	void battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::equipment::power::BatteryInfoAux> &msg);
+	void cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::equipment::power::CBAT> &msg);
 	void sumDischarged(hrt_abstime timestamp, float current_a);
 	void determineWarning(float remaining);
 	void filterData(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg, uint8_t instance);
@@ -82,8 +86,14 @@ private:
 		(const uavcan::ReceivedDataStructure<ardupilot::equipment::power::BatteryInfoAux> &) >
 		BatteryInfoAuxCbBinder;
 
+	typedef uavcan::MethodBinder < UavcanBatteryBridge *,
+		void (UavcanBatteryBridge::*)
+		(const uavcan::ReceivedDataStructure<cuav::equipment::power::CBAT> &) >
+		CBATCbBinder;
+
 	uavcan::Subscriber<uavcan::equipment::power::BatteryInfo, BatteryInfoCbBinder> _sub_battery;
 	uavcan::Subscriber<ardupilot::equipment::power::BatteryInfoAux, BatteryInfoAuxCbBinder> _sub_battery_aux;
+	uavcan::Subscriber<cuav::equipment::power::CBAT, CBATCbBinder> _sub_cbat;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_LOW_THR>) _param_bat_low_thr,
@@ -95,6 +105,11 @@ private:
 	float _discharged_mah_loop = 0.f;
 	uint8_t _warning;
 	hrt_abstime _last_timestamp;
+
+	// Separate battery info publication because UavcanSensorBridgeBase only supports publishing one topic
+	uORB::PublicationMulti<battery_info_s> _battery_info_pub[battery_status_s::MAX_INSTANCES] {ORB_ID(battery_info), ORB_ID(battery_info), ORB_ID(battery_info), ORB_ID(battery_info)};
+
+	battery_info_s _battery_info[battery_status_s::MAX_INSTANCES] {};
 	battery_status_s _battery_status[battery_status_s::MAX_INSTANCES] {};
 	BatteryDataType _batt_update_mod[battery_status_s::MAX_INSTANCES] {};
 

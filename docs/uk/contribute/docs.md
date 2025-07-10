@@ -37,7 +37,7 @@ For these kinds of changes we suggest using the same approach as for _code_:
 1. Use the _git_ toolchain to get the PX4 source code onto your local computer.
 2. Внесіть потрібні зміни в документацію (додайте, змініть, видаліть).
 3. _Test_ that it builds properly using Vitepress.
-4. Create a branch for your changes and create a pull request (PR) to pull it back into the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot.git) repo.
+4. Create a branch for your changes and create a pull request (PR) to pull it back into the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) repo.
 
 Нижче пояснено, як отримати вихідний код, побудувати локально (для тестування) та внести зміни в код.
 
@@ -57,7 +57,7 @@ If you already have a clone of the [PX4-Autopilot](https://github.com/PX4/PX4-Au
 
 1. Download git for your computer from [https://git-scm.com/downloads](https://git-scm.com/downloads)
 
-2. [Sign up](https://github.com/join) for Github if you haven't already
+2. [Sign up](https://github.com/signup) for Github if you haven't already
 
 3. Create a copy (Fork) of the [PX4-Autopilot repo](https://github.com/PX4/PX4-Autopilot) on Github ([instructions here](https://docs.github.com/en/get-started/quickstart/fork-a-repo)).
 
@@ -134,7 +134,6 @@ Within the repository you created above:
   Там ви маєте побачити повідомлення, що нова гілка була відправлена у вашу репозиторію-форк.
 
 7. Створіть запит на витягнення (Pull Request, PR):
-
   - On the right hand side of the "new branch message" (see one step before), you should see a green button saying "Compare & Create Pull Request".
     Натисніть на неї.
   - Буде створено шаблон запиту на витягнення.
@@ -152,7 +151,6 @@ Within the repository you created above:
 Побудуйте бібліотеку локально, щоб перевірити, що будь-які зміни, які ви внесли, відображені належним чином:
 
 1. Install the [Vitepress prerequisites](https://vitepress.dev/guide/getting-started#prerequisites):
-
   - [Nodejs 18+](https://nodejs.org/en)
   - [Yarn classic](https://classic.yarnpkg.com/en/docs/install)
 
@@ -181,11 +179,19 @@ Within the repository you created above:
 5. Open previewed pages in your local editor:
 
   First specify a local text editor file using the `EDITOR` environment variable, before calling `yarn start` to preview the library.
-  For example, on Windows command line you can enable VSCode as your default editor by entering:
+  For example, you can enable VSCode as your default editor by entering:
 
-  ```sh
-  set EDITOR=code
-  ```
+  - Windows:
+
+    ```sh
+    set EDITOR=code
+    ```
+
+  - Linux:
+
+    ```sh
+    export EDITOR=code
+    ```
 
   The **Open in your editor** link at the bottom of each page will then open the current page in the editor (this replaces the _Open in GitHub_ link).
 
@@ -225,7 +231,6 @@ The guide uses the [Vitepress](https://vitepress.dev/) toolchain.
   - Це полегшує створення посилань, оскільки інші сторінки і зображення завжди будуть на тому ж рівні
 
 - The _structure_ of the book is defined in `SUMMARY.md`.
-
   - Якщо ви додаєте нову сторінку до посібника, вам також потрібно додати запис до цього файлу!
 
     :::tip
@@ -251,7 +256,6 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
 ## Інструкція зі стилістичного оформлення
 
 1. Назви файлів/файлів
-
   - Put new markdown files in an appropriate sub-folder of `/en/`, such as `/en/contribute/`.
     Не створюйте додаткових вкладених папок.
   - Put new image files in an appropriate nested sub-folder of `/assets/`.
@@ -261,14 +265,12 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
   - Use lower case filenames and separate words using underscores (`_`).
 
 2. Зображення
-
   - Використовуйте найменший розмір і найнижчу роздільну здатність, яка все ще робить зображення корисним (це зменшує вартість завантаження для користувачів із слабким інтернет-з'єднанням).
   - New images should be created in a sub-folder of `/assets/` (so they can be shared between translations).
   - SVG files are preferred for diagrams.
     PNG files are preferred over JPG for screenshots.
 
 3. Контент
-
   - Use "style" (**bold**, _emphasis_, etc.) consistently and sparingly (as little as possible).
     - **Bold** for button presses and menu definitions.
     - _Emphasis_ for tool names such as _QGroundControl_ or _prettier_.
@@ -283,7 +285,6 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
   - Format using _prettier_ (_VSCode_ is a has extensions can be used for this).
 
 4. Videos:
-
   - Youtube videos can be added using the format `<lite-youtube videoid="<youtube-video-id>" title="your title"/>` (supported via the [https://www.npmjs.com/package/lite-youtube-embed](https://www.npmjs.com/package/lite-youtube-embed) custom element, which has other parameters you can pass).
     - Use instructional videos sparingly as they date badly, and are hard to maintain.
     - Cool videos of airframes in flight are always welcome.

@@ -26,13 +26,13 @@ ARF 키트는 PX4와 호환되는 대부분의 비행 콘트롤러를 지원합�
 The Holybro [X500 V2 Kit](https://holybro.com/collections/x500-kits) includes almost all the required components:
 
 - X500V2 프레임 키트
- - Body - Full Carbon Fiber Top & Bottom plate (144 x 144mm, 2mm thick)
- - Arm - High strength & ultra-lightweight 16mm carbon fiber tubes
- - Landing gear - 16mm & 10mm diameter carbon fiber tubes
- - Platform board - With mounting holes for GPS & popular companion computer
- - 이중 10mm Ø 로드 x 250mm 롱 레일 마운팅 시스템
- - 2개의 배터리 스트랩이 있는 배터리 마운트
- - 설치용 수공구
+  - Body - Full Carbon Fiber Top & Bottom plate (144 x 144mm, 2mm thick)
+  - Arm - High strength & ultra-lightweight 16mm carbon fiber tubes
+  - Landing gear - 16mm & 10mm diameter carbon fiber tubes
+  - Platform board - With mounting holes for GPS & popular companion computer
+  - 이중 10mm Ø 로드 x 250mm 롱 레일 마운팅 시스템
+  - 2개의 배터리 스트랩이 있는 배터리 마운트
+  - 설치용 수공구
 - Holybro Motors - 2216 KV880 x6 (superseded - check [spare parts list](https://holybro.com/products/spare-parts-x500-v2-kit) for current version).
 - Holybro BLHeli S ESC 20A x4 (superseded - check [spare parts list](https://holybro.com/products/spare-parts-x500-v2-kit) for current version).
 - Propellers - 1045 x4 (superseded - check [spare parts list](https://holybro.com/products/spare-parts-x500-v2-kit) for current version).
@@ -93,92 +93,92 @@ Tools are included to do the assembly, however you may need:
 Estimate time to assemble is 55 min (25 minutes for frame, 30 minutes for autopilot installation/configuration)
 
 1. Start by assembling the payload & battery holder.
- Push the rubbers into grippers (Do not use sharp items to push them in!).
- Next, pass the holders through the holder bars with the battery holder bases as Figure 3.
+  Push the rubbers into grippers (Do not use sharp items to push them in!).
+  Next, pass the holders through the holder bars with the battery holder bases as Figure 3.
 
- ![Landing Figure 1: Components](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/payload_holder_required_stuff.png)
+  ![Landing Figure 1: Components](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/payload_holder_required_stuff.png)
 
- _Figure 2_: Payload holder components
+  _Figure 2_: Payload holder components
 
- ![Landing Figure 2: Assembled](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/payload_holder_assembled.png)
+  ![Landing Figure 2: Assembled](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/payload_holder_assembled.png)
 
- _Figure 3_: Payload holder assembled
+  _Figure 3_: Payload holder assembled
 
 2. The next is to go for attaching the bottom plate to the payload holder.
 
- You will need the parts as shown in Figure 4.
- Then mount the base for power distribution board using nylon nuts as Figure 5.
- Finally using 8 hex screws you can join the bottom plate to the payload holder (Figure 7)
+  You will need the parts as shown in Figure 4.
+  Then mount the base for power distribution board using nylon nuts as Figure 5.
+  Finally using 8 hex screws you can join the bottom plate to the payload holder (Figure 7)
 
- ![Materials to attach bottom plate](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/topplate_holder_stuff.png)
+  ![Materials to attach bottom plate](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/topplate_holder_stuff.png)
 
- _Figure 4_: Needed Materials
+  _Figure 4_: Needed Materials
 
- ![PDB mountbase](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/powerboard-mountbase.png)
+  ![PDB mountbase](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/powerboard-mountbase.png)
 
- _Figure 5_: PDB mount base
+  _Figure 5_: PDB mount base
 
- ![PDB attachment](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/pdb_bottom_plate.png)
+  ![PDB attachment](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/pdb_bottom_plate.png)
 
- _Figure 6_: Mounted pdb with nylon nuts
+  _Figure 6_: Mounted pdb with nylon nuts
 
- ![Bottom plate Final](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/bottom_plate_holder_final.png)
+  ![Bottom plate Final](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/bottom_plate_holder_final.png)
 
- _Figure 7_: Mounted Plate on payload holder
+  _Figure 7_: Mounted Plate on payload holder
 
 3. Let's gather the stuff needed for mounting landing gear as Figure 8.
- Use the hex screws to join landing gears to the bottom plate.
- You also need to open three hex screws on each of the leg stands so you can push them into carbon fiber pipes.
- Do not forget to tighten them back again.
+  Use the hex screws to join landing gears to the bottom plate.
+  You also need to open three hex screws on each of the leg stands so you can push them into carbon fiber pipes.
+  Do not forget to tighten them back again.
 
- ![Attach Landing Gear Stuff](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/landing_gear_materials.png)
+  ![Attach Landing Gear Stuff](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/landing_gear_materials.png)
 
- _Figure 8_: Required parts for landing gear attachment
+  _Figure 8_: Required parts for landing gear attachment
 
- ![Lanfing great to bottom plate](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/attached_landing_gear.png)
+  ![Lanfing great to bottom plate](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/attached_landing_gear.png)
 
- _Figure 9_: Landing gear attachment to the body
+  _Figure 9_: Landing gear attachment to the body
 
 4. We will gather all the arms now to mount the top plate.
- Please pay attention that the motor numbers on arms are a match with the ones mentioned on the top plate.
- Fortunately, motors are mounted and ESCs have been connected in advance.
- Start by passing through all the screws as you have the arms fixed in their own places (They have a guide as shown in Figure 11 to ensure they are in place) and tighten all nylon nuts a bit.
- Then you can connect XT30 power connectors to the power board.
- Please keep in mind that the signal wires have to be passed through the top plate such that we can connect them later to Pixhawk.
+  Please pay attention that the motor numbers on arms are a match with the ones mentioned on the top plate.
+  Fortunately, motors are mounted and ESCs have been connected in advance.
+  Start by passing through all the screws as you have the arms fixed in their own places (They have a guide as shown in Figure 11 to ensure they are in place) and tighten all nylon nuts a bit.
+  Then you can connect XT30 power connectors to the power board.
+  Please keep in mind that the signal wires have to be passed through the top plate such that we can connect them later to Pixhawk.
 
- <img src="../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/needed_stuff_top_plate.png" width="700" title="Arms and top plate materials">
+  <img src="../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/needed_stuff_top_plate.png" width="700" title="Arms and top plate materials">
 
- _Figure 10_: Connecting arms needed materials.
+  _Figure 10_: Connecting arms needed materials.
 
- <img src="../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/guide_for_arm_mount.png" width="700" title="Guide for the arms mount">
+  <img src="../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/guide_for_arm_mount.png" width="700" title="Guide for the arms mount">
 
- _Figure 11_: Guide for the arms mount
+  _Figure 11_: Guide for the arms mount
 
 5. Tighten all 16 screws and nuts by using both hex wrench and nut driver.
 
- ![Top plae mounted](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/finalized_top_plate.png)
+  ![Top plae mounted](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/finalized_top_plate.png)
 
- _Figure 12_: Mounted top plate
+  _Figure 12_: Mounted top plate
 
 6. Next you can mount your pixhawk on the top plate by using the stickers.
- It is recommended to have the direction of your Pixhawk's arrow the same as the one mentioned on the top plate.
+  It is recommended to have the direction of your Pixhawk's arrow the same as the one mentioned on the top plate.
 
- ![Flight controller mounting stickers](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/pixhawk5x_stickertapes.png)
+  ![Flight controller mounting stickers](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/pixhawk5x_stickertapes.png)
 
- _Figure 13_: Sticker tapes on Pixhawk
+  _Figure 13_: Sticker tapes on Pixhawk
 
 7. If you want to mount the GPS on the companion computer plate, you can now secure the GPS mount onto it using 4 screws and nuts.
 
- <img src="../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/gps_mount_plate.png" width="400" title="Secure GPS mount onto companion plate">
+  <img src="../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/gps_mount_plate.png" width="400" title="Secure GPS mount onto companion plate">
 
- _Figure 14_: Secure GPS mount onto companion plate
+  _Figure 14_: Secure GPS mount onto companion plate
 
 8. 테이프를 사용하여 GPS를 GPS 마스트 상단에 붙이고 GPS 마스트를 장착합니다.
- Make sure the arrow on the gps is pointing forward (Figure 15).
+  Make sure the arrow on the gps is pointing forward (Figure 15).
 
- <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gps2.jpg" width="400" title="Figure 16: GPS and mast">
+  <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gps2.jpg" width="400" title="Figure 16: GPS and mast">
 
- _Figure 15_: GPS and mast
+  _Figure 15_: GPS and mast
 
 9. Finally, you can connect the Pixhawk interfaces such as telemetry radio to 'TELEM1' and motors signal cables accordingly.
 
@@ -196,7 +196,7 @@ Full instructions for installing and configuring PX4 can be found in [Basic Conf
 :::
 
 _QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the X500 frame.
-[Download and install](http://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
+[Download and install](https://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
 
 First update the firmware, airframe, and actuator mappings:
 
@@ -204,14 +204,14 @@ First update the firmware, airframe, and actuator mappings:
 
 - [Airframe](../config/airframe.md)
 
- You will need to select the _Holybro X500 V2_ airframe (**Quadrotor x > Holybro 500 V2**)
+  You will need to select the _Holybro X500 V2_ airframe (**Quadrotor x > Holybro 500 V2**)
 
- ![QGroundControl - Select HolyBro 500 airframe](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/x500v2_airframe_qgc.png)
+  ![QGroundControl - Select HolyBro 500 airframe](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/x500v2_airframe_qgc.png)
 
 - [Actuators](../config/actuators.md)
- - You should not need to update the vehicle geometry (as this is a preconfigured airframe).
- - Assign actuator functions to outputs to match your wiring.
- - Test the configuration using the sliders.
+  - You should not need to update the vehicle geometry (as this is a preconfigured airframe).
+  - Assign actuator functions to outputs to match your wiring.
+  - Test the configuration using the sliders.
 
 그리고, 설치후에 필수적인 설정 작업과 보정 작업을 진행하여야 합니다.
 

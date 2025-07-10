@@ -71,7 +71,7 @@ For ExpressLRS receivers wire to the flight controller UART as shown below (wiri
 ### Конфігурація прошивки/збірка
 
 Підтримка телеметрії CRSF не включена в жодне ПЗ PX4 за замовчуванням.
-To use this feature you must build and upload custom firmware that includes [crsf-rc](../modules/modules_driver.md#crsf-rc) and removes [rc_input](../modules/modules_driver.md#rc-input).
+To use this feature you must build and upload custom firmware that includes [crsf-rc](../modules/modules_driver_radio_control.md#crsf-rc) and removes [rc_input](../modules/modules_driver_radio_control.md#rc-input).
 
 Кроки наступні:
 
@@ -163,7 +163,7 @@ RC Контролери, які підтримують модулі TX TBS Cross
 
 Приймачі:
 
-- [TBS Crossfire Nano RX](http://team-blacksheep.com/products/prod:crossfire_nano_rx) - designed for small quadcopters.
+- [TBS Crossfire Nano RX](https://www.team-blacksheep.com/products/prod:crossfire_nano_rx) - designed for small quadcopters.
 
 ## Системи радіо ExpressLRS
 
@@ -176,7 +176,7 @@ Express LRS provide Radio System guidance in the [Hardware Selection](https://ww
 
 Приймачі:
 
-- [ExpressLRS Matek Diversity RX](http://www.mateksys.com/?portfolio=elrs-r24).
+- [ExpressLRS Matek Diversity RX](https://www.mateksys.com/?portfolio=elrs-r24).
 
   ::: info
   This is used in the [Reptile Dragon 2 Build Log](../frames_plane/reptile_dragon_2.md).

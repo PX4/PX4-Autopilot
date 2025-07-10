@@ -39,8 +39,6 @@ RoverMecanum::RoverMecanum() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
-	_rover_throttle_setpoint_pub.advertise();
-	_rover_steering_setpoint_pub.advertise();
 	updateParams();
 }
 
@@ -53,119 +51,142 @@ bool RoverMecanum::init()
 void RoverMecanum::updateParams()
 {
 	ModuleParams::updateParams();
-
-	if (_param_ro_accel_limit.get() > FLT_EPSILON && _param_ro_max_thr_speed.get() > FLT_EPSILON) {
-		_throttle_body_x_setpoint.setSlewRate(_param_ro_accel_limit.get() / _param_ro_max_thr_speed.get());
-		_throttle_body_y_setpoint.setSlewRate(_param_ro_accel_limit.get() / _param_ro_max_thr_speed.get());
-	}
 }
 
 void RoverMecanum::Run()
 {
 	if (_parameter_update_sub.updated()) {
+		parameter_update_s param_update{};
+		_parameter_update_sub.copy(&param_update);
 		updateParams();
+		runSanityChecks();
 	}
-
-	const hrt_abstime timestamp_prev = _timestamp;
-	_timestamp = hrt_absolute_time();
-	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
-
-	_mecanum_pos_control.updatePosControl();
-	_mecanum_vel_control.updateVelControl();
-	_mecanum_att_control.updateAttControl();
-	_mecanum_rate_control.updateRateControl();
 
 	if (_vehicle_control_mode_sub.updated()) {
-		_vehicle_control_mode_sub.copy(&_vehicle_control_mode);
+		vehicle_control_mode_s vehicle_control_mode{};
+		_vehicle_control_mode_sub.copy(&vehicle_control_mode);
+
+		// Run sanity checks if the control mode changes (Note: This has to be done this way, because the topic is periodically updated at 2 Hz)
+		if (_vehicle_control_mode.flag_control_position_enabled != vehicle_control_mode.flag_control_position_enabled ||
+		    _vehicle_control_mode.flag_control_velocity_enabled != vehicle_control_mode.flag_control_velocity_enabled ||
+		    _vehicle_control_mode.flag_control_attitude_enabled != vehicle_control_mode.flag_control_attitude_enabled ||
+		    _vehicle_control_mode.flag_control_rates_enabled != vehicle_control_mode.flag_control_rates_enabled ||
+		    _vehicle_control_mode.flag_control_allocation_enabled != vehicle_control_mode.flag_control_allocation_enabled) {
+			_vehicle_control_mode = vehicle_control_mode;
+			runSanityChecks();
+			reset();
+
+		} else {
+			_vehicle_control_mode = vehicle_control_mode;
+		}
 	}
 
-	const bool full_manual_mode_enabled = _vehicle_control_mode.flag_control_manual_enabled
-					      && !_vehicle_control_mode.flag_control_position_enabled && !_vehicle_control_mode.flag_control_attitude_enabled
-					      && !_vehicle_control_mode.flag_control_rates_enabled;
+	if (_vehicle_control_mode.flag_armed && _sanity_checks_passed) {
 
-	if (full_manual_mode_enabled) { // Manual mode
-		generateSteeringAndThrottleSetpoint();
-	}
+		_was_armed = true;
+		generateSetpoints();
+		updateControllers();
 
-	if (_vehicle_control_mode.flag_armed) {
-		generateActuatorSetpoint();
-
+	} else if (_was_armed) { // Reset all controllers and stop the vehicle
+		reset();
+		_mecanum_act_control.stopVehicle();
+		_was_armed = false;
 	}
 
 }
 
-void RoverMecanum::generateSteeringAndThrottleSetpoint()
+void RoverMecanum::generateSetpoints()
 {
-	manual_control_setpoint_s manual_control_setpoint{};
+	vehicle_status_s vehicle_status{};
+	_vehicle_status_sub.update(&vehicle_status);
 
-	if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-		rover_steering_setpoint_s rover_steering_setpoint{};
-		rover_steering_setpoint.timestamp = _timestamp;
-		rover_steering_setpoint.normalized_speed_diff = manual_control_setpoint.yaw;
-		_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
-		rover_throttle_setpoint_s rover_throttle_setpoint{};
-		rover_throttle_setpoint.timestamp = _timestamp;
-		rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
-		rover_throttle_setpoint.throttle_body_y = manual_control_setpoint.roll;
-		_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+	switch (vehicle_status.nav_state) {
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+		_auto_mode.autoControl();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
+		_offboard_mode.offboardControl();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+		_manual_mode.manual();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_ACRO:
+		_manual_mode.acro();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_STAB:
+		_manual_mode.stab();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+		_manual_mode.position();
+		break;
+
+	default:
+		break;
 	}
-}
-
-void RoverMecanum::generateActuatorSetpoint()
-{
-	if (_rover_throttle_setpoint_sub.updated()) {
-		_rover_throttle_setpoint_sub.copy(&_rover_throttle_setpoint);
-	}
-
-	if (_actuator_motors_sub.updated()) {
-		actuator_motors_s actuator_motors{};
-		_actuator_motors_sub.copy(&actuator_motors);
-		_current_throttle_body_x = (actuator_motors.control[0] + actuator_motors.control[1]) / 2.f;
-		_current_throttle_body_y = (actuator_motors.control[2] - actuator_motors.control[0]) / 2.f;
-	}
-
-	if (_rover_steering_setpoint_sub.updated()) {
-		_rover_steering_setpoint_sub.copy(&_rover_steering_setpoint);
-	}
-
-	const float throttle_body_x = RoverControl::throttleControl(_throttle_body_x_setpoint,
-				      _rover_throttle_setpoint.throttle_body_x, _current_throttle_body_x, _param_ro_accel_limit.get(),
-				      _param_ro_decel_limit.get(), _param_ro_max_thr_speed.get(), _dt);
-	const float throttle_body_y = RoverControl::throttleControl(_throttle_body_y_setpoint,
-				      _rover_throttle_setpoint.throttle_body_y, _current_throttle_body_y, _param_ro_accel_limit.get(),
-				      _param_ro_decel_limit.get(), _param_ro_max_thr_speed.get(), _dt);
-	actuator_motors_s actuator_motors{};
-	actuator_motors.reversible_flags = _param_r_rev.get();
-	computeInverseKinematics(throttle_body_x, throttle_body_y,
-				 _rover_steering_setpoint.normalized_speed_diff).copyTo(actuator_motors.control);
-	actuator_motors.timestamp = _timestamp;
-	_actuator_motors_pub.publish(actuator_motors);
-
 
 }
 
-Vector4f RoverMecanum::computeInverseKinematics(float throttle_body_x, float throttle_body_y,
-		const float speed_diff_normalized)
+void RoverMecanum::updateControllers()
 {
-	const float total_speed = fabsf(throttle_body_x) + fabsf(throttle_body_y) + fabsf(speed_diff_normalized);
-
-	if (total_speed > 1.f) { // Adjust speed setpoints if infeasible
-		const float theta = atan2f(fabsf(throttle_body_y), fabsf(throttle_body_x));
-		const float magnitude = (1.f - fabsf(speed_diff_normalized)) / (sinf(theta) + cosf(theta));
-		const float normalization = 1.f / (sqrtf(powf(throttle_body_x, 2.f) + powf(throttle_body_y, 2.f)));
-		throttle_body_x *= magnitude * normalization;
-		throttle_body_y *= magnitude * normalization;
-
+	if (_vehicle_control_mode.flag_control_position_enabled) {
+		_mecanum_pos_control.updatePosControl();
 	}
 
-	// Calculate motor commands
-	const float input_data[3] = {throttle_body_x, throttle_body_y, speed_diff_normalized};
-	const Matrix<float, 3, 1> input(input_data);
-	const float m_data[12] = {1.f, -1.f, -1.f, 1.f, 1.f, 1.f, 1.f, 1.f, -1.f, 1.f, -1.f, 1.f};
-	const Matrix<float, 4, 3> m(m_data);
-	const Vector4f motor_commands = m * input;
+	if (_vehicle_control_mode.flag_control_velocity_enabled) {
+		_mecanum_vel_control.updateVelControl();
+	}
 
-	return motor_commands;
+	if (_vehicle_control_mode.flag_control_attitude_enabled) {
+		_mecanum_att_control.updateAttControl();
+	}
+
+	if (_vehicle_control_mode.flag_control_rates_enabled) {
+		_mecanum_rate_control.updateRateControl();
+	}
+
+	if (_vehicle_control_mode.flag_control_allocation_enabled) {
+		_mecanum_act_control.updateActControl();
+	}
+}
+
+void RoverMecanum::runSanityChecks()
+{
+	if (_vehicle_control_mode.flag_control_rates_enabled && !_mecanum_rate_control.runSanityChecks()) {
+		_sanity_checks_passed = false;
+		return;
+	}
+
+	if (_vehicle_control_mode.flag_control_attitude_enabled && !_mecanum_att_control.runSanityChecks()) {
+		_sanity_checks_passed = false;
+		return;
+	}
+
+	if (_vehicle_control_mode.flag_control_velocity_enabled && !_mecanum_vel_control.runSanityChecks()) {
+		_sanity_checks_passed = false;
+		return;
+	}
+
+	if (_vehicle_control_mode.flag_control_position_enabled && !_mecanum_pos_control.runSanityChecks()) {
+		_sanity_checks_passed = false;
+		return;
+	}
+
+	_sanity_checks_passed = true;
+}
+
+void RoverMecanum::reset()
+{
+	_mecanum_vel_control.reset();
+	_mecanum_att_control.reset();
+	_mecanum_rate_control.reset();
+	_manual_mode.reset();
 }
 
 int RoverMecanum::task_spawn(int argc, char *argv[])

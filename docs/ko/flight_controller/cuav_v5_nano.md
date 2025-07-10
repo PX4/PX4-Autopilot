@@ -17,7 +17,7 @@ The V5 nano is similar to the [CUAV V5+](../flight_controller/cuav_v5_plus.md), 
 
 주요 기능은 다음과 같습니다.
 
-- Full compatibility with the [Pixhawk project](https://pixhawk.org/) **FMUv5** design standard and uses the [Pixhawk Connector Standard](https://pixhawk.org/pixhawk-connector-standard/) for all external interfaces.
+- Full compatibility with the [Pixhawk project](https://pixhawk.org/) **FMUv5** design standard and uses the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) for all external interfaces.
 - 더 안정적이고 신뢰할 수 있는 센서와 함께 FMU v3보다 고급 프로세서, RAM 및 플래시 메모리.
 - PX4와 펌웨어 호환.
 - I/O 핀을 위한 넉넉한 2.6mm 간격으로 모든 인터페이스를 더 쉽게 사용할 수 있습니다.
@@ -31,7 +31,6 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 메인 FMU 프로세서: STM32F765◦32 비트 Arm® Cortex®-M7, 216MHz, 2MB 메모리, 512KB RAM
 
 - 내장 센서 :
-
   - 가속도/자이로: ICM-20689
   - 가속도/자이로: ICM-20602
   - 가속/자이로: BMI055
@@ -39,7 +38,6 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - 기압계: MS5611
 
 - 인터페이스 : 8개의 PWM 출력
-
   - FMU의 전용 PWM/캡처 입력 3 개
   - CPPM 전용 RC 입력
   - Spektrum/DSM 및 S.Bus 전용 R/C 입력
@@ -66,9 +64,9 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 [CUAV Store](https://store.cuav.net/shop/v5-nano/)
 
-CUAV Aliexpress (international users)
+[CUAV Aliexpress](https://www.aliexpress.com/item/33050770314.html?storeId=3257035&spm=2114.12010612.8148356.9.dbe6790bjW2hpH) (international users)
 
-CUAV Taobao (China Mainland users)
+[CUAV Taobao](https://item.taobao.com/item.htm?spm=a230r.1.14.8.26ab5258veQJRu&id=569404317857&ns=1&abbucket=13#detail) (China Mainland users)
 
 :::info
 Autopilot may be purchased with included Neo GPS module
@@ -186,7 +184,7 @@ CUAV는 몇 가지 차별화된 디자인을 채택하고, 아래에서 설명�
 
 The _Neo v2.0 GPS_ that is recommended for use with _CUAV V5+_ and _CUAV V5 nano_ is not fully compatible with other Pixhawk flight controllers (specifically, the buzzer part is not compatible and there may be issues with the safety switch).
 
-The UAVCAN [NEO V2 PRO GNSS receiver](http://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html) can also be used, and is compatible with other flight controllers.
+The UAVCAN [NEO V2 PRO GNSS receiver](https://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html) can also be used, and is compatible with other flight controllers.
 
 <a id="compatibility_jtag"></a>
 

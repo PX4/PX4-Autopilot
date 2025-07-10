@@ -40,26 +40,24 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-// Libraries
-#include <lib/rover_control/RoverControl.hpp>
-#include <lib/slew_rate/SlewRate.hpp>
+// Library includes
+#include <math.h>
 
 // uORB includes
 #include <uORB/Subscription.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/rover_steering_setpoint.h>
-#include <uORB/topics/rover_throttle_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
 
 // Local includes
+#include "MecanumActControl/MecanumActControl.hpp"
 #include "MecanumRateControl/MecanumRateControl.hpp"
 #include "MecanumAttControl/MecanumAttControl.hpp"
 #include "MecanumVelControl/MecanumVelControl.hpp"
 #include "MecanumPosControl/MecanumPosControl.hpp"
+#include "MecanumDriveModes/MecanumAutoMode/MecanumAutoMode.hpp"
+#include "MecanumDriveModes/MecanumManualMode/MecanumManualMode.hpp"
+#include "MecanumDriveModes/MecanumOffboardMode/MecanumOffboardMode.hpp"
 
 class RoverMecanum : public ModuleBase<RoverMecanum>, public ModuleParams,
 	public px4::ScheduledWorkItem
@@ -92,61 +90,46 @@ private:
 	void Run() override;
 
 	/**
-	 * @brief Generate and publish roverSteeringSetpoint and roverThrottleSetpoint from manualControlSetpoint (Manual Mode).
+	 * @brief Generate rover setpoints from supported PX4 internal modes
 	 */
-	void generateSteeringAndThrottleSetpoint();
+	void generateSetpoints();
 
 	/**
-	 * @brief Generate and publish actuatorMotors setpoints from roverThrottleSetpoint/roverSteeringSetpoint.
+	 * @brief Update the controllers
 	 */
-	void generateActuatorSetpoint();
+	void updateControllers();
 
 	/**
-	 * @brief Compute normalized motor commands based on normalized setpoints.
-	 * @param throttle_body_x Normalized speed in body x direction [-1, 1].
-	 * @param throttle_body_y Normalized speed in body y direction [-1, 1].
-	 * @param speed_diff_normalized Speed difference between left and right wheels [-1, 1].
-	 * @return Motor speeds [-1, 1].
+	 * @brief Check proper parameter setup for the controllers
+	 *
+	 * Modifies:
+	 *
+	 *   - _sanity_checks_passed: true if checks for all active controllers pass
 	 */
-	Vector4f computeInverseKinematics(float throttle_body_x, float throttle_body_y, const float speed_diff_normalized);
+	void runSanityChecks();
+
+	/**
+	 * @brief Reset controllers and manual mode variables.
+	 */
+	void reset();
 
 	// uORB subscriptions
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription _rover_steering_setpoint_sub{ORB_ID(rover_steering_setpoint)};
-	uORB::Subscription _rover_throttle_setpoint_sub{ORB_ID(rover_throttle_setpoint)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
-	vehicle_control_mode_s    _vehicle_control_mode{};
-	rover_steering_setpoint_s _rover_steering_setpoint{};
-	rover_throttle_setpoint_s _rover_throttle_setpoint{};
-
-	// uORB publications
-	uORB::PublicationMulti<actuator_motors_s>    _actuator_motors_pub{ORB_ID(actuator_motors)};
-	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
-	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
+	vehicle_control_mode_s _vehicle_control_mode{};
 
 	// Class instances
-	MecanumRateControl _mecanum_rate_control{this};
-	MecanumAttControl  _mecanum_att_control{this};
-	MecanumVelControl  _mecanum_vel_control{this};
-	MecanumPosControl  _mecanum_pos_control{this};
+	MecanumActControl   _mecanum_act_control{this};
+	MecanumRateControl  _mecanum_rate_control{this};
+	MecanumAttControl   _mecanum_att_control{this};
+	MecanumVelControl   _mecanum_vel_control{this};
+	MecanumPosControl   _mecanum_pos_control{this};
+	MecanumAutoMode	    _auto_mode{this};
+	MecanumManualMode   _manual_mode{this};
+	MecanumOffboardMode _offboard_mode{this};
 
 	// Variables
-	hrt_abstime _timestamp{0};
-	float _dt{0.f};
-	float _current_throttle_body_x{0.f};
-	float _current_throttle_body_y{0.f};
-
-	// Controllers
-	SlewRate<float> _throttle_body_x_setpoint{0.f};
-	SlewRate<float> _throttle_body_y_setpoint{0.f};
-
-	// Parameters
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::CA_R_REV>)           _param_r_rev,
-		(ParamFloat<px4::params::RO_ACCEL_LIM>)     _param_ro_accel_limit,
-		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_limit,
-		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed
-	)
+	bool _sanity_checks_passed{true}; // True if checks for all active controllers pass
+	bool _was_armed{false}; // True if the vehicle was armed before the last reset
 };

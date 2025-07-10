@@ -39,7 +39,7 @@ set VEHICLE_TYPE none
 # Airframe parameter versioning
 # Value set to 1 by default but can optionally be overridden in the airframe configuration startup script.
 # Airframe maintainers can ensure a reset to the airframe defaults during an update by increasing by one.
-# e.g. add line "set PARAM_DEFAULTS_VER 2" in your airframe file to build the first update that enfoces a reset.
+# e.g. add line "set PARAM_DEFAULTS_VER 2" in your airframe file to build the first update that enforces a reset.
 set PARAM_DEFAULTS_VER 1
 
 #
@@ -224,7 +224,7 @@ else
 		# Look for airframe in ROMFS
 		. ${R}etc/init.d/rc.autostart
 
-		if [ ${VEHICLE_TYPE} == none ]
+		if [ ${VEHICLE_TYPE} = none ]
 		then
 			# Use external startup file
 			if [ $STORAGE_AVAILABLE = yes ]
@@ -235,7 +235,7 @@ else
 			fi
 		fi
 
-		if [ ${VEHICLE_TYPE} == none ]
+		if [ ${VEHICLE_TYPE} = none ]
 		then
 			echo "ERROR [init] No airframe file found for SYS_AUTOSTART value"
 			param set SYS_AUTOSTART 0
@@ -279,6 +279,14 @@ else
 	# Start the socket communication send_event handler.
 	#
 	send_event start
+
+	#
+	# Start the hardfault streamer.
+	#
+	if param compare -s SYS_HF_MAV 1
+	then
+		hardfault_stream start
+	fi
 
 	#
 	# Start the resource load monitor.

@@ -4,7 +4,7 @@ The [Holybro Pixhawk Jetson Baseboard](https://holybro.com/products/pixhawk-jets
 
 ![Jetson Carrier with Pixhawk](../../assets/companion_computer/holybro_pixhawk_jetson_baseboard/hero_image.png)
 
-The board comes with either the [Jetson Orin NX (16GB RAM)](https://holybro.com/products/nvidia-jetson-orin-nx-16g) or [Jetson Orin Nano (4GB RAM)](https://holybro.com/products/nvidia-jetson-orin-nx-16g?variant=44391410598077).
+The board comes with either the _Jetson Orin NX_ (16GB RAM) or _Jetson Orin Nano_ (4GB RAM) (see [NVIDIA Jetson Orin™](https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/)).
 It can be used with any Pixhawk Autopilot Bus (PAB) specification-compliant Pixhawk flight controller, such as the Pixhawk 6 or Pixhawk 6X.
 
 This guide walks through the process of setting up the board and connecting to PX4, including:
@@ -20,7 +20,7 @@ This guide walks through the process of setting up the board and connecting to P
 You will temporarily need the following hardware in order to log into your Jetson and get its IP address, after which you will be able to log in via SSH:
 
 - External display.
- If your display doesn't have a mini HDMI connector you will also need a [Mini HDMI to HDMI converter](https://a.co/d/6N815N9) if your external display has HDMI input
+  If your display doesn't have a mini HDMI connector you will also need a [Mini HDMI to HDMI converter](https://a.co/d/6N815N9) if your external display has HDMI input
 - Ethernet cable
 - Mouse and keyboard (the baseboard has 4 USB ports exposed from Jetson, two of which are USB 3.0)
 
@@ -44,80 +44,66 @@ This information comes from the [Holybro Pixhawk-Jetson Baseboard Documentation]
 [Dimensions and weight](https://docs.holybro.com/autopilot/pixhawk-baseboards/pixhawk-jetson-baseboard/dimension-and-weight) (Holybro)
 
 - 尺寸
-
- - 126 x 80 x 45mm (with Jetson Orin NX + Heatsink/Fan & FC Module)
- - 126 x 80 x 22.9mm (without Jetson and FC Module)
+  - 126 x 80 x 45mm (with Jetson Orin NX + Heatsink/Fan & FC Module)
+  - 126 x 80 x 22.9mm (without Jetson and FC Module)
 
 - 重量
- - 190g (with Jetson, Heatsink, Flight Controller, M.2 SSD, M.2 Wi-Fi Module)
+  - 190g (with Jetson, Heatsink, Flight Controller, M.2 SSD, M.2 Wi-Fi Module)
 
 :::
 
 :::tab Jetson connectors
 
 - 2x Gigabit Ethernet Port
-
- - Connected to both Jetson & Autopilot via Ethernet switch (RTL8367S)
- - Ethernet Switch powered by the same circuit as the Pixhawk
- - 8-pin JST-GH
- - RJ45
+  - Connected to both Jetson & Autopilot via Ethernet switch (RTL8367S)
+  - Ethernet Switch powered by the same circuit as the Pixhawk
+  - 8-pin JST-GH
+  - RJ45
 
 - 2x MIPI CSI Camera Inputs
-
- - 4 Lanes each
- - 22-Pin Raspberry Pi Cam FFC
+  - 4 Lanes each
+  - 22-Pin Raspberry Pi Cam FFC
 
 - 2x USB 3.0 Host Port
-
- - USB A
- - 5A Current Limit
+  - USB A
+  - 5A Current Limit
 
 - 2x USB 2.0 Host Port
-
- - 5-Pin JST-GH
- - 0A Current Limit
+  - 5-Pin JST-GH
+  - 0A Current Limit
 
 - USB 2.0 for Programming/Debugging
-
- - USB-C
+  - USB-C
 
 - 2 Key M 2242/2280 for NVMe SSD
-
- - PCIEx4
+  - PCIEx4
 
 - 2 Key E 2230 for WiFi/BT
-
- - PCIEx2
- - USB
- - UART
- - I2S
+  - PCIEx2
+  - USB
+  - UART
+  - I2S
 
 - Mini HDMI Out
 
 - 4x GPIO
-
- - 6-pin JST-GH
+  - 6-pin JST-GH
 
 - CAN Port
-
- - Connected to Autopilot's CAN2 (4 Pin JST-GH)
+  - Connected to Autopilot's CAN2 (4 Pin JST-GH)
 
 - SPI Port
-
- - 7-Pin JST-GH
+  - 7-Pin JST-GH
 
 - I2C Port
-
- - 4-Pin JST-GH
+  - 4-Pin JST-GH
 
 - I2S Port
-
- - 7-Pin JST-GH
+  - 7-Pin JST-GH
 
 - 2x UART Port
-
- - 1 for debug
- - 1 connected to Autopilot's telem2
+  - 1 for debug
+  - 1 connected to Autopilot's telem2
 
 - Fan Power Port
 
@@ -128,83 +114,67 @@ This information comes from the [Holybro Pixhawk-Jetson Baseboard Documentation]
 :::tab Autopilot connectors
 
 - Pixhawk Autopilot Bus Interface
-
- - 100 Pin Hirose DF40
- - 50 Pin Hirose DF40
+  - 100 Pin Hirose DF40
+  - 50 Pin Hirose DF40
 
 - Redundant Digital Power Module Inputs
-
- - I2C Power Monitor Support
- - 2x 6-Pin Molex CLIK-Mate
+  - I2C Power Monitor Support
+  - 2x 6-Pin Molex CLIK-Mate
 
 - Power Path Selector
 
 - Overvoltage Protection
 
 - 额定电压
-
- - Max input voltage: 6V
- - USB 电源输入：4.75~5.25V
+  - Max input voltage: 6V
+  - USB 电源输入：4.75~5.25V
 
 - Full GPS Plus Safety Switch Port
-
- - 10-Pin JST-GH
+  - 10-Pin JST-GH
 
 - Secondary (GPS2) Port
-
- - 6-Pin JST-GH
+  - 6-Pin JST-GH
 
 - 2x CAN Ports
-
- - 4-Pin JST-GH
+  - 4-Pin JST-GH
 
 - 3x Telemetry Ports with Flow Control
-
- - 2x 6-Pin JST-GH
- - 1 is connected to Jetson's `UART1` Port
+  - 2x 6-Pin JST-GH
+  - 1 is connected to Jetson's `UART1` Port
 
 - 16 PWM Outputs
-
- - 2x 10-Pin JST-GH
+  - 2x 10-Pin JST-GH
 
 - UART4 & I2C Port
-
- - 6-Pin JST-GH
+  - 6-Pin JST-GH
 
 - 2x Gigabit Ethernet Port
-
- - Connected to both Jetson & Autopilot via Ethernet switch (RTL8367S)
- - 8-Pin JST-GH
- - RJ45
+  - Connected to both Jetson & Autopilot via Ethernet switch (RTL8367S)
+  - 8-Pin JST-GH
+  - RJ45
 
 - AD & IO
-
- - 8-Pin JST-GH
+  - 8-Pin JST-GH
 
 - USB 2.0
-
- - USB-C
- - 4-Pin JST-GH
+  - USB-C
+  - 4-Pin JST-GH
 
 - DSM Input
-
- - 3-Pin JST-ZH 1.5mm Pitch
+  - 3-Pin JST-ZH 1.5mm Pitch
 
 - RC In
-
- - PPM/SBUS
- - 5-Pin JST-GH
+  - PPM/SBUS
+  - 5-Pin JST-GH
 
 - SPI Port
-
- - External Sensor Bus (SPI5)
- - 11-Pin JST-GH
+  - External Sensor Bus (SPI5)
+  - 11-Pin JST-GH
 
 - 2x Debug Port
-
- - 1 for FMU
- - 1 for IO
- - 10-Pin JST-SH
+  - 1 for FMU
+  - 1 for IO
+  - 10-Pin JST-SH
 
 :::
 
@@ -218,7 +188,7 @@ The Jetson has separate input power circuitry from the Pixhawk autopilot:
 - 8V/3A Minimum (Depends on Usage and Peripherals)
 - Voltage Rating: 7-21V (3S-4S)
 - Jetson Baseboard onboard BEC is rated for 7-21V (3S-4S).
- Note that the external UBEC-12A can be used for applications above 4S
+  Note that the external UBEC-12A can be used for applications above 4S
 
 During development using the following wired power supply is recommended:
 
@@ -698,7 +668,7 @@ On the following screen, confirm your selected device:
 
 - Choose `Pre-config` for the OEM Configuration (this will skip Ubuntu first time setup screens after reboot).
 - Choose your preferred username and password (and write them down).
- These will be used as your login credentials to Jetpack.
+  These will be used as your login credentials to Jetpack.
 - Choose `NVMe` as the storage device because the board has separate SSD for storage.
 
 ![SDK Manager installation storage and OEM config page](../../assets/companion_computer/holybro_pixhawk_jetson_baseboard/nvidia_sdkmanager_3.png)
@@ -922,95 +892,95 @@ These instructions approximately mirror the [PX4 Ethernet setup](../advanced_con
 Next we modify the Jetson IP address to be on the same network as the Pixhawk:
 
 1. Make sure `netplan` is installed.
- You can check by running the following command:
+  You can check by running the following command:
 
- ```sh
- netplan -h
- ```
+  ```sh
+  netplan -h
+  ```
 
- If not, install it using the commands:
+  If not, install it using the commands:
 
- ```sh
- sudo apt update
- sudo apt install netplan.io
- ```
+  ```sh
+  sudo apt update
+  sudo apt install netplan.io
+  ```
 
 2. Check `system_networkd` is running:
 
- ```sh
- sudo systemctl status systemd-networkd
- ```
+  ```sh
+  sudo systemctl status systemd-networkd
+  ```
 
- You should see output like below if it is active:
+  You should see output like below if it is active:
 
- ```sh
- ● systemd-networkd.service - Network Configuration
-      Loaded: loaded (/lib/systemd/system/systemd-networkd.service; enabled; vendor preset: enabled)
-      Active: active (running) since Wed 2024-09-11 23:32:44 EDT; 23min ago
- TriggeredBy: ● systemd-networkd.socket
-        Docs: man:systemd-networkd.service(8)
-    Main PID: 2452 (systemd-network)
-      Status: "Processing requests..."
-       Tasks: 1 (limit: 18457)
-      Memory: 2.7M
-         CPU: 157ms
-      CGroup: /system.slice/systemd-networkd.service
-              └─2452 /lib/systemd/systemd-networkd
+  ```sh
+  ● systemd-networkd.service - Network Configuration
+       Loaded: loaded (/lib/systemd/system/systemd-networkd.service; enabled; vendor preset: enabled)
+       Active: active (running) since Wed 2024-09-11 23:32:44 EDT; 23min ago
+  TriggeredBy: ● systemd-networkd.socket
+         Docs: man:systemd-networkd.service(8)
+     Main PID: 2452 (systemd-network)
+       Status: "Processing requests..."
+        Tasks: 1 (limit: 18457)
+       Memory: 2.7M
+          CPU: 157ms
+       CGroup: /system.slice/systemd-networkd.service
+               └─2452 /lib/systemd/systemd-networkd
 
- Sep 11 23:32:44 ubuntu systemd-networkd[2452]: lo: Gained carrier
- Sep 11 23:32:44 ubuntu systemd-networkd[2452]: wlan0: Gained IPv6LL
- Sep 11 23:32:44 ubuntu systemd-networkd[2452]: eth0: Gained IPv6LL
- Sep 11 23:32:44 ubuntu systemd-networkd[2452]: Enumeration completed
- Sep 11 23:32:44 ubuntu systemd[1]: Started Network Configuration.
- Sep 11 23:32:44 ubuntu systemd-networkd[2452]: wlan0: Connected WiFi access point: Verizon_7YLWWD (78:67:0e:ea:a6:0>
- Sep 11 23:34:16 ubuntu systemd-networkd[2452]: eth0: Re-configuring with /run/systemd/network/10-netplan-eth0.netwo>
- Sep 11 23:34:16 ubuntu systemd-networkd[2452]: eth0: DHCPv6 lease lost
- Sep 11 23:34:16 ubuntu systemd-networkd[2452]: eth0: Re-configuring with /run/systemd/network/10-netplan-eth0.netwo>
- Sep 11 23:34:16 ubuntu systemd-networkd[2452]: eth0: DHCPv6 lease lost
- ```
+  Sep 11 23:32:44 ubuntu systemd-networkd[2452]: lo: Gained carrier
+  Sep 11 23:32:44 ubuntu systemd-networkd[2452]: wlan0: Gained IPv6LL
+  Sep 11 23:32:44 ubuntu systemd-networkd[2452]: eth0: Gained IPv6LL
+  Sep 11 23:32:44 ubuntu systemd-networkd[2452]: Enumeration completed
+  Sep 11 23:32:44 ubuntu systemd[1]: Started Network Configuration.
+  Sep 11 23:32:44 ubuntu systemd-networkd[2452]: wlan0: Connected WiFi access point: Verizon_7YLWWD (78:67:0e:ea:a6:0>
+  Sep 11 23:34:16 ubuntu systemd-networkd[2452]: eth0: Re-configuring with /run/systemd/network/10-netplan-eth0.netwo>
+  Sep 11 23:34:16 ubuntu systemd-networkd[2452]: eth0: DHCPv6 lease lost
+  Sep 11 23:34:16 ubuntu systemd-networkd[2452]: eth0: Re-configuring with /run/systemd/network/10-netplan-eth0.netwo>
+  Sep 11 23:34:16 ubuntu systemd-networkd[2452]: eth0: DHCPv6 lease lost
+  ```
 
- If `system_networkd` is not running, it can be enabled using:
+  If `system_networkd` is not running, it can be enabled using:
 
- ```sh
- sudo systemctl start systemd-networkd
- sudo systemctl enable systemd-networkd
- ```
+  ```sh
+  sudo systemctl start systemd-networkd
+  sudo systemctl enable systemd-networkd
+  ```
 
 3. Open the Netplan configuration file (so we can set up a static IP for the Jetson).
 
- The Netplan configuration file is usually located in the `/etc/netplan/` directory and named something like `01-netcfg.yaml` (the name can vary).
- Below we use `nano` to open the file, but you can use your preferred text editor:
+  The Netplan configuration file is usually located in the `/etc/netplan/` directory and named something like `01-netcfg.yaml` (the name can vary).
+  Below we use `nano` to open the file, but you can use your preferred text editor:
 
- ```sh
- sudo nano /etc/netplan/01-netcfg.yaml
- ```
+  ```sh
+  sudo nano /etc/netplan/01-netcfg.yaml
+  ```
 
 4. Modify the yaml configuration, by overwriting the contents with the following information and then saving:
 
- ```sh
- network:
-   version: 2
-   renderer: networkd
-   ethernets:
-     eth0:
-       dhcp4: no
-       addresses:
-         - 10.41.10.1/24
-       routes:
-         - to: 0.0.0.0/0
-           via: 10.41.10.254
-       nameservers:
-         addresses:
-           - 10.41.10.254
- ```
+  ```sh
+  network:
+    version: 2
+    renderer: networkd
+    ethernets:
+      eth0:
+        dhcp4: no
+        addresses:
+          - 10.41.10.1/24
+        routes:
+          - to: 0.0.0.0/0
+            via: 10.41.10.254
+        nameservers:
+          addresses:
+            - 10.41.10.254
+  ```
 
- This gives the Jetson a static IP address on the Ethernet interface of `10.41.10.1` .
+  This gives the Jetson a static IP address on the Ethernet interface of `10.41.10.1` .
 
 5. Apply the changes using the following command:
 
- ```sh
- sudo netplan apply
- ```
+  ```sh
+  sudo netplan apply
+  ```
 
 The Pixhawk Ethernet address is set to `10.41.10.2` by default, which is on the same subnet.
 We can test our changes above by pinging the Pixhawk from within the Jetson terminal:
@@ -1221,15 +1191,15 @@ Assuming the client is set up as defined above:
 
 - (Serial connection) Start the agent on `/dev/ttyTHS1`:
 
- ```sh
- sudo MicroXRCEAgent serial --dev /dev/ttyTHS1 -b 921600
- ```
+  ```sh
+  sudo MicroXRCEAgent serial --dev /dev/ttyTHS1 -b 921600
+  ```
 
 - (Ethernet) Start the agent on UDP port `8888`:
 
- ```sh
- MicroXRCEAgent udp4 -p 8888
- ```
+  ```sh
+  MicroXRCEAgent udp4 -p 8888
+  ```
 
 If your agent and client are connected and no nodes are running, you should see output similar to this in the Agent terminal:
 
@@ -1333,7 +1303,7 @@ You can now start your ROS2 nodes and continue the development.
 You can test the Client and agent by using the `sensor_combined` example in [Build ROS 2 Workspace](../ros2/user_guide.md#build-ros-2-workspace) (ROS2 User Guide).
 
 :::tip
-[VSCode over SSH](https://code.visualstudio.com/learn/develop-cloud/ssh-lab-machines) enables faster development and application of changes to your ROS 2 code!
+[VSCode over SSH](https://code.visualstudio.com/docs/remote/ssh) enables faster development and application of changes to your ROS 2 code!
 :::
 
 After getting to the point of running the example:

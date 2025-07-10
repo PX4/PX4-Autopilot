@@ -39,7 +39,6 @@ They should be used by preference as they contain the most complete and up to da
 
 - Main FMU Processor: STM32H743
 - On-board sensors:
-
   - Accelerometer/Gyroscope: ICM-20689
   - Accelerometer/Gyroscope: ICM-20649
   - Accelerometer/Gyroscope: BMI088
@@ -137,7 +136,7 @@ Simply connect the FTDI cable to the DSU7 connector (the product list contains t
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) operate on the **FMU Debug** port (`DSU7`).
 
-The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/product-detail/en/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/455-1582-1-ND/807850) connector and has the following pinout:
+The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/en/products/detail/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/807850) connector and has the following pinout:
 
 | Pin     | Signal         | Volt  |
 | ------- | -------------- | ----- |
@@ -169,5 +168,5 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 ## Further info
 
 - [Quick start](https://doc.cuav.net/flight-controller/x7/en/quick-start/quick-start-nora.html)
-- [CUAV docs](http://doc.cuav.net)
+- [CUAV docs](https://doc.cuav.net/)
 - [nora schematic](https://github.com/cuav/hardware/tree/master/X7_Autopilot)

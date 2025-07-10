@@ -79,12 +79,12 @@ private:
 	 * @param waypoint_transition_angle Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
 	 * @param max_speed Maximum speed setpoint [m/s]
 	 * @param trans_drv_trn Heading error threshold to switch from driving to turning [rad].
-	 * @param miss_spd_gain Tuning parameter for the speed reduction during waypoint transition.
+	 * @param speed_red Tuning parameter for the speed reduction during waypoint transition.
 	 * @param curr_wp_type Type of the current waypoint.
 	 * @return Speed setpoint [m/s].
 	 */
 	float arrivalSpeed(const float cruising_speed, const float waypoint_transition_angle, const float max_speed,
-			   const float trans_drv_trn, const float miss_spd_gain, int curr_wp_type);
+			   const float trans_drv_trn, const float speed_red, int curr_wp_type);
 
 	// uORB subscriptions
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
@@ -95,7 +95,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
-		(ParamFloat<px4::params::RD_TRANS_DRV_TRN>) _param_rd_trans_drv_trn,
-		(ParamFloat<px4::params::RD_MISS_SPD_GAIN>) _param_rd_miss_spd_gain
+		(ParamFloat<px4::params::RO_SPEED_RED>)     _param_ro_speed_red,
+		(ParamFloat<px4::params::RD_TRANS_DRV_TRN>) _param_rd_trans_drv_trn
 	)
 };

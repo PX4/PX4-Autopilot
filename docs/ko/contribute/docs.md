@@ -38,7 +38,7 @@ For these kinds of changes we suggest using the same approach as for _code_:
 1. Use the _git_ toolchain to get the PX4 source code onto your local computer.
 2. 필요한 문서를 수정합니다(추가, 변경, 삭제).
 3. _Test_ that it builds properly using Vitepress.
-4. Create a branch for your changes and create a pull request (PR) to pull it back into the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot.git) repo.
+4. Create a branch for your changes and create a pull request (PR) to pull it back into the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) repo.
 
 다음에는 소스 코드를 가져오고, 로컬에서 빌드(테스트용)하고, 코드를 수정하는 방법을 설명합니다.
 
@@ -58,7 +58,7 @@ If you already have a clone of the [PX4-Autopilot](https://github.com/PX4/PX4-Au
 
 1. Download git for your computer from [https://git-scm.com/downloads](https://git-scm.com/downloads)
 
-2. [Sign up](https://github.com/join) for Github if you haven't already
+2. [Sign up](https://github.com/signup) for Github if you haven't already
 
 3. Create a copy (Fork) of the [PX4-Autopilot repo](https://github.com/PX4/PX4-Autopilot) on Github ([instructions here](https://docs.github.com/en/get-started/quickstart/fork-a-repo)).
 
@@ -135,7 +135,6 @@ Within the repository you created above:
   새 분기가 분기된 저장소로 푸시되었다는 메시지가 표시되어야 합니다.
 
 7. 풀 요청(PR) 생성:
-
   - On the right hand side of the "new branch message" (see one step before), you should see a green button saying "Compare & Create Pull Request".
     클릭합니다.
   - 풀 요청 템플릿이 생성됩니다.
@@ -153,7 +152,6 @@ Within the repository you created above:
 로컬에서 라이브러리를 빌드하여, 변경 사항이 제대로 반영되었는 지를 테스트합니다.
 
 1. Install the [Vitepress prerequisites](https://vitepress.dev/guide/getting-started#prerequisites):
-
   - [Nodejs 18+](https://nodejs.org/en)
   - [Yarn classic](https://classic.yarnpkg.com/en/docs/install)
 
@@ -182,11 +180,19 @@ Within the repository you created above:
 5. Open previewed pages in your local editor:
 
   First specify a local text editor file using the `EDITOR` environment variable, before calling `yarn start` to preview the library.
-  For example, on Windows command line you can enable VSCode as your default editor by entering:
+  For example, you can enable VSCode as your default editor by entering:
 
-  ```sh
-  set EDITOR=code
-  ```
+  - Windows:
+
+    ```sh
+    set EDITOR=code
+    ```
+
+  - Linux:
+
+    ```sh
+    export EDITOR=code
+    ```
 
   The **Open in your editor** link at the bottom of each page will then open the current page in the editor (this replaces the _Open in GitHub_ link).
 
@@ -226,7 +232,6 @@ The guide uses the [Vitepress](https://vitepress.dev/) toolchain.
   - 이렇게 하면 다른 페이지와 이미지가 항상 동일한 상대 수준이므로 연결이 더 용이해집니다.
 
 - The _structure_ of the book is defined in `SUMMARY.md`.
-
   - If you add a new page to the guide you must also add an entry to this file!
 
     :::tip
@@ -252,7 +257,6 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
 ## 스타일 가이드
 
 1. 파일/파일명
-
   - Put new markdown files in an appropriate sub-folder of `/en/`, such as `/en/contribute/`.
     폴더를 중첩하지 마십시오.
   - Put new image files in an appropriate nested sub-folder of `/assets/`.
@@ -262,14 +266,12 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
   - Use lower case filenames and separate words using underscores (`_`).
 
 2. 이미지
-
   - 이미지는 최대한 가장 작은 크기와 가장 낮은 해상도를 사용합니다(이렇게 하면 대역폭이 좋지 않은 사용자의 다운로드 비용이 줄어듭니다).
   - New images should be created in a sub-folder of `/assets/` (so they can be shared between translations).
   - SVG files are preferred for diagrams.
     PNG files are preferred over JPG for screenshots.
 
 3. 내용
-
   - Use "style" (**bold**, _emphasis_, etc.) consistently and sparingly (as little as possible).
     - **Bold** for button presses and menu definitions.
     - _Emphasis_ for tool names such as _QGroundControl_ or _prettier_.
@@ -284,7 +286,6 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
   - Format using _prettier_ (_VSCode_ is a has extensions can be used for this).
 
 4. Videos:
-
   - Youtube videos can be added using the format `<lite-youtube videoid="<youtube-video-id>" title="your title"/>` (supported via the [https://www.npmjs.com/package/lite-youtube-embed](https://www.npmjs.com/package/lite-youtube-embed) custom element, which has other parameters you can pass).
     - Use instructional videos sparingly as they date badly, and are hard to maintain.
     - Cool videos of airframes in flight are always welcome.

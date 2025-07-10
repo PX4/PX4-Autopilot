@@ -9,7 +9,7 @@ PMSP 是一种 shell 脚本,它通过定期中断固件的执行来运行，便�
 采样的堆栈跟踪将追加到文本文件中。
 Once sampling is finished (which normally takes about an hour or more), the collected stack traces are _folded_.
 The result of _folding_ is another text file that contains the same stack traces, except that all similar stack traces (i.e. those that were obtained at the same point in the program) are joined together, and the number of their occurrences is recorded.
-The folded stacks are then fed into the visualization script, for which purpose we employ [FlameGraph - an open source stack trace visualizer](http://www.brendangregg.com/flamegraphs.html).
+The folded stacks are then fed into the visualization script, for which purpose we employ [FlameGraph - an open source stack trace visualizer](https://www.brendangregg.com/flamegraphs.html).
 
 ## 基本用法
 
@@ -17,14 +17,14 @@ The folded stacks are then fed into the visualization script, for which purpose 
 
 探查器的基本用法可通过生成系统使用。
 例如，下面的命令生成和探查出 px4_fmu-v4pro 目标的10000个样本（提取 <em x-id="3">FlameGraph</em> 并根据需要将其添加到路径中）。
-You will then need a [debug probe](../debug/swd_debug.md#debug-probes) (such as the DroneCode Probe), to run the GDB server and interact with the board.
+You will then need a [debug probe](../debug/swd_debug.md#debug-probes) (such as the Zubax BugFace BF1), to run the GDB server and interact with the board.
 
 ### Determine the Debugger Device
 
-The `poor-mans-profiler.sh` automatically detects and uses the correct USB device if you use it with a [DroneCode Probe](../debug/probe_bmp.md#dronecode-probe).
+The `poor-mans-profiler.sh` automatically detects and uses the correct USB device if you use it with a [Zubax BugFace BF1](../debug/probe_bmp.md#dronecode-probe).
 If you use a different kind of probe you may need to pass in the specific _device_ on which the debugger is located.
 You can use the bash command `ls -alh /dev/serial/by-id/` to enumerate the possible devices on Ubuntu.
-For example the following devices are enumerated with a Pixhawk 4 and DroneCode Probe connected over USB:
+For example the following devices are enumerated with a Pixhawk 4 and Zubax BugFace BF1 connected over USB:
 
 ```sh
 user@ubuntu:~/PX4-Autopilot$ ls -alh /dev/serial/by-id/
@@ -48,7 +48,7 @@ Then pass in the appropriate device using the `--gdbdev` argument like this:
 ### Running
 
 在火焰图上，水平水平表示堆叠帧，而每个帧的宽度与采样次数成正比。
-For example, the following command builds and profiles px4_fmu-v4pro target with 10000 samples (fetching _FlameGraph_ and adding it to the path as needed).
+For example, the following command builds and profiles px4_fmu-v4pro target with 10000 samples (fetching \_FlameGraph_ and adding it to the path as needed).
 
 ```sh
 ./poor-mans-profiler.sh --elf=build/px4_fmu-v4_default/px4_fmu-v4_default.elf --nsamples=30000 --append

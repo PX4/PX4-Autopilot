@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,12 +39,8 @@
 #include <lib/geo/geo.h>
 #include "commander_helper.h"
 
-using namespace time_literals;
-
-HomePosition::HomePosition(const failsafe_flags_s &failsafe_flags)
-	: _failsafe_flags(failsafe_flags)
-{
-}
+HomePosition::HomePosition(const failsafe_flags_s &failsafe_flags): ModuleParams(nullptr),
+	_failsafe_flags(failsafe_flags) {}
 
 bool HomePosition::hasMovedFromCurrentHomeLocation()
 {
@@ -103,7 +99,9 @@ bool HomePosition::setHomePosition(bool force)
 		const vehicle_local_position_s &lpos = _local_position_sub.get();
 		_heading_reset_counter = lpos.heading_reset_counter; // TODO: should not be here
 
-		fillLocalHomePos(home, lpos);
+		const vehicle_attitude_s &attitude = _attitude_sub.get();
+
+		fillLocalHomePos(home, lpos, attitude);
 		updated = true;
 	}
 
@@ -139,19 +137,25 @@ bool HomePosition::setHomePosition(bool force)
 	return updated;
 }
 
-void HomePosition::fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos)
+void HomePosition::fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos,
+				    const vehicle_attitude_s &attitude)
 {
-	fillLocalHomePos(home, lpos.x, lpos.y, lpos.z, lpos.heading);
+	matrix::Quatf q(attitude.q);
+	matrix::Eulerf euler(q);
+	fillLocalHomePos(home, lpos.x, lpos.y, lpos.z, euler(0), euler(1), euler(2));
 }
 
-void HomePosition::fillLocalHomePos(home_position_s &home, float x, float y, float z, float heading)
+void HomePosition::fillLocalHomePos(home_position_s &home, float x, float y, float z, float roll, float pitch,
+				    float yaw)
 {
 	home.x = x;
 	home.y = y;
 	home.z = z;
 	home.valid_lpos = true;
 
-	home.yaw = heading;
+	home.roll = roll;
+	home.pitch = pitch;
+	home.yaw = yaw;
 }
 
 void HomePosition::fillGlobalHomePos(home_position_s &home, const vehicle_global_position_s &gpos)
@@ -233,7 +237,7 @@ void HomePosition::setInAirHomePosition()
 			ref_pos.project(home.lat, home.lon, home_x, home_y);
 
 			const float home_z = -(home.alt - lpos.ref_alt);
-			fillLocalHomePos(home, home_x, home_y, home_z, NAN);
+			fillLocalHomePos(home, home_x, home_y, home_z, NAN, NAN, NAN);
 
 			home.timestamp = hrt_absolute_time();
 			home.update_count++;
@@ -249,7 +253,7 @@ void HomePosition::setInAirHomePosition()
 	}
 }
 
-bool HomePosition::setManually(double lat, double lon, float alt, float yaw)
+bool HomePosition::setManually(double lat, double lon, float alt, float roll, float pitch, float yaw)
 {
 	const vehicle_local_position_s &vehicle_local_position = _local_position_sub.get();
 
@@ -272,6 +276,8 @@ bool HomePosition::setManually(double lat, double lon, float alt, float yaw)
 	home.z = -(alt - vehicle_local_position.ref_alt);
 	home.valid_lpos = vehicle_local_position.xy_valid && vehicle_local_position.z_valid;
 
+	home.roll = roll;
+	home.pitch = pitch;
 	home.yaw = yaw;
 
 	home.timestamp = hrt_absolute_time();
@@ -307,6 +313,23 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 {
 	_local_position_sub.update();
 	_global_position_sub.update();
+	_attitude_sub.update();
+
+	if (_vehicle_air_data_sub.updated()) {
+		vehicle_air_data_s baro_data;
+		_vehicle_air_data_sub.copy(&baro_data);
+		const float baro_alt = baro_data.baro_alt_meter;
+
+		if (_last_baro_timestamp != 0) {
+			const float dt = baro_data.timestamp - _last_baro_timestamp;
+			_lpf_baro.update(baro_alt, dt);
+
+		} else {
+			_lpf_baro.reset(baro_alt);
+		}
+
+		_last_baro_timestamp = baro_data.timestamp;
+	}
 
 	if (_vehicle_gps_position_sub.updated()) {
 		sensor_gps_s vehicle_gps_position;
@@ -319,12 +342,56 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 		_gps_epv = vehicle_gps_position.epv;
 
 		const hrt_abstime now = hrt_absolute_time();
-		const bool time = (now < vehicle_gps_position.timestamp + 1_s);
-		const bool fix = vehicle_gps_position.fix_type >= kHomePositionGPSRequiredFixType;
-		const bool eph = vehicle_gps_position.eph < kHomePositionGPSRequiredEPH;
-		const bool epv = vehicle_gps_position.epv < kHomePositionGPSRequiredEPV;
-		const bool evh = vehicle_gps_position.s_variance_m_s < kHomePositionGPSRequiredEVH;
-		_gps_position_for_home_valid = time && fix && eph && epv && evh;
+		const bool time_valid = now < (vehicle_gps_position.timestamp + 1_s);
+		const bool fix_valid = vehicle_gps_position.fix_type >= kHomePositionGPSRequiredFixType;
+		const bool eph_valid = vehicle_gps_position.eph < kHomePositionGPSRequiredEPH;
+		const bool epv_valid = vehicle_gps_position.epv < kHomePositionGPSRequiredEPV;
+		const bool evh_valid = vehicle_gps_position.s_variance_m_s < kHomePositionGPSRequiredEVH;
+
+		_gps_position_for_home_valid = time_valid && fix_valid && eph_valid && epv_valid && evh_valid;
+
+		if (_param_com_home_en.get() && _gps_position_for_home_valid && _last_gps_timestamp != 0 && _last_baro_timestamp != 0
+		    && _takeoff_time != 0 && now < _takeoff_time + kHomePositionCorrectionTimeWindow) {
+
+			const float gps_alt = static_cast<float>(_gps_alt);
+
+			if (!PX4_ISFINITE(_gps_vel_integral)) {
+				_gps_vel_integral = gps_alt; // initialize the gps-vel-integral at same altitude as gps-pos
+				_baro_gps_static_offset = gps_alt - _lpf_baro.getState();
+			}
+
+			_gps_vel_integral += 1e-6f * (vehicle_gps_position.timestamp - _last_gps_timestamp) * (-vehicle_gps_position.vel_d_m_s);
+
+			// correct baro_alt with offset from GPS alt from when the drift integral was initialized
+			const float baro_alt_corrected = _lpf_baro.getState() + _baro_gps_static_offset;
+			const float gps_alt_with_home_offset = gps_alt + _home_altitude_offset_applied;
+
+			// Apply home altitude correction only if the GPS velocity-integrated altitude and baro altitude
+			// are more consistent with each other than either is with the GPS altitude (with home offset).
+			if (fabsf(baro_alt_corrected - _gps_vel_integral) < fabsf(baro_alt_corrected - gps_alt_with_home_offset) &&
+			    fabsf(baro_alt_corrected - _gps_vel_integral) < fabsf(_gps_vel_integral - gps_alt_with_home_offset)) {
+
+				const float offset_new = baro_alt_corrected - gps_alt - _home_altitude_offset_applied;
+
+				if (fabsf(offset_new) > kAltitudeDifferenceThreshold) {
+
+					home_position_s home = _home_position_pub.get();
+					home.alt -= offset_new;
+					home.z += offset_new;
+					home.timestamp = now;
+					home.manual_home = false;
+					home.update_count = _home_position_pub.get().update_count + 1U;
+
+					_home_position_pub.update(home);
+					_home_altitude_offset_applied = baro_alt_corrected - gps_alt; // offset present when home position was last corrected
+				}
+			}
+
+		} else {
+			_gps_vel_integral = NAN;
+		}
+
+		_last_gps_timestamp = vehicle_gps_position.timestamp;
 	}
 
 	const vehicle_local_position_s &lpos = _local_position_sub.get();

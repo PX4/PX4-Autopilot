@@ -30,4 +30,3 @@ make run_failsafe_web_server
 <script setup>
 import { withBase } from 'vitepress';
 </script>
-

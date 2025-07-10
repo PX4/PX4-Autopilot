@@ -28,13 +28,13 @@ The agent acts as a proxy for the client to publish and subscribe to topics in t
 
 The PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) is generated at build time and included in PX4 firmware by default.
 It includes both the "generic" micro XRCE-DDS client code, and PX4-specific translation code that it uses to publish to/from uORB topics.
-The subset of uORB messages that are generated into the client are listed in [PX4-Autopilot/src/modules/uxrce_dds_client/dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml).
+The subset of uORB messages that are generated into the client are specified in [dds_topics.yaml](../middleware/dds_topics.md).
 The generator uses the uORB message definitions in the source tree: [PX4-Autopilot/msg](https://github.com/PX4/PX4-Autopilot/tree/main/msg) to create the code for sending ROS 2 messages.
 
 ROS 2 applications need to be built in a workspace that has the _same_ message definitions that were used to create the uXRCE-DDS client module in the PX4 Firmware.
 You can include these by cloning the interface package [PX4/px4_msgs](https://github.com/PX4/px4_msgs) into your ROS 2 workspace (branches in the repo correspond to the messages for different PX4 releases).
 
-Starting from PX4 v1.16 (main) in which [message versioning](../middleware/uorb.md#message-versioning) was introduced, ROS2 applications may use a different version of message definitions than those used to build PX4.
+Starting from PX4 v1.16, in which [message versioning](../middleware/uorb.md#message-versioning) was introduced, ROS2 applications may use a different version of message definitions than those used to build PX4.
 This requires the [ROS 2 Message Translation Node](../ros2/px4_ros2_msg_translation_node.md) to be running to ensure that messages can be converted and exchanged correctly.
 
 Note that the micro XRCE-DDS _agent_ itself has no dependency on client-side code.
@@ -124,7 +124,6 @@ To install ROS 2 and its dependencies:
 
    ::: tab foxy
    To install ROS 2 "Foxy" on Ubuntu 20.04:
-
    - Follow the official installation guide: [Install ROS 2 Foxy](https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html).
 
    You can install _either_ the desktop (`ros-foxy-desktop`) _or_ bare-bones versions (`ros-foxy-ros-base`), _and_ the development tools (`ros-dev-tools`).
@@ -187,7 +186,6 @@ To start the simulator (and client):
    :::: tabs
 
    ::: tab humble
-
    - Start a PX4 [Gazebo](../sim_gazebo_gz/index.md) simulation using:
 
      ```sh
@@ -197,7 +195,6 @@ To start the simulator (and client):
      :::
 
    ::: tab foxy
-
    - Start a PX4 [Gazebo Classic](../sim_gazebo_classic/index.md) simulation using:
 
      ```sh
@@ -367,7 +364,7 @@ accelerometer_integral_dt: 4739
 
 #### (Optional) Starting the Translation Node
 
-<Badge type="tip" text="main (planned for: PX4 v1.16+)" /> <Badge type="tip" />  <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="PX4 v1.16" /> <Badge type="warning" text="Experimental" />
 
 This example is built with PX4 and ROS2 versions that use the same message definitions.
 If you were to use incompatible [message versions](../middleware/uorb.md#message-versioning) you would need to install and run the [Message Translation Node](./px4_ros2_msg_translation_node.md) as well, before running the example:
@@ -394,7 +391,7 @@ To control applications, ROS 2 applications:
 - subscribe to (listen to) telemetry topics published by PX4
 - publish to topics that cause PX4 to perform some action.
 
-The topics that you can use are defined in [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml), and you can get more information about their data in the [uORB Message Reference](../msg_docs/index.md).
+The topics that you can use are defined in [dds_topics.yaml](../middleware/dds_topics.md), and you can get more information about their data in the [uORB Message Reference](../msg_docs/index.md).
 For example, [VehicleGlobalPosition](../msg_docs/VehicleGlobalPosition.md) can be used to get the vehicle global position, while [VehicleCommand](../msg_docs/VehicleCommand.md) can be used to command actions such as takeoff and land.
 
 The [ROS 2 Example applications](#ros-2-example-applications) examples below provide concrete examples of how to use these topics.
@@ -433,7 +430,7 @@ The local/world and body frames used by ROS and PX4 are different.
 | World | FRD or NED (X **N**orth, Y **E**ast, Z **D**own) | FLU or ENU (X **E**ast, Y **N**orth, Z **U**p) |
 
 :::tip
-See [REP105: Coordinate Frames for Mobile Platforms](http://www.ros.org/reps/rep-0105.html) for more information about ROS frames.
+See [REP105: Coordinate Frames for Mobile Platforms](https://www.ros.org/reps/rep-0105.html) for more information about ROS frames.
 :::
 
 Both frames are shown in the image below (FRD on the left/FLU on the right).
@@ -444,7 +441,6 @@ The FRD (NED) conventions are adopted on **all** PX4 topics unless explicitly sp
 Therefore, ROS 2 nodes that want to interface with PX4 must take care of the frames conventions.
 
 - To rotate a vector from ENU to NED two basic rotations must be performed:
-
   - first a pi/2 rotation around the `Z`-axis (up),
   - then a pi rotation around the `X`-axis (old East/new North).
 
@@ -728,7 +724,7 @@ Custom topic and service namespaces can be applied at build time (changing [dds_
 - A custom namespace can be provided for simulations (only) by setting the environment variable `PX4_UXRCE_DDS_NS` before starting the simulation.
 
 ::: info
-Changing the namespace at runtime will append the desired namespace as a prefix to all `topic` fields in [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml) and all [service servers](#px4-ros-2-service-servers).
+Changing the namespace at runtime will append the desired namespace as a prefix to all `topic` fields in [dds_topics.yaml](../middleware/dds_topics.md) and all [service servers](#px4-ros-2-service-servers).
 Therefore, commands like:
 
 ```sh

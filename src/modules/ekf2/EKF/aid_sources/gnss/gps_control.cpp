@@ -41,7 +41,7 @@
 
 void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 {
-	if (!_gps_buffer || (_params.gnss_ctrl == 0)) {
+	if (!_gps_buffer || (_params.ekf2_gps_ctrl == 0)) {
 		stopGnssFusion();
 		return;
 	}
@@ -63,23 +63,22 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	if (_gps_data_ready) {
 		const gnssSample &gnss_sample = _gps_sample_delayed;
 
-		if (runGnssChecks(gnss_sample)
-		    && isTimedOut(_last_gps_fail_us, max((uint64_t)1e6, (uint64_t)_min_gps_health_time_us / 10))) {
-			if (isTimedOut(_last_gps_fail_us, (uint64_t)_min_gps_health_time_us)) {
-				// First time checks are passing, latching.
-				if (!_gps_checks_passed) {
-					_information_events.flags.gps_checks_passed = true;
-				}
+		const bool initial_checks_passed_prev = _gnss_checks.initialChecksPassed();
 
-				_gps_checks_passed = true;
+		if (_gnss_checks.run(gnss_sample, _time_delayed_us)) {
+			if (_gnss_checks.initialChecksPassed() && !initial_checks_passed_prev) {
+				// First time checks are passing, latching.
+				_information_events.flags.gps_checks_passed = true;
 			}
 
 		} else {
 			// Skip this sample
 			_gps_data_ready = false;
 
-			if ((_control_status.flags.gnss_vel || _control_status.flags.gnss_pos)
-			    && isTimedOut(_last_gps_pass_us, _params.reset_timeout_max)) {
+			const bool using_gnss = _control_status.flags.gnss_vel || _control_status.flags.gnss_pos;
+			const bool gnss_checks_pass_timeout = isTimedOut(_gnss_checks.getLastPassUs(), _params.reset_timeout_max);
+
+			if (using_gnss && gnss_checks_pass_timeout) {
 				stopGnssFusion();
 				ECL_WARN("GNSS quality poor - stopping use");
 			}
@@ -125,10 +124,10 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool force_reset)
 {
-	const bool continuing_conditions_passing = (_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::VEL))
+	const bool continuing_conditions_passing = (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::VEL))
 			&& _control_status.flags.tilt_align
 			&& _control_status.flags.yaw_align;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gps_checks_passed;
+	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.passed();
 
 	if (_control_status.flags.gnss_vel) {
 		if (continuing_conditions_passing) {
@@ -170,13 +169,13 @@ void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool for
 
 void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool force_reset)
 {
-	const bool gnss_pos_enabled = (_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::HPOS));
+	const bool gnss_pos_enabled = (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::HPOS));
 
 	const bool continuing_conditions_passing = gnss_pos_enabled
 			&& _control_status.flags.tilt_align
 			&& _control_status.flags.yaw_align;
-	const bool starting_conditions_passing = continuing_conditions_passing && _gps_checks_passed;
-	const bool gpos_init_conditions_passing = gnss_pos_enabled && _gps_checks_passed;
+	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.passed();
+	const bool gpos_init_conditions_passing = gnss_pos_enabled && _gnss_checks.passed();
 
 	if (_control_status.flags.gnss_pos) {
 		if (continuing_conditions_passing) {
@@ -216,10 +215,10 @@ void Ekf::updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_samp
 	const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
 	const Vector3f velocity = gnss_sample.vel - vel_offset_earth;
 
-	const float vel_var = sq(math::max(gnss_sample.sacc, _params.gps_vel_noise, 0.01f));
+	const float vel_var = sq(math::max(gnss_sample.sacc, _params.ekf2_gps_v_noise, 0.01f));
 	const Vector3f vel_obs_var(vel_var, vel_var, vel_var * sq(1.5f));
 
-	const float innovation_gate = math::max(_params.gps_vel_innov_gate, 1.f);
+	const float innovation_gate = math::max(_params.ekf2_gps_v_gate, 1.f);
 
 	updateAidSourceStatus(aid_src,
 			      gnss_sample.time_us,                  // sample timestamp
@@ -236,7 +235,7 @@ void Ekf::updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_samp
 				   && (aid_src.test_ratio[0] < 1.f) && (aid_src.test_ratio[1] < 1.f); // vx & vy accepted
 
 	if (bad_acc_vz_rejected
-	    && (gnss_sample.sacc < _params.req_sacc)
+	    && (gnss_sample.sacc < _params.ekf2_req_sacc)
 	   ) {
 		const float innov_limit = innovation_gate * sqrtf(aid_src.innovation_variance[2]);
 		aid_src.innovation[2] = math::constrain(aid_src.innovation[2], -innov_limit, innov_limit);
@@ -254,13 +253,13 @@ void Ekf::updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s 
 	const Vector2f innovation = (_gpos - measurement_corrected).xy();
 
 	// relax the upper observation noise limit which prevents bad GPS perturbing the position estimate
-	float pos_noise = math::max(gnss_sample.hacc, _params.gps_pos_noise);
+	float pos_noise = math::max(gnss_sample.hacc, _params.ekf2_gps_p_noise);
 
 	if (!isOtherSourceOfHorizontalAidingThan(_control_status.flags.gnss_pos)) {
 		// if we are not using another source of aiding, then we are reliant on the GNSS
 		// observations to constrain attitude errors and must limit the observation noise value.
-		if (pos_noise > _params.pos_noaid_noise) {
-			pos_noise = _params.pos_noaid_noise;
+		if (pos_noise > _params.ekf2_noaid_noise) {
+			pos_noise = _params.ekf2_noaid_noise;
 		}
 	}
 
@@ -274,7 +273,7 @@ void Ekf::updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s 
 			      pos_obs_var,                                            // observation variance
 			      innovation,                                             // innovation
 			      Vector2f(getStateVariance<State::pos>()) + pos_obs_var, // innovation variance
-			      math::max(_params.gps_pos_innov_gate, 1.f));            // innovation gate
+			      math::max(_params.ekf2_gps_p_gate, 1.f));            // innovation gate
 }
 
 void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel)
@@ -284,14 +283,14 @@ void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel)
 	const Vector2f vel_xy(aid_src_vel.observation);
 
 	if ((vel_var > 0.f)
-	    && (vel_var < _params.req_sacc)
+	    && (vel_var < _params.ekf2_req_sacc)
 	    && vel_xy.isAllFinite()) {
 
 		_yawEstimator.fuseVelocity(vel_xy, vel_var, _control_status.flags.in_air);
 
 		// Try to align yaw using estimate if available
-		if (((_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::VEL))
-		     || (_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::HPOS)))
+		if (((_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::VEL))
+		     || (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::HPOS)))
 		    && !_control_status.flags.yaw_align
 		    && _control_status.flags.tilt_align) {
 			if (resetYawToEKFGSF()) {
@@ -380,7 +379,7 @@ bool Ekf::shouldResetGpsFusion() const
 
 	const bool is_reset_required = has_horizontal_aiding_timed_out
 				       || (isTimedOut(_time_last_hor_pos_fuse, 2 * _params.reset_timeout_max)
-					   && (_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::HPOS)));
+					   && (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::HPOS)));
 
 	const bool is_inflight_nav_failure = _control_status.flags.in_air
 					     && isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)
@@ -394,8 +393,7 @@ bool Ekf::shouldResetGpsFusion() const
 void Ekf::stopGnssFusion()
 {
 	if (_control_status.flags.gnss_vel || _control_status.flags.gnss_pos) {
-		_last_gps_fail_us = 0;
-		_last_gps_pass_us = 0;
+		_gnss_checks.reset();
 	}
 
 	stopGnssVelFusion();
@@ -416,8 +414,7 @@ void Ekf::stopGnssVelFusion()
 
 		//TODO: what if gnss yaw or height is used?
 		if (!_control_status.flags.gnss_pos) {
-			_last_gps_fail_us = 0;
-			_last_gps_pass_us = 0;
+			_gnss_checks.reset();
 		}
 	}
 }
@@ -430,8 +427,7 @@ void Ekf::stopGnssPosFusion()
 
 		//TODO: what if gnss yaw or height is used?
 		if (!_control_status.flags.gnss_vel) {
-			_last_gps_fail_us = 0;
-			_last_gps_pass_us = 0;
+			_gnss_checks.reset();
 		}
 	}
 }

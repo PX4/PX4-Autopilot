@@ -28,152 +28,151 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
 1. Create a new directory **PX4-Autopilot/src/examples/px4_simple_app**.
 
 2. Create a new C file in that directory named **px4_simple_app.c**:
+  - Скопіюйте заголовок за замовчуванням у верхній частині сторінки.
+    Це повинно бути присутнім у всіх розміщених файлах!
 
- - Скопіюйте заголовок за замовчуванням у верхній частині сторінки.
-  Це повинно бути присутнім у всіх розміщених файлах!
+    ```c
+    /****************************************************************************
+     *
+     *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+     *
+     * Redistribution and use in source and binary forms, with or without
+     * modification, are permitted provided that the following conditions
+     * are met:
+     *
+     * 1. Redistributions of source code must retain the above copyright
+     *    notice, this list of conditions and the following disclaimer.
+     * 2. Redistributions in binary form must reproduce the above copyright
+     *    notice, this list of conditions and the following disclaimer in
+     *    the documentation and/or other materials provided with the
+     *    distribution.
+     * 3. Neither the name PX4 nor the names of its contributors may be
+     *    used to endorse or promote products derived from this software
+     *    without specific prior written permission.
+     *
+     * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+     * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+     * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+     * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+     * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+     * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+     * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+     * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+     * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+     * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+     * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+     * POSSIBILITY OF SUCH DAMAGE.
+     *
+     ****************************************************************************/
+    ```
 
-  ```c
-  /****************************************************************************
-   *
-   *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
-   *
-   * Redistribution and use in source and binary forms, with or without
-   * modification, are permitted provided that the following conditions
-   * are met:
-   *
-   * 1. Redistributions of source code must retain the above copyright
-   *    notice, this list of conditions and the following disclaimer.
-   * 2. Redistributions in binary form must reproduce the above copyright
-   *    notice, this list of conditions and the following disclaimer in
-   *    the documentation and/or other materials provided with the
-   *    distribution.
-   * 3. Neither the name PX4 nor the names of its contributors may be
-   *    used to endorse or promote products derived from this software
-   *    without specific prior written permission.
-   *
-   * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-   * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-   * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-   * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-   * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-   * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-   * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-   * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
-   * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-   * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-   * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-   * POSSIBILITY OF SUCH DAMAGE.
-   *
-   ****************************************************************************/
-  ```
+  - Скопіюйте наступний код під заголовком за замовчуванням.
+    Це повинно бути присутнім у всіх розміщених файлах!
 
- - Скопіюйте наступний код під заголовком за замовчуванням.
-  Це повинно бути присутнім у всіх розміщених файлах!
+    ```c
+    /**
+     * @file px4_simple_app.c
+     * Minimal application example for PX4 autopilot
+     *
+     * @author Example User <mail@example.com>
+     */
 
-  ```c
-  /**
-   * @file px4_simple_app.c
-   * Minimal application example for PX4 autopilot
-   *
-   * @author Example User <mail@example.com>
-   */
+    #include <px4_platform_common/log.h>
 
-  #include <px4_platform_common/log.h>
+    __EXPORT int px4_simple_app_main(int argc, char *argv[]);
 
-  __EXPORT int px4_simple_app_main(int argc, char *argv[]);
+    int px4_simple_app_main(int argc, char *argv[])
+    {
+    	PX4_INFO("Hello Sky!");
+    	return OK;
+    }
+    ```
 
-  int px4_simple_app_main(int argc, char *argv[])
-  {
-  	PX4_INFO("Hello Sky!");
-  	return OK;
-  }
-  ```
-
-  :::tip
-  The main function must be named `<module_name>_main` and exported from the module as shown.
+    :::tip
+    The main function must be named `<module_name>_main` and exported from the module as shown.
 
 :::
 
-  :::tip
-  `PX4_INFO` is the equivalent of `printf` for the PX4 shell (included from **px4_platform_common/log.h**).
-  There are different log levels: `PX4_INFO`, `PX4_WARN`, `PX4_ERR`, `PX4_DEBUG`.
-  Warnings and errors are additionally added to the [ULog](../dev_log/ulog_file_format.md) and shown on [Flight Review](https://logs.px4.io/).
+    :::tip
+    `PX4_INFO` is the equivalent of `printf` for the PX4 shell (included from **px4_platform_common/log.h**).
+    There are different log levels: `PX4_INFO`, `PX4_WARN`, `PX4_ERR`, `PX4_DEBUG`.
+    Warnings and errors are additionally added to the [ULog](../dev_log/ulog_file_format.md) and shown on [Flight Review](https://logs.px4.io/).
 
 :::
 
 3. Create and open a new _cmake_ definition file named **CMakeLists.txt**.
- Скопіюйте текст нижче:
+  Скопіюйте текст нижче:
 
- ```cmake
- ############################################################################
- #
- #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
- #
- # Redistribution and use in source and binary forms, with or without
- # modification, are permitted provided that the following conditions
- # are met:
- #
- # 1. Redistributions of source code must retain the above copyright
- #    notice, this list of conditions and the following disclaimer.
- # 2. Redistributions in binary form must reproduce the above copyright
- #    notice, this list of conditions and the following disclaimer in
- #    the documentation and/or other materials provided with the
- #    distribution.
- # 3. Neither the name PX4 nor the names of its contributors may be
- #    used to endorse or promote products derived from this software
- #    without specific prior written permission.
- #
- # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- # LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- # FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- # COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- # INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- # BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- # OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- # AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- # POSSIBILITY OF SUCH DAMAGE.
- #
- ############################################################################
- px4_add_module(
- 	MODULE examples__px4_simple_app
- 	MAIN px4_simple_app
- 	STACK_MAIN 2000
- 	SRCS
- 		px4_simple_app.c
- 	DEPENDS
- 	)
- ```
+  ```cmake
+  ############################################################################
+  #
+  #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+  #
+  # Redistribution and use in source and binary forms, with or without
+  # modification, are permitted provided that the following conditions
+  # are met:
+  #
+  # 1. Redistributions of source code must retain the above copyright
+  #    notice, this list of conditions and the following disclaimer.
+  # 2. Redistributions in binary form must reproduce the above copyright
+  #    notice, this list of conditions and the following disclaimer in
+  #    the documentation and/or other materials provided with the
+  #    distribution.
+  # 3. Neither the name PX4 nor the names of its contributors may be
+  #    used to endorse or promote products derived from this software
+  #    without specific prior written permission.
+  #
+  # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  # LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+  # FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+  # COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+  # INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+  # BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+  # OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+  # AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+  # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  # POSSIBILITY OF SUCH DAMAGE.
+  #
+  ############################################################################
+  px4_add_module(
+  	MODULE examples__px4_simple_app
+  	MAIN px4_simple_app
+  	STACK_MAIN 2000
+  	SRCS
+  		px4_simple_app.c
+  	DEPENDS
+  	)
+  ```
 
- The `px4_add_module()` method builds a static library from a module description.
+  The `px4_add_module()` method builds a static library from a module description.
 
- - The `MODULE` block is the Firmware-unique name of the module (by convention the module name is prefixed by parent directories back to `src`).
- - The `MAIN` block lists the entry point of the module, which registers the command with NuttX so that it can be called from the PX4 shell or SITL console.
+  - The `MODULE` block is the Firmware-unique name of the module (by convention the module name is prefixed by parent directories back to `src`).
+  - The `MAIN` block lists the entry point of the module, which registers the command with NuttX so that it can be called from the PX4 shell or SITL console.
 
- :::tip
- The `px4_add_module()` format is documented in [PX4-Autopilot/cmake/px4_add_module.cmake](https://github.com/PX4/PX4-Autopilot/blob/main/cmake/px4_add_module.cmake). <!-- NEED px4_version -->
+  :::tip
+  The `px4_add_module()` format is documented in [PX4-Autopilot/cmake/px4_add_module.cmake](https://github.com/PX4/PX4-Autopilot/blob/main/cmake/px4_add_module.cmake). <!-- NEED px4_version -->
 
 :::
 
- ::: info
- If you specify `DYNAMIC` as an option to `px4_add_module`, a _shared library_ is created instead of a static library on POSIX platforms (these can be loaded without having to recompile PX4, and shared to others as binaries rather than source code).
- Your app will not become a builtin command, but ends up in a separate file called `examples__px4_simple_app.px4mod`.
- You can then run your command by loading the file at runtime using the `dyn` command: `dyn ./examples__px4_simple_app.px4mod`
+  ::: info
+  If you specify `DYNAMIC` as an option to `px4_add_module`, a _shared library_ is created instead of a static library on POSIX platforms (these can be loaded without having to recompile PX4, and shared to others as binaries rather than source code).
+  Your app will not become a builtin command, but ends up in a separate file called `examples__px4_simple_app.px4mod`.
+  You can then run your command by loading the file at runtime using the `dyn` command: `dyn ./examples__px4_simple_app.px4mod`
 
 :::
 
 4. Create and open a new _Kconfig_ definition file named **Kconfig** and define your symbol for naming (see [Kconfig naming convention](../hardware/porting_guide_config.md#px4-kconfig-symbol-naming-convention)).
- Скопіюйте текст нижче:
+  Скопіюйте текст нижче:
 
- ```
- menuconfig EXAMPLES_PX4_SIMPLE_APP
- 	bool "px4_simple_app"
- 	default n
- 	---help---
- 		Enable support for px4_simple_app
- ```
+  ```
+  menuconfig EXAMPLES_PX4_SIMPLE_APP
+  	bool "px4_simple_app"
+  	default n
+  	---help---
+  		Enable support for px4_simple_app
+  ```
 
 ## Побудуйте Програму/прошивку
 
@@ -308,7 +307,7 @@ int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
 
 The `sensor_sub_fd` is a topic handle and can be used to very efficiently perform a blocking wait for new data.
 Поточний потік переходить у режим сну і автоматично буде розбуджений планувальником, як тільки буде доступні нові дані, не використовуючи жодних циклів ЦП під час очікування.
-To do this, we use the [poll()](http://pubs.opengroup.org/onlinepubs/007908799/xsh/poll.html) POSIX system call.
+To do this, we use the [poll()](https://pubs.opengroup.org/onlinepubs/007908799/xsh/poll.html) POSIX system call.
 
 Adding `poll()` to the subscription looks like (_pseudocode, look for the full implementation below_):
 

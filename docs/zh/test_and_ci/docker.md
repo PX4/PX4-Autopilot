@@ -35,15 +35,13 @@ sudo usermod -aG docker $USER
 # Log in/out again before using docker!
 ```
 
-<a id="px4_containers"></a>
+## Container Hierarchy {#px4_containers}
 
-## 本地编辑层次结构
-
-The available containers are on [Github here](https://github.com/PX4/PX4-containers/tree/master?tab=readme-ov-file#container-hierarchy).
+The available containers are on [GitHub here](https://github.com/PX4/PX4-containers/tree/master?tab=readme-ov-file#container-hierarchy).
 
 使用容器的最简单方法是通过 <a href="https://github.com/PX4/Firmware/blob/master/Tools/docker_run.sh">docker_run.sh</a> 帮助程序脚本。
 The containers are hierarchical, such that containers have the functionality of their parents.
-For example, the partial hierarchy below shows that the docker container with nuttx build tools (`px4-dev-nuttx-focal`) does not include ROS 2, while the simulation containers do:
+For example, the partial hierarchy below shows that the docker container with NuttX build tools (`px4-dev-nuttx-focal`) does not include ROS 2, while the simulation containers do:
 
 ```plain
 - px4io/px4-dev-base-focal
@@ -58,7 +56,7 @@ For example, the partial hierarchy below shows that the docker container with nu
 
 The most recent version can be accessed using the `latest` tag: `px4io/px4-dev-nuttx-focal:latest`
 (available tags are listed for each container on _hub.docker.com_.
-For example, the `px4io/px4-dev-nuttx-focal` tags can be found here).
+For example, the `px4io/px4-dev-nuttx-focal` tags can be found on [hub.docker.com here](https://hub.docker.com/r/px4io/px4-dev-nuttx-focal/tags?page=1&ordering=last_updated)).
 
 :::tip
 Typically you should use a recent container, but not necessarily the `latest` (as this changes too often).
@@ -97,9 +95,7 @@ sudo ./Tools/docker_run.sh 'bash'
 The script is easy because you don't need to know anything much about _Docker_ or think about what container to use. 要重新进入此容器（将保留您的更改），只需执行以下操作： The manual approach discussed in the [section below](#manual_start) is more flexible and should be used if you have any problems with the script.
 :::
 
-<a id="manual_start"></a>
-
-### 手动调用 Docker
+### Calling Docker Manually {#manual_start}
 
 The syntax of a typical command is shown below.
 This runs a Docker container that has support for X forwarding (makes the simulation GUI available from inside the container).
@@ -163,7 +159,8 @@ make px4_sitl_default gazebo-classic
 
 ### 重新进入容器
 
-The `docker run` command can only be used to create a new container. To get back into this container (which will retain your changes) simply do:
+The `docker run` command can only be used to create a new container.
+To get back into this container (which will retain your changes) simply do:
 
 ```sh
 # start the container
@@ -192,9 +189,14 @@ docker rm 45eeb98f1dd9
 
 ### QGroundControl
 
-When running a simulation instance e.g. SITL inside the docker container and controlling it via _QGroundControl_ from the host, the communication link has to be set up manually. The autoconnect feature of _QGroundControl_ does not work here.
+When running a simulation instance e.g. SITL inside the docker container and controlling it via _QGroundControl_ from the host, the communication link has to be set up manually.
+The autoconnect feature of _QGroundControl_ does not work here.
 
-In _QGroundControl_, navigate to [Settings](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/settings_view.html) and select Comm Links. Create a new link that uses the UDP protocol. The port depends on the used [configuration](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/rcS) e.g. port 14570 for the SITL config. The IP address is the one of your docker container, usually 172.17.0.1/16 when using the default network. The IP address of the docker container can be found with the following command (assuming the container name is `mycontainer`):
+In _QGroundControl_, navigate to [Settings](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/settings_view.html) and select Comm Links.
+Create a new link that uses the UDP protocol.
+The port depends on the used [configuration](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/rcS) e.g. port 14570 for the SITL config.
+The IP address is the one of your docker container, usually 172.17.0.1/16 when using the default network.
+The IP address of the docker container can be found with the following command (assuming the container name is `mycontainer`):
 
 ```sh
 $ docker inspect -f '{ {range .NetworkSettings.Networks}}{ {.IPAddress}}{ {end}}' mycontainer
@@ -208,9 +210,11 @@ Spaces between double curly braces above should be not be present (they are need
 
 #### 权限错误
 
-The container creates files as needed with a default user - typically "root". This can lead to permission errors where the user on the host computer is not able to access files created by the container.
+The container creates files as needed with a default user - typically "root".
+This can lead to permission errors where the user on the host computer is not able to access files created by the container.
 
-The example above uses the line `--env=LOCAL_USER_ID="$(id -u)"` to create a user in the container with the same UID as the user on the host. This ensures that all files created within the container will be accessible on the host.
+The example above uses the line `--env=LOCAL_USER_ID="$(id -u)"` to create a user in the container with the same UID as the user on the host.
+This ensures that all files created within the container will be accessible on the host.
 
 #### 图形驱动问题
 
@@ -220,17 +224,15 @@ It's possible that running Gazebo Classic will result in a similar error message
 libGL error: failed to load driver: swrast
 ```
 
-In that case the native graphics driver for your host system must be installed. Download the right driver and install it inside the container. For Nvidia drivers the following command should be used (otherwise the installer will see the loaded modules from the host and refuse to proceed):
+In that case the native graphics driver for your host system must be installed.
+Download the right driver and install it inside the container.
+For Nvidia drivers the following command should be used (otherwise the installer will see the loaded modules from the host and refuse to proceed):
 
 ```sh
 ./NVIDIA-DRIVER.run -a -N --ui=none --no-kernel-module
 ```
 
-More information on this can be found [here](http://gernotklingler.com/blog/howto-get-hardware-accelerated-opengl-support-docker/).
-
-<a id="virtual_machine"></a>
-
-## 虚拟机支持
+## Virtual Machine Support {#virtual_machine}
 
 尝试禁用并行构建。
 
