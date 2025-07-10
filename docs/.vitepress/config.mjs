@@ -211,7 +211,7 @@ export default defineConfig({
     ],
   },
 
-  async transformHead({ page, siteData, pageData, title }) {
+  async transformHead({ pageData }) {
     // Start with an empty array to accumulate all head tags
     const head = [];
 

@@ -1,6 +1,10 @@
 # ModalAI Flight Core v1
 
-<Badge type="tip" text="PX4 v1.11" />
+<Badge type="info" text="Discontinued" /> <Badge type="tip" text="PX4 v1.11" />
+
+:::warning
+This frame has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
+:::
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
@@ -50,6 +54,7 @@ More detailed hardware documentation can be found [here](https://docs.modalai.co
 :::
 
 <!-- reference links for table above (improve layout) -->
+
 [stm32f765ii]: https://www.st.com/en/microcontrollers-microprocessors/stm32f765ii.html
 [bmp388]: https://www.bosch-sensortec.com/products/environmental-sensors/pressure-sensors/bmp388/
 [icm-20602]: https://www.invensense.com/products/motion-tracking/6-axis/icm-20602/
