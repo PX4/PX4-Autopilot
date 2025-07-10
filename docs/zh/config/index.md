@@ -7,7 +7,7 @@ Most other steps can be done out of order, except for [tuning](#tuning), which m
 
 ## 操作前提
 
-Before starting you should [Download QGroundControl](http://qgroundcontrol.com/downloads/) and install it on your **desktop** computer.
+Before starting you should [Download QGroundControl](https://qgroundcontrol.com/downloads/) and install it on your **desktop** computer.
 Then open the QGC application menu ("Q" icon in the top-left corner) and choose **Vehicle Setup** in the _Select Tool_ popup:
 
 ![QGC Main Menu Popup: highlighting Vehicle Setup](../../assets/qgc/setup/menu_setup.png)
@@ -77,7 +77,6 @@ If you need help with the configuration you can ask for help on the [QGroundCont
 - [飞控外设](../peripherals/index.md) - 设置特定传感器、可选传感器、执行器等。
 - [Advanced Configuration](../advanced_config/index.md) - Factory/OEM calibration, configuring advanced features, less-common configuration.
 - Vehicle-Centric Config/Tuning:
-
   - [多旋翼配置/调参](../config_mc/index.md)
   - [直升机配置/调参](../config_heli/index.md)
   - [固定翼配置/调参](../config_fw/index.md)

@@ -187,7 +187,7 @@ MAVROS has plugins to relay a visual estimation from a VIO or MoCap system using
 You can use any of the above pipelines with LPE.
 
 If you're working with EKF2, only the "vision" pipelines are supported.
-To use MoCap data with EKF2 you will have to [remap](http://wiki.ros.org/roslaunch/XML/remap) the pose topic that you get from MoCap:
+To use MoCap data with EKF2 you will have to [remap](https://wiki.ros.org/roslaunch/XML/remap) the pose topic that you get from MoCap:
 
 - MoCap ROS topics of type `geometry_msgs/PoseStamped` or `geometry_msgs/PoseWithCovarianceStamped` must be remapped to `/mavros/vision_pose/pose`.
   The `geometry_msgs/PoseStamped` topic is most common as MoCap doesn't usually have associated covariances to the data.
@@ -205,7 +205,7 @@ The local/world and world frames used by ROS and PX4 are different.
 | 世界坐标系 | FRD or NED (X **N**orth, Y **E**ast, Z **D**own) | FLU or ENU (X **E**ast, Y **N**orth, Z **U**p), with the naming being `odom` or `map` |
 
 :::tip
-See [REP105: Coordinate Frames for Mobile Platforms](http://www.ros.org/reps/rep-0105.html) for more information about ROS frames.
+See [REP105: Coordinate Frames for Mobile Platforms](https://www.ros.org/reps/rep-0105.html) for more information about ROS frames.
 :::
 
 如果你把机体命名为 <code>robot1</code>，你会得到一个主题，比如 <code>/vrpn_client_node/robot1/pose</code>
@@ -236,7 +236,7 @@ You therefore have to add the external pose's body frame to the tf tree. This ca
 ```
 
 Make sure that you change the values of yaw, pitch and roll such that it properly attaches the external pose's body frame to the `base_link` or `base_link_frd`.
-Have a look at the [tf package](http://wiki.ros.org/tf#static_transform_publisher) for further help on how to specify the transformation between the frames.
+Have a look at the [tf package](https://wiki.ros.org/tf#static_transform_publisher) for further help on how to specify the transformation between the frames.
 You can use rviz to check if you attached the frame right. The name of the `external_pose_child_frame` has to match the child_frame_id of your `nav_msgs/Odometry` message.
 The same also applies for the reference frame of the external pose. You have to attach the reference frame of the external pose as child to either the `odom` or `odom_frd` frame. Adapt therefore the following code line accordingly.
 

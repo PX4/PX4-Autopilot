@@ -7,8 +7,7 @@ Flight modes provide autopilot support to make it easier to manually fly the veh
 - [Flight Modes (Multicopter)](../flight_modes_mc/index.md)
 - [Flight Modes (Fixed-Wing)](../flight_modes_fw/index.md)
 - [Flight Modes (VTOL)](../flight_modes_vtol/index.md)
-- [Drive Modes (Differential Rover)](../flight_modes_rover/differential.md)
-- [Drive Modes (Ackermann Rover)](../flight_modes_rover/ackermann.md)
+- [Drive Modes (Rover)](../flight_modes_rover/index.md)
 
 :::info
 本节中的模式子主题包含所有机体共有的信息，但可能与正常/默认设置无关。

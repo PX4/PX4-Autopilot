@@ -224,7 +224,7 @@ else
 		# Look for airframe in ROMFS
 		. ${R}etc/init.d/rc.autostart
 
-		if [ ${VEHICLE_TYPE} == none ]
+		if [ ${VEHICLE_TYPE} = none ]
 		then
 			# Use external startup file
 			if [ $STORAGE_AVAILABLE = yes ]
@@ -235,7 +235,7 @@ else
 			fi
 		fi
 
-		if [ ${VEHICLE_TYPE} == none ]
+		if [ ${VEHICLE_TYPE} = none ]
 		then
 			echo "ERROR [init] No airframe file found for SYS_AUTOSTART value"
 			param set SYS_AUTOSTART 0

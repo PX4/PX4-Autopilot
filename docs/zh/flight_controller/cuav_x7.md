@@ -1,4 +1,11 @@
-# CUAV X7 飞行控制器
+# CUAV X7 Flight Controller (Discontinued)
+
+<Badge type="info" text="Discontinued" /> <!-- 202507 / PX4v1.16 -->
+
+:::warning
+This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
+It has been superseded by the [CUAV X7+](https://doc.cuav.net/controller/x7/en/).
+:::
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
@@ -41,7 +48,6 @@ They should be used by preference as they contain the most complete and up to da
 - Main FMU Processor: STM32H743
 
 - 内置传感器：
-
   - 加速度计/陀螺仪：ICM-20689
   - 加速度计/陀螺仪：ICM-20649
   - Accelerometer/Gyroscope: BMI088
@@ -85,7 +91,7 @@ When it runs PX4 firmware, only 8 pwm works, the remaining 6 pwm are still being
 
 ## Connections (Wiring)
 
-[CUAV X7 Wiring Quickstart](http://doc.cuav.net/flight-controller/x7/en/quick-start/quick-start-x7.html)
+[CUAV X7 Wiring Quickstart](https://doc.cuav.net/controller/x7/en/quick-start/quick-start-x7-plus.html)
 
 ## Size and Pinouts
 
@@ -177,5 +183,5 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 ## 更多信息
 
 - [Quick start](http://doc.cuav.net/flight-controller/x7/en/quick-start/quick-start-x7.html)
-- [CUAV docs](http://doc.cuav.net)
+- [CUAV docs](https://doc.cuav.net/)
 - [x7 schematic](https://github.com/cuav/hardware/tree/master/X7_Autopilot)

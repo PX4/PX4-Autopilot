@@ -78,7 +78,6 @@ Explanations and requirements:
     This means as long as the event name stays the same, so will the ID.
 
 - **Log Level**:
-
   - valid log levels are the same as used in the MAVLink [MAV_SEVERITY](https://mavlink.io/en/messages/common.html#MAV_SEVERITY) enum.
     In order of descending importance these are:
 
@@ -117,7 +116,7 @@ Valid types: `uint8_t`, `int8_t`, `uint16_t`, `int16_t`, `uint32_t`, `int32_t`, 
 You can also use enumerations as arguments:
 
 - PX4-specific/custom enumerations for events should be defined in [src/lib/events/enums.json](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/events/enums.json), and can then be used as event argument in the form of `events::send<events::px4::enums::my_enum_t>(...)`.
-- MAVLink "common" events are defined in [mavlink/libevents/events/common.json](https://github.com/mavlink/libevents/blob/master/events/common.json) and can be used as event argument in the form of `events::send<events::common::enums::my_enum_t>(...)`.
+- MAVLink "common" events are defined in [mavlink/libevents/events/common.json](https://github.com/mavlink/libevents/blob/main/events/common.json) and can be used as event argument in the form of `events::send<events::common::enums::my_enum_t>(...)`.
 
 #### Text format
 
@@ -128,7 +127,6 @@ Text format for event message description:
   These have to be escaped: '\\\\', '\\<', '\\{'.
 
 - supported tags:
-
   - Profiles: `<profile name="[!]NAME">CONTENT</profile>`
 
     `CONTENT` will only be shown if the name matches the configured profile.
@@ -142,7 +140,6 @@ Text format for event message description:
   - no nested tags of the same type are allowed
 
 - arguments: template placeholders that follow python syntax, with 1-based indexing (instead of 0)
-
   - general form: `{ARG_IDX[:.NUM_DECIMAL_DIGITS][UNIT]}`
 
     UNIT:

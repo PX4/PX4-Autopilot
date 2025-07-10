@@ -50,7 +50,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 - 其它特性:
   - 工作温度：-40 ~ 85°C
 
-Additional information can be found in the [_Pixhawk 4 Mini_ Technical Data Sheet](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixhawk4mini/pixhawk4mini_technical_data_sheet.pdf).
+Additional information can be found in the [_Pixhawk 4 Mini_ Technical Data Sheet](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixhawk4mini/pixhawk4mini_technical_data_sheet.pdf).
 
 ## 购买渠道
 
@@ -66,7 +66,7 @@ The **RC IN** and **PPM** ports are for RC receivers only. These are powered! NE
 
 ## 针脚定义
 
-Download _Pixhawk 4 Mini_ pinouts from [here](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixhawk4mini/pixhawk4mini_pinouts.pdf).
+Download _Pixhawk 4 Mini_ pinouts from [here](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixhawk4mini/pixhawk4mini_pinouts.pdf).
 
 ## 尺寸
 
@@ -120,7 +120,8 @@ In order to access these ports, the user must remove the _Pixhawk 4 Mini_ casing
 
 ![Pixhawk 4 Mini FMU Debug](../../assets/flight_controller/pixhawk4mini/pixhawk4mini_fmu_debug.png)
 
-The port has a standard serial pinout and can be connected to a standard FTDI cable (3.3V, but it's 5V tolerant) or a [Dronecode probe](https://kb.zubax.com/display/MAINKB/Dronecode+Probe+documentation). The pinout uses the standard [Pixhawk debug connector](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) pinout. Please refer to the [wiring](../debug/system_console.md) page for details of how to wire up this port.
+The port has a standard serial pinout and can be connected to a standard FTDI cable (3.3V, but it's 5V tolerant) or a [Zubax BugFace BF1](https://github.com/Zubax/bugface_bf1).
+The pinout uses the standard [Pixhawk debug connector](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) pinout. Please refer to the [wiring](../debug/system_console.md) page for details of how to wire up this port.
 
 ## 串口映射
 
@@ -153,5 +154,5 @@ It can be used for airframes that use AUX for non-essential peripherals (e.g. "f
 
 ## 更多信息
 
-- [_Pixhawk 4 Mini_ Technical Data Sheet](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixhawk4mini/pixhawk4mini_technical_data_sheet.pdf)
+- [_Pixhawk 4 Mini_ Technical Data Sheet](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixhawk4mini/pixhawk4mini_technical_data_sheet.pdf)
 - [FMUv5 reference design pinout](https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY/edit#gid=912976165).

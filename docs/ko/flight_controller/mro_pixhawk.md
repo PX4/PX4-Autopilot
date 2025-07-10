@@ -47,7 +47,6 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
   - 외부 microUSB 포트
 
 - 전원시스템
-
   - 자동 복구 기능의 이상적인 다이오드 컨트롤러
   - 서보 레일 고전력 (7V) 및 고전류 준비
   - 모든 주변 장치 출력 과전류 보호, 모든 입력 ESD 보호
@@ -102,8 +101,8 @@ See [3DR Pixhawk 1 > Pinouts](../flight_controller/pixhawk.md#pinouts)
 
 The board is based on the [Pixhawk-project](https://pixhawk.org/) **FMUv3** open hardware design.
 
-- [FMUv3 schematic](https://github.com/PX4/Hardware/raw/master/FMUv3_REV_D/Schematic%20Print/Schematic%20Prints.PDF) -- Schematic and layout
+- [FMUv3 schematic](https://github.com/pixhawk/Hardware/raw/master/FMUv3_REV_D/Schematic%20Print/Schematic%20Prints.PDF) -- Schematic and layout
 
 :::info
-As a CC-BY-SA 3.0 licensed Open Hardware design, all schematics and design files are [available](https://github.com/PX4/Hardware).
+As a CC-BY-SA 3.0 licensed Open Hardware design, all schematics and design files are [available](https://github.com/pixhawk/Hardware).
 :::

@@ -58,7 +58,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 	const bool airspeed_timed_out = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
 	const bool sideslip_timed_out = isTimedOut(_aid_src_sideslip.time_last_fuse, (uint64_t)10e6);
 
-	if (_control_status.flags.fake_pos || (airspeed_timed_out && sideslip_timed_out && (_params.drag_ctrl == 0))) {
+	if (_control_status.flags.fake_pos || (airspeed_timed_out && sideslip_timed_out && (_params.ekf2_drag_ctrl == 0))) {
 		_control_status.flags.wind = false;
 	}
 
@@ -72,7 +72,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 	if (_control_status.flags.fixed_wing) {
 		if (_control_status.flags.in_air && !_control_status.flags.vehicle_at_rest) {
 			if (!_control_status.flags.fuse_aspd) {
-				_yawEstimator.setTrueAirspeed(_params.EKFGSF_tas_default);
+				_yawEstimator.setTrueAirspeed(_params.ekf2_gsf_tas);
 			}
 
 		} else {
@@ -82,7 +82,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 
 #endif // CONFIG_EKF2_GNSS
 
-	if (_params.arsp_thr <= 0.f) {
+	if (_params.ekf2_arsp_thr <= 0.f) {
 		stopAirspeedFusion();
 		return;
 	}
@@ -99,7 +99,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 		const bool continuing_conditions_passing = _control_status.flags.in_air
 				&& !_control_status.flags.fake_pos;
 
-		const bool is_airspeed_significant = airspeed_sample.true_airspeed > _params.arsp_thr;
+		const bool is_airspeed_significant = airspeed_sample.true_airspeed > _params.ekf2_arsp_thr;
 		const bool is_airspeed_consistent = (_aid_src_airspeed.test_ratio > 0.f && _aid_src_airspeed.test_ratio < 1.f);
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& is_airspeed_significant
@@ -151,7 +151,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &aid_src) const
 {
 	// Variance for true airspeed measurement - (m/sec)^2
-	const float R = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) *
+	const float R = sq(math::constrain(_params.ekf2_eas_noise, 0.5f, 5.0f) *
 			   math::constrain(airspeed_sample.eas2tas, 0.9f, 10.0f));
 
 	float innov = 0.f;
@@ -165,7 +165,7 @@ void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_so
 			      R,                                       // observation variance
 			      innov,                                   // innovation
 			      innov_var,                               // innovation variance
-			      math::max(_params.tas_innov_gate, 1.f)); // innovation gate
+			      math::max(_params.ekf2_tas_gate, 1.f)); // innovation gate
 }
 
 void Ekf::fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &aid_src)
@@ -243,7 +243,7 @@ void Ekf::resetWindUsingAirspeed(const airspeedSample &airspeed_sample)
 	constexpr float sideslip_var = sq(math::radians(15.0f));
 
 	const float euler_yaw = getEulerYaw(_R_to_earth);
-	const float airspeed_var = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f)
+	const float airspeed_var = sq(math::constrain(_params.ekf2_eas_noise, 0.5f, 5.0f)
 				      * math::constrain(airspeed_sample.eas2tas, 0.9f, 10.0f));
 
 	matrix::SquareMatrix<float, State::wind_vel.dof> P_wind;

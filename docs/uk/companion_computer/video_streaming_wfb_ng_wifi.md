@@ -20,7 +20,7 @@
 - Двосторонній телеметричний зв'язок (MAVLink).
 - TCP/IP тунель.
 - Автоматичне різноманіття передавача - використовуйте кілька карт на землі, щоб уникнути відслідковувача антен.
-- Повне шифрування та аутентифікація зв'язку (з використанням [libsodium](https://download.libsodium.org/doc/)).
+- Full link encryption and authentication (using [libsodium](https://doc.libsodium.org/)).
 - Агрегація пакетів MAVLink (упаковка невеликих пакетів у партії перед передачею).
 - Покращений [OSD](https://github.com/svpcom/wfb-ng-osd) для Raspberry PI або загального лінуксового робочого стола з gstreamer.
 
@@ -36,21 +36,19 @@
 
 - Камера.
   Були протестовані наступні варіанти:
-
   - [Камера Raspberry Pi](https://www.raspberrypi.org/products/camera-module-v2/), підключена через CSI.
-  - [Камера Logitech C920](https://www.logitech.com/en-us/product/hd-pro-webcam-c920?crid=34), підключена через USB
+  - [Logitech camera C920](https://support.logi.com/hc/en-us/articles/360024326953-Getting-started-HD-Pro-Webcam-C920) connected via USB
 
-- Модуль WiFi [ALPHA AWUS036ACH](https://www.alfa.com.tw/products_detail/1.htm) або будь-яка інша карта на основі **RTL8812au**.
+- WiFi module [ALPHA AWUS036ACH](https://www.alfa.com.tw/products/awus036ach_1?variant=40319795789896) or any other **RTL8812au** card.
 
 ### Наземна станція
 
 - Наземний комп'ютер на станції.
   Ці варіанти були перевірені:
-
   - Будь-який Linux комп'ютер з USB-портом (протестований на Ubuntu 18.04 x86-64)
   - Комп’ютер із будь-якою ОС із керуванням QGround та Raspberry PI, під’єднаний через Ethernet (RasPi забезпечує з’єднання Wi-Fi).
 
-- Модуль WiFi [ALPHA AWUS036ACH](https://www.alfa.com.tw/products_detail/1.htm) або будь-яка інша карта на основі **RTL8812au**.
+- WiFi module [ALPHA AWUS036ACH](https://www.alfa.com.tw/products/awus036ach_1?variant=40319795789896) or any other **RTL8812au** card.
   Див. вікі [WFB-ng > апаратне забезпечення WiFi](https://github.com/svpcom/wfb-ng/wiki/WiFi-hardware) для отримання додаткової інформації про підтримувані модулі.
 
 ## Модифікація апаратного забезпечення
@@ -125,7 +123,7 @@ Alpha AWUS036ACH - це карта середньої потужності, як
 
 ## Антени та інше
 
-У простих випадках ви можете використовувати всенапрямлені антени з лінійною (які комплектуються з WiFi картами) або круговою листковою ([кругово-поляризована антена Coverleaf](http://www.antenna-theory.com/antennas/cloverleaf.php)) поляризацією.
+For simple cases you can use omnidirectional antennas with linear (that bundled with wifi cards) or circular leaf ([circularly polarized Coverleaf Antenna](https://www.antenna-theory.com/antennas/cloverleaf.php)) polarization.
 Якщо ви хочете налаштувати зв'язок на велику відстань, ви можете використовувати кілька WiFi адаптерів з напрямними та всенапрямленими антенами. TX/RX Підтримується різноманіття передачі/прийому для кількох адаптерів з коробки (просто додайте кілька мережевих інтерфейсів до `/etc/default/wifibroadcast`).
 Якщо ваш WiFi адаптер має дві антени (наприклад, Alfa AWU036ACH), різноманіття передачі втілено через [STBC](https://en.wikipedia.org/wiki/Space%E2%80%93time_block_code).
 Карти з 4 портами (наприклад, Alfa AWUS1900) наразі не підтримуються.

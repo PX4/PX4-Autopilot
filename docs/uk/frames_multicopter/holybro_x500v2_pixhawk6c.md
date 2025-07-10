@@ -15,18 +15,18 @@ This topic provides full instructions for building the [Holybro X500 V2 ARF Kit]
 
 ### Навантаження та тримач батареї
 
-**Screw**-  Sunk Screw M2.5\*6 12pcs
+**Screw**- Sunk Screw M2.5\*6 12pcs
 
 1. Вставте резинове кільце підвіски-висувки в кожну з їхніх відповідних підвісок.
   Не використовуйте гострi предмети для натискання резинок всередині.
 
   [![Assembly1](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly1.png)](https://www.youtube.com/watch?v=4Tid-FCP_aI)
 
-2. Візьміть плату кріплення батареї і закрутіть її за допомогою затискача зі слайдом за допомогою відвірки винта M2.5\*6.
+2. Take the battery mounting board and screw it with the slide bar clip using the Sunk Screw M2.5\*6.
 
   [![Assembly2](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly2.png)](https://youtu.be/9E-rld6tPWQ)
 
-3. Закрутіть 4 вішалки на дошку платформи, використовуючи поглиблену винт M2.5\*6.
+3. Screw 4 hangers to the Platform Board using Sunk Screw M2.5\*6.
 
   [![Assembly3](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly3.png)](https://youtu.be/4qIBABc9KsY))
 
@@ -42,7 +42,7 @@ This topic provides full instructions for building the [Holybro X500 V2 ARF Kit]
 
 [![Assembly5](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly5.png)](https://youtu.be/0knU3Q_opEo))
 
-1. Візьміть нижню пластину і вставте 4 гвинти M3\*14 та закрутіть нейлонові заглушки на них.
+1. Take the bottom plate and insert 4 M3\*14 screws and fasten the nylon standoffs on the same.
 
   [![Assembly6](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly6.png)](https://youtu.be/IfsMXTr3Uy4)
 
@@ -60,7 +60,7 @@ This topic provides full instructions for building the [Holybro X500 V2 ARF Kit]
 
   [![Assembly9](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly9.png)](https://youtu.be/7REaF3YAqLg)
 
-2. Використовуйте Гвинт кришки розетки M3\*8, щоб прикрутити посадкові шасі до нижньої пластини
+2. Use the Socket Cap Screw M3\*8 to screw the landing gears to the bottom plate
 
   [![Assembly11](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly11.png)](https://youtu.be/iDxzWeyCN54)
 
@@ -135,6 +135,7 @@ Pixhawk 6C запитується за допомогою плати живле�
   [![Assembly20](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly20.png)](https://youtu.be/aiFxVJFjlos)
 
   У цьому посібнику використовується місце кріплення GPS, запропоноване в посібнику Holybro.
+
 2. Screw the GPS mount’s bottom end on the payload holder side using Locknut M3 & Screw M3\*10
 
   [![Assembly21](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly21.png)](https://youtu.be/uG5UKy3FrIc)
@@ -153,7 +154,7 @@ Pixhawk 6C запитується за допомогою плати живле�
 
 Набір X500 забезпечує місце для супутнього комп'ютера, такого як Raspberry Pi або Jetson nano, що можуть бути розміщені тут [TBD].
 
-- Вставте 4 гвинти з головкою M2.5\*12 та поставте штифти на те ж саме місце.
+- Insert 4 Socket Cap Screw M2.5\*12 and put the standoffs on the same.
 - Тепер розмістіть супутній комп'ютер і змонтуйте його, використовуючи гайку з фіксацією M2.5
 
 ### Camera
@@ -170,7 +171,7 @@ Full instructions for installing and configuring PX4 can be found in [Basic Conf
 :::
 
 _QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the X500 frame.
-[Download and install](http://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
+[Download and install](https://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
 
 Спочатку оновіть прошивку, конструкцію та відображення актуаторів:
 

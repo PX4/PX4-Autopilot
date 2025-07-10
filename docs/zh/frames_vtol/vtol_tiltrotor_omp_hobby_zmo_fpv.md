@@ -47,12 +47,12 @@ The approximate maximum size of the FC is: 50x110x22mm
 - [Airspeed sensor (cheaper alternative)](https://holybro.com/products/digital-air-speed-sensor?pr_prod_strat=use_description&pr_rec_id=236dfda00&pr_rec_pid=7150470561981&pr_ref_pid=7150472462525&pr_seq=uniform)
 - [Lidar Lightware lw20-c (included in Skynode eval. kit)](../sensor/sfxx_lidar.md) (Optional)
 - [Lidar Seeed Studio PSK-CM8JL65-CC5 (cheaper alternative)](https://www.seeedstudio.com/PSK-CM8JL65-CC5-Infrared-Distance-Measuring-Sensor-p-4028.html) (Optional)
-- [5V BEC](http://www.mateksys.com/?portfolio=bec12s-pro)
+- [5V BEC](https://www.mateksys.com/?portfolio=bec12s-pro)
 - [Radio (RC) System](../getting_started/rc_transmitter_receiver.md) of your preference
 - [Servo cable extension cable male 30cm 10 pcs](https://www.getfpv.com/male-to-male-servo-extension-cable-twisted-22awg-jr-style-5-pcs.html)
 - [USB-C extension cable](https://www.digitec.ch/en/s1/product/powerguard-usb-c-usb-c-025-m-usb-cables-22529949?dbq=1&gclid=Cj0KCQjw2cWgBhDYARIsALggUhrh-z-7DSU0wKfLBVa8filkXLQaxUpi7pC0ffQyRzLng8Ph01h2R1gaAp0mEALw_wcB&gclsrc=aw.ds)
 - [3M VHB tape](https://www.amazon.in/3M-VHB-Tape-4910-Length/dp/B00GTABM3Y)
-- [3D-Printed mounts](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/vtol/omp_hobby_zmo_fpv/omp_hobby_zmo_3d_prints.zip)
+- [3D-Printed mounts](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/vtol/omp_hobby_zmo_fpv/omp_hobby_zmo_3d_prints.zip)
   - 2x wing connector mount
   - 1x Airspeed sensor mount
   - 1x GPS-Mount
@@ -159,7 +159,6 @@ The connector glued into the fuselage. Make sure to properly align the connector
   If you own a crimp tool, then you can also directly add the connectors without soldering.
 
 2. Plug the servo cables into the adapter IO board in the following order:
-
   - 1 - Aileron left
   - 2 - Aileron right
   - 3 - V-Tail left
@@ -168,7 +167,6 @@ The connector glued into the fuselage. Make sure to properly align the connector
   - 6 - Tilt right
 
 3. Plug in the motor signal cables into the FMU adapter board in the following order:
-
   - 1 - Front left
   - 2 - Front right
   - 3 - Rear
@@ -281,12 +279,12 @@ An inexpensive example would be a [SiK Telemetry Radio](../telemetry/sik_radio.m
 
 ### Load Parameters File
 
-Next we load a [parameter file](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/vtol/omp_hobby_zmo_fpv/omp_hobby_zmo.params) that contains parameters that define the frame geometry, output mappings, and tuning values — so you don't have to!
+Next we load a [parameter file](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/vtol/omp_hobby_zmo_fpv/omp_hobby_zmo.params) that contains parameters that define the frame geometry, output mappings, and tuning values — so you don't have to!
 If you have followed the wiring instructions for the motors you probably won't need to do much further configuration other than sensor calibration and fixing the trims.
 
 To load the file:
 
-1. Download the [parameter file](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/vtol/omp_hobby_zmo_fpv/omp_hobby_zmo.params).
+1. Download the [parameter file](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/vtol/omp_hobby_zmo_fpv/omp_hobby_zmo.params).
 2. Select the [Parameters](../advanced_config/parameters.md#finding-updating-parameters) tab and then click on **Tools** in the top right corner.
 3. Select **Load from file** and then choose the `omp_hobby_zmo.params` file you just downloaded.
 4. Reboot the vehicle.

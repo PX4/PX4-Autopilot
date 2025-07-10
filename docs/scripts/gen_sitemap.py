@@ -19,7 +19,7 @@ include_dirs = set(['en','zh','ko','uk']) #update for new language builds.
 exclude_dirs = set(['.vitepress','node_modules']) #update for new language builds.
 
 my_parser = argparse.ArgumentParser(description='Generate sitemap for all markdown files in directory (default to main for output)')
-# Add the arguments                      
+# Add the arguments
 my_parser.add_argument('-v',
                        '--version',
                        action='store',
@@ -45,18 +45,18 @@ build_version = args.version
 BRANCH_NAME = os.getenv('BRANCH_NAME')
 if BRANCH_NAME:
     build_version=BRANCH_NAME
-    
+
 url_prefix = 'https://docs.px4.io/%s' % build_version
 
 sitemapitems=[]
 
 for subdir, dirs, files in os.walk(dir_name, topdown=True):
-    
+
     if subdir == '.':
         #print("RootFile: %s" % originalfile)
         #Handle a root file.
         continue
-    
+
     # Check if any of the include directories is in the subdir path
     if any(f"/{inc_dir}/" in subdir or f"\\{inc_dir}\\" in subdir for inc_dir in include_dirs):
         pass
@@ -67,7 +67,7 @@ for subdir, dirs, files in os.walk(dir_name, topdown=True):
     if any(f"/{ex_dir}/" in subdir or f"\\{ex_dir}\\" in subdir for ex_dir in exclude_dirs):
         continue
         #print(f"SUBDIR Ex: {subdir}")
-        
+
 
     for file in files:
         #print(f"xxDebug: {file}")
@@ -76,7 +76,7 @@ for subdir, dirs, files in os.walk(dir_name, topdown=True):
         if not file.endswith('.md'): #only process md files.
            #print(f"Skip: {file} (not md)")
            continue
-       
+
         originalfile=subdir+'\\'+file
         dir_name=subdir[2:].replace('\\','/')
         orig_file_forwardslash=originalfile.replace('\\','/')
@@ -98,10 +98,10 @@ for subdir, dirs, files in os.walk(dir_name, topdown=True):
         #print("Subdir: %s" % subdir )
         #print("file_name: %s" % file_name)
         #print(sitemapitem['url'])
-        
+
         sitemapitems.append(sitemapitem)
-        
-        
+
+
 # Generate the sitemap from the sitemapitems
 all_sitemap_item_text = ""
 for item in sitemapitems:
@@ -112,7 +112,7 @@ for item in sitemapitems:
    if args.date:
        sitemap_item_text+=f"    <lastmod>{item['modified']}</lastmod>\n"
    sitemap_item_text+='  </url>\n'
-   
+
    all_sitemap_item_text+=sitemap_item_text
 
 sitemaptext = '''<?xml version="1.0" encoding="UTF-8"?>
@@ -122,11 +122,10 @@ sitemaptext = '''<?xml version="1.0" encoding="UTF-8"?>
 
 # Write the sitemap to file
 outputfile=args.output+'sitemap.xml'
-with open(outputfile,"w") as f: 
+with open(outputfile,"w") as f:
     f.write(sitemaptext)
 
 print("Sitemap generated to: %s" % outputfile)
 
 #print("BRANCH_NAME: %s" % BRANCH_NAME)
 #print("Build version: %s" % build_version)
-

@@ -6,7 +6,7 @@
 Tip
 The PX4 development team highly recommend that you use/migrate to this version of ROS!
 
-This is the newest version of [ROS](http://www.ros.org/) (Robot Operating System).
+This is the newest version of [ROS](https://www.ros.org/) (Robot Operating System).
 It significantly improves on ROS "1", and in particular allows a much deeper and lower-latency integration with PX4.
 :::
 

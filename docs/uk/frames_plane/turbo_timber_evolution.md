@@ -54,9 +54,9 @@ This model is designed to excel at [STOL](https://en.wikipedia.org/wiki/STOL) fl
 
 - [DJI FPV Goggles](https://www.dji.com/fpv)
 
-- [ExpressLRS Matek Diversity RX](http://www.mateksys.com/?portfolio=elrs-r24)
+- [ExpressLRS Matek Diversity RX](https://www.mateksys.com/?portfolio=elrs-r24)
 
-- [Custom designed 3D printed parts](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/turbo_timber_evolution/3d_printed_parts.zip)
+- [Custom designed 3D printed parts](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/fw/turbo_timber_evolution/3d_printed_parts.zip)
   - Кріплення для Pixhawk 4 Mini та верхнє кріплення для GPS
   - FPV модуль та кріплення камери
   - Пітот-статичний модуль та кріплення на крило
@@ -117,7 +117,7 @@ An [airspeed sensor](../sensor/airspeed.md) is highly recommended for use on fix
 
 ## Встановлення польотного комп'ютера
 
-A custom mount for the PX4 Mini was designed and 3d printed (see [3D printed parts](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/turbo_timber_evolution/3d_printed_parts.zip) for all parts).
+A custom mount for the PX4 Mini was designed and 3d printed (see [3D printed parts](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/fw/turbo_timber_evolution/3d_printed_parts.zip) for all parts).
 Це кріплення було ретельно розроблено з використанням внутрішніх пінопластових формоспеціфікацій стандартної конструкції корпусу TTE, щоб бути надійно закріпленим та добре вирівняним.
 Кріплення складається з двох частин у конфігурації подвійного ярусу, які з'єднані болтами з різьбленими стійками М3.
 Нижня підставка несе Pixhawk та прикріплюється до корпусу, а верхня підставка несе GPS та приймач ExpressLRS.
@@ -238,7 +238,7 @@ The results of tuning can be found in the [parameter file linked below](#paramet
 
 ### Огляд параметрів
 
-[Snapshot of PX4 airframe params](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/turbo_timber_evolution/tteparams.params)
+[Snapshot of PX4 airframe params](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/fw/turbo_timber_evolution/tteparams.params)
 
 Цей файл param містить налаштування PX4 для цієї збірки, включаючи налаштування радіо, настройку та конфігурацію датчиків.
 The param file can be loaded via QGC using the instructions at [Parameters> Tools ](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/parameters.html#tools) (QGC User Guide).

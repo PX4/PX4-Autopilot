@@ -103,10 +103,10 @@ commander mode auto:precland
 
 ### Налаштування IR Сенсора/Бікона
 
-Рішення з інфрачервоним датчиком/посадковим маяком потребує датчика [IR-LOCK](https://irlock.com/products/ir-lock-sensor-precision-landing-kit) та напрямленого донизу [датчика відстані](../sensor/rangefinders.md), підключеного до автопілота, а також інфрачервоного маяка в якості цілі (наприклад, [IR-LOCK MarkOne](https://irlock.com/collections/markone)).
+The IR sensor/landing beacon solution requires an [IR-LOCK Sensor](https://irlock.com/products/ir-lock-sensor-precision-landing-kit) and downward facing [distance sensor](../sensor/rangefinders.md) connected to the flight controller, and an IR beacon as a target (e.g. [IR-LOCK MarkOne](https://irlock.com/collections/ir-markers)).
 Це дозволяє приземлитися з точністю приблизно 10 см (в той час як точність GPS може бути в декілька метрів).
 
-Встановіть датчик IR-LOCK, слідуючи [офіційному посібнику](https://irlock.readme.io/v2.0/docs).
+Install the IR-LOCK sensor by following the [official guide](https://irlock.readme.io/docs/getting-started).
 Переконайтеся, що ось x сенсора вирівняна з осью y транспортного засобу, а ось y сенсора вирівняна з напрямком -x транспортного засобу (це відбувається, якщо камера нахилена вниз на 90 градусів від напрямку вперед).
 
 Установіть [датчик дальності/відстані](../sensor/rangefinders.md) (виявлено, що _LidarLite v3_ працює добре).

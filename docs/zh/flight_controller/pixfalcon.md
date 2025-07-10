@@ -17,7 +17,7 @@ The Pixfalcon autopilot (designed by [Holybro<sup>&reg;</sup>](https://holybro.c
 
 ## 总览
 
-- Main System-on-Chip: [STM32F427](http://www.st.com/web/en/catalog/mmc/FM141/SC1169/SS1577/LN1789)
+- Main System-on-Chip: [STM32F427](https://www.st.com/en/microcontrollers-microprocessors/stm32f427-437.html)
   - CPU: 180 MHz ARM<sup>&reg;</sup> Cortex<sup>&reg;</sup> M4 with single-precision FPU
   - RAM: 256 KB SRAM (L1)
 - Failsafe System-on-Chip: STM32F100

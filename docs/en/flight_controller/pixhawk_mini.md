@@ -5,7 +5,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
 
-The Holybro *Pixhawk<sup>&reg;</sup> Mini* autopilot is a next-generation evolution of the Pixhawk.
+The Holybro _Pixhawk<sup>&reg;</sup> Mini_ autopilot is a next-generation evolution of the Pixhawk.
 It is about 1/3rd the size of the original Pixhawk and has more powerful processors and sensors.
 
 The Pixhawk Mini is based on the PX4 open-hardware project and has been optimized for the PX4 flight stack.
@@ -117,7 +117,7 @@ The _Pixhawk Mini_ is shipped with the following contents:
 | Safety switch                                                      | ![Safety switch](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_safety_switch_drawing.png)                                 |
 | 8 Channel PWM Breakout cable                                       | ![8 Channel PWM Breakout cable](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_8channel_pwm_breakout_cable_drawing.png)    |
 | Mounting foam                                                      | ![Mounting foam](../../assets/hardware/mounting/3dr_anti_vibration_mounting_foam.png)                                                |
-| I2C breakout board ? - not listed parts on handout                 |  -                                                                                                                                   |
+| I2C breakout board ? - not listed parts on handout                 | -                                                                                                                                    |
 
 ## Optional accessories
 
@@ -263,7 +263,7 @@ Pixhawk Mini supports many different radio receiver models:
 
   <img src="../../assets/flight_controller/pixhawk_mini/pixhawk_mini_port_rcin.png" width="350px" title="Pixhawk Mini - Radio port for PPM receivers" />
 
-- PPM and PWM receivers that have an _individual wire for each channel_ must connect to the **RCIN** port _via a PPM encoder_ [like this one](http://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
+- PPM and PWM receivers that have an _individual wire for each channel_ must connect to the **RCIN** port _via a PPM encoder_ [like this one](https://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
 
 For more information about selecting a radio system, receiver compatibility, and binding your transmitter/receiver pair, see: [Remote Control Transmitters & Receivers](../getting_started/rc_transmitter_receiver.md).
 

@@ -55,4 +55,4 @@ See DroneCAN Troubleshooting - (index.md#troubleshooting).
 ## 更多信息
 
 - [VESC Project ESCs](https://vesc-project.com/)
-- [Benjamin Vedder's blog](http://vedder.se) (project owner)
+- [Benjamin Vedder's blog](https://vedder.se/) (project owner)

@@ -11,7 +11,7 @@ We recommend however to consider products built on industry standards, such as t
 Цей контролер польоту не дотримується стандарту і використовує патентований роз'єм.
 :::
 
-The [Hex Cube Black](http://www.proficnc.com/61-system-kits2) flight controller (previously known as Pixhawk 2.1) is a flexible autopilot intended primarily for manufacturers of commercial systems.
+The [Hex Cube Black](https://docs.cubepilot.org/user-guides/autopilot/the-cube) flight controller (previously known as Pixhawk 2.1) is a flexible autopilot intended primarily for manufacturers of commercial systems.
 It is based on the [Pixhawk-project](https://pixhawk.org/) **FMUv3** open hardware design and runs PX4 on the [NuttX](https://nuttx.apache.org/) OS.
 
 ![Cube Black](../../assets/flight_controller/cube/cube_black_hero.png)
@@ -22,7 +22,7 @@ It is based on the [Pixhawk-project](https://pixhawk.org/) **FMUv3** open hardwa
 Cube має віброізоляцію на двох ІВП, з третім фіксованим ІВП в якості еталонного/резервного.
 
 :::info
-The manufacturer [Cube Docs](https://docs.cubepilot.org/user-guides/autopilot/the-cube-module-overview) contain detailed information, including an overview of the [Differences between Cube Colours](https://docs.cubepilot.org/user-guides/autopilot/the-cube-module-overview#differences-between-cube-colours).
+The manufacturer [Cube User Guide](https://docs.cubepilot.org/user-guides/autopilot/the-cube) contains detailed information, including an overview of the [Differences between Cube Colours](https://docs.cubepilot.org/user-guides/autopilot/the-cube/introduction/specifications).
 :::
 
 :::tip
@@ -31,7 +31,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 
 ## Основні характеристики
 
-- 32bit STM32F427 [Cortex-M4F](http://en.wikipedia.org/wiki/ARM_Cortex-M#Cortex-M4)<sup>&reg;</sup> core with FPU
+- 32bit STM32F427 [Cortex-M4F](https://en.wikipedia.org/wiki/ARM_Cortex-M#Cortex-M4)<sup>&reg;</sup> core with FPU
 - 168 MHz / 252 MIPS
 - 256 KB RAM
 - 2 МБ флеш-пам'яті \(повністю доступна\)
@@ -50,7 +50,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 
 ## Де купити
 
-[Cube Black](http://www.proficnc.com/61-system-kits) (ProfiCNC)
+[Cube Black](https://www.cubepilot.com/#/reseller/list) (Reseller list)
 
 ## Збірка
 
@@ -60,7 +60,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 
 ### Процесор
 
-- 32bit STM32F427 [Cortex M4](http://en.wikipedia.org/wiki/ARM_Cortex-M#Cortex-M4) core with FPU
+- 32bit STM32F427 [Cortex M4](https://en.wikipedia.org/wiki/ARM_Cortex-M#Cortex-M4) core with FPU
 - 168 MHz / 252 MIPS
 - 256 KB RAM
 - 2 MB Flash (повністю доступна)
@@ -166,6 +166,5 @@ make px4_fmu-v3_default
 
 - [Cube Wiring Quickstart](../assembly/quick_start_cube.md)
 - Cube Docs (виробник):
-  - [Cube Module Overview](https://docs.cubepilot.org/user-guides/autopilot/the-cube-module-overview)
-  - [Cube User Manual](https://docs.cubepilot.org/user-guides/autopilot/the-cube-user-manual)
+  - [Cube User Guide](https://docs.cubepilot.org/user-guides/autopilot/the-cube)
   - [Mini Carrier Board](https://docs.cubepilot.org/user-guides/carrier-boards/mini-carrier-board)

@@ -40,7 +40,6 @@ The manufacturer [CUAV Docs](https://doc.cuav.net/flight-controller/x7/en/nora.h
 - 메인 FMU 프로세서: STM32H743
 
 - 내장 센서 :
-
   - 가속도계/자이로스코프 : ICM-20689
   - 가속도계/자이로스코프 : ICM-20649
   - 가속도계/자이로스코프 : BMI088
@@ -173,5 +172,5 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 ## 추가 정보
 
 - [Quick start](https://doc.cuav.net/flight-controller/x7/en/quick-start/quick-start-nora.html)
-- [CUAV docs](http://doc.cuav.net)
+- [CUAV docs](https://doc.cuav.net/)
 - [nora schematic](https://github.com/cuav/hardware/tree/master/X7_Autopilot)

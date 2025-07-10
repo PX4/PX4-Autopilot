@@ -12,7 +12,7 @@ You can find others on [px4.io](https://px4.io/ecosystem/commercial-systems/) an
 This section contains consumer vehicles that run a _custom_ version of PX4 (supported by their vendors).
 These may or may not be updatable to run "vanilla" PX4.
 
-- [Sentera PXH](https://sentera.com/products/fieldcapture/ag-drones/phx/)
+- [Sentera PXH](https://senterasensors.com/phx/)
 
 <!--
 ## Drone Development Kits/Reference Platforms
@@ -34,7 +34,6 @@ This section lists vehicles that are sold fully assembled and ready to fly (RTF)
 
 This section lists vehicles where you can update the software to run PX4.
 -->
-
 
 ## See Also
 

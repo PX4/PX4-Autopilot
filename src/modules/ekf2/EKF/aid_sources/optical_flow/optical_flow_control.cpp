@@ -42,7 +42,7 @@
 
 void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 {
-	if (!_flow_buffer || (_params.flow_ctrl != 1)) {
+	if (!_flow_buffer || (_params.ekf2_of_ctrl != 1)) {
 		stopFlowFusion();
 		return;
 	}
@@ -56,7 +56,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		_ref_body_rate = -(imu_delayed.delta_ang / imu_delayed.delta_ang_dt - getGyroBias());
 
 		// ensure valid flow sample gyro rate before proceeding
-		switch (static_cast<FlowGyroSource>(_params.flow_gyro_src)) {
+		switch (static_cast<FlowGyroSource>(_params.ekf2_of_gyr_src)) {
 		default:
 
 		/* FALLTHROUGH */
@@ -80,8 +80,8 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		const flowSample &flow_sample = _flow_sample_delayed;
 
 		const int32_t min_quality = _control_status.flags.in_air
-					    ? _params.flow_qual_min
-					    : _params.flow_qual_min_gnd;
+					    ? _params.ekf2_of_qmin
+					    : _params.ekf2_of_qmin_gnd;
 
 		const bool is_quality_good = (flow_sample.quality >= min_quality);
 
@@ -113,7 +113,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				      Vector2f{R_LOS, R_LOS},                              // observation variance
 				      predictFlow(flow_gyro_corrected) - flow_compensated, // innovation
 				      innov_var,                                           // innovation variance
-				      math::max(_params.flow_innov_gate, 1.f));            // innovation gate
+				      math::max(_params.ekf2_of_gate, 1.f));            // innovation gate
 
 		// logging
 		_flow_rate_compensated = flow_compensated;
@@ -144,7 +144,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 					       && !flow_sample.flow_rate.longerThan(_flow_max_rate)
 					       && !flow_compensated.longerThan(_flow_max_rate);
 
-		const bool continuing_conditions_passing = (_params.flow_ctrl == 1)
+		const bool continuing_conditions_passing = (_params.ekf2_of_ctrl == 1)
 				&& _control_status.flags.tilt_align
 				&& is_within_sensor_dist;
 
@@ -241,7 +241,7 @@ void Ekf::resetTerrainToFlow()
 	ECL_INFO("reset hagl to flow");
 
 	// TODO: use the flow data
-	const float new_terrain = -_gpos.altitude() + _params.rng_gnd_clearance;
+	const float new_terrain = -_gpos.altitude() + _params.ekf2_min_rng;
 	const float delta_terrain = new_terrain - _state.terrain;
 	_state.terrain = new_terrain;
 	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, 100.f);

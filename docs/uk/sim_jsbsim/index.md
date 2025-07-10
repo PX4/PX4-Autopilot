@@ -7,7 +7,7 @@ This simulator is [community supported and maintained](../simulation/community_s
 Дивіться [Встановлення інструментарію](../dev_setup/dev_env.md) для інформації про середовища та інструменти, що підтримуються основною командою розробників.
 :::
 
-[JSBSim](http://jsbsim.sourceforge.net/index.html) is a open source flight simulator ("flight dynamics model (FDM)") that runs on Microsoft Windows, Apple Macintosh, Linux, IRIX, Cygwin (Unix on Windows), etc.
+[JSBSim](https://jsbsim.sourceforge.net/index.html) is a open source flight simulator ("flight dynamics model (FDM)") that runs on Microsoft Windows, Apple Macintosh, Linux, IRIX, Cygwin (Unix on Windows), etc.
 Серед його можливостей: повністю налаштована аеродинаміка та система приводу, яка може моделювати складну динаміку польоту літака.
 В обчислення також враховуються обертальні ефекти Землі.
 

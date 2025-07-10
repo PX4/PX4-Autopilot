@@ -6,13 +6,15 @@ on:
     - 'main'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
   pull_request:
     branches:
-    - '*'
+      - '**'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -41,7 +43,7 @@ jobs:
       - name: Building [${{ matrix.check }}]
         uses: addnab/docker-run-action@v3
         with:
-          image: px4io/px4-dev-nuttx-focal:2022-08-12
+          image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
           options: -v ${{ github.workspace }}:/workspace
           run: |
             cd /workspace

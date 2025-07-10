@@ -1,13 +1,13 @@
-# Black Magic / Dronecode адаптери
+# Black Magic Probe (and Zubax BugFace BF1)
 
 The [Black Magic Probe](https://black-magic.org) is an easy to use, mostly plug-and-play, JTAG/SWD debugger for embedded microcontrollers.
 Оскільки Black Magic Probe є загальним зондом для налагодження, вам знадобиться адаптер для підключення до керуючих пристроїв польоту Pixhawk, який можна придбати тут:
 
 - [Drone Code Debug Adapter](https://1bitsquared.com/products/drone-code-debug-adapter) (1 BIT SQUARED).
 
-## Dronecode Probe
+## Zubax BugFace BF1 {#dronecode-probe}
 
-The [Dronecode Probe](https://kb.zubax.com/display/MAINKB/Dronecode+Probe+documentation) is a specialization of the Black Magic Probe for debugging PX4 autopilots.
+The [Zubax BugFace BF1](https://github.com/Zubax/bugface_bf1) (formerly known as "Dronecode Probe") is a specialization of the Black Magic Probe for debugging PX4 autopilots.
 
 The probe's USB interface exposes two separate virtual serial port interfaces: one for connecting to the [System Console](system_console.md) (UART) and the other for an embedded GDB server (SWD interface).
 
@@ -20,17 +20,17 @@ The _6-pos DF13_ connector that comes with the probe cannot be used for SWD debu
 ## Використання зонда
 
 :::info
-To debug STM32F7 or later (FMUv5 and newer) the Dronecode probe / Blackmagic probe likely requires a firmware update.
+To debug STM32F7 or later (FMUv5 and newer) the Zubax BugFace BF1 / Blackmagic probe likely requires a firmware update.
 You can find how to update the [blackmagic probe here](https://github.com/blacksphere/blackmagic/wiki/Upgrading-Firmware).
 :::
 
-Щоб використовувати зонд Dronecode з GDB, запустіть GDB з точним ELF-файлом, який в даний момент прошивається на автопілоті:
+To use a Zubax BugFace BF1 with GDB, start GDB with the exact ELF file that is currently flashed on the autopilot:
 
 ```sh
 arm-none-eabi-gdb build/px4_fmu-v5_default/px4_fmu-v5_default.elf
 ```
 
-Потім вам потрібно вибрати інтерфейс зонду Dronecode, на Linux це, наприклад.:
+Then, you have to select the Zubax BugFace BF1 interface, on Linux this is e.g.:
 
 ```sh
 target ext /dev/serial/by-id/usb-Black_Sphere_Technologies_Black_Magic_Probe_f9414d5_7DB85DAC-if00

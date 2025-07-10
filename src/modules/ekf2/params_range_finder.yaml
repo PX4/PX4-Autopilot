@@ -83,16 +83,6 @@ parameters:
       min: 1.0
       max: 10.0
       unit: m
-    EKF2_RNG_A_IGATE:
-      description:
-        short: Gate size used for innovation consistency checks for range aid fusion
-        long: A lower value means HAGL needs to be more stable in order to use range
-          finder for height estimation in range aid mode
-      type: float
-      default: 1.0
-      unit: SD
-      min: 0.1
-      max: 5.0
     EKF2_RNG_QLTY_T:
       description:
         short: Minumum range validity period

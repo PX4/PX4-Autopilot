@@ -19,7 +19,7 @@ Assembly/setup instructions for use with PX4 are provided here: [Pixhawk Wiring 
 
 ## 주요 특징
 
-- Main System-on-Chip: [STM32F427](http://www.st.com/web/en/catalog/mmc/FM141/SC1169/SS1577/LN1789)
+- Main System-on-Chip: [STM32F427](https://www.st.com/en/microcontrollers-microprocessors/stm32f427-437.html)
   - CPU : 단정밀도 FPU의 180MHz ARM<sup>&reg;</sup> Cortexex<sup>&reg;</sup>  M4
   - RAM : 256KB SRAM (L1)
 - 페일세이프 시스템 온칩 : STM32F100
@@ -61,7 +61,7 @@ mRo Pixhawk 주문:
 
 ### 프로세서
 
-- 32bit STM32F427 [Cortex-M4F](http://en.wikipedia.org/wiki/ARM_Cortex-M#Cortex-M4) core with FPU
+- 32bit STM32F427 [Cortex-M4F](https://en.wikipedia.org/wiki/ARM_Cortex-M#Cortex-M4) core with FPU
 - 168 MHz
 - 256 KB RAM
 - 2 MB Flash
@@ -120,7 +120,7 @@ Pixhawk 는 3 개의 전원이 공급되는 경우에는 전원 공급 장치의
 [FMUv2 + IOv2 schematic](https://raw.githubusercontent.com/PX4/Hardware/master/FMUv2/PX4FMUv2.4.5.pdf) -- Schematic and layout
 
 :::info
-As a CC-BY-SA 3.0 licensed Open Hardware design, all schematics and design files are [available](https://github.com/PX4/Hardware).
+As a CC-BY-SA 3.0 licensed Open Hardware design, all schematics and design files are [available](https://github.com/pixhawk/Hardware).
 :::
 
 ## 연결
@@ -264,22 +264,22 @@ The `RC IN` port is for RC receivers only and provides sufficient power for that
 The [PX4 System Console](../debug/system_console.md) runs on the port labeled [SERIAL4/5](#serial-4-5-port).
 
 :::tip
-A convenient way to connect to the console is to use a [Dronecode probe](https://kb.zubax.com/display/MAINKB/Dronecode+Probe+documentation), as it comes with connectors that can be used with several different Pixhawk devices.
-Simply connect the 6-pos DF13 1:1 cable on the [Dronecode probe](https://kb.zubax.com/display/MAINKB/Dronecode+Probe+documentation) to the Pixhawk `SERIAL4/5` port.
+A convenient way to connect to the console is to use a [Zubax BugFace BF1](https://github.com/Zubax/bugface_bf1), as it comes with connectors that can be used with several different Pixhawk devices.
+Simply connect the 6-pos DF13 1:1 cable on the [Zubax BugFace BF1](https://github.com/Zubax/bugface_bf1) to the Pixhawk `SERIAL4/5` port.
 
-![Dronecode probe](../../assets/flight_controller/pixhawk1/dronecode_probe.jpg)
+![Zubax BugFace BF1](../../assets/flight_controller/pixhawk1/dronecode_probe.jpg)
 :::
 
 The pinout is standard serial pinout, designed to connect to a [3.3V FTDI](https://www.digikey.com/en/products/detail/TTL-232R-3V3/768-1015-ND/1836393) cable (5V tolerant).
 
-| 3DR Pixhawk 1 |                            | FTDI |                                 |
-| ------------- | -------------------------- | ---- | ------------------------------- |
-| 1             | +5V (적) |      | N/C                             |
-| 2             | S4 Tx                      |      | N/C                             |
-| 3             | S4 Rx                      |      | N/C                             |
-| 4             | S5 Tx                      | 5    | FTDI RX (황)  |
-| 5             | S5 Rx                      | 4    | FTDI TX (적황) |
-| 6             | GND                        | 1    | FTDI GND (흑) |
+\| 3DR Pixhawk 1 |           | FTDI |
+\| ------------- | --------- | ---- | ---------------- |
+\| 1             | +5V (red) |      | N/C              |
+\| 2             | S4 Tx     |      | N/C              |
+\| 3             | S4 Rx     |      | N/C              |
+\| 4             | S5 Tx     | 5    | FTDI RX (yellow) |
+\| 5             | S5 Rx     | 4    | FTDI TX (orange) |
+\| 6             | GND       | 1    | FTDI GND (black) |
 
 6 핀 DF13 1 : 1 커넥터에 대한 FTDI 케이블의 배선은 아래 그림과 같습니다.
 
@@ -324,11 +324,11 @@ make px4_fmu-v2_default
 
 ## 부품 / 하우징
 
-- **ARM MINI JTAG (J6)**: 1.27 mm 10pos header (SHROUDED), for Black Magic Probe: FCI 20021521-00010D4LF ([Distrelec](https://www.distrelec.ch/en/minitek-127-straight-male-pcb-header-surface-mount-rows-10-contacts-27mm-pitch-amphenol-fci-20021521-00010d4lf/p/14352308), [Digi-Key](https://www.digikey.com/en/products/detail/20021521-00010T1LF/609-4054-ND/2414951),) or Samtec FTSH-105-01-F-DV-K (untested) or Harwin M50-3600542 ([Digikey](https://www.digikey.com/en/products/detail/harwin-inc/M50-3600542/2264370) or [Mouser](http://ch.mouser.com/ProductDetail/Harwin/M50-3600542/?qs=%2fha2pyFadujTt%2fIEz8xdzrYzHAVUnbxh8Ki%252bwWYPNeEa09PYvTkIOQ%3d%3d))
+- **ARM MINI JTAG (J6)**: 1.27 mm 10pos header (SHROUDED), for Black Magic Probe: FCI 20021521-00010D4LF ([Distrelec](https://www.distrelec.ch/en/minitek-127-straight-male-pcb-header-surface-mount-rows-10-contacts-27mm-pitch-amphenol-fci-20021521-00010d4lf/p/14352308), [Digi-Key](https://www.digikey.com/en/products/detail/20021521-00010T1LF/609-4054-ND/2414951),) or Samtec FTSH-105-01-F-DV-K (untested) or Harwin M50-3600542 ([Digikey](https://www.digikey.com/en/products/detail/harwin-inc/M50-3600542/2264370))
   - JTAG Adapter Option #1: [BlackMagic Probe](https://1bitsquared.com/products/black-magic-probe). 케이블 없이 제공될 수 있습니다 (제조업체에 확인).
-    If so, you will need the **Samtec FFSD-05-D-06.00-01-N** cable ([Samtec sample service](https://www.samtec.com/products/ffsd-05-d-06.00-01-n) or Digi-Key Link: SAM8218-ND) or Tag Connect Ribbon and a Mini-USB cable.
-  - JTAG Adapter Option #2: [Digi-Key Link: ST-LINK/V2](https://www.digikey.com/product-detail/en/stmicroelectronics/ST-LINK-V2/497-10484-ND) / [ST USER MANUAL](http://www.st.com/internet/com/TECHNICAL_RESOURCES/TECHNICAL_LITERATURE/USER_MANUAL/DM00026748.pdf), needs an ARM Mini JTAG to 20pos adapter: [Digi-Key Link: 726-1193-ND](https://www.digikey.com/en/products/detail/texas-instruments/MDL-ADA2/1986451)
-  - JTAG Adapter Option #3: [SparkFun Link: Olimex ARM-TINY](http://www.sparkfun.com/products/8278) or any other OpenOCD-compatible ARM Cortex JTAG adapter, needs an ARM Mini JTAG to 20pos adapter: [Digi-Key Link: 726-1193-ND](https://www.digikey.com/en/products/detail/texas-instruments/MDL-ADA2/1986451)
+    If so, you will need the **Samtec FFSD-05-D-06.00-01-N** cable ([Samtec sample service](https://www.samtec.com/products/ffsd-05-d-06.00-01-n) or [Digi-Key Link: SAM8218-ND](https://www.digikey.com/en/products/detail/samtec-inc/ffsd-05-d-06-00-01-n/1106577)) or [Tag Connect Ribbon](https://www.tag-connect.com/product/10-pin-cortex-ribbon-cable-4-length-with-50-mil-connectors) and a Mini-USB cable.
+  - JTAG Adapter Option #2: [Digi-Key Link: ST-LINK/V2](https://www.digikey.com/product-detail/en/stmicroelectronics/ST-LINK-V2/497-10484-ND) / [ST USER MANUAL](https://www.st.com/resource/en/user_manual/dm00026748.pdf), needs an ARM Mini JTAG to 20pos adapter: [Digi-Key Link: 726-1193-ND](https://www.digikey.com/en/products/detail/texas-instruments/MDL-ADA2/1986451)
+  - JTAG Adapter Option #3: [Olimex ARM-TINY](https://www.olimex.com/wiki/ARM-USB-TINY) or any other OpenOCD-compatible ARM Cortex JTAG adapter, needs an ARM Mini JTAG to 20pos adapter: [Digi-Key Link: 726-1193-ND](https://www.digikey.com/en/products/detail/texas-instruments/MDL-ADA2/1986451)
 - **USARTs**: Hirose DF13 6 pos ([Digi-Key Link: DF13A-6P-1.25H(20)](https://www.digikey.com/products/en?keywords=H3371-ND))
   - Mates: Hirose DF13 6 pos housing ([Digi-Key Link: Hirose DF13-6S-1.25C](https://www.digikey.com/products/en?keywords=H2182-ND))
 - **I2C and CAN**: Hirose DF13 4 pos ([Digi-Key Link: DF13A-4P-1.25H(20)](https://www.digikey.com/en/products/detail/hirose-electric-co-ltd/DF13A-4P-1-25H-20/530666) - discontinued)

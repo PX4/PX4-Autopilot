@@ -43,8 +43,8 @@ FrSky Taranis 조종기를 사용할 수 있습니다.
 | DJI F450 밑판                                        | 1  |
 | DJI F450 윗판                                        | 1  |
 | DJI F450 랜딩기어 역할을 하는 다리                            | 4  |
-| M3\*8 나사                                           | 18 |
-| M2 5\*6 나사                                         | 24 |
+| M3\*8 screws                                       | 18 |
+| M2 5\*6 screws                                     | 24 |
 | 벨크로 배터리 스트랩                                        | 1  |
 | DJI Phantom 나사 내장 업그레이드 프로펠러 9.4x5 | 1  |
 
@@ -163,7 +163,7 @@ FrSky Taranis 조종기를 사용할 수 있습니다.
 ## PX4 설정
 
 _QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the frame.
-[Download and install](http://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
+[Download and install](https://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
 
 :::tip
 Full instructions for installing and configuring PX4 can be found in [Basic Configuration](../config/index.md).

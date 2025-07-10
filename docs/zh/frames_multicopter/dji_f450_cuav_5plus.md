@@ -14,7 +14,7 @@ Key information
 
 The components needed for this build are:
 
-- Flight controller: CUAV V5+:
+- Flight controller: [CUAV V5+](https://store.cuav.net/index.php?id_product=95&id_product_attribute=0&rewrite=cuav-new-pixhack-v5-autopilot-m8n-gps-for-fpv-rc-drone-quadcopter-helicopter-flight-simulator-free-shipping-whole-sale&controller=product&id_lang=1):
   - GPS: [CUAV NEO V2 GPS](https://store.cuav.net/index.php?id_product=97&id_product_attribute=0&rewrite=cuav-new-ublox-neo-m8n-gps-module-with-shell-stand-holder-for-flight-controller-gps-compass-for-pixhack-v5-plus-rc-parts-px4&controller=product&id_lang=1)
   - Power Module
 - Frame: [DJI F450](https://www.amazon.com/Flame-Wheel-Basic-Quadcopter-Drone/dp/B00HNMVQHY)
@@ -166,7 +166,7 @@ The final build is shown below:
 ## PX4 配置
 
 _QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the frame.
-[Download and install](http://qgroundcontrol.com/downloads/)
+[Download and install](https://qgroundcontrol.com/downloads/)
 _QGroundControl_ for your platform.
 
 :::tip

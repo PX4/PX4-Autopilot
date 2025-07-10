@@ -5,7 +5,7 @@
 Скрипти які використовуються тільки на Posix системах знаходяться у [ROMFS/px4fmu_common/init.d-posix](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d-posix).
 
 Усі файли, які починаються з числа і підкреслення (наприклад, `10000_airaipl`) є попередньо визначеними конфігураціями планерів.
-Вони експортуються під час збірки в файл `airframes.xml` який потім аналізується [QGroundControl](http://qgroundcontrol.com) для користувацького інтерфейсу вибору планера.
+They are exported at build-time into an `airframes.xml` file which is parsed by [QGroundControl](https://qgroundcontrol.com) for the airframe selection UI.
 Як додати нову конфігурацію описано [тут](../dev_airframes/adding_a_new_frame.md).
 
 Файли що залишилися є частиною загальної логіки запуску.
@@ -33,7 +33,7 @@
 
 - Оболонка запускає кожен модуль як новий (клієнтський) процес.
   Кожен клієнтський процес повинен спілкуватися з головним екземпляром px4 (сервером), де справжні модулі працюють як потоки.
-  Це зроблено через [сокет UNIX](http://man7.org/linux/man-pages/man7/unix.7.html).
+  This is done through a [UNIX socket](https://man7.org/linux/man-pages/man7/unix.7.html).
   Сервер прослуховує сокет, до якого клієнти можуть під'єднатися та надіслати команду.
   Сервер відправляє вихідні дані та код повернення назад до клієнта.
 

@@ -29,4 +29,3 @@ The graph has the following properties:
   You can also zoom the image.
 - The *Preset* selection list allows you to refine the list of modules that are shown.
 - The *Search* box can be used to find particular modules/topics (topics that are not selected by the search are greyed-out).
-

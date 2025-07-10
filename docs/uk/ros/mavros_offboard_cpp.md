@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 ```
 
 The `mavros_msgs` package contains all of the custom messages required to operate services and topics provided by the MAVROS package.
-All services and topics as well as their corresponding message types are documented in the [mavros wiki](http://wiki.ros.org/mavros).
+All services and topics as well as their corresponding message types are documented in the [mavros wiki](https://wiki.ros.org/mavros).
 
 ```cpp
 mavros_msgs::State current_state;
@@ -194,7 +194,7 @@ offb_set_mode.request.custom_mode = "OFFBOARD";
 ```
 
 We set the custom mode to `OFFBOARD`.
-A list of [supported modes](http://wiki.ros.org/mavros/CustomModes#PX4_native_flight_stack) is available for reference.
+A list of [supported modes](https://wiki.ros.org/mavros/CustomModes#PX4_native_flight_stack) is available for reference.
 
 ```cpp
 mavros_msgs::CommandBool arm_cmd;

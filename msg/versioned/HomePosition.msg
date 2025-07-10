@@ -12,6 +12,8 @@ float32 x				# X coordinate in meters
 float32 y				# Y coordinate in meters
 float32 z				# Z coordinate in meters
 
+float32 roll				# Pitch angle in radians
+float32 pitch				# Roll angle in radians
 float32 yaw				# Yaw angle in radians
 
 bool valid_alt		# true when the altitude has been set

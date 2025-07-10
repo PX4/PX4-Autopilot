@@ -43,8 +43,8 @@ This topic provides full instructions for building the kit and configuring PX4 u
 | DJI F450 Нижня пластина                                           | 1         |
 | DJI F450 Верхня пластина                                          | 1         |
 | DJI F450 ніжки з шасі                                             | 4         |
-| Гвинти M3\*8                                                      | 18        |
-| Гвинти M2 5\*6                                                    | 24        |
+| M3\*8 screws                                                      | 18        |
+| M2 5\*6 screws                                                    | 24        |
 | Акумуляторний ремінь на липучці                                   | 1         |
 | DJI Phantom Built-in Nut Upgrade Propellers 9.4x5 | 1         |
 
@@ -163,7 +163,7 @@ This topic provides full instructions for building the kit and configuring PX4 u
 ## Конфігурація PX4
 
 _QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the frame.
-[Download and install](http://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
+[Download and install](https://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
 
 :::tip
 Full instructions for installing and configuring PX4 can be found in [Basic Configuration](../config/index.md).

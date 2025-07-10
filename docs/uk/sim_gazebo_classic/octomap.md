@@ -1,6 +1,6 @@
 # 3D Моделі OctoMap з ROS/Gazebo Classic
 
-The [OctoMap library](http://octomap.github.io/) is an open source library for generating volumetric 3D environment models from sensor data.
+The [OctoMap library](https://octomap.github.io/) is an open source library for generating volumetric 3D environment models from sensor data.
 Дані цієї моделі потім можуть використовуватись дроном для навігації та уникнення перешкод.
 
 This guide covers how to use _OctoMap_ with the [Gazebo Classic](../sim_gazebo_classic/index.md) [Rotors Simulator](https://github.com/ethz-asl/rotors_simulator/wiki/RotorS-Simulator) and ROS.

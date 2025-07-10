@@ -1,6 +1,6 @@
 # Microhard Serial Telemetry Radios
 
-[Microhard Pico Serial Radios](http://microhardcorp.com/P900.php) integrate the [Microhard Pico Serial](http://microhardcorp.com/P900.php) P900 RF module.
+[Microhard Pico Serial Radios](https://microhardcorp.com/P900.php) integrate the _Microhard Pico Serial_ P900 RF module.
 
 Це відносно невеликий за розміром та недорогий радіопередавач, який підтримує такі режими як точка-точка, точка-багатоточка та мережеві режими.
 Він має налаштований вихідну потужність та також може бути налаштований на використання корекції помилок передачі.
@@ -59,7 +59,7 @@ The screen shots below show the default radio configuration settings for connect
 <img src="../../assets/hardware/telemetry/holybro_pico_config.png" width="400px" title="Holybro Pico Config" />
 <img src="../../assets/hardware/telemetry/holybro_pico_config1.png" width="400px" title="Holybro Pico Config" />
 
-The [Pico Series P900.Operating Manual.v1.8.7](https://github.com/PX4/PX4-user_guide/raw/main/assets/hardware/telemetry/Pico-Series-P900.Operating-Manual.v1.8.7.pdf) has additional information on radio configuration (including mesh and multipoint modes).
+The [Pico Series P900.Operating Manual.v1.8.7](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/hardware/telemetry/Pico-Series-P900.Operating-Manual.v1.8.7.pdf) has additional information on radio configuration (including mesh and multipoint modes).
 
 ### Режими Mesh та Multipoint
 

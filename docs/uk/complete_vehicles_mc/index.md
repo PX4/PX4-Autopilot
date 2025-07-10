@@ -19,12 +19,12 @@
 
 У цьому розділі перелічені транспортні засоби, які продаються повністю зібраними та готові до польоту (RTF), з встановленим PX4.
 
-- [Teal One](https://tealdrones.com/teal-one/)
 - [ModalAI Starling](../complete_vehicles_mc/modalai_starling.md)
 - [ModalAI Sentinel](https://www.modalai.com/sentinel)
 - [MindRacer 210](../complete_vehicles_mc/mindracer210.md)
 - [NanoMind 110](../complete_vehicles_mc/nanomind110.md)
 - [Amovlab F410](../complete_vehicles_mc/amov_F410_drone.md)
+- [Teal One](https://px4.io/project/teal-one/) ([superseded](https://tealdrones.com/solutions/teal-2/))
 
 ## Сумісні з PX4
 
@@ -42,7 +42,7 @@
 - [Yuneec Typhoon H Plus](https://us.yuneec.com/typhoon-h-plus/)
 - [Yuneec Mantis Q](https://px4.io/portfolio/yuneec-mantis-q/)
 - [Yuneec H520](https://px4.io/portfolio/yuneec-h520-hexacopter/)
-- [AeroSense Aerobo (AS-MC02-P)](https://px4.io/portfolio/aerosense-aerobo/)
+- [AeroSense Aerobo (AS-MC02-P)](https://px4.io/project/aerosense-aerobo/)
 
 ## Дивіться також
 

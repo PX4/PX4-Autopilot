@@ -39,7 +39,7 @@ The u-blox U-Center RTK module configuration tool is not needed/used!
 :::
 
 :::info
-Both _QGroundControl_ and the autopilot firmware share the same [PX4 GPS driver stack](https://github.com/PX4/GpsDrivers).
+Both _QGroundControl_ and the autopilot firmware share the same [PX4 GPS driver stack](https://github.com/PX4/PX4-GPSDrivers).
 实际上，这意味着只需要将新协议和/或消息添加到一个地方。
 :::
 

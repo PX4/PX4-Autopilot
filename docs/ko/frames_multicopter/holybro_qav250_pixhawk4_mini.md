@@ -21,7 +21,7 @@ This topic provides full instructions for building the kit and configuring PX4 u
 
 ## 퀵 스타트 가이드
 
-[Pixhawk 4 Mini QAV250 Kit Quickstart Guide](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixhawk4mini/pixhawk4mini_qav250kit_quickstart_web.pdf)
+[Pixhawk 4 Mini QAV250 Kit Quickstart Guide](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixhawk4mini/pixhawk4mini_qav250kit_quickstart_web.pdf)
 
 ## 부품 명세서
 
@@ -40,7 +40,7 @@ The Holybro [QAV250 Kit](https://holybro.com/products/qav250-kit) kits includes 
 이 조립 예제에서는 다음의 부품들을 사용합니다.
 
 - Receiver: [FrSSKY D4R-II](https://www.frsky-rc.com/product/d4r-ii/)
-- Battery: [4S 1300 mAh](http://www.getfpv.com/lumenier-1300mah-4s-60c-lipo-battery-xt60.html)
+- Battery: [4S 1300 mAh](https://www.getfpv.com/lumenier-1300mah-4s-60c-lipo-battery-xt60.html)
 
 ## 하드웨어
 
@@ -104,26 +104,37 @@ Estimated time to assemble frame is 2 hours and 1.5 hours installing the autopil
 1. 그림과 같이 15mm 나사를 사용하여 암을 버튼 플레이트에 부착합니다.
 
   ![QAV250 Add arms to button plate](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/1_button_plate_add_arms.jpg)
+
 2. 짧은 판을 팔 위에 올려 놓습니다.
 
   ![QAV250 Add short plate over arms](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/2_short_plate_over_arms.jpg)
+
 3. 15mm 나사에 너트를 끼웁니다 (다음 단계 참조).
+
 4. Insert the plastic screws into the indicated holes (note that this part of the frame faces down when the vehicle is complete).
   ![QAV250 Add nuts to 15mm screws and put  plastic nuts in holes](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/3_nuts_screws_holes.jpg)
+
 5. Add the plastic nuts to the screws (turn over, as shown)
   ![QAV250 Plastic nuts onto screws](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/4_plastic_nuts_on_screws.jpg)
+
 6. Lower the power module over the plastic screws and then add the plastics standoffs
   ![QAV250 Add power module and standoffs](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/5_power_module_on_screws.jpg)
+
 7. Put the flight controller plate on the standoffs (over the power module)
   ![QAV250 Add flight controller plate](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/6_flight_controller_plate.jpg)
+
 8. 모터를 부착합니다. 모터에는 회전 방향을 나타내는 화살표가 있습니다.
   ![QAV250 Add motors](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/7_motors.jpg)
+
 9. Use double sided tape from kit to attach the _Pixhawk 4 Mini_ to the flight controller plate.
   ![QAV250 Add doublesided tape](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/8_double_sided_tape_controller.jpg)
+
 10. Connect the power module's "power" cable to _Pixhawk 4 mini_.
   ![QAV250 Power Pixhawk](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/9_power_module_power_pixhawk.jpg)
+
 11. Attach the aluminium standoffs to the button plate
   ![QAV250 Aluminium standoffs](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/10_aluminium_standoffs.jpg)
+
 12. Esc를 모터에 연결합니다. 이 이미지는 모터의 순서와 회전 방향을 나타냅니다.
   ![QAV250 Connect ESCs](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/11_escs.jpg)
 
@@ -136,19 +147,24 @@ Estimated time to assemble frame is 2 hours and 1.5 hours installing the autopil
 :::
 
   ![QAV250 Connect ESCs to Power](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/11b_escs.jpg)
+
 13. 신호 ESC 케이블을 Pixhawk의 PWM 출력에 올바른 순서로 연결합니다 (이전 이미지 참조).
 
   ![QAV250 Connect ESCs to Pixhawk PWM](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/12_escs_pixhawk.jpg)
+
 14. 수신기 연결합니다.
   - PPM 수신기를 사용하는 경우 PPM 포트에 연결하십시오.
 
     ![QAV250 Connect Receiver PPM](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/13_rc_receiver_ppm.jpg)
+
   - SBUS 수신기를 사용하는 경우 RC IN 포트에 연결합니다.
 
     ![QAV250 Connect Receiver SBUS](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/13_rc_receiver_sbus.jpg)
+
 15. 텔레메트리 모듈을 연결합니다. 이중 테이프로 모듈을 붙여넣고 텔레메트리 포트에 연결합니다.
 
   ![QAV250 Telemetry module](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/14_telemetry.jpg)
+
 16. GPS 모듈 연결
 
   ![QAV250 Connect GPS](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/15a_connect_gps.jpg)
@@ -156,6 +172,7 @@ Estimated time to assemble frame is 2 hours and 1.5 hours installing the autopil
   제공된 3M 테이프 또는 페이스트를 사용하여 상단 플레이트에 모듈을 부착합니다. 그런 다음 그림과 같이 스탠드오프에 상단 플레이트를 놓습니다.
 
   ![QAV250 Connect GPS](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/15b_attach_gps.jpg)
+
 17. 마지막 "필수"조립 단계는 배터리를 고정하기 위해 벨크로를 추가하는 것입니다.
 
   ![QAV250 Velcro battery strap](../../assets/airframes/multicopter/qav250_holybro_pixhawk4_mini/16_velcro_strap.jpg)
@@ -194,7 +211,7 @@ If you have to wire the system yourself, the diagram below shows all the connect
 ## PX4 설정
 
 _QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the QAV250 frame.
-[Download and install](http://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
+[Download and install](https://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
 
 :::tip
 Full instructions for installing and configuring PX4 can be found in [Basic Configuration](../config/index.md).

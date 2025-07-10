@@ -6,7 +6,7 @@ This topic provides full build and configuration instructions for using the fram
 
 Основна Інформація:
 
-- **Frame:** [Lumenier QAV-R 5"](http://www.getfpv.com/qav-r-fpv-racing-quadcopter-5.html)
+- **Frame:** [Lumenier QAV-R 5"](https://www.getfpv.com/qav-r-fpv-racing-quadcopter-5.html)
 - **Flight controller:** [Pixracer](../flight_controller/pixracer.md)
 
 <lite-youtube videoid="wMYgqvsNEwQ" title="QAV-R 5 PX4 FPV Racequad"/>
@@ -18,24 +18,24 @@ This topic provides full build and configuration instructions for using the fram
 
 ### Транспортний засіб (потрібний для польоту)
 
-- Autopilot: [Pixracer](../flight_controller/pixracer.md) from [AUAV](https://store.mrobotics.io/mRo-PixRacer-R14-Official-p/auav-pxrcr-r14-mr.htm) including ESP8266  WiFi- and [ACSP5](https://store.mrobotics.io/product-p/auav-acsp5-mr.htm)  power-module
-- Frame:  [Lumenier QAV-R 5"](http://www.getfpv.com/qav-r-fpv-racing-quadcopter-5.html)
-- Motors:  [Lumenier RX2206-11 2350KV](http://www.getfpv.com/lumenier-rx2206-11-2350kv-motor.html)
-- ESCs:  [KISS 24A Race Edition](http://www.getfpv.com/kiss-24a-esc-race-edition-32bit-brushless-motor-ctrl.html)
-- Props: HQProp 5x4.5x3 [CW](http://www.getfpv.com/hqprop-5x4-5x3rg-cw-propeller-3-blade-2-pack-green-nylon-glass-fiber.html) [CCW](http://www.getfpv.com/hqprop-5x4-5x3g-ccw-propeller-3-blade-2-pack-green-nylon-glass-fiber.html)
+- Autopilot: [Pixracer](../flight_controller/pixracer.md) from [AUAV](https://store.mrobotics.io/mRo-PixRacer-R14-Official-p/auav-pxrcr-r14-mr.htm) including ESP8266 WiFi- and [ACSP5](https://store.mrobotics.io/product-p/auav-acsp5-mr.htm) power-module
+- Frame: [Lumenier QAV-R 5"](https://www.getfpv.com/qav-r-fpv-racing-quadcopter-5.html)
+- Motors: [Lumenier RX2206-11 2350KV](https://www.getfpv.com/lumenier-rx2206-11-2350kv-motor.html)
+- ESCs: [KISS 24A Race Edition](https://www.getfpv.com/kiss-24a-esc-race-edition-32bit-brushless-motor-ctrl.html)
+- Props: HQProp 5x4.5x3 [CW](https://www.getfpv.com/hqprop-5x4-5x3rg-cw-propeller-3-blade-2-pack-green-nylon-glass-fiber.html) [CCW](https://www.getfpv.com/hqprop-5x4-5x3g-ccw-propeller-3-blade-2-pack-green-nylon-glass-fiber.html)
 - GPS / Ext. Mag.: M8N taken from a [Pixhawk Mini (Discontinued)](../flight_controller/pixhawk_mini.md) set and rewired
-- Battery: [TATTU 1800mAh 4s 75c Lipo](http://www.getfpv.com/tattu-1800mah-4s-75c-lipo-battery.html)
-- RC Receiver: [FrSky X4R-SB](http://www.getfpv.com/frsky-x4r-sb-3-16-channel-receiver-w-sbus.html)
-- RC Transmitter: [FrSky Taranis](http://www.getfpv.com/frsky-taranis-x9d-plus-2-4ghz-accst-radio-w-soft-case-mode-2.html)
-- FC dampening: [O-Rings](http://www.getfpv.com/multipurpose-o-ring-set-of-8.html)
-- GPS Mount: [GPS mast](http://www.getfpv.com/folding-aluminum-gps-mast-for-dji.html)
+- Battery: [TATTU 1800mAh 4s 75c Lipo](https://www.getfpv.com/tattu-1800mah-4s-75c-lipo-battery.html)
+- RC Receiver: [FrSky X4R-SB](https://www.getfpv.com/frsky-x4r-sb-3-16-channel-receiver-w-sbus.html)
+- RC Transmitter: [FrSky Taranis](https://www.getfpv.com/frsky-taranis-x9d-plus-2-4ghz-accst-radio-w-soft-case-mode-2.html)
+- FC dampening: [O-Rings](https://www.getfpv.com/multipurpose-o-ring-set-of-8.html)
+- GPS Mount: [GPS mast](https://www.getfpv.com/folding-aluminum-gps-mast-for-dji.html)
 
 ### FPV (необов'язково)
 
 - Camera: [RunCam Swift RR Edition](https://www.getfpv.com/runcam-swift-rotor-riot-special-edition-ir-block-black.html) **includes must-have high quality wide angle lens from GoPro!**
 - Video Tx: [ImmersionRC Tramp HV 5.8GHz 600mW](https://www.getfpv.com/immersionrc-tramp-hv-5-8ghz-video-tx-us-version.html) (Discontinued).
-- Video Antennas: [TBS Triumph 5.8GHz CP](http://www.getfpv.com/fpv/antennas/tbs-triumph-5-8ghz-cp-fpv-antenna-3275.html) (SMA port fits ImmercionRC Tx)
-- FPV voltage source plug: [Male JST Battery Pigtail](http://www.getfpv.com/male-jst-battery-pigtail-10cm-10pcs-bag.html)
+- Video Antennas: [TBS Triumph 5.8GHz CP](https://www.getfpv.com/fpv/antennas/tbs-triumph-5-8ghz-cp-fpv-antenna-3275.html) (SMA port fits ImmercionRC Tx)
+- FPV voltage source plug: [Male JST Battery Pigtail](https://www.getfpv.com/male-jst-battery-pigtail-10cm-10pcs-bag.html)
 
 :::info
 These parts cover the sending side for standard FPV 5.8GHz analog FM video. Для перегляду відеопотоку в реальному часі вам потрібен сумісний приймач і пристрій відображення.
@@ -204,7 +204,7 @@ Sadly the pin assignment was completely wrong and I rewired the connector again 
 Трансляція FPV, описана тут, є електронно незалежною від контролера польоту, вона бере тільки напругу батареї після модуля живлення.
 
 Спочатку я зробив контрольний тест, щоб переконатися, що все працює правильно.
-Для цього підключіть кабель відеосигналу, який постачається разом з вашим передавачем, і підключіть його до задньої частини вашої FPV-камери та до відповідного роз'єму передавача. Закрутіть, а потім підключіть штекер живлення JST до вашого транспортного засобу або до іншого джерела напруги.
+Для цього підключіть кабель відеосигналу, який постачається разом з вашим передавачем, і підключіть його до задньої частини вашої FPV-камери та до відповідного роз'єму передавача. Screw the Then connect the JST power plug to your draft vehicle or to some other voltage source.
 Світлодіод передавача повинен загорітися.
 Використовуйте свій пристрій приймача 5,8 Ггц, налаштований на правильний канал, щоб перевірити відео.
 To configure the transmitter to an other channel and adjust the transmission power please refer to the [Tramp HV User Manual](https://www.immersionrc.com/?download=5016).
@@ -225,7 +225,7 @@ To configure the transmitter to an other channel and adjust the transmission pow
 ## Конфігурація PX4
 
 _QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the frame.
-[Download and install](http://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
+[Download and install](https://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
 
 :::tip
 Full instructions for installing and configuring PX4 can be found in [Basic Configuration](../config/index.md).

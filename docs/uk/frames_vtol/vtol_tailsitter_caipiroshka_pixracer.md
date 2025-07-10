@@ -13,7 +13,7 @@ These instructions _should_ work with the updated vehicle: [TBS Caipirinha 2](ht
 ## Список деталей
 
 - TBS Caipirinha Wing (no longer available - try [TBS Caipirinha 2](https://team-blacksheep.com/products/prod:tbs_caipi2_pnp))
-- Left and right 3D-printed motor mount (<a href="https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/vtol/caipiroshka/motor_mounts.zip" target="_blank">design files</a>)
+- Left and right 3D-printed motor mount (<a href="https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/vtol/caipiroshka/motor_mounts.zip" target="_blank">design files</a>)
 - CW 8045 propeller ([Eflight store](https://www.banggood.com/GEMFAN-Carbon-Nylon-8045-CWCCW-Propeller-For-Quadcopters-1-Pair-p-950874.html))
 - CCW 8045 propeller ([Eflight store](https://www.banggood.com/GEMFAN-Carbon-Nylon-8045-CWCCW-Propeller-For-Quadcopters-1-Pair-p-950874.html))
 - 2x 1800 kV 120-180W двигуни

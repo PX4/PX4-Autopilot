@@ -1,6 +1,6 @@
 # Microhard 직렬 라디오
 
-[Microhard Pico Serial Radios](http://microhardcorp.com/P900.php) integrate the [Microhard Pico Serial](http://microhardcorp.com/P900.php) P900 RF module.
+[Microhard Pico Serial Radios](https://microhardcorp.com/P900.php) integrate the _Microhard Pico Serial_ P900 RF module.
 
 기본 설정을 사용시, 출력이 1W로 설정의 대략적인 범위는 8km (5 마일)입니다.
 단일 지상국 라디오를 사용하여 지점 대 다중 지점 또는 메시를 사용하여 여러 기체와 통신 가능합니다.
@@ -59,7 +59,7 @@ The screen shots below show the default radio configuration settings for connect
 <img src="../../assets/hardware/telemetry/holybro_pico_config.png" width="400px" title="Holybro Pico Config" />
 <img src="../../assets/hardware/telemetry/holybro_pico_config1.png" width="400px" title="Holybro Pico Config" />
 
-The [Pico Series P900.Operating Manual.v1.8.7](https://github.com/PX4/PX4-user_guide/raw/main/assets/hardware/telemetry/Pico-Series-P900.Operating-Manual.v1.8.7.pdf) has additional information on radio configuration (including mesh and multipoint modes).
+The [Pico Series P900.Operating Manual.v1.8.7](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/hardware/telemetry/Pico-Series-P900.Operating-Manual.v1.8.7.pdf) has additional information on radio configuration (including mesh and multipoint modes).
 
 ### Mesh and Multipoint Modes
 

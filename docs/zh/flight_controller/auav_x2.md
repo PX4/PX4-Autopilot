@@ -11,13 +11,13 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.mrobotics.io/) for hardware support or compliance issues.
 :::
 
-The [AUAV<sup>&reg;</sup>](http://www.auav.com/) _AUAV-X2 autopilot_ is based on the [Pixhawk<sup>&reg;</sup>-project](https://pixhawk.org/) **FMUv2** open hardware design. It runs PX4 on the [NuttX](https://nuttx.apache.org/) OS.
+The AUAV-X2 autopilot is based on the [Pixhawk<sup>&reg;</sup>-project](https://pixhawk.org/) **FMUv2** open hardware design. It runs PX4 on the [NuttX](https://nuttx.apache.org/) OS.
 
 ![AUAVX2_case2](../../assets/flight_controller/auav_x2/auavx2_case2.jpg)
 
 ## 总览
 
-- Main System-on-Chip: [STM32F427](http://www.st.com/web/en/catalog/mmc/FM141/SC1169/SS1577/LN1789)
+- Main System-on-Chip: [STM32F427](https://www.st.com/en/microcontrollers-microprocessors/stm32f427-437.html)
   - CPU：STM32F427VIT6 ARM 微控制器-版本 3
   - IO：STM32F100C8T6 ARM 微控制器
 - 传感器：
@@ -58,7 +58,7 @@ mRobotics is the distributor for the AUAV Products from August 2017.
 ## 主链接
 
 - [User Manual](http://arsovtech.com/wp-content/uploads/2015/08/AUAV-X2-user-manual-EN.pdf)
-- [DIY Drones Post](http://diydrones.com/profiles/blogs/introducing-the-auav-x2-1-flight-controller)
+- [DIY Drones Post](https://diydrones.com/profiles/blogs/introducing-the-auav-x2-1-flight-controller)
 
 ## 接线指南
 
@@ -77,7 +77,7 @@ The board is based on the [Pixhawk project](https://pixhawk.org/) **FMUv2** open
 - [FMUv2 + IOv2 schematic](https://raw.githubusercontent.com/PX4/Hardware/master/FMUv2/PX4FMUv2.4.5.pdf) -- Schematic and layout
 
 :::info
-As a CC-BY-SA 3.0 licensed Open Hardware design, all schematics and design files are [available](https://github.com/PX4/Hardware).
+As a CC-BY-SA 3.0 licensed Open Hardware design, all schematics and design files are [available](https://github.com/pixhawk/Hardware).
 :::
 
 ## 串口映射

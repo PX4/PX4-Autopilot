@@ -187,7 +187,7 @@ The cable used to connect the M2 and the STLinkv3-MINIE comes with the adaptor.
 Some SWD [debug probes](#debug-probes) come with adapters/cables for connecting to common Pixhawk [debug ports](#debug-ports).
 Probes that are known to come with connectors are listed below:
 
-- [DroneCode Probe](../debug/probe_bmp.md#dronecode-probe): comes with a connector for attaching to the [Pixhawk Debug Mini](#pixhawk-debug-mini)
+- [Zubax BugFace BF1](../debug/probe_bmp.md#dronecode-probe): comes with a connector for attaching to the [Pixhawk Debug Mini](#pixhawk-debug-mini)
 
 ### Board-specific Adapters
 

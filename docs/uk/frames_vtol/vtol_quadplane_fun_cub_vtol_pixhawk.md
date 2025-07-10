@@ -78,4 +78,3 @@ For further instructions on wiring and configurations please see:
 ## Підтримка
 
 If you have any questions regarding your VTOL conversion or configuration please visit <https://discuss.px4.io/c/px4/vtol>.
-

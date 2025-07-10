@@ -53,7 +53,7 @@ First you will need a bootloader, which depends on the hardware target:
 
 - STM32H7: the bootloader is based on NuttX, and is included in the PX4 Firmware.
   See [here](https://github.com/PX4/PX4-Autopilot/tree/main/boards/holybro/durandal-v1/nuttx-config/bootloader) for an example.
-- For all other targets, https://github.com/PX4/Bootloader is used. See [here](https://github.com/PX4/Bootloader/pull/155/files) for an example how to add a new target.
+- For all other targets, https://github.com/PX4/PX4-Bootloader is used. See [here](https://github.com/PX4/PX4-Bootloader/pull/155/files) for an example how to add a new target.
   Then checkout the [building and flashing instructions](../software_update/stm32_bootloader.md).
 
 ### Firmware Porting Steps

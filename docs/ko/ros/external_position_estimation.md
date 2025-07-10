@@ -187,7 +187,7 @@ MAVROS에는 다음 파이프라인을 사용하여 VIO 또는 MoCap 시스템�
 위의 파이프라인 중 하나를 LPE와 함께 사용할 수 있습니다.
 
 EKF2로 작업하는 경우 "비전" 파이프라인만 지원됩니다.
-To use MoCap data with EKF2 you will have to [remap](http://wiki.ros.org/roslaunch/XML/remap) the pose topic that you get from MoCap:
+To use MoCap data with EKF2 you will have to [remap](https://wiki.ros.org/roslaunch/XML/remap) the pose topic that you get from MoCap:
 
 - MoCap ROS topics of type `geometry_msgs/PoseStamped` or `geometry_msgs/PoseWithCovarianceStamped` must be remapped to `/mavros/vision_pose/pose`.
   The `geometry_msgs/PoseStamped` topic is most common as MoCap doesn't usually have associated covariances to the data.
@@ -205,7 +205,7 @@ ROS와 PX4에서 사용하는 로컬과 전역 프레임은 같지 않습니다.
 | 전역  | FRD or NED (X **N**orth, Y **E**ast, Z **D**own) | FLU or ENU (X **E**ast, Y **N**orth, Z **U**p), with the naming being `odom` or `map` |
 
 :::tip
-See [REP105: Coordinate Frames for Mobile Platforms](http://www.ros.org/reps/rep-0105.html) for more information about ROS frames.
+See [REP105: Coordinate Frames for Mobile Platforms](https://www.ros.org/reps/rep-0105.html) for more information about ROS frames.
 :::
 
 두 프레임 모두 아래 이미지에 표시됩니다(왼쪽의 FRD/오른쪽의 FLU).
@@ -236,7 +236,7 @@ MAVROS 주행 거리 측정 플러그인은 MAVROS에 의해 알려진 기체의
 ```
 
 Make sure that you change the values of yaw, pitch and roll such that it properly attaches the external pose's body frame to the `base_link` or `base_link_frd`.
-Have a look at the [tf package](http://wiki.ros.org/tf#static_transform_publisher) for further help on how to specify the transformation between the frames.
+Have a look at the [tf package](https://wiki.ros.org/tf#static_transform_publisher) for further help on how to specify the transformation between the frames.
 rviz를 사용하여 프레임을 올바르게 부착했는 지 확인할 수 있습니다. The name of the `external_pose_child_frame` has to match the child_frame_id of your `nav_msgs/Odometry` message.
 외부 포즈의 기준 프레임에도 동일하게 적용됩니다. You have to attach the reference frame of the external pose as child to either the `odom` or `odom_frd` frame. 따라서, 다음 코드 줄을 적절하게 조정하십시오.
 

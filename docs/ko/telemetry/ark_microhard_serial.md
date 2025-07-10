@@ -1,6 +1,6 @@
 # ARK Electron Microhard Serial Telemetry Radios
 
-_ARK Electron Microhard Serial Telemetry Radios_ integrate the [Microhard Pico Serial](http://microhardcorp.com/P900.php) P900 RF module.
+_ARK Electron Microhard Serial Telemetry Radios_ integrate the [Microhard Pico Serial](https://microhardcorp.com/P900.php) P900 RF module.
 This can be used to enable MAVLink communication between a radio on a vehicle and a GCS.
 
 Microhard Pico Serial radios are (up to) 1 Watt output radios that support point to point, point to multi-point, and mesh modes.

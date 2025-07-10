@@ -13,7 +13,7 @@ This quick start guide shows how to power the _Cube_<sup>&reg;</sup> flight cont
 
 :::tip
 The instructions apply to all Cube variants, including [Cube Black](../flight_controller/pixhawk-2.md), [Cube Yellow](../flight_controller/cubepilot_cube_yellow.md) and [Cube Orange](../flight_controller/cubepilot_cube_orange.md).
-Further/updated information may be available in the [Cube User Manual](https://docs.cubepilot.org/user-guides/autopilot/the-cube-user-manual) (Cube Docs).
+Further/updated information may be available in the [Cube User Manual](https://docs.cubepilot.org/user-guides/autopilot/the-cube) (Cube Docs).
 :::
 
 ## Accessories
@@ -193,7 +193,7 @@ If connecting peripherals to the port labeled `GPS2`, assign the PX4 [serial por
 
 ## Configuration
 
-Configuration is performed using [QGroundContro](http://qgroundcontrol.com/).
+Configuration is performed using [QGroundContro](https://qgroundcontrol.com/).
 
 After downloading, installing and running _QGroundControl_, connect the board to your computer as shown.
 
@@ -218,6 +218,5 @@ To use this feature de-power the Cube, hold down the safety switch, then power t
 - [Cube Yellow](../flight_controller/cubepilot_cube_yellow.md)
 - [Cube Orange](../flight_controller/cubepilot_cube_orange.md)
 - Cube Docs (Manufacturer):
-  - [Cube Module Overview](https://docs.cubepilot.org/user-guides/autopilot/the-cube-module-overview)
-  - [Cube User Manual](https://docs.cubepilot.org/user-guides/autopilot/the-cube-user-manual)
+  - [Cube User Guide](https://docs.cubepilot.org/user-guides/autopilot/the-cube)
   - [Mini Carrier Board](https://docs.cubepilot.org/user-guides/carrier-boards/mini-carrier-board)

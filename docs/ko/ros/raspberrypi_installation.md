@@ -5,11 +5,11 @@ Pixhawk 보조 컴퓨터 라즈베리파이에 ROS-indigo를 설치 방법을 �
 ## 준비 사항
 
 - 모니터, 키보드 또는 구성된 SSH 연결가능한 라즈베리파이
-- 이 가이드는 라즈베리파이에 Raspbian "JESSIE"가 설치되어 있다고 가정합니다. If not: [install it](https://www.raspberrypi.org/downloads/raspbian/) or [upgrade](http://raspberrypi.stackexchange.com/questions/27858/upgrade-to-raspbian-jessie) your Raspbian Wheezy to Jessie.
+- 이 가이드는 라즈베리파이에 Raspbian "JESSIE"가 설치되어 있다고 가정합니다. If not: [install it](https://www.raspberrypi.org/downloads/raspbian/) or [upgrade](https://raspberrypi.stackexchange.com/questions/27858/upgrade-to-raspbian-jessie) your Raspbian Wheezy to Jessie.
 
 ## 설치
 
-Follow [this guide](http://wiki.ros.org/ROSberryPi/Installing%20ROS%20Indigo%20on%20Raspberry%20Pi) for the actual installation of ROS Indigo. 참고: "ROS-Comm" 변형 버전을 설치하십시오. 데스크탑 변형은 너무 무겁습니다.
+Follow [this guide](https://wiki.ros.org/ROSberryPi/Installing%20ROS%20Indigo%20on%20Raspberry%20Pi) for the actual installation of ROS Indigo. 참고: "ROS-Comm" 변형 버전을 설치하십시오. 데스크탑 변형은 너무 무겁습니다.
 
 ### 패키지 설치 중 오류
 

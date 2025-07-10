@@ -162,4 +162,4 @@ About to run 39 test cases for 3 selected models (1 iteration):
 사용된 용어:
 
 - "model": This is the selected Gazebo model, e.g. `iris`.
-- "test case": This is a [catch2 test case](https://github.com/catchorg/Catch2/blob/master/docs/test-cases-and-sections.md).
+- "test case": This is a [catch2 test case](https://github.com/catchorg/Catch2/blob/devel/docs/test-cases-and-sections.md).

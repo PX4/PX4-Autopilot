@@ -194,8 +194,14 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	// NAVIGATION_STATE_AUTO_VTOL_TAKEOFF
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_attitude);
-	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_local_position);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_local_alt);
+
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_local_position_relaxed);
+
+	} else {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_local_position);
+	}
 
 	// NAVIGATION_STATE_EXTERNALx: handled outside
 

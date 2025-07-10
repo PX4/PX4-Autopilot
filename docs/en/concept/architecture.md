@@ -3,7 +3,7 @@
 PX4 consists of two main layers: the [flight stack](#flight-stack) is an estimation and flight control system,
 and the [middleware](#middleware) is a general robotics layer that can support any type of autonomous robot, providing internal/external communications and hardware integration.
 
-All PX4 [airframes](../airframes/index.md) share a single codebase (this includes other robotic systems like boats, rovers, submarines etc.). The complete system design is [reactive](http://www.reactivemanifesto.org), which means that:
+All PX4 [airframes](../airframes/index.md) share a single codebase (this includes other robotic systems like boats, rovers, submarines etc.). The complete system design is [reactive](https://www.reactivemanifesto.org), which means that:
 
 - All functionality is divided into exchangeable and reusable components
 - Communication is done by asynchronous message passing
@@ -112,7 +112,6 @@ There are 2 different ways that a module can be executed:
 
 - **Tasks**: The module runs in its own task with its own stack and process priority.
 - **Work queue tasks**: The module runs on a shared work queue, sharing the same stack and work queue thread priority as other modules on the queue.
-
   - All the tasks must behave co-operatively as they cannot interrupt each other.
   - Multiple _work queue tasks_ can run on a queue, and there can be multiple queues.
   - A _work queue task_ is scheduled by specifying a fixed time in the future, or via uORB topic update callback.

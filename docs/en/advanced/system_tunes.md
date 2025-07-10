@@ -25,7 +25,7 @@ On Windows, one option is to use _Melody Master_ within _Dosbox_.
 
 The steps for using the software are:
 
-1. Download [DosBox](http://www.dosbox.com/) and install the app
+1. Download [DosBox](https://www.dosbox.com/) and install the app
 1. Download [Melody Master](ftp://archives.thebbs.org/ansi_utilities/melody21.zip) and unzip into a new directory
 1. Open the _Dosbox_ console
 1. Mount the melody master directory in Dosbox as shown below:

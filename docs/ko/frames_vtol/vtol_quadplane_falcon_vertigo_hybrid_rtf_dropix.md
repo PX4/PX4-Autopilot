@@ -28,9 +28,9 @@ RTF 키트에는 RC 수신기와 텔레메트리를 제외하고, 시스템에 �
   - GPS u-blox M8N
   - 전원 센서:
   - [Airspeed Sensor](https://store-drotek.com/793-digital-differential-airspeed-sensor-kit-.html)
-- Quad power set  [Tiger Motor MT-2216-11 900kv V2](https://www.getfpv.com/tiger-motor-mt-2216-11-900kv-v2.html) (discontinued)
+- Quad power set [Tiger Motor MT-2216-11 900kv V2](https://www.getfpv.com/tiger-motor-mt-2216-11-900kv-v2.html) (discontinued)
 - 4 x 프로펠러 10”x 5”(쿼드 모터)
-- 4 x [ESC 25A](http://www.getfpv.com/tiger-motor-flame-25a-esc.html)
+- 4 x [ESC 25A](https://www.getfpv.com/tiger-motor-flame-25a-esc.html)
 - 프로펠러 10”x 5”1 개 (푸셔 모터)
 - 1 x ESC 30A
 - 푸셔 모터 전원 시스템
@@ -255,7 +255,6 @@ GPS / 나침반 모듈은 기본 방향으로 날개에 이미 장착되어 있�
 :::
 
 2. 차량이 예상 무게 중심 주변에서 균형을 이루는 지 확인하십시오.
-
   - 손가락으로 기체의 무게 중심을 잡고 차량이 안정적인지 확인하십시오.
 
     ![Level Centre of Gravity](../../assets/airframes/vtol/falcon_vertigo/falcon_vertigo_57_level_centre_of_gravity.jpg)

@@ -103,10 +103,10 @@ At time of writing is no _convenient_ way to directly invoke precision landing (
 
 ### IR 센서/비콘 설정
 
-The IR sensor/landing beacon solution requires an [IR-LOCK Sensor](https://irlock.com/products/ir-lock-sensor-precision-landing-kit) and downward facing [distance sensor](../sensor/rangefinders.md) connected to the flight controller, and an IR beacon as a target (e.g. [IR-LOCK MarkOne](https://irlock.com/collections/markone)).
+The IR sensor/landing beacon solution requires an [IR-LOCK Sensor](https://irlock.com/products/ir-lock-sensor-precision-landing-kit) and downward facing [distance sensor](../sensor/rangefinders.md) connected to the flight controller, and an IR beacon as a target (e.g. [IR-LOCK MarkOne](https://irlock.com/collections/ir-markers)).
 정밀 착륙은 약 10 cm 이내의 오차로 착륙할 수 있게 합니다. GPS 착륙은 수 미터의 오차가 발생할 수 있습니다.
 
-Install the IR-LOCK sensor by following the [official guide](https://irlock.readme.io/v2.0/docs).
+Install the IR-LOCK sensor by following the [official guide](https://irlock.readme.io/docs/getting-started).
 센서의 x축이 기체의 y축과 정렬되어 있는지, 센서의 y축이 기체의 -x 방향과 정렬되어 있는지 확인하십시오 (카메라에서 전방으로 90도 기울인 경우).
 
 Install a [range/distance sensor](../sensor/rangefinders.md) (the _LidarLite v3_ has been found to work well).

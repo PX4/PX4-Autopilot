@@ -1,6 +1,6 @@
-# Auterion Skynode
+# Auterion Skynode X
 
-[Skynode](https://auterion.com/product/skynode/) is a powerful flight computer that combines a mission computer, flight controller, video streaming, networking, and cellular connection, in a single tightly integrated device.
+[Skynode](https://auterion.com/product/skynode-x/) is a powerful flight computer that combines a mission computer, flight controller, video streaming, networking, and cellular connection, in a single tightly integrated device.
 
 ![Auterion Skynode (Enterprise)](../../assets/companion_computer/auterion_skynode/skynode_small.png)
 
@@ -12,10 +12,11 @@ Auterion OS and Skynode allow seamless integration with Auterion's other softwar
 For information about Auterion and Skynode:
 
 - [auterion.com](https://auterion.com/)
-- [Skynode](https://auterion.com/product/skynode/) (auterion.com)
+- [Skynode X](https://auterion.com/product/skynode-x/) (auterion.com)
 - Skynode Guides:
-  - [Manufacturer's Guide](https://docs.auterion.com/manufacturers/getting-started/readme)
-  - [App Developer's Guide](https://docs.auterion.com/developers/getting-started/readme)
+  - [Vehicle Operation](https://docs.auterion.com/vehicle-operation/auterion-sign-up)
+  - [App Development](https://docs.auterion.com/app-development/app-development)
+  - [Hardware Integration](https://docs.auterion.com/app-development/app-development)
 
 ## Skynode with Vanilla PX4
 
@@ -34,7 +35,7 @@ Upstream PX4 will generally work, with the following caveats:
 
 PX4 `px4_fmu-v5x` binaries for Skynode are built from source using the normal [developer environment](../dev_setup/dev_env.md) and [build commands](../dev_setup/building_px4.md), and are uploaded using either `upload_skynode_usb` or `upload_skynode_wifi` upload targets.
 
-`upload_skynode_usb` and `upload_skynode_wifi` connect to Skynode via SSH over a network interface using the default (fixed) IP addresses for [USB](https://docs.auterion.com/manufacturers/avionics/skynode/advanced-configuration/connecting-to-skynode) and [WiFi](https://docs.auterion.com/manufacturers/avionics/skynode/advanced-configuration/configuration), and upload a TAR compressed binary to the mission computer.
+`upload_skynode_usb` and `upload_skynode_wifi` connect to Skynode via SSH over a network interface using the default (fixed) IP addresses for USB and WiFi, respectively (see [AuterionOS System Guide > Building and Flashing PX4 Firmware](https://docs.auterion.com/hardware-integration/auterionos-system-guide/flashing-px4-upstream-firmware)), and upload a TAR compressed binary to the mission computer.
 The mission computer then decompresses the binary and installs it to the flight controller.
 
 :::info

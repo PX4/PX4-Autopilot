@@ -11,24 +11,20 @@ For fixed-wing flight it is the airspeed that guarantees lift — not ground spe
 Recommended digital airspeed sensors include:
 
 - Based on [Pitot tube](https://en.wikipedia.org/wiki/Pitot_tube)
-  - MEAS Spec series (e.g. [MS4525DO](https://www.te.com/usa-en/product-CAT-BLPS0002.html), [MS5525](https://www.te.com/usa-en/product-CAT-BLPS0003.html))
-    - [mRo I2C Airspeed Sensor JST-GH MS4525DO](https://store.mrobotics.io/mRo-I2C-Airspeed-Sensor-JST-GH-p/m10030a.htm) (mRo store)
-    - [Digital Differential Airspeed Sensor Kit](https://store-drotek.com/793-digital-differential-airspeed-sensor-kit-.html) (Drotek).
-  - [Holybro Digital Air Speed Sensor - MS4525DO](https://holybro.com/collections/sensors/products/digital-air-speed-sensor-ms4525do)
-  - [Holybro Digital Air Speed Sensor - MS5525DSO](https://holybro.com/collections/sensors/products/digital-air-speed-sensor-ms5525dso)
-  - [Holybro High Precision DroneCAN Airspeed Sensor - DLVR](https://holybro.com/collections/sensors/products/high-precision-dronecan-airspeed-sensor-dlvr)
-  - [RaccoonLab Cyphal/CAN and DroneCAN Airspeed Sensor](https://raccoonlab.co/tproduct/360882105-652259850171-cyphal-and-dronecan-airspeed-v2)
-  - [Sensirion SDP3x Airspeed Sensor Kit](https://store-drotek.com/793-digital-differential-airspeed-sensor-kit-.html)
+  - I2C MEAS Spec series (e.g. [MS4525DO](https://www.te.com/usa-en/product-CAT-BLPS0002.html), [MS5525](https://www.te.com/usa-en/product-CAT-BLPS0003.html))
+    - [mRo I2C Airspeed Sensor JST-GH MS4525DO](https://store.3dr.com/mro-i2c-airspeed-sensor-jst-gh-ms4525do/) (3DR store)
+    - [Digital Differential Airspeed Sensor Kit - MS4525DO](https://store-drotek.com/793-digital-differential-airspeed-sensor-kit-.html) (Drotek).
+    - [Holybro Digital Air Speed Sensor - MS4525DO](https://holybro.com/collections/sensors/products/digital-air-speed-sensor-ms4525do)
+    - [Holybro Digital Air Speed Sensor - MS5525DSO](https://holybro.com/collections/sensors/products/digital-air-speed-sensor-ms5525dso)
+  - I2C Sensirion series (e.g. SDP33)
+    - [ThunderFly TFPITOT01 Lightweight Pitot Tube](https://docs.thunderfly.cz/avionics/TFPITOT01/)
+    - [Drotek SDP3x Airspeed Sensor Kit](https://store-drotek.com/848-sdp3x-airspeed-sensor-kit-sdp33.html)
+  - DroneCAN interface
+    - [Holybro High Precision DroneCAN Airspeed Sensor - DLVR](https://holybro.com/collections/sensors/products/high-precision-dronecan-airspeed-sensor-dlvr)
+    - [RaccoonLab Cyphal/CAN and DroneCAN Airspeed Sensor - MS4525DO](https://raccoonlab.co/tproduct/360882105-652259850171-cyphal-and-dronecan-airspeed-v2)
+    - [Avionics Anonymous Air Data Computer with OAT probe](https://www.tindie.com/products/avionicsanonymous/uavcan-air-data-computer-airspeed-sensor/)
 - Based on [Venturi effect](https://en.wikipedia.org/wiki/Venturi_effect)
   - [TFSLOT](airspeed_tfslot.md) Venturi effect airspeed sensor.
-
-All the above sensors are connected via the I2C bus/port.
-
-::: info
-
-Additionally, the [Avionics Anonymous Air Data Computer](https://www.tindie.com/products/avionicsanonymous/uavcan-air-data-computer-airspeed-sensor/) can be connected to the CAN bus to determine not only high-accuracy airspeed, but also true static pressure and air temperature via onboard barometer and an OAT probe.
-
-:::
 
 ## Configuration
 

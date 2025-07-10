@@ -4,7 +4,7 @@
 
 ::: warning
 This information applies to the original generic rover module that was derived from the fixed wing controller.
-It has been replaced with new modules for [Ackermann](../frames_rover/ackermann.md) and [Differential-steering](../frames_rover/differential.md) rovers.
+It has been replaced with new modules for [Ackermann](../frames_rover/index.md#ackermann) and [Differential-steering](../frames_rover/index.md#differential) rovers.
 This module is no longer supported and will receive no updates.
 :::
 
@@ -110,8 +110,8 @@ The idea was to develop a platform that allows for easy control of wheeled UGVs 
 - [Pixhawk Mini (Discontinued)](../flight_controller/pixhawk_mini.md)
   - 3DR 10S Power Module
   - 3DR 433MHz Telemetry Module (EU)
-- [Spektrum Dxe Controller](http://www.spektrumrc.com/Products/Default.aspx?ProdId=SPM1000) or other PX4-compatible remotes
-- [Spektrum Quad Race Serial Receiver w/Diversity](http://www.spektrumrc.com/Products/Default.aspx?ProdID=SPM4648)
+- [Spektrum Dxe Controller](https://www.spektrumrc.com/product/dxe-dsmx-transmitter-with-ar610/SPM1000.html) or other PX4-compatible remotes
+- [Spektrum Quad Race Serial Receiver w/Diversity](https://www.spektrumrc.com/product/dsmx-quad-race-serial-receiver-with-diversity/SPM4648.html)
 - [PX4Flow](../sensor/px4flow.md) (Deprecated)
 
 ### Assembly
@@ -133,7 +133,7 @@ Tests showed that a better vibration insulation should be used, especially for t
 
 For this particular mounting we chose to use the clip supplied with the rover to attach the upper plate.
 For this, two supports were 3D printed.
-The CAD files are provided [here](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/rover/traxxas_stampede_vxl/plane_holders.zip).
+The CAD files are provided [here](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/rover/traxxas_stampede_vxl/plane_holders.zip).
 
 ::: warning
 It is **HIGHLY RECOMMENDED** to set the ESC in training mode (see Traxxas Stampede Manual), which reduces power to 50%.

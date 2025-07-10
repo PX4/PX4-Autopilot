@@ -28,9 +28,9 @@ Almost everything you need is provided in the RTF kit (the links next to compone
   - GPS u-blox M8N
   - Power Sensor
   - [Airspeed Sensor](https://store-drotek.com/793-digital-differential-airspeed-sensor-kit-.html)
-- Quad power set  [Tiger Motor MT-2216-11 900kv V2](https://www.getfpv.com/tiger-motor-mt-2216-11-900kv-v2.html) (discontinued)
+- Quad power set [Tiger Motor MT-2216-11 900kv V2](https://www.getfpv.com/tiger-motor-mt-2216-11-900kv-v2.html) (discontinued)
 - 4 x propeller 10”x 5” (quad motors)
-- 4 x [ESC 25A](http://www.getfpv.com/tiger-motor-flame-25a-esc.html)
+- 4 x [ESC 25A](https://www.getfpv.com/tiger-motor-flame-25a-esc.html)
 - 1 x propeller 10” x 5” (pusher motor)
 - 1 x ESC 30A
 - Pusher motor power system
@@ -142,11 +142,11 @@ For example, you might wire it up like this example (orientation as if "sitting 
 | MAIN 2 | Back left motor, CCW   |
 | MAIN 3 | Front left motor, CW   |
 | MAIN 4 | Back right motor, CW   |
-| AUX  1 | Left aileron           |
-| AUX  2 | Right aileron          |
-| AUX  3 | Elevator               |
-| AUX  4 | Rudder                 |
-| AUX  5 | 油门                     |
+| AUX 1  | Left aileron           |
+| AUX 2  | Right aileron          |
+| AUX 3  | Elevator               |
+| AUX 4  | Rudder                 |
+| AUX 5  | 油门                     |
 
 <a id="dropix_back"></a>
 
@@ -255,7 +255,6 @@ The final assembly step is to check the vehicle is stable and that the motors ha
 :::
 
 2. Check the vehicle is balanced around the expected centre of gravity
-
   - Hold the vehicle with your fingers at the center of gravity and check that the vehicle remains stable.
 
     ![Level Centre of Gravity](../../assets/airframes/vtol/falcon_vertigo/falcon_vertigo_57_level_centre_of_gravity.jpg)

@@ -3,10 +3,9 @@ name: EKF Change Indicator
 on:
   pull_request:
     branches:
-    - '*'
+      - '**'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
 
 jobs:
   unit_tests:

@@ -105,7 +105,7 @@ You also need to [configure the Ethernet port](#px4-mavlink-serial-port-configur
 If you're using Ubuntu for your ground station (or companion computer) then you can use [netplan](https://netplan.io/) to configure the network.
 
 Below we show how you write a setup to the netplan configuration file "`/etc/netplan/01-network-manager-all.yaml`", which would run on the same network as used by the PX4 setup above.
-Note that there are many more [examples](https://netplan.io/examples/) and instructions in the [netplan](https://netplan.io/) documentation.
+Note that there are many more [examples](https://github.com/canonical/netplan/tree/main/examples) and instructions in the [netplan](https://netplan.io/) documentation.
 
 To setup the Ubuntu Computer:
 

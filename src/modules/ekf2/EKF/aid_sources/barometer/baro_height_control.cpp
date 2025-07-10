@@ -57,7 +57,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 		const float measurement = baro_sample.hgt;
 #endif
 
-		const float measurement_var = sq(_params.baro_noise);
+		const float measurement_var = sq(_params.ekf2_baro_noise);
 
 		const bool measurement_valid = PX4_ISFINITE(measurement) && PX4_ISFINITE(measurement_var);
 
@@ -83,14 +83,14 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 						baro_sample.time_us,
 						-(measurement - bias_est.getBias()),      // observation
 						measurement_var + bias_est.getBiasVar(),  // observation variance
-						math::max(_params.baro_innov_gate, 1.f)); // innovation gate
+						math::max(_params.ekf2_baro_gate, 1.f)); // innovation gate
 
 		// Compensate for positive static pressure transients (negative vertical position innovations)
 		// caused by rotor wash ground interaction by applying a temporary deadzone to baro innovations.
-		if (_control_status.flags.gnd_effect && (_params.gnd_effect_deadzone > 0.f)) {
+		if (_control_status.flags.gnd_effect && (_params.ekf2_gnd_eff_dz > 0.f)) {
 
 			const float deadzone_start = 0.0f;
-			const float deadzone_end = deadzone_start + _params.gnd_effect_deadzone;
+			const float deadzone_end = deadzone_start + _params.ekf2_gnd_eff_dz;
 
 			if (aid_src.innovation < -deadzone_start) {
 				if (aid_src.innovation <= -deadzone_end) {
@@ -111,7 +111,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 		}
 
 		// determine if we should use height aiding
-		const bool continuing_conditions_passing = (_params.baro_ctrl == 1)
+		const bool continuing_conditions_passing = (_params.ekf2_baro_ctrl == 1)
 				&& measurement_valid
 				&& (_baro_counter > _obs_buffer_length)
 				&& !_control_status.flags.baro_fault;
@@ -160,7 +160,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 
 		} else {
 			if (starting_conditions_passing) {
-				if (_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::BARO)) {
+				if (_params.ekf2_hgt_ref == static_cast<int32_t>(HeightSensor::BARO)) {
 					ECL_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);
 					_height_sensor_ref = HeightSensor::BARO;
 
@@ -222,11 +222,11 @@ float Ekf::compensateBaroForDynamicPressure(const imuSample &imu_sample, const f
 		const Vector3f airspeed_body = _state.quat_nominal.rotateVectorInverse(airspeed_earth);
 
 		const Vector3f K_pstatic_coef(
-			airspeed_body(0) >= 0.f ? _params.static_pressure_coef_xp : _params.static_pressure_coef_xn,
-			airspeed_body(1) >= 0.f ? _params.static_pressure_coef_yp : _params.static_pressure_coef_yn,
-			_params.static_pressure_coef_z);
+			airspeed_body(0) >= 0.f ? _params.ekf2_pcoef_xp : _params.ekf2_pcoef_xn,
+			airspeed_body(1) >= 0.f ? _params.ekf2_pcoef_yp : _params.ekf2_pcoef_yn,
+			_params.ekf2_pcoef_z);
 
-		const Vector3f airspeed_squared = matrix::min(airspeed_body.emult(airspeed_body), sq(_params.max_correction_airspeed));
+		const Vector3f airspeed_squared = matrix::min(airspeed_body.emult(airspeed_body), sq(_params.ekf2_aspd_max));
 
 		const float pstatic_err = 0.5f * _air_density * (airspeed_squared.dot(K_pstatic_coef));
 

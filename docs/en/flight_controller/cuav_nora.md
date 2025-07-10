@@ -39,7 +39,6 @@ They should be used by preference as they contain the most complete and up to da
 
 - Main FMU Processor: STM32H743
 - On-board sensors:
-
   - Accelerometer/Gyroscope: ICM-20689
   - Accelerometer/Gyroscope: ICM-20649
   - Accelerometer/Gyroscope: BMI088
@@ -169,5 +168,5 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 ## Further info
 
 - [Quick start](https://doc.cuav.net/flight-controller/x7/en/quick-start/quick-start-nora.html)
-- [CUAV docs](http://doc.cuav.net)
+- [CUAV docs](https://doc.cuav.net/)
 - [nora schematic](https://github.com/cuav/hardware/tree/master/X7_Autopilot)

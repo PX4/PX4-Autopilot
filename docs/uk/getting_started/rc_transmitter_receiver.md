@@ -98,7 +98,6 @@ _PX4_ and _Pixhawk_ have been validated with:
 - PPM sum receivers
 
 - S.BUS and S.BUS2 receivers from:
-
   - Futaba
   - FrSky S.BUS and PPM models
   - TBS Crossfire with SBUS as output protocol
@@ -130,7 +129,7 @@ The receivers we have tested all now appear to be compatible, but it is possible
 - Graupner HoTT receivers: SUMD output must connect to a **SPKT/DSM** input (as above).
 - PPM-Sum and S.BUS receivers must connect directly to the **RC** ground, power and signal pins.
   This is typically labeled: `RC IN`, `RCIN` or `RC`, but has in some FCs has been labeled `PPM RC` or `PPM`.
-- PPM receivers that have an individual wire for each channel must connect to the RCIN channel _via_ a PPM encoder [like this one](http://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
+- PPM receivers that have an individual wire for each channel must connect to the RCIN channel _via_ a PPM encoder [like this one](https://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
 - TBS Crossfire/Express LRS Receivers using [CRSF Telemetry](../telemetry/crsf_telemetry.md) connect via a spare UART.
 
 Flight controllers usually include appropriate cables for connecting common receiver types.

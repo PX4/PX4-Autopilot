@@ -51,7 +51,7 @@ Foxtech Loong 2160 VTOL - це легкий у монтажі майже гот�
 - [Наземна станція та радіо зв'язок](https://holybro.com/collections/rc-radio-transmitter-receiver/products/skydroid-h12?variant=42940989931709)
 - [Розширення кабеля USB-C](https://www.digitec.ch/en/s1/product/powerguard-usb-c-usb-c-025-m-usb-cables-22529949?dbq=1&gclid=Cj0KCQjw2cWgBhDYARIsALggUhrh-z-7DSU0wKfLBVa8filkXLQaxUpi7pC0ffQyRzLng8Ph01h2R1gaAp0mEALw_wcB&gclsrc=aw.ds)
 - [Розгалужувач I2C](https://www.3dxr.co.uk/autopilots-c2/the-cube-aka-pixhawk-2-1-c9/cube-cables-accessories-sensors-c15/cubepilot-i2c-can-splitter-jst-gh-4pin-p2840)
-- [Монтажі, виготовлені на 3D-принтері](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/vtol/foxtech_loong_2160/loong-3d-prints.zip)
+- [3D-Printed mounts](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/vtol/foxtech_loong_2160/loong-3d-prints.zip)
   - 1x Базова плита
   - 1x Stack-fixture
   - 1x Кріплення вентилятора
@@ -291,12 +291,12 @@ AUX:
 
 ### Завантажте файл параметрів
 
-Далі ми завантажуємо [файл параметрів](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/vtol/foxtech_loong_2160/loong.params), який містить параметри, що визначають геометрію каркасу, відображення виводів та значення настройки - тож вам не потрібно!
+Next we load a [parameter file](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/vtol/foxtech_loong_2160/loong.params) that contains parameters that define the frame geometry, output mappings, and tuning values — so you don't have to!
 Якщо ви дотримувалися інструкцій з підключення двигунів, вам, ймовірно, не знадобиться багато додаткових налаштувань, окрім калібрування датчиків і фіксації кріплень.
 
 Щоб завантажити файл:
 
-1. Завантажте [файл параметрів](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/vtol/foxtech_loong_2160/loong.params).
+1. Download the [parameter file](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/vtol/foxtech_loong_2160/loong.params).
 2. Виберіть вкладку [Параметри](../advanced_config/parameters.md#finding-updating-parameters), а потім натисніть на **Tools** в правому верхньому кутку.
 3. Виберіть **Завантажити з файлу**, а потім виберіть файл `loong.params`, який ви щойно завантажили.
 4. Перезапустіть транспортний засіб.

@@ -10,7 +10,7 @@ This page explains the main differences and how the console/shell are used.
 
 The PX4 _System Console_ provides low-level access to the system, debug output and analysis of the system boot process.
 
-There is just one _System Console_, which runs on one specific UART (the debug port, as configured in NuttX), and is commonly attached to a computer via an FTDI cable (or some other debug adapter like a [Dronecode probe](https://kb.zubax.com/display/MAINKB/Dronecode+Probe+documentation)).
+There is just one _System Console_, which runs on one specific UART (the debug port, as configured in NuttX), and is commonly attached to a computer via an FTDI cable (or some other debug adapter like a [Zubax BugFace BF1](https://github.com/Zubax/bugface_bf1)).
 
 - Used for _low-level debugging/development_: bootup, NuttX, startup scripts, board bringup, development on central parts of PX4 (e.g. uORB).
 - In particular, is the only place where all boot output (including information about applications auto-started on boot) is printed.

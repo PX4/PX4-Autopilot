@@ -38,7 +38,7 @@ The following diagram shows an example of a CAN bus connecting a flight controll
 The diagram does not show any power wiring.
 Refer to your manufacturer instructions to confirm whether components require separate power or can be powered from the CAN bus itself.
 
-For more information, see [Cyphal/CAN device interconnection](https://kb.zubax.com/pages/viewpage.action?pageId=2195476) (kb.zubax.com).
+For more information, see [Cyphal/CAN device interconnection](https://wiki.zubax.com/public/cyphal/CyphalCAN-device-interconnection?pageId=2195476) (kb.zubax.com).
 While the article is written with the Cyphal protocol in mind, it applies equally to DroneCAN hardware and any other CAN setup.
 For more advanced scenarios, consult with [On CAN bus topology and termination](https://forum.opencyphal.org/t/on-can-bus-topology-and-termination/1685).
 

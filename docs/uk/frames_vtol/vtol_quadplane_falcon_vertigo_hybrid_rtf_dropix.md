@@ -28,9 +28,9 @@ The _Falcon Vertigo Hybrid VTOL_ is a quadplane VTOL aircraft that has been desi
   - GPS u-blox M8N
   - Датник живлення
   - [Airspeed Sensor](https://store-drotek.com/793-digital-differential-airspeed-sensor-kit-.html)
-- Quad power set  [Tiger Motor MT-2216-11 900kv V2](https://www.getfpv.com/tiger-motor-mt-2216-11-900kv-v2.html) (discontinued)
+- Quad power set [Tiger Motor MT-2216-11 900kv V2](https://www.getfpv.com/tiger-motor-mt-2216-11-900kv-v2.html) (discontinued)
 - 4 x пропелер 10”x 5” (квадро-мотори)
-- 4 x [ESC 25A](http://www.getfpv.com/tiger-motor-flame-25a-esc.html)
+- 4 x [ESC 25A](https://www.getfpv.com/tiger-motor-flame-25a-esc.html)
 - 1 x пропелер 10” x 5” (двигун-штовхач)
 - 1 x ESC 30A
 - Система потужності двигуна-штовхача
@@ -142,11 +142,11 @@ The geometry and output assignment can be configured in the [Actuators Configura
 | MAIN 2 | Задній лівий мотор, CCW    |
 | MAIN 3 | Передній лівий мотор, CW   |
 | MAIN 4 | Задній правий мотор, CW    |
-| AUX  1 | Лівий елерон               |
-| AUX  2 | Правий елерон              |
-| AUX  3 | Elevator                   |
-| AUX  4 | Rudder                     |
-| AUX  5 | Тяга                       |
+| AUX 1  | Лівий елерон               |
+| AUX 2  | Правий елерон              |
+| AUX 3  | Elevator                   |
+| AUX 4  | Rudder                     |
+| AUX 5  | Тяга                       |
 
 <a id="dropix_back"></a>
 
@@ -255,7 +255,6 @@ It is important that nothing obstructs airflow to the Pitot tube. Це крит�
 :::
 
 2. Перевірте, чи транспортний засіб збалансований навколо очікуваного центру мас
-
   - Утримуйте транспортний засіб пальцями у центрі ваги та переконайтеся, що транспортний засіб залишається стабільним.
 
     ![Level Centre of Gravity](../../assets/airframes/vtol/falcon_vertigo/falcon_vertigo_57_level_centre_of_gravity.jpg)

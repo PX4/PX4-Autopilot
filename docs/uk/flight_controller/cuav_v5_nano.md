@@ -17,7 +17,7 @@ The V5 nano is similar to the [CUAV V5+](../flight_controller/cuav_v5_plus.md), 
 
 Деякі з його основних функцій включають:
 
-- Full compatibility with the [Pixhawk project](https://pixhawk.org/) **FMUv5** design standard and uses the [Pixhawk Connector Standard](https://pixhawk.org/pixhawk-connector-standard/) for all external interfaces.
+- Full compatibility with the [Pixhawk project](https://pixhawk.org/) **FMUv5** design standard and uses the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) for all external interfaces.
 - Більш продуктивний процесор, оперативна пам'ять та флеш-пам'ять, ніж у FMU v3, разом із більш стабільними та надійними датчиками.
 - Прошивка сумісна з PX4.
 - Велика відстань між контактами вводу/виводу 2,6 мм, що полегшує використання всіх інтерфейсів.
@@ -31,7 +31,6 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 Основний процесор FMU: STM32F765◦32 Bit Arm® Cortex®-M7, 216MHz, 2MB пам'яті, 512KB RAM
 
 - Бортові сенсори:
-
   - Акселератор/гіроскоп: ICM-20689
   - Акселератор/гіроскоп: ICM-20602
   - Акселератор/гіроскоп: BMI055
@@ -39,7 +38,6 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - Барометр: MS5611
 
 - Інтерфейси: 8 виходів PWM
-
   - 3 виділених PWM/Capture входи на FMU
   - Виділений R/C вхід для CPPM
   - Виділений вхід R/C для Spektrum / DSM і S.Bus
@@ -66,9 +64,9 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 [CUAV Store](https://store.cuav.net/shop/v5-nano/)
 
-CUAV Aliexpress (international users)
+[CUAV Aliexpress](https://www.aliexpress.com/item/33050770314.html?storeId=3257035&spm=2114.12010612.8148356.9.dbe6790bjW2hpH) (international users)
 
-CUAV Taobao (China Mainland users)
+[CUAV Taobao](https://item.taobao.com/item.htm?spm=a230r.1.14.8.26ab5258veQJRu&id=569404317857&ns=1&abbucket=13#detail) (China Mainland users)
 
 :::info
 Autopilot may be purchased with included Neo GPS module
@@ -186,7 +184,7 @@ CUAV використовує деякі відмінні дизайни і не
 
 The _Neo v2.0 GPS_ that is recommended for use with _CUAV V5+_ and _CUAV V5 nano_ is not fully compatible with other Pixhawk flight controllers (specifically, the buzzer part is not compatible and there may be issues with the safety switch).
 
-The UAVCAN [NEO V2 PRO GNSS receiver](http://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html) can also be used, and is compatible with other flight controllers.
+The UAVCAN [NEO V2 PRO GNSS receiver](https://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html) can also be used, and is compatible with other flight controllers.
 
 <a id="compatibility_jtag"></a>
 

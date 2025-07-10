@@ -48,6 +48,11 @@
  * of leds for system indication at will and there is no
  * separate switch, we need to build independent of the
  * CONFIG_ARCH_LEDS configuration switch.
+ *
+ * KakuteH7 DualIMU LED configuration:
+ * - Red LED (PE9): TRIP LED, active high
+ * - Blue LED (PC2): Status LED, active low
+ * - Green LED: Hardware controlled, always on when powered (no software control)
  */
 __BEGIN_DECLS
 extern void led_init(void);
@@ -56,11 +61,28 @@ extern void led_off(int led);
 extern void led_toggle(int led);
 __END_DECLS
 
+#ifdef CONFIG_ARCH_LEDS
+static bool nuttx_owns_leds = true;
+//                                B  R  S  G
+//                                0  1  2  3
+static const uint8_t xlatpx4[] = {1, 0, 4, 2};
+#  define xlat(p) xlatpx4[(p)]
+static uint32_t g_ledmap[] = {
+	GPIO_LED_RED,                       // Indexed by BOARD_LED_RED
+	GPIO_nLED_BLUE,                     // Indexed by BOARD_LED_BLUE
+};
 
-#define xlat(p) (p)
+static bool g_led_inverted[] = {
+	false, // LED_RED is active high
+	true,  // LED_BLUE is active low
+};
+
+#else
+
+#  define xlat(p) (p)
 static uint32_t g_ledmap[] = {
 	GPIO_nLED_BLUE,                     // Indexed by LED_BLUE
-	GPIO_LED_RED,                      // Indexed by LED_RED
+	GPIO_LED_RED,                       // Indexed by LED_RED
 };
 
 static bool g_led_inverted[] = {
@@ -68,6 +90,7 @@ static bool g_led_inverted[] = {
 	false, // LED_RED is active high
 };
 
+#endif
 
 __EXPORT void led_init(void)
 {

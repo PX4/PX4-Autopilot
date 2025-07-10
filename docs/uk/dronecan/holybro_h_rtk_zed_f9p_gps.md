@@ -54,7 +54,7 @@ The high-precision PNI RM3100 compass ensures accurate orientation and stability
 The Holybro ZED-F9P GPS is connected to the CAN bus using a Pixhawk standard 4 pin JST GH cable.
 For more information, refer to the [CAN Wiring](../can/index.md#wiring) instructions.
 
-For dual F9P setups leveraging GPS yaw, connect both F9P CAN connectors to the same bus via a CAN or I2C expansion splitter or hub.
+For dual F9P setups leveraging GPS yaw, connect both F9P CAN connectors to the same bus via a CAN or I2C expansion splitter or [hub](https://holybro.com/products/can-hub?_pos=1&_sid=eeb6b74b2&_ss=r).
 
 ## Налаштування прошивки
 
@@ -88,7 +88,7 @@ DroneCAN configuration in PX4 is explained in more detail in [DroneCAN > Enablin
 
 - For the the single Rover the module should be mounted with the included mast.
 - For the Dual ZED-F9P setup (moving baseline), the DroneCAN modules should be placed at least 30cm apart on the airframe and elevated on a mast also.
-  See the following mast.
+  See the following [mast](https://holybro.com/products/30-antenna-mount?_pos=20&_sid=67b49d76b&_ss=r).
 - F9P module arrow(s) should be pointing forward with respect to the autopilot orientation.
 
 ## Dual ZED-F9P DroneCAN Modules For Heading

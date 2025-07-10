@@ -20,7 +20,6 @@ The general requirements for all supported boards are:
    Board needs to pass acceptance criteria to ensure quality of parts and assembly.
 1. A clear and easy way to contact customer support for customers.
    One or more of the following is accepted:
-
    - PX4 Discord server presence
    - Support email
    - Phone number
@@ -29,7 +28,6 @@ The general requirements for all supported boards are:
 1. The board needs to use the [PX4 bootloader protocol](https://github.com/PX4/PX4-Autopilot/tree/main/platforms/nuttx/src/bootloader).
    For more information on bootloaders see: [PX4 Nuttx Porting Guide > Bootloader](../hardware/porting_guide_nuttx.md#bootloader).
 1. Adequate documentation, which includes, but is not limited to:
-
    - A complete pinout made available publicly that maps PX4 pin definitions to:
      1. Microcontroller pins
      2. Physical external connectors
@@ -48,13 +46,11 @@ Manufacturer supported boards may be as well/better supported than Pixhawk board
 
 ## Pixhawk Standard
 
-A Pixhawk board is one that conforms to the Pixhawk standards. These standards are laid out on [http://pixhawk.org](http://pixhawk.org/), but at high-level require that the board passes electrical tests mandated by the standard and the manufacturer has signed the Pixhawk adopter and trademark agreement.
+A Pixhawk board is one that conforms to the Pixhawk standards. These standards are laid out on [pixhawk.org](https://pixhawk.org/), but at high-level require that the board passes electrical tests mandated by the standard and the manufacturer has signed the Pixhawk adopter and trademark agreement.
 
 PX4 generally only supports boards that are commercially available, which typically means that board standards released within the last five years are supported.
 
-<a id="ver_rev_id"></a>
-
-### VER and REV ID (Hardware Revision and Version Sensing)
+### VER and REV ID (Hardware Revision and Version Sensing) {#ver_rev_id}
 
 FMUv5 and onwards have an electrical sensing mechanism.
 This sensing coupled with optional configuration data will be used to define hardware’s configuration with respect to a mandatory device and power supply configuration. Manufacturers must obtain the VER and REV ID from PX4 board maintainers by issuing a PR to ammend the [DS-018 Pixhawk standard](https://github.com/pixhawk/Pixhawk-Standards) for board versions and revisions.

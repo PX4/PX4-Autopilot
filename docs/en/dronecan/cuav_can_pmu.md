@@ -71,4 +71,4 @@ Set the following parameters in _QGroundControl_ [Vehicle Setup > Parameters](..
 
 [CAN PMU Manual](http://manual.cuav.net/power-module/CAN-PMU.pdf)
 
-[CAN PMU Power detection module > Enable CAN PMU > PX4 firmware](http://doc.cuav.net/power-module/can-pmu/en/) (CUAV docs)
+[CAN PMU Power detection module > Enable CAN PMU > PX4 firmware](https://doc.cuav.net/power-module/can-pmu/en/) (CUAV docs)

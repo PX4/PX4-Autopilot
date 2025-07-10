@@ -47,12 +47,12 @@ This build guide shows add a flight controller system (using [Auterion Skynode e
 - [Датчик швидкості (дешевший альтернативний варіант)](https://holybro.com/products/digital-air-speed-sensor?pr_prod_strat=use_description&pr_rec_id=236dfda00&pr_rec_pid=7150470561981&pr_ref_pid=7150472462525&pr_seq=uniform)
 - [Lidar Lightware lw20-c (включено в Skynode eval. kit)](../sensor/sfxx_lidar.md) (Необов'язково)
 - [Інфрачервоний сенсор вимірювання відстані Seeed Studio PSK-CM8JL65-CC5 (дешевший аналог)](https://www.seeedstudio.com/PSK-CM8JL65-CC5-Infrared-Distance-Measuring-Sensor-p-4028.html) (Опціонально)
-- [5V BEC](http://www.mateksys.com/?portfolio=bec12s-pro)
+- [5V BEC](https://www.mateksys.com/?portfolio=bec12s-pro)
 - [Радіо (RC) система](../getting_started/rc_transmitter_receiver.md) на ваш вибір
 - [Servo cable extension cable male 30cm 10 pcs](https://www.getfpv.com/male-to-male-servo-extension-cable-twisted-22awg-jr-style-5-pcs.html)
 - [Розширення кабеля USB-C](https://www.digitec.ch/en/s1/product/powerguard-usb-c-usb-c-025-m-usb-cables-22529949?dbq=1&gclid=Cj0KCQjw2cWgBhDYARIsALggUhrh-z-7DSU0wKfLBVa8filkXLQaxUpi7pC0ffQyRzLng8Ph01h2R1gaAp0mEALw_wcB&gclsrc=aw.ds)
 - [3M VHB tape](https://www.amazon.in/3M-VHB-Tape-4910-Length/dp/B00GTABM3Y)
-- [3D-Printed mounts](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/vtol/omp_hobby_zmo_fpv/omp_hobby_zmo_3d_prints.zip)
+- [3D-Printed mounts](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/vtol/omp_hobby_zmo_fpv/omp_hobby_zmo_3d_prints.zip)
   - 2x кріплення для роз’єму крила
   - 1x кріплення датчика швидкості
   - 1x GPS-кріплення
@@ -159,7 +159,6 @@ ZMO FPV в його початковому стані.
   Якщо у вас є обтискний інструмент, ви також можете безпосередньо додати роз’єми без пайки.
 
 2. Під'єднайте кабелі сервоприводу до IO плати адаптера в такому порядку:
-
   - 1 - Aileron left
   - 2 - Aileron right
   - 3 - V-Tail left
@@ -168,7 +167,6 @@ ZMO FPV в його початковому стані.
   - 6 - Tilt right
 
 3. Під'єднайте сигнальні кабелі мотора до адаптерної плати FMU у такому порядку:
-
   - 1 - Передній лівий
   - 2 - Передній правий
   - 3 - Задній
@@ -281,12 +279,12 @@ An inexpensive example would be a [SiK Telemetry Radio](../telemetry/sik_radio.m
 
 ### Завантажте файл параметрів
 
-Next we load a [parameter file](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/vtol/omp_hobby_zmo_fpv/omp_hobby_zmo.params) that contains parameters that define the frame geometry, output mappings, and tuning values — so you don't have to!
+Next we load a [parameter file](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/vtol/omp_hobby_zmo_fpv/omp_hobby_zmo.params) that contains parameters that define the frame geometry, output mappings, and tuning values — so you don't have to!
 Якщо ви дотримувалися інструкцій з підключення двигунів, вам, ймовірно, не знадобиться багато додаткових налаштувань, окрім калібрування датчиків і фіксації кріплень.
 
 Щоб завантажити файл:
 
-1. Download the [parameter file](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/vtol/omp_hobby_zmo_fpv/omp_hobby_zmo.params).
+1. Download the [parameter file](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/vtol/omp_hobby_zmo_fpv/omp_hobby_zmo.params).
 2. Виберіть вкладку [Параметри](../advanced_config/parameters.md#finding-updating-parameters), а потім натисніть на **Tools** в правому верхньому кутку.
 3. Select **Load from file** and then choose the `omp_hobby_zmo.params` file you just downloaded.
 4. Перезапустіть транспортний засіб.

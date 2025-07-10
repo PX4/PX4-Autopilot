@@ -17,7 +17,7 @@ The Pixfalcon autopilot (designed by [Holybro<sup>&reg;</sup>](https://holybro.c
 
 ## 요약
 
-- Main System-on-Chip: [STM32F427](http://www.st.com/web/en/catalog/mmc/FM141/SC1169/SS1577/LN1789)
+- Main System-on-Chip: [STM32F427](https://www.st.com/en/microcontrollers-microprocessors/stm32f427-437.html)
   - CPU : 단정밀도 FPU의 180MHz ARM<sup>&reg;</sup> Cortexex<sup>&reg;</sup>  M4
   - RAM : 256KB SRAM (L1)
 - 페일세이프 시스템 온칩 : STM32F100

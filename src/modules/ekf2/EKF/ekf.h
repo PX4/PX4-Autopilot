@@ -266,13 +266,13 @@ public:
 	// gyro bias
 	const Vector3f &getGyroBias() const { return _state.gyro_bias; } // get the gyroscope bias in rad/s
 	Vector3f getGyroBiasVariance() const { return getStateVariance<State::gyro_bias>(); } // get the gyroscope bias variance in rad/s
-	float getGyroBiasLimit() const { return _params.gyro_bias_lim; }
-	float getGyroNoise() const { return _params.gyro_noise; }
+	float getGyroBiasLimit() const { return _params.ekf2_gyr_b_lim; }
+	float getGyroNoise() const { return _params.ekf2_gyr_noise; }
 
 	// accel bias
 	const Vector3f &getAccelBias() const { return _state.accel_bias; } // get the accelerometer bias in m/s**2
 	Vector3f getAccelBiasVariance() const { return getStateVariance<State::accel_bias>(); } // get the accelerometer bias variance in m/s**2
-	float getAccelBiasLimit() const { return _params.acc_bias_lim; }
+	float getAccelBiasLimit() const { return _params.ekf2_abl_lim; }
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	const Vector3f &getMagEarthField() const { return _state.mag_I; }

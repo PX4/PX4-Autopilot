@@ -28,10 +28,11 @@ The set of supported configurations can be seen in [Airframes Reference > Autogy
 
 У цьому розділі містяться журнали збірки/інструкції щодо складання та налаштування ряду Autogyro конструкцій.
 
-- [ThunderFly Auto-G2 (Holybro pix32)](../frames_autogyro/thunderfly_auto_g2.md)
+- [ThunderFly Auto-G2 (Holybro pix32)](../frames_autogyro/thunderfly_auto_g2.md) - Modified Autogyro RC model
 
 ### Повні конструкції з попередніми налаштуваннями PX4
 
 У цьому розділі перелічені транспортні засоби, які продаються повністю зібраними та готові до польоту (RTF), з встановленим PX4.
 
-- [ThunderFly TF-G2](https://www.thunderfly.cz/tf-g2.html)
+- [ThunderFly TF-G2](https://docs.thunderfly.cz/instruments/TF-G2) - Unmanned Autogyro Development Kit
+- [ThunderFly TF-G250](https://docs.thunderfly.cz/instruments/TF-G250) - Atmospheric Sounding Aerological Autogyro

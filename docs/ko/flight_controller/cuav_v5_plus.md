@@ -14,7 +14,7 @@ CUAV<sup>&reg;</sup>와 PX4팀이 공동으로 설계하였습니다.
 
 주요 기능은 다음과 같습니다.
 
-- Full compatibility with the [Pixhawk project](https://pixhawk.org/) **FMUv5** design standard and uses the [Pixhawk Connector Standard](https://pixhawk.org/pixhawk-connector-standard/) for all external interfaces.
+- Full compatibility with the [Pixhawk project](https://pixhawk.org/) **FMUv5** design standard and uses the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) for all external interfaces.
 - 더 안정적이고 신뢰할 수 있는 센서와 함께 FMU v3보다 고급 프로세서, RAM 및 플래시 메모리.
 - PX4와 펌웨어 호환.
 - 모듈식 설계를 통해 사용자는 자신의 캐리어 보드를 설정할 수 있습니다.
@@ -34,7 +34,6 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - 32 비트 Arm® Cortex®-M3, 24MHz, 8KB SRAM
 
 - 내장 센서 :
-
   - 가속도계/자이로스코프 : ICM-20689
   - 가속도계/자이로스코프 : BMI055
   - 자력계 : IST8310
@@ -62,7 +61,6 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - Dimensions: 85.5\*42\*33mm
 
 - 기타 특성:
-
   - 작동 온도: -20 ~ 80°c (측정 값)
 
 ## 구매처
@@ -71,7 +69,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 [CUAV Aliexpress](https://www.aliexpress.com/item/32890380056.html?spm=a2g0o.detail.1000060.1.7a7233e7mLTlVl&gps-id=pcDetailBottomMoreThisSeller&scm=1007.13339.90158.0&scm_id=1007.13339.90158.0&scm-url=1007.13339.90158.0&pvid=d899bfab-a7ca-46e1-adf2-72ad1d649822) (International users)
 
-CUAV Taobao (China Mainland users)
+[CUAV Taobao](https://item.taobao.com/item.htm?spm=a1z10.5-c.w4002-21303114052.37.a28f697aeYzQx9&id=594262853015) (China Mainland users)
 
 :::info
 Autopilot may be purchased with included Neo GPS module
@@ -206,7 +204,7 @@ CUAV는 몇 가지 차별화된 디자인을 채택하고, 아래에서 설명�
 
 The _Neo v2.0 GPS_ recommended for use with _CUAV V5+_ and _CUAV V5 nano_ is not fully compatible with other Pixhawk flight controllers (specifically, the buzzer part is not compatible and there may be issues with the safety switch).
 
-The UAVCAN [NEO V2 PRO GNSS receiver](http://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html) can also be used, and is compatible with other flight controllers.
+The UAVCAN [NEO V2 PRO GNSS receiver](https://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html) can also be used, and is compatible with other flight controllers.
 
 <a id="compatibility_jtag"></a>
 
@@ -240,7 +238,7 @@ SBUS/DSM/RSSI 인터페이스에 다른 장비(RC 수신기 제외)를 연결하
 ## 추가 정보
 
 - [CUAV V5+ Manual](http://manual.cuav.net/V5-Plus.pdf)
-- [CUAV V5+ docs](http://doc.cuav.net/flight-controller/v5-autopilot/en/v5+.html)
+- [CUAV V5+ docs](https://doc.cuav.net/controller/v5-autopilot/en/v5+.html)
 - [FMUv5 reference design pinout](https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY/edit#gid=912976165)
 - [CUAV Github](https://github.com/cuav)
 - [Base board design reference](https://github.com/cuav/hardware/tree/master/V5_Autopilot/V5%2B/V5%2BBASE)

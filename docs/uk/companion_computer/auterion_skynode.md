@@ -1,6 +1,6 @@
-# Auterion Skynode
+# Auterion Skynode X
 
-Auterion [Skynode](https://auterion.com/product/skynode/) - це потужний літальний комп'ютер, який об'єднує комп'ютер для виконання завдань, контролер польоту, потокове відео, мережеве з'єднання та клітинний зв'язок в одному добре інтегрованому пристрої.
+[Skynode](https://auterion.com/product/skynode-x/) is a powerful flight computer that combines a mission computer, flight controller, video streaming, networking, and cellular connection, in a single tightly integrated device.
 
 ![Auterion Skynode (Enterprise)](../../assets/companion_computer/auterion_skynode/skynode_small.png)
 
@@ -12,10 +12,11 @@ Auterion OS і Skynode дозволяють безпроблемну інтег�
 Для отримання інформації про Auterion і Skynode, звертайтесь за наступним посиланням:
 
 - [auterion.com](https://auterion.com/)
-- [Skynode](https://auterion.com/product/skynode/) (auterion.com)
+- [Skynode X](https://auterion.com/product/skynode-x/) (auterion.com)
 - Посібник Skynode:
-  - [Посібник виробника](https://docs.auterion.com/manufacturers/getting-started/readme)
-  - [Посібник розробників додатка](https://docs.auterion.com/developers/getting-started/readme)
+  - [Vehicle Operation](https://docs.auterion.com/vehicle-operation/auterion-sign-up)
+  - [App Development](https://docs.auterion.com/app-development/app-development)
+  - [Hardware Integration](https://docs.auterion.com/app-development/app-development)
 
 ## Skynode з Vanilla PX4
 
@@ -34,7 +35,7 @@ Skynode з поставкою Auterion управляється версією P
 
 Бінарні файли PX4 `px4_fmu-v5x` для Skynode будуються з вихідного коду за допомогою звичайного [середовища розробника](../dev_setup/dev_env.md) і [команд для побудови](../dev_setup/building_px4.md), і завантажуються за допомогою цілей завантаження `upload_skynode_usb` або `upload_skynode_wifi`.
 
-`upload_skynode_usb` та `upload_skynode_wifi` підключаються до Skynode за допомогою SSH через мережевий інтерфейс, використовуючи IP-адреси за замовчуванням (фіксовані) для [USB](https://docs.auterion.com/manufacturers/avionics/skynode/advanced-configuration/connecting-to-skynode) і [WiFi](https://docs.auterion.com/manufacturers/avionics/skynode/advanced-configuration/configuration), і завантажують TAR-архівований бінарний файл на місійний комп'ютер.
+`upload_skynode_usb` and `upload_skynode_wifi` connect to Skynode via SSH over a network interface using the default (fixed) IP addresses for USB and WiFi, respectively (see [AuterionOS System Guide > Building and Flashing PX4 Firmware](https://docs.auterion.com/hardware-integration/auterionos-system-guide/flashing-px4-upstream-firmware)), and upload a TAR compressed binary to the mission computer.
 Потім місійний комп'ютер розпаковує бінарний файл та встановлює його на контролер польоту.
 
 :::info

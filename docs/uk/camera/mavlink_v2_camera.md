@@ -137,9 +137,9 @@ PX4 видає команди [MAVLink Camera Protocol v2](https://mavlink.io/en
 - [Менеджер камери MAVLink](https://github.com/mavlink/mavlink-camera-manager) - Розширюваний крос-платформенний сервер камери MAVLink, побудований на базі GStreamer та Rust-MAVLink.
 - [Менеджер камери Dronecode](https://camera-manager.dronecode.org/en/) - Додає інтерфейс протоколу камери для камер, підключених до комп'ютера з Linux.
 
-Специфічні менеджери камери:
+Camera-specific camera managers:
 
-- [Менеджер камери SIYI A8 mini](https://github.com/julianoes/siyi-a8-mini-camera-manager) - Менеджер камери на основі плагіна MAVSDK для [SIYI A8 mini] (включає навчальний посібник).
+- [SIYI A8 mini camera manager](https://github.com/julianoes/siyi-a8-mini-camera-manager) - MAVSDK-plugin based camera manager for the [SIYI A8 mini](https://shop.siyi.biz/products/siyi-a8-mini-gimbal-camera) (includes tutorial).
 
   ::: tip
   Це добрий приклад того, як MAVSDK може бути використаний для створення інтерфейсу протоколу камери MAVLink для певної камери.
@@ -150,6 +150,6 @@ PX4 видає команди [MAVLink Camera Protocol v2](https://mavlink.io/en
 
 Додаткову інформацію щодо камерного менеджера та налаштувань компаньйона можна знайти в:
 
-- [Менеджер камери SIYI A8 mini](https://github.com/julianoes/siyi-a8-mini-camera-manager) - Навчальний посібник з інтеграції з [SIYI A8 mini](https://shop.siyi.biz/products/siyi-a8-mini), використовуючи менеджер камери на основі MAVSDK, який працює на комп'ютері-компаньйоні Raspberry Pi.
+- [SIYI A8 mini camera manager](https://github.com/julianoes/siyi-a8-mini-camera-manager) - Tutorial for integrating with the [SIYI A8 mini](https://shop.siyi.biz/products/siyi-a8-mini-gimbal-camera) using a MAVSDK-based camera manager running on a Raspberry Pi companion computer.
 - [Використання комп'ютера-компаньйона з контролерами Pixhawk](../companion_computer/pixhawk_companion.md)
 - [Компаньйони комп'ютери > Програмне забезпечення комп'ютера-компаньйона](../companion_computer/index.md#companion-computer-software): Зауважте [MAVLink-Router](https://github.com/mavlink-router/mavlink-router), який можна налаштувати для маршрутизації трафіку MAVLink між послідовним портом та IP-лінком (або іншим інтерфейсом керування камерою).

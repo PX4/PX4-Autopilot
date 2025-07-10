@@ -19,13 +19,13 @@ The following models are supported by PX4, and can be connected to either the I2
 
 The following models are supported by PX4 but are no longer available from the manufacturer.
 
-| Model                                                                                              | Range | Bus           |                                                                 |
-| -------------------------------------------------------------------------------------------------- | ----- | ------------- | --------------------------------------------------------------- |
-| [SF02](http://documents.lightware.co.za/SF02%20-%20Laser%20Rangefinder%20Manual%20-%20Rev%208.pdf) | 50    | Serial        |                                                                 |
-| [SF10/A](http://documents.lightware.co.za/SF10%20-%20Laser%20Altimeter%20Manual%20-%20Rev%206.pdf) | 25    | Serial or I2C |                                                                 |
-| [SF10/B](http://documents.lightware.co.za/SF10%20-%20Laser%20Altimeter%20Manual%20-%20Rev%206.pdf) | 50    | Serial or I2C |                                                                 |
-| SF10/C                                                                                             | 100m  | Serial or I2C |                                                                 |
-| LW20/B                                                                                             | 50    | I2C bus       | Waterproofed (IP67) with servo for sense-and-avoid applications |
+| Model                                                                                               | Range | Bus           |                                                                 |
+| --------------------------------------------------------------------------------------------------- | ----- | ------------- | --------------------------------------------------------------- |
+| [SF02](https://documents.lightware.co.za/SF02%20-%20Laser%20Rangefinder%20Manual%20-%20Rev%208.pdf) | 50    | Serial        |                                                                 |
+| [SF10/A](https://documents.lightware.co.za/SF10%20-%20Laser%20Altimeter%20Manual%20-%20Rev%206.pdf) | 25    | Serial or I2C |                                                                 |
+| [SF10/B](https://documents.lightware.co.za/SF10%20-%20Laser%20Altimeter%20Manual%20-%20Rev%206.pdf) | 50    | Serial or I2C |                                                                 |
+| SF10/C                                                                                              | 100m  | Serial or I2C |                                                                 |
+| LW20/B                                                                                              | 50    | I2C bus       | Waterproofed (IP67) with servo for sense-and-avoid applications |
 
 :::
 

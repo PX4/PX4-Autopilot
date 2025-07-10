@@ -136,7 +136,7 @@ The instructions below show how to connect the different types of receivers to _
 
   ![Pixhawk 4 - Radio port for PPM receivers](../../assets/flight_controller/pixhawk4/pixhawk_4_receiver_ppm.png)
 
-- PPM and PWM receivers that have an _individual wire for each channel_ must connect to the **PPM RC** port _via a PPM encoder_ [like this one](http://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
+- PPM and PWM receivers that have an _individual wire for each channel_ must connect to the **PPM RC** port _via a PPM encoder_ [like this one](https://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
 
 For more information about selecting a radio system, receiver compatibility, and binding your transmitter/receiver pair, see: [Remote Control Transmitters & Receivers](../getting_started/rc_transmitter_receiver.md).
 
@@ -179,7 +179,7 @@ The wiring and configuration of optional/less common components is covered withi
 
 ## 핀배열
 
-[Pixhawk 4 Pinouts](https://holybro.com/manual/Pixhawk4-Pinouts.pdf) (Holybro)
+[Pixhawk 4 Pinouts](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Pixhawk4-Pinouts.pdf) (Holybro)
 
 ## 설정
 
@@ -192,6 +192,6 @@ QuadPlane specific configuration is covered here: [QuadPlane VTOL Configuration]
 ## 추가 정보
 
 - [Pixhawk 4](../flight_controller/pixhawk4.md) (Overview page)
-- [Pixhawk 4 Technical Data Sheet](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixhawk4/pixhawk4_technical_data_sheet.pdf)
-- [Pixhawk 4 Pinouts](https://holybro.com/manual/Pixhawk4-Pinouts.pdf) (Holybro)
+- [Pixhawk 4 Technical Data Sheet](https://github.com/PX4/PX4-Autopilot/blob/main/docs/assets/flight_controller/pixhawk4/pixhawk4_technical_data_sheet.pdf)
+- [Pixhawk 4 Pinouts](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Pixhawk4-Pinouts.pdf) (Holybro)
 - [Pixhawk 4 Quick Start Guide (Holybro)](https://holybro.com/manual/Pixhawk4-quickstartguide.pdf)

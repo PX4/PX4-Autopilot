@@ -9,7 +9,7 @@ Contact the [manufacturer](https://beagleboard.org/blue) for hardware support or
 
 [BeagleBone Blue](https://beagleboard.org/blue) is an all-in-one Linux-based computer.
 로봇 공학에 최적화되어 있지만, 이 작고 저렴한 보드에는 비행 콘트롤러에 필요한 모든 센서와 주변 장치가 있습니다.
-This topic shows how to set up the board to run PX4 with [librobotcontrol](https://github.com/StrawsonDesign/librobotcontrol) robotics package.
+This topic shows how to set up the board to run PX4 with [librobotcontrol](https://github.com/beagleboard/librobotcontrol) robotics package.
 
 ![BeagleBone - labelled diagram](../../assets/hardware/BeagleBone_Blue_balloons.jpg)
 
@@ -77,7 +77,6 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
 
 1. First set up _rsync_ (this is used to transfer files from the development computer to the target board over a network - WiFi or Ethernet).
    For _rsync_ over SSH with key authentication, follow the steps here (on the development machine):
-
    1. 이전에 생성하지 않은 경우 SSH 키를 생성합니다.
 
       ```
@@ -105,9 +104,7 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
    5. 루트 비밀번호 입력
 
 2. 크로스 컴파일러 설정
-
    1. 툴체인 다운로드
-
       1. First install the toolchain into _/opt/bbblue_toolchain/gcc-arm-linux-gnueabihf_.
          Here is an example of using soft link to select which version of the toolchain you want to use:
 
@@ -127,7 +124,7 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
 
          Download and unpack [gcc-linaro-13.0.0-2022.06-x86_64_arm-linux-gnueabihf.tar.xz](https://snapshots.linaro.org/gnu-toolchain/13.0-2022.06-1/arm-linux-gnueabihf/gcc-linaro-13.0.0-2022.06-x86_64_arm-linux-gnueabihf.tar.xz) to the bbblue_toolchain folder.
 
-         Different ARM Cross Compiler versions for _BeagleBone Blue_ can be found at [Linaro Toolchain Binaries site](http://www.linaro.org/downloads/).
+         Different ARM Cross Compiler versions for _BeagleBone Blue_ can be found at [Linaro Toolchain Binaries site](https://www.linaro.org/downloads/).
 
          ```sh
          wget https://snapshots.linaro.org/gnu-toolchain/13.0-2022.06-1/arm-linux-gnueabihf/gcc-linaro-13.0.0-2022.06-x86_64_arm-linux-gnueabihf.tar.xz
@@ -212,7 +209,9 @@ Run the following commands on the BeagleBone Blue (i.e. via SSH):
    sudo apt-get update
    sudo apt-get install cmake python3-empy=3.3.4-2
    ```
+
 2. PX4 펌웨어를 BeagleBone Blue에 복제합니다.
+
 3. Continue with the [standard build system installation](../dev_setup/dev_env_linux.md).
 
 ## Changes in config

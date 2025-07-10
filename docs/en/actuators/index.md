@@ -9,4 +9,4 @@ This section contains topics about the core actuators used for flight control (E
 
 ## See Also
 
-- [Peripherals](../peripherals/index.md) - includes non-core actuators such as grippers, parachutes, etc. 
+- [Peripherals](../peripherals/index.md) - includes non-core actuators such as grippers, parachutes, etc.

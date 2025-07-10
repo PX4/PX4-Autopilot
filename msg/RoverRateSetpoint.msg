@@ -1,3 +1,4 @@
-uint64 timestamp # time since system start (microseconds)
+# Rover Rate setpoint
 
-float32 yaw_rate_setpoint # [rad/s] Expressed in NED frame
+uint64 timestamp # [us] Time since system start
+float32 yaw_rate_setpoint # [rad/s] [@range -inf, inf] [@frame NED] Yaw rate setpoint

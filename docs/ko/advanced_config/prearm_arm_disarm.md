@@ -109,7 +109,7 @@ Arming is prevented if:
 - The current mode requires an adequate global position estimate but the vehicle does not have GPS lock.
 - Many more (see [arming/disarming safety settings](../config/safety.md#arming-disarming-settings) for more information).
 
-The current failed checks can be viewed in QGroundControl (v4.2.0 and later) [Arming Check Report](../flying/pre_flight_checks.md#qgc-arming-check-report) (see also [Fly View > Arming and Preflight Checks](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/fly_view/fly_view.md#arm)).
+The current failed checks can be viewed in QGroundControl (v4.2.0 and later) [Arming Check Report](../flying/pre_flight_checks.md#qgc-arming-check-report) (see also [Fly View > Toolbar > Flight Status](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/fly_view/fly_view_toolbar.html#flight-status)).
 
 Note that internally PX4 runs arming checks at 10Hz.
 A list of the failed checks is kept, and if the list changes PX4 emits the current list using the [Events interface](../concept/events_interface.md).
@@ -159,7 +159,6 @@ It corresponds to: [COM_PREARM_MODE=1](#COM_PREARM_MODE) (safety switch) and [CB
   - 시스템이 시동전 상태로 전환: 추진 모터를 제외한 모든 액츄에이터 동작 가능(예: 보조익)
   - 시스템 안전 장치 꺼짐: 시동 가능
 3. 시동 명령 인가
-
   - 시스템에 시동이 걸림
   - 모든 모터와 액츄에이터를 움직일 수 있음
 
@@ -177,7 +176,6 @@ This corresponds to [COM_PREARM_MODE=0](#COM_PREARM_MODE) (Disabled) and [CBRK_I
   - _All actuators stay locked into disarmed position (same as disarmed)._
   - 시스템 안전 장치 꺼짐: 시동 가능
 3. 시동 명령 인가
-
   - 시스템에 시동이 걸림
   - 모든 모터와 액츄에이터를 움직일 수 있음
 

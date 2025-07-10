@@ -7,7 +7,7 @@ Most other steps can be done out of order, except for [tuning](#tuning), which m
 
 ## Передумови
 
-Before starting you should [Download QGroundControl](http://qgroundcontrol.com/downloads/) and install it on your **desktop** computer.
+Before starting you should [Download QGroundControl](https://qgroundcontrol.com/downloads/) and install it on your **desktop** computer.
 Then open the QGC application menu ("Q" icon in the top-left corner) and choose **Vehicle Setup** in the _Select Tool_ popup:
 
 ![QGC Main Menu Popup: highlighting Vehicle Setup](../../assets/qgc/setup/menu_setup.png)
@@ -77,7 +77,6 @@ If you need help with the configuration you can ask for help on the [QGroundCont
 - [Периферія контролера польоту](../peripherals/README.md) - налаштування конкретних датчиків, опціональних датчиків, приводів тощо.
 - [Advanced Configuration](../advanced_config/index.md) - Factory/OEM calibration, configuring advanced features, less-common configuration.
 - Конфігурація/налаштування, що залежать від апарату:
-
   - [Конфігурація/налаштування мультикоптера](../config_mc/index.md)
   - [Конфігурація/налаштування гелікоптера](../config_heli/index.md)
   - [Конфігурація/налаштування літака (з нерухомим крилом)](../config_fw/index.md)

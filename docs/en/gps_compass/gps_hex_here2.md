@@ -4,7 +4,7 @@
 This has been superseded by the [Cube Here 3](https://www.cubepilot.com/#/here/here3)
 :::
 
-The [Here2 GPS receiver](http://www.proficnc.com/all-products/152-gps-module.html) is an update to the Here GPS module from HEX.
+The _Here2 GPS receiver_ is an update to the Here GPS module from HEX.
 
 Main features include:
 
@@ -18,8 +18,7 @@ Main features include:
 
 ## Where to Buy
 
-- [ProfiCNC](http://www.proficnc.com/all-products/152-gps-module.html) (Australia)
-- [Other resellers](http://www.proficnc.com/stores)
+- [Resellers](https://www.cubepilot.com/#/reseller/list)
 
 ## Configuration
 
@@ -33,7 +32,7 @@ Setup and use on PX4 is largely plug and play.
 
 ## Wiring and Connections
 
-The Here2 GPS comes with an 8 pin connector that can be inserted directly into the [Pixhawk 2](http://www.hex.aero/wp-content/uploads/2016/07/DRS_Pixhawk-2-17th-march-2016.pdf) GPS UART port.
+The Here2 GPS comes with an 8 pin connector that can be inserted directly into the Pixhawk 2 `GPS` UART port.
 
 The Pixhawk 3 Pro and Pixracer have a 6 pin GPS port connector.
 For these controllers you can modify the GPS cable (as shown below) to remove pin 6 and 7.

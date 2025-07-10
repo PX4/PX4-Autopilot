@@ -20,7 +20,7 @@ The high level benefits of _WFB-ng_ include:
 - Bidirectional telemetry link (MAVLink).
 - TCP/IP tunnel.
 - Automatic TX diversity - use multiple cards on the ground to avoid antenna tracker.
-- Full link encryption and authentication (using [libsodium](https://download.libsodium.org/doc/)).
+- Full link encryption and authentication (using [libsodium](https://doc.libsodium.org/)).
 - Aggregation of MAVLink packets (pack small packets into batches before transmitting).
 - Enhanced [OSD](https://github.com/svpcom/wfb-ng-osd) for Raspberry PI or generic linux desktop with gstreamer.
 
@@ -36,21 +36,19 @@ The vehicle setup consists of:
 
 - A camera.
   These have been tested:
-
   - [Raspberry Pi camera](https://www.raspberrypi.org/products/camera-module-v2/) connected via CSI.
-  - [Logitech camera C920](https://www.logitech.com/en-us/product/hd-pro-webcam-c920?crid=34) connected via USB
+  - [Logitech camera C920](https://support.logi.com/hc/en-us/articles/360024326953-Getting-started-HD-Pro-Webcam-C920) connected via USB
 
-- WiFi module [ALPHA AWUS036ACH](https://www.alfa.com.tw/products_detail/1.htm) or any other **RTL8812au** card.
+- WiFi module [ALPHA AWUS036ACH](https://www.alfa.com.tw/products/awus036ach_1?variant=40319795789896) or any other **RTL8812au** card.
 
 ### Ground Station
 
 - Ground Station Computer.
   These options have been tested:
-
   - Any Linux computer with a USB port (tested on Ubuntu 18.04 x86-64)
   - A computer with any OS running QGround control and Raspberry PI connected via Ethernet (RPi provides the wifi connection).
 
-- WiFi module [ALPHA AWUS036ACH](https://www.alfa.com.tw/products_detail/1.htm) or any other **RTL8812au** card.
+- WiFi module [ALPHA AWUS036ACH](https://www.alfa.com.tw/products/awus036ach_1?variant=40319795789896) or any other **RTL8812au** card.
   See [WFB-ng wiki > WiFi hardware](https://github.com/svpcom/wfb-ng/wiki/WiFi-hardware) for more information on supported modules.
 
 ## Hardware Modification
@@ -125,7 +123,7 @@ If you need a higher bandwidth you can use other MCS index (for example 2 or gre
 
 ## Antennas and Diversity
 
-For simple cases you can use omnidirectional antennas with linear (that bundled with wifi cards) or circular leaf ([circularly polarized Coverleaf Antenna](http://www.antenna-theory.com/antennas/cloverleaf.php)) polarization.
+For simple cases you can use omnidirectional antennas with linear (that bundled with wifi cards) or circular leaf ([circularly polarized Coverleaf Antenna](https://www.antenna-theory.com/antennas/cloverleaf.php)) polarization.
 If you want to setup long distance link you can use multiple wifi adapters with directional and omnidirectional antennas. TX/RX diversity for multiple adapters supported out of box (just add multiple NICs to `/etc/default/wifibroadcast`).
 If your WiFi adapter has two antennas (like Alfa AWU036ACH) TX diversity is implemented via [STBC](https://en.wikipedia.org/wiki/Space%E2%80%93time_block_code).
 Cards with 4 ports (like Alfa AWUS1900) are currently not supported.

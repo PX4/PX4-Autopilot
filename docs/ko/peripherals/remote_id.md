@@ -158,7 +158,7 @@ Integrators should test than the remote ID module is broadcasting the correct in
 This is most easily done using a 3rd party application on your mobile device:
 
 - [Drone Scanner](https://github.com/dronetag/drone-scanner) (Google Play or Apple App store)
-- OpenDroneID OSM (Google Play)
+- [OpenDroneID OSM](https://play.google.com/store/apps/details?id=org.opendroneid.android_osm&hl=en&gl=US) (Google Play)
 
 ## 구현
 

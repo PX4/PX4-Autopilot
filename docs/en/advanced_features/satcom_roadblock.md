@@ -9,7 +9,7 @@ Given good signal quality, users can expect a latency between 10 to 15 seconds.
 
 The following components are needed for the satellite communication link:
 
-- A [RockBlock 9603 Iridium Satellite Modem](https://www.iridium.com/products/rock-seven-rockblock-9603/) module connected to a Pixhawk flashed with the PX4 Autopilot.
+- A [RockBlock 9603 Iridium Satellite Modem](https://www.iridium.com/products/ground-control-rockblock-9603/) module connected to a Pixhawk flashed with the PX4 Autopilot.
 - A message relay server running Ubuntu Linux.
 - A ground station computer running _QGroundControl_ on Ubuntu Linux
 
@@ -21,7 +21,7 @@ The full system architecture is shown below:
 The setup was tested with the current release of _QGroundControl_ running on Ubuntu 14.04 and 16.04.
 
 - It may be possible to run the system on other ground stations and operating systems, but this has not been tested (and is not guaranteed to work).
-- The [RockBlock MK2](https://www.groundcontrol.com/us/product/rockblock-9602-satellite-modem/) module can also be used.
+- The [RockBlock MK2](https://www.groundcontrol.com/product/rockblock-9602-satellite-modem/) module can also be used.
   The RockBlock 9603 module is recommended because it is smaller and lighter, while providing the same functionality.
 
 :::
@@ -34,7 +34,7 @@ The UK link running cost consists of a line rental and per message cost:
 - Each message transmitted over the system costs one _credit_ per 50 bytes.
   Bundles of credits can be bought from RockBlock for £0.04-£0.11 per credit, depending on the bundle size.
 
-Refer to the [RockBlock Documentation](https://docs.rockblock.rock7.com/docs) for a detailed explanation of the modules, running costs and _RockBlock_ in general.
+Refer to the [RockBlock Documentation](https://docs.groundcontrol.com/iot/rockblock) for a detailed explanation of the modules, running costs and _RockBlock_ in general.
 
 ## Vehicle Setup
 
@@ -43,15 +43,15 @@ Refer to the [RockBlock Documentation](https://docs.rockblock.rock7.com/docs) fo
 Connect the RockBlock module to a serial port of the Pixhawk.
 Due to the power requirements of the module it can only be powered over a high-power serial port as a maximum of 0.5 A at 5 V are required.
 If none is available/free then another power source which has the same ground level as the Pixhawk and can provide required power has to be setup.
-The details of the [connectors](https://docs.rockblock.rock7.com/docs/connectors) and the [power requirements](https://docs.rockblock.rock7.com/docs/power-supply) can be found in the RockBlock documentation.
+The details of the [connectors](https://docs.groundcontrol.com/iot/rockblock/specification/connectors-wiring) and the [power requirements](https://docs.groundcontrol.com/iot/rockblock/electrical) can be found in the RockBlock documentation.
 
 ### Module
 
 The module can either use the internal antenna or an external one connected to the SMA connector.
-To [switch between the two antennas modes](https://docs.rockblock.rock7.com/docs/switching-rockblock-9603-antenna-mode) the position of a small RF link cable needs to changed.
+To [switch between the two antennas modes](https://docs.groundcontrol.com/iot/rockblock/user-manual/9603-atenna-mode) the position of a small RF link cable needs to changed.
 If an external antenna is used always make sure that the antenna is connected to the module before powering it up to avoid damage to the module.
 
-The default baud rate of the module is 19200. However, the PX4 _iridiumsbd_ driver requires a baud rate of 115200 so it needs to be changed using the [AT commands](https://www.groundcontrol.com/en/wp-content/uploads/2022/02/IRDM_ISU_ATCommandReferenceMAN0009_Rev2.0_ATCOMM_Oct2012.pdf).
+The default baud rate of the module is 19200. However, the PX4 _iridiumsbd_ driver requires a baud rate of 115200 so it needs to be changed using the [AT commands](https://www.groundcontrol.com/wp-content/uploads/2022/02/IRDM_ISU_ATCommandReferenceMAN0009_Rev2.0_ATCOMM_Oct2012.pdf).
 
 1. Connect to the module with using a 19200/8-N-1 setting and check if the communication is working using the command: `AT`.
    The response should be: `OK`.
@@ -100,7 +100,6 @@ Set up a delivery group for the message relay server and add the module to that 
 The relay server should be run on either Ubuntu 16.04 or 14.04 OS.
 
 1. The server working as a message relay should have a static IP address and two publicly accessible, open, TCP ports:
-
    - `5672` for the _RabbitMQ_ message broker (can be changed in the _rabbitmq_ settings)
    - `45679` for the HTTP POST interface (can be changed in the **relay.cfg** file)
 
@@ -123,7 +122,7 @@ The relay server should be run on either Ubuntu 16.04 or 14.04 OS.
    sudo rabbitmqctl set_permissions iridiumsbd ".*" ".*" ".*"
    ```
 
-1. Clone the [SatComInfrastructure](https://github.com/acfloria/SatComInfrastructure.git) repository:
+1. Clone the [SatComInfrastructure](https://github.com/acfloria/SatComInfrastructure) repository:
 
    ```sh
    git clone https://github.com/acfloria/SatComInfrastructure.git
@@ -189,7 +188,6 @@ To setup the ground station:
 1. Edit the **udp2rabbit.cfg** configuration file to reflect your settings.
 1. [Install _QGroundControl_](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html) (daily build).
 1. Add a UDP connection in QGC with the parameters:
-
    - Listening port: 10000
    - Target hosts: 127.0.0.1:10001
    - High Latency: checked
@@ -236,7 +234,6 @@ If in the terminal where the `udp2rabbit.py` script is running within a couple o
 
 1. The satellite communication system is now ready to use.
    The priority link, which is the link over which commands are send, is determined the following ways:
-
    - If no link is commanded by the user a regular radio telemetry link is preferred over the high latency link.
    - The autopilot and QGC will fall back from the regular radio telemetry to the high latency link if the vehicle is armed and the radio telemetry link is lost (no MAVLink messages received for a certain time).
      As soon as the radio telemetry link is regained QGC and the autopilot will switch back to it.
@@ -250,7 +247,6 @@ If in the terminal where the `udp2rabbit.py` script is running within a couple o
 - Satellite communication messages from the airplane are received but no commands can be transmitted (the vehicle does not react)
   - Check the settings of the relay server and make sure that they are correct, especially the IMEI.
 - No satellite communication messages from the airplane arrive on the ground station:
-
   - Check using the system console if the _iridiumsbd_ driver started and if it did that a signal from any satellite is received by the module:
 
     ```sh
@@ -261,7 +257,6 @@ If in the terminal where the `udp2rabbit.py` script is running within a couple o
   - Check if the link is connected and that its settings are correct.
 
 - The IridiumSBD driver does not start:
-
   - Reboot the vehicle.
     If that helps increase the sleep time in the `extras.txt` before the driver is started.
     If that does not help make sure that the Pixhawk and the module have the same ground level. Confirm also that the baudrate of the module is set to 115200.

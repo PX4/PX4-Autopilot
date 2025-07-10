@@ -1,16 +1,18 @@
 # Камера відстеження Intel® RealSense™ T265 (ВІО)
 
-[Камера відстеження Intel® RealSense™ T265](https://www.intelrealsense.com/tracking-camera-t265/) надає одометричну інформацію яку можна використати для [ВІО](../computer_vision/visual_inertial_odometry.md), доповнюючи або замінюючи інші системи позиціювання на PX4.
-
 :::tip
-Ця камера рекомендована і використовується у [Візуально-інерційна одометрія (ВІО) > Рекомендовані налаштування](../computer_vision/visual_inertial_odometry.md#suggested-setup).
+This camera is discontinued.
 :::
+
+The _Intel® RealSense™ Tracking Camera T265_ provides odometry information that can be used for [VIO](../computer_vision/visual_inertial_odometry.md), augmenting or replacing other positioning systems on PX4.
+
+It is used in the [Visual Inertial Odometry (VIO) > Suggested Setup](../computer_vision/visual_inertial_odometry.md#suggested-setup).
 
 ![Камера відстеження Intel® RealSense™ T265 - зображення збоку](../../assets/peripherals/camera_vio/t265_intel_realsense_tracking_camera_photo_angle.jpg)
 
 ## Де купити
 
-[Intel® RealSense™ Tracking Camera T265](https://www.intelrealsense.com/tracking-camera-t265/) (store.intelrealsense.com)
+No longer available.
 
 ## Інструкції з налаштування
 

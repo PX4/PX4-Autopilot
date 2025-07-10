@@ -22,7 +22,6 @@ The set of compatible airframes vs simulators is:
 | ---------------------------------------------------------------------------------------------------------------- | --------------- | -------------- | ------- |
 | [HIL Quadcopter X](../airframes/airframe_reference.md#copter_simulation_hil_quadcopter_x)                        | 1001            | Y              | Y       |
 | [HIL Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_standard_vtol_hil_standard_vtol_quadplane) | 1002            | Y              |         |
-| [Generic Quadrotor x](../airframes/airframe_reference.md#copter_quadrotor_x_generic_quadcopter) copter           | 4001            | Y              | Y       |
 
 <a id="simulation_environment"></a>
 
@@ -34,7 +33,7 @@ The simulator acts as gateway to share MAVLink data between PX4 and _QGroundCont
 
 :::info
 The simulator can also be connected via UDP if the flight controller has networking support and uses a stable, low-latency connection (e.g. a wired Ethernet connection - WiFi is usually not sufficiently reliable).
-For example, this configuration has been tested with PX4 running on a Raspberry Pi connected via Ethernet to the computer (a startup configuration that includes the command for running jMAVSim can be found [here](https://github.com/PX4/PX4-Autopilot/blob/main/posix-configs/rpi/px4_hil.config)).
+For example, this configuration has been tested with PX4 running on a Raspberry Pi connected via Ethernet to the computer (a startup configuration that includes the command for running jMAVSim can be found in [px4_hil.config](https://github.com/PX4/PX4-Autopilot/blob/main/posix-configs/rpi/px4_hil.config)).
 :::
 
 아래 다이어그램은 시뮬레이션 환경을 나타냅니다.
@@ -60,34 +59,59 @@ SITL은 시뮬레이션 환경의 컴퓨터에서 실행되며, 해당 환경에
 
 ## HITL 설정
 
+## Check if HITL is in Firmware
+
+The module required for HITL ([`pwm_out_sim`](../modules/modules_driver.md#pwm-out-sim)) is not built into all PX4 firmware by default.
+
+To check if the module is present on your Flight Controller:
+
+1. Open QGroundControl
+
+2. Open **Analyze Tools > Mavlink Console**.
+
+3. Type the following command in the console:
+
+   ```sh
+   pwm_out_sim status
+   ```
+
+4. If the returned value is `nsh: pwm_out_sim: command not found`, then you don't have the module installed.
+
+If `pwm_out_sim` is not present you will need to add it to the firmware in order to use HITL simulation.
+
+### Adding HITL modules to the Firmware
+
+Add the following key to the configuration file for your flight controller to include the required module (for an example see [boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board)).
+Then re-build the firmware and flash it to the board.
+
+```text
+CONFIG_MODULES_SIMULATION_PWM_OUT_SIM=y
+```
+
+You can alternatively use the following command to launch a GUI configuration tool, and interactively enable them at the path: **modules > Simulation > pwm_out_sim**.
+For example, to update fmu-v6x you would use:
+
+```sh
+make px4_fmu-v6x boardconfig
+```
+
 ### PX4 설정
 
 1. Connect the autopilot directly to _QGroundControl_ via USB.
 
-2. HITL 모드를 활성화합니다.
-
-   1. Open **Setup > Safety** section.
-   2. Enable HITL mode by selecting **Enabled** from the _HITL Enabled_ list:
-
-      ![QGroundControl HITL configuration](../../assets/gcs/qgc_hitl_config.png)
-
-3. 기체를 선택합니다.
-
+2. 기체를 선택합니다.
    1. Open **Setup > Airframes**
    2. Select a [compatible airframe](#compatible_airframe) you want to test.
       Then click **Apply and Restart** on top-right of the _Airframe Setup_ page.
 
-      ![Select Airframe](../../assets/gcs/qgc_hil_config.png)
+3. 필요한 경우 RC 또는 조이스틱을 보정합니다.
 
-4. 필요한 경우 RC 또는 조이스틱을 보정합니다.
-
-5. UDP를 설정합니다.
-
+4. UDP를 설정합니다.
    1. Under the _General_ tab of the settings menu, uncheck all _AutoConnect_ boxes except for **UDP**.
 
       ![QGC Auto-connect settings for HITL](../../assets/gcs/qgc_hitl_autoconnect.png)
 
-6. (선택 사항) 조이스틱과 안정장치를 설정합니다.
+5. (선택 사항) 조이스틱과 안정장치를 설정합니다.
    Set the following [parameters](../advanced_config/parameters.md) in order to use a joystick instead of an RC remote control transmitter:
 
    - [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) to "Joystick/No RC Checks". 이것은 조이스틱 입력을 허용하고, RC 입력을 비활성화합니다.

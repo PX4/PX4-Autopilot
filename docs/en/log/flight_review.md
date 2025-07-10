@@ -1,6 +1,6 @@
 # Log Analysis using Flight Review
 
-The [Flight Review](http://logs.px4.io) plots for a flight can be used to analyze general vehicle condition.
+The [Flight Review](https://logs.px4.io/) plots for a flight can be used to analyze general vehicle condition.
 
 The plots are meant to be self-explanatory, but it takes some experience to know what ranges are acceptable and what a plot should look like.
 This page explains how to interpret the plots and identify common problems.

@@ -85,9 +85,7 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
 ### 旋翼机
 
 - [px4_msgs::msg::TrajectorySetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/TrajectorySetpoint.msg)
-
   - 支持以下输入组合：
-
     - Position setpoint (`position` different from `NaN`). Non-`NaN` values of velocity and acceleration are used as feedforward terms for the inner loop controllers.
     - Velocity setpoint (`velocity` different from `NaN` and `position` set to `NaN`). Non-`NaN` values acceleration are used as feedforward terms for the inner loop controllers.
     - Acceleration setpoint (`acceleration` different from `NaN` and `position` and `velocity` set to `NaN`)
@@ -95,18 +93,14 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
   - 所有值都是基于NED(北, 东, 地)坐标系，位置、速度和加速的单位分别为\[m\], \[m/s\] 和\[m/s^2\] 。
 
 - [px4_msgs::msg::VehicleAttitudeSetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleAttitudeSetpoint.msg)
-
   - 支持以下输入组合：
-
     - quaternion `q_d` + thrust setpoint `thrust_body`.
       Non-`NaN` values of `yaw_sp_move_rate` are used as feedforward terms expressed in Earth frame and in \[rad/s\].
 
   - 姿态四元数表示无人机机体坐标系FRD(前、右、下) 与NED坐标系之间的旋转。 这个推力是在无人机体轴FRD坐标系下，并归一化为 \[-1, 1\] 。
 
 - [px4_msgs::msg::VehicleRatesSetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleRatesSetpoint.msg)
-
   - 支持以下输入组合：
-
     - `roll`, `pitch`, `yaw` and `thrust_body`.
 
   - 所有值都表示在无人机体轴FRD坐标系下。 角速率(roll, pitch, yaw) 单位为\[rad/s\] ，thrust_body归一化为 \[-1, 1\]。
@@ -116,7 +110,6 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
 下面的offboard控制模式会绕过所有PX4内部的控制环，应当非常谨慎地使用。
 
 - [px4_msgs::msg::VehicleThrustSetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleThrustSetpoint.msg) + [px4_msgs::msg::VehicleTorqueSetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleTorqueSetpoint.msg)
-
   - 支持以下输入组合：
     - `xyz` for thrust and `xyz` for torque.
   - 所有值都在无人机体轴 FRD 坐标系中表示，并且归一化为\[-1, 1\]。
@@ -134,9 +127,7 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
 ### 直升机/垂直起降
 
 - [SET_POSITION_TARGET_LOCAL_NED](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_LOCAL_NED)
-
   - The following input combinations are supported: <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/FlightTasks/tasks/Offboard/FlightTaskOffboard.cpp#L166-L170 -->
-
     - Position setpoint (only `x`, `y`, `z`)
     - Velocity setpoint (only `vx`, `vy`, `vz`)
     - Acceleration setpoint (only `afx`, `afy`, `afz`)
@@ -146,9 +137,7 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
   - PX4 supports the following `coordinate_frame` values (only): [MAV_FRAME_LOCAL_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_LOCAL_NED) and [MAV_FRAME_BODY_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_BODY_NED).
 
 - [SET_POSITION_TARGET_GLOBAL_INT](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_GLOBAL_INT)
-
   - The following input combinations are supported: <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/FlightTasks/tasks/Offboard/FlightTaskOffboard.cpp#L166-L170 -->
-
     - Position setpoint (only `lat_int`, `lon_int`, `alt`)
 
     - Velocity setpoint (only `vx`, `vy`, `vz`)
@@ -172,11 +161,8 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
 ### Fixed-wing
 
 - [SET_POSITION_TARGET_LOCAL_NED](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_LOCAL_NED)
-
   - The following input combinations are supported (via `type_mask`): <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/FlightTasks/tasks/Offboard/FlightTaskOffboard.cpp#L166-L170 -->
-
     - Position setpoint (`x`, `y`, `z` only; velocity and acceleration setpoints are ignored).
-
       - Specify the _type_ of the setpoint in `type_mask` (if these bits are not set the vehicle will fly in a flower-like pattern):
         ::: info
         Some of the _setpoint type_ values below are not part of the MAVLink standard for the `type_mask` field.
@@ -196,11 +182,8 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
   - PX4 supports the coordinate frames (`coordinate_frame` field): [MAV_FRAME_LOCAL_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_LOCAL_NED) and [MAV_FRAME_BODY_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_BODY_NED).
 
 - [SET_POSITION_TARGET_GLOBAL_INT](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_GLOBAL_INT)
-
   - The following input combinations are supported (via `type_mask`): <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/FlightTasks/tasks/Offboard/FlightTaskOffboard.cpp#L166-L170 -->
-
     - Position setpoint (only `lat_int`, `lon_int`, `alt`)
-
       - Specify the _type_ of the setpoint in `type_mask` (if these bits are not set the vehicle will fly in a flower-like pattern):
 
         ::: info
@@ -225,11 +208,8 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
 ### 无人车
 
 - [SET_POSITION_TARGET_LOCAL_NED](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_LOCAL_NED)
-
   - The following input combinations are supported (in `type_mask`): <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/FlightTasks/tasks/Offboard/FlightTaskOffboard.cpp#L166-L170 -->
-
     - Position setpoint (only `x`, `y`, `z`)
-
       - Specify the _type_ of the setpoint in `type_mask`:
 
         ::: info
@@ -245,13 +225,11 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
   - PX4 supports the coordinate frames (`coordinate_frame` field): [MAV_FRAME_LOCAL_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_LOCAL_NED) and [MAV_FRAME_BODY_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_BODY_NED).
 
 - [SET_POSITION_TARGET_GLOBAL_INT](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_GLOBAL_INT)
-
   - The following input combinations are supported (in `type_mask`): <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/FlightTasks/tasks/Offboard/FlightTaskOffboard.cpp#L166-L170 -->
     - Position setpoint (only `lat_int`, `lon_int`, `alt`)
 
   - Specify the _type_ of the setpoint in `type_mask` (not part of the MAVLink standard).
     值为：
-
     - 下面的比特位没有置位，是正常表现。
     - 12288：悬停设定值（无人机足够接近设定值时会停止）。
 
@@ -279,7 +257,7 @@ _Offboard mode_ is affected by the following parameters:
 
 ## 开发者资源
 
-Typically developers do not directly work at the MAVLink layer, but instead use a robotics API like [MAVSDK](https://mavsdk.mavlink.io/) or [ROS](http://www.ros.org/) (these provide a developer friendly API, and take care of managing and maintaining connections, sending messages and monitoring responses - the minutiae of working with _Offboard mode_ and MAVLink).
+Typically developers do not directly work at the MAVLink layer, but instead use a robotics API like [MAVSDK](https://mavsdk.mavlink.io/) or [ROS](https://www.ros.org/) (these provide a developer friendly API, and take care of managing and maintaining connections, sending messages and monitoring responses - the minutiae of working with _Offboard mode_ and MAVLink).
 
 以下资源可能对开发者有用：
 

@@ -1,6 +1,6 @@
 # ARK Electron Microhard Серійне Телеметрійне Радіо
 
-_ARK Electron Microhard Serial Telemetry Radios_ integrate the [Microhard Pico Serial](http://microhardcorp.com/P900.php) P900 RF module.
+_ARK Electron Microhard Serial Telemetry Radios_ integrate the [Microhard Pico Serial](https://microhardcorp.com/P900.php) P900 RF module.
 Це може бути використано для активації комунікації MAVLink між радіо на транспортному засобі та GCS.
 
 Радіостанції Microhard Pico Serial - це радіостанції з вихідною потужністю (до) 1 Вт, які підтримують режими точка-точка, точка-багато точок та мережеві режими.

@@ -93,7 +93,7 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 
 			// we need to re-initialise covariances and abort this fusion step
 			if (update_all_states) {
-				resetQuatCov(_params.mag_heading_noise);
+				resetQuatCov(_params.ekf2_head_noise);
 			}
 
 			resetMagEarthCov();

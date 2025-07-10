@@ -41,8 +41,8 @@ This build follows the original design from [Brescianini, Dario, and Raffaello D
     - стрижні: 12x328мм, 6x465мм
   - Гвинти:
     - Двигуни та стійки: 40x M3x12мм
-    - FC кріплення: 4x M3x35mm, 4x M3 гайки
-  - Опори: 4x 40мм
+  - FC mount: 4x M3x35mm, 4x M3 nuts
+  - Standoffs: 4x 40mm
 - [3D model](https://cad.onshape.com/documents/eaff30985f1298dc6ce8ce13/w/2f662e604240c4082682e5e3/e/ad2b2245b73393cf369132f7)
 
 ![Parts List](../../assets/airframes/multicopter/omnicopter/parts_list.jpg)
@@ -57,10 +57,13 @@ This build follows the original design from [Brescianini, Dario, and Raffaello D
   Ви помітите, якщо це неправильно, коли кути важеля не вірні.
 
 :::
+
 - Відріжте важелі
+
 - Перевірте, що все працює, з'єднуючи частини рамки разом:
 
   ![Frame](../../assets/airframes/multicopter/omnicopter/frame_only.jpg)
+
 - Розмістіть двигуни якомога далі від центру, без торкання гвинтів до важелів.
 
 ### Електроніка
@@ -117,7 +120,7 @@ Make sure the motors do not overheat with the changed settings.
 - Параметри:
   - Change the desaturation logic for better attitude tracking: set [CA_METHOD](../advanced_config/parameter_reference.md#CA_METHOD) to 0.
   - Disable failure detection: set [FD_FAIL_P](../advanced_config/parameter_reference.md#FD_FAIL_P) and [FD_FAIL_R](../advanced_config/parameter_reference.md#FD_FAIL_R) to 0.
-- [This file](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/multicopter/omnicopter/omnicopter.params) contains all the relevant parameters.
+- [This file](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/multicopter/omnicopter/omnicopter.params) contains all the relevant parameters.
 
 ## Відео
 

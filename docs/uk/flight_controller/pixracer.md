@@ -16,7 +16,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 
 ## Основні характеристики
 
-- Main System-on-Chip: [STM32F427VIT6 rev.3](http://www.st.com/web/en/catalog/mmc/FM141/SC1169/SS1577/LN1789)
+- Main System-on-Chip: [STM32F427VIT6 rev.3](https://www.st.com/en/microcontrollers-microprocessors/stm32f427-437.html)
   - CPU: 180 МГц ARM Cortex<sup>&reg;</sup> M4 з одноточним FPU
   - RAM: 256 KB SRAM (L1)
 - Стандартний FPV form factor: 36x36 mm зі стандартним 30.5 mm hole pattern
@@ -41,7 +41,8 @@ Pixracer is available from the [mRobotics.io](https://store.mrobotics.io/mRo-Pix
 
 ## Набір
 
-Pixracer розроблений для використання окремого джерела живлення авіоніки. Це необхідно для того, щоб уникнути стрибків струму від моторів чи ESC, що повертається до політного контролера і турбує його чутливі сенсори.
+Pixracer розроблений для використання окремого джерела живлення авіоніки.
+Це необхідно для того, щоб уникнути стрибків струму від моторів чи ESC, що повертається до політного контролера і турбує його чутливі сенсори.
 
 - Модуль живлення (з вимірюванням напруги та струму)
 - Розгалужувач I2C (підтримка AUAV, Hobbyking та 3DR<sup>&reg;</sup> периферійних пристроїв)
@@ -53,7 +54,7 @@ Pixracer розроблений для використання окремого
 Це звільняє його від потреби будь-якої десктопної системи.
 
 - [ESP8266 Wifi](../telemetry/esp8266_wifi_module.md)
-- [Custom ESP8266 MAVLink firmware](https://github.com/dogmaphobic/mavesp8266)
+- [Custom ESP8266 MAVLink firmware](https://github.com/BeyondRobotix/mavesp8266)
 
 :::info
 Firmware upgrade is not yet enabled over WiFi (it is supported by the default bootloader but not yet enabled).
@@ -85,7 +86,7 @@ For more information see: [Pixracer Wiring Quickstart > External Telemetry](../a
 
 ## З’єднання
 
-All connectors follow the [Pixhawk connector standard](https://pixhawk.org/pixhawk-connector-standard/).
+All connectors follow the [Pixhawk connector standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 Якщо не вказано інше, всі конектори - це JST GH.
 
 ## Схема розташування виводів
@@ -204,8 +205,8 @@ The reference is provided as: [Altium Design Files](https://github.com/AUAV-Open
 
 The following PDF files are provided for _convenience only_:
 
-- [pixracer-rc12-12-06-2015-1330.pdf](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixracer/pixracer-rc12-12-06-2015-1330.pdf)
-- [pixracer-r14.pdf](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixracer/pixracer-r14.pdf) - R14 or RC14 is printed next to the SDCard socket
+- [pixracer-rc12-12-06-2015-1330.pdf](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixracer/pixracer-rc12-12-06-2015-1330.pdf)
+- [pixracer-r14.pdf](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixracer/pixracer-r14.pdf) - R14 or RC14 is printed next to the SDCard socket
 
 ## Збірка прошивки
 

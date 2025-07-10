@@ -25,7 +25,7 @@ PX4 визначає ряд [стандартних мелодій/тем](../ge
 
 Кроки використання програмного забезпечення:
 
-1. Завантажити [DosBox](http://www.dosbox.com/) і встановити додаток
+1. Download [DosBox](https://www.dosbox.com/) and install the app
 
 2. Завантажити [Майстер Мелодій](ftp://archives.thebbs.org/ansi_utilities/melody21.zip) та розпакувати в нову директорію
 

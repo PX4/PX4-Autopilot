@@ -6,10 +6,11 @@ Durafly™ Auto-G2 Gyrocopter](https://hobbyking.com/en_us/duraflytm-auto-g2-gyr
 ![Auto-G2](../../assets/airframes/autogyro/auto-g2/autog2_title.jpg)
 
 ::: info
-Auto-G2 autogyro’s airframe is developed and maintained by ThuderFly s.r.o. company.
+Auto-G2 autogyro’s airframe was originally developed by [ThunderFly](https://www.thunderfly.cz/) and has since evolved into the updated [TF-G2 platform](https://docs.thunderfly.cz/instruments/TF-G2).
+Check out our site for more information on the current [TF-G2 commercial airframe](https://www.thunderfly.cz/tf-g2.html).
 :::
 
-All the added parts are available on [GitHub](https://github.com/ThunderFly-aerospace/TF-G2/) as an open-source project.
+All the added parts are available on [GitHub](https://github.com/ThunderFly-aerospace/Auto-G2) as an open-source project.
 Printed parts are designed in [OpenSCAD](https://www.openscad.org/).
 
 
@@ -23,7 +24,7 @@ Durafly Auto-G2 autogyro box contains the autogyro polystyrene body, ESC, motor 
 Modification of the Durafly model are as follows:
 * Addition of an autopilot
 * Rotor head with two axes of freedom (pitch, roll)
-* Two blade rotor with safely breakable rotor plate
+* Two-blade rotor with safely breakable rotor plate
 * Larger landing gears
 
 ### Autopilot
@@ -31,15 +32,15 @@ Modification of the Durafly model are as follows:
 The aircraft with all of the modifications is already quite heavy.
 Therefore a low-weight flight controller is recommended (e.g. [Holybro pix32](../flight_controller/holybro_pix32.md) or [CUAV nano](../flight_controller/cuav_v5_nano.md)).
 
-The autopilot should be mounted on the bottom side of the autogyro on a 3D printed damping pad.
+The autopilot should be mounted on the bottom side of the autogyro on a 3D-printed damping pad.
 We have used the damping platform found on [thingiverse](https://www.thingiverse.com/thing:160655)
 
 
 ### Rotor-head
 
-The rotor head is (compared to the original autogyro) modified so it allows a motion in both roll and pitch axes.
+The rotor head is (compared to the original autogyro) modified so that it allows a motion in both roll and pitch axes.
 Thanks to this, the rotor can control turning as well climbing of the autogyro.
-Directional control of autogyro by rotor is possible even in case of low airspeed compared to the original rudder and elevator control.
+Directional control of an autogyro by the rotor is possible even in the case of low airspeed compared to the original rudder and elevator control.
 
 The printed rotor head consists of three parts.
 The bottom part is screwed using an M2.5 screw to the original plywood pylon.
@@ -50,48 +51,48 @@ From the rotor side, the screw head has a large area washer.
 Rotor axis, made of M3x50 high tensile strength screw, goes through the third part.
 Bearings used are 623 2Z C3 SKF.
 At the end of this part, there are ball rods attached via M2.5 screws to servos positioned in the bottom part of the pylon.
-It is preferable to exchange these original servos for better quality ones as they are weak and in the original construction they help each other.
+It is preferable to exchange these original servos for better quality ones as they are weak and in the original construction, they help each other.
 
 ![Rotorhead](../../assets/airframes/autogyro/auto-g2/modif_rh.png)
 
 ### Two-blade rotor
 
-The original Durafly Auto-G2 autogyro has a three-blade rotor, which as been modified in this built to use a two-blade rotor.
+The original Durafly Auto-G2 autogyro has a three-blade rotor, which has been modified in this build to use a two-blade rotor.
 The reasons are reduced vibration and easier construction.
 Printed central parts are designed to be used both with Chinese Durafly blades or 3D printed blades.
 
-The rotor's central part consists of several components which have following roles:
+The rotor's central part consists of several components, which have the following roles:
 * They enable blade flapping.
-* They have deformation zones that break upon impact with ground.
+* They have deformation zones that break upon impact with the ground.
   Thanks to this, the rotor can usually be repaired quickly by replacing only one component.    
-* Easy setup of blades angle-of-attack.
+* Easy setup of blades' angle-of-attack.
 
 #### HobbyKing rotor blades
 
 It is possible to use a printed central part of the rotor with the original blades.
 These blades can be bought on [HobbyKing](https://hobbyking.com/en_us/duraflytm-auto-g-gyrocopter-821mm-replacement-main-blade-1pcs-bag.html).
-Hobbyking blades differ in the position of center of gravity and it is therefore necessary to balance them properly.
+Hobbyking blades differ in the position of the center of gravity, and it is therefore necessary to balance them properly.
 
 #### 3D printed rotor blades
 
 It is also possible to print rotor blades.
 
-The printed rotor blads are still under development, but preliminary tests show they are of better quality mostly thanks to their precise shape and absence of longitudinal grooves.
+The printed rotor blades are still under development, but preliminary tests show they are of better quality, mostly thanks to their precise shape and absence of longitudinal grooves.
 However, some of the production processes still need to be tuned.
 
 ![Blades assembly](../../assets/airframes/autogyro/auto-g2/modif_blade.png)
 
 #### Balancing
 
-Proper blades balance is very important to minimize vibrations.
+Proper blade balance is very important to minimize vibrations.
 Blades have to be balanced in such a way, that the center of gravity is located in the middle of the rotor axis.
 
-Printed blades are balanced in the production process and there is no need to further balance them.
+Printed blades are balanced in the production process, and there is no need to further balance them.
 
 ### Release device
 
-If you want to launch an autogyro using a winch or if you want to launch it by towing you need to print a release device.
-It is a small box equipped with servo which pulls out the pin and releases the rope.
+If you want to launch an autogyro using a winch or if you want to launch it by towing, you need to print a release device.
+It is a small box equipped with a servo that pulls out the pin and releases the rope.
 
 The whole part is glued, using a hot-melt adhesive, under the engine on the bottom part of an autogyro’s body.
 If an autogyro is towed by a rope its engine must not be turned on.

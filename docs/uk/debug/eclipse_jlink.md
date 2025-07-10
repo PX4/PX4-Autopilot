@@ -52,7 +52,6 @@ For more information, see: [https://gnu-mcu-eclipse.github.io/debug/jlink/instal
    ![Eclipse: Segger J-Link Path](../../assets/debug/eclipse_segger_jlink_path.png)
 
 7. Пакети з оновленнями:
-
    - Click the small icon on the top right called _Open Perspective_ and open the _Packs_ perspective.
       ![Eclipse: Workspace](../../assets/debug/eclipse_workspace_perspective.png)
 
@@ -107,7 +106,6 @@ Task-aware debugging (also known as [thread-aware debugging](https://www.segger.
 Для активації цієї функції в Eclipse:
 
 1. You first need to enable `CONFIG_DEBUG_TCBINFO` in the NuttX configuration for your build (to expose the TCB offsets).
-
    - Відкрийте термінал у кореневій теці вихідного коду PX4-Autopilot
 
    - In the terminal, open `menuconfig` using the appropriate make target for the build.
@@ -149,7 +147,7 @@ Adding missing SVD files for the _Peripheral View_:
 
    ![Eclipse: MCU Packages](../../assets/debug/eclipse_mcu_packages.png)
 
-2. Завантажте відсутні пакети з: http://www.keil.com/dd2/Pack/
+2. Download missing packages from: https://www.keil.arm.com/devices/
 
 3. Open downloaded pack with a decompression tool, and extract the **.SVD** files from: **/CMSIS/SVD**.
 

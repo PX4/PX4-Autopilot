@@ -41,7 +41,7 @@ The [Pixhawk project](https://pixhawk.org/) creates open hardware designs in the
 Manufacturers are encouraged to take the [open designs](https://github.com/pixhawk/Hardware) and create products that are best suited to a particular market or use case (the physical layout/form factor not part of the open specification). Boards based on the same design are binary compatible.
 
 :::info
-While a physical connector standard is not mandated, newer products generally follow the [Pixhawk Connector Standard](https://pixhawk.org/pixhawk-connector-standard/).
+While a physical connector standard is not mandated, newer products generally follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 :::
 
 The project also creates reference autopilot boards based on the open designs, and shares them under the same [licence](#licensing-and-trademarks).

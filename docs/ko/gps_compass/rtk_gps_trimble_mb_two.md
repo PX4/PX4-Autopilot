@@ -1,6 +1,6 @@
 # Trimble MB-Two
 
-The [Trimble MB-Two RTK GPS receiver](https://www.trimble.com/Precision-GNSS/MB-Two-Board.aspx) is a high-end, dual-frequency [RTK GPS module](../gps_compass/rtk_gps.md) that can be configured as either base or rover.
+The [Trimble MB-Two RTK GPS receiver](https://oemgnss.trimble.com/en/products/receiver-modules/mb-two) is a high-end, dual-frequency [RTK GPS module](../gps_compass/rtk_gps.md) that can be configured as either base or rover.
 
 정확한 위치 정보를 제공하는 것만 아니라, MB-Two는 방향 각도를 추정할 수 있습니다 (이중 안테나 지원이 있음). 이것은 금속 구조물 근처에서 비행시 나침반 정보가 부정확한 상황에서 매우 유용합니다.
 
@@ -18,7 +18,7 @@ The [Trimble MB-Two RTK GPS receiver](https://www.trimble.com/Precision-GNSS/MB-
 ## 안테나 케이블
 
 Trimble MB-Two에는 2개의 이중 주파수(L1/L2) 안테나가 필요합니다.
-A good example is the [Maxtenna M1227HCT-A2-SMA](http://www.maxtena.com/products/helicore/m1227hct-a2-sma/)
+A good example is the [Maxtenna M1227HCT-A2-SMA](https://www.maxtena.com/products/helicore/m1227hct-a2-sma/)
 (which can be bought, for instance, from [Farnell](https://uk.farnell.com/maxtena/m1227hct-a2-sma/antenna-1-217-1-25-1-565-1-61ghz/dp/2484959)).
 
 장치의 안테나 커넥터 유형은 MMCX입니다.

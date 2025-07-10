@@ -24,5 +24,5 @@
 
 - [支持](../contribute/support.md)：使用 [讨论板](https://discuss.px4.io//) 和其他支持渠道获得帮助。
 - [每周开发者电话会议](../contribute/dev_call.md)：这是一个很好的机会来会见 PX4 开发团队，讨论平台技术细节(包括pull requests， 主要问题，一般性问答）。
-- [协议](../contribute/licenses.md): 你可以做什么代码(根据允许的 [BSD 3 条款许可](https://opensource.org/licenses/BSD-3-Clause)！)
+- [Licences](../contribute/licenses.md): What you can do with the code (free to use and modify under terms of the permissive [BSD 3-clause license](https://opensource.org/license/BSD-3-Clause)!)
 - [贡献](../contribute/index.md): 如何使用我们的 [源代码](../contribute/code.md)。

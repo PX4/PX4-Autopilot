@@ -94,7 +94,7 @@ Reboot the flight controller in order for parameter changes to take effect.
 
 #### Налаштування EKF2_EV_DELAY
 
-[EKF2_EV_DELAY](../advanced_config/parameter_reference.md#EKF2_EV_DELAY) is the _Vision Position Estimator delay relative to IMU measurements_.
+[EKF2_EV_DELAY](../advanced_config/parameter_reference.md#EKF2_EV_DELAY) - це _затримка оцінювача позиції за допомогою візійної системи відносно вимірювань_.
 
 Іншими словами, це різниця між міткою часу системи комп'ютерного зору та "фактичним" часом захоплення, який був би зафіксований годинником IMU ("базовим годинником" для EKF2).
 
@@ -187,7 +187,7 @@ MAVROS має плагіни для передачі візуальної оці
 Ви можете використовувати будь-який з наведених вище пайплайнів за допомогою LPE.
 
 Якщо ви працюєте з EKF2, підтримуються лише "vision" пайплайни.
-To use MoCap data with EKF2 you will have to [remap](http://wiki.ros.org/roslaunch/XML/remap) the pose topic that you get from MoCap:
+To use MoCap data with EKF2 you will have to [remap](https://wiki.ros.org/roslaunch/XML/remap) the pose topic that you get from MoCap:
 
 - MoCap ROS topics of type `geometry_msgs/PoseStamped` or `geometry_msgs/PoseWithCovarianceStamped` must be remapped to `/mavros/vision_pose/pose`.
   The `geometry_msgs/PoseStamped` topic is most common as MoCap doesn't usually have associated covariances to the data.
@@ -205,7 +205,7 @@ To use MoCap data with EKF2 you will have to [remap](http://wiki.ros.org/roslaun
 | World | FRD or NED (X **N**orth, Y **E**ast, Z **D**own) | FLU or ENU (X **E**ast, Y **N**orth, Z **U**p), with the naming being `odom` or `map` |
 
 :::tip
-See [REP105: Coordinate Frames for Mobile Platforms](http://www.ros.org/reps/rep-0105.html) for more information about ROS frames.
+See [REP105: Coordinate Frames for Mobile Platforms](https://www.ros.org/reps/rep-0105.html) for more information about ROS frames.
 :::
 
 Обидві системи координат показані на зображенні нижче (FRD зліва / FLU справа).
@@ -236,7 +236,7 @@ With a remapping you can directly publish it on `mocap_pose_estimate` as it is w
 ```
 
 Make sure that you change the values of yaw, pitch and roll such that it properly attaches the external pose's body frame to the `base_link` or `base_link_frd`.
-Have a look at the [tf package](http://wiki.ros.org/tf#static_transform_publisher) for further help on how to specify the transformation between the frames.
+Have a look at the [tf package](https://wiki.ros.org/tf#static_transform_publisher) for further help on how to specify the transformation between the frames.
 Ви можете використовувати rviz, щоб перевірити, чи ви правильно прикріпили рамку. The name of the `external_pose_child_frame` has to match the child_frame_id of your `nav_msgs/Odometry` message.
 Те ж саме стосується і для опорної рамки зовнішньої позиції. You have to attach the reference frame of the external pose as child to either the `odom` or `odom_frd` frame. Адаптуйте тому відповідно кодовий рядок.
 

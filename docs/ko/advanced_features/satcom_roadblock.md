@@ -9,7 +9,7 @@
 
 위성 통신에는 다음의 요소들이 필요합니다.
 
-- A [RockBlock 9603 Iridium Satellite Modem](https://www.iridium.com/products/rock-seven-rockblock-9603/) module connected to a Pixhawk flashed with the PX4 Autopilot.
+- A [RockBlock 9603 Iridium Satellite Modem](https://www.iridium.com/products/ground-control-rockblock-9603/) module connected to a Pixhawk flashed with the PX4 Autopilot.
 - Ubuntu Linux를 실행하는 메시지 릴레이 서버
 - A ground station computer running _QGroundControl_ on Ubuntu Linux
 
@@ -21,7 +21,7 @@
 The setup was tested with the current release of _QGroundControl_ running on Ubuntu 14.04 and 16.04.
 
 - 다른 지상국 및 운영체제를 사용할 수 있지만, 아직 테스트되지 않았습니다.
-- The [RockBlock MK2](https://www.groundcontrol.com/us/product/rockblock-9602-satellite-modem/) module can also be used.
+- The [RockBlock MK2](https://www.groundcontrol.com/product/rockblock-9602-satellite-modem/) module can also be used.
   RockBlock 9603 모듈은 크기가 작고 가볍우면서도 동일한 기능을 제공하기 때문에 권장됩니다.
 
 :::
@@ -34,7 +34,7 @@ The setup was tested with the current release of _QGroundControl_ running on Ubu
 - Each message transmitted over the system costs one _credit_ per 50 bytes.
   번들 크기에 따라 RockBlock에서 신용당 0.04파운드 0.11파운드에 신용대출을 구입할 수 있습니다.
 
-Refer to the [RockBlock Documentation](https://docs.rockblock.rock7.com/docs) for a detailed explanation of the modules, running costs and _RockBlock_ in general.
+Refer to the [RockBlock Documentation](https://docs.groundcontrol.com/iot/rockblock) for a detailed explanation of the modules, running costs and _RockBlock_ in general.
 
 ## 기체 설정
 
@@ -43,15 +43,15 @@ Refer to the [RockBlock Documentation](https://docs.rockblock.rock7.com/docs) fo
 RockBlock 모듈을 Pixhawk의 직렬 포트에 연결합니다.
 모듈의 전원 요구 사항으로 인하여 5V에서 최대 0.5A가 필요하므로 고출력 직렬 포트를 통해서만 전원을 공급할 수 있습니다.
 사용 가능한 별도의 전원을 사용시에는 Pixhawk와 동일한 접지이어야 합니다.
-The details of the [connectors](https://docs.rockblock.rock7.com/docs/connectors) and the [power requirements](https://docs.rockblock.rock7.com/docs/power-supply) can be found in the RockBlock documentation.
+The details of the [connectors](https://docs.groundcontrol.com/iot/rockblock/specification/connectors-wiring) and the [power requirements](https://docs.groundcontrol.com/iot/rockblock/electrical) can be found in the RockBlock documentation.
 
 ### 모듈
 
 모듈은 내부 안테나 또는 SMA 커넥터에 연결된 외부 안테나를 사용할 수 있습니다.
-To [switch between the two antennas modes](https://docs.rockblock.rock7.com/docs/switching-rockblock-9603-antenna-mode) the position of a small RF link cable needs to changed.
+To [switch between the two antennas modes](https://docs.groundcontrol.com/iot/rockblock/user-manual/9603-atenna-mode) the position of a small RF link cable needs to changed.
 외부 안테나를 사용하는 경우 모듈 손상을 방지하기 위해 안테나의 전원을 켜기 전에 항상 안테나가 모듈에 연결되어 있는 지 확인하십시오.
 
-모듈의 기본 보드 속도는 19200입니다. However, the PX4 _iridiumsbd_ driver requires a baud rate of 115200 so it needs to be changed using the [AT commands](https://www.groundcontrol.com/en/wp-content/uploads/2022/02/IRDM_ISU_ATCommandReferenceMAN0009_Rev2.0_ATCOMM_Oct2012.pdf).
+모듈의 기본 보드 속도는 19200입니다. However, the PX4 _iridiumsbd_ driver requires a baud rate of 115200 so it needs to be changed using the [AT commands](https://www.groundcontrol.com/wp-content/uploads/2022/02/IRDM_ISU_ATCommandReferenceMAN0009_Rev2.0_ATCOMM_Oct2012.pdf).
 
 1. Connect to the module with using a 19200/8-N-1 setting and check if the communication is working using the command: `AT`.
   The response should be: `OK`.
@@ -101,7 +101,6 @@ Log in to the [account](https://rockblock.rock7.com/Operations) and register the
 릴레이 서버는 Ubuntu 16.04 또는 14.04 버전에서 실행하여야 합니다.
 
 1. 메시지 릴레이로 작동하는 서버에는 고정 IP 주소와  열린 TCP 포트 2개가 있어야 합니다.
-
   - `5672` for the _RabbitMQ_ message broker (can be changed in the _rabbitmq_ settings)
   - `45679` for the HTTP POST interface (can be changed in the **relay.cfg** file)
 
@@ -124,7 +123,7 @@ Log in to the [account](https://rockblock.rock7.com/Operations) and register the
   sudo rabbitmqctl set_permissions iridiumsbd ".*" ".*" ".*"
   ```
 
-5. Clone the [SatComInfrastructure](https://github.com/acfloria/SatComInfrastructure.git) repository:
+5. Clone the [SatComInfrastructure](https://github.com/acfloria/SatComInfrastructure) repository:
 
   ```sh
   git clone https://github.com/acfloria/SatComInfrastructure.git
@@ -240,7 +239,6 @@ If in the terminal where the `udp2rabbit.py` script is running within a couple o
   링크 표시기는 항상 우선 순위 링크의 이름을 표시합니다.
 
 5. 이제 위성 통신 시스템을 사용할 준비가 되었습니다.우선 순위 링크(명령 전송 링크)는 다음 방법으로 결정됩니다.
-
   - 사용자가 링크를 명령하지 않으면, 지연 시간이 큰 링크보다 일반적인 텔레메트리 링크가 선호됩니다.
   - 기체가 시동을 켜고 텔레메트리 링크가 끊어지면(특정 시간 동안 MAVLink 메시지가 수신되지 않을 경우), 오토파일럿과 QGC는 일반 텔레메트리에서 긴 대기 시간 링크로 되돌아갑니다.
     텔레메트리 링크가 복구되는 즉시 QGC와 자동 조종기가 다시 이 링크로 전환됩니다.
@@ -255,7 +253,6 @@ If in the terminal where the `udp2rabbit.py` script is running within a couple o
   - 릴레이 서버의 설정을 확인하고 해당 설정이 올바른지 확인합니다(특히 IMEI).
 
 - 비행기의 위성 통신 메시지는 지상국에 도착하지 않습니다.
-
   - Check using the system console if the _iridiumsbd_ driver started and if it did that a signal from any satellite is received by the module:
 
     ```sh
@@ -267,7 +264,6 @@ If in the terminal where the `udp2rabbit.py` script is running within a couple o
   - 링크가 연결되어 있고 설정이 정확한 지  확인하십시오.
 
 - IridiumSBD 드라이버가 시작되지 않음:
-
   - 기체를 재부팅합니다.
     If that helps increase the sleep time in the `extras.txt` before the driver is started.
     그래도 Pixhawk와 모듈이 동일한 접지 레벨을 유지하는지 확인할 수 있습니다. 모듈의 보레이트가 115200으로 설정되어 있는 지 확인하십시오.

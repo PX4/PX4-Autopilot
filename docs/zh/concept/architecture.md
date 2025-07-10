@@ -3,7 +3,7 @@
 PX4 consists of two main layers: the [flight stack](#flight-stack) is an estimation and flight control system,
 and the [middleware](#middleware) is a general robotics layer that can support any type of autonomous robot, providing internal/external communications and hardware integration.
 
-All PX4 [airframes](../airframes/index.md) share a single codebase (this includes other robotic systems like boats, rovers, submarines etc.). The complete system design is [reactive](http://www.reactivemanifesto.org), which means that:
+All PX4 [airframes](../airframes/index.md) share a single codebase (this includes other robotic systems like boats, rovers, submarines etc.). The complete system design is [reactive](https://www.reactivemanifesto.org), which means that:
 
 - 所有的功能都可以被分割成若干可替换、可重复使用的部件。
 - 通过异步消息传递进行通信。

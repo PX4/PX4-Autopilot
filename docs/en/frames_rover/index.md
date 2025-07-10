@@ -9,42 +9,57 @@ Maintainer volunteers, [contribution](../contribute/index.md) of new features, n
 
 ![Rovers](../../assets/airframes/rover/rovers.png)
 
-PX4 supports the following rover types:
 
-| Rover Type                                          | Steering                                                                                                                                                      |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [**Ackermann**](../frames_rover/ackermann.md)       | Direction is controlled by pointing wheels in the direction of travel. This kind of steering is used on most commercial vehicles, including cars, trucks etc. |
-| [**Differential**](../frames_rover/differential.md) | Direction is controlled by moving the left- and right-side wheels at different speeds (also know as skid or tank steering).                                   |
-| [**Mecanum**](../frames_rover/mecanum.md)           | Direction is controlled by moving each mecanum wheel individually at different speeds and in different directions.                                            |
+PX4 provides support for the three most common types of rovers:
+| Rover Type                        | Steering                                                                                                                                                      |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [**Ackermann**](#ackermann)       | Direction is controlled by pointing wheels in the direction of travel. This kind of steering is used on most commercial vehicles, including cars, trucks etc. |
+| [**Differential**](#differential) | Direction is controlled by moving the left- and right-side wheels at different speeds.                                                                        |
+| [**Mecanum**](#mecanum)           | Direction is controlled by moving each mecanum wheel individually at different speeds and in different directions.                                            |
 
 The supported frames can be seen in [Airframes Reference > Rover](../airframes/airframe_reference.md#rover).
 
-## Flashing the Rover Build
+## Ackermann
 
-Rovers use a custom build that must be flashed onto your flight controller instead of the default PX4 build:
+<Badge type="tip" text="PX4 v1.16" /> <Badge type="warning" text="Experimental" />
 
-1. First build the rover firmware for your flight controller from the `main` branch (there is no release build, so you can't just select this build from QGroundControl).
+An Ackermann rover controls its direction by pointing the front wheels in the direction of travel — the [Ackermann steering geometry](https://en.wikipedia.org/wiki/Ackermann_steering_geometry) compensates for the fact that wheels on the inside and outside of the turn move at different rates.
+This kind of steering is used on most commercial vehicles, including cars, trucks etc.
 
-   To build for rover with the `make` command, replace the `_default` suffix with `_rover`.
-   For example, to build rover for px4_fmu-v6x boards, you would use the command:
+::: info
+PX4 does not require that the vehicle uses the Ackermann geometry and will work with any front-steering rover.
+:::
 
-   ```sh
-   make px4_fmu-v6x_rover
-   ```
+![Axial Trail Honcho](../../assets/airframes/rover/axial_trail_honcho.png)
 
-   ::: info
-   You can also enable the modules in default builds by adding these lines to your [board configuration](../hardware/porting_guide_config.md) (e.g. for fmu-v6x you might add them to [`main/boards/px4/fmu-v6x/default.px4board`](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board)):
+## Differential
 
-   ```sh
-   CONFIG_MODULES_ROVER_ACKERMANN=y
-   CONFIG_MODULES_ROVER_DIFFERENTIAL=y
-   CONFIG_MODULES_ROVER_MECANUM=y
-   ```
+<Badge type="tip" text="PX4 v1.16" /> <Badge type="warning" text="Experimental" />
 
-   Note that adding the rover modules may lead to flash overflow, in which case you will need to disable modules that you do not plan to use (such as those related to multicopter or fixed wing).
-   :::
+A differential rover's motion is controlled using a differential drive mechanism, where the left and right wheel speeds are adjusted independently to achieve the desired forward speed and yaw rate.
+Forward motion is achieved by driving both wheels at the same speed in the same direction.
+Rotation is achieved by driving the wheels at different speeds in opposite directions, allowing the rover to turn on the spot.
 
-2. Load the **custom firmware** that you just built onto your flight controller (see [Loading Firmware > Installing PX4 Main, Beta or Custom Firmware](../config/firmware.md#installing-px4-main-beta-or-custom-firmware)).
+![Aion R1](../../assets/airframes/rover/aion_r1/r1_rover_no_bg.png)
+
+::: info
+The differential setup also work for rovers with skid or tank steering.
+:::
+
+## Mecanum
+
+<Badge type="tip" text="PX4 v1.16" /> <Badge type="warning" text="Experimental" />
+
+A Mecanum rover is a type of mobile robot that uses Mecanum wheels to achieve omnidirectional movement. These wheels are unique because they have rollers mounted at a 45-degree angle around their circumference, allowing the rover to move not only forward and backward but also side-to-side and diagonally without needing to rotate first.
+Each wheel is driven by its own motor, and by controlling the speed and direction of each motor, the rover can move in any direction or spin in place.
+
+![Mecanum rover](../../assets/airframes/rover/rover_mecanum.png)
+
+## See Also
+
+- [Drive Modes](../flight_modes_rover/index.md).
+- [Configuration/Tuning](../config_rover/index.md)
+- [Complete Vehicles](../complete_vehicles_rover/index.md)
 
 ## Simulation
 

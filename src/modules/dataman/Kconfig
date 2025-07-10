@@ -19,3 +19,12 @@ menuconfig DATAMAN_PERSISTENT_STORAGE
 	depends on MODULES_DATAMAN
 	---help---
 		Dataman supports reading/writing to persistent storage
+
+menuconfig NUM_MISSION_ITMES_SUPPORTED
+	int "Maximum number of mission items"
+	default 500
+	depends on MODULES_DATAMAN
+	---help---
+		This limit always applies if mission items are stored on the SD card or in RAM. It should be set
+		adequately per boards such that if the items are stored in RAM they still fit the available memory.
+		The runtime parameter to configure the storage option is `SYS_DM_BACKEND`.

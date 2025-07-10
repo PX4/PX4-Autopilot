@@ -163,7 +163,7 @@ Transmitter modules:
 
 Receivers:
 
-- [TBS Crossfire Nano RX](http://team-blacksheep.com/products/prod:crossfire_nano_rx) - designed for small quadcopters.
+- [TBS Crossfire Nano RX](https://www.team-blacksheep.com/products/prod:crossfire_nano_rx) - designed for small quadcopters.
 
 ## ExpressLRS Radio Systems
 
@@ -176,7 +176,7 @@ Transmitter modules:
 
 Receivers:
 
-- [ExpressLRS Matek Diversity RX](http://www.mateksys.com/?portfolio=elrs-r24).
+- [ExpressLRS Matek Diversity RX](https://www.mateksys.com/?portfolio=elrs-r24).
 
   ::: info
   This is used in the [Reptile Dragon 2 Build Log](../frames_plane/reptile_dragon_2.md).

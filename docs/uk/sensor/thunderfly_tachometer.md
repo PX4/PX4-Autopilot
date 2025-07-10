@@ -31,7 +31,7 @@ The TFRPM01 sensor is open-source hardware commercially available from [ThunderF
 Датчики Холла (магнітно-оперовані) ідеально підходять для жорстких умов, де бруд, пил і вода можуть контактувати з відчуваним ротором.
 
 Багато різних датчиків ефекту Холла є комерційно доступними.
-For example, a 55100 Miniature Flange Mounting Proximity Sensor is a good choice.
+For example, a [55100 Miniature Flange Mounting Proximity Sensor](https://m.littelfuse.com/media?resourcetype=datasheets&itemid=6d69d457-770e-46ba-9998-012c5e0aedd7&filename=littelfuse-hall-effect-sensors-55100-datasheet) is a good choice.
 
 ![Example of Hall effect probe](../../assets/hardware/sensors/tfrpm/hall_probe.jpg)
 

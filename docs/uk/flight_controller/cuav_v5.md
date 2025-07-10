@@ -1,6 +1,6 @@
 # CUAV v5 (Знято з виробництва)
 
-<Badge type="info" text="Discontinued" />
+<Badge type="info" text="Discontinued" /> <!-- 202507 / PX4v1.16 -->
 
 :::warning
 This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
@@ -27,7 +27,6 @@ It runs PX4 on the [NuttX](https://nuttx.apache.org/) OS, and is fully compatibl
   - 32 Bit Arm®️ Cortex®️-M3, 24MHz, 8KB SRAM
 
 - Бортові сенсори:
-
   - Акселерометр/Гіроскоп: ICM-20689
   - Акселерометр/Гіроскоп: BMI055
   - Магнітометр: IST8310
@@ -147,5 +146,4 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 ## Подальша інформація
 
 - [FMUv5 reference design pinout](https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY/edit#gid=912976165).
-- [Документація CUAV V5](http://doc.cuav.net/flight-controller/v5-autopilot/en/v5.html)
 - [CUAV Github](https://github.com/cuav)

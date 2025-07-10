@@ -2,7 +2,7 @@
 
 Ця сторінка документує, як прошивати завантажувач PX4 на плати, які вже мають прошивку Betaflight (наприклад, [OmnibusF4 SD](../flight_controller/omnibus_f4_sd.md) або [Kakute F7](../flight_controller/kakutef7.md)).
 
-Є три інструменти, які можна використовувати для прошивки завантажувача PX4: _Конфігуратор Betaflight_, [командний рядок dfu-util](http://dfu-util.sourceforge.net/) або графічний інструмент [dfuse](https://www.st.com/en/development-tools/stsw-stm32080.html) (тільки для Windows).
+There are three tools that can be used to flash the PX4 bootloader: _Betaflight Configurator_, [dfu-util](https://dfu-util.sourceforge.net/) command line tool, or the graphical [dfuse](https://www.st.com/en/development-tools/stsw-stm32080.html) (Windows only).
 
 :::info
 _Конфігуратор Betaflight_ є найпростішим використанням, але більш нові версії можуть не підтримувати оновлення завантажувача, який не є частиною Betaflight.
@@ -22,7 +22,8 @@ _Betaflight Configurator_ may not support PX4 Bootloader update, as of May 2023.
 
 2. Завантажте або зіберіть [прошивку завантажувача](#bootloader-firmware) для плати, яку ви хочете прошивати.
 
-   Якщо ви користуєтеся веб-браузером _Chrome_, простий крос-платформений альтернативний варіант - встановити конфігуратор як [розширення звідси](https://chrome.google.com/webstore/detail/betaflight-configurator/kdaghagfopacdngbohiknlhcocjccjao).
+   :::tip
+   If using the _Chrome_ web browser, a simple cross-platform alternative is to install the configurator as an [extension from here](https://chromewebstore.google.com/detail/betaflight-configurator/kdaghagfopacdngbohiknlhcocjccjao?pli=1).
 
 :::
 
@@ -37,7 +38,7 @@ _Betaflight Configurator_ may not support PX4 Bootloader update, as of May 2023.
 
 ## Оновлення завантажувача через DFU
 
-Цей розділ пояснює, як перепрошити завантажувач PX4 за допомогою інструменту [dfu-util](http://dfu-util.sourceforge.net/) або графічного інструменту [dfuse](https://www.st.com/en/development-tools/stsw-stm32080.html) (тільки для Windows).
+This section explains how to flash the PX4 bootloader using the [dfu-util](https://dfu-util.sourceforge.net/) or the graphical [dfuse](https://www.st.com/en/development-tools/stsw-stm32080.html) tool (Windows only).
 
 Спершу вам потрібно завантажити або зібрати [прошивку завантажувача](#bootloader-firmware) для плати, яку ви хочете прошивати (нижче це зазначено як `<target.bin>`).
 
@@ -117,10 +118,10 @@ cd PX4-Autopilot
 make <target> # For example: holybro_kakuteh7mini_bootloader
 ```
 
-Для інших контролерів польоту завантажте репозиторій [PX4/Bootloader](https://github.com/PX4/Bootloader) і створіть вихідний код, використовуючи відповідні цілі:
+For other flight controllers download the [PX4/Bootloader](https://github.com/PX4/PX4-Bootloader) repository and build the source code using the appropriate targets:
 
 ```
-git clone --recursive  https://github.com/PX4/Bootloader.git
+git clone --recursive  https://github.com/PX4/PX4-Bootloader.git
 cd Bootloader
 make <target> # For example: omnibusf4sd_bl or kakutef7_bl
 ```

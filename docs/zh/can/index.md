@@ -38,7 +38,7 @@ CAN 网络的接线对于 DroneCAN 和 Cyphal/CAN 是一样 (实际上对所有�
 图中未显示任何电源接线。
 参考制造商的说明，确认组件是否需要单独供电，还是可以通过 CAN 总线供电。
 
-欲了解更多信息，请查看[Cyphal/CAN设备互联](https://kb.zubax.com/pages/viewpage.action?pageId=2195476) (kb.zubax.com)。
+For more information, see [Cyphal/CAN device interconnection](https://wiki.zubax.com/public/cyphal/CyphalCAN-device-interconnection?pageId=2195476) (kb.zubax.com).
 虽然本文是以 Cyphal 协议为基础编写的，但同样适用于 DroneCAN 硬件和任何其他 CAN 设置。
 如需了解更复杂的场景，请参考 [论CAN总线拓扑结构与终端匹配](https://forum.opencyphal.org/t/on-can-bus-topology-and-termination/1685)。
 
