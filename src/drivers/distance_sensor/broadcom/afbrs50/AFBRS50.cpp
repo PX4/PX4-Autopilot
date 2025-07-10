@@ -281,7 +281,6 @@ void AFBRS50::Run()
 			status_t status = Argus_TriggerMeasurement(_hnd, measurementReadyCallback);
 
 			if (status != STATUS_OK) {
-				// PX4_ERR("Argus_TriggerMeasurement status not okay: %i", (int)status);
 				perf_count(_not_ready_perf);
 				// Reschedule another trigger
 				_state = STATE::TRIGGER;
@@ -305,6 +304,7 @@ void AFBRS50::Run()
 
 			if (elapsed > _measurement_inverval) {
 				ScheduleNow();
+
 			} else {
 				ScheduleDelayed(_measurement_inverval - elapsed);
 			}
