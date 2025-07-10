@@ -20,7 +20,7 @@ This environment can be used to build PX4 for:
 
 ## Installation Instructions
 
-1. Download the latest version of the ready-to-use MSI installer from: [Github releases](https://github.com/PX4/windows-toolchain/releases) or [Amazon S3](https://s3-us-west-2.amazonaws.com/px4-tools/PX4+Windows+Cygwin+Toolchain/PX4+Windows+Cygwin+Toolchain+0.9.msi) (fast download).
+1. Download the latest version of the ready-to-use MSI installer from: [Github releases](https://github.com/PX4/PX4-windows-toolchain/releases) or [Amazon S3](https://s3-us-west-2.amazonaws.com/px4-tools/PX4+Windows+Cygwin+Toolchain/PX4+Windows+Cygwin+Toolchain+0.9.msi) (fast download).
 1. Run it, choose your desired installation location, let it install:
 
    ![jMAVSimOnWindows](../../assets/toolchain/cygwin_toolchain_installer.png)
