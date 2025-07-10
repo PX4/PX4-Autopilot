@@ -6,7 +6,7 @@
 
 PX4 기능 추가 절차는 다음과 같습니다. 다음 예제를 따라 PX4에 기여 결과를 공유할 수 있습니다.
 
-- [Sign up](https://github.com/join) for github if you haven't already
+- [Sign up](https://github.com/signup) for github if you haven't already
 
 - Fork the PX4-Autopilot repo (see [here](https://docs.github.com/en/get-started/quickstart/fork-a-repo))
 
@@ -49,7 +49,7 @@ PX4 기능 추가 절차는 다음과 같습니다. 다음 예제를 따라 PX4�
   git add <file name>
   ```
 
-  If you prefer having a GUI to add your files see [Gitk](https://git-scm.com/book/en/v2/Git-in-Other-Environments-Graphical-Interfaces) or [`git add -p`](http://nuclearsquid.com/writings/git-add/).
+  If you prefer having a GUI to add your files see [Gitk](https://git-scm.com/book/en/v2/Git-in-Other-Environments-Graphical-Interfaces) or [`git add -p`](https://nuclearsquid.com/writings/git-add/).
 
 - 변경 사항을 설명하는 메시지와 함께 추가된 파일을 커밋합니다.
 
@@ -132,7 +132,7 @@ To switch between branches:
 ## 특정 릴리스 가져오기
 
 Specific PX4 point releases are made as tags of the [release branches](#get-a-release-branch), and are named using the format `v<release>`.
-These are listed on Github here (or you can query all tags using `git tag -l`).
+These are [listed on Github here](https://github.com/PX4/PX4-Autopilot/releases?q=release&expanded=true) (or you can query all tags using `git tag -l`).
 
 To get the source code for a _specific older release_ (tag):
 
@@ -292,7 +292,7 @@ If a conflict occurs during a `git rebase`, please refer to [this guide](https:/
 
 ### 풀 병합 충돌
 
-If a conflict occurs during a `git pull`, please refer to [this guide](https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/#competing-line-change-merge-conflicts).
+If a conflict occurs during a `git pull`, please refer to [this guide](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/resolving-a-merge-conflict-using-the-command-line#competing-line-change-merge-conflicts).
 
 ### 오래된 git 태그로 인한 빌드 오류
 

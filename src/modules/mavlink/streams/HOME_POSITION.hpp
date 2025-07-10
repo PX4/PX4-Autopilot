@@ -75,7 +75,7 @@ private:
 				msg.y = home.y;
 				msg.z = home.z;
 
-				matrix::Quatf q(matrix::Eulerf(0.f, 0.f, home.yaw));
+				matrix::Quatf q(matrix::Eulerf(home.roll, home.pitch, home.yaw));
 				q.copyTo(msg.q);
 
 				msg.approach_x = 0.f;

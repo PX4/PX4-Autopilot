@@ -426,7 +426,6 @@ if(BUILD_TESTING)
 	set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
 endif()
 
-
 #=============================================================================
 # subdirectories
 #
@@ -496,7 +495,6 @@ add_custom_target(uorb_graph DEPENDS ${uorb_graph_config})
 include(bloaty)
 
 
-include(doxygen)
 include(metadata)
 include(package)
 

@@ -20,12 +20,12 @@ The Reptile Dragon 2 is a twin motor RC airplane specifically designed for effic
 - Видалення V-хвоста або варіанти звичайного хвоста включені
 - Різьбові вставки в крилах та верхній частині фюзеляжу для зовнішнього монтажу
 - Чимало кріплень-ознак
- - Отвір для верхньої антени
- - Верхнє покриття GPS
- - Кріплення антени біля гільзи "T"
- - Задній електронний лоток
- - Виріз "екшн камери" на передній панелі
- - Виріз для камери FPV спереду
+  - Отвір для верхньої антени
+  - Верхнє покриття GPS
+  - Кріплення антени біля гільзи "T"
+  - Задній електронний лоток
+  - Виріз "екшн камери" на передній панелі
+  - Виріз для камери FPV спереду
 - Знімні крила
 - Низька швидкість стійки
 - Лагідна обробка
@@ -62,19 +62,19 @@ The Reptile Dragon 2 is a twin motor RC airplane specifically designed for effic
 
 - [DJI FPV Goggles](https://www.dji.com/fpv)
 
-- [ExpressLRS Matek Diversity RX](http://www.mateksys.com/?portfolio=elrs-r24)
+- [ExpressLRS Matek Diversity RX](https://www.mateksys.com/?portfolio=elrs-r24)
 
 - [5V BEC](https://www.readymaderc.com/products/details/rmrc-3a-power-regulator-5-to-6-volt-ubec)
 
 - [6s2p 18650 LiIon flight battery](https://www.upgradeenergytech.com/product-page/6s-22-2v-5600mah-30c-dark-lithium-liion-drone-battery) (select XT60 connector)
 
-- [Custom designed 3D printed parts](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/reptile_dragon_2/rd2_3d_printed_parts.zip)
- - Монтаж платформи ARK6X
- - Кріплення для каркасу Holybro Pixhawk 5x
- - FPV модуль та кріплення камери
- - Адаптер "заглушка" статичного зонда Піто
+- [Custom designed 3D printed parts](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/fw/reptile_dragon_2/rd2_3d_printed_parts.zip)
+  - Монтаж платформи ARK6X
+  - Кріплення для каркасу Holybro Pixhawk 5x
+  - FPV модуль та кріплення камери
+  - Адаптер "заглушка" статичного зонда Піто
 
-- [Custom designed power distribution PCB](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/reptile_dragon_2/xt30_power_distro_pcb.zip)
+- [Custom designed power distribution PCB](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/fw/reptile_dragon_2/xt30_power_distro_pcb.zip)
 
 - Різноманітне кріплення: М3-фурнітура (розмітки, шайби, O-кільця, болти), підкладки та гвинти M2.5 з нейлону, роз'єми XT30, гарячий клей, термоусадка, роз'єми Molex Microfit
 
@@ -377,7 +377,7 @@ make ark_fmu-v6x_default upload
 Цей файл параметрів містить настроювану конфігурацію параметрів PX4 для цієї збірки, включаючи налаштування радіо, налаштування і датчиків.
 Load the file via QGC using the instructions at [Parameters> Tools](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/parameters.html#tools) (QGC User Guide).
 
-- [Snapshot of PX4 airframe params](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/reptile_dragon_2/reptile_dragon_2_params.params)
+- [Snapshot of PX4 airframe params](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/fw/reptile_dragon_2/reptile_dragon_2_params.params)
 
 Можливо, вам доведеться змінити деякі параметри для вашої збірки, зокрема вам слід перевірити:
 
@@ -425,15 +425,15 @@ With the propellers removed, power the airplane up and use the [Actuator](../con
 Я рекомендую перевірити наступні елементи:
 
 - Калібрування датчиків (QGC)
- - Калібрування магнітів
- - Калібрування акселерометра
- - Калібрування швидкості повітря
- - Калібрування рівня горизонту
+  - Калібрування магнітів
+  - Калібрування акселерометра
+  - Калібрування швидкості повітря
+  - Калібрування рівня горизонту
 - Перевірка контролю над відхиленням поверхні
 - Right stick -> Right aileron goes up, left aileron goes down
 - Left stick -> Left aileron goes up, right aileron goes down
 - Stick back -> elevator goes up
- -Stick forward -> elevator goes down
+  -Stick forward -> elevator goes down
 - Left rudder -> Rudder goes left
 - Right rudder -> Rudder goes right
 - Check Px4 inputs (in `stabilized mode`)

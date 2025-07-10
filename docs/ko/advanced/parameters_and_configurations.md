@@ -128,21 +128,21 @@ You add some "boilerplate" code to regularly listen for changes in the [uORB Top
 
 - **px4_platform_common/module_params.h** to get the `DEFINE_PARAMETERS` macro:
 
- ```cpp
- #include <px4_platform_common/module_params.h>
- ```
+  ```cpp
+  #include <px4_platform_common/module_params.h>
+  ```
 
 - **parameter_update.h** to access the uORB `parameter_update` message:
 
- ```cpp
- #include <uORB/topics/parameter_update.h>
- ```
+  ```cpp
+  #include <uORB/topics/parameter_update.h>
+  ```
 
 - **Subscription.hpp** for the uORB C++ subscription API:
 
- ```cpp
- #include <uORB/Subscription.hpp>
- ```
+  ```cpp
+  #include <uORB/Subscription.hpp>
+  ```
 
 Derive your class from `ModuleParams`, and use `DEFINE_PARAMETERS` to specify a list of parameters and their associated parameter attributes.
 매개변수의 이름은 매개변수 메타데이터 정의와 동일하여야 합니다.
@@ -194,7 +194,7 @@ void Module::parameters_update()
 - `_parameter_update_sub.updated()` tells us if there is _any_ update to the `param_update` uORB message (but not what parameter is affected).
 - If there has been "some" parameter updated, we copy the update into a `parameter_update_s` (`param_update`), to clear the pending update.
 - Then we call `ModuleParams::updateParams()`.
- This "under the hood" updates all parameter attributes listed in our `DEFINE_PARAMETERS` list.
+  This "under the hood" updates all parameter attributes listed in our `DEFINE_PARAMETERS` list.
 
 The parameter attributes (`_sys_autostart` and `_att_bias_max` in this case) can then be used to represent the parameters, and will be updated whenever the parameter value changes.
 
@@ -267,12 +267,12 @@ YAML meta data is intended as a full replacement for the **.c** definitions.
 - An example of YAML definitions being used can be found in the MAVLink parameter definitions: [/src/modules/mavlink/module.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/module.yaml).
 - YAML 파일은 다음을 추가하여 cmake 빌드 시스템에 등록됩니다.
 
- ```cmake
- MODULE_CONFIG
- 	module.yaml
- ```
+  ```cmake
+  MODULE_CONFIG
+  	module.yaml
+  ```
 
- to the `px4_add_module` section of the `CMakeLists.txt` file of that module.
+  to the `px4_add_module` section of the `CMakeLists.txt` file of that module.
 
 #### 다중 인스턴스(템플릿) YAML 메타 데이터
 

@@ -211,7 +211,7 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 ## 핀배열
 
 _Durandal_ pinouts are listed below.
-These can also be downloaded from [here](https://holybro.com/collections/autopilot-flight-controllers/products/Durandal-Pinouts).
+These can also be downloaded from [here](https://cdn.shopifycdn.net/s/files/1/0604/5905/7341/files/Durandal_Pinouts_v1.0.pdf?v=1693983344).
 
 ### 상단 핀배열
 
@@ -422,4 +422,4 @@ These can also be downloaded from [here](https://holybro.com/collections/autopil
 
 - [Durandal Wiring QuickStart](../assembly/quick_start_durandal.md)
 - [Durandal Technical Data Sheet](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Durandal_technical_data_sheet_90f8875d-8035-4632-a936-a0d178062077.pdf)
-- [Durandal Pinouts](https://holybro.com/collections/autopilot-flight-controllers/products/Durandal-Pinouts) (Holybro)
+- [Durandal Pinouts](https://cdn.shopifycdn.net/s/files/1/0604/5905/7341/files/Durandal_Pinouts_v1.0.pdf?v=1693983344) (Holybro)

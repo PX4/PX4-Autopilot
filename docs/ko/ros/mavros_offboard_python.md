@@ -25,38 +25,38 @@ Other examples in Python can be found here: [integrationtests/python_src/px4_it/
 
 1. Open the terminal and go to `~/catkin_ws/src` directory
 
- ```sh
- roscd  # Should cd into ~/catkin_ws/devel
- cd ..
- cd src
- ```
+   ```sh
+   roscd  # Should cd into ~/catkin_ws/devel
+   cd ..
+   cd src
+   ```
 
 2. In the `~/catkin_ws/src` directory create a new package named `offboard_py` (in this case) with the `rospy` dependency:
 
- ```sh
- catkin_create_pkg offboard_py rospy
- ```
+   ```sh
+   catkin_create_pkg offboard_py rospy
+   ```
 
 3. Build the new package in the `~/catkin_ws/` directory:
 
- ```sh
- cd .. # Assuming previous directory to be ~/catkin_ws/src
- catkin build
- source devel/setup.bash
- ```
+   ```sh
+   cd .. # Assuming previous directory to be ~/catkin_ws/src
+   catkin build
+   source devel/setup.bash
+   ```
 
 4. You should now be able to cd into the package by using:
 
- ```sh
- roscd offboard_py
- ```
+   ```sh
+   roscd offboard_py
+   ```
 
 5. To store your Python files, create a new folder called `/scripts` on the package:
 
- ```sh
- mkdir scripts
- cd scripts
- ```
+   ```sh
+   mkdir scripts
+   cd scripts
+   ```
 
 ## 코드
 
@@ -155,7 +155,7 @@ if __name__ == "__main__":
 ## Code explanation
 
 The `mavros_msgs` package contains all of the custom messages required to operate services and topics provided by the MAVROS package.
-All services and topics as well as their corresponding message types are documented in the [mavros wiki](http://wiki.ros.org/mavros).
+All services and topics as well as their corresponding message types are documented in the [mavros wiki](https://wiki.ros.org/mavros).
 
 ```py
 import rospy
@@ -237,7 +237,7 @@ for i in range(100):
 ```
 
 We prepare the message request used to set the custom mode to `OFFBOARD`.
-A list of [supported modes](http://wiki.ros.org/mavros/CustomModes#PX4_native_flight_stack) is available for reference.
+A list of [supported modes](https://wiki.ros.org/mavros/CustomModes#PX4_native_flight_stack) is available for reference.
 
 ```py
 offb_set_mode = SetModeRequest()

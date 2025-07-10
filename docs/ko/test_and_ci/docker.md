@@ -35,15 +35,13 @@ sudo usermod -aG docker $USER
 # Log in/out again before using docker!
 ```
 
-<a id="px4_containers"></a>
+## Container Hierarchy {#px4_containers}
 
-## 컨테이너 계층
-
-The available containers are on [Github here](https://github.com/PX4/PX4-containers/tree/master?tab=readme-ov-file#container-hierarchy).
+The available containers are on [GitHub here](https://github.com/PX4/PX4-containers/tree/master?tab=readme-ov-file#container-hierarchy).
 
 이를 통하여 다양한 빌드 대상 및 구성을 테스트할 수 있습니다(포함된 도구는 이름에서 유추할 수 있음).
 The containers are hierarchical, such that containers have the functionality of their parents.
-For example, the partial hierarchy below shows that the docker container with nuttx build tools (`px4-dev-nuttx-focal`) does not include ROS 2, while the simulation containers do:
+For example, the partial hierarchy below shows that the docker container with NuttX build tools (`px4-dev-nuttx-focal`) does not include ROS 2, while the simulation containers do:
 
 ```plain
 - px4io/px4-dev-base-focal
@@ -58,7 +56,7 @@ For example, the partial hierarchy below shows that the docker container with nu
 
 The most recent version can be accessed using the `latest` tag: `px4io/px4-dev-nuttx-focal:latest`
 (available tags are listed for each container on _hub.docker.com_.
-For example, the `px4io/px4-dev-nuttx-focal` tags can be found here).
+For example, the `px4io/px4-dev-nuttx-focal` tags can be found on [hub.docker.com here](https://hub.docker.com/r/px4io/px4-dev-nuttx-focal/tags?page=1&ordering=last_updated)).
 
 :::tip
 Typically you should use a recent container, but not necessarily the `latest` (as this changes too often).
@@ -97,9 +95,7 @@ For example, to build SITL you would call (from within the **/PX4-Autopilot** di
 The script is easy because you don't need to know anything much about _Docker_ or think about what container to use. 그러나, 특별히 견고하지는 않습니다! The manual approach discussed in the [section below](#manual_start) is more flexible and should be used if you have any problems with the script.
 :::
 
-<a id="manual_start"></a>
-
-### 도커 수동 호출
+### Calling Docker Manually {#manual_start}
 
 일반적인 명령어 구문은 다음과 같습니다.
 이것은 X 포워딩을 지원하는 Docker 컨테이너를 실행합니다(컨테이너 내부에서 시뮬레이션 GUI를 사용할 수 있게 함).
@@ -164,7 +160,8 @@ make px4_sitl_default gazebo-classic
 
 ### 컨테이너 재진입
 
-The `docker run` command can only be used to create a new container. 변경 사항을 유지하는 이 컨테이너로 돌아가려면 다음을 실행하십시오.
+The `docker run` command can only be used to create a new container.
+변경 사항을 유지하는 이 컨테이너로 돌아가려면 다음을 실행하십시오.
 
 ```sh
 # start the container
@@ -193,9 +190,14 @@ docker rm 45eeb98f1dd9
 
 ### QGroundControl
 
-When running a simulation instance e.g. SITL inside the docker container and controlling it via _QGroundControl_ from the host, the communication link has to be set up manually. The autoconnect feature of _QGroundControl_ does not work here.
+When running a simulation instance e.g. SITL inside the docker container and controlling it via _QGroundControl_ from the host, the communication link has to be set up manually.
+The autoconnect feature of _QGroundControl_ does not work here.
 
-In _QGroundControl_, navigate to [Settings](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/settings_view.html) and select Comm Links. ::: The port depends on the used [configuration](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/rcS) e.g. port 14570 for the SITL config. IP 주소는 도커 컨테이너 중 하나이며, 기본 네트워크는 172.17.0.1/16입니다. The IP address of the docker container can be found with the following command (assuming the container name is `mycontainer`):
+In _QGroundControl_, navigate to [Settings](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/settings_view.html) and select Comm Links.
+:::
+The port depends on the used [configuration](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/rcS) e.g. port 14570 for the SITL config.
+IP 주소는 도커 컨테이너 중 하나이며, 기본 네트워크는 172.17.0.1/16입니다.
+The IP address of the docker container can be found with the following command (assuming the container name is `mycontainer`):
 
 ```sh
 $ docker inspect -f '{ {range .NetworkSettings.Networks}}{ {.IPAddress}}{ {end}}' mycontainer
@@ -209,9 +211,11 @@ Spaces between double curly braces above should be not be present (they are need
 
 #### 권한 에러
 
-컨테이너는 기본 사용자(일반적으로 "루트") 계정으로 파일을 생성합니다. 이것 때문에, 호스트 컴퓨터의 사용자가 컨테이너에서 생성한 파일에 액세스할 수 없는 상황이 발생합니다.
+컨테이너는 기본 사용자(일반적으로 "루트") 계정으로 파일을 생성합니다.
+이것 때문에, 호스트 컴퓨터의 사용자가 컨테이너에서 생성한 파일에 액세스할 수 없는 상황이 발생합니다.
 
-The example above uses the line `--env=LOCAL_USER_ID="$(id -u)"` to create a user in the container with the same UID as the user on the host. 이렇게 하면 컨테이너 내에서 생성된 모든 파일을 호스트에서 액세스할 수 있습니다.
+The example above uses the line `--env=LOCAL_USER_ID="$(id -u)"` to create a user in the container with the same UID as the user on the host.
+이렇게 하면 컨테이너 내에서 생성된 모든 파일을 호스트에서 액세스할 수 있습니다.
 
 #### 그래픽 드라이버 문제
 
@@ -221,17 +225,15 @@ It's possible that running Gazebo Classic will result in a similar error message
 libGL error: failed to load driver: swrast
 ```
 
-이 경우 호스트 시스템의 기본 그래픽 드라이버를 설치합니다. 올바른 드라이버를 다운로드하여 컨테이너 내부에 설치합니다. Nvidia 드라이버의 경우 다음 명령어를 사용합니다(그렇지 않으면 설치 프로그램이 호스트에서 로드된 모듈을 보고 진행을 거부합니다).
+이 경우 호스트 시스템의 기본 그래픽 드라이버를 설치합니다.
+올바른 드라이버를 다운로드하여 컨테이너 내부에 설치합니다.
+Nvidia 드라이버의 경우 다음 명령어를 사용합니다(그렇지 않으면 설치 프로그램이 호스트에서 로드된 모듈을 보고 진행을 거부합니다).
 
 ```sh
 ./NVIDIA-DRIVER.run -a -N --ui=none --no-kernel-module
 ```
 
-More information on this can be found [here](http://gernotklingler.com/blog/howto-get-hardware-accelerated-opengl-support-docker/).
-
-<a id="virtual_machine"></a>
-
-## 가상 머신 지원
+## Virtual Machine Support {#virtual_machine}
 
 최신 Linux 배포판에서는 정상적으로 작동하여야 합니다.
 

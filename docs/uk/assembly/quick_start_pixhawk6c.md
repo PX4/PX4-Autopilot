@@ -81,7 +81,7 @@ The pinout of _Pixhawk 6C_’s power ports is shown below.
 - Spektrum/DSM receivers connect to the **DSM** input.
 - PPM or SBUS receivers connect to the **PPM/SBUS** input port.
 
-PPM and PWM receivers that have an _individual wire for each channel_ must connect to the \*PPM/SBUS\*\* port \*via a PPM encoder\* [like this one](http://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
+PPM and PWM receivers that have an _individual wire for each channel_ must connect to the \*PPM/SBUS\*\* port \*via a PPM encoder\* [like this one](https://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
 
 Для отримання додаткової інформації про вибір радіосистеми, сумісність приймача та зв'язок вашої передавача/приймача, див. статтю: [Пульт керування передавачів & приймачів](../getting_started/rc_transmitter_receiver.md).
 

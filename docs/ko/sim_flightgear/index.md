@@ -7,8 +7,8 @@ It may or may not work with current versions of PX4.
 See [Toolchain Installation](../dev_setup/dev_env.md) for information about the environments and tools supported by the core development team.
 :::
 
-[FlightGear](https://www.flightgear.org/) is a flight simulator with powerful [FDM engines](http://wiki.flightgear.org/Flight_Dynamics_Model).
-This allows FlightGear to simulate rotorcrafts under various meteorological conditions (which is why the bridge was originally developed by [ThunderFly s.r.o.](https://www.thunderfly.cz/)).
+[FlightGear](https://wiki.flightgear.org/Flight_Dynamics_Model) is a flight simulator with powerful [FDM engines](https://wiki.flightgear.org/Flight_Dynamics_Model).
+This allows FlightGear to simulate rotorcraft under various meteorological conditions (which is why the bridge was originally developed by [ThunderFly s.r.o.](https://www.thunderfly.cz/)).
 
 This page describes FlightGear's single-vehicle use in SITL.
 For information about multi-vehicle use see: [Multi-Vehicle Simulation with FlightGear](../sim_flightgear/multi_vehicle.md).
@@ -191,7 +191,7 @@ Takeoff location in SITL FlightGear can be set using additional variables.
 Setting the variable will override the default takeoff location.
 
 The variables which can be set are as follows: `--airport`, `--runway`, and `--offset-distance`.
-Other options can be found on [FlightGear wiki](http://wiki.flightgear.org/Command_line_options#Initial_Position_and_Orientation)
+Other options can be found on [FlightGear wiki](https://wiki.flightgear.org/Command_line_options#Initial_Position_and_Orientation)
 
 예:
 
@@ -199,7 +199,7 @@ Other options can be found on [FlightGear wiki](http://wiki.flightgear.org/Comma
 FG_ARGS_EX="--airport=PHNL"  make px4_sitl_nolockstep flightgear_rascal
 ```
 
-The example above starts the simulation on the [Honolulu international airport](http://wiki.flightgear.org/Suggested_airports)
+The example above starts the simulation on the [Honolulu international airport](https://wiki.flightgear.org/Suggested_airports)
 
 ### Using a Joystick
 

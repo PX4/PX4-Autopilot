@@ -37,7 +37,7 @@ Supported hardware includes (this is not an exhaustive list):
 - [ESC/Motor controllers](../dronecan/escs.md)
 - Airspeed sensors
   - [Holybro High Precision DroneCAN Airspeed Sensor - DLVR](https://holybro.com/collections/sensors/products/high-precision-dronecan-airspeed-sensor-dlvr)
-  - [RaccoonLab airspeed sensor](https://docs.raccoonlab.co/guide/airspeed)
+  - [RaccoonLab airspeed sensor](https://docs.raccoonlab.co/guide/airspeed/)
   - [Thiemar airspeed sensor](https://github.com/thiemar/airspeed)
 - GNSS receivers for GNSS (GPS, GLONASS, BeiDou, and so on)
   - [ARK GPS](../dronecan/ark_gps.md)
@@ -53,7 +53,7 @@ Supported hardware includes (this is not an exhaustive list):
   - [Holybro DroneCAN H-RTK F9P Rover](https://holybro.com/products/dronecan-h-rtk-f9p-rover)
   - [Holybro DroneCAN H-RTK F9P Helical](https://holybro.com/products/dronecan-h-rtk-f9p-helical)
   - [RaccoonLab GNSS Modules](https://docs.raccoonlab.co/guide/gps_mag_baro/)
-  - [Zubax GNSS](https://zubax.com/products/gnss_2)
+  - [Zubax GNSS](https://shop.zubax.com/products/zubax-gnss-2)
 - Power monitors
   - [Pomegranate Systems Power Module](../dronecan/pomegranate_systems_pm.md)
   - [CUAV CAN PMU Power Module](../dronecan/cuav_can_pmu.md)
@@ -65,7 +65,7 @@ Supported hardware includes (this is not an exhaustive list):
   - [ARK Flow](ark_flow.md)
   - [Ark Flow MR](ark_flow_mr.md)
   - [Avionics Anonymous Laser Altimeter UAVCAN Interface](../dronecan/avanon_laser_interface.md)
-  - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder)
+  - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder/)
 - Optical Flow
   - [Ark Flow](ark_flow.md)
   - [Ark Flow MR](ark_flow_mr.md)
@@ -134,8 +134,8 @@ Sensor parameters may not exist (be visible in QGC) until you have enabled the a
 For example, [SENS_FLOW_MINHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MINHGT) does not exist until [UAVCAN_SUB_FLOW](../advanced_config/parameter_reference.md#UAVCAN_SUB_FLOW) is enabled.
 :::
 
-For example, to use a connected DroneCAN smart battery you would enable the [UAVCAN_SUB_BAT](../advanced_config/parameter_reference.md#UAVCAN_SUB_BAT) parameter, which would subscribe PX4 to receive [BatteryInfo](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#batteryinfo) DroneCAN messages.
-If using a peripheral that needs to know if PX4 is armed, you would need to set the [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM) parameter so that PX4 starts publishing [ArmingStatus](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#armingstatus) messages.
+For example, to use a connected DroneCAN smart battery you would enable the [UAVCAN_SUB_BAT](../advanced_config/parameter_reference.md#UAVCAN_SUB_BAT) parameter, which would subscribe PX4 to receive [BatteryInfo](https://dronecan.github.io/Specification/1._Introduction//7._List_of_standard_data_types/#batteryinfo) DroneCAN messages.
+If using a peripheral that needs to know if PX4 is armed, you would need to set the [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM) parameter so that PX4 starts publishing [ArmingStatus](https://dronecan.github.io/Specification/1._Introduction//7._List_of_standard_data_types/#armingstatus) messages.
 
 The parameter names are prefixed with `UAVCAN_SUB_` and `UAVCAN_PUB_` to indicate whether they enable PX4 subscribing or publishing.
 The remainder of the name indicates the specific message/feature being set.
@@ -159,7 +159,7 @@ The DroneCAN sensor parameters/subscriptions that you can enable are (in PX4 v1.
 - [UAVCAN_SUB_DPRES](../advanced_config/parameter_reference.md#UAVCAN_SUB_DPRES): Differential pressure
 - [UAVCAN_SUB_FLOW](../advanced_config/parameter_reference.md#UAVCAN_SUB_FLOW): Optical flow
 - [UAVCAN_SUB_GPS](../advanced_config/parameter_reference.md#UAVCAN_SUB_GPS): GPS
-- [UAVCAN_SUB_GPS_R](../advanced_config/parameter_reference.md#UAVCAN_SUB_GPS_R)<Badge type="tip" text="PX4 v1.15" />: Subscribes to GNSS relative message ([RelPosHeading](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#relposheading)).
+- [UAVCAN_SUB_GPS_R](../advanced_config/parameter_reference.md#UAVCAN_SUB_GPS_R)<Badge type="tip" text="PX4 v1.15" />: Subscribes to GNSS relative message ([RelPosHeading](https://dronecan.github.io/Specification/1._Introduction//7._List_of_standard_data_types/#relposheading)).
   Only used for logging in PX4 v1.15.
 - [UAVCAN_SUB_HYGRO](../advanced_config/parameter_reference.md#UAVCAN_SUB_HYGRO): Hygrometer
 - [UAVCAN_SUB_ICE](../advanced_config/parameter_reference.md#UAVCAN_SUB_ICE): Internal combustion engine (ICE).
@@ -195,15 +195,15 @@ Position of rover is established using RTCM messages from the RTK base module (t
 PX4 DroneCAN parameters:
 
 - [UAVCAN_PUB_RTCM](../advanced_config/parameter_reference.md#UAVCAN_PUB_RTCM):
-  - Makes PX4 publish RTCM messages ([RTCMStream](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#rtcmstream)) to the bus (which it gets from the RTK base module via QGC).
+  - Makes PX4 publish RTCM messages ([RTCMStream](https://dronecan.github.io/Specification/1._Introduction//7._List_of_standard_data_types/#rtcmstream)) to the bus (which it gets from the RTK base module via QGC).
 
 Rover module parameters (also [set using QGC](#qgc-cannode-parameter-configuration)):
 
-- [CANNODE_SUB_RTCM](../advanced_config/parameter_reference.md#CANNODE_SUB_RTCM) tells the rover that it should subscribe to [RTCMStream](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#rtcmstream) RTCM messages on the bus (from the moving base).
+- [CANNODE_SUB_RTCM](../advanced_config/parameter_reference.md#CANNODE_SUB_RTCM) tells the rover that it should subscribe to [RTCMStream](https://dronecan.github.io/Specification/1._Introduction//7._List_of_standard_data_types/#rtcmstream) RTCM messages on the bus (from the moving base).
 
 ::: info
 You could instead use [UAVCAN_PUB_MBD](../advanced_config/parameter_reference.md#UAVCAN_PUB_MBD) and [CANNODE_SUB_MBD](../advanced_config/parameter_reference.md#CANNODE_SUB_MBD), which also publish RTCM messages (these are newer).
-Using the [RTCMStream](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#rtcmstream) message means that you can implement moving base (see below) at the same time.
+Using the [RTCMStream](https://dronecan.github.io/Specification/1._Introduction//7._List_of_standard_data_types/#rtcmstream) message means that you can implement moving base (see below) at the same time.
 :::
 
 ##### Rover and Moving Base
@@ -213,8 +213,8 @@ In this setup the vehicle has a _moving base_ RTK GPS and a _rover_ RTK GPS.
 
 These parameters can be [set on moving base and rover RTK CAN nodes](#qgc-cannode-parameter-configuration), respectively:
 
-- [CANNODE_PUB_MBD](../advanced_config/parameter_reference.md#CANNODE_PUB_MBD) causes a moving base GPS unit to publish [MovingBaselineData](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#movingbaselinedata)RTCM messages onto the bus (for the rover)
-- [CANNODE_SUB_MBD](../advanced_config/parameter_reference.md#CANNODE_SUB_MBD) tells the rover that it should subscribe to [MovingBaselineData](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#movingbaselinedata) RTCM messages on the bus (from the moving base).
+- [CANNODE_PUB_MBD](../advanced_config/parameter_reference.md#CANNODE_PUB_MBD) causes a moving base GPS unit to publish [MovingBaselineData](https://dronecan.github.io/Specification/1._Introduction//7._List_of_standard_data_types/#movingbaselinedata)RTCM messages onto the bus (for the rover)
+- [CANNODE_SUB_MBD](../advanced_config/parameter_reference.md#CANNODE_SUB_MBD) tells the rover that it should subscribe to [MovingBaselineData](https://dronecan.github.io/Specification/1._Introduction//7._List_of_standard_data_types/#movingbaselinedata) RTCM messages on the bus (from the moving base).
 
 For PX4 you will also need to set [GPS_YAW_OFFSET](../advanced_config/parameter_reference.md#GPS_YAW_OFFSET) to indicate the relative position of the moving base and rover: 0 if your Rover is in front of your Moving Base, 90 if Rover is right of Moving Base, 180 if Rover is behind Moving Base, or 270 if Rover is left of Moving Base.
 
@@ -264,7 +264,7 @@ If the rangefinder is connected via DroneCAN (whether inbuilt or separate), you 
 
 PX4 DroneCAN parameters:
 
-- [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM) ([Arming Status](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#armingstatus)): Publish when using DroneCAN components that require the PX4 arming status as a precondition for use.
+- [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM) ([Arming Status](https://dronecan.github.io/Specification/1._Introduction//7._List_of_standard_data_types/#armingstatus)): Publish when using DroneCAN components that require the PX4 arming status as a precondition for use.
 
 ### ESC & Servos
 
@@ -318,6 +318,6 @@ If successful, the firmware binary will be removed from the root directory and t
 ## Useful Links
 
 - [Home Page](https://dronecan.github.io) (dronecan.github.io)
-- [Protocol Specification](https://dronecan.github.io/Specification) (dronecan.github.io)
+- [Protocol Specification](https://dronecan.github.io/Specification/1._Introduction/) (dronecan.github.io)
 - [Implementations](https://dronecan.github.io/Implementations/) (dronecan.github.io)
-- [Cyphal/CAN Device Interconnection](https://kb.zubax.com/pages/viewpage.action?pageId=2195476) (kb.zubax.com)
+- [Cyphal/CAN Device Interconnection](https://wiki.zubax.com/public/cyphal/CyphalCAN-device-interconnection?pageId=2195476) (kb.zubax.com)

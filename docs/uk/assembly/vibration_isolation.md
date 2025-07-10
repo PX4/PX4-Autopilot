@@ -31,5 +31,5 @@
 
 Деякі посилання, які ви можете знайти корисними:
 
-- [An Introduction to Shock & Vibration Response Spectra, Tom Irvine](http://www.vibrationdata.com/tutorials2/srs_intr.pdf) (free paper)
-- Structural Dynamics and Vibration in Practice - An Engineering Handbook, Douglas Thorby (preview).
+- [An Introduction to Shock & Vibration Response Spectra, Tom Irvine](https://www.vibrationdata.com/tutorials2/srs_intr.pdf) (free paper)
+- [Structural Dynamics and Vibration in Practice - An Engineering Handbook, Douglas Thorby](https://books.google.ch/books?id=PwzDuWDc8AgC&printsec=frontcover) (preview).

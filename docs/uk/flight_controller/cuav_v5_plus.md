@@ -14,7 +14,7 @@ _V5+_<sup>&reg;</sup> is an advanced autopilot manufactured by CUAV<sup>&reg;</s
 
 Деякі з його основних функцій включають:
 
-- Full compatibility with the [Pixhawk project](https://pixhawk.org/) **FMUv5** design standard and uses the [Pixhawk Connector Standard](https://pixhawk.org/pixhawk-connector-standard/) for all external interfaces.
+- Full compatibility with the [Pixhawk project](https://pixhawk.org/) **FMUv5** design standard and uses the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) for all external interfaces.
 - Більш продуктивний процесор, оперативна пам'ять та флеш-пам'ять, ніж у FMU v3, разом із більш стабільними та надійними датчиками.
 - Прошивка сумісна з PX4.
 - Модульна конструкція дозволяє користувачам налаштовувати власну носійну плату.
@@ -34,7 +34,6 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - 32 Bit Arm®️ Cortex®️-M3, 24MHz, 8KB SRAM
 
 - Бортові сенсори:
-
   - Акселерометр/Гіроскоп: ICM-20689
   - Акселерометр/Гіроскоп: BMI055
   - Магнітометр: IST8310
@@ -62,7 +61,6 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - Розміри: 85.5\*42\*мм
 
 - Інші характеристики:
-
   - Робоча температура: -20 ~ 80°c (виміряне значення)
 
 ## Де купити
@@ -71,7 +69,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 [CUAV Aliexpress](https://www.aliexpress.com/item/32890380056.html?spm=a2g0o.detail.1000060.1.7a7233e7mLTlVl&gps-id=pcDetailBottomMoreThisSeller&scm=1007.13339.90158.0&scm_id=1007.13339.90158.0&scm-url=1007.13339.90158.0&pvid=d899bfab-a7ca-46e1-adf2-72ad1d649822) (International users)
 
-CUAV Taobao (China Mainland users)
+[CUAV Taobao](https://item.taobao.com/item.htm?spm=a1z10.5-c.w4002-21303114052.37.a28f697aeYzQx9&id=594262853015) (China Mainland users)
 
 :::info
 Autopilot may be purchased with included Neo GPS module
@@ -206,7 +204,7 @@ CUAV використовує деякі відмінні дизайни і не
 
 The _Neo v2.0 GPS_ recommended for use with _CUAV V5+_ and _CUAV V5 nano_ is not fully compatible with other Pixhawk flight controllers (specifically, the buzzer part is not compatible and there may be issues with the safety switch).
 
-The UAVCAN [NEO V2 PRO GNSS receiver](http://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html) can also be used, and is compatible with other flight controllers.
+The UAVCAN [NEO V2 PRO GNSS receiver](https://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html) can also be used, and is compatible with other flight controllers.
 
 <a id="compatibility_jtag"></a>
 
@@ -240,7 +238,7 @@ This is a safety issue.
 ## Подальша інформація
 
 - [CUAV V5+ Manual](http://manual.cuav.net/V5-Plus.pdf)
-- [CUAV V5+ docs](http://doc.cuav.net/flight-controller/v5-autopilot/en/v5+.html)
+- [CUAV V5+ docs](https://doc.cuav.net/controller/v5-autopilot/en/v5+.html)
 - [FMUv5 reference design pinout](https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY/edit#gid=912976165)
 - [CUAV Github](https://github.com/cuav)
 - [Base board design reference](https://github.com/cuav/hardware/tree/master/V5_Autopilot/V5%2B/V5%2BBASE)

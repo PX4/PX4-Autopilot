@@ -1,11 +1,18 @@
-# CUAV X7 Flight Controller
+# CUAV X7 Flight Controller (Discontinued)
+
+<Badge type="info" text="Discontinued" /> <!-- 202507 / PX4v1.16 -->
+
+:::warning
+This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
+It has been superseded by the [CUAV X7+](https://doc.cuav.net/controller/x7/en/).
+:::
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://www.cuav.net) for hardware support or compliance issues.
 :::
 
-The [X7](http://doc.cuav.net/flight-controller/x7/en/x7.html)<sup>&reg;</sup> flight controller is a high-performance autopilot.
+The [X7](https://doc.cuav.net/controller/x7/en/)<sup>&reg;</sup> flight controller is a high-performance autopilot.
 It is an ideal choice for industrial drones and large-scale heavy-duty drones.
 It is mainly supplied to commercial manufacturers.
 
@@ -40,7 +47,6 @@ They should be used by preference as they contain the most complete and up to da
 
 - Main FMU Processor: STM32H743
 - On-board sensors:
-
   - Accelerometer/Gyroscope: ICM-20689
   - Accelerometer/Gyroscope: ICM-20649
   - Accelerometer/Gyroscope: BMI088
@@ -81,7 +87,7 @@ When it runs PX4 firmware, only 8 pwm works, the remaining 6 pwm are still being
 
 ## Connections (Wiring)
 
-[CUAV X7 Wiring Quickstart](http://doc.cuav.net/flight-controller/x7/en/quick-start/quick-start-x7.html)
+[CUAV X7 Wiring Quickstart](https://doc.cuav.net/controller/x7/en/quick-start/quick-start-x7-plus.html)
 
 ## Size and Pinouts
 
@@ -141,7 +147,7 @@ Simply connect the FTDI cable to the DSU7 connector (the product list contains t
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) operate on the **FMU Debug** port (`DSU7`).
 
-The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/product-detail/en/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/455-1582-1-ND/807850) connector and has the following pinout:
+The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/en/products/detail/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/807850) connector and has the following pinout:
 
 | Pin     | Signal         | Volt  |
 | ------- | -------------- | ----- |
@@ -167,11 +173,10 @@ For direct connection to _Segger Jlink_ we recommended you use the 3.3 Volts fro
 
 ## Supported Platforms / Airframes
 
-Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
+Any multicopter / plane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
 The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
 
 ## Further info
 
-- [Quick start](http://doc.cuav.net/flight-controller/x7/en/quick-start/quick-start-x7.html)
-- [CUAV docs](http://doc.cuav.net)
+- [CUAV docs](https://doc.cuav.net/)
 - [x7 schematic](https://github.com/cuav/hardware/tree/master/X7_Autopilot)

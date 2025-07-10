@@ -20,13 +20,13 @@ Discontinued
 
 The following models are supported by PX4 but are no longer available from the manufacturer.
 
-| 모델                                                                                                 | 범위   | 버스           |                                                        |
-| -------------------------------------------------------------------------------------------------- | ---- | ------------ | ------------------------------------------------------ |
-| [SF02](http://documents.lightware.co.za/SF02%20-%20Laser%20Rangefinder%20Manual%20-%20Rev%208.pdf) | 50   | 직렬           |                                                        |
-| [SF10/A](http://documents.lightware.co.za/SF10%20-%20Laser%20Altimeter%20Manual%20-%20Rev%206.pdf) | 25   | 직렬 또는 I2C 버스 |                                                        |
-| [SF10/B](http://documents.lightware.co.za/SF10%20-%20Laser%20Altimeter%20Manual%20-%20Rev%206.pdf) | 50   | 직렬 또는 I2C 버스 |                                                        |
-| SF10/C                                                                                             | 100m | 직렬 또는 I2C 버스 |                                                        |
-| LW20/B                                                                                             | 50   | I2C 버스       | 감지 및 회피 애플리케이션을 위한 서보가 있는 방수 (IP67) |
+| 모델                                                                                                  | 범위   | 버스           |                                                        |
+| --------------------------------------------------------------------------------------------------- | ---- | ------------ | ------------------------------------------------------ |
+| [SF02](https://documents.lightware.co.za/SF02%20-%20Laser%20Rangefinder%20Manual%20-%20Rev%208.pdf) | 50   | 직렬           |                                                        |
+| [SF10/A](https://documents.lightware.co.za/SF10%20-%20Laser%20Altimeter%20Manual%20-%20Rev%206.pdf) | 25   | 직렬 또는 I2C 버스 |                                                        |
+| [SF10/B](https://documents.lightware.co.za/SF10%20-%20Laser%20Altimeter%20Manual%20-%20Rev%206.pdf) | 50   | 직렬 또는 I2C 버스 |                                                        |
+| SF10/C                                                                                              | 100m | 직렬 또는 I2C 버스 |                                                        |
+| LW20/B                                                                                              | 50   | I2C 버스       | 감지 및 회피 애플리케이션을 위한 서보가 있는 방수 (IP67) |
 
 :::
 

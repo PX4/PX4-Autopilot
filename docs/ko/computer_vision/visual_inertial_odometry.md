@@ -46,9 +46,7 @@ To setup ROS and PX4:
 
 - [Verify that VIO is set up correctly](#verify_estimate) before your first flight!
 
-<a id="vio_ros_node"></a>
-
-### ROS VIO node
+### ROS VIO node {#vio_ros_node}
 
 In this suggested setup, a ROS node is required to
 
@@ -58,17 +56,16 @@ In this suggested setup, a ROS node is required to
 
 The implementation of the ROS node will be specific to the camera used and will need to be developed to use the interface and drivers appropriate for the camera.
 
-The odometry messages should be of the type [`nav_msgs/Odometry`](http://docs.ros.org/en/noetic/api/nav_msgs/html/msg/Odometry.html) and published to the topic `/mavros/odometry/out`.
+The odometry messages should be of the type [`nav_msgs/Odometry`](https://docs.ros.org/en/noetic/api/nav_msgs/html/msg/Odometry.html) and published to the topic `/mavros/odometry/out`.
 
-System status messages of the type [`mavros_msgs/CompanionProcessStatus`](https://github.com/mavlink/mavros/blob/master/mavros_msgs/msg/CompanionProcessStatus.msg) should be published to the topic `/mavros/companion_process/status`. These should identify the component as `MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY` (197) and indicate the `state` of the system. Recommended status values are:
+System status messages of the type [`mavros_msgs/CompanionProcessStatus`](https://github.com/mavlink/mavros/blob/master/mavros_msgs/msg/CompanionProcessStatus.msg) should be published to the topic `/mavros/companion_process/status`.
+These should identify the component as `MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY` (197) and indicate the `state` of the system. Recommended status values are:
 
 - `MAV_STATE_ACTIVE` when the VIO system is functioning as expected,
 - `MAV_STATE_CRITICAL` when the VIO system is functioning, but with low confidence, and
 - `MAV_STATE_FLIGHT_TERMINATION` when the system has failed or the estimate confidence is unacceptably low.
 
-<a id="ekf2_tuning"></a>
-
-### PX4 튜닝
+### PX4 Tuning {#ekf2_tuning}
 
 EKF2에서 외부 위치 정보를 사용하려면 다음 매개 변수를 설정하여야 합니다.
 
@@ -83,9 +80,7 @@ These can be set in _QGroundControl_ > **Vehicle Setup > Parameters > EKF2** (re
 
 For more detailed/additional information, see: [Using PX4's Navigation Filter (EKF2) > External Vision System](../advanced_config/tuning_the_ecl_ekf.md#external-vision-system).
 
-<a id="tuning-EKF2_EV_DELAY"></a>
-
-#### EKF2_EV_DELAY 튜닝
+#### Tuning EKF2_EV_DELAY {#tuning-EKF2_EV_DELAY}
 
 [EKF2_EV_DELAY](../advanced_config/parameter_reference.md#EKF2_EV_DELAY) is the _Vision Position Estimator delay relative to IMU measurements_.
 즉, 비전 시스템 타임스탬프와 IMU 클록 (EKF2의 "기본 클록")에 의해 기록된 "실제" 캡처 시간 간의 차이입니다.
@@ -104,9 +99,7 @@ A plot of external data vs. onboard estimate (as above) can be generated using [
 
 이 값은 동적 기동 중에 가장 낮은 EKF 혁신을 산출하는 값을 찾기 위하여, 매개변수를 변경하여 추가 튜닝할 수 있습니다.
 
-<a id="verify_estimate"></a>
-
-## VIO 예상치 확인
+## Check/Verify VIO Estimate {#verify_estimate}
 
 :::info
 The [MAV_ODOM_LP](../advanced_config/parameter_reference.md#MAV_ODOM_LP) parameter mentioned below was removed in PX4 v1.14.
@@ -153,11 +146,9 @@ First, make sure MAVROS is able to connect successfully to the flight controller
 제대로 연결되는 경우 일반적인 문제 해결 방법은 다음과 같습니다.
 
 - **Problem:** I get drift / flyaways when the drone flies, but not when I carry it around with the props off.
-
   - If using the [T265](../peripherals/camera_t265_vio.md) try soft-mounting it (this camera is very sensitive to high-frequency vibrations).
 
 - **Problem:** I get toilet-bowling when VIO is enabled.
-
   - 카메라의 방향이 시작 파일의 변환과 일치하는 지 확인합니다.
     Use the _QGroundControl_ [MAVLink Inspector](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_inspector.html) to verify that the velocities in the `ODOMETRY` message coming from MAVROS are aligned to the FRD coordinate system.
 

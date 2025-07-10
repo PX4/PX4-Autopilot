@@ -10,7 +10,7 @@ PX4 enables terminal access to the system through the [MAVLink Shell](../debug/m
 
 The PX4 _System Console_ provides low-level access to the system, debug output and analysis of the system boot process.
 
-There is just one _System Console_, which runs on one specific UART (the debug port, as configured in NuttX), and is commonly attached to a computer via an FTDI cable (or some other debug adapter like a [Dronecode probe](https://kb.zubax.com/display/MAINKB/Dronecode+Probe+documentation)).
+There is just one _System Console_, which runs on one specific UART (the debug port, as configured in NuttX), and is commonly attached to a computer via an FTDI cable (or some other debug adapter like a [Zubax BugFace BF1](https://github.com/Zubax/bugface_bf1)).
 
 - Used for _low-level debugging/development_: bootup, NuttX, startup scripts, board bringup, development on central parts of PX4 (e.g. uORB).
 - Зокрема, це єдине місце, де виводиться весь вивід завантаження (включаючи інформацію про програми, які автоматично запускаються при завантаженні).

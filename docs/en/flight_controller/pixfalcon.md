@@ -17,7 +17,7 @@ The Pixfalcon autopilot (designed by [Holybro<sup>&reg;</sup>](https://holybro.c
 
 ## Quick Summary
 
-- Main System-on-Chip: [STM32F427](http://www.st.com/web/en/catalog/mmc/FM141/SC1169/SS1577/LN1789)
+- Main System-on-Chip: [STM32F427](https://www.st.com/en/microcontrollers-microprocessors/stm32f427-437.html)
   - CPU: 180 MHz ARM<sup>&reg;</sup> Cortex<sup>&reg;</sup> M4 with single-precision FPU
   - RAM: 256 KB SRAM (L1)
 - Failsafe System-on-Chip: STM32F100
@@ -39,11 +39,10 @@ From distributor [Hobbyking<sup>&reg;</sup>](https://hobbyking.com/en_us/pixfalc
 Optional hardware:
 
 - Optical flow: PX4 Flow unit from manufacturer [Holybro](https://holybro.com/products/px4flow)
-- Digital Airspeed sensor from manufacturer [Holybro](https://holybro.com/products/digital-air-speed-sensor) or distributor [Hobbyking](https://hobbyking.com/en_us/hkpilot-32-digital-air-speed-sensor-and-pitot-tube-set.html)
+- Digital Airspeed sensor from manufacturer [Holybro](https://holybro.com/products/digital-air-speed-sensor-ms4525do) or distributor [Hobbyking](https://hobbyking.com/en_us/hkpilot-32-digital-air-speed-sensor-and-pitot-tube-set.html)
 - On screen display with integrated Telemetry:
   - [Hobbyking OSD + EU Telemetry (433 MHz)](https://hobbyking.com/en_us/micro-hkpilot-telemetry-radio-module-with-on-screen-display-osd-unit-433mhz.html)
 - Pure Telemetry options:
-  - [Hobbyking Wifi Telemetry](https://hobbyking.com/en_us/apm-pixhawk-wireless-wifi-radio-module.html)
   - [SIK Radios](../telemetry/sik_radio.md)
 
 ## Building Firmware

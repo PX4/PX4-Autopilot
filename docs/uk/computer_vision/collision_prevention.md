@@ -3,7 +3,7 @@
 _Collision Prevention_ may be used to automatically slow and stop a vehicle before it can crash into an obstacle.
 It can be enabled for multicopter vehicles when using acceleration-based [Position mode](../flight_modes_mc/position.md) (or VTOL vehicles in MC mode).
 
-It can be enabled for multicopter vehicles in [Position mode](../flight_modes_mc/position.md), and can use sensor data from an offboard companion computer, offboard rangefinders over MAVLink, a rangefinder attached to the flight controller, or any combination of the above.
+It can be enabled for multicopter vehicles in [Position mode](../flight_modes_mc/position.md) (with [MPC_POS_MODE](#MPC_POS_MODE) set to `Acceleration based`), and can use sensor data from an offboard companion computer, offboard rangefinders over MAVLink, a rangefinder attached to the flight controller, or any combination of the above.
 
 Collision prevention may restrict vehicle maximum speed if the sensor range isn't large enough!
 It also prevents motion in directions where no sensor data is available (i.e. if you have no rear-sensor data, you will not be able to fly backwards).
@@ -26,9 +26,9 @@ Users are notified through _QGroundControl_ while _Collision Prevention_ is acti
 
 PX4 software setup is covered in the next section.
 If you are using a distance sensor attached to your flight controller for collision prevention, it will need to be attached and configured as described in [PX4 Distance Sensor](#rangefinder).
-If you are using a companion computer to provide obstacle information see [companion setup](#companion
+If you are using a companion computer to provide obstacle information see [companion setup](#companion) below.
 
-## Supported Rangefinders  {#rangefinder}
+## Supported Rangefinders {#rangefinder}
 
 ### Lanbao PSK-CM8JL65-CC5 [Discontinued]
 
@@ -47,7 +47,7 @@ PX4 v1.14 (and later) supports the [LightWare LiDAR SF45](../sensor/sf45_rotatin
 
 - Attach and configure the distance sensor on a particular port (see [sensor-specific docs](../sensor/rangefinders.md)) and enable collision prevention using [CP_DIST](#CP_DIST).
 - Модифікуйте драйвер для встановлення орієнтації.
- This should be done by mimicking the `SENS_CM8JL65_R_0` parameter (though you might also hard-code the orientation in the sensor _module.yaml_ file to something like `sf0x start -d ${SERIAL_DEV} -R 25` - where 25 is equivalent to `ROTATION_DOWNWARD_FACING`).
+  This should be done by mimicking the `SENS_CM8JL65_R_0` parameter (though you might also hard-code the orientation in the sensor _module.yaml_ file to something like `sf0x start -d ${SERIAL_DEV} -R 25` - where 25 is equivalent to `ROTATION_DOWNWARD_FACING`).
 - Modify the driver to set the _field of view_ in the distance sensor UORB topic (`distance_sensor_s.h_fov`).
 
 ## PX4 (Software) Setup
@@ -60,7 +60,7 @@ Configure collision prevention by [setting the following parameters](../advanced
 | <a id="CP_DELAY"></a>[CP_DELAY](../advanced_config/parameter_reference.md#CP_DELAY)                                                          | Set the sensor and velocity setpoint tracking delay. See [Delay Tuning](#delay_tuning) below.                                                                                                                                                                                                                                      |
 | <a id="CP_GUIDE_ANG"></a>[CP_GUIDE_ANG](../advanced_config/parameter_reference.md#CP_GUIDE_ANG)                         | Set the angle (to both sides of the commanded direction) within which the vehicle may deviate if it finds fewer obstacles in that direction. See [Guidance Tuning](#angle_change_tuning) below.                                                                                                                 |
 | <a id="CP_GO_NO_DATA"></a>[CP_GO_NO_DATA](../advanced_config/parameter_reference.md#CP_GO_NO_DATA) | Set to 1 to allow the vehicle to move in directions where there is no sensor coverage (default is 0/`False`).                                                                                                                                                                                                                   |
-| <a id="MPC_POS_MODE"></a>[MPC_POS_MODE](../advanced_config/parameter_reference.md#MPC_POS_MODE)                         | Set to `Direct velocity` or `Smoothed velocity` to enable Collision Prevention in Position Mode (default is `Acceleration based`).                                                                                                                                                                                              |
+| <a id="MPC_POS_MODE"></a>[MPC_POS_MODE](../advanced_config/parameter_reference.md#MPC_POS_MODE)                         | Must be set to `Acceleration based`.                                                                                                                                                                                                                                                                                                               |
 
 ## Опис алгоритму
 
@@ -203,85 +203,85 @@ The Lua script works by extracting the `obstacle_distance_fused` data at each ti
 
 2. Configure PX4 to publish obstacle distance data (so that it is available to PlotJuggler):
 
- Add the [`obstacle_distance_fused`](../msg_docs/ObstacleDistance.md) UORB topic to your [`dds_topics.yaml`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml) so that it is published by PX4:
+  Add the [`obstacle_distance_fused`](../msg_docs/ObstacleDistance.md) UORB topic to your [`dds_topics.yaml`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml) so that it is published by PX4:
 
- ```sh
- - topic: /fmu/out/obstacle_distance_fused
-   type: px4_msgs::msg::ObstacleDistance
- ```
+  ```sh
+  - topic: /fmu/out/obstacle_distance_fused
+    type: px4_msgs::msg::ObstacleDistance
+  ```
 
- For more information see [DDS Topics YAML](../middleware/uxrce_dds.md#dds-topics-yaml) in _uXRCE-DDS (PX4-ROS 2/DDS Bridge)_.
+  For more information see [DDS Topics YAML](../middleware/uxrce_dds.md#dds-topics-yaml) in [uXRCE-DDS](../middleware/uxrce_dds.md) (PX4-ROS 2/DDS Bridge)\_.
 
 3. Open PlotJuggler and navigate to the **Tools > Reactive Script Editor** section.
- In the **Script Editor** tab, add following scripts in the appropriate sections:
+  In the **Script Editor** tab, add following scripts in the appropriate sections:
 
- - **Global code, executed once:**
+  - **Global code, executed once:**
 
-  ```lua
-  obs_dist_fused_xy = ScatterXY.new("obstacle_distance_fused_xy")
-  obs_dist_min = Timeseries.new("obstacle_distance_minimum")
-  ```
+    ```lua
+    obs_dist_fused_xy = ScatterXY.new("obstacle_distance_fused_xy")
+    obs_dist_min = Timeseries.new("obstacle_distance_minimum")
+    ```
 
- - **function(tracker_time)**
+  - **function(tracker_time)**
 
-  ```lua
-  obs_dist_fused_xy:clear()
+    ```lua
+    obs_dist_fused_xy:clear()
 
-  i = 0
-  angle_offset = TimeseriesView.find("/fmu/out/obstacle_distance_fused/angle_offset")
-  increment = TimeseriesView.find("/fmu/out/obstacle_distance_fused/increment")
-  min_dist = 65535
+    i = 0
+    angle_offset = TimeseriesView.find("/fmu/out/obstacle_distance_fused/angle_offset")
+    increment = TimeseriesView.find("/fmu/out/obstacle_distance_fused/increment")
+    min_dist = 65535
 
-  -- Cache increment and angle_offset values at tracker_time to avoid repeated calls
-  local angle_offset_value = angle_offset:atTime(tracker_time)
-  local increment_value = increment:atTime(tracker_time)
+    -- Cache increment and angle_offset values at tracker_time to avoid repeated calls
+    local angle_offset_value = angle_offset:atTime(tracker_time)
+    local increment_value = increment:atTime(tracker_time)
 
-  if increment_value == nil or increment_value <= 0 then
-      print("Invalid increment value: " .. tostring(increment_value))
-      return
-  end
+    if increment_value == nil or increment_value <= 0 then
+        print("Invalid increment value: " .. tostring(increment_value))
+        return
+    end
 
-  local max_steps = math.floor(360 / increment_value)
+    local max_steps = math.floor(360 / increment_value)
 
-  while i < max_steps do
-      local str = string.format("/fmu/out/obstacle_distance_fused/distances[%d]", i)
-      local distance = TimeseriesView.find(str)
-      if distance == nil then
-          print("No distance data for: " .. str)
-          break
-      end
+    while i < max_steps do
+        local str = string.format("/fmu/out/obstacle_distance_fused/distances[%d]", i)
+        local distance = TimeseriesView.find(str)
+        if distance == nil then
+            print("No distance data for: " .. str)
+            break
+        end
 
-      local dist = distance:atTime(tracker_time)
-      if dist ~= nil and dist < 65535 then
-          -- Calculate angle and Cartesian coordinates
-          local angle = angle_offset_value + i * increment_value
-          local y = dist * math.cos(math.rad(angle))
-          local x = dist * math.sin(math.rad(angle))
+        local dist = distance:atTime(tracker_time)
+        if dist ~= nil and dist < 65535 then
+            -- Calculate angle and Cartesian coordinates
+            local angle = angle_offset_value + i * increment_value
+            local y = dist * math.cos(math.rad(angle))
+            local x = dist * math.sin(math.rad(angle))
 
-          obs_dist_fused_xy:push_back(x, y)
+            obs_dist_fused_xy:push_back(x, y)
 
-          -- Update minimum distance
-          if dist < min_dist then
-              min_dist = dist
-          end
-      end
+            -- Update minimum distance
+            if dist < min_dist then
+                min_dist = dist
+            end
+        end
 
-      i = i + 1
-  end
+        i = i + 1
+    end
 
-  -- Push minimum distance once after the loop
-  if min_dist < 65535 then
-      obs_dist_min:push_back(tracker_time, min_dist)
-  else
-      print("No valid minimum distance found")
-  end
-  ```
+    -- Push minimum distance once after the loop
+    if min_dist < 65535 then
+        obs_dist_min:push_back(tracker_time, min_dist)
+    else
+        print("No valid minimum distance found")
+    end
+    ```
 
 4. Enter a name for the script on the top right, and press **Save**.
- Once saved, the script should appear in the _Active Scripts_ section.
+  Once saved, the script should appear in the _Active Scripts_ section.
 
 5. Start streaming the data using the approach described in [Plotting uORB Topic Data in Real Time using PlotJuggler](../debug/plotting_realtime_uorb_data.md).
- You should see the `obstacle_distance_fused_xy` and `obstacle_distance_minimum` timeseries on the left.
+  You should see the `obstacle_distance_fused_xy` and `obstacle_distance_minimum` timeseries on the left.
 
 Note that you have to press **Save** again to re-enable the scripts after loading a new log file or otherwise clearing data.
 

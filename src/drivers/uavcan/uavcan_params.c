@@ -57,7 +57,7 @@ PARAM_DEFINE_INT32(UAVCAN_ENABLE, 0);
 /**
  * UAVCAN Node ID.
  *
- * Read the specs at http://uavcan.org to learn more about Node ID.
+ * Read the specs at https://dronecan.github.io/ to learn more about Node ID.
  *
  * @min 1
  * @max 125
@@ -288,10 +288,11 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_BARO, 0);
  * Enable UAVCAN battery subscription.
  *  uavcan::equipment::power::BatteryInfo
  *  ardupilot::equipment::power::BatteryInfoAux
+ *  cuav::equipment::power::CBAT
  *
  *  0 - Disable
  *  1 - Use raw data. Recommended for Smart battery
- *  2 - Filter the data with internal battery library
+ *  2 - Filter the data with internal battery library (unsupported with CBAT)
  *
  * @min 0
  * @max 2

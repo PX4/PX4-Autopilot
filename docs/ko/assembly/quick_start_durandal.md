@@ -148,7 +148,7 @@ The instructions below show how to connect the different types of receivers to _
 
   ![Durandal - Back Pinouts (Schematic)](../../assets/flight_controller/durandal/durandal_pinouts_back.jpg)
 
-- PPM and PWM receivers that have an _individual wire for each channel_ must connect to the **PPM RC** port _via a PPM encoder_ [like this one](http://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
+- PPM and PWM receivers that have an _individual wire for each channel_ must connect to the **PPM RC** port _via a PPM encoder_ [like this one](https://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
 
 For more information about selecting a radio system, receiver compatibility, and binding your transmitter/receiver pair, see: [Remote Control Transmitters & Receivers](../getting_started/rc_transmitter_receiver.md).
 
@@ -214,6 +214,6 @@ QuadPlane specific configuration is covered here: [QuadPlane VTOL Configuration]
 
 - [Durandal Overview](../flight_controller/durandal.md)
 - [Durandal Technical Data Sheet](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Durandal_technical_data_sheet_90f8875d-8035-4632-a936-a0d178062077.pdf) (Holybro)
-- [Durandal Pinouts](https://holybro.com/collections/autopilot-flight-controllers/products/Durandal-Pinouts) (Holybro)
-- [Durandal_MB_H743sch.pdf](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/durandal/Durandal_MB_H743sch.pdf) (Durandal Schematics)
-- [STM32H743IIK_pinout.pdf](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/durandal/STM32H743IIK_pinout.pdf) (Durandal Pinmap)
+- [Durandal Pinouts](https://cdn.shopifycdn.net/s/files/1/0604/5905/7341/files/Durandal_Pinouts_v1.0.pdf?v=1693983344) (Holybro)
+- [Durandal_MB_H743sch.pdf](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/durandal/Durandal_MB_H743sch.pdf) (Durandal Schematics)
+- [STM32H743IIK_pinout.pdf](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/durandal/STM32H743IIK_pinout.pdf) (Durandal Pinmap)

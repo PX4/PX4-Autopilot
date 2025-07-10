@@ -6,8 +6,8 @@
 
 Adding a feature to PX4 follows a defined workflow. In order to share your contributions on PX4, you can follow this example.
 
-- [Sign up](https://github.com/join) for github if you haven't already
-- Fork the PX4-Autopilot repo (see [here](https://docs.github.com/en/get-started/quickstart/fork-a-repo))
+- [Sign up](https://github.com/signup) for github if you haven't already
+- Fork the PX4-Autopilot repo (see [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo))
 - Clone your forked repository to your local computer
 
   ```sh
@@ -45,7 +45,7 @@ Adding a feature to PX4 follows a defined workflow. In order to share your contr
   git add <file name>
   ```
 
-  If you prefer having a GUI to add your files see [Gitk](https://git-scm.com/book/en/v2/Git-in-Other-Environments-Graphical-Interfaces) or [`git add -p`](http://nuclearsquid.com/writings/git-add/).
+  If you prefer having a GUI to add your files see [Gitk](https://git-scm.com/book/en/v2/Git-in-Other-Environments-Graphical-Interfaces) or [`git add -p`](https://nuclearsquid.com/writings/git-add/).
 
 - Commit the added files with a meaningful message explaining your changes
 
@@ -285,7 +285,7 @@ If a conflict occurs during a `git rebase`, please refer to [this guide](https:/
 
 ### Pull merge conflicts
 
-If a conflict occurs during a `git pull`, please refer to [this guide](https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/#competing-line-change-merge-conflicts).
+If a conflict occurs during a `git pull`, please refer to [this guide](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/resolving-a-merge-conflict-using-the-command-line#competing-line-change-merge-conflicts).
 
 ### Build error due to git tags out of date
 

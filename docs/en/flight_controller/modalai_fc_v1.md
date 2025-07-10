@@ -1,14 +1,18 @@
 # ModalAI Flight Core v1
 
-<Badge type="tip" text="PX4 v1.11" />
+<Badge type="info" text="Discontinued" /> <Badge type="tip" text="PX4 v1.11" />
+
+:::warning
+This frame has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
+:::
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://forum.modalai.com/) for hardware support or compliance issues.
 :::
 
-The ModalAI [Flight Core v1](https://modalai.com/flight-core) ([Datasheet](https://docs.modalai.com/flight-core-datasheet)) is a flight controller for PX4, made in the USA.
-The Flight Core can be paired with ModalAI [VOXL](https://modalai.com/voxl) ([Datasheet](https://docs.modalai.com/voxl-datasheet/)) for obstacle avoidance and GPS-denied navigation, or used independently as a standalone flight controller.
+The ModalAI _Flight Core v1_ ([Datasheet](https://docs.modalai.com/flight-core-datasheet)) is a flight controller for PX4, made in the USA.
+The Flight Core can be paired with ModalAI VOXL for obstacle avoidance and GPS-denied navigation, or used independently as a standalone flight controller.
 
 ![FlightCoreV1](../../assets/flight_controller/modalai/fc_v1/main.jpg)
 
@@ -50,10 +54,11 @@ More detailed hardware documentation can be found [here](https://docs.modalai.co
 :::
 
 <!-- reference links for table above (improve layout) -->
+
 [stm32f765ii]: https://www.st.com/en/microcontrollers-microprocessors/stm32f765ii.html
-[bmp388]: https://www.bosch-sensortec.com/products/environmental-sensors/pressure-sensors/bmp388/
-[icm-20602]: https://www.invensense.com/products/motion-tracking/6-axis/icm-20602/
-[bmi088]: https://www.bosch-sensortec.com/bst/products/all_products/bmi088_1
+[bmp388]: https://www.adafruit.com/product/3966
+[icm-20602]: https://invensense.tdk.com/products/motion-tracking/6-axis/icm-20602/
+[bmi088]: https://www.bosch-sensortec.com/products/motion-sensors/imus/bmi088/
 [px4]: https://github.com/PX4/PX4-Autopilot/tree/main/boards/modalai/fc-v1
 [a71ch]: https://www.nxp.com/products/security-and-authentication/authentication/plug-and-trust-the-fast-easy-way-to-deploy-secure-iot-connections:A71CH
 
@@ -76,10 +81,7 @@ This board supported in QGroundControl 4.0 and later.
 
 ## Availability
 
-- [Flight Core Complete Kit](https://modalai.com/flight-core)
-- [Flight Core integrated with VOXL Companion Computer on a single PCB](https://modalai.com/flight-core)
-- [Flight Core integrated with VOXL Companion Computer and Obstacle Avoidance Cameras (VOXL Flight Deck)](https://modalai.com/flight-deck) ([Datasheet](https://docs.modalai.com/voxl-flight-deck-platform-datasheet/))
-- [Flight Core assembled with VOXL and cameras](https://shop.modalai.com/products/voxl-flight-deck-r1)
+- No longer available
 
 ## Quick Start
 
