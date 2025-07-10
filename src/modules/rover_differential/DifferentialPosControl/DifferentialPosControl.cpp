@@ -119,6 +119,8 @@ void DifferentialPosControl::updatePosControl()
 				_speed_setpoint = 0.f;
 			}
 
+			_pure_pursuit_status_pub.publish(pure_pursuit_status);
+
 			rover_velocity_setpoint_s rover_velocity_setpoint{};
 			rover_velocity_setpoint.timestamp = timestamp;
 			rover_velocity_setpoint.speed = _speed_setpoint;
