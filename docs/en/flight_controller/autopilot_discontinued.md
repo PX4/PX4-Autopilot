@@ -17,6 +17,8 @@ They are listed because you may be using them in an existing drone, and because 
 - [Holybro Pixhawk Mini](../flight_controller/pixhawk_mini.md) (FMUv3)
 - [Holybro Pixfalcon](../flight_controller/pixfalcon.md) (Pixhawk FMUv2)
 - [Holybro Pix32](../flight_controller/holybro_pix32.md) (FMUv2)
+- [ModalAI VOXL Flight](../flight_controller/modalai_voxl_flight.md)
+- [ModalAI Flight Core v1](../flight_controller/modalai_fc_v1.md)
 - [mRobotics-X2.1](../flight_controller/mro_x2.1.md) (FMUv2)
 - [mRo AUAV-X2](../flight_controller/auav_x2.md) (Pixhawk FMUv2)
 - [NXP FMUK66](../flight_controller/nxp_rddrone_fmuk66.md) (Discontinued)

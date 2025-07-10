@@ -1,6 +1,10 @@
 # ModalAI VOXL Flight
 
-<Badge type="tip" text="PX4 v1.11" />
+<Badge type="info" text="Discontinued" /> <Badge type="tip" text="PX4 v1.11" />
+
+:::warning
+This frame has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
+:::
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
