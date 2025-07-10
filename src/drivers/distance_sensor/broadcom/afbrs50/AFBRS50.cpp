@@ -370,6 +370,19 @@ status_t AFBRS50::setRateAndDfm(uint32_t rate_hz, argus_dfm_mode_t dfm_mode)
 		return status;
 	}
 
+	argus_dfm_mode_t result_mode;
+	status = Argus_GetConfigurationDFMMode(_hnd, &result_mode);
+
+	if (status != STATUS_OK) {
+		PX4_ERR("Argus_GetConfigurationDFMMode status not okay: %i", (int)status);
+		return status;
+	}
+
+	if (result_mode != dfm_mode) {
+		PX4_ERR("Argus_SetConfigurationDFMMode failed: %i", (int)status);
+		return status;
+	}
+
 	status = Argus_SetConfigurationFrameTime(_hnd, (1000000 / rate_hz));
 
 	if (status != STATUS_OK) {
