@@ -2,7 +2,7 @@
 
 ## CAN Power Connectors
 
-CAN power connectors are designed for light unmanned aerial (UAV) and other vehicles for providing power over CAN using [CAN power cables](https://docs.raccoonlab.co/guide/pmu/wires/).
+CAN power connectors are designed for light unmanned aerial (UAV) and other vehicles for providing power over CAN using [CAN power cables](https://docs.raccoonlab.co/guide/pmu/wires.html).
 
 There are two types of devices:
 

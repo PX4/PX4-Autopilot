@@ -217,5 +217,5 @@ This reduces the risk or poor wiring contributing to debugging problems, and has
 [swd]: https://developer.arm.com/documentation/ihi0031/a/The-Serial-Wire-Debug-Port--SW-DP-
 [itm]: https://developer.arm.com/documentation/ddi0403/d/Appendices/Debug-ITM-and-DWT-Packet-Protocol?lang=en
 [etm]: https://developer.arm.com/documentation/ihi0064/latest/
-[bm06b-ghs-tbt(lf)(sn)(n)]: https://www.digikey.com/products/en?keywords=455-1582-1-ND
-[sm06b-ghs-tbt(lf)(sn)(n)]: https://www.digikey.com/products/en?keywords=455-1568-1-ND
+[bm06b-ghs-tbt(lf)(sn)(n)]: https://www.digikey.com/en/products/detail/jst-sales-america-inc/BM06B-GHS-TBT/807804
+[sm06b-ghs-tbt(lf)(sn)(n)]: https://www.digikey.com/en/products/detail/jst-sales-america-inc/SM06B-GHS-TB/807790
