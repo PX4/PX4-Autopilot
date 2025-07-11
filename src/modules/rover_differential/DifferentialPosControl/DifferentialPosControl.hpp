@@ -104,8 +104,10 @@ private:
 	Vector2f _curr_pos_ned{};
 	Vector2f _start_ned{};
 	float _vehicle_yaw{0.f};
+	float _ground_speed_abs{0.f};
 
 	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::RO_ACCEL_LIM>)     _param_ro_accel_limit,
 		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_limit,
 		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_limit,
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
