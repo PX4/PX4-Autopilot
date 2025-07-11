@@ -41,5 +41,4 @@ target_include_directories(ActuatorEffectiveness PUBLIC ${CMAKE_CURRENT_SOURCE_D
 target_link_libraries(ActuatorEffectiveness
 	PRIVATE
 		mathlib
-		PID
 )
