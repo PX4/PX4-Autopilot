@@ -97,6 +97,10 @@ publications:
     type: px4_msgs::msg::HomePosition
     rate_limit: 5.
 
+  - topic: /fmu/out/wind
+    type: px4_msgs::msg::Wind
+    rate_limit: 50.
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
