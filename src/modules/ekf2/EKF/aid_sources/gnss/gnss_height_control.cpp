@@ -97,7 +97,7 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 
 		const bool altitude_initialisation_conditions_passing = common_conditions_passing
 				&& !PX4_ISFINITE(_local_origin_alt)
-				&& _params.height_sensor_ref == static_cast<int32_t>(HeightSensor::GNSS)
+				&& _params.ekf2_hgt_ref == static_cast<int32_t>(HeightSensor::GNSS)
 				&& isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
 
 		if (_control_status.flags.gps_hgt) {
@@ -131,7 +131,7 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 
 		} else {
 			if (starting_conditions_passing) {
-				if (_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::GNSS)) {
+				if (_params.ekf2_hgt_ref == static_cast<int32_t>(HeightSensor::GNSS)) {
 					ECL_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);
 					_height_sensor_ref = HeightSensor::GNSS;
 

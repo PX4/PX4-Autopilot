@@ -85,10 +85,8 @@ UavcanEscController::init()
 }
 
 void
-UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned total_outputs)
+UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], unsigned total_outputs)
 {
-	// TODO: remove stop_motors as it's unnecessary and unused almost everywhere
-
 	// TODO: configurable rate limit
 	const auto timestamp = _node.getMonotonicTime();
 
