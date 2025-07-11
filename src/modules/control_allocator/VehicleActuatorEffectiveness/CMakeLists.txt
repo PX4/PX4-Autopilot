@@ -19,6 +19,8 @@ px4_add_library(VehicleActuatorEffectiveness
 	ActuatorEffectivenessTilts.hpp
 	ActuatorEffectivenessRotors.cpp
 	ActuatorEffectivenessRotors.hpp
+	ActuatorEffectivenessSpacecraft.cpp
+	ActuatorEffectivenessSpacecraft.hpp
 	ActuatorEffectivenessStandardVTOL.cpp
 	ActuatorEffectivenessStandardVTOL.hpp
 	ActuatorEffectivenessTiltrotorVTOL.cpp
