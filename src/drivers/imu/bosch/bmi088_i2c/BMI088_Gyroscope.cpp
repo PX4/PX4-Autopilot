@@ -33,8 +33,6 @@
 
 #include "BMI088_Gyroscope.hpp"
 
-#include <px4_platform/board_dma_alloc.h>
-
 using namespace time_literals;
 
 namespace Bosch::BMI088::Gyroscope
@@ -170,7 +168,7 @@ void BMI088_Gyroscope::RunImpl()
 		break;
 
 	case STATE::FIFO_READ: {
-			SimpleFIFORead(now);
+			NormalRead(now);
 		}
 		break;
 	}
@@ -435,7 +433,11 @@ bool BMI088_Gyroscope::NormalRead(const hrt_abstime &timestamp_sample)
 	uint8_t buffer[6] = {0};
 	uint8_t cmd[1] = {static_cast<uint8_t>(Register::READ_GYRO)};
 
-	transfer(&cmd[0], 1, &buffer[0], 6);
+	if (transfer(&cmd[0], 1, &buffer[0], 6) != PX4_OK) {
+		PX4_WARN("transfer(&data[0], 1, &data[0], n_frames) != PX4_OK");
+		perf_count(_bad_transfer_perf);
+		return false;
+	}
 
 	uint8_t RATE_X_LSB = buffer[0];
 	uint8_t RATE_X_MSB = buffer[1];
@@ -448,11 +450,29 @@ bool BMI088_Gyroscope::NormalRead(const hrt_abstime &timestamp_sample)
 	const int16_t gyro_y = combine(RATE_Y_MSB, RATE_Y_LSB);
 	const int16_t gyro_z = combine(RATE_Z_MSB, RATE_Z_LSB);
 
+	if (gyro_x == INT16_MIN) {
+		PX4_WARN("gyro_x == INT16_MIN");
+	}
+
+	if (gyro_y == INT16_MIN) {
+		PX4_WARN("gyro_y == INT16_MIN");
+	}
+
+	if (gyro_z == INT16_MIN) {
+		PX4_WARN("gyro_z == INT16_MIN");
+	}
+
+	if (gyro_x == INT16_MIN || gyro_y == INT16_MIN || gyro_z == INT16_MIN) {
+		PX4_WARN("Gyro:NormalRead(): INT16_MIN frame rejected");
+		perf_count(_bad_transfer_perf);
+		return false;
+	}
+
 	// sensor's frame is +x forward, +y left, +z up
 	//  flip y & z to publish right handed with z down (x forward, y right, z down)
 	x = gyro_x;
-	y = (gyro_y == INT16_MIN) ? INT16_MAX : -gyro_y;
-	z = (gyro_z == INT16_MIN) ? INT16_MAX : -gyro_z;
+	y = -gyro_y;
+	z = -gyro_z;
 
 	_px4_gyro.update(timestamp_sample, x, y, z);
 
