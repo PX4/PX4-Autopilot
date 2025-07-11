@@ -396,7 +396,11 @@ bool FailsafeBase::checkFailsafe(int caller_id, bool last_state_failure, bool cu
 
 void FailsafeBase::removeAction(ActionOptions &action) const
 {
-	if (action.clear_condition == ClearCondition::WhenConditionClears) {
+	// If failsafes are being deferred and the action can be deferred, remove it immediately independent of the
+	// clear_condition to avoid triggering a failsafe after deferring is disabled.
+	const bool remove_while_deferring = _defer_failsafes && action.can_be_deferred;
+
+	if (action.clear_condition == ClearCondition::WhenConditionClears || remove_while_deferring) {
 		// Remove action
 		PX4_DEBUG("Caller %i: state changed to valid, removing action", action.id);
 		action.setInvalid();
@@ -482,8 +486,13 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 	}
 
 	// Check if we should enter delayed Hold
+	const bool action_can_be_delayed = selected_action != Action::None &&
+					   selected_action != Action::Disarm &&
+					   selected_action != Action::Terminate &&
+					   selected_action != Action::Hold;
+
 	if (_current_delay > 0 && !_user_takeover_active && allow_user_takeover <= UserTakeoverAllowed::AlwaysModeSwitchOnly
-	    && selected_action != Action::Disarm && selected_action != Action::Terminate && selected_action != Action::Hold) {
+	    && action_can_be_delayed) {
 		returned_state.delayed_action = selected_action;
 		selected_action = Action::Hold;
 		allow_user_takeover = UserTakeoverAllowed::AlwaysModeSwitchOnly;
@@ -709,6 +718,10 @@ bool FailsafeBase::deferFailsafes(bool enabled, int timeout_s)
 {
 	if (enabled && _selected_action > Action::Warn) {
 		return false;
+	}
+
+	if (!enabled && _failsafe_defer_started == 0) {
+		_current_delay = 0;
 	}
 
 	if (timeout_s == 0) {
