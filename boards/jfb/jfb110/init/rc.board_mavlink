@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# Board specific MAVLink startup script.
+#------------------------------------------------------------------------------
+
+# no setting
