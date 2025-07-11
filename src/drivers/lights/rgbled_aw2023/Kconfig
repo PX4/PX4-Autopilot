@@ -1,0 +1,5 @@
+menuconfig DRIVERS_LIGHTS_RGBLED_AW2023
+	bool "rgbled_aw2013"
+	default n
+	---help---
+		Enable support for rgbled_aw2023
