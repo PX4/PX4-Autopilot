@@ -42,6 +42,7 @@
  * All the ackowledgments and credits for the fw wing/rover app are reported in those files.
  *
  * @author Daniel Duecker <daniel.duecker@tuhh.de>
+ * @author Pedro Roque <padr@kth.se>
  */
 
 /*
@@ -103,48 +104,138 @@ PARAM_DEFINE_FLOAT(UUV_YAW_P, 4.0f);
 PARAM_DEFINE_FLOAT(UUV_YAW_D, 2.0f);
 
 
-// Input Modes
+// Gains for Manual Inputs in different Modes
 /**
- * Select Input Mode
- *
- * @value 0 use Attitude Setpoints
- * @value 1 Direct Feedthrough
- * @group UUV Attitude Control
- */
-PARAM_DEFINE_INT32(UUV_INPUT_MODE, 0);
-
-/**
- * Skip the controller
- *
- * @value 0 use the module's controller
- * @value 1 skip the controller and feedthrough the setpoints
- */
-PARAM_DEFINE_INT32(UUV_SKIP_CTRL, 0);
-
-/**
- * Direct roll input
+ * Roll gain for manual inputs in attitude control mode
  *
  * @group UUV Attitude Control
+ * @min 0.0
+ * @decimal 2
  */
-PARAM_DEFINE_FLOAT(UUV_DIRCT_ROLL, 0.0f);
+PARAM_DEFINE_FLOAT(UUV_SGM_ROLL, 0.5f);
 
 /**
- * Direct pitch input
+ * Pitch gain for manual inputs in attitude control mode
+ *
+ * @group UUV Attitude Control
+ * @min 0.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_SGM_PITCH, 0.5f);
+
+/**
+ * Yaw gain for manual inputs in attitude control mode
+ *
+ * @group UUV Attitude Control
+ * @min 0.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_SGM_YAW, 0.5f);
+
+/**
+ * Throttle gain for manual inputs in attitude control mode
+ *
+ * @group UUV Attitude Control
+ * @min 0.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_SGM_THRTL, 0.1f);
+
+/**
+ * Roll gain for manual inputs in rate control mode
+ *
+ * @group UUV Attitude Control
+ * @min 0.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_RGM_ROLL, 100.0f);
+
+/**
+ * Pitch gain for manual inputs in rate control mode
+ *
+ * @group UUV Attitude Control
+ * @min 0.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_RGM_PITCH, 100.0f);
+
+/**
+ * Yaw gain for manual inputs in rate control mode
+ *
+ * @group UUV Attitude Control
+ * @min 0.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_RGM_YAW, 100.0f);
+
+/**
+ * Throttle gain for manual inputs in rate control mode
+ *
+ * @group UUV Attitude Control
+ * @min 0.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_RGM_THRTL, 10.0f);
+
+/**
+ * Roll gain for manual inputs in manual control mode
+ *
+ * @group UUV Attitude Control
+ * @min 0.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_MGM_ROLL, 0.05f);
+
+/**
+ * Pitch gain for manual inputs in manual control mode
+ *
+ * @group UUV Attitude Control
+ * @min 0.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_MGM_PITCH, 0.05f);
+
+/**
+ * Yaw gain for manual inputs in manual control mode
+ *
+ * @group UUV Attitude Control
+ * @min 0.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_MGM_YAW, 0.05f);
+
+/**
+ * Throttle gain for manual inputs in manual control mode
+ *
+ * @group UUV Attitude Control
+ * @min 0.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_MGM_THRTL, 0.1f);
+
+/**
+ * UUV Torque setpoint Saturation
+ *
+ * @group UUV Attitude Control
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_TORQUE_SAT, 0.3f);
+
+/**
+ * UUV Thrust setpoint Saturation
+ *
+ * @group UUV Attitude Control
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_THRUST_SAT, 0.1f);
+
+/**
+ * Maximum time (in seconds) before resetting setpoint
  *
  * @group UUV Attitude Control
  */
-PARAM_DEFINE_FLOAT(UUV_DIRCT_PITCH, 0.0f);
-
-/**
- * Direct yaw input
- *
- * @group UUV Attitude Control
- */
-PARAM_DEFINE_FLOAT(UUV_DIRCT_YAW, 0.0f);
-
-/**
- * Direct thrust input
- *
- * @group UUV Attitude Control
- */
-PARAM_DEFINE_FLOAT(UUV_DIRCT_THRUST, 0.0f);
+PARAM_DEFINE_FLOAT(UUV_SP_MAX_AGE, 2.0f);
