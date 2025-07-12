@@ -71,7 +71,6 @@ void UsvDynamics::Configure(const gz::sim::Entity &_modelEntity,
 	this->_usvData.linkEntity = this->_usvData.model.LinkByName(_ecm, linkName);
 
 	if (this->_usvData.linkEntity == gz::sim::kNullEntity) {
-		gzerr << "USV dynamics plugin error: bodyName: " << linkName << " does not exist in model" << std::endl;
 		return;
 	}
 
@@ -267,13 +266,13 @@ void UsvDynamics::PreUpdate(const gz::sim::UpdateInfo &_info,
 			// Apply buoyancy force at grid point location (like classic plugin)
 			// Force is vertical (world frame), but we apply it at the grid point location
 			gz::math::Vector3d forceAtPoint(0, 0, kBuoyForce);
-			
+
 			// In classic plugin, forces are applied relative to link frame
 			// AddForceAtPosition effectively does: force + position.Cross(force) for torque
 			// We need to transform the vertical force to body frame and add torque manually
 			gz::math::Vector3d forceInBody = kPose.Rot().Inverse().RotateVector(forceAtPoint);
 			gz::math::Vector3d torqueFromForce = bpnt.Cross(forceInBody);
-			
+
 			totalForce += forceInBody;
 			totalTorque += torqueFromForce;
 		}
