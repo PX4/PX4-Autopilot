@@ -544,3 +544,4 @@ config RP23XX_WS2812_PWR_GPIO
 		such a pin.
 
 endif # RP23XX_BOARD_HAS_WS2812
+

@@ -247,6 +247,13 @@ void LoadMon::cpuload()
 #endif
 }
 
+#ifndef up_check_tcbstack_remain
+		ssize_t up_check_tcbstack_remain(FAR struct tcb_s *tcb)
+		{
+			return (ssize_t)tcb->adj_stack_size - (ssize_t)up_check_tcbstack(tcb);
+		}
+#endif
+
 #if defined(__PX4_NUTTX)
 void LoadMon::stack_usage()
 {

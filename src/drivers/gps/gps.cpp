@@ -478,6 +478,8 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 
 		if (ret > 0) {
 			_num_bytes_read += ret;
+		} else {
+			PX4_ERR("gps failed to read uart");
 		}
 
 // SPI is only supported on LInux

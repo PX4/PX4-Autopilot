@@ -174,15 +174,20 @@ void CdcAcmAutostart::state_disconnected()
 {
 	if (_vbus_present && _vbus_present_prev) {
 		PX4_DEBUG("starting sercon");
+		syslog(LOG_INFO, "starting sercon\n");
 
 		if (sercon_main(0, nullptr) == EXIT_SUCCESS) {
 			_state = UsbAutoStartState::connecting;
 			PX4_DEBUG("state connecting");
+			syslog(LOG_INFO, "starting sercon - state connecting\n");
 			_reschedule_time = 1_s;
+		} else {
+			syslog(LOG_ERR, "[CdcAcmAutostart] state_disconnected - sercon_main returned non 0\n");
 		}
 
 	} else if (_vbus_present && !_vbus_present_prev) {
 		// USB just connected, try again soon
+		syslog(LOG_INFO, "USB just connected, try again soon\n");
 		_reschedule_time = 100_ms;
 	}
 }

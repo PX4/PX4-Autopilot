@@ -62,6 +62,11 @@ enum Timer {
 	Timer5,
 	Timer6,
 	Timer7,
+	// only on RP2350
+	//	Timer8,
+	//	Timer9,
+	//	Timer10,
+	//	Timer11,
 };
 enum Channel {
 	ChannelA = 1,
@@ -91,6 +96,11 @@ static inline constexpr uint32_t timerBaseRegister(Timer::Timer timer)
 	case Timer::Timer6: return RP2XXX_PWM_BASE + 0x78;
 
 	case Timer::Timer7: return RP2XXX_PWM_BASE + 0x8c;
+
+	// 8: 0x0a0
+	// 9: 0x0b4
+	// 0x0c8
+	// 0x0dc
 
 	default: break;
 	}
@@ -137,6 +147,25 @@ enum Pin {
 	Pin27,
 	Pin28,
 	Pin29,
+	// only RP2350B
+	Pin30,
+	Pin31,
+	Pin32,
+	Pin33,
+	Pin34,
+	Pin35,
+	Pin36,
+	Pin37,
+	Pin38,
+	Pin39,
+	Pin40,
+	Pin41,
+	Pin42,
+	Pin43,
+	Pin44,
+	Pin45,
+	Pin46,
+	Pin47,
 };
 
 struct GPIOPin {
@@ -206,6 +235,44 @@ static inline constexpr uint32_t getGPIOPin(GPIO::Pin pin)
 	case GPIO::Pin28: return 28;
 
 	case GPIO::Pin29: return 29;
+
+	// RP2350B
+	case GPIO::Pin30: return 30;
+
+	case GPIO::Pin31: return 31;
+
+	case GPIO::Pin32: return 32;
+
+	case GPIO::Pin33: return 33;
+
+	case GPIO::Pin34: return 34;
+
+	case GPIO::Pin35: return 35;
+
+	case GPIO::Pin36: return 36;
+
+	case GPIO::Pin37: return 37;
+
+	case GPIO::Pin38: return 38;
+
+	case GPIO::Pin39: return 39;
+
+	case GPIO::Pin40: return 40;
+
+	case GPIO::Pin41: return 41;
+
+	case GPIO::Pin42: return 42;
+
+	case GPIO::Pin43: return 43;
+
+	case GPIO::Pin44: return 44;
+
+	case GPIO::Pin45: return 45;
+
+	case GPIO::Pin46: return 46;
+
+	case GPIO::Pin47: return 47;
+
 	}
 
 	return 0;

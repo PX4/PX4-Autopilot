@@ -80,6 +80,35 @@ __BEGIN_DECLS
 // RP2040 does not have the gpio configuration process similar to stm or tiva devices.
 // There are multiple different registers which are required to be configured based on the function selection.
 // However, only five values are required for the most part: Pin number, Pull up/down, direction, set/clear and function
+
+#if defined(CONFIG_ARCH_CHIP_RP23XX)
+// The pinset below can be defined using a 16-bit value where,
+// bits		Function
+// 0-5		GPIO number. 0-29 is valid.
+
+// +1
+// 5		Pull up
+// 6		Pull down
+// 7		Direction
+// 8		Set/clear
+// 9-13		GPIO function select
+// 14-15	Unused
+#define GPIO_PU		(1 << 6)	// Pull-up resistor
+#define GPIO_PD		(1 << 7)	// Pull-down resistor
+#define GPIO_OUT	(1 << 8)	// Output enable
+#define GPIO_SET	(1 << 9)	// Output set
+#define GPIO_FUN(func)	(func << 10)	// Function select
+
+// FIXME: need to support more pins on rp2350B !!! the rp2040 masks are incorrect!!!
+#define GPIO_NUM_MASK	0x3f  		//                                000111111 = 63 FIXME
+#define	GPIO_PU_MASK	0x40		// GPIO PAD register mask.        001000000 = 64
+#define	GPIO_PD_MASK	0x80		// GPIO pin number mask.          010000000 = 128
+#define	GPIO_OUT_MASK	0x100		// GPIO pin function mask         100000000 = 256
+#define	GPIO_SET_MASK	0x200		// GPIO pin function mask        1000000000 = 512
+#define	GPIO_FUN_MASK	0x7C00		// GPIO output enable mask 0111110000000000
+
+#else
+
 // The pinset below can be defined using a 16-bit value where,
 // bits		Function
 // 0-4		GPIO number. 0-29 is valid.
@@ -95,18 +124,20 @@ __BEGIN_DECLS
 #define GPIO_SET	(1 << 8)	// Output set
 #define GPIO_FUN(func)	(func << 9)	// Function select
 
-#if defined(CONFIG_ARCH_CHIP_RP23XX)
-	#define GPIO_FUNC_SIO_SHIFT_9 GPIO_FUN(RP23XX_GPIO_FUNC_SIO)
-#else
-	#define GPIO_FUNC_SIO_SHIFT_9 GPIO_FUN(RP2040_GPIO_FUNC_SIO)
-#endif
-
 #define GPIO_NUM_MASK	0x1f  		//                                00011111 = 31 FIXME
 #define	GPIO_PU_MASK	0x20		// GPIO PAD register mask.        00100000 = 32
 #define	GPIO_PD_MASK	0x40		// GPIO pin number mask.          01000000 = 64
 #define	GPIO_OUT_MASK	0x80		// GPIO pin function mask         10000000 = 128
 #define	GPIO_SET_MASK	0x100		// GPIO pin function mask        100000000 =256
 #define	GPIO_FUN_MASK	0x3E00		// GPIO output enable mask 011111000000000
+#endif
+
+#if defined(CONFIG_ARCH_CHIP_RP23XX)
+	// shift10 instead !!!
+	#define GPIO_FUNC_SIO_SHIFT_9 GPIO_FUN(RP23XX_GPIO_FUNC_SIO)
+#else
+	#define GPIO_FUNC_SIO_SHIFT_9 GPIO_FUN(RP2040_GPIO_FUNC_SIO)
+#endif
 
 #if defined(CONFIG_ARCH_CHIP_RP23XX)
 

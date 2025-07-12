@@ -218,6 +218,16 @@ void rp23xx_boardearlyinitialize(void)
  *
  ************************************************************************************/
 
+void _setup_i2c_pins(uint32_t gpio){
+	// platforms/nuttx/NuttX/nuttx/arch/arm/src/rp23xx/rp23xx_gpio.c
+	uint32_t gpio_sda = gpio;
+	uint32_t gpio_scl = gpio + 1;
+	rp23xx_gpio_set_function(gpio_sda, RP23XX_GPIO_FUNC_I2C);      /* SDA */
+	rp23xx_gpio_set_function(gpio_scl, RP23XX_GPIO_FUNC_I2C);      /* SCL */
+	rp23xx_gpio_set_pulls(gpio_sda, true, false);  /* Pull up */
+	rp23xx_gpio_set_pulls(gpio_scl, true, false);
+}
+
 __EXPORT void
 rp23xx_boardinitialize(void)
 {
@@ -239,17 +249,11 @@ rp23xx_boardinitialize(void)
 
 	/* Set default I2C pin */
 #if defined(CONFIG_RP23XX_I2C0) && CONFIG_RP23XX_I2C0_GPIO >= 0
-	rp23xx_gpio_set_function(CONFIG_RP23XX_I2C0_GPIO, RP23XX_GPIO_FUNC_I2C);      /* SDA */
-	rp23xx_gpio_set_function(CONFIG_RP23XX_I2C0_GPIO + 1, RP23XX_GPIO_FUNC_I2C);      /* SCL */
-	rp23xx_gpio_set_pulls(CONFIG_RP23XX_I2C0_GPIO, true, false);  /* Pull up */
-	rp23xx_gpio_set_pulls(CONFIG_RP23XX_I2C0_GPIO + 1, true, false);
+	_setup_i2c_pins(CONFIG_RP23XX_I2C0_GPIO);
 #endif
 
 #if defined(CONFIG_RP23XX_I2C1) &&  CONFIG_RP23XX_I2C1_GPIO >= 0
-	rp23xx_gpio_set_function(CONFIG_RP23XX_I2C1_GPIO, RP23XX_GPIO_FUNC_I2C);      /* SDA */
-	rp23xx_gpio_set_function(CONFIG_RP23XX_I2C1_GPIO + 1, RP23XX_GPIO_FUNC_I2C);      /* SCL */
-	rp23xx_gpio_set_pulls(CONFIG_RP23XX_I2C1_GPIO, true, false);  /* Pull up */
-	rp23xx_gpio_set_pulls(CONFIG_RP23XX_I2C1_GPIO + 1, true, false);
+	_setup_i2c_pins(CONFIG_RP23XX_I2C1_GPIO);
 #endif
 
 
@@ -387,9 +391,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	// SPI2: sensors
 	#if defined(CONFIG_NSH_MMCSDSPIPORTNO)
   		// SPI2
-        #define SENSOR_SPI_BUS    1
+        #define SENSOR_SPI_BUS    2
     #else
-  	  #define SENSOR_SPI_BUS    1
+  	  #define SENSOR_SPI_BUS    2
     #endif
 
     #if defined(CONFIG_RP23XX_SPI0)
@@ -445,7 +449,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
    up_udelay(300000);
    struct mtd_dev_s *mtd_dev;
    mtd_dev = rp23xx_flash_mtd_initialize();
-
+   up_udelay(300000);
    if (mtd_dev == NULL)
      {
        syslog(LOG_ERR, "ERROR: flash_mtd_initialize failed: %d\n", errno);
@@ -454,7 +458,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
    else
      {
        syslog(LOG_INFO, "[boot] initializing params in FLASH - smart_initialize\n");
-       up_udelay(200);
+       up_udelay(2000);
        int ret = smart_initialize(0, mtd_dev, NULL);
 
        if (ret < 0)
@@ -465,7 +469,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
        else if (sizeof(CONFIG_RP23XX_FLASH_MOUNT_POINT) > 1)
          {
            syslog(LOG_INFO, "[boot] initializing params in FLASH - nx_mount\n");
-           up_udelay(200);
+           up_udelay(2000);
            mkdir(CONFIG_RP23XX_FLASH_MOUNT_POINT, 0777);
 
            /* Mount the file system */
@@ -482,11 +486,11 @@ __EXPORT int board_app_initialize(uintptr_t arg)
                      " 0, NULL) failed: %d\n",
                      CONFIG_RP23XX_FLASH_MOUNT_POINT,
                      ret);
-               up_udelay(200);
+               up_udelay(2000);
              }
          }
        syslog(LOG_INFO, "[boot] initializing params in FLASH - done\n");
-       up_udelay(200);
+       up_udelay(2000);
      }
  #endif
 

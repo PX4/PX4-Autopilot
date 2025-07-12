@@ -33,6 +33,7 @@
 
 
 add_library(drivers_board
+	boot_string.c
 	i2c.cpp
 	init.c
 	led.c

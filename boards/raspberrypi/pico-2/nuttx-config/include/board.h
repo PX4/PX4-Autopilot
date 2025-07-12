@@ -189,7 +189,44 @@ void rp23xx_boardinitialize(void);
  // FIXME 0 (default) -> 4 (pimoroni plus 2)?
 #define CONFIG_RP23XX_UART0_GPIO	0	/* TELEM */
 
+// FIXME in some contexts this def is missing!!!
+#define CONFIG_RP23XX_BOARD_MADFLIGHT_FC1
 
+#ifdef CONFIG_RP23XX_BOARD_MADFLIGHT_FC1
+// based on https://github.com/qqqlab/madflight/blob/a737ad3999ab71a853903b9c6dfa613267bfb07a/src/brd/madflight_FC1.h
+
+#define CONFIG_RP23XX_UART1_GPIO	4	/* GPS */
+
+#define CONFIG_RP23XX_I2C0_GPIO		32
+
+   //   34		SDIO_CLK/SPI0_SLCK (bbx)
+   //   35		SDIO_CMD/SPI0_MOSI (bbx)
+   //   36		SDIO_D0/SPI0_MISO (bbx)
+   //   37		SDIO_D1 (bbx)
+   //   38		SDIO_D2 (bbx)
+   //   39		SDIO_D3/SPI0_CS (bbx)
+#define GPIO_SPI0_SCLK	( 34 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+#define GPIO_SPI0_MISO	( 36 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+#define GPIO_SPI0_MOSI	( 35 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+
+
+/* SPI1 */
+
+#define GPIO_SPI1_SCLK	( 30 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+#define GPIO_SPI1_MISO	( 28 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+#define GPIO_SPI1_MOSI	( 31 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+
+//--- I2C Bus 1 ---
+#define CONFIG_RP23XX_I2C1_GPIO		2
+//pin_i2c1_sda  2
+//pin_i2c1_scl  3
+
+
+// end: CONFIG_RP23XX_BOARD_MADFLIGHT_FC1
+#else
+#ifdef borisas
+// regular RP2350 board
+// =====================
 // FIXME 4?
 #define CONFIG_RP23XX_UART1_GPIO	8	/* GPS */
 
@@ -215,9 +252,9 @@ void rp23xx_boardinitialize(void);
 /* SPI0:
  *  SPIDEV_FLASH (probably micro sd card)
  *  CS: GPIO5 -- should be configured in sec/spi.cpp (probably)
- *  CLK: GPIO2
-  * MOSI: GPIO3
- *  MISO: GPIO4
+ *  CLK: GPIO2 -> SCL
+  * MOSI: GPIO3 -> SDI
+ *  MISO: GPIO4 <- SDO
  */
 
 #define GPIO_SPI0_SCLK	( 6 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
@@ -244,6 +281,13 @@ void rp23xx_boardinitialize(void);
 //#define GPIO_SPI1_SCLK	( 6 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
 //#define GPIO_SPI1_MISO	( 4 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
 //#define GPIO_SPI1_MOSI	( 3 | GPIO_FUN(RP23XX_GPIO_FUNC_SPI) )
+
+// for src/drivers/cdcacm_autostart/cdcacm_autostart.cpp
+//#define DEBUG_BUILD
+
+// end - regular RP2350 board
+#endif
+#endif
 
 
 #endif  /* __ARCH_BOARD_BOARD_H */

@@ -22,3 +22,13 @@ mpu9250_i2c status
 
 # try starting a bmp280 barometer on external SPI
 # bmp280 start -S
+
+#  -m 3 -f 1000
+
+#icm42688p start -s  -c 29
+
+# madflight FC1
+
+icm42688p start -s -b 2
+
+# ina226 start -X -b 2

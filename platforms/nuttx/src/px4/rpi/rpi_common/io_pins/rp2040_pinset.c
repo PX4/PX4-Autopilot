@@ -17,12 +17,12 @@ int rp23xx_gpioconfig(uint32_t pinset)
 
 	rp23xx_gpio_set_pulls(pinset & GPIO_NUM_MASK, pinset & GPIO_PU_MASK, pinset & GPIO_PD_MASK);
 
-	if ((pinset & GPIO_FUN_MASK) >> 9 == RP23XX_GPIO_FUNC_SIO) {
+	if ((pinset & GPIO_FUN_MASK) >> 10 == RP23XX_GPIO_FUNC_SIO) {
 		rp23xx_gpio_setdir(pinset & GPIO_NUM_MASK, pinset & GPIO_OUT_MASK);
 		rp23xx_gpio_put(pinset & GPIO_NUM_MASK, pinset & GPIO_SET_MASK);
 	}
 
-	rp23xx_gpio_set_function(pinset & GPIO_NUM_MASK, (pinset & GPIO_FUN_MASK) >> 9);
+	rp23xx_gpio_set_function(pinset & GPIO_NUM_MASK, (pinset & GPIO_FUN_MASK) >> 10);
 
 	return OK;
 }

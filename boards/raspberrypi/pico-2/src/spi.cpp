@@ -36,6 +36,37 @@
 #include <nuttx/spi/spi.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
+#ifdef CONFIG_RP23XX_BOARD_MADFLIGHT_FC1
+// --- BBX --- Black Box Data Logger  (use spi -OR- mmc)
+//   bbx_gizmo     SDSPI  // options: NONE, SDSPI, SDMMC
+//   pin_bbx_cs    39  // spi
+//   bbx_spi_bus   0  // spi
+//   pin_mmc_dat   -1  // mmc
+//   pin_mmc_clk   -1  // mmc
+//   pin_mmc_cmd   -1  // mmc
+// SDIO_CLK/SPI0_SLCK (bbx)
+
+//   35		SDIO_CMD/SPI0_MOSI (bbx)
+//   36		SDIO_D0/SPI0_MISO (bbx)
+//   37		SDIO_D1 (bbx)
+//   38		SDIO_D2 (bbx)
+//   39		SDIO_D3/SPI0_CS (bbx)
+initSPIBus(SPI::Bus::SPI0, {
+		initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::Pin39}),  // FIXME: CS GPIO?
+}),
+
+// imu_gizmo     ICM42688
+//   imu_bus_type  SPI
+//   imu_align     CW0
+//   imu_spi_bus   1 //spi
+//   pin_imu_cs    29 //spi
+//   pin_imu_int   27 //spi and i2c
+
+initSPIBus(SPI::Bus::SPI1, {
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::Pin29}, SPI::DRDY{GPIO::Pin27}),
+	   }),
+
+#else
 	#if defined(CONFIG_RP23XX_SPI0)
 		// initSPIBusExternal(SPI::Bus::SPI0, {
 		// 	initSPIConfigExternal(SPI::CS{GPIO::Pin13}),
@@ -52,6 +83,7 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 			initSPIConfigExternal(SPI::CS{GPIO::Pin13}),
 		}),
 	#endif
+#endif
 };
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses);

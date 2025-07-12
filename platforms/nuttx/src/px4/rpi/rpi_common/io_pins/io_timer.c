@@ -81,17 +81,44 @@
 #define _REG32(_base, _reg)	(*(volatile uint32_t *)(_base + _reg))
 #define REG(_tmr, _reg)		_REG32(io_timers[_tmr].base, _reg)
 
+// FIXME: RP2040 prefixes !???
 // Register offsets
-#define RP2040_PWM_CSR_OFFSET		0x00	// Control and status register
+#define RP2040_PWM_CSR_OFFSET		0x00	// Control and status register - CH0_CSR
+// FIXME: there's also CH1_CSR 0x014 and so on...
 #define RP2040_PWM_DIV_OFFSET		0x04	// Clock divide register
 #define RP2040_PWM_CTR_OFFSET		0x08	// Direct access to the PWM counter
 #define RP2040_PWM_CCR_OFFSET		0x0c	// Counter compare values
 #define RP2040_PWM_TOP_OFFSET		0x10	// Counter wrap value
-#define RP2040_PWM_EN_OFFSET		0xa0	// This register aliases the CSR_EN bits for all channels
-#define RP2040_PWM_INTR_OFFSET		0xa4	// Raw Interrupts
-#define RP2040_PWM_INTE_OFFSET		0xa8	// Interrupt Enable
-#define RP2040_PWM_INTF_OFFSET		0xac	// Interrupt Force
-#define RP2040_PWM_INTS_OFFSET		0xb0	// Interrupt status after masking & forcing
+
+#ifdef CONFIG_ARCH_CHIP_RP23XX
+	// Datasheet 12.5. PWM p. 1083-1085
+	// =====
+	// 0x0f0 EN This register aliases the CSR_EN bits for all channels.
+	//   Writing to this register allows multiple channels to be enabled
+	//   or disabled simultaneously, so they can run in perfect sync.
+	//   For each channel, there is only one physical EN register bit,
+	//   which can be accessed through here or CHx_CSR.
+	#define RP2040_PWM_EN_OFFSET		0x0f0	// This register aliases the CSR_EN bits for all channels
+
+	#define RP2040_PWM_INTR_OFFSET		0x0f4	// Raw Interrupts
+
+        #define RP2040_PWM_INTE_OFFSET		0x0f8	// Interrupt Enable
+        #define RP2040_PWM_INTF_OFFSET		0x0fc	// Interrupt Force
+        #define RP2040_PWM_INTS_OFFSET		0x100	// Interrupt status after masking & forcing
+
+	// FIXME - this is IRQ0 only, there's also IRQ1:
+        //   0x104 IRQ1_INTE Interrupt Enable for irq1
+        //   0x108 IRQ1_INTF Interrupt Force for irq1
+        //   0x10c IRQ1_INTS Interrupt status after masking & forcing for irq1
+
+#else
+	#define RP2040_PWM_EN_OFFSET		0xa0	// This register aliases the CSR_EN bits for all channels
+
+	#define RP2040_PWM_INTR_OFFSET		0xa4	// Raw Interrupts
+        #define RP2040_PWM_INTE_OFFSET		0xa8	// Interrupt Enable
+        #define RP2040_PWM_INTF_OFFSET		0xac	// Interrupt Force
+        #define RP2040_PWM_INTS_OFFSET		0xb0	// Interrupt status after masking & forcing
+#endif
 
 /* Timer register accessors */
 #define rCSR(_tmr)		REG(_tmr,RP2040_PWM_CSR_OFFSET)

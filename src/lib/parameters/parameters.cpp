@@ -289,7 +289,9 @@ param_get(param_t param, void *val)
 	perf_count(param_get_perf);
 
 	if (!handle_in_range(param)) {
-		PX4_ERR("get: param %" PRId16 " invalid", param);
+		// FIXME - silence this weird repeated error for now
+		// ERROR 966153081  get: param 65535 invalid (file .../PX4-Autopilot/src/lib/parameters/parameters.cpp line 292)
+		if (param != 65535) PX4_ERR("get: param %" PRId16 " invalid", param);
 		return PX4_ERROR;
 	}
 

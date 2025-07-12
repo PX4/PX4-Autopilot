@@ -68,19 +68,32 @@
 #define BOARD_OVERLOAD_LED     LED_BLUE
 
 // FIXME!?
+//#ifndef FLASH_BASED_PARAMS
 //#define FLASH_BASED_PARAMS
+
+//#endif
+
 //#define APP_RESERVATION_SIZE           (1 * 128 * 1024)
 //
 //#if !defined(BOARD_FIRST_FLASH_SECTOR_TO_ERASE)
 //#  define BOARD_FIRST_FLASH_SECTOR_TO_ERASE 1
 //#endif
 
+
 // Not needed?
-//#define CONFIG_MMCSD
-//#define CONFIG_MMCSD_SPI
-//#define CONFIG_NSH_MMCSDSPIPORTNO 0
-//#define CONFIG_NSH_MMCSDSLOTNO 0
-//#define CONFIG_NSH_MMCSDMINOR 0
+#ifdef CONFIG_RP23XX_BOARD_MADFLIGHT_FC1
+   //   35		SDIO_CMD/SPI0_MOSI (bbx)
+   //   36		SDIO_D0/SPI0_MISO (bbx)
+   //   37		SDIO_D1 (bbx)
+   //   38		SDIO_D2 (bbx)
+   //   39		SDIO_D3/SPI0_CS (bbx)
+
+//	#define CONFIG_MMCSD
+//	#define CONFIG_MMCSD_SPI
+//	#define CONFIG_NSH_MMCSDSPIPORTNO 0
+//	#define CONFIG_NSH_MMCSDSLOTNO 0
+//	#define CONFIG_NSH_MMCSDMINOR 0
+#endif
 
 /*
  * ADC channels
@@ -140,6 +153,7 @@
 
 // Has pwm outputs
 #define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
+#define BOARD_NUM_IO_TIMERS 12
 
 /*
  * By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)

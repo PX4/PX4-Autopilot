@@ -34,5 +34,10 @@
 #include <px4_arch/i2c_hw_description.h>
 
 constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
+	#ifdef CONFIG_RP23XX_I2C0
 	initI2CBusExternal(1),
+	#endif
+	#ifdef CONFIG_RP23XX_BOARD_MADFLIGHT_FC1
+	initI2CBusExternal(2),
+	#endif
 };

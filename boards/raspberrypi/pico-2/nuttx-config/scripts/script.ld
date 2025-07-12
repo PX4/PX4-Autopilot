@@ -21,20 +21,6 @@
     __stack (== StackTop)
 */
 
-/*
-FIXME! tiny2350
-
-MEMORY
-{
-    FLASH(rx) : ORIGIN = 0x10000000, LENGTH = 4096k
-    RAM(rwx) : ORIGIN =  0x20000000, LENGTH = 512k
-    SCRATCH_X(rwx) : ORIGIN = 0x20080000, LENGTH = 4k
-    SCRATCH_Y(rwx) : ORIGIN = 0x20081000, LENGTH = 4k
-}
-
-FIXME: below pimoroni pico 2 plus
-*/
-
 MEMORY
 {
     FLASH(rx) : ORIGIN = 0x10000000, LENGTH = 16384k
@@ -45,10 +31,10 @@ MEMORY
 
 
 EXTERN(_vectors)
-ENTRY(_stext)
+EXTERN(bootStr)
+/* used by debugger only */
 /*ENTRY(__start)*/
-/*ENTRY(_entry_point)*/
-/*EXTERN(bootStr)*/
+/*ENTRY(.text.__start)*/
 
 
 SECTIONS
@@ -66,6 +52,31 @@ SECTIONS
        to perform the same initial flash setup that would be performed on a
        cold boot.
     */
+
+    /* Note the boot2 section is optional, and should be discarded if there is
+           no reference to it *inside* the binary, as it is not called by the
+           bootrom. (The bootrom performs a simple best-effort XIP setup and
+           leaves it to the binary to do anything more sophisticated.) However
+           there is still a size limit of 256 bytes, to ensure the boot2 can be
+           stored in boot RAM.
+
+           Really this is a "XIP setup function" -- the name boot2 is historic and
+           refers to its dual-purpose on RP2040, where it also handled vectoring
+           from the bootrom into the user image.
+        */
+
+
+/* FIXME - disabled as fails
+        .boot2 : {
+            __boot2_start__ = .;
+            *(.boot2)
+            __boot2_end__ = .;
+        } > FLASH
+
+
+        ASSERT(__boot2_end__ - __boot2_start__ <= 256,
+            "ERROR: Pico second stage bootloader must be no more than 256 bytes in size")
+*/
 
     .text : {
         __logical_binary_start = .;
@@ -134,29 +145,9 @@ SECTIONS
         _etext = ABSOLUTE(.);
     } > FLASH
 
-    /* Note the boot2 section is optional, and should be discarded if there is
-       no reference to it *inside* the binary, as it is not called by the
-       bootrom. (The bootrom performs a simple best-effort XIP setup and
-       leaves it to the binary to do anything more sophisticated.) However
-       there is still a size limit of 256 bytes, to ensure the boot2 can be
-       stored in boot RAM.
 
-       Really this is a "XIP setup function" -- the name boot2 is historic and
-       refers to its dual-purpose on RP2040, where it also handled vectoring
-       from the bootrom into the user image.
-    */
-
-    /*
-    .boot2 : {
-        __boot2_start__ = .;
-        *(.boot2)
-        __boot2_end__ = .;
-    } > FLASH
-
-
-    ASSERT(__boot2_end__ - __boot2_start__ <= 256,
-        "ERROR: Pico second stage bootloader must be no more than 256 bytes in size")
-    */
+    /* Note boot2 was here original but it seems this is fishy location: it ends up at
+     */
 
     .rodata : {
         *(EXCLUDE_FILE(*libgcc.a: *libc.a:*lib_a-mem*.o *libm.a:) .rodata*)

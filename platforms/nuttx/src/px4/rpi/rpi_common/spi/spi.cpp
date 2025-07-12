@@ -50,6 +50,12 @@
 static const px4_spi_bus_t *_spi_bus0;
 static const px4_spi_bus_t *_spi_bus1;
 
+// print weird char, and then UART is stuck
+//#define ENABLE_SPI_BREAK_UART
+#define ENABLE_SPI1_BREAK_UART
+// prints only A, when uart console stuck
+#define ENABLE_SPI1_BREAK_UART_CS
+
 #if defined(CONFIG_ARCH_CHIP_RP23XX)
 	#define RP2XXX_GPIO_FUNC_SIO RP23XX_GPIO_FUNC_SIO
 	#ifdef CONFIG_RP23XX_SPI0
@@ -73,6 +79,10 @@ static void spi_bus_configgpio_cs(const px4_spi_bus_t *bus)
 {
 	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
 		if (bus->devices[i].cs_gpio != 0) {
+			// log
+			//syslog(LOG_ERR, "[boot] spi_bus_configgpio_csI%d\n", bus->devices[i].cs_gpio);
+			up_udelay(50000);
+			// long delay
 			px4_arch_configgpio(bus->devices[i].cs_gpio | GPIO_FUN(RP2XXX_GPIO_FUNC_SIO));
 		}
 	}
@@ -85,9 +95,11 @@ __EXPORT void rp2040_spiinitialize()
 #endif
 {
 	px4_set_spi_buses_from_hw_version();
-	// FIXME? restoring these two lines break UART TX?
-	//board_control_spi_sensors_power_configgpio();
-	// board_control_spi_sensors_power(true, 0xffff);
+	#ifdef ENABLE_SPI_BREAK_UART
+	// FIXME? restoring these two lines break UART TX? or not? probably not needed anyway...?
+	 board_control_spi_sensors_power_configgpio();
+	 board_control_spi_sensors_power(true, 0xffff);
+	#endif
 
 	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
 		switch (px4_spi_buses[i].bus) {
@@ -105,10 +117,11 @@ __EXPORT void rp2040_spiinitialize()
 #endif
 
 #if defined(CONFIG_RP2XXX_SPI1) && defined(GPIO_SPI1_SCLK) && defined(GPIO_SPI1_MISO) && defined(GPIO_SPI1_MOSI)
-// FIXME: restoring this seem to also fail UART TX ?
-//	px4_arch_configgpio(GPIO_SPI1_SCLK);
-//	px4_arch_configgpio(GPIO_SPI1_MISO);
-//	px4_arch_configgpio(GPIO_SPI1_MOSI);
+	// FIXME: restoring this seemed to break fail UART TX. or probably not anymore!
+	// this do not break UART0 on FC1!
+	px4_arch_configgpio(GPIO_SPI1_SCLK);
+	px4_arch_configgpio(GPIO_SPI1_MISO);
+	px4_arch_configgpio(GPIO_SPI1_MOSI);
 #endif
 
 #ifdef CONFIG_RP2XXX_SPI0
@@ -121,13 +134,13 @@ __EXPORT void rp2040_spiinitialize()
 #endif // CONFIG_RP2XXX_SPI0
 
 #ifdef CONFIG_RP2XXX_SPI1
-// FIXME: restoring this seem to also fail UART TX ?
-//	ASSERT(_spi_bus1);
-//
-//	if (board_has_bus(BOARD_SPI_BUS, PX4_BUS_NUMBER_TO_PX4(1))) {
-//		spi_bus_configgpio_cs(_spi_bus1);
-//	}
+#ifdef ENABLE_SPI1_BREAK_UART_CS
+	ASSERT(_spi_bus1);
 
+	if (board_has_bus(BOARD_SPI_BUS, PX4_BUS_NUMBER_TO_PX4(1))) {
+		spi_bus_configgpio_cs(_spi_bus1);
+	}
+#endif
 #endif // CONFIG_RP2XXX_SPI1
 }
 
@@ -135,7 +148,8 @@ static inline void rp2040_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s 
 {
 	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
 		if (bus->devices[i].cs_gpio == 0) {
-			break;
+			// FIXME: what is this? should it be continue?
+			continue;
 		}
 
 		if (devid == bus->devices[i].devid) {
@@ -265,6 +279,9 @@ void board_control_spi_sensors_power_configgpio()
 
 __EXPORT void board_spi_reset(int ms, int bus_mask)
 {
+	// FIXME: board does not have power control over any of the sensor buses - so not needed for now
+	return;
+
 	bool has_power_enable = false;
 
 	// disable SPI bus
