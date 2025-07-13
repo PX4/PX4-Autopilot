@@ -33,8 +33,9 @@ MEMORY
 EXTERN(_vectors)
 EXTERN(bootStr)
 /* used by debugger only */
+/*ENTRY(_stext)*/
 /*ENTRY(__start)*/
-/*ENTRY(.text.__start)*/
+ENTRY(.text.__start)
 
 
 SECTIONS

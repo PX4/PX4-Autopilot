@@ -59,7 +59,8 @@
 #include <nuttx/mtd/mtd.h>
 
 extern "C" {
-	struct mtd_dev_s *ramtron_initialize(FAR struct spi_dev_s *dev);
+	struct mtd_dev_s *ramtron_initialize(FAR struct spi_dev_s *dev,
+					     uint16_t spi_devid);
 	struct mtd_dev_s *mtd_partition(FAR struct mtd_dev_s *mtd,
 					off_t firstblock, off_t nblocks);
 }
@@ -96,7 +97,7 @@ static int ramtron_attach(mtd_instance_s &instance)
 		SPI_SELECT(spi, instance.devid, false);
 		SPI_LOCK(spi, false);
 
-		instance.mtd_dev = ramtron_initialize(spi);
+		instance.mtd_dev = ramtron_initialize(spi, instance.devid);
 
 		if (instance.mtd_dev) {
 			/* abort on first valid result */
