@@ -69,7 +69,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	// Set all of the parameters
 	_range_sensor.setPitchOffset(_params.ekf2_rng_pitch);
 	_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
-	_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
+	_rng_consistency_check.setGate(_params.ekf2_rng_k_gate);
 
 	// Update sensor to earth rotation
 	_range_sensor.updateSensorToEarthRotation(_R_to_earth);
@@ -110,9 +110,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 	// TODO: refactor into apply_body_offset()
 	// Correct the range data for position offset relative to the IMU
-	const Vector3f rng_pos_body = { _params.ekf2_rng_pos_x, _params.ekf2_rng_pos_y, _params.ekf2_rng_pos_z };
-	const Vector3f imu_pos_body = _params.imu_pos_body;
-	const Vector3f pos_offset_body = rng_pos_body - imu_pos_body;
+	const Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
 	const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
 	sample.rng = sample.rng + pos_offset_earth(2) / _range_sensor.getCosTilt();
 
@@ -146,7 +144,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 	// Fuse Range data as Primary height source
 	// NOTE: terrain is not estimated in this mode
-	if (_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::RANGE)) {
+	if (_params.ekf2_hgt_ref == static_cast<int32_t>(HeightSensor::RANGE)) {
 		fuseRangeAsHeightSource();
 	} else {
 		// Fuse Range data as aiding height source (Primary GPS or Baro)
@@ -193,8 +191,8 @@ void Ekf::fuseRangeAsHeightAiding()
 
 	//// ALTITUDE FUSION ////
 
-	bool range_aid_conditional = _params.rng_ctrl == RngCtrl::CONDITIONAL;
-	bool range_aid_enabled = _params.rng_ctrl == RngCtrl::ENABLED;
+	bool range_aid_conditional = (RngCtrl)_params.ekf2_rng_ctrl == RngCtrl::CONDITIONAL;
+	bool range_aid_enabled = (RngCtrl)_params.ekf2_rng_ctrl == RngCtrl::ENABLED;
 
 	bool range_aid_conditions_passed = rangeAidConditionsPassed();
 
@@ -366,7 +364,7 @@ void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
 	float innovation_variance;
 	sym::ComputeHaglInnovVar(P, measurement_variance, &innovation_variance);
 
-	const float innov_gate = math::max(_params.range_innov_gate, 1.f);
+	const float innov_gate = math::max(_params.ekf2_rng_gate, 1.f);
 	updateAidSourceStatus(aid_src,
 			      _range_sensor.sample()->time_us, // sample timestamp
 			      measurement,                               // observation
@@ -387,7 +385,7 @@ void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
 float Ekf::getRngVar() const
 {
 	const float dist_dependant_var = sq(_params.ekf2_rng_sfe * _range_sensor.getDistBottom());
-	const float dist_var = sq(_params.range_noise) + dist_dependant_var;
+	const float dist_var = sq(_params.ekf2_rng_noise) + dist_dependant_var;
 	return dist_var;
 }
 
