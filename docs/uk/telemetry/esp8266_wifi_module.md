@@ -16,8 +16,7 @@ ESP8266 is the _defacto_ default WiFi module for use with [Pixracer](../flight_c
 
 Модулі, що приймають постачання 3.3V:
 
-- [WRL-17146](https://www.sparkfun.com/products/13678) (Sparkfun)
-- [AI Cloud](https://us.gearbest.com/boards-shields/pp_009604906563.html) - discontinued (GearBeast)
+- [WRL-17146](https://www.sparkfun.com/wifi-module-esp8266-4mb-flash.html) (Sparkfun)
 
 Модулі, що приймають постачання 5.3V:
 
