@@ -4,11 +4,11 @@ The following instructions set up a PX4 development environment for macOS.
 This environment can be used to build PX4 for:
 
 - Pixhawk and other NuttX-based hardware
-- [Gazebo Classic Simulation](../sim_gazebo_classic/index.md)
+- [Gazebo Simulation](../sim_gazebo/index.md) (Gazebo Harmonic)
 
 :::tip
 This setup is supported by the PX4 dev team.
-To build other targets you will need to use a [different OS](../dev_setup/dev_env.md#supported-targets) (or an [unsupported development environment](../advanced/community_supported_dev_env.md)).
+To build other targets you will need to use a [different OS](../dev_setup/dev_env.md#supported-targets) or an [unsupported development environment](../advanced/community_supported_dev_env.md).
 :::
 
 ## Video Guide
@@ -20,17 +20,6 @@ To build other targets you will need to use a [different OS](../dev_setup/dev_en
 The "base" macOS setup installs the tools needed for building firmware, and includes the common tools that will be needed for installing/using the simulators.
 
 ### Environment Setup
-
-:::details Apple Silicon Macbook users!
-If you have an Apple M1, M2 etc. Macbook, make sure to run the terminal as x86 by setting up an x86 terminal:
-
-1. Locate the Terminal application within the Utilities folder (**Finder > Go menu > Utilities**)
-2. Select _Terminal.app_ and right-click on it, then choose **Duplicate**.
-3. Rename the duplicated Terminal app, e.g. to _x86 Terminal_
-4. Now select the renamed _x86 Terminal_ app and right-click and choose \*_Get Info_
-5. Check the box for **Open using Rosetta**, then close the window
-6. Run the _x86 Terminal_ as usual, which will fully support the current PX4 toolchain
-   :::
 
 First set up the environment
 
@@ -56,12 +45,6 @@ First set up the environment
 To setup the environment to be able to build for Pixhawk/NuttX hardware (and install the common tools for using simulators):
 
 1. Install Homebrew by following these [installation instructions](https://brew.sh).
-1. Run these commands in your shell to install the common tools:
-
-   ```sh
-   brew tap PX4/px4
-   brew install px4-dev
-   ```
 
 1. Install the required Python packages:
 
@@ -72,9 +55,67 @@ To setup the environment to be able to build for Pixhawk/NuttX hardware (and ins
    sudo -H python3 -m pip install --user pyserial empty toml numpy pandas jinja2 pyyaml pyros-genmsg packaging kconfiglib future jsonschema
    ```
 
-## Gazebo Classic Simulation
+## Gazebo Simulation
 
-To setup the environment for [Gazebo Classic](../sim_gazebo_classic/index.md) simulation:
+To setup the environment for [Gazebo](../sim_gazebo/index.md) simulation with Gazebo Harmonic:
+
+1. Install Gazebo Harmonic and required dependencies:
+
+   ```sh
+   brew install gz-harmonic
+   brew install qt@5 gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly gst-libav
+   ```
+
+1. Configure Qt5 and library paths by adding the following to your `~/.zshrc` file:
+
+   ```sh
+   # Qt5 configuration
+   export Qt5_DIR=/opt/homebrew/opt/qt@5/lib/cmake/Qt5
+   export PATH="/opt/homebrew/opt/qt@5/bin:$PATH"
+   export CMAKE_PREFIX_PATH="/opt/homebrew/opt/qt@5:$CMAKE_PREFIX_PATH"
+
+   # Library paths for GStreamer and other dependencies
+   export PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:$PKG_CONFIG_PATH"
+   export LIBRARY_PATH="/opt/homebrew/lib:$LIBRARY_PATH"
+   export DYLD_LIBRARY_PATH="/opt/homebrew/lib:$DYLD_LIBRARY_PATH"
+   ```
+
+1. Link Qt5 and reload your shell configuration:
+
+   ```sh
+   brew unlink qt@5 && brew link --force qt@5
+   source ~/.zshrc
+   ```
+
+1. Verify Qt5 installation:
+
+   ```sh
+   ls -la /opt/homebrew/lib/cmake/Qt5Core/
+   ```
+
+1. Run the macOS setup script: `PX4-Autopilot/Tools/setup/macos.sh`
+   The easiest way to do this is to clone the PX4 source, and then run the script from the directory, as shown:
+
+   ```sh
+   git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+   cd PX4-Autopilot/Tools/setup
+   sh macos.sh
+   ```
+
+## Unsupported Simulation Options
+
+### Gazebo Classic
+
+[Gazebo Classic](../sim_gazebo_classic/index.md) is no longer actively supported for new installations. For simulation, we recommend using [Gazebo](../sim_gazebo/index.md) (Gazebo Harmonic) instead.
+
+If you need to use Gazebo Classic for legacy projects:
+
+1. Run these commands in your shell to install the common tools:
+
+   ```sh
+   brew tap PX4/px4
+   brew install px4-dev
+   ```
 
 1. Run the following commands in your shell:
 
@@ -97,16 +138,6 @@ To setup the environment for [Gazebo Classic](../sim_gazebo_classic/index.md) si
    brew install --cask xquartz
    brew install px4-sim-gazebo
    ```
-
-1. Run the macOS setup script: `PX4-Autopilot/Tools/setup/macos.sh`
-   The easiest way to do this is to clone the PX4 source, and then run the script from the directory, as shown:
-
-   ```sh
-   git clone https://github.com/PX4/PX4-Autopilot.git --recursive
-   cd PX4-Autopilot/Tools/setup
-   sh macos.sh
-   ```
-
 
 ## Next Steps
 
