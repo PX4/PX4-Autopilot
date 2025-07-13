@@ -4,7 +4,7 @@ The following instructions set up a PX4 development environment for macOS.
 This environment can be used to build PX4 for:
 
 - Pixhawk and other NuttX-based hardware
-- [Gazebo Simulation](.._/sim_gazebo_gz/index.md) (Gazebo Harmonic)
+- [Gazebo Simulation](../sim_gazebo_gz/index.md) (Gazebo Harmonic)
 
 :::tip
 This setup is supported by the PX4 dev team.
