@@ -42,6 +42,7 @@
 
 void Ekf::initTerrain()
 {
+	// JAKE: review
 	// assume a ground clearance
 	_state.terrain = -_gpos.altitude() + _params.ekf2_min_rng;
 
@@ -54,7 +55,6 @@ void Ekf::controlTerrainFakeFusion()
 	// If we are on ground, store the local position and time to use as a reference
 	if (!_control_status.flags.in_air) {
 		_last_on_ground_posD = -_gpos.altitude();
-		_control_status.flags.rng_fault = false;
 
 	} else if (!_control_status_prev.flags.in_air) {
 		// Let the estimator run freely before arming for bench testing purposes, but reset on takeoff
@@ -78,14 +78,13 @@ void Ekf::updateTerrainValidity()
 {
 	bool valid_opt_flow_terrain = false;
 	bool valid_rng_terrain = false;
-	bool positive_hagl_var = false;
-	bool small_relative_hagl_var = false;
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
-	if (_control_status.flags.opt_flow_terrain
-	    && isRecent(_aid_src_optical_flow.time_last_fuse, _params.hgt_fusion_timeout_max)
-	   ) {
+	bool flow_terrain = _control_status.flags.opt_flow_terrain;
+	bool flow_recent = isRecent(_aid_src_optical_flow.time_last_fuse, _params.hgt_fusion_timeout_max);
+
+	if (flow_terrain && flow_recent) {
 		valid_opt_flow_terrain = true;
 	}
 
@@ -93,42 +92,34 @@ void Ekf::updateTerrainValidity()
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 
-	if (_control_status.flags.rng_terrain
-	    && isRecent(_aid_src_rng_hgt.time_last_fuse, _params.hgt_fusion_timeout_max)
-	   ) {
+	bool rng_terrain = _control_status.flags.rng_terrain;
+	bool rng_recent = isRecent(_aid_src_rng_hgt.time_last_fuse, _params.hgt_fusion_timeout_max);
+
+	if (rng_terrain && rng_recent) {
 		valid_rng_terrain = true;
 	}
 
 #endif // CONFIG_EKF2_RANGE_FINDER
+
+	bool small_relative_hagl_var = false;
 
 	if (_time_last_terrain_fuse != 0) {
 		// Assume being valid when the uncertainty is small compared to the height above ground
 		float hagl_var = INFINITY;
 		sym::ComputeHaglInnovVar(P, 0.f, &hagl_var);
 
-		positive_hagl_var = hagl_var > 0.f;
-
-		if (positive_hagl_var
-		    && (hagl_var < sq(fmaxf(0.1f * getHagl(), 0.5f)))
-		   ) {
+		// TODO: quantigy this hagl_var check
+		if ((hagl_var > 0.f) && (hagl_var < sq(fmaxf(0.1f * getHagl(), 0.5f)))) {
 			small_relative_hagl_var = true;
 		}
 	}
 
 	const bool positive_hagl = getHagl() >= 0.f;
 
-	if (!_terrain_valid) {
-		// require valid RNG or optical flow (+valid variance) to initially consider terrain valid
-		if (positive_hagl
-		    && positive_hagl_var
-		    && (valid_rng_terrain
-			|| (valid_opt_flow_terrain && small_relative_hagl_var))
-		   ) {
-			_terrain_valid = true;
-		}
+	// TODO: review terrain validity requirements
+	// dist_bottom_valid == _terrain_valid
 
-	} else {
-		// terrain was previously valid, continue considering valid if variance is good
-		_terrain_valid = positive_hagl && positive_hagl_var && small_relative_hagl_var;
-	}
+	const bool terrain_source_valid = (valid_rng_terrain || valid_opt_flow_terrain);
+
+	_terrain_valid = terrain_source_valid && positive_hagl && small_relative_hagl_var;
 }

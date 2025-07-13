@@ -814,7 +814,7 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
 	report.max_distance = static_cast<float>(msg.range_max());
 	report.current_distance = static_cast<float>(msg.ranges()[0]);
 	report.variance = 0.0f;
-	report.signal_quality = -1;
+	report.signal_quality = 100;
 	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 
 	gz::msgs::Quaternion pose_orientation = msg.world_pose().orientation();

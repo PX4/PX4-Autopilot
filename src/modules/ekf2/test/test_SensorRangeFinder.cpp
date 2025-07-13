@@ -51,7 +51,6 @@ public:
 		_range_finder.setPitchOffset(0.f);
 		_range_finder.setCosMaxTilt(0.707f);
 		_range_finder.setLimits(_min_range, _max_range);
-		_range_finder.setMaxFogDistance(2.f);
 	}
 
 	// Use this method to clean up any memory, network etc. after each test

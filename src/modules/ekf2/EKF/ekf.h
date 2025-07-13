@@ -117,7 +117,7 @@ public:
 
 	float getHaglRateInnov() const { return _rng_consistency_check.getInnov(); }
 	float getHaglRateInnovVar() const { return _rng_consistency_check.getInnovVar(); }
-	float getHaglRateInnovRatio() const { return _rng_consistency_check.getSignedTestRatioLpf(); }
+	float getHaglRateInnovRatio() const { return _rng_consistency_check.getTestRatioLpf(); }
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
@@ -779,9 +779,12 @@ private:
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// range height
 	void controlRangeHaglFusion(const imuSample &imu_delayed);
+	void fuseRangeAsHeightSource();
+	void fuseRangeAsHeightAiding();
 	bool isConditionalRangeAidSuitable();
-	void stopRngHgtFusion();
-	void stopRngTerrFusion();
+	bool rangeAidConditionsPassed();
+	void stopRangeAltitudeFusion(const char* reason);
+	void stopRangeTerrainFusion(const char* reason);
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)

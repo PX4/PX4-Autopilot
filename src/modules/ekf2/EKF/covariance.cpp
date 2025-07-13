@@ -106,6 +106,7 @@ void Ekf::initialiseCovariance()
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// use the ground clearance value as our uncertainty
+	// TODO: ^ why?
 	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.ekf2_min_rng));
 #endif // CONFIG_EKF2_TERRAIN
 }
@@ -227,6 +228,11 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		terrain_process_noise += sq(imu_delayed.delta_vel_dt * _params.ekf2_terr_grad) * (sq(_state.vel(0)) + sq(_state.vel(
 						 1)));
 		P(State::terrain.idx, State::terrain.idx) += terrain_process_noise;
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+		// TODO: explain
+		_rng_consistency_check.set_terrain_process_noise(terrain_process_noise);
+#endif // CONFIG_EKF2_RANGE_FINDER
 	}
 
 #endif // CONFIG_EKF2_TERRAIN
