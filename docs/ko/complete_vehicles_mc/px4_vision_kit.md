@@ -403,7 +403,7 @@ The carrier board pinouts and other information are in the [downloads section](h
 ## Other Development Resources
 
 - [_UP Core_ Wiki](https://github.com/up-board/up-community/wiki/Ubuntu) - _Up Core_ companion computer technical information
-- [Occipital Developer Forum](https://structure.io/developers) - _Structure Core_ camera information
+- [Occipital Developer Forum](https://structure.io/developers/) - _Structure Core_ camera information
 - [Pixhawk 4 Overview](../flight_controller/pixhawk4.md)
 - [Pixhawk 6C Overview](../flight_controller/pixhawk6c.md)
 

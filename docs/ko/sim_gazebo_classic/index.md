@@ -533,7 +533,7 @@ To disable lockstep in:
 ## Extending and Customizing
 
 To extend or customize the simulation interface, edit the files in the `Tools/simulation/gazebo/sitl_gazebo` folder.
-The code is available on the [sitl_gazebo repository](https://github.com/PX4/PX4-SITL_gazebo) on Github.
+The code is available on the [sitl_gazebo repository](https://github.com/PX4/PX4-SITL_gazebo-classic) on GitHub.
 
 :::info
 The build system enforces the correct GIT submodules, including the simulator.

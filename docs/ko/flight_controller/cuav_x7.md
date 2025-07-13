@@ -12,7 +12,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://www.cuav.net) for hardware support or compliance issues.
 :::
 
-The [X7](http://doc.cuav.net/flight-controller/x7/en/x7.html)<sup>&reg;</sup> flight controller is a high-performance autopilot.
+The [X7](https://doc.cuav.net/controller/x7/en/)<sup>&reg;</sup> flight controller is a high-performance autopilot.
 산업용 드론과 대형 대형 드론에 적합합니다.
 주로 상용 제조업체에 공급됩니다.
 
@@ -151,7 +151,7 @@ FTDI 케이블을 DSU7 커넥터에 연결하기만 하면됩니다. 제품 목�
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) operate on the **FMU Debug** port (`DSU7`).
 
-The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/product-detail/en/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/455-1582-1-ND/807850) connector and has the following pinout:
+The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/en/products/detail/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/807850) connector and has the following pinout:
 
 | 핀                         | 신호                              | 전압                    |
 | ------------------------- | ------------------------------- | --------------------- |
@@ -177,11 +177,10 @@ For direct connection to _Segger Jlink_ we recommended you use the 3.3 Volts fro
 
 ## 지원 플랫폼 및 기체
 
-일반 RC 서보 또는 Futaba S-Bus 서보로 제어 가능한 모든 멀티콥터/비행기/로버 또는 보트.
+Any multicopter / plane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
 The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
 
 ## 추가 정보
 
-- [Quick start](http://doc.cuav.net/flight-controller/x7/en/quick-start/quick-start-x7.html)
 - [CUAV docs](https://doc.cuav.net/)
 - [x7 schematic](https://github.com/cuav/hardware/tree/master/X7_Autopilot)
