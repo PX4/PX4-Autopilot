@@ -57,7 +57,7 @@ To setup the environment to be able to build for Pixhawk/NuttX hardware (and ins
 
 ## Gazebo Simulation
 
-To setup the environment for [Gazebo](../sim_gazebo/index.md) simulation with Gazebo Harmonic:
+To setup the environment for [Gazebo](../sim_gazebo_gz/index.md) simulation with Gazebo Harmonic:
 
 1. Install Gazebo Harmonic and required dependencies:
 
