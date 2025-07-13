@@ -8,32 +8,7 @@ While it can be controlled using traditional PWM input, it is designed to operat
 
 Multiple vendors sell ESC hardware that runs sapog firmware:
 
-- [Zubax Orel 20](https://zubax.com/products/orel_20)
 - [Holybro Kotleta20](https://holybro.com/products/kotleta20)
-
-<style>
-#image_container {
-  height: 100%;
-  width: 100%;
-  display: flex;
-}
-.image_column {
-  width: 33%;
-  text-align: center;
-}
-
-</style>
-
-<div id="image_container">
-  <div class="image_column">
-  <img src="../../assets/peripherals/esc_uavcan_zubax_orel20/orel20_top.jpg" alt="Orel20 - Top"/>
-  <br><a href="https://zubax.com/products/orel_20">Zubax Orel 20</a>
-  </div>
-  <div class="image_column">
-    <img src="../../assets/peripherals/esc_uavcan_holybro_kotleta20/kotleta20_top.jpg" alt="Holybro Kotleta20 top" />
-    <br><a href="https://holybro.com/products/kotleta20">Holybro Kotleta20</a>
-  </div>
-</div>
 
 ## 硬件安装
 
@@ -81,15 +56,15 @@ To enumerate the ESC:
 
 3. Start the process of ESC auto-enumeration by pressing the **Start Assignment** button, as shown on the screenshot below.
 
-  ![QGC - DroneCAN ESC auto-enumeration](../../assets/peripherals/esc_qgc/qgc_uavcan_settings.jpg)
+   ![QGC - DroneCAN ESC auto-enumeration](../../assets/peripherals/esc_qgc/qgc_uavcan_settings.jpg)
 
-  You will hear a sound indicating that the flight controller has entered the ESC enumeration mode.
+   You will hear a sound indicating that the flight controller has entered the ESC enumeration mode.
 
 4. Manually turn each motor in the correct direction of its rotation (as specified in the [Airframe Reference](../airframes/airframe_reference.md)), starting from the first motor and finishing with the last motor.
-  Each time you turn a motor, you should hear a confirmation beep.
+   Each time you turn a motor, you should hear a confirmation beep.
 
-  ::: info
-  Make sure to turn each of the motors in the correct direction, as the ESC will automatically learn and remember the direction (i.e. motors that spin clockwise during normal operation must also be turned clockwise during enumeration).
+   ::: info
+   Make sure to turn each of the motors in the correct direction, as the ESC will automatically learn and remember the direction (i.e. motors that spin clockwise during normal operation must also be turned clockwise during enumeration).
 
 :::
 
