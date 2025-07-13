@@ -8,10 +8,10 @@
 - [beta](https://github.com/PX4/PX4-Autopilot/tree/beta) has been thoroughly tested. Він призначений для тестерів на польоти.
 - [stable](https://github.com/PX4/PX4-Autopilot/tree/stable) points to the last release.
 
-We try to retain a [linear history through rebases](https://www.atlassian.com/git/tutorials/rewriting-history) and avoid the [Github flow](https://docs.github.com/en/get-started/quickstart/github-flow).
+We try to retain a [linear history through rebases](https://www.atlassian.com/git/tutorials/rewriting-history) and avoid the [Github flow](https://docs.github.com/en/get-started/using-github/github-flow).
 Однак через глобальну команду і швидкий розвиток ми можемо одночасно вдаватися до збоїв.
 
-To contribute new functionality, [sign up for Github](https://docs.github.com/en/get-started/signing-up-for-github/signing-up-for-a-new-github-account), then [fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo) the repository, [create a new branch](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-and-deleting-branches-within-your-repository), add your [changes as commits](#commits-and-commit-messages), and finally [send a pull request](#pull-requests).
+To contribute new functionality, [sign up for Github](https://docs.github.com/en/get-started/using-github/github-flow), then [fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) the repository, [create a new branch](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-and-deleting-branches-within-your-repository), add your [changes as commits](#commits-and-commit-messages), and finally [send a pull request](#pull-requests).
 Changes will be merged when they pass our [continuous integration](https://en.wikipedia.org/wiki/Continuous_integration) tests.
 
 All code contributions have to be under the permissive [BSD 3-clause license](https://opensource.org/license/BSD-3-Clause) and all code must not impose any further constraints on the use.

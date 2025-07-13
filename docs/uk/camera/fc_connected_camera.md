@@ -246,7 +246,7 @@ PX4 видає повідомлення MAVLink [CAMERA_TRIGGER](https://mavlink
 
 ### Реконструкція
 
-Ми використовуємо [Pix4D](https://pix4d.com/) для реконструкції у 3D.
+We use [Pix4D](https://www.pix4d.com/) for 3D reconstruction.
 
 ![Геомаркування](../../assets/camera/geotag.jpg)
 
