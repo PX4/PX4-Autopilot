@@ -637,6 +637,7 @@ void ControlAllocator::preflight_check_handle_tilt_control(hrt_abstime now)
 			} else {
 				// Commanded collective tilt axis but the vehicle is not a tiltrotor. Abort
 				_preflight_check_running = false;
+				PX4_WARN("Control surface preflight check rejected (tilt commanded but not available)");
 				preflight_check_send_ack(vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED, now);
 
 			}
