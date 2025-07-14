@@ -278,16 +278,7 @@ void LoadMon::stack_usage()
 
 #if CONFIG_NFILE_DESCRIPTORS_PER_BLOCK > 0
 		unsigned int tcb_num_used_fds = 0; // number of used file descriptors
-		struct filelist *filelist = &system_load.tasks[_stack_task_index].tcb->group->tg_filelist;
-
-		for (int fdr = 0; fdr < filelist->fl_rows; fdr++) {
-			for (int fdc = 0; fdc < CONFIG_NFILE_DESCRIPTORS_PER_BLOCK; fdc++) {
-				if (filelist->fl_files[fdr][fdc].f_inode) {
-					++tcb_num_used_fds;
-				}
-			}
-		}
-
+		tcb_num_used_fds += (&system_load.tasks[_stack_task_index].tcb->group->tg_fdlist)->fl_rows;
 #endif // CONFIG_NFILE_DESCRIPTORS_PER_BLOCK
 	}
 
