@@ -304,21 +304,34 @@ int Commander::custom_command(int argc, char *argv[])
 
 	if (!strcmp(argv[0], "cs_check")) {
 
-		// hardcoded values. intended just for testing, remove before PR.
-
 		if (argc > 1) {
+
+			float torque = 1.0;
+
+			if (argc > 2) {
+				const float user_torque = std::atof(argv[2]);
+
+				// If instead argv[2] is not a float at all, we get torque=0 and nothing happens
+				if (!std::isnan(user_torque) && PX4_ISFINITE(user_torque)) {
+					torque = user_torque;
+
+				} else {
+					PX4_WARN("cs_check: torque \"%s\" is invalid. Using default +1.0.", argv[2]);
+				}
+			}
+
 			if (!strcmp(argv[1], "roll")) {
-				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_PREFLIGHT_CS_CHECK, vehicle_command_s::AXIS_ROLL, 1.0);
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_PREFLIGHT_CS_CHECK, vehicle_command_s::AXIS_ROLL, torque);
 
 			} else if (!strcmp(argv[1], "pitch")) {
-				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_PREFLIGHT_CS_CHECK, vehicle_command_s::AXIS_PITCH, 1.0);
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_PREFLIGHT_CS_CHECK, vehicle_command_s::AXIS_PITCH, torque);
 
 			} else if (!strcmp(argv[1], "yaw")) {
-				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_PREFLIGHT_CS_CHECK, vehicle_command_s::AXIS_YAW, 1.0);
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_PREFLIGHT_CS_CHECK, vehicle_command_s::AXIS_YAW, torque);
 
 			} else if (!strcmp(argv[1], "tilt")) {
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_PREFLIGHT_CS_CHECK, vehicle_command_s::AXIS_COLLECTIVE_TILT,
-						     1.0);
+						     torque);
 
 			} else {
 				PX4_ERR("argument %s unsupported.", argv[1]);
@@ -3047,6 +3060,7 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("check", "Run preflight checks");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("cs_check", "Run control surface preflight checks");
 	PRINT_MODULE_USAGE_ARG("roll|pitch|yaw|tilt", "Axis", false);
+	PRINT_MODULE_USAGE_ARG("torque", "Normalized torque command [-1.0, +1.0], default +1.0", true);
 	PRINT_MODULE_USAGE_COMMAND("arm");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Force arming (do not run preflight checks)", true);
 	PRINT_MODULE_USAGE_COMMAND("disarm");
