@@ -343,6 +343,7 @@ struct parameters {
 	float ekf2_req_pdop{2.0f};              ///< maximum acceptable position dilution of precision
 	float ekf2_req_hdrift{0.3f};            ///< maximum acceptable horizontal drift speed (m/s)
 	float ekf2_req_vdrift{0.5f};            ///< maximum acceptable vertical drift speed (m/s)
+	int32_t ekf2_req_fix{3};                ///< minimum acceptable GPS fix type
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// GNSS heading fusion
