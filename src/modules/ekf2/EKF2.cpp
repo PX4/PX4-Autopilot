@@ -2401,7 +2401,7 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 
 			estimator::sensor::rangeSample range_sample {
 				.time_us = optical_flow.timestamp_sample,
-				.rng = optical_flow.distance_m,
+				.range = optical_flow.distance_m,
 				.quality = quality,
 			};
 			_ekf.setRangeData(range_sample);
@@ -2576,7 +2576,7 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 		if (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING) {
 			estimator::sensor::rangeSample range_sample {
 				.time_us = distance_sensor.timestamp,
-				.rng = distance_sensor.current_distance,
+				.range = distance_sensor.current_distance,
 				.quality = distance_sensor.signal_quality,
 			};
 			_ekf.setRangeData(range_sample);

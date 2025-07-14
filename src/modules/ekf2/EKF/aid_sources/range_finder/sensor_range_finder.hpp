@@ -51,7 +51,7 @@ namespace sensor
 
 struct rangeSample {
 	uint64_t    time_us{};  ///< timestamp of the measurement (uSec)
-	float       rng{};      ///< range (distance to ground) measurement (m)
+	float       range{};      ///< range (distance to ground) measurement (m)
 	int8_t      quality{};  ///< Signal quality in percent (0...100%), where 0 = invalid signal, 100 = perfect signal, and -1 = unknown signal quality.
 };
 
@@ -97,7 +97,7 @@ public:
 	// void setRange(float rng) { _sample.rng = rng; }
 	// float getRange() const { return _sample.rng; }
 
-	float getDistBottom() const { return _sample.rng * _cos_tilt_rng_to_earth; }
+	float getDistBottom() const { return _sample.range * _cos_tilt_rng_to_earth; }
 
 	float getValidMinVal() const { return _rng_valid_min_val; }
 	float getValidMaxVal() const { return _rng_valid_max_val; }

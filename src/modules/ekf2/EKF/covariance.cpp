@@ -106,8 +106,8 @@ void Ekf::initialiseCovariance()
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// use the ground clearance value as our uncertainty
-	// TODO: ^ why?
-	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.ekf2_min_rng));
+	// TODO: ^ why? wouldn't the noise value make more sense?
+	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.ekf2_rng_noise));
 #endif // CONFIG_EKF2_TERRAIN
 }
 

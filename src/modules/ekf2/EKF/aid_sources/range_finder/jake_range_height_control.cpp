@@ -79,7 +79,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	// Gate sample consumption on these checks
 	bool quality_ok = sample.quality > 0; // TODO: what about unknown? (-1)
 	bool tilt_ok = _range_sensor.isTiltOk();
-	bool range_ok = sample.rng <= _range_sensor.getValidMaxVal() && sample.rng >= _range_sensor.getValidMinVal();
+	bool range_ok = sample.range <= _range_sensor.getValidMaxVal() && sample.range >= _range_sensor.getValidMinVal();
 	// - Not stuck value
 	// - Not fog detected
 
@@ -112,7 +112,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	// Correct the range data for position offset relative to the IMU
 	const Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
 	const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-	sample.rng = sample.rng + pos_offset_earth(2) / _range_sensor.getCosTilt();
+	sample.range = sample.range + pos_offset_earth(2) / _range_sensor.getCosTilt();
 
 	// Provide sample from buffer to object
 	_range_sensor.setSample(sample);
