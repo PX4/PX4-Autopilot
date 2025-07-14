@@ -144,7 +144,7 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 						events::Log::Error, "Power redundancy not met", power_module_count, _param_com_power_count.get());
 
 				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Power redundancy not met: %d instead of %" PRId32 "",
+					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Power redundancy not met: %d of %" PRId32 "",
 							     power_module_count, _param_com_power_count.get());
 				}
 			}
