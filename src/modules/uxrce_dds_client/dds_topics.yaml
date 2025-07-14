@@ -99,7 +99,7 @@ publications:
 
   - topic: /fmu/out/wind
     type: px4_msgs::msg::Wind
-    rate_limit: 50.
+    rate_limit: 1.
 
 # Create uORB::Publication
 subscriptions:
