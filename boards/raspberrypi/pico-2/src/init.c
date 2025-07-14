@@ -329,6 +329,20 @@ static struct spi_dev_s *spi1;
 
 static struct spi_dev_s *spi2;
 
+int rp23xx_spi0register(struct spi_dev_s *dev, spi_mediachange_t callback,
+                       void *arg)
+{
+  spiinfo("INFO: Registering spi0 device\n");
+  return OK;
+}
+
+int rp23xx_spi1register(struct spi_dev_s *dev, spi_mediachange_t callback,
+                       void *arg)
+{
+  spiinfo("INFO: Registering spi1 device\n");
+  return OK;
+}
+
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	px4_platform_init();
@@ -409,7 +423,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 	/* Default SPI2 to 1MHz and de-assert the known chip selects. */
-	SPI_SETFREQUENCY(spi2, 10000000);
+	SPI_SETFREQUENCY(spi2, 24*10000000);
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	up_udelay(20);

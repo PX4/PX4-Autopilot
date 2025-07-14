@@ -34,17 +34,17 @@
 #include <px4_arch/io_timer_hw_description.h>
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
-	initIOTimer(Timer::Timer1),
-	initIOTimer(Timer::Timer2),
+	initIOTimer(Timer::Timer3),
+	initIOTimer(Timer::Timer4),
+	initIOTimer(Timer::Timer5),
+        initIOTimer(Timer::Timer6),
 };
 
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
-    // FIXME !!!
-	initIOTimerChannel(io_timers, {Timer::Timer1, Timer::ChannelA}, {GPIO::Pin18}),
-	initIOTimerChannel(io_timers, {Timer::Timer1, Timer::ChannelB}, {GPIO::Pin19}),
-	initIOTimerChannel(io_timers, {Timer::Timer2, Timer::ChannelA}, {GPIO::Pin20}),
-	initIOTimerChannel(io_timers, {Timer::Timer2, Timer::ChannelB}, {GPIO::Pin21}),
+	initIOTimerChannel(io_timers, {Timer::Timer3, Timer::ChannelB}, {GPIO::Pin7}),
+	initIOTimerChannel(io_timers, {Timer::Timer4, Timer::ChannelB}, {GPIO::Pin9}),
+	initIOTimerChannel(io_timers, {Timer::Timer5, Timer::ChannelB}, {GPIO::Pin11}),
+	initIOTimerChannel(io_timers, {Timer::Timer6, Timer::ChannelB}, {GPIO::Pin13}),
 };
 
-constexpr io_timers_channel_mapping_t io_timers_channel_mapping = initIOTimerChannelMapping(io_timers,
-		timer_io_channels);
+constexpr io_timers_channel_mapping_t io_timers_channel_mapping = initIOTimerChannelMapping(io_timers, timer_io_channels);

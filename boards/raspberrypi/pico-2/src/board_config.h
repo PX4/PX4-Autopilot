@@ -90,9 +90,9 @@
 
 //	#define CONFIG_MMCSD
 //	#define CONFIG_MMCSD_SPI
-//	#define CONFIG_NSH_MMCSDSPIPORTNO 0
-//	#define CONFIG_NSH_MMCSDSLOTNO 0
-//	#define CONFIG_NSH_MMCSDMINOR 0
+	#define CONFIG_NSH_MMCSDSPIPORTNO 0
+	#define CONFIG_NSH_MMCSDSLOTNO 0
+	#define CONFIG_NSH_MMCSDMINOR 0
 #endif
 
 /*
@@ -148,7 +148,7 @@
 #endif
 
 // PWM
-// Pin 18-21, mapping is defined in timer_config.cpp
+// Pin 7,9,11,13 mapping is defined in timer_config.cpp
 #define DIRECT_PWM_OUTPUT_CHANNELS      4
 
 // Has pwm outputs
