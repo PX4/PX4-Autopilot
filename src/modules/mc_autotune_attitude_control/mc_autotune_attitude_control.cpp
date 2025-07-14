@@ -190,11 +190,6 @@ void McAutotuneAttitudeControl::Run()
 			_kid(2) = 0.f;
 		}
 
-		// To compute the attitude gain, use the following empirical rule:
-		// "An error of 60 degrees should produce the maximum control output"
-		// or K_att * K_rate * rad(60) = 1
-		_attitude_p = math::constrain(1.f / (math::radians(60.f) * _kid(0)), 2.f, 6.5f);
-
 		const Vector<float, 5> &coeff_var = _sys_id.getVariances();
 
 		const Vector3f rate_sp = _sys_id.areFiltersInitialized()
@@ -213,7 +208,7 @@ void McAutotuneAttitudeControl::Run()
 		status.kc = _kid(0);
 		status.ki = _kid(1);
 		status.kd = _kid(2);
-		status.att_p = _attitude_p;
+		status.att_p = 0.f; // Not used for multicopter
 		rate_sp.copyTo(status.rate_sp);
 		status.state = static_cast<int>(_state);
 		_autotune_attitude_control_status_pub.publish(status);
@@ -301,8 +296,13 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		break;
 
 	case state::roll:
-		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
+		if (!(_param_mc_at_axes.get() & Axes::roll)) {
+			// Should not tune this axis, skip
+			_state = state::roll_pause;
+			_state_start_time = now - 3_s;
+
+		} else if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
+			   && ((now - _state_start_time) > 5_s)) {
 			copyGains(0);
 
 			// wait for the drone to stabilize
@@ -328,8 +328,13 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		break;
 
 	case state::pitch:
-		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
+		if (!(_param_mc_at_axes.get() & Axes::pitch)) {
+			// Should not tune this axis, skip
+			_state = state::pitch_pause;
+			_state_start_time = now - 3_s;
+
+		} else if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
+			   && ((now - _state_start_time) > 5_s)) {
 			copyGains(1);
 			_state = state::pitch_pause;
 			_state_start_time = now;
@@ -353,8 +358,13 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		break;
 
 	case state::yaw:
-		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
+		if (!(_param_mc_at_axes.get() & Axes::yaw)) {
+			// Should not tune this axis, skip
+			_state = state::yaw_pause;
+			_state_start_time = now - 3_s;
+
+		} else if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
+			   && ((now - _state_start_time) > 5_s)) {
 			copyGains(2);
 			_state = state::yaw_pause;
 			_state_start_time = now;
@@ -522,21 +532,29 @@ void McAutotuneAttitudeControl::copyGains(int index)
 		_rate_k(index) = _kid(0);
 		_rate_i(index) = _kid(1);
 		_rate_d(index) = _kid(2);
-		_att_p(index) = _attitude_p;
 	}
 }
 
 bool McAutotuneAttitudeControl::areGainsGood() const
 {
-	const bool are_positive = _rate_k.min() > 0.f
-				  && _rate_i.min() > 0.f
-				  && _rate_d.min() >= 0.f
-				  && _att_p.min() > 0.f;
+	bool are_positive = true;
+	bool are_small_enough = true;
 
-	const bool are_small_enough = _rate_k.max() < 0.5f
-				      && _rate_i.max() < 10.f
-				      && _rate_d.max() < 0.1f
-				      && _att_p.max() < 12.f;
+	for (int i = 0; i < 3; i++) {
+		if (((i == 0) && (_param_mc_at_axes.get() & Axes::roll))
+		    || ((i == 1) && (_param_mc_at_axes.get() & Axes::pitch))
+		    || ((i == 2) && (_param_mc_at_axes.get() & Axes::yaw))) {
+			are_positive &= _rate_k(i) > 0.f
+					&& _rate_i(i) > 0.f
+					&& _rate_d(i) >= 0.f;
+			// && _att_p(i) > 0.f;
+
+			are_small_enough &= _rate_k(i) < 0.5f
+					    && _rate_i(i) < 10.f
+					    && _rate_d(i) < 0.1f;
+			// && _att_p(i) < 12.f;
+		}
+	}
 
 	return are_positive && are_small_enough;
 }
@@ -544,38 +562,38 @@ bool McAutotuneAttitudeControl::areGainsGood() const
 void McAutotuneAttitudeControl::saveGainsToParams()
 {
 	// save as parallel form
-	_param_mc_rollrate_p.set(_rate_k(0));
-	_param_mc_rollrate_k.set(1.f);
-	_param_mc_rollrate_i.set(_rate_k(0) * _rate_i(0));
-	_param_mc_rollrate_d.set(_rate_k(0) * _rate_d(0));
-	_param_mc_roll_p.set(_att_p(0));
-	_param_mc_rollrate_p.commit_no_notification();
-	_param_mc_rollrate_k.commit_no_notification();
-	_param_mc_rollrate_i.commit_no_notification();
-	_param_mc_rollrate_d.commit_no_notification();
-	_param_mc_roll_p.commit_no_notification();
+	if (_param_mc_at_axes.get() & Axes::roll) {
+		_param_mc_rollrate_p.set(_rate_k(0));
+		_param_mc_rollrate_k.set(1.f);
+		_param_mc_rollrate_i.set(_rate_k(0) * _rate_i(0));
+		_param_mc_rollrate_d.set(_rate_k(0) * _rate_d(0));
+		_param_mc_rollrate_p.commit_no_notification();
+		_param_mc_rollrate_k.commit_no_notification();
+		_param_mc_rollrate_i.commit_no_notification();
+		_param_mc_rollrate_d.commit_no_notification();
+	}
 
-	_param_mc_pitchrate_p.set(_rate_k(1));
-	_param_mc_pitchrate_k.set(1.f);
-	_param_mc_pitchrate_i.set(_rate_k(1) * _rate_i(1));
-	_param_mc_pitchrate_d.set(_rate_k(1) * _rate_d(1));
-	_param_mc_pitch_p.set(_att_p(1));
-	_param_mc_pitchrate_p.commit_no_notification();
-	_param_mc_pitchrate_k.commit_no_notification();
-	_param_mc_pitchrate_i.commit_no_notification();
-	_param_mc_pitchrate_d.commit_no_notification();
-	_param_mc_pitch_p.commit_no_notification();
+	if (_param_mc_at_axes.get() & Axes::pitch) {
+		_param_mc_pitchrate_p.set(_rate_k(1));
+		_param_mc_pitchrate_k.set(1.f);
+		_param_mc_pitchrate_i.set(_rate_k(1) * _rate_i(1));
+		_param_mc_pitchrate_d.set(_rate_k(1) * _rate_d(1));
+		_param_mc_pitchrate_p.commit_no_notification();
+		_param_mc_pitchrate_k.commit_no_notification();
+		_param_mc_pitchrate_i.commit_no_notification();
+		_param_mc_pitchrate_d.commit_no_notification();
+	}
 
-	_param_mc_yawrate_p.set(_rate_k(2));
-	_param_mc_yawrate_k.set(1.f);
-	_param_mc_yawrate_i.set(_rate_k(2) * _rate_i(2));
-	_param_mc_yawrate_d.set(_rate_k(2) * _rate_d(2));
-	_param_mc_yaw_p.set(_att_p(2));
-	_param_mc_yawrate_p.commit_no_notification();
-	_param_mc_yawrate_k.commit_no_notification();
-	_param_mc_yawrate_i.commit_no_notification();
-	_param_mc_yawrate_d.commit_no_notification();
-	_param_mc_yaw_p.commit();
+	if (_param_mc_at_axes.get() & Axes::yaw) {
+		_param_mc_yawrate_p.set(_rate_k(2));
+		_param_mc_yawrate_k.set(1.f);
+		_param_mc_yawrate_i.set(_rate_k(2) * _rate_i(2));
+		_param_mc_yawrate_d.set(_rate_k(2) * _rate_d(2));
+		_param_mc_yawrate_p.commit_no_notification();
+		_param_mc_yawrate_k.commit_no_notification();
+		_param_mc_yawrate_i.commit_no_notification();
+		_param_mc_yawrate_d.commit_no_notification();
+	}
 }
 
 void McAutotuneAttitudeControl::stopAutotune()
