@@ -306,3 +306,81 @@ PARAM_DEFINE_INT32(MC_BAT_SCALE_EN, 0);
  * @group Multicopter Rate Control
  */
 PARAM_DEFINE_FLOAT(MC_YAW_TQ_CUTOFF, 2.f);
+
+/**
+ * Incremental Nonlinear Dynamic Inversion (INDI) G1 Roll Gain
+ *
+ * This gain is applied to the squared rotor speeds to calculate the aerodynamic torque contribution for the roll axis.
+ *
+ * @min 0.0
+ * @max 0.1
+ * @decimal 6
+ * @increment 0.000001
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(MC_INDI_G1_ROLL, 0.00002f);
+
+/**
+ * Incremental Nonlinear Dynamic Inversion (INDI) G1 Pitch Gain
+ *
+ * This gain is applied to the squared rotor speeds to calculate the aerodynamic torque contribution for the pitch axis.
+ *
+ * @min 0.0
+ * @max 0.1
+ * @decimal 6
+ * @increment 0.000001
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(MC_INDI_G1_PITCH, 0.00002f);
+
+/**
+ * Incremental Nonlinear Dynamic Inversion (INDI) G1 Yaw Gain
+ *
+ * This gain is applied to the squared rotor speeds to calculate the aerodynamic torque contribution for the yaw axis.
+ *
+ * @min 0.0
+ * @max 0.1
+ * @decimal 6
+ * @increment 0.000001
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(MC_INDI_G1_YAW, 0.00002f);
+
+/**
+ * Incremental Nonlinear Dynamic Inversion (INDI) G2 Roll Gain
+ *
+ * This gain is applied to the rotor acceleration to calculate the inertial torque contribution for the roll axis.
+ *
+ * @min 0.0
+ * @max 10.0
+ * @decimal 6
+ * @increment 0.000001
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(MC_INDI_G2_ROLL, 1.0f);
+
+/**
+ * Incremental Nonlinear Dynamic Inversion (INDI) G2 Pitch Gain
+ *
+ * This gain is applied to the rotor acceleration to calculate the inertial torque contribution for the pitch axis.
+ *
+ * @min 0.0
+ * @max 10.0
+ * @decimal 6
+ * @increment 0.000001
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(MC_INDI_G2_PITCH, 1.0f);
+
+/**
+ * Incremental Nonlinear Dynamic Inversion (INDI) G2 Yaw Gain
+ *
+ * This gain is applied to the rotor acceleration to calculate the inertial torque contribution for the yaw axis.
+ *
+ * @min 0.0
+ * @max 10.0
+ * @decimal 6
+ * @increment 0.000001
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(MC_INDI_G2_YAW, 0.00001f);

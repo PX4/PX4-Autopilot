@@ -137,6 +137,13 @@ private:
 
 	// keep setpoint values between updates
 	matrix::Vector3f _acro_rate_max;		/**< max attitude rates in acro mode */
+	matrix::SquareMatrix<float, 3> _G1_K;
+	matrix::SquareMatrix<float, 3> _G2_K;
+
+	// for testing: x500 Iv base + Iv motors using parallel axis thm
+	// need this to matrix multiply Iv * Omega_f, as error = torque_f - Iv * Omega_f for INDI
+	matrix::SquareMatrix<float, 3> _Iv = matrix::diag(matrix::Vector3f(0.02385f, 0.02395f, 0.04400f));
+
 	matrix::Vector3f _rates_setpoint{};
 
 	float _battery_status_scale{0.0f};
@@ -181,6 +188,14 @@ private:
 		(ParamFloat<px4::params::MC_ACRO_SUPEXPOY>) _param_mc_acro_supexpoy,		/**< superexpo stick curve shape (yaw) */
 
 		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en,
+
+		(ParamFloat<px4::params::MC_INDI_G1_ROLL>) _param_mc_indi_g1_roll,
+		(ParamFloat<px4::params::MC_INDI_G1_PITCH>) _param_mc_indi_g1_pitch,
+		(ParamFloat<px4::params::MC_INDI_G1_YAW>) _param_mc_indi_g1_yaw,
+		(ParamFloat<px4::params::MC_INDI_G2_ROLL>) _param_mc_indi_g2_roll,
+		(ParamFloat<px4::params::MC_INDI_G2_PITCH>) _param_mc_indi_g2_pitch,
+		(ParamFloat<px4::params::MC_INDI_G2_YAW>) _param_mc_indi_g2_yaw,
+
 		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff
 	)
 };
