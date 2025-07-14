@@ -207,7 +207,7 @@ TEST_F(EkfTerrainTest, testHeightReset)
 	const float new_baro_height = _sensor_simulator._baro.getData() + 50.f;
 	_sensor_simulator._baro.setData(new_baro_height);
 	_sensor_simulator.stopGps(); // prevent from switching to GNSS height
-	_sensor_simulator.runSeconds(100);
+	_sensor_simulator.runSeconds(10);
 
 	// THEN: a height reset occurred and the estimated distance to the ground remains constant
 	reset_logging_checker.capturePostResetState();

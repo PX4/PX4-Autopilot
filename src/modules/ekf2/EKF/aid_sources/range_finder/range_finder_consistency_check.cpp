@@ -59,7 +59,7 @@ void RangeFinderConsistencyCheck::update(const float z, const float z_var, const
 {
 	const float dt = static_cast<float>(time_us - _time_last_update_us) * 1e-6f;
 
-	if (dt > 1.f) {
+	if (dt > _kTestRatioLpfTimeConstant || _landed) {
 		_time_last_update_us = time_us;
 		_initialized = false;
 		return;
@@ -108,8 +108,7 @@ void RangeFinderConsistencyCheck::update(const float z, const float z_var, const
 		} else if (measurement_idx == 1) {
 			_innov = y;
 			const float test_ratio = fminf(sq(y) / (sq(_gate) * S), 4.f); // limit to 4 to limit sensitivity to outliers
-			_test_ratio_lpf.setParameters(dt, _t_to_init);
-			_test_ratio_lpf.update(sign(_innov) * test_ratio);
+			_test_ratio_lpf.update(test_ratio, dt);
 		}
 
 		// update step
@@ -129,21 +128,21 @@ void RangeFinderConsistencyCheck::update(const float z, const float z_var, const
 
 void RangeFinderConsistencyCheck::evaluateState(const float dt, const float vz, const float vz_var)
 {
-	// start the consistency check after 1s
-	if (_t_since_first_sample > _t_to_init) {
+	// let the filter settle before starting the consistency check
+	if (_t_since_first_sample > _kTestRatioLpfTimeConstant) {
 		if (fabsf(_test_ratio_lpf.getState()) < 1.f) {
 			const bool vertical_motion = sq(vz) > fmaxf(vz_var, 0.1f);
 
-			if (!horizontal_motion && vertical_motion) {
-				_state = KinematicState::CONSISTENT;
+			if (!_horizontal_motion && vertical_motion) {
+				_state = KinematicState::kConsistent;
 
-			} else if (_state == KinematicState::CONSISTENT || vertical_motion) {
-				_state = KinematicState::UNKNOWN;
+			} else if (_state == KinematicState::kConsistent || vertical_motion) {
+				_state = KinematicState::kUnknown;
 			}
 
 		} else {
 			_t_since_first_sample = 0.f;
-			_state = KinematicState::INCONSISTENT;
+			_state = KinematicState::kInconsistent;
 		}
 
 	} else {
@@ -152,7 +151,9 @@ void RangeFinderConsistencyCheck::evaluateState(const float dt, const float vz, 
 }
 
 void RangeFinderConsistencyCheck::run(const float z, const float z_var, const float vz, const float vz_var,
-				      const float dist_bottom, const float dist_bottom_var, const uint64_t time_us)
+				      const float dist_bottom, const float dist_bottom_var, const uint64_t time_us,
+				      const uint8_t current_posD_reset_count
+				     )
 {
 	if (!_initialized || current_posD_reset_count != _last_posD_reset_count) {
 		_last_posD_reset_count = current_posD_reset_count;
@@ -160,4 +161,22 @@ void RangeFinderConsistencyCheck::run(const float z, const float z_var, const fl
 	}
 
 	update(z, z_var, vz, vz_var, dist_bottom, dist_bottom_var, time_us);
+}
+
+void RangeFinderConsistencyCheck::setIsLanded(const bool landed)
+{
+	if (landed) {
+		_state = KinematicState::kUnknown;
+	}
+
+	_landed = landed;
+}
+
+void RangeFinderConsistencyCheck::reset()
+{
+	if (_initialized && _state == KinematicState::kConsistent) {
+		_state = KinematicState::kUnknown;
+	}
+
+	_initialized = false;
 }

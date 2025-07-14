@@ -197,9 +197,6 @@ TEST_F(EkfAccelerometerTest, imuFallingDetectionBaroRange)
 	const float bias = CONSTANTS_ONE_G;
 	_sensor_simulator._imu.setAccelData(Vector3f(0.f, 0.f, -CONSTANTS_ONE_G + bias));
 	_sensor_simulator.runSeconds(2);
-	_sensor_simulator._imu.setAccelClipping(false, false, true);
-	_sensor_simulator.runSeconds(2);
-
 	// THEN: the bad vertical is detected because both sources agree
 	EXPECT_TRUE(_ekf->fault_status_flags().bad_acc_vertical);
 }

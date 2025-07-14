@@ -49,31 +49,25 @@ public:
 	~RangeFinderConsistencyCheck() = default;
 
 	enum class KinematicState : int {
-		INCONSISTENT = 0,
-		CONSISTENT = 1,
-		UNKNOWN = 2
+		kInconsistent = 0,
+		kConsistent = 1,
+		kUnknown = 2
 	};
 
 	float getTestRatioLpf() const { return _initialized ? _test_ratio_lpf.getState() : 0.f; }
 	float getInnov() const { return _initialized ? _innov : 0.f; }
 	float getInnovVar() const { return _initialized ? _innov_var : 0.f; }
-	bool isKinematicallyConsistent() const { return _state == KinematicState::CONSISTENT && _t_since_first_sample > _t_to_init; }
-	bool isNotKinematicallyInconsistent() const { return _state != KinematicState::INCONSISTENT && _t_since_first_sample > _t_to_init; }
+	bool isKinematicallyConsistent() const { return _state == KinematicState::kConsistent && _t_since_first_sample > _kTestRatioLpfTimeConstant; }
+	bool isNotKinematicallyInconsistent() const { return _state != KinematicState::kInconsistent && (_t_since_first_sample > _kTestRatioLpfTimeConstant || _landed); }
 	void setGate(const float gate) { _gate = gate; }
-	void run(float z, float z_var, float vz, float vz_var,
-		 float dist_bottom, float dist_bottom_var, uint64_t time_us);
+	void run(float z, float z_var, float vz, float vz_var, float dist_bottom, float dist_bottom_var,
+		 uint64_t time_u, uint8_t current_posD_reset_coun);
 	void set_terrain_process_noise(float terrain_process_noise) { _terrain_process_noise = terrain_process_noise; }
-	void reset()
-	{
-		if (_initialized && _state == KinematicState::CONSISTENT) {
-			_state = KinematicState::UNKNOWN;
-		}
+	void reset();
 
-		_initialized = false;
-	}
-
-	uint8_t current_posD_reset_count{0};
-	bool horizontal_motion{false};
+	void setHorizontalMotion(const bool horizontal_motion) { _horizontal_motion = horizontal_motion; }
+	bool getHorizontalMotion() const { return _horizontal_motion; }
+	void setIsLanded(bool landed);
 
 private:
 
@@ -89,13 +83,14 @@ private:
 	float _innov{0.f};
 	float _innov_var{0.f};
 	uint64_t _time_last_update_us{0};
-	static constexpr float time_constant{1.f};
-	AlphaFilter<float> _test_ratio_lpf{time_constant};
+	static constexpr float _kTestRatioLpfTimeConstant{1.f};
+	AlphaFilter<float> _test_ratio_lpf{_kTestRatioLpfTimeConstant};
 	float _gate{1.0f};
-	KinematicState _state{KinematicState::UNKNOWN};
+	KinematicState _state{KinematicState::kUnknown};
 	float _t_since_first_sample{0.f};
 	uint8_t _last_posD_reset_count{0};
-	static constexpr float _t_to_init{1.f};
+	bool _horizontal_motion{false};
+	bool _landed{false};
 };
 
 namespace RangeFilter
