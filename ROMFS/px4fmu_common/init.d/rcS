@@ -27,7 +27,7 @@ set FRC /fs/microsd/etc/rc.txt
 set IOFW "/etc/extras/px4_io-v2_default.bin"
 set LOGGER_ARGS ""
 set LOGGER_BUF 8
-set PARAM_FILE "/flash/params.txt"
+set PARAM_FILE ""
 set PARAM_BACKUP_FILE ""
 set RC_INPUT_ARGS ""
 set STORAGE_AVAILABLE no
