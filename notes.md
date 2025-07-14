@@ -20,14 +20,14 @@ The rangefinder distance (Range) can be used for 2 distinct purposes: EKF Z Posi
 # Discussion
 
 ## Problems
-Currently the rangefinder usage in PX4 has many bugs and is generally broken. The KC check uses an LPF with a slow time constant and requires vertical motion. The stuck and fog checks can cause false positives due to the simple logic. The terrain estimate doesn't reflect reality. The baro ground effect cause the dist_bottom to grow during takeoff and therefore corrupt the estimate.
+Currently the rangefinder usage in PX4 has many bugs and is generally broken when used without a GPS. The KC check uses an LPF with a slow time constant and requires vertical motion. The stuck and fog checks can cause false positives due to the simple logic. The terrain estimate doesn't reflect reality. The baro ground effect cause the dist_bottom to grow during takeoff and therefore corrupt the estimate.
 
 ## How it should work
 The rangefinder distance to ground should be fused into the Altitude Estimate while on the ground and during takeoff. If the measurements are valid and consistent, they represent the most accurate distance to ground. If a takeoff to 2.5m is issued, the local position setpoint, position, and dist_bottom should all be 2.5m.
 
 There is (almost?) no use case for Terrain Following. I think most users would expect the drone to hold absolute position in space if an absolute reference is available (GPS, Vision, Baro relative to Home). The default behavior should be fuse Range measurements as the primary Altitude reference as long as the samples are KC. This ensures that the drone takes off to the correct altitude. Since baro suffers from noise (wind gusts) the fusion of high precision rangefinder measurements while KC should allow minimal deviation of the Local Z Position. After Range fusion is disabled once due to KC check failure, the Local Positon Z can deviate from the Range. This is expected as Terrain can change. During hover while the Range is KC, the measurements are fused and provide a highly accurate observation to ensure hover altitude is maintained precisely.
 
-Indoors flight is also worth considering. Currently users must change EKF2_HGT_REF to Range in order to fly indoors. I think we could be smarter about this and detect when the baro is unreliable and switch to Range as primary altitude reference. We should see KC between Range and IMU_z samples and mark the baro as faulty. This can work during takeoff if Range is the primary reference from takeoff, we would see KC between Range and IMU and see a high baro test ratio.
+Indoors flight is also worth considering. Currently users must change EKF2_HGT_REF to Range in order to fly indoors. I think we could be smarter about this and detect when the baro is unreliable and switch to Range as primary altitude reference. We should see KC between Range and IMU_z samples and mark the baro as faulty. This can work during takeoff if Range is the primary reference from takeoff, we would see KC between Range and IMU and see a high baro test ratio. If the drone flys over an obstacle indoors, this will trigger a KC failure due to discontinuity, and the altitude should dead reckon for the couple of hundred of milliseconds it takes for the range finder to regain KC, assuming clean measurements.
 
 ---
 
@@ -58,6 +58,6 @@ Samples are now considered potentially valid, but must pass through another filt
 
 **KC valid**
 - If fusion is disabled do nothing
-	- unless on ground, then reset altitude to zero
-	- unless innovation rejected, then zero aid src innovation.
+	- unless: on ground? --> reset altitude to zero
+	- unless innovation rejected? --> zero aid src innovation
 - Fuse measurement into Altitude state
