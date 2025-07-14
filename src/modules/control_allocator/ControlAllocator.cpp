@@ -504,6 +504,7 @@ void ControlAllocator::preflight_check_handle_command(hrt_abstime now)
 						// currently this does not check prearmed status. if not prearmed, it will just do nothing.
 						preflight_check_start(vehicle_command, now);
 						result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_IN_PROGRESS;
+
 					} else {
 						result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 						PX4_WARN("Control surface preflight check rejected (not prearmed)");
@@ -632,7 +633,7 @@ void ControlAllocator::preflight_check_handle_tilt_control(hrt_abstime now)
 			if (is_tiltrotor) {
 				float modified_tilt_control = math::constrain(_preflight_check_input, 0.f, 1.f);
 
-				_actuator_effectiveness->setBypassTiltrotorControls(true, modified_tilt_control, 0.0f);
+				_actuator_effectiveness->overrideCollectiveTilt(true, modified_tilt_control);
 
 			} else {
 				// Commanded collective tilt axis but the vehicle is not a tiltrotor. Abort
@@ -647,7 +648,7 @@ void ControlAllocator::preflight_check_handle_tilt_control(hrt_abstime now)
 		// strictly speaking this is only necessary if is_tiltrotor but
 		// can't hurt to call it always in case other
 		// ActuatorEffectiveness* classes implement similar things
-		_actuator_effectiveness->setBypassTiltrotorControls(false, 0.0f, 0.0f);
+		_actuator_effectiveness->overrideCollectiveTilt(false, 0.0f);
 	}
 }
 

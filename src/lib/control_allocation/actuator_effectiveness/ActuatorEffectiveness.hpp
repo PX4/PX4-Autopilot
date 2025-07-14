@@ -231,7 +231,7 @@ public:
 	 * @param collective_tilt Collective tilt normalized setpoint, in [0, 1]. 0: vertical, 1: horizontal.
 	 * @param collective_thrust Collective thrust normalized setpoint, in [0, 1].
 	 */
-	virtual void setBypassTiltrotorControls(bool bypass, float collective_tilt, float collective_thrust);
+	virtual void overrideCollectiveTilt(bool do_override, float collective_tilt);
 
 protected:
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};

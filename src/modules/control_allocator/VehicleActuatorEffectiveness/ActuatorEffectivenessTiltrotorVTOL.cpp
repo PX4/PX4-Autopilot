@@ -124,22 +124,20 @@ void ActuatorEffectivenessTiltrotorVTOL::allocateAuxilaryControls(const float dt
 
 }
 
-void ActuatorEffectivenessTiltrotorVTOL::setBypassTiltrotorControls(bool bypass, float collective_tilt,
-		float collective_thrust)
+void ActuatorEffectivenessTiltrotorVTOL::overrideCollectiveTilt(bool do_override, float collective_tilt)
 {
-	// if _bypass_tiltrotor_controls (used for control surface preflight
+	// if _do_override_collective_tilt (used for control surface preflight
 	// check), we alter the behaviour of processTiltrotorControls in these
 	// two ways:
 	// - collective tilt and thrust setpoints are NOT taken from uOrb
 	//   message, but from class member variable, which we can arbitrarily set
-	//   before calling this function using setBypassTiltrotorControls
+	//   before calling this function using overrideCollectiveTilt
 	// - collective tilt is added to actuator_sp even if
 	//   (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT)
 	//   evaluates to false
 
-	_bypass_tiltrotor_controls = bypass;
+	_do_override_collective_tilt = do_override;
 	_collective_tilt_normalized_setpoint = collective_tilt;
-	_collective_thrust_normalized_setpoint = collective_thrust;
 }
 
 void ActuatorEffectivenessTiltrotorVTOL::processTiltrotorControls(ActuatorVector &actuator_sp,
@@ -149,14 +147,13 @@ void ActuatorEffectivenessTiltrotorVTOL::processTiltrotorControls(ActuatorVector
 {
 	tiltrotor_extra_controls_s tiltrotor_extra_controls;
 
-	if (_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls) || _bypass_tiltrotor_controls) {
+	if (_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls) || _do_override_collective_tilt) {
 
 		float control_collective_tilt = tiltrotor_extra_controls.collective_tilt_normalized_setpoint * 2.f - 1.f;
 		float control_collective_thrust = tiltrotor_extra_controls.collective_thrust_normalized_setpoint;
 
-		if (_bypass_tiltrotor_controls) {
+		if (_do_override_collective_tilt) {
 			control_collective_tilt = _collective_tilt_normalized_setpoint * 2.f - 1.f;
-			control_collective_thrust = _collective_thrust_normalized_setpoint;
 		}
 
 		// set control_collective_tilt to exactly -1 or 1 if close to these end points
@@ -190,7 +187,7 @@ void ActuatorEffectivenessTiltrotorVTOL::processTiltrotorControls(ActuatorVector
 			if (_tilts.config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
 
 				// as long as throttle spoolup is not completed, leave the tilts in the disarmed position (in hover)
-				if (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT || _bypass_tiltrotor_controls) {
+				if (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT || _do_override_collective_tilt) {
 					actuator_sp(i + _first_tilt_idx) += control_collective_tilt;
 
 				} else {

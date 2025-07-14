@@ -102,7 +102,7 @@ void ActuatorEffectiveness::stopMaskedMotorsWithZeroThrust(uint32_t stoppable_mo
 	}
 }
 
-void ActuatorEffectiveness::setBypassTiltrotorControls(bool bypass, float collective_tilt, float collective_thrust)
+void ActuatorEffectiveness::overrideCollectiveTilt(bool do_override, float collective_tilt)
 {
 	// empty implementation to be overridden if needed.
 }
