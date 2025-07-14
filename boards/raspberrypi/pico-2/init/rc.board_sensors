@@ -5,6 +5,15 @@
 
 board_adc start
 
+# madflight FC1
+# fixme imu orientation
+# fixme accel?
+icm42688p start -s -b 2
+ina226 start -X -b 1 -a 64
+
+
+# trash notes below for other sensors not used on FC1
+# ---------------------------------------------------
 # try starting an IMU on external SPI
 # fixme - specify interrupt pin somewhere
 # icm45686 start -S
@@ -13,11 +22,10 @@ board_adc start
 # icm45686 start -s
 
 # on external I2C1
-mpu9250_i2c start -X
-mpu9250_i2c status
+# mpu9250_i2c start -X
+# mpu9250_i2c status
 
 # icm45686 start -s -c 5 -m 3 -f 1000
-
 # icm45686 status
 
 # try starting a bmp280 barometer on external SPI
@@ -25,10 +33,4 @@ mpu9250_i2c status
 
 #  -m 3 -f 1000
 
-#icm42688p start -s  -c 29
-
-# madflight FC1
-
-icm42688p start -s -b 2
-
-# ina226 start -X -b 2
+# icm42688p start -s  -c 29
