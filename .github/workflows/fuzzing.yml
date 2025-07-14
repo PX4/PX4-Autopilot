@@ -13,7 +13,7 @@ jobs:
   Fuzzing:
     runs-on: ubuntu-latest
     container:
-      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
+      image: px4io/px4-dev:v1.16.0-rc2-4-gb67c65bfe6
     steps:
       - name: Install Dependencies
         run: |
