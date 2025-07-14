@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022-2025 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,7 +39,6 @@
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/failsafe_flags.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
@@ -65,7 +64,7 @@ public:
 
 	bool setHomePosition(bool force = false);
 	void setInAirHomePosition();
-	bool setManually(double lat, double lon, float alt, float roll, float pitch, float yaw);
+	bool setManually(double lat, double lon, float alt, float yaw);
 	void setTakeoffTime(uint64_t takeoff_time) { _takeoff_time = takeoff_time; }
 
 	void update(bool set_automatically, bool check_if_changed);
@@ -77,9 +76,8 @@ private:
 	void setHomePosValid();
 	void updateHomePositionYaw(float yaw);
 
-	static void fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos,
-				     const vehicle_attitude_s &attitude);
-	static void fillLocalHomePos(home_position_s &home, float x, float y, float z, float roll, float pitch, float yaw);
+	static void fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos);
+	static void fillLocalHomePos(home_position_s &home, float x, float y, float z, float heading);
 	static void fillGlobalHomePos(home_position_s &home, const vehicle_global_position_s &gpos);
 	static void fillGlobalHomePos(home_position_s &home, double lat, double lon, double alt);
 
@@ -87,7 +85,6 @@ private:
 
 	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::SubscriptionData<vehicle_attitude_s>	_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 
 	uint64_t _last_gps_timestamp{0};
