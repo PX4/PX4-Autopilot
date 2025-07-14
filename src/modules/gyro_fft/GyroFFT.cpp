@@ -80,39 +80,12 @@ bool GyroFFT::init()
 	_rfft_q15.bitReverseFlagR = 1;
 
 	switch (_param_imu_gyro_fft_len.get()) {
-	// case 128:
-	// 	buffers_allocated = AllocateBuffers<128>();
-	// 	_rfft_q15.fftLenReal = 128;
-	// 	_rfft_q15.twidCoefRModifier = 64U;
-	// 	_rfft_q15.pCfft = &arm_cfft_sR_q15_len64;
-	// 	break;
 
-	case 256:
-		buffers_allocated = AllocateBuffers<256>();
-		_rfft_q15.fftLenReal = 256;
-		_rfft_q15.twidCoefRModifier = 32U;
-		_rfft_q15.pCfft = &arm_cfft_sR_q15_len128;
-		break;
-
-	case 512:
-		buffers_allocated = AllocateBuffers<512>();
-		_rfft_q15.fftLenReal = 512;
-		_rfft_q15.twidCoefRModifier = 16U;
-		_rfft_q15.pCfft = &arm_cfft_sR_q15_len256;
-		break;
-
-	case 1024:
-		buffers_allocated = AllocateBuffers<1024>();
-		_rfft_q15.fftLenReal = 1024;
-		_rfft_q15.twidCoefRModifier = 8U;
-		_rfft_q15.pCfft = &arm_cfft_sR_q15_len512;
-		break;
-
-	// case 2048:
-	// 	buffers_allocated = AllocateBuffers<2048>();
-	// 	_rfft_q15.fftLenReal = 2048;
-	// 	_rfft_q15.twidCoefRModifier = 4U;
-	// 	_rfft_q15.pCfft = &arm_cfft_sR_q15_len1024;
+	// case 8192:
+	// 	buffers_allocated = AllocateBuffers<8192>();
+	// 	_rfft_q15.fftLenReal = 8192;
+	// 	_rfft_q15.twidCoefRModifier = 1U;
+	// 	_rfft_q15.pCfft = &arm_cfft_sR_q15_len4096;
 	// 	break;
 
 //	case 4096:
@@ -122,19 +95,46 @@ bool GyroFFT::init()
 //		_rfft_q15.pCfft = &arm_cfft_sR_q15_len2048;
 //		break;
 
-	// case 8192:
-	// 	buffers_allocated = AllocateBuffers<8192>();
-	// 	_rfft_q15.fftLenReal = 8192;
-	// 	_rfft_q15.twidCoefRModifier = 1U;
-	// 	_rfft_q15.pCfft = &arm_cfft_sR_q15_len4096;
+	// case 2048:
+	// 	buffers_allocated = AllocateBuffers<2048>();
+	// 	_rfft_q15.fftLenReal = 2048;
+	// 	_rfft_q15.twidCoefRModifier = 4U;
+	// 	_rfft_q15.pCfft = &arm_cfft_sR_q15_len1024;
+	// 	break;
+
+	case 1024:
+		buffers_allocated = AllocateBuffers<1024>();
+		_rfft_q15.fftLenReal = 1024;
+		_rfft_q15.twidCoefRModifier = 8U;
+		_rfft_q15.pCfft = &arm_cfft_sR_q15_len512;
+		break;
+
+	case 512:
+		buffers_allocated = AllocateBuffers<512>();
+		_rfft_q15.fftLenReal = 512;
+		_rfft_q15.twidCoefRModifier = 16U;
+		_rfft_q15.pCfft = &arm_cfft_sR_q15_len256;
+		break;
+
+	// case 128:
+	// 	buffers_allocated = AllocateBuffers<128>();
+	// 	_rfft_q15.fftLenReal = 128;
+	// 	_rfft_q15.twidCoefRModifier = 64U;
+	// 	_rfft_q15.pCfft = &arm_cfft_sR_q15_len64;
 	// 	break;
 
 	default:
 		// otherwise default to 256
-		PX4_ERR("Invalid IMU_GYRO_FFT_LEN=%" PRId32 ", resetting", _param_imu_gyro_fft_len.get());
+		if(_param_imu_gyro_fft_len.get() != 256){
+			PX4_ERR("Invalid IMU_GYRO_FFT_LEN=%" PRId32 ", resetting", _param_imu_gyro_fft_len.get());
+			_param_imu_gyro_fft_len.set(256);
+			_param_imu_gyro_fft_len.commit();
+			PX4_INFO("Setting IMU_GYRO_FFT_LEN=%" PRId32 ", as default", _param_imu_gyro_fft_len.get());
+		}
 		buffers_allocated = AllocateBuffers<256>();
-		_param_imu_gyro_fft_len.set(256);
-		_param_imu_gyro_fft_len.commit();
+		_rfft_q15.fftLenReal = 256;
+		_rfft_q15.twidCoefRModifier = 32U;
+		_rfft_q15.pCfft = &arm_cfft_sR_q15_len128;
 		break;
 	}
 
