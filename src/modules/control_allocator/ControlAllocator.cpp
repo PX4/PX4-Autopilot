@@ -555,9 +555,6 @@ void ControlAllocator::preflight_check_finish()
 
 void ControlAllocator::preflight_check_update_state()
 {
-	static uint32_t PREFLIGHT_CHECK_DURATION = 500_ms;
-	static uint32_t PREFLIGHT_CHECK_ACK_PERIOD = 1000_ms;
-
 	if (_preflight_check_running) {
 		hrt_abstime now = hrt_absolute_time();
 

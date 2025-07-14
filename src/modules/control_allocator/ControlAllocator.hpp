@@ -81,6 +81,7 @@
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/failure_detector_status.h>
 
+
 class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
@@ -89,6 +90,9 @@ public:
 
 	static constexpr int MAX_NUM_MOTORS = actuator_motors_s::NUM_CONTROLS;
 	static constexpr int MAX_NUM_SERVOS = actuator_servos_s::NUM_CONTROLS;
+
+	static constexpr uint32_t PREFLIGHT_CHECK_DURATION = 500_ms;
+	static constexpr uint32_t PREFLIGHT_CHECK_ACK_PERIOD = 1000_ms;
 
 	using ActuatorVector = ActuatorEffectiveness::ActuatorVector;
 
