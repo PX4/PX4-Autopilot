@@ -533,8 +533,8 @@ void ControlAllocator::preflight_check_start(vehicle_command_s &cmd, hrt_abstime
 		preflight_check_abort(now);
 	}
 
-	int axis = (uint8_t) lroundf(cmd.param1);
-	float input = cmd.param2;
+	const int axis = (uint8_t) lroundf(cmd.param1);
+	const float input = cmd.param2;
 
 	_preflight_check_running = true;
 	_preflight_check_axis = axis;
@@ -624,14 +624,14 @@ void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float,
 
 void ControlAllocator::preflight_check_handle_tilt_control(hrt_abstime now)
 {
-	bool is_tiltrotor = _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
+	const bool is_tiltrotor = _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
 
 	if (_preflight_check_running) {
 
 		if (_preflight_check_axis == vehicle_command_s::AXIS_COLLECTIVE_TILT) {
 
 			if (is_tiltrotor) {
-				float modified_tilt_control = math::constrain(_preflight_check_input, 0.f, 1.f);
+				const float modified_tilt_control = math::constrain(_preflight_check_input, 0.f, 1.f);
 
 				_actuator_effectiveness->overrideCollectiveTilt(true, modified_tilt_control);
 
