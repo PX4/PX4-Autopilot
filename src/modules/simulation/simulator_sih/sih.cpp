@@ -429,8 +429,8 @@ void Sih::generate_ts_aerodynamics()
 void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const float steering_cmd, const float dt)
 {
 	// --- Constants ---
-	const float MAX_FORCE = 400.0f;        // [N]
-	const float MAX_STEER_ANGLE = 0.5236f; // [rad] (=30°)
+	static constexpr float MAX_FORCE = 400.0f;        // [N]
+	const float MAX_STEER_ANGLE = radians(30.f); // [rad]
 	const float WHEEL_BASE = 0.321;        // [m] Distance between front and rear axle
 	const float C = 500.f;                 // [N/rad] Cornering stiffness
 	const float MU_S = 0.5f;               // [-] Static Coefficient of friction
@@ -438,9 +438,7 @@ void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const floa
 	const float MU_R = 0.3f;               // [-] Rolling Coefficient of friction
 	const float ROLLING_THRESHOLD = 0.05f; // [m/s] Threshold for rolling resistance
 
-	// --- Convert nav velocity to body frame ---
-	const matrix::Dcmf R_nb(_q);            // Body to nav frame
-	matrix::Vector3f v_B = R_nb.T() * _v_N; // Nav -> Body
+	matrix::Vector3f v_B = _q.rotateVectorInverse(_v_N); // Nav -> Body
 
 	// --- Compute inputs ---
 	const float delta = MAX_STEER_ANGLE * steering_cmd; // [rad] Steering angle
