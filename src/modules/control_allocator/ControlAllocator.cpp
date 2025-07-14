@@ -339,6 +339,8 @@ ControlAllocator::Run()
 	const hrt_abstime now = hrt_absolute_time();
 	const float dt = math::constrain(((now - _last_run) / 1e6f), 0.0002f, 0.02f);
 
+	bool is_vtol = false;
+
 	{
 		vehicle_status_s vehicle_status;
 
@@ -369,6 +371,9 @@ ControlAllocator::Run()
 					flight_phase = ActuatorEffectiveness::FlightPhase::TRANSITION_FF_TO_HF;
 				}
 			}
+
+			// Set this here to avoid another class member
+			is_vtol = vehicle_status.is_vtol;
 
 			// Forward to effectiveness source
 			_actuator_effectiveness->setFlightPhase(flight_phase);
@@ -433,7 +438,7 @@ ControlAllocator::Run()
 		}
 
 		preflight_check_update_state(now);
-		preflight_check_overwrite_torque_sp(c);
+		preflight_check_overwrite_torque_sp(c, is_vtol);
 
 		for (int i = 0; i < _num_control_allocation; ++i) {
 
@@ -562,7 +567,7 @@ void ControlAllocator::preflight_check_update_state(hrt_abstime now)
 }
 
 void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float, NUM_AXES>
-		(&c)[ActuatorEffectiveness::MAX_NUM_MATRICES])
+		(&c)[ActuatorEffectiveness::MAX_NUM_MATRICES], bool is_vtol)
 {
 	if (!_preflight_check_running) { return; }
 
@@ -586,17 +591,13 @@ void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float,
 		return;
 	}
 
-	c[0](0) = 0.;
-	c[0](1) = 0.;
-	c[0](2) = 0.;
-	c[0](axis) = _preflight_check_input;
+	// If VTOL, instance 1 is the fixed wing part, otherwise instance 0.
+	const int instance = is_vtol ? 1 : 0;
 
-	if (_num_control_allocation > 1) {
-		c[1](0) = 0.;
-		c[1](1) = 0.;
-		c[1](2) = 0.;
-		c[1](axis) = _preflight_check_input;
-	}
+	c[instance](0) = 0.;
+	c[instance](1) = 0.;
+	c[instance](2) = 0.;
+	c[instance](axis) = _preflight_check_input;
 }
 
 void ControlAllocator::preflight_check_handle_tilt_control(hrt_abstime now)

@@ -144,7 +144,8 @@ private:
 
 	void publish_actuator_controls();
 
-	void preflight_check_overwrite_torque_sp(matrix::Vector<float, NUM_AXES> (&c)[ActuatorEffectiveness::MAX_NUM_MATRICES]);
+	void preflight_check_overwrite_torque_sp(matrix::Vector<float, NUM_AXES> (&c)[ActuatorEffectiveness::MAX_NUM_MATRICES],
+			bool is_vtol);
 	void preflight_check_handle_command(hrt_abstime now);
 	void preflight_check_update_state(hrt_abstime now);
 	void preflight_check_handle_tilt_control(hrt_abstime now);
