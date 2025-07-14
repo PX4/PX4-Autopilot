@@ -76,6 +76,15 @@ UavcanNode *UavcanNode::_instance;
 
 static UavcanNode::CanInitHelper *can = nullptr;
 
+UAVCAN_DRIVER::CanInitHelper<21> *getCanInitHelper(void)
+{
+	if (can == nullptr) {
+		can = new UavcanNode::CanInitHelper(board_get_can_interfaces());
+	}
+
+	return can;
+}
+
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
 	ModuleParams(nullptr),
@@ -428,13 +437,25 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 
 	if (can == nullptr) {
 
-		can = new CanInitHelper(board_get_can_interfaces());
+		can = getCanInitHelper();
 
 		if (can == nullptr) {  // We don't have exceptions so bad_alloc cannot be thrown
 			PX4_ERR("Out of memory");
 			return -1;
 		}
+	}
 
+	/*
+	* Set Iface UAVCAN Enable
+	*/
+	int32_t uavcan_if_en = 0;
+	param_get(param_find("UAVCAN_IF_EN"), &uavcan_if_en);
+
+	for (int i = 0; i < can->driver.getNumIfaces(); ++i) {
+		if ((1 << i) & uavcan_if_en) {
+			can->driver.setUavcanUsedInterfaces(i);
+			PX4_INFO("uavcan: %d iface enable", i);
+		}
 	}
 
 	/*
@@ -493,7 +514,16 @@ UavcanNode::busevent_signal_trampoline()
 int
 UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 {
-	bus_events.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
+	int32_t uavcan_if_en = 0;
+	param_get(param_find("UAVCAN_IF_EN"),   &uavcan_if_en);
+
+	for (int i = 0; i < can->driver.getNumIfaces(); ++i) {
+		if (uavcan_if_en & (1 << i)) {
+			UAVCAN_DRIVER::BusEvent &bus_event = can->driver.updateEvent(i);
+			bus_event.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
+			PX4_INFO("uavcan: %d bus event valid", i);
+		}
+	}
 
 	_node.setName("org.pixhawk.pixhawk");
 

@@ -241,3 +241,8 @@ then
 	# start last (wait for possible icm20948 passthrough mode)
 	ak09916 -X -q start
 fi
+
+if param compare SENS_EN_NRXX 1
+then
+	nanoradar_can start
+fi
