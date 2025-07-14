@@ -1812,6 +1812,18 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	battery_status.temperature = (float)battery_mavlink.temperature;
 	battery_status.connected = true;
 
+	if (_param_disc_ovrd.get()) {
+		battery_status.connected = false;
+		for (int i = 0; i < MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN; ++i)
+		{
+			if (battery_mavlink.voltages[i] != UINT16_MAX - 1)
+			{
+				battery_status.connected = true;
+				break;
+			}
+		}
+	}
+
 	// Set the battery warning based on remaining charge.
 	//  Note: Smallest values must come first in evaluation.
 	if (battery_status.remaining < _param_bat_emergen_thr.get()) {
