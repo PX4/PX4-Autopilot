@@ -108,7 +108,7 @@ To reduce accidents, vehicles are only allowed to arm certain conditions are met
 - Поточний режим потребує належної глобальної позиційної оцінки, але повітряне судно не має блокування GPS.
 - Many more (see [arming/disarming safety settings](../config/safety.md#arming-disarming-settings) for more information).
 
-The current failed checks can be viewed in QGroundControl (v4.2.0 and later) [Arming Check Report](../flying/pre_flight_checks.md#qgc-arming-check-report) (see also [Fly View > Arming and Preflight Checks](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/fly_view/fly_view.md#arm)).
+The current failed checks can be viewed in QGroundControl (v4.2.0 and later) [Arming Check Report](../flying/pre_flight_checks.md#qgc-arming-check-report) (see also [Fly View > Toolbar > Flight Status](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/fly_view/fly_view_toolbar.html#flight-status)).
 
 Зауважте, що внутрішньо PX4 перевіряє активацію на 10 Гц.
 Список невдалих перевірок зберігається, і якщо цей список змінюється, PX4 видає поточний список за допомогою [інтерфейсу подій](../concept/events_interface.md).
@@ -158,7 +158,6 @@ PX4 також видає підмножину інформації переві
   - Система зараз перевіряється перед збурюванням: актуатори без збурювання можуть рухатися (наприклад, елерони).
   - Безпека системи відключена: можливість озброєння(збурення).
 3. Видається команда на озброєння(збурення).
-
   - Система озброєна(збурена).
   - Усі мотори та приводи можуть рухатися.
 
@@ -176,7 +175,6 @@ PX4 також видає підмножину інформації переві
   - _All actuators stay locked into disarmed position (same as disarmed)._
   - Безпека системи відключена: можливість озброєння(збурення).
 3. Видається команда на озброєння(збурення).
-
   - Система озброєна(збурена).
   - Усі мотори та приводи можуть рухатися.
 

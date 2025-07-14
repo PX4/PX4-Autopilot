@@ -205,7 +205,7 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_K, 1.0f);
  *
  * @min 0.0
  * @max 0.6
- * @decimal 2
+ * @decimal 3
  * @increment 0.01
  * @group Multicopter Rate Control
  */
@@ -217,7 +217,7 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.2f);
  * Yaw rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
  *
  * @min 0.0
- * @decimal 2
+ * @decimal 3
  * @increment 0.01
  * @group Multicopter Rate Control
  */
@@ -241,8 +241,8 @@ PARAM_DEFINE_FLOAT(MC_YR_INT_LIM, 0.30f);
  * Yaw rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
  *
  * @min 0.0
- * @decimal 2
- * @increment 0.01
+ * @decimal 4
+ * @increment 0.0005
  * @group Multicopter Rate Control
  */
 PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
@@ -254,7 +254,6 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
  *
  * @min 0.0
  * @decimal 4
- * @increment 0.01
  * @group Multicopter Rate Control
  */
 PARAM_DEFINE_FLOAT(MC_YAWRATE_FF, 0.0f);
@@ -271,7 +270,7 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_FF, 0.0f);
  * Set MC_YAWRATE_P=1 to implement a PID in the ideal form.
  * Set MC_YAWRATE_K=1 to implement a PID in the parallel form.
  *
- * @min 0.0
+ * @min 0.01
  * @max 5.0
  * @decimal 4
  * @increment 0.0005

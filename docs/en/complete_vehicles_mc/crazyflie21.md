@@ -40,7 +40,7 @@ The vehicle can be purchased here: [Crazyflie 2.1](https://store.bitcraze.io/pro
 
 Useful peripheral hardware includes:
 
-- [Crazyradio PA 2.4 GHz USB dongle](https://store.bitcraze.io/collections/kits/products/crazyradio-pa): Wireless communication between _QGroundControl_ and Crazyflie 2.0
+- [Crazyradio PA 2.4 GHz USB dongle](https://store.bitcraze.io/products/crazyradio-pa): Wireless communication between _QGroundControl_ and Crazyflie 2.0
 - [Breakout deck](https://store.bitcraze.io/collections/decks/products/breakout-deck): Breakout expansion board for connecting new peripherals.
 - [Flow deck v2](https://store.bitcraze.io/collections/decks/products/flow-deck-v2): Optical flow sensor and a distance sensor for altitude and position control.
 - [Z-ranger deck v2](https://store.bitcraze.io/collections/decks/products/z-ranger-deck-v2): Distance sensor for altitude control (same sensor as the Flow deck).
@@ -65,7 +65,7 @@ After setting up the PX4 development environment, follow these steps to install 
 1. Download the source code of the PX4 Bootloader:
 
    ```sh
-   git clone https://github.com/PX4/Bootloader.git --recurse-submodules
+   git clone https://github.com/PX4/PX4-Bootloader.git --recurse-submodules
    ```
 
 1. Navigate into the top directory of the source code and compile it using:
@@ -210,7 +210,7 @@ To connect Crazyflie 2.1 with crazyradio, **launch cfbridge** by following these
 
   ::: info
   _Cfbridge_ by default tries to initiate the radio link communication on channel 80 and with crazyflie address 0xE7E7E7E7E7.
-  If you are using [multiple crazyflies and/or crazyradios](https://github.com/dennisss/cfbridge/blob/master/index.md#advanced-swarming) in the same room and want to use a different channel and/or address for each, first connect the crazyflie with QGroundControl via a USB cable and change the syslink parameters (channel, address) in QGroundControl.
+  If you are using [multiple crazyflies and/or crazyradios](https://github.com/dennisss/cfbridge/blob/master/README.md#advanced-swarming) in the same room and want to use a different channel and/or address for each, first connect the crazyflie with QGroundControl via a USB cable and change the syslink parameters (channel, address) in QGroundControl.
   Next, launch the cfbridge by giving the same channel and address as the first and second arguments respectively, e.g: `python cfbridge.py 90 0x0202020202`
   :::
 

@@ -62,19 +62,19 @@ Key build features
 
 - [DJI FPV Goggles](https://www.dji.com/fpv)
 
-- [ExpressLRS Matek Diversity RX](http://www.mateksys.com/?portfolio=elrs-r24)
+- [ExpressLRS Matek Diversity RX](https://www.mateksys.com/?portfolio=elrs-r24)
 
 - [5V BEC](https://www.readymaderc.com/products/details/rmrc-3a-power-regulator-5-to-6-volt-ubec)
 
 - [6s2p 18650 LiIon flight battery](https://www.upgradeenergytech.com/product-page/6s-22-2v-5600mah-30c-dark-lithium-liion-drone-battery) (select XT60 connector)
 
-- [Custom designed 3D printed parts](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/reptile_dragon_2/rd2_3d_printed_parts.zip)
+- [Custom designed 3D printed parts](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/fw/reptile_dragon_2/rd2_3d_printed_parts.zip)
   - ARK6X carrier mount
   - Holybro Pixhawk 5x carrier mount
   - FPV pod and camera mount
   - Pitot static probe "plug" adapter
 
-- [Custom designed power distribution PCB](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/reptile_dragon_2/xt30_power_distro_pcb.zip)
+- [Custom designed power distribution PCB](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/fw/reptile_dragon_2/xt30_power_distro_pcb.zip)
 
 - Misc hardware: M3 hardware (standoffs, washers, O-rings, bolts), M2.5 nylon standoffs and screws, XT30 connectors, hot glue, heatshrink, Molex Microfit connectors
 
@@ -377,7 +377,7 @@ make ark_fmu-v6x_default upload
 This param file contains the custom PX4 parameter configuration for this build, including radio setup, tuning and sensor config.
 Load the file via QGC using the instructions at [Parameters> Tools](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/parameters.html#tools) (QGC User Guide).
 
-- [Snapshot of PX4 airframe params](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/fw/reptile_dragon_2/reptile_dragon_2_params.params)
+- [Snapshot of PX4 airframe params](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/fw/reptile_dragon_2/reptile_dragon_2_params.params)
 
 You may need to modify some parameters for your build
 In particular you should check:

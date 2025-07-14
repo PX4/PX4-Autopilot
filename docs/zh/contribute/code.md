@@ -8,13 +8,13 @@ PX4 项目使用三分支 Git 模型：
 - [beta](https://github.com/PX4/PX4-Autopilot/tree/beta) has been thoroughly tested. 它是供飞行测试人员使用的。
 - [stable](https://github.com/PX4/PX4-Autopilot/tree/stable) points to the last release.
 
-We try to retain a [linear history through rebases](https://www.atlassian.com/git/tutorials/rewriting-history) and avoid the [Github flow](https://docs.github.com/en/get-started/quickstart/github-flow).
+We try to retain a [linear history through rebases](https://www.atlassian.com/git/tutorials/rewriting-history) and avoid the [Github flow](https://docs.github.com/en/get-started/using-github/github-flow).
 然而，由于全球团队和快速的发展，我们可能有时会进行合并。
 
-To contribute new functionality, [sign up for Github](https://docs.github.com/en/get-started/signing-up-for-github/signing-up-for-a-new-github-account), then [fork](https://docs.github.com/en/get-started/quickstart/fork-a-repo) the repository, [create a new branch](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-and-deleting-branches-within-your-repository), add your [changes as commits](#commits-and-commit-messages), and finally [send a pull request](#pull-requests).
+To contribute new functionality, [sign up for Github](https://docs.github.com/en/get-started/using-github/github-flow), then [fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) the repository, [create a new branch](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-and-deleting-branches-within-your-repository), add your [changes as commits](#commits-and-commit-messages), and finally [send a pull request](#pull-requests).
 Changes will be merged when they pass our [continuous integration](https://en.wikipedia.org/wiki/Continuous_integration) tests.
 
-All code contributions have to be under the permissive [BSD 3-clause license](https://opensource.org/licenses/BSD-3-Clause) and all code must not impose any further constraints on the use.
+All code contributions have to be under the permissive [BSD 3-clause license](https://opensource.org/license/BSD-3-Clause) and all code must not impose any further constraints on the use.
 
 ## Code Style
 
@@ -114,7 +114,7 @@ Currently we have two types of source-based documentation:
   - Do not add documentation that can trivially be inferred from C++ entity names.
   - ALWAYS specify units of variables, constants, and input/return parameters where they are defined.
   - Commonly you may want to add information about corner cases and error handling.
-  - [Doxgyen](http://www.doxygen.nl/) tags should be used if documentation is needed: `@class`, `@file`, `@param`, `@return`, `@brief`, `@var`, `@see`, `@note`.
+  - [Doxgyen](https://www.doxygen.nl/) tags should be used if documentation is needed: `@class`, `@file`, `@param`, `@return`, `@brief`, `@var`, `@see`, `@note`.
     A good example of usage is [src/modules/events/send_event.h](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/events/send_event.h).
 
 Please avoid "magic numbers", for example, where does this number in the conditional come from? What about the multiplier on yaw stick input?

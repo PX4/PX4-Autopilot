@@ -28,7 +28,7 @@ logger help
 
 ## Налаштування
 
-The logging system is configured by default to collect sensible logs for [flight reporting](../getting_started/flight_reporting.md) with [Flight Review](http://logs.px4.io).
+The logging system is configured by default to collect sensible logs for [flight reporting](../getting_started/flight_reporting.md) with [Flight Review](https://logs.px4.io/).
 
 Logging may further be configured using the [SD Logging](../advanced_config/parameter_reference.md#sd-logging) parameters.
 Параметри, які ви найімовірніше зміните, перераховані нижче.
