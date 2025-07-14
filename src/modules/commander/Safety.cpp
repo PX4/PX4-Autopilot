@@ -42,32 +42,65 @@ using namespace time_literals;
 
 Safety::Safety()
 {
+	param_get(param_find("COM_SAFETY_MODE"), reinterpret_cast<int32_t *>(&_safety_switch_mode));
 	// Safety can be turned off with the CBRK_IO_SAFETY parameter.
 	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
 
 	if (_safety_disabled) {
-		_button_available = true;
+		_safety_switch_available = true;
 		_safety_off = true;
 	}
 }
 
-bool Safety::safetyButtonHandler()
+bool Safety::safetySwitchHandler()
 {
 	if (!_safety_disabled) {
-		if (!_button_available && _safety_button_sub.advertised()) {
-			_button_available = true;
-		}
+		switch (_safety_switch_mode) {
+		case SafetyMode::SAFETY_BUTTON:
+			handleModeButton();
+			break;
 
-		button_event_s button_event;
-
-		while (_safety_button_sub.update(&button_event)) {
-			_safety_off |= button_event.triggered; // triggered safety button activates safety off
+		case SafetyMode::LEVEL_HIGH:
+		case SafetyMode::LEVEL_LOW:
+			handleModeLevel();
+			break;
 		}
 	}
 
 	const bool safety_changed = _previous_safety_off != _safety_off;
 	_previous_safety_off = _safety_off;
 	return safety_changed;
+}
+
+void Safety::handleModeButton()
+{
+	if (!_safety_switch_available) {
+		_safety_switch_available = true;
+	}
+
+	button_event_s button_event;
+
+	while (_safety_button_sub.update(&button_event)) {
+		_safety_off |= button_event.triggered; // triggered safety button activates safety off
+	}
+}
+
+void Safety::handleModeLevel()
+{
+	if (!_safety_switch_available) {
+		_safety_switch_available = true;
+	}
+
+	safety_switch_s safety_switch;
+
+	if (_safety_switch_sub.update(&safety_switch)) {
+		if (_safety_switch_mode == SafetyMode::LEVEL_HIGH) {
+			_safety_off = safety_switch.state;
+
+		} else {
+			_safety_off = !safety_switch.state;
+		}
+	}
 }
 
 void Safety::activateSafety()

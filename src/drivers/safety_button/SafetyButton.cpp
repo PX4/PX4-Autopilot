@@ -63,10 +63,10 @@ SafetyButton::~SafetyButton()
 }
 
 void
-SafetyButton::CheckSafetyRequest(bool button_pressed)
+SafetyButton::CheckSafetyRequest(bool safety_switch_state)
 {
 	/* Keep button pressed for one second to turn off safety */
-	if (button_pressed) {
+	if (safety_switch_state) {
 
 		if (_button_counter <= CYCLE_COUNT) {
 			_button_counter++;
@@ -79,10 +79,18 @@ SafetyButton::CheckSafetyRequest(bool button_pressed)
 	} else {
 		_button_counter = 0;
 	}
+
+	/* Collect the raw safety switch state */
+	if (safety_switch_state != _previous_safety_switch_state) {
+		safety_switch_s safety_switch{};
+		safety_switch.timestamp = hrt_absolute_time();
+		safety_switch.state = safety_switch_state;
+		_safety_switch_pub.publish(safety_switch);
+	}
 }
 
 void
-SafetyButton::CheckPairingRequest(bool button_pressed)
+SafetyButton::CheckPairingRequest(bool safety_switch_state)
 {
 	// Need to press the button 3 times within 2 seconds
 	const hrt_abstime now = hrt_absolute_time();
@@ -93,7 +101,7 @@ SafetyButton::CheckPairingRequest(bool button_pressed)
 		_pairing_button_counter = 0;
 	}
 
-	if (!_button_prev_sate && button_pressed) {
+	if (!_previous_safety_switch_state && safety_switch_state) {
 		if (_pairing_start == 0) {
 			_pairing_start = now;
 		}
@@ -120,7 +128,7 @@ SafetyButton::FlashButton()
 		LED_PATTERN pattern = LED_PATTERN::FMU_REFUSE_TO_ARM;
 
 		// cycle the blink state machine
-		if (_button_prev_sate) {
+		if (_previous_safety_switch_state) {
 			if (armed.armed) {
 				pattern = LED_PATTERN::IO_FMU_ARMED;
 
@@ -154,16 +162,16 @@ SafetyButton::Run()
 		return;
 	}
 
-	const bool button_pressed = px4_arch_gpioread(GPIO_BTN_SAFETY);
+	const bool safety_switch_state = px4_arch_gpioread(GPIO_BTN_SAFETY);
 
 	// control safety switch LED & safety button
 	if (!_has_px4io) {
 		FlashButton();
-		CheckSafetyRequest(button_pressed);
+		CheckSafetyRequest(safety_switch_state);
 	}
 
-	CheckPairingRequest(button_pressed);
-	_button_prev_sate = button_pressed;
+	CheckPairingRequest(safety_switch_state);
+	_previous_safety_switch_state = safety_switch_state;
 }
 
 int
