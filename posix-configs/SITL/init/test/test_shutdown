@@ -38,7 +38,7 @@ control_allocator start
 
 ver all
 
-logger start -e -t
+logger start -e
 
 mavlink boot_complete
 

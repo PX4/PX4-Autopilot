@@ -256,7 +256,6 @@ Logger *Logger::instantiate(int argc, char *argv[])
 	int log_buffer_size = 12 * 1024;
 	Logger::LogMode log_mode = Logger::LogMode::while_armed;
 	bool error_flag = false;
-	bool log_name_timestamp = false;
 	LogWriter::Backend backend = LogWriter::BackendAll;
 	const char *poll_topic = nullptr;
 
@@ -313,11 +312,6 @@ Logger *Logger::instantiate(int argc, char *argv[])
 			}
 			break;
 
-		case 't':
-			log_name_timestamp = true;
-			break;
-
-
 		case 'm':
 			if (!strcmp(myoptarg, "file")) {
 				backend = LogWriter::BackendFile;
@@ -354,7 +348,7 @@ Logger *Logger::instantiate(int argc, char *argv[])
 		return nullptr;
 	}
 
-	Logger *logger = new Logger(backend, log_buffer_size, log_interval, poll_topic, log_mode, log_name_timestamp,
+	Logger *logger = new Logger(backend, log_buffer_size, log_interval, poll_topic, log_mode,
 				    rate_factor);
 
 #if defined(DBGPRINT) && defined(__PX4_NUTTX)
@@ -383,10 +377,9 @@ Logger *Logger::instantiate(int argc, char *argv[])
 }
 
 Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, const char *poll_topic_name,
-	       LogMode log_mode, bool log_name_timestamp, float rate_factor) :
+	       LogMode log_mode, float rate_factor) :
 	ModuleParams(nullptr),
 	_log_mode(log_mode),
-	_log_name_timestamp(log_name_timestamp),
 	_event_subscription(ORB_ID::event),
 	_writer(backend, buffer_size),
 	_log_interval(log_interval),
@@ -1241,6 +1234,10 @@ int Logger::create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len)
 	if (tt) {
 		strftime(file_name.log_dir, sizeof(LogFileName::log_dir), "%Y-%m-%d", tt);
 		strncpy(log_dir + n, file_name.log_dir, log_dir_len - n);
+
+		// temporary debugging
+		PX4_INFO("creating log dir: %s", log_dir);
+
 		int mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
 		if (mkdir_ret != OK && errno != EEXIST) {
@@ -1265,6 +1262,9 @@ int Logger::create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len)
 				return -1;
 			}
 
+			// temporary debugging
+			PX4_INFO("creating log dir: %s", log_dir);
+
 			strncpy(log_dir + n, file_name.log_dir, log_dir_len - n);
 			int mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
@@ -1287,14 +1287,23 @@ int Logger::create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len)
 	return strlen(log_dir);
 }
 
-int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_size, bool notify)
+int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_size)
 {
-	tm tt = {};
-	bool time_ok = false;
+	// We use RTC time for log file naming, e.g. /fs/microsd/log/2014-01-19/19_37_52.ulg
 
-	if (_log_name_timestamp) {
-		/* use RTC time for log file naming, e.g. /fs/microsd/log/2014-01-19/19_37_52.ulg */
-		time_ok = util::get_log_time(&tt, _param_sdlog_utc_offset.get() * 60, false);
+	time_t timestamp_utc = {};
+	struct timespec ts = {};
+	px4_clock_gettime(CLOCK_REALTIME, &ts);
+	timestamp_utc = ts.tv_sec + (ts.tv_nsec / 1e9);
+
+	// Apply UTC offset parameter and handle potential underflow
+	int32_t utc_offset_seconds = _param_sdlog_utc_offset.get() * 60;
+
+	if (utc_offset_seconds < 0 && timestamp_utc < (time_t)abs(utc_offset_seconds)) {
+		timestamp_utc = 0;
+
+	} else {
+		timestamp_utc += utc_offset_seconds;
 	}
 
 	const char *replay_suffix = "";
@@ -1314,35 +1323,31 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 
 	char *log_file_name = _file_name[(int)type].log_file_name;
 
-	if (time_ok) {
+	// Check if time is non-zero for valid UTC timestamp
+	if (timestamp_utc > 0) {
+
+		tm tt = {};
+		gmtime_r(&timestamp_utc, &tt);
+
+		// TODO: move create_log_dir outside of this...
 		int n = create_log_dir(type, &tt, file_name, file_name_size);
 
 		if (n < 0) {
 			return -1;
 		}
 
+		// Create log file name from timestamp
 		char log_file_name_time[16] = "";
 		strftime(log_file_name_time, sizeof(log_file_name_time), "%H_%M_%S", &tt);
 		snprintf(log_file_name, sizeof(LogFileName::log_file_name), "%s%s.ulg%s", log_file_name_time, replay_suffix,
 			 crypto_suffix);
+		PX4_INFO("log_file_name: %s", log_file_name);
+
+		// Now we copy it into some other buffer... why?
 		snprintf(file_name + n, file_name_size - n, "/%s", log_file_name);
 
-		if (notify) {
-			mavlink_log_info(&_mavlink_log_pub, "[logger] %s\t", file_name);
-			uint16_t year = 0;
-			uint8_t month = 0;
-			uint8_t day = 0;
-			sscanf(_file_name[(int)type].log_dir, "%hd-%hhd-%hhd", &year, &month, &day);
-			uint8_t hour = 0;
-			uint8_t minute = 0;
-			uint8_t second = 0;
-			sscanf(log_file_name_time, "%hhd_%hhd_%hhd", &hour, &minute, &second);
-			events::send<uint16_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t>(events::ID("logger_open_file_time"),
-					events::Log::Info,
-					"logging: opening log file {1}-{2}-{3}/{4}_{5}_{6}.ulg", year, month, day, hour, minute, second);
-		}
-
 	} else {
+		// TODO: move create_log_dir outside of this...
 		int n = create_log_dir(type, nullptr, file_name, file_name_size);
 
 		if (n < 0) {
@@ -1368,16 +1373,6 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
 			return -1;
-		}
-
-		if (notify) {
-			mavlink_log_info(&_mavlink_log_pub, "[logger] %s\t", file_name);
-			uint16_t sess = 0;
-			sscanf(_file_name[(int)type].log_dir, "sess%hd", &sess);
-			uint16_t index = 0;
-			sscanf(log_file_name, "log%hd", &index);
-			events::send<uint16_t, uint16_t>(events::ID("logger_open_file_sess"), events::Log::Info,
-							 "logging: opening log file sess{1}/log{2}.ulg", sess, index);
 		}
 	}
 
@@ -1407,12 +1402,16 @@ void Logger::start_log_file(LogType type)
 	PX4_INFO("Start file log (type: %s)", log_type_str(type));
 	_statistics[(int) type].start_time_file = 0;
 
+	// TODO: might not need this since get_log_file_name sets a member variable _file_name
 	char file_name[LOG_DIR_LEN] = "";
 
-	if (get_log_file_name(type, file_name, sizeof(file_name), type == LogType::Full)) {
+	// Populates the internal _file_name
+	if (get_log_file_name(type, file_name, sizeof(file_name)) != PX4_OK) {
 		PX4_ERR("failed to get log file name");
 		return;
 	}
+
+	// TODO: create log dir after getting filename
 
 #if defined(PX4_CRYPTO)
 	_writer.set_encryption_parameters(
@@ -1420,6 +1419,13 @@ void Logger::start_log_file(LogType type)
 		_param_sdlog_crypto_key.get(),
 		_param_sdlog_crypto_exchange_key.get());
 #endif
+
+	// Emit event when we're recording a full log type (TODO: rename "full" to "normal"?)
+	// TODO: do we really need separate events? If the intent is to convey the full log string
+	// it isn't quite right since the zeroes get dropped, see below:
+	// PX4:     2025-04-05/14_27_49.ulg
+	// MAVSDK:  2025-4-5/14_27_49.ulg
+	emit_log_start_event(type);
 
 	if (_writer.start_log_file(type, file_name)) {
 		_writer.select_write_backend(LogWriter::BackendFile);
@@ -1450,7 +1456,45 @@ void Logger::start_log_file(LogType type)
 
 		_statistics[(int) type].start_time_file = hrt_absolute_time();
 	}
+}
 
+void Logger::emit_log_start_event(LogType type)
+{
+	if (type == LogType::Full) {
+		// Check if we're using time-based format by checking for hyphen
+		if (strstr(_file_name[(int)type].log_dir, "-")) {
+
+			uint16_t year = 0;
+			uint8_t month = 0;
+			uint8_t day = 0;
+			sscanf(_file_name[(int)type].log_dir, "%hd-%hhd-%hhd", &year, &month, &day);
+
+			uint8_t hour = 0;
+			uint8_t minute = 0;
+			uint8_t second = 0;
+			sscanf(_file_name[(int)type].log_file_name, "%hhd_%hhd_%hhd", &hour, &minute, &second);
+
+			events::send<uint16_t, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t>(
+				events::ID("logger_open_file_time"),
+				events::Log::Info,
+				"logging: opening log file {1}-{2}-{3}/{4}_{5}_{6}.ulg",
+				year, month, day, hour, minute, second);
+
+		} else {
+			// Session-based format
+			uint16_t sess = 0;
+			sscanf(_file_name[(int)type].log_dir, "sess%hd", &sess);
+
+			uint16_t log_index = 0;
+			sscanf(_file_name[(int)type].log_file_name, "log%hd", &log_index);
+
+			events::send<uint16_t, uint16_t>(
+				events::ID("logger_open_file_sess"),
+				events::Log::Info,
+				"logging: opening log file sess{1}/log{2}.ulg",
+				sess, log_index);
+		}
+	}
 }
 
 void Logger::stop_log_file(LogType type)
@@ -2432,7 +2476,7 @@ the mission log). It should be large to avoid dropouts.
 
 ### Examples
 Typical usage to start logging immediately:
-$ logger start -e -t
+$ logger start -e
 
 Or if already running:
 $ logger on
