@@ -145,13 +145,13 @@ private:
 	void publish_actuator_controls();
 
 	void preflight_check_overwrite_torque_sp(matrix::Vector<float, NUM_AXES> (&c)[ActuatorEffectiveness::MAX_NUM_MATRICES]);
-	void preflight_check_handle_command();
-	void preflight_check_update_state();
-	void preflight_check_handle_tilt_control();
-	void preflight_check_start(vehicle_command_s &cmd);
-	void preflight_check_send_ack(uint8_t result);
-	void preflight_check_abort();
-	void preflight_check_finish();
+	void preflight_check_handle_command(hrt_abstime now);
+	void preflight_check_update_state(hrt_abstime now);
+	void preflight_check_handle_tilt_control(hrt_abstime now);
+	void preflight_check_start(vehicle_command_s &cmd, hrt_abstime now);
+	void preflight_check_send_ack(uint8_t result, hrt_abstime now);
+	void preflight_check_abort(hrt_abstime now);
+	void preflight_check_finish(hrt_abstime now);
 
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
 	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations

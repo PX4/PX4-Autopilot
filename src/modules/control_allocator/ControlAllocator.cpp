@@ -335,6 +335,10 @@ ControlAllocator::Run()
 		return;
 	}
 
+	// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
+	const hrt_abstime now = hrt_absolute_time();
+	const float dt = math::constrain(((now - _last_run) / 1e6f), 0.0002f, 0.02f);
+
 	{
 		vehicle_status_s vehicle_status;
 
@@ -343,7 +347,7 @@ ControlAllocator::Run()
 			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 
 			if (_armed) {
-				preflight_check_abort();
+				preflight_check_abort(now);
 			}
 
 			ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
@@ -379,11 +383,7 @@ ControlAllocator::Run()
 		}
 	}
 
-	preflight_check_handle_command();
-
-	// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
-	const hrt_abstime now = hrt_absolute_time();
-	const float dt = math::constrain(((now - _last_run) / 1e6f), 0.0002f, 0.02f);
+	preflight_check_handle_command(now);
 
 	bool do_update = false;
 	vehicle_torque_setpoint_s vehicle_torque_setpoint;
@@ -432,7 +432,7 @@ ControlAllocator::Run()
 			}
 		}
 
-		preflight_check_update_state();
+		preflight_check_update_state(now);
 		preflight_check_overwrite_torque_sp(c);
 
 		for (int i = 0; i < _num_control_allocation; ++i) {
@@ -442,7 +442,7 @@ ControlAllocator::Run()
 			// Do allocation
 			_control_allocation[i]->allocate();
 
-			preflight_check_handle_tilt_control();
+			preflight_check_handle_tilt_control(now);
 
 			_actuator_effectiveness->allocateAuxilaryControls(dt, i, _control_allocation[i]->_actuator_sp); //flaps and spoilers
 			_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp,
@@ -474,7 +474,7 @@ ControlAllocator::Run()
 	perf_end(_loop_perf);
 }
 
-void ControlAllocator::preflight_check_handle_command()
+void ControlAllocator::preflight_check_handle_command(hrt_abstime now)
 {
 	vehicle_command_s vehicle_command;
 
@@ -485,9 +485,7 @@ void ControlAllocator::preflight_check_handle_command()
 		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_PREFLIGHT_CS_CHECK) {
 			if (!_armed) {
 				// currently this does not check prearmed status. if not prearmed, it will just do nothing.
-				// should we output some sort of mild warning in that case?
-
-				preflight_check_start(vehicle_command);
+				preflight_check_start(vehicle_command, now);
 				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_IN_PROGRESS;
 
 			} else {
@@ -495,18 +493,17 @@ void ControlAllocator::preflight_check_handle_command()
 				PX4_INFO("Control surface preflight check rejected (armed)");
 			}
 
-			preflight_check_send_ack(result);
+			preflight_check_send_ack(result, now);
 		}
 	}
 }
 
-void ControlAllocator::preflight_check_start(vehicle_command_s &cmd)
+void ControlAllocator::preflight_check_start(vehicle_command_s &cmd, hrt_abstime now)
 {
 
-	// If one is running, abort it. Depending on the use case we may prefer
-	// to instead "silently" overwrite the value.
+	// If already running, abort it. this is only to send the correct ack.
 	if (_preflight_check_running) {
-		preflight_check_abort();
+		preflight_check_abort(now);
 	}
 
 	int axis = (uint8_t) lroundf(cmd.param1);
@@ -515,15 +512,12 @@ void ControlAllocator::preflight_check_start(vehicle_command_s &cmd)
 	_preflight_check_running = true;
 	_preflight_check_axis = axis;
 	_preflight_check_input = input;
-	_preflight_check_started = hrt_absolute_time();
+	_preflight_check_started = now;
 	_last_preflight_check_command = cmd;
 }
 
-void ControlAllocator::preflight_check_send_ack(uint8_t result)
+void ControlAllocator::preflight_check_send_ack(uint8_t result, hrt_abstime now)
 {
-
-	hrt_abstime now = hrt_absolute_time();
-
 	if (_last_preflight_check_command.from_external) {
 		vehicle_command_ack_s command_ack{};
 		command_ack.timestamp = now;
@@ -539,32 +533,30 @@ void ControlAllocator::preflight_check_send_ack(uint8_t result)
 	_preflight_check_last_ack = now;
 }
 
-void ControlAllocator::preflight_check_abort()
+void ControlAllocator::preflight_check_abort(hrt_abstime now)
 {
 	_preflight_check_running = false;
-	preflight_check_send_ack(vehicle_command_ack_s::VEHICLE_CMD_RESULT_CANCELLED);
+	preflight_check_send_ack(vehicle_command_ack_s::VEHICLE_CMD_RESULT_CANCELLED, now);
 
 }
 
-void ControlAllocator::preflight_check_finish()
+void ControlAllocator::preflight_check_finish(hrt_abstime now)
 {
 	_preflight_check_running = false;
-	preflight_check_send_ack(vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+	preflight_check_send_ack(vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED, now);
 }
 
 
-void ControlAllocator::preflight_check_update_state()
+void ControlAllocator::preflight_check_update_state(hrt_abstime now)
 {
 	if (_preflight_check_running) {
-		hrt_abstime now = hrt_absolute_time();
 
 		if (now - _preflight_check_started >= PREFLIGHT_CHECK_DURATION) {
-			// alternative: never stop it here and instead let the GS send a stop message?
-			preflight_check_finish();
+			preflight_check_finish(now);
 		}
 
 		if (now - _preflight_check_last_ack >= PREFLIGHT_CHECK_ACK_PERIOD) {
-			preflight_check_send_ack(vehicle_command_ack_s::VEHICLE_CMD_RESULT_IN_PROGRESS);
+			preflight_check_send_ack(vehicle_command_ack_s::VEHICLE_CMD_RESULT_IN_PROGRESS, now);
 		}
 	}
 }
@@ -607,7 +599,7 @@ void ControlAllocator::preflight_check_overwrite_torque_sp(matrix::Vector<float,
 	}
 }
 
-void ControlAllocator::preflight_check_handle_tilt_control()
+void ControlAllocator::preflight_check_handle_tilt_control(hrt_abstime now)
 {
 	bool is_tiltrotor = _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
 
@@ -623,7 +615,7 @@ void ControlAllocator::preflight_check_handle_tilt_control()
 			} else {
 				// Commanded collective tilt axis but the vehicle is not a tiltrotor. Abort
 				_preflight_check_running = false;
-				preflight_check_send_ack(vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
+				preflight_check_send_ack(vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED, now);
 
 			}
 		}
