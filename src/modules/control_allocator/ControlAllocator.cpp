@@ -481,6 +481,10 @@ ControlAllocator::Run()
 
 void ControlAllocator::preflight_check_handle_command(hrt_abstime now)
 {
+
+	// Only start the check if prearmed but not armed. Otherwise, output a
+	// warning message and reject the command.
+
 	vehicle_command_s vehicle_command;
 
 	if (_vehicle_command_sub.update(&vehicle_command)) {
@@ -489,13 +493,30 @@ void ControlAllocator::preflight_check_handle_command(hrt_abstime now)
 
 		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_PREFLIGHT_CS_CHECK) {
 			if (!_armed) {
-				// currently this does not check prearmed status. if not prearmed, it will just do nothing.
-				preflight_check_start(vehicle_command, now);
-				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_IN_PROGRESS;
+
+				actuator_armed_s armed;
+
+				if (_armed_sub.copy(&armed))  {
+
+					const bool prearmed = armed.prearmed;
+
+					if (prearmed) {
+						// currently this does not check prearmed status. if not prearmed, it will just do nothing.
+						preflight_check_start(vehicle_command, now);
+						result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_IN_PROGRESS;
+					} else {
+						result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+						PX4_WARN("Control surface preflight check rejected (not prearmed)");
+					}
+
+				} else {
+					result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+					PX4_WARN("Control surface preflight check rejected (failed to get prearmed state)");
+				}
 
 			} else {
 				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-				PX4_INFO("Control surface preflight check rejected (armed)");
+				PX4_WARN("Control surface preflight check rejected (armed)");
 			}
 
 			preflight_check_send_ack(result, now);
