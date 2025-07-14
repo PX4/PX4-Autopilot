@@ -346,7 +346,7 @@ ControlAllocator::Run()
 
 			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 
-			if (_armed) {
+			if (_armed && _preflight_check_running) {
 				preflight_check_abort(now);
 			}
 
