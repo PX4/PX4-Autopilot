@@ -239,7 +239,11 @@ void GZGimbal::publishJointCommand(gz::transport::Node::Publisher &publisher, co
 float GZGimbal::computeJointSetpoint(const float att_stp, const float rate_stp, const float last_stp, const float dt)
 {
 
-	if (PX4_ISFINITE(rate_stp)) {
+	if (math::abs_t(rate_stp) < FLT_EPSILON) {
+		// Handle zero velocity by sending the last target angle
+		return last_stp;
+
+	} else if (PX4_ISFINITE(rate_stp)) {
 		const float rate_diff = dt * rate_stp;
 		const float stp_from_rate = last_stp + rate_diff;
 
