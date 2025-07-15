@@ -328,6 +328,7 @@ bootloaders_update: \
 	cuav_nora_bootloader \
 	cuav_x7pro_bootloader \
 	cuav_7-nano_bootloader \
+	cuav_x25-evo_bootloader \
 	cubepilot_cubeorange_bootloader \
 	cubepilot_cubeorangeplus_bootloader \
 	hkust_nxt-dual_bootloader \
