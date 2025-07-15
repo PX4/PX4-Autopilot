@@ -1126,6 +1126,13 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	 *  NOTE: this is called from the receiver thread
 	 */
 
+	if (msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
+		/* setup signing provides new key , lets update it */
+		memcpy(_mavlink_signing.secret_key, msg -> secret_key, 32);
+		_mavlink_signing.timestamp = msg -> initial_timestamp;
+		return;
+	}
+
 	if (get_forwarding_on()) {
 		/* forward any messages to other mavlink instances */
 		Mavlink::forward_message(msg, this);
