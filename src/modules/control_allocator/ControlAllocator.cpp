@@ -445,7 +445,6 @@ ControlAllocator::Run()
 	// Publish actuator setpoint and allocator status
 	publish_actuator_controls();
 
-
 	// Publish status at limited rate, as it's somewhat expensive and we use it for slower dynamics
 	// (i.e. anti-integrator windup)
 	if (now - _last_status_pub >= 5_ms) {
@@ -587,13 +586,6 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 			int total_num_actuators = config.num_actuators_matrix[i];
 			_control_allocation[i]->setEffectivenessMatrix(config.effectiveness_matrices[i], config.trim[i],
 					config.linearization_point[i], total_num_actuators, reason == EffectivenessUpdateReason::CONFIGURATION_UPDATE);
-
-			// Publish effectiveness matrix (0 for hover, 1 for forward flight)
-			actuator_effectiveness_matrix_s effectiveness_matrix_pub{};
-			effectiveness_matrix_pub.timestamp = hrt_absolute_time();
-			memcpy(effectiveness_matrix_pub.effectiveness_matrix_row_major, &matrix, sizeof(matrix));
-			effectiveness_matrix_pub.num_actuators = total_num_actuators;
-			_actuator_effectiveness_matrix_pub[i].publish(effectiveness_matrix_pub);
 		}
 
 		trims.timestamp = hrt_absolute_time();
@@ -716,7 +708,6 @@ ControlAllocator::publish_actuator_controls()
 		_actuator_servos_pub.publish(actuator_servos);
 	}
 }
-
 
 void
 ControlAllocator::check_for_motor_failures()

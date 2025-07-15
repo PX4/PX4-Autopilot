@@ -68,7 +68,6 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/esc_status.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mission_result.h>
@@ -163,8 +162,6 @@ private:
 	void printRejectMode(uint8_t nav_state);
 
 	void updateControlMode();
-
-	void checkEscRpmFeedbackAvailability();
 
 	void send_parachute_command();
 
@@ -283,7 +280,6 @@ private:
 	bool _have_taken_off_since_arming{false};
 	bool _status_changed{true};
 	bool _mission_in_progress{false};
-	bool _esc_rpm_feedback_available{false};
 
 	vehicle_land_detected_s	_vehicle_land_detected{};
 
@@ -295,7 +291,6 @@ private:
 	// Subscriptions
 	uORB::Subscription					_action_request_sub{ORB_ID(action_request)};
 	uORB::Subscription					_cpuload_sub{ORB_ID(cpuload)};
-	uORB::Subscription					_esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
@@ -352,7 +347,6 @@ private:
 		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_com_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>)    _param_com_takeoff_act,
-		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max,
-		(ParamBool<px4::params::INDI_CONTROL_EN>)   _param_indi_control_enabled
+		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max
 	)
 };

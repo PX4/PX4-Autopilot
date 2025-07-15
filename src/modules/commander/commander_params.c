@@ -1041,13 +1041,3 @@ PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 3);
  *
  */
 PARAM_DEFINE_INT32(COM_MODE_ARM_CHK, 0);
-
-/**
- * Enable INDI control
- *
- * If enabled, the vehicle will use INDI control to control the motors.
- *
- * @group Commander
- * @boolean
- */
-PARAM_DEFINE_INT32(INDI_CONTROL_EN, 1);

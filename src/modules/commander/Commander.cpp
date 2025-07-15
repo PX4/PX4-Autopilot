@@ -2016,7 +2016,11 @@ void Commander::checkForMissionUpdate()
 
 			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 				// Transition to loiter when the mission is cleared and/or finished, and we are still in mission mode.
-				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+
+				// However, only do so if there's no pending mode change, so there isn't already a pending change (like RTL).
+				if (_user_mode_intention.get() == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+				}
 			}
 		}
 	}
@@ -2584,36 +2588,8 @@ void Commander::updateControlMode()
 		    || _vehicle_control_mode.flag_control_position_enabled
 		    || _vehicle_control_mode.flag_control_velocity_enabled
 		    || _vehicle_control_mode.flag_control_acceleration_enabled);
-
-	// Check for ESC RPM feedback availability for INDI control
-	checkEscRpmFeedbackAvailability();
-	_vehicle_control_mode.flag_control_rates_indi_enabled = _esc_rpm_feedback_available && _param_indi_control_enabled.get();
-
 	_vehicle_control_mode.timestamp = hrt_absolute_time();
 	_vehicle_control_mode_pub.publish(_vehicle_control_mode);
-}
-
-void Commander::checkEscRpmFeedbackAvailability()
-{
-	if (_esc_rpm_feedback_available) {
-		return; //once dshot has been seen as true, we don't need to check again and take the chance that the esc status did not update
-	}
-
-	esc_status_s esc_status;
-
-	if (_esc_status_sub.update(&esc_status)) {
-		bool rpm_feedback_available = false;
-
-		// check if connection type is DShot and we have online ESCs
-		// FIXME: this is a hack to check if the ESCs are online, we should use the esc_status_s::ESC_CONNECTION_TYPE_DSHOT flag instead but gz_x500 does not support it
-		if (esc_status.esc_count > 0 &&
-		    esc_status.esc_online_flags > 0) {
-
-			rpm_feedback_available = true;
-		}
-
-		_esc_rpm_feedback_available = rpm_feedback_available;
-	}
 }
 
 void Commander::printRejectMode(uint8_t nav_state)
