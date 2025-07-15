@@ -56,11 +56,11 @@ The mode can be stopped by switching to any other flight mode (using RC or QGC).
 
 The mode is affected by the following parameters:
 
-| Parameter                                                                                                   | Description                                                         |
-| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| <a id="MC_ORBIT_RAD_MAX"></a>[MC_ORBIT_RAD_MAX](../advanced_config/parameter_reference.md#MC_ORBIT_RAD_MAX) | Maximum radius of orbit. Default: 1000m.                            |
-| <a id="MC_ORBIT_YAW_MOD"></a>[MC_ORBIT_YAW_MOD](../advanced_config/parameter_reference.md#MC_ORBIT_YAW_MOD) | Yaw behaviour during orbit flight. Default: Front to Circle Center. |
-| <a id="MPC_XY_VEL_MAX"></a>[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX) | Tangential speed limit. Stick input won't accelerate beyond this limit. Higher commands are accepted but capped. |
+| Parameter                                                                                                   | Description                                                                                                      |
+| ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| <a id="MC_ORBIT_RAD_MAX"></a>[MC_ORBIT_RAD_MAX](../advanced_config/parameter_reference.md#MC_ORBIT_RAD_MAX) | Maximum radius of orbit. Default: 1000m.                                                                         |
+| <a id="MC_ORBIT_YAW_MOD"></a>[MC_ORBIT_YAW_MOD](../advanced_config/parameter_reference.md#MC_ORBIT_YAW_MOD) | Yaw behaviour during orbit flight. Default: Front to Circle Center.                                              |
+| <a id="MPC_XY_VEL_MAX"></a>[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX)       | Tangential speed limit. Stick input won't accelerate beyond this limit. Higher commands are accepted but capped. |
 
 The following limits are hard coded:
 
@@ -71,5 +71,7 @@ The following limits are hard coded:
 
 Orbit mode uses the following MAVLink commands:
 
-- [MAV_CMD_DO_ORBIT](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_ORBIT) - Start an orbit with specified center point, radius, direction, altitude, speed and [yaw direction](https://mavlink.io/en/messages/common.html#ORBIT_YAW_BEHAVIOUR) The same defaults and limits apply. When exceeding limits the command is accepted but velocity and radius capped.
+- [MAV_CMD_DO_ORBIT](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_ORBIT) - Start an orbit with specified center point, radius, direction, altitude, speed and [yaw direction](https://mavlink.io/en/messages/common.html#ORBIT_YAW_BEHAVIOUR).
+  The same defaults and limits apply.
+  When exceeding limits the command is accepted but velocity and radius capped.
 - [ORBIT_EXECUTION_STATUS](https://mavlink.io/en/messages/common.html#ORBIT_EXECUTION_STATUS) - Orbit status emitted during orbit to update GCS of current orbit parameters (these may be changed by the RC controller).
