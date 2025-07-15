@@ -27,6 +27,11 @@ if param compare SENS_EN_INA226 1
 then
 	# Start Digital power monitors
 	ina226 -X -b 1 -t 1 -k start
+
+	# Disable analog monitoring
+	param set BAT1_V_CHANNEL -2
+
+	set INA_CONFIGURED yes
 fi
 
 
@@ -34,14 +39,31 @@ if param compare SENS_EN_INA228 1
 then
 	# Start Digital power monitors
 	ina228 -X -b 1 -t 1 -k start
+
+	# Disable analog monitoring
+	param set BAT1_V_CHANNEL -2
+
+	set INA_CONFIGURED yes
 fi
 
 if param compare SENS_EN_INA238 1
 then
 	# Start Digital power monitors
 	ina238 -X -b 1 -t 1 -k start
+
+	# Disable analog monitoring
+	param set BAT1_V_CHANNEL -2
+
+	set INA_CONFIGURED yes
 fi
 
+if param compare BAT1_V_CHANNEL -2
+then
+    if [ "$INA_CONFIGURED" != "yes" ]
+    then
+        param set BAT1_V_CHANNEL -1
+    fi
+fi
 
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
 ist8310 -X -b 1 -R 10 start
