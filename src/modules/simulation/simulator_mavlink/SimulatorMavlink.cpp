@@ -414,10 +414,18 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 		sensor_gps_s gps{};
 
 		if (!_gps_stuck) {
-			gps.latitude_deg = hil_gps.lat / 1e7;
-			gps.longitude_deg = hil_gps.lon / 1e7;
-			gps.altitude_msl_m = hil_gps.alt / 1e3;
-			gps.altitude_ellipsoid_m = hil_gps.alt / 1e3;
+			if (!_gps_wrong) {
+				gps.latitude_deg = hil_gps.lat / 1e7;
+				gps.longitude_deg = hil_gps.lon / 1e7;
+				gps.altitude_msl_m = hil_gps.alt / 1e3;
+				gps.altitude_ellipsoid_m = hil_gps.alt / 1e3;
+
+			} else {
+				gps.latitude_deg = hil_gps.lat / 1e7 + 1.0;
+				gps.longitude_deg = hil_gps.lon / 1e7 + 1.0;
+				gps.altitude_msl_m = hil_gps.alt / 1e3 + 100.0;
+				gps.altitude_ellipsoid_m = hil_gps.alt / 1e3 - 100.0;
+			}
 
 			gps.s_variance_m_s = 0.25f;
 			gps.c_variance_rad = 0.5f;
@@ -435,10 +443,19 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 			gps.jamming_state = 0;
 			gps.spoofing_state = 0;
 
-			gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
-			gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
-			gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
-			gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
+			if (!_gps_wrong) {
+				gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
+				gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
+				gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
+				gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
+
+			} else {
+				gps.vel_m_s = (float)(hil_gps.vel) / 100.0f - 1.f; // cm/s -> m/s
+				gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f + 5.f; // cm/s -> m/s
+				gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f - 8.f; // cm/s -> m/s
+				gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f + 2.f; // cm/s -> m/s
+			}
+
 			gps.cog_rad = ((hil_gps.cog == 65535) ? NAN : matrix::wrap_2pi(math::radians(hil_gps.cog * 1e-2f))); // cdeg -> rad
 			gps.vel_ned_valid = true;
 
@@ -1256,10 +1273,15 @@ void SimulatorMavlink::check_failure_injections()
 				supported = true;
 				_gps_blocked = false;
 				_gps_stuck = false;
+				_gps_wrong = false;
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
 				supported = true;
 				_gps_stuck = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_WRONG) {
+				supported = true;
+				_gps_wrong = true;
 			}
 
 		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_ACCEL) {
