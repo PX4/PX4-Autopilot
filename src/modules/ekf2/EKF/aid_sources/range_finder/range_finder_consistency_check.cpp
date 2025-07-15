@@ -52,6 +52,7 @@ void RangeFinderConsistencyCheck::init(const float z, const float z_var, const f
 	_initialized = true;
 	_test_ratio_lpf.reset(0.f);
 	_t_since_first_sample = 0.f;
+	_state = KinematicState::kUnknown;
 }
 
 void RangeFinderConsistencyCheck::update(const float z, const float z_var, const float vz, const float vz_var,
