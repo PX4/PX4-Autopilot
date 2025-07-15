@@ -44,22 +44,28 @@ Special case for invalid local position: In case the local position is invalid o
 
 Parameters that affect both catapult/hand-launch and runway takeoffs:
 
-| Parameter                                                                                                   | Description                                                                                                                      |
-| ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="MIS_TAKEOFF_ALT"></a>[MIS_TAKEOFF_ALT](../advanced_config/parameter_reference.md#MIS_TAKEOFF_ALT)    | Minimum altitude setpoint above Home that the vehicle will climb to during takeoff.                                              |
-| <a id="FW_TKO_AIRSPD"></a>[FW_TKO_AIRSPD](../advanced_config/parameter_reference.md#FW_TKO_AIRSPD)          | Takeoff airspeed (is set to [FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN) if not defined by operator) |
-| <a id="FW_TKO_PITCH_MIN"></a>[FW_TKO_PITCH_MIN](../advanced_config/parameter_reference.md#FW_TKO_PITCH_MIN) | This is the minimum pitch angle setpoint during the climbout phase                                                               |
-| <a id="FW_T_CLMB_MAX"></a>[FW_T_CLMB_MAX](../advanced_config/parameter_reference.md#FW_T_CLMB_MAX)          | Climb rate setpoint during climbout to takeoff altitude.                                                                                                             |
-| <a id="FW_FLAPS_TO_SCL"></a>[FW_FLAPS_TO_SCL](../advanced_config/parameter_reference.md#FW_FLAPS_TO_SCL)    | Flaps setpoint during takeoff                                                                                                    |
-| <a id="FW_AIRSPD_FLP_SC"></a>[FW_AIRSPD_FLP_SC](../advanced_config/parameter_reference.md#FW_AIRSPD_FLP_SC)    | Factor applied to the minimum airspeed when flaps are fully deployed. Necessary if FW_TKO_AIRSPD is below FW_AIRSPD_MIN.                                                                                             |
+| Parameter                                                         | Description                                                                                                                                              |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="MIS_TAKEOFF_ALT"></a>[MIS_TAKEOFF_ALT][MIS_TAKEOFF_ALT]    | Minimum altitude setpoint above Home that the vehicle will climb to during takeoff.                                                                      |
+| <a id="FW_TKO_AIRSPD"></a>[FW_TKO_AIRSPD][FW_TKO_AIRSPD]          | Takeoff airspeed (is set to [FW_AIRSPD_MIN][FW_AIRSPD_MIN] if not defined by operator)                                                                   |
+| <a id="FW_TKO_PITCH_MIN"></a>[FW_TKO_PITCH_MIN][FW_TKO_PITCH_MIN] | This is the minimum pitch angle setpoint during the climbout phase                                                                                       |
+| <a id="FW_T_CLMB_MAX"></a>[FW_T_CLMB_MAX][FW_T_CLMB_MAX]          | Climb rate setpoint during climbout to takeoff altitude.                                                                                                 |
+| <a id="FW_FLAPS_TO_SCL"></a>[FW_FLAPS_TO_SCL][FW_FLAPS_TO_SCL]    | Flaps setpoint during takeoff                                                                                                                            |
+| <a id="FW_AIRSPD_FLP_SC"></a>[FW_AIRSPD_FLP_SC][FW_AIRSPD_FLP_SC] | Factor applied to the minimum airspeed when flaps are fully deployed. Needed if [FW_TKO_AIRSPD](#FW_TKO_AIRSPD) is below [FW_AIRSPD_MIN][FW_AIRSPD_MIN]. |
+
+[FW_AIRSPD_MIN]: ../advanced_config/parameter_reference.md#FW_AIRSPD_MIN
+[FW_FLAPS_TO_SCL]: ../advanced_config/parameter_reference.md#FW_FLAPS_TO_SCL
+[FW_AIRSPD_FLP_SC]: ../advanced_config/parameter_reference.md#FW_AIRSPD_FLP_SC
+[FW_TKO_AIRSPD]: ../advanced_config/parameter_reference.md#FW_TKO_AIRSPD
+[MIS_TAKEOFF_ALT]: ../advanced_config/parameter_reference.md#MIS_TAKEOFF_ALT
+[FW_TKO_PITCH_MIN]: ../advanced_config/parameter_reference.md#FW_TKO_PITCH_MIN
+[FW_T_CLMB_MAX]: ../advanced_config/parameter_reference.md#FW_T_CLMB_MAX
 
 ::: info
 The vehicle always respects normal FW max/min throttle settings during takeoff ([FW_THR_MIN](../advanced_config/parameter_reference.md#FW_THR_MIN), [FW_THR_MAX](../advanced_config/parameter_reference.md#FW_THR_MAX)).
 :::
 
-<a id="hand_launch"></a>
-
-## Catapult/Hand Launch
+## Catapult/Hand Launch {#hand_launch}
 
 In _catapult/hand-launch mode_ the vehicle waits to detect launch (based on acceleration trigger).
 On launch it enables the motor(s) and climbs with the maximum climb rate [FW_T_CLMB_MAX](#FW_T_CLMB_MAX) while keeping the pitch setpoint above [FW_TKO_PITCH_MIN](#FW_TKO_PITCH_MIN).
@@ -85,9 +91,7 @@ The _launch detector_ is affected by the following parameters:
 | <a id="FW_LAUN_AC_T"></a>[FW_LAUN_AC_T](../advanced_config/parameter_reference.md#FW_LAUN_AC_T)             | Trigger time (acceleration must be above threshold for this amount of seconds)           |
 | <a id="FW_LAUN_MOT_DEL"></a>[FW_LAUN_MOT_DEL](../advanced_config/parameter_reference.md#FW_LAUN_MOT_DEL)    | Delay from launch detection to motor spin up                                             |
 
-<a id="runway_launch"></a>
-
-## Runway Takeoff
+## Runway Takeoff {#runway_launch}
 
 Runway takeoffs can be used by vehicles with landing gear and and steerable wheel (only).
 You will first need to enable the wheel controller using the parameter [FW_W_EN](#FW_W_EN).
@@ -110,18 +114,18 @@ It consists of a rate controller (P-I-FF-controller with the parameters [FW_WR_P
 
 Runway takeoff is affected by the following parameters:
 
-| Parameter                                                                                                   | Description                                                                                                                  |
-| ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| <a id="RWTO_TKOFF"></a>[RWTO_TKOFF](../advanced_config/parameter_reference.md#RWTO_TKOFF)                   | Enable runway takeoff                                                                                                        |
-| <a id="FW_W_EN"></a>[FW_W_EN](../advanced_config/parameter_reference.md#FW_W_EN)                            | Enable wheel controller                                                                                                      |
-| <a id="RWTO_MAX_THR"></a>[RWTO_MAX_THR](../advanced_config/parameter_reference.md#RWTO_MAX_THR)             | Max throttle during runway takeoff                                                                                           |
-| <a id="RWTO_RAMP_TIME"></a>[RWTO_RAMP_TIME](../advanced_config/parameter_reference.md#RWTO_RAMP_TIME)       | Throttle ramp up time                                                                                                        |
-| <a id="RWTO_ROT_AIRSPD"></a>[RWTO_ROT_AIRSPD](../advanced_config/parameter_reference.md#RWTO_ROT_AIRSPD)    | Airspeed threshold to start rotation (pitching up). If not configured by operator is set to 0.9\*FW_TKO_AIRSPD.              |
-| <a id="RWTO_ROT_TIME"></a>[RWTO_ROT_TIME](../advanced_config/parameter_reference.md#RWTO_ROT_TIME)          | This is the time desired to linearly ramp in takeoff pitch constraints during the takeoff rotation.                          |
-| <a id="FW_TKO_AIRSPD"></a>[FW_TKO_AIRSPD](../advanced_config/parameter_reference.md#FW_TKO_AIRSPD)          | Airspeed setpoint during the takeoff climbout phase (after rotation). If not configured by operator is set to FW_AIRSPD_MIN. |
-| <a id="RWTO_NUDGE"></a>[RWTO_NUDGE](../advanced_config/parameter_reference.md#RWTO_NUDGE)                   | Enable wheel controller nudging while on the runway                                                                          |
-| <a id="FW_WING_SPAN"></a>[FW_WING_SPAN](../advanced_config/parameter_reference.md#FW_WING_SPAN)             | The wingspan of the vehicle. Used to prevent wingstrikes.                                                                    |
-| <a id="FW_WING_HEIGHT"></a>[FW_WING_HEIGHT](../advanced_config/parameter_reference.md#FW_WING_HEIGHT)       | The height of the wings above ground (ground clearance). Used to prevent wingstrikes.                                        |
+| Parameter                                                                                                | Description                                                                                                                  |
+| -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| <a id="RWTO_TKOFF"></a>[RWTO_TKOFF](../advanced_config/parameter_reference.md#RWTO_TKOFF)                | Enable runway takeoff                                                                                                        |
+| <a id="FW_W_EN"></a>[FW_W_EN](../advanced_config/parameter_reference.md#FW_W_EN)                         | Enable wheel controller                                                                                                      |
+| <a id="RWTO_MAX_THR"></a>[RWTO_MAX_THR](../advanced_config/parameter_reference.md#RWTO_MAX_THR)          | Max throttle during runway takeoff                                                                                           |
+| <a id="RWTO_RAMP_TIME"></a>[RWTO_RAMP_TIME](../advanced_config/parameter_reference.md#RWTO_RAMP_TIME)    | Throttle ramp up time                                                                                                        |
+| <a id="RWTO_ROT_AIRSPD"></a>[RWTO_ROT_AIRSPD](../advanced_config/parameter_reference.md#RWTO_ROT_AIRSPD) | Airspeed threshold to start rotation (pitching up). If not configured by operator is set to 0.9\*FW_TKO_AIRSPD.              |
+| <a id="RWTO_ROT_TIME"></a>[RWTO_ROT_TIME](../advanced_config/parameter_reference.md#RWTO_ROT_TIME)       | This is the time desired to linearly ramp in takeoff pitch constraints during the takeoff rotation.                          |
+| <a id="FW_TKO_AIRSPD"></a>[FW_TKO_AIRSPD](../advanced_config/parameter_reference.md#FW_TKO_AIRSPD)       | Airspeed setpoint during the takeoff climbout phase (after rotation). If not configured by operator is set to FW_AIRSPD_MIN. |
+| <a id="RWTO_NUDGE"></a>[RWTO_NUDGE](../advanced_config/parameter_reference.md#RWTO_NUDGE)                | Enable wheel controller nudging while on the runway                                                                          |
+| <a id="FW_WING_SPAN"></a>[FW_WING_SPAN](../advanced_config/parameter_reference.md#FW_WING_SPAN)          | The wingspan of the vehicle. Used to prevent wingstrikes.                                                                    |
+| <a id="FW_WING_HEIGHT"></a>[FW_WING_HEIGHT](../advanced_config/parameter_reference.md#FW_WING_HEIGHT)    | The height of the wings above ground (ground clearance). Used to prevent wingstrikes.                                        |
 
 ## See Also
 
