@@ -431,7 +431,7 @@ void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const floa
 	// --- Constants ---
 	static constexpr float MAX_FORCE = 400.0f;        // [N]
 	const float MAX_STEER_ANGLE = radians(30.f); // [rad]
-	const float WHEEL_BASE = 0.321;        // [m] Distance between front and rear axle
+	const float WHEEL_BASE = 0.321f;        // [m] Distance between front and rear axle
 	const float C = 500.f;                 // [N/rad] Cornering stiffness
 	const float MU_S = 0.5f;               // [-] Static Coefficient of friction
 	const float MU_K = 0.4f;               // [-] Kinetic Coefficient of friction
@@ -449,7 +449,7 @@ void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const floa
 	float M_z = 0.f; // [Nm] Yaw moment
 
 	if (fabsf(v_B(0)) > ROLLING_THRESHOLD) {
-		// Equations based on the lateral dynamics of the bycicle model introduced in [1]
+		// Equations based on the lateral dynamics of the bicycle model introduced in [1]
 		// [1] Sri Anumakonda, Everything you need to know about Self-Driving Cars in <30 minutes
 		// Link: https://srianumakonda.medium.com/everything-you-need-to-know-about-self-driving-in-30-minutes-b38d68bd3427
 		const float a_y = C * delta / _MASS - fabsf(v_B(0)) * _w_B(2)
@@ -463,7 +463,7 @@ void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const floa
 	_T_B = Vector3f(F_x, F_y, 0.f);
 	_Mt_B = Vector3f(0.f, 0.f, M_z);
 
-	// // --- Compute drag/friction forces and moments ---
+	// --- Compute drag/friction forces and moments ---
 	Vector3f F_f = Vector3f(0.f, 0.f, 0.f); // [N] Friction force
 	Vector3f F_a = Vector3f(0.f, 0.f, 0.f); // [N] Aerodynamic force (neglect until rover is rolling)
 
