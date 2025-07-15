@@ -106,6 +106,7 @@ private:
 	Quatf _vehicle_attitude_quaternion{};
 	Vector2f _curr_pos_ned{};
 	Vector2f _start_ned{};
+	float _arrival_speed{0.f};
 	float _vehicle_yaw{0.f};
 	float _max_yaw_rate{0.f};
 	float _acceptance_radius{0.f}; // Acceptance radius for the waypoint.
