@@ -429,27 +429,28 @@ void Sih::generate_ts_aerodynamics()
 void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const float steering_cmd, const float dt)
 {
 	// --- Constants ---
-	static constexpr float MAX_FORCE = 400.0f;        // [N]
-	const float MAX_STEER_ANGLE = radians(30.f); // [rad]
-	const float WHEEL_BASE = 0.321f;        // [m] Distance between front and rear axle
-	const float C = 500.f;                 // [N/rad] Cornering stiffness
-	const float MU_S = 0.5f;               // [-] Static Coefficient of friction
-	const float MU_K = 0.4f;               // [-] Kinetic Coefficient of friction
-	const float MU_R = 0.3f;               // [-] Rolling Coefficient of friction
-	const float ROLLING_THRESHOLD = 0.05f; // [m/s] Threshold for rolling resistance
+	static constexpr float MAX_THROTTLE_FORCE = 400.0f;     // [N]
+	static constexpr float MAX_STEER_ANGLE = radians(30.f); // [rad]
+	static constexpr float WHEEL_BASE = 0.321f;             // [m] Distance between front and rear axle
+	static constexpr float C = 500.f;                       // [N/rad] Cornering stiffness
+	static constexpr float MU_S = 0.5f;                     // [-] Static Coefficient of friction
+	static constexpr float MU_K = 0.4f;                     // [-] Kinetic Coefficient of friction
+	static constexpr float MU_R = 0.3f;                     // [-] Rolling Coefficient of friction
+	static constexpr float ROLLING_THRESHOLD = 0.05f;       // [m/s] Threshold for rolling resistance
+	static constexpr float STATIC_THRESHOLD = 0.01f;        // [m/s] Threshold for static resistance
 
 	matrix::Vector3f v_B = _q.rotateVectorInverse(_v_N); // Nav -> Body
 
 	// --- Compute inputs ---
 	const float delta = MAX_STEER_ANGLE * steering_cmd; // [rad] Steering angle
-	const float F_x = MAX_FORCE * throttle_cmd;         // [N] Throttle force
+	const float F_x = MAX_THROTTLE_FORCE * throttle_cmd;         // [N] Throttle force
 
 	// --- Compute forces and moments ---
 	float F_y = 0.f; // [N] Lateral force
 	float M_z = 0.f; // [Nm] Yaw moment
 
 	if (fabsf(v_B(0)) > ROLLING_THRESHOLD) {
-		// Equations based on the lateral dynamics of the bicycle model introduced in [1]
+		// Equations based on the lateral dynamics of the bicycle model from [1]
 		// [1] Sri Anumakonda, Everything you need to know about Self-Driving Cars in <30 minutes
 		// Link: https://srianumakonda.medium.com/everything-you-need-to-know-about-self-driving-in-30-minutes-b38d68bd3427
 		const float a_y = C * delta / _MASS - fabsf(v_B(0)) * _w_B(2)
@@ -467,7 +468,7 @@ void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const floa
 	Vector3f F_f = Vector3f(0.f, 0.f, 0.f); // [N] Friction force
 	Vector3f F_a = Vector3f(0.f, 0.f, 0.f); // [N] Aerodynamic force (neglect until rover is rolling)
 
-	if (_v_E.norm() < 0.01f) { // Static friction
+	if (_v_E.norm() < STATIC_THRESHOLD) { // Static friction
 		Vector3f F_f_B = Vector3f(sign(F_x) * math::min(fabsf(F_x), MU_S * _MASS * 9.81f), sign(F_y) * math::min(fabsf(F_y),
 					  MU_S * _MASS * 9.81f), 0.f);
 		F_f = _q_E.rotateVector(F_f_B);
