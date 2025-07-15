@@ -38,13 +38,16 @@ RC control cannot be used to start the mode (if you switch to the mode via RC it
 RC control can be used to change the orbit altitude, radius, speed, and orbit direction:
 
 - **Left stick:**
-  - _up/down:_ controls speed of ascent/descent, as in [Position mode](../flight_modes_mc/position.md). When in center deadzone, altitude is locked.
+  - _up/down:_ controls speed of ascent/descent, as in [Position mode](../flight_modes_mc/position.md).
+    When in center deadzone, altitude is locked.
   - _left/right:_ no effect.
 - **Right stick:**
-  - _left/right:_ controls acceleration of orbit in clockwise/counter-clockwise directions. When centered the current speed is locked.
-    - Maximum velocity is <a id="MPC_XY_VEL_MAX"></a>[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX) and further limited to keep the centripetal acceleration below 2m/s^2.
+  - _left/right:_ controls acceleration of orbit in clockwise/counter-clockwise directions.
+    When centered the current speed is locked.
+    - Maximum velocity is [MPC_XY_VEL_MAX](#MPC_XY_VEL_MAX) and further limited to keep the centripetal acceleration below 2m/s^2.
   - _up/down:_ controls orbit radius (smaller/bigger). When centered the current radius is locked.
-    - Minimum radius is 1m. Maximum radius is <a id="MC_ORBIT_RAD_MAX"></a>[MC_ORBIT_RAD_MAX](../advanced_config/parameter_reference.md#MC_ORBIT_RAD_MAX).
+    - Minimum radius is 1m.
+      Maximum radius is [MC_ORBIT_RAD_MAX](#MC_ORBIT_RAD_MAX).
 
 The diagram below shows the mode behaviour visually (for a [mode 2 transmitter](../getting_started/rc_transmitter_receiver.md#transmitter_modes)).
 
