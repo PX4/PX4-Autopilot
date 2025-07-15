@@ -81,7 +81,7 @@ bool GnssChecks::run(const gnssSample &gnss, uint64_t time_us)
 
 bool GnssChecks::runSimplifiedChecks(const gnssSample &gnss)
 {
-	_check_fail_status.flags.fix = (gnss.fix_type < _params.ekf2_req_fix);
+	_check_fail_status.flags.fix = (gnss.fix_type < 3);
 
 	// Check the reported horizontal and vertical position accuracy
 	_check_fail_status.flags.hacc = (gnss.hacc > 50.f);
