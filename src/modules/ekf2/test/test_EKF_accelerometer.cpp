@@ -192,11 +192,13 @@ TEST_F(EkfAccelerometerTest, imuFallingDetectionBaroRange)
 	_sensor_simulator.runSeconds(5);
 
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
 
 	// AND: an accelerometer with a really large Z bias
 	const float bias = CONSTANTS_ONE_G;
 	_sensor_simulator._imu.setAccelData(Vector3f(0.f, 0.f, -CONSTANTS_ONE_G + bias));
 	_sensor_simulator.runSeconds(2);
+
 	// THEN: the bad vertical is detected because both sources agree
 	EXPECT_TRUE(_ekf->fault_status_flags().bad_acc_vertical);
 }
