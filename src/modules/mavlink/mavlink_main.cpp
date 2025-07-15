@@ -1127,9 +1127,11 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	 */
 
 	if (msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
+		mavlink_setup_signing_t setup_signing;
+		mavlink_msg_setup_signing_decode(msg, &setup_signing);
 		/* setup signing provides new key , lets update it */
-		memcpy(_mavlink_signing.secret_key, msg -> secret_key, 32);
-		_mavlink_signing.timestamp = msg -> initial_timestamp;
+		memcpy(_mavlink_signing.secret_key, setup_signing.secret_key, 32);
+		_mavlink_signing.timestamp = setup_signing.initial_timestamp;
 		return;
 	}
 
