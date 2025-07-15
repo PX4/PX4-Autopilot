@@ -44,14 +44,22 @@ Special case for invalid local position: In case the local position is invalid o
 
 Parameters that affect both catapult/hand-launch and runway takeoffs:
 
-| Parameter                                                                                                   | Description                                                                                                                                               |
-| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="MIS_TAKEOFF_ALT"></a>[MIS_TAKEOFF_ALT](../advanced_config/parameter_reference.md#MIS_TAKEOFF_ALT)    | Minimum altitude setpoint above Home that the vehicle will climb to during takeoff.                                                                       |
-| <a id="FW_TKO_AIRSPD"></a>[FW_TKO_AIRSPD](../advanced_config/parameter_reference.md#FW_TKO_AIRSPD)          | Takeoff airspeed (is set to [FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN) if not defined by operator)                          |
-| <a id="FW_TKO_PITCH_MIN"></a>[FW_TKO_PITCH_MIN](../advanced_config/parameter_reference.md#FW_TKO_PITCH_MIN) | This is the minimum pitch angle setpoint during the climbout phase                                                                                        |
-| <a id="FW_T_CLMB_MAX"></a>[FW_T_CLMB_MAX](../advanced_config/parameter_reference.md#FW_T_CLMB_MAX)          | Climb rate setpoint during climbout to takeoff altitude.                                                                                                  |
-| <a id="FW_FLAPS_TO_SCL"></a>[FW_FLAPS_TO_SCL](../advanced_config/parameter_reference.md#FW_FLAPS_TO_SCL)    | Flaps setpoint during takeoff                                                                                                                             |
-| <a id="FW_AIRSPD_FLP_SC"></a>[FW_AIRSPD_FLP_SC](../advanced_config/parameter_reference.md#FW_AIRSPD_FLP_SC) | Factor applied to the minimum airspeed when flaps are fully deployed. Needed if [FW_TKO_AIRSPD](#FW_TKO_AIRSPD) is below [FW_AIRSPD_MIN](#FW_AIRSPD_MIN). |
+| Parameter                                                         | Description                                                                                                                                              |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="MIS_TAKEOFF_ALT"></a>[MIS_TAKEOFF_ALT][MIS_TAKEOFF_ALT]    | Minimum altitude setpoint above Home that the vehicle will climb to during takeoff.                                                                      |
+| <a id="FW_TKO_AIRSPD"></a>[FW_TKO_AIRSPD][FW_TKO_AIRSPD]          | Takeoff airspeed (is set to [FW_AIRSPD_MIN][FW_AIRSPD_MIN] if not defined by operator)                                                                   |
+| <a id="FW_TKO_PITCH_MIN"></a>[FW_TKO_PITCH_MIN][FW_TKO_PITCH_MIN] | This is the minimum pitch angle setpoint during the climbout phase                                                                                       |
+| <a id="FW_T_CLMB_MAX"></a>[FW_T_CLMB_MAX][FW_T_CLMB_MAX]          | Climb rate setpoint during climbout to takeoff altitude.                                                                                                 |
+| <a id="FW_FLAPS_TO_SCL"></a>[FW_FLAPS_TO_SCL][FW_FLAPS_TO_SCL]    | Flaps setpoint during takeoff                                                                                                                            |
+| <a id="FW_AIRSPD_FLP_SC"></a>[FW_AIRSPD_FLP_SC][FW_AIRSPD_FLP_SC] | Factor applied to the minimum airspeed when flaps are fully deployed. Needed if [FW_TKO_AIRSPD](#FW_TKO_AIRSPD) is below [FW_AIRSPD_MIN][FW_AIRSPD_MIN]. |
+
+[FW_AIRSPD_MIN]: ../advanced_config/parameter_reference.md#FW_AIRSPD_MIN
+[FW_FLAPS_TO_SCL]: ../advanced_config/parameter_reference.md#FW_FLAPS_TO_SCL
+[FW_AIRSPD_FLP_SC]: ../advanced_config/parameter_reference.md#FW_AIRSPD_FLP_SC
+[FW_TKO_AIRSPD]: ../advanced_config/parameter_reference.md#FW_TKO_AIRSPD
+[MIS_TAKEOFF_ALT]: ../advanced_config/parameter_reference.md#MIS_TAKEOFF_ALT
+[FW_TKO_PITCH_MIN]: ../advanced_config/parameter_reference.md#FW_TKO_PITCH_MIN
+[FW_T_CLMB_MAX]: ../advanced_config/parameter_reference.md#FW_T_CLMB_MAX
 
 ::: info
 The vehicle always respects normal FW max/min throttle settings during takeoff ([FW_THR_MIN](../advanced_config/parameter_reference.md#FW_THR_MIN), [FW_THR_MAX](../advanced_config/parameter_reference.md#FW_THR_MAX)).
