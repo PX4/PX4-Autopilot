@@ -67,7 +67,6 @@ New frame configuration files are only automatically added to the build system a
 
 ## Force Reset of Airframe Parameters on Update
 
-```suggestion
 To force a reset to the airframe defaults for all users of a specific airframe during update, increase the `PARAM_DEFAULTS_VER` variable in the airframe configuration. It starts at 1 in [rcS](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/rcS#L40). Add `set PARAM_DEFAULTS_VER 2` in your airframe file, increasing the value with each future reset needed.
 
 This value is compared to [SYS_PARAM_VER](https://github.com/PX4/PX4-Autopilot/pull/advanced_config/parameter_reference.md#SYS_PARAM_VER) during PX4 updates.
