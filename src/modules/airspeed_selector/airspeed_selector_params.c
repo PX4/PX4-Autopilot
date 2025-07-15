@@ -237,7 +237,7 @@ PARAM_DEFINE_FLOAT(ASPD_FS_T_START, -1.f);
  * @decimal 2
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_WERR_THR, 0.55f);
+PARAM_DEFINE_FLOAT(ASPD_WERR_THR, 2.f);
 
 /**
  * First principle airspeed check time window
