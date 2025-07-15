@@ -44,3 +44,17 @@ parameters:
         increment: 0.01
         decimal: 3
         default: 0.174533
+
+      RD_ACC_RAD_MARGN:
+        description:
+            short: A multiplier for the acceptance radius to start braking early
+            long: |
+              A higher value will cause the rover to start braking earlier when approaching a "stopping" waypoint.
+        type: float
+        unit: norm
+        min: 0.5
+        max: 3.0
+        increment: 0.01
+        decimal: 2
+        default: 1.5
+

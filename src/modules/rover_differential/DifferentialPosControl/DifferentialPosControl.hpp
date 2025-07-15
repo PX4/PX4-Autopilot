@@ -113,12 +113,16 @@ private:
 	// Variables
 	Vector2f _curr_pos_ned{};
 	Vector2f _start_ned{};
+	float _arrival_speed{NAN};
+	float _cruising_speed{NAN};
 	float _vehicle_yaw{0.f};
 	float _ground_speed_abs{0.f};
 	DrivingState _current_state{DrivingState::DRIVING};
 	float _speed_setpoint{0.f};
 
 	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad,
+		(ParamFloat<px4::params::RD_ACC_RAD_MARGN>) _param_rd_acc_rad_margin,
 		(ParamFloat<px4::params::RD_TRANS_TRN_DRV>) _param_rd_trans_trn_drv,
 		(ParamFloat<px4::params::RD_TRANS_DRV_TRN>) _param_rd_trans_drv_trn,
 		(ParamFloat<px4::params::RO_ACCEL_LIM>)     _param_ro_accel_limit,
@@ -127,7 +131,6 @@ private:
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
 		(ParamFloat<px4::params::PP_LOOKAHD_GAIN>)  _param_pp_lookahd_gain,
 		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
-		(ParamFloat<px4::params::PP_LOOKAHD_MIN>)   _param_pp_lookahd_min,
-		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad
+		(ParamFloat<px4::params::PP_LOOKAHD_MIN>)   _param_pp_lookahd_min
 	)
 };
