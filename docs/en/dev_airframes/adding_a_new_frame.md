@@ -39,7 +39,7 @@ To add a frame configuration to firmware:
 1. Create a new config file in the [init.d/airframes](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d/airframes) folder.
    - Give it a short descriptive filename and prepend the filename with an unused autostart ID (for example, `1033092_superfast_vtol`).
    - Update the file with configuration parameters and apps (see section above).
-1. Add the name of the new frame config file to the [CMakeLists.txt](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/airframes/CMakeLists.txt) in the relevant section for the type of vehicle
+1. Add the name of the new frame config file to the [CMakeLists.txt](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/airframes/CMakeLists.txt) in the relevant section for the type of vehicle.
 1. [Build and upload](../dev_setup/building_px4.md) the software.
 
 ## How to add a Configuration to an SD Card
@@ -67,7 +67,9 @@ New frame configuration files are only automatically added to the build system a
 
 ## Force Reset of Airframe Parameters on Update
 
-To force a reset to the airframe defaults for all users of a specific airframe during update, increase the `PARAM_DEFAULTS_VER` variable in the airframe configuration. It starts at 1 in [rcS](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/rcS#L40). Add `set PARAM_DEFAULTS_VER 2` in your airframe file, increasing the value with each future reset needed.
+To force a reset to the airframe defaults for all users of a specific airframe during update, increase the `PARAM_DEFAULTS_VER` variable in the airframe configuration.
+It starts at `1` in [rcS](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/rcS#L40).
+Add `set PARAM_DEFAULTS_VER 2` in your airframe file, increasing the value with each future reset needed.
 
 This value is compared to [SYS_PARAM_VER](https://github.com/PX4/PX4-Autopilot/pull/advanced_config/parameter_reference.md#SYS_PARAM_VER) during PX4 updates.
 If different, user-customized parameters are reset to defaults.
