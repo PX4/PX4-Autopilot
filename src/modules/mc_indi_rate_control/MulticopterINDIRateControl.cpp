@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include "MulticopterRateControl.hpp"
+#include "MulticopterINDIRateControl.hpp"
 
 #include <drivers/drv_hrt.h>
 #include <circuit_breaker/circuit_breaker.h>
@@ -43,7 +43,7 @@ using namespace matrix;
 using namespace time_literals;
 using math::radians;
 
-MulticopterRateControl::MulticopterRateControl(bool vtol) :
+MulticopterINDIRateControl::MulticopterINDIRateControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_vehicle_thrust_setpoint_pub(vtol ? ORB_ID(vehicle_thrust_setpoint_virtual_mc) : ORB_ID(vehicle_thrust_setpoint)),
@@ -56,13 +56,13 @@ MulticopterRateControl::MulticopterRateControl(bool vtol) :
 	_controller_status_pub.advertise();
 }
 
-MulticopterRateControl::~MulticopterRateControl()
+MulticopterINDIRateControl::~MulticopterINDIRateControl()
 {
 	perf_free(_loop_perf);
 }
 
 bool
-MulticopterRateControl::init()
+MulticopterINDIRateControl::init()
 {
 	if (!_vehicle_angular_velocity_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
@@ -73,7 +73,7 @@ MulticopterRateControl::init()
 }
 
 void
-MulticopterRateControl::parameters_updated()
+MulticopterINDIRateControl::parameters_updated()
 {
 	// rate control parameters
 	// The controller gain K is used to convert the parallel (P + I/s + sD) form
@@ -117,7 +117,7 @@ MulticopterRateControl::parameters_updated()
 }
 
 void
-MulticopterRateControl::Run()
+MulticopterINDIRateControl::Run()
 {
 	if (should_exit()) {
 		_vehicle_angular_velocity_sub.unregisterCallback();
@@ -372,7 +372,7 @@ MulticopterRateControl::Run()
 	perf_end(_loop_perf);
 }
 
-void MulticopterRateControl::updateActuatorControlsStatus(const vehicle_torque_setpoint_s &vehicle_torque_setpoint,
+void MulticopterINDIRateControl::updateActuatorControlsStatus(const vehicle_torque_setpoint_s &vehicle_torque_setpoint,
 		float dt)
 {
 	for (int i = 0; i < 3; i++) {
@@ -396,7 +396,7 @@ void MulticopterRateControl::updateActuatorControlsStatus(const vehicle_torque_s
 	}
 }
 
-int MulticopterRateControl::task_spawn(int argc, char *argv[])
+int MulticopterINDIRateControl::task_spawn(int argc, char *argv[])
 {
 	bool vtol = false;
 
@@ -406,7 +406,7 @@ int MulticopterRateControl::task_spawn(int argc, char *argv[])
 		}
 	}
 
-	MulticopterRateControl *instance = new MulticopterRateControl(vtol);
+	MulticopterINDIRateControl *instance = new MulticopterINDIRateControl(vtol);
 
 	if (instance) {
 		_object.store(instance);
@@ -427,12 +427,12 @@ int MulticopterRateControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int MulticopterRateControl::custom_command(int argc, char *argv[])
+int MulticopterINDIRateControl::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
-int MulticopterRateControl::print_usage(const char *reason)
+int MulticopterINDIRateControl::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -458,5 +458,5 @@ The controller has a PID loop for angular rate error.
 
 extern "C" __EXPORT int mc_rate_control_main(int argc, char *argv[])
 {
-	return MulticopterRateControl::main(argc, argv);
+	return MulticopterINDIRateControl::main(argc, argv);
 }

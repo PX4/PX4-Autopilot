@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -68,11 +68,11 @@
 
 using namespace time_literals;
 
-class MulticopterRateControl : public ModuleBase<MulticopterRateControl>, public ModuleParams, public px4::WorkItem
+class MulticopterINDIRateControl : public ModuleBase<MulticopterINDIRateControl>, public ModuleParams, public px4::WorkItem
 {
 public:
-	MulticopterRateControl(bool vtol = false);
-	~MulticopterRateControl() override;
+	MulticopterINDIRateControl(bool vtol = false);
+	~MulticopterINDIRateControl() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
