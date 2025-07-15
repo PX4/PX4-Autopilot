@@ -67,17 +67,11 @@ New frame configuration files are only automatically added to the build system a
 
 ## Force Reset of Airframe Parameters on Update
 
-Sometimes airframe or PX4 changes are such that "system parameters" need to be reset when the airframe configuration is first loaded.
+```suggestion
+To force a reset to the airframe defaults for all users of a specific airframe during update, increase the `PARAM_DEFAULTS_VER` variable in the airframe configuration. It starts at 1 in [rcS](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/rcS#L40). Add `set PARAM_DEFAULTS_VER 2` in your airframe file, increasing the value with each future reset needed.
 
-This can be done by setting the value of `PARAM_DEFAULTS_VER` in your airframe configuration to a number greater than the default version number set in [ROMFS/px4fmu_common/init.d/rcS](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/rcS#L40) (currently `1`).
-
-For example, at time of writing you would add the current line to your airframe file:
-
-```sh
-set PARAM_DEFAULTS_VER 2
-```
-
-This number is compared to the value in the (internal) [SYS_PARAM_VER](../advanced_config/parameter_reference.md#SYS_PARAM_VER) parameter when the airframe is updated, and if it is different the "system parameters" are all reset.
+This value is compared to [SYS_PARAM_VER](https://github.com/PX4/PX4-Autopilot/pull/advanced_config/parameter_reference.md#SYS_PARAM_VER) during PX4 updates.
+If different, user-customized parameters are reset to defaults.
 
 Note that system parameters primarily include those related to the vehicle airframe configuration.
 Parameters such as accumulating flight hours, RC and sensor calibrations, are preserved.
