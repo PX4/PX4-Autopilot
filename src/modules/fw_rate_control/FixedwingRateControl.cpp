@@ -163,6 +163,19 @@ float FixedwingRateControl::get_airspeed_and_update_scaling()
 		/* prevent numerical drama by requiring 0.5 m/s minimal speed */
 		airspeed = math::max(0.5f, _airspeed_validated_sub.get().calibrated_airspeed_m_s);
 
+		const float timestamp = _airspeed_validated_sub.get().timestamp;
+		const float dt = static_cast<float>(timestamp - _last_airspeed_update) * 1e-6f;
+
+		_last_airspeed_update = timestamp;
+
+		if (dt < FLT_EPSILON || dt > 1.f) {
+			_airspeed_filter_for_torque_scaling.reset(airspeed);
+
+		} else {
+			_airspeed_filter_for_torque_scaling.setParameters(dt, 1.f);
+			_airspeed_filter_for_torque_scaling.update(airspeed);
+		}
+
 	} else {
 		// VTOL: if we have no airspeed available and we are in hover mode then assume the lowest airspeed possible
 		// this assumption is good as long as the vehicle is not hovering in a headwind which is much larger
