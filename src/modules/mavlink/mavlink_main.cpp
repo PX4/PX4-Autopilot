@@ -202,6 +202,17 @@ Mavlink::Mavlink() :
 
 	_event_sub.subscribe();
 	_telemetry_status_pub.advertise();
+
+	// set the signing procedure
+	// TODO: implementation key fetch from parameters
+	memcpy(_mavlink_signing.secret_key, mavlink_secret_key.secret_key, 32);
+	_mavlink_signing.link_id = _instance_id;
+	_mavlink_signing.timestamp = mavlink_secret_key.timestamp;
+	_mavlink_signing.flags = MAVLINK_SIGNING_FLAG_SIGN_OUTGOING;
+	_mavlink_signing.accept_unsigned_callback = accept_unsigned_callback;
+	// copy pointer of the signing to status struct
+	_mavlink_status.signing = &_mavlink_signing;
+	_mavlink_status.signing_streams = &global_mavlink_signig_streams;
 }
 
 Mavlink::~Mavlink()
