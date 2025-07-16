@@ -39,9 +39,12 @@ px4_add_module(
 	SRCS
 		MulticopterIndiRateControl.cpp
 		MulticopterIndiRateControl.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
+		ActuatorEffectivenessRotorsINDI
 		circuit_breaker
 		mathlib
-		RateControl
+		MC_ATT_CONTROL
 		px4_work_queue
 	)
