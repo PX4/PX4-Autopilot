@@ -18,7 +18,7 @@ Ensure that the drone can go into Altitude / Position mode while still on the gr
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Pitch/Roll/Yaw response 1:1
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Throttle response set to Climbs/Descend rate
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Throttle response set to climb/descent rate
 
 ❏ Position
 
@@ -26,9 +26,9 @@ Ensure that the drone can go into Altitude / Position mode while still on the gr
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Vertical position should hold current value with stick centered
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Throttle response set to Climbs/Descend rate
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Throttle response set to climb/descent rate
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Pitch/Roll/Yaw response set to Pitch/Roll/Yaw rates
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Pitch/Roll/Yaw response set to pitch/roll/yaw rates
 
 ## Landing
 
