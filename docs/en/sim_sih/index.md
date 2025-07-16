@@ -28,6 +28,7 @@ The Desktop computer is only used to display the virtual vehicle.
 - SIH as SITL (without hardware) from PX4 v1.14.
 - SIH for Standard VTOL from PX4 v1.16.
 - SIH for MC Hexacopter X from `main` (expected to be PX4 v1.17).
+- SIH for Ackermann Rover from `main`.
 
 ### Benefits
 
@@ -122,6 +123,10 @@ make px4_fmu-v6x boardconfig
 
 After uploading, check that the required modules are present.
 
+::: note
+To use rover in SIH you must also add the [rover modules](../config_rover/index.md#flashing-the-rover-build) to your board configuration or use the rover build.
+:::
+
 ## Starting SIH
 
 To set up/start SIH:
@@ -134,6 +139,7 @@ To set up/start SIH:
    - [SIH plane AERT](../airframes/airframe_reference.md#plane_simulation_sih_plane_aert)
    - [SIH Tailsitter Duo](../airframes/airframe_reference.md#vtol_simulation_sih_tailsitter_duo)
    - [SIH Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_simulation_sih_standard_vtol_quadplane)
+   - **SIH Ackermann Rover** (currently only has an airframe for SITL to safe flash so on flight control hardware it has to be manually configured equivalently).
 
 The autopilot will then reboot.
 The `sih` module is started on reboot, and the vehicle should be displayed on the ground control station map.
@@ -213,6 +219,11 @@ To run SIH as SITL:
 
      ```sh
      make px4_sitl sihsim_standard_vtol
+     ```
+   - Ackermann Rover
+
+     ```sh
+     make px4_sitl sihsim_rover_ackermann
      ```
 
 ### Change Simulation Speed
@@ -312,6 +323,7 @@ The dynamic models for the various vehicles are:
 - Hexacopter: Equivalent to the Quadcopter but with a symmetric hexacopter x actuation setup.
 - Fixed-wing: Inspired by the PhD thesis: "Dynamics modeling of agile fixed-wing unmanned aerial vehicles." Khan, Waqas, supervised by Nahon, Meyer, McGill University, PhD thesis, 2016.
 - Tailsitter: Inspired by the master's thesis: "Modeling and control of a flying wing tailsitter unmanned aerial vehicle." Chiappinelli, Romain, supervised by Nahon, Meyer, McGill University, Masters thesis, 2018.
+- Ackermann Rover: Based on lateral vehicle dynamics of the bicycle model adapted from [Sri Anumakonda, Everything you need to know about Self-Driving Cars in <30 minutes](https://srianumakonda.medium.com/everything-you-need-to-know-about-self-driving-in-30-minutes-b38d68bd3427)
 
 ## Video
 
