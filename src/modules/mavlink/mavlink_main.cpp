@@ -1133,7 +1133,7 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	 *  NOTE: this is called from the receiver thread
 	 */
 
-	if (msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
+	if (is_usb_uart() && msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
 		mavlink_setup_signing_t setup_signing;
 		mavlink_msg_setup_signing_decode(msg, &setup_signing);
 		/* setup signing provides new key , lets update it */
