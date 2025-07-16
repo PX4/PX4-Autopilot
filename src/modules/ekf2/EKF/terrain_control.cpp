@@ -108,7 +108,7 @@ void Ekf::updateTerrainValidity()
 		float hagl_var = INFINITY;
 		sym::ComputeHaglInnovVar(P, 0.f, &hagl_var);
 
-		// TODO: quantigy this hagl_var check
+		// TODO: quantify this hagl_var check
 		if ((hagl_var > 0.f) && (hagl_var < sq(fmaxf(0.1f * getHagl(), 0.5f)))) {
 			small_relative_hagl_var = true;
 		}
