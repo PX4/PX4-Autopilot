@@ -353,7 +353,7 @@ private:
 	uint32_t _device_id_baro{0};
 	hrt_abstime _status_baro_hgt_pub_last{0};
 
-	float _last_baro_bias_published{};
+	float _last_baro_bias_published{NAN};
 
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
 

@@ -68,7 +68,8 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	// TODO: move setting params to init function
 	// Set all of the parameters
 	_range_sensor.setPitchOffset(_params.ekf2_rng_pitch);
-	_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
+	float cosine_max_tilt = 0.866f; // 30 degrees
+	_range_sensor.setCosMaxTilt(cosine_max_tilt);
 	_rng_consistency_check.setGate(_params.ekf2_rng_k_gate);
 
 	// Update sensor to earth rotation
