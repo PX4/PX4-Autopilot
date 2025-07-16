@@ -97,15 +97,6 @@ typedef struct {
 	uint8_t secret_key[32];
 } signing_key_t;
 
-static const signing_key_t mavlink_secret_key = {
-	SIGNING_KEY_MAGIC,
-	1420070400, // 1st January 2015
-	{
-		0xce, 0x39, 0x7e, 0x07, 0x27, 0x6c, 0xc8, 0xa1, 0xd9, 0x88, 0x76, 0x92, 0x8a, 0x9a, 0xab, 0xbb,
-		0x72, 0x7b, 0x9f, 0xbe, 0xee, 0xb7, 0x32, 0x71, 0xc6, 0x0c, 0x9c, 0xa1, 0x8a, 0x16, 0x14, 0xe3
-	} // plain text hex key ce397e07276cc8a1d98876928a9aabbb727b9fbeeeb73271c60c9ca18a1614e3
-};
-
 void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length) { mavlink_module_instances[chan]->send_bytes(ch, length); }
 void mavlink_start_uart_send(mavlink_channel_t chan, int length) { mavlink_module_instances[chan]->send_start(length); }
 void mavlink_end_uart_send(mavlink_channel_t chan, int length) { mavlink_module_instances[chan]->send_finish(); }
@@ -203,11 +194,27 @@ Mavlink::Mavlink() :
 	_event_sub.subscribe();
 	_telemetry_status_pub.advertise();
 
+	int mav_sign_key1 = _param_mav_sign_key1.get();
+	int mav_sign_key2 = _param_mav_sign_key2.get();
+	int mav_sign_key3 = _param_mav_sign_key3.get();
+	int mav_sign_key4 = _param_mav_sign_key4.get();
+	int mav_sign_key5 = _param_mav_sign_key5.get();
+	int mav_sign_key6 = _param_mav_sign_key6.get();
+	int mav_sign_key7 = _param_mav_sign_key7.get();
+	int mav_sign_key8 = _param_mav_sign_key8.get();
+
 	// set the signing procedure
-	// TODO: implementation key fetch from parameters
-	memcpy(_mavlink_signing.secret_key, mavlink_secret_key.secret_key, 32);
+	memcpy(_mavlink_signing.secret_key, &mav_sign_key1, 4);
+	memcpy(_mavlink_signing.secret_key + 4, &mav_sign_key2, 4);
+	memcpy(_mavlink_signing.secret_key + 8, &mav_sign_key3, 4);
+	memcpy(_mavlink_signing.secret_key + 12, &mav_sign_key4, 4);
+	memcpy(_mavlink_signing.secret_key + 16, &mav_sign_key5, 4);
+	memcpy(_mavlink_signing.secret_key + 20, &mav_sign_key6, 4);
+	memcpy(_mavlink_signing.secret_key + 24, &mav_sign_key7, 4);
+	memcpy(_mavlink_signing.secret_key + 28, &mav_sign_key8, 4);
+
 	_mavlink_signing.link_id = _instance_id;
-	_mavlink_signing.timestamp = mavlink_secret_key.timestamp;
+	_mavlink_signing.timestamp = _param_mav_sign_ts.get();
 	_mavlink_signing.flags = MAVLINK_SIGNING_FLAG_SIGN_OUTGOING;
 	_mavlink_signing.accept_unsigned_callback = accept_unsigned_callback;
 	// copy pointer of the signing to status struct
@@ -1132,6 +1139,44 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 		/* setup signing provides new key , lets update it */
 		memcpy(_mavlink_signing.secret_key, setup_signing.secret_key, 32);
 		_mavlink_signing.timestamp = setup_signing.initial_timestamp;
+
+		int sign_key1 = 0;
+		int sign_key2 = 0;
+		int sign_key3 = 0;
+		int sign_key4 = 0;
+		int sign_key5 = 0;
+		int sign_key6 = 0;
+		int sign_key7 = 0;
+		int sign_key8 = 0;
+
+		memcpy(&sign_key1, setup_signing.secret_key, 4);
+		memcpy(&sign_key2, setup_signing.secret_key + 4, 4);
+		memcpy(&sign_key3, setup_signing.secret_key + 8, 4);
+		memcpy(&sign_key4, setup_signing.secret_key + 12, 4);
+		memcpy(&sign_key5, setup_signing.secret_key + 16, 4);
+		memcpy(&sign_key6, setup_signing.secret_key + 20, 4);
+		memcpy(&sign_key7, setup_signing.secret_key + 24, 4);
+		memcpy(&sign_key8, setup_signing.secret_key + 28, 4);
+
+		_param_mav_sign_key1.set(sign_key1);
+		_param_mav_sign_key2.set(sign_key2);
+		_param_mav_sign_key3.set(sign_key3);
+		_param_mav_sign_key4.set(sign_key4);
+		_param_mav_sign_key5.set(sign_key5);
+		_param_mav_sign_key6.set(sign_key6);
+		_param_mav_sign_key7.set(sign_key7);
+		_param_mav_sign_key8.set(sign_key8);
+		_param_mav_sign_ts.set(_mavlink_signing.timestamp);
+
+		_param_mav_sign_key1.commit_no_notification();
+		_param_mav_sign_key2.commit_no_notification();
+		_param_mav_sign_key3.commit_no_notification();
+		_param_mav_sign_key4.commit_no_notification();
+		_param_mav_sign_key5.commit_no_notification();
+		_param_mav_sign_key6.commit_no_notification();
+		_param_mav_sign_key7.commit_no_notification();
+		_param_mav_sign_key8.commit_no_notification();
+		_param_mav_sign_ts.commit_no_notification();
 		return;
 	}
 

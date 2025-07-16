@@ -164,3 +164,66 @@ PARAM_DEFINE_INT32(MAV_HB_FORW_EN, 1);
  * @max 250
  */
 PARAM_DEFINE_INT32(MAV_RADIO_TOUT, 5);
+
+/**
+ * First 4 bytes of secret key for mavlink
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_KEY1, -835092985);
+
+/**
+ * Bytes 5-8 of secret key for mavlink
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_KEY2, 661440673);
+
+/**
+ * Bytes 9-12 of secret key for mavlink
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_KEY3, -645368174);
+
+/**
+ * Bytes 13-16 of secret key for mavlink
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_KEY4, -1969574981);
+
+/**
+ * Bytes 17-20 of secret key for mavlink
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_KEY5, 1920704446);
+
+/**
+ * Bytes 21-24 of secret key for mavlink
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_KEY6, -289983887);
+
+/**
+ * Bytes 25-28 of secret key for mavlink
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_KEY7, -972251999);
+
+/**
+ * Bytes 29-32 of secret key for mavlink
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_KEY8, -1978264349);
+
+/**
+ * 4 bytes for sign timestamp in seconds
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_TS, 1420070400);
