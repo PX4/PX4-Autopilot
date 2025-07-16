@@ -26,19 +26,32 @@ Vehicles are [hand or catapult launched](#catapult-hand-launch) by default, but 
 Takeoff mode (and [fixed wing mission takeoff](../flight_modes_fw/mission.md#mission-takeoff)) has two modalities: [catapult/hand-launch](#catapult-hand-launch) or [runway takeoff](#runway-takeoff) (hardware-dependent).
 The mode defaults to catapult/hand launch, but can be set to runway takeoff by setting [RWTO_TKOFF](#RWTO_TKOFF) to 1.
 
-To use _Takeoff mode_ you first switch to the mode, and then arm the vehicle.
+To use _Takeoff mode_ you first switch to the mode, and then arm the vehicle (or send the [MAV_CMD_NAV_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_TAKEOFF) command which does both).
 The acceleration of hand/catapult launch triggers the motors to start.
 For runway launch, motors ramp up automatically once the vehicle has been armed.
 
 Irrespective of the modality, a flight path (starting point and takeoff course) and clearance altitude are defined:
 
 - The starting point is the vehicle position when the takeoff mode is first entered.
-- The course is set to the vehicle heading on arming
+- The course is set to the vehicle heading on arming by default.
+  If a waypoint position is defined in `MAV_CMD_NAV_TAKEOFF` (or [VehicleCommand](../msg_docs/VehicleCommand.md) uORB topic) the course will track towards the waypoint.
+
 - The clearance altitude is set to [MIS_TAKEOFF_ALT](#MIS_TAKEOFF_ALT).
 
-On takeoff, the aircraft will follow line defined by the starting point and course, climbing at the maximum climb rate ([FW_T_CLMB_MAX](../advanced_config/parameter_reference.md#FW_T_CLMB_MAX)) until reaching the clearance altitude.
+By default, on takeoff the aircraft will follow the line defined by the starting point and course, climbing at the maximum climb rate ([FW_T_CLMB_MAX](../advanced_config/parameter_reference.md#FW_T_CLMB_MAX)) until reaching the clearance altitude.
 Reaching the clearance altitude causes the vehicle to enter [Hold mode](../flight_modes_fw/takeoff.md).
-Special case for invalid local position: In case the local position is invalid or becomes invalid while executing the takeoff, the controller is not able to track a course setpoint and will instead proceed climbing while keeping the wings level until the clearance altitude is reached.
+
+If a waypoint target is set (e.g., using `MAV_CMD_NAV_TAKEOFF`) the vehicle will instead track towards the waypoint, and enter [Hold mode](../flight_modes_fw/takeoff.md) after reaching the waypoint acceptance radius and altitude.
+Note that if the target altitude is below [MIS_TAKEOFF_ALT](#MIS_TAKEOFF_ALT), then it will be used as the acceptance altitude.
+
+::: tip
+If the local position is invalid or becomes invalid while executing the takeoff, the controller is not able to track a course setpoint and will instead proceed climbing while keeping the wings level until the clearance altitude is reached.
+:::
+
+::: info
+Support for takeoff towards a target position was added in PX4 `main` after PX4 v1.16.
+At time of writing, the target position cannot be set in QGroundControl.
+:::
 
 ### Parameters
 
