@@ -13,7 +13,7 @@ jobs:
   Fuzzing:
     runs-on: ubuntu-latest
     container:
-      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
+      image: px4io/px4-dev:v1.16.0-rc2-4-gb67c65bfe6
     steps:
       - name: Install Dependencies
         run: |
@@ -36,3 +36,13 @@ jobs:
           for fuzz_binary in build/px4_sitl_test/*fuzz*; do
             ./Tools/ci/run_fuzz_tests.sh $fuzz_binary 15m
           done
+
+      # Create a github issue in case of a failure
+      - name: Create Issue
+        if: ${{ failure() }}
+        uses: JasonEtco/create-an-issue@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WORKFLOW_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          filename: .github/fuzzing_issue_template.md
