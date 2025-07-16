@@ -68,6 +68,7 @@ public:
 		matrix::Vector3f axis;
 		float thrust_coef;
 		float moment_ratio;
+		float moment_inertia;
 	};
 
 	struct Geometry {
@@ -81,7 +82,9 @@ public:
 	ActuatorEffectivenessRotorsINDI(ModuleParams *parent, AxisConfiguration axis_config = AxisConfiguration::Configurable);
 	virtual ~ActuatorEffectivenessRotorsINDI() = default;
 
-	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
+	bool initalizeEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
+
+	void adaptEffectivenessMatrix(Configuration &configuration, Vector<float, NUM_ROTORS_MAX> &delta_motor_speeds, Vector<float, NUM_ROTORS_MAX> &delta_dot_motor_speeds, Vector3f &filtered_angular_accel);
 
 	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
 	{
@@ -124,6 +127,17 @@ private:
 		param_t moment_ratio;
 	};
 	ParamHandles _param_handles[NUM_ROTORS_MAX];
+
+	// for adaptive effectiveness matrix from paper: "Adaptive Incremental nonlinear Dynamic Inversion for Attitude Contol of Micro Air Vehicles" by Smeur et al
+	// these are the adaptive constants for the G1 and G2 matrices, and the apative constants per axis
+	// these are the constants that are used to adapt the effectiveness matrix to the current motor speeds and angular accelerations to account for changes in the system (weigth changes, battery voltage changes, etc.)
+	// mu1 is split between the two matricies: g1_adaptive_constants and g2_adaptive_constants
+	// mu2 = apative_constants_per_axis
+	// larger values = fasater adaptation rate but too large values can cause instability
+	// tuning is required to find the optimal values
+	matrix::SquareMatrix<float, NUM_ROTORS_MAX> _G1_adaptive_constants = matrix::diag(matrix::Vector<float, NUM_ROTORS_MAX>(0.2f));
+	matrix::SquareMatrix<float, NUM_ROTORS_MAX> _G2_adaptive_constants = matrix::diag(matrix::Vector<float, NUM_ROTORS_MAX>(0.2f));
+	matrix::SquareMatrix<float, 3> _apative_constants_per_axis = matrix::diag(matrix::Vector<float, 3>(0.2f));
 
 	Geometry _geometry{};
 

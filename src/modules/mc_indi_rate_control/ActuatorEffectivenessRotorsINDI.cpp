@@ -193,6 +193,7 @@ ActuatorEffectivenessRotorsINDI::computeEffectivenessMatrix(const Geometry &geom
 
 		// Fill corresponding items in effectiveness matrix
 		for (size_t j = 0; j < 3; j++) {
+			// note that thrust is not needed for indi so it is not included/calculated
 			G1(j + 3, i + actuator_start_index) = moment(j);
 
 			G2(j + 3, i + actuator_start_index) = gyroscopic_moment(j);
@@ -225,15 +226,29 @@ ActuatorEffectivenessRotorsINDI::initalizeEffectivenessMatrix(Configuration &con
 	return addActuators(configuration);
 }
 
+/**
+ * @brief Adapt the effectiveness matrix to the current motor speeds and angular accelerations to account for changes in the system (weigth changes, battery voltage changes, etc.)
+ * @details Implementation from "Adaptive Incremental nonlinear Dynamic Inversion for Attitude Contol of Micro Air Vehicles" by Smeur et al
+ * @param configuration The configuration object
+ * @param delta_motor_speeds The change in motor speeds
+ * @param delta_dot_motor_speeds The change in motor speed derivatives
+ * @param filtered_angular_accel The filtered angular acceleration
+ */
 void
 ActuatorEffectivenessRotorsINDI::adaptEffectivenessMatrix(Configuration &configuration,
-		Vector<_geometry.num_rotors> &delta_motor_speeds,
-		Vector<_geometry.num_rotors> &delta_dot_motor_speeds,
+		Vector<NUM_ROTORS_MAX> &delta_motor_speeds,
+		Vector<NUM_ROTORS_MAX> &delta_dot_motor_speeds,
 		Vector3f &filtered_angular_accel)
 {
 	// for readability
-	EffectivenessMatrix G1_moment = (configuration.effectiveness_matrices[0]).slice<3, _geometry.num_rotors>(3, 0); //G1_moment is the moment part of G1 (the bottom 3 rows)
-	EffectivenessMatrix G2_moment = (configuration.effectiveness_matrices[1]).slice<3, _geometry.num_rotors>(3, 0); //G2_moment is the moment part of G2 (the bottom 3 rows)
+	// use auto to point to the slice object that acts a reference, and allows to not need to reassign the new values
+	auto G1_moment = (configuration.effectiveness_matrices[0]).slice<3, _geometry.num_rotors>(3, 0); //G1_moment is the moment part of G1 (the bottom 3 rows)
+	auto G2_moment = (configuration.effectiveness_matrices[1]).slice<3, _geometry.num_rotors>(3, 0); //G2_moment is the moment part of G2 (the bottom 3 rows)
 
-	G1_moment = G1_moment - _G1_apative_constants * (G1)
+	// split up the equation into g1 and g2, as recombining G = [G1, G2] is not computationally necessary as done in the paper with the current layout of the effectiveness matricies
+	// note: mu2 = apative_constants_per_axis, mu1 is split between the two matricies: g1_adaptive_constants and g2_adaptive_constants
+	G1_moment = G1_moment - _apative_constants_per_axis * (G1_moment * delta_motor_speeds - filtered_angular_accel) * delta_motor_speeds.T * _G1_adaptive_constants;
+	G2_moment = G2_moment - _apative_constants_per_axis * (G2_moment * delta_dot_motor_speeds - filtered_angular_accel) * delta_dot_motor_speeds.T * _G2_adaptive_constants;
+
+
 }
