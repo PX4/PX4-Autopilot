@@ -631,9 +631,7 @@ void ControlAllocator::preflight_check_handle_tilt_control(hrt_abstime now)
 		if (_preflight_check_axis == vehicle_command_s::AXIS_COLLECTIVE_TILT) {
 
 			if (is_tiltrotor) {
-				const float modified_tilt_control = math::constrain(_preflight_check_input, 0.f, 1.f);
-
-				_actuator_effectiveness->overrideCollectiveTilt(true, modified_tilt_control);
+				_actuator_effectiveness->overrideCollectiveTilt(true, _preflight_check_input);
 
 			} else {
 				// Commanded collective tilt axis but the vehicle is not a tiltrotor. Abort
