@@ -96,6 +96,8 @@ private:
 	void updateActuatorControlsStatus(const vehicle_torque_setpoint_s &vehicle_torque_setpoint, float dt);
 
 	RateControl _rate_control; ///< class for rate control calculations
+	ActuatorEffectivenessRotorsINDI _rotors;
+	ActuatorEffectiveness::Configuration _actuator_effectiveness_config;
 
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _control_allocator_status_sub{ORB_ID(control_allocator_status)};
@@ -104,7 +106,6 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _actuator_effectiveness_matrix_sub{ORB_ID(actuator_effectiveness_matrix)}; // subscribes to instance 0 (hover mode) automatically
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -119,7 +120,6 @@ private:
 
 	vehicle_control_mode_s	_vehicle_control_mode{};
 	vehicle_status_s	_vehicle_status{};
-	actuator_effectiveness_matrix_s _actuator_effectiveness_matrix{};
 	esc_status_s _esc_status{};	// used for INDI
 
 	// Used for INDI
@@ -127,18 +127,19 @@ private:
 	matrix::Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> _G2;
 	int _num_actuators{0};
 	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> _prev_esc_rad_per_sec_filtered;
+	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> _prev_esc_rad_per_sec_filtered_dot;
+	matrix::Vector3f _prev_angular_accel;
 
 	bool _landed{true};
 	bool _maybe_landed{true};
 
 	hrt_abstime _last_run{0};
+	hrt_abstime _last_esc_status_update{0};
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
 	// keep setpoint values between updates
 	matrix::Vector3f _acro_rate_max;		/**< max attitude rates in acro mode */
-	matrix::SquareMatrix<float, 3> _G1_K;
-	matrix::SquareMatrix<float, 3> _G2_K;
 
 	// for testing: x500 Iv base + Iv motors using parallel axis thm
 	// need this to matrix multiply Iv * Omega_f, as error = torque_f - Iv * Omega_f for INDI
@@ -189,12 +190,7 @@ private:
 
 		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en,
 
-		(ParamFloat<px4::params::MC_INDI_G1_ROLL>) _param_mc_indi_g1_roll,
-		(ParamFloat<px4::params::MC_INDI_G1_PITCH>) _param_mc_indi_g1_pitch,
-		(ParamFloat<px4::params::MC_INDI_G1_YAW>) _param_mc_indi_g1_yaw,
-		(ParamFloat<px4::params::MC_INDI_G2_ROLL>) _param_mc_indi_g2_roll,
-		(ParamFloat<px4::params::MC_INDI_G2_PITCH>) _param_mc_indi_g2_pitch,
-		(ParamFloat<px4::params::MC_INDI_G2_YAW>) _param_mc_indi_g2_yaw,
+		(ParamInt<px4::params::MC_INDI_ADAPT_EN>) _param_mc_indi_adapt_en,
 
 		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff
 	)

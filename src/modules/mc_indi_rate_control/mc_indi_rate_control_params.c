@@ -38,7 +38,29 @@
  * Note many params defined in the Multicopter Params file are used within INDI rate control
  */
 
+/**
+ * INDI Rate Control Enable
+ *
+ * This parameter enables the INDI rate control.
+ *
+ * @min 0
+ * @max 1
+ * @decimal 0
+ * @increment 1
+ */
+PARAM_DEFINE_INT32(MC_INDI_EN, 1);
 
+/**
+ * Incremental Nonlinear Dynamic Inversion (INDI) Adaptation Enable
+ *
+ * This parameter enables the adaptation of the INDI effectiveness matrix.
+ *
+ * @min 0
+ * @max 1
+ * @decimal 0
+ * @increment 1
+ */
+PARAM_DEFINE_INT32(MC_INDI_ADAPT_EN, 0);
 
 /**
  * Incremental Nonlinear Dynamic Inversion (INDI) G1 Roll Gain

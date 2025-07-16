@@ -82,7 +82,7 @@ public:
 	ActuatorEffectivenessRotorsINDI(ModuleParams *parent, AxisConfiguration axis_config = AxisConfiguration::Configurable);
 	virtual ~ActuatorEffectivenessRotorsINDI() = default;
 
-	bool initalizeEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
+	bool initializeEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
 	void adaptEffectivenessMatrix(Configuration &configuration, Vector<float, NUM_ROTORS_MAX> &delta_motor_speeds, Vector<float, NUM_ROTORS_MAX> &delta_dot_motor_speeds, Vector3f &filtered_angular_accel);
 
@@ -93,6 +93,9 @@ public:
 
 	static int computeEffectivenessMatrix(const Geometry &geometry,
 					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0);
+
+	Slice<float, 3, NUM_ROTORS_MAX> getG1(Configuration &configuration) const {return configuration.effectiveness_matrices[0].slice<3, NUM_ROTORS_MAX>(3, 0);}
+	Slice<float, 3, NUM_ROTORS_MAX> getG2(Configuration &configuration) const {return configuration.effectiveness_matrices[1].slice<3, NUM_ROTORS_MAX>(3, 0);}
 
 	bool addActuators(Configuration &configuration);
 

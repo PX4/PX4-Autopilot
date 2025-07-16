@@ -69,6 +69,11 @@ MulticopterINDIRateControl::init()
 		return false;
 	}
 
+	if (!_rotors.initializeEffectivenessMatrix(_actuator_effectiveness_config, ActuatorEffectiveness::EffectivenessUpdateReason::CONFIGURATION_UPDATE)) {
+		PX4_ERR("Failed to initialize INDI effectiveness matrix");
+		return false;
+	}
+
 	return true;
 }
 
@@ -98,10 +103,7 @@ MulticopterINDIRateControl::parameters_updated()
 
 	_output_lpf_yaw.setCutoffFreq(_param_mc_yaw_tq_cutoff.get());
 
-	// INDI
-	_G1_K = diag(Vector3f(_param_mc_indi_g1_roll.get(), _param_mc_indi_g1_pitch.get(), _param_mc_indi_g1_yaw.get()));
-	_G2_K = diag(Vector3f(_param_mc_indi_g2_roll.get(), _param_mc_indi_g2_pitch.get(), _param_mc_indi_g2_yaw.get()));
-
+	//FIXME: find the delta t correctly bruh
 	if (_param_imu_gyro_cutoff.get() > 0.f) {
 		// The perf_mean() function returns the average elapsed time of the counter in seconds.
 		const float avg_interval_s = perf_mean(_loop_perf) > 0.f ? perf_mean(_loop_perf) : 0.001f; //default to 1 kHz
@@ -137,7 +139,19 @@ MulticopterINDIRateControl::Run()
 		parameters_updated();
 	}
 
-	_esc_status_sub.update(&_esc_status);
+	if(_esc_status_sub.update(&_esc_status)) {
+		for (int i = 0; i < _num_actuators; i++) {
+			_prev_esc_rad_per_sec_filtered(i) = filtered_radps_vec(i);
+			_prev_esc_rad_per_sec_filtered_dot(i) = filtered_radps_vec_dot(i);
+			float rad_per_sec = (float)(_esc_status.esc[i].esc_rpm) * 2.f * M_PI_F / 60.f;
+			filtered_radps_vec(i) = _radps_lpf[i].apply(rad_per_sec);
+			const float dt = math::constrain(((esc_status.timestamp_sample - _last_esc_status_update) * 1e-6f), 0.000125f, 0.02f);
+			filtered_radps_vec_dot(i) = (filtered_radps_vec(i) - _prev_esc_rad_per_sec_filtered(i)) / dt;
+
+		}
+		_last_esc_status_update = _esc_status.timestamp_sample;
+	}
+
 
 	/* run controller on gyro changes */
 	vehicle_angular_velocity_s angular_velocity;
@@ -167,42 +181,10 @@ MulticopterINDIRateControl::Run()
 
 		matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> filtered_radps_vec;
 
-		if (_vehicle_control_mode.flag_control_rates_indi_enabled) {
+		if (_param_mc_indi_adapt_en.get()) {
 
-			if (_actuator_effectiveness_matrix_sub.updated()) {
-				if (_actuator_effectiveness_matrix_sub.copy(&_actuator_effectiveness_matrix)) {
-					_num_actuators = _actuator_effectiveness_matrix.num_actuators;
+			_rotors.adaptEffectivenessMatrix(_actuator_effectiveness_config, filtered_radps_vec, filtered_radps_vec_dot, angular_accel - _prev_angular_accel);
 
-					// seperate the row major matrix into the torque (G1) and thrust (G2) matrices
-					// NOTE: the G1, G2 constant gains, K, are necessary as the PID approximates Iv, and such the output of the PID rate controller
-					// *counts* as torque instead of angular acceleration.setpoints, and thus is used against the INDI computed torque_filtered
-					// as the original equation of torque_setpoint = torque_filtered + Iv * (ang_accel_setpoint - Omega_dot_filtered_gyro) is approximated to: torque_setpoint = torque_filtered * K + torque_output_from_PID
-					// in an NMPC approach this would never be needed, but the PID is pretty robust here that its a good approximation
-					for (int i = 0; i < 3; i++) {
-
-						for (int j = 0; j < _num_actuators; j++) {
-							_G1(i, j) = _actuator_effectiveness_matrix.effectiveness_matrix_row_major[i * 16 + j]; //row has 16 columns (even if they are empty/not have 16 actuators)
-						}
-					}
-
-					for (int i = 0; i < 3; i++) {
-						for (int j = 0; j < _num_actuators; j++) {
-							_G2(i, j) = _actuator_effectiveness_matrix.effectiveness_matrix_row_major[(i + 3) * 16 + j]; //thrust comes 3 rows after torque, so offset by 3
-						}
-					}
-				}
-			}
-
-			if (_esc_status.timestamp > 0) { //check if atleast one esc status is available
-				for (int i = 0; i < _num_actuators; i++) {
-					float rad_per_sec = (float)(_esc_status.esc[i].esc_rpm) * 2.f * M_PI_F / 60.f;
-					filtered_radps_vec(i) = _radps_lpf[i].apply(rad_per_sec);
-				}
-			}
-			else {
-				filtered_radps_vec.zero();
-				PX4_WARN("No ESC status available for INDI");
-			}
 		}
 
 		// use rates setpoint topic
@@ -276,6 +258,10 @@ MulticopterINDIRateControl::Run()
 			Vector3f torque_setpoint =
 				_rate_control.update(rates, _rates_setpoint, angular_accel, dt, _maybe_landed || _landed);
 
+			Slice<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> G1 = _rotors.getG1(_rotors.configuration);
+			Slice<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> G2 = _rotors.getG2(_rotors.configuration);
+			Vector3f indi_torque_setpoint = computeIndiTorqueSetpoint(filtered_radps_vec, _prev_esc_rad_per_sec_filtered, dt, G1, G2);
+
 			// apply low-pass filtering on yaw axis to reduce high frequency torque caused by rotor acceleration
 			torque_setpoint(2) = _output_lpf_yaw.update(torque_setpoint(2), dt);
 
@@ -297,46 +283,24 @@ MulticopterINDIRateControl::Run()
 			vehicle_torque_setpoint.delta_xyz[0] = PX4_ISFINITE(torque_setpoint(0)) ? torque_setpoint(0) : 0.f;
 			vehicle_torque_setpoint.delta_xyz[1] = PX4_ISFINITE(torque_setpoint(1)) ? torque_setpoint(1) : 0.f;
 			vehicle_torque_setpoint.delta_xyz[2] = PX4_ISFINITE(torque_setpoint(2)) ? torque_setpoint(2) : 0.f;
-			//PX4_INFO("torque_setpoint: %f, %f, %f", (double)torque_setpoint(0), (double)torque_setpoint(1), (double)torque_setpoint(2));
 
-			// TODO: a possible optimization is to manually multiply the G1 and G2 matrices with the radps_vec_squared and filtered_radps_vec - _prev_esc_rad_per_sec_filtered vectors
-			// as this would avoid the need to multiply by the full 16 vector, which is full of zeros for most cases (quadrotors)
-			if (_vehicle_control_mode.flag_control_rates_indi_enabled) {
-				matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> radps_vec_squared = filtered_radps_vec.emult(filtered_radps_vec);
-				//PX4_INFO("radps_vec_squared: %f, %f, %f", (double)radps_vec_squared(0), (double)radps_vec_squared(1), (double)radps_vec_squared(2));
-				//PX4_INFO("filtered_radps_vec: %f, %f, %f", (double)filtered_radps_vec(0), (double)filtered_radps_vec(1), (double)filtered_radps_vec(2));
-				Vector3f G1_term = _G1_K * (_G1 * (radps_vec_squared));
-				Vector3f G2_term = _G2_K * (_G2 * (filtered_radps_vec - _prev_esc_rad_per_sec_filtered)) / dt;
-				Vector3f filtered_body_torque_setpoint = G1_term + G2_term;
-				Vector3f filtered_body_torque_setpoint_no_constant = _G1 * (radps_vec_squared) + _G2 * (filtered_radps_vec - _prev_esc_rad_per_sec_filtered) / dt;
-				Vector3f error = filtered_body_torque_setpoint_no_constant - _Iv * angular_accel;
-				//PX4_INFO("G1 term: %f, %f, %f", (double)G1_term(0), (double)G1_term(1), (double)G1_term(2));
-				//PX4_INFO("G2 term: %f, %f, %f", (double)G2_term(0), (double)G2_term(1), (double)G2_term(2));
-				vehicle_torque_setpoint.xyz[0] += PX4_ISFINITE(filtered_body_torque_setpoint(0)) ? filtered_body_torque_setpoint(0) : 0.f;
-				vehicle_torque_setpoint.xyz[1] += PX4_ISFINITE(filtered_body_torque_setpoint(1)) ? filtered_body_torque_setpoint(1) : 0.f;
-				vehicle_torque_setpoint.xyz[2] += PX4_ISFINITE(filtered_body_torque_setpoint(2)) ? filtered_body_torque_setpoint(2) : 0.f;
+			Vector3f error = indi_torque_setpoint - _Iv * angular_accel;
 
-				vehicle_torque_setpoint.g1_term[0] = PX4_ISFINITE(G1_term(0)) ? G1_term(0) : 0.f;
-				vehicle_torque_setpoint.g1_term[1] = PX4_ISFINITE(G1_term(1)) ? G1_term(1) : 0.f;
-				vehicle_torque_setpoint.g1_term[2] = PX4_ISFINITE(G1_term(2)) ? G1_term(2) : 0.f;
-				vehicle_torque_setpoint.g2_term[0] = PX4_ISFINITE(G2_term(0)) ? G2_term(0) : 0.f;
-				vehicle_torque_setpoint.g2_term[1] = PX4_ISFINITE(G2_term(1)) ? G2_term(1) : 0.f;
-				vehicle_torque_setpoint.g2_term[2] = PX4_ISFINITE(G2_term(2)) ? G2_term(2) : 0.f;
+			vehicle_torque_setpoint.xyz[0] += PX4_ISFINITE(indi_torque_setpoint(0)) ? indi_torque_setpoint(0) : 0.f;
+			vehicle_torque_setpoint.xyz[1] += PX4_ISFINITE(indi_torque_setpoint(1)) ? indi_torque_setpoint(1) : 0.f;
+			vehicle_torque_setpoint.xyz[2] += PX4_ISFINITE(indi_torque_setpoint(2)) ? indi_torque_setpoint(2) : 0.f;
 
-				vehicle_torque_setpoint.filtered_xyz[0] = PX4_ISFINITE(filtered_body_torque_setpoint(0)) ? filtered_body_torque_setpoint(0) : 0.f;
-				vehicle_torque_setpoint.filtered_xyz[1] = PX4_ISFINITE(filtered_body_torque_setpoint(1)) ? filtered_body_torque_setpoint(1) : 0.f;
-				vehicle_torque_setpoint.filtered_xyz[2] = PX4_ISFINITE(filtered_body_torque_setpoint(2)) ? filtered_body_torque_setpoint(2) : 0.f;
+			vehicle_torque_setpoint.filtered_xyz[0] = PX4_ISFINITE(indi_torque_setpoint(0)) ? indi_torque_setpoint(0) : 0.f;
+			vehicle_torque_setpoint.filtered_xyz[1] = PX4_ISFINITE(indi_torque_setpoint(1)) ? indi_torque_setpoint(1) : 0.f;
+			vehicle_torque_setpoint.filtered_xyz[2] = PX4_ISFINITE(indi_torque_setpoint(2)) ? indi_torque_setpoint(2) : 0.f;
 
-				vehicle_torque_setpoint.filtered_xyz_noconst[0] = PX4_ISFINITE(filtered_body_torque_setpoint_no_constant(0)) ? filtered_body_torque_setpoint_no_constant(0) : 0.f;
-				vehicle_torque_setpoint.filtered_xyz_noconst[1] = PX4_ISFINITE(filtered_body_torque_setpoint_no_constant(1)) ? filtered_body_torque_setpoint_no_constant(1) : 0.f;
-				vehicle_torque_setpoint.filtered_xyz_noconst[2] = PX4_ISFINITE(filtered_body_torque_setpoint_no_constant(2)) ? filtered_body_torque_setpoint_no_constant(2) : 0.f;
+			vehicle_torque_setpoint.error[0] = PX4_ISFINITE(error(0)) ? error(0) : 0.f;
+			vehicle_torque_setpoint.error[1] = PX4_ISFINITE(error(1)) ? error(1) : 0.f;
+			vehicle_torque_setpoint.error[2] = PX4_ISFINITE(error(2)) ? error(2) : 0.f;
 
-				vehicle_torque_setpoint.error[0] = PX4_ISFINITE(error(0)) ? error(0) : 0.f;
-				vehicle_torque_setpoint.error[1] = PX4_ISFINITE(error(1)) ? error(1) : 0.f;
-				vehicle_torque_setpoint.error[2] = PX4_ISFINITE(error(2)) ? error(2) : 0.f;
+			_prev_esc_rad_per_sec_filtered = filtered_radps_vec;
+			_prev_angular_accel = angular_accel;
 
-				_prev_esc_rad_per_sec_filtered = filtered_radps_vec;
-			}
 
 			// scale setpoints by battery status if enabled
 			if (_param_mc_bat_scale_en.get()) {
@@ -370,6 +334,21 @@ MulticopterINDIRateControl::Run()
 	}
 
 	perf_end(_loop_perf);
+}
+
+Vector3f MulticopterINDIRateControl::computeIndiTorqueSetpoint(const Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> &filtered_radps_vec,
+		const Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> &prev_esc_rad_per_sec_filtered,
+		float dt,
+		const Slice<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> &G1,
+		const Slice<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> &G2)
+{
+	Vector3f radps_vec_squared = filtered_radps_vec.emult(filtered_radps_vec);
+	Vector3f G1_term = (G1 * (radps_vec_squared));
+	Vector3f G2_term = (G2 * (filtered_radps_vec - prev_esc_rad_per_sec_filtered)) / dt;
+	Vector3f filtered_body_torque_setpoint = G1_term + G2_term;
+	Vector3f filtered_body_torque_setpoint_no_constant = G1 * (radps_vec_squared) + G2 * (filtered_radps_vec - prev_esc_rad_per_sec_filtered) / dt;
+
+	return filtered_body_torque_setpoint;
 }
 
 void MulticopterINDIRateControl::updateActuatorControlsStatus(const vehicle_torque_setpoint_s &vehicle_torque_setpoint,

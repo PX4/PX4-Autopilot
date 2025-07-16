@@ -215,7 +215,7 @@ uint32_t ActuatorEffectivenessRotorsINDI::getMotors() const
 }
 
 bool
-ActuatorEffectivenessRotorsINDI::initalizeEffectivenessMatrix(Configuration &configuration,
+ActuatorEffectivenessRotorsINDI::initializeEffectivenessMatrix(Configuration &configuration,
 		EffectivenessUpdateReason external_update)
 {
 	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
@@ -242,8 +242,8 @@ ActuatorEffectivenessRotorsINDI::adaptEffectivenessMatrix(Configuration &configu
 {
 	// for readability
 	// use auto to point to the slice object that acts a reference, and allows to not need to reassign the new values
-	auto G1_moment = (configuration.effectiveness_matrices[0]).slice<3, _geometry.num_rotors>(3, 0); //G1_moment is the moment part of G1 (the bottom 3 rows)
-	auto G2_moment = (configuration.effectiveness_matrices[1]).slice<3, _geometry.num_rotors>(3, 0); //G2_moment is the moment part of G2 (the bottom 3 rows)
+	Slice<float, 3, NUM_ROTORS_MAX> G1_moment = getG1(configuration); //G1_moment is the moment part of G1 (the bottom 3 rows)
+	Slice<float, 3, NUM_ROTORS_MAX> G2_moment = getG2(configuration); //G2_moment is the moment part of G2 (the bottom 3 rows)
 
 	// split up the equation into g1 and g2, as recombining G = [G1, G2] is not computationally necessary as done in the paper with the current layout of the effectiveness matricies
 	// note: mu2 = apative_constants_per_axis, mu1 is split between the two matricies: g1_adaptive_constants and g2_adaptive_constants
