@@ -42,11 +42,11 @@ Notes:
   - publishes the servo trims separately so they can be added as an offset when [testing actuators](../config/actuators.md#actuator-testing) (using the test sliders).
 - the output drivers:
   - handle the hardware initialization and update
-  - use a shared library [src/libs/mixer_module](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/mixer_module/).
+  - use a shared library [src/libs/mixer_module](https://github.com/PX4/PX4-Autopilot/tree/main/src/lib/mixer_module).
     The driver defines a parameter prefix, e.g. `PWM_MAIN` that the library then uses for configuration.
     Its main task is to select from the input topics and assign the right data to the outputs based on the user set `<param_prefix>_FUNCx` parameter values.
     For example if `PWM_MAIN_FUNC3` is set to **Motor 2**, the 3rd output is set to the 2nd motor from `actuator_motors`.
-  - output functions are defined under [src/lib/mixer_module/output_functions.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/mixer_module/output_functions.yaml).
+  - output functions are defined under [src/lib/mixer_module/output_functions.yaml](https://github.com/PX4/PX4-Autopilot/tree/main/src/lib/mixer_module/output_functions.yaml).
 - if you want to control an output from MAVLink, set the relevant output function to **Offboard Actuator Set x**, and then send the [MAV_CMD_DO_SET_ACTUATOR](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ACTUATOR) MAVLink command.
 
 ## Adding a new Geometry or Output Function

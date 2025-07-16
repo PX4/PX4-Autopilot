@@ -28,7 +28,7 @@ logger help
 
 ## Configuration
 
-The logging system is configured by default to collect sensible logs for [flight reporting](../getting_started/flight_reporting.md) with [Flight Review](http://logs.px4.io).
+The logging system is configured by default to collect sensible logs for [flight reporting](../getting_started/flight_reporting.md) with [Flight Review](https://logs.px4.io/).
 
 Logging may further be configured using the [SD Logging](../advanced_config/parameter_reference.md#sd-logging) parameters.
 The parameters you are most likely to change are listed below.
@@ -184,7 +184,6 @@ There are different clients that support ulog streaming:
 
   Also make sure `txerr` stays at 0.
   If this goes up, either the NuttX sending buffer is too small, the physical link is saturated or the hardware is too slow to handle the data.
-
 
 ## See Also
 

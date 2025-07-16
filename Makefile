@@ -160,11 +160,6 @@ else
 		override CMAKE_ARGS += -DCMAKE_BUILD_TYPE=UndefinedBehaviorSanitizer
 	endif
 
-	# Fuzz Testing
-	ifdef PX4_FUZZ
-		override CMAKE_ARGS += -DCMAKE_BUILD_TYPE=FuzzTesting
-	endif
-
 endif
 
 # Pick up specific Python path if set
@@ -365,7 +360,7 @@ coverity_scan: px4_sitl_default
 
 # Documentation
 # --------------------------------------------------------------------
-.PHONY: parameters_metadata airframe_metadata module_documentation extract_events px4_metadata doxygen
+.PHONY: parameters_metadata airframe_metadata module_documentation extract_events px4_metadata
 
 parameters_metadata:
 	@$(MAKE) --no-print-directory px4_sitl_default metadata_parameters ver_gen
@@ -380,12 +375,6 @@ extract_events:
 	@$(MAKE) --no-print-directory px4_sitl_default metadata_extract_events ver_gen
 
 px4_metadata: parameters_metadata airframe_metadata module_documentation extract_events
-
-doxygen:
-	@mkdir -p "$(SRC_DIR)"/build/doxygen
-	@cd "$(SRC_DIR)"/build/doxygen && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=px4_sitl_default -DBUILD_DOXYGEN=ON
-	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/doxygen
-	@touch "$(SRC_DIR)"/build/doxygen/Documentation/.nojekyll
 
 # Style
 # --------------------------------------------------------------------
@@ -416,11 +405,18 @@ tests:
 	$(eval UBSAN_OPTIONS += color=always)
 	$(call cmake-build,px4_sitl_test)
 
+# work around lcov bug #316; remove once lcov is fixed (see https://github.com/linux-test-project/lcov/issues/316)
+LCOBUG = --ignore-errors mismatch
 tests_coverage:
 	@$(MAKE) clean
 	@$(MAKE) --no-print-directory tests PX4_CMAKE_BUILD_TYPE=Coverage
 	@mkdir -p coverage
-	@lcov --directory build/px4_sitl_test --base-directory build/px4_sitl_test --gcov-tool gcov --capture -o coverage/lcov.info
+	@lcov --directory build/px4_sitl_test \
+		--base-directory build/px4_sitl_test \
+		--gcov-tool gcov \
+		--capture \
+		$(LCOBUG) \
+		-o coverage/lcov.info
 
 
 rostest: px4_sitl_default

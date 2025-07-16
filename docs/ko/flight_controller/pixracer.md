@@ -16,7 +16,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 
 ## 주요 특징
 
-- Main System-on-Chip: [STM32F427VIT6 rev.3](http://www.st.com/web/en/catalog/mmc/FM141/SC1169/SS1577/LN1789)
+- Main System-on-Chip: [STM32F427VIT6 rev.3](https://www.st.com/en/microcontrollers-microprocessors/stm32f427-437.html)
   - CPU : 단정밀도 FPU의 180MHz ARM Cortexex<sup>&reg;</sup>  M4
   - RAM : 256KB SRAM (L1)
 - 표준 FPV 폼 팩터 : 36x36mm, 표준 30.5mm 구멍 패턴
@@ -41,7 +41,8 @@ Pixracer is available from the [mRobotics.io](https://store.mrobotics.io/mRo-Pix
 
 ## 키트
 
-Pixracer는 별도의 항공전자기기 전원공급장치를 사용하도록 설계되었습니다. 이는 모터 또는 ESC의 전류 서지가 비행 컨트롤러로 다시 흐르고 섬세한 센서를 방해하는 것을 방지하는 데 필요합니다.
+Pixracer는 별도의 항공전자기기 전원공급장치를 사용하도록 설계되었습니다.
+이는 모터 또는 ESC의 전류 서지가 비행 컨트롤러로 다시 흐르고 섬세한 센서를 방해하는 것을 방지하는 데 필요합니다.
 
 - 전원 모듈(전압 및 전류 감지 포함)
 - I2C 스플리터(AUAV, Hobbyking 및 3DR<sup>&reg;</sup> 주변 장치 지원)
@@ -53,7 +54,7 @@ Pixracer는 별도의 항공전자기기 전원공급장치를 사용하도록 �
 이를 통해 데스크탑 시스템이 필요없습니다.
 
 - [ESP8266 Wifi](../telemetry/esp8266_wifi_module.md)
-- [Custom ESP8266 MAVLink firmware](https://github.com/dogmaphobic/mavesp8266)
+- [Custom ESP8266 MAVLink firmware](https://github.com/BeyondRobotix/mavesp8266)
 
 :::info
 Firmware upgrade is not yet enabled over WiFi (it is supported by the default bootloader but not yet enabled).
@@ -85,7 +86,7 @@ For more information see: [Pixracer Wiring Quickstart > External Telemetry](../a
 
 ## 커넥터
 
-All connectors follow the [Pixhawk connector standard](https://pixhawk.org/pixhawk-connector-standard/).
+All connectors follow the [Pixhawk connector standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 Unless noted otherwise all connectors are JST GH.
 
 ## 핀배열
@@ -204,8 +205,8 @@ The reference is provided as: [Altium Design Files](https://github.com/AUAV-Open
 
 The following PDF files are provided for _convenience only_:
 
-- [pixracer-rc12-12-06-2015-1330.pdf](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixracer/pixracer-rc12-12-06-2015-1330.pdf)
-- [pixracer-r14.pdf](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixracer/pixracer-r14.pdf) - R14 or RC14 is printed next to the SDCard socket
+- [pixracer-rc12-12-06-2015-1330.pdf](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixracer/pixracer-rc12-12-06-2015-1330.pdf)
+- [pixracer-r14.pdf](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixracer/pixracer-r14.pdf) - R14 or RC14 is printed next to the SDCard socket
 
 ## 펌웨어 빌드
 

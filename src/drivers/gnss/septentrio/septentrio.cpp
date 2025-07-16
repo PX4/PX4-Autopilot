@@ -112,12 +112,12 @@ constexpr const char *k_command_reset_hot = "erst,soft,none\n";
 constexpr const char *k_command_reset_warm = "erst,soft,PVTData\n";
 constexpr const char *k_command_reset_cold = "erst,hard,SatData\n";
 constexpr const char *k_command_sbf_output_pvt =
-	"sso,Stream%lu,%s,PVTGeodetic+VelCovGeodetic+DOP+AttEuler+AttCovEuler+EndOfPVT+ReceiverStatus,%s\n";
+	"sso,Stream%" PRIu32 ",%s,PVTGeodetic+VelCovGeodetic+DOP+AttEuler+AttCovEuler+EndOfPVT+ReceiverStatus,%s\n";
 constexpr const char *k_command_set_sbf_output =
-	"sso,Stream%lu,%s,%s%s,%s\n";
-constexpr const char *k_command_clear_sbf = "sso,Stream%lu,%s,none,off\n";
+	"sso,Stream%" PRIu32 ",%s,%s%s,%s\n";
+constexpr const char *k_command_clear_sbf = "sso,Stream%" PRIu32 ",%s,none,off\n";
 constexpr const char *k_command_set_baud_rate =
-	"scs,%s,baud%lu\n"; // The receiver sends the reply at the new baud rate!
+	"scs,%s,baud%" PRIu32 "\n"; // The receiver sends the reply at the new baud rate!
 constexpr const char *k_command_set_dynamics = "srd,%s,UAV\n";
 constexpr const char *k_command_set_attitude_offset = "sto,%.3f,%.3f\n";
 constexpr const char *k_command_set_data_io = "sdio,%s,Auto,%s\n";
@@ -221,21 +221,10 @@ SeptentrioDriver::~SeptentrioDriver()
 		}
 	}
 
-	if (_message_data_from_receiver) {
-		delete _message_data_from_receiver;
-	}
-
-	if (_message_data_to_receiver) {
-		delete _message_data_to_receiver;
-	}
-
-	if (_message_satellite_info) {
-		delete _message_satellite_info;
-	}
-
-	if (_rtcm_decoder) {
-		delete _rtcm_decoder;
-	}
+	delete _message_data_from_receiver;
+	delete _message_data_to_receiver;
+	delete _message_satellite_info;
+	delete _rtcm_decoder;
 }
 
 int SeptentrioDriver::print_status()
@@ -253,9 +242,9 @@ int SeptentrioDriver::print_status()
 		break;
 	}
 
-	PX4_INFO("health: %s, port: %s, baud rate: %lu", is_healthy() ? "OK" : "NOT OK", _port, _uart.getBaudrate());
-	PX4_INFO("controller -> receiver data rate: %lu B/s", output_data_rate());
-	PX4_INFO("receiver -> controller data rate: %lu B/s", input_data_rate());
+	PX4_INFO("health: %s, port: %s, baud rate: %" PRIu32 "", is_healthy() ? "OK" : "NOT OK", _port, _uart.getBaudrate());
+	PX4_INFO("controller -> receiver data rate: %" PRIu32 " B/s", output_data_rate());
+	PX4_INFO("receiver -> controller data rate: %" PRIu32 " B/s", input_data_rate());
 	PX4_INFO("sat info: %s", (_message_satellite_info != nullptr) ? "enabled" : "disabled");
 
 	if (first_gps_uorb_message_created() && _state == State::ReceivingData) {
@@ -458,7 +447,7 @@ SeptentrioDriver *SeptentrioDriver::instantiate(int argc, char *argv[], Instance
 	}
 
 	if (!valid_chosen_baud_rate) {
-		mavlink_log_critical(&k_mavlink_log_pub, "Septentrio: Baud rate %d is unsupported, falling back to default %lu",
+		mavlink_log_critical(&k_mavlink_log_pub, "Septentrio: Baud rate %d is unsupported, falling back to default %" PRIu32,
 				     instance == Instance::Main ? arguments.baud_rate_main : arguments.baud_rate_secondary, k_default_baud_rate);
 	}
 
@@ -805,7 +794,7 @@ SeptentrioDriver::ConfigureResult SeptentrioDriver::configure()
 {
 	char msg[k_max_command_size] {};
 	char com_port[5] {};
-	ConfigureResult result {ConfigureResult::OK};
+	ConfigureResult result {ConfigureResult::Ok};
 
 	// Passively detect receiver port.
 	if (detect_serial_port(com_port) != PX4_OK) {
@@ -816,7 +805,7 @@ SeptentrioDriver::ConfigureResult SeptentrioDriver::configure()
 	// We should definitely match baud rates and detect used port, but don't do other configuration if not requested.
 	// This will force input on the receiver. That shouldn't be a problem as it's on our own connection.
 	if (!_automatic_configuration) {
-		return ConfigureResult::OK;
+		return ConfigureResult::Ok;
 	}
 
 	// If user requested specific baud rate, set it now. Otherwise keep detected baud rate.
@@ -1086,7 +1075,7 @@ int SeptentrioDriver::process_message()
 			PVTGeodetic pvt_geodetic;
 
 			if (_sbf_decoder.parse(&header) == PX4_OK && _sbf_decoder.parse(&pvt_geodetic) == PX4_OK) {
-				switch (pvt_geodetic.mode_type) {
+				switch (static_cast<sbf::PVTGeodetic::ModeType>(pvt_geodetic.mode_type)) {
 				case ModeType::NoPVT:
 					_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_NONE;
 					break;
@@ -1253,8 +1242,8 @@ int SeptentrioDriver::process_message()
 
 			if (_sbf_decoder.parse(&att_euler) == PX4_OK &&
 			    !att_euler.error_not_requested &&
-			    att_euler.error_aux1 == Error::None &&
-			    att_euler.error_aux2 == Error::None &&
+			    static_cast<AttEuler::Error>(att_euler.error_aux1) == Error::None &&
+			    static_cast<AttEuler::Error>(att_euler.error_aux2) == Error::None &&
 			    att_euler.heading > k_dnu_f4_value) {
 				float heading = att_euler.heading * M_PI_F / 180.0f; // Range of degrees to range of radians in [0, 2PI].
 
@@ -1278,8 +1267,8 @@ int SeptentrioDriver::process_message()
 
 			if (_sbf_decoder.parse(&att_cov_euler) == PX4_OK &&
 			    !att_cov_euler.error_not_requested &&
-			    att_cov_euler.error_aux1 == Error::None &&
-			    att_cov_euler.error_aux2 == Error::None &&
+			    static_cast<AttCovEuler::Error>(att_cov_euler.error_aux1) == Error::None &&
+			    static_cast<AttCovEuler::Error>(att_cov_euler.error_aux2) == Error::None &&
 			    att_cov_euler.cov_headhead > k_dnu_f4_value) {
 				_message_gps_state.heading_accuracy = att_cov_euler.cov_headhead * M_PI_F / 180.0f; // Convert range of degrees to range of radians in [0, 2PI]
 			}
@@ -1542,27 +1531,7 @@ void SeptentrioDriver::publish()
 	_message_gps_state.device_id = get_device_id();
 	_message_gps_state.selected_rtcm_instance = _selected_rtcm_instance;
 	_message_gps_state.rtcm_injection_rate = rtcm_injection_frequency();
-
 	_sensor_gps_pub.publish(_message_gps_state);
-
-	if (_message_gps_state.spoofing_state != _spoofing_state) {
-
-		if (_message_gps_state.spoofing_state > sensor_gps_s::SPOOFING_STATE_NONE) {
-			SEP_WARN("GPS spoofing detected! (state: %d)", _message_gps_state.spoofing_state);
-		}
-
-		_spoofing_state = _message_gps_state.spoofing_state;
-	}
-
-	if (_message_gps_state.jamming_state != _jamming_state) {
-
-		if (_message_gps_state.jamming_state > sensor_gps_s::JAMMING_STATE_WARNING) {
-			SEP_WARN("GPS jamming detected! (state: %d) (indicator: %d)", _message_gps_state.jamming_state,
-					(uint8_t)_message_gps_state.jamming_indicator);
-		}
-
-		_jamming_state = _message_gps_state.jamming_state;
-	}
 }
 
 void SeptentrioDriver::publish_satellite_info()
@@ -1642,12 +1611,12 @@ void SeptentrioDriver::dump_gps_data(const uint8_t *data, size_t len, DataDirect
 
 bool SeptentrioDriver::should_dump_incoming() const
 {
-	return _message_data_from_receiver != 0;
+	return _message_data_from_receiver != nullptr;
 }
 
 bool SeptentrioDriver::should_dump_outgoing() const
 {
-	return _message_data_to_receiver != 0;
+	return _message_data_to_receiver != nullptr;
 }
 
 void SeptentrioDriver::start_update_monitoring_interval()
@@ -1722,11 +1691,7 @@ void SeptentrioDriver::set_clock(timespec rtc_gps_time)
 
 bool SeptentrioDriver::is_healthy() const
 {
-	if (_state == State::ReceivingData && receiver_configuration_healthy()) {
-		return true;
-	}
-
-	return false;
+	return _state == State::ReceivingData && receiver_configuration_healthy();
 }
 
 void SeptentrioDriver::reset_gps_state_message()

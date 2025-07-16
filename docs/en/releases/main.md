@@ -84,7 +84,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Rover
 
-- TBD
+- Removed deprecated rover module ([PX4-Autopilot#25054](https://github.com/PX4/PX4-Autopilot/pull/25054)).
 
 ### ROS 2
 

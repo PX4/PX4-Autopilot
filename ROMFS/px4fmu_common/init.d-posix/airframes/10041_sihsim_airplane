@@ -46,3 +46,22 @@ param set-default PWM_MAIN_FUNC3 203
 param set-default PWM_MAIN_FUNC4 101
 
 param set-default EKF2_GPS_DELAY 0
+
+# Rate controllers
+param set-default FW_RR_P 0.0500
+param set-default FW_RR_I 2.0000
+param set-default FW_RR_D 0.0000
+param set-default FW_RR_FF 0.0000
+param set-default FW_RR_IMAX 1.0000
+
+param set-default FW_PR_P 0.0800
+param set-default FW_PR_I 2.5000
+param set-default FW_PR_D 0.0000
+param set-default FW_PR_FF 0.0000
+param set-default FW_PR_IMAX 1.0000
+
+param set-default FW_YR_P 0.0500
+param set-default FW_YR_I 3.0000
+param set-default FW_YR_D 0.0000
+param set-default FW_YR_FF 0.0000
+param set-default FW_YR_IMAX 1.0000

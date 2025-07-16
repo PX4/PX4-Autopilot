@@ -58,7 +58,7 @@ Users can select the form that is used by setting the proportional gain for the 
 这两种形式将在后面介绍。
 
 :::info
-The derivative term (**D**) is on the feedback path in order to avoid an effect known as the [derivative kick](http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-derivative-kick/).
+The derivative term (**D**) is on the feedback path in order to avoid an effect known as the [derivative kick](http://brettbeauregard.com/blog/2011/04/improving-the-beginners-pid-derivative-kick/).
 :::
 
 :::tip

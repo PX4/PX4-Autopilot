@@ -408,6 +408,14 @@ MavlinkParametersManager::send_untransmitted()
 bool
 MavlinkParametersManager::send_one()
 {
+	const hrt_abstime now = hrt_absolute_time();
+
+	// If in low-bandwidth mode, throttle parameter transmission to 8 Hz
+	if (_mavlink.get_mode() == Mavlink::MAVLINK_MODE_LOW_BANDWIDTH
+	    && now < _last_param_sent_timestamp + 125_ms) {
+		return false;
+	}
+
 	if (_send_all_index >= 0) {
 		/* send all parameters if requested, but only after the system has booted */
 
@@ -445,6 +453,7 @@ MavlinkParametersManager::send_one()
 
 		if (p != PARAM_INVALID) {
 			send_param(p);
+			_last_param_sent_timestamp = now;
 		}
 
 		if ((p == PARAM_INVALID) || (_send_all_index >= (int) param_count())) {

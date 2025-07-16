@@ -377,7 +377,7 @@ The following functions can only be applied to FMU outputs:
   Enabled when [`PPS_CAP_ENABLE==0`](../advanced_config/parameter_reference.md#PPS_CAP_ENABLE)
 
 ::: info
-The functions are defined in source at [/src/lib/mixer_module/output_functions.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/mixer_module/output_functions.yaml).
+The functions are defined in source at [/src/lib/mixer_module/output_functions.yaml](https://github.com/PX4/PX4-Autopilot/tree/main/src/lib/mixer_module/output_functions.yaml).
 This list is correct at PX4 v1.15.
 :::
 
@@ -501,7 +501,6 @@ For each motor:
    - If the motor spins, reduce the corresponding PWM `disarmed` value in the [Actuator Outputs](#actuator-outputs) section to below the level at which it still spins.
 2. Slowly move the slider up until it snaps to the _minimum_ position.
    In this position the motor is set to the outputs `minimum` value.
-
    - Verify that the motor is spinning very slowly in this position.
    - If the motor is not spinning, or spinning too fast you will need to adjust the corresponding PWM `minimum` value in the [Actuator Outputs](#actuator-outputs) such that the motors barely spin.
 
@@ -511,7 +510,6 @@ For each motor:
      :::
 
 3. Increase the slider value to a level where you can verify that the motor is spinning in the correct direction and that it would give a positive thrust in the expected direction.
-
    - The expected thrust direction can vary by vehicle type.
      For example in multicopters the thrust should always point upwards, while in a fixed-wing vehicle the thrust will push the vehicle forwards.
    - For VTOL, thrust should point upwards when the Tilt Servo is at 0 degrees as defined the [Tilt Servo Convention](#tilt-servo-coordinate-system).
@@ -549,7 +547,6 @@ To set these up:
    ![Control Surface Disarmed 1500 Setting](../../assets/config/actuators/control_surface_aileron_setup.png)
 
 2. Move the slider for the surface upwards (positive command) and verify that it moves in the direction defined in the [Control Surface Convention](#control-surface-deflection-convention).
-
    - Ailerons, elevons, V-Tails, A-Tails, and other horizontal surfaces should move up.
    - Rudders and other "purely vertical" surfaces should move right.
 
@@ -560,7 +557,6 @@ To set these up:
    If the control surface moves in the opposite direction, click on the `Rev Range` checkbox to reverse the range.
 
 3. Move the slider again to the middle and check if the Control Surfaces are aligned in the neutral position of the wing.
-
    - If it is not aligned, you can set the **Trim** value for the control surface.
 
      ::: info

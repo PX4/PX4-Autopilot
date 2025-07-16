@@ -282,6 +282,13 @@ public:
 	 * Default baud rate, used when the user requested an invalid baud rate.
 	 */
 	static uint32_t k_default_baud_rate;
+
+	/**
+	 * @brief Parse the next byte of a received message from the receiver.
+	 *
+	 * @return 0 = decoding, 1 = message handled, 2 = sat info message handled
+	 */
+	int parse_char(const uint8_t byte);
 private:
 	enum class State {
 		OpeningSerialPort,
@@ -310,7 +317,7 @@ private:
 	 * The result of trying to configure the receiver.
 	 */
 	enum class ConfigureResult : int32_t {
-		OK               = 0,
+		Ok               = 0,
 		FailedCompletely = 1 << 0,
 		NoLogging        = 1 << 1,
 	};
@@ -406,13 +413,6 @@ private:
 	 * @return `ConfigureResult::OK` if configured, or error.
 	 */
 	ConfigureResult configure();
-
-	/**
-	 * @brief Parse the next byte of a received message from the receiver.
-	 *
-	 * @return 0 = decoding, 1 = message handled, 2 = sat info message handled
-	 */
-	int parse_char(const uint8_t byte);
 
 	/**
 	 * @brief Process a fully received message from the receiver.
@@ -710,8 +710,6 @@ private:
 	char                                   _port[20] {};                                                 ///< The path of the used serial device
 	hrt_abstime                            _last_rtcm_injection_time {0};                                ///< Time of last RTCM injection
 	uint8_t                                _selected_rtcm_instance {0};                                  ///< uORB instance that is being used for RTCM corrections
-	uint8_t                                _spoofing_state {0};                                          ///< Receiver spoofing state
-	uint8_t                                _jamming_state {0};                                           ///< Receiver jamming state
 	bool                                   _time_synced {false};                                         ///< Receiver time in sync with GPS time
 	const Instance                         _instance {Instance::Main};                                   ///< The receiver that this instance of the driver controls
 	uint32_t                               _chosen_baud_rate {0};                                        ///< The baud rate requested by the user

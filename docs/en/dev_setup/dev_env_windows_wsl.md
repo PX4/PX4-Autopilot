@@ -1,6 +1,6 @@
 # Windows Development Environment (WSL2-Based)
 
-The following instructions explain how to set up a PX4 development environment on Windows 10 or 11, running on Ubuntu Linux within [WSL2](https://docs.microsoft.com/en-us/windows/wsl/about).
+The following instructions explain how to set up a PX4 development environment on Windows 10 or 11, running on Ubuntu Linux within [WSL2](https://learn.microsoft.com/en-us/windows/wsl/about).
 
 This environment can be used to build PX4 for:
 
@@ -16,7 +16,7 @@ The list above are those targets that are regularly tested.
 
 ## Overview
 
-The [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/about) ([WSL2](https://docs.microsoft.com/en-us/windows/wsl/compare-versions)) allows users to install and run the [Ubuntu Development Environment](../dev_setup/dev_env_linux_ubuntu.md) on Windows, _almost_ as though we were running it on a Linux computer.
+The [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/about) ([WSL2](https://learn.microsoft.com/en-us/windows/wsl/compare-versions)) allows users to install and run the [Ubuntu Development Environment](../dev_setup/dev_env_linux_ubuntu.md) on Windows, _almost_ as though we were running it on a Linux computer.
 
 With this environment developers can:
 
@@ -52,7 +52,6 @@ To install WSL2 with Ubuntu on a new installation of Windows 10 or 11:
 1. Open _cmd.exe_ as administrator.
    This can be done by pressing the start key, typing `cmd`, right-clicking on the _Command prompt_ entry and selecting **Run as administrator**.
 1. Execute the following commands to install WSL2 and a particular Ubuntu version:
-
    - Default version (Ubuntu 22.04):
 
      ```sh
@@ -91,7 +90,6 @@ If you're using [Windows Terminal](https://learn.microsoft.com/en-us/windows/ter
 To open a WSL shell using a command prompt:
 
 1. Open a command prompt:
-
    - Press the Windows **Start** key.
    - Type `cmd` and press **Enter** to open the prompt.
 
@@ -156,7 +154,6 @@ To install the development toolchain:
 
    ::: info
    This installs tools to build PX4 for Pixhawk and either Gazebo or Gazebo Classic targets:
-
    - You can use the `--no-nuttx` and `--no-sim-tools` options to omit the NuttX and/or simulation tools.
    - Other Linux build targets are untested (you can try these by entering the appropriate commands in [Ubuntu Development Environment](../dev_setup/dev_env_linux_ubuntu.md) into the WSL shell).
      :::

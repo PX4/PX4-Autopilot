@@ -308,7 +308,7 @@ For specific examples see the `_sihsim_` airframes in [ROMFS/px4fmu_common/init.
 
 The dynamic models for the various vehicles are:
 
-- Quadcopter: [pdf report](https://github.com/PX4/PX4-user_guide/raw/main/assets/simulation/SIH_dynamic_model.pdf).
+- Quadcopter: [pdf report](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/simulation/SIH_dynamic_model.pdf).
 - Hexacopter: Equivalent to the Quadcopter but with a symmetric hexacopter x actuation setup.
 - Fixed-wing: Inspired by the PhD thesis: "Dynamics modeling of agile fixed-wing unmanned aerial vehicles." Khan, Waqas, supervised by Nahon, Meyer, McGill University, PhD thesis, 2016.
 - Tailsitter: Inspired by the master's thesis: "Modeling and control of a flying wing tailsitter unmanned aerial vehicle." Chiappinelli, Romain, supervised by Nahon, Meyer, McGill University, Masters thesis, 2018.

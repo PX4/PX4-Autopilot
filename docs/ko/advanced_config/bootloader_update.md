@@ -78,7 +78,7 @@ arm-none-eabi-objcopy -O ihex build/px4_fmu-v6x_bootloader/px4_fmu-v6x_bootloade
 
 ### PX4 Bootloader FMUv5X and earlier
 
-PX4 boards up to FMUv5X (before STM32H7) used the [PX4 bootloader](https://github.com/PX4/Bootloader) repository.
+PX4 boards up to FMUv5X (before STM32H7) used the [PX4 bootloader](https://github.com/PX4/PX4-Bootloader) repository.
 
 The instructions in the repo README explain how to use it.
 
@@ -117,7 +117,7 @@ The following steps explain how you can "manually" update the bootloader using a
 
 :::
 
-4. The _gdb terminal_ appears and it should display the following output:
+4. The _gdb terminal_ appears and it should display (something like) the following output:
 
   ```sh
   GNU gdb (GNU Tools for Arm Embedded Processors 7-2017-q4-major) 8.0.50.20171128-git
@@ -129,9 +129,9 @@ The following steps explain how you can "manually" update the bootloader using a
   This GDB was configured as "--host=x86_64-linux-gnu --target=arm-none-eabi".
   Type "show configuration" for configuration details.
   For bug reporting instructions, please see:
-  <http://www.gnu.org/software/gdb/bugs/>.
+  <https://www.sourceware.org/gdb/bugs/>.
   Find the GDB manual and other documentation resources online at:
-  <http://www.gnu.org/software/gdb/documentation/>.
+  <https://www.sourceware.org/gdb/documentation/>.
   For help, type "help".
   Type "apropos word" to search for commands related to "word"...
   Reading symbols from px4fmuv5_bl.elf...done.
@@ -148,7 +148,7 @@ The following steps explain how you can "manually" update the bootloader using a
 7. Power on the Pixhawk with another USB cable and connect the probe to the `FMU-DEBUG` port.
 
   ::: info
-  If using a Dronecode probe you may need to remove the case in order to connect to the `FMU-DEBUG` port (e.g. on Pixhawk 4 you would do this using a T6 Torx screwdriver).
+  If using a Zubax BugFace BF1 you may need to remove the case in order to connect to the `FMU-DEBUG` port (e.g. on Pixhawk 4 you would do this using a T6 Torx screwdriver).
 
 :::
 
