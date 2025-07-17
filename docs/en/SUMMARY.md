@@ -194,7 +194,6 @@
     - [Discontinued Autopilots/Vehicles](flight_controller/autopilot_discontinued.md)
       - [Drotek Dropix (FMUv2)](flight_controller/dropix.md)
       - [Omnibus F4 SD](flight_controller/omnibus_f4_sd.md)
-      - [BetaFPV Beta75X 2S Brushless Whoop](complete_vehicles_mc/betafpv_beta75x.md)
       - [Bitcraze Crazyflie 2.0 ](complete_vehicles_mc/crazyflie2.md)
       - [Aerotenna OcPoC-Zynq Mini](flight_controller/ocpoc_zynq.md)
       - [CUAV X7](flight_controller/cuav_x7.md)

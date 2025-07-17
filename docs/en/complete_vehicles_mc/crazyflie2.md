@@ -37,7 +37,7 @@ The main hardware documentation is here: https://wiki.bitcraze.io/projects:crazy
 - [Crazyflie 2.0](https://store.bitcraze.io/collections/kits/products/crazyflie-2-0).
 - [Crazyradio PA 2.4 GHz USB dongle](https://store.bitcraze.io/products/crazyradio-pa): used for wireless communication between _QGroundControl_ and Crazyflie 2.0.
 - [Breakout deck](https://store.bitcraze.io/collections/decks/products/breakout-deck): breakout expansion board for connecting new peripherals.
-- [Flow deck](https://store.bitcraze.io/collections/decks/products/flow-deck): contains an optical flow sensor to measure movements of the ground and a distance sensor to measure the distance to the ground.
+- [Flow deck](https://store.bitcraze.io/products/flow-deck): contains an optical flow sensor to measure movements of the ground and a distance sensor to measure the distance to the ground.
   This will be useful for precise altitude and position control.
 - [Z-ranger deck](https://store.bitcraze.io/collections/decks/products/z-ranger-deck) has the same distance sensor as the Flow deck to measure the distance to the ground.
   This will be useful for precise altitude control.
@@ -225,7 +225,7 @@ This is the rate at which Joystick commands are sent from QGroundControl to Craz
 Crazyflie 2.0 is able to fly with precise control in [Stabilized mode](../flight_modes_mc/manual_stabilized.md), [Altitude mode](../flight_modes_mc/altitude.md) and [Position mode](../flight_modes_mc/position.md).
 
 - You will need the [Z-ranger deck](https://store.bitcraze.io/collections/decks/products/z-ranger-deck) to fly in _Altitude_ mode.
-  If you also want to fly in the _Position_ mode, it is recommended you buy the [Flow deck](https://store.bitcraze.io/collections/decks/products/flow-deck) which also has the integrated Z-ranger sensor.
+  If you also want to fly in the _Position_ mode, it is recommended you buy the [Flow deck](https://store.bitcraze.io/products/flow-deck) which also has the integrated Z-ranger sensor.
 - The onboard barometer is highly susceptible to any external wind disturbances including those created by Crazyflie's own propellers. Hence, we isolated the barometer with a piece of foam, and then mounted the distance sensor on top of it as shown below:
 
 ![Crazyflie barometer](../../assets/flight_controller/crazyflie/crazyflie_barometer.jpg)
@@ -257,7 +257,7 @@ Since the onboard barometer is highly susceptible to wind disturbances created b
 
 ## Position Control
 
-With [Flow deck](https://store.bitcraze.io/collections/decks/products/flow-deck), you can fly Crazyflie 2.0 in _Position mode_.
+With [Flow deck](https://store.bitcraze.io/products/flow-deck), you can fly Crazyflie 2.0 in _Position mode_.
 Unlike [PX4FLOW](../sensor/px4flow.md), the flow deck does not house a gyro, hence the onboard gyro is used for flow fusion to find the local position estimates.
 Moreover, the flow deck shares the same SPI bus as the SD card deck, therefore logging at high rate on SD card is not recommended when flying in _Position mode_.
 
