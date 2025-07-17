@@ -48,7 +48,7 @@ First install required package:
 sudo apt-get install crda
 ```
 
-Edit the file `/etc/default/crda` to change the correct WiFi region. [Reference List](https://www.arubanetworks.com/techdocs/InstantWenger_Mobile/Advanced/Content/Instant%20User%20Guide%20-%20volumes/Country_Codes_List.htm)
+Edit the file `/etc/default/crda` to change the correct WiFi region. [Reference List](https://arubanetworking.hpe.com/techdocs/InstantWenger_Mobile/Advanced/Content/Instant%20User%20Guide%20-%20volumes/Country_Codes_List.htm)
 
 ```sh
 sudo nano /etc/default/crda

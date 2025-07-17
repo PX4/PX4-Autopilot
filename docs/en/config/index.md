@@ -69,7 +69,7 @@ The video below shows most of the calibration process (it uses an older version 
 
 ## Support
 
-If you need help with the configuration you can ask for help on the [QGroundControl Support forum](https://discuss.px4.io//c/qgroundcontrol/qgroundcontrol-usage).
+If you need help with the configuration you can ask for help on the [QGroundControl Support forum](https://discuss.px4.io/c/qgroundcontrol/qgroundcontrol-usage/18).
 
 ## See Also
 
