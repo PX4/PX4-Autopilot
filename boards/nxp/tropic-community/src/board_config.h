@@ -98,9 +98,9 @@
 #define GPIO_SPI1_MISO_OFF  _PIN_OFF(_GPIO_LPSPI1_MISO)
 #define GPIO_SPI1_MOSI_OFF  _PIN_OFF(_GPIO_LPSPI1_MOSI)
 
-#define _GPIO_LPSPI3_SCK   /* GPIO_AD_B0_00 GPIO1_IO0 */  (GPIO_PORT1 | GPIO_PIN0 | CS_IOMUX)
-#define _GPIO_LPSPI3_MISO  /* GPIO_AD_B1_13 GPIO1_IO29 */  (GPIO_PORT1 | GPIO_PIN29 | CS_IOMUX)
-#define _GPIO_LPSPI3_MOSI  /* GPIO_AD_B1_14 GPIO1_IO30 */  (GPIO_PORT1 | GPIO_PIN30 | CS_IOMUX)
+#define _GPIO_LPSPI3_SCK   /* GPIO_AD_B1_15 GPIO1_IO27 */  (GPIO_PORT1 | GPIO_PIN31 | CS_IOMUX)
+#define _GPIO_LPSPI3_MISO  /* GPIO_AD_B1_13 GPIO1_IO27 */  (GPIO_PORT1 | GPIO_PIN29 | CS_IOMUX)
+#define _GPIO_LPSPI3_MOSI  /* GPIO_AD_B1_14 GPIO1_IO27 */  (GPIO_PORT1 | GPIO_PIN30 | CS_IOMUX)
 
 #define GPIO_SPI3_SCK_OFF   _PIN_OFF(_GPIO_LPSPI3_SCK)
 #define GPIO_SPI3_MISO_OFF  _PIN_OFF(_GPIO_LPSPI3_MISO)
@@ -112,6 +112,7 @@
 
 #define GPIO_DRDY_OFF_SPI4_DRDY7_EXTERNAL1   _PIN_OFF(GPIO_SPI4_DRDY7_EXTERNAL1)
 
+
 #define ADC_IOMUX (IOMUX_CMOS_INPUT | IOMUX_PULL_NONE | IOMUX_DRIVE_HIZ)
 
 #define ADC1_CH(n)                  (n)
@@ -120,13 +121,13 @@
 /* Define GPIO pins used as ADC N.B. Channel numbers are for reference, */
 
 #define PX4_ADC_GPIO  \
-	/* BATTERY1_VOLTAGE       GPIO_AD_B1_14 GPIO1 Pin 30 */  ADC1_GPIO(0,  30),  \
-	/* BATTERY1_CURRENT       GPIO_AD_B1_08 GPIO1 Pin 27 */  ADC1_GPIO(0,  27)
+	/* BATTERY1_VOLTAGE       GPIO_AD_B1_08 GPIO1 Pin 27 */  ADC1_GPIO(0,  27),  \
+	/* BATTERY1_CURRENT       GPIO_AD_B1_11 GPIO1 Pin 24 */  ADC1_GPIO(0,  24)
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL        /* GPIO_AD_B1_14 GPIO1 Pin 30 */  ADC1_CH(3)
-#define ADC_BATTERY_CURRENT_CHANNEL        /* GPIO_AD_B1_08 GPIO1 Pin 27 */  ADC1_CH(13)
+#define ADC_BATTERY_VOLTAGE_CHANNEL        /* GPIO_AD_B1_08 GPIO1 Pin 27 */  ADC1_CH(13)
+#define ADC_BATTERY_CURRENT_CHANNEL        /* GPIO_AD_B1_11 GPIO1 Pin 12 */  ADC1_CH(0)
 
 #define ADC_CHANNELS \
 	((1 << ADC_BATTERY_VOLTAGE_CHANNEL)       | \
@@ -140,6 +141,7 @@
 
 #define GENERAL_INPUT_IOMUX  (IOMUX_CMOS_INPUT |  IOMUX_PULL_UP_47K | IOMUX_DRIVE_HIZ)
 #define GENERAL_OUTPUT_IOMUX (IOMUX_CMOS_OUTPUT | IOMUX_PULL_KEEP | IOMUX_DRIVE_33OHM  | IOMUX_SPEED_MEDIUM | IOMUX_SLEW_FAST)
+
 
 /* PWM
  */
@@ -159,6 +161,8 @@
 #define PWM_LED_RED   /* GPIO_AD_B0_02 */ (GPIO_XBAR1_INOUT16_1 | GENERAL_OUTPUT_IOMUX)
 #define PWM_LED_GREEN /* GPIO_B1_03    */ (GPIO_FLEXPWM2_PWMB03_4 | GENERAL_OUTPUT_IOMUX)
 #define PWM_LED_BLUE  /* GPIO_AD_B0_03 */ (GPIO_XBAR1_INOUT17_1 | GENERAL_OUTPUT_IOMUX)
+
+
 
 /* Tone alarm output */
 
@@ -180,6 +184,12 @@
 /* High-resolution timer */
 #define HRT_TIMER               1  /* use GPT1 for the HRT */
 #define HRT_TIMER_CHANNEL       1  /* use capture/compare channel 1 */
+
+#define RC_SERIAL_PORT                  "/dev/ttyS4"
+#define RC_SERIAL_SINGLEWIRE            1 // Suport Single wire wiring
+#define RC_SERIAL_SWAP_RXTX             1 // Set Swap (but not supported in HW) to use Single wire
+#define RC_SERIAL_SWAP_USING_SINGLEWIRE 1 // Set to use Single wire swap as HW does not support swap
+#define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 /* Safety Switch is HW version dependent on having an PX4IO
  * So we init to a benign state with the _INIT definition
@@ -224,6 +234,9 @@ static inline int board_read_usb2_vbus_state(void)
 
 #define BOARD_ADC_BRICK_VALID   (board_read_usb2_vbus_state() == 0)
 
+
+
+
 #define BOARD_ADC_USB_CONNECTED (board_read_VBUS_state() == 0)
 
 /* FMUv5 never powers odd the Servo rail */
@@ -242,34 +255,13 @@ static inline int board_read_usb2_vbus_state(void)
 
 #define PX4_GPIO_INIT_LIST { \
 		PX4_ADC_GPIO,                     \
-		GPIO_MUX_SEL_PAY1,             \
-		GPIO_MUX_SEL_PAY2,             \
-		GPIO_MUX_SEL_PAY3,             \
-		GPIO_MUX_SEL_PAY4,             \
-		GPIO_ACC1_PWR,             \
-		GPIO_ACC2_PWR,             \
-		GPIO_MUX_SEL_FORE,             \
-		GPIO_MUX_SEL_AFT,             \
-		GPIO_MUX_SEL_M1,             \
-		GPIO_MUX_SEL_M2,             \
-		GPIO_MUX_SEL_IMU,             \
-		GPIO_INT_I2CEXP,             \
-		GPIO_EXT_I2CEXP,             \
+		GPIO_FLEXCAN3_TX,                 \
+		GPIO_FLEXCAN3_RX,                 \
+		GPIO_TONE_ALARM_IDLE,             \
+		GPIO_SAFETY_SWITCH_IN             \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
-
-/* To detect IMU */
-#define BOARD_HAS_HW_VERSIONING  1
-#define BOARD_HAS_HW_SPLIT_VERSIONING 1
-#define HW_INFO_INIT_PREFIX    "TROPIC"
-
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 3
-//                 Base/FMUM
-#define TROPIC_0   HW_FMUM_ID(0x0) // ICM42688
-#define TROPIC_1   HW_FMUM_ID(0x1) // ICM42688
-#define TROPIC_2   HW_FMUM_ID(0x2) // ICM45686
-
 __BEGIN_DECLS
 
 /****************************************************************************************************
@@ -324,8 +316,6 @@ extern int imxrt1062_spi_bus_initialize(void);
  *
  ************************************************************************************/
 
-extern void imxrt_spiinitialize(void);
-
 extern int imxrt_usb_initialize(void);
 
 extern void imxrt_usbinitialize(void);
@@ -335,8 +325,6 @@ extern void board_peripheral_reset(int ms);
 extern void fmurt1062_timer_initialize(void);
 
 #include <px4_platform_common/board_common.h>
-
-void imxrt_flash_romapi_initialize(void);
 
 int imxrt_flexspi_storage_initialize(void);
 
