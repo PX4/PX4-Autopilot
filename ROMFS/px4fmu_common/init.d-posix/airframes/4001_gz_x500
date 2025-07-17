@@ -36,22 +36,22 @@ param set-default CA_ROTOR3_KM -0.05
 param set-default MET_ROTOR_COUNT 4
 param set-default MET_ROTOR0_PX 0.174
 param set-default MET_ROTOR0_PY -0.174
-param set-default MET_ROTOR0_CT 0.001
+param set-default MET_ROTOR0_CT 0.0001047
 param set-default MET_ROTOR0_KM 0.0005
 param set-default MET_ROTOR0_IZZ 2.649858234714004e-05
 param set-default MET_ROTOR1_PX -0.174
 param set-default MET_ROTOR1_PY 0.174
-param set-default MET_ROTOR1_CT 0.001
+param set-default MET_ROTOR1_CT 0.0001047
 param set-default MET_ROTOR1_KM 0.0005
 param set-default MET_ROTOR1_IZZ 2.649858234714004e-05
 param set-default MET_ROTOR2_PX 0.174
 param set-default MET_ROTOR2_PY 0.174
-param set-default MET_ROTOR2_CT 0.001
+param set-default MET_ROTOR2_CT 0.0001047
 param set-default MET_ROTOR2_KM -0.0005
 param set-default MET_ROTOR2_IZZ 2.649858234714004e-05
 param set-default MET_ROTOR3_PX -0.174
 param set-default MET_ROTOR3_PY -0.174
-param set-default MET_ROTOR3_CT 0.001
+param set-default MET_ROTOR3_CT 0.0001047
 param set-default MET_ROTOR3_KM -0.0005
 param set-default MET_ROTOR3_IZZ 2.649858234714004e-05
 

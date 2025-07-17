@@ -141,7 +141,7 @@ private:
 	SquareMatrix<float, NUM_ACTUATORS> _G1_adaptive_constants;
 	SquareMatrix<float, NUM_ACTUATORS> _G2_adaptive_constants;
 
-	SquareMatrix<float, 3> _adaptive_constants_per_axis = diag(Vector3f(0.2f, 0.2f, 0.2f));
+	SquareMatrix<float, 3> _adaptive_constants_per_axis = diag(Vector3f(1.5f, 1.5f, 1.5f));
 
 	Geometry _geometry{};
 
