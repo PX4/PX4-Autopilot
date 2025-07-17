@@ -102,7 +102,7 @@ Decoder::State Decoder::add_byte(uint8_t byte)
 
 BlockID Decoder::id() const
 {
-	return _state == State::Done ? _message.header.id_number : BlockID::Invalid;
+	return _state == State::Done ? static_cast<BlockID>(_message.header.id_number) : BlockID::Invalid;
 }
 
 int Decoder::parse(Header *header) const
@@ -262,8 +262,14 @@ bool Decoder::done() const
 
 bool Decoder::can_parse() const
 {
-	return done() && _message.header.length <= sizeof(_message) && _message.header.length > 4
-	       && _message.header.crc == buffer_crc16(reinterpret_cast<const uint8_t *>(&_message) + 4, _message.header.length - 4);
+	const bool precondition = done() && _message.header.length <= sizeof(_message) && _message.header.length > 4;
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+	// When fuzzing, disable the CRC check as it is hard for the fuzzer to find msgs with valid CRC.
+	return precondition;
+#else
+	return precondition &&
+	       _message.header.crc == buffer_crc16(reinterpret_cast<const uint8_t *>(&_message) + 4, _message.header.length - 4);
+#endif
 }
 
 } // namespace sbf

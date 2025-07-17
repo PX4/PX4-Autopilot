@@ -58,6 +58,9 @@ DShot::~DShot()
 	up_dshot_arm(false);
 
 	perf_free(_cycle_perf);
+	perf_free(_bdshot_rpm_perf);
+	perf_free(_dshot_telem_perf);
+
 	delete _telemetry;
 }
 
@@ -248,6 +251,8 @@ int DShot::handle_new_telemetry_data(const int telemetry_index, const DShotTelem
 
 	_last_telemetry_index = telemetry_index;
 
+	perf_count(_dshot_telem_perf);
+
 	return ret;
 }
 
@@ -323,9 +328,9 @@ int DShot::handle_new_bdshot_erpm(void)
 
 			++telemetry_index;
 		}
-
-
 	}
+
+	perf_count(_bdshot_rpm_perf);
 
 	return num_erpms;
 }
@@ -362,59 +367,12 @@ int DShot::send_command_thread_safe(const dshot_command_t command, const int num
 	return 0;
 }
 
-void DShot::retrieve_and_print_esc_info_thread_safe(const int motor_index)
-{
-	if (_request_esc_info.load() != nullptr) {
-		// already in progress (not expected to ever happen)
-		return;
-	}
-
-	DShotTelemetry::OutputBuffer output_buffer{};
-	output_buffer.motor_index = motor_index;
-
-	// start the request
-	_request_esc_info.store(&output_buffer);
-
-	// wait until processed
-	int max_time = 1000;
-
-	while (_request_esc_info.load() != nullptr && max_time-- > 0) {
-		px4_usleep(1000);
-	}
-
-	_request_esc_info.store(nullptr); // just in case we time out...
-
-	if (output_buffer.buf_pos == 0) {
-		PX4_ERR("No data received. If telemetry is setup correctly, try again");
-		return;
-	}
-
-	DShotTelemetry::decodeAndPrintEscInfoPacket(output_buffer);
-}
-
-int DShot::request_esc_info()
-{
-	_telemetry->redirectOutput(*_request_esc_info.load());
-	_waiting_for_esc_info = true;
-
-	int motor_index = _request_esc_info.load()->motor_index;
-
-	_current_command.motor_mask = 1 << motor_index;
-	_current_command.num_repetitions = 1;
-	_current_command.command = DShot_cmd_esc_info;
-	_current_command.save = false;
-
-	PX4_DEBUG("Requesting ESC info for motor %i", motor_index);
-	return motor_index;
-}
-
 void DShot::mixerChanged()
 {
 	update_num_motors();
-
 }
 
-bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			  unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (!_outputs_on) {
@@ -424,98 +382,82 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	int requested_telemetry_index = -1;
 
 	if (_telemetry) {
-		// check for an ESC info request. We only process it when we're not expecting other telemetry data
-		if (_request_esc_info.load() != nullptr && !_waiting_for_esc_info && stop_motors
-		    && !_telemetry->expectingData() && !_current_command.valid()) {
-			requested_telemetry_index = request_esc_info();
-
-		} else {
-			requested_telemetry_index = _telemetry->getRequestMotorIndex();
-		}
+		requested_telemetry_index = _telemetry->getRequestMotorIndex();
 	}
 
-	if (stop_motors) {
+	int telemetry_index = 0;
 
-		int telemetry_index = 0;
+	for (int i = 0; i < (int)num_outputs; i++) {
 
-		// when motors are stopped we check if we have other commands to send
-		for (int i = 0; i < (int)num_outputs; i++) {
+		uint16_t output = outputs[i];
+
+		if (output == DSHOT_DISARM_VALUE) {
+
 			if (_current_command.valid() && (_current_command.motor_mask & (1 << i))) {
-				// for some reason we need to always request telemetry when sending a command
 				up_dshot_motor_command(i, _current_command.command, true);
 
 			} else {
 				up_dshot_motor_command(i, DShot_cmd_motor_stop, telemetry_index == requested_telemetry_index);
 			}
 
-			telemetry_index += _mixing_output.isFunctionSet(i);
-		}
+		} else {
 
-		if (_current_command.valid()) {
-			--_current_command.num_repetitions;
-
-			if (_current_command.num_repetitions == 0 && _current_command.save) {
-				_current_command.save = false;
-				_current_command.num_repetitions = 10;
-				_current_command.command = dshot_command_t::DShot_cmd_save_settings;
-			}
-		}
-
-	} else {
-		int telemetry_index = 0;
-
-		for (int i = 0; i < (int)num_outputs; i++) {
-
-			uint16_t output = outputs[i];
-
-			if (output == DSHOT_DISARM_VALUE) {
-				up_dshot_motor_command(i, DShot_cmd_motor_stop, telemetry_index == requested_telemetry_index);
-
-			} else {
-
-				// DShot 3D splits the throttle ranges in two.
-				// This is in terms of DShot values, code below is in terms of actuator_output
-				// Direction 1) 48 is the slowest, 1047 is the fastest.
-				// Direction 2) 1049 is the slowest, 2047 is the fastest.
-				if (_param_dshot_3d_enable.get() || (_reversible_outputs & (1u << i))) {
-					if (output >= _param_dshot_3d_dead_l.get() && output < _param_dshot_3d_dead_h.get()) {
-						output = DSHOT_DISARM_VALUE;
-
-					} else {
-						bool upper_range = output >= 1000;
-
-						if (upper_range) {
-							output -= 1000;
-
-						} else {
-							output = 999 - output; // lower range is inverted
-						}
-
-						float max_output = 999.f;
-						float min_output = max_output * _param_dshot_min.get();
-						output = math::min(max_output, (min_output + output * (max_output - min_output) / max_output));
-
-						if (upper_range) {
-							output += 1000;
-						}
-
-					}
-				}
-
-				up_dshot_motor_data_set(i, math::min(output, static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
-							telemetry_index == requested_telemetry_index);
+			if (_param_dshot_3d_enable.get() || (_reversible_outputs & (1u << i))) {
+				output = convert_output_to_3d_scaling(output);
 			}
 
-			telemetry_index += _mixing_output.isFunctionSet(i);
+			up_dshot_motor_data_set(i, math::min(output, static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
+						telemetry_index == requested_telemetry_index);
 		}
 
-		// clear commands when motors are running
-		_current_command.clear();
+		telemetry_index += _mixing_output.isFunctionSet(i);
+	}
+
+	// Decrement the command counter
+	if (_current_command.valid()) {
+		--_current_command.num_repetitions;
+
+		// Queue a save command after the burst if save has been requested
+		if (_current_command.num_repetitions == 0 && _current_command.save) {
+			_current_command.save = false;
+			_current_command.num_repetitions = 10;
+			_current_command.command = dshot_command_t::DShot_cmd_save_settings;
+		}
 	}
 
 	up_dshot_trigger();
 
 	return true;
+}
+
+uint16_t DShot::convert_output_to_3d_scaling(uint16_t output)
+{
+	// DShot 3D splits the throttle ranges in two.
+	// This is in terms of DShot values, code below is in terms of actuator_output
+	// Direction 1) 48 is the slowest, 1047 is the fastest.
+	// Direction 2) 1049 is the slowest, 2047 is the fastest.
+	if (output >= _param_dshot_3d_dead_l.get() && output < _param_dshot_3d_dead_h.get()) {
+		return DSHOT_DISARM_VALUE;
+	}
+
+	bool upper_range = output >= 1000;
+
+	if (upper_range) {
+		output -= 1000;
+
+	} else {
+		output = 999 - output; // lower range is inverted
+	}
+
+	float max_output = 999.f;
+	float min_output = max_output * _param_dshot_min.get();
+	output = math::min(max_output, (min_output + output * (max_output - min_output) / max_output));
+
+	if (upper_range) {
+		output += 1000;
+	}
+
+	return output;
 }
 
 void DShot::Run()
@@ -542,14 +484,7 @@ void DShot::Run()
 	if (_telemetry) {
 		const int telem_update = _telemetry->update(_num_motors);
 
-		// Are we waiting for ESC info?
-		if (_waiting_for_esc_info) {
-			if (telem_update != -1) {
-				_request_esc_info.store(nullptr);
-				_waiting_for_esc_info = false;
-			}
-
-		} else if (telem_update >= 0) {
+		if (telem_update >= 0) {
 			const int need_to_publish = handle_new_telemetry_data(telem_update, _telemetry->latestESCData(),
 						    _bidirectional_dshot_enabled);
 
@@ -772,27 +707,6 @@ int DShot::custom_command(int argc, char *argv[])
 		}
 	}
 
-	if (!strcmp(verb, "esc_info")) {
-		if (!is_running()) {
-			PX4_ERR("module not running");
-			return -1;
-		}
-
-		if (motor_index == -1) {
-			PX4_ERR("No motor index specified");
-			return -1;
-		}
-
-		if (!get_instance()->telemetry_enabled()) {
-			PX4_ERR("Telemetry is not enabled, but required to get ESC info");
-			return -1;
-		}
-
-		get_instance()->retrieve_and_print_esc_info_thread_safe(motor_index);
-		return 0;
-	}
-
-
 	if (!is_running()) {
 		int ret = DShot::task_spawn(argc, argv);
 
@@ -810,6 +724,9 @@ int DShot::print_status()
 	PX4_INFO("Outputs used: 0x%" PRIx32, _output_mask);
 	PX4_INFO("Outputs on: %s", _outputs_on ? "yes" : "no");
 	perf_print_counter(_cycle_perf);
+	perf_print_counter(_bdshot_rpm_perf);
+	perf_print_counter(_dshot_telem_perf);
+
 	_mixing_output.printStatus();
 
 	if (_telemetry) {
@@ -880,9 +797,6 @@ After saving, the reversed direction will be regarded as the normal one. So to r
 	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("beep5", "Send Beep pattern 5");
 	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
-
-	PRINT_MODULE_USAGE_COMMAND_DESCR("esc_info", "Request ESC information");
-	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based)", false);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 

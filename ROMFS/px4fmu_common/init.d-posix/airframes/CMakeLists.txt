@@ -62,8 +62,6 @@ px4_add_romfs_files(
 	1043_gazebo-classic_standard_vtol_drop
 	1044_gazebo-classic_plane_lidar
 	1045_gazebo-classic_quadtailsitter
-	1060_gazebo-classic_rover
-	1061_gazebo-classic_r1_rover
 	1062_flightgear_tf-r1
 	1070_gazebo-classic_boat
 
@@ -110,6 +108,7 @@ px4_add_romfs_files(
 	10042_sihsim_xvert
 	10043_sihsim_standard_vtol
 	10044_sihsim_hex
+	10045_sihsim_rover_ackermann
 
 	17001_flightgear_tf-g1
 	17002_flightgear_tf-g2

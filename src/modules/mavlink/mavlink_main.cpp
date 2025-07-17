@@ -2103,6 +2103,9 @@ Mavlink::task_main(int argc, char *argv[])
 					} else if (strcmp(myoptarg, "uavionix") == 0) {
 						_mode = MAVLINK_MODE_UAVIONIX;
 
+					} else if (strcmp(myoptarg, "low_bandwidth") == 0) {
+						_mode = MAVLINK_MODE_LOW_BANDWIDTH;
+
 					} else {
 						PX4_ERR("invalid mode");
 						err_flag = true;

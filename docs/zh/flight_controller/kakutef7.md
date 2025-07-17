@@ -3,6 +3,10 @@
 <Badge type="info" text="Discontinued" />
 
 :::warning
+This frame has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
+:::
+
+:::warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::

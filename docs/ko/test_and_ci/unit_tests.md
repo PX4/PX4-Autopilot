@@ -23,7 +23,7 @@ PX4에서는 단위 테스트 작성에 필요한 몇가지 수단을 제공합�
 Tests can be run via `make tests`, after which you will find the binary in `build/px4_sitl_test/unit-MyNewUnit`.
 디버거에서 바로 실행할 수 있습니다.
 
-## GTest 기능 테스트 작성
+## Writing a GTest Functional Test {#functional-test}
 
 GTest 기능 시험은 매개변수, uORB 메세지, 고급 GTest 기능에 따라 테스트할 테스트 단위 또는 구성 요소가 있을 때 활용해야합니다.
 게다가, 기능 테스트 과정에서 자체 STL 데이터 구조를 사용할 수 있습니다(플랫폼간 차이에 유의해야 함. 예: maxOS, Linux).
@@ -178,3 +178,10 @@ make tests TESTFILTER=<regex filter expression>
 - `make tests TESTFILTER=unit` only run GTest unit tests
 - `make tests TESTFILTER=sitl` only run simulation tests
 - `make tests TESTFILTER=Attitude` only run the `AttitudeControl` test
+
+## Fuzz Testing
+
+Fuzz tests are a generalised form of unit test that ensures code is robust against any input.
+They are run as part of the unit tests, and also more extensively in their own testing mode.
+
+For more information see [Fuzz Tests](../test_and_ci/fuzz_tests.md).

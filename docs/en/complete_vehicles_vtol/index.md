@@ -18,7 +18,7 @@ They may come either fully assembled or in parts.
 
 This section lists VTOL vehicles that are sold fully assembled and ready to fly (RTF), with PX4 installed.
 
-- [Vertical Technologies DeltaQuad](https://px4.io/portfolio/deltaquad-vtol/)
+- [Vertical Technologies DeltaQuad](https://px4.io/project/deltaquad-vtol/)
 
 <!-- ## PX4 Compatible -->
 
@@ -27,8 +27,8 @@ This section lists VTOL vehicles that are sold fully assembled and ready to fly 
 This section contains consumer vehicles that run a _custom_ version of PX4 (supported by their vendors).
 These may or may not be updatable to run "vanilla" PX4.
 
-- [WingtraOne Tailsitter VTOL](https://px4.io/portfolio/wingtraone-tailsitter-vtol/)
-- [Flightwave Edge](https://px4.io/portfolio/flywave-edge/)
+- [WingtraOne Tailsitter VTOL](https://px4.io/project/wingtraone-tailsitter-vtol/)
+- [Flightwave Edge](https://px4.io/project/flywave-edge/)
 
 ## See Also
 
