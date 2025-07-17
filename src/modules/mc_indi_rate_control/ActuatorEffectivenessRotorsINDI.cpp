@@ -56,7 +56,6 @@ ActuatorEffectivenessRotorsINDI::ActuatorEffectivenessRotorsINDI(ModuleParams *p
 		_param_handles[i].position_y = param_find(buffer);
 		snprintf(buffer, sizeof(buffer), "MET_ROTOR%u_PZ", i);
 		_param_handles[i].position_z = param_find(buffer);
-
 		if (_axis_config == AxisConfiguration::Configurable) {
 			snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_AX", i);
 			_param_handles[i].axis_x = param_find(buffer);
@@ -68,13 +67,10 @@ ActuatorEffectivenessRotorsINDI::ActuatorEffectivenessRotorsINDI(ModuleParams *p
 
 		snprintf(buffer, sizeof(buffer), "MET_ROTOR%u_CT", i);
 		_param_handles[i].thrust_coef = param_find(buffer);
-
 		snprintf(buffer, sizeof(buffer), "MET_ROTOR%u_KM", i);
 		_param_handles[i].moment_ratio = param_find(buffer);
-
 		snprintf(buffer, sizeof(buffer), "MET_ROTOR%u_IZZ", i);
 		_param_handles[i].moment_inertia = param_find(buffer);
-
 	}
 
 	_G1_adaptive_constants.setIdentity();
@@ -90,7 +86,7 @@ void ActuatorEffectivenessRotorsINDI::updateParams()
 {
 	ModuleParams::updateParams();
 
-	_geometry.num_rotors = math::min(NUM_ACTUATORS, static_cast<int>(_param_ca_rotor_count.get()));
+	_geometry.num_rotors = math::min(NUM_ACTUATORS, static_cast<int>(_param_met_rotor_count.get()));
 
 	for (int i = 0; i < _geometry.num_rotors; ++i) {
 		Vector3f &position = _geometry.rotors[i].position;

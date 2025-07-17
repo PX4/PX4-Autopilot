@@ -196,6 +196,8 @@ private:
 
 		(ParamInt<px4::params::MC_INDI_ADAPT_EN>) _param_mc_indi_adapt_en,
 
-		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff
+		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
+
+		(ParamInt<px4::params::MET_ROTOR_COUNT>) _param_met_rotor_count
 	)
 };

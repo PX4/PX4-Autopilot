@@ -138,6 +138,6 @@ private:
 	Geometry _geometry{};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::CA_ROTOR_COUNT>) _param_ca_rotor_count
+		(ParamInt<px4::params::MET_ROTOR_COUNT>) _param_met_rotor_count
 	)
 };
