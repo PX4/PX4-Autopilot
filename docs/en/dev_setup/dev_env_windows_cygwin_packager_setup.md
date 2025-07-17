@@ -26,7 +26,6 @@ Omissions:
 
 - Simulation: Gazebo and ROS are not supported.
 - Only NuttX and JMAVSim/SITL builds are supported.
-- [Known problems](https://github.com/orgs/PX4/projects/6) (Also use to report issues).
 
 ### Shell Script Installation
 
@@ -86,7 +85,7 @@ The toolchain gets maintained and hence these instructions might not cover every
    That's what [cygwin64/install-cygwin-px4.bat](https://github.com/PX4/PX4-windows-toolchain/blob/master/toolchain/cygwin64/install-cygwin-px4.bat) does.
    :::
 
-1. Write up or copy the **batch scripts** [`run-console.bat`](https://github.com/MaEtUgR/PX4Toolchain/blob/master/run-console.bat) and [`setup-environment.bat`](https://github.com/PX4/PX4-windows-toolchain/blob/master/toolchain/scripts/setup-environment.bat).
+1. Write up or copy the **batch scripts** [`run-console.bat`](https://github.com/PX4/PX4-windows-toolchain/blob/master/run-console.bat) and [`setup-environment.bat`](https://github.com/PX4/PX4-windows-toolchain/blob/master/toolchain/scripts/setup-environment.bat).
 
    The reason to start all the development tools through the prepared batch script is they preconfigure the starting program to use the local, portable Cygwin environment inside the toolchain's folder.
    This is done by always first calling the script [**setup-environment.bat**](https://github.com/PX4/PX4-windows-toolchain/blob/master/toolchain/scripts/setup-environment.bat) and the desired application like the console after that.
@@ -102,17 +101,17 @@ The toolchain gets maintained and hence these instructions might not cover every
    ```
 
    ::: info
-   That's what [cygwin64/install-cygwin-python-packages.bat](https://github.com/MaEtUgR/PX4Toolchain/blob/master/toolchain/cygwin64/install-cygwin-python-packages.bat) does.
+   That's what [cygwin64/install-cygwin-python-packages.bat](https://github.com/PX4/PX4-windows-toolchain/blob/master/toolchain/cygwin64/install-cygwin-python-packages.bat) does.
    :::
 
-1. Download the [**ARM GCC compiler**](https://developer.arm.com/open-source/gnu-toolchain/gnu-rm/downloads) as zip archive of the binaries for Windows and unpack the content to the folder `C:\PX4\toolchain\gcc-arm`.
+1. Download the [**ARM GCC compiler**](https://developer.arm.com/Tools%20and%20Software/GNU%20Toolchain) as zip archive of the binaries for Windows and unpack the content to the folder `C:\PX4\toolchain\gcc-arm`.
 
    ::: info
    This is what the toolchain does in: [gcc-arm/install-gcc-arm.bat](https://github.com/PX4/PX4-windows-toolchain/blob/master/toolchain/gcc-arm/install-gcc-arm.bat).
    :::
 
 1. Install the JDK:
-   - Download Java 14 from [Oracle](https://www.oracle.com/java/technologies/downloads/) or [AdoptOpenJDK](https://adoptopenjdk.net/).
+   - Download Java 14 from [Oracle](https://www.oracle.com/java/technologies/downloads/)
    - Because sadly there is no portable archive containing the binaries directly you have to install it.
    - Find the binaries and move/copy them to **C:\PX4\toolchain\jdk**.
    - You can uninstall the Kit from your Windows system again, we only needed the binaries for the toolchain.

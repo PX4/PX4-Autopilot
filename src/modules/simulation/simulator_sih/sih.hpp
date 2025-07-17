@@ -151,7 +151,7 @@ private:
 	void read_motors(const float dt);
 
 	// generate the motors thrust and torque in the body frame
-	void generate_force_and_torques();
+	void generate_force_and_torques(const float dt);
 
 	// apply the equations of motion of a rigid body and integrate one step
 	void equations_of_motion(const float dt);
@@ -163,6 +163,7 @@ private:
 	void publish_ground_truth(const hrt_abstime &time_now_us);
 	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust);
 	void generate_ts_aerodynamics();
+	void generate_rover_ackermann_dynamics(const float throttle_cmd, const float steering_cmd, const float dt);
 	void sensor_step();
 	static float computeGravity(double lat);
 
@@ -220,7 +221,7 @@ private:
 
 	float _u[NUM_ACTUATORS_MAX] {}; // thruster signals
 
-	enum class VehicleType {Quadcopter, FixedWing, TailsitterVTOL, StandardVTOL, Hexacopter, First = Quadcopter, Last = Hexacopter}; // numbering dependent on parameter SIH_VEHICLE_TYPE
+	enum class VehicleType {Quadcopter, FixedWing, TailsitterVTOL, StandardVTOL, Hexacopter, RoverAckermann, First = Quadcopter, Last = RoverAckermann}; // numbering dependent on parameter SIH_VEHICLE_TYPE
 	VehicleType _vehicle = VehicleType::Quadcopter;
 
 	// aerodynamic segments for the fixedwing
