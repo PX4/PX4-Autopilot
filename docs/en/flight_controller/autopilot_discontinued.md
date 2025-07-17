@@ -26,6 +26,6 @@ They are listed because you may be using them in an existing drone, and because 
 
 ## Complete Vehicles
 
-- [BetaFPV Beta75X 2S Brushless Whoop](../complete_vehicles_mc/betafpv_beta75x.md)
-- [Intel® Aero RTF Drone](../complete_vehicles_mc/intel_aero.md) ([Complete Vehicle](../complete_vehicles_mc/index.md))
-- [Qualcomm Snapdragon Flight](../flight_controller/snapdragon_flight.md) ([Complete Vehicle](../complete_vehicles_mc/index.md))
+- [BetaFPV Beta75X 2S Brushless Whoop](https://docs.px4.io/v1.14/en/complete_vehicles/betafpv_beta75x.html#betafpv-beta75x-2s-brushless-whoop) (circa PX4 v1.14)
+- [Intel® Aero RTF Drone](https://docs.px4.io/v1.12/en/complete_vehicles/intel_aero.html) (circa PX4 v1.12)
+- [Qualcomm Snapdragon Flight](https://docs.px4.io/v1.11/en/flight_controller/snapdragon_flight.html) (circa PX4 v1.11)

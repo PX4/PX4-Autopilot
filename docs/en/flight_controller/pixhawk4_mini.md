@@ -1,5 +1,7 @@
 # Holybro Pixhawk 4 Mini (Discontinued)
 
+<Badge type="info" text="Discontinued" px4_current="v1.15" year="2024"/>
+
 :::warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
@@ -54,7 +56,7 @@ Additional information can be found in the [_Pixhawk 4 Mini_ Technical Data Shee
 
 ## Where to Buy
 
-Order from [Holybro](https://holybro.com/collections/autopilot-flight-controllers/products/pixhawk4-mini).
+No longer available.
 
 ## Interfaces
 
