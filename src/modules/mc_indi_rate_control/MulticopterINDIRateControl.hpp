@@ -122,9 +122,10 @@ private:
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub;
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub;
 
+	vehicle_torque_setpoint_s _vehicle_torque_setpoint{};
+
 	vehicle_control_mode_s	_vehicle_control_mode{};
 	vehicle_status_s	_vehicle_status{};
-	esc_status_s _esc_status{};	// used for INDI
 
 	// Used for INDI
 	matrix::Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> _G1; //16 is the max number of actuators as defined in the ActuatorEffectivenessMatrix

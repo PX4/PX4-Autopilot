@@ -47,6 +47,8 @@
 #include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/indi_adaptation_status.h>
 
 class ActuatorEffectivenessTilts;
 
@@ -106,6 +108,12 @@ public:
 	uint32_t getUpwardsMotors() const;
 	uint32_t getForwardsMotors() const;
 
+	void publishAdaptationStatus(const Vector<float, NUM_ACTUATORS> &delta_motor_speeds,
+		const Vector<float, NUM_ACTUATORS> &delta_dot_motor_speeds,
+		const Vector3f &filtered_angular_accel,
+		const Matrix<float, 3, NUM_ACTUATORS> &G1,
+		const Matrix<float, 3, NUM_ACTUATORS> &G2);
+
 private:
 	void updateParams() override;
 	const AxisConfiguration _axis_config;
@@ -138,6 +146,9 @@ private:
 	Geometry _geometry{};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MET_ROTOR_COUNT>) _param_met_rotor_count
+		(ParamInt<px4::params::CA_ROTOR_COUNT>) _param_met_rotor_count
 	)
+
+	uORB::Publication<indi_adaptation_status_s> _indi_adaptation_status_pub{ORB_ID(indi_adaptation_status)};
+	indi_adaptation_status_s _indi_adaptation_status{};
 };

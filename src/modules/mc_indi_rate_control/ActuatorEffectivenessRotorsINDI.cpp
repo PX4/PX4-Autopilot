@@ -203,6 +203,21 @@ ActuatorEffectivenessRotorsINDI::computeEffectivenessMatrix(const Geometry &geom
 		}
 	}
 
+	PX4_INFO("computeEffectivenessMatrix: Completed with %d actuators", num_actuators);
+
+	// Debug: Print the computed matrices
+	PX4_INFO("G1 matrix (moment part):");
+	for (int i = 0; i < 3; i++) {
+		PX4_INFO("  Row %d: [%.10f, %.10f, %.10f, %.10f]", i,
+			(double)G1(i+3,0), (double)G1(i+3,1), (double)G1(i+3,2), (double)G1(i+3,3));
+	}
+
+	PX4_INFO("G2 matrix (gyroscopic part):");
+	for (int i = 0; i < 3; i++) {
+		PX4_INFO("  Row %d: [%.10f, %.10f, %.10f, %.10f]", i,
+			(double)G2(i+3,0), (double)G2(i+3,1), (double)G2(i+3,2), (double)G2(i+3,3));
+	}
+
 	return num_actuators;
 }
 
@@ -241,7 +256,7 @@ void
 ActuatorEffectivenessRotorsINDI::adaptEffectivenessMatrix(Configuration &configuration,
 		Vector<float, NUM_ACTUATORS> &delta_motor_speeds,
 		Vector<float, NUM_ACTUATORS> &delta_dot_motor_speeds,
-		Vector3f &filtered_angular_accel)
+		Vector3f &delta_filtered_angular_accel)
 {
 	// for readability
 	// use auto to point to the slice object that acts a reference, and allows to not need to reassign the new values
@@ -250,8 +265,58 @@ ActuatorEffectivenessRotorsINDI::adaptEffectivenessMatrix(Configuration &configu
 
 	// split up the equation into g1 and g2, as recombining G = [G1, G2] is not computationally necessary as done in the paper with the current layout of the effectiveness matricies
 	// note: mu2 = apative_constants_per_axis, mu1 is split between the two matricies: g1_adaptive_constants and g2_adaptive_constants
-	G1_moment = G1_moment - _adaptive_constants_per_axis * (G1_moment * delta_motor_speeds - filtered_angular_accel) * delta_motor_speeds.transpose() * _G1_adaptive_constants;
-	G2_moment = G2_moment - _adaptive_constants_per_axis * (G2_moment * delta_dot_motor_speeds - filtered_angular_accel) * delta_dot_motor_speeds.transpose() * _G2_adaptive_constants;
+	G1_moment = G1_moment - _adaptive_constants_per_axis * (G1_moment * delta_motor_speeds - delta_filtered_angular_accel) * delta_motor_speeds.transpose() * _G1_adaptive_constants;
+	G2_moment = G2_moment - _adaptive_constants_per_axis * (G2_moment * delta_dot_motor_speeds - delta_filtered_angular_accel) * delta_dot_motor_speeds.transpose() * _G2_adaptive_constants;
 
+	// Publish adaptation status
+	publishAdaptationStatus(delta_motor_speeds, delta_dot_motor_speeds, delta_filtered_angular_accel, G1_moment, G2_moment);
 
+}
+
+void ActuatorEffectivenessRotorsINDI::publishAdaptationStatus(const Vector<float, NUM_ACTUATORS> &delta_motor_speeds,
+	const Vector<float, NUM_ACTUATORS> &delta_dot_motor_speeds,
+	const Vector3f &delta_filtered_angular_accel,
+	const Matrix<float, 3, NUM_ACTUATORS> &G1,
+	const Matrix<float, 3, NUM_ACTUATORS> &G2)
+{
+	_indi_adaptation_status.timestamp = hrt_absolute_time();
+	_indi_adaptation_status.timestamp_sample = hrt_absolute_time();
+
+	// Copy G1 matrix (3xN) to flattened array
+	for (int row = 0; row < 3; row++) {
+		for (int col = 0; col < NUM_ACTUATORS; col++) {
+			_indi_adaptation_status.g1_matrix[row * _geometry.num_rotors + col] = G1(row, col);
+		}
+	}
+
+	// Copy G2 matrix (3xN) to flattened array
+	for (int row = 0; row < 3; row++) {
+		for (int col = 0; col < NUM_ACTUATORS; col++) {
+			_indi_adaptation_status.g2_matrix[row * _geometry.num_rotors + col] = G2(row, col);
+		}
+	}
+
+	// Copy rotor speeds and derivatives
+	for (int i = 0; i < NUM_ACTUATORS; i++) {
+		_indi_adaptation_status.rotor_speeds[i] = delta_motor_speeds(i);
+		_indi_adaptation_status.rotor_speed_dots[i] = delta_dot_motor_speeds(i);
+	}
+
+	// Copy angular acceleration delta
+	_indi_adaptation_status.angular_accel_delta[0] = delta_filtered_angular_accel(0);	// TODO: check if this is correct																			
+	_indi_adaptation_status.angular_accel_delta[1] = delta_filtered_angular_accel(1);	// TODO: check if this is correct
+	_indi_adaptation_status.angular_accel_delta[2] = delta_filtered_angular_accel(2);	// TODO: check if this is correct
+
+	// Copy adaptation constants
+	_indi_adaptation_status.g1_adaptive_constants[0] = _G1_adaptive_constants(0, 0);
+	_indi_adaptation_status.g1_adaptive_constants[1] = _G1_adaptive_constants(1, 1);
+	_indi_adaptation_status.g1_adaptive_constants[2] = _G1_adaptive_constants(2, 2);
+	_indi_adaptation_status.g2_adaptive_constants[0] = _G2_adaptive_constants(0, 0);
+	_indi_adaptation_status.g2_adaptive_constants[1] = _G2_adaptive_constants(1, 1);
+	_indi_adaptation_status.g2_adaptive_constants[2] = _G2_adaptive_constants(2, 2);
+
+	_indi_adaptation_status.adaptation_enabled = true;
+	_indi_adaptation_status.num_actuators = _geometry.num_rotors;
+
+	_indi_adaptation_status_pub.publish(_indi_adaptation_status);
 }
