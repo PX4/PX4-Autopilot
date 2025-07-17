@@ -8,11 +8,11 @@ To test that optical flow / external vision work as expected
 
 Disconnect all GPS / compasses and ensure vehicle is using optical flow for navigation
 
-Ensure that the drone can go into Altitude / Position mode while still on the ground
+Ensure that the drone can go into Altitude / Position flight mode while still on the ground
 
 ## Flight Tests
 
-❏ Altitude
+❏ Altitude FLIGHT MODE
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Vertical position should hold current value with stick centered
 
@@ -20,7 +20,7 @@ Ensure that the drone can go into Altitude / Position mode while still on the gr
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Throttle response set to climb/descent rate
 
-❏ Position
+❏ Position FLIGHT MODE
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Horizontal position should hold current value with stick centered
 
