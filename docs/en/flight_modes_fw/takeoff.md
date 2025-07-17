@@ -42,7 +42,6 @@ By default, on takeoff the aircraft will follow the line defined by the starting
 Reaching the clearance altitude causes the vehicle to enter [Hold mode](../flight_modes_fw/takeoff.md).
 
 If a waypoint target is set (e.g., using `MAV_CMD_NAV_TAKEOFF`) the vehicle will instead track towards the waypoint, and enter [Hold mode](../flight_modes_fw/takeoff.md) after reaching the waypoint acceptance radius and altitude.
-Note that if the target altitude is below [MIS_TAKEOFF_ALT](#MIS_TAKEOFF_ALT), then it will be used as the acceptance altitude.
 
 ::: tip
 If the local position is invalid or becomes invalid while executing the takeoff, the controller is not able to track a course setpoint and will instead proceed climbing while keeping the wings level until the clearance altitude is reached.
