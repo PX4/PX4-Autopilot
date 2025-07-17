@@ -1,1 +1,0 @@
-<Redirect to="../robotics/#dronekit" />
