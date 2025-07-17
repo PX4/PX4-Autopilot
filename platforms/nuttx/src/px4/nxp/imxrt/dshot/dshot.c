@@ -100,8 +100,6 @@ static uint32_t dshot_mask;
 static uint32_t bdshot_recv_mask;
 static uint32_t bdshot_parsed_recv_mask;
 
-bool flexio1_channels = false;
-bool flexio2_channels = false;
 
 static inline uint32_t flexio_getreg32(uint32_t flexio_base, uint32_t offset)
 {
@@ -212,7 +210,7 @@ static int flexio1_irq_handler(int irq, void *context, void *arg)
 
 	//TODO: only do this for flexio 1 base
 	for (channel = 0; flags && channel < DSHOT_TIMERS; channel++) {
-		if ((flags & (1 << channel)) && timer_io_channels[channel].flex_io_base == 1) {
+		if ((flags & (1 << channel)) && timer_io_channels[channel].flex_io_base == FLEXIO1_BASE) {
 			disable_shifter_status_interrupts(FLEXIO1_BASE, 1 << channel);
 
 			if (dshot_inst[channel].state == DSHOT_START) {
@@ -238,7 +236,7 @@ static int flexio1_irq_handler(int irq, void *context, void *arg)
 	for (channel = 0; flags; (channel = (channel + 1) % DSHOT_TIMERS)) {
 		flags = get_timer_status_flags(FLEXIO1_BASE);
 
-		if ((flags & (1 << channel)) && timer_io_channels[channel].flex_io_base == 1) {
+		if ((flags & (1 << channel)) && timer_io_channels[channel].flex_io_base == FLEXIO1_BASE) {
 			clear_timer_status_flags(FLEXIO1_BASE, 1 << channel);
 
 			if (dshot_inst[channel].state == DSHOT_12BIT_FIFO) {
@@ -312,7 +310,7 @@ static int flexio2_irq_handler(int irq, void *context, void *arg)
 	uint32_t channel;
 
 	for (channel = 0; flags && channel < DSHOT_TIMERS; channel++) {
-		if ((flags & (1 << channel)) && timer_io_channels[channel].flex_io_base == 2) {
+		if ((flags & (1 << channel)) && timer_io_channels[channel].flex_io_base == FLEXIO2_BASE) {
 			disable_shifter_status_interrupts(FLEXIO2_BASE, 1 << channel);
 
 			if (dshot_inst[channel].state == DSHOT_START) {
@@ -338,7 +336,7 @@ static int flexio2_irq_handler(int irq, void *context, void *arg)
 	for (channel = 0; flags; (channel = (channel + 1) % DSHOT_TIMERS)) {
 		flags = get_timer_status_flags(FLEXIO2_BASE);
 
-		if ((flags & (1 << channel)) && timer_io_channels[channel].flex_io_base == 2) {
+		if ((flags & (1 << channel)) && timer_io_channels[channel].flex_io_base == FLEXIO2_BASE) {
 			clear_timer_status_flags(FLEXIO2_BASE, 1 << channel);
 
 			if (dshot_inst[channel].state == DSHOT_12BIT_FIFO) {
@@ -412,13 +410,16 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bi
 	dshot_tcmp = 0x2F00 | (((BOARD_FLEXIO_PREQ / (dshot_pwm_freq * 3) / 2) - 1) & 0xFF);
 	bdshot_tcmp = 0x2900 | (((BOARD_FLEXIO_PREQ / (dshot_pwm_freq * 5 / 4) / 2) - 3) & 0xFF);
 
+	bool flexio1_channels = false;
+	bool flexio2_channels = false;
+
 	for (unsigned i = 0; (channel_mask != 0) && (i < DSHOT_TIMERS); i++) {
 		if (channel_mask & (1 << i)) {
-			if (timer_io_channels[i].flex_io_base == 1) {
+			if (timer_io_channels[i].flex_io_base == FLEXIO1_BASE) {
 				PX4_INFO("Flexio1 channel found");
 				flexio1_channels = true;
 
-			} else if (timer_io_channels[i].flex_io_base == 2) {
+			} else if (timer_io_channels[i].flex_io_base == FLEXIO2_BASE) {
 				PX4_INFO("Flexio2 channel found");
 				flexio2_channels = true;
 
@@ -485,12 +486,12 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bi
 
 			dshot_inst[channel].bdshot = enable_bidirectional_dshot;
 
-			if (timer_io_channels[channel].flex_io_base == 1) {
+			if (timer_io_channels[channel].flex_io_base == FLEXIO1_BASE) {
 
 				flexio_dshot_output(FLEXIO1_BASE, channel, timer_io_channels[channel].dshot.flexio_pin, dshot_tcmp,
 						    dshot_inst[channel].bdshot);
 
-			} else if (timer_io_channels[channel].flex_io_base == 2) {
+			} else if (timer_io_channels[channel].flex_io_base == FLEXIO2_BASE) {
 				flexio_dshot_output(FLEXIO2_BASE, channel, timer_io_channels[channel].dshot.flexio_pin, dshot_tcmp,
 						    dshot_inst[channel].bdshot);
 
@@ -629,6 +630,25 @@ void up_bdshot_status(void)
 
 void up_dshot_trigger(void)
 {
+	bool flexio1_channels = false;
+	bool flexio2_channels = false;
+
+
+	for (unsigned i = 0; (i < DSHOT_TIMERS); i++) {
+		if (dshot_inst[i].init && dshot_inst[i].data_seg1 != 0) {
+
+			if (timer_io_channels[i].flex_io_base == FLEXIO1_BASE) {
+				flexio1_channels = true;
+				PX4_INFO("Dshot trigger channels: Flexio1");
+
+			} else if (timer_io_channels[i].flex_io_base == FLEXIO2_BASE) {
+				flexio2_channels = true;
+				PX4_INFO("Dshot trigger channels: Flexio2");
+
+			} else {PX4_ERR("Invalid flexio base defined");}
+		}
+	}
+
 	// Calc data now since we're not event driven
 	if (bdshot_recv_mask != 0x0) {
 		up_bdshot_erpm();
@@ -649,10 +669,10 @@ void up_dshot_trigger(void)
 		}
 
 		if (dshot_inst[channel].init && dshot_inst[channel].data_seg1 != 0) {
-			if (timer_io_channels[channel].flex_io_base == 1) {
+			if (timer_io_channels[channel].flex_io_base == FLEXIO1_BASE) {
 				flexio_putreg32(FLEXIO1_BASE, dshot_inst[channel].data_seg1, IMXRT_FLEXIO_SHIFTBUF0_OFFSET + channel * 0x4);
 
-			} else if (timer_io_channels[channel].flex_io_base == 2) {
+			} else if (timer_io_channels[channel].flex_io_base == FLEXIO2_BASE) {
 				flexio_putreg32(FLEXIO2_BASE, dshot_inst[channel].data_seg1, IMXRT_FLEXIO_SHIFTBUF0_OFFSET + channel * 0x4);
 			}
 
@@ -738,7 +758,7 @@ void dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry)
 
 		if (dshot_inst[channel].bdshot) {
 
-			if (timer_io_channels[channel].flex_io_base == 1) {
+			if (timer_io_channels[channel].flex_io_base == FLEXIO1_BASE) {
 				flexio_putreg32(FLEXIO1_BASE, 0x0, IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
 				disable_shifter_status_interrupts(FLEXIO1_BASE, 1 << channel);
 
@@ -747,7 +767,7 @@ void dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry)
 
 				clear_timer_status_flags(FLEXIO1_BASE, 0xFF);
 
-			} else if (timer_io_channels[channel].flex_io_base == 2) {
+			} else if (timer_io_channels[channel].flex_io_base == FLEXIO2_BASE) {
 				flexio_putreg32(FLEXIO2_BASE, 0x0, IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
 				disable_shifter_status_interrupts(FLEXIO2_BASE, 1 << channel);
 

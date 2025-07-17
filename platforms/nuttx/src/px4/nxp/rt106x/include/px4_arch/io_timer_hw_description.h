@@ -601,7 +601,7 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 	return ret;
 }
 static inline constexpr timer_io_channels_t initIOTimerChannelDshot(const io_timers_t io_timers_conf[MAX_IO_TIMERS],
-		PWM::FlexPWMConfig pwm_config, IOMUX::Pad pad, uint32_t dshot_pinmux, uint8_t flexio, uint32_t flexio_pin)
+		PWM::FlexPWMConfig pwm_config, IOMUX::Pad pad, uint32_t dshot_pinmux, uint32_t flexio, uint32_t flexio_pin)
 {
 	timer_io_channels_t ret = initIOTimerChannel(io_timers_conf, pwm_config, pad);
 	ret.dshot.pinmux = dshot_pinmux;
