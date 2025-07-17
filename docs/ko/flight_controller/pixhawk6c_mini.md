@@ -193,7 +193,7 @@ For information about using this port see:
 
 ## 주변 장치
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](../telemetry/index.md):
   - [Holybro Telemetry Radio](../telemetry/holybro_sik_radio.md)
   - [Holybro Microhard P900 Radio](../telemetry/holybro_microhard_p900_radio.md)

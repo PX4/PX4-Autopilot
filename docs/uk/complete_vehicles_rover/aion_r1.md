@@ -4,7 +4,7 @@
 
 The [Aion R1](https://www.aionrobotics.com/) vehicle was chosen to test and improve the differential drive support for PX4, and to improve driver support for Roboclaw Motor Controllers, such as the [RoboClaw 2x15A](https://www.basicmicro.com/RoboClaw-2x15A-Motor-Controller_p_10.html).
 
-Документація та інформація про драйвери тут також повинна полегшити роботу з контролерами Roboclaw на інших транспортних засобах, а також з транспортними засобами, такими як [Aion R6](https://www.aionrobotics.com/r6).
+The documentation and driver information here should also make it easier to work with Roboclaw controllers on other vehicle.
 
 На даний момент PX4 підтримує режим MANUAL для цієї настройки.
 
@@ -12,8 +12,7 @@ The [Aion R1](https://www.aionrobotics.com/) vehicle was chosen to test and impr
 
 ## Список деталей
 
-- [Aion R1 (Припинено)](https://www.aionrobotics.com/)
-  - [Документація](https://github-docs.readthedocs.io/en/latest/r1-ugv.html)
+- Aion R1 (Discontinued)
 - [RoboClaw 2x15A](https://www.basicmicro.com/RoboClaw-2x15A-Motor-Controller_p_10.html)
   - [Характеристики R1 Roboclaw](https://resources.basicmicro.com/aion-robotics-r1-autonomous-robot/)
 - [Auterion Skynode](../companion_computer/auterion_skynode.md)
@@ -50,7 +49,6 @@ RoboClaw повинен бути підключений до відповідн�
 Спочатку налаштуйте послідовне з'єднання:
 
 1. Перейдіть до розділу [Параметри](../advanced_config/parameters.md) в QGroundControl.
-
   - Встановіть параметр [RBCLW_SER_CFG](../advanced_config/parameter_reference.md#RBCLW_SER_CFG) на послідовний порт, до якого підключений RoboClaw (наприклад, `GPS2`).
   - [RBCLW_COUNTS_REV](../advanced_config/parameter_reference.md#RBCLW_COUNTS_REV) визначає кількість лічильників енкодера, необхідних для одного оберту колеса.
     Це значення повинно бути залишено на `1200` для протестованого `Контролера руху RoboClaw 2x15A`.
