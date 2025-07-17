@@ -48,13 +48,13 @@ using namespace matrix;
 ActuatorEffectivenessRotorsINDI::ActuatorEffectivenessRotorsINDI(ModuleParams *parent, AxisConfiguration axis_config)
 	: ModuleParams(parent), _axis_config(axis_config)
 {
-	for (int i = 0; i < NUM_ROTORS_MAX; ++i) {
+	for (int i = 0; i < NUM_ACTUATORS; ++i) {
 		char buffer[17];
-		snprintf(buffer, sizeof(buffer), "METRIC_ROTOR%u_PX", i);
+		snprintf(buffer, sizeof(buffer), "MET_ROTOR%u_PX", i);
 		_param_handles[i].position_x = param_find(buffer);
-		snprintf(buffer, sizeof(buffer), "METRIC_ROTOR%u_PY", i);
+		snprintf(buffer, sizeof(buffer), "MET_ROTOR%u_PY", i);
 		_param_handles[i].position_y = param_find(buffer);
-		snprintf(buffer, sizeof(buffer), "METRIC_ROTOR%u_PZ", i);
+		snprintf(buffer, sizeof(buffer), "MET_ROTOR%u_PZ", i);
 		_param_handles[i].position_z = param_find(buffer);
 
 		if (_axis_config == AxisConfiguration::Configurable) {
@@ -66,16 +66,22 @@ ActuatorEffectivenessRotorsINDI::ActuatorEffectivenessRotorsINDI(ModuleParams *p
 			_param_handles[i].axis_z = param_find(buffer);
 		}
 
-		snprintf(buffer, sizeof(buffer), "INDI_ROTOR%u_CT", i);
+		snprintf(buffer, sizeof(buffer), "MET_ROTOR%u_CT", i);
 		_param_handles[i].thrust_coef = param_find(buffer);
 
-		snprintf(buffer, sizeof(buffer), "INDI_ROTOR%u_KM", i);
+		snprintf(buffer, sizeof(buffer), "MET_ROTOR%u_KM", i);
 		_param_handles[i].moment_ratio = param_find(buffer);
 
-		snprintf(buffer, sizeof(buffer), "METRIC_ROTOR%u_IZZ", i);
+		snprintf(buffer, sizeof(buffer), "MET_ROTOR%u_IZZ", i);
 		_param_handles[i].moment_inertia = param_find(buffer);
 
 	}
+
+	_G1_adaptive_constants.setIdentity();
+	_G1_adaptive_constants *= 0.2f;
+
+	_G2_adaptive_constants.setIdentity();
+	_G2_adaptive_constants *= 0.2f;
 
 	updateParams();
 }
@@ -84,7 +90,7 @@ void ActuatorEffectivenessRotorsINDI::updateParams()
 {
 	ModuleParams::updateParams();
 
-	_geometry.num_rotors = math::min(NUM_ROTORS_MAX, static_cast<int>(_param_ca_rotor_count.get()));
+	_geometry.num_rotors = math::min(NUM_ACTUATORS, static_cast<int>(_param_ca_rotor_count.get()));
 
 	for (int i = 0; i < _geometry.num_rotors; ++i) {
 		Vector3f &position = _geometry.rotors[i].position;
@@ -125,7 +131,8 @@ ActuatorEffectivenessRotorsINDI::addActuators(Configuration &configuration)
 	}
 
 	int num_actuators = computeEffectivenessMatrix(_geometry,
-			    configuration.effectiveness_matrices[configuration.selected_matrix],
+			    configuration.effectiveness_matrices[0],
+			    configuration.effectiveness_matrices[1],
 			    configuration.num_actuators_matrix[configuration.selected_matrix]);
 	configuration.actuatorsAdded(ActuatorType::MOTORS, num_actuators);
 	return true;
@@ -133,7 +140,7 @@ ActuatorEffectivenessRotorsINDI::addActuators(Configuration &configuration)
 
 int
 ActuatorEffectivenessRotorsINDI::computeEffectivenessMatrix(const Geometry &geometry,
-		EffectivenessMatrix &G, EffectivenessMatrix &G2, int actuator_start_index)
+		EffectivenessMatrix &G1, EffectivenessMatrix &G2, int actuator_start_index)
 {
 	int num_actuators = 0;
 
@@ -236,19 +243,19 @@ ActuatorEffectivenessRotorsINDI::initializeEffectivenessMatrix(Configuration &co
  */
 void
 ActuatorEffectivenessRotorsINDI::adaptEffectivenessMatrix(Configuration &configuration,
-		Vector<NUM_ROTORS_MAX> &delta_motor_speeds,
-		Vector<NUM_ROTORS_MAX> &delta_dot_motor_speeds,
+		Vector<float, NUM_ACTUATORS> &delta_motor_speeds,
+		Vector<float, NUM_ACTUATORS> &delta_dot_motor_speeds,
 		Vector3f &filtered_angular_accel)
 {
 	// for readability
 	// use auto to point to the slice object that acts a reference, and allows to not need to reassign the new values
-	Slice<float, 3, NUM_ROTORS_MAX> G1_moment = getG1(configuration); //G1_moment is the moment part of G1 (the bottom 3 rows)
-	Slice<float, 3, NUM_ROTORS_MAX> G2_moment = getG2(configuration); //G2_moment is the moment part of G2 (the bottom 3 rows)
+	Matrix<float, 3, NUM_ACTUATORS> G1_moment = getG1(configuration); //G1_moment is the moment part of G1 (the bottom 3 rows)
+	Matrix<float, 3, NUM_ACTUATORS> G2_moment = getG2(configuration); //G2_moment is the moment part of G2 (the bottom 3 rows)
 
 	// split up the equation into g1 and g2, as recombining G = [G1, G2] is not computationally necessary as done in the paper with the current layout of the effectiveness matricies
 	// note: mu2 = apative_constants_per_axis, mu1 is split between the two matricies: g1_adaptive_constants and g2_adaptive_constants
-	G1_moment = G1_moment - _apative_constants_per_axis * (G1_moment * delta_motor_speeds - filtered_angular_accel) * delta_motor_speeds.T * _G1_adaptive_constants;
-	G2_moment = G2_moment - _apative_constants_per_axis * (G2_moment * delta_dot_motor_speeds - filtered_angular_accel) * delta_dot_motor_speeds.T * _G2_adaptive_constants;
+	G1_moment = G1_moment - _adaptive_constants_per_axis * (G1_moment * delta_motor_speeds - filtered_angular_accel) * delta_motor_speeds.transpose() * _G1_adaptive_constants;
+	G2_moment = G2_moment - _adaptive_constants_per_axis * (G2_moment * delta_dot_motor_speeds - filtered_angular_accel) * delta_dot_motor_speeds.transpose() * _G2_adaptive_constants;
 
 
 }

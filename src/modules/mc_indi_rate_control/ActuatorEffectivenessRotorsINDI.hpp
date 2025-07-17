@@ -42,8 +42,8 @@
 
 #pragma once
 
-#include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
-
+#include <control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp>
+#include <lib/matrix/matrix/math.hpp>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
@@ -51,6 +51,7 @@
 class ActuatorEffectivenessTilts;
 
 using namespace time_literals;
+using namespace matrix;
 
 class ActuatorEffectivenessRotorsINDI : public ModuleParams, public ActuatorEffectiveness
 {
@@ -61,18 +62,16 @@ public:
 		FixedUpwards, ///< axis is fixed, pointing upwards (negative Z)
 	};
 
-	static constexpr int NUM_ROTORS_MAX = 12;
-
 	struct RotorGeometry {
-		matrix::Vector3f position;
-		matrix::Vector3f axis;
+		Vector3f position;
+		Vector3f axis;
 		float thrust_coef;
 		float moment_ratio;
 		float moment_inertia;
 	};
 
 	struct Geometry {
-		RotorGeometry rotors[NUM_ROTORS_MAX];
+		RotorGeometry rotors[NUM_ACTUATORS];
 		int num_rotors{0};
 		bool propeller_torque_disabled{false};
 		bool yaw_by_differential_thrust_disabled{false};
@@ -82,9 +81,9 @@ public:
 	ActuatorEffectivenessRotorsINDI(ModuleParams *parent, AxisConfiguration axis_config = AxisConfiguration::Configurable);
 	virtual ~ActuatorEffectivenessRotorsINDI() = default;
 
-	bool initializeEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
+	bool initializeEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update);
 
-	void adaptEffectivenessMatrix(Configuration &configuration, Vector<float, NUM_ROTORS_MAX> &delta_motor_speeds, Vector<float, NUM_ROTORS_MAX> &delta_dot_motor_speeds, Vector3f &filtered_angular_accel);
+	void adaptEffectivenessMatrix(Configuration &configuration, Vector<float, NUM_ACTUATORS> &delta_motor_speeds, Vector<float, NUM_ACTUATORS> &delta_dot_motor_speeds, Vector3f &filtered_angular_accel);
 
 	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
 	{
@@ -92,24 +91,16 @@ public:
 	}
 
 	static int computeEffectivenessMatrix(const Geometry &geometry,
-					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0);
+					      EffectivenessMatrix &G1, EffectivenessMatrix &G2, int actuator_start_index = 0);
 
-	Slice<float, 3, NUM_ROTORS_MAX> getG1(Configuration &configuration) const {return configuration.effectiveness_matrices[0].slice<3, NUM_ROTORS_MAX>(3, 0);}
-	Slice<float, 3, NUM_ROTORS_MAX> getG2(Configuration &configuration) const {return configuration.effectiveness_matrices[1].slice<3, NUM_ROTORS_MAX>(3, 0);}
+	Slice<float, 3, NUM_ACTUATORS, NUM_AXES, NUM_ACTUATORS> getG1(Configuration &configuration) const {return configuration.effectiveness_matrices[0].slice<3, NUM_ACTUATORS>(3, 0);}
+	Slice<float, 3, NUM_ACTUATORS, NUM_AXES, NUM_ACTUATORS> getG2(Configuration &configuration) const {return configuration.effectiveness_matrices[1].slice<3, NUM_ACTUATORS>(3, 0);}
 
 	bool addActuators(Configuration &configuration);
 
 	const char *name() const override { return "RotorsINDI"; }
 
 	const Geometry &geometry() const { return _geometry; }
-
-	void enablePropellerTorque(bool enable) { _geometry.propeller_torque_disabled = !enable; }
-
-	void enableYawByDifferentialThrust(bool enable) { _geometry.yaw_by_differential_thrust_disabled = !enable; }
-
-	void enablePropellerTorqueNonUpwards(bool enable) { _geometry.propeller_torque_disabled_non_upwards = !enable; }
-
-	void enableThreeDimensionalThrust(bool enable) { _geometry.three_dimensional_thrust_disabled = !enable; }
 
 	uint32_t getMotors() const;
 	uint32_t getUpwardsMotors() const;
@@ -128,8 +119,9 @@ private:
 		param_t axis_z;
 		param_t thrust_coef;
 		param_t moment_ratio;
+		param_t moment_inertia;
 	};
-	ParamHandles _param_handles[NUM_ROTORS_MAX];
+	ParamHandles _param_handles[NUM_ACTUATORS];
 
 	// for adaptive effectiveness matrix from paper: "Adaptive Incremental nonlinear Dynamic Inversion for Attitude Contol of Micro Air Vehicles" by Smeur et al
 	// these are the adaptive constants for the G1 and G2 matrices, and the apative constants per axis
@@ -138,9 +130,10 @@ private:
 	// mu2 = apative_constants_per_axis
 	// larger values = fasater adaptation rate but too large values can cause instability
 	// tuning is required to find the optimal values
-	matrix::SquareMatrix<float, NUM_ROTORS_MAX> _G1_adaptive_constants = matrix::diag(matrix::Vector<float, NUM_ROTORS_MAX>(0.2f));
-	matrix::SquareMatrix<float, NUM_ROTORS_MAX> _G2_adaptive_constants = matrix::diag(matrix::Vector<float, NUM_ROTORS_MAX>(0.2f));
-	matrix::SquareMatrix<float, 3> _apative_constants_per_axis = matrix::diag(matrix::Vector<float, 3>(0.2f));
+	SquareMatrix<float, NUM_ACTUATORS> _G1_adaptive_constants;
+	SquareMatrix<float, NUM_ACTUATORS> _G2_adaptive_constants;
+
+	SquareMatrix<float, 3> _adaptive_constants_per_axis = diag(Vector3f(0.2f, 0.2f, 0.2f));
 
 	Geometry _geometry{};
 

@@ -38,13 +38,14 @@
 #include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
+#include "ActuatorEffectivenessRotorsINDI.hpp"
+#include <control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/systemlib/mavlink_log.h>
-#include <lib/control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
@@ -62,7 +63,6 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
-#include <uORB/topics/actuator_effectiveness_matrix.h>
 #include <uORB/topics/esc_status.h>
 
 
@@ -86,6 +86,8 @@ public:
 	bool init();
 
 private:
+
+
 	void Run() override;
 
 	/**
@@ -94,6 +96,8 @@ private:
 	void parameters_updated();
 
 	void updateActuatorControlsStatus(const vehicle_torque_setpoint_s &vehicle_torque_setpoint, float dt);
+
+	matrix::Vector3f computeIndiTorqueSetpoint(const matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> &filtered_radps_vec, const matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> &prev_esc_rad_per_sec_filtered, float dt, const matrix::Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> &G1, const matrix::Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> &G2);
 
 	RateControl _rate_control; ///< class for rate control calculations
 	ActuatorEffectivenessRotorsINDI _rotors;

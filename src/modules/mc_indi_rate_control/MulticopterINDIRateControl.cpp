@@ -46,6 +46,7 @@ using math::radians;
 MulticopterINDIRateControl::MulticopterINDIRateControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
+	_rotors(this),
 	_vehicle_thrust_setpoint_pub(vtol ? ORB_ID(vehicle_thrust_setpoint_virtual_mc) : ORB_ID(vehicle_thrust_setpoint)),
 	_vehicle_torque_setpoint_pub(vtol ? ORB_ID(vehicle_torque_setpoint_virtual_mc) : ORB_ID(vehicle_torque_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
@@ -69,7 +70,7 @@ MulticopterINDIRateControl::init()
 		return false;
 	}
 
-	if (!_rotors.initializeEffectivenessMatrix(_actuator_effectiveness_config, ActuatorEffectiveness::EffectivenessUpdateReason::CONFIGURATION_UPDATE)) {
+	if (!_rotors.initializeEffectivenessMatrix(_actuator_effectiveness_config, EffectivenessUpdateReason::CONFIGURATION_UPDATE)) {
 		PX4_ERR("Failed to initialize INDI effectiveness matrix");
 		return false;
 	}
@@ -139,17 +140,20 @@ MulticopterINDIRateControl::Run()
 		parameters_updated();
 	}
 
+	Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> filtered_radps_vec;
+	Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> filtered_radps_vec_dot;
+
 	if(_esc_status_sub.update(&_esc_status)) {
 		for (int i = 0; i < _num_actuators; i++) {
 			_prev_esc_rad_per_sec_filtered(i) = filtered_radps_vec(i);
 			_prev_esc_rad_per_sec_filtered_dot(i) = filtered_radps_vec_dot(i);
 			float rad_per_sec = (float)(_esc_status.esc[i].esc_rpm) * 2.f * M_PI_F / 60.f;
 			filtered_radps_vec(i) = _radps_lpf[i].apply(rad_per_sec);
-			const float dt = math::constrain(((esc_status.timestamp_sample - _last_esc_status_update) * 1e-6f), 0.000125f, 0.02f);
+			const float dt = math::constrain(((_esc_status.timestamp - _last_esc_status_update) * 1e-6f), 0.000125f, 0.02f);
 			filtered_radps_vec_dot(i) = (filtered_radps_vec(i) - _prev_esc_rad_per_sec_filtered(i)) / dt;
 
 		}
-		_last_esc_status_update = _esc_status.timestamp_sample;
+		_last_esc_status_update = _esc_status.timestamp;
 	}
 
 
@@ -179,11 +183,10 @@ MulticopterINDIRateControl::Run()
 			}
 		}
 
-		matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> filtered_radps_vec;
-
 		if (_param_mc_indi_adapt_en.get()) {
 
-			_rotors.adaptEffectivenessMatrix(_actuator_effectiveness_config, filtered_radps_vec, filtered_radps_vec_dot, angular_accel - _prev_angular_accel);
+			matrix::Vector3f angular_accel_delta = angular_accel - _prev_angular_accel;
+			_rotors.adaptEffectivenessMatrix(_actuator_effectiveness_config, filtered_radps_vec, filtered_radps_vec_dot, angular_accel_delta);
 
 		}
 
@@ -258,8 +261,8 @@ MulticopterINDIRateControl::Run()
 			Vector3f torque_setpoint =
 				_rate_control.update(rates, _rates_setpoint, angular_accel, dt, _maybe_landed || _landed);
 
-			Slice<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> G1 = _rotors.getG1(_rotors.configuration);
-			Slice<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> G2 = _rotors.getG2(_rotors.configuration);
+			Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> G1 = _rotors.getG1(_actuator_effectiveness_config);
+			Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> G2 = _rotors.getG2(_actuator_effectiveness_config);
 			Vector3f indi_torque_setpoint = computeIndiTorqueSetpoint(filtered_radps_vec, _prev_esc_rad_per_sec_filtered, dt, G1, G2);
 
 			// apply low-pass filtering on yaw axis to reduce high frequency torque caused by rotor acceleration
@@ -339,14 +342,13 @@ MulticopterINDIRateControl::Run()
 Vector3f MulticopterINDIRateControl::computeIndiTorqueSetpoint(const Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> &filtered_radps_vec,
 		const Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> &prev_esc_rad_per_sec_filtered,
 		float dt,
-		const Slice<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> &G1,
-		const Slice<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> &G2)
+		const Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> &G1,
+		const Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> &G2)
 {
-	Vector3f radps_vec_squared = filtered_radps_vec.emult(filtered_radps_vec);
+	Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> radps_vec_squared = filtered_radps_vec.emult(filtered_radps_vec);
 	Vector3f G1_term = (G1 * (radps_vec_squared));
 	Vector3f G2_term = (G2 * (filtered_radps_vec - prev_esc_rad_per_sec_filtered)) / dt;
 	Vector3f filtered_body_torque_setpoint = G1_term + G2_term;
-	Vector3f filtered_body_torque_setpoint_no_constant = G1 * (radps_vec_squared) + G2 * (filtered_radps_vec - prev_esc_rad_per_sec_filtered) / dt;
 
 	return filtered_body_torque_setpoint;
 }
@@ -435,7 +437,7 @@ The controller has a PID loop for angular rate error.
 	return 0;
 }
 
-extern "C" __EXPORT int mc_rate_control_main(int argc, char *argv[])
+extern "C" __EXPORT int mc_indi_rate_control_main(int argc, char *argv[])
 {
 	return MulticopterINDIRateControl::main(argc, argv);
 }

@@ -37,14 +37,15 @@ px4_add_module(
 	COMPILE_FLAGS
 		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
-		MulticopterIndiRateControl.cpp
-		MulticopterIndiRateControl.hpp
+		MulticopterINDIRateControl.cpp
+		MulticopterINDIRateControl.hpp
+		ActuatorEffectivenessRotorsINDI.cpp
+		ActuatorEffectivenessRotorsINDI.hpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS
-		ActuatorEffectivenessRotorsINDI
 		circuit_breaker
 		mathlib
-		MC_ATT_CONTROL
 		px4_work_queue
+		RateControl
 	)

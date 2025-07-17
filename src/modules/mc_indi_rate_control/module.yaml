@@ -5,7 +5,7 @@ module_name: INDI Multicopter Rate Control
 parameters:
     - group: Metric Geometry
       definitions:
-        METRIC_ROTOR_COUNT:
+        MET_ROTOR_COUNT:
             description:
                 short: Total number of rotors for INDI control
             type: enum
@@ -24,7 +24,7 @@ parameters:
                 11: '11'
                 12: '12'
             default: 0
-        METRIC_ROTOR${i}_PX:
+        MET_ROTOR${i}_PX:
             description:
                 short: Position of rotor ${i} along X body axis relative to center of gravity
             type: float
@@ -35,7 +35,7 @@ parameters:
             min: -100
             max: 100
             default: 0.0
-        METRIC_ROTOR${i}_PY:
+        MET_ROTOR${i}_PY:
             description:
                 short: Position of rotor ${i} along Y body axis relative to center of gravity
             type: float
@@ -46,21 +46,21 @@ parameters:
             min: -100
             max: 100
             default: 0.0
-        METRIC_ROTOR${i}_CT:
+        MET_ROTOR${i}_CT:
             description:
                 short: Thrust coefficient of rotor ${i}
                 long: |
                   The thrust coefficient is defined as Thrust = CT * omega^2,
                   where omega is the angular velocity of the rotor in rad/s.
+                  The unit is in metric units (N/(rad/s)^2)
             type: float
             decimal: 10
             increment: 1e-7
-            unit: N*(rad/s)^2
             num_instances: *max_num_mc_motors
             min: 0
             max: 1
             default: 0.0
-        METRIC_ROTOR${i}_KM:
+        MET_ROTOR${i}_KM:
             description:
                 short: Moment coefficient of rotor ${i}
                 long: |
@@ -76,13 +76,14 @@ parameters:
             min: -1
             max: 1
             default: 0.0
-        METRIC_ROTOR${i}_IZZ:
+        MET_ROTOR${i}_IZZ:
             description:
                 short: Moment of inertia of rotor ${i} about its spin axis
+                long: |
+                  The unit is in metric units (kg*m^2)
             type: float
             decimal: 10
             increment: 1e-7
-            unit: kg*m^2
             num_instances: *max_num_mc_motors
             min: 0
             max: 1
