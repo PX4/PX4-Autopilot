@@ -77,19 +77,22 @@
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
 	initIOPWMDshot(PWM::FlexPWM2, PWM::Submodule0), // PWM_1, PMW_5
 	initIOPWMDshot(PWM::FlexPWM2, PWM::Submodule1), // PWM_0
-	initIOPWM(PWM::FlexPWM2, PWM::Submodule2), // PWM_4
+	initIOPWMDshot(PWM::FlexPWM2, PWM::Submodule2), // PWM_4
 	initIOPWMDshot(PWM::FlexPWM4, PWM::Submodule2), // PWM_2, PWM_3
 };
 
 #define FXIO_IOMUX  (IOMUX_SLEW_FAST | IOMUX_DRIVE_130OHM | IOMUX_PULL_UP_47K | IOMUX_SCHMITT_TRIGGER)
 
+//TODO: distinguish between the different FlexIO instances
+//
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
-	initIOTimerChannelDshot(io_timers, {PWM::PWM2_PWM_A, PWM::Submodule0}, IOMUX::Pad::GPIO_EMC_06, GPIO_FLEXIO1_FLEXIO06_1 | FXIO_IOMUX, 6), /* RevA. PWM_1 RevB. PWM1 */
-	initIOTimerChannelDshot(io_timers, {PWM::PWM2_PWM_B, PWM::Submodule0}, IOMUX::Pad::GPIO_EMC_07, GPIO_FLEXIO1_FLEXIO07_1 | FXIO_IOMUX, 7), /* RevA. PWM_5 RevB. PWM2 */
-	initIOTimerChannelDshot(io_timers, {PWM::PWM2_PWM_A, PWM::Submodule1}, IOMUX::Pad::GPIO_EMC_08, GPIO_FLEXIO1_FLEXIO08_1 | FXIO_IOMUX, 8), /* RevA. PWM_0 RevB. PWM3 */
-	initIOTimerChannel(io_timers, {PWM::PWM2_PWM_B, PWM::Submodule2}, IOMUX::Pad::GPIO_B0_11),  /* RevA. PWM_4 RevB. PWM4 */
-	initIOTimerChannelDshot(io_timers, {PWM::PWM4_PWM_A, PWM::Submodule2}, IOMUX::Pad::GPIO_EMC_04, GPIO_FLEXIO1_FLEXIO04_1 | FXIO_IOMUX, 4), /* RevA. PWM_3 RevB. PWM5 */
-	initIOTimerChannelDshot(io_timers, {PWM::PWM4_PWM_B, PWM::Submodule2}, IOMUX::Pad::GPIO_EMC_05, GPIO_FLEXIO1_FLEXIO05_1 | FXIO_IOMUX, 5), /* RevA. PWM_2 RevB. PWM6 */
+	initIOTimerChannelDshot(io_timers, {PWM::PWM2_PWM_A, PWM::Submodule0}, IOMUX::Pad::GPIO_EMC_06, GPIO_FLEXIO1_FLEXIO06_1 | FXIO_IOMUX, 1, 6), /* RevA. PWM_1 RevB. PWM1 */
+	initIOTimerChannelDshot(io_timers, {PWM::PWM2_PWM_B, PWM::Submodule0}, IOMUX::Pad::GPIO_EMC_07, GPIO_FLEXIO1_FLEXIO07_1 | FXIO_IOMUX, 1, 7), /* RevA. PWM_5 RevB. PWM2 */
+	initIOTimerChannelDshot(io_timers, {PWM::PWM2_PWM_A, PWM::Submodule1}, IOMUX::Pad::GPIO_EMC_08, GPIO_FLEXIO1_FLEXIO08_1 | FXIO_IOMUX, 1, 8), /* RevA. PWM_0 RevB. PWM3 */
+	initIOTimerChannelDshot(io_timers, {PWM::PWM2_PWM_B, PWM::Submodule2}, IOMUX::Pad::GPIO_B0_11,  GPIO_FLEXIO2_FLEXIO11_1 | FXIO_IOMUX, 2, 11),  /* RevA. PWM_4 RevB. PWM4 */
+	initIOTimerChannelDshot(io_timers, {PWM::PWM4_PWM_A, PWM::Submodule2}, IOMUX::Pad::GPIO_EMC_04, GPIO_FLEXIO1_FLEXIO04_1 | FXIO_IOMUX, 1, 4), /* RevA. PWM_3 RevB. PWM5 */
+	initIOTimerChannelDshot(io_timers, {PWM::PWM4_PWM_B, PWM::Submodule2}, IOMUX::Pad::GPIO_EMC_05, GPIO_FLEXIO1_FLEXIO05_1 | FXIO_IOMUX, 1, 5), /* RevA. PWM_2 RevB. PWM6 */
+
 };
 
 constexpr io_timers_channel_mapping_t io_timers_channel_mapping =

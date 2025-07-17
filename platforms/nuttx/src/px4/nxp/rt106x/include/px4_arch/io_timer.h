@@ -111,7 +111,8 @@ typedef struct timer_io_channels_t {
 	uint8_t   val_offset;          /* IMXRT_FLEXPWM_SM0VAL3_OFFSET or IMXRT_FLEXPWM_SM0VAL5_OFFSET */
 	uint8_t   sub_module;          /* 0 based sub module offset */
 	uint8_t   sub_module_bits;     /* LDOK and CLDOK bits */
-	uint8_t   timer_channel;       /* Unused */
+	uint8_t   timer_channel;/* Unused */
+	uint8_t   flex_io_base;
 	dshot_conf_t dshot;
 } timer_io_channels_t;
 
