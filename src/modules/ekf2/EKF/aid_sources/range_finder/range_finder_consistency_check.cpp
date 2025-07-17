@@ -132,16 +132,8 @@ void RangeFinderConsistencyCheck::update(const float z, const float z_var, const
 
 void RangeFinderConsistencyCheck::evaluateState(const float dt, const float vz, const float vz_var)
 {
-	// start the consistency check after 1s
-	// if (_t_since_first_sample < _t_to_init) {
-	// 	_t_since_first_sample += dt;
-	// 	return;
-	// }
-
 	// TODO: magic test ratio
-	// if (fabsf(_test_ratio_lpf.getState()) > 1.f) {
 	if (fabsf(_test_ratio) > 1.f) {
-		// printf("KinematicState::INCONSISTENT\n");
 		_t_since_first_sample = 0.f;
 		_state = KinematicState::INCONSISTENT;
 		return;

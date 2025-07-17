@@ -42,22 +42,19 @@
 
 void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 {
-	// Check if rangefinder is available/enabled
 	if (!_range_buffer) {
-		// ECL_INFO("no buff");
 		return;
 	}
+
+	// TODO: why isn't this being done anywhere?
+	_aid_src_rng_hgt.fused = false;
 
 	// Pop rangefinder measurement from buffer of samples into active sample
 	sensor::rangeSample sample = {};
 	if (!_range_buffer->pop_first_older_than(imu_sample.time_us, &sample)) {
 		if (_range_sensor.timedOut(imu_sample.time_us)) {
-			// Disable fusion if it's currently enabled
-			if (_control_status.flags.rng_hgt || _control_status.flags.rng_terrain) {
-				stopRangeAltitudeFusion("sensor timed out");
-				stopRangeTerrainFusion("sensor timed out");
-			}
-			// ECL_INFO("timed out1");
+			stopRangeAltitudeFusion("sensor timed out");
+			stopRangeTerrainFusion("sensor timed out");
 		}
 		return;
 	}
@@ -66,15 +63,12 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	_range_sensor.setSample(sample);
 
 	// TODO: move setting params to init function
-	// Set all of the parameters
 	_range_sensor.setPitchOffset(_params.ekf2_rng_pitch);
-	float cosine_max_tilt = 0.866f; // 30 degrees
+	float cosine_max_tilt = 0.9659; // 10 degrees
 	_range_sensor.setCosMaxTilt(cosine_max_tilt);
 	_rng_consistency_check.setGate(_params.ekf2_rng_k_gate);
-
 	// Update sensor to earth rotation
 	_range_sensor.updateSensorToEarthRotation(_R_to_earth);
-
 
 	// TODO: refactor into validity_checks()
 	// Gate sample consumption on these checks
@@ -86,28 +80,10 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 	// If quality, tilt, or value are outside of bounds -- throw away measurement
 	if (!quality_ok || !tilt_ok || !range_ok) {
-		if (_range_sensor.timedOut(imu_sample.time_us)) {
-			// Disable fusion if it's currently enabled
-			if (_control_status.flags.rng_hgt || _control_status.flags.rng_terrain) {
-				const char* reason = "sensor data invalid";
-				stopRangeAltitudeFusion(reason);
-				stopRangeTerrainFusion(reason);
-			}
-			ECL_INFO("timed out2");
-		}
-
-		if (!quality_ok) {
-			ECL_INFO("!quality_ok");
-		}
-		if (!tilt_ok) {
-			ECL_INFO("!tilt_ok");
-		}
-		if (!range_ok) {
-			ECL_INFO("!range_ok");
-		} // commander takeoff
+		stopRangeAltitudeFusion("pre checks failed");
+		stopRangeTerrainFusion("pre checks failed");
 		return;
 	}
-
 
 	// TODO: refactor into apply_body_offset()
 	// Correct the range data for position offset relative to the IMU
@@ -117,7 +93,6 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 	// Provide sample from buffer to object
 	_range_sensor.setSample(sample);
-
 
 	// TODO: refactor into consintency_filter_update() that runs consistency status
 	// Check kinematic consistency of rangefinder measurement w.r.t Altitude Estimate
@@ -308,7 +283,7 @@ bool Ekf::rangeAidConditionsPassed()
 			_rng_aid_conditions_valid = false;
 
 			// if (!is_hagl_stable) {
-			// 	ECL_INFO("!is_hagl_stable");
+			//  ECL_INFO("!is_hagl_stable");
 			// }
 			// if (is_horizontal_aiding_active && !is_below_max_speed) {
 			if (!is_below_max_speed) {
@@ -367,12 +342,12 @@ void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
 
 	const float innov_gate = math::max(_params.ekf2_rng_gate, 1.f);
 	updateAidSourceStatus(aid_src,
-			      _range_sensor.sample()->time_us, // sample timestamp
-			      measurement,                               // observation
-			      measurement_variance,                      // observation variance
-			      getHagl() - measurement,                   // innovation
-			      innovation_variance,                       // innovation variance
-			      innov_gate);                               // innovation gate
+				  _range_sensor.sample()->time_us, // sample timestamp
+				  measurement,                               // observation
+				  measurement_variance,                      // observation variance
+				  getHagl() - measurement,                   // innovation
+				  innovation_variance,                       // innovation variance
+				  innov_gate);                               // innovation gate
 
 	// z special case if there is bad vertical acceleration data, then don't reject measurement,
 	// but limit innovation to prevent spikes that could destabilise the filter
