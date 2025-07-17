@@ -1,6 +1,6 @@
 # Holybro Microhard P900 Radio
 
-The [Holybro Microhard P900 Radio](https://holybro.com/products/microhard-radio) integrates the [Microhard Pico Serial](http://microhardcorp.com/P900.php) P900 RF module, which is capable of delivering high-performance wireless serial communications in robust and secure mesh, point-to-point or point-to-multipoint topologies.
+The [Holybro Microhard P900 Radio](https://holybro.com/products/microhard-radio) integrates the [Microhard Pico Serial](https://microhardcorp.com/P900.php) P900 RF module, which is capable of delivering high-performance wireless serial communications in robust and secure mesh, point-to-point or point-to-multipoint topologies.
 It enables MAVLink communication between a radio on a vehicle and a GCS.
 
 This radio operate within the 902-928 MHz ISM frequency band, using frequency hopping spread spectrum (FHSS) technology, providing reliable wireless asynchronous data transfer between most equipment types which employ a serial interface.

@@ -28,7 +28,6 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
 1. Create a new directory **PX4-Autopilot/src/examples/px4_simple_app**.
 
 2. Create a new C file in that directory named **px4_simple_app.c**:
-
   - 기본 헤더를 페이지 상단에 복사합니다.
     이것은 기여한 모든 파일에 첨부하여야 합니다.
 
@@ -308,7 +307,7 @@ int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
 
 The `sensor_sub_fd` is a topic handle and can be used to very efficiently perform a blocking wait for new data.
 현재 스레드는 절전 모드로 전환되고, 새 데이터를 사용할 수 있게 되면 스케줄러에 의해 자동으로 깨어나며 기다리는 동안 CPU 주기를 소비하지 않습니다.
-To do this, we use the [poll()](http://pubs.opengroup.org/onlinepubs/007908799/xsh/poll.html) POSIX system call.
+To do this, we use the [poll()](https://pubs.opengroup.org/onlinepubs/007908799/xsh/poll.html) POSIX system call.
 
 Adding `poll()` to the subscription looks like (_pseudocode, look for the full implementation below_):
 

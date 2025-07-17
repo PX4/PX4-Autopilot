@@ -46,7 +46,7 @@ PARAM_DEFINE_INT32(CYPHAL_ENABLE, 1);
 /**
  * Cyphal Node ID.
  *
- * Read the specs at http://uavcan.org to learn more about Node ID.
+ * Read the specs at https://opencyphal.org/ to learn more about Node ID.
  *
  * @min -1
  * @max 125

@@ -28,7 +28,6 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
 1. Create a new directory **PX4-Autopilot/src/examples/px4_simple_app**.
 
 2. Create a new C file in that directory named **px4_simple_app.c**:
-
   - Скопіюйте заголовок за замовчуванням у верхній частині сторінки.
     Це повинно бути присутнім у всіх розміщених файлах!
 
@@ -308,7 +307,7 @@ int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
 
 The `sensor_sub_fd` is a topic handle and can be used to very efficiently perform a blocking wait for new data.
 Поточний потік переходить у режим сну і автоматично буде розбуджений планувальником, як тільки буде доступні нові дані, не використовуючи жодних циклів ЦП під час очікування.
-To do this, we use the [poll()](http://pubs.opengroup.org/onlinepubs/007908799/xsh/poll.html) POSIX system call.
+To do this, we use the [poll()](https://pubs.opengroup.org/onlinepubs/007908799/xsh/poll.html) POSIX system call.
 
 Adding `poll()` to the subscription looks like (_pseudocode, look for the full implementation below_):
 

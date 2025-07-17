@@ -122,7 +122,6 @@ The Pixhawk®​ 6X-RT is perfect for developers at corporate research labs, sta
   - CAN Bus has individual silent controls or ESC RX-MUX control
 
 - 2 Power input ports with SMBus
-
   - 1 AD & IO port
   - 2개의 추가 아날로그 입력
   - 1 PWM/Capture input
@@ -240,7 +239,7 @@ For information about using this port see:
 
 ## 주변 장치
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 

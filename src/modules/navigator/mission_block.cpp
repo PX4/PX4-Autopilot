@@ -96,6 +96,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_SET_CAMERA_FOCUS:
 	case NAV_CMD_DO_CHANGE_SPEED:
 	case NAV_CMD_DO_SET_HOME:
+	case NAV_CMD_RETURN_TO_LAUNCH:
 
 		return true;
 

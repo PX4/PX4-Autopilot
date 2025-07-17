@@ -115,12 +115,12 @@ TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 	EXPECT_NEAR(height_before_pressure_correction, 0.0f, 1e-5f);
 
 	// Apply height correction
-	const float static_pressure_coef_xp = 1.0f;
-	const float static_pressure_coef_yp = -1.0f;	// not used as wind direction is along x axis
+	const float ekf2_pcoef_xp = 1.0f;
+	const float ekf2_pcoef_yp = -1.0f;	// not used as wind direction is along x axis
 	parameters *_params = _ekf->getParamHandle();
-	_params->static_pressure_coef_xp = static_pressure_coef_xp;
-	_params->static_pressure_coef_yp = static_pressure_coef_yp;
-	float expected_height_difference = 0.5f * static_pressure_coef_xp * airspeed_body(0) * airspeed_body(
+	_params->ekf2_pcoef_xp = ekf2_pcoef_xp;
+	_params->ekf2_pcoef_yp = ekf2_pcoef_yp;
+	float expected_height_difference = 0.5f * ekf2_pcoef_xp * airspeed_body(0) * airspeed_body(
 			0) / CONSTANTS_ONE_G;
 
 	_ekf->set_vehicle_at_rest(false);

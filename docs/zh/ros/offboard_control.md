@@ -40,8 +40,7 @@ Enable MAVLink on the serial port that you connect to the companion computer (se
 
   参考电台包括：
 
-  - [Lairdtech RM024](http://www.lairdtech.com/products/rm024)
-  - [Digi International XBee Pro](http://www.digi.com/products/xbee-rf-solutions/modules)
+  - [Digi International XBee Pro](https://www.digi.com/products/embedded-systems/digi-xbee/rf-modules/sub-1-ghz-rf-modules)
 
 [![Mermaid graph: mavlink channel](https://mermaid.ink/img/eyJjb2RlIjoiZ3JhcGggVEQ7XG4gIGduZFtHcm91bmQgU3RhdGlvbl0gLS1NQVZMaW5rLS0-IHJhZDFbR3JvdW5kIFJhZGlvXTtcbiAgcmFkMSAtLVJhZGlvUHJvdG9jb2wtLT4gcmFkMltWZWhpY2xlIFJhZGlvXTtcbiAgcmFkMiAtLU1BVkxpbmstLT4gYVtBdXRvcGlsb3RdOyIsIm1lcm1haWQiOnsidGhlbWUiOiJkZWZhdWx0In0sInVwZGF0ZUVkaXRvciI6ZmFsc2V9)](https://mermaid-js.github.io/mermaid-live-editor/#/edit/eyJjb2RlIjoiZ3JhcGggVEQ7XG4gIGduZFtHcm91bmQgU3RhdGlvbl0gLS1NQVZMaW5rLS0-IHJhZDFbR3JvdW5kIFJhZGlvXTtcbiAgcmFkMSAtLVJhZGlvUHJvdG9jb2wtLT4gcmFkMltWZWhpY2xlIFJhZGlvXTtcbiAgcmFkMiAtLU1BVkxpbmstLT4gYVtBdXRvcGlsb3RdOyIsIm1lcm1haWQiOnsidGhlbWUiOiJkZWZhdWx0In0sInVwZGF0ZUVkaXRvciI6ZmFsc2V9)
 
@@ -54,7 +53,7 @@ graph TD;
 
 ### 板载处理器
 
-在飞行器上部署一台小型将计算机，用 UART 转 USB 适配器连接飞控。
+A small computer mounted onto the vehicle, connected to the autopilot through a serial port or Ethernet port.
 这里有许多可能性，这将取决于您除了向自驾仪发送指令外，还想要做什么样的额外机载处理。
 Some examples are provided in [Companion Computers](../companion_computer/index.md#companion-computer-options).
 

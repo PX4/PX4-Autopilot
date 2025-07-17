@@ -13,8 +13,9 @@ SiK Radios often come with appropriate connectors/cables allowing them to be dir
 
 ## Постачальники
 
-- [RFD900 Telemetry Radio](../telemetry/rfd900_telemetry.md)
 - [Holybro Telemetry Radio](../telemetry/holybro_sik_radio.md)
+- [RFD900 Telemetry Radio](../telemetry/rfd900_telemetry.md)
+- [ThunderFly TFSIK01 Telemetry Radio](../telemetry/tfsik_telemetry.md)
 - <del>_HKPilot Телеметрійне радіо_</del> (Припинено)
 - <del>_3DR телеметрія радіо_</del> (припинено)
 

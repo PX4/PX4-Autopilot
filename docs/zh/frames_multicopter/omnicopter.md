@@ -41,7 +41,7 @@ The components needed for this build are:
     - rods: 12x328mm, 6x465mm
   - Screws:
     - Motors and standoffs: 40x M3x12mm
-    - FC mount: 4x M3x35mm, 4x M3 nuts
+  - FC mount: 4x M3x35mm, 4x M3 nuts
   - Standoffs: 4x 40mm
 - [3D model](https://cad.onshape.com/documents/eaff30985f1298dc6ce8ce13/w/2f662e604240c4082682e5e3/e/ad2b2245b73393cf369132f7)
 
@@ -57,10 +57,13 @@ The components needed for this build are:
   You will notice if it's wrong when the angles of the rods are not correct.
 
 :::
+
 - Cut the rods
+
 - Test that it all works by connecting the frame pieces together:
 
   ![Frame](../../assets/airframes/multicopter/omnicopter/frame_only.jpg)
+
 - Place the motors as far out as possible, without the propellers touching the rods.
 
 ### Electronics
@@ -117,7 +120,7 @@ Make sure the motors do not overheat with the changed settings.
 - Parameters:
   - Change the desaturation logic for better attitude tracking: set [CA_METHOD](../advanced_config/parameter_reference.md#CA_METHOD) to 0.
   - Disable failure detection: set [FD_FAIL_P](../advanced_config/parameter_reference.md#FD_FAIL_P) and [FD_FAIL_R](../advanced_config/parameter_reference.md#FD_FAIL_R) to 0.
-- [This file](https://github.com/PX4/PX4-user_guide/raw/main/assets/airframes/multicopter/omnicopter/omnicopter.params) contains all the relevant parameters.
+- [This file](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/multicopter/omnicopter/omnicopter.params) contains all the relevant parameters.
 
 ## 视频
 

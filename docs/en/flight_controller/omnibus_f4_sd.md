@@ -67,13 +67,11 @@ These are the boards tested and known to work:
   :::
 
   Purchase from:
-
   - [Hobbywing XRotor F4 Flight Controller w/OSD](https://www.getfpv.com/hobbywing-xrotor-f4-flight-controller-w-osd.html) (getfpv)
 
 - Original Airbot Omnibus F4 SD
 
   Purchase from:
-
   - [Airbot (CN manufacturer)](https://store.myairbot.com/omnibusf4prov3.html)
   - [Ready To Fly Quads (US reseller)](https://quadsrtf.com/product/flip-32-f4-omnibus-rev-2/)
 
@@ -116,7 +114,6 @@ Some Omnibus F4 boards have a jumper connecting either or both the MCU SBUS and 
 ### UARTs
 
 - UART6: GPS port
-
   - TX: MCU pin PC6
   - RX: MCU pin PC7
 
@@ -125,7 +122,6 @@ Some Omnibus F4 boards have a jumper connecting either or both the MCU SBUS and 
   ![Omnibus F4 SD UART6](../../assets/flight_controller/omnibus_f4_sd/uart6.jpg)
 
 - UART4
-
   - TX: MCU pin PA0
   - RX: MCU pin PA1
   - 57600 baud
@@ -191,9 +187,9 @@ If you use CRSF Telemetry you will need to build custom PX4 firmware.
 By contrast, FrSky telemetry can use prebuilt firmware.
 :::
 
-For Omnibus we recommend the [TBS Crossfire Nano RX](http://team-blacksheep.com/products/prod:crossfire_nano_rx), since it is specifically designed for small Quads.
+For Omnibus we recommend the [TBS Crossfire Nano RX](https://www.team-blacksheep.com/products/prod:crossfire_nano_rx), since it is specifically designed for small Quads.
 
-On the handheld controller (e.g. Taranis) you will also need a [Transmitter Module](http://team-blacksheep.com/shop/cat:rc_transmitters#product_listing).
+On the handheld controller (e.g. Taranis) you will also need a [Transmitter Module](https://www.team-blacksheep.com/shop/cat:tbs-crossfire-radio-transmitter#product_listing).
 This can be plugged into the back of the RC controller.
 
 ::: info
@@ -210,24 +206,20 @@ Connect the Nano RX and Omnibus pins as shown:
 | RX            | Ch1     |
 
 Next update the TX/RX modules to use the CRSF protocol and set up telemetry.
-Instructions for this are provided in the [TBS Crossfire Manual](https://www.team-blacksheep.com/tbs-crossfire-manual.pdf) (search for 'Setting up radio for CRSF').
+Instructions for this are provided in the [TBS Crossfire Manual](https://www.team-blacksheep.com/media/files/tbs-crossfire-manual.pdf) (search for 'Setting up radio for CRSF').
 
 #### PX4 CRSF Configuration
 
 You will need to build custom firmware to use CRSF.
 For more information see [CRSF Telemetry](../telemetry/crsf_telemetry.md#px4-configuration).
 
-## Schematics
+<!-- no longer available 202507 -->
 
-The schematics are provided by [Airbot](https://myairbot.com/): [OmnibusF4-Pro-Sch.pdf](http://bit.ly/obf4pro).
-
-<a id="bootloader"></a>
-
-## PX4 Bootloader Update
+## PX4 Bootloader Update {#bootloader}
 
 The board comes pre-installed with [Betaflight](https://github.com/betaflight/betaflight/wiki).
 Before PX4 firmware can be installed, the _PX4 bootloader_ must be flashed.
-Download the [omnibusf4sd_bl.hex](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/omnibus_f4_sd/omnibusf4sd_bl_d52b70cb39.hex) bootloader binary and read [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
+Download the [omnibusf4sd_bl.hex](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/omnibus_f4_sd/omnibusf4sd_bl_d52b70cb39.hex) bootloader binary and read [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
 
 ## Building Firmware
 

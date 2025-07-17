@@ -1,6 +1,6 @@
 # DJI FlameWheel 450 + CUAV V5+ Build
 
-This topic provides full instructions for building the kit and configuring PX4 using *QGroundControl*.
+This topic provides full instructions for building the kit and configuring PX4 using _QGroundControl_.
 
 Key information
 
@@ -13,6 +13,7 @@ Key information
 ## Bill of materials
 
 The components needed for this build are:
+
 - Flight controller: [CUAV V5+](https://store.cuav.net/index.php?id_product=95&id_product_attribute=0&rewrite=cuav-new-pixhack-v5-autopilot-m8n-gps-for-fpv-rc-drone-quadcopter-helicopter-flight-simulator-free-shipping-whole-sale&controller=product&id_lang=1):
   - GPS: [CUAV NEO V2 GPS](https://store.cuav.net/index.php?id_product=97&id_product_attribute=0&rewrite=cuav-new-ublox-neo-m8n-gps-module-with-shell-stand-holder-for-flight-controller-gps-compass-for-pixhack-v5-plus-rc-parts-px4&controller=product&id_lang=1)
   - Power Module
@@ -24,7 +25,6 @@ The components needed for this build are:
 - Motors: [DJI E305 2312E Motor (960kv,CW)](https://www.amazon.com/DJI-E305-2312E-Motor-960kv/dp/B072MBMCZN)
 - ESC: Hobbywing XRotor 20A APAC Brushless ESC 3-4S For RC Multicopters
 
-
 In addition, we used an FrSky Taranis controller.
 You will also need zip ties, double-sided tape, a soldering iron.
 
@@ -32,67 +32,63 @@ The image below shows both frame and electronic components.
 
 ![All components used in this build](../../assets/airframes/multicopter/dji_f450_cuav_5plus/all_components.jpg)
 
-
 ## Hardware
 
 ### Frame
 
 This section lists all hardware for the frame.
 
-Description | Quantity
----|---
-DJI F450 Bottom plate | 1
-DJI F450 Top plate | 1
-DJI F450 legs with landing gear | 4
-M3*8 screws | 18
-M2 5*6 screws | 24
-Velcro Battery Strap | 1
-DJI Phantom Built-in Nut Upgrade Propellers 9.4x5 | 1
+| Description                                       | Quantity |
+| ------------------------------------------------- | -------- |
+| DJI F450 Bottom plate                             | 1        |
+| DJI F450 Top plate                                | 1        |
+| DJI F450 legs with landing gear                   | 4        |
+| M3\*8 screws                                      | 18       |
+| M2 5\*6 screws                                    | 24       |
+| Velcro Battery Strap                              | 1        |
+| DJI Phantom Built-in Nut Upgrade Propellers 9.4x5 | 1        |
 
 ![F450 frame components](../../assets/airframes/multicopter/dji_f450_cuav_5plus/f450_frame_components.png)
-
 
 ### CUAV V5+ Package
 
 This section lists the components in the CUAV v5+ package.
 
-Description | Quantity (Default Package) | Quantity (+GPS Package)
---- | --- | ---
-V5+ Autopilot            | 1 | 1
-DuPont Cable             | 2 | 2
-I2C/CAN Cable            | 2 | 2
-ADC 6.6 Cable            | 2 | 2
-SBUS Signal Cable        | 1 | 1
-IRSSI Cable              | 1 | 1
-DSM Signal Cable         | 1 | 1
-ADC 3.3 Cable            | 1 | 1
-Debug Cable              | 1 | 1
-Safety Switch Cable      | 1 | 1
-Voltage & Current Cable  | 1 | 1
-PW-Link Module Cable     | 1 | 1
-Power Module             | 1 | 1
-SanDisk 16GB Memory Card | 1 | 1
-12C Expansion Board      | 1 | 1
-TTL Plate                | 1 | 1
-NEO GPS                  | - | 1
-GPS Bracket              | - | 1
+| Description              | Quantity (Default Package) | Quantity (+GPS Package) |
+| ------------------------ | -------------------------- | ----------------------- |
+| V5+ Autopilot            | 1                          | 1                       |
+| DuPont Cable             | 2                          | 2                       |
+| I2C/CAN Cable            | 2                          | 2                       |
+| ADC 6.6 Cable            | 2                          | 2                       |
+| SBUS Signal Cable        | 1                          | 1                       |
+| IRSSI Cable              | 1                          | 1                       |
+| DSM Signal Cable         | 1                          | 1                       |
+| ADC 3.3 Cable            | 1                          | 1                       |
+| Debug Cable              | 1                          | 1                       |
+| Safety Switch Cable      | 1                          | 1                       |
+| Voltage & Current Cable  | 1                          | 1                       |
+| PW-Link Module Cable     | 1                          | 1                       |
+| Power Module             | 1                          | 1                       |
+| SanDisk 16GB Memory Card | 1                          | 1                       |
+| 12C Expansion Board      | 1                          | 1                       |
+| TTL Plate                | 1                          | 1                       |
+| NEO GPS                  | -                          | 1                       |
+| GPS Bracket              | -                          | 1                       |
 
 ![CUAV V5+ components](../../assets/airframes/multicopter/dji_f450_cuav_5plus/cuav5plus_components.png)
 
-
 ### Electronics
 
-Description | Quantity
---- | --- 
-CUAV V5+ | 1
-CUAV NEO V2 GPS | 1
-Holibro Telemetry | 1
-FrSky D4R-II 2.4G 4CH ACCST Telemetry Receiver | 1
-DJI E305 2312E Motor (800kv,CW) | 4
-Hobbywing XRotor 20A APAC Brushless ESC | 4
-Power Module(Included in the CUAV V5+ package) | 1
-Turnigy High Capacity 5200mAh 3S 12C Lipo Pack w/XT60 | 1
-
+| Description                                           | Quantity |
+| ----------------------------------------------------- | -------- |
+| CUAV V5+                                              | 1        |
+| CUAV NEO V2 GPS                                       | 1        |
+| Holibro Telemetry                                     | 1        |
+| FrSky D4R-II 2.4G 4CH ACCST Telemetry Receiver        | 1        |
+| DJI E305 2312E Motor (800kv,CW)                       | 4        |
+| Hobbywing XRotor 20A APAC Brushless ESC               | 4        |
+| Power Module(Included in the CUAV V5+ package)        | 1        |
+| Turnigy High Capacity 5200mAh 3S 12C Lipo Pack w/XT60 | 1        |
 
 ### Tools needed
 
@@ -103,7 +99,6 @@ The following tools are used in this assembly:
 - Wire cutters
 - Precision tweezers
 - Soldering iron
-
 
 ![Required tools](../../assets/airframes/multicopter/dji_f450_cuav_5plus/required_tools.jpg)
 
@@ -154,10 +149,9 @@ Estimated time to assemble is approximately 90 minutes (about 45 minutes for the
 1. Plug in Telemetry (`TELEM1`) and GPS module (`GPS/SAFETY`) to the flight controller.
    ![Attach GPS](../../assets/airframes/multicopter/dji_f450_cuav_5plus/11a_gps.jpg)
    ![Attach GPS](../../assets/airframes/multicopter/dji_f450_cuav_5plus/11b_gps.jpg)
-   
 1. Plug in the RC receiver (`RC`), all 4 ESC’s (`M1-M4`), and the power module (`Power1`) into the flight controller.
    ![Attach peripherals to flight controller](../../assets/airframes/multicopter/dji_f450_cuav_5plus/12_fc_attach_periperhals.jpg)
-   
+
    ::: info
    The motor order is defined in the [Airframe Reference > Quadrotor x](../airframes/airframe_reference.md#quadrotor-x)
    :::
@@ -167,12 +161,11 @@ The final build is shown below:
 
 ![Finished Setup](../../assets/airframes/multicopter/dji_f450_cuav_5plus/f450_cuav5_plus_complete_2.jpg)
 
-
 ## PX4 Configuration
 
-*QGroundControl* is used to install the PX4 autopilot and configure/tune it for the frame.
-[Download and install](http://qgroundcontrol.com/downloads/) 
-*QGroundControl* for your platform.
+_QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the frame.
+[Download and install](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html)
+_QGroundControl_ for your platform.
 
 :::tip
 Full instructions for installing and configuring PX4 can be found in [Basic Configuration](../config/index.md).
@@ -183,7 +176,7 @@ First update the firmware, airframe, geometry, and outputs:
 - [Firmware](../config/firmware.md)
 - [Airframe](../config/airframe.md)
   ::: info
-  You will need to select the *Generic Quadcopter* airframe (**Quadrotor x > Generic Quadcopter**).
+  You will need to select the _Generic Quadcopter_ airframe (**Quadrotor x > Generic Quadcopter**).
 
   ![QGroundControl - Select Generic Quadcopter](../../assets/airframes/multicopter/dji_f450_cuav_5plus/qgc_airframe_generic_quadx.png)
   :::
@@ -192,7 +185,7 @@ First update the firmware, airframe, geometry, and outputs:
   - Update the vehicle geometry to match the frame.
   - Assign actuator functions to outputs to match your wiring.
   - Test the configuration using the sliders.
-  
+
 Then perform the mandatory setup/calibration:
 
 - [Sensor Orientation](../config/flight_controller_orientation.md)
@@ -201,21 +194,21 @@ Then perform the mandatory setup/calibration:
 - [Level Horizon Calibration](../config/level_horizon_calibration.md)
 - [Radio Setup](../config/radio.md)
 - [Flight Modes](../config/flight_mode.md)
-  
+
   ::: info
-  For this build we set up modes *Stabilized*, *Altitude* and *Position* on a three-way switch on the receiver (mapped to a single channel - 5).
+  For this build we set up modes _Stabilized_, _Altitude_ and _Position_ on a three-way switch on the receiver (mapped to a single channel - 5).
   This is the recommended minimal set of modes for beginners.
   :::
 
 Ideally you should also do:
-* [ESC Calibration](../advanced_config/esc_calibration.md)
-* [Battery Estimation Tuning](../config/battery.md)
-* [Safety](../config/safety.md)
 
+- [ESC Calibration](../advanced_config/esc_calibration.md)
+- [Battery Estimation Tuning](../config/battery.md)
+- [Safety](../config/safety.md)
 
 ## Tuning
 
-Airframe selection sets *default* autopilot parameters for the frame.
+Airframe selection sets _default_ autopilot parameters for the frame.
 These may be good enough to fly with, but you should tune each frame build.
 
 For instructions on how, start from [Autotune](../config/autotune_mc.md).
@@ -223,7 +216,6 @@ For instructions on how, start from [Autotune](../config/autotune_mc.md).
 ## Video
 
 <lite-youtube videoid="r-IkaVpN1Ko" title="CUAV V5+"/>
-
 
 ## Acknowledgments
 

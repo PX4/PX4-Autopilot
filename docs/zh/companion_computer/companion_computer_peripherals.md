@@ -30,7 +30,7 @@ A few "turnkey" options are listed below:
 [mro_usb_ftdi_serial_to_jst_gh]: https://store.mrobotics.io/USB-FTDI-Serial-to-JST-GH-p/mro-ftdi-jstgh01-mr.htm
 [sparkfun_ftdi basic_breakout]: https://www.sparkfun.com/products/9873
 
-You can also use an off-the-shelf FTDI cable [like this one](https://www.sparkfun.com/products/9717) and connect it to flight controller using the appropriate header adaptor
+You can also use an off-the-shelf FTDI cable [like this one](https://www.sparkfun.com/ftdi-cable-5v-vcc-3-3v-i-o.html) and connect it to flight controller using the appropriate header adaptor
 (JST-GH connectors are specified in the Pixhawk standard, but you should confirm the connectors for your flight controller).
 
 ### Logic Level Shifters
@@ -40,7 +40,7 @@ In order to resolve this, a level shifter can be implemented to safely convert t
 
 Options include:
 
-- [SparkFun Logic Level Converter - Bi-Directional](https://www.sparkfun.com/products/12009)
+- [SparkFun Logic Level Converter - Bi-Directional](https://www.sparkfun.com/sparkfun-logic-level-converter-bi-directional.html)
 - [4-channel I2C-safe Bi-directional Logic Level Converter - BSS138](https://www.adafruit.com/product/757)
 
 ## Cameras
@@ -78,7 +78,7 @@ However NAT has no way to know where to direct the traffic from an arbitrary ext
 :::
 
 A common approach is to set up a virtual private network between the companion and GCS computer (i.e. install a VPN system like [zerotier](https://www.zerotier.com/) on both computers).
-The companion then uses [mavlink-router](https://github.com/intel/mavlink-router) to route traffic between the serial interface (flight controller) and GCS computer on the VPN network.
+The companion then uses [mavlink-router](https://github.com/mavlink-router/mavlink-router) to route traffic between the serial interface (flight controller) and GCS computer on the VPN network.
 
 This method has the benefit that the GCS computer address can be static within the VPN, so the configuration of the _mavlink router_ does not need to change over time.
 In addition, the communication link is secure because all VPN traffic is encrypted (MAVLink 2 itself does not support encryption).
@@ -90,5 +90,6 @@ This approach means that you do not need to know the IP address of the GCS compu
 
 Some USB modules that are known to work include:
 
-- [Huawei E8372](https://consumer.huawei.com/en/mobile-broadband/e8372/) and [Huawei E3372](https://consumer.huawei.com/en/mobile-broadband/e3372/)
-  - The _E8372_ includes WiFi which you can use to configure the SIM while it is plugged into the companion (making the development workflow a little easier). The _E3372_ lacks WiFi, so you have to configure it by plugging the stick into a laptop.
+- [Huawei E8372](https://consumer.huawei.com/au/support/routers/e8372/) and [Huawei E3372](https://consumer.huawei.com/au/support/routers/e3372/)
+  - The _E8372_ includes WiFi which you can use to configure the SIM while it is plugged into the companion (making the development workflow a little easier).
+    The _E3372_ lacks WiFi, so you have to configure it by plugging the stick into a laptop.

@@ -86,7 +86,7 @@ public:
 		was_scheduled = true;
 	}
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs_[MAX_ACTUATORS],
+	bool updateOutputs(uint16_t outputs_[MAX_ACTUATORS],
 			   unsigned num_outputs_, unsigned num_control_groups_updated) override
 	{
 		memcpy(outputs, outputs_, sizeof(outputs));

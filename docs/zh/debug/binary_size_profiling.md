@@ -8,7 +8,7 @@ This can help analyse changes that (may) cause `px4_fmu-v2_default` to hit the 1
 :::
 
 _Bloaty_ must be in your path and found at _cmake_ configure time.
-The PX4 [docker files](https://github.com/PX4/containers/blob/master/docker/Dockerfile_nuttx-bionic) install _bloaty_ as shown:
+The PX4 [docker files](https://github.com/PX4/PX4-containers/blob/master/docker/Dockerfile_nuttx-bionic) install _bloaty_ as shown:
 
 ```sh
 git clone --recursive https://github.com/google/bloaty.git /tmp/bloaty \

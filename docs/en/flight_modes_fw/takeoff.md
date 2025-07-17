@@ -9,10 +9,10 @@ Vehicles are [hand or catapult launched](#catapult-hand-launch) by default, but 
 ::: info
 
 - Mode is automatic - no user intervention is _required_ to control the vehicle.
-- Mode requires at least a valid local position estimate (does not require a global position).
-  - Flying vehicles can't switch to this mode without valid local position.
-  - Flying vehicles will failsafe if they lose the position estimate.
-  - Disarmed vehicles can switch to mode without valid position estimate but can't arm.
+- Mode requires at least a valid altitude estimation.
+  - Flying vehicles can't switch to this mode without valid altitude.
+  - Flying vehicles will failsafe if they lose the altitude estimate.
+  - Disarmed vehicles can switch to mode without valid altitude estimate but can't arm.
 - RC control switches can be used to change flight modes.
 - RC stick movement is ignored in catapult takeoff but can can be used to nudge the vehicle in runway takeoff.
 - The [Failure Detector](../config/safety.md#failure-detector) will automatically stop the engines if there is a problem on takeoff.
@@ -38,6 +38,7 @@ Irrespective of the modality, a flight path (starting point and takeoff course) 
 
 On takeoff, the aircraft will follow line defined by the starting point and course, climbing at the maximum climb rate ([FW_T_CLMB_MAX](../advanced_config/parameter_reference.md#FW_T_CLMB_MAX)) until reaching the clearance altitude.
 Reaching the clearance altitude causes the vehicle to enter [Hold mode](../flight_modes_fw/takeoff.md).
+Special case for invalid local position: In case the local position is invalid or becomes invalid while executing the takeoff, the controller is not able to track a course setpoint and will instead proceed climbing while keeping the wings level until the clearance altitude is reached.
 
 ### Parameters
 
@@ -48,7 +49,7 @@ Parameters that affect both catapult/hand-launch and runway takeoffs:
 | <a id="MIS_TAKEOFF_ALT"></a>[MIS_TAKEOFF_ALT](../advanced_config/parameter_reference.md#MIS_TAKEOFF_ALT)    | Minimum altitude setpoint above Home that the vehicle will climb to during takeoff.                                              |
 | <a id="FW_TKO_AIRSPD"></a>[FW_TKO_AIRSPD](../advanced_config/parameter_reference.md#FW_TKO_AIRSPD)          | Takeoff airspeed (is set to [FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN) if not defined by operator) |
 | <a id="FW_TKO_PITCH_MIN"></a>[FW_TKO_PITCH_MIN](../advanced_config/parameter_reference.md#FW_TKO_PITCH_MIN) | This is the minimum pitch angle setpoint during the climbout phase                                                               |
-| <a id="FW_T_CLMB_MAX"></a>[FW_T_CLMB_MAX](../advanced_config/parameter_reference.md#FW_T_CLMB_MAX)          | Maximum climb rate.                                                                                                              |
+| <a id="FW_T_CLMB_MAX"></a>[FW_T_CLMB_MAX](../advanced_config/parameter_reference.md#FW_T_CLMB_MAX)          | Climb rate setpoint during climbout to takeoff altitude.                                                                                                             |
 | <a id="FW_FLAPS_TO_SCL"></a>[FW_FLAPS_TO_SCL](../advanced_config/parameter_reference.md#FW_FLAPS_TO_SCL)    | Flaps setpoint during takeoff                                                                                                    |
 | <a id="FW_AIRSPD_FLP_SC"></a>[FW_AIRSPD_FLP_SC](../advanced_config/parameter_reference.md#FW_AIRSPD_FLP_SC)    | Factor applied to the minimum airspeed when flaps are fully deployed. Necessary if FW_TKO_AIRSPD is below FW_AIRSPD_MIN.                                                                                             |
 

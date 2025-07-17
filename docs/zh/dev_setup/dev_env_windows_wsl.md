@@ -1,6 +1,6 @@
 # Windows Development Environment (WSL2-Based)
 
-The following instructions explain how to set up a PX4 development environment on Windows 10 or 11, running on Ubuntu Linux within [WSL2](https://docs.microsoft.com/en-us/windows/wsl/about).
+The following instructions explain how to set up a PX4 development environment on Windows 10 or 11, running on Ubuntu Linux within [WSL2](https://learn.microsoft.com/en-us/windows/wsl/about).
 
 根据本文的指示构建的开发环境可以用编译：
 
@@ -16,7 +16,7 @@ The list above are those targets that are regularly tested.
 
 ## 综述
 
-The [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/about) ([WSL2](https://docs.microsoft.com/en-us/windows/wsl/compare-versions)) allows users to install and run the [Ubuntu Development Environment](../dev_setup/dev_env_linux_ubuntu.md) on Windows, _almost_ as though we were running it on a Linux computer.
+The [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/about) ([WSL2](https://learn.microsoft.com/en-us/windows/wsl/compare-versions)) allows users to install and run the [Ubuntu Development Environment](../dev_setup/dev_env_linux_ubuntu.md) on Windows, _almost_ as though we were running it on a Linux computer.
 
 With this environment developers can:
 
@@ -94,7 +94,6 @@ If you're using [Windows Terminal](https://learn.microsoft.com/en-us/windows/ter
 To open a WSL shell using a command prompt:
 
 1. Open a command prompt:
-
   - Press the Windows **Start** key.
   - Type `cmd` and press **Enter** to open the prompt.
 

@@ -70,6 +70,8 @@ private:
 };
 
 AFBRS50_SPI::AFBRS50_SPI():
+	// WARNING: SPI0 only exists for nxp and raspberry pi, so we hijack it here
+
 	// NOTE: we use SPI0 WQ since it is the 2nd highest priority thread (behind rate_ctrl).
 	// TODO: we should fix how SPI comms work. Async SPI comms is
 	// undesirable. We should use SPI TX DMA complete callback

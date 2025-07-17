@@ -42,7 +42,7 @@ Larger high power examples:
 - [NXP NavQPlus](https://nxp.gitbook.io/navqplus/user-contributed-content/ros2/microdds)
 - [Nvidia Jetson TX2](https://developer.nvidia.com/embedded/jetson-tx2)
 
-* [Intel NUC](https://www.intel.com/content/www/us/en/products/details/nuc.html)
+* [Intel NUC](https://www.asus.com/au/content/nuc-overview/)
 * [Gigabyte Brix](https://www.gigabyte.com/Mini-PcBarebone/BRIX)
 
 Small/lower power examples:
@@ -78,7 +78,7 @@ You can also write your own custom MAVLink libraries from scratch:
 
 You will need a router if you need to bridge MAVLink from the vehicle to a ground station or IP network, or if you need multiple connections:
 
-- [MAVLink Router](https://github.com/intel/mavlink-router) (recommended)
+- [MAVLink Router](https://github.com/mavlink-router/mavlink-router) (recommended)
 - [MAVProxy](https://ardupilot.org/mavproxy/)
 
 ## Ethernet Setup
