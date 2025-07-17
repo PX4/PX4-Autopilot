@@ -220,6 +220,7 @@ To run SIH as SITL:
      ```sh
      make px4_sitl sihsim_standard_vtol
      ```
+
    - Ackermann Rover
 
      ```sh
