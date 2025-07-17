@@ -302,7 +302,6 @@
         - [Zubax Telega](dronecan/zubax_telega.md)
         - [PX4 Sapog ESC Firmware](dronecan/sapog.md)
           - [Holybro Kotleta](dronecan/holybro_kotleta.md)
-          - [Zubax Orel](dronecan/zubax_orel.md)
       - [Vertiq](peripherals/vertiq.md)
       - [VESC](peripherals/vesc.md)
   - [Radio Control (RC)](getting_started/rc_transmitter_receiver.md)
