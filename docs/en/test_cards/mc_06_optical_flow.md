@@ -34,7 +34,7 @@ Ensure that the drone can go into Altitude / Position mode while still on the gr
 
 ❏ Land in either Position or Altitude mode with the throttle below 40%
 
-❏ Upon touching ground, copter should disarm automatically within 2 seconds (disarm time set by parameter: [COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND))
+❏ Upon touching ground, copter should disarm automatically within 2 seconds (default: see [COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND))
 
 ## Expected Results
 
