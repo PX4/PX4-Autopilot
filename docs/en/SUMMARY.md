@@ -209,7 +209,6 @@
       - [mRo AUAV-X2](flight_controller/auav_x2.md)
       - [NXP RDDRONE-FMUK66 FMU](flight_controller/nxp_rddrone_fmuk66.md)
       - [3DR Pixhawk 1](flight_controller/pixhawk.md)
-      - [Intel® Aero RTF Drone](complete_vehicles_mc/intel_aero.md)
     - [Pixhawk Autopilot Bus (PAB) & Carriers](flight_controller/pixhawk_autopilot_bus.md)
       - [ARK Electronics Pixhawk Autopilot Bus Carrier](flight_controller/ark_pab.md)
     - [Mounting the Flight Controller](assembly/mount_and_orient_controller.md)
