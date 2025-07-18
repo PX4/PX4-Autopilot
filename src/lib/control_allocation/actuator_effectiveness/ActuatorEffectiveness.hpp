@@ -198,7 +198,7 @@ public:
 	 */
 	virtual void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
 				    int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-				    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) {}
+				    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max, float stop_threshold) {}
 
 	/**
 	 * Get a bitmask of motors to be stopped
@@ -212,12 +212,14 @@ public:
 	virtual void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) {}
 
 	/**
-	 * Stops motors which are masked by stoppable_motors_mask and whose demanded thrust is zero
+	 * Stops motors which are masked by stoppable_motors_mask and whose demanded thrust is below threshold
 	 *
 	 * @param stoppable_motors_mask mask of motors that should be stopped if there's no thrust demand
 	 * @param actuator_sp outcome of the allocation to determine if the motor should be stopped
+	 * @param threshold actuator setpoint threshold below which the motor is stopped
 	 */
-	virtual void stopMaskedMotorsWithZeroThrust(uint32_t stoppable_motors_mask, ActuatorVector &actuator_sp);
+	virtual void stopMaskedMotorsWithZeroThrust(uint32_t stoppable_motors_mask, ActuatorVector &actuator_sp,
+			float threshold);
 
 protected:
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};
