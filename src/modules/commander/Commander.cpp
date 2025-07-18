@@ -1907,13 +1907,9 @@ void Commander::run()
 		_actuator_armed.force_failsafe = (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION);
 		// _actuator_armed.in_esc_calibration_mode // VEHICLE_CMD_PREFLIGHT_CALIBRATION
 
-		// if force_failsafe or manual_lockdown activated send parachute command
-		if ((!actuator_armed_prev.force_failsafe && _actuator_armed.force_failsafe)
-		    || (!actuator_armed_prev.manual_lockdown && _actuator_armed.manual_lockdown)
-		   ) {
-			if (isArmed()) {
-				send_parachute_command();
-			}
+		// if force_failsafe activated send parachute command
+		if (!actuator_armed_prev.force_failsafe && _actuator_armed.force_failsafe && isArmed()) {
+			send_parachute_command();
 		}
 
 		// publish states (armed, control_mode, vehicle_status, failure_detector_status) at 2 Hz or immediately when changed
