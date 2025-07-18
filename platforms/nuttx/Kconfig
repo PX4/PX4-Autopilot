@@ -1,0 +1,26 @@
+choice
+	prompt "NuttX platform"
+	---help---
+		This automatically gets set by the NuttX defconfig
+	config ARCH_CHIP_UNSET
+		bool "Unset"
+	config ARCH_CHIP_STM32H7
+		bool "STM32H7"
+	config ARCH_CHIP_STM32F7
+		bool "STM32F7"
+	config ARCH_CHIP_STM32F4
+		bool "STM32F4"
+	config ARCH_CHIP_IMXRT
+		bool "IMXRT"
+	config ARCH_CHIP_S32K3XX
+		bool "S32K3XX"
+	config ARCH_CHIP_RP2040
+		bool "RP2040"
+endchoice
+
+config BOARD_PWM_FREQ
+	int "Board default PWM frequency"
+	default 160000000 if ARCH_CHIP_S32K3XX
+	default 1000000 if !ARCH_CHIP_S32K3XX
+	---help---
+		Board default PWM frequency
