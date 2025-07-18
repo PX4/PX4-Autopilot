@@ -41,6 +41,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss_status.h>
 
 class FakeGps : public ModuleBase<FakeGps>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -66,6 +67,7 @@ private:
 	void Run() override;
 
 	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gnss_status_s> _sensor_gnss_status_pub{ORB_ID(sensor_gnss_status)};
 
 	double _latitude{29.6603018};   // Latitude in degrees
 	double _longitude{-82.3160500}; // Longitude in degrees
