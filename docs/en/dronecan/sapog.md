@@ -100,4 +100,4 @@ See [DroneCAN Troubleshooting](index.md#troubleshooting)
 
 - [PX4/Sapog](https://github.com/PX4/sapog#px4-sapog) (Github)
 - [Sapog v2 Reference Manual](https://files.zubax.com/products/io.px4.sapog/Sapog_v2_Reference_Manual.pdf)
-- [Using Sapog based ESC with PX4](https://kb.zubax.com/display/MAINKB/Using+Sapog-based+ESC+with+PX4) (Zubax KB)
+- [Using Telega-based controllers with PX4 autopilots](https://wiki.zubax.com/public/telega/telega-v0-legacy/Using-Telega-based-controllers-with-PX4-autopilots) (Zubax KB)
