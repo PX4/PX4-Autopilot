@@ -283,8 +283,11 @@ void Geofence::_updateFence()
 				// check if current position is inside the fence and vehicle is armed
 				const bool current_position_check_okay = checkCurrentPositionRequirementsForGeofence(polygon);
 
+				//check if current mission point inside the geofence
+				const bool current_mission_check_okay = checkMissionRequirementsForGeofence(polygon);
+
 				// discard the polygon if at least one check fails by not incrementing the counter in that case
-				if (home_check_okay && current_position_check_okay) {
+				if (home_check_okay && current_position_check_okay  && current_mission_check_okay) {
 					++_num_polygons;
 
 				}
@@ -298,6 +301,28 @@ void Geofence::_updateFence()
 			break;
 		}
 	}
+}
+
+bool Geofence::checkMissionRequirementsForGeofence(const PolygonInfo &polygon)
+{
+	mission_s mission;
+	_dataman_client.readSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission),sizeof(mission_s));
+	bool checks_pass = false;
+	//check all mission  against all geofence
+	for (size_t i = 0; i < mission.count; i++) {
+		struct mission_item_s missionitem = {};
+		_dataman_client.readSync((dm_item_t)mission.dataman_id, i, reinterpret_cast<uint8_t *>(&missionitem),
+					sizeof(mission_item_s));
+		//missionitem.altitude = missionitem.altitude_is_relative ? missionitem.altitude + home_alt : missionitem.altitude;
+		checks_pass = checkPointAgainstPolygonCircle(polygon,missionitem.lat, missionitem.lon, missionitem.altitude);
+		if (!checks_pass) {
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence invalid, against mission waypoint %zu\t",i + 1);
+		events::send<int16_t>(events::ID("navigator_geofence_invalid_against_mission"), {events::Log::Critical, events::LogInternal::Warning},
+			     "Geofence invalid, against mission waypoint {1} ",i + 1);
+		break;
+		}
+	}
+	return  checks_pass;
 }
 
 bool Geofence::checkHomeRequirementsForGeofence(const PolygonInfo &polygon)
