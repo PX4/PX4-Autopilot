@@ -1030,7 +1030,10 @@ int PX4IO::io_publish_raw_rc()
 	const bool rc_updated = (rc_valid_update_count != _rc_valid_update_count);
 	_rc_valid_update_count = rc_valid_update_count;
 
-	if (!rc_updated) {
+	// only publish if the IO status indicates that the RC is OK
+	const uint16_t status_rc_ok = _status & PX4IO_P_STATUS_FLAGS_RC_OK;
+
+	if (!rc_updated | !status_rc_ok) {
 		return 0;
 	}
 
