@@ -77,7 +77,7 @@ void DistanceSensorChecks::checkAndReport(const Context &context, Report &report
 								events::Log::Error, "No valid data from distance sensor {1}", instance);
 
 				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: no valid data from distance sensor %u", instance);
+					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No valid distance sensor %u data", instance);
 				}
 			}
 		}
