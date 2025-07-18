@@ -1,8 +1,11 @@
-uint64 timestamp                 # time since system start (microseconds)
-uint64 timestamp_sample
+# Airspeed data from sensors
+#
+# This is published by airspeed sensor drivers, CAN airspeed sensors, simulators.
+# It is subscribed by EKF for estimation,
+# along with a number of other modules such as the one for HOTT telemetry.
 
-float32 indicated_airspeed_m_s   # indicated airspeed in m/s
-
-float32 true_airspeed_m_s        # true filtered airspeed in m/s
-
-float32 confidence               # confidence value from 0 to 1 for this sensor
+uint64 timestamp # [us] Time since system start
+uint64 timestamp_sample # [us] Timestamp of the raw data
+float32 indicated_airspeed_m_s # [m/s] Indicated airspeed
+float32 true_airspeed_m_s # [m/s] True filtered airspeed
+float32 confidence # [@range 0,1] Confidence value for this sensor
