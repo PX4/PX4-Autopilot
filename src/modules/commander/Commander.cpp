@@ -1698,6 +1698,11 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 
 		break;
 
+	case action_request_s::ACTION_TERMINATE:
+		_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_TERMINATION);
+
+		break;
+
 	case action_request_s::ACTION_SWITCH_MODE:
 
 		if (!_user_mode_intention.change(action_request.mode, ModeChangeSource::User, false)) {
