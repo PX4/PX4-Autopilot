@@ -1,6 +1,11 @@
-# VOXL 2 Starling PX4 Development Drone
+# VOXL 2 Starling PX4 Development Drone (Discontinued/Superseded)
 
-The [Starling](https://modalai.com/starling) is a SLAM development drone supercharged by [VOXL 2](../flight_controller/modalai_voxl_2.md) and PX4 with SWAP-optimized sensors and payloads optimized for indoor and outdoor autonomous navigation.
+::: info
+The Starling as been superseded by new frames (see [Starlings](https://www.modalai.com/pages/starlings) for more information).
+It is not clear whether these can be used in the same way.
+:::
+
+The [Starling](https://www.modalai.com/pages/starlings) is a SLAM development drone supercharged by [VOXL 2](../flight_controller/modalai_voxl_2.md) and PX4 with SWAP-optimized sensors and payloads optimized for indoor and outdoor autonomous navigation.
 Powered by Blue UAS Framework autopilot, VOXL 2, the Starling weighs only 275g and boasts an impressive 30 minutes of autonomous indoor flight time.
 
 ![Overview](../../assets/hardware/complete_vehicles/modalai_starling/starling_front_hero.jpg)
@@ -21,7 +26,7 @@ If you are new to VOXL, be sure to familiarize yourself with the core features o
 
 ## Where to Buy
 
-[modalai.com/starling](https://modalai.com/starling)
+[modalai.com/starling](https://www.modalai.com/pages/starlings)
 
 ## Hardware Overview
 
