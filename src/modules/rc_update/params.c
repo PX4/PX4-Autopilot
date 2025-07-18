@@ -1330,6 +1330,38 @@ PARAM_DEFINE_INT32(RC_MAP_YAW, 0);
 PARAM_DEFINE_INT32(RC_MAP_FLTMODE, 0);
 
 /**
+ * Single channel R/C enable switch
+ *
+ * If this parameter is non-zero and this channel is asserted,
+ * then R/C controls are not passed to the Autopilot
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Switches
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
+ *
+ */
+PARAM_DEFINE_INT32(RC_MAP_RC_ENABLE, 0);
+
+/**
  * Return switch channel
  *
  * @min 0
@@ -1923,6 +1955,23 @@ PARAM_DEFINE_INT32(RC_MAP_ENG_MOT, 0);
  * @group Radio Calibration
  */
 PARAM_DEFINE_INT32(RC_FAILS_THR, 0);
+
+/**
+ * Threshold for selecting R/C enable witch
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @decimal 2
+ * @group Radio Switches
+ */
+PARAM_DEFINE_FLOAT(RC_ENABLESW_TH, 0.75f);
 
 /**
  * Threshold for selecting return to launch mode
