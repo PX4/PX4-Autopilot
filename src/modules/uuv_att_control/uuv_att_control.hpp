@@ -75,7 +75,10 @@ using matrix::Eulerf;
 using matrix::Quatf;
 using matrix::Matrix3f;
 using matrix::Vector3f;
+using matrix::Vector2f;
 using matrix::Dcmf;
+using matrix::AxisAnglef;
+using matrix::AxisAngle;
 
 using uORB::SubscriptionData;
 
@@ -122,6 +125,7 @@ private:
 	vehicle_control_mode_s _vcontrol_mode{};
 
 	perf_counter_t	_loop_perf;
+	hrt_abstime _last_run{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::UUV_ROLL_P>) _param_roll_p,
@@ -130,14 +134,23 @@ private:
 		(ParamFloat<px4::params::UUV_PITCH_D>) _param_pitch_d,
 		(ParamFloat<px4::params::UUV_YAW_P>) _param_yaw_p,
 		(ParamFloat<px4::params::UUV_YAW_D>) _param_yaw_d,
-		// control/input modes
-		(ParamInt<px4::params::UUV_INPUT_MODE>) _param_input_mode,
-		(ParamInt<px4::params::UUV_SKIP_CTRL>) _param_skip_ctrl,
-		// direct access to inputs
-		(ParamFloat<px4::params::UUV_DIRCT_ROLL>) _param_direct_roll,
-		(ParamFloat<px4::params::UUV_DIRCT_PITCH>) _param_direct_pitch,
-		(ParamFloat<px4::params::UUV_DIRCT_YAW>) _param_direct_yaw,
-		(ParamFloat<px4::params::UUV_DIRCT_THRUST>) _param_direct_thrust
+		// gains for the different modes
+		(ParamFloat<px4::params::UUV_SGM_ROLL>) _param_sgm_roll,
+		(ParamFloat<px4::params::UUV_SGM_PITCH>) _param_sgm_pitch,
+		(ParamFloat<px4::params::UUV_SGM_YAW>) _param_sgm_yaw,
+		(ParamFloat<px4::params::UUV_SGM_THRTL>) _param_sgm_thrtl,
+		(ParamFloat<px4::params::UUV_RGM_ROLL>) _param_rgm_roll,
+		(ParamFloat<px4::params::UUV_RGM_PITCH>) _param_rgm_pitch,
+		(ParamFloat<px4::params::UUV_RGM_YAW>) _param_rgm_yaw,
+		(ParamFloat<px4::params::UUV_RGM_THRTL>) _param_rgm_thrtl,
+		(ParamFloat<px4::params::UUV_MGM_ROLL>) _param_mgm_roll,
+		(ParamFloat<px4::params::UUV_MGM_PITCH>) _param_mgm_pitch,
+		(ParamFloat<px4::params::UUV_MGM_YAW>) _param_mgm_yaw,
+		(ParamFloat<px4::params::UUV_MGM_THRTL>) _param_mgm_thrtl,
+		(ParamFloat<px4::params::UUV_TORQUE_SAT>) _param_torque_sat,
+		(ParamFloat<px4::params::UUV_THRUST_SAT>) _param_thrust_sat,
+		(ParamFloat<px4::params::UUV_SP_MAX_AGE>) _param_setpoint_max_age
+
 	)
 
 	void Run() override;
@@ -150,7 +163,12 @@ private:
 	 * Control Attitude
 	 */
 	void control_attitude_geo(const vehicle_attitude_s &attitude, const vehicle_attitude_setpoint_s &attitude_setpoint,
-				  const vehicle_angular_velocity_s &angular_velocity, const vehicle_rates_setpoint_s &rates_setpoint);
+				  const vehicle_angular_velocity_s &angular_velocity, const vehicle_rates_setpoint_s &rates_setpoint,
+				  bool attitude_control_enabled);
 	void constrain_actuator_commands(float roll_u, float pitch_u, float yaw_u,
 					 float thrust_x, float thrust_y, float thrust_z);
+	void generate_attitude_setpoint(float dt);
+	void generate_rates_setpoint(float dt);
+	void reset_attitude_setpoint(vehicle_attitude_s &v_att);
+	void check_setpoint_validity(vehicle_attitude_s &v_att);
 };
