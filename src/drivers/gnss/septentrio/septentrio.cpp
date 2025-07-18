@@ -1677,7 +1677,7 @@ bool SeptentrioDriver::clock_needs_update(timespec real_time)
 	timespec rtc_system_time;
 
 	px4_clock_gettime(CLOCK_REALTIME, &rtc_system_time);
-	int drift_time = abs(rtc_system_time.tv_sec - real_time.tv_sec);
+	int drift_time = abs(static_cast<long>(rtc_system_time.tv_sec - real_time.tv_sec));
 
 	return drift_time >= k_max_allowed_clock_drift;
 }
