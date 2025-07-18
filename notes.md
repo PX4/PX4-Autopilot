@@ -61,3 +61,13 @@ Samples are now considered potentially valid, but must pass through another filt
 	- unless: on ground? --> reset altitude to zero
 	- unless innovation rejected? --> zero aid src innovation
 - Fuse measurement into Altitude state
+
+
+---
+
+# Meeting with Ben
+- lrf distance not to be used to vertical position observation. Only for vertical velocity observation under KC checks and pre-checks. Only exception is takeoff because you want local altitude same as lrf distance.
+
+- kinematic consistency check use only range + accel? Use a conservative test ratio
+
+- move altitude hold into FlightTaskManualAltitude -- control problem
