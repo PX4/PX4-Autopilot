@@ -909,6 +909,15 @@ GPS::run()
 
 		gpsConfig.interface_protocols = static_cast<GPSHelper::InterfaceProtocolsMask>(gps_ubx_cfg_intf);
 
+		int32_t gps_cfg_wipe = 0;
+		handle = param_find("GPS_CFG_WIPE");
+
+		if (handle != PARAM_INVALID) {
+			param_get(handle, &gps_cfg_wipe);
+		}
+
+		gpsConfig.cfg_wipe = static_cast<bool>(gps_cfg_wipe);
+
 		if (_helper && _helper->configure(_baudrate, gpsConfig) == 0) {
 
 			/* reset report */
