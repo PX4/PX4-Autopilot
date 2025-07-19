@@ -2,57 +2,7 @@
 #
 # board specific defaults
 #------------------------------------------------------------------------------
-set SDCARD_AVAILABLE no
-set SDCARD_FORMAT no
 
-if [ -b "/dev/mmcsd0" ]
-then
-	if mount -t vfat /dev/mmcsd0 /fs/microsd
-	then
-		if [ -f "/fs/microsd/.format" ]
-		then
-			echo "INFO [init] format /dev/mmcsd0 requested (/fs/microsd/.format)"
-			set SDCARD_FORMAT yes
-			rm /fs/microsd/.format
-			umount /fs/microsd
-
-		else
-			set SDCARD_AVAILABLE yes
-		fi
-	fi
-fi
-
-if [ $SDCARD_AVAILABLE = no -o $SDCARD_FORMAT = yes ]
-then
-	echo "INFO [init] formatting /dev/mmcsd0"
-
-	if mkfatfs -F 32 /dev/mmcsd0
-	then
-		echo "INFO [init] card formatted"
-
-		if mount -t vfat /dev/mmcsd0 /fs/microsd
-		then
-			set SDCARD_AVAILABLE yes
-		else
-			echo "ERROR [init] card mount failed"
-		fi
-	else
-		echo "ERROR [init] format failed"
-	fi
-fi
-
-# if [ $SDCARD_AVAILABLE = yes ]
-# then
-# 	logger start -f -r 50
-# fi
-
-load_mon start
-
-pwm_out start
-
-
-mavlink start -d /dev/ttyS1 -b 115200
-
-unset SDCARD_AVAILABLE
-unset SDCARD_EXT_PATH
-unset SDCARD_FORMAT
+dhcpd_start wlan0
+mavlink start -u 14550 -o 14550 -m 0 -r 1000 -x -p -s
+mavlink start -d /dev/ttyS1 -b 115200 -f -w -Z
