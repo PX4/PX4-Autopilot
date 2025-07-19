@@ -1938,7 +1938,7 @@ MavlinkMissionManager::update_mission_state()
 	}
 
 	// Update mission state
-	if (_count[MAV_MISSION_TYPE_MISSION] == 0) {
+	if (_count[MAV_MISSION_TYPE_MISSION] == 0 || !mission_result.valid) {
 		_mission_state = MISSION_STATE_NO_MISSION;
 
 	} else if (mission_result.finished) {
