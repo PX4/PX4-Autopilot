@@ -319,7 +319,7 @@ then
 	uxrce_dds_port="$PX4_UXRCE_DDS_PORT"
 fi
 
-uxrce_dds_client start -t udp -h 127.0.0.1 -p $uxrce_dds_port $uxrce_dds_ns
+uxrce_dds_client start -t udp -p $uxrce_dds_port $uxrce_dds_ns
 
 if param greater -s MNT_MODE_IN -1
 then
