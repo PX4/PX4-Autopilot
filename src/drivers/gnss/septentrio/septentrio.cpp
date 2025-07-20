@@ -967,7 +967,7 @@ SeptentrioDriver::ConfigureResult SeptentrioDriver::configure()
 	}
 
 	// Output a set of SBF blocks on a given connection at a regular interval.
-	snprintf(msg, sizeof(msg), k_command_sbf_output_pvt, _receiver_stream_main, com_port, sbf_frequency);
+	snprintf(msg, sizeof(msg), k_command_sbf_output_pvt, (long unsigned int) _receiver_stream_main, com_port, sbf_frequency);
 	if (!send_message_and_wait_for_ack(msg, k_receiver_ack_timeout_fast)) {
 		SEP_WARN("CONFIG: Failed to configure SBF");
 		return ConfigureResult::FailedCompletely;
