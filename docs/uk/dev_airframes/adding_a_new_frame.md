@@ -26,7 +26,7 @@ To determine which parameters/values need to be set in the configuration file, y
 2. Configure the [geometry and actuator outputs](../config/actuators.md).
 3. Perform other [basic configuration](../config/index.md).
 4. Налаштуйте транспортний засіб.
-5. Run the [`param show-for-airframe`](../modules/modules_command.md#param) console command to list the parameter difference compared to the original generic airfame.
+5. Run the [`param show-for-airframe`](../modules/modules_command.md#param) console command to list the parameter difference compared to the original generic airframe.
 
 Після того, як ви маєте параметри, ви можете створити новий файл конфігурації рами, скопіювавши файл конфігурації для загальної конфігурації та додавши нові параметри.
 
@@ -39,7 +39,7 @@ Alternatively you can just append the modified parameters to the startup configu
 1. Create a new config file in the [init.d/airframes](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d/airframes) folder.
   - Give it a short descriptive filename and prepend the filename with an unused autostart ID (for example, `1033092_superfast_vtol`).
   - Оновіть файл з параметрами конфігурації та програмами (див. вище).
-2. Add the name of the new frame config file to the [CMakeLists.txt](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/airframes/CMakeLists.txt) in the relevant section for the type of vehicle
+2. Add the name of the new frame config file to the [CMakeLists.txt](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/airframes/CMakeLists.txt) in the relevant section for the type of vehicle.
 3. [Build and upload](../dev_setup/building_px4.md) the software.
 
 ## Як додати конфігурацію на SD-карту
@@ -64,6 +64,18 @@ PX4 знайде будь-які пов’язані файли у мікроп�
 :::info
 New frame configuration files are only automatically added to the build system after a clean build (run `make clean`).
 :::
+
+## Force Reset of Airframe Parameters on Update
+
+To force a reset to the airframe defaults for all users of a specific airframe during update, increase the `PARAM_DEFAULTS_VER` variable in the airframe configuration.
+It starts at `1` in [rcS](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/rcS#L40).
+Add `set PARAM_DEFAULTS_VER 2` in your airframe file, increasing the value with each future reset needed.
+
+This value is compared to [SYS_PARAM_VER](https://github.com/PX4/PX4-Autopilot/pull/advanced_config/parameter_reference.md#SYS_PARAM_VER) during PX4 updates.
+If different, user-customized parameters are reset to defaults.
+
+Note that system parameters primarily include those related to the vehicle airframe configuration.
+Parameters such as accumulating flight hours, RC and sensor calibrations, are preserved.
 
 ### Приклад - загальна конфігурація рами квадрокоптера
 
