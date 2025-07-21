@@ -31,6 +31,14 @@
  *
  ****************************************************************************/
 
+/**
+ * @file MulticopterINDIRateControl.hpp
+ *
+ * Multicopter INDI rate control
+ *
+ * @author Rohan Inamdar <rninamdar@wpi.edu>
+ */
+
 #pragma once
 
 #include <lib/rate_control/rate_control.hpp>

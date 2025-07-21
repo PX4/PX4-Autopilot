@@ -32,34 +32,52 @@
  ****************************************************************************/
 
 /**
- * @file mc_indi_rate_control_params.c
+ * @file actuator_effectiveness_indi_rotors_params.c
  *
- * Parameters for INDI rate controller
- * Note many params defined in the Multicopter Params file are used within INDI rate control
+ * Parameters for INDI actuator effectiveness rotors
  */
 
 /**
- * INDI Rate Control Enable
+ * INDI Adaptive Constant - Roll Axis
  *
- * This parameter enables the INDI rate control.
+ * Adaptive constant for the roll axis in the INDI effectiveness matrix adaptation.
+ * Larger values result in faster adaptation but can cause instability if too high.
+ * Based on the paper "Adaptive Incremental Nonlinear Dynamic Inversion for Attitude Control of Micro Air Vehicles" by Smeur et al.
  *
- * @min 0
- * @max 1
- * @decimal 0
- * @increment 1
+ * @min 0.0
+ * @max 10.0
+ * @decimal 2
+ * @increment 0.1
+ * @unit 1
  */
-PARAM_DEFINE_INT32(MC_INDI_EN, 1);
+PARAM_DEFINE_FLOAT(INDI_ADAPT_ROLL, 1.5f);
 
 /**
- * Incremental Nonlinear Dynamic Inversion (INDI) Adaptation Enable
+ * INDI Adaptive Constant - Pitch Axis
  *
- * This parameter enables the adaptation of the INDI effectiveness matrix.
+ * Adaptive constant for the pitch axis in the INDI effectiveness matrix adaptation.
+ * Larger values result in faster adaptation but can cause instability if too high.
+ * Based on the paper "Adaptive Incremental Nonlinear Dynamic Inversion for Attitude Control of Micro Air Vehicles" by Smeur et al.
  *
- * @min 0
- * @max 1
- * @decimal 0
- * @increment 1
+ * @min 0.0
+ * @max 10.0
+ * @decimal 2
+ * @increment 0.1
+ * @unit 1
  */
-PARAM_DEFINE_INT32(MC_INDI_ADAPT_EN, 0);
+PARAM_DEFINE_FLOAT(INDI_ADAPT_PITCH, 1.5f);
 
-
+/**
+ * INDI Adaptive Constant - Yaw Axis
+ *
+ * Adaptive constant for the yaw axis in the INDI effectiveness matrix adaptation.
+ * Larger values result in faster adaptation but can cause instability if too high.
+ * Based on the paper "Adaptive Incremental Nonlinear Dynamic Inversion for Attitude Control of Micro Air Vehicles" by Smeur et al.
+ *
+ * @min 0.0
+ * @max 10.0
+ * @decimal 2
+ * @increment 0.1
+ * @unit 1
+ */
+PARAM_DEFINE_FLOAT(INDI_ADAPT_YAW, 1.5f);

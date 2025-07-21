@@ -71,13 +71,11 @@ ActuatorEffectivenessRotorsINDI::ActuatorEffectivenessRotorsINDI(ModuleParams *p
 		_param_handles[i].moment_ratio = param_find(buffer);
 		snprintf(buffer, sizeof(buffer), "MET_ROTOR%u_IZZ", i);
 		_param_handles[i].moment_inertia = param_find(buffer);
+		snprintf(buffer, sizeof(buffer), "INDI_G1_ADAPT_%u", i);
+		_param_handles[i].g1_adaptive_constant = param_find(buffer);
+		snprintf(buffer, sizeof(buffer), "INDI_G2_ADAPT_%u", i);
+		_param_handles[i].g2_adaptive_constant = param_find(buffer);
 	}
-
-	_G1_adaptive_constants.setIdentity();
-	_G1_adaptive_constants *= 0.2f;
-
-	_G2_adaptive_constants.setIdentity();
-	_G2_adaptive_constants *= 0.2f;
 
 	updateParams();
 }
@@ -115,7 +113,17 @@ void ActuatorEffectivenessRotorsINDI::updateParams()
 		param_get(_param_handles[i].thrust_coef, &_geometry.rotors[i].thrust_coef);
 		param_get(_param_handles[i].moment_ratio, &_geometry.rotors[i].moment_ratio);
 		param_get(_param_handles[i].moment_inertia, &_geometry.rotors[i].moment_inertia);
+
+		float g1_value, g2_value;
+		param_get(_param_handles[i].g1_adaptive_constant, &g1_value);
+		param_get(_param_handles[i].g2_adaptive_constant, &g2_value);
+		_G1_adaptive_constants(i, i) = g1_value;
+		_G2_adaptive_constants(i, i) = g2_value;
 	}
+
+	// Update adaptive constants from parameters
+	_adaptive_constants_per_axis = diag(Vector3f(_param_indi_adapt_roll.get(), _param_indi_adapt_pitch.get(), _param_indi_adapt_yaw.get()));
+
 }
 
 bool

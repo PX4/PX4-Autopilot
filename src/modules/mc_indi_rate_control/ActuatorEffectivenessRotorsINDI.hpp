@@ -128,6 +128,8 @@ private:
 		param_t thrust_coef;
 		param_t moment_ratio;
 		param_t moment_inertia;
+		param_t g1_adaptive_constant;
+		param_t g2_adaptive_constant;
 	};
 	ParamHandles _param_handles[NUM_ACTUATORS];
 
@@ -141,12 +143,15 @@ private:
 	SquareMatrix<float, NUM_ACTUATORS> _G1_adaptive_constants;
 	SquareMatrix<float, NUM_ACTUATORS> _G2_adaptive_constants;
 
-	SquareMatrix<float, 3> _adaptive_constants_per_axis = diag(Vector3f(1.5f, 1.5f, 1.5f));
+	SquareMatrix<float, 3> _adaptive_constants_per_axis;
 
 	Geometry _geometry{};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::CA_ROTOR_COUNT>) _param_met_rotor_count
+		(ParamInt<px4::params::CA_ROTOR_COUNT>) _param_met_rotor_count,
+		(ParamFloat<px4::params::INDI_ADAPT_ROLL>) _param_indi_adapt_roll,
+		(ParamFloat<px4::params::INDI_ADAPT_PITCH>) _param_indi_adapt_pitch,
+		(ParamFloat<px4::params::INDI_ADAPT_YAW>) _param_indi_adapt_yaw
 	)
 
 	uORB::Publication<indi_adaptation_status_s> _indi_adaptation_status_pub{ORB_ID(indi_adaptation_status)};

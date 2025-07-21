@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,6 +31,14 @@
  *
  ****************************************************************************/
 
+/**
+ * @file MulticopterINDIRateControl.cpp
+ *
+ * Multicopter INDI rate control
+ *
+ * @author Rohan Inamdar <rninamdar@wpi.edu>
+ */
+
 #include "MulticopterINDIRateControl.hpp"
 
 #include <drivers/drv_hrt.h>
@@ -43,12 +51,10 @@ using namespace matrix;
 using namespace time_literals;
 using math::radians;
 
-MulticopterINDIRateControl::MulticopterINDIRateControl(bool vtol) :
+MulticopterINDIRateControl::MulticopterINDIRateControl() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_rotors(this),
-	_vehicle_thrust_setpoint_pub(vtol ? ORB_ID(vehicle_thrust_setpoint_virtual_mc) : ORB_ID(vehicle_thrust_setpoint)),
-	_vehicle_torque_setpoint_pub(vtol ? ORB_ID(vehicle_torque_setpoint_virtual_mc) : ORB_ID(vehicle_torque_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
@@ -284,16 +290,13 @@ MulticopterINDIRateControl::Run()
 
 			// publish thrust and torque setpoints
 			vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
-			//vehicle_torque_setpoint_s vehicle_torque_setpoint{};
-
-			_thrust_setpoint.copyTo(vehicle_thrust_setpoint.xyz);
 
 
-			_vehicle_torque_setpoint.delta_xyz[0] = PX4_ISFINITE(torque_setpoint(0)) ? torque_setpoint(0) : 0.f;
-			_vehicle_torque_setpoint.delta_xyz[1] = PX4_ISFINITE(torque_setpoint(1)) ? torque_setpoint(1) : 0.f;
-			_vehicle_torque_setpoint.delta_xyz[2] = PX4_ISFINITE(indi_torque_setpoint(2)) ? indi_torque_setpoint(2) : 0.f;
+			_vehicle_torque_setpoint.pid_xyz[0] = PX4_ISFINITE(torque_setpoint(0)) ? torque_setpoint(0) : 0.f;
+			_vehicle_torque_setpoint.pid_xyz[1] = PX4_ISFINITE(torque_setpoint(1)) ? torque_setpoint(1) : 0.f;
+			_vehicle_torque_setpoint.pid_xyz[2] = PX4_ISFINITE(torque_setpoint(2)) ? torque_setpoint(2) : 0.f;
 
-			Vector3f error = indi_torque_setpoint - _Iv * angular_accel;
+			Vector3f measured_body_torque = _Iv * angular_accel;
 
 			_vehicle_torque_setpoint.xyz[0] = PX4_ISFINITE(torque_setpoint(0)) ? torque_setpoint(0) : 0.f;
 			_vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(torque_setpoint(1)) ? torque_setpoint(1) : 0.f;
@@ -302,13 +305,15 @@ MulticopterINDIRateControl::Run()
 			_vehicle_torque_setpoint.xyz[1] += PX4_ISFINITE(indi_torque_setpoint(1)) ? indi_torque_setpoint(1) : 0.f;
 			_vehicle_torque_setpoint.xyz[2] += PX4_ISFINITE(indi_torque_setpoint(2)) ? indi_torque_setpoint(2) : 0.f;
 
-			_vehicle_torque_setpoint.filtered_xyz[0] = PX4_ISFINITE(indi_torque_setpoint(0)) ? indi_torque_setpoint(0) : 0.f;
-			_vehicle_torque_setpoint.filtered_xyz[1] = PX4_ISFINITE(indi_torque_setpoint(1)) ? indi_torque_setpoint(1) : 0.f;
-			_vehicle_torque_setpoint.filtered_xyz[2] = PX4_ISFINITE(indi_torque_setpoint(2)) ? indi_torque_setpoint(2) : 0.f;
 
-			_vehicle_torque_setpoint.error[0] = PX4_ISFINITE(error(0)) ? error(0) : 0.f;
-			_vehicle_torque_setpoint.error[1] = PX4_ISFINITE(error(1)) ? error(1) : 0.f;
-			_vehicle_torque_setpoint.error[2] = PX4_ISFINITE(error(2)) ? error(2) : 0.f;
+			// NOTE: to confirm tuning, the indi_torque_xyz should be the same as the measured_body_torque_xyz when graphed in plotjuggler
+			_vehicle_torque_setpoint.indi_torque_xyz[0] = PX4_ISFINITE(indi_torque_setpoint(0)) ? indi_torque_setpoint(0) : 0.f;
+			_vehicle_torque_setpoint.indi_torque_xyz[1] = PX4_ISFINITE(indi_torque_setpoint(1)) ? indi_torque_setpoint(1) : 0.f;
+			_vehicle_torque_setpoint.indi_torque_xyz[2] = PX4_ISFINITE(indi_torque_setpoint(2)) ? indi_torque_setpoint(2) : 0.f;
+
+			_vehicle_torque_setpoint.measured_body_torque_xyz[0] = PX4_ISFINITE(measured_body_torque(0)) ? measured_body_torque(0) : 0.f;
+			_vehicle_torque_setpoint.measured_body_torque_xyz[1] = PX4_ISFINITE(measured_body_torque(1)) ? measured_body_torque(1) : 0.f;
+			_vehicle_torque_setpoint.measured_body_torque_xyz[2] = PX4_ISFINITE(measured_body_torque(2)) ? measured_body_torque(2) : 0.f;
 
 			_prev_esc_rad_per_sec_filtered = filtered_radps_vec;
 			_prev_angular_accel = angular_accel;
@@ -394,15 +399,7 @@ void MulticopterINDIRateControl::updateActuatorControlsStatus(const vehicle_torq
 
 int MulticopterINDIRateControl::task_spawn(int argc, char *argv[])
 {
-	bool vtol = false;
-
-	if (argc > 1) {
-		if (strcmp(argv[1], "vtol") == 0) {
-			vtol = true;
-		}
-	}
-
-	MulticopterINDIRateControl *instance = new MulticopterINDIRateControl(vtol);
+	MulticopterINDIRateControl *instance = new MulticopterINDIRateControl();
 
 	if (instance) {
 		_object.store(instance);
