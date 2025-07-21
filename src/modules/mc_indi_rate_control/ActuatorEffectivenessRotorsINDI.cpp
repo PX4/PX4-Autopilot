@@ -56,6 +56,7 @@ ActuatorEffectivenessRotorsINDI::ActuatorEffectivenessRotorsINDI(ModuleParams *p
 		_param_handles[i].position_y = param_find(buffer);
 		snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_PZ", i);
 		_param_handles[i].position_z = param_find(buffer);
+
 		if (_axis_config == AxisConfiguration::Configurable) {
 			snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_AX", i);
 			_param_handles[i].axis_x = param_find(buffer);
@@ -121,7 +122,8 @@ void ActuatorEffectivenessRotorsINDI::updateParams()
 		_G2_adaptive_constants(i, i) = g2_value;
 	}
 
-	_adaptive_constants_per_axis = diag(Vector3f(_param_indi_adapt_axis_r.get(), _param_indi_adapt_axis_p.get(), _param_indi_adapt_axis_y.get()));
+	_adaptive_constants_per_axis = diag(Vector3f(_param_indi_adapt_axis_r.get(), _param_indi_adapt_axis_p.get(),
+					    _param_indi_adapt_axis_y.get()));
 
 }
 
@@ -214,15 +216,17 @@ ActuatorEffectivenessRotorsINDI::computeEffectivenessMatrix(const Geometry &geom
 
 	// Debug: Print the computed matrices
 	PX4_INFO("G1 matrix (moment part):");
+
 	for (int i = 0; i < 3; i++) {
 		PX4_INFO("  Row %d: [%.10f, %.10f, %.10f, %.10f]", i,
-			(double)G1(i+3,0), (double)G1(i+3,1), (double)G1(i+3,2), (double)G1(i+3,3));
+			 (double)G1(i + 3, 0), (double)G1(i + 3, 1), (double)G1(i + 3, 2), (double)G1(i + 3, 3));
 	}
 
 	PX4_INFO("G2 matrix (gyroscopic part):");
+
 	for (int i = 0; i < 3; i++) {
 		PX4_INFO("  Row %d: [%.10f, %.10f, %.10f, %.10f]", i,
-			(double)G2(i+3,0), (double)G2(i+3,1), (double)G2(i+3,2), (double)G2(i+3,3));
+			 (double)G2(i + 3, 0), (double)G2(i + 3, 1), (double)G2(i + 3, 2), (double)G2(i + 3, 3));
 	}
 
 	return num_actuators;
@@ -267,13 +271,17 @@ ActuatorEffectivenessRotorsINDI::adaptEffectivenessMatrix(Configuration &configu
 {
 	// for readability
 	// use auto to point to the slice object that acts a reference, and allows to not need to reassign the new values
-	Matrix<float, 3, NUM_ACTUATORS> G1_moment = getG1(configuration); //G1_moment is the moment part of G1 (the bottom 3 rows)
-	Matrix<float, 3, NUM_ACTUATORS> G2_moment = getG2(configuration); //G2_moment is the moment part of G2 (the bottom 3 rows)
+	Matrix<float, 3, NUM_ACTUATORS> G1_moment = getG1(
+				configuration); //G1_moment is the moment part of G1 (the bottom 3 rows)
+	Matrix<float, 3, NUM_ACTUATORS> G2_moment = getG2(
+				configuration); //G2_moment is the moment part of G2 (the bottom 3 rows)
 
 	// split up the equation into g1 and g2, as recombining G = [G1, G2] is not computationally necessary as done in the paper with the current layout of the effectiveness matricies
 	// note: mu2 = apative_constants_per_axis, mu1 is split between the two matricies: g1_adaptive_constants and g2_adaptive_constants
-	G1_moment = G1_moment - _adaptive_constants_per_axis * (G1_moment * delta_motor_speeds - delta_filtered_angular_accel) * delta_motor_speeds.transpose() * _G1_adaptive_constants;
-	G2_moment = G2_moment - _adaptive_constants_per_axis * (G2_moment * delta_dot_motor_speeds - delta_filtered_angular_accel) * delta_dot_motor_speeds.transpose() * _G2_adaptive_constants;
+	G1_moment = G1_moment - _adaptive_constants_per_axis * (G1_moment * delta_motor_speeds - delta_filtered_angular_accel) *
+		    delta_motor_speeds.transpose() * _G1_adaptive_constants;
+	G2_moment = G2_moment - _adaptive_constants_per_axis * (G2_moment * delta_dot_motor_speeds -
+			delta_filtered_angular_accel) * delta_dot_motor_speeds.transpose() * _G2_adaptive_constants;
 
 	// Publish adaptation status
 	publishAdaptationStatus(delta_motor_speeds, delta_dot_motor_speeds, delta_filtered_angular_accel, G1_moment, G2_moment);
@@ -281,10 +289,10 @@ ActuatorEffectivenessRotorsINDI::adaptEffectivenessMatrix(Configuration &configu
 }
 
 void ActuatorEffectivenessRotorsINDI::publishAdaptationStatus(const Vector<float, NUM_ACTUATORS> &delta_motor_speeds,
-	const Vector<float, NUM_ACTUATORS> &delta_dot_motor_speeds,
-	const Vector3f &delta_filtered_angular_accel,
-	const Matrix<float, 3, NUM_ACTUATORS> &G1,
-	const Matrix<float, 3, NUM_ACTUATORS> &G2)
+		const Vector<float, NUM_ACTUATORS> &delta_dot_motor_speeds,
+		const Vector3f &delta_filtered_angular_accel,
+		const Matrix<float, 3, NUM_ACTUATORS> &G1,
+		const Matrix<float, 3, NUM_ACTUATORS> &G2)
 {
 	_indi_adaptation_status.timestamp = hrt_absolute_time();
 	_indi_adaptation_status.timestamp_sample = hrt_absolute_time();

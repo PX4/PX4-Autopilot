@@ -76,7 +76,8 @@
 
 using namespace time_literals;
 
-class MulticopterINDIRateControl : public ModuleBase<MulticopterINDIRateControl>, public ModuleParams, public px4::WorkItem
+class MulticopterINDIRateControl : public ModuleBase<MulticopterINDIRateControl>, public ModuleParams,
+	public px4::WorkItem
 {
 public:
 	MulticopterINDIRateControl();
@@ -105,7 +106,10 @@ private:
 
 	void updateActuatorControlsStatus(const vehicle_torque_setpoint_s &vehicle_torque_setpoint, float dt);
 
-	matrix::Vector3f computeIndiTorqueSetpoint(const matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> &filtered_radps_vec, const matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> &prev_esc_rad_per_sec_filtered, float dt, const matrix::Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> &G1, const matrix::Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> &G2);
+	matrix::Vector3f computeIndiTorqueSetpoint(const matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS>
+			&filtered_radps_vec, const matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> &prev_esc_rad_per_sec_filtered,
+			float dt, const matrix::Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> &G1,
+			const matrix::Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> &G2);
 
 	RateControl _rate_control; ///< class for rate control calculations
 	ActuatorEffectivenessRotorsINDI _rotors;
@@ -136,7 +140,8 @@ private:
 	vehicle_status_s	_vehicle_status{};
 
 	// Used for INDI
-	matrix::Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> _G1; //16 is the max number of actuators as defined in the ActuatorEffectivenessMatrix
+	matrix::Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS>
+	_G1; //16 is the max number of actuators as defined in the ActuatorEffectivenessMatrix
 	matrix::Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> _G2;
 	int _num_actuators{0};
 	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> _prev_esc_rad_per_sec_filtered;
@@ -168,7 +173,7 @@ private:
 
 	AlphaFilter<float> _output_lpf_yaw;
 
-	LowPassFilter2p<float> _radps_lpf[ActuatorEffectiveness::NUM_ACTUATORS]{};
+	LowPassFilter2p<float> _radps_lpf[ActuatorEffectiveness::NUM_ACTUATORS] {};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MC_ROLLRATE_P>) _param_mc_rollrate_p,

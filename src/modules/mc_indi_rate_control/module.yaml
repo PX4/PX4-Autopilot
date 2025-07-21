@@ -14,7 +14,7 @@ parameters:
                   The unit is in metric units (N/(rad/s)^2)
             type: float
             decimal: 10
-            increment: 1e-8
+            increment: 0.00000001
             num_instances: *max_num_mc_motors
             min: 0
             max: 1
@@ -42,7 +42,7 @@ parameters:
                   The unit is in metric units (kg*m^2)
             type: float
             decimal: 10
-            increment: 1e-8
+            increment: 0.00000001
             num_instances: *max_num_mc_motors
             min: 0
             max: 1
@@ -78,5 +78,3 @@ parameters:
             max: 1.0
             default: 0.2
             num_instances: *max_num_mc_motors
-
-

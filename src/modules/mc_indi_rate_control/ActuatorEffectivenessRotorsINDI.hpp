@@ -85,7 +85,8 @@ public:
 
 	bool initializeEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update);
 
-	void adaptEffectivenessMatrix(Configuration &configuration, Vector<float, NUM_ACTUATORS> &delta_motor_speeds, Vector<float, NUM_ACTUATORS> &delta_dot_motor_speeds, Vector3f &filtered_angular_accel);
+	void adaptEffectivenessMatrix(Configuration &configuration, Vector<float, NUM_ACTUATORS> &delta_motor_speeds,
+				      Vector<float, NUM_ACTUATORS> &delta_dot_motor_speeds, Vector3f &filtered_angular_accel);
 
 	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
 	{
@@ -109,10 +110,10 @@ public:
 	uint32_t getForwardsMotors() const;
 
 	void publishAdaptationStatus(const Vector<float, NUM_ACTUATORS> &delta_motor_speeds,
-		const Vector<float, NUM_ACTUATORS> &delta_dot_motor_speeds,
-		const Vector3f &filtered_angular_accel,
-		const Matrix<float, 3, NUM_ACTUATORS> &G1,
-		const Matrix<float, 3, NUM_ACTUATORS> &G2);
+				     const Vector<float, NUM_ACTUATORS> &delta_dot_motor_speeds,
+				     const Vector3f &filtered_angular_accel,
+				     const Matrix<float, 3, NUM_ACTUATORS> &G1,
+				     const Matrix<float, 3, NUM_ACTUATORS> &G2);
 
 private:
 	void updateParams() override;

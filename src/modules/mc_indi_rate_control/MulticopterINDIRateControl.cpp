@@ -76,7 +76,8 @@ MulticopterINDIRateControl::init()
 		return false;
 	}
 
-	if (!_rotors.initializeEffectivenessMatrix(_actuator_effectiveness_config, EffectivenessUpdateReason::CONFIGURATION_UPDATE)) {
+	if (!_rotors.initializeEffectivenessMatrix(_actuator_effectiveness_config,
+			EffectivenessUpdateReason::CONFIGURATION_UPDATE)) {
 		PX4_ERR("Failed to initialize INDI effectiveness matrix");
 		return false;
 	}
@@ -155,7 +156,7 @@ MulticopterINDIRateControl::Run()
 
 	esc_status_s esc_status;
 
-	if(_esc_status_sub.update(&esc_status)) {
+	if (_esc_status_sub.update(&esc_status)) {
 		for (int i = 0; i < _num_actuators; i++) {
 			_prev_esc_rad_per_sec_filtered(i) = filtered_radps_vec(i);
 			_prev_esc_rad_per_sec_filtered_dot(i) = filtered_radps_vec_dot(i);
@@ -165,6 +166,7 @@ MulticopterINDIRateControl::Run()
 			filtered_radps_vec_dot(i) = (filtered_radps_vec(i) - _prev_esc_rad_per_sec_filtered(i)) / dt;
 
 		}
+
 		_last_esc_status_update = esc_status.timestamp;
 	}
 
@@ -198,9 +200,12 @@ MulticopterINDIRateControl::Run()
 		if (_param_mc_indi_adapt_en.get()) {
 
 			matrix::Vector3f angular_accel_delta = angular_accel - _prev_angular_accel;
-			matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> delta_radps_vec = filtered_radps_vec - _prev_esc_rad_per_sec_filtered;
-			matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> delta_radps_vec_dot = filtered_radps_vec_dot - _prev_esc_rad_per_sec_filtered_dot;
-			_rotors.adaptEffectivenessMatrix(_actuator_effectiveness_config, delta_radps_vec, delta_radps_vec_dot, angular_accel_delta);
+			matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> delta_radps_vec = filtered_radps_vec -
+					_prev_esc_rad_per_sec_filtered;
+			matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> delta_radps_vec_dot = filtered_radps_vec_dot -
+					_prev_esc_rad_per_sec_filtered_dot;
+			_rotors.adaptEffectivenessMatrix(_actuator_effectiveness_config, delta_radps_vec, delta_radps_vec_dot,
+							 angular_accel_delta);
 
 		}
 
@@ -277,7 +282,8 @@ MulticopterINDIRateControl::Run()
 
 			Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> G1 = _rotors.getG1(_actuator_effectiveness_config);
 			Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> G2 = _rotors.getG2(_actuator_effectiveness_config);
-			Vector3f indi_torque_setpoint = computeIndiTorqueSetpoint(filtered_radps_vec, _prev_esc_rad_per_sec_filtered, dt, G1, G2);
+			Vector3f indi_torque_setpoint = computeIndiTorqueSetpoint(filtered_radps_vec, _prev_esc_rad_per_sec_filtered, dt, G1,
+							G2);
 
 			// apply low-pass filtering on yaw axis to reduce high frequency torque caused by rotor acceleration
 			torque_setpoint(2) = _output_lpf_yaw.update(torque_setpoint(2), dt);
@@ -309,9 +315,12 @@ MulticopterINDIRateControl::Run()
 			_vehicle_torque_setpoint.xyz[1] = _vehicle_torque_setpoint.pid_xyz[1] + _vehicle_torque_setpoint.indi_torque_xyz[1];
 			_vehicle_torque_setpoint.xyz[2] = _vehicle_torque_setpoint.pid_xyz[2] + _vehicle_torque_setpoint.indi_torque_xyz[2];
 
-			_vehicle_torque_setpoint.measured_body_torque_xyz[0] = PX4_ISFINITE(measured_body_torque(0)) ? measured_body_torque(0) : 0.f;
-			_vehicle_torque_setpoint.measured_body_torque_xyz[1] = PX4_ISFINITE(measured_body_torque(1)) ? measured_body_torque(1) : 0.f;
-			_vehicle_torque_setpoint.measured_body_torque_xyz[2] = PX4_ISFINITE(measured_body_torque(2)) ? measured_body_torque(2) : 0.f;
+			_vehicle_torque_setpoint.measured_body_torque_xyz[0] = PX4_ISFINITE(measured_body_torque(0)) ? measured_body_torque(
+						0) : 0.f;
+			_vehicle_torque_setpoint.measured_body_torque_xyz[1] = PX4_ISFINITE(measured_body_torque(1)) ? measured_body_torque(
+						1) : 0.f;
+			_vehicle_torque_setpoint.measured_body_torque_xyz[2] = PX4_ISFINITE(measured_body_torque(2)) ? measured_body_torque(
+						2) : 0.f;
 
 			_prev_esc_rad_per_sec_filtered = filtered_radps_vec;
 			_prev_angular_accel = angular_accel;
@@ -351,7 +360,8 @@ MulticopterINDIRateControl::Run()
 	perf_end(_loop_perf);
 }
 
-Vector3f MulticopterINDIRateControl::computeIndiTorqueSetpoint(const Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> &filtered_radps_vec,
+Vector3f MulticopterINDIRateControl::computeIndiTorqueSetpoint(const Vector<float, ActuatorEffectiveness::NUM_ACTUATORS>
+		&filtered_radps_vec,
 		const Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> &prev_esc_rad_per_sec_filtered,
 		float dt,
 		const Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> &G1,
