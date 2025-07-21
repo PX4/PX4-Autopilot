@@ -51,6 +51,7 @@ public:
 	FlightTaskManualAltitude() = default;
 	virtual ~FlightTaskManualAltitude() = default;
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
+	void reActivate() override;
 	bool updateInitialize() override;
 	bool update() override;
 	void setMaxDistanceToGround(float max_distance) { _max_distance_to_ground = max_distance; }

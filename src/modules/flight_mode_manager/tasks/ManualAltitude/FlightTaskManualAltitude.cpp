@@ -72,6 +72,13 @@ bool FlightTaskManualAltitude::activate(const trajectory_setpoint_s &last_setpoi
 	return ret;
 }
 
+void FlightTaskManualAltitude::reActivate()
+{
+	FlightTask::reActivate();
+
+	_stick_tilt_xy.reset();
+}
+
 void FlightTaskManualAltitude::_updateConstraintsFromEstimator()
 {
 	if (PX4_ISFINITE(_sub_vehicle_local_position.get().hagl_min)) {
@@ -275,8 +282,8 @@ void FlightTaskManualAltitude::_ekfResetHandlerHagl(float delta_hagl)
 void FlightTaskManualAltitude::_updateSetpoints()
 {
 	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, _sticks.getYawExpo(), _yaw, _deltatime, _unaided_yaw);
-	_acceleration_setpoint.xy() = _stick_tilt_xy.generateAccelerationSetpoints(_sticks.getPitchRoll(), _deltatime, _yaw,
-				      _yaw_setpoint);
+	_acceleration_setpoint.xy() = _stick_tilt_xy.generateAccelerationSetpointsForCruise(_sticks.getPitchRoll(), _deltatime,
+				      _yaw, _yaw_setpoint);
 	_updateAltitudeLock();
 	_respectGroundSlowdown();
 }
