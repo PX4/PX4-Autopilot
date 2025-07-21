@@ -137,7 +137,7 @@ The pinout uses the standard [Pixhawk debug connector](https://github.com/pixhaw
 
 ## Периферійні пристрої
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](../telemetry/index.md)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 

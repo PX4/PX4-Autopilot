@@ -122,7 +122,6 @@ Pixhawk®️sco6X-RT ідеально підходить для розробни
   - CAN шина має individual silent controls або ESC RX-MUX control
 
 - 2 порти вводу живлення з SMBus
-
   - 1 AD & IO port
   - 2 додаткових аналогових входи
   - 1 PWM/Capture вхід
@@ -240,7 +239,7 @@ The pinouts and connector comply with the [Pixhawk Debug Full](../debug/swd_debu
 
 ## Периферійні пристрої
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 

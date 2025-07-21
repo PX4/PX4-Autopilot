@@ -39,11 +39,10 @@ From distributor [Hobbyking<sup>&reg;</sup>](https://hobbyking.com/en_us/pixfalc
 Опціональне обладнання:
 
 - Optical flow: PX4 Flow unit from manufacturer [Holybro](https://holybro.com/products/px4flow)
-- Digital Airspeed sensor from manufacturer [Holybro](https://holybro.com/products/digital-air-speed-sensor) or distributor [Hobbyking](https://hobbyking.com/en_us/hkpilot-32-digital-air-speed-sensor-and-pitot-tube-set.html)
+- Digital Airspeed sensor from manufacturer [Holybro](https://holybro.com/products/digital-air-speed-sensor-ms4525do) or distributor [Hobbyking](https://hobbyking.com/en_us/hkpilot-32-digital-air-speed-sensor-and-pitot-tube-set.html)
 - Екранний дисплей з вбудованою телеметрією:
   - [Hobbyking OSD + EU Telemetry (433 MHz)](https://hobbyking.com/en_us/micro-hkpilot-telemetry-radio-module-with-on-screen-display-osd-unit-433mhz.html)
 - Pure Telemetry опції:
-  - [Hobbyking Wifi Telemetry](https://hobbyking.com/en_us/apm-pixhawk-wireless-wifi-radio-module.html)
   - [SIK Radios](../telemetry/sik_radio.md)
 
 ## Збірка прошивки

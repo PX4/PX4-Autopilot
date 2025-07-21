@@ -72,7 +72,6 @@ protected:
 private:
 	/* TODO: Should be controlled by params */
 	static constexpr float _radius_min = 1.f;
-	static constexpr float _velocity_max = 10.f;
 	static constexpr float _acceleration_max = 2.f;
 	static constexpr float _horizontal_acceptance_radius = 2.f;
 
@@ -149,6 +148,7 @@ private:
 		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
 		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,
 		(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) _param_mpc_z_v_auto_up,
-		(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn
+		(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn,
+		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _param_mpc_xy_vel_max
 	)
 };

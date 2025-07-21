@@ -284,7 +284,3 @@ Perform the normal [Basic Configuration](../config/index.md).
 ## 비디오
 
 <lite-youtube videoid="h7OHTigtU0s" title="PX4 Vtol test"/>
-
-## 지원
-
-If you have any questions regarding your VTOL conversion or configuration please visit <https://discuss.px4.io/c/px4/vtol>.

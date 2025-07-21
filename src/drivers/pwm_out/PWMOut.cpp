@@ -125,7 +125,7 @@ bool PWMOut::update_pwm_out_state(bool on)
 	return true;
 }
 
-bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool PWMOut::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	/* output to the servos */

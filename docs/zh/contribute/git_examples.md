@@ -8,7 +8,7 @@ Adding a feature to PX4 follows a defined workflow. In order to share your contr
 
 - [Sign up](https://github.com/signup) for github if you haven't already
 
-- Fork the PX4-Autopilot repo (see [here](https://docs.github.com/en/get-started/quickstart/fork-a-repo))
+- Fork the PX4-Autopilot repo (see [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo))
 
 - 将分支克隆到本地计算机
 

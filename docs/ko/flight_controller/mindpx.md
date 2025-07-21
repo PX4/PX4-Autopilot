@@ -28,7 +28,6 @@ MindPX는보다 복잡한 VTOL 구성과보다 정밀한 제어를 지원할 수
 ![](../../assets/hardware/hardware-mindpx-specs.png)
 
 - 메인시스템 온칩 : STM32F427
-
   - CPU : 32 비트, 168 MHz ARM 코어 텍스<sup>&reg;</sup> FPU 포함 M4
   - RAM : 256KB SRAM
   - 2MB 플래시
@@ -107,7 +106,7 @@ MindPX에는 보드에는 USB-TO-UART 브리지 IC가 있습니다.
 
 ## 구매처
 
-MindRacer는 인터넷 [AirMind Store](http://drupal.xitronet.com/?q=catalog)에 구매할 수 있습니다.
+MindRacer is available at [AirMind Store](https://airmind.mindpx.net/catalog).
 Amazon<sup>&reg;</sup> 또는 eBay<sup>&reg;</sup>에서도 MindRacer를 구매할 수 있습니다.
 
 ## 시리얼 포트 매핑

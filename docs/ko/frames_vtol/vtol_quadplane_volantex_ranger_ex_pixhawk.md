@@ -102,7 +102,7 @@ Pixhawk의 출력은 다음과 같이 연결되어야합니다 ( "평면에 앉�
 | AUX 5  | 스로틀                    |
 
 :::info
-The servo direction can be reversed using the PWM\_REV parameters in the PWM\_OUTPUT group of QGroundControl (cogwheel tab, last item in the left menu)
+The servo direction can be reversed using the PWM_REV parameters in the PWM_OUTPUT group of QGroundControl (cogwheel tab, last item in the left menu)
 :::
 
 For further instructions on wiring and configurations please see: [Standard VTOL Wiring and Configuration](../config_vtol/vtol_quad_configuration.md)
@@ -112,7 +112,3 @@ For further instructions on wiring and configurations please see: [Standard VTOL
 Configure the frame as shown in QGroundControl below (do not forget to click **Apply and Restart** in the top).
 
 ![QGC - select firmware for standard VTOL](../../assets/airframes/vtol/funcub_pixhawk/qgc_firmware_standard_vtol_fun_cub_quad.png)
-
-## 지원
-
-If you have any questions regarding your VTOL conversion or configuration please visit <https://discuss.px4.io/c/px4/vtol>.

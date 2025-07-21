@@ -33,7 +33,7 @@ VMWare performance is acceptable for basic usage (building Firmware) but not for
 
 2. 윈도우 시스템에 설치합니다.
 
-3. Download the desired version of [Ubuntu Desktop ISO Image](https://www.ubuntu.com/download/desktop).
+3. Download the desired version of [Ubuntu Desktop ISO Image](https://ubuntu.com/download/desktop).
    (see [Linux Instructions Page](../dev_setup/dev_env_linux.md) for recommended Ubuntu version).
 
 4. Open _VMWare Player_.
@@ -58,7 +58,6 @@ VMWare performance is acceptable for basic usage (building Firmware) but not for
 
 10. Once the new VM is booted up make sure you install _VMWare tools drivers and tools extension_ inside your guest system.
    이렇게 하면 다음과 같은 VM 사용의 성능과 유용성들이 향상됩니다.
-
    - 크게 향상된 그래픽 성능
    - Proper support for hardware device usage like USB port allocation (important for target upload), proper mouse wheel scrolling, sound support
    - 창 크기에 따른 게스트 디스플레이 해상도 조정
@@ -96,7 +95,6 @@ To allow this, you need to configure USB passthrough settings:
 3. Enable USB controller in VM: **VirtualBox > Settings > USB**
 
 4. Add USB filters for the bootloader in VM: **VirtualBox > Settings > USB > Add new USB filter**.
-
    - Open the menu and plug in the USB cable connected to your autopilot.
       Select the `...Bootloader` device when it appears in the UI.
 
