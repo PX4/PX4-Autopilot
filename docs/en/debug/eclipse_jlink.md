@@ -21,7 +21,7 @@ Setup PX4 by following the normal guidelines:
 
 To install _Eclipse_:
 
-1. Download [Eclipse CDT for C/C++ Developers](https://github.com/gnu-mcu-eclipse/org.eclipse.epp.packages/releases/) (MCU GitHub).
+1. Download [Eclipse CDT for C/C++ Developers](https://github.com/eclipse-embed-cdt/org.eclipse.epp.packages/releases) (MCU GitHub).
 1. Extract the Eclipse folder and copy it anywhere (there is no need to run any install scripts).
 1. Run _Eclipse_ and choose a location for your initial workbench.
 

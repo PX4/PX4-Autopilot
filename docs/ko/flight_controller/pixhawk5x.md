@@ -62,7 +62,6 @@ The Pixhawk® 5X is perfect for developers at corporate research labs, startups,
   - 32 비트 Arm® Cortex®-M3, 24MHz, 8KB SRAM
 
 - On-board Sensors:
-
   - Accel/Gyro: ICM-20649
   - Accel/Gyro: ICM-42688P
   - 가속도/자이로: ICM-20602
@@ -70,7 +69,6 @@ The Pixhawk® 5X is perfect for developers at corporate research labs, startups,
   - Barometer: 2x BMP388
 
 - 인터페이스
-
   - 16- PWM servo outputs
   - R/C input for Spektrum / DSM
   - Dedicated R/C input for PPM and S.Bus input
@@ -100,18 +98,15 @@ The Pixhawk® 5X is perfect for developers at corporate research labs, startups,
     - 2 Dedicated debug and GPIO lines
 
 - 정격 전압
-
   - 최대 입력 전압: 6V
   - USB 전원 입력: 4.75~5.25V
   - 서보 레일 입력: 0~36V
 
 - 크기
-
   - Flight Controller Module: 38.8 x 31.8 x 14.6mm
   - Standard Baseboard: 52.4 x 103.4 x 16.7mm
 
 - 중량
-
   - Flight Controller Module: 23g
   - Standard Baseboard: 51g
 
@@ -227,7 +222,7 @@ For information about using this port see:
 
 ## 주변 장치
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 

@@ -74,7 +74,6 @@ private:
 		CONFIGURE,
 		TRIGGER,
 		COLLECT,
-		WATCHDOG
 	} _state{STATE::CONFIGURE};
 
 	PX4Rangefinder _px4_rangefinder;
@@ -89,6 +88,8 @@ private:
 	int8_t _current_quality{0};
 	float _max_distance{30.f};
 	uint32_t _current_rate{0};
+
+	hrt_abstime _trigger_time{0};
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 

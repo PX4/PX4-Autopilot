@@ -62,7 +62,6 @@ The Pixhawk® 5X is perfect for developers at corporate research labs, startups,
   - 32 位 Arm® Cortex®-M3，24MHz，8KB SRAM
 
 - On-board Sensors:
-
   - Accel/Gyro: ICM-20649
   - Accel/Gyro: ICM-42688P
   - 加速度计 / 陀螺仪：ICM-20602
@@ -70,7 +69,6 @@ The Pixhawk® 5X is perfect for developers at corporate research labs, startups,
   - Barometer: 2x BMP388
 
 - 接口
-
   - 16- PWM servo outputs
   - R/C input for Spektrum / DSM
   - Dedicated R/C input for PPM and S.Bus input
@@ -100,18 +98,15 @@ The Pixhawk® 5X is perfect for developers at corporate research labs, startups,
     - 2 Dedicated debug and GPIO lines
 
 - 额定电压
-
   - Max input voltage: 6V
   - USB 电源输入：4.75~5.25V
   - 伺服导轨输入电压：0~36V
 
 - 尺寸
-
   - Flight Controller Module: 38.8 x 31.8 x 14.6mm
   - Standard Baseboard: 52.4 x 103.4 x 16.7mm
 
 - 重量
-
   - Flight Controller Module: 23g
   - Standard Baseboard: 51g
 
@@ -227,7 +222,7 @@ For information about using this port see:
 
 ## 外部设备
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 

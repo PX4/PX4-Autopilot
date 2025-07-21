@@ -22,20 +22,17 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ## Основні характеристики
 
 - Мікропроцесор:
-
   - 32-bit STM32F777 Cortex<sup>&reg;</sup> M4 core with FPU rev. 3
   - 216 MHz/512 KB RAM/2 MB Flash
   - F-RAM Cypress MF25V02-G 256-Кбіт неволатильна пам'ять (Flash-пам'ять, яка працює так же швидко, як RAM)
 
 - Датчики:
-
-  - [Bosch BMI088](https://www.bosch-sensortec.com/bst/products/all_products/bmi088_1) 3-axis accelerometer/gyroscope (internally vibration dampened)
-  - [Invensense ICM-20602](https://www.invensense.com/products/motion-tracking/6-axis/icm-20602/) 3-axis accelerometer/gyroscope
+  - [Bosch BMI088](https://www.bosch-sensortec.com/products/motion-sensors/imus/bmi088/) 3-axis accelerometer/gyroscope (internally vibration dampened)
+  - [Invensense ICM-20602](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-20602/) 3-axis accelerometer/gyroscope
   - [Invensense ICM-20948](https://www.invensense.com/products/motion-tracking/9-axis/icm-20948/) 3-axis accelerometer/gyroscope/magnetometer
   - [Infineon DPS310 barometer](https://www.infineon.com/cms/en/product/sensor/pressure-sensors/pressure-sensors-for-iot/dps310/) (So smooth and NO more light sensitivity)
 
 - Інтерфейси:
-
   - 6x UART (загальна кількість послідовних портів), 3x з HW керуванням потоком, 1x FRSky Telemetry (типи D або Х), 1x Консоль та 1x GPS+I2C
   - 8x Виходи PWM (всі здатні до DShot)
   - 1x CAN
@@ -52,7 +49,6 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - LED триколор
 
 - Вага та розміри (без кейса):
-
   - Вага: 5.3г (0.19oz)
   - Ширина: 20 мм (0.79")
   - Довжина: 32 мм (1,26")
@@ -84,11 +80,11 @@ make mro_ctrl-zero-f7
 The [PX4 System Console](../debug/system_console.md) runs on `USART7` using the pins listed below.
 This is a standard serial pinout, designed to connect to a [3.3V FTDI](https://www.digikey.com/en/products/detail/TTL-232R-3V3/768-1015-ND/1836393) cable (5V tolerant).
 
-| mRo control zero f7 |             | FTDI |                                     |
-| ------------------- | ----------- | ---- | ----------------------------------- |
-| 17                  | USART7 Tx   | 5    | FTDI RX (yellow) |
-| 19                  | USART7 Rx   | 4    | FTDI TX (orange) |
-| 6                   | USART21 GND | 1    | FTDI GND (black) |
+\| mRo control zero f7 |             | FTDI |
+\| ------------------- | ----------- | ---- | ---------------- |
+\| 17                  | USART7 Tx   | 5    | FTDI RX (yellow) |
+\| 19                  | USART7 Rx   | 4    | FTDI TX (orange) |
+\| 6                   | USART21 GND | 1    | FTDI GND (black) |
 
 ### SWD Port
 

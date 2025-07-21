@@ -246,7 +246,7 @@ Note that Pic2Map is limited to only 40 images.
 
 ### Reconstruction
 
-We use [Pix4D](https://pix4d.com/) for 3D reconstruction.
+We use [Pix4D](https://www.pix4d.com/) for 3D reconstruction.
 
 ![GeoTag](../../assets/camera/geotag.jpg)
 

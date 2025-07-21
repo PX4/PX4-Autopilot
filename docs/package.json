@@ -6,7 +6,7 @@
   "scripts": {
     "docs:dev": "vitepress dev .",
     "docs:build": "yarn docs:build_ubuntu",
-    "docs:buildwin": "set NODE_OPTIONS=--max_old_space_size=8192 && vitepress build .",
+    "docs:buildwin": "set NODE_OPTIONS=--max_old_space_size=8192 && set CI=true && vitepress build .",
     "docs:build_ubuntu": "NODE_OPTIONS='--max-old-space-size=8192' vitepress build .",
     "docs:preview": "vitepress preview .",
     "docs:sitemap": "python3 ./scripts/gen_sitemap.py",
@@ -16,8 +16,8 @@
     "linkcheck": "markdown_link_checker_sc -r .. -d docs -e en -i assets"
   },
   "dependencies": {
-    "@red-asuka/vitepress-plugin-tabs": "^0.0.3",
-    "lite-youtube-embed": "^0.3.2",
+    "@red-asuka/vitepress-plugin-tabs": "0.0.4",
+    "lite-youtube-embed": "^0.3.3",
     "markdown-it-mathjax3": "^4.3.2",
     "medium-zoom": "^1.1.0",
     "open-editor": "^5.0.0",

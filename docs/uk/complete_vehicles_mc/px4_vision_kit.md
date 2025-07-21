@@ -403,7 +403,7 @@ You can modify PX4 itself, and [install it as custom firmware](../config/firmwar
 ## Інші Ресурси Розробника
 
 - [_UP Core_ Wiki](https://github.com/up-board/up-community/wiki/Ubuntu) - _Up Core_ супутниковий комп'ютер технічна інформація
-- [Форум розробників Occipital](https://structure.io/developers) - інформація про камеру _Structure Core_
+- [Occipital Developer Forum](https://structure.io/developers/) - _Structure Core_ camera information
 - [Огляд Pixhawk 4](../flight_controller/pixhawk4.md)
 - [Огляд Pixhawk 6C](../flight_controller/pixhawk6c.md)
 
