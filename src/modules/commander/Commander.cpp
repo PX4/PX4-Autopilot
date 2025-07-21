@@ -999,6 +999,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					}
 
 				} else {
+					float roll = matrix::wrap_2pi(math::radians(cmd.param2));
+					roll = PX4_ISFINITE(roll) ? roll : 0.0f;
+					float pitch = matrix::wrap_2pi(math::radians(cmd.param3));
+					pitch = PX4_ISFINITE(pitch) ? pitch : 0.0f;
 					float yaw = matrix::wrap_2pi(math::radians(cmd.param4));
 					yaw = PX4_ISFINITE(yaw) ? yaw : (float)NAN;
 					const double lat = cmd.param5;
@@ -1007,7 +1011,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 					if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt)) {
 
-						if (_home_position.setManually(lat, lon, alt, yaw)) {
+						if (_home_position.setManually(lat, lon, alt, roll, pitch, yaw)) {
 
 							cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -2011,7 +2015,9 @@ void Commander::checkForMissionUpdate()
 					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 
 				} else {
-					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+					// Transition to loiter when the takeoff is completed (force into the Loiter, if mode is not executable then failsafe).
+					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false,
+								    true);
 				}
 
 			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
@@ -2341,6 +2347,7 @@ bool Commander::handleModeIntentionAndFailsafe()
 	}
 
 	// Handle failsafe action
+	_mode_management.setFailsafeState(_failsafe.selectedAction() > FailsafeBase::Action::Warn);
 	_vehicle_status.nav_state_user_intention = _mode_management.getNavStateReplacementIfValid(_user_mode_intention.get(),
 			false);
 	_vehicle_status.nav_state = _mode_management.getNavStateReplacementIfValid(FailsafeBase::modeFromAction(
@@ -2408,7 +2415,7 @@ void Commander::modeManagementUpdate()
 {
 	ModeManagement::UpdateRequest mode_management_update{};
 	_mode_management.update(isArmed(), _vehicle_status.nav_state_user_intention,
-				_failsafe.selectedAction() > FailsafeBase::Action::Warn, mode_management_update);
+				mode_management_update);
 
 	if (!isArmed() && mode_management_update.change_user_intended_nav_state) {
 		_user_mode_intention.change(mode_management_update.user_intended_nav_state);

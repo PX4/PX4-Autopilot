@@ -103,6 +103,7 @@ private:
 	// Variables
 	Vector2f _curr_pos_ned{};
 	Vector2f _start_ned{};
+	float _arrival_speed{0.f};
 	float _vehicle_yaw{0.f};
 
 	DEFINE_PARAMETERS(

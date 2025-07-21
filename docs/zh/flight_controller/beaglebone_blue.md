@@ -27,7 +27,7 @@ Other useful information can be found in the [FAQ](https://github.com/beagleboar
 Optionally you can update to a realtime kernel, and if you do, re-check if _librobotcontrol_ works properly with the realtime kernel.
 :::
 
-The latest OS images at time of updating this document is [bone-debian-10.3-iot-armhf-2020-04-06-4gb.img.xz](https://debian.beagle.cc/images/bone-debian-10.3-iot-armhf-2020-04-06-4gb.img.xz).
+The latest OS images at time of updating this document is [AM3358 Debian 10.3 2020-04-06 4GB SD IoT](https://www.beagleboard.org/distros/am3358-debian-10-3-2020-04-06-4gb-sd-iot).
 
 ## Cross Compiler Build (Recommend)
 

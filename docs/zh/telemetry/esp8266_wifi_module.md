@@ -16,8 +16,7 @@ Most modules support 3.3 V input (only), while some flight controllers (e.g. Pix
 
 Modules that accept 3.3V supply:
 
-- [WRL-17146](https://www.sparkfun.com/products/13678) (Sparkfun)
-- [AI Cloud](https://us.gearbest.com/boards-shields/pp_009604906563.html) - discontinued (GearBeast)
+- [WRL-17146](https://www.sparkfun.com/wifi-module-esp8266-4mb-flash.html) (Sparkfun)
 
 Modules that accept 5.0V supply:
 

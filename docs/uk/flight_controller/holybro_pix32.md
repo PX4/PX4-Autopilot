@@ -7,7 +7,7 @@ PX4 не розробляє цей (або будь-який інший) авт�
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
 
-The Holybro<sup>&reg;</sup> [pix32 autopilot](https://holybro.com/collections/autopilot-flight-controllers/products/pix32pixhawk-flight-controller) (also known as "Pixhawk 2", and formerly as HKPilot32) is based on the [Pixhawk<sup>&reg;</sup>-project](https://pixhawk.org/) **FMUv2** open hardware design.
+The Holybro<sup>&reg;</sup> [pix32 autopilot](https://holybro.com/products/pix32pixhawk-flight-controller) (also known as "Pixhawk 2", and formerly as HKPilot32) is based on the [Pixhawk<sup>&reg;</sup>-project](https://pixhawk.org/) **FMUv2** open hardware design.
 This board is based on hardware version Pixhawk 2.4.6.
 It runs the PX4 flight stack on the [NuttX](https://nuttx.apache.org/) OS.
 
@@ -58,12 +58,11 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Де купити
 
-[shop.holybro.com](https://holybro.com/collections/autopilot-flight-controllers/products/pix32pixhawk-flight-controller)
+[shop.holybro.com](https://holybro.com/products/pix32pixhawk-flight-controller)
 
 ### Аксесуари
 
-- [Digital airspeed sensor](https://holybro.com/products/digital-air-speed-sensor)
-- [Hobbyking<sup>&reg;</sup> Wifi Telemetry](https://hobbyking.com/en_us/apm-pixhawk-wireless-wifi-radio-module.html)
+- [Digital airspeed sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [HolyBro SiK Telemetry Radio (EU 433 MHz, US 915 MHz)](../telemetry/holybro_sik_radio.md)
 
 ## Збірка прошивки

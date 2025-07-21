@@ -60,7 +60,7 @@ If you already have a clone of the [PX4-Autopilot](https://github.com/PX4/PX4-Au
 
 2. [Sign up](https://github.com/signup) for Github if you haven't already
 
-3. Create a copy (Fork) of the [PX4-Autopilot repo](https://github.com/PX4/PX4-Autopilot) on Github ([instructions here](https://docs.github.com/en/get-started/quickstart/fork-a-repo)).
+3. Create a copy (Fork) of the [PX4-Autopilot repo](https://github.com/PX4/PX4-Autopilot) on Github ([instructions here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)).
 
 4. 복사된 저장소를 로컬 컴퓨터에 복제합니다.
 
