@@ -99,8 +99,8 @@ private:
 	uint64_t _time_last_buffer_push{0};
 
 	enum class Ctrl : uint8_t {
-		HPOS  = (1 << 0),
-		VPOS  = (1 << 1)
+		kHPos  = (1 << 0),
+		kVPos  = (1 << 1)
 	};
 
 	enum class Mode : uint8_t {
@@ -109,12 +109,12 @@ private:
 	};
 
 	enum class State {
-		stopped,
-		starting,
-		active,
+		kStopped,
+		kStarting,
+		kActive,
 	};
 
-	State _state{State::stopped};
+	State _state{State::kStopped};
 
 	float _test_ratio_filtered{INFINITY};
 
