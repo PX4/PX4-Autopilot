@@ -35,13 +35,14 @@
 
 #include "../Common.hpp"
 
+#include <lib/hysteresis/hysteresis.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/system_power.h>
 
 class PowerChecks : public HealthAndArmingCheckBase
 {
 public:
-	PowerChecks() = default;
+	PowerChecks();
 	~PowerChecks() = default;
 
 	void checkAndReport(const Context &context, Report &reporter) override;
@@ -49,6 +50,8 @@ public:
 private:
 	uORB::Subscription _system_power_sub{ORB_ID(system_power)};
 	bool _overcurrent_warning_sent{false};
+	systemlib::Hysteresis _voltage_low_hysteresis{false};
+	systemlib::Hysteresis _voltage_high_hysteresis{false};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,

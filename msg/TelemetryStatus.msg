@@ -51,13 +51,11 @@ bool heartbeat_type_open_drone_id           # MAV_TYPE_ODID
 bool heartbeat_component_telemetry_radio    # MAV_COMP_ID_TELEMETRY_RADIO
 bool heartbeat_component_log                # MAV_COMP_ID_LOG
 bool heartbeat_component_osd                # MAV_COMP_ID_OSD
-bool heartbeat_component_obstacle_avoidance # MAV_COMP_ID_OBSTACLE_AVOIDANCE
 bool heartbeat_component_vio                # MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY
 bool heartbeat_component_pairing_manager    # MAV_COMP_ID_PAIRING_MANAGER
 bool heartbeat_component_udp_bridge         # MAV_COMP_ID_UDP_BRIDGE
 bool heartbeat_component_uart_bridge        # MAV_COMP_ID_UART_BRIDGE
 
 # Misc component health
-bool avoidance_system_healthy
 bool open_drone_id_system_healthy
 bool parachute_system_healthy

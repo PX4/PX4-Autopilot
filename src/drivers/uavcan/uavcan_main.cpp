@@ -546,7 +546,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 #endif
 
-#if defined(CONFIG_UAVCAN_SAFETY_CONTROLLER)
+#if defined(CONFIG_UAVCAN_SAFETY_STATE_CONTROLLER)
 	ret = _safety_state_controller.init();
 
 	if (ret < 0) {
@@ -601,18 +601,6 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 		PX4_DEBUG("sensor bridge '%s' init ok", br->get_name());
 	}
-
-#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
-
-	// Ensure we don't exceed maximum limits and assumptions. FIXME: these should be static assertions
-	if (UavcanEscController::max_output_value() >= UavcanEscController::DISARMED_OUTPUT_VALUE
-	    || UavcanEscController::max_output_value() > (int)UINT16_MAX) {
-		PX4_ERR("ESC max output value assertion failed");
-		return -EINVAL;
-	}
-
-	_mixing_interface_esc.mixingOutput().setAllDisarmedValues(UavcanEscController::DISARMED_OUTPUT_VALUE);
-#endif
 
 	/* Set up shared service clients */
 	_param_getset_client.setCallback(GetSetCallback(this, &UavcanNode::cb_getset));
@@ -1024,10 +1012,10 @@ UavcanNode::Run()
 }
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
-bool UavcanMixingInterfaceESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool UavcanMixingInterfaceESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
-	_esc_controller.update_outputs(stop_motors, outputs, num_outputs);
+	_esc_controller.update_outputs(outputs, num_outputs);
 	return true;
 }
 
@@ -1054,10 +1042,10 @@ void UavcanMixingInterfaceESC::mixerChanged()
 	_esc_controller.set_rotor_count(rotor_count);
 }
 
-bool UavcanMixingInterfaceServo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool UavcanMixingInterfaceServo::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
-	_servo_controller.update_outputs(stop_motors, outputs, num_outputs);
+	_servo_controller.update_outputs(outputs, num_outputs);
 	return true;
 }
 

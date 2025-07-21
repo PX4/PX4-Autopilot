@@ -69,6 +69,15 @@ then
 fi
 
 #
+# Spapcecraft setup.
+#
+if [ $VEHICLE_TYPE = spacecraft ]
+then
+	# Start standard multicopter apps.
+	. ${R}etc/init.d/rc.sc_apps
+fi
+
+#
 # Airship setup.
 #
 if [ $VEHICLE_TYPE = airship ]

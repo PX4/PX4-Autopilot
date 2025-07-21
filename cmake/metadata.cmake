@@ -53,6 +53,7 @@ file(GLOB_RECURSE yaml_config_files ${PX4_SOURCE_DIR}/src/modules/*.yaml
 # avoid param duplicates
 list(FILTER yaml_config_files EXCLUDE REGEX ".*/pwm_out_sim/")
 list(FILTER yaml_config_files EXCLUDE REGEX ".*/linux_pwm_out/")
+list(FILTER yaml_config_files EXCLUDE REGEX ".*/spacecraft/")
 
 add_custom_target(metadata_parameters
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/docs

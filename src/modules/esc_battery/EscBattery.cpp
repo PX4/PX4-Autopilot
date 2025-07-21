@@ -40,7 +40,7 @@ using namespace time_literals;
 EscBattery::EscBattery() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
-	_battery(1, this, ESC_BATTERY_INTERVAL_US, battery_status_s::BATTERY_SOURCE_ESCS)
+	_battery(1, this, ESC_BATTERY_INTERVAL_US, battery_status_s::SOURCE_ESCS)
 {
 }
 
@@ -91,17 +91,25 @@ EscBattery::Run()
 		const uint8_t online_esc_count = math::countSetBits(esc_status.esc_online_flags);
 		float average_voltage_v = 0.0f;
 		float total_current_a = 0.0f;
+		float average_temperature_c = 0.0f;
 
 		for (unsigned i = 0; i < esc_status.esc_count; ++i) {
 			if ((1 << i) & esc_status.esc_online_flags) {
 				average_voltage_v += esc_status.esc[i].esc_voltage;
 				total_current_a += esc_status.esc[i].esc_current;
+
+				if (PX4_ISFINITE(esc_status.esc[i].esc_temperature)) {
+					average_temperature_c += esc_status.esc[i].esc_temperature;
+				}
 			}
 		}
 
 		average_voltage_v /= online_esc_count;
+		total_current_a /= online_esc_count;
+		average_temperature_c /= online_esc_count;
 
 		_battery.setConnected(true);
+		_battery.updateTemperature(average_temperature_c);
 		_battery.updateVoltage(average_voltage_v);
 		_battery.updateCurrent(total_current_a);
 		_battery.updateAndPublishBatteryStatus(esc_status.timestamp);

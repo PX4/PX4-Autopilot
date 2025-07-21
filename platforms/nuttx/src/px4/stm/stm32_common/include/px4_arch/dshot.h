@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2024 PX4 Development Team. All rights reserved.
  * Author: Igor Misic <igy1000mb@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,5 +58,6 @@
  */
 typedef struct dshot_conf_t {
 	uint32_t			dma_base;
-	uint32_t			dmamap;
+	uint32_t			dma_map_up;
+	uint32_t			dma_map_ch[4];
 } dshot_conf_t;

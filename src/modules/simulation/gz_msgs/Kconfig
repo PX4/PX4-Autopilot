@@ -1,0 +1,6 @@
+menuconfig MODULES_SIMULATION_GZ_MSGS
+	bool "gz_msgs"
+	default n
+	depends on PLATFORM_POSIX
+	---help---
+		Enable proto generation for custom PX4 messages

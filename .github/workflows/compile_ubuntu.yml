@@ -7,9 +7,20 @@ on:
       - 'stable'
       - 'beta'
       - 'release/**'
+    paths-ignore:
+      - 'docs/**'
   pull_request:
     branches:
-      - '*'
+      - '**'
+    paths-ignore:
+      - 'docs/**'
+
+env:
+  RUNS_IN_DOCKER: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build_and_test:

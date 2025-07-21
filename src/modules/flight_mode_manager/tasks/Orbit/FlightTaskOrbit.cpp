@@ -160,7 +160,7 @@ void FlightTaskOrbit::_sanitizeParams(float &radius, float &velocity) const
 {
 	// clip the radius to be within range
 	radius = math::constrain(radius, _radius_min, _param_mc_orbit_rad_max.get());
-	velocity = math::constrain(velocity, -fabsf(_velocity_max), fabsf(_velocity_max));
+	velocity = math::constrain(velocity, -fabsf(_param_mpc_xy_vel_max.get()), fabsf(_param_mpc_xy_vel_max.get()));
 
 	bool exceeds_maximum_acceleration = (velocity * velocity) >= _acceleration_max * radius;
 
@@ -179,8 +179,8 @@ bool FlightTaskOrbit::activate(const trajectory_setpoint_s &last_setpoint)
 	_orbit_velocity = 1.f;
 	_center = _position;
 	_initial_heading = _yaw;
-	_slew_rate_yaw.setForcedValue(_yaw);
-	_slew_rate_yaw.setSlewRate(math::radians(_param_mpc_yawrauto_max.get()));
+	_heading_smoothing.reset(PX4_ISFINITE(last_setpoint.yaw) ? last_setpoint.yaw : _yaw,
+				 PX4_ISFINITE(last_setpoint.yawspeed) ? last_setpoint.yawspeed : 0.f);
 	_slew_rate_velocity.setSlewRate(_param_mpc_acc_hor.get());
 
 	// need a valid position and velocity
@@ -238,7 +238,14 @@ bool FlightTaskOrbit::update()
 	}
 
 	// Apply yaw smoothing
-	_yaw_setpoint = _slew_rate_yaw.update(_yaw_setpoint, _deltatime);
+	_heading_smoothing.setMaxHeadingRate(math::radians(_param_mpc_yawrauto_max.get()));
+	_heading_smoothing.setMaxHeadingAccel(math::radians(_param_mpc_yawrauto_acc.get()));
+	_heading_smoothing.update(_yaw_setpoint, _deltatime);
+	_yaw_setpoint = _heading_smoothing.getSmoothedHeading();
+
+	if (_in_circle_approach) { // don't override feed-forward which is already calculated for circling
+		_yawspeed_setpoint = _heading_smoothing.getSmoothedHeadingRate();
+	}
 
 	// publish information to UI
 	sendTelemetry();
@@ -362,7 +369,7 @@ void FlightTaskOrbit::_generate_circle_yaw_setpoints()
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_UNCONTROLLED:
 		// no yaw setpoint
 		_yaw_setpoint = NAN;
-		_yawspeed_setpoint = NAN;
+		_yawspeed_setpoint = 0.f; // No yaw setpoint is invalid -> just brake to 0°/s
 		break;
 
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE:

@@ -287,8 +287,6 @@ private:
 	perf_counter_t 		_measure_perf;
 	perf_counter_t 		_comms_errors;
 
-	bool			_collect_phase{false};
-
 	uint8_t			_chip_id{0};
 	uint8_t			_chip_rev_id{0};
 

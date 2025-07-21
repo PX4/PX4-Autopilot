@@ -121,12 +121,14 @@ bool GZMixingInterfaceServo::init(const std::string &model_name)
 		_angular_range_rad.push_back(max_val - min_val);
 	}
 
+	pthread_mutex_init(&_node_mutex, nullptr);
+
 	ScheduleNow();
 
 	return true;
 }
 
-bool GZMixingInterfaceServo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool GZMixingInterfaceServo::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
 	bool updated = false;

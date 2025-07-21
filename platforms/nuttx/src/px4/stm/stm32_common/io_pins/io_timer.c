@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012, 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,7 +61,6 @@
 #include <stm32_gpio.h>
 #include <stm32_tim.h>
 
-
 static int io_timer_handler0(int irq, void *context, void *arg);
 static int io_timer_handler1(int irq, void *context, void *arg);
 static int io_timer_handler2(int irq, void *context, void *arg);
@@ -73,8 +72,14 @@ static int io_timer_handler7(int irq, void *context, void *arg);
 
 #if defined(HAVE_GTIM_CCXNP)
 #define HW_GTIM_CCER_CC1NP GTIM_CCER_CC1NP
+#define HW_GTIM_CCER_CC2NP GTIM_CCER_CC2NP
+#define HW_GTIM_CCER_CC3NP GTIM_CCER_CC3NP
+#define HW_GTIM_CCER_CC4NP GTIM_CCER_CC4NP
 #else
 #  define HW_GTIM_CCER_CC1NP    0
+#  define HW_GTIM_CCER_CC2NP    0
+#  define HW_GTIM_CCER_CC3NP    0
+#  define HW_GTIM_CCER_CC4NP    0
 #endif
 
 #define arraySize(a) (sizeof((a))/sizeof(((a)[0])))
@@ -96,41 +101,42 @@ static int io_timer_handler7(int irq, void *context, void *arg);
 
 #define MAX_CHANNELS_PER_TIMER 4
 
-#define _REG32(_base, _reg)	(*(volatile uint32_t *)(_base + _reg))
-#define REG(_tmr, _reg)		_REG32(io_timers[_tmr].base, _reg)
+#define _REG32(_base, _reg) (*(volatile uint32_t *)(_base + _reg))
+#define REG(_tmr, _reg)     _REG32(io_timers[_tmr].base, _reg)
 
-#define rCR1(_tmr)    	REG(_tmr, STM32_GTIM_CR1_OFFSET)
-#define rCR2(_tmr)    	REG(_tmr, STM32_GTIM_CR2_OFFSET)
-#define rSMCR(_tmr)   	REG(_tmr, STM32_GTIM_SMCR_OFFSET)
-#define rDIER(_tmr)   	REG(_tmr, STM32_GTIM_DIER_OFFSET)
-#define rSR(_tmr)     	REG(_tmr, STM32_GTIM_SR_OFFSET)
-#define rEGR(_tmr)    	REG(_tmr, STM32_GTIM_EGR_OFFSET)
-#define rCCMR1(_tmr)  	REG(_tmr, STM32_GTIM_CCMR1_OFFSET)
-#define rCCMR2(_tmr)  	REG(_tmr, STM32_GTIM_CCMR2_OFFSET)
-#define rCCER(_tmr)   	REG(_tmr, STM32_GTIM_CCER_OFFSET)
-#define rCNT(_tmr)    	REG(_tmr, STM32_GTIM_CNT_OFFSET)
-#define rPSC(_tmr)    	REG(_tmr, STM32_GTIM_PSC_OFFSET)
-#define rARR(_tmr)    	REG(_tmr, STM32_GTIM_ARR_OFFSET)
-#define rCCR1(_tmr)   	REG(_tmr, STM32_GTIM_CCR1_OFFSET)
-#define rCCR2(_tmr)   	REG(_tmr, STM32_GTIM_CCR2_OFFSET)
-#define rCCR3(_tmr)   	REG(_tmr, STM32_GTIM_CCR3_OFFSET)
-#define rCCR4(_tmr)   	REG(_tmr, STM32_GTIM_CCR4_OFFSET)
-#define rDCR(_tmr)    	REG(_tmr, STM32_GTIM_DCR_OFFSET)
-#define rDMAR(_tmr)   	REG(_tmr, STM32_GTIM_DMAR_OFFSET)
-#define rBDTR(_tmr)		REG(_tmr, STM32_ATIM_BDTR_OFFSET)
+#define rCR1(_tmr)      REG(_tmr, STM32_GTIM_CR1_OFFSET)
+#define rCR2(_tmr)      REG(_tmr, STM32_GTIM_CR2_OFFSET)
+#define rSMCR(_tmr)     REG(_tmr, STM32_GTIM_SMCR_OFFSET)
+#define rDIER(_tmr)     REG(_tmr, STM32_GTIM_DIER_OFFSET)
+#define rSR(_tmr)       REG(_tmr, STM32_GTIM_SR_OFFSET)
+#define rEGR(_tmr)      REG(_tmr, STM32_GTIM_EGR_OFFSET)
+#define rCCMR1(_tmr)    REG(_tmr, STM32_GTIM_CCMR1_OFFSET)
+#define rCCMR2(_tmr)    REG(_tmr, STM32_GTIM_CCMR2_OFFSET)
+#define rCCER(_tmr)     REG(_tmr, STM32_GTIM_CCER_OFFSET)
+#define rCNT(_tmr)      REG(_tmr, STM32_GTIM_CNT_OFFSET)
+#define rPSC(_tmr)      REG(_tmr, STM32_GTIM_PSC_OFFSET)
+#define rARR(_tmr)      REG(_tmr, STM32_GTIM_ARR_OFFSET)
+#define rCCR1(_tmr)     REG(_tmr, STM32_GTIM_CCR1_OFFSET)
+#define rCCR2(_tmr)     REG(_tmr, STM32_GTIM_CCR2_OFFSET)
+#define rCCR3(_tmr)     REG(_tmr, STM32_GTIM_CCR3_OFFSET)
+#define rCCR4(_tmr)     REG(_tmr, STM32_GTIM_CCR4_OFFSET)
+#define rDCR(_tmr)      REG(_tmr, STM32_GTIM_DCR_OFFSET)
+#define rDMAR(_tmr)     REG(_tmr, STM32_GTIM_DMAR_OFFSET)
+#define rBDTR(_tmr)     REG(_tmr, STM32_ATIM_BDTR_OFFSET)
 
 #define GTIM_SR_CCIF (GTIM_SR_CC4IF|GTIM_SR_CC3IF|GTIM_SR_CC2IF|GTIM_SR_CC1IF)
 #define GTIM_SR_CCOF (GTIM_SR_CC4OF|GTIM_SR_CC3OF|GTIM_SR_CC2OF|GTIM_SR_CC1OF)
 
-#define CCMR_C1_RESET 			0x00ff
-#define CCMR_C1_NUM_BITS 		8
-#define CCER_C1_NUM_BITS 		4
+#define CCMR_C1_RESET           0x00ff
+#define CCMR_C1_NUM_BITS        8
+#define CCER_C1_NUM_BITS        4
 
 #define CCMR_C1_CAPTURE_INIT (GTIM_CCMR_CCS_CCIN1  << GTIM_CCMR1_CC1S_SHIFT) | \
 	(GTIM_CCMR_ICPSC_NOPSC << GTIM_CCMR1_IC1PSC_SHIFT) | \
 	(GTIM_CCMR_ICF_NOFILT << GTIM_CCMR1_IC1F_SHIFT)
 
 #define CCMR_C1_PWMOUT_INIT (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE
+#define CCMR_C1_PWMOUT_INVERTED_INIT (GTIM_CCMR_MODE_PWM2 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE
 
 #define CCMR_C1_PWMIN_INIT 0 // TBD
 
@@ -141,15 +147,15 @@ static int io_timer_handler7(int irq, void *context, void *arg);
 #endif
 
 /* The transfer is done to 1 register starting from TIMx_CR1 + TIMx_DCR.DBA   */
-#define TIM_DMABURSTLENGTH_1TRANSFER	0x00000000U
+#define TIM_DMABURSTLENGTH_1TRANSFER    0x00000000U
 /* The transfer is done to 2 registers starting from TIMx_CR1 + TIMx_DCR.DBA  */
-#define TIM_DMABURSTLENGTH_2TRANSFERS	0x00000100U
+#define TIM_DMABURSTLENGTH_2TRANSFERS   0x00000100U
 /* The transfer is done to 3 registers starting from TIMx_CR1 + TIMx_DCR.DBA  */
-#define TIM_DMABURSTLENGTH_3TRANSFERS	0x00000200U
+#define TIM_DMABURSTLENGTH_3TRANSFERS   0x00000200U
 /* The transfer is done to 4 registers starting from TIMx_CR1 + TIMx_DCR.DBA  */
-#define TIM_DMABURSTLENGTH_4TRANSFERS	0x00000300U
+#define TIM_DMABURSTLENGTH_4TRANSFERS   0x00000300U
 
-//												 				  NotUsed   PWMOut  PWMIn Capture OneShot Trigger Dshot LED PPS Other
+//                                                                NotUsed   PWMOut  PWMIn Capture OneShot Trigger Dshot LED PPS Other
 io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT16_MAX,   0,  0,  0, 0, 0, 0, 0, 0, 0 };
 
 typedef uint8_t io_timer_allocation_t; /* big enough to hold MAX_IO_TIMERS */
@@ -161,15 +167,15 @@ io_timer_channel_allocation_t timer_allocations[MAX_IO_TIMERS] = { };
 /* Stats and handlers are only useful for Capture */
 
 typedef struct channel_stat_t {
-	uint32_t 			isr_cout;
-	uint32_t 			overflows;
+	uint32_t            isr_cout;
+	uint32_t            overflows;
 } channel_stat_t;
 
 static channel_stat_t io_timer_channel_stats[MAX_TIMER_IO_CHANNELS];
 
 static struct channel_handler_entry {
 	channel_handler_t callback;
-	void			  *context;
+	void              *context;
 } channel_handlers[MAX_TIMER_IO_CHANNELS];
 #endif // !defined(BOARD_HAS_NO_CAPTURE)
 
@@ -519,7 +525,57 @@ void io_timer_update_dma_req(uint8_t timer, bool enable)
 	}
 }
 
-int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_t dma_burst_length)
+void io_timer_capture_dma_req(uint8_t timer, uint8_t timer_channel_index, bool enable)
+{
+	if (enable) {
+		switch (timer_channel_index) {
+		case 0:
+			rDIER(timer) |= ATIM_DIER_CC1DE;
+			rEGR(timer)  |= (ATIM_EGR_UG | ATIM_EGR_CC1G);
+			break;
+
+		case 1:
+			rDIER(timer) |= ATIM_DIER_CC2DE;
+			rEGR(timer)  |= (ATIM_EGR_UG | ATIM_EGR_CC2G);
+			break;
+
+		case 2:
+			rDIER(timer) |= ATIM_DIER_CC3DE;
+			rEGR(timer)  |= (ATIM_EGR_UG | ATIM_EGR_CC3G);
+			break;
+
+		case 3:
+			rDIER(timer) |= ATIM_DIER_CC4DE;
+			rEGR(timer)  |= (ATIM_EGR_UG | ATIM_EGR_CC4G);
+			break;
+		}
+
+	} else {
+		switch (timer_channel_index) {
+		case 0:
+			rEGR(timer)  &= ~(ATIM_EGR_UG | ATIM_EGR_CC1G);
+			rDIER(timer) &= ~ATIM_DIER_CC1DE;
+			break;
+
+		case 1:
+			rEGR(timer)  &= ~(ATIM_EGR_UG | ATIM_EGR_CC2G);
+			rDIER(timer) &= ~ATIM_DIER_CC2DE;
+			break;
+
+		case 2:
+			rEGR(timer)  &= ~(ATIM_EGR_UG | ATIM_EGR_CC3G);
+			rDIER(timer) &= ~ATIM_DIER_CC3DE;
+			break;
+
+		case 3:
+			rEGR(timer)  &= ~(ATIM_EGR_UG | ATIM_EGR_CC4G);
+			rDIER(timer) &= ~ATIM_DIER_CC4DE;
+			break;
+		}
+	}
+}
+
+int io_timer_set_dshot_burst_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_t dma_burst_length)
 {
 	int ret_val = OK;
 	uint32_t tim_dma_burst_length;
@@ -545,7 +601,7 @@ int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_t dma_
 		rPSC(timer)  = ((int)(io_timers[timer].clock_freq / dshot_pwm_freq) / DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
 		rEGR(timer)  = ATIM_EGR_UG;
 
-		// find the lowest channel index for the timer (they are not necesarily in ascending order)
+		// find the lowest channel index for the timer (they are not necessarily in ascending order)
 		unsigned lowest_timer_channel = 4;
 		uint32_t first_channel_index = io_timers_channel_mapping.element[timer].first_channel_index;
 		uint32_t last_channel_index = first_channel_index + io_timers_channel_mapping.element[timer].channel_count;
@@ -572,6 +628,47 @@ int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_t dma_
 	}
 
 	return ret_val;
+}
+
+int io_timer_set_dshot_capture_mode(uint8_t timer, uint8_t timer_channel_index, unsigned dshot_pwm_freq)
+{
+	// Timer Autor Reload Register max value
+	rARR(timer) = 0xFFFFFFFF;
+	// Timer Prescalar
+	rPSC(timer) = ((int)(io_timers[timer].clock_freq / (dshot_pwm_freq * 5 / 4)) / DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
+
+	switch (timer_channel_index) {
+	case 0:
+		rEGR(timer) |= ATIM_EGR_UG | GTIM_EGR_CC1G;
+		rCCER(timer) &= ~(GTIM_CCER_CC1E | GTIM_CCER_CC1P | HW_GTIM_CCER_CC1NP);
+		rCCMR1(timer) |= (GTIM_CCMR_CCS_CCIN1 << GTIM_CCMR1_CC1S_SHIFT);
+		rCCER(timer) |= (GTIM_CCER_CC1E | GTIM_CCER_CC1P | HW_GTIM_CCER_CC1NP);
+
+		break;
+
+	case 1:
+		rEGR(timer) |= ATIM_EGR_UG | GTIM_EGR_CC2G;
+		rCCER(timer) &= ~(GTIM_CCER_CC2E | GTIM_CCER_CC2P | HW_GTIM_CCER_CC2NP);
+		rCCMR1(timer) |= (GTIM_CCMR_CCS_CCIN1 << GTIM_CCMR1_CC2S_SHIFT);
+		rCCER(timer) |= (GTIM_CCER_CC2E | GTIM_CCER_CC2P | HW_GTIM_CCER_CC2NP);
+		break;
+
+	case 2:
+		rEGR(timer) |= ATIM_EGR_UG | GTIM_EGR_CC3G;
+		rCCER(timer) &= ~(GTIM_CCER_CC3E | GTIM_CCER_CC3P | HW_GTIM_CCER_CC3NP);
+		rCCMR2(timer) |= (GTIM_CCMR_CCS_CCIN1 << GTIM_CCMR2_CC3S_SHIFT);
+		rCCER(timer) |= (GTIM_CCER_CC3E | GTIM_CCER_CC3P | HW_GTIM_CCER_CC3NP);
+		break;
+
+	case 3:
+		rEGR(timer) |= ATIM_EGR_UG | GTIM_EGR_CC4G;
+		rCCER(timer) &= ~(GTIM_CCER_CC4E | GTIM_CCER_CC4P | HW_GTIM_CCER_CC4NP);
+		rCCMR2(timer) |= (GTIM_CCMR_CCS_CCIN1 << GTIM_CCMR2_CC4S_SHIFT);
+		rCCER(timer) |= (GTIM_CCER_CC4E | GTIM_CCER_CC4P | HW_GTIM_CCER_CC4NP);
+		break;
+	}
+
+	return 0;
 }
 
 static inline void io_timer_set_PWM_mode(unsigned timer)
@@ -773,6 +870,12 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 		setbits = CCMR_C1_PWMOUT_INIT;
 		break;
 
+	case IOTimerChanMode_DshotInverted:
+		ccer_setbits = 0;
+		dier_setbits = 0;
+		setbits = CCMR_C1_PWMOUT_INVERTED_INIT;
+		break;
+
 	case IOTimerChanMode_PWMIn:
 		setbits = CCMR_C1_PWMIN_INIT;
 		gpio = timer_io_channels[channel].gpio_in;
@@ -781,6 +884,7 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 #if !defined(BOARD_HAS_NO_CAPTURE)
 
 	case IOTimerChanMode_Capture:
+	case IOTimerChanMode_CaptureDMA:
 		setbits = CCMR_C1_CAPTURE_INIT;
 		gpio = timer_io_channels[channel].gpio_in;
 		break;
@@ -897,10 +1001,12 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 		break;
 
 	case IOTimerChanMode_Dshot:
+	case IOTimerChanMode_DshotInverted:
 		dier_bit = 0;
 
 	/* fallthrough */
 	case IOTimerChanMode_Capture:
+	case IOTimerChanMode_CaptureDMA:
 		cr1_bit  = state ? GTIM_CR1_CEN : 0;
 
 	/* fallthrough */
@@ -946,6 +1052,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 			     (mode == IOTimerChanMode_PWMOut ||
 			      mode == IOTimerChanMode_OneShot ||
 			      mode == IOTimerChanMode_Dshot ||
+			      mode == IOTimerChanMode_DshotInverted ||
 			      mode == IOTimerChanMode_Trigger))) {
 				action_cache[timer].gpio[shifts] = timer_io_channels[chan_index].gpio_out;
 			}
@@ -985,7 +1092,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 				/* arm requires the timer be enabled */
 				rCR1(actions) |= cr1_bit;
 
-			} else 	{
+			} else  {
 
 				rCR1(actions) = 0;
 			}
@@ -1006,6 +1113,7 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 		if ((mode != IOTimerChanMode_PWMOut) &&
 		    (mode != IOTimerChanMode_OneShot) &&
 		    (mode != IOTimerChanMode_Dshot) &&
+		    (mode != IOTimerChanMode_DshotInverted) &&
 		    (mode != IOTimerChanMode_Trigger)) {
 
 			rv = -EIO;

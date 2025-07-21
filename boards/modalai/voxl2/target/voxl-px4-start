@@ -13,7 +13,7 @@ echo "OSD: $OSD"
 echo "EXTRA STEPS:"
 for i in "${EXTRA_STEPS[@]}"
 do
-	echo -e "\t$i"
+    echo -e "\t$i"
 done
 echo -e "*************************\n"
 
@@ -62,6 +62,10 @@ param select /data/px4/param/parameters
 # Load in all of the parameters that have been saved in the file
 param load
 
+# This was the default pre-v1.16.0 and for folks relying on that
+# we set it up here
+param set-default EKF2_EV_CTRL 15
+
 # IMU (accelerometer / gyroscope)
 if [ "$PLATFORM" == "M0104" ]; then
     /bin/echo "Starting IMU driver with rotation 12"
@@ -83,17 +87,17 @@ qshell ist8310 start -R 10 -X -b 1
 
 # GPS and magnetometer
 if [ "$GPS" != "NONE" ]; then
-	# On M0052 the GPS driver runs on the apps processor
-	if [ $PLATFORM = "M0052" ]; then
-	    gps start -d /dev/ttyHS2
-	# On M0054 and M0104 the GPS driver runs on SLPI DSP
-	else
-	    qshell gps start -d 6
-	fi
+    # On M0052 the GPS driver runs on the apps processor
+    if [ $PLATFORM = "M0052" ]; then
+        gps start -d /dev/ttyHS2
+    # On M0054 and M0104 the GPS driver runs on SLPI DSP
+    else
+        qshell gps start -d 6
+    fi
 fi
 
 # Auto detect an ncp5623c i2c RGB LED. If one isn't connected this will
-# fail but not cause any harm. 
+# fail but not cause any harm.
 /bin/echo "Looking for ncp5623c RGB LED"
 qshell rgbled_ncp5623c start -X -b 1 -f 400 -a 56
 
@@ -107,17 +111,17 @@ param touch SYS_AUTOSTART
 # ESC driver
 if [ "$ESC" == "VOXL_ESC" ]; then
     /bin/echo "Starting VOXL ESC driver"
-	qshell voxl_esc start
+    qshell voxl_esc start
 elif [ "$ESC" == "VOXL2_IO_PWM_ESC" ]; then
-	if [ "$RC" == "M0065_SBUS" ]; then
-		/bin/echo "Starting VOXL IO for PWM ESC with SBUS RC"
-		qshell voxl2_io start
-	else
-		/bin/echo "Starting VOXL IO for PWM ESC without SBUS RC"
-		qshell voxl2_io start -e
-	fi
+    if [ "$RC" == "M0065_SBUS" ]; then
+        /bin/echo "Starting VOXL IO for PWM ESC with SBUS RC"
+        qshell voxl2_io start
+    else
+        /bin/echo "Starting VOXL IO for PWM ESC without SBUS RC"
+        qshell voxl2_io start -e
+    fi
 else
-	/bin/echo "No ESC type specified, not starting an ESC driver"
+    /bin/echo "No ESC type specified, not starting an ESC driver"
 fi
 
 
@@ -133,41 +137,41 @@ elif [ "$RC" == "CRSF_MAV" ]; then
     qshell mavlink_rc_in start -m -p 7 -b 115200
 elif [ "$RC" == "SPEKTRUM" ]; then
     /bin/echo "Starting Spektrum RC"
-	# On M0052 the RC driver runs on the apps processor
-	if [ $PLATFORM = "M0052" ]; then
+    # On M0052 the RC driver runs on the apps processor
+    if [ $PLATFORM = "M0052" ]; then
         rc_input start -d /dev/ttyHS1
-	# On M0054 and M0104 the RC driver runs on SLPI DSP
-	else
+    # On M0054 and M0104 the RC driver runs on SLPI DSP
+    else
         qshell spektrum_rc start
-	fi
+    fi
 elif [ "$RC" == "GHST" ]; then
     /bin/echo "Starting GHST RC driver"
     qshell ghst_rc start -d 7
 elif [ "$RC" == "M0065_SBUS" ]; then
-	if [ $PLATFORM = "M0052" ]; then
-		apps_sbus start
-	elif [ "$ESC" != "VOXL2_IO_PWM_ESC" ]; then
-    	/bin/echo "Attempting to start M0065 SBUS RC driver for original M0065 FW"
-    	qshell dsp_sbus start
-		retVal=$?
-		if [ $retVal -ne 0 ]; then
-	    	/bin/echo "Starting M0065 SBUS RC driver for original M0065 FW failed"
-	    	/bin/echo "Attempting to start M0065 SBUS RC driver for new M0065 FW"
-			qshell voxl2_io start -d -p 7
-		fi
-	else
-    	/bin/echo "M0065 SBUS RC driver already started with PWM ESC start"
-	fi
+    if [ $PLATFORM = "M0052" ]; then
+        apps_sbus start
+    elif [ "$ESC" != "VOXL2_IO_PWM_ESC" ]; then
+        /bin/echo "Attempting to start M0065 SBUS RC driver for original M0065 FW"
+        qshell dsp_sbus start
+        retVal=$?
+        if [ $retVal -ne 0 ]; then
+            /bin/echo "Starting M0065 SBUS RC driver for original M0065 FW failed"
+            /bin/echo "Attempting to start M0065 SBUS RC driver for new M0065 FW"
+            qshell voxl2_io start -d -p 7
+        fi
+    else
+        /bin/echo "M0065 SBUS RC driver already started with PWM ESC start"
+    fi
 fi
 
 if [ "$DISTANCE_SENSOR" == "LIGHTWARE_SF000" ]; then
-	# Make sure to set the parameter SENS_EN_SF0X to 8 for sf000/b sensor
-	qshell lightware_laser_serial start -d 7
+    # Make sure to set the parameter SENS_EN_SF0X to 8 for sf000/b sensor
+    qshell lightware_laser_serial start -d 7
 fi
 
 if [ "$POWER_MANAGER" == "VOXLPM" ]; then
-	# APM power monitor
-	qshell voxlpm start -X -b 2
+    # APM power monitor
+    qshell voxlpm start -X -b 2
 fi
 
 # Optional distance sensor on spare i2c
@@ -191,7 +195,7 @@ qshell load_mon start
 # is publishing input_rc topics. Otherwise for external RC
 # over Mavlink this isn't needed.
 if [ "$RC" != "EXTERNAL" ]; then
-	qshell rc_update start
+    qshell rc_update start
 fi
 
 qshell commander start
@@ -214,7 +218,7 @@ voxl_save_cal_params start
 # On M0052 there is only one IMU. So, PX4 needs to
 # publish IMU samples externally for VIO to use.
 if [ $PLATFORM = "M0052" ]; then
-	imu_server start
+    imu_server start
 fi
 
 # start the onboard fast link to connect to voxl-mavlink-server
@@ -250,5 +254,5 @@ fi
 # Start optional EXTRA_STEPS
 for i in "${EXTRA_STEPS[@]}"
 do
-	$i
+    $i
 done

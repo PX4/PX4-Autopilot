@@ -1,0 +1,39 @@
+#!/bin/sh
+#
+# Navigator specific board sensors init
+#------------------------------------------------------------------------------
+
+if ! mmc5983ma start -s -m 0 -R 4
+then
+	echo "mmc5983ma not found."
+fi
+
+if ! ak09916 start -I -R 6
+then
+	echo "AK09916 not found."
+fi
+
+if ! icm20602 start -s -m 0 -R 14
+then
+	echo "ICM20602 not found."
+fi
+
+if ! bmp280 start -I
+then
+	echo "bmp280 not found."
+fi
+
+if ! ads1115 start -I
+then
+	echo "ads1115 not found."
+fi
+
+if ! pca9685_pwm_out start -a 0x40 -b 4
+then
+	echo "pca9685_pwm_out not found."
+fi
+
+if ! neopixel start
+then
+	echo "neopixel not found."
+fi

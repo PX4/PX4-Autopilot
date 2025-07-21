@@ -129,11 +129,12 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 				} else {
 					_position_setpoint(2) = _position(2);
+					_dist_to_ground_lock = NAN;
 				}
 			}
 
 		} else {
-			bool not_moving = spd_xy < 0.5f * _param_mpc_hold_max_xy.get();
+			bool not_moving = spd_xy < 0.5f * _param_mpc_hold_max_xy.get() && stopped;
 
 			if (!stick_input && not_moving && PX4_ISFINITE(_dist_to_bottom)) {
 				// Start using distance to ground

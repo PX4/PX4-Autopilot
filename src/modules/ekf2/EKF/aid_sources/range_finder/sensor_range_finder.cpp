@@ -76,23 +76,25 @@ void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 	if (_is_sample_ready) {
 		_is_sample_valid = false;
 
-		if (_sample.quality == 0) {
-			_time_bad_quality_us = current_time_us;
+		_time_bad_quality_us = _sample.quality == 0 ? current_time_us : _time_bad_quality_us;
 
-		} else if (current_time_us - _time_bad_quality_us > _quality_hyst_us) {
-			// We did not receive bad quality data for some time
+		if (!isQualityOk(current_time_us) || !isTiltOk() || !isDataInRange()) {
+			return;
+		}
 
-			if (isTiltOk() && isDataInRange()) {
-				updateStuckCheck();
-				updateFogCheck(getDistBottom(), _sample.time_us);
+		updateStuckCheck();
+		updateFogCheck(getDistBottom(), _sample.time_us);
 
-				if (!_is_stuck && !_is_blocked) {
-					_is_sample_valid = true;
-					_time_last_valid_us = _sample.time_us;
-				}
-			}
+		if (!_is_stuck && !_is_blocked) {
+			_is_sample_valid = true;
+			_time_last_valid_us = _sample.time_us;
 		}
 	}
+}
+
+bool SensorRangeFinder::isQualityOk(uint64_t current_time_us) const
+{
+	return current_time_us - _time_bad_quality_us > _quality_hyst_us;
 }
 
 void SensorRangeFinder::updateDtDataLpf(uint64_t current_time_us)
@@ -149,7 +151,7 @@ void SensorRangeFinder::updateStuckCheck()
 
 void SensorRangeFinder::updateFogCheck(const float dist_bottom, const uint64_t time_us)
 {
-	if (_max_fog_dist > 0.f && time_us - _time_last_valid_us < 1e6) {
+	if (_max_fog_dist > 0.f) {
 
 		const float median_dist = _median_dist.apply(dist_bottom);
 		const float factor = 2.f; // magic hardcoded factor

@@ -105,7 +105,7 @@ TEST_CASE("RTL direct home without approaches", "[vtol]")
 	tester.set_rtl_appr_force(0);
 	// reupload rally points with approaches
 	tester.add_home_to_rally_point();
-	tester.upload_custom_mission(std::chrono::seconds(10));
+	tester.upload_rally_points();
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(4);
 	tester.wait_until_disarmed(std::chrono::seconds(150));
@@ -124,7 +124,7 @@ TEST_CASE("RTL direct home without approaches forced", "[vtol]")
 	tester.set_rtl_appr_force(1);
 	// reupload rally points with approaches
 	tester.add_home_to_rally_point();
-	tester.upload_custom_mission(std::chrono::seconds(10));
+	tester.upload_rally_points();
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(4);
 	tester.wait_until_disarmed(std::chrono::seconds(150));
@@ -142,7 +142,7 @@ TEST_CASE("RTL direct home with approaches", "[vtol]")
 	tester.set_rtl_type(0);
 	// reupload rally points with approaches
 	tester.add_home_with_approaches_to_rally_point();
-	tester.upload_custom_mission(std::chrono::seconds(10));
+	tester.upload_rally_points();
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(4);
 	tester.check_rtl_approaches(5., std::chrono::seconds(60));
@@ -161,7 +161,7 @@ TEST_CASE("RTL direct home not as rally point", "[vtol]")
 	tester.set_rtl_type(1);
 	// reupload rally points with approaches
 	tester.add_home_with_approaches_to_rally_point();
-	tester.upload_custom_mission(std::chrono::seconds(10));
+	tester.upload_rally_points();
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(2);
 	tester.wait_until_disarmed(std::chrono::seconds(150));
@@ -180,7 +180,7 @@ TEST_CASE("RTL direct rally without approaches", "[vtol]")
 	tester.set_rtl_appr_force(0);
 	// reupload rally points with approaches
 	tester.add_local_rally_point({100., -200.});
-	tester.upload_custom_mission(std::chrono::seconds(10));
+	tester.upload_rally_points();
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(3);
 	tester.wait_until_disarmed(std::chrono::seconds(150));
@@ -200,7 +200,7 @@ TEST_CASE("RTL direct rally without approaches forced", "[vtol]")
 	tester.set_rtl_appr_force(1);
 	// reupload rally points with approaches
 	tester.add_local_rally_point({100., -2000.});
-	tester.upload_custom_mission(std::chrono::seconds(10));
+	tester.upload_rally_points();
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(3);
 	tester.wait_until_disarmed(std::chrono::seconds(150));
@@ -219,7 +219,7 @@ TEST_CASE("RTL direct rally with approaches", "[vtol]")
 	tester.set_rtl_appr_force(0);
 	// reupload rally points with approaches
 	tester.add_local_rally_with_approaches_point({100., -200.});
-	tester.upload_custom_mission(std::chrono::seconds(10));
+	tester.upload_rally_points();
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(3);
 	tester.check_rtl_approaches(5., std::chrono::seconds(60));

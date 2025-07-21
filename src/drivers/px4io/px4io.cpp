@@ -153,7 +153,7 @@ public:
 
 	uint16_t		system_status() const { return _status; }
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 			   unsigned num_control_groups_updated) override;
 
 private:
@@ -360,7 +360,7 @@ PX4IO::~PX4IO()
 	perf_free(_interface_write_perf);
 }
 
-bool PX4IO::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool PX4IO::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			  unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	for (size_t i = 0; i < num_outputs; i++) {
@@ -705,7 +705,7 @@ void PX4IO::update_params()
 						if (output_function >= (int)OutputFunction::Servo1
 						    && output_function <= (int)OutputFunction::ServoMax) { // Function got set to a servo
 							int32_t val = 1500;
-							PX4_INFO("Setting channel %i disarmed to %i", i + 1, (int)val);
+							PX4_INFO("Setting channel %i disarmed to %i", (int)i + 1, (int)val);
 							param_set(_mixing_output.disarmedParamHandle(i), &val);
 
 							// If the whole timer group was not set previously, then set the pwm rate to 50 Hz
@@ -737,10 +737,10 @@ void PX4IO::update_params()
 						if (output_function >= (int)OutputFunction::Motor1
 						    && output_function <= (int)OutputFunction::MotorMax) { // Function got set to a motor
 							int32_t val = 1100;
-							PX4_INFO("Setting channel %i minimum to %i", i + 1, (int)val);
+							PX4_INFO("Setting channel %i minimum to %i", (int)i + 1, (int)val);
 							param_set(_mixing_output.minParamHandle(i), &val);
 							val = 1900;
-							PX4_INFO("Setting channel %i maximum to %i", i + 1, (int)val);
+							PX4_INFO("Setting channel %i maximum to %i", (int)i + 1, (int)val);
 							param_set(_mixing_output.maxParamHandle(i), &val);
 						}
 					}

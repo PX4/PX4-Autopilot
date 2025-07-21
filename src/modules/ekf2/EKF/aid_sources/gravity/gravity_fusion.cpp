@@ -50,17 +50,19 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 {
 	// get raw accelerometer reading at delayed horizon and expected measurement noise (gaussian)
 	const Vector3f measurement = Vector3f(imu.delta_vel / imu.delta_vel_dt - _state.accel_bias).unit();
-	const float measurement_var = math::max(sq(_params.gravity_noise), sq(0.01f));
+	const float measurement_var = math::max(sq(_params.ekf2_grav_noise), sq(0.01f));
 
 	const float upper_accel_limit = CONSTANTS_ONE_G * 1.1f;
 	const float lower_accel_limit = CONSTANTS_ONE_G * 0.9f;
-	const bool accel_lpf_norm_good = (_accel_magnitude_filt > lower_accel_limit)
-					 && (_accel_magnitude_filt < upper_accel_limit);
+	const float accel_lpf_norm_sq = _accel_lpf.getState().norm_squared();
+	const bool accel_lpf_norm_good = (accel_lpf_norm_sq > sq(lower_accel_limit))
+					 && (accel_lpf_norm_sq < sq(upper_accel_limit));
 
 	// fuse gravity observation if our overall acceleration isn't too big
-	_control_status.flags.gravity_vector = (_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector))
+	_control_status.flags.gravity_vector = (_params.ekf2_imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector))
 					       && (accel_lpf_norm_good || _control_status.flags.vehicle_at_rest)
-					       && !isHorizontalAidingActive();
+					       && !isHorizontalAidingActive()
+					       && _control_status.flags.tilt_align; // Let fake position do the initial alignment (more robust before takeoff)
 
 	// calculate kalman gains and innovation variances
 	Vector3f innovation = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f, -1.f)) - measurement;

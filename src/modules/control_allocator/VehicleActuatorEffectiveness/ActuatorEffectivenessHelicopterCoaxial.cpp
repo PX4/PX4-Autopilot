@@ -60,14 +60,13 @@ void ActuatorEffectivenessHelicopterCoaxial::updateParams()
 {
 	ModuleParams::updateParams();
 
-	int32_t count = 0;
-
-	if (param_get(_param_handles.num_swash_plate_servos, &count) != 0) {
+	if (param_get(_param_handles.num_swash_plate_servos, &_geometry.num_swash_plate_servos) != PX4_OK) {
 		PX4_ERR("param_get failed");
 		return;
 	}
 
-	_geometry.num_swash_plate_servos = math::constrain((int)count, 2, NUM_SWASH_PLATE_SERVOS_MAX);
+	_geometry.num_swash_plate_servos = math::constrain(_geometry.num_swash_plate_servos,
+					   (int32_t)2, (int32_t)NUM_SWASH_PLATE_SERVOS_MAX);
 
 	for (int i = 0; i < _geometry.num_swash_plate_servos; ++i) {
 		float angle_deg{};

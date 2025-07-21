@@ -1,0 +1,69 @@
+% latexmk -pdf tilt_axis.tex
+% pdftoppm tilt_axis.pdf tilt_axis.png -png
+\documentclass[border=3pt,tikz]{standalone}
+\usepackage{physics}
+\usepackage{tikz}
+\usepackage{tikz-3dplot}
+\usepackage[outline]{contour} % glow around text
+\usepackage{xcolor}
+
+\colorlet{veccol}{green!50!black}
+\colorlet{projcol}{blue!70!black}
+\colorlet{myblue}{blue!70!black}
+\colorlet{mydarkblue}{blue!50!black}
+\tikzset{>=latex} % for LaTeX arrow head
+\tikzstyle{proj}=[projcol!80,line width=0.08] %very thin
+\tikzstyle{area}=[draw=veccol,fill=veccol!80,fill opacity=0.6]
+\tikzstyle{vector}=[->,veccol,thick]
+\tikzstyle{darkvector}=[->,veccol!70!black,thick]
+\usetikzlibrary{angles,quotes} % for pic (angle labels)
+\contourlength{1.3pt}
+
+\begin{document}
+
+
+\tdplotsetmaincoords{60}{110}
+\begin{tikzpicture}[scale=2,tdplot_main_coords]
+  
+  % VARIABLES
+  \def\rvec{1}
+  \def\thetavec{-20}
+  \def\thetavecmax{-70}
+  \def\phivec{-60}
+  
+  % AXES
+  \coordinate (O) at (0,0,0);
+  \draw[thick,->] (0,0,0) -- (-2.5,0,0) node[anchor=north west]{$x$};
+  \draw[thick,->] (0,0,0) -- (0,1.7,0) node[anchor=north west]{$y$};
+  \draw[thick,->] (0,0,0) -- (0,0,1.7) node[anchor=south]{$-z$};
+  
+  % VECTORS
+  \tdplotsetcoord{P}{\rvec}{\thetavec}{\phivec}
+  \draw[-stealth,red] (O)  -- (P) node[above right=-2] {$P_{0}$};
+  \draw[dashed,red]   (O)  -- (Pxy);
+  \draw[dashed,red]   (P)  -- (Pxy);
+  
+  \tdplotsetcoord{P}{\rvec}{\thetavecmax}{\phivec}
+  \draw[-stealth,blue] (O)  -- (P) node[above right=-2] {$P_{1}$};
+  \draw[dashed,blue]   (O)  -- (Pxy);
+  \draw[dashed,blue]   (P)  -- (Pxy);
+  
+  % ARCS
+  \tdplotdrawarc[->]{(O)}{-0.6}{0}{\phivec}
+    {anchor=south}{$\alpha$}
+  \tdplotsetthetaplanecoords{\phivec}
+  \tdplotdrawarc[->,tdplot_rotated_coords,red]{(0,0,0)}{0.7}{0}{\thetavec}
+    {anchor=south west}{\hspace{-2mm}$\theta_0$}
+
+  \tdplotdrawarc[->,tdplot_rotated_coords,blue]{(0,0,0)}{0.3}{0}{\thetavecmax}
+    {anchor=south west}{\hspace{-3.5mm}$\theta_1$}
+
+	\node[draw=none] at (1,1) {\begin{tabular}{l}
+		$\alpha$: tilt direction\\
+		$\theta_{0}$: minimum tilt angle \\
+		$\theta_{1}$: maximum tilt angle
+	\end{tabular}};
+
+\end{tikzpicture}
+
+\end{document}

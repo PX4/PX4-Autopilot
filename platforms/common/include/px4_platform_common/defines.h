@@ -97,7 +97,7 @@ __BEGIN_DECLS
 extern long PX4_TICKS_PER_SEC;
 __END_DECLS
 
-#define PX4_ROOTFSDIR CONFIG_BOARD_ROOTFSDIR
+#define PX4_ROOTFSDIR CONFIG_BOARD_ROOT_PATH
 
 // Qurt doesn't have an SD card for storage
 #ifndef __PX4_QURT

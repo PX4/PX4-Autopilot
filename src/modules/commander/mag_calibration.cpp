@@ -903,6 +903,15 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		bool param_save = false;
 		bool failed = true;
 
+		bool external_mag_available = false;
+
+		for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+			if (worker_data.calibration[cur_mag].external() && worker_data.calibration[cur_mag].enabled()) {
+				external_mag_available = true;
+				break;
+			}
+		}
+
 		for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 
 			calibration::Magnetometer &current_cal = worker_data.calibration[cur_mag];
@@ -919,6 +928,11 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 					current_cal.set_offset(sphere[cur_mag]);
 					current_cal.set_scale(diag[cur_mag]);
 					current_cal.set_offdiagonal(offdiag[cur_mag]);
+				}
+
+				if (external_mag_available && !current_cal.external()) {
+					// automatically disable the internal mags as they should not be used for navigation
+					current_cal.disable();
 				}
 
 				current_cal.PrintStatus();

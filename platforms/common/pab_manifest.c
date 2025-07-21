@@ -404,7 +404,7 @@ static const px4_hw_mft_item_t base_configuration_18[] = {
 
 // BASE ID 0x100 Holybro Pixhawk Jetson Baseboard Alaised to ID 0
 // BASE ID 0x150 ZeroOne Pixhawk Baseboard Alaised to ID 0
-
+// BASE ID 0x200 AmovLab Pixhawk Baseboard Alaised to ID 0
 static px4_hw_mft_list_entry_t mft_lists[] = {
 //  ver_rev
 	{HW_BASE_ID(0),      base_configuration_0, arraySize(base_configuration_0)},   // std Base with PX4IO
@@ -421,6 +421,7 @@ static px4_hw_mft_list_entry_t mft_lists[] = {
 	{HW_BASE_ID(18),     base_configuration_18, arraySize(base_configuration_18)}, // Auterion Skynode S ver 18
 	{HW_BASE_ID(0x100),  base_configuration_0, arraySize(base_configuration_0)},   // Holybro Pixhawk Jetson Baseboard ver 0x100 Alaised to ID 0
 	{HW_BASE_ID(0x150),  base_configuration_0, arraySize(base_configuration_0)},   // ZeroOne Pixhawk Baseboard ver 0x150
+	{HW_BASE_ID(0x200),  base_configuration_0, arraySize(base_configuration_0)},   // AmovLab Pixhawk Baseboard ver 0x150
 };
 
 /************************************************************************************

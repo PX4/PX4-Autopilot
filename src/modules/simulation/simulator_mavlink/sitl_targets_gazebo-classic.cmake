@@ -80,7 +80,6 @@ if(gazebo_FOUND)
 		iris_dual_gps
 		iris_foggy_lidar
 		iris_irlock
-		iris_obs_avoid
 		iris_depth_camera
 		iris_downward_depth_camera
 		iris_opt_flow
@@ -94,8 +93,6 @@ if(gazebo_FOUND)
 		plane_lidar
 		px4vision
 		quadtailsitter
-		r1_rover
-		rover
 		standard_vtol
 		standard_vtol_drop
 		tailsitter

@@ -193,7 +193,7 @@ private:
 			msg.abs_pressure = air_data.baro_pressure_pa;
 			msg.diff_pressure = differential_pressure.differential_pressure_pa;
 			msg.pressure_alt = air_data.baro_alt_meter;
-			msg.temperature = air_data.baro_temp_celcius;
+			msg.temperature = air_data.ambient_temperature;
 			msg.fields_updated = fields_updated;
 
 			mavlink_msg_highres_imu_send_struct(_mavlink->get_channel(), &msg);

@@ -62,6 +62,7 @@
 #include "mavlink_receiver.h"
 
 #include <lib/drivers/device/Device.hpp> // For DeviceId union
+#include <containers/LockGuard.hpp>
 
 #ifdef CONFIG_NET
 #define MAVLINK_RECEIVER_NET_ADDED_STACK 1360
@@ -254,14 +255,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_TUNNEL:
 		handle_message_tunnel(msg);
-		break;
-
-	case MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER:
-		handle_message_trajectory_representation_bezier(msg);
-		break;
-
-	case MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_WAYPOINTS:
-		handle_message_trajectory_representation_waypoints(msg);
 		break;
 
 	case MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS:
@@ -1822,13 +1815,13 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	// Set the battery warning based on remaining charge.
 	//  Note: Smallest values must come first in evaluation.
 	if (battery_status.remaining < _param_bat_emergen_thr.get()) {
-		battery_status.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+		battery_status.warning = battery_status_s::WARNING_EMERGENCY;
 
 	} else if (battery_status.remaining < _param_bat_crit_thr.get()) {
-		battery_status.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+		battery_status.warning = battery_status_s::WARNING_CRITICAL;
 
 	} else if (battery_status.remaining < _param_bat_low_thr.get()) {
-		battery_status.warning = battery_status_s::BATTERY_WARNING_LOW;
+		battery_status.warning = battery_status_s::WARNING_LOW;
 	}
 
 	_battery_pub.publish(battery_status);
@@ -1854,6 +1847,7 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 		return;
 	}
 
+	const LockGuard lg{_mavlink.get_shell_mutex()};
 	MavlinkShell *shell = _mavlink.get_shell();
 
 	if (shell) {
@@ -1984,66 +1978,17 @@ MavlinkReceiver::handle_message_tunnel(mavlink_message_t *msg)
 	memcpy(tunnel.payload, mavlink_tunnel.payload, sizeof(tunnel.payload));
 	static_assert(sizeof(tunnel.payload) == sizeof(mavlink_tunnel.payload), "mavlink_tunnel.payload size mismatch");
 
-	_mavlink_tunnel_pub.publish(tunnel);
+	switch (mavlink_tunnel.payload_type) {
+	case MAV_TUNNEL_PAYLOAD_TYPE_MODALAI_ESC_UART_PASSTHRU:
+		_esc_serial_passthru_pub.publish(tunnel);
+		break;
 
-}
-
-void
-MavlinkReceiver::handle_message_trajectory_representation_bezier(mavlink_message_t *msg)
-{
-	mavlink_trajectory_representation_bezier_t trajectory;
-	mavlink_msg_trajectory_representation_bezier_decode(msg, &trajectory);
-
-	vehicle_trajectory_bezier_s trajectory_bezier{};
-
-	trajectory_bezier.timestamp =  _mavlink_timesync.sync_stamp(trajectory.time_usec);
-
-	for (int i = 0; i < vehicle_trajectory_bezier_s::NUMBER_POINTS; ++i) {
-		trajectory_bezier.control_points[i].position[0] = trajectory.pos_x[i];
-		trajectory_bezier.control_points[i].position[1] = trajectory.pos_y[i];
-		trajectory_bezier.control_points[i].position[2] = trajectory.pos_z[i];
-
-		trajectory_bezier.control_points[i].delta = trajectory.delta[i];
-		trajectory_bezier.control_points[i].yaw = trajectory.pos_yaw[i];
+	default:
+		_mavlink_tunnel_pub.publish(tunnel);
+		break;
 	}
 
-	trajectory_bezier.bezier_order = math::min(trajectory.valid_points, vehicle_trajectory_bezier_s::NUMBER_POINTS);
-	_trajectory_bezier_pub.publish(trajectory_bezier);
-}
 
-void
-MavlinkReceiver::handle_message_trajectory_representation_waypoints(mavlink_message_t *msg)
-{
-	mavlink_trajectory_representation_waypoints_t trajectory;
-	mavlink_msg_trajectory_representation_waypoints_decode(msg, &trajectory);
-
-	vehicle_trajectory_waypoint_s trajectory_waypoint{};
-
-	const int number_valid_points = math::min(trajectory.valid_points, vehicle_trajectory_waypoint_s::NUMBER_POINTS);
-
-	for (int i = 0; i < number_valid_points; ++i) {
-		trajectory_waypoint.waypoints[i].position[0] = trajectory.pos_x[i];
-		trajectory_waypoint.waypoints[i].position[1] = trajectory.pos_y[i];
-		trajectory_waypoint.waypoints[i].position[2] = trajectory.pos_z[i];
-
-		trajectory_waypoint.waypoints[i].velocity[0] = trajectory.vel_x[i];
-		trajectory_waypoint.waypoints[i].velocity[1] = trajectory.vel_y[i];
-		trajectory_waypoint.waypoints[i].velocity[2] = trajectory.vel_z[i];
-
-		trajectory_waypoint.waypoints[i].acceleration[0] = trajectory.acc_x[i];
-		trajectory_waypoint.waypoints[i].acceleration[1] = trajectory.acc_y[i];
-		trajectory_waypoint.waypoints[i].acceleration[2] = trajectory.acc_z[i];
-
-		trajectory_waypoint.waypoints[i].yaw = trajectory.pos_yaw[i];
-		trajectory_waypoint.waypoints[i].yaw_speed = trajectory.vel_yaw[i];
-
-		trajectory_waypoint.waypoints[i].point_valid = true;
-
-		trajectory_waypoint.waypoints[i].type = UINT8_MAX;
-	}
-
-	trajectory_waypoint.timestamp = hrt_absolute_time();
-	_trajectory_waypoint_pub.publish(trajectory_waypoint);
 }
 
 void
@@ -2150,8 +2095,10 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 
 	if (math::isInRange((int)mavlink_manual_control.y, -1000, 1000)) { manual_control_setpoint.roll = mavlink_manual_control.y / 1000.f; }
 
-	// For backwards compatibility at the moment interpret throttle in range [0,1000]
-	if (math::isInRange((int)mavlink_manual_control.z, 0, 1000)) { manual_control_setpoint.throttle = ((mavlink_manual_control.z / 1000.f) * 2.f) - 1.f; }
+	// For backwards compatibility we need to interpret throttle in range [0,1000]
+	// Convert from [0, 1000] to internal range [-1, 1]
+	// (([0, 1000] / 1000 * 2) - 1 = [-1, 1]
+	if (math::isInRange((int)mavlink_manual_control.z, 0, 1000)) { manual_control_setpoint.throttle = (mavlink_manual_control.z / 500.f) - 1.f; }
 
 	if (math::isInRange((int)mavlink_manual_control.r, -1000, 1000)) { manual_control_setpoint.yaw = mavlink_manual_control.r / 1000.f; }
 
@@ -2257,11 +2204,6 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 			case MAV_COMP_ID_OSD:
 				_heartbeat_component_osd = now;
-				break;
-
-			case MAV_COMP_ID_OBSTACLE_AVOIDANCE:
-				_heartbeat_component_obstacle_avoidance = now;
-				_mavlink.telemetry_status().avoidance_system_healthy = (hb.system_status == MAV_STATE_ACTIVE);
 				break;
 
 			case MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY:
@@ -2608,7 +2550,7 @@ MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 	t.lon = adsb.lon * 1e-7;
 	t.altitude_type = adsb.altitude_type;
 	t.altitude = adsb.altitude / 1000.0f;
-	t.heading = adsb.heading / 100.0f / 180.0f * M_PI_F - M_PI_F;
+	t.heading = adsb.heading / 100.0f / 180.0f * M_PI_F;
 	t.hor_velocity = adsb.hor_velocity / 100.0f;
 	t.ver_velocity = adsb.ver_velocity / 100.0f;
 	memcpy(&t.callsign[0], &adsb.callsign[0], sizeof(t.callsign));
@@ -2669,7 +2611,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		airspeed.timestamp_sample = timestamp_sample;
 		airspeed.indicated_airspeed_m_s = hil_state.ind_airspeed * 1e-2f;
 		airspeed.true_airspeed_m_s = hil_state.true_airspeed * 1e-2f;
-		airspeed.air_temperature_celsius = 15.f;
 		airspeed.timestamp = hrt_absolute_time();
 		_airspeed_pub.publish(airspeed);
 	}
@@ -2976,7 +2917,6 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		tstatus.heartbeat_component_telemetry_radio    = (t <= TIMEOUT + _heartbeat_component_telemetry_radio);
 		tstatus.heartbeat_component_log                = (t <= TIMEOUT + _heartbeat_component_log);
 		tstatus.heartbeat_component_osd                = (t <= TIMEOUT + _heartbeat_component_osd);
-		tstatus.heartbeat_component_obstacle_avoidance = (t <= TIMEOUT + _heartbeat_component_obstacle_avoidance);
 		tstatus.heartbeat_component_vio                = (t <= TIMEOUT + _heartbeat_component_visual_inertial_odometry);
 		tstatus.heartbeat_component_pairing_manager    = (t <= TIMEOUT + _heartbeat_component_pairing_manager);
 		tstatus.heartbeat_component_udp_bridge         = (t <= TIMEOUT + _heartbeat_component_udp_bridge);
@@ -3075,12 +3015,7 @@ MavlinkReceiver::handle_message_gimbal_device_information(mavlink_message_t *msg
 	gimbal_information.yaw_max = gimbal_device_info_msg.yaw_max;
 	gimbal_information.yaw_min = gimbal_device_info_msg.yaw_min;
 
-	if (gimbal_device_info_msg.gimbal_device_id == 0) {
-		gimbal_information.gimbal_device_id = msg->compid;
-
-	} else {
-		gimbal_information.gimbal_device_id = gimbal_device_info_msg.gimbal_device_id;
-	}
+	gimbal_information.gimbal_device_id = msg->compid;
 
 	_gimbal_device_information_pub.publish(gimbal_information);
 }

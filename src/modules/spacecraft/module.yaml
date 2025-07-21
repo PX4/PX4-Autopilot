@@ -1,0 +1,235 @@
+__max_num_mc_motors: &max_num_mc_motors 12
+__max_num_thrusters: &max_num_thrusters 12
+__max_num_servos: &max_num_servos 8
+__max_num_tilts: &max_num_tilts 4
+
+module_name: Control Allocation
+
+parameters:
+    - group: Geometry
+      definitions:
+        CA_AIRFRAME:
+            description:
+                short: Airframe selection
+                long: |
+                  Defines which mixer implementation to use.
+                  Some are generic, while others are specifically fit to a certain vehicle with a fixed set of actuators.
+
+                  'Custom' should only be used if noting else can be used.
+            type: enum
+            values:
+                0: Multirotor
+                1: Fixed-wing
+                2: Standard VTOL
+                3: Tiltrotor VTOL
+                4: Tailsitter VTOL
+                5: Rover (Ackermann)
+                6: Rover (Differential)
+                7: Motors (6DOF)
+                8: Multirotor with Tilt
+                9: Custom
+                10: Helicopter (tail ESC)
+                11: Helicopter (tail Servo)
+                12: Helicopter (Coaxial)
+                13: Rover (Mecanum)
+                14: Spacecraft 2D
+                15: Spacecraft 3D
+            default: 14
+
+        CA_METHOD:
+            description:
+                short: Control allocation method
+                long: |
+                  Selects the algorithm and desaturation method.
+                  If set to Automatic, the selection is based on the airframe (CA_AIRFRAME).
+            type: enum
+            values:
+                0: Pseudo-inverse with output clipping
+                1: Pseudo-inverse with metric allocation
+                2: Automatic
+            default: 1
+
+        CA_R_REV:
+            description:
+                short: Bidirectional/Reversible motors
+                long: |
+                  Configure motors to be bidirectional/reversible. Note that the output driver needs to support this as well.
+            type: bitmask
+            bit:
+                0: Motor 1
+                1: Motor 2
+                2: Motor 3
+                3: Motor 4
+                4: Motor 5
+                5: Motor 6
+                6: Motor 7
+                7: Motor 8
+                8: Motor 9
+                9: Motor 10
+                10: Motor 11
+                11: Motor 12
+            default: 0
+
+        # (SC) Thrusters
+        CA_THRUSTER_CNT:
+            description:
+                short: Total number of thrusters
+            type: enum
+            values:
+                0: '0'
+                1: '1'
+                2: '2'
+                3: '3'
+                4: '4'
+                5: '5'
+                6: '6'
+                7: '7'
+                8: '8'
+                9: '9'
+                10: '10'
+                11: '11'
+                12: '12'
+            default: 0
+        CA_THRUSTER${i}_PX:
+            description:
+                short: Position of thruster ${i} along X body axis
+            type: float
+            decimal: 2
+            increment: 0.1
+            unit: m
+            num_instances: *max_num_thrusters
+            min: -100
+            max: 100
+            default: 0.0
+        CA_THRUSTER${i}_PY:
+            description:
+                short: Position of thruster ${i} along Y body axis
+            type: float
+            decimal: 2
+            increment: 0.1
+            unit: m
+            num_instances: *max_num_thrusters
+            min: -100
+            max: 100
+            default: 0.0
+        CA_THRUSTER${i}_PZ:
+            description:
+                short: Position of thruster ${i} along Z body axis
+            type: float
+            decimal: 2
+            increment: 0.1
+            unit: m
+            num_instances: *max_num_thrusters
+            min: -100
+            max: 100
+            default: 0.0
+        CA_THRUSTER${i}_AX:
+            description:
+                short: Axis of thruster ${i} thrust vector, X body axis component
+                long: Only the direction is considered (the vector is normalized).
+            type: float
+            decimal: 2
+            increment: 0.1
+            num_instances: *max_num_thrusters
+            min: -100
+            max: 100
+            default: 0.0
+        CA_THRUSTER${i}_AY:
+            description:
+                short: Axis of thruster ${i} thrust vector, Y body axis component
+                long: Only the direction is considered (the vector is normalized).
+            type: float
+            decimal: 2
+            increment: 0.1
+            num_instances: *max_num_thrusters
+            min: -100
+            max: 100
+            default: 0.0
+        CA_THRUSTER${i}_AZ:
+            description:
+                short: Axis of thruster ${i} thrust vector, Z body axis component
+                long: Only the direction is considered (the vector is normalized).
+            type: float
+            decimal: 2
+            increment: 0.1
+            num_instances: *max_num_thrusters
+            min: -100
+            max: 100
+            default: -1.0
+
+        CA_THRUSTER${i}_CT:
+            description:
+                short: Thrust coefficient of rotor ${i}
+                long: |
+                  The thrust coefficient if defined as Thrust = CT * u^2,
+                  where u (with value between actuator minimum and maximum)
+                  is the output signal sent to the motor controller.
+            type: float
+            decimal: 1
+            increment: 1
+            num_instances: *max_num_thrusters
+            min: 0
+            max: 100
+            default: 6.5
+
+# Mixer
+mixer:
+    actuator_types:
+        motor:
+            functions: 'Motor'
+            actuator_testing_values:
+                min: 0
+                max: 1
+                default_is_nan: true
+        DEFAULT:
+            actuator_testing_values:
+                min: -1
+                max: 1
+                default: -1
+
+    config:
+        param: CA_AIRFRAME
+        types:
+            14: # Spacecraft 2D
+                title: 'Spacecraft 2D'
+                actuators:
+                  - actuator_type: 'motor'
+                    count: 'CA_THRUSTER_CNT'  # count would be too long for 16 max size
+                    per_item_parameters:
+                        standard:
+                            position: [ 'CA_THRUSTER${i}_PX', 'CA_THRUSTER${i}_PY', 'CA_THRUSTER${i}_PZ' ]
+                        extra:
+                          - name: 'CA_THRUSTER${i}_AX'
+                            label: 'Axis X'
+                            function: 'axisx'
+                            advanced: true
+                          - name: 'CA_THRUSTER${i}_AY'
+                            label: 'Axis Y'
+                            function: 'axisy'
+                            advanced: true
+                          - name: 'CA_THRUSTER${i}_AZ'
+                            label: 'Axis Z'
+                            function: 'axisz'
+                            advanced: true
+
+            15: # Sapcecraft 3D
+                title: 'Spacecraft 3D'
+                actuators:
+                  - actuator_type: 'motor'
+                    count: 'CA_THRUSTER_CNT'
+                    per_item_parameters:
+                        standard:
+                            position: [ 'CA_THRUSTER${i}_PX', 'CA_THRUSTER${i}_PY', 'CA_THRUSTER${i}_PZ' ]
+                        extra:
+                          - name: 'CA_THRUSTER${i}_AX'
+                            label: 'Axis X'
+                            function: 'axisx'
+                            advanced: true
+                          - name: 'CA_THRUSTER${i}_AY'
+                            label: 'Axis Y'
+                            function: 'axisy'
+                            advanced: true
+                          - name: 'CA_THRUSTER${i}_AZ'
+                            label: 'Axis Z'
+                            function: 'axisz'
+                            advanced: true

@@ -94,9 +94,23 @@ EXTERN(board_get_manifest)
 
 SECTIONS
 {
+	.vectors : {
+		KEEP(*(.vectors))
+		*(.vectors)
+	} > FLASH_AXIM
+
+	.ramfunc : {
+		_sramfuncs = .;
+		INCLUDE "itcm_static_functions.ld"
+		INCLUDE "itcm_gen_functions.ld"
+		. = ALIGN(4);
+		_eramfuncs = .;
+	} > ITCM_RAM AT > FLASH_AXIM
+
+	_framfuncs = LOADADDR(.ramfunc);
+
 	.text : {
 		_stext = ABSOLUTE(.);
-		*(.vectors)
 		. = ALIGN(32);
 		/*
 		This signature provides the bootloader with a way to delay booting
@@ -115,7 +129,6 @@ SECTIONS
 		*(.gcc_except_table)
 		*(.gnu.linkonce.r.*)
 		_etext = ABSOLUTE(.);
-
 	} > FLASH_AXIM
 
 	/*
@@ -178,13 +191,4 @@ SECTIONS
 	.debug_line 0 : { *(.debug_line) }
 	.debug_pubnames 0 : { *(.debug_pubnames) }
 	.debug_aranges 0 : { *(.debug_aranges) }
-
-	.ramfunc : {
-		_sramfuncs = .;
-		*(.ramfunc  .ramfunc.*)
-		. = ALIGN(4);
-		_eramfuncs = .;
-	} > ITCM_RAM AT > FLASH_AXIM
-
-	_framfuncs = LOADADDR(.ramfunc);
 }

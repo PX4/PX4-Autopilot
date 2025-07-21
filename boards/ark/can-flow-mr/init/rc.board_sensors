@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# board sensors init
+#------------------------------------------------------------------------------
+
+param set-default IMU_GYRO_RATEMAX 1000
+param set-default SENS_FLOW_RATE 150
+param set-default SENS_IMU_CLPNOTI 0
+
+param set-default SENS_AFBR_S_RATE 25
+param set-default SENS_AFBR_L_RATE 10
+param set-default SENS_AFBR_THRESH 8
+param set-default SENS_AFBR_HYSTER 2
+
+# Internal SPI
+paa3905 -s start -Y 180
+
+iim42653 -R 0 -s start
+
+afbrs50 start

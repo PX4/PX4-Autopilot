@@ -104,8 +104,8 @@ void Standard::update_vtol_state()
 				const Vector3f vel = R_to_body * Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
 				exit_backtransition_speed_condition = vel(0) < _param_mpc_xy_cruise.get();
 
-			} else if (PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)) {
-				exit_backtransition_speed_condition = _airspeed_validated->calibrated_airspeed_m_s < _param_mpc_xy_cruise.get();
+			} else if (PX4_ISFINITE(_attc->get_calibrated_airspeed())) {
+				exit_backtransition_speed_condition = _attc->get_calibrated_airspeed() < _param_mpc_xy_cruise.get();
 			}
 
 			const bool exit_backtransition_time_condition = _time_since_trans_start > _param_vt_b_trans_dur.get();
@@ -172,11 +172,6 @@ void Standard::update_transition_state()
 
 	VtolType::update_transition_state();
 
-	const Eulerf attitude_setpoint_euler(Quatf(_v_att_sp->q_d));
-	float roll_body = attitude_setpoint_euler.phi();
-	float pitch_body = attitude_setpoint_euler.theta();
-	float yaw_body = attitude_setpoint_euler.psi();
-
 	// we get attitude setpoint from a multirotor flighttask if climbrate is controlled.
 	// in any other case the fixed wing attitude controller publishes attitude setpoint from manual stick input.
 	if (_v_control_mode->flag_control_climb_rate_enabled) {
@@ -186,7 +181,6 @@ void Standard::update_transition_state()
 		}
 
 		memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
-		roll_body = Eulerf(Quatf(_fw_virtual_att_sp->q_d)).phi();
 
 	} else {
 		// we need a recent incoming (fw virtual) attitude setpoint, otherwise return (means the previous setpoint stays active)
@@ -196,6 +190,16 @@ void Standard::update_transition_state()
 
 		memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 		_v_att_sp->thrust_body[2] = -_fw_virtual_att_sp->thrust_body[0];
+	}
+
+
+	const Eulerf attitude_setpoint_euler(Quatf(_v_att_sp->q_d));
+	float roll_body = attitude_setpoint_euler.phi();
+	float pitch_body = attitude_setpoint_euler.theta();
+	float yaw_body = attitude_setpoint_euler.psi();
+
+	if (_v_control_mode->flag_control_climb_rate_enabled) {
+		roll_body = Eulerf(Quatf(_fw_virtual_att_sp->q_d)).phi();
 	}
 
 	if (_vtol_mode == vtol_mode::TRANSITION_TO_FW) {
@@ -216,19 +220,18 @@ void Standard::update_transition_state()
 
 		// do blending of mc and fw controls if a blending airspeed has been provided and the minimum transition time has passed
 		if (_airspeed_trans_blend_margin > 0.0f &&
-		    PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s) &&
-		    _airspeed_validated->calibrated_airspeed_m_s > 0.0f &&
-		    _airspeed_validated->calibrated_airspeed_m_s >= getBlendAirspeed() &&
+		    PX4_ISFINITE(_attc->get_calibrated_airspeed()) &&
+		    _attc->get_calibrated_airspeed() > 0.0f &&
+		    _attc->get_calibrated_airspeed() >= getBlendAirspeed() &&
 		    _time_since_trans_start > getMinimumFrontTransitionTime()) {
 
-			mc_weight = 1.0f - fabsf(_airspeed_validated->calibrated_airspeed_m_s - getBlendAirspeed()) /
+			mc_weight = 1.0f - fabsf(_attc->get_calibrated_airspeed() - getBlendAirspeed()) /
 				    _airspeed_trans_blend_margin;
 			// time based blending when no airspeed sensor is set
 
-		} else if (!_param_fw_use_airspd.get() || !PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)) {
+		} else if (!PX4_ISFINITE(_attc->get_calibrated_airspeed())) {
 			mc_weight = 1.0f - _time_since_trans_start / getMinimumFrontTransitionTime();
 			mc_weight = math::constrain(2.0f * mc_weight, 0.0f, 1.0f);
-
 		}
 
 		// ramp up FW_PSP_OFF
