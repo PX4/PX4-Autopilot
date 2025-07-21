@@ -211,7 +211,7 @@ Connect the Nano RX and Omnibus pins as shown:
 | RX            | Ch1     |
 
 Next update the TX/RX modules to use the CRSF protocol and set up telemetry.
-Instructions for this are provided in the [TBS Crossfire Manual](https://www.team-blacksheep.com/tbs-crossfire-manual.pdf) (search for 'Setting up radio for CRSF').
+Instructions for this are provided in the [TBS Crossfire Manual](https://www.team-blacksheep.com/media/files/tbs-crossfire-manual.pdf) (search for 'Setting up radio for CRSF').
 
 #### PX4 CRSF Configuration
 
