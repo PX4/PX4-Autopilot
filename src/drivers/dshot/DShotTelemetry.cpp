@@ -49,8 +49,9 @@ DShotTelemetry::~DShotTelemetry()
 	deinit();
 }
 
-int DShotTelemetry::init(const char *uart_device)
+int DShotTelemetry::init(const char *uart_device, bool swap_rxtx)
 {
+	int ret = OK;
 	deinit();
 	_uart_fd = ::open(uart_device, O_RDONLY | O_NOCTTY);
 
@@ -59,10 +60,31 @@ int DShotTelemetry::init(const char *uart_device)
 		return -errno;
 	}
 
+	ret = setBaudrate(DSHOT_TELEMETRY_UART_BAUDRATE);
+
+	if (ret) {
+		PX4_ERR("failed to set baurate: %s err: %d", uart_device, ret);
+		return ret;
+	}
+
+	if (swap_rxtx) {
+		// Swap RX/TX pins if the device supports it
+		ret = ioctl(_uart_fd, TIOCSSWAP, SER_SWAP_ENABLED);
+
+		// For other devices we can still place RX on TX pin via half-duplex single-wire mode
+		if (ret) { ret = ioctl(_uart_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED); }
+
+		if (ret) {
+			PX4_ERR("failed to swap rx/tx pins: %s err: %d", uart_device, ret);
+			return ret;
+		}
+	}
+
 	_num_timeouts = 0;
 	_num_successful_responses = 0;
 	_current_motor_index_request = -1;
-	return setBaudrate(DSHOT_TELEMETRY_UART_BAUDRATE);
+
+	return ret;
 }
 
 void DShotTelemetry::deinit()
@@ -87,7 +109,7 @@ int DShotTelemetry::redirectOutput(OutputBuffer &buffer)
 	return 0;
 }
 
-int DShotTelemetry::update()
+int DShotTelemetry::update(int num_motors)
 {
 	if (_uart_fd < 0) {
 		return -1;
@@ -120,7 +142,7 @@ int DShotTelemetry::update()
 				++_num_timeouts;
 			}
 
-			requestNextMotor();
+			requestNextMotor(num_motors);
 			return -2;
 		}
 
@@ -142,7 +164,7 @@ int DShotTelemetry::update()
 				_redirect_output = nullptr;
 				ret = _current_motor_index_request;
 				_current_motor_index_request = -1;
-				requestNextMotor();
+				requestNextMotor(num_motors);
 			}
 
 		} else {
@@ -153,7 +175,7 @@ int DShotTelemetry::update()
 					ret = _current_motor_index_request;
 				}
 
-				requestNextMotor();
+				requestNextMotor(num_motors);
 			}
 		}
 	}
@@ -225,9 +247,9 @@ uint8_t DShotTelemetry::crc8(const uint8_t *buf, uint8_t len)
 }
 
 
-void DShotTelemetry::requestNextMotor()
+void DShotTelemetry::requestNextMotor(int num_motors)
 {
-	_current_motor_index_request = (_current_motor_index_request + 1) % _num_motors;
+	_current_motor_index_request = (_current_motor_index_request + 1) % num_motors;
 	_current_request_start = 0;
 	_frame_position = 0;
 }

@@ -4,7 +4,6 @@ serial_config:
       port_config_param:
         name: SENS_EN_SF45_CFG
         group: Sensors
-        default: TEL2
       num_instances: 1
       supports_networking: false
 

@@ -62,6 +62,7 @@
 #include "mavlink_receiver.h"
 
 #include <lib/drivers/device/Device.hpp> // For DeviceId union
+#include <containers/LockGuard.hpp>
 
 #ifdef CONFIG_NET
 #define MAVLINK_RECEIVER_NET_ADDED_STACK 1360
@@ -1814,13 +1815,13 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	// Set the battery warning based on remaining charge.
 	//  Note: Smallest values must come first in evaluation.
 	if (battery_status.remaining < _param_bat_emergen_thr.get()) {
-		battery_status.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+		battery_status.warning = battery_status_s::WARNING_EMERGENCY;
 
 	} else if (battery_status.remaining < _param_bat_crit_thr.get()) {
-		battery_status.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+		battery_status.warning = battery_status_s::WARNING_CRITICAL;
 
 	} else if (battery_status.remaining < _param_bat_low_thr.get()) {
-		battery_status.warning = battery_status_s::BATTERY_WARNING_LOW;
+		battery_status.warning = battery_status_s::WARNING_LOW;
 	}
 
 	_battery_pub.publish(battery_status);
@@ -1846,6 +1847,7 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 		return;
 	}
 
+	const LockGuard lg{_mavlink.get_shell_mutex()};
 	MavlinkShell *shell = _mavlink.get_shell();
 
 	if (shell) {
@@ -1976,7 +1978,16 @@ MavlinkReceiver::handle_message_tunnel(mavlink_message_t *msg)
 	memcpy(tunnel.payload, mavlink_tunnel.payload, sizeof(tunnel.payload));
 	static_assert(sizeof(tunnel.payload) == sizeof(mavlink_tunnel.payload), "mavlink_tunnel.payload size mismatch");
 
-	_mavlink_tunnel_pub.publish(tunnel);
+	switch (mavlink_tunnel.payload_type) {
+	case MAV_TUNNEL_PAYLOAD_TYPE_MODALAI_ESC_UART_PASSTHRU:
+		_esc_serial_passthru_pub.publish(tunnel);
+		break;
+
+	default:
+		_mavlink_tunnel_pub.publish(tunnel);
+		break;
+	}
+
 
 }
 
@@ -2084,8 +2095,10 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 
 	if (math::isInRange((int)mavlink_manual_control.y, -1000, 1000)) { manual_control_setpoint.roll = mavlink_manual_control.y / 1000.f; }
 
-	// For backwards compatibility at the moment interpret throttle in range [0,1000]
-	if (math::isInRange((int)mavlink_manual_control.z, 0, 1000)) { manual_control_setpoint.throttle = ((mavlink_manual_control.z / 1000.f) * 2.f) - 1.f; }
+	// For backwards compatibility we need to interpret throttle in range [0,1000]
+	// Convert from [0, 1000] to internal range [-1, 1]
+	// (([0, 1000] / 1000 * 2) - 1 = [-1, 1]
+	if (math::isInRange((int)mavlink_manual_control.z, 0, 1000)) { manual_control_setpoint.throttle = (mavlink_manual_control.z / 500.f) - 1.f; }
 
 	if (math::isInRange((int)mavlink_manual_control.r, -1000, 1000)) { manual_control_setpoint.yaw = mavlink_manual_control.r / 1000.f; }
 
@@ -2537,7 +2550,7 @@ MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 	t.lon = adsb.lon * 1e-7;
 	t.altitude_type = adsb.altitude_type;
 	t.altitude = adsb.altitude / 1000.0f;
-	t.heading = adsb.heading / 100.0f / 180.0f * M_PI_F - M_PI_F;
+	t.heading = adsb.heading / 100.0f / 180.0f * M_PI_F;
 	t.hor_velocity = adsb.hor_velocity / 100.0f;
 	t.ver_velocity = adsb.ver_velocity / 100.0f;
 	memcpy(&t.callsign[0], &adsb.callsign[0], sizeof(t.callsign));

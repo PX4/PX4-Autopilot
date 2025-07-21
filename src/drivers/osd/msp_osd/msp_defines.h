@@ -48,6 +48,8 @@
 #define MSP_ARMING_CONFIG         61
 #define MSP_RX_MAP                64 // get channel map (also returns number of channels total)
 #define MSP_LOOP_TIME             73 // FC cycle time i.e looptime parameter
+#define MSP_GET_VTX_CONFIG        88
+#define MSP_SET_VTX_CONFIG        89
 #define MSP_STATUS               101
 #define MSP_RAW_IMU              102
 #define MSP_SERVO                103
@@ -75,10 +77,12 @@
 #define MSP_SET_PID              202 // set P I D coeff
 
 // commands
-#define MSP_SET_HEAD             211 // define a new heading hold direction
-#define MSP_SET_RAW_RC           200 // 8 rc chan
-#define MSP_SET_RAW_GPS          201 // fix, numsat, lat, lon, alt, speed
-#define MSP_SET_WP               209 // sets a given WP (WP#, lat, lon, alt, flags)
+#define MSP_SET_HEAD                211 // define a new heading hold direction
+#define MSP_SET_RAW_RC              200 // 8 rc chan
+#define MSP_SET_RAW_GPS             201 // fix, numsat, lat, lon, alt, speed
+#define MSP_SET_WP                  209 // sets a given WP (WP#, lat, lon, alt, flags)
+#define MSP_SET_VTXTABLE_BAND       227
+#define MSP_SET_VTXTABLE_POWERLEVEL 228
 
 // bits of getActiveModes() return value
 #define MSP_MODE_ARM          0
@@ -111,6 +115,7 @@
 #define MSP_MODE_TURNASSIST  27
 #define MSP_MODE_NAVLAUNCH   28
 #define MSP_MODE_AUTOTRIM    29
+#define MSP_CMD_DISPLAYPORT 182
 
 struct msp_esc_sensor_data_t {
 	uint8_t motor_count;
@@ -288,12 +293,42 @@ struct msp_attitude_t {
 	int16_t yaw;
 } __attribute__((packed));
 
+struct msp_rendor_pitch_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x15; //PITCH icon
+
+	char str[6]; // -00.0
+} __attribute__((packed));
+
+struct msp_rendor_roll_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x14; //ROLL icon
+
+	char str[6]; // -00.0
+} __attribute__((packed));
 
 // MSP_ALTITUDE reply
 struct msp_altitude_t {
 	int32_t estimatedActualPosition;  // cm
 	int16_t estimatedActualVelocity;  // cm/s
 	int32_t baroLatestAltitude;
+} __attribute__((packed));
+
+
+struct msp_rendor_altitude_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x7F; //ALT icon
+
+	char str[8]; // -0000.0 // 9999.9 meter
 } __attribute__((packed));
 
 
@@ -309,6 +344,16 @@ struct msp_analog_t {
 	uint16_t mAhDrawn; // milliamp hours drawn from battery
 	uint16_t rssi;     // 0..1023
 	int16_t  amperage; // send amperage in 0.01 A steps, range is -320A to 320A
+} __attribute__((packed));
+
+struct msp_rendor_rssi_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x01; //RSSI icon
+
+	char str[4]; // 100%
 } __attribute__((packed));
 
 
@@ -392,12 +437,54 @@ struct msp_raw_gps_t {
 	uint16_t hdop;
 } __attribute__((packed));
 
+struct msp_rendor_latitude_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x89; //LAT icon
+
+	char str[11]; // -00.0000000
+} __attribute__((packed));
+
+
+struct msp_rendor_longitude_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x98; //LON icon
+
+	char str[12]; // -000.0000000
+} __attribute__((packed));
+
+struct msp_rendor_satellites_used_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x1E; //satellites icon
+	uint8_t iconIndex2 = 0x1F; //satellites icon
+
+	char str[3]; // 99
+} __attribute__((packed));
+
 
 // MSP_COMP_GPS reply
 struct msp_comp_gps_t {
 	int16_t  distanceToHome;  // distance to home in meters
 	int16_t  directionToHome; // direction to home in degrees
 	uint8_t  heartbeat;       // toggles 0 and 1 for each change
+} __attribute__((packed));
+
+struct msp_rendor_distanceToHome_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00; //
+	uint8_t iconIndex = 0x71; //distanceToHome icon
+
+	char str[6]; // 65536
 } __attribute__((packed));
 
 
@@ -788,6 +875,15 @@ struct msp_battery_state_t {
 	uint16_t batteryVoltage;
 } __attribute__((packed));
 
+struct msp_rendor_battery_state_t {
+	uint8_t subCommand; // 0x03 write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs;
+	uint8_t iconIndex;
+	char str[5];
+} __attribute__((packed));
+
 // MSP_STATUS reply customized for BF/DJI
 struct msp_status_BF_t {
 	uint16_t task_delta_time;
@@ -802,6 +898,58 @@ struct msp_status_BF_t {
 	uint32_t arming_disable_flags;
 	uint8_t  extra_flags;
 } __attribute__((packed));
+
+struct msp_set_vtx_config_t {
+	uint16_t new_freq; //  if setting frequency then full uint16 is the frequency in MHz (ie. 5800)
+	//if setting band channel than band is high 8 bits and channel is low 8 bits
+	uint8_t power_level;
+	uint8_t pit_mode; // 0 = off, 1 = on
+	uint8_t low_power_disarm;
+	uint16_t pit_freq;
+	uint8_t user_band;
+	uint8_t user_channel;
+	uint16_t user_freq; // in MHz, 0 if using band & channel
+	uint8_t band_count;
+	uint8_t channel_count;
+	uint8_t power_count;
+	uint8_t clear_vtxtable; // Bool
+} __attribute__((packed));
+
+struct msp_get_vtx_config_t {
+	uint8_t vtx_type;
+	uint8_t band;
+	uint8_t channel;
+	uint8_t power_index;
+	uint8_t pit_mode; // 0 = off, 1 = on
+	uint16_t freq; // in MHz, 0 if using band & channel
+	uint8_t device_ready;
+	uint8_t low_power_disarm;
+} __attribute__((packed));
+
+struct msp_set_vtxtable_powerlevel_t {
+	uint8_t index;
+	uint16_t power_value;
+	uint8_t power_label_length;
+	uint8_t power_label_name[3];
+} __attribute__((packed));
+
+#define VTX_TABLE_BAND_NAME_LENGTH 8
+#define VTXDEV_MSP 5
+
+//29 bytes
+
+struct msp_set_vtxtable_band_t {
+	uint8_t band;
+	uint8_t band_name_length;
+	uint8_t band_label_name[VTX_TABLE_BAND_NAME_LENGTH];
+	uint8_t band_letter;
+	uint8_t is_factory_band;
+	uint8_t channel_count;
+	uint16_t frequency[8];
+} __attribute__((packed));
+
+
+
 
 ////ArduPlane
 enum arduPlaneModes_e {

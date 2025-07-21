@@ -4,9 +4,17 @@ on:
   push:
     branches:
     - 'main'
+    paths-ignore:
+      - 'docs/**'
   pull_request:
     branches:
-    - '*'
+      - '**'
+    paths-ignore:
+      - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -21,7 +29,7 @@ jobs:
           "failsafe_web",
         ]
     container:
-      image: px4io/px4-dev-nuttx-focal:2022-08-12
+      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
       - name: Install Node v20.18.0
@@ -32,6 +40,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Git ownership workaround
+        run: git config --system --add safe.directory '*'
 
       - name: Install empscripten
         run: |

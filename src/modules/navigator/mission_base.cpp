@@ -218,6 +218,8 @@ MissionBase::on_activation()
 
 	int32_t resume_index = _inactivation_index > 0 ? _inactivation_index : 0;
 
+	bool resume_mission_on_previous = false;
+
 	if (_inactivation_index > 0 && cameraWasTriggering()) {
 		size_t num_found_items{0U};
 		getPreviousPositionItems(_inactivation_index - 1, &resume_index, num_found_items, 1U);
@@ -229,7 +231,18 @@ MissionBase::on_activation()
 			setMissionIndex(resume_index);
 
 			_align_heading_necessary = true;
+			resume_mission_on_previous = true;
 		}
+	}
+
+	if (!resume_mission_on_previous) {
+		// Only replay speed changes immediately if we are not resuming the mission at the previous position item.
+		// Otherwise it must be handled in the on_active() method once we reach the previous position item.
+		replayCachedSpeedChangeItems();
+		_speed_replayed_on_activation = true;
+
+	} else {
+		_speed_replayed_on_activation = false;
 	}
 
 	checkClimbRequired(_mission.current_seq);
@@ -304,14 +317,16 @@ MissionBase::on_active()
 		replayCachedGimbalItems();
 	}
 
-	// Replay cached mission commands once the last mission waypoint is re-reached after the mission interruption.
-	// Each replay function also clears the cached items afterwards
+	// Replay cached trigger commands once the last mission waypoint is re-reached after the mission resume
 	if (_mission.current_seq > _mission_activation_index) {
 		// replay trigger commands
 		if (cameraWasTriggering()) {
 			replayCachedTriggerItems();
 		}
+	}
 
+	if (!_speed_replayed_on_activation && _mission.current_seq > _mission_activation_index) {
+		// replay speed change items if not already done on mission (re-)activation
 		replayCachedSpeedChangeItems();
 	}
 
@@ -369,7 +384,8 @@ MissionBase::on_active()
 bool
 MissionBase::isLanding()
 {
-	if (hasMissionLandStart() && (_mission.current_seq > _mission.land_start_index)) {
+	if (hasMissionLandStart() && (_mission.current_seq > _mission.land_start_index)
+	    && (_mission.current_seq <= _mission.land_index)) {
 		static constexpr size_t max_num_next_items{1u};
 		int32_t next_mission_items_index[max_num_next_items];
 		size_t num_found_items;
@@ -900,16 +916,14 @@ MissionBase::do_abort_landing()
 	}
 
 	// send reposition cmd to get out of mission
-	vehicle_command_s vcmd = {};
-
-	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
-	vcmd.param1 = -1;
-	vcmd.param2 = 1;
-	vcmd.param5 = _mission_item.lat;
-	vcmd.param6 = _mission_item.lon;
-	vcmd.param7 = alt_sp;
-
-	_navigator->publish_vehicle_cmd(&vcmd);
+	vehicle_command_s vehicle_command{};
+	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
+	vehicle_command.param1 = -1.f; // Default speed
+	vehicle_command.param2 = 1.f; // Modes should switch, not setting this is unsupported
+	vehicle_command.param5 = _mission_item.lat;
+	vehicle_command.param6 = _mission_item.lon;
+	vehicle_command.param7 = alt_sp;
+	_navigator->publish_vehicle_command(vehicle_command);
 }
 
 void MissionBase::publish_navigator_mission_item()

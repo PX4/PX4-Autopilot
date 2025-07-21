@@ -574,7 +574,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 
 			if (!_vehicle_control_mode.flag_control_climb_rate_enabled &&
 			    !_failsafe_flags.manual_control_signal_lost && !_is_throttle_low
-			    && _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROVER) {
+			    && !is_ground_vehicle(_vehicle_status)) {
 
 				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: high throttle\t");
 				events::send(events::ID("commander_arm_denied_throttle_high"), {events::Log::Critical, events::LogInternal::Info},
@@ -613,7 +613,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 	events::send<events::px4::enums::arm_disarm_reason_t>(events::ID("commander_armed_by"), events::Log::Info,
 			"Armed by {1}", calling_reason);
 
-	if (_param_com_home_en.get()) {
+	if (_param_com_home_en.get() && !_mission_in_progress) {
 		_home_position.setHomePosition();
 	}
 
@@ -688,7 +688,7 @@ Commander::Commander() :
 	_vehicle_status.system_id = 1;
 	_vehicle_status.component_id = 1;
 	_vehicle_status.system_type = 0;
-	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_UNKNOWN;
+	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_UNSPECIFIED;
 	_vehicle_status.nav_state = _user_mode_intention.get();
 	_vehicle_status.nav_state_user_intention = _user_mode_intention.get();
 	_vehicle_status.nav_state_timestamp = hrt_absolute_time();
@@ -999,6 +999,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					}
 
 				} else {
+					float roll = matrix::wrap_2pi(math::radians(cmd.param2));
+					roll = PX4_ISFINITE(roll) ? roll : 0.0f;
+					float pitch = matrix::wrap_2pi(math::radians(cmd.param3));
+					pitch = PX4_ISFINITE(pitch) ? pitch : 0.0f;
 					float yaw = matrix::wrap_2pi(math::radians(cmd.param4));
 					yaw = PX4_ISFINITE(yaw) ? yaw : (float)NAN;
 					const double lat = cmd.param5;
@@ -1007,7 +1011,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 					if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt)) {
 
-						if (_home_position.setManually(lat, lon, alt, yaw)) {
+						if (_home_position.setManually(lat, lon, alt, roll, pitch, yaw)) {
 
 							cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -1696,7 +1700,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 
 	case action_request_s::ACTION_SWITCH_MODE:
 
-		if (!_user_mode_intention.change(action_request.mode, ModeChangeSource::User, true)) {
+		if (!_user_mode_intention.change(action_request.mode, ModeChangeSource::User, false)) {
 			printRejectMode(action_request.mode);
 		}
 
@@ -1809,7 +1813,10 @@ void Commander::run()
 
 		vtolStatusUpdate();
 
-		_home_position.update(_param_com_home_en.get(), !isArmed() && _vehicle_land_detected.landed);
+		_mission_in_progress = (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
+				       && !_mission_result_sub.get().finished;
+
+		_home_position.update(_param_com_home_en.get(), !isArmed() && _vehicle_land_detected.landed && !_mission_in_progress);
 
 		handleAutoDisarm();
 
@@ -1889,8 +1896,7 @@ void Commander::run()
 		_actuator_armed.armed = isArmed();
 		_actuator_armed.prearmed = getPrearmState();
 		_actuator_armed.ready_to_arm = _vehicle_status.pre_flight_checks_pass || isArmed();
-		_actuator_armed.lockdown = ((_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION)
-					    || (_vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON)
+		_actuator_armed.lockdown = ((_vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON)
 					    || _multicopter_throw_launch.isThrowLaunchInProgress());
 		// _actuator_armed.manual_lockdown // action_request_s::ACTION_KILL
 		_actuator_armed.force_failsafe = (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION);
@@ -2009,12 +2015,18 @@ void Commander::checkForMissionUpdate()
 					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 
 				} else {
-					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+					// Transition to loiter when the takeoff is completed (force into the Loiter, if mode is not executable then failsafe).
+					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false,
+								    true);
 				}
 
 			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 				// Transition to loiter when the mission is cleared and/or finished, and we are still in mission mode.
-				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+
+				// However, only do so if there's no pending mode change, so there isn't already a pending change (like RTL).
+				if (_user_mode_intention.get() == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+				}
 			}
 		}
 	}
@@ -2108,10 +2120,11 @@ void Commander::landDetectorUpdate()
 				events::send(events::ID("commander_takeoff_detected"), events::Log::Info, "Takeoff detected");
 				_vehicle_status.takeoff_time = hrt_absolute_time();
 				_have_taken_off_since_arming = true;
+				_home_position.setTakeoffTime(_vehicle_status.takeoff_time);
 			}
 
 			// automatically set or update home position
-			if (_param_com_home_en.get()) {
+			if (_param_com_home_en.get() && !_mission_in_progress) {
 				// set the home position when taking off
 				if (!_vehicle_land_detected.landed) {
 					if (was_landed) {
@@ -2193,13 +2206,13 @@ void Commander::updateTunes()
 
 	} else if (!_vehicle_status.usb_connected &&
 		   (_vehicle_status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
-		   (_battery_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
+		   (_battery_warning == battery_status_s::WARNING_CRITICAL)) {
 
 		/* play tune on battery critical */
 		set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_FAST);
 
 	} else if ((_vehicle_status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
-		   (_battery_warning == battery_status_s::BATTERY_WARNING_LOW)) {
+		   (_battery_warning == battery_status_s::WARNING_LOW)) {
 		/* play tune on battery warning */
 		set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW);
 
@@ -2253,9 +2266,7 @@ void Commander::handleAutoDisarm()
 		// Check for auto-disarm on landing or pre-flight
 		if (_param_com_disarm_land.get() > 0 || _param_com_disarm_prflt.get() > 0) {
 
-			const bool landed_amid_mission = (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
-							 && !_mission_result_sub.get().finished;
-			const bool auto_disarm_land_enabled = _param_com_disarm_land.get() > 0 && !landed_amid_mission
+			const bool auto_disarm_land_enabled = _param_com_disarm_land.get() > 0 && !_mission_in_progress
 							      && !_config_overrides.disable_auto_disarm;
 
 			if (auto_disarm_land_enabled && _have_taken_off_since_arming) {
@@ -2336,6 +2347,7 @@ bool Commander::handleModeIntentionAndFailsafe()
 	}
 
 	// Handle failsafe action
+	_mode_management.setFailsafeState(_failsafe.selectedAction() > FailsafeBase::Action::Warn);
 	_vehicle_status.nav_state_user_intention = _mode_management.getNavStateReplacementIfValid(_user_mode_intention.get(),
 			false);
 	_vehicle_status.nav_state = _mode_management.getNavStateReplacementIfValid(FailsafeBase::modeFromAction(
@@ -2403,7 +2415,7 @@ void Commander::modeManagementUpdate()
 {
 	ModeManagement::UpdateRequest mode_management_update{};
 	_mode_management.update(isArmed(), _vehicle_status.nav_state_user_intention,
-				_failsafe.selectedAction() > FailsafeBase::Action::Warn, mode_management_update);
+				mode_management_update);
 
 	if (!isArmed() && mode_management_update.change_user_intended_nav_state) {
 		_user_mode_intention.change(mode_management_update.user_intended_nav_state);
@@ -2493,10 +2505,10 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 			if (_vehicle_status.failsafe) {
 				led_color = led_control_s::COLOR_PURPLE;
 
-			} else if (battery_warning == battery_status_s::BATTERY_WARNING_LOW) {
+			} else if (battery_warning == battery_status_s::WARNING_LOW) {
 				led_color = led_control_s::COLOR_AMBER;
 
-			} else if (battery_warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
+			} else if (battery_warning == battery_status_s::WARNING_CRITICAL) {
 				led_color = led_control_s::COLOR_RED;
 
 			} else {
@@ -2867,7 +2879,7 @@ void Commander::battery_status_check()
 	// Handle shutdown request from emergency battery action
 	if (_battery_warning != _failsafe_flags.battery_warning) {
 
-		if (_failsafe_flags.battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
+		if (_failsafe_flags.battery_warning == battery_status_s::WARNING_EMERGENCY) {
 #if defined(BOARD_HAS_POWER_CONTROL)
 
 			if (!isArmed() && (px4_shutdown_request(60_s) == 0)) {

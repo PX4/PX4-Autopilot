@@ -161,7 +161,8 @@ float speedControl(SlewRate<float> &speed_with_rate_limit, PID &pid_speed, const
 }
 
 float rateControl(SlewRate<float> &adjusted_yaw_rate_setpoint, PID &pid_yaw_rate, const float yaw_rate_setpoint,
-		  const float vehicle_yaw_rate, const float max_thr_yaw_r, const float max_yaw_accel, const float max_yaw_decel,
+		  const float vehicle_yaw_rate, const float max_thr_speed, const float yaw_rate_corr, const float max_yaw_accel,
+		  const float max_yaw_decel,
 		  const float wheel_track, const float dt)
 {
 	// Apply acceleration and deceleration limit
@@ -194,11 +195,11 @@ float rateControl(SlewRate<float> &adjusted_yaw_rate_setpoint, PID &pid_yaw_rate
 	// Transform yaw rate into speed difference
 	float speed_diff_normalized{0.f};
 
-	if (wheel_track > FLT_EPSILON && max_thr_yaw_r > FLT_EPSILON) { // Feedforward
-		const float speed_diff = adjusted_yaw_rate_setpoint.getState() * wheel_track /
-					 2.f;
-		speed_diff_normalized = math::interpolate<float>(speed_diff, -max_thr_yaw_r,
-					max_thr_yaw_r, -1.f, 1.f);
+	if (wheel_track > FLT_EPSILON && max_thr_speed > FLT_EPSILON) { // Feedforward
+		const float speed_diff = (adjusted_yaw_rate_setpoint.getState() * wheel_track /
+					  2.f) * yaw_rate_corr;
+		speed_diff_normalized = math::interpolate<float>(speed_diff, -max_thr_speed,
+					max_thr_speed, -1.f, 1.f);
 	}
 
 	// Feedback control
@@ -215,8 +216,7 @@ float rateControl(SlewRate<float> &adjusted_yaw_rate_setpoint, PID &pid_yaw_rate
 }
 
 void globalToLocalSetpointTriplet(Vector2f &curr_wp_ned, Vector2f &prev_wp_ned, Vector2f &next_wp_ned,
-				  position_setpoint_triplet_s position_setpoint_triplet, Vector2f &curr_pos_ned, Vector2d &home_pos,
-				  MapProjection &global_ned_proj_ref)
+				  position_setpoint_triplet_s position_setpoint_triplet, Vector2f &curr_pos_ned, MapProjection &global_ned_proj_ref)
 {
 	if (position_setpoint_triplet.current.valid && PX4_ISFINITE(position_setpoint_triplet.current.lat)
 	    && PX4_ISFINITE(position_setpoint_triplet.current.lon)) {
@@ -241,8 +241,7 @@ void globalToLocalSetpointTriplet(Vector2f &curr_wp_ned, Vector2f &prev_wp_ned, 
 		next_wp_ned = global_ned_proj_ref.project(position_setpoint_triplet.next.lat, position_setpoint_triplet.next.lon);
 
 	} else {
-		next_wp_ned = home_pos.isAllFinite() ? global_ned_proj_ref.project(home_pos(0), home_pos(1)) : Vector2f(NAN,
-				NAN); // Enables corner slow down with RTL
+		next_wp_ned = Vector2f(NAN, NAN);
 	}
 }
 

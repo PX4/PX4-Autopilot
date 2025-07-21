@@ -100,7 +100,8 @@ float speedControl(SlewRate<float> &speed_with_rate_limit, PID &pid_speed, float
  * @param pid_yaw_rate Yaw rate PID (Updated by this function).
  * @param yaw_rate_setpoint Yaw rate setpoint [rad/s].
  * @param vehicle_yaw_rate Measured vehicle yaw rate [rad/s].
- * @param max_thr_yaw_r Yaw rate turning left/right wheels at max speed in opposite directions [m/s].
+ * @param max_thr_speed Speed at maximum throttle [m/s].
+ * @param yaw_rate_corr Yaw rate correction factor to convert yaw rate to speed difference.
  * @param max_yaw_accel Maximum allowed yaw acceleration [rad/s^2].
  * @param max_yaw_decel Maximum allowed yaw deceleration [rad/s^2].
  * @param wheel_track Distance from the center of the right wheel to the center of the left wheel [m].
@@ -108,7 +109,8 @@ float speedControl(SlewRate<float> &speed_with_rate_limit, PID &pid_speed, float
  * @return Normalized speed difference setpoint [-1, 1].
  */
 float rateControl(SlewRate<float> &adjusted_yaw_rate_setpoint, PID &pid_yaw_rate,
-		  float yaw_rate_setpoint, float vehicle_yaw_rate, float max_thr_yaw_r, float max_yaw_accel, float max_yaw_decel,
+		  float yaw_rate_setpoint, float vehicle_yaw_rate, float max_thr_speed, float yaw_rate_corr, float max_yaw_accel,
+		  float max_yaw_decel,
 		  float wheel_track, float dt);
 
 /**
@@ -118,11 +120,10 @@ float rateControl(SlewRate<float> &adjusted_yaw_rate_setpoint, PID &pid_yaw_rate
  * @param next_wp_ned Next waypoint in NED frame (Updated by this function)
  * @param position_setpoint_triplet Position Setpoint Triplet
  * @param curr_pos Current position of the rover in global frame
- * @param home_pos Home position in global frame
  * @param global_ned_proj_ref Global to ned projection
  */
 void globalToLocalSetpointTriplet(Vector2f &curr_wp_ned, Vector2f &prev_wp_ned, Vector2f &next_wp_ned,
-				  position_setpoint_triplet_s position_setpoint_triplet, Vector2f &curr_pos_ned, Vector2d &home_pos,
+				  position_setpoint_triplet_s position_setpoint_triplet, Vector2f &curr_pos_ned,
 				  MapProjection &global_ned_proj_ref);
 
 /**

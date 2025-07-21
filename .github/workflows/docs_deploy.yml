@@ -1,0 +1,99 @@
+name: Docs - Deploy PX4 User Guide
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'release/**'
+    paths:
+      - 'docs/en/**'
+  pull_request:
+    branches:
+      - '**'
+    paths:
+      - 'docs/en/**'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+
+jobs:
+  build:
+    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    steps:
+      - uses: runs-on/action@v1
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          # Specify the path to lock file for correct caching
+          cache-dependency-path: ./docs/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --cwd ./docs
+
+      - name: Build with VitePress
+        working-directory: ./docs
+        run: |
+          npm run docs:build_ubuntu
+          touch .vitepress/dist/.nojekyll
+          npm run docs:sitemap
+
+      - name: Upload artifact
+        if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged) || github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: px4_docs_build
+          path: docs/.vitepress/dist/
+          retention-days: 1
+
+  deploy:
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged) || github.event_name == 'workflow_dispatch' }}
+    needs: build
+    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: px4_docs_build
+          path: ~/_book
+
+      - name: Deploy
+        run: |
+          git clone --single-branch --branch main --depth 1 https://${{ secrets.PX4BUILTBOT_PERSONAL_ACCESS_TOKEN }}@github.com/PX4/docs.px4.io.git
+          # make it an orphan branch
+          cd docs.px4.io
+          CURRENT_DATETIME=$(date +'%Y%m%d_%H_%M')
+          git checkout --orphan "${CURRENT_DATETIME}_main"
+          rm -rf ${BRANCH_NAME}
+          mkdir -p ${BRANCH_NAME}
+          cp -r ~/_book/* ${BRANCH_NAME}/
+          git config --global user.name "${{ secrets.PX4BUILDBOT_USER }}"
+          git config --global user.email "${{ secrets.PX4BUILDBOT_EMAIL }}"
+          git add .
+          git commit -a -m "PX4 docs build update (vitepress) `date`"
+          # push branch as backup
+          git push origin "${CURRENT_DATETIME}_main"
+          # Now make main from backup and push updated
+          git branch -D main
+          git checkout -b main
+          git push origin main -f

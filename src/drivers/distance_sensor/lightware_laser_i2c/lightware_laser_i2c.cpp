@@ -143,7 +143,7 @@ private:
 	)
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	typeof(px4::msg::VehicleStatus::vehicle_type) _vehicle_type{px4::msg::VehicleStatus::VEHICLE_TYPE_UNKNOWN};
+	typeof(px4::msg::VehicleStatus::vehicle_type) _vehicle_type{px4::msg::VehicleStatus::VEHICLE_TYPE_ROTARY_WING};
 	uORB::Subscription _dist_sense_mode_change_sub{ORB_ID(distance_sensor_mode_change_request)};
 	typeof(px4::msg::DistanceSensorModeChangeRequest::request_on_off) _req_mode{px4::msg::DistanceSensorModeChangeRequest::REQUEST_OFF};
 	bool _restriction{false};

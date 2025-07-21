@@ -27,18 +27,17 @@ using namespace time_literals;
 class GZGimbal : public px4::ScheduledWorkItem, public ModuleParams
 {
 public:
-	GZGimbal(gz::transport::Node &node, pthread_mutex_t &node_mutex) :
+	GZGimbal(gz::transport::Node &node) :
 		px4::ScheduledWorkItem(MODULE_NAME "-gimbal", px4::wq_configurations::rate_ctrl),
 		ModuleParams(nullptr),
-		_node(node),
-		_node_mutex(node_mutex)
+		_node(node)
 	{}
 
 private:
 	friend class GZBridge;
 
 	gz::transport::Node &_node;
-	pthread_mutex_t &_node_mutex;
+	pthread_mutex_t _node_mutex;
 
 	uORB::Subscription _gimbal_device_set_attitude_sub{ORB_ID(gimbal_device_set_attitude)};
 	uORB::Subscription _gimbal_controls_sub{ORB_ID(gimbal_controls)};

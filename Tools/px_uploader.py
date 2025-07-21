@@ -296,7 +296,7 @@ class uploader:
         if c != self.OK:
             raise RuntimeError("unexpected response 0x%x instead of OK" % ord(c))
 
-    # The control flow for reciving Sync is on the order of 16 Ms per Sync
+    # The control flow for receiving Sync is on the order of 16 Ms per Sync
     # This will validate all the SYNC,<results> for a window of programing
     # in about 13.81 Ms for 256 blocks written
     def __ackSyncWindow(self, count):

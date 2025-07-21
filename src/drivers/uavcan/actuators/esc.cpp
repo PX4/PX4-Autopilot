@@ -39,7 +39,9 @@
 
 #include "esc.hpp"
 #include <systemlib/err.h>
+#include <parameters/param.h>
 #include <drivers/drv_hrt.h>
+#include <lib/atmosphere/atmosphere.h>
 
 #define MOTOR_BIT(x) (1<<(x))
 
@@ -66,15 +68,26 @@ UavcanEscController::init()
 
 	_esc_status_pub.advertise();
 
+	int32_t iface_mask{0xFF};
+
+	if (param_get(param_find("UAVCAN_ESC_IFACE"), &iface_mask) == OK) {
+		_uavcan_pub_raw_cmd.getTransferSender().setIfaceMask(iface_mask);
+	}
+
+	char param_name[17];
+
+	for (unsigned i = 0; i < MAX_ACTUATORS; ++i) {
+		snprintf(param_name, sizeof(param_name), "UAVCAN_EC_FUNC%d", i + 1);
+		_param_handles[i] = param_find(param_name);
+	}
+
 	return res;
 }
 
 void
-UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
+UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], unsigned total_outputs)
 {
-	/*
-	 * Rate limiting - we don't want to congest the bus
-	 */
+	// TODO: configurable rate limit
 	const auto timestamp = _node.getMonotonicTime();
 
 	if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / MAX_RATE_HZ)) {
@@ -83,44 +96,28 @@ UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUA
 
 	_prev_cmd_pub = timestamp;
 
-	/*
-	 * Fill the command message
-	 * If unarmed, we publish an empty message anyway
-	 */
 	uavcan::equipment::esc::RawCommand msg;
 
-	for (unsigned i = 0; i < num_outputs; i++) {
-		if (stop_motors || outputs[i] == DISARMED_OUTPUT_VALUE) {
-			msg.cmd.push_back(static_cast<unsigned>(0));
+	// directly output values from mixer
+	for (unsigned i = 0; i < total_outputs; i++) {
+		msg.cmd.push_back(static_cast<int>(outputs[i]));
+	}
 
-		} else {
-			msg.cmd.push_back(static_cast<int>(outputs[i]));
+	// but only output as many channels as are configured
+	uint8_t min_size = 0;
+
+	for (int i = 0; i < MAX_ACTUATORS; i++) {
+		int32_t val = 0;
+
+		if (param_get(_param_handles[i], &val) == 0) {
+			if (val > 0) {
+				min_size = i + 1;
+			}
 		}
 	}
 
-	/*
-	 * Remove channels that are always zero.
-	 * The objective of this optimization is to avoid broadcasting multi-frame transfers when a single frame
-	 * transfer would be enough. This is a valid optimization as the UAVCAN specification implies that all
-	 * non-specified ESC setpoints should be considered zero.
-	 * The positive outcome is a (marginally) lower bus traffic and lower CPU load.
-	 *
-	 * From the standpoint of the PX4 architecture, however, this is a hack. It should be investigated why
-	 * the mixer returns more outputs than are actually used.
-	 */
-	for (int index = int(msg.cmd.size()) - 1; index >= _max_number_of_nonzero_outputs; index--) {
-		if (msg.cmd[index] != 0) {
-			_max_number_of_nonzero_outputs = index + 1;
-			break;
-		}
-	}
+	msg.cmd.resize(min_size);
 
-	msg.cmd.resize(_max_number_of_nonzero_outputs);
-
-	/*
-	 * Publish the command message to the bus
-	 * Note that for a quadrotor it takes one CAN frame
-	 */
 	_uavcan_pub_raw_cmd.broadcast(msg);
 }
 
@@ -140,7 +137,7 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		ref.esc_address = msg.getSrcNodeID().get();
 		ref.esc_voltage     = msg.voltage;
 		ref.esc_current     = msg.current;
-		ref.esc_temperature = msg.temperature;
+		ref.esc_temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
 		ref.esc_rpm         = msg.rpm;
 		ref.esc_errorcount  = msg.error_count;
 

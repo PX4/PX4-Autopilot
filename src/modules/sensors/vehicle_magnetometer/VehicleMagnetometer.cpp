@@ -191,6 +191,13 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 
 			if (calibration_updated) {
 				_last_calibration_update = hrt_absolute_time();
+
+				for (int instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
+					// avoid mixing data currected using old calibration
+					_timestamp_sample_sum[instance] = 0;
+					_data_sum[instance].zero();
+					_data_sum_count[instance] = 0;
+				}
 			}
 		}
 

@@ -108,6 +108,18 @@ RCInput::init()
 #ifdef GPIO_PPM_IN
 	// disable CPPM input by mapping it away from the timer capture input
 	px4_arch_unconfiggpio(GPIO_PPM_IN);
+
+#ifdef RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX
+
+	// If we use the same STM32 pin for PPM input as well as serial input, we
+	// need to configure the serial port, as long as we're actually using that
+	// serial device.
+	if (strcmp(_device, RC_SERIAL_PORT) == 0) {
+		px4_arch_configgpio(RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX);
+	}
+
+#endif // RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX
+
 #endif // GPIO_PPM_IN
 
 	rc_io_invert(false);
@@ -657,6 +669,15 @@ void RCInput::Run()
 #ifdef HRT_PPM_CHANNEL
 			if (_rc_scan_begin == 0) {
 				_rc_scan_begin = cycle_timestamp;
+
+#ifdef RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX
+
+				if (strcmp(_device, RC_SERIAL_PORT) == 0) {
+					px4_arch_unconfiggpio(RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX);
+				}
+
+#endif // RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX
+
 				// Configure timer input pin for CPPM
 				px4_arch_configgpio(GPIO_PPM_IN);
 
@@ -680,6 +701,15 @@ void RCInput::Run()
 			} else {
 				// disable CPPM input by mapping it away from the timer capture input
 				px4_arch_unconfiggpio(GPIO_PPM_IN);
+
+#ifdef RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX
+
+				if (strcmp(_device, RC_SERIAL_PORT) == 0) {
+					px4_arch_configgpio(RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX);
+				}
+
+#endif // RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX
+
 				// Scan the next protocol
 				set_rc_scan_state(RC_SCAN_CRSF);
 			}
@@ -758,14 +788,15 @@ void RCInput::Run()
 
 				// parse new data
 				if (newBytes > 0) {
-					int8_t ghst_rssi = -1;
-					rc_updated = ghst_parse(cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &ghst_rssi,
+					ghstLinkStatistics_t link_stats = { .rssi_pct = -1, .rssi_dbm = NAN, .link_quality = 0 };
+
+					rc_updated = ghst_parse(cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &link_stats,
 								&_raw_rc_count, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 					if (rc_updated) {
 						// we have a new GHST frame. Publish it.
 						_input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_GHST;
-						int32_t valid_chans = fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0, ghst_rssi);
+						int32_t valid_chans = fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0, link_stats.rssi_pct);
 
 						// ghst telemetry works on fmu-v5
 						// on other Pixhawk (-related) boards we cannot write to the RC UART
@@ -983,6 +1014,7 @@ This module does the RC input parsing and auto-selecting the method. Supported m
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("rc_input", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("radio_control");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS3", "<file:dev>", "RC device", true);
 

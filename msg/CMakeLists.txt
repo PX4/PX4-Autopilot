@@ -45,10 +45,9 @@ set(msg_files
 	ActuatorTest.msg
 	AdcReport.msg
 	Airspeed.msg
-	AirspeedValidated.msg
 	AirspeedWind.msg
 	AutotuneAttitudeControlStatus.msg
-	Buffer128.msg
+	BatteryInfo.msg
 	ButtonEvent.msg
 	CameraCapture.msg
 	CameraStatus.msg
@@ -83,7 +82,7 @@ set(msg_files
 	EstimatorStates.msg
 	EstimatorStatus.msg
 	EstimatorStatusFlags.msg
-	Event.msg
+	versioned/Event.msg
 	FigureEightStatus.msg
 	FailsafeFlags.msg
 	FailureDetectorStatus.msg
@@ -92,6 +91,9 @@ set(msg_files
 	FollowTargetEstimator.msg
 	FollowTargetStatus.msg
 	FuelTankStatus.msg
+	FixedWingLateralGuidanceStatus.msg
+	FixedWingLateralStatus.msg
+	FixedWingRunwayControl.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
 	GeofenceStatus.msg
@@ -139,7 +141,6 @@ set(msg_files
 	NavigatorMissionItem.msg
 	NavigatorStatus.msg
 	NormalizedUnsignedSetpoint.msg
-	NpfgStatus.msg
 	ObstacleDistance.msg
 	OffboardControlMode.msg
 	OnboardComputerStatus.msg
@@ -164,6 +165,7 @@ set(msg_files
 	PowerButtonState.msg
 	PowerMonitor.msg
 	PpsCapture.msg
+	PurePursuitStatus.msg
 	PwmInput.msg
 	Px4ioStatus.msg
 	QshellReq.msg
@@ -174,14 +176,13 @@ set(msg_files
 	RcParameterMap.msg
 	RoverAttitudeSetpoint.msg
 	RoverAttitudeStatus.msg
-	RoverVelocityStatus.msg
+	RoverPositionSetpoint.msg
 	RoverRateSetpoint.msg
 	RoverRateStatus.msg
 	RoverSteeringSetpoint.msg
 	RoverThrottleSetpoint.msg
-	RoverMecanumGuidanceStatus.msg
-	RoverMecanumSetpoint.msg
-	RoverMecanumStatus.msg
+	RoverVelocitySetpoint.msg
+	RoverVelocityStatus.msg
 	Rpm.msg
 	RtlStatus.msg
 	RtlTimeEstimate.msg
@@ -212,6 +213,7 @@ set(msg_files
 	TelemetryStatus.msg
 	TiltrotorExtraControls.msg
 	TimesyncStatus.msg
+	TrajectorySetpoint6dof.msg
 	TransponderReport.msg
 	TuneControl.msg
 	UavcanParameterRequest.msg
@@ -237,12 +239,17 @@ set(msg_files
 	YawEstimatorStatus.msg
 	versioned/ActuatorMotors.msg
 	versioned/ActuatorServos.msg
+	versioned/AirspeedValidated.msg
 	versioned/ArmingCheckReply.msg
 	versioned/ArmingCheckRequest.msg
 	versioned/BatteryStatus.msg
 	versioned/ConfigOverrides.msg
+	versioned/FixedWingLateralSetpoint.msg
+	versioned/FixedWingLongitudinalSetpoint.msg
 	versioned/GotoSetpoint.msg
 	versioned/HomePosition.msg
+	versioned/LateralControlConfiguration.msg
+	versioned/LongitudinalControlConfiguration.msg
 	versioned/ManualControlSetpoint.msg
 	versioned/ModeCompleted.msg
 	versioned/RegisterExtComponentReply.msg

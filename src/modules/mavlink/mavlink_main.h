@@ -212,6 +212,7 @@ public:
 		MAVLINK_MODE_GIMBAL,
 		MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH,
 		MAVLINK_MODE_UAVIONIX,
+		MAVLINK_MODE_LOW_BANDWIDTH,
 		MAVLINK_MODE_COUNT
 	};
 
@@ -265,6 +266,9 @@ public:
 
 		case MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH:
 			return "OnboardLowBandwidth";
+
+		case MAVLINK_MODE_LOW_BANDWIDTH:
+			return "Low Bandwidth";
 
 		case MAVLINK_MODE_UAVIONIX:
 			return "uAvionix";
@@ -481,6 +485,7 @@ public:
 	/** get the Mavlink shell. Create a new one if there isn't one. It is *always* created via MavlinkReceiver thread.
 	 *  Returns nullptr if shell cannot be created */
 	MavlinkShell		*get_shell();
+	pthread_mutex_t		&get_shell_mutex() { return _mavlink_shell_mutex; }
 	/** close the Mavlink shell if it is open */
 	void			close_shell();
 
@@ -567,6 +572,7 @@ private:
 	List<MavlinkStream *>		_streams;
 
 	MavlinkShell		*_mavlink_shell{nullptr};
+	pthread_mutex_t		_mavlink_shell_mutex{};
 	MavlinkULog		*_mavlink_ulog{nullptr};
 	static events::EventBuffer	*_event_buffer;
 	events::SendProtocol		_events{*_event_buffer, *this};
@@ -711,6 +717,8 @@ private:
 	void handleAndGetCurrentCommandAck();
 
 	void handleStatus();
+
+	void handleMavlinkShellOutput();
 
 	/**
 	 * Reconfigure a SiK radio if requested by MAV_SIK_RADIO_ID

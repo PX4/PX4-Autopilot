@@ -55,12 +55,14 @@ bool GZMixingInterfaceESC::init(const std::string &model_name)
 
 	_esc_status_pub.advertise();
 
+	pthread_mutex_init(&_node_mutex, nullptr);
+
 	ScheduleNow();
 
 	return true;
 }
 
-bool GZMixingInterfaceESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool GZMixingInterfaceESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
 	unsigned active_output_count = 0;
