@@ -48,9 +48,9 @@
  * @max 10.0
  * @decimal 2
  * @increment 0.1
- * @unit 1
+ * @group INDI Adaptive Constants
  */
-PARAM_DEFINE_FLOAT(INDI_ADAPT_ROLL, 1.5f);
+PARAM_DEFINE_FLOAT(INDI_ADAPT_R, 1.5f);
 
 /**
  * INDI Adaptive Constant - Pitch Axis
@@ -63,9 +63,9 @@ PARAM_DEFINE_FLOAT(INDI_ADAPT_ROLL, 1.5f);
  * @max 10.0
  * @decimal 2
  * @increment 0.1
- * @unit 1
+ * @group INDI Adaptive Constants
  */
-PARAM_DEFINE_FLOAT(INDI_ADAPT_PITCH, 1.5f);
+PARAM_DEFINE_FLOAT(INDI_ADAPT_P, 1.5f);
 
 /**
  * INDI Adaptive Constant - Yaw Axis
@@ -78,6 +78,6 @@ PARAM_DEFINE_FLOAT(INDI_ADAPT_PITCH, 1.5f);
  * @max 10.0
  * @decimal 2
  * @increment 0.1
- * @unit 1
+ * @group INDI Adaptive Constants
  */
-PARAM_DEFINE_FLOAT(INDI_ADAPT_YAW, 1.5f);
+PARAM_DEFINE_FLOAT(INDI_ADAPT_Y, 1.5f);

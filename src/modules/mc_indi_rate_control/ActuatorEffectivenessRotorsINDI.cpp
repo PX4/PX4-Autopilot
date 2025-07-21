@@ -84,7 +84,7 @@ void ActuatorEffectivenessRotorsINDI::updateParams()
 {
 	ModuleParams::updateParams();
 
-	_geometry.num_rotors = math::min(NUM_ACTUATORS, static_cast<int>(_param_met_rotor_count.get()));
+	_geometry.num_rotors = math::min(NUM_ACTUATORS, static_cast<int>(_param_rotor_count.get()));
 
 	for (int i = 0; i < _geometry.num_rotors; ++i) {
 		Vector3f &position = _geometry.rotors[i].position;
@@ -121,8 +121,7 @@ void ActuatorEffectivenessRotorsINDI::updateParams()
 		_G2_adaptive_constants(i, i) = g2_value;
 	}
 
-	// Update adaptive constants from parameters
-	_adaptive_constants_per_axis = diag(Vector3f(_param_indi_adapt_roll.get(), _param_indi_adapt_pitch.get(), _param_indi_adapt_yaw.get()));
+	_adaptive_constants_per_axis = diag(Vector3f(_param_indi_adapt_axis_r.get(), _param_indi_adapt_axis_p.get(), _param_indi_adapt_axis_y.get()));
 
 }
 

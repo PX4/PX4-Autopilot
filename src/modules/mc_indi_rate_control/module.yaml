@@ -63,7 +63,6 @@ parameters:
             min: 0.0
             max: 1.0
             default: 0.2
-            unit: 1
             num_instances: *max_num_mc_motors
         INDI_G2_ADAPT_${i}:
             description:
@@ -78,7 +77,6 @@ parameters:
             min: 0.0
             max: 1.0
             default: 0.2
-            unit: 1
             num_instances: *max_num_mc_motors
 
 

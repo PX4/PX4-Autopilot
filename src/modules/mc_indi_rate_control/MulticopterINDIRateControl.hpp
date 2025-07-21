@@ -79,7 +79,7 @@ using namespace time_literals;
 class MulticopterINDIRateControl : public ModuleBase<MulticopterINDIRateControl>, public ModuleParams, public px4::WorkItem
 {
 public:
-	MulticopterINDIRateControl(bool vtol = false);
+	MulticopterINDIRateControl();
 	~MulticopterINDIRateControl() override;
 
 	/** @see ModuleBase */
@@ -127,8 +127,8 @@ private:
 	uORB::Publication<actuator_controls_status_s>	_actuator_controls_status_pub{ORB_ID(actuator_controls_status_0)};
 	uORB::PublicationMulti<rate_ctrl_status_s>	_controller_status_pub{ORB_ID(rate_ctrl_status)};
 	uORB::Publication<vehicle_rates_setpoint_s>	_vehicle_rates_setpoint_pub{ORB_ID(vehicle_rates_setpoint)};
-	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub;
-	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub;
+	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 
 	vehicle_torque_setpoint_s _vehicle_torque_setpoint{};
 
@@ -205,8 +205,6 @@ private:
 
 		(ParamInt<px4::params::MC_INDI_ADAPT_EN>) _param_mc_indi_adapt_en,
 
-		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
-
-		(ParamInt<px4::params::MET_ROTOR_COUNT>) _param_met_rotor_count
+		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff
 	)
 };

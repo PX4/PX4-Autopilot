@@ -290,6 +290,7 @@ MulticopterINDIRateControl::Run()
 
 			// publish thrust and torque setpoints
 			vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
+			_thrust_setpoint.copyTo(vehicle_thrust_setpoint.xyz);
 
 
 			_vehicle_torque_setpoint.pid_xyz[0] = PX4_ISFINITE(torque_setpoint(0)) ? torque_setpoint(0) : 0.f;
@@ -298,18 +299,15 @@ MulticopterINDIRateControl::Run()
 
 			Vector3f measured_body_torque = _Iv * angular_accel;
 
-			_vehicle_torque_setpoint.xyz[0] = PX4_ISFINITE(torque_setpoint(0)) ? torque_setpoint(0) : 0.f;
-			_vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(torque_setpoint(1)) ? torque_setpoint(1) : 0.f;
-			_vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(torque_setpoint(2)) ? torque_setpoint(2) : 0.f;
-			_vehicle_torque_setpoint.xyz[0] += PX4_ISFINITE(indi_torque_setpoint(0)) ? indi_torque_setpoint(0) : 0.f;
-			_vehicle_torque_setpoint.xyz[1] += PX4_ISFINITE(indi_torque_setpoint(1)) ? indi_torque_setpoint(1) : 0.f;
-			_vehicle_torque_setpoint.xyz[2] += PX4_ISFINITE(indi_torque_setpoint(2)) ? indi_torque_setpoint(2) : 0.f;
-
 
 			// NOTE: to confirm tuning, the indi_torque_xyz should be the same as the measured_body_torque_xyz when graphed in plotjuggler
 			_vehicle_torque_setpoint.indi_torque_xyz[0] = PX4_ISFINITE(indi_torque_setpoint(0)) ? indi_torque_setpoint(0) : 0.f;
 			_vehicle_torque_setpoint.indi_torque_xyz[1] = PX4_ISFINITE(indi_torque_setpoint(1)) ? indi_torque_setpoint(1) : 0.f;
 			_vehicle_torque_setpoint.indi_torque_xyz[2] = PX4_ISFINITE(indi_torque_setpoint(2)) ? indi_torque_setpoint(2) : 0.f;
+
+			_vehicle_torque_setpoint.xyz[0] = _vehicle_torque_setpoint.pid_xyz[0] + _vehicle_torque_setpoint.indi_torque_xyz[0];
+			_vehicle_torque_setpoint.xyz[1] = _vehicle_torque_setpoint.pid_xyz[1] + _vehicle_torque_setpoint.indi_torque_xyz[1];
+			_vehicle_torque_setpoint.xyz[2] = _vehicle_torque_setpoint.pid_xyz[2] + _vehicle_torque_setpoint.indi_torque_xyz[2];
 
 			_vehicle_torque_setpoint.measured_body_torque_xyz[0] = PX4_ISFINITE(measured_body_torque(0)) ? measured_body_torque(0) : 0.f;
 			_vehicle_torque_setpoint.measured_body_torque_xyz[1] = PX4_ISFINITE(measured_body_torque(1)) ? measured_body_torque(1) : 0.f;

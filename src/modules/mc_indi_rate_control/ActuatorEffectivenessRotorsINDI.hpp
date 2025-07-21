@@ -148,10 +148,10 @@ private:
 	Geometry _geometry{};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::CA_ROTOR_COUNT>) _param_met_rotor_count,
-		(ParamFloat<px4::params::INDI_ADAPT_ROLL>) _param_indi_adapt_roll,
-		(ParamFloat<px4::params::INDI_ADAPT_PITCH>) _param_indi_adapt_pitch,
-		(ParamFloat<px4::params::INDI_ADAPT_YAW>) _param_indi_adapt_yaw
+		(ParamInt<px4::params::CA_ROTOR_COUNT>) _param_rotor_count,
+		(ParamFloat<px4::params::INDI_ADAPT_R>) _param_indi_adapt_axis_r,
+		(ParamFloat<px4::params::INDI_ADAPT_P>) _param_indi_adapt_axis_p,
+		(ParamFloat<px4::params::INDI_ADAPT_Y>) _param_indi_adapt_axis_y
 	)
 
 	uORB::Publication<indi_adaptation_status_s> _indi_adaptation_status_pub{ORB_ID(indi_adaptation_status)};
