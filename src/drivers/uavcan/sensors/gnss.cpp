@@ -501,6 +501,9 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	report.jamming_state = jamming_state;
 	report.spoofing_state = spoofing_state;
 
+	report.selected_rtcm_instance = _selected_rtcm_instance;
+	report.rtcm_injection_rate = _rtcm_injection_rate;
+
 	publish(msg.getSrcNodeID().get(), &report);
 }
 
@@ -516,13 +519,23 @@ void UavcanGnssBridge::update()
 // to work.
 void UavcanGnssBridge::handleInjectDataTopic()
 {
+	hrt_abstime now = hrt_absolute_time();
+
+	// measure RTCM update rate every 5 seconds
+	if (now > _last_rate_measurement + 5_s) {
+		float dt = (now - _last_rate_measurement) / 1e6f;
+		_rtcm_injection_rate = _rtcm_injection_rate_message_count / dt;
+		_last_rate_measurement = now;
+		_rtcm_injection_rate_message_count = 0;
+	}
+
 	// We don't want to call copy again further down if we have already done a
 	// copy in the selection process.
 	bool already_copied = false;
 	gps_inject_data_s msg;
 
 	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
-	if ((hrt_absolute_time() - _last_rtcm_injection_time) > 5_s) {
+	if ((now - _last_rtcm_injection_time) > 5_s) {
 
 		for (int instance = 0; instance < _orb_inject_data_sub.size(); instance++) {
 			const bool exists = _orb_inject_data_sub[instance].advertised();
@@ -565,6 +578,7 @@ void UavcanGnssBridge::handleInjectDataTopic()
 				PublishMovingBaselineData(msg.data, msg.len);
 			}
 
+			++_rtcm_injection_rate_message_count;
 			_last_rtcm_injection_time = hrt_absolute_time();
 		}
 
