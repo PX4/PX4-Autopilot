@@ -69,6 +69,11 @@ For each AUX output to which a safety device is attached, where "n" is the PWM p
 
 Finally, set the `PWM_AUX_FAILn` and `PWM_MAIN_FAILn` PWM values for any motors.
 
+::: info
+Flight termination via ATS only works if `drivers/pwm_input` is included in the firmware for your board.
+If not, you need to add it manually to your board configuration using [boardconfig](../hardware/porting_guide_config.md#px4-menuconfig-setup).
+:::
+
 ## Logic Diagram
 
 The diagram below shows the logical flow around flight termination.
