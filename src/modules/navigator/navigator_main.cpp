@@ -525,7 +525,7 @@ void Navigator::run()
 
 					if (PX4_ISFINITE(cmd.param1)) {
 						rep->current.loiter_radius = fabsf(cmd.param1);
-						rep->current.loiter_direction_counter_clockwise = cmd.param1 < 0;
+						rep->current.loiter_direction_counter_clockwise = cmd.param1 < -FLT_EPSILON;
 					}
 
 					rep->current.lat = position_setpoint.lat;
@@ -571,7 +571,7 @@ void Navigator::run()
 
 					if (PX4_ISFINITE(cmd.param1)) {
 						rep->current.loiter_radius = fabsf(cmd.param1);
-						rep->current.loiter_direction_counter_clockwise = cmd.param1 < 0;
+						rep->current.loiter_direction_counter_clockwise = cmd.param1 < -FLT_EPSILON;
 					}
 
 					rep->current.loiter_radius = math::max(rep->current.loiter_radius, 2.0f * rep->current.loiter_minor_radius);
