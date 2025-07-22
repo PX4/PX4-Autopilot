@@ -534,6 +534,7 @@ perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle)
 	if (length > 0) {
 		buffer[length - 1] = 0; // ensure 0-termination
 	}
+
 	return num_written;
 }
 
