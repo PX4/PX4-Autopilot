@@ -1,5 +1,7 @@
 # Holybro Pixhawk 4 Mini (Discontinued)
 
+<Badge type="info" text="Discontinued" px4_current="v1.15" year="2024"/>
+
 :::warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
@@ -29,20 +31,20 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
   - 气压计：MS5611
 - GPS：ublox Neo-M8N GPS/GLONASS 接收器；集成磁力计 IST8310
 - 接口：
-  - 8 路 PWM 输出
-  - FMU 上有 4 路专用 PWM/Capture 输入
+  - 8 PWM outputs
+  - 4 dedicated PWM/Capture inputs on FMU
   - CPPM专用的RC输入
   - 用于 Spektrum / DSM 与 有模拟 / PWM RSSI 的 S.Bus 的专用遥控输入
   - 3个通用串行口
-  - 2 路 I2C 总线
-  - 3 路 SPI 总线
-  - 1 路 CAN 总线用于 CAN 电调
+  - 2 I2C ports
+  - 3 SPI buses
+  - 1 CANBuses for CAN ESC
   - 电池电压 / 电流模拟输入口
   - 2 个模拟输入接口
 - 电源系统
-  - Power 接口输入：4.75~5.5V
+  - Power Brick Input: 4.75~5.5V
   - USB 电源输入：4.75~5.25V
-  - 舵机轨道输入：0~24V
+  - Servo Rail Input: 0~24V
   - 最大电流感应：120A
 - 重量和尺寸:
   - Weight: 37.2g
@@ -54,7 +56,7 @@ Additional information can be found in the [_Pixhawk 4 Mini_ Technical Data Shee
 
 ## 购买渠道
 
-Order from [Holybro](https://holybro.com/collections/autopilot-flight-controllers/products/pixhawk4-mini).
+No longer available.
 
 ## 接口
 
@@ -141,7 +143,7 @@ The pinout uses the standard [Pixhawk debug connector](https://github.com/pixhaw
 - [Telemetry Radio Modules](../telemetry/index.md)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 
-## 支持的平台
+## Supported Platforms
 
 Motors and servos are connected to the **MAIN OUT** ports in the order specified for your vehicle in the [Airframe Reference](../airframes/airframe_reference.md).
 This reference lists the output port to motor/servo mapping for all supported air and ground frames (if your frame is not listed in the reference then use a "generic" airframe of the correct type).
