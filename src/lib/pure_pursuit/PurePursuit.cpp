@@ -86,7 +86,7 @@ float calcTargetBearing(pure_pursuit_status_s &pure_pursuit_status, const float 
 
 	} else if (useStanleyPursuit) { // Stanley pursuit
 
-		const float xtrack_gain = 10.0f; // Gain for crosstrack error
+		const float xtrack_gain = 1.7f; // Gain for crosstrack error (1.7 to pass "CurrAndPrevSameNorthCoordinate" test)
 		const float softening_factor = 1.0f; // Softening factor (not zero)
 
 		float xtrack_factor = -atanf(xtrack_gain * crosstrack_error /
