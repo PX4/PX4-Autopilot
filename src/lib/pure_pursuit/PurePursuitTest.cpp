@@ -187,12 +187,12 @@ TEST(PurePursuitTest, CurrAndPrevSameNorthCoordinate)
 
 	//	     V
 	//	P ------ C
-	const float target_bearing2 = PurePursuit::calcTargetBearing(pure_pursuit, 1.f, 10.f, 1.f, Vector2f(0.f, 20.f),
-				      Vector2f(0.f, 0.f), Vector2f(5.f / sqrtf(2.f), 10.f), lookahead_distance);
+	const float target_bearing2 = PurePursuit::calcTargetBearing(pure_pursuit, 1.f, 10.f, 1.f, Vector2f(20.f, 0.f),
+				      Vector2f(0.f, 0.f), Vector2f(10.f, 5.f / sqrtf(2.f)), lookahead_distance);
 	//	     V
 	//	C ------ P
 	const float target_bearing3 = PurePursuit::calcTargetBearing(pure_pursuit, 1.f, 10.f, 1.f, Vector2f(0.f, 0.f),
-				      Vector2f(0.f, 20.f), Vector2f(5.f / sqrtf(2.f), 10.f), lookahead_distance);
+				      Vector2f(20.f, 0.f), Vector2f(10.f, 5.f / sqrtf(2.f)), lookahead_distance);
 	//	     V
 	//
 	//	P ------ C
@@ -200,7 +200,7 @@ TEST(PurePursuitTest, CurrAndPrevSameNorthCoordinate)
 				      Vector2f(0.f, 0.f), Vector2f(10.f, 10.f), lookahead_distance);
 
 	EXPECT_NEAR(target_bearing1, M_PI_2_F, FLT_EPSILON);
-	EXPECT_NEAR(target_bearing2, M_PI_2_F + M_PI_4_F, FLT_EPSILON);
+	EXPECT_NEAR(target_bearing2, -M_PI_4_F, FLT_EPSILON);
 	EXPECT_NEAR(target_bearing3, -(M_PI_2_F + M_PI_4_F), FLT_EPSILON);
 	EXPECT_NEAR(target_bearing4, -M_PI_F, FLT_EPSILON); // Fallback: Bearing to closest point on path
 }
