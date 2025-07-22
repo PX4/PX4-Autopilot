@@ -180,6 +180,7 @@ public:
 	Geofence &get_geofence() { return _geofence; }
 
 	float get_default_loiter_rad() { return fabsf(_param_nav_loiter_rad.get()); }
+	bool get_default_loiter_CCW() { return _param_nav_loiter_rad.get() < -FLT_EPSILON; }
 
 	/**
 	 * Returns the default acceptance radius defined by the parameter

@@ -510,7 +510,7 @@ void Navigator::run()
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					rep->current.loiter_radius = get_default_loiter_rad();
-					rep->current.loiter_direction_counter_clockwise = false;
+					rep->current.loiter_direction_counter_clockwise = get_default_loiter_CCW();
 					rep->current.loiter_orientation = 0.0f;
 					rep->current.loiter_pattern = position_setpoint_s::LOITER_TYPE_ORBIT;
 					rep->current.cruising_throttle = get_cruising_throttle();
@@ -558,7 +558,7 @@ void Navigator::run()
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					rep->current.loiter_minor_radius = fabsf(get_default_loiter_rad());
-					rep->current.loiter_direction_counter_clockwise = get_default_loiter_rad() < 0;
+					rep->current.loiter_direction_counter_clockwise = get_default_loiter_CCW();
 					rep->current.loiter_orientation = 0.0f;
 					rep->current.loiter_pattern = position_setpoint_s::LOITER_TYPE_FIGUREEIGHT;
 					rep->current.cruising_speed = get_cruising_speed();
@@ -605,7 +605,7 @@ void Navigator::run()
 				rep->previous.alt = get_global_position()->alt;
 
 				rep->current.loiter_radius = get_default_loiter_rad();
-				rep->current.loiter_direction_counter_clockwise = false;
+				rep->current.loiter_direction_counter_clockwise = get_default_loiter_CCW();
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 				rep->current.cruising_speed = -1.f; // reset to default
 
