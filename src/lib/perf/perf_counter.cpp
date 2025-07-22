@@ -55,6 +55,7 @@ struct perf_ctr_header {
 	sq_entry_t		link;	/**< list linkage */
 	enum perf_counter_type	type;	/**< counter type */
 	const char		*name;	/**< counter name */
+	pthread_mutex_t		lock;   /**< protects counter data */
 };
 
 /**
@@ -97,16 +98,9 @@ struct perf_ctr_interval : public perf_ctr_header {
 static sq_queue_t	perf_counters = { nullptr, nullptr };
 
 /**
- * mutex protecting access to the perf_counters linked list (which is read from & written to by different threads)
+ * Mutex protecting access to the perf_counters linked list.
  */
 pthread_mutex_t perf_counters_mutex = PTHREAD_MUTEX_INITIALIZER;
-// FIXME: the mutex does **not** protect against access to/from the perf
-// counter's data. It can still happen that a counter is updated while it is
-// printed. This can lead to inconsistent output, or completely bogus values
-// (especially the 64bit values which are in general not atomically updated).
-// The same holds for shared perf counters (perf_alloc_once), that can be updated
-// concurrently (this affects the 'ctrl_latency' counter).
-
 
 perf_counter_t
 perf_alloc(enum perf_counter_type type, const char *name)
@@ -133,6 +127,7 @@ perf_alloc(enum perf_counter_type type, const char *name)
 	if (ctr != nullptr) {
 		ctr->type = type;
 		ctr->name = name;
+		pthread_mutex_init(&ctr->lock, nullptr);
 		pthread_mutex_lock(&perf_counters_mutex);
 		sq_addfirst(&ctr->link, &perf_counters);
 		pthread_mutex_unlock(&perf_counters_mutex);
@@ -181,6 +176,8 @@ perf_free(perf_counter_t handle)
 	sq_rem(&handle->link, &perf_counters);
 	pthread_mutex_unlock(&perf_counters_mutex);
 
+	pthread_mutex_destroy(&handle->lock);
+
 	switch (handle->type) {
 	case PC_COUNT:
 		delete (struct perf_ctr_count *)handle;
@@ -208,10 +205,13 @@ perf_count(perf_counter_t handle)
 
 	switch (handle->type) {
 	case PC_COUNT:
+		pthread_mutex_lock(&handle->lock);
 		((struct perf_ctr_count *)handle)->event_count++;
+		pthread_mutex_unlock(&handle->lock);
 		break;
 
 	case PC_INTERVAL:
+		// This case is handled by calling perf_count_interval, which has its own lock.
 		perf_count_interval(handle, hrt_absolute_time());
 		break;
 
@@ -227,6 +227,8 @@ perf_begin(perf_counter_t handle)
 		return;
 	}
 
+	pthread_mutex_lock(&handle->lock);
+
 	switch (handle->type) {
 	case PC_ELAPSED:
 		((struct perf_ctr_elapsed *)handle)->time_start = hrt_absolute_time();
@@ -235,6 +237,8 @@ perf_begin(perf_counter_t handle)
 	default:
 		break;
 	}
+
+	pthread_mutex_unlock(&handle->lock);
 }
 
 void
@@ -246,10 +250,13 @@ perf_end(perf_counter_t handle)
 
 	switch (handle->type) {
 	case PC_ELAPSED: {
-			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
+			uint64_t time_start_local;
+			pthread_mutex_lock(&handle->lock);
+			time_start_local = ((struct perf_ctr_elapsed *)handle)->time_start;
+			pthread_mutex_unlock(&handle->lock);
 
-			if (pce->time_start != 0) {
-				perf_set_elapsed(handle, hrt_elapsed_time(&pce->time_start));
+			if (time_start_local != 0) {
+				perf_set_elapsed(handle, hrt_elapsed_time(&time_start_local));
 			}
 		}
 		break;
@@ -265,6 +272,8 @@ perf_set_elapsed(perf_counter_t handle, int64_t elapsed)
 	if (handle == nullptr) {
 		return;
 	}
+
+	pthread_mutex_lock(&handle->lock);
 
 	switch (handle->type) {
 	case PC_ELAPSED: {
@@ -297,6 +306,8 @@ perf_set_elapsed(perf_counter_t handle, int64_t elapsed)
 	default:
 		break;
 	}
+
+	pthread_mutex_unlock(&handle->lock);
 }
 
 void
@@ -305,6 +316,8 @@ perf_count_interval(perf_counter_t handle, hrt_abstime now)
 	if (handle == nullptr) {
 		return;
 	}
+
+	pthread_mutex_lock(&handle->lock);
 
 	switch (handle->type) {
 	case PC_INTERVAL: {
@@ -351,6 +364,8 @@ perf_count_interval(perf_counter_t handle, hrt_abstime now)
 	default:
 		break;
 	}
+
+	pthread_mutex_unlock(&handle->lock);
 }
 
 void
@@ -359,6 +374,8 @@ perf_set_count(perf_counter_t handle, uint64_t count)
 	if (handle == nullptr) {
 		return;
 	}
+
+	pthread_mutex_lock(&handle->lock);
 
 	switch (handle->type) {
 	case PC_COUNT: {
@@ -370,6 +387,7 @@ perf_set_count(perf_counter_t handle, uint64_t count)
 		break;
 	}
 
+	pthread_mutex_unlock(&handle->lock);
 }
 
 void
@@ -378,6 +396,8 @@ perf_cancel(perf_counter_t handle)
 	if (handle == nullptr) {
 		return;
 	}
+
+	pthread_mutex_lock(&handle->lock);
 
 	switch (handle->type) {
 	case PC_ELAPSED: {
@@ -390,6 +410,8 @@ perf_cancel(perf_counter_t handle)
 	default:
 		break;
 	}
+
+	pthread_mutex_unlock(&handle->lock);
 }
 
 void
@@ -398,6 +420,8 @@ perf_reset(perf_counter_t handle)
 	if (handle == nullptr) {
 		return;
 	}
+
+	pthread_mutex_lock(&handle->lock);
 
 	switch (handle->type) {
 	case PC_COUNT:
@@ -411,6 +435,8 @@ perf_reset(perf_counter_t handle)
 			pce->time_total = 0;
 			pce->time_least = 0;
 			pce->time_most = 0;
+			pce->mean = 0.0f;
+			pce->M2 = 0.0f;
 			break;
 		}
 
@@ -422,9 +448,13 @@ perf_reset(perf_counter_t handle)
 			pci->time_last = 0;
 			pci->time_least = 0;
 			pci->time_most = 0;
+			pci->mean = 0.0f;
+			pci->M2 = 0.0f;
 			break;
 		}
 	}
+
+	pthread_mutex_unlock(&handle->lock);
 }
 
 void
@@ -434,47 +464,11 @@ perf_print_counter(perf_counter_t handle)
 		return;
 	}
 
-	switch (handle->type) {
-	case PC_COUNT:
-		PX4_INFO_RAW("%s: %" PRIu64 " events\n",
-			     handle->name,
-			     ((struct perf_ctr_count *)handle)->event_count);
-		break;
-
-	case PC_ELAPSED: {
-			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
-			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
-			PX4_INFO_RAW("%s: %" PRIu64 " events, %" PRIu64 "us elapsed, %.2fus avg, min %" PRIu32 "us max %" PRIu32
-				     "us %5.3fus rms\n",
-				     handle->name,
-				     pce->event_count,
-				     pce->time_total,
-				     (pce->event_count == 0) ? 0 : (double)pce->time_total / (double)pce->event_count,
-				     pce->time_least,
-				     pce->time_most,
-				     (double)(1e6f * rms));
-			break;
-		}
-
-	case PC_INTERVAL: {
-			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
-			float rms = sqrtf(pci->M2 / (pci->event_count - 1));
-
-			PX4_INFO_RAW("%s: %" PRIu64 " events, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms\n",
-				     handle->name,
-				     pci->event_count,
-				     (pci->event_count == 0) ? 0 : (double)(pci->time_last - pci->time_first) / (double)pci->event_count,
-				     pci->time_least,
-				     pci->time_most,
-				     (double)(1e6f * rms));
-			break;
-		}
-
-	default:
-		break;
-	}
+	// We don't lock the handle here, as perf_print_counter_buffer will do it.
+	char buffer[256];
+	perf_print_counter_buffer(buffer, sizeof(buffer), handle);
+	PX4_INFO_RAW("%s\n", buffer);
 }
-
 
 int
 perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle)
@@ -485,48 +479,61 @@ perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle)
 		return 0;
 	}
 
+	pthread_mutex_lock(&handle->lock);
+
 	switch (handle->type) {
-	case PC_COUNT:
-		num_written = snprintf(buffer, length, "%s: %" PRIu64 " events",
-				       handle->name,
-				       ((struct perf_ctr_count *)handle)->event_count);
-		break;
+	case PC_COUNT: {
+			struct perf_ctr_count pcc = *(struct perf_ctr_count *)handle;
+			pthread_mutex_unlock(&handle->lock);
+
+			num_written = snprintf(buffer, length, "%s: %" PRIu64 " events",
+					       pcc.name,
+					       pcc.event_count);
+			break;
+		}
 
 	case PC_ELAPSED: {
-			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
-			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
+			struct perf_ctr_elapsed pce = *(struct perf_ctr_elapsed *)handle;
+			pthread_mutex_unlock(&handle->lock);
+
+			float rms = (pce.event_count > 1) ? sqrtf(pce.M2 / (pce.event_count - 1)) : 0.0f;
 			num_written = snprintf(buffer, length,
 					       "%s: %" PRIu64 " events, %" PRIu64 "us elapsed, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms",
-					       handle->name,
-					       pce->event_count,
-					       pce->time_total,
-					       (pce->event_count == 0) ? 0 : (double)pce->time_total / (double)pce->event_count,
-					       pce->time_least,
-					       pce->time_most,
+					       pce.name,
+					       pce.event_count,
+					       pce.time_total,
+					       (pce.event_count == 0) ? 0.0 : (double)pce.time_total / (double)pce.event_count,
+					       pce.time_least,
+					       pce.time_most,
 					       (double)(1e6f * rms));
 			break;
 		}
 
 	case PC_INTERVAL: {
-			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
-			float rms = sqrtf(pci->M2 / (pci->event_count - 1));
+			struct perf_ctr_interval pci = *(struct perf_ctr_interval *)handle;
+			pthread_mutex_unlock(&handle->lock);
 
+			float rms = (pci.event_count > 1) ? sqrtf(pci.M2 / (pci.event_count - 1)) : 0.0f;
 			num_written = snprintf(buffer, length,
-					       "%s: %" PRIu64 " events, %.2f avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms",
-					       handle->name,
-					       pci->event_count,
-					       (pci->event_count == 0) ? 0 : (double)(pci->time_last - pci->time_first) / (double)pci->event_count,
-					       pci->time_least,
-					       pci->time_most,
+					       "%s: %" PRIu64 " events, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms",
+					       pci.name,
+					       pci.event_count,
+					       (pci.event_count > 1) ? (double)(pci.time_last - pci.time_first) / (double)(pci.event_count - 1) : 0.0,
+					       pci.time_least,
+					       pci.time_most,
 					       (double)(1e6f * rms));
 			break;
 		}
 
 	default:
+		// Even if the type is unknown, we must still unlock.
+		pthread_mutex_unlock(&handle->lock);
 		break;
 	}
 
-	buffer[length - 1] = 0; // ensure 0-termination
+	if (length > 0) {
+		buffer[length - 1] = 0; // ensure 0-termination
+	}
 	return num_written;
 }
 
@@ -537,50 +544,55 @@ perf_event_count(perf_counter_t handle)
 		return 0;
 	}
 
+	uint64_t event_count = 0;
+	pthread_mutex_lock(&handle->lock);
+
 	switch (handle->type) {
 	case PC_COUNT:
-		return ((struct perf_ctr_count *)handle)->event_count;
+		event_count = ((struct perf_ctr_count *)handle)->event_count;
+		break;
 
-	case PC_ELAPSED: {
-			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
-			return pce->event_count;
-		}
+	case PC_ELAPSED:
+		event_count = ((struct perf_ctr_elapsed *)handle)->event_count;
+		break;
 
-	case PC_INTERVAL: {
-			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
-			return pci->event_count;
-		}
+	case PC_INTERVAL:
+		event_count = ((struct perf_ctr_interval *)handle)->event_count;
+		break;
 
 	default:
 		break;
 	}
 
-	return 0;
+	pthread_mutex_unlock(&handle->lock);
+	return event_count;
 }
 
 float
 perf_mean(perf_counter_t handle)
 {
 	if (handle == nullptr) {
-		return 0;
+		return 0.0f;
 	}
 
-	switch (handle->type) {
-	case PC_ELAPSED: {
-			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
-			return pce->mean;
-		}
+	float mean = 0.0f;
+	pthread_mutex_lock(&handle->lock);
 
-	case PC_INTERVAL: {
-			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
-			return pci->mean;
-		}
+	switch (handle->type) {
+	case PC_ELAPSED:
+		mean = ((struct perf_ctr_elapsed *)handle)->mean;
+		break;
+
+	case PC_INTERVAL:
+		mean = ((struct perf_ctr_interval *)handle)->mean;
+		break;
 
 	default:
 		break;
 	}
 
-	return 0.0f;
+	pthread_mutex_unlock(&handle->lock);
+	return mean;
 }
 
 void
@@ -590,6 +602,8 @@ perf_iterate_all(perf_callback cb, void *user)
 	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
 
 	while (handle != nullptr) {
+		// The callback function is responsible for its own locking,
+		// for example by calling the thread-safe perf_* functions.
 		cb(handle, user);
 		handle = (perf_counter_t)sq_next(&handle->link);
 	}
@@ -619,7 +633,7 @@ perf_print_latency(void)
 
 	for (int i = 0; i < get_latency_bucket_count(); i++) {
 		latency = get_latency(i, i);
-		PX4_INFO_RAW("       %4i : %li\n", latency.bucket, (long int)latency.counter);
+		PX4_INFO_RAW("        %4i : %li\n", latency.bucket, (long int)latency.counter);
 	}
 
 	// print the overflow bucket value
