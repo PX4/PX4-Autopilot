@@ -266,19 +266,15 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		Vector2f sticks_ne = sticks_xy;
 		Sticks::rotateIntoHeadingFrameXY(sticks_ne, _yaw, _land_heading);
 
+		const bool land_radius_enabled = _param_mpc_land_radius.get() > 0.0f;
 		const bool position_valid = !isnan(_position(0)) && !isnan(_position(1));
 
-		if (_param_mpc_land_radius.get() > 0 && position_valid) {
+		float max_speed;
 
-			PX4_INFO(" fancy nudging");
-
-			// Only allow nudging if it points towards of the circle defined by MPC_LAND_RADIUS
-			// This is only allowed for valid local position.
+		if (land_radius_enabled && position_valid) {
 
 			const float distance_to_circle = math::trajectory::getMaxDistanceToCircle(_position.xy(), _initial_land_position.xy(),
-							_param_mpc_land_radius.get(), sticks_ne);
-			float max_speed;
-
+							 _param_mpc_land_radius.get(), sticks_ne);
 
 			if (PX4_ISFINITE(distance_to_circle)) {
 				PX4_INFO("  circle distance finite");
@@ -294,26 +290,16 @@ void FlightTaskAuto::_prepareLandSetpoints()
 				sticks_xy.setZero();
 			}
 
-			PX4_INFO(" max speed: %.2f", (double) max_speed);
-
-			_stick_acceleration_xy.setVelocityConstraint(max_speed);
-			_stick_acceleration_xy.generateSetpoints(sticks_xy, _yaw, _land_heading, _position,
-					_velocity_setpoint_feedback.xy(), _deltatime);
-			_stick_acceleration_xy.getSetpoints(_land_position, _velocity_setpoint, _acceleration_setpoint);
 		} else {
-			// Nudging unrestricted, also works for invalid local pos
-			PX4_INFO(" basic nudging");
-			_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, _sticks.getYawExpo(), _yaw, _deltatime);
-			_acceleration_setpoint.xy() = _stick_tilt_xy.generateAccelerationSetpoints(_sticks.getPitchRoll(), _deltatime, _yaw,
-						_yaw_setpoint);
-			PX4_INFO(" accel sp: (%.2f, %.2f)", (double) _acceleration_setpoint(0), (double) _acceleration_setpoint(1));
-
-
-			// Stick full up -1 -> stop, stick full down 1 -> double the value
-			_velocity_setpoint(2) *= (1 - _sticks.getThrottleZeroCenteredExpo());
-			_acceleration_setpoint(2) -= _sticks.getThrottleZeroCentered() * 10.f;
-
+			max_speed = 10.0f;
 		}
+
+		PX4_INFO(" max speed: %.2f", (double) max_speed);
+
+		_stick_acceleration_xy.setVelocityConstraint(max_speed);
+		_stick_acceleration_xy.generateSetpoints(sticks_xy, _yaw, _land_heading, _position,
+				_velocity_setpoint_feedback.xy(), _deltatime);
+		_stick_acceleration_xy.getSetpoints(_land_position, _velocity_setpoint, _acceleration_setpoint);
 
 	} else {
 		// Make sure we have a valid land position even in the case we loose RC while amending it
