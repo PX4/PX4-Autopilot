@@ -53,6 +53,7 @@
 #include <lib/weather_vane/WeatherVane.hpp>
 #include "Sticks.hpp"
 #include "StickAccelerationXY.hpp"
+#include "StickTiltXY.hpp"
 
 /**
  * This enum has to agree with position_setpoint_s type definition
@@ -145,6 +146,7 @@ protected:
 	Vector3f _unsmoothed_velocity_setpoint;
 	Sticks _sticks{this};
 	StickAccelerationXY _stick_acceleration_xy{this};
+	StickTiltXY _stick_tilt_xy{this};
 	StickYaw _stick_yaw{this};
 	matrix::Vector3f _land_position;
 	float _land_heading;

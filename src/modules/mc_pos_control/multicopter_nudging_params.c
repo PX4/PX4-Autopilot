@@ -56,10 +56,12 @@ PARAM_DEFINE_INT32(MPC_LAND_RC_HELP, 0);
  * When nudging is enabled (see MPC_LAND_RC_HELP), this controls
  * the maximum allowed horizontal displacement from the original landing point.
  *
+ * Setting the radius to -1 will disable this feature. Only works while local position is valid.
+ *
  * @unit m
- * @min 0
+ * @min -1
  * @decimal 0
  * @increment 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_LAND_RADIUS, 1000.f);
+PARAM_DEFINE_FLOAT(MPC_LAND_RADIUS, -1.0f);
