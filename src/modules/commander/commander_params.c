@@ -1033,7 +1033,7 @@ PARAM_DEFINE_FLOAT(COM_THROW_SPEED, 5);
  * @value 3 Return
  * @increment 1
  */
-PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 3);
+PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 0);
 
 /**
  * Allow external mode registration while armed.
