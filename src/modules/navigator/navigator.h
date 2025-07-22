@@ -179,7 +179,7 @@ public:
 
 	Geofence &get_geofence() { return _geofence; }
 
-	float get_default_loiter_rad() { return _param_nav_loiter_rad.get(); }
+	float get_default_loiter_rad() { return fabsf(_param_nav_loiter_rad.get()); }
 
 	/**
 	 * Returns the default acceptance radius defined by the parameter
