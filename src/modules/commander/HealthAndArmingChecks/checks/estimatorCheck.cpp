@@ -743,6 +743,14 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 		!checkPosVelValidity(now, xy_valid, lpos.eph, lpos_eph_threshold_relaxed, lpos.timestamp,
 				     _last_lpos_relaxed_fail_time_us, !failsafe_flags.local_position_invalid_relaxed);
 
+	// !!! Hack for reproducing failure, remove before merge !!!
+	// In nav_state 18 (auto land), pretend to have valid relaxed local pos.
+	if (context.status().nav_state == 18) {
+		// happens anyway when EKF2_GPS_CTRL=0
+		// failsafe_flags.local_position_invalid = true;
+		failsafe_flags.local_position_invalid_relaxed = false;
+	}
+
 	failsafe_flags.local_velocity_invalid =
 		!checkPosVelValidity(now, v_xy_valid, lpos.evh, _param_com_vel_fs_evh.get(), lpos.timestamp,
 				     _last_lvel_fail_time_us, !failsafe_flags.local_velocity_invalid);
