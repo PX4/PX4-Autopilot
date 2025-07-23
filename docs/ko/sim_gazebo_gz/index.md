@@ -131,6 +131,21 @@ The simulation can be run in headless mode by prefixing the command with the `HE
 HEADLESS=1 make px4_sitl gz_x500
 ```
 
+### Set Custom Takeoff Location
+
+The takeoff location in Gazebo Classic can be set using environment variables.
+
+The variables to set are: PX4_HOME_LAT, PX4_HOME_LON, and PX4_HOME_ALT.
+
+예:
+
+```
+export PX4_HOME_LAT=51.1788
+export PX4_HOME_LON=-1.8263
+export PX4_HOME_ALT=101
+make px4_sitl gz_x500
+```
+
 ### Specify World
 
 The simulation can be run inside a particular world by concatenating the desired world to the name of the desired vehicle.
@@ -148,15 +163,16 @@ PX4_GZ_WORLD=windy make px4_sitl gz_x500
 
 The [supported worlds](../sim_gazebo_gz/worlds.md) are listed below.
 
-| 전역         | 통신                         | 설명                                                          |
-| ---------- | -------------------------- | ----------------------------------------------------------- |
-| `default`  | `make px4_sitl *`          | Empty world (a grey plane)               |
-| `aruco`    | `make px4_sitl *_aruco`    | Empty world with aruco marker for testing precision landing |
-| `baylands` | `make px4_sitl *_baylands` | Baylands world surrounded by water                          |
-| `lawn`     | `make px4_sitl *_lawn`     | Lawn world for testing rovers                               |
-| `rover`    | `make px4_sitl *_rover`    | Rover world (optimised/preferred)        |
-| `walls`    | `make px4_sitl *_walls`    | Wall world for testing collision prevention                 |
-| `windy`    | `make px4_sitl *_windy`    | Empty world with wind enabled                               |
+| 전역                | 통신                                | 설명                                                          |
+| ----------------- | --------------------------------- | ----------------------------------------------------------- |
+| `default`         | `make px4_sitl *`                 | Empty world (a grey plane)               |
+| `aruco`           | `make px4_sitl *_aruco`           | Empty world with aruco marker for testing precision landing |
+| `baylands`        | `make px4_sitl *_baylands`        | Baylands world surrounded by water                          |
+| `lawn`            | `make px4_sitl *_lawn`            | Lawn world for testing rovers                               |
+| `rover`           | `make px4_sitl *_rover`           | Rover world (optimised/preferred)        |
+| `walls`           | `make px4_sitl *_walls`           | Wall world for testing collision prevention                 |
+| `windy`           | `make px4_sitl *_windy`           | Empty world with wind enabled                               |
+| `moving_platform` | `make px4_sitl *_moving_platform` | World with moving takeoff / landing platform                |
 
 :::warning
 Note that if no world is specified, PX4 will use the `default` world.
@@ -185,7 +201,7 @@ For example, to run the Gazebo simulation of the X500 frame at 2 times the real 
 PX4_SIM_SPEED_FACTOR=2 make px4_sitl gz_x500
 ```
 
-실시간 절반으로 실행하려면:
+To run at half real-time:
 
 ```sh
 PX4_SIM_SPEED_FACTOR=0.5 make px4_sitl gz_x500
@@ -263,6 +279,9 @@ where `ARGS` is a list of environment variables including:
 
   - This variable is ignored if an existing simulation is already running.
   - This value should be [specified for the selected airframe](#adding-new-worlds-and-models) but may be overridden using this argument.
+  - If the [moving platform world](../sim_gazebo_gz/worlds.md#moving-platform) is selected using `PX4_GZ_WORLD=moving_platform` (or any world using the moving platform plugin), the platform can be configured using environment variables:
+    - `PX4_GZ_PLATFORM_VEL`: Platform speed (m/s).
+    - `PX4_GZ_PLATFORM_HEADING_DEG`: Platform heading and direction of velocity (degrees). 0 = east, positive direction is counterclockwise.
 
 - `PX4_SIMULATOR=GZ`:
   Sets the simulator, which for Gazebo must be `gz`.
@@ -376,6 +395,11 @@ To add a new world:
 As long as the world file and the model file are in the Gazebo search path (`GZ_SIM_RESOURCE_PATH`) it is not necessary to add them to the PX4 world and model directories.
 However, `make px4_sitl gz_<model>_<world>` won't work with them.
 :::
+
+## Extending Gazebo with Plugins
+
+World, vehicle (model), and sensor behaviour can be customised using plugins.
+For more information see [Gazebo Plugins](../sim_gazebo_gz/plugins.md).
 
 ## 다중 차량 시뮬레이션
 

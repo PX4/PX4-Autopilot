@@ -4,9 +4,9 @@
 
 Source: [drivers/telemetry/frsky_telemetry](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/telemetry/frsky_telemetry)
 
-Підтримка FrSky Telemetry. Автоматичне визначення протоколу D або S.PORT. <a id="frsky_telemetry_usage"></a>
+Підтримка FrSky Telemetry. Автоматичне визначення протоколу D або S.PORT.
 
-### Використання
+### Usage {#frsky_telemetry_usage}
 
 ```
 frsky_telemetry <command> [arguments...]
@@ -64,9 +64,7 @@ mavlink start -u 14556 -r 1000000
 mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 ```
 
-<a id="mavlink_usage"></a>
-
-### Використання
+### Usage {#mavlink_usage}
 
 ```
 mavlink <command> [arguments...]
@@ -129,31 +127,29 @@ Source: [systemcmds/uorb](https://github.com/PX4/PX4-Autopilot/tree/main/src/sys
 
 ### Опис
 
-uORB - це внутрішня система обміну повідомленнями pub-sub, яка використовується для комунікації між модулями.
+uORB is the internal pub-sub messaging system, used for communication between modules.
 
 ### Імплементація
 
-Реалізація є асинхронною та безблоковою, тобто видавець не чекає на підписника і навпаки.
-Це досягається завдяки наявності окремого буфера між публікатором і підписником.
+The implementation is asynchronous and lock-free, ie. a publisher does not wait for a subscriber and vice versa.
+This is achieved by having a separate buffer between a publisher and a subscriber.
 
-Код оптимізовано для мінімізації використання пам'яті та затримок при обміні повідомленнями.
+The code is optimized to minimize the memory footprint and the latency to exchange messages.
 
-Messages are defined in the `/msg` directory. Вони перетворюються в код C/C++ під час збірки.
+Messages are defined in the `/msg` directory. They are converted into C/C++ code at build-time.
 
-Якщо ви компілюєте з ORB_USE_PUBLISHER_RULES, файл з правилами публікації uORB можна використовувати для налаштування того, яким
-модулям дозволено публікувати які теми. Це використовується для загальносистемного відтворення.
+If compiled with ORB_USE_PUBLISHER_RULES, a file with uORB publication rules can be used to configure which
+modules are allowed to publish which topics. This is used for system-wide replay.
 
 ### Приклади
 
-Відстежуйте показники публікацій тем. Besides `top`, this is an important command for general system inspection:
+Monitor topic publication rates. Besides `top`, this is an important command for general system inspection:
 
 ```
 uorb top
 ```
 
-<a id="uorb_usage"></a>
-
-### Використання
+### Usage {#uorb_usage}
 
 ```
 uorb <command> [arguments...]

@@ -3,7 +3,7 @@
 _Collision Prevention_ may be used to automatically slow and stop a vehicle before it can crash into an obstacle.
 It can be enabled for multicopter vehicles when using acceleration-based [Position mode](../flight_modes_mc/position.md) (or VTOL vehicles in MC mode).
 
-It can be enabled for multicopter vehicles in [Position mode](../flight_modes_mc/position.md), and can use sensor data from an offboard companion computer, offboard rangefinders over MAVLink, a rangefinder attached to the flight controller, or any combination of the above.
+It can be enabled for multicopter vehicles in [Position mode](../flight_modes_mc/position.md) (with [MPC_POS_MODE](#MPC_POS_MODE) set to `Acceleration based`), and can use sensor data from an offboard companion computer, offboard rangefinders over MAVLink, a rangefinder attached to the flight controller, or any combination of the above.
 
 Collision prevention may restrict vehicle maximum speed if the sensor range isn't large enough!
 It also prevents motion in directions where no sensor data is available (i.e. if you have no rear-sensor data, you will not be able to fly backwards).
@@ -26,14 +26,13 @@ Users are notified through _QGroundControl_ while _Collision Prevention_ is acti
 
 PX4 software setup is covered in the next section.
 If you are using a distance sensor attached to your flight controller for collision prevention, it will need to be attached and configured as described in [PX4 Distance Sensor](#rangefinder).
-If you are using a companion computer to provide obstacle information see [companion setup](#companion
+If you are using a companion computer to provide obstacle information see [companion setup](#companion) below.
 
-## Supported Rangefinders  {#rangefinder}
+## Supported Rangefinders {#rangefinder}
 
 ### Lanbao PSK-CM8JL65-CC5 [Discontinued]
 
 At time of writing PX4 allows you to use the [Lanbao PSK-CM8JL65-CC5](../sensor/cm8jl65_ir_distance_sensor.md) IR distance sensor for collision prevention “out of the box”, with minimal additional configuration:
-
 
 - First [attach and configure the sensor](../sensor/cm8jl65_ir_distance_sensor.md), and enable collision prevention (as described above, using [CP_DIST](#CP_DIST)).
 - Set the sensor orientation using [SENS_CM8JL65_R_0](../advanced_config/parameter_reference.md#SENS_CM8JL65_R_0).
@@ -51,7 +50,6 @@ Other sensors may be enabled, but this requires modification of driver code to s
   This should be done by mimicking the `SENS_CM8JL65_R_0` parameter (though you might also hard-code the orientation in the sensor _module.yaml_ file to something like `sf0x start -d ${SERIAL_DEV} -R 25` - where 25 is equivalent to `ROTATION_DOWNWARD_FACING`).
 - Modify the driver to set the _field of view_ in the distance sensor UORB topic (`distance_sensor_s.h_fov`).
 
-
 ## PX4 (Software) Setup
 
 Configure collision prevention by [setting the following parameters](../advanced_config/parameters.md) in _QGroundControl_:
@@ -62,7 +60,7 @@ Configure collision prevention by [setting the following parameters](../advanced
 | <a id="CP_DELAY"></a>[CP_DELAY](../advanced_config/parameter_reference.md#CP_DELAY)                | Set the sensor and velocity setpoint tracking delay. See [Delay Tuning](#delay_tuning) below.                                                                                                                                                                                                   |
 | <a id="CP_GUIDE_ANG"></a>[CP_GUIDE_ANG](../advanced_config/parameter_reference.md#CP_GUIDE_ANG)    | Set the angle (to both sides of the commanded direction) within which the vehicle may deviate if it finds fewer obstacles in that direction. See [Guidance Tuning](#angle_change_tuning) below.                                                                                                 |
 | <a id="CP_GO_NO_DATA"></a>[CP_GO_NO_DATA](../advanced_config/parameter_reference.md#CP_GO_NO_DATA) | Set to 1 to allow the vehicle to move in directions where there is no sensor coverage (default is 0/`False`).                                                                                                                                                                                   |
-| <a id="MPC_POS_MODE"></a>[MPC_POS_MODE](../advanced_config/parameter_reference.md#MPC_POS_MODE)    | Set to `Direct velocity` or `Smoothed velocity` to enable Collision Prevention in Position Mode (default is `Acceleration based`).                                                                                                                                                              |
+| <a id="MPC_POS_MODE"></a>[MPC_POS_MODE](../advanced_config/parameter_reference.md#MPC_POS_MODE)    | Must be set to `Acceleration based`.                                                                                                                                                                                                                                                           |
 
 ## Algorithm Description
 
@@ -130,7 +128,6 @@ From testing, 30 degrees is a good balance, although different vehicles may have
 The guidance feature will never direct the vehicle in a direction without sensor data.
 If the vehicle feels stuck with only a single distance sensor pointing forwards, this is probably because the guidance cannot safely adapt the direction due to lack of information.
 :::
-
 
 ## Algorithm Description
 
@@ -212,7 +209,7 @@ The steps are:
      type: px4_msgs::msg::ObstacleDistance
    ```
 
-   For more information see [DDS Topics YAML](../middleware/uxrce_dds.md#dds-topics-yaml) in _uXRCE-DDS (PX4-ROS 2/DDS Bridge)_.
+   For more information see [DDS Topics YAML](../middleware/uxrce_dds.md#dds-topics-yaml) in [uXRCE-DDS](../middleware/uxrce_dds.md) (PX4-ROS 2/DDS Bridge)\_.
 
 3. Open PlotJuggler and navigate to the **Tools > Reactive Script Editor** section.
    In the **Script Editor** tab, add following scripts in the appropriate sections:

@@ -72,7 +72,7 @@ screen /dev/ttyXXX BAUDRATE 8N1
 
 ### 윈도우: PuTTY
 
-Download [PuTTY](http://www.chiark.greenend.org.uk/~sgtatham/putty/download.html) and start it.
+Download [PuTTY](https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html) and start it.
 
 '직렬 연결'을 선택하고, 포트 매개변수를 다음과 같이 설정합니다.
 

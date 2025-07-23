@@ -33,30 +33,21 @@ If needed you can also [get the source code specific to a particular release](..
 首先我们要用控制台环境来构建一个模拟器目标
 这使我们能够在转移到真正的硬件和 IDE 之前验证系统设置。
 
-切换到 **PX4-Autopilot** 目录。
-Depending on your operating system you will have installed either [Gazebo SITL](../sim_gazebo_gz/index.md) or [Gazebo Classic SITL](../sim_gazebo_classic/index.md) (if you don't know which you can try both).
-
-:::: tabs
-
-:::tab Gazebo
-使用以下命令启动 [Gazebo SITL](../sim_gazebo_gz/index.md)：
+Navigate into the **PX4-Autopilot** directory and start [Gazebo SITL](../sim_gazebo_gz/index.md) using the following command:
 
 ```sh
 make px4_sitl gz_x500
 ```
 
-:::
-
-:::tab Gazebo-Classic
-使用以下命令启动 [Gazebo SITL](../sim_gazebo_gz/index.md)：
+:::details
+If you installed Gazebo Classic
+Start  [Gazebo Classic SITL](../sim_gazebo_classic/index.md) using the following command:
 
 ```sh
 make px4_sitl gazebo-classic
 ```
 
 :::
-
-::::
 
 这将显示 PX4 控制台：
 
@@ -73,19 +64,9 @@ This can be [downloaded from here](https://docs.qgroundcontrol.com/master/en/qgc
 pxh> commander takeoff
 ```
 
-该载具将起飞，您将在模拟器UI中看到：
+The vehicle will take off and you'll see this in the Gazebo simulator UI:
 
-:::: tabs
-
-:::tab Gazebo
 ![Gazebo UI with vehicle taking off](../../assets/toolchain/gazebo_takeoff.png)
-:::
-
-:::tab Gazebo-Classic
-![Gazebo Classic UI with vehicle taking off](../../assets/toolchain/gazebo_classic_takeoff.png)
-:::
-
-::::
 
 The drone can be landed by typing `commander land` and the whole simulation can be stopped by doing **CTRL+C** (or by entering `shutdown`).
 

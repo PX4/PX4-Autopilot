@@ -23,10 +23,11 @@ The Desktop computer is only used to display the virtual vehicle.
 ### Сумісність
 
 - SIH is compatible with all PX4 supported boards except those based on FMUv2.
-- SIH для квадрокоптера підтримується з версії PX4 v1.9.
-- SIH для фіксованих крил (літака) та VTOL-конвертоплана підтримується з версії PX4 v1.13.
+- SIH for MC quadrotor is supported from PX4 v1.9.
+- SIH for FW (airplane) and VTOL tailsitter are supported from PX4 v1.13.
 - SIH як SITL (без апаратного забезпечення) з версії PX4 v1.14.
 - SIH for Standard VTOL from PX4 v1.16.
+- SIH for MC Hexacopter X from `main` (expected to be PX4 v1.17).
 
 ### Переваги
 
@@ -43,12 +44,90 @@ SIH provides several benefits over HITL:
 
 To run the SIH, you will need a:
 
-- [Flight controller](../flight_controller/index.md), such as a Pixhawk-series board
+- [Flight controller](../flight_controller/index.md), such as a Pixhawk-series board.
+
+  ::: info
+  From PX4 v1.14 you can run [SIH "as SITL"](#sih-as-sitl-no-fc), in which case a flight controller is not required.
+
+:::
+
 - [Manual controller](../getting_started/px4_basic_concepts.md#manual-control): either a [radio control system](../getting_started/rc_transmitter_receiver.md) or a [joystick](../config/joystick.md).
+
 - QGroundControl for flying the vehicle via GCS.
+
 - Development computer for visualizing the virtual vehicle (optional).
 
-From PX4 v1.14 you can run SIH "as SITL", in which case a flight controller is not required.
+## Check if SIH is in Firmware
+
+The modules required for SIH are built into most PX4 firmware by default.
+These include: [`pwm_out_sim`](../modules/modules_driver.md#pwm-out-sim), [`sensor_baro_sim`](../modules/modules_system.md#sensor-baro-sim), [`sensor_gps_sim`](../modules/modules_system.md#sensor-gps-sim) and [`sensor_mag_sim`](../modules/modules_system.md#sensor-mag-sim).
+
+To check that these are present on your flight controller:
+
+1. Запустіть QGroundControl.
+
+2. Open **Analyze Tools > Mavlink Console**.
+
+3. Enter the following commands in the console:
+
+  ```sh
+  pwm_out_sim status
+  ```
+
+  ```sh
+  sensor_baro_sim status
+  ```
+
+  ```sh
+  sensor_gps_sim status
+  ```
+
+  ```sh
+  sensor_mag_sim status
+  ```
+
+  ::: tip
+  Note that when using SIH on real hardware you do not need to additionally enable the modules using their corresponding parameters ([SENS_EN_GPSSIM](../advanced_config/parameter_reference.md#SENS_EN_GPSSIM), [SENS_EN_BAROSIM](../advanced_config/parameter_reference.md#SENS_EN_BAROSIM), [SENS_EN_MAGSIM](../advanced_config/parameter_reference.md#SENS_EN_MAGSIM)).
+
+:::
+
+4. If a valid status is returned you can start using SIH.
+
+If any of the returned values above are `nsh: MODULENAME: command not found`, then you don't have the module installed.
+In this case you will have to add them to your board configuration and then rebuild and install the firmware.
+
+### Adding SIH to the Firmware
+
+Add the following key to the configuration file for your flight controller to include all the required modules (for an example see [boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board)).
+Then re-build the firmware and flash it to the board.
+
+```text
+CONFIG_MODULES_SIMULATION_SIMULATOR_SIH=y
+```
+
+:::details
+What does this do?
+
+This installs the dependencies in [simulator_sih/Kconfig](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/simulator_sih/Kconfig).
+It is equivalent to:
+
+```text
+CONFIG_MODULES_SIMULATION_PWM_OUT_SIM=y
+CONFIG_MODULES_SIMULATION_SENSOR_BARO_SIM=y
+CONFIG_MODULES_SIMULATION_SENSOR_GPS_SIM=y
+CONFIG_MODULES_SIMULATION_SENSOR_MAG_SIM=y
+```
+
+:::
+
+As an alterative to updating configuration files manually, you can use the following command to launch a GUI configuration tool, and interactively enable the required modules at the path: **modules > Simulation > simulator_sih**.
+For example, to update the fmu-v6x configuration you would use:
+
+```sh
+make px4_fmu-v6x boardconfig
+```
+
+After uploading, check that the required modules are present.
 
 ## Starting SIH
 
@@ -58,6 +137,7 @@ To set up/start SIH:
 2. Відкрийте QGroundControl і зачекайте, поки контролер польоту також завантажиться та підключиться.
 3. Open [Vehicle Setup > Airframe](../config/airframe.md) then select the desired frame:
   - [SIH Quadcopter X](../airframes/airframe_reference.md#copter_simulation_sih_quadcopter_x)
+  - **SIH Hexacopter X** (currently only has an airframe for SITL to safe flash so on flight control hardware it has to be manually configured equivalently).
   - [SIH plane AERT](../airframes/airframe_reference.md#plane_simulation_sih_plane_aert)
   - [SIH Tailsitter Duo](../airframes/airframe_reference.md#vtol_simulation_sih_tailsitter_duo)
   - [SIH Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_simulation_sih_standard_vtol_quadplane)
@@ -115,26 +195,31 @@ In this case you don't need the flight controller hardware.
 
 1. Install the [PX4 Development toolchain](../dev_setup/dev_env.md).
 2. Виконайте відповідну команду make для кожного типу транспортного засобу (в корені репозиторію PX4-Autopilot):
-
-  - квадротор:
+  - Quadcopter
 
     ```sh
     make px4_sitl sihsim_quadx
     ```
 
-  - Закріплені крила (літаки):
+  - Hexacopter
+
+    ```sh
+    make px4_sitl sihsim_hex
+    ```
+
+  - Fixed-wing (plane)
 
     ```sh
     make px4_sitl sihsim_airplane
     ```
 
-  - XVert VTOL tailsitter:
+  - XVert VTOL tailsitter
 
     ```sh
     make px4_sitl sihsim_xvert
     ```
 
-  - Standard VTOL:
+  - Standard VTOL
 
     ```sh
     make px4_sitl sihsim_standard_vtol
@@ -235,9 +320,10 @@ For specific examples see the `_sihsim_` airframes in [ROMFS/px4fmu_common/init.
 
 Динамічні моделі для різних транспортних засобів:
 
-- Quadrotor: [pdf report](https://github.com/PX4/PX4-user_guide/raw/main/assets/simulation/SIH_dynamic_model.pdf).
-- Fixed-wing: Inspired by the PhD thesis: "Dynamics modeling of agile fixed-wing unmanned aerial vehicles." Khan, Waqas, під керівництвом Nahon, Meyer, Університет Макгілла, докторська дисертація, 2016.
-- Tailsitter: Inspired by the master's thesis: "Modeling and control of a flying wing tailsitter unmanned aerial vehicle." Chiappinelli, Romain, під керівництвом Nahon, Meyer, Університет Макгілла, магістерська робота, 2018.
+- Quadcopter: [pdf report](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/simulation/SIH_dynamic_model.pdf).
+- Hexacopter: Equivalent to the Quadcopter but with a symmetric hexacopter x actuation setup.
+- Fixed-wing: Inspired by the PhD thesis: "Dynamics modeling of agile fixed-wing unmanned aerial vehicles." Khan, Waqas, supervised by Nahon, Meyer, McGill University, PhD thesis, 2016.
+- Tailsitter: Inspired by the master's thesis: "Modeling and control of a flying wing tailsitter unmanned aerial vehicle." Chiappinelli, Romain, supervised by Nahon, Meyer, McGill University, Masters thesis, 2018.
 
 ## Відео
 
@@ -249,7 +335,9 @@ SIH спочатку був розроблений компанією Coriolis g
 The airplane model and tailsitter models were added by Altitude R&D inc.
 Обидві ці компанії знаходяться в Канаді:
 
-- Coriolis g developped a new type of Vertical Takeoff and Landing (VTOL) vehicles based on passive coupling systems;
+- Coriolis g developed a new type of Vertical Takeoff and Landing (VTOL) vehicles based on passive coupling systems;
 - [Altitude R&D](https://www.altitude-rd.com/) is specialized in dynamics, control, and real-time simulation (today relocated in Zurich).
 
 Симулятор випущений безкоштовно під ліцензією BSD.
+
+<!-- original author: @romain-chiap -->

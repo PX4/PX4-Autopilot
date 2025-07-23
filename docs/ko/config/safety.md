@@ -187,7 +187,24 @@ Due to the inherent danger of this, this function is disabled using [CBRK_FLIGHT
 
 ## Position (GNSS) Loss Failsafe
 
-The _Position Loss Failsafe_ is triggered if the quality of the PX4 global position estimate falls below acceptable levels (this might be caused by GPS loss) while in a mode that requires an acceptable position estimate.
+The _Position Loss Failsafe_ is triggered if the quality of the PX4 position estimate falls below acceptable levels (this might be caused by GPS loss) while in a mode that requires an acceptable position estimate.
+The sections below cover first the trigger and then the failsafe action taken by the controller.
+
+### Position Loss Failsafe Trigger
+
+There are basically two mechanisms in PX4 to trigger position failsafes:
+
+- A timeout since the last sensor data was fused that provides direct speed or horizontal position measurements. Sensors that fall into that category are: GNSS, optical flow, airspeed, VIO, auxiliary global position.
+- The estimated horizontal position accuracy exceeds a certain threshold. This check is only done on hovering systems (rotary wing vehicles or VTOLs in hover phase).
+
+The relevant parameters shown below.
+
+| 매개변수                                                                                                                                                                 | 설명                                                                                                                                                                                                                             |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <a id="EKF2_NOAID_TOUT"></a>[EKF2_NOAID_TOUT](../advanced_config/parameter_reference.md#EKF2_NOAID_TOUT)                   | Maximum inertial dead-reckoning time, so the time after the last data sample was received of any sensor that constrains the velocity drift [microseconds]. |
+| <a id="COM_POS_FS_EPH"></a>[COM_POS_FS_EPH](../advanced_config/parameter_reference.md#COM_POS_FS_EPH) | Horizontal position error threshold for hovering vehicles (Multicopters and VTOLs in hover). Fixed-wing vehicles have this value set to infinity.                           |
+
+### Position Loss Failsafe Action
 
 The failure action is controlled by [COM_POSCTL_NAVL](../advanced_config/parameter_reference.md#COM_POSCTL_NAVL), based on whether RC control is assumed to be available (and altitude information):
 
@@ -302,8 +319,8 @@ The [failure detector](#failure-detector), if [enabled](#CBRK_FLIGHTTERM), can a
 외부 작동 시스템은 비행 컨트롤러 포트 AUX5 (또는 AUX 포트가없는 보드의 MAIN5)에 연결되어야 하며 아래의 매개 변수들을 사용하여 설정합니다.
 
 :::info
-External ATS is required by [ASTM F3322-18](https://webstore.ansi.org/Standards/ASTM/ASTMF332218).
-One example of an ATS device is the [FruityChutes Sentinel Automatic Trigger System](https://fruitychutes.com/uav_rpv_drone_recovery_parachutes/sentinel-automatic-trigger-system.htm).
+External ATS is required by [ASTM F3322-18](https://webstore.ansi.org/standards/astm/ASTMF332218).
+One example of an ATS device is the [FruityChutes Sentinel Automatic Trigger System (SATS-MINI)](https://fruitychutes.com/uav_rpv_drone_recovery_parachutes/sentinel-automatic-trigger-system).
 :::
 
 | 매개변수                                                                                                                                                                    | 설명                                                                                                                                                                               |

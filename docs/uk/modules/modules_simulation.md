@@ -16,9 +16,7 @@ Source: [modules/simulation/simulator_sih](https://github.com/PX4/PX4-Autopilot/
 
 Симулятор реалізує рівняння руху за допомогою матричної алгебри.Використовується кватерніонне представлення для орієнтації.Для інтегрування використовується пряма схема Ейлера.Більшість змінних оголошуються глобальними в файлі .hpp, щоб уникнути переповнення стеку.
 
-<a id="simulator_sih_usage"></a>
-
-### Використання
+### Usage {#simulator_sih_usage}
 
 ```
 simulator_sih <command> [arguments...]

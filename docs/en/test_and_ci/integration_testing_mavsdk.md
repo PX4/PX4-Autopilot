@@ -7,6 +7,10 @@ In future we plan to generalise them for any platform/hardware.
 
 The instructions below explain how to setup and run the tests locally.
 
+:::note
+This is the recommended integration test framework for PX4.
+:::
+
 ## Prerequisites
 
 ### Setup Developer Environment
@@ -47,21 +51,21 @@ To run all SITL tests as defined in [sitl.json](https://github.com/PX4/PX4-Autop
 test/mavsdk_tests/mavsdk_test_runner.py test/mavsdk_tests/configs/sitl.json --speed-factor 10
 ```
 
-This will list all of the tests and then run them sequentially.
+This will list all the tests and then run them sequentially.
 
 To see all possible command line arguments use the `-h` argument:
 
 ```sh
 test/mavsdk_tests/mavsdk_test_runner.py -h
 
-usage: mavsdk_test_runner.py [-h] [--log-dir LOG_DIR] [--speed-factor SPEED_FACTOR] [--iterations ITERATIONS] [--abort-early] [--gui] [--model MODEL]
-                             [--case CASE] [--debugger DEBUGGER] [--verbose]
-                             config_file
+usage: mavsdk_test_runner.py [-h] [--log-dir LOG_DIR] [--speed-factor SPEED_FACTOR] [--iterations ITERATIONS] [--abort-early]
+                             [--gui] [--model MODEL] [--case CASE] [--debugger DEBUGGER] [--upload] [--force-color]
+                             [--verbose] [--build-dir BUILD_DIR]
 
 positional arguments:
   config_file           JSON config file to use
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --log-dir LOG_DIR     Directory for log files
   --speed-factor SPEED_FACTOR
@@ -71,9 +75,13 @@ optional arguments:
   --abort-early         abort on first unsuccessful test
   --gui                 display the visualization for a simulation
   --model MODEL         only run tests for one model
-  --case CASE           only run tests for one case
+  --case CASE           only run tests for one case (or multiple cases with wildcard '*')
   --debugger DEBUGGER   choice from valgrind, callgrind, gdb, lldb
+  --upload              Upload logs to logs.px4.io
+  --force-color         Force colorized output
   --verbose             enable more verbose output
+  --build-dir BUILD_DIR
+                        relative path where the built files are stored
 ```
 
 ## Run a Single Test
@@ -154,4 +162,4 @@ About to run 39 test cases for 3 selected models (1 iteration):
 Terms used:
 
 - "model": This is the selected Gazebo model, e.g. `iris`.
-- "test case": This is a [catch2 test case](https://github.com/catchorg/Catch2/blob/master/docs/test-cases-and-sections.md).
+- "test case": This is a [catch2 test case](https://github.com/catchorg/Catch2/blob/devel/docs/test-cases-and-sections.md).

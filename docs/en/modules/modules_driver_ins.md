@@ -1,5 +1,7 @@
 # Modules Reference: Ins (Driver)
+
 ## vectornav
+
 Source: [drivers/ins/vectornav](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/ins/vectornav)
 
 
@@ -22,8 +24,8 @@ Stop driver
 vectornav stop
 ```
 
-<a id="vectornav_usage"></a>
-### Usage
+### Usage {#vectornav_usage}
+
 ```
 vectornav <command> [arguments...]
  Commands:

@@ -5,7 +5,7 @@ On NuttX they reside in the [ROMFS/px4fmu_common/init.d](https://github.com/PX4/
 The scripts that are only used on Posix are located in [ROMFS/px4fmu_common/init.d-posix](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d-posix).
 
 All files starting with a number and underscore (e.g. `10000_airplane`) are predefined airframe configurations.
-They are exported at build-time into an `airframes.xml` file which is parsed by [QGroundControl](http://qgroundcontrol.com) for the airframe selection UI.
+They are exported at build-time into an `airframes.xml` file which is parsed by [QGroundControl](https://qgroundcontrol.com) for the airframe selection UI.
 Adding a new configuration is covered [here](../dev_airframes/adding_a_new_frame.md).
 
 나머지 파일은 공통 시작 로직의 일부입니다.
@@ -33,7 +33,7 @@ Posix에서 시스템 셸은 스크립트 인터프리터로 사용됩니다(예
 
 - 쉘은 각 모듈을 새로운(클라이언트) 프로세스로 시작합니다.
   각 클라이언트 프로세스는 실제 모듈이 스레드로 실행되는 px4(서버)의 기본 인스턴스와 통신합니다.
-  This is done through a [UNIX socket](http://man7.org/linux/man-pages/man7/unix.7.html).
+  This is done through a [UNIX socket](https://man7.org/linux/man-pages/man7/unix.7.html).
   서버는 클라이언트가 연결하고 명령을 보낼 수 있는 소켓으로 수신 대기합니다.
   그런 다음 서버는 출력과 반환 코드를 다시 클라이언트로 전송합니다.
 

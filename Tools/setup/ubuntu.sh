@@ -27,9 +27,12 @@ do
 	fi
 done
 
+echo "[ubuntu.sh] Starting..."
+echo "[ubuntu.sh] arch: $INSTALL_ARCH"
+
 # detect if running in docker
-if [ -f /.dockerenv ]; then
-	echo "Running within docker, installing initial dependencies";
+if [ "$RUNS_IN_DOCKER" = "true" ]; then
+	echo "[ubuntu.sh] Running within docker, installing initial dependencies";
 	apt-get --quiet -y update && DEBIAN_FRONTEND=noninteractive apt-get --quiet -y install \
 		ca-certificates \
 		gnupg \
@@ -47,7 +50,7 @@ DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 # check requirements.txt exists (script not run in source tree)
 REQUIREMENTS_FILE="requirements.txt"
 if [[ ! -f "${DIR}/${REQUIREMENTS_FILE}" ]]; then
-	echo "FAILED: ${REQUIREMENTS_FILE} needed in same directory as ubuntu.sh (${DIR})."
+	echo "[ubuntu.sh] FAILED: ${REQUIREMENTS_FILE} needed in same directory as ubuntu.sh (${DIR})."
 	return 1
 fi
 
@@ -55,10 +58,8 @@ fi
 # check ubuntu version
 # otherwise warn and point to docker?
 UBUNTU_RELEASE="`lsb_release -rs`"
-echo "Ubuntu ${UBUNTU_RELEASE}"
-
-echo
-echo "Installing PX4 general dependencies"
+echo "[ubuntu.sh] Ubuntu ${UBUNTU_RELEASE}"
+echo "[ubuntu.sh] Installing PX4 general dependencies"
 
 sudo apt-get update -y --quiet
 sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
@@ -91,7 +92,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 
 # Python3 dependencies
 echo
-echo "Installing PX4 Python3 dependencies"
+echo "[ubuntu.sh] Installing PX4 Python3 dependencies"
 PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
 REQUIRED_VERSION="3.11"
 if [[ "$(printf '%s\n' "$REQUIRED_VERSION" "$PYTHON_VERSION" | sort -V | head -n1)" == "$REQUIRED_VERSION" ]]; then
@@ -109,18 +110,18 @@ fi
 if [[ $INSTALL_NUTTX == "true" ]]; then
 
 	echo
-	echo "Installing NuttX dependencies"
-
+	echo "[ubuntu.sh] NuttX Installing Dependencies ($INSTALL_ARCH)"
+	sudo apt-get update -y --quiet
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		automake \
 		binutils-dev \
 		bison \
 		build-essential \
 		curl \
+		clang \
+		clang-tidy \
+		clang-format \
 		flex \
-		g++-multilib \
-		gcc-arm-none-eabi \
-		gcc-multilib \
 		gdb-multiarch \
 		genromfs \
 		gettext \
@@ -139,6 +140,8 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		libstdc++-arm-none-eabi-newlib \
 		libtool \
 		libunwind-dev \
+		lldb \
+		lld \
 		pkg-config \
 		screen \
 		texinfo \
@@ -146,6 +149,21 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		util-linux \
 		vim-common \
 		;
+
+	if [[ "${INSTALL_ARCH}" == "x86_64" ]]; then
+		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+			g++-multilib \
+			gcc-arm-none-eabi \
+			gcc-multilib \
+			;
+	fi
+
+	if [[ "${INSTALL_ARCH}" == "aarch64" ]]; then
+		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+			g++-aarch64-linux-gnu \
+			g++-arm-linux-gnueabihf \
+			;
+	fi
 
 	if [ -n "$USER" ]; then
 		# add user to dialout group (serial port access)
@@ -157,7 +175,7 @@ fi
 if [[ $INSTALL_SIM == "true" ]]; then
 
 	echo
-	echo "Installing PX4 simulation dependencies"
+	echo "[ubuntu.sh] Installing PX4 simulation dependencies"
 
 	# General simulation dependencies
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
@@ -182,8 +200,8 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		fi
 	else
 		# Expects Ubuntu 22.04 > by default
-		echo "Gazebo (Harmonic) will be installed"
-		echo "Earlier versions will be removed"
+		echo "[ubuntu.sh] Gazebo (Harmonic) will be installed"
+		echo "[ubuntu.sh] Earlier versions will be removed"
 		# Add Gazebo binary repository
 		sudo wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
 		echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null

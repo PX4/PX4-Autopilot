@@ -14,7 +14,7 @@ _V5+_<sup>&reg;</sup> is an advanced autopilot manufactured by CUAV<sup>&reg;</s
 
 Деякі з його основних функцій включають:
 
-- Full compatibility with the [Pixhawk project](https://pixhawk.org/) **FMUv5** design standard and uses the [Pixhawk Connector Standard](https://pixhawk.org/pixhawk-connector-standard/) for all external interfaces.
+- Full compatibility with the [Pixhawk project](https://pixhawk.org/) **FMUv5** design standard and uses the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) for all external interfaces.
 - Більш продуктивний процесор, оперативна пам'ять та флеш-пам'ять, ніж у FMU v3, разом із більш стабільними та надійними датчиками.
 - Прошивка сумісна з PX4.
 - Модульна конструкція дозволяє користувачам налаштовувати власну носійну плату.
@@ -34,7 +34,6 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - 32 Bit Arm®️ Cortex®️-M3, 24MHz, 8KB SRAM
 
 - Бортові сенсори:
-
   - Акселерометр/Гіроскоп: ICM-20689
   - Акселерометр/Гіроскоп: BMI055
   - Магнітометр: IST8310
@@ -62,16 +61,13 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - Розміри: 85.5\*42\*мм
 
 - Інші характеристики:
-
   - Робоча температура: -20 ~ 80°c (виміряне значення)
 
 ## Де купити
 
-<!-- [CUAV Store](https://store.cuav.net/index.php?id_product=95&id_product_attribute=0&rewrite=cuav-new-pixhack-v5-autopilot-m8n-gps-for-fpv-rc-drone-quadcopter-helicopter-flight-simulator-free-shipping-whole-sale&controller=product&id_lang=1) -->
-
 [CUAV Aliexpress](https://www.aliexpress.com/item/32890380056.html?spm=a2g0o.detail.1000060.1.7a7233e7mLTlVl&gps-id=pcDetailBottomMoreThisSeller&scm=1007.13339.90158.0&scm_id=1007.13339.90158.0&scm-url=1007.13339.90158.0&pvid=d899bfab-a7ca-46e1-adf2-72ad1d649822) (International users)
 
-CUAV Taobao (China Mainland users)
+[CUAV Taobao](https://item.taobao.com/item.htm?spm=a1z10.5-c.w4002-21303114052.37.a28f697aeYzQx9&id=594262853015) (China Mainland users)
 
 :::info
 Autopilot may be purchased with included Neo GPS module
@@ -90,11 +86,11 @@ Download **V5+** pinouts from [here](http://manual.cuav.net/V5-Plus.pdf).
 ## Номінальна напруга
 
 _V5+ AutoPilot_ supports redundant power supplies - up to three sources may be used: `Power1`, `Power2` and `USB`.
-Ви повинні подати живлення принаймні до одного з цих джерел, інакше контролер польоту буде знеструмлений.
+You must supply power to at least one of these sources, or the flight controller will be unpowered.
 
 :::info
 On FMUv5 based FMUs with PX4IO module (as is the case for the _V5+_), the Servo Power Rail is only monitored by the FMU.
-Вона не живиться від FMU і не забезпечує його живленням.
+It is neither powered by, nor provides power to the FMU.
 However, the pins marked **+** are all common, and a BEC may be connected to any of the servo pin sets to power the servo power rail.
 :::
 
@@ -134,7 +130,7 @@ The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debu
 
 ![Debug port (DSU7)](../../assets/flight_controller/cuav_v5_plus/debug_port_dsu7.jpg)
 
-The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/product-detail/en/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/455-1582-1-ND/807850) connector and has the following pinout:
+The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/en/products/detail/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/807850) connector and has the following pinout:
 
 | Pin                        | Сигнал                            | Вольтаж               |
 | -------------------------- | --------------------------------- | --------------------- |
@@ -189,12 +185,12 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 
 ## Примітки
 
-#### Не підключайте цифровий або аналоговий PM до роз'ємів, сконфігурованих для іншого типу PM
+#### Do not plug Digital or Analog PM onto connectors configured for other type of PM
 
-Якщо ви під'єднаєте аналоговий PM до цифрового роз'єму PM, він зупинить всі пристрої I2C на цій шині.
-Зокрема, це призведе до зупинки компаса GPS через конфлікт, а також може пошкодити FMU (у довгостроковій перспективі).
+If you plug an Analog PM into a digital PM connector it will stop all the I2C devices on that bus.
+Specifically this will stop the GPS's compass due to contention, and may also damage the FMU (longer term).
 
-Аналогічно, цифровий PM, підключений до аналогового роз'єму, не працюватиме, а також може пошкодити/вивести з ладу модуль живлення (у довгостроковій перспективі).
+Similarly, a digital PM plugged into a analog connector will not work, and may also damage/destroy the power module (longer term).
 
 ## Сумісність
 
@@ -202,11 +198,11 @@ CUAV використовує деякі відмінні дизайни і не
 
 <a id="compatibility_gps"></a>
 
-#### GPS несумісний з іншими пристроями
+#### GPS not compatible with other devices
 
 The _Neo v2.0 GPS_ recommended for use with _CUAV V5+_ and _CUAV V5 nano_ is not fully compatible with other Pixhawk flight controllers (specifically, the buzzer part is not compatible and there may be issues with the safety switch).
 
-The UAVCAN [NEO V2 PRO GNSS receiver](http://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html) can also be used, and is compatible with other flight controllers.
+The UAVCAN [NEO V2 PRO GNSS receiver](https://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html) can also be used, and is compatible with other flight controllers.
 
 <a id="compatibility_jtag"></a>
 
@@ -214,7 +210,7 @@ The UAVCAN [NEO V2 PRO GNSS receiver](http://doc.cuav.net/gps/neo-series-gnss/en
 
 `DSU7` FMU Debug Pin 1 is 5 volts - not the 3.3 volts of the CPU.
 
-Деякі JTAG використовують цю напругу для встановлення рівнів вводу-виводу під час обміну даними з ціллю.
+Some JTAG use this voltage to set the IO levels when communicating to the target.
 
 For direct connection to _Segger Jlink_ we recommended you use the 3.3 Volts of DSM/SBUS/RSSI pin 4 as Pin 1 on the debug connector (`Vtref`).
 
@@ -232,7 +228,7 @@ The issues below refer to the _batch number_ in which they first appear.
 This is a safety issue.
 :::
 
-Будь ласка, не підключайте інше обладнання (крім RC приймача) до інтерфейсу SBUS / DSM / RSSI - це може призвести до пошкодження обладнання.
+Please do not connect other equipment (except RC receiver) on SBUS / DSM / RSSI interface - this may lead to equipment damage.
 
 - _Found:_ Batches V01190904xxxx
 - _Fixed:_ Batches later than V01190904xxxx
@@ -240,7 +236,7 @@ This is a safety issue.
 ## Подальша інформація
 
 - [CUAV V5+ Manual](http://manual.cuav.net/V5-Plus.pdf)
-- [CUAV V5+ docs](http://doc.cuav.net/flight-controller/v5-autopilot/en/v5+.html)
+- [CUAV V5+ docs](https://doc.cuav.net/controller/v5-autopilot/en/v5+.html)
 - [FMUv5 reference design pinout](https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY/edit#gid=912976165)
 - [CUAV Github](https://github.com/cuav)
 - [Base board design reference](https://github.com/cuav/hardware/tree/master/V5_Autopilot/V5%2B/V5%2BBASE)

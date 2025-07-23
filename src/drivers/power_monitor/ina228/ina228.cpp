@@ -59,14 +59,27 @@ INA228::INA228(const I2CSPIDriverConfig &config, int battery_index) :
 		_max_current = fvalue;
 	}
 
-	_range = _max_current > (MAX_CURRENT - 1.0f) ? INA228_ADCRANGE_HIGH : INA228_ADCRANGE_LOW;
-
 	fvalue = INA228_SHUNT;
 	_rshunt = fvalue;
 	ph = param_find("INA228_SHUNT");
 
 	if (ph != PARAM_INVALID && param_get(ph, &fvalue) == PX4_OK) {
 		_rshunt = fvalue;
+	}
+
+	// According to page 8.2.2.1, page 36/48 of the INA228 interface datasheet (Rev. A),
+	// the requirement is: R_SHUNT < V_SENSE_MAX / I_MAX
+	// therefore: R_SHUNT * I_MAX < V_SENSE_MAX
+	// and so if V_SENSE_MAX is bigger, we need to use the bigger ADC range to avoid
+	// the device from capping the measured current.
+
+	const float v_sense_max = _rshunt * _max_current;
+
+	if (v_sense_max > INA228_ADCRANGE_LOW_V_SENSE) {
+		_range = INA228_ADCRANGE_HIGH;
+
+	} else {
+		_range = INA228_ADCRANGE_LOW;
 	}
 
 	ph = param_find("INA228_CONFIG");

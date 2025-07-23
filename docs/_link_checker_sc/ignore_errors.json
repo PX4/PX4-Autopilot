@@ -956,5 +956,59 @@
     "type": "PageNotLinkedInternally",
     "fileRelativeToRoot": "en\\config\\_autotune.md",
     "hideReason": "Page is intended to be an orphan"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\computer_vision\\path_planning_interface.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.14/en/computer_vision/path_planning_interface.html",
+      "text": "PX4 v1.14 docs"
+    },
+    "hideReason": "Intended"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\dev_log\\log_encryption.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.15/en/dev_log/log_encryption.html",
+      "text": "Log Encryption (PX4 v1.15)"
+    },
+    "hideReason": "Intended"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\releases\\1.16.md",
+    "link": {
+      "url": "https://docs.px4.io/main/en/releases/main.html",
+      "text": "See the latest version"
+    },
+    "hideReason": "intended"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\releases\\main.md",
+    "link": {
+      "url": "https://docs.px4.io/main/en/releases/main.html",
+      "text": "See the latest version"
+    },
+    "hideReason": "intended"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\robotics\\index.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.12/en/robotics/dronekit.html",
+      "text": "PX4 v1.12 > DroneKit"
+    },
+    "hideReason": "Intended"
+  },
+  {
+    "type": "UrlToLocalSite",
+    "fileRelativeToRoot": "en\\ros2\\user_guide.md",
+    "link": {
+      "url": "https://docs.px4.io/v1.13/en/ros/ros2_comm.html",
+      "text": "PX4 v1.13 Docs"
+    },
+    "hideReason": "intended"
   }
 ]

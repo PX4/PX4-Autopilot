@@ -14,21 +14,19 @@ Setup/usage information: https://docs.px4.io/main/en/sensor/vectornav.html
 
 ### 예
 
-지정된 직렬 장치에서 드라이버를 시작하려고 합니다.
+Attempt to start driver on a specified serial device.
 
 ```
 vectornav start -d /dev/ttyS1
 ```
 
-드라이버를 중지합니다.
+Stop driver
 
 ```
 vectornav stop
 ```
 
-<a id="vectornav_usage"></a>
-
-### 사용법
+### Usage {#vectornav_usage}
 
 ```
 vectornav <command> [arguments...]

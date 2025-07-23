@@ -31,9 +31,12 @@
 #
 ############################################################################
 
+add_subdirectory(MecanumActControl)
 add_subdirectory(MecanumRateControl)
 add_subdirectory(MecanumAttControl)
-add_subdirectory(MecanumPosVelControl)
+add_subdirectory(MecanumVelControl)
+add_subdirectory(MecanumPosControl)
+add_subdirectory(MecanumDriveModes)
 
 px4_add_module(
 	MODULE modules__rover_mecanum
@@ -42,9 +45,14 @@ px4_add_module(
 		RoverMecanum.cpp
 		RoverMecanum.hpp
 	DEPENDS
+		MecanumActControl
 		MecanumRateControl
 		MecanumAttControl
-		MecanumPosVelControl
+		MecanumVelControl
+		MecanumPosControl
+		MecanumAutoMode
+		MecanumManualMode
+		MecanumOffboardMode
 		px4_work_queue
 		rover_control
 		pure_pursuit

@@ -8,9 +8,7 @@ Source: [systemcmds/actuator_test](https://github.com/PX4/PX4-Autopilot/tree/mai
 
 WARNING: remove all props before using this command.
 
-<a id="actuator_test_usage"></a>
-
-### 사용법
+### Usage {#actuator_test_usage}
 
 ```
 actuator_test <command> [arguments...]
@@ -30,13 +28,13 @@ actuator_test <command> [arguments...]
    iterate-servos Iterate all servos deflecting one after the other
 ```
 
-## dumpfile
+## bl_update
 
 Source: [systemcmds/bl_update](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/bl_update)
 
-Utility to flash the bootloader from a file <a id="bl_update_usage"></a>
+Utility to flash the bootloader from a file
 
-### 사용법
+### Usage {#bl_update_usage}
 
 ```
 bl_update [arguments...]
@@ -50,45 +48,43 @@ bl_update [arguments...]
 
 Source: [systemcmds/bsondump](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/bsondump)
 
-Utility to read BSON from a file and print or output document size. <a id="bsondump_usage"></a>
+Utility to read BSON from a file and print or output document size.
 
-### 사용법
+### Usage {#bsondump_usage}
 
 ```
 bsondump [arguments...]
      <file>      The BSON file to decode and print.
 ```
 
-## dyn
+## dumpfile
 
 Source: [systemcmds/dumpfile](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/dumpfile)
 
-Dump file utility. Prints file size and contents in binary mode (don't replace LF with CR LF) to stdout. <a id="dumpfile_usage"></a>
+Dump file utility. Prints file size and contents in binary mode (don't replace LF with CR LF) to stdout.
 
-### 사용법
+### Usage {#dumpfile_usage}
 
 ```
 dumpfile [arguments...]
      <file>      File to dump
 ```
 
-## esc_calib
+## dyn
 
 Source: [systemcmds/dyn](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/dyn)
 
 ### 설명
 
-소스: <a href="https://github.com/PX4/PX4-Autopilot/tree/master/src/systemcmds/failure">systemcmds/failure</a>
+Load and run a dynamic PX4 module, which was not compiled into the PX4 binary.
 
-### 예
+### Example
 
 ```
 dyn ./hello.px4mod start
 ```
 
-<a id="dyn_usage"></a>
-
-### 사용법
+### Usage {#dyn_usage}
 
 ```
 dyn [arguments...]
@@ -114,9 +110,7 @@ Test the GPS failsafe by stopping GPS:
 
 failure gps off
 
-<a id="failure_usage"></a>
-
-### 사용법
+### Usage {#failure_usage}
 
 ```
 failure [arguments...]
@@ -164,9 +158,7 @@ Set the output value on device /dev/gpio1 to high
 gpio write /dev/gpio1 1
 ```
 
-<a id="gpio_usage"></a>
-
-### 사용법
+### Usage {#gpio_usage}
 
 ```
 gpio [arguments...]
@@ -190,9 +182,7 @@ Hardfault utility
 
 Used in startup scripts to handle hardfaults
 
-<a id="hardfault_log_usage"></a>
-
-### 사용법
+### Usage {#hardfault_log_usage}
 
 ```
 hardfault_log <command> [arguments...]
@@ -219,9 +209,9 @@ hardfault_log <command> [arguments...]
 
 Source: [systemcmds/hist](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/hist)
 
-Command-line tool to show the px4 message history. There are no arguments. <a id="hist_usage"></a>
+Command-line tool to show the px4 message history. There are no arguments.
 
-### 사용법
+### Usage {#hist_usage}
 
 ```
 hist [arguments...]
@@ -231,9 +221,9 @@ hist [arguments...]
 
 Source: [systemcmds/i2cdetect](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/i2cdetect)
 
-Utility to scan for I2C devices on a particular bus. <a id="i2cdetect_usage"></a>
+Utility to scan for I2C devices on a particular bus.
 
-### 사용법
+### Usage {#i2cdetect_usage}
 
 ```
 i2cdetect [arguments...]
@@ -263,9 +253,7 @@ Blink the first LED 5 times in blue:
 led_control blink -c blue -l 0 -n 5
 ```
 
-<a id="led_control_usage"></a>
-
-### 사용법
+### Usage {#led_control_usage}
 
 ```
 led_control <command> [arguments...]
@@ -305,9 +293,7 @@ Utility to listen on uORB topics and print the data to the console.
 
 The listener can be exited any time by pressing Ctrl+C, Esc, or Q.
 
-<a id="listener_usage"></a>
-
-### 사용법
+### Usage {#listener_usage}
 
 ```
 listener <command> [arguments...]
@@ -325,9 +311,9 @@ listener <command> [arguments...]
 
 Source: [systemcmds/mft](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/mft)
 
-Utility interact with the manifest <a id="mfd_usage"></a>
+Utility interact with the manifest
 
-### 사용법
+### Usage {#mfd_usage}
 
 ```
 mfd <command> [arguments...]
@@ -339,9 +325,9 @@ mfd <command> [arguments...]
 
 Source: [systemcmds/mft_cfg](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/mft_cfg)
 
-Tool to set and get manifest configuration <a id="mft_cfg_usage"></a>
+Tool to set and get manifest configuration
 
-### 사용법
+### Usage {#mft_cfg_usage}
 
 ```
 mft_cfg <command> [arguments...]
@@ -360,9 +346,9 @@ mft_cfg <command> [arguments...]
 
 Source: [systemcmds/mtd](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/mtd)
 
-Utility to mount and test partitions (based on FRAM/EEPROM storage as defined by the board) <a id="mtd_usage"></a>
+Utility to mount and test partitions (based on FRAM/EEPROM storage as defined by the board)
 
-### 사용법
+### Usage {#mtd_usage}
 
 ```
 mtd <command> [arguments...]
@@ -393,9 +379,7 @@ Start an NSH shell on a given port.
 This was previously used to start a shell on the USB serial port.
 Now there runs mavlink, and it is possible to use a shell over mavlink.
 
-<a id="nshterm_usage"></a>
-
-### 사용법
+### Usage {#nshterm_usage}
 
 ```
 nshterm [arguments...]
@@ -433,9 +417,7 @@ param set SYS_AUTOCONFIG 1
 reboot
 ```
 
-<a id="param_usage"></a>
-
-### 사용법
+### Usage {#param_usage}
 
 ```
 param <command> [arguments...]
@@ -513,9 +495,7 @@ Source: [modules/payload_deliverer](https://github.com/PX4/PX4-Autopilot/tree/ma
 Handles payload delivery with either Gripper or a Winch with an appropriate timeout / feedback sensor setting,
 and communicates back the delivery result as an acknowledgement internally
 
-<a id="payload_deliverer_usage"></a>
-
-### 사용법
+### Usage {#payload_deliverer_usage}
 
 ```
 payload_deliverer <command> [arguments...]
@@ -537,9 +517,9 @@ payload_deliverer <command> [arguments...]
 
 Source: [systemcmds/perf](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/perf)
 
-Tool to print performance counters <a id="perf_usage"></a>
+Tool to print performance counters
 
-### 사용법
+### Usage {#perf_usage}
 
 ```
 perf [arguments...]
@@ -554,9 +534,9 @@ perf [arguments...]
 
 Source: [systemcmds/reboot](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/reboot)
 
-Reboot the system <a id="reboot_usage"></a>
+Reboot the system
 
-### 사용법
+### Usage {#reboot_usage}
 
 ```
 reboot [arguments...]
@@ -569,9 +549,9 @@ reboot [arguments...]
 
 Source: [systemcmds/sd_bench](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/sd_bench)
 
-Test the speed of an SD Card <a id="sd_bench_usage"></a>
+Test the speed of an SD Card
 
-### 사용법
+### Usage {#sd_bench_usage}
 
 ```
 sd_bench [arguments...]
@@ -592,9 +572,9 @@ sd_bench [arguments...]
 
 Source: [systemcmds/sd_stress](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/sd_stress)
 
-Test operations on an SD Card <a id="sd_stress_usage"></a>
+Test operations on an SD Card
 
-### 사용법
+### Usage {#sd_stress_usage}
 
 ```
 sd_stress [arguments...]
@@ -612,9 +592,7 @@ Pass data from one device to another.
 
 This can be used to use u-center connected to USB with a GPS on a serial port.
 
-<a id="serial_passthru_usage"></a>
-
-### 사용법
+### Usage {#serial_passthru_usage}
 
 ```
 serial_passthru [arguments...]
@@ -644,9 +622,7 @@ system_time set 1600775044
 system_time get
 ```
 
-<a id="system_time_usage"></a>
-
-### 사용법
+### Usage {#system_time_usage}
 
 ```
 system_time <command> [arguments...]
@@ -660,9 +636,9 @@ system_time <command> [arguments...]
 
 Source: [systemcmds/top](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/top)
 
-Monitor running processes and their CPU, stack usage, priority and state <a id="top_usage"></a>
+Monitor running processes and their CPU, stack usage, priority and state
 
-### 사용법
+### Usage {#top_usage}
 
 ```
 top [arguments...]
@@ -674,9 +650,9 @@ top [arguments...]
 Source: [systemcmds/usb_connected](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/usb_connected)
 
 Utility to check if USB is connected. Was previously used in startup scripts.
-A return value of 0 means USB is connected, 1 otherwise. <a id="usb_connected_usage"></a>
+A return value of 0 means USB is connected, 1 otherwise.
 
-### 사용법
+### Usage {#usb_connected_usage}
 
 ```
 usb_connected [arguments...]
@@ -686,9 +662,9 @@ usb_connected [arguments...]
 
 Source: [systemcmds/ver](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/ver)
 
-Tool to print various version information <a id="ver_usage"></a>
+Tool to print various version information
 
-### 사용법
+### Usage {#ver_usage}
 
 ```
 ver <command> [arguments...]

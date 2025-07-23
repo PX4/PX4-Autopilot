@@ -48,13 +48,10 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/rover_throttle_setpoint.h>
-#include <uORB/topics/ackermann_velocity_setpoint.h>
+#include <uORB/topics/rover_velocity_setpoint.h>
 #include <uORB/topics/rover_velocity_status.h>
 #include <uORB/topics/rover_attitude_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/vehicle_local_position.h>
 
 using namespace matrix;
@@ -73,9 +70,20 @@ public:
 	~AckermannVelControl() = default;
 
 	/**
-	 * @brief Update velocity controller.
+	 * @brief Generate and publish roverAttitudeSetpoint and RoverThrottleSetpoint from roverVelocitySetpoint.
 	 */
 	void updateVelControl();
+
+	/**
+	 * @brief Check if the necessary parameters are set.
+	 * @return True if all checks pass.
+	 */
+	bool runSanityChecks();
+
+	/**
+	 * @brief Reset velocity controller.
+	 */
+	void reset() {_pid_speed.resetIntegral(); _speed_setpoint = NAN; _bearing_setpoint = NAN; _adjusted_speed_setpoint.setForcedValue(0.f);};
 
 protected:
 	/**
@@ -85,56 +93,34 @@ protected:
 
 private:
 	/**
-	 * @brief Update uORB subscriptions used in velocity controller.
+	 * @brief Update uORB subscriptions used in position controller.
 	 */
 	void updateSubscriptions();
 
-	/**
-	 * @brief Generate and publish roverVelocitySetpoint from velocity of trajectorySetpoint.
-	 */
-	void generateVelocitySetpoint();
-
-	/**
-	 * @brief Generate and publish roverAttitudeSetpoint and roverThrottleSetpoint
-	 *        from roverVelocitySetpoint.
-	 */
-	void generateAttitudeAndThrottleSetpoint();
-
-	/**
-	 * @brief Check if the necessary parameters are set.
-	 * @return True if all checks pass.
-	 */
-	bool runSanityChecks();
-
 	// uORB subscriptions
-	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
-	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _ackermann_velocity_setpoint_sub{ORB_ID(ackermann_velocity_setpoint)};
-	vehicle_control_mode_s _vehicle_control_mode{};
-	offboard_control_mode_s _offboard_control_mode{};
+	uORB::Subscription _rover_velocity_setpoint_sub{ORB_ID(rover_velocity_setpoint)};
 
 	// uORB publications
 	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
 	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
 	uORB::Publication<rover_velocity_status_s>   _rover_velocity_status_pub{ORB_ID(rover_velocity_status)};
-	uORB::Publication<ackermann_velocity_setpoint_s> _ackermann_velocity_setpoint_pub{ORB_ID(ackermann_velocity_setpoint)};
-	ackermann_velocity_setpoint_s _ackermann_velocity_setpoint{};
+	uORB::Publication<rover_velocity_setpoint_s> _rover_velocity_setpoint_pub{ORB_ID(rover_velocity_setpoint)};
 
 	// Variables
 	hrt_abstime _timestamp{0};
 	Quatf _vehicle_attitude_quaternion{};
-	float _vehicle_speed_body_x{0.f};
-	float _vehicle_speed_body_y{0.f};
-	float _vehicle_yaw{0.f};
-	float _dt{0.f};
-	bool _prev_param_check_passed{true};
+	float _vehicle_speed{0.f}; // [m/s] Positiv: Forwards, Negativ: Backwards
+	float _vehicle_yaw{0.f}; // [rad] Yaw angle of the vehicle
+	float _speed_setpoint{NAN};
+	float _bearing_setpoint{NAN};
+	float _min_speed{NAN};
+	float _max_yaw_rate{NAN};
 
 	// Controllers
 	PID _pid_speed;
-	SlewRate<float> _speed_setpoint;
+	SlewRate<float> _adjusted_speed_setpoint;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
@@ -144,6 +130,10 @@ private:
 		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_limit,
 		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_limit,
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
-		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th
+		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th,
+		(ParamFloat<px4::params::RO_SPEED_RED>)     _param_ro_speed_red,
+		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
+		(ParamFloat<px4::params::RA_WHEEL_BASE>)    _param_ra_wheel_base,
+		(ParamFloat<px4::params::RA_MAX_STR_ANG>)   _param_ra_max_str_ang
 	)
 };

@@ -1,5 +1,7 @@
 # Modules Reference: Transponder (Driver)
+
 ## sagetech_mxs
+
 Source: [drivers/transponder/sagetech_mxs](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/transponder/sagetech_mxs)
 
 
@@ -21,8 +23,8 @@ Source: [drivers/transponder/sagetech_mxs](https://github.com/PX4/PX4-Autopilot/
 	Set the Squawk Code
 	$ sagetech_mxs squawk 1200
 	
-<a id="sagetech_mxs_usage"></a>
-### Usage
+### Usage {#sagetech_mxs_usage}
+
 ```
 sagetech_mxs <command> [arguments...]
  Commands:

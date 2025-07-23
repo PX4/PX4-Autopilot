@@ -37,6 +37,10 @@ export default {
     //Tabs: https://github.com/Red-Asuka/vitepress-plugin-tabs
     app.component("Tab", Tab);
     app.component("Tabs", Tabs);
+    // Global build time variable
+    app.config.globalProperties.$buildTime = JSON.stringify(
+      new Date().toISOString()
+    );
   },
 
   // to support medium zoom: https://github.com/vuejs/vitepress/issues/854

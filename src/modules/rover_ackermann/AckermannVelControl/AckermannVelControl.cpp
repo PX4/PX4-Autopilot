@@ -38,63 +38,81 @@ using namespace time_literals;
 AckermannVelControl::AckermannVelControl(ModuleParams *parent) : ModuleParams(parent)
 {
 	_rover_throttle_setpoint_pub.advertise();
-	_rover_velocity_status_pub.advertise();
-	_ackermann_velocity_setpoint_pub.advertise();
 	_rover_attitude_setpoint_pub.advertise();
+	_rover_velocity_status_pub.advertise();
 	updateParams();
 }
 
 void AckermannVelControl::updateParams()
 {
 	ModuleParams::updateParams();
+	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	_min_speed = _param_ra_wheel_base.get() * _max_yaw_rate / tanf(_param_ra_max_str_ang.get());
+
+	// Set up PID controller
 	_pid_speed.setGains(_param_ro_speed_p.get(), _param_ro_speed_i.get(), 0.f);
 	_pid_speed.setIntegralLimit(1.f);
 	_pid_speed.setOutputLimit(1.f);
 
+	// Set up slew rate
 	if (_param_ro_accel_limit.get() > FLT_EPSILON) {
-		_speed_setpoint.setSlewRate(_param_ro_accel_limit.get());
+		_adjusted_speed_setpoint.setSlewRate(_param_ro_accel_limit.get());
 	}
+
 
 }
 
 void AckermannVelControl::updateVelControl()
 {
-	const hrt_abstime timestamp_prev = _timestamp;
-	_timestamp = hrt_absolute_time();
-	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
-
 	updateSubscriptions();
 
-	if ((_vehicle_control_mode.flag_control_velocity_enabled) && _vehicle_control_mode.flag_armed && runSanityChecks()) {
-		if (_vehicle_control_mode.flag_control_offboard_enabled) { // Offboard Velocity Control
-			generateVelocitySetpoint();
+	const hrt_abstime timestamp_prev = _timestamp;
+	_timestamp = hrt_absolute_time();
+	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
+	float max_speed = _param_ro_speed_limit.get();
+
+	// Attitude Setpoint
+	if (PX4_ISFINITE(_bearing_setpoint)) {
+		rover_attitude_setpoint_s rover_attitude_setpoint{};
+		rover_attitude_setpoint.timestamp = _timestamp;
+		rover_attitude_setpoint.yaw_setpoint = _bearing_setpoint;
+		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
+
+		if (_param_ro_speed_red.get() > FLT_EPSILON) {
+			const float course_error = fabsf(matrix::wrap_pi(_bearing_setpoint - _vehicle_yaw));
+			const float speed_reduction = math::constrain(_param_ro_speed_red.get() * math::interpolate(course_error,
+						      0.f, M_PI_F, 0.f, 1.f), 0.f, 1.f);
+			max_speed = math::constrain(_param_ro_max_thr_speed.get() * (1.f - speed_reduction), _min_speed, max_speed);
 		}
+	}
 
-		generateAttitudeAndThrottleSetpoint();
+	// Throttle Setpoint
+	if (PX4_ISFINITE(_speed_setpoint)) {
+		const float speed_setpoint = math::constrain(_speed_setpoint, -max_speed, max_speed);
+		rover_throttle_setpoint_s rover_throttle_setpoint{};
+		rover_throttle_setpoint.timestamp = _timestamp;
+		rover_throttle_setpoint.throttle_body_x = RoverControl::speedControl(_adjusted_speed_setpoint, _pid_speed,
+				speed_setpoint, _vehicle_speed, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
+				_param_ro_max_thr_speed.get(), dt);
+		rover_throttle_setpoint.throttle_body_y = NAN;
+		_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 
-	} else { // Reset controller and slew rate when position control is not active
-		_pid_speed.resetIntegral();
-		_speed_setpoint.setForcedValue(0.f);
 	}
 
 	// Publish position controller status (logging only)
 	rover_velocity_status_s rover_velocity_status;
 	rover_velocity_status.timestamp = _timestamp;
-	rover_velocity_status.measured_speed_body_x = _vehicle_speed_body_x;
-	rover_velocity_status.adjusted_speed_body_x_setpoint = _speed_setpoint.getState();
-	rover_velocity_status.measured_speed_body_y = _vehicle_speed_body_y;
-	rover_velocity_status.adjusted_speed_body_y_setpoint = NAN;
+	rover_velocity_status.measured_speed_body_x = _vehicle_speed;
+	rover_velocity_status.adjusted_speed_body_x_setpoint = _adjusted_speed_setpoint.getState();
 	rover_velocity_status.pid_throttle_body_x_integral = _pid_speed.getIntegral();
+	rover_velocity_status.measured_speed_body_y = NAN;
+	rover_velocity_status.adjusted_speed_body_y_setpoint = NAN;
 	rover_velocity_status.pid_throttle_body_y_integral = NAN;
 	_rover_velocity_status_pub.publish(rover_velocity_status);
 }
 
 void AckermannVelControl::updateSubscriptions()
 {
-	if (_vehicle_control_mode_sub.updated()) {
-		_vehicle_control_mode_sub.copy(&_vehicle_control_mode);
-	}
-
 	if (_vehicle_attitude_sub.updated()) {
 		vehicle_attitude_s vehicle_attitude{};
 		_vehicle_attitude_sub.copy(&vehicle_attitude);
@@ -105,74 +123,18 @@ void AckermannVelControl::updateSubscriptions()
 	if (_vehicle_local_position_sub.updated()) {
 		vehicle_local_position_s vehicle_local_position{};
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
-
-		Vector3f velocity_in_local_frame(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
-		Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
-		_vehicle_speed_body_x = fabsf(velocity_in_body_frame(0)) > _param_ro_speed_th.get() ? velocity_in_body_frame(0) : 0.f;
-		_vehicle_speed_body_y = fabsf(velocity_in_body_frame(1)) > _param_ro_speed_th.get() ? velocity_in_body_frame(1) : 0.f;
+		Vector3f velocity_ned(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
+		Vector3f velocity_xyz = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_ned);
+		Vector2f velocity_2d = Vector2f(velocity_xyz(0), velocity_xyz(1));
+		_vehicle_speed = velocity_2d.norm() > _param_ro_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
 	}
 
-}
-
-void AckermannVelControl::generateVelocitySetpoint()
-{
-	trajectory_setpoint_s trajectory_setpoint{};
-	_trajectory_setpoint_sub.copy(&trajectory_setpoint);
-
-	if (_offboard_control_mode_sub.updated()) {
-		_offboard_control_mode_sub.copy(&_offboard_control_mode);
+	if (_rover_velocity_setpoint_sub.updated()) {
+		rover_velocity_setpoint_s rover_velocity_setpoint;
+		_rover_velocity_setpoint_sub.copy(&rover_velocity_setpoint);
+		_speed_setpoint = rover_velocity_setpoint.speed;
+		_bearing_setpoint = rover_velocity_setpoint.bearing;
 	}
-
-	const bool offboard_vel_control = _offboard_control_mode.velocity && !_offboard_control_mode.position;
-
-	const Vector2f velocity_in_local_frame(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
-
-	if (offboard_vel_control && velocity_in_local_frame.isAllFinite()) {
-		ackermann_velocity_setpoint_s ackermann_velocity_setpoint{};
-		ackermann_velocity_setpoint.timestamp = _timestamp;
-		ackermann_velocity_setpoint.velocity_ned[0] = velocity_in_local_frame(0);
-		ackermann_velocity_setpoint.velocity_ned[1] = velocity_in_local_frame(1);
-		ackermann_velocity_setpoint.backwards = false;
-		_ackermann_velocity_setpoint_pub.publish(ackermann_velocity_setpoint);
-	}
-}
-
-void AckermannVelControl::generateAttitudeAndThrottleSetpoint()
-{
-	if (_ackermann_velocity_setpoint_sub.updated()) {
-		_ackermann_velocity_setpoint_sub.copy(&_ackermann_velocity_setpoint);
-	}
-
-	// Attitude Setpoint
-	if (fabsf(_ackermann_velocity_setpoint.velocity_ned[1]) < FLT_EPSILON
-	    && fabsf(_ackermann_velocity_setpoint.velocity_ned[0]) < FLT_EPSILON) {
-		rover_attitude_setpoint_s rover_attitude_setpoint{};
-		rover_attitude_setpoint.timestamp = _timestamp;
-		rover_attitude_setpoint.yaw_setpoint = _vehicle_yaw;
-		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
-
-	} else {
-		rover_attitude_setpoint_s rover_attitude_setpoint{};
-		rover_attitude_setpoint.timestamp = _timestamp;
-		const float yaw_setpoint = atan2f(_ackermann_velocity_setpoint.velocity_ned[1],
-						  _ackermann_velocity_setpoint.velocity_ned[0]);
-		rover_attitude_setpoint.yaw_setpoint = _ackermann_velocity_setpoint.backwards ? matrix::wrap_pi(
-				yaw_setpoint + M_PI_F) : yaw_setpoint;
-		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
-	}
-
-	// Throttle Setpoint
-	const float speed_magnitude = math::min(sqrtf(powf(_ackermann_velocity_setpoint.velocity_ned[0],
-						2) + powf(_ackermann_velocity_setpoint.velocity_ned[1], 2)), _param_ro_speed_limit.get());
-	const float speed_body_x_setpoint = _ackermann_velocity_setpoint.backwards ? -speed_magnitude : speed_magnitude;
-	rover_throttle_setpoint_s rover_throttle_setpoint{};
-	rover_throttle_setpoint.timestamp = _timestamp;
-	rover_throttle_setpoint.throttle_body_x = RoverControl::speedControl(_speed_setpoint, _pid_speed,
-			speed_body_x_setpoint, _vehicle_speed_body_x, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
-			_param_ro_max_thr_speed.get(), _dt);
-	rover_throttle_setpoint.throttle_body_y = 0.f;
-	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
-
 }
 
 bool AckermannVelControl::runSanityChecks()
@@ -185,14 +147,10 @@ bool AckermannVelControl::runSanityChecks()
 
 	if (_param_ro_speed_limit.get() < FLT_EPSILON) {
 		ret = false;
-
-		if (_prev_param_check_passed) {
-			events::send<float>(events::ID("ackermann_vel_control_conf_invalid_speed_lim"), events::Log::Error,
-					    "Invalid configuration of necessary parameter RO_SPEED_LIM", _param_ro_speed_limit.get());
-		}
+		events::send<float>(events::ID("ackermann_vel_control_conf_invalid_speed_lim"), events::Log::Error,
+				    "Invalid configuration of necessary parameter RO_SPEED_LIM", _param_ro_speed_limit.get());
 
 	}
 
-	_prev_param_check_passed = ret;
 	return ret;
 }

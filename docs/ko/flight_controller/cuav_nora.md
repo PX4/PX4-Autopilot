@@ -40,7 +40,6 @@ The manufacturer [CUAV Docs](https://doc.cuav.net/flight-controller/x7/en/nora.h
 - 메인 FMU 프로세서: STM32H743
 
 - 내장 센서 :
-
   - 가속도계/자이로스코프 : ICM-20689
   - 가속도계/자이로스코프 : ICM-20649
   - 가속도계/자이로스코프 : BMI088
@@ -141,7 +140,7 @@ FTDI 케이블을 DSU7 커넥터에 연결하기만 하면됩니다. 제품 목�
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) operate on the **FMU Debug** port (`DSU7`).
 
-The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/product-detail/en/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/455-1582-1-ND/807850) connector and has the following pinout:
+The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/en/products/detail/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/807850) connector and has the following pinout:
 
 | 핀                         | 신호                              | 전압                    |
 | ------------------------- | ------------------------------- | --------------------- |
@@ -173,5 +172,5 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 ## 추가 정보
 
 - [Quick start](https://doc.cuav.net/flight-controller/x7/en/quick-start/quick-start-nora.html)
-- [CUAV docs](http://doc.cuav.net)
+- [CUAV docs](https://doc.cuav.net/)
 - [nora schematic](https://github.com/cuav/hardware/tree/master/X7_Autopilot)

@@ -41,7 +41,7 @@ You will need to [select a compatible transmitter/receiver](../getting_started/r
 
   ![Radio Connection](../../assets/flight_controller/pixracer/grau_setup_pixracer_radio.jpg)
 
-- PPM and PWM receivers that have an _individual wire for each channel_ must connect to the **RCIN** port _via a PPM encoder_ [like this one](http://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
+- PPM and PWM receivers that have an _individual wire for each channel_ must connect to the **RCIN** port _via a PPM encoder_ [like this one](https://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
 
 ### 전원 모듈 (ACSP4)
 

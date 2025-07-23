@@ -37,7 +37,7 @@ Then you can _bind_ the transmitter and receiver together.
 
 Instructions for the steps above are covered in
 
-- [TBS Crossfire Manual](https://www.team-blacksheep.com/tbs-crossfire-manual.pdf)
+- [TBS Crossfire Manual](https://www.team-blacksheep.com/media/files/tbs-crossfire-manual.pdf)
 - [Express LRS: QuickStart](https://www.expresslrs.org/quick-start/getting-started/)
 
 ### 布线
@@ -71,7 +71,7 @@ For ExpressLRS receivers wire to the flight controller UART as shown below (wiri
 ### Firmware Configuration/Build
 
 CRSF telemetry support is not included in any PX4 firmware by default.
-To use this feature you must build and upload custom firmware that includes [crsf-rc](../modules/modules_driver.md#crsf-rc) and removes [rc_input](../modules/modules_driver.md#rc-input).
+To use this feature you must build and upload custom firmware that includes [crsf-rc](../modules/modules_driver_radio_control.md#crsf-rc) and removes [rc_input](../modules/modules_driver_radio_control.md#rc-input).
 
 步骤如下：
 
@@ -148,7 +148,7 @@ RC Controllers that support TBS Crossfire and ExpressLRS TX modules:
 
 - [FrSky Taranis X9D Plus](https://www.frsky-rc.com/product/taranis-x9d-plus-2/) has an external module bay that can be used with TBS or ExpressLRS transmitter modules that are "JR module bay" compatible.
   You will need to install OpenTX software, which supports CRSF, and enable the external module and CRSF.
-- [Radiomaster TX16S](https://www.radiomasterrc.com/collections/tx16s-mkii) has an internal ExpressLRS transmitter module.
+- [Radiomaster TX16S Mk II](https://radiomasterrc.com/products/tx16s-mark-ii-radio-controller) has an internal ExpressLRS transmitter module.
   It also has an external module bay that can be used with TBS or ExpressLRS transmitter modules that are "JR module bay" compatible.
   It runs both OpenTX and EdgeTx software, either of which can support CRSF.
 
@@ -163,7 +163,7 @@ Transmitter modules:
 
 Receivers:
 
-- [TBS Crossfire Nano RX](http://team-blacksheep.com/products/prod:crossfire_nano_rx) - designed for small quadcopters.
+- [TBS Crossfire Nano RX](https://www.team-blacksheep.com/products/prod:crossfire_nano_rx) - designed for small quadcopters.
 
 ## ExpressLRS Radio Systems
 
@@ -176,7 +176,7 @@ Transmitter modules:
 
 Receivers:
 
-- [ExpressLRS Matek Diversity RX](http://www.mateksys.com/?portfolio=elrs-r24).
+- [ExpressLRS Matek Diversity RX](https://www.mateksys.com/?portfolio=elrs-r24).
 
   ::: info
   This is used in the [Reptile Dragon 2 Build Log](../frames_plane/reptile_dragon_2.md).
@@ -186,7 +186,7 @@ Receivers:
 
 ## 遥测信息
 
-The supported telemetry messages and their source are listed below (this table is reproduced from the [TBS Crossfire Manual: "Available sensors with OpenTX"](https://www.team-blacksheep.com/tbs-crossfire-manual.pdf)).
+The supported telemetry messages and their source are listed below (this table is reproduced from the [TBS Crossfire Manual: "Available sensors with OpenTX"](https://www.team-blacksheep.com/media/files/tbs-crossfire-manual.pdf)).
 
 | Datapoint | 描述                                                                    | Data source                      |
 | --------- | --------------------------------------------------------------------- | -------------------------------- |
@@ -215,7 +215,7 @@ The supported telemetry messages and their source are listed below (this table i
 
 ## See Also
 
-- [TBS Crossfire Manual](https://www.team-blacksheep.com/tbs-crossfire-manual.pdf)
+- [TBS Crossfire Manual](https://www.team-blacksheep.com/media/files/tbs-crossfire-manual.pdf)
 - [ExpressLRS Documentation](https://www.expresslrs.org/quick-start/getting-started/)
 - [FrSky Telemetry](../peripherals/frsky_telemetry.md)
 - [Radio Control Setup](../config/radio.md)

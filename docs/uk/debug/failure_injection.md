@@ -61,7 +61,7 @@ failure <component> <failure_type> [-i <instance_number>]
 - _instance number_ (optional): Instance number of affected sensor.
   0 (за замовчуванням) вказує на всі сенсори вказаного типу.
 
-### Приклад
+### Example
 
 Щоб симулювати втрату сигналу RC без вимкнення вашого пульта керування RC:
 

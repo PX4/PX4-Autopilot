@@ -21,7 +21,7 @@ Setup PX4 by following the normal guidelines:
 
 To install _Eclipse_:
 
-1. Download [Eclipse CDT for C/C++ Developers](https://github.com/gnu-mcu-eclipse/org.eclipse.epp.packages/releases/) (MCU GitHub).
+1. Download [Eclipse CDT for C/C++ Developers](https://github.com/eclipse-embed-cdt/org.eclipse.epp.packages/releases) (MCU GitHub).
 2. Extract the Eclipse folder and copy it anywhere (there is no need to run any install scripts).
 3. Run _Eclipse_ and choose a location for your initial workbench.
 
@@ -52,7 +52,6 @@ For more information, see: [https://gnu-mcu-eclipse.github.io/debug/jlink/instal
    ![Eclipse: Segger J-Link Path](../../assets/debug/eclipse_segger_jlink_path.png)
 
 7. Update packs:
-
    - Click the small icon on the top right called _Open Perspective_ and open the _Packs_ perspective.
       ![Eclipse: Workspace](../../assets/debug/eclipse_workspace_perspective.png)
 
@@ -107,7 +106,6 @@ This is quite useful since PX4 tends to run many different tasks.
 To enable this feature for use in Eclipse:
 
 1. You first need to enable `CONFIG_DEBUG_TCBINFO` in the NuttX configuration for your build (to expose the TCB offsets).
-
    - Open a terminal in the root of your PX4-Autopilot source code
 
    - In the terminal, open `menuconfig` using the appropriate make target for the build.
@@ -149,7 +147,7 @@ Adding missing SVD files for the _Peripheral View_:
 
    ![Eclipse: MCU Packages](../../assets/debug/eclipse_mcu_packages.png)
 
-2. Download missing packages from: http://www.keil.com/dd2/Pack/
+2. Download missing packages from: https://www.keil.arm.com/devices/
 
 3. Open downloaded pack with a decompression tool, and extract the **.SVD** files from: **/CMSIS/SVD**.
 

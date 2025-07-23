@@ -605,38 +605,23 @@ void EstimatorChecks::checkGps(const Context &context, Report &reporter, const s
 			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports critical jamming state\t");
 		}
 	}
-
-	if (vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_INDICATED) {
-		/* EVENT
-		 */
-		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
-					    events::ID("check_estimator_gps_spoofing_indicated"),
-					    events::Log::Critical, "GPS reports spoofing indicated");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports spoofing indicated\t");
-		}
-
-	} else if (vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_MULTIPLE) {
-		/* EVENT
-		 */
-		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
-					    events::ID("check_estimator_gps_multiple_spoofing_indicated"),
-					    events::Log::Critical, "GPS reports multiple spoofing indicated");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports multiple spoofing indicated\t");
-		}
-	}
 }
 
 void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &reporter,
 		const vehicle_local_position_s &lpos) const
 {
-	const bool local_position_valid_but_low_accuracy = !reporter.failsafeFlags().local_position_invalid
-			&& (_param_com_low_eph.get() > FLT_EPSILON && lpos.eph > _param_com_low_eph.get());
 
-	if (!reporter.failsafeFlags().local_position_accuracy_low && local_position_valid_but_low_accuracy
+	bool position_valid_but_low_accuracy = false;
+
+	if ((reporter.failsafeFlags().mode_req_global_position && !reporter.failsafeFlags().global_position_invalid) ||
+	    (reporter.failsafeFlags().mode_req_global_position_relaxed
+	     && !reporter.failsafeFlags().global_position_invalid_relaxed) ||
+	    (reporter.failsafeFlags().mode_req_local_position && !reporter.failsafeFlags().local_position_invalid)) {
+
+		position_valid_but_low_accuracy = (_param_com_low_eph.get() > FLT_EPSILON && lpos.eph > _param_com_low_eph.get());
+	}
+
+	if (!reporter.failsafeFlags().position_accuracy_low && position_valid_but_low_accuracy
 	    && _param_com_pos_low_act.get()) {
 
 		// only report if armed
@@ -658,7 +643,7 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 		}
 	}
 
-	reporter.failsafeFlags().local_position_accuracy_low = local_position_valid_but_low_accuracy;
+	reporter.failsafeFlags().position_accuracy_low = position_valid_but_low_accuracy;
 }
 
 void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,
@@ -698,6 +683,12 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 		!checkPosVelValidity(now, global_pos_valid, gpos.eph, lpos_eph_threshold, gpos.timestamp,
 				     _last_gpos_fail_time_us, !failsafe_flags.global_position_invalid);
 
+	// for relaxed global condition we don't have any accuracy requirement
+	const float pos_eph_relaxed_treshold = INFINITY;
+	failsafe_flags.global_position_invalid_relaxed = !checkPosVelValidity(now, global_pos_valid, gpos.eph,
+			pos_eph_relaxed_treshold, gpos.timestamp, _last_gpos_relaxed_fail_time_us,
+			!failsafe_flags.global_position_invalid_relaxed);
+
 	// Additional warning if the system is about to enter position-loss failsafe after dead-reckoning period
 	const float eph_critical = 2.5f * lpos_eph_threshold; // threshold used to trigger the navigation failsafe
 	const float gpos_critical_warning_thrld = math::max(0.9f * eph_critical, math::max(eph_critical - 10.f, 0.f));
@@ -712,6 +703,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 						    || estimator_status_flags.cs_wind_dead_reckoning;
 
 			if (!failsafe_flags.global_position_invalid
+			    && failsafe_flags.mode_req_global_position
 			    && !_nav_failure_imminent_warned
 			    && gpos.eph > gpos_critical_warning_thrld
 			    && dead_reckoning) {

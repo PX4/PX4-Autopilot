@@ -3,7 +3,7 @@
 本节说明了如何使用 PX4 的 MAVLink [相机](../camera/index.md), 实现了 [Camera Protocol v1 (简单触发协议)](https://mavlink.io/en/services/camera_v1.html) 的 PX4 和地面站。
 
 :::warning
-[MAVLink 相机](../camera/mavlink_v2_camera.md) 在可能的情况下应该使用 [MAVLink Camera Protocol v2](https://mavlink.io/en/services/camera.html) 代替！
+[MAVLink 相机](../camera/mavlink_v2_camera.md) 使用[MAVLink 相机协议 v2](https://mavlink.io/en/services/camera.html)应在可能时使用！
 此方法保留用于旧的 MAVLink 相机。
 :::
 
@@ -15,11 +15,11 @@
 - 视频捕获
 - 有限的相机配置
 
-PX4 支持此命令集以触发通过原生支持协议的相机（如本节所述），以及连接到飞控输出的相机。
+PX4 支持此命令集以触发通过原生支持协议的相机 （如本节所述），以及连接到飞控输出的相机。
 
 地面站和 MAVLink SDK 通常将相机命令发送给自动驾驶仪，然后转发给连接的类型为 '板载' 的 MAVLink 通道。
 PX4 还会将其在任务中遇到的任何相机任务项重新发出为相机命令：未被接受的命令将被记录。
-在所有情况下，命令都是使用自动驾驶仪的系统 ID 和组件 ID 为0（即发送给所有组件，包括摄像头）。
+在所有情况下，命令都是使用自动驾驶仪的系统 ID 和组件 ID 为 0（即发送给所有组件，包括摄像头）。
 
 每次触发图像捕获时 PX4 也会发出一个 [CAMERA_TRIGGER](https://mavlink.io/en/messages/common.html#CAMERA_TRIGGER) (相机本身也可能在触发时发出此消息)。
 
@@ -55,7 +55,7 @@ MAVLink 摄像头将支持这些命令的一些子集。
 
 理论上，您也可以直接向相机发送命令。
 
-### Camera Commands in Missions
+### 任务中的相机命令
 
 以下[Camera Protocol v1 (简单触发协议)](https://mavlink.io/en/services/camera_v1.html)命令可在任务中使用(这与上面的命令列表相同)。
 
@@ -107,7 +107,7 @@ PX4 重新使用与自驾仪相同的系统 ID 和组件 ID [MAV_COMP_ID_ALL](ht
   ![相机设置界面 - 触发模式和 MAVLink 接口](../../assets/camera/mavlink_camera_settings.png)
 
 :::info
-You can also [set the parameters directly](../advanced_config/parameters.md):
+您也可以[直接设置参数](../advanced_config/parameters.md)：
 
 - [TRIG_MODE](../advanced_config/parameter_reference.md#TRIG_MODE) — `4`: 基于距离，按命令触发 (勘测模式)
 - [TRIG_INTERFACE](../advanced_config/parameter_reference.md#TRIG_INTERFACE) — `3`: MAVLink

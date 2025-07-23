@@ -295,10 +295,15 @@ then
 	# for multi intances setup, add namespace prefix
 	uxrce_dds_ns="-n px4_$px4_instance"
 fi
-if [ -n "$PX4_UXRCE_DDS_NS" ]
-then
-	# Override namespace if environment variable is defined
-	uxrce_dds_ns="-n $PX4_UXRCE_DDS_NS"
+if [ "${PX4_UXRCE_DDS_NS+x}" ]; then
+	# Override, as variable is set (empty or not)
+	if [ -n "$PX4_UXRCE_DDS_NS" ]; then
+		# Override namespace if environment variable is non-empty
+		uxrce_dds_ns="-n $PX4_UXRCE_DDS_NS"
+	else
+		# Clear namespace if variable is empty
+		uxrce_dds_ns=""
+	fi
 fi
 if [ -n "$ROS_DOMAIN_ID" ]
 then
