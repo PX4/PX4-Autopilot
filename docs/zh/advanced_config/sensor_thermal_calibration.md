@@ -14,9 +14,7 @@ Any subsequent standard calibration will therefore update `TC_*` parameters and 
 Releases up to PX4 v1.14, do not support thermal calibration of the magnetometer.
 :::
 
-<a id="test_setup"></a>
-
-## 测试设置/最佳实践
+## Test Setup/Best Practice {#test_setup}
 
 The [calibration procedures](#calibration_procedures) described in the following sections are ideally run in an _environmental chamber_ (a temperature and humidity controlled environment) as the board is heated from the lowest to the highest operating/calibration temperature.
 Before starting the calibration, the board is first _cold soaked_ (cooled to the minimum temperature and allowed to reach equilibrium).
@@ -46,9 +44,7 @@ The bag/silica is to prevent condensation from forming on the board.
 To check the status of the onboard thermal calibration use the MAVlink console (or NuttX console) to check the reported internal temp from the sensor.
 :::
 
-<a id="calibration_procedures"></a>
-
-## 校准过程
+## Calibration Procedures {#calibration_procedures}
 
 PX4 支持两种校准过程：
 
@@ -57,9 +53,7 @@ PX4 支持两种校准过程：
 
 The offboard approach is more complex and slower, but requires less knowledge of the test setup and is easier to validate.
 
-<a id="onboard_calibration"></a>
-
-### 板载校准过程
+### Onboard Calibration Procedure {#onboard_calibration}
 
 Onboard calibration is run entirely on the device. It require knowledge of the amount of temperature rise that is achievable with the test setup.
 
@@ -76,9 +70,7 @@ To perform and onboard calibration:
 9. Perform a 6-point accel calibration via the system console using `commander calibrate accel` or via _QGroundControl_. 如果首次设置电路板，则还需要执行陀螺仪和磁力计校准。
 10. 在任何传感器校准之后的首次飞行之前，电路板必须重新上电，因为校准带来的突然的偏移变化可能会扰乱导航估计器，并且某些参数直到下次启动时才会被使用它们的算法加载。
 
-<a id="offboard_calibration"></a>
-
-### 板外校准过程
+### Offboard Calibration Procedure {#offboard_calibration}
 
 Offboard calibration is run on a development computer using data collected during the calibration test. This method provides a way to visually check the quality of data and curve fit.
 
@@ -114,9 +106,7 @@ To perform an offboard calibration:
 
 12. Power the board and perform a normal accelerometer sensor calibration using _QGroundControl_. 重要的是，此步骤在飞控板处于校准温度范围内进行。 此步骤后的首次飞行之前，应重新启动电路板，因为突然的偏置变化会扰乱导航估计器，并且某些参数直到下次启动时才会被使用它们的算法加载。
 
-<a id="implementation"></a>
-
-## 实施细节
+## Implementation Detail {#implementation}
 
 Calibration refers to the process of measuring the change in sensor value across a range of internal temperatures, and performing a polynomial fit on the data to calculate a set of coefficients (stored as parameters) that can be used to correct the sensor data. Compensation refers to the process of using the internal temperature to calculate an offset that is subtracted from the sensor reading to correct for changing offset with temperature
 
@@ -145,7 +135,6 @@ Where:
 - `instance`: is an integer 0,1 or 2 allowing for calibration of up to three sensors of the same `type`.
 
 - `cal_name`: is a string identifying the calibration value. 它具有可能的值如下：
-
   - `Xn`: Polynomial coefficient where n is the order of the coefficient, e.g. `X3 * (temperature - reference temperature)**3`.
   - `SCL`: scale factor.
   - `TREF`: reference temperature (deg C).

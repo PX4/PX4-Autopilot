@@ -1,5 +1,7 @@
 # Holybro Pixhawk 4 Mini (Discontinued)
 
+<Badge type="info" text="Discontinued" px4_current="v1.15" year="2024"/>
+
 :::warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
@@ -29,24 +31,24 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
   - 기압계: MS5611
 - GPS: u-blox Neo-M8N GPS/GLONASS 수신기; 통합 자력계 IST8310
 - 인터페이스:
-  - 8 PWM 출력
-  - FMU의 전용 PWM / 캡처 입력 4 개
+  - 8 PWM outputs
+  - 4 dedicated PWM/Capture inputs on FMU
   - CPPM 전용 RC 입력
   - 아날로그/PWM RSSI 입력이있는 Spektrum/DSM 및 S.Bus 전용 RC 입력
   - 범용 시리얼 포트 3개
-  - I2C 포트 2개
-  - SPI 버스 3개
-  - CAN ESC용 CANBus 1개
+  - 2 I2C ports
+  - 3 SPI buses
+  - 1 CANBuses for CAN ESC
   - 배터리 전압/전류에 대한 아날로그 입력
   - 2개의 추가 아날로그 입력
 - 전원시스템
-  - 파워 브릭 입력 : 4.75 ~ 5.5V
+  - Power Brick Input: 4.75~5.5V
   - USB 전원 입력: 4.75~5.25V
-  - 서보 레일 입력: 0~24V
+  - Servo Rail Input: 0~24V
   - 최대 전류 감지: 120A
 - 중량과 크기
-  - 중량: 37.2g
-  - 크기: 38x55x15.5mm
+  - Weight: 37.2g
+  - Dimensions: 38x55x15.5mm
 - 기타 특성:
   - 작동 온도: -40 ~ 85°c
 
@@ -54,7 +56,7 @@ Additional information can be found in the [_Pixhawk 4 Mini_ Technical Data Shee
 
 ## 구매처
 
-Order from [Holybro](https://holybro.com/collections/autopilot-flight-controllers/products/pixhawk4-mini).
+No longer available.
 
 ## 인터페이스
 
@@ -90,7 +92,7 @@ You must [supply power](../assembly/quick_start_pixhawk4_mini.md#power) to one o
 
 **Absolute Maximum Ratings**
 
-이러한 조건에서 시스템은 그대로 유지됩니다.
+Under these conditions the system will remain intact.
 
 1. **POWER** input (0V to 6V undamaged)
 2. **USB** input (0V to 6V undamaged)
@@ -141,15 +143,15 @@ The pinout uses the standard [Pixhawk debug connector](https://github.com/pixhaw
 - [Telemetry Radio Modules](../telemetry/index.md)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 
-## 지원 플랫폼
+## Supported Platforms
 
 Motors and servos are connected to the **MAIN OUT** ports in the order specified for your vehicle in the [Airframe Reference](../airframes/airframe_reference.md).
 이 참고사항은 모든 지원되는 기체 프레임의 출력 포트의 모터/서보 연결 리스트입니다. 프레임이 참고사항에 기재되어 있지 않다면, 올바른 유형의 "일반" 프레임을 사용하십시오.
 
 :::warning
 _Pixhawk 4 Mini_ does not have AUX ports.
-이 보드는 8 개 이상의 포트가 필요하거나, 모터 또는 제어 표면에 AUX 포트를 사용하는 프레임에 사용할 수 없습니다.
-비필수 주변 장치에 AUX를 사용하는 기체에 사용할 수 있습니다(예 : "RC AUX1 채널의 피드 스루").
+The board cannot be used with frames that require more than 8 ports or which use AUX ports for motors or control surfaces.
+It can be used for airframes that use AUX for non-essential peripherals (e.g. "feed-through of RC AUX1 channel").
 :::
 
 ## 추가 정보

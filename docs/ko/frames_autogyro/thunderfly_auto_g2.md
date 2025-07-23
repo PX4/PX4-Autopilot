@@ -11,7 +11,7 @@ Check out our site for more information on the current [TF-G2 commercial airfram
 :::
 
 All the added parts are available on [GitHub](https://github.com/ThunderFly-aerospace/Auto-G2) as an open-source project.
-Printed parts are designed in [OpenSCAD](https://www.openscad.org/).
+Printed parts are designed in [OpenSCAD](https://openscad.org/).
 
 ## 수정 내역
 
@@ -70,7 +70,7 @@ The rotor's central part consists of several components, which have the followin
 #### HobbyKing 로터 블레이드
 
 원 블레이드와 함께 로터의 인쇄된 중앙 부분을 사용할 수 있습니다.
-These blades can be bought on [HobbyKing](https://hobbyking.com/en_us/duraflytm-auto-g-gyrocopter-821mm-replacement-main-blade-1pcs-bag.html).
+The blades used were "Durafly™ Auto-G2 Gyrocopter 821mm - Replacement Main Blade" (Discontinued)
 Hobbyking blades differ in the position of the center of gravity, and it is therefore necessary to balance them properly.
 
 #### 3D 프린팅 로터 블레이드
@@ -106,7 +106,7 @@ It is a small box equipped with a servo that pulls out the pin and releases the 
 
 - Autopilot ([Holybro pix32](../flight_controller/holybro_pix32.md), [CUAV nano](../flight_controller/cuav_v5_nano.md))
 - GPS (GPS Module NEO-6M, with patch antenna)
-- Airspeed sensor ([SDP3x](https://www.sensirion.com/en/flow-sensors/differential-pressure-sensors/worlds-smallest-differential-pressure-sensor/))
+- Airspeed sensor ([SDP3x series](https://sensirion.com/products/catalog?categories=differential-pressure&series=SDP3x&page=1&page_size=12))
 - Stronger servos as a substitution for the original ones (optional), ([BlueBird BMS-125WV](https://www.blue-bird-model.com/products_detail/411.htm))
 - 릴리스 장치용 추가 서보 (옵션)
 
@@ -143,7 +143,7 @@ It is a small box equipped with a servo that pulls out the pin and releases the 
 - Servos with improved quality (recommended [BlueBird BMS-125WV](https://www.blue-bird-model.com/products_detail/411.htm), original servos are not very durable))
 - Propeller ([APC 10x7](https://www.apcprop.com/product/10x7e/))
 - 변형 영역이있는 로터 중앙 플레이트 (3D 인쇄)
-- Rotor blades ([HobbyKing](https://hobbyking.com/en_us/duraflytm-auto-g-gyrocopter-821mm-replacement-main-blade-1pcs-bag.html) or 3D printed)
+- Rotor blades ("Durafly™ Auto-G2 Gyrocopter 821mm" (Discontinued on HobbyKing), similar blades, or 3D printed)
 
 ## 비디오
 

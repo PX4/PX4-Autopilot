@@ -56,7 +56,7 @@ The Reptile Dragon 2 is a twin motor RC airplane specifically designed for effic
 
 - Модуль диференційного тиску MS4525DO та пітот-трубка
 
-- [Caddx Vista FPV air unit](https://caddxfpv.com/products/caddx-vista-kit)
+- [Caddx Vista FPV air unit](https://caddxfpv.com/collections/vista-kit)
 
 - [Emax ES08MA ii](https://emaxmodel.com/products/emax-es08ma-ii-12g-mini-metal-gear-analog-servo-for-rc-model-robot-pwm-servo)
 
