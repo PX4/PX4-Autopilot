@@ -298,6 +298,10 @@ void FlightTaskAuto::_prepareLandSetpoints()
 				_velocity_setpoint_feedback.xy(), _deltatime);
 		_stick_acceleration_xy.getSetpoints(_land_position, _velocity_setpoint, _acceleration_setpoint);
 
+		PX4_INFO("_land_position: (%.2f, %.2f)", (double) _land_position(0), (double) _land_position(1));
+		PX4_INFO("_velocity_setpoint: (%.2f, %.2f)", (double) _velocity_setpoint(0), (double) _velocity_setpoint(1));
+		PX4_INFO("_acceleration_setpoint: (%.2f, %.2f)\n", (double) _acceleration_setpoint(0), (double) _acceleration_setpoint(1));
+
 	} else {
 		// Make sure we have a valid land position even in the case we loose RC while amending it
 		if (!PX4_ISFINITE(_land_position(0))) {
