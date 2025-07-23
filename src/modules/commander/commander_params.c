@@ -735,6 +735,8 @@ PARAM_DEFINE_INT32(COM_MOT_TEST_EN, 1);
 /**
  * Timeout value for disarming when kill switch is engaged
  *
+ * Use RC_MAP_KILL_SW to map a kill switch.
+ *
  * @group Commander
  * @unit s
  * @min 0.0

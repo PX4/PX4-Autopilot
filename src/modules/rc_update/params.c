@@ -1416,6 +1416,10 @@ PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
 /**
  * Emergency Kill switch channel
  *
+ * This channel immediately sets all outputs to their disarmed values, parachutes are NOT deployed.
+ * Unlike termination this can be undone. Quickly flipping the switch back restores control.
+ * System auto-disarms after COM_KILL_DISARM seconds, preflight checks and re-arming are then required.
+ *
  * @min 0
  * @max 18
  * @group Radio Switches
@@ -1442,13 +1446,13 @@ PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_KILL_SW, 0);
 
 /**
- * Termination switch channel.
+ * Termination switch channel
  *
- * Use this channel to trigger flight termination. When flight termination is activated,
- * PX4 disables all controllers and sets all PWM outputs to their failsafe values.
+ * This channel triggers irreversible flight termination:
+ * All outputs are disabled and set to their failsafe values (disarmed by default)
+ * and MAVLink parachutes are triggered.
  *
- * Note: Flight termination is irreversible—once triggered, it cannot be undone.
- * This is unlike a kill switch, which can be toggled back. Use with caution.
+ * Unlike a kill switch, this cannot be undone until system reboot. Use with caution.
  *
  * @min 0
  * @max 18
