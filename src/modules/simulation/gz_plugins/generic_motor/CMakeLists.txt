@@ -31,39 +31,38 @@
 #
 ############################################################################
 
-project(px4_gz_plugins)
+# Template for a new plugin project
+# Replace TemplatePlugin with your plugin name
+project(GenericMotorModelPlugin)
 
-if(NOT DEFINED ENV{GZ_DISTRO} OR NOT "$ENV{GZ_DISTRO}"  STREQUAL "harmonic")
-    find_package(gz-transport NAMES gz-transport14 gz-transport13)
-    find_package(gz-sim NAMES gz-sim9 gz-sim8)
-    find_package(gz-sensors NAMES gz-sensors9 gz-sensors8)
-    find_package(gz-plugin NAMES gz-plugin3 gz-plugin2 COMPONENTS register)
-else()
-    find_package(gz-transport NAMES gz-transport13)
-    find_package(gz-sim NAMES gz-sim8)
-    find_package(gz-sensors NAMES gz-sensors8)
-    find_package(gz-plugin NAMES gz-plugin2 COMPONENTS register)
-endif()
+# Add external dependencies if needed
+# include(${CMAKE_CURRENT_SOURCE_DIR}/dependency.cmake)
 
-if (gz-transport_FOUND)
-    # Create a flat output directory for all plugin libraries
-    set(PX4_GZ_PLUGIN_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "Directory for all Gazebo plugin libraries")
-    file(MAKE_DIRECTORY ${PX4_GZ_PLUGIN_OUTPUT_DIR})
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PX4_GZ_PLUGIN_OUTPUT_DIR})
+# Find required packages
+# find_package(PackageName REQUIRED)
 
-    # Add our plugins as subdirectories
-    add_subdirectory(optical_flow)
-    add_subdirectory(template_plugin)
-    add_subdirectory(gstreamer)
-    add_subdirectory(moving_platform_controller)
-    add_subdirectory(generic_motor)
-    add_subdirectory(buoyancy)
-    add_subdirectory(spacecraft_thruster)
+add_library(${PROJECT_NAME} SHARED
+    # Add your source files here
+    GenericMotorModel.cpp
+)
 
-    # Add an alias target for each plugin
-    if (TARGET GstCameraSystem)
-        add_custom_target(px4_gz_plugins ALL DEPENDS OpticalFlowSystem MovingPlatformController TemplatePlugin GenericMotorModelPlugin BuoyancySystemPlugin GstCameraSystem SpacecraftThrusterModelPlugin)
-    else()
-        add_custom_target(px4_gz_plugins ALL DEPENDS OpticalFlowSystem MovingPlatformController TemplatePlugin GenericMotorModelPlugin BuoyancySystemPlugin SpacecraftThrusterModelPlugin)
-    endif()
-endif()
+target_link_libraries(${PROJECT_NAME}
+    PUBLIC px4_gz_msgs
+    PUBLIC gz-sensors${gz-sensors_VERSION_MAJOR}::gz-sensors${gz-sensors_VERSION_MAJOR}
+    PUBLIC gz-plugin${gz-plugin_VERSION_MAJOR}::gz-plugin${gz-plugin_VERSION_MAJOR}
+    PUBLIC gz-sim${gz-sim_VERSION_MAJOR}::gz-sim${gz-sim_VERSION_MAJOR}
+    PUBLIC gz-transport${gz-transport_VERSION_MAJOR}::gz-transport${gz-transport_VERSION_MAJOR}
+    # Add other dependencies as needed
+    # PUBLIC ${OtherLib_LIBS}
+)
+
+target_include_directories(${PROJECT_NAME}
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
+    PUBLIC px4_gz_msgs
+    # Add other include directories as needed
+    # PUBLIC ${OtherLib_INCLUDE_DIRS}
+)
+
+# Add dependencies if needed
+# add_dependencies(${PROJECT_NAME} ExternalDependency)
