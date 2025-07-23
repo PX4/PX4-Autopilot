@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,25 +31,12 @@
 #
 ############################################################################
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-add_subdirectory(SpacecraftRateControl)
-add_subdirectory(SpacecraftAttitudeControl)
-add_subdirectory(SpacecraftPositionControl)
+add_subdirectory(AttitudeControl)
 
-px4_add_module(
-	MODULE modules__spacecraft
-	MAIN spacecraft
-	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
-	STACK_MAIN
-		3000
-	SRCS
-		SpacecraftHandler.cpp
-		SpacecraftHandler.hpp
-	DEPENDS
-		mathlib
-		px4_work_queue
-		SpacecraftRateControl
-		SpacecraftAttitudeControl
-		SpacecraftPositionControl
+px4_add_library(SpacecraftAttitudeControl
+SpacecraftAttitudeControl.cpp
 )
+
+target_link_libraries(SpacecraftAttitudeControl PUBLIC mathlib)
+target_link_libraries(SpacecraftAttitudeControl PUBLIC AttitudeControlLibrary)
+target_include_directories(SpacecraftAttitudeControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

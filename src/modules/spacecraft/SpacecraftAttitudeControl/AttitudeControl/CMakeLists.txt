@@ -31,25 +31,14 @@
 #
 ############################################################################
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-add_subdirectory(SpacecraftRateControl)
-add_subdirectory(SpacecraftAttitudeControl)
-add_subdirectory(SpacecraftPositionControl)
-
-px4_add_module(
-	MODULE modules__spacecraft
-	MAIN spacecraft
-	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
-	STACK_MAIN
-		3000
-	SRCS
-		SpacecraftHandler.cpp
-		SpacecraftHandler.hpp
-	DEPENDS
-		mathlib
-		px4_work_queue
-		SpacecraftRateControl
-		SpacecraftAttitudeControl
-		SpacecraftPositionControl
+px4_add_library(AttitudeControlLibrary
+	AttitudeControl.cpp
+	AttitudeControl.hpp
+	AttitudeControlMath.hpp
 )
+target_compile_options(AttitudeControlLibrary PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_include_directories(AttitudeControlLibrary PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+# TODO: Add unit tests
+# px4_add_unit_gtest(SRC ScAttitudeControlTest.cpp LINKLIBS SpacecraftAttitudeControl)
+# px4_add_unit_gtest(SRC ScAttitudeControlMathTest.cpp LINKLIBS SpacecraftAttitudeControl)
