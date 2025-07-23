@@ -949,67 +949,67 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 {
 #if defined(CONFIG_EKF2_AIRSPEED)
 	// airspeed
-	PublishAidSourceStatus(_ekf.aid_src_airspeed(), _status_airspeed_pub_last, _estimator_aid_src_airspeed_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_airspeed(), _status_airspeed_pub_last, _estimator_aid_src_airspeed_pub);
 #endif // CONFIG_EKF2_AIRSPEED
 #if defined(CONFIG_EKF2_SIDESLIP)
 	// sideslip
-	PublishAidSourceStatus(_ekf.aid_src_sideslip(), _status_sideslip_pub_last, _estimator_aid_src_sideslip_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_sideslip(), _status_sideslip_pub_last, _estimator_aid_src_sideslip_pub);
 #endif // CONFIG_EKF2_SIDESLIP
 #if defined(CONFIG_EKF2_BAROMETER)
 	// baro height
-	PublishAidSourceStatus(_ekf.aid_src_baro_hgt(), _status_baro_hgt_pub_last, _estimator_aid_src_baro_hgt_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_baro_hgt(), _status_baro_hgt_pub_last, _estimator_aid_src_baro_hgt_pub);
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	// drag
-	PublishAidSourceStatus(_ekf.aid_src_drag(), _status_drag_pub_last, _estimator_aid_src_drag_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_drag(), _status_drag_pub_last, _estimator_aid_src_drag_pub);
 #endif // CONFIG_EKF2_DRAG_FUSION
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// RNG height
-	PublishAidSourceStatus(_ekf.aid_src_rng_hgt(), _status_rng_hgt_pub_last, _estimator_aid_src_rng_hgt_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_rng_hgt(), _status_rng_hgt_pub_last, _estimator_aid_src_rng_hgt_pub);
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 	// fake position
-	PublishAidSourceStatus(_ekf.aid_src_fake_pos(), _status_fake_pos_pub_last, _estimator_aid_src_fake_pos_pub);
-	PublishAidSourceStatus(_ekf.aid_src_fake_hgt(), _status_fake_hgt_pub_last, _estimator_aid_src_fake_hgt_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_fake_pos(), _status_fake_pos_pub_last, _estimator_aid_src_fake_pos_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_fake_hgt(), _status_fake_hgt_pub_last, _estimator_aid_src_fake_hgt_pub);
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// external vision (EV) hgt/pos/vel/yaw
-	PublishAidSourceStatus(_ekf.aid_src_ev_hgt(), _status_ev_hgt_pub_last, _estimator_aid_src_ev_hgt_pub);
-	PublishAidSourceStatus(_ekf.aid_src_ev_pos(), _status_ev_pos_pub_last, _estimator_aid_src_ev_pos_pub);
-	PublishAidSourceStatus(_ekf.aid_src_ev_vel(), _status_ev_vel_pub_last, _estimator_aid_src_ev_vel_pub);
-	PublishAidSourceStatus(_ekf.aid_src_ev_yaw(), _status_ev_yaw_pub_last, _estimator_aid_src_ev_yaw_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_ev_hgt(), _status_ev_hgt_pub_last, _estimator_aid_src_ev_hgt_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_ev_pos(), _status_ev_pos_pub_last, _estimator_aid_src_ev_pos_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_ev_vel(), _status_ev_vel_pub_last, _estimator_aid_src_ev_vel_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_ev_yaw(), _status_ev_yaw_pub_last, _estimator_aid_src_ev_yaw_pub);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
 	// GNSS hgt/pos/vel/yaw
-	PublishAidSourceStatus(_ekf.aid_src_gnss_hgt(), _status_gnss_hgt_pub_last, _estimator_aid_src_gnss_hgt_pub);
-	PublishAidSourceStatus(_ekf.aid_src_gnss_pos(), _status_gnss_pos_pub_last, _estimator_aid_src_gnss_pos_pub);
-	PublishAidSourceStatus(_ekf.aid_src_gnss_vel(), _status_gnss_vel_pub_last, _estimator_aid_src_gnss_vel_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_gnss_hgt(), _status_gnss_hgt_pub_last, _estimator_aid_src_gnss_hgt_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_gnss_pos(), _status_gnss_pos_pub_last, _estimator_aid_src_gnss_pos_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_gnss_vel(), _status_gnss_vel_pub_last, _estimator_aid_src_gnss_vel_pub);
 # if defined(CONFIG_EKF2_GNSS_YAW)
-	PublishAidSourceStatus(_ekf.aid_src_gnss_yaw(), _status_gnss_yaw_pub_last, _estimator_aid_src_gnss_yaw_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_gnss_yaw(), _status_gnss_yaw_pub_last, _estimator_aid_src_gnss_yaw_pub);
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// mag 3d
-	PublishAidSourceStatus(_ekf.aid_src_mag(), _status_mag_pub_last, _estimator_aid_src_mag_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_mag(), _status_mag_pub_last, _estimator_aid_src_mag_pub);
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	// gravity
-	PublishAidSourceStatus(_ekf.aid_src_gravity(), _status_gravity_pub_last, _estimator_aid_src_gravity_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_gravity(), _status_gravity_pub_last, _estimator_aid_src_gravity_pub);
 #endif // CONFIG_EKF2_GRAVITY_FUSION
 
 #if defined(CONFIG_EKF2_AUXVEL)
 	// aux velocity
-	PublishAidSourceStatus(_ekf.aid_src_aux_vel(), _status_aux_vel_pub_last, _estimator_aid_src_aux_vel_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_aux_vel(), _status_aux_vel_pub_last, _estimator_aid_src_aux_vel_pub);
 #endif // CONFIG_EKF2_AUXVEL
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// optical flow
-	PublishAidSourceStatus(_ekf.aid_src_optical_flow(), _status_optical_flow_pub_last, _estimator_aid_src_optical_flow_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_optical_flow(), _status_optical_flow_pub_last, _estimator_aid_src_optical_flow_pub);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 }
 
