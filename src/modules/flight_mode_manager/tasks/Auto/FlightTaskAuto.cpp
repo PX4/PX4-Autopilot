@@ -293,10 +293,21 @@ void FlightTaskAuto::_prepareLandSetpoints()
 
 		PX4_INFO(" max speed: %.2f", (double) max_speed);
 
-		_stick_acceleration_xy.setVelocityConstraint(max_speed);
-		_stick_acceleration_xy.generateSetpoints(sticks_xy, _yaw, _land_heading, pos,
-				_velocity_setpoint_feedback.xy(), _deltatime);
-		_stick_acceleration_xy.getSetpoints(_land_position, _velocity_setpoint, _acceleration_setpoint);
+		if (position_valid) {
+			_stick_acceleration_xy.setVelocityConstraint(max_speed);
+			_stick_acceleration_xy.generateSetpoints(sticks_xy, _yaw, _land_heading, pos,
+					_velocity_setpoint_feedback.xy(), _deltatime);
+			_stick_acceleration_xy.getSetpoints(_land_position, _velocity_setpoint, _acceleration_setpoint);
+		} else {
+			// Position independent nudging from FlightTaskDescend
+			_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, _sticks.getYawExpo(), _yaw, _deltatime);
+			_acceleration_setpoint.xy() = _stick_tilt_xy.generateAccelerationSetpoints(_sticks.getPitchRoll(), _deltatime, _yaw,
+						_yaw_setpoint);
+
+			// Stick full up -1 -> stop, stick full down 1 -> double the value
+			_velocity_setpoint(2) *= (1 - _sticks.getThrottleZeroCenteredExpo());
+			_acceleration_setpoint(2) -= _sticks.getThrottleZeroCentered() * 10.f;
+		}
 
 		PX4_INFO("_land_position: (%.2f, %.2f)", (double) _land_position(0), (double) _land_position(1));
 		PX4_INFO("_velocity_setpoint: (%.2f, %.2f)", (double) _velocity_setpoint(0), (double) _velocity_setpoint(1));
