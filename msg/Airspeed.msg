@@ -2,7 +2,6 @@
 #
 # This is published by airspeed sensor drivers, CAN airspeed sensors, simulators.
 # It is subscribed by the airspeed selector module, which validates the data from multiple sensors and passes on a single estimation to the EKF, controllers and telemetry providers.
-# along with a number of other modules such as the one for HOTT telemetry.
 
 uint64 timestamp # [us] Time since system start
 uint64 timestamp_sample # [us] Timestamp of the raw data
