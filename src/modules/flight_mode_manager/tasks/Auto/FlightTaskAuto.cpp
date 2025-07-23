@@ -266,21 +266,28 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		Vector2f sticks_ne = sticks_xy;
 		Sticks::rotateIntoHeadingFrameXY(sticks_ne, _yaw, _land_heading);
 
-		const float distance_to_circle = math::trajectory::getMaxDistanceToCircle(_position.xy(), _initial_land_position.xy(),
-						 _param_mpc_land_radius.get(), sticks_ne);
-		float max_speed;
+		const bool land_radius_enabled = _param_mpc_land_radius.get() > 0.0f;
+		const bool position_valid = Vector2f(_position).isAllFinite();
 
-		if (PX4_ISFINITE(distance_to_circle)) {
-			max_speed = math::trajectory::computeMaxSpeedFromDistance(_stick_acceleration_xy.getMaxJerk(),
-					_stick_acceleration_xy.getMaxAcceleration(), distance_to_circle, 0.f);
+		float max_speed = INFINITY;
 
-			if (max_speed < 0.5f) {
+		if (position_valid && land_radius_enabled) {
+
+			// = NaN if we are outside of the circle and nudging does not point back towards it
+			const float distance_to_circle = math::trajectory::getMaxDistanceToCircle(_position.xy(), _initial_land_position.xy(),
+							_param_mpc_land_radius.get(), sticks_ne);
+			if (PX4_ISFINITE(distance_to_circle)) {
+				max_speed = math::trajectory::computeMaxSpeedFromDistance(_stick_acceleration_xy.getMaxJerk(),
+						_stick_acceleration_xy.getMaxAcceleration(), distance_to_circle, 0.f);
+
+				if (max_speed < 0.5f) {
+					sticks_xy.setZero();
+				}
+
+			} else {
+				max_speed = 0.f;
 				sticks_xy.setZero();
 			}
-
-		} else {
-			max_speed = 0.f;
-			sticks_xy.setZero();
 		}
 
 		_stick_acceleration_xy.setVelocityConstraint(max_speed);
