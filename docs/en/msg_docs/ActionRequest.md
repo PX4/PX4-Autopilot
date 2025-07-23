@@ -1,7 +1,5 @@
 # ActionRequest (UORB message)
 
-
-
 [source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/ActionRequest.msg)
 
 ```c
@@ -16,6 +14,7 @@ uint8 ACTION_KILL = 4
 uint8 ACTION_SWITCH_MODE = 5
 uint8 ACTION_VTOL_TRANSITION_TO_MULTICOPTER = 6
 uint8 ACTION_VTOL_TRANSITION_TO_FIXEDWING = 7
+uint8 ACTION_TERMINATE = 8
 
 uint8 source # how the request was triggered
 uint8 SOURCE_STICK_GESTURE = 0
