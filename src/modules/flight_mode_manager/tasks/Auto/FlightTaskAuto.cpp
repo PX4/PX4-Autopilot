@@ -271,7 +271,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 
 		float max_speed = INFINITY;
 
-		if (land_radius_enabled && position_valid) {
+		if (position_valid && land_radius_enabled) {
 			const float distance_to_circle = math::trajectory::getMaxDistanceToCircle(_position.xy(), _initial_land_position.xy(),
 							 _param_mpc_land_radius.get(), sticks_ne);
 
