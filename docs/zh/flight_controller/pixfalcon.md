@@ -1,6 +1,6 @@
 # Pixfalcon Flight Controller (Discontinued)
 
-<Badge type="info" text="Discontinued" />
+<Badge type="info" text="Discontinued" px4_current="v1.15" year="2024"/>
 
 :::warning
 This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
@@ -34,14 +34,14 @@ The Pixfalcon autopilot (designed by [Holybro<sup>&reg;</sup>](https://holybro.c
 
 ## 访问链接:
 
-From distributor [Hobbyking<sup>&reg;</sup>](https://hobbyking.com/en_us/pixfalcon-micro-px4-autopilot-plus-micro-m8n-gps-and-mega-pbd-power-module.html)
+No longer available.
 
 Optional hardware:
 
 - Optical flow: PX4 Flow unit from manufacturer [Holybro](https://holybro.com/products/px4flow)
-- Digital Airspeed sensor from manufacturer [Holybro](https://holybro.com/products/digital-air-speed-sensor-ms4525do) or distributor [Hobbyking](https://hobbyking.com/en_us/hkpilot-32-digital-air-speed-sensor-and-pitot-tube-set.html)
+- Digital Airspeed sensor from manufacturer [Holybro](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - On screen display with integrated Telemetry:
-  - [Hobbyking OSD + EU Telemetry (433 MHz)](https://hobbyking.com/en_us/micro-hkpilot-telemetry-radio-module-with-on-screen-display-osd-unit-433mhz.html)
+  - Micro HKPilot Telemetry Radio Module with On Screen Display (OSD) unit - 433MHz. (Discontinued)
 - Pure Telemetry options:
   - [SIK Radios](../telemetry/sik_radio.md)
 

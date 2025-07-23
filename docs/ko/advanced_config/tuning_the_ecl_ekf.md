@@ -446,9 +446,7 @@ Airspeed data will be used when it exceeds the threshold set by a positive value
 Fixed-wing platforms can take advantage of an assumed sideslip observation of zero to improve wind speed estimation and also enable wind speed estimation without an airspeed sensor.
 This is enabled by setting the [EKF2_FUSE_BETA](../advanced_config/parameter_reference.md#EKF2_FUSE_BETA) parameter to 1.
 
-<a id="mc_wind_estimation_using_drag"></a>
-
-### 항력을 사용한 멀티콥터 바람 추정
+### Multicopter Wind Estimation using Drag Specific Forces {#mc_wind_estimation_using_drag}
 
 Multi-rotor platforms can take advantage of the relationship between airspeed and drag force along the X and Y body axes to estimate North/East components of wind velocity.
 This can be enabled using [EKF2_DRAG_CTRL](../advanced_config/parameter_reference.md#EKF2_DRAG_CTRL).

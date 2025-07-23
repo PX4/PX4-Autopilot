@@ -9,7 +9,7 @@ CAN PMU<sup>&reg;</sup> is a high-precision [DroneCAN](index.md) power module de
 
 ## Де купити
 
-- [CUAV store](https://store.cuav.net/index.php)
+- [CUAV store](https://store.cuav.net/)
 - [CUAV aliexpress ](https://www.aliexpress.com/item/4000369700535.html)
 
 ## Характеристики обладнання
