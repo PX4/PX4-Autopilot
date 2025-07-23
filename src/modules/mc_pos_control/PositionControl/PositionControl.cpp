@@ -228,9 +228,6 @@ bool PositionControl::_inputValid()
 	// Every axis x, y, z needs to have some setpoint
 	for (int i = 0; i <= 2; i++) {
 		valid = valid && (PX4_ISFINITE(_pos_sp(i)) || PX4_ISFINITE(_vel_sp(i)) || PX4_ISFINITE(_acc_sp(i)));
-		if (!valid) {
-			printf("invalidated at axis %d. pos finite %d, vel finite %d, acc finite %d\n", i, PX4_ISFINITE(_pos_sp(i)), PX4_ISFINITE(_vel_sp(i)), PX4_ISFINITE(_acc_sp(i)));
-		}
 	}
 
 	// x and y input setpoints always have to come in pairs
@@ -247,6 +244,13 @@ bool PositionControl::_inputValid()
 		if (PX4_ISFINITE(_vel_sp(i))) {
 			valid = valid && PX4_ISFINITE(_vel(i)) && PX4_ISFINITE(_vel_dot(i));
 		}
+	}
+	if (!valid) {
+
+		printf("invalidated with:\n_pos_sp: (%.2f, %.2f, %.2f)\n", (double) _pos_sp(0), (double) _pos_sp(1), (double) _pos_sp(2));
+		printf("_vel_sp: (%.2f, %.2f, %.2f)\n", (double) _vel_sp(0), (double) _vel_sp(1), (double) _vel_sp(2));
+		printf("_acc_sp: (%.2f, %.2f, %.2f)\n", (double) _acc_sp(0), (double) _acc_sp(1), (double) _acc_sp(2));
+
 	}
 
 	return valid;
