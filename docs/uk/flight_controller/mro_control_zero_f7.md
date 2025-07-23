@@ -29,8 +29,8 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - Датчики:
   - [Bosch BMI088](https://www.bosch-sensortec.com/products/motion-sensors/imus/bmi088/) 3-axis accelerometer/gyroscope (internally vibration dampened)
   - [Invensense ICM-20602](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-20602/) 3-axis accelerometer/gyroscope
-  - [Invensense ICM-20948](https://www.invensense.com/products/motion-tracking/9-axis/icm-20948/) 3-axis accelerometer/gyroscope/magnetometer
-  - [Infineon DPS310 barometer](https://www.infineon.com/cms/en/product/sensor/pressure-sensors/pressure-sensors-for-iot/dps310/) (So smooth and NO more light sensitivity)
+  - [Invensense ICM-20948](https://invensense.tdk.com/products/motion-tracking/9-axis/icm-20948/) 3-axis accelerometer/gyroscope/magnetometer
+  - [Infineon DPS310 barometer](https://www.infineon.com/assets/row/public/documents/24/49/infineon-dps310-datasheet-en.pdf) - [Discontinued](https://www.infineon.com/part/DPS310) (So smooth and NO more light sensitivity)
 
 - Інтерфейси:
   - 6x UART (загальна кількість послідовних портів), 3x з HW керуванням потоком, 1x FRSky Telemetry (типи D або Х), 1x Консоль та 1x GPS+I2C
@@ -92,7 +92,7 @@ The [SWD port](../debug/swd_debug.md) (JTAG) for FMU debugging is a TC2030 debug
 
 ![mro swd port](../../assets/flight_controller/mro_control_zero_f7/mro_control_zero_f7_swd.jpg)
 
-You can use the [Tag Connect](https://www.tag-connect.com/) cable [TC2030 IDC NL](https://www.tag-connect.com/product/tc2030-idc-nl) below (with associated [retaining clip](https://www.tag-connect.com/product/tc2030-clip-retaining-clip-board-for-tc2030-nl-cables)) to attach to either a BlackMagic probe or a ST-LINK V2 debugger.
+You can use the [Tag Connect](https://www.tag-connect.com/) cable [TC2030 IDC NL](https://www.tag-connect.com/product/tc2030-idc-nl) below (with associated [retaining clip](https://www.tag-connect.com/product/tc2030-retaining-clip-board-3-pack)) to attach to either a BlackMagic probe or a ST-LINK V2 debugger.
 
 ![tc2030 idc nl cable](../../assets/flight_controller/mro_control_zero_f7/tc2030_idc_nl.jpg)
 

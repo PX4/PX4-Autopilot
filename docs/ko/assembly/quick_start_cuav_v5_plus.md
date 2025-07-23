@@ -114,9 +114,7 @@ The vehicle-based radio should be connected to either the `TELEM1` or `TELEM2` p
 
 ![V5+ AutoPilot](../../assets/flight_controller/cuav_v5_plus/connection/v5+_quickstart_06.png)
 
-<a id="sd_card"></a>
-
-## SD 카드(선택 사항)
+## SD Card (Optional) {#sd_card}
 
 An [SD card](../getting_started/px4_basic_concepts.md#sd-cards-removable-memory) is inserted in the factory (you do not need to do anything).
 

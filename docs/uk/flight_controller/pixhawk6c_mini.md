@@ -109,15 +109,15 @@ Please refer to the [Pixhawk 4 Mini Wiring Quick Start](../assembly/quick_start_
 
 ## Налаштування послідовного порту
 
-| UART   | Пристрій   | Опис параметра QGC | Мітка порту на FC |
-| ------ | ---------- | ------------------ | ----------------- |
-| USART1 | /dev/ttyS0 | GPS1               | GPS1              |
-| USART2 | /dev/ttyS1 | TELEM3             | N/A               |
-| USART3 | /dev/ttyS2 | N/A                | FMU Debug         |
-| UART5  | /dev/ttyS3 | TELEM2             | TELEM2            |
-| USART6 | /dev/ttyS4 | PX4IO              | I/O PWM Out       |
-| UART7  | /dev/ttyS5 | TELEM1             | TELEM1            |
-| UART8  | /dev/ttyS6 | GPS2               | GPS2              |
+| UART   | Пристрій   | QGC Parameter Description | Port Label on FC |
+| ------ | ---------- | ------------------------- | ---------------- |
+| USART1 | /dev/ttyS0 | GPS1                      | GPS1             |
+| USART2 | /dev/ttyS1 | TELEM3                    | N/A              |
+| USART3 | /dev/ttyS2 | N/A                       | FMU Debug        |
+| UART5  | /dev/ttyS3 | TELEM2                    | TELEM2           |
+| USART6 | /dev/ttyS4 | PX4IO                     | I/O PWM Out      |
+| UART7  | /dev/ttyS5 | TELEM1                    | TELEM1           |
+| UART8  | /dev/ttyS6 | GPS2                      | GPS2             |
 
 <!-- See https://docs.px4.io/main/en/hardware/serial_port_mapping.html#serial-port-mapping -->
 

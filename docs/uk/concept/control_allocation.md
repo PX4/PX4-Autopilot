@@ -46,7 +46,7 @@ PX4 відокремлює цю логіку перекладу, що назив
     Драйвер визначає префікс параметру, наприклад `PWM_MAIN`, який бібліотека використовує для налаштування.
     Її головне завдання зробити вибірку з вхідних дані та призначити правильні дані на виходи засновуючись на встановлених користувачем значеннях параметрів `<param_prefix>_FUNCx`.
     Наприклад, якщо `PWM_MAIN_FUNC3` встановлено у **Motor 2**, це означає що на 2-й двигун з `actuator_motors` встановлено 3-й вивід.
-  - output functions are defined under [src/lib/mixer_module/output_functions.yaml](https://github.com/PX4/PX4-Autopilot/tree/main/src/lib/mixer_module/output_functions.yaml).
+  - output functions are defined under [src/lib/mixer_module/output_functions.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/mixer_module/output_functions.yaml).
 - якщо ви хочете керувати виводом з MAVLink, встановіть відповідну вихідну функцію в **Offboard Actuator Set x**, а потім відправте MAVLink команду [MAV_CMD_DO_SETUATOR](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ACTUATOR).
 
 ## Додавання нової геометрії або функції виводу
