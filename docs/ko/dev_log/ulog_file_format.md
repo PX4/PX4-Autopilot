@@ -495,12 +495,12 @@ Since the Definitions and Data Sections use the same message header format, they
 - [FlightPlot](https://github.com/PX4/FlightPlot): Java, log plotter.
 - [MAVLink](https://github.com/mavlink/mavlink): Messages for ULog streaming via MAVLink (note that appending data is not supported, at least not for cut off messages).
 - [QGroundControl](https://github.com/mavlink/qgroundcontrol): C++, ULog streaming via MAVLink and minimal parsing for GeoTagging.
-- [mavlink-router](https://github.com/01org/mavlink-router): C++, ULog streaming via MAVLink.
+- [mavlink-router](https://github.com/mavlink-router/mavlink-router): C++, ULog streaming via MAVLink.
 - [MAVGAnalysis](https://github.com/ecmnet/MAVGCL): Java, ULog streaming via MAVLink and parser for plotting and analysis.
 - [PlotJuggler](https://github.com/facontidavide/PlotJuggler): C++/Qt application to plot logs and time series. 버전 2.1.3부터 ULog를 지원합니다.
 - [ulogreader](https://github.com/maxsun/ulogreader): Javascript, ULog reader and parser outputs log in JSON object format.
-- [Foxglove Studio](https://github.com/foxglove/studio): an integrated visualization and diagnosis tool for robotics
-  (Typescript ULog parser: https://github.com/foxglove/ulog).
+- [Foxglove](https://foxglove.dev): an integrated visualization and diagnosis tool for robotics data that supports ULog files.
+- [TypeScript ULog parser](https://github.com/foxglove/ulog): TypeScript, ULog reader that outputs JS objects.
 
 ## 파일 형식 버전 이력
 

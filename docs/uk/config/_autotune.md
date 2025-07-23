@@ -131,6 +131,20 @@ Additional notes:
 
 - Whether tuning is applied while flying or after landing can be [configured using parameters](#apply-tuning-when-in-air-landed).
 
+<div v-if="$frontmatter.frame === 'Multicopter'">
+
+## Autotuning Large Vehicles
+
+For big multicopter vehicles you may need to increase the desired raise time of the step response [MC_AT_RISE_TIME](../advanced_config/parameter_reference.md#MC_AT_RISE_TIME).
+This requires some trial and error as an appropriate rise time depends on both vehicle size and the rotor response.
+
+Note that if there are slow oscillations in pretuning it may mean that the attitude loop is too fast compared to the rate loop.
+In this case you should troubleshoot as described in [Drone oscillates when performing the pre-tuning test](#drone-oscillates-when-performing-the-pre-tuning-test).
+
+<!-- Fixed wing rise time is hardcoded (it's lower than on multirotors and is probably enough for most platforms). -->
+
+</div>
+
 ## Усунення проблем
 
 ### Drone oscillates when performing the pre-tuning test

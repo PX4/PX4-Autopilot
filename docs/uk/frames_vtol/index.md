@@ -98,11 +98,11 @@ The mapping between flight controller outputs and specific controls/motors depen
 Assembly information is covered in several sections:
 
 - [Basic Assembly](../assembly/index.md) contains topics shows the setup of core components for a number of popular [flight controllers](../flight_controller/index.md).
- Контролери польоту, для яких у нас немає посібників, зазвичай налаштовуються таким же чином (і майже завжди містять схожі посібники з налаштуванням).
+  Контролери польоту, для яких у нас немає посібників, зазвичай налаштовуються таким же чином (і майже завжди містять схожі посібники з налаштуванням).
 - [Peripherals](../peripherals/index.md) contains information about other peripherals, including [Airspeed Sensors](../sensor/airspeed.md).
 - [Airframes Reference > VTOL](../airframes/airframe_reference.md#vtol) explains which flight controller outputs must be connected to different flight controls for each airframe configuration:
- - Виберіть конфігурацію для вашого транспортного засобу, якщо вона існує, оскільки вона буде достатньо попередньо налаштована для польоту (можливо, потребує тільки дрібного налаштування).
- - В іншому випадку виберіть "Загальну конструкцію", яка відповідає вашому транспортному засобу.
+  - Виберіть конфігурацію для вашого транспортного засобу, якщо вона існує, оскільки вона буде достатньо попередньо налаштована для польоту (можливо, потребує тільки дрібного налаштування).
+  - В іншому випадку виберіть "Загальну конструкцію", яка відповідає вашому транспортному засобу.
 
 In addition, build logs showing how others have set up different types of vehicles are provided as sub topics.
 For example see [FunCub QuadPlane](../frames_vtol/vtol_quadplane_fun_cub_vtol_pixhawk.md).

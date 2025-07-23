@@ -5,18 +5,20 @@ Telemetry Radios can (optionally) be used to provide a wireless MAVLink connecti
 PX4 підтримує ряд типів телеметрійних радіозон:
 
 - [SiK Radio](../telemetry/sik_radio.md) based firmware (more generally, any radio with a UART interface should work).
-  - [RFD900 Telemetry Radio](../telemetry/rfd900_telemetry.md)
   - [HolyBro SiK Telemetry Radio](../telemetry/holybro_sik_radio.md)
+  - [RFD900 Telemetry Radio](../telemetry/rfd900_telemetry.md)
+  - [ThunderFly TFSIK01 Telemetry Radio](../telemetry/tfsik_telemetry.md)
   - <del>_HKPilot Телеметрійне радіо_</del> (Припинено)
   - <del>_3DR телеметрія радіо_</del> (припинено)
 - [Telemetry Wifi](../telemetry/telemetry_wifi.md)
+- [J.Fi Wireless Telemetry Module](../telemetry/jfi_telemetry.md)
 - [Microhard Serial Telemetry Radio](../telemetry/microhard_serial.md)
   - [ARK Electron Microhard Serial Telemetry Radio](../telemetry/ark_microhard_serial.md)
   - [Holybro Microhard P900 Telemetry Radio](../telemetry/holybro_microhard_p900_radio.md)
 - CUAV Серійне телеметрійне радіо
   - [CUAV P8 Telemetry Radio](../telemetry/cuav_p8_radio.md)
 - XBee Серійне Телеметрійне Радіо
-  - [HolyBro XBP9X Telemetry Radio](../telemetry/holybro_xbp9x_radio.md) (Discontinued)
+  - <del>[HolyBro XBP9X Telemetry Radio](../telemetry/holybro_xbp9x_radio.md)</del> (Discontinued)
 
 PX4 is protocol compatible with [SiK Radio](../telemetry/sik_radio.md) and will generally work out of the box (though you may need to change/use an appropriate connector).
 

@@ -50,13 +50,13 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 	if (_gps_data_ready) {
 
 		// relax the upper observation noise limit which prevents bad GPS perturbing the position estimate
-		float noise = math::max(gps_sample.vacc, 1.5f * _params.gps_pos_noise); // use 1.5 as a typical ratio of vacc/hacc
+		float noise = math::max(gps_sample.vacc, 1.5f * _params.ekf2_gps_p_noise); // use 1.5 as a typical ratio of vacc/hacc
 
 		if (!isOnlyActiveSourceOfVerticalPositionAiding(_control_status.flags.gps_hgt)) {
 			// if we are not using another source of aiding, then we are reliant on the GPS
 			// observations to constrain attitude errors and must limit the observation noise value.
-			if (noise > _params.pos_noaid_noise) {
-				noise = _params.pos_noaid_noise;
+			if (noise > _params.ekf2_noaid_noise) {
+				noise = _params.ekf2_noaid_noise;
 			}
 		}
 
@@ -74,7 +74,7 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 						gps_sample.time_us,
 						-(measurement - bias_est.getBias()),
 						measurement_var + bias_est.getBiasVar(),
-						math::max(_params.gps_pos_innov_gate, 1.f));
+						math::max(_params.ekf2_gps_p_gate, 1.f));
 
 		// update the bias estimator before updating the main filter but after
 		// using its current state to compute the vertical position innovation
@@ -87,9 +87,9 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 		// determine if we should use height aiding
 		const bool common_conditions_passing = measurement_valid
 						       && _local_origin_lat_lon.isInitialized()
-						       && _gps_checks_passed;
+						       && _gnss_checks.passed();
 
-		const bool continuing_conditions_passing = (_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::VPOS))
+		const bool continuing_conditions_passing = (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::VPOS))
 				&& common_conditions_passing;
 
 		const bool starting_conditions_passing = continuing_conditions_passing
@@ -97,7 +97,7 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 
 		const bool altitude_initialisation_conditions_passing = common_conditions_passing
 				&& !PX4_ISFINITE(_local_origin_alt)
-				&& _params.height_sensor_ref == static_cast<int32_t>(HeightSensor::GNSS)
+				&& _params.ekf2_hgt_ref == static_cast<int32_t>(HeightSensor::GNSS)
 				&& isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
 
 		if (_control_status.flags.gps_hgt) {
@@ -131,7 +131,7 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 
 		} else {
 			if (starting_conditions_passing) {
-				if (_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::GNSS)) {
+				if (_params.ekf2_hgt_ref == static_cast<int32_t>(HeightSensor::GNSS)) {
 					ECL_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);
 					_height_sensor_ref = HeightSensor::GNSS;
 

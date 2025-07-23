@@ -14,7 +14,7 @@ Source: [drivers/ins/vectornav](https://github.com/PX4/PX4-Autopilot/tree/main/s
 
 ### Приклади
 
-Спроба запустити драйвер на вказаному послідовному пристрої.
+Attempt to start driver on a specified serial device.
 
 ```
 vectornav start -d /dev/ttyS1
@@ -26,9 +26,7 @@ Stop driver
 vectornav stop
 ```
 
-<a id="vectornav_usage"></a>
-
-### Використання
+### Usage {#vectornav_usage}
 
 ```
 vectornav <command> [arguments...]

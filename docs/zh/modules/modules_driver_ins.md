@@ -20,15 +20,13 @@ Attempt to start driver on a specified serial device.
 vectornav start -d /dev/ttyS1
 ```
 
-设置/使用 信息： https://docs.px4.io/master/en/sensor/leddar_one.html
+Stop driver
 
 ```
 vectornav stop
 ```
 
-<a id="vectornav_usage"></a>
-
-### 用法
+### Usage {#vectornav_usage}
 
 ```
 vectornav <command> [arguments...]

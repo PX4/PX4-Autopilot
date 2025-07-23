@@ -1,3 +1,3 @@
 # Versioned Messages (uORB Message Reference)
 
-See [list here](../msg_docs/index.md#versioned-messages).
+请查看[这个列表](../msg_docs/index.md#versioned-messages) 。

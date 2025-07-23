@@ -279,6 +279,7 @@ private:
 	bool _arm_tune_played{false};
 	bool _have_taken_off_since_arming{false};
 	bool _status_changed{true};
+	bool _mission_in_progress{false};
 
 	vehicle_land_detected_s	_vehicle_land_detected{};
 

@@ -1,0 +1,13 @@
+{
+    "board_id": 1188,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the CORVON743v1 board",
+    "image": "",
+    "build_time": 0,
+    "summary": "CORVON743v1",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1835008,
+    "git_identity": "",
+    "board_revision": 0
+}

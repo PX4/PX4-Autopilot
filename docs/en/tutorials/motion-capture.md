@@ -44,7 +44,7 @@ See [Switching State Estimators](../advanced/switching_state_estimators.md) for 
 ### EKF2
 
 The ROS topic for motion cap `mocap_pose_estimate` for mocap systems and `vision_pose_estimate` for vision.
-Check [mavros_extras](http://wiki.ros.org/mavros_extras) for further info.
+Check [mavros_extras](https://wiki.ros.org/mavros_extras) for further info.
 
 ## Testing
 

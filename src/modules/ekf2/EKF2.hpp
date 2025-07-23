@@ -250,13 +250,14 @@ private:
 
 	// publish helper for estimator_aid_source topics
 	template <typename T>
-	void PublishAidSourceStatus(const T &status, hrt_abstime &status_publish_last, uORB::PublicationMulti<T> &pub)
+	void PublishAidSourceStatus(const hrt_abstime &timestamp, const T &status, hrt_abstime &status_publish_last,
+				    uORB::PublicationMulti<T> &pub)
 	{
 		if (status.timestamp_sample > status_publish_last) {
 			// publish if updated
 			T status_out{status};
 			status_out.estimator_instance = _instance;
-			status_out.timestamp = hrt_absolute_time();
+			status_out.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 			pub.publish(status_out);
 
 			// record timestamp sample
@@ -536,7 +537,7 @@ private:
 		(ParamFloat<px4::params::EKF2_REQ_GPS_H>)     _param_ekf2_req_gps_h,
 
 		// Used by EKF-GSF experimental yaw estimator
-		(ParamExtFloat<px4::params::EKF2_GSF_TAS>) _param_ekf2_gsf_tas_default,
+		(ParamExtFloat<px4::params::EKF2_GSF_TAS>) _param_ekf2_gsf_tas,
 		(ParamFloat<px4::params::EKF2_GPS_YAW_OFF>) _param_ekf2_gps_yaw_off,
 #endif // CONFIG_EKF2_GNSS
 
@@ -593,7 +594,7 @@ private:
 		(ParamExtInt<px4::params::EKF2_MAG_CHECK>) _param_ekf2_mag_check,
 		(ParamExtFloat<px4::params::EKF2_MAG_CHK_STR>) _param_ekf2_mag_chk_str,
 		(ParamExtFloat<px4::params::EKF2_MAG_CHK_INC>) _param_ekf2_mag_chk_inc,
-		(ParamExtInt<px4::params::EKF2_SYNT_MAG_Z>) _param_ekf2_synthetic_mag_z,
+		(ParamExtInt<px4::params::EKF2_SYNT_MAG_Z>) _param_ekf2_synt_mag_z,
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 		(ParamExtInt<px4::params::EKF2_HGT_REF>) _param_ekf2_hgt_ref,    ///< selects the primary source for height data
@@ -618,7 +619,6 @@ private:
 		(ParamExtFloat<px4::params::EKF2_RNG_PITCH>) _param_ekf2_rng_pitch,
 		(ParamExtFloat<px4::params::EKF2_RNG_A_VMAX>) _param_ekf2_rng_a_vmax,
 		(ParamExtFloat<px4::params::EKF2_RNG_A_HMAX>) _param_ekf2_rng_a_hmax,
-		(ParamExtFloat<px4::params::EKF2_RNG_A_IGATE>) _param_ekf2_rng_a_igate,
 		(ParamExtFloat<px4::params::EKF2_RNG_QLTY_T>) _param_ekf2_rng_qlty_t,
 		(ParamExtFloat<px4::params::EKF2_RNG_K_GATE>) _param_ekf2_rng_k_gate,
 		(ParamExtFloat<px4::params::EKF2_RNG_FOG>) _param_ekf2_rng_fog,

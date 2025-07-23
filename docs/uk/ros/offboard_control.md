@@ -40,8 +40,7 @@ Enable MAVLink on the serial port that you connect to the companion computer (se
 
   Приклад радіомодулів включає:
 
-  - [Lairdtech RM024](http://www.lairdtech.com/products/rm024)
-  - [Digi International XBee Pro](http://www.digi.com/products/xbee-rf-solutions/modules)
+  - [Digi International XBee Pro](https://www.digi.com/products/embedded-systems/digi-xbee/rf-modules/sub-1-ghz-rf-modules)
 
 [![Mermaid graph: mavlink channel](https://mermaid.ink/img/eyJjb2RlIjoiZ3JhcGggVEQ7XG4gIGduZFtHcm91bmQgU3RhdGlvbl0gLS1NQVZMaW5rLS0-IHJhZDFbR3JvdW5kIFJhZGlvXTtcbiAgcmFkMSAtLVJhZGlvUHJvdG9jb2wtLT4gcmFkMltWZWhpY2xlIFJhZGlvXTtcbiAgcmFkMiAtLU1BVkxpbmstLT4gYVtBdXRvcGlsb3RdOyIsIm1lcm1haWQiOnsidGhlbWUiOiJkZWZhdWx0In0sInVwZGF0ZUVkaXRvciI6ZmFsc2V9)](https://mermaid-js.github.io/mermaid-live-editor/#/edit/eyJjb2RlIjoiZ3JhcGggVEQ7XG4gIGduZFtHcm91bmQgU3RhdGlvbl0gLS1NQVZMaW5rLS0-IHJhZDFbR3JvdW5kIFJhZGlvXTtcbiAgcmFkMSAtLVJhZGlvUHJvdG9jb2wtLT4gcmFkMltWZWhpY2xlIFJhZGlvXTtcbiAgcmFkMiAtLU1BVkxpbmstLT4gYVtBdXRvcGlsb3RdOyIsIm1lcm1haWQiOnsidGhlbWUiOiJkZWZhdWx0In0sInVwZGF0ZUVkaXRvciI6ZmFsc2V9)
 
@@ -54,7 +53,7 @@ graph TD;
 
 ### Бортовий процесор
 
-Невеликий комп'ютер, підключений до транспортного засобу, підключений до автопілота через послідовний порт або Ehthernet.
+A small computer mounted onto the vehicle, connected to the autopilot through a serial port or Ethernet port.
 Тут багато можливостей і це буде залежати від того, яку додаткову обробку ви хочете виконати на платі, а також від додаткової відправки команд до автопілота.
 Some examples are provided in [Companion Computers](../companion_computer/index.md#companion-computer-options).
 

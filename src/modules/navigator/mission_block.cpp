@@ -82,6 +82,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_DO_MOUNT_CONFIGURE:
 	case NAV_CMD_DO_MOUNT_CONTROL:
 	case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
+	case NAV_CMD_COMPONENT_ARM_DISARM:
 	case NAV_CMD_DO_SET_ROI:
 	case NAV_CMD_DO_SET_ROI_LOCATION:
 	case NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET:
@@ -95,6 +96,8 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_SET_CAMERA_FOCUS:
 	case NAV_CMD_DO_CHANGE_SPEED:
 	case NAV_CMD_DO_SET_HOME:
+	case NAV_CMD_RETURN_TO_LAUNCH:
+
 		return true;
 
 	// Indefinite Waypoints
@@ -529,27 +532,27 @@ MissionBlock::issue_command(const mission_item_s &item)
 
 	// Mission item's NAV_CMD enums directly map to the according vehicle command
 	// So set the raw value directly (MAV_FRAME_MISSION mission item)
-	vehicle_command_s vcmd = {};
-	vcmd.command = item.nav_cmd;
-	vcmd.param1 = item.params[0];
-	vcmd.param2 = item.params[1];
-	vcmd.param3 = item.params[2];
-	vcmd.param4 = item.params[3];
-	vcmd.param5 = static_cast<double>(item.params[4]);
-	vcmd.param6 = static_cast<double>(item.params[5]);
-	vcmd.param7 = item.params[6];
+	vehicle_command_s vehicle_command{};
+	vehicle_command.command = item.nav_cmd;
+	vehicle_command.param1 = item.params[0];
+	vehicle_command.param2 = item.params[1];
+	vehicle_command.param3 = item.params[2];
+	vehicle_command.param4 = item.params[3];
+	vehicle_command.param5 = static_cast<double>(item.params[4]);
+	vehicle_command.param6 = static_cast<double>(item.params[5]);
+	vehicle_command.param7 = item.params[6];
 
 	if (item.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION) {
 		// We need to send out the ROI location that was parsed potentially with double precision to lat/lon because mission item parameters 5 and 6 only have float precision
-		vcmd.param5 = item.lat;
-		vcmd.param6 = item.lon;
+		vehicle_command.param5 = item.lat;
+		vehicle_command.param6 = item.lon;
 
 		if (item.altitude_is_relative) {
-			vcmd.param7 = item.altitude + _navigator->get_home_position()->alt;
+			vehicle_command.param7 = item.altitude + _navigator->get_home_position()->alt;
 		}
 	}
 
-	_navigator->publish_vehicle_cmd(&vcmd);
+	_navigator->publish_vehicle_command(vehicle_command);
 
 	if (item_has_timeout(item)) {
 		_timestamp_command_timeout = hrt_absolute_time();
@@ -781,11 +784,11 @@ MissionBlock::set_land_item(struct mission_item_s *item)
 	/* VTOL transition to RW before landing */
 	if (_navigator->force_vtol()) {
 
-		vehicle_command_s vcmd = {};
-		vcmd.command = NAV_CMD_DO_VTOL_TRANSITION;
-		vcmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-		vcmd.param2 = 0.0f;
-		_navigator->publish_vehicle_cmd(&vcmd);
+		vehicle_command_s vehicle_command{};
+		vehicle_command.command = NAV_CMD_DO_VTOL_TRANSITION;
+		vehicle_command.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		vehicle_command.param2 = 0.f; // normal unforced transition
+		_navigator->publish_vehicle_command(vehicle_command);
 	}
 
 	/* set the land item */

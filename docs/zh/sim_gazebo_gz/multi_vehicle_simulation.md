@@ -39,18 +39,30 @@ This allows for greater flexibility and customization.
 - Then configure your system for [ROS 2 / PX4 operations](../ros2/user_guide.md#installation-setup).
 
 - In different terminals manually start a multi vehicle simulation.
-  This example spawns 2 X500 Quadrotors and aFPX fixed-wing:
+  This example spawns 2 X500 Quadrotors and aFPX fixed-wing.
+
+  ::: info
+  Note that in the first terminal you **do not** specify standalone mode. The first terminal will start the gz-server and the other two
+  instances will connect to it.
+
+:::
+
+  **Terminal 1**
 
   ```sh
   PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4 -i 1
   ```
 
-  ```sh
-  PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,1" PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4 -i 2
-  ```
+  **Terminal 2**
 
   ```sh
-  PX4_SYS_AUTOSTART=4003 PX4_GZ_MODEL_POSE="0,2" PX4_SIM_MODEL=gz_rc_cessna ./build/px4_sitl_default/bin/px4 -i 3
+  PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,1" PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4 -i 2
+  ```
+
+  **Terminal 3**
+
+  ```sh
+  PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4003 PX4_GZ_MODEL_POSE="0,2" PX4_SIM_MODEL=gz_rc_cessna ./build/px4_sitl_default/bin/px4 -i 3
   ```
 
 - Start the agent:

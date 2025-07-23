@@ -70,15 +70,9 @@ public:
 private:
 	void exit_and_cleanup() override;
 
-	struct register_config_t {
-		Register reg;
-		uint16_t set_bits{0};
-		uint16_t clear_bits{0};
-	};
-
 	int probe() override;
 
-	bool Reset();
+	void Reset();
 
 	bool Configure();
 
@@ -87,11 +81,11 @@ private:
 	bool DataReadyInterruptConfigure();
 	bool DataReadyInterruptDisable();
 
-	bool RegisterCheck(const register_config_t &reg_cfg);
+	uint16_t RegisterRead(uint16_t reg);
+	void RegisterWrite(uint16_t reg, uint16_t val);
+	bool RegisterCheck(uint16_t reg, uint16_t val);
 
-	uint16_t RegisterRead(Register reg);
-	void RegisterWrite(Register reg, uint16_t value);
-	void RegisterSetAndClearBits(Register reg, uint16_t setbits, uint16_t clearbits);
+	void PrintErrorFlags(uint16_t flags);
 
 	const spi_drdy_gpio_t _drdy_gpio;
 
@@ -99,14 +93,15 @@ private:
 	PX4Gyroscope _px4_gyro;
 
 	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
-	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
-	perf_counter_t _perf_crc_bad{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": CRC16 bad"))};
+	perf_counter_t _bad_status_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad status")};
+	perf_counter_t _bad_checksum_perf{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": bad checksum"))};
+	perf_counter_t _bad_data_cntr_perf{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": bad data count"))};
 	perf_counter_t _drdy_missed_perf{nullptr};
 
-	hrt_abstime _reset_timestamp{0};
-	hrt_abstime _last_config_check_timestamp{0};
 	int _failure_count{0};
+
+	uint16_t _last_data_cntr{65535};
 
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
 	bool _data_ready_interrupt_enabled{false};
@@ -120,11 +115,4 @@ private:
 		CONFIGURE,
 		READ,
 	} _state{STATE::RESET};
-
-	uint8_t _checked_register{0};
-	static constexpr uint8_t size_register_cfg{1};
-	register_config_t _register_cfg[size_register_cfg] {
-		// Register              | Set bits, Clear bits
-		{ Register::MSC_CTRL,    0, MSC_CTRL_BIT::DR_polarity },
-	};
 };

@@ -384,7 +384,8 @@ MissionBase::on_active()
 bool
 MissionBase::isLanding()
 {
-	if (hasMissionLandStart() && (_mission.current_seq > _mission.land_start_index)) {
+	if (hasMissionLandStart() && (_mission.current_seq > _mission.land_start_index)
+	    && (_mission.current_seq <= _mission.land_index)) {
 		static constexpr size_t max_num_next_items{1u};
 		int32_t next_mission_items_index[max_num_next_items];
 		size_t num_found_items;
@@ -915,16 +916,14 @@ MissionBase::do_abort_landing()
 	}
 
 	// send reposition cmd to get out of mission
-	vehicle_command_s vcmd = {};
-
-	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
-	vcmd.param1 = -1;
-	vcmd.param2 = 1;
-	vcmd.param5 = _mission_item.lat;
-	vcmd.param6 = _mission_item.lon;
-	vcmd.param7 = alt_sp;
-
-	_navigator->publish_vehicle_cmd(&vcmd);
+	vehicle_command_s vehicle_command{};
+	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
+	vehicle_command.param1 = -1.f; // Default speed
+	vehicle_command.param2 = 1.f; // Modes should switch, not setting this is unsupported
+	vehicle_command.param5 = _mission_item.lat;
+	vehicle_command.param6 = _mission_item.lon;
+	vehicle_command.param7 = alt_sp;
+	_navigator->publish_vehicle_command(vehicle_command);
 }
 
 void MissionBase::publish_navigator_mission_item()

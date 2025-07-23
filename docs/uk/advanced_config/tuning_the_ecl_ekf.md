@@ -270,7 +270,7 @@ The following selection tree can be used to select the right option:
 
 #### Вимірювання повороту
 
-Деякі приймачі GPS, такі як приймач GPS з системою [Trimble MB-Two RTK](https://www.trimble.com/Precision-GNSS/MB-Two-Board.aspx), можуть використовуватися для надання вимірювання кута курсу, що замінює використання даних магнітометра.
+Some GPS receivers such as the [Trimble MB-Two RTK GPS receiver](https://oemgnss.trimble.com/en/products/receiver-modules/mb-two) can be used to provide a heading measurement that replaces the use of magnetometer data.
 Це може бути значним перевагою при роботі в середовищі, де присутні великі магнітні аномалії, або на широтах, де магнітне поле Землі має високий нахил.
 Використання вимірювань курсу від GPS увімкнено, встановивши біт на позиції 3 на 1 (додаючи 8) у параметрі [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL).
 
@@ -382,7 +382,6 @@ _Умовна допомога діапазону_ включається шля
 
 - [EKF2_RNG_A_VMAX](../advanced_config/parameter_reference.md#EKF2_RNG_A_VMAX): Максимальна горизонтальна швидкість, при перевищенні якої відключається допомога датчика дальності.
 - [EKF2_RNG_A_HMAX](../advanced_config/parameter_reference.md#EKF2_RNG_A_HMAX): Максимальна висота, при перевищенні якої відключається допомога датчика дальності.
-- [EKF2_RNG_A_IGATE](../advanced_config/parameter_reference.md#EKF2_RNG_A_IGATE): Ворота перевірки узгодженості допомоги датчика дальності (вимірювання помилки до відключення допомоги датчика дальності).
 
 #### Об'єднання висоти дальності
 
@@ -438,9 +437,7 @@ PX4 дозволяє постійно об'єднувати дальномер �
 Фіксованокрилі платформи можуть скористатися припущеною спостереженням дрейфу нульовим, щоб поліпшити оцінку швидкості вітру і також включити оцінку швидкості вітру без датчика повітряної швидкості.
 Це вмикається, встановивши параметр [EKF2_FUSE_BETA](../advanced_config/parameter_reference.md#EKF2_FUSE_BETA) на значення 1.
 
-<a id="mc_wind_estimation_using_drag"></a>
-
-### Оцінка вітру багатовертольотників за допомогою специфічних сил опору
+### Multicopter Wind Estimation using Drag Specific Forces {#mc_wind_estimation_using_drag}
 
 Багатороторні платформи можуть скористатися взаємозв'язком між повітряною швидкістю та силою опору вздовж осей тіла X та Y для оцінки північної / східної складових швидкості вітру.
 Це можна ввімкнути, використовуючи параметр [EKF2_DRAG_CTRL](../advanced_config/parameter_reference.md#EKF2_DRAG_CTRL).
@@ -533,9 +530,9 @@ The **.ulog** format data can be parsed in python by using the [PX4 pyulog libra
 
 ### Вихідні дані
 
-- Вихідні дані Attitude містяться в повідомленні [VehicleAttitude](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleAttitude.msg).
-- Вихідні дані про локальне положення знаходяться в повідомленні [VehicleLocalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleLocalPosition.msg).
-- Глобальні вихідні дані \(WGS-84\) містяться в повідомленні [VehicleGlobalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleGlobalPosition.msg).
+- Attitude output data is found in the [VehicleAttitude](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleAttitude.msg) message.
+- Local position output data is found in the [VehicleLocalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleLocalPosition.msg) message.
+- Global \(WGS-84\) output data is found in the [VehicleGlobalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleGlobalPosition.msg) message.
 - Вихідні дані про швидкість вітру містяться в повідомленні [Wind.msg](https://github.com/PX4/PX4-Autopilot/blob/main/msg/Wind.msg).
 
 ### Стани

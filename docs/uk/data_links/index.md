@@ -11,3 +11,7 @@ PX4 використовує [MAVLink](https://mavlink.io/en/) протокол 
 - [Телеметрія FrSky Telemetry](../peripherals/frsky_telemetry.md) - Телеметрия на вашому (FRSky) RC Receiver
 - [TBS Crossfire (Телеметрія CRSF)](../telemetry/crsf_telemetry.md) - Телеметрика на вашому (TBS Crossfire) RC Receiver
 - [Супутниковий зв’язок (Iridium/RockBlock)](../advanced_features/satcom_roadblock.md) — Зв’язок із високою затримкою через супутник
+
+## Дивіться також
+
+- [Safety Configuration > Data Link Loss Failsafe](../config/safety.md#data-link-loss-failsafe)

@@ -1,8 +1,9 @@
 # Gazebo Classic 模拟
 
 :::warning
-_Gazebo Classic_ is supported with PX4 up to Ubuntu Linux 20.04.
-In Ubuntu 22.04 and later you must use [Gazebo](../sim_gazebo_gz/index.md) (which was [formerly known](https://www.openrobotics.org/blog/2022/4/6/a-new-era-for-gazebo) as "Gazebo Ignition").
+[Gazebo](../sim_gazebo_gz/index.md) is nearing feature-parity with Gazebo Classic on PX4, and will soon replace it.
+Until then you can continue to use Gazebo-Classic on Ubuntu 22.04 for the few cases where you still need to.
+For more information see [PX4-Autopilot#23602: GZ Feature tracker](https://github.com/PX4/PX4-Autopilot/issues/23602).
 :::
 
 Gazebo Classic 是一个功能强大的三维仿真环境，专门用于测试避障和计算机视觉等自主机器人技术。
@@ -32,11 +33,8 @@ See [Simulation](../simulation/index.md) for general information about simulator
 If you plan to use PX4 with ROS you **should follow the** [ROS Instructions](../simulation/ros_interface.md) to install both ROS and Gazebo Classic (and thereby avoid installation conflicts).
 :::
 
-Gazebo Classic setup is included in our [standard build instructions](../dev_setup/dev_env.md) for macOS, Ubuntu 18.04 and 20.04, and Windows on WSL2 for the same hosts.
-
-For Ubuntu 22.04 LTS and later, the installation script ([/Tools/setup/ubuntu.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/ubuntu.sh)) installs the [Gazebo](../sim_gazebo_gz/index.md) simulator instead.
-
-If you want to use Gazebo Classic on Ubuntu 22.04 you can use the following commands to remove [Gazebo](../sim_gazebo_gz/index.md) (Harmonic) and then reinstall Gazebo-Classic 11:
+The standard installation script ([/Tools/setup/ubuntu.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/ubuntu.sh)) installs the [Gazebo](../sim_gazebo_gz/index.md) (Harmonic) simulator.
+If you want to use Gazebo Classic on _Ubuntu 22.04 (only)_ you can use the following commands to remove Gazebo and then reinstall Gazebo-Classic 11:
 
 ```sh
 sudo apt remove gz-harmonic
@@ -47,10 +45,8 @@ sudo aptitude install gazebo libgazebo11 libgazebo-dev
 Note that `aptitude` is needed because it can resolve dependency conflicts (by removing certain packages) that `apt` is unable to handle.
 
 :::tip
-You could also modify the installation script to install Gazebo Classic on later versions before it is run for the first time.
+You could also modify the installation script to install Gazebo Classic on Ubuntu 22.04 before it is run for the first time.
 :::
-
-Additional installation instructions can be found on gazebosim.org.
 
 ## Running the Simulation
 
@@ -82,8 +78,6 @@ For the full list of build targets run `make px4_sitl list_vmd_make_targets` (an
 | [Standard Plane (with catapult launch)](../sim_gazebo_classic/vehicles.md#standard-plane-with-catapult-launch)                                        | `make px4_sitl gazebo-classic_plane_catapult`             |
 | [Standard VTOL](../sim_gazebo_classic/vehicles.md#standard-vtol)                                                                                                         | `make px4_sitl gazebo-classic_standard_vtol`              |
 | [Tailsitter VTOL](../sim_gazebo_classic/vehicles.md#tailsitter-vtol)                                                                                                     | `make px4_sitl gazebo-classic_tailsitter`                 |
-| [Ackerman UGV (Rover)](../sim_gazebo_classic/vehicles.md#ackermann-ugv)                                                                               | `make px4_sitl gazebo-classic_rover`                      |
-| [Differential UGV (Rover)](../sim_gazebo_classic/vehicles.md#differential-ugv)                                                                        | `make px4_sitl gazebo-classic_r1_rover`                   |
 | [HippoCampus TUHH (UUV: Unmanned Underwater Vehicle)](../sim_gazebo_classic/vehicles.md#unmanned-underwater-vehicle-uuv-submarine)    | `make px4_sitl gazebo-classic_uuv_hippocampus`            |
 | [Boat (USV: Unmanned Surface Vehicle)](../sim_gazebo_classic/vehicles.md#hippocampus-tuhh-uuv)                                        | `make px4_sitl gazebo-classic_boat`                       |
 | [Cloudship (Airship)](../sim_gazebo_classic/vehicles.md#airship)                                                                                      | `make px4_sitl gazebo-classic_cloudship`                  |
@@ -122,7 +116,7 @@ INFO  [simulator] Waiting for simulator to connect on TCP port 4560
 Gazebo multi-robot simulator, version 9.0.0
 Copyright (C) 2012 Open Source Robotics Foundation.
 Released under the Apache 2 License.
-http://gazebosim.org
+https://gazebosim.org/home
 ...
 INFO  [ecl/EKF] 5188000: commencing GPS fusion
 ```
@@ -539,7 +533,7 @@ To disable lockstep in:
 ## Extending and Customizing
 
 To extend or customize the simulation interface, edit the files in the `Tools/simulation/gazebo/sitl_gazebo` folder.
-The code is available on the [sitl_gazebo repository](https://github.com/PX4/PX4-SITL_gazebo) on Github.
+The code is available on the [sitl_gazebo repository](https://github.com/PX4/PX4-SITL_gazebo-classic) on GitHub.
 
 :::info
 The build system enforces the correct GIT submodules, including the simulator.

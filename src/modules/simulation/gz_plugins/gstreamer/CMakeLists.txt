@@ -35,32 +35,36 @@ project(GstCameraSystem)
 
 # Find required packages
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
-pkg_check_modules(GSTREAMER_APP REQUIRED gstreamer-app-1.0)
+pkg_check_modules(GSTREAMER gstreamer-1.0)
+pkg_check_modules(GSTREAMER_APP gstreamer-app-1.0)
 
-add_library(${PROJECT_NAME} SHARED
-    GstCameraSystem.cpp
-)
+if (NOT GSTREAMER_FOUND OR NOT GSTREAMER_APP_FOUND)
+    message(WARNING "GStreamer and Gstreamer App are required to build this plugin.")
+else()
+    add_library(${PROJECT_NAME} SHARED
+        GstCameraSystem.cpp
+    )
 
-target_link_libraries(${PROJECT_NAME}
-    PUBLIC px4_gz_msgs
-    PUBLIC gz-sensors${gz-sensors_VERSION_MAJOR}::gz-sensors${gz-sensors_VERSION_MAJOR}
-    PUBLIC gz-plugin${gz-plugin_VERSION_MAJOR}::gz-plugin${gz-plugin_VERSION_MAJOR}
-    PUBLIC gz-sim${gz-sim_VERSION_MAJOR}::gz-sim${gz-sim_VERSION_MAJOR}
-    PUBLIC gz-transport${gz-transport_VERSION_MAJOR}::gz-transport${gz-transport_VERSION_MAJOR}
-    PUBLIC ${GSTREAMER_LIBRARIES}
-    PUBLIC ${GSTREAMER_APP_LIBRARIES}
-)
+    target_link_libraries(${PROJECT_NAME}
+        PUBLIC px4_gz_msgs
+        PUBLIC gz-sensors${gz-sensors_VERSION_MAJOR}::gz-sensors${gz-sensors_VERSION_MAJOR}
+        PUBLIC gz-plugin${gz-plugin_VERSION_MAJOR}::gz-plugin${gz-plugin_VERSION_MAJOR}
+        PUBLIC gz-sim${gz-sim_VERSION_MAJOR}::gz-sim${gz-sim_VERSION_MAJOR}
+        PUBLIC gz-transport${gz-transport_VERSION_MAJOR}::gz-transport${gz-transport_VERSION_MAJOR}
+        PUBLIC ${GSTREAMER_LIBRARIES}
+        PUBLIC ${GSTREAMER_APP_LIBRARIES}
+    )
 
-target_include_directories(${PROJECT_NAME}
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
-    PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
-    PUBLIC px4_gz_msgs
-    PUBLIC ${GSTREAMER_INCLUDE_DIRS}
-    PUBLIC ${GSTREAMER_APP_INCLUDE_DIRS}
-)
+    target_include_directories(${PROJECT_NAME}
+        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+        PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
+        PUBLIC px4_gz_msgs
+        PUBLIC ${GSTREAMER_INCLUDE_DIRS}
+        PUBLIC ${GSTREAMER_APP_INCLUDE_DIRS}
+    )
 
-target_compile_options(${PROJECT_NAME}
-    PRIVATE ${GSTREAMER_CFLAGS}
-    PRIVATE ${GSTREAMER_APP_CFLAGS}
-)
+    target_compile_options(${PROJECT_NAME}
+        PRIVATE ${GSTREAMER_CFLAGS}
+        PRIVATE ${GSTREAMER_APP_CFLAGS}
+    )
+endif()

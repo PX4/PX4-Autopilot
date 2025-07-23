@@ -1,11 +1,14 @@
 # Modules Reference: Communication
 
+
+
 ## frsky_telemetry
+
 Source: [drivers/telemetry/frsky_telemetry](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/telemetry/frsky_telemetry)
 
 FrSky Telemetry support. Auto-detects D or S.PORT protocol.
-<a id="frsky_telemetry_usage"></a>
-### Usage
+### Usage {#frsky_telemetry_usage}
+
 ```
 frsky_telemetry <command> [arguments...]
  Commands:
@@ -22,7 +25,9 @@ frsky_telemetry <command> [arguments...]
 
    status
 ```
+
 ## mavlink
+
 Source: [modules/mavlink](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/mavlink)
 
 
@@ -57,8 +62,8 @@ mavlink start -u 14556 -r 1000000
 mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 ```
 
-<a id="mavlink_usage"></a>
-### Usage
+### Usage {#mavlink_usage}
+
 ```
 mavlink <command> [arguments...]
  Commands:
@@ -113,7 +118,9 @@ mavlink <command> [arguments...]
    boot_complete Enable sending of messages. (Must be) called as last step in
                  startup script.
 ```
+
 ## uorb
+
 Source: [systemcmds/uorb](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/uorb)
 
 
@@ -137,8 +144,8 @@ Monitor topic publication rates. Besides `top`, this is an important command for
 uorb top
 ```
 
-<a id="uorb_usage"></a>
-### Usage
+### Usage {#uorb_usage}
+
 ```
 uorb <command> [arguments...]
  Commands:

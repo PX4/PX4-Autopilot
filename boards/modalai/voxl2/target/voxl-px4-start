@@ -62,6 +62,10 @@ param select /data/px4/param/parameters
 # Load in all of the parameters that have been saved in the file
 param load
 
+# This was the default pre-v1.16.0 and for folks relying on that
+# we set it up here
+param set-default EKF2_EV_CTRL 15
+
 # IMU (accelerometer / gyroscope)
 if [ "$PLATFORM" == "M0104" ]; then
     /bin/echo "Starting IMU driver with rotation 12"

@@ -144,6 +144,12 @@ Users that want to disable the RC loss failsafe in specific automatic modes (mis
 | Тайм-аут втрати каналу зв'язку | [COM_DL_LOSS_T](../advanced_config/parameter_reference.md#COM_DL_LOSS_T) | Час після втрати з'єднання з даними перед тим, як спрацює запобіжник. |
 | Моделювання відмовостійкості   | [NAV_DLL_ACT](../advanced_config/parameter_reference.md#NAV_DLL_ACT)                          | Вимкнути, Hold mode, Return mode, Land mode, Роззброїти, Завершити.   |
 
+Також застосовуються наступні налаштування, але вони не відображаються в інтерфейсі QGC.
+
+| Налаштування                                                | Параметр                                                                                                             | Опис                                                                 |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| <a id="COM_DLL_EXCEPT"></a>Mode exceptions for DLL failsafe | [COM_DLL_EXCEPT](../advanced_config/parameter_reference.md#COM_DLL_EXCEPT) | Set modes where DL loss will not trigger a failsafe. |
+
 ## Аварійний режим "обмеження зони політів"
 
 The _Geofence Failsafe_ is triggered when the drone breaches a "virtual" perimeter.
@@ -179,7 +185,24 @@ Due to the inherent danger of this, this function is disabled using [CBRK_FLIGHT
 
 ## Position (GNSS) Loss Failsafe
 
-The _Position Loss Failsafe_ is triggered if the quality of the PX4 global position estimate falls below acceptable levels (this might be caused by GPS loss) while in a mode that requires an acceptable position estimate.
+The _Position Loss Failsafe_ is triggered if the quality of the PX4 position estimate falls below acceptable levels (this might be caused by GPS loss) while in a mode that requires an acceptable position estimate.
+The sections below cover first the trigger and then the failsafe action taken by the controller.
+
+### Position Loss Failsafe Trigger
+
+There are basically two mechanisms in PX4 to trigger position failsafes:
+
+- A timeout since the last sensor data was fused that provides direct speed or horizontal position measurements. Sensors that fall into that category are: GNSS, optical flow, airspeed, VIO, auxiliary global position.
+- The estimated horizontal position accuracy exceeds a certain threshold. This check is only done on hovering systems (rotary wing vehicles or VTOLs in hover phase).
+
+The relevant parameters shown below.
+
+| Параметр                                                                                                                                                             | Опис                                                                                                                                                                                                                           |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <a id="EKF2_NOAID_TOUT"></a>[EKF2_NOAID_TOUT](../advanced_config/parameter_reference.md#EKF2_NOAID_TOUT)                   | Maximum inertial dead-reckoning time, so the time after the last data sample was received of any sensor that constrains the velocity drift [microseconds]. |
+| <a id="COM_POS_FS_EPH"></a>[COM_POS_FS_EPH](../advanced_config/parameter_reference.md#COM_POS_FS_EPH) | Horizontal position error threshold for hovering vehicles (Multicopters and VTOLs in hover). Fixed-wing vehicles have this value set to infinity.                           |
+
+### Position Loss Failsafe Action
 
 The failure action is controlled by [COM_POSCTL_NAVL](../advanced_config/parameter_reference.md#COM_POSCTL_NAVL), based on whether RC control is assumed to be available (and altitude information):
 
@@ -294,8 +317,8 @@ The [failure detector](#failure-detector), if [enabled](#CBRK_FLIGHTTERM), can a
 Зовнішня система тригера повинна бути підключена до порту керування польотом AUX5 (або MAIN5 на платах, які не мають додаткових портів), і налаштовується за допомогою наведених нижче параметрів.
 
 :::info
-External ATS is required by [ASTM F3322-18](https://webstore.ansi.org/Standards/ASTM/ASTMF332218).
-One example of an ATS device is the [FruityChutes Sentinel Automatic Trigger System](https://fruitychutes.com/uav_rpv_drone_recovery_parachutes/sentinel-automatic-trigger-system.htm).
+External ATS is required by [ASTM F3322-18](https://webstore.ansi.org/standards/astm/ASTMF332218).
+One example of an ATS device is the [FruityChutes Sentinel Automatic Trigger System (SATS-MINI)](https://fruitychutes.com/uav_rpv_drone_recovery_parachutes/sentinel-automatic-trigger-system).
 :::
 
 | Параметр                                                                                                                                                                | Опис                                                                                                                                                                                                                                                                    |

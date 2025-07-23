@@ -1,11 +1,18 @@
-# Польотний контролер CUAV X7
+# CUAV X7 Flight Controller (Discontinued)
+
+<Badge type="info" text="Discontinued" /> <!-- 202507 / PX4v1.16 -->
+
+:::warning
+This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
+It has been superseded by the [CUAV X7+](https://doc.cuav.net/controller/x7/en/).
+:::
 
 :::warning
 PX4 не розробляє цей (або будь-який інший) автопілот.
 Contact the [manufacturer](https://www.cuav.net) for hardware support or compliance issues.
 :::
 
-The [X7](http://doc.cuav.net/flight-controller/x7/en/x7.html)<sup>&reg;</sup> flight controller is a high-performance autopilot.
+The [X7](https://doc.cuav.net/controller/x7/en/)<sup>&reg;</sup> flight controller is a high-performance autopilot.
 Це ідеальний вибір для промислових дронів і великомасштабних важких дронів.
 В основному постачається комерційним виробникам.
 
@@ -41,7 +48,6 @@ The manufacturer [CUAV Docs](https://doc.cuav.net/flight-controller/x7/en/) are 
 - Головний FMU процесор: STM32H743
 
 - Бортові сенсори:
-
   - Акселерометр/Гіроскоп: ICM-20689
   - Прискорювач/гіроскоп: ICM-20649
   - Акселерометр/Гіроскоп: BMI088
@@ -85,7 +91,7 @@ When it runs PX4 firmware, only 8 pwm works, the remaining 6 pwm are still being
 
 ## З'єднання (Проводка)
 
-[CUAV X7 Wiring Quickstart](http://doc.cuav.net/flight-controller/x7/en/quick-start/quick-start-x7.html)
+[CUAV X7 Wiring Quickstart](https://doc.cuav.net/controller/x7/en/quick-start/quick-start-x7-plus.html)
 
 ## Розмір та роз'єми
 
@@ -145,7 +151,7 @@ The system's serial console and SWD interface operate on the **DSU7** port.
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) operate on the **FMU Debug** port (`DSU7`).
 
-The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/product-detail/en/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/455-1582-1-ND/807850) connector and has the following pinout:
+The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/en/products/detail/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/807850) connector and has the following pinout:
 
 | Pin                        | Сигнал                            | Вольтаж               |
 | -------------------------- | --------------------------------- | --------------------- |
@@ -171,11 +177,10 @@ For direct connection to _Segger Jlink_ we recommended you use the 3.3 Volts fro
 
 ## Підтримувані платформи / Конструкції
 
-Будь-який мультикоптер / літак / наземна платформа / човен, який може керуватися звичайними RC сервоприводами або сервоприводами Futaba S-Bus.
+Any multicopter / plane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
 The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
 
 ## Подальша інформація
 
-- [Quick start](http://doc.cuav.net/flight-controller/x7/en/quick-start/quick-start-x7.html)
-- [CUAV docs](http://doc.cuav.net)
+- [CUAV docs](https://doc.cuav.net/)
 - [x7 schematic](https://github.com/cuav/hardware/tree/master/X7_Autopilot)

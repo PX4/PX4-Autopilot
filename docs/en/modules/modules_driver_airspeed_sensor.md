@@ -1,5 +1,7 @@
 # Modules Reference: Airspeed Sensor (Driver)
+
 ## asp5033
+
 Source: [drivers/differential_pressure/asp5033](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/differential_pressure/asp5033)
 
 
@@ -11,8 +13,8 @@ This is not included by default in firmware. It can be included with terminal co
 or in default.px4board with adding the line: "CONFIG_DRIVERS_DIFFERENTIAL_PRESSURE_ASP5033=y"
 It can be enabled with the "SENS_EN_ASP5033" parameter set to 1.
 
-<a id="asp5033_usage"></a>
-### Usage
+### Usage {#asp5033_usage}
+
 ```
 asp5033 <command> [arguments...]
  Commands:
@@ -30,11 +32,13 @@ asp5033 <command> [arguments...]
 
    status        print status info
 ```
+
 ## auav
+
 Source: [drivers/differential_pressure/auav](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/differential_pressure/auav)
 
-<a id="auav_usage"></a>
-### Usage
+### Usage {#auav_usage}
+
 ```
 auav <command> [arguments...]
  Commands:
@@ -54,11 +58,13 @@ auav <command> [arguments...]
 
    status        print status info
 ```
+
 ## ets_airspeed
+
 Source: [drivers/differential_pressure/ets](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/differential_pressure/ets)
 
-<a id="ets_airspeed_usage"></a>
-### Usage
+### Usage {#ets_airspeed_usage}
+
 ```
 ets_airspeed <command> [arguments...]
  Commands:
@@ -76,11 +82,13 @@ ets_airspeed <command> [arguments...]
 
    status        print status info
 ```
+
 ## ms4515
+
 Source: [drivers/differential_pressure/ms4515](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/differential_pressure/ms4515)
 
-<a id="ms4515_usage"></a>
-### Usage
+### Usage {#ms4515_usage}
+
 ```
 ms4515 <command> [arguments...]
  Commands:
@@ -98,11 +106,13 @@ ms4515 <command> [arguments...]
 
    status        print status info
 ```
+
 ## ms4525do
+
 Source: [drivers/differential_pressure/ms4525do](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/differential_pressure/ms4525do)
 
-<a id="ms4525do_usage"></a>
-### Usage
+### Usage {#ms4525do_usage}
+
 ```
 ms4525do <command> [arguments...]
  Commands:
@@ -120,11 +130,13 @@ ms4525do <command> [arguments...]
 
    status        print status info
 ```
+
 ## ms5525dso
+
 Source: [drivers/differential_pressure/ms5525dso](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/differential_pressure/ms5525dso)
 
-<a id="ms5525dso_usage"></a>
-### Usage
+### Usage {#ms5525dso_usage}
+
 ```
 ms5525dso <command> [arguments...]
  Commands:
@@ -142,11 +154,13 @@ ms5525dso <command> [arguments...]
 
    status        print status info
 ```
+
 ## sdp3x
+
 Source: [drivers/differential_pressure/sdp3x](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/differential_pressure/sdp3x)
 
-<a id="sdp3x_usage"></a>
-### Usage
+### Usage {#sdp3x_usage}
+
 ```
 sdp3x <command> [arguments...]
  Commands:

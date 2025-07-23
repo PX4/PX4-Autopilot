@@ -318,7 +318,7 @@ int s32k3xx_tja1153_initialize(int bus)
 	}
 
 	close(sock);
-	_info("CAN%d TJA1153 configuration succesful\n", bus);
+	_info("CAN%d TJA1153 configuration successful\n", bus);
 	return 0;
 }
 

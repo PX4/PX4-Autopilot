@@ -71,41 +71,41 @@ events::send<uint8_t, float>(events::ID("event_name"),
 - `/* EVENT`: Цей тег вказує, що коментар описує метадані для наступної події.
 
 - **event_name**: ім'я події (`events::ID(event_name)`).
- - повинно бути унікальним в межах всього вихідного коду PX4.
-  Як загальне правило, додайте префікс з назвою модуля або вихідного файлу для великих модулів.
- - має бути дійсна назва змінної, тобто не повинна містити пробіли, двокрапки тощо.
- - з цього імені отримується 24-бітний ID події за допомогою геш-функції.
-  Це означає, що до тих пір, поки ім'я події залишається однаковим, ID залишиться тим же.
+  - повинно бути унікальним в межах всього вихідного коду PX4.
+    Як загальне правило, додайте префікс з назвою модуля або вихідного файлу для великих модулів.
+  - має бути дійсна назва змінної, тобто не повинна містити пробіли, двокрапки тощо.
+  - з цього імені отримується 24-бітний ID події за допомогою геш-функції.
+    Це означає, що до тих пір, поки ім'я події залишається однаковим, ID залишиться тим же.
 
 - **Рівень журналювання**:
+  - припустимі рівні журналювання такі ж, як і у перерахуванні MAVLink [MAV_SEVERITY](https://mavlink.io/en/messages/common.html#MAV_SEVERITY).
+    Рівні перелічені за зменшенням важливості:
 
- - припустимі рівні журналювання такі ж, як і у перерахуванні MAVLink [MAV_SEVERITY](https://mavlink.io/en/messages/common.html#MAV_SEVERITY).
-  Рівні перелічені за зменшенням важливості:
+    ```plain
+    Emergency,
+    Alert,
+    Critical,
+    Error,
+    Warning,
+    Notice,
+    Info,
+    Debug,
+    Disabled,
+    ```
 
-  ```plain
-  Emergency,
-  Alert,
-  Critical,
-  Error,
-  Warning,
-  Notice,
-  Info,
-  Debug,
-  Disabled,
-  ```
-
- ```
- Попередньо ми вказали окремий зовнішній і внутрішній рівень журналювання, які є рівнями для користувачів GCS і в файлі журналу, відповідно: `{events::Log::Error, events::LogInternal::Info}`.
- ```
+  - Above we specify a separate external and internal log level, which are the levels displayed to GCS users and in the log file, respectively: `{events::Log::Error, events::LogInternal::Info}`.
+    For the majority of cases you can pass a single log level, and this will be used for both exernal and internal cases.
+    There are cases it makes sense to have two different log levels.
+    For example an RTL failsafe action: the user should see it as Warning/Error, whereas in the log, it is an expected system response, so it can be set to `Info`.
 
 - **Повідомлення про подію**:
- - Коротке повідомлення про подію в один рядок.
-  Може мати шаблонні замінники для аргументів (наприклад `{1}`). Для додаткової інформації дивіться нижче. Для додаткової інформації дивіться нижче.
+  - Коротке повідомлення про подію в один рядок.
+    Може мати шаблонні замінники для аргументів (наприклад `{1}`). Для додаткової інформації дивіться нижче. Для додаткової інформації дивіться нижче.
 
 - **Опис події**:
- - Докладний, необов'язковий опис події.
- - Може бути кілька рядів/абзаців.
- - It may contain template placeholders for arguments (e.g. `{2}`) and supported tags (see below)
+  - Докладний, необов'язковий опис події.
+  - Може бути кілька рядів/абзаців.
+  - It may contain template placeholders for arguments (e.g. `{2}`) and supported tags (see below)
 
 #### Аргументи та перерахування
 
@@ -116,7 +116,7 @@ Events can have a fixed set of arguments that can be inserted into the message o
 Формат тексту для опису повідомлення події:
 
 - Користувацькі або характерні для PX4 перерахування для подій повинні бути визначені у [src/lib/events/enums.json](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/events/enums.json), та можуть бути використані як аргументи події у формі `events::send<events::px4::enums::my_enum_t>(...)`.
-- "Загальні" події MAVLink визначені у [mavlink/libevents/events/common.json](https://github.com/mavlink/libevents/blob/master/events/common.json) та можуть бути використані як аргументи подій у формі `events::send<events::common::enums::my_enum_t>(...)`.
+- MAVLink "common" events are defined in [mavlink/libevents/events/common.json](https://github.com/mavlink/libevents/blob/main/events/common.json) and can be used as event argument in the form of `events::send<events::common::enums::my_enum_t>(...)`.
 
 #### Формат тексту
 
@@ -124,35 +124,33 @@ Events can have a fixed set of arguments that can be inserted into the message o
 
 - символи можна екранувати за допомогою \\
 
- Ці символи повинні бути екрановані: '\\\\', '\\<', '\\{'.
+  Ці символи повинні бути екрановані: '\\\\', '\\<', '\\{'.
 
 - теги що підтримуються:
+  - Профілі: `<profile name="[!]NAME">CONTENT</profile>`
 
- - Профілі: `<profile name="[!]NAME">CONTENT</profile>`
+    `CONTENT` буде показано, лише якщо назва збігається з налаштованим профілем.
+    Це може бути використано, наприклад, щоб приховати інформацію для розробників від кінцевих користувачів.
 
-  `CONTENT` буде показано, лише якщо назва збігається з налаштованим профілем.
-  Це може бути використано, наприклад, щоб приховати інформацію для розробників від кінцевих користувачів.
+  - URLs: `<a [href="URL"]>CONTENT</a>`.
+    If `href` is not set, use `CONTENT` as `URL` (i.e.`<a>https://docs.px4.io</a>` is interpreted as `<a href="https://docs.px4.io">https://docs.px4.io</a>`)
 
- - URLs: `<a [href="URL"]>CONTENT</a>`.
-  If `href` is not set, use `CONTENT` as `URL` (i.e.`<a>https://docs.px4.io</a>` is interpreted as `<a href="https://docs.px4.io">https://docs.px4.io</a>`)
+  - Parameters: `<param>PARAM_NAME</param>`
 
- - Parameters: `<param>PARAM_NAME</param>`
-
- - не дозволено використовувати вкладені теги того ж типу
+  - не дозволено використовувати вкладені теги того ж типу
 
 - аргументи: шаблонні замінники, що відповідають синтаксису python з індексацією що починається з 1 (замість 0)
+  - загальна форма: `{ARG_IDX[:.NUM_DECIMAL_DIGITS][UNIT]}`
 
- - загальна форма: `{ARG_IDX[:.NUM_DECIMAL_DIGITS][UNIT]}`
+    UNIT:
 
-  UNIT:
+    - m: горизонтальна відстань в метрах
+    - m_v: вертикальна відстань в метрах
+    - m^2: площа в метрах квадратних
+    - m/s: швидкість у метрах в секунду
+    - C: температура у градусах Цельсія
 
-  - m: горизонтальна відстань в метрах
-  - m_v: вертикальна відстань в метрах
-  - m^2: площа в метрах квадратних
-  - m/s: швидкість у метрах в секунду
-  - C: температура у градусах Цельсія
-
- - `NUM_DECIMAL_DIGITS` підходить тільки для аргументів у вигляді дійсних чисел.
+  - `NUM_DECIMAL_DIGITS` підходить тільки для аргументів у вигляді дійсних чисел.
 
 ## Логування
 
@@ -174,4 +172,4 @@ Events can have a fixed set of arguments that can be inserted into the message o
 Для отримання додаткової інформації див. <a href="../advanced/px4_metadata.md"> Метадані PX4 (трансляція і публікація)</a>.
 
 Цей процес такий самий як і для [метаданих параметрів](../advanced/parameters_and_configurations.md#publishing-parameter-metadata-to-a-gcs).
-Для отримання додаткової інформації див. [Метадані PX4 (трансляція і публікація)](../advanced/px4_metadata.md)
+For more information see [PX4 Metadata (Translation & Publication)](../advanced/px4_metadata.md)

@@ -15,10 +15,18 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 
 - [ActuatorMotors](ActuatorMotors.md) — Motor control message
 - [ActuatorServos](ActuatorServos.md) — Servo control message
+- [AirspeedValidated](AirspeedValidated.md)
 - [ArmingCheckReply](ArmingCheckReply.md)
 - [ArmingCheckRequest](ArmingCheckRequest.md)
 - [BatteryStatus](BatteryStatus.md)
 - [ConfigOverrides](ConfigOverrides.md) — Configurable overrides by (external) modes or mode executors
+- [FixedWingLateralSetpoint](FixedWingLateralSetpoint.md) — Fixed Wing Lateral Setpoint message
+Used by the fw_lateral_longitudinal_control module
+At least one of course, airspeed_direction, or lateral_acceleration must be finite.
+- [FixedWingLongitudinalSetpoint](FixedWingLongitudinalSetpoint.md) — Fixed Wing Longitudinal Setpoint message
+Used by the fw_lateral_longitudinal_control module
+If pitch_direct and throttle_direct are not both finite, then the controller relies on altitude/height_rate and equivalent_airspeed to control vertical motion.
+If both altitude and height_rate are NAN, the controller maintains the current altitude.
 - [GotoSetpoint](GotoSetpoint.md) — Position and (optional) heading setpoints with corresponding speed constraints
 Setpoints are intended as inputs to position and heading smoothers, respectively
 Setpoints do not need to be kinematically consistent
@@ -26,6 +34,11 @@ Optional heading setpoints may be specified as controlled by the respective flag
 Unset optional setpoints are not controlled
 Unset optional constraints default to vehicle specifications
 - [HomePosition](HomePosition.md) — GPS home position in WGS84 coordinates.
+- [LateralControlConfiguration](LateralControlConfiguration.md) — Fixed Wing Lateral Control Configuration message
+Used by the fw_lateral_longitudinal_control module to constrain FixedWingLateralSetpoint messages.
+- [LongitudinalControlConfiguration](LongitudinalControlConfiguration.md) — Fixed Wing Longitudinal Control Configuration message
+Used by the fw_lateral_longitudinal_control module and TECS to constrain FixedWingLongitudinalSetpoint messages
+and configure the resultant setpoints.
 - [ManualControlSetpoint](ManualControlSetpoint.md)
 - [ModeCompleted](ModeCompleted.md) — Mode completion result, published by an active mode.
 The possible values of nav_state are defined in the VehicleStatus msg.
@@ -72,7 +85,6 @@ The coordinate system origin is the vehicle position at the time when the EKF2-m
 - [ActuatorTest](ActuatorTest.md)
 - [AdcReport](AdcReport.md)
 - [Airspeed](Airspeed.md)
-- [AirspeedValidated](AirspeedValidated.md)
 - [AirspeedWind](AirspeedWind.md)
 - [AutotuneAttitudeControlStatus](AutotuneAttitudeControlStatus.md)
 - [ButtonEvent](ButtonEvent.md)
@@ -80,7 +92,7 @@ The coordinate system origin is the vehicle position at the time when the EKF2-m
 - [CameraStatus](CameraStatus.md)
 - [CameraTrigger](CameraTrigger.md)
 - [CanInterfaceStatus](CanInterfaceStatus.md)
-- [CellularStatus](CellularStatus.md)
+- [CellularStatus](CellularStatus.md) — Cellular status
 - [CollisionConstraints](CollisionConstraints.md) — Local setpoint constraints in NED frame
 setting something to NaN means that no limit is provided
 - [ControlAllocatorStatus](ControlAllocatorStatus.md)
@@ -116,6 +128,11 @@ scale errors, in-run bias and thermal drift (if thermal compensation is enabled 
 - [FailsafeFlags](FailsafeFlags.md) — Input flags for the failsafe state machine set by the arming & health checks.
 - [FailureDetectorStatus](FailureDetectorStatus.md)
 - [FigureEightStatus](FigureEightStatus.md)
+- [FixedWingLateralGuidanceStatus](FixedWingLateralGuidanceStatus.md) — Fixed Wing Lateral Guidance Status message
+Published by fw_pos_control module to report the resultant lateral setpoints and NPFG debug outputs
+- [FixedWingLateralStatus](FixedWingLateralStatus.md) — Fixed Wing Lateral Status message
+Published by the fw_lateral_longitudinal_control module to report the resultant lateral setpoint
+- [FixedWingRunwayControl](FixedWingRunwayControl.md) — Auxiliary control fields for fixed-wing runway takeoff/landing
 - [FlightPhaseEstimation](FlightPhaseEstimation.md)
 - [FollowTarget](FollowTarget.md)
 - [FollowTargetEstimator](FollowTargetEstimator.md)
@@ -170,7 +187,6 @@ These are the externally visible LED's, not the board LED's
 - [NavigatorStatus](NavigatorStatus.md) — Current status of a Navigator mode
 The possible values of nav_state are defined in the VehicleStatus msg.
 - [NormalizedUnsignedSetpoint](NormalizedUnsignedSetpoint.md)
-- [NpfgStatus](NpfgStatus.md)
 - [ObstacleDistance](ObstacleDistance.md) — Obstacle distances in front of the sensor.
 - [OffboardControlMode](OffboardControlMode.md) — Off-board control mode
 - [OnboardComputerStatus](OnboardComputerStatus.md) — ONBOARD_COMPUTER_STATUS message data
@@ -207,10 +223,12 @@ This are the three next waypoints (or just the next two or one).
 - [RcParameterMap](RcParameterMap.md)
 - [RoverAttitudeSetpoint](RoverAttitudeSetpoint.md)
 - [RoverAttitudeStatus](RoverAttitudeStatus.md)
+- [RoverPositionSetpoint](RoverPositionSetpoint.md)
 - [RoverRateSetpoint](RoverRateSetpoint.md)
 - [RoverRateStatus](RoverRateStatus.md)
 - [RoverSteeringSetpoint](RoverSteeringSetpoint.md)
 - [RoverThrottleSetpoint](RoverThrottleSetpoint.md)
+- [RoverVelocitySetpoint](RoverVelocitySetpoint.md)
 - [RoverVelocityStatus](RoverVelocityStatus.md)
 - [Rpm](Rpm.md)
 - [RtlStatus](RtlStatus.md)
@@ -248,6 +266,8 @@ such as Pozyx or NXP Rddrone.
 - [TelemetryStatus](TelemetryStatus.md)
 - [TiltrotorExtraControls](TiltrotorExtraControls.md)
 - [TimesyncStatus](TimesyncStatus.md)
+- [TrajectorySetpoint6dof](TrajectorySetpoint6dof.md) — Trajectory setpoint in NED frame
+Input to position controller.
 - [TransponderReport](TransponderReport.md)
 - [TuneControl](TuneControl.md) — This message is used to control the tunes, when the tune_id is set to CUSTOM
 then the frequency, duration are used otherwise those values are ignored.
@@ -277,6 +297,6 @@ NaN means the state was not controlled
 - [WheelEncoders](WheelEncoders.md)
 - [Wind](Wind.md)
 - [YawEstimatorStatus](YawEstimatorStatus.md)
+- [AirspeedValidatedV0](AirspeedValidatedV0.md)
+- [VehicleAttitudeSetpointV0](VehicleAttitudeSetpointV0.md)
 - [VehicleStatusV0](VehicleStatusV0.md) — Encodes the system state of the vehicle published by commander
-
-    

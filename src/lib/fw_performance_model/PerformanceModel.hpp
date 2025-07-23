@@ -94,11 +94,12 @@ public:
 	float getCalibratedTrimAirspeed() const;
 
 	/**
-	 * Get the minimum airspeed compensated for weight and load factor due to bank angle.
+	 * Get the minimum airspeed compensated for weight, load factor due to bank angle and flaps.
 	 * @param load_factor due to banking
+	 * @param flaps_setpoint Flaps setpoint, normalized in range [0,1]
 	 * @return calibrated minimum airspeed in m/s
 	 */
-	float getMinimumCalibratedAirspeed(float load_factor = 1.0f) const;
+	float getMinimumCalibratedAirspeed(float load_factor, float flaps_setpoint) const;
 
 	/**
 	 * Get the maximum airspeed.
@@ -109,9 +110,10 @@ public:
 	/**
 	 * get the stall airspeed compensated for load factor due to bank angle.
 	 * @param load_factor load factor due to banking
+	 * @param flaps_setpoint Flaps setpoint, normalized in range [0,1]
 	 * @return calibrated stall airspeed in m/s
 	 */
-	float getCalibratedStallAirspeed(float load_factor) const;
+	float getCalibratedStallAirspeed(float load_factor, float flaps_setpoint) const;
 
 	/**
 	 * Run some checks on parameters and detect unfeasible combinations.
@@ -134,7 +136,9 @@ private:
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
 		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,
 		(ParamFloat<px4::params::FW_THR_ASPD_MIN>) _param_fw_thr_aspd_min,
-		(ParamFloat<px4::params::FW_THR_ASPD_MAX>) _param_fw_thr_aspd_max)
+		(ParamFloat<px4::params::FW_THR_ASPD_MAX>) _param_fw_thr_aspd_max,
+		(ParamFloat<px4::params::FW_AIRSPD_FLP_SC>) _param_fw_airspd_flp_sc
+	)
 
 	/**
 	 * Get the sea level trim throttle for a given calibrated airspeed setpoint.

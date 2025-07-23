@@ -128,21 +128,21 @@ You add some "boilerplate" code to regularly listen for changes in the [uORB Top
 
 - **px4_platform_common/module_params.h** для отримання макросу `DEFINE_PARAMETERS`:
 
- ```cpp
- #include <px4_platform_common/module_params.h>
- ```
+  ```cpp
+  #include <px4_platform_common/module_params.h>
+  ```
 
 - **parameter_update.h** для доступу до повідомлень uORB `parameter_update`:
 
- ```cpp
- #include <uORB/topics/parameter_update.h>
- ```
+  ```cpp
+  #include <uORB/topics/parameter_update.h>
+  ```
 
 - **Subscription.hpp** для uORB C++ API підписки:
 
- ```cpp
- #include <uORB/Subscription.hpp>
- ```
+  ```cpp
+  #include <uORB/Subscription.hpp>
+  ```
 
 Derive your class from `ModuleParams`, and use `DEFINE_PARAMETERS` to specify a list of parameters and their associated parameter attributes.
 Назви параметрів мають збігатися з визначеннями метаданих параметрів.
@@ -194,7 +194,7 @@ void Module::parameters_update()
 - `_param_update_sub.updated()` повідомляє нам, чи є _будь-яке_ оновлення в uORB-повідомленні `param_update` (але не вказує, який саме параметр змінено).
 - Якщо було оновлено "деякий" параметр, ми копіюємо оновлення у `parameter_update_s` (`param_update`), щоб очистити очікуване оновлення.
 - Then we call `ModuleParams::updateParams()`.
- This "under the hood" updates all parameter attributes listed in our `DEFINE_PARAMETERS` list.
+  This "under the hood" updates all parameter attributes listed in our `DEFINE_PARAMETERS` list.
 
 Атрибути параметрів (`_sys_autostart` і `_att_bias_max` у цьому випадку) можна використовувати для відображення параметрів, і вони будуть оновлюватися щоразу, коли значення параметра змінюватиметься.
 
@@ -267,12 +267,12 @@ YAML meta data is intended as a full replacement for the **.c** definitions.
 - Приклад використання визначень YAML можна знайти у визначенні параметрів MAVLink: [/src/modules/mavlink/module.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mavlink/module.yaml).
 - YAML-файл реєструється у системі збірки cmake шляхом додавання
 
- ```cmake
- MODULE_CONFIG
- 	module.yaml
- ```
+  ```cmake
+  MODULE_CONFIG
+  	module.yaml
+  ```
 
- до секції `px4_add_module` файлу `CMakeLists.txt` цього модуля.
+  до секції `px4_add_module` файлу `CMakeLists.txt` цього модуля.
 
 #### Мета-дані YAML з багатьма екземплярами (шаблонами)
 

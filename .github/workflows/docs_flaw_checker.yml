@@ -21,13 +21,13 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '18'
 
       - name: Create logs directory
         run: |
           mkdir logs
 
-      - name: Get changed english files
+      - name: Get changed english doc files
         id: get_changed_markdown_english
         uses: tj-actions/changed-files@v35.9.2
         with:
@@ -48,10 +48,10 @@ jobs:
       - name: Run link checker
         id: link-check
         run: |
-          npm -g install markdown_link_checker_sc@0.0.134
-          markdown_link_checker_sc -r ${{ github.workspace }} -d en -f ./docs/logs/prFiles.json -i assets -u docs.px4.io/main/ > ./docs/logs/errorsFilteredByPrPages.md
+          npm -g install markdown_link_checker_sc@0.0.138
+          markdown_link_checker_sc -r ${{ github.workspace }} -d docs -e en -f ./logs/prFiles.json -i assets -u docs.px4.io/main/ > ./logs/errorsFilteredByPrPages.md
           mkdir -p ./pr
-          cp ./docs/logs/errorsFilteredByPrPages.md ./pr/errorsFilteredByPrPages.md
+          cp ./logs/errorsFilteredByPrPages.md ./pr/errorsFilteredByPrPages.md
 
       - name: Read errorsFilteredByPrPages.md file
         id: read-errors-by-page

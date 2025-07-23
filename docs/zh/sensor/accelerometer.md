@@ -1,12 +1,12 @@
-# Accelerometer Hardware & Setup
+# 加速度计硬件与设置
 
-PX4 uses accelerometer data for velocity estimation.
+PX4使用加速计数据进行速度估计。
 
-You should not need to attach an accelometer as a stand-alone external device:
+你无需将加速度计作为独立的外部设备进行连接。
 
-- Most flight controllers, such as those in the [Pixhawk Series](../flight_controller/pixhawk_series.md), include an accelerometer as part of the flight controller's [Inertial Motion Unit (IMU)](https://en.wikipedia.org/wiki/Inertial_measurement_unit).
-- Gyroscopes are present as part of an [external INS, ARHS or INS-enhanced GNSS system](../sensor/inertial_navigation_systems.md).
+- 大多数飞行控制器，例如[Pixhawk系列](../flight_controller/pixhawk_series.md)中的飞行控制器，都将加速度计作为飞行控制器[惯性测量单元（IMU）](https://en.wikipedia.org/wiki/Inertial_measurement_unit)的一部分。
+- 陀螺仪作为[外部惯性导航系统、姿态与航向参考系统或惯性导航增强型全球导航卫星系统](../sensor/inertial_navigation_systems.md)的一部分而存在。
 
-The accelerometer must be calibrated before first use of the vehicle:
+在首次使用载具之前必须校准加速计：
 
-- [Accelerometer Calibration](../config/accelerometer.md)
+- [加速度计校准](../config/accelerometer.md)

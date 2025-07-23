@@ -231,5 +231,5 @@ If the vehicle is already flying when the mission is started, a takeoff mission 
 ## See Also
 
 - [Missions](../flying/missions.md)
-  - [Package Delivery Mission](../flying/package_delivery_mission.md)
+  - [包裹投递任务](../flying/package_delivery_mission.md)
 - [Mission Mode (FW)](../flight_modes_fw/mission.md)

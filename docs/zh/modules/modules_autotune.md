@@ -6,9 +6,7 @@ Source: [modules/fw_autotune_attitude_control](https://github.com/PX4/PX4-Autopi
 
 ### 描述
 
-<a id="fw_autotune_attitude_control_usage"></a>
-
-### 用法
+### Usage {#fw_autotune_attitude_control_usage}
 
 ```
 fw_autotune_attitude_control <command> [arguments...]
@@ -27,9 +25,7 @@ Source: [modules/mc_autotune_attitude_control](https://github.com/PX4/PX4-Autopi
 
 ### 描述
 
-<a id="mc_autotune_attitude_control_usage"></a>
-
-### 用法
+### Usage {#mc_autotune_attitude_control_usage}
 
 ```
 mc_autotune_attitude_control <command> [arguments...]

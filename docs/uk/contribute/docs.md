@@ -16,7 +16,7 @@ Simple changes to _existing content_ can be made by clicking the **Edit on GitHu
 
 ![Vitepress: Edit Page button](../../assets/vuepress/vuepress_edit_page_on_github_link.png)
 
-Щоб редагувати існуючу сторінку:
+To edit an existing English page:
 
 1. Відкрийте сторінку
 2. Click the **Edit on GitHub** link below the page content.
@@ -25,52 +25,65 @@ Simple changes to _existing content_ can be made by clicking the **Edit on GitHu
 
 Команда документації перегляне запит і або об'єднає його, або працює з вами, щоб оновити його.
 
-## Зміни за допомогою Git (Нові сторінки та зображення)
+Note that you can only make changes to the English version directly in the source.
+[Translations are handled in Crowdin](../contribute/translation.md).
+
+## Changes using Git
 
 Більш суттєві зміни, включаючи додавання нових сторінок або додавання/зміну зображень, не такі прості для внесення (або належним чином протестувати) на Github.
+
 For these kinds of changes we suggest using the same approach as for _code_:
 
-1. Use the _git_ toolchain to get the documentation source code onto your local computer.
+1. Use the _git_ toolchain to get the PX4 source code onto your local computer.
 2. Внесіть потрібні зміни в документацію (додайте, змініть, видаліть).
 3. _Test_ that it builds properly using Vitepress.
-4. Створіть гілку для ваших змін і створіть запит на витягнення (PR), щоб втягнути їх назад у документацію.
+4. Create a branch for your changes and create a pull request (PR) to pull it back into the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) repo.
 
 Нижче пояснено, як отримати вихідний код, побудувати локально (для тестування) та внести зміни в код.
 
-### Get/Push  документація вихідного коду
+### Get Documentation Source Code
+
+Documentation sources are in the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot/) repo, alongside all the other PX4 source code.
+The sources are markdown files located the [/docs](https://github.com/PX4/PX4-Autopilot/tree/main/docs) subdirectory.
+The English source files are in the [/docs/en/](https://github.com/PX4/PX4-Autopilot/tree/main/docs/en) subdirectory and can be edited directly.
+[Translation](../contribute/translation.md) sources are in language specific subdirectories, such as `ko` for korean and `zh` for Chinese: these are edited via the Crowdin tool, and should not be edited directly.
+
+:::tip
+If you already have a clone of the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot/) you can ignore this section.
+:::
 
 Щоб отримати джерела бібліотеки(ів) на свій локальний комп'ютер, вам потрібно використовувати інструментарій git.
 Нижче наведено інструкції, як отримати git і використовувати його на своєму локальному комп'ютері.
 
 1. Download git for your computer from [https://git-scm.com/downloads](https://git-scm.com/downloads)
 
-2. [Sign up](https://github.com/join) for Github if you haven't already
+2. [Sign up](https://github.com/signup) for Github if you haven't already
 
-3. Create a copy (Fork) of the [PX4 User Guide repo](https://github.com/PX4/PX4-user_guide) on Github ([instructions here](https://docs.github.com/en/get-started/quickstart/fork-a-repo)).
+3. Create a copy (Fork) of the [PX4-Autopilot repo](https://github.com/PX4/PX4-Autopilot) on Github ([instructions here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)).
 
 4. Клонуйте ваш форкнутий репозиторій на локальний комп'ютер:
 
   ```sh
   cd ~/wherever/
-  git clone https://github.com/<your git name>/PX4-user_guide.git
+  git clone https://github.com/<your git name>/PX4-Autopilot.git
   ```
 
-  Наприклад, щоб клонувати форк посібника користувача PX4 для користувача з обліковим записом Github "john_citizen":
+  For example, to clone PX4 source fork for a user with Github account "john_citizen":
 
   ```sh
-  git clone https://github.com/john_citizen/PX4-user_guide.git
+  git clone https://github.com/john_citizen/PX4-Autopilot.git
   ```
 
 5. Перейдіть до свого локального сховища:
 
   ```sh
-  cd ~/wherever/PX4-user_guide
+  cd ~/wherever/PX4-Autopilot
   ```
 
-6. Add a _remote_ called "upstream" to point to the PX4 version of the library:
+6. Add a _remote_ called "upstream" to point to the "official" PX4 version of the library:
 
   ```sh
-  git remote add upstream https://github.com/PX4/PX4-user_guide.git
+  git remote add upstream https://github.com/PX4/PX4-Autopilot.git
   ```
 
   :::tip
@@ -80,7 +93,19 @@ For these kinds of changes we suggest using the same approach as for _code_:
 
 :::
 
-7. Створити гілку для ваших змін:
+### Make/Push Documentation Changes
+
+Within the repository you created above:
+
+1. Bring your copy of the repository `main` branch up to date:
+
+  ```sh
+  git checkout main
+  git fetch upstream main
+  git pull upstream main
+  ```
+
+2. Create a new branch for your changes:
 
   ```sh
   git checkout -b <your_feature_branch_name>
@@ -88,9 +113,9 @@ For these kinds of changes we suggest using the same approach as for _code_:
 
   This creates a local branch on your computer named `your_feature_branch_name`.
 
-8. Внести зміни до документації за необхідною (загальний посібник по цьому в наступних розділах)
+3. Внести зміни до документації за необхідною (загальний посібник по цьому в наступних розділах)
 
-9. Коли ви будете задоволені своїми змінами, ви можете додати їх до вашої локальної гілки за допомогою "commit":
+4. Коли ви будете задоволені своїми змінами, ви можете додати їх до вашої локальної гілки за допомогою "commit":
 
   ```sh
   git add <file name>
@@ -99,23 +124,25 @@ For these kinds of changes we suggest using the same approach as for _code_:
 
   For a good commit message, please refer to the [Source Code Management](../contribute/code.md#commits-and-commit-messages) section.
 
-10. Натисніть "Push" вашу локальну гілку (включаючи додані до неї коміти) у вашу репозиторію-форк на Github.
+5. Натисніть "Push" вашу локальну гілку (включаючи додані до неї коміти) у вашу репозиторію-форк на Github.
 
   ```sh
   git push origin your_feature_branch_name
   ```
 
-11. Go to your forked repository on Github in a web browser, e.g.: `https://github.com/<your git name>/PX4-user_guide.git`.
+6. Go to your forked repository on Github in a web browser, e.g.: `https://github.com/<your git name>/PX4-Autopilot.git`.
   Там ви маєте побачити повідомлення, що нова гілка була відправлена у вашу репозиторію-форк.
 
-12. Створіть запит на витягнення (Pull Request, PR):
+7. Створіть запит на витягнення (Pull Request, PR):
   - On the right hand side of the "new branch message" (see one step before), you should see a green button saying "Compare & Create Pull Request".
     Натисніть на неї.
   - Буде створено шаблон запиту на витягнення.
     Він буде перераховувати ваші коміти, і ви можете (маєте) додати значущий заголовок (у випадку одного коміту PR, це зазвичай повідомлення про коміт) та повідомлення (<span style="color:orange">поясніть, що ви зробили і для якої причини. </span>.
-    Check [other pull requests](https://github.com/PX4/PX4-user_guide/pulls) for comparison)
+    Check [other pull requests](https://github.com/PX4/PX4-Autopilot/pulls) for comparison).
+  - Add the "Documentation" label.
 
-13. Готово!
+8. Готово!
+
   Редактори PX4 User Guide зараз переглянуть вашу співпрацю і вирішать, чи хочуть вони інтегрувати її.
   Періодично перевіряйте, чи є у них питання по вашим змінам.
 
@@ -124,14 +151,13 @@ For these kinds of changes we suggest using the same approach as for _code_:
 Побудуйте бібліотеку локально, щоб перевірити, що будь-які зміни, які ви внесли, відображені належним чином:
 
 1. Install the [Vitepress prerequisites](https://vitepress.dev/guide/getting-started#prerequisites):
-
   - [Nodejs 18+](https://nodejs.org/en)
   - [Yarn classic](https://classic.yarnpkg.com/en/docs/install)
 
-2. Перейдіть до свого локального сховища:
+2. Navigate to your local repository and the `/docs` subdirectory:
 
   ```sh
-  cd ~/wherever/PX4-user_guide
+  cd ~/wherever/PX4-Autopilot/docs
   ```
 
 3. Встановити залежності (включаючи Vuepress):
@@ -153,11 +179,19 @@ For these kinds of changes we suggest using the same approach as for _code_:
 5. Open previewed pages in your local editor:
 
   First specify a local text editor file using the `EDITOR` environment variable, before calling `yarn start` to preview the library.
-  For example, on Windows command line you can enable VSCode as your default editor by entering:
+  For example, you can enable VSCode as your default editor by entering:
 
-  ```sh
-  set EDITOR=code
-  ```
+  - Windows:
+
+    ```sh
+    set EDITOR=code
+    ```
+
+  - Linux:
+
+    ```sh
+    export EDITOR=code
+    ```
 
   The **Open in your editor** link at the bottom of each page will then open the current page in the editor (this replaces the _Open in GitHub_ link).
 
@@ -197,7 +231,6 @@ The guide uses the [Vitepress](https://vitepress.dev/) toolchain.
   - Це полегшує створення посилань, оскільки інші сторінки і зображення завжди будуть на тому ж рівні
 
 - The _structure_ of the book is defined in `SUMMARY.md`.
-
   - Якщо ви додаєте нову сторінку до посібника, вам також потрібно додати запис до цього файлу!
 
     :::tip
@@ -223,7 +256,6 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
 ## Інструкція зі стилістичного оформлення
 
 1. Назви файлів/файлів
-
   - Put new markdown files in an appropriate sub-folder of `/en/`, such as `/en/contribute/`.
     Не створюйте додаткових вкладених папок.
   - Put new image files in an appropriate nested sub-folder of `/assets/`.
@@ -233,14 +265,12 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
   - Use lower case filenames and separate words using underscores (`_`).
 
 2. Зображення
-
   - Використовуйте найменший розмір і найнижчу роздільну здатність, яка все ще робить зображення корисним (це зменшує вартість завантаження для користувачів із слабким інтернет-з'єднанням).
   - New images should be created in a sub-folder of `/assets/` (so they can be shared between translations).
   - SVG files are preferred for diagrams.
     PNG files are preferred over JPG for screenshots.
 
 3. Контент
-
   - Use "style" (**bold**, _emphasis_, etc.) consistently and sparingly (as little as possible).
     - **Bold** for button presses and menu definitions.
     - _Emphasis_ for tool names such as _QGroundControl_ or _prettier_.
@@ -255,7 +285,6 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
   - Format using _prettier_ (_VSCode_ is a has extensions can be used for this).
 
 4. Videos:
-
   - Youtube videos can be added using the format `<lite-youtube videoid="<youtube-video-id>" title="your title"/>` (supported via the [https://www.npmjs.com/package/lite-youtube-embed](https://www.npmjs.com/package/lite-youtube-embed) custom element, which has other parameters you can pass).
     - Use instructional videos sparingly as they date badly, and are hard to maintain.
     - Cool videos of airframes in flight are always welcome.

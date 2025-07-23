@@ -3,10 +3,14 @@ name: EKF Change Indicator
 on:
   pull_request:
     branches:
-    - '*'
+      - '**'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
+
+# If two events are triggered within a short time in the same PR, cancel the run of the oldest event
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   unit_tests:
@@ -19,7 +23,7 @@ jobs:
     - name: main test
       uses: addnab/docker-run-action@v3
       with:
-        image: px4io/px4-dev-base-focal:2021-09-08
+        image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
         options: -v ${{ github.workspace }}:/workspace
         run: |
           cd /workspace

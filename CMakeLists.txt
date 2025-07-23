@@ -335,6 +335,33 @@ if(NOT PX4_CHIP)
 endif()
 
 #=============================================================================
+# Testing - Automatic unit and integration testing with CTest
+# (Needs to be before setting the common compile flags)
+#
+
+# optionally enable cmake testing (supported only on posix)
+option(CMAKE_TESTING "Configure test targets" OFF)
+if(${PX4_CONFIG} STREQUAL "px4_sitl_test")
+	set(CMAKE_TESTING ON)
+endif()
+if(CMAKE_TESTING)
+	include(CTest) # sets BUILD_TESTING variable
+endif()
+
+# enable test filtering to run only specific tests with the ctest -R regex functionality
+set(TESTFILTER "" CACHE STRING "Filter string for ctest to selectively only run specific tests (ctest -R)")
+
+include(px4_add_gtest)
+if(BUILD_TESTING)
+	# Setting FUZZTEST_FUZZING_MODE=on enables ASAN, and is only supported with Clang
+	if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "AppleClang"))
+		set(FUZZTEST_FUZZING_MODE ON)
+	endif()
+	add_subdirectory(test)
+	fuzztest_setup_fuzzing_flags()
+endif()
+
+#=============================================================================
 # build flags
 #
 include(px4_add_common_flags)
@@ -385,47 +412,6 @@ if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 		list(APPEND external_module_paths ${EXTERNAL_MODULES_LOCATION}/src/${external_module})
 	endforeach()
 endif()
-
-#=============================================================================
-# Testing - Automatic unit and integration testing with CTest
-#
-
-# optionally enable cmake testing (supported only on posix)
-option(CMAKE_TESTING "Configure test targets" OFF)
-if(${PX4_CONFIG} STREQUAL "px4_sitl_test")
-	set(CMAKE_TESTING ON)
-endif()
-if(CMAKE_TESTING)
-	include(CTest) # sets BUILD_TESTING variable
-endif()
-
-# enable test filtering to run only specific tests with the ctest -R regex functionality
-set(TESTFILTER "" CACHE STRING "Filter string for ctest to selectively only run specific tests (ctest -R)")
-
-# if testing is enabled download and configure gtest
-list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/gtest/)
-include(px4_add_gtest)
-if(BUILD_TESTING)
-	include(gtest)
-
-	# Ensure there's no -R without any filter expression since that trips newer ctest versions
-	if(TESTFILTER)
-		set(TESTFILTERARG "-R")
-	else()
-		set(TESTFILTERARG "")
-	endif()
-
-	add_custom_target(test_results
-			COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} --output-on-failure -T Test ${TESTFILTERARG} ${TESTFILTER}
-			DEPENDS
-				px4
-				examples__dyn_hello
-			USES_TERMINAL
-			COMMENT "Running tests"
-			WORKING_DIRECTORY ${PX4_BINARY_DIR})
-	set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
-endif()
-
 
 #=============================================================================
 # subdirectories
@@ -496,7 +482,6 @@ add_custom_target(uorb_graph DEPENDS ${uorb_graph_config})
 include(bloaty)
 
 
-include(doxygen)
 include(metadata)
 include(package)
 

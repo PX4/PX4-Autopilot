@@ -8,9 +8,7 @@ Source: [systemcmds/actuator_test](https://github.com/PX4/PX4-Autopilot/tree/mai
 
 ПОПЕРЕДЖЕННЯ: перед використанням цієї команди приберіть усі пропелери.
 
-<a id="actuator_test_usage"></a>
-
-### Використання
+### Usage {#actuator_test_usage}
 
 ```
 actuator_test <command> [arguments...]
@@ -34,9 +32,9 @@ actuator_test <command> [arguments...]
 
 Source: [systemcmds/bl_update](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/bl_update)
 
-Utility to flash the bootloader from a file <a id="bl_update_usage"></a>
+Utility to flash the bootloader from a file
 
-### Використання
+### Usage {#bl_update_usage}
 
 ```
 bl_update [arguments...]
@@ -50,9 +48,9 @@ bl_update [arguments...]
 
 Source: [systemcmds/bsondump](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/bsondump)
 
-Utility to read BSON from a file and print or output document size. <a id="bsondump_usage"></a>
+Utility to read BSON from a file and print or output document size.
 
-### Використання
+### Usage {#bsondump_usage}
 
 ```
 bsondump [arguments...]
@@ -63,9 +61,9 @@ bsondump [arguments...]
 
 Source: [systemcmds/dumpfile](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/dumpfile)
 
-Утиліта для роботи з файлами дампу. Виводить розмір та вміст файлу у бінарному режимі (не замінюйте LF на CR LF) до stdout. <a id="dumpfile_usage"></a>
+Dump file utility. Prints file size and contents in binary mode (don't replace LF with CR LF) to stdout.
 
-### Використання
+### Usage {#dumpfile_usage}
 
 ```
 dumpfile [arguments...]
@@ -78,17 +76,15 @@ Source: [systemcmds/dyn](https://github.com/PX4/PX4-Autopilot/tree/main/src/syst
 
 ### Опис
 
-Завантажує та запускає динамічний модуль PX4, який не було скомпільовано у бінарний файл PX4.
+Load and run a dynamic PX4 module, which was not compiled into the PX4 binary.
 
-### Приклад
+### Example
 
 ```
 dyn ./hello.px4mod start
 ```
 
-<a id="dyn_usage"></a>
-
-### Використання
+### Usage {#dyn_usage}
 
 ```
 dyn [arguments...]
@@ -102,21 +98,19 @@ Source: [systemcmds/failure](https://github.com/PX4/PX4-Autopilot/tree/main/src/
 
 ### Опис
 
-Впроваджує збої в систему.
+Inject failures into system.
 
 ### Імплементація
 
-Ця системна команда надсилає транспортному засобу команду через uORB, щоб спровокувати збій.
+This system command sends a vehicle command over uORB to trigger failure.
 
 ### Приклади
 
-Перевірити failsafe GPS, зупинивши GPS:
+Test the GPS failsafe by stopping GPS:
 
 failure gps off
 
-<a id="failure_usage"></a>
-
-### Використання
+### Usage {#failure_usage}
 
 ```
 failure [arguments...]
@@ -135,7 +129,7 @@ Source: [systemcmds/gpio](https://github.com/PX4/PX4-Autopilot/tree/main/src/sys
 
 ### Опис
 
-Ця команда використовується для читання та запису GPIO
+This command is used to read and write GPIOs
 
 ```
 gpio read <PORT><PIN>/<DEVICE> [PULLDOWN|PULLUP] [--force]
@@ -144,7 +138,7 @@ gpio write <PORT><PIN>/<DEVICE> <VALUE> [PUSHPULL|OPENDRAIN] [--force]
 
 ### Приклади
 
-Зчитати значення на port H pin 4 налаштований як імпульс, і це високо
+Read the value on port H pin 4 configured as pullup, and it is high
 
 ```
 gpio read H4 PULLUP
@@ -152,21 +146,19 @@ gpio read H4 PULLUP
 
 1 OK
 
-Встановіть вихідне значення на виводі порту E на високий рівень
+Set the output value on Port E pin 7 to high
 
 ```
 gpio write E7 1 --force
 ```
 
-Встановіть вихідне значення на пристрої /dev/gpio1 на високе значення
+Set the output value on device /dev/gpio1 to high
 
 ```
 gpio write /dev/gpio1 1
 ```
 
-<a id="gpio_usage"></a>
-
-### Використання
+### Usage {#gpio_usage}
 
 ```
 gpio [arguments...]
@@ -186,13 +178,11 @@ gpio [arguments...]
 
 Source: [systemcmds/hardfault_log](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/hardfault_log)
 
-Утиліта апаратного збою
+Hardfault utility
 
-Використовується у сценаріях запуску для обробки апаратних збоїв
+Used in startup scripts to handle hardfaults
 
-<a id="hardfault_log_usage"></a>
-
-### Використання
+### Usage {#hardfault_log_usage}
 
 ```
 hardfault_log <command> [arguments...]
@@ -219,9 +209,9 @@ hardfault_log <command> [arguments...]
 
 Source: [systemcmds/hist](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/hist)
 
-Інструмент командного рядка для відображення історії повідомлень px4. Немає аргументів. <a id="hist_usage"></a>
+Command-line tool to show the px4 message history. There are no arguments.
 
-### Використання
+### Usage {#hist_usage}
 
 ```
 hist [arguments...]
@@ -231,9 +221,9 @@ hist [arguments...]
 
 Source: [systemcmds/i2cdetect](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/i2cdetect)
 
-Utility to scan for I2C devices on a particular bus. <a id="i2cdetect_usage"></a>
+Utility to scan for I2C devices on a particular bus.
 
-### Використання
+### Usage {#i2cdetect_usage}
 
 ```
 i2cdetect [arguments...]
@@ -249,23 +239,21 @@ Source: [systemcmds/led_control](https://github.com/PX4/PX4-Autopilot/tree/main/
 
 Command-line tool to control & test the (external) LED's.
 
-Щоб скористатися ним, переконайтеся, що запущено драйвер, який обробляє тему led_control uorb.
+To use it make sure there's a driver running, which handles the led_control uorb topic.
 
-Існують різні пріоритети, наприклад, один модуль може встановити колір з низьким пріоритетом, а інший
-модуль може блимати N разів з високим пріоритетом, і світлодіоди автоматично повертаються до стану з низьким пріоритетом
-після блимання. The `reset` command can also be used to return to a lower priority.
+There are different priorities, such that for example one module can set a color with low priority, and another
+module can blink N times with high priority, and the LED's automatically return to the lower priority state
+after the blinking. The `reset` command can also be used to return to a lower priority.
 
 ### Приклади
 
-Блимання першого світлодіода 5 разів синім кольором:
+Blink the first LED 5 times in blue:
 
 ```
 led_control blink -c blue -l 0 -n 5
 ```
 
-<a id="led_control_usage"></a>
-
-### Використання
+### Usage {#led_control_usage}
 
 ```
 led_control <command> [arguments...]
@@ -301,13 +289,11 @@ led_control <command> [arguments...]
 
 Source: [systemcmds/topic_listener](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/topic_listener)
 
-Утиліта для прослуховування тем uORB та виводу даних у консоль.
+Utility to listen on uORB topics and print the data to the console.
 
-Із прослуховування можна вийти в будь-який момент, натиснувши Ctrl+C, Esc або Q.
+The listener can be exited any time by pressing Ctrl+C, Esc, or Q.
 
-<a id="listener_usage"></a>
-
-### Використання
+### Usage {#listener_usage}
 
 ```
 listener <command> [arguments...]
@@ -325,9 +311,9 @@ listener <command> [arguments...]
 
 Source: [systemcmds/mft](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/mft)
 
-Utility interact with the manifest <a id="mfd_usage"></a>
+Utility interact with the manifest
 
-### Використання
+### Usage {#mfd_usage}
 
 ```
 mfd <command> [arguments...]
@@ -339,9 +325,9 @@ mfd <command> [arguments...]
 
 Source: [systemcmds/mft_cfg](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/mft_cfg)
 
-Tool to set and get manifest configuration <a id="mft_cfg_usage"></a>
+Tool to set and get manifest configuration
 
-### Використання
+### Usage {#mft_cfg_usage}
 
 ```
 mft_cfg <command> [arguments...]
@@ -360,9 +346,9 @@ mft_cfg <command> [arguments...]
 
 Source: [systemcmds/mtd](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/mtd)
 
-Utility to mount and test partitions (based on FRAM/EEPROM storage as defined by the board) <a id="mtd_usage"></a>
+Utility to mount and test partitions (based on FRAM/EEPROM storage as defined by the board)
 
-### Використання
+### Usage {#mtd_usage}
 
 ```
 mtd <command> [arguments...]
@@ -388,14 +374,12 @@ mtd <command> [arguments...]
 
 Source: [systemcmds/nshterm](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/nshterm)
 
-Запуск оболонки NSH на заданому порту.
+Start an NSH shell on a given port.
 
-Раніше це використовувалося для запуску оболонки на послідовному порту USB.
-Тепер там працює mavlink, і можна використовувати оболонку поверх mavlink.
+This was previously used to start a shell on the USB serial port.
+Now there runs mavlink, and it is possible to use a shell over mavlink.
 
-<a id="nshterm_usage"></a>
-
-### Використання
+### Usage {#nshterm_usage}
 
 ```
 nshterm [arguments...]
@@ -408,23 +392,24 @@ Source: [systemcmds/param](https://github.com/PX4/PX4-Autopilot/tree/main/src/sy
 
 ### Опис
 
-Команда для доступу до параметрів і маніпулювання ними через оболонку або скрипт.
+Command to access and manipulate parameters via shell or script.
 
-Це використовується, наприклад, у сценарії запуску для встановлення специфічних для планера параметрів.
+This is used for example in the startup script to set airframe-specific parameters.
 
-Parameters are automatically saved when changed, eg. with `param set`. Зазвичай вони зберігаються на FRAM
-або на SD-карту. `param select` can be used to change the storage location for subsequent saves (this will
+Parameters are automatically saved when changed, eg. with `param set`. They are typically stored to FRAM
+or to the SD card. `param select` can be used to change the storage location for subsequent saves (this will
 need to be (re-)configured on every boot).
 
 If the FLASH-based backend is enabled (which is done at compile time, e.g. for the Intel Aero or Omnibus),
 `param select` has no effect and the default is always the FLASH backend. However `param save/load <file>`
 can still be used to write to/read from files.
 
-Кожен параметр має прапорець «використано», який встановлюється при його зчитуванні під час завантаження. Він використовується для відображення лише релевантних параметрів на наземну станцію керування.
+Each parameter has a 'used' flag, which is set when it's read during boot. It is used to only show relevant
+parameters to a ground control station.
 
 ### Приклади
 
-Змініть планер і переконайтеся, що завантажені параметри планера за замовчуванням:
+Change the airframe and make sure the airframe's default parameters are loaded:
 
 ```
 param set SYS_AUTOSTART 4001
@@ -432,9 +417,7 @@ param set SYS_AUTOCONFIG 1
 reboot
 ```
 
-<a id="param_usage"></a>
-
-### Використання
+### Usage {#param_usage}
 
 ```
 param <command> [arguments...]
@@ -509,12 +492,10 @@ Source: [modules/payload_deliverer](https://github.com/PX4/PX4-Autopilot/tree/ma
 
 ### Опис
 
-Керує доставкою вантажу за допомогою захвату або лебідки з відповідним налаштуванням тайм-ауту / датчиком зворотнього зв'язку,
-та повертає результат доставки як підтвердження внутрішньо
+Handles payload delivery with either Gripper or a Winch with an appropriate timeout / feedback sensor setting,
+and communicates back the delivery result as an acknowledgement internally
 
-<a id="payload_deliverer_usage"></a>
-
-### Використання
+### Usage {#payload_deliverer_usage}
 
 ```
 payload_deliverer <command> [arguments...]
@@ -536,9 +517,9 @@ payload_deliverer <command> [arguments...]
 
 Source: [systemcmds/perf](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/perf)
 
-Tool to print performance counters <a id="perf_usage"></a>
+Tool to print performance counters
 
-### Використання
+### Usage {#perf_usage}
 
 ```
 perf [arguments...]
@@ -553,9 +534,9 @@ perf [arguments...]
 
 Source: [systemcmds/reboot](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/reboot)
 
-Reboot the system <a id="reboot_usage"></a>
+Reboot the system
 
-### Використання
+### Usage {#reboot_usage}
 
 ```
 reboot [arguments...]
@@ -568,9 +549,9 @@ reboot [arguments...]
 
 Source: [systemcmds/sd_bench](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/sd_bench)
 
-Test the speed of an SD Card <a id="sd_bench_usage"></a>
+Test the speed of an SD Card
 
-### Використання
+### Usage {#sd_bench_usage}
 
 ```
 sd_bench [arguments...]
@@ -591,9 +572,9 @@ sd_bench [arguments...]
 
 Source: [systemcmds/sd_stress](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/sd_stress)
 
-Test operations on an SD Card <a id="sd_stress_usage"></a>
+Test operations on an SD Card
 
-### Використання
+### Usage {#sd_stress_usage}
 
 ```
 sd_stress [arguments...]
@@ -607,13 +588,11 @@ sd_stress [arguments...]
 
 Source: [systemcmds/serial_passthru](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/serial_passthru)
 
-Передає дані з одного пристрою на інший.
+Pass data from one device to another.
 
-Це може бути використано для використання u-center, підключеного до USB з GPS через послідовний порт.
+This can be used to use u-center connected to USB with a GPS on a serial port.
 
-<a id="serial_passthru_usage"></a>
-
-### Використання
+### Usage {#serial_passthru_usage}
 
 ```
 serial_passthru [arguments...]
@@ -632,20 +611,18 @@ Source: [systemcmds/system_time](https://github.com/PX4/PX4-Autopilot/tree/main/
 
 ### Опис
 
-Інструмент командного рядка для встановлення та отримання системного часу.
+Command-line tool to set and get system time.
 
 ### Приклади
 
-Встановіть системний час і прочитайте його назад
+Set the system time and read it back
 
 ```
 system_time set 1600775044
 system_time get
 ```
 
-<a id="system_time_usage"></a>
-
-### Використання
+### Usage {#system_time_usage}
 
 ```
 system_time <command> [arguments...]
@@ -659,9 +636,9 @@ system_time <command> [arguments...]
 
 Source: [systemcmds/top](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/top)
 
-Monitor running processes and their CPU, stack usage, priority and state <a id="top_usage"></a>
+Monitor running processes and their CPU, stack usage, priority and state
 
-### Використання
+### Usage {#top_usage}
 
 ```
 top [arguments...]
@@ -672,10 +649,10 @@ top [arguments...]
 
 Source: [systemcmds/usb_connected](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/usb_connected)
 
-Утиліта для перевірки підключення USB. Раніше використовувався в стартових скриптах.
-Значення 0 означає, що USB підключено, 1 - ні. <a id="usb_connected_usage"></a>
+Utility to check if USB is connected. Was previously used in startup scripts.
+A return value of 0 means USB is connected, 1 otherwise.
 
-### Використання
+### Usage {#usb_connected_usage}
 
 ```
 usb_connected [arguments...]
@@ -685,9 +662,9 @@ usb_connected [arguments...]
 
 Source: [systemcmds/ver](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/ver)
 
-Tool to print various version information <a id="ver_usage"></a>
+Tool to print various version information
 
-### Використання
+### Usage {#ver_usage}
 
 ```
 ver <command> [arguments...]

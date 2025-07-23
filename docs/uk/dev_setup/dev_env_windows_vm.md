@@ -33,7 +33,7 @@ Allocate as many CPU cores and memory resources to the VM as possible.
 
 2. Установіть його на вашу Windows систему
 
-3. Download the desired version of [Ubuntu Desktop ISO Image](https://www.ubuntu.com/download/desktop).
+3. Download the desired version of [Ubuntu Desktop ISO Image](https://ubuntu.com/download/desktop).
    (see [Linux Instructions Page](../dev_setup/dev_env_linux.md) for recommended Ubuntu version).
 
 4. Open _VMWare Player_.
@@ -58,7 +58,6 @@ Allocate as many CPU cores and memory resources to the VM as possible.
 
 10. Once the new VM is booted up make sure you install _VMWare tools drivers and tools extension_ inside your guest system.
    Це підвищить продуктивність та зручність користування віртуальною машиною:
-
    - Значно поліпшена продуктивність графіки
    - Належна підтримка використання апаратного забезпечення, наприклад розподілу портів USB (важливо для завантаження прошивок), прокручування коліщатком миші, підтримка звуку
    - Адаптація роздільної здатності дисплею гостя до розміру вікна емулятора
@@ -96,7 +95,6 @@ One limitation of virtual machines is that you can't automatically connect to a 
 3. Enable USB controller in VM: **VirtualBox > Settings > USB**
 
 4. Add USB filters for the bootloader in VM: **VirtualBox > Settings > USB > Add new USB filter**.
-
    - Відкрийте меню і під'єднайте USB-кабель, підключений до автопілота.
       Select the `...Bootloader` device when it appears in the UI.
 

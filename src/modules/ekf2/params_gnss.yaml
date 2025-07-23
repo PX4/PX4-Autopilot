@@ -77,7 +77,7 @@ parameters:
     EKF2_GPS_POS_X:
       description:
         short: X position of GPS antenna in body frame
-        long: Forward axis with origin relative to vehicle centre of gravity
+        long: Forward (roll) axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
@@ -85,7 +85,7 @@ parameters:
     EKF2_GPS_POS_Y:
       description:
         short: Y position of GPS antenna in body frame
-        long: Forward axis with origin relative to vehicle centre of gravity
+        long: Right (pitch) axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
@@ -93,7 +93,7 @@ parameters:
     EKF2_GPS_POS_Z:
       description:
         short: Z position of GPS antenna in body frame
-        long: Forward axis with origin relative to vehicle centre of gravity
+        long: Down (yaw) axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m

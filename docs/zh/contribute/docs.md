@@ -16,7 +16,7 @@ Simple changes to _existing content_ can be made by clicking the **Edit on GitHu
 
 ![Vitepress: Edit Page button](../../assets/vuepress/vuepress_edit_page_on_github_link.png)
 
-The guide uses the <a href="https://www.gitbook.com/about">Gitbook</a> toolchain. Change requests can be either done on the Gitbook website using the <a href="https://gitbookio.gitbooks.io/documentation/content/editor/index.html">Gitbook editor</a> or locally (more flexible, but less user-friendly).
+To edit an existing English page:
 
 1. Open the page.
 2. Click the **Edit on GitHub** link below the page content.
@@ -25,52 +25,65 @@ The guide uses the <a href="https://www.gitbook.com/about">Gitbook</a> toolchain
 
 The documentation team will review the request and either merge it or work with you to update it.
 
-## Adding New Content - Big Changes
+Note that you can only make changes to the English version directly in the source.
+[Translations are handled in Crowdin](../contribute/translation.md).
+
+## Changes using Git
 
 More substantial changes, including adding new pages or adding/modifying images, aren't as easy to make (or properly test) on Github.
+
 For these kinds of changes we suggest using the same approach as for _code_:
 
-1. Use the _git_ toolchain to get the documentation source code onto your local computer.
+1. Use the _git_ toolchain to get the PX4 source code onto your local computer.
 2. Modify the documentation as needed (add, change, delete).
 3. _Test_ that it builds properly using Vitepress.
-4. In order to contribute many changes to the documentation, it is recommended that you follow these steps to add the changes locally and then create a pull request:
+4. Create a branch for your changes and create a pull request (PR) to pull it back into the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) repo.
 
 The following explain how to get the source code, build locally (to test), and modify the code.
 
-### What Goes Where?
+### Get Documentation Source Code
+
+Documentation sources are in the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot/) repo, alongside all the other PX4 source code.
+The sources are markdown files located the [/docs](https://github.com/PX4/PX4-Autopilot/tree/main/docs) subdirectory.
+The English source files are in the [/docs/en/](https://github.com/PX4/PX4-Autopilot/tree/main/docs/en) subdirectory and can be edited directly.
+[Translation](../contribute/translation.md) sources are in language specific subdirectories, such as `ko` for korean and `zh` for Chinese: these are edited via the Crowdin tool, and should not be edited directly.
+
+:::tip
+If you already have a clone of the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot/) you can ignore this section.
+:::
 
 指南使用 <a href="https://legacy.gitbook.com/">旧版Gitbook 工具链</a>
 The instructions below explain how to get git and use it on your local computer.
 
 1. Download git for your computer from [https://git-scm.com/downloads](https://git-scm.com/downloads)
 
-2. [Sign up](https://github.com/join) for Github if you haven't already
+2. [Sign up](https://github.com/signup) for Github if you haven't already
 
-3. Create a copy (Fork) of the [PX4 User Guide repo](https://github.com/PX4/PX4-user_guide) on Github ([instructions here](https://docs.github.com/en/get-started/quickstart/fork-a-repo)).
+3. Create a copy (Fork) of the [PX4-Autopilot repo](https://github.com/PX4/PX4-Autopilot) on Github ([instructions here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)).
 
 4. Clone (copy) your forked repository to your local computer:
 
   ```sh
   cd ~/wherever/
-  git clone https://github.com/<your git name>/PX4-user_guide.git
+  git clone https://github.com/<your git name>/PX4-Autopilot.git
   ```
 
-  For example, to clone the PX4 userguide fork for a user with Github account "john_citizen":
+  For example, to clone PX4 source fork for a user with Github account "john_citizen":
 
   ```sh
-  git clone https://github.com/john_citizen/PX4-user_guide.git
+  git clone https://github.com/john_citizen/PX4-Autopilot.git
   ```
 
 5. Navigate to your local repository:
 
   ```sh
-  cd ~/wherever/PX4-user_guide
+  cd ~/wherever/PX4-Autopilot
   ```
 
-6. Add a _remote_ called "upstream" to point to the PX4 version of the library:
+6. Add a _remote_ called "upstream" to point to the "official" PX4 version of the library:
 
   ```sh
-  git remote add upstream https://github.com/PX4/PX4-user_guide.git
+  git remote add upstream https://github.com/PX4/PX4-Autopilot.git
   ```
 
   :::tip
@@ -80,7 +93,19 @@ The instructions below explain how to get git and use it on your local computer.
 
 :::
 
-7. Create a branch for your changes:
+### Make/Push Documentation Changes
+
+Within the repository you created above:
+
+1. Bring your copy of the repository `main` branch up to date:
+
+  ```sh
+  git checkout main
+  git fetch upstream main
+  git pull upstream main
+  ```
+
+2. Create a new branch for your changes:
 
   ```sh
   git checkout -b <your_feature_branch_name>
@@ -88,9 +113,9 @@ The instructions below explain how to get git and use it on your local computer.
 
   This creates a local branch on your computer named `your_feature_branch_name`.
 
-8. Make changes to the documentation as needed (general guidance on this in following sections)
+3. Make changes to the documentation as needed (general guidance on this in following sections)
 
-9. Once you are satisfied with your changes, you can add them to your local branch using a "commit":
+4. Once you are satisfied with your changes, you can add them to your local branch using a "commit":
 
   ```sh
   git add <file name>
@@ -99,23 +124,25 @@ The instructions below explain how to get git and use it on your local computer.
 
   For a good commit message, please refer to the [Source Code Management](../contribute/code.md#commits-and-commit-messages) section.
 
-10. Push your local branch (including commits added to it) to your forked repository on Github.
+5. Push your local branch (including commits added to it) to your forked repository on Github.
 
   ```sh
   git push origin your_feature_branch_name
   ```
 
-11. Go to your forked repository on Github in a web browser, e.g.: `https://github.com/<your git name>/PX4-user_guide.git`.
+6. Go to your forked repository on Github in a web browser, e.g.: `https://github.com/<your git name>/PX4-Autopilot.git`.
   There you should see the message that a new branch has been pushed to your forked repository.
 
-12. Create a pull request (PR):
+7. Create a pull request (PR):
   - On the right hand side of the "new branch message" (see one step before), you should see a green button saying "Compare & Create Pull Request".
     Press it.
   - A pull request template will be created.
     It will list your commits and you can (must) add a meaningful title (in case of a one commit PR, it's usually the commit message) and message (<span style="color:orange">explain what you did for what reason</span>.
-    Check [other pull requests](https://github.com/PX4/PX4-user_guide/pulls) for comparison)
+    Check [other pull requests](https://github.com/PX4/PX4-Autopilot/pulls) for comparison).
+  - Add the "Documentation" label.
 
-13. You're done!
+8. You're done!
+
   Maintainers for the PX4 User Guide will now have a look at your contribution and decide if they want to integrate it.
   Check if they have questions on your changes every once in a while.
 
@@ -124,14 +151,13 @@ The instructions below explain how to get git and use it on your local computer.
 概述：
 
 1. Install the [Vitepress prerequisites](https://vitepress.dev/guide/getting-started#prerequisites):
-
   - [Nodejs 18+](https://nodejs.org/en)
   - [Yarn classic](https://classic.yarnpkg.com/en/docs/install)
 
-2. Navigate to your local repository:
+2. Navigate to your local repository and the `/docs` subdirectory:
 
   ```sh
-  cd ~/wherever/PX4-user_guide
+  cd ~/wherever/PX4-Autopilot/docs
   ```
 
 3. Install dependencies (including Vitepress):
@@ -153,11 +179,19 @@ The instructions below explain how to get git and use it on your local computer.
 5. Open previewed pages in your local editor:
 
   First specify a local text editor file using the `EDITOR` environment variable, before calling `yarn start` to preview the library.
-  For example, on Windows command line you can enable VSCode as your default editor by entering:
+  For example, you can enable VSCode as your default editor by entering:
 
-  ```sh
-  set EDITOR=code
-  ```
+  - Windows:
+
+    ```sh
+    set EDITOR=code
+    ```
+
+  - Linux:
+
+    ```sh
+    export EDITOR=code
+    ```
 
   The **Open in your editor** link at the bottom of each page will then open the current page in the editor (this replaces the _Open in GitHub_ link).
 
@@ -197,7 +231,6 @@ In overview:
   - This makes linking easier because other pages and images are always as the same relative levels
 
 - The _structure_ of the book is defined in `SUMMARY.md`.
-
   - If you add a new page to the guide you must also add an entry to this file!
 
     :::tip
@@ -223,7 +256,6 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
 ## 翻译
 
 1. 图片
-
   - Put new markdown files in an appropriate sub-folder of `/en/`, such as `/en/contribute/`.
     Do not further nest folders.
   - Put new image files in an appropriate nested sub-folder of `/assets/`.
@@ -233,14 +265,12 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
   - Use lower case filenames and separate words using underscores (`_`).
 
 2. 内容:
-
   - 将新文件放入相应的子文件夹
   - New images should be created in a sub-folder of `/assets/` (so they can be shared between translations).
   - SVG files are preferred for diagrams.
     PNG files are preferred over JPG for screenshots.
 
 3. Content:
-
   - Use "style" (**bold**, _emphasis_, etc.) consistently and sparingly (as little as possible).
     - **Bold** for button presses and menu definitions.
     - _Emphasis_ for tool names such as _QGroundControl_ or _prettier_.
@@ -255,7 +285,6 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
   - Format using _prettier_ (_VSCode_ is a has extensions can be used for this).
 
 4. Videos:
-
   - Youtube videos can be added using the format `<lite-youtube videoid="<youtube-video-id>" title="your title"/>` (supported via the [https://www.npmjs.com/package/lite-youtube-embed](https://www.npmjs.com/package/lite-youtube-embed) custom element, which has other parameters you can pass).
     - Use instructional videos sparingly as they date badly, and are hard to maintain.
     - Cool videos of airframes in flight are always welcome.

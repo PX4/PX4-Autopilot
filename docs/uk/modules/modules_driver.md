@@ -2,24 +2,23 @@
 
 Підкатегорії:
 
-- [Imu](modules_driver_imu.md)
-- [Distance Sensor](modules_driver_distance_sensor.md)
-- [Ins](modules_driver_ins.md)
 - [Airspeed Sensor](modules_driver_airspeed_sensor.md)
 - [Baro](modules_driver_baro.md)
-- [Transponder](modules_driver_transponder.md)
-- [Rpm Sensor](modules_driver_rpm_sensor.md)
-- [Optical Flow](modules_driver_optical_flow.md)
 - [Camera](modules_driver_camera.md)
+- [Distance Sensor](modules_driver_distance_sensor.md)
+- [Imu](modules_driver_imu.md)
+- [Ins](modules_driver_ins.md)
 - [Magnetometer](modules_driver_magnetometer.md)
+- [Optical Flow](modules_driver_optical_flow.md)
+- [Radio Control](modules_driver_radio_control.md)
+- [Rpm Sensor](modules_driver_rpm_sensor.md)
+- [Transponder](modules_driver_transponder.md)
 
 ## MCP23009
 
 Source: [drivers/gpio/mcp23009](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/gpio/mcp23009)
 
-<a id="MCP23009_usage"></a>
-
-### Використання
+### Usage {#MCP23009_usage}
 
 ```
 MCP23009 <command> [arguments...]
@@ -53,11 +52,9 @@ Source: [drivers/adc/board_adc](https://github.com/PX4/PX4-Autopilot/tree/main/s
 
 ### Опис
 
-ADC драйвер.
+ADC driver.
 
-<a id="adc_usage"></a>
-
-### Використання
+### Usage {#adc_usage}
 
 ```
 adc <command> [arguments...]
@@ -87,11 +84,9 @@ such as [PilotPi](../flight_controller/raspberry_pi_pilotpi.md) or [CUAV Nora](.
 It is enabled/disabled using the
 [ADC_ADS1115_EN](../advanced_config/parameter_reference.md#ADC_ADS1115_EN)
 parameter, and is disabled by default.
-Якщо увімкнено, внутрішні ADC не використовуються.
+If enabled, internal ADCs are not used.
 
-<a id="ads1115_usage"></a>
-
-### Використання
+### Usage {#ads1115_usage}
 
 ```
 ads1115 <command> [arguments...]
@@ -117,13 +112,11 @@ Source: [drivers/osd/atxxxx](https://github.com/PX4/PX4-Autopilot/tree/main/src/
 
 ### Опис
 
-Наприклад, OSD драйвер для мікросхеми ATXXXX, яка встановлена на платі OmnibusF4SD.
+OSD driver for the ATXXXX chip that is mounted on the OmnibusF4SD board for example.
 
-Його можна увімкнути за допомогою параметра OSD_ATXXXX_CFG.
+It can be enabled with the OSD_ATXXXX_CFG parameter.
 
-<a id="atxxxx_usage"></a>
-
-### Використання
+### Usage {#atxxxx_usage}
 
 ```
 atxxxx <command> [arguments...]
@@ -149,20 +142,18 @@ Source: [drivers/smart_battery/batmon](https://github.com/PX4/PX4-Autopilot/tree
 
 ### Опис
 
-Драйвер для зв'язку SMBUS зі смарт-батареєю з підтримкою BatMon
-Інформація про налаштування/використання: https://rotoye.com/batmon-tutorial/
+Driver for SMBUS Communication with BatMon enabled smart-battery
+Setup/usage information: https://rotoye.com/batmon-tutorial/
 
 ### Приклади
 
-Почати з адреси 0x0B, на шині 4
+To start at address 0x0B, on bus 4
 
 ```
 batmon start -X -a 11 -b 4
 ```
 
-<a id="batmon_usage"></a>
-
-### Використання
+### Usage {#batmon_usage}
 
 ```
 batmon <command> [arguments...]
@@ -194,19 +185,17 @@ Source: [drivers/batt_smbus](https://github.com/PX4/PX4-Autopilot/tree/main/src/
 
 ### Опис
 
-Розумний драйвер акумулятора для BQ40Z50 палива IC.
+Smart battery driver for the BQ40Z50 fuel gauge IC.
 
 ### Приклади
 
-Записати у прошивку для встановлення параметрів. address, number_of_bytes, byte0, ... , byteN
+To write to flash to set parameters. address, number_of_bytes, byte0, ... , byteN
 
 ```
 batt_smbus -X write_flash 19069 2 27 0
 ```
 
-<a id="batt_smbus_usage"></a>
-
-### Використання
+### Usage {#batt_smbus_usage}
 
 ```
 batt_smbus <command> [arguments...]
@@ -247,9 +236,7 @@ batt_smbus <command> [arguments...]
 
 Source: [drivers/telemetry/bst](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/telemetry/bst)
 
-<a id="bst_usage"></a>
-
-### Використання
+### Usage {#bst_usage}
 
 ```
 bst <command> [arguments...]
@@ -269,62 +256,36 @@ bst <command> [arguments...]
    status        print status info
 ```
 
-## crsf_rc
-
-Source: [drivers/rc/crsf_rc](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/rc/crsf_rc)
-
-### Опис
-
-Цей модуль парсить uplink протокол CRSF RC і генерує дані CRSF downlink телеметрії
-
-<a id="crsf_rc_usage"></a>
-
-### Використання
-
-```
-crsf_rc <command> [arguments...]
- Commands:
-   start
-     [-d <val>]  RC device
-                 values: <file:dev>, default: /dev/ttyS3
-
-   stop
-
-   status        print status info
-```
-
 ## dshot
 
 Source: [drivers/dshot](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/dshot)
 
 ### Опис
 
-Це драйвер виводу DShot. Він схожий на драйвер fmu і може бути використаний як заміна
-використовувати DShot як протокол зв'язку ESC замість PWM.
+This is the DShot output driver. It is similar to the fmu driver, and can be used as drop-in replacement
+to use DShot as ESC communication protocol instead of PWM.
 
-Під час запуску модуль намагається зайняти всі доступні піни для виходу DShot.
-Він пропускає всі піни, які вже використовуються (наприклад, модулем запуску камери).
+On startup, the module tries to occupy all available pins for DShot output.
+It skips all pins already in use (e.g. by a camera trigger module).
 
-Він підтримує:
+It supports:
 
 - DShot150, DShot300, DShot600
-- телеметрія через окремий UART та публікація у вигляді повідомлення esc_status
-- надсилання команд DShot через CLI
+- telemetry via separate UART and publishing as esc_status message
+- sending DShot commands via CLI
 
 ### Приклади
 
-Постійно реверсує двигун 1:
+Permanently reverse motor 1:
 
 ```
 dshot reverse -m 1
 dshot save -m 1
 ```
 
-Після збереження змінений напрямок буде вважатися нормальним. Щоб розвернути назад, повторіть ті ж самі команди.
+After saving, the reversed direction will be regarded as the normal one. So to reverse again repeat the same commands.
 
-<a id="dshot_usage"></a>
-
-### Використання
+### Usage {#dshot_usage}
 
 ```
 dshot <command> [arguments...]
@@ -332,7 +293,9 @@ dshot <command> [arguments...]
    start
 
    telemetry     Enable Telemetry on a UART
-     <device>    UART device
+     -d <val>    UART device
+                 values: <device>
+     [-x]        Swap RX/TX pins
 
    reverse       Reverse motor direction
      [-m <val>]  Motor index (1-based, default=all)
@@ -372,41 +335,13 @@ dshot <command> [arguments...]
    status        print status info
 ```
 
-## dsm_rc
-
-Source: [drivers/rc/dsm_rc](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/rc/dsm_rc)
-
-### Опис
-
-This module does Spektrum DSM RC input parsing.
-
-<a id="dsm_rc_usage"></a>
-
-### Використання
-
-```
-dsm_rc <command> [arguments...]
- Commands:
-   start
-     [-d <val>]  RC device
-                 values: <file:dev>, default: /dev/ttyS3
-
-   bind          Send a DSM bind command (module must be running)
-
-   stop
-
-   status        print status info
-```
-
 ## fake_gps
 
 Source: [examples/fake_gps](https://github.com/PX4/PX4-Autopilot/tree/main/src/examples/fake_gps)
 
 ### Опис
 
-<a id="fake_gps_usage"></a>
-
-### Використання
+### Usage {#fake_gps_usage}
 
 ```
 fake_gps <command> [arguments...]
@@ -424,9 +359,7 @@ Source: [examples/fake_imu](https://github.com/PX4/PX4-Autopilot/tree/main/src/e
 
 ### Опис
 
-<a id="fake_imu_usage"></a>
-
-### Використання
+### Usage {#fake_imu_usage}
 
 ```
 fake_imu <command> [arguments...]
@@ -445,11 +378,9 @@ Source: [examples/fake_magnetometer](https://github.com/PX4/PX4-Autopilot/tree/m
 ### Опис
 
 Publish the earth magnetic field as a fake magnetometer (sensor_mag).
-Потребує vehicle_attitude та vehicle_gps_position.
+Requires vehicle_attitude and vehicle_gps_position.
 
-<a id="fake_magnetometer_usage"></a>
-
-### Використання
+### Usage {#fake_magnetometer_usage}
 
 ```
 fake_magnetometer <command> [arguments...]
@@ -467,14 +398,14 @@ Source: [drivers/wind_sensor/ft_technologies](https://github.com/PX4/PX4-Autopil
 
 ### Опис
 
-Драйвер послідовної шини для цифрового датчика вітру FT Technologies FT742. Цей драйвер потрібен для роботи разом з
-з модулем передачі сигналу RS485 на UART.
+Serial bus driver for the FT Technologies Digital Wind Sensor FT742. This driver is required to operate alongside
+a RS485 to UART signal transfer module.
 
-Більшість плат налаштовано на увімкнення/запуск драйвера на вказаному UART за допомогою параметра SENS_FTX_CFG.
+Most boards are configured to enable/start the driver on a specified UART using the SENS_FTX_CFG parameter.
 
 ### Приклади
 
-Спроба запустити драйвер на вказаному послідовному пристрої.
+Attempt to start driver on a specified serial device.
 
 ```
 ft_technologies_serial start -d /dev/ttyS1
@@ -486,9 +417,7 @@ Stop driver
 ft_technologies_serial stop
 ```
 
-<a id="ft_technologies_serial_usage"></a>
-
-### Використання
+### Usage {#ft_technologies_serial_usage}
 
 ```
 ft_technologies_serial <command> [arguments...]
@@ -499,51 +428,26 @@ ft_technologies_serial <command> [arguments...]
    stop          Stop driver
 ```
 
-## ghst_rc
-
-Source: [drivers/rc/ghst_rc](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/rc/ghst_rc)
-
-### Опис
-
-This module does Ghost (GHST) RC input parsing.
-
-<a id="ghst_rc_usage"></a>
-
-### Використання
-
-```
-ghst_rc <command> [arguments...]
- Commands:
-   start
-     [-d <val>]  RC device
-                 values: <file:dev>, default: /dev/ttyS3
-
-   stop
-
-   status        print status info
-```
-
 ## gimbal
 
 Source: [modules/gimbal](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/gimbal)
 
 ### Опис
 
-Водій керування монтажем / гімбалю. Він відображає кілька різних методів введення (наприклад, RC або MAVLink) на налаштований вивід (наприклад, AUX канали або MAVLink).
+Mount/gimbal Gimbal control driver. It maps several different input methods (eg. RC or MAVLink) to a configured
+output (eg. AUX channels or MAVLink).
 
 Documentation how to use it is on the [gimbal_control](https://docs.px4.io/main/en/advanced/gimbal_control.html) page.
 
 ### Приклади
 
-Перевірте вихідні дані, встановивши кути (всі пропущені вісі установлені на 0):
+Test the output by setting a angles (all omitted axes are set to 0):
 
 ```
 gimbal test pitch -45 yaw 30
 ```
 
-<a id="gimbal_usage"></a>
-
-### Використання
+### Usage {#gimbal_usage}
 
 ```
 gimbal <command> [arguments...]
@@ -572,35 +476,33 @@ Source: [drivers/gps](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers
 
 ### Опис
 
-Модуль GPS-драйвера, який здійснює зв'язок з пристроєм і публікує позицію через uORB.
-Він підтримує кілька протоколів (постачальників пристроїв) і за замовчуванням автоматично вибирає правильний.
+GPS driver module that handles the communication with the device and publishes the position via uORB.
+It supports multiple protocols (device vendors) and by default automatically selects the correct one.
 
-The module supports a secondary GPS device, specified via `-e` parameter. Позиція буде опублікована
-на другому екземплярі теми uORB, але наразі вона не використовується рештою системи (однак
-дані будуть зареєстровані, щоб їх можна було використовувати для порівняння).
+The module supports a secondary GPS device, specified via `-e` parameter. The position will be published
+on the second uORB topic instance, but it's currently not used by the rest of the system (however the
+data will be logged, so that it can be used for comparisons).
 
 ### Імплементація
 
-Для кожного пристрою існує потік, який опитує дані. Класи протоколу GPS реалізовано з функцією зворотного виклику
-щоб їх можна було використовувати і в інших проектах (наприклад, QGroundControl також використовує їх).
+There is a thread for each device polling for data. The GPS protocol classes are implemented with callbacks
+so that they can be used in other projects as well (eg. QGroundControl uses them too).
 
 ### Приклади
 
-Запуск 2 GPS-пристроїв (основний GPS на /dev/ttyS3 і додатковий на /dev/ttyS4):
+Starting 2 GPS devices (the main GPS on /dev/ttyS3 and the secondary on /dev/ttyS4):
 
 ```
 gps start -d /dev/ttyS3 -e /dev/ttyS4
 ```
 
-Ініціюйте гарячий перезапуск GPS-пристрою
+Initiate warm restart of GPS device
 
 ```
 gps reset warm
 ```
 
-<a id="gps_usage"></a>
-
-### Використання
+### Usage {#gps_usage}
 
 ```
 gps <command> [arguments...]
@@ -635,9 +537,7 @@ Source: [modules/simulation/gz_bridge](https://github.com/PX4/PX4-Autopilot/tree
 
 ### Опис
 
-<a id="gz_bridge_usage"></a>
-
-### Використання
+### Usage {#gz_bridge_usage}
 
 ```
 gz_bridge <command> [arguments...]
@@ -657,19 +557,18 @@ Source: [drivers/power_monitor/ina220](https://github.com/PX4/PX4-Autopilot/tree
 
 ### Опис
 
-Драйвер для монітора живлення INA220.
+Driver for the INA220 power monitor.
 
-Кілька екземплярів цього драйвера можуть працювати одночасно, якщо кожен екземпляр має окрему адресу шини АБО I2C.
+Multiple instances of this driver can run simultaneously, if each instance has a separate bus OR I2C address.
 
-Наприклад, один екземпляр може працювати на шині 2, адреса 0x41, а інший - на шині 2, адреса 0x43.
+For example, one instance can run on Bus 2, address 0x41, and one can run on Bus 2, address 0x43.
 
-Якщо модуль INA220 не має живлення, то за замовчуванням ініціалізація драйвера не відбудеться. Щоб змінити це, використовуйте
-прапор -f. Якщо цей прапорець встановлено, то у разі невдалої ініціалізації драйвер буде повторювати спроби ініціалізації
-кожні 0.5 секунди. Якщо цей прапорець встановлено, ви можете підключити батарею після запуску драйвера, і він буде працювати. Якщо цей прапорець не встановлено, перед запуском драйвера необхідно підключити батарею.
+If the INA220 module is not powered, then by default, initialization of the driver will fail. To change this, use
+the -f flag. If this flag is set, then if initialization fails, the driver will keep trying to initialize again
+every 0.5 seconds. With this flag set, you can plug in a battery after the driver starts, and it will work. Without
+this flag set, the battery must be plugged in before starting the driver.
 
-<a id="ina220_usage"></a>
-
-### Використання
+### Usage {#ina220_usage}
 
 ```
 ina220 <command> [arguments...]
@@ -700,19 +599,18 @@ Source: [drivers/power_monitor/ina226](https://github.com/PX4/PX4-Autopilot/tree
 
 ### Опис
 
-Драйвер для монітора живлення INA226.
+Driver for the INA226 power monitor.
 
-Кілька екземплярів цього драйвера можуть працювати одночасно, якщо кожен екземпляр має окрему адресу шини АБО I2C.
+Multiple instances of this driver can run simultaneously, if each instance has a separate bus OR I2C address.
 
-Наприклад, один екземпляр може працювати на шині 2, адреса 0x41, а інший - на шині 2, адреса 0x43.
+For example, one instance can run on Bus 2, address 0x41, and one can run on Bus 2, address 0x43.
 
-Якщо модуль INA226 не живиться, то за замовчуванням ініціалізація драйвера не відбудеться. Щоб змінити це, використовуйте
-прапор -f. Якщо цей прапорець встановлено, то у разі невдалої ініціалізації драйвер буде повторювати спроби ініціалізації
-кожні 0.5 секунди. Якщо цей прапорець встановлено, ви можете підключити батарею після запуску драйвера, і він буде працювати. Якщо цей прапорець не встановлено, перед запуском драйвера необхідно підключити батарею.
+If the INA226 module is not powered, then by default, initialization of the driver will fail. To change this, use
+the -f flag. If this flag is set, then if initialization fails, the driver will keep trying to initialize again
+every 0.5 seconds. With this flag set, you can plug in a battery after the driver starts, and it will work. Without
+this flag set, the battery must be plugged in before starting the driver.
 
-<a id="ina226_usage"></a>
-
-### Використання
+### Usage {#ina226_usage}
 
 ```
 ina226 <command> [arguments...]
@@ -741,19 +639,18 @@ Source: [drivers/power_monitor/ina228](https://github.com/PX4/PX4-Autopilot/tree
 
 ### Опис
 
-Драйвер для монітора живлення INA228.
+Driver for the INA228 power monitor.
 
-Кілька екземплярів цього драйвера можуть працювати одночасно, якщо кожен екземпляр має окрему адресу шини АБО I2C.
+Multiple instances of this driver can run simultaneously, if each instance has a separate bus OR I2C address.
 
-Наприклад, один екземпляр може працювати на шині 2, адреса 0x41, а інший - на шині 2, адреса 0x43.
+For example, one instance can run on Bus 2, address 0x45, and one can run on Bus 2, address 0x45.
 
-Якщо модуль INA228 не має живлення, то за замовчуванням ініціалізація драйвера не відбудеться. Щоб змінити це, використовуйте
-прапор -f. Якщо цей прапорець встановлено, то у разі невдалої ініціалізації драйвер буде повторювати спроби ініціалізації
-кожні 0.5 секунди. Якщо цей прапорець встановлено, ви можете підключити батарею після запуску драйвера, і він буде працювати. Якщо цей прапорець не встановлено, перед запуском драйвера необхідно підключити батарею.
+If the INA228 module is not powered, then by default, initialization of the driver will fail. To change this, use
+the -f flag. If this flag is set, then if initialization fails, the driver will keep trying to initialize again
+every 0.5 seconds. With this flag set, you can plug in a battery after the driver starts, and it will work. Without
+this flag set, the battery must be plugged in before starting the driver.
 
-<a id="ina228_usage"></a>
-
-### Використання
+### Usage {#ina228_usage}
 
 ```
 ina228 <command> [arguments...]
@@ -782,19 +679,18 @@ Source: [drivers/power_monitor/ina238](https://github.com/PX4/PX4-Autopilot/tree
 
 ### Опис
 
-Драйвер для монітора потужності INA238.
+Driver for the INA238 power monitor.
 
-Кілька екземплярів цього драйвера можуть працювати одночасно, якщо кожен екземпляр має окрему адресу шини АБО I2C.
+Multiple instances of this driver can run simultaneously, if each instance has a separate bus OR I2C address.
 
-Наприклад, один екземпляр може працювати на шині 2, адреса 0x41, а інший - на шині 2, адреса 0x43.
+For example, one instance can run on Bus 2, address 0x45, and one can run on Bus 2, address 0x45.
 
-Якщо модуль INA238 не заснується, то за замовчуванням ініціалізація драйвера не вдасться. Щоб змінити це, використовуйте
-прапор -f. Якщо цей прапорець встановлено, то у разі невдалої ініціалізації драйвер буде повторювати спроби ініціалізації
-кожні 0.5 секунди. Якщо цей прапорець встановлено, ви можете підключити батарею після запуску драйвера, і він буде працювати. Якщо цей прапорець не встановлено, перед запуском драйвера необхідно підключити батарею.
+If the INA238 module is not powered, then by default, initialization of the driver will fail. To change this, use
+the -f flag. If this flag is set, then if initialization fails, the driver will keep trying to initialize again
+every 0.5 seconds. With this flag set, you can plug in a battery after the driver starts, and it will work. Without
+this flag set, the battery must be plugged in before starting the driver.
 
-<a id="ina238_usage"></a>
-
-### Використання
+### Usage {#ina238_usage}
 
 ```
 ina238 <command> [arguments...]
@@ -823,13 +719,11 @@ Source: [drivers/telemetry/iridiumsbd](https://github.com/PX4/PX4-Autopilot/tree
 
 ### Опис
 
-Драйвер IridiumSBD.
+IridiumSBD driver.
 
-Створює віртуальний послідовний порт, який інший модуль може використовувати для зв'язку (наприклад, mavlink).
+Creates a virtual serial port that another module can use for communication (e.g. mavlink).
 
-<a id="iridiumsbd_usage"></a>
-
-### Використання
+### Usage {#iridiumsbd_usage}
 
 ```
 iridiumsbd <command> [arguments...]
@@ -851,9 +745,7 @@ iridiumsbd <command> [arguments...]
 
 Source: [drivers/irlock](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/irlock)
 
-<a id="irlock_usage"></a>
-
-### Використання
+### Usage {#irlock_usage}
 
 ```
 irlock <command> [arguments...]
@@ -879,11 +771,9 @@ Source: [drivers/linux_pwm_out](https://github.com/PX4/PX4-Autopilot/tree/main/s
 
 ### Опис
 
-Драйвер виведення Linux PWM з реалізацією бекенду специфічного для плати.
+Linux PWM output driver with board-specific backend implementation.
 
-<a id="linux_pwm_out_usage"></a>
-
-### Використання
+### Usage {#linux_pwm_out_usage}
 
 ```
 linux_pwm_out <command> [arguments...]
@@ -899,9 +789,7 @@ linux_pwm_out <command> [arguments...]
 
 Source: [drivers/magnetometer/lsm303agr](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/magnetometer/lsm303agr)
 
-<a id="lsm303agr_usage"></a>
-
-### Використання
+### Usage {#lsm303agr_usage}
 
 ```
 lsm303agr <command> [arguments...]
@@ -929,23 +817,21 @@ Source: [drivers/osd/msp_osd](https://github.com/PX4/PX4-Autopilot/tree/main/src
 
 ### Опис
 
-Потік телеметрії MSP
+MSP telemetry streamer
 
 ### Імплементація
 
-Перетворює повідомлення uORB на пакети телеметрії MSP
+Converts uORB messages to MSP telemetry packets
 
 ### Приклади
 
-Приклад використання CLI:
+CLI usage example:
 
 ```
 msp_osd
 ```
 
-<a id="msp_osd_usage"></a>
-
-### Використання
+### Usage {#msp_osd_usage}
 
 ```
 msp_osd <command> [arguments...]
@@ -961,21 +847,19 @@ Source: [drivers/lights/neopixel](https://github.com/PX4/PX4-Autopilot/tree/main
 
 ### Опис
 
-Цей модуль відповідає за взаємодію з Neopixel Serial LED
+This module is responsible for driving interfasing to the Neopixel Serial LED
 
 ### Приклади
 
-Зазвичай починається з:
+It is typically started with:
 
 ```
 neopixel -n 8
 ```
 
-Привести всі доступні світлодіоди в дію.
+To drive all available leds.
 
-<a id="newpixel_usage"></a>
-
-### Використання
+### Usage {#newpixel_usage}
 
 ```
 newpixel <command> [arguments...]
@@ -989,9 +873,7 @@ newpixel <command> [arguments...]
 
 Source: [drivers/optical_flow/paa3905](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/optical_flow/paa3905)
 
-<a id="paa3905_usage"></a>
-
-### Використання
+### Usage {#paa3905_usage}
 
 ```
 paa3905 <command> [arguments...]
@@ -1017,9 +899,7 @@ paa3905 <command> [arguments...]
 
 Source: [drivers/optical_flow/paw3902](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/optical_flow/paw3902)
 
-<a id="paw3902_usage"></a>
-
-### Використання
+### Usage {#paw3902_usage}
 
 ```
 paw3902 <command> [arguments...]
@@ -1047,25 +927,23 @@ Source: [drivers/pca9685_pwm_out](https://github.com/PX4/PX4-Autopilot/tree/main
 
 ### Опис
 
-Це пристрій виводу керування PWM PCA9685.
+This is a PCA9685 PWM output driver.
 
-Він працює на робочій черзі I2C, яка є асинхронною з контрольною петлею FC,
-витягує останній результат змішування та записує їх в PCA9685 у відповідних мітках планування.
+It runs on I2C workqueue which is asynchronous with FC control loop,
+fetching the latest mixing result and write them to PCA9685 at its scheduling ticks.
 
-Воно може виконувати повний вихід 12 біт у режимі циклу керування, а також може виводити цінний ширину імпульсу
-що може бути прийнято більшістю ESCs та серводвигунами.
+It can do full 12bits output as duty-cycle mode, while also able to output precious pulse width
+that can be accepted by most ESCs and servos.
 
 ### Приклади
 
-Зазвичай починається з:
+It is typically started with:
 
 ```
 pca9685_pwm_out start -a 0x40 -b 1
 ```
 
-<a id="pca9685_pwm_out_usage"></a>
-
-### Використання
+### Usage {#pca9685_pwm_out_usage}
 
 ```
 pca9685_pwm_out <command> [arguments...]
@@ -1087,11 +965,9 @@ Source: [drivers/power_monitor/pm_selector_auterion](https://github.com/PX4/PX4-
 
 ### Опис
 
-Драйвер для запуску та автоматичного виявлення різних датчиків потужності.
+Driver for starting and auto-detecting different power monitors.
 
-<a id="pm_selector_auterion_usage"></a>
-
-### Використання
+### Usage {#pm_selector_auterion_usage}
 
 ```
 pm_selector_auterion <command> [arguments...]
@@ -1107,9 +983,7 @@ pm_selector_auterion <command> [arguments...]
 
 Source: [drivers/optical_flow/pmw3901](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/optical_flow/pmw3901)
 
-<a id="pmw3901_usage"></a>
-
-### Використання
+### Usage {#pmw3901_usage}
 
 ```
 pmw3901 <command> [arguments...]
@@ -1137,11 +1011,9 @@ Source: [drivers/pps_capture](https://github.com/PX4/PX4-Autopilot/tree/main/src
 
 ### Опис
 
-Це реалізує захоплення інформації PPS з модуля GNSS та розраховує відхилення між PPS та годинником реального часу.
+This implements capturing PPS information from the GNSS module and calculates the drift between PPS and Real-time clock.
 
-<a id="pps_capture_usage"></a>
-
-### Використання
+### Usage {#pps_capture_usage}
 
 ```
 pps_capture <command> [arguments...]
@@ -1159,13 +1031,11 @@ Source: [drivers/pwm_out](https://github.com/PX4/PX4-Autopilot/tree/main/src/dri
 
 ### Опис
 
-Цей модуль відповідає за виведення пінів. Для плат без окремого IO-чіпа
-(наприклад, Pixracer), використовуються головні канали. На платах з IO-чіпом (наприклад, Pixhawk) використовуються AUX-канали, а
-для основних використовується драйвер px4io.
+This module is responsible for driving the output pins. For boards without a separate IO chip
+(eg. Pixracer), it uses the main channels. On boards with an IO chip (eg. Pixhawk), it uses the AUX channels, and the
+px4io driver is used for main ones.
 
-<a id="pwm_out_usage"></a>
-
-### Використання
+### Usage {#pwm_out_usage}
 
 ```
 pwm_out <command> [arguments...]
@@ -1183,17 +1053,15 @@ Source: [modules/simulation/pwm_out_sim](https://github.com/PX4/PX4-Autopilot/tr
 
 ### Опис
 
-Драйвер для імітованих вихідних сигналів ШІМ.
+Driver for simulated PWM outputs.
 
 Its only function is to take `actuator_control` uORB messages,
 mix them with any loaded mixer and output the result to the
 `actuator_output` uORB topic.
 
-Воно використовується в SITL та HITL.
+It is used in SITL and HITL.
 
-<a id="pwm_out_sim_usage"></a>
-
-### Використання
+### Usage {#pwm_out_sim_usage}
 
 ```
 pwm_out_sim <command> [arguments...]
@@ -1211,9 +1079,7 @@ pwm_out_sim <command> [arguments...]
 
 Source: [drivers/optical_flow/px4flow](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/optical_flow/px4flow)
 
-<a id="px4flow_usage"></a>
-
-### Використання
+### Usage {#px4flow_usage}
 
 ```
 px4flow <command> [arguments...]
@@ -1239,11 +1105,9 @@ Source: [drivers/px4io](https://github.com/PX4/PX4-Autopilot/tree/main/src/drive
 
 ### Опис
 
-Драйвер виводу, що зв'язується з вводовим ко-процесором.
+Output driver communicating with the IO co-processor.
 
-<a id="px4io_usage"></a>
-
-### Використання
+### Usage {#px4io_usage}
 
 ```
 px4io <command> [arguments...]
@@ -1277,46 +1141,11 @@ px4io <command> [arguments...]
    status        print status info
 ```
 
-## rc_input
-
-Source: [drivers/rc_input](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/rc_input)
-
-### Опис
-
-Цей модуль робить аналіз введення RC та автоматичний вибір методу. Підтримувані методи:
-
-- PPM
-- SBUS
-- DSM
-- SUMD
-- ST24
-- TBS Crossfire (CRSF)
-
-<a id="rc_input_usage"></a>
-
-### Використання
-
-```
-rc_input <command> [arguments...]
- Commands:
-   start
-     [-d <val>]  RC device
-                 values: <file:dev>, default: /dev/ttyS3
-
-   bind          Send a DSM bind command (module must be running)
-
-   stop
-
-   status        print status info
-```
-
 ## rgbled
 
 Source: [drivers/lights/rgbled_ncp5623c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_ncp5623c)
 
-<a id="rgbled_usage"></a>
-
-### Використання
+### Usage {#rgbled_usage}
 
 ```
 rgbled <command> [arguments...]
@@ -1342,9 +1171,7 @@ rgbled <command> [arguments...]
 
 Source: [drivers/lights/rgbled_is31fl3195](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_is31fl3195)
 
-<a id="rgbled_is31fl3195_usage"></a>
-
-### Використання
+### Usage {#rgbled_is31fl3195_usage}
 
 ```
 rgbled_is31fl3195 <command> [arguments...]
@@ -1378,11 +1205,9 @@ Driver for [LP5562](https://www.ti.com/product/LP5562) LED driver connected via 
 
 This used in some GPS modules by Holybro for [PX4 status notification](../getting_started/led_meanings.md)
 
-Водій включений за замовчуванням у вбудованому програмному забезпеченні (ключ KConfig DRIVERS_LIGHTS_RGBLED_LP5562) і завжди увімкнено.
+The driver is included by default in firmware (KConfig key DRIVERS_LIGHTS_RGBLED_LP5562) and is always enabled.
 
-<a id="rgbled_lp5562_usage"></a>
-
-### Використання
+### Usage {#rgbled_lp5562_usage}
 
 ```
 rgbled_lp5562 <command> [arguments...]
@@ -1411,21 +1236,19 @@ Source: [drivers/roboclaw](https://github.com/PX4/PX4-Autopilot/tree/main/src/dr
 ### Опис
 
 This driver communicates over UART with the [Roboclaw motor driver](https://www.basicmicro.com/motor-controller).
-Вона виконує дві задачі:
+It performs two tasks:
 
-- Контролюйте двигуни на основі інтерфейсу виведення.
+- Control the motors based on the OutputModuleInterface.
 - Read the wheel encoders and publish the raw data in the `wheel_encoders` uORB topic
 
-Для використання цього драйвера Roboclaw повинен бути переведений у режим Packet Serial (див. документацію за посиланням), а
-UART-порт вашого контролера польоту повинен бути підключений до Roboclaw, як показано в документації.
+In order to use this driver, the Roboclaw should be put into Packet Serial mode (see the linked documentation), and
+your flight controller's UART port should be connected to the Roboclaw as shown in the documentation.
 The driver needs to be enabled using the parameter `RBCLW_SER_CFG`, the baudrate needs to be set correctly and
 the address `RBCLW_ADDRESS` needs to match the ESC configuration.
 
 The command to start this driver is: `$ roboclaw start <UART device> <baud rate>`
 
-<a id="roboclaw_usage"></a>
-
-### Використання
+### Usage {#roboclaw_usage}
 
 ```
 roboclaw <command> [arguments...]
@@ -1441,9 +1264,7 @@ roboclaw <command> [arguments...]
 
 Source: [drivers/rpm_capture](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/rpm_capture)
 
-<a id="rpm_capture_usage"></a>
-
-### Використання
+### Usage {#rpm_capture_usage}
 
 ```
 rpm_capture <command> [arguments...]
@@ -1461,41 +1282,15 @@ Source: [drivers/safety_button](https://github.com/PX4/PX4-Autopilot/tree/main/s
 
 ### Опис
 
-Цей модуль відповідає за кнопку безпеки.
-Натискання кнопки безпеки 3 рази швидко спричинить запит на синхронізацію GCS.
+This module is responsible for the safety button.
+Pressing the safety button 3 times quickly will trigger a GCS pairing request.
 
-<a id="safety_button_usage"></a>
-
-### Використання
+### Usage {#safety_button_usage}
 
 ```
 safety_button <command> [arguments...]
  Commands:
    start
-
-   stop
-
-   status        print status info
-```
-
-## sbus_rc
-
-Source: [drivers/rc/sbus_rc](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/rc/sbus_rc)
-
-### Опис
-
-This module does SBUS RC input parsing.
-
-<a id="sbus_rc_usage"></a>
-
-### Використання
-
-```
-sbus_rc <command> [arguments...]
- Commands:
-   start
-     [-d <val>]  RC device
-                 values: <file:dev>, default: /dev/ttyS3
 
    stop
 
@@ -1535,9 +1330,7 @@ Perform warm reset of the receivers:
 gps reset warm
 ```
 
-<a id="septentrio_usage"></a>
-
-### Використання
+### Usage {#septentrio_usage}
 
 ```
 septentrio <command> [arguments...]
@@ -1566,39 +1359,37 @@ Source: [drivers/hygrometer/sht3x](https://github.com/PX4/PX4-Autopilot/tree/mai
 
 ### Опис
 
-Драйвер датчика температури і вологості SHT3x від Senserion.
+SHT3x Temperature and Humidity Sensor Driver by Senserion.
 
 ### Приклади
 
-Приклад використання CLI:
+CLI usage example:
 
 ```
 sht3x start -X
 ```
 
-Запустіть драйвер датчика на зовнішньому шині
+Start the sensor driver on the external bus
 
 ```
 sht3x status
 ```
 
-Статус драйвера друку
+Print driver status
 
 ```
 sht3x values
 ```
 
-Друкувати останні виміряні значення
+Print last measured values
 
 ```
 sht3x reset
 ```
 
-Ініціалізувати датчик, скинути прапорці
+Reinitialize senzor, reset flags
 
-<a id="sht3x_usage"></a>
-
-### Використання
+### Usage {#sht3x_usage}
 
 ```
 sht3x <command> [arguments...]
@@ -1629,23 +1420,23 @@ Source: [drivers/tap_esc](https://github.com/PX4/PX4-Autopilot/tree/main/src/dri
 
 ### Опис
 
-Цей модуль керує апаратним забезпеченням TAP_ESC через UART. Він слухає теми управління дією, робить змішування та записує вихідні ШІМ сигнали.
+This module controls the TAP_ESC hardware via UART. It listens on the
+actuator_controls topics, does the mixing and writes the PWM outputs.
 
 ### Імплементація
 
-На даний момент модуль реалізований лише у вигляді версії з потоками, що означає, що він працює у власному потоці, а не в черзі завдань.
+Currently the module is implemented as a threaded version only, meaning that it
+runs in its own thread instead of on the work queue.
 
-### Приклад
+### Example
 
-Модуль зазвичай починається з:
+The module is typically started with:
 
 ```
 tap_esc start -d /dev/ttyS2 -n <1-8>
 ```
 
-<a id="tap_esc_usage"></a>
-
-### Використання
+### Usage {#tap_esc_usage}
 
 ```
 tap_esc <command> [arguments...]
@@ -1663,11 +1454,9 @@ Source: [drivers/tone_alarm](https://github.com/PX4/PX4-Autopilot/tree/main/src/
 
 ### Опис
 
-Цей модуль відповідає за сигнал тривоги.
+This module is responsible for the tone alarm.
 
-<a id="tone_alarm_usage"></a>
-
-### Використання
+### Usage {#tone_alarm_usage}
 
 ```
 tone_alarm <command> [arguments...]
@@ -1685,20 +1474,18 @@ Source: [drivers/uwb/uwb_sr150](https://github.com/PX4/PX4-Autopilot/tree/main/s
 
 ### Опис
 
-Драйвер для системи позиціонування NXP UWB_SR150 UWB. This driver publishes a `uwb_distance` message
+Driver for NXP UWB_SR150 UWB positioning system. This driver publishes a `uwb_distance` message
 whenever the UWB_SR150 has a position measurement available.
 
-### Приклад
+### Example
 
-Запустіть драйвер з вказаним пристроєм:
+Start the driver with a given device:
 
 ```
 uwb start -d /dev/ttyS2
 ```
 
-<a id="uwb_usage"></a>
-
-### Використання
+### Usage {#uwb_usage}
 
 ```
 uwb <command> [arguments...]
@@ -1718,9 +1505,7 @@ uwb <command> [arguments...]
 
 Source: [drivers/actuators/vertiq_io](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/actuators/vertiq_io)
 
-<a id="vertiq_io_usage"></a>
-
-### Використання
+### Usage {#vertiq_io_usage}
 
 ```
 vertiq_io <command> [arguments...]
@@ -1739,13 +1524,11 @@ Source: [drivers/voxl2_io](https://github.com/PX4/PX4-Autopilot/tree/main/src/dr
 
 ### Опис
 
-Цей модуль відповідає за виведення пінів. Для плат без окремого IO-чіпа
-(наприклад, Pixracer), використовуються головні канали. На платах з IO-чіпом (наприклад, Pixhawk) використовуються AUX-канали, а
-для основних використовується драйвер px4io.
+This module is responsible for driving the output pins. For boards without a separate IO chip
+(eg. Pixracer), it uses the main channels. On boards with an IO chip (eg. Pixhawk), it uses the AUX channels, and the
+px4io driver is used for main ones.
 
-<a id="voxl2_io_usage"></a>
-
-### Використання
+### Usage {#voxl2_io_usage}
 
 ```
 voxl2_io <command> [arguments...]
@@ -1771,23 +1554,21 @@ Source: [drivers/actuators/voxl_esc](https://github.com/PX4/PX4-Autopilot/tree/m
 
 ### Опис
 
-Цей модуль відповідає за кнопку безпеки...
+This module is responsible for...
 
 ### Імплементація
 
-За замовчуванням модуль працює в черзі роботи з зворотнім викликом за темою управління актуаторами uORB.
+By default the module runs on a work queue with a callback on the uORB actuator_controls topic.
 
 ### Приклади
 
-Зазвичай починається з:
+It is typically started with:
 
 ```
 todo
 ```
 
-<a id="voxl_esc_usage"></a>
-
-### Використання
+### Usage {#voxl_esc_usage}
 
 ```
 voxl_esc <command> [arguments...]
@@ -1834,9 +1615,7 @@ voxl_esc <command> [arguments...]
 
 Source: [drivers/power_monitor/voxlpm](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/power_monitor/voxlpm)
 
-<a id="voxlpm_usage"></a>
-
-### Використання
+### Usage {#voxlpm_usage}
 
 ```
 voxlpm [arguments...]
@@ -1866,9 +1645,7 @@ Source: [modules/zenoh](https://github.com/PX4/PX4-Autopilot/tree/main/src/modul
 
 Zenoh demo bridge
 
-<a id="zenoh_usage"></a>
-
-### Використання
+### Usage {#zenoh_usage}
 
 ```
 zenoh <command> [arguments...]

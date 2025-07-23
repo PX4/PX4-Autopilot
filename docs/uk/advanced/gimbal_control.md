@@ -43,7 +43,9 @@ PX4 може бути налаштований як менеджер гімба�
 Наприклад, якщо порт `TELEM2` на контролері польоту не використовується, ви можете підключити його до гімбала і встановити наступні параметри PX4:
 
 - [MAV_1_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG) на **TELEM2** (якщо `MAV_1_CONFIG` вже використовується для компаньйонного комп'ютера (скажімо), використовуйте `MAV_2_CONFIG`).
-- [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) до **NORMAL**
+- [MAV_1_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE) to **Gimbal**
+- [MAV_1_FLOW_CTRL](../advanced_config/parameter_reference.md#MAV_1_FLOW_CTRL) to **Off (0)** (very few gimbals will have RST/CST wires connected).
+- [MAV_1_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD) to **Enabled** (Note strictly necessary as forwarding is enabled when `MAV_1_MODE` is set to Gimbal).
 - [SER_TEL2_BAUD](../advanced_config/parameter_reference.md#SER_TEL2_BAUD) на рекомендовану виробником швидкість передачі даних.
 
 ### Підтримка декількох Gimbal
