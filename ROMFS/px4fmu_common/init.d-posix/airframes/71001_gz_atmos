@@ -11,7 +11,7 @@
 
 PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
 PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
-PX4_SIM_MODEL=${PX4_SIM_MODEL:=spacecraft_2d}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=atmos}
 
 param set-default SIM_GZ_EN 1
 
