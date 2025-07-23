@@ -114,7 +114,7 @@ private:
 
 	uint8_t			_reached_sent_count{0};			///< last time when the vehicle reached a waypoint
 
-	bool			_int_mode{false};			///< Use accurate int32 instead of float
+	bool			_int_mode{true};			///< Use accurate int32 instead of float
 
 	unsigned		_filesystem_errcount{0};		///< File system error count
 
