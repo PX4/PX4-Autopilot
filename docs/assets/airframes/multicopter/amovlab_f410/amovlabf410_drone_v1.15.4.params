@@ -1,8 +1,8 @@
 # Onboard parameters for Vehicle 1
 #
 # Stack: PX4 Pro
-# Vehicle: Multi-Rotor
-# Version: 1.15.4
+# Vehicle: Amovlab F410
+# Version: 1.15.4 
 # Git Revision: 99c40407ff000000
 #
 # Vehicle-Id Component-Id Name Value Type
