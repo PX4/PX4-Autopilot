@@ -1442,7 +1442,13 @@ PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_KILL_SW, 0);
 
 /**
- * Termination switch channel
+ * Termination switch channel.
+ *
+ * Use this channel to trigger flight termination. When flight termination is activated,
+ * PX4 disables all controllers and sets all PWM outputs to their failsafe values.
+ *
+ * Note: Flight termination is irreversible—once triggered, it cannot be undone.
+ * This is unlike a kill switch, which can be toggled back. Use with caution.
  *
  * @min 0
  * @max 18
