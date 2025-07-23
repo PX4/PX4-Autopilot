@@ -12,7 +12,7 @@ Ensure that the drone can go into Altitude / Position flight mode while still on
 
 ## Flight Tests
 
-❏ Altitude FLIGHT MODE
+❏ Altitude flight mode
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Vertical position should hold current value with stick centered
 
@@ -20,7 +20,7 @@ Ensure that the drone can go into Altitude / Position flight mode while still on
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Throttle response set to climb/descent rate
 
-❏ Position FLIGHT MODE
+❏ Position flight mode
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Horizontal position should hold current value with stick centered
 
