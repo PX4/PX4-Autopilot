@@ -340,7 +340,34 @@ uavcan::ICanIface *CanDriver::getIface(uavcan::uint8_t iface_index)
 		return nullptr;
 	}
 
+	// The UAVCAN function is enabled on the CAN interface
+	if (((1 << iface_index) & usedUavcanInterfaces_) > 0) {
+		return &if_[iface_index];
+	}
+
 	return &if_[iface_index];
+}
+
+void CanDriver::setUavcanUsedInterfaces(uavcan::uint8_t iface_index)
+{
+	usedUavcanInterfaces_ |= (1 << iface_index);
+}
+
+uavcan::ICanIface *CanDriver::getIface(uavcan::uint8_t iface_index, bool exter)
+{
+	if (exter) {
+		if (iface_index < UAVCAN_SOCKETCAN_NUM_IFACES) {
+			// The UAVCAN function is not enabled on the CAN interface
+			if (((1 << iface_index) & usedUavcanInterfaces_) == 0) {
+				return &if_[iface_index];
+			}
+		}
+
+	} else {
+		return getIface(iface_index);
+	}
+
+	return nullptr;
 }
 
 uavcan::uint8_t CanDriver::getNumIfaces() const
