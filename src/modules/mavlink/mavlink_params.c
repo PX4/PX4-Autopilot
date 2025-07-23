@@ -222,8 +222,8 @@ PARAM_DEFINE_INT32(MAV_SIGN_KEY7, -972251999);
 PARAM_DEFINE_INT32(MAV_SIGN_KEY8, -1978264349);
 
 /**
- * 4 bytes for sign timestamp in seconds
+ * 4 bytes for sign timestamp in units of 10 microseconds since 1st January 2015 GMT, dont set it too high
  *
  * @group MAVLink
  */
-PARAM_DEFINE_INT32(MAV_SIGN_TS, 1420070400);
+PARAM_DEFINE_INT32(MAV_SIGN_TS, 0);
