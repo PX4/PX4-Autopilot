@@ -5,7 +5,7 @@
         "C_Cpp.autoAddFileAssociations": false,
         "C_Cpp.clang_format_fallbackStyle": "none",
         "C_Cpp.default.browse.limitSymbolsToIncludedHeaders": true,
-        "C_Cpp.default.cppStandard": "c++14",
+        "C_Cpp.default.cppStandard": "c++17",
         "C_Cpp.default.cStandard": "c11",
         "C_Cpp.formatting": "Disabled",
         "C_Cpp.intelliSenseEngine": "Default",

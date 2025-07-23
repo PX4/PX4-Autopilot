@@ -264,6 +264,9 @@ set(msg_files
 	versioned/VehicleRatesSetpoint.msg
 	versioned/VehicleStatus.msg
 	versioned/VtolVehicleStatus.msg
+	versioned/ExternalVehicleLocalPosition.msg
+	versioned/ExternalVehicleAngularVelocity.msg
+	versioned/ExternalVehicleAttitude.msg
 )
 list(SORT msg_files)
 

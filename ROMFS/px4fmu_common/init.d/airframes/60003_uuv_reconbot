@@ -22,54 +22,64 @@
 . ${R}etc/init.d/rc.uuv_defaults
 
 
-param set-default BAT1_A_PER_V 37.8798
-param set-default BAT1_CAPACITY 18000
-param set-default BAT1_V_DIV 11
-param set-default BAT1_N_CELLS 4
-param set-default BAT_V_OFFS_CURR 0.33
+# param set-default BAT1_A_PER_V 37.8798
+# param set-default BAT1_CAPACITY 18000
+# param set-default BAT1_V_DIV 11
+# param set-default BAT1_N_CELLS 4
+# param set-default BAT_V_OFFS_CURR 0.33
 
 param set-default CA_AIRFRAME 7
 
-param set-default CA_ROTOR_COUNT 6
+param set-default CA_ROTOR_COUNT 8
 param set-default CA_R_REV 63
 param set-default CA_ROTOR0_AX 1
 param set-default CA_ROTOR0_AY -1
 param set-default CA_ROTOR0_AZ 0
 param set-default CA_ROTOR0_KM 0
-param set-default CA_ROTOR0_PX 0.5
-param set-default CA_ROTOR0_PY 0.3
-param set-default CA_ROTOR0_PZ 0.2
+param set-default CA_ROTOR0_PX 0.156
+param set-default CA_ROTOR0_PY 0.111
+param set-default CA_ROTOR0_PZ 0.085
 param set-default CA_ROTOR1_AX 1
 param set-default CA_ROTOR1_AY 1
 param set-default CA_ROTOR1_AZ 0
 param set-default CA_ROTOR1_KM 0
-param set-default CA_ROTOR1_PX 0.5
-param set-default CA_ROTOR1_PY -0.3
-param set-default CA_ROTOR1_PZ 0.2
+param set-default CA_ROTOR1_PX 0.156
+param set-default CA_ROTOR1_PY -0.111
+param set-default CA_ROTOR1_PZ 0.085
 param set-default CA_ROTOR2_AX 1
 param set-default CA_ROTOR2_AY 1
 param set-default CA_ROTOR2_AZ 0
 param set-default CA_ROTOR2_KM 0
-param set-default CA_ROTOR2_PX -0.5
-param set-default CA_ROTOR2_PY 0.3
-param set-default CA_ROTOR2_PZ 0.2
+param set-default CA_ROTOR2_PX -0.156
+param set-default CA_ROTOR2_PY 0.111
+param set-default CA_ROTOR2_PZ 0.085
 param set-default CA_ROTOR3_AX 1
 param set-default CA_ROTOR3_AY -1
 param set-default CA_ROTOR3_AZ 0
 param set-default CA_ROTOR3_KM 0
-param set-default CA_ROTOR3_PX -0.5
-param set-default CA_ROTOR3_PY -0.3
-param set-default CA_ROTOR3_PZ 0.2
+param set-default CA_ROTOR3_PX -0.156
+param set-default CA_ROTOR3_PY -0.111
+param set-default CA_ROTOR3_PZ 0.085
 param set-default CA_ROTOR4_AZ -1
 param set-default CA_ROTOR4_KM 0
-param set-default CA_ROTOR4_PX 0.5
-param set-default CA_ROTOR4_PY 0.5
-param set-default CA_ROTOR5_AZ 1
+param set-default CA_ROTOR4_PX 0.12
+param set-default CA_ROTOR4_PY 0.218
+param set-default CA_ROTOR5_AZ 0
 param set-default CA_ROTOR5_KM 0
-param set-default CA_ROTOR5_PX 0.5
-param set-default CA_ROTOR5_PY -0.5
+param set-default CA_ROTOR5_PX 0.12
+param set-default CA_ROTOR5_PY -0.218
+param set-default CA_ROTOR5_PZ 0
 
 
+param set-default CA_ROTOR6_AZ 1
+param set-default CA_ROTOR6_KM 0
+param set-default CA_ROTOR6_PX -0.12
+param set-default CA_ROTOR6_PY 0.218
+param set-default CA_ROTOR6_PZ 0
+param set-default CA_ROTOR7_KM 0
+param set-default CA_ROTOR7_PX -0.12
+param set-default CA_ROTOR7_PY -0.218
+param set-default CA_ROTOR7_PY 0
 
 #Assign motors on MAIN
 param set-default PWM_MAIN_FUNC1 101
@@ -78,23 +88,25 @@ param set-default PWM_MAIN_FUNC3 103
 param set-default PWM_MAIN_FUNC4 104
 param set-default PWM_MAIN_FUNC5 105
 param set-default PWM_MAIN_FUNC6 106
-param set-defaultPWM_MAIN_REV 63
+param set-default PWM_MAIN_FUNC6 107
+param set-default PWM_MAIN_FUNC6 108
+param set-default PWM_MAIN_REV 255
 
 # maximum PWM output for MAIN when not disarmed
-param set-default PWM_MAIN_MAX1 2200
-param set-default PWM_MAIN_MAX2 2200
-param set-default PWM_MAIN_MAX3 2200
-param set-default PWM_MAIN_MAX4 2200
-param set-default PWM_MAIN_MAX5 2200
-param set-default PWM_MAIN_MAX6 2200
+param set-default PWM_MAIN_MAX1 2275
+param set-default PWM_MAIN_MAX2 2275
+param set-default PWM_MAIN_MAX3 2275
+param set-default PWM_MAIN_MAX4 2275
+param set-default PWM_MAIN_MAX5 2275
+param set-default PWM_MAIN_MAX6 2275
 
 # minimum PWM when armed
-param set-default PWM_MAIN_MIN1 500
-param set-default PWM_MAIN_MIN2 500
-param set-default PWM_MAIN_MIN3 500
-param set-default PWM_MAIN_MIN4 500
-param set-default PWM_MAIN_MIN5 500
-param set-default PWM_MAIN_MIN6 500
+param set-default PWM_MAIN_MIN1 253
+param set-default PWM_MAIN_MIN2 253
+param set-default PWM_MAIN_MIN3 253
+param set-default PWM_MAIN_MIN4 253
+param set-default PWM_MAIN_MIN5 253
+param set-default PWM_MAIN_MIN6 253
 
 #output value for MAIN when disarmed
 param set-default PWM_MAIN_DIS1 1250
@@ -113,18 +125,18 @@ param set-default PWM_MAIN_TIM2 400 #MAIN 5-8
 #Assign AUX motors
 param set-default PWM_AUX_FUNC1 2
 param set-default PWM_AUX_FUNC2 2
-param set-default PWM_AUX_FUNC3 2
-param set-default PWM_AUX_FUNC4 2
+param set-default PWM_AUX_FUNC3 301
+param set-default PWM_AUX_FUNC4 302
 param set-default PWM_AUX_FUNC5 2
 param set-default PWM_AUX_FUNC6 2
 
 # maximum PWM output for AUX when not disarmed
-param set-default PWM_AUX_MAX1 2200
-param set-default PWM_AUX_MAX2 2200
-param set-default PWM_AUX_MAX3 2200
-param set-default PWM_AUX_MAX4 2200
-param set-default PWM_AUX_MAX5 2200
-param set-default PWM_AUX_MAX6 2200
+param set-default PWM_AUX_MAX1 2275
+param set-default PWM_AUX_MAX2 2275
+param set-default PWM_AUX_MAX3 2275
+param set-default PWM_AUX_MAX4 2275
+param set-default PWM_AUX_MAX5 2275
+param set-default PWM_AUX_MAX6 2275
 
 #set PWM rates for AUX
 param set-default PWM_AUX_TIM0 400 #AUX 1-2

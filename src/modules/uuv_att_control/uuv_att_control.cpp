@@ -194,6 +194,74 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 	/* Geometric Controller END*/
 }
 
+void UUVAttitudeControl::control_attitude_geo(const external_vehicle_attitude_s &attitude,
+		const vehicle_attitude_setpoint_s &attitude_setpoint, const external_vehicle_angular_velocity_s &angular_velocity,
+		const vehicle_rates_setpoint_s &rates_setpoint)
+{
+	/** Geometric Controller
+	 *
+	 * based on
+	 * D. Mellinger, V. Kumar, "Minimum Snap Trajectory Generation and Control for Quadrotors", IEEE ICRA 2011, pp. 2520-2525.
+	 * D. A. Duecker, A. Hackbarth, T. Johannink, E. Kreuzer, and E. Solowjow, “Micro Underwater Vehicle Hydrobatics: A SubmergedFuruta Pendulum,” IEEE ICRA 2018, pp. 7498–7503.
+	 */
+	Eulerf euler_angles(matrix::Quatf(attitude.q));
+
+	const Eulerf setpoint_euler_angles(matrix::Quatf(attitude_setpoint.q_d));
+	const float roll_body = setpoint_euler_angles(0);
+	const float pitch_body = setpoint_euler_angles(1);
+	const float yaw_body = setpoint_euler_angles(2);
+
+	float roll_rate_desired = rates_setpoint.roll;
+	float pitch_rate_desired = rates_setpoint.pitch;
+	float yaw_rate_desired = rates_setpoint.yaw;
+
+	/* get attitude setpoint rotational matrix */
+	Dcmf rot_des = Eulerf(roll_body, pitch_body, yaw_body);
+
+	/* get current rotation matrix from control state quaternions */
+	Quatf q_att(attitude.q);
+	Matrix3f rot_att =  matrix::Dcm<float>(q_att);
+
+	Vector3f e_R_vec;
+	Vector3f torques;
+
+	/* Compute matrix: attitude error */
+	Matrix3f e_R = (rot_des.transpose() * rot_att - rot_att.transpose() * rot_des) * 0.5;
+
+	/* vee-map the error to get a vector instead of matrix e_R */
+	e_R_vec(0) = e_R(2, 1);  /**< Roll  */
+	e_R_vec(1) = e_R(0, 2);  /**< Pitch */
+	e_R_vec(2) = e_R(1, 0);  /**< Yaw   */
+
+	Vector3f omega{angular_velocity.xyz};
+	omega(0) -= roll_rate_desired;
+	omega(1) -= pitch_rate_desired;
+	omega(2) -= yaw_rate_desired;
+
+	/**< P-Control */
+	torques(0) = - e_R_vec(0) * _param_roll_p.get();	/**< Roll  */
+	torques(1) = - e_R_vec(1) * _param_pitch_p.get();	/**< Pitch */
+	torques(2) = - e_R_vec(2) * _param_yaw_p.get();		/**< Yaw   */
+
+	/**< PD-Control */
+	torques(0) = torques(0) - omega(0) * _param_roll_d.get();  /**< Roll  */
+	torques(1) = torques(1) - omega(1) * _param_pitch_d.get(); /**< Pitch */
+	torques(2) = torques(2) - omega(2) * _param_yaw_d.get();   /**< Yaw   */
+
+	float roll_u = torques(0);
+	float pitch_u = torques(1);
+	float yaw_u = torques(2);
+
+	// take thrust as
+	float thrust_x = attitude_setpoint.thrust_body[0];
+	float thrust_y = attitude_setpoint.thrust_body[1];
+	float thrust_z = attitude_setpoint.thrust_body[2];
+
+
+	constrain_actuator_commands(roll_u, pitch_u, yaw_u, thrust_x, thrust_y, thrust_z);
+	/* Geometric Controller END*/
+}
+
 void UUVAttitudeControl::Run()
 {
 	if (should_exit()) {
@@ -211,20 +279,22 @@ void UUVAttitudeControl::Run()
 	parameters_update();
 
 	vehicle_attitude_s attitude;
+	// _external_vehicle_attitude_sub _external_vattitude;
 
 	/* only run controller if attitude changed */
-	if (_vehicle_attitude_sub.update(&attitude)) {
-		vehicle_angular_velocity_s angular_velocity {};
-		_angular_velocity_sub.copy(&angular_velocity);
+	if (_external_vehicle_attitude_sub.update(&_external_vattitude)) {
+		// Check for external or internal angular velocity
+		if (_external_vehicle_angular_velocity_sub.update(&_external_vangular_velocity)) {
 
 		/* Run geometric attitude controllers if NOT manual mode*/
 		if (!_vcontrol_mode.flag_control_manual_enabled
-		    && _vcontrol_mode.flag_control_attitude_enabled
-		    && _vcontrol_mode.flag_control_rates_enabled) {
+		&& _vcontrol_mode.flag_control_attitude_enabled
+		&& _vcontrol_mode.flag_control_rates_enabled) {
 
 			int input_mode = _param_input_mode.get();
 
 			_vehicle_attitude_setpoint_sub.update(&_attitude_setpoint);
+
 			_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
 
 			if (input_mode == 1) { // process manual data
@@ -240,12 +310,48 @@ void UUVAttitudeControl::Run()
 
 			if (skip_controller) {
 				constrain_actuator_commands(_rates_setpoint.roll, _rates_setpoint.pitch, _rates_setpoint.yaw,
-							    _rates_setpoint.thrust_body[0], _rates_setpoint.thrust_body[1], _rates_setpoint.thrust_body[2]);
+							_rates_setpoint.thrust_body[0], _rates_setpoint.thrust_body[1], _rates_setpoint.thrust_body[2]);
 
 			} else {
-				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint);
+				control_attitude_geo(_external_vattitude, _attitude_setpoint, _external_vangular_velocity, _rates_setpoint);
+			}
+		  }
+		}
+		else {
+			vehicle_angular_velocity_s angular_velocity {};
+			_angular_velocity_sub.copy(&angular_velocity);
+
+			/* Run geometric attitude controllers if NOT manual mode*/
+			if (!_vcontrol_mode.flag_control_manual_enabled
+			&& _vcontrol_mode.flag_control_attitude_enabled
+			&& _vcontrol_mode.flag_control_rates_enabled) {
+
+				int input_mode = _param_input_mode.get();
+
+				_vehicle_attitude_setpoint_sub.update(&_attitude_setpoint);
+				_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
+
+				if (input_mode == 1) { // process manual data
+					Quatf attitude_setpoint(Eulerf(_param_direct_roll.get(), _param_direct_pitch.get(), _param_direct_yaw.get()));
+					attitude_setpoint.copyTo(_attitude_setpoint.q_d);
+					_attitude_setpoint.thrust_body[0] = _param_direct_thrust.get();
+					_attitude_setpoint.thrust_body[1] = 0.f;
+					_attitude_setpoint.thrust_body[2] = 0.f;
+				}
+
+				/* Geometric Control*/
+				int skip_controller = _param_skip_ctrl.get();
+
+				if (skip_controller) {
+					constrain_actuator_commands(_rates_setpoint.roll, _rates_setpoint.pitch, _rates_setpoint.yaw,
+								_rates_setpoint.thrust_body[0], _rates_setpoint.thrust_body[1], _rates_setpoint.thrust_body[2]);
+
+				} else {
+					control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint);
+				}
 			}
 		}
+
 	}
 
 	/* Manual Control mode (e.g. gamepad,...) - raw feedthrough no assistance */

@@ -437,9 +437,9 @@ void EKF2::Run()
 	if (should_exit()) {
 		_sensor_combined_sub.unregisterCallback();
 		_vehicle_imu_sub.unregisterCallback();
-		_external_ins_att_sub.unregisterCallback();
-		_external_ins_pos_sub.unregisterCallback();
-		_external_ins_global_pos_sub.unregisterCallback();
+		// _external_ins_att_sub.unregisterCallback();
+		// _external_ins_pos_sub.unregisterCallback();
+		// _external_ins_global_pos_sub.unregisterCallback();
 
 		return;
 	}
@@ -501,10 +501,10 @@ void EKF2::Run()
 	}
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// register callback from external ins publisher
-	if (!_external_ins_att_sub.registerCallback() || !_external_ins_pos_sub.registerCallback()
-	|| !_external_ins_global_pos_sub.registerCallback()) {
-		PX4_ERR("external estimate callback registration failed");
-	}
+	// if (!_external_ins_att_sub.registerCallback() || !_external_ins_pos_sub.registerCallback()
+	// || !_external_ins_global_pos_sub.registerCallback()) {
+	// 	PX4_ERR("external estimate callback registration failed");
+	// }
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 	if (_vehicle_command_sub.updated()) {
 		vehicle_command_s vehicle_command;
@@ -594,7 +594,7 @@ void EKF2::Run()
 
 	bool imu_updated = false;
 	imuSample imu_sample_new {};
-	bool external_ins_updated = false;
+	// bool external_ins_updated = false;
 	hrt_abstime imu_dt = 0; // for tracking time slip later
 
 
@@ -735,45 +735,45 @@ void EKF2::Run()
 		}
 	}
 
-	vehicle_local_position_s external_ins_lpos;
-	external_ins_updated = _external_ins_pos_sub.update(&external_ins_lpos);
-	vehicle_attitude_s external_ins_att;
-	bool external_ins_att_updated = _external_ins_att_sub.update(&external_ins_att);
-	if(_param_ekf2_ext_pos.get() == 1 && external_ins_updated){
-		if(external_ins_att_updated){
-			PublishExternalAttitude(external_ins_att);
-		}
+	// vehicle_local_position_s external_ins_lpos;
+	// external_ins_updated = _external_ins_pos_sub.update(&external_ins_lpos);
+	// vehicle_attitude_s external_ins_att;
+	// bool external_ins_att_updated = _external_ins_att_sub.update(&external_ins_att);
+	// if(_param_ekf2_ext_pos.get() == 1 && external_ins_updated){
+	// 	if(external_ins_att_updated){
+	// 		PublishExternalAttitude(external_ins_att);
+	// 	}
 
-		PublishExternalLocalPosition(external_ins_lpos);
-	}else{
+	// 	PublishExternalLocalPosition(external_ins_lpos);
+	// }else{
 
-		if (imu_updated) {
-		const hrt_abstime now = imu_sample_new.time_us;
+	if (imu_updated) {
+	const hrt_abstime now = imu_sample_new.time_us;
 
-		// push imu data into estimator
-		_ekf.setIMUData(imu_sample_new);
-		PublishAttitude(now); // publish attitude immediately (uses quaternion from output predictor)
+	// push imu data into estimator
+	_ekf.setIMUData(imu_sample_new);
+	PublishAttitude(now); // publish attitude immediately (uses quaternion from output predictor)
 
-		// integrate time to monitor time slippage
-		if (_start_time_us > 0) {
-			_integrated_time_us += imu_dt;
-			_last_time_slip_us = (imu_sample_new.time_us - _start_time_us) - _integrated_time_us;
+	// integrate time to monitor time slippage
+	if (_start_time_us > 0) {
+		_integrated_time_us += imu_dt;
+		_last_time_slip_us = (imu_sample_new.time_us - _start_time_us) - _integrated_time_us;
 
-		} else {
-			_start_time_us = imu_sample_new.time_us;
-			_last_time_slip_us = 0;
-		}
+	} else {
+		_start_time_us = imu_sample_new.time_us;
+		_last_time_slip_us = 0;
+	}
 
-		// ekf2_timestamps (using 0.1 ms relative timestamps)
-		ekf2_timestamps_s ekf2_timestamps {
-			.timestamp = now,
-			.airspeed_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
-			.distance_sensor_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
-			.optical_flow_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
-			.vehicle_air_data_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
-			.vehicle_magnetometer_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
-			.visual_odometry_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
-		};
+	// ekf2_timestamps (using 0.1 ms relative timestamps)
+	ekf2_timestamps_s ekf2_timestamps {
+		.timestamp = now,
+		.airspeed_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+		.distance_sensor_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+		.optical_flow_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+		.vehicle_air_data_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+		.vehicle_magnetometer_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+		.visual_odometry_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID,
+	};
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 		UpdateAirspeedSample(ekf2_timestamps);
@@ -863,7 +863,6 @@ void EKF2::Run()
 	}
 
 		// run internal imu
-	}
 
 	// re-schedule as backup timeout
 	ScheduleDelayed(100_ms);
@@ -1079,17 +1078,17 @@ void EKF2::PublishAttitude(const hrt_abstime &timestamp)
 	}
 }
 
-void EKF2::PublishExternalAttitude(vehicle_attitude_s &external_ins_att)
-{
-	const hrt_abstime timestamp = external_ins_att.timestamp;
+// void EKF2::PublishExternalAttitude(vehicle_attitude_s &external_ins_att)
+// {
+// 	const hrt_abstime timestamp = external_ins_att.timestamp;
 
-	vehicle_attitude_s att{};
-	att.timestamp_sample = timestamp;
-	matrix::Quatf(external_ins_att.q).copyTo(att.q);
-	att.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-	_attitude_pub.publish(att);
+// 	vehicle_attitude_s att{};
+// 	att.timestamp_sample = timestamp;
+// 	matrix::Quatf(external_ins_att.q).copyTo(att.q);
+// 	att.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+// 	_attitude_pub.publish(att);
 
-}
+// }
 #if defined(CONFIG_EKF2_BAROMETER)
 void EKF2::PublishBaroBias(const hrt_abstime &timestamp)
 {
@@ -1274,75 +1273,75 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 	}
 }
 
-void EKF2::PublishExternalGlobalPosition(const hrt_abstime &timestamp)
-{
-	static hrt_abstime last_external_pos_time = 0;
-	const hrt_abstime timeout = 1000000; // 1 second in microseconds
+// void EKF2::PublishExternalGlobalPosition(const hrt_abstime &timestamp)
+// {
+// 	static hrt_abstime last_external_pos_time = 0;
+// 	const hrt_abstime timeout = 1000000; // 1 second in microseconds
 
-	if (_external_ins_global_pos_sub.updated()){
-		last_external_pos_time = timestamp;
-		// generate and publish global position data
-		vehicle_global_position_s external_ins_global_pos;
-		if(_external_ins_global_pos_sub.update(&external_ins_global_pos)) {
-			vehicle_global_position_s global_pos{};
-			global_pos.timestamp_sample = timestamp;
+// 	if (_external_ins_global_pos_sub.updated()){
+// 		last_external_pos_time = timestamp;
+// 		// generate and publish global position data
+// 		vehicle_global_position_s external_ins_global_pos;
+// 		if(_external_ins_global_pos_sub.update(&external_ins_global_pos)) {
+// 			vehicle_global_position_s global_pos{};
+// 			global_pos.timestamp_sample = timestamp;
 
-			// Position GPS / WGS84 frame
-			global_pos.lat = external_ins_global_pos.lat;
-			global_pos.lon = external_ins_global_pos.lon;
-			global_pos.lat_lon_valid = external_ins_global_pos.lat_lon_valid;
+// 			// Position GPS / WGS84 frame
+// 			global_pos.lat = external_ins_global_pos.lat;
+// 			global_pos.lon = external_ins_global_pos.lon;
+// 			global_pos.lat_lon_valid = external_ins_global_pos.lat_lon_valid;
 
-			global_pos.alt = external_ins_global_pos.alt;
-			global_pos.alt_valid = external_ins_global_pos.alt_valid;
+// 			global_pos.alt = external_ins_global_pos.alt;
+// 			global_pos.alt_valid = external_ins_global_pos.alt_valid;
 
-#if defined(CONFIG_EKF2_GNSS)
-		global_pos.alt_ellipsoid = external_ins_global_pos.alt_ellipsoid;
-#endif
+// #if defined(CONFIG_EKF2_GNSS)
+// 		global_pos.alt_ellipsoid = external_ins_global_pos.alt_ellipsoid;
+// #endif
 
-		// global altitude has opposite sign of local down position
-		float delta_z = 0.f;
-		uint8_t z_reset_counter = 0;
-		_ekf.get_posD_reset(&delta_z, &z_reset_counter);
-		global_pos.delta_alt = external_ins_global_pos.delta_alt;
-		global_pos.alt_reset_counter = external_ins_global_pos.alt_reset_counter;
+// 		// global altitude has opposite sign of local down position
+// 		float delta_z = 0.f;
+// 		uint8_t z_reset_counter = 0;
+// 		_ekf.get_posD_reset(&delta_z, &z_reset_counter);
+// 		global_pos.delta_alt = external_ins_global_pos.delta_alt;
+// 		global_pos.alt_reset_counter = external_ins_global_pos.alt_reset_counter;
 
-		float delta_xy[2] {};
-		uint8_t xy_reset_counter = 0;
-		_ekf.get_posNE_reset(delta_xy, &xy_reset_counter);
-		global_pos.lat_lon_reset_counter = external_ins_global_pos.lat_lon_reset_counter;
+// 		float delta_xy[2] {};
+// 		uint8_t xy_reset_counter = 0;
+// 		_ekf.get_posNE_reset(delta_xy, &xy_reset_counter);
+// 		global_pos.lat_lon_reset_counter = external_ins_global_pos.lat_lon_reset_counter;
 
-		global_pos.eph = external_ins_global_pos.eph;
-		global_pos.epv = external_ins_global_pos.epv;
+// 		global_pos.eph = external_ins_global_pos.eph;
+// 		global_pos.epv = external_ins_global_pos.epv;
 
-		// _ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
+// 		// _ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
 
-#if defined(CONFIG_EKF2_TERRAIN)
+// #if defined(CONFIG_EKF2_TERRAIN)
 
-		// Terrain altitude in m, WGS84
-		global_pos.terrain_alt = _ekf.getEkfGlobalOriginAltitude() - _ekf.getTerrainVertPos();
-		global_pos.terrain_alt_valid = _ekf.isTerrainEstimateValid();
+// 		// Terrain altitude in m, WGS84
+// 		global_pos.terrain_alt = _ekf.getEkfGlobalOriginAltitude() - _ekf.getTerrainVertPos();
+// 		global_pos.terrain_alt_valid = _ekf.isTerrainEstimateValid();
 
-		float delta_hagl = 0.f;
-		_ekf.get_hagl_reset(&delta_hagl, &global_pos.terrain_reset_counter);
-		global_pos.delta_terrain = -delta_z;
-#endif // CONFIG_EKF2_TERRAIN
+// 		float delta_hagl = 0.f;
+// 		_ekf.get_hagl_reset(&delta_hagl, &global_pos.terrain_reset_counter);
+// 		global_pos.delta_terrain = -delta_z;
+// #endif // CONFIG_EKF2_TERRAIN
 
-		global_pos.dead_reckoning = external_ins_global_pos.dead_reckoning;
-		global_pos.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-		_global_position_pub.publish(global_pos);
-		} else {
-			// Fall back to internal position estimation if external data update fails
-			if (timestamp - last_external_pos_time > timeout) {
-				PublishGlobalPosition(timestamp);
-			}
-		}
-	} else {
-		// Fall back to internal position estimation if no external data is available
-		if (timestamp - last_external_pos_time > timeout) {
-			PublishGlobalPosition(timestamp);
-		}
-	}
-}
+// 		global_pos.dead_reckoning = external_ins_global_pos.dead_reckoning;
+// 		global_pos.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+// 		_global_position_pub.publish(global_pos);
+// 		} else {
+// 			// Fall back to internal position estimation if external data update fails
+// 			if (timestamp - last_external_pos_time > timeout) {
+// 				PublishGlobalPosition(timestamp);
+// 			}
+// 		}
+// 	} else {
+// 		// Fall back to internal position estimation if no external data is available
+// 		if (timestamp - last_external_pos_time > timeout) {
+// 			PublishGlobalPosition(timestamp);
+// 		}
+// 	}
+// }
 
 #if defined(CONFIG_EKF2_GNSS)
 void EKF2::PublishGpsStatus(const hrt_abstime &timestamp)
@@ -1784,107 +1783,107 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	_local_position_pub.publish(lpos);
 }
 
-void EKF2::PublishExternalLocalPosition(vehicle_local_position_s &external_ins_lpos)
-{
-	const hrt_abstime timestamp = external_ins_lpos.timestamp;
+// void EKF2::PublishExternalLocalPosition(vehicle_local_position_s &external_ins_lpos)
+// {
+// 	const hrt_abstime timestamp = external_ins_lpos.timestamp;
 
-	vehicle_local_position_s lpos{};
-	// generate vehicle local position data
-	lpos.timestamp_sample = timestamp;
+// 	vehicle_local_position_s lpos{};
+// 	// generate vehicle local position data
+// 	lpos.timestamp_sample = timestamp;
 
-	// Position of body origin in local NED frame
-	lpos.x = external_ins_lpos.x;
-	lpos.y = external_ins_lpos.y;
-	lpos.z = external_ins_lpos.z;
-
-
-	// Velocity of body origin in local NED frame (m/s)
-	lpos.vx = external_ins_lpos.vx;
-	lpos.vy = external_ins_lpos.vy;
-	lpos.vz = external_ins_lpos.vz;
-	lpos.z_deriv = external_ins_lpos.z_deriv;
-
-	// Acceleration of body origin in local frame
-	lpos.ax = external_ins_lpos.ax;
-	lpos.ay = external_ins_lpos.ay;
-	lpos.az = external_ins_lpos.az;
-
-	// Map validity flags
-	lpos.xy_valid = external_ins_lpos.xy_valid;
-	lpos.z_valid = external_ins_lpos.z_valid;
-	lpos.v_xy_valid = external_ins_lpos.v_xy_valid;
-	lpos.v_z_valid = external_ins_lpos.v_z_valid;
-
-	// Map global reference (local NED origin in GPS/WGS84)
-	lpos.xy_global = external_ins_lpos.xy_global;
-	lpos.z_global = external_ins_lpos.z_global;
-	lpos.ref_timestamp = external_ins_lpos.ref_timestamp;
-	lpos.ref_lat = external_ins_lpos.ref_lat;
-	lpos.ref_lon = external_ins_lpos.ref_lon;
-	lpos.ref_alt = external_ins_lpos.ref_alt;
-
-	// Map heading:
-	lpos.heading = external_ins_lpos.heading;
-	lpos.unaided_heading = external_ins_lpos.unaided_heading;
-	lpos.heading_var = external_ins_lpos.heading_var;
-	lpos.delta_heading = external_ins_lpos.delta_heading;
-
-	lpos.heading_good_for_control = external_ins_lpos.heading_good_for_control;
-	lpos.tilt_var = external_ins_lpos.tilt_var;
-
-	lpos.dist_bottom_valid = external_ins_lpos.dist_bottom_valid;
-	lpos.dist_bottom = external_ins_lpos.dist_bottom;
-	lpos.dist_bottom_var = external_ins_lpos.dist_bottom_var;
-
-	lpos.dist_bottom_sensor_bitfield = external_ins_lpos.dist_bottom_sensor_bitfield;
+// 	// Position of body origin in local NED frame
+// 	lpos.x = external_ins_lpos.x;
+// 	lpos.y = external_ins_lpos.y;
+// 	lpos.z = external_ins_lpos.z;
 
 
-	// Map estimator accuracy
-	lpos.eph = external_ins_lpos.eph;
-	lpos.epv = external_ins_lpos.epv;
-	lpos.evh = external_ins_lpos.evh;
-	lpos.evv = external_ins_lpos.evv;
+// 	// Velocity of body origin in local NED frame (m/s)
+// 	lpos.vx = external_ins_lpos.vx;
+// 	lpos.vy = external_ins_lpos.vy;
+// 	lpos.vz = external_ins_lpos.vz;
+// 	lpos.z_deriv = external_ins_lpos.z_deriv;
 
-	// get state reset information of position and velocity
-	_ekf.get_posD_reset(&lpos.delta_z, &lpos.z_reset_counter);
-	_ekf.get_velD_reset(&lpos.delta_vz, &lpos.vz_reset_counter);
-	_ekf.get_posNE_reset(&lpos.delta_xy[0], &lpos.xy_reset_counter);
-	_ekf.get_velNE_reset(&lpos.delta_vxy[0], &lpos.vxy_reset_counter);
+// 	// Acceleration of body origin in local frame
+// 	lpos.ax = external_ins_lpos.ax;
+// 	lpos.ay = external_ins_lpos.ay;
+// 	lpos.az = external_ins_lpos.az;
 
-	lpos.dead_reckoning =  external_ins_lpos.dead_reckoning;
+// 	// Map validity flags
+// 	lpos.xy_valid = external_ins_lpos.xy_valid;
+// 	lpos.z_valid = external_ins_lpos.z_valid;
+// 	lpos.v_xy_valid = external_ins_lpos.v_xy_valid;
+// 	lpos.v_z_valid = external_ins_lpos.v_z_valid;
 
-	// get control limit information
-	lpos.vxy_max = external_ins_lpos.vxy_max;
-	lpos.vz_max = external_ins_lpos.vz_max;
-	lpos.hagl_min = external_ins_lpos.hagl_min;
-	lpos.hagl_max_z = external_ins_lpos.hagl_max_z;
-	lpos.hagl_max_xy = external_ins_lpos.hagl_max_xy;
+// 	// Map global reference (local NED origin in GPS/WGS84)
+// 	lpos.xy_global = external_ins_lpos.xy_global;
+// 	lpos.z_global = external_ins_lpos.z_global;
+// 	lpos.ref_timestamp = external_ins_lpos.ref_timestamp;
+// 	lpos.ref_lat = external_ins_lpos.ref_lat;
+// 	lpos.ref_lon = external_ins_lpos.ref_lon;
+// 	lpos.ref_alt = external_ins_lpos.ref_alt;
 
-	// convert NaN to INFINITY
-	if (!PX4_ISFINITE(lpos.vxy_max)) {
-		lpos.vxy_max = INFINITY;
-	}
+// 	// Map heading:
+// 	lpos.heading = external_ins_lpos.heading;
+// 	lpos.unaided_heading = external_ins_lpos.unaided_heading;
+// 	lpos.heading_var = external_ins_lpos.heading_var;
+// 	lpos.delta_heading = external_ins_lpos.delta_heading;
 
-	if (!PX4_ISFINITE(lpos.vz_max)) {
-		lpos.vz_max = INFINITY;
-	}
+// 	lpos.heading_good_for_control = external_ins_lpos.heading_good_for_control;
+// 	lpos.tilt_var = external_ins_lpos.tilt_var;
 
-	if (!PX4_ISFINITE(lpos.hagl_min)) {
-		lpos.hagl_min = INFINITY;
-	}
+// 	lpos.dist_bottom_valid = external_ins_lpos.dist_bottom_valid;
+// 	lpos.dist_bottom = external_ins_lpos.dist_bottom;
+// 	lpos.dist_bottom_var = external_ins_lpos.dist_bottom_var;
 
-	if (!PX4_ISFINITE(lpos.hagl_max_z)) {
-		lpos.hagl_max_z = INFINITY;
-	}
+// 	lpos.dist_bottom_sensor_bitfield = external_ins_lpos.dist_bottom_sensor_bitfield;
 
-	if (!PX4_ISFINITE(lpos.hagl_max_xy)) {
-		lpos.hagl_max_xy = INFINITY;
-	}
 
-	// publish vehicle local position data
-	lpos.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-	_local_position_pub.publish(lpos);
-}
+// 	// Map estimator accuracy
+// 	lpos.eph = external_ins_lpos.eph;
+// 	lpos.epv = external_ins_lpos.epv;
+// 	lpos.evh = external_ins_lpos.evh;
+// 	lpos.evv = external_ins_lpos.evv;
+
+// 	// get state reset information of position and velocity
+// 	_ekf.get_posD_reset(&lpos.delta_z, &lpos.z_reset_counter);
+// 	_ekf.get_velD_reset(&lpos.delta_vz, &lpos.vz_reset_counter);
+// 	_ekf.get_posNE_reset(&lpos.delta_xy[0], &lpos.xy_reset_counter);
+// 	_ekf.get_velNE_reset(&lpos.delta_vxy[0], &lpos.vxy_reset_counter);
+
+// 	lpos.dead_reckoning =  external_ins_lpos.dead_reckoning;
+
+// 	// get control limit information
+// 	lpos.vxy_max = external_ins_lpos.vxy_max;
+// 	lpos.vz_max = external_ins_lpos.vz_max;
+// 	lpos.hagl_min = external_ins_lpos.hagl_min;
+// 	lpos.hagl_max_z = external_ins_lpos.hagl_max_z;
+// 	lpos.hagl_max_xy = external_ins_lpos.hagl_max_xy;
+
+// 	// convert NaN to INFINITY
+// 	if (!PX4_ISFINITE(lpos.vxy_max)) {
+// 		lpos.vxy_max = INFINITY;
+// 	}
+
+// 	if (!PX4_ISFINITE(lpos.vz_max)) {
+// 		lpos.vz_max = INFINITY;
+// 	}
+
+// 	if (!PX4_ISFINITE(lpos.hagl_min)) {
+// 		lpos.hagl_min = INFINITY;
+// 	}
+
+// 	if (!PX4_ISFINITE(lpos.hagl_max_z)) {
+// 		lpos.hagl_max_z = INFINITY;
+// 	}
+
+// 	if (!PX4_ISFINITE(lpos.hagl_max_xy)) {
+// 		lpos.hagl_max_xy = INFINITY;
+// 	}
+
+// 	// publish vehicle local position data
+// 	lpos.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+// 	_local_position_pub.publish(lpos);
+// }
 
 void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample)
 {

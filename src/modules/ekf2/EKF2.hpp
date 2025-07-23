@@ -182,9 +182,9 @@ private:
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	void PublishEvPosBias(const hrt_abstime &timestamp);
-	void PublishExternalLocalPosition(vehicle_local_position_s &external_ins_lpos);
-	void PublishExternalAttitude(vehicle_attitude_s &external_ins_lpos);
-	void PublishExternalGlobalPosition(const hrt_abstime &timestamp);
+	// void PublishExternalLocalPosition(vehicle_local_position_s &external_ins_lpos);
+	// void PublishExternalAttitude(vehicle_attitude_s &external_ins_lpos);
+	// void PublishExternalGlobalPosition(const hrt_abstime &timestamp);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 	estimator_bias_s fillEstimatorBiasMsg(const BiasEstimator::status &status, uint64_t timestamp_sample_us,
 					      uint64_t timestamp, uint32_t device_id = 0);
@@ -335,11 +335,11 @@ private:
 
 	uORB::PublicationMulti<estimator_bias3d_s> _estimator_ev_pos_bias_pub{ORB_ID(estimator_ev_pos_bias)};
 
-	uORB::SubscriptionCallbackWorkItem _external_ins_pos_sub{this, ORB_ID(external_vehicle_local_position)};
+	// uORB::SubscriptionCallbackWorkItem _external_ins_pos_sub{this, ORB_ID(external_vehicle_local_position)};
 
-	uORB::SubscriptionCallbackWorkItem _external_ins_att_sub{this, ORB_ID(external_vehicle_attitude)};
+	// uORB::SubscriptionCallbackWorkItem _external_ins_att_sub{this, ORB_ID(external_vehicle_attitude)};
 
-	uORB::SubscriptionCallbackWorkItem _external_ins_global_pos_sub{this, ORB_ID(external_vehicle_global_position)};
+	// uORB::SubscriptionCallbackWorkItem _external_ins_global_pos_sub{this, ORB_ID(external_vehicle_global_position)};
 
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 

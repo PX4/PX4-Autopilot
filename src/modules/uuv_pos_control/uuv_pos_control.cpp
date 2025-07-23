@@ -110,28 +110,63 @@ void UUVPOSControl::publish_attitude_setpoint(const float thrust_x, const float 
 
 void UUVPOSControl::pose_controller_6dof(const Vector3f &pos_des,
 		const float roll_des, const float pitch_des, const float yaw_des,
-		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
+		external_vehicle_attitude_s &vehicle_attitude, external_vehicle_local_position_s  &vlocal_pos)
 {
 	//get current rotation of vehicle
 	Quatf q_att(vehicle_attitude.q);
+
+	Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) -  vlocal_pos.position[0]) - _param_pose_gain_d_x.get() * vlocal_pos.velocity[0],
+					     _param_pose_gain_y.get() * (pos_des(1) -  vlocal_pos.position[1]) - _param_pose_gain_d_y.get() * vlocal_pos.velocity[1],
+					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.position[2]) - _param_pose_gain_d_z.get() * vlocal_pos.velocity[2]);
+
+	// Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
+
+	publish_attitude_setpoint(p_control_output(0),
+				  p_control_output(1),
+				  p_control_output(2),
+				  roll_des, pitch_des, yaw_des);
+
+}
+
+void UUVPOSControl::pose_controller_6dof(const Vector3f &pos_des,
+	const float roll_des, const float pitch_des, const float yaw_des,
+	vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
+{
+	Quatf q_att(vehicle_attitude.q);
+
 
 	Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get()
 					     * vlocal_pos.vx,
 					     _param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y) - _param_pose_gain_d_y.get() * vlocal_pos.vy,
 					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z) - _param_pose_gain_d_z.get() * vlocal_pos.vz);
 
-	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
+	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);
 
-	publish_attitude_setpoint(rotated_input(0),
-				  rotated_input(1),
-				  rotated_input(2),
+	publish_attitude_setpoint(rotated_input(0), rotated_input(1), rotated_input(2), roll_des, pitch_des, yaw_des);
+}
+
+
+void UUVPOSControl::stabilization_controller_6dof(const Vector3f &pos_des,
+		const float roll_des, const float pitch_des, const float yaw_des,
+		external_vehicle_attitude_s &vehicle_attitude, external_vehicle_local_position_s  &vlocal_pos)
+{
+	//get current rotation of vehicle
+	Quatf q_att(vehicle_attitude.q);
+	float z_measured = vlocal_pos.position[2];
+	Vector3f p_control_output = Vector3f(0,
+					     0,
+					     _param_pose_gain_z.get() * (pos_des(2) - z_measured));
+	//potential d controller missing
+	// Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
+
+	publish_attitude_setpoint(p_control_output(0) + pos_des(0), p_control_output(1) + pos_des(1), p_control_output(2),
 				  roll_des, pitch_des, yaw_des);
 
 }
 
 void UUVPOSControl::stabilization_controller_6dof(const Vector3f &pos_des,
 		const float roll_des, const float pitch_des, const float yaw_des,
-		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
+		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s  &vlocal_pos)
 {
 	//get current rotation of vehicle
 	Quatf q_att(vehicle_attitude.q);
@@ -164,16 +199,40 @@ void UUVPOSControl::Run()
 	/* update parameters from storage */
 	parameters_update();
 
-	//vehicle_attitude_s attitude;
 	vehicle_local_position_s vlocal_pos;
 
 	/* only run controller if local_pos changed */
-	if (_vehicle_local_position_sub.update(&vlocal_pos)) {
+	if (_external_vehicle_local_position_sub.update(&_external_vlocal_pos)) {
+		/* Run geometric attitude controllers if NOT manual mode*/
+		if (!_vcontrol_mode.flag_control_manual_enabled
+		&& _vcontrol_mode.flag_control_attitude_enabled
+		&& _vcontrol_mode.flag_control_rates_enabled) {
+
+			_external_vehicle_attitude_sub.update(&_external_vattitude);
+			_trajectory_setpoint_sub.update(&_trajectory_setpoint);
+
+			float roll_des = 0;
+			float pitch_des = 0;
+			float yaw_des = _trajectory_setpoint.yaw;
+
+			//stabilization controller(keep pos and hold depth + angle) vs position controller(global + yaw)
+			if (_param_stabilization.get() == 0) {
+				pose_controller_6dof(Vector3f(_trajectory_setpoint.position),
+							roll_des, pitch_des, yaw_des, _external_vattitude, _external_vlocal_pos);
+
+			} else {
+				stabilization_controller_6dof(Vector3f(_trajectory_setpoint.position),
+								roll_des, pitch_des, yaw_des, _external_vattitude, _external_vlocal_pos);
+			}
+
+	  	}
+	}
+	else if (_vehicle_local_position_sub.update(&vlocal_pos)) {
 
 		/* Run geometric attitude controllers if NOT manual mode*/
 		if (!_vcontrol_mode.flag_control_manual_enabled
-		    && _vcontrol_mode.flag_control_attitude_enabled
-		    && _vcontrol_mode.flag_control_rates_enabled) {
+		&& _vcontrol_mode.flag_control_attitude_enabled
+		&& _vcontrol_mode.flag_control_rates_enabled) {
 
 			_vehicle_attitude_sub.update(&_vehicle_attitude);//get current vehicle attitude
 			_trajectory_setpoint_sub.update(&_trajectory_setpoint);
@@ -185,13 +244,14 @@ void UUVPOSControl::Run()
 			//stabilization controller(keep pos and hold depth + angle) vs position controller(global + yaw)
 			if (_param_stabilization.get() == 0) {
 				pose_controller_6dof(Vector3f(_trajectory_setpoint.position),
-						     roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
+							roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
 
 			} else {
 				stabilization_controller_6dof(Vector3f(_trajectory_setpoint.position),
-							      roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
+								roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
 			}
 		}
+
 	}
 
 	/* Only publish if any of the proper modes are enabled */

@@ -63,6 +63,8 @@
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/external_vehicle_local_position.h>
+#include <uORB/topics/external_vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
@@ -105,11 +107,14 @@ private:
 	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
 
-	uORB::SubscriptionCallbackWorkItem _external_vehicle_angular_velocity_sub{this, ORB_ID(external_vehicle_angular_velocity)};
+	uORB::Subscription _external_vehicle_local_position_sub{ORB_ID(external_vehicle_local_position)};
+	uORB::Subscription _external_vehicle_attitude_sub{ORB_ID(external_vehicle_attitude)};
 
 	vehicle_attitude_s _vehicle_attitude{};
 	trajectory_setpoint_s _trajectory_setpoint{};
 	vehicle_control_mode_s _vcontrol_mode{};
+	external_vehicle_local_position_s _external_vlocal_pos{};
+	external_vehicle_attitude_s _external_vattitude{};
 	perf_counter_t	_loop_perf;
 
 	DEFINE_PARAMETERS(
@@ -136,9 +141,19 @@ private:
 	 */
 	void publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
 				       const float roll_des, const float pitch_des, const float yaw_des);
+
 	void pose_controller_6dof(const Vector3f &pos_des,
 				  const float roll_des, const float pitch_des, const float yaw_des,
-				  vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
+				  external_vehicle_attitude_s &vehicle_attitude, external_vehicle_local_position_s &vlocal_pos);
+
+	void pose_controller_6dof(const Vector3f &pos_des,
+	                         const float roll_des, const float pitch_des, const float yaw_des,
+	                         vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
+
+	void stabilization_controller_6dof(const Vector3f &pos_des,
+					   const float roll_des, const float pitch_des, const float yaw_des,
+					   external_vehicle_attitude_s &vehicle_attitude, external_vehicle_local_position_s &vlocal_pos);
+
 	void stabilization_controller_6dof(const Vector3f &pos_des,
 					   const float roll_des, const float pitch_des, const float yaw_des,
 					   vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);

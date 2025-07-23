@@ -69,6 +69,8 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
+#include <uORB/topics/external_vehicle_angular_velocity.h>
+#include <uORB/topics/external_vehicle_attitude.h>
 #include <uORB/uORB.h>
 
 using matrix::Eulerf;
@@ -111,6 +113,9 @@ private:
 	uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};	/**< vehicle angular velocity subscription */
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};	/**< notification of manual control updates */
 	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle status subscription */
+	uORB::Subscription _external_vehicle_angular_velocity_sub{ORB_ID(external_vehicle_angular_velocity)};
+	uORB::Subscription _external_vehicle_attitude_sub{ORB_ID(external_vehicle_attitude)};
+
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
 
@@ -120,7 +125,8 @@ private:
 	vehicle_attitude_setpoint_s _attitude_setpoint{};
 	vehicle_rates_setpoint_s _rates_setpoint{};
 	vehicle_control_mode_s _vcontrol_mode{};
-
+	external_vehicle_angular_velocity_s _external_vangular_velocity{};
+	external_vehicle_attitude_s _external_vattitude{};
 	perf_counter_t	_loop_perf;
 
 	DEFINE_PARAMETERS(
@@ -149,8 +155,12 @@ private:
 	/**
 	 * Control Attitude
 	 */
+	void control_attitude_geo(const external_vehicle_attitude_s &attitude, const vehicle_attitude_setpoint_s &attitude_setpoint,
+				  const external_vehicle_angular_velocity_s &angular_velocity, const vehicle_rates_setpoint_s &rates_setpoint);
+
 	void control_attitude_geo(const vehicle_attitude_s &attitude, const vehicle_attitude_setpoint_s &attitude_setpoint,
 				  const vehicle_angular_velocity_s &angular_velocity, const vehicle_rates_setpoint_s &rates_setpoint);
+
 	void constrain_actuator_commands(float roll_u, float pitch_u, float yaw_u,
 					 float thrust_x, float thrust_y, float thrust_z);
 };

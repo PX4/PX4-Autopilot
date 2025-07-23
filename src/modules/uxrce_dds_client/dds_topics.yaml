@@ -167,13 +167,16 @@ subscriptions:
     type: px4_msgs::msg::VehicleGlobalPosition
 
   - topic: /fmu/in/external_vehicle_local_position
-    type: px4_msgs::msg::VehicleLocalPosition
+    type: px4_msgs::msg::ExternalVehicleLocalPosition
 
   - topic: /fmu/in/external_vehicle_global_position
     type: px4_msgs::msg::VehicleGlobalPosition
 
   - topic: /fmu/in/external_vehicle_attitude
-    type: px4_msgs::msg::VehicleAttitude
+    type: px4_msgs::msg::ExternalVehicleAttitude
+
+  - topic: /fmu/in/external_vehicle_angular_velocity
+    type: px4_msgs::msg::ExternalVehicleAngularVelocity
 
 # Create uORB::PublicationMulti
 subscriptions_multi:
