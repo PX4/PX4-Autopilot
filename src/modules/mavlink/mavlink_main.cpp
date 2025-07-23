@@ -87,16 +87,6 @@ events::EventBuffer *Mavlink::_event_buffer = nullptr;
 Mavlink *mavlink_module_instances[MAVLINK_COMM_NUM_BUFFERS] {};
 static mavlink_signing_streams_t global_mavlink_signig_streams = {};
 
-// magic for versioning of the structure
-#define SIGNING_KEY_MAGIC 0x3852fcd1
-
-// structure stored in persistent memory
-typedef struct {
-	uint32_t magic;
-	uint64_t timestamp;
-	uint8_t secret_key[32];
-} signing_key_t;
-
 void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length) { mavlink_module_instances[chan]->send_bytes(ch, length); }
 void mavlink_start_uart_send(mavlink_channel_t chan, int length) { mavlink_module_instances[chan]->send_start(length); }
 void mavlink_end_uart_send(mavlink_channel_t chan, int length) { mavlink_module_instances[chan]->send_finish(); }
