@@ -41,6 +41,7 @@ import glob
 import kconfiglib
 import tempfile
 import sys
+from pathlib import Path
 
 import diffconfig
 import merge_config
@@ -51,6 +52,14 @@ for name in glob.glob(px4_dir + '/boards/*/*/default.px4board'):
     kconf = kconfiglib.Kconfig()
     kconf.load_config(name)
     print(kconf.write_min_config(name))
+
+    board_path = Path(name)
+    defconfig_path = board_path.parent / "nuttx-config" / "nsh" / "defconfig"
+
+    if os.path.exists(defconfig_path):
+        # Merge NuttX with default config
+        kconf = merge_config.main(px4_dir + "/Kconfig", name, defconfig_path)
+        print(kconf.write_min_config(name))
 
 for name in glob.glob(px4_dir + '/boards/*/*/bootloader.px4board'):
     kconf = kconfiglib.Kconfig()
