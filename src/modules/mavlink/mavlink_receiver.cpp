@@ -2385,19 +2385,32 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	}
 
 	// battery status
-	{
-		battery_status_s hil_battery_status{};
+	publish_hil_battery();
+}
 
-		hil_battery_status.timestamp = timestamp;
-		hil_battery_status.voltage_v = 16.0f;
-		hil_battery_status.current_a = 10.0f;
-		hil_battery_status.discharged_mah = -1.0f;
-		hil_battery_status.connected = true;
-		hil_battery_status.remaining = 0.70;
-		hil_battery_status.time_remaining_s = NAN;
+void
+MavlinkReceiver::publish_hil_battery()
+{
+	battery_status_s hil_battery_status{};
 
-		_battery_pub.publish(hil_battery_status);
+	hil_battery_status.timestamp = hrt_absolute_time();
+
+	hil_battery_status.cell_count = _param_bat_cells_count.get();
+	hil_battery_status.remaining = 0.70f;
+	float cells_v = _param_bat_v_empty.get() * (1.f - hil_battery_status.remaining)
+			+ hil_battery_status.remaining * _param_bat_v_charged.get();
+
+	hil_battery_status.voltage_v = hil_battery_status.cell_count * cells_v;
+	hil_battery_status.current_a = 10.0f;
+	hil_battery_status.discharged_mah = -1.0f;
+	hil_battery_status.connected = true;
+	hil_battery_status.time_remaining_s = NAN;
+
+	for (auto cell_count = 0; cell_count < hil_battery_status.cell_count; cell_count++) {
+		hil_battery_status.voltage_cell_v[cell_count] = cells_v;
 	}
+
+	_battery_pub.publish(hil_battery_status);
 }
 
 void
@@ -2720,15 +2733,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	}
 
 	/* battery status */
-	{
-		battery_status_s hil_battery_status{};
-		hil_battery_status.voltage_v = 11.1f;
-		hil_battery_status.current_a = 10.0f;
-		hil_battery_status.discharged_mah = -1.0f;
-		hil_battery_status.timestamp = hrt_absolute_time();
-		hil_battery_status.time_remaining_s = NAN;
-		_battery_pub.publish(hil_battery_status);
-	}
+	publish_hil_battery();
 }
 
 #if !defined(CONSTRAINED_FLASH)
