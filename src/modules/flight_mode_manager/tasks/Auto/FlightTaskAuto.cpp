@@ -267,12 +267,11 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		Sticks::rotateIntoHeadingFrameXY(sticks_ne, _yaw, _land_heading);
 
 		const bool land_radius_enabled = _param_mpc_land_radius.get() > 0.0f;
-		const bool position_valid = !isnan(_position(0)) && !isnan(_position(1));
+		const bool position_valid = Vector2f(_position).isAllFinite();
 
-		float max_speed;
+		float max_speed = INFINITY;
 
 		if (land_radius_enabled && position_valid) {
-
 			const float distance_to_circle = math::trajectory::getMaxDistanceToCircle(_position.xy(), _initial_land_position.xy(),
 							 _param_mpc_land_radius.get(), sticks_ne);
 
@@ -289,9 +288,6 @@ void FlightTaskAuto::_prepareLandSetpoints()
 				max_speed = 0.f;
 				sticks_xy.setZero();
 			}
-
-		} else {
-			max_speed = 10.0f;
 		}
 
 		PX4_INFO(" max speed: %.2f", (double) max_speed);

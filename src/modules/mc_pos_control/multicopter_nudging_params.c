@@ -56,7 +56,7 @@ PARAM_DEFINE_INT32(MPC_LAND_RC_HELP, 0);
  * When nudging is enabled (see MPC_LAND_RC_HELP), this controls
  * the maximum allowed horizontal displacement from the original landing point.
  *
- * Setting the radius to -1 will disable this feature. Only works while local position is valid.
+ * Setting the radius to -1 will disable this feature. Nudging is only limited while local position is valid.
  *
  * @unit m
  * @min -1
