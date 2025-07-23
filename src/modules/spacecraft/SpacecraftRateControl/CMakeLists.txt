@@ -31,37 +31,11 @@
 #
 ############################################################################
 
-project(px4_gz_plugins)
+px4_add_library(SpacecraftRateControl
+	SpacecraftRateControl.cpp
+)
 
-if(NOT DEFINED ENV{GZ_DISTRO} OR NOT "$ENV{GZ_DISTRO}"  STREQUAL "harmonic")
-    find_package(gz-transport NAMES gz-transport14 gz-transport13)
-    find_package(gz-sim NAMES gz-sim9 gz-sim8)
-    find_package(gz-sensors NAMES gz-sensors9 gz-sensors8)
-    find_package(gz-plugin NAMES gz-plugin3 gz-plugin2 COMPONENTS register)
-else()
-    find_package(gz-transport NAMES gz-transport13)
-    find_package(gz-sim NAMES gz-sim8)
-    find_package(gz-sensors NAMES gz-sensors8)
-    find_package(gz-plugin NAMES gz-plugin2 COMPONENTS register)
-endif()
-
-if (gz-transport_FOUND)
-    # Create a flat output directory for all plugin libraries
-    set(PX4_GZ_PLUGIN_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "Directory for all Gazebo plugin libraries")
-    file(MAKE_DIRECTORY ${PX4_GZ_PLUGIN_OUTPUT_DIR})
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PX4_GZ_PLUGIN_OUTPUT_DIR})
-
-    # Add our plugins as subdirectories
-    add_subdirectory(optical_flow)
-    add_subdirectory(template_plugin)
-    add_subdirectory(gstreamer)
-    add_subdirectory(moving_platform_controller)
-    add_subdirectory(spacecraft_thruster)
-
-    # Add an alias target for each plugin
-    if (TARGET GstCameraSystem)
-        add_custom_target(px4_gz_plugins ALL DEPENDS OpticalFlowSystem MovingPlatformController SpacecraftThrusterModelPlugin TemplatePlugin GstCameraSystem)
-    else()
-        add_custom_target(px4_gz_plugins ALL DEPENDS OpticalFlowSystem MovingPlatformController SpacecraftThrusterModelPlugin TemplatePlugin)
-    endif()
-endif()
+target_link_libraries(SpacecraftRateControl PUBLIC RateControl)
+target_link_libraries(SpacecraftRateControl PUBLIC mathlib)
+target_link_libraries(SpacecraftRateControl PUBLIC circuit_breaker)
+target_include_directories(SpacecraftRateControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
