@@ -1,6 +1,6 @@
 # Flight Termination Configuration
 
-The _Flight termination_ [failsafe action](../config/safety.md#failsafe-actions) may be triggered by a [safety check](../config/safety.md) (e.g. RC Loss, geofence violation, etc. on any vehicle type or in any flight mode), or by the [Failure Detector](../config/safety.md#failure-detector).
+The _Flight termination_ [failsafe action](../config/safety.md#failsafe-actions) may be triggered by a [safety check](../config/safety.md) (e.g. RC Loss, geofence violation, etc. on any vehicle type or in any flight mode), by the [Failure Detector](../config/safety.md#failure-detector), or manually by toggling a termination switch mapped to an RC channel (see [RC_MAP_TERM_SW](../advanced_config/parameter_reference.md#RC_MAP_TERM_SW)).
 
 ::: info
 Flight termination may also be triggered from a ground station or companion computer using the MAVLink [MAV_CMD_DO_FLIGHTTERMINATION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_FLIGHTTERMINATION) command.
