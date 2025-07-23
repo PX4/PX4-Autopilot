@@ -100,7 +100,7 @@ void MulticopterLandDetector::_update_topics()
 	if (_hover_thrust_estimate_sub.updated()) {
 		hover_thrust_estimate_s hte;
 
-		if (_hover_thrust_estimate_sub.update(&hte)) {
+		if (_hover_thrust_estimate_sub.copy(&hte)) {
 			if (hte.valid) {
 				_hover_thrust_estimate = hte.hover_thrust;
 				_hover_thrust_estimate_last_valid = hte.timestamp;
