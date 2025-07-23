@@ -265,18 +265,18 @@ void FlightTaskReturnDeadReckoning::_updateSubscriptions()
 bool FlightTaskReturnDeadReckoning::_initializeSmoothers()
 {
 	// Initialize the heading smoother
-	_heading_smoothing.setMaxHeadingRate(_param_mpc_yawrauto_max.get());
-	_heading_smoothing.setMaxHeadingAccel(_param_mpc_yawrauto_acc.get());
+	_heading_smoothing.setMaxHeadingRate(_heading_smoothing_scaling_factor * _param_mpc_yawrauto_max.get());
+	_heading_smoothing.setMaxHeadingAccel(_heading_smoothing_scaling_factor * _param_mpc_yawrauto_acc.get());
 	_heading_smoothing.reset(_sub_vehicle_local_position.get().heading, 0.0f);
 
 	// Initialize the position smoother
-	_slew_rate_velocity_z.setSlewRate(_param_mpc_acc_up_max.get());
+	_slew_rate_velocity_z.setSlewRate(_velocity_z_rate_scaling_factor * _param_mpc_acc_up_max.get());
 	_slew_rate_velocity_z.setForcedValue((float) _sub_vehicle_local_position.get().vz);
 
 	// Initialize the acceleration smoothers
-	_slew_rate_acceleration_x.setSlewRate(_param_mpc_jerk_auto.get());
+	_slew_rate_acceleration_x.setSlewRate(_jerk_scaling_factor * _param_mpc_jerk_auto.get());
 	_slew_rate_acceleration_x.setForcedValue(_sub_vehicle_local_position.get().ax);
-	_slew_rate_acceleration_y.setSlewRate(_param_mpc_jerk_auto.get());
+	_slew_rate_acceleration_y.setSlewRate(_jerk_scaling_factor * _param_mpc_jerk_auto.get());
 	_slew_rate_acceleration_y.setForcedValue(_sub_vehicle_local_position.get().ay);
 
 	return true;

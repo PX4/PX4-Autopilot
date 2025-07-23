@@ -136,11 +136,13 @@ private:
 	float _initial_distance_to_home{0.0f};			/**< Initial distance to home position */
 	float _distance_flown_estimate{0.0f};
 
+	float _heading_smoothing_scaling_factor{0.5f};		/**< Scaling factor applied to heading smoothing limits */
 	HeadingSmoothing _heading_smoothing;			/**< Smoother for heading */
+	float _jerk_scaling_factor{0.2f};			/**< Scaling factor applied to acceleration slew rate (jerk) */
 	SlewRate<float> _slew_rate_acceleration_x{0.0f};	/**< Slew rate for x-acceleration setpoint */
 	SlewRate<float> _slew_rate_acceleration_y{0.0f};	/**< Slew rate for y-acceleration setpoint */
+	float _velocity_z_rate_scaling_factor{0.4f};		/**< Scaling factor applied to the vertical velocity slew rate */
 	SlewRate<float> _slew_rate_velocity_z{0.0f};		/**< Slew rate for vertical velocity */
-
 
 	float _rtl_alt{0.0f};					/**< Return altitude */
 	float _rtl_acc{0.0f};					/**< Return acceleration */
