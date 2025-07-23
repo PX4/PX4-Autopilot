@@ -5,8 +5,8 @@ Powered by Blue UAS Framework autopilot, VOXL 2, the Starling weighs only 275g a
 
 ![Overview](../../assets/hardware/complete_vehicles/modalai_starling/starling_front_hero.jpg)
 
-The ModelAI PX4 Autonomy Developer Kit is a Starting-based development drone.
-It houses a [VOXL 2](../flight_controller/modalai_voxl_2.md) companion computer and PX4 flight controller, image sensors, GPS, and connectivity modem and is ready-to-fly out-of-the-box.
+The ModalAI PX4 Autonomy Developer Kit is a Starling-based development drone.
+It houses a [VOXL 2](../flight_controller/modalai_voxl_2.md), which is a powerful companion computer and PX4 flight controller in one small package, image sensors, GPS, and connectivity modem, and is ready-to-fly out-of-the-box.
 The Starling features ModalAI's [open SDK](https://docs.modalai.com/voxl-developer-bootcamp/) that has pre-configured autonomy models for computer vision assisted flight.
 This development drone is meant to help you get to market faster and accelerate your application development and prototyping.
 
