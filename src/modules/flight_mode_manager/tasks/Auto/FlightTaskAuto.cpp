@@ -277,7 +277,6 @@ void FlightTaskAuto::_prepareLandSetpoints()
 							 _param_mpc_land_radius.get(), sticks_ne);
 
 			if (PX4_ISFINITE(distance_to_circle)) {
-				PX4_INFO("  circle distance finite");
 				max_speed = math::trajectory::computeMaxSpeedFromDistance(_stick_acceleration_xy.getMaxJerk(),
 						_stick_acceleration_xy.getMaxAcceleration(), distance_to_circle, 0.f);
 
@@ -291,15 +290,15 @@ void FlightTaskAuto::_prepareLandSetpoints()
 			}
 		}
 
-		PX4_INFO(" max speed: %.2f", (double) max_speed);
-
 		if (position_valid) {
 			_stick_acceleration_xy.setVelocityConstraint(max_speed);
 			_stick_acceleration_xy.generateSetpoints(sticks_xy, _yaw, _land_heading, pos,
 					_velocity_setpoint_feedback.xy(), _deltatime);
 			_stick_acceleration_xy.getSetpoints(_land_position, _velocity_setpoint, _acceleration_setpoint);
 		} else {
-			// Position independent nudging from FlightTaskDescend
+			PX4_INFO("position invalid branch");
+			// Position independent nudging from FlightTaskDescend.
+			// This cannot take into account any max_speed limit
 			_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, _sticks.getYawExpo(), _yaw, _deltatime);
 			_acceleration_setpoint.xy() = _stick_tilt_xy.generateAccelerationSetpoints(_sticks.getPitchRoll(), _deltatime, _yaw,
 						_yaw_setpoint);
