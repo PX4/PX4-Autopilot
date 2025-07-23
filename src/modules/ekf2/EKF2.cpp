@@ -1009,7 +1009,8 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// optical flow
-	PublishAidSourceStatus(timestamp, _ekf.aid_src_optical_flow(), _status_optical_flow_pub_last, _estimator_aid_src_optical_flow_pub);
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_optical_flow(), _status_optical_flow_pub_last,
+			       _estimator_aid_src_optical_flow_pub);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 }
 
