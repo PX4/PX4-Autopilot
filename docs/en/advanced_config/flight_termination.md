@@ -1,11 +1,32 @@
 # Flight Termination Configuration
 
-The _Flight termination_ [failsafe action](../config/safety.md#failsafe-actions) may be triggered by a [safety check](../config/safety.md) (e.g. RC Loss, geofence violation, etc. on any vehicle type or in any flight mode), by the [Failure Detector](../config/safety.md#failure-detector), or manually by toggling a termination switch mapped to an RC channel (see [RC_MAP_TERM_SW](../advanced_config/parameter_reference.md#RC_MAP_TERM_SW)).
+The _Flight termination_ [failsafe action](../config/safety.md#failsafe-actions) irreversibly turns off controllers and sets PWM values to their parameter configured failsafe values.
 
 ::: info
-Flight termination may also be triggered from a ground station or companion computer using the MAVLink [MAV_CMD_DO_FLIGHTTERMINATION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_FLIGHTTERMINATION) command.
-This is sent, for example, when you call the [MAVSDK Action plugin](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_action.html#classmavsdk_1_1_action_1a47536c4a4bc8367ccd30a92eb09781c5) `terminate()` or `terminate_async()` methods.
+Flight termination differs from the [Kill action](../config/safety.html#kill-switch) in that it is permanent until after reboot.
 :::
+
+::: warning
+This is _not_ an independent _Flight Termination System_.
+If power is lost or if the autopilot crashes completely, the failsafe devices will not be triggered.
+:::
+
+## Overview
+
+### Termination Triggers
+
+Termination may be triggered by:
+
+- [Safety checks](../config/safety.md) for RC Loss, geofence violation, and so on (on any vehicle type or in any flight mode).
+- [Failure Detector](../config/safety.md#failure-detector) trigger
+- RC termination switch (mapped to an RC channel using [RC_MAP_TERM_SW](../advanced_config/parameter_reference.md#RC_MAP_TERM_SW)).
+- The MAVLink [MAV_CMD_DO_FLIGHTTERMINATION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_FLIGHTTERMINATION) MAVLink command from a GCS or companion computer (see [MAVLink Trigger](#mavlink-trigger) below).
+
+There is no way to recover from flight termination.
+After triggering you should unplug the battery as soon as possible.
+You will need to reboot/power cycle the vehicle before it can be used again.
+
+### Termination Actions
 
 When _Flight termination_ is activated, PX4 simultaneously turns off all controllers and sets all PWM outputs to their failsafe values.
 
@@ -17,10 +38,6 @@ Depending on what devices are connected, the PWM failsafe outputs can be used to
 - Trigger an inflatable device like an airbag.
 - Trigger an alarm.
 
-There is no way to recover from flight termination.
-After triggering you should unplug the battery as soon as possible.
-You will need to reboot/power cycle the vehicle before it can be used again.
-
 :::tip
 PX4 does not know what safety devices are attached - it just applies a predefined set of PWM values to its outputs.
 :::
@@ -28,11 +45,6 @@ PX4 does not know what safety devices are attached - it just applies a predefine
 :::tip
 Failsafe values are applied to all outputs on termination.
 There is no way to configure independent time-based (or other) triggering of the motors or specific safety devices.
-:::
-
-::: info
-This is _not_ an independent _Flight Termination System_.
-If power is lost or if the autopilot crashes completely, the failsafe devices will not be triggered.
 :::
 
 ## Hardware Configuration
@@ -73,6 +85,12 @@ Finally, set the `PWM_AUX_FAILn` and `PWM_MAIN_FAILn` PWM values for any motors.
 Flight termination via ATS only works if `drivers/pwm_input` is included in the firmware for your board.
 If not, you need to add it manually to your board configuration using [boardconfig](../hardware/porting_guide_config.md#px4-menuconfig-setup).
 :::
+
+## MAVLink Trigger
+
+The [MAV_CMD_DO_FLIGHTTERMINATION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_FLIGHTTERMINATION) command can be used to trigger Flight termination from a ground station or companion computer.
+
+This is sent, for example, when you call the [MAVSDK Action plugin](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_action.html#classmavsdk_1_1_action_1a47536c4a4bc8367ccd30a92eb09781c5) `terminate()` or `terminate_async()` methods.
 
 ## Logic Diagram
 
