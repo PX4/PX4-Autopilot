@@ -286,55 +286,6 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 	}
 }
 
-// void
-// MavlinkParametersManager::send()
-// {
-// 	if (_first_send) {
-// 		// parameters QGC can't tolerate not finding (2020-11-11)
-// 		param_find("BAT_CRIT_THR");
-// 		param_find("BAT_EMERGEN_THR");
-// 		param_find("BAT_LOW_THR");
-// 		param_find("CAL_ACC0_ID");
-// 		param_find("CAL_GYRO0_ID");
-// 		param_find("CAL_MAG0_ID");
-// 		param_find("CAL_MAG0_ROT");
-// 		param_find("CAL_MAG1_ID");
-// 		param_find("CAL_MAG1_ROT");
-// 		param_find("CAL_MAG2_ID");
-// 		param_find("CAL_MAG2_ROT");
-// 		param_find("CAL_MAG3_ID");
-// 		param_find("CAL_MAG3_ROT");
-// 		param_find("SENS_BOARD_ROT");
-// 		param_find("SENS_BOARD_X_OFF");
-// 		param_find("SENS_BOARD_Y_OFF");
-// 		param_find("SENS_BOARD_Z_OFF");
-// 		param_find("SENS_DPRES_OFF");
-// 		param_find("TRIG_MODE");
-// 		param_find("UAVCAN_ENABLE");
-
-// 		// parameter only used in startup script but should show on ground station
-// 		param_find("SYS_PARAM_VER");
-
-// 		_first_send = false;
-// 	}
-
-// 	int max_num_to_send;
-
-// 	if (_mavlink.get_protocol() == Protocol::SERIAL && !_mavlink.is_usb_uart()) {
-// 		max_num_to_send = 3;
-
-// 	} else {
-// 		// speed up parameter loading via UDP or USB: try to send 20 at once
-// 		max_num_to_send = 20;
-// 	}
-
-// 	int i = 0;
-
-// 	// Send while burst is not exceeded, we still have buffer space and still something to send
-// 	while ((i++ < max_num_to_send) && (_mavlink.get_free_tx_buf() >= get_size()) && !_mavlink.radio_status_critical()
-// 	       && send_params()) {}
-// }
-
 void
 MavlinkParametersManager::send()
 {

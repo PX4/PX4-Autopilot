@@ -2139,10 +2139,6 @@ Mavlink::task_main(int argc, char *argv[])
 			_use_software_mav_throttling = true;
 			break;
 
-		case 'w':
-			_wait_to_transmit = true;
-			break;
-
 		case 'x':
 			_ftp_on = true;
 			break;
@@ -2176,7 +2172,6 @@ Mavlink::task_main(int argc, char *argv[])
 		/* USB has no baudrate, but use a magic number for 'fast' */
 		_baudrate = 2000000;
 		_ftp_on = true;
-		_is_usb_uart = true;
 
 		// Always forward messages to/from the USB instance.
 		_forwarding_on = true;
