@@ -1,10 +1,21 @@
 #!/bin/sh
 #
-# @name 3DoF Spacecraft Model
+# @name KTH-ATMOS
 #
-# @type 2D Freeflyer with 8 thrusters - Planar motion
+# @type Free-Flyer
+# @class Spacecraft
 #
-# @maintainer Pedro Roque <padr@kth.se>
+# @output Motor1 back left thruster, +x thrust
+# @output Motor2 front left thruster, -x thrust
+# @output Motor3 back right thruster, +x thrust
+# @output Motor4 front right thruster, -x thrust
+# @output Motor5 front left thruster, +y thrust
+# @output Motor6 front right thruster, -y thrust
+# @output Motor7 back left thruster, +y thrust
+# @output Motor8 back right thruster, -y thrust
+#
+# @maintainer DISCOWER
+# @url https://atmos.discower.io
 #
 
 . ${R}etc/init.d/rc.sc_defaults
