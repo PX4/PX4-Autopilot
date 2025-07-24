@@ -1819,21 +1819,28 @@ int MicroStrain::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-MicroStrain by HBK Inertial Sensor Driver.
-Currently supports the CV7-AR, CV7-AHRS, CV7-INS and the CV7-GNSS/INS
 
-Communicates over serial port using submodule MIP_SDK.
+MicroStrain by HBK Inertial Sensor Driver.
+Currently supports the following sensors:
+
+-[CV7-AR](https://www.hbkworld.com/en/products/transducers/inertial-sensors/vertical-reference-units--vru-/3dm-cv7-ar)
+-[CV7-AHRS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/attitude-and-heading-reference-systems--ahrs-/3dm-cv7-ahrs)
+-[CV7-INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/inertial-navigation-systems--ins-/3dm-cv7-ins)
+-[CV7-GNSS/INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/inertial-navigation-systems--ins-/3dm-cv7-gnss-ins)
+
+This driver is not included in the firmware by default.
+Include the module in firmware by setting the
+[kconfig](../hardware/porting_guide_config.md#px4-board-configuration-kconfig) variables:
+`CONFIG_DRIVERS_INS_MICROSTRAIN` or `CONFIG_COMMON_INS`.
 
 ### Examples
+
 Attempt to start driver on a specified serial device.
 The driver will choose /dev/ttyS4 by default if no port is specified
 $ microstrain start -d /dev/ttyS1
 Stop driver
 $ microstrain stop
-
 )DESCR_STR");
-
-
 
 	PRINT_MODULE_USAGE_NAME("MicroStrain", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("ins");
