@@ -90,9 +90,7 @@ You can also disable GNSS, baro and range finder fusion using [EKF2_GPS_CTRL](..
 Reboot the flight controller in order for parameter changes to take effect.
 :::
 
-<a id="tuning-EKF2_EV_DELAY"></a>
-
-#### EKF2_EV_DELAY 튜닝
+#### Tuning EKF2_EV_DELAY {#tuning-EKF2_EV_DELAY}
 
 [EKF2_EV_DELAY](../advanced_config/parameter_reference.md#EKF2_EV_DELAY) is the _Vision Position Estimator delay relative to IMU measurements_.
 
@@ -171,9 +169,7 @@ VIO와 MoCap 시스템은 포즈 데이터를 얻는 방법이 다르며, 자체
 The setup for specific systems is covered [below](#setup_specific_systems).
 다른 시스템의 경우에는 공급업체의 설정 문서를 참고하십시오.
 
-<a id="relaying_pose_data_to_px4"></a>
-
-### 포즈 데이터를 PX4로 중계
+### Relaying Pose Data to PX4 {#relaying_pose_data_to_px4}
 
 MAVROS에는 다음 파이프라인을 사용하여 VIO 또는 MoCap 시스템에서 시각적 추정을 릴레이하는 플러그인이 있습니다.
 
@@ -253,13 +249,11 @@ When using the MAVROS _odom_ plugin, it is important that no other node is publi
 This might break the _tf_ tree.
 :::
 
-<a id="setup_specific_systems"></a>
-
-## 특정 시스템 설정
+## Specific System Setups {#setup_specific_systems}
 
 ### OptiTrack MoCap
 
-The following steps explain how to feed position estimates from an [OptiTrack](https://optitrack.com/motion-capture-robotics/) system to PX4.
+The following steps explain how to feed position estimates from an [OptiTrack](https://optitrack.com/applications/robotics/) system to PX4.
 MoCap 시스템이 보정된 것으로 가정합니다.
 See [this video](https://www.youtube.com/watch?v=cNZaFEghTBU) for a tutorial on the calibration process.
 

@@ -137,7 +137,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 			if (continuing_conditions) {
 				ekf.fuseHorizontalPosition(aid_src);
 
-				if (isTimedOut(aid_src.time_last_fuse, imu_delayed.time_us, ekf._params.no_aid_timeout_max)
+				if (isTimedOut(aid_src.time_last_fuse, imu_delayed.time_us, ekf._params.reset_timeout_max)
 				    || (_reset_counters.lat_lon != sample.lat_lon_reset_counter)) {
 					if (ekf.isOnlyActiveSourceOfHorizontalPositionAiding(ekf.control_status_flags().aux_gpos)) {
 

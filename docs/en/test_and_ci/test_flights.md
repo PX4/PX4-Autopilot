@@ -27,3 +27,4 @@ These are run by the test team as part of release testing, and for more signific
 - [MC_03 - Auto Manual Mix](../test_cards/mc_03_auto_manual_mix.md)
 - [MC_04 - Failsafe Testing](../test_cards/mc_04_failsafe_testing.md)
 - [MC_05 - Indoor Flight (Manual Modes)](../test_cards/mc_05_indoor_flight_manual_modes.md)
+- [MC_06 - Indoor Flight (Optical Flow)](../test_cards/mc_06_optical_flow.md)

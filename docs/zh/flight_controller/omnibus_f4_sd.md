@@ -211,7 +211,7 @@ Connect the Nano RX and Omnibus pins as shown:
 | RX            | Ch1     |
 
 Next update the TX/RX modules to use the CRSF protocol and set up telemetry.
-Instructions for this are provided in the [TBS Crossfire Manual](https://www.team-blacksheep.com/tbs-crossfire-manual.pdf) (search for 'Setting up radio for CRSF').
+Instructions for this are provided in the [TBS Crossfire Manual](https://www.team-blacksheep.com/media/files/tbs-crossfire-manual.pdf) (search for 'Setting up radio for CRSF').
 
 #### PX4 CRSF Configuration
 
@@ -263,4 +263,4 @@ In addition to the [basic configuration](../config/index.md), the following para
 
 ## Further Info
 
-[This page](https://blog.dronetrest.com/omnibus-f4-flight-controller-guide/) provides a good overview with pinouts and setup instructions.
+[This page](https://blog.unmanned.tech/omnibus-f4-flight-controller-guide/) provides a good overview with pinouts and setup instructions.

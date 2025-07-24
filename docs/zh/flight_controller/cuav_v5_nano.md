@@ -104,7 +104,7 @@ The board does not have an I/O debug interface.
 
 ![Debug port (DSU7)](../../assets/flight_controller/cuav_v5_nano/debug_port_dsu7.jpg)
 
-The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/product-detail/en/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/455-1582-1-ND/807850) connector and has the following pinout:
+The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/en/products/detail/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/807850) connector and has the following pinout:
 
 | 针脚   | 信号                                | 电压                    |
 | ---- | --------------------------------- | --------------------- |

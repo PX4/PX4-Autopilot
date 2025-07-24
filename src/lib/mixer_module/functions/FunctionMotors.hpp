@@ -68,7 +68,11 @@ public:
 
 	float value(OutputFunction func) override { return _data.control[(int)func - (int)OutputFunction::Motor1]; }
 
+#if defined(CONFIG_DRIVERS_UAVCANNODE)
+	bool allowPrearmControl() const override { return true; }
+#else
 	bool allowPrearmControl() const override { return false; }
+#endif
 
 	uORB::SubscriptionCallbackWorkItem *subscriptionCallback() override { return &_topic; }
 

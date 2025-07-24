@@ -574,7 +574,9 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 
 			if (!_vehicle_control_mode.flag_control_climb_rate_enabled &&
 			    !_failsafe_flags.manual_control_signal_lost && !_is_throttle_low
-			    && !is_ground_vehicle(_vehicle_status)) {
+			    && ((_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
+				|| (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING))
+			   ) {
 
 				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: high throttle\t");
 				events::send(events::ID("commander_arm_denied_throttle_high"), {events::Log::Critical, events::LogInternal::Info},
@@ -1698,6 +1700,11 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 
 		break;
 
+	case action_request_s::ACTION_TERMINATE:
+		_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_TERMINATION);
+
+		break;
+
 	case action_request_s::ACTION_SWITCH_MODE:
 
 		if (!_user_mode_intention.change(action_request.mode, ModeChangeSource::User, false)) {
@@ -1902,13 +1909,9 @@ void Commander::run()
 		_actuator_armed.force_failsafe = (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION);
 		// _actuator_armed.in_esc_calibration_mode // VEHICLE_CMD_PREFLIGHT_CALIBRATION
 
-		// if force_failsafe or manual_lockdown activated send parachute command
-		if ((!actuator_armed_prev.force_failsafe && _actuator_armed.force_failsafe)
-		    || (!actuator_armed_prev.manual_lockdown && _actuator_armed.manual_lockdown)
-		   ) {
-			if (isArmed()) {
-				send_parachute_command();
-			}
+		// if force_failsafe activated send parachute command
+		if (!actuator_armed_prev.force_failsafe && _actuator_armed.force_failsafe && isArmed()) {
+			send_parachute_command();
 		}
 
 		// publish states (armed, control_mode, vehicle_status, failure_detector_status) at 2 Hz or immediately when changed
@@ -2015,7 +2018,9 @@ void Commander::checkForMissionUpdate()
 					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 
 				} else {
-					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+					// Transition to loiter when the takeoff is completed (force into the Loiter, if mode is not executable then failsafe).
+					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false,
+								    true);
 				}
 
 			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
@@ -2345,6 +2350,7 @@ bool Commander::handleModeIntentionAndFailsafe()
 	}
 
 	// Handle failsafe action
+	_mode_management.setFailsafeState(_failsafe.selectedAction() > FailsafeBase::Action::Warn);
 	_vehicle_status.nav_state_user_intention = _mode_management.getNavStateReplacementIfValid(_user_mode_intention.get(),
 			false);
 	_vehicle_status.nav_state = _mode_management.getNavStateReplacementIfValid(FailsafeBase::modeFromAction(
@@ -2412,7 +2418,7 @@ void Commander::modeManagementUpdate()
 {
 	ModeManagement::UpdateRequest mode_management_update{};
 	_mode_management.update(isArmed(), _vehicle_status.nav_state_user_intention,
-				_failsafe.selectedAction() > FailsafeBase::Action::Warn, mode_management_update);
+				mode_management_update);
 
 	if (!isArmed() && mode_management_update.change_user_intended_nav_state) {
 		_user_mode_intention.change(mode_management_update.user_intended_nav_state);

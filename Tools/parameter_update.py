@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 ############################################################################
@@ -55,7 +55,7 @@ Usage:
     The script needs a list of files as an input. To quickly find and feed all the file
     that it needs to inspect, one can simply pipe the result of a ripgrep -l command as follows:
 
-        rg -l '\.[gs]et\(|px4::params::' -tcpp | python parameter_update.py
+        rg -l '\.[gs]et\(|px4::params::' -tcpp | python3 parameter_update.py
 """
 
 import re

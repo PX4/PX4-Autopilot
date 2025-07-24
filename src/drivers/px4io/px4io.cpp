@@ -153,7 +153,7 @@ public:
 
 	uint16_t		system_status() const { return _status; }
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 			   unsigned num_control_groups_updated) override;
 
 private:
@@ -360,7 +360,7 @@ PX4IO::~PX4IO()
 	perf_free(_interface_write_perf);
 }
 
-bool PX4IO::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool PX4IO::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			  unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	for (size_t i = 0; i < num_outputs; i++) {
@@ -1030,7 +1030,10 @@ int PX4IO::io_publish_raw_rc()
 	const bool rc_updated = (rc_valid_update_count != _rc_valid_update_count);
 	_rc_valid_update_count = rc_valid_update_count;
 
-	if (!rc_updated) {
+	// only publish if the IO status indicates that the RC is OK
+	const uint16_t status_rc_ok = _status & PX4IO_P_STATUS_FLAGS_RC_OK;
+
+	if (!rc_updated | !status_rc_ok) {
 		return 0;
 	}
 

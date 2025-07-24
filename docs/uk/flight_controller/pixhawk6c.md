@@ -194,7 +194,7 @@ The pinouts and connector comply with the [Pixhawk Debug Full](../debug/swd_debu
 
 ## Периферійні пристрої
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 

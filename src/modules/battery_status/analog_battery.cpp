@@ -127,13 +127,17 @@ bool AnalogBattery::is_valid()
 
 int AnalogBattery::get_voltage_channel()
 {
-	if (_analog_params.v_channel >= 0) {
+	if (_analog_params.v_channel == V_CHANNEL_DISABLED) {
+		return -1;
+
+	} else if (_analog_params.v_channel >= 0) {
 		return _analog_params.v_channel;
 
 	} else {
 		return DEFAULT_V_CHANNEL[_index - 1];
 	}
 }
+
 
 int AnalogBattery::get_current_channel()
 {
