@@ -34143,6 +34143,31 @@ Configure on which serial port to run VectorNav (VN-100, VN-200, VN-300).
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 0       |
 
+### SENS_ILABS_CFG (`INT32`) {#SENS_ILABS_CFG}
+
+Serial Configuration for Inertial Labs sensors.
+
+Configure on which serial port to run Inertial Labs sensor.
+
+**Values:**
+
+- `0`: Disabled
+- `6`: UART 6
+- `101`: TELEM 1
+- `102`: TELEM 2
+- `103`: TELEM 3
+- `104`: TELEM/SERIAL 4
+- `201`: GPS 1
+- `202`: GPS 2
+- `203`: GPS 3
+- `300`: Radio Controller
+- `301`: Wifi Port
+- `401`: EXT2
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
+
 ### SF45_ORIENT_CFG (`INT32`) {#SF45_ORIENT_CFG}
 
 Orientation upright or facing downward.
@@ -34218,6 +34243,21 @@ Dynamically simulate failure of airspeed sensor instance.
 VectorNav driver mode.
 
 INS or sensors
+
+**Values:**
+
+- `0`: Sensors Only (default)
+- `1`: INS
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### ILABS_MODE (`INT32`) {#ILABS_MODE}
+
+Inertial Labs driver mode.
+
+INS or raw sensors data
 
 **Values:**
 
