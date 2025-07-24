@@ -447,7 +447,7 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 
 		px4_clock_gettime(CLOCK_REALTIME, &rtc_system_time);
 		timespec rtc_gps_time = *(timespec *)data1;
-		int drift_time = abs(rtc_system_time.tv_sec - rtc_gps_time.tv_sec);
+		int drift_time = abs(static_cast<long>(rtc_system_time.tv_sec - rtc_gps_time.tv_sec));
 
 		if (drift_time >= SET_CLOCK_DRIFT_TIME_S) {
 			// as of 2021 setting the time on Nuttx temporarily pauses interrupts
