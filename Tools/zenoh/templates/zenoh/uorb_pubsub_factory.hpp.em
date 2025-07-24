@@ -105,7 +105,7 @@ const orb_metadata* @(topic_name)_topic_meta[@(len(topic_names))] = {
 @[end for]
 
 typedef struct {
-    const char *data_type_name;
+	const char *data_type_name;
 	const uint32_t *ops;
 	const uint8_t *hash;
 	const orb_metadata** orb_topic;

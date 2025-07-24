@@ -68,5 +68,5 @@ protected:
 	int8_t publish(const uint8_t *, int size);
 
 	z_owned_publisher_t _pub;
-	RmwAttachment attachment;
+	RmwAttachment _attachment;
 };

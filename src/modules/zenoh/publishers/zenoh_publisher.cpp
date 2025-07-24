@@ -44,8 +44,8 @@
 
 Zenoh_Publisher::Zenoh_Publisher()
 {
-	attachment.sequence_number = 0;
-	attachment.rmw_gid_size = RMW_GID_STORAGE_SIZE;
+	_attachment.sequence_number = 0;
+	_attachment.rmw_gid_size = RMW_GID_STORAGE_SIZE;
 }
 
 Zenoh_Publisher::~Zenoh_Publisher()
@@ -73,7 +73,7 @@ int Zenoh_Publisher::declare_publisher(z_owned_session_t s, const char *keyexpr,
 		return -1;
 	}
 
-	memcpy(attachment.rmw_gid, gid, RMW_GID_STORAGE_SIZE);
+	memcpy(_attachment.rmw_gid, gid, RMW_GID_STORAGE_SIZE);
 
 	return 0;
 }
@@ -83,11 +83,11 @@ int8_t Zenoh_Publisher::publish(const uint8_t *buf, int size)
 	z_publisher_put_options_t options;
 	z_publisher_put_options_default(&options);
 
-	attachment.sequence_number++;
-	attachment.time = hrt_absolute_time();
+	_attachment.sequence_number++;
+	_attachment.time = hrt_absolute_time();
 
 	z_owned_bytes_t z_attachment;
-	z_bytes_from_static_buf(&z_attachment, (const uint8_t *)&attachment, RMW_ATTACHEMENT_SIZE);
+	z_bytes_from_static_buf(&z_attachment, (const uint8_t *)&_attachment, RMW_ATTACHEMENT_SIZE);
 
 	options.attachment = z_move(z_attachment);
 
