@@ -1383,6 +1383,8 @@ $ gps reset warm
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset GPS device");
 	PRINT_MODULE_USAGE_ARG("cold|warm|hot", "Specify reset type", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("wipe", "Wipe ublox configuration");
+
 
 	return 0;
 }
