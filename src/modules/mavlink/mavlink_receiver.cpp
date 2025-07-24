@@ -3235,7 +3235,7 @@ MavlinkReceiver::run()
 							break;
 						}
 
-						_mavlink.set_has_received_messages(true); // Received first message, unlock wait to transmit '-w' command-line flag
+						_mavlink.set_has_received_messages(true);
 						update_rx_stats(msg);
 
 						if (_message_statistics_enabled) {

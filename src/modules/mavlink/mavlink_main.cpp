@@ -2371,8 +2371,10 @@ Mavlink::task_main(int argc, char *argv[])
 
 	PX4_INFO("Total stream B/s --> %f", (double)total_bytes_per_s);
 
+	// MAIN LOOP
 	while (!should_exit()) {
-		/* main loop */
+
+		// Sleep shouldn't happen here
 		px4_usleep(_main_loop_delay);
 
 		if (!should_transmit()) {
@@ -2513,7 +2515,7 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		perf_end(_loop_perf);
-	}
+	} // END MAIN LOOP
 
 	_receiver.stop();
 
