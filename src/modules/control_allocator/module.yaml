@@ -1247,4 +1247,3 @@ mixer:
                             function: 'axisz'
                           - name: 'CA_ROTOR${i}_CT'
                             label: "Thrust\nCoefficient"
-
