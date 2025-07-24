@@ -1,6 +1,7 @@
 # Action request for the vehicle's main state
 #
 # Message represents actions requested by a PX4 internal component towards the main state machine such as a request to arm or switch mode.
+# It allows mapping triggers from various external interfaces like RC channels or MAVLink to cause an action.
 # Request are published by `manual_control` and subscribed by the `commander` and `vtol_att_control` modules.
 
 uint64 timestamp # [us] Time since system start
