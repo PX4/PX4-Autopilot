@@ -100,10 +100,10 @@ int ZENOH::generate_rmw_zenoh_node_liveliness_keyexpr(const z_id_t *id, char *ke
 			id->id[0], id->id[1],  id->id[2], id->id[3], id->id[4], id->id[5], id->id[6],
 			id->id[7], id->id[8],  id->id[9], id->id[10], id->id[11], id->id[12], id->id[13],
 			id->id[14], id->id[15],
-			px4_guid[0], px4_guid[1], px4_guid[2], px4_guid[3],
-			px4_guid[4], px4_guid[5], px4_guid[6], px4_guid[7],
-			px4_guid[8], px4_guid[9], px4_guid[10], px4_guid[11],
-			px4_guid[12], px4_guid[13], px4_guid[14], px4_guid[15]);
+			_px4_guid[0], _px4_guid[1], _px4_guid[2], _px4_guid[3],
+			_px4_guid[4], _px4_guid[5], _px4_guid[6], _px4_guid[7],
+			_px4_guid[8], _px4_guid[9], _px4_guid[10], _px4_guid[11],
+			_px4_guid[12], _px4_guid[13], _px4_guid[14], _px4_guid[15]);
 }
 
 int ZENOH::generate_rmw_zenoh_topic_keyexpr(const char *topic, const uint8_t *rihs_hash, char *type, char *keyexpr)
@@ -168,10 +168,10 @@ int ZENOH::generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const c
 			id->id[7], id->id[8],  id->id[9], id->id[10], id->id[11], id->id[12], id->id[13],
 			id->id[14], id->id[15],
 			entity_str,
-			px4_guid[0], px4_guid[1], px4_guid[2], px4_guid[3],
-			px4_guid[4], px4_guid[5], px4_guid[6], px4_guid[7],
-			px4_guid[8], px4_guid[9], px4_guid[10], px4_guid[11],
-			px4_guid[12], px4_guid[13], px4_guid[14], px4_guid[15],
+			_px4_guid[0], _px4_guid[1], _px4_guid[2], _px4_guid[3],
+			_px4_guid[4], _px4_guid[5], _px4_guid[6], _px4_guid[7],
+			_px4_guid[8], _px4_guid[9], _px4_guid[10], _px4_guid[11],
+			_px4_guid[12], _px4_guid[13], _px4_guid[14], _px4_guid[15],
 			topic_lv, type_camel_case,
 			rihs_hash[0], rihs_hash[1], rihs_hash[2], rihs_hash[3],
 			rihs_hash[4], rihs_hash[5], rihs_hash[6], rihs_hash[7],
@@ -220,12 +220,12 @@ int ZENOH::setupSession()
 			sleep(5); // Wait 5 seconds when doing a retry
 		}
 
-	} while ((ret = z_open(&s, z_move(config), NULL)) < 0);
+	} while ((ret = z_open(&_s, z_move(config), NULL)) < 0);
 
 	// Start read and lease tasks for zenoh-pico
-	if (zp_start_read_task(z_loan_mut(s), NULL) < 0 || zp_start_lease_task(z_loan_mut(s), NULL) < 0) {
+	if (zp_start_read_task(z_loan_mut(_s), NULL) < 0 || zp_start_lease_task(z_loan_mut(_s), NULL) < 0) {
 		PX4_ERR("Unable to start read and lease tasks");
-		z_drop(z_move(s));
+		z_drop(z_move(_s));
 		ret = -EINVAL;
 	}
 
@@ -239,29 +239,29 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 	int ret = 0;
 
 #ifndef BOARD_HAS_NO_UUID
-	board_get_px4_guid(px4_guid);
+	board_get_px4_guid(_px4_guid);
 #else
 	// TODO Fill ID with something reasonable
-	px4_guid[0] = 0xAA;
-	px4_guid[1] = 0xBB;
-	px4_guid[2] = 0xCC;
+	_px4_guid[0] = 0xAA;
+	_px4_guid[1] = 0xBB;
+	_px4_guid[2] = 0xCC;
 #endif
 
 #ifdef CONFIG_ZENOH_RMW_LIVELINESS
-	z_id_t self_id = z_info_zid(z_loan(s));
+	z_id_t self_id = z_info_zid(z_loan(_s));
 
 	if (generate_rmw_zenoh_node_liveliness_keyexpr(&self_id, keyexpr)) {
 		z_view_keyexpr_t ke;
 
 		if (z_view_keyexpr_from_str(&ke, keyexpr) < 0) {
-			printf("%s is not a valid key expression\n", keyexpr);
-			return 1;
+			PX4_ERR("%s is not a valid key expression\n", keyexpr);
+			return -1;
 		}
 
 		z_owned_liveliness_token_t token;
 
-		if (z_liveliness_declare_token(z_loan(s), &token, z_loan(ke), NULL) < 0) {
-			printf("Unable to create liveliness token!\n");
+		if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), NULL) < 0) {
+			PX4_ERR("Unable to create liveliness token!\n");
 			return -1;
 		}
 	}
@@ -270,7 +270,8 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 
 #ifdef Z_SUBSCRIBE
 	_zenoh_subscribers = (Zenoh_Subscriber **)malloc(sizeof(Zenoh_Subscriber *)*_sub_count);
-	{
+
+	if (_zenoh_subscribers) {
 		char topic[TOPIC_INFO_SIZE];
 		char type[TOPIC_INFO_SIZE];
 		int instance_no;
@@ -282,21 +283,21 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 
 				if (rihs_hash != NULL && _zenoh_subscribers[i] != 0 &&
 				    generate_rmw_zenoh_topic_keyexpr(topic, rihs_hash, type, keyexpr) > 0) {
-					_zenoh_subscribers[i]->declare_subscriber(s, keyexpr);
+					_zenoh_subscribers[i]->declare_subscriber(_s, keyexpr);
 #ifdef CONFIG_ZENOH_RMW_LIVELINESS
 
 					if (generate_rmw_zenoh_topic_liveliness_keyexpr(&self_id, topic, rihs_hash, type, keyexpr, "MS") > 0) {
 						z_view_keyexpr_t ke;
 
 						if (z_view_keyexpr_from_str(&ke, keyexpr) < 0) {
-							printf("%s is not a valid key expression\n", keyexpr);
+							PX4_ERR("%s is not a valid key expression\n", keyexpr);
 							return -1;
 						}
 
 						z_owned_liveliness_token_t token;
 
-						if (z_liveliness_declare_token(z_loan(s), &token, z_loan(ke), NULL) < 0) {
-							printf("Unable to create liveliness token!\n");
+						if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), NULL) < 0) {
+							PX4_ERR("Unable to create liveliness token!\n");
 							return -1;
 						}
 					}
@@ -308,7 +309,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 				}
 
 			} else {
-				_zenoh_publishers[i] = NULL;
+				_zenoh_subscribers[i] = NULL;
 				PX4_ERR("Error parsing publisher config at index %i", i);
 			}
 		}
@@ -325,7 +326,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 #ifdef Z_PUBLISH
 	_zenoh_publishers = (uORB_Zenoh_Publisher **)malloc(_pub_count * sizeof(uORB_Zenoh_Publisher *));
 
-	{
+	if (_zenoh_publishers) {
 		char topic[TOPIC_INFO_SIZE];
 		char type[TOPIC_INFO_SIZE];
 		int instance;
@@ -337,7 +338,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 
 				if (rihs_hash && _zenoh_publishers[i] != 0 &&
 				    generate_rmw_zenoh_topic_keyexpr(topic, rihs_hash, type, keyexpr) > 0) {
-					_zenoh_publishers[i]->declare_publisher(s, keyexpr, (uint8_t *)&px4_guid);
+					_zenoh_publishers[i]->declare_publisher(_s, keyexpr, (uint8_t *)&_px4_guid);
 					_zenoh_publishers[i]->setPollFD(&pfds[i]);
 #ifdef CONFIG_ZENOH_RMW_LIVELINESS
 
@@ -345,14 +346,14 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 						z_view_keyexpr_t ke;
 
 						if (z_view_keyexpr_from_str(&ke, keyexpr) < 0) {
-							printf("%s is not a valid key expression\n", keyexpr);
+							PX4_ERR("%s is not a valid key expression\n", keyexpr);
 							return -1;
 						}
 
 						z_owned_liveliness_token_t token;
 
-						if (z_liveliness_declare_token(z_loan(s), &token, z_loan(ke), NULL) < 0) {
-							printf("Unable to create liveliness token!\n");
+						if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), NULL) < 0) {
+							PX4_ERR("Unable to create liveliness token!\n");
 							return -1;
 						}
 					}
@@ -375,6 +376,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 
 		_config.closePubSubMapping();
 	}
+
 #endif
 
 	return ret;
@@ -407,8 +409,6 @@ void ZENOH::run()
 		}
 	}
 
-	hrt_abstime start = hrt_absolute_time();
-
 	while (!should_exit()) {
 		int pret = px4_poll(pfds, _pub_count, 100);
 
@@ -426,12 +426,6 @@ void ZENOH::run()
 					}
 				}
 			}
-		}
-
-		if (hrt_elapsed_time(&start) > 1 * 1000000) {
-			//PX4_INFO("Keep alive??\n");
-			//zp_send_keep_alive(z_loan(s), NULL);
-			start = hrt_absolute_time();
 		}
 	}
 
@@ -453,10 +447,10 @@ void ZENOH::run()
 	free(_zenoh_publishers);
 
 	// Stop read and lease tasks for zenoh-pico
-	zp_stop_read_task(z_session_loan_mut(&s));
-	zp_stop_lease_task(z_session_loan_mut(&s));
+	zp_stop_read_task(z_session_loan_mut(&_s));
+	zp_stop_lease_task(z_session_loan_mut(&_s));
 
-	z_drop(z_session_move(&s));
+	z_drop(z_session_move(&_s));
 	exit_and_cleanup();
 }
 

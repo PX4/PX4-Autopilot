@@ -482,7 +482,7 @@ if(CONFIG_LIB_CDRSTREAM)
 	file(CREATE_LINK ${idl_rihs01_out_path} ${idl_include_path}/px4_msgs SYMBOLIC)
 
 	# Generate IDL from .msg using rosidl_adapter
-	# Note this a submodule inside PX4 hence no ROS2 installation required
+	# Note this is a submodule inside PX4 hence no ROS2 installation required
 	add_custom_command(
 		OUTPUT ${uorb_cdr_hash}
 		COMMAND ${CMAKE_COMMAND}
@@ -557,7 +557,7 @@ if(CONFIG_MODULES_ZENOH)
 			-f ${msg_files}
 			-o ${PX4_BINARY_DIR}/src/modules/zenoh/
 			-e ${PX4_SOURCE_DIR}/Tools/zenoh/templates/zenoh
-			-rihs ${idl_rihs01_out_path}
+			--rihs ${idl_rihs01_out_path}
 		DEPENDS
 			${msg_files}
 			${uorb_cdr_hash}

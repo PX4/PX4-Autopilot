@@ -43,7 +43,10 @@
 
 #pragma once
 
+/* Derived from ROS2 rmw https://github.com/ros2/rmw/blob/e6addf2411b8ee8a2ac43d691533b8c05ae8f1b6/rmw/include/rmw/types.h#L44 */
 #define RMW_GID_STORAGE_SIZE 16u
+
+/* See rmw_zenoh design.md for more information https://github.com/ros2/rmw_zenoh/blob/rolling/docs/design.md#publishers */
 #define RMW_ATTACHEMENT_SIZE (8u + 8u + 1u + RMW_GID_STORAGE_SIZE)
 
 typedef struct __attribute__((__packed__)) RmwAttachment {

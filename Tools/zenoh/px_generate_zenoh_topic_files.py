@@ -144,6 +144,7 @@ def generate_topics_list_file_from_files(files, outputdir, template_filename, te
         for topic in full_base_names:
             with open(rihs_path + "/msg/" + topic + ".json") as f:
                 d = json.load(f)
+                assert d['type_hashes'][0]['hash_string'][:7] == 'RIHS01_'
 
                 rihs01_hash = d['type_hashes'][0]['hash_string'][7:]
 
@@ -152,13 +153,11 @@ def generate_topics_list_file_from_files(files, outputdir, template_filename, te
                 rihs01_hashes[topic] = c_code
 
     topics = []
-    for msg_filename in files:
-        topics.extend(get_topics(msg_filename))
-
     datatypes_with_topics = dict()
     for msg_filename in files:
         datatype = re.sub(r'(?<!^)(?=[A-Z])', '_', os.path.basename(msg_filename)).lower().replace(".msg","")
         datatypes_with_topics[datatype] = get_topics(msg_filename)
+        topics.extend(datatypes_with_topics[datatype])
 
     tl_globals = {"msgs": filenames, "topics": topics, "datatypes": datatypes, "full_base_names": full_base_names, "rihs01_hashes": rihs01_hashes, "datatypes_with_topics": datatypes_with_topics}
     tl_template_file = os.path.join(templatedir, template_filename)
@@ -180,7 +179,7 @@ if __name__ == "__main__":
     parser.add_argument('-p', dest='prefix', default='',
                         help='string added as prefix to the output file '
                         ' name when converting directories')
-    parser.add_argument('-rihs', dest='rihs', default='',
+    parser.add_argument('--rihs', dest='rihs', default='',
                         help='path where rihs01 json files located')
     args = parser.parse_args()
 

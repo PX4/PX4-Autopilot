@@ -101,9 +101,9 @@ private:
 	int _sub_count;
 	Zenoh_Subscriber **_zenoh_subscribers;
 
-	z_owned_session_t s;
+	z_owned_session_t _s;
 
-	px4_guid_t px4_guid;
+	px4_guid_t _px4_guid{};
 
 };
 
