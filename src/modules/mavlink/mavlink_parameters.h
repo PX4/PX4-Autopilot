@@ -61,6 +61,13 @@ using namespace time_literals;
 
 class Mavlink;
 
+enum class ParamResult {
+	Ok,
+	Unknown,
+	LoadFailed,
+	InsufficientMemory
+};
+
 class MavlinkParametersManager
 {
 public:
@@ -78,7 +85,7 @@ public:
 	void handle_message(const mavlink_message_t *msg);
 
 private:
-	int		_send_all_index{-1};
+	int		_next_param_index{-1};
 
 	/* do not allow top copying this class */
 	MavlinkParametersManager(MavlinkParametersManager &);
@@ -89,17 +96,12 @@ protected:
 	/// @return true if a parameter was sent
 	bool send_one();
 
-	/**
-	 * Handle any open param send transfer
-	 */
-	bool send_params();
-
-	/**
-	 * Send untransmitted params
-	 */
+	// Send parameters that have been updated
 	bool send_untransmitted();
 
-	int send_param(param_t param, int component_id = -1);
+	ParamResult send_param(param_t param, int component_id = -1);
+	ParamResult send_param_hash();
+
 
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 	/**
@@ -161,6 +163,6 @@ protected:
 
 	Mavlink &_mavlink;
 
-	bool _first_send{false};
+	bool _first_send{true};
 	hrt_abstime _last_param_sent_timestamp{0}; // time at which the last parameter was sent
 };

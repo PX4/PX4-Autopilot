@@ -2139,10 +2139,6 @@ Mavlink::task_main(int argc, char *argv[])
 			_use_software_mav_throttling = true;
 			break;
 
-		case 'w':
-			_wait_to_transmit = true;
-			break;
-
 		case 'x':
 			_ftp_on = true;
 			break;
@@ -2175,7 +2171,6 @@ Mavlink::task_main(int argc, char *argv[])
 		/* USB has no baudrate, but use a magic number for 'fast' */
 		_baudrate = 2000000;
 		_ftp_on = true;
-		_is_usb_uart = true;
 
 		// Always forward messages to/from the USB instance.
 		_forwarding_on = true;
@@ -2344,8 +2339,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_task_running.store(true);
 
+	// MAIN LOOP
 	while (!should_exit()) {
-		/* main loop */
+
 		px4_usleep(_main_loop_delay);
 
 		if (!should_transmit()) {
@@ -2382,10 +2378,11 @@ Mavlink::task_main(int argc, char *argv[])
 
 		check_requested_subscriptions();
 
-		/* update streams */
+		// TODO: rate limit based on available bandwidth
 		for (const auto &stream : _streams) {
 			stream->update(t);
 
+			// TODO: the below logic feels out of place
 			if (!_first_heartbeat_sent) {
 				if (_mode == MAVLINK_MODE_IRIDIUM) {
 					if (stream->get_id() == MAVLINK_MSG_ID_HIGH_LATENCY2) {
@@ -2484,7 +2481,7 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		perf_end(_loop_perf);
-	}
+	} // END MAIN LOOP
 
 	_receiver.stop();
 
