@@ -568,14 +568,31 @@ void MulticopterPositionControl::Run()
 
 			_control.setState(states);
 
-			// Run position control
-			if (!_control.update(dt)) {
-				// Failsafe
-				_vehicle_constraints = {0, NAN, NAN, false, {}}; // reset constraints
+			const hrt_abstime now = hrt_absolute_time();
 
-				_control.setInputSetpoint(generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, true));
-				_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
-				_control.update(dt);
+			// Run position control
+			if (_control.update(dt)) {
+
+				// Valid control update - store for fallback
+				_last_valid_setpoint_time = now;
+				_last_valid_setpoint = _setpoint;
+
+			} else {
+				const float invalid_setpoint_timeout_ms = 100;
+				const bool transient_invalid = (now - _last_valid_setpoint_time) < (invalid_setpoint_timeout_ms * 1e3f);
+
+				if (transient_invalid) {
+					// Use last valid setpoint for the timeout period
+					_control.setInputSetpoint(_last_valid_setpoint);
+
+				} else {
+					// Failsafe
+					_vehicle_constraints = {0, NAN, NAN, false, {}}; // reset constraints
+
+					_control.setInputSetpoint(generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, true));
+					_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
+					_control.update(dt);
+				}
 			}
 
 			// Publish internal position control setpoints
