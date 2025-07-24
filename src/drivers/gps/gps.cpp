@@ -169,6 +169,8 @@ public:
 	 */
 	void reset_if_scheduled();
 
+	void request_wipe_config();
+
 private:
 #ifdef __PX4_LINUX
 	int				_spi_fd {-1};					///< SPI interface to GPS
@@ -212,6 +214,7 @@ private:
 	gps_dump_s			     *_dump_to_device{nullptr};
 	gps_dump_s			     *_dump_from_device{nullptr};
 	gps_dump_comm_mode_t                 _dump_communication_mode{gps_dump_comm_mode_t::Disabled};
+	bool _cfg_wipe_requested{false}; /// Wipe configuration settings, set from the command line
 
 	static px4::atomic_bool _is_gps_main_advertised; ///< for the second gps we want to make sure that it gets instance 1
 	/// and thus we wait until the first one publishes at least one message.
@@ -286,6 +289,8 @@ private:
 	void dumpGpsData(uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device);
 
 	void initializeCommunicationDump();
+
+	void checkWipeConfig(GPSHelper::GPSConfig *config);
 
 	static constexpr int SET_CLOCK_DRIFT_TIME_S{5};			///< RTC drift time when time synchronization is needed (in seconds)
 };
@@ -909,14 +914,7 @@ GPS::run()
 
 		gpsConfig.interface_protocols = static_cast<GPSHelper::InterfaceProtocolsMask>(gps_ubx_cfg_intf);
 
-		int32_t gps_cfg_wipe = 0;
-		handle = param_find("GPS_CFG_WIPE");
-
-		if (handle != PARAM_INVALID) {
-			param_get(handle, &gps_cfg_wipe);
-		}
-
-		gpsConfig.cfg_wipe = static_cast<bool>(gps_cfg_wipe);
+		checkWipeConfig(&gpsConfig);
 
 		if (_helper && _helper->configure(_baudrate, gpsConfig) == 0) {
 
@@ -1273,6 +1271,31 @@ GPS::publishRelativePosition(sensor_gnss_relative_s &gnss_relative)
 	_sensor_gnss_relative_pub.publish(gnss_relative);
 }
 
+void
+GPS::checkWipeConfig(GPSHelper::GPSConfig *config)
+{
+	int32_t gps_cfg_wipe = 0;
+	param_t handle = param_find("GPS_CFG_WIPE");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &gps_cfg_wipe);
+	}
+
+	config->cfg_wipe = static_cast<bool>(gps_cfg_wipe);
+
+	// Command line request
+	if (_cfg_wipe_requested) {
+		_cfg_wipe_requested = false;
+		config->cfg_wipe = true;
+	}
+}
+
+void
+GPS::request_wipe_config()
+{
+	_cfg_wipe_requested = true;
+}
+
 int
 GPS::custom_command(int argc, char *argv[])
 {
@@ -1284,9 +1307,8 @@ GPS::custom_command(int argc, char *argv[])
 
 	GPS *_instance = get_instance();
 
-	bool res = false;
-
 	if (argc == 2 && !strcmp(argv[0], "reset")) {
+		bool res = false;
 
 		if (!strcmp(argv[1], "hot")) {
 			res = true;
@@ -1300,14 +1322,22 @@ GPS::custom_command(int argc, char *argv[])
 			res = true;
 			_instance->schedule_reset(GPSRestartType::Warm);
 		}
+
+		if (res) {
+			PX4_INFO("Resetting GPS - %s", argv[1]);
+		} else {
+			print_usage("unknown command");
+		}
+
+	} else if (argc == 1 && !strcmp(argv[0], "wipe")) {
+		_instance->request_wipe_config();
+		PX4_INFO("Wiping config");
+
+	} else {
+		print_usage("unknown command");
 	}
 
-	if (res) {
-		PX4_INFO("Resetting GPS - %s", argv[1]);
-		return 0;
-	}
-
-	return (res) ? 0 : print_usage("unknown command");
+	return PX4_OK;
 }
 
 int GPS::print_usage(const char *reason)
