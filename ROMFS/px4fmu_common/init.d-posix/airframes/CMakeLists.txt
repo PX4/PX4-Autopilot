@@ -115,7 +115,9 @@ px4_add_romfs_files(
 
 	50000_gz_rover_differential
 
-	71002_gz_spacecraft_2d
+	60002_gz_uuv_bluerov2_heavy
+
+	70000_gz_atmos
 
 	# [22000, 22999] Reserve for custom models
 )
