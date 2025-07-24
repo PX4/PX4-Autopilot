@@ -273,10 +273,13 @@ void FlightTaskAuto::_prepareLandSetpoints()
 
 		if (position_valid && land_radius_enabled) {
 
-			// = NaN if we are outside of the circle and nudging does not point back towards it
+			// = NaN if we are outside of the allowed circle and nudging does not point back towards it
 			const float distance_to_circle = math::trajectory::getMaxDistanceToCircle(_position.xy(), _initial_land_position.xy(),
-							_param_mpc_land_radius.get(), sticks_ne);
+							 _param_mpc_land_radius.get(), sticks_ne);
+
 			if (PX4_ISFINITE(distance_to_circle)) {
+
+				// We are inside of the allowed circle. Limit speed so we can always brake in time to not leave the circle.
 				max_speed = math::trajectory::computeMaxSpeedFromDistance(_stick_acceleration_xy.getMaxJerk(),
 						_stick_acceleration_xy.getMaxAcceleration(), distance_to_circle, 0.f);
 
