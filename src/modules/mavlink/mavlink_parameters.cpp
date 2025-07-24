@@ -66,14 +66,16 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			mavlink_param_request_list_t req_list;
 			mavlink_msg_param_request_list_decode(msg, &req_list);
 
+			PX4_INFO("PARAM_REQUEST_LIST");
+
 			if (req_list.target_system == mavlink_system.sysid &&
 			    (req_list.target_component == mavlink_system.compid || req_list.target_component == MAV_COMP_ID_ALL)) {
-				if (_send_all_index < 0) {
-					_send_all_index = PARAM_HASH;
+				if (_next_param_index < 0) {
+					_next_param_index = PARAM_HASH;
 
 				} else {
 					/* a restart should skip the hash check on the ground */
-					_send_all_index = 0;
+					_next_param_index = 0;
 				}
 			}
 
@@ -112,7 +114,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				if (strncmp(name, "_HASH_CHECK", sizeof(name)) == 0) {
 
 					if (_mavlink.hash_check_enabled()) {
-						_send_all_index = -1;
+						_next_param_index = -1;
 					}
 
 					/* No other action taken, return */
@@ -284,10 +286,59 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 	}
 }
 
+// void
+// MavlinkParametersManager::send()
+// {
+// 	if (_first_send) {
+// 		// parameters QGC can't tolerate not finding (2020-11-11)
+// 		param_find("BAT_CRIT_THR");
+// 		param_find("BAT_EMERGEN_THR");
+// 		param_find("BAT_LOW_THR");
+// 		param_find("CAL_ACC0_ID");
+// 		param_find("CAL_GYRO0_ID");
+// 		param_find("CAL_MAG0_ID");
+// 		param_find("CAL_MAG0_ROT");
+// 		param_find("CAL_MAG1_ID");
+// 		param_find("CAL_MAG1_ROT");
+// 		param_find("CAL_MAG2_ID");
+// 		param_find("CAL_MAG2_ROT");
+// 		param_find("CAL_MAG3_ID");
+// 		param_find("CAL_MAG3_ROT");
+// 		param_find("SENS_BOARD_ROT");
+// 		param_find("SENS_BOARD_X_OFF");
+// 		param_find("SENS_BOARD_Y_OFF");
+// 		param_find("SENS_BOARD_Z_OFF");
+// 		param_find("SENS_DPRES_OFF");
+// 		param_find("TRIG_MODE");
+// 		param_find("UAVCAN_ENABLE");
+
+// 		// parameter only used in startup script but should show on ground station
+// 		param_find("SYS_PARAM_VER");
+
+// 		_first_send = false;
+// 	}
+
+// 	int max_num_to_send;
+
+// 	if (_mavlink.get_protocol() == Protocol::SERIAL && !_mavlink.is_usb_uart()) {
+// 		max_num_to_send = 3;
+
+// 	} else {
+// 		// speed up parameter loading via UDP or USB: try to send 20 at once
+// 		max_num_to_send = 20;
+// 	}
+
+// 	int i = 0;
+
+// 	// Send while burst is not exceeded, we still have buffer space and still something to send
+// 	while ((i++ < max_num_to_send) && (_mavlink.get_free_tx_buf() >= get_size()) && !_mavlink.radio_status_critical()
+// 	       && send_params()) {}
+// }
+
 void
 MavlinkParametersManager::send()
 {
-	if (!_first_send) {
+	if (_first_send) {
 		// parameters QGC can't tolerate not finding (2020-11-11)
 		param_find("BAT_CRIT_THR");
 		param_find("BAT_EMERGEN_THR");
@@ -313,179 +364,185 @@ MavlinkParametersManager::send()
 		// parameter only used in startup script but should show on ground station
 		param_find("SYS_PARAM_VER");
 
-		_first_send = true;
+		_first_send = false;
 	}
 
-	int max_num_to_send;
+	// Calculate how many parameters we could send based on bandwidth
+	const size_t bytes_per_param = get_size();
+	const float available_tokens = _mavlink.get_available_data_tokens();
+	const int max_by_bandwidth = static_cast<int>(available_tokens / bytes_per_param);
 
-	if (_mavlink.get_protocol() == Protocol::SERIAL && !_mavlink.is_usb_uart()) {
-		max_num_to_send = 3;
-
-	} else {
-		// speed up parameter loading via UDP or USB: try to send 20 at once
-		max_num_to_send = 20;
+	if (max_by_bandwidth <= 0) {
+		// PX4_INFO("No tokens available: %f", (double)available_tokens);
+		return;
 	}
 
-	int i = 0;
+	// TODO: determine how much of the available bandwidth we want to consume
+	int send_count = math::max(max_by_bandwidth / 2, 1);
 
-	// Send while burst is not exceeded, we still have buffer space and still something to send
-	while ((i++ < max_num_to_send) && (_mavlink.get_free_tx_buf() >= get_size()) && !_mavlink.radio_status_critical()
-	       && send_params()) {}
-}
+	while (send_count) {
 
-bool
-MavlinkParametersManager::send_params()
-{
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 
-	if (send_uavcan()) {
-		return true;
-	}
+		bool success = _mavlink.request_data_tokens(bytes_per_param);
 
-#endif // CONFIG_MAVLINK_UAVCAN_PARAMETERS
+		if (!success) {
+			PX4_INFO("Tokens unavailable");
+			break;
+		}
 
-	if (send_one()) {
-		return true;
+		if (send_uavcan()) {
+			send_count--;
+		}
+#endif
 
-	} else if (send_untransmitted()) {
-		return true;
-	}
-
-	return false;
-}
-
-bool
-MavlinkParametersManager::send_untransmitted()
-{
-	bool sent_one = false;
-
-	if (_parameter_update_sub.updated()) {
-		// clear the update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
-
-		// Schedule an update if not already the case
-		if (_param_update_time == 0) {
-			_param_update_time = pupdate.timestamp;
-			_param_update_index = 0;
+		if (send_one()) {
+			send_count--;
+		} else {
+			// Finished
+			break;
 		}
 	}
-
-	if ((_param_update_time != 0) && ((_param_update_time + 5 * 1000) < hrt_absolute_time())) {
-
-		param_t param = 0;
-
-		// send out all changed values
-		do {
-			// skip over all parameters which are not invalid and not used
-			do {
-				param = param_for_index(_param_update_index);
-				++_param_update_index;
-			} while (param != PARAM_INVALID && !param_used(param));
-
-			// send parameters which are untransmitted while there is
-			// space in the TX buffer
-			if ((param != PARAM_INVALID) && param_value_unsaved(param)) {
-				int ret = send_param(param);
-				sent_one = true;
-
-				if (ret != PX4_OK) {
-					break;
-				}
-			}
-		} while ((_mavlink.get_free_tx_buf() >= get_size()) && !_mavlink.radio_status_critical()
-			 && (_param_update_index < (int) param_count()));
-
-		// Flag work as done once all params have been sent
-		if (_param_update_index >= (int) param_count()) {
-			_param_update_time = 0;
-		}
-	}
-
-	return sent_one;
 }
+
+// bool
+// MavlinkParametersManager::send_untransmitted()
+// {
+// 	bool sent_one = false;
+
+// 	if (_parameter_update_sub.updated()) {
+// 		// clear the update
+// 		parameter_update_s pupdate;
+// 		_parameter_update_sub.copy(&pupdate);
+
+// 		// Schedule an update if not already the case
+// 		if (_param_update_time == 0) {
+// 			_param_update_time = pupdate.timestamp;
+// 			_param_update_index = 0;
+// 		}
+// 	}
+
+// 	if ((_param_update_time != 0) && ((_param_update_time + 5 * 1000) < hrt_absolute_time())) {
+
+// 		param_t param = 0;
+
+// 		// send out all changed values
+// 		do {
+// 			// skip over all parameters which are not invalid and not used
+// 			do {
+// 				param = param_for_index(_param_update_index);
+// 				++_param_update_index;
+// 			} while (param != PARAM_INVALID && !param_used(param));
+
+// 			// send parameters which are untransmitted while there is
+// 			// space in the TX buffer
+// 			if ((param != PARAM_INVALID) && param_value_unsaved(param)) {
+// 				int ret = send_param(param);
+// 				sent_one = true;
+
+// 				if (ret != PX4_OK) {
+// 					break;
+// 				}
+// 			}
+// 		} while ((_mavlink.get_free_tx_buf() >= get_size()) && !_mavlink.radio_status_critical()
+// 			 && (_param_update_index < (int) param_count()));
+
+// 		// Flag work as done once all params have been sent
+// 		if (_param_update_index >= (int) param_count()) {
+// 			_param_update_time = 0;
+// 		}
+// 	}
+
+// 	return sent_one;
+// }
 
 bool
 MavlinkParametersManager::send_one()
 {
 	const hrt_abstime now = hrt_absolute_time();
 
-	// If in low-bandwidth mode, throttle parameter transmission to 8 Hz
-	if (_mavlink.get_mode() == Mavlink::MAVLINK_MODE_LOW_BANDWIDTH
-	    && now < _last_param_sent_timestamp + 125_ms) {
+	// Finished
+	if (_next_param_index < 0) {
 		return false;
 	}
 
-	if (_send_all_index >= 0) {
-		/* send all parameters if requested, but only after the system has booted */
+	// The first thing we send is a hash of all values for the ground
+	// station to try and quickly load a cached copy of our params
+	if (_next_param_index == PARAM_HASH) {
+		send_param_hash();
+		return true;
+	}
 
-		/* The first thing we send is a hash of all values for the ground
-		 * station to try and quickly load a cached copy of our params
-		 */
-		if (_send_all_index == PARAM_HASH) {
-			/* return hash check for cached params */
-			uint32_t hash = param_hash_check();
+	// Iterate over all parameter indices
+	param_t p = PARAM_INVALID;
 
-			/* build the one-off response message */
-			mavlink_param_value_t msg;
-			msg.param_count = param_count_used();
-			msg.param_index = -1;
-			strncpy(msg.param_id, HASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
-			msg.param_type = MAV_PARAM_TYPE_UINT32;
-			memcpy(&msg.param_value, &hash, sizeof(hash));
-			mavlink_msg_param_value_send_struct(_mavlink.get_channel(), &msg);
+	while (1) {
+		p = param_for_index(_next_param_index);
 
-			/* after this we should start sending all params */
-			_send_all_index = 0;
-
-			/* No further action, return now */
-			return true;
+		if (p == PARAM_INVALID || !param_used(p)) {
+			// There can be a lot of invalid or unused parameters, we skip those
+			_next_param_index++;
+			continue;
 		}
 
-		/* look for the first parameter which is used */
-		param_t p;
+		// Param is valid and used, send it
+		// TODO: use result to decide retries
+		auto result = send_param(p);
 
-		do {
-			/* walk through all parameters, including unused ones */
-			p = param_for_index(_send_all_index);
-			_send_all_index++;
-		} while (p != PARAM_INVALID && !param_used(p));
-
-		if (p != PARAM_INVALID) {
-			send_param(p);
+		if (result == 0) {
+			_next_param_index++;
 			_last_param_sent_timestamp = now;
 		}
 
-		if ((p == PARAM_INVALID) || (_send_all_index >= (int) param_count())) {
-			_send_all_index = -1;
-			return false;
-
-		} else {
-			return true;
-		}
+		// break from the loop after a send attempt
+		break;
 	}
 
-	return false;
+	if (_next_param_index >= (int) param_count()) {
+		// Finished sending all params
+		_next_param_index = -1;
+		return false;
+
+	}
+
+	return true;
+}
+
+int
+MavlinkParametersManager::send_param_hash()
+{
+	uint32_t hash = param_hash_check();
+
+	mavlink_param_value_t msg;
+	msg.param_count = param_count_used();
+	msg.param_index = -1;
+	strncpy(msg.param_id, HASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
+	msg.param_type = MAV_PARAM_TYPE_UINT32;
+	memcpy(&msg.param_value, &hash, sizeof(hash));
+	mavlink_msg_param_value_send_struct(_mavlink.get_channel(), &msg);
+
+	// after this we should start sending all params
+	_next_param_index = 0;
+
+	return true;
 }
 
 int
 MavlinkParametersManager::send_param(param_t param, int component_id)
 {
 	if (param == PARAM_INVALID) {
+		PX4_INFO("wtf redundant");
 		return 1;
 	}
 
-	/* no free TX buf to send this param */
+	// no free TX buf to send this param
 	if (_mavlink.get_free_tx_buf() < MAVLINK_MSG_ID_PARAM_VALUE_LEN) {
+		PX4_INFO("no free tx");
 		return 1;
 	}
 
-	mavlink_param_value_t msg;
+	mavlink_param_value_t msg = {};
 
-	/*
-	 * get param value, since MAVLink encodes float and int params in the same
-	 * space during transmission, copy param onto float val_buf
-	 */
 	if (param_type(param) == PARAM_TYPE_INT32) {
 		int32_t param_value;
 
@@ -505,6 +562,8 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 		msg.param_value = param_value;
 	}
 
+	// TODO: both operations below iterate over the entire parameter list. This is both
+	// expensive and redundant during a PARAM_REQUEST_LIST
 	msg.param_count = param_count_used();
 	msg.param_index = param_get_used_index(param);
 

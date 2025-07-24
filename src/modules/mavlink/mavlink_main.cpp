@@ -2169,7 +2169,8 @@ Mavlink::task_main(int argc, char *argv[])
 	/* USB serial is indicated by /dev/ttyACMx */
 	if (strncmp(_device_name, "/dev/ttyACM", 11) == 0) {
 		if (_datarate == 0) {
-			_datarate = 100000;
+			// _datarate = 100000;
+			_datarate = 30000;
 		}
 
 		/* USB has no baudrate, but use a magic number for 'fast' */
@@ -2209,6 +2210,7 @@ Mavlink::task_main(int argc, char *argv[])
 		fflush(stdout);
 	}
 
+
 #if defined(MAVLINK_UDP)
 
 	else if (get_protocol() == Protocol::UDP) {
@@ -2222,6 +2224,9 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 #endif // MAVLINK_UDP
+
+	PX4_INFO("JAKE JAKE JAKE: DATARATE: %d", _datarate);
+	_tx_rate_limiter.configure_rate(_datarate);
 
 	if (set_instance_id()) {
 		if (!set_channel()) {
@@ -2297,6 +2302,8 @@ Mavlink::task_main(int argc, char *argv[])
 		_main_loop_delay = MAVLINK_MAX_INTERVAL;
 	}
 
+	PX4_INFO("_main_loop_delay %u", _main_loop_delay);
+
 	/* open the UART device after setting the instance, as it might block */
 	if (get_protocol() == Protocol::SERIAL) {
 
@@ -2344,6 +2351,31 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_task_running.store(true);
 
+
+	// Calculate required bandwidth for all our streams.
+	// - If exceeding configured _datarate (MAV_x_RATE), reduce all streams via update_rate_mult()
+	// - Always leave 20% headroom for other services
+
+	float total_bytes_per_s = 0;
+
+	for (auto stream : _streams) {
+		uint32_t bytes = stream->get_size();
+		uint32_t interval = stream->get_interval();
+
+		if (bytes == 0) {
+			continue;
+		}
+
+		PX4_INFO("Stream %s --> %lu bytes at %luus interval", stream->get_name(), bytes, interval);
+
+		float bytes_per_s = float(bytes) / (float(interval) / 1e6f);
+		PX4_INFO("bytes_per_s %f", (double)bytes_per_s);
+
+		total_bytes_per_s += bytes_per_s;
+	}
+
+	PX4_INFO("Total stream B/s --> %f", (double)total_bytes_per_s);
+
 	while (!should_exit()) {
 		/* main loop */
 		px4_usleep(_main_loop_delay);
@@ -2382,10 +2414,12 @@ Mavlink::task_main(int argc, char *argv[])
 
 		check_requested_subscriptions();
 
-		/* update streams */
+		// TODO: rate limit based on available bandwidth
+		// update streams
 		for (const auto &stream : _streams) {
 			stream->update(t);
 
+			// TODO: the below logic feels out of place
 			if (!_first_heartbeat_sent) {
 				if (_mode == MAVLINK_MODE_IRIDIUM) {
 					if (stream->get_id() == MAVLINK_MSG_ID_HIGH_LATENCY2) {

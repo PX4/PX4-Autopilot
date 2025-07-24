@@ -3278,11 +3278,19 @@ MavlinkReceiver::run()
 			usleep(10000);
 		}
 
-		const hrt_abstime t = hrt_absolute_time();
+		const hrt_abstime now = hrt_absolute_time();
 
-		CheckHeartbeats(t);
+		CheckHeartbeats(now);
 
-		if (t - last_send_update > timeout * 1000) {
+		// FIXME:
+		// Mavlink receiver is emitting messages here. That's not what a "receiver" does.
+		// - mission items
+		// - params
+		// - ftp
+
+		// TODO: why limit at all?
+		// NOTE: limited to 10ms update interval
+		if (now - last_send_update > timeout * 1000) {
 			_mission_manager.check_active_mission();
 			_mission_manager.send();
 
@@ -3295,13 +3303,13 @@ MavlinkReceiver::run()
 			}
 
 			_mavlink_log_handler.send();
-			last_send_update = t;
+			last_send_update = now;
 		}
 
 		if (_tune_publisher != nullptr) {
-			_tune_publisher->publish_next_tune(t);
+			_tune_publisher->publish_next_tune(now);
 		}
-	}
+	} // end while-loop --> !_mavlink.should_exit()
 }
 
 bool MavlinkReceiver::component_was_seen(int system_id, int component_id)

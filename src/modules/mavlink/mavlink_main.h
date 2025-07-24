@@ -86,6 +86,8 @@
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
 
+#include "TokenBucketRateLimiter.h"
+
 #define DEFAULT_BAUD_RATE       57600
 #define DEFAULT_DEVICE_NAME     "/dev/ttyS1"
 
@@ -524,6 +526,45 @@ public:
 	static hrt_abstime &get_first_start_time() { return _first_start_time; }
 
 	bool radio_status_critical() const { return _radio_status_critical; }
+
+	////////////////////////////////////////
+	// Token Bucket Rate Limiter
+	////////////////////////////////////////
+
+	bool request_data_tokens(size_t bytes, bool priority = false)
+	{
+		return _tx_rate_limiter.request_tokens(bytes, priority);
+	}
+
+	/**
+	 * Check if tokens available without consuming
+	 * @param bytes Number of bytes to check
+	 * @return true if tokens available
+	 */
+	bool check_data_tokens(size_t bytes) const
+	{
+		return _tx_rate_limiter.check_tokens_available(bytes);
+	}
+
+	/**
+	 * Get current token availability
+	 * @return Available tokens in bytes
+	 */
+	float get_available_data_tokens()
+	{
+		return _tx_rate_limiter.get_available_tokens();
+	}
+
+	/**
+	 * Update rate limiter when configuration changes
+	 */
+	void update_data_rate_limits()
+	{
+		// Use the configured data rate
+		_tx_rate_limiter.configure_rate(_datarate);
+	}
+
+	TokenBucketRateLimiter _tx_rate_limiter;
 
 private:
 	MavlinkReceiver 	_receiver;

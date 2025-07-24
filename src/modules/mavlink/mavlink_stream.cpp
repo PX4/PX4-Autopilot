@@ -104,9 +104,14 @@ MavlinkStream::update(const hrt_abstime &t)
 	// needs to be accounted for as well.
 	// This method is not theoretically optimal but a suitable
 	// stopgap as it hits its deadlines well (0.5 Hz, 50 Hz and 250 Hz)
-
 	if (unlimited_rate || (dt > (interval - (_mavlink->get_main_loop_delay() / 10) * 3))) {
 		// interval expired, send message
+
+		// Only send if tokens are available
+		if (!_mavlink->request_data_tokens(get_size())) {
+			// TODO: per stream tokens_denied counter
+			return -1;
+		}
 
 		// If the interval is non-zero and dt is smaller than 1.5 times the interval
 		// do not use the actual time but increment at a fixed rate, so that processing delays do not
