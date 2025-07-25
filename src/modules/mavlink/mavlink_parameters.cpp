@@ -332,6 +332,7 @@ MavlinkParametersManager::send()
 			if (radio_critical) {
 				PX4_INFO("radio_critical");
 			}
+
 			break;
 		}
 
@@ -340,19 +341,20 @@ MavlinkParametersManager::send()
 		// Send UAVCAN params first if available
 		if (send_uavcan()) {
 			send_count--;
+
 		} else
 #endif
 
-		if (send_one()) {
-			send_count--;
+			if (send_one()) {
+				send_count--;
 
-		} else if (send_untransmitted()) {
-			send_count--;
+			} else if (send_untransmitted()) {
+				send_count--;
 
-		} else {
-			// Finished
-			break;
-		}
+			} else {
+				// Finished
+				break;
+			}
 	}
 }
 
