@@ -62,10 +62,9 @@ enum class ActuatorType {
 
 enum class EffectivenessUpdateReason {
 	NO_EXTERNAL_UPDATE = 0,
-	CONFIGURATION_UPDATE = 1,
-	MOTOR_ACTIVATION_UPDATE = 2,
+	CONFIGURATION_UPDATE = 1, ///< config changes (parameter)
+	MOTOR_ACTIVATION_UPDATE = 2, ///< motor failure detected or certain redundant motors are switched off to save energy
 };
-
 
 class ActuatorEffectiveness
 {
@@ -196,9 +195,8 @@ public:
 	 * It is called after the matrix multiplication and before final clipping.
 	 * @param actuator_sp input & output setpoint
 	 */
-	virtual void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-				    int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-				    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) {}
+	virtual void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
+				    ActuatorVector &actuator_sp, const ActuatorVector &actuator_min, const ActuatorVector &actuator_max) {}
 
 	/**
 	 * Get a bitmask of motors to be stopped
