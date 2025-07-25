@@ -190,6 +190,9 @@ param set-default SYS_FAILURE_EN 1
 # does not go below 50% by default, but failure injection can trigger failsafes.
 param set-default COM_LOW_BAT_ACT 3
 
+# set default IP to localhost
+param set-default UXRCE_DDS_AG_IP 2130706433  # 127.0.0.1
+
 
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
 if [ -n "$PX4_SIM_SPEED_FACTOR" ]; then
@@ -319,7 +322,7 @@ then
 	uxrce_dds_port="$PX4_UXRCE_DDS_PORT"
 fi
 
-uxrce_dds_client start -t udp -h 127.0.0.1 -p $uxrce_dds_port $uxrce_dds_ns
+uxrce_dds_client start -t udp -p $uxrce_dds_port $uxrce_dds_ns
 
 if param greater -s MNT_MODE_IN -1
 then
