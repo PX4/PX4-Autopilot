@@ -244,7 +244,7 @@ void RtlDirect::set_rtl_item()
 				.alt = _rtl_alt,
 				.yaw = _param_wv_en.get() ? NAN : _navigator->get_local_position()->heading,
 			};
-			setLoiterToAltMissionItem(_mission_item, pos_yaw_sp, _navigator->get_loiter_radius());
+			setLoiterToAltMissionItem(_mission_item, pos_yaw_sp, _navigator->get_default_loiter_rad());
 
 			break;
 		}

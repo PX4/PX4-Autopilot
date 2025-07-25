@@ -170,7 +170,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 		// consider mission_item.loiter_radius invalid if NAN or 0, use default value in this case.
 		const float mission_item_loiter_radius_abs = (PX4_ISFINITE(_mission_item.loiter_radius)
 				&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
-				_navigator->get_loiter_radius();
+				_navigator->get_default_loiter_rad();
 
 		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, mission_item_altitude_amsl,
 				_navigator->get_global_position()->lat,
@@ -626,7 +626,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	sp->alt = get_absolute_altitude_for_item(item);
 	sp->yaw = item.yaw;
 	sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
-			    _navigator->get_loiter_radius();
+			    _navigator->get_default_loiter_rad();
 	sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
 
 	if (item.acceptance_radius > FLT_EPSILON && PX4_ISFINITE(item.acceptance_radius)) {
@@ -730,7 +730,7 @@ MissionBlock::setLoiterItemFromCurrentPosition(struct mission_item_s *item)
 	}
 
 	item->altitude = loiter_altitude_amsl;
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->yaw = NAN;
 }
 
@@ -742,7 +742,7 @@ MissionBlock::setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s 
 	_navigator->preproject_stop_point(item->lat, item->lon);
 
 	item->altitude = _navigator->get_global_position()->alt;
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->yaw = NAN;
 }
 
@@ -773,7 +773,7 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude)
 	item->altitude_is_relative = false;
 
 	item->acceptance_radius = _navigator->get_acceptance_radius();
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->autocontinue = false;
 	item->origin = ORIGIN_ONBOARD;
 }
@@ -808,7 +808,7 @@ MissionBlock::set_land_item(struct mission_item_s *item)
 
 	item->altitude = 0;
 	item->altitude_is_relative = false;
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
 	item->autocontinue = true;
@@ -824,7 +824,7 @@ MissionBlock::set_idle_item(struct mission_item_s *item)
 	item->altitude_is_relative = false;
 	item->altitude = _navigator->get_home_position()->alt;
 	item->yaw = NAN;
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
 	item->autocontinue = true;
@@ -896,7 +896,7 @@ MissionBlock::initialize()
 	_mission_item.lat = (double)NAN;
 	_mission_item.lon = (double)NAN;
 	_mission_item.yaw = NAN;
-	_mission_item.loiter_radius = _navigator->get_loiter_radius();
+	_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 	_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 	_mission_item.time_inside = 0.0f;
 	_mission_item.autocontinue = true;

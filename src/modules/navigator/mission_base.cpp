@@ -406,7 +406,7 @@ MissionBase::isLanding()
 			// consider mission_item.loiter_radius invalid if NAN or 0, use default value in this case.
 			const float mission_item_loiter_radius_abs = (PX4_ISFINITE(_mission_item.loiter_radius)
 					&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
-					_navigator->get_loiter_radius();
+					_navigator->get_default_loiter_rad();
 
 			on_landing_stage = d_current <= (_navigator->get_acceptance_radius() + mission_item_loiter_radius_abs);
 		}
@@ -883,7 +883,7 @@ MissionBase::do_abort_landing()
 	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 	_mission_item.altitude_is_relative = false;
 	_mission_item.altitude = alt_sp;
-	_mission_item.loiter_radius = _navigator->get_loiter_radius();
+	_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 	_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 	_mission_item.autocontinue = false;
 	_mission_item.origin = ORIGIN_ONBOARD;

@@ -868,10 +868,12 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 	// current waypoint (the one currently heading for)
 	const Vector2d curr_wp = Vector2d(pos_sp_curr.lat, pos_sp_curr.lon);
 
-	float loiter_radius = pos_sp_curr.loiter_radius;
+	float loiter_radius = fabsf(pos_sp_curr.loiter_radius);
+	bool loiter_direction_ccw = pos_sp_curr.loiter_direction_counter_clockwise;
 
-	if (fabsf(pos_sp_curr.loiter_radius) < FLT_EPSILON) {
-		loiter_radius = _param_nav_loiter_rad.get();
+	if (loiter_radius < FLT_EPSILON) {
+		loiter_radius = fabsf(_param_nav_loiter_rad.get());
+		loiter_direction_ccw = _param_nav_loiter_rad.get() < -FLT_EPSILON;
 	}
 
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
@@ -902,7 +904,7 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 	}
 
 	const DirectionalGuidanceOutput sp = navigateLoiter(curr_wp_local, curr_pos_local, loiter_radius,
-					     pos_sp_curr.loiter_direction_counter_clockwise,
+					     loiter_direction_ccw,
 					     ground_speed,
 					     _wind_vel);
 
@@ -1619,10 +1621,12 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 	// flare at the maximum of the altitude determined by the time before touchdown and a minimum flare altitude
 	const float flare_rel_alt = math::max(_param_fw_lnd_fl_time.get() * _local_pos.vz, _param_fw_lnd_flalt.get());
 
-	float loiter_radius = pos_sp_curr.loiter_radius;
+	float loiter_radius = fabsf(pos_sp_curr.loiter_radius);
+	bool loiter_direction_ccw = pos_sp_curr.loiter_direction_counter_clockwise;
 
-	if (fabsf(pos_sp_curr.loiter_radius) < FLT_EPSILON) {
-		loiter_radius = _param_nav_loiter_rad.get();
+	if (loiter_radius < FLT_EPSILON) {
+		loiter_radius = fabsf(_param_nav_loiter_rad.get());
+		loiter_direction_ccw = _param_nav_loiter_rad.get() < -FLT_EPSILON;
 	}
 
 	if ((_current_altitude < terrain_alt + flare_rel_alt) || _flare_states.flaring) {
@@ -1644,7 +1648,7 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 
 		/* lateral guidance first, because npfg will adjust the airspeed setpoint if necessary */
 		const DirectionalGuidanceOutput sp = navigateLoiter(local_landing_orbit_center, local_position, loiter_radius,
-						     pos_sp_curr.loiter_direction_counter_clockwise,
+						     loiter_direction_ccw,
 						     ground_speed, _wind_vel);
 		fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
 		fw_lateral_ctrl_sp.timestamp = now;
@@ -1702,7 +1706,7 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 
 		// follow the glide slope
 		const DirectionalGuidanceOutput sp = navigateLoiter(local_landing_orbit_center, local_position, loiter_radius,
-						     pos_sp_curr.loiter_direction_counter_clockwise,
+						     loiter_direction_ccw,
 						     ground_speed, _wind_vel);
 		fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
 		fw_lateral_ctrl_sp.timestamp = now;
