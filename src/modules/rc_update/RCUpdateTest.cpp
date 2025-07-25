@@ -165,7 +165,6 @@ public:
 		(ParamInt<px4::params::RC_MAP_PAY_SW>) _param_rc_map_pay_sw,
 		(ParamFloat<px4::params::RC_PAYLOAD_TH>) _param_rc_payload_th,
 		(ParamFloat<px4::params::RC_PAYLOAD_MIDTH>) _param_rc_payload_midth,
-
 		(ParamInt<px4::params::RC_MAP_RC_ENABLE>) _param_rc_map_rc_enable,
 		(ParamFloat<px4::params::RC_ENABLESW_TH>) _param_rc_enable_th
 	)
