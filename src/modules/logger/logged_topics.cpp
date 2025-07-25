@@ -296,6 +296,7 @@ void LoggedTopics::add_debug_topics()
 	add_topic("mag_worker_data");
 	add_topic("sensor_preflight_mag", 500);
 	add_topic("actuator_test", 500);
+	add_topic("neural_control", 50);
 }
 
 void LoggedTopics::add_estimator_replay_topics()
