@@ -106,7 +106,7 @@ bool FlightTaskManualAcceleration::update()
 
 void FlightTaskManualAcceleration::_ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy)
 {
-	_stick_acceleration_xy.resetPosition();
+	_stick_acceleration_xy.addToPositionSetpoint(delta_xy);
 }
 
 void FlightTaskManualAcceleration::_ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy)
