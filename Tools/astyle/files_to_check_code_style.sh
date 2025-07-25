@@ -11,6 +11,7 @@ exec find boards msg src platforms test \
     -path msg/translation_node -prune -o \
     -path platforms/nuttx/NuttX -prune -o \
     -path platforms/qurt/dspal -prune -o \
+    -path src/drivers/ins/ilabs -prune -o \
     -path src/drivers/ins/vectornav/libvnc -prune -o \
     -path src/drivers/uavcan/libdronecan -prune -o \
     -path src/drivers/uavcan/libuavcan -prune -o \

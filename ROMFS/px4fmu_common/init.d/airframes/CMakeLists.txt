@@ -166,3 +166,10 @@ if(CONFIG_MODULES_UUV_ATT_CONTROL)
 		60002_uuv_bluerov2_heavy
 	)
 endif()
+
+if(CONFIG_MODULES_SPACECRAFT)
+	px4_add_romfs_files(
+		# [70000, 70999] Spacecraft
+		70000_atmos
+	)
+endif()

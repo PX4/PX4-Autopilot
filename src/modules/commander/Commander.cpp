@@ -574,7 +574,9 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 
 			if (!_vehicle_control_mode.flag_control_climb_rate_enabled &&
 			    !_failsafe_flags.manual_control_signal_lost && !_is_throttle_low
-			    && !is_ground_vehicle(_vehicle_status)) {
+			    && ((_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
+				|| (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING))
+			   ) {
 
 				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: high throttle\t");
 				events::send(events::ID("commander_arm_denied_throttle_high"), {events::Log::Critical, events::LogInternal::Info},
@@ -999,6 +1001,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					}
 
 				} else {
+					float roll = matrix::wrap_2pi(math::radians(cmd.param2));
+					roll = PX4_ISFINITE(roll) ? roll : 0.0f;
+					float pitch = matrix::wrap_2pi(math::radians(cmd.param3));
+					pitch = PX4_ISFINITE(pitch) ? pitch : 0.0f;
 					float yaw = matrix::wrap_2pi(math::radians(cmd.param4));
 					yaw = PX4_ISFINITE(yaw) ? yaw : (float)NAN;
 					const double lat = cmd.param5;
@@ -1007,7 +1013,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 					if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt)) {
 
-						if (_home_position.setManually(lat, lon, alt, yaw)) {
+						if (_home_position.setManually(lat, lon, alt, roll, pitch, yaw)) {
 
 							cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -1694,6 +1700,11 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 
 		break;
 
+	case action_request_s::ACTION_TERMINATE:
+		_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_TERMINATION);
+
+		break;
+
 	case action_request_s::ACTION_SWITCH_MODE:
 
 		if (!_user_mode_intention.change(action_request.mode, ModeChangeSource::User, false)) {
@@ -1898,13 +1909,9 @@ void Commander::run()
 		_actuator_armed.force_failsafe = (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION);
 		// _actuator_armed.in_esc_calibration_mode // VEHICLE_CMD_PREFLIGHT_CALIBRATION
 
-		// if force_failsafe or manual_lockdown activated send parachute command
-		if ((!actuator_armed_prev.force_failsafe && _actuator_armed.force_failsafe)
-		    || (!actuator_armed_prev.manual_lockdown && _actuator_armed.manual_lockdown)
-		   ) {
-			if (isArmed()) {
-				send_parachute_command();
-			}
+		// if force_failsafe activated send parachute command
+		if (!actuator_armed_prev.force_failsafe && _actuator_armed.force_failsafe && isArmed()) {
+			send_parachute_command();
 		}
 
 		// publish states (armed, control_mode, vehicle_status, failure_detector_status) at 2 Hz or immediately when changed

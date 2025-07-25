@@ -22,7 +22,7 @@
 
 . ${R}etc/init.d/rc.uuv_defaults
 
-param set-default MAV_1_CONFIG 102
+# param set-default MAV_1_CONFIG 102
 
 param set-default BAT1_A_PER_V 37.8798
 param set-default BAT1_CAPACITY 18000
@@ -30,53 +30,93 @@ param set-default BAT1_V_DIV 11
 param set-default BAT1_N_CELLS 4
 param set-default BAT_V_OFFS_CURR 0.33
 
+# Set parameters using `param` utility for SITL
 param set-default CA_AIRFRAME 7
+param set-default CA_METHOD 0
+param set-default MAV_TYPE 12
+
+# Board rotation: set to direct replacement of RPi with PX4
+#       with forward facing vehicle forward
+param set-default SENS_BOARD_ROT 16
+
+# Set proper failsafes
+param set-default COM_ACT_FAIL_ACT 0
+param set-default COM_LOW_BAT_ACT 0
+param set-default NAV_DLL_ACT 0
+param set-default GF_ACTION 1
+param set-default NAV_RCL_ACT 1
+param set-default COM_POSCTL_NAVL 2
+
+# disable attitude failure detection
+param set-default FD_FAIL_P 0
+param set-default FD_FAIL_R 0
 
 param set-default CA_ROTOR_COUNT 8
 param set-default CA_R_REV 255
+
 param set-default CA_ROTOR0_AX 1
 param set-default CA_ROTOR0_AY -1
 param set-default CA_ROTOR0_AZ 0
 param set-default CA_ROTOR0_KM 0
-param set-default CA_ROTOR0_PX 0.5
-param set-default CA_ROTOR0_PY 0.3
-param set-default CA_ROTOR0_PZ 0.2
+param set-default CA_ROTOR0_PX 0.14
+param set-default CA_ROTOR0_PY 0.10
+param set-default CA_ROTOR0_PZ 0.06
+
 param set-default CA_ROTOR1_AX 1
 param set-default CA_ROTOR1_AY 1
 param set-default CA_ROTOR1_AZ 0
 param set-default CA_ROTOR1_KM 0
-param set-default CA_ROTOR1_PX 0.5
-param set-default CA_ROTOR1_PY -0.3
-param set-default CA_ROTOR1_PZ 0.2
+param set-default CA_ROTOR1_PX 0.14
+param set-default CA_ROTOR1_PY -0.10
+param set-default CA_ROTOR1_PZ 0.06
+
 param set-default CA_ROTOR2_AX 1
 param set-default CA_ROTOR2_AY 1
 param set-default CA_ROTOR2_AZ 0
 param set-default CA_ROTOR2_KM 0
-param set-default CA_ROTOR2_PX -0.5
-param set-default CA_ROTOR2_PY 0.3
-param set-default CA_ROTOR2_PZ 0.2
+param set-default CA_ROTOR2_PX -0.14
+param set-default CA_ROTOR2_PY 0.10
+param set-default CA_ROTOR2_PZ 0.06
+
 param set-default CA_ROTOR3_AX 1
 param set-default CA_ROTOR3_AY -1
 param set-default CA_ROTOR3_AZ 0
 param set-default CA_ROTOR3_KM 0
-param set-default CA_ROTOR3_PX -0.5
-param set-default CA_ROTOR3_PY -0.3
-param set-default CA_ROTOR3_PZ 0.2
+param set-default CA_ROTOR3_PX -0.14
+param set-default CA_ROTOR3_PY -0.10
+param set-default CA_ROTOR3_PZ 0.06
+
+param set-default CA_ROTOR4_AX 0
+param set-default CA_ROTOR4_AY 0
 param set-default CA_ROTOR4_AZ -1
 param set-default CA_ROTOR4_KM 0
-param set-default CA_ROTOR4_PX 0.5
-param set-default CA_ROTOR4_PY 0.5
+param set-default CA_ROTOR4_PX 0.12
+param set-default CA_ROTOR4_PY 0.22
+param set-default CA_ROTOR4_PZ 0
+
+param set-default CA_ROTOR5_AX 0
+param set-default CA_ROTOR5_AY 0
 param set-default CA_ROTOR5_AZ 1
 param set-default CA_ROTOR5_KM 0
-param set-default CA_ROTOR5_PX 0.5
-param set-default CA_ROTOR5_PY -0.5
+param set-default CA_ROTOR5_PX 0.12
+param set-default CA_ROTOR5_PY -0.22
+param set-default CA_ROTOR5_PZ 0
+
+param set-default CA_ROTOR6_AX 0
+param set-default CA_ROTOR6_AY 0
 param set-default CA_ROTOR6_AZ 1
 param set-default CA_ROTOR6_KM 0
-param set-default CA_ROTOR6_PX -0.5
-param set-default CA_ROTOR6_PY 0.5
+param set-default CA_ROTOR6_PX -0.12
+param set-default CA_ROTOR6_PY 0.22
+param set-default CA_ROTOR6_PZ 0
+
+param set-default CA_ROTOR7_AX 0
+param set-default CA_ROTOR7_AY 0
+param set-default CA_ROTOR7_AZ -1
 param set-default CA_ROTOR7_KM 0
-param set-default CA_ROTOR7_PX -0.5
-param set-default CA_ROTOR7_PY -0.5
+param set-default CA_ROTOR7_PX -0.12
+param set-default CA_ROTOR7_PY -0.22
+param set-default CA_ROTOR7_PZ 0
 
 param set-default PWM_MAIN_FUNC1 101
 param set-default PWM_MAIN_FUNC2 102
@@ -86,3 +126,30 @@ param set-default PWM_MAIN_FUNC5 105
 param set-default PWM_MAIN_FUNC6 106
 param set-default PWM_MAIN_FUNC7 107
 param set-default PWM_MAIN_FUNC8 108
+
+param set-default PWM_MAIN_MIN1 1100
+param set-default PWM_MAIN_MIN2 1100
+param set-default PWM_MAIN_MIN3 1100
+param set-default PWM_MAIN_MIN4 1100
+param set-default PWM_MAIN_MIN5 1100
+param set-default PWM_MAIN_MIN6 1100
+param set-default PWM_MAIN_MIN7 1100
+param set-default PWM_MAIN_MIN8 1100
+
+param set-default PWM_MAIN_MAX1 1900
+param set-default PWM_MAIN_MAX2 1900
+param set-default PWM_MAIN_MAX3 1900
+param set-default PWM_MAIN_MAX4 1900
+param set-default PWM_MAIN_MAX5 1900
+param set-default PWM_MAIN_MAX6 1900
+param set-default PWM_MAIN_MAX7 1900
+param set-default PWM_MAIN_MAX8 1900
+
+param set-default PWM_MAIN_DIS1 1500
+param set-default PWM_MAIN_DIS2 1500
+param set-default PWM_MAIN_DIS3 1500
+param set-default PWM_MAIN_DIS4 1500
+param set-default PWM_MAIN_DIS5 1500
+param set-default PWM_MAIN_DIS6 1500
+param set-default PWM_MAIN_DIS7 1500
+param set-default PWM_MAIN_DIS8 1500

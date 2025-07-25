@@ -265,7 +265,6 @@ SD карти, однак, не обов'язкові.
 - Disable notification beeps are disabled using the parameter [CBRK_BUZZER](../advanced_config/parameter_reference.md#CBRK_BUZZER).
 - [Stream logs](../dev_log/logging.md#log-streaming) to another component (companion).
 - Зберігати місії в RAM/FLASH.
-  <!-- Too low-level for this. But see FLASH_BASED_DATAMAN in  Intel Aero: https://github.com/PX4/PX4-Autopilot/blob/main/boards/intel/aerofc-v1/src/board_config.h#L115 -->
 
 ## Корисне навантаження
 

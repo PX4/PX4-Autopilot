@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,9 +38,12 @@
  *
  * All the acknowledgments and credits for the fw wing/rover app are reported in those files.
  *
+ * 2025: refactoring of the mode settings: attitude, rate and manual control now working.
+ *
  * @author Daniel Duecker <daniel.duecker@tuhh.de>
  * @author Philipp Hastedt <philipp.hastedt@tuhh.de>
  * @author Tim Hansen <t.hansen@tuhh.de>
+ * @author Pedro Roque <padr@kth.se>
  */
 
 #include "uuv_att_control.hpp"
@@ -94,7 +97,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 		float thrust_x, float thrust_y, float thrust_z)
 {
 	if (PX4_ISFINITE(roll_u)) {
-		roll_u = math::constrain(roll_u, -1.0f, 1.0f);
+		roll_u = math::constrain(roll_u, -_param_torque_sat.get(), _param_torque_sat.get());
 		_vehicle_torque_setpoint.xyz[0] = roll_u;
 
 	} else {
@@ -102,7 +105,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	}
 
 	if (PX4_ISFINITE(pitch_u)) {
-		pitch_u = math::constrain(pitch_u, -1.0f, 1.0f);
+		pitch_u = math::constrain(pitch_u, -_param_torque_sat.get(), _param_torque_sat.get());
 		_vehicle_torque_setpoint.xyz[1] = pitch_u;
 
 	} else {
@@ -110,7 +113,7 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	}
 
 	if (PX4_ISFINITE(yaw_u)) {
-		yaw_u = math::constrain(yaw_u, -1.0f, 1.0f);
+		yaw_u = math::constrain(yaw_u, -_param_torque_sat.get(), _param_torque_sat.get());
 		_vehicle_torque_setpoint.xyz[2] = yaw_u;
 
 	} else {
@@ -118,17 +121,33 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	}
 
 	if (PX4_ISFINITE(thrust_x)) {
-		thrust_x = math::constrain(thrust_x, -1.0f, 1.0f);
+		thrust_x = math::constrain(thrust_x, -_param_thrust_sat.get(), _param_thrust_sat.get());
 		_vehicle_thrust_setpoint.xyz[0] = thrust_x;
 
 	} else {
 		_vehicle_thrust_setpoint.xyz[0] = 0.0f;
 	}
+
+	if (PX4_ISFINITE(thrust_y)) {
+		thrust_y = math::constrain(thrust_y, -_param_thrust_sat.get(), _param_thrust_sat.get());
+		_vehicle_thrust_setpoint.xyz[1] = thrust_y;
+
+	} else {
+		_vehicle_thrust_setpoint.xyz[1] = 0.0f;
+	}
+
+	if (PX4_ISFINITE(thrust_z)) {
+		thrust_z = math::constrain(thrust_z, -_param_thrust_sat.get(), _param_thrust_sat.get());
+		_vehicle_thrust_setpoint.xyz[2] = thrust_z;
+
+	} else {
+		_vehicle_thrust_setpoint.xyz[2] = 0.0f;
+	}
 }
 
 void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude,
 		const vehicle_attitude_setpoint_s &attitude_setpoint, const vehicle_angular_velocity_s &angular_velocity,
-		const vehicle_rates_setpoint_s &rates_setpoint)
+		const vehicle_rates_setpoint_s &rates_setpoint, bool attitude_control_enabled)
 {
 	/** Geometric Controller
 	 *
@@ -156,6 +175,7 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 
 	Vector3f e_R_vec;
 	Vector3f torques;
+	torques.setZero();
 
 	/* Compute matrix: attitude error */
 	Matrix3f e_R = (rot_des.transpose() * rot_att - rot_att.transpose() * rot_des) * 0.5;
@@ -171,27 +191,107 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 	omega(2) -= yaw_rate_desired;
 
 	/**< P-Control */
-	torques(0) = - e_R_vec(0) * _param_roll_p.get();	/**< Roll  */
-	torques(1) = - e_R_vec(1) * _param_pitch_p.get();	/**< Pitch */
-	torques(2) = - e_R_vec(2) * _param_yaw_p.get();		/**< Yaw   */
+	if (attitude_control_enabled) {
+		torques(0) = - e_R_vec(0) * _param_roll_p.get();	/**< Roll  */
+		torques(1) = - e_R_vec(1) * _param_pitch_p.get();	/**< Pitch */
+		torques(2) = - e_R_vec(2) * _param_yaw_p.get();		/**< Yaw   */
 
-	/**< PD-Control */
-	torques(0) = torques(0) - omega(0) * _param_roll_d.get();  /**< Roll  */
-	torques(1) = torques(1) - omega(1) * _param_pitch_d.get(); /**< Pitch */
-	torques(2) = torques(2) - omega(2) * _param_yaw_d.get();   /**< Yaw   */
+		// take thrust from attitude message
+		float thrust_x = attitude_setpoint.thrust_body[0];
+		float thrust_y = attitude_setpoint.thrust_body[1];
+		float thrust_z = attitude_setpoint.thrust_body[2];
 
-	float roll_u = torques(0);
-	float pitch_u = torques(1);
-	float yaw_u = torques(2);
+		/**< PD-Control */
+		torques(0) -= omega(0) * _param_roll_d.get();  /**< Roll  */
+		torques(1) -= omega(1) * _param_pitch_d.get(); /**< Pitch */
+		torques(2) -= omega(2) * _param_yaw_d.get();   /**< Yaw   */
 
-	// take thrust as
-	float thrust_x = attitude_setpoint.thrust_body[0];
-	float thrust_y = attitude_setpoint.thrust_body[1];
-	float thrust_z = attitude_setpoint.thrust_body[2];
+		float roll_u = torques(0);
+		float pitch_u = torques(1);
+		float yaw_u = torques(2);
 
 
-	constrain_actuator_commands(roll_u, pitch_u, yaw_u, thrust_x, thrust_y, thrust_z);
+		constrain_actuator_commands(roll_u, pitch_u, yaw_u, thrust_x, thrust_y, thrust_z);
+
+	} else {
+		// take thrust from rates message
+		float thrust_x = _rates_setpoint.thrust_body[0];
+		float thrust_y = _rates_setpoint.thrust_body[1];
+		float thrust_z = _rates_setpoint.thrust_body[2];
+
+		/**< PD-Control */
+		torques(0) -= omega(0) * _param_roll_d.get();  /**< Roll  */
+		torques(1) -= omega(1) * _param_pitch_d.get(); /**< Pitch */
+		torques(2) -= omega(2) * _param_yaw_d.get();   /**< Yaw   */
+
+		float roll_u = torques(0);
+		float pitch_u = torques(1);
+		float yaw_u = torques(2);
+
+
+		constrain_actuator_commands(roll_u, pitch_u, yaw_u, thrust_x, thrust_y, thrust_z);
+	}
+
 	/* Geometric Controller END*/
+}
+
+void UUVAttitudeControl::generate_attitude_setpoint(float dt)
+{
+	// Avoid accumulating absolute yaw error with arming stick gesture
+	float roll = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).phi();
+	float pitch = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).theta();
+	float yaw = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).psi();
+
+	// Integrate manual control inputs
+	float yaw_setpoint = yaw + _manual_control_setpoint.yaw * dt * _param_sgm_yaw.get();
+	float roll_setpoint = roll + _manual_control_setpoint.roll * dt * _param_sgm_roll.get();
+	float pitch_setpoint = pitch + -_manual_control_setpoint.pitch * dt * _param_sgm_pitch.get();
+
+	// Generate target quaternion
+	Eulerf euler_sp(roll_setpoint, pitch_setpoint, yaw_setpoint);
+	Quatf q_sp = euler_sp;
+
+	// Normalize the quaternion to avoid numerical issues
+	q_sp.normalize();
+
+	q_sp.copyTo(_attitude_setpoint.q_d);
+
+	_attitude_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * _param_sgm_thrtl.get();
+
+	_attitude_setpoint.timestamp = hrt_absolute_time();
+}
+
+void UUVAttitudeControl::generate_rates_setpoint(float dt)
+{
+	// Integrate manual control inputs
+	_rates_setpoint.roll = _manual_control_setpoint.roll * dt * _param_rgm_roll.get();
+	_rates_setpoint.pitch = -_manual_control_setpoint.pitch * dt * _param_rgm_pitch.get();
+	_rates_setpoint.yaw = _manual_control_setpoint.yaw * dt * _param_rgm_yaw.get();
+
+	_rates_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * _param_rgm_thrtl.get();
+	_rates_setpoint.timestamp = hrt_absolute_time();
+
+}
+
+void UUVAttitudeControl::check_setpoint_validity(vehicle_attitude_s &v_att)
+{
+	const float _setpoint_age = (hrt_absolute_time() - _attitude_setpoint.timestamp) * 1e-6f;
+
+	if (_setpoint_age < 0.0f || _setpoint_age > _param_setpoint_max_age.get()) {
+		reset_attitude_setpoint(v_att);
+	}
+}
+
+void UUVAttitudeControl::reset_attitude_setpoint(vehicle_attitude_s &v_att)
+{
+	_attitude_setpoint.timestamp = hrt_absolute_time();
+	_attitude_setpoint.q_d[0] = v_att.q[0];
+	_attitude_setpoint.q_d[1] = v_att.q[1];
+	_attitude_setpoint.q_d[2] = v_att.q[2];
+	_attitude_setpoint.q_d[3] = v_att.q[3];
+	_attitude_setpoint.thrust_body[0] = 0.f;
+	_attitude_setpoint.thrust_body[1] = 0.f;
+	_attitude_setpoint.thrust_body[2] = 0.f;
 }
 
 void UUVAttitudeControl::Run()
@@ -214,63 +314,80 @@ void UUVAttitudeControl::Run()
 
 	/* only run controller if attitude changed */
 	if (_vehicle_attitude_sub.update(&attitude)) {
+		const float dt = math::constrain(((attitude.timestamp_sample - _last_run) * 1e-6f), 0.0002f, 0.02f);
+		_last_run = attitude.timestamp_sample;
+
 		vehicle_angular_velocity_s angular_velocity {};
 		_angular_velocity_sub.copy(&angular_velocity);
 
-		/* Run geometric attitude controllers if NOT manual mode*/
-		if (!_vcontrol_mode.flag_control_manual_enabled
-		    && _vcontrol_mode.flag_control_attitude_enabled
-		    && _vcontrol_mode.flag_control_rates_enabled) {
+		/* Check that we are not in position / velocity / altitude modes
+		   and that we are using manual inputs */
+		if (_vcontrol_mode.flag_control_manual_enabled
+		    && !_vcontrol_mode.flag_control_position_enabled
+		    && !_vcontrol_mode.flag_control_velocity_enabled
+		    && !_vcontrol_mode.flag_control_altitude_enabled) {
 
-			int input_mode = _param_input_mode.get();
+			/* Update manual setpoints */
+			_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 
-			_vehicle_attitude_setpoint_sub.update(&_attitude_setpoint);
-			_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
+			if (_vcontrol_mode.flag_control_attitude_enabled
+			    && _vcontrol_mode.flag_control_rates_enabled) {
+				/* Run stabilized mode */
+				_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
 
-			if (input_mode == 1) { // process manual data
-				Quatf attitude_setpoint(Eulerf(_param_direct_roll.get(), _param_direct_pitch.get(), _param_direct_yaw.get()));
-				attitude_setpoint.copyTo(_attitude_setpoint.q_d);
-				_attitude_setpoint.thrust_body[0] = _param_direct_thrust.get();
-				_attitude_setpoint.thrust_body[1] = 0.f;
-				_attitude_setpoint.thrust_body[2] = 0.f;
+				// Check setpoint validty
+				check_setpoint_validity(attitude);
+
+				/* Generate atttiude setpoint from sticks */
+				generate_attitude_setpoint(dt);
+
+				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint, true);
+
+			} else if (!_vcontrol_mode.flag_control_attitude_enabled
+				   && _vcontrol_mode.flag_control_rates_enabled) {
+				/* Run Rate mode */
+				generate_rates_setpoint(dt);
+
+				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint, false);
+
+			} else if (!_vcontrol_mode.flag_control_attitude_enabled
+				   && !_vcontrol_mode.flag_control_rates_enabled) {
+				/* Manual Control mode (e.g. gamepad,...) - raw feedthrough no assistance */
+				constrain_actuator_commands(_manual_control_setpoint.roll * _param_mgm_roll.get(),
+							    -_manual_control_setpoint.pitch * _param_mgm_pitch.get(),
+							    _manual_control_setpoint.yaw * _param_mgm_yaw.get(),
+							    _manual_control_setpoint.throttle * _param_mgm_thrtl.get(),
+							    0.f,
+							    0.f);
 			}
 
-			/* Geometric Control*/
-			int skip_controller = _param_skip_ctrl.get();
-
-			if (skip_controller) {
-				constrain_actuator_commands(_rates_setpoint.roll, _rates_setpoint.pitch, _rates_setpoint.yaw,
-							    _rates_setpoint.thrust_body[0], _rates_setpoint.thrust_body[1], _rates_setpoint.thrust_body[2]);
+		} else {
+			if (_vcontrol_mode.flag_control_attitude_enabled) {
+				/* Get attitude and rate setpoints and control system */
+				_vehicle_attitude_setpoint_sub.update(&_attitude_setpoint);
+				_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
+				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint, true);
 
 			} else {
-				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint);
+				/* Get rate setpoints and control system */
+				_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
+				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint, false);
 			}
 		}
-	}
 
-	/* Manual Control mode (e.g. gamepad,...) - raw feedthrough no assistance */
-	if (_manual_control_setpoint_sub.update(&_manual_control_setpoint)) {
-		// This should be copied even if not in manual mode. Otherwise, the poll(...) call will keep
-		// returning immediately and this loop will eat up resources.
-		if (_vcontrol_mode.flag_control_manual_enabled && !_vcontrol_mode.flag_control_rates_enabled) {
-			/* manual/direct control */
-			constrain_actuator_commands(_manual_control_setpoint.roll, -_manual_control_setpoint.pitch,
-						    _manual_control_setpoint.yaw,
-						    _manual_control_setpoint.throttle, 0.f, 0.f);
+		/* Only publish if any of the proper modes are enabled */
+		if (_vcontrol_mode.flag_control_manual_enabled ||
+		    _vcontrol_mode.flag_control_rates_enabled ||
+		    _vcontrol_mode.flag_control_attitude_enabled) {
+
+			_vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
+			_vehicle_thrust_setpoint.timestamp_sample = 0.f;
+			_vehicle_thrust_setpoint_pub.publish(_vehicle_thrust_setpoint);
+
+			_vehicle_torque_setpoint.timestamp = hrt_absolute_time();
+			_vehicle_torque_setpoint.timestamp_sample = 0.f;
+			_vehicle_torque_setpoint_pub.publish(_vehicle_torque_setpoint);
 		}
-	}
-
-	/* Only publish if any of the proper modes are enabled */
-	if (_vcontrol_mode.flag_control_manual_enabled ||
-	    _vcontrol_mode.flag_control_attitude_enabled) {
-
-		_vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
-		_vehicle_thrust_setpoint.timestamp_sample = 0.f;
-		_vehicle_thrust_setpoint_pub.publish(_vehicle_thrust_setpoint);
-
-		_vehicle_torque_setpoint.timestamp = hrt_absolute_time();
-		_vehicle_torque_setpoint.timestamp_sample = 0.f;
-		_vehicle_torque_setpoint_pub.publish(_vehicle_torque_setpoint);
 	}
 
 	perf_end(_loop_perf);

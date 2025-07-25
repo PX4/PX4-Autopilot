@@ -447,7 +447,7 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 
 		px4_clock_gettime(CLOCK_REALTIME, &rtc_system_time);
 		timespec rtc_gps_time = *(timespec *)data1;
-		int drift_time = abs(rtc_system_time.tv_sec - rtc_gps_time.tv_sec);
+		int drift_time = abs(static_cast<long>(rtc_system_time.tv_sec - rtc_gps_time.tv_sec));
 
 		if (drift_time >= SET_CLOCK_DRIFT_TIME_S) {
 			// as of 2021 setting the time on Nuttx temporarily pauses interrupts
@@ -908,6 +908,15 @@ GPS::run()
 		}
 
 		gpsConfig.interface_protocols = static_cast<GPSHelper::InterfaceProtocolsMask>(gps_ubx_cfg_intf);
+
+		int32_t gps_cfg_wipe = 0;
+		handle = param_find("GPS_CFG_WIPE");
+
+		if (handle != PARAM_INVALID) {
+			param_get(handle, &gps_cfg_wipe);
+		}
+
+		gpsConfig.cfg_wipe = static_cast<bool>(gps_cfg_wipe);
 
 		if (_helper && _helper->configure(_baudrate, gpsConfig) == 0) {
 
