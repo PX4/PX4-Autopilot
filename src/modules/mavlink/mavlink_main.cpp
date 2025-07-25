@@ -2339,31 +2339,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_task_running.store(true);
 
-
-	// Calculate required bandwidth for all our streams.
-	// - If exceeding configured _datarate (MAV_x_RATE), reduce all streams via update_rate_mult()
-	// - Always leave 20% headroom for other services
-
-	float total_bytes_per_s = 0;
-
-	for (auto stream : _streams) {
-		uint32_t bytes = stream->get_size();
-		uint32_t interval = stream->get_interval();
-
-		if (bytes == 0) {
-			continue;
-		}
-
-		PX4_INFO("Stream %s --> %lu bytes at %luus interval", stream->get_name(), bytes, interval);
-
-		float bytes_per_s = float(bytes) / (float(interval) / 1e6f);
-		PX4_INFO("bytes_per_s %f", (double)bytes_per_s);
-
-		total_bytes_per_s += bytes_per_s;
-	}
-
-	PX4_INFO("Total stream B/s --> %f", (double)total_bytes_per_s);
-
 	// MAIN LOOP
 	while (!should_exit()) {
 
