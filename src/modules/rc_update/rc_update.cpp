@@ -486,8 +486,8 @@ void RCUpdate::Run()
 			bool rc_enabled = true;
 
 			if (_param_rc_map_rc_enable.get() > 0) {
-				int enable_channel = _param_rc_map_rc_enable.get() - 1;
-				const float value_raw = _rc.channels[enable_channel];
+				int channel_index = _param_rc_map_rc_enable.get() - 1;
+				const float value_raw = _rc.channels[channel_index];
 				const float value_scaled = (0.5f * value_raw) + 0.5f; //Scale value from [-1, 1] to [0,1]
 				const float threshold = _param_rc_enable_sw_th.get();
 				rc_enabled = (threshold > 0) ?
