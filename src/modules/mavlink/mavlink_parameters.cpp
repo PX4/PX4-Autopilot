@@ -66,6 +66,8 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			mavlink_param_request_list_t req_list;
 			mavlink_msg_param_request_list_decode(msg, &req_list);
 
+			PX4_INFO("PARAM_REQUEST_LIST");
+
 			if (req_list.target_system == mavlink_system.sysid &&
 			    (req_list.target_component == mavlink_system.compid || req_list.target_component == MAV_COMP_ID_ALL)) {
 				if (_next_param_index < 0) {
@@ -321,7 +323,17 @@ MavlinkParametersManager::send()
 
 	while (send_count) {
 
-		if ((_mavlink.get_free_tx_buf() < get_size()) || !_mavlink.radio_status_critical()) {
+		bool buffer_full = _mavlink.get_free_tx_buf() < get_size();
+		bool radio_critical = _mavlink.radio_status_critical();
+
+		if (buffer_full || radio_critical) {
+			if (buffer_full) {
+				PX4_INFO("buffer_full");
+			}
+
+			if (radio_critical) {
+				PX4_INFO("radio_critical");
+			}
 			break;
 		}
 
