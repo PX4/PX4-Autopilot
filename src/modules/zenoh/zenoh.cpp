@@ -59,17 +59,17 @@ extern "C" __EXPORT int zenoh_main(int argc, char *argv[]);
 
 void toCamelCase(char *input)
 {
-	int capitalizeNext = 1; // Capitalize the first letter
+	bool capitalizeNext = true; // Capitalize the first letter
 	int j = 0;
 
 	for (int i = 0; input[i] != '\0'; i++) {
 		if (input[i] == '_') {
-			capitalizeNext = 1; // Next letter should be capitalized
+			capitalizeNext = true; // Next letter should be capitalized
 
 		} else {
 			if (capitalizeNext && isalpha(input[i])) {
 				input[j++] = toupper(input[i]);
-				capitalizeNext = 0;
+				capitalizeNext = false;
 
 			} else {
 				input[j++] = input[i];
@@ -111,7 +111,7 @@ int ZENOH::generate_rmw_zenoh_topic_keyexpr(const char *topic, const uint8_t *ri
 	const char *type_name = getTypeName(type);
 
 	if (type_name) {
-		strcpy(type, type_name);
+		strncpy(type, type_name, TOPIC_INFO_SIZE);
 		toCamelCase(type); // Convert uORB type to camel case
 		return snprintf(keyexpr, KEYEXPR_SIZE, "%" PRId32 "%s/"
 				KEYEXPR_MSG_NAME "%s_/RIHS01_"
@@ -143,7 +143,7 @@ int ZENOH::generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const c
 	char topic_lv[TOPIC_INFO_SIZE];
 	char *str = &topic_lv[0];
 
-	strcpy(topic_lv, topic);
+	strncpy(topic_lv, topic, sizeof(topic_lv));
 
 	while (*str) {
 		if (*str == '/') {
