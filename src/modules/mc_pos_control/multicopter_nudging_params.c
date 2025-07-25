@@ -59,8 +59,7 @@ PARAM_DEFINE_INT32(MPC_LAND_RC_HELP, 0);
  *  - If the vehicle is inside of the allowed radius, only allow nudging inputs that do not move the vehicle outside of it.
  *  - If the vehicle is outside of the allowed radius, only allow nudging inputs that move the vehicle back towards it.
  *
- * Setting the radius to -1 will disable this feature. Nudging is only limited
- * while local position is valid.
+ * Setting MPC_LAND_RADIUS to -1 will disable this feature.
  *
  * @unit m
  * @min -1
