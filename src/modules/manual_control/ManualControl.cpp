@@ -239,7 +239,7 @@ void ManualControl::processSwitches(hrt_abstime &now)
 
 				if (switches.termination_switch != _previous_switches.termination_switch
 				    && switches.termination_switch == manual_control_switches_s::SWITCH_POS_ON) {
-					sendActionRequest(action_request_s::ACTION_TERMINATE, action_request_s::SOURCE_RC_SWITCH);
+					sendActionRequest(action_request_s::ACTION_TERMINATION, action_request_s::SOURCE_RC_SWITCH);
 				}
 
 				if (switches.gear_switch != _previous_switches.gear_switch

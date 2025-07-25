@@ -1692,7 +1692,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 
 		break;
 
-	case action_request_s::ACTION_TERMINATE:
+	case action_request_s::ACTION_TERMINATION:
 		_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_TERMINATION);
 
 		break;
