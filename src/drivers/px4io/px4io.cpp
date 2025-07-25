@@ -800,7 +800,7 @@ PX4IO::io_set_arming_state()
 			_lockdown_override = false;
 		}
 
-		if (armed.force_failsafe) {
+		if (armed.termination) {
 			set |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
 
 		} else {

@@ -119,9 +119,9 @@ private:
 			}
 
 			// system_status overrides
-			if (actuator_armed.force_failsafe || (actuator_armed.lockdown
-							      && vehicle_status.hil_state == vehicle_status_s::HIL_STATE_OFF) || actuator_armed.manual_lockdown
-			    || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION) {
+			if (actuator_armed.termination
+			    || (actuator_armed.lockdown && vehicle_status.hil_state == vehicle_status_s::HIL_STATE_OFF)
+			    || actuator_armed.manual_lockdown) {
 
 				system_status = MAV_STATE_FLIGHT_TERMINATION;
 			}
