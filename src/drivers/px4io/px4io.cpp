@@ -801,10 +801,10 @@ PX4IO::io_set_arming_state()
 		}
 
 		if (armed.termination) {
-			set |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+			set |= PX4IO_P_SETUP_ARMING_TERMINATION;
 
 		} else {
-			clear |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+			clear |= PX4IO_P_SETUP_ARMING_TERMINATION;
 		}
 
 		if (armed.ready_to_arm) {
@@ -988,7 +988,7 @@ int PX4IO::io_get_status()
 		status.arming_fmu_prearmed         = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FMU_PREARMED;
 		status.arming_failsafe_custom      = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM;
 		status.arming_lockdown             = SETUP_ARMING & PX4IO_P_SETUP_ARMING_LOCKDOWN;
-		status.arming_force_failsafe       = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+		status.arming_terminated           = SETUP_ARMING & PX4IO_P_SETUP_ARMING_TERMINATION;
 		status.arming_termination_failsafe = SETUP_ARMING & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
 
 		for (unsigned i = 0; i < _max_actuators; i++) {
