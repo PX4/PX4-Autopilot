@@ -916,11 +916,13 @@ void Mavlink::send_finish()
 	pthread_mutex_unlock(&_send_mutex);
 }
 
-void Mavlink::begin_signing() {
+void Mavlink::begin_signing()
+{
 	// TODO Might require a mutex on resources
 }
 
-void Mavlink::end_signing() {
+void Mavlink::end_signing()
+{
 	// TODO Might require a mutex on resources
 }
 
