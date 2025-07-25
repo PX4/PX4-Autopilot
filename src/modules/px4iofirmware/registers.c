@@ -153,7 +153,7 @@ volatile uint16_t	r_page_setup[] = {
 		PX4IO_P_SETUP_ARMING_IO_ARM_OK | \
 		PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM | \
 		PX4IO_P_SETUP_ARMING_LOCKDOWN | \
-		PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE | \
+		PX4IO_P_SETUP_ARMING_TERMINATION | \
 		PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE)
 #define PX4IO_P_SETUP_RATES_VALID	((1 << PX4IO_SERVO_COUNT) - 1)
 
@@ -361,11 +361,11 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			value |= (r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE);
 
 			/*
-			 * If failsafe termination is enabled and force failsafe bit is set, do not allow
+			 * If failsafe termination is enabled and termination bit is set, do not allow
 			 * the autopilot to clear it.
 			 */
 			if (r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE) {
-				value |= (r_setup_arming & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE);
+				value |= (r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION);
 			}
 
 			r_setup_arming = value;
