@@ -219,7 +219,8 @@ void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool for
 
 			bool reset = false;
 
-			if (!fused && isGnssPosResetAllowed()) {
+			if ((!fused && isGnssPosResetAllowed())
+			    || (gpos_init_conditions_passing && !_local_origin_lat_lon.isInitialized())) {
 				resetHorizontalPositionToGnss(aid_src);
 				reset = true;
 			}
