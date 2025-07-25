@@ -80,6 +80,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_noaid_noise(_params->ekf2_noaid_noise),
 #if defined(CONFIG_EKF2_GNSS)
 	_param_ekf2_gps_ctrl(_params->ekf2_gps_ctrl),
+	_param_ekf2_gps_mode(_params->ekf2_gps_mode),
 	_param_ekf2_gps_delay(_params->ekf2_gps_delay),
 	_param_ekf2_gps_pos_x(_params->gps_pos_body(0)),
 	_param_ekf2_gps_pos_y(_params->gps_pos_body(1)),
@@ -531,10 +532,9 @@ void EKF2::Run()
 
 			} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE) {
 
-				if ((_ekf.control_status_flags().wind_dead_reckoning || _ekf.control_status_flags().inertial_dead_reckoning
-				     || (!_ekf.control_status_flags().in_air && !_ekf.control_status_flags().gnss_pos))
-				    && PX4_ISFINITE(vehicle_command.param2)
-				    && PX4_ISFINITE(vehicle_command.param5) && PX4_ISFINITE(vehicle_command.param6)
+				if (PX4_ISFINITE(vehicle_command.param2)
+				    && PX4_ISFINITE(vehicle_command.param5)
+				    && PX4_ISFINITE(vehicle_command.param6)
 				   ) {
 
 					const float measurement_delay_seconds = math::constrain(vehicle_command.param2, 0.0f,

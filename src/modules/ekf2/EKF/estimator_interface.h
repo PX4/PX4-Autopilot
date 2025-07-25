@@ -214,6 +214,7 @@ public:
 
 	bool isOnlyActiveSourceOfHorizontalAiding(bool aiding_flag) const;
 	bool isOnlyActiveSourceOfHorizontalPositionAiding(bool aiding_flag) const;
+	bool isOnlyActiveSourceOfHorizontalVelocityAiding(bool aiding_flag) const;
 
 	/*
 	 * Check if there are any other active source of horizontal aiding
@@ -227,10 +228,12 @@ public:
 	 */
 	bool isOtherSourceOfHorizontalAidingThan(bool aiding_flag) const;
 	bool isOtherSourceOfHorizontalPositionAidingThan(bool aiding_flag) const;
+	bool isOtherSourceOfHorizontalVelocityAidingThan(bool aiding_flag) const;
 
 	// Return true if at least one source of horizontal aiding is active
 	// the flags considered are opt_flow, gps, ev_vel and ev_pos
 	bool isHorizontalAidingActive() const;
+	bool isHorizontalPositionAidingActive() const;
 	bool isVerticalAidingActive() const;
 	bool isNorthEastAidingActive() const;
 
