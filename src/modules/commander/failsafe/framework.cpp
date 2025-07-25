@@ -443,7 +443,8 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 	returned_state.updated_user_intended_mode = state.user_intended_mode;
 	returned_state.cause = Cause::Generic;
 
-	if (_selected_action == Action::Terminate) { // Terminate never clears
+	if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_TERMINATION
+	    || _selected_action == Action::Terminate) { // Terminate never clears
 		returned_state.action = Action::Terminate;
 		return;
 	}
