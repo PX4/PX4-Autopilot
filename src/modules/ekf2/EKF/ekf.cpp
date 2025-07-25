@@ -363,10 +363,12 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 				H(State::pos.idx + index) = 0.f; // Reset the whole vector to 0
 			}
 
-			// Use the reset counters to inform the controllers about a potential large position jump
-			// TODO: compute the actual position change
-			_state_reset_status.reset_count.posNE++;
-			_state_reset_status.posNE_change.zero();
+			// Use the reset counters to inform the controllers about a position jump
+			updateHorizontalPositionResetStatus(-innov);
+
+			// Reset the positon of the output predictor to avoid a transient that would disturb the
+			// position controller
+			_output_predictor.resetLatLonTo(_gpos.latitude_deg(), _gpos.longitude_deg());
 
 			_time_last_hor_pos_fuse = _time_delayed_us;
 			_last_known_gpos.setLatLon(gpos_corrected);
