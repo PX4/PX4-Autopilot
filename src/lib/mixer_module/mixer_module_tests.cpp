@@ -148,12 +148,12 @@ public:
 		_actuator_test_pub.publish(actuator_test);
 	}
 
-	void sendActuatorArmed(bool armed, bool force_failsafe = false, bool manual_lockdown = false, bool prearm = false)
+	void sendActuatorArmed(bool armed, bool termination = false, bool manual_lockdown = false, bool prearm = false)
 	{
 		actuator_armed_s actuator_armed{};
 		actuator_armed.timestamp = hrt_absolute_time();
 		actuator_armed.armed = armed;
-		actuator_armed.force_failsafe = force_failsafe;
+		actuator_armed.termination = termination;
 		actuator_armed.manual_lockdown = manual_lockdown;
 		actuator_armed.prearmed = prearm;
 		_actuator_armed_pub.publish(actuator_armed);

@@ -94,7 +94,7 @@ static constexpr bool operator ==(const actuator_armed_s &a, const actuator_arme
 		a.ready_to_arm == b.ready_to_arm &&
 		a.lockdown == b.lockdown &&
 		a.manual_lockdown == b.manual_lockdown &&
-		a.force_failsafe == b.force_failsafe &&
+		a.termination == b.termination &&
 		a.in_esc_calibration_mode == b.in_esc_calibration_mode);
 }
 static_assert(sizeof(actuator_armed_s) == 16, "actuator_armed equality operator review");
@@ -1898,11 +1898,11 @@ void Commander::run()
 		_actuator_armed.lockdown = ((_vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON)
 					    || _multicopter_throw_launch.isThrowLaunchInProgress());
 		// _actuator_armed.manual_lockdown // action_request_s::ACTION_KILL
-		_actuator_armed.force_failsafe = (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION);
+		_actuator_armed.termination = (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION);
 		// _actuator_armed.in_esc_calibration_mode // VEHICLE_CMD_PREFLIGHT_CALIBRATION
 
-		// if force_failsafe activated send parachute command
-		if (!actuator_armed_prev.force_failsafe && _actuator_armed.force_failsafe && isArmed()) {
+		// Send parachute command upon termination
+		if (!actuator_armed_prev.termination && _actuator_armed.termination && isArmed()) {
 			send_parachute_command();
 		}
 
