@@ -481,7 +481,7 @@ void RCUpdate::Run()
 		/* publish rc_channels topic even if signal is invalid, for debug */
 		_rc_channels_pub.publish(_rc);
 
-		/* check if the R/C enabled switch is set*/
+		// check if the R/C enabled switch is set
 		auto check_rc_enable_switch = [this]() {
 			bool rc_enabled = true;
 
