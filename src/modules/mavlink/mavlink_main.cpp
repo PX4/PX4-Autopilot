@@ -85,12 +85,60 @@ static pthread_mutex_t mavlink_event_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
 events::EventBuffer *Mavlink::_event_buffer = nullptr;
 
 Mavlink *mavlink_module_instances[MAVLINK_COMM_NUM_BUFFERS] {};
+static mavlink_signing_streams_t global_mavlink_signig_streams = {};
 
 void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length) { mavlink_module_instances[chan]->send_bytes(ch, length); }
 void mavlink_start_uart_send(mavlink_channel_t chan, int length) { mavlink_module_instances[chan]->send_start(length); }
 void mavlink_end_uart_send(mavlink_channel_t chan, int length) { mavlink_module_instances[chan]->send_finish(); }
+void mavlink_start_sign_stream(uint8_t chan) { mavlink_module_instances[chan]->begin_signing(); }
+void mavlink_end_sign_stream(uint8_t chan) { mavlink_module_instances[chan]->end_signing(); }
 mavlink_status_t *mavlink_get_channel_status(uint8_t channel) { return mavlink_module_instances[channel]->get_status(); }
 mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel) { return mavlink_module_instances[channel]->get_buffer(); }
+
+static const uint32_t unsigned_messages[] = {
+	MAVLINK_MSG_ID_RADIO_STATUS,
+	MAVLINK_MSG_ID_ADSB_VEHICLE,
+	MAVLINK_MSG_ID_COLLISION
+};
+
+static bool accept_unsigned_callback(const mavlink_status_t *status, uint32_t message_id)
+{
+	// Always accept a few select messages even if unsigned
+	for (unsigned i = 0; i < sizeof(unsigned_messages) / sizeof(unsigned_messages[0]); i++) {
+		if (unsigned_messages[i] == message_id) {
+			return true;
+		}
+	}
+
+	Mavlink *m = Mavlink::get_instance_for_status(status);
+
+	if (m != nullptr) {
+
+		// Count the failure
+		m->count_sign_error();
+
+		unsigned sign_mode = m->sign_mode();
+
+		switch (sign_mode) {
+		// If signing is not required always return true
+		case Mavlink::PROTO_SIGN_OPTIONAL:
+			return true;
+
+		// Accept USB links if enabled
+		case Mavlink::PROTO_SIGN_NON_USB:
+			return m->is_usb_uart();
+
+		case Mavlink::PROTO_SIGN_ALWAYS:
+
+		// fallthrough
+		default:
+			return false;
+
+		}
+	}
+
+	return false;
+}
 
 static void usage();
 
@@ -135,6 +183,33 @@ Mavlink::Mavlink() :
 
 	_event_sub.subscribe();
 	_telemetry_status_pub.advertise();
+
+	int mav_sign_key1 = _param_mav_sign_key1.get();
+	int mav_sign_key2 = _param_mav_sign_key2.get();
+	int mav_sign_key3 = _param_mav_sign_key3.get();
+	int mav_sign_key4 = _param_mav_sign_key4.get();
+	int mav_sign_key5 = _param_mav_sign_key5.get();
+	int mav_sign_key6 = _param_mav_sign_key6.get();
+	int mav_sign_key7 = _param_mav_sign_key7.get();
+	int mav_sign_key8 = _param_mav_sign_key8.get();
+
+	// set the signing procedure
+	memcpy(_mavlink_signing.secret_key, &mav_sign_key1, 4);
+	memcpy(_mavlink_signing.secret_key + 4, &mav_sign_key2, 4);
+	memcpy(_mavlink_signing.secret_key + 8, &mav_sign_key3, 4);
+	memcpy(_mavlink_signing.secret_key + 12, &mav_sign_key4, 4);
+	memcpy(_mavlink_signing.secret_key + 16, &mav_sign_key5, 4);
+	memcpy(_mavlink_signing.secret_key + 20, &mav_sign_key6, 4);
+	memcpy(_mavlink_signing.secret_key + 24, &mav_sign_key7, 4);
+	memcpy(_mavlink_signing.secret_key + 28, &mav_sign_key8, 4);
+
+	_mavlink_signing.link_id = _instance_id;
+	_mavlink_signing.timestamp = _param_mav_sign_ts.get();
+	_mavlink_signing.flags = MAVLINK_SIGNING_FLAG_SIGN_OUTGOING;
+	_mavlink_signing.accept_unsigned_callback = accept_unsigned_callback;
+	// copy pointer of the signing to status struct
+	_mavlink_status.signing = &_mavlink_signing;
+	_mavlink_status.signing_streams = &global_mavlink_signig_streams;
 }
 
 Mavlink::~Mavlink()
@@ -314,6 +389,20 @@ Mavlink::get_instance_for_device(const char *device_name)
 
 	for (Mavlink *inst : mavlink_module_instances) {
 		if (inst && (inst->_protocol == Protocol::SERIAL) && (strcmp(inst->_device_name, device_name) == 0)) {
+			return inst;
+		}
+	}
+
+	return nullptr;
+}
+
+Mavlink *
+Mavlink::get_instance_for_status(const mavlink_status_t *status)
+{
+	LockGuard lg{mavlink_module_mutex};
+
+	for (Mavlink *inst : mavlink_module_instances) {
+		if (status == mavlink_get_channel_status(inst->get_instance_id())) {
 			return inst;
 		}
 	}
@@ -827,6 +916,16 @@ void Mavlink::send_finish()
 	pthread_mutex_unlock(&_send_mutex);
 }
 
+void Mavlink::begin_signing()
+{
+	// TODO Might require a mutex on resources
+}
+
+void Mavlink::end_signing()
+{
+	// TODO Might require a mutex on resources
+}
+
 void Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 {
 	if (!_tx_buffer_low) {
@@ -1025,6 +1124,53 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	/*
 	 *  NOTE: this is called from the receiver thread
 	 */
+
+	if (is_usb_uart() && msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
+		mavlink_setup_signing_t setup_signing;
+		mavlink_msg_setup_signing_decode(msg, &setup_signing);
+		/* setup signing provides new key , lets update it */
+		memcpy(_mavlink_signing.secret_key, setup_signing.secret_key, 32);
+		_mavlink_signing.timestamp = setup_signing.initial_timestamp;
+
+		int sign_key1 = 0;
+		int sign_key2 = 0;
+		int sign_key3 = 0;
+		int sign_key4 = 0;
+		int sign_key5 = 0;
+		int sign_key6 = 0;
+		int sign_key7 = 0;
+		int sign_key8 = 0;
+
+		memcpy(&sign_key1, setup_signing.secret_key, 4);
+		memcpy(&sign_key2, setup_signing.secret_key + 4, 4);
+		memcpy(&sign_key3, setup_signing.secret_key + 8, 4);
+		memcpy(&sign_key4, setup_signing.secret_key + 12, 4);
+		memcpy(&sign_key5, setup_signing.secret_key + 16, 4);
+		memcpy(&sign_key6, setup_signing.secret_key + 20, 4);
+		memcpy(&sign_key7, setup_signing.secret_key + 24, 4);
+		memcpy(&sign_key8, setup_signing.secret_key + 28, 4);
+
+		_param_mav_sign_key1.set(sign_key1);
+		_param_mav_sign_key2.set(sign_key2);
+		_param_mav_sign_key3.set(sign_key3);
+		_param_mav_sign_key4.set(sign_key4);
+		_param_mav_sign_key5.set(sign_key5);
+		_param_mav_sign_key6.set(sign_key6);
+		_param_mav_sign_key7.set(sign_key7);
+		_param_mav_sign_key8.set(sign_key8);
+		_param_mav_sign_ts.set(_mavlink_signing.timestamp);
+
+		_param_mav_sign_key1.commit_no_notification();
+		_param_mav_sign_key2.commit_no_notification();
+		_param_mav_sign_key3.commit_no_notification();
+		_param_mav_sign_key4.commit_no_notification();
+		_param_mav_sign_key5.commit_no_notification();
+		_param_mav_sign_key6.commit_no_notification();
+		_param_mav_sign_key7.commit_no_notification();
+		_param_mav_sign_key8.commit_no_notification();
+		_param_mav_sign_ts.commit_no_notification();
+		return;
+	}
 
 	if (get_forwarding_on()) {
 		/* forward any messages to other mavlink instances */
