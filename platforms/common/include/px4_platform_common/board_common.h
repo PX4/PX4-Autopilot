@@ -264,8 +264,10 @@
  */
 #if defined(CONFIG_BOARD_SERIAL_RC)
 #  define RC_SERIAL CONFIG_BOARD_SERIAL_RC
-#else
+#elif defined(RC_SERIAL_PORT)
 #  define RC_SERIAL RC_SERIAL_PORT
+#else
+#  error Board needs to define either CONFIG_BOARD_SERIAL_RC or RC_SERIAL_PORT
 #endif
 
 /*
@@ -509,6 +511,35 @@ static inline bool board_rc_singlewire(const char *device) { return false; }
 static inline bool board_rc_swap_rxtx(const char *device) { return strcmp(device, RC_SERIAL) == 0; }
 #else
 static inline bool board_rc_swap_rxtx(const char *device) { return false; }
+#endif
+
+/************************************************************************************
+ * Name: board_rc_conflicting
+ *
+ * Description:
+ *   A board may define its serial RC to be the same as PX4IO_SERIAL_DEVICE,
+ *   especially when using PX4IO.
+ *
+ *   This is problematic when trying to open the serial device used for PX4IO
+ *   for RC.
+ *
+ * Input Parameters:
+ *   device: serial device, e.g. "/dev/ttyS0"
+ *
+ * Returned Value:
+ *   true if the given serial device does conflict with the PX4IO.
+ *   false if not.
+ *
+ ************************************************************************************/
+
+#if defined(RC_SERIAL) && defined(PX4IO_SERIAL_DEVICE)
+static inline bool board_rc_conflicting(const char *device)
+{
+	return strcmp(device, RC_SERIAL) == 0 && strcmp(RC_SERIAL, PX4IO_SERIAL_DEVICE) == 0
+	       && (access("/dev/px4io", R_OK) == 0);
+}
+#else
+static inline bool board_rc_conflicting(const char *device) { return false; }
 #endif
 
 /************************************************************************************
