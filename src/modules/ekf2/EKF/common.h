@@ -149,8 +149,8 @@ enum class GnssCtrl : uint8_t {
 };
 
 enum class GnssMode : uint8_t {
-	AUTO           = 0,   	///< Reset on fusion timeout if no other source of position is available
-	DEAD_RECKONING = 1   	///< Reset on fusion timeout if no source of velocity is availabl
+	kAuto           = 0,   	///< Reset on fusion timeout if no other source of position is available
+	kDeadReckoning = 1   	///< Reset on fusion timeout if no source of velocity is availabl
 };
 
 enum class RngCtrl : uint8_t {
@@ -327,7 +327,7 @@ struct parameters {
 
 #if defined(CONFIG_EKF2_GNSS)
 	int32_t ekf2_gps_ctrl {static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL)};
-	int32_t ekf2_gps_mode {static_cast<int32_t>(GnssMode::AUTO)};
+	int32_t ekf2_gps_mode {static_cast<int32_t>(GnssMode::kAuto)};
 	float ekf2_gps_delay{110.0f};           ///< GPS measurement delay relative to the IMU (mSec)
 
 	Vector3f gps_pos_body{};                ///< xyz position of the GPS antenna in body frame (m)
