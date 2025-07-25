@@ -55,6 +55,11 @@ void StickAccelerationXY::resetPosition(const matrix::Vector2f &position)
 	_position_setpoint = position;
 }
 
+void StickAccelerationXY::addToPositionSetpoint(const matrix::Vector2f &delta)
+{
+	_position_setpoint += delta;
+}
+
 void StickAccelerationXY::resetVelocity(const matrix::Vector2f &velocity)
 {
 	if (velocity.isAllFinite()) {
