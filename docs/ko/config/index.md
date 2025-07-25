@@ -7,7 +7,7 @@ Most other steps can be done out of order, except for [tuning](#tuning), which m
 
 ## 전제 조건
 
-Before starting you should [Download QGroundControl](https://qgroundcontrol.com/downloads/) and install it on your **desktop** computer.
+Before starting you should [Download QGroundControl](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html) and install it on your **desktop** computer.
 Then open the QGC application menu ("Q" icon in the top-left corner) and choose **Vehicle Setup** in the _Select Tool_ popup:
 
 ![QGC Main Menu Popup: highlighting Vehicle Setup](../../assets/qgc/setup/menu_setup.png)
@@ -69,7 +69,7 @@ The video below shows most of the calibration process (it uses an older version 
 
 ## 지원
 
-If you need help with the configuration you can ask for help on the [QGroundControl Support forum](https://discuss.px4.io//c/qgroundcontrol/qgroundcontrol-usage).
+If you need help with the configuration you can ask for help on the [QGroundControl Support forum](https://discuss.px4.io/c/qgroundcontrol/qgroundcontrol-usage/18).
 
 ## See Also
 

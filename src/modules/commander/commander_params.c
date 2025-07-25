@@ -284,10 +284,10 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
  *
  * Before entering failsafe (RTL, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
  * for the user to realize.
- * During that time the user cannot take over control via the stick override feature (see COM_RC_OVERRIDE).
+ * During that time the user can switch modes, but cannot take over control via the stick override feature (see COM_RC_OVERRIDE).
  * Afterwards the configured failsafe action is triggered and the user may use stick override.
  *
- * A zero value disables the delay and the user cannot take over via stick movements (switching modes is still allowed).
+ * A zero value disables the delay.
  *
  * @group Commander
  * @unit s
@@ -618,13 +618,15 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
 /**
  * RC loss exceptions
  *
- * Specify modes in which RC loss is ignored and the failsafe action not triggered.
+ * Specify modes where manual control loss is ignored and no failsafe is triggered.
+ * External modes requiring stick input will still failsafe.
  *
  * @min 0
- * @max 7
+ * @max 15
  * @bit 0 Mission
  * @bit 1 Hold
  * @bit 2 Offboard
+ * @bit 3 External Mode
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
@@ -732,6 +734,8 @@ PARAM_DEFINE_INT32(COM_MOT_TEST_EN, 1);
 
 /**
  * Timeout value for disarming when kill switch is engaged
+ *
+ * Use RC_MAP_KILL_SW to map a kill switch.
  *
  * @group Commander
  * @unit s

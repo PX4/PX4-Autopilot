@@ -38,7 +38,7 @@ DroneCAN was previously known as UAVCAN v0 (or just UAVCAN).
 
 - Датчики швидкості повітря
   - [Holybro High Precision DroneCAN Airspeed Sensor - DLVR](https://holybro.com/collections/sensors/products/high-precision-dronecan-airspeed-sensor-dlvr)
-  - [RaccoonLab airspeed sensor](https://docs.raccoonlab.co/guide/airspeed)
+  - [RaccoonLab airspeed sensor](https://docs.raccoonlab.co/guide/airspeed/)
   - [Thiemar airspeed sensor](https://github.com/thiemar/airspeed)
 
 - Приймачі ГНСС для ГНСС (GPS, GLONASS, BeiDou та інше)
@@ -324,6 +324,6 @@ If successful, the firmware binary will be removed from the root directory and t
 ## Корисні посилання
 
 - [Home Page](https://dronecan.github.io) (dronecan.github.io)
-- [Protocol Specification](https://dronecan.github.io/Specification) (dronecan.github.io)
+- [Protocol Specification](https://dronecan.github.io/Specification/1._Introduction/) (dronecan.github.io)
 - [Implementations](https://dronecan.github.io/Implementations/) (dronecan.github.io)
 - [Cyphal/CAN Device Interconnection](https://wiki.zubax.com/public/cyphal/CyphalCAN-device-interconnection?pageId=2195476) (kb.zubax.com)

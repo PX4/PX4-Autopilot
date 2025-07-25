@@ -4,7 +4,7 @@
 
 The [Aion R1](https://www.aionrobotics.com/) vehicle was chosen to test and improve the differential drive support for PX4, and to improve driver support for Roboclaw Motor Controllers, such as the [RoboClaw 2x15A](https://www.basicmicro.com/RoboClaw-2x15A-Motor-Controller_p_10.html).
 
-The documentation and driver information here should also make it easier to work with Roboclaw controllers on other vehicles, and to work with vehicles like the [Aion R6](https://www.aionrobotics.com/r6).
+The documentation and driver information here should also make it easier to work with Roboclaw controllers on other vehicle.
 
 Currently, PX4 supports MANUAL mode for this setup.
 
@@ -12,8 +12,7 @@ Currently, PX4 supports MANUAL mode for this setup.
 
 ## 配件列表
 
-- [Aion R1 (Discontinued)](https://www.aionrobotics.com/)
-  - [Documentation](https://github-docs.readthedocs.io/en/latest/r1-ugv.html)
+- Aion R1 (Discontinued)
 - [RoboClaw 2x15A](https://www.basicmicro.com/RoboClaw-2x15A-Motor-Controller_p_10.html)
   - [R1 Roboclaw specifications](https://resources.basicmicro.com/aion-robotics-r1-autonomous-robot/)
 - [Auterion Skynode](../companion_computer/auterion_skynode.md)
@@ -50,7 +49,6 @@ Use _QGroundControl_ for rover configuration:
 First configure the serial connection:
 
 1. Navigate to the [Parameters](../advanced_config/parameters.md) section in QGroundControl.
-
   - Set the [RBCLW_SER_CFG](../advanced_config/parameter_reference.md#RBCLW_SER_CFG) parameter to the serial port to which the RoboClaw is connected (such as `GPS2`).
   - [RBCLW_COUNTS_REV](../advanced_config/parameter_reference.md#RBCLW_COUNTS_REV) specifies the number of encoder counts required for one wheel revolution.
     This value should be left at `1200` for the tested `RoboClaw 2x15A Motor Controller`.

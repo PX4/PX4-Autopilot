@@ -50,7 +50,7 @@ Key Build Features:
 
 - MS4525DO differential pressure module and pitot tube
 
-- [Caddx Vista FPV air unit](https://caddxfpv.com/products/caddx-vista-kit)
+- [Caddx Vista FPV air unit](https://caddxfpv.com/collections/vista-kit)
 
 - [DJI FPV Goggles](https://www.dji.com/fpv)
 

@@ -108,12 +108,16 @@ px4_add_romfs_files(
 	10042_sihsim_xvert
 	10043_sihsim_standard_vtol
 	10044_sihsim_hex
+	10045_sihsim_rover_ackermann
 
 	17001_flightgear_tf-g1
 	17002_flightgear_tf-g2
 
 	50000_gz_rover_differential
 
+	60002_gz_uuv_bluerov2_heavy
+
+	71001_gz_atmos
 	71002_gz_spacecraft_2d
 
 	# [22000, 22999] Reserve for custom models
