@@ -42,7 +42,7 @@ public:
 	void UpdateManualSwitches(const hrt_abstime &timestamp_sample) { RCUpdate::UpdateManualSwitches(timestamp_sample); }
 	void updateParams() { RCUpdate::updateParams(); }
 	void setChannel(size_t index, float channel_value) { _rc.channels[index] = channel_value; }
-	bool rc_inputs_enabled()const {return _rc_inputs_enabled;}
+	bool rc_inputs_enabled() const { return _rc_inputs_enabled; }
 	void run() {RCUpdate::Run();}
 };
 
