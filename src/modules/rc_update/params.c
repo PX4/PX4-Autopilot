@@ -1957,7 +1957,7 @@ PARAM_DEFINE_INT32(RC_MAP_ENG_MOT, 0);
 PARAM_DEFINE_INT32(RC_FAILS_THR, 0);
 
 /**
- * Threshold for selecting R/C enable witch
+ * Threshold for selecting R/C enable switch
  *
  * 0-1 indicate where in the full channel range the threshold sits
  * 		0 : min
