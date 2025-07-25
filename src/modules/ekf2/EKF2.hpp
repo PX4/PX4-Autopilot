@@ -353,7 +353,7 @@ private:
 	uint32_t _device_id_baro{0};
 	hrt_abstime _status_baro_hgt_pub_last{0};
 
-	float _last_baro_bias_published{};
+	float _last_baro_bias_published{NAN};
 
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
 
@@ -619,7 +619,6 @@ private:
 		(ParamExtFloat<px4::params::EKF2_RNG_PITCH>) _param_ekf2_rng_pitch,
 		(ParamExtFloat<px4::params::EKF2_RNG_A_VMAX>) _param_ekf2_rng_a_vmax,
 		(ParamExtFloat<px4::params::EKF2_RNG_A_HMAX>) _param_ekf2_rng_a_hmax,
-		(ParamExtFloat<px4::params::EKF2_RNG_QLTY_T>) _param_ekf2_rng_qlty_t,
 		(ParamExtFloat<px4::params::EKF2_RNG_K_GATE>) _param_ekf2_rng_k_gate,
 		(ParamExtFloat<px4::params::EKF2_RNG_FOG>) _param_ekf2_rng_fog,
 		(ParamExtFloat<px4::params::EKF2_RNG_POS_X>) _param_ekf2_rng_pos_x,
