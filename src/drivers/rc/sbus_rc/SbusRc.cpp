@@ -85,6 +85,11 @@ int SbusRc::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
+	if (board_rc_conflicting(device_name)) {
+		PX4_INFO("unable to start, conflict with PX4IO on %s", device_name);
+		return PX4_ERROR;
+	}
+
 	if (device_name && (access(device_name, R_OK | W_OK) == 0)) {
 		SbusRc *instance = new SbusRc(device_name);
 
