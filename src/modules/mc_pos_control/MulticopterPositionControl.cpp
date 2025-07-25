@@ -578,10 +578,8 @@ void MulticopterPositionControl::Run()
 				_last_valid_setpoint = _setpoint;
 
 			} else {
-				const float invalid_setpoint_timeout_ms = 100;
-				const bool transient_invalid = (now - _last_valid_setpoint_time) < (invalid_setpoint_timeout_ms * 1e3f);
 
-				if (transient_invalid) {
+				if ((now - _last_valid_setpoint_time) < 100_ms) {
 					// Use last valid setpoint for the timeout period
 					_control.setInputSetpoint(_last_valid_setpoint);
 
