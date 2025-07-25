@@ -15,7 +15,7 @@ uint8 ACTION_KILL = 4 # Kill vehicle (instantly stop the motors)
 uint8 ACTION_SWITCH_MODE = 5 # Switch mode. The target mode is set in the `mode` field.
 uint8 ACTION_VTOL_TRANSITION_TO_MULTICOPTER = 6 # Transition to hover flight
 uint8 ACTION_VTOL_TRANSITION_TO_FIXEDWING = 7 # Transition to fast forward flight
-uint8 ACTION_TERMINATE = 8 # Flight termination (irreversible)
+uint8 ACTION_TERMINATION = 8 # Irreversably output failsafe values on all outputs, trigger parachute
 
 uint8 source # [@enum SOURCE] Request trigger type, such as a switch, button or gesture
 uint8 SOURCE_STICK_GESTURE = 0 # Triggered by holding the sticks in a certain position
