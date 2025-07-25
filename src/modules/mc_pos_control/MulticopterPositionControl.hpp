@@ -113,6 +113,7 @@ private:
 	hrt_abstime _time_position_control_enabled{0};
 
 	trajectory_setpoint_s _setpoint{PositionControl::empty_trajectory_setpoint};
+	trajectory_setpoint_s _last_valid_setpoint{PositionControl::empty_trajectory_setpoint};
 	vehicle_control_mode_s _vehicle_control_mode{};
 
 	vehicle_constraints_s _vehicle_constraints {
@@ -206,6 +207,7 @@ private:
 	PositionControl _control; ///< class for core PID position control
 
 	hrt_abstime _last_warn{0}; /**< timer when the last warn message was sent out */
+	hrt_abstime _last_valid_setpoint_time{0}; /**< timer when the last valid setpoint was received */
 
 	bool _hover_thrust_initialized{false};
 
