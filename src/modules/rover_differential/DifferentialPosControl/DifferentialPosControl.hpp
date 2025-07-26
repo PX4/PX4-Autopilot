@@ -113,6 +113,7 @@ private:
 	// Variables
 	Vector2f _curr_pos_ned{};
 	Vector2f _start_ned{};
+	Vector2f _stopped_ned{}; // Position where the rover stopped last time. Needed for speed trapezoid planning.
 	float _arrival_speed{NAN};
 	float _cruising_speed{NAN};
 	float _vehicle_yaw{0.f};

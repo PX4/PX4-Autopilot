@@ -60,14 +60,14 @@ void DifferentialPosControl::updatePosControl()
 		float distance_to_target = (target_waypoint_ned - _curr_pos_ned).norm();
 		bool isArrivalFast = PX4_ISFINITE(_arrival_speed) && _arrival_speed > FLT_EPSILON;
 
-		float distance_from_start = (_curr_pos_ned - _start_ned).norm();
+		float distance_from_stopped = (_curr_pos_ned - _stopped_ned).norm();
 
 		pure_pursuit_status_s pure_pursuit_status{};
 		pure_pursuit_status.timestamp = timestamp;
 
 		if (isArrivalFast || distance_to_target > _param_nav_acc_rad.get()) {
 
-			// apply PurePursuit - figure out desired yaw:
+			// apply PurePursuit - figure out desired yaw to closely follow the line from previous waypoint to current one:
 			const float yaw_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
 						   _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned,
 						   _start_ned, _curr_pos_ned,
@@ -81,7 +81,7 @@ void DifferentialPosControl::updatePosControl()
 
 			} else if (_current_state == DrivingState::SPOT_TURNING && fabsf(heading_error) < _param_rd_trans_trn_drv.get()) {
 				_current_state = DrivingState::DRIVING;
-				_start_ned = _curr_pos_ned; // next trapezoid calculation will start here, where we stopped
+				_stopped_ned = _curr_pos_ned; // next trapezoid calculation will start here, where we stopped
 			}
 
 			if (_current_state == DrivingState::DRIVING) {
@@ -95,9 +95,9 @@ void DifferentialPosControl::updatePosControl()
 				float arr_dep_speed = isArrivalFast ?  _arrival_speed : 0.f;
 				float acc_dec_limit = _param_ro_decel_limit.get();
 
-				if (distance_from_start > FLT_EPSILON && distance_from_start < distance_to_target) {
+				if (distance_from_stopped > FLT_EPSILON && distance_from_stopped < distance_to_target) {
 					// we are departing from the start point and accelerating:
-					arr_dep_distance = distance_from_start;
+					arr_dep_distance = distance_from_stopped;
 					arr_dep_speed = _ground_speed_abs;
 					acc_dec_limit = _param_ro_accel_limit.get();
 				}
@@ -115,7 +115,7 @@ void DifferentialPosControl::updatePosControl()
 				}
 
 			} else {
-				// speed profile while SPOT_TURNING - (TBD: small constant speed by parameter):
+				// speed profile while SPOT_TURNING - (TODO: small constant speed by parameter?):
 				_speed_setpoint = 0.f;
 			}
 
@@ -141,7 +141,7 @@ void DifferentialPosControl::updatePosControl()
 			rover_velocity_setpoint.timestamp = timestamp;
 			rover_velocity_setpoint.speed = 0.f;
 			rover_velocity_setpoint.bearing = _vehicle_yaw;
-			//rover_velocity_setpoint.state = (int)_current_state; // would be nice to have this field published
+			//rover_velocity_setpoint.state = (int)_current_state; // TODO: would be nice to have this field published
 			_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
 		}
 	}
@@ -175,11 +175,12 @@ void DifferentialPosControl::updateSubscriptions()
 		_rover_position_setpoint_sub.copy(&_rover_position_setpoint);
 		_start_ned = Vector2f(_rover_position_setpoint.start_ned[0], _rover_position_setpoint.start_ned[1]);
 		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
-		_arrival_speed = _rover_position_setpoint.arrival_speed;
-		_cruising_speed = _rover_position_setpoint.cruising_speed;
+		_arrival_speed = PX4_ISFINITE(_rover_position_setpoint.arrival_speed) ? _rover_position_setpoint.arrival_speed : 0.f;
+		_cruising_speed = PX4_ISFINITE(_rover_position_setpoint.cruising_speed) ? _rover_position_setpoint.cruising_speed : 0.f;
+		_stopped_ned = _start_ned; // reset stopped position to start position (a.k.a. previous waypoint)
 
-		PX4_WARN("PosControl: new rover_position_setpoint:  arrival_speed=%.2f  cruising_speed=%.2f",
-			 (double)_arrival_speed, (double)_cruising_speed);
+		// PX4_WARN("\n=== new rover_pos_setpoint:  arrival_speed=%.2f  cruising_speed=%.2f\n",
+		// 	 (double)_arrival_speed, (double)_cruising_speed);
 	}
 
 }
