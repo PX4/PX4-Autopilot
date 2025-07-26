@@ -720,7 +720,7 @@ bool FailsafeBase::deferFailsafes(bool enabled, int timeout_s)
 		return false;
 	}
 
-	if (!enabled && _failsafe_defer_started == 0) {
+	if (!enabled && _defer_failsafes && _failsafe_defer_started == 0) {
 		_current_delay = 0;
 	}
 
