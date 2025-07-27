@@ -33,7 +33,7 @@ _QGroundControl for Windows_ is additionally required if you need to:
   Note that you can also use it to monitor a simulation, but you must manually [connect to the simulation running in WSL](#qgroundcontrol-on-windows).
 
 :::info
-Connecting to a USB device from within WSL is not supported, so you can't update firmware using the [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) option when building on the command line, or from _QGroundControl for Linux_.
+Connecting to an USB device from within WSL is not natively supported, however it can still be achieved by using the [USBIPD-WIN](https://learn.microsoft.com/en-us/windows/wsl/connect-usb) project. With this you can automatically upload firmware from the command line in WSL using the  [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) function.
 :::
 
 :::info
