@@ -16,10 +16,11 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [ActuatorMotors](ActuatorMotors.md) — Motor control message
 - [ActuatorServos](ActuatorServos.md) — Servo control message
 - [AirspeedValidated](AirspeedValidated.md)
-- [ArmingCheckReply](ArmingCheckReply.md)
-- [ArmingCheckRequest](ArmingCheckRequest.md)
-- [BatteryStatus](BatteryStatus.md)
+- [ArmingCheckReply](ArmingCheckReply.md) — Arming check reply.
+- [ArmingCheckRequest](ArmingCheckRequest.md) — Arming check request.
+- [BatteryStatus](BatteryStatus.md) — Battery status
 - [ConfigOverrides](ConfigOverrides.md) — Configurable overrides by (external) modes or mode executors
+- [Event](Event.md) — Events interface
 - [FixedWingLateralSetpoint](FixedWingLateralSetpoint.md) — Fixed Wing Lateral Setpoint message
   Used by the fw_lateral_longitudinal_control module
   At least one of course, airspeed_direction, or lateral_acceleration must be finite.
@@ -42,7 +43,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [ManualControlSetpoint](ManualControlSetpoint.md)
 - [ModeCompleted](ModeCompleted.md) — Mode completion result, published by an active mode.
   Можливі значення nav_state визначені в повідомленні VehicleStatus.
-  Зверніть увагу, що це не завжди публікується (наприклад, коли користувач переходить у режими або при активації failsafe)
+  Note that this is not always published (e.g. when a user switches modes or on
+  failsafe activation)
 - [RegisterExtComponentReply](RegisterExtComponentReply.md)
 - [RegisterExtComponentRequest](RegisterExtComponentRequest.md) — Request to register an external component
 - [TrajectorySetpoint](TrajectorySetpoint.md) — Trajectory setpoint in NED frame
@@ -54,19 +56,21 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleAttitude](VehicleAttitude.md) — This is similar to the mavlink message ATTITUDE_QUATERNION, but for onboard use
   The quaternion uses the Hamilton convention, and the order is q(w, x, y, z)
 - [VehicleAttitudeSetpoint](VehicleAttitudeSetpoint.md)
-- [VehicleCommand](VehicleCommand.md) — Vehicle Command uORB message. Використовується для управління місією / дією / тощо.
-  Дотримується визначення MAVLink COMMAND_INT / COMMAND_LONG
+- [VehicleCommand](VehicleCommand.md) — Vehicle Command uORB message. Used for commanding a mission / action / etc.
+  Follows the MAVLink COMMAND_INT / COMMAND_LONG definition
 - [VehicleCommandAck](VehicleCommandAck.md) — Vehicle Command Ackonwledgement uORB message.
-  Використовується для підтвердження отримання команди для транспортного засобу.
-  Дотримується визначення MAVLink COMMAND_ACK повідомлення
+  Used for acknowledging the vehicle command being received.
+  Follows the MAVLink COMMAND_ACK message definition
 - [VehicleControlMode](VehicleControlMode.md)
 - [VehicleGlobalPosition](VehicleGlobalPosition.md) — Fused global position in WGS84.
-  Ця структура містить глобальну оцінку позиції. Це не сирі GPS
-  вимірювання (@see vehicle_gps_position). Ця тема зазвичай публікується позиціонером, який враховує більше джерел інформації, ніж просто GPS, наприклад, керування введеннями транспортного засобу в реалізації фільтра Калмана.
+  This struct contains global position estimation. It is not the raw GPS
+  measurement (@see vehicle_gps_position). This topic is usually published by the position
+  estimator, which will take more sources of information into account than just GPS,
+  e.g. control inputs of the vehicle in a Kalman-filter implementation.
 - [VehicleLandDetected](VehicleLandDetected.md)
 - [VehicleLocalPosition](VehicleLocalPosition.md) — Fused local position in NED.
-  Початкова точка координатної системи - це позиція транспортного засобу в момент запуску модуля EKF2.
-- [VehicleOdometry](VehicleOdometry.md) — Vehicle odometry data. Відповідає ROS REP 147 для повітряних суден
+  The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
+- [VehicleOdometry](VehicleOdometry.md) — Vehicle odometry data. Fits ROS REP 147 for aerial vehicles
 - [VehicleRatesSetpoint](VehicleRatesSetpoint.md)
 - [VehicleStatus](VehicleStatus.md) — Encodes the system state of the vehicle published by commander
 - [VtolVehicleStatus](VtolVehicleStatus.md) — VEHICLE_VTOL_STATE, should match 1:1 MAVLinks's MAV_VTOL_STATE
@@ -80,9 +84,10 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [ActuatorServosTrim](ActuatorServosTrim.md) — Servo trims, added as offset to servo outputs
 - [ActuatorTest](ActuatorTest.md)
 - [AdcReport](AdcReport.md)
-- [Airspeed](Airspeed.md)
+- [Airspeed](Airspeed.md) — Airspeed data from sensors
 - [AirspeedWind](AirspeedWind.md)
 - [AutotuneAttitudeControlStatus](AutotuneAttitudeControlStatus.md)
+- [BatteryInfo](BatteryInfo.md) — Battery information
 - [ButtonEvent](ButtonEvent.md)
 - [CameraCapture](CameraCapture.md)
 - [CameraStatus](CameraStatus.md)
@@ -102,6 +107,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [DifferentialPressure](DifferentialPressure.md)
 - [DistanceSensor](DistanceSensor.md) — DISTANCE_SENSOR message data
 - [DistanceSensorModeChangeRequest](DistanceSensorModeChangeRequest.md)
+- [DronecanNodeStatus](DronecanNodeStatus.md)
 - [Ekf2Timestamps](Ekf2Timestamps.md) — this message contains the (relative) timestamps of the sensor inputs used by EKF2.
   Це може бути використано для відтворення.
 - [EscReport](EscReport.md)
@@ -115,12 +121,11 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [EstimatorGpsStatus](EstimatorGpsStatus.md)
 - [EstimatorInnovations](EstimatorInnovations.md)
 - [EstimatorSelectorStatus](EstimatorSelectorStatus.md)
-- [EstimatorSensorBias](EstimatorSensorBias.md) — Sensor readings and in-run biases in SI-unit form. Показання датчиків компенсуються для статичних зсувів,
-  похибки шкали, зсув під час роботи та тепловий зсув (якщо термокомпенсація увімкнена та доступна).
+- [EstimatorSensorBias](EstimatorSensorBias.md) — Sensor readings and in-run biases in SI-unit form. Sensor readings are compensated for static offsets,
+  scale errors, in-run bias and thermal drift (if thermal compensation is enabled and available).
 - [EstimatorStates](EstimatorStates.md)
 - [EstimatorStatus](EstimatorStatus.md)
 - [EstimatorStatusFlags](EstimatorStatusFlags.md)
-- [Event](Event.md) — Events interface
 - [FailsafeFlags](FailsafeFlags.md) — Input flags for the failsafe state machine set by the arming & health checks.
 - [FailureDetectorStatus](FailureDetectorStatus.md)
 - [FigureEightStatus](FigureEightStatus.md)
@@ -208,7 +213,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [PowerButtonState](PowerButtonState.md) — power button state notification message
 - [PowerMonitor](PowerMonitor.md) — power monitor message
 - [PpsCapture](PpsCapture.md)
-- [PurePursuitStatus](PurePursuitStatus.md)
+- [PurePursuitStatus](PurePursuitStatus.md) — Pure pursuit status
 - [PwmInput](PwmInput.md)
 - [Px4ioStatus](Px4ioStatus.md)
 - [QshellReq](QshellReq.md)
@@ -217,15 +222,15 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [RateCtrlStatus](RateCtrlStatus.md)
 - [RcChannels](RcChannels.md)
 - [RcParameterMap](RcParameterMap.md)
-- [RoverAttitudeSetpoint](RoverAttitudeSetpoint.md)
-- [RoverAttitudeStatus](RoverAttitudeStatus.md)
-- [RoverPositionSetpoint](RoverPositionSetpoint.md)
-- [RoverRateSetpoint](RoverRateSetpoint.md)
-- [RoverRateStatus](RoverRateStatus.md)
-- [RoverSteeringSetpoint](RoverSteeringSetpoint.md)
-- [RoverThrottleSetpoint](RoverThrottleSetpoint.md)
-- [RoverVelocitySetpoint](RoverVelocitySetpoint.md)
-- [RoverVelocityStatus](RoverVelocityStatus.md)
+- [RoverAttitudeSetpoint](RoverAttitudeSetpoint.md) — Rover Attitude Setpoint
+- [RoverAttitudeStatus](RoverAttitudeStatus.md) — Rover Attitude Status
+- [RoverPositionSetpoint](RoverPositionSetpoint.md) — Rover Position Setpoint
+- [RoverRateSetpoint](RoverRateSetpoint.md) — Rover Rate setpoint
+- [RoverRateStatus](RoverRateStatus.md) — Rover Rate Status
+- [RoverSteeringSetpoint](RoverSteeringSetpoint.md) — Rover Steering setpoint
+- [RoverThrottleSetpoint](RoverThrottleSetpoint.md) — Rover Throttle setpoint
+- [RoverVelocitySetpoint](RoverVelocitySetpoint.md) — Rover Velocity Setpoint
+- [RoverVelocityStatus](RoverVelocityStatus.md) — Rover Velocity Status
 - [Rpm](Rpm.md)
 - [RtlStatus](RtlStatus.md)
 - [RtlTimeEstimate](RtlTimeEstimate.md)
@@ -235,7 +240,8 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SensorAirflow](SensorAirflow.md)
 - [SensorBaro](SensorBaro.md)
 - [SensorCombined](SensorCombined.md) — Sensor readings in SI-unit form.
-  Ці поля масштабуються та компенсуються зміщенням, де це можливо, і не змінюються з ревізіями плати та оновленнями сенсора.
+  These fields are scaled and offset-compensated where possible and do not
+  change with board revisions and sensor updates.
 - [SensorCorrection](SensorCorrection.md) — Sensor corrections in SI-unit form for the voted sensor
 - [SensorGnssRelative](SensorGnssRelative.md) — GNSS relative positioning information in NED frame. NED кадр визначається як локальна топологічна система на задній станції.
 - [SensorGps](SensorGps.md) — GPS position in WGS84 coordinates.
@@ -268,7 +274,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
   then the frequency, duration are used otherwise those values are ignored.
 - [UavcanParameterRequest](UavcanParameterRequest.md) — UAVCAN-MAVLink parameter bridge request type
 - [UavcanParameterValue](UavcanParameterValue.md) — UAVCAN-MAVLink parameter bridge response type
-- [UlogStream](UlogStream.md) — Message to stream ULog data from the logger. Відповідає повідомленню mavlink LOGGING_DATA
+- [UlogStream](UlogStream.md) — Message to stream ULog data from the logger. Corresponds to the LOGGING_DATA
   mavlink message
 - [UlogStreamAck](UlogStreamAck.md) — Ack a previously sent ulog_stream message that had
   the NEED_ACK flag set
@@ -293,5 +299,10 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [Wind](Wind.md)
 - [YawEstimatorStatus](YawEstimatorStatus.md)
 - [AirspeedValidatedV0](AirspeedValidatedV0.md)
+- [ArmingCheckReplyV0](ArmingCheckReplyV0.md)
+- [BatteryStatusV0](BatteryStatusV0.md) — Battery status
+- [EventV0](EventV0.md) — this message is required here in the msg_old folder because other msg are depending on it
+  Events interface
+- [HomePositionV0](HomePositionV0.md) — GPS home position in WGS84 coordinates.
 - [VehicleAttitudeSetpointV0](VehicleAttitudeSetpointV0.md)
 - [VehicleStatusV0](VehicleStatusV0.md) — Encodes the system state of the vehicle published by commander
