@@ -287,6 +287,8 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 void
 MavlinkParametersManager::send()
 {
+	// TODO: this logic is covering for a potential race condition which might not
+	// exist anymore. Review again for removal.
 	if (_first_send) {
 		// parameters QGC can't tolerate not finding (2020-11-11)
 		param_find("BAT_CRIT_THR");
