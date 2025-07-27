@@ -1,6 +1,6 @@
 # VehicleOdometry (повідомлення UORB)
 
-Дані odometry Техніки. Відповідає ROS REP 147 для повітряних суден
+Дані odometry Техніки. Fits ROS REP 147 for aerial vehicles
 
 [source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleOdometry.msg)
 

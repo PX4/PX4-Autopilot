@@ -1,7 +1,7 @@
 # VehicleLocalPosition (повідомлення UORB)
 
 Fused local position in NED.
-Початкова точка координатної системи - це позиція транспортного засобу в момент запуску модуля EKF2.
+The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
 
 [source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleLocalPosition.msg)
 
