@@ -791,11 +791,11 @@ PX4IO::io_set_arming_state()
 			clear |= PX4IO_P_SETUP_ARMING_FMU_PREARMED;
 		}
 
-		if ((armed.lockdown || armed.manual_lockdown) && !_lockdown_override) {
+		if ((armed.lockdown || armed.kill) && !_lockdown_override) {
 			set |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
 			_lockdown_override = true;
 
-		} else if (!(armed.lockdown || armed.manual_lockdown) && _lockdown_override) {
+		} else if (!(armed.lockdown || armed.kill) && _lockdown_override) {
 			clear |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
 			_lockdown_override = false;
 		}

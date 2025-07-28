@@ -93,7 +93,7 @@ static constexpr bool operator ==(const actuator_armed_s &a, const actuator_arme
 		a.prearmed == b.prearmed &&
 		a.ready_to_arm == b.ready_to_arm &&
 		a.lockdown == b.lockdown &&
-		a.manual_lockdown == b.manual_lockdown &&
+		a.kill == b.kill &&
 		a.termination == b.termination &&
 		a.in_esc_calibration_mode == b.in_esc_calibration_mode);
 }
@@ -1662,17 +1662,17 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 		break;
 
 	case action_request_s::ACTION_UNKILL:
-		if (_actuator_armed.manual_lockdown) {
+		if (_actuator_armed.kill) {
 			mavlink_log_info(&_mavlink_log_pub, "Kill disengaged\t");
 			events::send(events::ID("commander_kill_sw_disengaged"), events::Log::Info, "Kill disengaged");
 			_status_changed = true;
-			_actuator_armed.manual_lockdown = false;
+			_actuator_armed.kill = false;
 		}
 
 		break;
 
 	case action_request_s::ACTION_KILL:
-		if (!_actuator_armed.manual_lockdown) {
+		if (!_actuator_armed.kill) {
 			const char kill_switch_string[] = "Kill engaged\t";
 			events::LogLevels log_levels{events::Log::Info};
 
@@ -1687,7 +1687,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 			events::send(events::ID("commander_kill_sw_engaged"), log_levels, "Kill engaged");
 
 			_status_changed = true;
-			_actuator_armed.manual_lockdown = true;
+			_actuator_armed.kill = true;
 		}
 
 		break;
@@ -1897,7 +1897,7 @@ void Commander::run()
 		_actuator_armed.ready_to_arm = _vehicle_status.pre_flight_checks_pass || isArmed();
 		_actuator_armed.lockdown = ((_vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON)
 					    || _multicopter_throw_launch.isThrowLaunchInProgress());
-		// _actuator_armed.manual_lockdown // action_request_s::ACTION_KILL
+		// _actuator_armed.kill // action_request_s::ACTION_KILL
 		_actuator_armed.termination = (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION);
 		// _actuator_armed.in_esc_calibration_mode // VEHICLE_CMD_PREFLIGHT_CALIBRATION
 
@@ -2285,7 +2285,7 @@ void Commander::handleAutoDisarm()
 		}
 
 		// Auto disarm after 5 seconds if kill switch is engaged
-		bool auto_disarm = _actuator_armed.manual_lockdown;
+		bool auto_disarm = _actuator_armed.kill;
 
 		// auto disarm if locked down to avoid user confusion
 		//  skipped in HITL where lockdown is enabled for safety
@@ -2299,7 +2299,7 @@ void Commander::handleAutoDisarm()
 		_auto_disarm_killed.set_state_and_update(auto_disarm, hrt_absolute_time());
 
 		if (_auto_disarm_killed.get_state()) {
-			if (_actuator_armed.manual_lockdown) {
+			if (_actuator_armed.kill) {
 				disarm(arm_disarm_reason_t::kill_switch, true);
 
 			} else {

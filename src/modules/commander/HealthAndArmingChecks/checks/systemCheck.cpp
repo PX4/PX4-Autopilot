@@ -42,7 +42,7 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 	actuator_armed_s actuator_armed;
 
 	if (_actuator_armed_sub.copy(&actuator_armed)) {
-		if (actuator_armed.termination || actuator_armed.manual_lockdown) {
+		if (actuator_armed.termination || actuator_armed.kill) {
 			/* EVENT
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_flight_term_active"),
