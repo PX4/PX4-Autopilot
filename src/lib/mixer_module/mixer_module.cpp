@@ -458,7 +458,7 @@ bool MixingOutput::update()
 
 	// Send output if any function mapped or one last disabling sample
 	if (!all_disabled || !_was_all_disabled) {
-		if (!_armed.armed && !_armed.manual_lockdown) {
+		if (!_armed.armed && !_armed.kill) {
 			_actuator_test.overrideValues(outputs, _max_num_outputs);
 		}
 
@@ -473,7 +473,7 @@ bool MixingOutput::update()
 void
 MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates)
 {
-	if (_armed.lockdown || _armed.manual_lockdown) {
+	if (_armed.lockdown || _armed.kill) {
 		// overwrite outputs in case of lockdown with disarmed values
 		for (size_t i = 0; i < _max_num_outputs; i++) {
 			_current_output_value[i] = _disarmed_value[i];
