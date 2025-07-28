@@ -737,7 +737,7 @@ private:
 	rtcm::Decoder                                  *_rtcm_decoder {nullptr};                    ///< RTCM message decoder
 
 	// uORB topics and subscriptions
-	sensor_gps_s                                   _message_gps_state {};                          ///< uORB topic for position
+	sensor_gps_s                                   _sensor_gps{};                           ///< uORB topic for position
 	gps_dump_s                                     *_message_data_to_receiver {nullptr};           ///< uORB topic for dumping data to the receiver
 	gps_dump_s                                     *_message_data_from_receiver {nullptr};         ///< uORB topic for dumping data from the receiver
 	satellite_info_s                               *_message_satellite_info {nullptr};             ///< uORB topic for satellite info
