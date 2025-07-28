@@ -419,9 +419,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	sensor_gps.vel_n_m_s = msg.ned_velocity[0];
 	sensor_gps.vel_e_m_s = msg.ned_velocity[1];
 	sensor_gps.vel_d_m_s = msg.ned_velocity[2];
-	sensor_gps.vel_m_s = sqrtf(sensor_gps.vel_n_m_s * sensor_gps.vel_n_m_s +
-				   sensor_gps.vel_e_m_s * sensor_gps.vel_e_m_s +
-				   sensor_gps.vel_d_m_s * sensor_gps.vel_d_m_s);
+	sensor_gps.vel_m_s = matrix::Vector3f(msg.ned_velocity[0], msg.ned_velocity[1], msg.ned_velocity[2]).norm();
 	sensor_gps.cog_rad = atan2f(sensor_gps.vel_e_m_s, sensor_gps.vel_n_m_s);
 	sensor_gps.vel_ned_valid = true;
 
