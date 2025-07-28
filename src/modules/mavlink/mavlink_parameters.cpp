@@ -289,7 +289,7 @@ MavlinkParametersManager::send()
 {
 	// TODO: this logic is covering for a potential race condition which might not
 	// exist anymore. Review again for removal.
-	if (_first_send) {
+	if (_is_sending_param_first) {
 		// parameters QGC can't tolerate not finding (2020-11-11)
 		param_find("BAT_CRIT_THR");
 		param_find("BAT_EMERGEN_THR");
@@ -315,7 +315,7 @@ MavlinkParametersManager::send()
 		// parameter only used in startup script but should show on ground station
 		param_find("SYS_PARAM_VER");
 
-		_first_send = false;
+		_is_sending_param_first = false;
 	}
 
 	// Send out 3 params at a time
