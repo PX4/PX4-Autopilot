@@ -533,7 +533,7 @@ void UavcanGnssBridge::handleInjectDataTopic()
 	gps_inject_data_s msg;
 
 	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
-	if ((now - _last_rtcm_injection_time) > 5_s) {
+	if (now > _last_rtcm_injection_time + 5_s) {
 
 		for (int instance = 0; instance < _orb_inject_data_sub.size(); instance++) {
 			const bool exists = _orb_inject_data_sub[instance].advertised();

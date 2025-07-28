@@ -1475,15 +1475,16 @@ void SeptentrioDriver::handle_inject_data_topic()
 	bool already_copied = false;
 	gps_inject_data_s msg;
 
-	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
-	if ((hrt_absolute_time() - _last_rtcm_injection_time) > 5_s) {
+	const hrt_abstime now = hrt_absolute_time();
 
+	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
+	if (now > _last_rtcm_injection_time + 5_s) {
 		for (int instance = 0; instance < _gps_inject_data_sub.size(); instance++) {
 			const bool exists = _gps_inject_data_sub[instance].advertised();
 
 			if (exists) {
 				if (_gps_inject_data_sub[instance].copy(&msg)) {
-					if ((hrt_absolute_time() - msg.timestamp) < 5_s) {
+					if (now < msg.timestamp + 5_s) {
 						// Remember that we already did a copy on this instance.
 						already_copied = true;
 						_selected_rtcm_instance = instance;

@@ -87,7 +87,6 @@ using namespace time_literals;
 #define TIMEOUT_1HZ		1300	//!< Timeout time in mS, 1000 mS (1Hz) + 300 mS delta for error
 #define TIMEOUT_5HZ		500	//!< Timeout time in mS,  200 mS (5Hz) + 300 mS delta for error
 #define TIMEOUT_DUMP_ADD	450	//!< Additional time in mS to account for RTCM3 parsing and dumping
-#define RATE_MEASUREMENT_PERIOD 5_s
 
 enum class gps_driver_mode_t {
 	None = 0,
@@ -197,8 +196,8 @@ private:
 	uORB::PublicationMulti<satellite_info_s>	_report_sat_info_pub{ORB_ID(satellite_info)};		///< uORB pub for satellite info
 
 	float				_rate{0.0f};					///< position update rate
-	float				_rate_rtcm_injection{0.0f};			///< RTCM message injection rate
-	unsigned			_last_rate_rtcm_injection_count{0};		///< counter for number of RTCM messages
+	float				_rtcm_injection_rate{0.0f};			///< RTCM message injection rate
+	unsigned			_rtcm_injection_rate_message_count{0};		///< counter for number of RTCM messages
 	unsigned			_num_bytes_read{0}; 				///< counter for number of read bytes from the UART (within update interval)
 	unsigned			_rate_reading{0}; 				///< reading rate in B/s
 	hrt_abstime			_last_rtcm_injection_time{0};			///< time of last rtcm injection
@@ -540,8 +539,10 @@ void GPS::handleInjectDataTopic()
 	bool already_copied = false;
 	gps_inject_data_s msg;
 
+	const hrt_abstime now = hrt_absolute_time();
+
 	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
-	if ((hrt_absolute_time() - _last_rtcm_injection_time) > 5_s) {
+	if (now > _last_rtcm_injection_time + 5_s) {
 
 		for (int instance = 0; instance < _orb_inject_data_sub.size(); instance++) {
 			const bool exists = _orb_inject_data_sub[instance].advertised();
@@ -553,7 +554,7 @@ void GPS::handleInjectDataTopic()
 				 */
 				if (msg.device_id != get_device_id()) {
 					// Only use the message if it is up to date
-					if ((hrt_absolute_time() - msg.timestamp) < 5_s) {
+					if (now < msg.timestamp + 5_s) {
 						// Remember that we already did a copy on this instance.
 						already_copied = true;
 						_selected_rtcm_instance = instance;
@@ -586,7 +587,7 @@ void GPS::handleInjectDataTopic()
 				*/
 				injectData(msg.data, msg.len);
 
-				++_last_rate_rtcm_injection_count;
+				++_rtcm_injection_rate_message_count;
 				_last_rtcm_injection_time = hrt_absolute_time();
 			}
 		}
@@ -993,15 +994,17 @@ GPS::run()
 
 				reset_if_scheduled();
 
+				const hrt_abstime now = hrt_absolute_time();
+
 				/* measure update rate every 5 seconds */
-				if (hrt_absolute_time() - last_rate_measurement > RATE_MEASUREMENT_PERIOD) {
-					float dt = (float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f;
+				if (now > last_rate_measurement + 5_s) {
+					float dt = (float)((now - last_rate_measurement)) / 1e6f;
 					_rate = last_rate_count / dt;
-					_rate_rtcm_injection = _last_rate_rtcm_injection_count / dt;
+					_rtcm_injection_rate = _rtcm_injection_rate_message_count / dt;
 					_rate_reading = _num_bytes_read / dt;
-					last_rate_measurement = hrt_absolute_time();
+					last_rate_measurement = now;
 					last_rate_count = 0;
-					_last_rate_rtcm_injection_count = 0;
+					_rtcm_injection_rate_message_count = 0;
 					_num_bytes_read = 0;
 					_helper->storeUpdateRates();
 					_helper->resetUpdateRates();
@@ -1040,7 +1043,7 @@ GPS::run()
 			if (_healthy) {
 				_healthy = false;
 				_rate = 0.0f;
-				_rate_rtcm_injection = 0.0f;
+				_rtcm_injection_rate = 0.0f;
 			}
 		}
 
@@ -1153,7 +1156,7 @@ GPS::print_status()
 		}
 
 		PX4_INFO("rate publication:\t\t%6.2f Hz", (double)_rate);
-		PX4_INFO("rate RTCM injection:\t%6.2f Hz", (double)_rate_rtcm_injection);
+		PX4_INFO("rate RTCM injection:\t%6.2f Hz", (double)_rtcm_injection_rate);
 
 		print_message(ORB_ID(sensor_gps), _sensor_gps);
 	}
@@ -1205,7 +1208,7 @@ GPS::publish()
 		_sensor_gps.device_id = get_device_id();
 
 		_sensor_gps.selected_rtcm_instance = _selected_rtcm_instance;
-		_sensor_gps.rtcm_injection_rate = _rate_rtcm_injection;
+		_sensor_gps.rtcm_injection_rate = _rtcm_injection_rate;
 
 		_sensor_gps_pub.publish(_sensor_gps);
 		// Heading/yaw data can be updated at a lower rate than the other navigation data.
