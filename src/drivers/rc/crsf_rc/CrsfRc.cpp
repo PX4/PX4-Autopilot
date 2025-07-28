@@ -170,8 +170,6 @@ void CrsfRc::Run()
 // #endif // TIOCSSINGLEWIRE
 // 			}
 
-			_is_singlewire = true;
-
 			PX4_INFO("Crsf serial opened sucessfully");
 
 			if (_is_singlewire) {
