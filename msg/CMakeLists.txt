@@ -188,6 +188,7 @@ set(msg_files
 	Rpm.msg
 	RtlStatus.msg
 	RtlTimeEstimate.msg
+	SafetySwitch.msg
 	SatelliteInfo.msg
 	SensorAccel.msg
 	SensorAccelFifo.msg
