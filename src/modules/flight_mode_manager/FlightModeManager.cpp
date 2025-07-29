@@ -196,6 +196,13 @@ void FlightModeManager::start_flight_task()
 		}
 	}
 
+	// VTOL Takeoff Loiter Land mode
+	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF_LOITER_LAND) {
+		found_some_task = true;
+		FlightTaskError error = switchTask(FlightTaskIndex::VtolTakeoffLoiterLand);
+		task_failure = error != FlightTaskError::NoError;
+	}
+
 	// position slow mode
 	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW) {
 		found_some_task = true;
