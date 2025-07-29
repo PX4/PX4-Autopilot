@@ -113,7 +113,7 @@ def run_tidy(args, tmpdir, build_path, queue):
     subprocess.check_call(invocation, stdin=None, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
 
   except subprocess.CalledProcessError as e:
-    print(f"\nclang-tidy failed on {name} with return code {e.returncode}")
+    print(f"\nclang-tidy failed on {name}")
     print("Re-running to show output:")
     # Now run again to see the actual output
     subprocess.call(invocation, stdin=None)
