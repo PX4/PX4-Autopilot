@@ -110,7 +110,9 @@ def run_tidy(args, tmpdir, build_path, queue):
                                      args.extra_arg, args.extra_arg_before)
 
     try:
-      subprocess.check_call(invocation, stdin=None, stdout=open(os.devnull, 'wb'), stderr=subprocess.STDOUT)
+      # subprocess.check_call(invocation, stdin=None, stdout=open(os.devnull, 'wb'), stderr=subprocess.STDOUT)
+      subprocess.check_call(invocation, stdin=None, stderr=subprocess.STDOUT)
+
     except subprocess.CalledProcessError as e:
       sys.stdout.write(' '.join(invocation) + '\n')
       subprocess.call(invocation)
