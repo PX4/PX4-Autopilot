@@ -53,12 +53,12 @@ static constexpr unsigned int DSHOT150  =  150000u;
 static constexpr unsigned int DSHOT300  =  300000u;
 static constexpr unsigned int DSHOT600  =  600000u;
 
-static constexpr int DSHOT_DISARM_VALUE = 0;
-static constexpr int DSHOT_MIN_THROTTLE = 1;
-static constexpr int DSHOT_MAX_THROTTLE = 1999;
+static constexpr uint16_t DSHOT_DISARM_VALUE = 0;
+static constexpr uint16_t DSHOT_MIN_THROTTLE = 1;
+static constexpr uint16_t DSHOT_MAX_THROTTLE = 1999;
 
 // We do this to avoid bringing in mavlink.h
- // #include <mavlink/common/mavlink.h>
+// #include <mavlink/common/mavlink.h>
 #define ACTUATOR_CONFIGURATION_BEEP 1
 #define ACTUATOR_CONFIGURATION_3D_MODE_OFF 2
 #define ACTUATOR_CONFIGURATION_3D_MODE_ON 3
@@ -114,7 +114,7 @@ private:
 		bool save{false};
 
 		bool valid() const { return num_repetitions > 0; }
-		void clear() { num_repetitions = 0; }
+		void clear() { num_repetitions = 0; save = false; motor_mask = 0; command = DSHOT_CMD_MOTOR_STOP; }
 	};
 
 	int _last_telemetry_index{-1};

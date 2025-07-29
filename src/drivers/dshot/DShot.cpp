@@ -66,10 +66,8 @@ int DShot::init()
 {
 	_output_mask = (1u << _num_outputs) - 1;
 
-	// Getting initial parameter values
 	update_params();
 
-	// Enable the DShot outputs
 	enable_dshot_outputs();
 
 	ScheduleNow();
@@ -160,7 +158,6 @@ void DShot::enable_dshot_outputs()
 	for (unsigned i = 0; i < _num_outputs; ++i) {
 		if (((1 << i) & _output_mask) == 0) {
 			_mixing_output.disableFunction(i);
-
 		}
 	}
 
@@ -335,50 +332,83 @@ void DShot::mixerChanged()
 bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			  unsigned num_outputs, unsigned num_control_groups_updated)
 {
+	// First check if all outputs are disarmed and we have a command to send
+	bool all_disarmed = true;
+
+	for (int i = 0; i < (int)num_outputs; i++) {
+		if (!_mixing_output.isFunctionSet(i)) {
+			continue;
+		}
+
+		if (outputs[i] != DSHOT_DISARM_VALUE) {
+			all_disarmed = false;
+		}
+	}
+
+	// All outputs are disarmed and we have a command to send
+	if (all_disarmed && _current_command.valid()) {
+
+		for (int i = 0; i < (int)num_outputs; i++) {
+
+			if (!_mixing_output.isFunctionSet(i)) {
+				continue;
+			}
+
+			if (_current_command.motor_mask & (1 << i)) {
+				PX4_INFO("Sending command %u to motor %d", _current_command.command, i);
+				up_dshot_motor_command(i, _current_command.command, true);
+
+				// Decrement command repetition counter
+				--_current_command.num_repetitions;
+
+				// Queue a save command after the burst if save has been requested
+				if (_current_command.num_repetitions == 0 && _current_command.save) {
+					_current_command.save = false;
+					_current_command.num_repetitions = 10;
+					_current_command.command = dshot_command_t::DSHOT_CMD_SAVE_SETTINGS;
+				}
+
+			} else {
+				up_dshot_motor_data_set(i, math::min(DSHOT_DISARM_VALUE, DSHOT_MAX_THROTTLE), false);
+			}
+		}
+
+		up_dshot_trigger();
+		return true;
+	}
+
+	// Clear pending commands if any output is not disarmed
+	_current_command.clear();
+
+	int telemetry_index = 0;
 	int requested_telemetry_index = -1;
 
 	if (_telemetry) {
 		requested_telemetry_index = _telemetry->getRequestMotorIndex();
 	}
 
-	int telemetry_index = 0;
-
 	for (int i = 0; i < (int)num_outputs; i++) {
 
 		uint16_t output = outputs[i];
+		bool request_telemetry = _telemetry && (requested_telemetry_index == telemetry_index);
+
+		if (!_mixing_output.isFunctionSet(i)) {
+			continue;
+		}
 
 		if (output == DSHOT_DISARM_VALUE) {
-
-			if (_current_command.valid() && (_current_command.motor_mask & (1 << i))) {
-				up_dshot_motor_command(i, _current_command.command, true);
-
-			} else {
-				up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, telemetry_index == requested_telemetry_index);
-			}
+			up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, request_telemetry);
 
 		} else {
-
+			// Reverse output if required
 			if (_param_dshot_3d_enable.get() || (_reversible_outputs & (1u << i))) {
 				output = convert_output_to_3d_scaling(output);
 			}
 
-			up_dshot_motor_data_set(i, math::min(output, static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
-						telemetry_index == requested_telemetry_index);
+			up_dshot_motor_data_set(i, math::min(output, DSHOT_MAX_THROTTLE), request_telemetry);
 		}
 
-		telemetry_index += _mixing_output.isFunctionSet(i);
-	}
-
-	// Decrement the command counter
-	if (_current_command.valid()) {
-		--_current_command.num_repetitions;
-
-		// Queue a save command after the burst if save has been requested
-		if (_current_command.num_repetitions == 0 && _current_command.save) {
-			_current_command.save = false;
-			_current_command.num_repetitions = 10;
-			_current_command.command = dshot_command_t::DSHOT_CMD_SAVE_SETTINGS;
-		}
+		telemetry_index++;
 	}
 
 	up_dshot_trigger();
@@ -428,7 +458,7 @@ void DShot::Run()
 
 	perf_begin(_cycle_perf);
 
-	// Updates the output, including writing the dshot throttle data
+	// Updates the DShot throttle output and sends DShot commands
 	_mixing_output.update();
 
 	bool all_channels_updated = false;
@@ -546,28 +576,29 @@ void DShot::handle_vehicle_commands()
 					break;
 
 				case ACTUATOR_CONFIGURATION_WRITE_SETTING:
-					// This is a special command that triggers 4 DShot commands:
-					// - DSHOT_CMD_ENTER_PROGRAMMING_MODE
-					// - EEPROM Memory location
-					// - Value
-					// - DSHOT_CMD_EXIT_PROGRAMMING_MODE
+
+				// This is a special command that triggers 4 DShot commands:
+				// - DSHOT_CMD_ENTER_PROGRAMMING_MODE
+				// - EEPROM Memory location
+				// - Value
+				// - DSHOT_CMD_EXIT_PROGRAMMING_MODE
 
 
-					// TODO: implement
-					// _current_command.command = dshot_command_t::DSHOT_CMD_ENTER_PROGRAMMING_MODE;
-					// _current_command.num_repetitions = 1;
-					// _current_command.save = false;
+				// TODO: implement
+				// _current_command.command = dshot_command_t::DSHOT_CMD_ENTER_PROGRAMMING_MODE;
+				// _current_command.num_repetitions = 1;
+				// _current_command.save = false;
 
-					// Command structure
-					// param1 = ACTUATOR_CONFIGURATION_WRITE_SETTING
-					// param2 = Memory location
-					// param3 = Value
-					// param5 = ACTUATOR_OUTPUT_FUNCTION_MOTOR1
+				// Command structure
+				// param1 = ACTUATOR_CONFIGURATION_WRITE_SETTING
+				// param2 = Memory location
+				// param3 = Value
+				// param5 = ACTUATOR_OUTPUT_FUNCTION_MOTOR1
 
-					// break;
+				// break;
 
 
-					// fallthrough!!
+				// fallthrough!!
 
 				default:
 					PX4_WARN("unknown command: %i", type);
@@ -594,10 +625,11 @@ void DShot::update_params()
 
 	updateParams();
 
-	// we use a minimum value of 1, since 0 is for disarmed
-	_mixing_output.setAllMinValues(math::constrain(static_cast<int>((_param_dshot_min.get() *
-				       static_cast<float>(DSHOT_MAX_THROTTLE))),
-				       DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE));
+	// Calculate minimum DShot output as percent of throttle and constrain.
+	float min_value = _param_dshot_min.get() * (float)DSHOT_MAX_THROTTLE;
+	uint16_t dshot_min_value = math::constrain((uint16_t)min_value, DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE);
+
+	_mixing_output.setAllMinValues(dshot_min_value);
 
 	// Do not use the minimum parameter for reversible outputs
 	for (unsigned i = 0; i < _num_outputs; ++i) {
