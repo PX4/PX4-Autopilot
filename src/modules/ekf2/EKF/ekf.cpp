@@ -335,7 +335,7 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 
 		const bool innov_rejected = (test_ratio > 1.f);
 
-		if (!_control_status.flags.in_air || (eph > 0.f && eph < 1.f) || innov_rejected || isHorizontalPositionAidingActive()) {
+		if (!_control_status.flags.in_air || (eph > 0.f && eph < 1.f) || innov_rejected) {
 			// When on ground or accuracy chosen to be very low, we hard reset position
 			// this allows the user to still send hard resets at any time
 			// Also reset when another position source is active as it it would otherwise have almost no
