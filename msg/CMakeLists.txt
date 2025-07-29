@@ -237,7 +237,6 @@ set(msg_files
 	VehicleTorqueSetpoint.msg
 	VelocityLimits.msg
 	WheelEncoders.msg
-	Wind.msg
 	YawEstimatorStatus.msg
 	versioned/ActuatorMotors.msg
 	versioned/ActuatorServos.msg
@@ -271,6 +270,7 @@ set(msg_files
 	versioned/VehicleRatesSetpoint.msg
 	versioned/VehicleStatus.msg
 	versioned/VtolVehicleStatus.msg
+	versioned/Wind.msg
 )
 list(SORT msg_files)
 
