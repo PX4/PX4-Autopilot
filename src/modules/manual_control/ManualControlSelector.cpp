@@ -43,6 +43,10 @@ void ManualControlSelector::updateValidityOfChosenInput(uint64_t now)
 
 void ManualControlSelector::updateWithNewInputSample(uint64_t now, const manual_control_setpoint_s &input, int instance)
 {
+	if (isRc(input.data_source)) { _timestamp_last_rc = input.timestamp_sample; }
+
+	if (isMavlink(input.data_source)) { _timestamp_last_mavlink = input.timestamp_sample; }
+
 	// First check if the chosen input got invalid, so it can get replaced
 	updateValidityOfChosenInput(now);
 
@@ -70,24 +74,38 @@ bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input,
 	const bool sample_newer_than_timeout = now < input.timestamp_sample + _timeout;
 
 	// Check if source matches the configuration
-	const bool source_rc_matched = (_rc_in_mode == 0) && (input.data_source == manual_control_setpoint_s::SOURCE_RC);
-	const bool source_mavlink_matched = (_rc_in_mode == 1) &&
-					    (input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_0
-					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_1
-					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_2
-					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_3
-					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_4
-					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_5);
+	const bool source_rc_matched = (_rc_in_mode == 0) && isRc(input.data_source);
+	const bool source_mavlink_matched = (_rc_in_mode == 1) && isMavlink(input.data_source);
 	const bool source_any_matched = (_rc_in_mode == 2);
 	const bool source_first_matched = (_rc_in_mode == 3) &&
 					  (input.data_source == _first_valid_source
 					   || _first_valid_source == manual_control_setpoint_s::SOURCE_UNKNOWN);
+	const bool source_rc_priority = (_rc_in_mode == 5)
+					&& (isRc(input.data_source) || (now > _timestamp_last_rc + _timeout));
+	const bool source_mavlink_priority = (_rc_in_mode == 6)
+					     && (isMavlink(input.data_source) || (now > _timestamp_last_mavlink + _timeout));
 
 	return sample_from_the_past && sample_newer_than_timeout && input.valid
-	       && (source_rc_matched || source_mavlink_matched || source_any_matched || source_first_matched);
+	       && (source_rc_matched || source_mavlink_matched || source_any_matched || source_first_matched || source_rc_priority
+		   || source_mavlink_priority);
 }
 
 manual_control_setpoint_s &ManualControlSelector::setpoint()
 {
 	return _setpoint;
+}
+
+bool ManualControlSelector::isRc(uint8_t source)
+{
+	return source == manual_control_setpoint_s::SOURCE_RC;
+}
+
+bool ManualControlSelector::isMavlink(uint8_t source)
+{
+	return (source == manual_control_setpoint_s::SOURCE_MAVLINK_0
+		|| source == manual_control_setpoint_s::SOURCE_MAVLINK_1
+		|| source == manual_control_setpoint_s::SOURCE_MAVLINK_2
+		|| source == manual_control_setpoint_s::SOURCE_MAVLINK_3
+		|| source == manual_control_setpoint_s::SOURCE_MAVLINK_4
+		|| source == manual_control_setpoint_s::SOURCE_MAVLINK_5);
 }
