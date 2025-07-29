@@ -467,7 +467,6 @@ else
 
 	else
 		commander start
-
 		dshot start
 		pwm_out start
 	fi

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,11 +31,6 @@
  *
  ****************************************************************************/
 
-/**
- * @file drv_dshot.h
- *
- */
-
 #pragma once
 
 #include <px4_platform_common/defines.h>
@@ -48,37 +43,28 @@
 
 __BEGIN_DECLS
 
+// https://brushlesswhoop.com/dshot-and-bidirectional-dshot/#special-commands
 typedef enum {
-	DShot_cmd_motor_stop = 0,
-	DShot_cmd_beacon1,
-	DShot_cmd_beacon2,
-	DShot_cmd_beacon3,
-	DShot_cmd_beacon4,
-	DShot_cmd_beacon5,
-	DShot_cmd_esc_info, // V2 includes settings
-	DShot_cmd_spin_direction_1,
-	DShot_cmd_spin_direction_2,
-	DShot_cmd_3d_mode_off,
-	DShot_cmd_3d_mode_on,
-	DShot_cmd_settings_request, // Currently not implemented
-	DShot_cmd_save_settings,
-	DShot_cmd_spin_direction_normal   = 20,
-	DShot_cmd_spin_direction_reversed = 21,
-	DShot_cmd_led0_on,      // BLHeli32 only
-	DShot_cmd_led1_on,      // BLHeli32 only
-	DShot_cmd_led2_on,      // BLHeli32 only
-	DShot_cmd_led3_on,      // BLHeli32 only
-	DShot_cmd_led0_off,     // BLHeli32 only
-	DShot_cmd_led1_off,     // BLHeli32 only
-	DShot_cmd_led2_off,     // BLHeli32 only
-	DShot_cmd_led4_off,     // BLHeli32 only
-	DShot_cmd_audio_stream_mode_on_off              = 30, // KISS audio Stream mode on/off
-	DShot_cmd_silent_mode_on_off                    = 31, // KISS silent Mode on/off
-	DShot_cmd_signal_line_telemetry_disable         = 32,
-	DShot_cmd_signal_line_continuous_erpm_telemetry = 33,
-	DShot_cmd_MAX          = 47,     // >47 are throttle values
-	DShot_cmd_MIN_throttle = 48,
-	DShot_cmd_MAX_throttle = 2047
+	DSHOT_CMD_MOTOR_STOP = 0,
+	DSHOT_CMD_BEEP1,
+	DSHOT_CMD_BEEP2,
+	DSHOT_CMD_BEEP3,
+	DSHOT_CMD_BEEP4,
+	DSHOT_CMD_BEEP5,
+	DSHOT_CMD_ESC_INFO,
+	DSHOT_CMD_SPIN_DIRECTION_1,
+	DSHOT_CMD_SPIN_DIRECTION_2,
+	DSHOT_CMD_3D_MODE_OFF,
+	DSHOT_CMD_3D_MODE_ON,
+	DSHOT_CMD_SETTINGS_REQUEST,
+	DSHOT_CMD_SAVE_SETTINGS,
+	DSHOT_CMD_SPIN_DIRECTION_NORMAL   = 20,
+	DSHOT_CMD_SPIN_DIRECTION_REVERSED = 21,
+	DSHOT_CMD_ENTER_PROGRAMMING_MODE = 36,
+	DSHOT_CMD_EXIT_PROGRAMMING_MODE = 37,
+	DSHOT_CMD_MAX          = 47,     // >47 are throttle values
+	DSHOT_CMD_MIN_THROTTLE = 48,
+	DSHOT_CMD_MAX_THROTTLE = 2047
 } dshot_command_t;
 
 
@@ -107,7 +93,7 @@ __EXPORT extern void dshot_motor_data_set(unsigned channel, uint16_t throttle, b
  */
 static inline void up_dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry)
 {
-	dshot_motor_data_set(channel, throttle + DShot_cmd_MIN_throttle, telemetry);
+	dshot_motor_data_set(channel, throttle + DSHOT_CMD_MIN_THROTTLE, telemetry);
 }
 
 /**
