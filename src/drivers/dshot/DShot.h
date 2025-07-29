@@ -57,36 +57,37 @@ static constexpr int DSHOT_DISARM_VALUE = 0;
 static constexpr int DSHOT_MIN_THROTTLE = 1;
 static constexpr int DSHOT_MAX_THROTTLE = 1999;
 
+// We do this to avoid bringing in mavlink.h
+ // #include <mavlink/common/mavlink.h>
+#define ACTUATOR_CONFIGURATION_BEEP 1
+#define ACTUATOR_CONFIGURATION_3D_MODE_OFF 2
+#define ACTUATOR_CONFIGURATION_3D_MODE_ON 3
+#define ACTUATOR_CONFIGURATION_SPIN_DIRECTION1 4
+#define ACTUATOR_CONFIGURATION_SPIN_DIRECTION2 5
+// TODO: this needs to be added to mavlink spec
+#define ACTUATOR_CONFIGURATION_WRITE_SETTING 6
+
 class DShot final : public ModuleBase<DShot>, public OutputModuleInterface
 {
 public:
 	DShot();
 	~DShot() override;
 
-	/** @see ModuleBase */
+	// @see ModuleBase
 	static int custom_command(int argc, char *argv[]);
+
+	// @see ModuleBase
+	int print_status() override;
+
+	// @see ModuleBase
+	static int print_usage(const char *reason = nullptr);
+
+	// @see ModuleBase
+	static int task_spawn(int argc, char *argv[]);
 
 	int init();
 
 	void mixerChanged() override;
-
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
-
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	/**
-	 * Send a dshot command to one or all motors
-	 * This is expected to be called from another thread.
-	 * @param num_repetitions number of times to repeat, set at least to 1
-	 * @param motor_index index or -1 for all
-	 * @return 0 on success, <0 error otherwise
-	 */
-	int send_command_thread_safe(const dshot_command_t command, const int num_repetitions, const int motor_index);
-
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
 
 	bool telemetry_enabled() const { return _telemetry != nullptr; }
 
@@ -119,15 +120,15 @@ private:
 	int _last_telemetry_index{-1};
 	uint8_t _actuator_functions[esc_status_s::CONNECTED_ESC_MAX] {};
 
-	void enable_dshot_outputs(const bool enabled);
+	void enable_dshot_outputs();
 
 	void init_telemetry(const char *device, bool swap_rxtx);
 
-	int handle_new_telemetry_data(const int telemetry_index, const DShotTelemetry::EscData &data, bool ignore_rpm);
+	bool handle_new_telemetry_data(const int telemetry_index, const DShotTelemetry::EscData &data);
 
 	void publish_esc_status(void);
 
-	int handle_new_bdshot_erpm(void);
+	bool handle_new_bdshot_erpm(void);
 
 	void Run() override;
 
@@ -150,11 +151,6 @@ private:
 	static bool _telemetry_swap_rxtx;
 	static px4::atomic_bool _request_telemetry_init;
 
-	px4::atomic<Command *> _new_command{nullptr};
-
-
-	bool _outputs_initialized{false};
-	bool _outputs_on{false};
 	bool _bidirectional_dshot_enabled{false};
 
 	static constexpr unsigned _num_outputs{DIRECT_PWM_OUTPUT_CHANNELS};
