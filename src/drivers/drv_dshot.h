@@ -44,7 +44,7 @@
 __BEGIN_DECLS
 
 // https://brushlesswhoop.com/dshot-and-bidirectional-dshot/#special-commands
-typedef enum {
+enum {
 	DSHOT_CMD_MOTOR_STOP = 0,
 	DSHOT_CMD_BEEP1,
 	DSHOT_CMD_BEEP2,
@@ -65,8 +65,7 @@ typedef enum {
 	DSHOT_CMD_MAX          = 47,     // >47 are throttle values
 	DSHOT_CMD_MIN_THROTTLE = 48,
 	DSHOT_CMD_MAX_THROTTLE = 2047
-} dshot_command_t;
-
+};
 
 /**
  * Intialise the Dshot outputs using the specified configuration.
