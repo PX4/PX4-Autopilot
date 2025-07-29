@@ -42,8 +42,6 @@ target_link_libraries(FlightTaskVtolTakeoffLoiterLand
 		FlightTask
 		px4_work_queue
 		parameters
-		uORB::Publication
-		uORB::Subscription
 		geo
 		mathlib
 )
