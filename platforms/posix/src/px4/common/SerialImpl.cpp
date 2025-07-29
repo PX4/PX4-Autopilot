@@ -251,6 +251,18 @@ bool SerialImpl::close()
 	return true;
 }
 
+ssize_t SerialImpl::bytesAvailable()
+{
+	if (!_open) {
+		PX4_ERR("Device not open!");
+		return -1;
+	}
+
+	ssize_t bytes_available = 0;
+	int ret = ioctl(_serial_fd, FIONREAD, &bytes_available);
+	return ret >= 0 ? bytes_available : 0;
+}
+
 ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
 {
 	if (!_open) {
