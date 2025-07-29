@@ -574,25 +574,27 @@ void MulticopterPositionControl::Run()
 			if (_control.update(dt)) {
 
 				// Valid control update - store for fallback
-				_last_valid_setpoint_time = _setpoint.timestamp;
 				_last_valid_setpoint = _setpoint;
 
 			} else {
 
-				if ((now - _last_valid_setpoint_time) < 200_ms) {
-					// Use last valid setpoint for the timeout period
+				// Initial update failed - Try fallback if within timeout
+				if (now < _last_valid_setpoint.timestamp + 200_ms) {
+					// Use last valid setpoint
 					adjustSetpointForEKFResets(vehicle_local_position, _last_valid_setpoint);
 					_control.setInputSetpoint(_last_valid_setpoint);
+				}
 
-				} else {
-					// Failsafe
+				// Still failing / not within timeout - Go to failsafe
+				if (!_control.update(dt)) {
+
 					_vehicle_constraints = {0, NAN, NAN, false, {}}; // reset constraints
 
 					_control.setInputSetpoint(generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, true));
 					_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
-				}
 
-				_control.update(dt);
+					_control.update(dt);
+				}
 			}
 
 			// Publish internal position control setpoints
