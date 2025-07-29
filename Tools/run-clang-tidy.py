@@ -108,16 +108,15 @@ def run_tidy(args, tmpdir, build_path, queue):
     invocation = get_tidy_invocation(name, args.clang_tidy_binary, args.checks,
                                      tmpdir, build_path, args.header_filter,
                                      args.extra_arg, args.extra_arg_before)
+    try:
+      subprocess.check_call(invocation, stdin=None, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
 
-  try:
-    subprocess.check_call(invocation, stdin=None, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
-
-  except subprocess.CalledProcessError as e:
-    sys.stdout.write(f'failed on {name} --> '.join(invocation) + '\n')
-    # Now run again to see the actual output
-    subprocess.call(invocation, stdin=None)
-    global tidy_failures
-    tidy_failures = tidy_failures + 1
+    except subprocess.CalledProcessError as e:
+      sys.stdout.write(f'failed on {name} --> '.join(invocation) + '\n')
+      # Now run again to see the actual output
+      subprocess.call(invocation, stdin=None)
+      global tidy_failures
+      tidy_failures = tidy_failures + 1
 
     queue.task_done()
 
