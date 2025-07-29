@@ -66,6 +66,7 @@ static constexpr uint16_t DSHOT_MAX_THROTTLE = 1999;
 #define ACTUATOR_CONFIGURATION_SPIN_DIRECTION2 5
 // TODO: this needs to be added to mavlink spec
 #define ACTUATOR_CONFIGURATION_WRITE_SETTING 6
+#define ACTUATOR_CONFIGURATION_READ_SETTINGS 7
 
 class DShot final : public ModuleBase<DShot>, public OutputModuleInterface
 {
@@ -108,7 +109,7 @@ private:
 	};
 
 	struct Command {
-		dshot_command_t command{};
+		uint16_t command{};
 		int num_repetitions{0};
 		uint8_t motor_mask{0xff};
 		bool save{false};
@@ -140,6 +141,8 @@ private:
 
 	uint16_t convert_output_to_3d_scaling(uint16_t output);
 
+	void handle_programming_sequence_state();
+
 	MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 	uint32_t _reversible_outputs{};
 
@@ -168,6 +171,20 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 	uint16_t _esc_status_counter{0};
+
+
+	enum class ProgrammingState {
+		Idle,
+		EnterMode,
+		SendAddress,
+		SendValue,
+		ExitMode,
+		Save
+	};
+	ProgrammingState _programming_state{ProgrammingState::Idle};
+
+	uint16_t _programming_address{};
+	uint16_t _programming_value{};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::DSHOT_MIN>)    _param_dshot_min,

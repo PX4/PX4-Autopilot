@@ -365,7 +365,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 				if (_current_command.num_repetitions == 0 && _current_command.save) {
 					_current_command.save = false;
 					_current_command.num_repetitions = 10;
-					_current_command.command = dshot_command_t::DSHOT_CMD_SAVE_SETTINGS;
+					_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
 				}
 
 			} else {
@@ -379,6 +379,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 
 	// Clear pending commands if any output is not disarmed
 	_current_command.clear();
+	_programming_state = ProgrammingState::Idle;
 
 	int telemetry_index = 0;
 	int requested_telemetry_index = -1;
@@ -458,6 +459,11 @@ void DShot::Run()
 
 	perf_begin(_cycle_perf);
 
+	// special handling for the DShot Programming sequence
+	if (_programming_state != ProgrammingState::Idle) {
+		handle_programming_sequence_state();
+	}
+
 	// Updates the DShot throttle output and sends DShot commands
 	_mixing_output.update();
 
@@ -505,6 +511,44 @@ void DShot::Run()
 	perf_end(_cycle_perf);
 }
 
+void DShot::handle_programming_sequence_state()
+{
+	switch (_programming_state) {
+	case ProgrammingState::EnterMode:
+		_current_command.command = DSHOT_CMD_ENTER_PROGRAMMING_MODE;
+		_current_command.num_repetitions = 1;
+		_programming_state = ProgrammingState::SendAddress;
+		break;
+
+	case ProgrammingState::SendAddress:
+		_current_command.command = _programming_address;
+		_current_command.num_repetitions = 1;
+		_programming_state = ProgrammingState::SendValue;
+		break;
+
+	case ProgrammingState::SendValue:
+		_current_command.command = _programming_value;
+		_current_command.num_repetitions = 1;
+		_programming_state = ProgrammingState::ExitMode;
+		break;
+
+	case ProgrammingState::ExitMode:
+		_current_command.command = DSHOT_CMD_EXIT_PROGRAMMING_MODE;
+		_current_command.num_repetitions = 1;
+		_programming_state = ProgrammingState::Save;
+		break;
+
+	case ProgrammingState::Save:
+		_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
+		_current_command.num_repetitions = 10;
+		_programming_state = ProgrammingState::Idle;
+		break;
+
+	default:
+		break;
+	}
+}
+
 void DShot::handle_vehicle_commands()
 {
 	vehicle_command_s vehicle_command;
@@ -550,55 +594,58 @@ void DShot::handle_vehicle_commands()
 
 			if (index != -1) {
 				PX4_INFO("Sending command: index: %i type: %i", index, type);
-				_current_command.command = dshot_command_t::DSHOT_CMD_MOTOR_STOP;
+				_current_command.command = DSHOT_CMD_MOTOR_STOP;
 				_current_command.num_repetitions = 10; // TODO: why do we always send a command 10x?
 				_current_command.save = true;
 
 				switch (type) {
 				case ACTUATOR_CONFIGURATION_BEEP:
-					_current_command.command = dshot_command_t::DSHOT_CMD_BEEP1;
+					_current_command.command = DSHOT_CMD_BEEP1;
 					break;
 
 				case ACTUATOR_CONFIGURATION_3D_MODE_OFF:
-					_current_command.command = dshot_command_t::DSHOT_CMD_3D_MODE_OFF;
+					_current_command.command = DSHOT_CMD_3D_MODE_OFF;
 					break;
 
 				case ACTUATOR_CONFIGURATION_3D_MODE_ON:
-					_current_command.command = dshot_command_t::DSHOT_CMD_3D_MODE_ON;
+					_current_command.command = DSHOT_CMD_3D_MODE_ON;
 					break;
 
 				case ACTUATOR_CONFIGURATION_SPIN_DIRECTION1:
-					_current_command.command = dshot_command_t::DSHOT_CMD_SPIN_DIRECTION_1;
+					_current_command.command = DSHOT_CMD_SPIN_DIRECTION_1;
 					break;
 
 				case ACTUATOR_CONFIGURATION_SPIN_DIRECTION2:
-					_current_command.command = dshot_command_t::DSHOT_CMD_SPIN_DIRECTION_2;
+					_current_command.command = DSHOT_CMD_SPIN_DIRECTION_2;
 					break;
 
 				case ACTUATOR_CONFIGURATION_WRITE_SETTING:
 
-				// This is a special command that triggers 4 DShot commands:
-				// - DSHOT_CMD_ENTER_PROGRAMMING_MODE
-				// - EEPROM Memory location
-				// - Value
-				// - DSHOT_CMD_EXIT_PROGRAMMING_MODE
+					// This is a special command that triggers 5 DShot commands:
+					// - DSHOT_CMD_ENTER_PROGRAMMING_MODE
+					// - EEPROM Memory location
+					// - Value
+					// - DSHOT_CMD_EXIT_PROGRAMMING_MODE
+					// - DSHOT_CMD_SAVE_SETTINGS
 
+					// Command structure
+					// param1 = ACTUATOR_CONFIGURATION_WRITE_SETTING
+					// param2 = Memory location
+					// param3 = Value
+					// param5 = ACTUATOR_OUTPUT_FUNCTION_MOTOR1
 
-				// TODO: implement
-				// _current_command.command = dshot_command_t::DSHOT_CMD_ENTER_PROGRAMMING_MODE;
-				// _current_command.num_repetitions = 1;
-				// _current_command.save = false;
+					_current_command.save = false;
+					_programming_address = (uint16_t)vehicle_command.param2;
+					_programming_value = (uint16_t)vehicle_command.param3;
+					_programming_state = ProgrammingState::EnterMode;
+					break;
 
-				// Command structure
-				// param1 = ACTUATOR_CONFIGURATION_WRITE_SETTING
-				// param2 = Memory location
-				// param3 = Value
-				// param5 = ACTUATOR_OUTPUT_FUNCTION_MOTOR1
-
-				// break;
-
-
-				// fallthrough!!
+				case ACTUATOR_CONFIGURATION_READ_SETTINGS:
+					// TODO: do we only need to send this once?
+					_current_command.save = false;
+					_current_command.num_repetitions = 1;
+					_current_command.command = DSHOT_CMD_SETTINGS_REQUEST;
+					break;
 
 				default:
 					PX4_WARN("unknown command: %i", type);
@@ -606,7 +653,7 @@ void DShot::handle_vehicle_commands()
 				}
 
 				// NOTE: this means we can't send a stop command (that's OK)
-				if (_current_command.command != dshot_command_t::DSHOT_CMD_MOTOR_STOP) {
+				if (_current_command.command != DSHOT_CMD_MOTOR_STOP) {
 					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 					_current_command.motor_mask = 1 << index;
 				}
