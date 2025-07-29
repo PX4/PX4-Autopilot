@@ -67,7 +67,7 @@ bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input,
 {
 	// Check for timeout
 	const bool sample_from_the_past = now >= input.timestamp_sample;
-	const bool sample_newer_than_timeout = now - input.timestamp_sample < _timeout;
+	const bool sample_newer_than_timeout = now < input.timestamp_sample + _timeout;
 
 	// Check if source matches the configuration
 	const bool source_rc_matched = (_rc_in_mode == 0) && (input.data_source == manual_control_setpoint_s::SOURCE_RC);
