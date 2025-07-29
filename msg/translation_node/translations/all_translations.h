@@ -13,3 +13,4 @@
 #include "translation_home_position_v1.h"
 #include "translation_vehicle_attitude_setpoint_v1.h"
 #include "translation_vehicle_status_v1.h"
+#include "translation_vehicle_local_position_v1.h"
