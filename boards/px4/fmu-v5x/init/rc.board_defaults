@@ -3,8 +3,6 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-param set-default SENS_EN_INA238 0
-param set-default SENS_EN_INA228 0
 param set-default SENS_EN_INA226 1
 
 if ver hwbasecmp 008 009 00a 010 011
