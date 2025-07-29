@@ -103,6 +103,7 @@ px4_add_module(
 	INCLUDES
 		${CMAKE_CURRENT_SOURCE_DIR}
 		${CMAKE_CURRENT_BINARY_DIR}
+		${CMAKE_CURRENT_SOURCE_DIR}/tasks
 	SRCS
 		FlightModeManager.cpp
 		FlightModeManager.hpp
