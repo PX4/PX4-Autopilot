@@ -38,11 +38,12 @@ px4_add_library(FlightTaskVtolTakeoffLoiterLand
 )
 
 target_link_libraries(FlightTaskVtolTakeoffLoiterLand
-	FlightTask
-	px4_work_queue
-	parameters
-	uORB::Publication
-	uORB::Subscription
-	geo
-	mathlib
+	PUBLIC
+		FlightTask
+		px4_work_queue
+		parameters
+		uORB::Publication
+		uORB::Subscription
+		geo
+		mathlib
 )
