@@ -68,9 +68,9 @@ fi
 check_scene_info() {
 	SERVICE_INFO=$(${gz_command} service -i --service "/world/${PX4_GZ_WORLD}/scene/info" 2>&1)
 	if echo "$SERVICE_INFO" | grep -q "Service providers"; then
-		return 0
-	else
 		return 1
+	else
+		return 0
 	fi
 }
 
