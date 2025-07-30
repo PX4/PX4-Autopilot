@@ -43,9 +43,11 @@ void ManualControlSelector::updateValidityOfChosenInput(uint64_t now)
 
 void ManualControlSelector::updateWithNewInputSample(uint64_t now, const manual_control_setpoint_s &input, int instance)
 {
-	if (isRc(input.data_source)) { _timestamp_last_rc = input.timestamp_sample; }
+	if (input.valid) {
+		if (isRc(input.data_source)) { _timestamp_last_rc = input.timestamp_sample; }
 
-	if (isMavlink(input.data_source)) { _timestamp_last_mavlink = input.timestamp_sample; }
+		if (isMavlink(input.data_source)) { _timestamp_last_mavlink = input.timestamp_sample; }
+	}
 
 	// First check if the chosen input got invalid, so it can get replaced
 	updateValidityOfChosenInput(now);
@@ -70,7 +72,6 @@ void ManualControlSelector::updateWithNewInputSample(uint64_t now, const manual_
 bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input, uint64_t now) const
 {
 	// Check for timeout
-	const bool sample_from_the_past = now >= input.timestamp_sample;
 	const bool sample_newer_than_timeout = now < input.timestamp_sample + _timeout;
 
 	// Check if source matches the configuration
@@ -107,7 +108,7 @@ bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input,
 		break;
 	}
 
-	return sample_from_the_past && sample_newer_than_timeout && input.valid && match;
+	return sample_newer_than_timeout && input.valid && match;
 }
 
 manual_control_setpoint_s &ManualControlSelector::setpoint()
