@@ -14,7 +14,7 @@ Benefits to PX4 users:
 - Performance under challenging dynamic conditions (e.g. catapult launches, VTOL operations, high-g or high angular rate operations)
 - Work in different spoofing and jamming conditions
 
-PX4 can use these as in a mode that provides only raw sensor output (the default), or as an [external INS](../sensor/inertial_navigation_systems.md) that provides both sensor output and INS data such as position and velocity estimates.
+PX4 can use these in a mode that provides only raw sensor output (the default), or as an [external INS](../sensor/inertial_navigation_systems.md) that provides both sensor output and INS data such as position and velocity estimates.
 The mode is configurable using a parameter.
 
 ## Where to Buy
