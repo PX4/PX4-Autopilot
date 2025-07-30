@@ -181,12 +181,18 @@ parameters:
       unit: m/s
     EKF2_REQ_FIX:
       description:
-        short: Required minimum GPS fix type to use GPS
-        long: Minimum GPS fix type required for GPS usage. 0-1 - no fix, 2 - 2D fix, 3 - 3D fix, 4 - RTCM code differential, 5 - Real-Time Kinematic, float, 6 - Real-Time Kinematic, fixed, 8 - Extrapolated.
-      type: int32
+        short: Required GPS fix
+        long: Minimum GPS fix type required for GPS usage.
+      type: enum
+      values:
+        0: No fix required
+        2: 2D fix
+        3: 3D fix
+        4: RTCM code differential
+        5: RTK float
+        6: RTK fixed
+        8: Extrapolated
       default: 3
-      min: 0
-      max: 8
     EKF2_REQ_GPS_H:
       description:
         short: Required GPS health time on startup
