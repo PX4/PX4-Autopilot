@@ -1192,28 +1192,28 @@ int SeptentrioDriver::process_message()
 				_sensor_gps.rtcm_msg_used = receiver_status.rx_state_diff_corr_in ? sensor_gps_s::RTCM_MSG_USED_USED : sensor_gps_s::RTCM_MSG_USED_NOT_USED;
 				_time_synced = receiver_status.rx_state_wn_set && receiver_status.rx_state_tow_set;
 
-				_message_gps_state.system_error = sensor_gps_s::SYSTEM_ERROR_OK;
+				_sensor_gps.system_error = sensor_gps_s::SYSTEM_ERROR_OK;
 
 				if (receiver_status.rx_error_cpu_overload) {
-					_message_gps_state.system_error |= sensor_gps_s::SYSTEM_ERROR_CPU_OVERLOAD;
+					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_CPU_OVERLOAD;
 				}
 				if (receiver_status.rx_error_antenna) {
-					_message_gps_state.system_error |= sensor_gps_s::SYSTEM_ERROR_ANTENNA;
+					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_ANTENNA;
 				}
 				if (receiver_status.ext_error_diff_corr_error) {
-					_message_gps_state.system_error |= sensor_gps_s::SYSTEM_ERROR_INCOMING_CORRECTIONS;
+					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_INCOMING_CORRECTIONS;
 				}
 				if (receiver_status.ext_error_setup_error) {
-					_message_gps_state.system_error |= sensor_gps_s::SYSTEM_ERROR_CONFIGURATION;
+					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_CONFIGURATION;
 				}
 				if (receiver_status.rx_error_software) {
-					_message_gps_state.system_error |= sensor_gps_s::SYSTEM_ERROR_SOFTWARE;
+					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_SOFTWARE;
 				}
 				if (receiver_status.rx_error_congestion) {
-					_message_gps_state.system_error |= sensor_gps_s::SYSTEM_ERROR_OUTPUT_CONGESTION;
+					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_OUTPUT_CONGESTION;
 				}
 				if (receiver_status.rx_error_missed_event) {
-					_message_gps_state.system_error |= sensor_gps_s::SYSTEM_ERROR_EVENT_CONGESTION;
+					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_EVENT_CONGESTION;
 				}
 			}
 
@@ -1269,24 +1269,24 @@ int SeptentrioDriver::process_message()
 			RFStatus rf_status;
 
 			if (_sbf_decoder.parse(&rf_status) == PX4_OK) {
-				_message_gps_state.jamming_state = sensor_gps_s::JAMMING_STATE_OK;
-				_message_gps_state.spoofing_state = sensor_gps_s::SPOOFING_STATE_OK;
+				_sensor_gps.jamming_state = sensor_gps_s::JAMMING_STATE_OK;
+				_sensor_gps.spoofing_state = sensor_gps_s::SPOOFING_STATE_OK;
 
 				for (int i = 0; i < math::min(rf_status.n, static_cast<uint8_t>(sizeof(rf_status.rf_band) / sizeof(rf_status.rf_band[0]))); i++) {
 					InfoMode status = rf_status.rf_band[i].info_mode;
 
 					if(status == static_cast<uint8_t>(InfoMode::Interference)){
-						_message_gps_state.jamming_state = sensor_gps_s::JAMMING_STATE_DETECTED;
+						_sensor_gps.jamming_state = sensor_gps_s::JAMMING_STATE_DETECTED;
 						break; // Worst case, we don't need to check the other bands
 					}
 
 					if(status == static_cast<uint8_t>(InfoMode::Suppressed) || status == static_cast<uint8_t>(InfoMode::Mitigated)){
-						_message_gps_state.jamming_state = sensor_gps_s::JAMMING_STATE_MITIGATED;
+						_sensor_gps.jamming_state = sensor_gps_s::JAMMING_STATE_MITIGATED;
 					}
 				}
 
 				if (rf_status.flags_inauthentic_gnss_signals || rf_status.flags_inauthentic_navigation_message) {
-					_message_gps_state.spoofing_state = sensor_gps_s::SPOOFING_STATE_DETECTED;
+					_sensor_gps.spoofing_state = sensor_gps_s::SPOOFING_STATE_DETECTED;
 				}
 			}
 
@@ -1302,19 +1302,19 @@ int SeptentrioDriver::process_message()
 			if (_sbf_decoder.parse(&gal_auth_status) == PX4_OK) {
 				switch (gal_auth_status.osnma_status_status) {
 				case OSNMAStatus::Disabled:
-					_message_gps_state.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_DISABLED;
+					_sensor_gps.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_DISABLED;
 					break;
 				case OSNMAStatus::AwaitingTrustedTimeInfo:
 				case OSNMAStatus::Initializing:
-					_message_gps_state.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_INITIALIZING;
+					_sensor_gps.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_INITIALIZING;
 					break;
 				case OSNMAStatus::InitFailedInconsistentTime:
 				case OSNMAStatus::InitFailedKROOTInvalid:
 				case OSNMAStatus::InitFailedInvalidParam:
-					_message_gps_state.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_ERROR;
+					_sensor_gps.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_ERROR;
 					break;
 				case OSNMAStatus::Authenticating:
-					_message_gps_state.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_OK;
+					_sensor_gps.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_OK;
 					break;
 				}
 			}
