@@ -148,6 +148,11 @@ enum class GnssCtrl : uint8_t {
 	YAW  = (1 << 3)
 };
 
+enum class GnssMode : uint8_t {
+	kAuto           = 0,   	///< Reset on fusion timeout if no other source of position is available
+	kDeadReckoning = 1   	///< Reset on fusion timeout if no source of velocity is availabl
+};
+
 enum class RngCtrl : uint8_t {
 	DISABLED    = 0,
 	CONDITIONAL = 1,
@@ -322,6 +327,7 @@ struct parameters {
 
 #if defined(CONFIG_EKF2_GNSS)
 	int32_t ekf2_gps_ctrl {static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL)};
+	int32_t ekf2_gps_mode {static_cast<int32_t>(GnssMode::kAuto)};
 	float ekf2_gps_delay{110.0f};           ///< GPS measurement delay relative to the IMU (mSec)
 
 	Vector3f gps_pos_body{};                ///< xyz position of the GPS antenna in body frame (m)
@@ -599,6 +605,8 @@ uint64_t mag_heading_consistent  :
 		uint64_t constant_pos            : 1; ///< 42 - true if the vehicle is at a constant position
 		uint64_t baro_fault              : 1; ///< 43 - true when the baro has been declared faulty and is no longer being used
 		uint64_t gnss_vel                : 1; ///< 44 - true if GNSS velocity measurement fusion is intended
+uint64_t gnss_fault              :
+		1; ///< 45 - true if GNSS measurements have been declared faulty and are no longer used
 	} flags;
 	uint64_t value;
 };
