@@ -622,6 +622,22 @@ int EstimatorInterface::getNumberOfActiveHorizontalPositionAidingSources() const
 	       + int(_control_status.flags.aux_gpos);
 }
 
+bool EstimatorInterface::isHorizontalPositionAidingActive() const
+{
+	return getNumberOfActiveHorizontalPositionAidingSources() > 0;
+}
+
+bool EstimatorInterface::isOnlyActiveSourceOfHorizontalVelocityAiding(const bool aiding_flag) const
+{
+	return aiding_flag && !isOtherSourceOfHorizontalVelocityAidingThan(aiding_flag);
+}
+
+bool EstimatorInterface::isOtherSourceOfHorizontalVelocityAidingThan(const bool aiding_flag) const
+{
+	const int nb_sources = getNumberOfActiveHorizontalVelocityAidingSources();
+	return aiding_flag ? nb_sources > 1 : nb_sources > 0;
+}
+
 int EstimatorInterface::getNumberOfActiveHorizontalVelocityAidingSources() const
 {
 	return int(_control_status.flags.gnss_vel)

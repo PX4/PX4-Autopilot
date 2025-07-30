@@ -97,6 +97,11 @@ int CrsfRc::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
+	if (board_rc_conflicting(device_name)) {
+		PX4_INFO("unable to start, conflict with PX4IO on %s", device_name);
+		return PX4_ERROR;
+	}
+
 	CrsfRc *instance = new CrsfRc(device_name);
 
 	if (instance == nullptr) {
