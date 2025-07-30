@@ -84,7 +84,7 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
 
 ### Коптер
 
-- [px4_msgs::msg::TrajectorySetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/TrajectorySetpoint.msg)
+- [px4_msgs::msg::TrajectorySetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/TrajectorySetpoint.msg)
   - Підтримуються наступні вхідні комбінації:
     - Position setpoint (`position` different from `NaN`). Non-`NaN` values of velocity and acceleration are used as feedforward terms for the inner loop controllers.
     - Velocity setpoint (`velocity` different from `NaN` and `position` set to `NaN`). Non-`NaN` values acceleration are used as feedforward terms for the inner loop controllers.
@@ -92,14 +92,14 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
 
   - Всі значення інтерпретуються в NED (Nord, East, Down) координатну систему і одиниці вимірювання, є \[m/s\] і \[m/s^2\] для позиції, швидкості і прискорення, відповідно.
 
-- [px4_msgs::msg::VehicleAttitudeSetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleAttitudeSetpoint.msg)
+- [px4_msgs::msg::VehicleAttitudeSetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleAttitudeSetpoint.msg)
   - Підтримується наступна комбінація введення:
     - quaternion `q_d` + thrust setpoint `thrust_body`.
       Non-`NaN` values of `yaw_sp_move_rate` are used as feedforward terms expressed in Earth frame and in \[rad/s\].
 
   - Кватерніон представляє обертання між корпусом дрона у системі координат FRD (перед, праворуч, вниз) та системою координат NED. Тяга у корпусі дрона виражена у системі координат FRD та у нормалізованих значеннях.
 
-- [px4_msgs::msg::VehicleRatesSetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleRatesSetpoint.msg)
+- [px4_msgs::msg::VehicleRatesSetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleRatesSetpoint.msg)
   - Підтримується наступна комбінація введення:
     - `roll`, `pitch`, `yaw` and `thrust_body`.
 
@@ -114,7 +114,7 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
     - `xyz` for thrust and `xyz` for torque.
   - Усі значення виражені у системі координат тіла дрона FRD та нормалізовані у діапазоні \[-1, 1\].
 
-- [px4_msgs::msg::ActuatorMotors](https://github.com/PX4/PX4-Autopilot/blob/main/msg/ActuatorMotors.msg) + [px4_msgs::msg::ActuatorServos](https://github.com/PX4/PX4-Autopilot/blob/main/msg/ActuatorServos.msg)
+- [px4_msgs::msg::ActuatorMotors](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/ActuatorMotors.msg) + [px4_msgs::msg::ActuatorServos](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/ActuatorServos.msg)
   - Ви безпосередньо керуєте вихідними сигналами моторів та/або сервоприводів.
   - Currently works at lower level than then `control_allocator` module. Do not publish these messages when not in offboard mode.
   - Усі значення нормалізовані у діапазоні \[-1, 1\]. For outputs that do not support negative values, negative entries map to `NaN`.

@@ -104,9 +104,9 @@ The debug port definition includes the following solder pads (on board next to c
 |  2 | GPIO1 | +3.3V |
 |  3 | GPIO2 | +3.3V |
 
-The socket is a _6-pin JST SH_ - Digikey number: [BM06B-SRSS-TBT(LF)(SN)](https://www.digikey.com/products/en?keywords=455-2875-1-ND) (vertical mount), [SM06B-SRSS-TBT(LF)(SN)](https://www.digikey.com/products/en?keywords=455-1806-1-ND)(side mount).
+The socket is a _6-pin JST SH_ - Digikey number: [BM06B-SRSS-TBT(LF)(SN)](https://www.digikey.com/en/products/detail/jst-sales-america-inc/BM06B-SRSS-TBT/1785724) (vertical mount), [SM06B-SRSS-TBT(LF)(SN)](https://www.digikey.com/en/products/detail/jst-sales-america-inc/SM06B-SRSS-TB/926712) (side mount).
 
-You can connect to the debug port using a [cable like this one](https://www.digikey.com/products/en?keywords=A06SR06SR30K152A).
+You can connect to the debug port using a [cable like this one](https://www.digikey.com/en/products/detail/jst-sales-america-inc/A06SR06SR30K152A/6009379).
 
 ![6-pin JST SH Cable](../../assets/debug/cable_6pin_jst_sh.jpg)
 
@@ -134,7 +134,7 @@ The pinout is as shown below (pins required for debugging are bold):
 
 The GPIO1/2 pins are free pins that can be used to generate signals in software for timing analysis with a logic analyzer.
 
-The socket is a _10-pin JST SH_ - Digikey number: [BM10B-SRSS-TB(LF)(SN)](https://www.digikey.com/products/en?keywords=455-1796-2-ND) (vertical mount) or [SM10B-SRSS-TB(LF)(SN)](https://www.digikey.com/products/en?keywords=455-1810-2-ND) (side mount).
+The socket is a _10-pin JST SH_ - Digikey number: [BM10B-SRSS-TB(LF)(SN)](https://www.digikey.com/en/products/detail/jst-sales-america-inc/BM10B-SRSS-TB/926702) (vertical mount) or [SM10B-SRSS-TB(LF)(SN)](https://www.digikey.com/en/products/detail/jst-sales-america-inc/BM10B-SRSS-TB/926702) (side mount).
 
 You can connect to the debug port using a [cable like this one](https://www.digikey.com/products/en?keywords=A10SR10SR30K203A).
 

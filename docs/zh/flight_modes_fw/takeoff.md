@@ -9,10 +9,10 @@ Vehicles are [hand or catapult launched](#catapult-hand-launch) by default, but 
 ::: info
 
 - Mode is automatic - no user intervention is _required_ to control the vehicle.
-- Mode requires at least a valid local position estimate (does not require a global position).
-  - Flying vehicles can't switch to this mode without valid local position.
-  - Flying vehicles will failsafe if they lose the position estimate.
-  - Disarmed vehicles can switch to mode without valid position estimate but can't arm.
+- Mode requires at least a valid altitude estimation.
+  - Flying vehicles can't switch to this mode without valid altitude.
+  - Flying vehicles will failsafe if they lose the altitude estimate.
+  - Disarmed vehicles can switch to mode without valid altitude estimate but can't arm.
 - RC control switches can be used to change flight modes.
 - RC stick movement is ignored in catapult takeoff but can can be used to nudge the vehicle in runway takeoff.
 - The [Failure Detector](../config/safety.md#failure-detector) will automatically stop the engines if there is a problem on takeoff.
@@ -26,39 +26,61 @@ Vehicles are [hand or catapult launched](#catapult-hand-launch) by default, but 
 Takeoff mode (and [fixed wing mission takeoff](../flight_modes_fw/mission.md#mission-takeoff)) has two modalities: [catapult/hand-launch](#catapult-hand-launch) or [runway takeoff](#runway-takeoff) (hardware-dependent).
 The mode defaults to catapult/hand launch, but can be set to runway takeoff by setting [RWTO_TKOFF](#RWTO_TKOFF) to 1.
 
-To use _Takeoff mode_ you first switch to the mode, and then arm the vehicle.
+To use _Takeoff mode_ you first switch to the mode, and then arm the vehicle (or send the [MAV_CMD_NAV_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_TAKEOFF) command which does both).
 The acceleration of hand/catapult launch triggers the motors to start.
 For runway launch, motors ramp up automatically once the vehicle has been armed.
 
 Irrespective of the modality, a flight path (starting point and takeoff course) and clearance altitude are defined:
 
 - The starting point is the vehicle position when the takeoff mode is first entered.
-- The course is set to the vehicle heading on arming
-- The clearance altitude is set to [MIS_TAKEOFF_ALT](#MIS_TAKEOFF_ALT).
+- The course is set to the vehicle heading on arming by default.
+  If a valid waypoint latitude/longitude is set the vehicle will instead track towards the waypoint.
+- The clearance altitude is set to [MIS_TAKEOFF_ALT](#MIS_TAKEOFF_ALT) by default.
+  If a valid waypoint altitude is set is set the vehicle will instead use it as the clearance altitude.
 
-On takeoff, the aircraft will follow line defined by the starting point and course, climbing at the maximum climb rate ([FW_T_CLMB_MAX](../advanced_config/parameter_reference.md#FW_T_CLMB_MAX)) until reaching the clearance altitude.
+By default, on takeoff the aircraft will follow the line defined by the starting point and course, climbing at the maximum climb rate ([FW_T_CLMB_MAX](../advanced_config/parameter_reference.md#FW_T_CLMB_MAX)) until reaching the clearance altitude.
 Reaching the clearance altitude causes the vehicle to enter [Hold mode](../flight_modes_fw/takeoff.md).
+
+If a valid waypoint target is set, using `MAV_CMD_NAV_TAKEOFF` or the [VehicleCommand](../msg_docs/VehicleCommand.md) uORB topic, the vehicle will instead track towards the waypoint, and enter [Hold mode](../flight_modes_fw/takeoff.md) after reaching the waypoint altitude (within the acceptance radius).
+
+:::tip
+If the local position is invalid or becomes invalid while executing the takeoff, the controller is not able to track a course setpoint and will instead proceed climbing while keeping the wings level until the clearance altitude is reached.
+:::
+
+::: info
+
+- Takeoff towards a target position was added in <Badge type="tip" text="main (planned for: PX4 v1.17)" />.
+- Holding wings level and ascending to clearance attitude when local position is invalid during takeoff was added in <Badge type="tip" text="main (planned for: PX4 v1.17)" />.
+- QGroundControl does not support `MAV_CMD_NAV_TAKEOFF` (at time of writing).
+
+:::
 
 ### 参数
 
 Parameters that affect both catapult/hand-launch and runway takeoffs:
 
-| 参数                                                                                                                                                                         | 描述                                                                                                                                                                                                                                           |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="MIS_TAKEOFF_ALT"></a>[MIS_TAKEOFF_ALT](../advanced_config/parameter_reference.md#MIS_TAKEOFF_ALT)                         | Minimum altitude setpoint above Home that the vehicle will climb to during takeoff.                                                                                                                                          |
-| <a id="FW_TKO_AIRSPD"></a>[FW_TKO_AIRSPD](../advanced_config/parameter_reference.md#FW_TKO_AIRSPD)                               | Takeoff airspeed (is set to [FW_AIRSPD_MIN](../advanced_config/parameter_reference.md#FW_AIRSPD_MIN) if not defined by operator)                                                |
-| <a id="FW_TKO_PITCH_MIN"></a>[FW_TKO_PITCH_MIN](../advanced_config/parameter_reference.md#FW_TKO_PITCH_MIN) | This is the minimum pitch angle setpoint during the climbout phase                                                                                                                                                                           |
-| <a id="FW_T_CLMB_MAX"></a>[FW_T_CLMB_MAX](../advanced_config/parameter_reference.md#FW_T_CLMB_MAX)          | Maximum climb rate.                                                                                                                                                                                                          |
-| <a id="FW_FLAPS_TO_SCL"></a>[FW_FLAPS_TO_SCL](../advanced_config/parameter_reference.md#FW_FLAPS_TO_SCL)    | Flaps setpoint during takeoff                                                                                                                                                                                                                |
-| <a id="FW_AIRSPD_FLP_SC"></a>[FW_AIRSPD_FLP_SC](../advanced_config/parameter_reference.md#FW_AIRSPD_FLP_SC) | Factor applied to the minimum airspeed when flaps are fully deployed. Necessary if FW_TKO_AIRSPD is below FW_AIRSPD_MIN. |
+| 参数                                                                   | 描述                                                                                                                                                                        |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="MIS_TAKEOFF_ALT"></a>[MIS\_TAKEOFF\_ALT][MIS_TAKEOFF_ALT]     | This is the relative altitude (above launch altitude) the system will take off to if not otherwise specified. takeoff. |
+| <a id="FW_TKO_AIRSPD"></a>[FW\_TKO\_AIRSPD][FW_TKO_AIRSPD]           | Takeoff airspeed (is set to [FW\_AIRSPD\_MIN][FW_AIRSPD_MIN] if not defined by operator)                                                                                  |
+| <a id="FW_TKO_PITCH_MIN"></a>[FW\_TKO\_PITCH\_MIN][FW_TKO_PITCH_MIN] | This is the minimum pitch angle setpoint during the climbout phase                                                                                                        |
+| <a id="FW_T_CLMB_MAX"></a>[FW\_T\_CLMB\_MAX][FW_T_CLMB_MAX]          | Climb rate setpoint during climbout to takeoff altitude.                                                                                                  |
+| <a id="FW_FLAPS_TO_SCL"></a>[FW\_FLAPS\_TO\_SCL][FW_FLAPS_TO_SCL]    | Flaps setpoint during takeoff                                                                                                                                             |
+| <a id="FW_AIRSPD_FLP_SC"></a>[FW\_AIRSPD\_FLP\_SC][FW_AIRSPD_FLP_SC] | Factor applied to the minimum airspeed when flaps are fully deployed. Needed if [FW\_TKO\_AIRSPD](#FW_TKO_AIRSPD) is below [FW\_AIRSPD\_MIN][FW_AIRSPD_MIN].              |
+
+[FW_AIRSPD_MIN]: ../advanced_config/parameter_reference.md#FW_AIRSPD_MIN
+[FW_FLAPS_TO_SCL]: ../advanced_config/parameter_reference.md#FW_FLAPS_TO_SCL
+[FW_AIRSPD_FLP_SC]: ../advanced_config/parameter_reference.md#FW_AIRSPD_FLP_SC
+[FW_TKO_AIRSPD]: ../advanced_config/parameter_reference.md#FW_TKO_AIRSPD
+[MIS_TAKEOFF_ALT]: ../advanced_config/parameter_reference.md#MIS_TAKEOFF_ALT
+[FW_TKO_PITCH_MIN]: ../advanced_config/parameter_reference.md#FW_TKO_PITCH_MIN
+[FW_T_CLMB_MAX]: ../advanced_config/parameter_reference.md#FW_T_CLMB_MAX
 
 :::info
 The vehicle always respects normal FW max/min throttle settings during takeoff ([FW_THR_MIN](../advanced_config/parameter_reference.md#FW_THR_MIN), [FW_THR_MAX](../advanced_config/parameter_reference.md#FW_THR_MAX)).
 :::
 
-<a id="hand_launch"></a>
-
-## Catapult/Hand Launch
+## Catapult/Hand Launch {#hand_launch}
 
 In _catapult/hand-launch mode_ the vehicle waits to detect launch (based on acceleration trigger).
 On launch it enables the motor(s) and climbs with the maximum climb rate [FW_T_CLMB_MAX](#FW_T_CLMB_MAX) while keeping the pitch setpoint above [FW_TKO_PITCH_MIN](#FW_TKO_PITCH_MIN).
@@ -84,9 +106,7 @@ The _launch detector_ is affected by the following parameters:
 | <a id="FW_LAUN_AC_T"></a>[FW_LAUN_AC_T](../advanced_config/parameter_reference.md#FW_LAUN_AC_T)             | Trigger time (acceleration must be above threshold for this amount of seconds)           |
 | <a id="FW_LAUN_MOT_DEL"></a>[FW_LAUN_MOT_DEL](../advanced_config/parameter_reference.md#FW_LAUN_MOT_DEL)    | Delay from launch detection to motor spin up                                                                |
 
-<a id="runway_launch"></a>
-
-## Runway Takeoff
+## Runway Takeoff {#runway_launch}
 
 Runway takeoffs can be used by vehicles with landing gear and and steerable wheel (only).
 You will first need to enable the wheel controller using the parameter [FW_W_EN](#FW_W_EN).

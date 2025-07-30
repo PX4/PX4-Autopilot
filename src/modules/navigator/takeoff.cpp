@@ -77,7 +77,7 @@ Takeoff::on_active()
 					// as the loiter is established. therefore, set a small loiter time so that the mission item will be reached quickly,
 					// however it will just continue loitering as there is no next mission item
 					_mission_item.time_inside = 1.f;
-					_mission_item.loiter_radius = _navigator->get_loiter_radius();
+					_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 					_mission_item.acceptance_radius  = _navigator->get_acceptance_radius();
 					_mission_item.altitude = _loiter_altitude_msl;
 
@@ -114,7 +114,7 @@ Takeoff::on_active()
 
 					const float mission_item_loiter_radius_abs = (PX4_ISFINITE(_mission_item.loiter_radius)
 							&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
-							_navigator->get_loiter_radius();
+							_navigator->get_default_loiter_rad();
 					lateral_acceptance_reached = distance_to_loiter < _navigator->get_acceptance_radius() + mission_item_loiter_radius_abs;
 				}
 

@@ -147,9 +147,7 @@ The vehicle-based radio should be connected to the **TELEM1** port as shown belo
 
 ![Pixhawk 4/Telemetry Radio](../../assets/flight_controller/pixhawk4/pixhawk4_telemetry_radio.jpg)
 
-<a id="sd_card"></a>
-
-## SD 卡
+## SD Card (Optional) {#sd_card}
 
 SD cards are highly recommended as they are needed to [log and analyse flight details](../getting_started/flight_reporting.md), to run missions, and to use UAVCAN-bus hardware.
 Insert the card (included in Pixhawk 4 kit) into _Pixhawk 4_ as shown below.
@@ -193,4 +191,4 @@ QuadPlane specific configuration is covered here: [QuadPlane VTOL Configuration]
 - [Pixhawk 4](../flight_controller/pixhawk4.md) (Overview page)
 - [Pixhawk 4 Technical Data Sheet](https://github.com/PX4/PX4-Autopilot/blob/main/docs/assets/flight_controller/pixhawk4/pixhawk4_technical_data_sheet.pdf)
 - [Pixhawk 4 Pinouts](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Pixhawk4-Pinouts.pdf) (Holybro)
-- [Pixhawk 4 Quick Start Guide (Holybro)](https://holybro.com/manual/Pixhawk4-quickstartguide.pdf)
+- [Pixhawk 4 Quick Start Guide (Holybro)](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Pixhawk4-quickstartguide.pdf)

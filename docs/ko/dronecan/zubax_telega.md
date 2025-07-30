@@ -15,9 +15,9 @@ Questions on this matter should be addressed to: [support@zubax.com](mailto:supp
 
 ## 구매처
 
-- [Zubax Myxa](https://shop.zubax.com/products/zubax-myxa): High-end PMSM/BLDC motor controller (FOC ESC) for light unmanned aircraft and watercraft.
-- [Zubax Mitochondrik](https://shop.zubax.com/products/mitochondrik): Integrated sensorless PMSM/BLDC motor controller chip (used in ESCs and integrated drives)
-- [Zubax Komar](https://shop.zubax.com/products/zubax-ad0510-komar-esc?variant=32931555868771): Open hardware reference design for Mitochondrik
+- [Zubax AmpDrive AD0505A/B "Myxa" ESC](https://shop.zubax.com/products/zubax-myxa): High-end PMSM/BLDC motor controller (FOC ESC) for light unmanned aircraft and watercraft.
+- [Zubax BoolDrive BD1D50 "Mitochondrik"](https://shop.zubax.com/products/mitochondrik): Integrated sensorless PMSM/BLDC motor controller chip (used in ESCs and integrated drives)
+- [Zubax AmpDrive AD0510 "Komar" ESC](https://shop.zubax.com/products/zubax-ad0510-komar-esc): Open hardware reference design for Mitochondrik
 
 ## 하드웨어 설정
 
