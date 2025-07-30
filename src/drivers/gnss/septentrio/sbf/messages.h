@@ -275,7 +275,7 @@ struct GALAuthStatus {
 		InitFailedInvalidParam     = 5,
 		Authenticating             = 6,
 	};
-	OSNMAStatus osnma_status_status: 3;
+	uint16_t osnma_status_status: 3;
 	uint16_t osnma_status_initialization_progress: 8;
 	uint16_t osnma_status_trusted_time_source: 3;
 	uint16_t osnma_status_merkle_tree_busy: 1;
@@ -285,6 +285,8 @@ struct GALAuthStatus {
 	uint64_t gal_authentic_mask;
 	uint64_t gps_active_mask;
 	uint64_t gps_authentic_mask;
+
+	OSNMAStatus osnmaStatus() const { return static_cast<OSNMAStatus>(osnma_status_status); }
 };
 
 struct VelCovGeodetic {

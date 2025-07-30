@@ -1300,7 +1300,7 @@ int SeptentrioDriver::process_message()
 			GALAuthStatus gal_auth_status;
 
 			if (_sbf_decoder.parse(&gal_auth_status) == PX4_OK) {
-				switch (gal_auth_status.osnma_status_status) {
+				switch (gal_auth_status.osnmaStatus()) {
 				case OSNMAStatus::Disabled:
 					_sensor_gps.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_DISABLED;
 					break;
