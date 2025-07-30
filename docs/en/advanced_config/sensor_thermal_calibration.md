@@ -14,9 +14,7 @@ Any subsequent standard calibration will therefore update `TC_*` parameters and 
 Releases up to PX4 v1.14, do not support thermal calibration of the magnetometer.
 :::
 
-<a id="test_setup"></a>
-
-## Test Setup/Best Practice
+## Test Setup/Best Practice {#test_setup}
 
 The [calibration procedures](#calibration_procedures) described in the following sections are ideally run in an _environmental chamber_ (a temperature and humidity controlled environment) as the board is heated from the lowest to the highest operating/calibration temperature.
 Before starting the calibration, the board is first _cold soaked_ (cooled to the minimum temperature and allowed to reach equilibrium).
@@ -46,9 +44,7 @@ If in doubt, check the safe operating range with your manufacturer.
 To check the status of the onboard thermal calibration use the MAVlink console (or NuttX console) to check the reported internal temp from the sensor.
 :::
 
-<a id="calibration_procedures"></a>
-
-## Calibration Procedures
+## Calibration Procedures {#calibration_procedures}
 
 PX4 supports two calibration procedures:
 
@@ -57,9 +53,7 @@ PX4 supports two calibration procedures:
 
 The offboard approach is more complex and slower, but requires less knowledge of the test setup and is easier to validate.
 
-<a id="onboard_calibration"></a>
-
-### Onboard Calibration Procedure
+### Onboard Calibration Procedure {#onboard_calibration}
 
 Onboard calibration is run entirely on the device. It require knowledge of the amount of temperature rise that is achievable with the test setup.
 
@@ -76,9 +70,7 @@ To perform and onboard calibration:
 9. Perform a 6-point accel calibration via the system console using `commander calibrate accel` or via _QGroundControl_. If the board is being set-up for the first time, the gyro and magnetometer calibration will also need to be performed.
 10. The board should always be re-powered before flying after any sensor calibration, because sudden offset changes from calibration can upset the navigation estimator and some parameters are not loaded by the algorithms that use them until the next startup.
 
-<a id="offboard_calibration"></a>
-
-### Offboard Calibration Procedure
+### Offboard Calibration Procedure {#offboard_calibration}
 
 Offboard calibration is run on a development computer using data collected during the calibration test. This method provides a way to visually check the quality of data and curve fit.
 
@@ -104,9 +96,7 @@ To perform an offboard calibration:
 1. After parameters have finished loading, set `SDLOG_MODE` to 1 to re-enable normal logging and remove power.
 1. Power the board and perform a normal accelerometer sensor calibration using _QGroundControl_. It is important that this step is performed when board is within the calibration temperature range. The board must be repowered after this step before flying as the sudden offset changes can upset the navigation estimator and some parameters are not loaded by the algorithms that use them until the next startup.
 
-<a id="implementation"></a>
-
-## Implementation Detail
+## Implementation Detail {#implementation}
 
 Calibration refers to the process of measuring the change in sensor value across a range of internal temperatures, and performing a polynomial fit on the data to calculate a set of coefficients (stored as parameters) that can be used to correct the sensor data. Compensation refers to the process of using the internal temperature to calculate an offset that is subtracted from the sensor reading to correct for changing offset with temperature
 
@@ -133,7 +123,6 @@ Where:
 - `type`: is a single character indicating the type of sensor where `A` = accelerometer, `G` = rate gyroscope, `M` = magnetometer, and `B` = barometer.
 - `instance`: is an integer 0,1 or 2 allowing for calibration of up to three sensors of the same `type`.
 - `cal_name`: is a string identifying the calibration value. It has the following possible values:
-
   - `Xn`: Polynomial coefficient where n is the order of the coefficient, e.g. `X3 * (temperature - reference temperature)**3`.
   - `SCL`: scale factor.
   - `TREF`: reference temperature (deg C).
@@ -193,5 +182,7 @@ Scale factors are assumed to be temperature invariant due to the difficulty asso
 ---
 
 [^1]: The [SYS_CAL_ACCEL](../advanced_config/parameter_reference.md#SYS_CAL_ACCEL), [SYS_CAL_BARO](../advanced_config/parameter_reference.md#SYS_CAL_BARO) and [SYS_CAL_GYRO](../advanced_config/parameter_reference.md#SYS_CAL_GYRO) parameters are reset to 0 when the calibration is started.
+
 [^2]: Calibration of the barometric pressure sensor offsets requires a stable air pressure environment. The air pressure will change slowly due to weather and inside buildings can change rapidly due to external wind fluctuations and HVAC system operation.
+
 [^3]: Care must be taken when warming a cold soaked board to avoid formation of condensation on the board that can cause board damage under some circumstances.

@@ -258,4 +258,4 @@ In addition to the [basic configuration](../config/index.md), the following para
 
 ## Further Info
 
-[This page](https://blog.dronetrest.com/omnibus-f4-flight-controller-guide/) provides a good overview with pinouts and setup instructions.
+[This page](https://blog.unmanned.tech/omnibus-f4-flight-controller-guide/) provides a good overview with pinouts and setup instructions.
