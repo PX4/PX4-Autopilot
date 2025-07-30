@@ -209,6 +209,10 @@ def get_output_groups(timer_groups, param_prefix="PWM_MAIN",
                             'supported_if': timer_param_name + '<-1',
                             'actuator_types': ['motor']
                         },
+                        'request_esc_settings': {
+                            'supported_if': timer_param_name + '<-1',
+                            'actuator_types': ['motor']
+                        },
                     }
             else:
                 # remove dshot entries if no dshot support
