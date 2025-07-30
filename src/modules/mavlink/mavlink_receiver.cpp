@@ -185,10 +185,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_odometry(msg);
 		break;
 
-	case MAVLINK_MSG_ID_SET_GPS_GLOBAL_ORIGIN:
-		handle_message_set_gps_global_origin(msg);
-		break;
-
 	case MAVLINK_MSG_ID_RADIO_STATUS:
 		handle_message_radio_status(msg);
 		break;
