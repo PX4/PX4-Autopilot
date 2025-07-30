@@ -15107,6 +15107,7 @@ Specify USB MAVLink mode.
 - `10`: gimbal
 - `11`: onboard_low_bandwidth
 - `12`: uavionix
+- `13`: Low Bandwidth
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
@@ -15924,7 +15925,7 @@ the estimated time it takes to reach the RTL destination.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          | 1         | 3       |
+| &nbsp; |          |          | 1         | 0       |
 
 ### COM_FLT_PROFILE (`INT32`) {#COM_FLT_PROFILE}
 
@@ -17008,6 +17009,21 @@ Sets the number of standard deviations used by the innovation consistency test.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 1.0      |          |           | 3.0     | SD   |
+
+### EKF2_AGP_MODE (`INT32`) {#EKF2_AGP_MODE}
+
+Fusion reset mode.
+
+Automatic: reset on fusion timeout if no other source of position is available Dead-reckoning: reset on fusion timeout if no source of velocity is available
+
+**Values:**
+
+- `0`: Automatic
+- `1`: Dead-reckoning
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
 
 ### EKF2_AGP_NOISE (`FLOAT`) {#EKF2_AGP_NOISE}
 
@@ -20105,6 +20121,20 @@ Auto-detection will probe all protocols, and thus is a bit slower.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | 0        | 6        |           | 1       |
+
+### GPS_CFG_WIPE (`INT32`) {#GPS_CFG_WIPE}
+
+Wipes the flash config of UBX modules.
+
+Some UBX modules have a FLASH that allows to store persistent configuration that will be loaded on start.
+PX4 does override all configuration parameters it needs in RAM, which takes precedence over the values in FLASH.
+However, configuration parameters that are not overriden by PX4 can still cause unexpected problems during flight.
+To avoid these kind of problems a clean config can be reached by wiping the FLASH on boot.
+Note: Currently only supported on UBX.
+
+| Reboot  | minValue | maxValue | increment | default      | unit |
+| ------- | -------- | -------- | --------- | ------------ | ---- |
+| &check; |          |          |           | Disabled (0) |
 
 ### GPS_DUMP_COMM (`INT32`) {#GPS_DUMP_COMM}
 
@@ -24938,11 +24968,13 @@ Acceptance radius for fixedwing altitude.
 
 Loiter radius (FW only).
 
-Default value of loiter radius in FW mode (e.g. for Loiter mode).
+Default value of loiter radius in fixed-wing mode (e.g. for Loiter mode).
+The direction of the loiter can be set via the sign: A positive value for
+clockwise, negative for counter-clockwise.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 25       | 1000     | 0.5       | 80.0    | m    |
+| &nbsp; | -10000   | 10000    | 0.5       | 80.0    | m    |
 
 ### NAV_MC_ALT_RAD (`FLOAT`) {#NAV_MC_ALT_RAD}
 
@@ -26644,6 +26676,48 @@ Can be set to increase the amount of integrator available to counteract disturba
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0.0      |          | 0.01      | 0.30    |
 
+## Neural Control
+
+### MC_NN_EN (`INT32`) {#MC_NN_EN}
+
+If true the neural network control is automatically started on boot.
+
+| Reboot | minValue | maxValue | increment | default     | unit |
+| ------ | -------- | -------- | --------- | ----------- | ---- |
+| &nbsp; |          |          |           | Enabled (1) |
+
+### MC_NN_MANL_CTRL (`INT32`) {#MC_NN_MANL_CTRL}
+
+Enable or disable setting the trajectory setpoint with manual control.
+
+| Reboot  | minValue | maxValue | increment | default     | unit |
+| ------- | -------- | -------- | --------- | ----------- | ---- |
+| &check; |          |          |           | Enabled (1) |
+
+### MC_NN_MAX_RPM (`INT32`) {#MC_NN_MAX_RPM}
+
+The maximum RPM of the motors. Used to normalize the output of the neural network.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 80000    |           | 22000   |
+
+### MC_NN_MIN_RPM (`INT32`) {#MC_NN_MIN_RPM}
+
+The minimum RPM of the motors. Used to normalize the output of the neural network.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 80000    |           | 1000    |
+
+### MC_NN_THRST_COEF (`FLOAT`) {#MC_NN_THRST_COEF}
+
+Thrust coefficient of the motors. Used to normalize the output of the neural network. Divided by 100 000.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 5.0      |           | 1.2     |
+
 ## OSD
 
 ### MSP_OSD_CONFIG (`INT32`) {#MSP_OSD_CONFIG}
@@ -26804,14 +26878,6 @@ rel_signal is the relative motor control signal between 0 and 1.
 
 ## Payload Deliverer
 
-### PD_GRIPPER_EN (`INT32`) {#PD_GRIPPER_EN}
-
-Enable Gripper actuation in Payload Deliverer.
-
-| Reboot  | minValue | maxValue | increment | default      | unit |
-| ------- | -------- | -------- | --------- | ------------ | ---- |
-| &check; |          |          |           | Disabled (0) |
-
 ### PD_GRIPPER_TO (`FLOAT`) {#PD_GRIPPER_TO}
 
 Timeout for successful gripper actuation acknowledgement.
@@ -26823,7 +26889,7 @@ this time before considering gripper actuation successful and publish a
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        |          |           | 3       | s    |
+| &nbsp; | 0        |          |           | 1       | s    |
 
 ### PD_GRIPPER_TYPE (`INT32`) {#PD_GRIPPER_TYPE}
 
@@ -32137,6 +32203,22 @@ Use SENS_MAG_SIDES instead
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 63      |
 
+### ILABS_MODE (`INT32`) {#ILABS_MODE}
+
+InertialLabs INS sensor mode configuration.
+
+Configures whether the driver outputs only raw sensor output (the default),
+or additionally supplies INS data such as position and velocity estimates.
+
+**Values:**
+
+- `0`: Sensors Only (default)
+- `1`: INS
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
 ### IMU_ACCEL_CUTOFF (`FLOAT`) {#IMU_ACCEL_CUTOFF}
 
 Low pass filter cutoff frequency for accel.
@@ -33307,6 +33389,31 @@ Sets the longest time constant that will be applied to the calculation of GPS po
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 1.0      | 100.0    |           | 10.0    | s    |
+
+### SENS_ILABS_CFG (`INT32`) {#SENS_ILABS_CFG}
+
+Serial Configuration for InertialLabs.
+
+Configure on which serial port to run InertialLabs.
+
+**Values:**
+
+- `0`: Disabled
+- `6`: UART 6
+- `101`: TELEM 1
+- `102`: TELEM 2
+- `103`: TELEM 3
+- `104`: TELEM/SERIAL 4
+- `201`: GPS 1
+- `202`: GPS 2
+- `203`: GPS 3
+- `300`: Radio Controller
+- `301`: Wifi Port
+- `401`: EXT2
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
 
 ### SENS_IMU_AUTOCAL (`INT32`) {#SENS_IMU_AUTOCAL}
 
