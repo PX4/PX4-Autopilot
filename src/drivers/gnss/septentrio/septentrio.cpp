@@ -1273,14 +1273,14 @@ int SeptentrioDriver::process_message()
 				_sensor_gps.spoofing_state = sensor_gps_s::SPOOFING_STATE_OK;
 
 				for (int i = 0; i < math::min(rf_status.n, static_cast<uint8_t>(sizeof(rf_status.rf_band) / sizeof(rf_status.rf_band[0]))); i++) {
-					InfoMode status = rf_status.rf_band[i].info_mode;
+					InfoMode status = static_cast<InfoMode>(rf_status.rf_band[i].info_mode);
 
-					if(status == static_cast<uint8_t>(InfoMode::Interference)){
+					if(status == InfoMode::Interference){
 						_sensor_gps.jamming_state = sensor_gps_s::JAMMING_STATE_DETECTED;
 						break; // Worst case, we don't need to check the other bands
 					}
 
-					if(status == static_cast<uint8_t>(InfoMode::Suppressed) || status == static_cast<uint8_t>(InfoMode::Mitigated)){
+					if(status == InfoMode::Suppressed || status == InfoMode::Mitigated){
 						_sensor_gps.jamming_state = sensor_gps_s::JAMMING_STATE_MITIGATED;
 					}
 				}
