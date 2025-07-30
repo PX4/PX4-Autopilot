@@ -355,8 +355,9 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			}
 
 			if (_current_command.motor_mask & (1 << i)) {
+				PX4_INFO("_current_command.motor_mask %u", _current_command.motor_mask);
 				PX4_INFO("Sending command %u to motor %d", _current_command.command, i);
-				up_dshot_motor_command(i, _current_command.command, true);
+				up_dshot_motor_command(i, _current_command.command, false);
 
 				// Decrement command repetition counter
 				--_current_command.num_repetitions;
@@ -369,7 +370,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 				}
 
 			} else {
-				up_dshot_motor_data_set(i, math::min(DSHOT_DISARM_VALUE, DSHOT_MAX_THROTTLE), false);
+				up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, false);
 			}
 		}
 
@@ -393,12 +394,16 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 		uint16_t output = outputs[i];
 		bool request_telemetry = _telemetry && (requested_telemetry_index == telemetry_index);
 
+		// TODO: debugging
+		(void)request_telemetry;
+
 		if (!_mixing_output.isFunctionSet(i)) {
 			continue;
 		}
 
 		if (output == DSHOT_DISARM_VALUE) {
-			up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, request_telemetry);
+			// up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, request_telemetry);
+			up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, false);
 
 		} else {
 			// Reverse output if required
@@ -406,7 +411,8 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 				output = convert_output_to_3d_scaling(output);
 			}
 
-			up_dshot_motor_data_set(i, math::min(output, DSHOT_MAX_THROTTLE), request_telemetry);
+			// up_dshot_motor_data_set(i, math::min(output, DSHOT_MAX_THROTTLE), request_telemetry);
+			up_dshot_motor_data_set(i, math::min(output, DSHOT_MAX_THROTTLE), false);
 		}
 
 		telemetry_index++;
@@ -559,6 +565,8 @@ void DShot::handle_vehicle_commands()
 		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_CONFIGURE_ACTUATOR) {
 			int function = (int)(vehicle_command.param5 + 0.5);
 
+			PX4_INFO("Received VEHICLE_CMD_CONFIGURE_ACTUATOR");
+
 			if (function < 1000) {
 				const int first_motor_function = 1; // from MAVLink ACTUATOR_OUTPUT_FUNCTION
 				const int first_servo_function = 33;
@@ -593,7 +601,7 @@ void DShot::handle_vehicle_commands()
 			command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
 			if (index != -1) {
-				PX4_INFO("Sending command: index: %i type: %i", index, type);
+				PX4_INFO("index: %i type: %i", index, type);
 				_current_command.command = DSHOT_CMD_MOTOR_STOP;
 				_current_command.num_repetitions = 10; // TODO: why do we always send a command 10x?
 				_current_command.save = true;
@@ -619,8 +627,16 @@ void DShot::handle_vehicle_commands()
 					_current_command.command = DSHOT_CMD_SPIN_DIRECTION_2;
 					break;
 
-				case ACTUATOR_CONFIGURATION_WRITE_SETTING:
+				case ACTUATOR_CONFIGURATION_READ_SETTINGS:
+					PX4_INFO("ACTUATOR_CONFIGURATION_READ_SETTINGS");
+					// TODO: do we only need to send this once?
+					_current_command.save = false;
+					_current_command.num_repetitions = 10; // NOTE: AM32 requires 6+ to consider a command valid
+					_current_command.command = DSHOT_CMD_ESC_INFO;
+					break;
 
+				case ACTUATOR_CONFIGURATION_WRITE_SETTING:
+					PX4_INFO("ACTUATOR_CONFIGURATION_WRITE_SETTING");
 					// This is a special command that triggers 5 DShot commands:
 					// - DSHOT_CMD_ENTER_PROGRAMMING_MODE
 					// - EEPROM Memory location
@@ -638,13 +654,6 @@ void DShot::handle_vehicle_commands()
 					_programming_address = (uint16_t)vehicle_command.param2;
 					_programming_value = (uint16_t)vehicle_command.param3;
 					_programming_state = ProgrammingState::EnterMode;
-					break;
-
-				case ACTUATOR_CONFIGURATION_READ_SETTINGS:
-					// TODO: do we only need to send this once?
-					_current_command.save = false;
-					_current_command.num_repetitions = 1;
-					_current_command.command = DSHOT_CMD_SETTINGS_REQUEST;
 					break;
 
 				default:
