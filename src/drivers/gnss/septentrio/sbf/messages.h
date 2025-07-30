@@ -250,7 +250,7 @@ struct RFBand {
 	};
 	uint32_t frequency;
 	uint16_t bandwidth;
-	InfoMode info_mode: 4;
+	uint8_t info_mode: 4;
 	uint8_t  info_reserved: 2;
 	uint8_t  info_antenna_id: 2;
 };
