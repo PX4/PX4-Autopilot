@@ -273,8 +273,9 @@ bool DShot::process_bdshot_erpm(void)
 	int telemetry_index = 0;
 	int erpm;
 	esc_status_s &esc_status = _esc_status_pub.get();
+	hrt_abstime now = hrt_absolute_time();
 
-	esc_status.timestamp = hrt_absolute_time();
+	esc_status.timestamp = now;
 	esc_status.counter = _esc_status_counter++;
 	esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
 	esc_status.esc_armed_flags = true; // TODO: should we ever unset?
@@ -289,7 +290,7 @@ bool DShot::process_bdshot_erpm(void)
 			if (up_bdshot_get_erpm(i, &erpm) == 0) {
 				num_erpms++;
 				esc_status.esc_online_flags |= 1 << telemetry_index;
-				esc_status.esc[telemetry_index].timestamp = hrt_absolute_time();
+				esc_status.esc[telemetry_index].timestamp = now;
 				esc_status.esc[telemetry_index].esc_rpm = (erpm * 100) / (_param_mot_pole_count.get() / 2);
 				esc_status.esc[telemetry_index].actuator_function = _actuator_functions[telemetry_index];
 			}
@@ -346,7 +347,8 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			// Send command to the motor if there isn't telemtry already in progress
 			bool this_motor = _current_command.motor_mask & (1 << i);
 			bool telemtry_idle = _telemetry.enabled() && !_telemetry.requestInProgress();
-			if (this_motor && telemtry_idle) {
+			bool delay_elapsed = hrt_elapsed_time(&_current_command.timestamp) > _current_command.delay_us;
+			if (this_motor && telemtry_idle && delay_elapsed) {
 
 				PX4_INFO("Sending command %u to motor %d", _current_command.command, motor_index);
 				if (_current_command.expect_response) {
@@ -387,7 +389,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 	for (int i = 0; i < (int)num_outputs; i++) {
 
 		uint16_t output = outputs[i];
-		bool request_telemetry = requested_telemetry_index == motor_index;
+		bool request_telemetry = !_telemetry.expectingCommandResponse() && (requested_telemetry_index == motor_index);
 
 		if (!_mixing_output.isFunctionSet(i)) {
 			continue;
@@ -468,7 +470,10 @@ void DShot::Run()
 	if (_telemetry.enabled()) {
 
 		if (_telemetry.expectingCommandResponse()) {
-			_telemetry.parseCommandResponse();
+
+			if (_telemetry.parseCommandResponse()) {
+				PX4_INFO("Got a valid response!");
+			}
 
 		} else {
 			const int motor_index = _telemetry.parseTelemetryPacket(_motor_count);
@@ -591,9 +596,11 @@ void DShot::handle_vehicle_commands()
 
 			if (index != -1) {
 				PX4_INFO("index: %i type: %i", index, type);
+				_current_command.clear();
 				_current_command.command = DSHOT_CMD_MOTOR_STOP;
 				_current_command.num_repetitions = 10; // TODO: why do we always send a command 10x?
-				_current_command.save = true;
+				_current_command.save = false;
+				_current_command.timestamp = hrt_absolute_time();
 
 				switch (type) {
 				case ACTUATOR_CONFIGURATION_BEEP:
@@ -610,18 +617,22 @@ void DShot::handle_vehicle_commands()
 
 				case ACTUATOR_CONFIGURATION_SPIN_DIRECTION1:
 					_current_command.command = DSHOT_CMD_SPIN_DIRECTION_1;
+					_current_command.save = true;
 					break;
 
 				case ACTUATOR_CONFIGURATION_SPIN_DIRECTION2:
 					_current_command.command = DSHOT_CMD_SPIN_DIRECTION_2;
+					_current_command.save = true;
 					break;
 
 				case ACTUATOR_CONFIGURATION_READ_SETTINGS:
 					PX4_INFO("ACTUATOR_CONFIGURATION_READ_SETTINGS");
 					// TODO: do we only need to send this once?
 					_current_command.save = false;
-					_current_command.num_repetitions = 10; // NOTE: AM32 requires 6+ to consider a command valid
+					_current_command.num_repetitions = 6; // NOTE: AM32 requires 6 to consider a command valid
 					_current_command.command = DSHOT_CMD_ESC_INFO;
+					_current_command.expect_response = true;
+					_current_command.delay_us = 3_s;
 					break;
 
 				case ACTUATOR_CONFIGURATION_WRITE_SETTING:

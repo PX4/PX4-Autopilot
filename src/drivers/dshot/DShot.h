@@ -105,9 +105,20 @@ private:
 		uint8_t motor_mask{0xff};
 		bool save{false};
 		bool expect_response{false};
+		hrt_abstime delay_us{0};
+		hrt_abstime timestamp{0};
 
 		bool valid() const { return num_repetitions > 0; }
-		void clear() { num_repetitions = 0; save = false; motor_mask = 0; command = DSHOT_CMD_MOTOR_STOP; }
+		void clear()
+		{
+			command = 0;
+			num_repetitions = 0;
+			motor_mask = 0;
+			save = 0;
+			expect_response = 0;
+			delay_us = 0;
+			timestamp = 0;
+		}
 	};
 
 	int _last_telemetry_index{-1};

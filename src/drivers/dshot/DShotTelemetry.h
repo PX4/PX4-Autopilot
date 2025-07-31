@@ -63,18 +63,20 @@ public:
 
 	// Attempt to parse a command response.
 	// Returns TODO
-	int parseCommandResponse();
+	bool parseCommandResponse();
 
-	bool expectingCommandResponse() { return _command_response_motor_index >= 0; };
+	bool expectingCommandResponse();
+
 	void setExpectCommandResponse(int motor_index, uint16_t command);
 
 private:
-	static constexpr int COMMAND_RESPONSE_SIZE = 128; // 48B for EEPROM
+	static constexpr int COMMAND_RESPONSE_MAX_SIZE = 128;
+	static constexpr int COMMAND_RESPONSE_SETTINGS_SIZE = 48; // 48B for EEPROM
 	static constexpr int TELEMETRY_FRAME_SIZE = 10;
 
 	void requestNextMotor(int num_motors);
 
-	bool parseSettingsRequestResponse();
+	bool parseSettingsRequestResponse(uint8_t *buf, int size);
 
 	/**
 	 * Decode a single byte from an ESC feedback frame
@@ -84,6 +86,9 @@ private:
 	 */
 	bool decodeByte(uint8_t byte, bool &successful_decoding);
 
+	// Decodes success_size bytes and returns true if all were received
+	bool decodeCommandResponseByte(uint8_t byte, int success_size);
+
 	static uint8_t crc8(const uint8_t *buf, uint8_t len);
 
 	bool _enabled{false};
@@ -92,9 +97,10 @@ private:
 	// Command response
 	int _command_response_motor_index{-1};
 	uint16_t _command_response_command{0};
-
-	uint8_t _response_buffer[COMMAND_RESPONSE_SIZE];
-	int _response_position{0};
+	uint8_t _command_response_buffer[COMMAND_RESPONSE_MAX_SIZE];
+	int _command_response_position{0};
+	hrt_abstime _command_response_start{0};
+	int _recv_bytes{0};
 
 	// Telemetry packet
 	EscData _latest_data{};
