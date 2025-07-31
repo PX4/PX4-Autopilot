@@ -48,6 +48,7 @@ list(APPEND flight_tasks_all
 	ManualAltitudeSmoothVel
 	ManualPosition
 	Transition
+	VtolTakeoffLoiterLand
 )
 
 if(NOT px4_constrained_flash_build)
@@ -102,6 +103,7 @@ px4_add_module(
 	INCLUDES
 		${CMAKE_CURRENT_SOURCE_DIR}
 		${CMAKE_CURRENT_BINARY_DIR}
+		${CMAKE_CURRENT_SOURCE_DIR}/tasks
 	SRCS
 		FlightModeManager.cpp
 		FlightModeManager.hpp
