@@ -1,10 +1,10 @@
-# Inertial Labs
+# Inertial Labs INS (All sensors, including INS-U/INS-DU)
 
 Inertial Labs designs and develops [IMU](https://inertiallabs.com/products/imu-inertial-measurement-units/), [AHRS](https://inertiallabs.com/products/ahrs/), [GNSS/INS](https://inertiallabs.com/products/ins-inertial-navigation-systems/) and [other](https://inertiallabs.com/) solutions.
+A universal protocol is used for [all Inertial Labs sensors](https://inertiallabs.com/).
 
 ![INS-U](../../assets/hardware/sensors/inertial/ilabs-ins-u.png)
 
-Sensors connection is near plug-and-play, and a universal protocol is used for [all Inertial Labs sensors](https://inertiallabs.com/).
 
 Benefits to PX4 users:
 
@@ -34,7 +34,7 @@ Connect the sensor to any unused flight controller serial interface, such as a s
 ### Mounting
 
 The Inertial Labs sensors can be mounted in any orientation.
-Coordinates rotation is configurable.
+You can set offsets for coordinate axes in the sensor-configuration software that is provided with your sensor.
 
 ## Firmware Configuration
 
@@ -69,7 +69,8 @@ Once enabled, the module will be detected on boot.
 
 ## Inertial Labs Sensor Configuration
 
-You can find configuration details in the device ICD.
+Perform sensor configuration according to the Interface Control Document (ICD) that comes with each device.
+The sensor-configuration software allows you to set the baurate and the data format, and you can also adjust the orientation axes if the sensor wasn't oriented in the normal way.
 This process is usually short and takes a few minutes, depending on the sensor and the installation conditions on the vehicle.
 
 ## Published Data
