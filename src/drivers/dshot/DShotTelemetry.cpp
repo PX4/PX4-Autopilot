@@ -82,7 +82,7 @@ int DShotTelemetry::init(const char *port, bool swap_rxtx)
 bool DShotTelemetry::parseCommandResponse()
 {
 	if (hrt_elapsed_time(&_command_response_start) > 1_s) {
-		PX4_INFO("Command response timed out: %d bytes received", _recv_bytes);
+		PX4_WARN("Command response timed out: %d bytes received", _recv_bytes);
 		_command_response_motor_index = -1;
 		_command_response_start = 0;
 		_recv_bytes = 0;
@@ -97,10 +97,6 @@ bool DShotTelemetry::parseCommandResponse()
 	int bytes = _uart.read(buf, sizeof(buf));
 
 	_recv_bytes += bytes;
-
-	// if (bytes > 0) {
-	// 	PX4_INFO("got %d bytes", bytes);
-	// }
 
 	// TODO: any way to determine response type?
 	switch (_command_response_command) {
@@ -133,7 +129,7 @@ bool DShotTelemetry::parseSettingsRequestResponse(uint8_t *buf, int size)
 				PX4_INFO("Successfully received settings!");
 				// TODO: publish settings on uORB --> mavlink stream
 			} else {
-				PX4_INFO("Command Response checksum failed!");
+				PX4_WARN("Command Response checksum failed!");
 			}
 
 			_command_response_position = 0;
@@ -163,7 +159,9 @@ int DShotTelemetry::parseTelemetryPacket(int num_motors)
 
 		if (_telemetry_request_start > 0 && now > _telemetry_request_start + 30_ms) {
 
-			PX4_WARN("ESC telemetry timeout for motor %i (frame pos=%i)", _telemetry_request_motor_index, _frame_position);
+			// NOTE: this happens when sending commands, there's a window after an ESC receives
+			// a command where it will not respond to any telemetry requests
+			PX4_DEBUG("ESC telemetry timeout for motor %i (frame pos=%i)", _telemetry_request_motor_index, _frame_position);
 			++_num_timeouts;
 
 			requestNextMotor(num_motors);
@@ -196,7 +194,7 @@ int DShotTelemetry::parseTelemetryPacket(int num_motors)
 
 void DShotTelemetry::setExpectCommandResponse(int motor_index, uint16_t command)
 {
-	PX4_INFO("setExpectCommandResponse");
+	PX4_DEBUG("setExpectCommandResponse");
 	_command_response_motor_index = motor_index;
 	_command_response_command = command;
 	_command_response_start = hrt_absolute_time();
@@ -223,7 +221,6 @@ bool DShotTelemetry::decodeByte(uint8_t byte, bool &successful_decoding)
 	_frame_buffer[_frame_position++] = byte;
 
 	if (_frame_position == TELEMETRY_FRAME_SIZE) {
-		PX4_DEBUG("got ESC frame for motor %i", _telemetry_request_motor_index);
 		uint8_t checksum = crc8(_frame_buffer, TELEMETRY_FRAME_SIZE - 1);
 		uint8_t checksum_data = _frame_buffer[TELEMETRY_FRAME_SIZE - 1];
 
@@ -234,9 +231,7 @@ bool DShotTelemetry::decodeByte(uint8_t byte, bool &successful_decoding)
 			_latest_data.current = (_frame_buffer[3] << 8) | _frame_buffer[4];
 			_latest_data.consumption = (_frame_buffer[5]) << 8 | _frame_buffer[6];
 			_latest_data.erpm = (_frame_buffer[7] << 8) | _frame_buffer[8];
-			PX4_DEBUG("Motor %i: temp=%i, V=%i, cur=%i, consumpt=%i, rpm=%i", _telemetry_request_motor_index,
-				  _latest_data.temperature, _latest_data.voltage, _latest_data.current, _latest_data.consumption,
-				  _latest_data.erpm);
+
 			++_num_successful_responses;
 			successful_decoding = true;
 
