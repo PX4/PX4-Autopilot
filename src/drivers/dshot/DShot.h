@@ -105,8 +105,6 @@ private:
 		uint8_t motor_mask{0xff};
 		bool save{false};
 		bool expect_response{false};
-		hrt_abstime delay_us{0};
-		hrt_abstime timestamp{0};
 
 		bool valid() const { return num_repetitions > 0; }
 		void clear()
@@ -116,8 +114,6 @@ private:
 			motor_mask = 0;
 			save = 0;
 			expect_response = 0;
-			delay_us = 0;
-			timestamp = 0;
 		}
 	};
 
