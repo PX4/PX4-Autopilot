@@ -51,17 +51,30 @@ public:
 	~DShotTelemetry();
 
 	int init(const char *uart_device, bool swap_rxtx);
-	int update(int num_motors);
 	int getNextMotorIndex();
 	const EscData &latestESCData() const { return _latest_data; }
 	void printStatus() const;
+	bool requestInProgress() { return _telemetry_request_start != 0; }
+	bool enabled() { return _enabled; }
 
-	bool requestInProgress() { return _current_request_start > 0; }
+	// Attempts to parse a single 10 Byte Telemtry packet.
+	// Returns the motor index that the telemtry packet was received from.
+	int parseTelemetryPacket(int num_motors);
+
+	// Attempt to parse a command response.
+	// Returns TODO
+	int parseCommandResponse();
+
+	bool expectingCommandResponse() { return _command_response_motor_index >= 0; };
+	void setExpectCommandResponse(int motor_index, uint16_t command);
 
 private:
-	static constexpr int ESC_FRAME_SIZE = 10;
+	static constexpr int COMMAND_RESPONSE_SIZE = 128; // 48B for EEPROM
+	static constexpr int TELEMETRY_FRAME_SIZE = 10;
 
 	void requestNextMotor(int num_motors);
+
+	bool parseSettingsRequestResponse();
 
 	/**
 	 * Decode a single byte from an ESC feedback frame
@@ -73,15 +86,22 @@ private:
 
 	static uint8_t crc8(const uint8_t *buf, uint8_t len);
 
-	device::Serial _uart {};
+	bool _enabled{false};
+	device::Serial _uart{};
 
-	uint8_t _frame_buffer[ESC_FRAME_SIZE];
+	// Command response
+	int _command_response_motor_index{-1};
+	uint16_t _command_response_command{0};
+
+	uint8_t _response_buffer[COMMAND_RESPONSE_SIZE];
+	int _response_position{0};
+
+	// Telemetry packet
+	EscData _latest_data{};
+	uint8_t _frame_buffer[TELEMETRY_FRAME_SIZE];
 	int _frame_position{0};
-
-	EscData _latest_data;
-
-	int _current_motor_index_request{-1};
-	hrt_abstime _current_request_start{0};
+	int _telemetry_request_motor_index{-1};
+	hrt_abstime _telemetry_request_start{0};
 
 	// statistics
 	int _num_timeouts{0};
