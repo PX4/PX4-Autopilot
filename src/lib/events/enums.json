@@ -421,18 +421,22 @@
                             "description": "RTL"
                         },
                         "7": {
+                            "name": "dead_reckon_rtl",
+                            "description": "Dead Reckoning RTL"
+                        },
+                        "8": {
                             "name": "land",
                             "description": "Land"
                         },
-                        "8": {
+                        "9": {
                             "name": "descend",
                             "description": "Descend"
                         },
-                        "9": {
+                        "10": {
                             "name": "disarm",
                             "description": "disarm"
                         },
-                        "10": {
+                        "11": {
                             "name": "terminate",
                             "description": "terminate"
                         }
@@ -603,6 +607,10 @@
                         "23": {
                             "name": "external8",
                             "description": "External 8"
+                        },
+                        "24": {
+                            "name": "auto_rtl_dr",
+                            "description": "Dead-Reckoning RTL"
                         },
                         "255": {
                             "name": "unknown",
