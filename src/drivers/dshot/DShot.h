@@ -90,8 +90,6 @@ public:
 
 	void mixerChanged() override;
 
-	bool telemetry_enabled() const { return _telemetry != nullptr; }
-
 	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
@@ -101,18 +99,12 @@ private:
 	DShot(const DShot &) = delete;
 	DShot operator=(const DShot &) = delete;
 
-	enum class DShotConfig {
-		Disabled  = 0,
-		DShot150  = 150,
-		DShot300  = 300,
-		DShot600  = 600,
-	};
-
 	struct Command {
 		uint16_t command{};
 		int num_repetitions{0};
 		uint8_t motor_mask{0xff};
 		bool save{false};
+		bool expect_response{false};
 
 		bool valid() const { return num_repetitions > 0; }
 		void clear() { num_repetitions = 0; save = false; motor_mask = 0; command = DSHOT_CMD_MOTOR_STOP; }
@@ -125,17 +117,15 @@ private:
 
 	void init_telemetry(const char *device, bool swap_rxtx);
 
-	bool handle_new_telemetry_data(const int telemetry_index, const DShotTelemetry::EscData &data);
+	bool process_telemetry(const int telemetry_index, const DShotTelemetry::EscData &data);
 
 	void publish_esc_status(void);
 
-	bool handle_new_bdshot_erpm(void);
+	bool process_bdshot_erpm(void);
 
 	void Run() override;
 
 	void update_params();
-
-	void update_num_motors();
 
 	void handle_vehicle_commands();
 
@@ -144,11 +134,10 @@ private:
 	void handle_programming_sequence_state();
 
 	MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
-	uint32_t _reversible_outputs{};
 
-	DShotTelemetry *_telemetry{nullptr};
+	DShotTelemetry _telemetry;
 
-	uORB::PublicationMultiData<esc_status_s> esc_status_pub{ORB_ID(esc_status)};
+	uORB::PublicationMultiData<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 
 	static char _telemetry_device[20];
 	static bool _telemetry_swap_rxtx;
@@ -159,7 +148,7 @@ private:
 	static constexpr unsigned _num_outputs{DIRECT_PWM_OUTPUT_CHANNELS};
 	uint32_t _output_mask{0};
 
-	int _num_motors{0};
+	int _motor_count{0};
 
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_bdshot_rpm_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot rpm")};

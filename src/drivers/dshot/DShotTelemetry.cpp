@@ -34,6 +34,7 @@
 #include "DShotTelemetry.h"
 
 #include <px4_platform_common/log.h>
+#include <drivers/drv_dshot.h>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -73,29 +74,57 @@ int DShotTelemetry::init(const char *port, bool swap_rxtx)
 		return PX4_ERROR;
 	}
 
+	_enabled = true;
+
 	return PX4_OK;
 }
 
-int DShotTelemetry::update(int num_motors)
+int DShotTelemetry::parseCommandResponse()
 {
-	if (_current_motor_index_request == -1) {
+	// _command_response_motor_index >= 0
+	PX4_INFO("parseCommandResponse");
+
+	if (_uart.bytesAvailable() <= 0) {
+		return -1;
+	}
+
+	uint8_t buf[COMMAND_RESPONSE_SIZE];
+	int bytes = _uart.read(buf, sizeof(buf));
+
+	// TODO: any way to determine response type?
+	switch (_command_response_command) {
+	case DSHOT_CMD_SETTINGS_REQUEST: {
+		PX4_INFO("got full packet");
+			parseSettingsRequestResponse();
+		break;
+	default:
+		break;
+	}
+	}
+
+	_command_response_motor_index = -1;
+
+	return bytes;
+}
+
+int DShotTelemetry::parseTelemetryPacket(int num_motors)
+{
+	if (_telemetry_request_motor_index == -1) {
 		// nothing in progress, start a request
-		_current_motor_index_request = 0;
-		_current_request_start = 0;
+		_telemetry_request_motor_index = 0;
+		_telemetry_request_start = 0;
 		_frame_position = 0;
 		return -1;
 	}
 
 	// read from the uart. This must be non-blocking, so check first if there is data available
-	int bytes_available = _uart.bytesAvailable();
-
-	if (bytes_available <= 0) {
+	if (_uart.bytesAvailable() <= 0) {
 		// no data available. Check for a timeout
 		const hrt_abstime now = hrt_absolute_time();
 
-		if (_current_request_start > 0 && now - _current_request_start > 30_ms) {
+		if (_telemetry_request_start > 0 && now > _telemetry_request_start + 30_ms) {
 
-			PX4_WARN("ESC telemetry timeout for motor %i (frame pos=%i)", _current_motor_index_request, _frame_position);
+			PX4_WARN("ESC telemetry timeout for motor %i (frame pos=%i)", _telemetry_request_motor_index, _frame_position);
 			++_num_timeouts;
 
 			requestNextMotor(num_motors);
@@ -105,7 +134,7 @@ int DShotTelemetry::update(int num_motors)
 		return -1;
 	}
 
-	uint8_t buf[ESC_FRAME_SIZE];
+	uint8_t buf[TELEMETRY_FRAME_SIZE];
 	int bytes = _uart.read(buf, sizeof(buf));
 
 	int ret = -1;
@@ -116,7 +145,7 @@ int DShotTelemetry::update(int num_motors)
 
 		if (decodeByte(buf[i], successful_decoding)) {
 			if (successful_decoding) {
-				ret = _current_motor_index_request;
+				ret = _telemetry_request_motor_index;
 			}
 
 			requestNextMotor(num_motors);
@@ -124,6 +153,17 @@ int DShotTelemetry::update(int num_motors)
 	}
 
 	return ret;
+}
+
+bool DShotTelemetry::parseSettingsRequestResponse()
+{
+	return false;
+}
+
+void DShotTelemetry::setExpectCommandResponse(int motor_index, uint16_t command)
+{
+	_command_response_motor_index = motor_index;
+	_command_response_command = command;
 }
 
 /*
@@ -140,10 +180,10 @@ bool DShotTelemetry::decodeByte(uint8_t byte, bool &successful_decoding)
 {
 	_frame_buffer[_frame_position++] = byte;
 
-	if (_frame_position == ESC_FRAME_SIZE) {
-		PX4_DEBUG("got ESC frame for motor %i", _current_motor_index_request);
-		uint8_t checksum = crc8(_frame_buffer, ESC_FRAME_SIZE - 1);
-		uint8_t checksum_data = _frame_buffer[ESC_FRAME_SIZE - 1];
+	if (_frame_position == TELEMETRY_FRAME_SIZE) {
+		PX4_DEBUG("got ESC frame for motor %i", _telemetry_request_motor_index);
+		uint8_t checksum = crc8(_frame_buffer, TELEMETRY_FRAME_SIZE - 1);
+		uint8_t checksum_data = _frame_buffer[TELEMETRY_FRAME_SIZE - 1];
 
 		if (checksum == checksum_data) {
 			_latest_data.time = hrt_absolute_time();
@@ -152,7 +192,7 @@ bool DShotTelemetry::decodeByte(uint8_t byte, bool &successful_decoding)
 			_latest_data.current = (_frame_buffer[3] << 8) | _frame_buffer[4];
 			_latest_data.consumption = (_frame_buffer[5]) << 8 | _frame_buffer[6];
 			_latest_data.erpm = (_frame_buffer[7] << 8) | _frame_buffer[8];
-			PX4_DEBUG("Motor %i: temp=%i, V=%i, cur=%i, consumpt=%i, rpm=%i", _current_motor_index_request,
+			PX4_DEBUG("Motor %i: temp=%i, V=%i, cur=%i, consumpt=%i, rpm=%i", _telemetry_request_motor_index,
 				  _latest_data.temperature, _latest_data.voltage, _latest_data.current, _latest_data.consumption,
 				  _latest_data.erpm);
 			++_num_successful_responses;
@@ -198,18 +238,18 @@ uint8_t DShotTelemetry::crc8(const uint8_t *buf, uint8_t len)
 
 void DShotTelemetry::requestNextMotor(int num_motors)
 {
-	_current_motor_index_request = (_current_motor_index_request + 1) % num_motors;
-	_current_request_start = 0;
+	_telemetry_request_motor_index = (_telemetry_request_motor_index + 1) % num_motors;
+	_telemetry_request_start = 0;
 	_frame_position = 0;
 }
 
 int DShotTelemetry::getNextMotorIndex()
 {
-	if (requestInProgress()) {
+	if (!_enabled || requestInProgress()) {
 		// already in progress, do not send another request
 		return -1;
 	}
 
-	_current_request_start = hrt_absolute_time();
-	return _current_motor_index_request;
+	_telemetry_request_start = hrt_absolute_time();
+	return _telemetry_request_motor_index;
 }
