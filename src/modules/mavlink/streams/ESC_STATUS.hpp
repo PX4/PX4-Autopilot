@@ -56,6 +56,7 @@ public:
 private:
 	explicit MavlinkStreamESCStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
+	// TODO: subscription multi
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 	uint8_t _number_of_batches{0};
 
@@ -64,7 +65,10 @@ private:
 		static constexpr uint8_t batch_size = MAVLINK_MSG_ESC_STATUS_FIELD_RPM_LEN;
 		esc_status_s esc_status;
 
+		// PX4_INFO("send..");
+
 		if (_esc_status_sub.update(&esc_status)) {
+			PX4_INFO("updated");
 			mavlink_esc_status_t msg{};
 
 			msg.time_usec = esc_status.timestamp;
@@ -82,6 +86,7 @@ private:
 					msg.current[esc_index] = esc_status.esc[msg.index + esc_index].esc_current;
 				}
 
+				PX4_INFO("sent");
 				mavlink_msg_esc_status_send_struct(_mavlink->get_channel(), &msg);
 			}
 
