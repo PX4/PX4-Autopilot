@@ -415,14 +415,9 @@ public:
 
 	float			get_rate_mult() const { return _rate_mult; }
 
-	float			get_baudrate() { return _baudrate; }
-
 	/* Functions for waiting to start transmission until message received. */
 	void			set_has_received_messages(bool received_messages) { _received_messages = received_messages; }
-	bool			get_has_received_messages() { return _received_messages; }
-	void			set_wait_to_transmit(bool wait) { _wait_to_transmit = wait; }
-	bool			get_wait_to_transmit() { return _wait_to_transmit; }
-	bool			should_transmit() { return (_transmitting_enabled && (!_wait_to_transmit || (_wait_to_transmit && _received_messages))); }
+	bool			should_transmit() { return _transmitting_enabled && _received_messages; }
 
 	/**
 	 * Count transmitted bytes
@@ -456,10 +451,6 @@ public:
 	int 			get_socket_fd() { return _socket_fd; };
 
 #if defined(MAVLINK_UDP)
-	unsigned short		get_network_port() { return _network_port; }
-
-	unsigned short		get_remote_port() { return _remote_port; }
-
 	const in_addr		query_netmask_addr(const int socket_fd, const ifreq &ifreq);
 
 	const in_addr		compute_broadcast_addr(const in_addr &host_addr, const in_addr &netmask_addr);
@@ -475,7 +466,6 @@ public:
 
 	static bool		boot_complete() { return _boot_complete; }
 
-	bool			is_usb_uart() { return _is_usb_uart; }
 
 	int			get_data_rate()		{ return _datarate; }
 	void			set_data_rate(int rate) { if (rate > 0) { _datarate = rate; } }
@@ -561,8 +551,6 @@ private:
 
 	/* states */
 	bool			_hil_enabled{false};		/**< Hardware In the Loop mode */
-	bool			_is_usb_uart{false};		/**< Port is USB */
-	bool			_wait_to_transmit{false};  	/**< Wait to transmit until received messages. */
 	bool			_received_messages{false};	/**< Whether we've received valid mavlink messages. */
 
 	px4::atomic_bool	_should_check_events{false};    /**< Events subscription: only one MAVLink instance should check */
