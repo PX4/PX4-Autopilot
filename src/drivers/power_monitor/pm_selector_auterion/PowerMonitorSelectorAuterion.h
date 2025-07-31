@@ -160,7 +160,9 @@ private:
 	const char *get_start_command(const uint16_t dev_type) const;
 
 	bool is_user_configured(const uint16_t dev_type) const;
+	void set_max_current(const uint16_t dev_type, const float max_current) const;
 	void set_shunt_value(const uint16_t dev_type, const float shunt_value) const;
+	void set_float_param(const char *param_name, const float param_val) const;
 	const char *get_ina_type(const uint16_t dev_type) const;
 	uint16_t crc16_update(const uint16_t current_crc, const uint8_t *data_p, size_t length) const;
 
