@@ -35,6 +35,8 @@
 
 #include <px4_platform_common/Serial.hpp>
 #include <drivers/drv_hrt.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/esc_eeprom.h>
 
 class DShotTelemetry
 {
@@ -113,4 +115,6 @@ private:
 	int _num_timeouts{0};
 	int _num_successful_responses{0};
 	int _num_checksum_errors{0};
+
+	uORB::Publication<esc_eeprom_s> _esc_eeprom_pub{ORB_ID(esc_eeprom)};
 };
