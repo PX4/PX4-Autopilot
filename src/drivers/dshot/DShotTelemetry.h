@@ -48,46 +48,15 @@ public:
 		int16_t erpm;        ///< [100ERPM]
 	};
 
-	static constexpr int esc_info_size_blheli32 = 64;
-	static constexpr int esc_info_size_kiss_v1 = 15;
-	static constexpr int esc_info_size_kiss_v2 = 21;
-	static constexpr int max_esc_info_size = esc_info_size_blheli32;
-
-	struct OutputBuffer {
-		uint8_t buffer[max_esc_info_size];
-		int buf_pos{0};
-		int motor_index;
-	};
-
 	~DShotTelemetry();
 
 	int init(const char *uart_device, bool swap_rxtx);
-
-	/**
-	 * Read telemetry from the UART (non-blocking) and handle timeouts.
-	 * @param num_motors How many DShot enabled motors
-	 * @return -1 if no update, -2 timeout, >= 0 for the motor index. Use @latestESCData() to get the data.
-	 */
 	int update(int num_motors);
-
-	bool redirectActive() const { return _redirect_output != nullptr; }
-
-	/**
-	 * Get the motor index for which telemetry should be requested.
-	 * @return -1 if no request should be made, motor index otherwise
-	 */
-	int getRequestMotorIndex();
-
+	int getNextMotorIndex();
 	const EscData &latestESCData() const { return _latest_data; }
-
-	/**
-	 * Check whether we are currently expecting to read new data from an ESC
-	 */
-	bool expectingData() const { return _current_request_start != 0; }
-
 	void printStatus() const;
 
-	static void decodeAndPrintEscInfoPacket(const OutputBuffer &buffer);
+	bool requestInProgress() { return _current_request_start > 0; }
 
 private:
 	static constexpr int ESC_FRAME_SIZE = 10;
@@ -113,8 +82,6 @@ private:
 
 	int _current_motor_index_request{-1};
 	hrt_abstime _current_request_start{0};
-
-	OutputBuffer *_redirect_output{nullptr}; ///< if set, all read bytes are stored here instead of the internal buffer
 
 	// statistics
 	int _num_timeouts{0};

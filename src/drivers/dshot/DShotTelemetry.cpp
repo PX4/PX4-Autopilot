@@ -94,15 +94,9 @@ int DShotTelemetry::update(int num_motors)
 		const hrt_abstime now = hrt_absolute_time();
 
 		if (_current_request_start > 0 && now - _current_request_start > 30_ms) {
-			if (_redirect_output) {
-				// clear and go back to internal buffer
-				_redirect_output = nullptr;
-				_current_motor_index_request = -1;
 
-			} else {
-				PX4_DEBUG("ESC telemetry timeout for motor %i (frame pos=%i)", _current_motor_index_request, _frame_position);
-				++_num_timeouts;
-			}
+			PX4_WARN("ESC telemetry timeout for motor %i (frame pos=%i)", _current_motor_index_request, _frame_position);
+			++_num_timeouts;
 
 			requestNextMotor(num_motors);
 			return -2;
@@ -117,37 +111,34 @@ int DShotTelemetry::update(int num_motors)
 	int ret = -1;
 
 	for (int i = 0; i < bytes && ret == -1; ++i) {
-		if (_redirect_output) {
-			_redirect_output->buffer[_redirect_output->buf_pos++] = buf[i];
 
-			if (_redirect_output->buf_pos == sizeof(_redirect_output->buffer)) {
-				// buffer full: return & go back to internal buffer
-				_redirect_output = nullptr;
+		bool successful_decoding = false;
+
+		if (decodeByte(buf[i], successful_decoding)) {
+			if (successful_decoding) {
 				ret = _current_motor_index_request;
-				_current_motor_index_request = -1;
-				requestNextMotor(num_motors);
 			}
 
-		} else {
-			bool successful_decoding;
-
-			if (decodeByte(buf[i], successful_decoding)) {
-				if (successful_decoding) {
-					ret = _current_motor_index_request;
-				}
-
-				requestNextMotor(num_motors);
-			}
+			requestNextMotor(num_motors);
 		}
 	}
 
 	return ret;
 }
 
+/*
+ * ESC Telemetry Frame Structure (10 bytes total)
+ * =============================================
+ * Byte 0:     Temperature (uint8_t)
+ * Byte 1-2:   Voltage (uint16_t, big-endian)
+ * Byte 3-4:   Current (uint16_t, big-endian)
+ * Byte 5-6:   Consumption (uint16_t, big-endian)
+ * Byte 7-8:   eRPM (uint16_t, big-endian)
+ * Byte 9:     CRC8 Checksum
+ */
 bool DShotTelemetry::decodeByte(uint8_t byte, bool &successful_decoding)
 {
 	_frame_buffer[_frame_position++] = byte;
-	successful_decoding = false;
 
 	if (_frame_position == ESC_FRAME_SIZE) {
 		PX4_DEBUG("got ESC frame for motor %i", _current_motor_index_request);
@@ -212,168 +203,13 @@ void DShotTelemetry::requestNextMotor(int num_motors)
 	_frame_position = 0;
 }
 
-int DShotTelemetry::getRequestMotorIndex()
+int DShotTelemetry::getNextMotorIndex()
 {
-	if (_current_request_start != 0) {
+	if (requestInProgress()) {
 		// already in progress, do not send another request
 		return -1;
 	}
 
 	_current_request_start = hrt_absolute_time();
 	return _current_motor_index_request;
-}
-
-void DShotTelemetry::decodeAndPrintEscInfoPacket(const OutputBuffer &buffer)
-{
-	static constexpr int version_position = 12;
-	const uint8_t *data = buffer.buffer;
-
-	if (buffer.buf_pos < version_position) {
-		PX4_ERR("Not enough data received");
-		return;
-	}
-
-	enum class ESCVersionInfo {
-		BLHELI32,
-		KissV1,
-		KissV2,
-	};
-	ESCVersionInfo version;
-	int packet_length;
-
-	if (data[version_position] == 254) {
-		version = ESCVersionInfo::BLHELI32;
-		packet_length = esc_info_size_blheli32;
-
-	} else if (data[version_position] == 255) {
-		version = ESCVersionInfo::KissV2;
-		packet_length = esc_info_size_kiss_v2;
-
-	} else {
-		version = ESCVersionInfo::KissV1;
-		packet_length = esc_info_size_kiss_v1;
-	}
-
-	if (buffer.buf_pos != packet_length) {
-		PX4_ERR("Packet length mismatch (%i != %i)", buffer.buf_pos, packet_length);
-		return;
-	}
-
-	if (DShotTelemetry::crc8(data, packet_length - 1) != data[packet_length - 1]) {
-		PX4_ERR("Checksum mismatch");
-		return;
-	}
-
-	uint8_t esc_firmware_version = 0;
-	uint8_t esc_firmware_subversion = 0;
-	uint8_t esc_type = 0;
-
-	switch (version) {
-	case ESCVersionInfo::KissV1:
-		esc_firmware_version = data[12];
-		esc_firmware_subversion = (data[13] & 0x1f) + 97;
-		esc_type = (data[13] & 0xe0) >> 5;
-		break;
-
-	case ESCVersionInfo::KissV2:
-	case ESCVersionInfo::BLHELI32:
-		esc_firmware_version = data[13];
-		esc_firmware_subversion = data[14];
-		esc_type = data[15];
-		break;
-	}
-
-	const char *esc_type_str = "";
-
-	switch (version) {
-	case ESCVersionInfo::KissV1:
-	case ESCVersionInfo::KissV2:
-		switch (esc_type) {
-		case 1: esc_type_str = "KISS8A";
-			break;
-
-		case 2: esc_type_str = "KISS16A";
-			break;
-
-		case 3: esc_type_str = "KISS24A";
-			break;
-
-		case 5: esc_type_str = "KISS Ultralite";
-			break;
-
-		default: esc_type_str = "KISS (unknown)";
-			break;
-		}
-
-		break;
-
-	case ESCVersionInfo::BLHELI32: {
-			char *esc_type_mutable = (char *)(data + 31);
-			esc_type_mutable[32] = 0;
-			esc_type_str = esc_type_mutable;
-		}
-		break;
-	}
-
-	PX4_INFO("ESC Type: %s", esc_type_str);
-
-	PX4_INFO("MCU Serial Number: %02x%02x%02x-%02x%02x%02x-%02x%02x%02x-%02x%02x%02x",
-		 data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8],
-		 data[9], data[10], data[11]);
-
-	switch (version) {
-	case ESCVersionInfo::KissV1:
-	case ESCVersionInfo::KissV2:
-		PX4_INFO("Firmware version: %d.%d%c", esc_firmware_version / 100, esc_firmware_version % 100,
-			 (char)esc_firmware_subversion);
-		break;
-
-	case ESCVersionInfo::BLHELI32:
-		PX4_INFO("Firmware version: %d.%d", esc_firmware_version, esc_firmware_subversion);
-		break;
-	}
-
-	if (version == ESCVersionInfo::KissV2 || version == ESCVersionInfo::BLHELI32) {
-		PX4_INFO("Rotation Direction: %s", data[16] ? "reversed" : "normal");
-		PX4_INFO("3D Mode: %s", data[17] ? "on" : "off");
-	}
-
-	if (version == ESCVersionInfo::BLHELI32) {
-		uint8_t setting = data[18];
-
-		switch (setting) {
-		case 0:
-			PX4_INFO("Low voltage Limit: off");
-			break;
-
-		case 255:
-			PX4_INFO("Low voltage Limit: unsupported");
-			break;
-
-		default:
-			PX4_INFO("Low voltage Limit: %d.%01d V", setting / 10, setting % 10);
-			break;
-		}
-
-		setting = data[19];
-
-		switch (setting) {
-		case 0:
-			PX4_INFO("Current Limit: off");
-			break;
-
-		case 255:
-			PX4_INFO("Current Limit: unsupported");
-			break;
-
-		default:
-			PX4_INFO("Current Limit: %d A", setting);
-			break;
-		}
-
-		for (int i = 0; i < 4; ++i) {
-			setting = data[i + 20];
-			PX4_INFO("LED %d: %s", i, setting ? (setting == 255 ? "unsupported" : "on") : "off");
-		}
-	}
 }
