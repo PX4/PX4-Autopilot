@@ -355,8 +355,6 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			}
 
 			if (_current_command.motor_mask & (1 << i)) {
-				PX4_INFO("_current_command.motor_mask %u", _current_command.motor_mask);
-				PX4_INFO("Sending command %u to motor %d", _current_command.command, i);
 				up_dshot_motor_command(i, _current_command.command, false);
 
 				// Decrement command repetition counter
@@ -386,7 +384,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 	int requested_telemetry_index = -1;
 
 	if (_telemetry) {
-		requested_telemetry_index = _telemetry->getRequestMotorIndex();
+		requested_telemetry_index = _telemetry->getNextMotorIndex();
 	}
 
 	for (int i = 0; i < (int)num_outputs; i++) {
@@ -394,16 +392,12 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 		uint16_t output = outputs[i];
 		bool request_telemetry = _telemetry && (requested_telemetry_index == telemetry_index);
 
-		// TODO: debugging
-		(void)request_telemetry;
-
 		if (!_mixing_output.isFunctionSet(i)) {
 			continue;
 		}
 
 		if (output == DSHOT_DISARM_VALUE) {
-			// up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, request_telemetry);
-			up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, false);
+			up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, request_telemetry);
 
 		} else {
 			// Reverse output if required
@@ -411,8 +405,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 				output = convert_output_to_3d_scaling(output);
 			}
 
-			// up_dshot_motor_data_set(i, math::min(output, DSHOT_MAX_THROTTLE), request_telemetry);
-			up_dshot_motor_data_set(i, math::min(output, DSHOT_MAX_THROTTLE), false);
+			up_dshot_motor_data_set(i, math::min(output, DSHOT_MAX_THROTTLE), request_telemetry);
 		}
 
 		telemetry_index++;
