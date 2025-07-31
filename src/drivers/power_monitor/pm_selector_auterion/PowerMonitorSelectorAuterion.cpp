@@ -96,6 +96,7 @@ void PowerMonitorSelectorAuterion::try_eeprom_start()
 					EepromBlockPm eeprom_block_pm = _eeprom_blocks_pm[ii];
 
 					uint16_t dev_type = eeprom_block_pm.dev_type;
+					set_max_current(dev_type, eeprom_block_pm.max_current);
 					set_shunt_value(dev_type, eeprom_block_pm.shunt_value);
 					int ret_val = start_pm(_buses[i].bus_number, dev_type, eeprom_block_pm.i2c_addr, _buses[i].id);
 
@@ -368,6 +369,19 @@ bool PowerMonitorSelectorAuterion::is_user_configured(const uint16_t dev_type) c
 	return sens_en != 0;
 }
 
+void PowerMonitorSelectorAuterion::set_max_current(const uint16_t dev_type, const float max_current) const
+{
+	const char *ina_type = get_ina_type(dev_type);
+
+	if (ina_type == nullptr) {
+		return;
+	}
+
+	char param_name[PARAM_MAX_LEN];
+	snprintf(param_name, sizeof(param_name), "INA%s_CURRENT", ina_type);
+	set_float_param(param_name, max_current);
+}
+
 void PowerMonitorSelectorAuterion::set_shunt_value(const uint16_t dev_type, const float shunt_value) const
 {
 	const char *ina_type = get_ina_type(dev_type);
@@ -378,12 +392,16 @@ void PowerMonitorSelectorAuterion::set_shunt_value(const uint16_t dev_type, cons
 
 	char param_name[PARAM_MAX_LEN];
 	snprintf(param_name, sizeof(param_name), "INA%s_SHUNT", ina_type);
+	set_float_param(param_name, shunt_value);
+}
 
-	float current_shunt_value = 0;
-	param_get(param_find(param_name), &current_shunt_value);
+void PowerMonitorSelectorAuterion::set_float_param(const char *param_name, const float param_val) const
+{
+	float current_param_value = 0;
+	param_get(param_find(param_name), &current_param_value);
 
-	if (fabsf(current_shunt_value - shunt_value) > FLT_EPSILON) {
-		param_set(param_find(param_name), &(shunt_value));
+	if (fabsf(current_param_value - param_val) > FLT_EPSILON) {
+		param_set(param_find(param_name), &(param_val));
 	}
 }
 
