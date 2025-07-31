@@ -98,9 +98,9 @@ bool DShotTelemetry::parseCommandResponse()
 
 	_recv_bytes += bytes;
 
-	if (bytes > 0) {
-		PX4_INFO("got %d bytes", bytes);
-	}
+	// if (bytes > 0) {
+	// 	PX4_INFO("got %d bytes", bytes);
+	// }
 
 	// TODO: any way to determine response type?
 	switch (_command_response_command) {
@@ -121,14 +121,28 @@ bool DShotTelemetry::parseCommandResponse()
 bool DShotTelemetry::parseSettingsRequestResponse(uint8_t *buf, int size)
 {
 	for (int i = 0; i < size; i++) {
-		if (decodeCommandResponseByte(buf[i], COMMAND_RESPONSE_SETTINGS_SIZE)) {
+		_command_response_buffer[_command_response_position++] = buf[i];
+
+		// Check if we've received all the bytes
+		if (_command_response_position == COMMAND_RESPONSE_SETTINGS_SIZE) {
+
 			// Successfuly read the bytes we want -- set to finished
-			// PX4_INFO("success!");
-			// _command_response_motor_index = -1;
-			// return true;
-			return false;
+			uint8_t checksum = crc8(_command_response_buffer, COMMAND_RESPONSE_SETTINGS_SIZE - 1);
+			uint8_t checksum_data = _command_response_buffer[COMMAND_RESPONSE_SETTINGS_SIZE - 1];
+			if (checksum == checksum_data) {
+				PX4_INFO("Successfully received settings!");
+				// TODO: publish settings on uORB --> mavlink stream
+			} else {
+				PX4_INFO("Command Response checksum failed!");
+			}
+
+			_command_response_position = 0;
+			_command_response_start = 0;
+			_command_response_motor_index = -1;
+			return true;
 		}
 	}
+
 	return false;
 }
 
@@ -182,6 +196,7 @@ int DShotTelemetry::parseTelemetryPacket(int num_motors)
 
 void DShotTelemetry::setExpectCommandResponse(int motor_index, uint16_t command)
 {
+	PX4_INFO("setExpectCommandResponse");
 	_command_response_motor_index = motor_index;
 	_command_response_command = command;
 	_command_response_start = hrt_absolute_time();
@@ -229,19 +244,6 @@ bool DShotTelemetry::decodeByte(uint8_t byte, bool &successful_decoding)
 			++_num_checksum_errors;
 		}
 
-		return true;
-	}
-
-	return false;
-}
-
-bool DShotTelemetry::decodeCommandResponseByte(uint8_t byte, int success_size)
-{
-	PX4_INFO("dcrb: %u", byte);
-	_command_response_buffer[_command_response_position++] = byte;
-
-	if (_command_response_position == success_size) {
-		PX4_DEBUG("got ESC Command Response for motor %i", _telemetry_request_motor_index);
 		return true;
 	}
 

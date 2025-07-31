@@ -347,8 +347,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			// Send command to the motor if there isn't telemtry already in progress
 			bool this_motor = _current_command.motor_mask & (1 << i);
 			bool telemtry_idle = _telemetry.enabled() && !_telemetry.requestInProgress();
-			bool delay_elapsed = hrt_elapsed_time(&_current_command.timestamp) > _current_command.delay_us;
-			if (this_motor && telemtry_idle && delay_elapsed) {
+			if (this_motor && telemtry_idle) {
 
 				PX4_INFO("Sending command %u to motor %d", _current_command.command, motor_index);
 				if (_current_command.expect_response) {
@@ -472,7 +471,7 @@ void DShot::Run()
 		if (_telemetry.expectingCommandResponse()) {
 
 			if (_telemetry.parseCommandResponse()) {
-				PX4_INFO("Got a valid response!");
+				PX4_INFO("Command response received");
 			}
 
 		} else {
@@ -600,7 +599,6 @@ void DShot::handle_vehicle_commands()
 				_current_command.command = DSHOT_CMD_MOTOR_STOP;
 				_current_command.num_repetitions = 10; // TODO: why do we always send a command 10x?
 				_current_command.save = false;
-				_current_command.timestamp = hrt_absolute_time();
 
 				switch (type) {
 				case ACTUATOR_CONFIGURATION_BEEP:
@@ -627,12 +625,10 @@ void DShot::handle_vehicle_commands()
 
 				case ACTUATOR_CONFIGURATION_READ_SETTINGS:
 					PX4_INFO("ACTUATOR_CONFIGURATION_READ_SETTINGS");
-					// TODO: do we only need to send this once?
 					_current_command.save = false;
 					_current_command.num_repetitions = 6; // NOTE: AM32 requires 6 to consider a command valid
 					_current_command.command = DSHOT_CMD_ESC_INFO;
 					_current_command.expect_response = true;
-					_current_command.delay_us = 3_s;
 					break;
 
 				case ACTUATOR_CONFIGURATION_WRITE_SETTING:

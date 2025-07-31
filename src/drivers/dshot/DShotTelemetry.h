@@ -71,7 +71,7 @@ public:
 
 private:
 	static constexpr int COMMAND_RESPONSE_MAX_SIZE = 128;
-	static constexpr int COMMAND_RESPONSE_SETTINGS_SIZE = 48; // 48B for EEPROM
+	static constexpr int COMMAND_RESPONSE_SETTINGS_SIZE = 49; // 48B for EEPROM + 1B for CRC
 	static constexpr int TELEMETRY_FRAME_SIZE = 10;
 
 	void requestNextMotor(int num_motors);
