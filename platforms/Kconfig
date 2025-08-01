@@ -1,3 +1,7 @@
 if PLATFORM_NUTTX
 rsource "nuttx/Kconfig"
 endif
+
+if PLATFORM_POSIX || PLATFORM_QURT
+rsource "common/Kconfig"
+endif
