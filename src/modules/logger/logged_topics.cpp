@@ -38,6 +38,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_config.h>
 #include <uORB/topics/uORBTopics.hpp>
+#include <uORB/topics/esc_eeprom.h> // TODO: debugging
 
 #include <string.h>
 
@@ -45,6 +46,7 @@ using namespace px4::logger;
 
 void LoggedTopics::add_default_topics()
 {
+	add_topic("esc_eeprom"); // TODO: debugging
 	add_topic("action_request");
 	add_topic("actuator_armed");
 	add_optional_topic("actuator_controls_status_0", 300);
