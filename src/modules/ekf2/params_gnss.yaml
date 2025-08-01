@@ -125,9 +125,10 @@ parameters:
         7: Horizontal speed offset (EKF2_REQ_HDRIFT)
         8: Vertical speed offset (EKF2_REQ_VDRIFT)
         9: Spoofing
-      default: 1023
+        10: GPS fix type (EKF2_REQ_FIX)
+      default: 2047
       min: 0
-      max: 1023
+      max: 2047
     EKF2_REQ_EPH:
       description:
         short: Required EPH to use GPS
@@ -188,6 +189,20 @@ parameters:
       max: 1.5
       decimal: 2
       unit: m/s
+    EKF2_REQ_FIX:
+      description:
+        short: Required GPS fix
+        long: Minimum GPS fix type required for GPS usage.
+      type: enum
+      values:
+        0: No fix required
+        2: 2D fix
+        3: 3D fix
+        4: RTCM code differential
+        5: RTK float
+        6: RTK fixed
+        8: Extrapolated
+      default: 3
     EKF2_REQ_GPS_H:
       description:
         short: Required GPS health time on startup
