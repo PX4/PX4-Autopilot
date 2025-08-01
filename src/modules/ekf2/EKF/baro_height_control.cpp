@@ -122,7 +122,7 @@ void Ekf::controlBaroHeightFusion()
 
 				fuseVerticalPosition(aid_src);
 
-				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.hgt_fusion_timeout_max);
+				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.baro_hgt_fusion_timeout_max);
 
 				if (isHeightResetRequired()) {
 					// All height sources are failing
