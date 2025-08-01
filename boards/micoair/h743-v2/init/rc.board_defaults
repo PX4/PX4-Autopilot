@@ -22,6 +22,7 @@ param set-default MC_ROLLRATE_K 0.35
 param set-default MC_YAWRATE_K 1.2
 param set-default MC_YAWRATE_MAX 360
 param set-default MAV_TYPE 2
+param set-default MSP_OSD_CONFIG 202
 param set-default CA_AIRFRAME 0
 param set-default CA_ROTOR_COUNT 4
 param set-default CBRK_SUPPLY_CHK 894281
