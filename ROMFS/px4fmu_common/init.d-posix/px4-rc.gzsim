@@ -28,11 +28,15 @@ else
     exit 1
 fi
 
+# Look for an already running world
+get_gz_world() {
+	gz_world=$( ${gz_command} topic -l | grep -m 1 -e "^/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
+}
+
 # If not standalone
 if [ -z "${PX4_GZ_STANDALONE}" ]; then
 
-	# Look for an already running world
-	gz_world=$( ${gz_command} topic -l | grep -m 1 -e "^/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
+	get_gz_world
 
 	# shellcheck disable=SC2153
 	if [ -z "${gz_world}" ] && [ -n "${PX4_GZ_WORLD}" ]; then
@@ -66,6 +70,13 @@ fi
 
 # Wait for Gazebo world to be ready before proceeding
 check_scene_info() {
+
+	get_gz_world
+
+	if [ -n "${PX4_GZ_STANDALONE}" ] && [ -n "${gz_world}" ]; then
+		PX4_GZ_WORLD=${gz_world}
+	fi
+
 	SERVICE_INFO=$(${gz_command} service -i --service "/world/${PX4_GZ_WORLD}/scene/info" 2>&1)
 	if echo "$SERVICE_INFO" | grep -q "Service providers"; then
 		return 0
