@@ -123,15 +123,16 @@ bool DShotTelemetry::parseSettingsRequestResponse(uint8_t *buf, int size)
 		if (_command_response_position == COMMAND_RESPONSE_SETTINGS_SIZE) {
 
 			// Successfuly read the bytes we want -- set to finished
-			uint8_t checksum = crc8(_command_response_buffer, COMMAND_RESPONSE_SETTINGS_SIZE - 1);
-			uint8_t checksum_data = _command_response_buffer[COMMAND_RESPONSE_SETTINGS_SIZE - 1];
+			uint8_t data_length = COMMAND_RESPONSE_SETTINGS_SIZE - 1;
+			uint8_t checksum = crc8(_command_response_buffer, data_length);
+			uint8_t checksum_data = _command_response_buffer[data_length];
 			if (checksum == checksum_data) {
 				PX4_INFO("Successfully received settings!");
 				esc_eeprom_s eeprom = {};
 				eeprom.timestamp = hrt_absolute_time();
 				eeprom.index = _command_response_motor_index;
-				memcpy(eeprom.data, _command_response_buffer, COMMAND_RESPONSE_SETTINGS_SIZE - 1);
-				// TODO: publish settings on uORB --> mavlink stream
+				memcpy(eeprom.data, _command_response_buffer, data_length);
+				eeprom.length = data_length;
 				_esc_eeprom_pub.publish(eeprom);
 			} else {
 				PX4_WARN("Command Response checksum failed!");
