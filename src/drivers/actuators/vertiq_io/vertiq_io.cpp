@@ -153,7 +153,7 @@ void VertiqIo::Run()
 
 void VertiqIo::parameters_update()
 {
-	//If someone has changed any parameter in our module. Checked at 1Hz
+	//If someone has changed any parameter in our module. Checked periodically
 	if (_parameter_update_sub.updated()) {
 		//Grab the changed parameter with copy (which lowers the "changed" flag)
 		parameter_update_s param_update;
