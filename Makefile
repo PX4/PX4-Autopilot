@@ -162,6 +162,8 @@ else
 
 endif
 
+CMAKE_ARGS += "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+
 # Pick up specific Python path if set
 ifdef PYTHON_EXECUTABLE
 	override CMAKE_ARGS += -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
