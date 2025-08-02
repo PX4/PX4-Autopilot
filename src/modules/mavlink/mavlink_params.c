@@ -50,6 +50,15 @@ PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
 PARAM_DEFINE_INT32(MAV_COMP_ID, 1);
 
 /**
+ * MAVLink protocol signing
+ * @group MAVLink
+ * @value 0 Do not require signing
+ * @value 1 Signing enabled on non-USB
+ * @value 2 Signing always enabled
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_MODE, 0);
+
+/**
  * MAVLink protocol version
  * @group MAVLink
  * @value 0 Default to 1, switch to 2 if GCS sends version 2
@@ -155,3 +164,66 @@ PARAM_DEFINE_INT32(MAV_HB_FORW_EN, 1);
  * @max 250
  */
 PARAM_DEFINE_INT32(MAV_RADIO_TOUT, 5);
+
+/**
+ * First 4 bytes of secret key for mavlink
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_KEY1, -835092985);
+
+/**
+ * Bytes 5-8 of secret key for mavlink
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_KEY2, 661440673);
+
+/**
+ * Bytes 9-12 of secret key for mavlink
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_KEY3, -645368174);
+
+/**
+ * Bytes 13-16 of secret key for mavlink
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_KEY4, -1969574981);
+
+/**
+ * Bytes 17-20 of secret key for mavlink
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_KEY5, 1920704446);
+
+/**
+ * Bytes 21-24 of secret key for mavlink
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_KEY6, -289983887);
+
+/**
+ * Bytes 25-28 of secret key for mavlink
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_KEY7, -972251999);
+
+/**
+ * Bytes 29-32 of secret key for mavlink
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_KEY8, -1978264349);
+
+/**
+ * 4 bytes for sign timestamp in units of 10 microseconds since 1st January 2015 GMT, dont set it too high
+ *
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_SIGN_TS, 0);
