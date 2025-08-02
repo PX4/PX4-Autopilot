@@ -780,6 +780,7 @@
   - [Advanced Topics](advanced/index.md)
     - [PX4 Metadata](advanced/px4_metadata.md)
     - [Package Delivery Architecture](advanced/package_delivery.md)
+    - [Airspeed Validation](advanced/airspeed_validation.md)
     - [Camera Integration/Architecture](camera/camera_architecture.md)
     - [Computer Vision](advanced/computer_vision.md)
       - [Motion Capture (VICON, Optitrack, NOKOV)](tutorials/motion-capture.md)
