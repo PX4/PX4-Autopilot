@@ -121,7 +121,6 @@ public:
 		_range_sensor.setLimits(min_distance, max_distance);
 	}
 
-	const estimator::sensor::rangeSample &get_rng_sample_delayed() { return *(_range_sensor.getSampleAddress()); }
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
@@ -375,6 +374,10 @@ protected:
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	RingBuffer<sensor::rangeSample> *_range_buffer {nullptr};
 	uint64_t _time_last_range_buffer_push{0};
+
+	// Range aiding
+	bool _rng_aid_conditions_valid{false};
+	uint64_t _time_rng_aid_conditions_valid{0};
 
 	sensor::SensorRangeFinder _range_sensor{};
 	RangeFinderConsistencyCheck _rng_consistency_check;

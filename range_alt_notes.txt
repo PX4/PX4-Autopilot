@@ -1,0 +1,20 @@
+## FlightTaskManualAltitude
+- dist_bottom_var -- currently terrain variance, I see occasionally dist_bottom diverge and then clamp back to expected
+- ground slowdown (_respectGroundSlowdown) uses mpc_land_alt ... weird, remove?
+- _respectMaxAltitude ... weird, remove? We can instead use dist_bottom validity
+- _respectMinAltitude ... weird, remove? No need for a function
+
+
+## FlightTask
+- _dist_to_bottom and _dist_to_ground ... confusing, unify
+-
+
+## FlightTaskAuto
+- reuse logic for range alt lock
+- _prepareLandSetpoints -- Slow down automatic descend close to ground ... use only with terrain estimate available? (baro estimate unreliable)
+
+## EKF
+- Vz does not reflect true Vz due to noisy baro
+- Vz errors cause rangefinder kinematic consistency check to fail
+- Position setpoint error remains over long periods (might be related to Vz issues above)
+
