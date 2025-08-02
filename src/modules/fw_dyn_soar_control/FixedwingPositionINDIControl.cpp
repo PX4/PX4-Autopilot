@@ -440,13 +440,13 @@ FixedwingPositionINDIControl::soaring_estimator_shear_poll()
 			// the initial speed of the target trajectory can safely be updated during soaring :)
 			_shear_aspd = _soaring_estimator_shear.aspd;
 			_param_shear_estimated_v_max.set(_shear_v_max);
-			_param_shear_estimated_v_max.commit()
+			_param_shear_estimated_v_max.commit();
 			_param_shear_estimated_alpha.set(_shear_alpha);
-			_param_shear_estimated_alpha.commit()
+			_param_shear_estimated_alpha.commit();
 			_param_shear_estimated_h_ref.set(_shear_h_ref);
-			_param_shear_estimated_h_ref.commit()
+			_param_shear_estimated_h_ref.commit();
 			_param_shear_estimated_heading.set(_shear_heading);
-			_param_shear_estimated_heading.commit()
+			_param_shear_estimated_heading.commit();
 		}
 
 	}
@@ -697,8 +697,8 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
 	// =======================================================================
 	bool error = false;
 
-	//char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
-	char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
+	char home_dir[200] = "/home/jaeyoung/src/PX4-Autopilot/src/modules/fw_dyn_soar_control/trajectories/";
+	// char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
 	//PX4_ERR(home_dir);
 	strcat(home_dir, filename);
 	FILE *fp = fopen(home_dir, "r");

@@ -475,7 +475,7 @@ PARAM_DEFINE_FLOAT(DS_K_DAMP_PITCH, 0.02f);
  * @increment 0.0000001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_ORIGIN_LAT, 47.3130000f);
+PARAM_DEFINE_FLOAT(DS_ORIGIN_LAT, 47.397754f);
 
 /**
  * longitude of trajectory start point (WGS84)
@@ -487,7 +487,7 @@ PARAM_DEFINE_FLOAT(DS_ORIGIN_LAT, 47.3130000f);
  * @increment 0.0000001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_ORIGIN_LON, 8.8100000f);
+PARAM_DEFINE_FLOAT(DS_ORIGIN_LON, 8.546372f);
 
 /**
  * altitude of trajectory start point (WGS84)
