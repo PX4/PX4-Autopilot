@@ -37,7 +37,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		# -DDEBUG_BUILD           # Enable during development of the module
 		-DSEP_LOG_ERROR         # Enable module-level error logs
-		# -DSEP_LOG_WARN          # Enable module-level warning logs
+		-DSEP_LOG_WARN          # Enable module-level warning logs
 		# -DSEP_LOG_INFO          # Enable module-level info logs
 		# -DSEP_LOG_TRACE_PARSING # Tracing of parsing steps
 	SRCS
