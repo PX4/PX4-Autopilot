@@ -4,6 +4,7 @@ menu "Inertial Navigation Systems (INS)"
         default n
         select DRIVERS_INS_VECTORNAV
         select DRIVERS_INS_ILABS
+        select DRIVERS_INS_MICROSTRAIN
         ---help---
             Enable default set of INS sensors
     rsource "*/Kconfig"
