@@ -34,13 +34,22 @@
 include(ExternalProject)
 find_package(OpenCV REQUIRED)
 
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.27")
+    set(OPTICAL_FLOW_CMAKE_ARGS "-DCMAKE_POLICY_VERSION_MINIMUM=3.5")
+    message(STATUS "CMake ${CMAKE_VERSION}: Adding CMAKE_POLICY_VERSION_MINIMUM=3.5 for OpticalFlow dependencies")
+else()
+    set(OPTICAL_FLOW_CMAKE_ARGS "")
+endif()
+
 if(NOT TARGET OpticalFlow)
     ExternalProject_Add(OpticalFlow
         GIT_REPOSITORY https://github.com/PX4/PX4-OpticalFlow.git
         GIT_TAG master
         PREFIX ${CMAKE_BINARY_DIR}/OpticalFlow
         INSTALL_DIR ${CMAKE_BINARY_DIR}/OpticalFlow/install
-        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+        CMAKE_ARGS
+            -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+            ${OPTICAL_FLOW_CMAKE_ARGS}
         BUILD_BYPRODUCTS ${CMAKE_BINARY_DIR}/OpticalFlow/install/lib/libOpticalFlow.so
         UPDATE_DISCONNECTED ON
         BUILD_ALWAYS OFF

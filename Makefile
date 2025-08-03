@@ -162,7 +162,14 @@ else
 
 endif
 
-CMAKE_ARGS += "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+# CMake 3.30+ removed support for cmake_minimum_required < 3.5.
+# Some external dependencies (klt_feature_tracker, jsoncpp) have old CMake files that
+# trigger errors on newer CMake versions. This flag tells CMake to accept older
+# minimum versions, allowing these dependencies to build without modification.
+CMAKE_VERSION := $(shell cmake --version 2>&1 | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -n1)
+ifeq ($(shell printf '%s\n3.27' "$(CMAKE_VERSION)" | sort -V | head -n1),3.27)
+    CMAKE_ARGS += -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+endif
 
 # Pick up specific Python path if set
 ifdef PYTHON_EXECUTABLE
