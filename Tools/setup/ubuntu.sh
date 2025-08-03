@@ -126,9 +126,11 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		genromfs \
 		gettext \
 		gperf \
+		fuse \
 		kconfig-frontends \
 		libelf-dev \
 		libexpat-dev \
+		libfuse2 \
 		libgmp-dev \
 		libisl-dev \
 		libmpc-dev \
@@ -156,6 +158,11 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 			gcc-arm-none-eabi \
 			gcc-multilib \
 			;
+
+		# Install the appimagetool for building AppImages
+		sudo wget -O /usr/local/bin/appimagetool \
+			https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+		sudo chmod +x /usr/local/bin/appimagetool
 	fi
 
 	if [[ "${INSTALL_ARCH}" == "aarch64" ]]; then
@@ -163,6 +170,10 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 			g++-aarch64-linux-gnu \
 			g++-arm-linux-gnueabihf \
 			;
+		# Install the appimagetool for building AppImages
+		sudo wget -O /usr/local/bin/appimagetool \
+			https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-aarch64.AppImage
+		sudo chmod +x /usr/local/bin/appimagetool
 	fi
 
 	if [ -n "$USER" ]; then
