@@ -246,7 +246,7 @@ FixedwingPositionINDIControl::manual_control_setpoint_poll()
 {
 	if (_switch_manual) {
 		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
-		_thrust = _manual_control_setpoint.throttle;
+		_thrust = 0.5f * (_manual_control_setpoint.throttle + 1.0f);
 
 	} else {
 		_thrust = _thrust_pos;
