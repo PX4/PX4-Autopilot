@@ -47,6 +47,14 @@ parameters:
                 105: External Mode 6
                 106: External Mode 7
                 107: External Mode 8
+                108: External Mode 9
+                109: External Mode 10
+                110: External Mode 11
+                111: External Mode 12
+                112: External Mode 13
+                113: External Mode 14
+                114: External Mode 15
+                115: External Mode 16
             instance_start: 1
             num_instances: 6
             default: -1

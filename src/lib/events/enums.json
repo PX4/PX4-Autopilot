@@ -47,7 +47,7 @@
             "namespace": "px4",
             "enums": {
                 "navigation_mode_group_t": {
-                    "type": "uint32_t",
+                    "type": "uint64_t",
                     "description": "Navigation/flight mode group bits. All modes within a group share the same arming checks. For now we directly map group == mode.",
                     "is_bitfield": true,
                     "entries": {
@@ -142,6 +142,38 @@
                         "1073741824": {
                             "name": "external8",
                             "description": "External 8"
+                        },
+                        "2147483648": {
+                            "name": "external9",
+                            "description": "External 9"
+                        },
+                        "4294967296": {
+                            "name": "external10",
+                            "description": "External 10"
+                        },
+                        "8589934592": {
+                            "name": "external11",
+                            "description": "External 11"
+                        },
+                        "17179869184": {
+                            "name": "external12",
+                            "description": "External 12"
+                        },
+                        "34359738368": {
+                            "name": "external13",
+                            "description": "External 13"
+                        },
+                        "68719476736": {
+                            "name": "external14",
+                            "description": "External 14"
+                        },
+                        "137438953472": {
+                            "name": "external15",
+                            "description": "External 15"
+                        },
+                        "274877906944": {
+                            "name": "external16",
+                            "description": "External 16"
                         }
                     }
                 },
@@ -588,6 +620,38 @@
                             "name": "altitude_cruise",
                             "description": "Altitude Cruise"
                         },
+                        "25": {
+                            "name": "external10",
+                            "description": "External 10"
+                        },
+                        "26": {
+                            "name": "external10",
+                            "description": "External 10"
+                        },
+                        "27": {
+                            "name": "external11",
+                            "description": "External 11"
+                        },
+                        "28": {
+                            "name": "external12",
+                            "description": "External 12"
+                        },
+                        "29": {
+                            "name": "external13",
+                            "description": "External 13"
+                        },
+                        "30": {
+                            "name": "external14",
+                            "description": "External 14"
+                        },
+                        "31": {
+                            "name": "external15",
+                            "description": "External 15"
+                        },
+                        "32": {
+                            "name": "external16",
+                            "description": "External 16"
+                        },
                         "255": {
                             "name": "unknown",
                             "description": "[Unknown]"
@@ -711,29 +775,16 @@
             },
             "navigation_mode_groups": {
                 "groups": {
-                    "0": [65536],
-                    "1": [131072],
-                    "2": [196608],
-                    "3": [67371008],
-                    "4": [50593792],
-                    "5": [84148224],
-                    "10": [327680],
-                    "14": [393216],
-                    "15": [458752],
-                    "17": [33816576],
-                    "18": [100925440],
-                    "19": [134479872],
-                    "20": [151257088],
-                    "21": [16973824],
-                    "22": [168034304],
-                    "23": [184811520],
-                    "24": [201588736],
-                    "25": [218365952],
-                    "26": [235143168],
-                    "27": [251920384],
-                    "28": [268697600],
-                    "29": [285474816],
-                    "30": [302252032]
+                    "30": [302252032],
+                    "31": [536870912],
+                    "32": [1073741824],
+                    "33": [2147483648],
+                    "34": [4294967296],
+                    "35": [8589934592],
+                    "36": [17179869184],
+                    "37": [34359738368],
+                    "38": [68719476736],
+                    "39": [137438953472]
                 }
             },
             "supported_protocols": [ "health_and_arming_check" ]

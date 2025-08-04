@@ -58,15 +58,15 @@ class HealthAndArmingChecks;
 using navigation_mode_group_t = events::px4::enums::navigation_mode_group_t;
 using health_component_t = events::px4::enums::health_component_t;
 
-enum class NavModes : uint32_t {
+enum class NavModes : uint64_t {
 	None = 0, ///< Using NavModes = None means arming is still possible (optional check)
 
 	// Add the modes here as needed, but generally rather use mode requirements instead of checks for individual modes.
-	Manual = (uint32_t)navigation_mode_group_t::manual,
-	Stabilized = (uint32_t)navigation_mode_group_t::stab,
-	PositionControl = (uint32_t)navigation_mode_group_t::posctl,
-	Mission = (uint32_t)navigation_mode_group_t::mission,
-	Takeoff = (uint32_t)navigation_mode_group_t::takeoff,
+	Manual = (uint64_t)navigation_mode_group_t::manual,
+	Stabilized = (uint64_t)navigation_mode_group_t::stab,
+	PositionControl = (uint64_t)navigation_mode_group_t::posctl,
+	Mission = (uint64_t)navigation_mode_group_t::mission,
+	Takeoff = (uint64_t)navigation_mode_group_t::takeoff,
 
 	All = 0xffffffff
 };
@@ -82,17 +82,17 @@ struct NavModesMessageFail {
 
 static inline NavModes operator|(NavModes a, NavModes b)
 {
-	return static_cast<NavModes>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+	return static_cast<NavModes>(static_cast<uint64_t>(a) | static_cast<uint64_t>(b));
 }
 
 static inline NavModes operator&(NavModes a, NavModes b)
 {
-	return static_cast<NavModes>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
+	return static_cast<NavModes>(static_cast<uint64_t>(a) & static_cast<uint64_t>(b));
 }
 
 static inline NavModes operator~(NavModes a)
 {
-	return static_cast<NavModes>(~static_cast<uint32_t>(a));
+	return static_cast<NavModes>(~static_cast<uint64_t>(a));
 }
 
 class HealthComponentIndex
@@ -189,8 +189,8 @@ public:
 		{
 			error = {};
 			warning = {};
-			can_arm = (NavModes) - 1; // bits are cleared for failed checks
-			can_run = (NavModes) - 1;
+			can_arm = static_cast<NavModes>(~0ull);  // 0xFFFFFFFFFFFFFFFF
+			can_run = static_cast<NavModes>(~0ull);
 			valid = false;
 		}
 		bool operator!=(const ArmingCheckResults &other)
@@ -214,7 +214,7 @@ public:
 	bool canArm(uint8_t nav_state) const
 	{
 		return _results[_current_result].arming_checks.valid &&
-		       (uint32_t)(_results[_current_result].arming_checks.can_arm & getModeGroup(nav_state)) != 0;
+		       (uint64_t)(_results[_current_result].arming_checks.can_arm & getModeGroup(nav_state)) != 0;
 	}
 
 	/**
@@ -223,7 +223,7 @@ public:
 	bool canRun(uint8_t nav_state) const
 	{
 		return _results[_current_result].arming_checks.valid &&
-		       (uint32_t)(_results[_current_result].arming_checks.can_run & getModeGroup(nav_state)) != 0;
+		       (uint64_t)(_results[_current_result].arming_checks.can_run & getModeGroup(nav_state)) != 0;
 	}
 
 	void getHealthReport(health_report_s &report) const;
@@ -318,9 +318,9 @@ private:
 	void armingCheckFailure(NavModes required_modes, HealthComponentIndex component, events::Log log_level);
 
 	template<typename... Args>
-	bool addEvent(uint32_t event_id, const events::LogLevels &log_levels, const char *message, uint32_t modes,
+	bool addEvent(uint32_t event_id, const events::LogLevels &log_levels, const char *message, uint64_t modes,
 		      Args... args);
-	Report::EventBufferHeader *addEventToBuffer(uint32_t event_id, const events::LogLevels &log_levels, uint32_t modes,
+	Report::EventBufferHeader *addEventToBuffer(uint32_t event_id, const events::LogLevels &log_levels, uint64_t modes,
 			unsigned args_size);
 
 	NavModes reportedModes(NavModes required_modes);
@@ -396,7 +396,7 @@ void Report::armingCheckFailure(NavModes required_modes, HealthComponentIndex co
 }
 
 template<typename... Args>
-bool Report::addEvent(uint32_t event_id, const events::LogLevels &log_levels, const char *message, uint32_t modes,
+bool Report::addEvent(uint32_t event_id, const events::LogLevels &log_levels, const char *message, uint64_t modes,
 		      Args... args)
 {
 	constexpr unsigned args_size = events::util::sizeofArguments(modes, args...);

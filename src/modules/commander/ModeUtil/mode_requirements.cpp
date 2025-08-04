@@ -216,7 +216,7 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 
 	// NAVIGATION_STATE_EXTERNALx: handled outside
 
-	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX == 31, "update mode requirements");
+	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX == 39, "update mode requirements");
 }
 
 } // namespace mode_util

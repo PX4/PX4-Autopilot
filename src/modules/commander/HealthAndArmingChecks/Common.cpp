@@ -43,11 +43,11 @@ void Report::getHealthReport(health_report_s &report) const
 	for (int i = 0; i < vehicle_status_s::NAVIGATION_STATE_MAX; ++i) {
 		NavModes group = getModeGroup(i);
 
-		if ((uint32_t)(current_results.arming_checks.can_arm & group)) {
+		if ((uint64_t)(current_results.arming_checks.can_arm & group)) {
 			report.can_arm_mode_flags |= 1ull << i;
 		}
 
-		if ((uint32_t)(current_results.arming_checks.can_run & group)) {
+		if ((uint64_t)(current_results.arming_checks.can_run & group)) {
 			report.can_run_mode_flags |= 1ull << i;
 		}
 	}
@@ -63,14 +63,14 @@ void Report::healthFailure(NavModes required_modes, HealthComponentIndex compone
 			   const events::LogLevels &log_levels, const char *message)
 {
 	healthFailure(required_modes, component, log_levels.external);
-	addEvent(event_id, log_levels, message, (uint32_t)reportedModes(required_modes), component.index);
+	addEvent(event_id, log_levels, message, (uint64_t)reportedModes(required_modes), component.index);
 }
 
 void Report::armingCheckFailure(NavModes required_modes, HealthComponentIndex component, uint32_t event_id,
 				const events::LogLevels &log_levels, const char *message)
 {
 	armingCheckFailure(required_modes, component, log_levels.external);
-	addEvent(event_id, log_levels, message, (uint32_t)reportedModes(required_modes), component.index);
+	addEvent(event_id, log_levels, message, (uint64_t)reportedModes(required_modes), component.index);
 }
 
 void Report::armingCheckFailure(NavModesMessageFail required_modes, HealthComponentIndex component,
@@ -78,11 +78,11 @@ void Report::armingCheckFailure(NavModesMessageFail required_modes, HealthCompon
 {
 	armingCheckFailure(required_modes.fail_modes, component, log_levels.external);
 	addEvent(event_id, log_levels, message,
-		 (uint32_t)reportedModes(required_modes.message_modes | required_modes.fail_modes), component.index);
+		 (uint64_t)reportedModes(required_modes.message_modes | required_modes.fail_modes), component.index);
 }
 
 Report::EventBufferHeader *Report::addEventToBuffer(uint32_t event_id, const events::LogLevels &log_levels,
-		uint32_t modes, unsigned args_size)
+		uint64_t modes, unsigned args_size)
 {
 	unsigned total_size = sizeof(EventBufferHeader) + args_size;
 	EventBufferHeader *header = (EventBufferHeader *)(_event_buffer + _next_buffer_idx);
@@ -113,7 +113,7 @@ bool Report::addExternalEvent(const event_s &event, NavModes modes)
 
 	events::LogLevels log_levels{events::externalLogLevel(event.log_levels), events::internalLogLevel((event.log_levels))};
 	memcpy(_event_buffer + _next_buffer_idx + sizeof(EventBufferHeader), &event.arguments, args_size);
-	addEventToBuffer(event.id, log_levels, (uint32_t)modes, args_size);
+	addEventToBuffer(event.id, log_levels, (uint64_t)modes, args_size);
 	return true;
 }
 
@@ -216,7 +216,7 @@ void Report::prepare(uint8_t vehicle_type)
 NavModes Report::getModeGroup(uint8_t nav_state) const
 {
 	// Note: this needs to match with the json metadata definition "navigation_mode_groups"
-	return (NavModes)(1u << nav_state);
+	return static_cast<NavModes>(1ull << nav_state);
 }
 
 bool Report::finalize()
