@@ -21,8 +21,13 @@ A super easy-to-use tool for generate 3D Gazebo terrain using real-world elevati
 :::
 
 
+
 ## Installtion
 
+Clone the repo.
+```bash
+git clone https://github.com/saiaravind19/gazebo_terrain_generator.git
+```
 
 It's recommended to use a virtual environment to avoid dependency conflicts:
 
