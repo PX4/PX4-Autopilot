@@ -341,38 +341,6 @@ FixedwingPositionINDIControl::actuator_controls_poll()
 }
 
 void
-FixedwingPositionINDIControl::soaring_controller_status_poll()
-{
-	if (_soaring_controller_status_sub.update(&_soaring_controller_status)) {
-		if (!_soaring_controller_status.soaring_controller_running) {
-			//PX4_INFO("Soaring controller turned off");
-		}
-
-		if (_soaring_controller_status.timeout_detected) {
-			//PX4_INFO("Controller timeout detected");
-		}
-	}
-}
-
-void
-FixedwingPositionINDIControl::soaring_estimator_shear_poll()
-{
-	if (!_switch_origin_hardcoded) {
-		if (_soaring_estimator_shear_sub.update(&_soaring_estimator_shear)) {
-			// update the shear estimate, only if we are flying in manual feedthrough for safety reasons
-			_shear_v_max = _soaring_estimator_shear.v_max;
-			_shear_alpha = _soaring_estimator_shear.alpha;
-			_shear_h_ref = _soaring_estimator_shear.h_ref;
-			_shear_heading = _soaring_estimator_shear.psi - M_PI_2_F;
-			_soaring_feasible =  _soaring_estimator_shear.soaring_feasible;
-			// the initial speed of the target trajectory can safely be updated during soaring :)
-			_shear_aspd = _soaring_estimator_shear.aspd;
-		}
-
-	}
-}
-
-void
 FixedwingPositionINDIControl::_compute_trajectory_transform()
 {
 	Eulerf e(0.f, 0.f, _shear_heading);
@@ -814,10 +782,6 @@ FixedwingPositionINDIControl::Run()
 		vehicle_attitude_poll();
 		vehicle_acceleration_poll();
 		vehicle_angular_velocity_poll();
-		soaring_controller_status_poll();
-
-		// update the shear estimate, only target airspeed is updated in soaring mode
-		soaring_estimator_shear_poll();
 
 		// update transform from trajectory frame to ENU frame (soaring frame)
 		_compute_trajectory_transform();
@@ -901,35 +865,6 @@ FixedwingPositionINDIControl::Run()
 		// Publish actuator controls only once in OFFBOARD
 		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
 
-			// ========================================
-			// publish controller position in ENU frame
-			// ========================================
-			_soaring_controller_position.timestamp = hrt_absolute_time();
-
-			for (int i = 0; i < 3; i++) {
-				_soaring_controller_position.pos[i] = _pos(i);
-				_soaring_controller_position.vel[i] = _vel(i);
-				_soaring_controller_position.acc[i] = _acc(i);
-			}
-
-			_soaring_controller_position_pub.publish(_soaring_controller_position);
-
-			// ====================================
-			// publish controller position setpoint
-			// ====================================
-			_soaring_controller_position_setpoint.timestamp = hrt_absolute_time();
-
-			for (int i = 0; i < 3; i++) {
-				_soaring_controller_position_setpoint.pos[i] = pos_ref(i);
-				_soaring_controller_position_setpoint.vel[i] = vel_ref(i);
-				_soaring_controller_position_setpoint.acc[i] = acc_ref(i);
-				_soaring_controller_position_setpoint.f_command[i] = _f_command(i);
-				_soaring_controller_position_setpoint.m_command[i] = _m_command(i);
-				_soaring_controller_position_setpoint.w_err[i] = _w_err(i);
-			}
-
-			_soaring_controller_position_setpoint_pub.publish(_soaring_controller_position_setpoint);
-
 			// =====================
 			// publish control input
 			// =====================
@@ -973,46 +908,6 @@ FixedwingPositionINDIControl::Run()
 			_torque_sp_pub.publish(_actuators);
 			_thrust_sp.xyz[0] = _thrust;
 			_thrust_sp_pub.publish(_thrust_sp);
-			//print_message(_actuators);
-
-			// =====================
-			// publish wind estimate
-			// =====================
-			//_soaring_controller_wind = {};
-			_soaring_controller_wind.timestamp = hrt_absolute_time();
-			_soaring_controller_wind.wind_estimate[0] = wind(0);
-			_soaring_controller_wind.wind_estimate[1] = wind(1);
-			_soaring_controller_wind.wind_estimate[2] = wind(2);
-			_soaring_controller_wind.wind_estimate_filtered[0] = _wind_estimate_EKF(0);
-			_soaring_controller_wind.wind_estimate_filtered[1] = _wind_estimate_EKF(1);
-			_soaring_controller_wind.wind_estimate_filtered[2] = _wind_estimate_EKF(2);
-			_soaring_controller_wind.position[0] = _pos(0);
-			_soaring_controller_wind.position[1] = _pos(1);
-			_soaring_controller_wind.position[2] = _pos(2);
-			_soaring_controller_wind.airspeed = _true_airspeed;
-
-			if (_switch_cl_soaring) {
-				// always update shear params in closed loop soaring mode
-				_soaring_controller_wind.lock_params = false;
-
-			} else {
-				// only update in manual feedthrough in open loop soaring
-				_soaring_controller_wind.lock_params = !_switch_manual;
-			}
-
-			//Eulerf e(Quatf(_attitude.q));
-			//float bank = e(0);
-			// only declare wind estimate valid for shear estimator, if we are close to the soaring center
-			if ((float)sqrtf(powf(_pos(0), 2) + powf(_pos(1), 2)) < 100.f) {
-				_soaring_controller_wind.valid = true;
-
-			} else {
-				_soaring_controller_wind.valid = false;
-			}
-
-			_soaring_controller_wind_pub.publish(_soaring_controller_wind);
-
-
 
 			if (_counter == 100) {
 				_counter = 0;
@@ -1034,14 +929,6 @@ FixedwingPositionINDIControl::Run()
 		rate_ctrl_status.pitchspeed_integ = 0.0f;
 		rate_ctrl_status.yawspeed_integ = 0.0f;
 		_rate_ctrl_status_pub.publish(rate_ctrl_status);
-
-		// ==============================
-		// publish soaring control status
-		// ==============================
-		//_soaring_controller_heartbeat_s _soaring_controller_heartbeat{};
-		_soaring_controller_heartbeat.timestamp = hrt_absolute_time();
-		_soaring_controller_heartbeat.heartbeat = hrt_absolute_time();
-		_soaring_controller_heartbeat_pub.publish(_soaring_controller_heartbeat);
 
 		// ====================
 		// publish debug values

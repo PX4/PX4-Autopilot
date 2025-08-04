@@ -206,12 +206,6 @@ set(msg_files
 	SensorsStatusImu.msg
 	SensorUwb.msg
 	SensorAirflow.msg
-	soaring_controller_heartbeat.msg
-	soaring_controller_position_setpoint.msg
-	soaring_controller_position.msg
-	soaring_controller_status.msg
-	soaring_controller_wind.msg
-	soaring_estimator_shear.msg
 	SystemPower.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg

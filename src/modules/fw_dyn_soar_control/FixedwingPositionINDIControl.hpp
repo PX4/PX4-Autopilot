@@ -63,12 +63,6 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
-#include <uORB/topics/soaring_controller_heartbeat.h>
-#include <uORB/topics/soaring_controller_position_setpoint.h>
-#include <uORB/topics/soaring_controller_position.h>
-#include <uORB/topics/soaring_controller_status.h>
-#include <uORB/topics/soaring_controller_wind.h>
-#include <uORB/topics/soaring_estimator_shear.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/debug_value.h>
 #include <uORB/topics/wind.h>
@@ -124,8 +118,6 @@ private:
 	uORB::Subscription _home_position_sub{ORB_ID(home_position)};						// home position
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};                 // vehicle attitude
 //     uORB::Subscription _vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)}; // vehicle body accel
-	uORB::Subscription _soaring_controller_status_sub{ORB_ID(soaring_controller_status)};			// vehicle status flags
-	uORB::Subscription _soaring_estimator_shear_sub{ORB_ID(soaring_estimator_shear)};	// shear params for trajectory selection
 	uORB::Subscription _actuator_controls_sub{ORB_ID(vehicle_torque_setpoint)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _rc_channels_sub{ORB_ID(rc_channels)};
@@ -137,10 +129,6 @@ private:
 	uORB::Publication<vehicle_rates_setpoint_s>						_angular_vel_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Publication<vehicle_angular_acceleration_setpoint_s>		_angular_accel_sp_pub{ORB_ID(vehicle_angular_acceleration_setpoint)};
 	uORB::PublicationMulti<rate_ctrl_status_s>						_rate_ctrl_status_pub{ORB_ID(rate_ctrl_status)};
-	uORB::Publication<soaring_controller_heartbeat_s>				_soaring_controller_heartbeat_pub{ORB_ID(soaring_controller_status)};
-	uORB::Publication<soaring_controller_position_setpoint_s>		_soaring_controller_position_setpoint_pub{ORB_ID(soaring_controller_position_setpoint)};
-	uORB::Publication<soaring_controller_position_s>				_soaring_controller_position_pub{ORB_ID(soaring_controller_position)};
-	uORB::Publication<soaring_controller_wind_s>					_soaring_controller_wind_pub{ORB_ID(soaring_controller_wind)};
 	uORB::Publication<offboard_control_mode_s>						_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<debug_value_s>								_debug_value_pub{ORB_ID(debug_value)};
 
@@ -162,12 +150,6 @@ private:
 	vehicle_control_mode_s		_control_mode {};		///< control mode
 	offboard_control_mode_s		_offboard_control_mode {};	///< offboard control mode
 	vehicle_status_s		    _vehicle_status {};		///< vehicle status
-	soaring_controller_status_s	_soaring_controller_status {};	///< soaring controller status
-	soaring_controller_heartbeat_s	_soaring_controller_heartbeat{};	///< soaring controller hrt
-	soaring_controller_position_setpoint_s	_soaring_controller_position_setpoint{};	///< soaring controller pos setpoint
-	soaring_controller_position_s	_soaring_controller_position{};	///< soaring controller pos
-	soaring_controller_wind_s	_soaring_controller_wind{};	///< soaring controller wind
-	soaring_estimator_shear_s	_soaring_estimator_shear{}; ///< soaring estimator shear
 	debug_value_s				_debug_value{};			// slip angle
 
 	// parameter struct
@@ -263,8 +245,6 @@ private:
 	void		vehicle_command_poll();
 	void		vehicle_control_mode_poll();
 	void		vehicle_status_poll();
-	void		soaring_controller_status_poll();
-	void		soaring_estimator_shear_poll();
 
 	//
 	void		status_publish();
