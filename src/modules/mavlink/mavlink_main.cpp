@@ -190,20 +190,23 @@ Mavlink::Mavlink() :
 	_mavlink_signing.accept_unsigned_callback = accept_unsigned_callback;
 
 	int mkdir_ret = mkdir(MAVLINK_FOLDER_PATH, S_IRWXU);
+
 	if (mkdir_ret != 0 && errno != EEXIST) {
 		PX4_ERR("failed creating module storage dir: %s (%i)", MAVLINK_FOLDER_PATH, errno);
-	}
-	else {
+
+	} else {
 		int _fd = ::open(MAVLINK_SECRET_FILE, O_CREAT | O_RDONLY, PX4_O_MODE_600);
+
 		if (_fd == -1) {
 			if (errno != ENOENT) {
 				PX4_ERR("failed creating mavlink secret key file: %s (%i)", MAVLINK_SECRET_FILE, errno);
 			}
-		}
-		else {
+
+		} else {
 			//if we dont have enough bytes we simply ignore it , because it may be not set yet
 			ssize_t bytes_read = ::read(_fd, _mavlink_signing.secret_key, 32);
-			if(bytes_read == 32) {
+
+			if (bytes_read == 32) {
 				bytes_read = ::read(_fd, &_mavlink_signing.timestamp, 8);
 			}
 
@@ -1137,15 +1140,17 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 		_mavlink_signing.timestamp = setup_signing.initial_timestamp;
 
 		int _fd = ::open(MAVLINK_SECRET_FILE, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_600);
+
 		if (_fd == -1) {
 			if (errno != ENOENT) {
 				PX4_ERR("failed opening mavlink secret key file for writing: %s (%i)", MAVLINK_SECRET_FILE, errno);
 			}
-		}
-		else {
+
+		} else {
 			//if we dont have enough bytes we simply ignore it , because it may be not set yet
 			ssize_t bytes_write = ::write(_fd, _mavlink_signing.secret_key, 32);
-			if(bytes_write == 32) {
+
+			if (bytes_write == 32) {
 				bytes_write = ::write(_fd, &_mavlink_signing.timestamp, 8);
 			}
 
