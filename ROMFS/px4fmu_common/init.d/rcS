@@ -568,11 +568,7 @@ else
 		px4flow start -X &
 	fi
 
-	# Payload deliverer module if gripper is enabled
-	if param compare -s PD_GRIPPER_EN 1
-	then
-		payload_deliverer start
-	fi
+	payload_deliverer start
 
 	if param compare -s ICE_EN 1
 	then

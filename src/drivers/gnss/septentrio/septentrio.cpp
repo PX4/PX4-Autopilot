@@ -249,7 +249,7 @@ int SeptentrioDriver::print_status()
 
 	if (first_gps_uorb_message_created() && _state == State::ReceivingData) {
 		PX4_INFO("rate RTCM injection: %6.2f Hz", static_cast<double>(rtcm_injection_frequency()));
-		print_message(ORB_ID(sensor_gps), _message_gps_state);
+		print_message(ORB_ID(sensor_gps), _sensor_gps);
 	}
 
 	if (_instance == Instance::Main && secondary_instance) {
@@ -1057,8 +1057,8 @@ int SeptentrioDriver::process_message()
 			DOP dop;
 
 			if (_sbf_decoder.parse(&dop) == PX4_OK) {
-				_message_gps_state.hdop = dop.h_dop * 0.01f;
-				_message_gps_state.vdop = dop.v_dop * 0.01f;
+				_sensor_gps.hdop = dop.h_dop * 0.01f;
+				_sensor_gps.vdop = dop.v_dop * 0.01f;
 				result = PX4_OK;
 			}
 
@@ -1077,71 +1077,71 @@ int SeptentrioDriver::process_message()
 			if (_sbf_decoder.parse(&header) == PX4_OK && _sbf_decoder.parse(&pvt_geodetic) == PX4_OK) {
 				switch (static_cast<sbf::PVTGeodetic::ModeType>(pvt_geodetic.mode_type)) {
 				case ModeType::NoPVT:
-					_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_NONE;
+					_sensor_gps.fix_type = sensor_gps_s::FIX_TYPE_NONE;
 					break;
 				case ModeType::PVTWithSBAS:
-					_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_RTCM_CODE_DIFFERENTIAL;
+					_sensor_gps.fix_type = sensor_gps_s::FIX_TYPE_RTCM_CODE_DIFFERENTIAL;
 					break;
 				case ModeType::RTKFloat:
 				case ModeType::MovingBaseRTKFloat:
-					_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_RTK_FLOAT;
+					_sensor_gps.fix_type = sensor_gps_s::FIX_TYPE_RTK_FLOAT;
 					break;
 				case ModeType::RTKFixed:
 				case ModeType::MovingBaseRTKFixed:
-					_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_RTK_FIXED;
+					_sensor_gps.fix_type = sensor_gps_s::FIX_TYPE_RTK_FIXED;
 					break;
 				default:
-					_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_3D;
+					_sensor_gps.fix_type = sensor_gps_s::FIX_TYPE_3D;
 					break;
 				}
 
 				// Check boundaries and invalidate GPS velocities
 				if (pvt_geodetic.vn <= k_dnu_f4_value || pvt_geodetic.ve <= k_dnu_f4_value || pvt_geodetic.vu <= k_dnu_f4_value) {
-					_message_gps_state.vel_ned_valid = false;
+					_sensor_gps.vel_ned_valid = false;
 				}
 
 				if (pvt_geodetic.latitude > k_dnu_f8_value && pvt_geodetic.longitude > k_dnu_f8_value && pvt_geodetic.height > k_dnu_f8_value && pvt_geodetic.undulation > k_dnu_f4_value) {
-					_message_gps_state.latitude_deg = pvt_geodetic.latitude * M_RAD_TO_DEG;
-					_message_gps_state.longitude_deg = pvt_geodetic.longitude * M_RAD_TO_DEG;
-					_message_gps_state.altitude_msl_m = pvt_geodetic.height - static_cast<double>(pvt_geodetic.undulation);
-					_message_gps_state.altitude_ellipsoid_m = pvt_geodetic.height;
+					_sensor_gps.latitude_deg = pvt_geodetic.latitude * M_RAD_TO_DEG;
+					_sensor_gps.longitude_deg = pvt_geodetic.longitude * M_RAD_TO_DEG;
+					_sensor_gps.altitude_msl_m = pvt_geodetic.height - static_cast<double>(pvt_geodetic.undulation);
+					_sensor_gps.altitude_ellipsoid_m = pvt_geodetic.height;
 				} else {
-					_message_gps_state.fix_type = sensor_gps_s::FIX_TYPE_NONE;
+					_sensor_gps.fix_type = sensor_gps_s::FIX_TYPE_NONE;
 				}
 
 				if (pvt_geodetic.nr_sv != PVTGeodetic::k_dnu_nr_sv) {
-					_message_gps_state.satellites_used = pvt_geodetic.nr_sv;
+					_sensor_gps.satellites_used = pvt_geodetic.nr_sv;
 
 					if (_message_satellite_info) {
 						// Only fill in the satellite count for now (we could use the ChannelStatus message for the
 						// other data, but it's really large: >800B)
 						_message_satellite_info->timestamp = hrt_absolute_time();
-						_message_satellite_info->count = _message_gps_state.satellites_used;
+						_message_satellite_info->count = _sensor_gps.satellites_used;
 					}
 
 				} else {
-					_message_gps_state.satellites_used = 0;
+					_sensor_gps.satellites_used = 0;
 				}
 
 				/* H and V accuracy are reported in 2DRMS, but based off the u-blox reporting we expect RMS.
 				 * Divide by 100 from cm to m and in addition divide by 2 to get RMS. */
-				_message_gps_state.eph = static_cast<float>(pvt_geodetic.h_accuracy) / 200.0f;
-				_message_gps_state.epv = static_cast<float>(pvt_geodetic.v_accuracy) / 200.0f;
+				_sensor_gps.eph = static_cast<float>(pvt_geodetic.h_accuracy) / 200.0f;
+				_sensor_gps.epv = static_cast<float>(pvt_geodetic.v_accuracy) / 200.0f;
 
 				// Check fix and error code
-				_message_gps_state.vel_ned_valid = _message_gps_state.fix_type > sensor_gps_s::FIX_TYPE_NONE && pvt_geodetic.error == Error::None;
-				_message_gps_state.vel_n_m_s = pvt_geodetic.vn;
-				_message_gps_state.vel_e_m_s = pvt_geodetic.ve;
-				_message_gps_state.vel_d_m_s = -1.0f * pvt_geodetic.vu;
-				_message_gps_state.vel_m_s = sqrtf(_message_gps_state.vel_n_m_s * _message_gps_state.vel_n_m_s +
-							_message_gps_state.vel_e_m_s * _message_gps_state.vel_e_m_s);
+				_sensor_gps.vel_ned_valid = _sensor_gps.fix_type > sensor_gps_s::FIX_TYPE_NONE && pvt_geodetic.error == Error::None;
+				_sensor_gps.vel_n_m_s = pvt_geodetic.vn;
+				_sensor_gps.vel_e_m_s = pvt_geodetic.ve;
+				_sensor_gps.vel_d_m_s = -1.0f * pvt_geodetic.vu;
+				_sensor_gps.vel_m_s = sqrtf(_sensor_gps.vel_n_m_s * _sensor_gps.vel_n_m_s +
+							_sensor_gps.vel_e_m_s * _sensor_gps.vel_e_m_s);
 
 				if (pvt_geodetic.cog > k_dnu_f4_value) {
-					_message_gps_state.cog_rad = pvt_geodetic.cog * M_DEG_TO_RAD_F;
+					_sensor_gps.cog_rad = pvt_geodetic.cog * M_DEG_TO_RAD_F;
 				}
-				_message_gps_state.c_variance_rad = M_DEG_TO_RAD_F;
+				_sensor_gps.c_variance_rad = M_DEG_TO_RAD_F;
 
-				_message_gps_state.time_utc_usec = 0;
+				_sensor_gps.time_utc_usec = 0;
 #ifndef __PX4_QURT // NOTE: Functionality isn't available on Snapdragon yet.
 				if (_time_synced) {
 					struct tm timeinfo;
@@ -1170,13 +1170,13 @@ int SeptentrioDriver::process_message()
 						ts.tv_nsec = (header.tow % 1000) * 1000 * 1000;
 						set_clock(ts);
 
-						_message_gps_state.time_utc_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
-						_message_gps_state.time_utc_usec += (header.tow % 1000) * 1000;
+						_sensor_gps.time_utc_usec = static_cast<uint64_t>(epoch) * 1000000ULL;
+						_sensor_gps.time_utc_usec += (header.tow % 1000) * 1000;
 					}
 				}
 
 #endif
-				_message_gps_state.timestamp = hrt_absolute_time();
+				_sensor_gps.timestamp = hrt_absolute_time();
 				result = PX4_OK;
 			}
 
@@ -1189,7 +1189,7 @@ int SeptentrioDriver::process_message()
 			ReceiverStatus receiver_status;
 
 			if (_sbf_decoder.parse(&receiver_status) == PX4_OK) {
-				_message_gps_state.rtcm_msg_used = receiver_status.rx_state_diff_corr_in ? sensor_gps_s::RTCM_MSG_USED_USED : sensor_gps_s::RTCM_MSG_USED_NOT_USED;
+				_sensor_gps.rtcm_msg_used = receiver_status.rx_state_diff_corr_in ? sensor_gps_s::RTCM_MSG_USED_USED : sensor_gps_s::RTCM_MSG_USED_NOT_USED;
 				_time_synced = receiver_status.rx_state_wn_set && receiver_status.rx_state_tow_set;
 			}
 
@@ -1222,7 +1222,7 @@ int SeptentrioDriver::process_message()
 
 			if (_sbf_decoder.parse(&vel_cov_geodetic) == PX4_OK) {
 				if (vel_cov_geodetic.cov_ve_ve > k_dnu_f4_value && vel_cov_geodetic.cov_vn_vn > k_dnu_f4_value && vel_cov_geodetic.cov_vu_vu > k_dnu_f4_value) {
-					_message_gps_state.s_variance_m_s = math::max(math::max(vel_cov_geodetic.cov_ve_ve, vel_cov_geodetic.cov_vn_vn), vel_cov_geodetic.cov_vu_vu);
+					_sensor_gps.s_variance_m_s = math::max(math::max(vel_cov_geodetic.cov_ve_ve, vel_cov_geodetic.cov_vn_vn), vel_cov_geodetic.cov_vu_vu);
 				}
 			}
 
@@ -1252,7 +1252,7 @@ int SeptentrioDriver::process_message()
 					heading -= 2.f * M_PI_F;
 				}
 
-				_message_gps_state.heading = heading;
+				_sensor_gps.heading = heading;
 			}
 
 			break;
@@ -1270,7 +1270,7 @@ int SeptentrioDriver::process_message()
 			    static_cast<AttCovEuler::Error>(att_cov_euler.error_aux1) == Error::None &&
 			    static_cast<AttCovEuler::Error>(att_cov_euler.error_aux2) == Error::None &&
 			    att_cov_euler.cov_headhead > k_dnu_f4_value) {
-				_message_gps_state.heading_accuracy = att_cov_euler.cov_headhead * M_PI_F / 180.0f; // Convert range of degrees to range of radians in [0, 2PI]
+				_sensor_gps.heading_accuracy = att_cov_euler.cov_headhead * M_PI_F / 180.0f; // Convert range of degrees to range of radians in [0, 2PI]
 			}
 
 			break;
@@ -1475,15 +1475,16 @@ void SeptentrioDriver::handle_inject_data_topic()
 	bool already_copied = false;
 	gps_inject_data_s msg;
 
-	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
-	if ((hrt_absolute_time() - _last_rtcm_injection_time) > 5_s) {
+	const hrt_abstime now = hrt_absolute_time();
 
+	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
+	if (now > _last_rtcm_injection_time + 5_s) {
 		for (int instance = 0; instance < _gps_inject_data_sub.size(); instance++) {
 			const bool exists = _gps_inject_data_sub[instance].advertised();
 
 			if (exists) {
 				if (_gps_inject_data_sub[instance].copy(&msg)) {
-					if ((hrt_absolute_time() - msg.timestamp) < 5_s) {
+					if (now < msg.timestamp + 5_s) {
 						// Remember that we already did a copy on this instance.
 						already_copied = true;
 						_selected_rtcm_instance = instance;
@@ -1528,10 +1529,10 @@ void SeptentrioDriver::handle_inject_data_topic()
 
 void SeptentrioDriver::publish()
 {
-	_message_gps_state.device_id = get_device_id();
-	_message_gps_state.selected_rtcm_instance = _selected_rtcm_instance;
-	_message_gps_state.rtcm_injection_rate = rtcm_injection_frequency();
-	_sensor_gps_pub.publish(_message_gps_state);
+	_sensor_gps.device_id = get_device_id();
+	_sensor_gps.selected_rtcm_instance = _selected_rtcm_instance;
+	_sensor_gps.rtcm_injection_rate = rtcm_injection_frequency();
+	_sensor_gps_pub.publish(_sensor_gps);
 }
 
 void SeptentrioDriver::publish_satellite_info()
@@ -1543,7 +1544,7 @@ void SeptentrioDriver::publish_satellite_info()
 
 bool SeptentrioDriver::first_gps_uorb_message_created() const
 {
-	return _message_gps_state.timestamp != 0;
+	return _sensor_gps.timestamp != 0;
 }
 
 void SeptentrioDriver::publish_rtcm_corrections(uint8_t *data, size_t len)
@@ -1696,9 +1697,9 @@ bool SeptentrioDriver::is_healthy() const
 
 void SeptentrioDriver::reset_gps_state_message()
 {
-	memset(&_message_gps_state, 0, sizeof(_message_gps_state));
-	_message_gps_state.heading = NAN;
-	_message_gps_state.heading_offset = matrix::wrap_pi(math::radians(_heading_offset));
+	memset(&_sensor_gps, 0, sizeof(_sensor_gps));
+	_sensor_gps.heading = NAN;
+	_sensor_gps.heading_offset = matrix::wrap_pi(math::radians(_heading_offset));
 }
 
 uint32_t SeptentrioDriver::get_parameter(const char *name, int32_t *value)

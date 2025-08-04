@@ -336,8 +336,10 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 		const bool innov_rejected = (test_ratio > 1.f);
 
 		if (!_control_status.flags.in_air || (eph > 0.f && eph < 1.f) || innov_rejected) {
-			// when on ground or accuracy chosen to be very low, we hard reset position
+			// When on ground or accuracy chosen to be very low, we hard reset position
 			// this allows the user to still send hard resets at any time
+			// Also reset when another position source is active as it it would otherwise have almost no
+			// visible effect to the position estimate.
 			ECL_INFO("reset position to external observation");
 			_information_events.flags.reset_pos_to_ext_obs = true;
 
@@ -346,13 +348,29 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 
 		} else {
 			ECL_INFO("fuse external observation as position measurement");
-			fuseDirectStateMeasurement(innov(0), innov_var(0), obs_var, State::pos.idx + 0);
-			fuseDirectStateMeasurement(innov(1), innov_var(1), obs_var, State::pos.idx + 1);
 
-			// Use the reset counters to inform the controllers about a potential large position jump
-			// TODO: compute the actual position change
-			_state_reset_status.reset_count.posNE++;
-			_state_reset_status.posNE_change.zero();
+			VectorState H;
+			VectorState K;
+
+			for (unsigned index = 0; index < 2; index++) {
+				K = VectorState(P.row(State::pos.idx + index)) / innov_var(index);
+				H(State::pos.idx + index) = 1.f;
+
+				// Artificially set the position Kalman gain to 1 in order to force a reset
+				// of the position through fusion. This allows the EKF to use part of the information
+				// to continue learning the correlated states (e.g.: velocity, heading, wind) while
+				// performing a position reset.
+				K(State::pos.idx + index) = 1.f;
+				measurementUpdate(K, H, obs_var, innov(index));
+				H(State::pos.idx + index) = 0.f; // Reset the whole vector to 0
+			}
+
+			// Use the reset counters to inform the controllers about a position jump
+			updateHorizontalPositionResetStatus(-innov);
+
+			// Reset the positon of the output predictor to avoid a transient that would disturb the
+			// position controller
+			_output_predictor.resetLatLonTo(_gpos.latitude_deg(), _gpos.longitude_deg());
 
 			_time_last_hor_pos_fuse = _time_delayed_us;
 			_last_known_gpos.setLatLon(gpos_corrected);

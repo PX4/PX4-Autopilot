@@ -294,6 +294,9 @@ private:
 	bool _mag_stuck[MAG_COUNT_MAX] {};
 
 	bool _gps_blocked{false};
+	bool _gps_stuck{false};
+	bool _gps_wrong{false};
+	sensor_gps_s _gps_prev{};
 	bool _airspeed_disconnected{false};
 	hrt_abstime _airspeed_blocked_timestamp{0};
 	bool _vio_blocked{false};

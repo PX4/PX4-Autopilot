@@ -60,6 +60,7 @@ PARAM_DEFINE_INT32(SYS_USB_AUTO, 2);
  * @value 10 gimbal
  * @value 11 onboard_low_bandwidth
  * @value 12 uavionix
+ * @value 13 Low Bandwidth
  *
  * @reboot_required true
  *

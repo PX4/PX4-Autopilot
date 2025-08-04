@@ -330,46 +330,6 @@ rover_mecanum <command> [arguments...]
    status        print status info
 ```
 
-## rover_pos_control
-
-Source: [modules/rover_pos_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/rover_pos_control)
-
-### 설명
-
-Controls the position of a ground rover using an L1 controller.
-
-Publishes `vehicle_thrust_setpoint (only in x) and vehicle_torque_setpoint (only yaw)` messages at IMU_GYRO_RATEMAX.
-
-### 구현
-
-Currently, this implementation supports only a few modes:
-
-- Full manual: Throttle and yaw controls are passed directly through to the actuators
-- Auto mission: The rover runs missions
-- Loiter: The rover will navigate to within the loiter radius, then stop the motors
-
-### 예
-
-CLI usage example:
-
-```
-rover_pos_control start
-rover_pos_control status
-rover_pos_control stop
-```
-
-### Usage {#rover_pos_control_usage}
-
-```
-rover_pos_control <command> [arguments...]
- Commands:
-   start
-
-   stop
-
-   status        print status info
-```
-
 ## spacecraft
 
 Source: [modules/spacecraft](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/spacecraft)
@@ -387,6 +347,8 @@ actuator setpoint messages.
 spacecraft <command> [arguments...]
  Commands:
    start
+
+   status
 
    stop
 
