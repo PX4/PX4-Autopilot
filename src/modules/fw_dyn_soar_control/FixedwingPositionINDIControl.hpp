@@ -303,10 +303,39 @@ private:
 					       float T = 1);		// get the reference angular acceleration on the current path, at normalized time t in [0,1], with an intended cycle time of T
 	Quatf _get_attitude(Vector3f vel, Vector3f
 			    f);						// get the attitude to produce force f while flying with velocity vel
-	Vector3f _compute_INDI_stage_1(Vector3f pos_ref, Vector3f vel_ref, Vector3f acc_ref, Vector3f omega_ref,
-				       Vector3f alpha_ref);
-	Vector3f _compute_INDI_stage_2(Vector3f ctrl);
-	Vector3f _compute_actuator_deflections(Vector3f ctrl);
+	/**
+	 * @brief
+	 *
+	 * @param pos_ref
+	 * @param vel_ref
+	 * @param acc_ref
+	 * @return Vector3f Reference acceleration
+	 */
+	Vector3f path_following_control(Vector3f pos_ref, Vector3f vel_ref, Vector3f acc_ref);
+
+	/**
+	 * @brief
+	 *
+	 * @param acc_command
+	 * @param vel_ref
+	 * @param omega_ref
+	 * @param alpha_ref
+	 * @return Dcmf Reference attitude
+	 */
+	Dcmf compute_indi_acc(Vector3f acc_command, Vector3f vel_ref);
+
+	/**
+	 * @brief
+	 *
+	 * @param R_ref
+	 * @param omega_ref
+	 * @param alpha_ref
+	 * @return Vector3f Reference angular acceleration
+	 */
+	Vector3f attitude_control(Dcmf R_ref, Vector3f omega_ref, Vector3f alpha_ref);
+
+
+	Vector3f compute_indi_rot(Vector3f ctrl);
 
 	// helper methods
 	void _reverse(char *str, int len);						// reverse a string of length 'len'
@@ -332,6 +361,7 @@ private:
 	Quatf _att;			// attitude quaternion
 	Vector3f _omega;	// angular rate vector
 	Vector3f _alpha;	// angular acceleration vector
+	Vector3f acc_filtered;
 	float _k_ail;
 	float _k_ele;
 	float _k_d_roll;

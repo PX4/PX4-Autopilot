@@ -867,13 +867,10 @@ FixedwingPositionINDIControl::Run()
 		// =====================
 		// compute control input
 		// =====================
-		Vector3f ctrl = _compute_INDI_stage_1(pos_ref, vel_ref, acc_ref, omega_ref, alpha_ref);
-		Vector3f ctrl1 = _compute_INDI_stage_2(ctrl);
-
-		// ============================
-		// compute actuator deflections
-		// ============================
-		Vector3f ctrl2 = _compute_actuator_deflections(ctrl1);
+		Vector3f acc_command = path_following_control(pos_ref, vel_ref, acc_ref);
+		Dcmf R_ref = compute_indi_acc(acc_command, vel_ref);
+		Vector3f ang_acc_command = attitude_control(R_ref, omega_ref, alpha_ref);
+		Vector3f moment_command = compute_indi_rot(ang_acc_command);
 
 		// =================================
 		// publish offboard control commands
@@ -921,9 +918,9 @@ FixedwingPositionINDIControl::Run()
 			//_angular_accel_sp = {};
 			_angular_accel_sp.timestamp = hrt_absolute_time();
 			//_angular_accel_sp.timestamp_sample = hrt_absolute_time();
-			_angular_accel_sp.xyz[0] = ctrl(0);
-			_angular_accel_sp.xyz[1] = ctrl(1);
-			_angular_accel_sp.xyz[2] = ctrl(2);
+			_angular_accel_sp.xyz[0] = ang_acc_command(0);
+			_angular_accel_sp.xyz[1] = ang_acc_command(1);
+			_angular_accel_sp.xyz[2] = ang_acc_command(2);
 			_angular_accel_sp_pub.publish(_angular_accel_sp);
 
 			// =========================
@@ -954,7 +951,7 @@ FixedwingPositionINDIControl::Run()
 			_actuators = {};
 			_actuators.timestamp = hrt_absolute_time();
 			_actuators.timestamp_sample = hrt_absolute_time();
-			ctrl2.copyTo(_actuators.xyz);
+			moment_command.copyTo(_actuators.xyz);
 			_torque_sp_pub.publish(_actuators);
 			_thrust_sp.xyz[0] = _thrust;
 			_thrust_sp_pub.publish(_thrust_sp);
@@ -1334,26 +1331,31 @@ FixedwingPositionINDIControl::_get_attitude(Vector3f vel, Vector3f f)
 }
 
 Vector3f
-FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f vel_ref, Vector3f acc_ref,
-		Vector3f omega_ref, Vector3f alpha_ref)
+FixedwingPositionINDIControl::path_following_control(Vector3f pos_ref, Vector3f vel_ref, Vector3f acc_ref)
 {
 	Dcmf R_ib(_att);
 	Dcmf R_bi(R_ib.transpose());
-	// apply LP filter to acceleration & velocity
-	Vector3f acc_filtered;
-	acc_filtered(0) = _lp_filter_accel[0].apply(_acc(0));
-	acc_filtered(1) = _lp_filter_accel[1].apply(_acc(1));
-	acc_filtered(2) = _lp_filter_accel[2].apply(_acc(2));
-	Vector3f omega_filtered;
-	omega_filtered(0) = _lp_filter_omega[0].apply(_omega(0));
-	omega_filtered(1) = _lp_filter_omega[1].apply(_omega(1));
-	omega_filtered(2) = _lp_filter_omega[2].apply(_omega(2));
 
 	// =========================================
 	// apply PD control law on the body position
 	// =========================================
 	Vector3f acc_command = R_ib * (_K_x * R_bi * (pos_ref - _pos) + _K_v * R_bi * (vel_ref - _vel) + _K_a * R_bi *
 				       (acc_ref - _acc)) + acc_ref;
+	return acc_command;
+}
+
+
+Dcmf
+FixedwingPositionINDIControl::compute_indi_acc(Vector3f acc_command,
+		Vector3f vel_ref)
+{
+	Dcmf R_ib(_att);
+	Dcmf R_bi(R_ib.transpose());
+
+	// apply LP filter to acceleration & velocity
+	acc_filtered(0) = _lp_filter_accel[0].apply(_acc(0));
+	acc_filtered(1) = _lp_filter_accel[1].apply(_acc(1));
+	acc_filtered(2) = _lp_filter_accel[2].apply(_acc(2));
 
 	// ==================================
 	// compute expected aerodynamic force
@@ -1427,6 +1429,21 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
 	// get required attitude (assuming we can fly the target velocity), and error
 	// ==========================================================================
 	Dcmf R_ref(_get_attitude(vel_ref, f_command));
+
+	return R_ref;
+}
+
+Vector3f FixedwingPositionINDIControl::attitude_control(Dcmf R_ref, Vector3f omega_ref, Vector3f alpha_ref)
+{
+	Dcmf R_ib(_att);
+	Dcmf R_bi(R_ib.transpose());
+
+	Vector3f omega_filtered;
+	omega_filtered(0) = _lp_filter_omega[0].apply(_omega(0));
+	omega_filtered(1) = _lp_filter_omega[1].apply(_omega(1));
+	omega_filtered(2) = _lp_filter_omega[2].apply(_omega(2));
+
+	Vector3f vel_body = R_bi * (_vel - _wind_estimate);
 	// get attitude error
 	Dcmf R_ref_true(R_ref.transpose()*R_ib);
 	// get required rotation vector (in body frame)
@@ -1530,7 +1547,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
 }
 
 Vector3f
-FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
+FixedwingPositionINDIControl::compute_indi_rot(Vector3f ctrl)
 {
 	// compute velocity in body frame
 	Dcmf R_ib(_att);
@@ -1563,37 +1580,15 @@ FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
 	// overwrite rudder deflection with NDI turn coordination (no INDI)
 	deflection(2) = ctrl(2);
 
-	return deflection;
-}
-
-
-Vector3f
-FixedwingPositionINDIControl::_compute_actuator_deflections(Vector3f ctrl)
-{
-	// compute the normalized actuator deflection, including airspeed scaling
-	Vector3f deflection = ctrl;
-
-	// limit actuator deflection
+	// ============================
+	// compute actuator deflections
+	// ============================
 	for (int i = 0; i < 3; i++) {
 		deflection(i) = constrain(deflection(i), -1.f, 1.f);
 	}
 
-	/*
-	// add servo slew
-	float current_ail = _actuators.control[actuator_controls_s::INDEX_ROLL];
-	float current_ele = _actuators.control[actuator_controls_s::INDEX_PITCH];
-	float current_rud = _actuators.control[actuator_controls_s::INDEX_YAW];
-	//
-	float max_rate = 0.5f/0.18f;    //
-	float dt = 1.f/_sample_frequency;
-	//
-	deflection(0) = constrain(deflection(0),current_ail-dt*max_rate,current_ail+dt*max_rate);
-	deflection(1) = constrain(deflection(1),current_ele-dt*max_rate,current_ele+dt*max_rate);
-	deflection(2) = constrain(deflection(2),current_rud-dt*max_rate,current_rud+dt*max_rate);
-	*/
 	return deflection;
 }
-
 
 
 int FixedwingPositionINDIControl::task_spawn(int argc, char *argv[])
