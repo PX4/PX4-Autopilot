@@ -868,7 +868,25 @@ FixedwingPositionINDIControl::Run()
 		// compute control input
 		// =====================
 		Vector3f acc_command = path_following_control(pos_ref, vel_ref, acc_ref);
-		Dcmf R_ref = compute_indi_acc(acc_command, vel_ref);
+		Dcmf R_ref;
+		// ====================================
+		// manual attitude setpoint feedthrough
+		// ====================================
+		if (_switch_manual) {
+			// get an attitude setpoint from the current manual inputs
+			float roll_ref = 1.f * _manual_control_setpoint.roll * 1.0f;
+			float pitch_ref = -1.f * _manual_control_setpoint.pitch * M_PI_4_F;
+			Eulerf E_current(Quatf(_attitude.q));
+			float yaw_ref = E_current.psi();
+			Dcmf R_ned_frd_ref(Eulerf(roll_ref, pitch_ref, yaw_ref));
+			Dcmf R_enu_frd_ref(_R_ned_to_enu * R_ned_frd_ref);
+			Quatf att_ref(R_enu_frd_ref);
+			R_ref = Dcmf(att_ref);
+			omega_ref = Vector3f{0.f, 0.f, 0.f};
+		} else {
+			R_ref = compute_indi_acc(acc_command, vel_ref);
+		}
+
 		Vector3f ang_acc_command = attitude_control(R_ref, omega_ref, alpha_ref);
 		Vector3f moment_command = compute_indi_rot(ang_acc_command);
 
@@ -1473,44 +1491,6 @@ Vector3f FixedwingPositionINDIControl::attitude_control(Dcmf R_ref, Vector3f ome
 			(double)(q_err.axis()*q_err.axis()));
 	}
 
-	// ====================================
-	// manual attitude setpoint feedthrough
-	// ====================================
-	if (_switch_manual) {
-		// get an attitude setpoint from the current manual inputs
-		float roll_ref = 1.f * _manual_control_setpoint.roll * 1.0f;
-		float pitch_ref = -1.f * _manual_control_setpoint.pitch * M_PI_4_F;
-		Eulerf E_current(Quatf(_attitude.q));
-		float yaw_ref = E_current.psi();
-		Dcmf R_ned_frd_ref(Eulerf(roll_ref, pitch_ref, yaw_ref));
-		Dcmf R_enu_frd_ref(_R_ned_to_enu * R_ned_frd_ref);
-		Quatf att_ref(R_enu_frd_ref);
-		R_ref = Dcmf(att_ref);
-
-		// get attitude error
-		R_ref_true = Dcmf(R_ref.transpose() * R_ib);
-		// get required rotation vector (in body frame)
-		q_err = AxisAnglef(R_ref_true);
-
-		// project rotation angle to [-pi,pi]
-		if (q_err.angle()*q_err.angle() < M_PI_F * M_PI_F) {
-			w_err = -q_err.angle() * q_err.axis();
-
-		} else {
-			if (q_err.angle() > 0.f) {
-				w_err = (2.f * M_PI_F - (float)fmod(q_err.angle(), 2.f * M_PI_F)) * q_err.axis();
-
-			} else {
-				w_err = (-2.f * M_PI_F - (float)fmod(q_err.angle(), 2.f * M_PI_F)) * q_err.axis();
-			}
-		}
-
-		_w_err = w_err;
-
-		// compute rot acc command
-		rot_acc_command = _K_q * w_err + _K_w * (Vector3f{0.f, 0.f, 0.f} -_omega);
-
-	}
 
 	// ==============================================================
 	// overwrite rudder rot_acc_command with turn coordination values
