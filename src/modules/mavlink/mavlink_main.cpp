@@ -41,6 +41,7 @@
  */
 
 #include <termios.h>
+#include <sys/stat.h>
 
 #ifdef CONFIG_NET
 #include <arpa/inet.h>
@@ -85,7 +86,7 @@ static pthread_mutex_t mavlink_event_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
 events::EventBuffer *Mavlink::_event_buffer = nullptr;
 
 Mavlink *mavlink_module_instances[MAVLINK_COMM_NUM_BUFFERS] {};
-static mavlink_signing_streams_t global_mavlink_signig_streams = {};
+static mavlink_signing_streams_t global_mavlink_signing_streams = {};
 
 void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length) { mavlink_module_instances[chan]->send_bytes(ch, length); }
 void mavlink_start_uart_send(mavlink_channel_t chan, int length) { mavlink_module_instances[chan]->send_start(length); }
@@ -184,32 +185,35 @@ Mavlink::Mavlink() :
 	_event_sub.subscribe();
 	_telemetry_status_pub.advertise();
 
-	int mav_sign_key1 = _param_mav_sign_key1.get();
-	int mav_sign_key2 = _param_mav_sign_key2.get();
-	int mav_sign_key3 = _param_mav_sign_key3.get();
-	int mav_sign_key4 = _param_mav_sign_key4.get();
-	int mav_sign_key5 = _param_mav_sign_key5.get();
-	int mav_sign_key6 = _param_mav_sign_key6.get();
-	int mav_sign_key7 = _param_mav_sign_key7.get();
-	int mav_sign_key8 = _param_mav_sign_key8.get();
-
-	// set the signing procedure
-	memcpy(_mavlink_signing.secret_key, &mav_sign_key1, 4);
-	memcpy(_mavlink_signing.secret_key + 4, &mav_sign_key2, 4);
-	memcpy(_mavlink_signing.secret_key + 8, &mav_sign_key3, 4);
-	memcpy(_mavlink_signing.secret_key + 12, &mav_sign_key4, 4);
-	memcpy(_mavlink_signing.secret_key + 16, &mav_sign_key5, 4);
-	memcpy(_mavlink_signing.secret_key + 20, &mav_sign_key6, 4);
-	memcpy(_mavlink_signing.secret_key + 24, &mav_sign_key7, 4);
-	memcpy(_mavlink_signing.secret_key + 28, &mav_sign_key8, 4);
-
 	_mavlink_signing.link_id = _instance_id;
-	_mavlink_signing.timestamp = _param_mav_sign_ts.get();
 	_mavlink_signing.flags = MAVLINK_SIGNING_FLAG_SIGN_OUTGOING;
 	_mavlink_signing.accept_unsigned_callback = accept_unsigned_callback;
+
+	int mkdir_ret = mkdir(MAVLINK_FOLDER_PATH, S_IRWXU);
+	if (mkdir_ret != 0 && errno != EEXIST) {
+		PX4_ERR("failed creating module storage dir: %s (%i)", MAVLINK_FOLDER_PATH, errno);
+	}
+	else {
+		int _fd = ::open(MAVLINK_SECRET_FILE, O_CREAT | O_RDONLY, PX4_O_MODE_600);
+		if (_fd == -1) {
+			if (errno != ENOENT) {
+				PX4_ERR("failed creating mavlink secret key file: %s (%i)", MAVLINK_SECRET_FILE, errno);
+			}
+		}
+		else {
+			//if we dont have enough bytes we simply ignore it , because it may be not set yet
+			ssize_t bytes_read = ::read(_fd, _mavlink_signing.secret_key, 32);
+			if(bytes_read == 32) {
+				bytes_read = ::read(_fd, &_mavlink_signing.timestamp, 8);
+			}
+
+			close(_fd);
+		}
+	}
+
 	// copy pointer of the signing to status struct
 	_mavlink_status.signing = &_mavlink_signing;
-	_mavlink_status.signing_streams = &global_mavlink_signig_streams;
+	_mavlink_status.signing_streams = &global_mavlink_signing_streams;
 }
 
 Mavlink::~Mavlink()
@@ -1132,43 +1136,22 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 		memcpy(_mavlink_signing.secret_key, setup_signing.secret_key, 32);
 		_mavlink_signing.timestamp = setup_signing.initial_timestamp;
 
-		int sign_key1 = 0;
-		int sign_key2 = 0;
-		int sign_key3 = 0;
-		int sign_key4 = 0;
-		int sign_key5 = 0;
-		int sign_key6 = 0;
-		int sign_key7 = 0;
-		int sign_key8 = 0;
+		int _fd = ::open(MAVLINK_SECRET_FILE, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_600);
+		if (_fd == -1) {
+			if (errno != ENOENT) {
+				PX4_ERR("failed opening mavlink secret key file for writing: %s (%i)", MAVLINK_SECRET_FILE, errno);
+			}
+		}
+		else {
+			//if we dont have enough bytes we simply ignore it , because it may be not set yet
+			ssize_t bytes_write = ::write(_fd, _mavlink_signing.secret_key, 32);
+			if(bytes_write == 32) {
+				bytes_write = ::write(_fd, &_mavlink_signing.timestamp, 8);
+			}
 
-		memcpy(&sign_key1, setup_signing.secret_key, 4);
-		memcpy(&sign_key2, setup_signing.secret_key + 4, 4);
-		memcpy(&sign_key3, setup_signing.secret_key + 8, 4);
-		memcpy(&sign_key4, setup_signing.secret_key + 12, 4);
-		memcpy(&sign_key5, setup_signing.secret_key + 16, 4);
-		memcpy(&sign_key6, setup_signing.secret_key + 20, 4);
-		memcpy(&sign_key7, setup_signing.secret_key + 24, 4);
-		memcpy(&sign_key8, setup_signing.secret_key + 28, 4);
+			close(_fd);
+		}
 
-		_param_mav_sign_key1.set(sign_key1);
-		_param_mav_sign_key2.set(sign_key2);
-		_param_mav_sign_key3.set(sign_key3);
-		_param_mav_sign_key4.set(sign_key4);
-		_param_mav_sign_key5.set(sign_key5);
-		_param_mav_sign_key6.set(sign_key6);
-		_param_mav_sign_key7.set(sign_key7);
-		_param_mav_sign_key8.set(sign_key8);
-		_param_mav_sign_ts.set(_mavlink_signing.timestamp);
-
-		_param_mav_sign_key1.commit_no_notification();
-		_param_mav_sign_key2.commit_no_notification();
-		_param_mav_sign_key3.commit_no_notification();
-		_param_mav_sign_key4.commit_no_notification();
-		_param_mav_sign_key5.commit_no_notification();
-		_param_mav_sign_key6.commit_no_notification();
-		_param_mav_sign_key7.commit_no_notification();
-		_param_mav_sign_key8.commit_no_notification();
-		_param_mav_sign_ts.commit_no_notification();
 		return;
 	}
 

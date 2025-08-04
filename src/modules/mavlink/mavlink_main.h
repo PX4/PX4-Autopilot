@@ -91,6 +91,10 @@
 
 #define HASH_PARAM              "_HASH_CHECK"
 
+#define MAVLINK_SD_ROOT_PATH    CONFIG_BOARD_ROOT_PATH "/"
+#define MAVLINK_FOLDER_PATH MAVLINK_SD_ROOT_PATH"/mavlink"
+#define MAVLINK_SECRET_FILE MAVLINK_FOLDER_PATH"/.secret"
+
 #if defined(CONFIG_NET) || defined(__PX4_POSIX)
 # define MAVLINK_UDP
 # define DEFAULT_REMOTE_PORT_UDP 14550 ///< GCS port per MAVLink spec
@@ -694,15 +698,6 @@ private:
 		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_mav_fwdextsp,
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,
 		(ParamInt<px4::params::MAV_SIGN_MODE>) _param_mav_sign_mode,
-		(ParamInt<px4::params::MAV_SIGN_KEY1>) _param_mav_sign_key1,
-		(ParamInt<px4::params::MAV_SIGN_KEY2>) _param_mav_sign_key2,
-		(ParamInt<px4::params::MAV_SIGN_KEY3>) _param_mav_sign_key3,
-		(ParamInt<px4::params::MAV_SIGN_KEY4>) _param_mav_sign_key4,
-		(ParamInt<px4::params::MAV_SIGN_KEY5>) _param_mav_sign_key5,
-		(ParamInt<px4::params::MAV_SIGN_KEY6>) _param_mav_sign_key6,
-		(ParamInt<px4::params::MAV_SIGN_KEY7>) _param_mav_sign_key7,
-		(ParamInt<px4::params::MAV_SIGN_KEY8>) _param_mav_sign_key8,
-		(ParamInt<px4::params::MAV_SIGN_TS>) _param_mav_sign_ts,
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
 		(ParamInt<px4::params::MAV_RADIO_TOUT>)      _param_mav_radio_timeout,
 		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl,
