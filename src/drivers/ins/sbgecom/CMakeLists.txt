@@ -31,24 +31,30 @@
 #
 ############################################################################
 
-include(FetchContent)
-
-FetchContent_Declare(
-    sbgECom
-    GIT_REPOSITORY https://github.com/SBG-Systems/sbgECom.git
-    GIT_TAG 5.3.2276-stable
-    GIT_SHALLOW TRUE
-    PATCH_COMMAND git apply --reverse --check "${CMAKE_CURRENT_LIST_DIR}/sbgecom.patch" || git apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/sbgecom.patch"
+execute_process(
+	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/sbgECom
+	COMMAND git apply --reverse --check ${CMAKE_CURRENT_LIST_DIR}/sbgecom.patch
+	RESULT_VARIABLE patch_check_result
 )
 
-FetchContent_MakeAvailable(sbgECom)
+if(patch_check_result EQUAL 1)
+	execute_process(
+		WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/sbgECom
+		COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_LIST_DIR}/sbgecom.patch
+		RESULT_VARIABLE patch_check_result
+	)
+endif()
+
+if(patch_check_result EQUAL 0)
+	add_subdirectory(sbgECom)
+endif()
 
 px4_add_module(
 	MODULE drivers__ins__sbgecom
 	MAIN sbgecom
 	INCLUDES
-		${sbgECom_SOURCE_DIR}/common
-		${sbgECom_SOURCE_DIR}/src
+		sbgECom/common
+		sbgECom/src
 	COMPILE_FLAGS
 	SRCS
 		sbgecom.cpp
