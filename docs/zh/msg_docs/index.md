@@ -16,10 +16,11 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [ActuatorMotors](ActuatorMotors.md) — Motor control message
 - [ActuatorServos](ActuatorServos.md) — Servo control message
 - [AirspeedValidated](AirspeedValidated.md)
-- [ArmingCheckReply](ArmingCheckReply.md)
-- [ArmingCheckRequest](ArmingCheckRequest.md)
-- [BatteryStatus](BatteryStatus.md)
+- [ArmingCheckReply](ArmingCheckReply.md) — Arming check reply.
+- [ArmingCheckRequest](ArmingCheckRequest.md) — Arming check request.
+- [BatteryStatus](BatteryStatus.md) — Battery status
 - [ConfigOverrides](ConfigOverrides.md) — Configurable overrides by (external) modes or mode executors
+- [Event](Event.md) — Events interface
 - [FixedWingLateralSetpoint](FixedWingLateralSetpoint.md) — Fixed Wing Lateral Setpoint message
   Used by the fw_lateral_longitudinal_control module
   At least one of course, airspeed_direction, or lateral_acceleration must be finite.
@@ -83,9 +84,10 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [ActuatorServosTrim](ActuatorServosTrim.md) — Servo trims, added as offset to servo outputs
 - [ActuatorTest](ActuatorTest.md)
 - [AdcReport](AdcReport.md)
-- [Airspeed](Airspeed.md)
+- [Airspeed](Airspeed.md) — Airspeed data from sensors
 - [AirspeedWind](AirspeedWind.md)
 - [AutotuneAttitudeControlStatus](AutotuneAttitudeControlStatus.md)
+- [BatteryInfo](BatteryInfo.md) — Battery information
 - [ButtonEvent](ButtonEvent.md)
 - [CameraCapture](CameraCapture.md)
 - [CameraStatus](CameraStatus.md)
@@ -105,6 +107,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [DifferentialPressure](DifferentialPressure.md)
 - [DistanceSensor](DistanceSensor.md) — DISTANCE_SENSOR message data
 - [DistanceSensorModeChangeRequest](DistanceSensorModeChangeRequest.md)
+- [DronecanNodeStatus](DronecanNodeStatus.md)
 - [Ekf2Timestamps](Ekf2Timestamps.md) — this message contains the (relative) timestamps of the sensor inputs used by EKF2.
   It can be used for reproducible replay.
 - [EscReport](EscReport.md)
@@ -123,7 +126,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [EstimatorStates](EstimatorStates.md)
 - [EstimatorStatus](EstimatorStatus.md)
 - [EstimatorStatusFlags](EstimatorStatusFlags.md)
-- [Event](Event.md) — Events interface
 - [FailsafeFlags](FailsafeFlags.md) — Input flags for the failsafe state machine set by the arming & health checks.
 - [FailureDetectorStatus](FailureDetectorStatus.md)
 - [FigureEightStatus](FigureEightStatus.md)
@@ -211,7 +213,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [PowerButtonState](PowerButtonState.md) — power button state notification message
 - [PowerMonitor](PowerMonitor.md) — power monitor message
 - [PpsCapture](PpsCapture.md)
-- [PurePursuitStatus](PurePursuitStatus.md)
+- [PurePursuitStatus](PurePursuitStatus.md) — Pure pursuit status
 - [PwmInput](PwmInput.md)
 - [Px4ioStatus](Px4ioStatus.md)
 - [QshellReq](QshellReq.md)
@@ -220,15 +222,15 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [RateCtrlStatus](RateCtrlStatus.md)
 - [RcChannels](RcChannels.md)
 - [RcParameterMap](RcParameterMap.md)
-- [RoverAttitudeSetpoint](RoverAttitudeSetpoint.md)
-- [RoverAttitudeStatus](RoverAttitudeStatus.md)
-- [RoverPositionSetpoint](RoverPositionSetpoint.md)
-- [RoverRateSetpoint](RoverRateSetpoint.md)
-- [RoverRateStatus](RoverRateStatus.md)
-- [RoverSteeringSetpoint](RoverSteeringSetpoint.md)
-- [RoverThrottleSetpoint](RoverThrottleSetpoint.md)
-- [RoverVelocitySetpoint](RoverVelocitySetpoint.md)
-- [RoverVelocityStatus](RoverVelocityStatus.md)
+- [RoverAttitudeSetpoint](RoverAttitudeSetpoint.md) — Rover Attitude Setpoint
+- [RoverAttitudeStatus](RoverAttitudeStatus.md) — Rover Attitude Status
+- [RoverPositionSetpoint](RoverPositionSetpoint.md) — Rover Position Setpoint
+- [RoverRateSetpoint](RoverRateSetpoint.md) — Rover Rate setpoint
+- [RoverRateStatus](RoverRateStatus.md) — Rover Rate Status
+- [RoverSteeringSetpoint](RoverSteeringSetpoint.md) — Rover Steering setpoint
+- [RoverThrottleSetpoint](RoverThrottleSetpoint.md) — Rover Throttle setpoint
+- [RoverVelocitySetpoint](RoverVelocitySetpoint.md) — Rover Velocity Setpoint
+- [RoverVelocityStatus](RoverVelocityStatus.md) — Rover Velocity Status
 - [Rpm](Rpm.md)
 - [RtlStatus](RtlStatus.md)
 - [RtlTimeEstimate](RtlTimeEstimate.md)
@@ -297,5 +299,10 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [Wind](Wind.md)
 - [YawEstimatorStatus](YawEstimatorStatus.md)
 - [AirspeedValidatedV0](AirspeedValidatedV0.md)
+- [ArmingCheckReplyV0](ArmingCheckReplyV0.md)
+- [BatteryStatusV0](BatteryStatusV0.md) — Battery status
+- [EventV0](EventV0.md) — this message is required here in the msg_old folder because other msg are depending on it
+  Events interface
+- [HomePositionV0](HomePositionV0.md) — GPS home position in WGS84 coordinates.
 - [VehicleAttitudeSetpointV0](VehicleAttitudeSetpointV0.md)
 - [VehicleStatusV0](VehicleStatusV0.md) — Encodes the system state of the vehicle published by commander
