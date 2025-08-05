@@ -6,20 +6,20 @@
 uint64 timestamp				# time since system start (microseconds)
 
 # Per-mode requirements
-uint32 mode_req_angular_velocity
-uint32 mode_req_attitude
-uint32 mode_req_local_alt
-uint32 mode_req_local_position
-uint32 mode_req_local_position_relaxed
-uint32 mode_req_global_position
-uint32 mode_req_global_position_relaxed
-uint32 mode_req_mission
-uint32 mode_req_offboard_signal
-uint32 mode_req_home_position
-uint32 mode_req_wind_and_flight_time_compliance # if set, mode cannot be entered if wind or flight time limit exceeded
-uint32 mode_req_prevent_arming    # if set, cannot arm while in this mode
-uint32 mode_req_manual_control
-uint32 mode_req_other             # other requirements, not covered above (for external modes)
+uint64 mode_req_angular_velocity
+uint64 mode_req_attitude
+uint64 mode_req_local_alt
+uint64 mode_req_local_position
+uint64 mode_req_local_position_relaxed
+uint64 mode_req_global_position
+uint64 mode_req_global_position_relaxed
+uint64 mode_req_mission
+uint64 mode_req_offboard_signal
+uint64 mode_req_home_position
+uint64 mode_req_wind_and_flight_time_compliance # if set, mode cannot be entered if wind or flight time limit exceeded
+uint64 mode_req_prevent_arming    # if set, cannot arm while in this mode
+uint64 mode_req_manual_control
+uint64 mode_req_other             # other requirements, not covered above (for external modes)
 
 
 # Mode requirements

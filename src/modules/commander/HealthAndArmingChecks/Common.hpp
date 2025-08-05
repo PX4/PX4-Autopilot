@@ -384,7 +384,7 @@ void Report::healthFailure(NavModes required_modes, HealthComponentIndex compone
 			   const events::LogLevels &log_levels, const char *message, Args... args)
 {
 	healthFailure(required_modes, component, log_levels.external);
-	addEvent(event_id, log_levels, message, (uint32_t)reportedModes(required_modes), (uint8_t)component.index, args...);
+	addEvent(event_id, log_levels, message, (uint64_t)reportedModes(required_modes), (uint8_t)component.index, args...);
 }
 
 template<typename... Args>
@@ -392,7 +392,7 @@ void Report::armingCheckFailure(NavModes required_modes, HealthComponentIndex co
 				const events::LogLevels &log_levels, const char *message, Args... args)
 {
 	armingCheckFailure(required_modes, component, log_levels.external);
-	addEvent(event_id, log_levels, message, (uint32_t)reportedModes(required_modes), (uint8_t)component.index, args...);
+	addEvent(event_id, log_levels, message, (uint64_t)reportedModes(required_modes), (uint8_t)component.index, args...);
 }
 
 template<typename... Args>

@@ -50,6 +50,8 @@ void Report::getHealthReport(health_report_s &report) const
 		if ((uint64_t)(current_results.arming_checks.can_run & group)) {
 			report.can_run_mode_flags |= 1ull << i;
 		}
+
+
 	}
 
 	report.arming_check_error_flags = (uint64_t)current_results.arming_checks.error;

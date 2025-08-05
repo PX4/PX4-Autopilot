@@ -33,18 +33,17 @@
 
 #include "externalChecks.hpp"
 
-static void setOrClearRequirementBits(bool requirement_set, int8_t nav_state, int8_t replaces_nav_state, uint32_t &bits)
+static void setOrClearRequirementBits(bool requirement_set, int8_t nav_state, int8_t replaces_nav_state, uint64_t &bits)
 {
 	if (requirement_set) {
-		bits |= 1u << nav_state;
+		bits |= 1ull << nav_state;
 	}
 
 	if (replaces_nav_state != -1) {
 		if (requirement_set) {
-			bits |= 1u << replaces_nav_state;
-
+			bits |= 1ull << replaces_nav_state;
 		} else {
-			bits &= ~(1u << replaces_nav_state);
+			bits &= ~(1ull << replaces_nav_state);
 		}
 	}
 }

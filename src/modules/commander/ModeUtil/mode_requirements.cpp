@@ -37,9 +37,9 @@
 namespace mode_util
 {
 
-static inline void setRequirement(uint8_t nav_state, uint32_t &mode_requirement)
+static inline void setRequirement(uint8_t nav_state, uint64_t &mode_requirement)
 {
-	mode_requirement |= 1u << nav_state;
+	mode_requirement |= 1ull << nav_state;
 }
 
 
