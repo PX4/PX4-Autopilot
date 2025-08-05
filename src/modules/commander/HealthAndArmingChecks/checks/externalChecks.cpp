@@ -42,6 +42,7 @@ static void setOrClearRequirementBits(bool requirement_set, int8_t nav_state, in
 	if (replaces_nav_state != -1) {
 		if (requirement_set) {
 			bits |= 1ull << replaces_nav_state;
+
 		} else {
 			bits &= ~(1ull << replaces_nav_state);
 		}
