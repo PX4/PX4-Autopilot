@@ -45,13 +45,16 @@ pip install -r requirements.txt
 
 ### 2. Configuration (Optional)
 
-Set custom output directory for generated worlds:
+Set environment variables to change output directory for generated files:
 
 ```bash
-# Default: gazebo_terrian_generator/output/gazebo_terrian/
-export GAZEBO_WORLD_PATH="~/PX4-Autopilot/Tools/simulation/gz/models"
-export GAZEBO_MODEL_PATH="~/PX4-Autopilot/Tools/simulation/gz/worlds"
+export GAZEBO_MODEL_PATH="/path/to/PX4-Autopilot/Tools/simulation/gz/models"
+export GAZEBO_WORLD_PATH="/path/to/PX4-Autopilot/Tools/simulation/gz/worlds"
 ```
+:::info
+**Default location:** `/path/to/gazebo_terrain_generator/output/gazebo_terrain/`
+
+:::
 
 ## Usage
 

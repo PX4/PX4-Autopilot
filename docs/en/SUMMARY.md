@@ -805,7 +805,7 @@
       - [HITL Simulation](simulation/hitl.md)
       - [Simulation-In-Hardware](sim_sih/index.md)
       - [Multi-vehicle simulation](simulation/multi-vehicle-simulation.md)
-    - [Gazebo Terrain Generator](/simulation/gazebo_terrain_generator.md)
+    - [Gazebo Terrain Generator](simulation/gazebo_terrain_generator.md)
   - [Platform Testing and CI](test_and_ci/index.md)
     - [Test Flights](test_and_ci/test_flights.md)
       - [Test MC_01 - Manual Modes](test_cards/mc_01_manual_modes.md)
