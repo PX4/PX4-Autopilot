@@ -68,7 +68,7 @@ enum class NavModes : uint64_t {
 	Mission = (uint64_t)navigation_mode_group_t::mission,
 	Takeoff = (uint64_t)navigation_mode_group_t::takeoff,
 
-	All = 0xffffffff
+	All = ~0ull
 };
 static_assert(sizeof(navigation_mode_group_t) == sizeof(NavModes), "type mismatch");
 static_assert(vehicle_status_s::NAVIGATION_STATE_MAX <= CHAR_BIT *sizeof(navigation_mode_group_t),
