@@ -36,11 +36,6 @@ jobs:
     - name: setup
       run: |
         ./Tools/setup/macos.sh
-        ./Tools/setup/macos.sh
-        brew unlink gcc-arm-none-eabi
-        brew tap osx-cross/arm
-        brew install arm-gcc-bin@13
-        brew link --force arm-gcc-bin@13
 
     - name: Prepare ccache timestamp
       id: ccache_cache_timestamp
