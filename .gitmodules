@@ -95,3 +95,7 @@
 [submodule "src/lib/tensorflow_lite_micro/tflite_micro"]
 	path = src/lib/tensorflow_lite_micro/tflite_micro
 	url = https://github.com/PX4/tflite-micro.git
+[submodule "src/drivers/ins/microstrain/mip_sdk"]
+	path = src/drivers/ins/microstrain/mip_sdk
+	url = https://github.com/PX4/LORD-MicroStrain_mip_sdk.git
+	branch = feature/px4_compilation
