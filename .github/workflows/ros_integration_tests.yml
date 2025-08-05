@@ -85,7 +85,7 @@ jobs:
         . /opt/ros/galactic/setup.bash
         mkdir -p /opt/px4_ws/src
         cd /opt/px4_ws/src
-        git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib.git
+        git clone --recursive --branch release/1.16 https://github.com/Auterion/px4-ros2-interface-lib.git
         cd ..
         # Copy messages to ROS workspace
         "${PX4_DIR}/Tools/copy_to_ros_ws.sh" "$(pwd)"
