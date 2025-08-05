@@ -10,7 +10,7 @@ parameters:
                     get assigned to the same index independent from their startup order,
                     which is required when mapping an external mode to an RC switch.
             type: int32
-            num_instances: 8 # Max 8 modes (NAVIGATION_STATE_EXTERNAL8)
+            num_instances: 16 # Max 8 modes (NAVIGATION_STATE_EXTERNAL8)
             default: 0
             volatile: true
             category: System

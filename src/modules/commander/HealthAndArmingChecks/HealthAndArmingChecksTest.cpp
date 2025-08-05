@@ -72,7 +72,10 @@ TEST_F(ReporterTest, basic_no_checks)
 	reporter.report(false);
 
 	ASSERT_TRUE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION));
-	ASSERT_EQ((uint8_t)reporter.armingCheckResults().can_arm, 0xff);
+	ASSERT_EQ(static_cast<uint64_t>(reporter.armingCheckResults().can_arm),
+		  static_cast<uint64_t>(NavModes::All));
+
+
 	ASSERT_EQ((uint64_t)reporter.armingCheckResults().error, 0);
 	ASSERT_EQ((uint64_t)reporter.armingCheckResults().warning, 0);
 
@@ -142,7 +145,9 @@ TEST_F(ReporterTest, arming_checks_mode_category2)
 
 	ASSERT_FALSE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION));
 
-	ASSERT_EQ((uint8_t)reporter.armingCheckResults().can_arm, (uint8_t)~(NavModes::Mission));
+	ASSERT_EQ((uint64_t)reporter.armingCheckResults().can_arm,
+		  static_cast<uint64_t>(~NavModes::Mission));
+
 	ASSERT_EQ((uint64_t)reporter.armingCheckResults().error, 0);
 	ASSERT_EQ((uint64_t)reporter.armingCheckResults().warning, 0);
 
