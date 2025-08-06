@@ -1,7 +1,5 @@
 # Gazebo Terrain Generator
 
-This section contains information about _community-supported_ simulations
-
 :::warning
 These simulators are not maintained, tested, or supported, by the core development team.
 They may or may not work with current versions of PX4.
@@ -12,7 +10,8 @@ See [Toolchain Installation](../dev_setup/dev_env.md) for information about the 
 A super easy-to-use tool for generate 3D Gazebo terrain using real-world elevation and satellite data.
 
 
-<lite-youtube videoid="pxL2UF9xl_w" title="3D Gazebo terrain Generator"/>
+<lite-youtube videoid="g09vorj0wf0" title="3D Gazebo terrain Generator"/>
+
 
 ::: info
 **Tested Environment:**
