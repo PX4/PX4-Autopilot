@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# board specific sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# 42688P
+icm42688p -s -b 1 -R 4 start
+icm42688p -s -b 4 -R 4 start
+
+# baro
+dps310 -I start -a 118
+
+# internal mag
+ist8310 -I -R 6 start
