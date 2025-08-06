@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,10 +31,27 @@
 #
 ############################################################################
 
-#add_subdirectory(neopixel) # requires board support (BOARD_HAS_N_S_RGB_LED)
-add_subdirectory(rgbled)
-add_subdirectory(rgbled_ncp5623c)
-add_subdirectory(rgbled_is31fl3195)
-add_subdirectory(rgbled_lp5562)
-add_subdirectory(rgbled_aw2023)
-#add_subdirectory(rgbled_pwm) # requires board support (BOARD_HAS_LED_PWM/BOARD_HAS_UI_LED_PWM)
+
+set(MIP_SDK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mip_sdk)
+px4_add_git_submodule(TARGET git_mip PATH ${MIP_SDK_DIR})
+
+# Set some options for the MIP SDK which we will reset after building.
+set(MIP_USE_TCP "OFF" CACHE BOOL "" FORCE)
+set(MIP_DISABLE_CPP "ON" CACHE BOOL "" FORCE)
+set(BUILD_EXAMPLES "OFF" CACHE BOOL "" FORCE)
+set(BUILD_TESTING "OFF" CACHE BOOL "" FORCE)
+add_subdirectory(mip_sdk)
+
+px4_add_module(
+	MODULE drivers__ins__microstrain
+	MAIN microstrain
+	COMPILE_FLAGS
+	SRCS
+		MicroStrain.cpp
+		MicroStrain.hpp
+	MODULE_CONFIG
+		module.yaml
+	DEPENDS
+		px4_work_queue
+		mip
+	)

@@ -186,6 +186,30 @@ mc_att_control <command> [arguments...]
    status        print status info
 ```
 
+## mc_nn_control
+
+Source: [modules/mc_nn_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/mc_nn_control)
+
+### 설명
+
+Multicopter Neural Network Control module.
+This module is an end-to-end neural network control system for multicopters.
+It takes in 15 input values and outputs 4 control actions.
+Inputs: [pos_err(3), att(6), vel(3), ang_vel(3)]
+Outputs: [Actuator motors(4)]
+
+### Usage {#mc_nn_control_usage}
+
+```
+mc_nn_control <command> [arguments...]
+ Commands:
+   start
+
+   stop
+
+   status        print status info
+```
+
 ## mc_pos_control
 
 Source: [modules/mc_pos_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/mc_pos_control)
