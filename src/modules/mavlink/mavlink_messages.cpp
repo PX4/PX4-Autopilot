@@ -75,6 +75,9 @@
 #include "streams/ESTIMATOR_STATUS.hpp"
 #include "streams/EXTENDED_SYS_STATE.hpp"
 #include "streams/FLIGHT_INFORMATION.hpp"
+#if defined(MAVLINK_MSG_ID_GLOBAL_POSITION)
+#include "streams/GLOBAL_POSITION.hpp"
+#endif //MAVLINK_MSG_ID_GLOBAL_POSITION
 #include "streams/GLOBAL_POSITION_INT.hpp"
 #include "streams/GPS_GLOBAL_ORIGIN.hpp"
 #include "streams/GPS_RAW_INT.hpp"
@@ -510,6 +513,9 @@ static const StreamListItem streams_list[] = {
 #if defined(CURRENT_MODE_HPP)
 	create_stream_list_item<MavlinkStreamCurrentMode>(),
 #endif // CURRENT_MODE_HPP
+#if defined(GLOBAL_POSITION_HPP)
+	create_stream_list_item<MavlinkStreamGLobalPosition>(),
+#endif // GLOBAL_POSITION_HPP
 };
 
 const char *get_stream_name(const uint16_t msg_id)
