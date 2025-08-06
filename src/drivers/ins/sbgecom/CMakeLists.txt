@@ -31,23 +31,30 @@
 #
 ############################################################################
 
-execute_process(
-	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/sbgECom
-	COMMAND git apply --reverse --check ${CMAKE_CURRENT_LIST_DIR}/sbgecom.patch
-	RESULT_VARIABLE patch_check_result
+add_compile_definitions(SBG_CONFIG_LOG_MAX_SIZE=128)
+
+set(SBGECOM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sbgECom)
+px4_add_git_submodule(TARGET git_sbgECom PATH ${SBGECOM_DIR})
+
+add_subdirectory(sbgECom)
+
+add_dependencies(sbgECom prebuild_targets)
+
+target_compile_options(sbgECom
+        PRIVATE
+        -Wno-format
+        -Wno-format-security
+        -Wno-bad-function-cast
+        -Wno-double-promotion
+        -Wno-type-limits
+        -Wno-maybe-uninitialized
+        -Wno-float-equal
 )
 
-if(patch_check_result EQUAL 1)
-	execute_process(
-		WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/sbgECom
-		COMMAND git apply --ignore-whitespace ${CMAKE_CURRENT_LIST_DIR}/sbgecom.patch
-		RESULT_VARIABLE patch_check_result
-	)
+if("${PX4_PLATFORM}" MATCHES "nuttx")
+    target_compile_definitions(sbgECom PUBLIC __NUTTX__)
 endif()
 
-if(patch_check_result EQUAL 0)
-	add_subdirectory(sbgECom)
-endif()
 
 px4_add_module(
 	MODULE drivers__ins__sbgecom
