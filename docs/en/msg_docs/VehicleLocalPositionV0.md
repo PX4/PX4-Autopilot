@@ -1,15 +1,15 @@
-# VehicleLocalPosition (UORB message)
+# VehicleLocalPositionV0 (UORB message)
 
 Fused local position in NED.
 The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleLocalPosition.msg)
+[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/VehicleLocalPositionV0.msg)
 
 ```c
 # Fused local position in NED.
 # The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
 
-uint32 MESSAGE_VERSION = 1
+uint32 MESSAGE_VERSION = 0
 
 uint64 timestamp			# time since system start (microseconds)
 uint64 timestamp_sample                 # the timestamp of the raw data (microseconds)
@@ -85,12 +85,10 @@ float32 evv				# Standard deviation of vertical velocity error, (metres/sec)
 bool dead_reckoning                     # True if this position is estimated through dead-reckoning
 
 # estimator specified vehicle limits
-# set to INFINITY when limiting not required
-float32 vxy_max				# maximum horizontal speed (meters/sec)
-float32 vz_max				# maximum vertical speed (meters/sec)
-float32 hagl_min			# minimum height above ground level (meters)
-float32 hagl_max_z			# maximum height above ground level for z-control (meters)
-float32 hagl_max_xy			# maximum height above ground level for xy-control (meters)
+float32 vxy_max				# maximum horizontal speed - set to 0 when limiting not required (meters/sec)
+float32 vz_max				# maximum vertical speed - set to 0 when limiting not required (meters/sec)
+float32 hagl_min			# minimum height above ground level - set to 0 when limiting not required (meters)
+float32 hagl_max			# maximum height above ground level - set to 0 when limiting not required (meters)
 
 # TOPICS vehicle_local_position vehicle_local_position_groundtruth external_ins_local_position
 # TOPICS estimator_local_position
