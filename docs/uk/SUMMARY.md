@@ -280,6 +280,7 @@
       - [Trimble MB-Two](gps_compass/rtk_gps_trimble_mb_two.md)
       - [CubePilot Here+ (Discontined)](gps_compass/rtk_gps_hex_hereplus.md)
     - [INS (Інерціальна навігація/GNSS)](sensor/inertial_navigation_systems.md)
+      - [InertialLabs](sensor/inertiallabs.md)
       - [VectorNav](sensor/vectornav.md)
     - [Optical Flow](sensor/optical_flow.md)
       - [ARK Flow](dronecan/ark_flow.md)

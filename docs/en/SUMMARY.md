@@ -231,6 +231,7 @@
       - [Compass Power Compensation](advanced_config/compass_power_compensation.md)
     - [Airspeed Sensors](sensor/airspeed.md)
       - [Calibration](config/airspeed.md)
+      - [Airspeed Validation](advanced_config/airspeed_validation.md)
       - [TFSlot Airspeed Sensor](sensor/airspeed_tfslot.md)
     - [Barometers](sensor/barometer.md)
     - [Distance Sensors \(Rangefinders\)](sensor/rangefinders.md)
