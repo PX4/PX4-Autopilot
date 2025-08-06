@@ -116,7 +116,7 @@ On the ARK Flow, you may need to configure the following parameters:
 
 ## LED Meanings
 
-- Blinking green is normal operation
+- Solid blue is normal operation
 - Rapid blinking blue and red is firmware update
 
 If you see a solid red LED there is an error and you should check the following:
