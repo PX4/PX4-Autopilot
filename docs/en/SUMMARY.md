@@ -34,7 +34,7 @@
     - [Static Pressure Buildup](advanced_config/static_pressure_buildup.md)
   - [Flying (Basics)](flying/basic_flying_mc.md)
   - [Complete Vehicles](complete_vehicles_mc/index.md)
-    - [ModalAI Starling](complete_vehicles_mc/modalai_starling.md)
+    - [ModalAI Starling (PX4 Dev Kit)](complete_vehicles_mc/modalai_starling.md)
     - [PX4 Vision Kit](complete_vehicles_mc/px4_vision_kit.md)
     - [MindRacer BNF & RTF](complete_vehicles_mc/mindracer_BNF_RTF.md)
       - [MindRacer 210](complete_vehicles_mc/mindracer210.md)
