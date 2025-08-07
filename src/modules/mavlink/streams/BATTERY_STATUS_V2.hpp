@@ -73,19 +73,19 @@ private:
 						       && PX4_ISFINITE(battery_status.temperature)) ? static_cast<int16_t>(battery_status.temperature * 1e2f) : INT16_MAX;
 				bat_msg.voltage = (battery_status.connected
 						   && PX4_ISFINITE(battery_status.voltage_v)
-						   && battery_status.voltage_v != 0.0f) ? battery_status.voltage_v : float(NAN);
+						   && !math::isZero(battery_status.voltage_v)) ? battery_status.voltage_v : float(NAN);
 				bat_msg.current = (battery_status.connected
 						   && PX4_ISFINITE(battery_status.current_a)
-						   && battery_status.current_a != -1.0f) ? battery_status.current_a : float(NAN);
+						   && fabsf(battery_status.current_a - (-1.0f)) > FLT_EPSILON) ? battery_status.current_a : float(NAN);
 				bat_msg.capacity_consumed = (battery_status.connected
 							     && PX4_ISFINITE(battery_status.discharged_mah)
-							     && battery_status.discharged_mah != -1.0) ? battery_status.discharged_mah * 1e-3f : float(NAN);
-				bat_msg.capacity_remaining = (battery_status.connected && PX4_ISFINITE(battery_status.remaining)
-							      && battery_status.remaining != -1.0f
-							      && PX4_ISFINITE(static_cast<float>(battery_status.capacity))) ?
-							     battery_status.remaining * (static_cast<float>(battery_status.capacity) * 1e-3f) : float(NAN);
+							     && fabsf(battery_status.discharged_mah - (-1.0f)) > FLT_EPSILON) ? battery_status.discharged_mah * 1e-3f : float(NAN);
+				bat_msg.capacity_remaining = (battery_status.connected && PX4_ISFINITE(battery_status.remaining_capacity_wh)
+							      && PX4_ISFINITE(battery_status.nominal_voltage)
+							      && !math::isZero(battery_status.nominal_voltage)) ?
+							     battery_status.remaining_capacity_wh / battery_status.nominal_voltage : float(NAN);
 				bat_msg.percent_remaining = (battery_status.connected && PX4_ISFINITE(battery_status.remaining)
-							     && battery_status.remaining != -1.0f) ?
+							     && fabsf(battery_status.remaining - (-1.0f)) > FLT_EPSILON) ?
 							    static_cast<uint8_t>(roundf(battery_status.remaining * 1e2f)) : UINT8_MAX;
 
 				bat_msg.status_flags = get_status_flags(battery_status);
