@@ -1158,28 +1158,29 @@ handle_message_hil_gps_dsp(mavlink_message_t *msg)
 	gps.satellites_used = hil_gps.satellites_visible;
 	gps.fix_type = hil_gps.fix_type;
 
+	gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
+	gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
+
 	int index = (int) position_source::GPS;
 	if (position_source_data[index].fail) {
 		uint32_t duration = position_source_data[index].failure_duration;
 		hrt_abstime start = position_source_data[index].failure_duration_start;
-		if (duration) {
-			if (hrt_elapsed_time(&start) > (duration * 1000000)) {
-				PX4_INFO("GPS failure ending");
-				position_source_data[index].fail = false;
-				position_source_data[index].failure_duration = 0;
-				position_source_data[index].failure_duration_start = 0;
-			} else {
-				gps.satellites_used = 1;
-				gps.fix_type = 0;
-			}
+		if ((duration) && (hrt_elapsed_time(&start) > (duration * 1000000))) {
+			PX4_INFO("GPS failure ending");
+			position_source_data[index].fail = false;
+			position_source_data[index].failure_duration = 0;
+			position_source_data[index].failure_duration_start = 0;
 		} else {
-			gps.satellites_used = 1;
+			// Setup failure condition
+			gps.lat = -196840607;
+			gps.lon = -1103706788;
+			gps.alt = 2410579;
+			gps.satellites_used = 0;
 			gps.fix_type = 0;
+			gps.eph = 9999;
+			gps.epv = 9999;
 		}
 	}
-
-	gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
-	gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
 
 	gps.hdop = 0; // TODO
 	gps.vdop = 0; // TODO
