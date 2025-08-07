@@ -253,6 +253,7 @@
       - [Avionics Anonymous Laser Altimeter UAVCAN Interface (CAN)](/dronecan/avanon_laser_interface.md)
     - [GNSS (GPS)](/gps_compass/index.md)
       - [ARK GPS (CAN)](/dronecan/ark_gps.md)
+      - [ARK SAM GPS](/gps_compass/ark_sam_gps.md)
       - [ARK TESEO GPS](/dronecan/ark_teseo_gps.md)
       - [CUAV NEO 3 GPS](/gps_compass/gps_cuav_neo_3.md)
       - [CUAV NEO 3 Pro GPS (CAN)](/gps_compass/gps_cuav_neo_3pro.md)
@@ -314,6 +315,7 @@
   - [Joysticks](/config/joystick.md)
   - [Data Links](/data_links/index.md)
     - [MAVLink 回传（OSD/GCS）](/peripherals/mavlink_peripherals.md)
+
     - [数传电台](/telemetry/index.md)
       - [SiK 电台](/telemetry/sik_radio.md)
         - [RFD900 (SiK) 数传电台](/telemetry/rfd900_telemetry.md)
@@ -326,9 +328,13 @@
         - [ARK Electron Microhard Serial Telemetry Radio](/telemetry/ark_microhard_serial.md)
         - [Holybro Microhard P900 Telemetry Radio](/telemetry/holybro_microhard_p900_radio.md)
       - [CUAV P8 Telemetry Radio](/telemetry/cuav_p8_radio.md)
+      - [J.Fi Wireless Telemetry Module](/telemetry/jfi_telemetry.md)
       - [HolyBro XBP9X - Discontinued](/telemetry/holybro_xbp9x_radio.md)
+
     - [睿思凯数传](/peripherals/frsky_telemetry.md)
+
     - [TBS Crossfire (CRSF) Telemetry](/telemetry/crsf_telemetry.md)
+
     - [Satellite Comms (Iridium/RockBlock)](/advanced_features/satcom_roadblock.md)
   - [Power Systems](/power_systems/index.md)
     - [Battery Estimation Tuning](/config/battery.md)
@@ -637,6 +643,7 @@
         - [PowerButtonState](/msg_docs/PowerButtonState.md)
         - [PowerMonitor](/msg_docs/PowerMonitor.md)
         - [PpsCapture](/msg_docs/PpsCapture.md)
+        - [PurePursuitStatus](/msg_docs/PurePursuitStatus.md)
         - [PwmInput](/msg_docs/PwmInput.md)
         - [Px4ioStatus](/msg_docs/Px4ioStatus.md)
         - [QshellReq](/msg_docs/QshellReq.md)
@@ -710,6 +717,10 @@
         - [YawEstimatorStatus](/msg_docs/YawEstimatorStatus.md)
         - [VehicleStatusV0](/msg_docs/VehicleStatusV0.md)
     - [MAVLink通讯](/middleware/mavlink.md)
+      - [Adding Messages](/mavlink/adding_messages.md)
+      - [Streaming Messages](/mavlink/streaming_messages.md)
+      - [Receiving Messages](/mavlink/receiving_messages.md)
+      - [Custom MAVLink Messages](/mavlink/custom_messages.md)
       - [Standard Modes Protocol](/mavlink/standard_modes.md)
     - [uXRCE-DDS (PX4-ROS 2/DDS Bridge)](/middleware/uxrce_dds.md)
   - [模块 & 命令](/modules/modules_main.md)

@@ -1,10 +1,9 @@
 <!-- GENERATED CONTENT: DO NOT EDIT -->
-- [Introduction](/index.md)
 
+- [Introduction](/index.md)
   - [Basic Concepts](/getting_started/px4_basic_concepts.md)
 
 - [Multicopters](/frames_multicopter/index.md)
-
   - [Features](/features_mc/index.md)
     - [Flight Modes](/flight_modes_mc/index.md)
       - [Position Mode (MC)](/flight_modes_mc/position.md)
@@ -57,7 +56,6 @@
     - [DJI F450 (CUAV v5 nano)](/frames_multicopter/dji_f450_cuav_5nano.md)
 
 - [Planes (Fixed-Wing)](/frames_plane/index.md)
-
   - [Assembly](/assembly/assembly_fw.md)
   - [Config/Tuning](/config_fw/index.md)
     - [Auto-tune](/config/autotune_fw.md)
@@ -85,7 +83,6 @@
     - [Wing Wing Z84 (Pixracer)](/frames_plane/wing_wing_z84.md)
 
 - [VTOL](/frames_vtol/index.md)
-
   - [Assembly](/assembly/assembly_vtol.md)
   - [VTOL Config/Tuning](/config_vtol/index.md)
     - [Auto-tune](/config/autotune_vtol.md)
@@ -110,7 +107,6 @@
   - [Complete Vehicles](/complete_vehicles_vtol/index.md)
 
 - [Operations](/config/operations.md)
-
   - [Safety](/config/safety_intro.md)
     - [Safety Configuration (Failsafes)](/config/safety.md)
     - [Failsafe Simulation](/config/safety_simulation.md)
@@ -131,7 +127,6 @@
     - [QGroundControl Flight-Readiness Status](/flying/pre_flight_checks.md)
 
 - [Hardware Selection & Setup](/hardware/drone_parts.md)
-
   - [Flight Controllers (Autopilots)](/flight_controller/index.md)
     - [Flight Controller Selection](/getting_started/flight_controller_selection.md)
     - [Pixhawk Series](/flight_controller/pixhawk_series.md)
@@ -166,7 +161,7 @@
       - [AirMind MindPX](/flight_controller/mindpx.md)
       - [AirMind MindRacer](/flight_controller/mindracer.md)
       - [ARK Electronics ARKV6X](/flight_controller/ark_v6x.md)
-      - [ARK FPV Flight Controller](/flight_controller/ark_fpv.md) 
+      - [ARK FPV Flight Controller](/flight_controller/ark_fpv.md)
       - [ARK Pi6X Flow Flight Controller](/flight_controller/ark_pi6x.md)
       - [CUAV X7](/flight_controller/cuav_x7.md)
       - [CUAV Nora](/flight_controller/cuav_nora.md)
@@ -182,7 +177,7 @@
       - [Holybro Kakute H7v2](/flight_controller/kakuteh7v2.md)
       - [Holybro Kakute H7mini](/flight_controller/kakuteh7mini.md)
       - [Holybro Kakute H7](/flight_controller/kakuteh7.md)
-      - [Holybro Kakute H7 Wing](flight_controller/kakuteh7-wing.md)
+      - [Holybro Kakute H7 Wing](/flight_controller/kakuteh7-wing.md)
       - [Holybro Durandal](/flight_controller/durandal.md)
         - [Wiring Quickstart](/assembly/quick_start_durandal.md)
       - [Holybro Pix32 v5](/flight_controller/holybro_pix32_v5.md)
@@ -255,7 +250,7 @@
     - [GNSS (GPS)](/gps_compass/index.md)
       - [ARK GPS (CAN)](/dronecan/ark_gps.md)
       - [ARK SAM GPS](/gps_compass/ark_sam_gps.md)
-      - [ARK TESEO GPS](/dronecan/ark_teseo_gps.md) 
+      - [ARK TESEO GPS](/dronecan/ark_teseo_gps.md)
       - [CUAV NEO 3 GPS](/gps_compass/gps_cuav_neo_3.md)
       - [CUAV NEO 3 Pro GPS (CAN)](/gps_compass/gps_cuav_neo_3pro.md)
       - [CUAV NEO 3X GPS (CAN)](/gps_compass/gps_cuav_neo_3x.md)
@@ -328,10 +323,13 @@
         - [ARK Electron Microhard Serial Telemetry Radio](/telemetry/ark_microhard_serial.md)
         - [Holybro Microhard P900 Telemetry Radio](/telemetry/holybro_microhard_p900_radio.md)
       - [CUAV P8 Telemetry Radio](/telemetry/cuav_p8_radio.md)
+      - [J.Fi Wireless Telemetry Module](/telemetry/jfi_telemetry.md)
       - [HolyBro XBP9X - Discontinued](/telemetry/holybro_xbp9x_radio.md)
+
     - [FrSky Telemetry](/peripherals/frsky_telemetry.md)
     - [TBS Crossfire (CRSF) Telemetry](/telemetry/crsf_telemetry.md)
     - [Satellite Comms (Iridium/RockBlock)](/advanced_features/satcom_roadblock.md)
+
   - [Power Systems](/power_systems/index.md)
     - [Battery Estimation Tuning](/config/battery.md)
     - [Battery Chemistry Overview](/power_systems/battery_chemistry.md)
@@ -398,7 +396,6 @@
     - [Full Parameter Reference](/advanced_config/parameter_reference.md)
 
 - [Other Vehicles](/airframes/index.md)
-
   - [Airships (experimental)](/frames_airship/index.md)
   - [Autogyros (experimental)](/frames_autogyro/index.md)
     - [ThunderFly Auto-G2 (Holybro pix32)](/frames_autogyro/thunderfly_auto_g2.md)
@@ -713,6 +710,10 @@
         - [YawEstimatorStatus](/msg_docs/YawEstimatorStatus.md)
         - [VehicleStatusV0](/msg_docs/VehicleStatusV0.md)
     - [MAVLink Messaging](/middleware/mavlink.md)
+      - [Adding Messages](/mavlink/adding_messages.md)
+      - [Streaming Messages](/mavlink/streaming_messages.md)
+      - [Receiving Messages](/mavlink/receiving_messages.md)
+      - [Custom MAVLink Messages](/mavlink/custom_messages.md)
       - [Standard Modes Protocol](/mavlink/standard_modes.md)
     - [uXRCE-DDS (PX4-ROS 2/DDS Bridge)](/middleware/uxrce_dds.md)
   - [Modules & Commands](/modules/modules_main.md)
@@ -836,8 +837,9 @@
   - [Terminology/Notation](/contribute/notation.md)
   - [Licenses](/contribute/licenses.md)
 - [Releases](/releases/index.md)
-  - [main (alpha)](/releases/main.md)
-  - [1.15 (stable)](/releases/1.15.md)
+  - [main (alpha)](/https://docs.px4.io/main/en/releases/main.html)
+  - [1.16 (stable)](/releases/1.15.md)
+  - [1.15](/releases/1.15.md)
   - [1.14](/releases/1.14.md)
   - [1.13](/releases/1.13.md)
   - [1.12](/releases/1.12.md)
