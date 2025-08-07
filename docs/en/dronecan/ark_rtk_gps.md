@@ -96,7 +96,7 @@ PX4 DroneCAN parameters:
 - [UAVCAN_PUB_RTCM](../advanced_config/parameter_reference.md#UAVCAN_PUB_RTCM):
   - Makes PX4 publish RTCM messages ([RTCMStream](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#rtcmstream)) to the bus (which it gets from the RTK base module via QGC).
 
-Rover module parameters (also [set using QGC](#qgc-cannode-parameter-configuration)):
+Rover module parameters (also [set using QGC](../dronecan/index.md#qgc-cannode-parameter-configuration)):
 
 - [CANNODE_SUB_RTCM](../advanced_config/parameter_reference.md#CANNODE_SUB_RTCM) tells the rover that it should subscribe to [RTCMStream](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#rtcmstream) RTCM messages on the bus (from the moving base).
 
