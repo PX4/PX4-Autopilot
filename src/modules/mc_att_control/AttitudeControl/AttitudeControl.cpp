@@ -52,7 +52,7 @@ void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_g
 	}
 }
 
-matrix::Vector3f AttitudeControl::update(const Quatf &q) const
+matrix::Vector3f AttitudeControl::update(const Quatf &q, float dt) 
 {
 	Quatf qd = _attitude_setpoint_q;
 
@@ -68,21 +68,17 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 		qd_red = qd;
 
 	} else {
-		// Transform rotation from current to desired thrust vector into a world frame reduced desired attitude.
-		// This is a right multiplication as the tilt error quaternion is obtained from two Z vectors expressed in the world frame.
+		// transform rotation from current to desired thrust vector into a world frame reduced desired attitude
 		qd_red *= q;
 	}
 
-	// With a full desired attitude given by: qd = qd_red * qd_dyaw, extract the delta yaw component.
-	// By definition, the delta yaw quaternion has the form (cos(angle/2), 0, 0, sin(angle/2))
-	Quatf qd_dyaw = qd_red.inversed() * qd;
-	qd_dyaw.canonicalize();
+	// mix full and reduced desired attitude
+	Quatf q_mix = qd_red.inversed() * qd;
+	q_mix.canonicalize();
 	// catch numerical problems with the domain of acosf and asinf
-	qd_dyaw(0) = math::constrain(qd_dyaw(0), -1.f, 1.f);
-	qd_dyaw(3) = math::constrain(qd_dyaw(3), -1.f, 1.f);
-
-	// scale the delta yaw angle and re-combine the desired attitude
-	qd = qd_red * Quatf(cosf(_yaw_w * acosf(qd_dyaw(0))), 0.f, 0.f, sinf(_yaw_w * asinf(qd_dyaw(3))));
+	q_mix(0) = math::constrain(q_mix(0), -1.f, 1.f);
+	q_mix(3) = math::constrain(q_mix(3), -1.f, 1.f);
+	qd = qd_red * Quatf(cosf(_yaw_w * acosf(q_mix(0))), 0, 0, sinf(_yaw_w * asinf(q_mix(3))));
 
 	// quaternion attitude control law, qe is rotation from q to qd
 	const Quatf qe = q.inversed() * qd;
@@ -92,7 +88,20 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 	const Vector3f eq = 2.f * qe.canonical().imag();
 
 	// calculate angular rates setpoint
-	Vector3f rate_setpoint = eq.emult(_proportional_gain);
+	matrix::Vector3f rate_setpoint = eq.emult(_proportional_gain);
+	// Integral term
+    _integral_error += eq * dt;
+	for (int i = 0; i < 3; i++) {
+        _integral_error(i) = math::constrain(_integral_error(i), -_integral_limit(i), _integral_limit(i)); // Constrain integral error
+    }
+    rate_setpoint += _integral_error.emult(_integral_gain);
+
+    // Derivative term
+    matrix::Vector3f derivative_error = (eq - _previous_error) / dt;
+    rate_setpoint += derivative_error.emult(_derivative_gain);
+
+    // Update previous error
+    _previous_error = eq;
 
 	// Feed forward the yaw setpoint rate.
 	// yawspeed_setpoint is the feed forward commanded rotation around the world z-axis,
@@ -101,7 +110,7 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 	// and multiply it by the yaw setpoint rate (yawspeed_setpoint).
 	// This yields a vector representing the commanded rotatation around the world z-axis expressed in the body frame
 	// such that it can be added to the rates setpoint.
-	if (std::isfinite(_yawspeed_setpoint)) {
+	if (is_finite(_yawspeed_setpoint)) {
 		rate_setpoint += q.inversed().dcm_z() * _yawspeed_setpoint;
 	}
 

@@ -9,24 +9,22 @@
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be used to
+ *    endorse or promote products derived from this software without specific
+ *    prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
@@ -35,14 +33,18 @@
  * @file mc_att_control_params.c
  * Parameters for multicopter attitude controller.
  *
- * @author Lorenz Meier <lorenz@px4.io>
- * @author Anton Babushkin <anton@px4.io>
+ * This file defines the PID gains and limits used by the attitude controller.
+ *
+ * @author 
+ *   Lorenz Meier <lorenz@px4.io>
+ *   Anton Babushkin <anton@px4.io>
  */
 
+/* Proportional Gains */
 /**
  * Roll P gain
  *
- * Roll proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
+ * Roll proportional gain, i.e. desired angular speed in rad/s for error of 1 rad.
  *
  * @min 0.0
  * @max 12
@@ -50,12 +52,12 @@
  * @increment 0.1
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLL_P, 4.0f);
+PARAM_DEFINE_FLOAT(MC_ROLL_P, 2.0f);
 
 /**
  * Pitch P gain
  *
- * Pitch proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
+ * Pitch proportional gain, i.e. desired angular speed in rad/s for error of 1 rad.
  *
  * @min 0.0
  * @max 12
@@ -63,12 +65,12 @@ PARAM_DEFINE_FLOAT(MC_ROLL_P, 4.0f);
  * @increment 0.1
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCH_P, 4.0f);
+PARAM_DEFINE_FLOAT(MC_PITCH_P, 2.0f);
 
 /**
  * Yaw P gain
  *
- * Yaw proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
+ * Yaw proportional gain, i.e. desired angular speed in rad/s for error of 1 rad.
  *
  * @min 0.0
  * @max 5
@@ -78,15 +80,66 @@ PARAM_DEFINE_FLOAT(MC_PITCH_P, 4.0f);
  */
 PARAM_DEFINE_FLOAT(MC_YAW_P, 2.8f);
 
+/* Integral Gains */
 /**
- * Yaw weight
+ * Roll I gain
  *
- * A fraction [0,1] deprioritizing yaw compared to roll and pitch in non-linear attitude control.
- * Deprioritizing yaw is necessary because multicopters have much less control authority
- * in yaw compared to the other axes and it makes sense because yaw is not critical for
- * stable hovering or 3D navigation.
+ * Roll integral gain.
  *
- * For yaw control tuning use MC_YAW_P. This ratio has no impact on the yaw gain.
+ * @min 0.0
+ * @max 12
+ * @decimal 2
+ * @increment 0.1
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLL_I, 1.5f);
+
+/**
+ * Pitch I gain
+ *
+ * Pitch integral gain.
+ *
+ * @min 0.0
+ * @max 12
+ * @decimal 2
+ * @increment 0.1
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCH_I, 1.5f);
+
+/* Derivative Gains */
+/**
+ * Roll D gain
+ *
+ * Roll derivative gain.
+ *
+ * @min 0.0
+ * @max 12
+ * @decimal 2
+ * @increment 0.1
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLL_D, 2.0f);
+
+/**
+ * Pitch D gain
+ *
+ * Pitch derivative gain.
+ *
+ * @min 0.0
+ * @max 12
+ * @decimal 2
+ * @increment 0.1
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCH_D, 2.0f);
+
+/* Additional Attitude Control Parameters */
+/**
+ * Yaw Weight
+ *
+ * A fraction [0,1] that deprioritizes yaw compared to roll and pitch in
+ * non-linear attitude control.
  *
  * @min 0.0
  * @max 1.0
@@ -97,14 +150,9 @@ PARAM_DEFINE_FLOAT(MC_YAW_P, 2.8f);
 PARAM_DEFINE_FLOAT(MC_YAW_WEIGHT, 0.4f);
 
 /**
- * Max roll rate
+ * Maximum Roll Rate
  *
  * Limit for roll rate in manual and auto modes (except acro).
- * Has effect for large rotations in autonomous mode, to avoid large control
- * output and mixer saturation.
- *
- * This is not only limited by the vehicle's properties, but also by the maximum
- * measurement rate of the gyro.
  *
  * @unit deg/s
  * @min 0.0
@@ -116,14 +164,9 @@ PARAM_DEFINE_FLOAT(MC_YAW_WEIGHT, 0.4f);
 PARAM_DEFINE_FLOAT(MC_ROLLRATE_MAX, 220.0f);
 
 /**
- * Max pitch rate
+ * Maximum Pitch Rate
  *
  * Limit for pitch rate in manual and auto modes (except acro).
- * Has effect for large rotations in autonomous mode, to avoid large control
- * output and mixer saturation.
- *
- * This is not only limited by the vehicle's properties, but also by the maximum
- * measurement rate of the gyro.
  *
  * @unit deg/s
  * @min 0.0
@@ -135,7 +178,9 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_MAX, 220.0f);
 PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 220.0f);
 
 /**
- * Max yaw rate
+ * Maximum Yaw Rate
+ *
+ * Limit for yaw rate.
  *
  * @unit deg/s
  * @min 0.0
@@ -147,9 +192,10 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 220.0f);
 PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 200.0f);
 
 /**
- * Manual tilt input filter time constant
+ * Manual Tilt Input Filter Time Constant
  *
- * Setting this parameter to 0 disables the filter
+ * This parameter sets the time constant for filtering manual tilt inputs.
+ * Setting it to 0 disables the filter.
  *
  * @unit s
  * @min 0.0

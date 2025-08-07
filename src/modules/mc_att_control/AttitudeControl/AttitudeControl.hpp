@@ -68,6 +68,8 @@ public:
 	 * Set hard limit for output rate setpoints
 	 * @param rate_limit [rad/s] 3D vector containing limits for roll, pitch, yaw
 	 */
+    void setIntegralGain(const matrix::Vector3f &integral_gain) { _integral_gain = integral_gain; }
+    void setDerivativeGain(const matrix::Vector3f &derivative_gain) { _derivative_gain = derivative_gain; }
 	void setRateLimit(const matrix::Vector3f &rate_limit) { _rate_limit = rate_limit; }
 
 	/**
@@ -75,36 +77,32 @@ public:
 	 * @param qd desired vehicle attitude setpoint
 	 * @param yawspeed_setpoint [rad/s] yaw feed forward angular rate in world frame
 	 */
-	void setAttitudeSetpoint(const matrix::Quatf &qd, const float yawspeed_setpoint)
-	{
-		_attitude_setpoint_q = qd;
-		_attitude_setpoint_q.normalize();
-		_yawspeed_setpoint = yawspeed_setpoint;
-	}
+	void setAttitudeSetpoint(const matrix::Quatf &qd, const float yawspeed_setpoint) { _attitude_setpoint_q = qd; _attitude_setpoint_q.normalize(); _yawspeed_setpoint = yawspeed_setpoint; }
 
 	/**
 	 * Adjust last known attitude setpoint by a delta rotation
 	 * Optional use to avoid glitches when attitude estimate reference e.g. heading changes.
 	 * @param q_delta delta rotation to apply
 	 */
-	void adaptAttitudeSetpoint(const matrix::Quatf &q_delta)
-	{
-		_attitude_setpoint_q = q_delta * _attitude_setpoint_q;
-		_attitude_setpoint_q.normalize();
-	}
+	void adaptAttitudeSetpoint(const matrix::Quatf &q_delta) { _attitude_setpoint_q = q_delta * _attitude_setpoint_q; }
 
 	/**
 	 * Run one control loop cycle calculation
 	 * @param q estimation of the current vehicle attitude unit quaternion
 	 * @return [rad/s] body frame 3D angular rate setpoint vector to be executed by the rate controller
 	 */
-	matrix::Vector3f update(const matrix::Quatf &q) const;
+	matrix::Vector3f update(const matrix::Quatf &q,float dt);
+	void setIntegralLimit(const matrix::Vector3f &integral_limit) { _integral_limit = integral_limit; }
 
 private:
 	matrix::Vector3f _proportional_gain;
+	matrix::Vector3f _integral_gain;
+    matrix::Vector3f _derivative_gain;
+    mutable matrix::Vector3f _integral_error{0.0f, 0.0f, 0.0f};
+    mutable matrix::Vector3f _previous_error{0.0f, 0.0f, 0.0f};
 	matrix::Vector3f _rate_limit;
 	float _yaw_w{0.f}; ///< yaw weight [0,1] to deprioritize caompared to roll and pitch
-
+	matrix::Vector3f _integral_limit{1.0f, 1.0f, 1.0f}; // Default integral limit
 	matrix::Quatf _attitude_setpoint_q; ///< latest known attitude setpoint e.g. from position control
 	float _yawspeed_setpoint{0.f}; ///< latest known yawspeed feed-forward setpoint
 };
