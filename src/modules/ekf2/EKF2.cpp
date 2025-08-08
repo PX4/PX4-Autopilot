@@ -1040,12 +1040,11 @@ void EKF2::PublishBaroBias(const hrt_abstime &timestamp)
 	if (_ekf.aid_src_baro_hgt().timestamp_sample != 0) {
 		const BiasEstimator::status &status = _ekf.getBaroBiasEstimatorStatus();
 
-		if (fabsf(status.bias - _last_baro_bias_published) > 0.001f || !_baro_bias_published) {
+		if (fabsf(status.bias - _last_baro_bias_published) > 1e-6f) {
 			_estimator_baro_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.aid_src_baro_hgt().timestamp_sample, timestamp,
 							 _device_id_baro));
 
 			_last_baro_bias_published = status.bias;
-			_baro_bias_published = true;
 		}
 	}
 }
@@ -1057,11 +1056,10 @@ void EKF2::PublishGnssHgtBias(const hrt_abstime &timestamp)
 	if (_ekf.get_gps_sample_delayed().time_us != 0) {
 		const BiasEstimator::status &status = _ekf.getGpsHgtBiasEstimatorStatus();
 
-		if (fabsf(status.bias - _last_gnss_hgt_bias_published) > 0.001f || !_gnss_hgt_bias_published) {
+		if (fabsf(status.bias - _last_gnss_hgt_bias_published) > 1e-6f) {
 			_estimator_gnss_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_gps_sample_delayed().time_us, timestamp));
 
 			_last_gnss_hgt_bias_published = status.bias;
-			_gnss_hgt_bias_published = true;
 		}
 	}
 }

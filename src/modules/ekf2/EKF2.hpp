@@ -354,7 +354,6 @@ private:
 	hrt_abstime _status_baro_hgt_pub_last{0};
 
 	float _last_baro_bias_published{};
-	bool _baro_bias_published{};
 
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
 
@@ -458,7 +457,6 @@ private:
 	hrt_abstime _status_gnss_vel_pub_last{0};
 
 	float _last_gnss_hgt_bias_published{};
-	bool _gnss_hgt_bias_published{};
 
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 
