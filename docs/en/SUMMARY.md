@@ -168,6 +168,7 @@
       - [CUAV V5 nano (FMUv5)](flight_controller/cuav_v5_nano.md)
         - [CUAV V5 nano Wiring Quickstart](assembly/quick_start_cuav_v5_nano.md)
       - [CUAV Pixhack v3 (FMUv3)](flight_controller/pixhack_v3.md)
+      - [CUAV X25 EVO](flight_controller/cuav_x25-evo.md)
       - [CubePilot Cube Orange+ (CubePilot)](flight_controller/cubepilot_cube_orangeplus.md)
       - [CubePilot Cube Orange (CubePilot)](flight_controller/cubepilot_cube_orange.md)
       - [CubePilot Cube Yellow (CubePilot)](flight_controller/cubepilot_cube_yellow.md)
