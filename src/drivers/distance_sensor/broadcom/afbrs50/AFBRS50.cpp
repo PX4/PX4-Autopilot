@@ -210,6 +210,7 @@ void AFBRS50::Run()
 {
 	perf_end(_loop_perf);
 	perf_begin(_loop_perf);
+
 	if (_parameter_update_sub.updated()) {
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
