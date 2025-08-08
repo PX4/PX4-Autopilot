@@ -88,7 +88,9 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		bool is_tilt_good = true;
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-		is_tilt_good = (_R_to_earth(2, 2) > _params.range_cos_max_tilt);
+		// TODO: magic number -- decouple max tilt for flow fusion from max tilt for range fusion
+		float cosine_max_tilt = 0.7071f;
+		is_tilt_good = (_R_to_earth(2, 2) > cosine_max_tilt);
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 		calcOptFlowBodyRateComp(flow_sample);
@@ -156,8 +158,11 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				&& (isTerrainEstimateValid() || isHorizontalAidingActive())
 				&& isTimedOut(_aid_src_optical_flow.time_last_fuse, (uint64_t)2e6); // Prevent rapid switching
 
+
+		// DEBUGGING: disable flow fusion for terrain estimation to limit variables
+		_control_status.flags.opt_flow_terrain = false;
 		// If the height is relative to the ground, terrain height cannot be observed.
-		_control_status.flags.opt_flow_terrain = _control_status.flags.opt_flow && !(_height_sensor_ref == HeightSensor::RANGE);
+		// _control_status.flags.opt_flow_terrain = _control_status.flags.opt_flow && !(_height_sensor_ref == HeightSensor::RANGE);
 
 		if (_control_status.flags.opt_flow) {
 			if (continuing_conditions_passing) {
@@ -187,7 +192,8 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		} else {
 			if (starting_conditions_passing) {
 				// If the height is relative to the ground, terrain height cannot be observed.
-				_control_status.flags.opt_flow_terrain = (_height_sensor_ref != HeightSensor::RANGE);
+				// DEBUGGING: disable flow fusion for terrain estimation to limit variables
+				// _control_status.flags.opt_flow_terrain = (_height_sensor_ref != HeightSensor::RANGE);
 
 				if (isHorizontalAidingActive()) {
 					if (fuseOptFlow(H, _control_status.flags.opt_flow_terrain)) {
@@ -213,7 +219,8 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 					}
 				}
 
-				_control_status.flags.opt_flow_terrain = _control_status.flags.opt_flow && !(_height_sensor_ref == HeightSensor::RANGE);
+				// DEBUGGING: disable flow fusion for terrain estimation to limit variables
+				// _control_status.flags.opt_flow_terrain = _control_status.flags.opt_flow && !(_height_sensor_ref == HeightSensor::RANGE);
 			}
 		}
 

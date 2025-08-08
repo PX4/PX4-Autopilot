@@ -77,13 +77,6 @@ void Ekf::reset()
 	_state.terrain = -_gpos.altitude() + _params.ekf2_min_rng;
 #endif // CONFIG_EKF2_TERRAIN
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-	_range_sensor.setPitchOffset(_params.ekf2_rng_pitch);
-	_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
-	_range_sensor.setQualityHysteresis(_params.ekf2_rng_qlty_t);
-	_range_sensor.setMaxFogDistance(_params.ekf2_rng_fog);
-#endif // CONFIG_EKF2_RANGE_FINDER
-
 	_control_status.value = 0;
 	_control_status_prev.value = 0;
 
@@ -408,6 +401,18 @@ void Ekf::updateParameters()
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 	_aux_global_position.updateParameters();
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+#if defined (CONFIG_EKF2_RANGE_FINDER)
+
+	sensor::SensorRangeFinder::Parameters params = {};
+	// params.ekf2_imu_pos_x = _param_ekf2_imu_pos_x.get();
+	// params.ekf2_imu_pos_y = _param_ekf2_imu_pos_y.get();
+	// params.ekf2_imu_pos_z = _param_ekf2_imu_pos_z.get();
+	// params.ekf2_rng_pos_x = _param_ekf2_rng_pos_x.get();
+	// params.ekf2_rng_pos_y = _param_ekf2_rng_pos_y.get();
+	// params.ekf2_rng_pos_z = _param_ekf2_rng_pos_z.get();
+	params.ekf2_rng_pitch = _params.ekf2_rng_pitch;
+	_range_sensor.updateParameters(params);
+#endif
 }
 
 template<typename T>
