@@ -232,6 +232,7 @@ void Ekf::updateVerticalPositionResetStatus(const float delta_z)
 	_state_reset_status.reset_count.posD++;
 }
 
+#if defined(CONFIG_EKF2_TERRAIN)
 void Ekf::updateTerrainResetStatus(const float delta_z)
 {
 	if (_state_reset_status.reset_count.hagl == _state_reset_count_prev.hagl) {
@@ -244,6 +245,7 @@ void Ekf::updateTerrainResetStatus(const float delta_z)
 
 	_state_reset_status.reset_count.hagl++;
 }
+#endif // CONFIG_EKF2_TERRAIN
 
 void Ekf::resetHorizontalPositionToLastKnown()
 {

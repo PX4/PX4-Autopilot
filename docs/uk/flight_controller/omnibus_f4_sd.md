@@ -211,7 +211,7 @@ The referenced links above contains the documentation for the TX/RX modules.
 | RX            | Ch1     |
 
 Наступне оновіть модулі TX/RX для використання протоколу CRSF та налаштуйте телеметрію.
-Instructions for this are provided in the [TBS Crossfire Manual](https://www.team-blacksheep.com/tbs-crossfire-manual.pdf) (search for 'Setting up radio for CRSF').
+Instructions for this are provided in the [TBS Crossfire Manual](https://www.team-blacksheep.com/media/files/tbs-crossfire-manual.pdf) (search for 'Setting up radio for CRSF').
 
 #### Налаштування CRSF PX4
 
@@ -263,4 +263,4 @@ In addition to the [basic configuration](../config/index.md), the following para
 
 ## Додаткова інформація
 
-[This page](https://blog.dronetrest.com/omnibus-f4-flight-controller-guide/) provides a good overview with pinouts and setup instructions.
+[This page](https://blog.unmanned.tech/omnibus-f4-flight-controller-guide/) provides a good overview with pinouts and setup instructions.

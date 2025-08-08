@@ -95,7 +95,7 @@ This flight controller is perfect for people that is looking for a affordable an
 
 ## 구매처
 
-Order from [Holybro](https://holybro.com/collections/autopilot-flight-controllers/products/pix32-v6).
+Order from [Holybro](https://holybro.com/products/pix32-v6).
 
 ## 핀배열
 
@@ -188,7 +188,7 @@ For information about using this port see:
 
 ## 주변 장치
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 

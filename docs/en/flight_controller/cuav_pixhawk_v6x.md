@@ -96,7 +96,6 @@ The Pixhawk® V6X is ideal for corporate research labs, academic research and co
   - Baseboard: 56g
 - Operating & storage temperature: -20 ~ 85°c
 - Size
-
   - Flight controller
 
     ![Pixhawk V6X](../../assets/flight_controller/cuav_pixhawk_v6x/v6x_size.jpg)
@@ -206,7 +205,7 @@ For information about wiring and using this port see:
 
 ## Peripherals
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 

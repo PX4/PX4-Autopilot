@@ -87,7 +87,7 @@ public:
 		  _node_mutex(node_mutex),
 		  _pub_manager(pub_manager) {}
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	void printInfo() { _mixing_output.printStatus(); }

@@ -211,7 +211,7 @@ The referenced links above contains the documentation for the TX/RX modules.
 | RX            | Ch1     |
 
 다음으로 TX/RX 모듈을 업데이트하여 CRSF 프로토콜을 사용하고 텔레메트리를 설정합니다.
-Instructions for this are provided in the [TBS Crossfire Manual](https://www.team-blacksheep.com/tbs-crossfire-manual.pdf) (search for 'Setting up radio for CRSF').
+Instructions for this are provided in the [TBS Crossfire Manual](https://www.team-blacksheep.com/media/files/tbs-crossfire-manual.pdf) (search for 'Setting up radio for CRSF').
 
 #### PX4 CRSF Configuration
 
@@ -263,4 +263,4 @@ In addition to the [basic configuration](../config/index.md), the following para
 
 ## 추가 정보
 
-[This page](https://blog.dronetrest.com/omnibus-f4-flight-controller-guide/) provides a good overview with pinouts and setup instructions.
+[This page](https://blog.unmanned.tech/omnibus-f4-flight-controller-guide/) provides a good overview with pinouts and setup instructions.

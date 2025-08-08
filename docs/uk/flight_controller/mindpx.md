@@ -28,7 +28,6 @@ MindPX збільшує загальну кількість каналів ви�
 ![](../../assets/hardware/hardware-mindpx-specs.png)
 
 - Головний системний чіп: STM32F427
-
   - Процесор: 32bits, 168 MHz ARM Cortex<sup>&reg;</sup> M4 з FPU
   - RAM: 256 KB SRAM
   - 2MB Flash
@@ -107,7 +106,7 @@ The user guide is [here](http://mindpx.net/assets/accessories/UserGuide9.18_2_pd
 
 ## Де купити
 
-MindRacer is available at [AirMind Store](http://drupal.xitronet.com/?q=catalog) on internet.
+MindRacer is available at [AirMind Store](https://airmind.mindpx.net/catalog).
 Ви також можете знайти MindRacer на Amazon<sup>&reg;</sup> або на eBay<sup>&reg;</sup>.
 
 ## Налаштування послідовного порту

@@ -83,7 +83,7 @@ Select the PX4 edition when purchasing!
 ## Manual, Pinouts and Connection Diagrams
 
 The manual with pinouts can be downloaded from [here](http://seriouslypro.com/files/SPRacingH7EXTREME-Manual-latest.pdf).
-See the [SPRacingH7EXTREME website](http://seriouslypro.com/spracingh7extreme) for other diagrams.
+See the [SPRacingH7EXTREME website](http://seriouslypro.com/products/spracingh7extreme) for other diagrams.
 
 ## Credits
 

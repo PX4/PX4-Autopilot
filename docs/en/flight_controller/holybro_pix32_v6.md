@@ -87,7 +87,7 @@ This flight controller is perfect for people that is looking for a affordable an
 
 ## Where to Buy
 
-Order from [Holybro](https://holybro.com/collections/autopilot-flight-controllers/products/pix32-v6).
+Order from [Holybro](https://holybro.com/products/pix32-v6).
 
 ## Pinouts
 
@@ -180,7 +180,7 @@ For information about using this port see:
 
 ## Peripherals
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 

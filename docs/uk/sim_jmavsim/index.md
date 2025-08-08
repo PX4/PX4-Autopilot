@@ -30,7 +30,7 @@ Follow the instructions below to install jMAVSim on macOS.
 To setup the environment for [jMAVSim](../sim_jmavsim/index.md) simulation:
 
 1. Install a recent version of Java (e.g. Java 15).
-  You can download [Java 15 (or later) from Oracle](https://www.oracle.com/java/technologies/javase-downloads.html) or use [Eclipse Temurin](https://adoptium.net):
+  You can download [Java 15 (or later) from Oracle](https://www.oracle.com/java/technologies/downloads/?er=221886) or use [Eclipse Temurin](https://adoptium.net):
 
   ```sh
   brew install --cask temurin
@@ -314,7 +314,7 @@ sudo gedit /etc/java-8-openjdk/accessibility.properties
 ```
 
 For more info, check [this GitHub issue](https://github.com/PX4/PX4-Autopilot/issues/9557).
-A contributor found the fix in [askubuntu.com](https://askubuntu.com/questions/695560).
+A contributor found the fix in [askubuntu.com](https://askubuntu.com/questions/695560/assistive-technology-not-found-awterror).
 
 ### Виняток у потоці "main" java.lang.UnsupportedClassVersionError
 

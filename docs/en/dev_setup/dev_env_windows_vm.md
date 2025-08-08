@@ -31,7 +31,7 @@ VMWare performance is acceptable for basic usage (building Firmware) but not for
 
 1. Download [VMWare Player Freeware](https://www.vmware.com/products/workstation-player/workstation-player-evaluation.html)
 1. Install it on your Windows system
-1. Download the desired version of [Ubuntu Desktop ISO Image](https://www.ubuntu.com/download/desktop).
+1. Download the desired version of [Ubuntu Desktop ISO Image](https://ubuntu.com/download/desktop).
    (see [Linux Instructions Page](../dev_setup/dev_env_linux.md) for recommended Ubuntu version).
 1. Open _VMWare Player_.
 1. Enable 3D acceleration in the VM's settings: **VM > Settings > Hardware > Display > Accelerate 3D graphics**
@@ -49,7 +49,6 @@ VMWare performance is acceptable for basic usage (building Firmware) but not for
    Remember all settings are only for within your host operating system usage and hence you can disable any screen saver and local workstation security features which do not increase risk of a network attack.
 1. Once the new VM is booted up make sure you install _VMWare tools drivers and tools extension_ inside your guest system.
    This will enhance performance and usability of your VM usage:
-
    - Significantly enhanced graphics performance
    - Proper support for hardware device usage like USB port allocation (important for target upload), proper mouse wheel scrolling, sound support
    - Guest display resolution adaption to the window size
@@ -85,7 +84,6 @@ To allow this, you need to configure USB passthrough settings:
 1. Enable serial port(s) in VM: **VirtualBox > Settings > Serial Ports 1/2/3/etc...**
 1. Enable USB controller in VM: **VirtualBox > Settings > USB**
 1. Add USB filters for the bootloader in VM: **VirtualBox > Settings > USB > Add new USB filter**.
-
    - Open the menu and plug in the USB cable connected to your autopilot.
      Select the `...Bootloader` device when it appears in the UI.
 

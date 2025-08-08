@@ -1,8 +1,8 @@
 # VehicleCommandAck (повідомлення UORB)
 
 Повідомлення uORB підтвердження команди автомобіля.
-Використовується для підтвердження отримання команди для транспортного засобу.
-Дотримується визначення MAVLink COMMAND_ACK повідомлення
+Used for acknowledging the vehicle command being received.
+Follows the MAVLink COMMAND_ACK message definition
 
 [source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleCommandAck.msg)
 

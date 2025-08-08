@@ -1,11 +1,32 @@
 # Конфігурація завершення польоту
 
-Дія _аварійного зупинення польоту_ може бути викликана [автономною захисною дією](../config/safety.md#failsafe-actions) (наприклад, втрата зв'язку з радіокеруванням, порушення геозони тощо на будь-якому типі транспортного засобу або у будь-якому режимі польоту), або [виявником відмов](../config/safety.md#failure-detector).
+The _Flight termination_ [failsafe action](../config/safety.md#failsafe-actions) irreversibly turns off controllers and sets PWM values to their parameter configured failsafe values.
 
 :::info
-Flight termination may also be triggered from a ground station or companion computer using the MAVLink [MAV_CMD_DO_FLIGHTTERMINATION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_FLIGHTTERMINATION) command.
-This is sent, for example, when you call the [MAVSDK Action plugin](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_action.html#classmavsdk_1_1_action_1a47536c4a4bc8367ccd30a92eb09781c5) `terminate()` or `terminate_async()` methods.
+Flight termination differs from the [Kill action](../config/safety.html#kill-switch) in that it is permanent until after reboot.
 :::
+
+:::warning
+This is _not_ an independent _Flight Termination System_.
+Якщо втрачається живлення або автопілот повністю відмовляє, аварійні пристрої не будуть активовані.
+:::
+
+## Загальний огляд
+
+### Termination Triggers
+
+Termination may be triggered by:
+
+- [Safety checks](../config/safety.md) for RC Loss, geofence violation, and so on (on any vehicle type or in any flight mode).
+- [Failure Detector](../config/safety.md#failure-detector) trigger
+- RC termination switch (mapped to an RC channel using [RC_MAP_TERM_SW](../advanced_config/parameter_reference.md#RC_MAP_TERM_SW)).
+- The MAVLink [MAV_CMD_DO_FLIGHTTERMINATION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_FLIGHTTERMINATION) MAVLink command from a GCS or companion computer (see [MAVLink Trigger](#mavlink-trigger) below).
+
+Немає можливості відновлення після аварійного припинення польоту.
+Після виклику аварійного припинення польоту вам слід якнайшвидше відключити батарею.
+Перед тим, як знову використовувати транспортний засіб, вам доведеться перезавантажити/вимкнути живлення.
+
+### Termination Actions
 
 Коли активується _аварійне припинення польоту_, PX4 одночасно вимикає всі контролери та встановлює всі виходи PWM у значення аварійного режиму.
 
@@ -17,10 +38,6 @@ This is sent, for example, when you call the [MAVSDK Action plugin](https://mavs
 - Запустіть надувний пристрій, наприклад подушку безпеки.
 - Запустити тривогу.
 
-Немає можливості відновлення після аварійного припинення польоту.
-Після виклику аварійного припинення польоту вам слід якнайшвидше відключити батарею.
-Перед тим, як знову використовувати транспортний засіб, вам доведеться перезавантажити/вимкнути живлення.
-
 :::tip
 PX4 не знає, які пристрої безпеки приєднані - він просто застосовує заздалегідь визначений набір значень ШІМ до своїх виходів.
 :::
@@ -28,11 +45,6 @@ PX4 не знає, які пристрої безпеки приєднані - �
 :::tip
 Failsafe values are applied to all outputs on termination.
 Немає способу налаштувати незалежне тригерування моторів або конкретних пристроїв безпеки на основі часу (або іншого критерію).
-:::
-
-:::info
-This is _not_ an independent _Flight Termination System_.
-Якщо втрачається живлення або автопілот повністю відмовляє, аварійні пристрої не будуть активовані.
 :::
 
 ## Конфігурація апаратного забезпечення
@@ -69,6 +81,17 @@ This is _not_ an independent _Flight Termination System_.
 - [PWM_MAIN_FAILn](../advanced_config/parameter_reference.md#PWM_MAIN_FAIL1) до значення PWM пристрою "ON".
 
 Для кожного AUX виходу, до якого підключений пристрій безпеки, де "n" - номер порту PWM, встановіть:
+
+:::info
+Flight termination via ATS only works if `drivers/pwm_input` is included in the firmware for your board.
+If not, you need to add it manually to your board configuration using [boardconfig](../hardware/porting_guide_config.md#px4-menuconfig-setup).
+:::
+
+## MAVLink Trigger
+
+The [MAV_CMD_DO_FLIGHTTERMINATION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_FLIGHTTERMINATION) command can be used to trigger Flight termination from a ground station or companion computer.
+
+This is sent, for example, when you call the [MAVSDK Action plugin](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_action.html#classmavsdk_1_1_action_1a47536c4a4bc8367ccd30a92eb09781c5) `terminate()` or `terminate_async()` methods.
 
 ## Схема логіки
 

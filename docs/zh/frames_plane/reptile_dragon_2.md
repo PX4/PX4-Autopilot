@@ -56,7 +56,7 @@ Key build features
 
 - MS4525DO differential pressure module and pitot tube
 
-- [Caddx Vista FPV air unit](https://caddxfpv.com/products/caddx-vista-kit)
+- [Caddx Vista FPV air unit](https://caddxfpv.com/collections/vista-kit)
 
 - [Emax ES08MA ii](https://emaxmodel.com/products/emax-es08ma-ii-12g-mini-metal-gear-analog-servo-for-rc-model-robot-pwm-servo)
 

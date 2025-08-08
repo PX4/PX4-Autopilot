@@ -81,16 +81,26 @@ void Ekf::resetHorizontalVelocityTo(const Vector2f &new_horz_vel, const Vector2f
 	const Vector2f delta_horz_vel = new_horz_vel - Vector2f(_state.vel);
 	_state.vel.xy() = new_horz_vel;
 
+	Vector2f hor_vel_var;
+
 	if (PX4_ISFINITE(new_horz_vel_var(0))) {
-		P.uncorrelateCovarianceSetVariance<1>(State::vel.idx, math::max(sq(0.01f), new_horz_vel_var(0)));
+		hor_vel_var(0) = math::max(sq(0.01f), new_horz_vel_var(0));
+
+	} else {
+		hor_vel_var(0) = P(State::vel.idx, State::vel.idx);
 	}
 
 	if (PX4_ISFINITE(new_horz_vel_var(1))) {
-		P.uncorrelateCovarianceSetVariance<1>(State::vel.idx + 1, math::max(sq(0.01f), new_horz_vel_var(1)));
+		hor_vel_var(1) = math::max(sq(0.01f), new_horz_vel_var(1));
+
+	} else {
+		hor_vel_var(1) = P(State::vel.idx + 1, State::vel.idx + 1);
 	}
 
-	P.uncorrelateCovarianceSetVariance<1>(State::pos.idx, P(State::pos.idx, State::pos.idx));
-	P.uncorrelateCovarianceSetVariance<1>(State::pos.idx + 1, P(State::pos.idx + 1, State::pos.idx + 1));
+	P.uncorrelateCovarianceSetVariance<2>(State::vel.idx, hor_vel_var);
+
+	// Position decorrelation is also required to avoid issues when no position aiding is active
+	P.uncorrelateCovarianceSetVariance<2>(State::pos.idx, getPositionVariance().xy());
 
 	_output_predictor.resetHorizontalVelocityTo(delta_horz_vel);
 

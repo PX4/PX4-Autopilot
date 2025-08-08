@@ -38,7 +38,7 @@ Supported hardware includes (this is not an exhaustive list):
 
 - Airspeed sensors
   - [Holybro High Precision DroneCAN Airspeed Sensor - DLVR](https://holybro.com/collections/sensors/products/high-precision-dronecan-airspeed-sensor-dlvr)
-  - [RaccoonLab airspeed sensor](https://docs.raccoonlab.co/guide/airspeed)
+  - [RaccoonLab airspeed sensor](https://docs.raccoonlab.co/guide/airspeed/)
   - [Thiemar airspeed sensor](https://github.com/thiemar/airspeed)
 
 - GNSS receivers for GNSS (GPS, GLONASS, BeiDou, and so on)
@@ -324,6 +324,6 @@ If successful, the firmware binary will be removed from the root directory and t
 ## Useful Links
 
 - [Home Page](https://dronecan.github.io) (dronecan.github.io)
-- [Protocol Specification](https://dronecan.github.io/Specification) (dronecan.github.io)
+- [Protocol Specification](https://dronecan.github.io/Specification/1._Introduction/) (dronecan.github.io)
 - [Implementations](https://dronecan.github.io/Implementations/) (dronecan.github.io)
 - [Cyphal/CAN Device Interconnection](https://wiki.zubax.com/public/cyphal/CyphalCAN-device-interconnection?pageId=2195476) (kb.zubax.com)

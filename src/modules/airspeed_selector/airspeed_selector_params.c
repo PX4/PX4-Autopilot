@@ -149,6 +149,8 @@ PARAM_DEFINE_INT32(ASPD_PRIMARY, 1);
  *
  * Controls which checks are run to check airspeed data for validity. Only applied if ASPD_PRIMARY > 0.
  *
+ * Note: The missing data check (bit 0) is implicitly always enabled when ASPD_DO_CHECKS > 0, even if bit 0 is not explicitly set.
+ *
  * @min 0
  * @max 31
  * @bit 0 Only data missing check (triggers if more than 1s no data)
@@ -226,18 +228,18 @@ PARAM_DEFINE_FLOAT(ASPD_FS_T_STOP, 1.f);
 PARAM_DEFINE_FLOAT(ASPD_FS_T_START, -1.f);
 
 /**
- * Horizontal wind uncertainty threshold for synthetic airspeed.
+ * Horizontal wind uncertainty threshold for valid ground-minus-wind
  *
- * The synthetic airspeed estimate (from groundspeed and heading) will be declared valid
+ * The airspeed alternative derived from groundspeed and heading will be declared valid
  * as soon and as long the horizontal wind uncertainty is below this value.
  *
  * @unit m/s
- * @min 0.001
+ * @min 0.01
  * @max 5
- * @decimal 3
+ * @decimal 2
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_WERR_THR, 0.55f);
+PARAM_DEFINE_FLOAT(ASPD_WERR_THR, 2.f);
 
 /**
  * First principle airspeed check time window

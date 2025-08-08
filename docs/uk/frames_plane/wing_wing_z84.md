@@ -14,10 +14,7 @@ It is small, rugged and just large enough to host a [Pixracer](../flight_control
 
 ### Z-84 Plug n' Fly (PNF/PNP) або Комплект
 
-Один з цих:
-
 - [Banggood](https://www.banggood.com/Wing-Wing-Z-84-Z84-EPO-845mm-Wingspan-Flying-Wing-PNP-p-973125.html)
-- [Hobbyking US Warehouse](https://hobbyking.com/en_us/wing-wing-z-84-epo-845mm-kit.html)
 
 :::tip
 PNF (or "PNP") versions include motor, propeller and electronic speed controller.
@@ -26,9 +23,8 @@ PNF (or "PNP") versions include motor, propeller and electronic speed controller
 
 ### Електронний регулятор швидкості (ESC)
 
-One of these (any small (>=12A) ESC will do):
+Any small (>=12A) ESC will do:
 
-- [Turnigy 20A Brushed ESC ESC](https://hobbyking.com/en_us/turnigy-20a-brushed-esc.html) (Hobbyking)
 - [Lumenier Regler 30A BLHeli_S ESC OPTO](https://www.getfpv.com/lumenier-30a-blheli-s-esc-opto-2-4s.html) (GetFPV)
 
 ### Автопілот та основні компоненти

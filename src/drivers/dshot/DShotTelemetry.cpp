@@ -46,75 +46,38 @@ using namespace time_literals;
 
 DShotTelemetry::~DShotTelemetry()
 {
-	deinit();
+	_uart.close();
 }
 
-int DShotTelemetry::init(const char *uart_device, bool swap_rxtx)
+int DShotTelemetry::init(const char *port, bool swap_rxtx)
 {
-	int ret = OK;
-	deinit();
-	_uart_fd = ::open(uart_device, O_RDONLY | O_NOCTTY);
-
-	if (_uart_fd < 0) {
-		PX4_ERR("failed to open serial port: %s err: %d", uart_device, errno);
-		return -errno;
+	if (!_uart.setPort(port)) {
+		PX4_ERR("Error configuring port %s", port);
+		return PX4_ERROR;
 	}
 
-	ret = setBaudrate(DSHOT_TELEMETRY_UART_BAUDRATE);
-
-	if (ret) {
-		PX4_ERR("failed to set baurate: %s err: %d", uart_device, ret);
-		return ret;
+	if (!_uart.setBaudrate(DSHOT_TELEMETRY_UART_BAUDRATE)) {
+		PX4_ERR("Error setting baudrate on %s", port);
+		return PX4_ERROR;
 	}
 
 	if (swap_rxtx) {
-		// Swap RX/TX pins if the device supports it
-		ret = ioctl(_uart_fd, TIOCSSWAP, SER_SWAP_ENABLED);
-
-		// For other devices we can still place RX on TX pin via half-duplex single-wire mode
-		if (ret) { ret = ioctl(_uart_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED); }
-
-		if (ret) {
-			PX4_ERR("failed to swap rx/tx pins: %s err: %d", uart_device, ret);
-			return ret;
+		if (!_uart.setSwapRxTxMode()) {
+			PX4_ERR("Error swapping TX/RX");
+			return PX4_ERROR;
 		}
 	}
 
-	_num_timeouts = 0;
-	_num_successful_responses = 0;
-	_current_motor_index_request = -1;
-
-	return ret;
-}
-
-void DShotTelemetry::deinit()
-{
-	if (_uart_fd >= 0) {
-		close(_uart_fd);
-		_uart_fd = -1;
-	}
-}
-
-int DShotTelemetry::redirectOutput(OutputBuffer &buffer)
-{
-	if (expectingData()) {
-		// Error: cannot override while we already expect data
-		return -EBUSY;
+	if (! _uart.open()) {
+		PX4_ERR("Error opening %s", port);
+		return PX4_ERROR;
 	}
 
-	_current_motor_index_request = buffer.motor_index;
-	_current_request_start = hrt_absolute_time();
-	_redirect_output = &buffer;
-	_redirect_output->buf_pos = 0;
-	return 0;
+	return PX4_OK;
 }
 
 int DShotTelemetry::update(int num_motors)
 {
-	if (_uart_fd < 0) {
-		return -1;
-	}
-
 	if (_current_motor_index_request == -1) {
 		// nothing in progress, start a request
 		_current_motor_index_request = 0;
@@ -124,10 +87,9 @@ int DShotTelemetry::update(int num_motors)
 	}
 
 	// read from the uart. This must be non-blocking, so check first if there is data available
-	int bytes_available = 0;
-	int ret = ioctl(_uart_fd, FIONREAD, (unsigned long)&bytes_available);
+	int bytes_available = _uart.bytesAvailable();
 
-	if (ret != 0 || bytes_available <= 0) {
+	if (bytes_available <= 0) {
 		// no data available. Check for a timeout
 		const hrt_abstime now = hrt_absolute_time();
 
@@ -149,13 +111,12 @@ int DShotTelemetry::update(int num_motors)
 		return -1;
 	}
 
-	const int buf_length = ESC_FRAME_SIZE;
-	uint8_t buf[buf_length];
+	uint8_t buf[ESC_FRAME_SIZE];
+	int bytes = _uart.read(buf, sizeof(buf));
 
-	int num_read = read(_uart_fd, buf, buf_length);
-	ret = -1;
+	int ret = -1;
 
-	for (int i = 0; i < num_read && ret == -1; ++i) {
+	for (int i = 0; i < bytes && ret == -1; ++i) {
 		if (_redirect_output) {
 			_redirect_output->buffer[_redirect_output->buf_pos++] = buf[i];
 
@@ -223,29 +184,26 @@ void DShotTelemetry::printStatus() const
 	PX4_INFO("Number of CRC errors: %i", _num_checksum_errors);
 }
 
-uint8_t DShotTelemetry::updateCrc8(uint8_t crc, uint8_t crc_seed)
-{
-	uint8_t crc_u = crc ^ crc_seed;
-
-	for (int i = 0; i < 8; ++i) {
-		crc_u = (crc_u & 0x80) ? 0x7 ^ (crc_u << 1) : (crc_u << 1);
-	}
-
-	return crc_u;
-}
-
-
 uint8_t DShotTelemetry::crc8(const uint8_t *buf, uint8_t len)
 {
+	auto update_crc8 = [](uint8_t crc, uint8_t crc_seed) {
+		uint8_t crc_u = crc ^ crc_seed;
+
+		for (int i = 0; i < 8; ++i) {
+			crc_u = (crc_u & 0x80) ? 0x7 ^ (crc_u << 1) : (crc_u << 1);
+		}
+
+		return crc_u;
+	};
+
 	uint8_t crc = 0;
 
 	for (int i = 0; i < len; ++i) {
-		crc = updateCrc8(buf[i], crc);
+		crc = update_crc8(buf[i], crc);
 	}
 
 	return crc;
 }
-
 
 void DShotTelemetry::requestNextMotor(int num_motors)
 {
@@ -418,83 +376,4 @@ void DShotTelemetry::decodeAndPrintEscInfoPacket(const OutputBuffer &buffer)
 			PX4_INFO("LED %d: %s", i, setting ? (setting == 255 ? "unsupported" : "on") : "off");
 		}
 	}
-
-
-}
-
-int DShotTelemetry::setBaudrate(unsigned baud)
-{
-	int speed;
-
-	switch (baud) {
-	case 9600:   speed = B9600;   break;
-
-	case 19200:  speed = B19200;  break;
-
-	case 38400:  speed = B38400;  break;
-
-	case 57600:  speed = B57600;  break;
-
-	case 115200: speed = B115200; break;
-
-	case 230400: speed = B230400; break;
-
-	default:
-		return -EINVAL;
-	}
-
-	struct termios uart_config;
-
-	int termios_state;
-
-	/* fill the struct for the new configuration */
-	tcgetattr(_uart_fd, &uart_config);
-
-	//
-	// Input flags - Turn off input processing
-	//
-	// convert break to null byte, no CR to NL translation,
-	// no NL to CR translation, don't mark parity errors or breaks
-	// no input parity check, don't strip high bit off,
-	// no XON/XOFF software flow control
-	//
-	uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL |
-				 INLCR | PARMRK | INPCK | ISTRIP | IXON);
-	//
-	// Output flags - Turn off output processing
-	//
-	// no CR to NL translation, no NL to CR-NL translation,
-	// no NL to CR translation, no column 0 CR suppression,
-	// no Ctrl-D suppression, no fill characters, no case mapping,
-	// no local output processing
-	//
-	// config.c_oflag &= ~(OCRNL | ONLCR | ONLRET |
-	//                     ONOCR | ONOEOT| OFILL | OLCUC | OPOST);
-	uart_config.c_oflag = 0;
-
-	//
-	// No line processing
-	//
-	// echo off, echo newline off, canonical mode off,
-	// extended input processing off, signal chars off
-	//
-	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
-
-	/* no parity, one stop bit, disable flow control */
-	uart_config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
-
-	/* set baud rate */
-	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
-		return -errno;
-	}
-
-	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
-		return -errno;
-	}
-
-	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
-		return -errno;
-	}
-
-	return 0;
 }

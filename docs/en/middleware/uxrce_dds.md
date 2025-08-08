@@ -337,7 +337,7 @@ Therefore,
 
   ```sh
   rm ~/px4_ros_com/src/px4_msgs/msg/*.msg
-  cp ~/PX4-Autopilot/mgs/*.msg ~/px4_ros_com/src/px4_msgs/msg/
+  cp ~/PX4-Autopilot/msg/*.msg ~/px4_ros_com/src/px4_msgs/msg/
   ```
 
   ::: info

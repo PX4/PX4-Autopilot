@@ -2,10 +2,12 @@
 
 Events interface
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/Event.msg)
+[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/Event.msg)
 
 ```c
 # Events interface
+uint32 MESSAGE_VERSION = 1
+
 uint64 timestamp			# time since system start (microseconds)
 
 uint32 id                   # Event ID

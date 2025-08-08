@@ -84,7 +84,7 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
 
 ### 旋翼机
 
-- [px4_msgs::msg::TrajectorySetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/TrajectorySetpoint.msg)
+- [px4_msgs::msg::TrajectorySetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/TrajectorySetpoint.msg)
   - 支持以下输入组合：
     - Position setpoint (`position` different from `NaN`). Non-`NaN` values of velocity and acceleration are used as feedforward terms for the inner loop controllers.
     - Velocity setpoint (`velocity` different from `NaN` and `position` set to `NaN`). Non-`NaN` values acceleration are used as feedforward terms for the inner loop controllers.
@@ -92,14 +92,14 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
 
   - 所有值都是基于NED(北, 东, 地)坐标系，位置、速度和加速的单位分别为\[m\], \[m/s\] 和\[m/s^2\] 。
 
-- [px4_msgs::msg::VehicleAttitudeSetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleAttitudeSetpoint.msg)
+- [px4_msgs::msg::VehicleAttitudeSetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleAttitudeSetpoint.msg)
   - 支持以下输入组合：
     - quaternion `q_d` + thrust setpoint `thrust_body`.
       Non-`NaN` values of `yaw_sp_move_rate` are used as feedforward terms expressed in Earth frame and in \[rad/s\].
 
   - 姿态四元数表示无人机机体坐标系FRD(前、右、下) 与NED坐标系之间的旋转。 这个推力是在无人机体轴FRD坐标系下，并归一化为 \[-1, 1\] 。
 
-- [px4_msgs::msg::VehicleRatesSetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleRatesSetpoint.msg)
+- [px4_msgs::msg::VehicleRatesSetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleRatesSetpoint.msg)
   - 支持以下输入组合：
     - `roll`, `pitch`, `yaw` and `thrust_body`.
 
@@ -114,7 +114,7 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
     - `xyz` for thrust and `xyz` for torque.
   - 所有值都在无人机体轴 FRD 坐标系中表示，并且归一化为\[-1, 1\]。
 
-- [px4_msgs::msg::ActuatorMotors](https://github.com/PX4/PX4-Autopilot/blob/main/msg/ActuatorMotors.msg) + [px4_msgs::msg::ActuatorServos](https://github.com/PX4/PX4-Autopilot/blob/main/msg/ActuatorServos.msg)
+- [px4_msgs::msg::ActuatorMotors](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/ActuatorMotors.msg) + [px4_msgs::msg::ActuatorServos](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/ActuatorServos.msg)
   - 直接控制电机输出和/或伺服系统（舵机）输出。
   - Currently works at lower level than then `control_allocator` module. Do not publish these messages when not in offboard mode.
   - 所有值归一化为\[-1, 1\]。 For outputs that do not support negative values, negative entries map to `NaN`.

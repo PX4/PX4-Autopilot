@@ -1,6 +1,6 @@
 # ThunderFly Auto-G2 Autogyro
 
-The *ThunderFly Auto-G2* is an autopilot-controlled autogyro based on the [
+The _ThunderFly Auto-G2_ is an autopilot-controlled autogyro based on the [
 Durafly™ Auto-G2 Gyrocopter](https://hobbyking.com/en_us/duraflytm-auto-g2-gyrocopter-w-auto-start-system-821mm-pnf.html) RC model, with several parts of the original model substituted for 3D printable ones.
 
 ![Auto-G2](../../assets/airframes/autogyro/auto-g2/autog2_title.jpg)
@@ -11,8 +11,7 @@ Check out our site for more information on the current [TF-G2 commercial airfram
 :::
 
 All the added parts are available on [GitHub](https://github.com/ThunderFly-aerospace/Auto-G2) as an open-source project.
-Printed parts are designed in [OpenSCAD](https://www.openscad.org/).
-
+Printed parts are designed in [OpenSCAD](https://openscad.org/).
 
 ## Modifications
 
@@ -22,10 +21,11 @@ Autogyro is controlled by a rudder and an elevator.
 Durafly Auto-G2 autogyro box contains the autogyro polystyrene body, ESC, motor (probably 800kV), 4 servos, tail airfoils, 3 blades with rotor center parts, wire chassis and a prerotator.
 
 Modification of the Durafly model are as follows:
-* Addition of an autopilot
-* Rotor head with two axes of freedom (pitch, roll)
-* Two-blade rotor with safely breakable rotor plate
-* Larger landing gears
+
+- Addition of an autopilot
+- Rotor head with two axes of freedom (pitch, roll)
+- Two-blade rotor with safely breakable rotor plate
+- Larger landing gears
 
 ### Autopilot
 
@@ -34,7 +34,6 @@ Therefore a low-weight flight controller is recommended (e.g. [Holybro pix32](..
 
 The autopilot should be mounted on the bottom side of the autogyro on a 3D-printed damping pad.
 We have used the damping platform found on [thingiverse](https://www.thingiverse.com/thing:160655)
-
 
 ### Rotor-head
 
@@ -62,15 +61,16 @@ The reasons are reduced vibration and easier construction.
 Printed central parts are designed to be used both with Chinese Durafly blades or 3D printed blades.
 
 The rotor's central part consists of several components, which have the following roles:
-* They enable blade flapping.
-* They have deformation zones that break upon impact with the ground.
-  Thanks to this, the rotor can usually be repaired quickly by replacing only one component.    
-* Easy setup of blades' angle-of-attack.
+
+- They enable blade flapping.
+- They have deformation zones that break upon impact with the ground.
+  Thanks to this, the rotor can usually be repaired quickly by replacing only one component.
+- Easy setup of blades' angle-of-attack.
 
 #### HobbyKing rotor blades
 
 It is possible to use a printed central part of the rotor with the original blades.
-These blades can be bought on [HobbyKing](https://hobbyking.com/en_us/duraflytm-auto-g-gyrocopter-821mm-replacement-main-blade-1pcs-bag.html).
+The blades used were "Durafly™ Auto-G2 Gyrocopter 821mm - Replacement Main Blade" (Discontinued)
 Hobbyking blades differ in the position of the center of gravity, and it is therefore necessary to balance them properly.
 
 #### 3D printed rotor blades
@@ -104,44 +104,43 @@ It can be handled, for example, by nulling the engine’s output in the transmit
 
 ### Electronic
 
-* Autopilot ([Holybro pix32](../flight_controller/holybro_pix32.md), [CUAV nano](../flight_controller/cuav_v5_nano.md))
-* GPS (GPS Module NEO-6M, with patch antenna)
-* Airspeed sensor ([SDP3x](https://www.sensirion.com/en/flow-sensors/differential-pressure-sensors/worlds-smallest-differential-pressure-sensor/))
-* Stronger servos as a substitution for the original ones (optional), ([BlueBird BMS-125WV](https://www.blue-bird-model.com/products_detail/411.htm))
-* Additional servo for release device (optional)
+- Autopilot ([Holybro pix32](../flight_controller/holybro_pix32.md), [CUAV nano](../flight_controller/cuav_v5_nano.md))
+- GPS (GPS Module NEO-6M, with patch antenna)
+- Airspeed sensor ([SDP3x series](https://sensirion.com/products/catalog?categories=differential-pressure&series=SDP3x&page=1&page_size=12))
+- Stronger servos as a substitution for the original ones (optional), ([BlueBird BMS-125WV](https://www.blue-bird-model.com/products_detail/411.htm))
+- Additional servo for release device (optional)
 
 ### Mechanical parts
 
-* Rotor head Bearing (623 2Z C3)
-* Propeller ([APC 10x7](https://www.apcprop.com/product/10x7e/))
-* [Prop adapter](https://mpjet.com/shop/gb/prop-adapters/184-collet-prop-adapter-19-mm-4-mm-shaft-m629-standard.html)
-
+- Rotor head Bearing (623 2Z C3)
+- Propeller ([APC 10x7](https://www.apcprop.com/product/10x7e/))
+- [Prop adapter](https://mpjet.com/shop/gb/prop-adapters/184-collet-prop-adapter-19-mm-4-mm-shaft-m629-standard.html)
 
 ### Printable parts
 
-* Rotor head:
-  * [Pylon end](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/111_1001.stl)
-  * [Pitch part](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/111_1002.stl)
-  * [Roll part](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/111_1003.stl)
+- Rotor head:
+  - [Pylon end](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/111_1001.stl)
+  - [Pitch part](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/111_1002.stl)
+  - [Roll part](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/111_1003.stl)
 
-* Rotor:
-  * [center part washer top](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/111_1008.stl)
-  * [center part washer bottom](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/111_1004.stl)
-  * [center plate with deformation zones](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/888_1001.stl)
-  * [washers for setting AoA of blades](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/111_1005.stl)
-  * [Rotor nut](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/888_1002.stl)
+- Rotor:
+  - [center part washer top](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/111_1008.stl)
+  - [center part washer bottom](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/111_1004.stl)
+  - [center plate with deformation zones](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/888_1001.stl)
+  - [washers for setting AoA of blades](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/111_1005.stl)
+  - [Rotor nut](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/888_1002.stl)
 
-* Rotor blades (optional)
-* Autopilot holder
-* [Release device](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/888_1010.stl)
-* [Front wheels](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/888_1011.stl)
+- Rotor blades (optional)
+- Autopilot holder
+- [Release device](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/888_1010.stl)
+- [Front wheels](https://github.com/ThunderFly-aerospace/Auto-G2/blob/master/CAD/stl/888_1011.stl)
 
 ### Recommended spare parts
 
-* Servos with improved quality (recommended [BlueBird BMS-125WV](https://www.blue-bird-model.com/products_detail/411.htm), original servos are not very durable))
-* Propeller ([APC 10x7](https://www.apcprop.com/product/10x7e/))
-* Rotor centre plate with deformation zones (3D printed)
-* Rotor blades ([HobbyKing](https://hobbyking.com/en_us/duraflytm-auto-g-gyrocopter-821mm-replacement-main-blade-1pcs-bag.html) or 3D printed)
+- Servos with improved quality (recommended [BlueBird BMS-125WV](https://www.blue-bird-model.com/products_detail/411.htm), original servos are not very durable))
+- Propeller ([APC 10x7](https://www.apcprop.com/product/10x7e/))
+- Rotor centre plate with deformation zones (3D printed)
+- Rotor blades ("Durafly™ Auto-G2 Gyrocopter 821mm" (Discontinued on HobbyKing), similar blades, or 3D printed)
 
 ## Video
 

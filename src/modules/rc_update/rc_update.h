@@ -223,6 +223,7 @@ protected:
 		(ParamInt<px4::params::RC_MAP_LOITER_SW>) _param_rc_map_loiter_sw,
 		(ParamInt<px4::params::RC_MAP_OFFB_SW>) _param_rc_map_offb_sw,
 		(ParamInt<px4::params::RC_MAP_KILL_SW>) _param_rc_map_kill_sw,
+		(ParamInt<px4::params::RC_MAP_TERM_SW>) _param_rc_map_term_sw,
 		(ParamInt<px4::params::RC_MAP_ARM_SW>) _param_rc_map_arm_sw,
 		(ParamInt<px4::params::RC_MAP_TRANS_SW>) _param_rc_map_trans_sw,
 		(ParamInt<px4::params::RC_MAP_GEAR_SW>) _param_rc_map_gear_sw,

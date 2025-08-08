@@ -1,7 +1,7 @@
 # VehicleGlobalPosition (повідомлення UORB)
 
 Об'єднана глобальна позиція в WGS84.
-Ця структура містить глобальну оцінку позиції. Це не сирі GPS
+This struct contains global position estimation. Це не сирі GPS
 вимірювання (@see vehicle_gps_position). Ця тема зазвичай публікується позиціонером, який враховує більше джерел інформації, ніж просто GPS, наприклад, керування введеннями транспортного засобу в реалізації фільтра Калмана.
 
 [source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleGlobalPosition.msg)

@@ -3,6 +3,12 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
+# By disabling INA modules, we use the
+# i2c_launcher instead.
+param set-default SENS_EN_INA226 0
+param set-default SENS_EN_INA228 0
+param set-default SENS_EN_INA238 0
+
 # Set the backend of the dataman to SRAM
 param set-default SYS_DM_BACKEND 1
 # Set TELEM1 as default mavlink connection

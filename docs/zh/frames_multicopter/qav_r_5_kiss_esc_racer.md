@@ -225,7 +225,7 @@ I mounted it like you can see in the next picture. The two screws and nuts to lo
 ## PX4 配置
 
 _QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the frame.
-[Download and install](https://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
+[Download and install](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html) _QGroundControl_ for your platform.
 
 :::tip
 Full instructions for installing and configuring PX4 can be found in [Basic Configuration](../config/index.md).

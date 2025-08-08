@@ -68,7 +68,7 @@ These instructions were tested on Ubuntu 18.04
 
   Setting the permissions is required because the PX4-FlightGear-Bridge puts the communication definition file here.
 
-Additional installation instructions can be found on [FlightGear wiki](http://wiki.flightgear.org/Howto:Install_Flightgear_from_a_PPA).
+Additional installation instructions can be found on [FlightGear wiki](https://wiki.flightgear.org/Howto:Install_Flightgear_from_a_PPA).
 
 ## Running the Simulation
 

@@ -56,9 +56,7 @@ A flow diagram showing the phases can be found in [landing phases flow Diagram](
 
 Precision landing can be used in missions, during the landing phase in _Return mode_, or by entering the _Precision Land_ mode.
 
-<a id="mission"></a>
-
-### 미션 모드 정밀 착륙
+### Mission Precision Landing {#mission}
 
 Precision landing can be initiated as part of a [mission](../flying/missions.md) using [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND) with `param2` set appropriately:
 

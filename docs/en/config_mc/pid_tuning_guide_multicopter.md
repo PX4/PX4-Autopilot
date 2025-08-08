@@ -64,7 +64,7 @@ The derivative term (**D**) is on the feedback path in order to avoid an effect 
 :::tip
 For more information see:
 
-- [Not all PID controllers are the same](https://www.controleng.com/articles/not-all-pid-controllers-are-the-same/) (www.controleng.com)
+- [Not all PID controllers are the same](https://www.controleng.com/not-all-pid-controllers-are-the-same/) (www.controleng.com)
 - [PID controller > Standard versus parallel (ideal) PID form](<https://en.wikipedia.org/wiki/PID_controller#Standard_versus_parallel_(ideal)_form>) (Wikipedia)
 
 :::

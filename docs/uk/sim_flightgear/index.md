@@ -68,7 +68,7 @@ These instructions were tested on Ubuntu 18.04
 
   Налаштування дозволів потрібне, оскільки PX4-FlightGear-Bridge розміщує тут файл визначення зв’язку.
 
-Additional installation instructions can be found on [FlightGear wiki](http://wiki.flightgear.org/Howto:Install_Flightgear_from_a_PPA).
+Additional installation instructions can be found on [FlightGear wiki](https://wiki.flightgear.org/Howto:Install_Flightgear_from_a_PPA).
 
 ## Запуск симуляції
 

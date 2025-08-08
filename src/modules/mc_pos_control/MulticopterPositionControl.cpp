@@ -426,9 +426,12 @@ void MulticopterPositionControl::Run()
 
 		PositionControlStates states{set_vehicle_states(vehicle_local_position, dt)};
 
-		// if a goto setpoint available this publishes a trajectory setpoint to go there
-		if (_goto_control.checkForSetpoint(vehicle_local_position.timestamp_sample,
-						   _vehicle_control_mode.flag_multicopter_position_control_enabled)) {
+		// If a goto setpoint is available this publishes a trajectory setpoint to go there
+		// If trajectory_setpoint is published elsewhere, do not use the goto setpoint
+		const bool goto_setpoint_enable = _vehicle_control_mode.flag_multicopter_position_control_enabled
+						  && !_trajectory_setpoint_sub.updated();
+
+		if (_goto_control.checkForSetpoint(vehicle_local_position.timestamp_sample, goto_setpoint_enable)) {
 			_goto_control.update(dt, states.position, states.yaw);
 		}
 
@@ -565,14 +568,33 @@ void MulticopterPositionControl::Run()
 
 			_control.setState(states);
 
-			// Run position control
-			if (!_control.update(dt)) {
-				// Failsafe
-				_vehicle_constraints = {0, NAN, NAN, false, {}}; // reset constraints
+			const hrt_abstime now = hrt_absolute_time();
 
-				_control.setInputSetpoint(generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, true));
-				_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
-				_control.update(dt);
+			// Run position control
+			if (_control.update(dt)) {
+
+				// Valid control update - store for fallback
+				_last_valid_setpoint = _setpoint;
+
+			} else {
+
+				// Initial update failed - Try fallback if within timeout
+				if (now < _last_valid_setpoint.timestamp + 200_ms) {
+					// Use last valid setpoint
+					adjustSetpointForEKFResets(vehicle_local_position, _last_valid_setpoint);
+					_control.setInputSetpoint(_last_valid_setpoint);
+				}
+
+				// Still failing / not within timeout - Go to failsafe
+				if (!_control.update(dt)) {
+
+					_vehicle_constraints = {0, NAN, NAN, false, {}}; // reset constraints
+
+					_control.setInputSetpoint(generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, true));
+					_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
+
+					_control.update(dt);
+				}
 			}
 
 			// Publish internal position control setpoints

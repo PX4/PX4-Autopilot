@@ -77,7 +77,7 @@ public:
 	void Run() override;
 
 	/** @see OutputModuleInterface */
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	void setMotorSpeed(Motor motor, float value); ///< rev/sec

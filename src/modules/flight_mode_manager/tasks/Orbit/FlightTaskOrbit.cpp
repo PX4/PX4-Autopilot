@@ -160,7 +160,7 @@ void FlightTaskOrbit::_sanitizeParams(float &radius, float &velocity) const
 {
 	// clip the radius to be within range
 	radius = math::constrain(radius, _radius_min, _param_mc_orbit_rad_max.get());
-	velocity = math::constrain(velocity, -fabsf(_velocity_max), fabsf(_velocity_max));
+	velocity = math::constrain(velocity, -fabsf(_param_mpc_xy_vel_max.get()), fabsf(_param_mpc_xy_vel_max.get()));
 
 	bool exceeds_maximum_acceleration = (velocity * velocity) >= _acceleration_max * radius;
 

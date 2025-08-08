@@ -193,15 +193,16 @@ The sections below cover first the trigger and then the failsafe action taken by
 ### Position Loss Failsafe Trigger
 
 There are basically two mechanisms in PX4 to trigger position failsafes:
+
 - A timeout since the last sensor data was fused that provides direct speed or horizontal position measurements. Sensors that fall into that category are: GNSS, optical flow, airspeed, VIO, auxiliary global position.
 - The estimated horizontal position accuracy exceeds a certain threshold. This check is only done on hovering systems (rotary wing vehicles or VTOLs in hover phase).
 
 The relevant parameters shown below.
 
-| Parameter                                                                                                | Description                                                                                                   |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Parameter                                                                                                | Description                                                                                                                                                |
+| -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="EKF2_NOAID_TOUT"></a>[EKF2_NOAID_TOUT](../advanced_config/parameter_reference.md#EKF2_NOAID_TOUT) | Maximum inertial dead-reckoning time, so the time after the last data sample was received of any sensor that constrains the velocity drift [microseconds]. |
-| <a id="COM_POS_FS_EPH"></a>[COM_POS_FS_EPH](../advanced_config/parameter_reference.md#COM_POS_FS_EPH) | Horizontal position error threshold for hovering vehicles (Multicopters and VTOLs in hover). Fixed-wing vehicles have this value set to infinity.|
+| <a id="COM_POS_FS_EPH"></a>[COM_POS_FS_EPH](../advanced_config/parameter_reference.md#COM_POS_FS_EPH)    | Horizontal position error threshold for hovering vehicles (Multicopters and VTOLs in hover). Fixed-wing vehicles have this value set to infinity.          |
 
 ### Position Loss Failsafe Action
 
@@ -318,8 +319,8 @@ The [failure detector](#failure-detector), if [enabled](#CBRK_FLIGHTTERM), can a
 The external trigger system must be connected to flight controller port AUX5 (or MAIN5 on boards that do not have AUX ports), and is configured using the parameters below.
 
 ::: info
-External ATS is required by [ASTM F3322-18](https://webstore.ansi.org/Standards/ASTM/ASTMF332218).
-One example of an ATS device is the [FruityChutes Sentinel Automatic Trigger System](https://fruitychutes.com/uav_rpv_drone_recovery_parachutes/sentinel-automatic-trigger-system.htm).
+External ATS is required by [ASTM F3322-18](https://webstore.ansi.org/standards/astm/ASTMF332218).
+One example of an ATS device is the [FruityChutes Sentinel Automatic Trigger System (SATS-MINI)](https://fruitychutes.com/uav_rpv_drone_recovery_parachutes/sentinel-automatic-trigger-system).
 :::
 
 | Parameter                                                                                                | Description                                                                                                                                      |

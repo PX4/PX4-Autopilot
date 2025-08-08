@@ -364,10 +364,8 @@ void ModeManagement::checkUnregistrations(uint8_t user_intended_nav_state, Updat
 	}
 }
 
-void ModeManagement::update(bool armed, uint8_t user_intended_nav_state, bool failsafe_action_active,
-			    UpdateRequest &update_request)
+void ModeManagement::update(bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request)
 {
-	_failsafe_action_active = failsafe_action_active;
 	_external_checks.update();
 
 	bool allow_update_while_armed = _external_checks.allowUpdateWhileArmed();

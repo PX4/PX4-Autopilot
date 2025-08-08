@@ -23,7 +23,7 @@ PX4 надає декілька методів для написання юні�
 Tests can be run via `make tests`, after which you will find the binary in `build/px4_sitl_test/unit-MyNewUnit`.
 Він може бути запущений безпосередньо в налагоджувачі.
 
-## Написання GTest Functional Test
+## Writing a GTest Functional Test {#functional-test}
 
 Функціональні тести GTest слід використовувати, коли тест або компоненти, що тестуються, залежать від параметрів, повідомлень uORB та/або розширеної функціональності GTest.
 Крім того, функціональні тести можуть містити локальне використання структур даних STL (хоча і будьте обережні відмінності платформ між такими як macOS і Linux).
@@ -178,3 +178,10 @@ make tests TESTFILTER=<regex filter expression>
 - `make tests TESTFILTER=unit` only run GTest unit tests
 - `make tests TESTFILTER=sitl` only run simulation tests
 - `make tests TESTFILTER=Attitude` only run the `AttitudeControl` test
+
+## Fuzz Testing
+
+Fuzz tests are a generalised form of unit test that ensures code is robust against any input.
+They are run as part of the unit tests, and also more extensively in their own testing mode.
+
+For more information see [Fuzz Tests](../test_and_ci/fuzz_tests.md).

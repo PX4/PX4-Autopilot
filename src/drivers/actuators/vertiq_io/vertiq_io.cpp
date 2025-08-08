@@ -195,7 +195,7 @@ void VertiqIo::OutputControls(uint16_t outputs[MAX_ACTUATORS])
 	_serial_interface.ProcessSerialTx();
 }
 
-bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool VertiqIo::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 			     unsigned num_control_groups_updated)
 {
 #ifdef CONFIG_USE_IFCI_CONFIGURATION

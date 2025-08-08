@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,405 +31,446 @@
  *
  ****************************************************************************/
 
-/**
- * @file ControlAllocationSequentialDesaturationTest.cpp
- *
- * Tests for Control Allocation Sequential Desaturation Algorithms
- *
- */
-
 #include <gtest/gtest.h>
-#include <ControlAllocationSequentialDesaturation.hpp>
+#include <ActuatorEffectivenessRotors.hpp>
+#include "ControlAllocationSequentialDesaturation.hpp"
 
 using namespace matrix;
+using ActuatorVector = ControlAllocation::ActuatorVector;
 
-namespace
+TEST(ControlAllocationSequentialDesaturationTest, AllZeroCase)
 {
-struct RotorGeometryTest {
-	matrix::Vector3f position;
-	matrix::Vector3f axis;
-	float thrust_coef;
-	float moment_ratio;
-};
-
-struct GeometryTest {
-	RotorGeometryTest rotors[ActuatorEffectiveness::NUM_ACTUATORS];
-	int num_rotors{0};
-};
-
-// Makes and returns a Geometry object for a "standard" quad-x quadcopter.
-GeometryTest make_quad_x_geometry()
-{
-	GeometryTest geometry = {};
-	geometry.rotors[0].position(0) = 1.0f;
-	geometry.rotors[0].position(1) = 1.0f;
-	geometry.rotors[0].position(2) = 0.0f;
-	geometry.rotors[0].axis(0) = 0.0f;
-	geometry.rotors[0].axis(1) = 0.0f;
-	geometry.rotors[0].axis(2) = -1.0f;
-	geometry.rotors[0].thrust_coef = 1.0f;
-	geometry.rotors[0].moment_ratio = 0.05f;
-
-	geometry.rotors[1].position(0) = -1.0f;
-	geometry.rotors[1].position(1) = -1.0f;
-	geometry.rotors[1].position(2) = 0.0f;
-	geometry.rotors[1].axis(0) = 0.0f;
-	geometry.rotors[1].axis(1) = 0.0f;
-	geometry.rotors[1].axis(2) = -1.0f;
-	geometry.rotors[1].thrust_coef = 1.0f;
-	geometry.rotors[1].moment_ratio = 0.05f;
-
-	geometry.rotors[2].position(0) = 1.0f;
-	geometry.rotors[2].position(1) = -1.0f;
-	geometry.rotors[2].position(2) = 0.0f;
-	geometry.rotors[2].axis(0) = 0.0f;
-	geometry.rotors[2].axis(1) = 0.0f;
-	geometry.rotors[2].axis(2) = -1.0f;
-	geometry.rotors[2].thrust_coef = 1.0f;
-	geometry.rotors[2].moment_ratio = -0.05f;
-
-	geometry.rotors[3].position(0) = -1.0f;
-	geometry.rotors[3].position(1) = 1.0f;
-	geometry.rotors[3].position(2) = 0.0f;
-	geometry.rotors[3].axis(0) = 0.0f;
-	geometry.rotors[3].axis(1) = 0.0f;
-	geometry.rotors[3].axis(2) = -1.0f;
-	geometry.rotors[3].thrust_coef = 1.0f;
-	geometry.rotors[3].moment_ratio = -0.05f;
-
-	geometry.num_rotors = 4;
-	return geometry;
+	ControlAllocationSequentialDesaturation control_allocation;
+	EXPECT_EQ(control_allocation.getActuatorSetpoint(), ActuatorVector());
+	control_allocation.allocate();
+	EXPECT_EQ(control_allocation.getActuatorSetpoint(), ActuatorVector());
 }
 
-// Returns an effective matrix for a sample quad-copter configuration.
-ActuatorEffectiveness::EffectivenessMatrix make_quad_x_effectiveness()
+TEST(ControlAllocationSequentialDesaturationTest, SetGetActuatorSetpoint)
 {
-	ActuatorEffectiveness::EffectivenessMatrix effectiveness;
-	effectiveness.setZero();
-	const auto geometry = make_quad_x_geometry();
+	ControlAllocationSequentialDesaturation control_allocation;
+	float actuator_setpoint_array[ControlAllocation::NUM_ACTUATORS] = {1.f, 2.f, 3.f, 4.f, 5.f, 6.f};
+	ActuatorVector actuator_setpoint(actuator_setpoint_array);
+	control_allocation.setActuatorSetpoint(actuator_setpoint);
+	EXPECT_EQ(control_allocation.getActuatorSetpoint(), actuator_setpoint);
+}
 
-	// Minimalistically copied from ActuatorEffectivenessRotors::computeEffectivenessMatrix
-	for (int i = 0; i < geometry.num_rotors; i++) {
+class ControlAllocationSequentialDesaturationTestQuadX : public ::testing::Test
+{
+public:
+	static constexpr uint8_t NUM_ACTUATORS = 4;
+	ControlAllocationSequentialDesaturation _control_allocation;
 
-		// Get rotor axis
-		Vector3f axis = geometry.rotors[i].axis;
+	void SetUp() override
+	{
+		param_control_autosave(false); // Disable autosaving parameters to avoid busy loop in param_set()
+		setAirmode(0); // No airmode by default
 
-		// Normalize axis
-		float axis_norm = axis.norm();
+		// Quadrotor x geometry
+		ActuatorEffectivenessRotors::Geometry quadx_geometry{};
+		quadx_geometry.num_rotors = 4;
+		quadx_geometry.rotors[0].position = {1.f, 1.f, 0.f}; // clockwise motor numbering
+		quadx_geometry.rotors[1].position = {-1.f, 1.f, 0.f};
+		quadx_geometry.rotors[2].position = {-1.f, -1.f, 0.f};
+		quadx_geometry.rotors[3].position = {1.f, -1.f, 0.f};
+		quadx_geometry.rotors[0].moment_ratio = 1.f;
+		quadx_geometry.rotors[1].moment_ratio = -1.f;
+		quadx_geometry.rotors[2].moment_ratio = 1.f;
+		quadx_geometry.rotors[3].moment_ratio = -1.f;
 
-		if (axis_norm > FLT_EPSILON) {
-			axis /= axis_norm;
-
-		} else {
-			// Bad axis definition, ignore this rotor
-			continue;
+		for (int i = 0; i < 4; ++i) {
+			quadx_geometry.rotors[i].axis = Vector3f(0.f, 0.f, -1.f); // thrust downwards
+			quadx_geometry.rotors[i].thrust_coef = 1.f;
+			quadx_geometry.rotors[i].tilt_index = -1;
 		}
 
-		// Get rotor position
-		const Vector3f &position = geometry.rotors[i].position;
+		// Compute actuator effectiveness
+		ActuatorEffectiveness::Configuration actuator_configuration{};
+		int num_actuators = ActuatorEffectivenessRotors::computeEffectivenessMatrix(quadx_geometry,
+				    actuator_configuration.effectiveness_matrices[0],
+				    actuator_configuration.num_actuators_matrix[0]);
+		EXPECT_EQ(num_actuators, NUM_ACTUATORS);
+		actuator_configuration.actuatorsAdded(ActuatorType::MOTORS, num_actuators);
 
-		// Get coefficients
-		float ct = geometry.rotors[i].thrust_coef;
-		float km = geometry.rotors[i].moment_ratio;
-
-		if (fabsf(ct) < FLT_EPSILON) {
-			continue;
-		}
-
-		// Compute thrust generated by this rotor
-		matrix::Vector3f thrust = ct * axis;
-
-		// Compute moment generated by this rotor
-		matrix::Vector3f moment = ct * position.cross(axis) - ct * km * axis;
-
-		// Fill corresponding items in effectiveness matrix
-		for (int j = 0; j < 3; j++) {
-			effectiveness(j, i) = moment(j);
-			effectiveness(j + 3, i) = thrust(j);
-		}
+		// Load effectiveness into allocation
+		_control_allocation.setEffectivenessMatrix(actuator_configuration.effectiveness_matrices[0],
+				actuator_configuration.trim[0], actuator_configuration.linearization_point[0],
+				actuator_configuration.num_actuators_matrix[0], true /*update_normalization_scale*/);
 	}
 
-	return effectiveness;
-}
+	void setAirmode(const int32_t mode)
+	{
+		param_t param = param_find("MC_AIRMODE");
+		param_set(param, &mode);
+		_control_allocation.updateParameters();
+	}
 
-// Configures a ControlAllocationSequentialDesaturation object for a sample quad-copter.
-void setup_quad_allocator(ControlAllocationSequentialDesaturation &allocator)
+	Vector4f allocate(float roll, float pitch, float yaw, float thrust)
+	{
+		Vector<float, ControlAllocation::NUM_AXES> control_setpoint{};
+		control_setpoint(ControlAllocation::ControlAxis::ROLL) = roll;
+		control_setpoint(ControlAllocation::ControlAxis::PITCH) = pitch;
+		control_setpoint(ControlAllocation::ControlAxis::YAW) = yaw;
+		control_setpoint(ControlAllocation::ControlAxis::THRUST_Z) = thrust;
+		_control_allocation.setControlSetpoint(control_setpoint);
+		_control_allocation.allocate();
+		return getQuadOutputs();
+	}
+
+	Vector4f getQuadOutputs()
+	{
+		const ActuatorVector &actuator_setpoint = _control_allocation.getActuatorSetpoint();
+		// All unused actuators shall stay zero
+		static constexpr uint8_t NUM_UNUSED_ACTUATORS = ControlAllocation::NUM_ACTUATORS - 4;
+		EXPECT_EQ(
+			(Vector<float, NUM_UNUSED_ACTUATORS>(actuator_setpoint.slice<NUM_UNUSED_ACTUATORS, 1>(4, 0))),
+			(Vector<float, NUM_UNUSED_ACTUATORS>())
+		);
+		return Vector4f(actuator_setpoint.slice<4, 1>(0, 0));
+	}
+};
+
+// Make constant available, see https://stackoverflow.com/questions/42756443/undefined-reference-with-gtest
+constexpr uint8_t ControlAllocationSequentialDesaturationTestQuadX::NUM_ACTUATORS;
+
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, Zero)
 {
-	const auto effectiveness = make_quad_x_effectiveness();
-	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> actuator_trim;
-	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> linearization_point;
-	constexpr bool UPDATE_NORMALIZATION_SCALE{false};
-	allocator.setEffectivenessMatrix(
-		effectiveness,
-		actuator_trim,
-		linearization_point,
-		ActuatorEffectiveness::NUM_ACTUATORS,
-		UPDATE_NORMALIZATION_SCALE
-	);
+	EXPECT_EQ(allocate(0.f, 0.f, 0.f, 0.f), Vector4f());
 }
 
-static constexpr float EXPECT_NEAR_TOL{1e-4f};
 
-} // namespace
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, CollectiveThrust)
+{
+	for (float thrust = 0.f; thrust <= (1.f + FLT_EPSILON); thrust += .1f) {
+		EXPECT_EQ(allocate(0.f, 0.f, 0.f, -thrust), Vector4f(thrust, thrust, thrust, thrust));
+	}
+}
+
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, RollPitchYaw)
+{
+	EXPECT_EQ(allocate(1.f, 0.f, 0.f, -.5f), Vector4f(.25f, .25f, .75f, .75f));
+	EXPECT_EQ(allocate(-1.f, 0.f, 0.f, -.5f), Vector4f(.75f, .75f, .25f, .25f));
+	EXPECT_EQ(allocate(0.f, 1.f, 0.f, -.5f), Vector4f(.75f, .25f, .25f, .75f));
+	EXPECT_EQ(allocate(0.f, -1.f, 0.f, -.5f), Vector4f(.25f, .75f, .75f, .25f));
+	EXPECT_EQ(allocate(0.f, 0.f, 1.f, -.5f), Vector4f(.75f, .25f, .75f, .25f));
+	EXPECT_EQ(allocate(0.f, 0.f, -1.f, -.5f), Vector4f(.25f, .75f, .25f, .75f));
+}
+
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, RollPitchYawFullThrust)
+{
+	EXPECT_EQ(allocate(1.f, 0.f, 0.f, -1.f), Vector4f(.5f, .5f, 1.f, 1.f));
+	EXPECT_EQ(allocate(-1.f, 0.f, 0.f, -1.f), Vector4f(1.f, 1.f, .5f, .5f));
+	EXPECT_EQ(allocate(0.f, 1.f, 0.f, -1.f), Vector4f(1.f, .5f, .5f, 1.f));
+	EXPECT_EQ(allocate(0.f, -1.f, 0.f, -1.f), Vector4f(.5f, 1.f, 1.f, .5f));
+	// There is a special case to deprioritize yaw down to 30% authority with maximum thrust
+	EXPECT_EQ(allocate(0.f, 0.f, 1.f, -1.f), Vector4f(1.f, .7f, 1.f, .7f));
+	EXPECT_EQ(allocate(0.f, 0.f, -1.f, -1.f), Vector4f(.7f, 1.f, .7f, 1.f));
+}
+
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, RollPitchYawZeroThrust)
+{
+	// No axis is allocated
+	EXPECT_EQ(allocate(1.f, 0.f, 0.f, 0.f), Vector4f());
+	EXPECT_EQ(allocate(-1.f, 0.f, 0.f, 0.f), Vector4f());
+	EXPECT_EQ(allocate(0.f, 1.f, 0.f, 0.f), Vector4f());
+	EXPECT_EQ(allocate(0.f, -1.f, 0.f, 0.f), Vector4f());
+	EXPECT_EQ(allocate(0.f, 0.f, 1.f, 0.f), Vector4f());
+	EXPECT_EQ(allocate(0.f, 0.f, -1.f, 0.f), Vector4f());
+}
+
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, RollPitchYawZeroThrustAirmodeRP)
+{
+	setAirmode(1); // Roll and pitch airmode
+	// Roll and pitch get fully allocated
+	EXPECT_EQ(allocate(1.f, 0.f, 0.f, 0.f), Vector4f(0.f, 0.f, 0.5f, 0.5f));
+	EXPECT_EQ(allocate(-1.f, 0.f, 0.f, 0.f), Vector4f(0.5f, 0.5f, 0.f, 0.f));
+	EXPECT_EQ(allocate(0.f, 1.f, 0.f, 0.f), Vector4f(0.5f, 0.f, 0.f, 0.5f));
+	EXPECT_EQ(allocate(0.f, -1.f, 0.f, 0.f), Vector4f(0.f, 0.5f, 0.5f, 0.f));
+	// Yaw is not allocated
+	EXPECT_EQ(allocate(0.f, 0.f, 1.f, 0.f), Vector4f());
+	EXPECT_EQ(allocate(0.f, 0.f, -1.f, 0.f), Vector4f());
+}
+
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, RollPitchYawZeroThrustAirmodeRPY)
+{
+	setAirmode(2); // Roll, pitch and yaw airmode
+	// All axis are fully allocated
+	EXPECT_EQ(allocate(1.f, 0.f, 0.f, 0.f), Vector4f(0.f, 0.f, 0.5f, 0.5f));
+	EXPECT_EQ(allocate(-1.f, 0.f, 0.f, 0.f), Vector4f(0.5f, 0.5f, 0.f, 0.f));
+	EXPECT_EQ(allocate(0.f, 1.f, 0.f, 0.f), Vector4f(0.5f, 0.f, 0.f, 0.5f));
+	EXPECT_EQ(allocate(0.f, -1.f, 0.f, 0.f), Vector4f(0.f, 0.5f, 0.5f, 0.f));
+	EXPECT_EQ(allocate(0.f, 0.f, 1.f, 0.f), Vector4f(.5f, 0.f, .5f, 0.f));
+	EXPECT_EQ(allocate(0.f, 0.f, -1.f, 0.f), Vector4f(0.f, .5f, 0.f, .5f));
+}
 
 // This tests that yaw-only control setpoint at zero actuator setpoint results in zero actuator
 // allocation.
-TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledOnlyYaw)
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledOnlyYaw)
 {
-	ControlAllocationSequentialDesaturation allocator;
-	setup_quad_allocator(allocator);
-	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
-	control_sp(ControlAllocation::ControlAxis::ROLL) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::PITCH) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::YAW) = 1.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = 0.f;
-	allocator.setControlSetpoint(control_sp);
-
-	// Since MC_AIRMODE was not set explicitly, assume airmode is disabled.
-	allocator.allocate();
-
-	const auto &actuator_sp = allocator.getActuatorSetpoint();
-	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> zero;
-	EXPECT_EQ(actuator_sp, zero);
+	EXPECT_EQ(allocate(0.f, 0.f, 1.f, 0.f), Vector4f(0.f, 0.f, 0.f, 0.f));
 }
 
 // This tests that a control setpoint for z-thrust returns the desired actuator setpoint.
 // Each motor should have an actuator setpoint that when summed together should be equal to
 // control setpoint.
-TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustZ)
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledThrustZ)
 {
-	ControlAllocationSequentialDesaturation allocator;
-	setup_quad_allocator(allocator);
-	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
-	// Negative, because +z is "downward".
-	constexpr float THRUST_Z_TOTAL{-0.75f};
-	control_sp(ControlAllocation::ControlAxis::ROLL) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::PITCH) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::YAW) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
-	allocator.setControlSetpoint(control_sp);
-
-	// Since MC_AIRMODE was not set explicitly, assume airmode is disabled.
-	allocator.allocate();
-
-	const auto &actuator_sp = allocator.getActuatorSetpoint();
-	constexpr int MOTOR_COUNT{4};
-	constexpr float THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / MOTOR_COUNT};
-
-	for (int i{0}; i < MOTOR_COUNT; ++i) {
-		EXPECT_NEAR(actuator_sp(i), THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	}
-
-	for (int i{MOTOR_COUNT}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
-		EXPECT_NEAR(actuator_sp(i), 0.f, EXPECT_NEAR_TOL);
-	}
+	constexpr float THRUST = 0.75f;
+	EXPECT_EQ(allocate(0.f, 0.f, 0.f, -THRUST), Vector4f(THRUST, THRUST, THRUST, THRUST));
 }
 
 // This tests that a control setpoint for z-thrust + yaw returns the desired actuator setpoint.
 // This test does not saturate the yaw response.
-TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndYaw)
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledThrustAndYaw)
 {
-	ControlAllocationSequentialDesaturation allocator;
-	setup_quad_allocator(allocator);
-	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
-	// Negative, because +z is "downward".
-	constexpr float THRUST_Z_TOTAL{-0.75f};
-	// This is low enough to not saturate the motors.
-	constexpr float YAW_CONTROL_SP{0.02f};
-	control_sp(ControlAllocation::ControlAxis::ROLL) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::PITCH) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::YAW) = YAW_CONTROL_SP;
-	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
-	allocator.setControlSetpoint(control_sp);
-
-	// Since MC_AIRMODE was not set explicitly, assume airmode is disabled.
-	allocator.allocate();
-
-	const auto &actuator_sp = allocator.getActuatorSetpoint();
-	// This value is based off of the effectiveness matrix. If the effectiveness matrix is changed,
-	// this will need to be changed.
-	constexpr float YAW_EFFECTIVENESS_FACTOR{5.f};
-	constexpr float YAW_DIFF_PER_MOTOR{YAW_CONTROL_SP * YAW_EFFECTIVENESS_FACTOR};
-	// At yaw condition, there will be 2 different actuator values.
-	constexpr int MOTOR_COUNT{4};
-	constexpr float HIGH_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / MOTOR_COUNT + YAW_DIFF_PER_MOTOR};
-	constexpr float LOW_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / MOTOR_COUNT - YAW_DIFF_PER_MOTOR};
-
-	for (int i{0}; i < MOTOR_COUNT / 2; ++i) {
-		EXPECT_NEAR(actuator_sp(i), HIGH_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	}
-
-	for (int i{MOTOR_COUNT / 2}; i < MOTOR_COUNT; ++i) {
-		EXPECT_NEAR(actuator_sp(i), LOW_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	}
-
-	for (int i{MOTOR_COUNT}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
-		EXPECT_NEAR(actuator_sp(i), 0.f, EXPECT_NEAR_TOL);
-	}
+	constexpr float THRUST = 0.75f;
+	constexpr float YAW_TORQUE = 0.02f;
+	constexpr float YAW = YAW_TORQUE / NUM_ACTUATORS;
+	EXPECT_EQ(allocate(0.f, 0.f, YAW_TORQUE, -THRUST), Vector4f(THRUST + YAW, THRUST - YAW, THRUST + YAW, THRUST - YAW));
 }
 
 // This tests that a control setpoint for z-thrust + yaw returns the desired actuator setpoint.
 // This test saturates the yaw response, but does not reduce total thrust.
-TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndSaturatedYaw)
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledThrustAndSaturatedYaw)
 {
-	ControlAllocationSequentialDesaturation allocator;
-	setup_quad_allocator(allocator);
-	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
-	// Negative, because +z is "downward".
-	constexpr float THRUST_Z_TOTAL{-0.75f};
-	// This is arbitrarily high to trigger strongest possible (saturated) yaw response.
-	constexpr float YAW_CONTROL_SP{0.25f};
-	control_sp(ControlAllocation::ControlAxis::ROLL) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::PITCH) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::YAW) = YAW_CONTROL_SP;
-	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
-	allocator.setControlSetpoint(control_sp);
-
-	// Since MC_AIRMODE was not set explicitly, assume airmode is disabled.
-	allocator.allocate();
-
-	const auto &actuator_sp = allocator.getActuatorSetpoint();
-	// At max yaw, only 2 motors will carry all of the thrust.
-	constexpr int YAW_MOTORS{2};
-	constexpr float THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / YAW_MOTORS};
-
-	for (int i{0}; i < YAW_MOTORS; ++i) {
-		EXPECT_NEAR(actuator_sp(i), THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	}
-
-	for (int i{YAW_MOTORS}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
-		EXPECT_NEAR(actuator_sp(i), 0.f, EXPECT_NEAR_TOL);
-	}
+	constexpr float THRUST = 0.75f;
+	constexpr float YAW_TORQUE = 1.f;
+	constexpr float YAW = YAW_TORQUE / NUM_ACTUATORS;
+	EXPECT_EQ(allocate(0.f, 0.f, YAW_TORQUE, -THRUST), Vector4f(THRUST + YAW, THRUST - YAW, THRUST + YAW, THRUST - YAW));
 }
 
 // This tests that a control setpoint for z-thrust + pitch returns the desired actuator setpoint.
 // This test does not saturate the pitch response.
-TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndPitch)
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledThrustAndPitch)
 {
-	ControlAllocationSequentialDesaturation allocator;
-	setup_quad_allocator(allocator);
-	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
-	// Negative, because +z is "downward".
-	constexpr float THRUST_Z_TOTAL{-0.75f};
-	// This is low enough to not saturate the motors.
-	constexpr float PITCH_CONTROL_SP{0.1f};
-	control_sp(ControlAllocation::ControlAxis::ROLL) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::PITCH) = PITCH_CONTROL_SP;
-	control_sp(ControlAllocation::ControlAxis::YAW) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
-	allocator.setControlSetpoint(control_sp);
-
-	// Since MC_AIRMODE was not set explicitly, assume airmode is disabled.
-	allocator.allocate();
-
-	const auto &actuator_sp = allocator.getActuatorSetpoint();
-	// This value is based off of the effectiveness matrix. If the effectiveness matrix is changed,
-	// this will need to be changed.
-	constexpr int MOTOR_COUNT{4};
-	constexpr float PITCH_DIFF_PER_MOTOR{PITCH_CONTROL_SP / MOTOR_COUNT};
-	// At control set point, there will be 2 different actuator values.
-	constexpr float HIGH_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / MOTOR_COUNT + PITCH_DIFF_PER_MOTOR};
-	constexpr float LOW_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / MOTOR_COUNT - PITCH_DIFF_PER_MOTOR};
-	EXPECT_NEAR(actuator_sp(0), HIGH_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	EXPECT_NEAR(actuator_sp(1), LOW_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	EXPECT_NEAR(actuator_sp(2), HIGH_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	EXPECT_NEAR(actuator_sp(3), LOW_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-
-	for (int i{MOTOR_COUNT}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
-		EXPECT_NEAR(actuator_sp(i), 0.f, EXPECT_NEAR_TOL);
-	}
+	constexpr float THRUST = 0.75f;
+	constexpr float PITCH_TORQUE = 0.1f;
+	constexpr float PITCH = PITCH_TORQUE / NUM_ACTUATORS;
+	EXPECT_EQ(allocate(0.f, PITCH_TORQUE, 0.f, -THRUST),
+		  Vector4f(THRUST + PITCH, THRUST - PITCH, THRUST - PITCH, THRUST + PITCH));
 }
 
 // This tests that a control setpoint for z-thrust + yaw returns the desired actuator setpoint.
 // This test saturates yaw and demonstrates reduction of thrust for yaw.
-TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAndYaw)
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledReducedThrustAndYaw)
 {
-	ControlAllocationSequentialDesaturation allocator;
-	setup_quad_allocator(allocator);
-	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
-	// Negative, because +z is "downward".
-	constexpr float DESIRED_THRUST_Z_PER_MOTOR{0.8f};
-	constexpr int MOTOR_COUNT{4};
-	constexpr float THRUST_Z_TOTAL{-DESIRED_THRUST_Z_PER_MOTOR * MOTOR_COUNT};
-	// This is arbitrarily high to trigger strongest possible (saturated) yaw response.
-	constexpr float YAW_CONTROL_SP{1.f};
-	control_sp(ControlAllocation::ControlAxis::ROLL) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::PITCH) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::YAW) = YAW_CONTROL_SP;
-	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
-	allocator.setControlSetpoint(control_sp);
-
-	// Since MC_AIRMODE was not set explicitly, assume airmode is disabled.
-	allocator.allocate();
-
-	const auto &actuator_sp = allocator.getActuatorSetpoint();
-	// In the case of yaw saturation, thrust per motor will be reduced by the hard-coded
-	// magic-number yaw margin of 0.15f.
-	constexpr float YAW_MARGIN{0.15f}; // get this from a centralized source when available.
-	constexpr float YAW_DIFF_PER_MOTOR{1.0f + YAW_MARGIN - DESIRED_THRUST_Z_PER_MOTOR};
-	// At control set point, there will be 2 different actuator values.
-	constexpr float HIGH_THRUST_Z_PER_MOTOR{DESIRED_THRUST_Z_PER_MOTOR + YAW_DIFF_PER_MOTOR - YAW_MARGIN};
-	constexpr float LOW_THRUST_Z_PER_MOTOR{DESIRED_THRUST_Z_PER_MOTOR - YAW_DIFF_PER_MOTOR - YAW_MARGIN};
-	EXPECT_NEAR(actuator_sp(0), HIGH_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	EXPECT_NEAR(actuator_sp(1), HIGH_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	EXPECT_NEAR(actuator_sp(2), LOW_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	EXPECT_NEAR(actuator_sp(3), LOW_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-
-	for (int i{MOTOR_COUNT}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
-		EXPECT_NEAR(actuator_sp(i), 0.f, EXPECT_NEAR_TOL);
-	}
+	constexpr float YAW_MARGIN = ControlAllocationSequentialDesaturation::MINIMUM_YAW_MARGIN;
+	EXPECT_EQ(allocate(0.f, 0.f, 1.f, -3.2f), Vector4f(1.f, 1.f - (2.f * YAW_MARGIN), 1.f, 1.f - (2.f * YAW_MARGIN)));
 }
 
 // This tests that a control setpoint for z-thrust + pitch returns the desired actuator setpoint.
 // This test saturates the pitch response such that thrust is reduced to (partially) compensate.
-TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAndPitch)
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, AirmodeDisabledReducedThrustAndPitch)
 {
-	ControlAllocationSequentialDesaturation allocator;
-	setup_quad_allocator(allocator);
-	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
-	// Negative, because +z is "downward".
-	constexpr float THRUST_Z_TOTAL{-0.75f * 4.f};
-	// This is high enough to saturate the pitch control.
-	constexpr float PITCH_CONTROL_SP{2.f};
-	control_sp(ControlAllocation::ControlAxis::ROLL) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::PITCH) = PITCH_CONTROL_SP;
-	control_sp(ControlAllocation::ControlAxis::YAW) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
-	allocator.setControlSetpoint(control_sp);
+	EXPECT_EQ(allocate(0.f, 2.f, 0.f, -3.f), Vector4f(1.f, 0.f, 0.f, 1.f));
+}
 
-	// Since MC_AIRMODE was not set explicitly, assume airmode is disabled.
-	allocator.allocate();
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, PreviousMixingTestsNoAirmode)
+{
+	setAirmode(0); // No airmode
+	EXPECT_EQ(allocate(0.000f, 0.000f, 0.000f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 0.000000f)); // 1
+	EXPECT_EQ(allocate(0.000f, 0.000f, 0.000f, -0.100f), Vector4f(0.100000f, 0.100000f, 0.100000f, 0.100000f)); // 2
+	EXPECT_EQ(allocate(0.000f, 0.000f, 0.000f, -0.450f), Vector4f(0.450000f, 0.450000f, 0.450000f, 0.450000f)); // 3
+	EXPECT_EQ(allocate(0.000f, 0.000f, 0.000f, -0.900f), Vector4f(0.900000f, 0.900000f, 0.900000f, 0.900000f)); // 4
+	EXPECT_EQ(allocate(0.000f, 0.000f, 0.000f, -1.000f), Vector4f(1.000000f, 1.000000f, 1.000000f, 1.000000f)); // 5
+	EXPECT_EQ(allocate(-0.050f, 0.000f, 0.000f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 0.000000f)); // 6
+	EXPECT_EQ(allocate(-0.050f, 0.000f, 0.000f, -0.100f), Vector4f(0.112500f, 0.112500f, 0.087500f, 0.087500f)); // 7
+	EXPECT_EQ(allocate(-0.050f, 0.000f, 0.000f, -0.450f), Vector4f(0.462500f, 0.462500f, 0.437500f, 0.437500f)); // 8
+	EXPECT_EQ(allocate(-0.050f, 0.000f, 0.000f, -0.900f), Vector4f(0.912500f, 0.912500f, 0.887500f, 0.887500f)); // 9
+	EXPECT_EQ(allocate(-0.050f, 0.000f, 0.000f, -1.000f), Vector4f(1.000000f, 1.000000f, 0.975000f, 0.975000f)); // 10
+	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 0.000000f)); // 11
+	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -0.100f), Vector4f(0.075000f, 0.100000f, 0.125000f, 0.100000f)); // 12
+	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -0.450f), Vector4f(0.425000f, 0.450000f, 0.475000f, 0.450000f)); // 13
+	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -0.900f), Vector4f(0.875000f, 0.900000f, 0.925000f, 0.900000f)); // 14
+	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -1.000f), Vector4f(0.950000f, 0.975000f, 1.000000f, 0.975000f)); // 15
+	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 0.000000f)); // 16
+	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -0.100f), Vector4f(0.093750f, 0.081250f, 0.093750f, 0.131250f)); // 17
+	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -0.450f), Vector4f(0.443750f, 0.431250f, 0.443750f, 0.481250f)); // 18
+	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -0.900f), Vector4f(0.893750f, 0.881250f, 0.893750f, 0.931250f)); // 19
+	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -1.000f), Vector4f(0.962500f, 0.950000f, 0.962500f, 1.000000f)); // 20
+	EXPECT_EQ(allocate(0.000f, 0.200f, -0.025f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 0.000000f)); // 21
+	EXPECT_EQ(allocate(0.000f, 0.200f, -0.025f, -0.100f), Vector4f(0.143750f, 0.056250f, 0.043750f, 0.156250f)); // 22
+	EXPECT_EQ(allocate(0.000f, 0.200f, -0.025f, -0.450f), Vector4f(0.493750f, 0.406250f, 0.393750f, 0.506250f)); // 23
+	EXPECT_EQ(allocate(0.000f, 0.200f, -0.025f, -0.900f), Vector4f(0.943750f, 0.856250f, 0.843750f, 0.956250f)); // 24
+	EXPECT_EQ(allocate(0.000f, 0.200f, -0.025f, -1.000f), Vector4f(0.987500f, 0.900000f, 0.887500f, 1.000000f)); // 25
+	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 0.000000f)); // 26
+	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -0.100f), Vector4f(0.085000f, 0.015000f, 0.160000f, 0.140000f)); // 27
+	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -0.450f), Vector4f(0.435000f, 0.365000f, 0.510000f, 0.490000f)); // 28
+	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -0.900f), Vector4f(0.885000f, 0.815000f, 0.960000f, 0.940000f)); // 29
+	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -1.000f), Vector4f(0.922500f, 0.852500f, 0.997500f, 0.977500f)); // 30
+	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 0.000000f)); // 31
+	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -0.100f), Vector4f(0.146250f, 0.116250f, 0.073750f, 0.063750f)); // 32
+	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -0.450f), Vector4f(0.496250f, 0.466250f, 0.423750f, 0.413750f)); // 33
+	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -0.900f), Vector4f(0.946250f, 0.916250f, 0.873750f, 0.863750f)); // 34
+	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -1.000f), Vector4f(1.000000f, 0.970000f, 0.927500f, 0.917500f)); // 35
+	EXPECT_EQ(allocate(1.000f, 0.000f, 0.000f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 0.000000f)); // 36
+	EXPECT_EQ(allocate(1.000f, 0.000f, 0.000f, -0.100f), Vector4f(0.000000f, 0.000000f, 0.200000f, 0.200000f)); // 37
+	EXPECT_EQ(allocate(1.000f, 0.000f, 0.000f, -0.450f), Vector4f(0.200000f, 0.200000f, 0.700000f, 0.700000f)); // 38
+	EXPECT_EQ(allocate(1.000f, 0.000f, 0.000f, -0.900f), Vector4f(0.500000f, 0.500000f, 1.000000f, 1.000000f)); // 39
+	EXPECT_EQ(allocate(1.000f, 0.000f, 0.000f, -1.000f), Vector4f(0.500000f, 0.500000f, 1.000000f, 1.000000f)); // 40
+	EXPECT_EQ(allocate(0.000f, -1.000f, 0.000f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 0.000000f)); // 41
+	EXPECT_EQ(allocate(0.000f, -1.000f, 0.000f, -0.100f), Vector4f(0.000000f, 0.200000f, 0.200000f, 0.000000f)); // 42
+	EXPECT_EQ(allocate(0.000f, -1.000f, 0.000f, -0.450f), Vector4f(0.200000f, 0.700000f, 0.700000f, 0.200000f)); // 43
+	EXPECT_EQ(allocate(0.000f, -1.000f, 0.000f, -0.900f), Vector4f(0.500000f, 1.000000f, 1.000000f, 0.500000f)); // 44
+	EXPECT_EQ(allocate(0.000f, -1.000f, 0.000f, -1.000f), Vector4f(0.500000f, 1.000000f, 1.000000f, 0.500000f)); // 45
+	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 0.000000f)); // 46
+	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -0.100f), Vector4f(0.200000f, 0.000000f, 0.200000f, 0.000000f)); // 47
+	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -0.450f), Vector4f(0.700000f, 0.200000f, 0.700000f, 0.200000f)); // 48
+	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -0.900f), Vector4f(1.000000f, 0.500000f, 1.000000f, 0.500000f)); // 49
+	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -1.000f), Vector4f(1.000000f, 0.700000f, 1.000000f, 0.700000f)); // 50
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 0.000000f)); // 51
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.100f), Vector4f(0.200000f, 0.000000f, 0.000000f, 0.200000f)); // 52
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.450f), Vector4f(0.100000f, 0.100000f, 0.000000f, 1.000000f)); // 53
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.900f), Vector4f(0.200000f, 0.000000f, 0.200000f, 1.000000f)); // 54
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -1.000f), Vector4f(0.200000f, 0.000000f, 0.200000f, 1.000000f)); // 55
+	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 0.000000f)); // 56
+	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -0.100f), Vector4f(0.200000f, 0.000000f, 0.000000f, 0.200000f)); // 57
+	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -0.450f), Vector4f(0.900000f, 0.450000f, 0.000000f, 0.450000f)); // 58
+	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -0.900f), Vector4f(0.950000f, 0.600000f, 0.000000f, 0.550000f)); // 59
+	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -1.000f), Vector4f(0.950000f, 0.600000f, 0.000000f, 0.550000f)); // 60
+	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 0.000000f)); // 61
+	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -0.100f), Vector4f(0.200000f, 0.000000f, 0.000000f, 0.200000f)); // 62
+	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -0.450f), Vector4f(0.900000f, 0.450000f, 0.000000f, 0.450000f)); // 63
+	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -0.900f), Vector4f(1.000000f, 0.550000f, 0.050000f, 0.500000f)); // 64
+	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -1.000f), Vector4f(1.000000f, 0.550000f, 0.050000f, 0.500000f)); // 65
+}
 
-	const auto &actuator_sp = allocator.getActuatorSetpoint();
-	constexpr int MOTOR_COUNT{4};
-	// The maximum actuator value is
-	// 	THRUST_Z_TOTAL / MOTOR_COUNT + PITCH_CONTROL_SP / MOTOR_COUNT.
-	// The amount over 1 is the amount that each motor is reduced by.
-	// At control set point, there will be 2 different actuator values.
-	constexpr float OVERAGE_PER_MOTOR{-THRUST_Z_TOTAL / MOTOR_COUNT + PITCH_CONTROL_SP / MOTOR_COUNT - 1};
-	EXPECT_TRUE(OVERAGE_PER_MOTOR > 0.f);
-	constexpr float HIGH_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / MOTOR_COUNT + PITCH_CONTROL_SP / MOTOR_COUNT - OVERAGE_PER_MOTOR};
-	constexpr float LOW_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / MOTOR_COUNT - PITCH_CONTROL_SP / MOTOR_COUNT - OVERAGE_PER_MOTOR};
-	EXPECT_NEAR(actuator_sp(0), HIGH_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	EXPECT_NEAR(actuator_sp(1), LOW_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	EXPECT_NEAR(actuator_sp(2), HIGH_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	EXPECT_NEAR(actuator_sp(3), LOW_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, PreviousMixingTestsAirmodeRP)
+{
+	setAirmode(1); // Roll and pitch airmode
+	EXPECT_EQ(allocate(0.000f, 0.000f, 0.000f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 0.000000f)); // 1
+	EXPECT_EQ(allocate(0.000f, 0.000f, 0.000f, -0.100f), Vector4f(0.100000f, 0.100000f, 0.100000f, 0.100000f)); // 2
+	EXPECT_EQ(allocate(0.000f, 0.000f, 0.000f, -0.450f), Vector4f(0.450000f, 0.450000f, 0.450000f, 0.450000f)); // 3
+	EXPECT_EQ(allocate(0.000f, 0.000f, 0.000f, -0.900f), Vector4f(0.900000f, 0.900000f, 0.900000f, 0.900000f)); // 4
+	EXPECT_EQ(allocate(0.000f, 0.000f, 0.000f, -1.000f), Vector4f(1.000000f, 1.000000f, 1.000000f, 1.000000f)); // 5
+	EXPECT_EQ(allocate(-0.050f, 0.000f, 0.000f, -0.000f), Vector4f(0.025000f, 0.025000f, 0.000000f, 0.000000f)); // 6
+	EXPECT_EQ(allocate(-0.050f, 0.000f, 0.000f, -0.100f), Vector4f(0.112500f, 0.112500f, 0.087500f, 0.087500f)); // 7
+	EXPECT_EQ(allocate(-0.050f, 0.000f, 0.000f, -0.450f), Vector4f(0.462500f, 0.462500f, 0.437500f, 0.437500f)); // 8
+	EXPECT_EQ(allocate(-0.050f, 0.000f, 0.000f, -0.900f), Vector4f(0.912500f, 0.912500f, 0.887500f, 0.887500f)); // 9
+	EXPECT_EQ(allocate(-0.050f, 0.000f, 0.000f, -1.000f), Vector4f(1.000000f, 1.000000f, 0.975000f, 0.975000f)); // 10
+	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -0.000f), Vector4f(0.000000f, 0.025000f, 0.050000f, 0.025000f)); // 11
+	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -0.100f), Vector4f(0.075000f, 0.100000f, 0.125000f, 0.100000f)); // 12
+	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -0.450f), Vector4f(0.425000f, 0.450000f, 0.475000f, 0.450000f)); // 13
+	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -0.900f), Vector4f(0.875000f, 0.900000f, 0.925000f, 0.900000f)); // 14
+	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -1.000f), Vector4f(0.950000f, 0.975000f, 1.000000f, 0.975000f)); // 15
+	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -0.000f), Vector4f(0.018750f, 0.006250f, 0.018750f, 0.056250f)); // 16
+	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -0.100f), Vector4f(0.093750f, 0.081250f, 0.093750f, 0.131250f)); // 17
+	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -0.450f), Vector4f(0.443750f, 0.431250f, 0.443750f, 0.481250f)); // 18
+	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -0.900f), Vector4f(0.893750f, 0.881250f, 0.893750f, 0.931250f)); // 19
+	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -1.000f), Vector4f(0.962500f, 0.950000f, 0.962500f, 1.000000f)); // 20
+	EXPECT_EQ(allocate(0.000f, 0.200f, -0.025f, -0.000f), Vector4f(0.100000f, 0.000000f, 0.000000f, 0.100000f)); // 21
+	EXPECT_EQ(allocate(0.000f, 0.200f, -0.025f, -0.100f), Vector4f(0.143750f, 0.056250f, 0.043750f, 0.156250f)); // 22
+	EXPECT_EQ(allocate(0.000f, 0.200f, -0.025f, -0.450f), Vector4f(0.493750f, 0.406250f, 0.393750f, 0.506250f)); // 23
+	EXPECT_EQ(allocate(0.000f, 0.200f, -0.025f, -0.900f), Vector4f(0.943750f, 0.856250f, 0.843750f, 0.956250f)); // 24
+	EXPECT_EQ(allocate(0.000f, 0.200f, -0.025f, -1.000f), Vector4f(0.987500f, 0.900000f, 0.887500f, 1.000000f)); // 25
+	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -0.000f), Vector4f(0.025000f, 0.000000f, 0.100000f, 0.125000f)); // 26
+	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -0.100f), Vector4f(0.085000f, 0.015000f, 0.160000f, 0.140000f)); // 27
+	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -0.450f), Vector4f(0.435000f, 0.365000f, 0.510000f, 0.490000f)); // 28
+	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -0.900f), Vector4f(0.885000f, 0.815000f, 0.960000f, 0.940000f)); // 29
+	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -1.000f), Vector4f(0.922500f, 0.852500f, 0.997500f, 0.977500f)); // 30
+	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -0.000f), Vector4f(0.082500f, 0.052500f, 0.010000f, 0.000000f)); // 31
+	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -0.100f), Vector4f(0.146250f, 0.116250f, 0.073750f, 0.063750f)); // 32
+	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -0.450f), Vector4f(0.496250f, 0.466250f, 0.423750f, 0.413750f)); // 33
+	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -0.900f), Vector4f(0.946250f, 0.916250f, 0.873750f, 0.863750f)); // 34
+	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -1.000f), Vector4f(1.000000f, 0.970000f, 0.927500f, 0.917500f)); // 35
+	EXPECT_EQ(allocate(1.000f, 0.000f, 0.000f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.500000f, 0.500000f)); // 36
+	EXPECT_EQ(allocate(1.000f, 0.000f, 0.000f, -0.100f), Vector4f(0.000000f, 0.000000f, 0.500000f, 0.500000f)); // 37
+	EXPECT_EQ(allocate(1.000f, 0.000f, 0.000f, -0.450f), Vector4f(0.200000f, 0.200000f, 0.700000f, 0.700000f)); // 38
+	EXPECT_EQ(allocate(1.000f, 0.000f, 0.000f, -0.900f), Vector4f(0.500000f, 0.500000f, 1.000000f, 1.000000f)); // 39
+	EXPECT_EQ(allocate(1.000f, 0.000f, 0.000f, -1.000f), Vector4f(0.500000f, 0.500000f, 1.000000f, 1.000000f)); // 40
+	EXPECT_EQ(allocate(0.000f, -1.000f, 0.000f, -0.000f), Vector4f(0.000000f, 0.500000f, 0.500000f, 0.000000f)); // 41
+	EXPECT_EQ(allocate(0.000f, -1.000f, 0.000f, -0.100f), Vector4f(0.000000f, 0.500000f, 0.500000f, 0.000000f)); // 42
+	EXPECT_EQ(allocate(0.000f, -1.000f, 0.000f, -0.450f), Vector4f(0.200000f, 0.700000f, 0.700000f, 0.200000f)); // 43
+	EXPECT_EQ(allocate(0.000f, -1.000f, 0.000f, -0.900f), Vector4f(0.500000f, 1.000000f, 1.000000f, 0.500000f)); // 44
+	EXPECT_EQ(allocate(0.000f, -1.000f, 0.000f, -1.000f), Vector4f(0.500000f, 1.000000f, 1.000000f, 0.500000f)); // 45
+	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 0.000000f)); // 46
+	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -0.100f), Vector4f(0.200000f, 0.000000f, 0.200000f, 0.000000f)); // 47
+	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -0.450f), Vector4f(0.700000f, 0.200000f, 0.700000f, 0.200000f)); // 48
+	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -0.900f), Vector4f(1.000000f, 0.500000f, 1.000000f, 0.500000f)); // 49
+	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -1.000f), Vector4f(1.000000f, 0.700000f, 1.000000f, 0.700000f)); // 50
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.000f), Vector4f(0.200000f, 0.000000f, 0.200000f, 1.000000f)); // 51
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.100f), Vector4f(0.200000f, 0.000000f, 0.200000f, 1.000000f)); // 52
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.450f), Vector4f(0.200000f, 0.000000f, 0.200000f, 1.000000f)); // 53
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.900f), Vector4f(0.200000f, 0.000000f, 0.200000f, 1.000000f)); // 54
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -1.000f), Vector4f(0.200000f, 0.000000f, 0.200000f, 1.000000f)); // 55
+	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -0.000f), Vector4f(0.950000f, 0.500000f, 0.000000f, 0.450000f)); // 56
+	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -0.100f), Vector4f(0.950000f, 0.500000f, 0.000000f, 0.450000f)); // 57
+	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -0.450f), Vector4f(0.950000f, 0.500000f, 0.000000f, 0.450000f)); // 58
+	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -0.900f), Vector4f(0.950000f, 0.600000f, 0.000000f, 0.550000f)); // 59
+	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -1.000f), Vector4f(0.950000f, 0.600000f, 0.000000f, 0.550000f)); // 60
+	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -0.000f), Vector4f(0.950000f, 0.500000f, 0.000000f, 0.450000f)); // 61
+	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -0.100f), Vector4f(0.950000f, 0.500000f, 0.000000f, 0.450000f)); // 62
+	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -0.450f), Vector4f(0.950000f, 0.500000f, 0.000000f, 0.450000f)); // 63
+	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -0.900f), Vector4f(1.000000f, 0.550000f, 0.050000f, 0.500000f)); // 64
+	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -1.000f), Vector4f(1.000000f, 0.550000f, 0.050000f, 0.500000f)); // 65
+}
 
-	for (int i{MOTOR_COUNT}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
-		EXPECT_NEAR(actuator_sp(i), 0.f, EXPECT_NEAR_TOL);
-	}
+TEST_F(ControlAllocationSequentialDesaturationTestQuadX, PreviousMixingTestsAirmodeRPY)
+{
+	setAirmode(2); // Roll, pitch and yaw airmode
+	EXPECT_EQ(allocate(0.000f, 0.000f, 0.000f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 0.000000f)); // 1
+	EXPECT_EQ(allocate(0.000f, 0.000f, 0.000f, -0.100f), Vector4f(0.100000f, 0.100000f, 0.100000f, 0.100000f)); // 2
+	EXPECT_EQ(allocate(0.000f, 0.000f, 0.000f, -0.450f), Vector4f(0.450000f, 0.450000f, 0.450000f, 0.450000f)); // 3
+	EXPECT_EQ(allocate(0.000f, 0.000f, 0.000f, -0.900f), Vector4f(0.900000f, 0.900000f, 0.900000f, 0.900000f)); // 4
+	EXPECT_EQ(allocate(0.000f, 0.000f, 0.000f, -1.000f), Vector4f(1.000000f, 1.000000f, 1.000000f, 1.000000f)); // 5
+	EXPECT_EQ(allocate(-0.050f, 0.000f, 0.000f, -0.000f), Vector4f(0.025000f, 0.025000f, 0.000000f, 0.000000f)); // 6
+	EXPECT_EQ(allocate(-0.050f, 0.000f, 0.000f, -0.100f), Vector4f(0.112500f, 0.112500f, 0.087500f, 0.087500f)); // 7
+	EXPECT_EQ(allocate(-0.050f, 0.000f, 0.000f, -0.450f), Vector4f(0.462500f, 0.462500f, 0.437500f, 0.437500f)); // 8
+	EXPECT_EQ(allocate(-0.050f, 0.000f, 0.000f, -0.900f), Vector4f(0.912500f, 0.912500f, 0.887500f, 0.887500f)); // 9
+	EXPECT_EQ(allocate(-0.050f, 0.000f, 0.000f, -1.000f), Vector4f(1.000000f, 1.000000f, 0.975000f, 0.975000f)); // 10
+	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -0.000f), Vector4f(0.000000f, 0.025000f, 0.050000f, 0.025000f)); // 11
+	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -0.100f), Vector4f(0.075000f, 0.100000f, 0.125000f, 0.100000f)); // 12
+	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -0.450f), Vector4f(0.425000f, 0.450000f, 0.475000f, 0.450000f)); // 13
+	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -0.900f), Vector4f(0.875000f, 0.900000f, 0.925000f, 0.900000f)); // 14
+	EXPECT_EQ(allocate(0.050f, -0.050f, 0.000f, -1.000f), Vector4f(0.950000f, 0.975000f, 1.000000f, 0.975000f)); // 15
+	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -0.000f), Vector4f(0.012500f, 0.000000f, 0.012500f, 0.050000f)); // 16
+	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -0.100f), Vector4f(0.093750f, 0.081250f, 0.093750f, 0.131250f)); // 17
+	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -0.450f), Vector4f(0.443750f, 0.431250f, 0.443750f, 0.481250f)); // 18
+	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -0.900f), Vector4f(0.893750f, 0.881250f, 0.893750f, 0.931250f)); // 19
+	EXPECT_EQ(allocate(0.050f, 0.050f, -0.025f, -1.000f), Vector4f(0.962500f, 0.950000f, 0.962500f, 1.000000f)); // 20
+	EXPECT_EQ(allocate(0.000f, 0.200f, -0.025f, -0.000f), Vector4f(0.100000f, 0.012500f, 0.000000f, 0.112500f)); // 21
+	EXPECT_EQ(allocate(0.000f, 0.200f, -0.025f, -0.100f), Vector4f(0.143750f, 0.056250f, 0.043750f, 0.156250f)); // 22
+	EXPECT_EQ(allocate(0.000f, 0.200f, -0.025f, -0.450f), Vector4f(0.493750f, 0.406250f, 0.393750f, 0.506250f)); // 23
+	EXPECT_EQ(allocate(0.000f, 0.200f, -0.025f, -0.900f), Vector4f(0.943750f, 0.856250f, 0.843750f, 0.956250f)); // 24
+	EXPECT_EQ(allocate(0.000f, 0.200f, -0.025f, -1.000f), Vector4f(0.987500f, 0.900000f, 0.887500f, 1.000000f)); // 25
+	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -0.000f), Vector4f(0.070000f, 0.000000f, 0.145000f, 0.125000f)); // 26
+	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -0.100f), Vector4f(0.085000f, 0.015000f, 0.160000f, 0.140000f)); // 27
+	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -0.450f), Vector4f(0.435000f, 0.365000f, 0.510000f, 0.490000f)); // 28
+	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -0.900f), Vector4f(0.885000f, 0.815000f, 0.960000f, 0.940000f)); // 29
+	EXPECT_EQ(allocate(0.200f, 0.050f, 0.090f, -1.000f), Vector4f(0.925000f, 0.855000f, 1.000000f, 0.980000f)); // 30
+	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -0.000f), Vector4f(0.082500f, 0.052500f, 0.010000f, 0.000000f)); // 31
+	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -0.100f), Vector4f(0.146250f, 0.116250f, 0.073750f, 0.063750f)); // 32
+	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -0.450f), Vector4f(0.496250f, 0.466250f, 0.423750f, 0.413750f)); // 33
+	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -0.900f), Vector4f(0.946250f, 0.916250f, 0.873750f, 0.863750f)); // 34
+	EXPECT_EQ(allocate(-0.125f, 0.020f, 0.040f, -1.000f), Vector4f(1.000000f, 0.970000f, 0.927500f, 0.917500f)); // 35
+	EXPECT_EQ(allocate(1.000f, 0.000f, 0.000f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.500000f, 0.500000f)); // 36
+	EXPECT_EQ(allocate(1.000f, 0.000f, 0.000f, -0.100f), Vector4f(0.000000f, 0.000000f, 0.500000f, 0.500000f)); // 37
+	EXPECT_EQ(allocate(1.000f, 0.000f, 0.000f, -0.450f), Vector4f(0.200000f, 0.200000f, 0.700000f, 0.700000f)); // 38
+	EXPECT_EQ(allocate(1.000f, 0.000f, 0.000f, -0.900f), Vector4f(0.500000f, 0.500000f, 1.000000f, 1.000000f)); // 39
+	EXPECT_EQ(allocate(1.000f, 0.000f, 0.000f, -1.000f), Vector4f(0.500000f, 0.500000f, 1.000000f, 1.000000f)); // 40
+	EXPECT_EQ(allocate(0.000f, -1.000f, 0.000f, -0.000f), Vector4f(0.000000f, 0.500000f, 0.500000f, 0.000000f)); // 41
+	EXPECT_EQ(allocate(0.000f, -1.000f, 0.000f, -0.100f), Vector4f(0.000000f, 0.500000f, 0.500000f, 0.000000f)); // 42
+	EXPECT_EQ(allocate(0.000f, -1.000f, 0.000f, -0.450f), Vector4f(0.200000f, 0.700000f, 0.700000f, 0.200000f)); // 43
+	EXPECT_EQ(allocate(0.000f, -1.000f, 0.000f, -0.900f), Vector4f(0.500000f, 1.000000f, 1.000000f, 0.500000f)); // 44
+	EXPECT_EQ(allocate(0.000f, -1.000f, 0.000f, -1.000f), Vector4f(0.500000f, 1.000000f, 1.000000f, 0.500000f)); // 45
+	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -0.000f), Vector4f(0.500000f, 0.000000f, 0.500000f, 0.000000f)); // 46
+	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -0.100f), Vector4f(0.500000f, 0.000000f, 0.500000f, 0.000000f)); // 47
+	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -0.450f), Vector4f(0.700000f, 0.200000f, 0.700000f, 0.200000f)); // 48
+	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -0.900f), Vector4f(1.000000f, 0.500000f, 1.000000f, 0.500000f)); // 49
+	EXPECT_EQ(allocate(0.000f, 0.000f, 1.000f, -1.000f), Vector4f(1.000000f, 0.500000f, 1.000000f, 0.500000f)); // 50
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 1.000000f)); // 51
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.100f), Vector4f(0.000000f, 0.000000f, 0.000000f, 1.000000f)); // 52
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.450f), Vector4f(0.000000f, 0.000000f, 0.000000f, 1.000000f)); // 53
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -0.900f), Vector4f(0.000000f, 0.000000f, 0.000000f, 1.000000f)); // 54
+	EXPECT_EQ(allocate(1.000f, 1.000f, -1.000f, -1.000f), Vector4f(0.000000f, 0.000000f, 0.000000f, 1.000000f)); // 55
+	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -0.000f), Vector4f(0.950000f, 0.950000f, 0.000000f, 0.900000f)); // 56
+	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -0.100f), Vector4f(0.950000f, 0.950000f, 0.000000f, 0.900000f)); // 57
+	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -0.450f), Vector4f(0.950000f, 0.950000f, 0.000000f, 0.900000f)); // 58
+	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -0.900f), Vector4f(1.000000f, 1.000000f, 0.050000f, 0.950000f)); // 59
+	EXPECT_EQ(allocate(-1.000f, 0.900f, -0.900f, -1.000f), Vector4f(1.000000f, 1.000000f, 0.050000f, 0.950000f)); // 60
+	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -0.000f), Vector4f(0.950000f, 0.500000f, 0.000000f, 0.450000f)); // 61
+	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -0.100f), Vector4f(0.950000f, 0.500000f, 0.000000f, 0.450000f)); // 62
+	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -0.450f), Vector4f(0.950000f, 0.500000f, 0.000000f, 0.450000f)); // 63
+	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -0.900f), Vector4f(1.000000f, 0.550000f, 0.050000f, 0.500000f)); // 64
+	EXPECT_EQ(allocate(-1.000f, 0.900f, 0.000f, -1.000f), Vector4f(1.000000f, 0.550000f, 0.050000f, 0.500000f)); // 65
 }

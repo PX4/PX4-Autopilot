@@ -21,7 +21,7 @@ The _6-pos DF13_ connector that comes with the probe cannot be used for SWD debu
 
 :::info
 To debug STM32F7 or later (FMUv5 and newer) the Zubax BugFace BF1 / Blackmagic probe likely requires a firmware update.
-You can find how to update the [blackmagic probe here](https://github.com/blacksphere/blackmagic/wiki/Upgrading-Firmware).
+You can find how to update the [blackmagic probe here](https://black-magic.org/upgrade.html).
 :::
 
 To use a Zubax BugFace BF1 with GDB, start GDB with the exact ELF file that is currently flashed on the autopilot:

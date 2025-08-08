@@ -12,19 +12,16 @@
 Цей розділ містить перелік наборів дронів, які призначені як платформи для подальшого розвитку.
 Вони можуть бути як повністю зібраними, так і у частинах.
 
-- [MODALAI VOXL 2 STARLING PX4 РОЗРОБКА ДРОНА](../complete_vehicles_mc/modalai_starling.md) - ДРОН ДЛЯ РОЗРОБКИ SLAM, ПОТУЖЕНИЙ НАДМІЧКОЮ VOXL 2 ТА PX4.
 - [PX4 Vision DevKit](../complete_vehicles_mc/px4_vision_kit.md) - Мультикоптер, що використовується для розробки комп'ютерного зору PX4
+- ~[ModalAI VOXL 2 Starling PX4 Development Drone](../complete_vehicles_mc/modalai_starling.md)~ (Discontinued/superseded) - SLAM development drone supercharged by VOXL 2 and PX4.
 
 ## Попередньо встановлене PX4
 
 У цьому розділі перелічені транспортні засоби, які продаються повністю зібраними та готові до польоту (RTF), з встановленим PX4.
 
-- [ModalAI Starling](../complete_vehicles_mc/modalai_starling.md)
-- [ModalAI Sentinel](https://www.modalai.com/sentinel)
 - [MindRacer 210](../complete_vehicles_mc/mindracer210.md)
 - [NanoMind 110](../complete_vehicles_mc/nanomind110.md)
 - [Amovlab F410](../complete_vehicles_mc/amov_F410_drone.md)
-- [Teal One](https://px4.io/project/teal-one/) ([superseded](https://tealdrones.com/solutions/teal-2/))
 
 ## Сумісні з PX4
 
@@ -32,7 +29,6 @@
 
 - [Holybro Kopis 2](../complete_vehicles_mc/holybro_kopis2.md)
 - [Bitcraze Crazyflie 2.1](../complete_vehicles_mc/crazyflie21.md)
-- [BetaFPV Beta75X 2S Brushless Whoop](../complete_vehicles_mc/betafpv_beta75x.md) (припинено)
 
 ## Кастомне PX4
 
@@ -40,8 +36,8 @@
 Вони можуть оновлюватися або не оновлюватися для запуску "vanilla" PX4.
 
 - [Yuneec Typhoon H Plus](https://us.yuneec.com/typhoon-h-plus/)
-- [Yuneec Mantis Q](https://px4.io/portfolio/yuneec-mantis-q/)
-- [Yuneec H520](https://px4.io/portfolio/yuneec-h520-hexacopter/)
+- [Yuneec Mantis Q](https://px4.io/project/yuneec-mantis-q/)
+- [Yuneec H520](https://px4.io/project/yuneec-h520-hexacopter/)
 - [AeroSense Aerobo (AS-MC02-P)](https://px4.io/project/aerosense-aerobo/)
 
 ## Дивіться також

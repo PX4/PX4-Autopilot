@@ -190,7 +190,7 @@ You can now build and test.
 ## Download & Decrypt Log Files
 
 Before you can analyse your logs they must first be downloaded and decrypted.
-PX4 includes Python scripts in [Tools/log_encryption](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/) that make this process easier:
+PX4 includes Python scripts in [Tools/log_encryption](https://github.com/PX4/PX4-Autopilot/tree/main/Tools) that make this process easier:
 
 - [download_logs.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/log_encryption/download_logs.py): Downloads the logs to `/logs/encrypted`.
 - [decrypt_logs.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/log_encryption/decrypt_logs.py): Decrypts encrypted logs in `/logs/encrypted` to `/logs/decrypted` using a specified (or default) key.

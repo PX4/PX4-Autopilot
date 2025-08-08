@@ -17,7 +17,7 @@ There may also be other DroneCAN rangefinders than those listed here.
 
 ### ARK Flow & AKR Flow MR
 
-[ARK Flow](../dronecan/ark_flow.md) and [ARK Flow](../dronecan/ark_flow_mr.md) are open-source Time-of-Flight (ToF) and optical flow sensor modules, which are capable of measuring distances from 8cm to 30m and from 8cm to 50m, respectively.
+[ARK Flow](../dronecan/ark_flow.md) and [ARK Flow MR](../dronecan/ark_flow_mr.md) are open-source Time-of-Flight (ToF) and optical flow sensor modules, which are capable of measuring distances from 8cm to 30m and from 8cm to 50m, respectively.
 它可以通过CAN1接口连接至飞控，允许通过CAN2接口添加传感器。
 It supports [DroneCAN](../dronecan/index.md), runs [PX4 DroneCAN Firmware](../dronecan/px4_cannode_fw.md), and is packed into a tiny form factor.
 

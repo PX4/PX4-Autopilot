@@ -21,7 +21,7 @@ It is suitable for testing multi-vehicle support in _QGroundControl_, [MAVSDK](h
 
 To start multiple instances (on separate ports and IDs):
 
-1. Checkout the [PX4 branch that supports multiple vehicles](https://github.com/ThunderFly-aerospace/PX4Firmware/tree/flightgear-multi) (at ThunderFly-aerospace):
+1. Checkout the [PX4 branch that supports multiple vehicles](https://github.com/ThunderFly-aerospace/PX4-Autopilot/tree/flightgear-multi) (at ThunderFly-aerospace):
 
    ```sh
    git clone https://github.com/ThunderFly-aerospace/PX4Firmware.git

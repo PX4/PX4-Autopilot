@@ -84,7 +84,7 @@ void Ekf::initialiseCovariance()
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 
 	if (_control_status.flags.rng_hgt) {
-		z_pos_var = sq(fmaxf(_params.range_noise, 0.01f));
+		z_pos_var = sq(fmaxf(_params.ekf2_rng_noise, 0.01f));
 	}
 
 #endif // CONFIG_EKF2_RANGE_FINDER
@@ -106,7 +106,7 @@ void Ekf::initialiseCovariance()
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// use the ground clearance value as our uncertainty
-	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.rng_gnd_clearance));
+	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.ekf2_min_rng));
 #endif // CONFIG_EKF2_TERRAIN
 }
 
@@ -221,10 +221,10 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	if (_height_sensor_ref != HeightSensor::RANGE) {
 		// predict the state variance growth where the state is the vertical position of the terrain underneath the vehicle
 		// process noise due to errors in vehicle height estimate
-		float terrain_process_noise = sq(imu_delayed.delta_vel_dt * _params.terrain_p_noise);
+		float terrain_process_noise = sq(imu_delayed.delta_vel_dt * _params.ekf2_terr_noise);
 
 		// process noise due to terrain gradient
-		terrain_process_noise += sq(imu_delayed.delta_vel_dt * _params.terrain_gradient) * (sq(_state.vel(0)) + sq(_state.vel(
+		terrain_process_noise += sq(imu_delayed.delta_vel_dt * _params.ekf2_terr_grad) * (sq(_state.vel(0)) + sq(_state.vel(
 						 1)));
 		P(State::terrain.idx, State::terrain.idx) += terrain_process_noise;
 	}

@@ -21,7 +21,7 @@ This topic explains how to setup and use [MCU Eclipse](https://gnu-mcu-eclipse.g
 
 To install _Eclipse_:
 
-1. Download [Eclipse CDT for C/C++ Developers](https://github.com/gnu-mcu-eclipse/org.eclipse.epp.packages/releases/) (MCU GitHub).
+1. Download [Eclipse CDT for C/C++ Developers](https://github.com/eclipse-embed-cdt/org.eclipse.epp.packages/releases) (MCU GitHub).
 2. Розпакуйте папку Eclipse та скопіюйте її куди завгодно (немає потреби запускати будь-які сценарії установки).
 3. Run _Eclipse_ and choose a location for your initial workbench.
 

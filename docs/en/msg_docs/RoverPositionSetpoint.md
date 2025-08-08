@@ -1,17 +1,17 @@
 # RoverPositionSetpoint (UORB message)
 
-
+Rover Position Setpoint
 
 [source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/RoverPositionSetpoint.msg)
 
 ```c
-uint64 timestamp # time since system start (microseconds)
+# Rover Position Setpoint
 
-float32[2] position_ned # 2-dimensional position setpoint in NED frame [m]
-float32[2] start_ned	# (Optional) 2-dimensional start position in NED frame used to define the line that the rover will track to position_ned [m] (Defaults to vehicle position)
-float32 cruising_speed  # (Optional) Specify rover speed [m/s] (Defaults to maximum speed)
-float32 arrival_speed   # (Optional) Specify arrival speed [m/s] (Defaults to zero)
-
-float32 yaw             # [rad] [-pi,pi] from North. Optional, NAN if not set. Mecanum only. (Defaults to vehicle yaw)
+uint64 timestamp # [us] Time since system start
+float32[2] position_ned # [m] [@range -inf, inf] [@frame NED] Target position
+float32[2] start_ned # [m] [@range -inf, inf] [@frame NED] [@invalid NaN Defaults to vehicle position] Start position which specifies a line for the rover to track
+float32 cruising_speed # [m/s] [@range 0, inf] [@invalid NaN Defaults to maximum speed] Cruising speed
+float32 arrival_speed # [m/s] [@range 0, inf] [@invalid NaN Defaults to 0] Speed the rover should arrive at the target with
+float32 yaw # [rad] [@range -pi,pi] [@frame NED] [@invalid NaN Defaults to vehicle yaw] Mecanum only: Specify vehicle yaw during travel
 
 ```

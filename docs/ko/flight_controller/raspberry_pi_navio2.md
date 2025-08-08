@@ -14,7 +14,7 @@ It allows you to build PX4 and transfer to the RPi, or build natively.
 
 ## OS 이미지
 
-Use the preconfigured [Emlid Raspberry Pi OS image for Navio 2](https://docs.emlid.com/navio2/configuring-raspberry-pi).
+Use the preconfigured [Emlid Raspberry Pi OS image for Navio 2](https://docs.emlid.com/navio2/configuring-raspberry-pi/).
 기본 이미지에는 아래 표시된 대부분의 설정이 완료되어 있습니다.
 
 :::warning

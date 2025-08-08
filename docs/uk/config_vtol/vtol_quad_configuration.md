@@ -156,7 +156,3 @@ When transitioning from **multirotor to fixed-wing** (transition switch is on/fi
 When transitioning from **fixed-wing to multirotor** for this type of VTOL the switch is immediate so there isn’t really a backing out option here, unlike for tilt rotor VTOLs.
 Якщо ви хочете, щоб він повернувся у режим фіксованих крил, вам потрібно буде пройти повний перехід.
 Якщо він все ще рухається швидко, це має відбутися швидко.
-
-### Підтримка
-
-If you have any questions regarding your VTOL conversion or configuration please see [discuss.px4.io/c/px4/vtol](https://discuss.px4.io/c/px4/vtol).

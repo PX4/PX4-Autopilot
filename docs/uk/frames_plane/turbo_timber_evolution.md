@@ -50,7 +50,7 @@ This model is designed to excel at [STOL](https://en.wikipedia.org/wiki/STOL) fl
 
 - Модуль диференційного тиску MS4525DO та пітот-трубка
 
-- [Caddx Vista FPV air unit](https://caddxfpv.com/products/caddx-vista-kit)
+- [Caddx Vista FPV air unit](https://caddxfpv.com/collections/vista-kit)
 
 - [DJI FPV Goggles](https://www.dji.com/fpv)
 

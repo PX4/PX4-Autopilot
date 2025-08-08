@@ -12,7 +12,7 @@ Crazyflie 2.1 is only able to fly in [Stabilized mode](../flight_modes_mc/manual
 :::
 
 The Crazyflie line of micro quads was created by Bitcraze AB.
-An overview of the Crazyflie 2.1 can be [found here](https://www.bitcraze.io/products/crazyflie-2-1/).
+An overview of the Crazyflie 2.1 can be [found here](https://www.bitcraze.io/products/crazyflie-2-1-brushless/).
 
 ![Crazyflie2 Image](../../assets/flight_controller/crazyflie21/crazyflie_2.1.jpg)
 
@@ -40,9 +40,9 @@ The vehicle can be purchased here: [Crazyflie 2.1](https://store.bitcraze.io/pro
 
 Useful peripheral hardware includes:
 
-- [Crazyradio PA 2.4 GHz USB dongle](https://store.bitcraze.io/collections/kits/products/crazyradio-pa): Wireless communication between _QGroundControl_ and Crazyflie 2.0
+- [Crazyradio PA 2.4 GHz USB dongle](https://store.bitcraze.io/products/crazyradio-pa): Wireless communication between _QGroundControl_ and Crazyflie 2.0
 - [Breakout deck](https://store.bitcraze.io/collections/decks/products/breakout-deck): Breakout expansion board for connecting new peripherals.
-- [Flow deck v2](https://store.bitcraze.io/collections/decks/products/flow-deck-v2): Optical flow sensor and a distance sensor for altitude and position control.
+- [Flow deck v2](https://store.bitcraze.io/products/flow-deck-v2): Optical flow sensor and a distance sensor for altitude and position control.
 - [Z-ranger deck v2](https://store.bitcraze.io/collections/decks/products/z-ranger-deck-v2): Distance sensor for altitude control (same sensor as the Flow deck).
 - [Multi-ranger deck](https://store.bitcraze.io/collections/decks/products/multi-ranger-deck) Multi-direction object detection
 - [Buzzer deck](https://store.bitcraze.io/collections/decks/products/buzzer-deck) Audio feedback on system events, like low battery or charging completed.
@@ -210,7 +210,7 @@ To connect Crazyflie 2.1 with crazyradio, **launch cfbridge** by following these
 
   ::: info
   _Cfbridge_ by default tries to initiate the radio link communication on channel 80 and with crazyflie address 0xE7E7E7E7E7.
-  If you are using [multiple crazyflies and/or crazyradios](https://github.com/dennisss/cfbridge/blob/master/index.md#advanced-swarming) in the same room and want to use a different channel and/or address for each, first connect the crazyflie with QGroundControl via a USB cable and change the syslink parameters (channel, address) in QGroundControl.
+  If you are using [multiple crazyflies and/or crazyradios](https://github.com/dennisss/cfbridge/blob/master/README.md#advanced-swarming) in the same room and want to use a different channel and/or address for each, first connect the crazyflie with QGroundControl via a USB cable and change the syslink parameters (channel, address) in QGroundControl.
   Next, launch the cfbridge by giving the same channel and address as the first and second arguments respectively, e.g: `python cfbridge.py 90 0x0202020202`
   :::
 

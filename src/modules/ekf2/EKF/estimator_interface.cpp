@@ -302,7 +302,7 @@ void EstimatorInterface::setRangeData(const sensor::rangeSample &range_sample)
 	}
 
 	const int64_t time_us = range_sample.time_us
-				- static_cast<int64_t>(_params.range_delay_ms * 1000)
+				- static_cast<int64_t>(_params.ekf2_rng_delay * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	// limit data rate to prevent data being lost
@@ -620,6 +620,22 @@ int EstimatorInterface::getNumberOfActiveHorizontalPositionAidingSources() const
 	return int(_control_status.flags.gnss_pos)
 	       + int(_control_status.flags.ev_pos)
 	       + int(_control_status.flags.aux_gpos);
+}
+
+bool EstimatorInterface::isHorizontalPositionAidingActive() const
+{
+	return getNumberOfActiveHorizontalPositionAidingSources() > 0;
+}
+
+bool EstimatorInterface::isOnlyActiveSourceOfHorizontalVelocityAiding(const bool aiding_flag) const
+{
+	return aiding_flag && !isOtherSourceOfHorizontalVelocityAidingThan(aiding_flag);
+}
+
+bool EstimatorInterface::isOtherSourceOfHorizontalVelocityAidingThan(const bool aiding_flag) const
+{
+	const int nb_sources = getNumberOfActiveHorizontalVelocityAidingSources();
+	return aiding_flag ? nb_sources > 1 : nb_sources > 0;
 }
 
 int EstimatorInterface::getNumberOfActiveHorizontalVelocityAidingSources() const

@@ -10,7 +10,7 @@ The modem is plug-and-play with flight controllers using a JST-GH UART interface
 
 ## Де купити
 
-- [TFSIK01A on Tindie](https://www.tindie.com/products/34682/)
+- [TFSIK01A on Tindie](https://www.tindie.com/products/thunderfly/tfsik01-high-performance-uav-telemetry-modem/)
 - Directly from [ThunderFly](https://www.thunderfly.cz/contact-us.html) ([sale@thunderfly.cz](mailto:sale@thunderfly.cz))
 
 ## Функції

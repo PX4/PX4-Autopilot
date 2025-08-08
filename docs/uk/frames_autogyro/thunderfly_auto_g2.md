@@ -11,7 +11,7 @@ Check out our site for more information on the current [TF-G2 commercial airfram
 :::
 
 All the added parts are available on [GitHub](https://github.com/ThunderFly-aerospace/Auto-G2) as an open-source project.
-Printed parts are designed in [OpenSCAD](https://www.openscad.org/).
+Printed parts are designed in [OpenSCAD](https://openscad.org/).
 
 ## Модифікації
 
@@ -70,7 +70,7 @@ The rotor's central part consists of several components, which have the followin
 #### Лопатки ротора HobbyKing
 
 Можна використовувати надруковану центральну частину ротора з оригінальними лопатями.
-These blades can be bought on [HobbyKing](https://hobbyking.com/en_us/duraflytm-auto-g-gyrocopter-821mm-replacement-main-blade-1pcs-bag.html).
+The blades used were "Durafly™ Auto-G2 Gyrocopter 821mm - Replacement Main Blade" (Discontinued)
 Hobbyking blades differ in the position of the center of gravity, and it is therefore necessary to balance them properly.
 
 #### Роторні лопаті, надруковані у 3D
@@ -106,7 +106,7 @@ It is a small box equipped with a servo that pulls out the pin and releases the 
 
 - Autopilot ([Holybro pix32](../flight_controller/holybro_pix32.md), [CUAV nano](../flight_controller/cuav_v5_nano.md))
 - GPS (Модуль GPS NEO-6M, з патч-антеною)
-- Airspeed sensor ([SDP3x](https://www.sensirion.com/en/flow-sensors/differential-pressure-sensors/worlds-smallest-differential-pressure-sensor/))
+- Airspeed sensor ([SDP3x series](https://sensirion.com/products/catalog?categories=differential-pressure&series=SDP3x&page=1&page_size=12))
 - Stronger servos as a substitution for the original ones (optional), ([BlueBird BMS-125WV](https://www.blue-bird-model.com/products_detail/411.htm))
 - Додатковий сервопривід для пристрою відпускання (необов'язково)
 
@@ -143,7 +143,7 @@ It is a small box equipped with a servo that pulls out the pin and releases the 
 - Servos with improved quality (recommended [BlueBird BMS-125WV](https://www.blue-bird-model.com/products_detail/411.htm), original servos are not very durable))
 - Propeller ([APC 10x7](https://www.apcprop.com/product/10x7e/))
 - Центральна пластина ротора з деформаційними зонами (надрукована в 3D)
-- Rotor blades ([HobbyKing](https://hobbyking.com/en_us/duraflytm-auto-g-gyrocopter-821mm-replacement-main-blade-1pcs-bag.html) or 3D printed)
+- Rotor blades ("Durafly™ Auto-G2 Gyrocopter 821mm" (Discontinued on HobbyKing), similar blades, or 3D printed)
 
 ## Відео
 

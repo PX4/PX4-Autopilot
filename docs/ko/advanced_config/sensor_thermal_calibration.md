@@ -14,9 +14,7 @@ Any subsequent standard calibration will therefore update `TC_*` parameters and 
 Releases up to PX4 v1.14, do not support thermal calibration of the magnetometer.
 :::
 
-<a id="test_setup"></a>
-
-## 테스트 설정 / 모범 사례
+## Test Setup/Best Practice {#test_setup}
 
 The [calibration procedures](#calibration_procedures) described in the following sections are ideally run in an _environmental chamber_ (a temperature and humidity controlled environment) as the board is heated from the lowest to the highest operating/calibration temperature.
 Before starting the calibration, the board is first _cold soaked_ (cooled to the minimum temperature and allowed to reach equilibrium).
@@ -46,9 +44,7 @@ The bag/silica is to prevent condensation from forming on the board.
 To check the status of the onboard thermal calibration use the MAVlink console (or NuttX console) to check the reported internal temp from the sensor.
 :::
 
-<a id="calibration_procedures"></a>
-
-## 교정 절차
+## Calibration Procedures {#calibration_procedures}
 
 PX4는 두 가지 보정 절차를 지원합니다.
 
@@ -57,9 +53,7 @@ PX4는 두 가지 보정 절차를 지원합니다.
 
 오프 보드 접근 방식은 더 복잡하고 느리지만, 테스트 설정에 대한 지식이 덜 필요하고 검증하기가 용이합니다.
 
-<a id="onboard_calibration"></a>
-
-### 온보드 교정 절차
+### Onboard Calibration Procedure {#onboard_calibration}
 
 온보드 보정은 전적으로 장치에서 실행됩니다. 테스트 설정으로 달성할 수있는 온도 상승 양에 대한 지식이 필요합니다.
 
@@ -76,9 +70,7 @@ PX4는 두 가지 보정 절차를 지원합니다.
 9. Perform a 6-point accel calibration via the system console using `commander calibrate accel` or via _QGroundControl_. 보드를 처음 설정하는 경우에는 자이로와 자력계 보정도 수행하여야 합니다.
 10. 보정중 갑작스러운 오프셋 변경으로 인하여 내비게이션 추정기가 혼란스럽고 일부 매개변수는 다음 시작까지 이를 사용하는 알고리즘에 의해 로드되지 않기 때문에 센서 보정 후 비행하기 전에 항상 보드에 전원을 다시 공급해야합니다.
 
-<a id="offboard_calibration"></a>
-
-### 오프보드 교정 절차
+### Offboard Calibration Procedure {#offboard_calibration}
 
 오프보드 보정은 보정 테스트 중에 수집된 데이터를 사용하여 개발 컴퓨터에서 실행됩니다. 이 방법은 데이터 품질과 곡선 맞춤을 시각적으로 제공합니다.
 
@@ -114,9 +106,7 @@ PX4는 두 가지 보정 절차를 지원합니다.
 
 12. Power the board and perform a normal accelerometer sensor calibration using _QGroundControl_. 보드의 교정 온도 범위 내에서, 이 단계를 수행하여야 합니다. 갑작스러운 오프셋 변경으로 인하여 내비게이션 추정기가 혼란할 수 있고, 일부 매개변수는 다음 시작까지 이를 사용하는 알고리즘에 의해 로드되지 않기 때문에 이 단계 후에는 보드에 전원을 공급하여야 합니다.
 
-<a id="implementation"></a>
-
-## 구현 상세
+## Implementation Detail {#implementation}
 
 교정은 내부 온도 범위에서 센서 값의 변화를 측정하고 데이터에 대해 다항식 맞춤을 수행하여 센서 데이터를 수정에 사용하는 계수 세트 (매개변수로 저장됨)를 계산하는 프로세스를 의미합니다. 보상은 온도에 따른 오프셋 변경을 수정하기 위하여 센서 판독 값에서 차감되는 오프셋을 계산하기 위해 내부 온도를 사용하는 프로세스를 의미합니다.
 
@@ -145,7 +135,6 @@ TC_[type][instance]_[cal_name]_[axis]
 - `instance`: is an integer 0,1 or 2 allowing for calibration of up to three sensors of the same `type`.
 
 - `cal_name`: is a string identifying the calibration value. 다음의 값을 가질 수 있습니다.
-
   - `Xn`: Polynomial coefficient where n is the order of the coefficient, e.g. `X3 * (temperature - reference temperature)**3`.
   - `SCL`: scale factor.
   - `TREF`: reference temperature (deg C).

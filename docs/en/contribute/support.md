@@ -29,7 +29,7 @@ The Discuss Forum is much preferred because it is indexed by search engines and 
 If you are unsure what the problem is and you need help diagnosing
 
 - Upload logs to [Flight Log Review](https://logs.px4.io/)
-- Open a discussion on [PX4 Discuss](https://discuss.px4.io/c/flight-testing/) with a flight report and links to logs.
+- Open a discussion on [PX4 Discuss](https://discuss.px4.io/c/flight-testing/10) with a flight report and links to logs.
 - The dev team may prompt you to [raise an issue](#issue-bug-reporting) if the problem is caused by a bug.
 
 ## Issue & Bug Reporting

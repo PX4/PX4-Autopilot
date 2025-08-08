@@ -7,7 +7,7 @@ PX4 не розробляє цей (або будь-який інший) авт�
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
 
-The [Holybro Kakute H7 mini](https://holybro.com/collections/autopilot-flight-controllers/products/kakute-h7-mini) flight controller is intended for lightweight frame builds (such as racers, etc.).
+The [Holybro Kakute H7 mini](https://holybro.com/products/kakute-h7-mini) flight controller is intended for lightweight frame builds (such as racers, etc.).
 
 Цей контролер польоту повний функцій, включаючи роз'єм для HD-камери, подвійні роз'єми ESC 4in1 plug-and-play, перемикач VTX ON/OFF Pit (напруга батареї), барометр, OSD, 6x UART, 128 МБ Flash для журналювання (ще не підтримується з PX4), BEC на 5В, та більші пластини для паяння з простим розташуванням та багато іншого.
 

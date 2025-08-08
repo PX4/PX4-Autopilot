@@ -569,11 +569,11 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 }
 
 /**
-* bits  1-11    - throttle value (0-47 are reserved, 48-2047 give 2000 steps of throttle resolution)
+* bits  1-11    - throttle value (0-47 are reserved for commands, 48-2047 give 2000 steps of throttle resolution)
 * bit   12      - dshot telemetry enable/disable
 * bits  13-16   - XOR checksum
 **/
-void dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry)
+void dshot_motor_data_set(unsigned channel, uint16_t data, bool telemetry)
 {
 	uint8_t timer_index = timer_io_channels[channel].timer_index;
 	uint8_t timer_channel_index = timer_io_channels[channel].timer_channel - 1;
@@ -586,7 +586,7 @@ void dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry)
 	uint16_t packet = 0;
 	uint16_t checksum = 0;
 
-	packet |= throttle << DSHOT_THROTTLE_POSITION;
+	packet |= data << DSHOT_THROTTLE_POSITION;
 	packet |= ((uint16_t)telemetry & 0x01) << DSHOT_TELEMETRY_POSITION;
 
 	uint16_t csum_data = packet;

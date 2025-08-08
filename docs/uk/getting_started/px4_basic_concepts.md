@@ -65,7 +65,7 @@ This might be implemented as a separate [companion computer](#offboard-companion
 - Robust and deep integration with [companion computers](#offboard-companion-computer) and [robotics APIs](../robotics/index.md) such as [ROS 2](../ros2/user_guide.md) and [MAVSDK](https://mavsdk.mavlink.io/main/en/index.html).
 
 PX4 is a core part of a broader drone platform that includes the [QGroundControl](#qgc) ground station, [Pixhawk hardware](https://pixhawk.org/), and [MAVSDK](https://mavsdk.mavlink.io/main/en/index.html) for integration with companion computers, cameras and other hardware using the MAVLink protocol.
-PX4 is supported by the [Dronecode Project](https://www.dronecode.org/).
+PX4 is supported by the [Dronecode Project](https://dronecode.org/).
 
 ## Наземні станції керування
 
@@ -76,7 +76,7 @@ PX4 is supported by the [Dronecode Project](https://www.dronecode.org/).
 
 The Dronecode GCS software is called [QGroundControl](https://qgroundcontrol.com/) ("QGC").
 Він працює на апаратному забезпеченні Windows, Android, MacOS або Linux і підтримує широкий спектр форм факторів екрану.
-You can download it (for free) from [here](https://qgroundcontrol.com/downloads/).
+You can download it (for free) from [here](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html).
 
 ![QGC Main Screen](../../assets/concepts/qgc_fly_view.png)
 
@@ -265,7 +265,6 @@ SD карти, однак, не обов'язкові.
 - Disable notification beeps are disabled using the parameter [CBRK_BUZZER](../advanced_config/parameter_reference.md#CBRK_BUZZER).
 - [Stream logs](../dev_log/logging.md#log-streaming) to another component (companion).
 - Зберігати місії в RAM/FLASH.
-  <!-- Too low-level for this. But see FLASH_BASED_DATAMAN in  Intel Aero: https://github.com/PX4/PX4-Autopilot/blob/main/boards/intel/aerofc-v1/src/board_config.h#L115 -->
 
 ## Корисне навантаження
 

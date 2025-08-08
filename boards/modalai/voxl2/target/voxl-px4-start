@@ -59,12 +59,19 @@ fi
 
 param select /data/px4/param/parameters
 
-# Load in all of the parameters that have been saved in the file
-param load
+# Change defaults before loading in updated parameters from the file
 
 # This was the default pre-v1.16.0 and for folks relying on that
 # we set it up here
 param set-default EKF2_EV_CTRL 15
+# Shouldn't need to do it separately with qshell but set-default
+# implementation needs to be updated to set it on DSP as well. Until
+# then need to do it as a separate step.
+qshell param set-default EKF2_EV_CTRL 15
+
+# Load in all of the parameters that have been saved in the file
+# after updating any default values
+param load
 
 # IMU (accelerometer / gyroscope)
 if [ "$PLATFORM" == "M0104" ]; then

@@ -67,7 +67,7 @@ You then need to ensure that the parachute pin will be set to a value that will 
   The output is automatically set to the maximum PWM value when a failsafe is triggered.
 
   ::: info
-  For the spring-loaded launcher from [Fruity Chutes](https://fruitychutes.com/buyachute/drone-and-uav-parachute-recovery-c-21/harrier-drone-parachute-launcher-c-21_33/) the minimum PWM value should be between 700 and 1000ms, and the maximum value between 1800 and 2200ms.
+  For the spring-loaded launcher from [Fruity Chutes](https://fruitychutes.com/uav_rpv_drone_recovery_parachutes/drone_multicopter_quadcopter_recovery_parachutes#Harrier) the minimum PWM value should be between 700 and 1000ms, and the maximum value between 1800 and 2200ms.
 
 :::
 

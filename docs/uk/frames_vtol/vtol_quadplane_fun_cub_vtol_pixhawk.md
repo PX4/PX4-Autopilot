@@ -74,7 +74,3 @@ For further instructions on wiring and configurations please see:
 ## Відео
 
 <lite-youtube videoid="4K8yaa6A0ks" title="Fun Cub PX4 VTOL Maiden"/>
-
-## Підтримка
-
-If you have any questions regarding your VTOL conversion or configuration please visit <https://discuss.px4.io/c/px4/vtol>.

@@ -8,7 +8,7 @@ parameters:
         description:
           short: Enable internal combustion engine
         type: boolean
-        default: true
+        default: false
 
       ICE_ON_SOURCE:
         description:

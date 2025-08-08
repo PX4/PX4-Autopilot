@@ -98,7 +98,7 @@ struct Header {
 	uint8_t sync1;
 	uint8_t sync2;
 	uint16_t crc;
-	BlockID id_number: 13;
+	uint16_t id_number: 13;
 	uint16_t id_revision: 3;
 	uint16_t length;
 	uint32_t tow;
@@ -143,7 +143,7 @@ struct PVTGeodetic {
 		MissingBaseStationCoordinates = 9,
 		MissingRequiredRTKFixedPosition = 10,
 	};
-	ModeType mode_type: 4;
+	uint8_t mode_type: 4;
 	uint8_t mode_reserved: 2;
 	uint8_t mode_base_fixed: 1;
 	uint8_t mode_2d: 1;
@@ -314,8 +314,8 @@ struct AttEuler {
 		InsufficientMeasurements = 1,
 	};
 	uint8_t nr_sv;
-	Error error_aux1: 2;
-	Error error_aux2: 2;
+	uint8_t error_aux1: 2;
+	uint8_t error_aux2: 2;
 	uint8_t error_reserved: 3;
 	uint8_t error_not_requested: 1;
 	uint16_t mode;
@@ -334,8 +334,8 @@ struct AttCovEuler {
 		InsufficientMeasurements = 1,
 	};
 	uint8_t reserved;
-	Error error_aux1: 2;
-	Error error_aux2: 2;
+	uint8_t error_aux1: 2;
+	uint8_t error_aux2: 2;
 	uint8_t error_reserved: 3;
 	uint8_t error_not_requested: 1;
 	float cov_headhead;

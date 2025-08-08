@@ -20,7 +20,7 @@ PX4 빌드에 사용되어 집니다.
 
 ## 설치 방법
 
-1. Download the latest version of the ready-to-use MSI installer from: [Github releases](https://github.com/PX4/windows-toolchain/releases) or [Amazon S3](https://s3-us-west-2.amazonaws.com/px4-tools/PX4+Windows+Cygwin+Toolchain/PX4+Windows+Cygwin+Toolchain+0.9.msi) (fast download).
+1. Download the latest version of the ready-to-use MSI installer from: [Github releases](https://github.com/PX4/PX4-windows-toolchain/releases) or [Amazon S3](https://s3-us-west-2.amazonaws.com/px4-tools/PX4+Windows+Cygwin+Toolchain/PX4+Windows+Cygwin+Toolchain+0.9.msi) (fast download).
 
 2. Run it, choose your desired installation location, let it install:
 

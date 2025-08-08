@@ -20,4 +20,4 @@ There are a number of versions available:
 - [store.rfdesign.com.au](https://store.rfdesign.com.au/radio-modems/):
   - [RFD 900+ Modem](https://store.rfdesign.com.au/rfd-900p-modem/)
   - [RFD 868x Modem (EU)](https://store.rfdesign.com.au/rfd868x-eu-hs-8517-62-00-90/)
-  - [RFD900x](https://store.rfdesign.com.au/rfd-900x-modem-hs-8517-62-00-90/)
+  - [RFD900x](https://store.rfdesign.com.au/rfd-900x-modem/)

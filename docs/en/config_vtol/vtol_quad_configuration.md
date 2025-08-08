@@ -84,12 +84,14 @@ It is critical that you have properly calibrated your airspeed sensor.
 It is also important that you pick an airspeed that is comfortably above your airframes stall speed (check `FW_AIRSPD_MIN`) as this is currently not checked.
 
 #### Openloop Transition Time
+
 Parameter: [VT_F_TR_OL_TM](../advanced_config/parameter_reference.md#VT_F_TR_OL_TM)
 
 This specifies the duration of the front transition in seconds when no airspeed feedback is available (e.g. no airspeed sensor present).
 It should be set to a value which ensures that the vehicle reaches a high enough airspeed to complete the transition, e.g. airspeed should exceed [VT_ARSP_TRANS](../advanced_config/parameter_reference.md#VT_ARSP_TRANS).
 
 #### Transition Timeout
+
 [VT_TRANS_TIMEOUT](../advanced_config/parameter_reference.md#VT_TRANS_TIMEOUT)
 
 This specifies the upper limit for the duration of the front transition. If the vehicle has not reached the transition airspeed after this time, then the transition will be aborted and a [Quadchute](../config/safety.md#quad-chute-failsafe) event will be triggered.
@@ -152,7 +154,3 @@ When transitioning from **multirotor to fixed-wing** (transition switch is on/fi
 When transitioning from **fixed-wing to multirotor** for this type of VTOL the switch is immediate so there isn’t really a backing out option here, unlike for tilt rotor VTOLs.
 If you want it to go back into fixed-wing you will need to go through the full transition.
 If it’s still travelling fast this should happen quickly.
-
-### Support
-
-If you have any questions regarding your VTOL conversion or configuration please see [discuss.px4.io/c/px4/vtol](https://discuss.px4.io/c/px4/vtol).

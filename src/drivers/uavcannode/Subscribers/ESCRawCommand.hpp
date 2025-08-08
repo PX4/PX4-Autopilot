@@ -80,9 +80,7 @@ public:
 private:
 	void callback(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::RawCommand> &msg)
 	{
-
-		actuator_motors_s actuator_motors;
-
+		actuator_motors_s actuator_motors = {};
 		actuator_motors.timestamp = hrt_absolute_time();
 		actuator_motors.timestamp_sample = actuator_motors.timestamp;
 
@@ -91,13 +89,18 @@ private:
 				break;
 			}
 
-			// Normalized to -8192, 8191 in uavcan. actuator_motors is -1 to 1
-			actuator_motors.control[i] = msg.cmd[i] / 8192.f;
+			// Treat zero as disarmed value
+			if (msg.cmd[i] == 0) {
+				// NAN maps to disarmed
+				actuator_motors.control[i] = NAN;
 
+			} else {
+				// Normalized to -8192, 8191 in uavcan. actuator_motors is -1 to 1
+				actuator_motors.control[i] = msg.cmd[i] / 8192.f;
+			}
 		}
 
 		_actuator_motors_pub.publish(actuator_motors);
-
 	}
 
 	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};

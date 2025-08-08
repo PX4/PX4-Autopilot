@@ -54,24 +54,19 @@ void DifferentialPosControl::updatePosControl()
 
 	hrt_abstime timestamp = hrt_absolute_time();
 
-	if (_rover_position_setpoint_sub.updated()) {
-		_rover_position_setpoint_sub.copy(&_rover_position_setpoint);
-		_start_ned = Vector2f(_rover_position_setpoint.start_ned[0], _rover_position_setpoint.start_ned[1]);
-		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
-	}
-
 	const Vector2f target_waypoint_ned(_rover_position_setpoint.position_ned[0], _rover_position_setpoint.position_ned[1]);
 
 	if (target_waypoint_ned.isAllFinite()) {
 		float distance_to_target = (target_waypoint_ned - _curr_pos_ned).norm();
 
-		if (distance_to_target > _param_nav_acc_rad.get()) {
-			float arrival_speed = PX4_ISFINITE(_rover_position_setpoint.arrival_speed) ? _rover_position_setpoint.arrival_speed :
-					      0.f;
-			const float distance = arrival_speed > 0.f + FLT_EPSILON ? distance_to_target - _param_nav_acc_rad.get() :
-					       distance_to_target;
+		if (_arrival_speed > FLT_EPSILON) {
+			distance_to_target -=
+				_param_nav_acc_rad.get(); // shift target to the edge of the acceptance radius if arrival speed not zero
+		}
+
+		if (distance_to_target > _param_nav_acc_rad.get() || _arrival_speed > FLT_EPSILON) {
 			float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
-					       _param_ro_decel_limit.get(), distance, fabsf(arrival_speed));
+					       _param_ro_decel_limit.get(), distance_to_target, fabsf(_arrival_speed));
 			speed_setpoint = math::min(speed_setpoint, _param_ro_speed_limit.get());
 
 			if (PX4_ISFINITE(_rover_position_setpoint.cruising_speed)) {
@@ -118,6 +113,14 @@ void DifferentialPosControl::updateSubscriptions()
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
 		_curr_pos_ned = Vector2f(vehicle_local_position.x, vehicle_local_position.y);
 	}
+
+	if (_rover_position_setpoint_sub.updated()) {
+		_rover_position_setpoint_sub.copy(&_rover_position_setpoint);
+		_start_ned = Vector2f(_rover_position_setpoint.start_ned[0], _rover_position_setpoint.start_ned[1]);
+		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
+		_arrival_speed = PX4_ISFINITE(_rover_position_setpoint.arrival_speed) ? _rover_position_setpoint.arrival_speed : 0.f;
+	}
+
 
 }
 

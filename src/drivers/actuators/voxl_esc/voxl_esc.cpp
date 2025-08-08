@@ -1196,7 +1196,7 @@ void VoxlEsc::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 }
 
 /* OutputModuleInterface */
-bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool VoxlEsc::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			    unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	//in Run() we call _mixing_output.update(), which calls MixingOutput::limitAndUpdateOutputs which calls _interface.updateOutputs (this function)
@@ -1212,7 +1212,7 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	}
 
 	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
-		if (!_outputs_on || stop_motors) {
+		if (!_outputs_on) {
 			_esc_chans[i].rate_req = 0;
 
 		} else {

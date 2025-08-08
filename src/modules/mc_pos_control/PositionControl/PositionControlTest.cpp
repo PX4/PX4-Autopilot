@@ -316,23 +316,62 @@ TEST_F(PositionControlBasicTest, SetpointValidityAllCombinations)
 	}
 }
 
-TEST_F(PositionControlBasicTest, InvalidState)
+TEST_F(PositionControlBasicTest, PositionSetpointInvalidState)
 {
-	Vector3f(.1f, .2f, .3f).copyTo(_input_setpoint.position);
+	Vector3f(.1f, .2f, .3f).copyTo(_input_setpoint.position); // Position setpoint
 
+	// All states valid - ok
 	PositionControlStates states{};
+	_position_control.setState(states);
+	EXPECT_TRUE(runController());
+
+	// Position invalid
 	states.position(0) = NAN;
 	_position_control.setState(states);
 	EXPECT_FALSE(runController());
 
+	// Position and velocity invalid
 	states.velocity(0) = NAN;
 	_position_control.setState(states);
 	EXPECT_FALSE(runController());
 
+	// Velocity invalid
 	states.position(0) = 0.f;
 	_position_control.setState(states);
 	EXPECT_FALSE(runController());
 
+	// Velocity derivative invalid
+	states.velocity(0) = 0.f;
+	states.acceleration(1) = NAN;
+	_position_control.setState(states);
+	EXPECT_FALSE(runController());
+}
+
+TEST_F(PositionControlBasicTest, VelocitySetpointInvalidState)
+{
+	Vector3f(.1f, .2f, .3f).copyTo(_input_setpoint.velocity); // Velocity setpoint
+
+	// All states valid - ok
+	PositionControlStates states{};
+	_position_control.setState(states);
+	EXPECT_TRUE(runController());
+
+	// Position invalid - ok
+	states.position(0) = NAN;
+	_position_control.setState(states);
+	EXPECT_TRUE(runController());
+
+	// Position and velocity invalid
+	states.velocity(0) = NAN;
+	_position_control.setState(states);
+	EXPECT_FALSE(runController());
+
+	// Velocity invalid
+	states.position(0) = 0.f;
+	_position_control.setState(states);
+	EXPECT_FALSE(runController());
+
+	// Velocity derivative invalid
 	states.velocity(0) = 0.f;
 	states.acceleration(1) = NAN;
 	_position_control.setState(states);

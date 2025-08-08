@@ -12,8 +12,6 @@ Moving the compass away from power-carrying cables is the easiest and most effec
 The process is demonstrated for a multicopter, but is equally valid for other vehicle types.
 :::
 
-<a id="when"></a>
-
 ## 本节补偿方法可用的前提
 
 只有当下述的全部条件都满足时才建议采用功率补偿：
@@ -25,8 +23,6 @@ The process is demonstrated for a multicopter, but is equally valid for other ve
    ![Corrupted mag](../../assets/advanced_config/corrupted_mag.png)
 
 3. 无人机的线缆都是固定的或不会移动的（当通电的线缆能够移动会导致计算出的补偿参数失效）。
-
-<a id="how"></a>
 
 ## 如何实现罗盘补偿
 

@@ -1,13 +1,17 @@
 # ModalAI VOXL Flight
 
-<Badge type="tip" text="PX4 v1.11" />
+<Badge type="info" text="Discontinued" /> <Badge type="tip" text="PX4 v1.11" />
+
+:::warning
+This frame has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
+:::
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://forum.modalai.com/) for hardware support or compliance issues.
 :::
 
-The ModalAI [VOXL Flight](https://modalai.com/voxl-flight) ([Datasheet](https://docs.modalai.com/voxl-flight-datasheet)) is one of the first computing platforms to combine the power and sophistication of Snapdragon with the flexibility and ease of use of PX4 on an STM32F7.
+The ModalAI VOXL Flight is one of the first computing platforms to combine the power and sophistication of Snapdragon with the flexibility and ease of use of PX4 on an STM32F7.
 Made in the USA, VOXL Flight supports obstacle avoidance and GPS-denied (indoor) navigation fused with a PX4 flight controller on a single PCB.
 
 ![VOXL-Flight](../../assets/flight_controller/modalai/voxl_flight/voxl-flight-dk.jpg)
@@ -76,9 +80,9 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 [stm32f765ii]: https://www.st.com/en/microcontrollers-microprocessors/stm32f765ii.html
 [px4]: https://github.com/PX4/PX4-Autopilot/tree/main/boards/modalai/fc-v1
-[icm-20602]: https://www.invensense.com/products/motion-tracking/6-axis/icm-20602/
-[bmi088]: https://www.bosch-sensortec.com/bst/products/all_products/bmi088_1
-[bmp388]: https://www.bosch-sensortec.com/products/environmental-sensors/pressure-sensors/bmp388/
+[icm-20602]: https://invensense.tdk.com/products/motion-tracking/6-axis/icm-20602/
+[bmi088]: https://www.bosch-sensortec.com/products/motion-sensors/imus/bmi088/
+[bmp388]: https://www.adafruit.com/product/3966
 [a71ch]: https://www.nxp.com/products/security-and-authentication/authentication/plug-and-trust-the-fast-easy-way-to-deploy-secure-iot-connections:A71CH
 
 ::: info
@@ -106,10 +110,7 @@ This board supported in QGroundControl 4.0 and later.
 
 ## Availability
 
-- [VOXL Flight Complete Kit](https://modalai.com/voxl-flight)
-- [VOXL Flight Board](https://www.modalai.com/products/voxl-flight?variant=31707275362355) (only)
-- [VOXL Flight integrated with Obstacle Avoidance Cameras (VOXL Flight Deck)](https://modalai.com/flight-deck) ([Datasheet](https://docs.modalai.com/voxl-flight-deck-platform-datasheet/))
-- [VOXL Flight in a ready to fly VOXL m500 Development Drone](https://www.modalai.com/collections/development-drones/products/voxl-m500) ([Datasheet](https://docs.modalai.com/voxl-m500-reference-drone-datasheet/))
+No longer available.
 
 ## Quick Start
 

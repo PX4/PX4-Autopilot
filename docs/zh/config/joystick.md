@@ -2,7 +2,7 @@
 
 A [computer joystick](https://en.wikipedia.org/wiki/Joystick) or gamepad connected through _QGroundControl_ can be used to manually control the vehicle (_instead_ of using an [RC Transmitter](../config/radio.md)).
 
-This approach may be used by manual control units that have an integrated ground control station (like the _UAVComponents_ [MicroNav](https://uxvtechnologies.com/ground-control-stations/micronav/) shown below).
+This approach may be used by manual control units that have an integrated ground control station (like the _UAVComponents_ [MicroNav](https://www.uxvtechnologies.com/ground-control-stations/micronav) shown below).
 Joysticks are also commonly used to allow developers to fly the vehicle in simulation.
 
 ![Joystick MicroNav](../../assets/peripherals/joystick/micronav.jpg)

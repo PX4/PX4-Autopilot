@@ -95,7 +95,7 @@ Pix32 v6’s H7 MCU містить ядро Arm® Cortex®-M7 до 480 MHz, ма
 
 ## Де купити
 
-Order from [Holybro](https://holybro.com/collections/autopilot-flight-controllers/products/pix32-v6).
+Order from [Holybro](https://holybro.com/products/pix32-v6).
 
 ## Схема розташування виводів
 
@@ -188,7 +188,7 @@ The pinouts and connector comply with the [Pixhawk Debug Full](../debug/swd_debu
 
 ## Периферійні пристрої
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 

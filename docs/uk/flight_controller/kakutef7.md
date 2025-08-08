@@ -3,6 +3,10 @@
 <Badge type="info" text="Discontinued" />
 
 :::warning
+Ця модель знятий з виробництва (../flight_controller/autopilot_experimental.md) і більше комерційно не доступна.
+:::
+
+:::warning
 PX4 не розробляє цей (або будь-який інший) автопілот.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::

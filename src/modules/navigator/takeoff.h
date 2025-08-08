@@ -42,6 +42,7 @@
 
 #include "navigator_mode.h"
 #include "mission_block.h"
+#include <lib/mathlib/mathlib.h>
 
 class Takeoff : public MissionBlock
 {
@@ -52,7 +53,17 @@ public:
 	void on_activation() override;
 	void on_active() override;
 
+	void setLoiterPosition(matrix::Vector2d loiter_location) { _loiter_position_lat_lon = loiter_location; }
+	void setLoiterAltitudeAmsl(const float height_m) { _loiter_altitude_msl = height_m; }
+
 private:
 
+	enum class fw_takeoff_state {
+		CLIMBOUT = 0,
+		GO_TO_LOITER
+	} _fw_takeoff_state;
+
 	void set_takeoff_position();
+	matrix::Vector2d _loiter_position_lat_lon{static_cast<double>(NAN), static_cast<double>(NAN)};
+	float _loiter_altitude_msl{NAN};
 };

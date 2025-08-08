@@ -28,7 +28,6 @@ It is especially meaningful for those FMU-V4 based flight controllers as MindPX 
 ![](../../assets/hardware/hardware-mindpx-specs.png)
 
 - Main System-on-Chip: STM32F427
-
   - CPU: 32bits, 168 MHz ARM Cortex<sup>&reg;</sup> M4 with FPU
   - RAM: 256 KB SRAM
   - 2MB Flash
@@ -107,7 +106,7 @@ The user guide is [here](http://mindpx.net/assets/accessories/UserGuide9.18_2_pd
 
 ## Where to Buy
 
-MindRacer is available at [AirMind Store](http://drupal.xitronet.com/?q=catalog) on internet.
+MindRacer is available at [AirMind Store](https://airmind.mindpx.net/catalog).
 You can also find MindRacer at Amazon<sup>&reg;</sup> or eBay<sup>&reg;</sup>.
 
 ## Serial Port Mapping

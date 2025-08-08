@@ -119,7 +119,7 @@ TEST_F(AdsbConflictTest, trafficAlerts)
 	adsb_conflict.get_traffic_state(now);
 
 	// THEN expect no conflict
-	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
+	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::NO_CONFLICT);
 
 	// GIVEN conflict detected
@@ -130,7 +130,7 @@ TEST_F(AdsbConflictTest, trafficAlerts)
 	adsb_conflict.get_traffic_state(now);
 
 	// THEN expect conflict to be added to buffer
-	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
+	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::ADD_CONFLICT);
 
 	// GIVEN empty buffer
@@ -144,7 +144,7 @@ TEST_F(AdsbConflictTest, trafficAlerts)
 	adsb_conflict.get_traffic_state(now);
 
 	// THEN expect conflict to be added to buffer
-	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
+	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::ADD_CONFLICT);
 
 	// GIVEN full buffer
@@ -158,7 +158,7 @@ TEST_F(AdsbConflictTest, trafficAlerts)
 	adsb_conflict.get_traffic_state(now);
 
 	// THEN expect buffer full
-	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
+	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::BUFFER_FULL);
 
 	// WHEN conflict set to false again
@@ -169,7 +169,7 @@ TEST_F(AdsbConflictTest, trafficAlerts)
 	adsb_conflict.get_traffic_state(now);
 
 	// THEN expect no conflict message
-	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
+	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::NO_CONFLICT);
 
 	// WHEN existing conflict is set to false
@@ -180,7 +180,7 @@ TEST_F(AdsbConflictTest, trafficAlerts)
 	adsb_conflict.get_traffic_state(now);
 
 	// THEN expect conflict to be removed from buffer
-	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
+	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::REMOVE_OLD_CONFLICT);
 
 	// GIVEN used buffer
@@ -194,7 +194,7 @@ TEST_F(AdsbConflictTest, trafficAlerts)
 	adsb_conflict.get_traffic_state(now);
 
 	// THEN expect conflict to be removed from buffer
-	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
+	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::REMOVE_OLD_CONFLICT);
 }
 
@@ -251,7 +251,7 @@ TEST_F(AdsbConflictTest, trafficReminder)
 	adsb_conflict.get_traffic_state(now);
 
 	// THEN expect conflict reminder
-	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
+	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::REMIND_CONFLICT);
 
 	// WHEN INSTEAD conflict is detected only 1s later
@@ -262,7 +262,7 @@ TEST_F(AdsbConflictTest, trafficReminder)
 	adsb_conflict.get_traffic_state(now);
 
 	// THEN do not sent conflict notification again
-	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
+	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::NO_CONFLICT);
 
 	// GIVEN full buffer with 8685 at t=100
@@ -276,7 +276,7 @@ TEST_F(AdsbConflictTest, trafficReminder)
 	adsb_conflict.get_traffic_state(now);
 
 	// THEN expect conflict reminder
-	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
+	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::REMIND_CONFLICT);
 
 	// WHEN INSTEAD conflict is detected only 1s later
@@ -287,7 +287,7 @@ TEST_F(AdsbConflictTest, trafficReminder)
 	adsb_conflict.get_traffic_state(now);
 
 	// THEN do not sent conflict notification again
-	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
+	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::NO_CONFLICT);
 
 	// WHEN conflict is set to false
@@ -298,7 +298,7 @@ TEST_F(AdsbConflictTest, trafficReminder)
 	adsb_conflict.get_traffic_state(now);
 
 	// THEN expect conflict to be removed from buffer
-	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
+	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::REMOVE_OLD_CONFLICT);
 
 	// WHEN new conflict is detected
@@ -309,6 +309,6 @@ TEST_F(AdsbConflictTest, trafficReminder)
 	adsb_conflict.get_traffic_state(now);
 
 	// THEN expect new conflict to be added to buffer
-	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
+	printf("adsb_conflict._traffic_state %d \n", (int)adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::ADD_CONFLICT);
 }

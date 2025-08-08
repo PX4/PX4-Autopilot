@@ -45,28 +45,6 @@ div.frame_variant td, div.frame_variant th {
 }
 </style>
 
-## 2D Space Robot
-
-### Space Robot
-
-<div class="frame_common">
-<img src="../../assets/airframes/types/AirframeUnknown.svg"/>
-</div>
-
-<div class="frame_variant">
-<table>
- <thead>
-   <tr><th>Name</th><th></th></tr>
- </thead>
-<tbody>
-<tr id="2d_space_robot_space_robot_kth_space_robot">
- <td>KTH Space Robot</td>
- <td>Maintainer: DISCOWER<p><code>SYS_AUTOSTART</code> = 70000</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-
 ## Airship
 
 ### Airship
@@ -622,7 +600,7 @@ div.frame_variant td, div.frame_variant th {
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 50000</p></td>
 </tr>
 <tr id="rover_rover_aion_robotics_r1_ugv">
- <td><a href="https://www.aionrobotics.com/r1">Aion Robotics R1 UGV</a></td>
+ <td><a href="https://docs.px4.io/main/en/complete_vehicles_rover/aion_r1.html">Aion Robotics R1 UGV</a></td>
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 50001</p></td>
 </tr>
 <tr id="rover_rover_generic_rover_ackermann">
@@ -637,13 +615,27 @@ div.frame_variant td, div.frame_variant th {
  <td>Generic Rover Mecanum</td>
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 52000</p></td>
 </tr>
-<tr id="rover_rover_generic_ground_vehicle_(deprecated)">
- <td>Generic Ground Vehicle (Deprecated)</td>
- <td><p><code>SYS_AUTOSTART</code> = 59000</p><br><b>Specific Outputs:</b><ul><li><b>Motor1</b>: throttle</li><li><b>Servo1</b>: steering</li></ul></td>
-</tr>
-<tr id="rover_rover_nxp_cup_car:_df_robot_gpx_(deprecated)">
- <td>NXP Cup car: DF Robot GPX (Deprecated)</td>
- <td>Maintainer: Katrin Moritz<p><code>SYS_AUTOSTART</code> = 59001</p><br><b>Specific Outputs:</b><ul><li><b>Motor1</b>: Speed of left wheels</li><li><b>Servo1</b>: Steering servo</li></ul></td>
+</tbody>
+</table>
+</div>
+
+## Spacecraft
+
+### Free-Flyer
+
+<div class="frame_common">
+<img src="../../assets/airframes/types/AirframeUnknown.svg"/>
+</div>
+
+<div class="frame_variant">
+<table>
+ <thead>
+   <tr><th>Name</th><th></th></tr>
+ </thead>
+<tbody>
+<tr id="spacecraft_free-flyer_kth-atmos">
+ <td>KTH-ATMOS</td>
+ <td>Maintainer: DISCOWER<p><code>SYS_AUTOSTART</code> = 70000</p></td>
 </tr>
 </tbody>
 </table>

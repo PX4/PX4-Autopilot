@@ -38,13 +38,16 @@ RC керування не може бути використане для за�
 RC керування може бути використане для зміни висоти орбіти, радіусу, швидкості та напрямку обертання:
 
 - **Left stick:**
-  - _up/down:_ controls speed of ascent/descent, as in [Position mode](../flight_modes_mc/position.md). Коли в центрі мертвої зони, висота заблокована.
+  - _up/down:_ controls speed of ascent/descent, as in [Position mode](../flight_modes_mc/position.md).
+    Коли в центрі мертвої зони, висота заблокована.
   - _left/right:_ no effect.
 - **Right stick:**
-  - _left/right:_ controls acceleration of orbit in clockwise/counter-clockwise directions. Коли центрується, поточна швидкість заблокована.
-    - Максимальна швидкість становить 10 м/с і подальше обмеження з метою збереження центростремального прискорення нижче 2 м/с².
+  - _left/right:_ controls acceleration of orbit in clockwise/counter-clockwise directions.
+    Коли центрується, поточна швидкість заблокована.
+    - Maximum velocity is [MPC_XY_VEL_MAX](#MPC_XY_VEL_MAX) and further limited to keep the centripetal acceleration below 2m/s^2.
   - _up/down:_ controls orbit radius (smaller/bigger). Коли центрується, поточний радіус заблокований.
-    - Мінімальний радіус - 1м. Максимальний радіус становить 100 м.
+    - Мінімальний радіус - 1м.
+      Maximum radius is [MC_ORBIT_RAD_MAX](#MC_ORBIT_RAD_MAX).
 
 The diagram below shows the mode behaviour visually (for a [mode 2 transmitter](../getting_started/rc_transmitter_receiver.md#transmitter_modes)).
 
@@ -56,19 +59,22 @@ The diagram below shows the mode behaviour visually (for a [mode 2 transmitter](
 
 Режим впливає на наступні параметри:
 
-| Параметр                                                                                                                                                                   | Опис                                                                                                                |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| <a id="MC_ORBIT_RAD_MAX"></a>[MC_ORBIT_RAD_MAX](../advanced_config/parameter_reference.md#MC_ORBIT_RAD_MAX) | Maximum radius of orbit. Default: 1000m.                            |
-| <a id="MC_ORBIT_YAW_MOD"></a>[MC_ORBIT_YAW_MOD](../advanced_config/parameter_reference.md#MC_ORBIT_YAW_MOD) | Yaw behaviour during orbit flight. Default: Front to Circle Center. |
+| Параметр                                                                                                                                                                   | Опис                                                                                                                                                             |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="MC_ORBIT_RAD_MAX"></a>[MC_ORBIT_RAD_MAX](../advanced_config/parameter_reference.md#MC_ORBIT_RAD_MAX) | Maximum radius of orbit. Default: 1000m.                                                                         |
+| <a id="MC_ORBIT_YAW_MOD"></a>[MC_ORBIT_YAW_MOD](../advanced_config/parameter_reference.md#MC_ORBIT_YAW_MOD) | Yaw behaviour during orbit flight. Default: Front to Circle Center.                                              |
+| <a id="MPC_XY_VEL_MAX"></a>[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX)       | Tangential speed limit. Stick input won't accelerate beyond this limit. Higher commands are accepted but capped. |
 
 Наступні обмеження зафіксовані у вихідному коді:
 
-- Початкове / типове обертання 1 м/с у годинному напрямку.
-- Максимальне прискорення обмежено до 2 м/с^2, з пріоритетом на збереження командованої траєкторії кола, а не командованої швидкості на землі (тобто транспортний засіб сповільнюватиметься, щоб досягти правильного кола, якщо прискорення перевищує 2 м/с^2).
+- Initial/default rotation is 1m/s in a clockwise direction.
+- The maximum acceleration is limited to 2m/s^2, with priority on keeping the commanded circle trajectory rather than commanded ground speed (i.e. the vehicle will slow down in order to achieve the correct circle if the acceleration exceeds 2m/s^2).
 
 ## Повідомлення MAVLink (розробники)
 
 Режим орбіти використовує наступні команди MAVLink:
 
-- [MAV_CMD_DO_ORBIT](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_ORBIT) - Start an orbit with specified center point, radius, direction, altitude, speed and [yaw direction](https://mavlink.io/en/messages/common.html#ORBIT_YAW_BEHAVIOUR) (vehicle defaults to faceing centre of orbit).
+- [MAV_CMD_DO_ORBIT](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_ORBIT) - Start an orbit with specified center point, radius, direction, altitude, speed and [yaw direction](https://mavlink.io/en/messages/common.html#ORBIT_YAW_BEHAVIOUR).
+  The same defaults and limits apply.
+  When exceeding limits the command is accepted but velocity and radius capped.
 - [ORBIT_EXECUTION_STATUS](https://mavlink.io/en/messages/common.html#ORBIT_EXECUTION_STATUS) - Orbit status emitted during orbit to update GCS of current orbit parameters (these may be changed by the RC controller).

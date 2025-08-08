@@ -54,8 +54,8 @@ Cameras are used image and video capture, and more generally to provide data for
 
 Серед популярних стереокамер:
 
-- [Intel® RealSense™ Depth Camera D435](https://www.intelrealsense.com/depth-camera-d435/)
-- [Intel® RealSense™ Depth Camera D415](https://www.intelrealsense.com/depth-camera-d415/)
+- [Intel® RealSense™ Depth Camera D435](https://realsenseai.com/stereo-depth-cameras/stereo-depth-camera-d435/)
+- [Intel® RealSense™ Depth Camera D415](https://realsenseai.com/stereo-depth-cameras/stereo-depth-camera-d415/)
 - [DUO MLX](https://duo3d.com/product/duo-minilx-lv1)
 
 ### VIO Камера/Сенсори
