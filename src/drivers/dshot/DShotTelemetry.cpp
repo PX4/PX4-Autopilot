@@ -101,14 +101,16 @@ bool DShotTelemetry::parseCommandResponse()
 	// TODO: any way to determine response type?
 	switch (_command_response_command) {
 	case DSHOT_CMD_ESC_INFO: {
-		if (parseSettingsRequestResponse(buf, bytes)) {
-			_recv_bytes = 0;
-			return true;
+			if (parseSettingsRequestResponse(buf, bytes)) {
+				_recv_bytes = 0;
+				return true;
+			}
+
+			break;
+
+		default:
+			break;
 		}
-		break;
-	default:
-		break;
-	}
 	}
 
 	return false;
@@ -126,6 +128,7 @@ bool DShotTelemetry::parseSettingsRequestResponse(uint8_t *buf, int size)
 			uint8_t data_length = COMMAND_RESPONSE_SETTINGS_SIZE - 1;
 			uint8_t checksum = crc8(_command_response_buffer, data_length);
 			uint8_t checksum_data = _command_response_buffer[data_length];
+
 			if (checksum == checksum_data) {
 				PX4_INFO("Successfully received settings!");
 				esc_eeprom_s eeprom = {};
@@ -134,6 +137,7 @@ bool DShotTelemetry::parseSettingsRequestResponse(uint8_t *buf, int size)
 				memcpy(eeprom.data, _command_response_buffer, data_length);
 				eeprom.length = data_length;
 				_esc_eeprom_pub.publish(eeprom);
+
 			} else {
 				PX4_WARN("Command Response checksum failed!");
 			}
@@ -148,54 +152,81 @@ bool DShotTelemetry::parseSettingsRequestResponse(uint8_t *buf, int size)
 	return false;
 }
 
-int DShotTelemetry::parseTelemetryPacket(int num_motors)
+bool DShotTelemetry::parseTelemetryPacket(EscData *esc_data)
 {
-	if (_telemetry_request_motor_index == -1) {
-		// nothing in progress, start a request
-		_telemetry_request_motor_index = 0;
-		_telemetry_request_start = 0;
-		_frame_position = 0;
-		return -1;
+	if (telemetryRequestFinished()) {
+		return false;
 	}
 
 	// read from the uart. This must be non-blocking, so check first if there is data available
 	if (_uart.bytesAvailable() <= 0) {
-		// no data available. Check for a timeout
-		const hrt_abstime now = hrt_absolute_time();
-
-		if (_telemetry_request_start > 0 && now > _telemetry_request_start + 30_ms) {
-
+		if (hrt_elapsed_time(&_telemetry_request_start) > 30_ms) {
 			// NOTE: this happens when sending commands, there's a window after an ESC receives
 			// a command where it will not respond to any telemetry requests
-			PX4_DEBUG("ESC telemetry timeout for motor %i (frame pos=%i)", _telemetry_request_motor_index, _frame_position);
+			PX4_DEBUG("ESC telemetry timeout");
 			++_num_timeouts;
 
-			requestNextMotor(num_motors);
-			return -2;
+			// Mark telemetry request as finished
+			_telemetry_request_start = 0;
+			_frame_position = 0;
+			return false;
 		}
 
-		return -1;
+		return false;
 	}
 
 	uint8_t buf[TELEMETRY_FRAME_SIZE];
 	int bytes = _uart.read(buf, sizeof(buf));
 
-	int ret = -1;
 
-	for (int i = 0; i < bytes && ret == -1; ++i) {
+	return decodeTelemetryResponse(buf, bytes, esc_data);
+}
 
-		bool successful_decoding = false;
 
-		if (decodeByte(buf[i], successful_decoding)) {
-			if (successful_decoding) {
-				ret = _telemetry_request_motor_index;
+bool DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data)
+{
+	bool successful_decoding = false;
+
+	for (int i = 0; i < length; i++) {
+		_frame_buffer[_frame_position++] = buffer[i];
+
+		/*
+		 * ESC Telemetry Frame Structure (10 bytes total)
+		 * =============================================
+		 * Byte 0:     Temperature (uint8_t)
+		 * Byte 1-2:   Voltage (uint16_t, big-endian)
+		 * Byte 3-4:   Current (uint16_t, big-endian)
+		 * Byte 5-6:   Consumption (uint16_t, big-endian)
+		 * Byte 7-8:   eRPM (uint16_t, big-endian)
+		 * Byte 9:     CRC8 Checksum
+		 */
+
+		if (_frame_position == TELEMETRY_FRAME_SIZE) {
+			uint8_t checksum = crc8(_frame_buffer, TELEMETRY_FRAME_SIZE - 1);
+			uint8_t checksum_data = _frame_buffer[TELEMETRY_FRAME_SIZE - 1];
+
+			if (checksum == checksum_data) {
+				esc_data->time = hrt_absolute_time();
+				esc_data->temperature = _frame_buffer[0];
+				esc_data->voltage = (_frame_buffer[1] << 8) | _frame_buffer[2];
+				esc_data->current = (_frame_buffer[3] << 8) | _frame_buffer[4];
+				esc_data->consumption = (_frame_buffer[5]) << 8 | _frame_buffer[6];
+				esc_data->erpm = (_frame_buffer[7] << 8) | _frame_buffer[8];
+
+				++_num_successful_responses;
+				successful_decoding = true;
+
+			} else {
+				++_num_checksum_errors;
 			}
 
-			requestNextMotor(num_motors);
+			// Mark telemetry request as finished
+			_telemetry_request_start = 0;
+			_frame_position = 0;
 		}
 	}
 
-	return ret;
+	return successful_decoding;
 }
 
 void DShotTelemetry::setExpectCommandResponse(int motor_index, uint16_t command)
@@ -212,50 +243,14 @@ bool DShotTelemetry::expectingCommandResponse()
 	return _command_response_motor_index >= 0;
 }
 
-/*
- * ESC Telemetry Frame Structure (10 bytes total)
- * =============================================
- * Byte 0:     Temperature (uint8_t)
- * Byte 1-2:   Voltage (uint16_t, big-endian)
- * Byte 3-4:   Current (uint16_t, big-endian)
- * Byte 5-6:   Consumption (uint16_t, big-endian)
- * Byte 7-8:   eRPM (uint16_t, big-endian)
- * Byte 9:     CRC8 Checksum
- */
-bool DShotTelemetry::decodeByte(uint8_t byte, bool &successful_decoding)
+void DShotTelemetry::startTelemetryRequest()
 {
-	_frame_buffer[_frame_position++] = byte;
-
-	if (_frame_position == TELEMETRY_FRAME_SIZE) {
-		uint8_t checksum = crc8(_frame_buffer, TELEMETRY_FRAME_SIZE - 1);
-		uint8_t checksum_data = _frame_buffer[TELEMETRY_FRAME_SIZE - 1];
-
-		if (checksum == checksum_data) {
-			_latest_data.time = hrt_absolute_time();
-			_latest_data.temperature = _frame_buffer[0];
-			_latest_data.voltage = (_frame_buffer[1] << 8) | _frame_buffer[2];
-			_latest_data.current = (_frame_buffer[3] << 8) | _frame_buffer[4];
-			_latest_data.consumption = (_frame_buffer[5]) << 8 | _frame_buffer[6];
-			_latest_data.erpm = (_frame_buffer[7] << 8) | _frame_buffer[8];
-
-			++_num_successful_responses;
-			successful_decoding = true;
-
-		} else {
-			++_num_checksum_errors;
-		}
-
-		return true;
-	}
-
-	return false;
+	_telemetry_request_start = hrt_absolute_time();
 }
 
-void DShotTelemetry::printStatus() const
+bool DShotTelemetry::telemetryRequestFinished()
 {
-	PX4_INFO("Number of successful ESC frames: %i", _num_successful_responses);
-	PX4_INFO("Number of timeouts: %i", _num_timeouts);
-	PX4_INFO("Number of CRC errors: %i", _num_checksum_errors);
+	return _telemetry_request_start == 0;
 }
 
 uint8_t DShotTelemetry::crc8(const uint8_t *buf, uint8_t len)
@@ -279,20 +274,9 @@ uint8_t DShotTelemetry::crc8(const uint8_t *buf, uint8_t len)
 	return crc;
 }
 
-void DShotTelemetry::requestNextMotor(int num_motors)
+void DShotTelemetry::printStatus() const
 {
-	_telemetry_request_motor_index = (_telemetry_request_motor_index + 1) % num_motors;
-	_telemetry_request_start = 0;
-	_frame_position = 0;
-}
-
-int DShotTelemetry::getNextMotorIndex()
-{
-	if (!_enabled || requestInProgress()) {
-		// already in progress, do not send another request
-		return -1;
-	}
-
-	_telemetry_request_start = hrt_absolute_time();
-	return _telemetry_request_motor_index;
+	PX4_INFO("Number of successful ESC frames: %i", _num_successful_responses);
+	PX4_INFO("Number of timeouts: %i", _num_timeouts);
+	PX4_INFO("Number of CRC errors: %i", _num_checksum_errors);
 }

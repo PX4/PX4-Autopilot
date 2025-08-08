@@ -38,30 +38,30 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/esc_eeprom.h>
 
+struct EscData {
+	hrt_abstime time;
+	int8_t temperature;  ///< [deg C]
+	int16_t voltage;     ///< [0.01V]
+	int16_t current;     ///< [0.01A]
+	int16_t consumption; ///< [mAh]
+	int16_t erpm;        ///< [100ERPM]
+};
+
 class DShotTelemetry
 {
 public:
-	struct EscData {
-		hrt_abstime time;
-		int8_t temperature;  ///< [deg C]
-		int16_t voltage;     ///< [0.01V]
-		int16_t current;     ///< [0.01A]
-		int16_t consumption; ///< [mAh]
-		int16_t erpm;        ///< [100ERPM]
-	};
 
 	~DShotTelemetry();
 
 	int init(const char *uart_device, bool swap_rxtx);
-	int getNextMotorIndex();
-	const EscData &latestESCData() const { return _latest_data; }
 	void printStatus() const;
-	bool requestInProgress() { return _telemetry_request_start != 0; }
 	bool enabled() { return _enabled; }
 
-	// Attempts to parse a single 10 Byte Telemtry packet.
-	// Returns the motor index that the telemtry packet was received from.
-	int parseTelemetryPacket(int num_motors);
+	void startTelemetryRequest();
+	bool telemetryRequestFinished();
+
+	bool parseTelemetryPacket(EscData *esc_data);
+
 
 	// Attempt to parse a command response.
 	// Returns TODO
@@ -76,17 +76,10 @@ private:
 	static constexpr int COMMAND_RESPONSE_SETTINGS_SIZE = 49; // 48B for EEPROM + 1B for CRC
 	static constexpr int TELEMETRY_FRAME_SIZE = 10;
 
-	void requestNextMotor(int num_motors);
+	bool decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data);
+
 
 	bool parseSettingsRequestResponse(uint8_t *buf, int size);
-
-	/**
-	 * Decode a single byte from an ESC feedback frame
-	 * @param byte
-	 * @param successful_decoding set to true if checksum matches
-	 * @return true if received the expected amount of bytes and the next motor can be requested
-	 */
-	bool decodeByte(uint8_t byte, bool &successful_decoding);
 
 	// Decodes success_size bytes and returns true if all were received
 	bool decodeCommandResponseByte(uint8_t byte, int success_size);
@@ -108,7 +101,6 @@ private:
 	EscData _latest_data{};
 	uint8_t _frame_buffer[TELEMETRY_FRAME_SIZE];
 	int _frame_position{0};
-	int _telemetry_request_motor_index{-1};
 	hrt_abstime _telemetry_request_start{0};
 
 	// statistics
