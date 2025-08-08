@@ -35,8 +35,8 @@ parameters:
         long: Measurement noise for the optical flow sensor when it's reported quality
           metric is at the maximum
       type: float
-      default: 0.15
-      min: 0.05
+      default: 0.05
+      min: 0.01
       unit: rad/s
       decimal: 2
     EKF2_OF_N_MAX:
@@ -45,7 +45,7 @@ parameters:
         long: Measurement noise for the optical flow sensor when it's reported quality
           metric is at the minimum
       type: float
-      default: 0.5
+      default: 0.1
       min: 0.05
       unit: rad/s
       decimal: 2
