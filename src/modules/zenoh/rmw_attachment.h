@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,70 +32,26 @@
  ****************************************************************************/
 
 /**
- * @file zenoh_subscriber.cpp
+ * @file rmw_attachment.h
  *
- * Zenoh subscriber
+ * ROS2 RMW Attachment helper
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
 
-#include "zenoh_subscriber.hpp"
+#include <zenoh-pico.h>
 
-static void data_handler_cb(z_loaned_sample_t *sample, void *arg)
-{
-	static_cast<Zenoh_Subscriber *>(arg)->data_handler(sample);
-}
+#pragma once
 
-void Zenoh_Subscriber::data_handler(const z_loaned_sample_t *sample)
-{
-	z_view_string_t keystr;
-	z_keyexpr_as_view_string(z_sample_keyexpr(sample), &keystr);
-	printf(">> [Subscriber] Received ('%s' size '%d')\n", z_string_data(z_loan(keystr)),
-	       (int)z_bytes_len(z_sample_payload(sample)));
-}
+/* Derived from ROS2 rmw https://github.com/ros2/rmw/blob/e6addf2411b8ee8a2ac43d691533b8c05ae8f1b6/rmw/include/rmw/types.h#L44 */
+#define RMW_GID_STORAGE_SIZE 16u
 
-Zenoh_Subscriber::Zenoh_Subscriber()
-{
-}
+/* See rmw_zenoh design.md for more information https://github.com/ros2/rmw_zenoh/blob/rolling/docs/design.md#publishers */
+#define RMW_ATTACHEMENT_SIZE (8u + 8u + 1u + RMW_GID_STORAGE_SIZE)
 
-Zenoh_Subscriber::~Zenoh_Subscriber()
-{
-	undeclare_subscriber();
-}
-
-int Zenoh_Subscriber::undeclare_subscriber()
-{
-	z_undeclare_subscriber(z_subscriber_move(&_sub));
-	return 0;
-}
-
-int Zenoh_Subscriber::declare_subscriber(z_owned_session_t s, const char *keyexpr)
-{
-	z_owned_closure_sample_t callback;
-	z_closure(&callback, data_handler_cb, NULL, this);
-
-	z_view_keyexpr_t ke;
-	z_view_keyexpr_from_str(&ke, keyexpr);
-
-	if (z_declare_subscriber(z_loan(s), &_sub, z_loan(ke), z_closure_sample_move(&callback), NULL) < 0) {
-		printf("Unable to declare subscriber.\n");
-		exit(-1);
-	}
-
-	return 0;
-}
-
-void Zenoh_Subscriber::print()
-{
-	z_view_string_t keystr;
-	z_keyexpr_as_view_string(z_subscriber_keyexpr(z_loan(_sub)), &keystr);
-	printf("Topic: %s\n", z_string_data(z_loan(keystr)));
-}
-
-void Zenoh_Subscriber::print(const char *type_string, const char *topic_string)
-{
-	z_view_string_t keystr;
-	z_keyexpr_as_view_string(z_subscriber_keyexpr(z_loan(_sub)), &keystr);
-	printf("Topic: %.*s -> %s %s \n", (int)z_string_len(z_loan(keystr)), z_string_data(z_loan(keystr)), type_string,
-	       topic_string);
-}
+typedef struct __attribute__((__packed__)) RmwAttachment {
+	int64_t sequence_number;
+	int64_t time;
+	uint8_t rmw_gid_size;
+	uint8_t rmw_gid[RMW_GID_STORAGE_SIZE];
+} RmwAttachment;
