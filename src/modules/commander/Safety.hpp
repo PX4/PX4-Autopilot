@@ -37,9 +37,12 @@
 
 #pragma once
 
+#include <lib/parameters/param.h>
+#include <px4_platform_common/defines.h>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/button_event.h>
+#include <uORB/topics/safety_switch.h>
 
 class Safety
 {
@@ -47,17 +50,28 @@ public:
 	Safety();
 	~Safety() = default;
 
-	bool safetyButtonHandler();
+	bool safetySwitchHandler();
 	void activateSafety();
-	bool isButtonAvailable() const { return _button_available; }
+	bool isSafetySwitchAvailable() const { return _safety_switch_available; }
 	bool isSafetyOff() const { return _safety_off; }
 	bool isSafetyDisabled() const { return _safety_disabled; }
 
 private:
-	uORB::Subscription _safety_button_sub{ORB_ID::safety_button};
+	enum class SafetyMode : int32_t {
+		SAFETY_BUTTON = 0,
+		LEVEL_HIGH = 1,
+		LEVEL_LOW = 2
+	};
 
-	bool _button_available{false};///< Set to true if a safety button is connected
+	void handleModeButton();
+	void handleModeLevel();
+
+	uORB::Subscription _safety_button_sub{ORB_ID::safety_button};
+	uORB::Subscription _safety_switch_sub{ORB_ID::safety_switch};
+
+	bool _safety_switch_available{false};///< Set to true if a safety switch is connected
 	bool _safety_off{false}; ///< Set to true if safety is off
 	bool _previous_safety_off{false}; ///< Previous safety value
 	bool _safety_disabled{false}; ///< Set to true if safety is disabled
+	SafetyMode _safety_switch_mode{SafetyMode::SAFETY_BUTTON}; //< Value of the safety switch mode parameter
 };
