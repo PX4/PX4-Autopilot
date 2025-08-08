@@ -49,8 +49,8 @@ public:
 
 	unsigned get_size() override
 	{
-		static constexpr unsigned size_per_batch = MAVLINK_MSG_ID_ESC_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-		return _esc_status_sub.advertised() ? size_per_batch * _number_of_batches : 0;
+		static constexpr unsigned message_size = MAVLINK_MSG_ID_ESC_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _esc_status_sub.advertised() ? message_size * _number_of_messages : 0;
 	}
 
 private:
@@ -58,11 +58,11 @@ private:
 
 	// TODO: subscription multi
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
-	uint8_t _number_of_batches{0};
+	uint8_t _number_of_messages{0};
 
 	bool send() override
 	{
-		static constexpr uint8_t batch_size = MAVLINK_MSG_ESC_STATUS_FIELD_RPM_LEN;
+		static constexpr uint8_t number_of_escs_per_message = MAVLINK_MSG_ESC_STATUS_FIELD_RPM_LEN;
 		esc_status_s esc_status;
 
 		if (_esc_status_sub.update(&esc_status)) {
@@ -70,17 +70,18 @@ private:
 
 			msg.time_usec = esc_status.timestamp;
 
-			// Ceil value of integer division. For 1-4 esc => 1 batch, 5-8 esc => 2 batches etc
-			_number_of_batches = ceilf((float)esc_status.esc_count / batch_size);
+			// count how many 4-ESC groups have at least one ESC online
+			_number_of_messages = ((esc_status.esc_online_flags & 0x0F) ? 1 : 0) +
+					      ((esc_status.esc_online_flags & 0xF0) ? 1 : 0);
 
-			for (int batch_number = 0; batch_number < _number_of_batches; batch_number++) {
-				msg.index = batch_number * batch_size;
+			for (int i = 0; i < _number_of_messages; i++) {
+				msg.index = i * number_of_escs_per_message;
 
-				for (int esc_index = 0; esc_index < batch_size
-				     && msg.index + esc_index < esc_status_s::CONNECTED_ESC_MAX; esc_index++) {
-					msg.rpm[esc_index] = esc_status.esc[msg.index + esc_index].esc_rpm;
-					msg.voltage[esc_index] = esc_status.esc[msg.index + esc_index].esc_voltage;
-					msg.current[esc_index] = esc_status.esc[msg.index + esc_index].esc_current;
+				for (int j = 0; j < number_of_escs_per_message; j++) {
+					int esc_index = msg.index + j;
+					msg.rpm[j] = esc_status.esc[esc_index].esc_rpm;
+					msg.voltage[j] = esc_status.esc[esc_index].esc_voltage;
+					msg.current[j] = esc_status.esc[esc_index].esc_current;
 				}
 
 				mavlink_msg_esc_status_send_struct(_mavlink->get_channel(), &msg);

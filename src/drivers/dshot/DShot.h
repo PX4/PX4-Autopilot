@@ -123,9 +123,7 @@ private:
 
 	void init_telemetry(const char *device, bool swap_rxtx);
 
-	bool process_telemetry(const int telemetry_index, const DShotTelemetry::EscData &data);
-
-	void publish_esc_status(void);
+	bool process_telemetry(const int telemetry_index, const EscData &data);
 
 	bool process_bdshot_erpm(void);
 
@@ -145,9 +143,12 @@ private:
 
 	uORB::PublicationMultiData<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 
+	esc_status_s _esc_status{};
+
 	static char _telemetry_device[20];
 	static bool _telemetry_swap_rxtx;
 	static px4::atomic_bool _request_telemetry_init;
+	int _telemetry_current_index = -1;
 
 	bool _bidirectional_dshot_enabled{false};
 
