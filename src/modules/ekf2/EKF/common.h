@@ -341,7 +341,7 @@ struct parameters {
 
 	// these parameters control the strictness of GPS quality checks used to determine if the GPS is
 	// good enough to set a local origin and commence aiding
-	int32_t ekf2_gps_check{21};             ///< bitmask used to control which GPS quality checks are used
+	int32_t ekf2_gps_check{1045};             ///< bitmask used to control which GPS quality checks are used
 	float ekf2_req_eph{5.0f};               ///< maximum acceptable horizontal position error (m)
 	float ekf2_req_epv{8.0f};               ///< maximum acceptable vertical position error (m)
 	float ekf2_req_sacc{1.0f};              ///< maximum acceptable speed error (m/s)
@@ -349,6 +349,7 @@ struct parameters {
 	float ekf2_req_pdop{2.0f};              ///< maximum acceptable position dilution of precision
 	float ekf2_req_hdrift{0.3f};            ///< maximum acceptable horizontal drift speed (m/s)
 	float ekf2_req_vdrift{0.5f};            ///< maximum acceptable vertical drift speed (m/s)
+	int32_t ekf2_req_fix{3};                ///< minimum acceptable GPS fix type
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// GNSS heading fusion
