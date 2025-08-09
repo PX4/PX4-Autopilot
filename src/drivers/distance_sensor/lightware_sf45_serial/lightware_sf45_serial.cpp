@@ -686,12 +686,12 @@ void SF45LaserSerial::_handle_missed_bins(uint8_t current_bin, uint8_t previous_
 {
 	// if the sensor has its cycle delay configured for a low value like 5, it can happen that not every bin gets a measurement.
 	// in this case we assume the measurement to be valid for all bins between the previous and the current bin.
-	uint8_t start;
-	uint8_t end;
+	uint8_t start = current_bin;
+	uint8_t end = previous_bin - 1;
 
 	if (abs(current_bin - previous_bin) > BIN_COUNT / 4) {
 		// wrap-around case is assumed to have happend when the distance between the bins is larger than 1/4 of all Bins
-		// THis is simplyfied as we are not considering the scaning direction
+		// This is simplyfied as we are not considering the scaning direction
 		start = math::max(previous_bin, current_bin);
 		end = math::min(previous_bin, current_bin);
 
@@ -699,9 +699,6 @@ void SF45LaserSerial::_handle_missed_bins(uint8_t current_bin, uint8_t previous_
 		start = previous_bin + 1;
 		end = current_bin;
 
-	} else { 					// scanning counter-clockwise
-		start = current_bin;
-		end = previous_bin - 1;
 	}
 
 	if (start <= end) {
