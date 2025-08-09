@@ -148,7 +148,7 @@ private:
 	static char _telemetry_device[20];
 	static bool _telemetry_swap_rxtx;
 	static px4::atomic_bool _request_telemetry_init;
-	int _telemetry_current_index = -1;
+	int _telemetry_current_index = 0;
 
 	bool _bidirectional_dshot_enabled{false};
 

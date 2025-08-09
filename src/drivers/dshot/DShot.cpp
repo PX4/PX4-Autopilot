@@ -279,11 +279,14 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 {
 	// First check if all outputs are disarmed and we have a command to send
 	bool all_disarmed = true;
+	bool no_functions_set = true;
 
 	for (int i = 0; i < (int)num_outputs; i++) {
 		if (!_mixing_output.isFunctionSet(i)) {
 			continue;
 		}
+
+		no_functions_set = false;
 
 		if (outputs[i] != DSHOT_DISARM_VALUE) {
 			all_disarmed = false;
@@ -292,6 +295,11 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 		} else {
 			_esc_status.esc_armed_flags &= ~(1 << i);
 		}
+	}
+
+	if (no_functions_set) {
+		PX4_WARN("DShot::updateOutputs called when no OutputFunctions have been set!");
+		return false;
 	}
 
 	// All outputs are disarmed and we have a command to send
