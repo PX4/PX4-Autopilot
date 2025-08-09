@@ -152,6 +152,7 @@ void DShot::enable_dshot_outputs()
 
 	_output_mask = ret;
 
+	// TODO: review
 	// disable unused functions
 	for (unsigned i = 0; i < _num_outputs; ++i) {
 		if (((1 << i) & _output_mask) == 0) {
@@ -233,7 +234,7 @@ bool DShot::process_bdshot_erpm(void)
 	}
 
 	for (unsigned i = 0; i < _num_outputs; i++) {
-		if (!_mixing_output.isFunctionSet(i)) {
+		if (!_mixing_output.isMotor(i)) {
 			continue;
 		}
 
@@ -258,16 +259,9 @@ void DShot::mixerChanged()
 
 	for (unsigned i = 0; i < _num_outputs; ++i) {
 
-		OutputFunction function = _mixing_output.outputFunction(i);
-
-		if (i < esc_status_s::CONNECTED_ESC_MAX) {
-			_esc_status.esc[i].actuator_function = (uint8_t)function;
-		}
-
-		if (_mixing_output.isFunctionSet(i)) {
-			if ((function >= OutputFunction::Motor1) || (function <= OutputFunction::Motor12)) {
-				motor_count++;
-			}
+		if (i < esc_status_s::CONNECTED_ESC_MAX && _mixing_output.isMotor(i)) {
+			_esc_status.esc[i].actuator_function = (uint8_t)_mixing_output.outputFunction(i);
+			motor_count++;
 		}
 	}
 
@@ -277,16 +271,18 @@ void DShot::mixerChanged()
 bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			  unsigned num_outputs, unsigned num_control_groups_updated)
 {
+	if (!_motor_count) {
+		PX4_WARN("DShot::updateOutputs called when no Motors have been set!");
+		return false;
+	}
+
 	// First check if all outputs are disarmed and we have a command to send
 	bool all_disarmed = true;
-	bool no_functions_set = true;
 
 	for (int i = 0; i < (int)num_outputs; i++) {
-		if (!_mixing_output.isFunctionSet(i)) {
+		if (!_mixing_output.isMotor(i)) {
 			continue;
 		}
-
-		no_functions_set = false;
 
 		if (outputs[i] != DSHOT_DISARM_VALUE) {
 			all_disarmed = false;
@@ -297,11 +293,6 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 		}
 	}
 
-	if (no_functions_set) {
-		PX4_WARN("DShot::updateOutputs called when no OutputFunctions have been set!");
-		return false;
-	}
-
 	// All outputs are disarmed and we have a command to send
 	if (all_disarmed && _current_command.valid()) {
 
@@ -309,7 +300,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 
 		for (int i = 0; i < (int)num_outputs; i++) {
 
-			if (!_mixing_output.isFunctionSet(i)) {
+			if (!_mixing_output.isMotor(i)) {
 				continue;
 			}
 
@@ -358,17 +349,13 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 	if (_telemetry.enabled() && _telemetry.telemetryRequestFinished()) {
 		int next_telem_index = (_telemetry_current_index + 1) % num_outputs;
 
-		// TODO: FIXME: if no mixing output functions are set we can get stuck here
-		// Figure out which output to request telemetry from next
-		while (1) {
-			if (_mixing_output.isFunctionSet(next_telem_index)) {
+		for (int i = 0; i < (int)num_outputs; i++) {
+			if (_mixing_output.isMotor(next_telem_index)) {
 				_telemetry_current_index = next_telem_index;
 				break;
 			}
-
 			next_telem_index = (next_telem_index + 1) % num_outputs;
 		}
-
 
 		// The DShotTelemetry class no longer cares about which ESC it receives
 		// telemetry from, it just knows how to process requests.
@@ -379,7 +366,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 	// Iterate over all of the outputs
 	for (int i = 0; i < (int)num_outputs; i++) {
 
-		if (!_mixing_output.isFunctionSet(i)) {
+		if (!_mixing_output.isMotor(i)) {
 			continue;
 		}
 
@@ -480,8 +467,13 @@ void DShot::Run()
 		all_channels_updated = process_bdshot_erpm();
 	}
 
+	// Publish when all bdsht channels have been updated OR
+	// Publish when all telem channels have been updated
+
 	if (all_channels_updated) {
 		_esc_status_pub.update(_esc_status);
+		// Reset online status, require telem/bdshot to set
+		_esc_status.esc_online_flags = 0;
 	}
 
 	if (_parameter_update_sub.updated()) {
@@ -573,8 +565,9 @@ void DShot::handle_vehicle_commands()
 			int type = (int)(vehicle_command.param1 + 0.5f);
 			int index = -1;
 
-			for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
-				if ((int)_mixing_output.outputFunction(i) == function) {
+			// for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+			for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
+				if ((int)_mixing_output.outputFunction(i) == function && _mixing_output.isMotor(i)) {
 					index = i;
 				}
 			}

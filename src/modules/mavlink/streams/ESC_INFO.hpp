@@ -34,7 +34,10 @@
 #ifndef ESC_INFO_HPP
 #define ESC_INFO_HPP
 
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/esc_status.h>
+#include <mixer_module/output_functions.hpp>
+#include <mathlib/mathlib.h>
 
 class MavlinkStreamESCInfo : public MavlinkStream
 {
@@ -50,50 +53,120 @@ public:
 	unsigned get_size() override
 	{
 		static constexpr unsigned message_size = MAVLINK_MSG_ID_ESC_INFO_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-		return _esc_status_sub.advertised() ? message_size * _number_of_messages : 0;
+		return _esc_status_subs.advertised_count() * message_size;
 	}
 
 private:
 	explicit MavlinkStreamESCInfo(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
-	uint8_t _number_of_messages{0};
+	uORB::SubscriptionMultiArray<esc_status_s> _esc_status_subs{ORB_ID::esc_status};
+
+	static constexpr uint8_t MAX_ESC_OUTPUTS = 12; // See output_functions.hpp
+	static constexpr uint8_t ESCS_PER_MSG = MAVLINK_MSG_ESC_INFO_FIELD_TEMPERATURE_LEN;
+	static constexpr uint8_t MAX_NUM_MSGS = MAX_ESC_OUTPUTS / ESCS_PER_MSG;
+
+	static constexpr hrt_abstime ESC_TIMEOUT = 100000;
+
+	struct EscOutputInterfaceInfo {
+		uint16_t counter;
+		uint8_t esc_count;
+		uint8_t esc_connectiontype;
+		uint8_t esc_online_flags;
+	};
+
+	struct EscInfo {
+		hrt_abstime timestamp;
+		uint16_t failure_flags;
+		uint32_t error_count;
+		int16_t temperature;
+		bool online;
+	};
+
+	int _total_esc_count = {};
+	EscOutputInterfaceInfo _interface[MAX_NUM_MSGS] = {};
+	EscInfo _escs[MAX_ESC_OUTPUTS] = {};
+
+	void update_data() override
+	{
+		int subscriber_count = math::min(_esc_status_subs.size(), MAX_NUM_MSGS);
+
+		for (int i = 0; i < subscriber_count; i++) {
+			esc_status_s esc = {};
+			if (_esc_status_subs[i].update(&esc)) {
+				_interface[i].counter = esc.counter;
+				_interface[i].esc_count = esc.esc_count;
+				_interface[i].esc_connectiontype = esc.esc_connectiontype;
+
+				// Capture online_flags, we will map from index to motor number
+				uint8_t online_flags = esc.esc_online_flags;
+				_interface[i].esc_online_flags = 0;
+
+				for (int j = 0; j < esc_status_s::CONNECTED_ESC_MAX; j++) {
+					bool is_motor = ((int)esc.esc[j].actuator_function >= (int)OutputFunction::Motor1) &&
+									((int)esc.esc[j].actuator_function <= (int)OutputFunction::Motor12);
+					if (is_motor) {
+						// Map OutputFunction number to index
+						int index = (int)esc.esc[j].actuator_function - (int)OutputFunction::Motor1;
+						_escs[index].online = online_flags & (1 << j);
+						_escs[index].failure_flags = esc.esc[j].failures;
+						_escs[index].error_count = esc.esc[j].esc_errorcount;
+						_escs[index].temperature = -1;
+
+						if (_escs[index].online) {
+							_escs[index].timestamp = esc.esc[j].timestamp;
+							_escs[index].temperature = esc.esc[j].esc_temperature * 100.f;
+						}
+					}
+				}
+			}
+		}
+
+		int count = 0;
+		for (int i = 0; i < MAX_NUM_MSGS; i++) {
+			count += _interface[i].esc_count;
+		}
+
+		_total_esc_count = count;
+	}
 
 	bool send() override
 	{
-		static constexpr uint8_t number_of_escs_per_message = MAVLINK_MSG_ESC_INFO_FIELD_TEMPERATURE_LEN;
-		esc_status_s esc_status;
+		bool updated = false;
 
-		if (_esc_status_sub.update(&esc_status)) {
-			mavlink_esc_info_t msg{};
+		for (int i = 0; i < MAX_NUM_MSGS; i++) {
 
-			msg.time_usec = esc_status.timestamp;
-			msg.counter = esc_status.counter;
-			msg.count = esc_status.esc_count;
-			msg.connection_type = esc_status.esc_connectiontype;
-			msg.info = esc_status.esc_online_flags;
+			hrt_abstime now = hrt_absolute_time();
 
-			// count how many 4-ESC groups have at least one ESC online
-			_number_of_messages = ((esc_status.esc_online_flags & 0x0F) ? 1 : 0) +
-					      ((esc_status.esc_online_flags & 0xF0) ? 1 : 0);
+			mavlink_esc_info_t msg = {};
+			msg.index = i * ESCS_PER_MSG;
+			msg.time_usec = now;
+			msg.counter = _interface[i].counter;
+			msg.count = _total_esc_count;
+			msg.connection_type = _interface[i].esc_connectiontype;
+			msg.info = _interface[i].esc_online_flags;
 
-			for (int i = 0; i < _number_of_messages; i++) {
-				msg.index = i * number_of_escs_per_message;
+			bool atleast_one_esc_updated = false;
+			for (int j = 0; j < ESCS_PER_MSG; j++) {
 
-				for (int j = 0; j < number_of_escs_per_message ; j++) {
-					int esc_index = msg.index + j;
-					msg.failure_flags[j] = esc_status.esc[esc_index].failures;
-					msg.error_count[j] = esc_status.esc[esc_index].esc_errorcount;
-					msg.temperature[j] = (int16_t)(esc_status.esc[esc_index].esc_temperature * 100.f);
+				EscInfo &esc = _escs[i * ESCS_PER_MSG + j];
+
+				msg.info |= (esc.online << j);
+
+				if ((esc.timestamp != 0) && (esc.timestamp + ESC_TIMEOUT) > now) {
+					msg.failure_flags[j] = esc.failure_flags;
+					msg.error_count[j] = esc.error_count;
+					msg.temperature[j] = esc.temperature;
+					atleast_one_esc_updated = true;
 				}
-
-				mavlink_msg_esc_info_send_struct(_mavlink->get_channel(), &msg);
 			}
 
-			return true;
+			if (atleast_one_esc_updated) {
+				mavlink_msg_esc_info_send_struct(_mavlink->get_channel(), &msg);
+				updated = true;
+			}
 		}
 
-		return false;
+		return updated;
 	}
 };
 
