@@ -141,7 +141,7 @@ public:
 
 	OutputFunction outputFunction(int index) const { return _function_assignment[index]; }
 
-	bool isMotor(int index) const { return (_function_assignment[index] >= OutputFunction::Motor1) || (_function_assignment[index] <= OutputFunction::Motor12); }
+	bool isMotor(int index) const { return isFunctionSet(index) && (_function_assignment[index] >= OutputFunction::Motor1) && (_function_assignment[index] <= OutputFunction::Motor12); }
 
 	/**
 	 * Call this regularly from Run(). It will call interface.updateOutputs().
