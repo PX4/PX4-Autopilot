@@ -116,9 +116,6 @@ private:
 		}
 	};
 
-	int _last_telemetry_index{-1};
-	uint8_t _actuator_functions[esc_status_s::CONNECTED_ESC_MAX] {};
-
 	void enable_dshot_outputs();
 
 	void init_telemetry(const char *device, bool swap_rxtx);

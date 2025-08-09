@@ -163,7 +163,7 @@ bool DShotTelemetry::parseTelemetryPacket(EscData *esc_data)
 		if (hrt_elapsed_time(&_telemetry_request_start) > 30_ms) {
 			// NOTE: this happens when sending commands, there's a window after an ESC receives
 			// a command where it will not respond to any telemetry requests
-			PX4_DEBUG("ESC telemetry timeout");
+			PX4_INFO("ESC telemetry timeout");
 			++_num_timeouts;
 
 			// Mark telemetry request as finished
@@ -177,7 +177,6 @@ bool DShotTelemetry::parseTelemetryPacket(EscData *esc_data)
 
 	uint8_t buf[TELEMETRY_FRAME_SIZE];
 	int bytes = _uart.read(buf, sizeof(buf));
-
 
 	return decodeTelemetryResponse(buf, bytes, esc_data);
 }
@@ -231,7 +230,7 @@ bool DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int length, EscDat
 
 void DShotTelemetry::setExpectCommandResponse(int motor_index, uint16_t command)
 {
-	PX4_DEBUG("setExpectCommandResponse");
+	PX4_INFO("setExpectCommandResponse");
 	_command_response_motor_index = motor_index;
 	_command_response_command = command;
 	_command_response_start = hrt_absolute_time();
