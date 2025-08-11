@@ -336,7 +336,7 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bi
 // Kicks off a DMA transmit for each configured timer and the associated channels
 void up_dshot_trigger()
 {
-	if (!_bdshot_cycle_complete) {
+	if (_bidirectional && !_bdshot_cycle_complete) {
 		PX4_WARN("Cylce not complete! Check system jitter");
 		return;
 	}

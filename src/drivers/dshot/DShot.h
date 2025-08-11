@@ -122,7 +122,9 @@ private:
 	void enable_dshot_outputs();
 
 	void init_telemetry(const char *device, bool swap_rxtx);
-	void set_next_telemetry_index();
+
+	// Returns true when the telemetry index has wrapped, indicating all configured motors have been sampled.
+	bool set_next_telemetry_index();
 
 	void process_telemetry(const EscData &data);
 	bool process_bdshot_erpm(void);
@@ -148,8 +150,11 @@ private:
 	static char _telemetry_device[20];
 	static bool _telemetry_swap_rxtx;
 	static px4::atomic_bool _request_telemetry_init;
-	int _telemetry_current_index = 0;
-	int _telemetry_last_index = 0;
+
+
+	int _telemetry_motor_index = 0;
+	int _telemetry_counter = 0;
+	hrt_abstime _telem_delay_until = 0;
 
 	uint32_t _output_mask{0};
 	int _motor_count{0};

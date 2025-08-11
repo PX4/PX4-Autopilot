@@ -225,9 +225,18 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 	bool request_telemetry = false;
 
 	// If telemetry is enabled and the last request has been processed
+	bool delay_elapsed = hrt_absolute_time() > _telem_delay_until;
 	if (_telemetry.enabled() && _telemetry.telemetryRequestFinished()) {
-		_telemetry.startTelemetryRequest();
-		request_telemetry = true;
+
+		if (!delay_elapsed) {
+			// Flush UART buffer while waiting to send telem request. Ensures
+			// garbage data doesn't corrupt our starting point for telem.
+			_telemetry.flush();
+
+		} else {
+			_telemetry.startTelemetryRequest();
+			request_telemetry = true;
+		}
 	}
 
 	// Iterate over all of the outputs
@@ -239,7 +248,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 
 		uint16_t output = outputs[i];
 
-		bool set_telemetry_bit = request_telemetry && (_telemetry_current_index == i);
+		bool set_telemetry_bit = request_telemetry && (_telemetry_motor_index == i);
 
 		if (output == DSHOT_DISARM_VALUE) {
 			up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, set_telemetry_bit);
@@ -293,7 +302,7 @@ void DShot::Run()
 		} else {
 
 			EscData data {};
-			data.motor_index = _telemetry_current_index;
+			data.motor_index = _telemetry_motor_index;
 
 			switch (_telemetry.parseTelemetryPacket(&data)) {
 			case TelemetryStatus::NotStarted:
@@ -306,40 +315,24 @@ void DShot::Run()
 				// If ready -- Process data
 				// DSHOT_TELEM_DEBUG("TelemetryStatus::Ready");
 				process_telemetry(data);
-				set_next_telemetry_index();
-
-				// Determine when to publish -- All telem channels have been sampled
-				if (_telemetry_last_index > _telemetry_current_index) {
-					// DSHOT_TELEM_DEBUG("all ready");
-					all_telem_sampled = true;
-				}
-
+				all_telem_sampled = set_next_telemetry_index();
 				perf_count(_telem_success_perf);
 				break;
 			case TelemetryStatus::Timeout:
 				// If timed out -- Nothing, skip to next index
 				// DSHOT_TELEM_DEBUG("TelemetryStatus::Timeout");
-				set_next_telemetry_index();
-
-				// Determine when to publish -- All telem channels have been sampled
-				if (_telemetry_last_index > _telemetry_current_index) {
-					// DSHOT_TELEM_DEBUG("all ready");
-					all_telem_sampled = true;
-				}
-
+				all_telem_sampled = set_next_telemetry_index();
 				perf_count(_telem_timeout_perf);
 				break;
 			case TelemetryStatus::ParseError:
 				// DSHOT_TELEM_DEBUG("TelemetryStatus::ParseError");
-				// If parsing error -- TODO: clear uart, hold off on telemetry for a bit
-				set_next_telemetry_index();
+				all_telem_sampled = set_next_telemetry_index();
+				_telem_delay_until = hrt_absolute_time() + 50_ms;
 				perf_count(_telem_error_perf);
 				break;
 			}
 		}
 	}
-
-
 	if (_param_bidirectional_enable.get()) {
 		// TODO: validate BDSHOT works when 1 is disconnected
 		// TODO: BDShotStatus
@@ -358,6 +351,7 @@ void DShot::Run()
 		_esc_status.esc_count = _motor_count;
 		_esc_status.counter++;
 		_esc_status_pub.update(_esc_status);
+		_esc_status.esc_online_flags = 0;
 	}
 
 	if (_parameter_update_sub.updated()) {
@@ -378,19 +372,30 @@ void DShot::Run()
 	perf_end(_cycle_perf);
 }
 
-void DShot::set_next_telemetry_index()
+bool DShot::set_next_telemetry_index()
 {
-	int next_telem_index = (_telemetry_current_index + 1) % DSHOT_MAXIMUM_CHANNELS;
+	int next_motor_index = (_telemetry_motor_index + 1) % DSHOT_MAXIMUM_CHANNELS;
+
+	bool all_sampled = false;
 
 	for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
-		if (_mixing_output.isMotor(next_telem_index)) {
-			_telemetry_last_index = _telemetry_current_index;
-			_telemetry_current_index = next_telem_index;
-			// DSHOT_TELEM_DEBUG("next telem %d", _telemetry_current_index);
+		if (_mixing_output.isMotor(next_motor_index)) {
+
+			_telemetry_motor_index = next_motor_index;
+			_telemetry_counter++;
+
+			if ((_telemetry_counter > _motor_count) || (_motor_count == 1)) {
+				all_sampled = true;
+				_telemetry_counter = 0;
+			}
+
+			DSHOT_TELEM_DEBUG("next telem %d", _telemetry_motor_index);
 			break;
 		}
-		next_telem_index = (next_telem_index + 1) % DSHOT_MAXIMUM_CHANNELS;
+		next_motor_index = (next_motor_index + 1) % DSHOT_MAXIMUM_CHANNELS;
 	}
+
+	return all_sampled;
 }
 
 void DShot::process_telemetry(const EscData &data)
@@ -665,6 +670,7 @@ void DShot::update_params()
 
 void DShot::mixerChanged()
 {
+	PX4_INFO("mixerChanged");
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
 
 	int motor_count = 0;
