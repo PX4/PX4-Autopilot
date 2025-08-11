@@ -552,6 +552,8 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 		_mavlink_resend_uart(_mavlink.get_channel(), &mavlink_packet);
 	}
 
+	_last_param_sent = hrt_absolute_time();
+
 	return 0;
 }
 

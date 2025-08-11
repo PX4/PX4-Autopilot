@@ -6,6 +6,7 @@ However PX4 can also use some INS devices as either sources of raw data, or as a
 
 Systems that can be used in this way include:
 
+- [InertialLabs](../sensor/inertiallabs.md)
 - [VectorNav](../sensor/vectornav.md): IMU/AHRS, GNSS/INS, Dual GNSS/INS systems that can be used as an external INS or as a source of raw sensor data.
 
 ## Glossary
@@ -20,7 +21,7 @@ The magnetometer, if present, provides sensor data that can be used to provide t
 
 An AHRS system that includes both an IMU and a processing system that can provide attitude and heading information from the IMUs raw data.
 
-### Inertial Navigation System (INS) 
+### Inertial Navigation System (INS)
 
 An INS is a navigation device that uses accelerometers, gyroscopes, possibly magnetometers, and a computer to calculate the attitude, position, and velocity of a moving object without the need for external references.
 Essentially it is an AHRS that also includes position/velocity estimation.
