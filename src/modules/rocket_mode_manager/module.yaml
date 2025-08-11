@@ -1,0 +1,119 @@
+module_name: Rocket Mode Manager
+
+parameters:
+    - group: Rocket Mode Manager
+      definitions:
+        RKT_APOGEE:
+            description:
+                short: Expected apogee altitude
+                long: |
+                  Expected maximum altitude for the rocket flight.
+                  Used for apogee detection logic.
+            type: float
+            min: 10.0
+            max: 1000.0
+            increment: 10.0
+            decimal: 1
+            unit: m
+            default: 100.0
+
+        RKT_DEPLOY_V:
+            description:
+                short: Wing deployment velocity threshold
+                long: |
+                  Deploy wings when velocity along body roll axis (X-axis) drops below this value.
+                  Positive value for forward velocity threshold.
+            type: float
+            min: 0.0
+            max: 50.0
+            increment: 0.5
+            decimal: 1
+            unit: m/s
+            default: 5.0
+
+        RKT_WING_SV:
+            description:
+                short: Wing deployment servo index
+                long: |
+                  Servo channel index for wing deployment mechanism.
+                  Set to -1 to disable.
+            type: int32
+            min: -1
+            max: 15
+            default: 4
+
+        RKT_MODE_SW:
+            description:
+                short: Enable rocket mode switching
+                long: |
+                  Enable automatic mode switching from multicopter to fixed-wing
+                  when wings are deployed.
+            type: boolean
+            default: 1
+
+        RKT_LAUNCH_A:
+            description:
+                short: Launch detection acceleration threshold
+                long: |
+                  Minimum acceleration magnitude for launch detection (m/s^2)
+            type: float
+            unit: m/s^2
+            decimal: 1
+            increment: 0.5
+            default: 15.0
+
+        RKT_LAUNCH_V:
+            description:
+                short: Launch detection velocity threshold
+                long: |
+                  Minimum velocity magnitude for launch detection (m/s)
+            type: float
+            unit: m/s
+            decimal: 1
+            increment: 0.5
+            default: 3.0
+
+        RKT_BOOST_A:
+            description:
+                short: Boost end acceleration threshold
+                long: |
+                  Acceleration threshold below which boost phase ends (m/s^2)
+            type: float
+            unit: m/s^2
+            decimal: 1
+            increment: 0.5
+            default: 5.0
+
+        RKT_BOOST_T:
+            description:
+                short: Maximum boost phase duration
+                long: |
+                  Maximum time allowed in boost phase before switching to coast (s)
+            type: float
+            unit: s
+            decimal: 1
+            increment: 0.5
+            default: 10.0
+
+        RKT_COAST_T:
+            description:
+                short: Maximum coast phase duration
+                long: |
+                  Maximum time allowed in coast phase before switching to wing deployment (s)
+            type: float
+            unit: s
+            decimal: 1
+            increment: 1.0
+            default: 30.0
+
+        RKT_WING_T:
+            description:
+                short: Wing deployment time
+                long: |
+                  Duration of wing deployment phase before switching to fixed wing (s)
+            type: float
+            unit: s
+            decimal: 1
+            increment: 0.1
+            default: 2.0
+

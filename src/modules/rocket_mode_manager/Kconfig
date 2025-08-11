@@ -1,0 +1,11 @@
+menuconfig MODULES_ROCKET_MODE_MANAGER
+	bool "rocket_mode_manager"
+	default n
+	---help---
+		Enable support for rocket mode manager
+
+config MODULES_ROCKET_MODE_MANAGER_ALWAYS_ENABLED
+	bool
+	default y if MODULES_ROCKET_MODE_MANAGER && BOARD_PROTECTED && BOARD_KERNEL_SIDE
+	---help---
+		rocket_mode_manager is always enabled on the kernel side

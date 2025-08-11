@@ -1,0 +1,138 @@
+#!/bin/sh
+#
+# @name Rocket Plane
+#
+# @type Rocket
+# @class Experimental
+#
+# @board px4_fmu-v2 exclude
+# @board px4_fmu-v3 exclude
+# @board px4_fmu-v4pro exclude
+# @board px4_fmu-v5 exclude
+# @board px4_fmu-v5x exclude
+# @board bitcraze_crazyflie exclude
+#
+# @maintainer Your Name <your.email@example.com>
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+set VEHICLE_TYPE mc
+
+## Gazebo params
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=rocket_plane}
+
+param set-default SIM_GZ_EN 1 # Gazebo bridge
+
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 1
+param set-default SENS_EN_MAGSIM 1
+param set-default SENS_EN_ARSPDSIM 0
+
+## Mavlink
+param set-default MAV_TYPE 1 # Fixed wing aircraft
+
+# Rocket phase configuration - roll-only control
+# Set up control allocation for rocket with control surfaces
+param set-default CA_AIRFRAME 0  # Fixed-wing airframe
+param set-default CA_METHOD 1    # Pseudo-inverse with sequential desaturation
+
+# Configure 4 control surfaces for roll control
+param set-default CA_SV_CS_COUNT 4
+
+# Control Surface 1 (Front Right) - Roll positive contribution
+param set-default CA_SV_CS0_TYPE 12  # Custom control surface
+param set-default CA_SV_CS0_TRQ_R 1  # Roll torque contribution
+param set-default CA_SV_CS0_TRQ_P 1  # No pitch during rocket phase
+param set-default CA_SV_CS0_TRQ_Y 0  # No yaw during rocket phase
+
+# Control Surface 2 (Front Left) - Roll negative contribution
+param set-default CA_SV_CS1_TYPE 12  # Custom control surface
+param set-default CA_SV_CS1_TRQ_R 1 # Negative roll torque
+param set-default CA_SV_CS1_TRQ_P 0.0
+param set-default CA_SV_CS1_TRQ_Y 1
+
+# Control Surface 3 (Rear Right) - Roll positive contribution
+param set-default CA_SV_CS2_TYPE 12  # Custom control surface
+param set-default CA_SV_CS2_TRQ_R 1
+param set-default CA_SV_CS2_TRQ_P 1
+param set-default CA_SV_CS2_TRQ_Y 0
+
+# Control Surface 4 (Rear Left) - Roll negative contribution
+param set-default CA_SV_CS3_TYPE 12  # Custom control surface
+param set-default CA_SV_CS3_TRQ_R 1
+param set-default CA_SV_CS3_TRQ_P 0
+param set-default CA_SV_CS3_TRQ_Y 1
+
+# No rotor configuration - rocket thrust is not controllable by PX4
+param set-default CA_ROTOR_COUNT 0
+
+# Multicopter rate control gains - adjusted for rocket
+# Roll gains - active during rocket phase
+param set-default MC_ROLLRATE_P 0.15
+param set-default MC_ROLLRATE_I 0.05
+param set-default MC_ROLLRATE_D 0.003
+param set-default MC_ROLLRATE_K 1.0
+param set-default MC_ROLL_P 6.0
+
+# Pitch gains - effectively disabled during rocket phase
+param set-default MC_PITCHRATE_P 0.0
+param set-default MC_PITCHRATE_I 0.0
+param set-default MC_PITCHRATE_D 0.0
+param set-default MC_PITCH_P 0.0
+
+# Yaw gains - effectively disabled during rocket phase
+param set-default MC_YAWRATE_P 0.0
+param set-default MC_YAWRATE_I 0.0
+param set-default MC_YAWRATE_D 0.0
+param set-default MC_YAW_P 0.0
+
+# Rocket-specific parameters for rocket mode manager
+param set-default RKT_LAUNCH_A 25.0
+param set-default RKT_LAUNCH_V -10
+param set-default RKT_BOOST_A 5.0
+param set-default RKT_BOOST_T 5.0
+param set-default RKT_DEPLOY_V 5.0
+param set-default RKT_COAST_T 30.0
+param set-default RKT_WING_SV 4
+param set-default RKT_WING_T 2.0
+
+# Position control - very limited during rocket phase
+param set-default MPC_XY_P 0.0
+param set-default MPC_Z_P 0.0
+param set-default MPC_XY_VEL_P_ACC 0.0
+param set-default MPC_Z_VEL_P_ACC 0.0
+
+# Fixed-wing parameters for after wing deployment
+param set-default FW_P_TC 0.4
+param set-default FW_PR_P 0.08
+param set-default FW_PR_I 0.1
+param set-default FW_PR_FF 0.5
+param set-default FW_R_TC 0.4
+param set-default FW_RR_P 0.05
+param set-default FW_RR_I 0.1
+param set-default FW_RR_FF 0.3
+
+# Manual control settings for final phase
+param set-default FW_MAN_P_MAX 45
+param set-default FW_MAN_R_MAX 45
+
+# Safety parameters
+param set-default COM_LOW_BAT_ACT 2        # Land mode on low battery
+param set-default COM_RCL_EXCEPT 4         # Allow manual control recovery
+param set-default NAV_RCL_ACT 2            # Return mode on RC loss
+
+# Estimator settings for rocket flight
+param set-default EKF2_BCOEF_X 50.0        # Ballistic coefficient X
+param set-default EKF2_BCOEF_Y 50.0        # Ballistic coefficient Y
+param set-default EKF2_ABL_LIM 3.0         # Acceleration bias limit
+param set-default EKF2_ABL_ACCLIM 40.0     # Acceleration limit for bias estimation
+
+# Enable gazebo bridge simulation
+param set-default SIM_GZ_EN 1
+
+
+# Start rocket mode manager
+rocket_mode_manager start
