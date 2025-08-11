@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,27 +34,9 @@
 #pragma once
 
 #include <px4_platform_common/Serial.hpp>
-#include <drivers/drv_hrt.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/esc_eeprom.h>
-
-struct EscData {
-	int motor_index;
-	hrt_abstime time;
-	int8_t temperature;  ///< [deg C]
-	int16_t voltage;     ///< [0.01V]
-	int16_t current;     ///< [0.01A]
-	int16_t consumption; ///< [mAh]
-	int16_t erpm;        ///< [100ERPM]
-};
-
-enum class TelemetryStatus {
-	NotStarted = 0,
-	NotReady = 1,
-	Ready = 2,
-	Timeout = 3,
-	ParseError = 4,
-};
+#include "DShotCommon.h"
 
 class DShotTelemetry
 {

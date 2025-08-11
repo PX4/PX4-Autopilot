@@ -40,6 +40,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
+#include "DShotCommon.h"
 #include "DShotTelemetry.h"
 
 using namespace time_literals;
@@ -47,6 +48,8 @@ using namespace time_literals;
 #if !defined(DIRECT_PWM_OUTPUT_CHANNELS)
 #  error "board_config.h needs to define DIRECT_PWM_OUTPUT_CHANNELS"
 #endif
+
+static constexpr int DSHOT_MAXIMUM_CHANNELS = esc_status_s::CONNECTED_ESC_MAX;
 
 /** Dshot PWM frequency, Hz */
 static constexpr unsigned int DSHOT150  =  150000u;
