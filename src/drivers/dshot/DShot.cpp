@@ -56,13 +56,17 @@ DShot::~DShot()
 	up_dshot_arm(false);
 
 	perf_free(_cycle_perf);
-	perf_free(_bdshot_rpm_perf);
-	perf_free(_dshot_telem_perf);
+	perf_free(_bdshot_success_perf);
+	perf_free(_bdshot_error_perf);
+	perf_free(_bdshot_timeout_perf);
+	perf_free(_telem_success_perf);
+	perf_free(_telem_error_perf);
+	perf_free(_telem_timeout_perf);
 }
 
 int DShot::init()
 {
-	_output_mask = (1u << _num_outputs) - 1;
+	_output_mask = (1u << DIRECT_PWM_OUTPUT_CHANNELS) - 1;
 
 	update_params();
 
@@ -71,29 +75,6 @@ int DShot::init()
 	ScheduleNow();
 
 	return OK;
-}
-
-int DShot::task_spawn(int argc, char *argv[])
-{
-	DShot *instance = new DShot();
-
-	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
-
-		if (instance->init() == PX4_OK) {
-			return PX4_OK;
-		}
-
-	} else {
-		PX4_ERR("alloc failed");
-	}
-
-	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
-
-	return PX4_ERROR;
 }
 
 void DShot::enable_dshot_outputs()
@@ -141,9 +122,7 @@ void DShot::enable_dshot_outputs()
 		}
 	}
 
-	_bidirectional_dshot_enabled = _param_bidirectional_enable.get();
-
-	int ret = up_dshot_init(_output_mask, dshot_frequency, _bidirectional_dshot_enabled);
+	int ret = up_dshot_init(_output_mask, dshot_frequency, _param_bidirectional_enable.get());
 
 	if (ret < 0) {
 		PX4_ERR("up_dshot_init failed (%i)", ret);
@@ -152,9 +131,8 @@ void DShot::enable_dshot_outputs()
 
 	_output_mask = ret;
 
-	// TODO: review
-	// disable unused functions
-	for (unsigned i = 0; i < _num_outputs; ++i) {
+	// Set our mixer to explicitly disable channels we do not control
+	for (unsigned i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		if (((1 << i) & _output_mask) == 0) {
 			_mixing_output.disableFunction(i);
 		}
@@ -167,108 +145,6 @@ void DShot::enable_dshot_outputs()
 	}
 
 	up_dshot_arm(true);
-}
-
-void DShot::init_telemetry(const char *device, bool swap_rxtx)
-{
-	if (!device) {
-		return;
-	}
-
-	if (_telemetry.init(device, swap_rxtx) != PX4_OK) {
-		PX4_ERR("telemetry init failed");
-	}
-
-	// Advertise early to ensure we beat uavcan. We need to enforce ordering somehow.
-	_esc_status_pub.advertise();
-}
-
-bool DShot::process_telemetry(const int motor_index, const EscData &data)
-{
-	if (motor_index >= esc_status_s::CONNECTED_ESC_MAX) {
-		return false;
-	}
-
-	_esc_status.esc_online_flags |= (1 << motor_index);
-
-	// If bdshot enabled, don't fill in Timestamp or RPM
-	if (!_bidirectional_dshot_enabled) {
-		_esc_status.esc[motor_index].timestamp = data.time;
-		_esc_status.esc[motor_index].esc_rpm = ((int)(data.erpm) * 100) / (_param_mot_pole_count.get() / 2);
-	}
-
-	// TODO: accumulate current consumption and use for battery estimation
-	_esc_status.esc[motor_index].esc_voltage = (float)(data.voltage) * 0.01f;
-	_esc_status.esc[motor_index].esc_current = (float)(data.current) * 0.01f;
-	_esc_status.esc[motor_index].esc_temperature = (float)(data.temperature);
-
-	perf_count(_dshot_telem_perf);
-
-	// Return the number of updated motors
-	auto count_bits = [](uint8_t mask) {
-		int count = 0;
-		while (mask) {
-			count += mask & 1;
-			mask >>= 1;
-		}
-
-		return count;
-	};
-
-	int online_count = count_bits(_esc_status.esc_online_flags);
-
-	// PX4_INFO("online count %d", online_count);
-	// PX4_INFO("_motor_count %d", _motor_count);
-
-	return online_count >= _motor_count;
-}
-
-bool DShot::process_bdshot_erpm(void)
-{
-	int erpm = 0;
-	hrt_abstime now = hrt_absolute_time();
-
-	_esc_status.timestamp = now;
-	_esc_status.counter = _esc_status_counter++;
-
-	// We wait until all are ready.
-	if (up_bdshot_num_erpm_ready() < _motor_count) {
-		return false;
-	}
-
-	for (unsigned i = 0; i < _num_outputs; i++) {
-		if (!_mixing_output.isMotor(i)) {
-			continue;
-		}
-
-		if (up_bdshot_get_erpm(i, &erpm) == 0) {
-			// TODO: fix online reporting from dshot driver
-			// _esc_status.esc_online_flags |= 1 << i;
-			_esc_status.esc[i].timestamp = now;
-			_esc_status.esc[i].esc_rpm = (erpm * 100) / (_param_mot_pole_count.get() / 2);
-		}
-	}
-
-	perf_count(_bdshot_rpm_perf);
-
-	return true;
-}
-
-void DShot::mixerChanged()
-{
-	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
-
-	int motor_count = 0;
-
-	for (unsigned i = 0; i < _num_outputs; ++i) {
-
-		if (i < esc_status_s::CONNECTED_ESC_MAX && _mixing_output.isMotor(i)) {
-			_esc_status.esc[i].actuator_function = (uint8_t)_mixing_output.outputFunction(i);
-			motor_count++;
-		}
-	}
-
-	_motor_count = motor_count;
 }
 
 bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
@@ -350,18 +226,6 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 
 	// If telemetry is enabled and the last request has been processed
 	if (_telemetry.enabled() && _telemetry.telemetryRequestFinished()) {
-		int next_telem_index = (_telemetry_current_index + 1) % num_outputs;
-
-		for (int i = 0; i < (int)num_outputs; i++) {
-			if (_mixing_output.isMotor(next_telem_index)) {
-				_telemetry_current_index = next_telem_index;
-				break;
-			}
-			next_telem_index = (next_telem_index + 1) % num_outputs;
-		}
-
-		// The DShotTelemetry class no longer cares about which ESC it receives
-		// telemetry from, it just knows how to process requests.
 		_telemetry.startTelemetryRequest();
 		request_telemetry = true;
 	}
@@ -395,6 +259,195 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 	return true;
 }
 
+void DShot::Run()
+{
+	if (should_exit()) {
+		ScheduleClear();
+		_mixing_output.unregister();
+
+		exit_and_cleanup();
+		return;
+	}
+
+	perf_begin(_cycle_perf);
+
+	// special handling for the DShot Programming sequence
+	if (_programming_state != ProgrammingState::Idle) {
+		handle_programming_sequence_state();
+	}
+
+	// Updates the DShot throttle output and sends DShot commands
+	_mixing_output.update();
+
+	bool all_telem_sampled = false;
+	bool all_bdshot_sampled = false;
+
+	if (_telemetry.enabled()) {
+
+		if (_telemetry.expectingCommandResponse()) {
+
+			if (_telemetry.parseCommandResponse()) {
+				PX4_INFO("Command response received");
+			}
+
+		} else {
+
+			EscData data {};
+			data.motor_index = _telemetry_current_index;
+
+			switch (_telemetry.parseTelemetryPacket(&data)) {
+			case TelemetryStatus::NotStarted:
+				// no-op, should not hit this case
+				break;
+			case TelemetryStatus::NotReady:
+				// no-op, will eventually timeout
+				break;
+			case TelemetryStatus::Ready:
+				// If ready -- Process data
+				// PX4_INFO("TelemetryStatus::Ready");
+				process_telemetry(data);
+				set_next_telemetry_index();
+
+				// Determine when to publish -- All telem channels have been sampled
+				if (_telemetry_last_index > _telemetry_current_index) {
+					// PX4_INFO("all ready");
+					all_telem_sampled = true;
+				}
+
+				perf_count(_telem_success_perf);
+				break;
+			case TelemetryStatus::Timeout:
+				// If timed out -- Nothing, skip to next index
+				// PX4_INFO("TelemetryStatus::Timeout");
+				set_next_telemetry_index();
+
+				// Determine when to publish -- All telem channels have been sampled
+				if (_telemetry_last_index > _telemetry_current_index) {
+					// PX4_INFO("all ready");
+					all_telem_sampled = true;
+				}
+
+				perf_count(_telem_timeout_perf);
+				break;
+			case TelemetryStatus::ParseError:
+				// PX4_INFO("TelemetryStatus::ParseError");
+				// If parsing error -- TODO: clear uart, hold off on telemetry for a bit
+				set_next_telemetry_index();
+				perf_count(_telem_error_perf);
+				break;
+			}
+		}
+	}
+
+
+	if (_param_bidirectional_enable.get()) {
+		// TODO: validate BDSHOT works when 1 is disconnected
+		// TODO: BDShotStatus
+		all_bdshot_sampled = process_bdshot_erpm();
+
+		if (all_bdshot_sampled) {
+			perf_count(_bdshot_success_perf);
+		}
+	}
+
+	// Publish when all bdsht channels have been updated OR
+	// Publish when all telem channels have been updated
+
+	if (all_telem_sampled || all_bdshot_sampled) {
+		_esc_status.timestamp = hrt_absolute_time();
+		_esc_status.esc_count = _motor_count;
+		_esc_status.counter++;
+		_esc_status_pub.update(_esc_status);
+
+		// PX4_INFO("publish");
+
+		// Reset online status, require telem/bdshot to set
+		_esc_status.esc_online_flags = 0;
+	}
+
+	if (_parameter_update_sub.updated()) {
+		update_params();
+	}
+
+	// telemetry device update request?
+	if (_request_telemetry_init.load()) {
+		init_telemetry(_telemetry_device, _telemetry_swap_rxtx);
+		_request_telemetry_init.store(false);
+	}
+
+	handle_vehicle_commands();
+
+	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
+	_mixing_output.updateSubscriptions(true);
+
+	perf_end(_cycle_perf);
+}
+
+void DShot::set_next_telemetry_index()
+{
+	int next_telem_index = (_telemetry_current_index + 1) % DIRECT_PWM_OUTPUT_CHANNELS;
+
+	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; i++) {
+		if (_mixing_output.isMotor(next_telem_index)) {
+			_telemetry_last_index = _telemetry_current_index;
+			_telemetry_current_index = next_telem_index;
+			// PX4_INFO("next telem %d", _telemetry_current_index);
+			break;
+		}
+		next_telem_index = (next_telem_index + 1) % DIRECT_PWM_OUTPUT_CHANNELS;
+	}
+}
+
+void DShot::process_telemetry(const EscData &data)
+{
+	if (data.motor_index < esc_status_s::CONNECTED_ESC_MAX) {
+
+		_esc_status.esc_online_flags |= (1 << data.motor_index);
+
+		// If bdshot enabled, don't fill in Timestamp or RPM
+		if (!_param_bidirectional_enable.get()) {
+			_esc_status.esc[data.motor_index].timestamp = data.time;
+			_esc_status.esc[data.motor_index].esc_rpm = ((int)(data.erpm) * 100) / (_param_mot_pole_count.get() / 2);
+		}
+
+		// TODO: accumulate current consumption and use for battery estimation
+		_esc_status.esc[data.motor_index].esc_voltage = (float)(data.voltage) * 0.01f;
+		_esc_status.esc[data.motor_index].esc_current = (float)(data.current) * 0.01f;
+		_esc_status.esc[data.motor_index].esc_temperature = (float)(data.temperature);
+	}
+}
+
+bool DShot::process_bdshot_erpm(void)
+{
+	int erpm = 0;
+	hrt_abstime now = hrt_absolute_time();
+
+	_esc_status.timestamp = now;
+	_esc_status.counter = _esc_status_counter++;
+
+	// We wait until all are ready.
+	if (up_bdshot_num_erpm_ready() < _motor_count) {
+		return false;
+	}
+
+	for (unsigned i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; i++) {
+		if (!_mixing_output.isMotor(i)) {
+			continue;
+		}
+
+		if (up_bdshot_get_erpm(i, &erpm) == 0) {
+			// TODO: fix online reporting from dshot driver
+			_esc_status.esc_online_flags |= (1 << i);
+			_esc_status.esc[i].timestamp = now;
+			_esc_status.esc[i].esc_rpm = (erpm * 100) / (_param_mot_pole_count.get() / 2);
+		} else {
+			_esc_status.esc_online_flags &= ~(1 << i);
+		}
+	}
+
+	return true;
+}
+
 uint16_t DShot::convert_output_to_3d_scaling(uint16_t output)
 {
 	// DShot 3D splits the throttle ranges in two.
@@ -423,83 +476,6 @@ uint16_t DShot::convert_output_to_3d_scaling(uint16_t output)
 	}
 
 	return output;
-}
-
-void DShot::Run()
-{
-	if (should_exit()) {
-		ScheduleClear();
-		_mixing_output.unregister();
-
-		exit_and_cleanup();
-		return;
-	}
-
-	perf_begin(_cycle_perf);
-
-	// special handling for the DShot Programming sequence
-	if (_programming_state != ProgrammingState::Idle) {
-		handle_programming_sequence_state();
-	}
-
-	// Updates the DShot throttle output and sends DShot commands
-	_mixing_output.update();
-
-	bool all_channels_updated = false;
-
-	if (_telemetry.enabled()) {
-
-		if (_telemetry.expectingCommandResponse()) {
-
-			if (_telemetry.parseCommandResponse()) {
-				PX4_INFO("Command response received");
-			}
-
-		} else {
-
-			EscData data {};
-
-			if (_telemetry.parseTelemetryPacket(&data)) {
-				all_channels_updated = process_telemetry(_telemetry_current_index, data);
-			}
-		}
-	}
-
-	if (_bidirectional_dshot_enabled) {
-		// Add bdshot data to esc status
-		// TODO: validate BDSHOT works when 1 is disconnected
-		all_channels_updated |= process_bdshot_erpm();
-	}
-
-	// Publish when all bdsht channels have been updated OR
-	// Publish when all telem channels have been updated
-
-	if (all_channels_updated) {
-		_esc_status.timestamp = hrt_absolute_time();
-		_esc_status.esc_count = _motor_count;
-		_esc_status.counter++;
-		_esc_status_pub.update(_esc_status);
-
-		// Reset online status, require telem/bdshot to set
-		_esc_status.esc_online_flags = 0;
-	}
-
-	if (_parameter_update_sub.updated()) {
-		update_params();
-	}
-
-	// telemetry device update request?
-	if (_request_telemetry_init.load()) {
-		init_telemetry(_telemetry_device, _telemetry_swap_rxtx);
-		_request_telemetry_init.store(false);
-	}
-
-	handle_vehicle_commands();
-
-	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
-	_mixing_output.updateSubscriptions(true);
-
-	perf_end(_cycle_perf);
 }
 
 void DShot::handle_programming_sequence_state()
@@ -677,11 +653,68 @@ void DShot::update_params()
 	_mixing_output.setAllMinValues(dshot_min_value);
 
 	// Do not use the minimum parameter for reversible outputs
-	for (unsigned i = 0; i < _num_outputs; ++i) {
+	for (unsigned i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		if ((1 << i) & _mixing_output.reversibleOutputs()) {
 			_mixing_output.minValue(i) = DSHOT_MIN_THROTTLE;
 		}
 	}
+}
+
+void DShot::mixerChanged()
+{
+	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
+
+	int motor_count = 0;
+
+	for (unsigned i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+
+		if (i < esc_status_s::CONNECTED_ESC_MAX && _mixing_output.isMotor(i)) {
+			_esc_status.esc[i].actuator_function = (uint8_t)_mixing_output.outputFunction(i);
+			motor_count++;
+		}
+	}
+
+	_motor_count = motor_count;
+}
+
+void DShot::init_telemetry(const char *device, bool swap_rxtx)
+{
+	if (!device) {
+		return;
+	}
+
+	if (_telemetry.init(device, swap_rxtx) != PX4_OK) {
+		PX4_ERR("telemetry init failed");
+	}
+
+	// Advertise early to ensure we beat uavcan. We need to enforce ordering somehow.
+	_esc_status_pub.advertise();
+}
+
+int DShot::print_status()
+{
+	PX4_INFO("Outputs used: 0x%" PRIx32, _output_mask);
+	perf_print_counter(_cycle_perf);
+	perf_print_counter(_bdshot_success_perf);
+	perf_print_counter(_bdshot_error_perf);
+	perf_print_counter(_bdshot_timeout_perf);
+
+	perf_print_counter(_telem_success_perf);
+	perf_print_counter(_telem_error_perf);
+	perf_print_counter(_telem_timeout_perf);
+
+	_mixing_output.printStatus();
+
+	if (_telemetry.enabled()) {
+		PX4_INFO("telemetry on: %s", _telemetry_device);
+		_telemetry.printStatus();
+	}
+
+	if (_param_bidirectional_enable.get()) {
+		up_bdshot_status();
+	}
+
+	return 0;
 }
 
 int DShot::custom_command(int argc, char *argv[])
@@ -732,25 +765,27 @@ int DShot::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int DShot::print_status()
+int DShot::task_spawn(int argc, char *argv[])
 {
-	PX4_INFO("Outputs used: 0x%" PRIx32, _output_mask);
-	perf_print_counter(_cycle_perf);
-	perf_print_counter(_bdshot_rpm_perf);
-	perf_print_counter(_dshot_telem_perf);
+	DShot *instance = new DShot();
 
-	_mixing_output.printStatus();
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
 
-	if (_telemetry.enabled()) {
-		PX4_INFO("telemetry on: %s", _telemetry_device);
-		_telemetry.printStatus();
+		if (instance->init() == PX4_OK) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
 	}
 
-	if (_bidirectional_dshot_enabled) {
-		up_bdshot_status();
-	}
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
 
-	return 0;
+	return PX4_ERROR;
 }
 
 int DShot::print_usage(const char *reason)
