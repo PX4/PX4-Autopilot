@@ -148,6 +148,7 @@ if(CONFIG_MODULES_ROVER_ACKERMANN)
 		# [51000, 51999] Ackermann rovers
 		51000_generic_rover_ackermann
 		51001_axial_scx10_2_trail_honcho
+		1104_standard_ackermann_sih.hil
 	)
 endif()
 
