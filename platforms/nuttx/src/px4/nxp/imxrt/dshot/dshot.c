@@ -569,3 +569,8 @@ int up_dshot_arm(bool armed)
 {
 	return io_timer_set_enable(armed, IOTimerChanMode_Dshot, IO_TIMER_ALL_MODES_CHANNELS);
 }
+
+int up_bdshot_get_extended_telemetry(uint8_t channel, dshot_telemetry_field_t key, int32_t *value)
+{
+	return PX4_ERROR; // Not supported in this implementation
+}

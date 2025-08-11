@@ -86,6 +86,17 @@
 #define DSHOT_OUTPUT_BUFFER_SIZE(channel_count) (DMA_ALIGN_UP(sizeof(uint32_t) * CHANNEL_OUTPUT_BUFF_SIZE * channel_count))
 #define DSHOT_CAPTURE_BUFFER_SIZE(channel_count) (DMA_ALIGN_UP(sizeof(uint16_t)* CHANNEL_CAPTURE_BUFF_SIZE * channel_count))
 
+#define DSHOT_ALLOW_EXTENDED_TEL 1
+
+#define DSHOT_TELEM_KEY_MASK 0x0F00
+#define DSHOT_STATUS_PRINT_EXTENDED 1
+
+typedef struct dshot_telemetry_result_t {
+	unsigned value; // The decoded value, e.g. ERPM, temperature, etc.
+	dshot_extended_telemetry_key_t type; // The type of telemetry data
+} dshot_telemetry_result_t;
+
+
 static void init_timer_config(uint32_t channel_mask);
 static void init_timers_dma_up(void);
 static int32_t init_timer_channels(uint8_t timer_index);
@@ -97,7 +108,9 @@ static void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void 
 static void capture_complete_callback(void *arg);
 
 static void process_capture_results(uint8_t timer_index, uint8_t channel_index);
-static unsigned calculate_period(uint8_t timer_index, uint8_t channel_index);
+
+
+static bool decode_telemetry(uint8_t timer_index, uint8_t channel_index, dshot_telemetry_result_t* result);
 
 // Timer configuration struct
 typedef struct timer_config_t {
@@ -126,18 +139,49 @@ static bool     _bidirectional = false;
 static uint8_t  _bidi_timer_index = 0; // TODO: BDSHOT_TIM param to select timer index?
 static uint32_t _dshot_frequency = 0;
 
+typedef struct dshot_telemetry_value_t {
+	int32_t value;
+	unsigned count;
+	bool ready;
+} dshot_telemetry_value_t;
+
+typedef struct dshot_channel_data_t {
+
+	union
+	{
+		dshot_telemetry_value_t as_array[8];
+		struct
+		{
+			dshot_telemetry_value_t erpm; // eRPM
+			dshot_telemetry_value_t temperature; // Temperature
+			dshot_telemetry_value_t battery_voltage; // Battery voltage
+			dshot_telemetry_value_t current; // Current
+			dshot_telemetry_value_t debug_1; // Debug 1
+			dshot_telemetry_value_t debug_2; // Debug 2
+			dshot_telemetry_value_t debug_3; // Debug 3
+			dshot_telemetry_value_t evt; // Event
+		} fields;
+	} data;
+} dshot_channel_data_t;
+
+
+static dshot_channel_data_t _telem_channels[MAX_TIMER_IO_CHANNELS] = {};
+
 // eRPM data for channels on the singular timer
-static int32_t _erpms[MAX_TIMER_IO_CHANNELS] = {};
-static bool _erpms_ready[MAX_TIMER_IO_CHANNELS] = {};
+// static int32_t _erpms[MAX_TIMER_IO_CHANNELS] = {};
+// static bool _erpms_ready[MAX_TIMER_IO_CHANNELS] = {};
 
 // hrt callback handle for captcomp post dma processing
 static struct hrt_call _cc_call;
 
 // decoding status for each channel
 static uint32_t read_ok[MAX_NUM_CHANNELS_PER_TIMER] = {};
+static uint32_t read_erpm[MAX_NUM_CHANNELS_PER_TIMER] = {};
+static uint32_t read_ext_tel[MAX_NUM_CHANNELS_PER_TIMER] = {};
 static uint32_t read_fail_nibble[MAX_NUM_CHANNELS_PER_TIMER] = {};
 static uint32_t read_fail_crc[MAX_NUM_CHANNELS_PER_TIMER] = {};
 static uint32_t read_fail_zero[MAX_NUM_CHANNELS_PER_TIMER] = {};
+static uint32_t read_fail_ext[MAX_NUM_CHANNELS_PER_TIMER] = {};
 
 static perf_counter_t hrt_callback_perf = NULL;
 
@@ -266,7 +310,6 @@ static int32_t init_timer_channels(uint8_t timer_index)
 
 			if (timer_configs[timer_index].bidirectional) {
 				PX4_DEBUG("DShot initialized OutputChannel %u (bidirectional)", output_channel);
-
 			} else {
 				PX4_DEBUG("DShot initialized OutputChannel %u", output_channel);
 			}
@@ -546,26 +589,62 @@ static void capture_complete_callback(void *arg)
 
 void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 {
-	const unsigned period = calculate_period(timer_index, channel_index);
-
 	uint8_t output_channel = output_channel_from_timer_channel(timer_index, channel_index);
 
 
+	dshot_channel_data_t *channel_data = &_telem_channels[output_channel];
+	// We set erpm ready anyway, not to hold up other channels when used in round robin.
+	// ESC_INFO and ESC_STATUS only get published if this flag is set to true on all channels,
+	// even if they are not configured.
+	channel_data->data.fields.erpm.ready = true;
+
+	dshot_telemetry_result_t telemetry_result = {0};
+
+	// Decode the telemetry data
+	bool success = decode_telemetry(timer_index, channel_index, &telemetry_result);
+	if(!success)
+	{
+		return; // error reading the value
+	}
+
+
+	uint16_t key = telemetry_result.type & DSHOT_TELEM_KEY_MASK;
+
+	uint8_t index = key >> 9;
+	if (index >= sizeof(channel_data->data.as_array) / sizeof(channel_data->data.as_array[0])) {
+		// error
+		return;
+	}
+
+	dshot_telemetry_value_t *tel_value = &channel_data->data.as_array[index];
+	tel_value->value = telemetry_result.value;
+	tel_value->count++;
+	tel_value->ready = true;
+
+
+
+	if(key != DShot_telemetry_ext_key_none)
+	{
+		return; // not an eRPM value, return
+	}
+
+	const unsigned period = telemetry_result.value;
+
 	if (period == 0) {
 		// If the parsing failed, set the eRPM to 0
-		_erpms[output_channel] = 0;
+		channel_data->data.fields.erpm.value = 0;
 
 	} else if (period == 65408) {
 		// Special case for zero motion (e.g., stationary motor)
-		_erpms[output_channel] = 0;
+		channel_data->data.fields.erpm.value = 0;
+		read_erpm[channel_index]++;
 
 	} else {
 		// Convert the period to eRPM
-		_erpms[output_channel] = (1000000 * 60 / 100 + period / 2) / period;
+		uint32_t value = (1000000 * 60 / 100 + period / 2) / period;
+		channel_data->data.fields.erpm.value = value;
+		read_erpm[channel_index]++;
 	}
-
-	// We set it ready anyway, not to hold up other channels when used in round robin.
-	_erpms_ready[output_channel] = true;
 }
 
 /**
@@ -629,7 +708,7 @@ int up_bdshot_num_erpm_ready(void)
 	int num_ready = 0;
 
 	for (unsigned i = 0; i < MAX_TIMER_IO_CHANNELS; ++i) {
-		if (_erpms_ready[i]) {
+		if (_telem_channels[i].data.fields.erpm.ready) {
 			++num_ready;
 		}
 	}
@@ -644,8 +723,8 @@ int up_bdshot_get_erpm(uint8_t output_channel, int *erpm)
 	bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
 
 	if (channel_initialized) {
-		*erpm = _erpms[output_channel];
-		_erpms_ready[output_channel] = false;
+		*erpm = _telem_channels[output_channel].data.fields.erpm.value;
+		// _telem_channels[output_channel].data.fields.erpm.ready = false; does this lead to a race condition?
 		return PX4_OK;
 	}
 
@@ -681,14 +760,75 @@ void up_bdshot_status(void)
 		bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
 
 		if (channel_initialized) {
-			PX4_INFO("Timer %u, Channel %u: read %lu, failed nibble %lu, failed CRC %lu, invalid/zero %lu",
+			PX4_INFO("tmr %u, ch %u: read %lu, erpm %lu, #tel %lu, failed nibble %lu, failed CRC %lu, invalid/zero %lu, #fe %lu",
 				 timer_index, timer_channel_index,
 				 read_ok[timer_channel_index],
+				 read_erpm[timer_channel_index],
+				 read_ext_tel[timer_channel_index],
 				 read_fail_nibble[timer_channel_index],
 				 read_fail_crc[timer_channel_index],
-				 read_fail_zero[timer_channel_index]);
+				 read_fail_zero[timer_channel_index],
+				 read_fail_ext[timer_channel_index]);
+
+
+#if DSHOT_STATUS_PRINT_EXTENDED
+			uint8_t output_channel = output_channel_from_timer_channel(timer_index, timer_channel_index);
+			int32_t last_erpm_raw = _telem_channels[output_channel].data.fields.erpm.ready ? _telem_channels[output_channel].data.fields.erpm.value : -1;
+			int32_t last_temp_raw = _telem_channels[output_channel].data.fields.temperature.ready ? _telem_channels[output_channel].data.fields.temperature.value : -1;
+			int32_t last_battery_voltage_raw = _telem_channels[output_channel].data.fields.battery_voltage.ready ? _telem_channels[output_channel].data.fields.battery_voltage.value : -1;
+			int32_t last_current_raw = _telem_channels[output_channel].data.fields.current.ready ? _telem_channels[output_channel].data.fields.current.value : -1;
+
+			int erpm_count = _telem_channels[output_channel].data.fields.erpm.count;
+			int temperature_count = _telem_channels[output_channel].data.fields.temperature.count;
+			int battery_voltage_count = _telem_channels[output_channel].data.fields.battery_voltage.count;
+			int current_count = _telem_channels[output_channel].data.fields.current.count;
+
+			PX4_INFO("erpm_raw %d (%d) tmp_raw %d (%d), bat_raw %d (%d), curr_raw %d (%d)",
+				  (int)last_erpm_raw, erpm_count,
+				  (int)last_temp_raw, temperature_count,
+				  (int)last_battery_voltage_raw, battery_voltage_count,
+				  (int)last_current_raw, current_count);
+#endif
+
 		}
 	}
+}
+
+int up_bdshot_get_extended_telemetry(uint8_t output_channel, dshot_telemetry_field_t field, int32_t *value)
+{
+	// check if the value pointer is valid
+	if (value == NULL) {
+		return PX4_ERROR;
+	}
+
+	// check if the output_channel is valid
+	if (output_channel >= MAX_TIMER_IO_CHANNELS) {
+		return PX4_ERROR;
+	}
+
+	// check if the channel is initialized
+	if(!up_bdshot_channel_status(output_channel)) {
+		return PX4_ERROR;
+	}
+
+	unsigned field_index = (int)field;
+
+	dshot_channel_data_t *channel_data = &_telem_channels[output_channel];
+
+	// check array bounds
+	const unsigned num_fields = sizeof(channel_data->data.as_array)
+		/ sizeof(channel_data->data.as_array[0]);
+
+	if (field_index >= num_fields) {
+		return PX4_ERROR;
+	}
+
+	if(!channel_data->data.as_array[field_index].ready) {
+		return PX4_ERROR; // value not ready
+	}
+
+	*value = channel_data->data.as_array[field_index].value;
+	return PX4_OK;
 }
 
 uint8_t nibbles_from_mapped(uint8_t mapped)
@@ -748,8 +888,13 @@ uint8_t nibbles_from_mapped(uint8_t mapped)
 	}
 }
 
-unsigned calculate_period(uint8_t timer_index, uint8_t channel_index)
+static bool decode_telemetry(uint8_t timer_index, uint8_t channel_index, dshot_telemetry_result_t* result)
 {
+	if (result == NULL) {
+		return false;
+	}
+
+
 	uint32_t value = 0;
 	uint32_t high = 1; // We start off with high
 	unsigned shifted = 0;
@@ -784,7 +929,7 @@ unsigned calculate_period(uint8_t timer_index, uint8_t channel_index)
 	if (shifted == 0) {
 		// no data yet, or this time
 		++read_fail_zero[channel_index];
-		return 0;
+		return false;
 	}
 
 	// We need to make sure we shifted 21 times. We might have missed some low "pulses" at the very end.
@@ -801,28 +946,61 @@ unsigned calculate_period(uint8_t timer_index, uint8_t channel_index)
 		uint32_t nibble = nibbles_from_mapped(gcr & 0x1F) << (4 * i);
 
 		if (nibble == 0xFF) {
-			++read_fail_nibble[channel_index];;
-			return 0;
+			++read_fail_nibble[channel_index];
+			return false;
 		}
 
 		data |= nibble;
 		gcr >>= 5;
 	}
 
-	unsigned shift = (data & 0xE000) >> 13;
-	unsigned period = ((data & 0x1FF0) >> 4) << shift;
+	// Check for CRC errors
 	unsigned crc = data & 0xF;
 
 	unsigned payload = (data & 0xFFF0) >> 4;
 	unsigned calculated_crc = (~(payload ^ (payload >> 4) ^ (payload >> 8))) & 0x0F;
 
 	if (crc != calculated_crc) {
-		++read_fail_crc[channel_index];;
-		return 0;
+		++read_fail_crc[channel_index];
+		return false;
 	}
 
-	++read_ok[channel_index];;
-	return period;
+	++read_ok[channel_index];
+
+
+#if DSHOT_ALLOW_EXTENDED_TEL
+	unsigned mantissa = payload & 0x01FF;
+	// if the msb of the mantissa is zero, then this is an extended telemetry packet
+	bool is_telemetry = (mantissa & 0x0100) == 0;
+
+	if(is_telemetry)
+	{
+		result->value = mantissa & 0xff; // extended telemetry value is 8 bits wide
+
+		unsigned telemetry_key = payload & 0x0E00;
+		uint8_t telemetry_index = telemetry_key >> 9;
+		if (telemetry_index > DShot_telemetry_field_evt) {
+			// Unknown telemetry key
+			read_fail_ext[channel_index]++;
+			return false;
+		}
+
+		result->type = telemetry_key;
+		read_ext_tel[channel_index]++;
+
+		return true;
+	}
+#endif
+
+	// If we get here, this is an eRPM telemetry packet, either because we treat all
+	// as erpm, or because the extended telemetry bit is false.
+	unsigned shift = (data & 0xE000) >> 13;
+	unsigned period = ((data & 0x1FF0) >> 4) << shift;
+
+	result->type = DShot_telemetry_ext_key_none; // Default to eRPM telemetry type
+	result->value = period;
+
+	return true;
 }
 
 #endif
