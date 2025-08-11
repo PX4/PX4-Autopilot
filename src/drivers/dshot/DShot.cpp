@@ -66,7 +66,7 @@ DShot::~DShot()
 
 int DShot::init()
 {
-	_output_mask = (1u << DIRECT_PWM_OUTPUT_CHANNELS) - 1;
+	_output_mask = (1u << DSHOT_MAXIMUM_CHANNELS) - 1;
 
 	update_params();
 
@@ -189,7 +189,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 
 			if (this_motor && telemtry_idle) {
 
-				PX4_INFO("Sending command %u to motor %d", _current_command.command, motor_index);
+				DSHOT_CMD_DEBUG("Sending command %u to motor %d", _current_command.command, motor_index);
 
 				if (_current_command.expect_response) {
 					_telemetry.setExpectCommandResponse(motor_index, _current_command.command);
@@ -287,7 +287,7 @@ void DShot::Run()
 		if (_telemetry.expectingCommandResponse()) {
 
 			if (_telemetry.parseCommandResponse()) {
-				PX4_INFO("Command response received");
+				DSHOT_CMD_DEBUG("Command response received");
 			}
 
 		} else {
@@ -304,13 +304,13 @@ void DShot::Run()
 				break;
 			case TelemetryStatus::Ready:
 				// If ready -- Process data
-				// PX4_INFO("TelemetryStatus::Ready");
+				// DSHOT_TELEM_DEBUG("TelemetryStatus::Ready");
 				process_telemetry(data);
 				set_next_telemetry_index();
 
 				// Determine when to publish -- All telem channels have been sampled
 				if (_telemetry_last_index > _telemetry_current_index) {
-					// PX4_INFO("all ready");
+					// DSHOT_TELEM_DEBUG("all ready");
 					all_telem_sampled = true;
 				}
 
@@ -318,19 +318,19 @@ void DShot::Run()
 				break;
 			case TelemetryStatus::Timeout:
 				// If timed out -- Nothing, skip to next index
-				// PX4_INFO("TelemetryStatus::Timeout");
+				// DSHOT_TELEM_DEBUG("TelemetryStatus::Timeout");
 				set_next_telemetry_index();
 
 				// Determine when to publish -- All telem channels have been sampled
 				if (_telemetry_last_index > _telemetry_current_index) {
-					// PX4_INFO("all ready");
+					// DSHOT_TELEM_DEBUG("all ready");
 					all_telem_sampled = true;
 				}
 
 				perf_count(_telem_timeout_perf);
 				break;
 			case TelemetryStatus::ParseError:
-				// PX4_INFO("TelemetryStatus::ParseError");
+				// DSHOT_TELEM_DEBUG("TelemetryStatus::ParseError");
 				// If parsing error -- TODO: clear uart, hold off on telemetry for a bit
 				set_next_telemetry_index();
 				perf_count(_telem_error_perf);
@@ -358,11 +358,6 @@ void DShot::Run()
 		_esc_status.esc_count = _motor_count;
 		_esc_status.counter++;
 		_esc_status_pub.update(_esc_status);
-
-		// PX4_INFO("publish");
-
-		// Reset online status, require telem/bdshot to set
-		_esc_status.esc_online_flags = 0;
 	}
 
 	if (_parameter_update_sub.updated()) {
@@ -385,16 +380,16 @@ void DShot::Run()
 
 void DShot::set_next_telemetry_index()
 {
-	int next_telem_index = (_telemetry_current_index + 1) % DIRECT_PWM_OUTPUT_CHANNELS;
+	int next_telem_index = (_telemetry_current_index + 1) % DSHOT_MAXIMUM_CHANNELS;
 
-	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; i++) {
+	for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
 		if (_mixing_output.isMotor(next_telem_index)) {
 			_telemetry_last_index = _telemetry_current_index;
 			_telemetry_current_index = next_telem_index;
-			// PX4_INFO("next telem %d", _telemetry_current_index);
+			// DSHOT_TELEM_DEBUG("next telem %d", _telemetry_current_index);
 			break;
 		}
-		next_telem_index = (next_telem_index + 1) % DIRECT_PWM_OUTPUT_CHANNELS;
+		next_telem_index = (next_telem_index + 1) % DSHOT_MAXIMUM_CHANNELS;
 	}
 }
 
@@ -430,18 +425,27 @@ bool DShot::process_bdshot_erpm(void)
 		return false;
 	}
 
-	for (unsigned i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; i++) {
+	for (unsigned i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
 		if (!_mixing_output.isMotor(i)) {
 			continue;
 		}
 
-		if (up_bdshot_get_erpm(i, &erpm) == 0) {
+		int motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
+		bool valid = (motor_index >= 0) && (motor_index < esc_status_s::CONNECTED_ESC_MAX);
+
+		if (!valid) {
+			return false;
+		}
+
+		// NOTE:dshot erpm order is actuator channel order, so we map to motor index here
+		if (up_bdshot_get_erpm(i, &erpm) == PX4_OK) {
 			// TODO: fix online reporting from dshot driver
-			_esc_status.esc_online_flags |= (1 << i);
-			_esc_status.esc[i].timestamp = now;
-			_esc_status.esc[i].esc_rpm = (erpm * 100) / (_param_mot_pole_count.get() / 2);
+			_esc_status.esc_online_flags |= (1 << motor_index);
+			_esc_status.esc[motor_index].timestamp = now;
+			_esc_status.esc[motor_index].esc_rpm = (erpm * 100) / (_param_mot_pole_count.get() / 2);
 		} else {
-			_esc_status.esc_online_flags &= ~(1 << i);
+			DSHOT_TELEM_DEBUG("dafuq");
+			_esc_status.esc_online_flags &= ~(1 << motor_index);
 		}
 	}
 
@@ -526,7 +530,7 @@ void DShot::handle_vehicle_commands()
 		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_CONFIGURE_ACTUATOR) {
 			int function = (int)(vehicle_command.param5 + 0.5);
 
-			PX4_INFO("Received VEHICLE_CMD_CONFIGURE_ACTUATOR");
+			DSHOT_CMD_DEBUG("Received VEHICLE_CMD_CONFIGURE_ACTUATOR");
 
 			if (function < 1000) {
 				const int first_motor_function = 1; // from MAVLink ACTUATOR_OUTPUT_FUNCTION
@@ -549,8 +553,7 @@ void DShot::handle_vehicle_commands()
 			int type = (int)(vehicle_command.param1 + 0.5f);
 			int index = -1;
 
-			// for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
-			for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
+			for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; ++i) {
 				if ((int)_mixing_output.outputFunction(i) == function && _mixing_output.isMotor(i)) {
 					index = i;
 				}
@@ -563,7 +566,7 @@ void DShot::handle_vehicle_commands()
 			command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
 			if (index != -1) {
-				PX4_INFO("index: %i type: %i", index, type);
+				DSHOT_CMD_DEBUG("index: %i type: %i", index, type);
 				_current_command.clear();
 				_current_command.command = DSHOT_CMD_MOTOR_STOP;
 				_current_command.num_repetitions = 10; // TODO: why do we always send a command 10x?
@@ -593,7 +596,7 @@ void DShot::handle_vehicle_commands()
 					break;
 
 				case ACTUATOR_CONFIGURATION_READ_SETTINGS:
-					PX4_INFO("ACTUATOR_CONFIGURATION_READ_SETTINGS");
+					DSHOT_CMD_DEBUG("ACTUATOR_CONFIGURATION_READ_SETTINGS");
 					_current_command.save = false;
 					_current_command.num_repetitions = 6; // NOTE: AM32 requires 6 to consider a command valid
 					_current_command.command = DSHOT_CMD_ESC_INFO;
@@ -601,7 +604,7 @@ void DShot::handle_vehicle_commands()
 					break;
 
 				case ACTUATOR_CONFIGURATION_WRITE_SETTING:
-					PX4_INFO("ACTUATOR_CONFIGURATION_WRITE_SETTING");
+					DSHOT_CMD_DEBUG("ACTUATOR_CONFIGURATION_WRITE_SETTING");
 					// This is a special command that triggers 5 DShot commands:
 					// - DSHOT_CMD_ENTER_PROGRAMMING_MODE
 					// - EEPROM Memory location
@@ -666,9 +669,9 @@ void DShot::mixerChanged()
 
 	int motor_count = 0;
 
-	for (unsigned i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+	for (unsigned i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
 
-		if (i < esc_status_s::CONNECTED_ESC_MAX && _mixing_output.isMotor(i)) {
+		if (_mixing_output.isMotor(i)) {
 			_esc_status.esc[i].actuator_function = (uint8_t)_mixing_output.outputFunction(i);
 			motor_count++;
 		}

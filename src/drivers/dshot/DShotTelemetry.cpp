@@ -130,7 +130,7 @@ bool DShotTelemetry::parseSettingsRequestResponse(uint8_t *buf, int size)
 			uint8_t checksum_data = _command_response_buffer[data_length];
 
 			if (checksum == checksum_data) {
-				PX4_INFO("Successfully received settings!");
+				DSHOT_CMD_DEBUG("Successfully received settings!");
 				esc_eeprom_s eeprom = {};
 				eeprom.timestamp = hrt_absolute_time();
 				eeprom.index = _command_response_motor_index;
@@ -236,7 +236,7 @@ bool DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int length, EscDat
 
 void DShotTelemetry::setExpectCommandResponse(int motor_index, uint16_t command)
 {
-	PX4_INFO("setExpectCommandResponse");
+	DSHOT_CMD_DEBUG("setExpectCommandResponse");
 	_command_response_motor_index = motor_index;
 	_command_response_command = command;
 	_command_response_start = hrt_absolute_time();

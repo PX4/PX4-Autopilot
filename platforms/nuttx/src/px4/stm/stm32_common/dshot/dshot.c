@@ -122,12 +122,15 @@ static uint32_t *dshot_output_buffer[MAX_IO_TIMERS] = {};
 static uint16_t dshot_capture_buffer[MAX_NUM_CHANNELS_PER_TIMER][CHANNEL_CAPTURE_BUFF_SIZE]
 px4_cache_aligned_data() = {};
 
+static bool _bdshot_cycle_complete = true;
+
 static bool     _bidirectional = false;
 static uint8_t  _bidi_timer_index = 0; // TODO: BDSHOT_TIM param to select timer index?
 static uint32_t _dshot_frequency = 0;
 
 // eRPM data for channels on the singular timer
 static int32_t _erpms[MAX_TIMER_IO_CHANNELS] = {};
+static bool _status[MAX_TIMER_IO_CHANNELS] = {};
 static bool _erpms_ready[MAX_TIMER_IO_CHANNELS] = {};
 
 // hrt callback handle for captcomp post dma processing
@@ -333,6 +336,13 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bi
 // Kicks off a DMA transmit for each configured timer and the associated channels
 void up_dshot_trigger()
 {
+	if (!_bdshot_cycle_complete) {
+		PX4_WARN("Cylce not complete! Check system jitter");
+		return;
+	}
+
+	_bdshot_cycle_complete = false;
+
 	// Enable DShot inverted on all channels
 	io_timer_set_enable(true, _bidirectional ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot,
 			    IO_TIMER_ALL_MODES_CHANNELS);
@@ -542,6 +552,8 @@ static void capture_complete_callback(void *arg)
 	io_timer_set_enable(true, IOTimerChanMode_DshotInverted, IO_TIMER_ALL_MODES_CHANNELS);
 
 	perf_end(hrt_callback_perf);
+
+	_bdshot_cycle_complete = true;
 }
 
 void process_capture_results(uint8_t timer_index, uint8_t channel_index)
@@ -550,22 +562,28 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 
 	uint8_t output_channel = output_channel_from_timer_channel(timer_index, channel_index);
 
+	irqstate_t flags = px4_enter_critical_section();
 
 	if (period == 0) {
 		// If the parsing failed, set the eRPM to 0
 		_erpms[output_channel] = 0;
+		_status[output_channel] = 0;
 
 	} else if (period == 65408) {
 		// Special case for zero motion (e.g., stationary motor)
 		_erpms[output_channel] = 0;
+		_status[output_channel] = 1;
 
 	} else {
 		// Convert the period to eRPM
 		_erpms[output_channel] = (1000000 * 60 / 100 + period / 2) / period;
+		_status[output_channel] = 1;
 	}
 
-	// We set it ready anyway, not to hold up other channels when used in round robin.
+	// Ready simply means updated
 	_erpms_ready[output_channel] = true;
+
+	px4_leave_critical_section(flags);
 }
 
 /**
@@ -628,11 +646,15 @@ int up_bdshot_num_erpm_ready(void)
 {
 	int num_ready = 0;
 
+	irqstate_t flags = px4_enter_critical_section();
+
 	for (unsigned i = 0; i < MAX_TIMER_IO_CHANNELS; ++i) {
 		if (_erpms_ready[i]) {
 			++num_ready;
 		}
 	}
+
+	px4_leave_critical_section(flags);
 
 	return num_ready;
 }
@@ -643,28 +665,31 @@ int up_bdshot_get_erpm(uint8_t output_channel, int *erpm)
 	uint8_t timer_channel_index = timer_io_channels[output_channel].timer_channel - 1;
 	bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
 
-	if (channel_initialized) {
+	bool online = _status[output_channel];
+
+	int status = PX4_ERROR;
+
+	irqstate_t flags = px4_enter_critical_section();
+
+	if (channel_initialized && online) {
 		*erpm = _erpms[output_channel];
-		_erpms_ready[output_channel] = false;
-		return PX4_OK;
+		status = PX4_OK;
 	}
 
-	// this channel is not configured for dshot
-	return PX4_ERROR;
+	_erpms_ready[output_channel] = false;
+
+	px4_leave_critical_section(flags);
+
+	return status;
 }
 
 int up_bdshot_channel_status(uint8_t channel)
 {
-	uint8_t timer_index = timer_io_channels[channel].timer_index;
-	uint8_t timer_channel_index = timer_io_channels[channel].timer_channel - 1;
-	bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
-
-	// TODO: track that each channel is communicating using the decode stats
-	if (channel_initialized) {
-		return 1;
+	if (channel >= MAX_TIMER_IO_CHANNELS) {
+		return 0;
 	}
 
-	return 0;
+	return _status[channel];
 }
 
 void up_bdshot_status(void)
