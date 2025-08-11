@@ -237,8 +237,6 @@ void Heater::Run()
 
 		} else {
 			// Turn the heater off.
-			_heater_on = false;
-			heater_off();
 			ScheduleDelayed(_controller_period_usec);
 		}
 	}
