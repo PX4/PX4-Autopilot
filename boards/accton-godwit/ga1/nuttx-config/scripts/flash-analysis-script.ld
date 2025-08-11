@@ -1,6 +1,0 @@
-INCLUDE "script.ld"
-
-MEMORY
-{
-    FLASH (rx) : ORIGIN = 0x08020000, LENGTH = 10080K
-}
