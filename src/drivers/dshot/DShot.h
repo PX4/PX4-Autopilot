@@ -119,9 +119,9 @@ private:
 	void enable_dshot_outputs();
 
 	void init_telemetry(const char *device, bool swap_rxtx);
+	void set_next_telemetry_index();
 
-	bool process_telemetry(const int telemetry_index, const EscData &data);
-
+	void process_telemetry(const EscData &data);
 	bool process_bdshot_erpm(void);
 
 	void Run() override;
@@ -146,17 +146,23 @@ private:
 	static bool _telemetry_swap_rxtx;
 	static px4::atomic_bool _request_telemetry_init;
 	int _telemetry_current_index = 0;
+	int _telemetry_last_index = 0;
 
-	bool _bidirectional_dshot_enabled{false};
-
-	static constexpr unsigned _num_outputs{DIRECT_PWM_OUTPUT_CHANNELS};
 	uint32_t _output_mask{0};
-
 	int _motor_count{0};
 
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
-	perf_counter_t	_bdshot_rpm_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot rpm")};
-	perf_counter_t	_dshot_telem_perf{perf_alloc(PC_COUNT, MODULE_NAME": dshot telem")};
+
+	perf_counter_t	_bdshot_success_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot success")};
+	perf_counter_t	_bdshot_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot error")};
+	perf_counter_t	_bdshot_timeout_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot timeout")};
+
+
+	perf_counter_t	_telem_success_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem success")};
+	perf_counter_t	_telem_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem error")};
+	perf_counter_t	_telem_timeout_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem timeout")};
+
+
 
 	Command _current_command{};
 

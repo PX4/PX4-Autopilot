@@ -39,12 +39,21 @@
 #include <uORB/topics/esc_eeprom.h>
 
 struct EscData {
+	int motor_index;
 	hrt_abstime time;
 	int8_t temperature;  ///< [deg C]
 	int16_t voltage;     ///< [0.01V]
 	int16_t current;     ///< [0.01A]
 	int16_t consumption; ///< [mAh]
 	int16_t erpm;        ///< [100ERPM]
+};
+
+enum class TelemetryStatus {
+	NotStarted = 0,
+	NotReady = 1,
+	Ready = 2,
+	Timeout = 3,
+	ParseError = 4,
 };
 
 class DShotTelemetry
@@ -60,8 +69,7 @@ public:
 	void startTelemetryRequest();
 	bool telemetryRequestFinished();
 
-	bool parseTelemetryPacket(EscData *esc_data);
-
+	TelemetryStatus parseTelemetryPacket(EscData *esc_data);
 
 	// Attempt to parse a command response.
 	// Returns TODO

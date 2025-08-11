@@ -152,10 +152,10 @@ bool DShotTelemetry::parseSettingsRequestResponse(uint8_t *buf, int size)
 	return false;
 }
 
-bool DShotTelemetry::parseTelemetryPacket(EscData *esc_data)
+TelemetryStatus DShotTelemetry::parseTelemetryPacket(EscData *esc_data)
 {
 	if (telemetryRequestFinished()) {
-		return false;
+		return TelemetryStatus::NotStarted;
 	}
 
 	// read from the uart. This must be non-blocking, so check first if there is data available
@@ -163,22 +163,28 @@ bool DShotTelemetry::parseTelemetryPacket(EscData *esc_data)
 		if (hrt_elapsed_time(&_telemetry_request_start) > 30_ms) {
 			// NOTE: this happens when sending commands, there's a window after an ESC receives
 			// a command where it will not respond to any telemetry requests
-			PX4_INFO("ESC telemetry timeout");
+			// PX4_INFO("ESC telemetry timeout: %d", esc_data->motor_index);
 			++_num_timeouts;
 
 			// Mark telemetry request as finished
 			_telemetry_request_start = 0;
 			_frame_position = 0;
-			return false;
+			return TelemetryStatus::Timeout;
 		}
 
-		return false;
+		return TelemetryStatus::NotReady;
 	}
 
 	uint8_t buf[TELEMETRY_FRAME_SIZE];
 	int bytes = _uart.read(buf, sizeof(buf));
 
-	return decodeTelemetryResponse(buf, bytes, esc_data);
+	auto status = TelemetryStatus::ParseError;
+
+	if (decodeTelemetryResponse(buf, bytes, esc_data)) {
+		status = TelemetryStatus::Ready;
+	}
+
+	return status;
 }
 
 
