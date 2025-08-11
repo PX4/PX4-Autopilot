@@ -178,19 +178,12 @@ TelemetryStatus DShotTelemetry::parseTelemetryPacket(EscData *esc_data)
 	uint8_t buf[TELEMETRY_FRAME_SIZE];
 	int bytes = _uart.read(buf, sizeof(buf));
 
-	auto status = TelemetryStatus::ParseError;
-
-	if (decodeTelemetryResponse(buf, bytes, esc_data)) {
-		status = TelemetryStatus::Ready;
-	}
-
-	return status;
+	return decodeTelemetryResponse(buf, bytes, esc_data);
 }
 
-
-bool DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data)
+TelemetryStatus DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data)
 {
-	bool successful_decoding = false;
+	auto status = TelemetryStatus::NotReady;
 
 	for (int i = 0; i < length; i++) {
 		_frame_buffer[_frame_position++] = buffer[i];
@@ -219,10 +212,12 @@ bool DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int length, EscDat
 				esc_data->erpm = (_frame_buffer[7] << 8) | _frame_buffer[8];
 
 				++_num_successful_responses;
-				successful_decoding = true;
+				status = TelemetryStatus::Ready;
+				_uart.flush();
 
 			} else {
 				++_num_checksum_errors;
+				status = TelemetryStatus::ParseError;
 			}
 
 			// Mark telemetry request as finished
@@ -231,7 +226,12 @@ bool DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int length, EscDat
 		}
 	}
 
-	return successful_decoding;
+	return status;
+}
+
+void DShotTelemetry::flush()
+{
+	_uart.flush();
 }
 
 void DShotTelemetry::setExpectCommandResponse(int motor_index, uint16_t command)
