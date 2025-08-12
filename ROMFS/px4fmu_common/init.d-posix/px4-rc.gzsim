@@ -104,30 +104,6 @@ if [ -n "${PX4_HOME_LAT}" ] || [ -n "${PX4_HOME_LON}" ] || [ -n "${PX4_HOME_ALT}
 		--req "surface_model: EARTH_WGS84, latitude_deg: ${PX4_HOME_LAT}, longitude_deg: ${PX4_HOME_LON}, elevation: ${PX4_HOME_ALT}" > /dev/null 2>&1
 fi
 
-
-
-#Spawn the helipad model if requested
-if [ "${ENABLE_LAUNCH_PAD}" = "True" ]; then
-	sdf_pose_str=""
-	LAUNCHPAD_MODEL=${PX4_GZ_MODELS}/helipad/model.sdf
-
-	echo "trying to fetch heightmap from ${PX4_GZ_MODELS}/${PX4_GZ_WORLD}/model.sdf"
-
-	pos=$(xmlstarlet sel -t -v "/sdf/model/link/visual/geometry/heightmap/pos" "${PX4_GZ_MODELS}/${PX4_GZ_WORLD}/model.sdf")
-
-	set -- $pos
-	pose_x=${1:-0}
-	pose_y=${2:-0}
-	pose_z=${3:-0}
-	sdf_pose_str="<pose> ${pose_x} ${pose_y} ${pose_z} 0 0 0 </pose>"
-	echo " Spawning helipad model"
-	${gz_command} service -s "/world/${PX4_GZ_WORLD}/create" --reqtype gz.msgs.EntityFactory \
-			--reptype gz.msgs.Boolean --timeout 1000 \
-			--req "name: \"helipad\", sdf: '<sdf version=\"1.6\"><include><uri>file://${LAUNCHPAD_MODEL}</uri> ${sdf_pose_str} </include></sdf>'" > /dev/null 2>&1
-
-fi
-
-
 # Start gz_bridge - either spawn a model or connect to existing one
 if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
 	# Spawn a model

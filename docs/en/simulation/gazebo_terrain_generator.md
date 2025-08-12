@@ -42,7 +42,7 @@ source terrain_generator/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Configuration (Optional)
+### 2. Configuration
 
 Set environment variables to change output directory for generated files:
 
@@ -51,14 +51,18 @@ export GAZEBO_MODEL_PATH="/path/to/PX4-Autopilot/Tools/simulation/gz/models"
 export GAZEBO_WORLD_PATH="/path/to/PX4-Autopilot/Tools/simulation/gz/worlds"
 ```
 :::info
-**Default location:** `/path/to/gazebo_terrain_generator/output/gazebo_terrain/`
+**Default location:**  If no environment variable is set, model and world files are saved to:
+```
+Models saved in **/path/to/gazebo_terrain_generator/output/gazebo_terrain/**
+World files in **/path/to/gazebo_terrain_generator/output/gazebo_terrain/worlds**
 
+```
 :::
 
 ## Usage
 
 ### 1. Run Gazebo world Generator
-Navigate to the `gazebo_terrian_generator` repository:
+Navigate to the `gazebo_terrain_generator` repository:
 
 ```bash
 source terrain_generator/bin/activate
@@ -75,11 +79,10 @@ python scripts/server.py
 
 ## Spawn the Model in Gazebo
 
-1. Export the model name and enable Launch pad.
+1. Export the model name.
 
 ```bash
 export PX4_GZ_WORLD=<Model name>
-export ENABLE_LAUNCH_PAD=True
 make px4_sitl gz_x500 # For spawing Quadrotor (x500)
 ```
 
