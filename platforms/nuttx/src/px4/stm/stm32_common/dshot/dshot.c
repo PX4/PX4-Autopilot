@@ -513,9 +513,9 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	// Enable CaptureDMA and on all configured channels
 	io_timer_set_enable(true, IOTimerChanMode_CaptureDMA, IO_TIMER_ALL_MODES_CHANNELS);
 
-	// 30us to switch regardless of DShot frequency + eRPM frame time + 10us for good measure
+	// 30us to switch regardless of DShot frequency + eRPM frame time + 20us for good measure
 	hrt_abstime frame_us = (16 * 1000000) / _dshot_frequency; // 16 bits * us_per_s / bits_per_s
-	hrt_abstime delay = 30 + frame_us + 10;
+	hrt_abstime delay = 30 + frame_us + 20;
 	hrt_call_after(&_cc_call, delay, capture_complete_callback, arg);
 }
 
@@ -544,7 +544,6 @@ static void capture_complete_callback(void *arg)
 		bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
 
 		if (is_this_timer && channel_initialized) {
-
 			io_timer_unallocate_channel(output_channel);
 			// Initialize back to DShotInverted to bring IO back to the expected idle state
 			io_timer_channel_init(output_channel, IOTimerChanMode_DshotInverted, NULL, NULL);
@@ -572,7 +571,7 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 
 	uint8_t output_channel = output_channel_from_timer_channel(timer_index, channel_index);
 
-	irqstate_t flags = px4_enter_critical_section();
+	// irqstate_t flags = px4_enter_critical_section();
 
 	if (period == 0) {
 		// If the parsing failed, set the eRPM to 0
@@ -593,7 +592,7 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 	// Ready simply means updated
 	_erpms_ready[output_channel] = true;
 
-	px4_leave_critical_section(flags);
+	// px4_leave_critical_section(flags);
 }
 
 /**
@@ -655,7 +654,7 @@ int up_bdshot_num_erpm_ready(void)
 {
 	int num_ready = 0;
 
-	irqstate_t flags = px4_enter_critical_section();
+	// irqstate_t flags = px4_enter_critical_section();
 
 	for (unsigned i = 0; i < MAX_TIMER_IO_CHANNELS; ++i) {
 		if (_erpms_ready[i]) {
@@ -663,7 +662,7 @@ int up_bdshot_num_erpm_ready(void)
 		}
 	}
 
-	px4_leave_critical_section(flags);
+	// px4_leave_critical_section(flags);
 
 	return num_ready;
 }
@@ -678,7 +677,7 @@ int up_bdshot_get_erpm(uint8_t output_channel, int *erpm)
 
 	int status = PX4_ERROR;
 
-	irqstate_t flags = px4_enter_critical_section();
+	// irqstate_t flags = px4_enter_critical_section();
 
 	if (channel_initialized && online) {
 		*erpm = _erpms[output_channel];
@@ -687,7 +686,7 @@ int up_bdshot_get_erpm(uint8_t output_channel, int *erpm)
 
 	_erpms_ready[output_channel] = false;
 
-	px4_leave_critical_section(flags);
+	// px4_leave_critical_section(flags);
 
 	return status;
 }

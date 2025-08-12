@@ -59,7 +59,6 @@ enum class TelemetrySource {
 
 struct EscData {
 	int motor_index;       // Motors 0-7
-	bool online;		   // Motor communicating
 	hrt_abstime timestamp; // Sample time
 	TelemetrySource source;
 
@@ -78,3 +77,11 @@ enum class TelemetryStatus {
 	ParseError = 4,
 };
 
+inline int count_set_bits(int mask) {
+	int count = 0;
+	while (mask) {
+		mask &= mask - 1;
+		count++;
+	}
+	return count;
+}

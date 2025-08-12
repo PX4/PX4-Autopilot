@@ -144,45 +144,43 @@ private:
 
 	void handle_programming_sequence_state();
 
-	int count_set_bits(int mask);
-
+	// Mixer
 	MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	uint32_t _output_mask{0}; // Configured outputs for this (shouldn't this live in OutputModuleInterface?)
 
-	DShotTelemetry _telemetry;
-
-	uORB::PublicationMultiData<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
-
+	// uORb
 	esc_status_s _esc_status{};
+	uORB::PublicationMultiData<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
+	// Status information
+	uint32_t _bdshot_telem_online_mask = 0; // Mask indicating telem receive status for bidirectional dshot telem
+	uint32_t _serial_telem_online_mask = 0; // Mask indicating telem receive status for serial telem
+	uint16_t _esc_status_counter = 0;
+
+	// Serial Telemetry
+	DShotTelemetry _telemetry;
 	static char _telemetry_device[20];
 	static bool _telemetry_swap_rxtx;
 	static px4::atomic_bool _request_telemetry_init;
-
 	int _telemetry_motor_index = 0;
 	uint32_t _telemetry_requested_mask = 0;
 	hrt_abstime _telem_delay_until = ESC_INIT_TELEM_WAIT_TIME;
 
-	uint32_t _output_mask{0};
-
+	// Perf counters
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
-
 	perf_counter_t	_bdshot_success_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot success")};
 	perf_counter_t	_bdshot_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot error")};
 	perf_counter_t	_bdshot_timeout_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot timeout")};
-
-
 	perf_counter_t	_telem_success_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem success")};
 	perf_counter_t	_telem_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem error")};
 	perf_counter_t	_telem_timeout_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem timeout")};
 	perf_counter_t	_telem_allsampled_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem all sampled")};
 
+	// Commands
 	Command _current_command{};
-
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
-	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
-	uint16_t _esc_status_counter{0};
-
 
 	enum class ProgrammingState {
 		Idle,
@@ -192,11 +190,13 @@ private:
 		ExitMode,
 		Save
 	};
+
 	ProgrammingState _programming_state{ProgrammingState::Idle};
 
 	uint16_t _programming_address{};
 	uint16_t _programming_value{};
 
+	// Parameters
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::DSHOT_MIN>)    _param_dshot_min,
 		(ParamBool<px4::params::DSHOT_3D_ENABLE>) _param_dshot_3d_enable,

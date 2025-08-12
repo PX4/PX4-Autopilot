@@ -331,7 +331,7 @@ void DShot::Run()
 				break;
 
 			case TelemetryStatus::Ready:
-				esc.online = true;
+				_serial_telem_online_mask |= (1 << _telemetry_motor_index);
 				consume_esc_data(esc, TelemetrySource::Serial);
 				all_telem_sampled = set_next_telemetry_index();
 				perf_count(_telem_success_perf);
@@ -340,6 +340,8 @@ void DShot::Run()
 			case TelemetryStatus::Timeout:
 				// Set ESC data to zeroes
 				DSHOT_TELEM_DEBUG("Timeout");
+				_serial_telem_online_mask &= ~(1 << _telemetry_motor_index);
+				// Consume an empty EscData to zero the data
 				consume_esc_data(esc, TelemetrySource::Serial);
 				all_telem_sampled = set_next_telemetry_index();
 				perf_count(_telem_timeout_perf);
@@ -348,6 +350,8 @@ void DShot::Run()
 			case TelemetryStatus::ParseError:
 				// Set ESC data to zeroes
 				DSHOT_TELEM_DEBUG("ParseError");
+				_serial_telem_online_mask &= ~(1 << _telemetry_motor_index);
+				// Consume an empty EscData to zero the data
 				consume_esc_data(esc, TelemetrySource::Serial);
 				all_telem_sampled = set_next_telemetry_index();
 				_telem_delay_until = hrt_absolute_time() + 100_ms; // TODO: how long do we need to wait?
@@ -431,18 +435,24 @@ bool DShot::set_next_telemetry_index()
 void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 {
 	bool bidirectional_enabled = _param_dshot_bidir_en.get();
-	bool serial_telemetry_enabled = _param_dshot_tel_cfg.get() > 0;
+	bool serial_telemetry_enabled = _param_dshot_tel_cfg.get();
 
 	if (esc.motor_index < esc_status_s::CONNECTED_ESC_MAX) {
 
 		_esc_status.counter = _esc_status_counter++;
 
-		if (esc.online) {
-			_esc_status.esc_online_flags |= (1 << esc.motor_index);
+		uint8_t online_mask = 0xFF;
 
-		} else {
-			_esc_status.esc_online_flags &= ~(1 << esc.motor_index);
+		// Require both sources online when enabled
+		if (bidirectional_enabled) {
+			online_mask &= _bdshot_telem_online_mask;
 		}
+
+		if (serial_telemetry_enabled) {
+			online_mask &= _serial_telem_online_mask;
+		}
+
+		_esc_status.esc_online_flags = online_mask;
 
 		if (source == TelemetrySource::Serial) {
 			// Only use SerialTelemetry eRPM when BDSoht is disabled
@@ -488,6 +498,10 @@ bool DShot::process_bdshot_erpm()
 			continue;
 		}
 
+		// TODO: handle Extended Telemetry -- Volt/Curr/Temp
+		// We won't want to zero out the EscData, and instead
+		// use the previously set values.
+
 		EscData esc = {};
 
 		// NOTE: dshot erpm order is actuator channel order, so we map to motor index here
@@ -499,17 +513,20 @@ bool DShot::process_bdshot_erpm()
 			esc.timestamp = now;
 
 			if (up_bdshot_channel_status(i)) {
-				esc.online = true;
+				_bdshot_telem_online_mask |= (1 << motor_index);
+
+				// Only update RPM if online
+				int erpm = 0;
+				if (up_bdshot_get_erpm(i, &erpm) == PX4_OK) {
+					esc.erpm = (erpm * 100) / (_param_mot_pole_count.get() / 2);
+				}
 
 			} else {
-				// PX4_INFO("bdshot offline %d", motor_index);
-				esc.online = false;
-			}
+				_bdshot_telem_online_mask &= ~(1 << motor_index);
 
-			int erpm = 0;
-
-			if (up_bdshot_get_erpm(i, &erpm) == PX4_OK) {
-				esc.erpm = (erpm * 100) / (_param_mot_pole_count.get() / 2);
+				// TODO: periodic warning about dshot online status:
+				// - motor wires are not hooked up cleanly
+				// - parsing logic is timing dependent...
 			}
 
 			consume_esc_data(esc, TelemetrySource::BDShot);
@@ -908,11 +925,3 @@ extern "C" __EXPORT int dshot_main(int argc, char *argv[])
 	return DShot::main(argc, argv);
 }
 
-int DShot::count_set_bits(int mask) {
-	int count = 0;
-	while (mask) {
-		mask &= mask - 1;
-		count++;
-	}
-	return count;
-}
