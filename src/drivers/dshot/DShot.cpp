@@ -170,6 +170,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 
 	// First check if all outputs are disarmed and we have a command to send
 	bool all_disarmed = true;
+	hrt_abstime now = hrt_absolute_time();
 
 	for (int i = 0; i < (int)num_outputs; i++) {
 		if (!_mixing_output.isMotor(i)) {
@@ -178,6 +179,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			continue;
 		}
 
+		// Set armed status
 		if (outputs[i] != DSHOT_DISARM_VALUE) {
 			all_disarmed = false;
 			_esc_status.esc_armed_flags |= (1 << i);
@@ -187,8 +189,47 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 		}
 	}
 
+	// TODO: this needs to move to Run() and respect dshot programming mode and settings response
+	// Iterate over all and check if we should send any commands
+	// if (all_disarmed && !_current_command.valid()) {
+	// 	for (int i = 0; i < (int)num_outputs; i++) {
+	// 		if (!_mixing_output.isMotor(i)) {
+	// 			continue;
+	// 		}
+	// 		int motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
+
+	// 		// Check if the ESC needs a EDT or Settings request
+	// 		bool bdshot_telem_online = _bdshot_telem_online_mask & (1 << motor_index);
+	// 		bool serial_telem_online = _serial_telem_online_mask & (1 << motor_index);
+
+	// 		if (_param_dshot_bidir_en.get() && _param_dshot_bidir_edt.get() && bdshot_telem_online && !_bdshot_edt_requested[motor_index]) {
+	// 			_current_command.clear();
+	// 			_current_command.save = false;
+	// 			_current_command.num_repetitions = 10;
+	// 			_current_command.command = DSHOT_EXTENDED_TELEMETRY_ENABLE;
+	// 			_current_command.motor_mask = (1 << i);
+	// 			// TODO: some delay time?
+	// 			_current_command.delay_until = now + 1_s;
+	// 			_bdshot_edt_requested[motor_index] = true;
+	// 			PX4_INFO("Requesting EDT %d", motor_index);
+
+	// 		} else if (_param_dshot_tel_cfg.get() && serial_telem_online && bdshot_telem_online && !_settings_requested[motor_index]) {
+	// 			_current_command.clear();
+	// 			_current_command.save = false;
+	// 			_current_command.num_repetitions = 10;
+	// 			_current_command.command = DSHOT_CMD_ESC_INFO;
+	// 			_current_command.motor_mask = 1 << i;
+	// 			// TODO: some delay time?
+	// 			_current_command.delay_until = now + 1_s;
+	// 			_settings_requested[motor_index] = true;
+	// 			PX4_INFO("Requesting Settings %d", motor_index);
+	// 		}
+	// 	}
+	// }
+
+	bool command_ready = _current_command.delay_until == 0 || (now > _current_command.delay_until);
 	// All outputs are disarmed and we have a command to send
-	if (all_disarmed && _current_command.valid()) {
+	if (all_disarmed && _current_command.valid() && command_ready) {
 
 		int motor_index = 0;
 
@@ -240,7 +281,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 	bool request_telemetry = false;
 
 	// If telemetry is enabled and the last request has been processed
-	bool delay_elapsed = hrt_absolute_time() > _telem_delay_until;
+	bool delay_elapsed = now > _telem_delay_until;
 
 	if (_telemetry.enabled() && _telemetry.telemetryRequestFinished()) {
 
@@ -441,8 +482,6 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 
 	if (esc.motor_index < esc_status_s::CONNECTED_ESC_MAX) {
 
-		_esc_status.counter = _esc_status_counter++;
-
 		uint8_t online_mask = 0xFF;
 
 		// Require both sources online when enabled
@@ -640,11 +679,11 @@ void DShot::handle_vehicle_commands()
 			}
 
 			int type = (int)(vehicle_command.param1 + 0.5f);
-			int index = -1;
+			int motor_index = -1;
 
 			for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; ++i) {
 				if ((int)_mixing_output.outputFunction(i) == function && _mixing_output.isMotor(i)) {
-					index = i;
+					motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
 				}
 			}
 
@@ -654,8 +693,8 @@ void DShot::handle_vehicle_commands()
 			command_ack.target_component = vehicle_command.source_component;
 			command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
-			if (index != -1) {
-				DSHOT_CMD_DEBUG("index: %i type: %i", index, type);
+			if (motor_index != -1) {
+				DSHOT_CMD_DEBUG("motor_index: %i type: %i", motor_index, type);
 				_current_command.clear();
 				_current_command.command = DSHOT_CMD_MOTOR_STOP;
 				_current_command.num_repetitions = 10; // TODO: check AM32
@@ -721,7 +760,7 @@ void DShot::handle_vehicle_commands()
 				// NOTE: this means we can't send a stop command (that's OK)
 				if (_current_command.command != DSHOT_CMD_MOTOR_STOP) {
 					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
-					_current_command.motor_mask = 1 << index;
+					_current_command.motor_mask = 1 << motor_index;
 				}
 			}
 

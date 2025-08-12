@@ -110,6 +110,7 @@ private:
 		uint8_t motor_mask{0xff};
 		bool save{false};
 		bool expect_response{false};
+		hrt_abstime delay_until{};
 
 		bool valid() const { return num_repetitions > 0; }
 		void clear()
@@ -119,6 +120,7 @@ private:
 			motor_mask = 0;
 			save = 0;
 			expect_response = 0;
+			delay_until = 0;
 		}
 	};
 
@@ -158,7 +160,9 @@ private:
 	// Status information
 	uint32_t _bdshot_telem_online_mask = 0; // Mask indicating telem receive status for bidirectional dshot telem
 	uint32_t _serial_telem_online_mask = 0; // Mask indicating telem receive status for serial telem
-	uint16_t _esc_status_counter = 0;
+	uint32_t _serial_telem_errors[DSHOT_MAXIMUM_CHANNELS] = {};
+	uint32_t _bdshot_telem_errors[DSHOT_MAXIMUM_CHANNELS] = {};
+
 
 	// Serial Telemetry
 	DShotTelemetry _telemetry;
@@ -168,9 +172,6 @@ private:
 	int _telemetry_motor_index = 0;
 	uint32_t _telemetry_requested_mask = 0;
 	hrt_abstime _telem_delay_until = ESC_INIT_TELEM_WAIT_TIME;
-
-	uint32_t _serial_telem_errors[DSHOT_MAXIMUM_CHANNELS] = {};
-	uint32_t _bdshot_telem_errors[DSHOT_MAXIMUM_CHANNELS] = {};
 
 	// Perf counters
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
@@ -183,6 +184,9 @@ private:
 	perf_counter_t	_telem_allsampled_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem all sampled")};
 
 	// Commands
+	bool _bdshot_edt_requested[DSHOT_MAXIMUM_CHANNELS] = {};
+	bool _settings_requested[DSHOT_MAXIMUM_CHANNELS] = {};
+
 	Command _current_command{};
 
 	enum class ProgrammingState {
@@ -207,6 +211,7 @@ private:
 		(ParamInt<px4::params::DSHOT_3D_DEAD_L>) _param_dshot_3d_dead_l,
 		(ParamInt<px4::params::MOT_POLE_COUNT>) _param_mot_pole_count,
 		(ParamBool<px4::params::DSHOT_BIDIR_EN>) _param_dshot_bidir_en,
+		(ParamBool<px4::params::DSHOT_BIDIR_EDT>) _param_dshot_bidir_edt,
 		(ParamBool<px4::params::DSHOT_TEL_CFG>) _param_dshot_tel_cfg
 	)
 };

@@ -43,6 +43,16 @@ parameters:
             type: boolean
             default: 0
             reboot_required: true
+        DSHOT_BIDIR_EDT:
+            description:
+                short: Enable Extended DShot Telemetry
+                long: |
+                    This parameter enables Extended DShot Telemetry which allows transmission of
+                    additional telemetry within the eRPM frame. The EDT data is interleaved with
+                    the eRPM frames at a low rate.
+            type: boolean
+            default: 0
+            reboot_required: true
         DSHOT_3D_DEAD_H:
             description:
                 short: DSHOT 3D deadband high
