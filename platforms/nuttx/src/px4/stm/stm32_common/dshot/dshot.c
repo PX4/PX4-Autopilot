@@ -463,11 +463,21 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 
 	// Unallocate timer channel for currently selected capture_channel
 	uint8_t capture_channel = timer_configs[timer_index].capture_channel_index;
-	uint8_t output_channel = output_channel_from_timer_channel(timer_index, capture_channel);
 
-	// Re-initialize output for CaptureDMA for next time
-	io_timer_unallocate_channel(output_channel);
-	io_timer_channel_init(output_channel, IOTimerChanMode_CaptureDMA, NULL, NULL);
+	// Re-initialize all output channels on this timer as CaptureDMA
+	for (uint8_t channel = 0; channel < MAX_TIMER_IO_CHANNELS; channel++) {
+
+		bool is_this_timer = timer_index == timer_io_channels[channel].timer_index;
+		uint8_t timer_channel_index = timer_io_channels[channel].timer_channel - 1;
+		bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
+
+		if (is_this_timer && channel_initialized) {
+
+			io_timer_unallocate_channel(channel);
+			// Initialize back to DShotInverted to bring IO back to the expected idle state
+			io_timer_channel_init(channel, IOTimerChanMode_CaptureDMA, NULL, NULL);
+		}
+	}
 
 	// Select the next capture channel
 	select_next_capture_channel(timer_index);
@@ -623,7 +633,6 @@ void dshot_motor_data_set(unsigned channel, uint16_t data, bool telemetry)
 	} else {
 		packet |= ((checksum) & 0x0F);
 	}
-
 
 	const io_timers_channel_mapping_element_t *mapping = &io_timers_channel_mapping.element[timer_index];
 	uint8_t num_motors = mapping->channel_count_including_gaps;
