@@ -115,7 +115,8 @@ On the ARK Flow, you may need to configure the following parameters:
 
 ## Значення LED індикаторів
 
-You will see both red and blue LEDs on the ARK Flow when it is being flashed, and a solid blue LED if it is running properly.
+- Solid blue is normal operation
+- Rapid blinking blue and red is firmware update
 
 Якщо ви бачите червоний світлодіод, це означає, що виникла помилка, і вам слід перевірити наступне:
 
