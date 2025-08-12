@@ -92,6 +92,7 @@ private:
 
 		for (int i = 0; i < subscriber_count; i++) {
 			esc_status_s esc = {};
+
 			if (_esc_status_subs[i].update(&esc)) {
 				_interface[i].counter = esc.counter;
 				_interface[i].esc_count = esc.esc_count;
@@ -103,7 +104,8 @@ private:
 
 				for (int j = 0; j < esc_status_s::CONNECTED_ESC_MAX; j++) {
 					bool is_motor = ((int)esc.esc[j].actuator_function >= (int)OutputFunction::Motor1) &&
-									((int)esc.esc[j].actuator_function <= (int)OutputFunction::Motor12);
+							((int)esc.esc[j].actuator_function <= (int)OutputFunction::Motor12);
+
 					if (is_motor) {
 						// Map OutputFunction number to index
 						int index = (int)esc.esc[j].actuator_function - (int)OutputFunction::Motor1;
@@ -122,6 +124,7 @@ private:
 		}
 
 		int count = 0;
+
 		for (int i = 0; i < MAX_NUM_MSGS; i++) {
 			count += _interface[i].esc_count;
 		}
@@ -146,6 +149,7 @@ private:
 			msg.info = _interface[i].esc_online_flags;
 
 			bool atleast_one_esc_updated = false;
+
 			for (int j = 0; j < ESCS_PER_MSG; j++) {
 
 				EscInfo &esc = _escs[i * ESCS_PER_MSG + j];
