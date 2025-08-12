@@ -113,29 +113,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 	diff_pres_offset = diff_pres_offset / calibration_count;
 
-	if (PX4_ISFINITE(diff_pres_offset)) {
-		// Prevent a completely zero param
-		// since this is used to detect a missing calibration
-		// This value is numerically down in the noise and has
-		// no effect on the sensor performance.
-		if (fabsf(diff_pres_offset) < 0.00000001f) {
-			diff_pres_offset = 0.00000001f;
-		}
-
-		if (param_set(param_find("SENS_DPRES_OFF"), &diff_pres_offset)) {
-			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
-			return PX4_ERROR;
-		}
-
-	} else {
-		feedback_calibration_failed(mavlink_log_pub);
-		return PX4_ERROR;
-	}
-
 	calibration_log_info(mavlink_log_pub, "[cal] Offset of %d Pascal", (int)diff_pres_offset);
-
-	/* wait 500 ms to ensure parameter propagated through the system */
-	px4_usleep(500 * 1000);
 
 	calibration_log_critical(mavlink_log_pub, "[cal] Blow into front of pitot without touching");
 
@@ -170,17 +148,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 								 (int)differential_pressure_pa);
 					calibration_log_critical(mavlink_log_pub, "[cal] Swap static and dynamic ports or set SENS_DPRES_REV");
 
-					/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
-					diff_pres_offset = 0.0f;
-
-					if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
-						calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
-						return PX4_ERROR;
-					}
-
-					/* save */
 					calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 0);
-					param_save_default(true);
 
 					feedback_calibration_failed(mavlink_log_pub);
 					return PX4_ERROR;
@@ -209,6 +177,25 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 	}
 
 	if (calibration_counter == maxcount) {
+		feedback_calibration_failed(mavlink_log_pub);
+		return PX4_ERROR;
+	}
+
+	if (PX4_ISFINITE(diff_pres_offset)) {
+		// Prevent a completely zero param
+		// since this is used to detect a missing calibration
+		// This value is numerically down in the noise and has
+		// no effect on the sensor performance.
+		if (fabsf(diff_pres_offset) < 0.00000001f) {
+			diff_pres_offset = 0.00000001f;
+		}
+
+		if (param_set(param_find("SENS_DPRES_OFF"), &diff_pres_offset)) {
+			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
+			return PX4_ERROR;
+		}
+
+	} else {
 		feedback_calibration_failed(mavlink_log_pub);
 		return PX4_ERROR;
 	}
