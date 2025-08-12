@@ -62,6 +62,7 @@ DShot::~DShot()
 	perf_free(_telem_success_perf);
 	perf_free(_telem_error_perf);
 	perf_free(_telem_timeout_perf);
+	perf_free(_telem_allsampled_perf);
 }
 
 int DShot::init()
@@ -356,6 +357,7 @@ void DShot::Run()
 
 	if (all_telem_sampled) {
 		DSHOT_TELEM_DEBUG("all_telem_sampled");
+		perf_count(_telem_allsampled_perf);
 	}
 
 	if (_param_dshot_bidir_en.get()) {
@@ -411,22 +413,23 @@ bool DShot::set_next_telemetry_index()
 	do {
 		bool is_motor = _mixing_output.isMotor(next_motor_index);
 		bool already_requested = _telemetry_requested_mask & (1 << next_motor_index);
+
 		if (is_motor && !already_requested) {
 			_telemetry_motor_index = next_motor_index;
 			_telemetry_requested_mask |= (1 << next_motor_index);
-
 			DSHOT_TELEM_DEBUG("next telem %d, mask: 0x%lx", _telemetry_motor_index, _telemetry_requested_mask);
-
-			// Check if all motors have been sampled
-			if (count_set_bits(_telemetry_requested_mask) >= count_set_bits(_output_mask)) {
-				_telemetry_requested_mask = 0; // Reset for next round
-				return true; // All sampled
-			}
-			return false;
+			break;
 		}
 
 		next_motor_index = (next_motor_index + 1) % DSHOT_MAXIMUM_CHANNELS;
 	} while (next_motor_index != start_index);
+
+
+	// Check if all motors have been sampled
+	if (count_set_bits(_telemetry_requested_mask) >= count_set_bits(_output_mask)) {
+		_telemetry_requested_mask = 0; // Reset for next round
+		return true; // All sampled
+	}
 
 	// No motors found or all already sampled
 	return false;
@@ -776,6 +779,7 @@ int DShot::print_status()
 	perf_print_counter(_telem_success_perf);
 	perf_print_counter(_telem_error_perf);
 	perf_print_counter(_telem_timeout_perf);
+	perf_print_counter(_telem_allsampled_perf);
 
 	_mixing_output.printStatus();
 

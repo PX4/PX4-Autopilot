@@ -169,6 +169,7 @@ private:
 	perf_counter_t	_telem_success_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem success")};
 	perf_counter_t	_telem_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem error")};
 	perf_counter_t	_telem_timeout_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem timeout")};
+	perf_counter_t	_telem_allsampled_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem all sampled")};
 
 	Command _current_command{};
 
