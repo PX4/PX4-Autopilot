@@ -184,8 +184,8 @@ private:
 	perf_counter_t	_telem_allsampled_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem all sampled")};
 
 	// Commands
-	bool _bdshot_edt_requested[DSHOT_MAXIMUM_CHANNELS] = {};
-	bool _settings_requested[DSHOT_MAXIMUM_CHANNELS] = {};
+	uint8_t _bdshot_edt_requested_mask = 0;
+	uint8_t _settings_requested_mask = 0;
 
 	Command _current_command{};
 
