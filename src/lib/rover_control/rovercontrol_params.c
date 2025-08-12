@@ -51,6 +51,19 @@
 PARAM_DEFINE_FLOAT(RO_YAW_STICK_DZ, 0.1f);
 
 /**
+ * Yaw stick gain in Manual mode
+ *
+ * Assign value <1.0 to decrease stick response for yaw control.
+ *
+ * @min 0
+ * @max 1
+ * @increment 0.01
+ * @decimal 2
+ * @group Rover Rate Control
+ */
+PARAM_DEFINE_FLOAT(RO_YAW_STIK_GAIN, 1.0f);
+
+/**
  * Yaw rate measurement threshold
  *
  * The minimum threshold for the yaw rate measurement not to be interpreted as zero.
