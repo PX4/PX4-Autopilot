@@ -173,6 +173,8 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 
 	for (int i = 0; i < (int)num_outputs; i++) {
 		if (!_mixing_output.isMotor(i)) {
+			// If unconfigured ensure output value is set back to disarmed with no telemetry
+			up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, false);
 			continue;
 		}
 
