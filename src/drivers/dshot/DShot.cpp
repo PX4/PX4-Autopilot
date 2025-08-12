@@ -340,6 +340,7 @@ void DShot::Run()
 			case TelemetryStatus::Timeout:
 				// Set ESC data to zeroes
 				DSHOT_TELEM_DEBUG("Timeout");
+				_serial_telem_errors[_telemetry_motor_index]++;
 				_serial_telem_online_mask &= ~(1 << _telemetry_motor_index);
 				// Consume an empty EscData to zero the data
 				consume_esc_data(esc, TelemetrySource::Serial);
@@ -350,6 +351,7 @@ void DShot::Run()
 			case TelemetryStatus::ParseError:
 				// Set ESC data to zeroes
 				DSHOT_TELEM_DEBUG("ParseError");
+				_serial_telem_errors[_telemetry_motor_index]++;
 				_serial_telem_online_mask &= ~(1 << _telemetry_motor_index);
 				// Consume an empty EscData to zero the data
 				consume_esc_data(esc, TelemetrySource::Serial);
@@ -454,6 +456,8 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 
 		_esc_status.esc_online_flags = online_mask;
 
+		_esc_status.esc[esc.motor_index].esc_errorcount = _serial_telem_errors[esc.motor_index] + _bdshot_telem_errors[esc.motor_index];
+
 		if (source == TelemetrySource::Serial) {
 			// Only use SerialTelemetry eRPM when BDSoht is disabled
 			if (!bidirectional_enabled) {
@@ -519,14 +523,15 @@ bool DShot::process_bdshot_erpm()
 				int erpm = 0;
 				if (up_bdshot_get_erpm(i, &erpm) == PX4_OK) {
 					esc.erpm = (erpm * 100) / (_param_mot_pole_count.get() / 2);
+				} else {
+					_bdshot_telem_errors[_telemetry_motor_index]++;
+					perf_count(_bdshot_error_perf);
 				}
 
 			} else {
 				_bdshot_telem_online_mask &= ~(1 << motor_index);
-
-				// TODO: periodic warning about dshot online status:
-				// - motor wires are not hooked up cleanly
-				// - parsing logic is timing dependent...
+				_bdshot_telem_errors[_telemetry_motor_index]++;
+				perf_count(_bdshot_error_perf);
 			}
 
 			consume_esc_data(esc, TelemetrySource::BDShot);

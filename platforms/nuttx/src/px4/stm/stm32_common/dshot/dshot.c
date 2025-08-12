@@ -143,6 +143,8 @@ static uint32_t read_fail_crc[MAX_NUM_CHANNELS_PER_TIMER] = {};
 static uint32_t read_fail_zero[MAX_NUM_CHANNELS_PER_TIMER] = {};
 
 static perf_counter_t hrt_callback_perf = NULL;
+static perf_counter_t capture_cycle_perf = NULL;
+static perf_counter_t capture_cycle_perf2 = NULL;
 
 static void init_timer_config(uint32_t channel_mask)
 {
@@ -287,6 +289,8 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bi
 	if (_bidirectional) {
 		PX4_INFO("Bidirectional DShot enabled, only one timer will be used");
 		hrt_callback_perf = perf_alloc(PC_ELAPSED, "dshot: callback perf");
+		capture_cycle_perf = perf_alloc(PC_INTERVAL, "dshot: cycle perf");
+		capture_cycle_perf2 = perf_alloc(PC_INTERVAL, "dshot: cycle perf2");
 	}
 
 	// NOTE: if bidirectional is enabled only 1 timer can be used. This is because Burst mode uses 1 DMA channel per timer
@@ -388,6 +392,7 @@ void up_dshot_trigger()
 
 			// Trigger DMA (DShot Outputs)
 			if (timer_configs[timer_index].bidirectional) {
+				perf_begin(capture_cycle_perf);
 				stm32_dmastart(timer_configs[timer_index].dma_handle, dma_burst_finished_callback,
 					       &timer_configs[timer_index].timer_index,
 					       false);
@@ -513,6 +518,10 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	// Enable CaptureDMA and on all configured channels
 	io_timer_set_enable(true, IOTimerChanMode_CaptureDMA, IO_TIMER_ALL_MODES_CHANNELS);
 
+	// Measuring the time it takes from when we start the DMA to when we enable CaptureDMA
+	perf_end(capture_cycle_perf);
+	perf_begin(capture_cycle_perf2);
+
 	// 30us to switch regardless of DShot frequency + eRPM frame time + 20us for good measure
 	hrt_abstime frame_us = (16 * 1000000) / _dshot_frequency; // 16 bits * us_per_s / bits_per_s
 	hrt_abstime delay = 30 + frame_us + 20;
@@ -521,6 +530,7 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 
 static void capture_complete_callback(void *arg)
 {
+	perf_end(capture_cycle_perf2);
 	perf_begin(hrt_callback_perf);
 
 	uint8_t timer_index = *((uint8_t *)arg);
@@ -571,8 +581,6 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 
 	uint8_t output_channel = output_channel_from_timer_channel(timer_index, channel_index);
 
-	// irqstate_t flags = px4_enter_critical_section();
-
 	if (period == 0) {
 		// If the parsing failed, set the eRPM to 0
 		_erpms[output_channel] = 0;
@@ -591,8 +599,6 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 
 	// Ready simply means updated
 	_erpms_ready[output_channel] = true;
-
-	// px4_leave_critical_section(flags);
 }
 
 /**
@@ -654,15 +660,11 @@ int up_bdshot_num_erpm_ready(void)
 {
 	int num_ready = 0;
 
-	// irqstate_t flags = px4_enter_critical_section();
-
 	for (unsigned i = 0; i < MAX_TIMER_IO_CHANNELS; ++i) {
 		if (_erpms_ready[i]) {
 			++num_ready;
 		}
 	}
-
-	// px4_leave_critical_section(flags);
 
 	return num_ready;
 }
@@ -673,20 +675,14 @@ int up_bdshot_get_erpm(uint8_t output_channel, int *erpm)
 	uint8_t timer_channel_index = timer_io_channels[output_channel].timer_channel - 1;
 	bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
 
-	bool online = _status[output_channel];
-
 	int status = PX4_ERROR;
 
-	// irqstate_t flags = px4_enter_critical_section();
-
-	if (channel_initialized && online) {
+	if (channel_initialized) {
 		*erpm = _erpms[output_channel];
 		status = PX4_OK;
 	}
 
 	_erpms_ready[output_channel] = false;
-
-	// px4_leave_critical_section(flags);
 
 	return status;
 }
