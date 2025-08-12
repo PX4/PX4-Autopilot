@@ -122,6 +122,11 @@ static uint32_t *dshot_output_buffer[MAX_IO_TIMERS] = {};
 static uint16_t dshot_capture_buffer[MAX_NUM_CHANNELS_PER_TIMER][CHANNEL_CAPTURE_BUFF_SIZE]
 px4_cache_aligned_data() = {};
 
+// Indicates when the bdshot capture cycle is finished. This is necessary since the captured data is
+// processed after a fixed delay in an hrt callback. System jitter can delay the firing of the hrt callback
+// and thus delay the processing of the data. This should never happen in a properly working system, as the
+// jitter would have to be longer than the control allocator update interval. A warning is issued if this
+// ever does occur.
 static bool _bdshot_cycle_complete = true;
 
 static bool     _bidirectional = false;
