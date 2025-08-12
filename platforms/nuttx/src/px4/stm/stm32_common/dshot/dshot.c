@@ -135,7 +135,7 @@ static uint32_t _dshot_frequency = 0;
 
 // eRPM data for channels on the singular timer
 static int32_t _erpms[MAX_TIMER_IO_CHANNELS] = {};
-static bool _status[MAX_TIMER_IO_CHANNELS] = {};
+static bool _online[MAX_TIMER_IO_CHANNELS] = {};
 static bool _erpms_ready[MAX_TIMER_IO_CHANNELS] = {};
 
 // hrt callback handle for captcomp post dma processing
@@ -589,17 +589,17 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 	if (period == 0) {
 		// If the parsing failed, set the eRPM to 0
 		_erpms[output_channel] = 0;
-		_status[output_channel] = 0;
+		_online[output_channel] = 0;
 
 	} else if (period == 65408) {
 		// Special case for zero motion (e.g., stationary motor)
 		_erpms[output_channel] = 0;
-		_status[output_channel] = 1;
+		_online[output_channel] = 1;
 
 	} else {
 		// Convert the period to eRPM
 		_erpms[output_channel] = (1000000 * 60 / 100 + period / 2) / period;
-		_status[output_channel] = 1;
+		_online[output_channel] = 1;
 	}
 
 	// Ready simply means updated
@@ -698,7 +698,7 @@ int up_bdshot_channel_status(uint8_t channel)
 		return 0;
 	}
 
-	return _status[channel];
+	return _online[channel];
 }
 
 void up_bdshot_status(void)
