@@ -51,6 +51,9 @@ using namespace time_literals;
 
 static constexpr int DSHOT_MAXIMUM_CHANNELS = esc_status_s::CONNECTED_ESC_MAX;
 
+static constexpr hrt_abstime ESC_INIT_TELEM_WAIT_TIME = 3_s;
+
+
 /** Dshot PWM frequency, Hz */
 static constexpr unsigned int DSHOT150  =  150000u;
 static constexpr unsigned int DSHOT300  =  300000u;
@@ -157,7 +160,7 @@ private:
 
 	int _telemetry_motor_index = 0;
 	uint32_t _telemetry_requested_mask = 0;
-	hrt_abstime _telem_delay_until = 3_s; // We start off with a 3s delay to allow ESCs to fire up
+	hrt_abstime _telem_delay_until = ESC_INIT_TELEM_WAIT_TIME;
 
 	uint32_t _output_mask{0};
 
