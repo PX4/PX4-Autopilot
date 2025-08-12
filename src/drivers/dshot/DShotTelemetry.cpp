@@ -204,7 +204,7 @@ TelemetryStatus DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int len
 			uint8_t checksum_data = _frame_buffer[TELEMETRY_FRAME_SIZE - 1];
 
 			if (checksum == checksum_data) {
-				esc_data->time = hrt_absolute_time();
+				esc_data->timestamp = hrt_absolute_time();
 				esc_data->temperature = _frame_buffer[0];
 				esc_data->voltage = (_frame_buffer[1] << 8) | _frame_buffer[2];
 				esc_data->current = (_frame_buffer[3] << 8) | _frame_buffer[4];
