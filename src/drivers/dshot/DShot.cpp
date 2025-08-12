@@ -473,6 +473,11 @@ bool DShot::process_bdshot_erpm()
 {
 	hrt_abstime now = hrt_absolute_time();
 
+	// Don't try to process any telem data until after ESCs have been given time to boot
+	if (now < ESC_INIT_TELEM_WAIT_TIME) {
+		return false;
+	}
+
 	// We wait until all are ready.
 	if (up_bdshot_num_erpm_ready() < count_set_bits(_output_mask)) {
 		return false;
