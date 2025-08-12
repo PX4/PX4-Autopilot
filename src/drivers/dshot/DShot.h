@@ -127,7 +127,9 @@ private:
 	bool set_next_telemetry_index();
 
 	void consume_esc_data(const EscData &data, TelemetrySource source);
-	bool process_bdshot_erpm(void);
+
+	bool process_bdshot_erpm();
+
 
 	void Run() override;
 

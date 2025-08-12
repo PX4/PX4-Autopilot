@@ -58,16 +58,16 @@ enum class TelemetrySource {
 };
 
 struct EscData {
-	int motor_index;     // Motors 1-8
-	bool online;		 // Motor communicating
-	hrt_abstime time;	 // Sample time
+	int motor_index;       // Motors 0-7
+	bool online;		   // Motor communicating
+	hrt_abstime timestamp; // Sample time
 	TelemetrySource source;
 
-	int8_t temperature;  // [deg C]
-	int16_t voltage;     // [0.01V]
-	int16_t current;     // [0.01A]
-	int16_t consumption; // [mAh]
-	int16_t erpm;        // [100ERPM]
+	int8_t temperature;    // [deg C]
+	int16_t voltage;       // [0.01V]
+	int16_t current;       // [0.01A]
+	int16_t consumption;   // [mAh]
+	int16_t erpm;          // [100ERPM]
 };
 
 enum class TelemetryStatus {

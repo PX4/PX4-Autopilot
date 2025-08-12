@@ -357,11 +357,6 @@ void DShot::Run()
 		}
 	}
 
-	if (all_telem_sampled) {
-		DSHOT_TELEM_DEBUG("all_telem_sampled");
-		perf_count(_telem_allsampled_perf);
-	}
-
 	if (_param_dshot_bidir_en.get()) {
 
 		// TODO: We will have Extended BDShot available.
@@ -369,7 +364,6 @@ void DShot::Run()
 		// - voltage
 		// - current
 
-		// TODO: BDShotStatus
 		all_bdshot_sampled = process_bdshot_erpm();
 
 		if (all_bdshot_sampled) {
@@ -377,16 +371,12 @@ void DShot::Run()
 		}
 	}
 
-	// Publish when all bdsht channels have been updated OR
-	// Publish when all telem channels have been updated
-
 	if (all_telem_sampled || all_bdshot_sampled) {
 		_esc_status.timestamp = hrt_absolute_time();
 		_esc_status.esc_count = count_set_bits(_output_mask);
 		_esc_status.counter++;
 		DSHOT_TELEM_DEBUG("publish");
 		_esc_status_pub.update(_esc_status);
-		_esc_status.esc_online_flags = 0;
 	}
 
 	if (_parameter_update_sub.updated()) {
@@ -429,11 +419,12 @@ bool DShot::set_next_telemetry_index()
 
 	// Check if all motors have been sampled
 	if (count_set_bits(_telemetry_requested_mask) >= count_set_bits(_output_mask)) {
-		_telemetry_requested_mask = 0; // Reset for next round
-		return true; // All sampled
+		_telemetry_requested_mask = 0;
+		perf_count(_telem_allsampled_perf);
+		DSHOT_TELEM_DEBUG("all sampled");
+		return true;
 	}
 
-	// No motors found or all already sampled
 	return false;
 }
 
@@ -443,6 +434,8 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 	bool serial_telemetry_enabled = _param_dshot_tel_cfg.get() > 0;
 
 	if (esc.motor_index < esc_status_s::CONNECTED_ESC_MAX) {
+
+		_esc_status.counter = _esc_status_counter++;
 
 		if (esc.online) {
 			_esc_status.esc_online_flags |= (1 << esc.motor_index);
@@ -454,7 +447,7 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 		if (source == TelemetrySource::Serial) {
 			// Only use SerialTelemetry eRPM when BDSoht is disabled
 			if (!bidirectional_enabled) {
-				_esc_status.esc[esc.motor_index].timestamp = esc.time;
+				_esc_status.esc[esc.motor_index].timestamp = esc.timestamp;
 				_esc_status.esc[esc.motor_index].esc_rpm = ((int)(esc.erpm) * 100) / (_param_mot_pole_count.get() / 2);
 			}
 
@@ -463,7 +456,7 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 			_esc_status.esc[esc.motor_index].esc_temperature = (float)(esc.temperature);
 
 		} else if (source == TelemetrySource::BDShot) {
-			_esc_status.esc[esc.motor_index].timestamp = esc.time;
+			_esc_status.esc[esc.motor_index].timestamp = esc.timestamp;
 			_esc_status.esc[esc.motor_index].esc_rpm = ((int)(esc.erpm) * 100) / (_param_mot_pole_count.get() / 2);
 
 			// Only use BDShot Volt/Curr/Temp when Serial Telemetry is disabled
@@ -476,13 +469,9 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 	}
 }
 
-bool DShot::process_bdshot_erpm(void)
+bool DShot::process_bdshot_erpm()
 {
-	int erpm = 0;
 	hrt_abstime now = hrt_absolute_time();
-
-	_esc_status.timestamp = now;
-	_esc_status.counter = _esc_status_counter++;
 
 	// We wait until all are ready.
 	if (up_bdshot_num_erpm_ready() < count_set_bits(_output_mask)) {
@@ -494,20 +483,31 @@ bool DShot::process_bdshot_erpm(void)
 			continue;
 		}
 
+		EscData esc = {};
+
+		// NOTE: dshot erpm order is actuator channel order, so we map to motor index here
 		int motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
 
 		if ((motor_index >= 0) && (motor_index < esc_status_s::CONNECTED_ESC_MAX)) {
-			// NOTE: dshot erpm order is actuator channel order, so we map to motor index here
-			if (up_bdshot_get_erpm(i, &erpm) == PX4_OK) {
-				// TODO: fix online reporting from dshot driver
-				_esc_status.esc_online_flags |= (1 << motor_index);
-				_esc_status.esc[motor_index].timestamp = now;
-				_esc_status.esc[motor_index].esc_rpm = (erpm * 100) / (_param_mot_pole_count.get() / 2);
+
+			esc.motor_index = motor_index;
+			esc.timestamp = now;
+
+			if (up_bdshot_channel_status(i)) {
+				esc.online = true;
 
 			} else {
-				DSHOT_TELEM_DEBUG("dafuq");
-				_esc_status.esc_online_flags &= ~(1 << motor_index);
+				// PX4_INFO("bdshot offline %d", motor_index);
+				esc.online = false;
 			}
+
+			int erpm = 0;
+
+			if (up_bdshot_get_erpm(i, &erpm) == PX4_OK) {
+				esc.erpm = (erpm * 100) / (_param_mot_pole_count.get() / 2);
+			}
+
+			consume_esc_data(esc, TelemetrySource::BDShot);
 		}
 	}
 
