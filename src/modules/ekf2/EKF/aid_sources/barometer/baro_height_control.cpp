@@ -45,11 +45,6 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 	auto &aid_src = _aid_src_baro_hgt;
 	HeightBiasEstimator &bias_est = _baro_b_est;
 
-	if (_params.ekf2_baro_ctrl == 0) {
-		stopBaroHgtFusion();
-		return;
-	}
-
 	bias_est.predict(_dt_ekf_avg);
 
 	baroSample baro_sample;

@@ -142,7 +142,6 @@ private:
 	bool _heater_on              = false;
 	bool _temperature_target_met = false;
 
-	int _controller_period_usec = CONTROLLER_PERIOD_DEFAULT;
 	int _controller_time_on_usec = 0;
 
 	float _integrator_value   = 0.0f;
