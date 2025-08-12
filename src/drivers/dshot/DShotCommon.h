@@ -36,7 +36,7 @@
 #include <drivers/drv_hrt.h>
 
 #define DSHOT_DEBUG_COMMANDS    1  // Command handling debug output
-#define DSHOT_DEBUG_TELEMETRY   0  // Telemetry parsing and processing
+#define DSHOT_DEBUG_TELEMETRY   1  // Telemetry parsing and processing
 
 // Command debug macro
 #if DSHOT_DEBUG_COMMANDS
@@ -77,11 +77,14 @@ enum class TelemetryStatus {
 	ParseError = 4,
 };
 
-inline int count_set_bits(int mask) {
+inline int count_set_bits(int mask)
+{
 	int count = 0;
+
 	while (mask) {
 		mask &= mask - 1;
 		count++;
 	}
+
 	return count;
 }

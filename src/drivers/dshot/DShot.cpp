@@ -160,169 +160,6 @@ bool DShot::initialize_dshot()
 	return true;
 }
 
-bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
-			  unsigned num_outputs, unsigned num_control_groups_updated)
-{
-	if (!count_set_bits(_output_mask)) {
-		PX4_WARN("DShot::updateOutputs called when no Motors have been set!");
-		return false;
-	}
-
-	// First check if all outputs are disarmed and we have a command to send
-	bool all_disarmed = true;
-	hrt_abstime now = hrt_absolute_time();
-
-	for (int i = 0; i < (int)num_outputs; i++) {
-		if (!_mixing_output.isMotor(i)) {
-			// If unconfigured ensure output value is set back to disarmed with no telemetry
-			up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, false);
-			continue;
-		}
-
-		// Set armed status
-		if (outputs[i] != DSHOT_DISARM_VALUE) {
-			all_disarmed = false;
-			_esc_status.esc_armed_flags |= (1 << i);
-
-		} else {
-			_esc_status.esc_armed_flags &= ~(1 << i);
-		}
-	}
-
-	// TODO: this needs to move to Run() and respect dshot programming mode and settings response
-	// Iterate over all and check if we should send any commands
-	// if (all_disarmed && !_current_command.valid()) {
-	// 	for (int i = 0; i < (int)num_outputs; i++) {
-	// 		if (!_mixing_output.isMotor(i)) {
-	// 			continue;
-	// 		}
-	// 		int motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
-
-	// 		// Check if the ESC needs a EDT or Settings request
-	// 		bool bdshot_telem_online = _bdshot_telem_online_mask & (1 << motor_index);
-	// 		bool serial_telem_online = _serial_telem_online_mask & (1 << motor_index);
-
-	// 		if (_param_dshot_bidir_en.get() && _param_dshot_bidir_edt.get() && bdshot_telem_online && !_bdshot_edt_requested[motor_index]) {
-	// 			_current_command.clear();
-	// 			_current_command.save = false;
-	// 			_current_command.num_repetitions = 10;
-	// 			_current_command.command = DSHOT_EXTENDED_TELEMETRY_ENABLE;
-	// 			_current_command.motor_mask = (1 << motor_index);
-	// 			// TODO: some delay time?
-	// 			_current_command.delay_until = now + 1_s;
-	// 			_bdshot_edt_requested[motor_index] = true;
-	// 			PX4_INFO("Requesting EDT %d", motor_index);
-
-	// 		} else if (_param_dshot_tel_cfg.get() && serial_telem_online && bdshot_telem_online && !_settings_requested[motor_index]) {
-	// 			_current_command.clear();
-	// 			_current_command.save = false;
-	// 			_current_command.num_repetitions = 10;
-	// 			_current_command.command = DSHOT_CMD_ESC_INFO;
-	// 			_current_command.motor_mask = 1 << motor_index;
-	// 			// TODO: some delay time?
-	// 			_current_command.delay_until = now + 1_s;
-	// 			_settings_requested[motor_index] = true;
-	// 			PX4_INFO("Requesting Settings %d", motor_index);
-	// 		}
-	// 	}
-	// }
-
-	bool command_ready = _current_command.delay_until == 0 || (now > _current_command.delay_until);
-	// All outputs are disarmed and we have a command to send
-	if (all_disarmed && _current_command.valid() && command_ready) {
-
-		for (int i = 0; i < (int)num_outputs; i++) {
-
-			if (!_mixing_output.isMotor(i)) {
-				continue;
-			}
-
-			int motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
-			// Send command to the motor if there isn't telemtry already in progress
-			bool this_motor = _current_command.motor_mask & (1 << motor_index);
-			bool telemtry_idle = _telemetry.enabled() && _telemetry.telemetryRequestFinished();
-
-			if (this_motor && telemtry_idle) {
-
-				DSHOT_CMD_DEBUG("Sending command %u to motor %d", _current_command.command, motor_index);
-
-				if (_current_command.expect_response) {
-					_telemetry.setExpectCommandResponse(motor_index, _current_command.command);
-				}
-
-				up_dshot_motor_command(i, _current_command.command, false);
-
-				// Decrement command repetition counter
-				--_current_command.num_repetitions;
-
-				// Queue a save command after the burst if save has been requested
-				if (_current_command.num_repetitions == 0 && _current_command.save) {
-					_current_command.save = false;
-					_current_command.num_repetitions = 10;
-					_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
-				}
-
-			} else {
-				up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, false);
-			}
-		}
-
-		up_dshot_trigger();
-		return true;
-	}
-
-	// Clear pending commands if any output is not disarmed
-	_current_command.clear();
-	_programming_state = ProgrammingState::Idle;
-
-	bool request_telemetry = false;
-
-	// If telemetry is enabled and the last request has been processed
-	bool delay_elapsed = now > _telem_delay_until;
-
-	if (_telemetry.enabled() && _telemetry.telemetryRequestFinished()) {
-
-		if (!delay_elapsed) {
-			// Flush UART buffer while waiting to send telem request. Ensures
-			// garbage data doesn't corrupt our starting point for telem.
-			_telemetry.flush();
-
-		} else {
-			DSHOT_TELEM_DEBUG("startTelemetryRequest: %d", _telemetry_motor_index);
-			_telemetry.startTelemetryRequest();
-			request_telemetry = true;
-		}
-	}
-
-	// Iterate over all of the outputs
-	for (int i = 0; i < (int)num_outputs; i++) {
-
-		if (!_mixing_output.isMotor(i)) {
-			continue;
-		}
-
-		uint16_t output = outputs[i];
-
-		bool set_telemetry_bit = request_telemetry && (_telemetry_motor_index == i);
-
-		if (output == DSHOT_DISARM_VALUE) {
-			up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, set_telemetry_bit);
-
-		} else {
-			// Reverse output if required
-			if (_param_dshot_3d_enable.get() || (_mixing_output.reversibleOutputs() & (1u << i))) {
-				output = convert_output_to_3d_scaling(output);
-			}
-
-			up_dshot_motor_data_set(i, math::min(output, DSHOT_MAX_THROTTLE), set_telemetry_bit);
-		}
-	}
-
-	up_dshot_trigger();
-
-	return true;
-}
-
 void DShot::Run()
 {
 	if (should_exit()) {
@@ -340,12 +177,46 @@ void DShot::Run()
 		handle_programming_sequence_state();
 	}
 
+	// Determine if we need to send an EDT Request command
+	// - no active set command
+	// - not waiting for command response
+	if (!_current_command.valid() && !_telemetry.expectingCommandResponse()) {
+		bool bidir_enabled = _param_dshot_bidir_en.get();
+		bool edt_enabled = _param_dshot_bidir_edt.get();
+
+		if (bidir_enabled && edt_enabled) {
+			uint8_t needs_request_mask = _bdshot_telem_online_mask & ~_bdshot_edt_requested_mask;
+
+			if (needs_request_mask) {
+				int next_motor_index = 0;
+
+				for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+					if (needs_request_mask & (1 << i)) {
+						next_motor_index = i;
+						break;
+					}
+				}
+
+				auto now = hrt_absolute_time();
+				_current_command.clear();
+				_current_command.save = false;
+				_current_command.num_repetitions = 10;
+				_current_command.command = DSHOT_EXTENDED_TELEMETRY_ENABLE;
+				_current_command.motor_mask = (1 << next_motor_index);
+				_current_command.delay_until = 0;
+				_bdshot_edt_requested_mask |= (1 << next_motor_index);
+				DSHOT_CMD_DEBUG("Requesting EDT for motor %d at time %llu", next_motor_index, now);
+			}
+		}
+	}
+
 	// Updates the DShot throttle output and sends DShot commands
 	_mixing_output.update();
 
 	bool all_telem_sampled = false;
 	bool all_bdshot_sampled = false;
 
+	// Process Serial Telemetry data (Telemetry and CommandResponses)
 	if (_telemetry.enabled()) {
 
 		if (_telemetry.expectingCommandResponse()) {
@@ -419,7 +290,7 @@ void DShot::Run()
 		_esc_status.timestamp = hrt_absolute_time();
 		_esc_status.esc_count = count_set_bits(_output_mask);
 		_esc_status.counter++;
-		DSHOT_TELEM_DEBUG("publish");
+		// DSHOT_TELEM_DEBUG("publish");
 		_esc_status_pub.update(_esc_status);
 	}
 
@@ -441,6 +312,132 @@ void DShot::Run()
 	perf_end(_cycle_perf);
 }
 
+bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
+			  unsigned num_outputs, unsigned num_control_groups_updated)
+{
+	if (!count_set_bits(_output_mask)) {
+		PX4_WARN("DShot::updateOutputs called when no Motors have been set!");
+		return false;
+	}
+
+	// First check if all outputs are disarmed and we have a command to send
+	bool all_disarmed = true;
+	hrt_abstime now = hrt_absolute_time();
+
+	for (int i = 0; i < (int)num_outputs; i++) {
+		if (!_mixing_output.isMotor(i)) {
+			// If unconfigured ensure output value is set back to disarmed with no telemetry
+			up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, false);
+			continue;
+		}
+
+		// Set armed status
+		if (outputs[i] != DSHOT_DISARM_VALUE) {
+			all_disarmed = false;
+			_esc_status.esc_armed_flags |= (1 << i);
+
+		} else {
+			_esc_status.esc_armed_flags &= ~(1 << i);
+		}
+	}
+
+	bool command_ready = (_current_command.delay_until == 0) || (now > _current_command.delay_until);
+
+	if (!all_disarmed) {
+		// Clear pending commands if any output is not disarmed
+		_current_command.clear();
+		_programming_state = ProgrammingState::Idle;
+
+	} else if (_current_command.valid() && command_ready) {
+		// Otherwise process and valid and ready commands
+		for (int i = 0; i < (int)num_outputs; i++) {
+
+			if (!_mixing_output.isMotor(i)) {
+				continue;
+			}
+
+			int motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
+			// Send command to the motor if there isn't telemtry already in progress
+			bool this_motor = _current_command.motor_mask & (1 << motor_index);
+			bool telemtry_idle = _telemetry.enabled() && _telemetry.telemetryRequestFinished();
+
+			if (this_motor && telemtry_idle) {
+
+				DSHOT_CMD_DEBUG("Sending command %u to motor %d", _current_command.command, motor_index);
+
+				if (_current_command.expect_response) {
+					_telemetry.setExpectCommandResponse(motor_index, _current_command.command);
+				}
+
+				up_dshot_motor_command(i, _current_command.command, false);
+
+				// Decrement command repetition counter
+				--_current_command.num_repetitions;
+
+				// Queue a save command after the burst if save has been requested
+				if (_current_command.num_repetitions == 0 && _current_command.save) {
+					_current_command.save = false;
+					_current_command.num_repetitions = 10;
+					_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
+				}
+
+			} else {
+				up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, false);
+			}
+		}
+
+		up_dshot_trigger();
+		return true;
+	}
+
+	bool request_telemetry = false;
+
+	// If telemetry is enabled and the last request has been processed
+	bool delay_elapsed = now > _telem_delay_until;
+
+	if (_telemetry.enabled() && _telemetry.telemetryRequestFinished()) {
+
+		if (!delay_elapsed) {
+			// Flush UART buffer while waiting to send telem request. Ensures
+			// garbage data doesn't corrupt our starting point for telem.
+			_telemetry.flush();
+
+		} else {
+			// DSHOT_TELEM_DEBUG("startTelemetryRequest: %d", _telemetry_motor_index);
+			_telemetry.startTelemetryRequest();
+			request_telemetry = true;
+		}
+	}
+
+	// Iterate over all of the outputs
+	for (int i = 0; i < (int)num_outputs; i++) {
+
+		if (!_mixing_output.isMotor(i)) {
+			continue;
+		}
+
+		uint16_t output = outputs[i];
+
+		bool set_telemetry_bit = request_telemetry && (_telemetry_motor_index == i);
+
+		if (output == DSHOT_DISARM_VALUE) {
+			up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, set_telemetry_bit);
+
+		} else {
+			// Reverse output if required
+			if (_param_dshot_3d_enable.get() || (_mixing_output.reversibleOutputs() & (1u << i))) {
+				output = convert_output_to_3d_scaling(output);
+			}
+
+			up_dshot_motor_data_set(i, math::min(output, DSHOT_MAX_THROTTLE), set_telemetry_bit);
+		}
+	}
+
+	up_dshot_trigger();
+
+	return true;
+}
+
 bool DShot::set_next_telemetry_index()
 {
 	int start_index = (_telemetry_motor_index + 1) % DSHOT_MAXIMUM_CHANNELS;
@@ -453,7 +450,7 @@ bool DShot::set_next_telemetry_index()
 		if (is_motor && !already_requested) {
 			_telemetry_motor_index = next_motor_index;
 			_telemetry_requested_mask |= (1 << next_motor_index);
-			DSHOT_TELEM_DEBUG("next telem %d, mask: 0x%lx", _telemetry_motor_index, _telemetry_requested_mask);
+			// DSHOT_TELEM_DEBUG("next telem %d, mask: 0x%lx", _telemetry_motor_index, _telemetry_requested_mask);
 			break;
 		}
 
@@ -465,7 +462,7 @@ bool DShot::set_next_telemetry_index()
 	if (count_set_bits(_telemetry_requested_mask) >= count_set_bits(_output_mask)) {
 		_telemetry_requested_mask = 0;
 		perf_count(_telem_allsampled_perf);
-		DSHOT_TELEM_DEBUG("all sampled");
+		// DSHOT_TELEM_DEBUG("all sampled");
 		return true;
 	}
 
@@ -492,7 +489,8 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 
 		_esc_status.esc_online_flags = online_mask;
 
-		_esc_status.esc[esc.motor_index].esc_errorcount = _serial_telem_errors[esc.motor_index] + _bdshot_telem_errors[esc.motor_index];
+		_esc_status.esc[esc.motor_index].esc_errorcount = _serial_telem_errors[esc.motor_index] +
+				_bdshot_telem_errors[esc.motor_index];
 
 		if (source == TelemetrySource::Serial) {
 			// Only use SerialTelemetry eRPM when BDSoht is disabled
@@ -557,8 +555,10 @@ bool DShot::process_bdshot_erpm()
 
 				// Only update RPM if online
 				int erpm = 0;
+
 				if (up_bdshot_get_erpm(i, &erpm) == PX4_OK) {
 					esc.erpm = (erpm * 100) / (_param_mot_pole_count.get() / 2);
+
 				} else {
 					_bdshot_telem_errors[_telemetry_motor_index]++;
 					perf_count(_bdshot_error_perf);
