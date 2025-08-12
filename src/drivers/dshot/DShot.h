@@ -162,7 +162,8 @@ private:
 	uint32_t _serial_telem_online_mask = 0; // Mask indicating telem receive status for serial telem
 	uint32_t _serial_telem_errors[DSHOT_MAXIMUM_CHANNELS] = {};
 	uint32_t _bdshot_telem_errors[DSHOT_MAXIMUM_CHANNELS] = {};
-
+	uint8_t _bdshot_edt_requested_mask = 0;
+	uint8_t _settings_requested_mask = 0;
 
 	// Serial Telemetry
 	DShotTelemetry _telemetry;
@@ -184,9 +185,6 @@ private:
 	perf_counter_t	_telem_allsampled_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem all sampled")};
 
 	// Commands
-	uint8_t _bdshot_edt_requested_mask = 0;
-	uint8_t _settings_requested_mask = 0;
-
 	Command _current_command{};
 
 	enum class ProgrammingState {

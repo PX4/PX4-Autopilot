@@ -236,7 +236,6 @@ void DShotTelemetry::flush()
 
 void DShotTelemetry::setExpectCommandResponse(int motor_index, uint16_t command)
 {
-	DSHOT_CMD_DEBUG("setExpectCommandResponse");
 	_command_response_motor_index = motor_index;
 	_command_response_command = command;
 	_command_response_start = hrt_absolute_time();
