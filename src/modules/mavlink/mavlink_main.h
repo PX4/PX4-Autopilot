@@ -83,6 +83,7 @@
 #include "mavlink_events.h"
 #include "mavlink_messages.h"
 #include "mavlink_receiver.h"
+#include "mavlink_sign_control.h"
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
 
@@ -90,10 +91,6 @@
 #define DEFAULT_DEVICE_NAME     "/dev/ttyS1"
 
 #define HASH_PARAM              "_HASH_CHECK"
-
-#define MAVLINK_SD_ROOT_PATH    CONFIG_BOARD_ROOT_PATH "/"
-#define MAVLINK_FOLDER_PATH MAVLINK_SD_ROOT_PATH"/mavlink"
-#define MAVLINK_SECRET_FILE MAVLINK_FOLDER_PATH"/.secret"
 
 #if defined(CONFIG_NET) || defined(__PX4_POSIX)
 # define MAVLINK_UDP
@@ -234,12 +231,6 @@ public:
 		FLOW_CONTROL_ON
 	};
 
-	enum PROTO_SIGN {
-		PROTO_SIGN_OPTIONAL = 0,
-		PROTO_SIGN_NON_USB,
-		PROTO_SIGN_ALWAYS
-	};
-
 	static const char *mavlink_mode_str(enum MAVLINK_MODE mode)
 	{
 		switch (mode) {
@@ -355,16 +346,6 @@ public:
 	void			send_bytes(const uint8_t *buf, unsigned packet_len);
 
 	/**
-	 * Begin signing of a packet
-	 */
-	void			begin_signing();
-
-	/**
-	 * End signing of a packet
-	 */
-	void			end_signing();
-
-	/**
 	 * Flush the transmit buffer and send one MAVLink packet
 	 */
 	void             	send_finish();
@@ -462,11 +443,6 @@ public:
 	void			count_rxbytes(unsigned n) { _bytes_rx += n; };
 
 	/**
-	 * Count sign errors
-	 */
-	void			count_sign_error() { _sign_err++; };
-
-	/**
 	 * Get the receive status of this MAVLink link
 	 */
 	telemetry_status_s	&telemetry_status() { return _tstatus; }
@@ -556,6 +532,8 @@ public:
 private:
 	MavlinkReceiver 	_receiver;
 
+	MavlinkSignControl	_sign_control;
+
 	int			_instance_id{-1};
 	int			_task_id{-1};
 
@@ -586,7 +564,6 @@ private:
 
 	mavlink_message_t	_mavlink_buffer {};
 	mavlink_status_t	_mavlink_status {};
-	mavlink_signing_t _mavlink_signing {};
 
 	/* states */
 	bool			_hil_enabled{false};		/**< Hardware In the Loop mode */
@@ -647,7 +624,6 @@ private:
 	unsigned		_bytes_tx{0};
 	unsigned		_bytes_txerr{0};
 	unsigned		_bytes_rx{0};
-	unsigned 		_sign_err{0};
 	hrt_abstime		_bytes_timestamp{0};
 
 #if defined(MAVLINK_UDP)

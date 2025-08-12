@@ -41,7 +41,6 @@
  */
 
 #include <termios.h>
-#include <sys/stat.h>
 
 #ifdef CONFIG_NET
 #include <arpa/inet.h>
@@ -86,56 +85,19 @@ static pthread_mutex_t mavlink_event_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
 events::EventBuffer *Mavlink::_event_buffer = nullptr;
 
 Mavlink *mavlink_module_instances[MAVLINK_COMM_NUM_BUFFERS] {};
-static mavlink_signing_streams_t global_mavlink_signing_streams = {};
 
 void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length) { mavlink_module_instances[chan]->send_bytes(ch, length); }
 void mavlink_start_uart_send(mavlink_channel_t chan, int length) { mavlink_module_instances[chan]->send_start(length); }
 void mavlink_end_uart_send(mavlink_channel_t chan, int length) { mavlink_module_instances[chan]->send_finish(); }
-void mavlink_start_sign_stream(uint8_t chan) { mavlink_module_instances[chan]->begin_signing(); }
-void mavlink_end_sign_stream(uint8_t chan) { mavlink_module_instances[chan]->end_signing(); }
 mavlink_status_t *mavlink_get_channel_status(uint8_t channel) { return mavlink_module_instances[channel]->get_status(); }
 mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel) { return mavlink_module_instances[channel]->get_buffer(); }
 
-static const uint32_t unsigned_messages[] = {
-	MAVLINK_MSG_ID_RADIO_STATUS,
-	MAVLINK_MSG_ID_ADSB_VEHICLE,
-	MAVLINK_MSG_ID_COLLISION
-};
-
 static bool accept_unsigned_callback(const mavlink_status_t *status, uint32_t message_id)
 {
-	// Always accept a few select messages even if unsigned
-	for (unsigned i = 0; i < sizeof(unsigned_messages) / sizeof(unsigned_messages[0]); i++) {
-		if (unsigned_messages[i] == message_id) {
-			return true;
-		}
-	}
-
 	Mavlink *m = Mavlink::get_instance_for_status(status);
 
 	if (m != nullptr) {
-
-		// Count the failure
-		m->count_sign_error();
-
-		unsigned sign_mode = m->sign_mode();
-
-		switch (sign_mode) {
-		// If signing is not required always return true
-		case Mavlink::PROTO_SIGN_OPTIONAL:
-			return true;
-
-		// Accept USB links if enabled
-		case Mavlink::PROTO_SIGN_NON_USB:
-			return m->is_usb_uart();
-
-		case Mavlink::PROTO_SIGN_ALWAYS:
-
-		// fallthrough
-		default:
-			return false;
-
-		}
+		return MavlinkSignControl::accept_unsigned(m->sign_mode(),m -> is_usb_uart(), message_id);
 	}
 
 	return false;
@@ -149,7 +111,8 @@ bool Mavlink::_boot_complete = false;
 
 Mavlink::Mavlink() :
 	ModuleParams(nullptr),
-	_receiver(*this)
+	_receiver(*this),
+	_sign_control()
 {
 	// initialise parameter cache
 	mavlink_update_parameters();
@@ -184,39 +147,6 @@ Mavlink::Mavlink() :
 
 	_event_sub.subscribe();
 	_telemetry_status_pub.advertise();
-
-	_mavlink_signing.link_id = _instance_id;
-	_mavlink_signing.flags = MAVLINK_SIGNING_FLAG_SIGN_OUTGOING;
-	_mavlink_signing.accept_unsigned_callback = accept_unsigned_callback;
-
-	int mkdir_ret = mkdir(MAVLINK_FOLDER_PATH, S_IRWXU);
-
-	if (mkdir_ret != 0 && errno != EEXIST) {
-		PX4_ERR("failed creating module storage dir: %s (%i)", MAVLINK_FOLDER_PATH, errno);
-
-	} else {
-		int _fd = ::open(MAVLINK_SECRET_FILE, O_CREAT | O_RDONLY, PX4_O_MODE_600);
-
-		if (_fd == -1) {
-			if (errno != ENOENT) {
-				PX4_ERR("failed creating mavlink secret key file: %s (%i)", MAVLINK_SECRET_FILE, errno);
-			}
-
-		} else {
-			//if we dont have enough bytes we simply ignore it , because it may be not set yet
-			ssize_t bytes_read = ::read(_fd, _mavlink_signing.secret_key, 32);
-
-			if (bytes_read == 32) {
-				bytes_read = ::read(_fd, &_mavlink_signing.timestamp, 8);
-			}
-
-			close(_fd);
-		}
-	}
-
-	// copy pointer of the signing to status struct
-	_mavlink_status.signing = &_mavlink_signing;
-	_mavlink_status.signing_streams = &global_mavlink_signing_streams;
 }
 
 Mavlink::~Mavlink()
@@ -923,16 +853,6 @@ void Mavlink::send_finish()
 	pthread_mutex_unlock(&_send_mutex);
 }
 
-void Mavlink::begin_signing()
-{
-	// TODO Might require a mutex on resources
-}
-
-void Mavlink::end_signing()
-{
-	// TODO Might require a mutex on resources
-}
-
 void Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 {
 	if (!_tx_buffer_low) {
@@ -1132,32 +1052,10 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	 *  NOTE: this is called from the receiver thread
 	 */
 
-	if (is_usb_uart() && msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
-		mavlink_setup_signing_t setup_signing;
-		mavlink_msg_setup_signing_decode(msg, &setup_signing);
-		/* setup signing provides new key , lets update it */
-		memcpy(_mavlink_signing.secret_key, setup_signing.secret_key, 32);
-		_mavlink_signing.timestamp = setup_signing.initial_timestamp;
-
-		int _fd = ::open(MAVLINK_SECRET_FILE, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_600);
-
-		if (_fd == -1) {
-			if (errno != ENOENT) {
-				PX4_ERR("failed opening mavlink secret key file for writing: %s (%i)", MAVLINK_SECRET_FILE, errno);
-			}
-
-		} else {
-			//if we dont have enough bytes we simply ignore it , because it may be not set yet
-			ssize_t bytes_write = ::write(_fd, _mavlink_signing.secret_key, 32);
-
-			if (bytes_write == 32) {
-				bytes_write = ::write(_fd, &_mavlink_signing.timestamp, 8);
-			}
-
-			close(_fd);
+	if (is_usb_uart()) {
+		if(_sign_control.check_for_signing(msg)) {
+			return;
 		}
-
-		return;
 	}
 
 	if (get_forwarding_on()) {
@@ -2036,6 +1934,8 @@ Mavlink::task_main(int argc, char *argv[])
 			close(tmp);
 		}
 	}
+
+	_sign_control.start(_instance_id, get_status(), &accept_unsigned_callback);
 
 	int ch;
 	_baudrate = 57600;
