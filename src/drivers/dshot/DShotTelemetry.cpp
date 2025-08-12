@@ -136,6 +136,11 @@ bool DShotTelemetry::parseSettingsRequestResponse(uint8_t *buf, int size)
 				eeprom.index = _command_response_motor_index;
 				memcpy(eeprom.data, _command_response_buffer, data_length);
 				eeprom.length = data_length;
+
+				for (int j = 0; j < eeprom.length; j++) {
+					DSHOT_CMD_DEBUG("%d", eeprom.data[j]);
+				}
+
 				_esc_eeprom_pub.publish(eeprom);
 
 			} else {
