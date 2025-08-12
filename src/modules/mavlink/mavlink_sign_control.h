@@ -65,7 +65,7 @@ public:
 	/**
 	 * Initialize signing and read configuration from file
 	 */
-	void start(int _instance_id, mavlink_status_t* _mavlink_status, mavlink_accept_unsigned_t accept_unsigned_callback);
+	void start(int _instance_id, mavlink_status_t *_mavlink_status, mavlink_accept_unsigned_t accept_unsigned_callback);
 
 	/**
 	 * Checks whether the message is SETUP_SIGNING, and if yes , updates local key

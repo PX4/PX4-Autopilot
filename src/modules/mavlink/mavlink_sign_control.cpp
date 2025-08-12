@@ -57,7 +57,8 @@ MavlinkSignControl::~MavlinkSignControl()
 {
 }
 
-void MavlinkSignControl::start(int _instance_id, mavlink_status_t* _mavlink_status, mavlink_accept_unsigned_t accept_unsigned_callback)
+void MavlinkSignControl::start(int _instance_id, mavlink_status_t *_mavlink_status,
+			       mavlink_accept_unsigned_t accept_unsigned_callback)
 {
 	_mavlink_signing.link_id = _instance_id;
 	_mavlink_signing.flags = MAVLINK_SIGNING_FLAG_SIGN_OUTGOING;
@@ -95,7 +96,7 @@ void MavlinkSignControl::start(int _instance_id, mavlink_status_t* _mavlink_stat
 
 bool MavlinkSignControl::check_for_signing(const mavlink_message_t *msg)
 {
-	if(msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
+	if (msg->msgid == MAVLINK_MSG_ID_SETUP_SIGNING) {
 		mavlink_setup_signing_t setup_signing;
 		mavlink_msg_setup_signing_decode(msg, &setup_signing);
 		/* setup signing provides new key , lets update it */
@@ -136,19 +137,18 @@ bool MavlinkSignControl::accept_unsigned(int32_t sign_mode, bool is_usb_uart, ui
 	}
 
 	switch (sign_mode) {
-		// If signing is not required always return true
-		case MavlinkSignControl::PROTO_SIGN_OPTIONAL:
-			return true;
+	// If signing is not required always return true
+	case MavlinkSignControl::PROTO_SIGN_OPTIONAL:
+		return true;
 
-		// Accept USB links if enabled
-		case MavlinkSignControl::PROTO_SIGN_NON_USB:
-			return is_usb_uart;
+	// Accept USB links if enabled
+	case MavlinkSignControl::PROTO_SIGN_NON_USB:
+		return is_usb_uart;
 
-		case MavlinkSignControl::PROTO_SIGN_ALWAYS:
+	case MavlinkSignControl::PROTO_SIGN_ALWAYS:
 
-		// fallthrough
-		default:
-			return false;
-
+	// fallthrough
+	default:
+		return false;
 	}
 }
