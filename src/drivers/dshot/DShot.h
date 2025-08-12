@@ -169,6 +169,9 @@ private:
 	uint32_t _telemetry_requested_mask = 0;
 	hrt_abstime _telem_delay_until = ESC_INIT_TELEM_WAIT_TIME;
 
+	uint32_t _serial_telem_errors[DSHOT_MAXIMUM_CHANNELS] = {};
+	uint32_t _bdshot_telem_errors[DSHOT_MAXIMUM_CHANNELS] = {};
+
 	// Perf counters
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_bdshot_success_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot success")};
