@@ -155,7 +155,7 @@ private:
 
 	int _telemetry_motor_index = 0;
 	uint32_t _telemetry_requested_mask = 0;
-	hrt_abstime _telem_delay_until = 0;
+	hrt_abstime _telem_delay_until = 3_s; // We start off with a 3s delay to allow ESCs to fire up
 
 	uint32_t _output_mask{0};
 
