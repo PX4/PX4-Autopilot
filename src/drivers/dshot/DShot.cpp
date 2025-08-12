@@ -180,33 +180,61 @@ void DShot::Run()
 	// Determine if we need to send an EDT Request command
 	// - no active set command
 	// - not waiting for command response
-	if (!_current_command.valid() && !_telemetry.expectingCommandResponse()) {
+	if (!_current_command.valid() && _telemetry.telemetryRequestFinished() && !_telemetry.expectingCommandResponse()) {
+
+		// EDT Request
 		bool bidir_enabled = _param_dshot_bidir_en.get();
 		bool edt_enabled = _param_dshot_bidir_edt.get();
+		uint8_t needs_edt_request_mask = _bdshot_telem_online_mask & ~_bdshot_edt_requested_mask;
 
-		if (bidir_enabled && edt_enabled) {
-			uint8_t needs_request_mask = _bdshot_telem_online_mask & ~_bdshot_edt_requested_mask;
+		// Settings Request
+		bool ser_tel_enabled = _param_dshot_tel_cfg.get();
+		uint8_t needs_settings_request_mask = _serial_telem_online_mask & ~_settings_requested_mask;
 
-			if (needs_request_mask) {
-				int next_motor_index = 0;
+		// EDT Request first
+		if (bidir_enabled && edt_enabled && needs_edt_request_mask) {
 
-				for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
-					if (needs_request_mask & (1 << i)) {
-						next_motor_index = i;
-						break;
-					}
+			int next_motor_index = 0;
+
+			for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+				if (needs_edt_request_mask & (1 << i)) {
+					next_motor_index = i;
+					break;
 				}
-
-				auto now = hrt_absolute_time();
-				_current_command.clear();
-				_current_command.save = false;
-				_current_command.num_repetitions = 10;
-				_current_command.command = DSHOT_EXTENDED_TELEMETRY_ENABLE;
-				_current_command.motor_mask = (1 << next_motor_index);
-				_current_command.delay_until = 0;
-				_bdshot_edt_requested_mask |= (1 << next_motor_index);
-				DSHOT_CMD_DEBUG("Requesting EDT for motor %d at time %llu", next_motor_index, now);
 			}
+
+			auto now = hrt_absolute_time();
+			_current_command.clear();
+			_current_command.save = false;
+			_current_command.num_repetitions = 10;
+			_current_command.command = DSHOT_EXTENDED_TELEMETRY_ENABLE;
+			_current_command.motor_mask = (1 << next_motor_index);
+			_current_command.delay_until = 0;
+			_bdshot_edt_requested_mask |= (1 << next_motor_index);
+			DSHOT_CMD_DEBUG("Requesting EDT for motor %d at time %llu", next_motor_index, now);
+
+			// Settings Request next
+
+		} else if (ser_tel_enabled && needs_settings_request_mask) {
+			int next_motor_index = 0;
+
+			for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+				if (needs_settings_request_mask & (1 << i)) {
+					next_motor_index = i;
+					break;
+				}
+			}
+
+			auto now = hrt_absolute_time();
+			_current_command.clear();
+			_current_command.save = false;
+			_current_command.num_repetitions = 6;
+			_current_command.command = DSHOT_CMD_ESC_INFO;
+			_current_command.motor_mask = (1 << next_motor_index);
+			_current_command.delay_until = 0;
+			_current_command.expect_response = true;
+			_settings_requested_mask |= (1 << next_motor_index);
+			DSHOT_CMD_DEBUG("Requesting Settings for motor %d at time %llu", next_motor_index, now);
 		}
 	}
 
@@ -363,7 +391,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 
 			if (this_motor && telemtry_idle) {
 
-				DSHOT_CMD_DEBUG("Sending command %u to motor %d", _current_command.command, motor_index);
+				// DSHOT_CMD_DEBUG("Sending command %u to motor %d", _current_command.command, motor_index);
 
 				if (_current_command.expect_response) {
 					_telemetry.setExpectCommandResponse(motor_index, _current_command.command);
@@ -395,7 +423,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 	// If telemetry is enabled and the last request has been processed
 	bool delay_elapsed = now > _telem_delay_until;
 
-	if (_telemetry.enabled() && _telemetry.telemetryRequestFinished()) {
+	if (_telemetry.enabled() && _telemetry.telemetryRequestFinished() && !_telemetry.expectingCommandResponse()) {
 
 		if (!delay_elapsed) {
 			// Flush UART buffer while waiting to send telem request. Ensures

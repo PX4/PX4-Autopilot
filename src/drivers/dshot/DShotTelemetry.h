@@ -70,7 +70,6 @@ private:
 
 	TelemetryStatus decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data);
 
-
 	bool parseSettingsRequestResponse(uint8_t *buf, int size);
 
 	// Decodes success_size bytes and returns true if all were received
