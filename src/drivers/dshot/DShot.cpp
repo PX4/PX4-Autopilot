@@ -207,7 +207,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 	// 			_current_command.save = false;
 	// 			_current_command.num_repetitions = 10;
 	// 			_current_command.command = DSHOT_EXTENDED_TELEMETRY_ENABLE;
-	// 			_current_command.motor_mask = (1 << i);
+	// 			_current_command.motor_mask = (1 << motor_index);
 	// 			// TODO: some delay time?
 	// 			_current_command.delay_until = now + 1_s;
 	// 			_bdshot_edt_requested[motor_index] = true;
@@ -218,7 +218,7 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 	// 			_current_command.save = false;
 	// 			_current_command.num_repetitions = 10;
 	// 			_current_command.command = DSHOT_CMD_ESC_INFO;
-	// 			_current_command.motor_mask = 1 << i;
+	// 			_current_command.motor_mask = 1 << motor_index;
 	// 			// TODO: some delay time?
 	// 			_current_command.delay_until = now + 1_s;
 	// 			_settings_requested[motor_index] = true;
@@ -231,16 +231,15 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 	// All outputs are disarmed and we have a command to send
 	if (all_disarmed && _current_command.valid() && command_ready) {
 
-		int motor_index = 0;
-
 		for (int i = 0; i < (int)num_outputs; i++) {
 
 			if (!_mixing_output.isMotor(i)) {
 				continue;
 			}
 
+			int motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
 			// Send command to the motor if there isn't telemtry already in progress
-			bool this_motor = _current_command.motor_mask & (1 << i);
+			bool this_motor = _current_command.motor_mask & (1 << motor_index);
 			bool telemtry_idle = _telemetry.enabled() && _telemetry.telemetryRequestFinished();
 
 			if (this_motor && telemtry_idle) {
@@ -266,8 +265,6 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			} else {
 				up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, false);
 			}
-
-			motor_index++;
 		}
 
 		up_dshot_trigger();
