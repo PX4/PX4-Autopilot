@@ -51,15 +51,21 @@ public:
 	AFBRS50(const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	~AFBRS50() override;
 
+	enum class STATE : uint8_t {
+		CONFIGURE,
+		TRIGGER,
+		COLLECT,
+	};
+
 	int init();
 	void printInfo();
 
 private:
 	void Run() override;
 
-	void recordCommsError();
-	void scheduleCollect();
-	void processMeasurement();
+	void recordCallbackError();
+	void schedule(STATE state);
+	bool processMeasurement();
 	void updateMeasurementRateFromRange();
 
 	static status_t measurementReadyCallback(status_t status, argus_hnd_t *hnd);
@@ -70,24 +76,24 @@ private:
 private:
 	argus_hnd_t *_hnd {nullptr};
 
-	enum class STATE : uint8_t {
-		CONFIGURE,
-		TRIGGER,
-		COLLECT,
-	} _state{STATE::CONFIGURE};
+	STATE _state{STATE::CONFIGURE};
 
 	PX4Rangefinder _px4_rangefinder;
 
 	hrt_abstime _last_rate_switch{0};
 
 	perf_counter_t _sample_perf{perf_alloc(PC_COUNT, MODULE_NAME": sample count")};
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": comms error")};
-	perf_counter_t _not_ready_perf{perf_alloc(PC_COUNT, MODULE_NAME": not ready")};
+	perf_counter_t _callback_error{perf_alloc(PC_COUNT, MODULE_NAME": callback error")};
+	perf_counter_t _process_measurement_error{perf_alloc(PC_COUNT, MODULE_NAME": process measure error")};
+	perf_counter_t _status_not_ready_perf{perf_alloc(PC_COUNT, MODULE_NAME": not ready")};
+	perf_counter_t _trigger_fail_perf{perf_alloc(PC_COUNT, MODULE_NAME": trigger fail")};
+	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": loop interval")};
+
 
 	float _current_distance{0};
 	int8_t _current_quality{0};
 	float _max_distance{30.f};
-	uint32_t _current_rate{0};
+	int _current_rate{0};
 
 	hrt_abstime _trigger_time{0};
 

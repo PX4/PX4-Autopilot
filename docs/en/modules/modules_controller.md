@@ -198,7 +198,7 @@ It takes in 15 input values and outputs 4 control actions.
 Inputs: [pos_err(3), att(6), vel(3), ang_vel(3)]
 Outputs: [Actuator motors(4)]
 
-### Usage {#mc_nn_control_usage}
+### Usage {#mc-nn-control_usage}
 
 ```
 mc_nn_control <command> [arguments...]
