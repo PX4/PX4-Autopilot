@@ -35,7 +35,7 @@
 
 #include <drivers/drv_hrt.h>
 
-#define DSHOT_DEBUG_COMMANDS    0  // Command handling debug output
+#define DSHOT_DEBUG_COMMANDS    1  // Command handling debug output
 #define DSHOT_DEBUG_TELEMETRY   0  // Telemetry parsing and processing
 
 // Command debug macro
@@ -52,14 +52,22 @@
 #define DSHOT_TELEM_DEBUG(fmt, ...) do { } while(0)
 #endif
 
+enum class TelemetrySource {
+	Serial = 0,
+	BDShot = 1,
+};
+
 struct EscData {
-	int motor_index;
-	hrt_abstime time;
-	int8_t temperature;  ///< [deg C]
-	int16_t voltage;     ///< [0.01V]
-	int16_t current;     ///< [0.01A]
-	int16_t consumption; ///< [mAh]
-	int16_t erpm;        ///< [100ERPM]
+	int motor_index;     // Motors 1-8
+	bool online;		 // Motor communicating
+	hrt_abstime time;	 // Sample time
+	TelemetrySource source;
+
+	int8_t temperature;  // [deg C]
+	int16_t voltage;     // [0.01V]
+	int16_t current;     // [0.01A]
+	int16_t consumption; // [mAh]
+	int16_t erpm;        // [100ERPM]
 };
 
 enum class TelemetryStatus {

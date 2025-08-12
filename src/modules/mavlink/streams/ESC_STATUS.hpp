@@ -85,7 +85,8 @@ private:
 				for (int j = 0; j < esc_status_s::CONNECTED_ESC_MAX; j++) {
 
 					bool is_motor = ((int)esc.esc[j].actuator_function >= (int)OutputFunction::Motor1) &&
-									((int)esc.esc[j].actuator_function <= (int)OutputFunction::Motor12);
+							((int)esc.esc[j].actuator_function <= (int)OutputFunction::Motor12);
+
 					if (is_motor) {
 						// Map OutputFunction number to index
 						int index = (int)esc.esc[j].actuator_function - (int)OutputFunction::Motor1;
@@ -112,6 +113,7 @@ private:
 			msg.time_usec = now;
 
 			bool atleast_one_esc_updated = false;
+
 			for (int j = 0; j < ESCS_PER_MSG; j++) {
 
 				EscStatus &esc = _escs[i * ESCS_PER_MSG + j];

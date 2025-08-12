@@ -119,14 +119,14 @@ private:
 		}
 	};
 
-	void enable_dshot_outputs();
+	bool initialize_dshot();
 
 	void init_telemetry(const char *device, bool swap_rxtx);
 
 	// Returns true when the telemetry index has wrapped, indicating all configured motors have been sampled.
 	bool set_next_telemetry_index();
 
-	void process_telemetry(const EscData &data);
+	void consume_esc_data(const EscData &data, TelemetrySource source);
 	bool process_bdshot_erpm(void);
 
 	void Run() override;
@@ -138,6 +138,8 @@ private:
 	uint16_t convert_output_to_3d_scaling(uint16_t output);
 
 	void handle_programming_sequence_state();
+
+	int count_set_bits(int mask);
 
 	MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
@@ -151,13 +153,11 @@ private:
 	static bool _telemetry_swap_rxtx;
 	static px4::atomic_bool _request_telemetry_init;
 
-
 	int _telemetry_motor_index = 0;
-	int _telemetry_counter = 0;
+	uint32_t _telemetry_requested_mask = 0;
 	hrt_abstime _telem_delay_until = 0;
 
 	uint32_t _output_mask{0};
-	int _motor_count{0};
 
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
@@ -169,8 +169,6 @@ private:
 	perf_counter_t	_telem_success_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem success")};
 	perf_counter_t	_telem_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem error")};
 	perf_counter_t	_telem_timeout_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem timeout")};
-
-
 
 	Command _current_command{};
 
@@ -199,6 +197,7 @@ private:
 		(ParamInt<px4::params::DSHOT_3D_DEAD_H>) _param_dshot_3d_dead_h,
 		(ParamInt<px4::params::DSHOT_3D_DEAD_L>) _param_dshot_3d_dead_l,
 		(ParamInt<px4::params::MOT_POLE_COUNT>) _param_mot_pole_count,
-		(ParamBool<px4::params::DSHOT_BIDIR_EN>) _param_bidirectional_enable
+		(ParamBool<px4::params::DSHOT_BIDIR_EN>) _param_dshot_bidir_en,
+		(ParamBool<px4::params::DSHOT_TEL_CFG>) _param_dshot_tel_cfg
 	)
 };
