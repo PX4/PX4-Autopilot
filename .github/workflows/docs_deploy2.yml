@@ -1,0 +1,97 @@
+name: Docs - Deploy PX4 User Guide to AWS
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'release/**'
+    paths:
+      - 'docs/en/**'
+  pull_request:
+    branches:
+      - '**'
+    paths:
+      - 'docs/en/**'
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write   # for AWS OIDC
+
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: false
+
+env:
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+
+jobs:
+  build:
+    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    steps:
+      - uses: runs-on/action@v1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ./docs/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --cwd ./docs
+
+      - name: Build with VitePress
+        working-directory: ./docs
+        run: |
+          npm run docs:build_ubuntu
+          touch .vitepress/dist/.nojekyll
+          npm run docs:sitemap
+
+      - name: Upload artifact
+        if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged) || github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: px4_docs_build
+          path: docs/.vitepress/dist/
+          retention-days: 1
+
+  deploy:
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged) || github.event_name == 'workflow_dispatch' }}
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: px4_docs_build
+          path: ~/_book
+
+      - name: Configure AWS from OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-west-2
+
+      - name: Sanity check AWS credentials
+        run: aws sts get-caller-identity
+
+      - name: Upload HTML with short cache
+        run: |
+          aws s3 sync ~/_book/ s3://px4-docs/${{ env.BRANCH_NAME }}/ \
+            --delete \
+            --exclude "*" --include "*.html" \
+            --cache-control "public, max-age=60"
+
+      - name: Upload assets with long cache
+        run: |
+          aws s3 sync ~/_book/ s3://px4-docs/${{ env.BRANCH_NAME }}/ \
+            --delete \
+            --exclude "*.html" \
+            --cache-control "public, max-age=86400, immutable"
+
