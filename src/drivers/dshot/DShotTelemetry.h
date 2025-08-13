@@ -35,7 +35,6 @@
 
 #include <px4_platform_common/Serial.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/esc_eeprom.h>
 #include "DShotCommon.h"
 
 class DShotTelemetry
@@ -99,5 +98,19 @@ private:
 	int _num_successful_responses{0};
 	int _num_checksum_errors{0};
 
-	uORB::Publication<esc_eeprom_s> _esc_eeprom_pub{ORB_ID(esc_eeprom)};
+	// TODO Claude:
+
+	// We need to add params for each of the AM32 settings from the eeprom (called air_starteeprom in am32 code).
+	// We will want to track these settings and their address index to some kinda of array of parameters per motor index (which we map back to motor number in the name).
+	// The param names will have a number 1-8 depending on which ESC they're associated with. We only instantiate the parameter groups when
+	// we have determined our ESC count, this should happen early though as not to allocate memory during flight. When we receive a valid settings
+	// request response we should fill out our parameters with their values.
+
+	// So for an example of some parameters -- the name must be 15 chars or less:
+	// motor poles = AM32_1_MOT_POLE
+	// brake on stop = AM32_1_BRK_STOP
+	// drag break = AM32_1_DRAG_BRK
+	// etc...
+
+
 };

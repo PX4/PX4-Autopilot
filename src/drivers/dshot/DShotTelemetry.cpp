@@ -130,18 +130,20 @@ bool DShotTelemetry::parseSettingsRequestResponse(uint8_t *buf, int size)
 			uint8_t checksum_data = _command_response_buffer[data_length];
 
 			if (checksum == checksum_data) {
+
+
 				DSHOT_CMD_DEBUG("Successfully received settings!");
-				esc_eeprom_s eeprom = {};
-				eeprom.timestamp = hrt_absolute_time();
-				eeprom.index = _command_response_motor_index;
-				memcpy(eeprom.data, _command_response_buffer, data_length);
-				eeprom.length = data_length;
+				// auto now  = hrt_absolute_time();
 
-				for (int j = 0; j < eeprom.length; j++) {
-					DSHOT_CMD_DEBUG("%d", eeprom.data[j]);
+				// We need to use
+				// - _command_response_motor_index;
+
+				// TODO
+				// Iterate over each setting and write to our parameters
+
+				for (int j = 0; j < data_length; j++) {
+					DSHOT_CMD_DEBUG("%d", _command_response_buffer[j]);
 				}
-
-				_esc_eeprom_pub.publish(eeprom);
 
 			} else {
 				PX4_WARN("Command Response checksum failed!");
