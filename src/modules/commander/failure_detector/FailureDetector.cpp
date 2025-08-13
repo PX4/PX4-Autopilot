@@ -394,7 +394,9 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 			}
 
 			// Check if ESC telemetry was available and valid at some point. This is a prerequisite for the failure detection.
-			if (!(_motor_failure_esc_valid_current_mask & (1 << i_esc)) && cur_esc_report.esc_current > 0.0f) {
+			static constexpr float kMinExpectedCurrent = 1.f; // we consider the current measurement valid if ever above this value
+
+			if (!(_motor_failure_esc_valid_current_mask & (1 << i_esc)) && cur_esc_report.esc_current > kMinExpectedCurrent) {
 				_motor_failure_esc_valid_current_mask |= (1 << i_esc);
 			}
 
