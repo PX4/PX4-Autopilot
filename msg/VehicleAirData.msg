@@ -7,5 +7,5 @@ float32 baro_alt_meter # [m] [@frame MSL] Altitude above MSL calculated from tem
 float32 baro_pressure_pa # [Pa] Absolute pressure
 float32 ambient_temperature # [degC] Ambient temperature
 uint8 temperature_source # Source of temperature data: 0: Default Temperature (15°C), 1: External Baro, 2: Airspeed
-float32 rho # [] Air density
+float32 rho # [kg/m^3] Air density
 uint8 calibration_count # Calibration changed counter. Monotonically increases whenever calibration changes.
