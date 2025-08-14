@@ -58,7 +58,8 @@ void MecanumManualMode::manual()
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 	rover_steering_setpoint_s rover_steering_setpoint{};
 	rover_steering_setpoint.timestamp = hrt_absolute_time();
-	rover_steering_setpoint.normalized_steering_setpoint = manual_control_setpoint.yaw;
+	rover_steering_setpoint.normalized_steering_setpoint = _param_rm_yaw_stk_gain.get() * math::superexpo<float>
+			(manual_control_setpoint.yaw, _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
 	_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
 	rover_throttle_setpoint_s rover_throttle_setpoint{};
 	rover_throttle_setpoint.timestamp = hrt_absolute_time();
@@ -78,8 +79,8 @@ void MecanumManualMode::acro()
 	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 	rover_rate_setpoint_s rover_rate_setpoint{};
 	rover_rate_setpoint.timestamp = hrt_absolute_time();
-	rover_rate_setpoint.yaw_rate_setpoint = math::interpolate<float> (manual_control_setpoint.yaw, -1.f, 1.f,
-						-_max_yaw_rate, _max_yaw_rate);
+	rover_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(manual_control_setpoint.yaw,
+						_param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
 	_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
 }
 
@@ -106,8 +107,8 @@ void MecanumManualMode::stab()
 		// Rate control
 		rover_rate_setpoint_s rover_rate_setpoint{};
 		rover_rate_setpoint.timestamp = hrt_absolute_time();
-		rover_rate_setpoint.yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.yaw,
-							_param_ro_yaw_stick_dz.get()), -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
+		rover_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(math::deadzone(
+				manual_control_setpoint.yaw, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
 		_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
 
 		// Set uncontrolled setpoint invalid
@@ -169,8 +170,8 @@ void MecanumManualMode::position()
 		// Rate control
 		rover_rate_setpoint_s rover_rate_setpoint{};
 		rover_rate_setpoint.timestamp = hrt_absolute_time();
-		rover_rate_setpoint.yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.yaw,
-							_param_ro_yaw_stick_dz.get()), -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);;
+		rover_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(math::deadzone(
+				manual_control_setpoint.yaw, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
 		_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
 
 		// Set uncontrolled setpoints invalid
