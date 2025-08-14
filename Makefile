@@ -259,6 +259,42 @@ px4fmu_firmware: \
 	check_px4_fmu-v5x_default \
 	sizes
 
+# Create a one-file AppImage for PX4 SITL
+PX4_VERSION := $(shell git describe --tags --match "v[0-9]*" 2>/dev/null || echo "v0.0.0")
+.PHONY: AppImage
+appimage: build/px4_sitl_default/bin/px4 build/px4_sitl_default/romfs_files.tar
+
+	@$(MAKE) px4_sitl_default
+	@$(RM) -rf build/px4.AppDir
+
+	@mkdir -p \
+		build/px4.AppDir/usr/bin \
+		build/px4.AppDir/usr/lib \
+		build/px4.AppDir/usr/share/px4/romfs/etc \
+		build/px4.AppDir/usr/share/px4/romfs/bin
+	@cp build/px4_sitl_default/bin/px4 build/px4.AppDir/usr/bin/
+	@echo "${PX4_VERSION}" > build/px4.AppDir/version.txt
+
+	# bundle required Gazebo transport libs (arch‐agnostic lookup)
+	echo "→ Gathering shared-lib dependencies for px4..."
+	@ldd build/px4_sitl_default/bin/px4 \
+		| awk '/=>/ { print $$3 }' \
+		| grep -E '^/' \
+		| grep -Ev '/lib(c|gcc|stdc\+\+)\.so' \
+		| sort -u \
+		| while read lib; do \
+			echo "	→ bundling $$lib"; \
+			cp "$$lib" build/px4.AppDir/usr/lib/; \
+		done
+
+	@tar xf build/px4_sitl_default/romfs_files.tar -C build/px4.AppDir/usr/share/px4/romfs/etc
+	@cp build/px4_sitl_default/bin/px4-* build/px4.AppDir/usr/share/px4/romfs/bin/
+	@cp Tools/appimage/px4.desktop build/px4.AppDir/
+	@cp Tools/appimage/px4.svg build/px4.AppDir/
+	@cp Tools/appimage/AppRun build/px4.AppDir/
+	@chmod +x build/px4.AppDir/AppRun
+	@cd build && appimagetool px4.AppDir
+
 misc_qgc_extra_firmware: \
 	check_nxp_fmuk66-v3_default \
 	check_mro_x21_default \
