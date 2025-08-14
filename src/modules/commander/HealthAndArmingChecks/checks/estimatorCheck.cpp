@@ -589,6 +589,21 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 				mavlink_log_critical(reporter.mavlink_log_pub(), "GNSS heading not reliable - Land now!\t");
 			}
 		}
+
+		// If yaw alignment is not complete within 10s of boot something is wrong with the mag(s)
+		if ((hrt_absolute_time() > 10_s) && !estimator_status_flags.cs_yaw_align) {
+			/* EVENT
+			 * @description
+			 * Check mag cal
+			 */
+			reporter.armingCheckFailure(NavModes::All, health_component_t::local_position_estimate,
+						    events::ID("yaw_align_incomplete"),
+						    events::Log::Critical, "Yaw alignment incomplete - Check mag cal");
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Yaw alignment incomplete - Check mag cal\t");
+			}
+		}
 	}
 }
 
