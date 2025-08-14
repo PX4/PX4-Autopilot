@@ -92,6 +92,11 @@
 [submodule "test/fuzztest"]
 	path = test/fuzztest
 	url = https://github.com/google/fuzztest.git
+	branch = main
 [submodule "src/lib/tensorflow_lite_micro/tflite_micro"]
 	path = src/lib/tensorflow_lite_micro/tflite_micro
 	url = https://github.com/PX4/tflite-micro.git
+	branch = main
+[submodule "src/drivers/ins/microstrain/mip_sdk"]
+	path = src/drivers/ins/microstrain/mip_sdk
+	url = https://github.com/PX4/LORD-MicroStrain_mip_sdk.git

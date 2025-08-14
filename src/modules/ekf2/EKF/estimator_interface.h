@@ -415,6 +415,7 @@ protected:
 			   _params.ekf2_req_sacc,
 			   _params.ekf2_req_hdrift,
 			   _params.ekf2_req_vdrift,
+			   _params.ekf2_req_fix,
 			   _params.ekf2_vel_lim,
 			   _min_gps_health_time_us,
 			   _control_status};

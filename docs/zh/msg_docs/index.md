@@ -74,10 +74,11 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleRatesSetpoint](VehicleRatesSetpoint.md)
 - [VehicleStatus](VehicleStatus.md) — Encodes the system state of the vehicle published by commander
 - [VtolVehicleStatus](VtolVehicleStatus.md) — VEHICLE_VTOL_STATE, should match 1:1 MAVLinks's MAV_VTOL_STATE
+- [Wind](Wind.md) — Wind estimate (from EKF2)
 
 ## Unversioned Messages
 
-- [ActionRequest](ActionRequest.md)
+- [ActionRequest](ActionRequest.md) — Action request for the vehicle's main state
 - [ActuatorArmed](ActuatorArmed.md)
 - [ActuatorControlsStatus](ActuatorControlsStatus.md)
 - [ActuatorOutputs](ActuatorOutputs.md)
@@ -85,7 +86,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [ActuatorTest](ActuatorTest.md)
 - [AdcReport](AdcReport.md)
 - [Airspeed](Airspeed.md) — Airspeed data from sensors
-- [AirspeedWind](AirspeedWind.md)
+- [AirspeedWind](AirspeedWind.md) — Wind estimate (from airspeed_selector)
 - [AutotuneAttitudeControlStatus](AutotuneAttitudeControlStatus.md)
 - [BatteryInfo](BatteryInfo.md) — Battery information
 - [ButtonEvent](ButtonEvent.md)
@@ -187,6 +188,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [NavigatorMissionItem](NavigatorMissionItem.md)
 - [NavigatorStatus](NavigatorStatus.md) — Current status of a Navigator mode
   The possible values of nav_state are defined in the VehicleStatus msg.
+- [NeuralControl](NeuralControl.md) — Neural control
 - [NormalizedUnsignedSetpoint](NormalizedUnsignedSetpoint.md)
 - [ObstacleDistance](ObstacleDistance.md) — Obstacle distances in front of the sensor.
 - [OffboardControlMode](OffboardControlMode.md) — Off-board control mode
@@ -296,7 +298,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleTorqueSetpoint](VehicleTorqueSetpoint.md)
 - [VelocityLimits](VelocityLimits.md) — Velocity and yaw rate limits for a multicopter position slow mode only
 - [WheelEncoders](WheelEncoders.md)
-- [Wind](Wind.md)
 - [YawEstimatorStatus](YawEstimatorStatus.md)
 - [AirspeedValidatedV0](AirspeedValidatedV0.md)
 - [ArmingCheckReplyV0](ArmingCheckReplyV0.md)
@@ -305,4 +306,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
   Events interface
 - [HomePositionV0](HomePositionV0.md) — GPS home position in WGS84 coordinates.
 - [VehicleAttitudeSetpointV0](VehicleAttitudeSetpointV0.md)
+- [VehicleLocalPositionV0](VehicleLocalPositionV0.md) — Fused local position in NED.
+  The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
 - [VehicleStatusV0](VehicleStatusV0.md) — Encodes the system state of the vehicle published by commander

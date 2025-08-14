@@ -274,6 +274,7 @@ void send_actuator_data()
 
 	int _actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs_sim), 0);
 	int _vehicle_control_mode_sub_ = orb_subscribe(ORB_ID(vehicle_control_mode));
+	uint64_t last_heartbeat_timestamp = hrt_absolute_time();
 	int previous_timestamp = 0;
 	int previous_uorb_timestamp = 0;
 	int differential = 0;
@@ -329,6 +330,23 @@ void send_actuator_data()
 			if (_debug) { PX4_INFO("Succesful write of actuator back to jMAVSim: %d at %llu", writeRetval, hrt_absolute_time()); }
 
 			send_esc_status(hil_act_control);
+		}
+
+		uint64_t timestamp = hrt_absolute_time();
+
+		if ((timestamp - last_heartbeat_timestamp) > 1000000) {
+			mavlink_heartbeat_t hb = {};
+			mavlink_message_t hb_message = {};
+			hb.autopilot = 12;
+			hb.base_mode |= (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 128 : 0;
+			mavlink_msg_heartbeat_encode(1, 1, &hb_message, &hb);
+
+			uint8_t  hb_newBuf[MAVLINK_MAX_PACKET_LEN];
+			uint16_t hb_newBufLen = 0;
+			hb_newBufLen = mavlink_msg_to_send_buffer(hb_newBuf, &hb_message);
+			(void) writeResponse(&hb_newBuf, hb_newBufLen);
+			last_heartbeat_timestamp = timestamp;
+			heartbeat_sent_counter++;
 		}
 
 		differential = hrt_absolute_time() - previous_timestamp;
@@ -392,8 +410,7 @@ void task_main(int argc, char *argv[])
 		return;
 	}
 
-	uint64_t last_heartbeat_timestamp = hrt_absolute_time();
-	uint64_t last_imu_update_timestamp = last_heartbeat_timestamp;
+	uint64_t last_imu_update_timestamp = hrt_absolute_time();
 
 	_px4_accel = new PX4Accelerometer(1310988);
 	_px4_gyro = new PX4Gyroscope(1310988);
@@ -445,21 +462,6 @@ void task_main(int argc, char *argv[])
 					handle_message_dsp(&msg);
 				}
 			}
-		}
-
-		if ((timestamp - last_heartbeat_timestamp) > 1000000) {
-			mavlink_heartbeat_t hb = {};
-			mavlink_message_t hb_message = {};
-			hb.autopilot = 12;
-			hb.base_mode |= (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 128 : 0;
-			mavlink_msg_heartbeat_encode(1, 1, &hb_message, &hb);
-
-			uint8_t  hb_newBuf[MAVLINK_MAX_PACKET_LEN];
-			uint16_t hb_newBufLen = 0;
-			hb_newBufLen = mavlink_msg_to_send_buffer(hb_newBuf, &hb_message);
-			(void) writeResponse(&hb_newBuf, hb_newBufLen);
-			last_heartbeat_timestamp = timestamp;
-			heartbeat_sent_counter++;
 		}
 
 		bool vehicle_updated = false;

@@ -29,7 +29,7 @@ jobs:
 
       - name: Get changed english doc files
         id: get_changed_markdown_english
-        uses: tj-actions/changed-files@v35.9.2
+        uses: tj-actions/changed-files@v46.0.5
         with:
           json: true
           base_sha: "${{ github.event.pull_request.base.sha }}"
@@ -42,14 +42,23 @@ jobs:
 
       - name: Save JSON file containing files to link check
         run: |
-          echo "${{ steps.get_changed_markdown_english.outputs.all_changed_files }}"
-          echo "${{ steps.get_changed_markdown_english.outputs.all_changed_files }}" > ./logs/prFiles.json
+          echo "$ALL_CHANGED_FILES"
+          echo "$ALL_CHANGED_FILES" > ./logs/prFiles.json
+        env:
+          ALL_CHANGED_FILES: ${{ steps.get_changed_markdown_english.outputs.all_changed_files }}
 
       - name: Run link checker
         id: link-check
         run: |
           npm -g install markdown_link_checker_sc@0.0.138
-          markdown_link_checker_sc -r ${{ github.workspace }} -d docs -e en -f ./logs/prFiles.json -i assets -u docs.px4.io/main/ > ./logs/errorsFilteredByPrPages.md
+          markdown_link_checker_sc \
+            -r "$GITHUB_WORKSPACE" \
+            -d docs \
+            -e en \
+            -f ./logs/prFiles.json \
+            -i assets \
+            -u docs.px4.io/main/ \
+            > ./logs/errorsFilteredByPrPages.md
           mkdir -p ./pr
           cp ./logs/errorsFilteredByPrPages.md ./pr/errorsFilteredByPrPages.md
 
@@ -60,14 +69,15 @@ jobs:
           path: ./logs/errorsFilteredByPrPages.md
 
       - name: Echo Errors by Page
-        run: echo "${{ steps.read-errors-by-page.outputs.content }}"
+        run: echo "$ERRORS"
+        env:
+          ERRORS: ${{ steps.read-errors-by-page.outputs.content }}
 
       - name: Save PR number
+        run: echo "$PR_NUMBER" > ./pr/pr_number
         env:
           PR_NUMBER: ${{ github.event.number }}
-        run: |
-          #mkdir -p ./pr
-          echo $PR_NUMBER > ./pr/pr_number
+
       - uses: actions/upload-artifact@v4
         with:
           name: pr_number

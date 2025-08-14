@@ -328,6 +328,8 @@ bootloaders_update: \
 	cuav_nora_bootloader \
 	cuav_x7pro_bootloader \
 	cuav_7-nano_bootloader \
+	cuav_fmu-v6x_bootloader \
+	cuav_x25-evo_bootloader \
 	cubepilot_cubeorange_bootloader \
 	cubepilot_cubeorangeplus_bootloader \
 	hkust_nxt-dual_bootloader \
@@ -347,6 +349,7 @@ bootloaders_update: \
 	mro_ctrl-zero-h7_bootloader \
 	mro_ctrl-zero-h7-oem_bootloader \
 	mro_pixracerpro_bootloader \
+	narinfc_h7_bootloader \
 	px4_fmu-v6c_bootloader \
 	px4_fmu-v6u_bootloader \
 	px4_fmu-v6x_bootloader \

@@ -126,6 +126,8 @@ private:
 		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
 		(ParamFloat<px4::params::RO_YAW_P>)         _param_ro_yaw_p,
 		(ParamFloat<px4::params::RO_YAW_STICK_DZ>)  _param_ro_yaw_stick_dz,
+		(ParamFloat<px4::params::RO_YAW_EXPO>)      _param_ro_yaw_expo,
+		(ParamFloat<px4::params::RO_YAW_SUPEXPO>)   _param_ro_yaw_supexpo,
 		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit
 	)
