@@ -3,21 +3,21 @@ name: Docs - Deploy PX4 User Guide to AWS
 on:
   push:
     branches:
-      - 'main'
-      - 'release/**'
+      - "main"
+      - "release/**"
     paths:
-      - 'docs/en/**'
+      - "docs/en/**"
   pull_request:
     branches:
-      - '**'
+      - "**"
     paths:
-      - 'docs/en/**'
+      - "docs/en/**"
 
   workflow_dispatch:
 
 permissions:
   contents: read
-  id-token: write   # for AWS OIDC
+  id-token: write # for AWS OIDC
 
 concurrency:
   group: docs-deploy
@@ -28,7 +28,15 @@ env:
 
 jobs:
   build:
-    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    runs-on:
+      [
+        runs-on,
+        runner=8cpu-linux-x64,
+        image=ubuntu24-full-x64,
+        "run-id=${{ github.run_id }}",
+        spot=false,
+        extras=s3-cache,
+      ]
     steps:
       - uses: runs-on/action@v1
 
@@ -94,4 +102,3 @@ jobs:
             --delete \
             --exclude "*.html" \
             --cache-control "public, max-age=86400, immutable"
-
