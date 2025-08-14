@@ -26,10 +26,17 @@
 
 That is the minimum setup to use the rover in [Manual mode](../flight_modes_rover/manual.md#manual-mode).
 
+:::note
+The rest of the tuning on this page is not mandatory for [Manual mode](../flight_modes_rover/manual.md#manual-mode), but it will have an effect on the behaviour of the rover.
+:::
+
+:::warning
+All parameters without the `(Optional)` tag will be mandatory for all subsequent modes. If you intend to use more sophisticated modes do not skip the rest of this setup!
+:::
+
 ## Geometric Parameters
 
-Manual mode is also affected by (optional) acceleration/deceleration limits set using the geometric described below.
-These limits are mandatory for all other modes.
+First, we set up the geometric parameters of the rover:
 
 ![Geometric parameters](../../assets/config/rover/geometric_parameters.png)
 
