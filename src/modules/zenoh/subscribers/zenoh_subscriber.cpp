@@ -41,7 +41,7 @@
 
 #include "zenoh_subscriber.hpp"
 
-static void data_handler_cb(const z_loaned_sample_t *sample, void *arg)
+static void data_handler_cb(z_loaned_sample_t *sample, void *arg)
 {
 	static_cast<Zenoh_Subscriber *>(arg)->data_handler(sample);
 }
@@ -50,15 +50,13 @@ void Zenoh_Subscriber::data_handler(const z_loaned_sample_t *sample)
 {
 	z_view_string_t keystr;
 	z_keyexpr_as_view_string(z_sample_keyexpr(sample), &keystr);
-	z_owned_slice_t value;
-	z_bytes_deserialize_into_slice(z_sample_payload(sample), &value);
-	printf(">> [Subscriber] Received ('%s' size '%d')\n", z_string_data(z_loan(keystr)), (int)z_slice_len(z_loan(value)));
+	printf(">> [Subscriber] Received ('%s' size '%d')\n", z_string_data(z_loan(keystr)),
+	       (int)z_bytes_len(z_sample_payload(sample)));
 }
 
 
 Zenoh_Subscriber::Zenoh_Subscriber()
 {
-	this->_topic[0] = 0x0;
 }
 
 Zenoh_Subscriber::~Zenoh_Subscriber()
@@ -75,21 +73,14 @@ int Zenoh_Subscriber::undeclare_subscriber()
 int Zenoh_Subscriber::declare_subscriber(z_owned_session_t s, const char *keyexpr)
 {
 	z_owned_closure_sample_t callback;
-	z_closure_sample(&callback, data_handler_cb, NULL, this);
-
-	strncpy(this->_topic, keyexpr, sizeof(this->_topic));
+	z_closure(&callback, data_handler_cb, NULL, this);
 
 	z_view_keyexpr_t ke;
-	z_view_keyexpr_from_str(&ke, this->_topic);
+	z_view_keyexpr_from_str(&ke, keyexpr);
 
-	if (z_declare_subscriber(&_sub, z_loan(s), z_loan(ke), z_closure_sample_move(&callback), NULL) < 0) {
+	if (z_declare_subscriber(z_loan(s), &_sub, z_loan(ke), z_closure_sample_move(&callback), NULL) < 0) {
 		printf("Unable to declare subscriber.\n");
 		exit(-1);
-	}
-
-	if (!z_subscriber_check(&_sub)) {
-		printf("Unable to declare subscriber for key expression!\n %s\n", keyexpr);
-		return -1;
 	}
 
 	return 0;
@@ -97,10 +88,14 @@ int Zenoh_Subscriber::declare_subscriber(z_owned_session_t s, const char *keyexp
 
 void Zenoh_Subscriber::print()
 {
-	printf("Topic: %s\n", this->_topic);
+	z_view_string_t keystr;
+	z_keyexpr_as_view_string(z_subscriber_keyexpr(z_loan(_sub)), &keystr);
+	printf("Topic: %s\n", z_string_data(z_loan(keystr)));
 }
 
 void Zenoh_Subscriber::print(const char *type_string, const char *topic_string)
 {
-	printf("Topic: %s -> %s %s \n", this->_topic, type_string, topic_string);
+	z_view_string_t keystr;
+	z_keyexpr_as_view_string(z_subscriber_keyexpr(z_loan(_sub)), &keystr);
+	printf("Topic: %s -> %s %s \n", z_string_data(z_loan(keystr)), type_string, topic_string);
 }
