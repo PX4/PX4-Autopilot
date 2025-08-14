@@ -60,6 +60,8 @@ public:
 private:
 	static constexpr int MAX_NUM_EXTERNAL_MODES = vehicle_status_s::NAVIGATION_STATE_EXTERNAL8 -
 			vehicle_status_s::NAVIGATION_STATE_EXTERNAL1 + 1;
+	/* Max 2 seconds delay for all possible modes to avoid ACK timeout in ground station */
+	static constexpr uint32_t LOW_BANDWIDTH_DELAY_US = 2000000 / vehicle_status_s::NAVIGATION_STATE_MAX;
 
 	explicit MavlinkStreamAvailableModes(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
@@ -76,8 +78,13 @@ private:
 	uint32_t _last_valid_nav_states_mask{0};
 	uint32_t _last_can_set_nav_states_mask{0};
 
-	void send_single_mode(const vehicle_status_s &vehicle_status, int mode_index, int total_num_modes, uint8_t nav_state)
+	void send_single_mode(const vehicle_status_s &vehicle_status, int mode_index, int total_num_modes, uint8_t nav_state,
+			      uint32_t delay_us)
 	{
+		if (delay_us > 0) {
+			px4_usleep(delay_us);
+		}
+
 		mavlink_available_modes_t available_modes{};
 		available_modes.mode_index = mode_index;
 		available_modes.number_modes = total_num_modes;
@@ -138,13 +145,18 @@ private:
 		}
 
 		int total_num_modes = math::countSetBits(vehicle_status.valid_nav_states_mask);
+		uint32_t delay_us = 0;
+
+		if (_mavlink->get_mode() == Mavlink::MAVLINK_MODE_LOW_BANDWIDTH) {
+			delay_us = LOW_BANDWIDTH_DELAY_US;
+		}
 
 		if (mode_index == 0) { // All
 			int cur_mode_index = 1;
 
 			for (uint8_t nav_state = 0; nav_state < vehicle_status_s::NAVIGATION_STATE_MAX; ++nav_state) {
 				if ((1u << nav_state) & vehicle_status.valid_nav_states_mask) {
-					send_single_mode(vehicle_status, cur_mode_index, total_num_modes, nav_state);
+					send_single_mode(vehicle_status, cur_mode_index, total_num_modes, nav_state, delay_us);
 					++cur_mode_index;
 				}
 			}
@@ -165,7 +177,7 @@ private:
 			}
 
 			if (nav_state < vehicle_status_s::NAVIGATION_STATE_MAX) {
-				send_single_mode(vehicle_status, mode_index, total_num_modes, nav_state);
+				send_single_mode(vehicle_status, mode_index, total_num_modes, nav_state, delay_us);
 			}
 
 			ret = true;
