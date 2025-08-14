@@ -1,7 +1,7 @@
 # Vehicle air data
 #
 # Data from the currently selected barometer (plus ambient temperature from the source specified in temperature_source).
-# Includes calculated data such as altitude and rho.
+# Includes calculated data such as barometric altitude and air density.
 
 uint64 timestamp # [us] Time since system start
 uint64 timestamp_sample # [us] Timestamp of the raw data
