@@ -141,6 +141,7 @@
 # include "streams/DEBUG.hpp"
 # include "streams/DEBUG_FLOAT_ARRAY.hpp"
 # include "streams/DEBUG_VECT.hpp"
+# include "streams/DEVICE_INFORMATION.hpp"
 # include "streams/GIMBAL_DEVICE_ATTITUDE_STATUS.hpp"
 # include "streams/GIMBAL_DEVICE_SET_ATTITUDE.hpp"
 # include "streams/GIMBAL_MANAGER_INFORMATION.hpp"
@@ -399,6 +400,9 @@ static const StreamListItem streams_list[] = {
 #if defined(DEBUG_FLOAT_ARRAY_HPP)
 	create_stream_list_item<MavlinkStreamDebugFloatArray>(),
 #endif // DEBUG_FLOAT_ARRAY_HPP
+#if defined(DEVICE_INFORMATION_HPP)
+	create_stream_list_item<MavlinkStreamDeviceInformation>(),
+#endif // DEVICE_INFORMATION_HPP
 #if defined(NAV_CONTROLLER_OUTPUT_HPP)
 	create_stream_list_item<MavlinkStreamNavControllerOutput>(),
 #endif // NAV_CONTROLLER_OUTPUT_HPP
