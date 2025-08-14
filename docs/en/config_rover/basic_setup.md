@@ -102,6 +102,37 @@ Navigate to [Parameters](../advanced_config/parameters.md) in QGroundControl and
    This parameter is also used for the calculation of the speed setpoint in modes that are [position controlled](position_tuning.md).
    :::
 
+## (Optional) Stick Input Mapping
+
+Input shaping can be used to adjust the default linear mapping from stick inputs $\in [-1, 1]$ to normalized setpoints $\in [-1, 1]$. Applying this specifically to the steering input, can provide a smoother driving experience, by enabling the user to make small adjustments when the stick is close to the center, but still send large inputs when moving them to the edges.
+We provide this input shaping through the super exponential function:
+
+$$
+\delta = \frac{(f \cdot x^3 + x(1-f)) \cdot (1-g)}{1-g \cdot |x|}
+$$
+
+with:
+- $\delta \in [-1, 1]=$ Normalized steering setpoint.
+- $x \in [-1, 1]=$ Normalized stick input.
+- $f=$ [RO_YAW_EXPO](#RO_YAW_EXPO): `0` Purely linear input curve, `1` Purely cubic input curve.
+- $g=$ [RO_YAW_SUPEXPO](#RO_YAW_SUPEXPO): `0` Pure Expo function, `0.7` reasonable shape enhancement for intuitive stick feel, `0.95` very strong bent input curve only near maxima have effect.
+
+In [Manual mode](../flight_modes_rover/manual.md#manual-mode) we can additionally scale $\delta$ with an additional parameter $r$:
+- Differential Rover: $r=$ [RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN), which enables adjusting the slope of the input mapping. This leads to a normalized steering input $\hat{\delta} = \delta \cdot r \in$ [-[RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN), [RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN)].
+- Mecanum Rover: $r=$ [RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN), which enables adjusting the slope of the input mapping. This leads to a normalized steering input $\hat{\delta} = \delta \cdot r \in$ [-[RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN), [RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN)].
+
+This scaling is useful to limit the normalized steering setpoint, if it is too aggresive for your rover in manual mode.
+
+You can experiment with the relationships graphically using the [PX4 SuperExpo Rover calculator](https://www.desmos.com/calculator/gwm8lrlanx).
+
+:::note
+In [Acro](../flight_modes_rover/manual.md#acro-mode), [Stabilized](../flight_modes_rover/manual.md#stabilized-mode) and [Position](../flight_modes_rover/manual.md#position-mode) Mode, $\delta$ is instead scaled by $r=$ [RO_YAW_RATE_LIM](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED) for all rovers. This leads to a yaw rate setpoint $\dot{\psi} = \delta \cdot r \in$ [-[RO_YAW_RATE_LIM](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED), [RO_YAW_RATE_LIM](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED)]. This parameter is setup during [rate tuning](rate_tuning.md).
+:::
+
+:::note
+The input shaping through [RO_YAW_EXPO](#RO_YAW_EXPO) and [RO_YAW_SUPEXPO](#RO_YAW_SUPEXPO) applies for all manual modes, while [RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN)/[RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN) only affects full manual mode.
+:::
+
 You can now continue the configuration process with [rate tuning](rate_tuning.md).
 
 ## Parameter Overview
@@ -111,6 +142,9 @@ You can now continue the configuration process with [rate tuning](rate_tuning.md
 | <a id="RO_MAX_THR_SPEED"></a>[RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED) | Speed the rover drives at maximum throttle | $m/s$   |
 | <a id="RO_ACCEL_LIM"></a>[RO_ACCEL_LIM](../advanced_config/parameter_reference.md#RO_ACCEL_LIM)             | (Optional) Maximum allowed acceleration    | $m/s^2$ |
 | <a id="RO_DECEL_LIM"></a>[RO_DECEL_LIM](../advanced_config/parameter_reference.md#RO_DECEL_LIM)             | (Optional) Maximum allowed deceleration    | $m/s^2$ |
+| <a id="RO_YAW_EXPO"></a>[RO_YAW_EXPO](../advanced_config/parameter_reference.md#RO_YAW_EXPO)                | (Optional) Yaw rate expo factor            | $-$     |
+| <a id="RO_YAW_SUPEXPO"></a>[RO_YAW_SUPEXPO](../advanced_config/parameter_reference.md#RO_YAW_SUPEXPO)       | (Optional) Yaw rate super expo factor      | $-$     |
+
 
 ### Ackermann Specific
 
@@ -122,12 +156,15 @@ You can now continue the configuration process with [rate tuning](rate_tuning.md
 
 ### Differential Specific
 
-| Parameter                                                                                             | Description | Unit |
-| ----------------------------------------------------------------------------------------------------- | ----------- | ---- |
-| <a id="RD_WHEEL_TRACK"></a>[RD_WHEEL_TRACK](../advanced_config/parameter_reference.md#RD_WHEEL_TRACK) | Wheel track | m    |
+| Parameter                                                                                                | Description                               | Unit |
+| -------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ---- |
+| <a id="RD_WHEEL_TRACK"></a>[RD_WHEEL_TRACK](../advanced_config/parameter_reference.md#RD_WHEEL_TRACK)    | Wheel track                               | $m$  |
+| <a id="RD_YAW_STK_GAIN"></a>[RD_YAW_STK_GAIN](../advanced_config/parameter_reference.md#RD_YAW_STK_GAIN) | (Optional) Yaw stick gain for Manual mode | $-$  |
+
 
 ### Mecanum Specific
 
-| Parameter                                                                                             | Description | Unit |
-| ----------------------------------------------------------------------------------------------------- | ----------- | ---- |
-| <a id="RM_WHEEL_TRACK"></a>[RM_WHEEL_TRACK](../advanced_config/parameter_reference.md#RM_WHEEL_TRACK) | Wheel track | m    |
+| Parameter                                                                                                | Description                               | Unit |
+| -------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ---- |
+| <a id="RM_WHEEL_TRACK"></a>[RM_WHEEL_TRACK](../advanced_config/parameter_reference.md#RM_WHEEL_TRACK)    | Wheel track                               | $m$  |
+| <a id="RM_YAW_STK_GAIN"></a>[RM_YAW_STK_GAIN](../advanced_config/parameter_reference.md#RM_YAW_STK_GAIN) | (Optional) Yaw stick gain for Manual mode | $-$  |
