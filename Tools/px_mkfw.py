@@ -1,3 +1,4 @@
+# vim: set noexpandtab tabstop=4 shiftwidth=4:
 #!/usr/bin/env python3
 ############################################################################
 #
@@ -45,6 +46,7 @@ import base64
 import zlib
 import time
 import subprocess
+import hashlib
 
 #
 # Construct a basic firmware description
@@ -62,7 +64,19 @@ def mkdesc():
 	proto['build_time']	= 0
 	proto['image']		= bytes()
 	proto['image_size']	= 0
+	proto['sha256sum'] = ""
 	return proto
+
+def _merge_manifest(dst, src):
+	if not isinstance(src, dict):
+		return
+	for k, v in src.items():
+		if k == "hardware":
+			dst.setdefault("hardware", {})
+		if isinstance(v, dict):
+			dst["hardware"].update(v)
+		else:
+			dst[k] = v
 
 # Parse commandline
 parser = argparse.ArgumentParser(description="Firmware generator for the PX autopilot system.")
@@ -76,6 +90,7 @@ parser.add_argument("--git_identity",	action="store", help="the working director
 parser.add_argument("--parameter_xml",	action="store", help="the parameters.xml file")
 parser.add_argument("--airframe_xml",	action="store", help="the airframes.xml file")
 parser.add_argument("--image",		action="store", help="the firmware image")
+parser.add_argument("--manifest_json",	action="append", help="path to manifest JSON fragment to merge")
 args = parser.parse_args()
 
 # Fetch the firmware descriptor prototype if specified
@@ -85,6 +100,9 @@ if args.prototype != None:
 	f.close()
 else:
 	desc = mkdesc()
+
+desc.setdefault("manifest_version", 1)
+desc.setdefault("manifest", {})
 
 desc['build_time'] 		= int(time.time())
 
@@ -101,11 +119,11 @@ if args.description != None:
 if args.git_identity != None:
 	cmd = "git --git-dir '{:}/.git' describe --exclude ext/* --always --tags".format(args.git_identity)
 	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
-	desc['git_identity']	= p.read().strip().decode('utf-8')
+	desc['git_identity'] = p.read().strip().decode('utf-8')
 	p.close()
 	cmd = "git --git-dir '{:}/.git' rev-parse --verify HEAD".format(args.git_identity)
 	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
-	desc['git_hash']	= p.read().strip().decode('utf-8')
+	desc['git_hash'] = p.read().strip().decode('utf-8')
 	p.close()
 if args.parameter_xml != None:
 	f = open(args.parameter_xml, "rb")
@@ -120,8 +138,20 @@ if args.airframe_xml != None:
 	desc['airframe_xml'] = base64.b64encode(zlib.compress(bytes,9)).decode('utf-8')
 if args.image != None:
 	f = open(args.image, "rb")
-	bytes = f.read()
-	desc['image_size'] = len(bytes)
-	desc['image'] = base64.b64encode(zlib.compress(bytes,9)).decode('utf-8')
+	raw_image = f.read()
+	f.close()
+	desc['image_size'] = len(raw_image)
+	sha256sum = hashlib.sha256(raw_image).hexdigest()
+	desc['sha256sum'] = sha256sum
+	desc['image'] = base64.b64encode(zlib.compress(raw_image, 9)).decode('utf-8')
+
+# merge manifest
+manifest_inputs = args.manifest_json or []
+if isinstance(manifest_inputs, str):
+	manifest_inputs = [manifest_inputs]
+for p in manifest_inputs:
+	with open(p, "r", encoding="utf-8") as f:
+		frag = json.load(f)
+	_merge_manifest(desc["manifest"], frag)
 
 print(json.dumps(desc, indent=4))
