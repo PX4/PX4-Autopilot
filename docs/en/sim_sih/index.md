@@ -124,7 +124,7 @@ make px4_fmu-v6x boardconfig
 After uploading, check that the required modules are present.
 
 ::: note
-To use rover in SIH you must also add the [rover modules](../config_rover/index.md#flashing-the-rover-build) to your board configuration or use the rover build.
+To use rover in SIH you must use the [rover build](../config_rover/index.md#flashing-the-rover-build) or add the rover modules to your board configuration.
 :::
 
 ## Starting SIH
@@ -139,7 +139,7 @@ To set up/start SIH:
    - [SIH plane AERT](../airframes/airframe_reference.md#plane_simulation_sih_plane_aert)
    - [SIH Tailsitter Duo](../airframes/airframe_reference.md#vtol_simulation_sih_tailsitter_duo)
    - [SIH Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_simulation_sih_standard_vtol_quadplane)
-   - **SIH Ackermann Rover** (currently only has an airframe for SITL to safe flash so on flight control hardware it has to be manually configured equivalently).
+   - [SIH Ackermann Rover](../airframes/airframe_reference.md#rover_rover_sih_rover_ackermann)
 
 The autopilot will then reboot.
 The `sih` module is started on reboot, and the vehicle should be displayed on the ground control station map.
