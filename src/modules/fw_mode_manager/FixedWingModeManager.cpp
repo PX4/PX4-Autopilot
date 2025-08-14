@@ -1968,7 +1968,7 @@ FixedWingModeManager::Run()
 	/* only run controller if position changed and we are not running an external mode*/
 
 	const bool is_external_nav_state = (_nav_state >= vehicle_status_s::NAVIGATION_STATE_EXTERNAL1)
-					   && (_nav_state <= vehicle_status_s::NAVIGATION_STATE_EXTERNAL8);
+					   && (_nav_state <= vehicle_status_s::NAVIGATION_STATE_EXTERNAL16);
 
 	if (is_external_nav_state) {
 		// this will cause the configuration handler to publish immediately the next time an internal flight
