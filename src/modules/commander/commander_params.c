@@ -190,7 +190,7 @@ PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
 PARAM_DEFINE_INT32(COM_RC_IN_MODE, 3);
 
 /**
- * RC input arm/disarm command duration
+ * Manual control input arm/disarm command duration
  *
  * The default value of 1000 requires the stick to be held in the arm or disarm position for 1 second.
  *
@@ -421,9 +421,9 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_ANG, 60);
 PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 2);
 
 /**
- * Enable RC stick override of auto and/or offboard modes
+ * Enable manual control stick override
  *
- * When RC stick override is enabled, moving the RC sticks more than COM_RC_STICK_OV
+ * When enabled, moving the sticks more than COM_RC_STICK_OV
  * immediately gives control back to the pilot by switching to Position mode and
  * if position is unavailable Altitude mode.
  * Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
@@ -437,7 +437,7 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 2);
 PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
 
 /**
- * RC stick override threshold
+ * Stick override threshold
  *
  * If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold
  * the autopilot the pilot takes over control.
@@ -601,11 +601,10 @@ PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);
 PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
 
 /**
- * Set RC loss failsafe mode
+ * Set manual control loss failsafe mode
  *
- * The RC loss failsafe will only be entered after a timeout,
- * set by COM_RC_LOSS_T in seconds. If RC input checks have been disabled
- * by setting the COM_RC_IN_MODE param it will not be triggered.
+ * The manual control loss failsafe will only be entered after a timeout,
+ * set by COM_RC_LOSS_T in seconds.
  *
  * @value 1 Hold mode
  * @value 2 Return mode
@@ -620,7 +619,7 @@ PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
 PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
 
 /**
- * RC loss exceptions
+ * Manual control loss exceptions
  *
  * Specify modes where manual control loss is ignored and no failsafe is triggered.
  * External modes requiring stick input will still failsafe.

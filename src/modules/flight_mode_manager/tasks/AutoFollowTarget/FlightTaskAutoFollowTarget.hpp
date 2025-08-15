@@ -101,26 +101,26 @@ static constexpr float ORBIT_TRAJECTORY_MAX_JERK = 4.0;
 // [m/s^2] Maximum acceleration setting for generating the Follow Target Orbit trajectory
 static constexpr float ORBIT_TRAJECTORY_MAX_ACCELERATION = 2.0;
 
-// << RC Adjustment related constants >>
+// << manual Adjustment related constants >>
 
-// [m/s] Speed with which the follow distance will be adjusted by when commanded with deflection via RC command
+// [m/s] Speed with which the follow distance will be adjusted by when commanded with deflection via sticks
 static constexpr float FOLLOW_DISTANCE_USER_ADJUST_SPEED = 2.0;
 
-// [m] Maximum follow distance that can be set by user's RC adjustment
+// [m] Maximum follow distance that can be set by user's manual adjustment
 static constexpr float FOLLOW_DISTANCE_MAX = 100.f;
 
-// [m/s] Speed with which the follow height will be adjusted by when commanded with deflection via RC command
+// [m/s] Speed with which the follow height will be adjusted by when commanded with deflection via sticks
 static constexpr float FOLLOW_HEIGHT_USER_ADJUST_SPEED = 1.5;
 
-// [m] Maximum follow height that can be set by user's RC adjustment
+// [m] Maximum follow height that can be set by user's manual adjustment
 static constexpr float FOLLOW_HEIGHT_MAX = 100.f;
 
-// [rad/s] Angular rate with which the follow distance will be adjusted by when commanded with full deflection via RC command
+// [rad/s] Angular rate with which the follow distance will be adjusted by when commanded with full deflection via sticks
 static constexpr float FOLLOW_ANGLE_USER_ADJUST_SPEED = 1.5;
 
 // [s] Time window constant that gets multiplied to user adjustment speed, to calculate the
 // 'acceptable' error in orbit angle / height / distance. If the difference between the setpoint
-// and actual state of the drone is smaller than this error, RC adjustments get applied.
+// and actual state of the drone is smaller than this error, manual adjustments get applied.
 // Prevents setpoints diverging from the vehicle's actual position too much
 static constexpr float USER_ADJUSTMENT_ERROR_TIME_WINDOW = 0.5f;
 
@@ -146,33 +146,33 @@ protected:
 	};
 
 	/**
-	 * Update the Follow height based on RC commands
+	 * Update the Follow height based on stick inputs
 	 *
 	 * If the drone's height error to the setpoint is within the an user adjustment error time window
-	 * follow_height will be adjusted with a speed proportional to user RC command
+	 * follow_height will be adjusted with a speed proportional to user stick inputs
 	 *
-	 * @param sticks Sticks object to get RC commanded values for adjustments
+	 * @param sticks Sticks object to get manually values for adjustments
 	 */
 	void updateRcAdjustedFollowHeight(const Sticks &sticks);
 
 	/**
-	 * Update the Follow distance based on RC commands
+	 * Update the Follow distance based on stick inputs
 	 *
 	 * If the drone's distance error to the setpoint is within the an user adjustment error time window
-	 * follow_distance will be adjusted with a speed proportional to user RC command
+	 * follow_distance will be adjusted with a speed proportional to user stick inputs
 	 *
-	 * @param sticks Sticks object to get RC commanded values for adjustments
+	 * @param sticks Sticks object to get manually values for adjustments
 	 * @param drone_to_target_vector [m] Tracked follow distance variable reference which will be updated to the new value
 	 */
 	void updateRcAdjustedFollowDistance(const Sticks &sticks, const Vector2f &drone_to_target_vector);
 
 	/**
-	 * Update the Follow angle based on RC commands
+	 * Update the Follow angle based on stick inputs
 	 *
 	 * If the drone's orbit angle in relation to target is within the an user adjustment error time window
-	 * away from the orbit angle setpoint, follow_angle will be adjusted with a speed proportional to user RC command
+	 * away from the orbit angle setpoint, follow_angle will be adjusted with a speed proportional to user stick inputs
 	 *
-	 * @param sticks Sticks object to get RC commanded values for adjustments
+	 * @param sticks Sticks object to get manually values for adjustments
 	 * @param measured_angle [rad] Measured current drone's orbit angle around the target (depends on tracked target orientation for reference)
 	 * @param tracked_orbit_angle_setpoint [rad] Rate constrained orbit angle setpoint value from last command
 	 */
@@ -275,7 +275,7 @@ protected:
 	// Second Order Filter to calculate kinematically feasible target position
 	SecondOrderReferenceModel<matrix::Vector3f> _target_position_velocity_filter;
 
-	// Internally tracked Follow Target characteristics, to allow RC control input adjustments
+	// Internally tracked Follow Target characteristics, to allow manual control input adjustments
 	float _follow_distance{8.0f}; // [m]
 	float _follow_height{10.0f}; // [m]
 	float _follow_angle_rad{0.0f}; // [rad]
