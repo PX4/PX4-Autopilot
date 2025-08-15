@@ -471,6 +471,8 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	const bool rc_loss_ignored_takeoff = (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
 					      state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
 					     && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::Hold);
+	const bool rc_loss_ignored_voyager = (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_ALTITUDE_VOYAGER
+					      && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::AltitudeVoyager));
 
 	const bool rc_loss_ignored_external_mode =
 		(state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL1 ||
@@ -485,7 +487,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 	const bool rc_loss_ignored = rc_loss_ignored_mission || rc_loss_ignored_loiter || rc_loss_ignored_offboard ||
 				     rc_loss_ignored_takeoff || rc_loss_ignored_external_mode || ignore_any_link_loss_vtol_takeoff_fixedwing
-				     || _manual_control_lost_at_arming;
+				     || _manual_control_lost_at_arming || rc_loss_ignored_voyager;
 
 	if (_param_com_rc_in_mode.get() != int32_t(RcInMode::StickInputDisabled) && !rc_loss_ignored) {
 		CHECK_FAILSAFE(status_flags, manual_control_signal_lost,
@@ -682,6 +684,13 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 
 		// AltCtrl -> Stabilized
 		if (user_intended_mode == vehicle_status_s::NAVIGATION_STATE_ALTCTL
+		    && !modeCanRun(status_flags, user_intended_mode)) {
+			action = Action::FallbackStab;
+			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
+		}
+
+		// AltCruiseCtrl -> Stabilized
+		if (user_intended_mode == vehicle_status_s::NAVIGATION_STATE_ALTITUDE_VOYAGER
 		    && !modeCanRun(status_flags, user_intended_mode)) {
 			action = Action::FallbackStab;
 			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;

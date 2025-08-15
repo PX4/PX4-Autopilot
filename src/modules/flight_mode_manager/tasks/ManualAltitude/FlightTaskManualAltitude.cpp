@@ -274,11 +274,23 @@ void FlightTaskManualAltitude::_ekfResetHandlerHagl(float delta_hagl)
 
 void FlightTaskManualAltitude::_updateSetpoints()
 {
-	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, _sticks.getYawExpo(), _yaw, _deltatime, _unaided_yaw);
-	_acceleration_setpoint.xy() = _stick_tilt_xy.generateAccelerationSetpoints(_sticks.getPitchRoll(), _deltatime, _yaw,
-				      _yaw_setpoint);
+	_updateYawSetpoint();
+	_updateXYSetpoint();
 	_updateAltitudeLock();
 	_respectGroundSlowdown();
+}
+
+void FlightTaskManualAltitude::_updateYawSetpoint()
+{
+	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint,
+				       _sticks.getYawExpo(), _yaw, _deltatime,
+				       _unaided_yaw);
+}
+
+void FlightTaskManualAltitude::_updateXYSetpoint()
+{
+	_acceleration_setpoint.xy() = _stick_tilt_xy.generateAccelerationSetpoints(
+					      _sticks.getPitchRoll(), _deltatime, _yaw, _yaw_setpoint);
 }
 
 bool FlightTaskManualAltitude::_checkTakeoff()

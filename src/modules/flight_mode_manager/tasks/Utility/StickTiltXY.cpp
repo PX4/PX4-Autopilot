@@ -44,6 +44,11 @@ StickTiltXY::StickTiltXY(ModuleParams *parent) :
 	updateParams();
 }
 
+void StickTiltXY::reset()
+{
+	_voyager_acceleration.setZero();
+}
+
 void StickTiltXY::updateParams()
 {
 	ModuleParams::updateParams();
@@ -53,12 +58,35 @@ void StickTiltXY::updateParams()
 	_maximum_acceleration = math::constrain(tanf(maximum_tilt), .02f, 3.f) * CONSTANTS_ONE_G;
 }
 
-Vector2f StickTiltXY::generateAccelerationSetpoints(Vector2f stick_xy, const float dt, const float yaw,
-		const float yaw_setpoint)
+Vector2f StickTiltXY::processSticks(Vector2f stick_xy, const float dt, const float yaw,
+				    const float yaw_setpoint)
 {
 	Sticks::limitStickUnitLengthXY(stick_xy);
 	_man_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
 	stick_xy = _man_input_filter.update(stick_xy);
+	return stick_xy;
+}
+
+Vector2f StickTiltXY::generateAccelerationSetpoints(Vector2f stick_xy, const float dt, const float yaw,
+		const float yaw_setpoint)
+{
+	processSticks(stick_xy, dt, yaw, yaw_setpoint);
 	Sticks::rotateIntoHeadingFrameXY(stick_xy, yaw, yaw_setpoint);
 	return stick_xy * _maximum_acceleration;
+}
+
+Vector2f StickTiltXY::generateAccelerationSetpointsForVoyager(Vector2f stick_xy, const float dt, const float yaw,
+		const float yaw_setpoint)
+{
+	Vector2f increment = processSticks(stick_xy, dt, yaw, yaw_setpoint);
+	_voyager_acceleration += increment * _maximum_acceleration * dt;
+
+	if (_voyager_acceleration.longerThan(_maximum_acceleration)) {
+		_voyager_acceleration =
+			_voyager_acceleration.unit_or_zero() * _maximum_acceleration;
+	}
+
+	auto global_voyager_acceleration = _voyager_acceleration;
+	Sticks::rotateIntoHeadingFrameXY(global_voyager_acceleration, yaw, yaw_setpoint);
+	return global_voyager_acceleration;
 }
