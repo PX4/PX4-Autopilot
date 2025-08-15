@@ -166,9 +166,7 @@ void AckermannManualMode::position()
 		// Speed control
 		rover_speed_setpoint_s rover_speed_setpoint{};
 		rover_speed_setpoint.timestamp = hrt_absolute_time();
-		rover_speed_setpoint.speed = speed_setpoint;
-		rover_speed_setpoint.bearing = NAN;
-		rover_speed_setpoint.yaw = NAN;
+		rover_speed_setpoint.speed_body_x = speed_setpoint;
 		_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
 
 		// Rate control
