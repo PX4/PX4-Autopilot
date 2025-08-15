@@ -139,7 +139,7 @@ void RoverAckermann::updateControllers()
 	}
 
 	if (_vehicle_control_mode.flag_control_velocity_enabled) {
-		_ackermann_vel_control.updateVelControl();
+		_ackermann_speed_control.updateSpeedControl();
 	}
 
 	if (_vehicle_control_mode.flag_control_attitude_enabled) {
@@ -167,7 +167,7 @@ void RoverAckermann::runSanityChecks()
 		return;
 	}
 
-	if (_vehicle_control_mode.flag_control_velocity_enabled && !_ackermann_vel_control.runSanityChecks()) {
+	if (_vehicle_control_mode.flag_control_velocity_enabled && !_ackermann_speed_control.runSanityChecks()) {
 		_sanity_checks_passed = false;
 		return;
 	}
@@ -182,7 +182,7 @@ void RoverAckermann::runSanityChecks()
 
 void RoverAckermann::reset()
 {
-	_ackermann_vel_control.reset();
+	_ackermann_speed_control.reset();
 	_ackermann_att_control.reset();
 	_ackermann_rate_control.reset();
 	_manual_mode.reset();

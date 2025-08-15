@@ -31,21 +31,23 @@
  *
  ****************************************************************************/
 
-#include "DifferentialVelControl.hpp"
+#include "AckermannSpeedControl.hpp"
 
 using namespace time_literals;
 
-DifferentialVelControl::DifferentialVelControl(ModuleParams *parent) : ModuleParams(parent)
+AckermannSpeedControl::AckermannSpeedControl(ModuleParams *parent) : ModuleParams(parent)
 {
 	_rover_throttle_setpoint_pub.advertise();
 	_rover_attitude_setpoint_pub.advertise();
-	_rover_velocity_status_pub.advertise();
+	_rover_speed_status_pub.advertise();
 	updateParams();
 }
 
-void DifferentialVelControl::updateParams()
+void AckermannSpeedControl::updateParams()
 {
 	ModuleParams::updateParams();
+	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	_min_speed = _param_ra_wheel_base.get() * _max_yaw_rate / tanf(_param_ra_max_str_ang.get());
 
 	// Set up PID controller
 	_pid_speed.setGains(_param_ro_speed_p.get(), _param_ro_speed_i.get(), 0.f);
@@ -56,9 +58,11 @@ void DifferentialVelControl::updateParams()
 	if (_param_ro_accel_limit.get() > FLT_EPSILON) {
 		_adjusted_speed_setpoint.setSlewRate(_param_ro_accel_limit.get());
 	}
+
+
 }
 
-void DifferentialVelControl::updateVelControl()
+void AckermannSpeedControl::updateSpeedControl()
 {
 	updateSubscriptions();
 
@@ -66,7 +70,6 @@ void DifferentialVelControl::updateVelControl()
 	_timestamp = hrt_absolute_time();
 	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
 	float max_speed = _param_ro_speed_limit.get();
-
 
 	// Attitude Setpoint
 	if (PX4_ISFINITE(_bearing_setpoint)) {
@@ -79,36 +82,36 @@ void DifferentialVelControl::updateVelControl()
 			const float course_error = fabsf(matrix::wrap_pi(_bearing_setpoint - _vehicle_yaw));
 			const float speed_reduction = math::constrain(_param_ro_speed_red.get() * math::interpolate(course_error,
 						      0.f, M_PI_F, 0.f, 1.f), 0.f, 1.f);
-			max_speed = math::constrain(_param_ro_max_thr_speed.get() * (1.f - speed_reduction), 0.f, max_speed);
+			max_speed = math::constrain(_param_ro_max_thr_speed.get() * (1.f - speed_reduction), _min_speed, max_speed);
 		}
 	}
 
 	// Throttle Setpoint
 	if (PX4_ISFINITE(_speed_setpoint)) {
-		const float speed_setpoint = calcSpeedSetpoint(max_speed);
+		const float speed_setpoint = math::constrain(_speed_setpoint, -max_speed, max_speed);
 		rover_throttle_setpoint_s rover_throttle_setpoint{};
 		rover_throttle_setpoint.timestamp = _timestamp;
 		rover_throttle_setpoint.throttle_body_x = RoverControl::speedControl(_adjusted_speed_setpoint, _pid_speed,
 				speed_setpoint, _vehicle_speed, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
 				_param_ro_max_thr_speed.get(), dt);
-		rover_throttle_setpoint.throttle_body_y = 0.f;
+		rover_throttle_setpoint.throttle_body_y = NAN;
 		_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 
 	}
 
-	// Publish velocity controller status (logging only)
-	rover_velocity_status_s rover_velocity_status;
-	rover_velocity_status.timestamp = _timestamp;
-	rover_velocity_status.measured_speed_body_x = _vehicle_speed;
-	rover_velocity_status.adjusted_speed_body_x_setpoint = _adjusted_speed_setpoint.getState();
-	rover_velocity_status.pid_throttle_body_x_integral = _pid_speed.getIntegral();
-	rover_velocity_status.measured_speed_body_y = NAN;
-	rover_velocity_status.adjusted_speed_body_y_setpoint = NAN;
-	rover_velocity_status.pid_throttle_body_y_integral = NAN;
-	_rover_velocity_status_pub.publish(rover_velocity_status);
+	// Publish position controller status (logging only)
+	rover_speed_status_s rover_speed_status;
+	rover_speed_status.timestamp = _timestamp;
+	rover_speed_status.measured_speed_body_x = _vehicle_speed;
+	rover_speed_status.adjusted_speed_body_x_setpoint = _adjusted_speed_setpoint.getState();
+	rover_speed_status.pid_throttle_body_x_integral = _pid_speed.getIntegral();
+	rover_speed_status.measured_speed_body_y = NAN;
+	rover_speed_status.adjusted_speed_body_y_setpoint = NAN;
+	rover_speed_status.pid_throttle_body_y_integral = NAN;
+	_rover_speed_status_pub.publish(rover_speed_status);
 }
 
-void DifferentialVelControl::updateSubscriptions()
+void AckermannSpeedControl::updateSubscriptions()
 {
 	if (_vehicle_attitude_sub.updated()) {
 		vehicle_attitude_s vehicle_attitude{};
@@ -126,66 +129,27 @@ void DifferentialVelControl::updateSubscriptions()
 		_vehicle_speed = velocity_2d.norm() > _param_ro_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
 	}
 
-	if (_rover_velocity_setpoint_sub.updated()) {
-		rover_velocity_setpoint_s rover_velocity_setpoint;
-		_rover_velocity_setpoint_sub.copy(&rover_velocity_setpoint);
-		_speed_setpoint = rover_velocity_setpoint.speed;
-		_bearing_setpoint = rover_velocity_setpoint.bearing;
+	if (_rover_speed_setpoint_sub.updated()) {
+		rover_speed_setpoint_s rover_speed_setpoint;
+		_rover_speed_setpoint_sub.copy(&rover_speed_setpoint);
+		_speed_setpoint = rover_speed_setpoint.speed;
+		_bearing_setpoint = rover_speed_setpoint.bearing;
 	}
-
 }
 
-float DifferentialVelControl::calcSpeedSetpoint(const float max_speed)
-{
-	const float heading_error = matrix::wrap_pi(_bearing_setpoint - _vehicle_yaw);
-
-	if (_current_state == DrivingState::DRIVING && fabsf(heading_error) > _param_rd_trans_drv_trn.get()) {
-		_current_state = DrivingState::SPOT_TURNING;
-
-	} else if (_current_state == DrivingState::SPOT_TURNING && fabsf(heading_error) < _param_rd_trans_trn_drv.get()) {
-		_current_state = DrivingState::DRIVING;
-	}
-
-	float speed_setpoint = 0.f;
-
-	if (_current_state == DrivingState::DRIVING) {
-		speed_setpoint = math::constrain(_speed_setpoint, -max_speed, max_speed);
-
-		const float speed_setpoint_normalized = math::interpolate<float>(speed_setpoint,
-							-_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get(), -1.f, 1.f);
-
-		if (_rover_steering_setpoint_sub.updated()) {
-			rover_steering_setpoint_s rover_steering_setpoint{};
-			_rover_steering_setpoint_sub.copy(&rover_steering_setpoint);
-			_normalized_speed_diff = rover_steering_setpoint.normalized_steering_setpoint;
-		}
-
-		if (fabsf(speed_setpoint_normalized) > 1.f - fabsf(
-			    _normalized_speed_diff)) { // Adjust speed setpoint if it is infeasible due to the desired speed difference of the left/right wheels
-			speed_setpoint = math::interpolate<float>(sign(speed_setpoint_normalized) * (1.f - fabsf(_normalized_speed_diff)), -1.f,
-					 1.f,
-					 - _param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get());
-		}
-	}
-
-	return speed_setpoint;
-}
-
-bool DifferentialVelControl::runSanityChecks()
+bool AckermannSpeedControl::runSanityChecks()
 {
 	bool ret = true;
 
-	if (_param_ro_speed_limit.get() < FLT_EPSILON) {
+	if (_param_ro_max_thr_speed.get() < FLT_EPSILON) {
 		ret = false;
-		events::send<float>(events::ID("differential_posVel_control_conf_invalid_speed_lim"), events::Log::Error,
-				    "Invalid configuration of necessary parameter RO_SPEED_LIM", _param_ro_speed_limit.get());
 	}
 
-	if (_param_ro_max_thr_speed.get() < FLT_EPSILON && _param_ro_speed_p.get() < FLT_EPSILON) {
+	if (_param_ro_speed_limit.get() < FLT_EPSILON) {
 		ret = false;
-		events::send<float, float>(events::ID("differential_posVel_control_conf_invalid_speed_control"), events::Log::Error,
-					   "Invalid configuration for speed control: Neither feed forward (RO_MAX_THR_SPEED) nor feedback (RO_SPEED_P) is setup",
-					   _param_ro_max_thr_speed.get(), _param_ro_speed_p.get());
+		events::send<float>(events::ID("ackermann_speed_control_conf_invalid_speed_lim"), events::Log::Error,
+				    "Invalid configuration of necessary parameter RO_SPEED_LIM", _param_ro_speed_limit.get());
+
 	}
 
 	return ret;

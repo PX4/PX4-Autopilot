@@ -199,8 +199,8 @@ subscriptions:
   - topic: /fmu/in/rover_position_setpoint
     type: px4_msgs::msg::RoverPositionSetpoint
 
-  - topic: /fmu/in/rover_velocity_setpoint
-    type: px4_msgs::msg::RoverVelocitySetpoint
+  - topic: /fmu/in/rover_speed_setpoint
+    type: px4_msgs::msg::RoverSpeedSetpoint
 
   - topic: /fmu/in/rover_attitude_setpoint
     type: px4_msgs::msg::RoverAttitudeSetpoint

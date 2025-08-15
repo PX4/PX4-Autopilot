@@ -42,7 +42,7 @@ MecanumManualMode::MecanumManualMode(ModuleParams *parent) : ModuleParams(parent
 	_rover_steering_setpoint_pub.advertise();
 	_rover_rate_setpoint_pub.advertise();
 	_rover_attitude_setpoint_pub.advertise();
-	_rover_velocity_setpoint_pub.advertise();
+	_rover_speed_setpoint_pub.advertise();
 	_rover_position_setpoint_pub.advertise();
 }
 
@@ -160,12 +160,12 @@ void MecanumManualMode::position()
 		_pos_ctl_yaw_setpoint = NAN;
 
 		// Speed control
-		rover_velocity_setpoint_s rover_velocity_setpoint{};
-		rover_velocity_setpoint.timestamp = hrt_absolute_time();
-		rover_velocity_setpoint.speed = velocity_setpoint_ned.norm();
-		rover_velocity_setpoint.bearing = atan2f(velocity_setpoint_ned(1), velocity_setpoint_ned(0));
-		rover_velocity_setpoint.yaw = NAN;
-		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
+		rover_speed_setpoint_s rover_speed_setpoint{};
+		rover_speed_setpoint.timestamp = hrt_absolute_time();
+		rover_speed_setpoint.speed = velocity_setpoint_ned.norm();
+		rover_speed_setpoint.bearing = atan2f(velocity_setpoint_ned(1), velocity_setpoint_ned(0));
+		rover_speed_setpoint.yaw = NAN;
+		_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
 
 		// Rate control
 		rover_rate_setpoint_s rover_rate_setpoint{};

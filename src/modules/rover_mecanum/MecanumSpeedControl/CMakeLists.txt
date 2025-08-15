@@ -31,9 +31,10 @@
 #
 ############################################################################
 
-px4_add_library(DifferentialVelControl
-	DifferentialVelControl.cpp
+px4_add_library(MecanumSpeedControl
+	MecanumSpeedControl.cpp
 )
 
-target_link_libraries(DifferentialVelControl PUBLIC PID)
-target_include_directories(DifferentialVelControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(MecanumSpeedControl PUBLIC PID)
+target_link_libraries(MecanumSpeedControl PUBLIC pure_pursuit)
+target_include_directories(MecanumSpeedControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
