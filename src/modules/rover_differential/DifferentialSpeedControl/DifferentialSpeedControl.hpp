@@ -50,20 +50,11 @@
 #include <uORB/topics/rover_throttle_setpoint.h>
 #include <uORB/topics/rover_speed_status.h>
 #include <uORB/topics/rover_speed_setpoint.h>
-#include <uORB/topics/rover_attitude_setpoint.h>
 #include <uORB/topics/rover_steering_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 
 using namespace matrix;
-
-/**
- * @brief Enum class for the different states of driving.
- */
-enum class DrivingState {
-	SPOT_TURNING, // The vehicle is currently turning on the spot.
-	DRIVING      // The vehicle is currently driving.
-};
 
 /**
  * @brief Class for differential speed control.
@@ -92,7 +83,7 @@ public:
 	/**
 	 * @brief Reset speed controller.
 	 */
-	void reset() {_pid_speed.resetIntegral(); _speed_setpoint = NAN; _bearing_setpoint = NAN; _adjusted_speed_setpoint.setForcedValue(0.f);};
+	void reset() {_pid_speed.resetIntegral(); _speed_setpoint = NAN; _adjusted_speed_setpoint.setForcedValue(0.f);};
 
 protected:
 	/**
@@ -108,10 +99,9 @@ private:
 
 	/**
 	 * @brief Calculate the speed setpoint based on the current state.
-	 * @param max_speed Maximum speed limit [m/s].
 	 * @return Speed setpoint.
 	 */
-	float calcSpeedSetpoint(float max_speed);
+	float calcSpeedSetpoint();
 
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
@@ -121,26 +111,20 @@ private:
 
 	// uORB publications
 	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
-	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
 	uORB::Publication<rover_speed_status_s> _rover_speed_status_pub{ORB_ID(rover_speed_status)};
 
 	// Variables
 	hrt_abstime _timestamp{0};
 	Quatf _vehicle_attitude_quaternion{};
 	float _vehicle_speed{0.f}; // [m/s] Positiv: Forwards, Negativ: Backwards
-	float _vehicle_yaw{0.f};
 	float _speed_setpoint{NAN};
-	float _bearing_setpoint{NAN};
 	float _normalized_speed_diff{NAN};
-	DrivingState _current_state{DrivingState::DRIVING};
 
 	// Controllers
 	PID _pid_speed;
 	SlewRate<float> _adjusted_speed_setpoint;
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RD_TRANS_TRN_DRV>) _param_rd_trans_trn_drv,
-		(ParamFloat<px4::params::RD_TRANS_DRV_TRN>) _param_rd_trans_drv_trn,
 		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
 		(ParamFloat<px4::params::RO_SPEED_P>) 	    _param_ro_speed_p,
 		(ParamFloat<px4::params::RO_SPEED_I>)       _param_ro_speed_i,
@@ -148,7 +132,6 @@ private:
 		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_limit,
 		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_limit,
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
-		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th,
-		(ParamFloat<px4::params::RO_SPEED_RED>)     _param_ro_speed_red
+		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th
 	)
 };
