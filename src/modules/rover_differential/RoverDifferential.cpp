@@ -139,16 +139,16 @@ void RoverDifferential::updateControllers()
 		_differential_pos_control.updatePosControl();
 	}
 
-	if (_vehicle_control_mode.flag_control_velocity_enabled) {
-		_differential_speed_control.updateSpeedControl();
-	}
-
 	if (_vehicle_control_mode.flag_control_attitude_enabled) {
 		_differential_att_control.updateAttControl();
 	}
 
 	if (_vehicle_control_mode.flag_control_rates_enabled) {
 		_differential_rate_control.updateRateControl();
+	}
+
+	if (_vehicle_control_mode.flag_control_velocity_enabled) {
+		_differential_speed_control.updateSpeedControl();
 	}
 
 	if (_vehicle_control_mode.flag_control_allocation_enabled) {
