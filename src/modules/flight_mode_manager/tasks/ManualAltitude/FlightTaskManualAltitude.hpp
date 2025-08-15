@@ -60,6 +60,8 @@ protected:
 	void _ekfResetHandlerHagl(float delta_hagl) override;
 
 	virtual void _updateSetpoints(); /**< updates all setpoints */
+	virtual void _updateYawSetpoint();
+	virtual void _updateXYSetpoint();
 	virtual void _scaleSticks(); /**< scales sticks to velocity in z */
 	bool _checkTakeoff() override;
 	void _updateConstraintsFromEstimator();

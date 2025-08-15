@@ -246,8 +246,6 @@ private:
 
 	// VEHICLE STATES
 
-	uint8_t _nav_state;
-
 	double _current_latitude{0};
 	double _current_longitude{0};
 	float _current_altitude{0.f};

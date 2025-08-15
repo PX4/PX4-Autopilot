@@ -44,6 +44,11 @@ StickTiltXY::StickTiltXY(ModuleParams *parent) :
 	updateParams();
 }
 
+void StickTiltXY::reset()
+{
+	_altitude_cruise_acceleration.setZero();
+}
+
 void StickTiltXY::updateParams()
 {
 	ModuleParams::updateParams();
@@ -61,4 +66,22 @@ Vector2f StickTiltXY::generateAccelerationSetpoints(Vector2f stick_xy, const flo
 	stick_xy = _man_input_filter.update(stick_xy);
 	Sticks::rotateIntoHeadingFrameXY(stick_xy, yaw, yaw_setpoint);
 	return stick_xy * _maximum_acceleration;
+}
+
+Vector2f StickTiltXY::generateAccelerationSetpointsForAltitudeCruise(Vector2f stick_xy, const float dt, const float yaw,
+		const float yaw_setpoint)
+{
+	Sticks::limitStickUnitLengthXY(stick_xy);
+	const Vector2f increment = stick_xy;
+	// at full stick deflection it takes 1s from -tilt_max to tilt_max
+	_altitude_cruise_acceleration += increment * _maximum_acceleration * 2.f * dt;
+
+	if (_altitude_cruise_acceleration.longerThan(_maximum_acceleration)) {
+		_altitude_cruise_acceleration =
+			_altitude_cruise_acceleration.unit_or_zero() * _maximum_acceleration;
+	}
+
+	Vector2f global_altitude_cruise_acceleration = _altitude_cruise_acceleration;
+	Sticks::rotateIntoHeadingFrameXY(global_altitude_cruise_acceleration, yaw, yaw_setpoint);
+	return global_altitude_cruise_acceleration;
 }

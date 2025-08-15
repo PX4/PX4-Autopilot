@@ -41,7 +41,7 @@ set(POSCONTROL_DEPENDENCIES
 	SlewRate
 	tecs
 	motion_planning
-    	performance_model
+	performance_model
 	Sticks
 )
 
