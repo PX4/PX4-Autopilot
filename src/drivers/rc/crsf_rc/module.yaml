@@ -6,6 +6,7 @@ serial_config:
         group: Serial
         #default: RC
         #depends_on_port: RC
+        reboot_required: true
         description_extended: |
             Crossfire RC (CRSF) driver.
 
