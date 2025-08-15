@@ -42,7 +42,9 @@ public:
 	void setRcInMode(int32_t rc_in_mode) { _rc_in_mode = rc_in_mode; }
 	void setTimeout(uint64_t timeout) { _timeout = timeout; }
 	void updateValidityOfChosenInput(uint64_t now);
-	void updateWithNewInputSample(uint64_t now, const manual_control_setpoint_s &input, int instance);
+	void evaluateAndSetBestInput(uint64_t now, const manual_control_setpoint_s inputs[], int input_count);
+	void processInputSample(uint64_t now, const manual_control_setpoint_s &input, int instance);
+	void updateSetpoint(uint64_t now, const manual_control_setpoint_s &input, int instance);
 	manual_control_setpoint_s &setpoint();
 	int instance() const { return _instance; };
 
