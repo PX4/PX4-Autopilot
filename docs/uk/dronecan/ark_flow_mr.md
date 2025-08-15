@@ -110,7 +110,8 @@ You may need to [configure the following parameters](../dronecan/index.md#qgc-ca
 
 ## Значення LED індикаторів
 
-You will see both red and blue LEDs on the ARK Flow MR when it is being flashed, and a solid blue LED if it is running properly.
+- Blinking green is normal operation
+- Rapid blinking blue and red is firmware update
 
 Якщо ви бачите червоний світлодіод, це означає, що виникла помилка, і вам слід перевірити наступне:
 

@@ -20,6 +20,7 @@ The boards in this category are:
 - [CUAV Nora](../flight_controller/cuav_nora.md)（CUAV X7 variant)
 - [CUAV V5+](../flight_controller/cuav_v5_plus.md) (FMUv5)
 - [CUAV V5 nano](../flight_controller/cuav_v5_nano.md) (FMUv5)
+- [CUAV X25 EVO](../flight_controller/cuav_x25-evo.md)
 - [CubePilot Cube Orange+](../flight_controller/cubepilot_cube_orangeplus.md)
 - [CubePilot Cube Orange](../flight_controller/cubepilot_cube_orange.md)
 - [CubePilot Cube Yellow](../flight_controller/cubepilot_cube_yellow.md)

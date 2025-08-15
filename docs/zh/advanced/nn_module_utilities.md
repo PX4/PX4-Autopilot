@@ -1,6 +1,6 @@
 # Neural Network Module: System Integration
 
-The neural control module ([mc_nn_control](../modules/modules_controller.md#mc_nn_control)) implements an end-to-end controller utilizing neural networks.
+The neural control module ([mc_nn_control](../modules/modules_controller.md#mc-nn-control)) implements an end-to-end controller utilizing neural networks.
 
 The parts of the module directly concerned with generating the code for the trained neural network and integrating it into the module are covered in [TensorFlow Lite Micro (TFLM)](../advanced/tflm.md).
 This page covers the changes that were made to integrate the module into PX4, both within the module, and in larger system configuration.
@@ -14,7 +14,7 @@ For more information see the developer [Getting Started](../dev_setup/getting_st
 
 ## Autostart
 
-A line to autostart the [mc_nn_control](../modules/modules_controller.md#mc_nn_control) module has been added in the [`ROMFS/px4fmu_common/init.d/rc.mc_apps`](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/rc.mc_apps) startup script.
+A line to autostart the [mc_nn_control](../modules/modules_controller.md#mc-nn-control) module has been added in the [`ROMFS/px4fmu_common/init.d/rc.mc_apps`](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/rc.mc_apps) startup script.
 
 It checks whether the module is included by looking for the parameter [MC_NN_EN](../advanced_config/parameter_reference.md#MC_NN_EN).
 If this is set to `1` (the default value), the module will be started when booting PX4.

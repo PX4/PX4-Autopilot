@@ -1166,6 +1166,30 @@ rgbled <command> [arguments...]
    status        print status info
 ```
 
+## rgbled_aw2023
+
+Source: [drivers/lights/rgbled_aw2023](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_aw2023)
+
+### Usage {#rgbled_aw2023_usage}
+
+```
+rgbled_aw2023 <command> [arguments...]
+ Commands:
+   start
+     [-I]        Internal I2C bus(es)
+     [-X]        External I2C bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-a <val>]  I2C address
+                 default: 69
+
+   stop
+
+   status        print status info
+```
+
 ## rgbled_is31fl3195
 
 Source: [drivers/lights/rgbled_is31fl3195](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_is31fl3195)

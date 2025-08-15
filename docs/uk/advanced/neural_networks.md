@@ -7,7 +7,7 @@ This is an experimental module.
 Use at your own risk.
 :::
 
-The Multicopter Neural Network (NN) module  ([mc_nn_control](../modules/modules_controller.md#mc_nn_control)) is an example module that allows you to experiment with using a pre-trained neural network on PX4.
+The Multicopter Neural Network (NN) module ([mc_nn_control](../modules/modules_controller.md#mc-nn-control)) is an example module that allows you to experiment with using a pre-trained neural network on PX4.
 It might be used, for example, to experiment with controllers for non-traditional drone morphologies, computer vision tasks, and so on.
 
 The module integrates a pre-trained neural network based on the [TensorFlow Lite Micro (TFLM)](../advanced/tflm.md) module.

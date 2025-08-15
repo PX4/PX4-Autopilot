@@ -89,7 +89,8 @@ This is done using the the parameters named like `UAVCAN_SUB_*` in the parameter
 
 ## Значення LED індикаторів
 
-Ви побачите як червоні, так і сині світлодіоди на ARK CANnode, коли він прошивається, і сталий синій світлодіод, якщо він працює належним чином.
+- Blinking green is normal operation
+- Rapid blinking blue and red is firmware update
 
 Якщо ви бачите червоний світлодіод, це означає, що виникла помилка, і вам слід перевірити наступне:
 

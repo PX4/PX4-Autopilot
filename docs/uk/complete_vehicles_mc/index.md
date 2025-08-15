@@ -13,7 +13,7 @@
 Вони можуть бути як повністю зібраними, так і у частинах.
 
 - [PX4 Vision DevKit](../complete_vehicles_mc/px4_vision_kit.md) - Мультикоптер, що використовується для розробки комп'ютерного зору PX4
-- ~[ModalAI VOXL 2 Starling PX4 Development Drone](../complete_vehicles_mc/modalai_starling.md)~ (Discontinued/superseded) - SLAM development drone supercharged by VOXL 2 and PX4.
+- [ModalAI VOXL 2 Starling PX4 Development Drone](../complete_vehicles_mc/modalai_starling.md) - SLAM development drone supercharged by VOXL 2 and PX4.
 
 ## Попередньо встановлене PX4
 

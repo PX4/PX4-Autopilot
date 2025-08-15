@@ -51,6 +51,37 @@
 PARAM_DEFINE_FLOAT(RO_YAW_STICK_DZ, 0.1f);
 
 /**
+ * Yaw rate expo factor
+ *
+ * Exponential factor for tuning the input curve shape.
+ *
+ * 0 Purely linear input curve
+ * 1 Purely cubic input curve
+ *
+ * @min 0
+ * @max 1
+ * @decimal 2
+ * @group Rover Rate Control
+ */
+PARAM_DEFINE_FLOAT(RO_YAW_EXPO, 0.f);
+
+/**
+ * Yaw rate super expo factor
+ *
+ * "Superexponential" factor for refining the input curve shape tuned using RO_YAW_EXPO.
+ *
+ * 0 Pure Expo function
+ * 0.7 reasonable shape enhancement for intuitive stick feel
+ * 0.95 very strong bent input curve only near maxima have effect
+ *
+ * @min 0
+ * @max 0.95
+ * @decimal 2
+ * @group Rover Rate Control
+ */
+PARAM_DEFINE_FLOAT(RO_YAW_SUPEXPO, 0.f);
+
+/**
  * Yaw rate measurement threshold
  *
  * The minimum threshold for the yaw rate measurement not to be interpreted as zero.

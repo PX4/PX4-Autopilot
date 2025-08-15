@@ -1,0 +1,317 @@
+#
+# Work Queue Configuration
+#
+
+menu "Work Queue Configuration"
+
+config WQ_RATE_CTRL_STACKSIZE
+	int "Stack size for wq:rate_ctrl"
+	default 3150
+	range 1000 10000
+	help
+	  Sets the stack size in bytes for the rate_ctrl work queue.
+
+config WQ_RATE_CTRL_PRIORITY
+	int "Relative priority for wq:rate_ctrl"
+	default 0
+	range -255 0
+	help
+	  Sets the relative priority for the rate_ctrl work queue.
+
+menu "SPI Bus Work Queues"
+
+config WQ_SPI_STACKSIZE
+	int "Stack size for SPI work queues"
+	default 2392
+	range 1000 10000
+	help
+	  Sets the stack size for all SPI work queues (SPI0-SPI6).
+
+config WQ_SPI0_PRIORITY
+	int "Relative priority for wq:SPI0"
+	default -1
+	range -255 0
+	help
+	  Sets the relative priority for the SPI0 work queue.
+
+config WQ_SPI1_PRIORITY
+	int "Relative priority for wq:SPI1"
+	default -2
+	range -255 0
+	help
+	  Sets the relative priority for the SPI1 work queue.
+
+config WQ_SPI2_PRIORITY
+	int "Relative priority for wq:SPI2"
+	default -3
+	range -255 0
+	help
+	  Sets the relative priority for the SPI2 work queue.
+
+config WQ_SPI3_PRIORITY
+	int "Relative priority for wq:SPI3"
+	default -4
+	range -255 0
+	help
+	  Sets the relative priority for the SPI3 work queue.
+
+config WQ_SPI4_PRIORITY
+	int "Relative priority for wq:SPI4"
+	default -5
+	range -255 0
+	help
+	  Sets the relative priority for the SPI4 work queue.
+
+config WQ_SPI5_PRIORITY
+	int "Relative priority for wq:SPI5"
+	default -6
+	range -255 0
+	help
+	  Sets the relative priority for the SPI5 work queue.
+
+config WQ_SPI6_PRIORITY
+	int "Relative priority for wq:SPI6"
+	default -7
+	range -255 0
+	help
+	  Sets the relative priority for the SPI6 work queue.
+
+endmenu # SPI Bus Work Queues
+
+menu "I2C Bus Work Queues"
+
+config WQ_I2C_STACKSIZE
+	int "Stack size for I2C work queues"
+	default 2336
+	range 1000 10000
+	help
+	  Sets the stack size for all I2C work queues (I2C0-I2C4).
+
+config WQ_I2C0_PRIORITY
+	int "Relative priority for wq:I2C0"
+	default -8
+	range -255 0
+	help
+	  Sets the relative priority for the I2C0 work queue.
+
+config WQ_I2C1_PRIORITY
+	int "Relative priority for wq:I2C1"
+	default -9
+	range -255 0
+	help
+	  Sets the relative priority for the I2C1 work queue.
+
+config WQ_I2C2_PRIORITY
+	int "Relative priority for wq:I2C2"
+	default -10
+	range -255 0
+	help
+	  Sets the relative priority for the I2C2 work queue.
+
+config WQ_I2C3_PRIORITY
+	int "Relative priority for wq:I2C3"
+	default -11
+	range -255 0
+	help
+	  Sets the relative priority for the I2C3 work queue.
+
+config WQ_I2C4_PRIORITY
+	int "Relative priority for wq:I2C4"
+	default -12
+	range -255 0
+	help
+	  Sets the relative priority for the I2C4 work queue.
+
+endmenu # I2C Bus Work Queues
+
+config WQ_NAV_AND_CONTROLLERS_STACKSIZE
+	int "Stack size for nav_and_controllers"
+	default 2240
+	range 1000 10000
+	help
+	  Sets the stack size for the nav_and_controllers work queue.
+
+config WQ_NAV_AND_CONTROLLERS_PRIORITY
+	int "Relative priority for nav_and_controllers"
+	default -13
+	range -255 0
+	help
+	  Sets the relative priority for the nav_and_controllers work queue.
+
+menu "INS Work Queues"
+
+config WQ_INS_STACKSIZE
+	int "Stack size for INS work queues"
+	default 6000
+	range 1000 10000
+	help
+	  Sets the stack size for all INS work queues (INS0-INS3).
+
+config WQ_INS0_PRIORITY
+	int "Relative priority for wq:INS0"
+	default -14
+	range -255 0
+	help
+	  Sets the relative priority for the INS0 work queue.
+
+config WQ_INS1_PRIORITY
+	int "Relative priority for wq:INS1"
+	default -15
+	range -255 0
+	help
+	  Sets the relative priority for the INS1 work queue.
+
+config WQ_INS2_PRIORITY
+	int "Relative priority for wq:INS2"
+	default -16
+	range -255 0
+	help
+	  Sets the relative priority for the INS2 work queue.
+
+config WQ_INS3_PRIORITY
+	int "Relative priority for wq:INS3"
+	default -17
+	range -255 0
+	help
+	  Sets the relative priority for the INS3 work queue.
+
+endmenu # INS Work Queues
+
+config WQ_HP_DEFAULT_STACKSIZE
+	int "Stack size for hp_default"
+	default 2800
+	range 1000 10000
+	help
+	  Sets the stack size for the hp_default work queue.
+
+config WQ_HP_DEFAULT_PRIORITY
+	int "Relative priority for hp_default"
+	default -18
+	range -255 0
+	help
+	  Sets the relative priority for the hp_default work queue.
+
+config WQ_UAVCAN_STACKSIZE
+	int "Stack size for uavcan"
+	default 3624
+	range 1000 10000
+	help
+	  Sets the stack size for the uavcan work queue.
+
+config WQ_UAVCAN_PRIORITY
+	int "Relative priority for wq:uavcan"
+	default -19
+	range -255 0
+	help
+	  Sets the relative priority for the uavcan work queue.
+
+menu "TTY Bus Work Queues"
+
+config WQ_TTY_STACKSIZE
+	int "Stack size for TTY work queues"
+	default 1728
+	range 1000 10000
+	help
+	  Sets the stack size for all TTY work queues.
+
+config WQ_TTY_S0_PRIORITY
+	int "Relative priority for wq:ttyS0"
+	default -21
+	range -255 0
+	help
+	  Sets the relative priority for the ttyS0 work queue.
+
+config WQ_TTY_S1_PRIORITY
+	int "Relative priority for wq:ttyS1"
+	default -22
+	range -255 0
+	help
+	  Sets the relative priority for the ttyS1 work queue.
+
+config WQ_TTY_S2_PRIORITY
+	int "Relative priority for wq:ttyS2"
+	default -23
+	range -255 0
+	help
+	  Sets the relative priority for the ttyS2 work queue.
+
+config WQ_TTY_S3_PRIORITY
+	int "Relative priority for wq:ttyS3"
+	default -24
+	range -255 0
+	help
+	  Sets the relative priority for the ttyS3 work queue.
+
+config WQ_TTY_S4_PRIORITY
+	int "Relative priority for wq:ttyS4"
+	default -25
+	range -255 0
+	help
+	  Sets the relative priority for the ttyS4 work queue.
+
+config WQ_TTY_S5_PRIORITY
+	int "Relative priority for wq:ttyS5"
+	default -26
+	range -255 0
+	help
+	  Sets the relative priority for the ttyS5 work queue.
+
+config WQ_TTY_S6_PRIORITY
+	int "Relative priority for wq:ttyS6"
+	default -27
+	range -255 0
+	help
+	  Sets the relative priority for the ttyS6 work queue.
+
+config WQ_TTY_S7_PRIORITY
+	int "Relative priority for wq:ttyS7"
+	default -28
+	range -255 0
+	help
+	  Sets the relative priority for the ttyS7 work queue.
+
+config WQ_TTY_S8_PRIORITY
+	int "Relative priority for wq:ttyS8"
+	default -29
+	range -255 0
+	help
+	  Sets the relative priority for the ttyS8 work queue.
+
+config WQ_TTY_S9_PRIORITY
+	int "Relative priority for wq:ttyS9"
+	default -30
+	range -255 0
+	help
+	  Sets the relative priority for the ttyS9 work queue.
+
+config WQ_TTY_ACM0_PRIORITY
+	int "Relative priority for wq:ttyACM0"
+	default -31
+	range -255 0
+	help
+	  Sets the relative priority for the ttyACM0 work queue.
+
+config WQ_TTY_UNKNOWN_PRIORITY
+	int "Relative priority for wq:ttyUnknown"
+	default -32
+	range -255 0
+	help
+	  Sets the relative priority for the ttyUnknown work queue.
+
+endmenu # TTY Bus Work Queues
+
+config WQ_LP_DEFAULT_STACKSIZE
+	int "Stack size for lp_default"
+	default 3500
+	range 1000 10000
+	help
+	  Sets the stack size for the lp_default work queue.
+
+config WQ_LP_DEFAULT_PRIORITY
+	int "Relative priority for wq:lp_default"
+	default -50
+	range -255 0
+	help
+	  Sets the relative priority for the lp_default work queue.
+
+endmenu # Work Queue Configuration

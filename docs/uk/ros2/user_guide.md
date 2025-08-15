@@ -724,7 +724,7 @@ Note that all the messages from PX4 source code are present in the repository, b
 
   ```sh
   rm ~/ros2_ws/src/px4_msgs/msg/*.msg
-  cp ~/PX4-Autopilot/mgs/*.msg ~/ros2_ws/src/px4_msgs/msg/
+  cp ~/PX4-Autopilot/msg/*.msg ~/ros2_ws/src/px4_msgs/msg/
   ```
 
   ::: info
