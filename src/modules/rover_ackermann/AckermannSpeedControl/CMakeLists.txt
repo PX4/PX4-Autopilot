@@ -31,9 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(AckermannVelControl
-	AckermannVelControl.cpp
+px4_add_library(AckermannSpeedControl
+	AckermannSpeedControl.cpp
 )
 
-target_link_libraries(AckermannVelControl PUBLIC PID)
-target_include_directories(AckermannVelControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(AckermannSpeedControl PUBLIC PID)
+target_include_directories(AckermannSpeedControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

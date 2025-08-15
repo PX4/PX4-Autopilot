@@ -46,7 +46,7 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_velocity_setpoint.h>
+#include <uORB/topics/rover_speed_setpoint.h>
 #include <uORB/topics/pure_pursuit_status.h>
 #include <uORB/topics/rover_position_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -97,7 +97,7 @@ private:
 	rover_position_setpoint_s _rover_position_setpoint{};
 
 	// uORB publications
-	uORB::Publication<rover_velocity_setpoint_s> _rover_velocity_setpoint_pub{ORB_ID(rover_velocity_setpoint)};
+	uORB::Publication<rover_speed_setpoint_s> _rover_speed_setpoint_pub{ORB_ID(rover_speed_setpoint)};
 	uORB::Publication<pure_pursuit_status_s>     _pure_pursuit_status_pub{ORB_ID(pure_pursuit_status)};
 
 	// Variables

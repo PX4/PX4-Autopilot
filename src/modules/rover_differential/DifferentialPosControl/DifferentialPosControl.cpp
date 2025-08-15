@@ -38,7 +38,7 @@ using namespace time_literals;
 DifferentialPosControl::DifferentialPosControl(ModuleParams *parent) : ModuleParams(parent)
 {
 	_pure_pursuit_status_pub.advertise();
-	_rover_velocity_setpoint_pub.advertise();
+	_rover_speed_setpoint_pub.advertise();
 
 	updateParams();
 }
@@ -81,19 +81,19 @@ void DifferentialPosControl::updatePosControl()
 						   _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _start_ned,
 						   _curr_pos_ned, fabsf(speed_setpoint));
 			_pure_pursuit_status_pub.publish(pure_pursuit_status);
-			rover_velocity_setpoint_s rover_velocity_setpoint{};
-			rover_velocity_setpoint.timestamp = timestamp;
-			rover_velocity_setpoint.speed = speed_setpoint;
-			rover_velocity_setpoint.bearing = speed_setpoint > -FLT_EPSILON ? yaw_setpoint : matrix::wrap_pi(
-					yaw_setpoint + M_PI_F);
-			_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
+			rover_speed_setpoint_s rover_speed_setpoint{};
+			rover_speed_setpoint.timestamp = timestamp;
+			rover_speed_setpoint.speed = speed_setpoint;
+			rover_speed_setpoint.bearing = speed_setpoint > -FLT_EPSILON ? yaw_setpoint : matrix::wrap_pi(
+							       yaw_setpoint + M_PI_F);
+			_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
 
 		}  else {
-			rover_velocity_setpoint_s rover_velocity_setpoint{};
-			rover_velocity_setpoint.timestamp = timestamp;
-			rover_velocity_setpoint.speed = 0.f;
-			rover_velocity_setpoint.bearing = _vehicle_yaw;
-			_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
+			rover_speed_setpoint_s rover_speed_setpoint{};
+			rover_speed_setpoint.timestamp = timestamp;
+			rover_speed_setpoint.speed = 0.f;
+			rover_speed_setpoint.bearing = _vehicle_yaw;
+			_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
 		}
 	}
 
