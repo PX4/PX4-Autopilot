@@ -34,9 +34,7 @@
 #pragma once
 
 #include "ESCSettingsInterface.h"
-#include "DShotCommon.h"
-#include <px4_platform_common/log.h>
-#include <stdio.h>
+#include <px4_platform_common/param.h>
 
 class AM32Settings : public ESCSettingsInterface
 {
@@ -94,49 +92,12 @@ public:
 
 	~AM32Settings() override = default;
 
-	void initParams(uint8_t motor_index) override
-	{
-		_param_pole_count = param_find_no_notification("AM32_POLE_COUNT");
-	}
+	void initParams(uint8_t motor_index) override;
+	int getExpectedResponseSize() override;
 
-	int getExpectedResponseSize() override
-	{
-		return RESPONSE_SIZE;
-	}
-
-	bool decodeInfoResponse(const uint8_t *buf, int size) override
-	{
-		if (size != RESPONSE_SIZE) {
-			return false;
-		}
-
-		uint8_t checksum = crc8(buf, EEPROM_SIZE);
-		uint8_t checksum_data = buf[EEPROM_SIZE];
-
-		if (checksum == checksum_data) {
-
-			DSHOT_CMD_DEBUG("Successfully received AM32 settings!");
-			// auto now  = hrt_absolute_time();
-
-			// We need to use
-			// - _command_response_motor_index;
-
-			// TODO
-			// Iterate over each setting and write to our parameters
-
-			// for (int j = 0; j < EEPROM_SIZE; j++) {
-			// 	DSHOT_CMD_DEBUG("%d", buf[j]);
-			// }
-
-		} else {
-			PX4_WARN("Command Response checksum failed!");
-		}
-
-		return true;
-	}
+	bool decodeInfoResponse(const uint8_t *buf, int size) override;
 
 private:
-	// TODO: make static
-	// Parameters
-	param_t _param_pole_count{PARAM_INVALID};
+	static param_t _param_pole_count;
+	static param_t _param_beep_volum;
 };
