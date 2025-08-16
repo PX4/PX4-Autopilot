@@ -183,13 +183,15 @@ void DShot::Run()
 	// - not waiting for command response
 	if (!_current_command.valid() && _telemetry.telemetryRequestFinished() && !_telemetry.expectingCommandResponse()) {
 
-		// EDT Request
+		bool ser_tel_enabled = _param_dshot_tel_cfg.get();
 		bool bidir_enabled = _param_dshot_bidir_en.get();
 		bool edt_enabled = _param_dshot_bidir_edt.get();
+		bool esc_type_set = _param_dshot_esc_type.get();
+
+		// EDT Request
 		uint8_t needs_edt_request_mask = _bdshot_telem_online_mask & ~_bdshot_edt_requested_mask;
 
 		// Settings Request
-		bool ser_tel_enabled = _param_dshot_tel_cfg.get();
 		uint8_t needs_settings_request_mask = _serial_telem_online_mask & ~_settings_requested_mask;
 
 		// EDT Request first
@@ -216,7 +218,7 @@ void DShot::Run()
 
 			// Settings Request next
 
-		} else if (ser_tel_enabled && needs_settings_request_mask) {
+		} else if (ser_tel_enabled && esc_type_set && needs_settings_request_mask) {
 			int next_motor_index = 0;
 
 			for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
@@ -252,6 +254,16 @@ void DShot::Run()
 
 			if (_telemetry.parseCommandResponse()) {
 				DSHOT_CMD_DEBUG("Command response received");
+				// _current_command.command
+				if (_current_command.command == DSHOT_CMD_ESC_INFO) {
+					DSHOT_CMD_DEBUG("gotta update AM32 params from Motor1");
+					DSHOT_CMD_DEBUG("gotta flag esc(s) to write mistmatched params to");
+
+					// ESC_INFO:
+					// - Iterate over AM32_ parameters and set values if they are -1 (from Motor1)
+					// - Iterate over AM32_ parameters and write values to ESC(s) if they don't match (will update all to match Motor1)
+					//
+				}
 			}
 
 		} else {
@@ -277,7 +289,7 @@ void DShot::Run()
 
 			case TelemetryStatus::Timeout:
 				// Set ESC data to zeroes
-				DSHOT_TELEM_DEBUG("Timeout");
+				// DSHOT_TELEM_DEBUG("Timeout");
 				_serial_telem_errors[_telemetry_motor_index]++;
 				_serial_telem_online_mask &= ~(1 << _telemetry_motor_index);
 				// Consume an empty EscData to zero the data
@@ -858,6 +870,10 @@ void DShot::init_telemetry(const char *device, bool swap_rxtx)
 		PX4_ERR("telemetry init failed");
 	}
 
+	// Initialize ESC settings handlers based on ESC type
+	ESCType esc_type = static_cast<ESCType>(_param_dshot_esc_type.get());
+	_telemetry.initSettingsHandlers(esc_type, _output_mask);
+
 	// Advertise early to ensure we beat uavcan. We need to enforce ordering somehow.
 	_esc_status_pub.advertise();
 }
@@ -994,4 +1010,3 @@ extern "C" __EXPORT int dshot_main(int argc, char *argv[])
 {
 	return DShot::main(argc, argv);
 }
-

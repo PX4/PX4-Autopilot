@@ -8,6 +8,15 @@ serial_config:
 parameters:
     - group: DShot
       definitions:
+        DSHOT_ESC_TYPE:
+          description:
+            short: ESC Type
+            long: The ESC firmware type
+          type: enum
+          values:
+            0: Unknown
+            1: AM32
+            2: TODO Check Ardupilot
         DSHOT_MIN:
             description:
                 short: Minimum DShot Motor Output

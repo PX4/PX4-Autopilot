@@ -36,6 +36,7 @@
 #include <px4_platform_common/Serial.hpp>
 #include <uORB/Publication.hpp>
 #include "DShotCommon.h"
+#include "AM32Settings.h"
 
 class DShotTelemetry
 {
@@ -55,10 +56,10 @@ public:
 	// Attempt to parse a command response.
 	// Returns TODO
 	bool parseCommandResponse();
-
 	bool expectingCommandResponse();
-
 	void setExpectCommandResponse(int motor_index, uint16_t command);
+
+	void initSettingsHandlers(ESCType esc_type, uint8_t output_mask);
 
 	void flush();
 
@@ -69,13 +70,6 @@ private:
 
 	TelemetryStatus decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data);
 
-	bool parseSettingsRequestResponse(uint8_t *buf, int size);
-
-	// Decodes success_size bytes and returns true if all were received
-	bool decodeCommandResponseByte(uint8_t byte, int success_size);
-
-	static uint8_t crc8(const uint8_t *buf, uint8_t len);
-
 	bool _enabled{false};
 	device::Serial _uart{};
 
@@ -85,7 +79,6 @@ private:
 	uint8_t _command_response_buffer[COMMAND_RESPONSE_MAX_SIZE];
 	int _command_response_position{0};
 	hrt_abstime _command_response_start{0};
-	int _recv_bytes{0};
 
 	// Telemetry packet
 	EscData _latest_data{};
@@ -98,19 +91,8 @@ private:
 	int _num_successful_responses{0};
 	int _num_checksum_errors{0};
 
-	// TODO Claude:
-
-	// We need to add params for each of the AM32 settings from the eeprom (called air_starteeprom in am32 code).
-	// We will want to track these settings and their address index to some kinda of array of parameters per motor index (which we map back to motor number in the name).
-	// The param names will have a number 1-8 depending on which ESC they're associated with. We only instantiate the parameter groups when
-	// we have determined our ESC count, this should happen early though as not to allocate memory during flight. When we receive a valid settings
-	// request response we should fill out our parameters with their values.
-
-	// So for an example of some parameters -- the name must be 15 chars or less:
-	// motor poles = AM32_1_MOT_POLE
-	// brake on stop = AM32_1_BRK_STOP
-	// drag break = AM32_1_DRAG_BRK
-	// etc...
-
-
+	// Settings
+	ESCSettingsInterface *_settings_handlers[DSHOT_MAXIMUM_CHANNELS] = {nullptr};
+	ESCType _esc_type{ESCType::Unknown};
+	bool _settings_initialized{false};
 };

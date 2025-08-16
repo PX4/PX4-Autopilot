@@ -32,9 +32,14 @@
 ############################################################################
 
 set(PARAM_PREFIX PWM_MAIN)
+set(DSHOT_MODULE_PARAMS)
 
 if(CONFIG_BOARD_IO)
 	set(PARAM_PREFIX PWM_AUX)
+endif()
+
+if(CONFIG_DSHOT_AM32_PROG)
+	list(APPEND DSHOT_MODULE_PARAMS am32.yaml)
 endif()
 
 px4_add_module(
@@ -53,4 +58,5 @@ px4_add_module(
 		mixer_module
 	MODULE_CONFIG
 		module.yaml
+		${DSHOT_MODULE_PARAMS}
 	)
