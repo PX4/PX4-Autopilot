@@ -33,82 +33,21 @@
 
 #pragma once
 
-#include <drivers/drv_hrt.h>
-#include <uORB/topics/esc_status.h>
+#include <stdint.h>
+#include <px4_platform_common/param.h>
 
-#define DSHOT_DEBUG_COMMANDS    1  // Command handling debug output
-#define DSHOT_DEBUG_TELEMETRY   1  // Telemetry parsing and processing
-
-// Command debug macro
-#if DSHOT_DEBUG_COMMANDS
-#define DSHOT_CMD_DEBUG(fmt, ...) PX4_INFO("[CMD] " fmt, ##__VA_ARGS__)
-#else
-#define DSHOT_CMD_DEBUG(fmt, ...) do { } while(0)
-#endif
-
-// Telemetry debug macro
-#if DSHOT_DEBUG_TELEMETRY
-#define DSHOT_TELEM_DEBUG(fmt, ...) PX4_INFO("[TELEM] " fmt, ##__VA_ARGS__)
-#else
-#define DSHOT_TELEM_DEBUG(fmt, ...) do { } while(0)
-#endif
-
-static constexpr int DSHOT_MAXIMUM_CHANNELS = esc_status_s::CONNECTED_ESC_MAX;
-
-enum class TelemetrySource {
-	Serial = 0,
-	BDShot = 1,
+enum class ESCType : uint8_t {
+	Unknown = 0,
+	AM32 = 1,
 };
 
-struct EscData {
-	int motor_index;       // Motors 0-7
-	hrt_abstime timestamp; // Sample time
-	TelemetrySource source;
-
-	int8_t temperature;    // [deg C]
-	int16_t voltage;       // [0.01V]
-	int16_t current;       // [0.01A]
-	int16_t consumption;   // [mAh]
-	int16_t erpm;          // [100ERPM]
-};
-
-enum class TelemetryStatus {
-	NotStarted = 0,
-	NotReady = 1,
-	Ready = 2,
-	Timeout = 3,
-	ParseError = 4,
-};
-
-inline int count_set_bits(int mask)
+class ESCSettingsInterface
 {
-	int count = 0;
+public:
+	virtual ~ESCSettingsInterface() = default;
 
-	while (mask) {
-		mask &= mask - 1;
-		count++;
-	}
+	virtual void initParams(uint8_t motor_index) = 0;
+	virtual bool decodeInfoResponse(const uint8_t *buf, int size) = 0;
+	virtual int getExpectedResponseSize() = 0;
+};
 
-	return count;
-}
-
-inline uint8_t crc8(const uint8_t *buf, unsigned len)
-{
-	auto update_crc8 = [](uint8_t crc, uint8_t crc_seed) {
-		uint8_t crc_u = crc ^ crc_seed;
-
-		for (unsigned i = 0; i < 8; ++i) {
-			crc_u = (crc_u & 0x80) ? 0x7 ^ (crc_u << 1) : (crc_u << 1);
-		}
-
-		return crc_u;
-	};
-
-	uint8_t crc = 0;
-
-	for (unsigned i = 0; i < len; ++i) {
-		crc = update_crc8(buf[i], crc);
-	}
-
-	return crc;
-}

@@ -3,3 +3,10 @@ menuconfig DRIVERS_DSHOT
 	default n
 	---help---
 		Enable support for dshot
+
+menuconfig DSHOT_AM32_PROG
+depends on DRIVERS_DSHOT
+	bool "AM32 programming mode support"
+	default y
+	---help---
+		AM32 programming mode support.

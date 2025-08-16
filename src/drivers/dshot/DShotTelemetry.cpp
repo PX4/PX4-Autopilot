@@ -48,6 +48,14 @@ using namespace time_literals;
 DShotTelemetry::~DShotTelemetry()
 {
 	_uart.close();
+
+	// Clean up settings handlers
+	for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+		if (_settings_handlers[i]) {
+			delete _settings_handlers[i];
+			_settings_handlers[i] = nullptr;
+		}
+	}
 }
 
 int DShotTelemetry::init(const char *port, bool swap_rxtx)
@@ -79,13 +87,52 @@ int DShotTelemetry::init(const char *port, bool swap_rxtx)
 	return PX4_OK;
 }
 
+void DShotTelemetry::initSettingsHandlers(ESCType esc_type, uint8_t output_mask)
+{
+	if (_settings_initialized) {
+		return;
+	}
+
+	_esc_type = esc_type;
+
+	for (uint8_t i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+
+		bool output_enabled = (1 << i) & output_mask;
+
+		if (!output_enabled) {
+			continue;
+		}
+
+		ESCSettingsInterface *interface = nullptr;
+
+		switch (esc_type) {
+		case ESCType::AM32:
+			interface = new AM32Settings();
+			break;
+
+		default:
+			PX4_WARN("Unsupported ESC type for settings: %d", (int)esc_type);
+			break;
+		}
+
+		if (interface) {
+			_settings_handlers[i] = interface;
+			// TODO: do it in the CTOR
+			_settings_handlers[i]->initParams(i);
+			DSHOT_CMD_DEBUG("Initialized settings handler for motor %d", i);
+		}
+	}
+
+	_settings_initialized = true;
+}
+
 bool DShotTelemetry::parseCommandResponse()
 {
 	if (hrt_elapsed_time(&_command_response_start) > 1_s) {
-		PX4_WARN("Command response timed out: %d bytes received", _recv_bytes);
+		PX4_WARN("Command response timed out: %d bytes received", _command_response_position);
 		_command_response_motor_index = -1;
 		_command_response_start = 0;
-		_recv_bytes = 0;
+		_command_response_position = 0;
 		return false;
 	}
 
@@ -96,67 +143,32 @@ bool DShotTelemetry::parseCommandResponse()
 	uint8_t buf[COMMAND_RESPONSE_MAX_SIZE];
 	int bytes = _uart.read(buf, sizeof(buf));
 
-	_recv_bytes += bytes;
+	// Add bytes to buffer
+	for (int i = 0; i < bytes; i++) {
+		_command_response_buffer[_command_response_position++] = buf[i];
+	}
 
-	// TODO: any way to determine response type?
+	bool success = false;
+
 	switch (_command_response_command) {
 	case DSHOT_CMD_ESC_INFO: {
-			if (parseSettingsRequestResponse(buf, bytes)) {
-				_recv_bytes = 0;
-				return true;
+			auto handler = _settings_handlers[_command_response_motor_index];
+
+			if (handler && _command_response_position == handler->getExpectedResponseSize()) {
+				success = handler->decodeInfoResponse(_command_response_buffer, _command_response_position);
+				_command_response_position = 0;
+				_command_response_start = 0;
+				_command_response_motor_index = -1;
 			}
 
 			break;
-
-		default:
-			break;
 		}
+
+	default:
+		break;
 	}
 
-	return false;
-}
-
-bool DShotTelemetry::parseSettingsRequestResponse(uint8_t *buf, int size)
-{
-	for (int i = 0; i < size; i++) {
-		_command_response_buffer[_command_response_position++] = buf[i];
-
-		// Check if we've received all the bytes
-		if (_command_response_position == COMMAND_RESPONSE_SETTINGS_SIZE) {
-
-			// Successfuly read the bytes we want -- set to finished
-			uint8_t data_length = COMMAND_RESPONSE_SETTINGS_SIZE - 1;
-			uint8_t checksum = crc8(_command_response_buffer, data_length);
-			uint8_t checksum_data = _command_response_buffer[data_length];
-
-			if (checksum == checksum_data) {
-
-
-				DSHOT_CMD_DEBUG("Successfully received settings!");
-				// auto now  = hrt_absolute_time();
-
-				// We need to use
-				// - _command_response_motor_index;
-
-				// TODO
-				// Iterate over each setting and write to our parameters
-
-				for (int j = 0; j < data_length; j++) {
-					DSHOT_CMD_DEBUG("%d", _command_response_buffer[j]);
-				}
-
-			} else {
-				PX4_WARN("Command Response checksum failed!");
-			}
-
-			_command_response_position = 0;
-			_command_response_start = 0;
-			_command_response_motor_index = -1;
-			return true;
-		}
-	}
-
-	return false;
+	return success;
 }
 
 TelemetryStatus DShotTelemetry::parseTelemetryPacket(EscData *esc_data)
@@ -262,27 +274,6 @@ void DShotTelemetry::startTelemetryRequest()
 bool DShotTelemetry::telemetryRequestFinished()
 {
 	return _telemetry_request_start == 0;
-}
-
-uint8_t DShotTelemetry::crc8(const uint8_t *buf, uint8_t len)
-{
-	auto update_crc8 = [](uint8_t crc, uint8_t crc_seed) {
-		uint8_t crc_u = crc ^ crc_seed;
-
-		for (int i = 0; i < 8; ++i) {
-			crc_u = (crc_u & 0x80) ? 0x7 ^ (crc_u << 1) : (crc_u << 1);
-		}
-
-		return crc_u;
-	};
-
-	uint8_t crc = 0;
-
-	for (int i = 0; i < len; ++i) {
-		crc = update_crc8(buf[i], crc);
-	}
-
-	return crc;
 }
 
 void DShotTelemetry::printStatus() const

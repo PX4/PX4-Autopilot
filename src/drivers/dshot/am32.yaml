@@ -1,0 +1,10 @@
+module_name: DShot Driver
+parameters:
+    - group: AM32
+      definitions:
+        AM32_POLE_COUNT:
+            description:
+                short: Motor pole count
+            type: int32
+            increment: 1
+            default: -1

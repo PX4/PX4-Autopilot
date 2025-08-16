@@ -36,7 +36,6 @@
 #include <lib/mixer_module/mixer_module.hpp>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
-#include <uORB/topics/esc_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
@@ -48,8 +47,6 @@ using namespace time_literals;
 #if !defined(DIRECT_PWM_OUTPUT_CHANNELS)
 #  error "board_config.h needs to define DIRECT_PWM_OUTPUT_CHANNELS"
 #endif
-
-static constexpr int DSHOT_MAXIMUM_CHANNELS = esc_status_s::CONNECTED_ESC_MAX;
 
 static constexpr hrt_abstime ESC_INIT_TELEM_WAIT_TIME = 3_s;
 
@@ -203,6 +200,7 @@ private:
 
 	// Parameters
 	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::DSHOT_ESC_TYPE>) _param_dshot_esc_type,
 		(ParamFloat<px4::params::DSHOT_MIN>)    _param_dshot_min,
 		(ParamBool<px4::params::DSHOT_3D_ENABLE>) _param_dshot_3d_enable,
 		(ParamInt<px4::params::DSHOT_3D_DEAD_H>) _param_dshot_3d_dead_h,
