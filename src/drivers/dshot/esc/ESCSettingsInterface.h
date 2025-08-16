@@ -33,9 +33,6 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <px4_platform_common/param.h>
-
 enum class ESCType : uint8_t {
 	Unknown = 0,
 	AM32 = 1,

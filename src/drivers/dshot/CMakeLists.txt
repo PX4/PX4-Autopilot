@@ -33,13 +33,16 @@
 
 set(PARAM_PREFIX PWM_MAIN)
 set(DSHOT_MODULE_PARAMS)
+set(DSHOT_MODULE_SRCS)
+
 
 if(CONFIG_BOARD_IO)
 	set(PARAM_PREFIX PWM_AUX)
 endif()
 
 if(CONFIG_DSHOT_AM32_PROG)
-	list(APPEND DSHOT_MODULE_PARAMS am32.yaml)
+	list(APPEND DSHOT_MODULE_PARAMS esc/am32.yaml)
+	list(APPEND DSHOT_MODULE_SRCS esc/AM32Settings.cpp)
 endif()
 
 px4_add_module(
@@ -48,10 +51,10 @@ px4_add_module(
 	COMPILE_FLAGS
 		-DPARAM_PREFIX="${PARAM_PREFIX}"
 		# -DDEBUG_BUILD
-
 	SRCS
 		DShot.cpp
 		DShotTelemetry.cpp
+		${DSHOT_MODULE_SRCS}
 	DEPENDS
 		arch_io_pins
 		arch_dshot

@@ -31,68 +31,52 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "AM32Settings.h"
+#include "../DShotCommon.h"
+#include <px4_platform_common/log.h>
 
-#include <px4_platform_common/Serial.hpp>
-#include <uORB/Publication.hpp>
-#include "DShotCommon.h"
-#include "esc/AM32Settings.h"
+param_t AM32Settings::_param_pole_count = {PARAM_INVALID};
+param_t AM32Settings::_param_beep_volum = {PARAM_INVALID};
 
-class DShotTelemetry
+void AM32Settings::initParams(uint8_t motor_index)
 {
-public:
+	// Mark all params as used
+	_param_pole_count = param_find("AM32_POLE_COUNT");
+	_param_beep_volum = param_find("AM32_BEEP_VOLUM");
+}
 
-	~DShotTelemetry();
+int AM32Settings::getExpectedResponseSize()
+{
+	return RESPONSE_SIZE;
+}
 
-	int init(const char *uart_device, bool swap_rxtx);
-	void printStatus() const;
-	bool enabled() { return _enabled; }
+bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
+{
+	if (size != RESPONSE_SIZE) {
+		return false;
+	}
 
-	void startTelemetryRequest();
-	bool telemetryRequestFinished();
+	uint8_t checksum = crc8(buf, EEPROM_SIZE);
+	uint8_t checksum_data = buf[EEPROM_SIZE];
 
-	TelemetryStatus parseTelemetryPacket(EscData *esc_data);
+	if (checksum == checksum_data) {
 
-	// Attempt to parse a command response.
-	// Returns TODO
-	bool parseCommandResponse();
-	bool expectingCommandResponse();
-	void setExpectCommandResponse(int motor_index, uint16_t command);
+		DSHOT_CMD_DEBUG("Successfully received AM32 settings!");
+		// auto now  = hrt_absolute_time();
 
-	void initSettingsHandlers(ESCType esc_type, uint8_t output_mask);
+		// We need to use
+		// - _command_response_motor_index;
 
-	void flush();
+		// TODO
+		// Iterate over each setting and write to our parameters
 
-private:
-	static constexpr int COMMAND_RESPONSE_MAX_SIZE = 128;
-	static constexpr int COMMAND_RESPONSE_SETTINGS_SIZE = 49; // 48B for EEPROM + 1B for CRC
-	static constexpr int TELEMETRY_FRAME_SIZE = 10;
+		// for (int j = 0; j < EEPROM_SIZE; j++) {
+		// 	DSHOT_CMD_DEBUG("%d", buf[j]);
+		// }
 
-	TelemetryStatus decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data);
+	} else {
+		PX4_WARN("Command Response checksum failed!");
+	}
 
-	bool _enabled{false};
-	device::Serial _uart{};
-
-	// Command response
-	int _command_response_motor_index{-1};
-	uint16_t _command_response_command{0};
-	uint8_t _command_response_buffer[COMMAND_RESPONSE_MAX_SIZE];
-	int _command_response_position{0};
-	hrt_abstime _command_response_start{0};
-
-	// Telemetry packet
-	EscData _latest_data{};
-	uint8_t _frame_buffer[TELEMETRY_FRAME_SIZE];
-	int _frame_position{0};
-	hrt_abstime _telemetry_request_start{0};
-
-	// statistics
-	int _num_timeouts{0};
-	int _num_successful_responses{0};
-	int _num_checksum_errors{0};
-
-	// Settings
-	ESCSettingsInterface *_settings_handlers[DSHOT_MAXIMUM_CHANNELS] = {nullptr};
-	ESCType _esc_type{ESCType::Unknown};
-	bool _settings_initialized{false};
-};
+	return true;
+}
