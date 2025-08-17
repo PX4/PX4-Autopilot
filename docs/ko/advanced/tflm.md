@@ -1,6 +1,6 @@
 # TensorFlow Lite Micro (TFLM)
 
-The PX4 [Multicopter Neural Network](advanced/neural_networks.md) module ([mc_nn_control](../modules/modules_controller.md#mc-nn-control)) integrates a neural network that uses the [TensorFlow Lite Micro (TFLM)](https://github.com/tensorflow/tflite-micro) inference library.
+The PX4 [Multicopter Neural Network](../advanced/neural_networks.md) module ([mc_nn_control](../modules/modules_controller.md#mc-nn-control)) integrates a neural network that uses the [TensorFlow Lite Micro (TFLM)](https://github.com/tensorflow/tflite-micro) inference library.
 
 This is a mature inference library intended for use on embedded devices, and is hence a suitable choice for PX4.
 
