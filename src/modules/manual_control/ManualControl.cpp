@@ -77,6 +77,10 @@ void ManualControl::Run()
 
 void ManualControl::processInput(hrt_abstime now)
 {
+
+	static_assert(sizeof(_manual_control_input_subs) / sizeof(_manual_control_input_subs[0]) == MAX_MANUAL_INPUT_COUNT,
+		      "_manual_control_input_subs size must match MAX_MANUAL_INPUT_COUNT");
+
 	if (_vehicle_status_sub.updated()) {
 		vehicle_status_s vehicle_status;
 
@@ -97,15 +101,17 @@ void ManualControl::processInput(hrt_abstime now)
 		updateParams();
 	}
 
-	_selector.updateValidityOfChosenInput(now);
+	manual_control_setpoint_s inputs[MAX_MANUAL_INPUT_COUNT] {};
 
 	for (int i = 0; i < MAX_MANUAL_INPUT_COUNT; i++) {
-		manual_control_setpoint_s manual_control_input;
+		if (_manual_control_input_subs[i].update(&inputs[i])) {
 
-		if (_manual_control_input_subs[i].update(&manual_control_input)) {
-			_selector.updateWithNewInputSample(now, manual_control_input, i);
+			_selector.processInputSample(now, inputs[i], i);
 		}
 	}
+
+	// Decide on best input after collecting all samples
+	_selector.evaluateAndSetBestInput(now, inputs, MAX_MANUAL_INPUT_COUNT);
 
 	if (_selector.setpoint().valid) {
 		_published_invalid_once = false;
