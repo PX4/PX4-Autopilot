@@ -251,7 +251,7 @@ parameters:
 
         MS_SENSOR_PTCH:
             description:
-                short: Sensor to Vehicle Transform (Pitch)
+                short: MicroStrain Sensor to Vehicle Transform (Pitch)
                 long: |
                     The orientation of the device (Radians) with respect to the vehicle frame around the y axis.
                     Requires MS_SVT_EN to be enabled to be used.
@@ -261,7 +261,7 @@ parameters:
 
         MS_SENSOR_YAW:
             description:
-                short: Sensor to Vehicle Transform (Yaw)
+                short: MicroStrain Sensor to Vehicle Transform (Yaw)
                 long: |
                     The orientation of the device (Radians) with respect to the vehicle frame around the z axis.
                     Requires MS_SVT_EN to be enabled to be used.
