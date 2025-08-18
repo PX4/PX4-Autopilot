@@ -202,6 +202,29 @@ foreach(board_rc_file ${OPTIONAL_BOARD_RC})
 
 endforeach()
 
+if(config_dyn_init)
+	if(EXISTS "${PX4_BOARD_DIR}/init/${config_dyn_init}")
+		file(RELATIVE_PATH rc_file_relative ${PX4_SOURCE_DIR} ${PX4_BOARD_DIR}/init/${config_dyn_init})
+		message(STATUS "ROMFS:  Adding ${rc_file_relative} -> /etc/init.d/rc.dyn_init")
+
+		add_custom_command(
+			OUTPUT
+				${romfs_gen_root_dir}/init.d/rc.dyn_init
+				${config_dyn_init}.stamp
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PX4_BOARD_DIR}/init/${config_dyn_init} ${romfs_gen_root_dir}/init.d/rc.dyn_init
+			COMMAND ${CMAKE_COMMAND} -E touch ${config_dyn_init}.stamp
+			DEPENDS
+				${PX4_BOARD_DIR}/init/${config_dyn_init}
+				romfs_copy.stamp
+			COMMENT "ROMFS: copying ${config_dyn_init}"
+		)
+
+		list(APPEND extras_dependencies
+			${config_dyn_init}.stamp
+			)
+	endif()
+endif()
+
 
 # board extras
 set(OPTIONAL_BOARD_EXTRAS)

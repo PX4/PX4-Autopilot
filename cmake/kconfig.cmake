@@ -339,6 +339,11 @@ if(EXISTS ${BOARD_DEFCONFIG})
 		endif()
 	endif()
 
+	# DYN INIT
+	if(DYN_INIT)
+		set(config_dyn_init ${DYN_INIT} CACHE INTERNAL "dyn init" FORCE)
+	endif()
+
 	if(UAVCAN_INTERFACES)
 		set(config_uavcan_num_ifaces ${UAVCAN_INTERFACES} CACHE INTERNAL "UAVCAN interfaces" FORCE)
 	endif()
