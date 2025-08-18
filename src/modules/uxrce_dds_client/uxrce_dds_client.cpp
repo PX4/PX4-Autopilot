@@ -49,6 +49,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+static constexpr char NAMESPACE_PREFIX[] = "uav_";
 #define PARTICIPANT_XML_SIZE 512
 static constexpr uint8_t TIMESYNC_MAX_TIMEOUTS = 10;
 
@@ -1028,6 +1029,23 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 		}
 	}
 
+	if (client_namespace == nullptr) {
+		int32_t ns_idx = -1;
+		param_get(param_find("UXRCE_DDS_NS_IDX"), &ns_idx);
+
+		if (ns_idx > -1) {
+			if (ns_idx < 10000) {
+				// Allocate buffer for prefix + '\0' + 4 digits
+				static char client_namespace_buf[sizeof(NAMESPACE_PREFIX) + 4];
+				snprintf(client_namespace_buf, sizeof client_namespace_buf, "%s%u", NAMESPACE_PREFIX, (uint16_t)ns_idx);
+				client_namespace = client_namespace_buf;
+
+			} else {
+				PX4_WARN("namespace index must be between 0 and 9999 inclusive; ignoring index-based namespace");
+			}
+		}
+	}
+
 #if defined(UXRCE_DDS_CLIENT_UDP)
 
 	if (port[0] == '\0') {
@@ -1092,7 +1110,7 @@ $ uxrce_dds_client start -t udp -h 127.0.0.1 -p 15555
 	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 0, 3000000, "Baudrate (can also be p:<param_name>)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('h', nullptr, "<IP>", "Agent IP. If not provided, defaults to UXRCE_DDS_AG_IP", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 0, 65535, "Agent listening port. If not provided, defaults to UXRCE_DDS_PRT", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Client DDS namespace", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Client DDS namespace. If not provided but UXRCE_DDS_NS_IDX is between 0 and 9999 inclusive, then uav_ + UXRCE_DDS_NS_IDX will be used", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
