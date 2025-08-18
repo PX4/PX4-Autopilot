@@ -1,21 +1,20 @@
-# Test MC_06 - Optical Flow
+# Test MC_07 - VIO (Visual-Inertial Odometry)
 
 ## Objective
 
-To test that optical flow work as expected
+To test that external vision (VIO) work as expected
 
 ## Preflight
 
-Disconnect all GPS / compasses and ensure vehicle is using optical flow for navigation
-([Setup Information here](https://docs.px4.io/main/en/sensor/optical_flow.html))
-
-Ensure there are no other sources of positioning besides optical flow
-- EKF2_OF_CTRL: `1`
-- KF2_GPS_CTRL: `0`
-- EKF2_EV_CTRL: `0`
-- SYS_HAS_MAG: `0`
+Disconnect all GPS / compasses and ensure vehicle is using VIO for navigation
 
 Ensure that the drone can go into Altitude / Position flight mode while still on the ground
+
+Ensure there are no other sources of positioning besides VIO
+- EKF2_OF_CTRL: `0`
+- KF2_GPS_CTRL: `0`
+- EKF2_EV_CTRL: `15`
+- SYS_HAS_MAG: `0`
 
 ## Flight Tests
 
