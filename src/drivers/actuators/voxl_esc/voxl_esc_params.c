@@ -287,3 +287,31 @@ PARAM_DEFINE_INT32(VOXL_ESC_T_ON, 9);
  * @max 6
  */
 PARAM_DEFINE_INT32(GPIO_CTL_CH, 0);
+
+/**
+ * UART ESC command type
+ *
+ * Selects between RPM or PWM commands
+ *
+ * @reboot_required true
+ *
+ * @group VOXL_ESC
+ * @value 0 - RPM
+ * @value 1 - PWM
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(VOXL_ESC_CMD, 0);
+
+/**
+ * UART ESC Minimum motor power
+ *
+ * Minimum motor power for ESC when VOXL_ESC_CMD is set for PWM.
+ * Make sure to set this high enough so that the motors are always spinning
+ * while armed.
+ *
+ * @group VOXL_ESC
+ * @min 0.0
+ * @max 1.0
+ */
+PARAM_DEFINE_FLOAT(VOXL_ESC_PWR_MIN, 0.05);

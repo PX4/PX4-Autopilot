@@ -257,7 +257,7 @@ int VoxlEsc::device_init()
 		return -1;
 	}
 
-	PX4_INFO("Use extened rpm packet : %d", _extended_rpm);
+	PX4_INFO("Use extended rpm packet : %d", _extended_rpm);
 
 	PX4_INFO("All ESCs successfully detected");
 
@@ -297,6 +297,7 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	param_get(param_find("VOXL_ESC_SDIR3"),  &params->direction_map[2]);
 	param_get(param_find("VOXL_ESC_SDIR4"),  &params->direction_map[3]);
 
+	param_get(param_find("VOXL_ESC_PWR_MIN"), &params->pwr_min);
 	param_get(param_find("VOXL_ESC_RPM_MIN"), &params->rpm_min);
 	param_get(param_find("VOXL_ESC_RPM_MAX"), &params->rpm_max);
 
@@ -308,10 +309,22 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 
 	param_get(param_find("GPIO_CTL_CH"), &params->gpio_ctl_channel);
 
-	if (params->rpm_min >= params->rpm_max) {
-		PX4_ERR("Invalid parameter VOXL_ESC_RPM_MIN.  Please verify parameters.");
-		params->rpm_min = 0;
-		ret = PX4_ERROR;
+	param_get(param_find("VOXL_ESC_CMD"), &params->cmd_type);
+
+	if (params->cmd_type > VOXL_ESC_PWM_CMDS) {
+		PX4_WARN("Warning, VOXL_ESC_CMD set to invalid value %d. Using 1 instead", params->cmd_type);
+		params->cmd_type = VOXL_ESC_PWM_CMDS;
+	} else if (params->cmd_type < VOXL_ESC_RPM_CMDS) {
+		PX4_WARN("Warning, VOXL_ESC_CMD set to invalid value %d. Using 0 instead", params->cmd_type);
+		params->cmd_type = VOXL_ESC_RPM_CMDS;
+	}
+
+	if (params->cmd_type == VOXL_ESC_RPM_CMDS) {
+		if (params->rpm_min >= params->rpm_max) {
+			PX4_ERR("Invalid parameter VOXL_ESC_RPM_MIN.  Please verify parameters.");
+			params->rpm_min = 0;
+			ret = PX4_ERROR;
+		}
 	}
 
 	if (params->turtle_motor_percent < 0 || params->turtle_motor_percent > 100) {
@@ -938,8 +951,19 @@ int VoxlEsc::update_params()
 	if (ret == PX4_OK) {
 		_mixing_output.setAllDisarmedValues(0);
 		_mixing_output.setAllFailsafeValues(0);
-		_mixing_output.setAllMinValues(_parameters.rpm_min);
-		_mixing_output.setAllMaxValues(_parameters.rpm_max);
+
+		if (_parameters.cmd_type == VOXL_ESC_RPM_CMDS) {
+			_mixing_output.setAllMinValues(_parameters.rpm_min);
+			_mixing_output.setAllMaxValues(_parameters.rpm_max);
+		} else if (_parameters.cmd_type == VOXL_ESC_PWM_CMDS) {
+			// we use a minimum value of 1, since 0 is for disarmed
+			_min_active_pwm = math::constrain(static_cast<int>((_parameters.pwr_min *
+						       static_cast<float>(VOXL_ESC_PWM_MAX))),
+						       VOXL_ESC_PWM_MIN, VOXL_ESC_PWM_MAX);
+			_mixing_output.setAllMinValues(_min_active_pwm);
+
+			_mixing_output.setAllMaxValues(VOXL_ESC_PWM_MAX);
+		}
 
 		_rpm_fullscale = _parameters.rpm_max - _parameters.rpm_min;
 	}
@@ -1253,11 +1277,18 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			_esc_chans[i].rate_req = 0;
 
 		} else {
-			if (_extended_rpm) {
-				if (outputs[i] > VOXL_ESC_RPM_MAX_EXT) outputs[i] = VOXL_ESC_RPM_MAX_EXT;
-			} else {
-				if (outputs[i] > VOXL_ESC_RPM_MAX) outputs[i] = VOXL_ESC_RPM_MAX;
+			if ((_turtle_mode_en) || (_parameters.cmd_type == VOXL_ESC_RPM_CMDS)) {
+				if (_extended_rpm) {
+					if (outputs[i] > VOXL_ESC_RPM_MAX_EXT) outputs[i] = VOXL_ESC_RPM_MAX_EXT;
+				} else {
+					if (outputs[i] > VOXL_ESC_RPM_MAX) outputs[i] = VOXL_ESC_RPM_MAX;
+				}
+
+			} else if (_parameters.cmd_type == VOXL_ESC_PWM_CMDS) {
+				if (outputs[i] > VOXL_ESC_PWM_MAX) outputs[i] = VOXL_ESC_PWM_MAX;
+				else if (outputs[i] < _min_active_pwm) outputs[i] = _min_active_pwm;
 			}
+
 			if (!_turtle_mode_en) {
 				_esc_chans[i].rate_req = outputs[i] * _output_map[i].direction;
 
@@ -1270,19 +1301,32 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 
 	Command cmd;
-	cmd.len = qc_esc_create_rpm_packet4_fb(_esc_chans[0].rate_req,
-			_esc_chans[1].rate_req,
-			_esc_chans[2].rate_req,
-			_esc_chans[3].rate_req,
-			_esc_chans[0].led,
-			_esc_chans[1].led,
-			_esc_chans[2].led,
-			_esc_chans[3].led,
-			_fb_idx,
-			cmd.buf,
-			sizeof(cmd.buf),
-			_extended_rpm);
-
+	if (_parameters.cmd_type == VOXL_ESC_RPM_CMDS) {
+		cmd.len = qc_esc_create_rpm_packet4_fb(_esc_chans[0].rate_req,
+				_esc_chans[1].rate_req,
+				_esc_chans[2].rate_req,
+				_esc_chans[3].rate_req,
+				_esc_chans[0].led,
+				_esc_chans[1].led,
+				_esc_chans[2].led,
+				_esc_chans[3].led,
+				_fb_idx,
+				cmd.buf,
+				sizeof(cmd.buf),
+				_extended_rpm);
+	} else if (_parameters.cmd_type == VOXL_ESC_PWM_CMDS) {
+		cmd.len = qc_esc_create_pwm_packet4_fb(_esc_chans[0].rate_req,
+				_esc_chans[1].rate_req,
+				_esc_chans[2].rate_req,
+				_esc_chans[3].rate_req,
+				_esc_chans[0].led,
+				_esc_chans[1].led,
+				_esc_chans[2].led,
+				_esc_chans[3].led,
+				_fb_idx,
+				cmd.buf,
+				sizeof(cmd.buf));
+	}
 
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("Failed to send packet");
@@ -1665,6 +1709,8 @@ void VoxlEsc::print_params()
 	PX4_INFO("Params: VOXL_ESC_SDIR3: %" PRId32, _parameters.direction_map[2]);
 	PX4_INFO("Params: VOXL_ESC_SDIR4: %" PRId32, _parameters.direction_map[3]);
 
+	PX4_INFO("Params: VOXL_ESC_PWR_MIN: %f", (double) _parameters.pwr_min);
+
 	PX4_INFO("Params: VOXL_ESC_RPM_MIN: %" PRId32, _parameters.rpm_min);
 	PX4_INFO("Params: VOXL_ESC_RPM_MAX: %" PRId32, _parameters.rpm_max);
 
@@ -1681,6 +1727,8 @@ void VoxlEsc::print_params()
 	PX4_INFO("Params: VOXL_ESC_T_OVER: %" PRId32, _parameters.esc_over_temp_threshold);
 
 	PX4_INFO("Params: GPIO_CTL_CH: %" PRId32, _parameters.gpio_ctl_channel);
+
+	PX4_INFO("Params: VOXL_ESC_CMD: %" PRId32, _parameters.cmd_type);
 }
 
 int VoxlEsc::print_status()

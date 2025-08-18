@@ -19,6 +19,10 @@ actuator_output:
       label: 'ESC 3 Spin Direction'
     - param: 'VOXL_ESC_SDIR4'
       label: 'ESC 4 Spin Direction'
+    - param: 'VOXL_ESC_CMD'
+      label: 'ESC Command Type'
+    - param: 'VOXL_ESC_PWR_MIN'
+      label: 'ESC Minimum Power With PWM Command Type'
   output_groups:
     - param_prefix: VOXL_ESC
       group_label: 'ESCs'

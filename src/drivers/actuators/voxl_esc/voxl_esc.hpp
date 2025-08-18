@@ -115,8 +115,9 @@ private:
 
 	static constexpr uint16_t DISARMED_VALUE = 0;
 
-	static constexpr uint16_t VOXL_ESC_PWM_MIN = 0;
-	static constexpr uint16_t VOXL_ESC_PWM_MAX = 800;
+	static constexpr int VOXL_ESC_PWM_MIN = 1;
+	static constexpr int VOXL_ESC_PWM_MAX = 800;
+
 	static constexpr uint16_t VOXL_ESC_DEFAULT_RPM_MIN = 5000;
 	static constexpr uint16_t VOXL_ESC_DEFAULT_RPM_MAX = 17000;
 
@@ -143,6 +144,9 @@ private:
 	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX5 = 5;
 	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX6 = 6;
 
+	static constexpr int32_t VOXL_ESC_RPM_CMDS = 0;
+	static constexpr int32_t VOXL_ESC_PWM_CMDS = 1;
+
 	//static constexpr uint16_t max_pwm(uint16_t pwm) { return math::min(pwm, VOXL_ESC_PWM_MAX); }
 	//static constexpr uint16_t max_rpm(uint16_t rpm) { return math::min(rpm, VOXL_ESC_RPM_MAX); }
 
@@ -157,6 +161,7 @@ private:
 		float		turtle_stick_minf{0.15f};
 		float		turtle_cosphi{0.99f};
 		int32_t		baud_rate{VOXL_ESC_DEFAULT_BAUD};
+		float		pwr_min{0.05f};
 		int32_t		rpm_min{VOXL_ESC_DEFAULT_RPM_MIN};
 		int32_t		rpm_max{VOXL_ESC_DEFAULT_RPM_MAX};
 		int32_t		function_map[VOXL_ESC_OUTPUT_CHANNELS] {0, 0, 0, 0};
@@ -167,6 +172,7 @@ private:
 		int32_t		esc_warn_temp_threshold{0};
 		int32_t		esc_over_temp_threshold{0};
 		int32_t		gpio_ctl_channel{0};
+		int32_t		cmd_type{0};
 	} voxl_esc_params_t;
 
 	struct EscChan {
@@ -219,6 +225,8 @@ private:
 	bool _extended_rpm{false};
 	bool _need_version_info{true};
 	QC_ESC_EXTENDED_VERSION_INFO _version_info[VOXL_ESC_OUTPUT_CHANNELS];
+
+	int _min_active_pwm{1};
 
 	voxl_esc_params_t	_parameters;
 	int			update_params();
