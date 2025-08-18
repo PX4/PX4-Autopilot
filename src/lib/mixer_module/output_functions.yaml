@@ -46,6 +46,9 @@ functions:
     # Add your own here:
     #MyCustomFunction: 10000
 
+    # Rocket-specific functions
+    Wing_Deploy: 10001
+
   pwm_fmu: # These only exist on FMU PWM pins
     Camera_Trigger:
       start: 2000

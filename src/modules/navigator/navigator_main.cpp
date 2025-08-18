@@ -824,6 +824,7 @@ void Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
 		case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
 		case vehicle_status_s::NAVIGATION_STATE_STAB:
+		case vehicle_status_s::NAVIGATION_STATE_ROCKET_ROLL:
 		default:
 			navigation_mode_new = nullptr;
 			break;

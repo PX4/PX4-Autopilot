@@ -3,27 +3,7 @@
  *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following 			if (boost_duration > max_boost_duration) {
-				PX4_WARN("Boost			if (deploy_wings) {
-				PX4_INFO("Apogee/deployment triggered by %s at altitude %.1f m (max: %.1f m), body X vel: %.1f m/s",
-				         deploy_reason, (double)current_altitude, (double)_max_altitude, (double)body_x_velocity);
-				_apogee_detected = true;
-				_rocket_state = RocketState::WING_DEPLOYMENT;
-				_wing_deploy_time = hrt_absolute_time();
-
-				// Trigger wing deployment
-				deploy_wings_function();
-
-				// Send immediate status update
-				publish_rocket_status();
-			}eout, forcing transition to coast");
-				_rocket_state = RocketState::ROCKET_COAST;
-				_boost_end_time = hrt_absolute_time();
-				_coast_start_time = hrt_absolute_time();
-
-				// Send immediate status update
-				publish_rocket_status();
-			}ions
+ * modification, are permitted provided that the following conditions
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
@@ -73,6 +53,7 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
+#include <modules/commander/px4_custom_mode.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <cstring>
@@ -87,17 +68,19 @@ RocketModeManager::RocketModeManager() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
 	// Initialize state
-	_rocket_state = RocketState::WAITING_LAUNCH;
-	_last_rocket_state = RocketState::WAITING_LAUNCH;
+	_rocket_state = RocketState::WAITING_GCS_CONNECT;
+	_last_rocket_state = RocketState::WAITING_GCS_CONNECT;
 	_wing_deployed = false;
 	_apogee_detected = false;
 	_launch_detected = false;
+	_rocket_config_applied = false;
 	_max_altitude = -1000.0f;
 	_wing_deploy_time = 0;
 	_launch_detect_time = 0;
 	_boost_end_time = 0;
 	_coast_start_time = 0;
 	_last_status_time = 0;
+	_gcs_connect_time = 0;
 
 	// No simulation logic needed - handled by PX4 simulation modules
 }
@@ -118,7 +101,9 @@ bool RocketModeManager::init()
 	parameters_update(true);
 
 	// Start the work queue
-	ScheduleOnInterval(10_ms); // Run at 10 Hz
+	ScheduleOnInterval(10_ms); // Run at 100 Hz
+
+	PX4_INFO("Rocket Mode Manager initialized - waiting for QGroundControl connection");
 
 	return true;
 }
@@ -155,25 +140,12 @@ void RocketModeManager::Run()
 	_sensor_accel_sub.update(&_sensor_accel);
 	_vehicle_attitude_sub.update(&_vehicle_attitude);
 	_manual_control_setpoint_sub.update(&_manual_control_setpoint);
+	_telemetry_status_sub.update(&_telemetry_status);	switch (_rocket_state) {
 
-	// Auto-transition to WAITING_LAUNCH when armed (if not already launched)
-		if (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED && !_launch_detected) {
-		if (_rocket_state != RocketState::WAITING_LAUNCH) {
-			PX4_INFO("Vehicle armed, switching to WAITING_LAUNCH state");
-			_rocket_state = RocketState::WAITING_LAUNCH;
-			_wing_deployed = false;
-			_apogee_detected = false;
-			_max_altitude = -1000.0f;
-			_wing_deploy_time = 0;
-			_launch_detect_time = 0;
-			_boost_end_time = 0;
-			_coast_start_time = 0;
+	case RocketState::WAITING_GCS_CONNECT:
+		handle_waiting_gcs_connect_phase();
+		break;
 
-			// Send immediate status update
-			publish_rocket_status();
-		}
-	}	// Main state machine
-	switch (_rocket_state) {
 	case RocketState::WAITING_LAUNCH:
 		handle_waiting_launch_phase();
 		break;
@@ -203,6 +175,36 @@ void RocketModeManager::Run()
 	publish_rocket_status();
 }
 
+void RocketModeManager::handle_waiting_gcs_connect_phase()
+{
+	// Wait for QGroundControl connection
+	if (_telemetry_status.heartbeat_type_gcs) {
+		// Record first time we detected GCS connection
+		if (_gcs_connect_time == 0) {
+			_gcs_connect_time = hrt_absolute_time();
+			PX4_INFO("QGroundControl connected - waiting 2 seconds for initialization");
+			return;
+		}
+
+		// Wait 2 seconds after GCS connection before applying rocket configuration
+		const hrt_abstime elapsed = hrt_absolute_time() - _gcs_connect_time;
+		const hrt_abstime delay_duration = 2_s; // 2 second delay
+
+		if (elapsed > delay_duration) {
+			// GCS connection stabilized - apply complete rocket configuration
+			switch_to_rocket_roll_mode();
+
+			// Transition to WAITING_LAUNCH (Ready disarmed state)
+			_rocket_state = RocketState::WAITING_LAUNCH;
+
+			PX4_INFO("GCS initialization complete - Applied rocket roll config, now Ready (disarmed)");
+		}
+	} else {
+		// Reset connection timer if GCS disconnects
+		_gcs_connect_time = 0;
+	}
+}
+
 void RocketModeManager::handle_waiting_launch_phase()
 {
 	// Wait for launch detection when armed
@@ -222,25 +224,24 @@ void RocketModeManager::handle_waiting_launch_phase()
 				const float launch_accel_threshold = _param_rocket_launch_a.get(); // e.g., 15 m/s^2
 				const float launch_vel_threshold = _param_rocket_launch_v.get();     // e.g., -3 m/s (upward)
 
-				if (!_launch_detected &&
-				    (accel_magnitude > launch_accel_threshold || vertical_velocity <= launch_vel_threshold)) {
+				   if (!_launch_detected &&
+					   (accel_magnitude > launch_accel_threshold || vertical_velocity <= launch_vel_threshold)) {
 
-				PX4_INFO("Launch detected! Accel: %.1f m/s^2, Vel: %.1f m/s", (double)accel_magnitude, (double)vertical_velocity);
-				_launch_detected = true;
-				_launch_detect_time = hrt_absolute_time();
-				_rocket_state = RocketState::ROCKET_BOOST;
-				_max_altitude = current_altitude; // Initialize max altitude tracking
+						   PX4_INFO("Launch detected! Accel: %.1f m/s^2, Vel: %.1f m/s", (double)accel_magnitude, (double)vertical_velocity);
+						   _launch_detected = true;
+						   _launch_detect_time = hrt_absolute_time();
+						   _rocket_state = RocketState::ROCKET_BOOST;
+						   _max_altitude = current_altitude; // Initialize max altitude tracking
 
-				// Send immediate status update
-				publish_rocket_status();
-				}
+						   // Optionally, also request custom mode for QGC display
+						   request_rocket_navigation_state();
+
+						   // Send immediate status update
+						   publish_rocket_status();
+				   }
 			}
-	} else {
-		// Reset if disarmed
-		_launch_detected = false;
-		_launch_detect_time = 0;
+		}
 	}
-}
 }
 
 void RocketModeManager::handle_rocket_boost_phase()
@@ -271,6 +272,9 @@ void RocketModeManager::handle_rocket_boost_phase()
 				_boost_end_time = hrt_absolute_time();
 				_coast_start_time = hrt_absolute_time();
 
+				// Update navigation state display in QGC
+				request_rocket_navigation_state();
+
 				// Send immediate status update
 				publish_rocket_status();
 			}
@@ -284,6 +288,9 @@ void RocketModeManager::handle_rocket_boost_phase()
 				_rocket_state = RocketState::ROCKET_COAST;
 				_boost_end_time = hrt_absolute_time();
 				_coast_start_time = hrt_absolute_time();
+
+				// Update navigation state display in QGC
+				request_rocket_navigation_state();
 
 				// Send immediate status update
 				publish_rocket_status();
@@ -321,7 +328,7 @@ void RocketModeManager::handle_rocket_coast_phase()
 
 		// Primary deployment criteria: body X velocity threshold OR altitude descent OR failsafe
 		const float velocity_threshold = _param_rocket_deploy_v.get(); // e.g., 5.0 m/s (body X-axis forward velocity)
-		const float altitude_descent_threshold = 3.0f; // Deploy if descended 3m from max
+		const float altitude_descent_threshold = _param_rocket_alt_thresh.get(); // Deploy if descended this many meters from max
 
 		if (!_apogee_detected) {
 			// Check deployment criteria
@@ -343,6 +350,9 @@ void RocketModeManager::handle_rocket_coast_phase()
 				_rocket_state = RocketState::WING_DEPLOYMENT;
 				_wing_deploy_time = hrt_absolute_time();
 
+				// Update navigation state display in QGC
+				request_rocket_navigation_state();
+
 				// Trigger wing deployment
 				deploy_wings_function();
 
@@ -355,21 +365,21 @@ void RocketModeManager::handle_rocket_coast_phase()
 
 void RocketModeManager::handle_wing_deployment_phase()
 {
-	// Wait for wing deployment to complete with timer failsafe
-	const hrt_abstime elapsed = hrt_absolute_time() - _wing_deploy_time;
-	const hrt_abstime deploy_duration = (hrt_abstime)(_param_rocket_wing_t.get() * 1e6f); // Convert to microseconds
+	PX4_INFO("Wing deployment complete, switching to fixed-wing mode");
+	_wing_deployed = true;
+	_rocket_state = RocketState::FIXED_WING;
 
-	if (elapsed > deploy_duration) {
-		PX4_INFO("Wing deployment complete, switching to fixed-wing mode");
-		_wing_deployed = true;
-		_rocket_state = RocketState::FIXED_WING;
+	// Update navigation state display in QGC
+	request_rocket_navigation_state();
 
-		// Request transition to manual fixed-wing mode
-		switch_to_fixed_wing_mode();
+	// Request transition to fixed-wing mode with CA reconfiguration
+	switch_to_fixed_wing_mode();
 
-		// Send immediate status update
-		publish_rocket_status();
-	}
+	// Send immediate status update
+	publish_rocket_status();
+
+	// Note: Rocket mode manager continues to monitor in fixed-wing phase
+	PX4_INFO("Rocket logic complete, now monitoring fixed-wing phase");
 }
 
 void RocketModeManager::handle_fixed_wing_phase()
@@ -383,73 +393,245 @@ void RocketModeManager::handle_fixed_wing_phase()
 
 void RocketModeManager::deploy_wings_function()
 {
-	// Publish wing deployment command
-	actuator_servos_s actuator_servos{};
-	actuator_servos.timestamp = hrt_absolute_time();
+	// Publish wing deployment command - the mixer module will handle the rest
+	wing_deploy_command_s wing_cmd{};
+	wing_cmd.timestamp = hrt_absolute_time();
+	wing_cmd.deploy = true;
+	_wing_deploy_pub.publish(wing_cmd);
 
-	// Set wing deployment servo to deployed position
-	const int wing_servo_index = _param_rocket_wing_sv.get();
-	if (wing_servo_index >= 0 && wing_servo_index < actuator_servos_s::NUM_CONTROLS) {
-		actuator_servos.control[wing_servo_index] = 1.0f; // Fully deployed
-	}
-
-	_actuator_servos_pub.publish(actuator_servos);
-
-	PX4_INFO("Wing deployment command sent");
+	PX4_INFO("ROCKET: Publishing wing deployment command");
 }
 
-void RocketModeManager::switch_to_fixed_wing_mode()
+void RocketModeManager::configure_rocket_ca_parameters()
 {
-	// Request mode switch to stabilized mode instead of manual to prevent auto-disarming
+	PX4_INFO("Configuring control surfaces for rocket phase");
+
+	// Configure each servo (0-5) with rocket phase settings
+	for (int i = 0; i < 6; i++) {
+		char param_name[32];
+
+		// Get control surface type from RKT_CS_R0 through RKT_CS_R5
+		snprintf(param_name, sizeof(param_name), "RKT_CS_R%d", i);
+		param_t cs_param = param_find(param_name);
+		int32_t cs_type = 0;
+		if (cs_param != PARAM_INVALID) {
+			param_get(cs_param, &cs_type);
+		}
+
+		// Set control surface type with validation
+		snprintf(param_name, sizeof(param_name), "CA_SV_CS%d_TYPE", i);
+		param_t type_param = param_find(param_name);
+		if (type_param != PARAM_INVALID) {
+			param_set(type_param, &cs_type);
+			PX4_DEBUG("Set %s = %d", param_name, cs_type);
+		} else {
+			PX4_ERR("Parameter %s not found", param_name);
+		}
+
+		// Get torque matrix values from RKT_CA_R0 through RKT_CA_R17 (3 components per servo: X, Y, Z)
+		const int matrix_idx = i * 3;
+		float trq_values[3] = {0.0f, 0.0f, 0.0f};
+
+		for (int j = 0; j < 3; j++) {
+			snprintf(param_name, sizeof(param_name), "RKT_CA_R%d", matrix_idx + j);
+			param_t trq_param = param_find(param_name);
+			if (trq_param != PARAM_INVALID) {
+				param_get(trq_param, &trq_values[j]);
+				PX4_DEBUG("Got %s = %.3f", param_name, (double)trq_values[j]);
+			} else {
+				PX4_WARN("Parameter %s not found, using default 0.0", param_name);
+			}
+		}
+
+		// Set torque values with validation
+		snprintf(param_name, sizeof(param_name), "CA_SV_CS%d_TRQ_R", i);
+		param_t trq_r_param = param_find(param_name);
+		if (trq_r_param != PARAM_INVALID) {
+			param_set(trq_r_param, &trq_values[0]); // X component -> Roll
+			PX4_DEBUG("Set %s = %.3f", param_name, (double)trq_values[0]);
+		}
+
+		snprintf(param_name, sizeof(param_name), "CA_SV_CS%d_TRQ_P", i);
+		param_t trq_p_param = param_find(param_name);
+		if (trq_p_param != PARAM_INVALID) {
+			param_set(trq_p_param, &trq_values[1]); // Y component -> Pitch
+			PX4_DEBUG("Set %s = %.3f", param_name, (double)trq_values[1]);
+		}
+
+		snprintf(param_name, sizeof(param_name), "CA_SV_CS%d_TRQ_Y", i);
+		param_t trq_y_param = param_find(param_name);
+		if (trq_y_param != PARAM_INVALID) {
+			param_set(trq_y_param, &trq_values[2]); // Z component -> Yaw
+			PX4_DEBUG("Set %s = %.3f", param_name, (double)trq_values[2]);
+		}
+	}
+
+	// Small delay to ensure all parameter sets are complete
+	px4_usleep(10000); // 10ms delay
+
+	// Notify parameter changes to trigger control allocator reconfiguration
+	param_notify_changes();
+
+	PX4_INFO("Rocket CA configuration applied: fins 1-4 for roll control, servos 5-6 inactive");
+}
+
+void RocketModeManager::configure_fixedwing_ca_parameters()
+{
+	PX4_INFO("Configuring control surfaces for fixed-wing phase");
+
+	// Configure each servo (0-5) with fixed-wing phase settings
+	for (int i = 0; i < 6; i++) {
+		char param_name[32];
+
+		// Get control surface type from RKT_CS_F0 through RKT_CS_F5
+		snprintf(param_name, sizeof(param_name), "RKT_CS_F%d", i);
+		param_t cs_param = param_find(param_name);
+		int32_t cs_type = 0;
+		if (cs_param != PARAM_INVALID) {
+			param_get(cs_param, &cs_type);
+		}
+
+		// Set control surface type with validation
+		snprintf(param_name, sizeof(param_name), "CA_SV_CS%d_TYPE", i);
+		param_t type_param = param_find(param_name);
+		if (type_param != PARAM_INVALID) {
+			param_set(type_param, &cs_type);
+			PX4_DEBUG("Set %s = %d", param_name, cs_type);
+		} else {
+			PX4_ERR("Parameter %s not found", param_name);
+		}
+
+		// Get torque matrix values from RKT_CA_F0 through RKT_CA_F17 (3 components per servo: X, Y, Z)
+		const int matrix_idx = i * 3;
+		float trq_values[3] = {0.0f, 0.0f, 0.0f};
+
+		for (int j = 0; j < 3; j++) {
+			snprintf(param_name, sizeof(param_name), "RKT_CA_F%d", matrix_idx + j);
+			param_t trq_param = param_find(param_name);
+			if (trq_param != PARAM_INVALID) {
+				param_get(trq_param, &trq_values[j]);
+				PX4_DEBUG("Got %s = %.3f", param_name, (double)trq_values[j]);
+			} else {
+				PX4_WARN("Parameter %s not found, using default 0.0", param_name);
+			}
+		}
+
+		// Set torque values with validation
+		snprintf(param_name, sizeof(param_name), "CA_SV_CS%d_TRQ_R", i);
+		param_t trq_r_param = param_find(param_name);
+		if (trq_r_param != PARAM_INVALID) {
+			param_set(trq_r_param, &trq_values[0]); // X component -> Roll
+			PX4_DEBUG("Set %s = %.3f", param_name, (double)trq_values[0]);
+		}
+
+		snprintf(param_name, sizeof(param_name), "CA_SV_CS%d_TRQ_P", i);
+		param_t trq_p_param = param_find(param_name);
+		if (trq_p_param != PARAM_INVALID) {
+			param_set(trq_p_param, &trq_values[1]); // Y component -> Pitch
+			PX4_DEBUG("Set %s = %.3f", param_name, (double)trq_values[1]);
+		}
+
+		snprintf(param_name, sizeof(param_name), "CA_SV_CS%d_TRQ_Y", i);
+		param_t trq_y_param = param_find(param_name);
+		if (trq_y_param != PARAM_INVALID) {
+			param_set(trq_y_param, &trq_values[2]); // Z component -> Yaw
+			PX4_DEBUG("Set %s = %.3f", param_name, (double)trq_values[2]);
+		}
+	}
+	// Small delay to ensure all parameter sets are complete
+	px4_usleep(10000); // 10ms delay
+
+	// Notify parameter changes to trigger control allocator reconfiguration
+	param_notify_changes();
+
+	PX4_INFO("Fixed-wing CA configuration applied: fins 1,3=elevators, fins 2,4=rudders, servos 5,6=ailerons");
+}void RocketModeManager::switch_to_fixed_wing_mode()
+{
+	// Configure fixed-wing control allocation
+	configure_fixedwing_ca_parameters();
+
+	// Update available navigation states to all fixed-wing modes
+	// Allow standard fixed-wing modes: Manual, Altitude, Position, Auto Mission, Auto Loiter, Auto RTL, Acro
+	// Bitmask: 0x0000007F = bits 0-6 for standard fixed-wing modes
+	int32_t fw_mask = 0x0000007F;
+	_param_rocket_nav_mask.set(fw_mask);
+	_param_rocket_nav_mask.commit_no_notification();
+
+	PX4_INFO("Navigation modes updated: All fixed-wing modes now available");
+
+	// Request mode switch to manual mode for fixed-wing
 	action_request_s action_request{};
 	action_request.timestamp = hrt_absolute_time();
 	action_request.action = action_request_s::ACTION_SWITCH_MODE;
-	action_request.mode = vehicle_status_s::NAVIGATION_STATE_STAB; // Use stabilized mode instead of manual
+	action_request.mode = vehicle_status_s::NAVIGATION_STATE_MANUAL; // Use manual mode for fixed-wing
 	action_request.source = action_request_s::SOURCE_RC_SWITCH;
 
 	_action_request_pub.publish(action_request);
 
-	PX4_INFO("Switched to stabilized fixed-wing mode");
+	PX4_INFO("Switched to manual fixed-wing mode with dynamic CA configuration");
+	PX4_INFO("Rocket phase complete - rocket_mode_manager will continue monitoring");
+}
+
+void RocketModeManager::switch_to_rocket_roll_mode()
+{
+	// Configure rocket control allocation
+	configure_rocket_ca_parameters();
+
+	// Force restore the rocket navigation mask to restrict available modes
+	int32_t rocket_mask = -2147483648; // Default rocket roll only mask
+	_param_rocket_nav_mask.set(rocket_mask);
+	_param_rocket_nav_mask.commit_no_notification();
+	PX4_INFO("Rocket navigation mask restored: %d", rocket_mask);
+
+	// Switch to the custom NAVIGATION_STATE_ROCKET_ROLL that we implemented
+	// The nav_state_names array should provide "Rocket Roll" display name to QGC via AVAILABLE_MODES
+	action_request_s action_request{};
+	action_request.timestamp = hrt_absolute_time();
+	action_request.action = action_request_s::ACTION_SWITCH_MODE;
+	action_request.mode = vehicle_status_s::NAVIGATION_STATE_ROCKET_ROLL; // Index 31, should show "Rocket Roll"
+	action_request.source = action_request_s::SOURCE_RC_SWITCH;
+
+	_action_request_pub.publish(action_request);
+
+	// Also send custom status text for additional clarity
+	request_rocket_navigation_state();
+
+	_rocket_config_applied = true;
+
+	PX4_INFO("Switched to NAVIGATION_STATE_ROCKET_ROLL mode (displays as 'Acro' in QGC)");
 }
 
 void RocketModeManager::request_rocket_navigation_state()
 {
-	// Request custom navigation state to display rocket mode in QGC
-	vehicle_command_s cmd{};
-	cmd.timestamp = hrt_absolute_time();
-	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
-	cmd.param1 = 1.0f; // Base mode (MAV_MODE_FLAG_CUSTOM_MODE_ENABLED)
-	cmd.param2 = 4.0f; // Custom main mode (PX4_CUSTOM_MAIN_MODE_AUTO = 4)
+	// Send custom mode text to QGroundControl via MAVLink status text
+	char mode_text[50];
 
-	// Use different external sub-modes for each rocket phase
 	switch (_rocket_state) {
+	case RocketState::WAITING_GCS_CONNECT:
+		snprintf(mode_text, sizeof(mode_text), "WAITING QGC");
+		break;
 	case RocketState::WAITING_LAUNCH:
-		cmd.param3 = 10.0f; // PX4_CUSTOM_SUB_MODE_EXTERNAL1
+		snprintf(mode_text, sizeof(mode_text), "ROCKET READY");
 		break;
 	case RocketState::ROCKET_BOOST:
-		cmd.param3 = 11.0f; // PX4_CUSTOM_SUB_MODE_EXTERNAL2
+		snprintf(mode_text, sizeof(mode_text), "ROCKET BOOST");
 		break;
 	case RocketState::ROCKET_COAST:
-		cmd.param3 = 12.0f; // PX4_CUSTOM_SUB_MODE_EXTERNAL3
+		snprintf(mode_text, sizeof(mode_text), "ROCKET COAST");
 		break;
 	case RocketState::WING_DEPLOYMENT:
-		cmd.param3 = 13.0f; // PX4_CUSTOM_SUB_MODE_EXTERNAL4
+		snprintf(mode_text, sizeof(mode_text), "WING DEPLOY");
 		break;
 	case RocketState::FIXED_WING:
-		cmd.param3 = 14.0f; // PX4_CUSTOM_SUB_MODE_EXTERNAL5
+		snprintf(mode_text, sizeof(mode_text), "FIXED WING");
 		break;
 	case RocketState::LANDED:
-		cmd.param3 = 15.0f; // PX4_CUSTOM_SUB_MODE_EXTERNAL6
+		snprintf(mode_text, sizeof(mode_text), "LANDED");
 		break;
 	}
 
-	cmd.target_system = 1;
-	cmd.target_component = 1;
-	cmd.source_system = 1;
-	cmd.source_component = 1;
-	cmd.from_external = false;
-
-	_vehicle_command_pub.publish(cmd);
+	// Send the mode as a status text (this will show in QGC)
+	send_status_text(mode_text);
 }
 
 void RocketModeManager::send_status_text(const char* text)
@@ -470,6 +652,10 @@ void RocketModeManager::publish_rocket_status()
 
 		// Create status text based on current state
 		switch (_rocket_state) {
+		case RocketState::WAITING_GCS_CONNECT:
+			snprintf(status_text, sizeof(status_text), "ROCKET: Waiting for QGroundControl");
+			break;
+
 		case RocketState::WAITING_LAUNCH:
 			if (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 				snprintf(status_text, sizeof(status_text), "ROCKET: Armed - Waiting for Launch");
@@ -498,6 +684,7 @@ void RocketModeManager::publish_rocket_status()
 			snprintf(status_text, sizeof(status_text), "ROCKET: Landed");
 			break;
 		}
+
 
 		// Send the status text to QGC
 		send_status_text(status_text);

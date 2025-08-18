@@ -3,20 +3,6 @@ module_name: Rocket Mode Manager
 parameters:
     - group: Rocket Mode Manager
       definitions:
-        RKT_APOGEE:
-            description:
-                short: Expected apogee altitude
-                long: |
-                  Expected maximum altitude for the rocket flight.
-                  Used for apogee detection logic.
-            type: float
-            min: 10.0
-            max: 1000.0
-            increment: 10.0
-            decimal: 1
-            unit: m
-            default: 100.0
-
         RKT_DEPLOY_V:
             description:
                 short: Wing deployment velocity threshold
@@ -31,25 +17,19 @@ parameters:
             unit: m/s
             default: 5.0
 
-        RKT_WING_SV:
+        RKT_ALT_THRESH:
             description:
-                short: Wing deployment servo index
+                short: Altitude threshold for wing deployment
                 long: |
-                  Servo channel index for wing deployment mechanism.
-                  Set to -1 to disable.
-            type: int32
-            min: -1
-            max: 15
-            default: 4
-
-        RKT_MODE_SW:
-            description:
-                short: Enable rocket mode switching
-                long: |
-                  Enable automatic mode switching from multicopter to fixed-wing
-                  when wings are deployed.
-            type: boolean
-            default: 1
+                  Deploy wings when descended this many meters below maximum altitude.
+                  Used as backup deployment criteria.
+            type: float
+            min: 1.0
+            max: 50.0
+            increment: 1.0
+            decimal: 1
+            unit: m
+            default: 3.0
 
         RKT_LAUNCH_A:
             description:
@@ -106,14 +86,79 @@ parameters:
             increment: 1.0
             default: 30.0
 
-        RKT_WING_T:
+        RKT_NAV_MASK:
             description:
-                short: Wing deployment time
+                short: Navigation mask for available flight modes
                 long: |
-                  Duration of wing deployment phase before switching to fixed wing (s)
+                    Navigation mask for restricting available flight modes in rocket phase.
+                    Set to -2147483648 during rocket phase to restrict to rocket roll only.
+                    Gets updated to allow all fixed-wing modes after wing deployment.
+            type: int32
+            min: -2147483648
+            max: 2147483647
+            default: -2147483648
+
+        RKT_WING_DEPLOY:
+            description:
+                short: Wing deployment servo output channel
+                long: Servo output channel for wing deployment mechanism (1-8)
+            type: int32
+            min: 1
+            max: 8
+            default: 7
+            reboot_required: false
+
+        # Rocket Phase CA_TRQ Matrix (6 servos × 3 components = 18 elements flattened)
+        # Individual elements accessed as RKT_CA_R0 through RKT_CA_R17
+        RKT_CA_R${i}:
+            description:
+                short: Rocket phase CA_TRQ element ${i}
+                long: |
+                    Rocket phase control allocation torque matrix element ${i}.
+                    Flattened 6x3 matrix: [S1_X,S1_Y,S1_Z, S2_X,S2_Y,S2_Z, ..., S6_X,S6_Y,S6_Z]
             type: float
-            unit: s
-            decimal: 1
-            increment: 0.1
-            default: 2.0
+            decimal: 3
+            num_instances: 18
+            default: [0.0, 1.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            reboot_required: false
+
+        # Fixed-Wing Phase CA_TRQ Matrix (6 servos × 3 components = 18 elements flattened)
+        # Individual elements accessed as RKT_CA_F0 through RKT_CA_F17
+        RKT_CA_F${i}:
+            description:
+                short: Fixed-wing phase CA_TRQ element ${i}
+                long: |
+                    Fixed-wing phase control allocation torque matrix element ${i}.
+                    Flattened 6x3 matrix: [S1_X,S1_Y,S1_Z, S2_X,S2_Y,S2_Z, ..., S6_X,S6_Y,S6_Z]
+            type: float
+            decimal: 3
+            num_instances: 18
+            default: [0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0]
+            reboot_required: false
+
+
+
+        # Control Surface Types for Rocket Phase (servos 1-6)
+        RKT_CS_R${i}:
+            description:
+                short: Rocket Mode Control Surface Type ${i}
+                long: |
+                    Control surface type for servo ${i} in rocket mode.
+                    (0=Not set, 1=LeftAileron, 2=RightAileron, 3=Elevator, 4=Rudder, 12=Custom)
+            type: int32
+            num_instances: 6
+            instance_start: 0
+            default: [12, 12, 12, 12, 0, 0]
+
+        # Control Surface Types for Fixed-Wing Phase (servos 1-6)
+        RKT_CS_F${i}:
+            description:
+                short: Fixed-Wing Mode Control Surface Type ${i}
+                long: |
+                    Control surface type for servo ${i} in fixed-wing mode.
+                    (0=Not set, 1=LeftAileron, 2=RightAileron, 3=Elevator, 4=Rudder, 12=Custom)
+            type: int32
+            num_instances: 6
+            instance_start: 0
+            default: [3, 4, 3, 4, 1, 2]
 

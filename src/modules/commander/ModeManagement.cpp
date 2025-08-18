@@ -36,6 +36,7 @@
 #include "ModeManagement.hpp"
 
 #include <px4_platform_common/events.h>
+#include <parameters/param.h>
 
 bool ModeExecutors::hasFreeExecutors() const
 {
@@ -630,6 +631,17 @@ void ModeManagement::getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can
 			// available.
 			valid_nav_state_mask |= 1u << i;
 		}
+	}
+
+	// Rocket navigation mask override - restrict available modes during rocket flight
+	int32_t rocket_nav_mask;
+	if (param_get(param_find("RKT_NAV_MASK"), &rocket_nav_mask) == 0 && rocket_nav_mask != 0) {
+		//PX4_INFO("ROCKET MASK ACTIVE: Original can_set_mask=0x%X, rocket_mask=%d (0x%X)",
+		//         can_set_nav_state_mask, rocket_nav_mask, (uint32_t)rocket_nav_mask);
+
+		// Apply rocket navigation mask directly
+		can_set_nav_state_mask = (uint32_t)rocket_nav_mask;
+		//PX4_INFO("ROCKET MASK APPLIED: Final can_set_mask=0x%X", can_set_nav_state_mask);
 	}
 }
 

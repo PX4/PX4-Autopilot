@@ -54,6 +54,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/actuator_servos.h>
+#include <uORB/topics/actuator_test.h>
 #include <uORB/topics/action_request.h>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -62,6 +63,8 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/wing_deploy_command.h>
+#include <uORB/topics/telemetry_status.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/systemlib/mavlink_log.h>
 
@@ -93,15 +96,17 @@ private:
 	void parameters_update(bool force = false);
 
 	enum class RocketState {
-		WAITING_LAUNCH,    // Armed, waiting for launch detection
-		ROCKET_BOOST,      // Roll-only control during boost
-		ROCKET_COAST,      // Coasting to apogee, monitoring for deployment
-		WING_DEPLOYMENT,   // Wings deploying at apogee
-		FIXED_WING,        // Fixed-wing manual mode
-		LANDED             // Landed state
+		WAITING_GCS_CONNECT, // Waiting for QGroundControl connection
+		WAITING_LAUNCH,      // Ready disarmed, waiting for launch detection
+		ROCKET_BOOST,        // Roll-only control during boost
+		ROCKET_COAST,        // Coasting to apogee, monitoring for deployment
+		WING_DEPLOYMENT,     // Wings deploying at apogee
+		FIXED_WING,          // Fixed-wing manual mode
+		LANDED               // Landed state
 	};
 
 	// State machine handlers
+	void handle_waiting_gcs_connect_phase();
 	void handle_waiting_launch_phase();
 	void handle_rocket_boost_phase();
 	void handle_rocket_coast_phase();
@@ -109,9 +114,11 @@ private:
 	void handle_fixed_wing_phase();
 
 	// Actions
-	void set_rocket_state(RocketState new_state);
 	void deploy_wings_function();
+	void switch_to_rocket_roll_mode();
 	void switch_to_fixed_wing_mode();
+	void configure_rocket_ca_parameters();
+	void configure_fixedwing_ca_parameters();
 	void publish_rocket_status();
 	void send_status_text(const char* text);
 	void request_rocket_navigation_state();
@@ -123,12 +130,15 @@ private:
 	uORB::Subscription _sensor_accel_sub{ORB_ID(sensor_accel)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _telemetry_status_sub{ORB_ID(telemetry_status)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	// Publications
 	uORB::Publication<actuator_servos_s> _actuator_servos_pub{ORB_ID(actuator_servos)};
+	uORB::Publication<actuator_test_s> _actuator_test_pub{ORB_ID(actuator_test)};
 	uORB::Publication<action_request_s> _action_request_pub{ORB_ID(action_request)};
 	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<wing_deploy_command_s> _wing_deploy_pub{ORB_ID(wing_deploy_command)};
 
 	// Data
 	vehicle_local_position_s _vehicle_local_position{};
@@ -137,6 +147,7 @@ private:
 	sensor_accel_s _sensor_accel{};
 	vehicle_attitude_s _vehicle_attitude{};
 	manual_control_setpoint_s _manual_control_setpoint{};
+	telemetry_status_s _telemetry_status{};
 
 	// State variables
 	RocketState _rocket_state;
@@ -144,24 +155,24 @@ private:
 	bool _wing_deployed;
 	bool _apogee_detected;
 	bool _launch_detected;
+	bool _rocket_config_applied; // Track if rocket configuration has been applied
 	float _max_altitude;
 	hrt_abstime _wing_deploy_time;
 	hrt_abstime _launch_detect_time;
 	hrt_abstime _boost_end_time;
 	hrt_abstime _coast_start_time;
 	hrt_abstime _last_status_time;
+	hrt_abstime _gcs_connect_time;
 
 	// Parameters
 	DEFINE_PARAMETERS(
-			   (ParamFloat<px4::params::RKT_APOGEE>) _param_rocket_apogee,
 			   (ParamFloat<px4::params::RKT_DEPLOY_V>) _param_rocket_deploy_v,
-			   (ParamInt<px4::params::RKT_WING_SV>) _param_rocket_wing_sv,
-			   (ParamInt<px4::params::RKT_MODE_SW>) _param_rocket_mode_sw,
+			   (ParamFloat<px4::params::RKT_ALT_THRESH>) _param_rocket_alt_thresh,
 			   (ParamFloat<px4::params::RKT_LAUNCH_A>) _param_rocket_launch_a,
 			   (ParamFloat<px4::params::RKT_LAUNCH_V>) _param_rocket_launch_v,
 			   (ParamFloat<px4::params::RKT_BOOST_A>) _param_rocket_boost_a,
 			   (ParamFloat<px4::params::RKT_BOOST_T>) _param_rocket_boost_t,
 			   (ParamFloat<px4::params::RKT_COAST_T>) _param_rocket_coast_t,
-			   (ParamFloat<px4::params::RKT_WING_T>) _param_rocket_wing_t
+			   (ParamInt<px4::params::RKT_NAV_MASK>) _param_rocket_nav_mask
 	)
 };
