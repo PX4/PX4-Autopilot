@@ -51,7 +51,6 @@
 #include <uORB/topics/rover_throttle_setpoint.h>
 #include <uORB/topics/rover_speed_status.h>
 #include <uORB/topics/rover_speed_setpoint.h>
-#include <uORB/topics/rover_attitude_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 
@@ -71,7 +70,7 @@ public:
 	~MecanumSpeedControl() = default;
 
 	/**
-	 * @brief Generate and publish roverAttitudeSetpoint and RoverThrottleSetpoint from roverSpeedSetpoint.
+	 * @brief Generate and publish RoverThrottleSetpoint from roverSpeedSetpoint.
 	 */
 	void updateSpeedControl();
 
@@ -84,7 +83,7 @@ public:
 	/**
 	 * @brief Reset speed controller.
 	 */
-	void reset() {_pid_speed_x.resetIntegral(); _pid_speed_y.resetIntegral(); _speed_x_setpoint = NAN; _speed_y_setpoint = NAN; _adjusted_speed_x_setpoint.setForcedValue(0.f); _adjusted_speed_y_setpoint.setForcedValue(0.f); _yaw_setpoint = NAN;};
+	void reset() {_pid_speed_x.resetIntegral(); _pid_speed_y.resetIntegral(); _speed_x_setpoint = NAN; _speed_y_setpoint = NAN; _adjusted_speed_x_setpoint.setForcedValue(0.f); _adjusted_speed_y_setpoint.setForcedValue(0.f);};
 
 protected:
 	/**
@@ -112,7 +111,6 @@ private:
 
 	// uORB publications
 	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
-	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
 	uORB::Publication<rover_speed_status_s>   _rover_speed_status_pub{ORB_ID(rover_speed_status)};
 
 	// Variables
@@ -124,7 +122,6 @@ private:
 	float _speed_x_setpoint{NAN};
 	float _speed_y_setpoint{NAN};
 	float _normalized_speed_diff{NAN};
-	float _yaw_setpoint{NAN};
 
 	// Controllers
 	PID _pid_speed_x;

@@ -153,18 +153,15 @@ void MecanumManualMode::position()
 	velocity_setpoint_body(1) = math::interpolate<float>(manual_control_setpoint.roll,
 				    -1.f, 1.f, -_param_ro_speed_limit.get(), _param_ro_speed_limit.get());
 	velocity_setpoint_body(2) = 0.f;
-	const Vector3f velocity_setpoint_ned = _vehicle_attitude_quaternion.rotateVector(velocity_setpoint_body);
 
-
-	if (fabsf(manual_control_setpoint.yaw) > FLT_EPSILON || velocity_setpoint_ned.norm() < FLT_EPSILON) {
+	if (fabsf(manual_control_setpoint.yaw) > FLT_EPSILON || velocity_setpoint_body.norm() < FLT_EPSILON) {
 		_pos_ctl_yaw_setpoint = NAN;
 
 		// Speed control
 		rover_speed_setpoint_s rover_speed_setpoint{};
 		rover_speed_setpoint.timestamp = hrt_absolute_time();
-		rover_speed_setpoint.speed = velocity_setpoint_ned.norm();
-		rover_speed_setpoint.bearing = atan2f(velocity_setpoint_ned(1), velocity_setpoint_ned(0));
-		rover_speed_setpoint.yaw = NAN;
+		rover_speed_setpoint.speed_body_x = velocity_setpoint_body(0);
+		rover_speed_setpoint.speed_body_y = velocity_setpoint_body(1);
 		_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
 
 		// Rate control
@@ -192,6 +189,7 @@ void MecanumManualMode::position()
 		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 
 	} else { // Course control
+		const Vector3f velocity_setpoint_ned = _vehicle_attitude_quaternion.rotateVector(velocity_setpoint_body);
 		const Vector3f pos_ctl_course_direction_local = velocity_setpoint_ned.normalized();
 		const Vector2f pos_ctl_course_direction_temp = Vector2f(pos_ctl_course_direction_local(0),
 				pos_ctl_course_direction_local(1));

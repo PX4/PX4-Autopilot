@@ -139,16 +139,16 @@ void RoverMecanum::updateControllers()
 		_mecanum_pos_control.updatePosControl();
 	}
 
-	if (_vehicle_control_mode.flag_control_velocity_enabled) {
-		_mecanum_speed_control.updateSpeedControl();
-	}
-
 	if (_vehicle_control_mode.flag_control_attitude_enabled) {
 		_mecanum_att_control.updateAttControl();
 	}
 
 	if (_vehicle_control_mode.flag_control_rates_enabled) {
 		_mecanum_rate_control.updateRateControl();
+	}
+
+	if (_vehicle_control_mode.flag_control_velocity_enabled) {
+		_mecanum_speed_control.updateSpeedControl();
 	}
 
 	if (_vehicle_control_mode.flag_control_allocation_enabled) {

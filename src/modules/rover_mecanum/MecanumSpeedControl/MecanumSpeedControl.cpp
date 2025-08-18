@@ -38,7 +38,6 @@ using namespace time_literals;
 MecanumSpeedControl::MecanumSpeedControl(ModuleParams *parent) : ModuleParams(parent)
 {
 	_rover_throttle_setpoint_pub.advertise();
-	_rover_attitude_setpoint_pub.advertise();
 	_rover_speed_status_pub.advertise();
 	updateParams();
 }
@@ -69,15 +68,6 @@ void MecanumSpeedControl::updateSpeedControl()
 	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
 
 	updateSubscriptions();
-
-	// Attitude Setpoint
-	if (PX4_ISFINITE(_yaw_setpoint)) {
-		rover_attitude_setpoint_s rover_attitude_setpoint{};
-		rover_attitude_setpoint.timestamp = _timestamp;
-		rover_attitude_setpoint.yaw_setpoint = _yaw_setpoint;
-		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
-
-	}
 
 	// Throttle Setpoints
 	if (PX4_ISFINITE(_speed_x_setpoint) && PX4_ISFINITE(_speed_y_setpoint)) {
@@ -128,27 +118,8 @@ void MecanumSpeedControl::updateSubscriptions()
 	if (_rover_speed_setpoint_sub.updated()) {
 		rover_speed_setpoint_s rover_speed_setpoint;
 		_rover_speed_setpoint_sub.copy(&rover_speed_setpoint);
-
-		const float speed_setpoint = math::constrain(rover_speed_setpoint.speed, -_param_ro_speed_limit.get(),
-					     _param_ro_speed_limit.get());
-
-		if (PX4_ISFINITE(rover_speed_setpoint.speed) && PX4_ISFINITE(rover_speed_setpoint.bearing)) {
-			const Vector3f velocity_in_local_frame(speed_setpoint * cosf(rover_speed_setpoint.bearing),
-							       speed_setpoint * sinf(rover_speed_setpoint.bearing), 0.f);
-			const Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
-			_speed_x_setpoint = velocity_in_body_frame(0);
-			_speed_y_setpoint = velocity_in_body_frame(1);
-
-		} else if (PX4_ISFINITE(rover_speed_setpoint.speed)) {
-			_speed_x_setpoint = speed_setpoint;
-			_speed_y_setpoint = 0.f;
-
-		} else {
-			_speed_x_setpoint = NAN;
-			_speed_y_setpoint = NAN;
-		}
-
-		_yaw_setpoint = rover_speed_setpoint.yaw;
+		_speed_x_setpoint = rover_speed_setpoint.speed_body_x;
+		_speed_y_setpoint = rover_speed_setpoint.speed_body_y;
 	}
 }
 
