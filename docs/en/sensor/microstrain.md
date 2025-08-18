@@ -1,4 +1,4 @@
-# MicroStrain (INS, IMU, VRU, ARHS)
+# MicroStrain (INS, IMU, VRU, AHRS)
 
 MicroStrain by HBK provides high-performance inertial sensors engineered for reliability and precision in challenging environments.
 Widely used across industries like aerospace, robotics, industrial automation, and research, MicroStrain sensors are optimized for real-time, accurate motion tracking and orientation data.
@@ -45,7 +45,7 @@ To use the MicroStrain driver:
 
      1. Set [MS_MODE](../advanced_config/parameter_reference.md#MS_MODE) to 0
      2. Update the [EKF2_MULTI_IMU](../advanced_config/parameter_reference.md#EKF2_MULTI_IMU) parameter to account for the added MicroStrain sensor.
-     3. Enable EKF2 by setting [EKF_EN](<(../advanced_config/parameter_reference.md#MS_MODE)>) to 1
+     3. Enable EKF2 by setting [EKF2_EN](../advanced_config/parameter_reference.md#EKF2_EN) to 1
      4. To prioritize MicroStrain sensor output, adjust the priority level of individual sensors from 0-100 using the following parameters:
 
         - [CAL_ACCn_PRIO](../advanced_config/parameter_reference.md#CAL_ACC0_PRIO)
@@ -67,7 +67,7 @@ To use the MicroStrain driver:
 
    - To use the MicroStrain sensor as an external INS
      1. Set [MS_MODE](../advanced_config/parameter_reference.md#MS_MODE) to 1
-     2. Disable EKF2 by setting [EKF_EN](<(../advanced_config/parameter_reference.md#MS_MODE)>) to 0
+     2. Disable EKF2 by setting [EKF2_EN](../advanced_config/parameter_reference.md#EKF2_EN) to 0
 
 3. Reboot and start the driver
    - `microstrain start -d <port>`
@@ -84,9 +84,9 @@ To use the MicroStrain driver:
      - [MS_BARO_RATE_HZ](../advanced_config/parameter_reference.md#MS_BARO_RATE_HZ)
 
    - Global position, local position, attitude and odometry will be published at 250 Hz by default.
-     This can be connfigured via:
+     This can be configured via:
 
-     - [MS_FILT_RATE_HZ](../advanced_config/parameter_reference.md#MS_IMU_RATE_HZ)
+     - [MS_FILT_RATE_HZ](../advanced_config/parameter_reference.md#MS_FILT_RATE_HZ)
 
    - For the CV7-GNSS/INS, the GNSS receiver 1 and 2 will publish data at 5Hz by default.
      This can be changed using:
@@ -94,6 +94,7 @@ To use the MicroStrain driver:
      - [MS_GNSS_RATE_HZ](../advanced_config/parameter_reference.md#MS_GNSS_RATE_HZ)
 
    - The driver will automatically configure data outputs based on the specific sensor model and available data streams.
+   - The driver is scheduled to run at twice the fastest configured data rate.
 
 2. Aiding measurements:
 
