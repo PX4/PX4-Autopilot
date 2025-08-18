@@ -81,7 +81,7 @@ private:
 	uint32_t _last_can_set_nav_states_mask{0};
 
 	void send_single_mode(const vehicle_status_s &vehicle_status, int mode_index, int total_num_modes, uint8_t nav_state,
-			      uint32_t delay_us)
+			      uint32_t delay_us = 0)
 	{
 		if (delay_us > 0) {
 			px4_usleep(delay_us);
@@ -148,7 +148,8 @@ private:
 
 		int total_num_modes = math::countSetBits(vehicle_status.valid_nav_states_mask);
 
-		float mode_transmit_time = (float)sizeof(mavlink_available_modes_t) / _mavlink->get_data_rate();
+		float mode_transmit_time = (float)(MAVLINK_MSG_ID_AVAILABLE_MODES_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) /
+					   _mavlink->get_data_rate();
 		uint32_t delay_us = (uint32_t)(mode_transmit_time * 1e6f);
 		delay_us = delay_us >= MIN_DELAY_THRESHOLD ? delay_us : 0;
 		delay_us = delay_us > MAX_DELAY_US ? MAX_DELAY_US : delay_us;
@@ -179,7 +180,7 @@ private:
 			}
 
 			if (nav_state < vehicle_status_s::NAVIGATION_STATE_MAX) {
-				send_single_mode(vehicle_status, mode_index, total_num_modes, nav_state, delay_us);
+				send_single_mode(vehicle_status, mode_index, total_num_modes, nav_state);
 			}
 
 			ret = true;
