@@ -1729,6 +1729,7 @@ const char * VoxlEsc::board_id_to_name(int board_id)
 		case 40: return "ModalAi 4-in-1 ESC (M0129-3)";
 		case 41: return "ModalAi 4-in-1 ESC (M0134-6)";
 		case 42: return "ModalAi 4-in-1 ESC (M0138-1)";
+		case 44: return "ModalAi 4-in-1 ESC (M0129-6)";
 		default: return "Unknown Board";
 	}
 }
