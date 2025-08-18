@@ -46,5 +46,7 @@ Ensure that the drone can go into Altitude / Position flight mode while still on
 ## Expected Results
 
 - Take-off should be smooth as throttle is raised
+- Drone should hold altitude in Altitude Flight mode without wandering
+- Drone should hold position within 1 meter in Position Flight mode without pilot moving sticks
 - No oscillations should present in any of the above flight modes
 - Upon landing, copter should not bounce on the ground
