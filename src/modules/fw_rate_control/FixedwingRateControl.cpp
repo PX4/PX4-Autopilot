@@ -368,8 +368,9 @@ void FixedwingRateControl::Run()
 
 				Vector3f control_u = angular_acceleration_setpoint * _airspeed_scaling * _airspeed_scaling;
 
-				// Special case yaw in Acro: if the parameter FW_ACRO_YAW_CTL is not set then don't control yaw
-				if (!_vcontrol_mode.flag_control_attitude_enabled && !_param_fw_acro_yaw_en.get()) {
+				// Special case yaw in Acro: if the parameter FW_ACRO_YAW_EN is not set then don't rate-control yaw
+				if (!_vcontrol_mode.flag_control_attitude_enabled && _vcontrol_mode.flag_control_manual_enabled
+				    && !_param_fw_acro_yaw_en.get()) {
 					control_u(2) = _manual_control_setpoint.yaw * _param_fw_man_y_sc.get();
 					_rate_control.resetIntegral(2);
 				}
