@@ -1872,6 +1872,13 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
 #endif // !CONSTRAINED_FLASH
 		break;
+		
+	case MAVLINK_MODE_AIRPIXEL_TAGE:
+		configure_stream_local("CAMERA_TRIGGER", unlimited_rate);
+		configure_stream_local("AUTOPILOT_STATE_FOR_GIMBAL_DEVICE", 20.0f);
+		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 20.0f);
+		break;
+		
 
 	default:
 		ret = -1;
