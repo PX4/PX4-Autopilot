@@ -80,7 +80,7 @@
 // RESET    finalise flash programming, reset chip and starts application
 //
 
-#define BL_PROTOCOL_REVISION        5   // The revision of the bootloader protocol
+#define BL_PROTOCOL_REVISION        6   // The revision of the bootloader protocol
 //* Next revision needs to update
 
 // protocol bytes
@@ -157,6 +157,8 @@
 
 static uint8_t bl_type;
 static uint8_t last_input;
+
+static int unlock_seq[] = { 0x93, 0x7C, 0xA1, 0x4E, 0x5D, 0xF0, 0xB5, 0x68 };
 
 int get_version(int n, uint8_t *version_str)
 {
@@ -626,6 +628,8 @@ bootloader(unsigned timeout)
 	volatile uint32_t  bl_state = 0; // Must see correct command sequence to erase and reboot (commit first word)
 	uint32_t  address = board_info.fw_size; /* force erase before upload will work */
 	uint32_t  first_word = 0xffffffff;
+	uint32_t  unlock_idx = 0;
+	bool  bl_locked = true;
 
 	/* (re)start the timer system */
 	arch_systic_init();
@@ -663,6 +667,23 @@ bootloader(unsigned timeout)
 		led_on(LED_ACTIVITY);
 
 		bool full_erase = false;
+
+		if (bl_locked) {
+			if (unlock_seq[unlock_idx] == c) {
+				unlock_idx++;
+				sync_response();
+
+			} else {
+				unlock_idx = 0;
+				invalid_response();
+			}
+
+			if (unlock_idx >= sizeof(unlock_seq)) {
+				bl_locked = false;
+			}
+
+			continue;
+		}
 
 		// handle the command byte
 		switch (c) {
