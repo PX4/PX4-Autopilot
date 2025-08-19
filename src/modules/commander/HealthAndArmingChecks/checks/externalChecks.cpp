@@ -293,6 +293,15 @@ void ExternalChecks::update()
 		arming_check_request_s request{};
 		request.request_id = ++_current_request_id;
 		request.timestamp = hrt_absolute_time();
+		request.valid_registrations_mask = _active_registrations_mask;
+
+		// Clear unresponsive ones
+		for (int i = 0; i < MAX_NUM_REGISTRATIONS; ++i) {
+			if (_registrations[i].unresponsive) {
+				request.valid_registrations_mask &= ~(1u << i);
+			}
+		}
+
 		_arming_check_request_pub.publish(request);
 	}
 }
