@@ -153,6 +153,8 @@ public:
 	void onUserIntendedNavStateChange(ModeChangeSource source, uint8_t user_intended_nav_state) override;
 	uint8_t getReplacedModeIfAny(uint8_t nav_state) override;
 
+	uint8_t onDisarm(uint8_t stored_nav_state) override;
+
 	uint8_t getNavStateReplacementIfValid(uint8_t nav_state, bool report_error = true);
 
 	bool updateControlMode(uint8_t nav_state, vehicle_control_mode_s &control_mode) const;
@@ -209,6 +211,7 @@ public:
 
 	void onUserIntendedNavStateChange(ModeChangeSource source, uint8_t user_intended_nav_state) override {}
 	uint8_t getReplacedModeIfAny(uint8_t nav_state) override { return nav_state; }
+	uint8_t onDisarm(uint8_t stored_nav_state) override { return stored_nav_state; }
 
 	uint8_t getNavStateReplacementIfValid(uint8_t nav_state, bool report_error = true) { return nav_state; }
 
