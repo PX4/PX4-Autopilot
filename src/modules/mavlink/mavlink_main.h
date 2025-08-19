@@ -280,7 +280,7 @@ public:
 
 		case MAVLINK_MODE_DISTANCE_SENSOR:
 			return "DistanceSensor";
-			
+
 		case MAVLINK_MODE_AIRPIXEL_TAGE:
 			return "AirPixel TAG-E";
 
