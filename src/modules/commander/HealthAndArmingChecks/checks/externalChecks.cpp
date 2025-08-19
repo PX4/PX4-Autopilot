@@ -229,8 +229,10 @@ void ExternalChecks::update()
 	int max_num_updates = arming_check_reply_s::ORB_QUEUE_LENGTH;
 
 	while (_arming_check_reply_sub.update(&reply) && --max_num_updates >= 0) {
-		if (reply.registration_id < MAX_NUM_REGISTRATIONS && registrationValid(reply.registration_id)
-		    && _current_request_id == reply.request_id) {
+		const bool valid = reply.registration_id < MAX_NUM_REGISTRATIONS && registrationValid(reply.registration_id);
+		const bool timed_out = now > reply.timestamp + 300_ms;
+
+		if (!timed_out && valid && _current_request_id == reply.request_id) {
 			_reply_received_mask |= 1u << reply.registration_id;
 			_registrations[reply.registration_id].num_no_response = 0;
 			_registrations[reply.registration_id].waiting_for_first_response = false;
