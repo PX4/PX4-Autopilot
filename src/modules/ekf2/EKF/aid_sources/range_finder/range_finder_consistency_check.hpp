@@ -65,7 +65,7 @@ public:
 	void set_terrain_process_noise(float terrain_process_noise) { _terrain_process_noise = terrain_process_noise; }
 	void reset();
 
-	void setHorizontalMotion(const bool horizontal_motion) { _horizontal_motion = horizontal_motion; }
+	void setHorizontalMotion(const bool horizontal_motion);
 	bool getHorizontalMotion() const { return _horizontal_motion; }
 	void setIsLanded(bool landed);
 

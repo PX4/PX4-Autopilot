@@ -181,3 +181,12 @@ void RangeFinderConsistencyCheck::reset()
 
 	_initialized = false;
 }
+
+void RangeFinderConsistencyCheck::setHorizontalMotion(const bool horizontal_motion)
+{
+	if (!horizontal_motion && getHorizontalMotion()) {
+		reset();
+	}
+
+	_horizontal_motion = horizontal_motion;
+}

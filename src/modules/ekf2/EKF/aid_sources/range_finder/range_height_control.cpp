@@ -57,7 +57,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 			_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
 			_range_sensor.setQualityHysteresis(_params.ekf2_rng_qlty_t);
 			_range_sensor.setMaxFogDistance(_params.ekf2_rng_fog);
-			_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
+			_rng_consistency_check.setGate(_params.ekf2_rng_k_gate);
 
 			_range_sensor.runChecks(imu_sample.time_us, _R_to_earth);
 
