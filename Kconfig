@@ -73,8 +73,8 @@ menu "Toolchain"
         help
             relative path to the ROMFS root directory
 
-    config BOARD_DYN_INIT
-        string "Dynamic init file"
+    config BOARD_ADDITIONAL_INIT
+        string "Additional init file"
         help
             additional configurable init file to include in the ROMFS
 

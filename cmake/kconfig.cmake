@@ -339,9 +339,9 @@ if(EXISTS ${BOARD_DEFCONFIG})
 		endif()
 	endif()
 
-	# DYN INIT
-	if(DYN_INIT)
-		set(config_dyn_init ${DYN_INIT} CACHE INTERNAL "dyn init" FORCE)
+	# ADDITIONAL INIT
+	if(ADDITIONAL_INIT)
+		set(config_additional_init ${ADDITIONAL_INIT} CACHE INTERNAL "additional init" FORCE)
 	endif()
 
 	if(UAVCAN_INTERFACES)
