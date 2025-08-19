@@ -15,15 +15,13 @@ To build other targets you will need to use a [different OS](../dev_setup/dev_en
 
 <lite-youtube videoid="tMbMGiMs1cQ" title="Setting up your PX4 development environment on macOS"/>
 
-## Base Setup
+## Development Environment Setup
 
-The "base" macOS setup installs the tools needed for building firmware, and includes the common tools that will be needed for installing/using the simulators.
+### Prerequisites
 
-### Environment Setup
+1. Install Homebrew by following these [installation instructions](https://brew.sh).
 
-First set up the environment
-
-1. Enable more open files by appending the following line to the `~/.zshenv` file (creating it if necessary):
+2. Enable more open files by appending the following line to the `~/.zshenv` file (creating it if necessary):
 
    ```sh
    echo ulimit -S -n 2048 >> ~/.zshenv
@@ -33,74 +31,50 @@ First set up the environment
    If you don't do this, the build toolchain may report the error: `"LD: too many open files"`
    :::
 
-1. Enforce Python 3 by appending the following lines to `~/.zshenv`
+3. Enforce Python 3 by appending the following lines to `~/.zshenv`:
 
    ```sh
    # Point pip3 to macOS system python 3 pip
    alias pip3=/usr/bin/pip3
    ```
 
-### Common Tools
+### Install Development Tools
 
-To setup the environment to be able to build for Pixhawk/NuttX hardware (and install the common tools for using simulators):
-
-1. Install Homebrew by following these [installation instructions](https://brew.sh).
-
-1. Install the required Python packages:
+1. Install the PX4 development toolchain and simulation environment:
 
    ```sh
-   # install required packages using pip3
+   brew tap PX4/px4
+   brew install px4-dev px4-sim
+   ```
+
+2. **Important:** Link the ARM cross-compiler manually (required step):
+
+   ```sh
+   brew link --overwrite --force arm-gcc-bin@13
+   ```
+
+   ::: warning
+   Homebrew does not link versioned formulae by default, so this manual linking step is required for the ARM cross-compiler (v13) to function properly. If you have other versions of arm-none-eabi-gcc installed, this may override them. You can unlink it manually later with `brew unlink arm-gcc-bin@13` if needed.
+   :::
+
+3. Install the required Python packages:
+
+   ```sh
+   # Install required packages using pip3
    python3 -m pip install --user pyserial empty toml numpy pandas jinja2 pyyaml pyros-genmsg packaging kconfiglib future jsonschema
-   # if this fails with a permissions error, your Python install is in a system path - use this command instead:
+   # If this fails with a permissions error, your Python install is in a system path - use this command instead:
    sudo -H python3 -m pip install --user pyserial empty toml numpy pandas jinja2 pyyaml pyros-genmsg packaging kconfiglib future jsonschema
    ```
 
+### Download PX4 Source Code
+
+```sh
+git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+```
+
 ## Gazebo Simulation
 
-To setup the environment for [Gazebo](../sim_gazebo_gz/index.md) simulation with Gazebo Harmonic:
-
-1. Install Gazebo Harmonic and required dependencies:
-
-   ```sh
-   brew install gz-harmonic
-   brew install qt@5 gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly gst-libav
-   ```
-
-1. Configure Qt5 and library paths by adding the following to your `~/.zshrc` file:
-
-   ```sh
-   # Qt5 configuration
-   export Qt5_DIR=/opt/homebrew/opt/qt@5/lib/cmake/Qt5
-   export PATH="/opt/homebrew/opt/qt@5/bin:$PATH"
-   export CMAKE_PREFIX_PATH="/opt/homebrew/opt/qt@5:$CMAKE_PREFIX_PATH"
-
-   # Library paths for GStreamer and other dependencies
-   export PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:$PKG_CONFIG_PATH"
-   export LIBRARY_PATH="/opt/homebrew/lib:$LIBRARY_PATH"
-   export DYLD_LIBRARY_PATH="/opt/homebrew/lib:$DYLD_LIBRARY_PATH"
-   ```
-
-1. Link Qt5 and reload your shell configuration:
-
-   ```sh
-   brew unlink qt@5 && brew link --force qt@5
-   source ~/.zshrc
-   ```
-
-1. Verify Qt5 installation:
-
-   ```sh
-   ls -la /opt/homebrew/lib/cmake/Qt5Core/
-   ```
-
-1. Run the macOS setup script: `PX4-Autopilot/Tools/setup/macos.sh`
-   The easiest way to do this is to clone the PX4 source, and then run the script from the directory, as shown:
-
-   ```sh
-   git clone https://github.com/PX4/PX4-Autopilot.git --recursive
-   cd PX4-Autopilot/Tools/setup
-   sh macos.sh
-   ```
+Gazebo Harmonic simulation support is included with the `px4-sim` formula installed above. The simulation environment should be ready to use after the installation completes.
 
 ## Unsupported Simulation Options
 
@@ -138,7 +112,6 @@ If you need to use Gazebo Classic for legacy projects:
    brew install --cask xquartz
    brew install px4-sim-gazebo
    ```
-
 ## Next Steps
 
 Once you have finished setting up the command-line toolchain:
