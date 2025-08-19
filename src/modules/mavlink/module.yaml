@@ -74,6 +74,8 @@ parameters:
                 11: Onboard Low Bandwidth
                 12: uAvionix
                 13: Low Bandwidth
+                #14: Distance sensor # hidden
+                15: AirPixel TAG-E
             reboot_required: true
             num_instances: *max_num_config_instances
             default: [0, 2, 0]
