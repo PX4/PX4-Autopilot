@@ -286,6 +286,9 @@ PARAM_DEFINE_INT32(SYS_FAC_CAL_MODE, 0);
  * @reboot_required true
  *
  * @group System
+ * @value 0 No bootloader update is performed
+ * @value 1 Bootloader update will be performed (using binary in ROMFS)
+ * @value 2 Bootloader update will be performed (using binary in /fs/microsd/bl/bl.bin)
  */
 PARAM_DEFINE_INT32(SYS_BL_UPDATE, 0);
 
