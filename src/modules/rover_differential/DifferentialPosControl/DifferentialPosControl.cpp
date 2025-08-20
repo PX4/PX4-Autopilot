@@ -38,7 +38,8 @@ using namespace time_literals;
 DifferentialPosControl::DifferentialPosControl(ModuleParams *parent) : ModuleParams(parent)
 {
 	_pure_pursuit_status_pub.advertise();
-	_rover_velocity_setpoint_pub.advertise();
+	_rover_speed_setpoint_pub.advertise();
+	_rover_attitude_setpoint_pub.advertise();
 
 	updateParams();
 }
@@ -81,19 +82,46 @@ void DifferentialPosControl::updatePosControl()
 						   _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), target_waypoint_ned, _start_ned,
 						   _curr_pos_ned, fabsf(speed_setpoint));
 			_pure_pursuit_status_pub.publish(pure_pursuit_status);
-			rover_velocity_setpoint_s rover_velocity_setpoint{};
-			rover_velocity_setpoint.timestamp = timestamp;
-			rover_velocity_setpoint.speed = speed_setpoint;
-			rover_velocity_setpoint.bearing = speed_setpoint > -FLT_EPSILON ? yaw_setpoint : matrix::wrap_pi(
+
+			const float heading_error = matrix::wrap_pi(yaw_setpoint - _vehicle_yaw);
+
+			if (_current_state == DrivingState::DRIVING && fabsf(heading_error) > _param_rd_trans_drv_trn.get()) {
+				_current_state = DrivingState::SPOT_TURNING;
+
+			} else if (_current_state == DrivingState::SPOT_TURNING && fabsf(heading_error) < _param_rd_trans_trn_drv.get()) {
+				_current_state = DrivingState::DRIVING;
+			}
+
+			if (_current_state == DrivingState::SPOT_TURNING) {
+				speed_setpoint = 0.f; // stop during spot turning
+
+			} else if (_param_ro_speed_red.get() > FLT_EPSILON) {
+				const float speed_reduction = math::constrain(_param_ro_speed_red.get() * math::interpolate(fabsf(heading_error),
+							      0.f, M_PI_F, 0.f, 1.f), 0.f, 1.f);
+				const float max_speed = math::constrain(_param_ro_max_thr_speed.get() * (1.f - speed_reduction), 0.f,
+									_param_ro_max_thr_speed.get());
+				speed_setpoint = math::constrain(speed_setpoint, -max_speed, max_speed);
+			}
+
+			rover_speed_setpoint_s rover_speed_setpoint{};
+			rover_speed_setpoint.timestamp = timestamp;
+			rover_speed_setpoint.speed_body_x = speed_setpoint;
+			_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
+			rover_attitude_setpoint_s rover_attitude_setpoint{};
+			rover_attitude_setpoint.timestamp = timestamp;
+			rover_attitude_setpoint.yaw_setpoint = speed_setpoint > -FLT_EPSILON ? yaw_setpoint : matrix::wrap_pi(
 					yaw_setpoint + M_PI_F);
-			_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
+			_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
 
 		}  else {
-			rover_velocity_setpoint_s rover_velocity_setpoint{};
-			rover_velocity_setpoint.timestamp = timestamp;
-			rover_velocity_setpoint.speed = 0.f;
-			rover_velocity_setpoint.bearing = _vehicle_yaw;
-			_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
+			rover_speed_setpoint_s rover_speed_setpoint{};
+			rover_speed_setpoint.timestamp = timestamp;
+			rover_speed_setpoint.speed_body_x = 0.f;
+			_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
+			rover_attitude_setpoint_s rover_attitude_setpoint{};
+			rover_attitude_setpoint.timestamp = timestamp;
+			rover_attitude_setpoint.yaw_setpoint = _vehicle_yaw;
+			_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
 		}
 	}
 
