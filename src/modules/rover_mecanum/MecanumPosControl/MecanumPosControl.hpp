@@ -38,7 +38,6 @@
 #include <px4_platform_common/events.h>
 
 // Libraries
-#include <lib/rover_control/RoverControl.hpp>
 #include <matrix/matrix/math.hpp>
 #include <lib/pure_pursuit/PurePursuit.hpp>
 #include <lib/geo/geo.h>
@@ -80,6 +79,13 @@ public:
 	 */
 	bool runSanityChecks();
 
+	/**
+	 * @brief Reset position controller.
+	 */
+	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_limit.get(); _stopped = false;};
+
+protected:
+
 protected:
 	/**
 	 * @brief Update the parameters of the module.
@@ -96,7 +102,6 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _rover_position_setpoint_sub{ORB_ID(rover_position_setpoint)};
-	rover_position_setpoint_s _rover_position_setpoint{};
 
 	// uORB publications
 	uORB::Publication<rover_speed_setpoint_s>    _rover_speed_setpoint_pub{ORB_ID(rover_speed_setpoint)};
@@ -107,13 +112,16 @@ private:
 	Quatf _vehicle_attitude_quaternion{};
 	Vector2f _curr_pos_ned{};
 	Vector2f _start_ned{};
+	Vector2f _target_waypoint_ned{};
 	float _arrival_speed{0.f};
 	float _vehicle_yaw{0.f};
 	float _max_yaw_rate{0.f};
 	float _yaw_setpoint{NAN};
-
-	// Class Instances
-	MapProjection _global_ned_proj_ref{}; // Transform global to NED coordinates
+	float _vehicle_speed{0.f};
+	float _cruising_speed{NAN};
+	bool _stopped{false};
+	uint8_t _reset_counter{0}; /**< counter for estimator resets in xy-direction */
+	uint8_t _updated_reset_counter{0}; /**< counter for estimator resets in xy-direction */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RM_COURSE_CTL_TH>) _param_rm_course_ctl_th,
