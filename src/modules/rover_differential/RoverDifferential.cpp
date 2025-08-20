@@ -139,16 +139,16 @@ void RoverDifferential::updateControllers()
 		_differential_pos_control.updatePosControl();
 	}
 
-	if (_vehicle_control_mode.flag_control_velocity_enabled) {
-		_differential_vel_control.updateVelControl();
-	}
-
 	if (_vehicle_control_mode.flag_control_attitude_enabled) {
 		_differential_att_control.updateAttControl();
 	}
 
 	if (_vehicle_control_mode.flag_control_rates_enabled) {
 		_differential_rate_control.updateRateControl();
+	}
+
+	if (_vehicle_control_mode.flag_control_velocity_enabled) {
+		_differential_speed_control.updateSpeedControl();
 	}
 
 	if (_vehicle_control_mode.flag_control_allocation_enabled) {
@@ -168,7 +168,7 @@ void RoverDifferential::runSanityChecks()
 		return;
 	}
 
-	if (_vehicle_control_mode.flag_control_velocity_enabled && !_differential_vel_control.runSanityChecks()) {
+	if (_vehicle_control_mode.flag_control_velocity_enabled && !_differential_speed_control.runSanityChecks()) {
 		_sanity_checks_passed = false;
 		return;
 	}
@@ -183,7 +183,7 @@ void RoverDifferential::runSanityChecks()
 
 void RoverDifferential::reset()
 {
-	_differential_vel_control.reset();
+	_differential_speed_control.reset();
 	_differential_att_control.reset();
 	_differential_rate_control.reset();
 	_manual_mode.reset();
