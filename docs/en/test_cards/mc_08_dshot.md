@@ -6,10 +6,10 @@ Regression test for DSHOT working with PX4
 
 ## Preflight
 
-Ensure vehicle is using a DSHOT ESC.
-Parameter DSHOT_BIDIR_EN is enabled
-Parameter DSHOT_TEL_CFG is configured (if ESC supports telemetry)
-Parameter SDLOG_PROFILE has Debug (`5`) checked
+- Ensure vehicle is using a DSHOT ESC.
+- Parameter [DSHOT_BIDIR_EN](../advanced_config/parameter_reference.md#DSHOT_BIDIR_EN) is enabled
+- Parameter [DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG) is configured (if ESC supports telemetry)
+- Parameter [SDLOG_PROFILE](../advanced_config/parameter_reference.md#SDLOG_PROFILE) has Debug (`5`) checked
 
 ## Flight Tests
 
@@ -39,7 +39,8 @@ Parameter SDLOG_PROFILE has Debug (`5`) checked
 
 ## Expected Results
 
-- Download fligtht logs
+- Download flight logs
 - Load into Data Plot Juggler
 - Ensure data is logged for esc_status/esc.0x/esc_rpm
-![Reference frames](../../assets/test_cards/dshot_log_output.png)
+
+  ![Reference frames](../../assets/test_cards/dshot_log_output.png)

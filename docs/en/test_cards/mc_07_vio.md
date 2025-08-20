@@ -2,7 +2,7 @@
 
 ## Objective
 
-To test that external vision (VIO) work as expected
+To test that external vision (VIO) works as expected
 
 ## Preflight
 
@@ -10,11 +10,12 @@ Disconnect all GPS / compasses and ensure vehicle is using VIO for navigation
 
 Ensure that the drone can go into Altitude / Position flight mode while still on the ground
 
-Ensure there are no other sources of positioning besides VIO
-- EKF2_OF_CTRL: `0`
-- KF2_GPS_CTRL: `0`
-- EKF2_EV_CTRL: `15`
-- SYS_HAS_MAG: `0`
+Ensure there are no other sources of positioning besides VIO:
+
+- [EKF2_OF_CTRL](../advanced_config/parameter_reference.md#EKF2_OF_CTRL): `0`
+- [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL): `0`
+- [EKF2_EV_CTRL](../advanced_config/parameter_reference.md#EKF2_EV_CTRL): `15`
+- [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG): `0`
 
 ## Flight Tests
 
