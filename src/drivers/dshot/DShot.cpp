@@ -85,7 +85,8 @@ bool DShot::initialize_dshot()
 	uint32_t dshot_frequency_param = 0;
 
 	// Mark all channels as used, we will disable the unused groups below
-	_output_mask = (1u << DSHOT_MAXIMUM_CHANNELS) - 1;
+	// _output_mask = (1u << DSHOT_MAXIMUM_CHANNELS) - 1;
+	_output_mask = 0;
 
 	for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
 
@@ -106,16 +107,19 @@ bool DShot::initialize_dshot()
 
 		if (tim_config == -5) {
 			dshot_frequency_request = DSHOT150;
+			_output_mask |= channels;
 
 		} else if (tim_config == -4) {
 			dshot_frequency_request = DSHOT300;
+			_output_mask |= channels;
 
 		} else if (tim_config == -3) {
 			dshot_frequency_request = DSHOT600;
+			_output_mask |= channels;
 
 		} else {
 			// Timer group is not configured for dshot, disable channels in output mask
-			_output_mask &= ~channels;
+			// _output_mask &= ~channels;
 		}
 
 		if (dshot_frequency_request != 0) {
