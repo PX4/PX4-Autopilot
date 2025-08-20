@@ -30,8 +30,9 @@ That is the minimum setup to use the rover in [Manual mode](../flight_modes_rove
 The rest of the tuning on this page is not mandatory for [Manual mode](../flight_modes_rover/manual.md#manual-mode), but it will have an effect on the behaviour of the rover.
 :::
 
-:::warning
-All parameters without the `(Optional)` tag will be mandatory for all subsequent modes. If you intend to use more sophisticated modes do not skip the rest of this setup!
+::: warning
+Do not skip the rest of this setup if you intend to use more sophisticated modes!
+All parameters will be mandatory for all subsequent modes, except those tagged as `(Optional)`.
 :::
 
 ## Geometric Parameters
@@ -48,7 +49,7 @@ Navigate to [Parameters](../advanced_config/parameters.md) in QGroundControl and
 2. [RA_MAX_STR_ANG](#RA_MAX_STR_ANG) [deg]: Measure the maximum steering angle.
 3. (Optional) [RA_STR_RATE_LIM](#RA_STR_RATE_LIM) [deg/s]: Maximum steering rate you want to allow for your rover.
 
-   :::tip
+   ::: tip
    This value depends on your rover and use case.
    For bigger rovers there might be a mechanical limit that is easy to identify by steering the rover at a standstill and increasing
    [RA_STR_RATE_LIM](#RA_STR_RATE_LIM) until you observe the steering rate to no longer be limited by the parameter.
@@ -56,7 +57,7 @@ Navigate to [Parameters](../advanced_config/parameters.md) in QGroundControl and
    Increase the parameter until you reach the maximum steering rate you are comfortable with.
    :::
 
-   :::warning
+   ::: warning
    A low maximum steering rate makes the rover worse at tracking steering setpoints, which can lead to a poor performance in the subsequent modes.
    :::
 
@@ -86,14 +87,12 @@ Navigate to [Parameters](../advanced_config/parameters.md) in QGroundControl and
    This may or may not be appropriate for your vehicle and use case.
 
    One approach to determine an appropriate value is:
-
    1. From a standstill, give the rover full throttle until it reaches the maximum speed.
    2. Disarm the rover and plot the `measured_speed_body_x` from [RoverVelocityStatus](../msg_docs/RoverVelocityStatus.md).
    3. Divide the maximum speed by the time it took to reach it and set this as the value for [RO_ACCEL_LIM](#RO_ACCEL_LIM).
 
    Some RC rovers have enough torque to lift up if the maximum acceleration is not limited.
    If that is the case:
-
    1. Set [RO_ACCEL_LIM](#RO_ACCEL_LIM) to a low value, give the rover full throttle from a standstill and observe its behaviour.
    2. Increase [RO_ACCEL_LIM](#RO_ACCEL_LIM) until the rover starts to lift up during the acceleration.
    3. Set [RO_ACCEL_LIM](#RO_ACCEL_LIM) to the highest value that does not cause the rover to lift up.
@@ -119,12 +118,14 @@ $$
 $$
 
 with:
+
 - $\delta \in [-1, 1]=$ Normalized steering setpoint.
 - $x \in [-1, 1]=$ Normalized stick input.
 - $f=$ [RO_YAW_EXPO](#RO_YAW_EXPO): `0` Purely linear input curve, `1` Purely cubic input curve.
 - $g=$ [RO_YAW_SUPEXPO](#RO_YAW_SUPEXPO): `0` Pure Expo function, `0.7` reasonable shape enhancement for intuitive stick feel, `0.95` very strong bent input curve only near maxima have effect.
 
 In [Manual mode](../flight_modes_rover/manual.md#manual-mode) we can additionally scale $\delta$ with an additional parameter $r$:
+
 - Differential Rover: $r=$ [RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN), which enables adjusting the slope of the input mapping. This leads to a normalized steering input $\hat{\delta} = \delta \cdot r \in$ [-[RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN), [RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN)].
 - Mecanum Rover: $r=$ [RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN), which enables adjusting the slope of the input mapping. This leads to a normalized steering input $\hat{\delta} = \delta \cdot r \in$ [-[RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN), [RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN)].
 
@@ -132,11 +133,11 @@ This scaling is useful to limit the normalized steering setpoint, if it is too a
 
 You can experiment with the relationships graphically using the [PX4 SuperExpo Rover calculator](https://www.desmos.com/calculator/gwm8lrlanx).
 
-:::note
+::: info
 In [Acro](../flight_modes_rover/manual.md#acro-mode), [Stabilized](../flight_modes_rover/manual.md#stabilized-mode) and [Position](../flight_modes_rover/manual.md#position-mode) Mode, $\delta$ is instead scaled by $r=$ [RO_YAW_RATE_LIM](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED) for all rovers. This leads to a yaw rate setpoint $\dot{\psi} = \delta \cdot r \in$ [-[RO_YAW_RATE_LIM](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED), [RO_YAW_RATE_LIM](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED)]. This parameter is setup during [rate tuning](rate_tuning.md).
 :::
 
-:::note
+::: info
 The input shaping through [RO_YAW_EXPO](#RO_YAW_EXPO) and [RO_YAW_SUPEXPO](#RO_YAW_SUPEXPO) applies for all manual modes, while [RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN)/[RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN) only affects full manual mode.
 :::
 
@@ -152,7 +153,6 @@ You can now continue the configuration process with [rate tuning](rate_tuning.md
 | <a id="RO_YAW_EXPO"></a>[RO_YAW_EXPO](../advanced_config/parameter_reference.md#RO_YAW_EXPO)                | (Optional) Yaw rate expo factor            | $-$     |
 | <a id="RO_YAW_SUPEXPO"></a>[RO_YAW_SUPEXPO](../advanced_config/parameter_reference.md#RO_YAW_SUPEXPO)       | (Optional) Yaw rate super expo factor      | $-$     |
 
-
 ### Ackermann Specific
 
 | Parameter                                                                                                | Description                              | Unit  |
@@ -167,7 +167,6 @@ You can now continue the configuration process with [rate tuning](rate_tuning.md
 | -------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ---- |
 | <a id="RD_WHEEL_TRACK"></a>[RD_WHEEL_TRACK](../advanced_config/parameter_reference.md#RD_WHEEL_TRACK)    | Wheel track                               | $m$  |
 | <a id="RD_YAW_STK_GAIN"></a>[RD_YAW_STK_GAIN](../advanced_config/parameter_reference.md#RD_YAW_STK_GAIN) | (Optional) Yaw stick gain for Manual mode | $-$  |
-
 
 ### Mecanum Specific
 
