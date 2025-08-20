@@ -26,7 +26,7 @@
 
 That is the minimum setup to use the rover in [Manual mode](../flight_modes_rover/manual.md#manual-mode).
 
-:::note
+::: info
 The rest of the tuning on this page is not mandatory for [Manual mode](../flight_modes_rover/manual.md#manual-mode), but it will have an effect on the behaviour of the rover.
 :::
 
