@@ -14,7 +14,7 @@
 # @output Motor7 back left thruster, +y thrust
 # @output Motor8 back right thruster, -y thrust
 #
-# @maintainer DISCOWER
+# @maintainer discower-io
 # @url https://atmos.discower.io
 #
 
