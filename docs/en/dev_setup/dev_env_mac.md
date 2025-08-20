@@ -54,7 +54,9 @@ To build other targets you will need to use a [different OS](../dev_setup/dev_en
    ```
 
    ::: warning
-   Homebrew does not link versioned formulae by default, so this manual linking step is required for the ARM cross-compiler (v13) to function properly. If you have other versions of arm-none-eabi-gcc installed, this may override them. You can unlink it manually later with `brew unlink arm-gcc-bin@13` if needed.
+   Homebrew does not link versioned formulae by default, so this manual linking step is required for the ARM cross-compiler (v13) to function properly.
+   If you have other versions of `arm-none-eabi-gcc` installed, this may override them.
+   You can unlink it manually later with `brew unlink arm-gcc-bin@13` if needed.
    :::
 
 3. Install the required Python packages:
@@ -74,13 +76,15 @@ git clone https://github.com/PX4/PX4-Autopilot.git --recursive
 
 ## Gazebo Simulation
 
-Gazebo Harmonic simulation support is included with the `px4-sim` formula installed above. The simulation environment should be ready to use after the installation completes.
+Gazebo Harmonic simulation support is included with the `px4-sim` formula installed above.
+The simulation environment should be ready to use after the installation completes.
 
 ## Unsupported Simulation Options
 
 ### Gazebo Classic
 
-[Gazebo Classic](../sim_gazebo_classic/index.md) is no longer actively supported for new installations. For simulation, we recommend using [Gazebo](../sim_gazebo_gz/index.md) (Gazebo Harmonic) instead.
+[Gazebo Classic](../sim_gazebo_classic/index.md) is no longer actively supported for new installations.
+For simulation, we recommend using [Gazebo](../sim_gazebo_gz/index.md) (Gazebo Harmonic) instead.
 
 If you need to use Gazebo Classic for legacy projects:
 
@@ -112,6 +116,7 @@ If you need to use Gazebo Classic for legacy projects:
    brew install --cask xquartz
    brew install px4-sim-gazebo
    ```
+
 ## Next Steps
 
 Once you have finished setting up the command-line toolchain:
