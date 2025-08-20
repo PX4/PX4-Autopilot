@@ -69,7 +69,7 @@ void AckermannOffboardMode::offboardControl()
 		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 
 	} else if (offboard_control_mode.velocity) {
-		const Vector2f velocity_ned(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]); \
+		const Vector2f velocity_ned(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
 		rover_speed_setpoint_s rover_speed_setpoint{};
 		rover_speed_setpoint.timestamp = hrt_absolute_time();
 		rover_speed_setpoint.speed_body_x = velocity_ned.norm();
