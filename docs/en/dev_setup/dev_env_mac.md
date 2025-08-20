@@ -21,7 +21,7 @@ To build other targets you will need to use a [different OS](../dev_setup/dev_en
 
 1. Install Homebrew by following these [installation instructions](https://brew.sh).
 
-2. Enable more open files by appending the following line to the `~/.bashrc` file (creating it if necessary):
+2. Enable more open files by appending the following line to the `~/.bashrc` (or `~/.zshrc` for zsh)  file or creating it if necessary:
 
    ```sh
    echo ulimit -S -n 2048 >> ~/.bashrc
@@ -31,7 +31,7 @@ To build other targets you will need to use a [different OS](../dev_setup/dev_en
    If you don't do this, the build toolchain may report the error: `"LD: too many open files"`
    :::
 
-3. Enforce Python 3 by appending the following lines to `~/.bashrc`:
+3. Enforce Python 3 by appending the following lines to `~/.bashrc`(or `~/.zshrc` for zsh):
 
    ```sh
    # Point pip3 to macOS system python 3 pip
