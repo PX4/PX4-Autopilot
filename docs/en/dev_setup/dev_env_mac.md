@@ -21,17 +21,17 @@ To build other targets you will need to use a [different OS](../dev_setup/dev_en
 
 1. Install Homebrew by following these [installation instructions](https://brew.sh).
 
-2. Enable more open files by appending the following line to the `~/.zshenv` file (creating it if necessary):
+2. Enable more open files by appending the following line to the `~/.bashrc` file (creating it if necessary):
 
    ```sh
-   echo ulimit -S -n 2048 >> ~/.zshenv
+   echo ulimit -S -n 2048 >> ~/.bashrc
    ```
 
    ::: info
    If you don't do this, the build toolchain may report the error: `"LD: too many open files"`
    :::
 
-3. Enforce Python 3 by appending the following lines to `~/.zshenv`:
+3. Enforce Python 3 by appending the following lines to `~/.bashrc`:
 
    ```sh
    # Point pip3 to macOS system python 3 pip
@@ -78,44 +78,6 @@ git clone https://github.com/PX4/PX4-Autopilot.git --recursive
 
 Gazebo Harmonic simulation support is included with the `px4-sim` formula installed above.
 The simulation environment should be ready to use after the installation completes.
-
-## Unsupported Simulation Options
-
-### Gazebo Classic
-
-[Gazebo Classic](../sim_gazebo_classic/index.md) is no longer actively supported for new installations.
-For simulation, we recommend using [Gazebo](../sim_gazebo_gz/index.md) (Gazebo Harmonic) instead.
-
-If you need to use Gazebo Classic for legacy projects:
-
-1. Run these commands in your shell to install the common tools:
-
-   ```sh
-   brew tap PX4/px4
-   brew install px4-dev
-   ```
-
-1. Run the following commands in your shell:
-
-   ```sh
-   brew unlink tbb
-   sed -i.bak '/disable! date:/s/^/  /; /disable! date:/s/./#/3' $(brew --prefix)/Library/Taps/homebrew/homebrew-core/Formula/tbb@2020.rb
-   brew install tbb@2020
-   brew link tbb@2020
-   ```
-
-   ::: info
-   September 2021: The commands above are a workaround to this bug: [PX4-Autopilot#17644](https://github.com/PX4/PX4-Autopilot/issues/17644).
-   They can be removed once it is fixed (along with this note).
-   :::
-
-1. To install SITL simulation with Gazebo Classic:
-
-   ```sh
-   brew install --cask temurin
-   brew install --cask xquartz
-   brew install px4-sim-gazebo
-   ```
 
 ## Next Steps
 
