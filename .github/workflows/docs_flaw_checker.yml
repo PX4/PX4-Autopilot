@@ -43,7 +43,8 @@ jobs:
       - name: Save JSON file containing files to link check
         run: |
           echo "$ALL_CHANGED_FILES"
-          echo "$ALL_CHANGED_FILES" > ./logs/prFiles.json
+          # echo "$ALL_CHANGED_FILES" > ./logs/prFiles.json
+          echo "$ALL_CHANGED_FILES" | jq '.' > ./logs/prFiles.json
         env:
           ALL_CHANGED_FILES: ${{ steps.get_changed_markdown_english.outputs.all_changed_files }}
 
