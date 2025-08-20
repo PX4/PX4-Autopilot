@@ -44,7 +44,7 @@ jobs:
         run: |
           echo "$ALL_CHANGED_FILES"
           # echo "$ALL_CHANGED_FILES" > ./logs/prFiles.json
-          jq '.' <<< "$ALL_CHANGED_FILES" > ./logs/prFiles.json
+          echo "$ALL_CHANGED_FILES" | sed 's/\\//g' | jq '.' > ./logs/prFiles.json
         env:
           ALL_CHANGED_FILES: ${{ steps.get_changed_markdown_english.outputs.all_changed_files }}
 
