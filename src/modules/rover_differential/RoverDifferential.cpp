@@ -183,6 +183,7 @@ void RoverDifferential::runSanityChecks()
 
 void RoverDifferential::reset()
 {
+	_differential_pos_control.reset();
 	_differential_speed_control.reset();
 	_differential_att_control.reset();
 	_differential_rate_control.reset();

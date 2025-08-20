@@ -38,7 +38,6 @@
 #include <px4_platform_common/events.h>
 
 // Libraries
-#include <lib/rover_control/RoverControl.hpp>
 #include <matrix/matrix/math.hpp>
 #include <lib/pure_pursuit/PurePursuit.hpp>
 #include <math.h>
@@ -87,6 +86,11 @@ public:
 	 */
 	bool runSanityChecks();
 
+	/**
+	 * @brief Reset position controller.
+	 */
+	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_limit.get(); _stopped = false;};
+
 protected:
 	/**
 	 * @brief Update the parameters of the module.
@@ -103,7 +107,6 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _rover_position_setpoint_sub{ORB_ID(rover_position_setpoint)};
-	rover_position_setpoint_s _rover_position_setpoint{};
 
 	// uORB publications
 	uORB::Publication<rover_speed_setpoint_s> _rover_speed_setpoint_pub{ORB_ID(rover_speed_setpoint)};
@@ -111,10 +114,17 @@ private:
 	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
 
 	// Variables
+	Quatf _vehicle_attitude_quaternion{};
 	Vector2f _curr_pos_ned{};
 	Vector2f _start_ned{};
+	Vector2f _target_waypoint_ned{};
 	float _arrival_speed{0.f};
 	float _vehicle_yaw{0.f};
+	float _vehicle_speed{0.f};
+	float _cruising_speed{NAN};
+	bool _stopped{false};
+	uint8_t _reset_counter{0}; /**< counter for estimator resets in xy-direction */
+	uint8_t _updated_reset_counter{0}; /**< counter for estimator resets in xy-direction */
 	DrivingState _current_state{DrivingState::DRIVING};
 
 	DEFINE_PARAMETERS(
@@ -128,6 +138,7 @@ private:
 		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
 		(ParamFloat<px4::params::PP_LOOKAHD_MIN>)   _param_pp_lookahd_min,
 		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad,
-		(ParamFloat<px4::params::RO_SPEED_RED>)     _param_ro_speed_red
+		(ParamFloat<px4::params::RO_SPEED_RED>)     _param_ro_speed_red,
+		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th
 	)
 };
