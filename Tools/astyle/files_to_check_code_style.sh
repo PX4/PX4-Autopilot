@@ -12,6 +12,7 @@ exec find boards msg src platforms test \
     -path platforms/nuttx/NuttX -prune -o \
     -path platforms/qurt/dspal -prune -o \
     -path src/drivers/ins/ilabs -prune -o \
+		-path src/drivers/ins/microstrain/mip_sdk -prune -o \
     -path src/drivers/ins/vectornav/libvnc -prune -o \
     -path src/drivers/uavcan/libdronecan -prune -o \
     -path src/drivers/uavcan/libuavcan -prune -o \
@@ -37,4 +38,5 @@ exec find boards msg src platforms test \
     -path src/modules/zenoh/zenoh-pico -prune -o \
     -path boards/modalai/voxl2/libfc-sensor-api -prune -o \
     -path src/drivers/actuators/vertiq_io/iq-module-communication-cpp -prune -o \
+    -path src/lib/tensorflow_lite_micro/tflite_micro -prune -o \
     \( -type f \( -name "*.c" -o -name "*.h" -o -name "*.cpp" -o -name "*.hpp" \) -print \) | grep $PATTERN

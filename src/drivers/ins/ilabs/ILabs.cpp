@@ -191,7 +191,8 @@ After that you can use the ILABS_MODE parameter to config outputs:
 - Only raw sensor output (the default).
 - Sensor output and INS data such as position and velocity estimates.
 
-Setup/usage information: https://docs.px4.io/main/en/sensor/ilabs.html
+Setup/usage information: https://docs.px4.io/main/en/sensor/inertiallabs.html
+
 
 ### Examples
 

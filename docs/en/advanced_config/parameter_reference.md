@@ -14094,6 +14094,7 @@ Sideslip measurement noise of the internal wind estimator(s) of the airspeed sel
 Enable checks on airspeed sensors.
 
 Controls which checks are run to check airspeed data for validity. Only applied if ASPD_PRIMARY > 0.
+Note: The missing data check (bit 0) is implicitly always enabled when ASPD_DO_CHECKS > 0, even if bit 0 is not explicitly set.
 
 **Bitmask:**
 
@@ -14273,14 +14274,14 @@ True airspeed measurement noise of the internal wind estimator(s) of the airspee
 
 ### ASPD_WERR_THR (`FLOAT`) {#ASPD_WERR_THR}
 
-Horizontal wind uncertainty threshold for synthetic airspeed.
+Horizontal wind uncertainty threshold for valid ground-minus-wind.
 
-The synthetic airspeed estimate (from groundspeed and heading) will be declared valid
+The airspeed alternative derived from groundspeed and heading will be declared valid
 as soon and as long the horizontal wind uncertainty is below this value.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.001    | 5        |           | 0.55    | m/s  |
+| &nbsp; | 0.01     | 5        |           | 2.      | m/s  |
 
 ### ASPD_WIND_NSD (`FLOAT`) {#ASPD_WIND_NSD}
 
@@ -15107,6 +15108,7 @@ Specify USB MAVLink mode.
 - `10`: gimbal
 - `11`: onboard_low_bandwidth
 - `12`: uavionix
+- `13`: Low Bandwidth
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
@@ -15924,7 +15926,7 @@ the estimated time it takes to reach the RTL destination.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          | 1         | 3       |
+| &nbsp; |          |          | 1         | 0       |
 
 ### COM_FLT_PROFILE (`INT32`) {#COM_FLT_PROFILE}
 
@@ -16396,6 +16398,8 @@ A value of 1 allows joystick control only. RC input handling and the associated 
 A value of 2 allows either RC Transmitter or Joystick input. The first valid input is used, will fallback to other sources if the input stream becomes invalid.
 A value of 3 allows either input from RC or joystick. The first available source is selected and used until reboot.
 A value of 4 ignores any stick input.
+A value of 5 allows either RC Transmitter or Joystick input. But RC has priority and whenever avaiable is immedietely used.
+A value of 6 allows either RC Transmitter or Joystick input. But Joystick has priority and whenever avaiable is immedietely used.
 
 **Values:**
 
@@ -16404,6 +16408,8 @@ A value of 4 ignores any stick input.
 - `2`: RC and Joystick with fallback
 - `3`: RC or Joystick keep first
 - `4`: Stick input disabled
+- `5`: RC priority, Joystick fallback
+- `6`: Joystick priority, RC fallback
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -17009,6 +17015,21 @@ Sets the number of standard deviations used by the innovation consistency test.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 1.0      |          |           | 3.0     | SD   |
 
+### EKF2_AGP_MODE (`INT32`) {#EKF2_AGP_MODE}
+
+Fusion reset mode.
+
+Automatic: reset on fusion timeout if no other source of position is available Dead-reckoning: reset on fusion timeout if no source of velocity is available
+
+**Values:**
+
+- `0`: Automatic
+- `1`: Dead-reckoning
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
 ### EKF2_AGP_NOISE (`FLOAT`) {#EKF2_AGP_NOISE}
 
 Measurement noise for aux global position measurements.
@@ -17382,10 +17403,11 @@ Each threshold value is defined by the parameter indicated next to the check. Dr
 - `7`: Horizontal speed offset (EKF2_REQ_HDRIFT)
 - `8`: Vertical speed offset (EKF2_REQ_VDRIFT)
 - `9`: Spoofing
+- `10`: GPS fix type (EKF2_REQ_FIX)
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1023     |           | 1023    |
+| &nbsp; | 0        | 2047     |           | 2047    |
 
 ### EKF2_GPS_CTRL (`INT32`) {#EKF2_GPS_CTRL}
 
@@ -17411,6 +17433,21 @@ GPS measurement delay relative to IMU measurements.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | 0        | 300      |           | 110     | ms   |
+
+### EKF2_GPS_MODE (`INT32`) {#EKF2_GPS_MODE}
+
+Fusion reset mode.
+
+Automatic: reset on fusion timeout if no other source of position is available Dead-reckoning: reset on fusion timeout if no source of velocity is available
+
+**Values:**
+
+- `0`: Automatic
+- `1`: Dead-reckoning
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
 
 ### EKF2_GPS_POS_X (`FLOAT`) {#EKF2_GPS_POS_X}
 
@@ -17978,6 +18015,26 @@ Required EPV to use GPS.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 2        | 100      |           | 5.0     | m    |
+
+### EKF2_REQ_FIX (`INT32`) {#EKF2_REQ_FIX}
+
+Required GPS fix.
+
+Minimum GPS fix type required for GPS usage.
+
+**Values:**
+
+- `0`: No fix required
+- `2`: 2D fix
+- `3`: 3D fix
+- `4`: RTCM code differential
+- `5`: RTK float
+- `6`: RTK fixed
+- `8`: Extrapolated
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 3       |
 
 ### EKF2_REQ_GPS_H (`FLOAT`) {#EKF2_REQ_GPS_H}
 
@@ -20105,6 +20162,20 @@ Auto-detection will probe all protocols, and thus is a bit slower.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | 0        | 6        |           | 1       |
+
+### GPS_CFG_WIPE (`INT32`) {#GPS_CFG_WIPE}
+
+Wipes the flash config of UBX modules.
+
+Some UBX modules have a FLASH that allows to store persistent configuration that will be loaded on start.
+PX4 does override all configuration parameters it needs in RAM, which takes precedence over the values in FLASH.
+However, configuration parameters that are not overriden by PX4 can still cause unexpected problems during flight.
+To avoid these kind of problems a clean config can be reached by wiping the FLASH on boot.
+Note: Currently only supported on UBX.
+
+| Reboot  | minValue | maxValue | increment | default      | unit |
+| ------- | -------- | -------- | --------- | ------------ | ---- |
+| &check; |          |          |           | Disabled (0) |
 
 ### GPS_DUMP_COMM (`INT32`) {#GPS_DUMP_COMM}
 
@@ -24938,11 +25009,13 @@ Acceptance radius for fixedwing altitude.
 
 Loiter radius (FW only).
 
-Default value of loiter radius in FW mode (e.g. for Loiter mode).
+Default value of loiter radius in fixed-wing mode (e.g. for Loiter mode).
+The direction of the loiter can be set via the sign: A positive value for
+clockwise, negative for counter-clockwise.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 25       | 1000     | 0.5       | 80.0    | m    |
+| &nbsp; | -10000   | 10000    | 0.5       | 80.0    | m    |
 
 ### NAV_MC_ALT_RAD (`FLOAT`) {#NAV_MC_ALT_RAD}
 
@@ -26644,6 +26717,48 @@ Can be set to increase the amount of integrator available to counteract disturba
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0.0      |          | 0.01      | 0.30    |
 
+## Neural Control
+
+### MC_NN_EN (`INT32`) {#MC_NN_EN}
+
+If true the neural network control is automatically started on boot.
+
+| Reboot | minValue | maxValue | increment | default     | unit |
+| ------ | -------- | -------- | --------- | ----------- | ---- |
+| &nbsp; |          |          |           | Enabled (1) |
+
+### MC_NN_MANL_CTRL (`INT32`) {#MC_NN_MANL_CTRL}
+
+Enable or disable setting the trajectory setpoint with manual control.
+
+| Reboot  | minValue | maxValue | increment | default     | unit |
+| ------- | -------- | -------- | --------- | ----------- | ---- |
+| &check; |          |          |           | Enabled (1) |
+
+### MC_NN_MAX_RPM (`INT32`) {#MC_NN_MAX_RPM}
+
+The maximum RPM of the motors. Used to normalize the output of the neural network.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 80000    |           | 22000   |
+
+### MC_NN_MIN_RPM (`INT32`) {#MC_NN_MIN_RPM}
+
+The minimum RPM of the motors. Used to normalize the output of the neural network.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 80000    |           | 1000    |
+
+### MC_NN_THRST_COEF (`FLOAT`) {#MC_NN_THRST_COEF}
+
+Thrust coefficient of the motors. Used to normalize the output of the neural network. Divided by 100 000.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 5.0      |           | 1.2     |
+
 ## OSD
 
 ### MSP_OSD_CONFIG (`INT32`) {#MSP_OSD_CONFIG}
@@ -26804,14 +26919,6 @@ rel_signal is the relative motor control signal between 0 and 1.
 
 ## Payload Deliverer
 
-### PD_GRIPPER_EN (`INT32`) {#PD_GRIPPER_EN}
-
-Enable Gripper actuation in Payload Deliverer.
-
-| Reboot  | minValue | maxValue | increment | default      | unit |
-| ------- | -------- | -------- | --------- | ------------ | ---- |
-| &check; |          |          |           | Disabled (0) |
-
 ### PD_GRIPPER_TO (`FLOAT`) {#PD_GRIPPER_TO}
 
 Timeout for successful gripper actuation acknowledgement.
@@ -26823,7 +26930,7 @@ this time before considering gripper actuation successful and publish a
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        |          |           | 3       | s    |
+| &nbsp; | 0        |          |           | 1       | s    |
 
 ### PD_GRIPPER_TYPE (`INT32`) {#PD_GRIPPER_TYPE}
 
@@ -32137,6 +32244,22 @@ Use SENS_MAG_SIDES instead
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 63      |
 
+### ILABS_MODE (`INT32`) {#ILABS_MODE}
+
+InertialLabs INS sensor mode configuration.
+
+Configures whether the driver outputs only raw sensor output (the default),
+or additionally supplies INS data such as position and velocity estimates.
+
+**Values:**
+
+- `0`: Sensors Only (default)
+- `1`: INS
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
 ### IMU_ACCEL_CUTOFF (`FLOAT`) {#IMU_ACCEL_CUTOFF}
 
 Low pass filter cutoff frequency for accel.
@@ -32474,6 +32597,334 @@ INA238 Power Monitor Shunt.
 | Reboot  | minValue    | maxValue | increment  | default | unit |
 | ------- | ----------- | -------- | ---------- | ------- | ---- |
 | &check; | 0.000000001 | 0.1      | .000000001 | 0.0005  |
+
+### MS_ACCEL_RANGE (`INT32`) {#MS_ACCEL_RANGE}
+
+Sets the range of the accelerometer.
+
+-1 = Will not be configured, and will use the device default range,
+Each adjustable range has a corresponding integer setting. Refer to the device's User Manual to check the available adjustment ranges.
+https://www.hbkworld.com/en/products/transducers/inertial-sensors#!ref_microstrain.com
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | -1      |
+
+### MS_ALIGNMENT (`INT32`) {#MS_ALIGNMENT}
+
+Alignment type.
+
+Select the source of heading alignment
+This is a bitfield, you can use more than 1 source
+Bit 0 - Dual-antenna GNSS
+Bit 1 - GNSS kinematic (requires motion, e.g. a GNSS velocity)
+Bit 2 - Magnetometer
+Bit 3 - External Heading (first valid external heading will be used to initialize the filter)
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 2       |
+
+### MS_BARO_RATE_HZ (`INT32`) {#MS_BARO_RATE_HZ}
+
+Barometer data rate.
+
+Barometer data rate
+Max Limit: 1000
+0 - Disable barometer datastream
+The max limit should be divisible by the rate
+eg: 1000 % MS_BARO_RATE_HZ = 0
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 50      |
+
+### MS_EXT_HEAD_EN (`INT32`) {#MS_EXT_HEAD_EN}
+
+Toggles external heading as an aiding measurement.
+
+0 = Disabled,
+1 = Enabled
+If enabled, the filter will be configured to accept external heading as an aiding meaurement.
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### MS_FILT_RATE_HZ (`INT32`) {#MS_FILT_RATE_HZ}
+
+EKF data Rate.
+
+EKF data rate
+Max Limit: 1000
+0 - Disable EKF datastream
+The max limit should be divisible by the rate
+eg: 1000 % MS_FILT_RATE_HZ = 0
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 250     |
+
+### MS_GNSS_AID_SRC (`INT32`) {#MS_GNSS_AID_SRC}
+
+GNSS aiding source control.
+
+Select the source of gnss aiding (GNSS/INS)
+1 = All internal receivers,
+2 = External GNSS messages,
+3 = GNSS receiver 1 only
+4 = GNSS receiver 2 only
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 1       |
+
+### MS_GNSS_OFF1_X (`FLOAT`) {#MS_GNSS_OFF1_X}
+
+GNSS lever arm offset 1 (X).
+
+Lever arm offset (m) in the X direction for the external GNSS receiver
+In the case of a dual antenna setup, this is antenna 1
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     |
+
+### MS_GNSS_OFF1_Y (`FLOAT`) {#MS_GNSS_OFF1_Y}
+
+GNSS lever arm offset 1 (Y).
+
+Lever arm offset (m) in the Y direction for the external GNSS receiver
+In the case of a dual antenna setup, this is antenna 1
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     |
+
+### MS_GNSS_OFF1_Z (`FLOAT`) {#MS_GNSS_OFF1_Z}
+
+GNSS lever arm offset 1 (Z).
+
+Lever arm offset (m) in the Z direction for the external GNSS receiver
+In the case of a dual antenna setup, this is antenna 1
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     |
+
+### MS_GNSS_OFF2_X (`FLOAT`) {#MS_GNSS_OFF2_X}
+
+GNSS lever arm offset 2 (X).
+
+Lever arm offset (m) in the X direction for antenna 2
+This will only be used if the device supports a dual antenna setup
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     |
+
+### MS_GNSS_OFF2_Y (`FLOAT`) {#MS_GNSS_OFF2_Y}
+
+GNSS lever arm offset 2 (Y).
+
+Lever arm offset (m) in the Y direction for antenna 2
+This will only be used if the device supports a dual antenna setup
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     |
+
+### MS_GNSS_OFF2_Z (`FLOAT`) {#MS_GNSS_OFF2_Z}
+
+GNSS lever arm offset 2 (Z).
+
+Lever arm offset (m) in the X direction for antenna 2
+This will only be used if the device supports a dual antenna setup
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     |
+
+### MS_GNSS_RATE_HZ (`INT32`) {#MS_GNSS_RATE_HZ}
+
+GNSS data Rate.
+
+GNSS receiver 1 and 2 data rate
+Max Limit: 5
+The max limit should be divisible by the rate
+0 - Disable GNSS datastream
+eg: 5 % MS_GNSS_RATE_HZ = 0
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 5       |
+
+### MS_GYRO_RANGE (`INT32`) {#MS_GYRO_RANGE}
+
+Sets the range of the gyro.
+
+-1 = Will not be configured, and will use the device default range,
+Each adjustable range has a corresponding integer setting. Refer to the device's User Manual to check the available adjustment ranges.
+https://www.hbkworld.com/en/products/transducers/inertial-sensors#!ref_microstrain.com
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | -1      |
+
+### MS_IMU_RATE_HZ (`INT32`) {#MS_IMU_RATE_HZ}
+
+IMU Data Rate.
+
+IMU (Accelerometer and Gyroscope) data rate
+The INS driver will be scheduled at a rate 2\*MS_IMU_RATE_HZ
+Max Limit: 1000
+0 - Disable IMU datastream
+The max limit should be divisible by the rate
+eg: 1000 % MS_IMU_RATE_HZ = 0
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 500     |
+
+### MS_INT_HEAD_EN (`INT32`) {#MS_INT_HEAD_EN}
+
+Toggles internal heading as an aiding measurement.
+
+0 = Disabled,
+1 = Enabled
+If dual antennas are supported (CV7-GNSS/INS). The filter will be configured to use dual antenna heading as an aiding measurement.
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### MS_INT_MAG_EN (`INT32`) {#MS_INT_MAG_EN}
+
+Toggles internal magnetometer aiding in the device filter.
+
+0 = Disabled,
+1 = Enabled
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### MS_MAG_RATE_HZ (`INT32`) {#MS_MAG_RATE_HZ}
+
+Magnetometer Data Rate.
+
+Magnetometer data rate
+Max Limit: 1000
+0 - Disable magnetometer datastream
+The max limit should be divisible by the rate
+eg: 1000 % MS_MAG_RATE_HZ = 0
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 50      |
+
+### MS_MODE (`INT32`) {#MS_MODE}
+
+Toggles using the device as the primary EKF.
+
+Setting to 1 will publish data from the device to the vehicle topics (global_position, attitude, local_position, odometry), estimator_status and sensor_selection
+Setting to 0 will publish data from the device to the external_ins topics (global position, attitude, local position)
+Restart Required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 1       |
+
+### MS_SENSOR_PTCH (`FLOAT`) {#MS_SENSOR_PTCH}
+
+Sensor to Vehicle Transform (Pitch).
+
+The orientation of the device (Radians) with respect to the vehicle frame around the y axis
+Requires MS_SVT_EN to be enabled to be used
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     |
+
+### MS_SENSOR_ROLL (`FLOAT`) {#MS_SENSOR_ROLL}
+
+Sensor to Vehicle Transform (Roll).
+
+The orientation of the device (Radians) with respect to the vehicle frame around the x axis
+Requires MS_SVT_EN to be enabled to be used
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     |
+
+### MS_SENSOR_YAW (`FLOAT`) {#MS_SENSOR_YAW}
+
+Sensor to Vehicle Transform (Yaw).
+
+The orientation of the device (Radians) with respect to the vehicle frame around the z axis
+Requires MS_SVT_EN to be enabled to be used
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.0     |
+
+### MS_SVT_EN (`INT32`) {#MS_SVT_EN}
+
+Enables sensor to vehicle transform.
+
+0 = Disabled,
+1 = Enabled
+If the sensor has a different orientation with respect to the vehicle. This will enable a transform to correct itself.
+The transform is described by MS_SENSOR_ROLL, MS_SENSOR_PITCH, MS_SENSOR_YAW
+Restart required
+This parameter is specific to the MicroStrain driver.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
 
 ### PCF8583_MAGNET (`INT32`) {#PCF8583_MAGNET}
 
@@ -33307,6 +33758,31 @@ Sets the longest time constant that will be applied to the calculation of GPS po
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 1.0      | 100.0    |           | 10.0    | s    |
+
+### SENS_ILABS_CFG (`INT32`) {#SENS_ILABS_CFG}
+
+Serial Configuration for InertialLabs.
+
+Configure on which serial port to run InertialLabs.
+
+**Values:**
+
+- `0`: Disabled
+- `6`: UART 6
+- `101`: TELEM 1
+- `102`: TELEM 2
+- `103`: TELEM 3
+- `104`: TELEM/SERIAL 4
+- `201`: GPS 1
+- `202`: GPS 2
+- `203`: GPS 3
+- `300`: Radio Controller
+- `301`: Wifi Port
+- `401`: EXT2
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
 
 ### SENS_IMU_AUTOCAL (`INT32`) {#SENS_IMU_AUTOCAL}
 
@@ -34620,7 +35096,7 @@ SBUS RC driver.
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; |          |          |           | 300     |
+| &check; |          |          |           | 0       |
 
 ### SER_EXT2_BAUD (`INT32`) {#SER_EXT2_BAUD}
 

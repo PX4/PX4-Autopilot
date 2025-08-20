@@ -13,7 +13,7 @@ This section lists drone kits that are intended as platforms for further develop
 They may come either fully assembled or in parts.
 
 - [PX4 Vision DevKit](../complete_vehicles_mc/px4_vision_kit.md) - Multicopter used for PX4 computer vision development
-- ~[ModalAI VOXL 2 Starling PX4 Development Drone](../complete_vehicles_mc/modalai_starling.md)~ (Discontinued/superseded) - SLAM development drone supercharged by VOXL 2 and PX4.
+- [ModalAI VOXL 2 Starling PX4 Development Drone](../complete_vehicles_mc/modalai_starling.md) - SLAM development drone supercharged by VOXL 2 and PX4.
 
 ## PX4 Preinstalled
 

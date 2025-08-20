@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <px4_platform_common/Serial.hpp>
 #include <drivers/drv_hrt.h>
 
 class DShotTelemetry
@@ -62,24 +63,12 @@ public:
 
 	int init(const char *uart_device, bool swap_rxtx);
 
-	void deinit();
-
 	/**
 	 * Read telemetry from the UART (non-blocking) and handle timeouts.
 	 * @param num_motors How many DShot enabled motors
 	 * @return -1 if no update, -2 timeout, >= 0 for the motor index. Use @latestESCData() to get the data.
 	 */
 	int update(int num_motors);
-
-	/**
-	 * Redirect everything that is read into a different buffer.
-	 * Future calls to @update will write to that instead of an internal buffer, until @update returns
-	 * a value different from -1. No decoding is done.
-	 * The caller must ensure the buffer exists until that point.
-	 * @param buffer
-	 * @return 0 on success <0 on error
-	 */
-	int redirectOutput(OutputBuffer &buffer);
 
 	bool redirectActive() const { return _redirect_output != nullptr; }
 
@@ -103,13 +92,6 @@ public:
 private:
 	static constexpr int ESC_FRAME_SIZE = 10;
 
-	/**
-	 * set the Baudrate
-	 * @param baud
-	 * @return 0 on success, <0 on error
-	 */
-	int setBaudrate(unsigned baud);
-
 	void requestNextMotor(int num_motors);
 
 	/**
@@ -120,10 +102,10 @@ private:
 	 */
 	bool decodeByte(uint8_t byte, bool &successful_decoding);
 
-	static inline uint8_t updateCrc8(uint8_t crc, uint8_t crc_seed);
 	static uint8_t crc8(const uint8_t *buf, uint8_t len);
 
-	int _uart_fd{-1};
+	device::Serial _uart {};
+
 	uint8_t _frame_buffer[ESC_FRAME_SIZE];
 	int _frame_position{0};
 

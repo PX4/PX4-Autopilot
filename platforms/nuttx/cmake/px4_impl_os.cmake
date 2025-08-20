@@ -52,9 +52,25 @@ function(px4_os_add_flags)
 
 	include_directories(BEFORE SYSTEM
 		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include
-		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include/cxx
-		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/include/cxx	# custom new
 	)
+
+	if(CONFIG_LIB_TFLM) # Since TFLM uses the standard C++ library, we need to exclude the NuttX C++ include path
+		add_custom_target(copy_header ALL
+		COMMAND ${CMAKE_COMMAND} -E copy # One of the header files from nuttx is needed
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include/cxx/cstdlib
+		${PX4_SOURCE_DIR}/src/lib/tensorflow_lite_micro/include/cstdlib
+		)
+
+		include_directories(BEFORE SYSTEM
+			${PX4_SOURCE_DIR}/src/lib/tensorflow_lite_micro/include
+		)
+	else()
+		include_directories(BEFORE SYSTEM
+			${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include/cxx
+			${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/include/cxx	# custom new
+		)
+
+	endif()
 
 	include_directories(
 		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/${CONFIG_ARCH}/src/${CONFIG_ARCH_FAMILY}
@@ -71,8 +87,11 @@ function(px4_os_add_flags)
 		-fno-rtti
 		-fno-sized-deallocation
 		-fno-threadsafe-statics
-		-nostdinc++ # prevent using the toolchain's std c++ library
 	)
+
+	if(NOT CONFIG_LIB_TFLM)
+		list(APPEND cxx_flags -nostdinc++) # prevent using the toolchain's std c++ library if building for anything else than TFLM
+	endif()
 
 	foreach(flag ${cxx_flags})
 		add_compile_options($<$<COMPILE_LANGUAGE:CXX>:${flag}>)
@@ -151,6 +170,9 @@ function(px4_os_determine_build_chip)
 	elseif(CONFIG_ARCH_CHIP_RP2040)
 		set(CHIP_MANUFACTURER "rpi")
 		set(CHIP "rp2040")
+	elseif(CONFIG_ARCH_CHIP_ESP32)
+		set(CHIP_MANUFACTURER "espressif")
+		set(CHIP "esp32")
 	else()
 		message(FATAL_ERROR "Could not determine chip architecture from NuttX config. You may have to add it.")
 	endif()
