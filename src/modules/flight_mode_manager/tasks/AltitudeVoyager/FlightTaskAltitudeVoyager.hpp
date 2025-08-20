@@ -5,7 +5,7 @@
 class FlightTaskAltitudeVoyager : public FlightTaskManualAltitude
 {
 public:
-	FlightTaskAltitudeVoyager() = default;
+	FlightTaskAltitudeVoyager();
 	virtual ~FlightTaskAltitudeVoyager() = default;
 
 	void reActivate() override;

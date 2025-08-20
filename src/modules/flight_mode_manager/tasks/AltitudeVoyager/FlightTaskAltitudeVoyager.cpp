@@ -1,5 +1,10 @@
 #include "FlightTaskAltitudeVoyager.hpp"
 
+FlightTaskAltitudeVoyager::FlightTaskAltitudeVoyager()
+{
+	_sticks_data_required = false; // disable stick requirement to not failsafe mode-internally when they're lost
+}
+
 void FlightTaskAltitudeVoyager::reActivate()
 {
 	FlightTaskManualAltitude::reActivate();
