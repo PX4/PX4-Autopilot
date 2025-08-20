@@ -1,0 +1,30 @@
+name: Build CUAV V5 Nano
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip python3-venv git
+          bash ./Tools/setup/ubuntu.sh
+
+      - name: Build CUAV V5 Nano (FMUv5X)
+        run: |
+          make px4_fmu-v5_default
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: cubeorange-plus-firmware
+          path: build/px4_fmu-v5_default/px4_fmu-v5_default.px4
