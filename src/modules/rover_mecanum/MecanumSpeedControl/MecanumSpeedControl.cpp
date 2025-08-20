@@ -31,19 +31,18 @@
  *
  ****************************************************************************/
 
-#include "MecanumVelControl.hpp"
+#include "MecanumSpeedControl.hpp"
 
 using namespace time_literals;
 
-MecanumVelControl::MecanumVelControl(ModuleParams *parent) : ModuleParams(parent)
+MecanumSpeedControl::MecanumSpeedControl(ModuleParams *parent) : ModuleParams(parent)
 {
 	_rover_throttle_setpoint_pub.advertise();
-	_rover_attitude_setpoint_pub.advertise();
-	_rover_velocity_status_pub.advertise();
+	_rover_speed_status_pub.advertise();
 	updateParams();
 }
 
-void MecanumVelControl::updateParams()
+void MecanumSpeedControl::updateParams()
 {
 	ModuleParams::updateParams();
 
@@ -62,22 +61,13 @@ void MecanumVelControl::updateParams()
 	}
 }
 
-void MecanumVelControl::updateVelControl()
+void MecanumSpeedControl::updateSpeedControl()
 {
 	const hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
 	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
 
 	updateSubscriptions();
-
-	// Attitude Setpoint
-	if (PX4_ISFINITE(_yaw_setpoint)) {
-		rover_attitude_setpoint_s rover_attitude_setpoint{};
-		rover_attitude_setpoint.timestamp = _timestamp;
-		rover_attitude_setpoint.yaw_setpoint = _yaw_setpoint;
-		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
-
-	}
 
 	// Throttle Setpoints
 	if (PX4_ISFINITE(_speed_x_setpoint) && PX4_ISFINITE(_speed_y_setpoint)) {
@@ -96,18 +86,18 @@ void MecanumVelControl::updateVelControl()
 	}
 
 	// Publish position controller status (logging only)
-	rover_velocity_status_s rover_velocity_status;
-	rover_velocity_status.timestamp = _timestamp;
-	rover_velocity_status.measured_speed_body_x = _vehicle_speed_body_x;
-	rover_velocity_status.adjusted_speed_body_x_setpoint = _adjusted_speed_x_setpoint.getState();
-	rover_velocity_status.measured_speed_body_y = _vehicle_speed_body_y;
-	rover_velocity_status.adjusted_speed_body_y_setpoint = _adjusted_speed_y_setpoint.getState();
-	rover_velocity_status.pid_throttle_body_x_integral = _pid_speed_x.getIntegral();
-	rover_velocity_status.pid_throttle_body_y_integral = _pid_speed_y.getIntegral();
-	_rover_velocity_status_pub.publish(rover_velocity_status);
+	rover_speed_status_s rover_speed_status;
+	rover_speed_status.timestamp = _timestamp;
+	rover_speed_status.measured_speed_body_x = _vehicle_speed_body_x;
+	rover_speed_status.adjusted_speed_body_x_setpoint = _adjusted_speed_x_setpoint.getState();
+	rover_speed_status.measured_speed_body_y = _vehicle_speed_body_y;
+	rover_speed_status.adjusted_speed_body_y_setpoint = _adjusted_speed_y_setpoint.getState();
+	rover_speed_status.pid_throttle_body_x_integral = _pid_speed_x.getIntegral();
+	rover_speed_status.pid_throttle_body_y_integral = _pid_speed_y.getIntegral();
+	_rover_speed_status_pub.publish(rover_speed_status);
 }
 
-void MecanumVelControl::updateSubscriptions()
+void MecanumSpeedControl::updateSubscriptions()
 {
 	if (_vehicle_attitude_sub.updated()) {
 		vehicle_attitude_s vehicle_attitude{};
@@ -125,34 +115,15 @@ void MecanumVelControl::updateSubscriptions()
 		_vehicle_speed_body_y = fabsf(velocity_in_body_frame(1)) > _param_ro_speed_th.get() ? velocity_in_body_frame(1) : 0.f;
 	}
 
-	if (_rover_velocity_setpoint_sub.updated()) {
-		rover_velocity_setpoint_s rover_velocity_setpoint;
-		_rover_velocity_setpoint_sub.copy(&rover_velocity_setpoint);
-
-		const float speed_setpoint = math::constrain(rover_velocity_setpoint.speed, -_param_ro_speed_limit.get(),
-					     _param_ro_speed_limit.get());
-
-		if (PX4_ISFINITE(rover_velocity_setpoint.speed) && PX4_ISFINITE(rover_velocity_setpoint.bearing)) {
-			const Vector3f velocity_in_local_frame(speed_setpoint * cosf(rover_velocity_setpoint.bearing),
-							       speed_setpoint * sinf(rover_velocity_setpoint.bearing), 0.f);
-			const Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
-			_speed_x_setpoint = velocity_in_body_frame(0);
-			_speed_y_setpoint = velocity_in_body_frame(1);
-
-		} else if (PX4_ISFINITE(rover_velocity_setpoint.speed)) {
-			_speed_x_setpoint = speed_setpoint;
-			_speed_y_setpoint = 0.f;
-
-		} else {
-			_speed_x_setpoint = NAN;
-			_speed_y_setpoint = NAN;
-		}
-
-		_yaw_setpoint = rover_velocity_setpoint.yaw;
+	if (_rover_speed_setpoint_sub.updated()) {
+		rover_speed_setpoint_s rover_speed_setpoint;
+		_rover_speed_setpoint_sub.copy(&rover_speed_setpoint);
+		_speed_x_setpoint = rover_speed_setpoint.speed_body_x;
+		_speed_y_setpoint = rover_speed_setpoint.speed_body_y;
 	}
 }
 
-Vector2f MecanumVelControl::calcSpeedSetpoint()
+Vector2f MecanumSpeedControl::calcSpeedSetpoint()
 {
 	if (_rover_steering_setpoint_sub.updated()) {
 		rover_steering_setpoint_s rover_steering_setpoint{};
@@ -190,7 +161,7 @@ Vector2f MecanumVelControl::calcSpeedSetpoint()
 	return speed_setpoint;
 }
 
-bool MecanumVelControl::runSanityChecks()
+bool MecanumSpeedControl::runSanityChecks()
 {
 	bool ret = true;
 
