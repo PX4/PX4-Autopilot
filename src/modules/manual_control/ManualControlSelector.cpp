@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "ManualControlSelector.hpp"
+#include <uORB/topics/manual_control_setpoint.h>
 
 void ManualControlSelector::updateValidityOfChosenInput(uint64_t now)
 {
@@ -41,78 +42,42 @@ void ManualControlSelector::updateValidityOfChosenInput(uint64_t now)
 	}
 }
 
-void ManualControlSelector::evaluateAndSetBestInput(uint64_t now, const manual_control_setpoint_s inputs[],
+void ManualControlSelector::updateWithNewInputSamples(uint64_t now, const manual_control_setpoint_s inputs[],
 		int input_count)
 {
-	updateValidityOfChosenInput(now);
-
-	// If current input is still valid, keep it
-	if (_setpoint.valid) {
-		return;
-	}
-
-	int best_index = -1;
-	uint64_t newest_timestamp = 0;
-
 	for (int i = 0; i < input_count; ++i) {
-		const auto &input = inputs[i];
+		const manual_control_setpoint_s &input = inputs[i];
 
-		if (isInputValid(input, now)) {
-			if (input.timestamp_sample > newest_timestamp) {
-				newest_timestamp = input.timestamp_sample;
-				best_index = i;
+		if (input.valid) {
+			if (isRc(input.data_source)) {
+				_timestamp_last_rc = input.timestamp_sample;
+			}
+
+			if (isMavlink(input.data_source)) {
+				_timestamp_last_mavlink = input.timestamp_sample;
+			}
+		}
+
+		// First check if the chosen input got invalid, so it can get replaced
+		updateValidityOfChosenInput(now);
+
+		const bool update_existing_input = _setpoint.valid && (input.data_source == _setpoint.data_source);
+		const bool start_using_new_input = !_setpoint.valid;
+
+		// Switch to new input if it's valid and we don't already have a valid one
+		if (isInputValid(input, now) && (update_existing_input || start_using_new_input)) {
+			_setpoint = input;
+			_setpoint.valid = true;
+			_setpoint.timestamp = now; // timestamp_sample is preserved
+			_instance = i;
+
+			if (_first_valid_source == manual_control_setpoint_s::SOURCE_UNKNOWN) {
+				// initialize first valid source once
+				_first_valid_source = _setpoint.data_source;
 			}
 		}
 	}
-
-	if (best_index >= 0) {
-		const auto &selected_input = inputs[best_index];
-
-		updateSetpoint(now, selected_input, best_index);
-
-		if (_first_valid_source == manual_control_setpoint_s::SOURCE_UNKNOWN) {
-			_first_valid_source = _setpoint.data_source;
-		}
-
-		if (isRc(selected_input.data_source)) {
-			_timestamp_last_rc = selected_input.timestamp_sample;
-
-		} else if (isMavlink(selected_input.data_source)) {
-			_timestamp_last_mavlink = selected_input.timestamp_sample;
-		}
-	}
 }
-
-void ManualControlSelector::processInputSample(uint64_t now, const manual_control_setpoint_s &input, int instance)
-{
-
-	if (input.valid) {
-		if (isRc(input.data_source)) {
-			_timestamp_last_rc = input.timestamp_sample;
-		}
-
-		if (isMavlink(input.data_source)) {
-			_timestamp_last_mavlink = input.timestamp_sample;
-		}
-	}
-
-	// if our input and setpoint are valid and from the same source, update the setpoint with newest input
-	const bool update_existing_input = _setpoint.valid && (input.data_source == _setpoint.data_source);
-
-	if (isInputValid(input, now) && update_existing_input) {
-		updateSetpoint(now, input, instance);
-	}
-}
-
-void ManualControlSelector::updateSetpoint(uint64_t now, const manual_control_setpoint_s &input, int instance)
-{
-	_setpoint = input;
-	_setpoint.valid = true;
-	_setpoint.timestamp = now;
-	_instance = instance;
-}
-
-
 
 bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input, uint64_t now) const
 {

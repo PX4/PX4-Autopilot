@@ -45,17 +45,18 @@ static constexpr uint8_t SOURCE_MAVLINK_2 = manual_control_setpoint_s::SOURCE_MA
 static constexpr uint8_t SOURCE_MAVLINK_3 = manual_control_setpoint_s::SOURCE_MAVLINK_3;
 static constexpr uint8_t SOURCE_MAVLINK_4 = manual_control_setpoint_s::SOURCE_MAVLINK_4;
 
+
 TEST(ManualControlSelector, RcInputInvalidValid)
 {
 	ManualControlSelector selector;
-	selector.setRcInMode(0);
+	selector.setRcInMode(0); // RC Transmitter only
 	selector.setTimeout(500_ms);
 
 	constexpr uint8_t kInstanceIndex = 1;
 	constexpr uint8_t kExpectedDataSource = SOURCE_RC;
 
 	uint64_t timestamp = SOME_TIME;
-	manual_control_setpoint_s inputs[2] {}; // inputs[0] remains default
+	manual_control_setpoint_s inputs[2] {}; // inputs[0] remains unused
 
 	// Configure inputs[1] with SOURCE_RC, initially invalid
 	inputs[kInstanceIndex].data_source = kExpectedDataSource;
@@ -64,8 +65,7 @@ TEST(ManualControlSelector, RcInputInvalidValid)
 
 	// Run two iterations with invalid input
 	for (int i = 0; i < 2; i++) {
-		selector.processInputSample(timestamp, inputs[kInstanceIndex], kInstanceIndex);
-		selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+		selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 		EXPECT_FALSE(selector.setpoint().valid);
 		EXPECT_EQ(selector.setpoint().timestamp_sample, 0);
@@ -80,8 +80,7 @@ TEST(ManualControlSelector, RcInputInvalidValid)
 	// Now make the input valid
 	inputs[kInstanceIndex].valid = true;
 
-	selector.processInputSample(timestamp, inputs[kInstanceIndex], kInstanceIndex);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().timestamp_sample, timestamp);
@@ -89,10 +88,11 @@ TEST(ManualControlSelector, RcInputInvalidValid)
 	EXPECT_EQ(selector.setpoint().data_source, kExpectedDataSource);
 }
 
+
 TEST(ManualControlSelector, RcInputContinuous)
 {
 	ManualControlSelector selector;
-	selector.setRcInMode(0);
+	selector.setRcInMode(0); // RC only
 	selector.setTimeout(500_ms);
 
 	uint64_t timestamp = SOME_TIME;
@@ -103,8 +103,7 @@ TEST(ManualControlSelector, RcInputContinuous)
 	inputs[1].timestamp_sample = timestamp;
 
 	for (int i = 0; i < 5; i++) {
-		selector.processInputSample(timestamp, inputs[1], 1);
-		selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+		selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 		EXPECT_TRUE(selector.setpoint().valid);
 		EXPECT_EQ(selector.setpoint().timestamp_sample, timestamp);
@@ -117,86 +116,77 @@ TEST(ManualControlSelector, RcInputContinuous)
 }
 
 
+
 TEST(ManualControlSelector, RcInputOnly)
 {
 	ManualControlSelector selector;
-	selector.setRcInMode(0); // RC input only
+	selector.setRcInMode(0); // RC only
 	selector.setTimeout(500_ms);
 
 	uint64_t timestamp = SOME_TIME;
 	manual_control_setpoint_s inputs[2] {};
 
-	// Provide valid MAVLink input (wrong source)
+	// First: only MAVLink input — should be ignored
 	inputs[0].data_source = SOURCE_MAVLINK_0;
 	inputs[0].valid = true;
 	inputs[0].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
-
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 	EXPECT_FALSE(selector.setpoint().valid);
 
+	// Second: RC input becomes available
 	timestamp += 100_ms;
-
-	// Provide valid RC input (correct source)
 	inputs[1].data_source = SOURCE_RC;
 	inputs[1].valid = true;
 	inputs[1].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
 	EXPECT_EQ(selector.instance(), 1);
 }
 
+
 TEST(ManualControlSelector, MavlinkInputOnly)
 {
 	ManualControlSelector selector;
-	selector.setRcInMode(1); // MAVLink input only
+	selector.setRcInMode(1); // MAVLink only
 	selector.setTimeout(500_ms);
 
 	uint64_t timestamp = SOME_TIME;
 	manual_control_setpoint_s inputs[2] {};
 
-	// Provide valid RC input (ignored)
+	// First: RC input (wrong source)
 	inputs[0].data_source = SOURCE_RC;
 	inputs[0].valid = true;
 	inputs[0].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
-
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 	EXPECT_FALSE(selector.setpoint().valid);
 
+	// Second: valid MAVLink input (MAVLINK_3)
 	timestamp += 100_ms;
-
-	// Provide valid MAVLink input (first accepted)
 	inputs[1].data_source = SOURCE_MAVLINK_3;
 	inputs[1].valid = true;
 	inputs[1].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
-
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_3);
 	EXPECT_EQ(selector.instance(), 1);
 
+	// Third: different MAVLink source — ignored (MAVLINK_3 is still active)
 	timestamp += 100_ms;
-
-	// Provide later MAVLink input from different source (ignored)
 	inputs[1].data_source = SOURCE_MAVLINK_4;
 	inputs[1].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
-
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_3);
 	EXPECT_EQ(selector.instance(), 1);
 }
+
 
 TEST(ManualControlSelector, RcMavlinkInputFallback)
 {
@@ -207,72 +197,63 @@ TEST(ManualControlSelector, RcMavlinkInputFallback)
 	uint64_t timestamp = SOME_TIME;
 	manual_control_setpoint_s inputs[2] {};
 
-	// Valid RC input
+	// First: valid RC input
 	inputs[0].data_source = SOURCE_RC;
 	inputs[0].valid = true;
 	inputs[0].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
-
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
 	EXPECT_EQ(selector.instance(), 0);
 
+	// Second: valid MAVLink input, RC still valid — RC remains active
 	timestamp += 100_ms;
-
-	// MAVLink input should be ignored (RC still valid)
 	inputs[1].data_source = SOURCE_MAVLINK_0;
 	inputs[1].valid = true;
 	inputs[1].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
-
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
 	EXPECT_EQ(selector.instance(), 0);
 
+	// Third: RC times out — MAVLink takes over
 	timestamp += 500_ms;
-
-	// RC times out, MAVLink becomes active
 	inputs[1].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
-
+	// RC no update, so input[0].timestamp_sample remains outdated
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
 	EXPECT_EQ(selector.instance(), 1);
 
-	// RC comes back immediately, but fallback keeps MAVLink
+	// Fourth: RC comes back, but fallback does not switch back
 	inputs[1].data_source = SOURCE_RC;
 	inputs[1].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
-
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
 	EXPECT_EQ(selector.instance(), 1);
 }
 
+
 TEST(ManualControlSelector, RcMavlinkInputKeepFirst)
 {
 	ManualControlSelector selector;
-	selector.setRcInMode(3); // Keep first input mode
+	selector.setRcInMode(3); // Keep first valid input
 	selector.setTimeout(500_ms);
 
 	uint64_t timestamp = SOME_TIME;
 	manual_control_setpoint_s inputs[2] {};
 
-	// First valid input: RC
+	// RC is first valid input
 	inputs[0].data_source = SOURCE_RC;
 	inputs[0].valid = true;
 	inputs[0].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
@@ -280,43 +261,36 @@ TEST(ManualControlSelector, RcMavlinkInputKeepFirst)
 
 	timestamp += 100_ms;
 
-	// MAVLink input arrives, should be ignored
+	// MAVLink input arrives, should be ignored due to mode 3
 	inputs[1].data_source = SOURCE_MAVLINK_0;
 	inputs[1].valid = true;
 	inputs[1].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
 	EXPECT_EQ(selector.instance(), 0);
 
+	// RC input times out
 	timestamp += 500_ms;
 
-	// RC times out, but system should NOT switch to MAVLink
-	inputs[1].timestamp_sample = timestamp;
-
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_FALSE(selector.setpoint().valid);
-	EXPECT_NE(selector.setpoint().data_source, SOURCE_MAVLINK_0);
 	EXPECT_EQ(selector.instance(), -1);
+	EXPECT_NE(selector.setpoint().data_source, SOURCE_MAVLINK_0);
 
+	// RC returns — should be accepted again
 	timestamp += 100_ms;
-
-	// RC returns, and is accepted again since it was the first
 	inputs[0].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
 	EXPECT_EQ(selector.instance(), 0);
 }
-
 
 TEST(ManualControlSelector, DisabledInput)
 {
@@ -327,55 +301,51 @@ TEST(ManualControlSelector, DisabledInput)
 	uint64_t timestamp = SOME_TIME;
 	manual_control_setpoint_s inputs[2] {};
 
-	// Reject MAVLink stick input
+	// MAVLink stick input should be ignored
 	inputs[0].data_source = SOURCE_MAVLINK_0;
 	inputs[0].valid = true;
 	inputs[0].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
-
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 	EXPECT_FALSE(selector.setpoint().valid);
 	EXPECT_EQ(selector.instance(), -1);
 
+	// RC stick input should also be ignored
 	timestamp += 100_ms;
-
-	// Reject RC stick input
 	inputs[1].data_source = SOURCE_RC;
 	inputs[1].valid = true;
 	inputs[1].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
-
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 	EXPECT_FALSE(selector.setpoint().valid);
 	EXPECT_EQ(selector.instance(), -1);
 }
 
+
 TEST(ManualControlSelector, RcTimeout)
 {
 	ManualControlSelector selector;
-	selector.setRcInMode(0);
+	selector.setRcInMode(0); // RC only
 	selector.setTimeout(500_ms);
 
 	uint64_t timestamp = SOME_TIME;
 	manual_control_setpoint_s inputs[2] {};
 
+	// Valid RC input
 	inputs[0].data_source = SOURCE_RC;
 	inputs[0].valid = true;
 	inputs[0].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
 	EXPECT_EQ(selector.instance(), 0);
 
-	// Advance time beyond timeout
+	// Advance time past timeout
 	timestamp += 600_ms;
 
-	// Let selector update internal validity
+	// Manually call updateValidityOfChosenInput to simulate timeout
 	selector.updateValidityOfChosenInput(timestamp);
 
 	EXPECT_FALSE(selector.setpoint().valid);
@@ -391,25 +361,21 @@ TEST(ManualControlSelector, RcOutdated)
 	uint64_t timestamp = SOME_TIME;
 	manual_control_setpoint_s inputs[2] {};
 
-	// Input already outdated
 	inputs[0].data_source = SOURCE_RC;
 	inputs[0].valid = true;
 	inputs[0].timestamp_sample = timestamp - 600_ms;
 
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_FALSE(selector.setpoint().valid);
 	EXPECT_EQ(selector.instance(), -1);
 
 	// Try again with same outdated timestamp
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_FALSE(selector.setpoint().valid);
 	EXPECT_EQ(selector.instance(), -1);
 }
-
 
 TEST(ManualControlSelector, RcMavlinkInputRcPriority)
 {
@@ -420,13 +386,12 @@ TEST(ManualControlSelector, RcMavlinkInputRcPriority)
 	uint64_t timestamp = SOME_TIME;
 	manual_control_setpoint_s inputs[2] {};
 
-	// Valid RC input comes first
+	// RC input comes first
 	inputs[0].data_source = SOURCE_RC;
 	inputs[0].valid = true;
 	inputs[0].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
@@ -434,35 +399,30 @@ TEST(ManualControlSelector, RcMavlinkInputRcPriority)
 
 	timestamp += 100_ms;
 
-	// MAVLink input ignored due to RC priority
+	// MAVLink input arrives
 	inputs[1].data_source = SOURCE_MAVLINK_0;
 	inputs[1].valid = true;
 	inputs[1].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
 	EXPECT_EQ(selector.instance(), 0);
 
+	// RC times out
 	timestamp += 500_ms;
-
-	// RC times out, now switch to MAVLink
 	inputs[1].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
 	EXPECT_EQ(selector.instance(), 1);
 
-	// RC returns — should now take priority again
+	// RC returns
 	inputs[0].timestamp_sample = timestamp;
-
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
@@ -478,13 +438,12 @@ TEST(ManualControlSelector, RcMavlinkInputMavlinkPriority)
 	uint64_t timestamp = SOME_TIME;
 	manual_control_setpoint_s inputs[2] {};
 
-	// First valid MAVLink input is selected
+	// MAVLink input comes first
 	inputs[0].data_source = SOURCE_MAVLINK_0;
 	inputs[0].valid = true;
 	inputs[0].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
@@ -492,35 +451,30 @@ TEST(ManualControlSelector, RcMavlinkInputMavlinkPriority)
 
 	timestamp += 100_ms;
 
-	// RC input arrives, but should be ignored due to MAVLink priority
+	// RC input arrives
 	inputs[1].data_source = SOURCE_RC;
 	inputs[1].valid = true;
 	inputs[1].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
 	EXPECT_EQ(selector.instance(), 0);
 
+	// MAVLink times out, RC is now valid
 	timestamp += 500_ms;
-
-	// MAVLink times out, RC becomes valid
 	inputs[1].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
 	EXPECT_EQ(selector.instance(), 1);
 
-	// MAVLink returns, and should take over again
+	// MAVLink returns
 	inputs[0].timestamp_sample = timestamp;
-
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
@@ -536,54 +490,49 @@ TEST(ManualControlSelector, MavlinkTwoInstanceInputMavlinkPriority)
 	uint64_t timestamp = SOME_TIME;
 	manual_control_setpoint_s inputs[2] {};
 
-	// MAVLink 0 input is initially used
+	// First MAVLink input
 	inputs[0].data_source = SOURCE_MAVLINK_0;
 	inputs[0].valid = true;
 	inputs[0].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
 	EXPECT_EQ(selector.instance(), 0);
 
+	// Second MAVLink arrives
 	timestamp += 100_ms;
-
-	// MAVLink 1 input arrives: ignored for now
 	inputs[1].data_source = SOURCE_MAVLINK_1;
 	inputs[1].valid = true;
 	inputs[1].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
 	EXPECT_EQ(selector.instance(), 0);
 
+	// MAVLink 0 times out
 	timestamp += 500_ms;
-
-	// MAVLink 0 times out, MAVLink 1 is now used
 	inputs[1].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_1);
 	EXPECT_EQ(selector.instance(), 1);
 
-	// MAVLink 0 returns, but priority is equal: it should *not* switch back
+	// MAVLink 0 returns, should not override
 	inputs[0].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_1);
 	EXPECT_EQ(selector.instance(), 1);
 }
+
 
 TEST(ManualControlSelector, InputTimeoutDoesNotPreventFallbackToStillValidInput)
 {
@@ -594,54 +543,40 @@ TEST(ManualControlSelector, InputTimeoutDoesNotPreventFallbackToStillValidInput)
 	uint64_t timestamp = SOME_TIME;
 	manual_control_setpoint_s inputs[2] {};
 
-	// Step 1: MAVLink input comes first and is selected
+	// MAVLink comes first
 	inputs[1].data_source = SOURCE_MAVLINK_0;
 	inputs[1].valid = true;
 	inputs[1].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
-
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
 	EXPECT_EQ(selector.instance(), 1);
 
-	// Step 2: Advance time near the timeout threshold
+	// Near timeout
 	timestamp += 499_ms;
 
-	// RC input arrives now and is valid
+	// RC arrives now
 	inputs[0].data_source = SOURCE_RC;
 	inputs[0].valid = true;
 	inputs[0].timestamp_sample = timestamp;
 
-	// MAVLink is still considered valid (just under timeout)
-	inputs[1].timestamp_sample = SOME_TIME; // Still the old/stale timestamp
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
-	selector.processInputSample(timestamp, inputs[0], 0);  // RC
-	selector.processInputSample(timestamp, inputs[1], 1);  // MAVLink (stale)
-
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
-
-	// At this point, MAVLink is still active
+	// Still MAVLink
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
-	EXPECT_EQ(selector.instance(), 1);
 
-	// Step 3: Advance time by 1ms: MAVLink should now timeout
+	// Now MAVLink is outdated
 	timestamp += 1_ms;
+	inputs[0].timestamp_sample = timestamp;
 
-	// Do not update MAVLink: it remains stale
-	inputs[0].timestamp_sample = timestamp; // RC is still valid
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
-
-	// RC input should now be selected as fallback
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
 	EXPECT_EQ(selector.instance(), 0);
 }
-
 TEST(ManualControlSelector, AllInputsTimeoutSimultaneously)
 {
 	ManualControlSelector selector;
@@ -649,10 +584,9 @@ TEST(ManualControlSelector, AllInputsTimeoutSimultaneously)
 	selector.setTimeout(500_ms);
 
 	uint64_t timestamp = SOME_TIME;
-
 	manual_control_setpoint_s inputs[2] {};
 
-	// Both inputs valid at t0
+	// Both inputs valid
 	inputs[0].data_source = SOURCE_RC;
 	inputs[0].valid = true;
 	inputs[0].timestamp_sample = timestamp;
@@ -661,20 +595,77 @@ TEST(ManualControlSelector, AllInputsTimeoutSimultaneously)
 	inputs[1].valid = true;
 	inputs[1].timestamp_sample = timestamp;
 
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 
-	// Advance time so both inputs are stale
+	// Timeout both
 	timestamp += 501_ms;
 
-	// Do not update inputs: they stay old
-	selector.processInputSample(timestamp, inputs[0], 0);
-	selector.processInputSample(timestamp, inputs[1], 1);
-	selector.evaluateAndSetBestInput(timestamp, inputs, 2);
+	selector.updateWithNewInputSamples(timestamp, inputs, 2);
 
+	EXPECT_FALSE(selector.setpoint().valid);
+	EXPECT_EQ(selector.instance(), -1);
+}
+
+TEST(ManualControlSelector, ThreeInputsFallbackOrder)
+{
+	ManualControlSelector selector;
+	selector.setRcInMode(2); // Fallback mode (RC and Joystick)
+	selector.setTimeout(500_ms);
+
+	uint64_t timestamp = SOME_TIME;
+	manual_control_setpoint_s inputs[3] {};
+
+	// Input 0: RC, valid
+	inputs[0].data_source = SOURCE_RC;
+	inputs[0].valid = true;
+	inputs[0].timestamp_sample = timestamp;
+
+	// Input 1: MAVLINK_0, valid
+	inputs[1].data_source = SOURCE_MAVLINK_0;
+	inputs[1].valid = true;
+	inputs[1].timestamp_sample = timestamp;
+
+	// Input 2: MAVLINK_1, valid
+	inputs[2].data_source = SOURCE_MAVLINK_1;
+	inputs[2].valid = true;
+	inputs[2].timestamp_sample = timestamp;
+
+	// Should select RC (input 0)
+	selector.updateWithNewInputSamples(timestamp, inputs, 3);
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
+	EXPECT_EQ(selector.instance(), 0);
+
+	// RC times out, only MAVLINK_0 and MAVLINK_1 are valid
+	timestamp += 600_ms;
+	inputs[0].timestamp_sample = timestamp - 600_ms; // Outdated
+	inputs[1].timestamp_sample = timestamp;
+	inputs[2].timestamp_sample = timestamp;
+
+	selector.updateWithNewInputSamples(timestamp, inputs, 3);
+	// Should select MAVLINK_0 (input 1, first valid in order)
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
+	EXPECT_EQ(selector.instance(), 1);
+
+	// MAVLINK_0 times out, only MAVLINK_1 is valid
+	timestamp += 600_ms;
+	inputs[1].timestamp_sample = timestamp - 600_ms; // Outdated
+	inputs[2].timestamp_sample = timestamp;
+
+	selector.updateWithNewInputSamples(timestamp, inputs, 3);
+	// Should select MAVLINK_1 (input 2)
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_1);
+	EXPECT_EQ(selector.instance(), 2);
+
+	// All inputs timeout
+	timestamp += 600_ms;
+	inputs[2].timestamp_sample = timestamp - 600_ms;
+
+	selector.updateWithNewInputSamples(timestamp, inputs, 3);
 	EXPECT_FALSE(selector.setpoint().valid);
 	EXPECT_EQ(selector.instance(), -1);
 }

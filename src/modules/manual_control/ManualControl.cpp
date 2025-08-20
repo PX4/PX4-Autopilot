@@ -104,14 +104,11 @@ void ManualControl::processInput(hrt_abstime now)
 	manual_control_setpoint_s inputs[MAX_MANUAL_INPUT_COUNT] {};
 
 	for (int i = 0; i < MAX_MANUAL_INPUT_COUNT; i++) {
-		if (_manual_control_input_subs[i].update(&inputs[i])) {
-
-			_selector.processInputSample(now, inputs[i], i);
-		}
+		_manual_control_input_subs[i].update(&inputs[i]);
 	}
 
-	// Decide on best input after collecting all samples
-	_selector.evaluateAndSetBestInput(now, inputs, MAX_MANUAL_INPUT_COUNT);
+	_selector.updateWithNewInputSamples(now, inputs, MAX_MANUAL_INPUT_COUNT);
+
 
 	if (_selector.setpoint().valid) {
 		_published_invalid_once = false;
