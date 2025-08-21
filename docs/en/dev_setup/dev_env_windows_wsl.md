@@ -247,10 +247,6 @@ You will not be able to use it to install PX4 firmware because WSL does not allo
 
 ### QGroundControl on Windows
 
-::: info
-To allow connection between PX4 SITL on WSL2 and QGroundControl on Windows, [broadcasting](../simulation/index.md#enable-udp-broadcasting) or [streaming to a specific address](../simulation/index.md#enable-streaming-to-specific-address) needs to be enabled.
-:::
-
 Install [QGroundControl on Windows](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html#windows) if you want to be able to update hardware with firmware created within PX4.
 
 These steps describe how you can connect to the simulation running in the WSL:
@@ -275,6 +271,11 @@ These steps describe how you can connect to the simulation running in the WSL:
 ::: info
 You will have to update the WSL comm link in QGC every time WSL restarts (because it gets a dynamic IP address).
 :::
+
+#### Troubleshooting
+QGroundControl not connecting to PX4 SITL:
+- Connection between PX4 SITL on WSL2 and QGroundControl on Windows requires [broadcasting](../simulation/index.md#enable-udp-broadcasting) or [streaming to a specific address](../simulation/index.md#enable-streaming-to-specific-address) to be enabled. This is usually enabled on new clones.
+- Network traffic might be blocked by firewall or antivirus on you system.
 
 ## Flash a Flight Control Board
 
