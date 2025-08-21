@@ -399,9 +399,16 @@ void VTEPosition::handleUwbData(ObservationValidMask &vte_fusion_aid_mask, targe
 
 bool VTEPosition::isUwbDataValid(const sensor_uwb_s &uwb_report)
 {
+	if (_is_meas_valid(uwb_report.timestamp)) {
+		return false;
+	}
 
-	// TODO: extend checks
-	return _is_meas_valid(uwb_report.timestamp);
+	if (fabsf(uwb_report.aoa_azimuth_dev) > max_uwb_aoa_angle_degree ||
+	    fabsf(uwb_report.aoa_elevation_dev) > max_uwb_aoa_angle_degree) {
+		return false;
+	}
+
+	return true;
 
 }
 
@@ -416,9 +423,9 @@ bool VTEPosition::processObsUwb(const sensor_uwb_s &uwb_report, targetObsPos &ob
 	const float distance = uwb_report.distance;
 
 	// Calculate the relative position components
-	const float delta_x = distance * cosf(phi_rad) * cosf(theta_rad);
+	const float delta_z = -distance * cosf(phi_rad) * cosf(theta_rad); // Negative because Z is down in NED
 	const float delta_y = distance * cosf(phi_rad) * sinf(theta_rad);
-	const float delta_z = -distance * sinf(phi_rad); // Negative because Z is down in NED
+	const float delta_x = -distance * sinf(phi_rad);
 
 	// Total position in NED frame
 	const Vector3f pos_ned(uwb_report.offset_x + delta_x, uwb_report.offset_y + delta_y, uwb_report.offset_z + delta_z);
@@ -429,8 +436,9 @@ bool VTEPosition::processObsUwb(const sensor_uwb_s &uwb_report, targetObsPos &ob
 	obs.meas_h_xyz(Direction::y, vtest::State::pos_rel) = 1;
 	obs.meas_h_xyz(Direction::z, vtest::State::pos_rel) = 1;
 
-	const float unc = math::max(math::min(distance / 20.f, 2.f), 0.1f);
-
+	// Variance of UWB Distance measurements is +/- 5 cm
+	// Variance of UWB Angle of Arrival measurements is +/- 3° Degree
+	const float unc = math::sq(distance * 0.02f) + 0.0004f;
 	obs.meas_unc_xyz(Direction::x) = unc;
 	obs.meas_unc_xyz(Direction::y) = unc;
 	obs.meas_unc_xyz(Direction::z) = unc;
@@ -440,9 +448,7 @@ bool VTEPosition::processObsUwb(const sensor_uwb_s &uwb_report, targetObsPos &ob
 	obs.type = ObservationType::uwb;
 	obs.updated = true;
 
-
-	// TODO: fix function and then return true.
-	return false;
+	return true;
 }
 
 
