@@ -151,15 +151,15 @@ To use the MicroStrain driver:
 
    - The lever arm offset for the external GNSS receiver can be configured using:
 
-     - [GNSS_OFFSET1_X](../advanced_config/parameter_reference.md#GNSS_OFFSET1_X)
-     - [GNSS_OFFSET1_Y](../advanced_config/parameter_reference.md#GNSS_OFFSET1_Y)
-     - [GNSS_OFFSET1_Z](../advanced_config/parameter_reference.md#GNSS_OFFSET1_Z)
+     - [MS_GNSS_OFF1_X](../advanced_config/parameter_reference.md#MS_GNSS_OFF1_X)
+     - [MS_GNSS_OFF1_Y](../advanced_config/parameter_reference.md#MS_GNSS_OFF1_Y)
+     - [MS_GNSS_OFF1_Z](../advanced_config/parameter_reference.md#MS_GNSS_OFF1_Z)
 
    - For dual-antenna configurations, the second GNSS receiver’s offset is configured using:
 
-     - [GNSS_OFFSET2_X](../advanced_config/parameter_reference.md#GNSS_OFFSET2_X)
-     - [GNSS_OFFSET2_Y](../advanced_config/parameter_reference.md#GNSS_OFFSET2_Y)
-     - [GNSS_OFFSET2_Z](../advanced_config/parameter_reference.md#GNSS_OFFSET2_Z)
+     - [MS_GNSS_OFF2_X](../advanced_config/parameter_reference.md#MS_GNSS_OFF2_X)
+     - [MS_GNSS_OFF2_Y](../advanced_config/parameter_reference.md#MS_GNSS_OFF2_Y)
+     - [MS_GNSS_OFF2_Z](../advanced_config/parameter_reference.md#MS_GNSS_OFF2_Z)
 
 ## Published Data
 
