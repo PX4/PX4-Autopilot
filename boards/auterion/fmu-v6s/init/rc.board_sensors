@@ -70,3 +70,9 @@ fi
 
 # External compass IST8310 on I2C1
 ist8310 -X -b 1 -R 10 start
+
+# Start an external PWM generator
+if param greater PCA9685_EN_BUS 0
+then
+	pca9685_pwm_out start -b 1
+fi
