@@ -41,7 +41,8 @@ set(POSCONTROL_DEPENDENCIES
 	SlewRate
 	tecs
 	motion_planning
-    performance_model
+    	performance_model
+	Sticks
 )
 
 if(CONFIG_FIGURE_OF_EIGHT)
