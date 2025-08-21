@@ -207,23 +207,18 @@ FixedWingModeManager::wind_poll(const hrt_abstime now)
 void
 FixedWingModeManager::manual_control_setpoint_poll()
 {
-	_manual_control_setpoint_sub.update(&_manual_control_setpoint);
+	_sticks.checkAndUpdateStickInputs();
 
-	_manual_control_setpoint_for_height_rate = _manual_control_setpoint.pitch;
-	_manual_control_setpoint_for_airspeed = _manual_control_setpoint.throttle;
+	_manual_control_setpoint_for_height_rate = _sticks.getPitch();
+	_manual_control_setpoint_for_airspeed = _sticks.getThrottleZeroCentered();
 
 	if (_param_fw_pos_stk_conf.get() & STICK_CONFIG_SWAP_STICKS_BIT) {
 		/* Alternate stick allocation (similar concept as for multirotor systems:
 		 * demanding up/down with the throttle stick, and move faster/break with the pitch one.
 		 */
-		_manual_control_setpoint_for_height_rate = -_manual_control_setpoint.throttle;
-		_manual_control_setpoint_for_airspeed = _manual_control_setpoint.pitch;
-	}
 
-	// send neutral setpoints if no update for 1 s
-	if (hrt_elapsed_time(&_manual_control_setpoint.timestamp) > 1_s) {
-		_manual_control_setpoint_for_height_rate = 0.f;
-		_manual_control_setpoint_for_airspeed = 0.f;
+		_manual_control_setpoint_for_height_rate = -_sticks.getThrottleZeroCentered();
+		_manual_control_setpoint_for_airspeed = _sticks.getPitch();
 	}
 }
 
@@ -1156,7 +1151,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 		fixed_wing_runway_control_s fw_runway_control{};
 		fw_runway_control.timestamp = now;
 		fw_runway_control.wheel_steering_enabled = true;
-		fw_runway_control.wheel_steering_nudging_rate = _param_rwto_nudge.get() ? _manual_control_setpoint.yaw : 0.f;
+		fw_runway_control.wheel_steering_nudging_rate = _param_rwto_nudge.get() ? _sticks.getYaw() : 0.f;
 
 		_fixed_wing_runway_control_pub.publish(fw_runway_control);
 
@@ -1329,7 +1324,7 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 		fixed_wing_runway_control_s fw_runway_control{};
 		fw_runway_control.timestamp = now;
 		fw_runway_control.wheel_steering_enabled = true;
-		fw_runway_control.wheel_steering_nudging_rate = _param_rwto_nudge.get() ? _manual_control_setpoint.yaw : 0.f;
+		fw_runway_control.wheel_steering_nudging_rate = _param_rwto_nudge.get() ? _sticks.getYaw() : 0.f;
 
 		_fixed_wing_runway_control_pub.publish(fw_runway_control);
 
@@ -1578,7 +1573,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 	fw_runway_control.timestamp = now;
 	fw_runway_control.wheel_steering_enabled = true;
 	fw_runway_control.wheel_steering_nudging_rate = _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled ?
-			_manual_control_setpoint.yaw : 0.f;
+			_sticks.getYaw() : 0.f;
 
 	_fixed_wing_runway_control_pub.publish(fw_runway_control);
 
@@ -1743,7 +1738,7 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 	fw_runway_control.timestamp = now;
 	fw_runway_control.wheel_steering_enabled = true;
 	fw_runway_control.wheel_steering_nudging_rate = _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled ?
-			_manual_control_setpoint.yaw : 0.f;
+			_sticks.getYaw() : 0.f;
 
 	_fixed_wing_runway_control_pub.publish(fw_runway_control);
 
@@ -1795,7 +1790,7 @@ FixedWingModeManager::control_manual_altitude(const float control_interval, cons
 	_ctrl_configuration_handler.setPitchMin(min_pitch);
 	_ctrl_configuration_handler.setThrottleMax(throttle_max);
 
-	const float roll_body = _manual_control_setpoint.roll * radians(_param_fw_r_lim.get());
+	const float roll_body = _sticks.getRoll() * radians(_param_fw_r_lim.get());
 	const DirectionalGuidanceOutput sp = {.course_setpoint = NAN, .lateral_acceleration_feedforward = rollAngleToLateralAccel(roll_body)};
 	fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
 	fw_lateral_ctrl_sp.timestamp = hrt_absolute_time();
@@ -1831,8 +1826,8 @@ FixedWingModeManager::control_manual_position(const hrt_abstime now, const float
 
 	/* heading control */
 	// TODO: either make it course hold (easier) or a real heading hold (minus all the complexity here)
-	if (fabsf(_manual_control_setpoint.roll) < HDG_HOLD_MAN_INPUT_THRESH &&
-	    fabsf(_manual_control_setpoint.yaw) < HDG_HOLD_MAN_INPUT_THRESH) {
+	if (fabsf(_sticks.getRoll()) < HDG_HOLD_MAN_INPUT_THRESH &&
+	    fabsf(_sticks.getYaw()) < HDG_HOLD_MAN_INPUT_THRESH) {
 
 		/* heading / roll is zero, lock onto current heading */
 		if (fabsf(_yawrate) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
@@ -1891,13 +1886,13 @@ FixedWingModeManager::control_manual_position(const hrt_abstime now, const float
 	_ctrl_configuration_handler.setPitchMin(min_pitch);
 	_ctrl_configuration_handler.setThrottleMax(throttle_max);
 
-	if (!_yaw_lock_engaged || fabsf(_manual_control_setpoint.roll) >= HDG_HOLD_MAN_INPUT_THRESH ||
-	    fabsf(_manual_control_setpoint.yaw) >= HDG_HOLD_MAN_INPUT_THRESH) {
+	if (!_yaw_lock_engaged || fabsf(_sticks.getRoll()) >= HDG_HOLD_MAN_INPUT_THRESH ||
+	    fabsf(_sticks.getYaw()) >= HDG_HOLD_MAN_INPUT_THRESH) {
 
 		_hdg_hold_enabled = false;
 		_yaw_lock_engaged = false;
 
-		const float roll_body = _manual_control_setpoint.roll * radians(_param_fw_r_lim.get());
+		const float roll_body = _sticks.getRoll() * radians(_param_fw_r_lim.get());
 		fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
 		fw_lateral_ctrl_sp.timestamp = hrt_absolute_time();
 		fw_lateral_ctrl_sp.lateral_acceleration = rollAngleToLateralAccel(roll_body);
@@ -2385,14 +2380,14 @@ FixedWingModeManager::initializeAutoLanding(const hrt_abstime &now, const positi
 Vector2f
 FixedWingModeManager::calculateTouchdownPosition(const float control_interval, const Vector2f &local_land_position)
 {
-	if (fabsf(_manual_control_setpoint.yaw) > MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE
+	if (fabsf(_sticks.getYaw()) > MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE
 	    && _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled
 	    && !_flare_states.flaring) {
 		// laterally nudge touchdown location with yaw stick
 		// positive is defined in the direction of a right hand turn starting from the approach vector direction
 		const float signed_deadzone_threshold = MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE * math::signNoZero(
-				_manual_control_setpoint.yaw);
-		_lateral_touchdown_position_offset += (_manual_control_setpoint.yaw - signed_deadzone_threshold) *
+				_sticks.getYaw());
+		_lateral_touchdown_position_offset += (_sticks.getYaw() - signed_deadzone_threshold) *
 						      MAX_TOUCHDOWN_POSITION_NUDGE_RATE * control_interval;
 		_lateral_touchdown_position_offset = math::constrain(_lateral_touchdown_position_offset, -_param_fw_lnd_td_off.get(),
 						     _param_fw_lnd_td_off.get());
