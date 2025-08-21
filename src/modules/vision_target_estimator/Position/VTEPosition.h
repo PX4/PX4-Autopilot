@@ -133,6 +133,9 @@ protected:
 	/* timeout after which the measurement is not considered updated*/
 	static constexpr uint32_t measurement_updated_TIMEOUT_US = 100_ms;
 
+	/* Valid AoA measurement range between -60.00° and +60.00° for UWB*/
+	static constexpr float max_uwb_aoa_angle_degree = 60.0f;
+
 	uORB::Publication<landing_target_pose_s> _targetPosePub{ORB_ID(landing_target_pose)};
 	uORB::Publication<vision_target_est_position_s> _targetEstimatorStatePub{ORB_ID(vision_target_est_position)};
 
