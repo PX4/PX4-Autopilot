@@ -2128,6 +2128,9 @@ Mavlink::task_main(int argc, char *argv[])
 					} else if (strcmp(myoptarg, "distance_sensor") == 0) {
 						_mode = MAVLINK_MODE_DISTANCE_SENSOR;
 
+					} else if (strcmp(myoptarg, "AirPixel_TAG-E") == 0) {
+						_mode = MAVLINK_MODE_AIRPIXEL_TAGE;
+
 					} else {
 						PX4_ERR("invalid mode");
 						err_flag = true;
