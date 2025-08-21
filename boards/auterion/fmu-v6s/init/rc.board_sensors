@@ -12,16 +12,19 @@ board_adc start
 bmi088 -A -R 0 -s start
 bmi088 -G -R 0 -s start
 
+# MAG on I2C4, ROTATION_ROLL_180=8
 if ver hwtypecmp V6S013 V6S015
 then
-	# Revision(s) with BMM150
-	# MAG on I2C4, ROTATION_ROLL_180=8
 	bmm150 -I -R 8 start
 else
-	# Revision(s) with BMM350
-	# MAG on I2C4, ROTATION_ROLL_180=8
 	bmm350 -I -R 8 start
 fi
+
+# BARO on I2C4
+bmp388 -I -b 4 -a 0x77 start
+
+
+# External sensors on I2C1
 
 if param compare SENS_EN_INA226 1
 then
@@ -59,14 +62,11 @@ fi
 
 if param compare BAT1_V_CHANNEL -2
 then
-    if [ "$INA_CONFIGURED" != "yes" ]
-    then
-        param set BAT1_V_CHANNEL -1
-    fi
+	if [ "$INA_CONFIGURED" != "yes" ]
+	then
+		param set BAT1_V_CHANNEL -1
+	fi
 fi
 
-# External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
+# External compass IST8310 on I2C1
 ist8310 -X -b 1 -R 10 start
-
-# BARO on I2C4
-bmp388 -I -b 4 -a 0x77 start
