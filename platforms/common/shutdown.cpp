@@ -59,6 +59,10 @@
 #include <sys/boardctl.h>
 #endif
 
+#ifdef __PX4_QURT
+#include <sys/boardctl.h>
+#endif
+
 using namespace time_literals;
 
 static pthread_mutex_t shutdown_mutex =

@@ -564,3 +564,11 @@ float px4muorb_get_cpu_load(void) {
 
 	return cpu_load;
 }
+
+void px4muorb_request_reset(void) {
+	uORB::ProtobufChannel *channel = uORB::ProtobufChannel::GetInstance();
+
+	if (channel) {
+		(void) channel->add_subscription("RESET", 0);
+	}
+}

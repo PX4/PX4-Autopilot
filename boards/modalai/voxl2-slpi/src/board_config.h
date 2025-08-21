@@ -39,7 +39,7 @@
 
 #pragma once
 
-#define BOARD_HAS_NO_RESET
+#define CONFIG_BOARDCTL_RESET
 #define BOARD_HAS_NO_BOOTLOADER
 /*
  * I2C buses

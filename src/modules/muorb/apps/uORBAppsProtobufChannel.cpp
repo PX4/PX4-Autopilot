@@ -125,6 +125,11 @@ void uORB::AppsProtobufChannel::SubscribeCallback(const char *topic)
 		// This will happen when a newer PX4 version is talking to a
 		// SLPI image that doesn't support the CPULOAD request. If the
 		// SLPI image does support it then we wouldn't get this.
+	} else if (strcmp(topic, "RESET") == 0) {
+		PX4_ERR("Got RESET subscription, Rebooting...");
+		fc_sensor_kill_slpi();
+		sleep(2);
+		exit(-1);
 	} else if (_RxHandler) {
 		pthread_mutex_lock(&_rx_mutex);
 		_SlpiSubscriberCache[topic]++;
