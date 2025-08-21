@@ -42,6 +42,7 @@ add_library(drivers_board
 	i2c.cpp
 	init.c
 	spi.cpp
+	boardctl.c
     )
 
 # Add custom drivers

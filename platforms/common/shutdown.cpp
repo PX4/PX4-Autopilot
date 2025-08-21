@@ -56,12 +56,9 @@
 
 #ifdef __PX4_NUTTX
 #include <nuttx/board.h>
-#include <sys/boardctl.h>
 #endif
 
-#ifdef __PX4_QURT
 #include <sys/boardctl.h>
-#endif
 
 using namespace time_literals;
 

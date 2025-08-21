@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2025 ModalAI, Inc. All rights reserved.
+ *   Copyright (c) 2025 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,14 +31,16 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include <unistd.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 
-#include <board_config.h>
+extern bool muorb_kill_slpi(void);
 
-#if defined(CONFIG_BOARDCTL_RESET)
-
-#define BOARDIOC_RESET (1<<0)
-
-extern "C" __EXPORT int boardctl(unsigned int cmd, uintptr_t arg);
-
-#endif
+int boardctl(unsigned int cmd, uintptr_t arg) {
+	muorb_kill_slpi();
+	sleep(2);
+	exit(-1);
+	return 0;
+}
