@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018-2023 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,9 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskAuto
-	FlightTaskAuto.cpp
+px4_add_library(Sticks
+	Sticks.cpp
 )
-
-target_link_libraries(FlightTaskAuto PUBLIC FlightTask FlightTaskUtility Sticks StickYaw WeatherVane)
-target_include_directories(FlightTaskAuto PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(Sticks PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

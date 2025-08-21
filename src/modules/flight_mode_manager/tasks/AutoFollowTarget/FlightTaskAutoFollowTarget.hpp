@@ -44,7 +44,6 @@
 
 #include "FlightTaskAuto.hpp"
 #include "follow_target_estimator/TargetEstimator.hpp"
-#include "Sticks.hpp"
 
 #include <parameters/param.h>
 #include <mathlib/mathlib.h>
@@ -57,6 +56,7 @@
 #include <uORB/topics/vehicle_command.h>
 
 #include <lib/mathlib/math/filter/second_order_reference_model.hpp>
+#include <lib/sticks/Sticks.hpp>
 #include <motion_planning/VelocitySmoothing.hpp>
 
 // << Follow Target Behavior related constants >>
