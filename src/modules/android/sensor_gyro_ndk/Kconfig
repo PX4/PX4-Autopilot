@@ -1,0 +1,5 @@
+menuconfig MODULES_ANDROID_SENSOR_GYRO_NDK
+	bool "sensor_gyro_ndk"
+	default n
+	---help---
+		Enable support for sensor_gyro_ndk
