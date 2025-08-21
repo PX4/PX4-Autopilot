@@ -49,9 +49,9 @@
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/motion_planning/HeadingSmoothing.hpp>
 #include <lib/motion_planning/PositionSmoothing.hpp>
+#include <lib/sticks/Sticks.hpp>
 #include <lib/stick_yaw/StickYaw.hpp>
 #include <lib/weather_vane/WeatherVane.hpp>
-#include "Sticks.hpp"
 #include "StickAccelerationXY.hpp"
 
 /**
