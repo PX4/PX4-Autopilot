@@ -9,3 +9,28 @@ set VEHICLE_TYPE uuv
 
 # MAV_TYPE_SUBMARINE 12
 param set-default MAV_TYPE 12
+
+# Set micro-dds-client to use ethernet and IP-address 192.168.0.4
+param set-default UXRCE_DDS_AG_IP -1062731772
+
+# Disable preflight disarm to not interfere with external launching
+param set-default COM_DISARM_PRFLT -1
+param set-default CBRK_SUPPLY_CHK 894281
+param set-default COM_ARM_HFLT_CHK 0
+
+#Missing params
+param set-default CP_DIST -1.0
+
+# Default to VIO fusion
+param set-default ATT_EXT_HDG_M 1
+param set-default EKF2_EV_CTRL 15
+param set-default EKF2_EV_DELAY 5
+param set-default EKF2_GPS_CTRL 0
+param set-default EKF2_HGT_REF 0
+param set-default EKF2_EV_NOISE_MD 0
+param set-default EKF2_EVV_NOISE 0.01
+param set-default EKF2_EVP_NOISE 0.01
+param set-default EKF2_EVA_NOISE 0.05
+
+#set STAB mode to true
+param set-default UUV_STAB_MODE 1

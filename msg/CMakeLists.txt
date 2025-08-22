@@ -238,6 +238,7 @@ set(msg_files
 	Wind.msg
 	YawEstimatorStatus.msg
 	versioned/ActuatorMotors.msg
+	versioned/BatteryInfo.msg
 	versioned/ActuatorServos.msg
 	versioned/ArmingCheckReply.msg
 	versioned/ArmingCheckRequest.msg
@@ -250,6 +251,7 @@ set(msg_files
 	versioned/RegisterExtComponentReply.msg
 	versioned/RegisterExtComponentRequest.msg
 	versioned/TrajectorySetpoint.msg
+	versioned/TrajectorySetpoint6dof.msg
 	versioned/UnregisterExtComponent.msg
 	versioned/VehicleAngularVelocity.msg
 	versioned/VehicleAttitude.msg

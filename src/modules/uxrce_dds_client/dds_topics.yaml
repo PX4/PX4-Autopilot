@@ -178,6 +178,12 @@ subscriptions:
   - topic: /fmu/in/external_vehicle_angular_velocity
     type: px4_msgs::msg::ExternalVehicleAngularVelocity
 
+  - topic: /fmu/in/manual_control_setpoint
+    type: px4_msgs::msg::ManualControlSetpoint
+
+  - topic: /fmu/in/trajectory_setpoint6dof
+    type: px4_msgs::msg::TrajectorySetpoint6dof
+
 # Create uORB::PublicationMulti
 subscriptions_multi:
 
