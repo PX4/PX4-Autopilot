@@ -126,8 +126,8 @@ private:
 	// Controllers
 	PID _pid_speed_x;
 	PID _pid_speed_y;
-	SlewRate<float> _adjusted_speed_x_setpoint;
-	SlewRate<float> _adjusted_speed_y_setpoint;
+	SlewRate<float> _adjusted_speed_x_setpoint{0.f};
+	SlewRate<float> _adjusted_speed_y_setpoint{0.f};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
