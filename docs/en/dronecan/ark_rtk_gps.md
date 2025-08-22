@@ -139,7 +139,7 @@ Setup via UART:
   - Slow blinking green is waiting for CAN connection
   - Fast blinking green is normal operation
   - Slow blinking green and blue is CAN enumeration
-  - Slow blinking green, blue, and red is firmware update in progress
+  - Fast blinking blue and red is firmware update in progress
   - Blinking red is error
     - If you see a red LED there is an error and you should check the following
       - Make sure the flight controller has an SD card installed

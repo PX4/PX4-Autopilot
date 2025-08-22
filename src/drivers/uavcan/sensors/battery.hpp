@@ -118,7 +118,7 @@ private:
 	static constexpr int BATTERY_INDEX_2 = 2;
 	static constexpr int BATTERY_INDEX_3 = 3;
 	static constexpr int BATTERY_INDEX_4 = 4;
-	static constexpr int SAMPLE_INTERVAL_US = 20_ms; // assume higher frequency UAVCAN feedback than 50Hz
+	static constexpr int SAMPLE_INTERVAL_US = 500_ms; // Typical message rate for a CAN battery monitor should be 2-5Hz.
 
 	static_assert(battery_status_s::MAX_INSTANCES <= BATTERY_INDEX_4, "Battery array too big");
 
