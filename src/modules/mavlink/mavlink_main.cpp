@@ -97,7 +97,7 @@ static bool accept_unsigned_callback(const mavlink_status_t *status, uint32_t me
 	Mavlink *m = Mavlink::get_instance_for_status(status);
 
 	if (m != nullptr) {
-		return MavlinkSignControl::accept_unsigned(m->sign_mode(), m -> is_usb_uart(), message_id);
+		return m -> accept_unsigned(m->sign_mode(), m -> is_usb_uart(), message_id);
 	}
 
 	return false;

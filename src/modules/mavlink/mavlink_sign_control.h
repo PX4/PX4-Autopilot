@@ -73,11 +73,23 @@ public:
 	bool check_for_signing(const mavlink_message_t *msg);
 
 	/**
+	 * stores the key and timestamp from memory to file
+	 */
+	void write_key_and_timestamp();
+
+	/**
 	 * Checks whether should accept unsigned message for specific sign mode
 	 */
-	static bool accept_unsigned(int32_t sign_mode, bool is_usb_uart, uint32_t message_id);
+	bool accept_unsigned(int32_t sign_mode, bool is_usb_uart, uint32_t message_id);
+
+	static bool is_array_all_zeros(uint8_t arr[], size_t size);
 private:
 	mavlink_signing_t _mavlink_signing {};
+
+	/**
+	 * Checks whether the key has been initialized
+	 */
+	bool is_signing_initialized;
 };
 
 

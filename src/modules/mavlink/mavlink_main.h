@@ -133,6 +133,7 @@ public:
 	{
 		_task_should_exit.store(true);
 		_receiver.request_stop();
+		_sign_control.write_key_and_timestamp();
 	}
 
 	/**
@@ -535,6 +536,9 @@ public:
 	static hrt_abstime &get_first_start_time() { return _first_start_time; }
 
 	bool radio_status_critical() const { return _radio_status_critical; }
+
+	bool accept_unsigned(int32_t sign_mode, bool is_usb_uart, uint32_t message_id) { return _sign_control.accept_unsigned(sign_mode, is_usb_uart, message_id); }
+
 
 private:
 	MavlinkReceiver 	_receiver;
