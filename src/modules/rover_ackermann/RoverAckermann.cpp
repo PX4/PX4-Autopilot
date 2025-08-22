@@ -182,6 +182,7 @@ void RoverAckermann::runSanityChecks()
 
 void RoverAckermann::reset()
 {
+	_ackermann_pos_control.reset();
 	_ackermann_speed_control.reset();
 	_ackermann_att_control.reset();
 	_ackermann_rate_control.reset();

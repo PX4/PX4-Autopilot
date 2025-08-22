@@ -183,6 +183,7 @@ void RoverMecanum::runSanityChecks()
 
 void RoverMecanum::reset()
 {
+	_mecanum_pos_control.reset();
 	_mecanum_speed_control.reset();
 	_mecanum_att_control.reset();
 	_mecanum_rate_control.reset();
