@@ -58,6 +58,10 @@ public:
 	}
 
 private:
+	/* Max 2.5 seconds delay for all possible modes to avoid ACK timeout in ground station */
+	static constexpr uint32_t MAX_DELAY_US = 2500000 / vehicle_status_s::NAVIGATION_STATE_MAX;
+	/* Only delay if the transmit of one mode takes at least 1ms, this avoids a lot of fast delay calls */
+	static constexpr uint32_t MIN_DELAY_THRESHOLD = 1000;
 	static constexpr int MAX_NUM_EXTERNAL_MODES = vehicle_status_s::NAVIGATION_STATE_EXTERNAL8 -
 			vehicle_status_s::NAVIGATION_STATE_EXTERNAL1 + 1;
 
@@ -76,8 +80,13 @@ private:
 	uint32_t _last_valid_nav_states_mask{0};
 	uint32_t _last_can_set_nav_states_mask{0};
 
-	void send_single_mode(const vehicle_status_s &vehicle_status, int mode_index, int total_num_modes, uint8_t nav_state)
+	void send_single_mode(const vehicle_status_s &vehicle_status, int mode_index, int total_num_modes, uint8_t nav_state,
+			      uint32_t delay_us = 0)
 	{
+		if (delay_us > 0) {
+			px4_usleep(delay_us);
+		}
+
 		mavlink_available_modes_t available_modes{};
 		available_modes.mode_index = mode_index;
 		available_modes.number_modes = total_num_modes;
@@ -139,12 +148,18 @@ private:
 
 		int total_num_modes = math::countSetBits(vehicle_status.valid_nav_states_mask);
 
+		float mode_transmit_time = (float)(MAVLINK_MSG_ID_AVAILABLE_MODES_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) /
+					   _mavlink->get_data_rate();
+		uint32_t delay_us = (uint32_t)(mode_transmit_time * 1e6f);
+		delay_us = delay_us >= MIN_DELAY_THRESHOLD ? delay_us : 0;
+		delay_us = delay_us > MAX_DELAY_US ? MAX_DELAY_US : delay_us;
+
 		if (mode_index == 0) { // All
 			int cur_mode_index = 1;
 
 			for (uint8_t nav_state = 0; nav_state < vehicle_status_s::NAVIGATION_STATE_MAX; ++nav_state) {
 				if ((1u << nav_state) & vehicle_status.valid_nav_states_mask) {
-					send_single_mode(vehicle_status, cur_mode_index, total_num_modes, nav_state);
+					send_single_mode(vehicle_status, cur_mode_index, total_num_modes, nav_state, delay_us);
 					++cur_mode_index;
 				}
 			}

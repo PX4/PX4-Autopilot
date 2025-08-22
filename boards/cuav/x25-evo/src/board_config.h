@@ -186,14 +186,14 @@
 #define CORE_HEATER_OUTPUT_EN(on_true)	       px4_arch_gpiowrite(GPIO_CORE_HEATER_OUTPUT, (on_true))
 
 /* PE7 is nARMED
- *  The GPIO will be set as input while not armed HW will have external HW Pull DOWN.
- *  While armed it shall be configured at a GPIO OUT set HIGH
+ *  The GPIO will be set as input while not armed HW will have external HW Pull UP.
+ *  While armed it shall be configured at a GPIO OUT set LOW
  */
 #if !defined(TRACE_PINS)
-#define GPIO_nARMED_INIT     /* PE7 */  (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN7)
-#define GPIO_nARMED          /* PE7 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN7)
+#define GPIO_nARMED_INIT     /* PE7 */  (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN7)
+#define GPIO_nARMED          /* PE7 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN7)
 #define BOARD_INDICATE_EXTERNAL_LOCKOUT_STATE(enabled)  px4_arch_configgpio((enabled) ? GPIO_nARMED : GPIO_nARMED_INIT)
-#define BOARD_GET_EXTERNAL_LOCKOUT_STATE() (!(px4_arch_gpioread(GPIO_nARMED)))
+#define BOARD_GET_EXTERNAL_LOCKOUT_STATE() px4_arch_gpioread(GPIO_nARMED)
 #endif
 
 
