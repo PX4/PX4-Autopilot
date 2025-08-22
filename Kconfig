@@ -73,6 +73,11 @@ menu "Toolchain"
         help
             relative path to the ROMFS root directory
 
+    config BOARD_ADDITIONAL_INIT
+        string "Additional init file"
+        help
+            additional configurable init file to include in the ROMFS
+
     config BOARD_IO
         string "IO board name"
         default "px4_io-v2_default"

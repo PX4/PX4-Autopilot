@@ -339,6 +339,11 @@ if(EXISTS ${BOARD_DEFCONFIG})
 		endif()
 	endif()
 
+	# ADDITIONAL INIT
+	if(ADDITIONAL_INIT)
+		set(config_additional_init ${ADDITIONAL_INIT} CACHE INTERNAL "additional init" FORCE)
+	endif()
+
 	if(UAVCAN_INTERFACES)
 		set(config_uavcan_num_ifaces ${UAVCAN_INTERFACES} CACHE INTERNAL "UAVCAN interfaces" FORCE)
 	endif()

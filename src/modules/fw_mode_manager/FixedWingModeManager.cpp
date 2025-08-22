@@ -630,8 +630,8 @@ FixedWingModeManager::control_auto_fixed_bank_alt_hold()
 	const hrt_abstime now = hrt_absolute_time();
 	const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = now,
-		.altitude = _current_altitude,
-		.height_rate = NAN,
+		.altitude = NAN,
+		.height_rate = 0.f,
 		.equivalent_airspeed = NAN,
 		.pitch_direct = NAN,
 		.throttle_direct = NAN

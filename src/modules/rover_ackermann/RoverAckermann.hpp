@@ -54,7 +54,7 @@
 #include "AckermannActControl/AckermannActControl.hpp"
 #include "AckermannRateControl/AckermannRateControl.hpp"
 #include "AckermannAttControl/AckermannAttControl.hpp"
-#include "AckermannVelControl/AckermannVelControl.hpp"
+#include "AckermannSpeedControl/AckermannSpeedControl.hpp"
 #include "AckermannPosControl/AckermannPosControl.hpp"
 #include "AckermannDriveModes/AckermannAutoMode/AckermannAutoMode.hpp"
 #include "AckermannDriveModes/AckermannManualMode/AckermannManualMode.hpp"
@@ -124,7 +124,7 @@ private:
 	AckermannActControl  _ackermann_act_control{this};
 	AckermannRateControl _ackermann_rate_control{this};
 	AckermannAttControl  _ackermann_att_control{this};
-	AckermannVelControl  _ackermann_vel_control{this};
+	AckermannSpeedControl  _ackermann_speed_control{this};
 	AckermannPosControl  _ackermann_pos_control{this};
 	AckermannAutoMode	     _auto_mode{this};
 	AckermannManualMode 	     _manual_mode{this};

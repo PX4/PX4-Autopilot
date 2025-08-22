@@ -202,6 +202,31 @@ foreach(board_rc_file ${OPTIONAL_BOARD_RC})
 
 endforeach()
 
+if(config_additional_init)
+	if(EXISTS "${PX4_BOARD_DIR}/init/${config_additional_init}")
+		file(RELATIVE_PATH rc_file_relative ${PX4_SOURCE_DIR} ${PX4_BOARD_DIR}/init/${config_additional_init})
+		message(STATUS "ROMFS:  Adding ${rc_file_relative} -> /etc/init.d/rc.additional_init")
+
+		add_custom_command(
+			OUTPUT
+				${romfs_gen_root_dir}/init.d/rc.additional_init
+				${config_additional_init}.stamp
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PX4_BOARD_DIR}/init/${config_additional_init} ${romfs_gen_root_dir}/init.d/rc.additional_init
+			COMMAND ${CMAKE_COMMAND} -E touch ${config_additional_init}.stamp
+			DEPENDS
+				${PX4_BOARD_DIR}/init/${config_additional_init}
+				romfs_copy.stamp
+			COMMENT "ROMFS: copying ${config_additional_init}"
+		)
+
+		list(APPEND extras_dependencies
+			${config_additional_init}.stamp
+			)
+	else()
+		message(FATAL_ERROR "BOARD_ADDITIONAL_INIT file not found at: ${PX4_BOARD_DIR}/init/${config_additional_init}")
+	endif()
+endif()
+
 
 # board extras
 set(OPTIONAL_BOARD_EXTRAS)

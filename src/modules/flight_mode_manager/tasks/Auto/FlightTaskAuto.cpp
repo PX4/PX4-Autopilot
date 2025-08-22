@@ -289,7 +289,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		_stick_acceleration_xy.getSetpoints(_land_position, _velocity_setpoint, _acceleration_setpoint);
 
 	} else {
-		// Make sure we have a valid land position even in the case we loose RC while amending it
+		// Make sure we have a valid land position even in the case we loose manual control while amending it
 		if (!PX4_ISFINITE(_land_position(0))) {
 			_land_position.xy() = Vector2f(_position);
 		}

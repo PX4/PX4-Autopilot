@@ -456,7 +456,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 			vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF
 			&& in_forward_flight && !state.mission_finished;
 
-	// Manual control (RC) loss
+	// Manual control (RC or joystick) loss
 	if (!status_flags.manual_control_signal_lost) {
 		// If manual control was lost and arming was allowed, consider it optional until we regain manual control
 		_manual_control_lost_at_arming = false;

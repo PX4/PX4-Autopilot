@@ -42,7 +42,7 @@ DifferentialManualMode::DifferentialManualMode(ModuleParams *parent) : ModulePar
 	_rover_steering_setpoint_pub.advertise();
 	_rover_rate_setpoint_pub.advertise();
 	_rover_attitude_setpoint_pub.advertise();
-	_rover_velocity_setpoint_pub.advertise();
+	_rover_speed_setpoint_pub.advertise();
 	_rover_position_setpoint_pub.advertise();
 }
 
@@ -156,12 +156,10 @@ void DifferentialManualMode::position()
 		_pos_ctl_course_direction = Vector2f(NAN, NAN);
 
 		// Speed control
-		rover_velocity_setpoint_s rover_velocity_setpoint{};
-		rover_velocity_setpoint.timestamp = hrt_absolute_time();
-		rover_velocity_setpoint.speed = speed_setpoint;
-		rover_velocity_setpoint.bearing = NAN;
-		rover_velocity_setpoint.yaw = NAN;
-		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
+		rover_speed_setpoint_s rover_speed_setpoint{};
+		rover_speed_setpoint.timestamp = hrt_absolute_time();
+		rover_speed_setpoint.speed_body_x = speed_setpoint;
+		_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
 
 		// Rate control
 		rover_rate_setpoint_s rover_rate_setpoint{};

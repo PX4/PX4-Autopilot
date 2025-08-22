@@ -85,7 +85,8 @@ mavlink <command> [arguments...]
                  default: 127.0.0.1
      [-m <val>]  Mode: sets default streams and rates
                  values: custom|camera|onboard|osd|magic|config|iridium|minimal|
-                 extvision|extvisionmin|gimbal|uavionix, default: normal
+                 extvision|extvisionmin|gimbal|onboard_low_bandwidth|uavionix|lo
+                 w_bandwidth|distance_sensor, default: normal
      [-n <val>]  wifi/ethernet interface name
                  values: <interface_name>
      [-c <val>]  Multicast address (multicasting can be enabled via

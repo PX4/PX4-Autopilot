@@ -34,7 +34,7 @@
 add_subdirectory(MecanumActControl)
 add_subdirectory(MecanumRateControl)
 add_subdirectory(MecanumAttControl)
-add_subdirectory(MecanumVelControl)
+add_subdirectory(MecanumSpeedControl)
 add_subdirectory(MecanumPosControl)
 add_subdirectory(MecanumDriveModes)
 
@@ -48,7 +48,7 @@ px4_add_module(
 		MecanumActControl
 		MecanumRateControl
 		MecanumAttControl
-		MecanumVelControl
+		MecanumSpeedControl
 		MecanumPosControl
 		MecanumAutoMode
 		MecanumManualMode

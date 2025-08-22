@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025 PX4 DeSpeedopment Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
 add_subdirectory(DifferentialActControl)
 add_subdirectory(DifferentialRateControl)
 add_subdirectory(DifferentialAttControl)
-add_subdirectory(DifferentialVelControl)
+add_subdirectory(DifferentialSpeedControl)
 add_subdirectory(DifferentialPosControl)
 add_subdirectory(DifferentialDriveModes)
 
@@ -48,7 +48,7 @@ px4_add_module(
 		DifferentialActControl
 		DifferentialRateControl
 		DifferentialAttControl
-		DifferentialVelControl
+		DifferentialSpeedControl
 		DifferentialPosControl
 		DifferentialAutoMode
 		DifferentialManualMode

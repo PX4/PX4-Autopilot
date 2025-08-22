@@ -109,7 +109,7 @@ TEST_F(FailsafeTest, general)
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 
-	// RC lost -> Hold, then RTL
+	// manual control lost -> Hold, then RTL
 	time += 10_ms;
 	failsafe_flags.manual_control_signal_lost = true;
 	updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
@@ -127,14 +127,14 @@ TEST_F(FailsafeTest, general)
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Descend);
 
-	// DL link regained -> RTL (RC still lost)
+	// DL link regained -> RTL (manual control still lost)
 	time += 10_ms;
 	failsafe_flags.gcs_connection_lost = false;
 	updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
 
-	// RC lost cleared -> keep RTL
+	// Manual control lost cleared -> keep RTL
 	time += 10_ms;
 	failsafe_flags.manual_control_signal_lost = false;
 	updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
@@ -425,7 +425,7 @@ TEST_F(FailsafeTest, skip_failsafe)
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 
-	// RC lost while in RTL -> stay in RTL and only warn
+	// Manual control lost while in RTL -> stay in RTL and only warn
 	failsafe_flags.manual_control_signal_lost = true;
 
 	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);

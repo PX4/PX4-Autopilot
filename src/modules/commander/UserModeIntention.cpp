@@ -92,5 +92,10 @@ bool UserModeIntention::change(uint8_t user_intended_nav_state, ModeChangeSource
 
 void UserModeIntention::onDisarm()
 {
-	_user_intented_nav_state = _nav_state_after_disarming;
+	if (_handler) {
+		_user_intented_nav_state = _handler->onDisarm(_nav_state_after_disarming);
+
+	} else {
+		_user_intented_nav_state = _nav_state_after_disarming;
+	}
 }

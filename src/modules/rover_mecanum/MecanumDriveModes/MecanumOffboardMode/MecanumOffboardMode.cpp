@@ -40,7 +40,7 @@ MecanumOffboardMode::MecanumOffboardMode(ModuleParams *parent) : ModuleParams(pa
 	updateParams();
 	_rover_rate_setpoint_pub.advertise();
 	_rover_attitude_setpoint_pub.advertise();
-	_rover_velocity_setpoint_pub.advertise();
+	_rover_speed_setpoint_pub.advertise();
 	_rover_position_setpoint_pub.advertise();
 }
 
@@ -70,12 +70,23 @@ void MecanumOffboardMode::offboardControl()
 		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 
 	} else if (offboard_control_mode.velocity) {
-		const Vector2f velocity_ned(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
-		rover_velocity_setpoint_s rover_velocity_setpoint{};
-		rover_velocity_setpoint.timestamp = hrt_absolute_time();
-		rover_velocity_setpoint.speed = velocity_ned.norm();
-		rover_velocity_setpoint.bearing = atan2f(velocity_ned(1), velocity_ned(0));
-		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
+		if (_vehicle_attitude_sub.updated()) {
+			vehicle_attitude_s vehicle_attitude{};
+			_vehicle_attitude_sub.copy(&vehicle_attitude);
+			_vehicle_attitude_quaternion = matrix::Quatf(vehicle_attitude.q);
+		}
+
+		const Vector3f velocity_ned(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1], 0.f);
+		const Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_ned);
+		rover_speed_setpoint_s rover_speed_setpoint{};
+		rover_speed_setpoint.timestamp = hrt_absolute_time();
+		rover_speed_setpoint.speed_body_x = velocity_in_body_frame(0);
+		rover_speed_setpoint.speed_body_y = velocity_in_body_frame(1);
+		_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
+		rover_attitude_setpoint_s rover_attitude_setpoint{};
+		rover_attitude_setpoint.timestamp = hrt_absolute_time();
+		rover_attitude_setpoint.yaw_setpoint = atan2f(velocity_ned(1), velocity_ned(0));
+		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
 
 	} else if (offboard_control_mode.attitude) {
 		rover_attitude_setpoint_s rover_attitude_setpoint{};
