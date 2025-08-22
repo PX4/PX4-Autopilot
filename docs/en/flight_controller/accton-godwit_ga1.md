@@ -5,7 +5,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://cubepilot.org/#/home) for hardware support or compliance issues.
 :::
 
-The G-A1 is a state-of-the-art flight controller developed based on the [Pixhawk Autopilot v6X Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf).
+The G-A1 is a state-of-the-art flight controller developed derived from the [Pixhawk Autopilot v6X Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf).
 
 It includes an STM32H753 double-precision floating-point FMU processor and an STM32F103 IO coprocessor, multiple IMUs with 6-axis inertial sensors, two pressure/temperature sensors, and a geomagnetic sensor.
 It also has independent buses and power supplies, and is designed for safety and rich expansion capabilities.
@@ -109,7 +109,7 @@ The motor and servo system should be connected to these ports according to the o
 ## RC Input
 
 For DSM/SBUS receivers, connect them to the DSM/SBUS interface which provides dedicated 3.3V and 5V power pins respectively, and check above "Pinout" for detailed pin definition.
-PPM receivers should be connected to the PPM interface.
+PPM receivers should be connected to the PPM interface. And other RC systems can be connected via other spare telemetry ports.
 
 ![G-A1 Radio](../../assets/flight_controller/accton-godwit/ga1/radio.png "G-A1 Radio")
 
@@ -138,7 +138,7 @@ The SD card is NOT included in the package, you need to prepare the SD card and 
 
 ## Firmware
 
-The autopilot is compatible with PX4 firmware.
+The autopilot is compatible with PX4 firmware. And G-A1 can be detected by QGroundControl automatically. Users can also build it with target "accton-godwit_ga1"
 
 To [build PX4](../dev_setup/building_px4.md) for this target, open up the terminal and enter:
 
