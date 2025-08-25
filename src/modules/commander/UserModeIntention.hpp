@@ -35,7 +35,6 @@
 
 #include <uORB/topics/vehicle_status.h>
 #include "HealthAndArmingChecks/HealthAndArmingChecks.hpp"
-#include <px4_platform_common/module_params.h>
 
 enum class ModeChangeSource {
 	User,           ///< RC or MAVLink
@@ -58,10 +57,10 @@ public:
 };
 
 
-class UserModeIntention : ModuleParams
+class UserModeIntention
 {
 public:
-	UserModeIntention(ModuleParams *parent, const vehicle_status_s &vehicle_status,
+	UserModeIntention(const vehicle_status_s &vehicle_status,
 			  const HealthAndArmingChecks &health_and_arming_checks, ModeChangeHandler *handler);
 	~UserModeIntention() = default;
 
@@ -102,8 +101,4 @@ private:
 
 	bool _ever_had_mode_change{false}; ///< true if there was ever a mode change call (also if the same mode as already set)
 	bool _had_mode_change{false}; ///< true if there was a mode change call since the last getHadModeChangeAndClear()
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl
-	);
 };
