@@ -56,6 +56,8 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/distance_sensor_mode_change_request.h>
+#include <uORB/topics/device_information.h>
+#include <uORB/Publication.hpp>
 
 using namespace time_literals;
 
@@ -85,6 +87,9 @@ private:
 	enum class Register : uint8_t {
 		// see http://support.lightware.co.za/sf20/#/commands
 		ProductName = 0,
+		HardwareVersion = 1,
+		FirmwareVersion = 2,
+		SerialNumber = 3,
 		DistanceOutput = 27,
 		DistanceData = 44,
 		LaserFiring = 50,
@@ -125,6 +130,7 @@ private:
 	int collect();
 
 	int updateRestriction();
+	void publishDeviceInformation();
 
 	PX4Rangefinder _px4_rangefinder;
 
@@ -149,6 +155,9 @@ private:
 	bool _restriction{false};
 	bool _auto_restriction{false};
 	bool _prev_restriction{false};
+
+	uORB::Publication<device_information_s> _device_information_pub{ORB_ID(device_information)};
+	bool _device_info_published{false};
 };
 
 LightwareLaser::LightwareLaser(const I2CSPIDriverConfig &config) :
@@ -271,6 +280,11 @@ int LightwareLaser::probe()
 
 		if (ret == 0 && (strncmp((const char *)product_name, "SF20", sizeof(product_name)) == 0 ||
 				 strncmp((const char *)product_name, "LW20", sizeof(product_name)) == 0)) {
+			if (!_device_info_published) {
+				publishDeviceInformation();
+				_device_info_published = true;
+			}
+
 			return 0;
 		}
 
@@ -487,6 +501,79 @@ int LightwareLaser::updateRestriction()
 	}
 
 	return 0;
+}
+
+void LightwareLaser::publishDeviceInformation()
+{
+	device_information_s device_info{};
+	device_info.timestamp = hrt_absolute_time();
+	device_info.device_type = device_information_s::DEVICE_TYPE_RANGEFINDER;
+
+	// Set vendor name to "Lightware"
+	strncpy(device_info.vendor_name, "Lightware", sizeof(device_info.vendor_name));
+	device_info.vendor_name[sizeof(device_info.vendor_name) - 1] = '\0';
+
+	// Read product name
+	uint8_t product_name[16];
+
+	if (readRegister(Register::ProductName, product_name, sizeof(product_name)) == 0) {
+		product_name[sizeof(product_name) - 1] = '\0';
+		strncpy(device_info.model_name, (const char *)product_name, sizeof(device_info.model_name));
+		device_info.model_name[sizeof(device_info.model_name) - 1] = '\0';
+	}
+
+	// Read hardware version
+	uint8_t hw_version[4];
+
+	if (readRegister(Register::HardwareVersion, hw_version, sizeof(hw_version)) == 0) {
+		uint32_t hw_ver_num = (hw_version[3] << 24) | (hw_version[2] << 16) |
+				      (hw_version[1] << 8) | hw_version[0];
+
+		snprintf(device_info.hardware_version, sizeof(device_info.hardware_version),
+			 "%lu", (unsigned long)hw_ver_num);
+
+	} else {
+		strncpy(device_info.hardware_version, "-1", sizeof(device_info.hardware_version));
+		device_info.hardware_version[sizeof(device_info.hardware_version) - 1] = '\0';
+	}
+
+	// Read firmware version
+	uint8_t fw_version[4];
+
+	if (readRegister(Register::FirmwareVersion, fw_version, sizeof(fw_version)) == 0) {
+		// According to Lightware spec:
+		uint8_t patch = fw_version[0];  // Byte 1 = Patch
+		uint8_t minor = fw_version[1];  // Byte 2 = Minor
+		uint8_t major = fw_version[2];  // Byte 3 = Major
+		// fw_version[3] is Byte 4 = Reserved
+
+		snprintf(device_info.firmware_version, sizeof(device_info.firmware_version),
+			 "%u.%u.%u", major, minor, patch);
+
+	} else {
+		strncpy(device_info.firmware_version, "-1", sizeof(device_info.firmware_version));
+		device_info.firmware_version[sizeof(device_info.firmware_version) - 1] = '\0';
+	}
+
+	// Read serial number
+	uint8_t serial_number[32];
+
+	if (readRegister(Register::SerialNumber, serial_number, sizeof(serial_number)) == 0) {
+		serial_number[sizeof(serial_number) - 1] = '\0';
+		strncpy(device_info.serial_number, (const char *)serial_number, sizeof(device_info.serial_number));
+		device_info.serial_number[sizeof(device_info.serial_number) - 1] = '\0';
+
+	} else {
+		strncpy(device_info.serial_number, "-1", sizeof(device_info.serial_number));
+		device_info.serial_number[sizeof(device_info.serial_number) - 1] = '\0';
+	}
+
+	_device_information_pub.publish(device_info);
+
+	PX4_DEBUG("Published device information: %s %s, HW: %s, FW: %s, SN: %s",
+		  device_info.vendor_name, device_info.model_name,
+		  device_info.hardware_version, device_info.firmware_version,
+		  device_info.serial_number);
 }
 
 void LightwareLaser::RunImpl()
