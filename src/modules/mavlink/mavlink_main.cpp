@@ -1832,7 +1832,6 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("AVAILABLE_MODES", 0.3f);
 		configure_stream_local("BATTERY_STATUS", 0.5f);
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", 2.0f);
-		configure_stream_local("COLLISION", 2.0f);
 		configure_stream_local("CURRENT_MODE", 0.5f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
 		configure_stream_local("EXTENDED_SYS_STATE", 0.5f);
@@ -1852,7 +1851,6 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("SYS_STATUS", 0.5f);
 		configure_stream_local("SYSTEM_TIME", 2.0f);
 		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 0.5f);
-		configure_stream_local("TRAJECTORY_REPRESENTATION_WAYPOINTS", 2.0f);
 		configure_stream_local("VFR_HUD", 1.0f);
 		configure_stream_local("VIBRATION", 0.1f);
 		configure_stream_local("WIND_COV", 0.1f);
