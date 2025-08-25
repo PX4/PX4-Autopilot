@@ -274,6 +274,9 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
   - [UXRCE_DDS_SYNCT](../advanced_config/parameter_reference.md#UXRCE_DDS_SYNCT): Bridge time synchronization enable.
     The uXRCE-DDS client module can synchronize the timestamp of the messages exchanged over the bridge.
     This is the default configuration. In certain situations, for example during [simulations](../ros2/user_guide.md#ros-gazebo-and-px4-time-synchronization), this feature may be disabled.
+  - [`UXRCE_DDS_NS_IDX`](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX): Index-based namespace definition
+    Setting this parameter to any value other than `-1` creates a namespace with the prefix `uav_` and the specified value, e.g. `uav_0`, `uav_1`, etc.
+    See [namespace](#customizing-the-namespace) for methods to define richer or arbitrary namespaces.
 
 ::: info
 Many ports are already have a default configuration.
@@ -347,7 +350,7 @@ Therefore,
 
 ## Customizing the Namespace
 
-Custom topic and service namespaces can be applied at build time (changing [dds_topics.yaml](../middleware/dds_topics.md)) or at runtime (which is useful for multi vehicle operations):
+Custom topic and service namespaces can be applied at build time (changing [dds_topics.yaml](../middleware/dds_topics.md)), at runtime, or through a parameter (which is useful for multi vehicle operations):
 
 - One possibility is to use the `-n` option when starting the [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) from command line.
   This technique can be used both in simulation and real vehicles.
@@ -375,6 +378,22 @@ will generate topics under the namespaces:
 ```
 
 :::
+
+- A simple index-based namespace can be applied by setting the parameter [`UXRCE_DDS_NS_IDX`](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX) to a value between 0 and 9999.
+  This will generate a namespace such as `/uav_0`, `/uav_1`, and so on.
+  This technique is ideal if vehicles must be persistently associated with namespaces because their clients are automatically started through PX4.
+
+::: info
+PX4 parameters cannot carry rich text strings.
+Therefore, you cannot use [`UXRCE_DDS_NS_IDX`](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX) to automatically start a client with an arbitrary message namespace through PX4.
+You can however specify a namespace when starting the client, using the `-n` argument:
+
+```sh
+# In etc/extras.txt on the MicroSD card
+uxrce_dds_client start -n fancy_uav
+```
+
+This can be included in `etc/extras.txt` as part of a custom [System Startup](../concept/system_startup.md).
 
 ## PX4 ROS 2 QoS Settings
 
