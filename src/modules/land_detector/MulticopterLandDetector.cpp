@@ -44,7 +44,7 @@
  *State 2 (=maybe_landed):
  *maybe_landed can only occur if the internal ground_contact hysteresis state is true. maybe_landed criteria requires to have no motion in x and y,
  *no rotation and a thrust below 0.1 of the thrust_range (thrust_hover - thrust_min). In addition, the mc_pos_control turns off the thrust_sp in
- *body frame along x and y which helps to detect maybe_landed. The criteria for maybe_landed needs to be true for (LNDMC_TRIG_TIME / 3) seconds.
+ *body frame along x and y which helps to detect maybe_landed. The criteria for maybe_landed needs to be true for 1/3 seconds.
  *
  *State 3 (=landed)
  *landed can only be detected if maybe_landed is true for LAND_DETECTOR_TRIGGER_TIME_US. No farther criteria is tested, but the mc_pos_control goes into
@@ -82,6 +82,7 @@ MulticopterLandDetector::MulticopterLandDetector()
 	_paramHandle.landSpeed = param_find("MPC_LAND_SPEED");
 	_paramHandle.crawlSpeed = param_find("MPC_LAND_CRWL");
 	_minimum_thrust_8s_hysteresis.set_hysteresis_time_from(false, 8_s);
+	_freefall_hysteresis.set_hysteresis_time_from(false, 300_ms);
 }
 
 void MulticopterLandDetector::_update_topics()
@@ -114,6 +115,24 @@ void MulticopterLandDetector::_update_topics()
 	if (_takeoff_status_sub.update(&takeoff_status)) {
 		_takeoff_state = takeoff_status.takeoff_state;
 	}
+
+	// Update distance sensor observability
+	if (!_dist_bottom_is_observable) {
+		// we consider the distance to the ground observable if the system is using a range sensor
+		_dist_bottom_is_observable =
+			_vehicle_local_position.dist_bottom_sensor_bitfield & vehicle_local_position_s::DIST_BOTTOM_SENSOR_RANGE;
+	}
+
+	// Increase land detection time if not close to ground
+	hrt_abstime land_detection_time = 1_s;
+
+	if (_dist_bottom_is_observable && !_vehicle_local_position.dist_bottom_valid) {
+		land_detection_time = 3_s;
+	}
+
+	_ground_contact_hysteresis.set_hysteresis_time_from(false, land_detection_time / 3);
+	_landed_hysteresis.set_hysteresis_time_from(false, land_detection_time / 3);
+	_maybe_landed_hysteresis.set_hysteresis_time_from(false, land_detection_time / 3);
 }
 
 void MulticopterLandDetector::_update_params()
@@ -306,19 +325,11 @@ bool MulticopterLandDetector::_get_ground_effect_state()
 bool MulticopterLandDetector::_is_close_to_ground()
 {
 	if (_vehicle_local_position.dist_bottom_valid) {
-		return _vehicle_local_position.dist_bottom < DIST_FROM_GROUND_THRESHOLD;
+		return _vehicle_local_position.dist_bottom < 1.f;
 
 	} else {
 		return false;
 	}
-}
-
-void MulticopterLandDetector::_set_hysteresis_factor(const int factor)
-{
-	_ground_contact_hysteresis.set_hysteresis_time_from(false, _param_lndmc_trig_time.get() * 1_s / 3 * factor);
-	_landed_hysteresis.set_hysteresis_time_from(false, _param_lndmc_trig_time.get() * 1_s / 3 * factor);
-	_maybe_landed_hysteresis.set_hysteresis_time_from(false, _param_lndmc_trig_time.get() * 1_s / 3 * factor);
-	_freefall_hysteresis.set_hysteresis_time_from(false, FREEFALL_TRIGGER_TIME_US);
 }
 
 } // namespace land_detector
