@@ -243,9 +243,14 @@ struct QualityInd {
 };
 
 struct RFBand {
+	enum class InfoMode : uint8_t {
+		Suppressed   = 1,
+		Mitigated    = 2,
+		Interference = 8
+	};
 	uint32_t frequency;
 	uint16_t bandwidth;
-	uint8_t  info_mode: 4;
+	uint8_t info_mode: 4;
 	uint8_t  info_reserved: 2;
 	uint8_t  info_antenna_id: 2;
 };
@@ -261,6 +266,15 @@ struct RFStatus {
 };
 
 struct GALAuthStatus {
+	enum class OSNMAStatus : uint16_t {
+		Disabled                   = 0,
+		Initializing               = 1,
+		AwaitingTrustedTimeInfo    = 2,
+		InitFailedInconsistentTime = 3,
+		InitFailedKROOTInvalid     = 4,
+		InitFailedInvalidParam     = 5,
+		Authenticating             = 6,
+	};
 	uint16_t osnma_status_status: 3;
 	uint16_t osnma_status_initialization_progress: 8;
 	uint16_t osnma_status_trusted_time_source: 3;
@@ -271,6 +285,8 @@ struct GALAuthStatus {
 	uint64_t gal_authentic_mask;
 	uint64_t gps_active_mask;
 	uint64_t gps_authentic_mask;
+
+	OSNMAStatus osnmaStatus() const { return static_cast<OSNMAStatus>(osnma_status_status); }
 };
 
 struct VelCovGeodetic {
