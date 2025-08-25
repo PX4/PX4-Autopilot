@@ -14,7 +14,7 @@ param set-default SYS_DM_BACKEND 1
 # Set TELEM1 as default mavlink connection
 param set-default MAV_0_CONFIG 0
 # Disable logger writing to FRAM, only stream over MAVLINK
-set LOGGER_ARGS "-m mavlink"
+param set-default SDLOG_BACKEND 2
 
 # 200kOhm/10kOhm voltage divider on V_BAT
 param set-default BAT1_V_DIV 21
