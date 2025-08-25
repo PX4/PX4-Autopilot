@@ -133,6 +133,12 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, flags.mode_req_home_position);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, flags.mode_req_prevent_arming);
 
+	// NAVIGATION_STATE_AUTO_RTL_DEAD_RECKONING
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL_DEAD_RECKONING, flags.mode_req_angular_velocity);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL_DEAD_RECKONING, flags.mode_req_attitude);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL_DEAD_RECKONING, flags.mode_req_local_alt);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL_DEAD_RECKONING, flags.mode_req_prevent_arming);
+
 	// NAVIGATION_STATE_ACRO
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ACRO, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ACRO, flags.mode_req_manual_control);
