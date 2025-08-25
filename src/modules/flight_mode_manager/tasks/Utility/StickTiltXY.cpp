@@ -34,7 +34,7 @@
 #include "StickTiltXY.hpp"
 
 #include <geo/geo.h>
-#include "Sticks.hpp"
+#include <lib/sticks/Sticks.hpp>
 
 using namespace matrix;
 
@@ -42,6 +42,11 @@ StickTiltXY::StickTiltXY(ModuleParams *parent) :
 	ModuleParams(parent)
 {
 	updateParams();
+}
+
+void StickTiltXY::reset()
+{
+	_voyager_acceleration.setZero();
 }
 
 void StickTiltXY::updateParams()
@@ -59,6 +64,26 @@ Vector2f StickTiltXY::generateAccelerationSetpoints(Vector2f stick_xy, const flo
 	Sticks::limitStickUnitLengthXY(stick_xy);
 	_man_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
 	stick_xy = _man_input_filter.update(stick_xy);
+
 	Sticks::rotateIntoHeadingFrameXY(stick_xy, yaw, yaw_setpoint);
+
 	return stick_xy * _maximum_acceleration;
+}
+
+Vector2f StickTiltXY::generateAccelerationSetpointsForVoyager(Vector2f stick_xy, const float dt, const float yaw,
+		const float yaw_setpoint)
+{
+	Sticks::limitStickUnitLengthXY(stick_xy);
+	const Vector2f increment = stick_xy;
+	_voyager_acceleration += increment * _maximum_acceleration *
+				 dt; // at full stick deflection it takes 1s from 0 to max tilt
+
+	if (_voyager_acceleration.longerThan(_maximum_acceleration)) {
+		_voyager_acceleration =
+			_voyager_acceleration.unit_or_zero() * _maximum_acceleration;
+	}
+
+	auto global_voyager_acceleration = _voyager_acceleration;
+	Sticks::rotateIntoHeadingFrameXY(global_voyager_acceleration, yaw, yaw_setpoint);
+	return global_voyager_acceleration;
 }
