@@ -425,7 +425,7 @@ struct parameters {
 	float ekf2_rng_a_vmax{1.0f};            ///< maximum ground velocity for which we allow to use the range finder as height source (if rng_control == 1)
 	float ekf2_rng_qlty_t{1.0f};            ///< minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
 	float range_cos_max_tilt{0.7071f};      ///< cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data
-	float ekf2_rng_k_gate{1.0f};            ///< gate size used by the range finder kinematic consistency check
+	float ekf2_rng_k_gate{0.5f};		///< gate size used by the range finder kinematic consistency check
 	float ekf2_rng_fog{0.f};                ///< max distance which a blocked range sensor measures (fog, dirt) [m]
 
 	Vector3f rng_pos_body{};                ///< xyz position of range sensor in body frame (m)
@@ -608,6 +608,8 @@ uint64_t mag_heading_consistent  :
 		uint64_t gnss_vel                : 1; ///< 44 - true if GNSS velocity measurement fusion is intended
 uint64_t gnss_fault              :
 		1; ///< 45 - true if GNSS measurements have been declared faulty and are no longer used
+		uint64_t rng_kin_unknown	 : 1; ///< 46 - true when the range finder kinematic consistency check is not running
+
 	} flags;
 	uint64_t value;
 };
