@@ -142,6 +142,8 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("rpm", 200);
 	add_optional_topic_multi("telemetry_status", 1000, 4);
 
+	add_topic("vfc_status");
+
 	// EKF multi topics (currently max 9 estimators)
 #if CONSTRAINED_MEMORY
 	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 1;

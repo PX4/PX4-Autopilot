@@ -201,8 +201,8 @@ set(msg_files
 	# UavcanParameterValue.msg
 	UlogStream.msg
 	UlogStreamAck.msg
-	UwbDistance.msg
-	UwbGrid.msg
+	# UwbDistance.msg
+	# UwbGrid.msg
 	VehicleAcceleration.msg
 	VehicleAirData.msg
 	VehicleAngularAccelerationSetpoint.msg
@@ -230,6 +230,7 @@ set(msg_files
 	VehicleTorqueSetpoint.msg
 	VehicleTrajectoryBezier.msg
 	VehicleTrajectoryWaypoint.msg
+	VfcStatus.msg
 	VtolVehicleStatus.msg
 	Wind.msg
 	YawEstimatorStatus.msg

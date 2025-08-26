@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+#   Copyright (c) 2025 ModalAI, Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,23 +31,13 @@
 #
 ############################################################################
 
-# Need to make sure that the Linux processor on VOXL2
-# knows about all parameters since it is acting as the
-# parameter server for other processors that may define
-# parameters that it doesn't normally know about.
-set(DISABLE_PARAMS_MODULE_SCOPING TRUE PARENT_SCOPE)
+px4_add_git_submodule(TARGET git_mpa_libmodal-json PATH "libmodal-json")
+px4_add_git_submodule(TARGET git_mpa_libmodal-pipe PATH "libmodal-pipe")
 
-add_library(drivers_board
-	board_config.h
-	i2c.cpp
-	init.c
-	spi.cpp
-	boardctl.c
-    )
+px4_add_library(mpa mpa.cpp)
 
-# Add custom drivers
-add_subdirectory(${PX4_BOARD_DIR}/src/lib/mpa)
-add_subdirectory(${PX4_BOARD_DIR}/../voxl2-slpi/src/drivers/icm42688p ${PX4_BOARD_DIR}/src/drivers/icm42688p)
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/apps_sbus)
-add_subdirectory(${PX4_BOARD_DIR}/src/modules/mavlink_odometry_bridge)
-add_subdirectory(${PX4_BOARD_DIR}/src/modules/vfc_logger)
+target_include_directories(mpa PUBLIC
+	${CMAKE_CURRENT_SOURCE_DIR}/libmodal-json/library/include
+	${CMAKE_CURRENT_SOURCE_DIR}/libmodal-pipe/library/include
+)
+
