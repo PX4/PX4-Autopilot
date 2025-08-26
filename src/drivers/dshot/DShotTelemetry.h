@@ -53,11 +53,12 @@ public:
 
 	TelemetryStatus parseTelemetryPacket(EscData *esc_data);
 
-	// Attempt to parse a command response.
-	bool parseCommandResponse();
+	// Attempt to parse a command response. Returns the index of the ESC or -1 on failure.
+	int parseCommandResponse();
 	bool expectingCommandResponse();
 	void setExpectCommandResponse(int motor_index, uint16_t command);
 
+	// Settings handlers
 	void initSettingsHandlers(ESCType esc_type, uint8_t output_mask);
 
 	// TODO: re-evaluate if this is necessary

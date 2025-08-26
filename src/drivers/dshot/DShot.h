@@ -38,7 +38,6 @@
 #include <px4_platform_common/module.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
-#include <uORB/topics/am32_eeprom_read.h>
 
 #include "DShotCommon.h"
 #include "DShotTelemetry.h"
@@ -157,7 +156,6 @@ private:
 	uORB::PublicationMultiData<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
-	uORB::Publication<am32_eeprom_read_s> _am32_eeprom_read_pub{ORB_ID(am32_eeprom_read)};
 
 
 	// Status information

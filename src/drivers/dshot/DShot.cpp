@@ -248,14 +248,12 @@ void DShot::Run()
 	if (_telemetry.enabled()) {
 
 		if (_telemetry.expectingCommandResponse()) {
+			int response_index = _telemetry.parseCommandResponse();
 
-			if (_telemetry.parseCommandResponse()) {
-				DSHOT_CMD_DEBUG("Command response received");
+			if (response_index >= 0) {
+				DSHOT_CMD_DEBUG("Command response received from ESC%d", response_index + 1);
 
-				// _current_command.command
 				if (_current_command.command == DSHOT_CMD_ESC_INFO) {
-					DSHOT_CMD_DEBUG("gotta update AM32 params from Motor1");
-					DSHOT_CMD_DEBUG("gotta flag esc(s) to write mistmatched params to");
 
 					// ESC_INFO:
 					// - Iterate over AM32_ parameters and set values if they are -1 (from Motor1)
