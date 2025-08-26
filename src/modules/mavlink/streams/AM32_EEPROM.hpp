@@ -31,29 +31,29 @@
  *
  ****************************************************************************/
 
-#ifndef ESC_RAW_SETTINGS_HPP
-#define ESC_RAW_SETTINGS_HPP
+#ifndef AM32_EEPROM_HPP
+#define AM32_EEPROM_HPP
 
 #include <uORB/topics/esc_eeprom.h>
 
-class MavlinkStreamESCEeprom : public MavlinkStream
+class MavlinkStreamAM32Eeprom : public MavlinkStream
 {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamESCEeprom(mavlink); }
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamAM32Eeprom(mavlink); }
 
-	static constexpr const char *get_name_static() { return "ESC_RAW_SETTINGS"; }
-	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_ESC_RAW_SETTINGS; }
+	static constexpr const char *get_name_static() { return "AM32_EEPROM"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_AM32_EEPROM; }
 
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
 	unsigned get_size() override
 	{
-		return _esc_eeprom_sub.advertised() ? MAVLINK_MSG_ID_ESC_RAW_SETTINGS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		return _esc_eeprom_sub.advertised() ? MAVLINK_MSG_ID_AM32_EEPROM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
-	explicit MavlinkStreamESCEeprom(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamAM32Eeprom(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _esc_eeprom_sub{ORB_ID(esc_eeprom)};
 
@@ -62,23 +62,14 @@ private:
 		esc_eeprom_s esc_eeprom;
 
 		if (_esc_eeprom_sub.update(&esc_eeprom)) {
-			mavlink_esc_raw_settings_t msg{};
-
-			// ESC_RAW_SETTINGS
-			// index 			: Motor Index (0 - 4)
-			// data[128]		: Raw data
-			// length			: Length of data in the buffer
-			//
-			// The only ESCs that can output params are DShot and CAN.
-			// Assumes ESC is DShot. CAN ESCs would use DroneCAN parameters.
-
-			msg.esc_type = 1; // AM32
+			mavlink_am32_eeprom_t msg = {};
 			msg.index = esc_eeprom.index;
+			msg.mode = 0;
 			memcpy(msg.data, esc_eeprom.data, esc_eeprom.length);
 			msg.length = esc_eeprom.length;
 
-			PX4_INFO("sending ESC_RAW_SETTINGS %d", _mavlink->get_channel());
-			mavlink_msg_esc_raw_settings_send_struct(_mavlink->get_channel(), &msg);
+			PX4_INFO("sending AM32_EEPROM %d", _mavlink->get_channel());
+			mavlink_msg_am32_eeprom_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
 		}
@@ -87,4 +78,4 @@ private:
 	}
 };
 
-#endif // ESC_RAW_SETTINGS_HPP
+#endif // AM32_EEPROM_HPP
