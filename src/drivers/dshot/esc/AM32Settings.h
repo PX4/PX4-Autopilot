@@ -86,12 +86,12 @@ public:
 		uint8_t auto_timing;            // 47: auto timing
 	} __attribute__((packed));
 
-	~AM32Settings() override = default;
-
 	int getExpectedResponseSize() override;
-
 	bool decodeInfoResponse(const uint8_t *buf, int size) override;
+	bool updated() const { return _updated; };
+	const EEPROMData &eeprom_data() const { return _eeprom_data; };
 
 private:
 	EEPROMData _eeprom_data{};
+	bool _updated{};
 };

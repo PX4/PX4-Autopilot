@@ -154,6 +154,7 @@ bool DShotTelemetry::parseCommandResponse()
 
 			if (handler && _command_response_position == handler->getExpectedResponseSize()) {
 				success = handler->decodeInfoResponse(_command_response_buffer, _command_response_position);
+				// Reset command state
 				_command_response_position = 0;
 				_command_response_start = 0;
 				_command_response_motor_index = -1;
