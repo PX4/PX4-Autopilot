@@ -175,25 +175,38 @@ void DShot::Run()
 		handle_programming_sequence_state();
 	}
 
-	// Determine if we need to send an EDT Request command
-	// - no active set command
-	// - not waiting for command response
-	if (!_current_command.valid() && _telemetry.telemetryRequestFinished() && !_telemetry.expectingCommandResponse()) {
 
+	// TOOO: debugging, remove later
+	if (hrt_elapsed_time(&_last_settings_publish) > 5_s) {
+		_telemetry.publish_esc_settings();
+		_last_settings_publish = hrt_absolute_time();
+	}
+
+	// Determine if we need to send a command
+	//// COMMANDS
+	// EDT enable
+	// Get settings
+	//// CONDITIONS
+	// - not doing a command(s)
+	// - not waiting for response to process
+	// - not waiting for telem to process
+	if (!_current_command.valid() && _telemetry.telemetryRequestFinished() && !_telemetry.expectingCommandResponse()) {
 		bool ser_tel_enabled = _param_dshot_tel_cfg.get();
 		bool bidir_enabled = _param_dshot_bidir_en.get();
 		bool edt_enabled = _param_dshot_bidir_edt.get();
 		bool esc_type_set = _param_dshot_esc_type.get();
 
+		// TODO: only perform these requests once each ESC has been online for a minimum of 1 second
+
 		// EDT Request
 		uint8_t needs_edt_request_mask = _bdshot_telem_online_mask & ~_bdshot_edt_requested_mask;
-
 		// Settings Request
 		uint8_t needs_settings_request_mask = _serial_telem_online_mask & ~_settings_requested_mask;
 
-		// EDT Request first
-		if (bidir_enabled && edt_enabled && needs_edt_request_mask) {
+		bool edt_requests_finished = !edt_enabled || (needs_edt_request_mask == 0);
 
+		if (bidir_enabled && edt_enabled && needs_edt_request_mask) {
+			// EDT Request first
 			int next_motor_index = 0;
 
 			for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
@@ -211,11 +224,11 @@ void DShot::Run()
 			_current_command.motor_mask = (1 << next_motor_index);
 			_current_command.delay_until = 0;
 			_bdshot_edt_requested_mask |= (1 << next_motor_index);
-			DSHOT_CMD_DEBUG("Requesting EDT for motor %d at time %llu", next_motor_index, now);
+			DSHOT_CMD_DEBUG("Requesting EDT for ESC%d at time %.2fs", next_motor_index + 1, (double)now / 1000000.);
 
+
+		} else if (ser_tel_enabled && esc_type_set && needs_settings_request_mask && edt_requests_finished) {
 			// Settings Request next
-
-		} else if (ser_tel_enabled && esc_type_set && needs_settings_request_mask) {
 			int next_motor_index = 0;
 
 			for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
@@ -234,7 +247,7 @@ void DShot::Run()
 			_current_command.delay_until = 0;
 			_current_command.expect_response = true;
 			_settings_requested_mask |= (1 << next_motor_index);
-			DSHOT_CMD_DEBUG("Requesting Settings for motor %d at time %llu", next_motor_index, now);
+			DSHOT_CMD_DEBUG("Requesting Settings for ESC%d at time %.2fs", next_motor_index + 1, (double)now / 1000000.);
 		}
 	}
 
@@ -246,7 +259,6 @@ void DShot::Run()
 
 	// Process Serial Telemetry data (Telemetry and CommandResponses)
 	if (_telemetry.enabled()) {
-
 		if (_telemetry.expectingCommandResponse()) {
 			int response_index = _telemetry.parseCommandResponse();
 
@@ -434,16 +446,21 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 
 	if (_telemetry.enabled() && _telemetry.telemetryRequestFinished() && !_telemetry.expectingCommandResponse()) {
 
-		if (!delay_elapsed) {
-			// Flush UART buffer while waiting to send telem request. Ensures
-			// garbage data doesn't corrupt our starting point for telem.
-			_telemetry.flush();
-
-		} else {
-			// DSHOT_TELEM_DEBUG("startTelemetryRequest: %d", _telemetry_motor_index);
+		if (delay_elapsed) {
 			_telemetry.startTelemetryRequest();
 			request_telemetry = true;
 		}
+
+		// if (!delay_elapsed) {
+		// 	// Flush UART buffer while waiting to send telem request. Ensures
+		// 	// garbage data doesn't corrupt our starting point for telem.
+		// 	_telemetry.flush();
+
+		// } else {
+		// 	// DSHOT_TELEM_DEBUG("startTelemetryRequest: %d", _telemetry_motor_index);
+		// 	_telemetry.startTelemetryRequest();
+		// 	request_telemetry = true;
+		// }
 	}
 
 	// Iterate over all of the outputs

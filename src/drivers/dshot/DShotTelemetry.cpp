@@ -117,7 +117,7 @@ void DShotTelemetry::initSettingsHandlers(ESCType esc_type, uint8_t output_mask)
 
 		if (interface) {
 			_settings_handlers[i] = interface;
-			DSHOT_CMD_DEBUG("Initialized settings handler for motor %d", i);
+			DSHOT_CMD_DEBUG("Initialized settings handler for ESC%d", i + 1);
 		}
 	}
 
@@ -250,10 +250,19 @@ TelemetryStatus DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int len
 	return status;
 }
 
-void DShotTelemetry::flush()
+void DShotTelemetry::publish_esc_settings()
 {
-	_uart.flush();
+	for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+		if (_settings_handlers[i]) {
+			_settings_handlers[i]->publish_latest();
+		}
+	}
 }
+
+// void DShotTelemetry::flush()
+// {
+// 	_uart.flush();
+// }
 
 void DShotTelemetry::setExpectCommandResponse(int motor_index, uint16_t command)
 {

@@ -57,18 +57,16 @@ public:
 	int parseCommandResponse();
 	bool expectingCommandResponse();
 	void setExpectCommandResponse(int motor_index, uint16_t command);
-
-	// Settings handlers
 	void initSettingsHandlers(ESCType esc_type, uint8_t output_mask);
+	void publish_esc_settings();
 
 	// TODO: re-evaluate if this is necessary
-	void flush();
+	// void flush();
 
 private:
 	static constexpr int COMMAND_RESPONSE_MAX_SIZE = 128;
 	static constexpr int COMMAND_RESPONSE_SETTINGS_SIZE = 49; // 48B for EEPROM + 1B for CRC
 	static constexpr int TELEMETRY_FRAME_SIZE = 10;
-
 	TelemetryStatus decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data);
 
 	bool _enabled{false};
