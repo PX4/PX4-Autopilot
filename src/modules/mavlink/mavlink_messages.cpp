@@ -72,7 +72,7 @@
 #include "streams/EFI_STATUS.hpp"
 #include "streams/ESC_INFO.hpp"
 #include "streams/ESC_STATUS.hpp"
-// #include "streams/ESC_RAW_SETTINGS.hpp"
+#include "streams/AM32_EEPROM.hpp"
 #include "streams/ESTIMATOR_STATUS.hpp"
 #include "streams/EXTENDED_SYS_STATE.hpp"
 #include "streams/FLIGHT_INFORMATION.hpp"
@@ -466,9 +466,9 @@ static const StreamListItem streams_list[] = {
 #if defined(ESC_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamESCStatus>(),
 #endif // ESC_STATUS_HPP
-#if defined(ESC_RAW_SETTINGS_HPP)
-	create_stream_list_item<MavlinkStreamESCEeprom>(),
-#endif // ESC_RAW_SETTINGS_HPP
+#if defined(AM32_EEPROM_HPP)
+	create_stream_list_item<MavlinkStreamAM32Eeprom>(),
+#endif // AM32_EEPROM_HPP
 #if defined(AUTOPILOT_VERSION_HPP)
 	create_stream_list_item<MavlinkStreamAutopilotVersion>(),
 #endif // AUTOPILOT_VERSION_HPP
