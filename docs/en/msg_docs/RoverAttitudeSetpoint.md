@@ -1,12 +1,13 @@
 # RoverAttitudeSetpoint (UORB message)
 
-
+Rover Attitude Setpoint
 
 [source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/RoverAttitudeSetpoint.msg)
 
 ```c
-uint64 timestamp # time since system start (microseconds)
+# Rover Attitude Setpoint
 
-float32 yaw_setpoint # [rad] Expressed in NED frame
+uint64 timestamp # [us] Time since system start
+float32 yaw_setpoint # [rad] [@range -inf, inf] [@frame NED] Yaw setpoint
 
 ```

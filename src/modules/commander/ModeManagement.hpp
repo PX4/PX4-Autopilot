@@ -138,7 +138,11 @@ public:
 		bool control_setpoint_update{false};
 	};
 
-	void update(bool armed, uint8_t user_intended_nav_state, bool failsafe_action_active, UpdateRequest &update_request);
+	void update(bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request);
+	void setFailsafeState(bool failsafe_action_active)
+	{
+		_failsafe_action_active = failsafe_action_active;
+	}
 
 	/**
 	 * Mode executor ID for who is currently in charge (and can send commands etc).
@@ -148,6 +152,8 @@ public:
 
 	void onUserIntendedNavStateChange(ModeChangeSource source, uint8_t user_intended_nav_state) override;
 	uint8_t getReplacedModeIfAny(uint8_t nav_state) override;
+
+	uint8_t onDisarm(uint8_t stored_nav_state) override;
 
 	uint8_t getNavStateReplacementIfValid(uint8_t nav_state, bool report_error = true);
 
@@ -198,12 +204,14 @@ public:
 		bool control_setpoint_update{false};
 	};
 
-	void update(bool armed, uint8_t user_intended_nav_state, bool failsafe_action_active, UpdateRequest &update_request) {}
+	void update(bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request) {}
+	void setFailsafeState(bool failsafe_action_active) {}
 
 	int modeExecutorInCharge() const { return ModeExecutors::AUTOPILOT_EXECUTOR_ID; }
 
 	void onUserIntendedNavStateChange(ModeChangeSource source, uint8_t user_intended_nav_state) override {}
 	uint8_t getReplacedModeIfAny(uint8_t nav_state) override { return nav_state; }
+	uint8_t onDisarm(uint8_t stored_nav_state) override { return stored_nav_state; }
 
 	uint8_t getNavStateReplacementIfValid(uint8_t nav_state, bool report_error = true) { return nav_state; }
 

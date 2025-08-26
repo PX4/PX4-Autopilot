@@ -6,13 +6,15 @@ on:
     - 'main'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
   pull_request:
     branches:
-    - '*'
+      - '**'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -22,7 +24,6 @@ jobs:
       matrix:
         config:
           - {vehicle: "iris",          mission: "MC_mission_box"}
-          - {vehicle: "rover",         mission: "rover_mission_1"}
 
     steps:
     - uses: actions/checkout@v4

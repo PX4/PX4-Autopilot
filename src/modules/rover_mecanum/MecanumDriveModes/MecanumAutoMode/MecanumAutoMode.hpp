@@ -78,12 +78,12 @@ private:
 	 * @param cruising_speed Cruising speed [m/s].
 	 * @param waypoint_transition_angle Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
 	 * @param max_speed Maximum speed setpoint [m/s]
-	 * @param miss_spd_gain Tuning parameter for the speed reduction during waypoint transition.
+	 * @param speed_red Tuning parameter for the speed reduction during waypoint transition.
 	 * @param curr_wp_type Type of the current waypoint.
 	 * @return Speed setpoint [m/s].
 	 */
 	float arrivalSpeed(const float cruising_speed, const float waypoint_transition_angle, const float max_speed,
-			   const float miss_spd_gain, int curr_wp_type);
+			   const float speed_red, int curr_wp_type);
 
 	// uORB subscriptions
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
@@ -93,7 +93,7 @@ private:
 	uORB::Publication<rover_position_setpoint_s>    _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
-		(ParamFloat<px4::params::RM_MISS_SPD_GAIN>) _param_rm_miss_spd_gain
+		(ParamFloat<px4::params::RO_SPEED_LIM>) _param_ro_speed_limit,
+		(ParamFloat<px4::params::RO_SPEED_RED>) _param_ro_speed_red
 	)
 };

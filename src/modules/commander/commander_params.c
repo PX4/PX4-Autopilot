@@ -127,6 +127,7 @@ PARAM_DEFINE_INT32(COM_HLDL_REG_T, 0);
  *
  * The time in seconds without a new setpoint from RC or Joystick, after which the connection is considered lost.
  * This must be kept short as the vehicle will use the last supplied setpoint until the timeout triggers.
+ * Ensure the value is not set lower than the update interval of the RC or Joystick.
  *
  * @group Commander
  * @unit s
@@ -142,8 +143,9 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  *
  * Set home position automatically if possible.
  *
- * During missions, the home position is locked and will not reset during intermediate landings.
+ * During missions, the latitude/longitude of the home position is locked and will not reset during intermediate landings.
  * It will only update once the mission is complete or landed outside of a mission.
+ * However, the altitude is still being adjusted to correct for GNSS vertical drift in the first 2 minutes after takeoff.
  *
  * @group Commander
  * @reboot_required true
@@ -171,6 +173,8 @@ PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
  * A value of 2 allows either RC Transmitter or Joystick input. The first valid input is used, will fallback to other sources if the input stream becomes invalid.
  * A value of 3 allows either input from RC or joystick. The first available source is selected and used until reboot.
  * A value of 4 ignores any stick input.
+ * A value of 5 allows either RC Transmitter or Joystick input. But RC has priority and whenever avaiable is immedietely used.
+ * A value of 6 allows either RC Transmitter or Joystick input. But Joystick has priority and whenever avaiable is immedietely used.
  *
  * @group Commander
  * @min 0
@@ -180,11 +184,13 @@ PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
  * @value 2 RC and Joystick with fallback
  * @value 3 RC or Joystick keep first
  * @value 4 Stick input disabled
+ * @value 5 RC priority, Joystick fallback
+ * @value 6 Joystick priority, RC fallback
  */
 PARAM_DEFINE_INT32(COM_RC_IN_MODE, 3);
 
 /**
- * RC input arm/disarm command duration
+ * Manual control input arm/disarm command duration
  *
  * The default value of 1000 requires the stick to be held in the arm or disarm position for 1 second.
  *
@@ -282,10 +288,10 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
  *
  * Before entering failsafe (RTL, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
  * for the user to realize.
- * During that time the user cannot take over control via the stick override feature (see COM_RC_OVERRIDE).
+ * During that time the user can switch modes, but cannot take over control via the stick override feature (see COM_RC_OVERRIDE).
  * Afterwards the configured failsafe action is triggered and the user may use stick override.
  *
- * A zero value disables the delay and the user cannot take over via stick movements (switching modes is still allowed).
+ * A zero value disables the delay.
  *
  * @group Commander
  * @unit s
@@ -415,9 +421,9 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_ANG, 60);
 PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 2);
 
 /**
- * Enable RC stick override of auto and/or offboard modes
+ * Enable manual control stick override
  *
- * When RC stick override is enabled, moving the RC sticks more than COM_RC_STICK_OV
+ * When enabled, moving the sticks more than COM_RC_STICK_OV
  * immediately gives control back to the pilot by switching to Position mode and
  * if position is unavailable Altitude mode.
  * Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
@@ -431,7 +437,7 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 2);
 PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
 
 /**
- * RC stick override threshold
+ * Stick override threshold
  *
  * If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold
  * the autopilot the pilot takes over control.
@@ -595,11 +601,10 @@ PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);
 PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
 
 /**
- * Set RC loss failsafe mode
+ * Set manual control loss failsafe mode
  *
- * The RC loss failsafe will only be entered after a timeout,
- * set by COM_RC_LOSS_T in seconds. If RC input checks have been disabled
- * by setting the COM_RC_IN_MODE param it will not be triggered.
+ * The manual control loss failsafe will only be entered after a timeout,
+ * set by COM_RC_LOSS_T in seconds.
  *
  * @value 1 Hold mode
  * @value 2 Return mode
@@ -614,15 +619,17 @@ PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
 PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
 
 /**
- * RC loss exceptions
+ * Manual control loss exceptions
  *
- * Specify modes in which RC loss is ignored and the failsafe action not triggered.
+ * Specify modes where manual control loss is ignored and no failsafe is triggered.
+ * External modes requiring stick input will still failsafe.
  *
  * @min 0
- * @max 7
+ * @max 15
  * @bit 0 Mission
  * @bit 1 Hold
  * @bit 2 Offboard
+ * @bit 3 External Mode
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
@@ -730,6 +737,8 @@ PARAM_DEFINE_INT32(COM_MOT_TEST_EN, 1);
 
 /**
  * Timeout value for disarming when kill switch is engaged
+ *
+ * Use RC_MAP_KILL_SW to map a kill switch.
  *
  * @group Commander
  * @unit s
@@ -1027,7 +1036,7 @@ PARAM_DEFINE_FLOAT(COM_THROW_SPEED, 5);
  * @value 3 Return
  * @increment 1
  */
-PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 3);
+PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 0);
 
 /**
  * Allow external mode registration while armed.

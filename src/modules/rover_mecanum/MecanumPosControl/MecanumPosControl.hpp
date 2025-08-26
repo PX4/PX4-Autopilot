@@ -38,7 +38,6 @@
 #include <px4_platform_common/events.h>
 
 // Libraries
-#include <lib/rover_control/RoverControl.hpp>
 #include <matrix/matrix/math.hpp>
 #include <lib/pure_pursuit/PurePursuit.hpp>
 #include <lib/geo/geo.h>
@@ -47,7 +46,8 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_velocity_setpoint.h>
+#include <uORB/topics/rover_speed_setpoint.h>
+#include <uORB/topics/rover_attitude_setpoint.h>
 #include <uORB/topics/rover_position_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -69,7 +69,7 @@ public:
 	~MecanumPosControl() = default;
 
 	/**
-	 * @brief Generate and publish roverVelocitySetpoint from roverPositionSetpoint.
+	 * @brief Generate and publish roverSpeedSetpoint and roverAttitudeSetpoint from roverPositionSetpoint.
 	 */
 	void updatePosControl();
 
@@ -78,6 +78,13 @@ public:
 	 * @return True if all checks pass.
 	 */
 	bool runSanityChecks();
+
+	/**
+	 * @brief Reset position controller.
+	 */
+	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_limit.get(); _stopped = false;};
+
+protected:
 
 protected:
 	/**
@@ -95,25 +102,28 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _rover_position_setpoint_sub{ORB_ID(rover_position_setpoint)};
-	rover_position_setpoint_s _rover_position_setpoint{};
 
 	// uORB publications
-	uORB::Publication<rover_velocity_setpoint_s> _rover_velocity_setpoint_pub{ORB_ID(rover_velocity_setpoint)};
+	uORB::Publication<rover_speed_setpoint_s>    _rover_speed_setpoint_pub{ORB_ID(rover_speed_setpoint)};
 	uORB::Publication<pure_pursuit_status_s>     _pure_pursuit_status_pub{ORB_ID(pure_pursuit_status)};
+	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
 
 	// Variables
 	Quatf _vehicle_attitude_quaternion{};
 	Vector2f _curr_pos_ned{};
 	Vector2f _start_ned{};
+	Vector2f _target_waypoint_ned{};
+	float _arrival_speed{0.f};
 	float _vehicle_yaw{0.f};
 	float _max_yaw_rate{0.f};
 	float _yaw_setpoint{NAN};
-
-	// Class Instances
-	MapProjection _global_ned_proj_ref{}; // Transform global to NED coordinates
+	float _vehicle_speed{0.f};
+	float _cruising_speed{NAN};
+	bool _stopped{false};
+	uint8_t _reset_counter{0}; /**< counter for estimator resets in xy-direction */
+	uint8_t _updated_reset_counter{0}; /**< counter for estimator resets in xy-direction */
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RM_MISS_SPD_GAIN>) _param_rm_miss_spd_gain,
 		(ParamFloat<px4::params::RM_COURSE_CTL_TH>) _param_rm_course_ctl_th,
 		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
 		(ParamFloat<px4::params::RO_SPEED_P>) 	    _param_ro_speed_p,
@@ -130,6 +140,5 @@ private:
 		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
 		(ParamFloat<px4::params::RO_YAW_P>)  	    _param_ro_yaw_p,
 		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad
-
 	)
 };

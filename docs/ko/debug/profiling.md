@@ -9,7 +9,7 @@ PMSP는 현재 스택 추적을 샘플링하기 위하여, 주기적으로 펌�
 샘플링된 스택 추적은 텍스트 파일에 추가됩니다.
 Once sampling is finished (which normally takes about an hour or more), the collected stack traces are _folded_.
 The result of _folding_ is another text file that contains the same stack traces, except that all similar stack traces (i.e. those that were obtained at the same point in the program) are joined together, and the number of their occurrences is recorded.
-The folded stacks are then fed into the visualization script, for which purpose we employ [FlameGraph - an open source stack trace visualizer](http://www.brendangregg.com/flamegraphs.html).
+The folded stacks are then fed into the visualization script, for which purpose we employ [FlameGraph - an open source stack trace visualizer](https://www.brendangregg.com/flamegraphs.html).
 
 ## 기본 사용법
 
@@ -17,14 +17,14 @@ The folded stacks are then fed into the visualization script, for which purpose 
 
 프로파일러는 GDB에서 임베디드 대상에서 PX4를 실행합니다.
 따라서, 대상을 프로파일링하기 전에 프로파일링할 하드웨어가 있어야 하고, 해당 하드웨어에 펌웨어를 컴파일하고 업로드하여야 합니다.
-You will then need a [debug probe](../debug/swd_debug.md#debug-probes) (such as the DroneCode Probe), to run the GDB server and interact with the board.
+You will then need a [debug probe](../debug/swd_debug.md#debug-probes) (such as the Zubax BugFace BF1), to run the GDB server and interact with the board.
 
 ### 디버거 장치 결정
 
-The `poor-mans-profiler.sh` automatically detects and uses the correct USB device if you use it with a [DroneCode Probe](../debug/probe_bmp.md#dronecode-probe).
+The `poor-mans-profiler.sh` automatically detects and uses the correct USB device if you use it with a [Zubax BugFace BF1](../debug/probe_bmp.md#dronecode-probe).
 If you use a different kind of probe you may need to pass in the specific _device_ on which the debugger is located.
 You can use the bash command `ls -alh /dev/serial/by-id/` to enumerate the possible devices on Ubuntu.
-예를 들어, 다음 장치는 USB를 통해 연결된 Pixhawk 4 및 DroneCode Probe로 열거됩니다.
+For example the following devices are enumerated with a Pixhawk 4 and Zubax BugFace BF1 connected over USB:
 
 ```sh
 user@ubuntu:~/PX4-Autopilot$ ls -alh /dev/serial/by-id/
@@ -48,7 +48,7 @@ Then pass in the appropriate device using the `--gdbdev` argument like this:
 ### 실행
 
 프로파일러의 기본 사용법은 빌드 시스템을 통하여 사용할 수 있습니다.
-For example, the following command builds and profiles px4_fmu-v4pro target with 10000 samples (fetching _FlameGraph_ and adding it to the path as needed).
+For example, the following command builds and profiles px4_fmu-v4pro target with 10000 samples (fetching \_FlameGraph_ and adding it to the path as needed).
 
 ```sh
 make px4_fmu-v4pro_default profile

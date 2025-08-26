@@ -9,12 +9,49 @@ However in some cases it is not present, or an older version is present that nee
 
 ::: info
 
-- Most boards will need to use the [Debug Probe](#debug-probe-bootloader-update) to update the bootloader.
+- You can use [QGC Bootloader Update](#qgc-bootloader-update-sys-bl-update) with firmware that includes the [`bl-update` module](../modules/modules_command.md#bl-update).
+  This is the easiest way to update the bootloader, provided the board is able to load firmware.
+- You can also use the [Debug Probe](#debug-probe-bootloader-update) to update the bootloader.
+  This is useful for updating/fixing the bootloader when the board is bricked.
 - On [FMUv6X-RT](../flight_controller/pixhawk6x-rt.md) you can [install bootloader/unbrick boards via USB](bootloader_update_v6xrt.md).
   This is useful if you don't have a debug probe.
-- On FMUv2 and some custom firmware (only) you can use [QGC Bootloader Update](#qgc-bootloader-update).
 
 :::
+
+## QGC Bootloader Update (`SYS_BL_UPDATE`)
+
+The easiest way to update the bootloader is to first use _QGroundControl_ to install firmware that contains the desired/latest bootloader.
+You can then initiate bootloader update on next restart by setting the parameter: [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE).
+
+This approach can be used if the [`bl-update` module](../modules/modules_command.md#bl-update) is present in the firmware.
+The easiest way to check this is just to see if the [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE) parameter is [found in QGroundControl](../advanced_config/parameters.md#finding-a-parameter).
+
+:::warning
+Boards that include the module will have the line `CONFIG_SYSTEMCMDS_BL_UPDATE=y` in their `default.px4board` file (for examples [see this search](https://github.com/search?q=repo%3APX4%2FPX4-Autopilot+path%3A**%2Fdefault.px4board+CONFIG_SYSTEMCMDS_BL_UPDATE%3Dy&type=code)).
+You can enable this key in your own custom firmware if needed.
+:::
+
+단계는 다음과 같습니다:
+
+1. SD카드를 삽입합니다 (발생 가능한 문제들의 디버깅을 위한 부트 로그 기록을 가능하게 합니다.)
+
+2. [Update the Firmware](../config/firmware.md#custom) with an image containing the new/desired bootloader.
+
+  ::: info
+  The updated bootloader might be included the default firmware for your board or supplied in custom firmware.
+
+:::
+
+3. 기체가 재부팅될 때까지 기다리십시오.
+
+4. [Find and enable](../advanced_config/parameters.md) the parameter [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE).
+
+5. 재부팅하십시오 (보드의 연결을 끊고 다시 연결하십시오.).
+  부트로더 업데이트는 수초내에 완료됩니다.
+
+Generally at this point you may then want to [update the firmware](../config/firmware.md) again using the correct/newly installed bootloader.
+
+An specific example of this process for updating the [FMUv2 bootloader](#fmuv2-bootloader-update) is given below.
 
 ## Building the PX4 Bootloader
 
@@ -41,7 +78,7 @@ arm-none-eabi-objcopy -O ihex build/px4_fmu-v6x_bootloader/px4_fmu-v6x_bootloade
 
 ### PX4 Bootloader FMUv5X and earlier
 
-PX4 boards up to FMUv5X (before STM32H7) used the [PX4 bootloader](https://github.com/PX4/Bootloader) repository.
+PX4 boards up to FMUv5X (before STM32H7) used the [PX4 bootloader](https://github.com/PX4/PX4-Bootloader) repository.
 
 The instructions in the repo README explain how to use it.
 
@@ -80,7 +117,7 @@ The following steps explain how you can "manually" update the bootloader using a
 
 :::
 
-4. The _gdb terminal_ appears and it should display the following output:
+4. The _gdb terminal_ appears and it should display (something like) the following output:
 
   ```sh
   GNU gdb (GNU Tools for Arm Embedded Processors 7-2017-q4-major) 8.0.50.20171128-git
@@ -92,9 +129,9 @@ The following steps explain how you can "manually" update the bootloader using a
   This GDB was configured as "--host=x86_64-linux-gnu --target=arm-none-eabi".
   Type "show configuration" for configuration details.
   For bug reporting instructions, please see:
-  <http://www.gnu.org/software/gdb/bugs/>.
+  <https://www.sourceware.org/gdb/bugs/>.
   Find the GDB manual and other documentation resources online at:
-  <http://www.gnu.org/software/gdb/documentation/>.
+  <https://www.sourceware.org/gdb/documentation/>.
   For help, type "help".
   Type "apropos word" to search for commands related to "word"...
   Reading symbols from px4fmuv5_bl.elf...done.
@@ -111,7 +148,7 @@ The following steps explain how you can "manually" update the bootloader using a
 7. Power on the Pixhawk with another USB cable and connect the probe to the `FMU-DEBUG` port.
 
   ::: info
-  If using a Dronecode probe you may need to remove the case in order to connect to the `FMU-DEBUG` port (e.g. on Pixhawk 4 you would do this using a T6 Torx screwdriver).
+  If using a Zubax BugFace BF1 you may need to remove the case in order to connect to the `FMU-DEBUG` port (e.g. on Pixhawk 4 you would do this using a T6 Torx screwdriver).
 
 :::
 
@@ -130,42 +167,10 @@ The following steps explain how you can "manually" update the bootloader using a
 
 After the bootloader has updated you can [Load PX4 Firmware](../config/firmware.md) using _QGroundControl_.
 
-## QGC Bootloader Update
-
-The easiest approach is to first use _QGroundControl_ to install firmware that contains the desired/latest bootloader.
-You can then initiate bootloader update on next restart by setting the parameter: [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE).
-
-This approach can only be used if [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE) is present in firmware.
-
-:::warning
-Currently only FMUv2 and some custom firmware includes the desired bootloader.
-:::
-
-단계는 다음과 같습니다:
-
-1. SD카드를 삽입합니다 (발생 가능한 문제들의 디버깅을 위한 부트 로그 기록을 가능하게 합니다.)
-
-2. [Update the Firmware](../config/firmware.md#custom) with an image containing the new/desired bootloader.
-
-  ::: info
-  The updated bootloader might be supplied in custom firmware (i.e. from the dev team), or it or may be included in the latest main branch.
-
-:::
-
-3. 기체가 재부팅될 때까지 기다리십시오.
-
-4. [Find and enable](../advanced_config/parameters.md) the parameter [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE).
-
-5. 재부팅하십시오 (보드의 연결을 끊고 다시 연결하십시오.).
-  부트로더 업데이트는 수초내에 완료됩니다.
-
-Generally at this point you may then want to [update the firmware](../config/firmware.md) again using the correct/newly installed bootloader.
-
-An specific example of this process for updating the FMUv2 bootloader is given below.
-
-### FMUv2 Bootloader Update
+## FMUv2 Bootloader Update
 
 If _QGroundControl_ installs the FMUv2 target (see console during installation), and you have a newer board, you may need to update the bootloader in order to access all the memory on your flight controller.
+This example explains how you can use [QGC Bootloader Update](qgc-bootloader-update-sys-bl-update) to update the bootloader.
 
 :::info
 Early FMUv2 [Pixhawk-series](../flight_controller/pixhawk_series.md#fmu_versions) flight controllers had a [hardware issue](../flight_controller/silicon_errata.md#fmuv2-pixhawk-silicon-errata) that restricted them to using 1MB of flash memory.

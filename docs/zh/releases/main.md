@@ -40,7 +40,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Common
 
-- TBD
+- [QGroundControl Bootloader Update](../advanced_config/bootloader_update.md#qgc-bootloader-update-sys-bl-update) via the [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE) parameter has been re-enabled after being broken for a number of releases. ([PX4-Autopilot#25032: build: romf: fix generation of rc.board_bootloader_upgrade](https://github.com/PX4/PX4-Autopilot/pull/25032)).
 
 ### Control
 
@@ -80,11 +80,12 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Fixed-wing
 
-- TBD
+- [Fixed Wing Takeoff mode](../flight_modes_fw/takeoff.md) will now keep climbing with level wings on position loss.
+  A target takeoff waypoint can be set to control takeoff course and loiter altitude. ([PX4-Autopilot#25083](https://github.com/PX4/PX4-Autopilot/pull/25083)).
 
 ### 无人车
 
-- TBD
+- Removed deprecated rover module ([PX4-Autopilot#25054](https://github.com/PX4/PX4-Autopilot/pull/25054)).
 
 ### ROS 2
 

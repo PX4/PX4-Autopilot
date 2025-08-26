@@ -62,7 +62,7 @@ void AckermannRateControl::updateRateControl()
 
 	hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
-	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
+	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 10_ms) * 1e-6f;
 
 	if (PX4_ISFINITE(_yaw_rate_setpoint)) {
 		if (fabsf(_estimated_speed) > FLT_EPSILON) {
@@ -86,7 +86,8 @@ void AckermannRateControl::updateRateControl()
 			}
 
 			// Feed forward
-			steering_setpoint = atanf(_adjusted_yaw_rate_setpoint.getState() * _param_ra_wheel_base.get() / _estimated_speed);
+			steering_setpoint = atanf(_adjusted_yaw_rate_setpoint.getState() * _param_ra_wheel_base.get() / _estimated_speed) *
+					    _param_ro_yaw_rate_corr.get();
 
 			// Feedback (Only when driving forwards because backwards driving is NMP and can introduce instability)
 			if (_estimated_speed > FLT_EPSILON) {
@@ -96,7 +97,7 @@ void AckermannRateControl::updateRateControl()
 
 			rover_steering_setpoint_s rover_steering_setpoint{};
 			rover_steering_setpoint.timestamp = _timestamp;
-			rover_steering_setpoint.normalized_steering_angle = math::interpolate<float>(steering_setpoint,
+			rover_steering_setpoint.normalized_steering_setpoint = math::interpolate<float>(steering_setpoint,
 					-_param_ra_max_str_ang.get(), _param_ra_max_str_ang.get(), -1.f, 1.f); // Normalize steering setpoint
 			_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
 
@@ -104,7 +105,7 @@ void AckermannRateControl::updateRateControl()
 			_pid_yaw_rate.resetIntegral();
 			rover_steering_setpoint_s rover_steering_setpoint{};
 			rover_steering_setpoint.timestamp = _timestamp;
-			rover_steering_setpoint.normalized_steering_angle = 0.f;
+			rover_steering_setpoint.normalized_steering_setpoint = 0.f;
 			_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
 		}
 	}

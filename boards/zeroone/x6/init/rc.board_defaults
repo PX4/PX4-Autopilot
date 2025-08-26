@@ -27,3 +27,6 @@ else
 fi
 
 safety_button start
+
+# pwm voltage 3.3V/5V switch
+pwm_voltage_apply start

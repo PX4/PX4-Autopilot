@@ -42,7 +42,7 @@ MecanumManualMode::MecanumManualMode(ModuleParams *parent) : ModuleParams(parent
 	_rover_steering_setpoint_pub.advertise();
 	_rover_rate_setpoint_pub.advertise();
 	_rover_attitude_setpoint_pub.advertise();
-	_rover_velocity_setpoint_pub.advertise();
+	_rover_speed_setpoint_pub.advertise();
 	_rover_position_setpoint_pub.advertise();
 }
 
@@ -58,7 +58,8 @@ void MecanumManualMode::manual()
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 	rover_steering_setpoint_s rover_steering_setpoint{};
 	rover_steering_setpoint.timestamp = hrt_absolute_time();
-	rover_steering_setpoint.normalized_speed_diff = manual_control_setpoint.yaw;
+	rover_steering_setpoint.normalized_steering_setpoint = _param_rm_yaw_stk_gain.get() * math::superexpo<float>
+			(manual_control_setpoint.yaw, _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
 	_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
 	rover_throttle_setpoint_s rover_throttle_setpoint{};
 	rover_throttle_setpoint.timestamp = hrt_absolute_time();
@@ -78,8 +79,8 @@ void MecanumManualMode::acro()
 	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 	rover_rate_setpoint_s rover_rate_setpoint{};
 	rover_rate_setpoint.timestamp = hrt_absolute_time();
-	rover_rate_setpoint.yaw_rate_setpoint = math::interpolate<float> (manual_control_setpoint.yaw, -1.f, 1.f,
-						-_max_yaw_rate, _max_yaw_rate);
+	rover_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(manual_control_setpoint.yaw,
+						_param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
 	_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
 }
 
@@ -106,8 +107,8 @@ void MecanumManualMode::stab()
 		// Rate control
 		rover_rate_setpoint_s rover_rate_setpoint{};
 		rover_rate_setpoint.timestamp = hrt_absolute_time();
-		rover_rate_setpoint.yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.yaw,
-							_param_ro_yaw_stick_dz.get()), -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
+		rover_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(math::deadzone(
+				manual_control_setpoint.yaw, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
 		_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
 
 		// Set uncontrolled setpoint invalid
@@ -152,25 +153,22 @@ void MecanumManualMode::position()
 	velocity_setpoint_body(1) = math::interpolate<float>(manual_control_setpoint.roll,
 				    -1.f, 1.f, -_param_ro_speed_limit.get(), _param_ro_speed_limit.get());
 	velocity_setpoint_body(2) = 0.f;
-	const Vector3f velocity_setpoint_ned = _vehicle_attitude_quaternion.rotateVector(velocity_setpoint_body);
 
-
-	if (fabsf(manual_control_setpoint.yaw) > FLT_EPSILON || velocity_setpoint_ned.norm() < FLT_EPSILON) {
+	if (fabsf(manual_control_setpoint.yaw) > FLT_EPSILON || velocity_setpoint_body.norm() < FLT_EPSILON) {
 		_pos_ctl_yaw_setpoint = NAN;
 
 		// Speed control
-		rover_velocity_setpoint_s rover_velocity_setpoint{};
-		rover_velocity_setpoint.timestamp = hrt_absolute_time();
-		rover_velocity_setpoint.speed = velocity_setpoint_ned.norm();
-		rover_velocity_setpoint.bearing = atan2f(velocity_setpoint_ned(1), velocity_setpoint_ned(0));
-		rover_velocity_setpoint.yaw = NAN;
-		_rover_velocity_setpoint_pub.publish(rover_velocity_setpoint);
+		rover_speed_setpoint_s rover_speed_setpoint{};
+		rover_speed_setpoint.timestamp = hrt_absolute_time();
+		rover_speed_setpoint.speed_body_x = velocity_setpoint_body(0);
+		rover_speed_setpoint.speed_body_y = velocity_setpoint_body(1);
+		_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
 
 		// Rate control
 		rover_rate_setpoint_s rover_rate_setpoint{};
 		rover_rate_setpoint.timestamp = hrt_absolute_time();
-		rover_rate_setpoint.yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.yaw,
-							_param_ro_yaw_stick_dz.get()), -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);;
+		rover_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(math::deadzone(
+				manual_control_setpoint.yaw, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
 		_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
 
 		// Set uncontrolled setpoints invalid
@@ -191,6 +189,7 @@ void MecanumManualMode::position()
 		_rover_position_setpoint_pub.publish(rover_position_setpoint);
 
 	} else { // Course control
+		const Vector3f velocity_setpoint_ned = _vehicle_attitude_quaternion.rotateVector(velocity_setpoint_body);
 		const Vector3f pos_ctl_course_direction_local = velocity_setpoint_ned.normalized();
 		const Vector2f pos_ctl_course_direction_temp = Vector2f(pos_ctl_course_direction_local(0),
 				pos_ctl_course_direction_local(1));

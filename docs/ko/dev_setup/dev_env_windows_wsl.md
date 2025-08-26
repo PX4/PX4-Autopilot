@@ -1,6 +1,6 @@
 # Windows Development Environment (WSL2-Based)
 
-The following instructions explain how to set up a PX4 development environment on Windows 10 or 11, running on Ubuntu Linux within [WSL2](https://docs.microsoft.com/en-us/windows/wsl/about).
+The following instructions explain how to set up a PX4 development environment on Windows 10 or 11, running on Ubuntu Linux within [WSL2](https://learn.microsoft.com/en-us/windows/wsl/about).
 
 PX4 빌드에 사용되어 집니다.
 
@@ -16,7 +16,7 @@ The list above are those targets that are regularly tested.
 
 ## 개요
 
-The [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/about) ([WSL2](https://docs.microsoft.com/en-us/windows/wsl/compare-versions)) allows users to install and run the [Ubuntu Development Environment](../dev_setup/dev_env_linux_ubuntu.md) on Windows, _almost_ as though we were running it on a Linux computer.
+The [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/about) ([WSL2](https://learn.microsoft.com/en-us/windows/wsl/compare-versions)) allows users to install and run the [Ubuntu Development Environment](../dev_setup/dev_env_linux_ubuntu.md) on Windows, _almost_ as though we were running it on a Linux computer.
 
 With this environment developers can:
 
@@ -33,7 +33,7 @@ _QGroundControl for Windows_ is additionally required if you need to:
   Note that you can also use it to monitor a simulation, but you must manually [connect to the simulation running in WSL](#qgroundcontrol-on-windows).
 
 :::info
-Connecting to a USB device from within WSL is not supported, so you can't update firmware using the [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) option when building on the command line, or from _QGroundControl for Linux_.
+Connecting to an USB device from within WSL is not natively supported, however it can still be achieved by using the [USBIPD-WIN](https://learn.microsoft.com/en-us/windows/wsl/connect-usb) project. With this you can automatically upload firmware from the command line in WSL using the  [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) function.
 :::
 
 :::info
@@ -94,7 +94,6 @@ If you're using [Windows Terminal](https://learn.microsoft.com/en-us/windows/ter
 To open a WSL shell using a command prompt:
 
 1. Open a command prompt:
-
   - Press the Windows **Start** key.
   - Type `cmd` and press **Enter** to open the prompt.
 

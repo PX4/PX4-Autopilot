@@ -53,7 +53,7 @@ void DifferentialActControl::updateActControl()
 {
 	const hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
-	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
+	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 10_ms) * 1e-6f;
 
 	// Motor control
 	if (_rover_throttle_setpoint_sub.updated()) {
@@ -65,7 +65,7 @@ void DifferentialActControl::updateActControl()
 	if (_rover_steering_setpoint_sub.updated()) {
 		rover_steering_setpoint_s rover_steering_setpoint{};
 		_rover_steering_setpoint_sub.copy(&rover_steering_setpoint);
-		_speed_diff_setpoint = rover_steering_setpoint.normalized_speed_diff;
+		_speed_diff_setpoint = rover_steering_setpoint.normalized_steering_setpoint;
 	}
 
 	if (PX4_ISFINITE(_throttle_setpoint) && PX4_ISFINITE(_speed_diff_setpoint)) {

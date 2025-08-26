@@ -7,7 +7,7 @@ This documentation reflects the "old approach".
 
 This documentation explains how to set up communication between the PX4 Autopilot and a ROS 1 enabled companion computer using MAVROS.
 
-[MAVROS](http://wiki.ros.org/mavros#mavros.2BAC8-Plugins.sys_status) is a ROS 1 package that enables MAVLink extendable communication between computers running ROS 1 for any MAVLink enabled autopilot, ground station, or peripheral.
+[MAVROS](https://wiki.ros.org/mavros#mavros.2BAC8-Plugins.sys_status) is a ROS 1 package that enables MAVLink extendable communication between computers running ROS 1 for any MAVLink enabled autopilot, ground station, or peripheral.
 _MAVROS_ is the "official" supported bridge between ROS 1 and the MAVLink protocol.
 
 First we install PX4 and ROS, and then MAVROS.
@@ -26,10 +26,9 @@ They cover the _ROS Melodic and Noetic_ releases.
 
 ::: tab ROS Noetic (Ubuntu 20.04)
 
-If you're working with [ROS Noetic](http://wiki.ros.org/noetic) on Ubuntu 20.04:
+If you're working with [ROS Noetic](https://wiki.ros.org/noetic) on Ubuntu 20.04:
 
 1. Install PX4 without the simulator toolchain:
-
    1. [Download PX4 Source Code](../dev_setup/building_px4.md):
 
       ```sh
@@ -52,7 +51,7 @@ If you're working with [ROS Noetic](http://wiki.ros.org/noetic) on Ubuntu 20.04:
    sudo apt-get install protobuf-compiler libeigen3-dev libopencv-dev -y
    ```
 
-1. Follow the [Noetic Installation instructions](http://wiki.ros.org/noetic/Installation/Ubuntu#Installation) (ros-noetic-desktop-full is recommended).
+1. Follow the [Noetic Installation instructions](https://wiki.ros.org/noetic/Installation/Ubuntu#Installation) (ros-noetic-desktop-full is recommended).
 
 :::
 
@@ -80,8 +79,8 @@ If you're working with ROS "Melodic on Ubuntu 18.04:
    Also note:
    - ROS Melodic is installed with Gazebo (Classic) 9 by default.
    - Your catkin (ROS build system) workspace is created at **~/catkin_ws/**.
-   - The script uses instructions from the ROS Wiki "Melodic" [Ubuntu page](http://wiki.ros.org/melodic/Installation/Ubuntu).
-   :::
+   - The script uses instructions from the ROS Wiki "Melodic" [Ubuntu page](https://wiki.ros.org/melodic/Installation/Ubuntu).
+     :::
 
 ::::
 
@@ -145,7 +144,6 @@ Now you are ready to do the build:
    ```
 
 1. Install MAVROS from source using either released or latest version:
-
    - Released/stable
 
      ```sh
@@ -203,6 +201,6 @@ If you have an example app using the PX4 Autopilot and MAVROS, we can help you g
 
 ## See Also
 
-- [mavros ROS Package Summary](http://wiki.ros.org/mavros#mavros.2BAC8-Plugins.sys_status)
+- [mavros ROS Package Summary](https://wiki.ros.org/mavros#mavros.2BAC8-Plugins.sys_status)
 - [mavros source](https://github.com/mavlink/mavros/)
-- [ROS Melodic installation instructions](http://wiki.ros.org/melodic/Installation)
+- [ROS Melodic installation instructions](https://wiki.ros.org/melodic/Installation)

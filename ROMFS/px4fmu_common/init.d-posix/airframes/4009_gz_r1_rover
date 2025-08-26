@@ -15,7 +15,6 @@ param set-default NAV_ACC_RAD 0.5
 
 # Differential Parameters
 param set-default RD_WHEEL_TRACK 0.3
-param set-default RD_MAX_THR_YAW_R 1.5
 param set-default RD_TRANS_DRV_TRN 0.349066
 param set-default RD_TRANS_TRN_DRV 0.174533
 
@@ -31,14 +30,16 @@ param set-default RO_YAW_RATE_P 0.25
 param set-default RO_YAW_RATE_LIM 180
 param set-default RO_YAW_ACCEL_LIM 120
 param set-default RO_YAW_DECEL_LIM 1000
+param set-default RO_YAW_RATE_CORR 1.43
 
 # Rover Attitude Control Parameters
 param set-default RO_YAW_P 5
 
-# Rover Position Control Parameters
+# Rover Velocity Control Parameters
 param set-default RO_SPEED_LIM 2
 param set-default RO_SPEED_I 0.01
 param set-default RO_SPEED_P 0.1
+param set-default RO_SPEED_RED 1
 
 # Pure Pursuit parameters
 param set-default PP_LOOKAHD_GAIN 1

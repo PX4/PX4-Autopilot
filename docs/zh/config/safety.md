@@ -319,8 +319,8 @@ The [failure detector](#failure-detector), if [enabled](#CBRK_FLIGHTTERM), can a
 The external trigger system must be connected to flight controller port AUX5 (or MAIN5 on boards that do not have AUX ports), and is configured using the parameters below.
 
 :::info
-External ATS is required by [ASTM F3322-18](https://webstore.ansi.org/Standards/ASTM/ASTMF332218).
-One example of an ATS device is the [FruityChutes Sentinel Automatic Trigger System](https://fruitychutes.com/uav_rpv_drone_recovery_parachutes/sentinel-automatic-trigger-system.htm).
+External ATS is required by [ASTM F3322-18](https://webstore.ansi.org/standards/astm/ASTMF332218).
+One example of an ATS device is the [FruityChutes Sentinel Automatic Trigger System (SATS-MINI)](https://fruitychutes.com/uav_rpv_drone_recovery_parachutes/sentinel-automatic-trigger-system).
 :::
 
 | 参数                                                                                                                                                                      | 描述                                                               |

@@ -1416,6 +1416,10 @@ PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
 /**
  * Emergency Kill switch channel
  *
+ * This channel immediately sets all outputs to their disarmed values, parachutes are NOT deployed.
+ * Unlike termination this can be undone. Quickly flipping the switch back restores control.
+ * System auto-disarms after COM_KILL_DISARM seconds, preflight checks and re-arming are then required.
+ *
  * @min 0
  * @max 18
  * @group Radio Switches
@@ -1440,6 +1444,40 @@ PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
  * @value 18 Channel 18
  */
 PARAM_DEFINE_INT32(RC_MAP_KILL_SW, 0);
+
+/**
+ * Termination switch channel
+ *
+ * This channel triggers irreversible flight termination:
+ * All outputs are disabled and set to their failsafe values (disarmed by default)
+ * and MAVLink parachutes are triggered.
+ *
+ * Unlike a kill switch, this cannot be undone until system reboot. Use with caution.
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Switches
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
+ */
+PARAM_DEFINE_INT32(RC_MAP_TERM_SW, 0);
 
 /**
  * Arm switch channel.
@@ -1936,6 +1974,7 @@ PARAM_DEFINE_INT32(RC_FAILS_THR, 0);
  *
  * @min -1
  * @max 1
+ * @decimal 2
  * @group Radio Switches
  */
 PARAM_DEFINE_FLOAT(RC_RETURN_TH, 0.75f);
@@ -1952,6 +1991,7 @@ PARAM_DEFINE_FLOAT(RC_RETURN_TH, 0.75f);
  *
  * @min -1
  * @max 1
+ * @decimal 2
  * @group Radio Switches
  */
 PARAM_DEFINE_FLOAT(RC_LOITER_TH, 0.75f);
@@ -1968,6 +2008,7 @@ PARAM_DEFINE_FLOAT(RC_LOITER_TH, 0.75f);
  *
  * @min -1
  * @max 1
+ * @decimal 2
  * @group Radio Switches
  */
 PARAM_DEFINE_FLOAT(RC_OFFB_TH, 0.75f);
@@ -1984,6 +2025,7 @@ PARAM_DEFINE_FLOAT(RC_OFFB_TH, 0.75f);
  *
  * @min -1
  * @max 1
+ * @decimal 2
  * @group Radio Switches
  */
 PARAM_DEFINE_FLOAT(RC_KILLSWITCH_TH, 0.75f);
@@ -2000,6 +2042,7 @@ PARAM_DEFINE_FLOAT(RC_KILLSWITCH_TH, 0.75f);
  *
  * @min -1
  * @max 1
+ * @decimal 2
  * @group Radio Switches
  */
 PARAM_DEFINE_FLOAT(RC_ARMSWITCH_TH, 0.75f);
@@ -2016,6 +2059,7 @@ PARAM_DEFINE_FLOAT(RC_ARMSWITCH_TH, 0.75f);
  *
  * @min -1
  * @max 1
+ * @decimal 2
  * @group Radio Switches
  */
 PARAM_DEFINE_FLOAT(RC_TRANS_TH, 0.75f);
@@ -2032,6 +2076,7 @@ PARAM_DEFINE_FLOAT(RC_TRANS_TH, 0.75f);
  *
  * @min -1
  * @max 1
+ * @decimal 2
  * @group Radio Switches
  */
 PARAM_DEFINE_FLOAT(RC_GEAR_TH, 0.75f);
@@ -2048,12 +2093,13 @@ PARAM_DEFINE_FLOAT(RC_GEAR_TH, 0.75f);
  *
  * @min -1
  * @max 1
+ * @decimal 2
  * @group Radio Switches
  */
 PARAM_DEFINE_FLOAT(RC_ENG_MOT_TH, 0.75f);
 
 /**
- * Threshold for selecting payload power switch
+ * Threshold for on position of payload power switch
  *
  * 0-1 indicate where in the full channel range the threshold sits
  * 		0 : min
@@ -2064,9 +2110,27 @@ PARAM_DEFINE_FLOAT(RC_ENG_MOT_TH, 0.75f);
  *
  * @min -1
  * @max 1
+ * @decimal 2
  * @group Radio Switches
  */
 PARAM_DEFINE_FLOAT(RC_PAYLOAD_TH, 0.75f);
+
+/**
+ * Threshold for mid position of payload power switch
+ *
+ * 0-1 indicate where in the full channel range the threshold sits
+ * 		0 : min
+ * 		1 : max
+ * sign indicates polarity of comparison
+ * 		positive : true when channel>th
+ * 		negative : true when channel<th
+ *
+ * @min -1
+ * @max 1
+ * @decimal 2
+ * @group Radio Switches
+ */
+PARAM_DEFINE_FLOAT(RC_PAYLOAD_MIDTH, 0.25f);
 
 /**
  * PWM input channel that provides RSSI.

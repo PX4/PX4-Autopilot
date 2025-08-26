@@ -411,9 +411,10 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 				_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
 			} else {
-				_control_mode_current = FW_POSCTRL_MODE_AUTO_TAKEOFF;
+				_control_mode_current = _local_pos.xy_valid ? FW_POSCTRL_MODE_AUTO_TAKEOFF : FW_POSCTRL_MODE_AUTO_TAKEOFF_NO_NAV;
 
-				if (previous_position_control_mode != FW_POSCTRL_MODE_AUTO_TAKEOFF && !_landed) {
+				if (previous_position_control_mode != FW_POSCTRL_MODE_AUTO_TAKEOFF_NO_NAV
+				    && previous_position_control_mode != FW_POSCTRL_MODE_AUTO_TAKEOFF && !_landed) {
 					// skip takeoff detection when switching from any other mode, auto or manual,
 					// while already in air.
 					// TODO: find a better place for / way of doing this
@@ -629,8 +630,8 @@ FixedWingModeManager::control_auto_fixed_bank_alt_hold()
 	const hrt_abstime now = hrt_absolute_time();
 	const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = now,
-		.altitude = _current_altitude,
-		.height_rate = NAN,
+		.altitude = NAN,
+		.height_rate = 0.f,
 		.equivalent_airspeed = NAN,
 		.pitch_direct = NAN,
 		.throttle_direct = NAN
@@ -867,10 +868,12 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 	// current waypoint (the one currently heading for)
 	const Vector2d curr_wp = Vector2d(pos_sp_curr.lat, pos_sp_curr.lon);
 
-	float loiter_radius = pos_sp_curr.loiter_radius;
+	float loiter_radius = fabsf(pos_sp_curr.loiter_radius);
+	bool loiter_direction_ccw = pos_sp_curr.loiter_direction_counter_clockwise;
 
-	if (fabsf(pos_sp_curr.loiter_radius) < FLT_EPSILON) {
-		loiter_radius = _param_nav_loiter_rad.get();
+	if (loiter_radius < FLT_EPSILON) {
+		loiter_radius = fabsf(_param_nav_loiter_rad.get());
+		loiter_direction_ccw = _param_nav_loiter_rad.get() < -FLT_EPSILON;
 	}
 
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
@@ -901,7 +904,7 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 	}
 
 	const DirectionalGuidanceOutput sp = navigateLoiter(curr_wp_local, curr_pos_local, loiter_radius,
-					     pos_sp_curr.loiter_direction_counter_clockwise,
+					     loiter_direction_ccw,
 					     ground_speed,
 					     _wind_vel);
 
@@ -1179,18 +1182,19 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 			_takeoff_init_position = global_position;
 			_takeoff_ground_alt = _current_altitude;
 			_launch_current_yaw = _yaw;
-			// _airspeed_slew_rate_controller.setForcedValue(takeoff_airspeed); // TODO
 		}
 
 		const Vector2f launch_local_position = _global_local_proj_ref.project(_takeoff_init_position(0),
 						       _takeoff_init_position(1));
-		const Vector2f takeoff_waypoint_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 
 		// by default set the takeoff bearing to the takeoff yaw, but override in a mission takeoff with bearing to takeoff WP
 		float takeoff_bearing = _launch_current_yaw;
+		const float distance_to_takeoff_wp = get_distance_to_next_waypoint(_takeoff_init_position(0), _takeoff_init_position(1),
+						     pos_sp_curr.lat, pos_sp_curr.lon);
 
-		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
-			// the bearing from launch to the takeoff waypoint is followed until the clearance altitude is exceeded
+		if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF && distance_to_takeoff_wp > 10.f) {
+			// if a takeoff waypoint is set (and not straight above current location), use the bearing to the takeoff waypoint
+			const Vector2f takeoff_waypoint_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 			const Vector2f takeoff_bearing_vector = takeoff_waypoint_local - launch_local_position;
 
 			if (takeoff_bearing_vector.norm() > FLT_EPSILON) {
@@ -1205,6 +1209,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 			const DirectionalGuidanceOutput sp = navigateLine(launch_local_position, takeoff_bearing, local_2D_position,
 							     ground_speed,
 							     _wind_vel);
+
 			fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
 			fw_lateral_ctrl_sp.timestamp = now;
 			fw_lateral_ctrl_sp.course = sp.course_setpoint;
@@ -1219,13 +1224,12 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 							   _param_fw_thr_idle.get() : NAN;
 			const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 				.timestamp = now,
-				.altitude = altitude_setpoint_amsl,
-				.height_rate = NAN,
+				.altitude = NAN,
+				.height_rate = _param_fw_t_clmb_max.get(),
 				.equivalent_airspeed = takeoff_airspeed,
 				.pitch_direct = NAN,
 				.throttle_direct = NAN
 			};
-
 
 			_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
@@ -1261,6 +1265,127 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 	if (!_vehicle_status.in_transition_to_fw) {
 		publishLocalPositionSetpoint(pos_sp_curr);
 	}
+}
+
+void
+FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const float control_interval,
+		const float current_setpoint_altitude_amsl)
+{
+	if (!_control_mode.flag_armed) {
+		reset_takeoff_state();
+	}
+
+	const float takeoff_airspeed = (_param_fw_tko_airspd.get() > FLT_EPSILON) ? _param_fw_tko_airspd.get() :
+				       _param_fw_airspd_min.get();
+
+	if (_runway_takeoff.runwayTakeoffEnabled()) {
+		if (!_runway_takeoff.isInitialized()) {
+			_runway_takeoff.init(now);
+			_takeoff_ground_alt = _current_altitude;
+			_launch_current_yaw = _yaw;
+		}
+
+		if (_skipping_takeoff_detection) {
+			_runway_takeoff.forceSetFlyState();
+		}
+
+		const float clearance_altitude_amsl = _current_altitude + 20.f; // hard code it to 20m above takeoff point
+
+		_runway_takeoff.update(now, takeoff_airspeed, _airspeed_eas, _current_altitude - _takeoff_ground_alt,
+				       clearance_altitude_amsl - _takeoff_ground_alt);
+
+		fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
+		fw_lateral_ctrl_sp.timestamp = now;
+		fw_lateral_ctrl_sp.lateral_acceleration = 0.f; // level wings
+
+		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
+
+		const float pitch_max = _runway_takeoff.getMaxPitch(math::radians(_param_fw_p_lim_max.get()));
+		const float pitch_min = _runway_takeoff.getMinPitch(math::radians(_takeoff_pitch_min.get()),
+					math::radians(_param_fw_p_lim_min.get()));
+
+		const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
+			.timestamp = now,
+			.altitude = NAN,
+			.height_rate = _param_fw_t_clmb_max.get(),
+			.equivalent_airspeed = takeoff_airspeed,
+			.pitch_direct = _runway_takeoff.getPitch(),
+			.throttle_direct = _runway_takeoff.getThrottle(_param_fw_thr_idle.get())
+		};
+
+		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
+
+		_ctrl_configuration_handler.setPitchMin(pitch_min);
+		_ctrl_configuration_handler.setPitchMax(pitch_max);
+		_ctrl_configuration_handler.setDisableUnderspeedProtection(true);
+
+		_flaps_setpoint = _param_fw_flaps_to_scl.get();
+
+		// retract ladning gear once passed the climbout state
+		if (_runway_takeoff.getState() > RunwayTakeoffState::CLIMBOUT) {
+			_new_landing_gear_position = landing_gear_s::GEAR_UP;
+		}
+
+		fixed_wing_runway_control_s fw_runway_control{};
+		fw_runway_control.timestamp = now;
+		fw_runway_control.wheel_steering_enabled = true;
+		fw_runway_control.wheel_steering_nudging_rate = _param_rwto_nudge.get() ? _manual_control_setpoint.yaw : 0.f;
+
+		_fixed_wing_runway_control_pub.publish(fw_runway_control);
+
+	} else {
+		/* Perform launch detection */
+		if (!_skipping_takeoff_detection && _param_fw_laun_detcn_on.get() &&
+		    _launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) {
+
+			if (_control_mode.flag_armed) {
+				/* Detect launch using body X (forward) acceleration */
+				_launchDetector.update(control_interval, _body_acceleration_x);
+			}
+
+		} else	{
+			/* no takeoff detection --> fly */
+			_launchDetector.forceSetFlyState();
+		}
+
+		if (!_launch_detected && _launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
+			_launch_detected = true;
+			_takeoff_ground_alt = _current_altitude;
+		}
+
+		/* Launch has been detected, hence we have to control the plane. */
+
+		fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
+		fw_lateral_ctrl_sp.timestamp = now;
+		fw_lateral_ctrl_sp.lateral_acceleration = 0.f; // level wings
+
+		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
+
+		const float max_takeoff_throttle = (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
+						   _param_fw_thr_idle.get() : NAN;
+		const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
+			.timestamp = now,
+			.altitude = NAN,
+			.height_rate = _param_fw_t_clmb_max.get(),
+			.equivalent_airspeed = takeoff_airspeed,
+			.pitch_direct = NAN,
+			.throttle_direct = NAN
+		};
+
+		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
+
+		_ctrl_configuration_handler.setPitchMin(radians(_takeoff_pitch_min.get()));
+		_ctrl_configuration_handler.setThrottleMax(max_takeoff_throttle);
+		_ctrl_configuration_handler.setClimbRateTarget(_param_fw_t_clmb_max.get());
+		_ctrl_configuration_handler.setDisableUnderspeedProtection(true);
+
+		launch_detection_status_s launch_detection_status;
+		launch_detection_status.timestamp = now;
+		launch_detection_status.launch_detection_state = _launchDetector.getLaunchDetected();
+		_launch_detection_status_pub.publish(launch_detection_status);
+	}
+
+	_flaps_setpoint = _param_fw_flaps_to_scl.get();
 }
 
 void
@@ -1496,10 +1621,12 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 	// flare at the maximum of the altitude determined by the time before touchdown and a minimum flare altitude
 	const float flare_rel_alt = math::max(_param_fw_lnd_fl_time.get() * _local_pos.vz, _param_fw_lnd_flalt.get());
 
-	float loiter_radius = pos_sp_curr.loiter_radius;
+	float loiter_radius = fabsf(pos_sp_curr.loiter_radius);
+	bool loiter_direction_ccw = pos_sp_curr.loiter_direction_counter_clockwise;
 
-	if (fabsf(pos_sp_curr.loiter_radius) < FLT_EPSILON) {
-		loiter_radius = _param_nav_loiter_rad.get();
+	if (loiter_radius < FLT_EPSILON) {
+		loiter_radius = fabsf(_param_nav_loiter_rad.get());
+		loiter_direction_ccw = _param_nav_loiter_rad.get() < -FLT_EPSILON;
 	}
 
 	if ((_current_altitude < terrain_alt + flare_rel_alt) || _flare_states.flaring) {
@@ -1521,7 +1648,7 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 
 		/* lateral guidance first, because npfg will adjust the airspeed setpoint if necessary */
 		const DirectionalGuidanceOutput sp = navigateLoiter(local_landing_orbit_center, local_position, loiter_radius,
-						     pos_sp_curr.loiter_direction_counter_clockwise,
+						     loiter_direction_ccw,
 						     ground_speed, _wind_vel);
 		fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
 		fw_lateral_ctrl_sp.timestamp = now;
@@ -1579,7 +1706,7 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 
 		// follow the glide slope
 		const DirectionalGuidanceOutput sp = navigateLoiter(local_landing_orbit_center, local_position, loiter_radius,
-						     pos_sp_curr.loiter_direction_counter_clockwise,
+						     loiter_direction_ccw,
 						     ground_speed, _wind_vel);
 		fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
 		fw_lateral_ctrl_sp.timestamp = now;
@@ -2032,7 +2159,8 @@ FixedWingModeManager::Run()
 			reset_landing_state();
 		}
 
-		if (_control_mode_current != FW_POSCTRL_MODE_AUTO_TAKEOFF) {
+		if (_control_mode_current != FW_POSCTRL_MODE_AUTO_TAKEOFF
+		    && _control_mode_current != FW_POSCTRL_MODE_AUTO_TAKEOFF_NO_NAV) {
 			reset_takeoff_state();
 		}
 
@@ -2074,6 +2202,11 @@ FixedWingModeManager::Run()
 
 		case FW_POSCTRL_MODE_AUTO_TAKEOFF: {
 				control_auto_takeoff(now, control_interval, curr_pos, ground_speed, _pos_sp_triplet.current);
+				break;
+			}
+
+		case FW_POSCTRL_MODE_AUTO_TAKEOFF_NO_NAV: {
+				control_auto_takeoff_no_nav(_local_pos.timestamp, control_interval, _pos_sp_triplet.current.alt);
 				break;
 			}
 

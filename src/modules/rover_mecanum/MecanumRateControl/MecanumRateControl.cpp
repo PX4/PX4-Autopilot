@@ -59,7 +59,7 @@ void MecanumRateControl::updateRateControl()
 {
 	hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
-	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
+	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 10_ms) * 1e-6f;
 
 	if (_vehicle_angular_velocity_sub.updated()) {
 		vehicle_angular_velocity_s vehicle_angular_velocity{};
@@ -78,11 +78,12 @@ void MecanumRateControl::updateRateControl()
 		const float yaw_rate_setpoint = fabsf(_yaw_rate_setpoint) > _param_ro_yaw_rate_th.get() * M_DEG_TO_RAD_F ?
 						_yaw_rate_setpoint : 0.f;
 		const float speed_diff_normalized = RoverControl::rateControl(_adjusted_yaw_rate_setpoint, _pid_yaw_rate,
-						    yaw_rate_setpoint, _vehicle_yaw_rate, _param_rm_max_thr_yaw_r.get(), _param_ro_yaw_accel_limit.get() * M_DEG_TO_RAD_F,
+						    yaw_rate_setpoint, _vehicle_yaw_rate, _param_ro_max_thr_speed.get(), _param_ro_yaw_rate_corr.get(),
+						    _param_ro_yaw_accel_limit.get() * M_DEG_TO_RAD_F,
 						    _param_ro_yaw_decel_limit.get() * M_DEG_TO_RAD_F, _param_rm_wheel_track.get(), dt);
 		rover_steering_setpoint_s rover_steering_setpoint{};
 		rover_steering_setpoint.timestamp = _timestamp;
-		rover_steering_setpoint.normalized_speed_diff = speed_diff_normalized;
+		rover_steering_setpoint.normalized_steering_setpoint = speed_diff_normalized;
 		_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
 
 	} else {
@@ -110,13 +111,12 @@ bool MecanumRateControl::runSanityChecks()
 
 	}
 
-	if ((_param_rm_wheel_track.get() < FLT_EPSILON || _param_rm_max_thr_yaw_r.get() < FLT_EPSILON)
+	if ((_param_rm_wheel_track.get() < FLT_EPSILON || _param_ro_max_thr_speed.get() < FLT_EPSILON)
 	    && _param_ro_yaw_rate_p.get() < FLT_EPSILON) {
 		ret = false;
 		events::send<float, float, float>(events::ID("mecanum_rate_control_conf_invalid_rate_control"), events::Log::Error,
-						  "Invalid configuration for rate control: Neither feed forward (RM_MAX_THR_YAW_R) nor feedback (RO_YAW_RATE_P) is setup",
-						  _param_rm_wheel_track.get(),
-						  _param_rm_max_thr_yaw_r.get(), _param_ro_yaw_rate_p.get());
+						  "Invalid configuration for rate control: Neither feed forward (RO_MAX_THR_SPEED) nor feedback (RO_YAW_RATE_P) is setup",
+						  _param_rm_wheel_track.get(), _param_ro_max_thr_speed.get(), _param_ro_yaw_rate_p.get());
 	}
 
 	return ret;

@@ -5,7 +5,7 @@ Holybro initially supplied this kit with a [Pixhawk 5X](../flight_controller/pix
 This build log is still relevant as the kit assembly is virtually the same, and likely to remain so as the flight controller is upgraded.
 :::
 
-This topic provides full instructions for building the [Holybro X500 V2 ARF Kit](https://holybro.com/collections/x500-kits) and configuring PX4 using *QGroundControl*.
+This topic provides full instructions for building the [Holybro X500 V2 ARF Kit](https://holybro.com/collections/x500-kits) and configuring PX4 using _QGroundControl_.
 
 The ARF ("Almost Ready to Fly") kit provides the shortest and straightforward assembly experience for those who want to jump into drone development and not spend that much time on setting up the hardware.
 It includes the frame, motors, ESCs, propellers and power distribution board.
@@ -25,25 +25,26 @@ The ARF kit can be used with most flight controllers supported by PX4.
 
 The Holybro [X500 V2 Kit](https://holybro.com/collections/x500-kits) includes almost all the required components:
 
-* X500V2 Frame Kit
-  * Body - Full Carbon Fiber Top & Bottom plate (144 x 144mm, 2mm thick)
-  * Arm - High strength & ultra-lightweight 16mm carbon fiber tubes
-  * Landing gear - 16mm & 10mm diameter carbon fiber tubes
-  * Platform board - With mounting holes for GPS & popular companion computer
-  * Dual 10mm Ø rod x 250 mm long rail mounting system
-  * Battery mount with two Battery Straps
-  * Hand tools for installation
-* Holybro Motors - 2216 KV880 x6 (superseded - check [spare parts list](https://holybro.com/products/spare-parts-x500-v2-kit) for current version).
-* Holybro BLHeli S ESC 20A x4 (superseded - check [spare parts list](https://holybro.com/products/spare-parts-x500-v2-kit) for current version).
-* Propellers - 1045 x4 (superseded - check [spare parts list](https://holybro.com/products/spare-parts-x500-v2-kit) for current version).
-* Power Distribution Board – XT60 plug for battery & XT30 plug for ESCs & peripherals
-* Camera mount (optional and the 3D file can be downloaded from [here](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Holybro_X500_V2_3D_Print.rar?v=1665561017))
+- X500V2 Frame Kit
+  - Body - Full Carbon Fiber Top & Bottom plate (144 x 144mm, 2mm thick)
+  - Arm - High strength & ultra-lightweight 16mm carbon fiber tubes
+  - Landing gear - 16mm & 10mm diameter carbon fiber tubes
+  - Platform board - With mounting holes for GPS & popular companion computer
+  - Dual 10mm Ø rod x 250 mm long rail mounting system
+  - Battery mount with two Battery Straps
+  - Hand tools for installation
+- Holybro Motors - 2216 KV880 x6 (superseded - check [spare parts list](https://holybro.com/products/spare-parts-x500-v2-kit) for current version).
+- Holybro BLHeli S ESC 20A x4 (superseded - check [spare parts list](https://holybro.com/products/spare-parts-x500-v2-kit) for current version).
+- Propellers - 1045 x4 (superseded - check [spare parts list](https://holybro.com/products/spare-parts-x500-v2-kit) for current version).
+- Power Distribution Board – XT60 plug for battery & XT30 plug for ESCs & peripherals
+- Camera mount (optional and the 3D file can be downloaded from [here](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Holybro_X500_V2_3D_Print.rar?v=1665561017))
 
 Other parts in this build(**Not included in the ARF kit**):
-* [Pixhawk 5X autopilot](../flight_controller/pixhawk5x.md)
-* [M8N GPS](https://holybro.com/products/m8n-gps)
-* [Power Module - PM02D](../power_module/holybro_pm02d.md)
-* [433/915 MHz Telemetry Radio](../telemetry/holybro_sik_radio.md)
+
+- [Pixhawk 5X autopilot](../flight_controller/pixhawk5x.md)
+- [M8N GPS](https://holybro.com/products/m8n-gps)
+- [Power Module - PM02D](../power_module/holybro_pm02d.md)
+- [433/915 MHz Telemetry Radio](../telemetry/holybro_sik_radio.md)
 
 Additionally you will need a battery (Holybro recommends a 4S 5000mAh) and receiver ([compatible radio system](../getting_started/rc_transmitter_receiver.md)) if you want to control the drone manually.
 
@@ -51,34 +52,34 @@ Additionally you will need a battery (Holybro recommends a 4S 5000mAh) and recei
 
 This section lists all hardware for the frame and the autopilot installation.
 
-Item | Description | Quantity
----|---|---
-Bottom plate                  |  Carbon fiber (2mm thick)                             | 1
-Top plate                     |  Carbon fiber (1.5mm thick)                           | 1
-Arm                           |  Carbon fiber tube (Assembled with motors mounted)    | 4
-Landing gear - Vertical pole  |  Carbon fiber tube + engineering plastic              | 2
-Landing gear - Cross bar      |  Carbon fiber tube + engineering plastic + foam       | 2
-Mounting Rail                 |  Diameter: 10mm length: 250mm                         | 2
-Battery mounting board        |  Thickness: 2mm                                       | 1
-Battery pad                   |  3mm Silicone sheet black                             | 1
-Platform board                |  Thickness: 2mm                                       | 1
-Hanger & rubber ring gasket   |  Inner hole diameter: 10mm black                      | 8
+| Item                         | Description                                       | Quantity |
+| ---------------------------- | ------------------------------------------------- | -------- |
+| Bottom plate                 | Carbon fiber (2mm thick)                          | 1        |
+| Top plate                    | Carbon fiber (1.5mm thick)                        | 1        |
+| Arm                          | Carbon fiber tube (Assembled with motors mounted) | 4        |
+| Landing gear - Vertical pole | Carbon fiber tube + engineering plastic           | 2        |
+| Landing gear - Cross bar     | Carbon fiber tube + engineering plastic + foam    | 2        |
+| Mounting Rail                | Diameter: 10mm length: 250mm                      | 2        |
+| Battery mounting board       | Thickness: 2mm                                    | 1        |
+| Battery pad                  | 3mm Silicone sheet black                          | 1        |
+| Platform board               | Thickness: 2mm                                    | 1        |
+| Hanger & rubber ring gasket  | Inner hole diameter: 10mm black                   | 8        |
 
- ![X500V2 ARF Kit Full Package Contents](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/x500_v2_whats_inside.png)
+![X500V2 ARF Kit Full Package Contents](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/x500_v2_whats_inside.png)
 
-   _Figure 1_: X500 V2 ARF Kit what's inside
+_Figure 1_: X500 V2 ARF Kit what's inside
 
 ### Electronics
 
-Item Description | Quantity
---- | ---
-Pixhawk5x & Assorted Cables                                                    | 1
-M8N GPS Module                                                                 | 1
-Power Module PM02D (with pre-soldered ESC power cables)                        | 1
-Motors 2216 KV880（V2 Update)                                                   | 4
-Holybro BLHeli S ESC 20A x4                                                    | 1
-Holybro BLHeli S ESC 20A x4                                                    | 1
-433 MHz / 915 MHz [Holybro Telemetry Radio](../telemetry/holybro_sik_radio.md) | 1
+| Item Description                                                               | Quantity |
+| ------------------------------------------------------------------------------ | -------- |
+| Pixhawk5x & Assorted Cables                                                    | 1        |
+| M8N GPS Module                                                                 | 1        |
+| Power Module PM02D (with pre-soldered ESC power cables)                        | 1        |
+| Motors 2216 KV880（V2 Update)                                                  | 4        |
+| Holybro BLHeli S ESC 20A x4                                                    | 1        |
+| Holybro BLHeli S ESC 20A x4                                                    | 1        |
+| 433 MHz / 915 MHz [Holybro Telemetry Radio](../telemetry/holybro_sik_radio.md) | 1        |
 
 ### Tools needed
 
@@ -86,7 +87,6 @@ Tools are included to do the assembly, however you may need:
 
 - Wire cutters
 - Precision tweezers
-
 
 ## Assembly
 
@@ -121,7 +121,7 @@ Estimate time to assemble is 55 min (25 minutes for frame, 30 minutes for autopi
    ![PDB attachment](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/pdb_bottom_plate.png)
 
    _Figure 6_: Mounted pdb with nylon nuts
-   
+
    ![Bottom plate Final](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/bottom_plate_holder_final.png)
 
    _Figure 7_: Mounted Plate on payload holder
@@ -160,7 +160,6 @@ Estimate time to assemble is 55 min (25 minutes for frame, 30 minutes for autopi
 
    _Figure 12_: Mounted top plate
 
-
 1. Next you can mount your pixhawk on the top plate by using the stickers.
    It is recommended to have the direction of your Pixhawk's arrow the same as the one mentioned on the top plate.
 
@@ -174,14 +173,12 @@ Estimate time to assemble is 55 min (25 minutes for frame, 30 minutes for autopi
 
    _Figure 14_: Secure GPS mount onto companion plate
 
-
 1. Use the tape and stick the GPS to the top of the GPS mast and mount the GPS mast.
    Make sure the arrow on the gps is pointing forward (Figure 15).
 
    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/gps2.jpg" width="400" title="Figure 16: GPS and mast">
 
    _Figure 15_: GPS and mast
-
 
 1. Finally, you can connect the Pixhawk interfaces such as telemetry radio to 'TELEM1' and motors signal cables accordingly.
 
@@ -192,22 +189,21 @@ The fully assembled kit is shown below (Depth camera not included in the kit):
 
 ![Assembled Kit](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/finalized_x500v2_kit.png)
 
-
 ## PX4 Configuration
 
 :::tip
 Full instructions for installing and configuring PX4 can be found in [Basic Configuration](../config/index.md).
 :::
 
-*QGroundControl* is used to install the PX4 autopilot and configure/tune it for the X500 frame.
-[Download and install](http://qgroundcontrol.com/downloads/) *QGroundControl* for your platform.
+_QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the X500 frame.
+[Download and install](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html) _QGroundControl_ for your platform.
 
 First update the firmware, airframe, and actuator mappings:
 
 - [Firmware](../config/firmware.md)
 - [Airframe](../config/airframe.md)
 
-  You will need to select the *Holybro X500 V2* airframe (**Quadrotor x > Holybro 500 V2**)
+  You will need to select the _Holybro X500 V2_ airframe (**Quadrotor x > Holybro 500 V2**)
 
   ![QGroundControl - Select HolyBro 500 airframe](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk5x/x500v2_airframe_qgc.png)
 
@@ -231,10 +227,9 @@ Ideally you should also do:
 - [Battery Estimation Tuning](../config/battery.md)
 - [Safety](../config/safety.md)
 
-
 ## Tuning
 
-Airframe selection sets *default* autopilot parameters for the frame.
+Airframe selection sets _default_ autopilot parameters for the frame.
 These are good enough to fly with, but it is a good idea to tune the parameters for a specific frame build.
 
 For instructions on how, start from [Autotune](../config/autotune_mc.md).

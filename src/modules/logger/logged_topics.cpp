@@ -51,6 +51,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("airspeed", 1000);
 	add_optional_topic("airspeed_validated", 200);
 	add_optional_topic("autotune_attitude_control_status", 100);
+	add_topic_multi("battery_info", 5000, 2);
 	add_optional_topic("camera_capture");
 	add_optional_topic("camera_trigger");
 	add_topic("cellular_status", 200);
@@ -58,6 +59,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("config_overrides");
 	add_topic("cpuload");
 	add_topic("distance_sensor_mode_change_request");
+	add_topic_multi("dronecan_node_status", 250);
 	add_optional_topic("external_ins_attitude");
 	add_optional_topic("external_ins_global_position");
 	add_optional_topic("external_ins_local_position");
@@ -109,10 +111,10 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("rover_position_setpoint", 100);
 	add_optional_topic("rover_rate_setpoint", 100);
 	add_optional_topic("rover_rate_status", 100);
+	add_optional_topic("rover_speed_setpoint", 100);
+	add_optional_topic("rover_speed_status", 100);
 	add_optional_topic("rover_steering_setpoint", 100);
 	add_optional_topic("rover_throttle_setpoint", 100);
-	add_optional_topic("rover_velocity_setpoint", 100);
-	add_optional_topic("rover_velocity_status", 100);
 	add_topic("rtl_time_estimate", 1000);
 	add_topic("rtl_status", 2000);
 	add_optional_topic("sensor_airflow", 100);
@@ -189,7 +191,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("yaw_estimator_status", 1000);
 
 	// log all raw sensors at minimal rate (at least 1 Hz)
-	add_topic_multi("battery_status", 200, 2);
+	add_topic_multi("battery_status", 200, 3);
 	add_topic_multi("differential_pressure", 1000, 2);
 	add_topic_multi("distance_sensor", 1000, 2);
 	add_optional_topic_multi("sensor_accel", 1000, 4);
@@ -294,6 +296,7 @@ void LoggedTopics::add_debug_topics()
 	add_topic("mag_worker_data");
 	add_topic("sensor_preflight_mag", 500);
 	add_topic("actuator_test", 500);
+	add_topic("neural_control", 50);
 }
 
 void LoggedTopics::add_estimator_replay_topics()

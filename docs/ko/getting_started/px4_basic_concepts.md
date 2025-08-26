@@ -1,71 +1,72 @@
 # 기본 개념
 
-This topic provides a basic introduction to drones and using PX4 (it is meant mostly for novice users but is also a good introduction for more experienced users).
+이 주제는 드론과 PX4 사용에 대한 기본적인 소개를 제공합니다 (주로 초보자를 위한 내용이지만, 경험이 있는 사용자에게도 좋은 입문 자료가 될 수 있습니다).
 
-If you are already familiar with the basic concepts, you can move on to [Basic Assembly](../assembly/index.md) to learn how to wire your specific autopilot hardware.
-To load firmware and set up the vehicle with _QGroundControl_, see [Basic Configuration](../config/index.md).
+기본 개념에 이미 익숙하다면, [기본 조립](../assembly/index.md) 섹션으로 넘어가서 사용 중인 오토파일럿 하드웨어의 배선 방법을 배우실 수 있습니다.
+펌웨어를 설치하고 _QGroundControl_을 사용해 비행체를 설정하려면\
+[기본 설정](../config/index.md) 섹션을 참조하세요.
 
 ## 드론의 정의
 
-A drone, or Unmanned Vehicles (UV), is an unmanned "robotic" vehicle that can be manually or autonomously controlled.
-They can travel in air, on the ground, on/under the water, and are used for many [consumer, industrial, government and military applications](https://px4.io/ecosystem/commercial-systems/), including aerial photography/video, carrying cargo, racing, search and surveying, and so on.
+드론(Drones), 또는 무인 차량(Unmanned Vehicles, UV)은 사람이 탑승하지 않은 "로봇형" 차량으로, 수동 또는 자율적으로 제어될 수 있습니다.
+드론은 공중, 지상, 수상 또는 수중을 이동할 수 있으며, 항공 사진/영상 촬영, 화물 운송, 레이싱, 수색, 측량 등 다양한 [소비자, 산업, 정부 및 군사 분야](https://px4.io/ecosystem/commercial-systems/)에서 활용됩니다.
 
-Drones are more formally referred to as Unmanned Aerial Vehicles (UAV), Unmanned Ground Vehicles (UGV), Unmanned Surface Vehicles (USV), Unmanned Underwater Vehicles (UUV).
+드론은 보다 공식적으로는 무인 항공기(UAV), 무인 지상 차량(UGV), 무인 수상 차량(USV), 무인 수중 차량(UUV)으로 구분됩니다.
 
 :::info
-The term Unmanned Aerial System (UAS) typically refers to a UAV and all of the other components of a complete system, including a ground control station and/or radio controller, and any other systems used to control the drone, capture, and process data.
+"무인 항공 시스템(UAS)"이라는 용어는 일반적으로 UAV(무인 항공기)와 함께 이를 구성하는 전체 시스템을 의미하며, 여기에는 지상 관제소, 무선 조종기, 드론을 제어하거나 데이터를 수집 및 처리하는 데 사용되는 모든 시스템이 포함됩니다.
 :::
 
-## Drone Types
+## 드론의 종류
 
-There are many different vehicle frames (types), and within the types there are many variations.
-Some of the types, along with the use cases for which they are most suited are listed below.
+드론에는 다양한 프레임(기체 형태)이 있으며, 각 형태 내에도 여러 가지 변형이 존재합니다.
+아래는 드론의 대표적인 형태들과 각 형태에 가장 적합한 활용 사례들입니다.
 
-- [Multicopters](../frames_multicopter/index.md) — Multi-rotors offer precision hovering and vertical takeoff, at the cost of shorter and generally slower flight.
-  They are the most popular type of flying vehicle, in part because they are easy to assemble, and PX4 has modes that make them easy to fly and very suitable as a camera platform.
-- [Helicopters](../frames_helicopter/index.md) — Helicopters similar benefits to Multicopters but are mechanically more complex and more efficient.
-  They are also much harder to fly.
-- [Planes (Fixed-wing)](../frames_plane/index.md) — Fixed-wing vehicles offer longer and faster flight than multicopters, and hence better coverage for ground surveys etc.
-  However they are harder to fly and land than multicopters, and aren't suitable if you need to hover or fly very slowly (e.g. when surveying vertical structures).
-- [VTOL](../frames_vtol/index.md) (Vertical Takeoff and Landing) - Hybrid Fixed-wing/Multicopter vehicles offer the best of both worlds: take off in vertical mode and hover like a multicopter but transition to forward flight like an airplane to cover more ground.
-  VTOL are often more expensive than either multicopters and fixed-wing aircraft, and harder to build and tune.
-  They come in a number of types: tiltrotors, tailsitters, quadplanes etc.
-- [Airships](../frames_airship/index.md)/[Balloons](../frames_balloon/index.md) — Lighter-than-air vehicles that typically offer high altitude long duration flight, often at the cost of having limited (or no) control over speed and direction of flight.
-- [Rovers](../frames_rover/index.md) — Car-like ground vehicles.
-  They are simple to control and often fun to use.
-  They can't travel as fast as most aircraft, but can carry heavier payloads, and don't use much power when still.
-- **Boats** — Water-surface vehicles.
-- [Submersibles](../frames_sub/index.md) — Underwater vehicles.
+- [멀티콥터(Multicopters)](../frames_multicopter/index.md) — 멀티로터는 정밀한 호버링과 수직 이착륙이 가능하지만, 비행 시간이 짧고 속도도 일반적으로 느린 편입니다.
+  이들은 가장 인기 있는 비행체 유형 중 하나로, 조립이 쉽고 PX4가 제공하는 다양한 비행 모드를 통해 조종이 간편하며, 카메라 플랫폼으로도 매우 적합하기 때문입니다.
+- [헬리콥터](../frames_helicopter/index.md) — 헬리콥터는 멀티콥터와 유사한 이점을 제공하지만, 기계적으로 더 복잡하고 더 효율적입니다.
+  이들은 또한 조종이 훨씬 더 어렵습니다.
+- [비행기 (고정익)](../frames_plane/index.md) — 고정익 기체는 멀티콥터보다 더 오래, 더 빠르게 비행할 수 있어 지상 조사 등에서 더 넓은 범위를 커버할 수 있습니다.\
+  하지만 멀티콥터보다 조종과 착륙이 더 어렵고, 공중에 머무르거나 아주 느리게 비행해야 하는 경우(예: 수직 구조물 조사)에는 적합하지 않습니다.
+- [VTOL](../frames_vtol/index.md) (수직 이착륙) — 고정익/멀티콥터 하이브리드 기체는 두 가지 방식의 장점을 모두 제공합니다. 멀티콥터처럼 수직으로 이륙하고 호버링할 수 있으며, 비행 중에는 비행기처럼 전진 비행으로 전환해 더 넓은 지역을 커버할 수 있습니다.
+  VTOL은 일반적으로 멀티콥터나 고정익 항공기보다 더 비싸며, 제작과 튜닝도 더 어렵습니다.
+  VTOL은 여러 형태로 나뉘며, 대표적으로 틸트로터(tiltrotor), 테일시터(tailsitter), 쿼드플레인(quadplane) 등이 있습니다.
+- [에어십](../frames_airship/index.md)/[기구](../frames_balloon/index.md) — 공기보다 가벼운 비행체로, 일반적으로 고고도에서 오랜 시간 비행이 가능하지만, 속도나 비행 방향에 대한 제어가 제한되거나 불가능한 경우가 많습니다.
+- [로버](../frames_rover/index.md) — 자동차와 유사한 지상 주행형 비행체입니다.
+  조작이 간단하고 사용하기에 재미있는 경우가 많습니다.
+  대부분의 항공기만큼 빠르게 이동할 수는 없지만, 더 무거운 화물을 운반할 수 있으며 정지 상태에서는 전력을 거의 소모하지 않습니다.
+- **보트** — 수면 위를 이동하는 수상 차량입니다.
+- [잠수정(Submersibles)](../frames_sub/index.md) — 수중에서 운용되는 차량입니다.
 
 더 자세한 정보는 다음을 참고하십시오.
 
-- [Vehicle Types & Setup](../airframes/index.md)
-- [Airframe setup](../config/airframe.md)
-- [Airframe Reference](../airframes/airframe_reference.md).
+- [비행체 유형 및 설정](../airframes/index.md)
+- [기체 프레임 설정](../config/airframe.md)
+- [기체 프레임 참조](../airframes/airframe_reference.md)
 
 ## 자동조종장치
 
 자율비행장치(오토파일럿)는 드론의 두뇌에 해당하는 장치입니다.
 
-It minimally consists of _flight stack_ software running on a real time OS ("RTOS") on _flight controller_ (FC) hardware.
-The flight stack provides essential stabilisation and safety features, and usually also some level of pilot assistance for manual flight and automating common tasks, such as taking off, landing, and executing predefined missions.
+기본적으로 드론 시스템은 실시간 운영체제("RTOS")가 탑재된 비행 컨트롤러(FC)에서 비행 제어용 소프트웨어(비행 스택)를 실행하는 구조로 이루어져 있습니다.
+비행 스택은 기본적인 안정화와 안전 기능을 제공하며, 일반적으로 수동 비행 시 조종을 도와주는 보조 기능과 함께 이륙, 착륙, 미리 정해진 임무 수행 같은 작업을 자동으로 실행할 수 있도록 지원합니다.
 
-Some autopilots also include a general-purpose computing system that can provide "higher level" command and control, and that can support more advanced networking, computer vision, and other features.
-This might be implemented as a separate [companion computer](#offboard-companion-computer), but in future it is increasingly likely to be a fully integrated component.
+일부 자율 비행 장치는 고차원 명령과 제어를 수행할 수 있는 범용 컴퓨팅 시스템을 함께 탑재하고 있어, 보다 정교한 네트워킹, 컴퓨터 비전, 기타 고급 기능들을 지원할 수 있습니다.
+이 기능은 별도의 [보조 컴퓨터](#offboard-companion-computer)로 구현될 수도 있지만, 앞으로는 이러한 시스템이 하나로 통합된 구성 요소로 점점 더 많이 탑재될 가능성이 큽니다.
 
 ## PX4 자동비행장치
 
-[PX4](https://px4.io/) is powerful open source autopilot _flight stack_ running on the NuttX RTOS.
+[PX4](https://px4.io/)는 NuttX 실시간 운영체제(RTOS) 위에서 구동되는 강력한 오픈소스 자율비행 소프트웨어(flight stack)입니다.
 
 PX4의 주요 특징들은 아래와 같습니다.
 
-- Supports many different vehicle frames/types, including: [multicopters](../frames_multicopter/index.md), [fixed-wing aircraft](../frames_plane/index.md) (planes), [VTOLs](../frames_vtol/index.md) (hybrid multicopter/fixed-wing), [ground vehicles](../frames_rover/index.md), and [underwater vehicles](../frames_sub/index.md).
+- 다양한 기체 프레임/유형을 지원하며, 다음을 포함합니다:  [멀티콥터](../frames_multicopter/index.md),  [고정익 항공기](../frames_plane/index.md) (비행기),  [수직 이착륙기(VTOL)](../frames_vtol/index.md) (멀티콥터와 고정익의 하이브리드),  [지상 차량](../frames_rover/index.md),  [수중 차량](../frames_sub/index.md) 등.
 - Great choice of drone components for [flight controller](#flight-controller), [sensors](#sensors), [payloads](#payloads), and other peripherals.
 - Flexible and powerful [flight modes](#flight-modes) and [safety features](#safety-settings-failsafe).
-- Robust and deep integration with [companion computers](#offboard-companion-computer) and [robotics APIs](../robotics/index.md) such as [ROS 2](../ros2/user_guide.md) and [MAVSDK](http://mavsdk.mavlink.io).
+- Robust and deep integration with [companion computers](#offboard-companion-computer) and [robotics APIs](../robotics/index.md) such as [ROS 2](../ros2/user_guide.md) and [MAVSDK](https://mavsdk.mavlink.io/main/en/index.html).
 
-PX4 is a core part of a broader drone platform that includes the [QGroundControl](#qgc) ground station, [Pixhawk hardware](https://pixhawk.org/), and [MAVSDK](http://mavsdk.mavlink.io) for integration with companion computers, cameras and other hardware using the MAVLink protocol.
-PX4 is supported by the [Dronecode Project](https://www.dronecode.org/).
+PX4 is a core part of a broader drone platform that includes the [QGroundControl](#qgc) ground station, [Pixhawk hardware](https://pixhawk.org/), and [MAVSDK](https://mavsdk.mavlink.io/main/en/index.html) for integration with companion computers, cameras and other hardware using the MAVLink protocol.
+PX4 is supported by the [Dronecode Project](https://dronecode.org/).
 
 ## Ground Control Stations
 
@@ -74,9 +75,9 @@ A subset of the products that are known to work with PX4 are listed below.
 
 ### QGroundControl {#qgc}
 
-The Dronecode GCS software is called [QGroundControl](http://qgroundcontrol.com/) ("QGC").
+The Dronecode GCS software is called [QGroundControl](https://qgroundcontrol.com/) ("QGC").
 It runs on Windows, Android, MacOS or Linux hardware, and supports a wide range of screen form factors.
-You can download it (for free) from [here](http://qgroundcontrol.com/downloads/).
+You can download it (for free) from [here](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html).
 
 ![QGC Main Screen](../../assets/concepts/qgc_fly_view.png)
 
@@ -265,7 +266,6 @@ SD 카드가 없는 비행 콘트롤어는 다음의 작업들을 수행하여�
 - Disable notification beeps are disabled using the parameter [CBRK_BUZZER](../advanced_config/parameter_reference.md#CBRK_BUZZER).
 - [Stream logs](../dev_log/logging.md#log-streaming) to another component (companion).
 - Store missions in RAM/FLASH.
-  <!-- Too low-level for this. But see FLASH_BASED_DATAMAN in  Intel Aero: https://github.com/PX4/PX4-Autopilot/blob/main/boards/intel/aerofc-v1/src/board_config.h#L115 -->
 
 ## Payloads
 
@@ -334,8 +334,7 @@ An overview of the flight modes implemented within PX4 for each vehicle can be f
 - [Flight Modes (Multicopter)](../flight_modes_mc/index.md)
 - [Flight Modes (Fixed-Wing)](../flight_modes_fw/index.md)
 - [Flight Modes (VTOL)](../flight_modes_vtol/index.md)
-- [Drive Modes (Differential Rover)](../flight_modes_rover/differential.md)
-- [Drive Modes (Ackermann Rover)](../flight_modes_rover/ackermann.md)
+- [Drive Modes (Rover)](../flight_modes_rover/index.md)
 
 Instructions for how to set up your remote control switches to enable different flight modes is provided in [Flight Mode Configuration](../config/flight_mode.md).
 

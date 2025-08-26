@@ -96,7 +96,6 @@ Pixhawk® V6X ідеально підходить для корпоративн�
   - Baseboard: 56г
 - Operating & storage temperature: -20 ~ 85°c
 - Розмір
-
   - Політний контролер
 
     ![Pixhawk V6X](../../assets/flight_controller/cuav_pixhawk_v6x/v6x_size.jpg)
@@ -206,7 +205,7 @@ The pinouts and connector comply with the [Pixhawk Debug Full](../debug/swd_debu
 
 ## Периферійні пристрої
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 
