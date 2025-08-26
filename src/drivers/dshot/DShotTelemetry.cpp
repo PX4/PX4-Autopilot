@@ -117,8 +117,6 @@ void DShotTelemetry::initSettingsHandlers(ESCType esc_type, uint8_t output_mask)
 
 		if (interface) {
 			_settings_handlers[i] = interface;
-			// TODO: do it in the CTOR
-			_settings_handlers[i]->initParams(i);
 			DSHOT_CMD_DEBUG("Initialized settings handler for motor %d", i);
 		}
 	}

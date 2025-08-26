@@ -39,9 +39,6 @@
 class AM32Settings : public ESCSettingsInterface
 {
 public:
-	static constexpr int EEPROM_SIZE = 48;  // AM32 sends raw EEPROM
-	static constexpr int RESPONSE_SIZE = 49; // 48 bytes + CRC
-
 	struct EEPROMData {
 		uint8_t eeprom_start;           // 0: must be 1
 		uint8_t eeprom_version;         // 1: version 0-255
@@ -92,7 +89,6 @@ public:
 
 	~AM32Settings() override = default;
 
-	void initParams(uint8_t motor_index) override;
 	int getExpectedResponseSize() override;
 
 	bool decodeInfoResponse(const uint8_t *buf, int size) override;
