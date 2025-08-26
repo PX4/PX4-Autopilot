@@ -75,8 +75,8 @@ Vector2f StickTiltXY::generateAccelerationSetpointsForVoyager(Vector2f stick_xy,
 {
 	Sticks::limitStickUnitLengthXY(stick_xy);
 	const Vector2f increment = stick_xy;
-	_voyager_acceleration += increment * _maximum_acceleration *
-				 dt; // at full stick deflection it takes 1s from 0 to max tilt
+	_voyager_acceleration += increment * _maximum_acceleration * 2.f *
+				 dt; // at full stick deflection it takes 1s from -tilt_max to tilt_max
 
 	if (_voyager_acceleration.longerThan(_maximum_acceleration)) {
 		_voyager_acceleration =
