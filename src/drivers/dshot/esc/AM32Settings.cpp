@@ -32,18 +32,12 @@
  ****************************************************************************/
 
 #include "AM32Settings.h"
+// #include <dshot/DShotCommon.h>
 #include "../DShotCommon.h"
 #include <px4_platform_common/log.h>
 
-param_t AM32Settings::_param_pole_count = {PARAM_INVALID};
-param_t AM32Settings::_param_beep_volum = {PARAM_INVALID};
-
-void AM32Settings::initParams(uint8_t motor_index)
-{
-	// Mark all params as used
-	_param_pole_count = param_find("AM32_POLE_COUNT");
-	_param_beep_volum = param_find("AM32_BEEP_VOLUM");
-}
+static constexpr int EEPROM_SIZE = 48;  // AM32 sends raw eeprom data
+static constexpr int RESPONSE_SIZE = 49; // 48B data + 1B CRC
 
 int AM32Settings::getExpectedResponseSize()
 {
@@ -61,7 +55,7 @@ bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
 
 	if (checksum == checksum_data) {
 
-		DSHOT_CMD_DEBUG("Successfully received AM32 settings!");
+		PX4_INFO("Successfully received AM32 settings!");
 		// auto now  = hrt_absolute_time();
 
 		// We need to use
@@ -71,7 +65,7 @@ bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
 		// Iterate over each setting and write to our parameters
 
 		// for (int j = 0; j < EEPROM_SIZE; j++) {
-		// 	DSHOT_CMD_DEBUG("%d", buf[j]);
+		// 	PX4_INFO("%d", buf[j]);
 		// }
 
 	} else {

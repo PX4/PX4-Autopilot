@@ -43,7 +43,6 @@ class ESCSettingsInterface
 public:
 	virtual ~ESCSettingsInterface() = default;
 
-	virtual void initParams(uint8_t motor_index) = 0;
 	virtual bool decodeInfoResponse(const uint8_t *buf, int size) = 0;
 	virtual int getExpectedResponseSize() = 0;
 };
