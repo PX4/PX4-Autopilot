@@ -50,7 +50,6 @@ using namespace time_literals;
 
 static constexpr hrt_abstime ESC_INIT_TELEM_WAIT_TIME = 3_s;
 
-
 /** Dshot PWM frequency, Hz */
 static constexpr unsigned int DSHOT150  =  150000u;
 static constexpr unsigned int DSHOT300  =  300000u;
@@ -67,8 +66,6 @@ static constexpr uint16_t DSHOT_MAX_THROTTLE = 1999;
 #define ACTUATOR_CONFIGURATION_3D_MODE_ON 3
 #define ACTUATOR_CONFIGURATION_SPIN_DIRECTION1 4
 #define ACTUATOR_CONFIGURATION_SPIN_DIRECTION2 5
-#define ACTUATOR_CONFIGURATION_READ_SETTINGS 6
-#define ACTUATOR_CONFIGURATION_WRITE_SETTING 7
 
 class DShot final : public ModuleBase<DShot>, public OutputModuleInterface
 {
@@ -142,6 +139,10 @@ private:
 	uint16_t convert_output_to_3d_scaling(uint16_t output);
 
 	void handle_programming_sequence_state();
+
+	// Mavlink command handlers
+	void handle_configure_actuator(const vehicle_command_s& command);
+	void handle_am32_request_eeprom(const vehicle_command_s& command);
 
 	// Mixer
 	MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};

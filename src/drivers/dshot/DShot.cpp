@@ -44,7 +44,6 @@ DShot::DShot() :
 {
 	_mixing_output.setAllDisarmedValues(DSHOT_DISARM_VALUE);
 	_mixing_output.setAllMinValues(DSHOT_MIN_THROTTLE);
-
 	_mixing_output.setAllMaxValues(DSHOT_MAX_THROTTLE);
 
 	// Avoid using the PWM failsafe params
@@ -84,8 +83,6 @@ bool DShot::initialize_dshot()
 	unsigned int dshot_frequency = 0;
 	uint32_t dshot_frequency_param = 0;
 
-	// Mark all channels as used, we will disable the unused groups below
-	// _output_mask = (1u << DSHOT_MAXIMUM_CHANNELS) - 1;
 	_output_mask = 0;
 
 	for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
@@ -116,10 +113,6 @@ bool DShot::initialize_dshot()
 		} else if (tim_config == -3) {
 			dshot_frequency_request = DSHOT600;
 			_output_mask |= channels;
-
-		} else {
-			// Timer group is not configured for dshot, disable channels in output mask
-			// _output_mask &= ~channels;
 		}
 
 		if (dshot_frequency_request != 0) {
@@ -692,124 +685,138 @@ void DShot::handle_programming_sequence_state()
 
 void DShot::handle_vehicle_commands()
 {
-	vehicle_command_s vehicle_command;
+	vehicle_command_s command = {};
 
-	while (!_current_command.valid() && _vehicle_command_sub.update(&vehicle_command)) {
+	while (!_current_command.valid() && _vehicle_command_sub.update(&command)) {
 
-		// https://mavlink.io/en/messages/common.html#MAV_CMD_CONFIGURE_ACTUATOR
-		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_CONFIGURE_ACTUATOR) {
-			int function = (int)(vehicle_command.param5 + 0.5);
-
-			DSHOT_CMD_DEBUG("Received VEHICLE_CMD_CONFIGURE_ACTUATOR");
-
-			if (function < 1000) {
-				const int first_motor_function = 1; // from MAVLink ACTUATOR_OUTPUT_FUNCTION
-				const int first_servo_function = 33;
-
-				if (function >= first_motor_function && function < first_motor_function + actuator_test_s::MAX_NUM_MOTORS) {
-					function = function - first_motor_function + actuator_test_s::FUNCTION_MOTOR1;
-
-				} else if (function >= first_servo_function && function < first_servo_function + actuator_test_s::MAX_NUM_SERVOS) {
-					function = function - first_servo_function + actuator_test_s::FUNCTION_SERVO1;
-
-				} else {
-					function = INT32_MAX;
-				}
-
-			} else {
-				function -= 1000;
-			}
-
-			int type = (int)(vehicle_command.param1 + 0.5f);
-			int motor_index = -1;
-
-			for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; ++i) {
-				if ((int)_mixing_output.outputFunction(i) == function && _mixing_output.isMotor(i)) {
-					motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
-				}
-			}
-
-			vehicle_command_ack_s command_ack{};
-			command_ack.command = vehicle_command.command;
-			command_ack.target_system = vehicle_command.source_system;
-			command_ack.target_component = vehicle_command.source_component;
-			command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
-
-			if (motor_index != -1) {
-				DSHOT_CMD_DEBUG("motor_index: %i type: %i", motor_index, type);
-				_current_command.clear();
-				_current_command.command = DSHOT_CMD_MOTOR_STOP;
-				_current_command.num_repetitions = 10; // TODO: check AM32
-				_current_command.save = false;
-
-				switch (type) {
-				case ACTUATOR_CONFIGURATION_BEEP:
-					_current_command.command = DSHOT_CMD_BEEP1;
-					break;
-
-				case ACTUATOR_CONFIGURATION_3D_MODE_OFF:
-					_current_command.command = DSHOT_CMD_3D_MODE_OFF;
-					break;
-
-				case ACTUATOR_CONFIGURATION_3D_MODE_ON:
-					_current_command.command = DSHOT_CMD_3D_MODE_ON;
-					break;
-
-				case ACTUATOR_CONFIGURATION_SPIN_DIRECTION1:
-					_current_command.command = DSHOT_CMD_SPIN_DIRECTION_1;
-					_current_command.save = true;
-					break;
-
-				case ACTUATOR_CONFIGURATION_SPIN_DIRECTION2:
-					_current_command.command = DSHOT_CMD_SPIN_DIRECTION_2;
-					_current_command.save = true;
-					break;
-
-				case ACTUATOR_CONFIGURATION_READ_SETTINGS:
-					DSHOT_CMD_DEBUG("ACTUATOR_CONFIGURATION_READ_SETTINGS");
-					_current_command.save = false;
-					_current_command.num_repetitions = 6; // NOTE: AM32 requires 6 to consider a command valid
-					_current_command.command = DSHOT_CMD_ESC_INFO;
-					_current_command.expect_response = true;
-					break;
-
-				case ACTUATOR_CONFIGURATION_WRITE_SETTING:
-					DSHOT_CMD_DEBUG("ACTUATOR_CONFIGURATION_WRITE_SETTING");
-					// This is a special command that triggers 5 DShot commands:
-					// - DSHOT_CMD_ENTER_PROGRAMMING_MODE
-					// - EEPROM Memory location
-					// - Value
-					// - DSHOT_CMD_EXIT_PROGRAMMING_MODE
-					// - DSHOT_CMD_SAVE_SETTINGS
-
-					// Command structure
-					// param1 = ACTUATOR_CONFIGURATION_WRITE_SETTING
-					// param2 = Memory location
-					// param3 = Value
-					// param5 = ACTUATOR_OUTPUT_FUNCTION_MOTOR1
-
-					_current_command.save = false;
-					_programming_address = (uint16_t)vehicle_command.param2;
-					_programming_value = (uint16_t)vehicle_command.param3;
-					_programming_state = ProgrammingState::EnterMode;
-					break;
-
-				default:
-					PX4_WARN("unknown command: %i", type);
-					break;
-				}
-
-				// NOTE: this means we can't send a stop command (that's OK)
-				if (_current_command.command != DSHOT_CMD_MOTOR_STOP) {
-					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
-					_current_command.motor_mask = 1 << motor_index;
-				}
-			}
-
-			command_ack.timestamp = hrt_absolute_time();
-			_command_ack_pub.publish(command_ack);
+		switch (command.command) {
+		case vehicle_command_s::VEHICLE_CMD_CONFIGURE_ACTUATOR:
+			handle_configure_actuator(command);
+			break;
+		case vehicle_command_s::VEHICLE_CMD_AM32_REQUEST_EEPROM:
+			handle_am32_request_eeprom(command);
+			break;
+		default:
+			break;
 		}
 	}
+}
+
+void DShot::handle_configure_actuator(const vehicle_command_s& command)
+{
+	int function = (int)(command.param5 + 0.5);
+
+	DSHOT_CMD_DEBUG("Received VEHICLE_CMD_CONFIGURE_ACTUATOR");
+
+	if (function < 1000) {
+		const int first_motor_function = 1; // from MAVLink ACTUATOR_OUTPUT_FUNCTION
+		const int first_servo_function = 33;
+
+		if (function >= first_motor_function && function < first_motor_function + actuator_test_s::MAX_NUM_MOTORS) {
+			function = function - first_motor_function + actuator_test_s::FUNCTION_MOTOR1;
+
+		} else if (function >= first_servo_function && function < first_servo_function + actuator_test_s::MAX_NUM_SERVOS) {
+			function = function - first_servo_function + actuator_test_s::FUNCTION_SERVO1;
+
+		} else {
+			function = INT32_MAX;
+		}
+
+	} else {
+		function -= 1000;
+	}
+
+	int type = (int)(command.param1 + 0.5f);
+	int motor_index = -1;
+
+	for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; ++i) {
+		if ((int)_mixing_output.outputFunction(i) == function && _mixing_output.isMotor(i)) {
+			motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
+		}
+	}
+
+	vehicle_command_ack_s command_ack{};
+	command_ack.command = command.command;
+	command_ack.target_system = command.source_system;
+	command_ack.target_component = command.source_component;
+	command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+
+	if (motor_index != -1) {
+		DSHOT_CMD_DEBUG("motor_index: %i type: %i", motor_index, type);
+		_current_command.clear();
+		_current_command.command = DSHOT_CMD_MOTOR_STOP;
+		_current_command.num_repetitions = 10; // TODO: check AM32
+		_current_command.save = false;
+
+		switch (type) {
+		case ACTUATOR_CONFIGURATION_BEEP:
+			_current_command.command = DSHOT_CMD_BEEP1;
+			break;
+
+		case ACTUATOR_CONFIGURATION_3D_MODE_OFF:
+			_current_command.command = DSHOT_CMD_3D_MODE_OFF;
+			break;
+
+		case ACTUATOR_CONFIGURATION_3D_MODE_ON:
+			_current_command.command = DSHOT_CMD_3D_MODE_ON;
+			break;
+
+		case ACTUATOR_CONFIGURATION_SPIN_DIRECTION1:
+			_current_command.command = DSHOT_CMD_SPIN_DIRECTION_1;
+			_current_command.save = true;
+			break;
+
+		case ACTUATOR_CONFIGURATION_SPIN_DIRECTION2:
+			_current_command.command = DSHOT_CMD_SPIN_DIRECTION_2;
+			_current_command.save = true;
+			break;
+
+		// TODO: migrate to using AM32_EEPROM with mode flag
+
+		// case ACTUATOR_CONFIGURATION_WRITE_SETTING:
+		// 	DSHOT_CMD_DEBUG("ACTUATOR_CONFIGURATION_WRITE_SETTING");
+		// 	// This is a special command that triggers 5 DShot commands:
+		// 	// - DSHOT_CMD_ENTER_PROGRAMMING_MODE
+		// 	// - EEPROM Memory location
+		// 	// - Value
+		// 	// - DSHOT_CMD_EXIT_PROGRAMMING_MODE
+		// 	// - DSHOT_CMD_SAVE_SETTINGS
+
+		// 	// Command structure
+		// 	// param1 = ACTUATOR_CONFIGURATION_WRITE_SETTING
+		// 	// param2 = Memory location
+		// 	// param3 = Value
+		// 	// param5 = ACTUATOR_OUTPUT_FUNCTION_MOTOR1
+
+		// 	_current_command.save = false;
+		// 	_programming_address = (uint16_t)command.param2;
+		// 	_programming_value = (uint16_t)command.param3;
+		// 	_programming_state = ProgrammingState::EnterMode;
+		// 	break;
+
+		default:
+			PX4_WARN("unknown command: %i", type);
+			break;
+		}
+
+		// NOTE: this means we can't send a stop command (that's OK)
+		if (_current_command.command != DSHOT_CMD_MOTOR_STOP) {
+			command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			_current_command.motor_mask = 1 << motor_index;
+		}
+	}
+
+	command_ack.timestamp = hrt_absolute_time();
+	_command_ack_pub.publish(command_ack);
+}
+
+void DShot::handle_am32_request_eeprom(const vehicle_command_s& command)
+{
+	DSHOT_CMD_DEBUG("AM32_REQUEST_EEPROM");
+	_current_command.save = false;
+	_current_command.num_repetitions = 6; // NOTE: AM32 requires 6 to consider a command valid
+	_current_command.command = DSHOT_CMD_ESC_INFO;
+	_current_command.expect_response = true;
 }
 
 void DShot::update_params()

@@ -34,7 +34,6 @@
 #pragma once
 
 #include "ESCSettingsInterface.h"
-#include <px4_platform_common/param.h>
 
 class AM32Settings : public ESCSettingsInterface
 {
@@ -94,6 +93,5 @@ public:
 	bool decodeInfoResponse(const uint8_t *buf, int size) override;
 
 private:
-	static param_t _param_pole_count;
-	static param_t _param_beep_volum;
+	EEPROMData _eeprom_data{};
 };
