@@ -251,6 +251,7 @@ void DShot::Run()
 
 			if (_telemetry.parseCommandResponse()) {
 				DSHOT_CMD_DEBUG("Command response received");
+
 				// _current_command.command
 				if (_current_command.command == DSHOT_CMD_ESC_INFO) {
 					DSHOT_CMD_DEBUG("gotta update AM32 params from Motor1");
@@ -693,16 +694,18 @@ void DShot::handle_vehicle_commands()
 		case vehicle_command_s::VEHICLE_CMD_CONFIGURE_ACTUATOR:
 			handle_configure_actuator(command);
 			break;
+
 		case vehicle_command_s::VEHICLE_CMD_AM32_REQUEST_EEPROM:
 			handle_am32_request_eeprom(command);
 			break;
+
 		default:
 			break;
 		}
 	}
 }
 
-void DShot::handle_configure_actuator(const vehicle_command_s& command)
+void DShot::handle_configure_actuator(const vehicle_command_s &command)
 {
 	int function = (int)(command.param5 + 0.5);
 
@@ -810,7 +813,7 @@ void DShot::handle_configure_actuator(const vehicle_command_s& command)
 	_command_ack_pub.publish(command_ack);
 }
 
-void DShot::handle_am32_request_eeprom(const vehicle_command_s& command)
+void DShot::handle_am32_request_eeprom(const vehicle_command_s &command)
 {
 	DSHOT_CMD_DEBUG("AM32_REQUEST_EEPROM");
 	_current_command.save = false;

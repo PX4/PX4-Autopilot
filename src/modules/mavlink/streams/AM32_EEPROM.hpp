@@ -34,7 +34,7 @@
 #ifndef AM32_EEPROM_HPP
 #define AM32_EEPROM_HPP
 
-#include <uORB/topics/esc_eeprom.h>
+#include <uORB/topics/am32_eeprom_read.h>
 
 class MavlinkStreamAM32Eeprom : public MavlinkStream
 {
@@ -49,24 +49,24 @@ public:
 
 	unsigned get_size() override
 	{
-		return _esc_eeprom_sub.advertised() ? MAVLINK_MSG_ID_AM32_EEPROM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		return _am32_eeprom_read_sub.advertised() ? MAVLINK_MSG_ID_AM32_EEPROM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
 	explicit MavlinkStreamAM32Eeprom(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _esc_eeprom_sub{ORB_ID(esc_eeprom)};
+	uORB::Subscription _am32_eeprom_read_sub{ORB_ID(am32_eeprom_read)};
 
 	bool send() override
 	{
-		esc_eeprom_s esc_eeprom;
+		am32_eeprom_read_s eeprom = {};
 
-		if (_esc_eeprom_sub.update(&esc_eeprom)) {
+		if (_am32_eeprom_read_sub.update(&eeprom)) {
 			mavlink_am32_eeprom_t msg = {};
-			msg.index = esc_eeprom.index;
+			msg.index = eeprom.index;
 			msg.mode = 0;
-			memcpy(msg.data, esc_eeprom.data, esc_eeprom.length);
-			msg.length = esc_eeprom.length;
+			memcpy(msg.data, eeprom.data, eeprom.length);
+			msg.length = eeprom.length;
 
 			PX4_INFO("sending AM32_EEPROM %d", _mavlink->get_channel());
 			mavlink_msg_am32_eeprom_send_struct(_mavlink->get_channel(), &msg);

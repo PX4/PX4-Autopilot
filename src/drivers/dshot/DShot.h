@@ -38,6 +38,7 @@
 #include <px4_platform_common/module.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/am32_eeprom_read.h>
 
 #include "DShotCommon.h"
 #include "DShotTelemetry.h"
@@ -141,8 +142,8 @@ private:
 	void handle_programming_sequence_state();
 
 	// Mavlink command handlers
-	void handle_configure_actuator(const vehicle_command_s& command);
-	void handle_am32_request_eeprom(const vehicle_command_s& command);
+	void handle_configure_actuator(const vehicle_command_s &command);
+	void handle_am32_request_eeprom(const vehicle_command_s &command);
 
 	// Mixer
 	MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
@@ -150,10 +151,14 @@ private:
 
 	// uORb
 	esc_status_s _esc_status{};
-	uORB::PublicationMultiData<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
+	uORB::PublicationMultiData<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
+
+	uORB::Publication<am32_eeprom_read_s> _am32_eeprom_read_pub{ORB_ID(am32_eeprom_read)};
+
 
 	// Status information
 	uint32_t _bdshot_telem_online_mask = 0; // Mask indicating telem receive status for bidirectional dshot telem

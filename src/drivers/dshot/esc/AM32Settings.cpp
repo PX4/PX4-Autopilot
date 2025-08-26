@@ -53,19 +53,9 @@ bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
 	uint8_t checksum_data = buf[EEPROM_SIZE];
 
 	if (checksum == checksum_data) {
-
 		PX4_INFO("Successfully received AM32 settings!");
-		// auto now  = hrt_absolute_time();
-
-		// We need to use
-		// - _command_response_motor_index;
-
-		// TODO
-		// Iterate over each setting and write to our parameters
-
-		// for (int j = 0; j < EEPROM_SIZE; j++) {
-		// 	PX4_INFO("%d", buf[j]);
-		// }
+		memcpy(&_eeprom_data, buf, EEPROM_SIZE);
+		_updated = true;
 
 	} else {
 		PX4_WARN("Command Response checksum failed!");
