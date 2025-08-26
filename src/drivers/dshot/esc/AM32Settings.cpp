@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 #include "AM32Settings.h"
-// #include <dshot/DShotCommon.h>
 #include "../DShotCommon.h"
 #include <px4_platform_common/log.h>
 

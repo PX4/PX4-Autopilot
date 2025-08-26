@@ -45,5 +45,8 @@ public:
 
 	virtual bool decodeInfoResponse(const uint8_t *buf, int size) = 0;
 	virtual int getExpectedResponseSize() = 0;
+
+	// TODO: function to read data
+	// TODO: function to write data
 };
 

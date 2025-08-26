@@ -54,13 +54,13 @@ public:
 	TelemetryStatus parseTelemetryPacket(EscData *esc_data);
 
 	// Attempt to parse a command response.
-	// Returns TODO
 	bool parseCommandResponse();
 	bool expectingCommandResponse();
 	void setExpectCommandResponse(int motor_index, uint16_t command);
 
 	void initSettingsHandlers(ESCType esc_type, uint8_t output_mask);
 
+	// TODO: re-evaluate if this is necessary
 	void flush();
 
 private:
