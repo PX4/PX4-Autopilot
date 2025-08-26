@@ -34,10 +34,14 @@
 #pragma once
 
 #include "ESCSettingsInterface.h"
+#include <uORB/Publication.hpp>
+#include <uORB/topics/am32_eeprom_read.h>
 
 class AM32Settings : public ESCSettingsInterface
 {
 public:
+	AM32Settings(int index);
+
 	struct EEPROMData {
 		uint8_t eeprom_start;           // 0: must be 1
 		uint8_t eeprom_version;         // 1: version 0-255
@@ -88,10 +92,11 @@ public:
 
 	int getExpectedResponseSize() override;
 	bool decodeInfoResponse(const uint8_t *buf, int size) override;
-	bool updated() const { return _updated; };
 	const EEPROMData &eeprom_data() const { return _eeprom_data; };
 
 private:
+	int _esc_index{};
 	EEPROMData _eeprom_data{};
-	bool _updated{};
+
+	static uORB::Publication<am32_eeprom_read_s> _am32_eeprom_read_pub;
 };

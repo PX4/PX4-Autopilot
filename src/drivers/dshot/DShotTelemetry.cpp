@@ -107,7 +107,7 @@ void DShotTelemetry::initSettingsHandlers(ESCType esc_type, uint8_t output_mask)
 
 		switch (esc_type) {
 		case ESCType::AM32:
-			interface = new AM32Settings();
+			interface = new AM32Settings(i);
 			break;
 
 		default:
@@ -124,18 +124,18 @@ void DShotTelemetry::initSettingsHandlers(ESCType esc_type, uint8_t output_mask)
 	_settings_initialized = true;
 }
 
-bool DShotTelemetry::parseCommandResponse()
+int DShotTelemetry::parseCommandResponse()
 {
 	if (hrt_elapsed_time(&_command_response_start) > 1_s) {
 		PX4_WARN("Command response timed out: %d bytes received", _command_response_position);
 		_command_response_motor_index = -1;
 		_command_response_start = 0;
 		_command_response_position = 0;
-		return false;
+		return -1;
 	}
 
 	if (_uart.bytesAvailable() <= 0) {
-		return false;
+		return -1;
 	}
 
 	uint8_t buf[COMMAND_RESPONSE_MAX_SIZE];
@@ -146,14 +146,17 @@ bool DShotTelemetry::parseCommandResponse()
 		_command_response_buffer[_command_response_position++] = buf[i];
 	}
 
-	bool success = false;
+	int index = -1;
 
 	switch (_command_response_command) {
 	case DSHOT_CMD_ESC_INFO: {
 			auto handler = _settings_handlers[_command_response_motor_index];
 
 			if (handler && _command_response_position == handler->getExpectedResponseSize()) {
-				success = handler->decodeInfoResponse(_command_response_buffer, _command_response_position);
+				if (handler->decodeInfoResponse(_command_response_buffer, _command_response_position)) {
+					index = _command_response_motor_index;
+				}
+
 				// Reset command state
 				_command_response_position = 0;
 				_command_response_start = 0;
@@ -167,7 +170,7 @@ bool DShotTelemetry::parseCommandResponse()
 		break;
 	}
 
-	return success;
+	return index;
 }
 
 TelemetryStatus DShotTelemetry::parseTelemetryPacket(EscData *esc_data)

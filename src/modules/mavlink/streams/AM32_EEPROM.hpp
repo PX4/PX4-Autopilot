@@ -65,8 +65,8 @@ private:
 			mavlink_am32_eeprom_t msg = {};
 			msg.index = eeprom.index;
 			msg.mode = 0;
-			memcpy(msg.data, eeprom.data, eeprom.length);
-			msg.length = eeprom.length;
+			memcpy(msg.data, eeprom.data, sizeof(eeprom.data));
+			msg.length = sizeof(eeprom.data);
 
 			PX4_INFO("sending AM32_EEPROM %d", _mavlink->get_channel());
 			mavlink_msg_am32_eeprom_send_struct(_mavlink->get_channel(), &msg);
