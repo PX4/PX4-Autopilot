@@ -3082,6 +3082,7 @@ MavlinkReceiver::handle_message_am32_eeprom(mavlink_message_t *msg)
 
 	uint8_t min_length = sizeof(eeprom.data);
 	int length = message.length;
+
 	if (length > min_length) {
 		length = min_length;
 	}

@@ -51,6 +51,7 @@ int AM32Settings::getExpectedResponseSize()
 
 void AM32Settings::publish_latest()
 {
+	PX4_INFO("AM32Settings::publish_latest()");
 	am32_eeprom_read_s data = {};
 	data.timestamp = hrt_absolute_time();
 	data.index = _esc_index;
@@ -72,7 +73,7 @@ bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
 		return false;
 	}
 
-	PX4_INFO("Successfully received AM32 settings!");
+	PX4_INFO("Successfully received AM32 settings from ESC%d", _esc_index + 1);
 
 	// Store data for retrieval later if requested
 	memcpy(&_eeprom_data, buf, EEPROM_SIZE);

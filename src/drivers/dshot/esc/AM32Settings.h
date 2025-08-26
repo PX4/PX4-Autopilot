@@ -93,7 +93,7 @@ public:
 	int getExpectedResponseSize() override;
 	bool decodeInfoResponse(const uint8_t *buf, int size) override;
 
-	void publish_latest();
+	void publish_latest() override;
 
 private:
 	int _esc_index{};
