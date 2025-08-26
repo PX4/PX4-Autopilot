@@ -92,7 +92,8 @@ public:
 
 	int getExpectedResponseSize() override;
 	bool decodeInfoResponse(const uint8_t *buf, int size) override;
-	const EEPROMData &eeprom_data() const { return _eeprom_data; };
+
+	void publish_latest();
 
 private:
 	int _esc_index{};

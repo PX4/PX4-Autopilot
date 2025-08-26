@@ -49,6 +49,15 @@ int AM32Settings::getExpectedResponseSize()
 	return RESPONSE_SIZE;
 }
 
+void AM32Settings::publish_latest()
+{
+	am32_eeprom_read_s data = {};
+	data.timestamp = hrt_absolute_time();
+	data.index = _esc_index;
+	memcpy(data.data, &_eeprom_data, sizeof(data.data));
+	_am32_eeprom_read_pub.publish(data);
+}
+
 bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
 {
 	if (size != RESPONSE_SIZE) {
@@ -69,11 +78,7 @@ bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
 	memcpy(&_eeprom_data, buf, EEPROM_SIZE);
 
 	// Publish data immedietly
-	am32_eeprom_read_s data = {};
-	data.timestamp = hrt_absolute_time();
-	data.index = _esc_index;
-	memcpy(data.data, &_eeprom_data, sizeof(data.data));
-	_am32_eeprom_read_pub.publish(data);
+	publish_latest();
 
 	return true;
 }
