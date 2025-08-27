@@ -47,6 +47,7 @@
 EstimatorInterface::~EstimatorInterface()
 {
 	delete _gps_buffer;
+	delete _gnss_heading_buffer;
 	delete _mag_buffer;
 	delete _baro_buffer;
 	delete _range_buffer;
@@ -190,6 +191,41 @@ void EstimatorInterface::setGpsData(const gps_message &gps)
 		_gps_buffer->push(gps_sample_new);
 	} else {
 		ECL_ERR("GPS data too fast %" PRIu64, gps.time_usec - _time_last_gps);
+	}
+}
+
+void EstimatorInterface::setGnssHeadingData(const gnss_heading_message &gnss_heading)
+{
+	if (!_initialised) {
+		return;
+	}
+
+	// Allocate the required buffer size if not previously done
+	if (_gnss_heading_buffer == nullptr) {
+		_gnss_heading_buffer = new RingBuffer<gnssHeadingSample>(_obs_buffer_length);
+
+		if (_gnss_heading_buffer == nullptr || !_gnss_heading_buffer->valid()) {
+			delete _gnss_heading_buffer;
+			_gnss_heading_buffer = nullptr;
+			printBufferAllocationFailed("GNSS heading");
+			return;
+		}
+	}
+
+	if ((gnss_heading.time_usec - _time_last_gnss_heading) > _min_obs_interval_us) {
+		_time_last_gnss_heading = gnss_heading.time_usec;
+
+		gnssHeadingSample gnss_heading_sample_new;
+
+		gnss_heading_sample_new.time_us = gnss_heading.time_usec - static_cast<uint64_t>(_params.gps_delay_ms * 1000);
+		gnss_heading_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
+		gnss_heading_sample_new.heading = gnss_heading.heading;
+		gnss_heading_sample_new.heading_accuracy = gnss_heading.heading_accuracy;
+
+		_gnss_heading_buffer->push(gnss_heading_sample_new);
+	} else {
+		ECL_ERR("GNSS heading data too fast %" PRIu64, gnss_heading.time_usec - _time_last_gnss_heading);
 	}
 }
 
@@ -562,6 +598,10 @@ void EstimatorInterface::print_status()
 
 	if (_gps_buffer) {
 		printf("gps buffer: %d/%d (%d Bytes)\n", _gps_buffer->entries(), _gps_buffer->get_length(), _gps_buffer->get_total_size());
+	}
+
+	if (_gnss_heading_buffer) {
+		printf("gnss heading buffer: %d/%d (%d Bytes)\n", _gnss_heading_buffer->entries(), _gnss_heading_buffer->get_length(), _gnss_heading_buffer->get_total_size());
 	}
 
 	if (_mag_buffer) {

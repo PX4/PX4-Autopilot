@@ -53,16 +53,12 @@ void Ekf::fuseGpsYaw()
 	const float &q2 = _state.quat_nominal(2);
 	const float &q3 = _state.quat_nominal(3);
 
-	// calculate the observed yaw angle of antenna array, converting a from body to antenna yaw measurement
-	const float measured_hdg = wrap_pi(_gps_sample_delayed.yaw + _gps_yaw_offset);
-
-	// define the predicted antenna array vector and rotate into earth frame
-	const Vector3f ant_vec_bf = {cosf(_gps_yaw_offset), sinf(_gps_yaw_offset), 0.0f};
-	const Vector3f ant_vec_ef = _R_to_earth * ant_vec_bf;
+	// First column of rotation matrix = body x-axis in earth frame
+	const Vector3f ant_vec_ef = _R_to_earth.col(0);
 
 	// check if antenna array vector is within 30 degrees of vertical and therefore unable to provide a reliable heading
-	if (fabsf(ant_vec_ef(2)) > cosf(math::radians(30.0f)))  {
-		return;
+	if (fabsf(ant_vec_ef(2)) > cosf(math::radians(30.0f))) {
+	return;
 	}
 
 	// calculate predicted antenna yaw angle
@@ -138,7 +134,7 @@ void Ekf::fuseGpsYaw()
 
 	// calculate the innovation and define the innovation gate
 	const float innov_gate = math::max(_params.heading_innov_gate, 1.0f);
-	_heading_innov = predicted_hdg - measured_hdg;
+	_heading_innov = predicted_hdg - _gnss_heading_sample_delayed.heading;
 
 	// wrap the innovation to the interval between +-pi
 	_heading_innov = wrap_pi(_heading_innov);
@@ -191,28 +187,26 @@ void Ekf::fuseGpsYaw()
 	_fault_status.flags.bad_hdg = !is_fused;
 
 	if (is_fused) {
-		_time_last_gps_yaw_fuse = _time_last_imu;
+		_time_last_gnss_heading_fuse = _time_last_imu;
 	}
 }
 
 bool Ekf::resetYawToGps()
 {
-	// define the predicted antenna array vector and rotate into earth frame
-	const Vector3f ant_vec_bf = {cosf(_gps_yaw_offset), sinf(_gps_yaw_offset), 0.0f};
-	const Vector3f ant_vec_ef = _R_to_earth * ant_vec_bf;
+	// First column of rotation matrix = body x-axis in earth frame
+	const Vector3f ant_vec_ef = _R_to_earth.col(0);
 
 	// check if antenna array vector is within 30 degrees of vertical and therefore unable to provide a reliable heading
-	if (fabsf(ant_vec_ef(2)) > cosf(math::radians(30.0f)))  {
+	if (fabsf(ant_vec_ef(2)) > cosf(math::radians(30.0f))) {
 		return false;
 	}
 
-	// GPS yaw measurement is alreday compensated for antenna offset in the driver
-	const float measured_yaw = _gps_sample_delayed.yaw;
+	// TODO: Consider using the reported variance
 
 	const float yaw_variance = sq(fmaxf(_params.gps_heading_noise, 1.0e-2f));
-	resetQuatStateYaw(measured_yaw, yaw_variance, true);
+	resetQuatStateYaw(_gnss_heading_sample_delayed.heading, yaw_variance, true);
 
-	_time_last_gps_yaw_fuse = _time_last_imu;
+	_time_last_gnss_heading_fuse = _time_last_imu;
 	_yaw_signed_test_ratio_lpf.reset(0.f);
 
 	return true;

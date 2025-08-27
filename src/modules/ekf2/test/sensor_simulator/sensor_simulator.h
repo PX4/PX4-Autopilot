@@ -55,6 +55,7 @@
 #include "mag.h"
 #include "baro.h"
 #include "gps.h"
+#include "gnss_heading.h"
 #include "flow.h"
 #include "range_finder.h"
 #include "vio.h"
@@ -65,7 +66,7 @@ using namespace sensor_simulator::sensor;
 
 struct sensor_info {
 	uint64_t timestamp{};
-	enum measurement_t {IMU, MAG, BARO, GPS, AIRSPEED, RANGE, FLOW, VISION, LANDING_STATUS} sensor_type = IMU;
+	enum measurement_t {IMU, MAG, BARO, GPS, GPS_YAW, AIRSPEED, RANGE, FLOW, VISION, LANDING_STATUS} sensor_type = IMU;
 	std::array<double, 10> sensor_data{};
 };
 
@@ -93,6 +94,9 @@ public:
 
 	void startGps() { _gps.start(); }
 	void stopGps() { _gps.stop(); }
+
+	void startGnssHeading() { _gps_yaw.start(); }
+	void stopGnssHeading() { _gps_yaw.stop(); }
 
 	void startFlow() { _flow.start(); }
 	void stopFlow() { _flow.stop(); }
@@ -122,6 +126,7 @@ public:
 	Baro        _baro;
 	Flow        _flow;
 	Gps         _gps;
+	GnssHeading      _gps_yaw;
 	Imu         _imu;
 	Mag         _mag;
 	RangeFinder _rng;

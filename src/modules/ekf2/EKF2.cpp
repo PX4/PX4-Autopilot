@@ -188,6 +188,7 @@ EKF2::~EKF2()
 	perf_free(_msg_missed_airspeed_perf);
 	perf_free(_msg_missed_distance_sensor_perf);
 	perf_free(_msg_missed_gps_perf);
+	perf_free(_msg_missed_gnss_heading_perf);
 	perf_free(_msg_missed_landing_target_pose_perf);
 	perf_free(_msg_missed_magnetometer_perf);
 	perf_free(_msg_missed_odometry_perf);
@@ -252,6 +253,7 @@ int EKF2::print_status()
 	perf_print_counter(_msg_missed_airspeed_perf);
 	perf_print_counter(_msg_missed_distance_sensor_perf);
 	perf_print_counter(_msg_missed_gps_perf);
+	perf_print_counter(_msg_missed_gnss_heading_perf);
 	perf_print_counter(_msg_missed_landing_target_pose_perf);
 	perf_print_counter(_msg_missed_magnetometer_perf);
 	perf_print_counter(_msg_missed_odometry_perf);
@@ -579,6 +581,7 @@ void EKF2::Run()
 		UpdateBaroSample(ekf2_timestamps);
 		UpdateFlowSample(ekf2_timestamps);
 		UpdateGpsSample(ekf2_timestamps);
+		UpdateGNSSHeadingSample(ekf2_timestamps);
 		UpdateMagSample(ekf2_timestamps);
 		UpdateRangeSample(ekf2_timestamps);
 
@@ -1762,6 +1765,29 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		_gps_time_usec = gps_msg.time_usec;
 		_gps_alttitude_ellipsoid = vehicle_gps_position.alt_ellipsoid;
 	}
+}
+
+void EKF2::UpdateGNSSHeadingSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	const unsigned last_generation = _vehicle_gnss_heading_sub.get_last_generation();
+	vehicle_gnss_heading_s vehicle_gnss_heading;
+
+	if (_vehicle_gnss_heading_sub.update(&vehicle_gnss_heading)) {
+		if (_msg_missed_gnss_heading_perf == nullptr) {
+			_msg_missed_gnss_heading_perf = perf_alloc(PC_COUNT, MODULE_NAME": vehicle_gnss_heading messages missed");
+
+		} else if (_vehicle_gnss_heading_sub.get_last_generation() != last_generation + 1) {
+			perf_count(_msg_missed_gnss_heading_perf);
+		}
+
+		gnss_heading_message gps_yaw_msg{
+			.time_usec = vehicle_gnss_heading.timestamp,
+			.heading = vehicle_gnss_heading.heading,
+			.heading_accuracy = vehicle_gnss_heading.heading_accuracy,
+		};
+		_ekf.setGnssHeadingData(gps_yaw_msg);
+	}
+
 }
 
 void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)

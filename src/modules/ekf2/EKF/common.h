@@ -79,6 +79,12 @@ struct gps_message {
 	float pdop;		///< position dilution of precision
 };
 
+struct gnss_heading_message {
+	uint64_t time_usec{0};	///< timestamp of the measurement (uSec)
+	float heading;		///< heading angle in radians
+	float heading_accuracy;	///< heading accuracy in radians
+};
+
 struct outputSample {
 	uint64_t    time_us{0};	///< timestamp of the measurement (uSec)
 	Quatf  quat_nominal;	///< nominal quaternion describing vehicle attitude
@@ -111,6 +117,11 @@ struct gpsSample {
 	float	    hacc;	///< 1-std horizontal position error (m)
 	float	    vacc;	///< 1-std vertical position error (m)
 	float       sacc;	///< 1-std speed error (m/sec)
+};
+struct gnssHeadingSample {
+	uint64_t    time_us{0};	///< timestamp of the measurement (uSec)
+	float heading;		///< heading angle in radians
+	float heading_accuracy;	///< heading accuracy in radians
 };
 
 struct magSample {
@@ -202,10 +213,11 @@ enum TerrainFusionMask : int32_t {
 #define MAG_FUSE_TYPE_NONE	5	///< Do not use magnetometer under any circumstance. Other sources of yaw may be used if selected via the EKF2_AID_MASK parameter.
 
 // Maximum sensor intervals in usec
-#define GPS_MAX_INTERVAL  (uint64_t)5e5	///< Maximum allowable time interval between GPS measurements (uSec)
-#define BARO_MAX_INTERVAL (uint64_t)2e5	///< Maximum allowable time interval between pressure altitude measurements (uSec)
-#define RNG_MAX_INTERVAL  (uint64_t)2e5	///< Maximum allowable time interval between range finder  measurements (uSec)
-#define EV_MAX_INTERVAL   (uint64_t)2e5	///< Maximum allowable time interval between external vision system measurements (uSec)
+#define GPS_MAX_INTERVAL           (uint64_t)5e5	///< Maximum allowable time interval between GPS measurements (uSec)
+#define GNSS_HEADING_MAX_INTERVAL  (uint64_t)5e5	///< Maximum allowable time interval between GNSS heading measurements (uSec)
+#define BARO_MAX_INTERVAL          (uint64_t)2e5	///< Maximum allowable time interval between pressure altitude measurements (uSec)
+#define RNG_MAX_INTERVAL           (uint64_t)2e5	///< Maximum allowable time interval between range finder  measurements (uSec)
+#define EV_MAX_INTERVAL            (uint64_t)2e5	///< Maximum allowable time interval between external vision system measurements (uSec)
 
 // bad accelerometer detection and mitigation
 #define BADACC_PROBATION  (uint64_t)10e6	///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)

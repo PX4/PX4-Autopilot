@@ -1,11 +1,12 @@
 #include "sensor_simulator.h"
-
+#include <cmath>
 
 SensorSimulator::SensorSimulator(std::shared_ptr<Ekf> ekf):
 	_airspeed(ekf),
 	_baro(ekf),
 	_flow(ekf),
 	_gps(ekf),
+	_gps_yaw(ekf),
 	_imu(ekf),
 	_mag(ekf),
 	_rng(ekf),
@@ -58,6 +59,9 @@ void SensorSimulator::loadSensorDataFromFile(std::string file_name)
 
 		} else if (!sensor_type.compare("gps")) {
 			sensor_sample.sensor_type = sensor_info::GPS;
+
+		} else if (!sensor_type.compare("gps_yaw")) {
+			sensor_sample.sensor_type = sensor_info::GPS_YAW;
 
 		} else if (!sensor_type.compare("airspeed")) {
 			sensor_sample.sensor_type = sensor_info::AIRSPEED;
@@ -113,6 +117,7 @@ void SensorSimulator::setSensorRateToDefault()
 	_mag.setRateHz(80);
 	_baro.setRateHz(80);
 	_gps.setRateHz(5);
+	_gps_yaw.setRateHz(5);
 	_flow.setRateHz(50);
 	_rng.setRateHz(30);
 	_vio.setRateHz(30);
@@ -125,6 +130,7 @@ void SensorSimulator::setSensorDataToDefault()
 	_baro.setData(122.2f);
 	_flow.setData(_flow.dataAtRest());
 	_gps.setData(_gps.getDefaultGpsData());
+	_gps_yaw.setData(_gps_yaw.getDefaultGnssHeadingData());
 	_imu.setData(Vector3f{0.0f, 0.0f, -CONSTANTS_ONE_G}, Vector3f{0.0f, 0.0f, 0.0f});
 	_mag.setData(Vector3f{0.2f, 0.0f, 0.4f});
 	_rng.setData(0.2f, 100);
@@ -169,6 +175,7 @@ void SensorSimulator::updateSensors()
 	_mag.update(_time);
 	_baro.update(_time);
 	_gps.update(_time);
+	_gps_yaw.update(_time);
 	_flow.update(_time);
 	_rng.update(_time);
 	_vio.update(_time);
@@ -257,6 +264,9 @@ void SensorSimulator::setSingleReplaySample(const sensor_info &sample)
 		_gps.setVelocity(Vector3f((float) sample.sensor_data[3],
 					  (float) sample.sensor_data[4],
 					  (float) sample.sensor_data[5]));
+
+	} else if (sample.sensor_type == sensor_info::GPS_YAW) {
+		_gps_yaw.setHeading((float) sample.sensor_data[0]);
 
 	} else if (sample.sensor_type == sensor_info::AIRSPEED) {
 		_airspeed.setData((float) sample.sensor_data[0], (float) sample.sensor_data[1]);
@@ -384,6 +394,12 @@ void SensorSimulator::setSensorDataFromTrajectory()
 		/* _gps.setLatitude(); */
 		/* _gps.setLongitude(); */
 		_gps.setVelocity(vel_world);
+	}
+
+	if (_gps_yaw.isRunning()) {
+		// Heading derived from body X-axis projected in world (NED) frame
+		const float heading = std::atan2(_R_body_to_world(1, 0), _R_body_to_world(0, 0));
+		_gps_yaw.setHeading(heading);
 	}
 }
 
