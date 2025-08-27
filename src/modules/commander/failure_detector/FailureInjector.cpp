@@ -40,114 +40,73 @@ void FailureInjector::update()
 	vehicle_command_s vehicle_command;
 
 	while (_vehicle_command_sub.update(&vehicle_command)) {
-		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
+		const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
+		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
+
+		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE
+		    || failure_unit != vehicle_command_s::FAILURE_UNIT_SYSTEM_MOTOR) {
 			continue;
 		}
 
-		bool handled = false;
+		const int instance = static_cast<int>(vehicle_command.param3 + 0.5f);
 		bool supported = false;
 
-		const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
-		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
-		const int instance = static_cast<int>(vehicle_command.param3 + 0.5f);
-
-		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SYSTEM_MOTOR) {
-			handled = true;
-
-			if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
-				PX4_INFO("CMD_INJECT_FAILURE, motors ok");
-				supported = false;
-
-				// 0 to signal all
-				if (instance == 0) {
-					supported = true;
-
-					for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
-						PX4_INFO("CMD_INJECT_FAILURE, motor %d ok", i);
-						_esc_blocked &= ~(1 << i);
-						_esc_wrong &= ~(1 << i);
-					}
-
-				} else if (instance >= 1 && instance <= esc_status_s::CONNECTED_ESC_MAX) {
-					supported = true;
-
-					PX4_INFO("CMD_INJECT_FAILURE, motor %d ok", instance - 1);
-					_esc_blocked &= ~(1 << (instance - 1));
-					_esc_wrong &= ~(1 << (instance - 1));
-				}
+		for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
+			if (instance != 0 && i != (instance - 1)) {
+				continue;
 			}
 
-			else if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
-				PX4_WARN("CMD_INJECT_FAILURE, motors off");
+			switch (failure_type) {
+			case vehicle_command_s::FAILURE_TYPE_OK:
 				supported = true;
+				PX4_INFO("CMD_INJECT_FAILURE, motor %d ok", i);
+				_esc_telemetry_blocked_mask &= ~(1 << i);
+				_esc_telemetry_wrong_mask &= ~(1 << i);
+				break;
 
-				// 0 to signal all
-				if (instance == 0) {
-					for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
-						PX4_INFO("CMD_INJECT_FAILURE, motor %d off", i);
-						_esc_blocked |= 1 << i;
-					}
-
-				} else if (instance >= 1 && instance <= esc_status_s::CONNECTED_ESC_MAX) {
-					PX4_INFO("CMD_INJECT_FAILURE, motor %d off", instance - 1);
-					_esc_blocked |= 1 << (instance - 1);
-				}
-			}
-
-			else if (failure_type == vehicle_command_s::FAILURE_TYPE_WRONG) {
-				PX4_INFO("CMD_INJECT_FAILURE, motors wrong");
+			case vehicle_command_s::FAILURE_TYPE_OFF:
 				supported = true;
+				PX4_INFO("CMD_INJECT_FAILURE, motor %d no esc telemetry", i);
+				_esc_telemetry_blocked_mask |= 1 << i;
+				break;
 
-				// 0 to signal all
-				if (instance == 0) {
-					for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
-						PX4_INFO("CMD_INJECT_FAILURE, motor %d wrong", i);
-						_esc_wrong |= 1 << i;
-					}
-
-				} else if (instance >= 1 && instance <= esc_status_s::CONNECTED_ESC_MAX) {
-					PX4_INFO("CMD_INJECT_FAILURE, motor %d wrong", instance - 1);
-					_esc_wrong |= 1 << (instance - 1);
-				}
+			case vehicle_command_s::FAILURE_TYPE_WRONG:
+				supported = true;
+				PX4_INFO("CMD_INJECT_FAILURE, motor %d esc telemetry wrong", i);
+				_esc_telemetry_wrong_mask |= 1 << i;
+				break;
 			}
 		}
 
-		if (handled) {
-			vehicle_command_ack_s ack{};
-			ack.command = vehicle_command.command;
-			ack.from_external = false;
-			ack.result = supported ?
-				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
-				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
-			ack.timestamp = hrt_absolute_time();
-			_command_ack_pub.publish(ack);
-		}
+		vehicle_command_ack_s ack{};
+		ack.command = vehicle_command.command;
+		ack.from_external = false;
+		ack.result = supported ?
+			     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
+			     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+		ack.timestamp = hrt_absolute_time();
+		_command_ack_pub.publish(ack);
 	}
-
 }
 
 void FailureInjector::manipulateEscStatus(esc_status_s &status)
 {
-	if (_esc_blocked != 0 || _esc_wrong != 0) {
-		unsigned offline = 0;
-
+	if (_esc_telemetry_blocked_mask != 0 || _esc_telemetry_wrong_mask != 0) {
 		for (int i = 0; i < status.esc_count; i++) {
 			const unsigned i_esc = status.esc[i].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1;
 
-			if (_esc_blocked & (1 << i_esc)) {
+			if (_esc_telemetry_blocked_mask & (1 << i_esc)) {
 				unsigned function = status.esc[i].actuator_function;
 				memset(&status.esc[i], 0, sizeof(status.esc[i]));
 				status.esc[i].actuator_function = function;
-				offline |= 1 << i;
+				status.esc_online_flags &= ~(1 << i);
 
-			} else if (_esc_wrong & (1 << i_esc)) {
+			} else if (_esc_telemetry_wrong_mask & (1 << i_esc)) {
 				// Create wrong rerport for this motor by scaling key values up and down
 				status.esc[i].esc_voltage *= 0.1f;
 				status.esc[i].esc_current *= 0.1f;
 				status.esc[i].esc_rpm *= 10.0f;
 			}
 		}
-
-		status.esc_online_flags &= ~offline;
 	}
 }
