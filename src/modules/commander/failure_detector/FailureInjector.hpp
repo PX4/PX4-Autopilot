@@ -49,6 +49,6 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
-	uint32_t _esc_blocked{};
-	uint32_t _esc_wrong{};
+	uint32_t _esc_telemetry_blocked_mask{};
+	uint32_t _esc_telemetry_wrong_mask{};
 };
