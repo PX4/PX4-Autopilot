@@ -38,6 +38,7 @@ add_subdirectory(vehicle_acceleration)
 add_subdirectory(vehicle_angular_velocity)
 add_subdirectory(vehicle_air_data)
 add_subdirectory(vehicle_gps_position)
+add_subdirectory(vehicle_gnss_heading)
 add_subdirectory(vehicle_imu)
 add_subdirectory(vehicle_magnetometer)
 
@@ -60,6 +61,7 @@ px4_add_module(
 		vehicle_angular_velocity
 		vehicle_air_data
 		vehicle_gps_position
+		vehicle_gnss_heading
 		vehicle_imu
 		vehicle_magnetometer
 	)

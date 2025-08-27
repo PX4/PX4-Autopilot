@@ -233,3 +233,39 @@ PARAM_DEFINE_INT32(SENS_IMU_MODE, 1);
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_INT_BARO_EN, 1);
+
+/**
+ * GPS Relative X offset
+ *
+ * The body-frame offset between the GPS moving baseline and the rover.
+ * A positive value means the rover antenna is in front of the moving baseline.
+ *
+ * @group Sensors
+ * @unit m
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(SENS_GNSSREL_PX, 0);
+
+/**
+ * GPS Relative Y offset
+ *
+ * The body-frame offset between the GPS moving baseline and the rover.
+ * A positive value means the rover antenna is to the right of the moving baseline.
+ *
+ * @group Sensors
+ * @unit m
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(SENS_GNSSREL_PY, 0);
+
+/**
+ * GPS Relative Z offset
+ *
+ * The body-frame offset between the GPS moving baseline and the rover.
+ * A positive value means the rover antenna is below the moving baseline.
+ *
+ * @group Sensors
+ * @unit m
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(SENS_GNSSREL_PZ, 0);
