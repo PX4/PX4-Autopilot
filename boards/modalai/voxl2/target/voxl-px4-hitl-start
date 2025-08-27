@@ -87,6 +87,7 @@ load_mon start
 microdds_client start -t udp -h 127.0.0.1 -p 8888
 
 qshell pwm_out_sim start -m hil
+# Add -e to enable forwarding of odometry to voxl-vision-hub
 qshell dsp_hitl start -g -m -o
 
 # start the onboard fast link to connect to voxl-mavlink-server
@@ -104,3 +105,6 @@ mavlink start -x -u 14558 -o 14559 -r 100000 -n lo
 /bin/sleep 1
 
 mavlink boot_complete
+
+mavlink_odometry_bridge start
+vfc_logger start

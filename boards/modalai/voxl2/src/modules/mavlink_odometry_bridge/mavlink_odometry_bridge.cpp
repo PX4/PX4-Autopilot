@@ -229,6 +229,7 @@ void MavlinkOdometryBridge::Run()
 			// if(odom_in->quality<50) quality = 50;
 
 			s.quality = quality;
+			s.n_feature_points = 25;
 
 			int result = write(pipe_fd, (char*)&s, sizeof(vio_data_t));
 
