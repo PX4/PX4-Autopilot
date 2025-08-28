@@ -89,6 +89,7 @@ public:
 	const decltype(failure_detector_status_u::flags) &getStatusFlags() const { return _status.flags; }
 	float getImbalancedPropMetric() const { return _imbalanced_prop_lpf.getState(); }
 	uint16_t getMotorFailures() const { return _motor_failure_esc_timed_out_mask | _motor_failure_esc_under_current_mask; }
+	uint16_t getMotorStopMask() { return _failure_injector.getMotorStopMask(); }
 
 private:
 	void updateAttitudeStatus(const vehicle_status_s &vehicle_status);
