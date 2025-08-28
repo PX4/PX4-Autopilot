@@ -543,7 +543,7 @@ public:
 private:
 	MavlinkReceiver 	_receiver;
 
-	MavlinkSignControl	_sign_control;
+	MavlinkSignControl	_sign_control{};
 
 	int			_instance_id{-1};
 	int			_task_id{-1};
