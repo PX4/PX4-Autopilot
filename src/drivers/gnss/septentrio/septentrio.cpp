@@ -1256,6 +1256,9 @@ int SeptentrioDriver::process_message()
 					}
 				}
 
+
+				_sensor_gnss_status.timestamp = hrt_absolute_time();
+				_time_last_qualityind_received = hrt_absolute_time();
 				_sensor_gnss_status_pub.publish(_message_sensor_gnss_status);
 			}
 
@@ -1288,6 +1291,7 @@ int SeptentrioDriver::process_message()
 				if (rf_status.flags_inauthentic_gnss_signals || rf_status.flags_inauthentic_navigation_message) {
 					_sensor_gps.spoofing_state = sensor_gps_s::SPOOFING_STATE_DETECTED;
 				}
+				_time_last_resilience_received = hrt_absolute_time();
 			}
 
 			break;
@@ -1390,6 +1394,31 @@ int SeptentrioDriver::process_message()
 			break;
 		}
 		}
+
+		//Check for how recent the resilience data for reciever is, if outdated set to unknown
+		if ((_time_last_resilience_received != 0) && (hrt_elapsed_time(&_time_last_resilience_received) > 5_s)) {
+				_sensor_gps.jamming_state = sensor_gps_s::JAMMING_STATE_UNKNOWN;
+				_sensor_gps.spoofing_state = sensor_gps_s::SPOOFING_STATE_UNKNOWN;
++
++				_time_last_resilience_received = 0; // Reset
++		}
+
+		// Check for how recent the status data for receiver is, if outdated set to unknown
+		if ((_time_last_qualityind_received != 0) && (hrt_elapsed_time(&_time_last_qualityind_received) > 5_s)) {
+				_message_sensor_gnss_status.quality_available = false;
+				_message_sensor_gnss_status.device_id = get_device_id();
+				_sensor_gnss_status.timestamp = hrt_absolute_time();
+
++				_message_sensor_gnss_status.quality_corrections = 255;
++				_message_sensor_gnss_status.quality_receiver = 255;
++				_message_sensor_gnss_status.quality_post_processing = 255;
++				_message_sensor_gnss_status.quality_gnss_signals = 255;
+
++
++				_sensor_gnss_status_pub.publish(_message_sensor_gnss_status);
++
++				_time_last_qualityind_received = 0; // Reset
++		}
 
 		break;
 	}
@@ -1646,6 +1675,7 @@ void SeptentrioDriver::publish()
 	_sensor_gps.device_id = get_device_id();
 	_sensor_gps.selected_rtcm_instance = _selected_rtcm_instance;
 	_sensor_gps.rtcm_injection_rate = rtcm_injection_frequency();
+	_sensor_gps.timestamp = hrt_absolute_time();
 	_sensor_gps_pub.publish(_sensor_gps);
 }
 

@@ -719,6 +719,8 @@ private:
 	static px4::atomic<SeptentrioDriver *> _secondary_instance;
 	hrt_abstime                            _sleep_end {0};                                               ///< End time for sleeping
 	State                                  _resume_state {State::OpeningSerialPort};                     ///< Resume state after sleep
+	hrt_abstime                            _time_last_qualityind_received{0};			     ///< Time of last quality message reception
+	hrt_abstime                            _time_last_resilience_received{0};			     ///< Time of last resilience message reception
 
 	// Module configuration
 	float                                  _heading_offset {0.0f};                                       ///< The heading offset given by the `SEP_YAW_OFFS` parameter

@@ -61,70 +61,51 @@ private:
 	uORB::Subscription _sensor_gps_sub{ORB_ID(sensor_gps), 0};
 	uORB::Subscription _sensor_gnss_status_sub{ORB_ID(sensor_gnss_status), 0};
 
-	hrt_abstime _last_send_ts {};
-	hrt_abstime _last_gps_update_ts {};
-	hrt_abstime _last_status_update_ts {};
-	static constexpr hrt_abstime kNoGpsSendInterval {1_s};
+	// Store last received data
+	sensor_gps_s _gps{};
+	sensor_gnss_status_s _status{};
 
 	bool send() override
 	{
-		sensor_gps_s gps;
-		sensor_gnss_status_s status;
+		// Check for new data and update local copies
+		const bool gps_updated = _sensor_gps_sub.update(&_gps);
+		const bool status_updated = _sensor_gnss_status_sub.update(&_status);
 
-		bool send_msg = false;
-		mavlink_gnss_integrity_t msg{};
-		hrt_abstime now = hrt_absolute_time();
+		// Send only if there's new data for either topic
+		if (gps_updated || status_updated) {
+			mavlink_gnss_integrity_t msg{};
 
-		// Handling sensor_gps
-		if (_sensor_gps_sub.update(&gps)) {
-			_last_gps_update_ts = now;
-			send_msg = true;
-		}
+			// Populate message with the latest available data
+			msg.id = _gps.device_id;
+			msg.system_errors = _gps.system_error;
+			msg.authentication_state = _gps.authentication_state;
+			msg.jamming_state = _gps.jamming_state;
+			msg.spoofing_state = _gps.spoofing_state;
 
-		if (now - _last_gps_update_ts < kNoGpsSendInterval) {
-			msg.id = gps.device_id;
-			msg.system_errors = gps.system_error;
-			msg.authentication_state = gps.authentication_state;
-			msg.jamming_state = gps.jamming_state;
-			msg.spoofing_state = gps.spoofing_state;
-		}
+			if (_status.quality_available) {
+				msg.corrections_quality	= _status.quality_corrections;
+				msg.system_status_summary = _status.quality_receiver;
+				msg.gnss_signal_quality = _status.quality_gnss_signals;
+				msg.post_processing_quality = _status.quality_post_processing;
 
-		// Handling sensor_gnss_status
-		if (_sensor_gnss_status_sub.update(&status)) {
-			_last_status_update_ts = now;
-			send_msg = true;
-		}
+			} else {
+				msg.corrections_quality	= 255;
+				msg.system_status_summary = 255;
+				msg.gnss_signal_quality = 255;
+				msg.post_processing_quality = 255;
+			}
 
-		if (status.quality_available && now - _last_status_update_ts < kNoGpsSendInterval) {
-			msg.corrections_quality	= status.quality_corrections;
-			msg.system_status_summary = status.quality_receiver;
-			msg.gnss_signal_quality = status.quality_gnss_signals;
-			msg.post_processing_quality = status.quality_post_processing;
-
-		} else {
-			msg.corrections_quality	= 255;
-			msg.system_status_summary = 255;
-			msg.gnss_signal_quality = 255;
-			msg.post_processing_quality = 255;
-		}
-
-		// Send message
-		if (_last_send_ts != 0 && now > _last_send_ts + kNoGpsSendInterval) {
-			send_msg = true;
-		}
-
-		if (send_msg) {
 			msg.raim_hfom = UINT16_MAX;
 			msg.raim_vfom = UINT16_MAX;
 
 			mavlink_msg_gnss_integrity_send_struct(_mavlink->get_channel(), &msg);
-			_last_send_ts = now;
 
 			return true;
 		}
 
 		return false;
 	}
+	
 };
 
 #endif // GNSS_INTEGRITY_HPP
