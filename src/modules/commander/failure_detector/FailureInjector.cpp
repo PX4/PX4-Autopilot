@@ -33,10 +33,23 @@
 
 #include "FailureInjector.hpp"
 
+#include <parameters/param.h>
 #include <uORB/topics/actuator_motors.h>
+
+FailureInjector::FailureInjector()
+{
+	int32_t param_sys_failure_en = 0;
+
+	if ((param_get(param_find("SYS_FAILURE_EN"), &param_sys_failure_en) == PX4_OK)
+	    && (param_sys_failure_en == 1)) {
+		_failure_injection_enabled = true;
+	}
+}
 
 void FailureInjector::update()
 {
+	if (!_failure_injection_enabled) { return; }
+
 	vehicle_command_s vehicle_command;
 
 	while (_vehicle_command_sub.update(&vehicle_command)) {
@@ -59,14 +72,21 @@ void FailureInjector::update()
 			switch (failure_type) {
 			case vehicle_command_s::FAILURE_TYPE_OK:
 				supported = true;
-				PX4_INFO("CMD_INJECT_FAILURE, motor %d ok", i);
+				PX4_INFO("CMD_INJECT_FAILURE, motor %d ok", i + 1);
+				_motor_stop_mask &= ~(1 << i);
 				_esc_telemetry_blocked_mask &= ~(1 << i);
 				_esc_telemetry_wrong_mask &= ~(1 << i);
 				break;
 
 			case vehicle_command_s::FAILURE_TYPE_OFF:
 				supported = true;
-				PX4_INFO("CMD_INJECT_FAILURE, motor %d no esc telemetry", i);
+				PX4_INFO("CMD_INJECT_FAILURE, motor %d off", i + 1);
+				_motor_stop_mask |= 1 << i;
+				break;
+
+			case vehicle_command_s::FAILURE_TYPE_STUCK:
+				supported = true;
+				PX4_INFO("CMD_INJECT_FAILURE, motor %d no esc telemetry", i + 1);
 				_esc_telemetry_blocked_mask |= 1 << i;
 				break;
 
@@ -91,6 +111,8 @@ void FailureInjector::update()
 
 void FailureInjector::manipulateEscStatus(esc_status_s &status)
 {
+	if (!_failure_injection_enabled) { return; }
+
 	if (_esc_telemetry_blocked_mask != 0 || _esc_telemetry_wrong_mask != 0) {
 		for (int i = 0; i < status.esc_count; i++) {
 			const unsigned i_esc = status.esc[i].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1;
