@@ -175,12 +175,11 @@ void DShot::Run()
 		handle_programming_sequence_state();
 	}
 
-
-	// TOOO: debugging, remove later
-	if (hrt_elapsed_time(&_last_settings_publish) > 5_s) {
-		_telemetry.publish_esc_settings();
-		_last_settings_publish = hrt_absolute_time();
-	}
+	// // TOOO: debugging, remove later
+	// if (hrt_elapsed_time(&_last_settings_publish) > 5_s) {
+	// 	_telemetry.publish_esc_settings();
+	// 	_last_settings_publish = hrt_absolute_time();
+	// }
 
 	// Determine if we need to send a command
 	//// COMMANDS
@@ -262,16 +261,8 @@ void DShot::Run()
 		if (_telemetry.expectingCommandResponse()) {
 			int response_index = _telemetry.parseCommandResponse();
 
-			if (response_index >= 0) {
-				DSHOT_CMD_DEBUG("Command response received from ESC%d", response_index + 1);
-
-				if (_current_command.command == DSHOT_CMD_ESC_INFO) {
-
-					// ESC_INFO:
-					// - Iterate over AM32_ parameters and set values if they are -1 (from Motor1)
-					// - Iterate over AM32_ parameters and write values to ESC(s) if they don't match (will update all to match Motor1)
-					//
-				}
+			if (response_index < 0) {
+				PX4_WARN("Failed to parse CommandResponse");
 			}
 
 		} else {
@@ -831,10 +822,22 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 void DShot::handle_am32_request_eeprom(const vehicle_command_s &command)
 {
 	DSHOT_CMD_DEBUG("AM32_REQUEST_EEPROM");
-	_current_command.save = false;
-	_current_command.num_repetitions = 6; // NOTE: AM32 requires 6 to consider a command valid
-	_current_command.command = DSHOT_CMD_ESC_INFO;
-	_current_command.expect_response = true;
+	DSHOT_CMD_DEBUG("index: %d", (int)command.param1);
+
+	int index = command.param1;
+
+	if (index == 255) {
+		_settings_requested_mask = 0;
+	} else {
+		_settings_requested_mask &= ~(1 << index);
+	}
+
+	// Use _settings_requested_mask to trigger re-requesting settings from motors we want
+
+// 	_current_command.save = false;
+// 	_current_command.num_repetitions = 6; // NOTE: AM32 requires 6 to consider a command valid
+// 	_current_command.command = DSHOT_CMD_ESC_INFO;
+// 	_current_command.expect_response = true;
 }
 
 void DShot::update_params()
