@@ -272,6 +272,11 @@ These steps describe how you can connect to the simulation running in the WSL:
 You will have to update the WSL comm link in QGC every time WSL restarts (because it gets a dynamic IP address).
 :::
 
+#### Troubleshooting
+QGroundControl not connecting to PX4 SITL:
+- Connection between PX4 SITL on WSL2 and QGroundControl on Windows requires [broadcasting](../simulation/index.md#enable-udp-broadcasting) or [streaming to a specific address](../simulation/index.md#enable-streaming-to-specific-address) to be enabled. This is usually enabled on new clones.
+- Network traffic might be blocked by firewall or antivirus on you system.
+
 ## Flash a Flight Control Board
 
 Flashing a custom built PX4 binary has to be done using [QGroundControl for Windows](#qgroundcontrol-on-windows).
