@@ -100,6 +100,11 @@ menu "Toolchain"
         help
             flag to enable constrained memory options (eg limit maximum number of uORB publications)
 
+    config BOARD_PARAM_REMOVE_LONGDESC
+        bool "Remove parameter long description from JSON"
+        help
+            flag to remove parameter long descriptions from the JSON output
+
     config BOARD_EXTERNAL_METADATA
         bool "External metadata"
         help

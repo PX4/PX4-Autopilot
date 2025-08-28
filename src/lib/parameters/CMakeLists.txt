@@ -126,6 +126,7 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 		--inject-xml ${CMAKE_CURRENT_SOURCE_DIR}/parameters_injected.xml
 		--overrides ${PARAM_DEFAULT_OVERRIDES}
 		--board ${PX4_BOARD}
+		${config_process_params_extra_flags}
 		#--verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/validate_json.py
 		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_information/parameter.schema.json
@@ -161,7 +162,7 @@ add_custom_target(parameters_header DEPENDS px4_parameters.hpp)
 set(SRCS)
 
 list(APPEND SRCS
-	parameters.cpp 
+	parameters.cpp
 	atomic_transaction.cpp
 	autosave.cpp
 )
