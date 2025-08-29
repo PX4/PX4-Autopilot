@@ -2,7 +2,7 @@
 
 FlightTaskAltitudeVoyager::FlightTaskAltitudeVoyager()
 {
-	_sticks_data_required = false; // disable stick requirement to not failsafe mode-internally when they're lost
+	_sticks_data_required = false; // disable stick requirement to not report flight task failure when they're lost
 }
 
 void FlightTaskAltitudeVoyager::reActivate()
