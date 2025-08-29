@@ -85,7 +85,7 @@ int VFCLogger::Initialize()
 		return -1;
 	}
 
-	_fd = MPA::PipeConnect("vfc", sizeof(vfc_data_t), receiveData);
+	_fd = MPA::PipeClient("vfc", sizeof(vfc_data_t), receiveData);
 
 	if (_fd == -1) {
 		return -1;

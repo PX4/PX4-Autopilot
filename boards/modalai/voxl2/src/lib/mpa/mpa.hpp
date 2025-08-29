@@ -40,7 +40,10 @@ public:
 
 	typedef void (*mpa_data_cb_t)(char* data, int bytes);
 
-	static int PipeConnect(const char *pipe_name, int size, mpa_data_cb_t cb);
+	static int PipeClient(const char *pipe_name, int size, mpa_data_cb_t cb);
+
+	static int PipeCreate(char *pipe_name);
+	static int PipeWrite(int ch, const void* data, int bytes);
 
 private:
 	static void HelperCB( __attribute__((unused)) int ch, char* data, int bytes, __attribute__((unused)) void* context);
@@ -51,16 +54,21 @@ private:
 	typedef int (*pipe_client_set_connect_cb_t)(int ch, client_connect_cb* cb, void* context);
 	typedef int (*pipe_client_set_disconnect_cb_t)(int ch, client_disc_cb* cb, void* context);
 	typedef int (*pipe_client_open_t)(int ch, const char* name_or_location, const char* client_name, int flags, int buf_len);
+	typedef int (*pipe_server_create_t)(int ch, pipe_info_t info, int flags);
+	typedef int (*pipe_server_write_t)(int ch, const void* data, int bytes);
 
 	static pipe_client_set_simple_helper_cb_t helper_cb;
 	static pipe_client_set_connect_cb_t connect_cb;
 	static pipe_client_set_disconnect_cb_t disconnect_cb;
 	static pipe_client_open_t open_pipe;
+	static pipe_server_create_t create_pipe;
+	static pipe_server_write_t write_pipe;
 
 	static bool initialized;
 	static void *handle;
 
-	static int current_channel;
+	static int current_client;
+	static int current_server;
 
 	static const int MAX_MPA_CLIENTS{8};
 	static mpa_data_cb_t data_cb[MAX_MPA_CLIENTS];
