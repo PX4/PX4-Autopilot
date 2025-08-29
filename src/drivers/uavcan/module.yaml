@@ -20,7 +20,7 @@ parameters:
         5: CAN6
         6: CAN7
         7: CAN8
-      default: 255
+      default: 2
       min: 1
       max: 255
       reboot_required: true
