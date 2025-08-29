@@ -48,7 +48,7 @@ list(APPEND flight_tasks_all
 	ManualAltitudeSmoothVel
 	ManualPosition
 	Transition
-	AltitudeVoyager
+	AltitudeCruise
 )
 
 if(NOT px4_constrained_flash_build)

@@ -44,7 +44,7 @@
 enum PX4_CUSTOM_MAIN_MODE {
 	PX4_CUSTOM_MAIN_MODE_MANUAL = 1,
 	PX4_CUSTOM_MAIN_MODE_ALTCTL,
-	PX4_CUSTOM_MAIN_MODE_ALTITUDE_VOYAGER,
+	PX4_CUSTOM_MAIN_MODE_ALTITUDE_CRUISE,
 	PX4_CUSTOM_MAIN_MODE_POSCTL,
 	PX4_CUSTOM_MAIN_MODE_AUTO,
 	PX4_CUSTOM_MAIN_MODE_ACRO,
@@ -113,8 +113,8 @@ static inline union px4_custom_mode get_px4_custom_mode(uint8_t nav_state)
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTCTL;
 		break;
 
-	case vehicle_status_s::NAVIGATION_STATE_ALTITUDE_VOYAGER:
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTITUDE_VOYAGER;
+	case vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE:
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ALTITUDE_CRUISE;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:

@@ -1,19 +1,19 @@
-#include "FlightTaskAltitudeVoyager.hpp"
+#include "FlightTaskAltitudeCruise.hpp"
 
-FlightTaskAltitudeVoyager::FlightTaskAltitudeVoyager()
+FlightTaskAltitudeCruise::FlightTaskAltitudeCruise()
 {
 	_sticks_data_required = false; // disable stick requirement to not report flight task failure when they're lost
 }
 
-void FlightTaskAltitudeVoyager::reActivate()
+void FlightTaskAltitudeCruise::reActivate()
 {
 	FlightTaskManualAltitude::reActivate();
 	_stick_tilt_xy.reset();
 }
 
-void FlightTaskAltitudeVoyager::_updateXYSetpoint()
+void FlightTaskAltitudeCruise::_updateXYSetpoint()
 {
 	_acceleration_setpoint.xy() =
-		_stick_tilt_xy.generateAccelerationSetpointsForVoyager(
+		_stick_tilt_xy.generateAccelerationSetpointsForAltitudeCruise(
 			_sticks.getPitchRoll(), _deltatime, _yaw, _yaw_setpoint);
 }

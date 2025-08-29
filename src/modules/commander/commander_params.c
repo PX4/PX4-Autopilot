@@ -630,7 +630,7 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
  * @bit 1 Hold
  * @bit 2 Offboard
  * @bit 3 External Mode
- * @bit 4 Altitude Voyager
+ * @bit 4 Altitude Cruise
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);

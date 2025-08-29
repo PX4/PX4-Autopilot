@@ -2,11 +2,11 @@
 
 #include "FlightTaskManualAltitude.hpp"
 
-class FlightTaskAltitudeVoyager : public FlightTaskManualAltitude
+class FlightTaskAltitudeCruise : public FlightTaskManualAltitude
 {
 public:
-	FlightTaskAltitudeVoyager();
-	virtual ~FlightTaskAltitudeVoyager() = default;
+	FlightTaskAltitudeCruise();
+	virtual ~FlightTaskAltitudeCruise() = default;
 
 	void reActivate() override;
 

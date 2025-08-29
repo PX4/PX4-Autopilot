@@ -250,11 +250,11 @@ void FlightModeManager::start_flight_task()
 	}
 
 	// Altitude cruise control
-	if ((_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_ALTITUDE_VOYAGER) || task_failure) {
+	if ((_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE) || task_failure) {
 		found_some_task = true;
 		FlightTaskError error = FlightTaskError::NoError;
 
-		error = switchTask(FlightTaskIndex::AltitudeVoyager);
+		error = switchTask(FlightTaskIndex::AltitudeCruise);
 
 		task_failure = (error != FlightTaskError::NoError);
 		matching_task_running = matching_task_running && !task_failure;

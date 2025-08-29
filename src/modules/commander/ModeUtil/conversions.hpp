@@ -50,7 +50,7 @@ static inline navigation_mode_t navigation_mode(uint8_t nav_state)
 
 	case vehicle_status_s::NAVIGATION_STATE_ALTCTL: return navigation_mode_t::altctl;
 
-	case vehicle_status_s::NAVIGATION_STATE_ALTITUDE_VOYAGER: return navigation_mode_t::manual_voyager;
+	case vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE: return navigation_mode_t::manual_altitude_cruise;
 
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL: return navigation_mode_t::posctl;
 

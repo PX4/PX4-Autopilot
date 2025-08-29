@@ -1,15 +1,15 @@
-# Voyager Mode (Multicopter)
+# Altitude Cruise Mode (Multicopter)
 
 <img src="../../assets/site/difficulty_easy.png" title="Easy to fly" width="30px" />&nbsp;<img src="../../assets/site/remote_control.svg" title="Manual/Remote control required" width="30px" />&nbsp;<img src="../../assets/site/altitude_icon.svg" title="Altitude required (e.g. Baro, Rangefinder)" width="30px" />
 
-_Voyager mode_ is a _relatively_ easy-to-fly manual contorl mode in which roll and pitch sticks control vehicle movement in the left-right and forward-back directions (relative to the "front" of the vehicle), yaw stick controls rate of rotation over the horizontal plane, and throttle controls speed of ascent-descent.
+_Altitude Cruise mode_ is a _relatively_ easy-to-fly manual contorl mode in which roll and pitch sticks control vehicle movement in the left-right and forward-back directions (relative to the "front" of the vehicle), yaw stick controls rate of rotation over the horizontal plane, and throttle controls speed of ascent-descent.
 
 When the sticks are released/centered the vehicle will keep the current tilt and heading angle and maintain the current _altitude_.
 If moving in the horizontal plane the vehicle will accelerate until the wind resistance equals the acceleration caused by the set tilt angle.
 If the wind blows the aircraft will drift in the direction of the wind even if flying perfectly level.
 
 :::tip
-_Voyager mode_ is intended for long distance flights where the same tilt angle is kept for a long period of time. It is just like [Altitude](../flight_modes_mc/altitude.md) mode but does not go back to level tilt when the sticks are released.
+_Altitude Cruise mode_ is intended for long distance flights where the same tilt angle is kept for a long period of time. It is just like [Altitude](../flight_modes_mc/altitude.md) mode but does not go back to level tilt when the sticks are released.
 :::
 
 The diagram below shows the mode behaviour visually (for a [mode 2 transmitter](../getting_started/rc_transmitter_receiver.md#transmitter_modes)).
@@ -36,10 +36,10 @@ It is highly recommended to only disable the manual control loss failsafe for th
 
 ## Parameters
 
-Most of the relevant parameters are already covered in the corresponding section in the [Altitude mode](../flight_modes_mc/altitude.md). Here a list of parameters of particular importance for Voyager.
+Most of the relevant parameters are already covered in the corresponding section in the [Altitude mode](../flight_modes_mc/altitude.md). Here a list of parameters of particular importance for Altitude Cruise.
 
 | Parameter                                                                                                   | Description                                                                                                                                                                                                                                                                                         |
 | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="COM_RCL_EXCEPT"></a>[COM_RCL_EXCEPT](../advanced_config/parameter_reference.md#COM_RCL_EXCEPT) | The manual control failsafe can be disabled for Voyager by setting the corresponding bit in this parameter.                                                                                                                                                                                                                                          |
+| <a id="COM_RCL_EXCEPT"></a>[COM_RCL_EXCEPT](../advanced_config/parameter_reference.md#COM_RCL_EXCEPT) | The manual control failsafe can be disabled for Altitude Cruise by setting the corresponding bit in this parameter.                                                                                                                                                                                                                                          |
 | <a id="NAV_DLL_ACT"></a>[NAV_DLL_ACT](../advanced_config/parameter_reference.md#NAV_DLL_ACT) | Data link lost failsafe action. Recommended to set if the manual control failsafe is disabled to avoid fly-aways.                                                                                                                                                              |
 | <a id="MPC_MAN_TILT_MAX"></a>[MPC_MAN_TILT_MAX](../advanced_config/parameter_reference.md#MPC_MAN_TILT_MAX) | The maximum tilt angle the vehicle will go to. At max stick deflection, it will take 0.5 seconds from level flight to this tilt angle.
