@@ -259,11 +259,8 @@ void DShot::Run()
 	// Process Serial Telemetry data (Telemetry and CommandResponses)
 	if (_telemetry.enabled()) {
 		if (_telemetry.expectingCommandResponse()) {
-			int response_index = _telemetry.parseCommandResponse();
-
-			if (response_index < 0) {
-				PX4_WARN("Failed to parse CommandResponse");
-			}
+			// TODO: do we care about the return value? (esc index on success)
+			_telemetry.parseCommandResponse();
 
 		} else {
 
