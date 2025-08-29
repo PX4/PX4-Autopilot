@@ -194,6 +194,7 @@ UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardu
 			 _battery_status[instance].nominal_voltage / _battery_status[instance].current_a * 3600);
 	_battery_status[instance].is_powering_off = msg.is_powering_off;
 
+
 	for (uint8_t i = 0; i < _battery_status[instance].cell_count; i++) {
 		_battery_status[instance].voltage_cell_v[i] = msg.voltage_cell[i];
 	}
@@ -247,12 +248,10 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 	_battery_status[instance].id = msg.getSrcNodeID().get();
 	_battery_status[instance].is_powering_off = msg.is_powering_off;
 
-	// For time remaining calculation use the average current if supplied
-	const float remaining_ah = msg.remaining_capacity / 1000.f; // mAh -> Ah
-	const float current_a = math::isZero(_battery_status[instance].current_average_a) ?
-				_battery_status[instance].current_a : _battery_status[instance].current_average_a;
-	_battery_status[instance].time_remaining_s =
-		math::isZero(current_a) ? NAN : (remaining_ah / current_a * 3600.f); // Ah / A = h * 3600 = s
+	// use Battery class for time_remaining calculation
+	_battery[instance]->setCapacity(msg.full_charge_capacity);
+	_battery[instance]->setStateOfCharge(msg.state_of_charge / 100.f);
+	_battery_status[instance].time_remaining_s = _battery[instance]->computeRemainingTime(-msg.current);
 
 	for (uint8_t i = 0; i < _battery_status[instance].cell_count; i++) {
 		_battery_status[instance].voltage_cell_v[i] = msg.voltage_cell[i];

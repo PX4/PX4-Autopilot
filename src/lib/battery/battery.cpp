@@ -159,7 +159,7 @@ battery_status_s Battery::getBatteryStatus()
 	battery_status.connected = _connected;
 	battery_status.source = _source;
 	battery_status.priority = _priority;
-	battery_status.capacity = _params.capacity > 0.f ? static_cast<uint16_t>(_params.capacity) : 0;
+	battery_status.capacity = _capacity;
 	battery_status.id = static_cast<uint8_t>(_index);
 	battery_status.warning = _warning;
 	battery_status.timestamp = hrt_absolute_time();
@@ -287,16 +287,16 @@ void Battery::resetInternalResistanceEstimation(const float voltage_v, const flo
 void Battery::estimateStateOfCharge()
 {
 	// choose which quantity we're using for final reporting
-	if ((_params.capacity > 0.f) && _battery_initialized) {
+	if ((_capacity > 0.f) && _battery_initialized) {
 		// if battery capacity is known, fuse voltage measurement with used capacity
 		// The lower the voltage the more adjust the estimate with it to avoid deep discharge
 		const float weight_v = 3e-2f * (1 - _state_of_charge_volt_based);
 		_state_of_charge = (1 - weight_v) * _state_of_charge + weight_v * _state_of_charge_volt_based;
 		// directly apply current capacity slope calculated using current
-		_state_of_charge -= _discharged_mah_loop / _params.capacity;
+		_state_of_charge -= _discharged_mah_loop / _capacity;
 		_state_of_charge = math::max(_state_of_charge, 0.f);
 
-		const float state_of_charge_current_based = math::max(1.f - _discharged_mah / _params.capacity, 0.f);
+		const float state_of_charge_current_based = math::max(1.f - _discharged_mah / _capacity, 0.f);
 		_state_of_charge = math::min(state_of_charge_current_based, _state_of_charge);
 
 	} else {
@@ -382,8 +382,8 @@ float Battery::computeRemainingTime(float current_a)
 	}
 
 	// Remaining time estimation only possible with capacity
-	if (_params.capacity > 0.f) {
-		const float remaining_capacity_mah = _state_of_charge * _params.capacity;
+	if (_capacity > 0.f) {
+		const float remaining_capacity_mah = _state_of_charge * _capacity;
 		const float current_ma = fmaxf(_current_average_filter_a.getState() * 1e3f, FLT_EPSILON);
 		time_remaining_s = remaining_capacity_mah / current_ma * 3600.f;
 	}
@@ -404,6 +404,8 @@ void Battery::updateParams()
 	param_get(_param_handles.crit_thr, &_params.crit_thr);
 	param_get(_param_handles.emergen_thr, &_params.emergen_thr);
 	param_get(_param_handles.bat_avrg_current, &_params.bat_avrg_current);
+
+	_capacity = _params.capacity > 0.f ? static_cast<uint16_t>(_params.capacity) : 0;
 
 	if (n_cells != _params.n_cells) {
 		_internal_resistance_initialized = false;

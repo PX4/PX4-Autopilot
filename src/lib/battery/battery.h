@@ -88,7 +88,8 @@ public:
 
 	void setPriority(const uint8_t priority) { _priority = priority; }
 	void setConnected(const bool connected) { _connected = connected; }
-	void setStateOfCharge(const float soc) { _state_of_charge = soc; _external_state_of_charge = true; }
+	void setStateOfCharge(const float soc) { _state_of_charge = math::constrain(soc, 0.f, 1.f); _external_state_of_charge = true; }
+	void setCapacity(const float capacity) { _capacity = capacity > 0.f ? static_cast<uint16_t>(capacity) : 0; }
 	void updateVoltage(const float voltage_v);
 	void updateCurrent(const float current_a);
 	void updateTemperature(const float temperature_c);
@@ -109,6 +110,17 @@ public:
 	 * @see publishBatteryStatus()
 	 */
 	void updateAndPublishBatteryStatus(const hrt_abstime &timestamp);
+
+	/**
+	 *
+	 * This function calculates how much time is left before the battery is depleted,
+	 * given the current consumption in amperes.
+	 * if used externally make sure to set the capacity and state of charge with setCapacity() and setStateOfCharge().
+	 *
+	 * @param current_a The current draw from the battery in amperes.
+	 * @return Estimated remaining time in seconds.
+	 */
+	float computeRemainingTime(float current_a);
 
 protected:
 	static constexpr float LITHIUM_BATTERY_RECOGNITION_VOLTAGE = 2.1f;
@@ -151,7 +163,7 @@ private:
 	uint8_t determineWarning(float state_of_charge);
 	uint16_t determineFaults();
 	void computeScale();
-	float computeRemainingTime(float current_a);
+
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::SubscriptionData<flight_phase_estimation_s> _flight_phase_estimation_sub{ORB_ID(flight_phase_estimation)};
@@ -169,6 +181,7 @@ private:
 	float _current_a{-1};
 	AlphaFilter<float>
 	_current_average_filter_a; ///< averaging filter for current. For FW, it is the current in level flight.
+	uint16_t _capacity{0};
 	float _temperature_c{NAN};
 	float _discharged_mah{0.f};
 	float _discharged_mah_loop{0.f};
