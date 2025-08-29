@@ -270,7 +270,6 @@
 *(.text.udp_pollsetup)
 *(.text._ZL14timer_callbackPv)
 *(.text._ZN3Ekf4fuseERKN6matrix6VectorIfLj24EEEf)
-*(.text._ZN13land_detector23MulticopterLandDetector22_set_hysteresis_factorEi)
 *(.text.nxsem_wait_irq)
 *(.text._ZN20MavlinkCommandSender4lockEv)
 *(.text.MEM_LongCopyEnd)
