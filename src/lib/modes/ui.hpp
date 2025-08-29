@@ -52,6 +52,8 @@ static inline uint32_t getValidNavStates()
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW) |
+	       (1u << vehicle_status_s::NAVIGATION_STATE_ROCKET_PASSIVE) |
+	       (1u << vehicle_status_s::NAVIGATION_STATE_ROCKET_ROLL) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_ACRO) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_TERMINATION) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_OFFBOARD) |
@@ -61,10 +63,9 @@ static inline uint32_t getValidNavStates()
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_ORBIT) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_ROCKET_ROLL);
+	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF);
 
-	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX  == 32, "update valid nav states");
+	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX  == 31, "update valid nav states");
 }
 
 const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
@@ -75,8 +76,8 @@ const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"Hold",
 	"Return",
 	"Position Slow",
-	"7: unallocated",
-	"8: unallocated",
+	"Rocket Passive",
+	"Rocket Roll",
 	"9: unallocated",
 	"Acro",
 	"11: UNUSED",
@@ -98,8 +99,7 @@ const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"External 5",
 	"External 6",
 	"External 7",
-	"External 8",
-	"Rocket Roll"
+	"External 8"
 };
 
 /**
@@ -127,6 +127,8 @@ static inline bool isAdvanced(uint8_t nav_state)
 	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL7: return false;
 
 	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL8: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_ROCKET_PASSIVE: return false;
 
 	case vehicle_status_s::NAVIGATION_STATE_ROCKET_ROLL: return false;
 

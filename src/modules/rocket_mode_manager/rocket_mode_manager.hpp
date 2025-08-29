@@ -115,13 +115,12 @@ private:
 
 	// Actions
 	void deploy_wings_function();
+	void switch_to_rocket_passive_mode();
 	void switch_to_rocket_roll_mode();
 	void switch_to_fixed_wing_mode();
 	void configure_rocket_ca_parameters();
 	void configure_fixedwing_ca_parameters();
-	void publish_rocket_status();
-	void send_status_text(const char* text);
-	void request_rocket_navigation_state();
+	void announce_transition(const char* message);
 
 	// Subscriptions
 	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
@@ -151,7 +150,7 @@ private:
 
 	// State variables
 	RocketState _rocket_state;
-	RocketState _last_rocket_state; // Track state changes
+	RocketState _last_rocket_state; // Track state changes for transitions
 	bool _wing_deployed;
 	bool _apogee_detected;
 	bool _launch_detected;
@@ -164,9 +163,11 @@ private:
 	hrt_abstime _last_status_time;
 	hrt_abstime _gcs_connect_time;
 
+	// MAVLink logging
+	orb_advert_t _mavlink_log_pub{nullptr};
+
 	// Parameters
 	DEFINE_PARAMETERS(
-			   (ParamFloat<px4::params::RKT_DEPLOY_V>) _param_rocket_deploy_v,
 			   (ParamFloat<px4::params::RKT_ALT_THRESH>) _param_rocket_alt_thresh,
 			   (ParamFloat<px4::params::RKT_LAUNCH_A>) _param_rocket_launch_a,
 			   (ParamFloat<px4::params::RKT_LAUNCH_V>) _param_rocket_launch_v,

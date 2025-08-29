@@ -116,6 +116,9 @@ if(CONFIG_MODULES_FW_RATE_CONTROL)
 		# [17000, 17999] Autogyro
 		17002_TF-AutoG2
 		17003_TF-G2
+
+		# [71000, 71999] Rocket planes
+		71010_rocket_plane
 	)
 endif()
 

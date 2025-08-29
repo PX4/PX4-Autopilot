@@ -420,6 +420,9 @@ int Commander::custom_command(int argc, char *argv[])
 			} else if (!strcmp(argv[1], "rocket") || !strcmp(argv[1], "rocket_roll")) {
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_ROCKET_ROLL);
 
+			} else if (!strcmp(argv[1], "rocket_passive")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_ROCKET_PASSIVE);
+
 			} else {
 				PX4_ERR("argument %s unsupported.", argv[1]);
 			}
@@ -874,6 +877,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ROCKET_ROLL) {
 					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_ROCKET_ROLL;
+
+				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ROCKET_PASSIVE) {
+					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_ROCKET_PASSIVE;
 				}
 
 			} else {
@@ -3025,7 +3031,7 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND("land");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("transition", "VTOL transition");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("mode", "Change flight mode");
-	PRINT_MODULE_USAGE_ARG("manual|acro|offboard|stabilized|altctl|posctl|position:slow|auto:mission|auto:loiter|auto:rtl|auto:takeoff|auto:land|auto:precland|ext1|rocket|rocket_roll",
+	PRINT_MODULE_USAGE_ARG("manual|acro|offboard|stabilized|altctl|posctl|position:slow|auto:mission|auto:loiter|auto:rtl|auto:takeoff|auto:land|auto:precland|ext1|rocket|rocket_roll|rocket_passive",
 			"Flight mode", false);
 	PRINT_MODULE_USAGE_COMMAND("pair");
 	PRINT_MODULE_USAGE_COMMAND("lockdown");

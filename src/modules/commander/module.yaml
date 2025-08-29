@@ -38,7 +38,6 @@ parameters:
                 8: Stabilized
                 12: Follow Me
                 13: Precision Land
-                108: Rocket Roll
                 100: External Mode 1
                 101: External Mode 2
                 102: External Mode 3
@@ -47,6 +46,8 @@ parameters:
                 105: External Mode 6
                 106: External Mode 7
                 107: External Mode 8
+                108: Rocket Roll
+                109: Rocket Passive
             instance_start: 1
             num_instances: 6
             default: -1

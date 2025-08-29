@@ -40,8 +40,8 @@ uint8 NAVIGATION_STATE_AUTO_MISSION = 3         # Auto mission mode
 uint8 NAVIGATION_STATE_AUTO_LOITER = 4          # Auto loiter mode
 uint8 NAVIGATION_STATE_AUTO_RTL = 5             # Auto return to launch mode
 uint8 NAVIGATION_STATE_POSITION_SLOW = 6
-uint8 NAVIGATION_STATE_FREE5 = 7
-uint8 NAVIGATION_STATE_FREE4 = 8
+uint8 NAVIGATION_STATE_ROCKET_PASSIVE = 7
+uint8 NAVIGATION_STATE_ROCKET_ROLL = 8
 uint8 NAVIGATION_STATE_FREE3 = 9
 uint8 NAVIGATION_STATE_ACRO = 10                # Acro mode
 uint8 NAVIGATION_STATE_FREE2 = 11
@@ -64,10 +64,10 @@ uint8 NAVIGATION_STATE_EXTERNAL5 = 27
 uint8 NAVIGATION_STATE_EXTERNAL6 = 28
 uint8 NAVIGATION_STATE_EXTERNAL7 = 29
 uint8 NAVIGATION_STATE_EXTERNAL8 = 30
-uint8 NAVIGATION_STATE_ROCKET_ROLL = 31
 
-# Custom: Rocket roll-only nav mode
-uint8 NAVIGATION_STATE_MAX = 32
+# Custom: Rocket passive nav mode (all control disabled) - state 7
+# Custom: Rocket roll-only nav mode - state 8
+uint8 NAVIGATION_STATE_MAX = 31
 
 uint8 executor_in_charge                        # Current mode executor in charge (0=Autopilot)
 

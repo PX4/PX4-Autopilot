@@ -1,4 +1,8 @@
-/****************************************************************************
+/**************************************************************using namespace time_literals;
+
+RocketModeManager::RocketModeManager() :
+	ModuleParams(nullptr),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),*******
  *
  *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
@@ -56,10 +60,23 @@
 #include <modules/commander/px4_custom_mode.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <systemlib/mavlink_log.h>
+#include <uORB/topics/mavlink_log.h>
 #include <cstring>
 #include <cstdio>
+#include <cinttypes>
 
 extern orb_advert_t mavlink_log_pub;
+
+// MAVLink severity levels (from common.xml)
+#define MAV_SEVERITY_EMERGENCY 0
+#define MAV_SEVERITY_ALERT 1
+#define MAV_SEVERITY_CRITICAL 2
+#define MAV_SEVERITY_ERROR 3
+#define MAV_SEVERITY_WARNING 4
+#define MAV_SEVERITY_NOTICE 5
+#define MAV_SEVERITY_INFO 6
+#define MAV_SEVERITY_DEBUG 7
 
 using namespace time_literals;
 
@@ -103,7 +120,8 @@ bool RocketModeManager::init()
 	// Start the work queue
 	ScheduleOnInterval(10_ms); // Run at 100 Hz
 
-	PX4_INFO("Rocket Mode Manager initialized - waiting for QGroundControl connection");
+	PX4_INFO("Rocket Mode Manager initialized");
+	announce_transition("WAITING FOR QGC");
 
 	return true;
 }
@@ -140,7 +158,9 @@ void RocketModeManager::Run()
 	_sensor_accel_sub.update(&_sensor_accel);
 	_vehicle_attitude_sub.update(&_vehicle_attitude);
 	_manual_control_setpoint_sub.update(&_manual_control_setpoint);
-	_telemetry_status_sub.update(&_telemetry_status);	switch (_rocket_state) {
+	_telemetry_status_sub.update(&_telemetry_status);
+
+	switch (_rocket_state) {
 
 	case RocketState::WAITING_GCS_CONNECT:
 		handle_waiting_gcs_connect_phase();
@@ -170,19 +190,20 @@ void RocketModeManager::Run()
 		// No handling needed for landed state in rocket mode manager
 		break;
 	}
-
-	// Publish rocket status
-	publish_rocket_status();
 }
 
 void RocketModeManager::handle_waiting_gcs_connect_phase()
 {
-	// Wait for QGroundControl connection
-	if (_telemetry_status.heartbeat_type_gcs) {
+	// Check for QGroundControl connection via telemetry OR USB
+	bool gcs_connected = _telemetry_status.heartbeat_type_gcs ||
+	                     _telemetry_status.heartbeat_type_onboard_controller ||
+	                     (_vehicle_status.system_id > 0); // Basic heartbeat detection
+
+	if (gcs_connected) {
 		// Record first time we detected GCS connection
 		if (_gcs_connect_time == 0) {
 			_gcs_connect_time = hrt_absolute_time();
-			PX4_INFO("QGroundControl connected - waiting 2 seconds for initialization");
+			PX4_INFO("QGroundControl connected - initializing");
 			return;
 		}
 
@@ -192,12 +213,11 @@ void RocketModeManager::handle_waiting_gcs_connect_phase()
 
 		if (elapsed > delay_duration) {
 			// GCS connection stabilized - apply complete rocket configuration
-			switch_to_rocket_roll_mode();
+			switch_to_rocket_passive_mode();
 
 			// Transition to WAITING_LAUNCH (Ready disarmed state)
 			_rocket_state = RocketState::WAITING_LAUNCH;
-
-			PX4_INFO("GCS initialization complete - Applied rocket roll config, now Ready (disarmed)");
+			announce_transition("READY FOR LAUNCH - DISARMED");
 		}
 	} else {
 		// Reset connection timer if GCS disconnects
@@ -227,17 +247,13 @@ void RocketModeManager::handle_waiting_launch_phase()
 				   if (!_launch_detected &&
 					   (accel_magnitude > launch_accel_threshold || vertical_velocity <= launch_vel_threshold)) {
 
-						   PX4_INFO("Launch detected! Accel: %.1f m/s^2, Vel: %.1f m/s", (double)accel_magnitude, (double)vertical_velocity);
-						   _launch_detected = true;
-						   _launch_detect_time = hrt_absolute_time();
-						   _rocket_state = RocketState::ROCKET_BOOST;
-						   _max_altitude = current_altitude; // Initialize max altitude tracking
+					PX4_INFO("Launch detected! Accel: %.1f m/s^2, Vel: %.1f m/s", (double)accel_magnitude, (double)vertical_velocity);
+					_launch_detected = true;
+					_launch_detect_time = hrt_absolute_time();
+					_rocket_state = RocketState::ROCKET_BOOST;
+					_max_altitude = current_altitude; // Initialize max altitude tracking
 
-						   // Optionally, also request custom mode for QGC display
-						   request_rocket_navigation_state();
-
-						   // Send immediate status update
-						   publish_rocket_status();
+					announce_transition("LAUNCH DETECTED");
 				   }
 			}
 		}
@@ -272,11 +288,8 @@ void RocketModeManager::handle_rocket_boost_phase()
 				_boost_end_time = hrt_absolute_time();
 				_coast_start_time = hrt_absolute_time();
 
-				// Update navigation state display in QGC
-				request_rocket_navigation_state();
-
-				// Send immediate status update
-				publish_rocket_status();
+				switch_to_rocket_roll_mode();
+				announce_transition("COAST PHASE");
 			}
 
 			// Failsafe: Maximum boost duration (in case acceleration never drops)
@@ -289,11 +302,8 @@ void RocketModeManager::handle_rocket_boost_phase()
 				_boost_end_time = hrt_absolute_time();
 				_coast_start_time = hrt_absolute_time();
 
-				// Update navigation state display in QGC
-				request_rocket_navigation_state();
-
-				// Send immediate status update
-				publish_rocket_status();
+				switch_to_rocket_roll_mode();
+				announce_transition("COAST PHASE");
 			}
 		}
 	}
@@ -304,60 +314,42 @@ void RocketModeManager::handle_rocket_coast_phase()
 	// Monitor for apogee detection with timer failsafe
 	if (_vehicle_local_position.timestamp > 0 && _vehicle_attitude.timestamp > 0) {
 		const float current_altitude = -_vehicle_local_position.z;
-		//const float vertical_velocity = _vehicle_local_position.vz;
-
-		// Convert NED velocities to body frame using rotation matrix
-		// Body frame: X=forward (roll axis), Y=right, Z=down
-		matrix::Dcmf R(matrix::Quatf(_vehicle_attitude.q));
-		matrix::Vector3f vel_ned(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
-		matrix::Vector3f vel_body = R.transpose() * vel_ned;
-
-		const float body_x_velocity = vel_body(0); // Velocity along roll axis (forward)
 
 		// Update maximum altitude
 		if (current_altitude > _max_altitude) {
 			_max_altitude = current_altitude;
 		}
 
-		// Check coast phase timer failsafe first
-		const hrt_abstime coast_duration = hrt_absolute_time() - _coast_start_time;
+		// Check coast phase timer failsafe - measured from launch time
+		const hrt_abstime total_flight_time = hrt_absolute_time() - _launch_detect_time;
 		const hrt_abstime max_coast_duration = (hrt_abstime)(_param_rocket_coast_t.get() * 1e6f);
 
 		bool deploy_wings = false;
 		const char* deploy_reason = "";
 
-		// Primary deployment criteria: body X velocity threshold OR altitude descent OR failsafe
-		const float velocity_threshold = _param_rocket_deploy_v.get(); // e.g., 5.0 m/s (body X-axis forward velocity)
+		// Primary deployment criteria: altitude descent OR failsafe
 		const float altitude_descent_threshold = _param_rocket_alt_thresh.get(); // Deploy if descended this many meters from max
 
 		if (!_apogee_detected) {
 			// Check deployment criteria
-			if (fabsf(body_x_velocity) <= velocity_threshold) {
-				deploy_wings = true;
-				deploy_reason = "body X velocity threshold";
-			} else if (current_altitude < (_max_altitude - altitude_descent_threshold)) {
+			if (current_altitude < (_max_altitude - altitude_descent_threshold)) {
 				deploy_wings = true;
 				deploy_reason = "altitude descent";
-			} else if (coast_duration > max_coast_duration) {
+			} else if (total_flight_time > max_coast_duration) {
 				deploy_wings = true;
-				deploy_reason = "coast timeout failsafe";
+				deploy_reason = "flight time failsafe";
 			}
 
 			if (deploy_wings) {
-				PX4_INFO("Apogee/deployment triggered by %s at altitude %.1f m (max: %.1f m), body X vel: %.1f m/s",
-				         deploy_reason, (double)current_altitude, (double)_max_altitude, (double)body_x_velocity);
+				PX4_INFO("Apogee/deployment triggered by %s at altitude %.1f m (max: %.1f m)",
+				         deploy_reason, (double)current_altitude, (double)_max_altitude);
 				_apogee_detected = true;
 				_rocket_state = RocketState::WING_DEPLOYMENT;
 				_wing_deploy_time = hrt_absolute_time();
 
-				// Update navigation state display in QGC
-				request_rocket_navigation_state();
-
 				// Trigger wing deployment
 				deploy_wings_function();
-
-				// Send immediate status update
-				publish_rocket_status();
+				announce_transition("APOGEE - DEPLOYING WINGS");
 			}
 		}
 	}
@@ -369,17 +361,9 @@ void RocketModeManager::handle_wing_deployment_phase()
 	_wing_deployed = true;
 	_rocket_state = RocketState::FIXED_WING;
 
-	// Update navigation state display in QGC
-	request_rocket_navigation_state();
-
 	// Request transition to fixed-wing mode with CA reconfiguration
 	switch_to_fixed_wing_mode();
-
-	// Send immediate status update
-	publish_rocket_status();
-
-	// Note: Rocket mode manager continues to monitor in fixed-wing phase
-	PX4_INFO("Rocket logic complete, now monitoring fixed-wing phase");
+	announce_transition("FIXED WING MODE");
 }
 
 void RocketModeManager::handle_fixed_wing_phase()
@@ -398,8 +382,6 @@ void RocketModeManager::deploy_wings_function()
 	wing_cmd.timestamp = hrt_absolute_time();
 	wing_cmd.deploy = true;
 	_wing_deploy_pub.publish(wing_cmd);
-
-	PX4_INFO("ROCKET: Publishing wing deployment command");
 }
 
 void RocketModeManager::configure_rocket_ca_parameters()
@@ -472,7 +454,7 @@ void RocketModeManager::configure_rocket_ca_parameters()
 	// Notify parameter changes to trigger control allocator reconfiguration
 	param_notify_changes();
 
-	PX4_INFO("Rocket CA configuration applied: fins 1-4 for roll control, servos 5-6 inactive");
+	PX4_INFO("Rocket CA configuration applied");
 }
 
 void RocketModeManager::configure_fixedwing_ca_parameters()
@@ -544,154 +526,76 @@ void RocketModeManager::configure_fixedwing_ca_parameters()
 	// Notify parameter changes to trigger control allocator reconfiguration
 	param_notify_changes();
 
-	PX4_INFO("Fixed-wing CA configuration applied: fins 1,3=elevators, fins 2,4=rudders, servos 5,6=ailerons");
+	PX4_INFO("Fixed-wing CA configuration");
 }void RocketModeManager::switch_to_fixed_wing_mode()
 {
 	// Configure fixed-wing control allocation
 	configure_fixedwing_ca_parameters();
 
 	// Update available navigation states to all fixed-wing modes
-	// Allow standard fixed-wing modes: Manual, Altitude, Position, Auto Mission, Auto Loiter, Auto RTL, Acro
-	// Bitmask: 0x0000007F = bits 0-6 for standard fixed-wing modes
-	int32_t fw_mask = 0x0000007F;
+	int32_t fw_mask = 0x0000007F; // Allow standard fixed-wing modes
 	_param_rocket_nav_mask.set(fw_mask);
 	_param_rocket_nav_mask.commit_no_notification();
-
-	PX4_INFO("Navigation modes updated: All fixed-wing modes now available");
 
 	// Request mode switch to manual mode for fixed-wing
 	action_request_s action_request{};
 	action_request.timestamp = hrt_absolute_time();
 	action_request.action = action_request_s::ACTION_SWITCH_MODE;
-	action_request.mode = vehicle_status_s::NAVIGATION_STATE_MANUAL; // Use manual mode for fixed-wing
+	action_request.mode = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 	action_request.source = action_request_s::SOURCE_RC_SWITCH;
 
 	_action_request_pub.publish(action_request);
 
-	PX4_INFO("Switched to manual fixed-wing mode with dynamic CA configuration");
-	PX4_INFO("Rocket phase complete - rocket_mode_manager will continue monitoring");
+	PX4_INFO("Switched to manual fixed-wing mode");
 }
-
-void RocketModeManager::switch_to_rocket_roll_mode()
+void RocketModeManager::switch_to_rocket_passive_mode()
 {
-	// Configure rocket control allocation
+	// Configure rocket control allocation parameters
 	configure_rocket_ca_parameters();
 
-	// Force restore the rocket navigation mask to restrict available modes
-	int32_t rocket_mask = -2147483648; // Default rocket roll only mask
-	_param_rocket_nav_mask.set(rocket_mask);
-	_param_rocket_nav_mask.commit_no_notification();
-	PX4_INFO("Rocket navigation mask restored: %d", rocket_mask);
-
-	// Switch to the custom NAVIGATION_STATE_ROCKET_ROLL that we implemented
-	// The nav_state_names array should provide "Rocket Roll" display name to QGC via AVAILABLE_MODES
+	// Switch to the custom NAVIGATION_STATE_ROCKET_PASSIVE that we implemented
 	action_request_s action_request{};
 	action_request.timestamp = hrt_absolute_time();
 	action_request.action = action_request_s::ACTION_SWITCH_MODE;
-	action_request.mode = vehicle_status_s::NAVIGATION_STATE_ROCKET_ROLL; // Index 31, should show "Rocket Roll"
+	action_request.mode = vehicle_status_s::NAVIGATION_STATE_ROCKET_PASSIVE;
+	action_request.source = action_request_s::SOURCE_RC_SWITCH;
+
+	_action_request_pub.publish(action_request);
+	_rocket_config_applied = true;
+
+	PX4_INFO("Switched to NAVIGATION_STATE_ROCKET_PASSIVE mode");
+}
+void RocketModeManager::switch_to_rocket_roll_mode()
+{
+	// Switch to the custom NAVIGATION_STATE_ROCKET_ROLL that we implemented
+	action_request_s action_request{};
+	action_request.timestamp = hrt_absolute_time();
+	action_request.action = action_request_s::ACTION_SWITCH_MODE;
+	action_request.mode = vehicle_status_s::NAVIGATION_STATE_ROCKET_ROLL;
 	action_request.source = action_request_s::SOURCE_RC_SWITCH;
 
 	_action_request_pub.publish(action_request);
 
-	// Also send custom status text for additional clarity
-	request_rocket_navigation_state();
-
-	_rocket_config_applied = true;
-
-	PX4_INFO("Switched to NAVIGATION_STATE_ROCKET_ROLL mode (displays as 'Acro' in QGC)");
+	PX4_INFO("Switched to NAVIGATION_STATE_ROCKET_ROLL mode");
 }
 
-void RocketModeManager::request_rocket_navigation_state()
+void RocketModeManager::announce_transition(const char* message)
 {
-	// Send custom mode text to QGroundControl via MAVLink status text
-	char mode_text[50];
-
-	switch (_rocket_state) {
-	case RocketState::WAITING_GCS_CONNECT:
-		snprintf(mode_text, sizeof(mode_text), "WAITING QGC");
-		break;
-	case RocketState::WAITING_LAUNCH:
-		snprintf(mode_text, sizeof(mode_text), "ROCKET READY");
-		break;
-	case RocketState::ROCKET_BOOST:
-		snprintf(mode_text, sizeof(mode_text), "ROCKET BOOST");
-		break;
-	case RocketState::ROCKET_COAST:
-		snprintf(mode_text, sizeof(mode_text), "ROCKET COAST");
-		break;
-	case RocketState::WING_DEPLOYMENT:
-		snprintf(mode_text, sizeof(mode_text), "WING DEPLOY");
-		break;
-	case RocketState::FIXED_WING:
-		snprintf(mode_text, sizeof(mode_text), "FIXED WING");
-		break;
-	case RocketState::LANDED:
-		snprintf(mode_text, sizeof(mode_text), "LANDED");
-		break;
-	}
-
-	// Send the mode as a status text (this will show in QGC)
-	send_status_text(mode_text);
-}
-
-void RocketModeManager::send_status_text(const char* text)
-{
-	// Send status text to QGC via MAVLink
-	mavlink_log_info(&mavlink_log_pub, "%s", text);
-}
-
-void RocketModeManager::publish_rocket_status()
-{
-	// Check if state changed or if it's time for a periodic update
-	const hrt_abstime now = hrt_absolute_time();
-	const bool state_changed = (_rocket_state != _last_rocket_state);
-	const bool periodic_update = (now - _last_status_time > 5_s); // Update every 5 seconds
-
-	if (state_changed || periodic_update) {
-		char status_text[50];
-
-		// Create status text based on current state
-		switch (_rocket_state) {
-		case RocketState::WAITING_GCS_CONNECT:
-			snprintf(status_text, sizeof(status_text), "ROCKET: Waiting for QGroundControl");
-			break;
-
-		case RocketState::WAITING_LAUNCH:
-			if (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-				snprintf(status_text, sizeof(status_text), "ROCKET: Armed - Waiting for Launch");
-			} else {
-				snprintf(status_text, sizeof(status_text), "ROCKET: Ready - Disarmed");
-			}
-			break;
-
-		case RocketState::ROCKET_BOOST:
-			snprintf(status_text, sizeof(status_text), "ROCKET: Boost Phase - Alt %.0fm", (double)(-_vehicle_local_position.z));
-			break;
-
-		case RocketState::ROCKET_COAST:
-			snprintf(status_text, sizeof(status_text), "ROCKET: Coast to Apogee - Alt %.0fm", (double)(-_vehicle_local_position.z));
-			break;
-
-		case RocketState::WING_DEPLOYMENT:
-			snprintf(status_text, sizeof(status_text), "ROCKET: Wing Deployment - Alt %.0fm", (double)(-_vehicle_local_position.z));
-			break;
-
-		case RocketState::FIXED_WING:
-			snprintf(status_text, sizeof(status_text), "ROCKET: Fixed-Wing Mode - Alt %.0fm", (double)(-_vehicle_local_position.z));
-			break;
-
-		case RocketState::LANDED:
-			snprintf(status_text, sizeof(status_text), "ROCKET: Landed");
-			break;
+	// Only announce if this is a new state transition
+	if (_rocket_state != _last_rocket_state) {
+		// Ensure we have an advert for mavlink_log
+		if (!_mavlink_log_pub) {
+			_mavlink_log_pub = orb_advertise(ORB_ID(mavlink_log), nullptr);
 		}
 
+		// Send as WARNING so it appears prominently in QGC
+		mavlink_log_critical(&_mavlink_log_pub, "%s", message);
 
-		// Send the status text to QGC
-		send_status_text(status_text);
-
-		// Update tracking variables
+		// Update tracking variable
 		_last_rocket_state = _rocket_state;
-		_last_status_time = now;
+
+		// Also log for debugging
+		PX4_INFO("ROCKET: %s", message);
 	}
 }
 
@@ -720,6 +624,54 @@ int RocketModeManager::task_spawn(int argc, char *argv[])
 
 int RocketModeManager::custom_command(int argc, char *argv[])
 {
+	if (argc >= 2) {
+		if (!strcmp(argv[1], "force_rocket_roll")) {
+			if (_object.load()) {
+				_object.load()->switch_to_rocket_roll_mode();
+				return PX4_OK;
+			}
+		}
+
+		if (!strcmp(argv[1], "force_wing_deploy")) {
+			if (_object.load()) {
+				auto instance = _object.load();
+				instance->_rocket_state = RocketState::WING_DEPLOYMENT;
+				instance->_wing_deploy_time = hrt_absolute_time();
+				PX4_INFO("Forcing wing deployment state");
+				return PX4_OK;
+			}
+		}
+
+		if (!strcmp(argv[1], "print_state")) {
+			if (_object.load()) {
+				auto instance = _object.load();
+				PX4_INFO("Current state: %d", (int)instance->_rocket_state);
+				PX4_INFO("Wing deployed: %d", instance->_wing_deployed);
+				PX4_INFO("Navigation state: %d", instance->_vehicle_status.nav_state);
+				PX4_INFO("GCS connected: %d", instance->_telemetry_status.heartbeat_type_gcs);
+				return PX4_OK;
+			}
+		}
+
+		if (!strcmp(argv[1], "skip_gcs_wait")) {
+			if (_object.load()) {
+				auto instance = _object.load();
+				instance->_gcs_connect_time = hrt_absolute_time();
+				PX4_INFO("Skipping GCS wait - forcing connection");
+				return PX4_OK;
+			}
+		}
+
+		if (!strcmp(argv[1], "test_fw_ca")) {
+			if (_object.load()) {
+				auto instance = _object.load();
+				PX4_INFO("Manual trigger: Fixed-wing CA configuration");
+				instance->configure_fixedwing_ca_parameters();
+				return PX4_OK;
+			}
+		}
+	}
+
 	return print_usage("unknown command");
 }
 
@@ -744,6 +696,10 @@ Handles the flight phases:
 
 	PRINT_MODULE_USAGE_NAME("rocket_mode_manager", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("force_rocket_roll", "Force switch to rocket roll mode");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("force_wing_deploy", "Force wing deployment");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("print_state", "Print current rocket state");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("skip_gcs_wait", "Skip waiting for GCS connection");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

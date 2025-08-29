@@ -36,6 +36,10 @@
 #include "FunctionProviderBase.hpp"
 
 #include <uORB/topics/wing_deploy_command.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <parameters/param.h>
 
 /**
  * Functions: Wing_Deploy
@@ -49,12 +53,49 @@ public:
 	void update() override
 	{
 		wing_deploy_command_s wing_deploy_cmd;
+		manual_control_setpoint_s manual_control;
 
+		// Check for automatic wing deploy command from rocket mode manager (highest priority)
 		if (_topic.update(&wing_deploy_cmd)) {
 			if (wing_deploy_cmd.deploy) {
 				_data = 1.f;  // Deploy wings (max position)
+				_auto_deployed = true; // Remember that wings were deployed automatically
 			} else {
-				_data = -1.f; // Retract wings (min position)
+				// Only allow automatic retraction if not manually overridden
+				if (!_auto_deployed) {
+					_data = -1.f; // Retract wings (min position)
+				}
+			}
+		}
+
+		// Check for manual RC control (lower priority than automatic)
+		if (_manual_control_topic.update(&manual_control)) {
+			// Get the configured RC AUX channel for wing deploy control
+			int32_t rc_aux_channel = 0;
+			param_get(_param_rc_aux_channel, &rc_aux_channel);
+
+			if (rc_aux_channel > 0 && rc_aux_channel <= 6) {
+				float aux_value = 0.f;
+
+				// Get the appropriate AUX channel value
+				switch (rc_aux_channel) {
+					case 1: aux_value = manual_control.aux1; break;
+					case 2: aux_value = manual_control.aux2; break;
+					case 3: aux_value = manual_control.aux3; break;
+					case 4: aux_value = manual_control.aux4; break;
+					case 5: aux_value = manual_control.aux5; break;
+					case 6: aux_value = manual_control.aux6; break;
+				}
+
+				// Manual RC logic: Can only deploy, cannot retract if auto-deployed
+				if (aux_value > 0.5f) {
+					_data = 1.f;  // Always allow manual deploy
+				} else if (aux_value < -0.5f && !_auto_deployed) {
+					// Only allow manual retraction if wings were NOT auto-deployed
+					_data = -1.f; // Retract wings
+				}
+				// If AUX is in middle position (-0.5 to 0.5), maintain current position
+				// If auto-deployed and trying to retract, ignore the command (maintain deployed state)
 			}
 		}
 	}
@@ -63,5 +104,10 @@ public:
 
 private:
 	uORB::Subscription _topic{ORB_ID(wing_deploy_command)};
+	uORB::Subscription _manual_control_topic{ORB_ID(manual_control_setpoint)};
 	float _data{-1.f}; // Start with wings retracted
+	bool _auto_deployed{false}; // Track if wings were deployed automatically
+
+	// Parameter for configurable RC AUX channel
+	param_t _param_rc_aux_channel{param_find("WD_RC_AUX_CH")};
 };

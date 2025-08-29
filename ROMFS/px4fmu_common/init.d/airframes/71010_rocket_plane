@@ -1,0 +1,287 @@
+#!/bin/sh
+#
+# @name Rocket Plane
+#
+# @type Rocket
+# @class Plane
+#
+# @board bitcraze_crazyflie exclude
+# @maintainer Noé Renevey noerenevey@gmail.com
+# @version 1.0 (01.09.2025 FLT 1)
+#
+
+. ${R}etc/init.d/rc.fw_defaults
+
+# Set vehicle type to fixed wing (aircraft after deployment)
+param set-default MAV_TYPE 1 # Fixed wing aircraft
+param set-default NAV_RCL_ACT 0 # Disable auto config switching
+
+# Fixed-wing configuration with control surfaces
+param set-default CA_AIRFRAME 1  # Fixed-wing airframe
+param set-default CA_METHOD 0    # Pseudo-inverse (same as spacecraft)
+
+# Configure 6 control surfaces - 4 fins + 2 wing ailerons
+param set-default CA_SV_CS_COUNT 6
+
+# Rocket Mode Manager Dynamic Control Allocation
+# These parameters will be used by rocket_mode_manager to dynamically reconfigure control surfaces
+
+# Rocket Phase CA_TRQ Matrix (18 elements: RKT_CA_R0 through RKT_CA_R17)
+# [S1_X,S1_Y,S1_Z, S2_X,S2_Y,S2_Z, S3_X,S3_Y,S3_Z, S4_X,S4_Y,S4_Z, S5_X,S5_Y,S5_Z, S6_X,S6_Y,S6_Z]
+# Default: fins 1-4 for roll control, servos 5-6 inactive
+param set-default RKT_CA_R0 1.0   # S1_X (Roll)
+param set-default RKT_CA_R1 0.0   # S1_Y (Pitch)
+param set-default RKT_CA_R2 0.0   # S1_Z (Yaw)
+param set-default RKT_CA_R3 1.0  # S2_X (Roll)
+param set-default RKT_CA_R4 0.0   # S2_Y (Pitch)
+param set-default RKT_CA_R5 0.0   # S2_Z (Yaw)
+param set-default RKT_CA_R6 1.0   # S3_X (Roll)
+param set-default RKT_CA_R7 0.0  # S3_Y (Pitch)
+param set-default RKT_CA_R8 0.0   # S3_Z (Yaw)
+param set-default RKT_CA_R9 1.0   # S4_X (Roll)
+param set-default RKT_CA_R10 0.0  # S4_Y (Pitch)
+param set-default RKT_CA_R11 0.0  # S4_Z (Yaw)
+param set-default RKT_CA_R12 0.0  # S5_X (Roll)
+param set-default RKT_CA_R13 0.0  # S5_Y (Pitch)
+param set-default RKT_CA_R14 0.0  # S5_Z (Yaw)
+param set-default RKT_CA_R15 0.0  # S6_X (Roll)
+param set-default RKT_CA_R16 0.0  # S6_Y (Pitch)
+param set-default RKT_CA_R17 0.0  # S6_Z (Yaw)
+
+# Fixed-Wing Phase CA_TRQ Matrix (18 elements: RKT_CA_F0 through RKT_CA_F17)
+# Default: fins 1,3=elevator [0,1,0], fins 2,4=rudder [0,0,1], servos 5,6=ailerons [0,0,±1]
+param set-default RKT_CA_F0 0  # S1_X (Roll)
+param set-default RKT_CA_F1 0.5   # S1_Y (Pitch) - Elevator
+param set-default RKT_CA_F2 0.0   # S1_Z (Yaw)
+param set-default RKT_CA_F3 0   # S2_X (Roll)
+param set-default RKT_CA_F4 0.0   # S2_Y (Pitch)
+param set-default RKT_CA_F5 0.5  # S2_Z (Yaw) - Rudder
+param set-default RKT_CA_F6 0   # S3_X (Roll)
+param set-default RKT_CA_F7 -0.5   # S3_Y (Pitch) - Elevator
+param set-default RKT_CA_F8 0.0   # S3_Z (Yaw)
+param set-default RKT_CA_F9 0   # S4_X (Roll)
+param set-default RKT_CA_F10 0.0  # S4_Y (Pitch)
+param set-default RKT_CA_F11 -0.5  # S4_Z (Yaw) - Rudder
+param set-default RKT_CA_F12 -0.5  # S5_X (Roll)
+param set-default RKT_CA_F13 0.0  # S5_Y (Pitch)
+param set-default RKT_CA_F14 0  # S5_Z (Yaw) - Left Aileron
+param set-default RKT_CA_F15 0.5 # S6_X (Roll)
+param set-default RKT_CA_F16 0.0  # S6_Y (Pitch)
+param set-default RKT_CA_F17 0    # S6_Z (Yaw) - Right Aileron
+
+
+# Rocket Phase Control Surface Types (6 elements: RKT_CS_R0 through RKT_CS_R5)
+# Default: fins 1-4 = Custom (12), servos 5-6 = Not set (0)
+param set-default RKT_CS_R0 12  # Custom
+param set-default RKT_CS_R1 12  # Custom
+param set-default RKT_CS_R2 12  # Custom
+param set-default RKT_CS_R3 12  # Custom
+param set-default RKT_CS_R4 0   # Not set
+param set-default RKT_CS_R5 0   # Not set
+
+# Fixed-Wing Phase Control Surface Types (6 elements: RKT_CS_F0 through RKT_CS_F5)
+# Default: fins 1,3=Elevator (3), fins 2,4=Rudder (4), servos 5,6=Left/Right Aileron (1,2)
+param set-default RKT_CS_F0 12  # Elevator
+param set-default RKT_CS_F1 12  # Rudder
+param set-default RKT_CS_F2 12  # Elevator
+param set-default RKT_CS_F3 12  # Rudder
+param set-default RKT_CS_F4 1   # Left Aileron
+param set-default RKT_CS_F5 2  # Right Aileron
+
+param set-default CA_SV_CS4_TRIM -0.526  # Servo 5 trim - calculated for 1125 PWM center with 1600 PWM max
+param set-default CA_SV_CS5_TRIM -0.75  # Servo 6 trim - calculated for 1200 PWM center with 800 PWM min
+
+# No rotor configuration - this is a fixed wing rocket planer
+param set-default CA_ROTOR_COUNT 0
+
+# Rocket-specific parameters for rocket mode manager
+param set-default RKT_LAUNCH_A 25.0
+param set-default RKT_LAUNCH_V -10
+param set-default RKT_BOOST_A 15.0
+param set-default RKT_BOOST_T 1.26
+param set-default RKT_COAST_T 6.0
+
+# Set navigation mask to allow manual, rocket passive, and rocket roll modes
+# Bit 0 (MANUAL) + Bit 7 (ROCKET_PASSIVE) + Bit 8 (ROCKET_ROLL) = 1 + 128 + 256 = 385
+param set-default RKT_NAV_MASK 385
+
+# Airspeed settings - disable airspeed requirement
+param set-default FW_USE_AIRSPD 0     # Don't use airspeed for control
+param set-default ASPD_PRIMARY 0      # Use synthetic airspeed
+param set-default SYS_HAS_NUM_ASPD 0  # No airspeed sensor (disables airspeed preflight checks)
+
+# Safety parameters - comprehensive configuration for rocket operations
+param set-default COM_ARM_CHK_ESCS 0       # We don't have ESCs to check
+param set-default FD_ESCS_EN 0             # Disable ESC failure detection
+param set-default COM_ACT_FAIL_ACT 0       # No action on actuator failure
+param set-default COM_LOW_BAT_ACT 0        # No action on low battery during rocket flight
+param set-default NAV_DLL_ACT 0            # No action on data link loss
+param set-default GF_ACTION 1              # Just warn on geofence violation
+param set-default NAV_RCL_ACT 1            # Just warn on RC loss
+param set-default COM_POSCTL_NAVL 2        # Allow position control without global position
+param set-default COM_RCL_EXCEPT 4         # Allow manual control recovery
+
+# Disable all throttle-related checks and warnings (no motors/ESCs in this system)
+param set-default COM_ARM_CHK_ESCS 0       # No ESC check during arming
+param set-default FD_ESCS_EN 0             # Disable ESC failure detection
+param set-default MC_AIRMODE 0             # Disable airmode (multicopter feature)
+
+# Disable attitude failure detection for rocket operations
+param set-default FD_FAIL_P 0              # Disable pitch failure detection
+param set-default FD_FAIL_R 0              # Disable roll failure detection
+
+# Disable arming timeout
+param set-default COM_DISARM_PRFLT -1      # Disable preflight disarming timeout (never timeout)
+
+# Disable landing disarm and high throttle failsafe
+param set-default COM_DISARM_LAND -1       # Disable automatic disarming after landing (never disarm)
+param set-default COM_DISARM_MAN -1        # Disable manual control timeout disarm (never timeout)
+
+#RC
+param set-default RC_CHAN_CNT 18
+param set-default RC_MAP_ARM_SW 5
+param set-default RC_MAP_AUX1 6
+param set-default RC_MAP_AUX2 8          # RC AUX2 for manual wing deploy
+param set-default RC_MAP_FLTMODE 7
+param set-default RC_MAP_PITCH 2
+param set-default RC_MAP_ROLL 4
+param set-default RC_MAP_THROTTLE 3
+param set-default RC_MAP_YAW 1
+param set-default RC_ARMSWITCH_TH 0.75
+param set-default RC_MAP_ENG_MOT 0
+param set-default RC_MAP_FAILSAFE 0
+
+# CRSF RC and Telemetry on TELEM2
+param set-default RC_CRSF_PRT_CFG 102    # CRSF protocol on TELEM 2
+param set-default RC_CRSF_TEL_EN 1       # Enable CRSF telemetry transmission
+
+
+# PWM AUX defaults
+param set-default PWM_AUX_DIS1 0
+# PWM AUX - Only AUX1 active for camera trigger, all others disabled
+param set-default PWM_AUX_DIS1 0         # Camera trigger disarmed state
+param set-default PWM_AUX_DIS2 0         # Disabled
+param set-default PWM_AUX_DIS3 0         # Disabled
+param set-default PWM_AUX_DIS4 0         # Disabled
+param set-default PWM_AUX_DIS5 0         # Disabled
+param set-default PWM_AUX_DIS6 0         # Disabled
+param set-default PWM_AUX_DIS7 0         # Disabled
+param set-default PWM_AUX_DIS8 0         # Disabled
+param set-default PWM_AUX_DIS9 0         # Disabled
+
+param set-default PWM_AUX_FAIL1 -1
+param set-default PWM_AUX_FAIL2 -1
+param set-default PWM_AUX_FAIL3 -1
+param set-default PWM_AUX_FAIL4 -1
+param set-default PWM_AUX_FAIL5 -1
+param set-default PWM_AUX_FAIL6 -1
+param set-default PWM_AUX_FAIL7 -1
+param set-default PWM_AUX_FAIL8 -1
+param set-default PWM_AUX_FAIL9 -1
+
+param set-default PWM_AUX_FUNC1 2000     # Camera Trigger function
+param set-default PWM_AUX_FUNC2 0        # Disabled
+param set-default PWM_AUX_FUNC3 0        # Disabled
+param set-default PWM_AUX_FUNC4 0        # Disabled
+param set-default PWM_AUX_FUNC5 0        # Disabled
+param set-default PWM_AUX_FUNC6 0        # Disabled
+param set-default PWM_AUX_FUNC7 0        # Disabled
+param set-default PWM_AUX_FUNC8 0        # Disabled
+param set-default PWM_AUX_FUNC9 0        # Disabled
+
+param set-default PWM_AUX_MAX1 2500      # Camera trigger max
+param set-default PWM_AUX_MAX2 0         # Disabled
+param set-default PWM_AUX_MAX3 0         # Disabled
+param set-default PWM_AUX_MAX4 0         # Disabled
+param set-default PWM_AUX_MAX5 0         # Disabled
+param set-default PWM_AUX_MAX6 0         # Disabled
+param set-default PWM_AUX_MAX7 0         # Disabled
+param set-default PWM_AUX_MAX8 0         # Disabled
+param set-default PWM_AUX_MAX9 0         # Disabled
+
+param set-default PWM_AUX_MIN1 0         # Camera trigger min
+param set-default PWM_AUX_MIN2 0         # Disabled
+param set-default PWM_AUX_MIN3 0         # Disabled
+param set-default PWM_AUX_MIN4 0         # Disabled
+param set-default PWM_AUX_MIN5 0         # Disabled
+param set-default PWM_AUX_MIN6 0         # Disabled
+param set-default PWM_AUX_MIN7 0         # Disabled
+param set-default PWM_AUX_MIN8 0         # Disabled
+param set-default PWM_AUX_MIN9 0         # Disabled
+
+param set-default PWM_AUX_REV 0
+param set-default PWM_AUX_TIM0 400
+param set-default PWM_AUX_TIM1 400
+param set-default PWM_AUX_TIM2 400
+param set-default PWM_AUX_TIM3 400
+
+# PWM MAIN - Only channels 1-7 active, channel 8 disabled
+param set-default PWM_MAIN_DIS1 1400     # Control Surface 1
+param set-default PWM_MAIN_DIS2 1500     # Control Surface 2
+param set-default PWM_MAIN_DIS3 1400     # Control Surface 3
+param set-default PWM_MAIN_DIS4 1400     # Control Surface 4
+param set-default PWM_MAIN_DIS5 1125     # Control Surface 5 (Left Aileron)
+param set-default PWM_MAIN_DIS6 1200     # Control Surface 6 (Right Aileron) - adjusted center
+param set-default PWM_MAIN_DIS7 1500     # Wing deploy
+param set-default PWM_MAIN_DIS8 0        # Disabled
+
+param set-default PWM_MAIN_FAIL1 -1
+param set-default PWM_MAIN_FAIL2 -1
+param set-default PWM_MAIN_FAIL3 -1
+param set-default PWM_MAIN_FAIL4 -1
+param set-default PWM_MAIN_FAIL5 -1
+param set-default PWM_MAIN_FAIL6 -1
+param set-default PWM_MAIN_FAIL7 -1
+param set-default PWM_MAIN_FAIL8 -1
+
+param set-default PWM_MAIN_FUNC1 201     # Control Surface 1
+param set-default PWM_MAIN_FUNC2 202     # Control Surface 2
+param set-default PWM_MAIN_FUNC3 203     # Control Surface 3
+param set-default PWM_MAIN_FUNC4 204     # Control Surface 4
+param set-default PWM_MAIN_FUNC5 205     # Control Surface 5
+param set-default PWM_MAIN_FUNC6 206     # Control Surface 6
+param set-default PWM_MAIN_FUNC7 10001   # Wing deploy
+param set-default PWM_MAIN_FUNC8 0       # Disabled
+
+param set-default PWM_MAIN_MAX1 1650     # Control Surface 1 max
+param set-default PWM_MAIN_MAX2 1750     # Control Surface 2 max
+param set-default PWM_MAIN_MAX3 1650     # Control Surface 3 max
+param set-default PWM_MAIN_MAX4 1650     # Control Surface 4 max
+param set-default PWM_MAIN_MAX5 1850     # Control Surface 5 max (calculated to reach 1600 PWM with trim)
+param set-default PWM_MAIN_MAX6 1300     # Control Surface 6 max (mechanical limit)
+param set-default PWM_MAIN_MAX7 1500     # Wing deploy max
+param set-default PWM_MAIN_MAX8 0        # Disabled
+
+param set-default PWM_MAIN_MIN1 1150     # Control Surface 1 min
+param set-default PWM_MAIN_MIN2 1250     # Control Surface 2 min
+param set-default PWM_MAIN_MIN3 1150     # Control Surface 3 min
+param set-default PWM_MAIN_MIN4 1150     # Control Surface 4 min
+param set-default PWM_MAIN_MIN5 950      # Control Surface 5 min
+param set-default PWM_MAIN_MIN6 500     # Control Surface 6 min (calculated to reach 800 PWM with trim)
+param set-default PWM_MAIN_MIN7 800     # Wing deploy min
+param set-default PWM_MAIN_MIN8 0       # Disabled
+param set-default PWM_MAIN_REV 96       # Reverse channels 6 (right aileron) and 7 (wing deploy); 64 + 32 = 96
+
+# Wing Deploy Configuration
+param set-default WD_RC_AUX_CH 2         # Use RC AUX2 for manual wing deploy control
+
+# Camera Trigger Parameters
+param set-default TRIG_INTERFACE 1       # GPIO interface
+param set-default TRIG_INTERVAL 0     # Disabled time-based triggering (ms)
+param set-default TRIG_MIN_INTERVA 0   # No minimum time constraint (ms)
+param set-default TRIG_POLARITY 1        # Active high
+param set-default TRIG_ACT_TIME 5000     # Long trigger pulse duration (ms)
+param set-default TRIG_MODE 1            # Time based, on command
+param set-default TRIG_DISTANCE 0     # Disabled distance-based triggering (m)
+param set-default TRIG_RC_CHANNEL 1      # RC AUX1 channel for manual trigger
+
+# Battery Configuration - 3S LiPo with Power Module 1 and INA226 sensor
+param set-default BAT1_N_CELLS 3         # 3S battery (3 cells)
+param set-default BAT1_V_EMPTY 3.2       # Empty voltage per cell (9.0V total)
+param set-default BAT1_V_CHARGED 4.185    # Charged voltage per cell (12.15V total)
+param set-default BAT1_CAPACITY 1100     # Battery capacity (mAh) - adjust as needed
+# Power module configuration
+param set-default SENS_EN_INA226 1       # Enable INA226 current sensor
+
+# Start rocket mode manager
+rocket_mode_manager start

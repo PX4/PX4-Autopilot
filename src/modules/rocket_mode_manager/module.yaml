@@ -3,20 +3,6 @@ module_name: Rocket Mode Manager
 parameters:
     - group: Rocket Mode Manager
       definitions:
-        RKT_DEPLOY_V:
-            description:
-                short: Wing deployment velocity threshold
-                long: |
-                  Deploy wings when velocity along body roll axis (X-axis) drops below this value.
-                  Positive value for forward velocity threshold.
-            type: float
-            min: 0.0
-            max: 50.0
-            increment: 0.5
-            decimal: 1
-            unit: m/s
-            default: 5.0
-
         RKT_ALT_THRESH:
             description:
                 short: Altitude threshold for wing deployment
@@ -97,16 +83,6 @@ parameters:
             min: -2147483648
             max: 2147483647
             default: -2147483648
-
-        RKT_WING_DEPLOY:
-            description:
-                short: Wing deployment servo output channel
-                long: Servo output channel for wing deployment mechanism (1-8)
-            type: int32
-            min: 1
-            max: 8
-            default: 7
-            reboot_required: false
 
         # Rocket Phase CA_TRQ Matrix (6 servos × 3 components = 18 elements flattened)
         # Individual elements accessed as RKT_CA_R0 through RKT_CA_R17

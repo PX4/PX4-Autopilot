@@ -49,10 +49,36 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 
 	switch (nav_state) {
 
+case vehicle_status_s::NAVIGATION_STATE_ROCKET_PASSIVE:
+	// Rocket Passive mode - all control flags disabled for passive flight with no control surfaces active
+	vehicle_control_mode.flag_control_manual_enabled = false;
+	vehicle_control_mode.flag_control_attitude_enabled = false;
+	vehicle_control_mode.flag_control_rates_enabled = false;
+	vehicle_control_mode.flag_control_allocation_enabled = false;
+	vehicle_control_mode.flag_control_position_enabled = false;
+	vehicle_control_mode.flag_control_velocity_enabled = false;
+	vehicle_control_mode.flag_control_altitude_enabled = false;
+	vehicle_control_mode.flag_control_climb_rate_enabled = false;
+	vehicle_control_mode.flag_control_acceleration_enabled = false;
+	vehicle_control_mode.flag_control_auto_enabled = false;
+	vehicle_control_mode.flag_control_offboard_enabled = false;
+	vehicle_control_mode.flag_control_termination_enabled = false;
+	break;
+
 case vehicle_status_s::NAVIGATION_STATE_ROCKET_ROLL:
-	// Only enable roll (rates) control for rocket roll mode
+	// Rocket Roll mode for visual reference and with roll rate control only activated in the control allocation
+	vehicle_control_mode.flag_control_manual_enabled = false;
+	vehicle_control_mode.flag_control_attitude_enabled = false;
 	vehicle_control_mode.flag_control_rates_enabled = true;
 	vehicle_control_mode.flag_control_allocation_enabled = true;
+	vehicle_control_mode.flag_control_position_enabled = false;
+	vehicle_control_mode.flag_control_velocity_enabled = false;
+	vehicle_control_mode.flag_control_altitude_enabled = false;
+	vehicle_control_mode.flag_control_climb_rate_enabled = false;
+	vehicle_control_mode.flag_control_acceleration_enabled = false;
+	vehicle_control_mode.flag_control_auto_enabled = false;
+	vehicle_control_mode.flag_control_offboard_enabled = false;
+	vehicle_control_mode.flag_control_termination_enabled = false;
 	break;
 
 case vehicle_status_s::NAVIGATION_STATE_MANUAL:
