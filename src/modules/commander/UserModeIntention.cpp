@@ -34,9 +34,9 @@
 
 #include "UserModeIntention.hpp"
 
-UserModeIntention::UserModeIntention(ModuleParams *parent, const vehicle_status_s &vehicle_status,
+UserModeIntention::UserModeIntention(const vehicle_status_s &vehicle_status,
 				     const HealthAndArmingChecks &health_and_arming_checks, ModeChangeHandler *handler)
-	: ModuleParams(parent), _vehicle_status(vehicle_status), _health_and_arming_checks(health_and_arming_checks),
+	: _vehicle_status(vehicle_status), _health_and_arming_checks(health_and_arming_checks),
 	  _handler(handler)
 {
 }
@@ -59,7 +59,7 @@ bool UserModeIntention::change(uint8_t user_intended_nav_state, ModeChangeSource
 		allow_change = _health_and_arming_checks.canRun(user_intended_nav_state);
 
 		// Check fallback
-		if (!allow_change && allow_fallback && _param_com_posctl_navl.get() == 0) {
+		if (!allow_change && allow_fallback) {
 			if (user_intended_nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL) {
 				allow_change = _health_and_arming_checks.canRun(vehicle_status_s::NAVIGATION_STATE_ALTCTL);
 				// We still use the original user intended mode. The failsafe state machine will then set the
