@@ -71,6 +71,7 @@ set(msg_files
 	EscFlasherRequest.msg
 	EscFlasherRequestAck.msg
 	EscFlasherStatus.msg
+	EscFlasherVersions.msg
 	EscReport.msg
 	EscStatus.msg
 	EstimatorAidSource1d.msg
