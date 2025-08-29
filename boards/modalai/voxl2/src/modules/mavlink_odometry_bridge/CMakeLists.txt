@@ -36,6 +36,9 @@ px4_add_module(
 	MAIN mavlink_odometry_bridge
 	INCLUDES
 		${PX4_SOURCE_DIR}/build/modalai_voxl2_default/mavlink/common
+		${CMAKE_CURRENT_SOURCE_DIR}/../../lib/mpa
 	SRCS
 		mavlink_odometry_bridge.cpp
+	DEPENDS
+		mpa
 	)

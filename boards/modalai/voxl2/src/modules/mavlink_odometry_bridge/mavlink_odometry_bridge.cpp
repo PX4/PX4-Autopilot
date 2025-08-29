@@ -30,6 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#include "mpa.hpp"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -40,30 +41,6 @@
 #include <uORB/uORB.h>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/modal_io_mavlink_data.h>
-
-#define VIO_MAGIC_NUMBER (0x5455524)
-#define VIO_STATE_FAILED            0
-#define VIO_STATE_INITIALIZING      1
-#define VIO_STATE_OK                2
-
-typedef struct vio_data_t{
-    uint32_t magic_number;         ///< Unique 32-bit number used to signal the beginning of a VIO packet while parsing a data stream.
-    int32_t quality;                 ///< Quality is be >0 in normal use with a larger number indicating higher quality. A positive quality does not guarantee the algorithm has initialized completely.
-    int64_t timestamp_ns;          ///< Timestamp in clock_monotonic system time of the provided pose.
-    float T_imu_wrt_vio[3];        ///< Translation of the IMU with respect to VIO frame in meters.
-    float R_imu_to_vio[3][3];      ///< Rotation matrix from IMU to VIO frame.
-    float pose_covariance[21];     ///<  Row-major representation of a 6x6 pose cross-covariance matrix upper right triangle (states: x, y, z, roll, pitch, yaw; first six entries are the first ROW, next five entries are the second ROW, etc.). If unknown, assign NaN value to first element in the array.*/
-    float vel_imu_wrt_vio[3];      ///< Velocity of the imu with respect to the VIO frame.
-    float velocity_covariance[21]; ///<  Row-major representation of a 6x6 velocity cross-covariance matrix upper right triangle (states: vx, vy, vz, rollspeed, pitchspeed, yawspeed; first six entries are the first ROW, next five entries are the second ROW, etc.). If unknown, assign NaN value to first element in the array.*/
-    float imu_angular_vel[3];      ///< Angular velocity of the IMU about its X Y and Z axes respectively. Essentially filtered gyro values with internal biases applied.
-    float gravity_vector[3];       ///< Estimation of the current gravity vector in VIO frame. Use this to estimate the rotation between VIO frame and a gravity-aligned VIO frame if desired.
-    float T_cam_wrt_imu[3];        ///< Location of the optical center of the camera with respect to the IMU.
-    float R_cam_to_imu[3][3];      ///< Rotation matrix from camera frame to IMU frame.
-    uint32_t error_code;           ///< bitmask that can indicate multiple errors. may still contain errors if state==VIO_STATE_OK
-    uint16_t n_feature_points;     ///< Number of optical feature points currently being tracked.
-    uint8_t state;                 ///< This is used to check the overall state of the algorithm. Can be VIO_STATE_FAILED, VIO_STATE_INITIALIZING, or VIO_STATE_OK.
-    uint8_t reserved;              ///< extra byte reserved for future use
-} __attribute__((packed)) vio_data_t;
 
 class MavlinkOdometryBridge : public ModuleBase<MavlinkOdometryBridge>, public px4::WorkItem
 {
@@ -92,7 +69,7 @@ private:
 
 	modal_io_mavlink_data_s _mavlink_odometry{};
 
-	int pipe_fd;
+	int pipe_ch{0};
 
 };
 
@@ -103,23 +80,20 @@ MavlinkOdometryBridge::MavlinkOdometryBridge() :
 
 bool MavlinkOdometryBridge::init()
 {
+	if (MPA::Initialize() == -1) {
+		return false;
+	}
+
+	char pipe_name[] = "hitl_vio";
+	if (MPA::PipeCreate(pipe_name) == -1) {
+		PX4_ERR("Pipe create failed for %s", pipe_name);
+		return false;
+	}
+
 	if (!_mavlink_data_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
-
-    if (mkfifo("/run/mpa/hitl_vio", 0666)) {
-        if (errno != EEXIST) {
-            PX4_ERR("Error in pipe_server_create calling mkfifo");
-			return false;
-        }
-    }
-
-    pipe_fd = open("/run/mpa/hitl_vio", O_RDWR);
-    if (pipe_fd < 0) {
-        PX4_ERR("Error in pipe_server_create opening request path");
-		return false;
-    }
 
 	return true;
 }
@@ -231,10 +205,7 @@ void MavlinkOdometryBridge::Run()
 			s.quality = quality;
 			s.n_feature_points = 25;
 
-			int result = write(pipe_fd, (char*)&s, sizeof(vio_data_t));
-
-			// write was good!
-			if(result != sizeof(vio_data_t)) {
+			if (MPA::PipeWrite(pipe_ch, (void*)&s, sizeof(vio_data_t)) == -1) {
 				PX4_ERR("Pipe write failed!");
 			}
 		}
