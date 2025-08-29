@@ -129,4 +129,5 @@
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
         },
+        "C_Cpp.errorSquiggles": "disabled",
 }

@@ -46,38 +46,53 @@ using namespace time_literals;
 
 DShotTelemetry::~DShotTelemetry()
 {
-	_uart.close();
+	deinit();
 }
 
-int DShotTelemetry::init(const char *port, bool swap_rxtx)
+int DShotTelemetry::init(const char *uart_device)
 {
-	if (!_uart.setPort(port)) {
-		PX4_ERR("Error configuring port %s", port);
-		return PX4_ERROR;
+	deinit();
+	_uart_fd = ::open(uart_device, O_RDONLY | O_NOCTTY);
+
+	if (_uart_fd < 0) {
+		PX4_ERR("failed to open serial port: %s err: %d", uart_device, errno);
+		return -errno;
 	}
 
-	if (!_uart.setBaudrate(DSHOT_TELEMETRY_UART_BAUDRATE)) {
-		PX4_ERR("Error setting baudrate on %s", port);
-		return PX4_ERROR;
+	_num_timeouts = 0;
+	_num_successful_responses = 0;
+	_current_motor_index_request = -1;
+	return setBaudrate(DSHOT_TELEMETRY_UART_BAUDRATE);
+}
+
+void DShotTelemetry::deinit()
+{
+	if (_uart_fd >= 0) {
+		close(_uart_fd);
+		_uart_fd = -1;
+	}
+}
+
+int DShotTelemetry::redirectOutput(OutputBuffer &buffer)
+{
+	if (expectingData()) {
+		// Error: cannot override while we already expect data
+		return -EBUSY;
 	}
 
-	if (swap_rxtx) {
-		if (!_uart.setSwapRxTxMode()) {
-			PX4_ERR("Error swapping TX/RX");
-			return PX4_ERROR;
-		}
-	}
-
-	if (! _uart.open()) {
-		PX4_ERR("Error opening %s", port);
-		return PX4_ERROR;
-	}
-
-	return PX4_OK;
+	_current_motor_index_request = buffer.motor_index;
+	_current_request_start = hrt_absolute_time();
+	_redirect_output = &buffer;
+	_redirect_output->buf_pos = 0;
+	return 0;
 }
 
 int DShotTelemetry::update(int num_motors)
 {
+	if (_uart_fd < 0) {
+		return -1;
+	}
+
 	if (_current_motor_index_request == -1) {
 		// nothing in progress, start a request
 		_current_motor_index_request = 0;
@@ -87,9 +102,10 @@ int DShotTelemetry::update(int num_motors)
 	}
 
 	// read from the uart. This must be non-blocking, so check first if there is data available
-	int bytes_available = _uart.bytesAvailable();
+	int bytes_available = 0;
+	int ret = ioctl(_uart_fd, FIONREAD, (unsigned long)&bytes_available);
 
-	if (bytes_available <= 0) {
+	if (ret != 0 || bytes_available <= 0) {
 		// no data available. Check for a timeout
 		const hrt_abstime now = hrt_absolute_time();
 
@@ -111,12 +127,13 @@ int DShotTelemetry::update(int num_motors)
 		return -1;
 	}
 
-	uint8_t buf[ESC_FRAME_SIZE];
-	int bytes = _uart.read(buf, sizeof(buf));
+	const int buf_length = ESC_FRAME_SIZE;
+	uint8_t buf[buf_length];
 
-	int ret = -1;
+	int num_read = read(_uart_fd, buf, buf_length);
+	ret = -1;
 
-	for (int i = 0; i < bytes && ret == -1; ++i) {
+	for (int i = 0; i < num_read && ret == -1; ++i) {
 		if (_redirect_output) {
 			_redirect_output->buffer[_redirect_output->buf_pos++] = buf[i];
 
@@ -166,9 +183,6 @@ bool DShotTelemetry::decodeByte(uint8_t byte, bool &successful_decoding)
 				  _latest_data.erpm);
 			++_num_successful_responses;
 			successful_decoding = true;
-
-		} else {
-			++_num_checksum_errors;
 		}
 
 		return true;
@@ -181,29 +195,31 @@ void DShotTelemetry::printStatus() const
 {
 	PX4_INFO("Number of successful ESC frames: %i", _num_successful_responses);
 	PX4_INFO("Number of timeouts: %i", _num_timeouts);
-	PX4_INFO("Number of CRC errors: %i", _num_checksum_errors);
 }
+
+uint8_t DShotTelemetry::updateCrc8(uint8_t crc, uint8_t crc_seed)
+{
+	uint8_t crc_u = crc ^ crc_seed;
+
+	for (int i = 0; i < 8; ++i) {
+		crc_u = (crc_u & 0x80) ? 0x7 ^ (crc_u << 1) : (crc_u << 1);
+	}
+
+	return crc_u;
+}
+
 
 uint8_t DShotTelemetry::crc8(const uint8_t *buf, uint8_t len)
 {
-	auto update_crc8 = [](uint8_t crc, uint8_t crc_seed) {
-		uint8_t crc_u = crc ^ crc_seed;
-
-		for (int i = 0; i < 8; ++i) {
-			crc_u = (crc_u & 0x80) ? 0x7 ^ (crc_u << 1) : (crc_u << 1);
-		}
-
-		return crc_u;
-	};
-
 	uint8_t crc = 0;
 
 	for (int i = 0; i < len; ++i) {
-		crc = update_crc8(buf[i], crc);
+		crc = updateCrc8(buf[i], crc);
 	}
 
 	return crc;
 }
+
 
 void DShotTelemetry::requestNextMotor(int num_motors)
 {
@@ -237,6 +253,7 @@ void DShotTelemetry::decodeAndPrintEscInfoPacket(const OutputBuffer &buffer)
 		BLHELI32,
 		KissV1,
 		KissV2,
+		AM32
 	};
 	ESCVersionInfo version;
 	int packet_length;
@@ -250,8 +267,21 @@ void DShotTelemetry::decodeAndPrintEscInfoPacket(const OutputBuffer &buffer)
 		packet_length = esc_info_size_kiss_v2;
 
 	} else {
-		version = ESCVersionInfo::KissV1;
-		packet_length = esc_info_size_kiss_v1;
+		if (buffer.buf_pos > esc_info_size_kiss_v1) {
+			version = ESCVersionInfo::AM32;
+			packet_length = esc_info_size_am32;
+		}
+		else {
+			version = ESCVersionInfo::KissV1;
+			packet_length = esc_info_size_kiss_v1;
+		}
+	}
+
+	// Check for AM32 but with bad data
+	if (version != ESCVersionInfo::AM32 && buffer.buf_pos == esc_info_size_am32) {
+		version = ESCVersionInfo::AM32;
+		packet_length = esc_info_size_am32;
+		PX4_WARN("Packet length mismatch (%i != %i), reverting to AM32 decoding", buffer.buf_pos, packet_length);
 	}
 
 	if (buffer.buf_pos != packet_length) {
@@ -264,116 +294,337 @@ void DShotTelemetry::decodeAndPrintEscInfoPacket(const OutputBuffer &buffer)
 		return;
 	}
 
-	uint8_t esc_firmware_version = 0;
-	uint8_t esc_firmware_subversion = 0;
-	uint8_t esc_type = 0;
-
-	switch (version) {
-	case ESCVersionInfo::KissV1:
-		esc_firmware_version = data[12];
-		esc_firmware_subversion = (data[13] & 0x1f) + 97;
-		esc_type = (data[13] & 0xe0) >> 5;
-		break;
-
-	case ESCVersionInfo::KissV2:
-	case ESCVersionInfo::BLHELI32:
-		esc_firmware_version = data[13];
-		esc_firmware_subversion = data[14];
-		esc_type = data[15];
-		break;
-	}
-
-	const char *esc_type_str = "";
-
-	switch (version) {
-	case ESCVersionInfo::KissV1:
-	case ESCVersionInfo::KissV2:
-		switch (esc_type) {
-		case 1: esc_type_str = "KISS8A";
-			break;
-
-		case 2: esc_type_str = "KISS16A";
-			break;
-
-		case 3: esc_type_str = "KISS24A";
-			break;
-
-		case 5: esc_type_str = "KISS Ultralite";
-			break;
-
-		default: esc_type_str = "KISS (unknown)";
-			break;
+	if (version == ESCVersionInfo::AM32) {
+		// AM32 2.18+ ESC_INFO packet sends bytes 0-47 of its EEPROM struct
+		if (buffer.buf_pos < packet_length) {
+			PX4_ERR("Not enough data received");
+			return;
 		}
 
-		break;
-
-	case ESCVersionInfo::BLHELI32: {
-			char *esc_type_mutable = (char *)(data + 31);
-			esc_type_mutable[32] = 0;
-			esc_type_str = esc_type_mutable;
-		}
-		break;
-	}
-
-	PX4_INFO("ESC Type: %s", esc_type_str);
-
-	PX4_INFO("MCU Serial Number: %02x%02x%02x-%02x%02x%02x-%02x%02x%02x-%02x%02x%02x",
-		 data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8],
-		 data[9], data[10], data[11]);
-
-	switch (version) {
-	case ESCVersionInfo::KissV1:
-	case ESCVersionInfo::KissV2:
-		PX4_INFO("Firmware version: %d.%d%c", esc_firmware_version / 100, esc_firmware_version % 100,
-			 (char)esc_firmware_subversion);
-		break;
-
-	case ESCVersionInfo::BLHELI32:
-		PX4_INFO("Firmware version: %d.%d", esc_firmware_version, esc_firmware_subversion);
-		break;
-	}
-
-	if (version == ESCVersionInfo::KissV2 || version == ESCVersionInfo::BLHELI32) {
-		PX4_INFO("Rotation Direction: %s", data[16] ? "reversed" : "normal");
-		PX4_INFO("3D Mode: %s", data[17] ? "on" : "off");
-	}
-
-	if (version == ESCVersionInfo::BLHELI32) {
-		uint8_t setting = data[18];
-
-		switch (setting) {
-		case 0:
-			PX4_INFO("Low voltage Limit: off");
-			break;
-
-		case 255:
-			PX4_INFO("Low voltage Limit: unsupported");
-			break;
-
-		default:
-			PX4_INFO("Low voltage Limit: %d.%01d V", setting / 10, setting % 10);
-			break;
+		uint8_t eeprom_version = data[1];
+		if (eeprom_version != 2) {
+			PX4_ERR("Unsupported EEPROM version from ESC");
+			return;
 		}
 
-		setting = data[19];
+		AM32_EEprom_st* esc_info = (AM32_EEprom_st*)buffer.buffer;
 
-		switch (setting) {
-		case 0:
-			PX4_INFO("Current Limit: off");
+		char firmware_name[sizeof(esc_info->firmware_name) + 1];
+		memcpy(firmware_name, esc_info->firmware_name, sizeof(firmware_name));
+		firmware_name[sizeof(esc_info->firmware_name)] = 0;
+
+		PX4_INFO("Received ESC_INFO packet from motor %d:", buffer.motor_index + 1);
+
+		PX4_INFO("     ESC firmware version: %d.%d - ESC firmware name: %s", esc_info->version.major, esc_info->version.minor, firmware_name);
+
+		if (esc_info->stuck_rotor_protection) PX4_INFO("     Stuck rotor protection is ENABLED");
+		else PX4_INFO("     Stuck rotor protection is DISABLED");
+
+		if (esc_info->telemetry_on_interval) PX4_INFO("     Auto-Telemetry interval is ENABLED");
+		else PX4_INFO("     Auto-Telemetry interval is DISABLED");
+
+		if (esc_info->bi_direction) PX4_INFO("     Bi-Directional DShot is ENABLED");
+		else PX4_INFO("     Bi-Directional DShot is DISABLED");
+	}
+	else {
+		uint8_t esc_firmware_version = 0;
+		uint8_t esc_firmware_subversion = 0;
+		uint8_t esc_type = 0;
+
+		switch (version) {
+		case ESCVersionInfo::KissV1:
+			esc_firmware_version = data[12];
+			esc_firmware_subversion = (data[13] & 0x1f) + 97;
+			esc_type = (data[13] & 0xe0) >> 5;
 			break;
 
-		case 255:
-			PX4_INFO("Current Limit: unsupported");
+		case ESCVersionInfo::KissV2:
+		case ESCVersionInfo::BLHELI32:
+			esc_firmware_version = data[13];
+			esc_firmware_subversion = data[14];
+			esc_type = data[15];
 			break;
-
-		default:
-			PX4_INFO("Current Limit: %d A", setting);
-			break;
+		case ESCVersionInfo::AM32:
+			// AM32 is handled above, should not get to this case
+			return;
 		}
 
-		for (int i = 0; i < 4; ++i) {
-			setting = data[i + 20];
-			PX4_INFO("LED %d: %s", i, setting ? (setting == 255 ? "unsupported" : "on") : "off");
+		const char *esc_type_str = "";
+
+		switch (version) {
+		case ESCVersionInfo::KissV1:
+		case ESCVersionInfo::KissV2:
+			switch (esc_type) {
+			case 1: esc_type_str = "KISS8A";
+				break;
+
+			case 2: esc_type_str = "KISS16A";
+				break;
+
+			case 3: esc_type_str = "KISS24A";
+				break;
+
+			case 5: esc_type_str = "KISS Ultralite";
+				break;
+
+			default: esc_type_str = "KISS (unknown)";
+				break;
+			}
+
+			break;
+
+		case ESCVersionInfo::BLHELI32: {
+				char *esc_type_mutable = (char *)(data + 31);
+				esc_type_mutable[32] = 0;
+				esc_type_str = esc_type_mutable;
+			}
+			break;
+		case ESCVersionInfo::AM32:
+			// AM32 is handled above, should not get to this case
+			return;
+		}
+
+		PX4_INFO("ESC Type: %s", esc_type_str);
+
+		PX4_INFO("MCU Serial Number: %02x%02x%02x-%02x%02x%02x-%02x%02x%02x-%02x%02x%02x",
+			data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8],
+			data[9], data[10], data[11]);
+
+		switch (version) {
+		case ESCVersionInfo::KissV1:
+		case ESCVersionInfo::KissV2:
+			PX4_INFO("Firmware version: %d.%d%c", esc_firmware_version / 100, esc_firmware_version % 100,
+				(char)esc_firmware_subversion);
+			break;
+
+		case ESCVersionInfo::BLHELI32:
+			PX4_INFO("Firmware version: %d.%d", esc_firmware_version, esc_firmware_subversion);
+			break;
+		case ESCVersionInfo::AM32:
+			// AM32 is handled above, should not get to this case
+			return;
+		}
+
+		if (version == ESCVersionInfo::KissV2 || version == ESCVersionInfo::BLHELI32) {
+			PX4_INFO("Rotation Direction: %s", data[16] ? "reversed" : "normal");
+			PX4_INFO("3D Mode: %s", data[17] ? "on" : "off");
+		}
+
+		if (version == ESCVersionInfo::BLHELI32) {
+			uint8_t setting = data[18];
+
+			switch (setting) {
+			case 0:
+				PX4_INFO("Low voltage Limit: off");
+				break;
+
+			case 255:
+				PX4_INFO("Low voltage Limit: unsupported");
+				break;
+
+			default:
+				PX4_INFO("Low voltage Limit: %d.%01d V", setting / 10, setting % 10);
+				break;
+			}
+
+			setting = data[19];
+
+			switch (setting) {
+			case 0:
+				PX4_INFO("Current Limit: off");
+				break;
+
+			case 255:
+				PX4_INFO("Current Limit: unsupported");
+				break;
+
+			default:
+				PX4_INFO("Current Limit: %d A", setting);
+				break;
+			}
+
+			for (int i = 0; i < 4; ++i) {
+				setting = data[i + 20];
+				PX4_INFO("LED %d: %s", i, setting ? (setting == 255 ? "unsupported" : "on") : "off");
+			}
 		}
 	}
 }
+
+int DShotTelemetry::decodeEscInfoPacketFwVersion(const OutputBuffer &buffer, uint8_t* fw_version_major, uint8_t* fw_version_minor)
+{
+	// Return 0 for AM32 success
+	// Return -1 for not enough data (unknown)
+	// Return -2 for BLHeli success
+
+	static constexpr int version_position = 12;
+	const uint8_t *data = buffer.buffer;
+
+	if (buffer.buf_pos < version_position) {
+		PX4_ERR("Not enough data received");
+		return -1;
+	}
+
+	enum class ESCVersionInfo {
+		BLHELI32,
+		KissV1,
+		KissV2,
+		AM32
+	};
+	ESCVersionInfo version;
+	int packet_length;
+
+	if (data[version_position] == 254) {
+		version = ESCVersionInfo::BLHELI32;
+		packet_length = esc_info_size_blheli32;
+
+	} else if (data[version_position] == 255) {
+		version = ESCVersionInfo::KissV2;
+		packet_length = esc_info_size_kiss_v2;
+
+	} else {
+		if (buffer.buf_pos > esc_info_size_kiss_v1) {
+			version = ESCVersionInfo::AM32;
+			packet_length = esc_info_size_am32;
+		}
+		else {
+			version = ESCVersionInfo::KissV1;
+			packet_length = esc_info_size_kiss_v1;
+		}
+	}
+
+	// Check for AM32 but with bad data
+	if (version != ESCVersionInfo::AM32 && buffer.buf_pos == esc_info_size_am32) {
+		version = ESCVersionInfo::AM32;
+		packet_length = esc_info_size_am32;
+		PX4_WARN("Packet length mismatch (%i != %i), reverting to AM32 decoding", buffer.buf_pos, packet_length);
+	}
+
+	if (buffer.buf_pos != packet_length) {
+		PX4_ERR("Packet length mismatch (%i != %i)", buffer.buf_pos, packet_length);
+		return -1;
+	}
+
+	if (DShotTelemetry::crc8(data, packet_length - 1) != data[packet_length - 1]) {
+		PX4_ERR("Checksum mismatch");
+		return -1;
+	}
+
+	if (version == ESCVersionInfo::AM32) {
+		// AM32 2.18+ ESC_INFO packet sends bytes 0-47 of its EEPROM struct
+		if (buffer.buf_pos < packet_length) {
+			PX4_ERR("Not enough data received");
+			return -1;
+		}
+
+		uint8_t eeprom_version = data[1];
+		if (eeprom_version != 2) {
+			PX4_ERR("Unsupported EEPROM version from ESC");
+			return -1;
+		}
+
+		AM32_EEprom_st* esc_info = (AM32_EEprom_st*)buffer.buffer;
+
+		*fw_version_major = esc_info->version.major;
+		*fw_version_minor = esc_info->version.minor;
+		return 0;
+	}
+	else {
+		//PX4_ERR("Unsupported ESC type, this function only supports AM32");
+
+		switch (version) {
+		case ESCVersionInfo::KissV1:
+			*fw_version_major = data[12];
+			*fw_version_minor = (data[13] & 0x1f) + 97;
+			break;
+		case ESCVersionInfo::KissV2:
+		case ESCVersionInfo::BLHELI32:
+			*fw_version_major = data[13];
+			*fw_version_minor = data[14];
+			break;
+		case ESCVersionInfo::AM32:
+			// AM32 is handled above, should not get to this case
+			return -1;
+		}
+
+		return -2;
+	}
+}
+
+int DShotTelemetry::setBaudrate(unsigned baud)
+{
+	int speed;
+
+	switch (baud) {
+	case 9600:   speed = B9600;   break;
+
+	case 19200:  speed = B19200;  break;
+
+	case 38400:  speed = B38400;  break;
+
+	case 57600:  speed = B57600;  break;
+
+	case 115200: speed = B115200; break;
+
+	case 230400: speed = B230400; break;
+
+	default:
+		return -EINVAL;
+	}
+
+	struct termios uart_config;
+
+	int termios_state;
+
+	/* fill the struct for the new configuration */
+	tcgetattr(_uart_fd, &uart_config);
+
+	//
+	// Input flags - Turn off input processing
+	//
+	// convert break to null byte, no CR to NL translation,
+	// no NL to CR translation, don't mark parity errors or breaks
+	// no input parity check, don't strip high bit off,
+	// no XON/XOFF software flow control
+	//
+	uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL |
+				 INLCR | PARMRK | INPCK | ISTRIP | IXON);
+	//
+	// Output flags - Turn off output processing
+	//
+	// no CR to NL translation, no NL to CR-NL translation,
+	// no NL to CR translation, no column 0 CR suppression,
+	// no Ctrl-D suppression, no fill characters, no case mapping,
+	// no local output processing
+	//
+	// config.c_oflag &= ~(OCRNL | ONLCR | ONLRET |
+	//                     ONOCR | ONOEOT| OFILL | OLCUC | OPOST);
+	uart_config.c_oflag = 0;
+
+	//
+	// No line processing
+	//
+	// echo off, echo newline off, canonical mode off,
+	// extended input processing off, signal chars off
+	//
+	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
+
+	/* no parity, one stop bit, disable flow control */
+	uart_config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
+
+	/* set baud rate */
+	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+		return -errno;
+	}
+
+	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+		return -errno;
+	}
+
+	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
+		return -errno;
+	}
+
+	return 0;
+}
+
