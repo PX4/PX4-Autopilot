@@ -5,7 +5,7 @@ import sys
 
 
 class JsonOutput():
-    def __init__(self, groups, board, inject_xml_file_name):
+    def __init__(self, groups, board, ignored_codes=[]):
         all_json=dict()
         all_json['version']=1
         all_params=[]
@@ -38,19 +38,19 @@ class JsonOutput():
         }
 
         schema_map = {
-                        "short_desc": "shortDesc",
-			"long_desc": "longDesc",
-			"unit": "units",
-			}
+            "short_desc": "shortDesc",
+            "long_desc": "longDesc",
+            "unit": "units",
+            }
         schema_map_typed = {
-			"min": "min",
-			"max": "max",
-			"increment": "increment",
-			}
+            "min": "min",
+            "max": "max",
+            "increment": "increment",
+            }
         schema_map_fix_type = {
-			"reboot_required": ("rebootRequired", bool),
-			"decimal": ("decimalPlaces", int),
-			}
+            "reboot_required": ("rebootRequired", bool),
+            "decimal": ("decimalPlaces", int),
+            }
         allowed_types = { "Uint8", "Int8", "Uint16", "Int16", "Uint32", "Int32", "Float"}
 
         last_param_name = ""
@@ -86,6 +86,10 @@ class JsonOutput():
                     last_param_name = param.GetName()
                     for code in param.GetFieldCodes():
                         value = param.GetFieldValue(code)
+                        # skip ignored codes
+                        if code in ignored_codes:
+                            continue
+
                         if code == "board":
                             if value == board:
                                 board_specific_param_set = True
