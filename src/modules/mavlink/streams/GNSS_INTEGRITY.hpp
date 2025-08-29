@@ -105,7 +105,7 @@ private:
 
 		return false;
 	}
-	
+
 };
 
 #endif // GNSS_INTEGRITY_HPP

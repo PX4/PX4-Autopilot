@@ -86,7 +86,6 @@ void FakeGps::Run()
 	sensor_gps.vel_ned_valid = true;
 	sensor_gps.satellites_used = 14;
 	sensor_gps.timestamp = hrt_absolute_time();
-	sensor_gnss_status.device_id = get_device_id();
 	_sensor_gps_pub.publish(sensor_gps);
 
 	sensor_gnss_status_s sensor_gnss_status{};
@@ -95,7 +94,6 @@ void FakeGps::Run()
 	sensor_gnss_status.quality_gnss_signals = 10;
 	sensor_gnss_status.quality_post_processing = 255;
 	sensor_gnss_status.timestamp = hrt_absolute_time();
-	sensor_gnss_status.device_id = get_device_id();
 	_sensor_gnss_status_pub.publish(sensor_gnss_status);
 }
 
