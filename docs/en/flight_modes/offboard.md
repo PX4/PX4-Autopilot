@@ -44,7 +44,7 @@ The following ROS 2 messages and their particular fields and field values are al
 In addition to providing heartbeat functionality, `OffboardControlMode` has two other main purposes:
 
 1. Controls the level of the [PX4 control architecture](../flight_stack/controller_diagrams.md) at which offboard setpoints must be injected, and disables the bypassed controllers.
-1. Determines which valid estimates (position or velocity) are required, and also which setpoint messages should be used.
+2. Determines which valid estimates (position or velocity) are required, and also which setpoint messages should be used.
 
 The `OffboardControlMode` message is defined as shown.
 
@@ -82,6 +82,10 @@ where ✓ means that the bit is set, ✘ means that the bit is not set and `-` m
 Before using offboard mode with ROS 2, please spend a few minutes understanding the different [frame conventions](../ros2/user_guide.md#ros-2-px4-frame-conventions) that PX4 and ROS 2 use.
 :::
 
+::: warning
+The list above does not apply to rovers. Instead consult the setpoints listed in the [rover section](#rover).
+:::
+
 ### Copter
 
 - [px4_msgs::msg::TrajectorySetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/TrajectorySetpoint.msg)
@@ -104,6 +108,70 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
     - `roll`, `pitch`, `yaw` and `thrust_body`.
 
   - All the values are in the drone body FRD frame. The rates are in \[rad/s\] while thrust_body is normalized in \[-1, 1\].
+
+### Rover
+
+The following setpoints are supported by the rover modules
+
+| Category                         | Usage                   | Setpoints                                                                                                                                                                                                                                                                                                                                                                  |
+| -------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| (Recommended) [Rover Setpoints](#rover-setpoints)    | General rover control   | [RoverPositionSetpoint](../msg_docs/RoverPositionSetpoint.md), [RoverSpeedSetpoint](../msg_docs/RoverSpeedSetpoint.md), [RoverAttitudeSetpoint](../msg_docs/RoverAttitudeSetpoint.md), [RoverRateSetpoint](../msg_docs/RoverRateSetpoint.md), [RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md), [RoverSteeringSetpoint](../msg_docs/RoverSteeringSetpoint.md) |
+| [Actuator Setpoints](#actuator-setpoints)               | Direct actuator control | [ActuatorMotors](../msg_docs/ActuatorMotors.md), [ActuatorServos](../msg_docs/ActuatorServos.md)                                                                                                                                                                                                                                                                           |
+| (Deprecated) [Trajectory Setpoint](#deprecated-trajectory-setpoint) | General vehicle control | [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md)                                                                                                                                                                                                                                                                                                                    |
+#### Rover Setpoints
+
+The rover modules use a hierarchical structure to propogate setpoints:
+
+![Rover Control Structure](../../assets/middleware/ros2/px4_ros2_interface_lib/rover_control_structure.png)
+
+The "highest" setpoint that is provided will be used within the PX4 rover modules to generate the setpoints that are below it (Overriding them!).
+With this hierarchy there are clear rules for providing a valid control input:
+
+- Provide a position setpoint **or**
+- One of the setpoints on the "left" (speed **or** throttle) **and** one of the setpoints on the "right" (attitude, rate **or** steering). All combinations of "left" and "right" setpoints are valid.
+
+The following are all valid setpoint combinations and their respective control flags that must be set trough [OffboardControlMode](../msg_docs/OffboardControlMode.md) (set all others to _false_). Additionally, for some combinations we require certain setpoints to be published with `NAN` values s.t. the setpoints of interest are not overridden by the rover module (due to the hierearchy above). \
+&check; are the relevant setpoints we publish, and &cross; are the setpoint that need to be published with `NAN` values.
+
+| Setpoint Combination | Control Flag      | [RoverPositionSetpoint](../msg_docs/RoverPositionSetpoint.md) | [RoverSpeedSetpoint](../msg_docs/RoverSpeedSetpoint.md) | [RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md) | [RoverAttitudeSetpoint](../msg_docs/RoverAttitudeSetpoint.md) | [RoverRateSetpoint](../msg_docs/RoverRateSetpoint.md) | [RoverSteeringSetpoint](../msg_docs/RoverSteeringSetpoint.md) |
+| -------------------- | ----------------- | ------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------- |
+| Position             | position          | &check;                                                       |                                                         |                                                               |                                                               |                                                       |                                                               |
+| Speed + Attitude     | velocity          |                                                               | &check;                                                 |                                                               | &check;                                                       |                                                       |                                                               |
+| Speed + Rate         | velocity          |                                                               | &check;                                                 |                                                               | &cross;                                                       | &check;                                               |                                                               |
+| Speed + Steering     | velocity          |                                                               | &check;                                                 |                                                               | &cross;                                                       | &cross;                                               | &check;                                                       |
+| Throttle + Attitude  | attitude          |                                                               |                                                         | &check;                                                       | &check;                                                       |                                                       |                                                               |
+| Throttle + Rate      | body_rate         |                                                               |                                                         | &check;                                                       |                                                               | &check;                                               |                                                               |
+| Throttle + Steering  | thrust_and_torque |                                                               |                                                         | &check;                                                       |                                                               |                                                       | &check;                                                       |
+
+::: note
+If you intend to use the rover setpoints, we recommend using the [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) instead since it simplifies the publishing of these setpoints.
+:::
+
+#### Actuator Setpoints
+
+The actuators can be direclty controlled using [ActuatorMotors](../msg_docs/ActuatorMotors.md) and [ActuatorServos](../msg_docs/ActuatorServos.md). In [OffboardControlMode](../msg_docs/OffboardControlMode.md) set `direct_actuator` to _true_ and all other flags to _false_.
+
+::: note
+This bypasses the rover modules including any limits on steering rates or accelerations and the inverse kinematics step. We recommend using [RoverSteeringSetpoint](../msg_docs/RoverSteeringSetpoint.md) and [RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md) instead for low level control (see [Rover Setpoints](#rover-setpoints)).
+:::
+
+#### (Deprecated) Trajectory Setpoint
+
+::: warning
+The [Rover Setpoints](#rover-setpoints) are a replacement for the [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) and we highly recommend using those instead as they have a well defined behaviour and offer more flexibility.
+:::
+
+The rover modules support the _position_, _velocity_ and _yaw_ fields of the [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md). However, only one of the fields is active at a time and is defined by the flags of [OffboardControlMode](../msg_docs/OffboardControlMode.md):
+
+| Control Mode Flag | Active Trajectory Setpoint Field |
+| ----------------- | -------------------------------- |
+| position          | position                         |
+| velocity          | velocity                         |
+| attitude          | yaw                              |
+
+::: note
+Ackermann rovers do not support the yaw setpoint.
+:::
 
 ### Generic Vehicle
 
