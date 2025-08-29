@@ -582,6 +582,16 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 		returned_state.cause = Cause::Generic;
 
 	// fallthrough
+	case Action::DeadReckoningRTL:
+		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL_DEAD_RECKONING)
+		    && _param_com_pos_fs_act.get() == 1) {
+			selected_action = Action::DeadReckoningRTL;
+			break;
+		}
+
+		returned_state.cause = Cause::Generic;
+
+	// fallthrough
 	case Action::Land:
 		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)) {
 			selected_action = Action::Land;
@@ -680,6 +690,8 @@ uint8_t FailsafeBase::modeFromAction(const Action &action, uint8_t user_intended
 	case Action::Hold: return vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 
 	case Action::RTL: return vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+
+	case Action::DeadReckoningRTL: return vehicle_status_s::NAVIGATION_STATE_AUTO_RTL_DEAD_RECKONING;
 
 	case Action::Land: return vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
