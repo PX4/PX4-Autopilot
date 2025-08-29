@@ -47,7 +47,8 @@
 #include <uORB/topics/gimbal_device_attitude_status.h>
 #include <uORB/topics/vehicle_command.h>
 
-#include "Sticks.hpp"
+#include <lib/sticks/Sticks.hpp>
+
 
 
 class Gimbal : public ModuleParams

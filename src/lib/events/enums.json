@@ -604,6 +604,10 @@
                             "name": "external8",
                             "description": "External 8"
                         },
+                        "24": {
+                            "name": "manual_altitude_cruise",
+                            "description": "altitude_cruise"
+                        },
                         "255": {
                             "name": "unknown",
                             "description": "[Unknown]"
