@@ -232,29 +232,22 @@ void RocketModeManager::handle_waiting_launch_phase()
 
 		if (_vehicle_local_position.timestamp > 0 && _sensor_accel.timestamp > 0) {
 			const float current_altitude = -_vehicle_local_position.z; // NED frame
-			const float vertical_velocity = _vehicle_local_position.vz;
 
-			// Calculate total acceleration magnitude
-			const float accel_magnitude = sqrtf(_sensor_accel.x * _sensor_accel.x +
-			                                   _sensor_accel.y * _sensor_accel.y +
-			                                   _sensor_accel.z * _sensor_accel.z);
+			// Use forward (X) acceleration only for launch detection
+			const float accel_x = fabsf(_sensor_accel.x);
 
-			// Launch detection criteria: high acceleration OR significant upward velocity
 			if (_rocket_state == RocketState::WAITING_LAUNCH) {
 				const float launch_accel_threshold = _param_rocket_launch_a.get(); // e.g., 15 m/s^2
-				const float launch_vel_threshold = _param_rocket_launch_v.get();     // e.g., -3 m/s (upward)
 
-				   if (!_launch_detected &&
-					   (accel_magnitude > launch_accel_threshold || vertical_velocity <= launch_vel_threshold)) {
-
-					PX4_INFO("Launch detected! Accel: %.1f m/s^2, Vel: %.1f m/s", (double)accel_magnitude, (double)vertical_velocity);
+				if (!_launch_detected && (accel_x > launch_accel_threshold)) {
+					PX4_INFO("Launch detected! Accel X: %.1f m/s^2", (double)accel_x);
 					_launch_detected = true;
 					_launch_detect_time = hrt_absolute_time();
 					_rocket_state = RocketState::ROCKET_BOOST;
 					_max_altitude = current_altitude; // Initialize max altitude tracking
 
 					announce_transition("LAUNCH DETECTED");
-				   }
+				}
 			}
 		}
 	}
@@ -266,24 +259,21 @@ void RocketModeManager::handle_rocket_boost_phase()
 
 	if (_vehicle_local_position.timestamp > 0 && _sensor_accel.timestamp > 0) {
 		const float current_altitude = -_vehicle_local_position.z; // NED frame
-		//const float vertical_velocity = _vehicle_local_position.vz;
 
 		// Track maximum altitude
 		if (current_altitude > _max_altitude) {
 			_max_altitude = current_altitude;
 		}
 
-		// Calculate total acceleration magnitude
-		const float accel_magnitude = sqrtf(_sensor_accel.x * _sensor_accel.x +
-		                                   _sensor_accel.y * _sensor_accel.y +
-		                                   _sensor_accel.z * _sensor_accel.z);
+		// Use forward (X) acceleration only for boost end detection
+		const float accel_x = fabsf(_sensor_accel.x);
 
-		// End of boost detection: acceleration drops below threshold
+		// End of boost detection: forward acceleration drops below threshold
 		if (_rocket_state == RocketState::ROCKET_BOOST) {
 			const float boost_end_accel_threshold = _param_rocket_boost_a.get(); // e.g., 12 m/s^2
 
-			if (accel_magnitude < boost_end_accel_threshold) {
-				PX4_INFO("Boost phase ended, transitioning to coast. Accel: %.1f m/s^2", (double)accel_magnitude);
+			if (accel_x < boost_end_accel_threshold) {
+				PX4_INFO("Boost phase ended, transitioning to coast. Accel X: %.1f m/s^2", (double)accel_x);
 				_rocket_state = RocketState::ROCKET_COAST;
 				_boost_end_time = hrt_absolute_time();
 				_coast_start_time = hrt_absolute_time();
@@ -533,9 +523,9 @@ void RocketModeManager::configure_fixedwing_ca_parameters()
 	configure_fixedwing_ca_parameters();
 
 	// Update available navigation states to all fixed-wing modes
-	int32_t fw_mask = 0x0000007F; // Allow standard fixed-wing modes
-	_param_rocket_nav_mask.set(fw_mask);
-	_param_rocket_nav_mask.commit_no_notification();
+	//int32_t fw_mask = 0x0000007F; // Allow standard fixed-wing modes
+	//_param_rocket_nav_mask.set(fw_mask);
+	//_param_rocket_nav_mask.commit_no_notification();
 
 	// Request mode switch to manual mode for fixed-wing
 	action_request_s action_request{};

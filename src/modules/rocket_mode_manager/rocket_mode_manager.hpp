@@ -170,7 +170,6 @@ private:
 	DEFINE_PARAMETERS(
 			   (ParamFloat<px4::params::RKT_ALT_THRESH>) _param_rocket_alt_thresh,
 			   (ParamFloat<px4::params::RKT_LAUNCH_A>) _param_rocket_launch_a,
-			   (ParamFloat<px4::params::RKT_LAUNCH_V>) _param_rocket_launch_v,
 			   (ParamFloat<px4::params::RKT_BOOST_A>) _param_rocket_boost_a,
 			   (ParamFloat<px4::params::RKT_BOOST_T>) _param_rocket_boost_t,
 			   (ParamFloat<px4::params::RKT_COAST_T>) _param_rocket_coast_t,
