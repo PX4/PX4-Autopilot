@@ -263,6 +263,7 @@ set(msg_files
 	versioned/VehicleCommandAck.msg
 	versioned/VehicleCommand.msg
 	versioned/VehicleControlMode.msg
+	versioned/VehicleFullState.msg
 	versioned/VehicleGlobalPosition.msg
 	versioned/VehicleLandDetected.msg
 	versioned/VehicleLocalPosition.msg
