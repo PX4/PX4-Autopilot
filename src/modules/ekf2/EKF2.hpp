@@ -188,8 +188,9 @@ private:
 	void PublishInnovations(const hrt_abstime &timestamp);
 	void PublishInnovationTestRatios(const hrt_abstime &timestamp);
 	void PublishInnovationVariances(const hrt_abstime &timestamp);
-	void PublishLocalPosition(const hrt_abstime &timestamp);
-	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample);
+	void PublishLocalPosition(const hrt_abstime &timestamp, const matrix::Vector3f &vel_deriv);
+	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample,
+				const matrix::Vector3f &vel_deriv);
 	void PublishSensorBias(const hrt_abstime &timestamp);
 	void PublishStates(const hrt_abstime &timestamp);
 	void PublishStatus(const hrt_abstime &timestamp);

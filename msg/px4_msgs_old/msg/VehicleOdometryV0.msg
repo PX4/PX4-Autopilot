@@ -1,6 +1,6 @@
 # Vehicle odometry data. Fits ROS REP 147 for aerial vehicles
 
-uint32 MESSAGE_VERSION = 1
+uint32 MESSAGE_VERSION = 0
 
 uint64 timestamp		# time since system start (microseconds)
 uint64 timestamp_sample
@@ -21,9 +21,7 @@ uint8 velocity_frame        # Reference frame of the velocity data
 
 float32[3] velocity         # Velocity in meters/sec. Frame of reference defined by velocity_frame variable. NaN if invalid/unknown
 
-float32[3] acceleration     # Acceleration of body origin in NED local frame (m/s^2). NaN if invalid/unknown
-
-float32[3] angular_velocity # Angular velocity in body-fixed frame (rad/s). NaN if invalid/unknown
+float32[3] angular_velocity # Angular velocity in body-fixed frame (rad/s). Zeros if invalid/unknown
 
 float32[3] position_variance
 float32[3] orientation_variance

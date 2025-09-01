@@ -786,8 +786,10 @@ void EKF2::Run()
 		if (_ekf.update()) {
 			perf_set_elapsed(_ekf_update_perf, hrt_elapsed_time(&ekf_update_start));
 
-			PublishLocalPosition(now);
-			PublishOdometry(now, imu_sample_new);
+			const matrix::Vector3f vel_deriv = _ekf.getVelocityDerivative(); // get avg over window once
+			PublishLocalPosition(now, vel_deriv);
+			PublishOdometry(now, imu_sample_new, vel_deriv);
+			_ekf.resetVelocityDerivativeAccumulation(); // reset after use
 			PublishGlobalPosition(now);
 			PublishSensorBias(now);
 
@@ -1536,7 +1538,7 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 	_estimator_innovation_variances_pub.publish(variances);
 }
 
-void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
+void EKF2::PublishLocalPosition(const hrt_abstime &timestamp, const matrix::Vector3f &vel_deriv)
 {
 	vehicle_local_position_s lpos{};
 	// generate vehicle local position data
@@ -1558,8 +1560,6 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.z_deriv = _ekf.getVerticalPositionDerivative();
 
 	// Acceleration of body origin in local frame
-	const Vector3f vel_deriv{_ekf.getVelocityDerivative()};
-	_ekf.resetVelocityDerivativeAccumulation();
 	lpos.ax = vel_deriv(0);
 	lpos.ay = vel_deriv(1);
 	lpos.az = vel_deriv(2);
@@ -1659,7 +1659,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	_local_position_pub.publish(lpos);
 }
 
-void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample)
+void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample, const matrix::Vector3f &vel_deriv)
 {
 	// generate vehicle odometry data
 	vehicle_odometry_s odom;
@@ -1675,6 +1675,9 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sa
 	// velocity
 	odom.velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_NED;
 	_ekf.getVelocity().copyTo(odom.velocity);
+
+	// acceleration
+	vel_deriv.copyTo(odom.acceleration);
 
 	// angular_velocity
 	_ekf.getAngularVelocityAndResetAccumulator().copyTo(odom.angular_velocity);
