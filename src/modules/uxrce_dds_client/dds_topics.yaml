@@ -101,10 +101,6 @@ publications:
     type: px4_msgs::msg::Wind
     rate_limit: 1.
 
-  - topic: /fmu/out/vehicle_full_state
-    type: px4_msgs::msg::VehicleFullState
-    rate_limit: 50.
-
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
