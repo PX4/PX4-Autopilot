@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -32,76 +32,17 @@
  ****************************************************************************/
 
 /**
- * Simulator Gazebo bridge enable
+ * @file zenoh_params.c
  *
- * @boolean
- * @reboot_required true
- * @group UAVCAN
+ * Parameters defined by Zenoh
+ *
+ * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
-PARAM_DEFINE_INT32(SIM_GZ_EN, 0);
 
 /**
- * Enable laser/lidar sensors in Gazebo bridge
+ * ROS2 RMW_ZENOH_CPP Domain id
  *
- * @boolean
- * @reboot_required true
- * @group Simulation
- * @value 0 Disabled
- * @value 1 Enabled
+ * @min 0
+ * @max 232
  */
-PARAM_DEFINE_INT32(SIM_GZ_EN_LIDAR, 1);
-
-/**
- * Enable optical flow sensor in Gazebo bridge
- *
- * @boolean
- * @reboot_required true
- * @group Simulation
- * @value 0 Disabled
- * @value 1 Enabled
- */
-PARAM_DEFINE_INT32(SIM_GZ_EN_FLOW, 1);
-
-/**
- * Enable airspeed sensor in Gazebo bridge
- *
- * @boolean
- * @reboot_required true
- * @group Simulation
- * @value 0 Disabled
- * @value 1 Enabled
- */
-PARAM_DEFINE_INT32(SIM_GZ_EN_ASPD, 1);
-
-/**
- * Enable barometer/air pressure sensor in Gazebo bridge
- *
- * @boolean
- * @reboot_required true
- * @group Simulation
- * @value 0 Disabled
- * @value 1 Enabled
- */
-PARAM_DEFINE_INT32(SIM_GZ_EN_BARO, 1);
-
-/**
- * Enable odometry in Gazebo bridge
- *
- * @boolean
- * @reboot_required true
- * @group Simulation
- * @value 0 Disabled
- * @value 1 Enabled
- */
-PARAM_DEFINE_INT32(SIM_GZ_EN_ODOM, 1);
-
-/**
- * Enable GPS/NavSat sensor in Gazebo bridge
- *
- * @boolean
- * @reboot_required true
- * @group Simulation
- * @value 0 Disabled
- * @value 1 Enabled
- */
-PARAM_DEFINE_INT32(SIM_GZ_EN_GPS, 1);
+PARAM_DEFINE_INT32(ZENOH_DOMAIN_ID, 0);

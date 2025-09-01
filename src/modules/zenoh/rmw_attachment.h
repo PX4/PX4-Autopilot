@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,76 +32,26 @@
  ****************************************************************************/
 
 /**
- * Simulator Gazebo bridge enable
+ * @file rmw_attachment.h
  *
- * @boolean
- * @reboot_required true
- * @group UAVCAN
+ * ROS2 RMW Attachment helper
+ *
+ * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
-PARAM_DEFINE_INT32(SIM_GZ_EN, 0);
 
-/**
- * Enable laser/lidar sensors in Gazebo bridge
- *
- * @boolean
- * @reboot_required true
- * @group Simulation
- * @value 0 Disabled
- * @value 1 Enabled
- */
-PARAM_DEFINE_INT32(SIM_GZ_EN_LIDAR, 1);
+#include <zenoh-pico.h>
 
-/**
- * Enable optical flow sensor in Gazebo bridge
- *
- * @boolean
- * @reboot_required true
- * @group Simulation
- * @value 0 Disabled
- * @value 1 Enabled
- */
-PARAM_DEFINE_INT32(SIM_GZ_EN_FLOW, 1);
+#pragma once
 
-/**
- * Enable airspeed sensor in Gazebo bridge
- *
- * @boolean
- * @reboot_required true
- * @group Simulation
- * @value 0 Disabled
- * @value 1 Enabled
- */
-PARAM_DEFINE_INT32(SIM_GZ_EN_ASPD, 1);
+/* Derived from ROS2 rmw https://github.com/ros2/rmw/blob/e6addf2411b8ee8a2ac43d691533b8c05ae8f1b6/rmw/include/rmw/types.h#L44 */
+#define RMW_GID_STORAGE_SIZE 16u
 
-/**
- * Enable barometer/air pressure sensor in Gazebo bridge
- *
- * @boolean
- * @reboot_required true
- * @group Simulation
- * @value 0 Disabled
- * @value 1 Enabled
- */
-PARAM_DEFINE_INT32(SIM_GZ_EN_BARO, 1);
+/* See rmw_zenoh design.md for more information https://github.com/ros2/rmw_zenoh/blob/rolling/docs/design.md#publishers */
+#define RMW_ATTACHEMENT_SIZE (8u + 8u + 1u + RMW_GID_STORAGE_SIZE)
 
-/**
- * Enable odometry in Gazebo bridge
- *
- * @boolean
- * @reboot_required true
- * @group Simulation
- * @value 0 Disabled
- * @value 1 Enabled
- */
-PARAM_DEFINE_INT32(SIM_GZ_EN_ODOM, 1);
-
-/**
- * Enable GPS/NavSat sensor in Gazebo bridge
- *
- * @boolean
- * @reboot_required true
- * @group Simulation
- * @value 0 Disabled
- * @value 1 Enabled
- */
-PARAM_DEFINE_INT32(SIM_GZ_EN_GPS, 1);
+typedef struct __attribute__((__packed__)) RmwAttachment {
+	int64_t sequence_number;
+	int64_t time;
+	uint8_t rmw_gid_size;
+	uint8_t rmw_gid[RMW_GID_STORAGE_SIZE];
+} RmwAttachment;

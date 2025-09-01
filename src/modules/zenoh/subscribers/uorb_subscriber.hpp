@@ -49,29 +49,60 @@
 class uORB_Zenoh_Subscriber : public Zenoh_Subscriber
 {
 public:
-	uORB_Zenoh_Subscriber(const orb_metadata *meta, const uint32_t *ops) :
+	// d_instance: < (default if not in CSV) if we should create a new instance (safe), nonzero if we should use the 0 instance
+	uORB_Zenoh_Subscriber(const orb_metadata *meta, const uint32_t *ops, int d_instance) :
 		Zenoh_Subscriber(),
 		_uorb_meta{meta},
 		_cdr_ops(ops)
 	{
-		int instance = 0;
-		_uorb_pub_handle = orb_advertise_multi(_uorb_meta, nullptr, &instance);
+		if (d_instance < 0) { // default=-1; allocate a new instance
+			int instance;
+			_uorb_pub_handle = orb_advertise_multi(_uorb_meta, nullptr, &instance);
+
+		} else {
+			_uorb_pub_handle = orb_advertise(_uorb_meta, nullptr);
+		}
 	};
 
-	~uORB_Zenoh_Subscriber() override = default;
+	~uORB_Zenoh_Subscriber()
+	{
+		undeclare_subscriber();
+		orb_unadvertise(_uorb_pub_handle);
+	}
 
 	// Update the uORB Subscription and broadcast a Zenoh ROS2 message
 	void data_handler(const z_loaned_sample_t *sample)
 	{
 		char data[_uorb_meta->o_size];
 
+		// TODO process rmw_zenoh attachment
 		const z_loaned_bytes_t *payload = z_sample_payload(sample);
 		size_t len = z_bytes_len(payload);
 
-		dds_istream_t is = {.m_buffer = (unsigned char *)(payload), .m_size = static_cast<int>(len),
-				    .m_index = 4, .m_xcdr_version = DDSI_RTPS_CDR_ENC_VERSION_2
-				   };
-		dds_stream_read(&is, data, &dds_allocator, _cdr_ops);
+#if defined(Z_FEATURE_UNSTABLE_API)
+		// Check if payload is contiguous so we can decode directly on that pointer
+		z_view_slice_t view;
+
+		if (z_bytes_get_contiguous_view(payload, &view) == Z_OK) {
+			const uint8_t *ptr = z_slice_data(z_loan(view));
+
+			dds_istream_t is = {.m_buffer = (unsigned char *)(ptr + 4), .m_size = static_cast<int>(len),
+					    .m_index = 0, .m_xcdr_version = DDSI_RTPS_CDR_ENC_VERSION_1
+					   };
+			dds_stream_read(&is, data, &dds_allocator, _cdr_ops);
+
+		} else
+#endif
+		{
+			unsigned char reassembled_payload[len];
+			z_bytes_reader_t reader = z_bytes_get_reader(payload);
+			z_bytes_reader_read(&reader, reassembled_payload, len);
+
+			dds_istream_t is = {.m_buffer = &reassembled_payload[4], .m_size = static_cast<int>(len),
+					    .m_index = 0, .m_xcdr_version = DDSI_RTPS_CDR_ENC_VERSION_1
+					   };
+			dds_stream_read(&is, data, &dds_allocator, _cdr_ops);
+		}
 
 		// As long as we don't have timesynchronization between Zenoh nodes
 		// we've to manually set the timestamp

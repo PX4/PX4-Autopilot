@@ -759,6 +759,10 @@ GPS::run()
 			ubx_mode = GPSDriverUBX::UBXMode::RoverWithStaticBaseUart2;
 			break;
 
+		case 6:
+			ubx_mode = GPSDriverUBX::UBXMode::GroundControlStation;
+			break;
+
 		default:
 			break;
 

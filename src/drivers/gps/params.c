@@ -94,6 +94,7 @@ PARAM_DEFINE_INT32(GPS_SAT_INFO, 0);
  * F9P units are connected to each other.
  * Modes 3 and 4 only require UART1 on each F9P connected to the Autopilot or Can Node. UART RX DMA is required.
  * RTK is still possible with this setup.
+ * Mode 6 is intended for use with a ground control station (not necessarily an RTK correction base).
  *
  * @min 0
  * @max 1
@@ -103,6 +104,7 @@ PARAM_DEFINE_INT32(GPS_SAT_INFO, 0);
  * @value 3 Heading (Rover With Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
  * @value 4 Moving Base (Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
  * @value 5 Rover with Static Base on UART2 (similar to Default, except coming in on UART2)
+ * @value 6 Ground Control Station (UART2 outputs NMEA)
  *
  * @reboot_required true
  * @group GPS

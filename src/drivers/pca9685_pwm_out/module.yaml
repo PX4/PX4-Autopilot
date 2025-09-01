@@ -19,6 +19,16 @@ actuator_output:
 parameters:
   - group: Actuator Outputs
     definitions:
+      PCA9685_EN_BUS:
+        description:
+          short: Enable the PCA9685 output driver
+          long: |
+            Enable the PCA9685 output driver.
+            The integer refers to the I2C bus number where PCA9685 is connected.
+        type: int32
+        min: 0
+        max: 10
+        default: 0
       PCA9685_SCHD_HZ:
         description:
           short: PWM update rate

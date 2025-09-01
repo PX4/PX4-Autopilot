@@ -53,6 +53,8 @@ public:
 	 * @return nav_state or the mode that nav_state replaces
 	 */
 	virtual uint8_t getReplacedModeIfAny(uint8_t nav_state) = 0;
+
+	virtual uint8_t onDisarm(uint8_t stored_nav_state) = 0;
 };
 
 

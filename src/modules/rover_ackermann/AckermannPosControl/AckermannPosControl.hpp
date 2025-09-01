@@ -41,7 +41,6 @@
 #include <matrix/matrix/math.hpp>
 #include <lib/pure_pursuit/PurePursuit.hpp>
 #include <math.h>
-#include <lib/geo/geo.h>
 
 // uORB includes
 #include <uORB/Publication.hpp>
@@ -80,6 +79,11 @@ public:
 	 */
 	bool runSanityChecks();
 
+	/**
+	 * @brief Reset position controller.
+	 */
+	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_limit.get(); _stopped = false;};
+
 protected:
 	/**
 	 * @brief Update the parameters of the module.
@@ -97,7 +101,6 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _rover_position_setpoint_sub{ORB_ID(rover_position_setpoint)};
 	uORB::Subscription _position_controller_status_sub{ORB_ID(position_controller_status)};
-	rover_position_setpoint_s _rover_position_setpoint{};
 
 	// uORB publications
 	uORB::Publication<rover_speed_setpoint_s> _rover_speed_setpoint_pub{ORB_ID(rover_speed_setpoint)};
@@ -108,14 +111,17 @@ private:
 	Quatf _vehicle_attitude_quaternion{};
 	Vector2f _curr_pos_ned{};
 	Vector2f _start_ned{};
+	Vector2f _target_waypoint_ned{};
 	float _arrival_speed{0.f};
 	float _vehicle_yaw{0.f};
 	float _max_yaw_rate{0.f};
 	float _acceptance_radius{0.f}; // Acceptance radius for the waypoint.
 	float _min_speed{NAN};
-
-	// Class Instances
-	MapProjection _global_ned_proj_ref{}; // Transform global to NED coordinates
+	float _vehicle_speed{0.f};
+	float _cruising_speed{NAN};
+	bool _stopped{false};
+	uint8_t _reset_counter{0}; /**< counter for estimator resets in xy-direction */
+	uint8_t _updated_reset_counter{0}; /**< counter for estimator resets in xy-direction */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
@@ -128,6 +134,7 @@ private:
 		(ParamFloat<px4::params::PP_LOOKAHD_MIN>)   _param_pp_lookahd_min,
 		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
 		(ParamFloat<px4::params::RA_WHEEL_BASE>)    _param_ra_wheel_base,
-		(ParamFloat<px4::params::RA_MAX_STR_ANG>)   _param_ra_max_str_ang
+		(ParamFloat<px4::params::RA_MAX_STR_ANG>)   _param_ra_max_str_ang,
+		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th
 	)
 };

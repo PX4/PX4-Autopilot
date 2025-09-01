@@ -98,7 +98,7 @@ void RoverMecanum::Run()
 void RoverMecanum::generateSetpoints()
 {
 	vehicle_status_s vehicle_status{};
-	_vehicle_status_sub.update(&vehicle_status);
+	_vehicle_status_sub.copy(&vehicle_status);
 
 	switch (vehicle_status.nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
@@ -183,6 +183,7 @@ void RoverMecanum::runSanityChecks()
 
 void RoverMecanum::reset()
 {
+	_mecanum_pos_control.reset();
 	_mecanum_speed_control.reset();
 	_mecanum_att_control.reset();
 	_mecanum_rate_control.reset();

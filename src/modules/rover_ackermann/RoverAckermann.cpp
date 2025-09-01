@@ -97,7 +97,7 @@ void RoverAckermann::Run()
 void RoverAckermann::generateSetpoints()
 {
 	vehicle_status_s vehicle_status{};
-	_vehicle_status_sub.update(&vehicle_status);
+	_vehicle_status_sub.copy(&vehicle_status);
 
 	switch (vehicle_status.nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
@@ -182,6 +182,7 @@ void RoverAckermann::runSanityChecks()
 
 void RoverAckermann::reset()
 {
+	_ackermann_pos_control.reset();
 	_ackermann_speed_control.reset();
 	_ackermann_att_control.reset();
 	_ackermann_rate_control.reset();
