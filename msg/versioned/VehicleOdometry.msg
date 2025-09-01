@@ -23,7 +23,7 @@ float32[3] velocity         # Velocity in meters/sec. Frame of reference defined
 
 float32[3] acceleration     # Acceleration of body origin in NED local frame (m/s^2). NaN if invalid/unknown
 
-float32[3] angular_velocity # Angular velocity in body-fixed frame (rad/s). NaN if invalid/unknown
+float32[3] angular_velocity # Angular velocity in body-fixed frame (rad/s). Zeros if invalid/unknown
 
 float32[3] position_variance
 float32[3] orientation_variance
