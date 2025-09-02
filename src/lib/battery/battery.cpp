@@ -388,6 +388,10 @@ float Battery::computeRemainingTime(float current_a)
 		time_remaining_s = remaining_capacity_mah / current_ma * 3600.f;
 	}
 
+	PX4_INFO("state of charge: %f", (double)_state_of_charge);
+	PX4_INFO("current_a: %f", (double)current_a);
+	PX4_INFO("current_average_a: %f", (double)_current_average_filter_a.getState());
+	PX4_INFO("time_remaining_s: %f", (double)time_remaining_s);
 	return time_remaining_s;
 }
 

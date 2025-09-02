@@ -219,6 +219,12 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 		return;
 	}
 
+	// Update the BAT Parameters based on CBAT message
+	if (!_param_updated) {
+		updateBatteryParams(instance, msg.full_charge_capacity, msg.cell_count);
+		_param_updated = true;
+	}
+
 	// If CBAT message with superset of data was received, skip BatteryInfo messages
 	_batt_update_mod[instance] = BatteryDataType::CBAT;
 
@@ -247,12 +253,9 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 	_battery_status[instance].id = msg.getSrcNodeID().get();
 	_battery_status[instance].is_powering_off = msg.is_powering_off;
 
-	// For time remaining calculation use the average current if supplied
-	const float remaining_ah = msg.remaining_capacity / 1000.f; // mAh -> Ah
-	const float current_a = math::isZero(_battery_status[instance].current_average_a) ?
-				_battery_status[instance].current_a : _battery_status[instance].current_average_a;
-	_battery_status[instance].time_remaining_s =
-		math::isZero(current_a) ? NAN : (remaining_ah / current_a * 3600.f); // Ah / A = h * 3600 = s
+	// use Battery class for time_remaining calculation
+	_battery[instance]->setStateOfCharge(msg.state_of_charge / 100.f);
+	_battery_status[instance].time_remaining_s = _battery[instance]->computeRemainingTime(-msg.current);
 
 	for (uint8_t i = 0; i < _battery_status[instance].cell_count; i++) {
 		_battery_status[instance].voltage_cell_v[i] = msg.voltage_cell[i];
@@ -348,4 +351,15 @@ UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equi
 	snprintf(_battery_info[instance].serial_number, sizeof(_battery_info[instance].serial_number), "%" PRIu32,
 		 msg.model_instance_id);
 	_battery_info_pub[instance].publish(_battery_info[instance]);
+}
+
+void
+UavcanBatteryBridge::updateBatteryParams(uint8_t instance, float capacity, uint32_t cell_count)
+{
+	char param_name[17];
+	snprintf(param_name, sizeof(param_name), "BAT%d_CAPACITY", instance + 1);
+	param_set(param_find(param_name), &capacity);
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_N_CELLS", instance + 1);
+	param_set(param_find(param_name), &cell_count);
 }
