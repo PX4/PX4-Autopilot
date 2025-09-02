@@ -593,8 +593,6 @@ void Ekf::resetMagHeading(const Vector3f &mag)
 	// update quaternion states and corresponding covarainces
 	resetQuatStateYaw(yaw_new, yaw_new_variance);
 
-	_time_last_heading_fuse = _time_delayed_us;
-
 	_mag_heading_innov_lpf.reset(0.f);
 	_control_status.flags.mag_heading_consistent = true;
 }
