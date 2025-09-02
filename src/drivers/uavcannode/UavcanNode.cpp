@@ -505,12 +505,16 @@ void UavcanNode::Run()
 
 			if (can_init_res < 0) {
 				PX4_ERR("CAN driver init failed %i", can_init_res);
+				ScheduleClear();
+				return;
 			}
 
 			int rv = _node.start();
 
 			if (rv < 0) {
 				PX4_ERR("Failed to start the node");
+				ScheduleClear();
+				return;
 			}
 
 			// If the node_id was not supplied by the bootloader do Dynamic Node ID allocation
@@ -528,6 +532,8 @@ void UavcanNode::Run()
 
 				if (client_start_res < 0) {
 					PX4_ERR("Failed to start the dynamic node ID client");
+					ScheduleClear();
+					return;
 				}
 			}
 		}
