@@ -76,6 +76,7 @@
 #include "vehicle_angular_velocity/VehicleAngularVelocity.hpp"
 #include "vehicle_air_data/VehicleAirData.hpp"
 #include "vehicle_gps_position/VehicleGPSPosition.hpp"
+#include "vehicle_gnss_heading/VehicleGNSSHeading.hpp"
 #include "vehicle_imu/VehicleIMU.hpp"
 #include "vehicle_magnetometer/VehicleMagnetometer.hpp"
 
@@ -181,6 +182,7 @@ private:
 	VehicleAirData          *_vehicle_air_data{nullptr};
 	VehicleMagnetometer     *_vehicle_magnetometer{nullptr};
 	VehicleGPSPosition	*_vehicle_gps_position{nullptr};
+	VehicleGNSSHeading	   	*_vehicle_gnss_heading{nullptr};
 
 	VehicleIMU      *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
 
@@ -218,6 +220,7 @@ private:
 
 	void		InitializeVehicleAirData();
 	void		InitializeVehicleGPSPosition();
+	void		InitializeVehicleGNSSHeading();
 	void		InitializeVehicleIMU();
 	void		InitializeVehicleMagnetometer();
 
@@ -267,6 +270,7 @@ Sensors::Sensors(bool hil_enabled) :
 
 	InitializeVehicleAirData();
 	InitializeVehicleGPSPosition();
+	InitializeVehicleGNSSHeading();
 	InitializeVehicleIMU();
 	InitializeVehicleMagnetometer();
 }
@@ -289,6 +293,11 @@ Sensors::~Sensors()
 	if (_vehicle_gps_position) {
 		_vehicle_gps_position->Stop();
 		delete _vehicle_gps_position;
+	}
+
+	if (_vehicle_gnss_heading) {
+		_vehicle_gnss_heading->Stop();
+		delete _vehicle_gnss_heading;
 	}
 
 	if (_vehicle_magnetometer) {
@@ -385,6 +394,7 @@ int Sensors::parameters_update()
 
 	InitializeVehicleAirData();
 	InitializeVehicleGPSPosition();
+	InitializeVehicleGNSSHeading();
 	InitializeVehicleMagnetometer();
 
 	return PX4_OK;
@@ -584,6 +594,19 @@ void Sensors::InitializeVehicleGPSPosition()
 
 			if (_vehicle_gps_position) {
 				_vehicle_gps_position->Start();
+			}
+		}
+	}
+}
+
+void Sensors::InitializeVehicleGNSSHeading()
+{
+	if (_param_sys_has_gps.get()) {
+		if (_vehicle_gnss_heading == nullptr) {
+			_vehicle_gnss_heading = new VehicleGNSSHeading();
+
+			if (_vehicle_gnss_heading) {
+				_vehicle_gnss_heading->Start();
 			}
 		}
 	}
@@ -789,6 +812,11 @@ int Sensors::print_status()
 	if (_vehicle_gps_position) {
 		PX4_INFO_RAW("\n");
 		_vehicle_gps_position->PrintStatus();
+	}
+
+	if (_vehicle_gnss_heading) {
+		PX4_INFO_RAW("\n");
+		_vehicle_gnss_heading->PrintStatus();
 	}
 
 	PX4_INFO_RAW("\n");

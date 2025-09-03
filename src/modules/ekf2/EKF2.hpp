@@ -86,6 +86,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_gnss_heading.h>
 #include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -160,6 +161,7 @@ private:
 	bool UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odometry_s &ev_odom);
 	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateGNSSHeadingSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
 
@@ -194,6 +196,7 @@ private:
 	perf_counter_t _msg_missed_airspeed_validated_perf{nullptr};
 	perf_counter_t _msg_missed_distance_sensor_perf{nullptr};
 	perf_counter_t _msg_missed_gps_perf{nullptr};
+	perf_counter_t _msg_missed_gnss_heading_perf{nullptr};
 	perf_counter_t _msg_missed_landing_target_pose_perf{nullptr};
 	perf_counter_t _msg_missed_magnetometer_perf{nullptr};
 	perf_counter_t _msg_missed_odometry_perf{nullptr};
@@ -257,6 +260,7 @@ private:
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_heading_sub{ORB_ID(vehicle_gnss_heading)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};

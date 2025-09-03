@@ -86,6 +86,8 @@ public:
 
 	void setGpsData(const gps_message &gps);
 
+	void setGnssHeadingData(const gnss_heading_message &gnss_heading_sample);
+
 	void setBaroData(const baroSample &baro_sample);
 
 	void setAirspeedData(const airspeedSample &airspeed_sample);
@@ -294,6 +296,7 @@ protected:
 	// measurement samples capturing measurements on the delayed time horizon
 	baroSample _baro_sample_delayed{};
 	gpsSample _gps_sample_delayed{};
+	gnssHeadingSample _gnss_heading_sample_delayed{};
 	sensor::SensorRangeFinder _range_sensor{};
 	airspeedSample _airspeed_sample_delayed{};
 	flowSample _flow_sample_delayed{};
@@ -363,6 +366,7 @@ protected:
 	RingBuffer<outputVert> _output_vert_buffer{12};
 
 	RingBuffer<gpsSample> *_gps_buffer{nullptr};
+	RingBuffer<gnssHeadingSample> *_gnss_heading_buffer{nullptr};
 	RingBuffer<magSample> *_mag_buffer{nullptr};
 	RingBuffer<baroSample> *_baro_buffer{nullptr};
 	RingBuffer<rangeSample> *_range_buffer{nullptr};
@@ -375,6 +379,7 @@ protected:
 	// timestamps of latest in buffer saved measurement in microseconds
 	uint64_t _time_last_imu{0};
 	uint64_t _time_last_gps{0};
+	uint64_t _time_last_gnss_heading{0};
 	uint64_t _time_last_mag{0}; ///< measurement time of last magnetomter sample (uSec)
 	uint64_t _time_last_baro{0};
 	uint64_t _time_last_range{0};

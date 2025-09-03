@@ -51,8 +51,6 @@ void Ekf::controlGpsFusion()
 		const bool gps_checks_passing = isTimedOut(_last_gps_fail_us, (uint64_t)5e6);
 		const bool gps_checks_failing = isTimedOut(_last_gps_pass_us, (uint64_t)5e6);
 
-		controlGpsYawFusion(gps_checks_passing, gps_checks_failing);
-
 		// Determine if we should use GPS aiding for velocity and horizontal position
 		// To start using GPS we need angular alignment completed, the local NED origin set and GPS data that has not failed checks recently
 		const bool mandatory_conditions_passing = _control_status.flags.tilt_align

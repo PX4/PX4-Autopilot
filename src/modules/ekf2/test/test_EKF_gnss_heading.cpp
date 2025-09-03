@@ -55,7 +55,7 @@ public:
 	SensorSimulator _sensor_simulator;
 	EkfWrapper _ekf_wrapper;
 
-	void runConvergenceScenario(float yaw_offset_rad = 0.f, float antenna_offset_rad = 0.f);
+	void runConvergenceScenario(float yaw_offset_rad = 0.f);
 	void checkConvergence(float truth, float tolerance = FLT_EPSILON);
 
 	// Setup the Ekf with synthetic measurements
@@ -69,26 +69,27 @@ public:
 
 		_sensor_simulator.runSeconds(_init_duration_s);
 		_sensor_simulator._gps.setYaw(NAN);
+		_sensor_simulator._gps_yaw.setHeading(NAN);
 		_sensor_simulator.runSeconds(2);
 		_ekf_wrapper.enableGpsFusion();
-		_ekf_wrapper.enableGpsHeadingFusion();
+		_ekf_wrapper.enableGnssHeadingFusion();
 		_sensor_simulator.startGps();
+		_sensor_simulator.startGnssHeading();
 		_sensor_simulator.runSeconds(11);
 	}
 
 	const uint32_t _init_duration_s{4};
 };
 
-void EkfGpsHeadingTest::runConvergenceScenario(float yaw_offset_rad, float antenna_offset_rad)
+void EkfGpsHeadingTest::runConvergenceScenario(float yaw_offset_rad)
 {
 	// GIVEN: an initial GPS yaw, not aligned with the current one
 	float gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + yaw_offset_rad);
 
-	_sensor_simulator._gps.setYaw(gps_heading);
-	_sensor_simulator._gps.setYawOffset(antenna_offset_rad);
+	_sensor_simulator._gps_yaw.setHeading(gps_heading);
 
 	// WHEN: the GPS yaw fusion is activated
-	_ekf_wrapper.enableGpsHeadingFusion();
+	_ekf_wrapper.enableGnssHeadingFusion();
 	_sensor_simulator.runSeconds(5);
 
 	// THEN: the estimate is reset and stays close to the measurement
@@ -108,8 +109,8 @@ TEST_F(EkfGpsHeadingTest, fusionStartWithReset)
 
 	// WHEN: enabling GPS heading fusion and heading difference is bigger than 15 degrees
 	const float gps_heading = _ekf_wrapper.getYawAngle() + math::radians(20.f);
-	_sensor_simulator._gps.setYaw(gps_heading);
-	_ekf_wrapper.enableGpsHeadingFusion();
+	_sensor_simulator._gps_yaw.setHeading(gps_heading);
+	_ekf_wrapper.enableGnssHeadingFusion();
 	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
 	_sensor_simulator.runSeconds(0.4);
 
@@ -121,7 +122,7 @@ TEST_F(EkfGpsHeadingTest, fusionStartWithReset)
 	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), gps_heading, 0.001);
 
 	// WHEN: GPS heading is disabled
-	_sensor_simulator._gps.stop();
+	_sensor_simulator._gps_yaw.stop();
 	_sensor_simulator.runSeconds(11);
 
 	// THEN: after a while the fusion should be stopped
@@ -134,10 +135,10 @@ TEST_F(EkfGpsHeadingTest, yawConvergence)
 	const float initial_yaw = math::radians(10.f);
 	float gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + initial_yaw);
 
-	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator._gps_yaw.setHeading(gps_heading);
 
 	// WHEN: the GPS yaw fusion is activated
-	_ekf_wrapper.enableGpsHeadingFusion();
+	_ekf_wrapper.enableGnssHeadingFusion();
 	_sensor_simulator.runSeconds(5);
 
 	// THEN: the estimate is reset and stays close to the measurement
@@ -145,7 +146,7 @@ TEST_F(EkfGpsHeadingTest, yawConvergence)
 
 	// AND WHEN: the the measurement changes
 	gps_heading += math::radians(2.f);
-	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator._gps_yaw.setHeading(gps_heading);
 	_sensor_simulator.runSeconds(20);
 
 	// THEN: the estimate slowly converges to the new measurement
@@ -161,29 +162,25 @@ TEST_F(EkfGpsHeadingTest, yaw0)
 TEST_F(EkfGpsHeadingTest, yaw60)
 {
 	const float yaw_offset_rad = math::radians(60.f);
-	const float antenna_offset_rad = math::radians(80.f);
-	runConvergenceScenario(yaw_offset_rad, antenna_offset_rad);
+	runConvergenceScenario(yaw_offset_rad);
 }
 
 TEST_F(EkfGpsHeadingTest, yaw180)
 {
 	const float yaw_offset_rad = math::radians(180.f);
-	const float antenna_offset_rad = math::radians(-20.f);
-	runConvergenceScenario(yaw_offset_rad, antenna_offset_rad);
+	runConvergenceScenario(yaw_offset_rad);
 }
 
 TEST_F(EkfGpsHeadingTest, yawMinus120)
 {
 	const float yaw_offset_rad = math::radians(120.f);
-	const float antenna_offset_rad = math::radians(-42.f);
-	runConvergenceScenario(yaw_offset_rad, antenna_offset_rad);
+	runConvergenceScenario(yaw_offset_rad);
 }
 
 TEST_F(EkfGpsHeadingTest, yawMinus30)
 {
 	const float yaw_offset_rad = math::radians(-30.f);
-	const float antenna_offset_rad = math::radians(10.f);
-	runConvergenceScenario(yaw_offset_rad, antenna_offset_rad);
+	runConvergenceScenario(yaw_offset_rad);
 }
 
 TEST_F(EkfGpsHeadingTest, fallBackToMag)
@@ -193,7 +190,7 @@ TEST_F(EkfGpsHeadingTest, fallBackToMag)
 	// to the filter
 	_sensor_simulator.runSeconds(6);
 	float gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + math::radians(10.f));
-	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator._gps_yaw.setHeading(gps_heading);
 
 	// WHEN: the GPS yaw fusion is activated
 	_sensor_simulator.runSeconds(1);
@@ -208,7 +205,7 @@ TEST_F(EkfGpsHeadingTest, fallBackToMag)
 
 	// BUT WHEN: the GPS yaw is suddenly invalid
 	gps_heading = NAN;
-	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator._gps_yaw.setHeading(gps_heading);
 	_sensor_simulator.runSeconds(7.5);
 
 	// THEN: after a few seconds, the fusion should stop and
@@ -227,7 +224,7 @@ TEST_F(EkfGpsHeadingTest, fallBackToYawEmergencyEstimator)
 	float gps_heading = math::radians(90.f);
 	const float true_heading = math::radians(-20.f);
 
-	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator._gps_yaw.setHeading(gps_heading);
 	_sensor_simulator.runSeconds(10);
 
 	const Vector3f accel_frd{-1.0, -1.5f, 0.f};
@@ -265,14 +262,14 @@ TEST_F(EkfGpsHeadingTest, yawJmpOnGround)
 {
 	// GIVEN: the GPS yaw fusion activated
 	float gps_heading = _ekf_wrapper.getYawAngle();
-	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator._gps_yaw.setHeading(gps_heading);
 	_sensor_simulator.runSeconds(1);
 	_ekf->set_in_air_status(false);
 
 	// WHEN: the measurement suddenly changes
 	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
 	gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + math::radians(45.f));
-	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator._gps_yaw.setHeading(gps_heading);
 	_sensor_simulator.runSeconds(8);
 
 	// THEN: the fusion should reset
@@ -285,14 +282,14 @@ TEST_F(EkfGpsHeadingTest, yawJumpInAir)
 {
 	// GIVEN: the GPS yaw fusion activated
 	float gps_heading = _ekf_wrapper.getYawAngle();
-	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator._gps_yaw.setHeading(gps_heading);
 	_sensor_simulator.runSeconds(5);
 	_ekf->set_in_air_status(true);
 
 	// WHEN: the measurement suddenly changes
 	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
 	gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + math::radians(180.f));
-	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator._gps_yaw.setHeading(gps_heading);
 	_sensor_simulator.runSeconds(7.5);
 
 	// THEN: the fusion should reset
@@ -300,7 +297,7 @@ TEST_F(EkfGpsHeadingTest, yawJumpInAir)
 
 	// BUT WHEN: the measurement jumps a 2nd time
 	gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + math::radians(180.f));
-	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator._gps_yaw.setHeading(gps_heading);
 	_sensor_simulator.runSeconds(7.5);
 
 	// THEN: after a few seconds, the fusion should stop and
@@ -314,12 +311,12 @@ TEST_F(EkfGpsHeadingTest, stopOnGround)
 	// GIVEN: the GPS yaw fusion activated and there is no mag data
 	_sensor_simulator._mag.stop();
 	float gps_heading = _ekf_wrapper.getYawAngle();
-	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator._gps_yaw.setHeading(gps_heading);
 	_sensor_simulator.runSeconds(5);
 
 	// WHEN: the measurement stops
 	gps_heading = NAN;
-	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator._gps_yaw.setHeading(gps_heading);
 	_sensor_simulator.runSeconds(7.5);
 
 	// THEN: the fusion should stop and the GPS pos/vel aiding

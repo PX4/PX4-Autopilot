@@ -65,7 +65,7 @@ bool EkfWrapper::isIntendingGpsFusion() const
 	return _ekf->control_status_flags().gps;
 }
 
-void EkfWrapper::enableGpsHeadingFusion()
+void EkfWrapper::enableGnssHeadingFusion()
 {
 	_ekf_params->fusion_mode |= MASK_USE_GPSYAW;
 }

@@ -65,7 +65,7 @@ public:
 	void disableGpsFusion();
 	bool isIntendingGpsFusion() const;
 
-	void enableGpsHeadingFusion();
+	void enableGnssHeadingFusion();
 	void disableGpsHeadingFusion();
 	bool isIntendingGpsHeadingFusion() const;
 
