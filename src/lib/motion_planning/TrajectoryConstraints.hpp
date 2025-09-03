@@ -50,9 +50,13 @@ struct VehicleDynamicLimits {
 	float xy_accept_rad;
 
 	float max_acc_xy;
+	float max_acc_z_up;
+	float max_acc_z_down;
 	float max_jerk;
 
 	float max_speed_xy;
+	float max_speed_z_up;
+	float max_speed_z_down;
 
 	// TODO: remove this
 	float max_acc_xy_radius_scale;
