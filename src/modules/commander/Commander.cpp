@@ -462,6 +462,22 @@ int Commander::custom_command(int argc, char *argv[])
 		}
 	}
 
+	if (!strcmp(argv[0], "set_heading")) {
+		if (argc > 1) {
+			const float heading = atof(argv[1]);
+			const float heading_accuracy = NAN;
+
+			bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE,
+							0.f, 0.f, heading, 0.f, 0.f, 0.f, heading_accuracy);
+			return (ret ? 0 : 1);
+
+		} else {
+			PX4_ERR("missing argument");
+			return 0;
+		}
+	}
+
+
 	if (!strcmp(argv[0], "poweroff")) {
 
 		bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN,
@@ -1521,6 +1537,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_DO_GRIPPER:
 	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE:
 	case vehicle_command_s::VEHICLE_CMD_REQUEST_CAMERA_INFORMATION:
+	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -3040,6 +3057,8 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND("set_ekf_origin");
 	PRINT_MODULE_USAGE_ARG("lat, lon, alt", "Origin Latitude, Longitude, Altitude", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("lat|lon|alt", "Origin latitude longitude altitude");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("set_heading", "Set current heading");
+	PRINT_MODULE_USAGE_ARG("heading", "degrees from True North [0 360]", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("poweroff", "Power off board (if supported)");
 #endif
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();

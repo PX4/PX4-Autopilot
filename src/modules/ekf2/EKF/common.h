@@ -608,6 +608,7 @@ uint64_t mag_heading_consistent  :
 		uint64_t gnss_vel                : 1; ///< 44 - true if GNSS velocity measurement fusion is intended
 uint64_t gnss_fault              :
 		1; ///< 45 - true if GNSS measurements have been declared faulty and are no longer used
+		uint64_t yaw_manual              : 1; ///< 46 - true if yaw has been reset manually
 	} flags;
 	uint64_t value;
 };

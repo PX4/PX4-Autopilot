@@ -37,7 +37,7 @@
 
 #include <mathlib/mathlib.h>
 
-bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW)
+bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW, bool reset)
 {
 	// check if the innovation variance calculation is badly conditioned
 	if (aid_src_status.innovation_variance >= aid_src_status.observation_variance) {
@@ -66,6 +66,11 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H
 		}
 
 		Kfusion(row) *= heading_innov_var_inv;
+	}
+
+	if (reset && fabsf(H_YAW(State::quat_nominal.idx + 2)) > FLT_EPSILON) {
+		// Reset the yaw estimate by forcing the measurement into the state
+		Kfusion(State::quat_nominal.idx + 2) = 1.f / H_YAW(State::quat_nominal.idx + 2);
 	}
 
 	// set the heading unhealthy if the test fails
@@ -110,12 +115,12 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H
 	return true;
 }
 
-void Ekf::computeYawInnovVarAndH(float variance, float &innovation_variance, VectorState &H_YAW) const
+void Ekf::computeYawInnovVarAndH(float observation_variance, float &innovation_variance, VectorState &H_YAW) const
 {
-	sym::ComputeYawInnovVarAndH(_state.vector(), P, variance, &innovation_variance, &H_YAW);
+	sym::ComputeYawInnovVarAndH(_state.vector(), P, observation_variance, &innovation_variance, &H_YAW);
 }
 
-void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
+void Ekf::resetQuatStateYaw(const float yaw, const float yaw_variance)
 {
 	// save a copy of the quaternion state for later use in calculating the amount of reset change
 	const Quatf quat_before_reset = _state.quat_nominal;
@@ -129,12 +134,17 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 	// update the rotation matrix using the new yaw value
 	_R_to_earth = updateYawInRotMat(yaw, Dcmf(_state.quat_nominal));
 
-	// calculate the amount that the quaternion has changed by
-	const Quatf quat_after_reset(_R_to_earth);
-	const Quatf q_error((quat_after_reset * quat_before_reset.inversed()).normalized());
-
 	// update quaternion states
-	_state.quat_nominal = quat_after_reset;
+	_state.quat_nominal = Quatf(_R_to_earth);
+
+	_time_last_heading_fuse = _time_delayed_us;
+
+	propagateQuatReset(quat_before_reset);
+}
+
+void Ekf::propagateQuatReset(const Quatf &quat_before_reset)
+{
+	const Quatf q_error((_state.quat_nominal * quat_before_reset.inversed()).normalized());
 
 	// add the reset amount to the output observer buffered data
 	_output_predictor.resetQuaternion(q_error);
@@ -160,6 +170,23 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 	}
 
 	_state_reset_status.reset_count.quat++;
+}
 
-	_time_last_heading_fuse = _time_delayed_us;
+void Ekf::resetYawByFusion(const float yaw, const float yaw_variance)
+{
+	const Quatf quat_before_reset = _state.quat_nominal;
+
+	estimator_aid_source1d_s aid_src_status{};
+	aid_src_status.observation = yaw;
+	aid_src_status.observation_variance = yaw_variance;
+	aid_src_status.innovation = wrap_pi(getEulerYaw(_state.quat_nominal) - yaw);
+
+	VectorState H_YAW;
+
+	computeYawInnovVarAndH(aid_src_status.observation_variance, aid_src_status.innovation_variance, H_YAW);
+
+	const bool reset_yaw = true;
+	fuseYaw(aid_src_status, H_YAW, reset_yaw);
+
+	propagateQuatReset(quat_before_reset);
 }
