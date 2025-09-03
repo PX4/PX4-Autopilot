@@ -416,6 +416,22 @@ public:
 	bool resetGlobalPosToExternalObservation(double latitude, double longitude, float altitude, float eph, float epv,
 			uint64_t timestamp_observation);
 
+	void resetHeadingToExternalObservation(float heading, float heading_accuracy)
+	{
+		if (_control_status.flags.yaw_align) {
+			resetYawByFusion(heading, heading_accuracy);
+
+		} else {
+			resetQuatStateYaw(heading, heading_accuracy);
+			_control_status.flags.yaw_align = true;
+		}
+
+		// Force the mag consistency check to pass again since an external heading reset is often done to
+		// counter mag disturbances.
+		_control_status.flags.mag_heading_consistent = false;
+		_control_status.flags.yaw_manual = true;
+	}
+
 	void updateParameters();
 
 	friend class AuxGlobalPosition;
@@ -647,8 +663,8 @@ private:
 	bool initialiseAltitudeTo(float altitude, float vpos_var = NAN);
 
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
-	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW);
-	void computeYawInnovVarAndH(float variance, float &innovation_variance, VectorState &H_YAW) const;
+	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW, const bool reset = false);
+	void computeYawInnovVarAndH(float observation_variance, float &innovation_variance, VectorState &H_YAW) const;
 
 	void updateIMUBiasInhibit(const imuSample &imu_delayed);
 
@@ -999,6 +1015,8 @@ private:
 	// yaw : Euler yaw angle (rad)
 	// yaw_variance : yaw error variance (rad^2)
 	void resetQuatStateYaw(float yaw, float yaw_variance);
+	void propagateQuatReset(const Quatf &quat_before_reset);
+	void resetYawByFusion(float yaw, float yaw_variance);
 
 	HeightSensor _height_sensor_ref{HeightSensor::UNKNOWN};
 	PositionSensor _position_sensor_ref{PositionSensor::GNSS};
