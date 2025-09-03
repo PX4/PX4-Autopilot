@@ -139,6 +139,34 @@ float PositionSmoothing::_getMaxZSpeed(const Vector3f(&waypoints)[3]) const
 	return max_speed;
 }
 
+void PositionSmoothing::_getMax3DSpeed(const Vector3f(&waypoints)[3], float &xy_speed, float &z_speed) const
+{
+	Vector3f pos_traj(_trajectory[0].getCurrentPosition(),
+			  _trajectory[1].getCurrentPosition(),
+			  _trajectory[2].getCurrentPosition());
+
+	math::trajectory::VehicleDynamicLimits config;
+	config.xy_accept_rad = _target_acceptance_radius;
+	config.z_accept_rad = _vertical_acceptance_radius;
+	config.max_jerk = _trajectory[0].getMaxJerk();
+	config.max_acc_xy = _trajectory[0].getMaxAccel();
+	config.max_acc_z_up = _max_accel_z_up;
+	config.max_acc_z_down = _max_accel_z_down;
+	config.max_speed_xy = _cruise_speed;
+	config.max_speed_z_up = _max_speed_z_up;
+	config.max_speed_z_down = _max_speed_z_down;
+	config.max_acc_xy_radius_scale = _horizontal_trajectory_gain;
+
+	// constrain velocity to go to the position setpoint first if the position setpoint has been modified by an external source
+	// (eg. Obstacle Avoidance)
+
+	Vector3f pos_to_waypoints[3] = {pos_traj, waypoints[1], waypoints[2]};
+
+	math::trajectory::compute3DSpeedFromWaypoints<3>(pos_to_waypoints, config, xy_speed, z_speed);
+
+	return;
+}
+
 const Vector3f PositionSmoothing::_getCrossingPoint(const Vector3f &position, const Vector3f(&waypoints)[3]) const
 {
 	const auto &target = waypoints[1];
@@ -197,20 +225,20 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 		const Vector3f crossing_point = is_single_waypoint ? target : _getCrossingPoint(position, waypoints);
 		const Vector3f u_pos_traj_to_dest{(crossing_point - pos_traj).unit_or_zero()};
 
-		float xy_speed = _getMaxXYSpeed(waypoints);
-		const float z_speed = _getMaxZSpeed(waypoints);
+		float max_xy_speed, max_z_speed;
+		_getMax3DSpeed(waypoints, max_xy_speed, max_z_speed);
 
 		if (!is_single_waypoint && _isTurning(target)) {
 			// Limit speed during a turn
-			xy_speed = math::min(_max_speed_previous, xy_speed);
+			max_xy_speed = math::min(_max_speed_previous, max_xy_speed);
 
 		} else {
-			_max_speed_previous = xy_speed;
+			_max_speed_previous = max_xy_speed;
 		}
 
-		Vector3f vel_sp_constrained = u_pos_traj_to_dest * sqrtf(xy_speed * xy_speed + z_speed * z_speed);
-		math::trajectory::clampToXYNorm(vel_sp_constrained, xy_speed, 0.5f);
-		math::trajectory::clampToZNorm(vel_sp_constrained, z_speed, 0.5f);
+		Vector3f vel_sp_constrained = u_pos_traj_to_dest * sqrtf(max_xy_speed * max_xy_speed + max_z_speed * max_z_speed);
+		math::trajectory::clampToXYNorm(vel_sp_constrained, max_xy_speed, 0.5f);
+		math::trajectory::clampToZNorm(vel_sp_constrained, max_z_speed, 0.5f);
 
 		for (int i = 0; i < 3; i++) {
 			// If available, use the existing velocity as a feedforward, otherwise replace it

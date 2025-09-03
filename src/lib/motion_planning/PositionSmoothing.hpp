@@ -464,6 +464,7 @@ private:
 	const Vector3f _getCrossingPoint(const Vector3f &position, const Vector3f(&waypoints)[3]) const;
 	float _getMaxXYSpeed(const Vector3f(&waypoints)[3]) const;
 	float _getMaxZSpeed(const Vector3f(&waypoints)[3]) const;
+	void _getMax3DSpeed(const Vector3f(&waypoints)[3], float &xy_speed, float &z_speed) const;
 
 	void _generateTrajectory(
 		const Vector3f &position,
