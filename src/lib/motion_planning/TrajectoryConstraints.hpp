@@ -59,6 +59,56 @@ struct VehicleDynamicLimits {
 };
 
 /*
+ * Constrain the 3D vector given a maximum XY norm
+ * If the XY norm of the 3D vector is larger than the maximum norm, the whole vector
+ * is scaled down to respect the constraint.
+ * If the maximum norm is small (defined by the "accuracy" parameter),
+ * only the XY components are scaled down to avoid affecting
+ * Z in case of numerical issues
+ */
+inline void clampToXYNorm(Vector3f &target, float max_xy_norm, float accuracy = FLT_EPSILON)
+{
+	const float xynorm = target.xy().norm();
+	const float scale_factor = (xynorm > FLT_EPSILON)
+				   ? max_xy_norm / xynorm
+				   : 1.f;
+
+	if (scale_factor < 1.f) {
+		if (max_xy_norm < accuracy && xynorm < accuracy) {
+			target.xy() = Vector2f(target) * scale_factor;
+
+		} else {
+			target *= scale_factor;
+		}
+	}
+}
+
+/*
+ * Constrain the 3D vector given a maximum Z norm
+ * If the Z component of the 3D vector is larger than the maximum norm, the whole vector
+ * is scaled down to respect the constraint.
+ * If the maximum norm is small (defined by the "accuracy parameter),
+ * only the Z component is scaled down to avoid affecting
+ * XY in case of numerical issues
+ */
+inline void clampToZNorm(Vector3f &target, float max_z_norm, float accuracy = FLT_EPSILON)
+{
+	const float znorm = fabs(target(2));
+	const float scale_factor = (znorm > FLT_EPSILON)
+				   ? max_z_norm / znorm
+				   : 1.f;
+
+	if (scale_factor < 1.f) {
+		if (max_z_norm < accuracy && znorm < accuracy) {
+			target(2) *= scale_factor;
+
+		} else {
+			target *= scale_factor;
+		}
+	}
+}
+
+/*
  * Compute the maximum allowed speed at the waypoint assuming that we want to
  * connect the two lines (current-target and target-next)
  * with a tangent circle with constant speed and desired centripetal acceleration: a_centripetal = speed^2 / radius
@@ -122,55 +172,6 @@ float computeXYSpeedFromWaypoints(const Vector3f waypoints[N], const VehicleDyna
 	return max_speed;
 }
 
-/*
- * Constrain the 3D vector given a maximum XY norm
- * If the XY norm of the 3D vector is larger than the maximum norm, the whole vector
- * is scaled down to respect the constraint.
- * If the maximum norm is small (defined by the "accuracy" parameter),
- * only the XY components are scaled down to avoid affecting
- * Z in case of numerical issues
- */
-inline void clampToXYNorm(Vector3f &target, float max_xy_norm, float accuracy = FLT_EPSILON)
-{
-	const float xynorm = target.xy().norm();
-	const float scale_factor = (xynorm > FLT_EPSILON)
-				   ? max_xy_norm / xynorm
-				   : 1.f;
-
-	if (scale_factor < 1.f) {
-		if (max_xy_norm < accuracy && xynorm < accuracy) {
-			target.xy() = Vector2f(target) * scale_factor;
-
-		} else {
-			target *= scale_factor;
-		}
-	}
-}
-
-/*
- * Constrain the 3D vector given a maximum Z norm
- * If the Z component of the 3D vector is larger than the maximum norm, the whole vector
- * is scaled down to respect the constraint.
- * If the maximum norm is small (defined by the "accuracy parameter),
- * only the Z component is scaled down to avoid affecting
- * XY in case of numerical issues
- */
-inline void clampToZNorm(Vector3f &target, float max_z_norm, float accuracy = FLT_EPSILON)
-{
-	const float znorm = fabs(target(2));
-	const float scale_factor = (znorm > FLT_EPSILON)
-				   ? max_z_norm / znorm
-				   : 1.f;
-
-	if (scale_factor < 1.f) {
-		if (max_z_norm < accuracy && znorm < accuracy) {
-			target(2) *= scale_factor;
-
-		} else {
-			target *= scale_factor;
-		}
-	}
-}
 
 }
 }
