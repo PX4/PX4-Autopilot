@@ -310,16 +310,34 @@ void Navigator::run()
 						rep->current.cruising_speed = cmd.param1;
 					}
 
-					rep->current.cruising_throttle = get_cruising_throttle();
-					rep->current.acceptance_radius = get_acceptance_radius();
-
-					// Go on and check which changes had been requested
-					if (PX4_ISFINITE(cmd.param4)) {
-						rep->current.yaw = cmd.param4;
+					// (3) Loiter radius (param3)
+					if (PX4_ISFINITE(cmd.param3) && cmd.param3 > FLT_EPSILON) {
+						rep->current.loiter_radius = fabsf(cmd.param3);
 
 					} else {
-						rep->current.yaw = NAN;
+						// Use current or default if param3 not valid
+						rep->current.loiter_radius = get_loiter_radius();
 					}
+
+					// (4) Loiter direction / yaw (param4)
+					if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+						// param4 >= 1 => counter-clockwise, else default CW
+						rep->current.loiter_direction_counter_clockwise = (PX4_ISFINITE(cmd.param4) && (cmd.param4 >= FLT_EPSILON));
+						rep->current.yaw = NAN;
+
+					} else {
+						// multicopter => param4 = yaw
+						if (PX4_ISFINITE(cmd.param4)) {
+							rep->current.yaw = cmd.param4;
+
+						} else {
+							rep->current.yaw = NAN;
+						}
+					}
+
+
+					rep->current.cruising_throttle = get_cruising_throttle();
+					rep->current.acceptance_radius = get_acceptance_radius();
 
 					if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
 						// Position change with optional altitude change
@@ -392,7 +410,7 @@ void Navigator::run()
 							rep->current.loiter_pattern = position_setpoint_s::LOITER_TYPE_ORBIT;
 						}
 
-						rep->current.loiter_direction_counter_clockwise = curr->current.loiter_direction_counter_clockwise;
+						rep->current.loiter_direction_counter_clockwise = (PX4_ISFINITE(cmd.param4) ? (cmd.param4 >= 1.0f) : false);
 					}
 
 					rep->previous.timestamp = hrt_absolute_time();
@@ -474,7 +492,7 @@ void Navigator::run()
 						rep->current.loiter_radius = get_default_loiter_rad();
 					}
 
-					rep->current.loiter_direction_counter_clockwise = curr->current.loiter_direction_counter_clockwise;
+					rep->current.loiter_direction_counter_clockwise = (PX4_ISFINITE(cmd.param4) ? (cmd.param4 >= 1.0f) : false);
 
 					rep->previous.timestamp = hrt_absolute_time();
 
