@@ -1,8 +1,4 @@
-/**************************************************************using namespace time_literals;
-
-RocketModeManager::RocketModeManager() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),*******
+/*********************************************************************
  *
  *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
@@ -45,7 +41,7 @@ RocketModeManager::RocketModeManager() :
  * - Wing deployment
  * - Transition to fixed-wing manual mode
  *
- * @author Your Name <your.email@example.com>
+ * @author Noé Renevey noerenevey@gmail.com
  */
 
 #include "rocket_mode_manager.hpp"
@@ -91,7 +87,7 @@ RocketModeManager::RocketModeManager() :
 	_apogee_detected = false;
 	_launch_detected = false;
 	_rocket_config_applied = false;
-	_max_altitude = -1000.0f;
+	_max_altitude = 0;
 	_wing_deploy_time = 0;
 	_launch_detect_time = 0;
 	_boost_end_time = 0;
@@ -99,7 +95,6 @@ RocketModeManager::RocketModeManager() :
 	_last_status_time = 0;
 	_gcs_connect_time = 0;
 
-	// No simulation logic needed - handled by PX4 simulation modules
 }
 
 RocketModeManager::~RocketModeManager()
@@ -237,7 +232,7 @@ void RocketModeManager::handle_waiting_launch_phase()
 			const float accel_x = fabsf(_sensor_accel.x);
 
 			if (_rocket_state == RocketState::WAITING_LAUNCH) {
-				const float launch_accel_threshold = _param_rocket_launch_a.get(); // e.g., 15 m/s^2
+				const float launch_accel_threshold = _param_rocket_launch_a.get();
 
 				if (!_launch_detected && (accel_x > launch_accel_threshold)) {
 					PX4_INFO("Launch detected! Accel X: %.1f m/s^2", (double)accel_x);
@@ -270,7 +265,7 @@ void RocketModeManager::handle_rocket_boost_phase()
 
 		// End of boost detection: forward acceleration drops below threshold
 		if (_rocket_state == RocketState::ROCKET_BOOST) {
-			const float boost_end_accel_threshold = _param_rocket_boost_a.get(); // e.g., 12 m/s^2
+			const float boost_end_accel_threshold = _param_rocket_boost_a.get();
 
 			if (accel_x < boost_end_accel_threshold) {
 				PX4_INFO("Boost phase ended, transitioning to coast. Accel X: %.1f m/s^2", (double)accel_x);
@@ -282,7 +277,7 @@ void RocketModeManager::handle_rocket_boost_phase()
 				announce_transition("COAST PHASE");
 			}
 
-			// Failsafe: Maximum boost duration (in case acceleration never drops)
+			// Failsafe: Maximum boost duration
 			const hrt_abstime boost_duration = hrt_absolute_time() - _launch_detect_time;
 			const hrt_abstime max_boost_duration = (hrt_abstime)(_param_rocket_boost_t.get() * 1e6f); // Convert to microseconds
 
@@ -318,7 +313,7 @@ void RocketModeManager::handle_rocket_coast_phase()
 		const char* deploy_reason = "";
 
 		// Primary deployment criteria: altitude descent OR failsafe
-		const float altitude_descent_threshold = _param_rocket_alt_thresh.get(); // Deploy if descended this many meters from max
+		const float altitude_descent_threshold = _param_rocket_alt_thresh.get();
 
 		if (!_apogee_detected) {
 			// Check deployment criteria
@@ -517,7 +512,8 @@ void RocketModeManager::configure_fixedwing_ca_parameters()
 	param_notify_changes();
 
 	PX4_INFO("Fixed-wing CA configuration");
-}void RocketModeManager::switch_to_fixed_wing_mode()
+}
+void RocketModeManager::switch_to_fixed_wing_mode()
 {
 	// Configure fixed-wing control allocation
 	configure_fixedwing_ca_parameters();
@@ -543,7 +539,7 @@ void RocketModeManager::switch_to_rocket_passive_mode()
 	// Configure rocket control allocation parameters
 	configure_rocket_ca_parameters();
 
-	// Switch to the custom NAVIGATION_STATE_ROCKET_PASSIVE that we implemented
+	// Switch to the custom NAVIGATION_STATE_ROCKET_PASSIVE
 	action_request_s action_request{};
 	action_request.timestamp = hrt_absolute_time();
 	action_request.action = action_request_s::ACTION_SWITCH_MODE;
@@ -557,7 +553,7 @@ void RocketModeManager::switch_to_rocket_passive_mode()
 }
 void RocketModeManager::switch_to_rocket_roll_mode()
 {
-	// Switch to the custom NAVIGATION_STATE_ROCKET_ROLL that we implemented
+	// Switch to the custom NAVIGATION_STATE_ROCKET_ROLL
 	action_request_s action_request{};
 	action_request.timestamp = hrt_absolute_time();
 	action_request.action = action_request_s::ACTION_SWITCH_MODE;
@@ -677,10 +673,10 @@ int RocketModeManager::print_usage(const char *reason)
 Rocket Mode Manager for rocket-plane vehicles.
 
 Handles the flight phases:
-1. Rocket boost phase - roll-only control
+1. Rocket boost phase
 2. Coast phase - apogee detection
 3. Wing deployment at apogee
-4. Fixed-wing manual mode
+4. Fixed-wing mode
 
 )DESCR_STR");
 

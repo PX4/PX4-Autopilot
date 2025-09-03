@@ -427,6 +427,10 @@ OSDatxxxx::get_flight_mode(uint8_t nav_state)
 	case vehicle_status_s::NAVIGATION_STATE_ROCKET_ROLL:
 		flight_mode = "ROCKET ROLL";
 		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_ROCKET_PASSIVE:
+		flight_mode = "ROCKET PASSIVE";
+		break;
 	}
 
 	return flight_mode;

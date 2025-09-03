@@ -36,7 +36,7 @@
  *
  * Rocket Mode Manager for rocket-plane vehicles.
  *
- * @author Your Name <your.email@example.com>
+ * @author Noé Renevey <noerenevey@gmail.com>
  */
 
 #pragma once

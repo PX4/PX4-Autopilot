@@ -60,7 +60,6 @@ parameters:
             type: int32
             min: -2147483648
             max: 2147483647
-            default: -2147483648
 
         # Rocket Phase CA_TRQ Matrix (6 servos × 3 components = 18 elements flattened)
         # Individual elements accessed as RKT_CA_R0 through RKT_CA_R17
@@ -72,7 +71,6 @@ parameters:
                     Flattened 6x3 matrix: [S1_X,S1_Y,S1_Z, S2_X,S2_Y,S2_Z, ..., S6_X,S6_Y,S6_Z]
             type: float
             num_instances: 18
-            default: [0.0, 1.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
             reboot_required: false
 
         # Fixed-Wing Phase CA_TRQ Matrix (6 servos × 3 components = 18 elements flattened)
@@ -85,7 +83,6 @@ parameters:
                     Flattened 6x3 matrix: [S1_X,S1_Y,S1_Z, S2_X,S2_Y,S2_Z, ..., S6_X,S6_Y,S6_Z]
             type: float
             num_instances: 18
-            default: [0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0]
             reboot_required: false
 
 
@@ -100,7 +97,6 @@ parameters:
             type: int32
             num_instances: 6
             instance_start: 0
-            default: [12, 12, 12, 12, 0, 0]
 
         # Control Surface Types for Fixed-Wing Phase (servos 1-6)
         RKT_CS_F${i}:
@@ -112,5 +108,4 @@ parameters:
             type: int32
             num_instances: 6
             instance_start: 0
-            default: [12, 12, 12, 12, 1, 2]
 
