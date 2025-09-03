@@ -364,6 +364,24 @@ public:
 	}
 
 	/**
+	 * @param max_speed_z_up maximum speed in Z axis when going up
+	 * @param max_speed_z_down maximum speed in Z axis when going down
+	 * @param max_accel_z_up maximum acceleration in Z axis when going up
+	 * @param max_accel_z_down maximum acceleration in Z axis when going down
+	 */
+	inline void setMaxSpeedAndAccelerationZ(
+		float max_speed_z_up,
+		float max_speed_z_down,
+		float max_accel_z_up,
+		float max_accel_z_down)
+	{
+		_max_speed_z_up = max_speed_z_up;
+		_max_speed_z_down = max_speed_z_down;
+		_max_accel_z_up = max_accel_z_up;
+		_max_accel_z_down = max_accel_z_down;
+	}
+
+	/**
 	 * @brief Set the current position in the trajectory to the given value.
 	 * Any coordinate with NAN will not be set
 	 *
@@ -413,10 +431,14 @@ private:
 	/* params, only modified from external */
 	float _max_allowed_horizontal_error{0.f};
 	float _vertical_acceptance_radius{0.f};
-	float _cruise_speed{0.f};
 	float _horizontal_trajectory_gain{0.f};
 	float _target_acceptance_radius{0.f};
 
+	float _cruise_speed{0.f};
+	float _max_speed_z_up{0.f};
+	float _max_speed_z_down{0.f};
+	float _max_accel_z_up{0.f};
+	float _max_accel_z_down{0.f};
 
 	/* Internal state */
 	VelocitySmoothing _trajectory[3]; ///< Trajectories in x, y and z directions
