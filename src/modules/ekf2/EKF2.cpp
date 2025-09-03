@@ -580,6 +580,24 @@ void EKF2::Run()
 				command_ack.timestamp = hrt_absolute_time();
 				_vehicle_command_ack_pub.publish(command_ack);
 			}
+
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE) {
+				if (PX4_ISFINITE(vehicle_command.param3)) {
+					const float heading = wrap_pi(math::radians(vehicle_command.param3));
+					static constexpr float kDefaultHeadingAccuracyDeg = 20.f;
+					const float heading_accuracy = math::radians(PX4_ISFINITE(vehicle_command.param7)
+								       ? vehicle_command.param7
+								       : kDefaultHeadingAccuracyDeg);
+					_ekf.resetHeadingToExternalObservation(heading, heading_accuracy);
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+				} else {
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+				}
+
+				command_ack.timestamp = hrt_absolute_time();
+				_vehicle_command_ack_pub.publish(command_ack);
+			}
 		}
 	}
 
@@ -1936,6 +1954,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_baro_fault	    = _ekf.control_status_flags().baro_fault;
 		status_flags.cs_gnss_vel            = _ekf.control_status_flags().gnss_vel;
 		status_flags.cs_gnss_fault          = _ekf.control_status_flags().gnss_fault;
+		status_flags.cs_yaw_manual          = _ekf.control_status_flags().yaw_manual;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
