@@ -707,19 +707,20 @@ void FlightTaskAuto::_ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vx
 	_position_smoothing.forceSetVelocity({_velocity(0), _velocity(1), NAN});
 }
 
-void FlightTaskAuto::_ekfResetHandlerPositionZ(float delta_z)
+void FlightTaskAuto::_ekfResetHandlerPositionZ(const float delta_z)
 {
 	_position_smoothing.forceSetPosition({NAN, NAN, _position(2)});
 }
 
-void FlightTaskAuto::_ekfResetHandlerVelocityZ(float delta_vz)
+void FlightTaskAuto::_ekfResetHandlerVelocityZ(const float delta_vz)
 {
 	_position_smoothing.forceSetVelocity({NAN, NAN, _velocity(2)});
 }
 
-void FlightTaskAuto::_ekfResetHandlerHeading(float delta_psi)
+void FlightTaskAuto::_ekfResetHandlerHeading(const float delta_psi)
 {
-	_yaw_setpoint_previous += delta_psi;
+	_yaw_setpoint_previous = wrap_pi(_yaw_setpoint_previous + delta_psi);
+	_heading_smoothing.reset(wrap_pi(_heading_smoothing.getSmoothedHeading() + delta_psi));
 }
 
 void FlightTaskAuto::_checkEmergencyBraking()
