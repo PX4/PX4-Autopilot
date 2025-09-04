@@ -149,7 +149,13 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
 		publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
-		_battery_info_pub[instance].publish(_battery_info[instance]);
+
+		if (msg.model_instance_id == 0) {
+			memset(_battery_info[instance].serial_number, 0, sizeof(_battery_info[instance].serial_number));
+
+		} else {
+			_battery_info_pub[instance].publish(_battery_info[instance]);
+		}
 	}
 }
 
@@ -304,5 +310,11 @@ UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equi
 	_battery_info[instance].id = _battery_status[instance].id;
 	snprintf(_battery_info[instance].serial_number, sizeof(_battery_info[instance].serial_number), "%" PRIu32,
 		 msg.model_instance_id);
-	_battery_info_pub[instance].publish(_battery_info[instance]);
+
+	if (msg.model_instance_id == 0) {
+		memset(_battery_info[instance].serial_number, 0, sizeof(_battery_info[instance].serial_number));
+
+	} else {
+		_battery_info_pub[instance].publish(_battery_info[instance]);
+	}
 }
