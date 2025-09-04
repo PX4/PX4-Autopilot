@@ -167,7 +167,6 @@ private:
 		(ParamFloat<px4::params::MPC_THR_MAX>) _param_mpc_thr_max,
 		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover,
 		(ParamInt<px4::params::MPC_THR_CURVE>) _param_mpc_thr_curve,
-		(ParamFloat<px4::params::MPC_YAW_EXPO>) _param_mpc_yaw_expo,
 
 		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time
 	)
