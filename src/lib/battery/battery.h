@@ -89,6 +89,7 @@ public:
 	void setPriority(const uint8_t priority) { _priority = priority; }
 	void setConnected(const bool connected) { _connected = connected; }
 	void setStateOfCharge(const float soc) { _state_of_charge = math::constrain(soc, 0.f, 1.f); _external_state_of_charge = true; }
+	void setCapacity(const float capacity) { _capacity = capacity > 0.f ? static_cast<uint16_t>(capacity) : 0; }
 	void updateVoltage(const float voltage_v);
 	void updateCurrent(const float current_a);
 	void updateTemperature(const float temperature_c);
@@ -101,6 +102,8 @@ public:
 	void updateBatteryStatus(const hrt_abstime &timestamp);
 
 	battery_status_s getBatteryStatus();
+	float getSumDischarged() const { return _discharged_mah; }
+	float getCurrentAverage() const {return PX4_ISFINITE(_current_average_filter_a.getState()) ? _current_average_filter_a.getState() : -1.f;}
 	void publishBatteryStatus(const battery_status_s &battery_status);
 
 	/**
@@ -119,6 +122,10 @@ public:
 	 * @return Estimated remaining time in seconds.
 	 */
 	float computeRemainingTime(float current_a);
+
+	void sumDischarged(float current_a);
+	uint8_t determineWarning(float state_of_charge);
+	void updateDt(const hrt_abstime &timestamp);
 
 protected:
 	static constexpr float LITHIUM_BATTERY_RECOGNITION_VOLTAGE = 2.1f;
@@ -155,10 +162,8 @@ protected:
 	void updateParams() override;
 
 private:
-	void sumDischarged(const hrt_abstime &timestamp, float current_a);
 	float calculateStateOfChargeVoltageBased(const float voltage_v, const float current_a);
 	void estimateStateOfCharge();
-	uint8_t determineWarning(float state_of_charge);
 	uint16_t determineFaults();
 	void computeScale();
 
@@ -185,6 +190,8 @@ private:
 	float _state_of_charge{-1.f}; // [0,1]
 	float _scale{1.f};
 	uint8_t _warning{battery_status_s::WARNING_NONE};
+	float _dt{0.f};
+	uint16_t _capacity{0};
 	hrt_abstime _last_timestamp{0};
 	bool _armed{false};
 	bool _vehicle_status_is_fw{false};
