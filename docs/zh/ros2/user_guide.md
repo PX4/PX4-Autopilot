@@ -156,7 +156,7 @@ To setup and start the agent:
 2. 输入以下命令从仓库获取源代码并构建代理(Agent)：
 
   ```sh
-  git clone -b v2.4.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+  git clone -b v2.4.3 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
   cd Micro-XRCE-DDS-Agent
   mkdir build
   cd build
