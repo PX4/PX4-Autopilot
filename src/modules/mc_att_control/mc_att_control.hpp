@@ -161,7 +161,7 @@ private:
 		(ParamFloat<px4::params::MC_YAWRATE_MAX>)   _param_mc_yawrate_max,
 
 		/* Stabilized mode params */
-		(ParamFloat<px4::params::MPC_HOLD_DZ>) _param_mpc_hold_dz,
+		(ParamFloat<px4::params::MAN_DEADZONE>) _param_man_deadzone,
 		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _param_mpc_man_tilt_max,
 		(ParamFloat<px4::params::MPC_MANTHR_MIN>) _param_mpc_manthr_min,
 		(ParamFloat<px4::params::MPC_THR_MAX>) _param_mpc_thr_max,
