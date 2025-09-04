@@ -38,6 +38,7 @@
 #include <px4_platform_common/module.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/am32_eeprom_write.h>
 
 #include "DShotCommon.h"
 #include "DShotTelemetry.h"
@@ -98,25 +99,8 @@ private:
 	DShot(const DShot &) = delete;
 	DShot operator=(const DShot &) = delete;
 
-	struct Command {
-		uint16_t command{};
-		int num_repetitions{0};
-		uint8_t motor_mask{0xff};
-		bool save{false};
-		bool expect_response{false};
-		hrt_abstime delay_until{};
 
-		bool valid() const { return num_repetitions > 0; }
-		void clear()
-		{
-			command = 0;
-			num_repetitions = 0;
-			motor_mask = 0;
-			save = 0;
-			expect_response = 0;
-			delay_until = 0;
-		}
-	};
+	bool process_serial_telemetry();
 
 	bool initialize_dshot();
 
@@ -138,8 +122,6 @@ private:
 
 	uint16_t convert_output_to_3d_scaling(uint16_t output);
 
-	void handle_programming_sequence_state();
-
 	// Mavlink command handlers
 	void handle_configure_actuator(const vehicle_command_s &command);
 	void handle_am32_request_eeprom(const vehicle_command_s &command);
@@ -149,14 +131,14 @@ private:
 	uint32_t _output_mask{0}; // Configured outputs for this (shouldn't this live in OutputModuleInterface?)
 
 	// uORb
-	esc_status_s _esc_status{};
-	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription _am32_eeprom_write_sub{ORB_ID(am32_eeprom_write)};
 
 	uORB::PublicationMultiData<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
-
+	esc_status_s _esc_status{};
 
 	// Status information
 	uint32_t _bdshot_telem_online_mask = 0; // Mask indicating telem receive status for bidirectional dshot telem
@@ -174,7 +156,6 @@ private:
 	int _telemetry_motor_index = 0;
 	uint32_t _telemetry_requested_mask = 0;
 	hrt_abstime _telem_delay_until = ESC_INIT_TELEM_WAIT_TIME;
-
 	hrt_abstime _last_settings_publish = 0;
 
 	// Perf counters
@@ -187,9 +168,32 @@ private:
 	perf_counter_t	_telem_timeout_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem timeout")};
 	perf_counter_t	_telem_allsampled_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem all sampled")};
 
-	// Commands
-	Command _current_command{};
 
+	// Commands
+	struct DShotCommand {
+		uint16_t command{};
+		int num_repetitions{0};
+		uint8_t motor_mask{0xff};
+		bool save{false};
+		bool expect_response{false};
+		hrt_abstime delay_until{};
+
+		// bool valid() const { return num_repetitions > 0; }
+		bool finished() const { return num_repetitions == 0; }
+		void clear()
+		{
+			command = 0;
+			num_repetitions = 0;
+			motor_mask = 0;
+			save = 0;
+			expect_response = 0;
+			delay_until = 0;
+		}
+	};
+
+	DShotCommand _current_command{};
+
+	// DShot Programming Mode
 	enum class ProgrammingState {
 		Idle,
 		EnterMode,
@@ -198,6 +202,12 @@ private:
 		ExitMode,
 		Save
 	};
+
+	am32_eeprom_write_s _am32_eeprom_write{};
+	bool _dshot_programming_active = {};
+	// TODO: we will compare the _am32_eeprom_write.write_mask to this and select which index/value in _am32_eeprom_write.data
+	// is set into the _programming_address and _programming_value. Once the setting is written we mark it in this mask
+	uint32_t _settings_written_mask[2] = {};
 
 	ProgrammingState _programming_state{ProgrammingState::Idle};
 

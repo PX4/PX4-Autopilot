@@ -170,11 +170,6 @@ void DShot::Run()
 
 	perf_begin(_cycle_perf);
 
-	// special handling for the DShot Programming sequence
-	if (_programming_state != ProgrammingState::Idle) {
-		handle_programming_sequence_state();
-	}
-
 	// // TOOO: debugging, remove later
 	// if (hrt_elapsed_time(&_last_settings_publish) > 5_s) {
 	// 	_telemetry.publish_esc_settings();
@@ -189,7 +184,7 @@ void DShot::Run()
 	// - not doing a command(s)
 	// - not waiting for response to process
 	// - not waiting for telem to process
-	if (!_current_command.valid() && _telemetry.telemetryRequestFinished() && !_telemetry.expectingCommandResponse()) {
+	if (_current_command.finished() && _telemetry.telemetryRequestFinished() && !_telemetry.expectingCommandResponse()) {
 		bool ser_tel_enabled = _param_dshot_tel_cfg.get();
 		bool bidir_enabled = _param_dshot_bidir_en.get();
 		bool edt_enabled = _param_dshot_bidir_edt.get();
@@ -199,10 +194,18 @@ void DShot::Run()
 
 		// EDT Request
 		uint8_t needs_edt_request_mask = _bdshot_telem_online_mask & ~_bdshot_edt_requested_mask;
+
 		// Settings Request
 		uint8_t needs_settings_request_mask = _serial_telem_online_mask & ~_settings_requested_mask;
 
-		bool edt_requests_finished = !edt_enabled || (needs_edt_request_mask == 0);
+		// Settings Programming
+		// NOTE: only update when we're not actively programming an ESC
+		if (!_dshot_programming_active) {
+			if (_am32_eeprom_write_sub.update(&_am32_eeprom_write)) {
+				PX4_INFO("_am32_eeprom_write_sub update, starting programming mode");
+				_dshot_programming_active = true;
+			}
+		}
 
 		if (bidir_enabled && edt_enabled && needs_edt_request_mask) {
 			// EDT Request first
@@ -225,8 +228,7 @@ void DShot::Run()
 			_bdshot_edt_requested_mask |= (1 << next_motor_index);
 			DSHOT_CMD_DEBUG("Requesting EDT for ESC%d at time %.2fs", next_motor_index + 1, (double)now / 1000000.);
 
-
-		} else if (ser_tel_enabled && esc_type_set && needs_settings_request_mask && edt_requests_finished) {
+		} else if (ser_tel_enabled && esc_type_set && needs_settings_request_mask) {
 			// Settings Request next
 			int next_motor_index = 0;
 
@@ -247,83 +249,127 @@ void DShot::Run()
 			_current_command.expect_response = true;
 			_settings_requested_mask |= (1 << next_motor_index);
 			DSHOT_CMD_DEBUG("Requesting Settings for ESC%d at time %.2fs", next_motor_index + 1, (double)now / 1000000.);
+
+		} else if (_dshot_programming_active) {
+
+			if (_current_command.finished()) {
+
+				// TODO: fix this properly
+				PX4_INFO("programming mode, command finished");
+				_current_command.clear();
+				// _current_command.command = 0;
+				// _current_command.num_repetitions = 0;
+				// _current_command.save = 0;
+				// _current_command.expect_response = 0;
+				// _current_command.delay_until = 0;
+
+				// Per-setting dshot programming state machine
+				if (_programming_state == ProgrammingState::Idle) {
+					// Get next setting address/value to program
+					int next_index = -1;
+
+					// Find settings that need to be written but haven't been yet
+					for (int i = 0; i < 48; i++) {
+						int array_index = i / 32;
+						int bit_index = i % 32;
+
+						bool needs_write = _am32_eeprom_write.write_mask[array_index] & (1 << bit_index);
+						bool already_written = _settings_written_mask[array_index] & (1 << bit_index);
+
+						if (needs_write && !already_written) {
+							next_index = i;
+							break;
+						}
+					}
+
+					if (next_index >= 0) {
+						// Set up the motor mask based on the index in the write request
+						if (_am32_eeprom_write.index == 255) {
+							// _current_command.motor_mask = 0xFF;  // Apply to all ESCs
+							PX4_INFO("Writing setting at index %d, value %u to ALL ESCs", next_index, _am32_eeprom_write.data[next_index]);
+
+						} else {
+							// _current_command.motor_mask = (1 << _am32_eeprom_write.index);
+							PX4_INFO("Writing setting at index %d, value %u to ESC%d", next_index, _am32_eeprom_write.data[next_index], _am32_eeprom_write.index + 1);
+						}
+
+						_programming_address = next_index;
+						_programming_value = _am32_eeprom_write.data[next_index];
+						_programming_state = ProgrammingState::EnterMode;
+
+						// Pre-emptively Mark this setting as written
+						int array_index = next_index / 32;
+						int bit_index = next_index % 32;
+						_settings_written_mask[array_index] |= (1 << bit_index);
+
+					} else {
+						// All settings have been written
+						PX4_INFO("All settings written!");
+						_dshot_programming_active = false;
+
+						// TODO: do we want to re-request and compare?
+						// Clear the written mask for this motor for next time
+						_settings_written_mask[0] = 0;
+						_settings_written_mask[1] = 0;
+					}
+				}
+
+				switch (_programming_state) {
+				case ProgrammingState::EnterMode:
+					PX4_INFO("ProgrammingState::EnterMode:");
+					_current_command.command = DSHOT_CMD_ENTER_PROGRAMMING_MODE;
+					_current_command.num_repetitions = 6;
+					_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
+					_programming_state = ProgrammingState::SendAddress;
+					break;
+
+				case ProgrammingState::SendAddress:
+					PX4_INFO("ProgrammingState::SendAddress:");
+					_current_command.command = _programming_address;
+					_current_command.num_repetitions = 1;
+					_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
+					_programming_state = ProgrammingState::SendValue;
+					break;
+
+				case ProgrammingState::SendValue:
+					PX4_INFO("ProgrammingState::SendValue:");
+					_current_command.command = _programming_value;
+					_current_command.num_repetitions = 1;
+					_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
+					_programming_state = ProgrammingState::ExitMode;
+					break;
+
+				case ProgrammingState::ExitMode:
+					PX4_INFO("ProgrammingState::ExitMode:");
+					_current_command.command = DSHOT_CMD_EXIT_PROGRAMMING_MODE;
+					_current_command.num_repetitions = 1;
+					_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
+					_programming_state = ProgrammingState::Save;
+					break;
+
+				case ProgrammingState::Save:
+					PX4_INFO("ProgrammingState::Save:");
+					_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
+					_current_command.num_repetitions = 10;
+					_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
+					_programming_state = ProgrammingState::Idle;
+					break;
+
+				default:
+					break;
+				}
+			}
 		}
 	}
 
 	// Updates the DShot throttle output and sends DShot commands
 	_mixing_output.update();
 
-	bool all_telem_sampled = false;
-	bool all_bdshot_sampled = false;
-
 	// Process Serial Telemetry data (Telemetry and CommandResponses)
-	if (_telemetry.enabled()) {
-		if (_telemetry.expectingCommandResponse()) {
-			// TODO: do we care about the return value? (esc index on success)
-			_telemetry.parseCommandResponse();
+	bool serial_telemetry_ready = process_serial_telemetry();
+	bool dshot_telemetry_ready = process_bdshot_erpm();
 
-		} else {
-
-			EscData esc {};
-			esc.motor_index = _telemetry_motor_index;
-
-			switch (_telemetry.parseTelemetryPacket(&esc)) {
-			case TelemetryStatus::NotStarted:
-				// no-op, should not hit this case
-				break;
-
-			case TelemetryStatus::NotReady:
-				// no-op, will eventually timeout
-				break;
-
-			case TelemetryStatus::Ready:
-				_serial_telem_online_mask |= (1 << _telemetry_motor_index);
-				consume_esc_data(esc, TelemetrySource::Serial);
-				all_telem_sampled = set_next_telemetry_index();
-				perf_count(_telem_success_perf);
-				break;
-
-			case TelemetryStatus::Timeout:
-				// Set ESC data to zeroes
-				// DSHOT_TELEM_DEBUG("Timeout");
-				_serial_telem_errors[_telemetry_motor_index]++;
-				_serial_telem_online_mask &= ~(1 << _telemetry_motor_index);
-				// Consume an empty EscData to zero the data
-				consume_esc_data(esc, TelemetrySource::Serial);
-				all_telem_sampled = set_next_telemetry_index();
-				perf_count(_telem_timeout_perf);
-				break;
-
-			case TelemetryStatus::ParseError:
-				// Set ESC data to zeroes
-				DSHOT_TELEM_DEBUG("ParseError");
-				_serial_telem_errors[_telemetry_motor_index]++;
-				_serial_telem_online_mask &= ~(1 << _telemetry_motor_index);
-				// Consume an empty EscData to zero the data
-				consume_esc_data(esc, TelemetrySource::Serial);
-				all_telem_sampled = set_next_telemetry_index();
-				_telem_delay_until = hrt_absolute_time() + 100_ms; // TODO: how long do we need to wait?
-				perf_count(_telem_error_perf);
-				break;
-			}
-		}
-	}
-
-	if (_param_dshot_bidir_en.get()) {
-
-		// TODO: We will have Extended BDShot available.
-		// - temp C
-		// - voltage
-		// - current
-
-		all_bdshot_sampled = process_bdshot_erpm();
-
-		if (all_bdshot_sampled) {
-			perf_count(_bdshot_success_perf);
-		}
-	}
-
-	if (all_telem_sampled || all_bdshot_sampled) {
+	if (serial_telemetry_ready || dshot_telemetry_ready) {
 		_esc_status.timestamp = hrt_absolute_time();
 		_esc_status.esc_count = count_set_bits(_output_mask);
 		_esc_status.counter++;
@@ -385,8 +431,8 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 		_current_command.clear();
 		_programming_state = ProgrammingState::Idle;
 
-	} else if (_current_command.valid() && command_ready) {
-		// Otherwise process and valid and ready commands
+	} else if (command_ready && !_current_command.finished()) {
+		// Otherwise process ready commands
 		for (int i = 0; i < (int)num_outputs; i++) {
 
 			if (!_mixing_output.isMotor(i)) {
@@ -406,7 +452,15 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 					_telemetry.setExpectCommandResponse(motor_index, _current_command.command);
 				}
 
-				up_dshot_motor_command(i, _current_command.command, false);
+				// DEBUGGING:
+				if (_dshot_programming_active) {
+					PX4_INFO("Writing: ESC%d, value: %u", motor_index + 1, _current_command.command);
+					// up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, false);
+					up_dshot_motor_command(i, _current_command.command, false);
+
+				} else {
+					up_dshot_motor_command(i, _current_command.command, false);
+				}
 
 				// Decrement command repetition counter
 				--_current_command.num_repetitions;
@@ -424,6 +478,12 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 		}
 
 		up_dshot_trigger();
+		return true;
+	}
+
+	// TODO: check _dshot_programming_active and return if true
+	if (_dshot_programming_active) {
+		PX4_INFO("WTF WTF WTF WTF WTF WTF WTF WTF WTF WTF WTF WTF WTF WTF WTF");
 		return true;
 	}
 
@@ -462,6 +522,10 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 
 		bool set_telemetry_bit = request_telemetry && (_telemetry_motor_index == i);
 
+		if (_dshot_programming_active && set_telemetry_bit) {
+			PX4_INFO("SET TELEMETRY BIT, OOPS");
+		}
+
 		if (output == DSHOT_DISARM_VALUE) {
 			up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, set_telemetry_bit);
 
@@ -478,6 +542,67 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 	up_dshot_trigger();
 
 	return true;
+}
+
+bool DShot::process_serial_telemetry()
+{
+	if (!_telemetry.enabled()) {
+		return false;
+	}
+
+	bool all_telem_sampled = false;
+
+	if (_telemetry.expectingCommandResponse()) {
+		// TODO: do we care about the return value? (esc index on success)
+		_telemetry.parseCommandResponse();
+
+	} else {
+
+		EscData esc {};
+		esc.motor_index = _telemetry_motor_index;
+
+		switch (_telemetry.parseTelemetryPacket(&esc)) {
+		case TelemetryStatus::NotStarted:
+			// no-op, should not hit this case
+			break;
+
+		case TelemetryStatus::NotReady:
+			// no-op, will eventually timeout
+			break;
+
+		case TelemetryStatus::Ready:
+			_serial_telem_online_mask |= (1 << _telemetry_motor_index);
+			consume_esc_data(esc, TelemetrySource::Serial);
+			all_telem_sampled = set_next_telemetry_index();
+			perf_count(_telem_success_perf);
+			break;
+
+		case TelemetryStatus::Timeout:
+			// Set ESC data to zeroes
+			// DSHOT_TELEM_DEBUG("Timeout");
+			_serial_telem_errors[_telemetry_motor_index]++;
+			_serial_telem_online_mask &= ~(1 << _telemetry_motor_index);
+			// Consume an empty EscData to zero the data
+			consume_esc_data(esc, TelemetrySource::Serial);
+			all_telem_sampled = set_next_telemetry_index();
+			perf_count(_telem_timeout_perf);
+			break;
+
+		case TelemetryStatus::ParseError:
+			// Set ESC data to zeroes
+			DSHOT_TELEM_DEBUG("ParseError");
+			_serial_telem_errors[_telemetry_motor_index]++;
+			_serial_telem_online_mask &= ~(1 << _telemetry_motor_index);
+			// Consume an empty EscData to zero the data
+			consume_esc_data(esc, TelemetrySource::Serial);
+			all_telem_sampled = set_next_telemetry_index();
+			_telem_delay_until = hrt_absolute_time() + 100_ms; // TODO: how long do we need to wait?
+			perf_count(_telem_error_perf);
+			break;
+		}
+	}
+
+	return all_telem_sampled;
 }
 
 bool DShot::set_next_telemetry_index()
@@ -561,6 +686,15 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 
 bool DShot::process_bdshot_erpm()
 {
+	if (!_param_dshot_bidir_en.get()) {
+		return false;
+	}
+
+	// TODO: We will have Extended BDShot available.
+	// - temp C
+	// - voltage
+	// - current
+
 	hrt_abstime now = hrt_absolute_time();
 
 	// Don't try to process any telem data until after ESCs have been given time to boot
@@ -616,6 +750,8 @@ bool DShot::process_bdshot_erpm()
 		}
 	}
 
+	perf_count(_bdshot_success_perf);
+
 	return true;
 }
 
@@ -649,49 +785,11 @@ uint16_t DShot::convert_output_to_3d_scaling(uint16_t output)
 	return output;
 }
 
-void DShot::handle_programming_sequence_state()
-{
-	switch (_programming_state) {
-	case ProgrammingState::EnterMode:
-		_current_command.command = DSHOT_CMD_ENTER_PROGRAMMING_MODE;
-		_current_command.num_repetitions = 10;
-		_programming_state = ProgrammingState::SendAddress;
-		break;
-
-	case ProgrammingState::SendAddress:
-		_current_command.command = _programming_address;
-		_current_command.num_repetitions = 1;
-		_programming_state = ProgrammingState::SendValue;
-		break;
-
-	case ProgrammingState::SendValue:
-		_current_command.command = _programming_value;
-		_current_command.num_repetitions = 1;
-		_programming_state = ProgrammingState::ExitMode;
-		break;
-
-	case ProgrammingState::ExitMode:
-		_current_command.command = DSHOT_CMD_EXIT_PROGRAMMING_MODE;
-		_current_command.num_repetitions = 1;
-		_programming_state = ProgrammingState::Save;
-		break;
-
-	case ProgrammingState::Save:
-		_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
-		_current_command.num_repetitions = 10;
-		_programming_state = ProgrammingState::Idle;
-		break;
-
-	default:
-		break;
-	}
-}
-
 void DShot::handle_vehicle_commands()
 {
 	vehicle_command_s command = {};
 
-	while (!_current_command.valid() && _vehicle_command_sub.update(&command)) {
+	while (_current_command.finished() && _vehicle_command_sub.update(&command)) {
 
 		switch (command.command) {
 		case vehicle_command_s::VEHICLE_CMD_CONFIGURE_ACTUATOR:
@@ -741,7 +839,7 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 		}
 	}
 
-	vehicle_command_ack_s command_ack{};
+	vehicle_command_ack_s command_ack = {};
 	command_ack.command = command.command;
 	command_ack.target_system = command.source_system;
 	command_ack.target_component = command.source_component;
@@ -777,29 +875,6 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 			_current_command.save = true;
 			break;
 
-		// TODO: migrate to using AM32_EEPROM with mode flag
-
-		// case ACTUATOR_CONFIGURATION_WRITE_SETTING:
-		// 	DSHOT_CMD_DEBUG("ACTUATOR_CONFIGURATION_WRITE_SETTING");
-		// 	// This is a special command that triggers 5 DShot commands:
-		// 	// - DSHOT_CMD_ENTER_PROGRAMMING_MODE
-		// 	// - EEPROM Memory location
-		// 	// - Value
-		// 	// - DSHOT_CMD_EXIT_PROGRAMMING_MODE
-		// 	// - DSHOT_CMD_SAVE_SETTINGS
-
-		// 	// Command structure
-		// 	// param1 = ACTUATOR_CONFIGURATION_WRITE_SETTING
-		// 	// param2 = Memory location
-		// 	// param3 = Value
-		// 	// param5 = ACTUATOR_OUTPUT_FUNCTION_MOTOR1
-
-		// 	_current_command.save = false;
-		// 	_programming_address = (uint16_t)command.param2;
-		// 	_programming_value = (uint16_t)command.param3;
-		// 	_programming_state = ProgrammingState::EnterMode;
-		// 	break;
-
 		default:
 			PX4_WARN("unknown command: %i", type);
 			break;
@@ -818,10 +893,12 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 
 void DShot::handle_am32_request_eeprom(const vehicle_command_s &command)
 {
-	DSHOT_CMD_DEBUG("AM32_REQUEST_EEPROM");
+	DSHOT_CMD_DEBUG("Received AM32_REQUEST_EEPROM");
 	DSHOT_CMD_DEBUG("index: %d", (int)command.param1);
 
 	int index = command.param1;
+
+	// Use _settings_requested_mask to trigger re-requesting settings from motors we want
 
 	if (index == 255) {
 		_settings_requested_mask = 0;
@@ -829,12 +906,13 @@ void DShot::handle_am32_request_eeprom(const vehicle_command_s &command)
 		_settings_requested_mask &= ~(1 << index);
 	}
 
-	// Use _settings_requested_mask to trigger re-requesting settings from motors we want
-
-// 	_current_command.save = false;
-// 	_current_command.num_repetitions = 6; // NOTE: AM32 requires 6 to consider a command valid
-// 	_current_command.command = DSHOT_CMD_ESC_INFO;
-// 	_current_command.expect_response = true;
+	vehicle_command_ack_s command_ack = {};
+	command_ack.command = command.command;
+	command_ack.target_system = command.source_system;
+	command_ack.target_component = command.source_component;
+	command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+	command_ack.timestamp = hrt_absolute_time();
+	_command_ack_pub.publish(command_ack);
 }
 
 void DShot::update_params()
