@@ -58,21 +58,17 @@ public:
 
 	bool isAvailable() { return _input_available; };
 
-	// Position : 0 : pitch, 1 : roll, 2 : throttle, 3 : yaw
-	const matrix::Vector4f &getPosition() { return _positions; }; // Raw stick position, no deadzone
-	const matrix::Vector4f &getPositionExpo() { return _positions_expo; }; // Deadzone and expo applied
-
 	// Helper functions to get stick values more intuitively
 	float getRoll() const { return _positions(1); }
-	float getRollExpo() const { return _positions_expo(1); }
+	float getRollExpo() const { return math::expo_deadzone(_positions(1), _param_mpc_xy_man_expo.get(), _param_man_deadzone.get()); }
 	float getPitch() const { return _positions(0); }
-	float getPitchExpo() const { return _positions_expo(0); }
+	float getPitchExpo() const { return math::expo_deadzone(_positions(0), _param_mpc_xy_man_expo.get(), _param_man_deadzone.get()); }
 	float getYaw() const { return _positions(3); }
-	float getYawExpo() const { return _positions_expo(3); }
+	float getYawExpo() const { return math::expo_deadzone(_positions(3), _param_mpc_yaw_expo.get(), _param_man_deadzone.get()); }
 	float getThrottleZeroCentered() const { return -_positions(2); } // Convert Z-axis(down) command to Up-axis frame
-	float getThrottleZeroCenteredExpo() const { return -_positions_expo(2); }
+	float getThrottleZeroCenteredExpo() const { return -math::expo_deadzone(_positions(2), _param_mpc_z_man_expo.get(), _param_man_deadzone.get()); }
 	const matrix::Vector2f getPitchRoll() { return _positions.slice<2, 1>(0, 0); }
-	const matrix::Vector2f getPitchRollExpo() { return _positions_expo.slice<2, 1>(0, 0); }
+	const matrix::Vector2f getPitchRollExpo() { return {getPitchExpo(), getRollExpo()}; }
 
 	const matrix::Vector<float, 6> &getAux() const { return _aux_positions; }
 
@@ -93,7 +89,6 @@ public:
 private:
 	bool _input_available{false};
 	matrix::Vector4f _positions; ///< unmodified manual stick inputs that usually move vehicle in x, y, z and yaw direction
-	matrix::Vector4f _positions_expo; ///< modified manual sticks using expo function
 
 	matrix::Vector<float, 6> _aux_positions;
 
