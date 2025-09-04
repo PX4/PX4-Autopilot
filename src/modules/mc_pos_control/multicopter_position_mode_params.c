@@ -131,19 +131,6 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.f);
 PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 8.f);
 
 /**
- * Deadzone for sticks in manual piloted modes
- *
- * Does not apply to manual throttle and direct attitude piloting by stick.
- *
- * @min 0
- * @max 1
- * @decimal 2
- * @increment 0.01
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_HOLD_DZ, 0.1f);
-
-/**
  * Manual position control stick exponential curve sensitivity
  *
  * The higher the value the less sensitivity the stick has around zero
