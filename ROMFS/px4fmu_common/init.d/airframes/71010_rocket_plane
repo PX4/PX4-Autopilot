@@ -151,9 +151,14 @@ param set-default RC_ARMSWITCH_TH 0.75
 param set-default RC_MAP_ENG_MOT 0
 param set-default RC_MAP_FAILSAFE 0
 
-# CRSF RC and Telemetry on TELEM2
-param set-default RC_CRSF_PRT_CFG 102    # CRSF protocol on TELEM 2
-param set-default RC_CRSF_TEL_EN 1       # Enable CRSF telemetry transmission
+# CRSF RC and Telemetry on TELEM2 (UNUSED - using MAVLink RC instead)
+#param set-default RC_CRSF_PRT_CFG 102    # CRSF protocol on TELEM 2
+#param set-default RC_CRSF_TEL_EN 1       # Enable CRSF telemetry transmission
+
+#Using MAVLink RC over UART2 (TELEM2)
+param set-default MAV_0_CONFIG 2         # MAVLink on TELEM2
+param set-default MAV_0_RATE 9600        # MAVLink data rate (bytes/sec)
+param set-default SER_TEL2_BAUD 460800   # TELEM2 baud rate (8N1 by default)
 
 
 # PWM AUX defaults
