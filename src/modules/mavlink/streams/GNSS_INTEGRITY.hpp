@@ -34,8 +34,10 @@
 #ifndef GNSS_INTEGRITY_HPP
 #define GNSS_INTEGRITY_HPP
 
+
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_gnss_status.h>
+#include <uORB/PublicationMulti.hpp>
 
 using namespace time_literals;
 
@@ -52,47 +54,49 @@ public:
 
 	unsigned get_size() override
 	{
-		return _sensor_gps_sub.advertised() ? (MAVLINK_MSG_ID_GNSS_INTEGRITY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return _vehicle_gps_position_sub.advertised() ? (MAVLINK_MSG_ID_GNSS_INTEGRITY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
+	static constexpr int GPS_MAX_RECEIVERS = 2;
+
 	explicit MavlinkStreamGNSSIntegrity(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _sensor_gps_sub{ORB_ID(sensor_gps), 0};
-	uORB::Subscription _sensor_gnss_status_sub{ORB_ID(sensor_gnss_status), 0};
-
-	// Store last received data
-	sensor_gps_s _gps{};
-	sensor_gnss_status_s _status{};
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::SubscriptionMultiArray<sensor_gnss_status_s, GPS_MAX_RECEIVERS> _sensor_gnss_status_sub{ORB_ID::sensor_gnss_status};
 
 	bool send() override
 	{
-		// Check for new data and update local copies
-		const bool gps_updated = _sensor_gps_sub.update(&_gps);
-		const bool status_updated = _sensor_gnss_status_sub.update(&_status);
+		sensor_gps_s vehicle_gps_position{};
 
-		// Send only if there's new data for either topic
-		if (gps_updated || status_updated) {
+		if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
 			mavlink_gnss_integrity_t msg{};
 
-			// Populate message with the latest available data
-			msg.id = _gps.device_id;
-			msg.system_errors = _gps.system_error;
-			msg.authentication_state = _gps.authentication_state;
-			msg.jamming_state = _gps.jamming_state;
-			msg.spoofing_state = _gps.spoofing_state;
+			msg.id = vehicle_gps_position.device_id;
+			msg.system_errors = vehicle_gps_position.system_error;
+			msg.authentication_state = vehicle_gps_position.authentication_state;
+			msg.jamming_state = vehicle_gps_position.jamming_state;
+			msg.spoofing_state = vehicle_gps_position.spoofing_state;
 
-			if (_status.quality_available) {
-				msg.corrections_quality	= _status.quality_corrections;
-				msg.system_status_summary = _status.quality_receiver;
-				msg.gnss_signal_quality = _status.quality_gnss_signals;
-				msg.post_processing_quality = _status.quality_post_processing;
+			msg.corrections_quality = UINT8_MAX;
+			msg.system_status_summary = UINT8_MAX;
+			msg.gnss_signal_quality = UINT8_MAX;
+			msg.post_processing_quality = UINT8_MAX;
 
-			} else {
-				msg.corrections_quality	= 255;
-				msg.system_status_summary = 255;
-				msg.gnss_signal_quality = 255;
-				msg.post_processing_quality = 255;
+			for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+				sensor_gnss_status_s sensor_gnss_status{};
+
+				if (_sensor_gnss_status_sub[i].copy(&sensor_gnss_status)) {
+					if ((hrt_elapsed_time(&sensor_gnss_status.timestamp) < 1_s)
+					    && (sensor_gnss_status.device_id == vehicle_gps_position.device_id)
+					    && (sensor_gnss_status.quality_available)) {
+						msg.corrections_quality = sensor_gnss_status.quality_corrections;
+						msg.system_status_summary = sensor_gnss_status.quality_receiver;
+						msg.gnss_signal_quality = sensor_gnss_status.quality_gnss_signals;
+						msg.post_processing_quality = sensor_gnss_status.quality_post_processing;
+						break;
+					}
+				}
 			}
 
 			msg.raim_hfom = UINT16_MAX;
