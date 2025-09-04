@@ -87,6 +87,13 @@ public:
 
 	void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
 
+	void overrideCollectiveTilt(bool do_override, float collective_tilt) override;
+
+	void processTiltrotorControls(ActuatorVector &actuator_sp,
+				      const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+				      const matrix::Vector<float, NUM_ACTUATORS> &actuator_max);
+
+
 protected:
 	bool _collective_tilt_updated{true};
 	ActuatorEffectivenessRotors _mc_rotors;
@@ -112,6 +119,9 @@ protected:
 	YawTiltSaturationFlags _yaw_tilt_saturation_flags{};
 
 	uORB::Subscription _tiltrotor_extra_controls_sub{ORB_ID(tiltrotor_extra_controls)};
+
+	bool _do_override_collective_tilt{false};
+	float _collective_tilt_normalized_setpoint{0.5f};
 
 private:
 
