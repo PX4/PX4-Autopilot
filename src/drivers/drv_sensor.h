@@ -254,6 +254,7 @@
 #define DRV_INS_DEVTYPE_ILABS           0xE9
 
 #define DRV_INS_DEVTYPE_MICROSTRAIN	0xEA
+#define DRV_INS_DEVTYPE_BAHRS           0xEB
 
 #define DRV_DEVTYPE_UNUSED		0xff
 
