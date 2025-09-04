@@ -71,24 +71,24 @@ To check that these are present on your flight controller:
 
 3. Enter the following commands in the console:
 
-  ```sh
-  pwm_out_sim status
-  ```
+   ```sh
+   pwm_out_sim status
+   ```
 
-  ```sh
-  sensor_baro_sim status
-  ```
+   ```sh
+   sensor_baro_sim status
+   ```
 
-  ```sh
-  sensor_gps_sim status
-  ```
+   ```sh
+   sensor_gps_sim status
+   ```
 
-  ```sh
-  sensor_mag_sim status
-  ```
+   ```sh
+   sensor_mag_sim status
+   ```
 
-  ::: tip
-  Note that when using SIH on real hardware you do not need to additionally enable the modules using their corresponding parameters ([SENS_EN_GPSSIM](../advanced_config/parameter_reference.md#SENS_EN_GPSSIM), [SENS_EN_BAROSIM](../advanced_config/parameter_reference.md#SENS_EN_BAROSIM), [SENS_EN_MAGSIM](../advanced_config/parameter_reference.md#SENS_EN_MAGSIM)).
+   ::: tip
+   Note that when using SIH on real hardware you do not need to additionally enable the modules using their corresponding parameters ([SENS_EN_GPSSIM](../advanced_config/parameter_reference.md#SENS_EN_GPSSIM), [SENS_EN_BAROSIM](../advanced_config/parameter_reference.md#SENS_EN_BAROSIM), [SENS_EN_MAGSIM](../advanced_config/parameter_reference.md#SENS_EN_MAGSIM)).
 
 :::
 
@@ -141,12 +141,12 @@ To set up/start SIH:
 1. Connect the flight controller to the desktop computer with a USB cable.
 2. Відкрийте QGroundControl і зачекайте, поки контролер польоту також завантажиться та підключиться.
 3. Open [Vehicle Setup > Airframe](../config/airframe.md) then select the desired frame:
-  - [SIH Quadcopter X](../airframes/airframe_reference.md#copter_simulation_sih_quadcopter_x)
-  - **SIH Hexacopter X** (currently only has an airframe for SITL to safe flash so on flight control hardware it has to be manually configured equivalently).
-  - [SIH plane AERT](../airframes/airframe_reference.md#plane_simulation_sih_plane_aert)
-  - [SIH Tailsitter Duo](../airframes/airframe_reference.md#vtol_simulation_sih_tailsitter_duo)
-  - [SIH Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_simulation_sih_standard_vtol_quadplane)
-  - [SIH Ackermann Rover](../airframes/airframe_reference.md#rover_rover_sih_rover_ackermann)
+   - [SIH Quadcopter X](../airframes/airframe_reference.md#copter_simulation_sih_quadcopter_x)
+   - **SIH Hexacopter X** (currently only has an airframe for SITL to safe flash so on flight control hardware it has to be manually configured equivalently).
+   - [SIH plane AERT](../airframes/airframe_reference.md#plane_simulation_sih_plane_aert)
+   - [SIH Tailsitter Duo](../airframes/airframe_reference.md#vtol_simulation_sih_tailsitter_duo)
+   - [SIH Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_simulation_sih_standard_vtol_quadplane)
+   - [SIH Ackermann Rover](../airframes/airframe_reference.md#rover_rover_sih_rover_ackermann)
 
 Потім автопілот перезавантажиться.
 The `sih` module is started on reboot, and the vehicle should be displayed on the ground control station map.
@@ -172,19 +172,19 @@ SIH does not _need_ a visualiser — you can connect with QGroundControl and fly
 
 3. Start jMAVSim by calling the script **jmavsim_run.sh** from a terminal:
 
-  ```sh
-  ./Tools/simulation/jmavsim/jmavsim_run.sh -q -d /dev/ttyACM0 -b 2000000 -o
-  ```
+   ```sh
+   ./Tools/simulation/jmavsim/jmavsim_run.sh -q -d /dev/ttyACM0 -b 2000000 -o
+   ```
 
-  де прапорці такі:
+   де прапорці такі:
 
-  - `-q` to allow the communication to _QGroundControl_ (optional).
-  - `-d` to start the serial device `/dev/ttyACM0` on Linux.
-    On macOS this would be `/dev/tty.usbmodem1`.
-  - `-b` to set the serial baud rate to `2000000`.
-  - `-o` to start jMAVSim in _display Only_ mode (i.e. the physical engine is turned off and jMAVSim only displays the trajectory given by the SIH in real-time).
-  - add a flag `-a` to display an aircraft or `-t` to display a tailsitter.
-    Якщо цей прапорець не вказаний, за замовчуванням відображатиметься квадрокоптер.
+   - `-q` to allow the communication to _QGroundControl_ (optional).
+   - `-d` to start the serial device `/dev/ttyACM0` on Linux.
+     On macOS this would be `/dev/tty.usbmodem1`.
+   - `-b` to set the serial baud rate to `2000000`.
+   - `-o` to start jMAVSim in _display Only_ mode (i.e. the physical engine is turned off and jMAVSim only displays the trajectory given by the SIH in real-time).
+   - add a flag `-a` to display an aircraft or `-t` to display a tailsitter.
+     Якщо цей прапорець не вказаний, за замовчуванням відображатиметься квадрокоптер.
 
 4. After few seconds, _QGroundControl_ can be opened again.
 
@@ -201,41 +201,41 @@ In this case you don't need the flight controller hardware.
 
 1. Install the [PX4 Development toolchain](../dev_setup/dev_env.md).
 2. Виконайте відповідну команду make для кожного типу транспортного засобу (в корені репозиторію PX4-Autopilot):
-  - Quadcopter
+   - Quadcopter
 
-    ```sh
-    make px4_sitl sihsim_quadx
-    ```
+     ```sh
+     make px4_sitl sihsim_quadx
+     ```
 
-  - Hexacopter
+   - Hexacopter
 
-    ```sh
-    make px4_sitl sihsim_hex
-    ```
+     ```sh
+     make px4_sitl sihsim_hex
+     ```
 
-  - Fixed-wing (plane)
+   - Fixed-wing (plane)
 
-    ```sh
-    make px4_sitl sihsim_airplane
-    ```
+     ```sh
+     make px4_sitl sihsim_airplane
+     ```
 
-  - XVert VTOL tailsitter
+   - XVert VTOL tailsitter
 
-    ```sh
-    make px4_sitl sihsim_xvert
-    ```
+     ```sh
+     make px4_sitl sihsim_xvert
+     ```
 
-  - Standard VTOL
+   - Standard VTOL
 
-    ```sh
-    make px4_sitl sihsim_standard_vtol
-    ```
+     ```sh
+     make px4_sitl sihsim_standard_vtol
+     ```
 
-  - Ackermann Rover
+   - Ackermann Rover
 
-    ```sh
-    make px4_sitl sihsim_rover_ackermann
-    ```
+     ```sh
+     make px4_sitl sihsim_rover_ackermann
+     ```
 
 ### Зміна швидкості симуляції
 
@@ -327,6 +327,44 @@ For SIH as SITL (no FC):
   - `param set-default SENS_EN_ARSPDSIM 1` (if it is a fixed-wing or VTOL airframe with airspeed sensor)
 
 For specific examples see the `_sihsim_` airframes in [ROMFS/px4fmu_common/init.d-posix/airframes](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/airframes/) (SIH as SITL) and [ROMFS/px4fmu_common/init.d/airframes](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d/airframes) (SIH on FC).
+
+## Controlling Actuators in SIH
+
+:::warning
+If you want to control throttling actuators in SIH, make sure to remove propellers for safety.
+:::
+
+In some scenarios, it may be useful to control an actuator while running SIH. For example, you might want to verify that winches or grippers are functioning correctly by checking the servo responses.
+
+To enable actuator control in SIH:
+
+1. Configure PWM parameters in the airframe file:
+
+Ensure your airframe file includes the necessary parameters to map PWM outputs to the correct channels.
+
+For example, if a servo is connected to MAIN 3 and you want to map it to AUX1 on your RC, use the following command:
+
+`param set-default PWM_MAIN_FUNC3 407`
+
+You can find a full list of available values for `PWM_MAIN_FUNCn` [here](../advanced_config/parameter_reference.md#PWM_MAIN_FUNC1). In this case, `407` maps the MAIN 3 output to AUX1 on the RC.
+
+Alternatively, you can use the [`PWM_AUX_FUNCn`](../advanced_config/parameter_reference.md#PWM_AUX_FUNC1) parameters.
+
+You may also configure the output as desired:
+
+- Disarmed PWM: ([`PWM_MAIN_DISn`](../advanced_config/parameter_reference.md#PWM_MAIN_DIS1) / [`PWM_AUX_DIS1`](../advanced_config/parameter_reference.md#PWM_AUX_DIS1))
+- Minimum PWM ([`PWM_MAIN_MINn`](../advanced_config/parameter_reference.md#PWM_MAIN_MIN1) / [`PWM_AUX_MINn`](../advanced_config/parameter_reference.md#PWM_AUX_MIN1))
+- Maximum PWM ([`PWM_MAIN_MAXn`](../advanced_config/parameter_reference.md#PWM_MAIN_MAX1) / [`PWM_AUX_MAXn`](../advanced_config/parameter_reference.md#PWM_AUX_MAX1))
+
+2. Manually start the PWM output driver
+
+For safety, the PWM driver is not started automatically in SIH. To enable it, run the following command in the MAVLink shell:
+
+`pwm_out start`
+
+And to disable it again:
+
+`pwm_out stop`
 
 ## Dynamic Models
 
