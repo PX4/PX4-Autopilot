@@ -50,17 +50,10 @@ bool Sticks::checkAndUpdateStickInputs()
 	manual_control_setpoint_s manual_control_setpoint;
 
 	if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-		// Linear scale
 		_positions(0) = manual_control_setpoint.pitch;
 		_positions(1) = manual_control_setpoint.roll;
 		_positions(2) = -manual_control_setpoint.throttle;
 		_positions(3) = manual_control_setpoint.yaw;
-
-		// Exponential scale
-		_positions_expo(0) = math::expo_deadzone(_positions(0), _param_mpc_xy_man_expo.get(), _param_man_deadzone.get());
-		_positions_expo(1) = math::expo_deadzone(_positions(1), _param_mpc_xy_man_expo.get(), _param_man_deadzone.get());
-		_positions_expo(2) = math::expo_deadzone(_positions(2), _param_mpc_z_man_expo.get(),  _param_man_deadzone.get());
-		_positions_expo(3) = math::expo_deadzone(_positions(3), _param_mpc_yaw_expo.get(),    _param_man_deadzone.get());
 
 		_aux_positions(0) = manual_control_setpoint.aux1;
 		_aux_positions(1) = manual_control_setpoint.aux2;
@@ -85,7 +78,6 @@ bool Sticks::checkAndUpdateStickInputs()
 	if (!_input_available) {
 		// Timeout: set all sticks to zero
 		_positions.zero();
-		_positions_expo.zero();
 	}
 
 	return _input_available;
