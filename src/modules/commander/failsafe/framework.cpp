@@ -698,7 +698,7 @@ uint8_t FailsafeBase::modeFromAction(const Action &action, uint8_t user_intended
 
 bool FailsafeBase::modeCanRun(const failsafe_flags_s &status_flags, uint8_t mode)
 {
-	uint32_t mode_mask = 1u << mode;
+	uint64_t mode_mask = 1ull << mode;
 	// mode_req_wind_and_flight_time_compliance: does not need to be handled here (these are separate failsafe triggers)
 	// mode_req_manual_control: is handled separately
 	return
