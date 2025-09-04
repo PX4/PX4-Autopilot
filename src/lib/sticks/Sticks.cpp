@@ -50,10 +50,10 @@ bool Sticks::checkAndUpdateStickInputs()
 	manual_control_setpoint_s manual_control_setpoint;
 
 	if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-		_positions(0) = manual_control_setpoint.pitch;
-		_positions(1) = manual_control_setpoint.roll;
-		_positions(2) = -manual_control_setpoint.throttle;
-		_positions(3) = manual_control_setpoint.yaw;
+		_positions(0) = manual_control_setpoint.roll;
+		_positions(1) = manual_control_setpoint.pitch;
+		_positions(2) = manual_control_setpoint.yaw;
+		_positions(3) = manual_control_setpoint.throttle;
 
 		_aux_positions(0) = manual_control_setpoint.aux1;
 		_aux_positions(1) = manual_control_setpoint.aux2;
