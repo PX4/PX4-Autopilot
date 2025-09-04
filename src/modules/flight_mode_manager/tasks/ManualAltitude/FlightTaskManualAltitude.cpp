@@ -91,8 +91,8 @@ void FlightTaskManualAltitude::_scaleSticks()
 	// Use sticks input with deadzone and exponential curve for vertical velocity
 	const float vel_max_up = fminf(_param_mpc_z_vel_max_up.get(), _velocity_constraint_up);
 	const float vel_max_down = fminf(_param_mpc_z_vel_max_dn.get(), _velocity_constraint_down);
-	const float vel_max_z = (_sticks.getPosition()(2) > 0.0f) ? vel_max_down : vel_max_up;
-	_velocity_setpoint(2) = vel_max_z * _sticks.getPositionExpo()(2);
+	const float vel_max_z = (_sticks.getThrottleZeroCentered() < 0.f) ? vel_max_down : vel_max_up;
+	_velocity_setpoint(2) = vel_max_z * -_sticks.getThrottleZeroCenteredExpo();
 }
 
 void FlightTaskManualAltitude::_updateAltitudeLock()
@@ -101,7 +101,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 	// If not locked, altitude setpoint is set to NAN.
 
 	// Check if user wants to break
-	const bool apply_brake = fabsf(_sticks.getPositionExpo()(2)) <= FLT_EPSILON;
+	const bool apply_brake = fabsf(_sticks.getThrottleZeroCenteredExpo()) <= FLT_EPSILON;
 
 	// Check if vehicle has stopped
 	const bool stopped = (_param_mpc_hold_max_z.get() < FLT_EPSILON || fabsf(_velocity(2)) < _param_mpc_hold_max_z.get());
@@ -284,7 +284,7 @@ void FlightTaskManualAltitude::_updateSetpoints()
 bool FlightTaskManualAltitude::_checkTakeoff()
 {
 	// stick is deflected above 65% throttle (throttle stick is in the range [-1,1])
-	return _sticks.getPosition()(2) < -0.3f;
+	return _sticks.getThrottleZeroCentered() > 0.3f;
 }
 
 bool FlightTaskManualAltitude::update()
