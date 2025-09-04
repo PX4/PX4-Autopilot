@@ -89,7 +89,7 @@ public:
 	void setPriority(const uint8_t priority) { _priority = priority; }
 	void setConnected(const bool connected) { _connected = connected; }
 	void setStateOfCharge(const float soc) { _state_of_charge = math::constrain(soc, 0.f, 1.f); _external_state_of_charge = true; }
-	void setCapacity(const float capacity) { _capacity = capacity > 0.f ? static_cast<uint16_t>(capacity) : 0; }
+	void setCapacityMah(const float capacity) { _capacity_mah = math::max(capacity, 0.f); }
 	void updateVoltage(const float voltage_v);
 	void updateCurrent(const float current_a);
 	void updateTemperature(const float temperature_c);
@@ -102,8 +102,7 @@ public:
 	void updateBatteryStatus(const hrt_abstime &timestamp);
 
 	battery_status_s getBatteryStatus();
-	float getSumDischarged() const { return _discharged_mah; }
-	float getCurrentAverage() const {return PX4_ISFINITE(_current_average_filter_a.getState()) ? _current_average_filter_a.getState() : -1.f;}
+	float getCurrentAverage() const { return PX4_ISFINITE(_current_average_filter_a.getState()) ? _current_average_filter_a.getState() : -1.f; }
 	void publishBatteryStatus(const battery_status_s &battery_status);
 
 	/**
@@ -114,16 +113,23 @@ public:
 	void updateAndPublishBatteryStatus(const hrt_abstime &timestamp);
 
 	/**
-	 * This function calculates how much time is left before the battery is depleted,
-	 * given the current consumption in amperes.
-	 * if used externally make sure to set the capacity and state of charge with setCapacity() and setStateOfCharge().
+	 * Calculates how much time is left before the battery is depleted,
+	 * given the heavily low-pass filtered current consumption.
+	 * Requires the capacity and state of charge e.g. externally set through setCapacity() and setStateOfCharge().
 	 *
 	 * @param current_a The current draw from the battery in amperes.
 	 * @return Estimated remaining time in seconds.
 	 */
 	float computeRemainingTime(float current_a);
 
-	void sumDischarged(float current_a);
+	/**
+	 * Updates coulomb counting
+	 * Requires a dt, seeupdateDt()
+	 *
+	 * @param current_a Positive current draw in A
+	 * @return Accumulated used capacity in mAh
+	 */
+	float sumDischarged(float current_a);
 	uint8_t determineWarning(float state_of_charge);
 	void updateDt(const hrt_abstime &timestamp);
 
@@ -147,7 +153,6 @@ protected:
 		float v_empty;
 		float v_charged;
 		int32_t  n_cells;
-		float capacity;
 		float r_internal;
 		float low_thr;
 		float crit_thr;
@@ -191,7 +196,7 @@ private:
 	float _scale{1.f};
 	uint8_t _warning{battery_status_s::WARNING_NONE};
 	float _dt{0.f};
-	uint16_t _capacity{0};
+	float _capacity_mah{0.f};
 	hrt_abstime _last_timestamp{0};
 	bool _armed{false};
 	bool _vehicle_status_is_fw{false};

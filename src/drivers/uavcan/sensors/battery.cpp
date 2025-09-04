@@ -117,8 +117,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	_battery_status[instance].current_a = msg.current;
 
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
-		_battery[instance]->sumDischarged(fabs(msg.current));
-		_battery_status[instance].discharged_mah = _battery[instance]->getSumDischarged();
+		_battery_status[instance].discharged_mah = _battery[instance]->sumDischarged(fabsf(msg.current));
 		_battery_status[instance].time_remaining_s = NAN;
 	}
 
@@ -139,21 +138,16 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 		_battery_status[instance].cell_count = 1;
 	}
 
-
-	_battery_status[instance].warning = _battery[instance]->determineWarning(msg.state_of_charge_pct / 100.0f);
-
-	_battery_info[instance].timestamp = _battery_status[instance].timestamp;
-	_battery_info[instance].id = _battery_status[instance].id;
-	snprintf(_battery_info[instance].serial_number, sizeof(_battery_info[instance].serial_number), "%" PRIu32,
-		 msg.model_instance_id);
+	_battery_status[instance].warning = _battery[instance]->determineWarning(_battery_status[instance].remaining);
 
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
 		publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
 
-		if (msg.model_instance_id == 0) {
-			memset(_battery_info[instance].serial_number, 0, sizeof(_battery_info[instance].serial_number));
-
-		} else {
+		if (msg.model_instance_id > 0) {
+			_battery_info[instance].timestamp = _battery_status[instance].timestamp;
+			_battery_info[instance].id = _battery_status[instance].id;
+			snprintf(_battery_info[instance].serial_number, sizeof(_battery_info[instance].serial_number),
+				 "%" PRIu32, msg.model_instance_id);
 			_battery_info_pub[instance].publish(_battery_info[instance]);
 		}
 	}
@@ -186,15 +180,15 @@ UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardu
 	_battery_status[instance].is_powering_off = msg.is_powering_off;
 
 	if (msg.nominal_voltage > FLT_EPSILON) {
-		const float capacity = _battery_status[instance].full_charge_capacity_wh * 1000.f /
-				       msg.nominal_voltage;
-		_battery_status[instance].capacity =  capacity;
-		_battery[instance]->setCapacity(capacity);
-		_battery[instance]->setStateOfCharge(_battery_status[instance].remaining);
+		_battery_status[instance].capacity =
+			_battery_status[instance].full_charge_capacity_wh * 1000.f / msg.nominal_voltage;
 	}
 
-	_battery_status[instance].time_remaining_s = _battery[instance]->computeRemainingTime(fabs(
-				_battery_status[instance].current_a)); // We take the absolute as there is inconsitency between vendors on how the sign on current is used.
+	_battery[instance]->setCapacityMah(_battery_status[instance].capacity);
+	_battery[instance]->setStateOfCharge(_battery_status[instance].remaining);
+	// Absolute value of current as sign not clearly defined and vendors are inconsistent
+	_battery_status[instance].time_remaining_s =
+		_battery[instance]->computeRemainingTime(fabsf(_battery_status[instance].current_a));
 	_battery_status[instance].current_average_a = _battery[instance]->getCurrentAverage();
 
 	for (uint8_t i = 0; i < _battery_status[instance].cell_count; i++) {
@@ -237,7 +231,7 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 		msg.full_charge_capacity * msg.nominal_voltage / 1000.f; // mAh -> Wh
 	_battery_status[instance].remaining_capacity_wh = msg.remaining_capacity * msg.nominal_voltage / 1000.f; // mAh -> Wh
 	_battery_status[instance].nominal_voltage = msg.nominal_voltage;
-	_battery_status[instance].capacity = msg.design_capacity; // mAh
+	_battery_status[instance].capacity = msg.full_charge_capacity; // mAh
 	_battery_status[instance].cycle_count = msg.cycle_count;
 	_battery_status[instance].average_time_to_empty = msg.average_time_to_empty;
 	_battery_status[instance].manufacture_date = msg.manufacture_date;
@@ -251,15 +245,17 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 	_battery_status[instance].is_powering_off = msg.is_powering_off;
 
 	// use Battery class for time_remaining calculation
-	_battery[instance]->setStateOfCharge(msg.state_of_charge / 100.f);
-	_battery[instance]->setCapacity(msg.full_charge_capacity);
-	_battery_status[instance].time_remaining_s = _battery[instance]->computeRemainingTime(-msg.current);
+	_battery[instance]->updateDt(_battery_status[instance].timestamp);
+	_battery[instance]->setStateOfCharge(_battery_status[instance].remaining);
+	_battery[instance]->setCapacityMah(_battery_status[instance].capacity);
+	_battery_status[instance].time_remaining_s =
+		_battery[instance]->computeRemainingTime(_battery_status[instance].current_a);
 
 	for (uint8_t i = 0; i < _battery_status[instance].cell_count; i++) {
 		_battery_status[instance].voltage_cell_v[i] = msg.voltage_cell[i];
 	}
 
-	_battery_status[instance].warning = _battery[instance]->determineWarning(msg.state_of_charge / 100.0f);
+	_battery_status[instance].warning = _battery[instance]->determineWarning(_battery_status[instance].remaining);
 
 	uint16_t faults = 0;
 
@@ -306,15 +302,11 @@ UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equi
 
 	publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
 
-	_battery_info[instance].timestamp = _battery_status[instance].timestamp;
-	_battery_info[instance].id = _battery_status[instance].id;
-	snprintf(_battery_info[instance].serial_number, sizeof(_battery_info[instance].serial_number), "%" PRIu32,
-		 msg.model_instance_id);
-
-	if (msg.model_instance_id == 0) {
-		memset(_battery_info[instance].serial_number, 0, sizeof(_battery_info[instance].serial_number));
-
-	} else {
+	if (msg.model_instance_id > 0) {
+		_battery_info[instance].timestamp = _battery_status[instance].timestamp;
+		_battery_info[instance].id = _battery_status[instance].id;
+		snprintf(_battery_info[instance].serial_number, sizeof(_battery_info[instance].serial_number),
+			 "%" PRIu32, msg.model_instance_id);
 		_battery_info_pub[instance].publish(_battery_info[instance]);
 	}
 }
