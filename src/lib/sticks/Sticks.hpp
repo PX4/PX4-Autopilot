@@ -59,15 +59,17 @@ public:
 	bool isAvailable() { return _input_available; };
 
 	// Helper functions to get stick values more intuitively
-	float getRoll() const { return _positions(1); }
-	float getRollExpo() const { return math::expo_deadzone(_positions(1), _param_mpc_xy_man_expo.get(), _param_man_deadzone.get()); }
-	float getPitch() const { return _positions(0); }
-	float getPitchExpo() const { return math::expo_deadzone(_positions(0), _param_mpc_xy_man_expo.get(), _param_man_deadzone.get()); }
-	float getYaw() const { return _positions(3); }
-	float getYawExpo() const { return math::expo_deadzone(_positions(3), _param_mpc_yaw_expo.get(), _param_man_deadzone.get()); }
-	float getThrottleZeroCentered() const { return -_positions(2); } // Convert Z-axis(down) command to Up-axis frame
-	float getThrottleZeroCenteredExpo() const { return -math::expo_deadzone(_positions(2), _param_mpc_z_man_expo.get(), _param_man_deadzone.get()); }
-	const matrix::Vector2f getPitchRoll() { return _positions.slice<2, 1>(0, 0); }
+	float getRoll() const { return _positions(0); }
+	float getPitch() const { return _positions(1); }
+	float getYaw() const { return _positions(2); }
+	float getThrottleZeroCentered() const { return _positions(3); }
+
+	float getRollExpo() const { return math::expo_deadzone(getRoll(), _param_mpc_xy_man_expo.get(), _param_man_deadzone.get()); }
+	float getPitchExpo() const { return math::expo_deadzone(getPitch(), _param_mpc_xy_man_expo.get(), _param_man_deadzone.get()); }
+	float getYawExpo() const { return math::expo_deadzone(getYaw(), _param_mpc_yaw_expo.get(), _param_man_deadzone.get()); }
+	float getThrottleZeroCenteredExpo() const { return math::expo_deadzone(getThrottleZeroCentered(), _param_mpc_z_man_expo.get(), _param_man_deadzone.get()); }
+
+	const matrix::Vector2f getPitchRoll() { return {getPitch(), getRoll()}; }
 	const matrix::Vector2f getPitchRollExpo() { return {getPitchExpo(), getRollExpo()}; }
 
 	const matrix::Vector<float, 6> &getAux() const { return _aux_positions; }
@@ -88,7 +90,7 @@ public:
 
 private:
 	bool _input_available{false};
-	matrix::Vector4f _positions; ///< unmodified manual stick inputs that usually move vehicle in x, y, z and yaw direction
+	matrix::Vector4f _positions; ///< unmodified manual stick inputs roll, pitch, yaw ,throttle
 
 	matrix::Vector<float, 6> _aux_positions;
 
