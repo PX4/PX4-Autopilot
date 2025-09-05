@@ -1857,7 +1857,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("VIBRATION", 0.1f);
 		configure_stream_local("WIND_COV", 0.1f);
 #if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
-		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 1.0f);
+		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 0.5f);
 #endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
 		break;
 
