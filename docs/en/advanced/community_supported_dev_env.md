@@ -21,3 +21,4 @@ Questions about these tools should be raised on the [discussion forums](../contr
 - IDEs
   - [Qt Creator IDE](../dev_setup/qtcreator.md)
 - [Simulators](../simulation/community_supported_simulators.md) — [Simulation-In-Hardware](../sim_sih/index.md), [FlightGear](../sim_flightgear/index.md), [JSBSim](../sim_jsbsim/index.md), [AirSim](../sim_airsim/index.md), [HITL](../simulation/hitl.md)
+- [Gazebo Terrain Generator](../simulation/gazebo_terrain_generator.md)
