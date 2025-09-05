@@ -47,12 +47,12 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/rover_throttle_setpoint.h>
-#include <uORB/topics/rover_steering_setpoint.h>
-#include <uORB/topics/rover_rate_setpoint.h>
-#include <uORB/topics/rover_attitude_setpoint.h>
-#include <uORB/topics/rover_speed_setpoint.h>
-#include <uORB/topics/rover_position_setpoint.h>
+#include <uORB/topics/surface_vehicle_throttle_setpoint.h>
+#include <uORB/topics/surface_vehicle_steering_setpoint.h>
+#include <uORB/topics/surface_vehicle_rate_setpoint.h>
+#include <uORB/topics/surface_vehicle_attitude_setpoint.h>
+#include <uORB/topics/surface_vehicle_speed_setpoint.h>
+#include <uORB/topics/surface_vehicle_position_setpoint.h>
 
 /**
  * @brief Class for ackermann manual mode.
@@ -68,22 +68,22 @@ public:
 	~AckermannManualMode() = default;
 
 	/**
-	 * @brief Publish roverThrottleSetpoint and roverSteeringSetpoint from manualControlSetpoint.
+	 * @brief Publish SurfaceVehicleThrottleSetpoint and SurfaceVehicleSteeringSetpoint from manualControlSetpoint.
 	 */
 	void manual();
 
 	/**
-	 * @brief Generate and publish roverThrottleSetpoint and RoverRateSetpoint from manualControlSetpoint.
+	 * @brief Generate and publish SurfaceVehicleThrottleSetpoint and SurfaceVehicleRateSetpoint from manualControlSetpoint.
 	 */
 	void acro();
 
 	/**
-	 * @brief Generate and publish roverThrottleSetpoint and RoverAttitudeSetpoint from manualControlSetpoint.
+	 * @brief Generate and publish SurfaceVehicleThrottleSetpoint and SurfaceVehicleAttitudeSetpoint from manualControlSetpoint.
 	 */
 	void stab();
 
 	/**
-	 * @brief Generate and publish roverSpeedSetpoint/roverRateSetpoint or roverPositionSetpoint from manualControlSetpoint.
+	 * @brief Generate and publish SurfaceVehicleSpeedSetpoint/SurfaceVehicleRateSetpoint or SurfaceVehiclePositionSetpoint from manualControlSetpoint.
 	 */
 	void position();
 
@@ -105,12 +105,12 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 
 	// uORB publications
-	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
-	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
-	uORB::Publication<rover_rate_setpoint_s>     _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
-	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
-	uORB::Publication<rover_speed_setpoint_s>    _rover_speed_setpoint_pub{ORB_ID(rover_speed_setpoint)};
-	uORB::Publication<rover_position_setpoint_s> _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
+	uORB::Publication<surface_vehicle_throttle_setpoint_s> _surface_vehicle_throttle_setpoint_pub{ORB_ID(surface_vehicle_throttle_setpoint)};
+	uORB::Publication<surface_vehicle_steering_setpoint_s> _surface_vehicle_steering_setpoint_pub{ORB_ID(surface_vehicle_steering_setpoint)};
+	uORB::Publication<surface_vehicle_rate_setpoint_s>     _surface_vehicle_rate_setpoint_pub{ORB_ID(surface_vehicle_rate_setpoint)};
+	uORB::Publication<surface_vehicle_attitude_setpoint_s> _surface_vehicle_attitude_setpoint_pub{ORB_ID(surface_vehicle_attitude_setpoint)};
+	uORB::Publication<surface_vehicle_speed_setpoint_s>    _surface_vehicle_speed_setpoint_pub{ORB_ID(surface_vehicle_speed_setpoint)};
+	uORB::Publication<surface_vehicle_position_setpoint_s> _surface_vehicle_position_setpoint_pub{ORB_ID(surface_vehicle_position_setpoint)};
 
 	// Variables
 	MapProjection _global_ned_proj_ref{}; // Transform global to NED coordinates

@@ -37,8 +37,8 @@ using namespace time_literals;
 
 DifferentialRateControl::DifferentialRateControl(ModuleParams *parent) : ModuleParams(parent)
 {
-	_rover_steering_setpoint_pub.advertise();
-	_rover_rate_status_pub.advertise();
+	_surface_vehicle_steering_setpoint_pub.advertise();
+	_surface_vehicle_rate_status_pub.advertise();
 	updateParams();
 }
 
@@ -68,10 +68,10 @@ void DifferentialRateControl::updateRateControl()
 				    vehicle_angular_velocity.xyz[2] : 0.f;
 	}
 
-	if (_rover_rate_setpoint_sub.updated()) {
-		rover_rate_setpoint_s rover_rate_setpoint{};
-		_rover_rate_setpoint_sub.copy(&rover_rate_setpoint);
-		_yaw_rate_setpoint = rover_rate_setpoint.yaw_rate_setpoint;
+	if (_surface_vehicle_rate_setpoint_sub.updated()) {
+		surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
+		_surface_vehicle_rate_setpoint_sub.copy(&surface_vehicle_rate_setpoint);
+		_yaw_rate_setpoint = surface_vehicle_rate_setpoint.yaw_rate_setpoint;
 	}
 
 	if (PX4_ISFINITE(_yaw_rate_setpoint)) {
@@ -81,22 +81,22 @@ void DifferentialRateControl::updateRateControl()
 						    yaw_rate_setpoint, _vehicle_yaw_rate, _param_ro_max_thr_speed.get(), _param_ro_yaw_rate_corr.get(),
 						    _param_ro_yaw_accel_limit.get() * M_DEG_TO_RAD_F,
 						    _param_ro_yaw_decel_limit.get() * M_DEG_TO_RAD_F, _param_rd_wheel_track.get(), dt);
-		rover_steering_setpoint_s rover_steering_setpoint{};
-		rover_steering_setpoint.timestamp = _timestamp;
-		rover_steering_setpoint.normalized_steering_setpoint = speed_diff_normalized;
-		_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
+		surface_vehicle_steering_setpoint_s surface_vehicle_steering_setpoint{};
+		surface_vehicle_steering_setpoint.timestamp = _timestamp;
+		surface_vehicle_steering_setpoint.normalized_steering_setpoint = speed_diff_normalized;
+		_surface_vehicle_steering_setpoint_pub.publish(surface_vehicle_steering_setpoint);
 
 	} else {
 		_pid_yaw_rate.resetIntegral();
 	}
 
 	// Publish rate controller status (logging only)
-	rover_rate_status_s rover_rate_status;
-	rover_rate_status.timestamp = _timestamp;
-	rover_rate_status.measured_yaw_rate = _vehicle_yaw_rate;
-	rover_rate_status.adjusted_yaw_rate_setpoint = _adjusted_yaw_rate_setpoint.getState();
-	rover_rate_status.pid_yaw_rate_integral = _pid_yaw_rate.getIntegral();
-	_rover_rate_status_pub.publish(rover_rate_status);
+	surface_vehicle_rate_status_s surface_vehicle_rate_status;
+	surface_vehicle_rate_status.timestamp = _timestamp;
+	surface_vehicle_rate_status.measured_yaw_rate = _vehicle_yaw_rate;
+	surface_vehicle_rate_status.adjusted_yaw_rate_setpoint = _adjusted_yaw_rate_setpoint.getState();
+	surface_vehicle_rate_status.pid_yaw_rate_integral = _pid_yaw_rate.getIntegral();
+	_surface_vehicle_rate_status_pub.publish(surface_vehicle_rate_status);
 
 }
 

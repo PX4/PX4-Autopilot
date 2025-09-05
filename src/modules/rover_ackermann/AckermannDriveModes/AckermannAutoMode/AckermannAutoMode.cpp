@@ -38,7 +38,7 @@ using namespace time_literals;
 AckermannAutoMode::AckermannAutoMode(ModuleParams *parent) : ModuleParams(parent)
 {
 	updateParams();
-	_rover_position_setpoint_pub.advertise();
+	_surface_vehicle_position_setpoint_pub.advertise();
 }
 
 void AckermannAutoMode::updateParams()
@@ -70,17 +70,18 @@ void AckermannAutoMode::autoControl()
 
 		updateWaypointsAndAcceptanceRadius();
 
-		rover_position_setpoint_s rover_position_setpoint{};
-		rover_position_setpoint.timestamp = hrt_absolute_time();
-		rover_position_setpoint.position_ned[0] = _curr_wp_ned(0);
-		rover_position_setpoint.position_ned[1] = _curr_wp_ned(1);
-		rover_position_setpoint.start_ned[0] = _prev_wp_ned(0);
-		rover_position_setpoint.start_ned[1] = _prev_wp_ned(1);
-		rover_position_setpoint.arrival_speed = arrivalSpeed(_cruising_speed, _min_speed, _acceptance_radius, _curr_wp_type,
-							_waypoint_transition_angle, _max_yaw_rate);
-		rover_position_setpoint.cruising_speed = _cruising_speed;
-		rover_position_setpoint.yaw = NAN;
-		_rover_position_setpoint_pub.publish(rover_position_setpoint);
+		surface_vehicle_position_setpoint_s surface_vehicle_position_setpoint{};
+		surface_vehicle_position_setpoint.timestamp = hrt_absolute_time();
+		surface_vehicle_position_setpoint.position_ned[0] = _curr_wp_ned(0);
+		surface_vehicle_position_setpoint.position_ned[1] = _curr_wp_ned(1);
+		surface_vehicle_position_setpoint.start_ned[0] = _prev_wp_ned(0);
+		surface_vehicle_position_setpoint.start_ned[1] = _prev_wp_ned(1);
+		surface_vehicle_position_setpoint.arrival_speed = arrivalSpeed(_cruising_speed, _min_speed, _acceptance_radius,
+				_curr_wp_type,
+				_waypoint_transition_angle, _max_yaw_rate);
+		surface_vehicle_position_setpoint.cruising_speed = _cruising_speed;
+		surface_vehicle_position_setpoint.yaw = NAN;
+		_surface_vehicle_position_setpoint_pub.publish(surface_vehicle_position_setpoint);
 	}
 
 }

@@ -45,7 +45,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/rover_position_setpoint.h>
+#include <uORB/topics/surface_vehicle_position_setpoint.h>
 
 /**
  * @brief Class for Mecanum auto mode.
@@ -61,7 +61,7 @@ public:
 	~MecanumAutoMode() = default;
 
 	/**
-	 * @brief Generate and publish roverPositionSetpoint from positionSetpointTriplet.
+	 * @brief Generate and publish SurfaceVehiclePositionSetpoint from positionSetpointTriplet.
 	 */
 	void autoControl();
 
@@ -90,7 +90,7 @@ private:
 	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 
 	// uORB publications
-	uORB::Publication<rover_position_setpoint_s>    _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
+	uORB::Publication<surface_vehicle_position_setpoint_s>    _surface_vehicle_position_setpoint_pub{ORB_ID(surface_vehicle_position_setpoint)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RO_SPEED_LIM>) _param_ro_speed_limit,

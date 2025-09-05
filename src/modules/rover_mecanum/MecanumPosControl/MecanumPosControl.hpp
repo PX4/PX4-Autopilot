@@ -46,9 +46,9 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_speed_setpoint.h>
-#include <uORB/topics/rover_attitude_setpoint.h>
-#include <uORB/topics/rover_position_setpoint.h>
+#include <uORB/topics/surface_vehicle_speed_setpoint.h>
+#include <uORB/topics/surface_vehicle_attitude_setpoint.h>
+#include <uORB/topics/surface_vehicle_position_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/pure_pursuit_status.h>
@@ -69,7 +69,7 @@ public:
 	~MecanumPosControl() = default;
 
 	/**
-	 * @brief Generate and publish roverSpeedSetpoint and roverAttitudeSetpoint from roverPositionSetpoint.
+	 * @brief Generate and publish SurfaceVehicleSpeedSetpoint and SurfaceVehicleAttitudeSetpoint from SurfaceVehiclePositionSetpoint.
 	 */
 	void updatePosControl();
 
@@ -101,12 +101,12 @@ private:
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _rover_position_setpoint_sub{ORB_ID(rover_position_setpoint)};
+	uORB::Subscription _surface_vehicle_position_setpoint_sub{ORB_ID(surface_vehicle_position_setpoint)};
 
 	// uORB publications
-	uORB::Publication<rover_speed_setpoint_s>    _rover_speed_setpoint_pub{ORB_ID(rover_speed_setpoint)};
+	uORB::Publication<surface_vehicle_speed_setpoint_s>    _surface_vehicle_speed_setpoint_pub{ORB_ID(surface_vehicle_speed_setpoint)};
 	uORB::Publication<pure_pursuit_status_s>     _pure_pursuit_status_pub{ORB_ID(pure_pursuit_status)};
-	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
+	uORB::Publication<surface_vehicle_attitude_setpoint_s> _surface_vehicle_attitude_setpoint_pub{ORB_ID(surface_vehicle_attitude_setpoint)};
 
 	// Variables
 	Quatf _vehicle_attitude_quaternion{};

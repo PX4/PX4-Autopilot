@@ -196,23 +196,23 @@ subscriptions:
   - topic: /fmu/in/lateral_control_configuration
     type: px4_msgs::msg::LateralControlConfiguration
 
-  - topic: /fmu/in/rover_position_setpoint
-    type: px4_msgs::msg::RoverPositionSetpoint
+  - topic: /fmu/in/surface_vehicle_position_setpoint
+    type: px4_msgs::msg::SurfaceVehiclePositionSetpoint
 
-  - topic: /fmu/in/rover_speed_setpoint
-    type: px4_msgs::msg::RoverSpeedSetpoint
+  - topic: /fmu/in/surface_vehicle_speed_setpoint
+    type: px4_msgs::msg::SurfaceVehicleSpeedSetpoint
 
-  - topic: /fmu/in/rover_attitude_setpoint
-    type: px4_msgs::msg::RoverAttitudeSetpoint
+  - topic: /fmu/in/surface_vehicle_attitude_setpoint
+    type: px4_msgs::msg::SurfaceVehicleAttitudeSetpoint
 
-  - topic: /fmu/in/rover_rate_setpoint
-    type: px4_msgs::msg::RoverRateSetpoint
+  - topic: /fmu/in/surface_vehicle_rate_setpoint
+    type: px4_msgs::msg::SurfaceVehicleRateSetpoint
 
-  - topic: /fmu/in/rover_throttle_setpoint
-    type: px4_msgs::msg::RoverThrottleSetpoint
+  - topic: /fmu/in/surface_vehicle_throttle_setpoint
+    type: px4_msgs::msg::SurfaceVehicleThrottleSetpoint
 
-  - topic: /fmu/in/rover_steering_setpoint
-    type: px4_msgs::msg::RoverSteeringSetpoint
+  - topic: /fmu/in/surface_vehicle_steering_setpoint
+    type: px4_msgs::msg::SurfaceVehicleSteeringSetpoint
 
   - topic: /fmu/in/landing_gear
     type: px4_msgs::msg::LandingGear

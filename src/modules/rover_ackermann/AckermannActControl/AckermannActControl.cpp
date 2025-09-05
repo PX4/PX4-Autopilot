@@ -60,10 +60,10 @@ void AckermannActControl::updateActControl()
 	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 10_ms) * 1e-6f;
 
 	// Motor control
-	if (_rover_throttle_setpoint_sub.updated()) {
-		rover_throttle_setpoint_s rover_throttle_setpoint{};
-		_rover_throttle_setpoint_sub.copy(&rover_throttle_setpoint);
-		_throttle_setpoint = rover_throttle_setpoint.throttle_body_x;
+	if (_surface_vehicle_throttle_setpoint_sub.updated()) {
+		surface_vehicle_throttle_setpoint_s surface_vehicle_throttle_setpoint{};
+		_surface_vehicle_throttle_setpoint_sub.copy(&surface_vehicle_throttle_setpoint);
+		_throttle_setpoint = surface_vehicle_throttle_setpoint.throttle_body_x;
 	}
 
 	if (PX4_ISFINITE(_throttle_setpoint)) {
@@ -80,10 +80,10 @@ void AckermannActControl::updateActControl()
 	}
 
 	// Servo control
-	if (_rover_steering_setpoint_sub.updated()) {
-		rover_steering_setpoint_s rover_steering_setpoint{};
-		_rover_steering_setpoint_sub.copy(&rover_steering_setpoint);
-		_steering_setpoint = rover_steering_setpoint.normalized_steering_setpoint;
+	if (_surface_vehicle_steering_setpoint_sub.updated()) {
+		surface_vehicle_steering_setpoint_s surface_vehicle_steering_setpoint{};
+		_surface_vehicle_steering_setpoint_sub.copy(&surface_vehicle_steering_setpoint);
+		_steering_setpoint = surface_vehicle_steering_setpoint.normalized_steering_setpoint;
 	}
 
 	if (PX4_ISFINITE(_steering_setpoint)) {

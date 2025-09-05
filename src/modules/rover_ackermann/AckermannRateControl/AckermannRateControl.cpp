@@ -37,8 +37,8 @@ using namespace time_literals;
 
 AckermannRateControl::AckermannRateControl(ModuleParams *parent) : ModuleParams(parent)
 {
-	_rover_steering_setpoint_pub.advertise();
-	_rover_rate_status_pub.advertise();
+	_surface_vehicle_steering_setpoint_pub.advertise();
+	_surface_vehicle_rate_status_pub.advertise();
 	updateParams();
 }
 
@@ -95,29 +95,29 @@ void AckermannRateControl::updateRateControl()
 				steering_setpoint += _pid_yaw_rate.update(_vehicle_yaw_rate, dt);
 			}
 
-			rover_steering_setpoint_s rover_steering_setpoint{};
-			rover_steering_setpoint.timestamp = _timestamp;
-			rover_steering_setpoint.normalized_steering_setpoint = math::interpolate<float>(steering_setpoint,
+			surface_vehicle_steering_setpoint_s surface_vehicle_steering_setpoint{};
+			surface_vehicle_steering_setpoint.timestamp = _timestamp;
+			surface_vehicle_steering_setpoint.normalized_steering_setpoint = math::interpolate<float>(steering_setpoint,
 					-_param_ra_max_str_ang.get(), _param_ra_max_str_ang.get(), -1.f, 1.f); // Normalize steering setpoint
-			_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
+			_surface_vehicle_steering_setpoint_pub.publish(surface_vehicle_steering_setpoint);
 
 		} else {
 			_pid_yaw_rate.resetIntegral();
-			rover_steering_setpoint_s rover_steering_setpoint{};
-			rover_steering_setpoint.timestamp = _timestamp;
-			rover_steering_setpoint.normalized_steering_setpoint = 0.f;
-			_rover_steering_setpoint_pub.publish(rover_steering_setpoint);
+			surface_vehicle_steering_setpoint_s surface_vehicle_steering_setpoint{};
+			surface_vehicle_steering_setpoint.timestamp = _timestamp;
+			surface_vehicle_steering_setpoint.normalized_steering_setpoint = 0.f;
+			_surface_vehicle_steering_setpoint_pub.publish(surface_vehicle_steering_setpoint);
 		}
 	}
 
 
 	// Publish rate controller status (logging only)
-	rover_rate_status_s rover_rate_status;
-	rover_rate_status.timestamp = _timestamp;
-	rover_rate_status.measured_yaw_rate = _vehicle_yaw_rate;
-	rover_rate_status.adjusted_yaw_rate_setpoint = _adjusted_yaw_rate_setpoint.getState();
-	rover_rate_status.pid_yaw_rate_integral = _pid_yaw_rate.getIntegral();
-	_rover_rate_status_pub.publish(rover_rate_status);
+	surface_vehicle_rate_status_s surface_vehicle_rate_status;
+	surface_vehicle_rate_status.timestamp = _timestamp;
+	surface_vehicle_rate_status.measured_yaw_rate = _vehicle_yaw_rate;
+	surface_vehicle_rate_status.adjusted_yaw_rate_setpoint = _adjusted_yaw_rate_setpoint.getState();
+	surface_vehicle_rate_status.pid_yaw_rate_integral = _pid_yaw_rate.getIntegral();
+	_surface_vehicle_rate_status_pub.publish(surface_vehicle_rate_status);
 
 }
 
@@ -139,10 +139,10 @@ void AckermannRateControl::updateSubscriptions()
 		_estimated_speed = fabsf(_estimated_speed) >  _param_ro_speed_th.get() ? _estimated_speed : 0.f;
 	}
 
-	if (_rover_rate_setpoint_sub.updated()) {
-		rover_rate_setpoint_s rover_rate_setpoint{};
-		_rover_rate_setpoint_sub.copy(&rover_rate_setpoint);
-		_yaw_rate_setpoint = rover_rate_setpoint.yaw_rate_setpoint;
+	if (_surface_vehicle_rate_setpoint_sub.updated()) {
+		surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
+		_surface_vehicle_rate_setpoint_sub.copy(&surface_vehicle_rate_setpoint);
+		_yaw_rate_setpoint = surface_vehicle_rate_setpoint.yaw_rate_setpoint;
 	}
 }
 

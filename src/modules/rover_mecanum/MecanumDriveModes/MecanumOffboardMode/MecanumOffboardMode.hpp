@@ -43,10 +43,10 @@
 // uORB includes
 #include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/rover_rate_setpoint.h>
-#include <uORB/topics/rover_attitude_setpoint.h>
-#include <uORB/topics/rover_speed_setpoint.h>
-#include <uORB/topics/rover_position_setpoint.h>
+#include <uORB/topics/surface_vehicle_rate_setpoint.h>
+#include <uORB/topics/surface_vehicle_attitude_setpoint.h>
+#include <uORB/topics/surface_vehicle_speed_setpoint.h>
+#include <uORB/topics/surface_vehicle_position_setpoint.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -84,10 +84,10 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 
 	// uORB publications
-	uORB::Publication<rover_rate_setpoint_s>     _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
-	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
-	uORB::Publication<rover_speed_setpoint_s> _rover_speed_setpoint_pub{ORB_ID(rover_speed_setpoint)};
-	uORB::Publication<rover_position_setpoint_s> _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
+	uORB::Publication<surface_vehicle_rate_setpoint_s>     _surface_vehicle_rate_setpoint_pub{ORB_ID(surface_vehicle_rate_setpoint)};
+	uORB::Publication<surface_vehicle_attitude_setpoint_s> _surface_vehicle_attitude_setpoint_pub{ORB_ID(surface_vehicle_attitude_setpoint)};
+	uORB::Publication<surface_vehicle_speed_setpoint_s> _surface_vehicle_speed_setpoint_pub{ORB_ID(surface_vehicle_speed_setpoint)};
+	uORB::Publication<surface_vehicle_position_setpoint_s> _surface_vehicle_position_setpoint_pub{ORB_ID(surface_vehicle_position_setpoint)};
 
 	Quatf _vehicle_attitude_quaternion{};
 };
