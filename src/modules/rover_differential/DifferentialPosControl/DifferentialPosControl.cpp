@@ -65,8 +65,8 @@ void DifferentialPosControl::updatePosControl()
 		}
 
 		if (distance_to_target > _param_nav_acc_rad.get() || _arrival_speed > FLT_EPSILON) {
-			float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
-					       _param_ro_decel_limit.get(), distance_to_target, fabsf(_arrival_speed));
+			float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_sv_jerk_limit.get(),
+					       _param_sv_decel_limit.get(), distance_to_target, fabsf(_arrival_speed));
 			speed_setpoint = math::min(speed_setpoint, _cruising_speed);
 
 			pure_pursuit_status_s pure_pursuit_status{};
@@ -89,11 +89,11 @@ void DifferentialPosControl::updatePosControl()
 			if (_current_state == DrivingState::SPOT_TURNING) {
 				speed_setpoint = 0.f; // stop during spot turning
 
-			} else if (_param_ro_speed_red.get() > FLT_EPSILON) {
-				const float speed_reduction = math::constrain(_param_ro_speed_red.get() * math::interpolate(fabsf(heading_error),
+			} else if (_param_sv_speed_red.get() > FLT_EPSILON) {
+				const float speed_reduction = math::constrain(_param_sv_speed_red.get() * math::interpolate(fabsf(heading_error),
 							      0.f, M_PI_F, 0.f, 1.f), 0.f, 1.f);
-				const float max_speed = math::constrain(_param_ro_max_thr_speed.get() * (1.f - speed_reduction), 0.f,
-									_param_ro_max_thr_speed.get());
+				const float max_speed = math::constrain(_param_sv_max_thr_speed.get() * (1.f - speed_reduction), 0.f,
+									_param_sv_max_thr_speed.get());
 				speed_setpoint = math::constrain(speed_setpoint, -max_speed, max_speed);
 			}
 
@@ -150,7 +150,7 @@ void DifferentialPosControl::updateSubscriptions()
 		Vector3f velocity_ned(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
 		Vector3f velocity_xyz = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_ned);
 		Vector2f velocity_2d = Vector2f(velocity_xyz(0), velocity_xyz(1));
-		_vehicle_speed = velocity_2d.norm() > _param_ro_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
+		_vehicle_speed = velocity_2d.norm() > _param_sv_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
 	}
 
 	if (_surface_vehicle_position_setpoint_sub.updated()) {
@@ -162,7 +162,7 @@ void DifferentialPosControl::updateSubscriptions()
 				 surface_vehicle_position_setpoint.arrival_speed : 0.f;
 		_cruising_speed = PX4_ISFINITE(surface_vehicle_position_setpoint.cruising_speed) ?
 				  surface_vehicle_position_setpoint.cruising_speed :
-				  _param_ro_speed_limit.get();
+				  _param_sv_speed_limit.get();
 		_target_waypoint_ned = Vector2f(surface_vehicle_position_setpoint.position_ned[0],
 						surface_vehicle_position_setpoint.position_ned[1]);
 		_stopped = false;
@@ -173,7 +173,7 @@ bool DifferentialPosControl::runSanityChecks()
 {
 	bool ret = true;
 
-	if (_param_ro_speed_limit.get() < FLT_EPSILON) {
+	if (_param_sv_speed_limit.get() < FLT_EPSILON) {
 		ret = false;
 	}
 

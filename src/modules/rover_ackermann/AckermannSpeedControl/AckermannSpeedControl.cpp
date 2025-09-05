@@ -47,13 +47,13 @@ void AckermannSpeedControl::updateParams()
 	ModuleParams::updateParams();
 
 	// Set up PID controller
-	_pid_speed.setGains(_param_ro_speed_p.get(), _param_ro_speed_i.get(), 0.f);
+	_pid_speed.setGains(_param_sv_speed_p.get(), _param_sv_speed_i.get(), 0.f);
 	_pid_speed.setIntegralLimit(1.f);
 	_pid_speed.setOutputLimit(1.f);
 
 	// Set up slew rate
-	if (_param_ro_accel_limit.get() > FLT_EPSILON) {
-		_adjusted_speed_setpoint.setSlewRate(_param_ro_accel_limit.get());
+	if (_param_sv_accel_limit.get() > FLT_EPSILON) {
+		_adjusted_speed_setpoint.setSlewRate(_param_sv_accel_limit.get());
 	}
 }
 
@@ -67,14 +67,14 @@ void AckermannSpeedControl::updateSpeedControl()
 
 	// Throttle Setpoint
 	if (PX4_ISFINITE(_speed_setpoint)) {
-		const float speed_setpoint = math::constrain(_speed_setpoint, -_param_ro_speed_limit.get(),
-					     _param_ro_speed_limit.get());
+		const float speed_setpoint = math::constrain(_speed_setpoint, -_param_sv_speed_limit.get(),
+					     _param_sv_speed_limit.get());
 		surface_vehicle_throttle_setpoint_s surface_vehicle_throttle_setpoint{};
 		surface_vehicle_throttle_setpoint.timestamp = _timestamp;
 		surface_vehicle_throttle_setpoint.throttle_body_x = SurfaceVehicleControl::speedControl(_adjusted_speed_setpoint,
 				_pid_speed,
-				speed_setpoint, _vehicle_speed, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
-				_param_ro_max_thr_speed.get(), dt);
+				speed_setpoint, _vehicle_speed, _param_sv_accel_limit.get(), _param_sv_decel_limit.get(),
+				_param_sv_max_thr_speed.get(), dt);
 		surface_vehicle_throttle_setpoint.throttle_body_y = NAN;
 		_surface_vehicle_throttle_setpoint_pub.publish(surface_vehicle_throttle_setpoint);
 	}
@@ -105,7 +105,7 @@ void AckermannSpeedControl::updateSubscriptions()
 		Vector3f velocity_ned(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
 		Vector3f velocity_xyz = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_ned);
 		Vector2f velocity_2d = Vector2f(velocity_xyz(0), velocity_xyz(1));
-		_vehicle_speed = velocity_2d.norm() > _param_ro_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
+		_vehicle_speed = velocity_2d.norm() > _param_sv_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
 	}
 
 	if (_surface_vehicle_speed_setpoint_sub.updated()) {
@@ -119,14 +119,14 @@ bool AckermannSpeedControl::runSanityChecks()
 {
 	bool ret = true;
 
-	if (_param_ro_max_thr_speed.get() < FLT_EPSILON) {
+	if (_param_sv_max_thr_speed.get() < FLT_EPSILON) {
 		ret = false;
 	}
 
-	if (_param_ro_speed_limit.get() < FLT_EPSILON) {
+	if (_param_sv_speed_limit.get() < FLT_EPSILON) {
 		ret = false;
 		events::send<float>(events::ID("ackermann_speed_control_conf_invalid_speed_lim"), events::Log::Error,
-				    "Invalid configuration of necessary parameter RO_SPEED_LIM", _param_ro_speed_limit.get());
+				    "Invalid configuration of necessary parameter SV_SPEED_LIM", _param_sv_speed_limit.get());
 
 	}
 

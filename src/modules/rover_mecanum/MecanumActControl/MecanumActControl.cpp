@@ -44,9 +44,9 @@ void MecanumActControl::updateParams()
 {
 	ModuleParams::updateParams();
 
-	if (_param_ro_accel_limit.get() > FLT_EPSILON && _param_ro_max_thr_speed.get() > FLT_EPSILON) {
-		_adjusted_throttle_x_setpoint.setSlewRate(_param_ro_accel_limit.get() / _param_ro_max_thr_speed.get());
-		_adjusted_throttle_y_setpoint.setSlewRate(_param_ro_accel_limit.get() / _param_ro_max_thr_speed.get());
+	if (_param_sv_accel_limit.get() > FLT_EPSILON && _param_sv_max_thr_speed.get() > FLT_EPSILON) {
+		_adjusted_throttle_x_setpoint.setSlewRate(_param_sv_accel_limit.get() / _param_sv_max_thr_speed.get());
+		_adjusted_throttle_y_setpoint.setSlewRate(_param_sv_accel_limit.get() / _param_sv_max_thr_speed.get());
 	}
 }
 
@@ -76,11 +76,11 @@ void MecanumActControl::updateActControl()
 		const float current_throttle_x = (actuator_motors_sub.control[0] + actuator_motors_sub.control[1]) / 2.f;
 		const float current_throttle_y = (actuator_motors_sub.control[2] - actuator_motors_sub.control[0]) / 2.f;
 		const float adjusted_throttle_x_setpoint = SurfaceVehicleControl::throttleControl(_adjusted_throttle_x_setpoint,
-				_throttle_x_setpoint, current_throttle_x, _param_ro_accel_limit.get(),
-				_param_ro_decel_limit.get(), _param_ro_max_thr_speed.get(), dt);
+				_throttle_x_setpoint, current_throttle_x, _param_sv_accel_limit.get(),
+				_param_sv_decel_limit.get(), _param_sv_max_thr_speed.get(), dt);
 		const float adjusted_throttle_y_setpoint = SurfaceVehicleControl::throttleControl(_adjusted_throttle_y_setpoint,
-				_throttle_y_setpoint, current_throttle_y, _param_ro_accel_limit.get(),
-				_param_ro_decel_limit.get(), _param_ro_max_thr_speed.get(), dt);
+				_throttle_y_setpoint, current_throttle_y, _param_sv_accel_limit.get(),
+				_param_sv_decel_limit.get(), _param_sv_max_thr_speed.get(), dt);
 		actuator_motors_s actuator_motors{};
 		actuator_motors.reversible_flags = _param_r_rev.get();
 		computeInverseKinematics(adjusted_throttle_x_setpoint, adjusted_throttle_y_setpoint,

@@ -47,12 +47,12 @@ void MecanumRateControl::updateParams()
 	ModuleParams::updateParams();
 
 	// Set up PID controller
-	_pid_yaw_rate.setGains(_param_ro_yaw_rate_p.get(), _param_ro_yaw_rate_i.get(), 0.f);
+	_pid_yaw_rate.setGains(_param_sv_yaw_rate_p.get(), _param_sv_yaw_rate_i.get(), 0.f);
 	_pid_yaw_rate.setIntegralLimit(1.f);
 	_pid_yaw_rate.setOutputLimit(1.f);
 
 	// Set up slew rate
-	_adjusted_yaw_rate_setpoint.setSlewRate(_param_ro_yaw_accel_limit.get() * M_DEG_TO_RAD_F);
+	_adjusted_yaw_rate_setpoint.setSlewRate(_param_sv_yaw_accel_limit.get() * M_DEG_TO_RAD_F);
 }
 
 void MecanumRateControl::updateRateControl()
@@ -64,7 +64,7 @@ void MecanumRateControl::updateRateControl()
 	if (_vehicle_angular_velocity_sub.updated()) {
 		vehicle_angular_velocity_s vehicle_angular_velocity{};
 		_vehicle_angular_velocity_sub.copy(&vehicle_angular_velocity);
-		_vehicle_yaw_rate = fabsf(vehicle_angular_velocity.xyz[2]) > _param_ro_yaw_rate_th.get() * M_DEG_TO_RAD_F ?
+		_vehicle_yaw_rate = fabsf(vehicle_angular_velocity.xyz[2]) > _param_sv_yaw_rate_th.get() * M_DEG_TO_RAD_F ?
 				    vehicle_angular_velocity.xyz[2] : 0.f;
 	}
 
@@ -75,11 +75,11 @@ void MecanumRateControl::updateRateControl()
 	}
 
 	if (PX4_ISFINITE(_yaw_rate_setpoint)) {
-		const float yaw_rate_setpoint = fabsf(_yaw_rate_setpoint) > _param_ro_yaw_rate_th.get() * M_DEG_TO_RAD_F ?
+		const float yaw_rate_setpoint = fabsf(_yaw_rate_setpoint) > _param_sv_yaw_rate_th.get() * M_DEG_TO_RAD_F ?
 						_yaw_rate_setpoint : 0.f;
 		const float speed_diff_normalized = SurfaceVehicleControl::rateControl(_adjusted_yaw_rate_setpoint, _pid_yaw_rate,
-						    yaw_rate_setpoint, _vehicle_yaw_rate, _param_ro_max_thr_speed.get(), _param_ro_yaw_rate_corr.get(),
-						    _param_ro_yaw_accel_limit.get() * M_DEG_TO_RAD_F,
+						    yaw_rate_setpoint, _vehicle_yaw_rate, _param_sv_max_thr_speed.get(), _param_sv_yaw_rate_corr.get(),
+						    _param_sv_yaw_accel_limit.get() * M_DEG_TO_RAD_F,
 						    _param_ro_yaw_decel_limit.get() * M_DEG_TO_RAD_F, _param_rm_wheel_track.get(), dt);
 		surface_vehicle_steering_setpoint_s surface_vehicle_steering_setpoint{};
 		surface_vehicle_steering_setpoint.timestamp = _timestamp;
@@ -104,19 +104,19 @@ bool MecanumRateControl::runSanityChecks()
 {
 	bool ret = true;
 
-	if (_param_ro_yaw_rate_limit.get() < FLT_EPSILON) {
+	if (_param_sv_yaw_rate_limit.get() < FLT_EPSILON) {
 		ret = false;
 		events::send<float>(events::ID("mecanum_rate_control_conf_invalid_yaw_rate_lim"), events::Log::Error,
-				    "Invalid configuration of necessary parameter RO_YAW_RATE_LIM", _param_ro_yaw_rate_limit.get());
+				    "Invalid configuration of necessary parameter SV_YAW_RATE_LIM", _param_sv_yaw_rate_limit.get());
 
 	}
 
-	if ((_param_rm_wheel_track.get() < FLT_EPSILON || _param_ro_max_thr_speed.get() < FLT_EPSILON)
-	    && _param_ro_yaw_rate_p.get() < FLT_EPSILON) {
+	if ((_param_rm_wheel_track.get() < FLT_EPSILON || _param_sv_max_thr_speed.get() < FLT_EPSILON)
+	    && _param_sv_yaw_rate_p.get() < FLT_EPSILON) {
 		ret = false;
 		events::send<float, float, float>(events::ID("mecanum_rate_control_conf_invalid_rate_control"), events::Log::Error,
-						  "Invalid configuration for rate control: Neither feed forward (RO_MAX_THR_SPEED) nor feedback (RO_YAW_RATE_P) is setup",
-						  _param_rm_wheel_track.get(), _param_ro_max_thr_speed.get(), _param_ro_yaw_rate_p.get());
+						  "Invalid configuration for rate control: Neither feed forward (SV_MAX_THR_SPEED) nor feedback (SV_YAW_RATE_P) is setup",
+						  _param_rm_wheel_track.get(), _param_sv_max_thr_speed.get(), _param_sv_yaw_rate_p.get());
 	}
 
 	return ret;

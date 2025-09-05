@@ -127,14 +127,14 @@ private:
 	int _curr_wp_type{position_setpoint_s::SETPOINT_TYPE_IDLE};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
-		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
+		(ParamFloat<px4::params::SV_YAW_RATE_LIM>)  _param_sv_yaw_rate_limit,
+		(ParamFloat<px4::params::SV_SPEED_LIM>)     _param_sv_speed_limit,
 		(ParamFloat<px4::params::RA_WHEEL_BASE>)    _param_ra_wheel_base,
 		(ParamFloat<px4::params::RA_MAX_STR_ANG>)   _param_ra_max_str_ang,
 		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad,
 		(ParamFloat<px4::params::RA_ACC_RAD_MAX>)   _param_ra_acc_rad_max,
 		(ParamFloat<px4::params::RA_ACC_RAD_GAIN>)  _param_ra_acc_rad_gain,
-		(ParamFloat<px4::params::RO_SPEED_RED>)     _param_ro_speed_red,
-		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed
+		(ParamFloat<px4::params::SV_SPEED_RED>)     _param_sv_speed_red,
+		(ParamFloat<px4::params::SV_MAX_THR_SPEED>) _param_sv_max_thr_speed
 	)
 };

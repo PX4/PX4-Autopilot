@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file rovercontrol_params.c
+ * @file surface_vehicle_params.c
  *
- * Parameters defined by the rover control lib.
+ * Parameters defined by the surface vehicle control lib.
  */
 
 /**
@@ -46,9 +46,9 @@
  * @max 1
  * @increment 0.01
  * @decimal 2
- * @group Rover Rate Control
+ * @group SV Rate Control
  */
-PARAM_DEFINE_FLOAT(RO_YAW_STICK_DZ, 0.1f);
+PARAM_DEFINE_FLOAT(SV_YAW_STICK_DZ, 0.1f);
 
 /**
  * Yaw rate expo factor
@@ -61,14 +61,14 @@ PARAM_DEFINE_FLOAT(RO_YAW_STICK_DZ, 0.1f);
  * @min 0
  * @max 1
  * @decimal 2
- * @group Rover Rate Control
+ * @group SV Rate Control
  */
-PARAM_DEFINE_FLOAT(RO_YAW_EXPO, 0.f);
+PARAM_DEFINE_FLOAT(SV_YAW_EXPO, 0.f);
 
 /**
  * Yaw rate super expo factor
  *
- * "Superexponential" factor for refining the input curve shape tuned using RO_YAW_EXPO.
+ * "Superexponential" factor for refining the input curve shape tuned using SV_YAW_EXPO.
  *
  * 0 Pure Expo function
  * 0.7 reasonable shape enhancement for intuitive stick feel
@@ -77,9 +77,9 @@ PARAM_DEFINE_FLOAT(RO_YAW_EXPO, 0.f);
  * @min 0
  * @max 0.95
  * @decimal 2
- * @group Rover Rate Control
+ * @group SV Rate Control
  */
-PARAM_DEFINE_FLOAT(RO_YAW_SUPEXPO, 0.f);
+PARAM_DEFINE_FLOAT(SV_YAW_SUPEXPO, 0.f);
 
 /**
  * Yaw rate measurement threshold
@@ -91,9 +91,9 @@ PARAM_DEFINE_FLOAT(RO_YAW_SUPEXPO, 0.f);
  * @max 100
  * @increment 0.01
  * @decimal 2
- * @group Rover Rate Control
+ * @group SV Rate Control
  */
-PARAM_DEFINE_FLOAT(RO_YAW_RATE_TH, 3.f);
+PARAM_DEFINE_FLOAT(SV_YAW_RATE_TH, 3.f);
 
 /**
  * Proportional gain for closed loop yaw rate controller
@@ -102,9 +102,9 @@ PARAM_DEFINE_FLOAT(RO_YAW_RATE_TH, 3.f);
  * @max 100
  * @increment 0.01
  * @decimal 3
- * @group Rover Rate Control
+ * @group SV Rate Control
  */
-PARAM_DEFINE_FLOAT(RO_YAW_RATE_P, 0.f);
+PARAM_DEFINE_FLOAT(SV_YAW_RATE_P, 0.f);
 
 /**
  * Integral gain for closed loop yaw rate controller
@@ -113,9 +113,9 @@ PARAM_DEFINE_FLOAT(RO_YAW_RATE_P, 0.f);
  * @max 100
  * @increment 0.01
  * @decimal 3
- * @group Rover Rate Control
+ * @group SV Rate Control
  */
-PARAM_DEFINE_FLOAT(RO_YAW_RATE_I, 0.f);
+PARAM_DEFINE_FLOAT(SV_YAW_RATE_I, 0.f);
 
 /**
  * Yaw rate limit
@@ -128,9 +128,9 @@ PARAM_DEFINE_FLOAT(RO_YAW_RATE_I, 0.f);
  * @max 10000
  * @increment 0.01
  * @decimal 2
- * @group Rover Rate Control
+ * @group SV Rate Control
  */
-PARAM_DEFINE_FLOAT(RO_YAW_RATE_LIM, 0.f);
+PARAM_DEFINE_FLOAT(SV_YAW_RATE_LIM, 0.f);
 
 /**
  * Yaw acceleration limit
@@ -143,9 +143,9 @@ PARAM_DEFINE_FLOAT(RO_YAW_RATE_LIM, 0.f);
  * @max 10000
  * @increment 0.01
  * @decimal 2
- * @group Rover Rate Control
+ * @group SV Rate Control
  */
-PARAM_DEFINE_FLOAT(RO_YAW_ACCEL_LIM, -1.f);
+PARAM_DEFINE_FLOAT(SV_YAW_ACCEL_LIM, -1.f);
 
 /**
  * Yaw deceleration limit
@@ -158,9 +158,9 @@ PARAM_DEFINE_FLOAT(RO_YAW_ACCEL_LIM, -1.f);
  * @max 10000
  * @increment 0.01
  * @decimal 2
- * @group Rover Rate Control
+ * @group SV Rate Control
  */
-PARAM_DEFINE_FLOAT(RO_YAW_DECEL_LIM, -1.f);
+PARAM_DEFINE_FLOAT(SV_YAW_DECEL_LIM, -1.f);
 
 /**
  * Yaw rate correction factor
@@ -174,9 +174,9 @@ PARAM_DEFINE_FLOAT(RO_YAW_DECEL_LIM, -1.f);
  * @max 10000
  * @increment 0.01
  * @decimal 2
- * @group Rover Rate Control
+ * @group SV Rate Control
  */
-PARAM_DEFINE_FLOAT(RO_YAW_RATE_CORR, 1.f);
+PARAM_DEFINE_FLOAT(SV_YAW_RATE_CORR, 1.f);
 
 /**
  * Proportional gain for closed loop yaw controller
@@ -185,12 +185,12 @@ PARAM_DEFINE_FLOAT(RO_YAW_RATE_CORR, 1.f);
  * @max 100
  * @increment 0.01
  * @decimal 3
- * @group Rover Attitude Control
+ * @group SV Attitude Control
  */
-PARAM_DEFINE_FLOAT(RO_YAW_P, 0.f);
+PARAM_DEFINE_FLOAT(SV_YAW_P, 0.f);
 
 /**
- * Speed the rover drives at maximum throttle
+ * Speed the vehicle drives at maximum throttle
  *
  * Used to linearly map speeds [m/s] to throttle values [-1. 1].
  *
@@ -199,9 +199,9 @@ PARAM_DEFINE_FLOAT(RO_YAW_P, 0.f);
  * @unit m/s
  * @increment 0.01
  * @decimal 2
- * @group Rover Velocity Control
+ * @group SV Speed Control
  */
-PARAM_DEFINE_FLOAT(RO_MAX_THR_SPEED, 0.f);
+PARAM_DEFINE_FLOAT(SV_MAX_THR_SPEED, 0.f);
 
 /**
  * Proportional gain for ground speed controller
@@ -210,9 +210,9 @@ PARAM_DEFINE_FLOAT(RO_MAX_THR_SPEED, 0.f);
  * @max 100
  * @increment 0.01
  * @decimal 2
- * @group Rover Velocity Control
+ * @group SV Speed Control
  */
-PARAM_DEFINE_FLOAT(RO_SPEED_P, 0.f);
+PARAM_DEFINE_FLOAT(SV_SPEED_P, 0.f);
 
 /**
  * Integral gain for ground speed controller
@@ -221,9 +221,9 @@ PARAM_DEFINE_FLOAT(RO_SPEED_P, 0.f);
  * @max 100
  * @increment 0.001
  * @decimal 3
- * @group Rover Velocity Control
+ * @group SV Speed Control
  */
-PARAM_DEFINE_FLOAT(RO_SPEED_I, 0.f);
+PARAM_DEFINE_FLOAT(SV_SPEED_I, 0.f);
 
 /**
  * Speed limit
@@ -235,56 +235,56 @@ PARAM_DEFINE_FLOAT(RO_SPEED_I, 0.f);
  * @max 100
  * @increment 0.01
  * @decimal 2
- * @group Rover Velocity Control
+ * @group SV Speed Control
  */
-PARAM_DEFINE_FLOAT(RO_SPEED_LIM, -1.f);
+PARAM_DEFINE_FLOAT(SV_SPEED_LIM, -1.f);
 
 /**
  * Acceleration limit
  *
  * Set to -1 to disable.
- * For mecanum rovers this limit is used for longitudinal and lateral acceleration.
+ * For omnidirectional vehicles this limit is used for longitudinal and lateral acceleration.
  *
  * @unit m/s^2
  * @min -1
  * @max 100
  * @increment 0.01
  * @decimal 2
- * @group Rover Velocity Control
+ * @group SV Speed Control
  */
-PARAM_DEFINE_FLOAT(RO_ACCEL_LIM, -1.f);
+PARAM_DEFINE_FLOAT(SV_ACCEL_LIM, -1.f);
 
 /**
  * Deceleration limit
  *
  * Set to -1 to disable.
- * Note that if it is disabled the rover will not slow down when approaching waypoints in auto modes.
- * For mecanum rovers this limit is used for longitudinal and lateral deceleration.
+ * Note that if it is disabled the vehicle will not slow down when approaching waypoints in auto modes.
+ * For omnidirectional vehicles this limit is used for longitudinal and lateral deceleration.
  *
  * @unit m/s^2
  * @min -1
  * @max 100
  * @increment 0.01
  * @decimal 2
- * @group Rover Velocity Control
+ * @group SV Speed Control
  */
-PARAM_DEFINE_FLOAT(RO_DECEL_LIM, -1.f);
+PARAM_DEFINE_FLOAT(SV_DECEL_LIM, -1.f);
 
 /**
  * Jerk limit
  *
  * Set to -1 to disable.
- * Note that if it is disabled the rover will not slow down when approaching waypoints in auto modes.
- * For mecanum rovers this limit is used for longitudinal and lateral jerk.
+ * Note that if it is disabled the vehicle will not slow down when approaching waypoints in auto modes.
+ * For omnidirectional vehicles this limit is used for longitudinal and lateral jerk.
  *
  * @unit m/s^3
  * @min -1
  * @max 100
  * @increment 0.01
  * @decimal 2
- * @group Rover Velocity Control
+ * @group SV Speed Control
  */
-PARAM_DEFINE_FLOAT(RO_JERK_LIM, -1.f);
+PARAM_DEFINE_FLOAT(SV_JERK_LIM, -1.f);
 
 /**
  * Speed measurement threshold
@@ -297,14 +297,14 @@ PARAM_DEFINE_FLOAT(RO_JERK_LIM, -1.f);
  * @max 100
  * @increment 0.01
  * @decimal 2
- * @group Rover Velocity Control
+ * @group SV Speed Control
  */
-PARAM_DEFINE_FLOAT(RO_SPEED_TH, 0.1f);
+PARAM_DEFINE_FLOAT(SV_SPEED_TH, 0.1f);
 
 /**
  * Tuning parameter for the speed reduction based on the course error
  *
- * Reduced_speed = RO_MAX_THR_SPEED * (1 - normalized_course_error * RO_SPEED_RED)
+ * Reduced_speed = SV_MAX_THR_SPEED * (1 - normalized_course_error * SV_SPEED_RED)
  * The normalized course error is the angle between the current course and the bearing setpoint
  * interpolated from [0, 180] -> [0, 1].
  * Higher value -> More speed reduction.
@@ -315,6 +315,6 @@ PARAM_DEFINE_FLOAT(RO_SPEED_TH, 0.1f);
  * @max 100
  * @increment 0.01
  * @decimal 2
- * @group Rover Velocity Control
+ * @group SV Speed Control
  */
-PARAM_DEFINE_FLOAT(RO_SPEED_RED, -1.f);
+PARAM_DEFINE_FLOAT(SV_SPEED_RED, -1.f);

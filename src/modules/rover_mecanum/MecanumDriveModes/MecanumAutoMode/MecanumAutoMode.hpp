@@ -93,7 +93,7 @@ private:
 	uORB::Publication<surface_vehicle_position_setpoint_s>    _surface_vehicle_position_setpoint_pub{ORB_ID(surface_vehicle_position_setpoint)};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_SPEED_LIM>) _param_ro_speed_limit,
-		(ParamFloat<px4::params::RO_SPEED_RED>) _param_ro_speed_red
+		(ParamFloat<px4::params::SV_SPEED_LIM>) _param_sv_speed_limit,
+		(ParamFloat<px4::params::SV_SPEED_RED>) _param_sv_speed_red
 	)
 };

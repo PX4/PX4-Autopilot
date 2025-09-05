@@ -49,7 +49,7 @@ AckermannManualMode::AckermannManualMode(ModuleParams *parent) : ModuleParams(pa
 void AckermannManualMode::updateParams()
 {
 	ModuleParams::updateParams();
-	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	_max_yaw_rate = _param_sv_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
 }
 
 void AckermannManualMode::manual()
@@ -80,7 +80,7 @@ void AckermannManualMode::acro()
 	surface_vehicle_rate_setpoint.timestamp = hrt_absolute_time();
 	surface_vehicle_rate_setpoint.yaw_rate_setpoint = matrix::sign(manual_control_setpoint.throttle) * _max_yaw_rate *
 			math::superexpo<float>
-			(manual_control_setpoint.roll, _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
+			(manual_control_setpoint.roll, _param_sv_yaw_expo.get(), _param_sv_yaw_supexpo.get());
 	_surface_vehicle_rate_setpoint_pub.publish(surface_vehicle_rate_setpoint);
 }
 
@@ -110,7 +110,7 @@ void AckermannManualMode::stab()
 		surface_vehicle_rate_setpoint.timestamp = hrt_absolute_time();
 		surface_vehicle_rate_setpoint.yaw_rate_setpoint = matrix::sign(manual_control_setpoint.throttle) * _max_yaw_rate *
 				math::superexpo<float>(math::deadzone(manual_control_setpoint.roll,
-						       _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
+						       _param_sv_yaw_stick_dz.get()), _param_sv_yaw_expo.get(), _param_sv_yaw_supexpo.get());
 		_surface_vehicle_rate_setpoint_pub.publish(surface_vehicle_rate_setpoint);
 
 		// Set uncontrolled setpoint invalid
@@ -157,7 +157,7 @@ void AckermannManualMode::position()
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 
 	const float speed_setpoint = math::interpolate<float>(manual_control_setpoint.throttle,
-				     -1.f, 1.f, -_param_ro_speed_limit.get(), _param_ro_speed_limit.get());
+				     -1.f, 1.f, -_param_sv_speed_limit.get(), _param_sv_speed_limit.get());
 
 	if (fabsf(manual_control_setpoint.roll) > FLT_EPSILON
 	    || fabsf(speed_setpoint) < FLT_EPSILON) {
@@ -174,7 +174,7 @@ void AckermannManualMode::position()
 		surface_vehicle_rate_setpoint.timestamp = hrt_absolute_time();
 		surface_vehicle_rate_setpoint.yaw_rate_setpoint = matrix::sign(manual_control_setpoint.throttle) * _max_yaw_rate *
 				math::superexpo<float>(math::deadzone(manual_control_setpoint.roll,
-						       _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
+						       _param_sv_yaw_stick_dz.get()), _param_sv_yaw_expo.get(), _param_sv_yaw_supexpo.get());
 		_surface_vehicle_rate_setpoint_pub.publish(surface_vehicle_rate_setpoint);
 
 		// Set uncontrolled setpoints invalid

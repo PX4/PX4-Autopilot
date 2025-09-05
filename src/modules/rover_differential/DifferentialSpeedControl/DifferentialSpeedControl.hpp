@@ -125,13 +125,13 @@ private:
 	SlewRate<float> _adjusted_speed_setpoint{0.f};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
-		(ParamFloat<px4::params::RO_SPEED_P>) 	    _param_ro_speed_p,
-		(ParamFloat<px4::params::RO_SPEED_I>)       _param_ro_speed_i,
-		(ParamFloat<px4::params::RO_ACCEL_LIM>)     _param_ro_accel_limit,
-		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_limit,
-		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_limit,
-		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
-		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th
+		(ParamFloat<px4::params::SV_MAX_THR_SPEED>) _param_sv_max_thr_speed,
+		(ParamFloat<px4::params::SV_SPEED_P>) 	    _param_sv_speed_p,
+		(ParamFloat<px4::params::SV_SPEED_I>)       _param_sv_speed_i,
+		(ParamFloat<px4::params::SV_ACCEL_LIM>)     _param_sv_accel_limit,
+		(ParamFloat<px4::params::SV_DECEL_LIM>)     _param_sv_decel_limit,
+		(ParamFloat<px4::params::SV_JERK_LIM>)      _param_sv_jerk_limit,
+		(ParamFloat<px4::params::SV_SPEED_LIM>)     _param_sv_speed_limit,
+		(ParamFloat<px4::params::SV_SPEED_TH>)      _param_sv_speed_th
 	)
 };

@@ -48,8 +48,8 @@ void AckermannActControl::updateParams()
 		_servo_setpoint.setSlewRate((M_DEG_TO_RAD_F * _param_ra_str_rate_limit.get()) / _param_ra_max_str_ang.get());
 	}
 
-	if (_param_ro_accel_limit.get() > FLT_EPSILON && _param_ro_max_thr_speed.get() > FLT_EPSILON) {
-		_motor_setpoint.setSlewRate(_param_ro_accel_limit.get() / _param_ro_max_thr_speed.get());
+	if (_param_sv_accel_limit.get() > FLT_EPSILON && _param_sv_max_thr_speed.get() > FLT_EPSILON) {
+		_motor_setpoint.setSlewRate(_param_sv_accel_limit.get() / _param_sv_max_thr_speed.get());
 	}
 }
 
@@ -72,8 +72,8 @@ void AckermannActControl::updateActControl()
 		actuator_motors_s actuator_motors{};
 		actuator_motors.reversible_flags = _param_r_rev.get();
 		actuator_motors.control[0] = SurfaceVehicleControl::throttleControl(_motor_setpoint,
-					     _throttle_setpoint, actuator_motors_sub.control[0], _param_ro_accel_limit.get(),
-					     _param_ro_decel_limit.get(), _param_ro_max_thr_speed.get(), dt);
+					     _throttle_setpoint, actuator_motors_sub.control[0], _param_sv_accel_limit.get(),
+					     _param_sv_decel_limit.get(), _param_sv_max_thr_speed.get(), dt);
 		actuator_motors.timestamp = _timestamp;
 		_actuator_motors_pub.publish(actuator_motors);
 

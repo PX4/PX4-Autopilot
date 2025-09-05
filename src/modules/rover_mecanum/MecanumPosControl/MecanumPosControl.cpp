@@ -47,7 +47,7 @@ MecanumPosControl::MecanumPosControl(ModuleParams *parent) : ModuleParams(parent
 void MecanumPosControl::updateParams()
 {
 	ModuleParams::updateParams();
-	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	_max_yaw_rate = _param_sv_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
 
 }
 
@@ -68,8 +68,8 @@ void MecanumPosControl::updatePosControl()
 
 		if (distance_to_target > _param_nav_acc_rad.get() || _arrival_speed > FLT_EPSILON) {
 
-			float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
-					       _param_ro_decel_limit.get(), distance_to_target, fabsf(_arrival_speed));
+			float speed_setpoint = math::trajectory::computeMaxSpeedFromDistance(_param_sv_jerk_limit.get(),
+					       _param_sv_decel_limit.get(), distance_to_target, fabsf(_arrival_speed));
 			speed_setpoint = math::min(speed_setpoint, _cruising_speed);
 
 			pure_pursuit_status_s pure_pursuit_status{};
@@ -135,7 +135,7 @@ void MecanumPosControl::updateSubscriptions()
 		Vector3f velocity_ned(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
 		Vector3f velocity_xyz = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_ned);
 		Vector2f velocity_2d = Vector2f(velocity_xyz(0), velocity_xyz(1));
-		_vehicle_speed = velocity_2d.norm() > _param_ro_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
+		_vehicle_speed = velocity_2d.norm() > _param_sv_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
 	}
 
 	if (_surface_vehicle_position_setpoint_sub.updated()) {
@@ -147,7 +147,7 @@ void MecanumPosControl::updateSubscriptions()
 				 surface_vehicle_position_setpoint.arrival_speed : 0.f;
 		_cruising_speed = PX4_ISFINITE(surface_vehicle_position_setpoint.cruising_speed) ?
 				  surface_vehicle_position_setpoint.cruising_speed :
-				  _param_ro_speed_limit.get();
+				  _param_sv_speed_limit.get();
 		_target_waypoint_ned = Vector2f(surface_vehicle_position_setpoint.position_ned[0],
 						surface_vehicle_position_setpoint.position_ned[1]);
 		_stopped = false;
@@ -158,15 +158,15 @@ bool MecanumPosControl::runSanityChecks()
 {
 	bool ret = true;
 
-	if (_param_ro_yaw_rate_limit.get() < FLT_EPSILON) {
+	if (_param_sv_yaw_rate_limit.get() < FLT_EPSILON) {
 		ret = false;
 	}
 
-	if (_param_ro_speed_limit.get() < FLT_EPSILON) {
+	if (_param_sv_speed_limit.get() < FLT_EPSILON) {
 		ret = false;
 	}
 
-	if (_param_ro_max_thr_speed.get() < FLT_EPSILON && _param_ro_speed_p.get() < FLT_EPSILON) {
+	if (_param_sv_max_thr_speed.get() < FLT_EPSILON && _param_sv_speed_p.get() < FLT_EPSILON) {
 		ret = false;
 	}
 

@@ -46,12 +46,12 @@ void AckermannAttControl::updateParams()
 {
 	ModuleParams::updateParams();
 
-	if (_param_ro_yaw_rate_limit.get() > FLT_EPSILON) {
-		_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	if (_param_sv_yaw_rate_limit.get() > FLT_EPSILON) {
+		_max_yaw_rate = _param_sv_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
 	}
 
 	// Set up PID controller
-	_pid_yaw.setGains(_param_ro_yaw_p.get(), 0.f, 0.f);
+	_pid_yaw.setGains(_param_sv_yaw_p.get(), 0.f, 0.f);
 	_pid_yaw.setIntegralLimit(0.f);
 	_pid_yaw.setOutputLimit(_max_yaw_rate);
 
@@ -106,7 +106,7 @@ void AckermannAttControl::updateSubscriptions()
 		actuator_motors_s actuator_motors;
 		_actuator_motors_sub.copy(&actuator_motors);
 		_estimated_speed_body_x = math::interpolate<float> (actuator_motors.control[0], -1.f, 1.f,
-					  -_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get());
+					  -_param_sv_max_thr_speed.get(), _param_sv_max_thr_speed.get());
 	}
 
 	if (_surface_vehicle_attitude_setpoint_sub.updated()) {
@@ -120,7 +120,7 @@ bool AckermannAttControl::runSanityChecks()
 {
 	bool ret = true;
 
-	if (_param_ro_max_thr_speed.get() < FLT_EPSILON) {
+	if (_param_sv_max_thr_speed.get() < FLT_EPSILON) {
 		ret = false;
 	}
 
@@ -132,7 +132,7 @@ bool AckermannAttControl::runSanityChecks()
 		ret = false;
 	}
 
-	if (_param_ro_yaw_rate_limit.get() < FLT_EPSILON) {
+	if (_param_sv_yaw_rate_limit.get() < FLT_EPSILON) {
 		ret = false;
 	}
 

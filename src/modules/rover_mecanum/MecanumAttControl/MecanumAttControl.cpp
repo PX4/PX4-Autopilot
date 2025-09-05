@@ -46,12 +46,12 @@ void MecanumAttControl::updateParams()
 {
 	ModuleParams::updateParams();
 
-	if (_param_ro_yaw_rate_limit.get() > FLT_EPSILON) {
-		_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	if (_param_sv_yaw_rate_limit.get() > FLT_EPSILON) {
+		_max_yaw_rate = _param_sv_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
 	}
 
 	// Set up PID controller
-	_pid_yaw.setGains(_param_ro_yaw_p.get(), 0.f, 0.f);
+	_pid_yaw.setGains(_param_sv_yaw_p.get(), 0.f, 0.f);
 	_pid_yaw.setIntegralLimit(_max_yaw_rate);
 	_pid_yaw.setOutputLimit(_max_yaw_rate);
 
@@ -101,14 +101,14 @@ bool MecanumAttControl::runSanityChecks()
 {
 	bool ret = true;
 
-	if (_param_ro_yaw_rate_limit.get() < FLT_EPSILON) {
+	if (_param_sv_yaw_rate_limit.get() < FLT_EPSILON) {
 		ret = false;
 	}
 
-	if (_param_ro_yaw_p.get() < FLT_EPSILON) {
+	if (_param_sv_yaw_p.get() < FLT_EPSILON) {
 		ret = false;
 		events::send<float>(events::ID("mecanum_att_control_conf_invalid_yaw_p"), events::Log::Error,
-				    "Invalid configuration of necessary parameter RO_YAW_P", _param_ro_yaw_p.get());
+				    "Invalid configuration of necessary parameter SV_YAW_P", _param_sv_yaw_p.get());
 	}
 
 	return ret;

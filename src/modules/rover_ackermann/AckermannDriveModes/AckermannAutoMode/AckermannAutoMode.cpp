@@ -44,7 +44,7 @@ AckermannAutoMode::AckermannAutoMode(ModuleParams *parent) : ModuleParams(parent
 void AckermannAutoMode::updateParams()
 {
 	ModuleParams::updateParams();
-	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	_max_yaw_rate = _param_sv_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
 
 	if (_param_ra_wheel_base.get() > FLT_EPSILON && _max_yaw_rate > FLT_EPSILON
 	    && _param_ra_max_str_ang.get() > FLT_EPSILON) {
@@ -109,7 +109,7 @@ void AckermannAutoMode::updateWaypointsAndAcceptanceRadius()
 
 	// Waypoint cruising speed
 	_cruising_speed = position_setpoint_triplet.current.cruising_speed > 0.f ? math::constrain(
-				  position_setpoint_triplet.current.cruising_speed, 0.f, _param_ro_speed_limit.get()) : _param_ro_speed_limit.get();
+				  position_setpoint_triplet.current.cruising_speed, 0.f, _param_sv_speed_limit.get()) : _param_sv_speed_limit.get();
 }
 
 float AckermannAutoMode::updateAcceptanceRadius(const float waypoint_transition_angle,
@@ -145,11 +145,11 @@ float AckermannAutoMode::arrivalSpeed(const float cruising_speed, const float mi
 	    || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 		return 0.f; // Stop at the waypoint
 
-	} else if (_param_ro_speed_red.get() > FLT_EPSILON) {
-		const float speed_reduction = math::constrain(_param_ro_speed_red.get() * math::interpolate(
+	} else if (_param_sv_speed_red.get() > FLT_EPSILON) {
+		const float speed_reduction = math::constrain(_param_sv_speed_red.get() * math::interpolate(
 						      M_PI_F - waypoint_transition_angle,
 						      0.f, M_PI_F, 0.f, 1.f), 0.f, 1.f);
-		return math::constrain(_param_ro_max_thr_speed.get() * (1.f - speed_reduction), min_speed,
+		return math::constrain(_param_sv_max_thr_speed.get() * (1.f - speed_reduction), min_speed,
 				       cruising_speed); // Slow down for cornering
 	}
 

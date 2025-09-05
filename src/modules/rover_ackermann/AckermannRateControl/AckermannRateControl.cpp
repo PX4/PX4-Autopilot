@@ -45,15 +45,15 @@ AckermannRateControl::AckermannRateControl(ModuleParams *parent) : ModuleParams(
 void AckermannRateControl::updateParams()
 {
 	ModuleParams::updateParams();
-	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	_max_yaw_rate = _param_sv_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
 
 	// Set up PID controller
-	_pid_yaw_rate.setGains(_param_ro_yaw_rate_p.get(), _param_ro_yaw_rate_i.get(), 0.f);
+	_pid_yaw_rate.setGains(_param_sv_yaw_rate_p.get(), _param_sv_yaw_rate_i.get(), 0.f);
 	_pid_yaw_rate.setIntegralLimit(1.f);
 	_pid_yaw_rate.setOutputLimit(1.f);
 
 	// Set up slew rate
-	_adjusted_yaw_rate_setpoint.setSlewRate(_param_ro_yaw_accel_limit.get() * M_DEG_TO_RAD_F);
+	_adjusted_yaw_rate_setpoint.setSlewRate(_param_sv_yaw_accel_limit.get() * M_DEG_TO_RAD_F);
 }
 
 void AckermannRateControl::updateRateControl()
@@ -73,7 +73,7 @@ void AckermannRateControl::updateRateControl()
 			float yaw_rate_limit = math::min(max_possible_yaw_rate, _max_yaw_rate);
 			float constrained_yaw_rate = math::constrain(_yaw_rate_setpoint, -yaw_rate_limit, yaw_rate_limit);
 
-			if (_param_ro_yaw_accel_limit.get() > FLT_EPSILON) { // Apply slew rate if configured
+			if (_param_sv_yaw_accel_limit.get() > FLT_EPSILON) { // Apply slew rate if configured
 				if (fabsf(_adjusted_yaw_rate_setpoint.getState() - _vehicle_yaw_rate) > fabsf(constrained_yaw_rate -
 						_vehicle_yaw_rate)) {
 					_adjusted_yaw_rate_setpoint.setForcedValue(_vehicle_yaw_rate);
@@ -87,7 +87,7 @@ void AckermannRateControl::updateRateControl()
 
 			// Feed forward
 			steering_setpoint = atanf(_adjusted_yaw_rate_setpoint.getState() * _param_ra_wheel_base.get() / _estimated_speed) *
-					    _param_ro_yaw_rate_corr.get();
+					    _param_sv_yaw_rate_corr.get();
 
 			// Feedback (Only when driving forwards because backwards driving is NMP and can introduce instability)
 			if (_estimated_speed > FLT_EPSILON) {
@@ -126,7 +126,7 @@ void AckermannRateControl::updateSubscriptions()
 	if (_vehicle_angular_velocity_sub.updated()) {
 		vehicle_angular_velocity_s vehicle_angular_velocity{};
 		_vehicle_angular_velocity_sub.copy(&vehicle_angular_velocity);
-		_vehicle_yaw_rate = fabsf(vehicle_angular_velocity.xyz[2]) > _param_ro_yaw_rate_th.get() * M_DEG_TO_RAD_F ?
+		_vehicle_yaw_rate = fabsf(vehicle_angular_velocity.xyz[2]) > _param_sv_yaw_rate_th.get() * M_DEG_TO_RAD_F ?
 				    vehicle_angular_velocity.xyz[2] : 0.f;
 	}
 
@@ -135,8 +135,8 @@ void AckermannRateControl::updateSubscriptions()
 		actuator_motors_s actuator_motors;
 		_actuator_motors_sub.copy(&actuator_motors);
 		_estimated_speed = math::interpolate<float>(actuator_motors.control[0], -1.f, 1.f,
-				   -_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get());
-		_estimated_speed = fabsf(_estimated_speed) >  _param_ro_speed_th.get() ? _estimated_speed : 0.f;
+				   -_param_sv_max_thr_speed.get(), _param_sv_max_thr_speed.get());
+		_estimated_speed = fabsf(_estimated_speed) >  _param_sv_speed_th.get() ? _estimated_speed : 0.f;
 	}
 
 	if (_surface_vehicle_rate_setpoint_sub.updated()) {
@@ -150,10 +150,10 @@ bool AckermannRateControl::runSanityChecks()
 {
 	bool ret = true;
 
-	if (_param_ro_max_thr_speed.get() < FLT_EPSILON) {
+	if (_param_sv_max_thr_speed.get() < FLT_EPSILON) {
 		ret = false;
 		events::send<float>(events::ID("ackermann_rate_control_conf_invalid_max_thr_speed"), events::Log::Error,
-				    "Invalid configuration of necessary parameter RO_MAX_THR_SPEED", _param_ro_max_thr_speed.get());
+				    "Invalid configuration of necessary parameter SV_MAX_THR_SPEED", _param_sv_max_thr_speed.get());
 
 	}
 
@@ -171,10 +171,10 @@ bool AckermannRateControl::runSanityChecks()
 
 	}
 
-	if (_param_ro_yaw_rate_limit.get() < FLT_EPSILON) {
+	if (_param_sv_yaw_rate_limit.get() < FLT_EPSILON) {
 		ret = false;
 		events::send<float>(events::ID("ackermann_rate_control_conf_invalid_yaw_rate_lim"), events::Log::Error,
-				    "Invalid configuration of necessary parameter RO_YAW_RATE_LIM", _param_ro_yaw_rate_limit.get());
+				    "Invalid configuration of necessary parameter SV_YAW_RATE_LIM", _param_sv_yaw_rate_limit.get());
 
 	}
 

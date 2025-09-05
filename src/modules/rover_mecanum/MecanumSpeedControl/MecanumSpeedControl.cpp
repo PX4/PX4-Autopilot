@@ -47,17 +47,17 @@ void MecanumSpeedControl::updateParams()
 	ModuleParams::updateParams();
 
 	// Set up PID controllers
-	_pid_speed_x.setGains(_param_ro_speed_p.get(), _param_ro_speed_i.get(), 0.f);
+	_pid_speed_x.setGains(_param_sv_speed_p.get(), _param_sv_speed_i.get(), 0.f);
 	_pid_speed_x.setIntegralLimit(1.f);
 	_pid_speed_x.setOutputLimit(1.f);
-	_pid_speed_y.setGains(_param_ro_speed_p.get(), _param_ro_speed_i.get(), 0.f);
+	_pid_speed_y.setGains(_param_sv_speed_p.get(), _param_sv_speed_i.get(), 0.f);
 	_pid_speed_y.setIntegralLimit(1.f);
 	_pid_speed_y.setOutputLimit(1.f);
 
 	// Set up slew rates
-	if (_param_ro_accel_limit.get() > FLT_EPSILON) {
-		_adjusted_speed_x_setpoint.setSlewRate(_param_ro_accel_limit.get());
-		_adjusted_speed_y_setpoint.setSlewRate(_param_ro_accel_limit.get());
+	if (_param_sv_accel_limit.get() > FLT_EPSILON) {
+		_adjusted_speed_x_setpoint.setSlewRate(_param_sv_accel_limit.get());
+		_adjusted_speed_y_setpoint.setSlewRate(_param_sv_accel_limit.get());
 	}
 }
 
@@ -77,12 +77,12 @@ void MecanumSpeedControl::updateSpeedControl()
 
 		surface_vehicle_throttle_setpoint.throttle_body_x = SurfaceVehicleControl::speedControl(_adjusted_speed_x_setpoint,
 				_pid_speed_x,
-				speed_setpoint(0), _vehicle_speed_body_x, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
-				_param_ro_max_thr_speed.get(), dt);
+				speed_setpoint(0), _vehicle_speed_body_x, _param_sv_accel_limit.get(), _param_sv_decel_limit.get(),
+				_param_sv_max_thr_speed.get(), dt);
 		surface_vehicle_throttle_setpoint.throttle_body_y = SurfaceVehicleControl::speedControl(_adjusted_speed_y_setpoint,
 				_pid_speed_y,
-				speed_setpoint(1), _vehicle_speed_body_y, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
-				_param_ro_max_thr_speed.get(), dt);
+				speed_setpoint(1), _vehicle_speed_body_y, _param_sv_accel_limit.get(), _param_sv_decel_limit.get(),
+				_param_sv_max_thr_speed.get(), dt);
 		_surface_vehicle_throttle_setpoint_pub.publish(surface_vehicle_throttle_setpoint);
 
 	}
@@ -113,8 +113,8 @@ void MecanumSpeedControl::updateSubscriptions()
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
 		const Vector3f velocity_in_local_frame(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
 		const Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
-		_vehicle_speed_body_x = fabsf(velocity_in_body_frame(0)) > _param_ro_speed_th.get() ? velocity_in_body_frame(0) : 0.f;
-		_vehicle_speed_body_y = fabsf(velocity_in_body_frame(1)) > _param_ro_speed_th.get() ? velocity_in_body_frame(1) : 0.f;
+		_vehicle_speed_body_x = fabsf(velocity_in_body_frame(0)) > _param_sv_speed_th.get() ? velocity_in_body_frame(0) : 0.f;
+		_vehicle_speed_body_y = fabsf(velocity_in_body_frame(1)) > _param_sv_speed_th.get() ? velocity_in_body_frame(1) : 0.f;
 	}
 
 	if (_surface_vehicle_speed_setpoint_sub.updated()) {
@@ -136,10 +136,10 @@ Vector2f MecanumSpeedControl::calcSpeedSetpoint()
 	Vector2f speed_setpoint = Vector2f(_speed_x_setpoint, _speed_y_setpoint);
 
 	float speed_x_setpoint_normalized = math::interpolate<float>(_speed_x_setpoint,
-					    -_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get(), -1.f, 1.f);
+					    -_param_sv_max_thr_speed.get(), _param_sv_max_thr_speed.get(), -1.f, 1.f);
 
 	float speed_y_setpoint_normalized = math::interpolate<float>(_speed_y_setpoint,
-					    -_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get(), -1.f, 1.f);
+					    -_param_sv_max_thr_speed.get(), _param_sv_max_thr_speed.get(), -1.f, 1.f);
 
 	const float total_speed = fabsf(speed_x_setpoint_normalized) + fabsf(speed_y_setpoint_normalized) + fabsf(
 					  _normalized_speed_diff);
@@ -152,13 +152,13 @@ Vector2f MecanumSpeedControl::calcSpeedSetpoint()
 		speed_x_setpoint_normalized *= magnitude * normalization;
 		speed_y_setpoint_normalized *= magnitude * normalization;
 		speed_setpoint(0) = math::interpolate<float>(speed_x_setpoint_normalized, -1.f, 1.f,
-				    -_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get());
+				    -_param_sv_max_thr_speed.get(), _param_sv_max_thr_speed.get());
 		speed_setpoint(1) = math::interpolate<float>(speed_y_setpoint_normalized, -1.f, 1.f,
-				    -_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get());
+				    -_param_sv_max_thr_speed.get(), _param_sv_max_thr_speed.get());
 	}
 
-	speed_setpoint(0) = fabsf(speed_setpoint(0)) > _param_ro_speed_th.get() ? speed_setpoint(0) : 0.f;
-	speed_setpoint(1) = fabsf(speed_setpoint(1)) > _param_ro_speed_th.get() ? speed_setpoint(1) : 0.f;
+	speed_setpoint(0) = fabsf(speed_setpoint(0)) > _param_sv_speed_th.get() ? speed_setpoint(0) : 0.f;
+	speed_setpoint(1) = fabsf(speed_setpoint(1)) > _param_sv_speed_th.get() ? speed_setpoint(1) : 0.f;
 
 	return speed_setpoint;
 }
@@ -167,19 +167,19 @@ bool MecanumSpeedControl::runSanityChecks()
 {
 	bool ret = true;
 
-	if (_param_ro_speed_limit.get() < FLT_EPSILON) {
+	if (_param_sv_speed_limit.get() < FLT_EPSILON) {
 		ret = false;
 		events::send<float>(events::ID("mecanum_vel_control_conf_invalid_speed_lim"), events::Log::Error,
-				    "Invalid configuration of necessary parameter RO_SPEED_LIM", _param_ro_speed_limit.get());
+				    "Invalid configuration of necessary parameter SV_SPEED_LIM", _param_sv_speed_limit.get());
 
 	}
 
-	if (_param_ro_max_thr_speed.get() < FLT_EPSILON && _param_ro_speed_p.get() < FLT_EPSILON) {
+	if (_param_sv_max_thr_speed.get() < FLT_EPSILON && _param_sv_speed_p.get() < FLT_EPSILON) {
 		ret = false;
 		events::send<float, float>(events::ID("mecanum_vel_control_conf_invalid_speed_control"), events::Log::Error,
-					   "Invalid configuration for speed control: Neither feed forward (RO_MAX_THR_SPEED) nor feedback (RO_SPEED_P) is setup",
-					   _param_ro_max_thr_speed.get(),
-					   _param_ro_speed_p.get());
+					   "Invalid configuration for speed control: Neither feed forward (SV_MAX_THR_SPEED) nor feedback (SV_SPEED_P) is setup",
+					   _param_sv_max_thr_speed.get(),
+					   _param_sv_speed_p.get());
 	}
 
 	return ret;

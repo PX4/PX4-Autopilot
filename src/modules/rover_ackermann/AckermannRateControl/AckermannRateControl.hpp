@@ -104,7 +104,7 @@ private:
 
 	// Variables
 	float _estimated_speed{0.f}; /*Vehicle speed estimated by interpolating [actuatorMotorSetpoint,  _estimated_speed]
-					       between [0, 0] and [1, _param_ro_max_thr_speed].*/
+					       between [0, 0] and [1, _param_sv_max_thr_speed].*/
 	float _max_yaw_rate{0.f};
 	float _vehicle_yaw_rate{0.f};
 	float _yaw_rate_setpoint{NAN};
@@ -115,15 +115,15 @@ private:
 	SlewRate<float> _adjusted_yaw_rate_setpoint{0.f};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
+		(ParamFloat<px4::params::SV_MAX_THR_SPEED>) _param_sv_max_thr_speed,
 		(ParamFloat<px4::params::RA_WHEEL_BASE>)    _param_ra_wheel_base,
 		(ParamFloat<px4::params::RA_MAX_STR_ANG>)   _param_ra_max_str_ang,
-		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
-		(ParamFloat<px4::params::RO_YAW_RATE_TH>)   _param_ro_yaw_rate_th,
-		(ParamFloat<px4::params::RO_YAW_RATE_P>)    _param_ro_yaw_rate_p,
-		(ParamFloat<px4::params::RO_YAW_RATE_I>)    _param_ro_yaw_rate_i,
-		(ParamFloat<px4::params::RO_YAW_ACCEL_LIM>) _param_ro_yaw_accel_limit,
-		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th,
-		(ParamFloat<px4::params::RO_YAW_RATE_CORR>) _param_ro_yaw_rate_corr
+		(ParamFloat<px4::params::SV_YAW_RATE_LIM>)  _param_sv_yaw_rate_limit,
+		(ParamFloat<px4::params::SV_YAW_RATE_TH>)   _param_sv_yaw_rate_th,
+		(ParamFloat<px4::params::SV_YAW_RATE_P>)    _param_sv_yaw_rate_p,
+		(ParamFloat<px4::params::SV_YAW_RATE_I>)    _param_sv_yaw_rate_i,
+		(ParamFloat<px4::params::SV_YAW_ACCEL_LIM>) _param_sv_yaw_accel_limit,
+		(ParamFloat<px4::params::SV_SPEED_TH>)      _param_sv_speed_th,
+		(ParamFloat<px4::params::SV_YAW_RATE_CORR>) _param_sv_yaw_rate_corr
 	)
 };

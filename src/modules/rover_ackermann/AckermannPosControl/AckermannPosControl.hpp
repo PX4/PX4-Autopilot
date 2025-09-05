@@ -82,7 +82,7 @@ public:
 	/**
 	 * @brief Reset position controller.
 	 */
-	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_limit.get(); _stopped = false;};
+	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _arrival_speed = 0.f; _cruising_speed = _param_sv_speed_limit.get(); _stopped = false;};
 
 protected:
 	/**
@@ -124,17 +124,17 @@ private:
 	uint8_t _updated_reset_counter{0}; /**< counter for estimator resets in xy-direction */
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
-		(ParamFloat<px4::params::RO_SPEED_RED>)     _param_ro_speed_red,
-		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_limit,
-		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_limit,
-		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
+		(ParamFloat<px4::params::SV_MAX_THR_SPEED>) _param_sv_max_thr_speed,
+		(ParamFloat<px4::params::SV_SPEED_RED>)     _param_sv_speed_red,
+		(ParamFloat<px4::params::SV_DECEL_LIM>)     _param_sv_decel_limit,
+		(ParamFloat<px4::params::SV_JERK_LIM>)      _param_sv_jerk_limit,
+		(ParamFloat<px4::params::SV_SPEED_LIM>)     _param_sv_speed_limit,
 		(ParamFloat<px4::params::PP_LOOKAHD_GAIN>)  _param_pp_lookahd_gain,
 		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
 		(ParamFloat<px4::params::PP_LOOKAHD_MIN>)   _param_pp_lookahd_min,
-		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
+		(ParamFloat<px4::params::SV_YAW_RATE_LIM>)  _param_sv_yaw_rate_limit,
 		(ParamFloat<px4::params::RA_WHEEL_BASE>)    _param_ra_wheel_base,
 		(ParamFloat<px4::params::RA_MAX_STR_ANG>)   _param_ra_max_str_ang,
-		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th
+		(ParamFloat<px4::params::SV_SPEED_TH>)      _param_sv_speed_th
 	)
 };

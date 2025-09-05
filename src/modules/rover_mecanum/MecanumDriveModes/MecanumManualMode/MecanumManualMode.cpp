@@ -49,7 +49,7 @@ MecanumManualMode::MecanumManualMode(ModuleParams *parent) : ModuleParams(parent
 void MecanumManualMode::updateParams()
 {
 	ModuleParams::updateParams();
-	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	_max_yaw_rate = _param_sv_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
 }
 
 void MecanumManualMode::manual()
@@ -59,7 +59,7 @@ void MecanumManualMode::manual()
 	surface_vehicle_steering_setpoint_s surface_vehicle_steering_setpoint{};
 	surface_vehicle_steering_setpoint.timestamp = hrt_absolute_time();
 	surface_vehicle_steering_setpoint.normalized_steering_setpoint = _param_rm_yaw_stk_gain.get() * math::superexpo<float>
-			(manual_control_setpoint.yaw, _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
+			(manual_control_setpoint.yaw, _param_sv_yaw_expo.get(), _param_sv_yaw_supexpo.get());
 	_surface_vehicle_steering_setpoint_pub.publish(surface_vehicle_steering_setpoint);
 	surface_vehicle_throttle_setpoint_s surface_vehicle_throttle_setpoint{};
 	surface_vehicle_throttle_setpoint.timestamp = hrt_absolute_time();
@@ -80,7 +80,7 @@ void MecanumManualMode::acro()
 	surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
 	surface_vehicle_rate_setpoint.timestamp = hrt_absolute_time();
 	surface_vehicle_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(manual_control_setpoint.yaw,
-			_param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
+			_param_sv_yaw_expo.get(), _param_sv_yaw_supexpo.get());
 	_surface_vehicle_rate_setpoint_pub.publish(surface_vehicle_rate_setpoint);
 }
 
@@ -108,7 +108,7 @@ void MecanumManualMode::stab()
 		surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
 		surface_vehicle_rate_setpoint.timestamp = hrt_absolute_time();
 		surface_vehicle_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(math::deadzone(
-					manual_control_setpoint.yaw, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
+					manual_control_setpoint.yaw, _param_sv_yaw_stick_dz.get()), _param_sv_yaw_expo.get(), _param_sv_yaw_supexpo.get());
 		_surface_vehicle_rate_setpoint_pub.publish(surface_vehicle_rate_setpoint);
 
 		// Set uncontrolled setpoint invalid
@@ -149,9 +149,9 @@ void MecanumManualMode::position()
 
 	Vector3f velocity_setpoint_body{};
 	velocity_setpoint_body(0) = math::interpolate<float>(manual_control_setpoint.throttle,
-				    -1.f, 1.f, -_param_ro_speed_limit.get(), _param_ro_speed_limit.get());
+				    -1.f, 1.f, -_param_sv_speed_limit.get(), _param_sv_speed_limit.get());
 	velocity_setpoint_body(1) = math::interpolate<float>(manual_control_setpoint.roll,
-				    -1.f, 1.f, -_param_ro_speed_limit.get(), _param_ro_speed_limit.get());
+				    -1.f, 1.f, -_param_sv_speed_limit.get(), _param_sv_speed_limit.get());
 	velocity_setpoint_body(2) = 0.f;
 
 	if (fabsf(manual_control_setpoint.yaw) > FLT_EPSILON || velocity_setpoint_body.norm() < FLT_EPSILON) {
@@ -168,7 +168,7 @@ void MecanumManualMode::position()
 		surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
 		surface_vehicle_rate_setpoint.timestamp = hrt_absolute_time();
 		surface_vehicle_rate_setpoint.yaw_rate_setpoint = _max_yaw_rate * math::superexpo<float>(math::deadzone(
-					manual_control_setpoint.yaw, _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
+					manual_control_setpoint.yaw, _param_sv_yaw_stick_dz.get()), _param_sv_yaw_expo.get(), _param_sv_yaw_supexpo.get());
 		_surface_vehicle_rate_setpoint_pub.publish(surface_vehicle_rate_setpoint);
 
 		// Set uncontrolled setpoints invalid
