@@ -75,10 +75,12 @@ void MecanumSpeedControl::updateSpeedControl()
 		surface_vehicle_throttle_setpoint_s surface_vehicle_throttle_setpoint{};
 		surface_vehicle_throttle_setpoint.timestamp = _timestamp;
 
-		surface_vehicle_throttle_setpoint.throttle_body_x = RoverControl::speedControl(_adjusted_speed_x_setpoint, _pid_speed_x,
+		surface_vehicle_throttle_setpoint.throttle_body_x = SurfaceVehicleControl::speedControl(_adjusted_speed_x_setpoint,
+				_pid_speed_x,
 				speed_setpoint(0), _vehicle_speed_body_x, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
 				_param_ro_max_thr_speed.get(), dt);
-		surface_vehicle_throttle_setpoint.throttle_body_y = RoverControl::speedControl(_adjusted_speed_y_setpoint, _pid_speed_y,
+		surface_vehicle_throttle_setpoint.throttle_body_y = SurfaceVehicleControl::speedControl(_adjusted_speed_y_setpoint,
+				_pid_speed_y,
 				speed_setpoint(1), _vehicle_speed_body_y, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
 				_param_ro_max_thr_speed.get(), dt);
 		_surface_vehicle_throttle_setpoint_pub.publish(surface_vehicle_throttle_setpoint);

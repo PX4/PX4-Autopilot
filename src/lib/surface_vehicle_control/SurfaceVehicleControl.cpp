@@ -31,9 +31,9 @@
  *
  ****************************************************************************/
 
-#include "RoverControl.hpp"
+#include "SurfaceVehicleControl.hpp"
 using namespace matrix;
-namespace RoverControl
+namespace SurfaceVehicleControl
 {
 float throttleControl(SlewRate<float> &motor_setpoint, const float throttle_setpoint,
 		      const float current_motor_setpoint, const float max_accel, const float max_decel, const float max_thr_spd,
@@ -265,4 +265,4 @@ float calcWaypointTransitionAngle(Vector2f &prev_wp_ned, Vector2f &curr_wp_ned, 
 	return acosf(cosin);
 }
 
-} // RoverControl
+} // SurfaceVehicleControl

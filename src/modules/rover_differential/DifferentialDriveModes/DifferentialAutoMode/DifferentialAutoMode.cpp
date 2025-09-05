@@ -69,10 +69,11 @@ void DifferentialAutoMode::autoControl()
 		Vector2f prev_wp_ned{NAN, NAN};
 		Vector2f next_wp_ned{NAN, NAN};
 
-		RoverControl::globalToLocalSetpointTriplet(curr_wp_ned, prev_wp_ned, next_wp_ned, position_setpoint_triplet,
+		SurfaceVehicleControl::globalToLocalSetpointTriplet(curr_wp_ned, prev_wp_ned, next_wp_ned, position_setpoint_triplet,
 				curr_pos_ned, global_ned_proj_ref);
 
-		float waypoint_transition_angle = RoverControl::calcWaypointTransitionAngle(prev_wp_ned, curr_wp_ned, next_wp_ned);
+		float waypoint_transition_angle = SurfaceVehicleControl::calcWaypointTransitionAngle(prev_wp_ned, curr_wp_ned,
+						  next_wp_ned);
 
 		// Waypoint cruising speed
 		float cruising_speed = position_setpoint_triplet.current.cruising_speed > 0.f ? math::constrain(

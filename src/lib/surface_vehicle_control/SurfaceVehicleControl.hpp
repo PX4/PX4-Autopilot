@@ -32,10 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file RoverControl.hpp
+ * @file SurfaceVehicleControl.hpp
  *
- * Functions that are shared among the different rover modules.
- * Also includes the parameters that are shared among the rover modules.
+ * Functions that are shared among the different surface vehicles.
+ * Also includes the parameters that are shared among them.
  */
 
 #pragma once
@@ -47,7 +47,7 @@
 #include <lib/geo/geo.h>
 
 using namespace matrix;
-namespace RoverControl
+namespace SurfaceVehicleControl
 {
 /**
  * Applies acceleration/deceleration slew rate to a throttle setpoint.
@@ -56,7 +56,7 @@ namespace RoverControl
  * @param current_motor_setpoint Currently applied motor input [-1, 1]
  * @param max_accel Maximum allowed acceleration [m/s^2]
  * @param max_decel Maximum allowed deceleration [m/s^2]
- * @param max_thr_spd Speed the rover drives at maximum throttle [m/s]
+ * @param max_thr_spd Speed the vehicle drives at maximum throttle [m/s]
  * @param dt Time since last update [s]
  * @return Motor Setpoint [-1, 1]
  */
@@ -76,6 +76,7 @@ float throttleControl(SlewRate<float> &motor_setpoint, float throttle_setpoint, 
  */
 float attitudeControl(SlewRateYaw<float> &adjusted_yaw_setpoint, PID &pid_yaw, float yaw_slew_rate,
 		      float vehicle_yaw, float yaw_setpoint, float dt);
+
 /**
  * Applies acceleration/deceleration slew rate to a speed setpoint and calculates the necessary throttle setpoint
  * using a feed forward term and PID controller.
@@ -95,7 +96,7 @@ float speedControl(SlewRate<float> &speed_with_rate_limit, PID &pid_speed, float
 /**
  * Applies yaw acceleration slew rate to a yaw rate setpoint and calculates the necessary speed diff setpoint
  * using a feedforward term and/or a PID controller.
- * Note: This function is only for rovers that control the rate through a speed difference between the left/right wheels.
+ * Note: This function is only for vehicles that control the rate through a speed difference between the left/right wheels.
  * @param adjusted_yaw_rate_setpoint Yaw rate setpoint with applied slew rate [-1, 1] (Updated by this function).
  * @param pid_yaw_rate Yaw rate PID (Updated by this function).
  * @param yaw_rate_setpoint Yaw rate setpoint [rad/s].
@@ -119,7 +120,7 @@ float rateControl(SlewRate<float> &adjusted_yaw_rate_setpoint, PID &pid_yaw_rate
  * @param prev_wp_ned Previous waypoint in NED frame (Updated by this function)
  * @param next_wp_ned Next waypoint in NED frame (Updated by this function)
  * @param position_setpoint_triplet Position Setpoint Triplet
- * @param curr_pos Current position of the rover in global frame
+ * @param curr_pos Current position of the vehicle in global frame
  * @param global_ned_proj_ref Global to ned projection
  */
 void globalToLocalSetpointTriplet(Vector2f &curr_wp_ned, Vector2f &prev_wp_ned, Vector2f &next_wp_ned,

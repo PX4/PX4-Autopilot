@@ -31,11 +31,11 @@
 #
 ############################################################################
 
-px4_add_library(rover_control
-	RoverControl.cpp
-	RoverControl.hpp
+px4_add_library(surface_vehicle_control
+	SurfaceVehicleControl.cpp
+	SurfaceVehicleControl.hpp
 )
 
-target_link_libraries(rover_control PUBLIC PID)
-target_link_libraries(rover_control PUBLIC geo)
-px4_add_unit_gtest(SRC RoverControlTest.cpp LINKLIBS rover_control)
+target_link_libraries(surface_vehicle_control PUBLIC PID)
+target_link_libraries(surface_vehicle_control PUBLIC geo)
+px4_add_unit_gtest(SRC SurfaceVehicleControlTest.cpp LINKLIBS surface_vehicle_control)

@@ -92,10 +92,11 @@ void AckermannAutoMode::updateWaypointsAndAcceptanceRadius()
 	_position_setpoint_triplet_sub.copy(&position_setpoint_triplet);
 	_curr_wp_type = position_setpoint_triplet.current.type;
 
-	RoverControl::globalToLocalSetpointTriplet(_curr_wp_ned, _prev_wp_ned, _next_wp_ned, position_setpoint_triplet,
+	SurfaceVehicleControl::globalToLocalSetpointTriplet(_curr_wp_ned, _prev_wp_ned, _next_wp_ned, position_setpoint_triplet,
 			_curr_pos_ned, _global_ned_proj_ref);
 
-	_waypoint_transition_angle = RoverControl::calcWaypointTransitionAngle(_prev_wp_ned, _curr_wp_ned, _next_wp_ned);
+	_waypoint_transition_angle = SurfaceVehicleControl::calcWaypointTransitionAngle(_prev_wp_ned, _curr_wp_ned,
+				     _next_wp_ned);
 
 	// Update acceptance radius
 	if (_param_ra_acc_rad_max.get() >= _param_nav_acc_rad.get()) {

@@ -79,7 +79,7 @@ void DifferentialAttControl::updateAttControl()
 	}
 
 	if (PX4_ISFINITE(_yaw_setpoint)) {
-		const float yaw_rate_setpoint = RoverControl::attitudeControl(_adjusted_yaw_setpoint, _pid_yaw, _max_yaw_rate,
+		const float yaw_rate_setpoint = SurfaceVehicleControl::attitudeControl(_adjusted_yaw_setpoint, _pid_yaw, _max_yaw_rate,
 						_vehicle_yaw, _yaw_setpoint, dt);
 		surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
 		surface_vehicle_rate_setpoint.timestamp = _timestamp;

@@ -37,7 +37,7 @@
 #include <px4_platform_common/module_params.h>
 
 // Library includes
-#include <lib/rover_control/RoverControl.hpp>
+#include <lib/surface_vehicle_control/SurfaceVehicleControl.hpp>
 #include <lib/pid/PID.hpp>
 #include <lib/slew_rate/SlewRateYaw.hpp>
 #include <math.h>

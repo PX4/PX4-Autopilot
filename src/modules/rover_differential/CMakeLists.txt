@@ -54,7 +54,7 @@ px4_add_module(
 		DifferentialManualMode
 		DifferentialOffboardMode
 		px4_work_queue
-		rover_control
+		surface_vehicle_control
 		pure_pursuit
 	MODULE_CONFIG
 		module.yaml

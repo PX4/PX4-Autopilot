@@ -70,7 +70,8 @@ void DifferentialSpeedControl::updateSpeedControl()
 		const float speed_setpoint = calcSpeedSetpoint();
 		surface_vehicle_throttle_setpoint_s surface_vehicle_throttle_setpoint{};
 		surface_vehicle_throttle_setpoint.timestamp = _timestamp;
-		surface_vehicle_throttle_setpoint.throttle_body_x = RoverControl::speedControl(_adjusted_speed_setpoint, _pid_speed,
+		surface_vehicle_throttle_setpoint.throttle_body_x = SurfaceVehicleControl::speedControl(_adjusted_speed_setpoint,
+				_pid_speed,
 				speed_setpoint, _vehicle_speed, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
 				_param_ro_max_thr_speed.get(), dt);
 		surface_vehicle_throttle_setpoint.throttle_body_y = 0.f;

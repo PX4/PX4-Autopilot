@@ -71,7 +71,7 @@ void AckermannActControl::updateActControl()
 		_actuator_motors_sub.copy(&actuator_motors_sub);
 		actuator_motors_s actuator_motors{};
 		actuator_motors.reversible_flags = _param_r_rev.get();
-		actuator_motors.control[0] = RoverControl::throttleControl(_motor_setpoint,
+		actuator_motors.control[0] = SurfaceVehicleControl::throttleControl(_motor_setpoint,
 					     _throttle_setpoint, actuator_motors_sub.control[0], _param_ro_accel_limit.get(),
 					     _param_ro_decel_limit.get(), _param_ro_max_thr_speed.get(), dt);
 		actuator_motors.timestamp = _timestamp;

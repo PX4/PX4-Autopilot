@@ -77,7 +77,7 @@ void DifferentialRateControl::updateRateControl()
 	if (PX4_ISFINITE(_yaw_rate_setpoint)) {
 		const float yaw_rate_setpoint = fabsf(_yaw_rate_setpoint) > _param_ro_yaw_rate_th.get() * M_DEG_TO_RAD_F ?
 						_yaw_rate_setpoint : 0.f;
-		const float speed_diff_normalized = RoverControl::rateControl(_adjusted_yaw_rate_setpoint, _pid_yaw_rate,
+		const float speed_diff_normalized = SurfaceVehicleControl::rateControl(_adjusted_yaw_rate_setpoint, _pid_yaw_rate,
 						    yaw_rate_setpoint, _vehicle_yaw_rate, _param_ro_max_thr_speed.get(), _param_ro_yaw_rate_corr.get(),
 						    _param_ro_yaw_accel_limit.get() * M_DEG_TO_RAD_F,
 						    _param_ro_yaw_decel_limit.get() * M_DEG_TO_RAD_F, _param_rd_wheel_track.get(), dt);

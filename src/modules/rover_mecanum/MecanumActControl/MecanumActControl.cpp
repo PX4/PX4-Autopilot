@@ -75,10 +75,10 @@ void MecanumActControl::updateActControl()
 		_actuator_motors_sub.copy(&actuator_motors_sub);
 		const float current_throttle_x = (actuator_motors_sub.control[0] + actuator_motors_sub.control[1]) / 2.f;
 		const float current_throttle_y = (actuator_motors_sub.control[2] - actuator_motors_sub.control[0]) / 2.f;
-		const float adjusted_throttle_x_setpoint = RoverControl::throttleControl(_adjusted_throttle_x_setpoint,
+		const float adjusted_throttle_x_setpoint = SurfaceVehicleControl::throttleControl(_adjusted_throttle_x_setpoint,
 				_throttle_x_setpoint, current_throttle_x, _param_ro_accel_limit.get(),
 				_param_ro_decel_limit.get(), _param_ro_max_thr_speed.get(), dt);
-		const float adjusted_throttle_y_setpoint = RoverControl::throttleControl(_adjusted_throttle_y_setpoint,
+		const float adjusted_throttle_y_setpoint = SurfaceVehicleControl::throttleControl(_adjusted_throttle_y_setpoint,
 				_throttle_y_setpoint, current_throttle_y, _param_ro_accel_limit.get(),
 				_param_ro_decel_limit.get(), _param_ro_max_thr_speed.get(), dt);
 		actuator_motors_s actuator_motors{};

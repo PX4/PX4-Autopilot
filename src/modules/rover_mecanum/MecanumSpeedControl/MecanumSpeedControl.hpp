@@ -38,7 +38,7 @@
 #include <px4_platform_common/events.h>
 
 // Libraries
-#include <lib/rover_control/RoverControl.hpp>
+#include <lib/surface_vehicle_control/SurfaceVehicleControl.hpp>
 #include <lib/pid/PID.hpp>
 #include <matrix/matrix/math.hpp>
 #include <lib/slew_rate/SlewRate.hpp>

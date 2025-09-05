@@ -73,7 +73,7 @@ void AckermannAttControl::updateAttControl()
 					      _param_ra_wheel_base.get(); // Maximum possible yaw rate at current velocity
 		float yaw_slew_rate = math::min(max_possible_yaw_rate, _max_yaw_rate);
 
-		float yaw_rate_setpoint = RoverControl::attitudeControl(_adjusted_yaw_setpoint, _pid_yaw, yaw_slew_rate,
+		float yaw_rate_setpoint = SurfaceVehicleControl::attitudeControl(_adjusted_yaw_setpoint, _pid_yaw, yaw_slew_rate,
 					  _vehicle_yaw, _yaw_setpoint, dt);
 
 		surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
