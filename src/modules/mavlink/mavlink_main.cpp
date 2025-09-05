@@ -1816,18 +1816,18 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("TIMESYNC", 10.0f);
 		configure_stream_local("CAMERA_TRIGGER", 2.0f);
 		configure_stream_local("LOCAL_POSITION_NED", 1.0f);
-		configure_stream_local("ATTITUDE", 1.0f);
+		configure_stream_local("ATTITUDE_QUATERNION", 2.0f);
 		configure_stream_local("ALTITUDE", 1.0f);
-		configure_stream_local("DISTANCE_SENSOR", 2.0f);
+		configure_stream_local("DISTANCE_SENSOR", 1.0f);
 		configure_stream_local("MOUNT_ORIENTATION", 2.0f);
 		configure_stream_local("OBSTACLE_DISTANCE", 2.0f);
 		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 1.0f);
 		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
 		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 2.0f);
-		configure_stream_local("ESC_INFO", 1.0f);
-		configure_stream_local("ESC_STATUS", 2.0f);
+		configure_stream_local("ESC_INFO", 0.2f);
+		configure_stream_local("ESC_STATUS", 0.5f);
 
-		configure_stream_local("ADSB_VEHICLE", 2.0f);
+		configure_stream_local("ADSB_VEHICLE", 1.0f);
 		configure_stream_local("ATTITUDE_TARGET", 0.5f);
 		configure_stream_local("AVAILABLE_MODES", 0.3f);
 		configure_stream_local("BATTERY_STATUS", 0.5f);
@@ -1835,25 +1835,30 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("CURRENT_MODE", 0.5f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
 		configure_stream_local("EXTENDED_SYS_STATE", 0.5f);
-		configure_stream_local("GLOBAL_POSITION_INT", 1.0f);
+		configure_stream_local("GLOBAL_POSITION_INT", 2.0f);
+		configure_stream_local("GLOBAL_POSITION", 2.0f);
 		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
 		configure_stream_local("GPS2_RAW", 2.0f);
 		configure_stream_local("GPS_RAW_INT", 2.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.5f);
-		configure_stream_local("OPTICAL_FLOW_RAD", 1.0f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 2.0f);
+		configure_stream_local("NAV_CONTROLLER_OUTPUT", 0.1f);
+		configure_stream_local("OPTICAL_FLOW_RAD", 0.1f);
+		configure_stream_local("ORBIT_EXECUTION_STATUS", 1.0f);
 		configure_stream_local("PING", 0.1f);
-		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 1.0f);
-		configure_stream_local("POSITION_TARGET_LOCAL_NED", 1.0f);
+		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 0.5f);
+		configure_stream_local("POSITION_TARGET_LOCAL_NED", 0.5f);
+		configure_stream_local("RAW_RPM", 1.0f);
 		configure_stream_local("RC_CHANNELS", 5.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
+		configure_stream_local("SERVO_OUTPUT_RAW_0", 0.1f);
 		configure_stream_local("SYS_STATUS", 0.5f);
 		configure_stream_local("SYSTEM_TIME", 2.0f);
 		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 0.5f);
-		configure_stream_local("VFR_HUD", 1.0f);
+		configure_stream_local("VFR_HUD", 1.5f);
 		configure_stream_local("VIBRATION", 0.1f);
 		configure_stream_local("WIND_COV", 0.1f);
+#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
+		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 0.5f);
+#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
 		break;
 
 	case MAVLINK_MODE_UAVIONIX:
