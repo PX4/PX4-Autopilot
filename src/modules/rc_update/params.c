@@ -88,18 +88,6 @@ PARAM_DEFINE_FLOAT(RC1_MAX, 2000.0f);
 PARAM_DEFINE_FLOAT(RC1_REV, 1.0f);
 
 /**
- * RC channel 1 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @unit us
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC1_DZ, 10.0f);
-
-/**
  * RC channel 2 minimum
  *
  * Minimum value for this channel.
@@ -147,18 +135,6 @@ PARAM_DEFINE_FLOAT(RC2_MAX, 2000.0f);
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC2_REV, 1.0f);
-
-/**
- * RC channel 2 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @unit us
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC2_DZ, 10.0f);
 
 /**
  * RC channel 3 minimum
@@ -210,18 +186,6 @@ PARAM_DEFINE_FLOAT(RC3_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC3_REV, 1.0f);
 
 /**
- * RC channel 3 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @unit us
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC3_DZ, 10.0f);
-
-/**
  * RC channel 4 minimum
  *
  * Minimum value for this channel.
@@ -269,18 +233,6 @@ PARAM_DEFINE_FLOAT(RC4_MAX, 2000);
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC4_REV, 1.0f);
-
-/**
- * RC channel 4 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @unit us
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC4_DZ, 10.0f);
 
 /**
  * RC channel 5 minimum
@@ -332,17 +284,6 @@ PARAM_DEFINE_FLOAT(RC5_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC5_REV, 1.0f);
 
 /**
- * RC channel 5 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC5_DZ,  10.0f);
-
-/**
  * RC channel 6 minimum
  *
  * Minimum value for this channel.
@@ -390,17 +331,6 @@ PARAM_DEFINE_FLOAT(RC6_MAX, 2000);
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC6_REV, 1.0f);
-
-/**
- * RC channel 6 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC6_DZ, 10.0f);
 
 /**
  * RC channel 7 minimum
@@ -452,17 +382,6 @@ PARAM_DEFINE_FLOAT(RC7_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC7_REV, 1.0f);
 
 /**
- * RC channel 7 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC7_DZ, 10.0f);
-
-/**
  * RC channel 8 minimum
  *
  * Minimum value for this channel.
@@ -510,17 +429,6 @@ PARAM_DEFINE_FLOAT(RC8_MAX, 2000);
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC8_REV, 1.0f);
-
-/**
- * RC channel 8 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC8_DZ, 10.0f);
 
 /**
  * RC channel 9 minimum
@@ -572,17 +480,6 @@ PARAM_DEFINE_FLOAT(RC9_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC9_REV, 1.0f);
 
 /**
- * RC channel 9 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC9_DZ, 0.0f);
-
-/**
  * RC channel 10 minimum
  *
  * Minimum value for this channel.
@@ -630,17 +527,6 @@ PARAM_DEFINE_FLOAT(RC10_MAX, 2000);
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC10_REV, 1.0f);
-
-/**
- * RC channel 10 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC10_DZ, 0.0f);
 
 /**
  * RC channel 11 minimum
@@ -692,17 +578,6 @@ PARAM_DEFINE_FLOAT(RC11_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC11_REV, 1.0f);
 
 /**
- * RC channel 11 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC11_DZ, 0.0f);
-
-/**
  * RC channel 12 minimum
  *
  * Minimum value for this channel.
@@ -750,17 +625,6 @@ PARAM_DEFINE_FLOAT(RC12_MAX, 2000);
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC12_REV, 1.0f);
-
-/**
- * RC channel 12 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC12_DZ, 0.0f);
 
 /**
  * RC channel 13 minimum
@@ -812,17 +676,6 @@ PARAM_DEFINE_FLOAT(RC13_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC13_REV, 1.0f);
 
 /**
- * RC channel 13 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC13_DZ, 0.0f);
-
-/**
  * RC channel 14 minimum
  *
  * Minimum value for this channel.
@@ -870,17 +723,6 @@ PARAM_DEFINE_FLOAT(RC14_MAX, 2000);
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC14_REV, 1.0f);
-
-/**
- * RC channel 14 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC14_DZ, 0.0f);
 
 /**
  * RC channel 15 minimum
@@ -932,17 +774,6 @@ PARAM_DEFINE_FLOAT(RC15_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC15_REV, 1.0f);
 
 /**
- * RC channel 15 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC15_DZ, 0.0f);
-
-/**
  * RC channel 16 minimum
  *
  * Minimum value for this channel.
@@ -990,17 +821,6 @@ PARAM_DEFINE_FLOAT(RC16_MAX, 2000);
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC16_REV, 1.0f);
-
-/**
- * RC channel 16 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC16_DZ, 0.0f);
 
 /**
  * RC channel 17 minimum
@@ -1052,17 +872,6 @@ PARAM_DEFINE_FLOAT(RC17_MAX, 2000);
 PARAM_DEFINE_FLOAT(RC17_REV, 1.0f);
 
 /**
- * RC channel 17 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC17_DZ, 0.0f);
-
-/**
  * RC channel 18 minimum
  *
  * Minimum value for this channel.
@@ -1110,17 +919,6 @@ PARAM_DEFINE_FLOAT(RC18_MAX, 2000);
  * @group Radio Calibration
  */
 PARAM_DEFINE_FLOAT(RC18_REV, 1.0f);
-
-/**
- * RC channel 18 dead zone
- *
- * The +- range of this value around the trim value will be considered as zero.
- *
- * @min 0.0
- * @max 100.0
- * @group Radio Calibration
- */
-PARAM_DEFINE_FLOAT(RC18_DZ, 0.0f);
 
 /**
  * RC channel count
