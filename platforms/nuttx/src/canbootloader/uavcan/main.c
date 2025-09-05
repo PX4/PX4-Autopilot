@@ -847,6 +847,8 @@ static flash_error_t file_read_and_program(const uavcan_Path_t *fw_path, uint8_t
 		request.offset  += length;
 		bootloader.percentage_done = (request.offset / a_percent);
 
+		watchdog_pet();
+
 	} while (request.offset < fw_image_size &&
 		 length == sizeof(response.data)  &&
 		 flash_status == FLASH_OK);
