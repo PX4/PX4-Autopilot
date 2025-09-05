@@ -641,6 +641,7 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 
 	// Handled motor failures
 	control_allocator_status.handled_motor_failure_mask = _handled_motor_failure_bitmask;
+	control_allocator_status.motor_stop_mask = _motor_stop_mask;
 
 	_control_allocator_status_pub[matrix_index].publish(control_allocator_status);
 }
@@ -665,7 +666,9 @@ ControlAllocator::publish_actuator_controls()
 	int actuator_idx = 0;
 	int actuator_idx_matrix[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
 
-	uint32_t stopped_motors = _actuator_effectiveness->getStoppedMotors() | _handled_motor_failure_bitmask;
+	uint32_t stopped_motors = _actuator_effectiveness->getStoppedMotors()
+				  | _handled_motor_failure_bitmask
+				  | _motor_stop_mask;
 
 	// motors
 	int motors_idx;
@@ -716,8 +719,13 @@ ControlAllocator::check_for_motor_failures()
 
 	if ((FailureMode)_param_ca_failure_mode.get() > FailureMode::IGNORE
 	    && _failure_detector_status_sub.update(&failure_detector_status)) {
-		if (failure_detector_status.fd_motor) {
 
+		if (_motor_stop_mask != failure_detector_status.motor_stop_mask) {
+			_motor_stop_mask = failure_detector_status.motor_stop_mask;
+			PX4_WARN("Stopping motors (%d)", _motor_stop_mask);
+		}
+
+		if (failure_detector_status.fd_motor) {
 			if (_handled_motor_failure_bitmask != failure_detector_status.motor_failure_mask) {
 				// motor failure bitmask changed
 				switch ((FailureMode)_param_ca_failure_mode.get()) {

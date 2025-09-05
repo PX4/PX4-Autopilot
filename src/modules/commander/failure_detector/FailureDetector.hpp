@@ -1,4 +1,3 @@
-
 /****************************************************************************
  *
  *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
@@ -43,6 +42,8 @@
 
 #pragma once
 
+#include "FailureInjector.hpp"
+
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
@@ -56,12 +57,9 @@
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu_status.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/esc_status.h>
 #include <uORB/topics/pwm_input.h>
 
 union failure_detector_status_u {
@@ -80,20 +78,6 @@ union failure_detector_status_u {
 
 using uORB::SubscriptionData;
 
-class FailureInjector
-{
-public:
-	void update();
-
-	void manipulateEscStatus(esc_status_s &status);
-private:
-	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
-	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
-
-	uint32_t _esc_blocked{};
-	uint32_t _esc_wrong{};
-};
-
 class FailureDetector : public ModuleParams
 {
 public:
@@ -105,6 +89,7 @@ public:
 	const decltype(failure_detector_status_u::flags) &getStatusFlags() const { return _status.flags; }
 	float getImbalancedPropMetric() const { return _imbalanced_prop_lpf.getState(); }
 	uint16_t getMotorFailures() const { return _motor_failure_esc_timed_out_mask | _motor_failure_esc_under_current_mask; }
+	uint16_t getMotorStopMask() { return _failure_injector.getMotorStopMask(); }
 
 private:
 	void updateAttitudeStatus(const vehicle_status_s &vehicle_status);
