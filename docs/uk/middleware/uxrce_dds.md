@@ -65,7 +65,7 @@ PX4 Micro XRCE-DDS Client is based on version `v2.x` which is not compatible wit
 В Ubuntu ви можете зібрати з вихідного коду і встановити Агент окремо за допомогою наступних команд:
 
 ```sh
-git clone -b v2.4.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+git clone -b v2.4.3 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
 cd Micro-XRCE-DDS-Agent
 mkdir build
 cd build
@@ -126,7 +126,7 @@ This considerably speeds up the build process but requires that the Agent depend
 
   ```sh
   cd ~/px4_ros_uxrce_dds_ws/src
-  git clone -b v2.4.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+  git clone -b v2.4.3 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
   ```
 
 3. Source the ROS 2 development environment, and compile the workspace using `colcon`:
