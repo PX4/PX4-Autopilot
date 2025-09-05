@@ -1,0 +1,5 @@
+menuconfig MODULES_BOAT_RUDDER
+	bool "boat_rudder"
+	default n
+	---help---
+		Enable support for rudder-steered boats

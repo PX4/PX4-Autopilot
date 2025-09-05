@@ -1,0 +1,8 @@
+#!/bin/sh
+# Standard apps for a boat rudder.
+
+# Start boat rudder module.
+boat_rudder start
+
+# Start Land Detector.
+land_detector start rover

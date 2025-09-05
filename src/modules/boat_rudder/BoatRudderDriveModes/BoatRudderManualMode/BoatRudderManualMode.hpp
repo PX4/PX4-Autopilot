@@ -1,0 +1,134 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+#pragma once
+
+// PX4 includes
+#include <px4_platform_common/module_params.h>
+
+// Libraries
+#include <lib/surface_vehicle_control/SurfaceVehicleControl.hpp>
+#include <math.h>
+
+// uORB includes
+#include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/surface_vehicle_throttle_setpoint.h>
+#include <uORB/topics/surface_vehicle_steering_setpoint.h>
+#include <uORB/topics/surface_vehicle_rate_setpoint.h>
+#include <uORB/topics/surface_vehicle_attitude_setpoint.h>
+#include <uORB/topics/surface_vehicle_speed_setpoint.h>
+#include <uORB/topics/surface_vehicle_position_setpoint.h>
+
+/**
+ * @brief Class for manual modes for rudder-steered boats.
+ */
+class BoatRudderManualMode : public ModuleParams
+{
+public:
+	/**
+	 * @brief Constructor for BoatRudderManualMode.
+	 * @param parent The parent ModuleParams object.
+	 */
+	BoatRudderManualMode(ModuleParams *parent);
+	~BoatRudderManualMode() = default;
+
+	/**
+	 * @brief Publish SurfaceVehicleThrottleSetpoint and SurfaceVehicleSteeringSetpoint from manualControlSetpoint.
+	 */
+	void manual();
+
+	/**
+	 * @brief Generate and publish SurfaceVehicleThrottleSetpoint and SurfaceVehicleRateSetpoint from manualControlSetpoint.
+	 */
+	void acro();
+
+	/**
+	 * @brief Generate and publish SurfaceVehicleThrottleSetpoint and SurfaceVehicleAttitudeSetpoint from manualControlSetpoint.
+	 */
+	void stab();
+
+	/**
+	 * @brief Generate and publish SurfaceVehicleSpeedSetpoint/SurfaceVehicleRateSetpoint or SurfaceVehiclePositionSetpoint from manualControlSetpoint.
+	 */
+	void position();
+
+	/**
+	 * @brief Reset manual mode variables.
+	 */
+	void reset();
+
+protected:
+	/**
+	 * @brief Update the parameters of the module.
+	 */
+	void updateParams() override;
+
+private:
+	// uORB subscriptions
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+
+	// uORB publications
+	uORB::Publication<surface_vehicle_throttle_setpoint_s> _surface_vehicle_throttle_setpoint_pub{ORB_ID(surface_vehicle_throttle_setpoint)};
+	uORB::Publication<surface_vehicle_steering_setpoint_s> _surface_vehicle_steering_setpoint_pub{ORB_ID(surface_vehicle_steering_setpoint)};
+	uORB::Publication<surface_vehicle_rate_setpoint_s>     _surface_vehicle_rate_setpoint_pub{ORB_ID(surface_vehicle_rate_setpoint)};
+	uORB::Publication<surface_vehicle_attitude_setpoint_s> _surface_vehicle_attitude_setpoint_pub{ORB_ID(surface_vehicle_attitude_setpoint)};
+	uORB::Publication<surface_vehicle_speed_setpoint_s>    _surface_vehicle_speed_setpoint_pub{ORB_ID(surface_vehicle_speed_setpoint)};
+	uORB::Publication<surface_vehicle_position_setpoint_s> _surface_vehicle_position_setpoint_pub{ORB_ID(surface_vehicle_position_setpoint)};
+
+	// Variables
+	MapProjection _global_ned_proj_ref{}; // Transform global to NED coordinates
+	Quatf _vehicle_attitude_quaternion{};
+	Vector2f _pos_ctl_course_direction{NAN, NAN};
+	Vector2f _pos_ctl_start_position_ned{NAN, NAN};
+	Vector2f _curr_pos_ned{NAN, NAN};
+	float _stab_yaw_setpoint{NAN};
+	float _vehicle_yaw{NAN};
+	float _max_yaw_rate{NAN};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::SV_YAW_RATE_LIM>)  _param_sv_yaw_rate_limit,
+		(ParamFloat<px4::params::SV_YAW_P>)         _param_sv_yaw_p,
+		(ParamFloat<px4::params::SV_YAW_STICK_DZ>)  _param_sv_yaw_stick_dz,
+		(ParamFloat<px4::params::SV_YAW_EXPO>)      _param_sv_yaw_expo,
+		(ParamFloat<px4::params::SV_YAW_SUPEXPO>)   _param_sv_yaw_supexpo,
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
+		(ParamFloat<px4::params::SV_SPEED_LIM>)     _param_sv_speed_limit
+	)
+};
