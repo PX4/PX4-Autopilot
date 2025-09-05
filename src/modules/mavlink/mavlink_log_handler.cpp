@@ -560,6 +560,7 @@ void MavlinkLogHandler::delete_all_logs(const char *dir)
 
 		// Use lstat to avoid following symlinks
 		struct stat st;
+
 		if (lstat(filepath, &st) != 0) {
 			PX4_DEBUG("lstat failed: %s", filepath);
 			continue;
@@ -570,6 +571,7 @@ void MavlinkLogHandler::delete_all_logs(const char *dir)
 			if (unlink(filepath)) {
 				PX4_DEBUG("Error unlinking symlink %s", filepath);
 			}
+
 			continue;
 		}
 
@@ -579,6 +581,7 @@ void MavlinkLogHandler::delete_all_logs(const char *dir)
 			if (rmdir(filepath)) {
 				PX4_DEBUG("Error removing %s", filepath);
 			}
+
 			continue;
 		}
 
@@ -586,6 +589,7 @@ void MavlinkLogHandler::delete_all_logs(const char *dir)
 			if (unlink(filepath)) {
 				PX4_DEBUG("Error unlinking %s", filepath);
 			}
+
 			continue;
 		}
 
@@ -601,6 +605,7 @@ void MavlinkLogHandler::delete_all_logs(const char *dir)
 static int px4_log_nftw_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
 {
 	(void)sb;
+
 	// Do not remove the root directory itself; only its contents
 	if (ftwbuf && ftwbuf->level == 0) {
 		return 0;
@@ -612,27 +617,33 @@ static int px4_log_nftw_cb(const char *fpath, const struct stat *sb, int typefla
 		if (unlink(fpath)) {
 			PX4_DEBUG("Error unlinking symlink %s", fpath);
 		}
+
 		break;
 
 	case FTW_F:      // regular file
 		if (unlink(fpath)) {
 			PX4_DEBUG("Error unlinking %s", fpath);
 		}
+
 		break;
 
 	case FTW_DP:     // directory, post-order
 	case FTW_D:      // directory
+
 		// With FTW_DEPTH we expect FTW_DP for directories; handle both defensively
 		if (rmdir(fpath)) {
 			PX4_DEBUG("Error removing %s", fpath);
 		}
+
 		break;
 
 	case FTW_DNR:    // directory not readable
+
 		// Best-effort removal even if not readable
 		if (rmdir(fpath)) {
 			PX4_DEBUG("Error removing unreadable dir %s", fpath);
 		}
+
 		break;
 
 	case FTW_NS:     // stat failed
@@ -640,10 +651,12 @@ static int px4_log_nftw_cb(const char *fpath, const struct stat *sb, int typefla
 		break;
 
 	default:
+
 		// Other types (sockets, fifos, devices): best-effort unlink
 		if (unlink(fpath)) {
 			PX4_DEBUG("Error unlinking special %s", fpath);
 		}
+
 		break;
 	}
 
@@ -654,6 +667,7 @@ void MavlinkLogHandler::delete_all_logs(const char *dir)
 {
 	// FTW_PHYS: do not follow symlinks; FTW_DEPTH: post-order so dirs removed after contents
 	const int max_fd = 16;
+
 	if (nftw(dir, px4_log_nftw_cb, max_fd, FTW_PHYS | FTW_DEPTH) != 0) {
 		PX4_DEBUG("nftw failed on %s", dir);
 	}
