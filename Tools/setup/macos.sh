@@ -1,6 +1,6 @@
-#! /usr/bin/env bash
+#!/usr/bin/env bash
 
-## Basch script to setup the PX4 development environment on macOS
+## Bash script to setup the PX4 development environment on macOS
 ## Works for Intel and Arm based Apple hardware
 ##
 ## Installs:
@@ -40,6 +40,30 @@ then
 	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 fi
 
+# Install ARM toolchain first using official method
+echo "[macos.sh] Installing ARM cross-compilation toolchain"
+if ! command -v arm-none-eabi-gcc &> /dev/null; then
+	brew install --cask gcc-arm-embedded
+
+	# Add ARM toolchain to PATH
+	ARM_TOOLCHAIN_PATH="/Applications/ARM/bin"
+	if [ -d "$ARM_TOOLCHAIN_PATH" ]; then
+		export PATH="$ARM_TOOLCHAIN_PATH:$PATH"
+		echo "export PATH=\"$ARM_TOOLCHAIN_PATH:\$PATH\"" >> ~/.bash_profile
+		echo "export PATH=\"$ARM_TOOLCHAIN_PATH:\$PATH\"" >> ~/.zshrc
+	fi
+
+	# Verify ARM toolchain installation
+	if command -v arm-none-eabi-gcc &> /dev/null; then
+		echo "[macos.sh] ARM toolchain installed successfully"
+		arm-none-eabi-gcc --version
+	else
+		echo "[macos.sh] WARNING: ARM toolchain installation may have failed"
+	fi
+else
+	echo "[macos.sh] ARM toolchain already installed"
+fi
+
 # Install px4-dev formula
 if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
 	echo "[macos.sh] Re-installing dependencies (homebrew px4-dev)"
@@ -51,7 +75,8 @@ if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
 	brew tap PX4/px4
 
 	brew reinstall px4-dev
-	brew link --overwrite --force arm-gcc-bin@13
+	# Skip the broken arm-gcc-bin@13 link for now!!!!
+	# brew link --overwrite --force arm-gcc-bin@13
 else
 	if brew ls --versions px4-dev > /dev/null; then
 		echo "[macos.sh] px4-dev already installed"
@@ -62,7 +87,8 @@ else
 		brew tap PX4/px4
 
 		brew install px4-dev
-		brew link --overwrite --force arm-gcc-bin@13
+		# Skip the broken arm-gcc-bin@13 link or now TODO may need to add back
+		# brew link --overwrite --force arm-gcc-bin@13
 	fi
 fi
 
@@ -79,6 +105,17 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 	elif [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
 		brew reinstall px4-sim
 	fi
+fi
+
+# Final verification
+echo "[macos.sh] Verifying ARM toolchain installation"
+if command -v arm-none-eabi-gcc &> /dev/null && command -v arm-none-eabi-g++ &> /dev/null; then
+	echo "[macos.sh] ARM toolchain verification successful:"
+	echo "  GCC: $(which arm-none-eabi-gcc)"
+	echo "  G++: $(which arm-none-eabi-g++)"
+else
+	echo "[macos.sh] ERROR: ARM toolchain not properly installed"
+	exit 1
 fi
 
 echo "[macos.sh] All set! The PX4 Autopilot toolchain was installed."
