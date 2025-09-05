@@ -7,7 +7,7 @@
 #
 # @board bitcraze_crazyflie exclude
 # @maintainer Noé Renevey noerenevey@gmail.com
-# version 1.0 (01.09.2025 FLT 1)
+# version 1.1
 #
 
 . ${R}etc/init.d/rc.fw_defaults
@@ -156,6 +156,7 @@ param set-default RC_MAP_FAILSAFE 0
 #param set-default RC_CRSF_TEL_EN 1       # Enable CRSF telemetry transmission
 
 #Using MAVLink RC over UART2 (TELEM2)
+#https://www.expresslrs.org/software/mavlink/#flashing-and-configuring-mavlink-rc
 param set-default MAV_0_CONFIG 2         # MAVLink on TELEM2
 param set-default MAV_0_RATE 9600        # MAVLink data rate (bytes/sec)
 param set-default SER_TEL2_BAUD 460800   # TELEM2 baud rate (8N1 by default)
