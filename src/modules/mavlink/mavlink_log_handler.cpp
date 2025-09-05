@@ -35,6 +35,9 @@
 #include "mavlink_main.h"
 #include <dirent.h>
 #include <sys/stat.h>
+#ifndef __PX4_NUTTX
+#include <ftw.h>
+#endif
 
 static constexpr int MAX_BYTES_BURST = 256 * 1024;
 static const char *kLogListFilePath = PX4_STORAGEDIR "/logdata.txt";
@@ -522,6 +525,8 @@ bool MavlinkLogHandler::log_entry_from_id(uint16_t log_id, LogEntry *entry)
 	return found_entry;
 }
 
+
+#ifdef __PX4_NUTTX
 void MavlinkLogHandler::delete_all_logs(const char *dir)
 {
 	//-- Open log directory
@@ -539,32 +544,118 @@ void MavlinkLogHandler::delete_all_logs(const char *dir)
 			break;
 		}
 
-		if (result->d_type == PX4LOG_DIRECTORY && result->d_name[0] != '.') {
-			char filepath[PX4_MAX_FILEPATH];
-			int ret = snprintf(filepath, sizeof(filepath), "%s/%s", dir, result->d_name);
-			bool path_is_ok = (ret > 0) && (ret < (int)sizeof(filepath));
-
-			if (path_is_ok) {
-				delete_all_logs(filepath);
-
-				if (rmdir(filepath)) {
-					PX4_DEBUG("Error removing %s", filepath);
-				}
-			}
+		// Skip current and parent directory entries explicitly
+		if (strcmp(result->d_name, ".") == 0 || strcmp(result->d_name, "..") == 0) {
+			continue;
 		}
 
-		if (result->d_type == PX4LOG_REGULAR_FILE) {
-			char filepath[PX4_MAX_FILEPATH];
-			int ret = snprintf(filepath, sizeof(filepath), "%s/%s", dir, result->d_name);
-			bool path_is_ok = (ret > 0) && (ret < (int)sizeof(filepath));
+		char filepath[PX4_MAX_FILEPATH];
+		int ret = snprintf(filepath, sizeof(filepath), "%s/%s", dir, result->d_name);
+		bool path_is_ok = (ret > 0) && (ret < (int)sizeof(filepath));
 
-			if (path_is_ok) {
-				if (unlink(filepath)) {
-					PX4_DEBUG("Error unlinking %s", filepath);
-				}
+		if (!path_is_ok) {
+			PX4_DEBUG("Path too long or snprintf error: %s/%s", dir, result->d_name);
+			continue;
+		}
+
+		// Use lstat to avoid following symlinks
+		struct stat st;
+		if (lstat(filepath, &st) != 0) {
+			PX4_DEBUG("lstat failed: %s", filepath);
+			continue;
+		}
+
+		if (S_ISLNK(st.st_mode)) {
+			// Do not follow symlinks; remove the link itself inside log directory
+			if (unlink(filepath)) {
+				PX4_DEBUG("Error unlinking symlink %s", filepath);
 			}
+			continue;
+		}
+
+		if (S_ISDIR(st.st_mode)) {
+			delete_all_logs(filepath);
+
+			if (rmdir(filepath)) {
+				PX4_DEBUG("Error removing %s", filepath);
+			}
+			continue;
+		}
+
+		if (S_ISREG(st.st_mode)) {
+			if (unlink(filepath)) {
+				PX4_DEBUG("Error unlinking %s", filepath);
+			}
+			continue;
+		}
+
+		// Other file types (sockets, fifos, devices): best effort remove
+		if (unlink(filepath)) {
+			PX4_DEBUG("Error unlinking special %s", filepath);
 		}
 	}
 
 	closedir(dp);
 }
+#else
+static int px4_log_nftw_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
+{
+	(void)sb;
+	// Do not remove the root directory itself; only its contents
+	if (ftwbuf && ftwbuf->level == 0) {
+		return 0;
+	}
+
+	switch (typeflag) {
+	case FTW_SL:     // symbolic link
+	case FTW_SLN:    // symbolic link that does not name an existing file
+		if (unlink(fpath)) {
+			PX4_DEBUG("Error unlinking symlink %s", fpath);
+		}
+		break;
+
+	case FTW_F:      // regular file
+		if (unlink(fpath)) {
+			PX4_DEBUG("Error unlinking %s", fpath);
+		}
+		break;
+
+	case FTW_DP:     // directory, post-order
+	case FTW_D:      // directory
+		// With FTW_DEPTH we expect FTW_DP for directories; handle both defensively
+		if (rmdir(fpath)) {
+			PX4_DEBUG("Error removing %s", fpath);
+		}
+		break;
+
+	case FTW_DNR:    // directory not readable
+		// Best-effort removal even if not readable
+		if (rmdir(fpath)) {
+			PX4_DEBUG("Error removing unreadable dir %s", fpath);
+		}
+		break;
+
+	case FTW_NS:     // stat failed
+		PX4_DEBUG("stat failed for %s", fpath);
+		break;
+
+	default:
+		// Other types (sockets, fifos, devices): best-effort unlink
+		if (unlink(fpath)) {
+			PX4_DEBUG("Error unlinking special %s", fpath);
+		}
+		break;
+	}
+
+	return 0;
+}
+
+void MavlinkLogHandler::delete_all_logs(const char *dir)
+{
+	// FTW_PHYS: do not follow symlinks; FTW_DEPTH: post-order so dirs removed after contents
+	const int max_fd = 16;
+	if (nftw(dir, px4_log_nftw_cb, max_fd, FTW_PHYS | FTW_DEPTH) != 0) {
+		PX4_DEBUG("nftw failed on %s", dir);
+	}
+}
+#endif
