@@ -174,7 +174,8 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 		checkMagHeadingConsistency(mag_sample);
 
 		{
-			const bool mag_consistent_or_no_ne_aiding = _control_status.flags.mag_heading_consistent || !isNorthEastAidingActive();
+			const bool mag_consistent_or_no_ne_aiding = _control_status.flags.mag_heading_consistent || (!isNorthEastAidingActive()
+					&& !_control_status.flags.vehicle_at_rest);
 			const bool common_conditions_passing = _control_status.flags.mag
 							       && ((_control_status.flags.yaw_align && mag_consistent_or_no_ne_aiding)
 									       || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
@@ -592,8 +593,6 @@ void Ekf::resetMagHeading(const Vector3f &mag)
 
 	// update quaternion states and corresponding covarainces
 	resetQuatStateYaw(yaw_new, yaw_new_variance);
-
-	_time_last_heading_fuse = _time_delayed_us;
 
 	_mag_heading_innov_lpf.reset(0.f);
 	_control_status.flags.mag_heading_consistent = true;
