@@ -87,7 +87,7 @@ private:
 				sensor_gnss_status_s sensor_gnss_status{};
 
 				if (_sensor_gnss_status_sub[i].copy(&sensor_gnss_status)) {
-					if ((hrt_elapsed_time(&sensor_gnss_status.timestamp) < 1_s)
+					if ((hrt_elapsed_time(&sensor_gnss_status.timestamp) < 3_s)
 					    && (sensor_gnss_status.device_id == vehicle_gps_position.device_id)
 					    && (sensor_gnss_status.quality_available)) {
 						msg.corrections_quality = sensor_gnss_status.quality_corrections;
