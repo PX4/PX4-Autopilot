@@ -49,19 +49,16 @@ public:
 	bool enabled() { return _enabled; }
 
 	void startTelemetryRequest();
-	bool telemetryRequestFinished();
+	bool telemetryResponseFinished();
 
 	TelemetryStatus parseTelemetryPacket(EscData *esc_data);
 
 	// Attempt to parse a command response. Returns the index of the ESC or -1 on failure.
 	int parseCommandResponse();
-	bool expectingCommandResponse();
+	bool commandResponseFinished();
 	void setExpectCommandResponse(int motor_index, uint16_t command);
 	void initSettingsHandlers(ESCType esc_type, uint8_t output_mask);
 	void publish_esc_settings();
-
-	// TODO: re-evaluate if this is necessary
-	// void flush();
 
 private:
 	static constexpr int COMMAND_RESPONSE_MAX_SIZE = 128;

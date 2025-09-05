@@ -99,6 +99,7 @@ private:
 	DShot(const DShot &) = delete;
 	DShot operator=(const DShot &) = delete;
 
+	uint16_t calculate_output_value(uint16_t raw, int index);
 
 	bool process_serial_telemetry();
 
@@ -156,7 +157,6 @@ private:
 	int _telemetry_motor_index = 0;
 	uint32_t _telemetry_requested_mask = 0;
 	hrt_abstime _telem_delay_until = ESC_INIT_TELEM_WAIT_TIME;
-	hrt_abstime _last_settings_publish = 0;
 
 	// Perf counters
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};

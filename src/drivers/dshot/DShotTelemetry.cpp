@@ -175,7 +175,7 @@ int DShotTelemetry::parseCommandResponse()
 
 TelemetryStatus DShotTelemetry::parseTelemetryPacket(EscData *esc_data)
 {
-	if (telemetryRequestFinished()) {
+	if (telemetryResponseFinished()) {
 		return TelemetryStatus::NotStarted;
 	}
 
@@ -259,11 +259,6 @@ void DShotTelemetry::publish_esc_settings()
 	}
 }
 
-// void DShotTelemetry::flush()
-// {
-// 	_uart.flush();
-// }
-
 void DShotTelemetry::setExpectCommandResponse(int motor_index, uint16_t command)
 {
 	_command_response_motor_index = motor_index;
@@ -272,9 +267,9 @@ void DShotTelemetry::setExpectCommandResponse(int motor_index, uint16_t command)
 	_command_response_position = 0;
 }
 
-bool DShotTelemetry::expectingCommandResponse()
+bool DShotTelemetry::commandResponseFinished()
 {
-	return _command_response_motor_index >= 0;
+	return _command_response_motor_index < 0;
 }
 
 void DShotTelemetry::startTelemetryRequest()
@@ -282,7 +277,7 @@ void DShotTelemetry::startTelemetryRequest()
 	_telemetry_request_start = hrt_absolute_time();
 }
 
-bool DShotTelemetry::telemetryRequestFinished()
+bool DShotTelemetry::telemetryResponseFinished()
 {
 	return _telemetry_request_start == 0;
 }
