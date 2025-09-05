@@ -1847,6 +1847,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("PING", 0.1f);
 		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 0.5f);
 		configure_stream_local("POSITION_TARGET_LOCAL_NED", 0.5f);
+		configure_stream_local("RAW_RPM", 1.0f);
 		configure_stream_local("RC_CHANNELS", 5.0f);
 		configure_stream_local("SERVO_OUTPUT_RAW_0", 0.1f);
 		configure_stream_local("SYS_STATUS", 0.5f);
