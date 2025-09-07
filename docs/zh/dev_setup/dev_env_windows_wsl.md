@@ -48,38 +48,38 @@ The benefit of WSL2 is that its virtual machine is deeply integrated into Window
 To install WSL2 with Ubuntu on a new installation of Windows 10 or 11:
 
 1. Make sure your computer your computer's virtualization feature is enabled in the BIOS.
-  It's usually referred as "Virtualization Technology", "Intel VT-x" or "AMD-V" respectively
+   It's usually referred as "Virtualization Technology", "Intel VT-x" or "AMD-V" respectively
 
 2. Open _cmd.exe_ as administrator.
-  This can be done by pressing the start key, typing `cmd`, right-clicking on the _Command prompt_ entry and selecting **Run as administrator**.
+   This can be done by pressing the start key, typing `cmd`, right-clicking on the _Command prompt_ entry and selecting **Run as administrator**.
 
 3. Execute the following commands to install WSL2 and a particular Ubuntu version:
 
-  - Default version (Ubuntu 22.04):
+   - Default version (Ubuntu 22.04):
 
-    ```sh
-    wsl --install
-    ```
+     ```sh
+     wsl --install
+     ```
 
-  - Ubuntu 20.04 ([Gazebo-Classic Simulation](../sim_gazebo_classic/index.md))
+   - Ubuntu 20.04 ([Gazebo-Classic Simulation](../sim_gazebo_classic/index.md))
 
-    ```sh
-    wsl --install -d Ubuntu-20.04
-    ```
+     ```sh
+     wsl --install -d Ubuntu-20.04
+     ```
 
-  - Ubuntu 22.04 ([Gazebo Simulation](../sim_gazebo_gz/index.md))
+   - Ubuntu 22.04 ([Gazebo Simulation](../sim_gazebo_gz/index.md))
 
-    ```sh
-    wsl --install -d Ubuntu-22.04
-    ```
+     ```sh
+     wsl --install -d Ubuntu-22.04
+     ```
 
-  ::: info
-  You can also install[Ubuntu 20.04](https://www.microsoft.com/store/productId/9MTTCL66CPXJ) and [Ubuntu 22.04](https://www.microsoft.com/store/productId/9PN20MSR04DW) from the store, which allows you to delete the application using the normal Windows Add/Remove settings:
+   ::: info
+   You can also install[Ubuntu 20.04](https://www.microsoft.com/store/productId/9MTTCL66CPXJ) and [Ubuntu 22.04](https://www.microsoft.com/store/productId/9PN20MSR04DW) from the store, which allows you to delete the application using the normal Windows Add/Remove settings:
 
 :::
 
 4. WSL will prompt you for a user name and password for the Ubuntu installation.
-  Record these credentials as you will need them later on!
+   Record these credentials as you will need them later on!
 
 The command prompt is now a terminal within the newly installed Ubuntu environment.
 
@@ -94,26 +94,26 @@ If you're using [Windows Terminal](https://learn.microsoft.com/en-us/windows/ter
 To open a WSL shell using a command prompt:
 
 1. Open a command prompt:
-  - Press the Windows **Start** key.
-  - Type `cmd` and press **Enter** to open the prompt.
+   - Press the Windows **Start** key.
+   - Type `cmd` and press **Enter** to open the prompt.
 
 2. To start WSL and access the WSL shell, execute the command:
 
-  ```sh
-  wsl -d <distribution_name>
-  ```
+   ```sh
+   wsl -d <distribution_name>
+   ```
 
-  例如：
+   例如：
 
-  ```sh
-  wsl -d Ubuntu
-  ```
+   ```sh
+   wsl -d Ubuntu
+   ```
 
-  ```sh
-  wsl -d Ubuntu-20.04
-  ```
+   ```sh
+   wsl -d Ubuntu-20.04
+   ```
 
-  If you only have one version of Ubuntu, you can just use `wsl`.
+   If you only have one version of Ubuntu, you can just use `wsl`.
 
 Enter the following commands to first close the WSL shell, and then shut down WSL:
 
@@ -135,57 +135,57 @@ To install the development toolchain:
 
 2. Execute the command `cd ~` to switch to the home folder of WSL for the next steps.
 
-  :::warning
-  This is important!
-  If you work from a location outside of the WSL file system you'll run into issues such as very slow execution and access right/permission errors.
+   :::warning
+   This is important!
+   If you work from a location outside of the WSL file system you'll run into issues such as very slow execution and access right/permission errors.
 
 :::
 
 3. Download the PX4 source code using `git` (which is already installed in WSL2):
 
-  ```sh
-  git clone https://github.com/PX4/PX4-Autopilot.git --recursive
-  ```
+   ```sh
+   git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+   ```
 
-  ::: info
-  The environment setup scripts in the source usually work for recent PX4 releases.
-  If working with an older version of PX4 you may need to [get the source code specific to your release](../contribute/git_examples.md#get-a-specific-release).
+   ::: info
+   The environment setup scripts in the source usually work for recent PX4 releases.
+   If working with an older version of PX4 you may need to [get the source code specific to your release](../contribute/git_examples.md#get-a-specific-release).
 
 :::
 
 4. Run the **ubuntu.sh** installer script and acknowledge any prompts as the script progresses:
 
-  ```sh
-  bash ./PX4-Autopilot/Tools/setup/ubuntu.sh
-  ```
+   ```sh
+   bash ./PX4-Autopilot/Tools/setup/ubuntu.sh
+   ```
 
-  ::: info
-  This installs tools to build PX4 for Pixhawk and either Gazebo or Gazebo Classic targets:
+   ::: info
+   This installs tools to build PX4 for Pixhawk and either Gazebo or Gazebo Classic targets:
 
-  - You can use the `--no-nuttx` and `--no-sim-tools` options to omit the NuttX and/or simulation tools.
-  - Other Linux build targets are untested (you can try these by entering the appropriate commands in [Ubuntu Development Environment](../dev_setup/dev_env_linux_ubuntu.md) into the WSL shell).
+   - You can use the `--no-nuttx` and `--no-sim-tools` options to omit the NuttX and/or simulation tools.
+   - Other Linux build targets are untested (you can try these by entering the appropriate commands in [Ubuntu Development Environment](../dev_setup/dev_env_linux_ubuntu.md) into the WSL shell).
 
 :::
 
 5. Restart the "WSL computer" after the script completes (exit the shell, shutdown WSL, and restart WSL):
 
-  ```sh
-  exit
-  wsl --shutdown
-  wsl
-  ```
+   ```sh
+   exit
+   wsl --shutdown
+   wsl
+   ```
 
 6. Switch to the PX4 repository in the WSL home folder:
 
-  ```sh
-  cd ~/PX4-Autopilot
-  ```
+   ```sh
+   cd ~/PX4-Autopilot
+   ```
 
 7. Build the PX4 SITL target and test your environment:
 
-  ```sh
-  make px4_sitl
-  ```
+   ```sh
+   make px4_sitl
+   ```
 
 For more build options see [Building PX4 Software](../dev_setup/building_px4.md).
 
@@ -205,26 +205,26 @@ To set up the integration:
 
 5. In the WSL shell, switch to the PX4 folder:
 
-  ```sh
-  cd ~/PX4-Autopilot
-  ```
+   ```sh
+   cd ~/PX4-Autopilot
+   ```
 
 6. In the WSL shell, start VS Code:
 
-  ```sh
-  code .
-  ```
+   ```sh
+   code .
+   ```
 
-  This will open the IDE fully integrated with the WSL shell.
+   This will open the IDE fully integrated with the WSL shell.
 
-  Make sure you always open the PX4 repository in the Remote WSL mode.
+   Make sure you always open the PX4 repository in the Remote WSL mode.
 
 7. Next time you want to develop WSL2 you can very easily open it again in Remote WSL mode by selecting **Open Recent** (as shown below).
-  This will start WSL for you.
+   This will start WSL for you.
 
-  ![](../../assets/toolchain/vscode/vscode_wsl.png)
+   ![](../../assets/toolchain/vscode/vscode_wsl.png)
 
-  Note however that the IP address of the WSL virtual machine will have changed, so you won't be able to monitor simulation from QGC for Windows (you can still monitor using QGC for Linux)
+   Note however that the IP address of the WSL virtual machine will have changed, so you won't be able to monitor simulation from QGC for Windows (you can still monitor using QGC for Linux)
 
 ## QGroundControl
 
@@ -240,21 +240,21 @@ You can do this from within the WSL shell.
 1. In a web browser, navigate to the QGC [Ubuntu download section](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html#ubuntu)
 
 2. Right-click on the **QGroundControl.AppImage** link, and select "Copy link address".
-  This will be something like _https://d176td9ibe4jno.cloudfront.net/builds/master/QGroundControl.AppImage_
+   This will be something like _https://d176td9ibe4jno.cloudfront.net/builds/master/QGroundControl.AppImage_
 
 3. [Open a WSL shell](#opening-a-wsl-shell) and enter the following commands to download the appimage and make it executable (replace the AppImage URL where indicated):
 
-  ```sh
-  cd ~
-  wget <the_copied_AppImage_URL>
-  chmod +x QGroundControl.AppImage
-  ```
+   ```sh
+   cd ~
+   wget <the_copied_AppImage_URL>
+   chmod +x QGroundControl.AppImage
+   ```
 
 4. Run QGroundControl:
 
-  ```sh
-  ./QGroundControl.AppImage
-  ```
+   ```sh
+   ./QGroundControl.AppImage
+   ```
 
 QGroundControl will launch and automatically connect to a running simulation and allow you to monitor and control your vehicle(s).
 
@@ -270,15 +270,15 @@ These steps describe how you can connect to the simulation running in the WSL:
 
 2. Check the IP address of the WSL virtual machine by running the command `ip addr | grep eth0`:
 
-  ```sh
-  $ ip addr | grep eth0
+   ```sh
+   $ ip addr | grep eth0
 
-  6: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
-      inet 172.18.46.131/20 brd 172.18.47.255 scope global eth0
-  ```
+   6: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+       inet 172.18.46.131/20 brd 172.18.47.255 scope global eth0
+   ```
 
-  Copy the first part of the `eth0` interface `inet` address to the clipboard.
-  In this case: `172.18.46.131`.
+   Copy the first part of the `eth0` interface `inet` address to the clipboard.
+   In this case: `172.18.46.131`.
 
 3. In QGC go to **Q > Application Settings > Comm Links**
 
@@ -304,14 +304,14 @@ Do the following steps to flash your custom binary built in WSL:
 
 1. If you haven't already built the binary in WSL e.g. with a [WSL shell](dev_env_windows_wsl.md#opening-a-wsl-shell) and by running:
 
-  ```sh
-  cd ~/PX4-Autopilot
-  make px4_fmu-v5
-  ```
+   ```sh
+   cd ~/PX4-Autopilot
+   make px4_fmu-v5
+   ```
 
-  ::: tip
-  Use the correct `make` target for your board.
-  `px4_fmu-v5` can be used for a Pixhawk 4 board.
+   ::: tip
+   Use the correct `make` target for your board.
+   `px4_fmu-v5` can be used for a Pixhawk 4 board.
 
 :::
 
@@ -325,12 +325,12 @@ Do the following steps to flash your custom binary built in WSL:
 
 6. Continue and select the firmware binary you just built in WSL.
 
-  In the open dialog look for the "Linux" location with the penguin icon in the left pane.
-  It's usually all the way at the bottom.
-  Choose the file in the path: `Ubuntu\home\{your WSL user name}\PX4-Autopilot\build\{your build target}\{your build target}.px4`
+   In the open dialog look for the "Linux" location with the penguin icon in the left pane.
+   It's usually all the way at the bottom.
+   Choose the file in the path: `Ubuntu\home\{your WSL user name}\PX4-Autopilot\build\{your build target}\{your build target}.px4`
 
-  ::: info
-  You can add the folder to the favourites to access it quickly next time.
+   ::: info
+   You can add the folder to the favourites to access it quickly next time.
 
 :::
 
