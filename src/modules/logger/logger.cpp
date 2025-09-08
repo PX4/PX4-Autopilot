@@ -2127,6 +2127,11 @@ void Logger::write_version(LogType type)
 
 	write_info(type, "time_ref_utc", _param_sdlog_utc_offset.get() * 60);
 
+	double boot_time_utc;
+	if (util::get_log_time(boot_time_utc, _param_sdlog_utc_offset.get() * 60, true)) {
+		write_info(type, "boot_time_utc", boot_time_utc);
+	}
+
 	if (_replay_file_name) {
 		write_info(type, "replay", _replay_file_name);
 	}
