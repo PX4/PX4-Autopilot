@@ -585,7 +585,7 @@ bool DShot::process_bdshot_telemetry()
 	hrt_abstime now = hrt_absolute_time();
 
 	// Don't try to process any telem data until after ESCs have been given time to boot
-	if (now > _telem_delay_until) {
+	if (now < _telem_delay_until) {
 		return false;
 	}
 
