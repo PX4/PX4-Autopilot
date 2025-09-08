@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -117,7 +117,6 @@ void DShotTelemetry::initSettingsHandlers(ESCType esc_type, uint8_t output_mask)
 
 		if (interface) {
 			_settings_handlers[i] = interface;
-			DSHOT_CMD_DEBUG("Initialized settings handler for ESC%d", i + 1);
 		}
 	}
 

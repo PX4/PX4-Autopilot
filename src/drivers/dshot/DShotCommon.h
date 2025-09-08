@@ -36,23 +36,6 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/esc_status.h>
 
-#define DSHOT_DEBUG_COMMANDS    1  // Command handling debug output
-#define DSHOT_DEBUG_TELEMETRY   1  // Telemetry parsing and processing
-
-// Command debug macro
-#if DSHOT_DEBUG_COMMANDS
-#define DSHOT_CMD_DEBUG(fmt, ...) PX4_INFO("[CMD] " fmt, ##__VA_ARGS__)
-#else
-#define DSHOT_CMD_DEBUG(fmt, ...) do { } while(0)
-#endif
-
-// Telemetry debug macro
-#if DSHOT_DEBUG_TELEMETRY
-#define DSHOT_TELEM_DEBUG(fmt, ...) PX4_INFO("[TELEM] " fmt, ##__VA_ARGS__)
-#else
-#define DSHOT_TELEM_DEBUG(fmt, ...) do { } while(0)
-#endif
-
 static constexpr int DSHOT_MAXIMUM_CHANNELS = esc_status_s::CONNECTED_ESC_MAX;
 
 enum class TelemetrySource {

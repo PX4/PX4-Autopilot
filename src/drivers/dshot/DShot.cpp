@@ -67,7 +67,6 @@ DShot::~DShot()
 
 int DShot::init()
 {
-
 	update_params();
 
 	if (initialize_dshot()) {
@@ -76,86 +75,6 @@ int DShot::init()
 	}
 
 	return PX4_ERROR;
-}
-
-bool DShot::initialize_dshot()
-{
-	unsigned int dshot_frequency = 0;
-	uint32_t dshot_frequency_param = 0;
-
-	_output_mask = 0;
-
-	for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
-
-		// Get mask of actuator channels associated with this timer group
-		uint32_t channels = io_timer_get_group(timer);
-
-		if (channels == 0) {
-			continue;
-		}
-
-		char param_name[17];
-		snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer);
-
-		int32_t tim_config = 0;
-		param_t handle = param_find(param_name);
-		param_get(handle, &tim_config);
-		unsigned int dshot_frequency_request = 0;
-
-		if (tim_config == -5) {
-			dshot_frequency_request = DSHOT150;
-			_output_mask |= channels;
-
-		} else if (tim_config == -4) {
-			dshot_frequency_request = DSHOT300;
-			_output_mask |= channels;
-
-		} else if (tim_config == -3) {
-			dshot_frequency_request = DSHOT600;
-			_output_mask |= channels;
-		}
-
-		if (dshot_frequency_request != 0) {
-			if (dshot_frequency != 0 && dshot_frequency != dshot_frequency_request) {
-				PX4_WARN("Only supporting a single frequency (%u), adjusting param %s", dshot_frequency, param_name);
-				param_set_no_notification(handle, &dshot_frequency_param);
-
-			} else {
-				dshot_frequency = dshot_frequency_request;
-				dshot_frequency_param = tim_config;
-			}
-		}
-	}
-
-	int ret = up_dshot_init(_output_mask, dshot_frequency, _param_dshot_bidir_en.get());
-
-	if (ret < 0) {
-		PX4_ERR("up_dshot_init failed (%i)", ret);
-		return false;
-	}
-
-	if ((uint32_t)ret != _output_mask) {
-		PX4_INFO("Failed to configure some channels");
-		PX4_INFO("requested: 0x%lx", _output_mask);
-		PX4_INFO("configured: 0x%lx", (uint32_t)ret);
-		_output_mask = ret;
-	}
-
-	// Set our mixer to explicitly disable channels we do not control
-	for (unsigned i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
-		if (((1 << i) & _output_mask) == 0) {
-			_mixing_output.disableFunction(i);
-		}
-	}
-
-	if (_output_mask == 0) {
-		PX4_WARN("No channels configured");
-		return false;
-	}
-
-	up_dshot_arm(true);
-
-	return true;
 }
 
 void DShot::Run()
@@ -169,215 +88,12 @@ void DShot::Run()
 
 	perf_begin(_cycle_perf);
 
-	// Determine if we need to send a command
-	//// COMMANDS
-	// EDT enable
-	// Get settings
-	//// CONDITIONS
-	// - not doing a command(s)
-	// - not waiting for response to process
-	// - not waiting for telem to process
-	if (_current_command.finished() && _telemetry.telemetryResponseFinished() && _telemetry.commandResponseFinished()) {
-		bool ser_tel_enabled = _param_dshot_tel_cfg.get();
-		bool bidir_enabled = _param_dshot_bidir_en.get();
-		bool edt_enabled = _param_dshot_bidir_edt.get();
-		bool esc_type_set = _param_dshot_esc_type.get();
-
-		// TODO: only perform these requests once each ESC has been online for a minimum of 1 second
-
-		// EDT Request
-		uint8_t needs_edt_request_mask = _bdshot_telem_online_mask & ~_bdshot_edt_requested_mask;
-
-		// Settings Request
-		uint8_t needs_settings_request_mask = _serial_telem_online_mask & ~_settings_requested_mask;
-
-		// Settings Programming
-		// NOTE: only update when we're not actively programming an ESC
-		if (!_dshot_programming_active) {
-			if (_am32_eeprom_write_sub.updated()) {
-				_am32_eeprom_write_sub.copy(&_am32_eeprom_write);
-				// PX4_INFO("_am32_eeprom_write_sub update, starting programming mode: %u", _am32_eeprom_write.index);
-				// PX4_INFO("got %u", _am32_eeprom_write.index);
-				_dshot_programming_active = true;
-			}
-		}
-
-		if (bidir_enabled && edt_enabled && needs_edt_request_mask) {
-			// EDT Request first
-			int next_motor_index = 0;
-
-			for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
-				if (needs_edt_request_mask & (1 << i)) {
-					next_motor_index = i;
-					break;
-				}
-			}
-
-			auto now = hrt_absolute_time();
-			_current_command.clear();
-			_current_command.save = false;
-			_current_command.num_repetitions = 10;
-			_current_command.command = DSHOT_EXTENDED_TELEMETRY_ENABLE;
-			_current_command.motor_mask = (1 << next_motor_index);
-			_current_command.delay_until = 0;
-			_bdshot_edt_requested_mask |= (1 << next_motor_index);
-			DSHOT_CMD_DEBUG("ESC%d: requesting EDT at time %.2fs", next_motor_index + 1, (double)now / 1000000.);
-
-		} else if (ser_tel_enabled && esc_type_set && needs_settings_request_mask) {
-			// Settings Request next
-			int next_motor_index = 0;
-
-			for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
-				if (needs_settings_request_mask & (1 << i)) {
-					next_motor_index = i;
-					break;
-				}
-			}
-
-			auto now = hrt_absolute_time();
-			_current_command.clear();
-			_current_command.save = false;
-			_current_command.num_repetitions = 6;
-			_current_command.command = DSHOT_CMD_ESC_INFO;
-			_current_command.motor_mask = (1 << next_motor_index);
-			_current_command.delay_until = 0;
-			_current_command.expect_response = true;
-			_settings_requested_mask |= (1 << next_motor_index);
-			DSHOT_CMD_DEBUG("ESC%d: requesting Settings at time %.2fs", next_motor_index + 1, (double)now / 1000000.);
-
-		} else if (_dshot_programming_active) {
-
-			if (_current_command.finished()) {
-
-				// TODO: fix this properly
-				// PX4_INFO("programming mode, command finished");
-				_current_command.clear();
-				// _current_command.command = 0;
-				// _current_command.num_repetitions = 0;
-				// _current_command.save = 0;
-				// _current_command.expect_response = 0;
-				// _current_command.delay_until = 0;
-
-				// Per-setting dshot programming state machine
-				if (_programming_state == ProgrammingState::Idle) {
-					// Get next setting address/value to program
-					int next_index = -1;
-
-					// Find settings that need to be written but haven't been yet
-					for (int i = 0; i < 48; i++) {
-						int array_index = i / 32;
-						int bit_index = i % 32;
-
-						bool needs_write = _am32_eeprom_write.write_mask[array_index] & (1 << bit_index);
-						bool already_written = _settings_written_mask[array_index] & (1 << bit_index);
-
-						if (needs_write && !already_written) {
-							next_index = i;
-							break;
-						}
-					}
-
-					if (next_index >= 0) {
-						// Set up the motor mask based on the index in the write request
-						if (_am32_eeprom_write.index == 255) {
-							// _current_command.motor_mask = 0xFF;  // Apply to all ESCs
-							PX4_INFO("ESC ALL: Writing setting at index %d, value %u", next_index, _am32_eeprom_write.data[next_index]);
-
-						} else {
-							// _current_command.motor_mask = (1 << _am32_eeprom_write.index);
-							PX4_INFO("ESC%d: Writing setting at index %d, value %u", _am32_eeprom_write.index + 1, next_index,
-								 _am32_eeprom_write.data[next_index]);
-							// PX4_INFO("writing to %u", _am32_eeprom_write.index);
-						}
-
-						_programming_address = next_index;
-						_programming_value = _am32_eeprom_write.data[next_index];
-						_programming_state = ProgrammingState::EnterMode;
-
-						// Pre-emptively Mark this setting as written
-						int array_index = next_index / 32;
-						int bit_index = next_index % 32;
-						_settings_written_mask[array_index] |= (1 << bit_index);
-
-					} else {
-						// All settings have been written
-						PX4_INFO("All settings written!");
-						_dshot_programming_active = false;
-						// _programming_state = ProgrammingState::Save;
-						_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
-						_current_command.num_repetitions = 6;
-						_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
-						_programming_state = ProgrammingState::Idle;
-
-						// TODO: do we want to re-request and compare?
-						// Clear the written mask for this motor for next time
-						_settings_written_mask[0] = 0;
-						_settings_written_mask[1] = 0;
-					}
-				}
-
-				switch (_programming_state) {
-				case ProgrammingState::EnterMode:
-					// _current_command.delay_until = hrt_absolute_time() + 100_ms;
-					PX4_INFO("ProgrammingState::EnterMode:");
-					_current_command.command = DSHOT_CMD_ENTER_PROGRAMMING_MODE;
-					_current_command.num_repetitions = 6;
-					_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
-					_programming_state = ProgrammingState::SendAddress;
-					break;
-
-				case ProgrammingState::SendAddress:
-					// PX4_INFO("ProgrammingState::SendAddress:");
-					_current_command.command = _programming_address;
-					_current_command.num_repetitions = 1;
-					_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
-					_programming_state = ProgrammingState::SendValue;
-					break;
-
-				case ProgrammingState::SendValue:
-					// PX4_INFO("ProgrammingState::SendValue:");
-					_current_command.command = _programming_value;
-					_current_command.num_repetitions = 1;
-					_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
-					_programming_state = ProgrammingState::ExitMode;
-					break;
-
-				case ProgrammingState::ExitMode:
-					// PX4_INFO("ProgrammingState::ExitMode:");
-					_current_command.command = DSHOT_CMD_EXIT_PROGRAMMING_MODE;
-					_current_command.num_repetitions = 1;
-					_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
-					// _programming_state = ProgrammingState::Save;
-					_programming_state = ProgrammingState::Idle;
-					break;
-
-				case ProgrammingState::Save:
-					PX4_INFO("ProgrammingState::Save:");
-					_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
-					_current_command.num_repetitions = 6;
-					_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
-					_programming_state = ProgrammingState::Idle;
-					break;
-
-				default:
-					break;
-				}
-			}
-		}
-	}
-
-	// Updates the DShot throttle output and sends DShot commands
 	_mixing_output.update();
 
-	// Process Serial Telemetry data (Telemetry and CommandResponses)
-	bool serial_telemetry_ready = process_serial_telemetry();
-	bool dshot_telemetry_ready = process_bdshot_erpm();
-
-	if (serial_telemetry_ready || dshot_telemetry_ready) {
+	if (process_serial_telemetry() || process_bdshot_telemetry()) {
 		_esc_status.timestamp = hrt_absolute_time();
 		_esc_status.esc_count = count_set_bits(_output_mask);
 		_esc_status.counter++;
-		// DSHOT_TELEM_DEBUG("publish");
 		_esc_status_pub.update(_esc_status);
 	}
 
@@ -385,7 +101,7 @@ void DShot::Run()
 		update_params();
 	}
 
-	// telemetry device update request?
+	// Telemetry init hook
 	if (_request_telemetry_init.load()) {
 		init_telemetry(_telemetry_device, _telemetry_swap_rxtx);
 		_request_telemetry_init.store(false);
@@ -399,111 +115,43 @@ void DShot::Run()
 	perf_end(_cycle_perf);
 }
 
-bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
-			  unsigned num_outputs, unsigned num_control_groups_updated)
+bool DShot::updateOutputs(uint16_t *outputs, unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (!count_set_bits(_output_mask)) {
-		PX4_WARN("DShot::updateOutputs called when no Motors have been set!");
 		return false;
 	}
 
-	// First check if all outputs are disarmed and we have a command to send
-	bool all_disarmed = true;
-	hrt_abstime now = hrt_absolute_time();
+	// Get the armed mask
+	_esc_status.esc_armed_flags = esc_armed_mask(outputs, num_outputs);
 
-	for (int i = 0; i < (int)num_outputs; i++) {
-		if (!_mixing_output.isMotor(i)) {
-			// If unconfigured ensure output value is set back to disarmed with no telemetry
-			up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, false);
-			continue;
+	// Set the state
+	_state = _esc_status.esc_armed_flags ? State::Armed : State::Disarmed;
+
+	switch (_state) {
+	case State::Armed: {
+			update_motor_outputs(outputs, num_outputs);
+			break;
 		}
 
-		// Set armed status
-		if (outputs[i] != DSHOT_DISARM_VALUE) {
-			all_disarmed = false;
-			_esc_status.esc_armed_flags |= (1 << i);
+	case State::Disarmed: {
 
-		} else {
-			_esc_status.esc_armed_flags &= ~(1 << i);
-		}
-	}
-
-	bool command_ready = (_current_command.delay_until == 0) || (now > _current_command.delay_until);
-
-	if (!all_disarmed) {
-		// Clear pending commands if any output is not disarmed
-		_current_command.clear();
-		_programming_state = ProgrammingState::Idle;
-
-	} else if (command_ready && !_current_command.finished()) {
-		// Otherwise process ready commands
-		for (int i = 0; i < (int)num_outputs; i++) {
-
-			if (!_mixing_output.isMotor(i)) {
-				continue;
+			// Select next command to send (if any)
+			if (_telemetry.enabled() && _telemetry.telemetryResponseFinished() &&
+			    _current_command.finished() && _telemetry.commandResponseFinished()) {
+				select_next_command();
 			}
 
-			int motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
-			// Send command to the motor if there isn't telemtry already in progress
-			bool this_motor = _current_command.motor_mask & (1 << motor_index);
-			bool telemtry_idle = _telemetry.enabled() && _telemetry.telemetryResponseFinished();
-
-			if (this_motor && telemtry_idle) {
-
-				// DSHOT_CMD_DEBUG("Sending command %u to motor %d", _current_command.command, motor_index);
-
-				if (_current_command.expect_response) {
-					_telemetry.setExpectCommandResponse(motor_index, _current_command.command);
-				}
-
-				PX4_INFO("Writing: ESC%d, value: %u", motor_index + 1, _current_command.command);
-				up_dshot_motor_command(i, _current_command.command, false);
-
-
-				// Decrement command repetition counter
-				--_current_command.num_repetitions;
-
-				// Queue a save command after the burst if save has been requested
-				if (_current_command.num_repetitions == 0 && _current_command.save) {
-					_current_command.save = false;
-					_current_command.num_repetitions = 10;
-					_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
-				}
+			// Send command if available
+			if (!_current_command.finished()) {
+				update_motor_commands(num_outputs);
 
 			} else {
-				up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, false);
+				// Otherwise idle
+				update_motor_outputs(outputs, num_outputs);
 			}
+
+			break;
 		}
-
-		up_dshot_trigger();
-		return true;
-	}
-
-	// TODO: check _dshot_programming_active and return if true
-	if (_dshot_programming_active) {
-		PX4_INFO("WTF WTF WTF WTF WTF WTF WTF WTF WTF WTF WTF WTF WTF WTF WTF");
-		return true;
-	}
-
-	// If telemetry is enabled and the last request has been processed
-	bool can_request_telemetry = false;
-
-	if (_telemetry.enabled() && _telemetry.telemetryResponseFinished() && _telemetry.commandResponseFinished()) {
-		if (now > _telem_delay_until) {
-			_telemetry.startTelemetryRequest();
-			can_request_telemetry = true;
-		}
-	}
-
-	// Iterate over all of the outputs and set the output value
-	for (int i = 0; i < (int)num_outputs; i++) {
-
-		if (!_mixing_output.isMotor(i)) {
-			continue;
-		}
-
-		bool set_telemetry_bit = can_request_telemetry && (_telemetry_motor_index == i);
-		up_dshot_motor_command(i, calculate_output_value(outputs[i], i), set_telemetry_bit);
 	}
 
 	up_dshot_trigger();
@@ -511,21 +159,274 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 	return true;
 }
 
+// TODO: this needs a refactor
+void DShot::select_next_command()
+{
+	// Command order or priority:
+	// - EDT Request
+	// - Settings Request
+	// - DShot Programming
+
+	bool ser_tel_enabled = _param_dshot_tel_cfg.get();
+	bool bidir_enabled = _param_dshot_bidir_en.get();
+	bool edt_enabled = _param_dshot_bidir_edt.get();
+	bool esc_type_set = _param_dshot_esc_type.get();
+
+	// EDT Request mask
+	uint8_t needs_edt_request_mask = _bdshot_telem_online_mask & ~_bdshot_edt_requested_mask;
+
+	// Settings Request mask
+	uint8_t needs_settings_request_mask = _serial_telem_online_mask & ~_settings_requested_mask;
+
+	// TODO: If ESC has not been online for at least one second, skip it
+
+	// Settings Programming
+	// NOTE: only update when we're not actively programming an ESC
+	if (!_dshot_programming_active) {
+		if (_am32_eeprom_write_sub.updated()) {
+
+			// TODO: because uORB can't queue (what is the point of the ORB_QUEUE_LENGTH then??)
+			auto last = _am32_eeprom_write_sub.get_last_generation();
+			_am32_eeprom_write_sub.copy(&_am32_eeprom_write);
+			auto current = _am32_eeprom_write_sub.get_last_generation();
+
+			if (current != last + 1) {
+				PX4_ERR("am32_eeprom_write lost, generation %u -> %u", last, current);
+			}
+
+			PX4_INFO("ESC%u: starting programming mode", _am32_eeprom_write.index + 1);
+			_dshot_programming_active = true;
+		}
+	}
+
+	_current_command.clear();
+
+	if (bidir_enabled && edt_enabled && needs_edt_request_mask) {
+		// EDT Request first
+		int next_motor_index = 0;
+
+		for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+			if (needs_edt_request_mask & (1 << i)) {
+				next_motor_index = i;
+				break;
+			}
+		}
+
+		auto now = hrt_absolute_time();
+		_current_command.num_repetitions = 10;
+		_current_command.command = DSHOT_EXTENDED_TELEMETRY_ENABLE;
+		_current_command.motor_mask = (1 << next_motor_index);
+		_bdshot_edt_requested_mask |= (1 << next_motor_index);
+		PX4_INFO("ESC%d: requesting EDT at time %.2fs", next_motor_index + 1, (double)now / 1000000.);
+
+	} else if (ser_tel_enabled && esc_type_set && needs_settings_request_mask) {
+		// Settings Request next
+		int next_motor_index = 0;
+
+		for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+			if (needs_settings_request_mask & (1 << i)) {
+				next_motor_index = i;
+				break;
+			}
+		}
+
+		auto now = hrt_absolute_time();
+		_current_command.num_repetitions = 6;
+		_current_command.command = DSHOT_CMD_ESC_INFO;
+		_current_command.motor_mask = (1 << next_motor_index);
+		_current_command.expect_response = true;
+		_settings_requested_mask |= (1 << next_motor_index);
+		PX4_INFO("ESC%d: requesting Settings at time %.2fs", next_motor_index + 1, (double)now / 1000000.);
+
+	} else if (_dshot_programming_active) {
+		// Per-setting dshot programming state machine
+		if (_programming_state == ProgrammingState::Idle) {
+			// Get next setting address/value to program
+			int next_index = -1;
+
+			// Find settings that need to be written but haven't been yet
+			for (int i = 0; i < 48; i++) {
+				int array_index = i / 32;
+				int bit_index = i % 32;
+
+				bool needs_write = _am32_eeprom_write.write_mask[array_index] & (1 << bit_index);
+				bool already_written = _settings_written_mask[array_index] & (1 << bit_index);
+
+				if (needs_write && !already_written) {
+					next_index = i;
+					break;
+				}
+			}
+
+			if (next_index >= 0) {
+				// Set up the motor mask based on the index in the write request
+				if (_am32_eeprom_write.index == 255) {
+					// _current_command.motor_mask = 0xFF;  // Apply to all ESCs
+					PX4_INFO("ESC ALL: Writing setting at index %d, value %u", next_index, _am32_eeprom_write.data[next_index]);
+
+				} else {
+					// _current_command.motor_mask = (1 << _am32_eeprom_write.index);
+					PX4_INFO("ESC%d: Writing setting at index %d, value %u", _am32_eeprom_write.index + 1, next_index,
+						 _am32_eeprom_write.data[next_index]);
+				}
+
+				_programming_address = next_index;
+				_programming_value = _am32_eeprom_write.data[next_index];
+				_programming_state = ProgrammingState::EnterMode;
+
+				// Pre-emptively Mark this setting as written
+				int array_index = next_index / 32;
+				int bit_index = next_index % 32;
+				_settings_written_mask[array_index] |= (1 << bit_index);
+
+			} else {
+				// All settings have been written
+				PX4_INFO("All settings written!");
+				_dshot_programming_active = false;
+				// _programming_state = ProgrammingState::Save;
+				_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
+				_current_command.num_repetitions = 6;
+				_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
+				_programming_state = ProgrammingState::Idle;
+
+				// TODO: do we want to re-request and compare?
+				// Clear the written mask for this motor for next time
+				_settings_written_mask[0] = 0;
+				_settings_written_mask[1] = 0;
+
+				_telem_delay_until = hrt_absolute_time() + 500_ms;
+			}
+		}
+
+		switch (_programming_state) {
+		case ProgrammingState::EnterMode:
+			_current_command.command = DSHOT_CMD_ENTER_PROGRAMMING_MODE;
+			_current_command.num_repetitions = 6;
+			_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
+			_programming_state = ProgrammingState::SendAddress;
+			break;
+
+		case ProgrammingState::SendAddress:
+			_current_command.command = _programming_address;
+			_current_command.num_repetitions = 1;
+			_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
+			_programming_state = ProgrammingState::SendValue;
+			break;
+
+		case ProgrammingState::SendValue:
+			_current_command.command = _programming_value;
+			_current_command.num_repetitions = 1;
+			_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
+			_programming_state = ProgrammingState::ExitMode;
+			break;
+
+		case ProgrammingState::ExitMode:
+			_current_command.command = DSHOT_CMD_EXIT_PROGRAMMING_MODE;
+			_current_command.num_repetitions = 1;
+			_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
+			_programming_state = ProgrammingState::Idle;
+			break;
+
+		default:
+			break;
+		}
+	}
+}
+
+void DShot::update_motor_outputs(uint16_t outputs[MAX_ACTUATORS], int num_outputs)
+{
+	for (int i = 0; i < num_outputs; i++) {
+
+		if (!_mixing_output.isMotor(i)) {
+			up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, false);
+			continue;
+		}
+
+		bool set_telemetry_bit = false;
+
+		if (_telemetry_motor_index == i) {
+			if (_telemetry.enabled() && _telemetry.telemetryResponseFinished() && _telemetry.commandResponseFinished()) {
+				if (hrt_absolute_time() > _telem_delay_until) {
+					set_telemetry_bit = true;
+					_telemetry.startTelemetryRequest();
+				}
+			}
+		}
+
+		if (outputs[i] == DSHOT_DISARM_VALUE) {
+			up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, set_telemetry_bit);
+
+		} else {
+			up_dshot_motor_data_set(i, calculate_output_value(outputs[i], i), set_telemetry_bit);
+		}
+	}
+}
+
+void DShot::update_motor_commands(int num_outputs)
+{
+	bool command_sent = false;
+
+	for (int i = 0; i < num_outputs; i++) {
+
+		uint16_t command = DSHOT_CMD_MOTOR_STOP;
+
+		if (_mixing_output.isMotor(i)) {
+
+			int motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
+
+			if (_current_command.motor_mask & (1 << motor_index)) {
+
+				if (_current_command.expect_response) {
+					_telemetry.setExpectCommandResponse(motor_index, _current_command.command);
+				}
+
+				// PX4_INFO("Writing: ESC%d, value: %u", motor_index + 1, _current_command.command);
+				command = _current_command.command;
+				command_sent = true;
+			}
+		}
+
+		up_dshot_motor_command(i, command, false);
+	}
+
+	if (command_sent) {
+		// Decrement command repetition counter
+		--_current_command.num_repetitions;
+
+		// Queue a save command after the burst if save has been requested
+		if (_current_command.num_repetitions == 0 && _current_command.save) {
+			_current_command.save = false;
+			_current_command.num_repetitions = 10;
+			_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
+		}
+	}
+}
+
+uint8_t DShot::esc_armed_mask(uint16_t *outputs, int num_outputs)
+{
+	uint8_t mask = 0;
+
+	for (int i = 0; i < num_outputs; i++) {
+		if (_mixing_output.isMotor(i)) {
+			if (outputs[i] != DSHOT_DISARM_VALUE) {
+				mask |= (1 << i);
+			}
+		}
+	}
+
+	return mask;
+}
+
 uint16_t DShot::calculate_output_value(uint16_t raw, int index)
 {
 	uint16_t output = raw;
 
-	if (raw == DSHOT_DISARM_VALUE) {
-		output = DSHOT_CMD_MOTOR_STOP;
-
-	} else {
-		// Reverse output if required
-		if (_param_dshot_3d_enable.get() || (_mixing_output.reversibleOutputs() & (1u << index))) {
-			output = convert_output_to_3d_scaling(raw);
-		}
-
-		output = math::min(output, DSHOT_MAX_THROTTLE);
+	// Reverse output if required
+	if (_param_dshot_3d_enable.get() || (_mixing_output.reversibleOutputs() & (1u << index))) {
+		output = convert_output_to_3d_scaling(raw);
 	}
+
+	output = math::min(output, DSHOT_MAX_THROTTLE);
 
 	return output;
 }
@@ -539,7 +440,6 @@ bool DShot::process_serial_telemetry()
 	bool all_telem_sampled = false;
 
 	if (!_telemetry.commandResponseFinished()) {
-		// TODO: do we care about the return value? (esc index on success)
 		_telemetry.parseCommandResponse();
 
 	} else {
@@ -565,7 +465,7 @@ bool DShot::process_serial_telemetry()
 
 		case TelemetryStatus::Timeout:
 			// Set ESC data to zeroes
-			// DSHOT_TELEM_DEBUG("Timeout");
+			PX4_WARN("Telem timeout");
 			_serial_telem_errors[_telemetry_motor_index]++;
 			_serial_telem_online_mask &= ~(1 << _telemetry_motor_index);
 			// Consume an empty EscData to zero the data
@@ -576,7 +476,7 @@ bool DShot::process_serial_telemetry()
 
 		case TelemetryStatus::ParseError:
 			// Set ESC data to zeroes
-			DSHOT_TELEM_DEBUG("ParseError");
+			PX4_WARN("Telem parse error");
 			_serial_telem_errors[_telemetry_motor_index]++;
 			_serial_telem_online_mask &= ~(1 << _telemetry_motor_index);
 			// Consume an empty EscData to zero the data
@@ -603,19 +503,16 @@ bool DShot::set_next_telemetry_index()
 		if (is_motor && !already_requested) {
 			_telemetry_motor_index = next_motor_index;
 			_telemetry_requested_mask |= (1 << next_motor_index);
-			// DSHOT_TELEM_DEBUG("next telem %d, mask: 0x%lx", _telemetry_motor_index, _telemetry_requested_mask);
 			break;
 		}
 
 		next_motor_index = (next_motor_index + 1) % DSHOT_MAXIMUM_CHANNELS;
 	} while (next_motor_index != start_index);
 
-
 	// Check if all motors have been sampled
 	if (count_set_bits(_telemetry_requested_mask) >= count_set_bits(_output_mask)) {
 		_telemetry_requested_mask = 0;
 		perf_count(_telem_allsampled_perf);
-		// DSHOT_TELEM_DEBUG("all sampled");
 		return true;
 	}
 
@@ -646,7 +543,7 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 				_bdshot_telem_errors[esc.motor_index];
 
 		if (source == TelemetrySource::Serial) {
-			// Only use SerialTelemetry eRPM when BDSoht is disabled
+			// Only use SerialTelemetry eRPM when BDShot is disabled
 			if (!bidirectional_enabled) {
 				_esc_status.esc[esc.motor_index].timestamp = esc.timestamp;
 				_esc_status.esc[esc.motor_index].esc_rpm = ((int)(esc.erpm) * 100) / (_param_mot_pole_count.get() / 2);
@@ -670,7 +567,7 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 	}
 }
 
-bool DShot::process_bdshot_erpm()
+bool DShot::process_bdshot_telemetry()
 {
 	if (!_param_dshot_bidir_en.get()) {
 		return false;
@@ -684,7 +581,7 @@ bool DShot::process_bdshot_erpm()
 	hrt_abstime now = hrt_absolute_time();
 
 	// Don't try to process any telem data until after ESCs have been given time to boot
-	if (now < ESC_INIT_TELEM_WAIT_TIME) {
+	if (now > _telem_delay_until) {
 		return false;
 	}
 
@@ -796,7 +693,7 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 {
 	int function = (int)(command.param5 + 0.5);
 
-	DSHOT_CMD_DEBUG("Received VEHICLE_CMD_CONFIGURE_ACTUATOR");
+	PX4_INFO("Received VEHICLE_CMD_CONFIGURE_ACTUATOR");
 
 	if (function < 1000) {
 		const int first_motor_function = 1; // from MAVLink ACTUATOR_OUTPUT_FUNCTION
@@ -816,7 +713,6 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 		function -= 1000;
 	}
 
-	int type = (int)(command.param1 + 0.5f);
 	int motor_index = -1;
 
 	for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; ++i) {
@@ -831,12 +727,14 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 	command_ack.target_component = command.source_component;
 	command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
-	if (motor_index != -1) {
-		DSHOT_CMD_DEBUG("motor_index: %i type: %i", motor_index, type);
+	if ((motor_index >= 0) || (motor_index < DSHOT_MAXIMUM_CHANNELS)) {
+		int type = (int)(command.param1 + 0.5f);
+		PX4_INFO("motor_index: %i type: %i", motor_index, type);
 		_current_command.clear();
 		_current_command.command = DSHOT_CMD_MOTOR_STOP;
-		_current_command.num_repetitions = 10; // TODO: check AM32
+		_current_command.num_repetitions = 10;
 		_current_command.save = false;
+
 
 		switch (type) {
 		case ACTUATOR_CONFIGURATION_BEEP:
@@ -845,10 +743,12 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 
 		case ACTUATOR_CONFIGURATION_3D_MODE_OFF:
 			_current_command.command = DSHOT_CMD_3D_MODE_OFF;
+			_current_command.save = true;
 			break;
 
 		case ACTUATOR_CONFIGURATION_3D_MODE_ON:
 			_current_command.command = DSHOT_CMD_3D_MODE_ON;
+			_current_command.save = true;
 			break;
 
 		case ACTUATOR_CONFIGURATION_SPIN_DIRECTION1:
@@ -866,7 +766,6 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 			break;
 		}
 
-		// NOTE: this means we can't send a stop command (that's OK)
 		if (_current_command.command != DSHOT_CMD_MOTOR_STOP) {
 			command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 			_current_command.motor_mask = 1 << motor_index;
@@ -879,8 +778,8 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 
 void DShot::handle_am32_request_eeprom(const vehicle_command_s &command)
 {
-	DSHOT_CMD_DEBUG("Received AM32_REQUEST_EEPROM");
-	DSHOT_CMD_DEBUG("index: %d", (int)command.param1);
+	PX4_INFO("Received AM32_REQUEST_EEPROM");
+	PX4_INFO("index: %d", (int)command.param1);
 
 	int index = command.param1;
 
@@ -952,6 +851,86 @@ void DShot::mixerChanged()
 	}
 
 	// TODO: re-init dshot.c output channels and stuff
+}
+
+bool DShot::initialize_dshot()
+{
+	unsigned int dshot_frequency = 0;
+	uint32_t dshot_frequency_param = 0;
+
+	_output_mask = 0;
+
+	for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
+
+		// Get mask of actuator channels associated with this timer group
+		uint32_t channels = io_timer_get_group(timer);
+
+		if (channels == 0) {
+			continue;
+		}
+
+		char param_name[17];
+		snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer);
+
+		int32_t tim_config = 0;
+		param_t handle = param_find(param_name);
+		param_get(handle, &tim_config);
+		unsigned int dshot_frequency_request = 0;
+
+		if (tim_config == -5) {
+			dshot_frequency_request = DSHOT150;
+			_output_mask |= channels;
+
+		} else if (tim_config == -4) {
+			dshot_frequency_request = DSHOT300;
+			_output_mask |= channels;
+
+		} else if (tim_config == -3) {
+			dshot_frequency_request = DSHOT600;
+			_output_mask |= channels;
+		}
+
+		if (dshot_frequency_request != 0) {
+			if (dshot_frequency != 0 && dshot_frequency != dshot_frequency_request) {
+				PX4_WARN("Only supporting a single frequency (%u), adjusting param %s", dshot_frequency, param_name);
+				param_set_no_notification(handle, &dshot_frequency_param);
+
+			} else {
+				dshot_frequency = dshot_frequency_request;
+				dshot_frequency_param = tim_config;
+			}
+		}
+	}
+
+	int ret = up_dshot_init(_output_mask, dshot_frequency, _param_dshot_bidir_en.get());
+
+	if (ret < 0) {
+		PX4_ERR("up_dshot_init failed (%i)", ret);
+		return false;
+	}
+
+	if ((uint32_t)ret != _output_mask) {
+		PX4_INFO("Failed to configure some channels");
+		PX4_INFO("requested: 0x%lx", _output_mask);
+		PX4_INFO("configured: 0x%lx", (uint32_t)ret);
+		_output_mask = ret;
+	}
+
+	// Set our mixer to explicitly disable channels we do not control
+	for (unsigned i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+		if (((1 << i) & _output_mask) == 0) {
+			_mixing_output.disableFunction(i);
+		}
+	}
+
+	if (_output_mask == 0) {
+		PX4_WARN("No channels configured");
+		return false;
+	}
+
+	up_dshot_arm(true);
+
+	return true;
 }
 
 void DShot::init_telemetry(const char *device, bool swap_rxtx)
