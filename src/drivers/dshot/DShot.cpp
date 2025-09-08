@@ -294,6 +294,10 @@ void DShot::select_next_command()
 				_settings_written_mask[0] = 0;
 				_settings_written_mask[1] = 0;
 
+				// Mark as offline and unread so that we read again
+				_serial_telem_online_mask &= ~(_am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index));
+				_settings_requested_mask &= ~(_am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index));
+
 				_telem_delay_until = hrt_absolute_time() + 500_ms;
 			}
 		}
