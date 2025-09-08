@@ -42,7 +42,7 @@ file(GLOB gz_airframes ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airfra
 
 if (gz-transport_FOUND)
     if (gz-transport_VERSION VERSION_LESS "15")
-        set(GZ_TRANSPORT_TARGET "gz-transport${GZ_TRANSPORT_VERSION_MAJOR}::core")
+        set(GZ_TRANSPORT_TARGET "gz-transport${gz-transport_VERSION_MAJOR}::core")
     else()
         set(GZ_TRANSPORT_TARGET "gz-transport::core")
     endif()
