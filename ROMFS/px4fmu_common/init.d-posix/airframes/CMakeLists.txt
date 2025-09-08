@@ -95,6 +95,8 @@ px4_add_romfs_files(
 	22000_gz_x500_double_cam_down
 	22001_gz_sprind
 
+	22002_gz_x500_stereo
+
 	6011_gazebo-classic_typhoon_h480
 	6011_gazebo-classic_typhoon_h480.post
 
