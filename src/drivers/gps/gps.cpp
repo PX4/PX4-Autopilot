@@ -600,7 +600,17 @@ void GPS::handleInjectDataTopic()
 			}
 		}
 
-		updated = _orb_inject_data_sub[_selected_rtcm_instance].update(&msg);
+		auto &gps_inject_data_sub = _orb_inject_data_sub[_selected_rtcm_instance];
+
+		const unsigned last_generation = gps_inject_data_sub.get_last_generation();
+
+		updated = gps_inject_data_sub.update(&msg);
+
+		if (updated) {
+			if (gps_inject_data_sub.get_last_generation() != last_generation + 1) {
+				PX4_WARN("gps_inject_data lost, generation %u -> %u", last_generation, gps_inject_data_sub.get_last_generation());
+			}
+		}
 
 	} while (updated && num_injections < max_num_injections);
 }
