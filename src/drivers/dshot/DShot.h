@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -90,40 +90,43 @@ public:
 
 	void mixerChanged() override;
 
-	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+	bool updateOutputs(uint16_t *outputs, unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
+
+	enum class State {
+		Disarmed,
+		Armed
+	} _state = State::Disarmed;
 
 	/** Disallow copy construction and move assignment. */
 	DShot(const DShot &) = delete;
 	DShot operator=(const DShot &) = delete;
 
-	uint16_t calculate_output_value(uint16_t raw, int index);
-
-	bool process_serial_telemetry();
-
 	bool initialize_dshot();
-
 	void init_telemetry(const char *device, bool swap_rxtx);
 
-	// Returns true when the telemetry index has wrapped, indicating all configured motors have been sampled.
-	bool set_next_telemetry_index();
+	uint8_t esc_armed_mask(uint16_t *outputs, int num_outputs);
+
+	void update_motor_outputs(uint16_t *outputs, int num_outputs);
+	void update_motor_commands(int num_outputs);
+	void select_next_command();
+
+	bool set_next_telemetry_index(); // Returns true when the telemetry index has wrapped, indicating all configured motors have been sampled.
+	bool process_serial_telemetry();
+	bool process_bdshot_telemetry();
 
 	void consume_esc_data(const EscData &data, TelemetrySource source);
 
-	bool process_bdshot_erpm();
+	uint16_t calculate_output_value(uint16_t raw, int index);
+	uint16_t convert_output_to_3d_scaling(uint16_t output);
 
 
 	void Run() override;
-
 	void update_params();
 
-	void handle_vehicle_commands();
-
-	uint16_t convert_output_to_3d_scaling(uint16_t output);
-
 	// Mavlink command handlers
+	void handle_vehicle_commands();
 	void handle_configure_actuator(const vehicle_command_s &command);
 	void handle_am32_request_eeprom(const vehicle_command_s &command);
 
@@ -131,7 +134,7 @@ private:
 	MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 	uint32_t _output_mask{0}; // Configured outputs for this (shouldn't this live in OutputModuleInterface?)
 
-	// uORb
+	// uORB
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _am32_eeprom_write_sub{ORB_ID(am32_eeprom_write)};
@@ -168,7 +171,6 @@ private:
 	perf_counter_t	_telem_timeout_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem timeout")};
 	perf_counter_t	_telem_allsampled_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem all sampled")};
 
-
 	// Commands
 	struct DShotCommand {
 		uint16_t command{};
@@ -176,9 +178,7 @@ private:
 		uint8_t motor_mask{0xff};
 		bool save{false};
 		bool expect_response{false};
-		hrt_abstime delay_until{};
 
-		// bool valid() const { return num_repetitions > 0; }
 		bool finished() const { return num_repetitions == 0; }
 		void clear()
 		{
@@ -187,7 +187,6 @@ private:
 			motor_mask = 0;
 			save = 0;
 			expect_response = 0;
-			delay_until = 0;
 		}
 	};
 
@@ -199,14 +198,11 @@ private:
 		EnterMode,
 		SendAddress,
 		SendValue,
-		ExitMode,
-		Save
+		ExitMode
 	};
 
 	am32_eeprom_write_s _am32_eeprom_write{};
 	bool _dshot_programming_active = {};
-	// TODO: we will compare the _am32_eeprom_write.write_mask to this and select which index/value in _am32_eeprom_write.data
-	// is set into the _programming_address and _programming_value. Once the setting is written we mark it in this mask
 	uint32_t _settings_written_mask[2] = {};
 
 	ProgrammingState _programming_state{ProgrammingState::Idle};

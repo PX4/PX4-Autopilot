@@ -3100,8 +3100,8 @@ MavlinkReceiver::handle_message_am32_eeprom(mavlink_message_t *msg)
 	eeprom.write_mask[0] = message.write_mask[0];
 	eeprom.write_mask[1] = message.write_mask[1];
 
-	PX4_INFO("AM32 EEPROM write request for ESC%d, mask: 0x%08" PRIx32 "%08" PRIx32,
-		 eeprom.index + 1, eeprom.write_mask[1], eeprom.write_mask[0]);
+	// PX4_INFO("AM32 EEPROM write request for ESC%d, mask: 0x%08" PRIx32 "%08" PRIx32,
+	// 	 eeprom.index + 1, eeprom.write_mask[1], eeprom.write_mask[0]);
 
 	_am32_eeprom_write_pub.publish(eeprom);
 }
