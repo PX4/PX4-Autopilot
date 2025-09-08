@@ -1990,6 +1990,11 @@ void Logger::write_info(LogType type, const char *name, uint32_t value)
 	write_info_template<uint32_t>(type, name, value, "uint32_t");
 }
 
+void Logger::write_info(LogType type, const char *name, double value)
+{
+	write_info_template<double>(type, name, value, "double");
+}
+
 
 template<typename T>
 void Logger::write_info_template(LogType type, const char *name, T value, const char *type_str)
