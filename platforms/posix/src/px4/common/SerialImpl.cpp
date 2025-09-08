@@ -72,6 +72,11 @@ bool SerialImpl::configure()
 	int speed;
 
 	switch (_baudrate) {
+	case 0:
+		// special case, if baudrate is 0 it hangs entire system
+		PX4_ERR("baudrate not specified");
+		return false;
+
 	case 9600:   speed = B9600;   break;
 
 	case 19200:  speed = B19200;  break;
@@ -274,7 +279,6 @@ ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
 
 	if (ret < 0) {
 		PX4_DEBUG("%s read error %d", _port, ret);
-
 	}
 
 	return ret;
@@ -337,14 +341,43 @@ ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 	}
 
 	int written = ::write(_serial_fd, buffer, buffer_size);
-	::fsync(_serial_fd);
 
 	if (written < 0) {
 		PX4_ERR("%s write error %d", _port, written);
-
 	}
 
 	return written;
+}
+
+ssize_t SerialImpl::writeBlocking(const void *buffer, size_t buffer_size, uint32_t timeout_ms)
+{
+	if (!_open) {
+		PX4_ERR("Cannot write to serial device until it has been opened");
+		return -1;
+	}
+
+	pollfd fds[1];
+	fds[0].fd = _serial_fd;
+	fds[0].events = POLLOUT;
+
+	int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), timeout_ms);
+
+	if (ret > 0) {
+
+		int written = ::write(_serial_fd, buffer, buffer_size);
+
+		if (written < 0) {
+			PX4_ERR("%s write error %d, (%d) %s", _port, written, errno, strerror(errno));
+		}
+
+		return written;
+
+	} else {
+		PX4_ERR("%s poll error (%d) %s", _port, errno, strerror(errno));
+
+	}
+
+	return -1;
 }
 
 void SerialImpl::flush()

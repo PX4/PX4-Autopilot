@@ -355,13 +355,43 @@ ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 	}
 
 	int written = ::write(_serial_fd, buffer, buffer_size);
-	tcdrain(_serial_fd); // Wait until all output is transmitted
 
 	if (written < 0) {
 		PX4_ERR("%s write error %d", _port, written);
 	}
 
 	return written;
+}
+
+ssize_t SerialImpl::writeBlocking(const void *buffer, size_t buffer_size, uint32_t timeout_ms)
+{
+	if (!_open) {
+		PX4_ERR("Cannot write to serial device until it has been opened");
+		return -1;
+	}
+
+	pollfd fds[1];
+	fds[0].fd = _serial_fd;
+	fds[0].events = POLLOUT;
+
+	int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), timeout_ms);
+
+	if (ret > 0) {
+
+		int written = ::write(_serial_fd, buffer, buffer_size);
+
+		if (written < 0) {
+			PX4_ERR("%s write error %d, (%d) %s", _port, written, errno, strerror(errno));
+		}
+
+		return written;
+
+	} else {
+		PX4_ERR("%s poll error (%d) %s", _port, errno, strerror(errno));
+
+	}
+
+	return -1;
 }
 
 void SerialImpl::flush()
