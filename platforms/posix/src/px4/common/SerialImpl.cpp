@@ -261,7 +261,7 @@ bool SerialImpl::close()
 ssize_t SerialImpl::bytesAvailable()
 {
 	if (!_open) {
-		PX4_ERR(PORT_NOT_OPENED_STRING);
+		PX4_ERR("%s", PORT_NOT_OPENED_STRING);
 		return -1;
 	}
 
@@ -273,7 +273,7 @@ ssize_t SerialImpl::bytesAvailable()
 ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
 {
 	if (!_open) {
-		PX4_ERR(PORT_NOT_OPENED_STRING);
+		PX4_ERR("%s", PORT_NOT_OPENED_STRING);
 		return -1;
 	}
 
@@ -289,7 +289,7 @@ ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
 ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t character_count, uint32_t timeout_ms)
 {
 	if (!_open) {
-		PX4_ERR(PORT_NOT_OPENED_STRING);
+		PX4_ERR("%s", PORT_NOT_OPENED_STRING);
 		return -1;
 	}
 
@@ -338,7 +338,7 @@ ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t char
 ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 {
 	if (!_open) {
-		PX4_ERR(PORT_NOT_OPENED_STRING);
+		PX4_ERR("%s", PORT_NOT_OPENED_STRING);
 		return -1;
 	}
 
@@ -355,7 +355,7 @@ ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 ssize_t SerialImpl::writeBlocking(const void *buffer, size_t buffer_size, uint32_t timeout_ms)
 {
 	if (!_open) {
-		PX4_ERR(PORT_NOT_OPENED_STRING);
+		PX4_ERR("%s", PORT_NOT_OPENED_STRING);
 		return -1;
 	}
 
@@ -393,9 +393,9 @@ ssize_t SerialImpl::writeBlocking(const void *buffer, size_t buffer_size, uint32
 			ssize_t written = ::write(_serial_fd, data + total_written, buffer_size - total_written);
 
 			if (written < 0) {
-				if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				if (errno == EAGAIN) {
 					// Buffer full, wait a bit and try again
-					px4_usleep(1000);  // 1ms wait
+					px4_usleep(1000);
 					continue;
 				}
 
