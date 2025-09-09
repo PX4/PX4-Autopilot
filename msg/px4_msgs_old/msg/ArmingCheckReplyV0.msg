@@ -1,9 +1,9 @@
-uint32 MESSAGE_VERSION = 0
+uint32 MESSAGE_VERSION = 1
 
 uint64 timestamp # time since system start (microseconds)
 
 uint8 request_id
-uint8 registration_id
+uint8 arming_check_id
 
 uint8 HEALTH_COMPONENT_INDEX_NONE = 0
 

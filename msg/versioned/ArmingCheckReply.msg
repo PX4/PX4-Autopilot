@@ -4,15 +4,15 @@
 # The response contains the current set of external mode requirements, and a queue of events indicating recent failures to set the mode (which the FMU may then forward to a ground station).
 # The request is sent regularly to all registered ROS modes, even while armed, so that the FMU always knows and can forward the current state.
 #
-# Note that the external component is identified by its registration_id, which is allocated to the component during registration (arming_check_id in RegisterExtComponentReply).
+# Note that the external component is identified by its arming_check_id, which is allocated to the component during registration in RegisterExtComponentReply.
 # The message is not used by internal/FMU components, as their mode requirements are known at compile time.
 
-uint32 MESSAGE_VERSION  = 1
+uint32 MESSAGE_VERSION  = 2
 
 uint64 timestamp # [us] Time since system start.
 
 uint8 request_id       # Id of ArmingCheckRequest for which this is a response.
-uint8 registration_id  # Id of external component emitting this response.
+uint8 arming_check_id  # Id of external component emitting this response.
 
 uint8 HEALTH_COMPONENT_INDEX_NONE = 0  # Index of health component for which this response applies.
 

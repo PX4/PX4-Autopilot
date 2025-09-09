@@ -5,7 +5,7 @@
 # The request is sent regularly, even while armed, so that the FMU always knows the current arming state for external modes, and can forward it to ground stations.
 #
 # The reply will include the published request_id, allowing correlation of all arming check information for a particular request.
-# The reply will also include the registration_id for each external component, provided to it during the registration process (RegisterExtComponentReply).
+# The reply will also include the arming_check_id for each external component, provided to it during the registration process (RegisterExtComponentReply).
 
 uint32 MESSAGE_VERSION = 0
 
