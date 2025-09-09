@@ -84,7 +84,7 @@ public:
 
 	bool init();
 
-	void resetFilter();
+	void reset_filter();
 
 	void set_range_sensor(const float dist, const bool valid);
 
@@ -137,7 +137,7 @@ private:
 
 	bool initTargetEstimator();
 	bool initEstimator(const float theta_init);
-	bool update_step();
+	bool updateStep();
 	void predictionStep();
 
 	bool processObsVisionOrientation(const fiducial_marker_yaw_report_s &fiducial_marker_pose, targetObsOrientation &obs);
@@ -170,7 +170,7 @@ private:
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
 
-	void _check_params(const bool force);
+	void checkParams(const bool force);
 
 	/* parameters from vision_target_estimator_params.c*/
 	uint32_t _vte_TIMEOUT_US = 3_s; // timeout after which filter is reset if target not seen
