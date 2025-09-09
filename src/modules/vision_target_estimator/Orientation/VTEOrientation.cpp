@@ -45,6 +45,8 @@
 
 #include "VTEOrientation.h"
 
+#define SEC2USEC 1000000.0f
+
 namespace vision_target_estimator
 {
 
@@ -56,7 +58,7 @@ VTEOrientation::VTEOrientation() :
 	_vte_aid_ev_yaw_pub.advertise();
 	_targetOrientationPub.advertise();
 
-	_check_params(true);
+	checkParams(true);
 }
 
 VTEOrientation::~VTEOrientation()
@@ -73,7 +75,7 @@ bool VTEOrientation::init()
 	return initTargetEstimator();
 }
 
-void VTEOrientation::resetFilter()
+void VTEOrientation::reset_filter()
 {
 	_estimator_initialized = false;
 	_has_timed_out = false;
@@ -81,7 +83,7 @@ void VTEOrientation::resetFilter()
 
 void VTEOrientation::update()
 {
-	_check_params(false);
+	checkParams(false);
 
 	// predict the target state using a constant relative acceleration model
 	if (_estimator_initialized) {
@@ -97,7 +99,7 @@ void VTEOrientation::update()
 	}
 
 	// Update and fuse the observations and pulishes innovations
-	if (update_step()) {
+	if (updateStep()) {
 		_last_update = _last_predict;
 	}
 
@@ -129,7 +131,7 @@ bool VTEOrientation::initEstimator(const float theta_init)
 void VTEOrientation::predictionStep()
 {
 	// Time from last prediciton
-	float dt = (hrt_absolute_time() - _last_predict) / 1_s;
+	float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
 
 	_target_estimator_orientation->predictState(dt);
 	_target_estimator_orientation->predictCov(dt);
@@ -137,7 +139,7 @@ void VTEOrientation::predictionStep()
 
 
 
-bool VTEOrientation::update_step()
+bool VTEOrientation::updateStep()
 {
 	fiducial_marker_yaw_report_s fiducial_marker_orientation;
 	targetObsOrientation obs_fiducial_marker_orientation;
@@ -169,7 +171,7 @@ bool VTEOrientation::update_step()
 			_last_predict = _last_update;
 
 		} else {
-			resetFilter();
+			reset_filter();
 		}
 	}
 
@@ -226,7 +228,7 @@ bool VTEOrientation::fuse_orientation(const targetObsOrientation &target_orienta
 	if (dt_sync_us > measurement_valid_TIMEOUT_US) {
 
 		PX4_INFO("Orientation obs. rejected because too old. Time sync: %.2f [seconds] > timeout: %.2f [seconds]",
-			 (double)(dt_sync_us / 1_s), (double)(measurement_valid_TIMEOUT_US / 1_s));
+			 (double)(dt_sync_us / SEC2USEC), (double)(measurement_valid_TIMEOUT_US / SEC2USEC));
 
 		// No measurement update, set to false
 		target_innov.fused = false;
@@ -234,7 +236,7 @@ bool VTEOrientation::fuse_orientation(const targetObsOrientation &target_orienta
 	} else if (target_orientation_obs.updated_theta) {
 
 		// Convert time sync to seconds
-		const float dt_sync_s = dt_sync_us / 1_s;
+		const float dt_sync_s = dt_sync_us / SEC2USEC;
 
 		_target_estimator_orientation->syncState(dt_sync_s);
 		_target_estimator_orientation->setH(target_orientation_obs.meas_h_theta);
@@ -287,7 +289,7 @@ void VTEOrientation::publishTarget()
 	_targetOrientationPub.publish(vision_target_orientation);
 }
 
-void VTEOrientation::_check_params(const bool force)
+void VTEOrientation::checkParams(const bool force)
 {
 	if (_parameter_update_sub.updated() || force) {
 		parameter_update_s pupdate;

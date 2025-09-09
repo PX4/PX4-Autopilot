@@ -377,7 +377,7 @@ void VisionTargetEst::stop_position_estimator()
 	PX4_INFO("Stopping Position Vision Target Estimator.");
 
 	if (_vte_position_enabled) {
-		_vte_position->resetFilter();
+		_vte_position->reset_filter();
 	}
 
 	_position_estimator_running = false;
@@ -390,7 +390,7 @@ void VisionTargetEst::stop_orientation_estimator()
 	PX4_INFO("Stopping Orientation Vision Target Estimator.");
 
 	if (_vte_orientation_enabled) {
-		_vte_orientation->resetFilter();
+		_vte_orientation->reset_filter();
 	}
 
 	_orientation_estimator_running = false;
