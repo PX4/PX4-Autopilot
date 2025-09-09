@@ -370,28 +370,56 @@ ssize_t SerialImpl::writeBlocking(const void *buffer, size_t buffer_size, uint32
 		return -1;
 	}
 
-	pollfd fds[1];
-	fds[0].fd = _serial_fd;
-	fds[0].events = POLLOUT;
+	const uint8_t *data = static_cast<const uint8_t *>(buffer);
+	size_t total_written = 0;
+	const hrt_abstime start_time_us = hrt_absolute_time();
+	const hrt_abstime timeout_us = timeout_ms * 1000;
 
-	int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), timeout_ms);
-
-	if (ret > 0) {
-
-		int written = ::write(_serial_fd, buffer, buffer_size);
-
-		if (written < 0) {
-			PX4_ERR("%s write error %d, (%d) %s", _port, written, errno, strerror(errno));
+	while (total_written < buffer_size) {
+		if (hrt_elapsed_time(&start_time_us) > timeout_us) {
+			PX4_WARN("Write timeout, sent %zu", total_written);
+			break;
 		}
 
-		return written;
+		pollfd fds[1];
+		fds[0].fd = _serial_fd;
+		fds[0].events = POLLOUT;
 
-	} else {
-		PX4_ERR("%s poll error (%d) %s", _port, errno, strerror(errno));
+		hrt_abstime elapsed_us = hrt_elapsed_time(&start_time_us);
+		int remaining_timeout_ms = (timeout_us - elapsed_us) / 1000;
 
+		if (remaining_timeout_ms <= 0) {
+			break;
+		}
+
+		int result = ::poll(fds, 1, remaining_timeout_ms);
+
+		if (result < 0) {
+			PX4_ERR("poll error %d", errno);
+			return -1;
+		}
+
+		if (fds[0].revents & POLLOUT) {
+			// Write as much as we can
+			ssize_t written = ::write(_serial_fd, data + total_written, buffer_size - total_written);
+
+			if (written < 0) {
+				if (errno == EAGAIN || errno == EWOULDBLOCK) {
+					// Buffer full, wait a bit and try again
+					px4_usleep(1000);  // 1ms wait
+					continue;
+				}
+				PX4_ERR("Write error: %d", errno);
+				return -1;
+
+			} else if (written > 0) {
+				total_written += written;
+				::fsync(_serial_fd);
+			}
+		}
 	}
 
-	return -1;
+	return total_written;
 }
 
 void SerialImpl::flush()
