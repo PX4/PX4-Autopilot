@@ -43,7 +43,7 @@
 namespace device
 {
 
-static const char* PORT_NOT_OPENED_STRING = "Cannot use port until it has been opened";
+static const char *PORT_NOT_OPENED_STRING = "Cannot use port until it has been opened";
 
 SerialImpl::SerialImpl(const char *port, uint32_t baudrate, ByteSize bytesize, Parity parity, StopBits stopbits,
 		       FlowControl flowcontrol) :
@@ -398,6 +398,7 @@ ssize_t SerialImpl::writeBlocking(const void *buffer, size_t buffer_size, uint32
 					px4_usleep(1000);  // 1ms wait
 					continue;
 				}
+
 				PX4_ERR("Write error: %d", errno);
 				return -1;
 
