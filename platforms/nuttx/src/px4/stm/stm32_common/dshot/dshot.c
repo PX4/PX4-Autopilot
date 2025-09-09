@@ -97,7 +97,8 @@ static void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void 
 static void capture_complete_callback(void *arg);
 
 static void process_capture_results(uint8_t timer_index, uint8_t channel_index);
-static unsigned calculate_period(uint8_t timer_index, uint8_t channel_index);
+static uint32_t convert_edge_intervals_to_bitstream(uint8_t channel_index);
+static void decode_dshot_telemetry(uint32_t payload, struct BDShotTelemetry *packet);
 
 // Timer configuration struct
 typedef struct timer_config_t {
@@ -122,6 +123,13 @@ static uint32_t *dshot_output_buffer[MAX_IO_TIMERS] = {};
 static uint16_t dshot_capture_buffer[MAX_NUM_CHANNELS_PER_TIMER][CHANNEL_CAPTURE_BUFF_SIZE]
 px4_cache_aligned_data() = {};
 
+static const uint32_t gcr_decode[32] = {
+	0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	0x0, 0x9, 0xA, 0xB, 0x0, 0xD, 0xE, 0xF,
+	0x0, 0x0, 0x2, 0x3, 0x0, 0x5, 0x6, 0x7,
+	0x0, 0x0, 0x8, 0x1, 0x0, 0x4, 0xC, 0x0
+};
+
 // Indicates when the bdshot capture cycle is finished. This is necessary since the captured data is
 // processed after a fixed delay in an hrt callback. System jitter can delay the firing of the hrt callback
 // and thus delay the processing of the data. This should never happen in a properly working system, as the
@@ -130,20 +138,36 @@ px4_cache_aligned_data() = {};
 static bool _bdshot_cycle_complete = true;
 
 static bool     _bidirectional = false;
+static bool     _extended_dshot_telem = false;
 static uint8_t  _bidi_timer_index = 0; // TODO: BDSHOT_TIM param to select timer index?
 static uint32_t _dshot_frequency = 0;
 
+// Online flags, set if ESC is reponding with valid BDShot frames
+static bool _online[MAX_TIMER_IO_CHANNELS] = {};
+
 // eRPM data for channels on the singular timer
 static int32_t _erpms[MAX_TIMER_IO_CHANNELS] = {};
-static bool _online[MAX_TIMER_IO_CHANNELS] = {};
-static bool _erpms_ready[MAX_TIMER_IO_CHANNELS] = {};
+// Indicates that we've processed eRPM for each channel. Used for determining when all channels have been updated (regardless of success)
+static bool _bdshot_processed[MAX_TIMER_IO_CHANNELS] = {};
+
+// Temperature data
+static uint8_t _temperatures[MAX_TIMER_IO_CHANNELS] = {};
+static bool _temperatures_ready[MAX_TIMER_IO_CHANNELS] = {};
+
+// Voltage data
+static uint8_t _voltages[MAX_TIMER_IO_CHANNELS] = {};
+static bool _voltages_ready[MAX_TIMER_IO_CHANNELS] = {};
+
+// Current data
+static uint8_t _currents[MAX_TIMER_IO_CHANNELS] = {};
+static bool _currents_ready[MAX_TIMER_IO_CHANNELS] = {};
+
 
 // hrt callback handle for captcomp post dma processing
 static struct hrt_call _cc_call;
 
 // decoding status for each channel
 static uint32_t read_ok[MAX_NUM_CHANNELS_PER_TIMER] = {};
-static uint32_t read_fail_nibble[MAX_NUM_CHANNELS_PER_TIMER] = {};
 static uint32_t read_fail_crc[MAX_NUM_CHANNELS_PER_TIMER] = {};
 static uint32_t read_fail_zero[MAX_NUM_CHANNELS_PER_TIMER] = {};
 
@@ -286,10 +310,11 @@ static int32_t init_timer_channels(uint8_t timer_index)
 	return channels_init_mask;
 }
 
-int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bidirectional_dshot)
+int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bidirectional_dshot, bool enable_extended_dshot_telemetry)
 {
 	_dshot_frequency = dshot_pwm_freq;
 	_bidirectional = enable_bidirectional_dshot;
+	_extended_dshot_telem = enable_extended_dshot_telemetry;
 
 	if (_bidirectional) {
 		PX4_INFO("Bidirectional DShot enabled, only one timer will be used");
@@ -582,207 +607,75 @@ static void capture_complete_callback(void *arg)
 
 void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 {
-	const unsigned period = calculate_period(timer_index, channel_index);
-
+	(void)timer_index; // NOTE: in the current implementation only 1 timer is used
 	uint8_t output_channel = output_channel_from_timer_channel(timer_index, channel_index);
 
-	if (period == 0) {
-		// If the parsing failed, set the eRPM to 0
-		_erpms[output_channel] = 0;
-		_online[output_channel] = 0;
+	// Mark as processed
+	_bdshot_processed[output_channel] = true;
 
-	} else if (period == 65408) {
-		// Special case for zero motion (e.g., stationary motor)
-		_erpms[output_channel] = 0;
-		_online[output_channel] = 1;
+	uint32_t value = convert_edge_intervals_to_bitstream(channel_index);
 
-	} else {
-		// Convert the period to eRPM
-		_erpms[output_channel] = (1000000 * 60 / 100 + period / 2) / period;
-		_online[output_channel] = 1;
-	}
+	// Decode RLL
+	value = (value ^ (value >> 1));
 
-	// Ready simply means updated
-	_erpms_ready[output_channel] = true;
-}
+	// Decode GCR
+	uint32_t payload = gcr_decode[value & 0x1f];
+	payload |= gcr_decode[(value >> 5) & 0x1f] << 4;
+	payload |= gcr_decode[(value >> 10) & 0x1f] << 8;
+	payload |= gcr_decode[(value >> 15) & 0x1f] << 12;
 
-/**
-* bits  1-11    - throttle value (0-47 are reserved for commands, 48-2047 give 2000 steps of throttle resolution)
-* bit   12      - dshot telemetry enable/disable
-* bits  13-16   - XOR checksum
-**/
-void dshot_motor_data_set(unsigned channel, uint16_t data, bool telemetry)
-{
-	uint8_t timer_index = timer_io_channels[channel].timer_index;
-	uint8_t timer_channel_index = timer_io_channels[channel].timer_channel - 1;
-	bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
+	// Calculate checksum
+	uint32_t checksum = payload;
+	checksum = checksum ^ (checksum >> 8);
+	checksum = checksum ^ (checksum >> NIBBLES_SIZE);
 
-	if (!channel_initialized) {
+	if ((checksum & 0xF) != 0xF) {
+		++read_fail_crc[channel_index];
+		_online[output_channel] = false;
 		return;
 	}
 
-	uint16_t packet = 0;
-	uint16_t checksum = 0;
+	payload = (payload >> 4) & 0xFFF;
 
-	packet |= data << DSHOT_THROTTLE_POSITION;
-	packet |= ((uint16_t)telemetry & 0x01) << DSHOT_TELEMETRY_POSITION;
+	// Convert payload into telem type/value
+	struct BDShotTelemetry packet = {};
+	decode_dshot_telemetry(payload, &packet);
+	++read_ok[channel_index];
 
-	uint16_t csum_data = packet;
+	// TODO: improve online logic, follow pattern in imxrt (uses consecutive error count)
+	// Mark as online if checksum is valid
+	_online[output_channel] = true;
 
-	/* XOR checksum calculation */
-	csum_data >>= NIBBLES_SIZE;
-
-	for (uint8_t i = 0; i < DSHOT_NUMBER_OF_NIBBLES; i++) {
-		checksum ^= (csum_data & 0x0F); // XOR data by nibbles
-		csum_data >>= NIBBLES_SIZE;
-	}
-
-	if (_bidirectional) {
-		packet |= ((~checksum) & 0x0F);
-
-	} else {
-		packet |= ((checksum) & 0x0F);
-	}
-
-	const io_timers_channel_mapping_element_t *mapping = &io_timers_channel_mapping.element[timer_index];
-	uint8_t num_motors = mapping->channel_count_including_gaps;
-	uint8_t timer_channel = timer_io_channels[channel].timer_channel - mapping->lowest_timer_channel;
-
-	for (uint8_t motor_data_index = 0; motor_data_index < ONE_MOTOR_DATA_SIZE; motor_data_index++) {
-		dshot_output_buffer[timer_index][motor_data_index * num_motors + timer_channel] =
-			(packet & 0x8000) ? MOTOR_PWM_BIT_1 : MOTOR_PWM_BIT_0;  // MSB first
-		packet <<= 1;
-	}
-}
-
-int up_dshot_arm(bool armed)
-{
-	return io_timer_set_enable(armed, _bidirectional ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot,
-				   IO_TIMER_ALL_MODES_CHANNELS);
-}
-
-int up_bdshot_num_erpm_ready(void)
-{
-	int num_ready = 0;
-
-	for (unsigned i = 0; i < MAX_TIMER_IO_CHANNELS; ++i) {
-		if (_erpms_ready[i]) {
-			++num_ready;
-		}
-	}
-
-	return num_ready;
-}
-
-int up_bdshot_get_erpm(uint8_t output_channel, int *erpm)
-{
-	uint8_t timer_index = timer_io_channels[output_channel].timer_index;
-	uint8_t timer_channel_index = timer_io_channels[output_channel].timer_channel - 1;
-	bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
-
-	int status = PX4_ERROR;
-
-	if (channel_initialized) {
-		*erpm = _erpms[output_channel];
-		status = PX4_OK;
-	}
-
-	_erpms_ready[output_channel] = false;
-
-	return status;
-}
-
-int up_bdshot_channel_status(uint8_t channel)
-{
-	if (channel >= MAX_TIMER_IO_CHANNELS) {
-		return 0;
-	}
-
-	return _online[channel];
-}
-
-void up_bdshot_status(void)
-{
-	PX4_INFO("dshot driver stats:");
-
-	if (_bidirectional) {
-		PX4_INFO("Bidirectional DShot enabled");
-	}
-
-	uint8_t timer_index = _bidi_timer_index;
-
-	for (uint8_t timer_channel_index = 0; timer_channel_index < MAX_NUM_CHANNELS_PER_TIMER; timer_channel_index++) {
-		bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
-
-		if (channel_initialized) {
-			PX4_INFO("Timer %u, Channel %u: read %lu, failed nibble %lu, failed CRC %lu, invalid/zero %lu",
-				 timer_index, timer_channel_index,
-				 read_ok[timer_channel_index],
-				 read_fail_nibble[timer_channel_index],
-				 read_fail_crc[timer_channel_index],
-				 read_fail_zero[timer_channel_index]);
-		}
-	}
-}
-
-uint8_t nibbles_from_mapped(uint8_t mapped)
-{
-	switch (mapped) {
-	case 0x19:
-		return 0x00;
-
-	case 0x1B:
-		return 0x01;
-
-	case 0x12:
-		return 0x02;
-
-	case 0x13:
-		return 0x03;
-
-	case 0x1D:
-		return 0x04;
-
-	case 0x15:
-		return 0x05;
-
-	case 0x16:
-		return 0x06;
-
-	case 0x17:
-		return 0x07;
-
-	case 0x1a:
-		return 0x08;
-
-	case 0x09:
-		return 0x09;
-
-	case 0x0A:
-		return 0x0A;
-
-	case 0x0B:
-		return 0x0B;
-
-	case 0x1E:
-		return 0x0C;
-
-	case 0x0D:
-		return 0x0D;
-
-	case 0x0E:
-		return 0x0E;
-
-	case 0x0F:
-		return 0x0F;
-
+	switch (packet.type) {
+	case DSHOT_EDT_ERPM:
+		_erpms[output_channel] = packet.value;
+		break;
+	case DSHOT_EDT_TEMPERATURE:
+		_temperatures[output_channel] = packet.value;
+		_temperatures_ready[output_channel] = true;
+		break;
+	case DSHOT_EDT_VOLTAGE:
+		_voltages[output_channel] = packet.value;
+		_voltages_ready[output_channel] = true;
+		break;
+	case DSHOT_EDT_CURRENT:
+		_currents[output_channel] = packet.value;
+		_currents_ready[output_channel] = true;
+		break;
+	case DSHOT_EDT_STATE_EVENT:
+		// TODO: Handle these?
+		break;
 	default:
-		// Unknown mapped
-		return 0xFF;
+		PX4_WARN("unknown EDT type %d", packet.type);
+		break;
 	}
 }
 
-unsigned calculate_period(uint8_t timer_index, uint8_t channel_index)
+// Converts captured edge timestamps into a raw bit stream.
+// Measures the time intervals between signal edges to determine how many consecutive
+// 1s or 0s to shift in, alternating the bit value with each edge transition.
+// Returns a 20 bit raw value that still needs RLL and GCR decoding.
+uint32_t convert_edge_intervals_to_bitstream(uint8_t channel_index)
 {
 	uint32_t value = 0;
 	uint32_t high = 1; // We start off with high
@@ -824,39 +717,184 @@ unsigned calculate_period(uint8_t timer_index, uint8_t channel_index)
 	// We need to make sure we shifted 21 times. We might have missed some low "pulses" at the very end.
 	value <<= (21 - shifted);
 
-	// From GCR to eRPM according to:
-	// https://brushlesswhoop.com/dshot-and-bidirectional-dshot/#erpm-transmission
-	unsigned gcr = (value ^ (value >> 1));
+	return value;
+}
 
-	uint32_t data = 0;
+void decode_dshot_telemetry(uint32_t payload, struct BDShotTelemetry *packet)
+{
+	// Extended DShot Telemetry
+	bool edt_enabled = _extended_dshot_telem;
+	uint32_t mantissa = payload & 0x01FF;
+	bool is_telemetry = (mantissa & 0x0100) == 0; // if the msb of the mantissa is zero, then this is an extended telemetry packet
 
-	// 20bits -> 5 mapped -> 4 nibbles
-	for (unsigned i = 0; i < 4; ++i) {
-		uint32_t nibble = nibbles_from_mapped(gcr & 0x1F) << (4 * i);
+	if (edt_enabled && is_telemetry) {
+		packet->type = (payload & 0x0F00) >> 8;
+		packet->value = payload & 0x00FF; // extended telemetry value is 8 bits wide
 
-		if (nibble == 0xFF) {
-			++read_fail_nibble[channel_index];;
-			return 0;
+	} else {
+		// otherwise it's an eRPM frame
+		uint8_t exponent = ((payload >> 9) & 0x7); // 3 bit: exponent
+		uint16_t period = (payload & 0x1FF); // 9 bit: period base
+		period = period << exponent; // Period in usec
+
+		packet->type = 0x00;
+
+		if (period == 65408) {
+			// Special case for zero motion (e.g., stationary motor)
+			packet->value = 0;
+		} else {
+			packet->value = (1000000 * 60 / 100 + period / 2) / period;
 		}
+	}
+}
 
-		data |= nibble;
-		gcr >>= 5;
+// bits  1-11    - throttle value (0-47 are reserved for commands, 48-2047 give 2000 steps of throttle resolution)
+// bit   12      - dshot telemetry enable/disable
+// bits  13-16   - XOR checksum
+void dshot_motor_data_set(unsigned channel, uint16_t data, bool telemetry)
+{
+	uint8_t timer_index = timer_io_channels[channel].timer_index;
+	uint8_t timer_channel_index = timer_io_channels[channel].timer_channel - 1;
+	bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
+
+	if (!channel_initialized) {
+		return;
 	}
 
-	unsigned shift = (data & 0xE000) >> 13;
-	unsigned period = ((data & 0x1FF0) >> 4) << shift;
-	unsigned crc = data & 0xF;
+	uint16_t packet = 0;
+	uint16_t checksum = 0;
 
-	unsigned payload = (data & 0xFFF0) >> 4;
-	unsigned calculated_crc = (~(payload ^ (payload >> 4) ^ (payload >> 8))) & 0x0F;
+	packet |= data << DSHOT_THROTTLE_POSITION;
+	packet |= ((uint16_t)telemetry & 0x01) << DSHOT_TELEMETRY_POSITION;
 
-	if (crc != calculated_crc) {
-		++read_fail_crc[channel_index];;
+	uint16_t csum_data = packet;
+
+	// XOR checksum calculation
+	csum_data >>= NIBBLES_SIZE;
+
+	for (uint8_t i = 0; i < DSHOT_NUMBER_OF_NIBBLES; i++) {
+		checksum ^= (csum_data & 0x0F); // XOR data by nibbles
+		csum_data >>= NIBBLES_SIZE;
+	}
+
+	if (_bidirectional) {
+		packet |= ((~checksum) & 0x0F);
+
+	} else {
+		packet |= ((checksum) & 0x0F);
+	}
+
+	const io_timers_channel_mapping_element_t *mapping = &io_timers_channel_mapping.element[timer_index];
+	uint8_t num_motors = mapping->channel_count_including_gaps;
+	uint8_t timer_channel = timer_io_channels[channel].timer_channel - mapping->lowest_timer_channel;
+
+	for (uint8_t motor_data_index = 0; motor_data_index < ONE_MOTOR_DATA_SIZE; motor_data_index++) {
+		dshot_output_buffer[timer_index][motor_data_index * num_motors + timer_channel] =
+			(packet & 0x8000) ? MOTOR_PWM_BIT_1 : MOTOR_PWM_BIT_0;  // MSB first
+		packet <<= 1;
+	}
+}
+
+int up_dshot_arm(bool armed)
+{
+	return io_timer_set_enable(armed, _bidirectional ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot,
+				   IO_TIMER_ALL_MODES_CHANNELS);
+}
+
+int up_bdshot_num_channels_ready(void)
+{
+	int num_ready = 0;
+
+	for (unsigned i = 0; i < MAX_TIMER_IO_CHANNELS; ++i) {
+		if (_bdshot_processed[i]) {
+			++num_ready;
+		}
+	}
+
+	return num_ready;
+}
+
+int up_bdshot_get_erpm(uint8_t channel, int *erpm)
+{
+	uint8_t timer_index = timer_io_channels[channel].timer_index;
+	uint8_t timer_channel_index = timer_io_channels[channel].timer_channel - 1;
+	bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
+
+	int status = PX4_ERROR;
+
+	if (channel_initialized) {
+		*erpm = _erpms[channel];
+		status = PX4_OK;
+	}
+
+	// Mark sample read
+	_bdshot_processed[channel] = false;
+
+	return status;
+}
+
+int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value)
+{
+	int result = PX4_ERROR;
+	switch (type) {
+	case DSHOT_EDT_TEMPERATURE:
+		if (_temperatures_ready[channel]) {
+			*value = _temperatures[channel];
+			_temperatures_ready[channel] = false;
+			result = PX4_OK;
+		}
+		break;
+	case DSHOT_EDT_VOLTAGE:
+		if (_voltages_ready[channel]) {
+			*value = _voltages[channel];
+			_voltages_ready[channel] = false;
+			result = PX4_OK;
+		}
+		break;
+	case DSHOT_EDT_CURRENT:
+		if (_currents_ready[channel]) {
+			*value = _currents[channel];
+			_currents_ready[channel] = false;
+			result = PX4_OK;
+		}
+		break;
+	default:
+		break;
+	}
+
+	return result;
+}
+
+int up_bdshot_channel_status(uint8_t channel)
+{
+	if (channel >= MAX_TIMER_IO_CHANNELS) {
 		return 0;
 	}
 
-	++read_ok[channel_index];;
-	return period;
+	return _online[channel];
+}
+
+void up_bdshot_status(void)
+{
+	PX4_INFO("dshot driver stats:");
+
+	if (_bidirectional) {
+		PX4_INFO("Bidirectional DShot enabled");
+	}
+
+	uint8_t timer_index = _bidi_timer_index;
+
+	for (uint8_t timer_channel_index = 0; timer_channel_index < MAX_NUM_CHANNELS_PER_TIMER; timer_channel_index++) {
+		bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
+
+		if (channel_initialized) {
+			PX4_INFO("Timer %u, Channel %u: read %lu, failed CRC %lu, invalid/zero %lu",
+				 timer_index, timer_channel_index,
+				 read_ok[timer_channel_index],
+				 read_fail_crc[timer_channel_index],
+				 read_fail_zero[timer_channel_index]);
+		}
+	}
 }
 
 #endif

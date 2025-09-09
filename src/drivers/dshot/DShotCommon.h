@@ -48,10 +48,9 @@ struct EscData {
 	hrt_abstime timestamp; // Sample time
 	TelemetrySource source;
 
-	int8_t temperature;    // [deg C]
-	int16_t voltage;       // [0.01V]
-	int16_t current;       // [0.01A]
-	int16_t consumption;   // [mAh]
+	float temperature;     // [deg C]
+	float voltage;         // [0.01V]
+	float current;         // [0.01A]
 	int16_t erpm;          // [100ERPM]
 };
 

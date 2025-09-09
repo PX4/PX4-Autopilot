@@ -301,8 +301,10 @@ static int flexio_irq_handler(int irq, void *context, void *arg)
 }
 
 
-int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bidirectional_dshot)
+int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bidirectional_dshot, bool enable_extended_dshot_telemetry)
 {
+	(void)enable_extended_dshot_telemetry; // Not implemented
+
 	/* Calculate dshot timings based on dshot_pwm_freq */
 	dshot_tcmp = 0x2F00 | (((BOARD_FLEXIO_PREQ / (dshot_pwm_freq * 3) / 2) - 1) & 0xFF);
 	bdshot_tcmp = 0x2900 | (((BOARD_FLEXIO_PREQ / (dshot_pwm_freq * 5 / 4) / 2) - 3) & 0xFF);
@@ -418,7 +420,7 @@ void up_bdshot_erpm(void)
 }
 
 
-int up_bdshot_num_erpm_ready(void)
+int up_bdshot_num_channels_ready(void)
 {
 	int num_ready = 0;
 

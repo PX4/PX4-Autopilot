@@ -61,6 +61,23 @@ enum {
 	DSHOT_CMD_MAX_THROTTLE = 2047
 };
 
+// Extended DShot Telemetry
+enum {
+	DSHOT_EDT_ERPM = 0x00,
+	DSHOT_EDT_TEMPERATURE = 0x02, // C
+	DSHOT_EDT_VOLTAGE = 0x04, // 0.25V per step
+	DSHOT_EDT_CURRENT = 0x06, // A
+	DSHOT_EDT_DEBUG1 = 0x08,
+	DSHOT_EDT_DEBUG2 = 0x0A,
+	DSHOT_EDT_DEBUG3 = 0x0C,
+	DSHOT_EDT_STATE_EVENT = 0x0E,
+};
+
+struct BDShotTelemetry {
+	int type;
+	int32_t value;
+};
+
 /**
  * Intialise the Dshot outputs using the specified configuration.
  *
@@ -70,7 +87,7 @@ enum {
  * @param dshot_pwm_freq	Frequency of DSHOT signal. Usually DSHOT150, DSHOT300, or DSHOT600
  * @return <0 on error, the initialized channels mask.
  */
-__EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bidirectional_dshot);
+__EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bidirectional_dshot, bool enable_extended_dshot_telemetry);
 
 /**
  * Set Dshot motor data, used by up_dshot_motor_data_set() and up_dshot_motor_command() (internal method)
@@ -130,7 +147,7 @@ __EXPORT extern void up_bdshot_status(void);
  *
  * @return <0 on error, OK on succes
  */
-__EXPORT extern int up_bdshot_num_erpm_ready(void);
+__EXPORT extern int up_bdshot_num_channels_ready(void);
 
 
 /**
@@ -140,6 +157,9 @@ __EXPORT extern int up_bdshot_num_erpm_ready(void);
  * @return <0 on error, OK on succes
  */
 __EXPORT extern int up_bdshot_get_erpm(uint8_t channel, int *erpm);
+
+
+__EXPORT extern int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value);
 
 
 /**
