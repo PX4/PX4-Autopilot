@@ -82,8 +82,6 @@ int DShotTelemetry::init(const char *port, bool swap_rxtx)
 		return PX4_ERROR;
 	}
 
-	_enabled = true;
-
 	return PX4_OK;
 }
 
@@ -211,11 +209,11 @@ TelemetryStatus DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int len
 		/*
 		 * ESC Telemetry Frame Structure (10 bytes total)
 		 * =============================================
-		 * Byte 0:     Temperature (uint8_t)
-		 * Byte 1-2:   Voltage (uint16_t, big-endian)
-		 * Byte 3-4:   Current (uint16_t, big-endian)
-		 * Byte 5-6:   Consumption (uint16_t, big-endian)
-		 * Byte 7-8:   eRPM (uint16_t, big-endian)
+		 * Byte 0:     Temperature (uint8_t) [deg C]
+		 * Byte 1-2:   Voltage (uint16_t, big-endian) [0.01V]
+		 * Byte 3-4:   Current (uint16_t, big-endian) [0.01A]
+		 * Byte 5-6:   Consumption (uint16_t, big-endian) [mAh]
+		 * Byte 7-8:   eRPM (uint16_t, big-endian) [100ERPM]
 		 * Byte 9:     CRC8 Checksum
 		 */
 
@@ -224,12 +222,18 @@ TelemetryStatus DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int len
 			uint8_t checksum_data = _frame_buffer[TELEMETRY_FRAME_SIZE - 1];
 
 			if (checksum == checksum_data) {
+
+				int8_t temperature = _frame_buffer[0];
+				int16_t voltage = (_frame_buffer[1] << 8) | _frame_buffer[2];
+				int16_t current = (_frame_buffer[3] << 8) | _frame_buffer[4];
+				// int16_t consumption = (_frame_buffer[5]) << 8 | _frame_buffer[6];
+				int16_t erpm = (_frame_buffer[7] << 8) | _frame_buffer[8];
+
 				esc_data->timestamp = hrt_absolute_time();
-				esc_data->temperature = _frame_buffer[0];
-				esc_data->voltage = (_frame_buffer[1] << 8) | _frame_buffer[2];
-				esc_data->current = (_frame_buffer[3] << 8) | _frame_buffer[4];
-				esc_data->consumption = (_frame_buffer[5]) << 8 | _frame_buffer[6];
-				esc_data->erpm = (_frame_buffer[7] << 8) | _frame_buffer[8];
+				esc_data->temperature = (float)temperature;
+				esc_data->voltage = (float)voltage * 0.01f;
+				esc_data->current = (float)current * 0.01f;;
+				esc_data->erpm = erpm * 100;
 
 				++_num_successful_responses;
 				status = TelemetryStatus::Ready;

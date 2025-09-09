@@ -46,7 +46,6 @@ public:
 
 	int init(const char *uart_device, bool swap_rxtx);
 	void printStatus() const;
-	bool enabled() { return _enabled; }
 
 	void startTelemetryRequest();
 	bool telemetryResponseFinished();
@@ -66,7 +65,6 @@ private:
 	static constexpr int TELEMETRY_FRAME_SIZE = 10;
 	TelemetryStatus decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data);
 
-	bool _enabled{false};
 	device::Serial _uart{};
 
 	// Command response
