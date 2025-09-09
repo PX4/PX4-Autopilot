@@ -3,7 +3,7 @@
 # @name Rocket Plane
 #
 # @type Rocket
-# @class Plane
+# @class Rocket-Plane
 #
 # @board bitcraze_crazyflie exclude
 # @maintainer Noé Renevey noerenevey@gmail.com
