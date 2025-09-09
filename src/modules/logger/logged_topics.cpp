@@ -206,6 +206,8 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("vte_aid_ev_yaw", 100);
 	add_optional_topic("vte_aid_uwb", 100);
 	add_optional_topic("vte_acc_input", 50);
+	add_optional_topic("fiducial_marker_pos_report", 100);
+	add_optional_topic("target_gnss", 100);
 #endif // !CONSTRAINED_FLASH
 
 	// log all raw sensors at minimal rate (at least 1 Hz)

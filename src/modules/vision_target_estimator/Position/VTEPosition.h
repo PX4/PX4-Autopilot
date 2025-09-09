@@ -76,6 +76,8 @@
 
 using namespace time_literals;
 
+#define SEC2USEC 1000000.0f
+
 namespace vision_target_estimator
 {
 
@@ -93,7 +95,7 @@ public:
 
 	bool init();
 
-	void resetFilter();
+	void reset_filter();
 
 	void set_mission_position(const double lat_deg, const double lon_deg, const float alt_m);
 
@@ -136,6 +138,12 @@ protected:
 	/* Valid AoA measurement range between -60.00° and +60.00° for UWB*/
 	static constexpr float max_uwb_aoa_angle_degree = 60.0f;
 
+	// Geographic limits
+	static constexpr double lat_abs_max_deg =  90.0;
+	static constexpr double lon_abs_max_deg = 180.0;
+	static constexpr float alt_min_m = -350.f;
+	static constexpr float alt_max_m = 10000.f;
+
 	uORB::Publication<landing_target_pose_s> _targetPosePub{ORB_ID(landing_target_pose)};
 	uORB::Publication<vision_target_est_position_s> _targetEstimatorStatePub{ORB_ID(vision_target_est_position)};
 
@@ -160,8 +168,8 @@ private:
 		nb_directions = 3,
 	};
 
-	static inline bool _is_meas_valid(hrt_abstime time_stamp) {return (hrt_absolute_time() - time_stamp) < measurement_valid_TIMEOUT_US;};
-	static inline bool _is_meas_updated(hrt_abstime time_stamp) {return (hrt_absolute_time() - time_stamp) < measurement_updated_TIMEOUT_US;};
+	static inline bool isMeasValid(hrt_abstime time_stamp) {return (hrt_absolute_time() - time_stamp) < measurement_valid_TIMEOUT_US;};
+	static inline bool isMeasUpdated(hrt_abstime time_stamp) {return (hrt_absolute_time() - time_stamp) < measurement_updated_TIMEOUT_US;};
 
 	bool _has_timed_out{false};
 
@@ -212,35 +220,34 @@ private:
 	bool initTargetEstimator();
 	bool initEstimator(const matrix::Matrix <float, Direction::nb_directions, vtest::State::size>
 			   &state_init);
-	bool update_step(const matrix::Vector3f &vehicle_acc_ned);
+	bool updateStep(const matrix::Vector3f &vehicle_acc_ned);
 	void predictionStep(const matrix::Vector3f &acc);
 
 	void updateTargetGpsVelocity(const target_gnss_s &target_GNSS_report);
-	void updateUavGpsVelocity(const sensor_gps_s &vehicle_gps_position);
 
-	inline bool _hasNewNonGpsPositionSensorData(const ObservationValidMask &vte_fusion_aid_mask) const
+	inline bool hasNewNonGpsPositionSensorData(const ObservationValidMask &vte_fusion_aid_mask) const
 	{
 		return (vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS)
 		       || (vte_fusion_aid_mask & ObservationValidMask::FUSE_UWB);
 	}
 
-	inline bool _hasNewPositionSensorData(const ObservationValidMask &vte_fusion_aid_mask) const
+	inline bool hasNewPositionSensorData(const ObservationValidMask &vte_fusion_aid_mask) const
 	{
 		return vte_fusion_aid_mask & (ObservationValidMask::FUSE_MISSION_POS |
 					      ObservationValidMask::FUSE_TARGET_GPS_POS |
 					      ObservationValidMask::FUSE_EXT_VIS_POS);
 	}
 
-	inline bool _hasNewVelocitySensorData(const ObservationValidMask &vte_fusion_aid_mask) const
+	inline bool hasNewVelocitySensorData(const ObservationValidMask &vte_fusion_aid_mask) const
 	{
 		return vte_fusion_aid_mask & (ObservationValidMask::FUSE_TARGET_GPS_VEL |
 					      ObservationValidMask::FUSE_UAV_GPS_VEL);
 	}
 
 	// Only estimate the GNSS bias if we have a GNSS estimation and a secondary source of position
-	inline bool _should_set_bias(const ObservationValidMask &vte_fusion_aid_mask)
+	inline bool shouldSetBias(const ObservationValidMask &vte_fusion_aid_mask)
 	{
-		return _is_meas_valid(_pos_rel_gnss.timestamp) && _hasNewNonGpsPositionSensorData(vte_fusion_aid_mask);
+		return isMeasValid(_pos_rel_gnss.timestamp) && hasNewNonGpsPositionSensorData(vte_fusion_aid_mask);
 	};
 
 
@@ -255,6 +262,8 @@ private:
 	void processObservations(ObservationValidMask &vte_fusion_aid_mask,
 				 targetObsPos observations[ObservationType::nb_observation_types]);
 
+	bool isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who = nullptr) const;
+
 	/* Vision data */
 	void handleVisionData(ObservationValidMask &vte_fusion_aid_mask, targetObsPos &obs_fiducial_marker);
 	bool isVisionDataValid(const fiducial_marker_pos_report_s &fiducial_marker_pose);
@@ -266,29 +275,27 @@ private:
 	bool processObsUwb(const sensor_uwb_s &uwb_report, targetObsPos &obs);
 
 	/* UAV GPS data */
-	void handleUavGpsData(const sensor_gps_s &vehicle_gps_position,
-			      ObservationValidMask &vte_fusion_aid_mask,
+	void handleUavGpsData(ObservationValidMask &vte_fusion_aid_mask,
 			      targetObsPos &obs_gps_pos_mission,
 			      targetObsPos &obs_gps_vel_uav);
-	bool isVehicleGpsDataValid(const sensor_gps_s &vehicle_gps_position);
-	bool processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
-	bool processObsGNSSVelUav(const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
+	void updateUavGpsData(const sensor_gps_s &vehicle_gps_position);
+	bool isUavGpsPositionValid();
+	bool isUavGpsVelocityValid();
+	bool processObsGNSSPosMission(targetObsPos &obs);
+	bool processObsGNSSVelUav(targetObsPos &obs);
 
 	/* Target GPS data */
-	void handleTargetGpsData(const bool vehicle_gps_valid,
-				 const sensor_gps_s &vehicle_gps_position,
-				 const target_gnss_s &target_GNSS_report,
+	void handleTargetGpsData(const target_gnss_s &target_GNSS_report,
 				 ObservationValidMask &vte_fusion_aid_mask,
 				 targetObsPos &obs_gps_pos_target,
 				 targetObsPos &obs_gps_vel_target);
 	bool isTargetGpsDataValid(const target_gnss_s &target_GNSS_report);
-	bool processObsGNSSPosTarget(const target_gnss_s &target_GNSS_report, const sensor_gps_s &vehicle_gps_position,
-				     targetObsPos &obs);
+	bool processObsGNSSPosTarget(const target_gnss_s &target_GNSS_report, targetObsPos &obs);
 #if defined(CONFIG_VTEST_MOVING)
 	bool processObsGNSSVelTarget(const target_gnss_s &target_GNSS_report, targetObsPos &obs);
 #endif // CONFIG_VTEST_MOVING
 
-	bool fuse_meas(const matrix::Vector3f &vehicle_acc_ned, const targetObsPos &target_pos_obs);
+	bool fuseMeas(const matrix::Vector3f &vehicle_acc_ned, const targetObsPos &target_pos_obs);
 	void publishTarget();
 	void publishInnov(const estimator_aid_source3d_s &target_innov, const ObservationType type);
 
@@ -302,31 +309,43 @@ private:
 	perf_counter_t _vte_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE update")};
 
 	struct rangeSensor {
+		hrt_abstime timestamp = 0;
 		bool valid = false;
 		float dist_bottom;
-		hrt_abstime timestamp = 0;
 	};
 
 	rangeSensor _range_sensor{};
 
 	struct globalPos {
+		hrt_abstime timestamp = 0;
 		bool valid = false;
 		double lat_deg = 0.0; 	// Latitude in degrees
 		double lon_deg	= 0.0; 	// Longitude in degrees
 		float alt_m = 0.f;	// Altitude in meters AMSL
+		float eph = 0.f;
+		float epv = 0.f;
 	};
 
 	globalPos _mission_position{};
+	globalPos _uav_gps_position{};
+
+	struct velStamped {
+		hrt_abstime timestamp = 0;
+		bool valid = false;
+		matrix::Vector3f xyz;
+		float uncertainty;
+	};
+
+	velStamped _uav_gps_vel{};
 
 	struct vecStamped {
-		hrt_abstime timestamp;
+		hrt_abstime timestamp = 0;
 		bool valid = false;
 		matrix::Vector3f xyz;
 	};
 
 	vecStamped _local_position{};
 	vecStamped _local_velocity{};
-	vecStamped _uav_gps_vel{};
 	vecStamped _target_gps_vel{};
 	vecStamped _pos_rel_gnss{};
 	vecStamped _velocity_offset_ned{};
@@ -342,9 +361,9 @@ private:
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
 
-	void _check_params(const bool force);
-
 	/* parameters from vision_target_estimator_params.c*/
+	void checkParams(const bool force);
+
 	uint32_t _vte_TIMEOUT_US = 3_s;
 	int _vte_aid_mask{0};
 	float _target_acc_unc;
