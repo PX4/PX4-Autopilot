@@ -323,7 +323,7 @@ void VTEOrientation::set_range_sensor(const float dist, const bool valid)
 
 bool VTEOrientation::initTargetEstimator()
 {
-	KF_orientation_unified *tmp_theta = new KF_orientation_unified;
+	KF_orientation *tmp_theta = new KF_orientation;
 
 	if (tmp_theta == nullptr) {
 		PX4_ERR("VTE orientation init failed");

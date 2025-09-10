@@ -31,22 +31,20 @@
  *
  ****************************************************************************/
 
-// TODO: rename to KF_position and clean up comments
-
 /**
  * @file KF_orientation.cpp
- * @brief Filter to estimate the orientation of moving targets. State: [yaw, yaw_rate]
+ * @brief Filter to estimate the orientation of static and moving targets. State: [yaw, yaw_rate]
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
  */
 
-#include "KF_orientation_unified.h"
+#include "KF_orientation.h"
 
 namespace vision_target_estimator
 {
 
-void KF_orientation_unified::predictState(float dt)
+void KF_orientation::predictState(float dt)
 {
 
 	matrix::SquareMatrix<float, State::size> phi = getPhi(dt);
@@ -57,14 +55,14 @@ void KF_orientation_unified::predictState(float dt)
 	}
 }
 
-void KF_orientation_unified::predictCov(float dt)
+void KF_orientation::predictCov(float dt)
 {
 	matrix::SquareMatrix<float, State::size> phi = getPhi(dt);
 	_state_covariance = phi * _state_covariance * phi.transpose();
 }
 
 
-bool KF_orientation_unified::update()
+bool KF_orientation::update()
 {
 	// Avoid zero-division
 	if (fabsf(_innov_cov) < 1e-6f) {
@@ -91,7 +89,7 @@ bool KF_orientation_unified::update()
 	return true;
 }
 
-void KF_orientation_unified::syncState(float dt)
+void KF_orientation::syncState(float dt)
 {
 
 	matrix::SquareMatrix<float, State::size> phi = getPhi(dt);
@@ -102,13 +100,13 @@ void KF_orientation_unified::syncState(float dt)
 	}
 }
 
-float KF_orientation_unified::computeInnovCov(float meas_unc)
+float KF_orientation::computeInnovCov(float meas_unc)
 {
 	_innov_cov = (_meas_matrix_row_vect.transpose() * _state_covariance * _meas_matrix_row_vect)(0, 0) + meas_unc;
 	return _innov_cov;
 }
 
-float KF_orientation_unified::computeInnov(float meas)
+float KF_orientation::computeInnov(float meas)
 {
 	/* z - H*x */
 	_innov = meas - (_meas_matrix_row_vect.transpose() * _sync_state)(0, 0);

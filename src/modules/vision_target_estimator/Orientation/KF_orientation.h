@@ -31,11 +31,9 @@
  *
  ****************************************************************************/
 
-// TODO: rename to KF_position and clean up comments
-
 /**
  * @file KF_orientation.h
- * @brief Filter to estimate the orientation of moving targets. State: [yaw, yaw_rate]
+ * @brief Filter to estimate the orientation of static and moving targets. State: [yaw, yaw_rate]
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
@@ -58,30 +56,22 @@ static constexpr uint8_t yaw_rate{1};
 static constexpr uint8_t size{2};
 };
 
-class KF_orientation_unified
+class KF_orientation
 {
 public:
-	/**
-	 * Default constructor, state not initialized
-	 */
-	KF_orientation_unified() {};
 
-	/**
-	 * Default desctructor
-	 */
-	~KF_orientation_unified() {};
+	KF_orientation() {};
+	~KF_orientation() {};
 
-	//Prediction step:
 	void predictState(float dt);
 	void predictCov(float dt);
 
+	bool update();
+
 	// Backwards state prediciton
 	void syncState(float dt);
-
 	void setH(const matrix::Vector<float, State::size> &h_meas) {_meas_matrix_row_vect = h_meas;}
-
 	void setState(const matrix::Vector<float, State::size> &state) {_state = state;}
-
 	void setStateVar(const matrix::Vector<float, State::size> &var)
 	{
 		const matrix::SquareMatrix<float, State::size> var_mat = diag(var);
@@ -98,10 +88,7 @@ public:
 	float computeInnovCov(float measUnc);
 	float computeInnov(float meas);
 
-	bool update();
-
 	void setNISthreshold(float nis_threshold) { _nis_threshold = nis_threshold; };
-
 	float getTestRatio() {if (fabsf(_innov_cov) < 1e-6f) {return -1.f;} else {return _innov / _innov_cov * _innov;} };
 
 private:

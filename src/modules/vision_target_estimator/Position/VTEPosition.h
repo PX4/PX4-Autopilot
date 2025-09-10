@@ -71,8 +71,8 @@
 #include <matrix/Matrix.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/geo/geo.h>
-#include "KF_position_unified.h"
-#include "python_derivation/generated/state.h"
+#include "KF_position.h"
+#include "vtest_derivation/generated/state.h"
 
 using namespace time_literals;
 
@@ -356,7 +356,7 @@ private:
 	uint64_t _last_vision_obs_fused_time{0};
 	bool _estimator_initialized{false};
 
-	KF_position_unified *_target_estimator[Direction::nb_directions] {nullptr, nullptr, nullptr};
+	KF_position *_target_estimator[Direction::nb_directions] {nullptr, nullptr, nullptr};
 
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
