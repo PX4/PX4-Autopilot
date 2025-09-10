@@ -31,33 +31,31 @@
  *
  ****************************************************************************/
 
-// TODO: rename to KF_position and clean up comments
-
 /**
- * @file KF_position_moving.cpp
+ * @file KF_position.cpp
  * @brief Filter to estimate the pose of moving targets. State: [pos_rel, vel_uav, bias, acc_target, vel_target]
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
  */
 
-#include "KF_position_unified.h"
-#include "python_derivation/generated/syncState.h"
-#include "python_derivation/generated/predictState.h"
-#include "python_derivation/generated/predictCov.h"
-#include "python_derivation/generated/computeInnovCov.h"
+#include "KF_position.h"
+#include "vtest_derivation/generated/syncState.h"
+#include "vtest_derivation/generated/predictState.h"
+#include "vtest_derivation/generated/predictCov.h"
+#include "vtest_derivation/generated/computeInnovCov.h"
 
 namespace vision_target_estimator
 {
 
-void KF_position_unified::predictState(float dt, float acc_uav)
+void KF_position::predictState(float dt, float acc_uav)
 {
 	matrix::Vector<float, vtest::State::size> state_updated;
 	sym::Predictstate(dt, _state, acc_uav, &state_updated);
 	_state = state_updated;
 }
 
-void KF_position_unified::predictCov(float dt)
+void KF_position::predictCov(float dt)
 {
 	matrix::Matrix<float, vtest::State::size, vtest::State::size> cov_updated;
 	sym::Predictcov(dt, _input_var, _bias_var, _acc_var, _state_covariance, &cov_updated);
@@ -65,7 +63,7 @@ void KF_position_unified::predictCov(float dt)
 }
 
 
-bool KF_position_unified::update()
+bool KF_position::update()
 {
 	// Avoid zero-division
 	if (fabsf(_innov_cov) < 1e-6f) {
@@ -82,13 +80,12 @@ bool KF_position_unified::update()
 	const matrix::Matrix<float, vtest::State::size, 1> kalmanGain = _state_covariance * _meas_matrix_row_vect / _innov_cov;
 
 	_state = _state + kalmanGain * _innov;
-
 	_state_covariance = _state_covariance - kalmanGain * _meas_matrix_row_vect.transpose() * _state_covariance;
 
 	return true;
 }
 
-void KF_position_unified::syncState(float dt, float acc_uav)
+void KF_position::syncState(float dt, float acc_uav)
 {
 
 	matrix::Vector<float, vtest::State::size> synced_state;
@@ -96,7 +93,7 @@ void KF_position_unified::syncState(float dt, float acc_uav)
 	_sync_state = synced_state;
 }
 
-float KF_position_unified::computeInnovCov(float meas_unc)
+float KF_position::computeInnovCov(float meas_unc)
 {
 	float innov_cov_updated;
 	sym::Computeinnovcov(meas_unc, _state_covariance, _meas_matrix_row_vect.transpose(), &innov_cov_updated);
@@ -105,7 +102,7 @@ float KF_position_unified::computeInnovCov(float meas_unc)
 	return _innov_cov;
 }
 
-float KF_position_unified::computeInnov(float meas)
+float KF_position::computeInnov(float meas)
 {
 	/* z - H*x */
 	_innov = meas - (_meas_matrix_row_vect.transpose() * _sync_state)(0, 0);

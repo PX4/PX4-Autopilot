@@ -83,7 +83,7 @@ VTEPosition::~VTEPosition()
 bool VTEPosition::init()
 {
 
-// Check valid python_derivation/generated/state.h
+// Check valid vtest_derivation/generated/state.h
 #if defined(CONFIG_VTEST_MOVING)
 	PX4_WARN("VTE for moving targets has not been thoroughly tested.");
 
@@ -221,13 +221,13 @@ bool VTEPosition::initEstimator(const Matrix<float, Direction::nb_directions, vt
 	}
 
 	// Debug INFO
-	PX4_INFO("Pos init %.2f %.2f %.2f", (double)state_init(Direction::x, vtest::State::pos_rel),
+	PX4_INFO("Rel pos init %.2f %.2f %.2f", (double)state_init(Direction::x, vtest::State::pos_rel),
 		 (double)state_init(Direction::y, vtest::State::pos_rel), (double)state_init(Direction::z,
 				 vtest::State::pos_rel));
 	PX4_INFO("Vel uav init %.2f %.2f %.2f", (double)state_init(Direction::x, vtest::State::vel_uav),
 		 (double)state_init(Direction::y, vtest::State::vel_uav), (double)state_init(Direction::z,
 				 vtest::State::vel_uav));
-	PX4_INFO("Bias init %.2f %.2f %.2f", (double)state_init(Direction::x, vtest::State::bias),
+	PX4_INFO("GNSS bias init %.2f %.2f %.2f", (double)state_init(Direction::x, vtest::State::bias),
 		 (double)state_init(Direction::y, vtest::State::bias), (double)state_init(Direction::z,
 				 vtest::State::bias));
 
@@ -707,7 +707,6 @@ void VTEPosition::updateBias(const ObservationValidMask &vte_fusion_aid_mask,
 			     const targetObsPos observations[ObservationType::nb_observation_types])
 {
 
-	// TODO: decide if we print the bias and the pos_init
 	PX4_INFO("Second relative position measurement available, re-setting position and bias.");
 
 	// Get the initial position based on the current valid observations
@@ -737,6 +736,12 @@ void VTEPosition::updateBias(const ObservationValidMask &vte_fusion_aid_mask,
 	}
 
 	_bias_set = true;
+
+	PX4_INFO("Rel pos init %.2f %.2f %.2f", (double)pos_init(Direction::x),
+		 (double)pos_init(Direction::y), (double)pos_init(Direction::z));
+
+	PX4_INFO("GNSS bias init %.2f %.2f %.2f", (double)bias_init(Direction::x),
+		 (double)bias_init(Direction::y), (double)bias_init(Direction::z));
 }
 
 
@@ -1380,11 +1385,11 @@ void VTEPosition::set_mission_position(const double lat_deg, const double lon_de
 					  _mission_position.alt_m, "Mission position ");
 
 		if (_mission_position.valid) {
-			PX4_INFO("Mission position lat: %.8f [deg], lon: %.8f [deg], alt %.2f [m]", lat_deg,
+			PX4_INFO("Mission position lat: %.8f [deg], lon: %.8f [deg], alt %.1f [m]", lat_deg,
 				 lon_deg, (double)(alt_m));
 
 		} else {
-			PX4_WARN("Mission position not used because not valid. lat: %.8f [deg], lon: %.8f [deg], alt %.2f [m]",
+			PX4_WARN("Mission position not used because not valid. lat: %.8f [deg], lon: %.8f [deg], alt %.1f [m]",
 				 lat_deg,
 				 lon_deg, (double)(alt_m));
 		}
@@ -1413,12 +1418,12 @@ bool VTEPosition::initTargetEstimator()
 {
 
 	// Array to hold temporary pointers
-	KF_position_unified *tmp[Direction::nb_directions] = {nullptr, nullptr, nullptr};
+	KF_position *tmp[Direction::nb_directions] = {nullptr, nullptr, nullptr};
 	bool init_failed = false;
 
 	// Try to allocate new estimators
 	for (int dir = 0; dir < Direction::nb_directions; ++dir) {
-		tmp[dir] = new KF_position_unified;
+		tmp[dir] = new KF_position;
 
 		if (tmp[dir] == nullptr) {
 			init_failed = true;

@@ -63,7 +63,7 @@
 #include <matrix/Matrix.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/geo/geo.h>
-#include "KF_orientation_unified.h"
+#include "KF_orientation.h"
 
 using namespace time_literals;
 
@@ -165,7 +165,7 @@ private:
 
 	bool _estimator_initialized{false};
 
-	KF_orientation_unified *_target_estimator_orientation {nullptr};
+	KF_orientation *_target_estimator_orientation {nullptr};
 
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)

@@ -40,9 +40,9 @@ px4_add_module(
 	SRCS
 		VisionTargetEst.cpp
 		Position/VTEPosition.cpp
-		Position/KF_position_unified.cpp
+		Position/KF_position.cpp
 		Orientation/VTEOrientation.cpp
-		Orientation/KF_orientation_unified.cpp
+		Orientation/KF_orientation.cpp
 	DEPENDS
 		mathlib
 		px4_work_queue
