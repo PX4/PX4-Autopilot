@@ -904,6 +904,8 @@ void Navigator::run()
 			publish_mission_result();
 		}
 
+		neutralize_gimbal_if_control_activated();
+
 		publish_navigator_status();
 
 		publish_distance_sensor_mode_request();
@@ -1627,6 +1629,25 @@ void Navigator::set_gimbal_neutral()
 	vehicle_command.param4 = NAN;
 	vehicle_command.param5 = gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL;
 	publish_vehicle_command(vehicle_command);
+}
+
+void Navigator::set_gimbal_neutral_activation_time(const hrt_abstime timestamp)
+{
+	if (_gimbal_neutral_activation_time == UINT64_MAX) {
+		_gimbal_neutral_activation_time = timestamp;
+	}
+}
+
+void Navigator::neutralize_gimbal_if_control_activated()
+{
+	hrt_abstime now{hrt_absolute_time()};
+
+	if (_gimbal_neutral_activation_time != UINT64_MAX && now > _gimbal_neutral_activation_time + 250_ms) {
+		acquire_gimbal_control();
+		set_gimbal_neutral();
+		release_gimbal_control();
+		_gimbal_neutral_activation_time = UINT64_MAX;
+	}
 }
 
 void Navigator::sendWarningDescentStoppedDueToTerrain()

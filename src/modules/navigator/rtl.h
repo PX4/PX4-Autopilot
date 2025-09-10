@@ -204,7 +204,6 @@ private:
 	};
 
 	hrt_abstime _destination_check_time{0};
-	hrt_abstime _rtl_initiated_time{0};
 
 	RtlBase *_rtl_mission_type_handle{nullptr};
 	RtlType _set_rtl_mission_type{RtlType::NONE};
