@@ -843,6 +843,8 @@
       - [Тест MC_04 - Тестування відмовостійкості](test_cards/mc_04_failsafe_testing.md)
       - [Test MC_05 - Manual Modes (Inside)](test_cards/mc_05_indoor_flight_manual_modes.md)
       - [Test MC_06 - Optical Flow (Inside)](test_cards/mc_06_optical_flow.md)
+      - [Test MC_07 - VIO (Inside)](test_cards/mc_07_vio.md)
+      - [Test MC_08 - DSHOT ESC](test_cards/mc_08_dshot.md)
     - [Модульні Тести](test_and_ci/unit_tests.md)
       - [Fuzz Tests](test_and_ci/fuzz_tests.md)
     - [Безперервна інтеграція](test_and_ci/continous_integration.md)
