@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-// TODO: rename to KF_position and clean up comments
+// TODO: lean up comments
 
 /**
  * @file KF_position_moving.h
@@ -45,36 +45,26 @@
 #include <mathlib/mathlib.h>
 #include <matrix/Matrix.hpp>
 #include <matrix/Vector.hpp>
-#include "python_derivation/generated/state.h"
+#include "vtest_derivation/generated/state.h"
 
 #pragma once
 
 namespace vision_target_estimator
 {
-class KF_position_unified
+class KF_position
 {
 public:
-	/**
-	 * Default constructor, state not initialized
-	 */
-	KF_position_unified() {};
+	KF_position() {};
+	~KF_position() {};
 
-	/**
-	 * Default desctructor
-	 */
-	~KF_position_unified() {};
-
-	//Prediction step:
 	void predictState(float dt, float acc);
 	void predictCov(float dt);
 
-	// Backwards state prediciton
+	bool update();
+
 	void syncState(float dt, float acc);
-
 	void setH(const matrix::Vector<float, vtest::State::size> &h_meas) {_meas_matrix_row_vect = h_meas;}
-
 	void setState(const matrix::Vector<float, vtest::State::size> &state) {_state = state;}
-
 	void setStateVar(const matrix::Vector<float, vtest::State::size> &var)
 	{
 		const matrix::SquareMatrix<float, vtest::State::size> var_mat = diag(var);
@@ -91,10 +81,7 @@ public:
 	float computeInnovCov(float measUnc);
 	float computeInnov(float meas);
 
-	bool update();
-
 	void setNISthreshold(float nis_threshold) { _nis_threshold = nis_threshold; };
-
 	float getTestRatio() {if (fabsf(_innov_cov) < 1e-6f) {return -1.f;} else {return _innov / _innov_cov * _innov;} };
 
 	void setInputAccVar(float var) { _input_var = var;};
