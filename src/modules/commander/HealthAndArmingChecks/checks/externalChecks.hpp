@@ -43,7 +43,7 @@
 class ExternalChecks : public HealthAndArmingCheckBase
 {
 public:
-	static constexpr int MAX_NUM_REGISTRATIONS = 8;
+	static constexpr int MAX_NUM_REGISTRATIONS = 16;
 
 	ExternalChecks() = default;
 	~ExternalChecks() = default;
