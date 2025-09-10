@@ -177,6 +177,14 @@ bool CRSFTelemetry::send_flight_mode()
 	case vehicle_status_s::NAVIGATION_STATE_STAB:
 		flight_mode = "Stabilized";
 		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_ROCKET_ROLL:
+		flight_mode = "Rocket Roll";
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_ROCKET_PASSIVE:
+		flight_mode = "Rocket Passive";
+		break;
 	}
 
 	return crsf_send_telemetry_flight_mode(_uart_fd, flight_mode);

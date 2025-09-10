@@ -93,6 +93,12 @@ static inline navigation_mode_t navigation_mode(uint8_t nav_state)
 	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL7: return navigation_mode_t::external7;
 
 	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL8: return navigation_mode_t::external8;
+
+	// Custom rocket roll navigation state
+	case vehicle_status_s::NAVIGATION_STATE_ROCKET_ROLL: return navigation_mode_t::external7;
+
+	// Custom rocket passive navigation state
+	case vehicle_status_s::NAVIGATION_STATE_ROCKET_PASSIVE: return navigation_mode_t::external8;
 	}
 
 	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX == 31, "update navigation mode map");
