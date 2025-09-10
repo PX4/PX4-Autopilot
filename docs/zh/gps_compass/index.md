@@ -145,21 +145,21 @@ To ensure the port is set up correctly perform a [Serial Port Configuration](../
 The following steps show how to configure a secondary GPS on the `GPS 2` port in _QGroundControl_:
 
 1. [Find and set](../advanced_config/parameters.md) the parameter [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) to **GPS 2**.
-  - Open _QGroundControl_ and navigate to the **Vehicle Setup > Parameters** section.
-  - Select the **GPS** tab, then open the [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) parameter and select `GPS 2` from the dropdown list.
+   - Open _QGroundControl_ and navigate to the **Vehicle Setup > Parameters** section.
+   - Select the **GPS** tab, then open the [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) parameter and select `GPS 2` from the dropdown list.
 
-    ![QGC Serial Example](../../assets/peripherals/qgc_serial_config_example.png)
+     ![QGC Serial Example](../../assets/peripherals/qgc_serial_config_example.png)
 
 2. Reboot the vehicle in order to make the other parameters visible.
 
 3. Select the **Serial** tab, and open the [SER_GPS2_BAUD](../advanced_config/parameter_reference.md#SER_GPS2_BAUD) parameter (`GPS 2` port baud rate): set it to _Auto_ (or 115200 for the Trimble).
 
-  ![QGC Serial Baudrate Example](../../assets/peripherals/qgc_serial_baudrate_example.png)
+   ![QGC Serial Baudrate Example](../../assets/peripherals/qgc_serial_baudrate_example.png)
 
 After setting up the second GPS port:
 
 1. Configure the ECL/EKF2 estimator to blend data from both GPS systems.
-  For detailed instructions see: [Using the ECL EKF > Dual Receivers](../advanced_config/tuning_the_ecl_ekf.md#dual-receivers).
+   For detailed instructions see: [Using the ECL EKF > Dual Receivers](../advanced_config/tuning_the_ecl_ekf.md#dual-receivers).
 
 ### DroneCAN GNSS Configuration
 
