@@ -1,9 +1,7 @@
 - [Introduction](index.md)
-
   - [Basic Concepts](getting_started/px4_basic_concepts.md)
 
 - [Multicopters](frames_multicopter/index.md)
-
   - [Features](features_mc/index.md)
     - [Flight Modes](flight_modes_mc/index.md)
       - [Position Mode (MC)](flight_modes_mc/position.md)
@@ -56,7 +54,6 @@
     - [DJI F450 (CUAV v5 nano)](frames_multicopter/dji_f450_cuav_5nano.md)
 
 - [Planes (Fixed-Wing)](frames_plane/index.md)
-
   - [Assembly](assembly/assembly_fw.md)
   - [Config/Tuning](config_fw/index.md)
     - [Auto-tune](config/autotune_fw.md)
@@ -84,7 +81,6 @@
     - [Wing Wing Z84 (Pixracer)](frames_plane/wing_wing_z84.md)
 
 - [VTOL](frames_vtol/index.md)
-
   - [Assembly](assembly/assembly_vtol.md)
   - [VTOL Config/Tuning](config_vtol/index.md)
     - [Auto-tune](config/autotune_vtol.md)
@@ -109,7 +105,6 @@
   - [Complete Vehicles](complete_vehicles_vtol/index.md)
 
 - [Operations](config/operations.md)
-
   - [Safety](config/safety_intro.md)
     - [Safety Configuration (Failsafes)](config/safety.md)
     - [Failsafe Simulation](config/safety_simulation.md)
@@ -130,7 +125,6 @@
     - [QGroundControl Flight-Readiness Status](flying/pre_flight_checks.md)
 
 - [Hardware Selection & Setup](hardware/drone_parts.md)
-
   - [Flight Controllers (Autopilots)](flight_controller/index.md)
     - [Flight Controller Selection](getting_started/flight_controller_selection.md)
     - [Pixhawk Series](flight_controller/pixhawk_series.md)
@@ -333,6 +327,7 @@
     - [FrSky Telemetry](peripherals/frsky_telemetry.md)
     - [TBS Crossfire (CRSF) Telemetry](telemetry/crsf_telemetry.md)
     - [Satellite Comms (Iridium/RockBlock)](advanced_features/satcom_roadblock.md)
+
   - [Power Systems](power_systems/index.md)
     - [Battery Estimation Tuning](config/battery.md)
     - [Battery Chemistry Overview](power_systems/battery_chemistry.md)
@@ -399,7 +394,6 @@
     - [Full Parameter Reference](advanced_config/parameter_reference.md)
 
 - [Other Vehicles](airframes/index.md)
-
   - [Airships (experimental)](frames_airship/index.md)
   - [Autogyros (experimental)](frames_autogyro/index.md)
     - [ThunderFly Auto-G2 (Holybro pix32)](frames_autogyro/thunderfly_auto_g2.md)
@@ -841,8 +835,9 @@
   - [Terminology/Notation](contribute/notation.md)
   - [Licenses](contribute/licenses.md)
 - [Releases](releases/index.md)
-  - [main (alpha)](releases/main.md)
-  - [1.15 (stable)](releases/1.15.md)
+  - [main (alpha)](https://docs.px4.io/main/en/releases/main.html)
+  - [1.16 (stable)](releases/1.15.md)
+  - [1.15](releases/1.15.md)
   - [1.14](releases/1.14.md)
   - [1.13](releases/1.13.md)
   - [1.12](releases/1.12.md)

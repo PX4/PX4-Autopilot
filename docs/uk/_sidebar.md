@@ -253,6 +253,7 @@
       - [Avionics Anonymous Laser Altimeter UAVCAN Interface (CAN)](/dronecan/avanon_laser_interface.md)
     - [GNSS (GPS)](/gps_compass/index.md)
       - [ARK GPS (CAN)](/dronecan/ark_gps.md)
+      - [ARK SAM GPS](/gps_compass/ark_sam_gps.md)
       - [ARK TESEO GPS](/dronecan/ark_teseo_gps.md)
       - [CUAV NEO 3 GPS](/gps_compass/gps_cuav_neo_3.md)
       - [CUAV NEO 3 Pro GPS (CAN)](/gps_compass/gps_cuav_neo_3pro.md)
@@ -314,6 +315,7 @@
   - [Джойстики](/config/joystick.md)
   - [Посилання даних](/data_links/index.md)
     - [MAVLink Telemetry (OSD/GCS)](/peripherals/mavlink_peripherals.md)
+
     - [Телеметричні радіостанції](/telemetry/index.md)
       - [SiK Radio](/telemetry/sik_radio.md)
         - [Телеметричне радіо RFD900 (SiK)](/telemetry/rfd900_telemetry.md)
@@ -326,9 +328,13 @@
         - [ARK Electron Microhard Серійне Телеметрійне Радіо](/telemetry/ark_microhard_serial.md)
         - [Holybro Microhard P900 Телеметрійне Радіо](/telemetry/holybro_microhard_p900_radio.md)
       - [CUAV P8 Телеметрійне радіо](/telemetry/cuav_p8_radio.md)
+      - [J.Fi Wireless Telemetry Module](/telemetry/jfi_telemetry.md)
       - [Holybro XBP9X - Припинено](/telemetry/holybro_xbp9x_radio.md)
+
     - [FrSky телеметрія](/peripherals/frsky_telemetry.md)
+
     - [TBS Crossfire (CRSF) телеметрія](/telemetry/crsf_telemetry.md)
+
     - [Супутниковий зв'язок (Iridium/RockBlock)](/advanced_features/satcom_roadblock.md)
   - [Енергетичні системи](/power_systems/index.md)
     - [Налаштування оцінки батареї](/config/battery.md)
@@ -637,6 +643,7 @@
         - [PowerButtonState](/msg_docs/PowerButtonState.md)
         - [PowerMonitor](/msg_docs/PowerMonitor.md)
         - [PpsCapture](/msg_docs/PpsCapture.md)
+        - [PurePursuitStatus](/msg_docs/PurePursuitStatus.md)
         - [PwmInput](/msg_docs/PwmInput.md)
         - [Px4ioStatus](/msg_docs/Px4ioStatus.md)
         - [QshellReq](/msg_docs/QshellReq.md)
