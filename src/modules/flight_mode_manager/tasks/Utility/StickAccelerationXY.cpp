@@ -87,10 +87,9 @@ void StickAccelerationXY::setVelocityConstraint(float vel)
 void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, const float yaw_sp, const Vector3f &pos,
 		const matrix::Vector2f &vel_sp_feedback, const float dt)
 {
-	// gradually adjust velocity constraint because good tracking is required for the drag estimation
+	// avoid setpoint steps from limit changes to improve velocity tracking and hence drag estimation
 	const float velocity_constraint = _velocity_slew_rate_xy.update(_velocity_constraint, dt);
-	// reset constraint before next loop
-	_velocity_constraint = _param_mpc_vel_manual.get();
+	_velocity_constraint = _param_mpc_vel_manual.get(); // reset, reduced to strictest limit in next loop
 
 	// maximum commanded velocity can be constrained dynamically
 	const float velocity_sc = fminf(_param_mpc_vel_manual.get(), velocity_constraint);
