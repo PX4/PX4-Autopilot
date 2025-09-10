@@ -157,6 +157,7 @@
         - [mRo (3DR) Pixhawk Wiring Quickstart](assembly/quick_start_pixhawk.md)
       - [Holybro Pixhawk Mini (FMUv3) - Discontinued](flight_controller/pixhawk_mini.md)
     - [Manufacturer-Supported Autopilots](flight_controller/autopilot_manufacturer_supported.md)
+      - [Accton Godwit GA1](flight_controller/accton-godwit_ga1.md)
       - [AirMind MindPX](flight_controller/mindpx.md)
       - [AirMind MindRacer](flight_controller/mindracer.md)
       - [ARK Electronics ARKV6X](flight_controller/ark_v6x.md)
