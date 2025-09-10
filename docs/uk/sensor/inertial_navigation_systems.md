@@ -2,12 +2,31 @@
 
 PX4 зазвичай працює на контролерах польоту, які включають в себе ІВП, такі як серія Pixhawk, і об'єднує дані датчиків разом із інформацією ССН (супутникова система навігації) в оцінювачі EKF2 для визначення орієнтації, напрямку, позиції та швидкості транспортного засобу.
 
-However PX4 can also use some INS devices as either sources of raw data, or as an external estimator, replacing the EKF.
+However PX4 can also use some INS devices as either sources of raw data, or as an external estimator, replacing EKF2.
 
-Системи, які можуть бути використані у такий спосіб, включають в себе:
+## Supported INS Systems
+
+INS systems that can be used as a replacement for EKF2 in PX4:
 
 - [InertialLabs](../sensor/inertiallabs.md)
 - [VectorNav](../sensor/vectornav.md): ІВП/AHRS, ССН/INS, Dual GNSS/INS системи, котрі можуть бути використані як зовнішній INS, або джерело вхідної інформації датчиків.
+
+## PX4 Firmware
+
+The driver module for your INS system may not be included in the PX4 firmware for your flight controller by default.
+
+You can check by searching the [default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6c/default.px4board#L25) configuration file for your target board for either:
+
+- `CONFIG_COMMON_INS`, which includes drivers for [all INS systems](https://github.com/PX4/PX4-Autopilot/blob/main/src/drivers/ins/Kconfig).
+- The key for the particular INS system you are using, such as:
+  - `CONFIG_DRIVERS_INS_ILABS`
+  - `CONFIG_DRIVERS_INS_MICROSTRAIN`
+  - `CONFIG_DRIVERS_INS_VECTORNAV`
+
+If the required key is not present you can include the module in firmware by adding the key to the `default.px4board` file, or using the [kconfig board configuration tool](../hardware/porting_guide_config.md#px4-board-configuration-kconfig) and then select the driver you want (`Drivers -> INS`).
+Note that if you're working on a flight controller where flash memory is limited, you're better off installing just the modules you need.
+
+You will then need to rebuild the firmware.
 
 ## Словник
 
