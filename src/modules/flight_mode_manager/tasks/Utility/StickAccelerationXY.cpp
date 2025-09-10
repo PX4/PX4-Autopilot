@@ -43,6 +43,8 @@ StickAccelerationXY::StickAccelerationXY(ModuleParams *parent) :
 {
 	_brake_boost_filter.reset(1.f);
 	resetPosition();
+	_velocity_slew_rate_xy.setSlewRate(_param_mpc_acc_hor.get());
+	_velocity_slew_rate_xy.setForcedValue(_param_mpc_vel_manual.get());
 }
 
 void StickAccelerationXY::resetPosition()
@@ -75,23 +77,22 @@ void StickAccelerationXY::resetAcceleration(const matrix::Vector2f &acceleration
 	}
 }
 
+void StickAccelerationXY::setVelocityConstraint(float vel)
+{
+	if ((vel < _velocity_constraint) && (vel >= FLT_EPSILON)) {
+		_velocity_constraint = vel;
+	}
+};
+
 void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, const float yaw_sp, const Vector3f &pos,
 		const matrix::Vector2f &vel_sp_feedback, const float dt)
 {
-	// gradually adjust velocity constraint because good tracking is required for the drag estimation
-	if (fabsf(_targeted_velocity_constraint - _current_velocity_constraint) > 0.1f) {
-		if (!PX4_ISFINITE(_current_velocity_constraint) || !PX4_ISFINITE(_targeted_velocity_constraint)) {
-			_current_velocity_constraint = _targeted_velocity_constraint;
-
-		} else {
-			_current_velocity_constraint = math::constrain(_targeted_velocity_constraint,
-						       _current_velocity_constraint - dt * _param_mpc_acc_hor.get(),
-						       _current_velocity_constraint + dt * _param_mpc_acc_hor.get());
-		}
-	}
+	// avoid setpoint steps from limit changes to improve velocity tracking and hence drag estimation
+	const float velocity_constraint = _velocity_slew_rate_xy.update(_velocity_constraint, dt);
+	_velocity_constraint = _param_mpc_vel_manual.get(); // reset, reduced to strictest limit in next loop
 
 	// maximum commanded velocity can be constrained dynamically
-	const float velocity_sc = fminf(_param_mpc_vel_manual.get(), _current_velocity_constraint);
+	const float velocity_sc = fminf(_param_mpc_vel_manual.get(), velocity_constraint);
 	Vector2f velocity_scale(velocity_sc, velocity_sc);
 	// maximum commanded acceleration is scaled down with velocity
 	const float acceleration_sc = _param_mpc_acc_hor.get() * (velocity_sc / _param_mpc_vel_manual.get());
