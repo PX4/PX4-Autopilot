@@ -94,29 +94,29 @@ Flight control systems that can't power the autopilot via USB will need a [diffe
 
    - The minimum value for a motor (default: `1100us`) should make the motor spin slowly but reliably, and also spin up reliably after it was stopped.
 
-      You can confirm that a motor spins at minimum (still without propellers) in [Actuator Testing](../config/actuators.md#actuator-testing), by enabling the sliders, and then moving the test output slider for the motor to the first snap position from the bottom.
-      当你将滑块从解锁到最小值时，正确的值应该使电机立即和可靠地旋转。
+     You can confirm that a motor spins at minimum (still without propellers) in [Actuator Testing](../config/actuators.md#actuator-testing), by enabling the sliders, and then moving the test output slider for the motor to the first snap position from the bottom.
+     当你将滑块从解锁到最小值时，正确的值应该使电机立即和可靠地旋转。
 
-      要找到“最佳”最小值，请将滑块移动到底部(禁用)。
-      Then increase the PWM output's `disarmed` setting in small increments (e.g. 1025us, 1050us, etc), until the motor starts to spin reliably (it is better to be a little too high than a little too low).
-      Enter this value into the `minimum` setting for all the motor PWM outputs, and restore the `disarmed` output to `1100us`.
+     要找到“最佳”最小值，请将滑块移动到底部(禁用)。
+     Then increase the PWM output's `disarmed` setting in small increments (e.g. 1025us, 1050us, etc), until the motor starts to spin reliably (it is better to be a little too high than a little too low).
+     Enter this value into the `minimum` setting for all the motor PWM outputs, and restore the `disarmed` output to `1100us`.
 
    - The maximum value for a motor (default: `1900us`) should be chosen such that increasing the value doesn't make the motor spin any faster.
 
-      You can confirm that the motor spins quickly at the maximum setting in [Actuator Testing](../config/actuators.md#actuator-testing), by moving the associated test output slider to the top position.
+     You can confirm that the motor spins quickly at the maximum setting in [Actuator Testing](../config/actuators.md#actuator-testing), by moving the associated test output slider to the top position.
 
-      To find the "optimal" maximum value, first move the slider to the bottom (disarmed).
-      Then increase the PWM output's `disarmed` setting to near the default maximum (`1900`) - the motors should spin up.
-      Listen to the tone of the motor as you increase the PWM maximum value for the output in increments (e.g. 1925us, 1950us, etc).
-      The optimal value is found at the point when the sound of the motors does not change as you increase the value of the output.
-      Enter this value into the `maximum` setting for all the motor PWM outputs, and restore the `disarmed` output to `1100us`.
+     To find the "optimal" maximum value, first move the slider to the bottom (disarmed).
+     Then increase the PWM output's `disarmed` setting to near the default maximum (`1900`) - the motors should spin up.
+     Listen to the tone of the motor as you increase the PWM maximum value for the output in increments (e.g. 1925us, 1950us, etc).
+     The optimal value is found at the point when the sound of the motors does not change as you increase the value of the output.
+     Enter this value into the `maximum` setting for all the motor PWM outputs, and restore the `disarmed` output to `1100us`.
 
    - The disarmed value for a motor (default: `1000us`) should make the motor stop and stay stopped.
 
-      You can confirm this in [Actuator Testing](../config/actuators.md#actuator-testing) by moving the test output slider to the snap position at the bottom of the slider and observing that the motor does not spin.
+     You can confirm this in [Actuator Testing](../config/actuators.md#actuator-testing) by moving the test output slider to the snap position at the bottom of the slider and observing that the motor does not spin.
 
-      If the ESC spins with the default value of 1000us then the ESC is not properly calibrated.
-      If using an ESC that can't be calibrated, you should reduce the PWM output value for the output to below where the motor does not spin anymore (such as 950us or 900us).
+     If the ESC spins with the default value of 1000us then the ESC is not properly calibrated.
+     If using an ESC that can't be calibrated, you should reduce the PWM output value for the output to below where the motor does not spin anymore (such as 950us or 900us).
 
    ::: info
    VTOL and fixed-wing motors do not need any special PWM configuration.

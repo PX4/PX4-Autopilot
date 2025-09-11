@@ -95,6 +95,8 @@ NuttX має інтегрований інтерпретатор оболонк�
 Найкращий спосіб змінити запуск системи - це ввести [нову конфігурацію планера](../dev_airframes/adding_a_new_frame.md).
 Файл конфігурації планеру може бути включений у прошивку або на SD карту.
 
+#### Dynamic customization
+
 Якщо вам потрібно "підлаштувати" конфігурацію що існує, наприклад запустити один або більше застосунків або встановити значення кількох параметрів, можна вказати це створивши два файли у директорії `/etc/` на SD картці:
 
 - [/etc/config.txt](#customizing-the-configuration-config-txt): modify parameter values
@@ -111,7 +113,7 @@ NuttX має інтегрований інтерпретатор оболонк�
 Ці файли згадуються в коді PX4 як `/fs/microsd/etc/config.txt` та `/fs/microsd/etc/extras.txt`, де коренева директорія microSD карти визначається шляхом `/fs/microsd`.
 :::
 
-#### Налаштування конфігурації (config.txt)
+##### Налаштування конфігурації (config.txt)
 
 Файл `config.txt` можна використовувати для зміни параметрів.
 Він завантажується після того, як головна система була налаштована та _перед тим_ як завантажена.
@@ -123,7 +125,7 @@ param set-default PWM_MAIN_DIS3 1000
 param set-default PWM_MAIN_MIN3 1120
 ```
 
-#### Запуск додаткових застосунків (extras.txt)
+##### Запуск додаткових застосунків (extras.txt)
 
 `extras.txt` можна використовувати для запуску додаткових застосунків після завантаження основної системи.
 Зазвичай це будуть контролери корисного навантаження або подібні необов'язкові користувацькі компоненти.
@@ -149,4 +151,29 @@ param set-default PWM_MAIN_MIN3 1120
   set -e
 
   mandatory_app start     # Will abort boot if mandatory_app is unknown or fails
+  ```
+
+#### Additional customization
+
+In rare cases where the desired setup cannot be achieved through frame configuration or dynamic customization,
+you can add a script that will be contained in the binary.
+
+**Note**: In almost all cases, you should use a frame configuration. This method should only be used for
+edge-cases such as customizing `cannode` based boards.
+
+- Add a new init script in `boards/<vendor>/<board>/init` that will run during board startup. Наприклад:
+  ```sh
+  # File: boards/<vendor>/<board>/init/rc.additional
+  param set-default <param> <value>
+  ```
+
+- Add a new board variant in `boards/<vendor>/<board>/<variant>.px4board` that includes the additional script. Наприклад:
+  ```sh
+  # File: boards/<vendor>/<board>/var.px4board
+  CONFIG_BOARD_ADDITIONAL_INIT="rc.additional"
+  ```
+
+- Compile the firmware with your new variant by appending the variant name to the compile target. Наприклад:
+  ```sh
+  make <target>_var
   ```

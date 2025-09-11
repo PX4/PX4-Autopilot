@@ -2,11 +2,19 @@
 
 ## Objective
 
-To test that optical flow / external vision work as expected
+To test that optical flow works as expected
 
 ## Preflight
 
 Disconnect all GPS / compasses and ensure vehicle is using optical flow for navigation
+([Setup Information here](../sensor/optical_flow.md))
+
+Ensure there are no other sources of positioning besides optical flow
+
+- [EKF2_OF_CTRL](../advanced_config/parameter_reference.md#EKF2_OF_CTRL): `1`
+- [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL): `0`
+- [EKF2_EV_CTRL](../advanced_config/parameter_reference.md#EKF2_EV_CTRL): `0`
+- [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG): `0`
 
 Ensure that the drone can go into Altitude / Position flight mode while still on the ground
 
@@ -39,5 +47,7 @@ Ensure that the drone can go into Altitude / Position flight mode while still on
 ## 预期成果
 
 - 当油门升高时，起飞应该是平稳的
+- Drone should hold altitude in Altitude Flight mode without wandering
+- Drone should hold position within 1 meter in Position Flight mode without pilot moving sticks
 - 在上述任何飞行模式中都不应出现振荡
 - 着陆时，直升机不应在地面上反弹

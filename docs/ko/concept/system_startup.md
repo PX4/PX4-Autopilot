@@ -95,6 +95,8 @@ This is documented below.
 The best way to customize the system startup is to introduce a [new frame configuration](../dev_airframes/adding_a_new_frame.md).
 The frame configuration file can be included in the firmware or on an SD Card.
 
+#### Dynamic customization
+
 If you only need to "tweak" the existing configuration, such as starting one more application or setting the value of a few parameters, you can specify these by creating two files in the `/etc/` directory of the SD Card:
 
 - [/etc/config.txt](#customizing-the-configuration-config-txt): modify parameter values
@@ -111,7 +113,7 @@ Windows에서 편집하는 경우 적절한 편집기를 사용하여야 합니�
 These files are referenced in PX4 code as `/fs/microsd/etc/config.txt` and `/fs/microsd/etc/extras.txt`, where the root folder of the microsd card is identified by the path `/fs/microsd`.
 :::
 
-#### 구성 사용자 정의(config.txt)
+##### 구성 사용자 정의(config.txt)
 
 The `config.txt` file can be used to modify parameters.
 It is loaded after the main system has been configured and _before_ it is booted.
@@ -123,7 +125,7 @@ param set-default PWM_MAIN_DIS3 1000
 param set-default PWM_MAIN_MIN3 1120
 ```
 
-#### Starting Additional Applications (extras.txt)
+##### Starting Additional Applications (extras.txt)
 
 The `extras.txt` can be used to start additional applications after the main system boot.
 일반적으로, 페이로드 콘트롤러나 유사한 선택적 사용자 지정 구성 요소들입니다.
@@ -149,4 +151,29 @@ Calling an unknown command in system boot files may result in boot failure.
   set -e
 
   mandatory_app start     # Will abort boot if mandatory_app is unknown or fails
+  ```
+
+#### Additional customization
+
+In rare cases where the desired setup cannot be achieved through frame configuration or dynamic customization,
+you can add a script that will be contained in the binary.
+
+**Note**: In almost all cases, you should use a frame configuration. This method should only be used for
+edge-cases such as customizing `cannode` based boards.
+
+- Add a new init script in `boards/<vendor>/<board>/init` that will run during board startup. 예:
+  ```sh
+  # File: boards/<vendor>/<board>/init/rc.additional
+  param set-default <param> <value>
+  ```
+
+- Add a new board variant in `boards/<vendor>/<board>/<variant>.px4board` that includes the additional script. 예:
+  ```sh
+  # File: boards/<vendor>/<board>/var.px4board
+  CONFIG_BOARD_ADDITIONAL_INIT="rc.additional"
+  ```
+
+- Compile the firmware with your new variant by appending the variant name to the compile target. 예:
+  ```sh
+  make <target>_var
   ```
