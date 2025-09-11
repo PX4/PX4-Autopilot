@@ -2,20 +2,21 @@
 
 <Badge type="tip" text="PX4 v1.16" /> <Badge type="warning" text="Experimental" />
 
-The [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) provides a high-level interface for executing waypoint missions in ROS 2.
+The [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) provides a high-level interface for executing ROS-based waypoint missions in ROS 2.
 
-Mission definitions can be loaded from JSON files.
-The implementation can be extended with actions to customize behaviour within a mission.
-
-::: tip
-This completely bypasses the existing PX4 mission mode and waypoint logic, while still allowing to use existing modes like takeoff or RTL.
+::: warning
+ROS 2 missions are not compatible with MAVLink mission definitions, plan files, or ground stations.
+They completely bypass the existing PX4 mission mode and waypoint logic, and cannot be planned or displayed within a ground station.
 :::
+
+The main use-case for ROS-based missions is for creating waypoint missions where a custom behavior is required, such as a pickup action within a mission.
+Mission definitions can be loaded from JSON files.
+These can reference and use existing PX4 modes such as takeoff or RTL.
+The implementation can be extended with actions to customize behaviour within a mission.
 
 ## Comparison to Existing PX4 Missions
 
 There are some benefits and drawbacks to using ROS-based missions, which are provided in the following paragraphs.
-
-The main use-case is for predefined waypoint missions where a custom behavior is required, such as a pickup action within a mission.
 
 ### Benefits
 
@@ -27,8 +28,7 @@ The main use-case is for predefined waypoint missions where a custom behavior is
 
 ### Drawbacks
 
-- By not using the existing PX4 mission logic, QGroundControl currently does not display the mission or progress during execution.
-  It can also not upload or download a mission.
+- QGroundControl currently does not display the mission or progress during execution, and cannot upload or download a mission.
   Therefore you will need another mechanism to provide a mission, such as from a web server, a custom GCS, or by generating it directly inside the application.
 - The current implementation supports only multicopters, but is designed to be extendable to any other vehicle type.
 
