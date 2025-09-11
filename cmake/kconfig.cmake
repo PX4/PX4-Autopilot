@@ -368,6 +368,12 @@ if(EXISTS ${BOARD_DEFCONFIG})
 		add_definitions(-DCONSTRAINED_MEMORY)
 	endif()
 
+	set(config_process_params_extra_flags "" CACHE INTERNAL "process params command extra flags" FORCE)
+
+	if(PARAM_REMOVE_LONGDESC)
+		set(config_process_params_extra_flags "--no-long-desc" CACHE INTERNAL "process params command extra flags" FORCE)
+	endif()
+
 	if(TESTING)
 		set(PX4_TESTING "1" CACHE INTERNAL "testing enabled" FORCE)
 	endif()

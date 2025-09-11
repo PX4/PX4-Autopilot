@@ -108,6 +108,9 @@ def main():
                         default="{}",
                         metavar="OVERRIDES",
                         help="a dict of overrides in the form of a json string")
+    parser.add_argument("-nl", "--no-long-desc",
+                        action='store_true',
+                        help="remove long parameter descriptions from the JSON output")
 
     args = parser.parse_args()
 
@@ -171,11 +174,13 @@ def main():
 
     # Output to JSON file
     if args.json:
+        ignored_codes = []
         if args.verbose:
             print("Creating Json file " + args.json)
+        if args.no_long_desc:
+            ignored_codes.append('long_desc')
         cur_dir = os.path.dirname(os.path.realpath(__file__))
-        out = jsonout.JsonOutput(param_groups, args.board,
-                               os.path.join(cur_dir, args.inject_xml))
+        out = jsonout.JsonOutput(param_groups, args.board, ignored_codes)
         out.Save(args.json)
         output_files.append(args.json)
 
@@ -184,7 +189,7 @@ def main():
             if args.verbose:
                 print("Compressing file " + f)
             save_compressed(f)
-            
+
 
 if __name__ == "__main__":
     main()
