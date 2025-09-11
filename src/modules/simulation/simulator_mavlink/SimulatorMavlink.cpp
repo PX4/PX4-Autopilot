@@ -841,7 +841,7 @@ void SimulatorMavlink::handle_message_target_relative(const mavlink_message_t *m
 				// Transform quaternion from the target's frame to the TARGET_OBS_FRAME to the yaw relative to NED
 				const matrix::Quatf q_target(target_relative.q_target);
 				const matrix::Quatf q_in_ned = q_sensor * q_target;
-				const float target_yaw_ned = matrix::wrap_pi(matrix::Eulerf(q_in_ned).psi());
+				const float target_yaw_ned = matrix::Eulerf(q_in_ned).psi();
 
 				fiducial_marker_yaw_report.yaw_ned = target_yaw_ned;
 				fiducial_marker_yaw_report.yaw_var_ned = target_relative.yaw_std * target_relative.yaw_std;
