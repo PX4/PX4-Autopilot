@@ -60,7 +60,7 @@ namespace vision_target_estimator
 static constexpr uint32_t vte_pos_UPDATE_RATE_HZ = 50;
 static constexpr uint32_t vte_yaw_UPDATE_RATE_HZ = 50;
 static constexpr uint32_t acc_downsample_TIMEOUT_US = 40_ms; // 40 ms -> 25Hz
-static constexpr uint32_t estimator_restart_time_US = 3_s; // Wait at least one second before re-starting the filter
+static constexpr uint32_t estimator_restart_time_US = 3_s; // Wait at least 3 second before re-starting the filter
 static constexpr float CONSTANTS_ONE_G = 9.80665f;  // m/s^2
 
 VisionTargetEst::VisionTargetEst() :
@@ -106,8 +106,14 @@ int VisionTargetEst::task_spawn(int argc, char *argv[])
 
 bool VisionTargetEst::init()
 {
+
+	if (!_param_vte_pos_en.get() && !_param_vte_yaw_en.get()) {
+		PX4_WARN("VTE not enabled, update VTE_POS_EN or VTE_YAW_EN");
+		return false;
+	}
+
 	if (!_vehicle_attitude_sub.registerCallback()) {
-		PX4_ERR("vehicle_attitude callback registration failed!");
+		PX4_ERR("VTE vehicle_attitude callback registration failed!");
 		return false;
 	}
 
@@ -124,7 +130,7 @@ bool VisionTargetEst::init()
 	_vte_position_enabled = false;
 	_vte_orientation_enabled = false;
 
-	// Structure allows for different tasks using the VTE in the future.
+	// allows for different tasks using the VTE in the future.
 	_vte_task_mask = _param_vte_task_mask.get();
 
 	if (_vte_task_mask < 1) {
@@ -400,10 +406,12 @@ void VisionTargetEst::stop_orientation_estimator()
 void VisionTargetEst::start_estimators_if_needed()
 {
 
-	if (!_position_estimator_running && _vte_position_enabled) {
+	// Only start the estimator if fusion is enabled, otherwise it will timeout
+	if (!_position_estimator_running && _vte_position_enabled && _vte_position->has_fusion_enabled()) {
 		_position_estimator_running = start_position_estimator();
 	}
 
+	// TODO: include _vte_orientation->has_fusion_enabled()
 	if (!_orientation_estimator_running && _vte_orientation_enabled) {
 		_orientation_estimator_running = start_orientation_estimator();
 	}
@@ -440,11 +448,12 @@ void VisionTargetEst::perform_estimations()
 	localPose local_pose;
 	const bool local_pose_updated = get_local_pose(local_pose);
 
-	if (_vte_position_enabled) {
+	if (_vte_position_enabled && _position_estimator_running) {
 		perform_position_update(local_pose, local_pose_updated);
 	}
 
-	if (_vte_orientation_enabled && has_elapsed(_last_update_yaw, (1_s / vte_yaw_UPDATE_RATE_HZ))) {
+	if (_vte_orientation_enabled && _orientation_estimator_running
+	    && has_elapsed(_last_update_yaw, (1_s / vte_yaw_UPDATE_RATE_HZ))) {
 		perform_orientation_update(local_pose, local_pose_updated);
 	}
 

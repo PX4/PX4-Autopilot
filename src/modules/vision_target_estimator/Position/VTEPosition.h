@@ -111,6 +111,9 @@ public:
 
 	bool has_timed_out() {return _has_timed_out;};
 
+	// TODO: decide if a relative position measurement is required.
+	bool has_fusion_enabled() {return _vte_aid_mask != SensorFusionMask::NO_SENSOR_FUSION;};
+
 private:
 	struct accInput {
 
@@ -217,7 +220,8 @@ private:
 		FUSE_UWB 				= (1 << 5) ///< set to true if UWB data is ready to be fused
 	};
 
-	bool initTargetEstimator();
+	void adjustAidMask();
+	bool createEstimators();
 	bool initEstimator(const matrix::Matrix <float, Direction::nb_directions, vtest::State::size>
 			   &state_init);
 	bool updateStep(const matrix::Vector3f &vehicle_acc_ned);
@@ -390,7 +394,6 @@ private:
 		(ParamFloat<px4::params::VTE_GPS_P_NOISE>) _param_vte_gps_pos_noise,
 		(ParamInt<px4::params::VTE_EV_NOISE_MD>) _param_vte_ev_noise_md,
 		(ParamFloat<px4::params::VTE_EVP_NOISE>) _param_vte_ev_pos_noise,
-		(ParamInt<px4::params::VTE_MODE>) _param_vte_mode,
 		(ParamInt<px4::params::VTE_EKF_AID>) _param_vte_ekf_aid,
 		(ParamFloat<px4::params::VTE_MOVING_T_MAX>) _param_vte_moving_t_max,
 		(ParamFloat<px4::params::VTE_MOVING_T_MIN>) _param_vte_moving_t_min,

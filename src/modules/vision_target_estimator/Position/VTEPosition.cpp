@@ -83,44 +83,47 @@ VTEPosition::~VTEPosition()
 bool VTEPosition::init()
 {
 
-// Check valid vtest_derivation/generated/state.h
+	// Check valid vtest_derivation/generated/state.h
 #if defined(CONFIG_VTEST_MOVING)
+	PX4_INFO("VTE for static target init.");
 	PX4_WARN("VTE for moving targets has not been thoroughly tested.");
 
 	if (vtest::State::size != 5) {
-		PX4_ERR("VTE: Invalid state. Missing auto-generated files.");
+		PX4_ERR("VTE: Invalid state size, expected 5. Generate vtest_derivation/derivation.py.");
 		return false;
 	}
 
 #else
+	PX4_INFO("VTE for static target init.");
 
 	if (vtest::State::size != 3) {
-		PX4_ERR("VTE: Invalid state. Missing auto-generated files.");
+		PX4_ERR("VTE: Invalid state size, expected 3. Generate vtest_derivation/derivation.py.");
 		return false;
 	}
 
 #endif // CONFIG_VTEST_MOVING
 
+	if (!createEstimators()) {
+		PX4_ERR("VTE position KF creation failed");
+		return false;
+	}
+
 	// Get params
 	_vte_TIMEOUT_US = (uint32_t)(_param_vte_btout.get() * 1_s);
 	_vte_aid_mask = _param_vte_aid_mask.get();
 
-	if (_vte_aid_mask == SensorFusionMask::NO_SENSOR_FUSION) {
-		PX4_ERR("VTE: no data fusion enabled. Modify VTE_AID_MASK and reboot");
-		return false;
-	}
+	adjustAidMask();
 
-	if (!initTargetEstimator()) {
-		PX4_ERR("VTE position KF init failed");
-		return false;
-	}
+	return true;
+}
 
-	// TODO: move prints into a function.
+void VTEPosition::adjustAidMask()
+{
+
 #if defined(CONFIG_VTEST_MOVING)
 
 	if (_vte_aid_mask & SensorFusionMask::USE_MISSION_POS) {
-		PX4_WARN("VTE mission land position data fusion cannot be enabled for moving targets.");
-		PX4_WARN("Disabling mission land position fusion.");
+		PX4_WARN("VTE for moving targets. Disabling mission land position data fusion.");
 		_vte_aid_mask -= SensorFusionMask::USE_MISSION_POS;
 	}
 
@@ -132,21 +135,22 @@ bool VTEPosition::init()
 		_vte_aid_mask -= SensorFusionMask::USE_MISSION_POS;
 	}
 
-	if (_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) { PX4_INFO("VTE target GPS position data fusion enabled");}
+	if (_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) {PX4_INFO("VTE target GPS position data fusion enabled");}
 
-	if (_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_VEL) { PX4_INFO("VTE target GPS velocity data fusion enabled");}
+	if (_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_VEL) {PX4_INFO("VTE target GPS velocity data fusion enabled");}
 
-	if (_vte_aid_mask & SensorFusionMask::USE_MISSION_POS) { PX4_INFO("VTE PX4 mission position fusion enabled");}
+	if (_vte_aid_mask & SensorFusionMask::USE_MISSION_POS) {PX4_INFO("VTE mission land position fusion enabled");}
 
-	if (_vte_aid_mask & SensorFusionMask::USE_UAV_GPS_VEL) { PX4_INFO("VTE UAV GPS velocity data fusion enabled");}
+	if (_vte_aid_mask & SensorFusionMask::USE_UAV_GPS_VEL) {PX4_INFO("VTE UAV GPS velocity data fusion enabled");}
 
-	if (_vte_aid_mask & SensorFusionMask::USE_EXT_VIS_POS) { PX4_INFO("VTE target external vision-based relative position data fusion enabled");}
+	if (_vte_aid_mask & SensorFusionMask::USE_EXT_VIS_POS) {PX4_INFO("VTE vision relative position data fusion enabled");}
 
-	if (_vte_aid_mask & SensorFusionMask::USE_UWB) { PX4_INFO("VTE target uwb relative position data fusion enabled");}
+	if (_vte_aid_mask & SensorFusionMask::USE_UWB) {PX4_INFO("VTE uwb relative position data fusion enabled");}
 
-	return true;
+	if (_vte_aid_mask == SensorFusionMask::NO_SENSOR_FUSION) {PX4_WARN("VTE: no data fusion. Modify VTE_AID_MASK");}
+
+	return;
 }
-
 
 void VTEPosition::reset_filter()
 {
@@ -1334,6 +1338,8 @@ void VTEPosition::checkParams(const bool force)
 	if (_local_velocity.valid) {
 		_local_velocity.valid = isMeasUpdated(_local_velocity.timestamp);
 	}
+
+	// TODO: check other measurements?
 }
 
 void VTEPosition::set_gps_pos_offset(const matrix::Vector3f &xyz, const bool gps_is_offset)
@@ -1410,11 +1416,17 @@ void VTEPosition::updateParams()
 	_gps_pos_noise = _param_vte_gps_pos_noise.get();
 	_ev_noise_md = _param_vte_ev_noise_md.get();
 	_ev_pos_noise = _param_vte_ev_pos_noise.get();
-	_vte_aid_mask = _param_vte_aid_mask.get();
 	_nis_threshold = _param_vte_pos_nis_thre.get();
+
+	const int new_aid_mask = _param_vte_aid_mask.get();
+
+	if (new_aid_mask != _vte_aid_mask) {
+		_vte_aid_mask = new_aid_mask;
+		adjustAidMask();
+	}
 }
 
-bool VTEPosition::initTargetEstimator()
+bool VTEPosition::createEstimators()
 {
 
 	// Array to hold temporary pointers
