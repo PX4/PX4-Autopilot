@@ -581,6 +581,8 @@ private:
 	estimator_aid_source2d_s _aid_src_gnss_pos{};
 	estimator_aid_source3d_s _aid_src_gnss_vel{};
 
+	uint64_t _gnss_hgt_hysteresis_time{0};
+
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	estimator_aid_source1d_s _aid_src_gnss_yaw {};
 # endif // CONFIG_EKF2_GNSS_YAW
@@ -885,7 +887,8 @@ private:
 	void resetHorizontalPositionToGnss(estimator_aid_source2d_s &aid_src);
 
 	void controlGnssHeightFusion(const gnssSample &gps_sample);
-	void stopGpsHgtFusion();
+	void stopGpsHgtFusion(estimator_aid_source1d_s *aid_src=nullptr);
+	bool isGnssHgtResetAllowed();
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	void controlGnssYawFusion(const gnssSample &gps_sample);
