@@ -171,6 +171,7 @@ void SensorAirspeedSim::Run()
 			differential_pressure_s differential_pressure{};
 			// report.timestamp_sample = time;
 			differential_pressure.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
+
 			differential_pressure.differential_pressure_pa = diff_pressure * 100.0f * airspeed_blockage_scale; // hPa to Pa;
 			differential_pressure.temperature = temperature_local + ABSOLUTE_ZERO_C; // K to C
 			differential_pressure.timestamp = hrt_absolute_time();
