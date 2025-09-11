@@ -282,6 +282,7 @@
       - [CubePilot Here+ (Discontined)](gps_compass/rtk_gps_hex_hereplus.md)
     - [INS (Inertial Navigation/GNSS)](sensor/inertial_navigation_systems.md)
       - [InertialLabs](sensor/inertiallabs.md)
+      - [sbgECom](sensor/sbgecom.md)
       - [VectorNav](sensor/vectornav.md)
     - [Optical Flow](sensor/optical_flow.md)
       - [ARK Flow](dronecan/ark_flow.md)

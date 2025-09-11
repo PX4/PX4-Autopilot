@@ -256,6 +256,8 @@
 #define DRV_INS_DEVTYPE_MICROSTRAIN	0xEA
 #define DRV_INS_DEVTYPE_BAHRS           0xEB
 
+#define DRV_INS_DEVTYPE_SBG		0xEC
+
 #define DRV_DEVTYPE_UNUSED		0xff
 
 #endif /* _DRV_SENSOR_H */
