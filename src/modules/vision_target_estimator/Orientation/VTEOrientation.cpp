@@ -39,6 +39,8 @@
  *
  */
 
+// TODO: implement aid mask. In the future there might be more measurements
+
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
@@ -68,11 +70,8 @@ VTEOrientation::~VTEOrientation()
 
 bool VTEOrientation::init()
 {
-	// TODO: remove target mode.
-	_target_mode = (TargetMode)_param_vte_mode.get();
 	_vte_TIMEOUT_US = (uint32_t)(_param_vte_btout.get() * 1_s);
-
-	return initTargetEstimator();
+	return createEstimator();
 }
 
 void VTEOrientation::reset_filter()
@@ -321,12 +320,12 @@ void VTEOrientation::set_range_sensor(const float dist, const bool valid)
 	_range_sensor.last_update = hrt_absolute_time();
 }
 
-bool VTEOrientation::initTargetEstimator()
+bool VTEOrientation::createEstimator()
 {
 	KF_orientation *tmp_theta = new KF_orientation;
 
 	if (tmp_theta == nullptr) {
-		PX4_ERR("VTE orientation init failed");
+		PX4_ERR("VTE orientation creation failed");
 		return false;
 
 	} else {

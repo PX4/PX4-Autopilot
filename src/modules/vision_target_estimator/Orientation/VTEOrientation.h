@@ -117,15 +117,6 @@ protected:
 private:
 
 	bool _has_timed_out{false};
-
-	enum class TargetMode {
-		Stationary = 0,
-		Moving = 1,
-		NotInit
-	};
-
-	TargetMode _target_mode{TargetMode::NotInit};
-
 	struct targetObsOrientation {
 		hrt_abstime timestamp;
 		// Theta
@@ -135,7 +126,7 @@ private:
 		matrix::Vector<float, State::size> meas_h_theta;
 	};
 
-	bool initTargetEstimator();
+	bool createEstimator();
 	bool initEstimator(const float theta_init);
 	bool updateStep();
 	void predictionStep();
@@ -182,7 +173,6 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::VTE_YAW_UNC_IN>) _param_vte_yaw_unc_in,
 		(ParamFloat<px4::params::VTE_BTOUT>) _param_vte_btout,
-		(ParamInt<px4::params::VTE_MODE>) _param_vte_mode,
 		(ParamInt<px4::params::VTE_YAW_EN>) _param_vte_yaw_en,
 		(ParamFloat<px4::params::VTE_EVA_NOISE>) _param_vte_ev_angle_noise,
 		(ParamInt<px4::params::VTE_EV_NOISE_MD>) _param_vte_ev_noise_md,
