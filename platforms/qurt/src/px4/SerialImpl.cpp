@@ -268,8 +268,9 @@ ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 	int ret_write = qurt_uart_write(_serial_fd, (const char *) buffer, buffer_size);
 
 	if (ret_write < 0) {
-		PX4_ERR("%s write error %d", _port, ret_write);
-
+		if (errno != EAGAIN) {
+			PX4_ERR("%s write error %d", _port, ret_write);
+		}
 	}
 
 	return ret_write;

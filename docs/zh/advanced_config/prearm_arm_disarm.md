@@ -153,14 +153,14 @@ It corresponds to: [COM_PREARM_MODE=1](#COM_PREARM_MODE) (safety switch) and [CB
 The default startup sequence is:
 
 1. Power-up.
-  - All actuators locked into disarmed position
-  - Not possible to arm.
+   - All actuators locked into disarmed position
+   - Not possible to arm.
 2. Safety switch is pressed.
-  - System now prearmed: non-throttling actuators can move (e.g. ailerons).
-  - System safety is off: Arming possible.
+   - System now prearmed: non-throttling actuators can move (e.g. ailerons).
+   - System safety is off: Arming possible.
 3. Arm command is issued.
-  - The system is armed.
-  - All motors and actuators can move.
+   - The system is armed.
+   - All motors and actuators can move.
 
 ### COM_PREARM_MODE=Disabled and Safety Switch
 
@@ -170,14 +170,14 @@ This corresponds to [COM_PREARM_MODE=0](#COM_PREARM_MODE) (Disabled) and [CBRK_I
 The startup sequence is:
 
 1. Power-up.
-  - All actuators locked into disarmed position
-  - Not possible to arm.
+   - All actuators locked into disarmed position
+   - Not possible to arm.
 2. Safety switch is pressed.
-  - _All actuators stay locked into disarmed position (same as disarmed)._
-  - System safety is off: Arming possible.
+   - _All actuators stay locked into disarmed position (same as disarmed)._
+   - System safety is off: Arming possible.
 3. Arm command is issued.
-  - The system is armed.
-  - All motors and actuators can move.
+   - The system is armed.
+   - All motors and actuators can move.
 
 ### COM_PREARM_MODE=Always and Safety Switch
 
@@ -188,13 +188,13 @@ This corresponds to [COM_PREARM_MODE=2](#COM_PREARM_MODE) (Always) and [CBRK_IO_
 The startup sequence is:
 
 1. Power-up.
-  - System now prearmed: non-throttling actuators can move (e.g. ailerons).
-  - Not possible to arm.
+   - System now prearmed: non-throttling actuators can move (e.g. ailerons).
+   - Not possible to arm.
 2. Safety switch is pressed.
-  - System safety is off: Arming possible.
+   - System safety is off: Arming possible.
 3. Arm command is issued.
-  - The system is armed.
-  - All motors and actuators can move.
+   - The system is armed.
+   - All motors and actuators can move.
 
 ### COM_PREARM_MODE=Safety or Disabled and No Safety Switch
 
@@ -204,11 +204,11 @@ This corresponds to [COM_PREARM_MODE=0 or 1](#COM_PREARM_MODE) (Disabled/Safety 
 The startup sequence is:
 
 1. Power-up.
-  - All actuators locked into disarmed position
-  - System safety is off: Arming possible.
+   - All actuators locked into disarmed position
+   - System safety is off: Arming possible.
 2. Arm command is issued.
-  - The system is armed.
-  - All motors and actuators can move.
+   - The system is armed.
+   - All motors and actuators can move.
 
 ### COM_PREARM_MODE=Always and No Safety Switch
 
@@ -218,11 +218,11 @@ This corresponds to [COM_PREARM_MODE=2](#COM_PREARM_MODE) (Always) and [CBRK_IO_
 The startup sequence is:
 
 1. Power-up.
-  - System now prearmed: non-throttling actuators can move (e.g. ailerons).
-  - System safety is off: Arming possible.
+   - System now prearmed: non-throttling actuators can move (e.g. ailerons).
+   - System safety is off: Arming possible.
 2. Arm command is issued.
-  - The system is armed.
-  - All motors and actuators can move.
+   - The system is armed.
+   - All motors and actuators can move.
 
 ### 参数
 
