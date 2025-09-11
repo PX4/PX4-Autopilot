@@ -135,6 +135,16 @@ parameters:
             type: int32
             default: 0
 
+        MS_EXT_MAG_EN:
+            description:
+                short: Toggles external magnetometer aiding in the device filter
+                long: |
+                    0 = Disabled,
+                    1 = Enabled
+                    Restart required
+            type: int32
+            default: 0
+
         MS_INT_HEAD_EN:
             description:
                 short: Toggles internal heading as an aiding measurement
@@ -158,6 +168,16 @@ parameters:
                     Restart required
 
                     This parameter is specific to the MicroStrain driver.
+            type: int32
+            default: 0
+
+        MS_OPT_FLOW_EN:
+            description:
+                short: Toggles optical flow aiding in the device filter
+                long: |
+                    0 = Disabled,
+                    1 = Enabled
+                    Restart required
             type: int32
             default: 0
 
@@ -306,5 +326,140 @@ parameters:
                     Restart required
 
                     This parameter is specific to the MicroStrain driver.
+            type: float
+            default: 0.0
+
+        MS_GNSS_ROLL:
+            description:
+                short: GNSS Orientation (Roll)
+                long: |
+                    The orientation of the device (Radians) with respect to the vehicle frame around the x axis
+                    Restart required
+
+                    This parameter is specific to the MicroStrain driver.
+            type: float
+            default: 0.0
+
+        MS_GNSS_PTCH:
+            description:
+                short: GNSS Orientation (Pitch)
+                long: |
+                    The orientation of the device (Radians) with respect to the vehicle frame around the y axis
+                    Restart required
+
+                    This parameter is specific to the MicroStrain driver.
+            type: float
+            default: 0.0
+
+        MS_GNSS_YAW:
+            description:
+                short: GNSS Orientation (Yaw)
+                long: |
+                    The orientation of the device (Radians) with respect to the vehicle frame around the z axis
+                    Restart required
+
+                    This parameter is specific to the MicroStrain driver.
+            type: float
+            default: 0.0
+
+        MS_EMAG_OFF_X:
+            description:
+                short: External Magnetometer offset (X)
+                long: |
+                    Lever arm offset (m) in the X direction if an external magnetometer is connected
+                    Restart required
+            type: float
+            default: 0.0
+
+        MS_EMAG_OFF_Y:
+            description:
+                short: External Magnetometer offset (Y)
+                long: |
+                    Lever arm offset (m) in the Y direction if an external magnetometer is connected
+                    Restart required
+            type: float
+            default: 0.0
+
+        MS_EMAG_OFF_Z:
+            description:
+                short: External Magnetometer offset (Z)
+                long: |
+                    Lever arm offset (m) in the Z direction if an external magnetometer is connected
+                    Restart required
+            type: float
+            default: 0.0
+
+        MS_EMAG_ROLL:
+            description:
+                short: External Magnetometer Orientation (Roll)
+                long: |
+                    The orientation of the device (Radians) with respect to the vehicle frame around the x axis
+                    Restart required
+
+            type: float
+            default: 0.0
+
+        MS_EMAG_PTCH:
+            description:
+                short: External Magnetometer Orientation (Pitch)
+                long: |
+                    The orientation of the device (Radians) with respect to the vehicle frame around the y axis
+                    Restart required
+
+            type: float
+            default: 0.0
+
+        MS_EMAG_YAW:
+            description:
+                short: External Magnetometer Orientation (Yaw)
+                long: |
+                    The orientation of the device (Radians) with respect to the vehicle frame around the z axis
+                    Restart required
+
+            type: float
+            default: 0.0
+
+        MS_OFLW_OFF_X:
+            description:
+                short: Optical Flow offset (X)
+                long: |
+                    Lever arm offset (m) in the X direction if an Optical Flow sensor is connected
+                    Restart required
+            type: float
+            default: 0.0
+
+        MS_OFLW_OFF_Y:
+            description:
+                short: Optical Flow offset (Y)
+                long: |
+                    Lever arm offset (m) in the Y direction if an Optical Flow is connected
+                    Restart required
+            type: float
+            default: 0.0
+
+        MS_OFLW_OFF_Z:
+            description:
+                short: Optical Flow offset (Z)
+                long: |
+                    Lever arm offset (m) in the Z direction if an Optical Flow is connected
+                    Restart required
+            type: float
+            default: 0.0
+
+        MS_EMAG_UNCERT:
+            description:
+                short: External Magnetometer Uncertainty
+                long: |
+                    The orientation of the device (Radians) with respect to the vehicle frame around the z axis
+                    Restart required
+            type: float
+            default: 0.0
+
+        MS_OFLW_UNCERT:
+            description:
+                short: Optical Flow Uncertainty
+                long: |
+                    The orientation of the device (Radians) with respect to the vehicle frame around the z axis
+                    Restart required
             type: float
             default: 0.0
