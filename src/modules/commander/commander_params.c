@@ -1036,3 +1036,60 @@ PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 0);
  *
  */
 PARAM_DEFINE_INT32(COM_MODE_ARM_CHK, 0);
+
+/**
+ * RC Loiter Mode Switch Channel
+ *
+ * RC channel for Loiter/Manual mode switching.
+ * Set to -1 to disable this feature.
+ * Channel value > threshold triggers Loiter mode,
+ * Channel value < threshold triggers Manual mode.
+ *
+ * @value -1 Disabled
+ * @value 0 aux1
+ * @value 1 aux2
+ * @value 2 aux3
+ * @value 3 aux4
+ * @value 4 aux5
+ * @value 5 aux6
+ * @min -1
+ * @max 5
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_RC_LOITER_CH, -1);
+
+/**
+ * RC Loiter Mode Switch Threshold
+ *
+ * Threshold for RC channel to trigger mode switch.
+ * Values above this threshold trigger Loiter mode.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @decimal 2
+ * @group Commander
+ */
+PARAM_DEFINE_FLOAT(COM_RC_LOITER_TH, 0.5);
+
+/**
+ * RC Loiter Mode Switch Invert
+ *
+ * Invert the RC channel for mode switching.
+ *
+ * @boolean
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_RC_LOIT_INV, 0);
+
+/**
+ * RC Loiter Mode Switch Debounce Time
+ *
+ * Minimum time between mode switches to prevent bouncing.
+ *
+ * @unit s
+ * @min 0.0
+ * @max 2.0
+ * @decimal 2
+ * @group Commander
+ */
+PARAM_DEFINE_FLOAT(COM_RC_LOITER_DB, 0.2);

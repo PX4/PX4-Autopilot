@@ -1838,6 +1838,8 @@ void Commander::run()
 
 		modeManagementUpdate();
 
+		checkRCModeSwitch();
+
 		const hrt_abstime now = hrt_absolute_time();
 
 		const bool nav_state_or_failsafe_changed = handleModeIntentionAndFailsafe();
@@ -2996,6 +2998,84 @@ void Commander::onFailsafeNotifyUser()
 	// as the failsafe message might reference that. This is only needed in case the report is currently rate-limited,
 	// i.e. it had a recent previous change already.
 	_health_and_arming_checks.reportIfUnreportedDifferences();
+}
+
+void Commander::checkRCModeSwitch()
+{
+	// Check if RC mode switch is enabled
+	if (_param_com_rc_loiter_ch.get() < 0) {
+		return; // Feature disabled
+	}
+
+	manual_control_setpoint_s manual_control_setpoint;
+	if (!_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
+		return; // No RC data available
+	}
+
+	// Get RC channel value based on parameter
+	float channel_value = 0.0f;
+	int channel = _param_com_rc_loiter_ch.get();
+
+	switch (channel) {
+		case 0: channel_value = manual_control_setpoint.aux1; break;
+		case 1: channel_value = manual_control_setpoint.aux2; break;
+		case 2: channel_value = manual_control_setpoint.aux3; break;
+		case 3: channel_value = manual_control_setpoint.aux4; break;
+		case 4: channel_value = manual_control_setpoint.aux5; break;
+		case 5: channel_value = manual_control_setpoint.aux6; break;
+		default: return; // Invalid channel
+	}
+
+	// Apply inversion if enabled
+	if (_param_com_rc_loiter_inv.get()) {
+		channel_value = -channel_value;
+	}
+
+	// Determine current switch state
+	bool current_state = (channel_value > _param_com_rc_loiter_th.get());
+
+	// Check for state change with debouncing
+	hrt_abstime now = hrt_absolute_time();
+	if (current_state != _rc_mode_switch_last_state) {
+		if (now - _rc_mode_switch_last_time > (_param_com_rc_loiter_db.get() * 1e6f)) {
+			// Edge detected, switch mode
+			if (current_state) {
+				// Switch to Loiter mode
+				sendModeCommand(PX4_CUSTOM_MAIN_MODE_AUTO, PX4_CUSTOM_SUB_MODE_AUTO_LOITER);
+				PX4_INFO("RC Switch: Switching to Loiter mode");
+			} else {
+				// Switch to Manual mode
+				sendModeCommand(PX4_CUSTOM_MAIN_MODE_MANUAL);
+				PX4_INFO("RC Switch: Switching to Manual mode");
+			}
+
+			_rc_mode_switch_last_state = current_state;
+			_rc_mode_switch_last_time = now;
+		}
+	} else {
+		// State hasn't changed, update time
+		_rc_mode_switch_last_time = now;
+	}
+}
+
+void Commander::sendModeCommand(uint8_t main_mode, uint8_t sub_mode)
+{
+	px4_custom_mode custom_mode{};
+	custom_mode.main_mode = main_mode;
+	custom_mode.sub_mode = sub_mode;
+
+	vehicle_command_s cmd{};
+	cmd.timestamp = hrt_absolute_time();
+	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
+	cmd.param1 = 1; // MAV_MODE_FLAG_CUSTOM_MODE_ENABLED
+	cmd.param2 = custom_mode.data;
+	cmd.target_system = _vehicle_status.system_id;
+	cmd.target_component = _vehicle_status.component_id;
+	cmd.source_system = _vehicle_status.system_id;
+	cmd.source_component = _vehicle_status.component_id;
+	cmd.from_external = false;
+
+	_vehicle_command_pub.publish(cmd);
 }
 
 int Commander::print_usage(const char *reason)
