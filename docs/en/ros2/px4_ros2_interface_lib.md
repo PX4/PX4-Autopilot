@@ -12,12 +12,8 @@ The library provides three high-level interfaces for developers:
 
 1. The [Control Interface](./px4_ros2_control_interface.md) allows developers to create and dynamically register modes written using ROS 2.
    It provides classes for sending different types of setpoints, ranging from high-level navigation tasks all the way down to direct actuator controls.
-1. The [Navigation Interface](./px4_ros2_navigation_interface.md) enables sending vehicle position estimates to PX4 from ROS 2 applications, such as a VIO system.
-1. [Waypoint Missions](./px4_ros2_waypoint_missions.md) allows to run waypoint missions entirely in ROS 2.
-
-<!--
-## Overview
--->
+2. The [Navigation Interface](./px4_ros2_navigation_interface.md) enables sending vehicle position estimates to PX4 from ROS 2 applications, such as a VIO system.
+3. [Waypoint Missions](./px4_ros2_waypoint_missions.md) allows waypoint missions to run entirely in ROS 2.
 
 ## Installation in a ROS 2 Workspace
 
