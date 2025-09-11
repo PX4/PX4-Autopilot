@@ -1,5 +1,11 @@
 module_name: MICROSTRAIN
 
+serial_config:
+    - command: sleep 1; microstrain start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_MS_CFG
+        group: Sensorss
+
 parameters:
     - group: Sensors
       definitions:
