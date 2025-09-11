@@ -229,10 +229,10 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [RoverPositionSetpoint](RoverPositionSetpoint.md) — Rover Position Setpoint
 - [RoverRateSetpoint](RoverRateSetpoint.md) — Rover Rate setpoint
 - [RoverRateStatus](RoverRateStatus.md) — Rover Rate Status
+- [RoverSpeedSetpoint](RoverSpeedSetpoint.md) — Rover Speed Setpoint
+- [RoverSpeedStatus](RoverSpeedStatus.md) — Rover Velocity Status
 - [RoverSteeringSetpoint](RoverSteeringSetpoint.md) — Rover Steering setpoint
 - [RoverThrottleSetpoint](RoverThrottleSetpoint.md) — Rover Throttle setpoint
-- [RoverVelocitySetpoint](RoverVelocitySetpoint.md) — Rover Velocity Setpoint
-- [RoverVelocityStatus](RoverVelocityStatus.md) — Rover Velocity Status
 - [Rpm](Rpm.md)
 - [RtlStatus](RtlStatus.md)
 - [RtlTimeEstimate](RtlTimeEstimate.md)
@@ -281,7 +281,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [UlogStreamAck](UlogStreamAck.md) — Ack a previously sent ulog_stream message that had
   the NEED_ACK flag set
 - [VehicleAcceleration](VehicleAcceleration.md)
-- [VehicleAirData](VehicleAirData.md)
+- [VehicleAirData](VehicleAirData.md) — Vehicle air data
 - [VehicleAngularAccelerationSetpoint](VehicleAngularAccelerationSetpoint.md)
 - [VehicleConstraints](VehicleConstraints.md) — Local setpoint constraints in NED frame
   setting something to NaN means that no limit is provided
@@ -301,6 +301,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [YawEstimatorStatus](YawEstimatorStatus.md)
 - [AirspeedValidatedV0](AirspeedValidatedV0.md)
 - [ArmingCheckReplyV0](ArmingCheckReplyV0.md)
+- [ArmingCheckRequestV0](ArmingCheckRequestV0.md) — Arming check request.
 - [BatteryStatusV0](BatteryStatusV0.md) — Battery status
 - [EventV0](EventV0.md) — this message is required here in the msg_old folder because other msg are depending on it
   Events interface
