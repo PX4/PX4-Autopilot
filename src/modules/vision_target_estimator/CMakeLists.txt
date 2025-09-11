@@ -63,13 +63,13 @@ set(VTEST_GENERATED_FILE_LIST
 
 # Use one file as the dependency anchor. The custom_command OUTPUT will ensure all are generated.
 set(VTEST_GENERATED_FILES ${VTEST_DERIVATION_SRC_DIR}/generated/state.h)
-set(VTEST_GENERATED_DERIVATION_INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Position)
+set(VTEST_GENERATED_DERIVATION_INCLUDE_PATH ${VTEST_DERIVATION_SRC_DIR}/..)
 
 if(VTEST_SYMFORCE_GEN AND (${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0))
 
 	set(VTEST_SYMFORCE_TARGET_DEPS)
 
-	# 1. Regenerate default committed files in the source tree
+	# Regenerate default committed files in the source tree
 	# This can be disabled to prevent accidental changes to committed files.
 	if(VTEST_UPDATE_COMMITTED_DERIVATION)
 		add_custom_command(
@@ -88,7 +88,7 @@ if(VTEST_SYMFORCE_GEN AND (${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0))
 		list(APPEND VTEST_SYMFORCE_TARGET_DEPS ${VTEST_GENERATED_FILE_LIST})
 	endif()
 
-	# 2. Generate files to the build directory for non-default configurations
+	# Generate files to the build directory for non-default configurations
 	set(VTEST_DERIVATION_DST_DIR ${CMAKE_CURRENT_BINARY_DIR}/vtest_derivation)
 	file(MAKE_DIRECTORY ${VTEST_DERIVATION_DST_DIR})
 
@@ -102,7 +102,7 @@ if(VTEST_SYMFORCE_GEN AND (${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0))
 
 	# Overwrite variables to use build directory paths for the compile step
 	set(VTEST_GENERATED_FILES ${VTEST_DERIVATION_DST_DIR}/generated/state.h)
-	set(VTEST_GENERATED_DERIVATION_INCLUDE_PATH ${CMAKE_CURRENT_BINARY_DIR}/..)
+	set(VTEST_GENERATED_DERIVATION_INCLUDE_PATH ${CMAKE_CURRENT_BINARY_DIR})
 
 	set(SYMFORCE_ARGS)
 	if(CONFIG_VTEST_MOVING)

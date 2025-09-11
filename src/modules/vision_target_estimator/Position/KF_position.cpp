@@ -40,10 +40,10 @@
  */
 
 #include "KF_position.h"
-#include "vtest_derivation/generated/syncState.h"
-#include "vtest_derivation/generated/predictState.h"
-#include "vtest_derivation/generated/predictCov.h"
-#include "vtest_derivation/generated/computeInnovCov.h"
+#include <vtest_derivation/generated/syncState.h>
+#include <vtest_derivation/generated/predictState.h>
+#include <vtest_derivation/generated/predictCov.h>
+#include <vtest_derivation/generated/computeInnovCov.h>
 
 namespace vision_target_estimator
 {
