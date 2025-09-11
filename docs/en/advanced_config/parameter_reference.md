@@ -692,6 +692,16 @@ to 0 and 4096. Other standard params follows the same rule.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 65535    |           | 0       |
 
+### PCA9685_EN_BUS (`INT32`) {#PCA9685_EN_BUS}
+
+Enable the PCA9685 output driver.
+
+The integer refers to the I2C bus number where PCA9685 is connected.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 10       |           | 0       |
+
 ### PCA9685_FAIL1 (`INT32`) {#PCA9685_FAIL1}
 
 PCA9685 Output Channel 1 Failsafe Value.
@@ -14435,9 +14445,9 @@ Set bits in the following positions to enable:
 
 ### FW_AT_MAN_AUX (`INT32`) {#FW_AT_MAN_AUX}
 
-Enable/disable auto tuning using an RC AUX input.
+Enable/disable auto tuning using a manual control AUX input.
 
-Defines which RC_MAP_AUXn parameter maps the RC channel used to enable/disable auto tuning.
+Defines which RC_MAP_AUXn parameter maps the manual control channel used to enable/disable auto tuning.
 
 **Values:**
 
@@ -16242,21 +16252,6 @@ Expect and require a healthy MAVLink parachute system.
 | ------ | -------- | -------- | --------- | ------------ | ---- |
 | &nbsp; |          |          |           | Disabled (0) |
 
-### COM_POSCTL_NAVL (`INT32`) {#COM_POSCTL_NAVL}
-
-Position mode navigation loss response.
-
-This sets the flight mode that will be used if navigation accuracy is no longer adequate for position control in manual Position mode.
-
-**Values:**
-
-- `0`: Altitude mode
-- `1`: Land mode (descend)
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0       |
-
 ### COM_POS_FS_EPH (`FLOAT`) {#COM_POS_FS_EPH}
 
 Horizontal position error threshold for hovering systems.
@@ -16363,7 +16358,7 @@ A negative value disables the check.
 
 ### COM_RCL_EXCEPT (`INT32`) {#COM_RCL_EXCEPT}
 
-RC loss exceptions.
+Manual control loss exceptions.
 
 Specify modes where manual control loss is ignored and no failsafe is triggered.
 External modes requiring stick input will still failsafe.
@@ -16381,7 +16376,7 @@ External modes requiring stick input will still failsafe.
 
 ### COM_RC_ARM_HYST (`INT32`) {#COM_RC_ARM_HYST}
 
-RC input arm/disarm command duration.
+Manual control input arm/disarm command duration.
 
 The default value of 1000 requires the stick to be held in the arm or disarm position for 1 second.
 
@@ -16429,9 +16424,9 @@ Ensure the value is not set lower than the update interval of the RC or Joystick
 
 ### COM_RC_OVERRIDE (`INT32`) {#COM_RC_OVERRIDE}
 
-Enable RC stick override of auto and/or offboard modes.
+Enable manual control stick override.
 
-When RC stick override is enabled, moving the RC sticks more than COM_RC_STICK_OV
+When enabled, moving the sticks more than COM_RC_STICK_OV
 immediately gives control back to the pilot by switching to Position mode and
 if position is unavailable Altitude mode.
 Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
@@ -16447,7 +16442,7 @@ Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
 
 ### COM_RC_STICK_OV (`FLOAT`) {#COM_RC_STICK_OV}
 
-RC stick override threshold.
+Stick override threshold.
 
 If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold
 the autopilot the pilot takes over control.
@@ -16591,11 +16586,10 @@ action will be executed.
 
 ### NAV_RCL_ACT (`INT32`) {#NAV_RCL_ACT}
 
-Set RC loss failsafe mode.
+Set manual control loss failsafe mode.
 
-The RC loss failsafe will only be entered after a timeout,
-set by COM_RC_LOSS_T in seconds. If RC input checks have been disabled
-by setting the COM_RC_IN_MODE param it will not be triggered.
+The manual control loss failsafe will only be entered after a timeout,
+set by COM_RC_LOSS_T in seconds.
 
 **Values:**
 
@@ -16876,7 +16870,7 @@ armed.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        | 0.01      | 0.055   | %    |
+| &nbsp; | 0        | 1        | 0.01      | 0.055   | norm |
 
 ### DSHOT_TEL_CFG (`INT32`) {#DSHOT_TEL_CFG}
 
@@ -19929,7 +19923,7 @@ Yaw behaviour during orbit flight.
 - `1`: Hold Initial Heading
 - `2`: Uncontrolled
 - `3`: Hold Front Tangent to Circle
-- `4`: RC Controlled
+- `4`: Manually (yaw stick) Controlled
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -20268,6 +20262,7 @@ Modes 1 and 2 require each F9P UART1 to be connected to the Autopilot. In additi
 F9P units are connected to each other.
 Modes 3 and 4 only require UART1 on each F9P connected to the Autopilot or Can Node. UART RX DMA is required.
 RTK is still possible with this setup.
+Mode 6 is intended for use with a ground control station (not necessarily an RTK correction base).
 
 **Values:**
 
@@ -20277,6 +20272,7 @@ RTK is still possible with this setup.
 - `3`: Heading (Rover With Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
 - `4`: Moving Base (Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
 - `5`: Rover with Static Base on UART2 (similar to Default, except coming in on UART2)
+- `6`: Ground Control Station (UART2 outputs NMEA)
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
@@ -29542,6 +29538,16 @@ Distance from the center of the right wheel to the center of the left wheel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 100      | 0.001     | 0       | m    |
 
+### RD_YAW_STK_GAIN (`FLOAT`) {#RD_YAW_STK_GAIN}
+
+Yaw stick gain for Manual mode.
+
+Assign value <1.0 to decrease stick response for yaw control.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.1      | 1        | 0.01      | 1       |
+
 ## Rover Mecanum
 
 ### RM_COURSE_CTL_TH (`FLOAT`) {#RM_COURSE_CTL_TH}
@@ -29567,6 +29573,16 @@ Distance from the center of the right wheel to the center of the left wheel.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 100      | 0.001     | 0       | m    |
 
+### RM_YAW_STK_GAIN (`FLOAT`) {#RM_YAW_STK_GAIN}
+
+Yaw stick gain for Manual mode.
+
+Assign value <1.0 to decrease stick response for yaw control.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.1      | 1        | 0.01      | 1       |
+
 ## Rover Rate Control
 
 ### RO_YAW_ACCEL_LIM (`FLOAT`) {#RO_YAW_ACCEL_LIM}
@@ -29590,6 +29606,18 @@ Set to -1 to disable.
 | Reboot | minValue | maxValue | increment | default | unit    |
 | ------ | -------- | -------- | --------- | ------- | ------- |
 | &nbsp; | -1       | 10000    | 0.01      | -1.     | deg/s^2 |
+
+### RO_YAW_EXPO (`FLOAT`) {#RO_YAW_EXPO}
+
+Yaw rate expo factor.
+
+Exponential factor for tuning the input curve shape.
+0 Purely linear input curve
+1 Purely cubic input curve
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1        |           | 0.      |
 
 ### RO_YAW_RATE_CORR (`FLOAT`) {#RO_YAW_RATE_CORR}
 
@@ -29650,6 +29678,19 @@ Percentage of stick input range that will be interpreted as zero around the stic
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 1        | 0.01      | 0.1     |
+
+### RO_YAW_SUPEXPO (`FLOAT`) {#RO_YAW_SUPEXPO}
+
+Yaw rate super expo factor.
+
+"Superexponential" factor for refining the input curve shape tuned using RO_YAW_EXPO.
+0 Pure Expo function
+0.7 reasonable shape enhancement for intuitive stick feel
+0.95 very strong bent input curve only near maxima have effect
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 0.95     |           | 0.      |
 
 ## Rover Velocity Control
 
@@ -29838,6 +29879,24 @@ Selects the algorithm used for logfile encryption
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 2       |
 
+### SDLOG_BACKEND (`INT32`) {#SDLOG_BACKEND}
+
+Logging Backend (integer bitmask).
+
+If no logging is set the logger will not be started.
+Set bits true to enable:
+0: SD card logging
+1: Mavlink logging
+
+**Bitmask:**
+
+- `0`: SD card logging
+- `1`: Mavlink logging
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 3        |           | 3       |
+
 ### SDLOG_BOOT_BAT (`INT32`) {#SDLOG_BOOT_BAT}
 
 Battery-only Logging.
@@ -29924,10 +29983,12 @@ Logging Mode.
 
 Determines when to start and stop logging. By default, logging is started
 when arming the system, and stopped when disarming.
+Note: The logging start/end points that can be configured here only apply to
+SD logging. The mavlink backend is started/stopped independently
+of these points.
 
 **Values:**
 
-- `-1`: disabled
 - `0`: when armed until disarm (default)
 - `1`: from boot until disarm
 - `2`: from boot until shutdown
@@ -33018,6 +33079,31 @@ The mode will switch from long to short range when the distance is less than the
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 1        | 50       |           | 4       | m    |
 
+### SENS_BAHRS_CFG (`INT32`) {#SENS_BAHRS_CFG}
+
+Serial Configuration for EULER-NAV BAHRS.
+
+Configure on which serial port to run EULER-NAV BAHRS.
+
+**Values:**
+
+- `0`: Disabled
+- `6`: UART 6
+- `101`: TELEM 1
+- `102`: TELEM 2
+- `103`: TELEM 3
+- `104`: TELEM/SERIAL 4
+- `201`: GPS 1
+- `202`: GPS 2
+- `203`: GPS 3
+- `300`: Radio Controller
+- `301`: Wifi Port
+- `401`: EXT2
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
+
 ### SENS_BARO_QNH (`FLOAT`) {#SENS_BARO_QNH}
 
 QNH for barometer.
@@ -35561,6 +35647,86 @@ Note: certain drivers such as the GPS can determine the Baudrate automatically.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 1       |
+
+## Simulation
+
+### SIM_GZ_EN_ASPD (`INT32`) {#SIM_GZ_EN_ASPD}
+
+Enable airspeed sensor in Gazebo bridge.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default     | unit |
+| ------- | -------- | -------- | --------- | ----------- | ---- |
+| &check; |          |          |           | Enabled (1) |
+
+### SIM_GZ_EN_BARO (`INT32`) {#SIM_GZ_EN_BARO}
+
+Enable barometer/air pressure sensor in Gazebo bridge.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default     | unit |
+| ------- | -------- | -------- | --------- | ----------- | ---- |
+| &check; |          |          |           | Enabled (1) |
+
+### SIM_GZ_EN_FLOW (`INT32`) {#SIM_GZ_EN_FLOW}
+
+Enable optical flow sensor in Gazebo bridge.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default     | unit |
+| ------- | -------- | -------- | --------- | ----------- | ---- |
+| &check; |          |          |           | Enabled (1) |
+
+### SIM_GZ_EN_GPS (`INT32`) {#SIM_GZ_EN_GPS}
+
+Enable GPS/NavSat sensor in Gazebo bridge.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default     | unit |
+| ------- | -------- | -------- | --------- | ----------- | ---- |
+| &check; |          |          |           | Enabled (1) |
+
+### SIM_GZ_EN_LIDAR (`INT32`) {#SIM_GZ_EN_LIDAR}
+
+Enable laser/lidar sensors in Gazebo bridge.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default     | unit |
+| ------- | -------- | -------- | --------- | ----------- | ---- |
+| &check; |          |          |           | Enabled (1) |
+
+### SIM_GZ_EN_ODOM (`INT32`) {#SIM_GZ_EN_ODOM}
+
+Enable odometry in Gazebo bridge.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default     | unit |
+| ------- | -------- | -------- | --------- | ----------- | ---- |
+| &check; |          |          |           | Enabled (1) |
 
 ## Simulation In Hardware
 
@@ -41075,3 +41241,11 @@ SPC_VEHICLE_RESP.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 0.5     |
+
+### ZENOH_DOMAIN_ID (`INT32`) {#ZENOH_DOMAIN_ID}
+
+ROS2 RMW_ZENOH_CPP Domain id.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 232      |           | 0       |
