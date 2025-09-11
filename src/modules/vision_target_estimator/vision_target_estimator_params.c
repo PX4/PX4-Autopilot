@@ -75,6 +75,7 @@ PARAM_DEFINE_INT32(VTE_POS_EN, 1);
  */
 PARAM_DEFINE_INT32(VTE_EKF_AID, 1);
 
+// TODO: this is only for the Position estimator
 /**
  * Integer bitmask controlling data fusion and aiding methods.
  *
@@ -115,26 +116,6 @@ PARAM_DEFINE_INT32(VTE_AID_MASK, 14);
  * @group Vision target Estimator
  */
 PARAM_DEFINE_INT32(VTE_TASK_MASK, 1);
-
-
-// TODO: remove
-/**
- * Target mode
- *
- * Configure the mode of the target. Depending on the mode, the state of the estimator (Kalman filter) varies. For static targets, the target observations can be used to aid position estimation.
- *
- * Mode Static: The target is static, the state of the Kalman filter is: [relative position, relative velocity, bias]. If the observations have a low variance,they can be used to aid position estimation.
- * Mode Moving: The target may be moving around, the state of the Kalman filter is: [relative position, drone velocity, bias, target's acceleration, target's velocity].
- *
- * @min 0
- * @max 2
- * @group Vision target Estimator
- * @value 0 Static
- * @value 1 Moving
- *
- * @group Vision target Estimator
- */
-PARAM_DEFINE_INT32(VTE_MODE, 0);
 
 
 /**
