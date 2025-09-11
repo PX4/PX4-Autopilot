@@ -107,6 +107,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_time_sync_slave(_node),
 	_node_status_monitor(_node),
 	_node_info_retriever(_node),
+	_node_info_publisher(_node, _node_info_retriever),
 	_master_timer(_node),
 	_param_getset_client(_node),
 	_param_opcode_client(_node),
