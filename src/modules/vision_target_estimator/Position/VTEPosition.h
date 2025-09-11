@@ -72,7 +72,7 @@
 #include <lib/conversion/rotation.h>
 #include <lib/geo/geo.h>
 #include "KF_position.h"
-#include "vtest_derivation/generated/state.h"
+#include <vtest_derivation/generated/state.h>
 
 using namespace time_literals;
 
