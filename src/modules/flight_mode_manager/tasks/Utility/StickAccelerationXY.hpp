@@ -64,8 +64,10 @@ public:
 	void getSetpoints(matrix::Vector3f &pos_sp, matrix::Vector3f &vel_sp, matrix::Vector3f &acc_sp);
 	float getMaxAcceleration() { return _param_mpc_acc_hor.get(); };
 	float getMaxJerk() { return _param_mpc_jerk_max.get(); };
-	void setVelocityConstraint(float vel) { _targeted_velocity_constraint = fmaxf(vel, FLT_EPSILON); };
-	float getVelocityConstraint() { return _current_velocity_constraint; };
+
+	// Assuming the velocity constraint resets in every loop and update constraint if new value is lower
+	void setVelocityConstraint(float vel);
+	float getVelocityConstraint() { return _velocity_slew_rate_xy.getState(); };
 
 private:
 	CollisionPrevention _collision_prevention{this};
@@ -80,6 +82,7 @@ private:
 
 	SlewRate<float> _acceleration_slew_rate_x;
 	SlewRate<float> _acceleration_slew_rate_y;
+	SlewRate<float> _velocity_slew_rate_xy;
 	AlphaFilter<float> _brake_boost_filter;
 
 	matrix::Vector2f _position_setpoint;
@@ -87,8 +90,7 @@ private:
 	matrix::Vector2f _acceleration_setpoint;
 	matrix::Vector2f _acceleration_setpoint_prev;
 
-	float _targeted_velocity_constraint{INFINITY};
-	float _current_velocity_constraint{INFINITY};
+	float _velocity_constraint{INFINITY};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,
