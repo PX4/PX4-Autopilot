@@ -522,14 +522,6 @@ bool Ekf::resetYawToEKFGSF()
 		return false;
 	}
 
-	// don't allow reset if there's just been a yaw reset
-	const bool yaw_alignment_changed = (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
-	const bool quat_reset = (_state_reset_status.reset_count.quat != _state_reset_count_prev.quat);
-
-	if (yaw_alignment_changed || quat_reset) {
-		return false;
-	}
-
 	ECL_INFO("yaw estimator reset heading %.3f -> %.3f rad",
 		 (double)getEulerYaw(_R_to_earth), (double)_yawEstimator.getYaw());
 

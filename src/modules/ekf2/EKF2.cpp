@@ -580,6 +580,24 @@ void EKF2::Run()
 				command_ack.timestamp = hrt_absolute_time();
 				_vehicle_command_ack_pub.publish(command_ack);
 			}
+
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE) {
+				if (PX4_ISFINITE(vehicle_command.param3)) {
+					const float heading = wrap_pi(math::radians(vehicle_command.param3));
+					static constexpr float default_heading_accuracy_deg = 20.f;
+					const float heading_accuracy = math::radians(PX4_ISFINITE(vehicle_command.param7)
+								       ? vehicle_command.param7
+								       : default_heading_accuracy_deg);
+					_ekf.resetHeadingToExternalObservation(heading, heading_accuracy);
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+				} else {
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+				}
+
+				command_ack.timestamp = hrt_absolute_time();
+				_vehicle_command_ack_pub.publish(command_ack);
+			}
 		}
 	}
 

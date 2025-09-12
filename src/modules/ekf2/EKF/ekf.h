@@ -416,6 +416,16 @@ public:
 	bool resetGlobalPosToExternalObservation(double latitude, double longitude, float altitude, float eph, float epv,
 			uint64_t timestamp_observation);
 
+	void resetHeadingToExternalObservation(float heading, float heading_accuracy)
+	{
+		resetQuatStateYaw(heading, sq(heading_accuracy));
+		_control_status.flags.yaw_align = true;
+
+		// Force the mag consistency check to pass again since an external heading reset is often done to
+		// counter mag disturbances.
+		_control_status.flags.mag_heading_consistent = false;
+	}
+
 	void updateParameters();
 
 	friend class AuxGlobalPosition;

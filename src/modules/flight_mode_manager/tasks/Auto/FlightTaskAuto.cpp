@@ -719,7 +719,8 @@ void FlightTaskAuto::_ekfResetHandlerVelocityZ(float delta_vz)
 
 void FlightTaskAuto::_ekfResetHandlerHeading(float delta_psi)
 {
-	_yaw_setpoint_previous += delta_psi;
+	_yaw_setpoint_previous = wrap_pi(_yaw_setpoint_previous + delta_psi);
+	_heading_smoothing.reset(wrap_pi(_heading_smoothing.getSmoothedHeading() + delta_psi));
 }
 
 void FlightTaskAuto::_checkEmergencyBraking()
