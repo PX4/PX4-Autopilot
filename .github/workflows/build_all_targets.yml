@@ -72,7 +72,7 @@ jobs:
   setup:
     name: Build Group [${{ matrix.group }}][${{ matrix.arch == 'nuttx' && 'x86' || 'arm64' }}]
     # runs-on: ubuntu-latest
-    runs-on: [runs-on,"runner=4cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}"]
+    runs-on: [runs-on,"runner=4cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",extras=s3-cache]
     needs: group_targets
     strategy:
       matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
@@ -80,6 +80,7 @@ jobs:
     container:
       image: ${{ matrix.container }}
     steps:
+      - uses: runs-on/action@v2
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -91,8 +92,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.ccache
-          key: ${{ matrix.group }}-ccache-${{ needs.group_targets.outputs.timestamp }}
-          restore-keys: ${{ matrix.group }}-ccache-${{ needs.group_targets.outputs.timestamp }}
+          key: ccache-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('**/CMakeLists.txt','**/cmake/**','**/platforms/**','**/src/**','**/boards/**') }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ matrix.arch }}-
+            ccache-${{ runner.os }}-
+            ccache-
+          save-always: true
 
       - name: Configure ccache
         run: |
@@ -100,8 +105,9 @@ jobs:
             echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
             echo "compression = true" >> ~/.ccache/ccache.conf
             echo "compression_level = 6" >> ~/.ccache/ccache.conf
-            echo "max_size = 120M" >> ~/.ccache/ccache.conf
+            echo "max_size = 8G" >> ~/.ccache/ccache.conf
             echo "hash_dir = false" >> ~/.ccache/ccache.conf
+            echo "compiler_check = content" >> ~/.ccache/ccache.conf
             ccache -s
             ccache -z
 
