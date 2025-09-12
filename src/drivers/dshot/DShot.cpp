@@ -38,7 +38,6 @@
 #include <px4_platform_common/sem.hpp>
 
 char DShot::_telemetry_device[] {};
-bool DShot::_telemetry_swap_rxtx{false};
 px4::atomic_bool DShot::_request_telemetry_init{false};
 
 DShot::DShot() :
@@ -58,9 +57,6 @@ DShot::~DShot()
 	up_dshot_arm(false);
 
 	perf_free(_cycle_perf);
-	perf_free(_bdshot_rpm_perf);
-	perf_free(_dshot_telem_perf);
-
 	delete _telemetry;
 }
 
@@ -101,7 +97,7 @@ int DShot::task_spawn(int argc, char *argv[])
 
 void DShot::enable_dshot_outputs(const bool enabled)
 {
-	if (enabled && !_outputs_initialized) {
+	if (enabled && !_outputs_initialized && esc_flasher_flashing_state == 0) {
 		unsigned int dshot_frequency = 0;
 		uint32_t dshot_frequency_param = 0;
 
@@ -146,6 +142,9 @@ void DShot::enable_dshot_outputs(const bool enabled)
 		}
 
 		_bidirectional_dshot_enabled = _param_bidirectional_enable.get();
+
+		// Get ESC_TYPE parameter at startup
+		_esc_type = (ESCType)_param_esc_type.get();
 
 		int ret = up_dshot_init(_output_mask, dshot_frequency, _bidirectional_dshot_enabled);
 
@@ -193,7 +192,7 @@ void DShot::update_num_motors()
 	_num_motors = motor_count;
 }
 
-void DShot::init_telemetry(const char *device, bool swap_rxtx)
+void DShot::init_telemetry(const char *device)
 {
 	if (!_telemetry) {
 		_telemetry = new DShotTelemetry{};
@@ -205,7 +204,7 @@ void DShot::init_telemetry(const char *device, bool swap_rxtx)
 	}
 
 	if (device != NULL) {
-		int ret = _telemetry->init(device, swap_rxtx);
+		int ret = _telemetry->init(device);
 
 		if (ret != 0) {
 			PX4_ERR("telemetry init failed (%i)", ret);
@@ -247,11 +246,26 @@ int DShot::handle_new_telemetry_data(const int telemetry_index, const DShotTelem
 		++esc_status.counter;
 
 		ret = 1; // Indicate we wrapped, so we publish data
+#if 1
+		// Flag get_esc_info state machine to start ESC detection
+		if (get_esc_info_boot == 0 && get_esc_info_start == 0) {
+			// Use get_esc_info_boot so we only start ESC detection at boot ONCE
+			// It can be restarted via ESC_Flasher.cpp, using get_esc_info_start = 1
+			get_esc_info_boot = 1;
+			get_esc_info_start = 1;
+			get_esc_info_time = hrt_absolute_time() + 3_s;
+			// Set _esc_type_temp to the first enum, AM32
+			if (_esc_type == ESCType::Unknown) {
+				_esc_type_temp = ESCType::AM32;
+			}
+			else {
+				_esc_type_temp = _esc_type;
+			}
+		}
+#endif
 	}
 
 	_last_telemetry_index = telemetry_index;
-
-	perf_count(_dshot_telem_perf);
 
 	return ret;
 }
@@ -260,12 +274,37 @@ void DShot::publish_esc_status(void)
 {
 	esc_status_s &esc_status = esc_status_pub.get();
 	int telemetry_index = 0;
+	int num_active_motors = _num_motors;
 
 	// clear data of the esc that are offline
 	for (int index = 0; (index < _last_telemetry_index); index++) {
 		if ((esc_status.esc_online_flags & (1 << index)) == 0) {
 			memset(&esc_status.esc[index], 0, sizeof(struct esc_report_s));
+			num_active_motors--;
 		}
+	}
+
+	if (num_active_motors != _num_motors && esc_flasher_flashing_state == 0) {
+		_broken_esc++;
+		// 50 times will take 2 seconds, since this runs at 25 Hz
+		if (_broken_esc >= 50 && _broken_esc % 50 == 0) {
+			//PX4_INFO("Broken ESC detected! Hardware fix required.");
+			if (!_broken_esc_flag) {
+				PX4_INFO("Broken ESC detected! Hardware fix required.");
+				_broken_esc_flag = true;
+
+				// Send esc_versions uOrb with result BROKEN
+				esc_flasher_versions_s esc_flasher_versions{0};
+				esc_flasher_versions.result = esc_flasher_versions_s::RESULT_BROKEN_ESC;
+				// Flag versions_valid so the message gets sent out in PRE_SHOW_STATUS.hpp
+				esc_flasher_versions.versions_valid = 1;
+				esc_flasher_versions.timestamp = hrt_absolute_time();
+				_esc_flasher_versions_pub.publish(esc_flasher_versions);
+			}
+		}
+	}
+	else {
+		_broken_esc = 0;
 	}
 
 	// FIXME: mark all UART Telemetry ESC's as online, otherwise commander complains even for a single dropout
@@ -286,6 +325,12 @@ void DShot::publish_esc_status(void)
 				++telemetry_index;
 			}
 		}
+	}
+
+	// If ESC flashing is in progress, mark all ESCs as offline so vehicle cannot arm
+	if (esc_flasher_flashing_state > 0) {
+		esc_status.esc_online_flags = 0;
+		esc_status.esc_armed_flags = 0;
 	}
 
 	if (!esc_status_pub.advertised()) {
@@ -328,9 +373,9 @@ int DShot::handle_new_bdshot_erpm(void)
 
 			++telemetry_index;
 		}
-	}
 
-	perf_count(_bdshot_rpm_perf);
+
+	}
 
 	return num_erpms;
 }
@@ -347,6 +392,13 @@ int DShot::send_command_thread_safe(const dshot_command_t command, const int num
 		cmd.motor_mask = 1 << motor_index;
 	}
 
+	ESCType temp_esc_type = _esc_type;
+	if (get_esc_info_state != 0) {
+		temp_esc_type = _esc_type_temp;
+	}
+	if (temp_esc_type == ESCType::AM32) {
+		if (cmd.command == 9 || cmd.command == 10) cmd.save = true;
+	}
 	cmd.num_repetitions = num_repetitions;
 	_new_command.store(&cmd);
 
@@ -367,12 +419,127 @@ int DShot::send_command_thread_safe(const dshot_command_t command, const int num
 	return 0;
 }
 
+void DShot::retrieve_and_print_esc_info_thread_safe(const int motor_index)
+{
+	if (_request_esc_info.load() != nullptr) {
+		// already in progress (not expected to ever happen)
+		return;
+	}
+
+	DShotTelemetry::OutputBuffer output_buffer{};
+	output_buffer.motor_index = motor_index;
+
+	// start the request
+	_request_esc_info.store(&output_buffer);
+
+	// wait until processed
+	int max_time = 1000;
+
+	while (_request_esc_info.load() != nullptr && max_time-- > 0) {
+		px4_usleep(1000);
+	}
+
+	_request_esc_info.store(nullptr); // just in case we time out...
+	_waiting_for_esc_info = false;
+
+	if (output_buffer.buf_pos == 0) {
+		PX4_ERR("No data received. If telemetry is setup correctly, try again");
+		return;
+	}
+
+	DShotTelemetry::decodeAndPrintEscInfoPacket(output_buffer);
+}
+
+int DShot::retrieve_and_print_esc_info_non_blocking(const int motor_index)
+{
+	if (_request_esc_info.load() != nullptr) {
+		// already in progress (not expected to ever happen)
+		return -1;
+	}
+
+	esc_flasher_output_buffer.buf_pos = 0;
+	esc_flasher_output_buffer.motor_index = motor_index;
+
+	// start the request
+	_request_esc_info.store(&esc_flasher_output_buffer);
+
+	return 0;
+}
+
+int DShot::retrieve_and_print_esc_info_check_result(uint8_t* fw_ver_major, uint8_t* fw_ver_minor)
+{
+	// Return 0 only if AM32 ESC
+	// Return -1 if still waiting for data
+	// Return -2 for timeout or CRC error or other error
+	// Return -3 for BLHeli ESC
+
+	if (_request_esc_info.load() != nullptr) {
+		// Data not ready yet
+		return -1;
+	}
+
+	_request_esc_info.store(nullptr); // just in case we time out...
+	_waiting_for_esc_info = false;
+
+	if (esc_flasher_output_buffer.buf_pos == 0) {
+		PX4_ERR("No data received. If telemetry is setup correctly, try again");
+		return -2;
+	}
+
+	int retval = DShotTelemetry::decodeEscInfoPacketFwVersion(esc_flasher_output_buffer, fw_ver_major, fw_ver_minor);
+	if (retval == 0) {
+		// AM32 ESC success
+		return retval;
+	}
+	else if (retval == -1) {
+		// No data or CRC error or other error
+		return -2;
+	}
+	else if (retval == -2) {
+		// BLHeli ESC success
+		//PX4_ERR("AM32 ESC not found");
+		return -3;
+	}
+
+	return retval;
+}
+
+int DShot::request_esc_info()
+{
+	_telemetry->redirectOutput(*_request_esc_info.load());
+	_waiting_for_esc_info = true;
+
+	int motor_index = _request_esc_info.load()->motor_index;
+
+	_current_command.motor_mask = 1 << motor_index;
+
+	ESCType temp_esc_type = _esc_type;
+	if (get_esc_info_state != 0) {
+		temp_esc_type = _esc_type_temp;
+	}
+	if (temp_esc_type == ESCType::AM32 || temp_esc_type == ESCType::AM32_Old) _current_command.num_repetitions = 6;
+	else _current_command.num_repetitions = 1;
+
+	_current_command.command = DShot_cmd_esc_info;
+	_current_command.save = false;
+
+	PX4_DEBUG("Requesting ESC info for motor %i", motor_index);
+	return motor_index;
+}
+
 void DShot::mixerChanged()
 {
 	update_num_motors();
+
 }
 
 bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
+			  unsigned num_outputs, unsigned num_control_groups_updated)
+{
+	return false;
+}
+
+bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			  unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (!_outputs_on) {
@@ -382,82 +549,104 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 	int requested_telemetry_index = -1;
 
 	if (_telemetry) {
-		requested_telemetry_index = _telemetry->getRequestMotorIndex();
+		// check for an ESC info request. We only process it when we're not expecting other telemetry data
+		if (_request_esc_info.load() != nullptr && !_waiting_for_esc_info && stop_motors
+		    && !_telemetry->expectingData() && !_current_command.valid()) {
+			requested_telemetry_index = request_esc_info();
+		} else {
+			requested_telemetry_index = _telemetry->getRequestMotorIndex();
+		}
 	}
 
-	int telemetry_index = 0;
+	if (stop_motors) {
 
-	for (int i = 0; i < (int)num_outputs; i++) {
+		int telemetry_index = 0;
 
-		uint16_t output = outputs[i];
-
-		if (output == DSHOT_DISARM_VALUE) {
-
+		// when motors are stopped we check if we have other commands to send
+		for (int i = 0; i < (int)num_outputs; i++) {
 			if (_current_command.valid() && (_current_command.motor_mask & (1 << i))) {
-				up_dshot_motor_command(i, _current_command.command, true);
-
+				// for some reason we need to always request telemetry when sending a command
+				// unless command is esc_info
+				ESCType temp_esc_type = _esc_type;
+				if (get_esc_info_state != 0) {
+					temp_esc_type = _esc_type_temp;
+				}
+				if ((temp_esc_type == ESCType::AM32 || temp_esc_type == ESCType::AM32_Old) && _current_command.command == 6) {
+					up_dshot_motor_command(i, _current_command.command, false);
+				}
+				else up_dshot_motor_command(i, _current_command.command, true);
 			} else {
 				up_dshot_motor_command(i, DShot_cmd_motor_stop, telemetry_index == requested_telemetry_index);
 			}
 
-		} else {
+			telemetry_index += _mixing_output.isFunctionSet(i);
+		}
 
-			if (_param_dshot_3d_enable.get() || (_reversible_outputs & (1u << i))) {
-				output = convert_output_to_3d_scaling(output);
+		if (_current_command.valid()) {
+			--_current_command.num_repetitions;
+
+			if (_current_command.num_repetitions == 0 && _current_command.save) {
+				_current_command.save = false;
+				_current_command.num_repetitions = 10;
+				_current_command.command = dshot_command_t::DShot_cmd_save_settings;
+			}
+		}
+
+	} else {
+		int telemetry_index = 0;
+
+		for (int i = 0; i < (int)num_outputs; i++) {
+
+			uint16_t output = outputs[i];
+
+			if (output == DSHOT_DISARM_VALUE) {
+				up_dshot_motor_command(i, DShot_cmd_motor_stop, telemetry_index == requested_telemetry_index);
+
+			} else {
+
+				// DShot 3D splits the throttle ranges in two.
+				// This is in terms of DShot values, code below is in terms of actuator_output
+				// Direction 1) 48 is the slowest, 1047 is the fastest.
+				// Direction 2) 1049 is the slowest, 2047 is the fastest.
+				if (_param_dshot_3d_enable.get() || (_reversible_outputs & (1u << i))) {
+					if (output >= _param_dshot_3d_dead_l.get() && output < _param_dshot_3d_dead_h.get()) {
+						output = DSHOT_DISARM_VALUE;
+
+					} else {
+						bool upper_range = output >= 1000;
+
+						if (upper_range) {
+							output -= 1000;
+
+						} else {
+							output = 999 - output; // lower range is inverted
+						}
+
+						float max_output = 999.f;
+						float min_output = max_output * _param_dshot_min.get();
+						output = math::min(max_output, (min_output + output * (max_output - min_output) / max_output));
+
+						if (upper_range) {
+							output += 1000;
+						}
+
+					}
+				}
+
+				up_dshot_motor_data_set(i, math::min(output, static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
+							telemetry_index == requested_telemetry_index);
 			}
 
-			up_dshot_motor_data_set(i, math::min(output, static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
-						telemetry_index == requested_telemetry_index);
+			telemetry_index += _mixing_output.isFunctionSet(i);
 		}
 
-		telemetry_index += _mixing_output.isFunctionSet(i);
-	}
-
-	// Decrement the command counter
-	if (_current_command.valid()) {
-		--_current_command.num_repetitions;
-
-		// Queue a save command after the burst if save has been requested
-		if (_current_command.num_repetitions == 0 && _current_command.save) {
-			_current_command.save = false;
-			_current_command.num_repetitions = 10;
-			_current_command.command = dshot_command_t::DShot_cmd_save_settings;
-		}
+		// clear commands when motors are running
+		_current_command.clear();
 	}
 
 	up_dshot_trigger();
 
 	return true;
-}
-
-uint16_t DShot::convert_output_to_3d_scaling(uint16_t output)
-{
-	// DShot 3D splits the throttle ranges in two.
-	// This is in terms of DShot values, code below is in terms of actuator_output
-	// Direction 1) 48 is the slowest, 1047 is the fastest.
-	// Direction 2) 1049 is the slowest, 2047 is the fastest.
-	if (output >= _param_dshot_3d_dead_l.get() && output < _param_dshot_3d_dead_h.get()) {
-		return DSHOT_DISARM_VALUE;
-	}
-
-	bool upper_range = output >= 1000;
-
-	if (upper_range) {
-		output -= 1000;
-
-	} else {
-		output = 999 - output; // lower range is inverted
-	}
-
-	float max_output = 999.f;
-	float min_output = max_output * _param_dshot_min.get();
-	output = math::min(max_output, (min_output + output * (max_output - min_output) / max_output));
-
-	if (upper_range) {
-		output += 1000;
-	}
-
-	return output;
 }
 
 void DShot::Run()
@@ -484,7 +673,14 @@ void DShot::Run()
 	if (_telemetry) {
 		const int telem_update = _telemetry->update(_num_motors);
 
-		if (telem_update >= 0) {
+		// Are we waiting for ESC info?
+		if (_waiting_for_esc_info) {
+			if (telem_update != -1) {
+				_request_esc_info.store(nullptr);
+				_waiting_for_esc_info = false;
+			}
+
+		} else if (telem_update >= 0) {
 			const int need_to_publish = handle_new_telemetry_data(telem_update, _telemetry->latestESCData(),
 						    _bidirectional_dshot_enabled);
 
@@ -510,7 +706,7 @@ void DShot::Run()
 
 	// telemetry device update request?
 	if (_request_telemetry_init.load()) {
-		init_telemetry(_telemetry_device, _telemetry_swap_rxtx);
+		init_telemetry(_telemetry_device);
 		_request_telemetry_init.store(false);
 	}
 
@@ -525,6 +721,10 @@ void DShot::Run()
 	}
 
 	handle_vehicle_commands();
+
+	handle_esc_flasher_requests();
+
+	run_get_esc_info();
 
 	if (!_mixing_output.armed().armed) {
 		if (_reversible_outputs != _mixing_output.reversibleOutputs()) {
@@ -615,6 +815,438 @@ void DShot::handle_vehicle_commands()
 	}
 }
 
+void DShot::handle_esc_flasher_requests()
+{
+	static uint8_t fw_version_major;
+	static uint8_t fw_version_minor;
+	static uint32_t gpio;
+	int retval = 0;
+
+	while (!_current_command.valid() && _esc_flasher_request_sub.update(&_esc_flasher_request)) {
+		PX4_INFO("DShot received request from ESC Flasher");
+
+		if (_esc_flasher_request.request == esc_flasher_request_s::REQUEST_CANCEL ||
+			_esc_flasher_request.request == esc_flasher_request_s::REQUEST_FLASHING_COMPLETE) {
+			// Cancel any requests, re-enable DShot
+			esc_flasher_esc_info_state = 0;
+			esc_flasher_esc_info_motor_index = 0;
+			esc_flasher_flashing_state = 0;
+			enable_dshot_outputs(true);
+
+			memset(&_esc_flasher_response, 0, sizeof(_esc_flasher_response));
+			_esc_flasher_response.msg_id = _esc_flasher_request.msg_id;
+			_esc_flasher_response.request = _esc_flasher_request.request;
+			_esc_flasher_response.result = esc_flasher_request_ack_s::ESC_FLASHER_CMD_RESULT_ACCEPTED;
+			_esc_flasher_response.timestamp = hrt_absolute_time();
+
+			if (_esc_flasher_request.request == esc_flasher_request_s::REQUEST_CANCEL) {
+				PX4_WARN("Canceling ESC Flasher requests and re-enabling DShot");
+			}
+			else {
+				PX4_INFO("Flashing completed by ESC Flasher, re-enabling DShot");
+				PX4_INFO("Restarting ESC detection to update ESC versions");
+
+				// Restart ESC detection, so new version is saved and send via esc_versions uOrb
+				get_esc_info_start = 1;
+				get_esc_info_time = hrt_absolute_time() + 2_s;
+				_esc_type_temp = _esc_type;
+			}
+			_esc_flasher_request_ack_pub.publish(_esc_flasher_response);
+
+			// Clear broken esc flags on CANCEL or COMPLETE
+			_broken_esc = 0;
+			_broken_esc_flag = false;
+
+			break;
+		}
+
+		if (esc_flasher_esc_info_state) {
+			// ESC_INFO request is in progress
+			memset(&_esc_flasher_response, 0, sizeof(_esc_flasher_response));
+			_esc_flasher_response.msg_id = _esc_flasher_request.msg_id;
+			_esc_flasher_response.request = _esc_flasher_request.request;
+			_esc_flasher_response.result = esc_flasher_request_ack_s::ESC_FLASHER_CMD_RESULT_IN_PROGRESS;
+			_esc_flasher_response.timestamp = hrt_absolute_time();
+
+			PX4_ERR("ESC INFO request already in progress");
+			_esc_flasher_request_ack_pub.publish(_esc_flasher_response);
+
+			break;
+		}
+		if (esc_flasher_flashing_state) {
+			// FLASHING request is in progress
+			memset(&_esc_flasher_response, 0, sizeof(_esc_flasher_response));
+			_esc_flasher_response.msg_id = _esc_flasher_request.msg_id;
+			_esc_flasher_response.request = _esc_flasher_request.request;
+			_esc_flasher_response.result = esc_flasher_request_ack_s::ESC_FLASHER_CMD_RESULT_IN_PROGRESS;
+			_esc_flasher_response.timestamp = hrt_absolute_time();
+
+			PX4_ERR("FLASHING request already in progress");
+			_esc_flasher_request_ack_pub.publish(_esc_flasher_response);
+
+			break;
+		}
+
+		if (_esc_flasher_request.request == esc_flasher_request_s::REQUEST_ESC_INFO) {
+			if (telemetry_enabled()) {
+				esc_flasher_esc_info_state = 1;
+				esc_flasher_esc_info_motor_index = 0;
+				memset(&_esc_flasher_response, 0, sizeof(_esc_flasher_response));
+				_esc_flasher_response.msg_id = _esc_flasher_request.msg_id;
+				_esc_flasher_response.request = _esc_flasher_request.request;
+			}
+			else {
+				PX4_ERR("Telemetry is not enabled, but required to get ESC info");
+			}
+		}
+		else if (_esc_flasher_request.request == esc_flasher_request_s::REQUEST_FLASHING) {
+			// When ESC Flasher requests flashing, disable all DShot outputs until
+			// ESC Flasher notifies completion or cancellation
+			// Return via uORB all GPIO pin definitions, since ESC Flasher will need those for bit-banging UART
+			esc_flasher_flashing_state = 1;
+			memset(&_esc_flasher_response, 0, sizeof(_esc_flasher_response));
+			_esc_flasher_response.msg_id = _esc_flasher_request.msg_id;
+			_esc_flasher_response.request = _esc_flasher_request.request;
+		}
+	}
+
+	switch (esc_flasher_esc_info_state) {
+		case 0:
+			break;
+		case 1:
+			// Get ESC_INFO from the requested motors
+			if (_esc_flasher_request.motor_flags & (1 << esc_flasher_esc_info_motor_index)) {
+				retrieve_and_print_esc_info_non_blocking(esc_flasher_esc_info_motor_index);
+				esc_flasher_esc_info_state = 2;
+			}
+			else {
+				// Move on to next motor
+				esc_flasher_esc_info_motor_index++;
+				if (esc_flasher_esc_info_motor_index >= 4) {
+					esc_flasher_esc_info_state = 3;
+				}
+			}
+
+			break;
+		case 2:
+			// Wait for ESC_INFO to finish
+			retval = retrieve_and_print_esc_info_check_result(&fw_version_major, &fw_version_minor);
+			if (retval == 0) {
+
+				// Save the versions to our response struct
+				_esc_flasher_response.fw_flags |= (1 << esc_flasher_esc_info_motor_index);
+				_esc_flasher_response.fw_major[esc_flasher_esc_info_motor_index] = fw_version_major;
+				_esc_flasher_response.fw_minor[esc_flasher_esc_info_motor_index] = fw_version_minor;
+
+				// Move on to next motor
+				esc_flasher_esc_info_motor_index++;
+				if (esc_flasher_esc_info_motor_index >= 4) {
+					esc_flasher_esc_info_state = 3;
+				}
+				else {
+					esc_flasher_esc_info_state = 1;
+				}
+			}
+			else if (retval == -1) {
+				// Still waiting for response or timeout
+			}
+			else if (retval == -2) {
+				// No valid response from ESC
+				// Move on to next motor
+				esc_flasher_esc_info_motor_index++;
+				if (esc_flasher_esc_info_motor_index >= 4) {
+					esc_flasher_esc_info_state = 3;
+				}
+				else {
+					esc_flasher_esc_info_state = 1;
+				}
+			}
+			else if (retval == -3) {
+				// Non-AM32 ESC detected
+				// Publish response message
+				_esc_flasher_response.fw_flags = 0;
+				_esc_flasher_response.timestamp = hrt_absolute_time();
+				_esc_flasher_response.result = esc_flasher_request_ack_s::ESC_FLASHER_CMD_RESULT_UNSUPPORTED;
+
+				_esc_flasher_request_ack_pub.publish(_esc_flasher_response);
+
+				esc_flasher_esc_info_state = 0;
+				esc_flasher_esc_info_motor_index = 0;
+			}
+
+			break;
+		case 3:
+			// Publish response message
+			_esc_flasher_response.timestamp = hrt_absolute_time();
+			_esc_flasher_response.result = esc_flasher_request_ack_s::ESC_FLASHER_CMD_RESULT_ACCEPTED;
+
+			_esc_flasher_request_ack_pub.publish(_esc_flasher_response);
+
+			esc_flasher_esc_info_state = 0;
+			esc_flasher_esc_info_motor_index = 0;
+
+			break;
+	}
+
+	switch (esc_flasher_flashing_state) {
+		case 0:
+			break;
+		case 1:
+			// Disable all DShot outputs
+			enable_dshot_outputs(false);
+			_outputs_initialized = false;
+			esc_flasher_flashing_state = 2;
+
+			break;
+		case 2:
+			// Send GPIO pins to ESC Flasher
+			for (uint32_t i = 0; i < 16; i++) {
+				if (_esc_flasher_request.motor_flags & (1 << i)) {
+					gpio = io_timer_channel_get_gpio_output(i);
+					// Clear unwanted flags from GPIO pin definition
+					gpio &= (GPIO_PORT_MASK | GPIO_PIN_MASK);
+					_esc_flasher_response.gpio_pins[i] = gpio;
+					_esc_flasher_response.gpio_flags |= (1 << i);
+				}
+			}
+
+			esc_flasher_flashing_state = 3;
+
+			break;
+		case 3:
+			// Publish response message
+			_esc_flasher_response.timestamp = hrt_absolute_time();
+			_esc_flasher_response.result = esc_flasher_request_ack_s::ESC_FLASHER_CMD_RESULT_ACCEPTED;
+
+			_esc_flasher_request_ack_pub.publish(_esc_flasher_response);
+
+			esc_flasher_flashing_state = 4;
+
+			break;
+		case 4:
+			// Wait state for ESC Flasher, ensure DShot outputs stay off
+
+			break;
+	}
+
+	// Update ESC status if flashing is active, so the vehicle cannot arm
+	if (esc_flasher_flashing_state > 0) {
+		publish_esc_status();
+	}
+}
+
+void DShot::run_get_esc_info()
+{
+	int retval = 0;
+
+	if (_num_motors && get_esc_info_start && (esc_flasher_flashing_state == 0) && (esc_flasher_esc_info_state == 0)) {
+		// Once we have _num_motors, mixers have been initialized, try to get esc_info from all motors
+
+		if (get_esc_info_state == 0 && (hrt_absolute_time() > get_esc_info_time)) {
+			// Start state machine
+			PX4_INFO("Starting ESC detection, attempting ESC type %d", (int)_esc_type_temp);
+			get_esc_info_state = 1;
+			get_esc_info_motor_index = 0;
+
+			memset(&_esc_info_save, 0, sizeof(_esc_info_save));
+
+			// This ESC_TYPE test is setup to run shortly after bootup
+			// It will start out at the param ESC_TYPE and move up the list until the end, no loop
+			// If DShot gets a response to esc_info command, then it is a success and the new ESC_TYPE is saved in the param
+			// If no response then no change to ESC_TYPE param
+			// To restart the test, reset the param ESC_TYPE to 0 and reboot PX4
+		}
+
+		switch (get_esc_info_state) {
+			case 0:
+				// Idle state
+				break;
+			case 1:
+				// Check motor_index against _num_motors
+				if (get_esc_info_motor_index < (uint32_t)_num_motors) {
+					get_esc_info_state = 2;
+				}
+				else {
+					// Done, count how many motors gave the esc_info
+					int motor_count = 0;
+					for (int i = 0; i < _num_motors; i++) {
+						if (_esc_info_save[i].type != ESCType::Unknown) {
+							motor_count++;
+						}
+					}
+
+					if (motor_count == _num_motors) {
+						get_esc_info_state = 10;
+						PX4_INFO("ESC_INFO received for %d out of %d motors", (int)motor_count, (int)_num_motors);
+					}
+					else if (motor_count == 0) {
+
+						// Move to next ESC_TYPE during the bootup test
+						int temp_type = (int)_esc_type_temp;
+						temp_type++;
+						_esc_type_temp = (ESCType)temp_type;
+
+						if (_esc_type_temp == ESCType::BlueJay) {
+							// End of test, fail
+							get_esc_info_state = 11;
+							PX4_ERR("No ESC_INFO received, please set param ESC_TYPE to 0 and reboot");
+							break;
+						}
+
+						// No data received, try again in 1 second
+						if (get_esc_info_tries++ < 3) {
+							get_esc_info_time = hrt_absolute_time() + 1_s;
+							get_esc_info_state = 0;
+							PX4_WARN("No ESC_INFO received, trying again in 1 second with ESC type %d", (int)_esc_type_temp);
+						}
+						else {
+							// After 3 tries, no data received, end state-machine
+							get_esc_info_state = 11;
+							PX4_ERR("No ESC_INFO received");
+						}
+					}
+					else {
+						// Only received data from some motors
+						get_esc_info_state = 10;
+						PX4_INFO("ESC_INFO received for %d out of %d motors", (int)motor_count, (int)_num_motors);
+					}
+				}
+				break;
+			case 2:
+				// Get next motor esc_info
+				retrieve_and_print_esc_info_non_blocking(get_esc_info_motor_index);
+				get_esc_info_state = 3;
+				break;
+			case 3:
+				// Wait for ESC_INFO to finish
+				retval = retrieve_and_print_esc_info_check_result(&_esc_info_save[get_esc_info_motor_index].fw_major, &_esc_info_save[get_esc_info_motor_index].fw_minor);
+				if (retval == 0) {
+					// AM32 ESC detected
+					_esc_info_save[get_esc_info_motor_index].type = ESCType::AM32;
+					get_esc_info_motor_index++;
+					get_esc_info_state = 1;
+					break;
+				}
+				else if (retval == -1) {
+					// Still waiting for response or timeout
+				}
+				else if (retval == -2) {
+					// No valid response from ESC
+					// Move on to next motor
+					get_esc_info_motor_index++;
+					get_esc_info_state = 1;
+					break;
+				}
+				else if (retval == -3) {
+					// Non-AM32 ESC detected
+					_esc_info_save[get_esc_info_motor_index].type = ESCType::BLHELI32;
+					get_esc_info_motor_index++;
+					get_esc_info_state = 1;
+					break;
+				}
+
+				break;
+			case 10:
+			{
+				// Done with all ESCs, publish uOrb message
+				esc_flasher_versions_s esc_flasher_versions{0};
+				int motor_count = 0;
+				bool same_type = true;
+				bool same_versions = true;
+				ESCType type = ESCType::Unknown;
+				uint8_t version_major = 0;
+				uint8_t version_minor = 0;
+
+				for (int i = 0; i < _num_motors; i++) {
+					if (_esc_info_save[i].type != ESCType::Unknown) {
+						if (i == 0) {
+							// First motor, set type
+							type = _esc_info_save[i].type;
+							version_major = _esc_info_save[i].fw_major;
+							version_minor = _esc_info_save[i].fw_minor;
+						}
+						else {
+							// Subsequent motors, check type and versions against first motor
+							if (_esc_info_save[i].type != type) {
+								same_type = false;
+							}
+							if (_esc_info_save[i].fw_major != version_major || _esc_info_save[i].fw_minor != version_minor) {
+								same_versions = false;
+							}
+						}
+
+						motor_count++;
+						esc_flasher_versions.versions_valid |= (1 << i);
+						esc_flasher_versions.esc_type[i] = (uint8_t)_esc_info_save[i].type;
+						esc_flasher_versions.versions_major[i] = _esc_info_save[i].fw_major;
+						esc_flasher_versions.versions_minor[i] = _esc_info_save[i].fw_minor;
+					}
+				}
+
+				esc_flasher_versions.result = esc_flasher_versions_s::RESULT_SUCCESS;
+				if (motor_count != _num_motors) {
+					esc_flasher_versions.result = esc_flasher_versions_s::RESULT_MISMATCH;
+				}
+				if (!same_type) {
+					esc_flasher_versions.result = esc_flasher_versions_s::RESULT_MISMATCH;
+				}
+				if (!same_versions) {
+					esc_flasher_versions.result = esc_flasher_versions_s::RESULT_MISMATCH;
+				}
+
+				if (same_type) {
+					// If all types agree, set param
+					_param_esc_type.set((int32_t)type);
+					_param_esc_type.commit_no_notification();
+					PX4_INFO("ESC Type detected: %s, saving to param ESC_TYPE", esc_types_strings[(uint32_t)type]);
+				}
+
+				// Compare AM32 to our PX4-internal flashable AM32 version
+				esc_flasher_status_s esc_flasher_status;
+				if (_esc_flasher_status_sub.copy(&esc_flasher_status)) {
+					if ((esc_flasher_versions.result == esc_flasher_versions_s::RESULT_SUCCESS) &&
+						(type == ESCType::AM32 || type == ESCType::AM32_Old)) {
+
+#if 0
+						// Debug testing hack
+						// REMOVE when done
+						// First bootup, give false version so it thinks it needs to update
+						if (get_esc_info_debug == 0) {
+							esc_versions.versions_minor[0]--;
+							get_esc_info_debug = 1;
+						}
+						// REMOVE WHEN DONE
+						// REMOVE WHEN DONE
+						//
+#endif
+
+						if (esc_flasher_versions.versions_major[0] != esc_flasher_status.version_major ||
+							esc_flasher_versions.versions_minor[0] != esc_flasher_status.version_minor) {
+							// The fw version of AM32 detected on the ESCs does not match our internal flashable version
+							esc_flasher_versions.result = esc_flasher_versions_s::RESULT_NEEDS_UPDATE;
+						}
+					}
+				}
+
+				esc_flasher_versions.timestamp = hrt_absolute_time();
+
+				if (!_broken_esc_flag) {
+					_esc_flasher_versions_pub.publish(esc_flasher_versions);
+				}
+
+				get_esc_info_state = 11;
+			}
+				break;
+			case 11:
+				// Done, return to idle state
+				get_esc_info_state = 0;
+				get_esc_info_start = 0;
+
+				break;
+		}
+	}
+}
+
 void DShot::update_params()
 {
 	parameter_update_s pupdate;
@@ -633,48 +1265,39 @@ void DShot::update_params()
 			_mixing_output.minValue(i) = DSHOT_MIN_THROTTLE;
 		}
 	}
+
+	_esc_type = (ESCType)_param_esc_type.get();
 }
 
 int DShot::custom_command(int argc, char *argv[])
 {
 	const char *verb = argv[0];
 
+	if (!strcmp(verb, "telemetry")) {
+		if (argc > 1) {
+			// telemetry can be requested before the module is started
+			strncpy(_telemetry_device, argv[1], sizeof(_telemetry_device) - 1);
+			_telemetry_device[sizeof(_telemetry_device) - 1] = '\0';
+			_request_telemetry_init.store(true);
+		}
+
+		return 0;
+	}
+
 	int motor_index = -1; // select motor index, default: -1=all
 	int myoptind = 1;
-	bool swap_rxtx = false;
-	const char *device_name = nullptr;
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "m:xd:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "m:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'm':
 			motor_index = strtol(myoptarg, nullptr, 10) - 1;
 			break;
 
-		case 'x':
-			swap_rxtx = true;
-			break;
-
-		case 'd':
-			device_name = myoptarg;
-			break;
-
 		default:
 			return print_usage("unrecognized flag");
 		}
-	}
-
-	if (!strcmp(verb, "telemetry")) {
-		if (device_name) {
-			// telemetry can be requested before the module is started
-			strncpy(_telemetry_device, device_name, sizeof(_telemetry_device) - 1);
-			_telemetry_device[sizeof(_telemetry_device) - 1] = '\0';
-			_telemetry_swap_rxtx = swap_rxtx;
-			_request_telemetry_init.store(true);
-		}
-
-		return 0;
 	}
 
 	struct VerbCommand {
@@ -707,6 +1330,26 @@ int DShot::custom_command(int argc, char *argv[])
 		}
 	}
 
+	if (!strcmp(verb, "esc_info")) {
+		if (!is_running()) {
+			PX4_ERR("module not running");
+			return -1;
+		}
+
+		if (motor_index == -1) {
+			PX4_ERR("No motor index specified");
+			return -1;
+		}
+
+		if (!get_instance()->telemetry_enabled()) {
+			PX4_ERR("Telemetry is not enabled, but required to get ESC info");
+			return -1;
+		}
+
+		get_instance()->retrieve_and_print_esc_info_thread_safe(motor_index);
+		return 0;
+	}
+
 	if (!is_running()) {
 		int ret = DShot::task_spawn(argc, argv);
 
@@ -724,9 +1367,6 @@ int DShot::print_status()
 	PX4_INFO("Outputs used: 0x%" PRIx32, _output_mask);
 	PX4_INFO("Outputs on: %s", _outputs_on ? "yes" : "no");
 	perf_print_counter(_cycle_perf);
-	perf_print_counter(_bdshot_rpm_perf);
-	perf_print_counter(_dshot_telem_perf);
-
 	_mixing_output.printStatus();
 
 	if (_telemetry) {
@@ -773,8 +1413,7 @@ After saving, the reversed direction will be regarded as the normal one. So to r
 	PRINT_MODULE_USAGE_COMMAND("start");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("telemetry", "Enable Telemetry on a UART");
-	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<device>", "UART device", false);
-	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Swap RX/TX pins", true);
+	PRINT_MODULE_USAGE_ARG("<device>", "UART device", false);
 
 	// DShot commands
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reverse", "Reverse motor direction");
@@ -797,6 +1436,9 @@ After saving, the reversed direction will be regarded as the normal one. So to r
 	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("beep5", "Send Beep pattern 5");
 	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("esc_info", "Request ESC information");
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based)", false);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
