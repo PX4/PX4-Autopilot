@@ -19,8 +19,10 @@ fi
 #
 if [ $VEHICLE_TYPE = mc ]
 then
-	# Start standard multicopter apps.
-	. ${R}etc/init.d/rc.mc_apps
+	# Start standard multicopter apps (if the file exists).
+	if [ -f "${R}etc/init.d/rc.mc_apps" ]; then
+		. ${R}etc/init.d/rc.mc_apps
+	fi
 fi
 
 #

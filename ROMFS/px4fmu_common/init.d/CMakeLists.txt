@@ -41,6 +41,9 @@ px4_add_romfs_files(
 	rc.sensors
 	rc.vehicle_setup
 
+	# MultiCopter
+	rc.mc_defaults_wrapper
+
 	# TODO
 	rc.balloon_apps
 	rc.balloon_defaults
