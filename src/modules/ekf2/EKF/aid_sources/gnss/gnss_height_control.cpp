@@ -106,7 +106,7 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 
 				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.hgt_fusion_timeout_max);
 
-				if (isHeightResetRequired() && (_height_sensor_ref == HeightSensor::GNSS)) {
+				if (isHeightResetRequired() && (_height_sensor_ref == HeightSensor::GNSS) && isGnssHgtResetAllowed()) {
 					// All height sources are failing
 					ECL_WARN("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
 
@@ -120,17 +120,18 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 				} else if (is_fusion_failing) {
 					// Some other height source is still working
 					ECL_WARN("stopping %s height fusion, fusion failing", HGT_SRC_NAME);
-					stopGpsHgtFusion();
+					stopGpsHgtFusion(&aid_src);
 				}
 
 			} else {
 				ECL_WARN("stopping %s height fusion, continuing conditions failing", HGT_SRC_NAME);
-				stopGpsHgtFusion();
+				stopGpsHgtFusion(&aid_src);
 			}
 
 		} else {
 			if (starting_conditions_passing) {
-				if (_params.ekf2_hgt_ref == static_cast<int32_t>(HeightSensor::GNSS)) {
+
+				if (_params.ekf2_hgt_ref == static_cast<int32_t>(HeightSensor::GNSS) && isGnssHgtResetAllowed()) {
 					ECL_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);
 					_height_sensor_ref = HeightSensor::GNSS;
 
@@ -140,16 +141,36 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 					bias_est.reset();
 					resetAidSourceStatusZeroInnovation(aid_src);
 
-				} else {
-					ECL_INFO("starting %s height fusion", HGT_SRC_NAME);
-					bias_est.setBias(-_gpos.altitude() + measurement);
 				}
 
-				aid_src.time_last_fuse = _time_delayed_us;
-				bias_est.setFusionActive();
-				_control_status.flags.gps_hgt = true;
+				bool is_gnss_hgt_consistent = true;
 
-			} if (altitude_initialisation_conditions_passing) {
+				if (_control_status.flags.gnss_hgt_fault) {
+					if (aid_src.innovation_rejected) {
+						_gnss_hgt_hysteresis_time = 0;
+
+					} else if (_gnss_hgt_hysteresis_time == 0) {
+						_gnss_hgt_hysteresis_time = aid_src.timestamp_sample;
+					}
+
+					is_gnss_hgt_consistent = isTimedOut(_gnss_hgt_hysteresis_time, _params.hgt_fusion_timeout_max)
+								 && isRecent(_gnss_hgt_hysteresis_time, 2 * _params.hgt_fusion_timeout_max);
+
+				}
+
+				if (is_gnss_hgt_consistent) {
+					if (_params.ekf2_hgt_ref != static_cast<int32_t>(HeightSensor::GNSS)) {
+						bias_est.setBias(-_gpos.altitude() + measurement);
+					}
+
+					aid_src.time_last_fuse = _time_delayed_us;
+					bias_est.setFusionActive();
+					_control_status.flags.gps_hgt = true;
+					_control_status.flags.gnss_hgt_fault = false;
+				}
+			}
+
+			if (altitude_initialisation_conditions_passing && !_control_status.flags.gnss_hgt_fault) {
 
 				// Do not start GNSS altitude aiding, but use measurement
 				// to initialize altitude and bias of other height sensors
@@ -164,11 +185,11 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 		   && !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL)) {
 		// No data anymore. Stop until it comes back.
 		ECL_WARN("stopping %s height fusion, no data", HGT_SRC_NAME);
-		stopGpsHgtFusion();
+		stopGpsHgtFusion(&aid_src);
 	}
 }
 
-void Ekf::stopGpsHgtFusion()
+void Ekf::stopGpsHgtFusion(estimator_aid_source1d_s *aid_src)
 {
 	if (_control_status.flags.gps_hgt) {
 
@@ -179,5 +200,19 @@ void Ekf::stopGpsHgtFusion()
 		_gps_hgt_b_est.setFusionInactive();
 
 		_control_status.flags.gps_hgt = false;
+
+		if (aid_src != nullptr &&  aid_src->innovation_rejected && !isGnssHgtResetAllowed()) {
+			_control_status.flags.gnss_hgt_fault = true;
+			_gnss_hgt_hysteresis_time = 0;
+		}
+
 	}
+}
+
+bool Ekf::isGnssHgtResetAllowed()
+{
+	const bool allowed = !(static_cast<GnssMode>(_params.ekf2_gps_mode) == GnssMode::kDeadReckoning
+			       && isOtherSourceOfVerticalPositionAidingThan(_control_status.flags.gps_hgt));
+
+	return allowed;
 }
