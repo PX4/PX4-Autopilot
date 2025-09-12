@@ -350,8 +350,6 @@ ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 		}
 	}
 
-	::fsync(_serial_fd);
-
 	return written;
 }
 
