@@ -70,7 +70,7 @@ jobs:
           echo "$(./Tools/ci/generate_board_targets_json.py --group --verbose)"
 
   setup:
-    name: Build Group [${{ matrix.group }}][${{ matrix.arch == 'nuttx' && 'x86' || 'arm64' }}]
+    name: Build [${{ matrix.arch == 'nuttx' && 'x86' || 'arm64' }}]:[${{ matrix.group }}]
     # runs-on: ubuntu-latest
     runs-on: [runs-on,"runner=4cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",extras=s3-cache]
     needs: group_targets
