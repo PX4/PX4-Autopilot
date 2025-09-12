@@ -85,7 +85,7 @@ bool VTEPosition::init()
 
 	// Check valid vtest_derivation/generated/state.h
 #if defined(CONFIG_VTEST_MOVING)
-	PX4_INFO("VTE for static target init.");
+	PX4_INFO("VTE for moving target init.");
 	PX4_WARN("VTE for moving targets has not been thoroughly tested.");
 
 	if (vtest::State::size != 5) {
@@ -108,23 +108,18 @@ bool VTEPosition::init()
 		return false;
 	}
 
-	// Get params
-	_vte_TIMEOUT_US = (uint32_t)(_param_vte_btout.get() * 1_s);
-	_vte_aid_mask = _param_vte_aid_mask.get();
-
-	adjustAidMask();
-
 	return true;
 }
 
-void VTEPosition::adjustAidMask()
+int VTEPosition::adjustAidMask(const int input_vte_aid_mask)
 {
+	int new_aid_mask = input_vte_aid_mask;
 
 #if defined(CONFIG_VTEST_MOVING)
 
 	if (_vte_aid_mask & SensorFusionMask::USE_MISSION_POS) {
 		PX4_WARN("VTE for moving targets. Disabling mission land position data fusion.");
-		_vte_aid_mask -= SensorFusionMask::USE_MISSION_POS;
+		new_aid_mask -= SensorFusionMask::USE_MISSION_POS;
 	}
 
 #endif // CONFIG_VTEST_MOVING
@@ -132,9 +127,14 @@ void VTEPosition::adjustAidMask()
 	if ((_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && (_vte_aid_mask & SensorFusionMask::USE_MISSION_POS)) {
 		PX4_WARN("VTE both target GPS position and mission land position data fusion enabled.");
 		PX4_WARN("Disabling mission land position fusion.");
-		_vte_aid_mask -= SensorFusionMask::USE_MISSION_POS;
+		new_aid_mask -= SensorFusionMask::USE_MISSION_POS;
 	}
 
+	return new_aid_mask;
+}
+
+void VTEPosition::printAidMask()
+{
 	if (_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) {PX4_INFO("VTE target GPS position data fusion enabled");}
 
 	if (_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_VEL) {PX4_INFO("VTE target GPS velocity data fusion enabled");}
@@ -148,8 +148,6 @@ void VTEPosition::adjustAidMask()
 	if (_vte_aid_mask & SensorFusionMask::USE_UWB) {PX4_INFO("VTE uwb relative position data fusion enabled");}
 
 	if (_vte_aid_mask == SensorFusionMask::NO_SENSOR_FUSION) {PX4_WARN("VTE: no data fusion. Modify VTE_AID_MASK");}
-
-	return;
 }
 
 void VTEPosition::reset_filter()
@@ -1391,13 +1389,11 @@ void VTEPosition::set_mission_position(const double lat_deg, const double lon_de
 					  _mission_position.alt_m, "Mission position ");
 
 		if (_mission_position.valid) {
-			PX4_INFO("Mission position lat: %.8f [deg], lon: %.8f [deg], alt %.1f [m]", lat_deg,
+			PX4_INFO("Mission position lat %.8f, lon %.8f [deg], alt %.1f [m]", lat_deg,
 				 lon_deg, (double)(alt_m));
 
 		} else {
-			PX4_WARN("Mission position not used because not valid. lat: %.8f [deg], lon: %.8f [deg], alt %.1f [m]",
-				 lat_deg,
-				 lon_deg, (double)(alt_m));
+			PX4_WARN("Mission position not used because not valid");
 		}
 
 	} else {
@@ -1418,11 +1414,19 @@ void VTEPosition::updateParams()
 	_ev_pos_noise = _param_vte_ev_pos_noise.get();
 	_nis_threshold = _param_vte_pos_nis_thre.get();
 
-	const int new_aid_mask = _param_vte_aid_mask.get();
+	// Print info on param change for crucial params only
+	const int new_aid_mask = adjustAidMask(_param_vte_aid_mask.get());
 
 	if (new_aid_mask != _vte_aid_mask) {
 		_vte_aid_mask = new_aid_mask;
-		adjustAidMask();
+		printAidMask();
+	}
+
+	const uint32_t new_vte_timeout_us = static_cast<uint32_t>(_param_vte_btout.get() * 1_s);
+
+	if (new_vte_timeout_us != _vte_TIMEOUT_US) {
+		_vte_TIMEOUT_US = new_vte_timeout_us;
+		PX4_INFO("VTE timeout: %.1f s", static_cast<double>(_vte_TIMEOUT_US) / 1e6);
 	}
 }
 

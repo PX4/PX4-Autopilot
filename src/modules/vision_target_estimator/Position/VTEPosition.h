@@ -220,7 +220,8 @@ private:
 		FUSE_UWB 				= (1 << 5) ///< set to true if UWB data is ready to be fused
 	};
 
-	void adjustAidMask();
+	int adjustAidMask(const int input_mask);
+	void printAidMask();
 	bool createEstimators();
 	bool initEstimator(const matrix::Matrix <float, Direction::nb_directions, vtest::State::size>
 			   &state_init);
@@ -368,7 +369,7 @@ private:
 	/* parameters from vision_target_estimator_params.c*/
 	void checkParams(const bool force);
 
-	uint32_t _vte_TIMEOUT_US = 3_s;
+	uint32_t _vte_TIMEOUT_US = 4_s;
 	int _vte_aid_mask{0};
 	float _target_acc_unc;
 	float _bias_unc;

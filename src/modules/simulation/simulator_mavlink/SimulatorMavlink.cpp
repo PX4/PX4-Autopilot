@@ -685,7 +685,7 @@ SimulatorMavlink::handle_message_target_absolute(const mavlink_message_t *msg)
 	mavlink_msg_target_absolute_decode(msg, &target_absolute);
 
 	target_gnss_s target_GNSS_report{};
-	target_GNSS_report.timestamp = hrt_absolute_time();;
+	target_GNSS_report.timestamp = hrt_absolute_time();
 
 	bool updated = false;
 
@@ -730,126 +730,120 @@ void SimulatorMavlink::handle_message_target_relative(const mavlink_message_t *m
 	vehicle_attitude_s	vehicle_attitude;
 	vehicle_local_position_s vehicle_local_position;
 
-	bool publish_target = false;
-	matrix::Quatf q_sensor(target_relative.q_sensor);
-
 	// Unsupported sensor frame
 	if (target_relative.frame != TARGET_OBS_FRAME_LOCAL_OFFSET_NED && target_relative.frame != TARGET_OBS_FRAME_LOCAL_NED &&
 	    target_relative.frame != TARGET_OBS_FRAME_BODY_FRD && target_relative.frame != TARGET_OBS_FRAME_OTHER) {
-		PX4_WARN("Target relative: coordinate frame unsupported.");
+		PX4_WARN("target relative: coordinate frame %d unsupported", (int)target_relative.frame);
+		return;
+	}
+
+	// Unsupported measurement type
+	if (target_relative.type != LANDING_TARGET_TYPE_VISION_FIDUCIAL) {
+		PX4_WARN("target relative: coordinate frame %d type", (int)target_relative.type);
+		return;
+	}
+
+	matrix::Quatf q_sensor(target_relative.q_sensor);
+	bool attitude_available = (fabsf(q_sensor(0)) + fabsf(q_sensor(1)) + fabsf(q_sensor(2)) +
+				   fabsf(q_sensor(3))) > FLT_EPSILON;
+
+	// Check if attitude can be infered based on the frame
+	if (!attitude_available) {
+		if (target_relative.frame == TARGET_OBS_FRAME_LOCAL_OFFSET_NED || target_relative.frame == TARGET_OBS_FRAME_LOCAL_NED) {
+			// Observation already in NED, set quaternion to identity (1,0,0,0)
+			q_sensor.setIdentity();
+			attitude_available = true;
+
+		} else if (target_relative.frame == TARGET_OBS_FRAME_BODY_FRD && _vehicle_attitude_sub.update(&vehicle_attitude)) {
+			// Set the quaternion to the current attitude
+			const matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
+			q_sensor = quat_att;
+			attitude_available = true;
+
+		} else if (target_relative.frame == TARGET_OBS_FRAME_OTHER) {
+			// Target sensor frame: OTHER and no quaternion is provided
+			PX4_WARN("target relative: coordinate frame %d unsupported when the q_sensor is not filled",
+				 (int)target_relative.frame);
+		}
+	}
+
+	// Target cannot be sent withtout valid attitude
+	if (!attitude_available) {
+		return;
+	}
+
+	// Forward target to the vision target estimator (VTE) or precland based VTE_EN
+	int32_t vte_enabled;
+	param_get(param_find("VTE_EN"), &vte_enabled);
+
+	if (!vte_enabled) {
+
+		// Send the target directly to the precision landing algorithm in local NED frame
+		landing_target_pose_s landing_target_pose{};
+		landing_target_pose.timestamp = target_relative.timestamp;
+
+		// Measurement already in local NED
+		if (target_relative.frame == TARGET_OBS_FRAME_LOCAL_NED) {
+
+			landing_target_pose.x_abs = target_relative.x;
+			landing_target_pose.y_abs = target_relative.y;
+			landing_target_pose.z_abs = target_relative.z;
+			landing_target_pose.abs_pos_valid = true;
+
+			_landing_target_pose_pub.publish(landing_target_pose);
+
+		} else if (_vehicle_local_position_sub.update(&vehicle_local_position) && vehicle_local_position.xy_valid) {
+
+			// If the local position is available, convert from sensor frame to local NED
+			matrix::Vector3f target_relative_frame(target_relative.x, target_relative.y, target_relative.z);
+
+			if (target_relative.frame == TARGET_OBS_FRAME_BODY_FRD || target_relative.frame == TARGET_OBS_FRAME_OTHER) {
+				// Rotate measurement into vehicle-carried NED
+				target_relative_frame = q_sensor.rotateVector(target_relative_frame);
+			}
+
+			// Convert from vehicle-carried NED to local NED
+			landing_target_pose.x_abs = target_relative_frame(0) + vehicle_local_position.x;
+			landing_target_pose.y_abs = target_relative_frame(1) + vehicle_local_position.y;
+			landing_target_pose.z_abs = target_relative_frame(2) + vehicle_local_position.z;
+			landing_target_pose.abs_pos_valid = true;
+
+			_landing_target_pose_pub.publish(landing_target_pose);
+		}
 
 	} else {
-		/* Check if the sensor's attitude field is filled. */
-		if ((fabsf(q_sensor(0)) + fabsf(q_sensor(1)) + fabsf(q_sensor(2)) + fabsf(q_sensor(3))) > (float)1e-6) {
-			publish_target = true;
 
-		} else {
-			/* Fill q_sensor depending on the frame*/
-			if (target_relative.frame == TARGET_OBS_FRAME_LOCAL_OFFSET_NED || target_relative.frame == TARGET_OBS_FRAME_LOCAL_NED) {
-				// Observation already in NED, set quaternion to identity (1,0,0,0)
-				q_sensor.setIdentity();
-				publish_target = true;
+		// Only supported type: LANDING_TARGET_TYPE_VISION_FIDUCIAL
 
-			} else if (target_relative.frame == TARGET_OBS_FRAME_BODY_FRD && _vehicle_attitude_sub.update(&vehicle_attitude)) {
-				// Set the quaternion to the current attitude
-				const matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
-				q_sensor = quat_att;
-				publish_target = true;
+		// Position report
+		fiducial_marker_pos_report_s fiducial_marker_pos_report{};
 
-			} else if (target_relative.frame == TARGET_OBS_FRAME_OTHER) {
-				// Target sensor frame: OTHER and no quaternion is provided
-				PX4_WARN("Target relative: coordinate frame unsupported when the q_sensor field is not filled.");
-			}
-		}
+		fiducial_marker_pos_report.timestamp = target_relative.timestamp;
+		fiducial_marker_pos_report.x_rel_body = target_relative.x;
+		fiducial_marker_pos_report.y_rel_body = target_relative.y;
+		fiducial_marker_pos_report.z_rel_body = target_relative.z;
+
+		fiducial_marker_pos_report.var_x_rel_body = target_relative.pos_std[0] * target_relative.pos_std[0];
+		fiducial_marker_pos_report.var_y_rel_body = target_relative.pos_std[1] * target_relative.pos_std[1];
+		fiducial_marker_pos_report.var_z_rel_body = target_relative.pos_std[2] * target_relative.pos_std[2];
+
+		q_sensor.copyTo(fiducial_marker_pos_report.q);
+		_fiducial_marker_pos_report_pub.publish(fiducial_marker_pos_report);
+
+		// Yaw report
+		fiducial_marker_yaw_report_s fiducial_marker_yaw_report{};
+		fiducial_marker_yaw_report.timestamp = target_relative.timestamp;
+
+		// Transform quaternion from the target's frame to the TARGET_OBS_FRAME to the yaw relative to NED
+		const matrix::Quatf q_target(target_relative.q_target);
+		const matrix::Quatf q_in_ned = q_sensor * q_target;
+		const float target_yaw_ned = matrix::Eulerf(q_in_ned).psi();
+
+		fiducial_marker_yaw_report.yaw_ned = target_yaw_ned;
+		fiducial_marker_yaw_report.yaw_var_ned = target_relative.yaw_std * target_relative.yaw_std;
+		_fiducial_marker_yaw_report_pub.publish(fiducial_marker_yaw_report);
 	}
 
-	if (publish_target) {
-
-		int32_t vte_enabled;
-		param_get(param_find("VTE_EN"), &vte_enabled);
-
-		if (!vte_enabled) {
-
-			// If the landing target estimator is disabled, send the target directly to the precision landing algorithm in local NED frame
-			landing_target_pose_s landing_target_pose{};
-			landing_target_pose.timestamp = target_relative.timestamp;
-
-			// Measurement already in local NED
-			if (target_relative.frame == TARGET_OBS_FRAME_LOCAL_NED) {
-
-				landing_target_pose.x_abs = target_relative.x;
-				landing_target_pose.y_abs = target_relative.y;
-				landing_target_pose.z_abs = target_relative.z;
-				landing_target_pose.abs_pos_valid = true;
-
-				_landing_target_pose_pub.publish(landing_target_pose);
-
-			} else if (_vehicle_local_position_sub.update(&vehicle_local_position) && vehicle_local_position.xy_valid) {
-
-				// If the local position is available, convert from sensor frame to local NED
-				matrix::Vector3f target_relative_frame(target_relative.x, target_relative.y, target_relative.z);
-
-				if (target_relative.frame == TARGET_OBS_FRAME_BODY_FRD || target_relative.frame == TARGET_OBS_FRAME_OTHER) {
-					// Rotate measurement into vehicle-carried NED
-					target_relative_frame = q_sensor.rotateVector(target_relative_frame);
-				}
-
-				// Convert from vehicle-carried NED to local NED
-				landing_target_pose.x_abs = target_relative_frame(0) + vehicle_local_position.x;
-				landing_target_pose.y_abs = target_relative_frame(1) + vehicle_local_position.y;
-				landing_target_pose.z_abs = target_relative_frame(2) + vehicle_local_position.z;
-				landing_target_pose.abs_pos_valid = true;
-
-				_landing_target_pose_pub.publish(landing_target_pose);
-			}
-
-		} else {
-
-			// Send target to the landing target estimator
-			if (target_relative.type == LANDING_TARGET_TYPE_LIGHT_BEACON) {
-
-				irlock_report_s irlock_report{};
-
-				irlock_report.timestamp = hrt_absolute_time();
-				irlock_report.pos_x = target_relative.x;
-				irlock_report.pos_y = target_relative.y;
-
-				// q_sensor.copyTo(irlock_report.q);
-				_irlock_report_pub.publish(irlock_report);
-
-			} else if (target_relative.type == LANDING_TARGET_TYPE_VISION_FIDUCIAL) {
-
-				// Position report
-				fiducial_marker_pos_report_s fiducial_marker_pos_report{};
-
-				fiducial_marker_pos_report.timestamp = hrt_absolute_time();
-				fiducial_marker_pos_report.x_rel_body = target_relative.x;
-				fiducial_marker_pos_report.y_rel_body = target_relative.y;
-				fiducial_marker_pos_report.z_rel_body = target_relative.z;
-
-				fiducial_marker_pos_report.var_x_rel_body = target_relative.pos_std[0] * target_relative.pos_std[0];
-				fiducial_marker_pos_report.var_y_rel_body = target_relative.pos_std[1] * target_relative.pos_std[1];
-				fiducial_marker_pos_report.var_z_rel_body = target_relative.pos_std[2] * target_relative.pos_std[2];
-
-				q_sensor.copyTo(fiducial_marker_pos_report.q);
-				_fiducial_marker_pos_report_pub.publish(fiducial_marker_pos_report);
-
-				// Yaw report
-				fiducial_marker_yaw_report_s fiducial_marker_yaw_report{};
-				fiducial_marker_yaw_report.timestamp = hrt_absolute_time();
-
-				// Transform quaternion from the target's frame to the TARGET_OBS_FRAME to the yaw relative to NED
-				const matrix::Quatf q_target(target_relative.q_target);
-				const matrix::Quatf q_in_ned = q_sensor * q_target;
-				const float target_yaw_ned = matrix::Eulerf(q_in_ned).psi();
-
-				fiducial_marker_yaw_report.yaw_ned = target_yaw_ned;
-				fiducial_marker_yaw_report.yaw_var_ned = target_relative.yaw_std * target_relative.yaw_std;
-				_fiducial_marker_yaw_report_pub.publish(fiducial_marker_yaw_report);
-
-			}
-		}
-	}
 }
 #endif
 
