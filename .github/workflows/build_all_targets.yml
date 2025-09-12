@@ -26,6 +26,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   group_targets:
     name: Scan for Board Targets
@@ -48,12 +52,15 @@ jobs:
           path: "./Tools/setup/requirements.txt"
 
       - id: set-matrix
-        run: echo "::set-output name=matrix::$(./Tools/ci/generate_board_targets_json.py --group)"
+        name: Generate Build Matrix
+        run: echo "matrix=$(./Tools/ci/generate_board_targets_json.py --group)" >> $GITHUB_OUTPUT
 
       - id: set-timestamp
-        run: echo "::set-output name=timestamp::$(date +"%Y%m%d%H%M%S")"
+        name: Save Current Timestamp
+        run: echo "timestamp=$(date +"%Y%m%d%H%M%S")" >> $GITHUB_OUTPUT
 
       - id: set-branch
+        name: Save Current Branch Name
         run: |
           echo "branchname=${{
             github.event_name == 'pull_request' &&
@@ -70,7 +77,7 @@ jobs:
           echo "$(./Tools/ci/generate_board_targets_json.py --group --verbose)"
 
   setup:
-    name: Build Group [${{ matrix.group }}][${{ matrix.arch == 'nuttx' && 'x86' || 'arm64' }}]
+    name: Build [${{ matrix.runner }}][${{ matrix.group }}]
     # runs-on: ubuntu-latest
     runs-on: [runs-on,"runner=8cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",spot=false]
     needs: group_targets
@@ -80,6 +87,7 @@ jobs:
     container:
       image: ${{ matrix.container }}
     steps:
+      - uses: runs-on/action@v2
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -87,14 +95,24 @@ jobs:
       - name: Git ownership workaround
         run: git config --system --add safe.directory '*'
 
-      - name: Setup ccache
-        uses: actions/cache@v4
+      # ccache key breakdown:
+      # ccache-<system os>-<system arch>-<builder group>-
+      # ccache-<linux>-<arm64>-<aarch64-0>-
+      # ccache-<linux>-<x64>-<nuttx-0>-
+      - name: Restore ccache from key
+        id: cc_restore
+        uses: actions/cache/restore@v4
         with:
           path: ~/.ccache
-          key: ${{ matrix.group }}-ccache-${{ needs.group_targets.outputs.timestamp }}
-          restore-keys: ${{ matrix.group }}-ccache-${{ needs.group_targets.outputs.timestamp }}
+          key: ${{ format('ccache-{0}-{1}-{2}', runner.os, matrix.runner, matrix.group) }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ matrix.runner }}-${{ matrix.group }}-
+            ccache-${{ runner.os }}-${{ matrix.runner }}-
+            ccache-${{ runner.os }}-${{ matrix.runner }}-
+            ccache-${{ runner.os }}-
+            ccache-
 
-      - name: Configure ccache
+      - name: Set ccache defaults and show stats
         run: |
             mkdir -p ~/.ccache
             echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
@@ -102,10 +120,11 @@ jobs:
             echo "compression_level = 6" >> ~/.ccache/ccache.conf
             echo "max_size = 120M" >> ~/.ccache/ccache.conf
             echo "hash_dir = false" >> ~/.ccache/ccache.conf
+            echo "compiler_check = content" >> ~/.ccache/ccache.conf
             ccache -s
             ccache -z
 
-      - name: Building [${{ matrix.group }}]
+      - name: Building [${{ matrix.targets }}]
         run: |
             ./Tools/ci/build_all_runner.sh ${{matrix.targets}} ${{matrix.arch}}
 
@@ -119,15 +138,27 @@ jobs:
           name: px4_${{matrix.group}}_build_artifacts
           path: artifacts/
 
+      - name: Post Build Cache Stats
+        if: always()
+        run: |
+            ccache -s
+            ccache -z
+
       - name: Cache Save
-        run: ccache -s
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.ccache
+          key: ${{ steps.cc_restore.outputs.cache-primary-key }}
 
   artifacts:
-    name: Upload Artifacts to S3
+    name: Upload Artifacts
     # runs-on: ubuntu-latest
     runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
     needs: [setup, group_targets]
-    if: contains(fromJSON('["main", "stable", "beta"]'), needs.group_targets.outputs.branchname)
+    if: startsWith(github.ref, 'refs/tags/v') || contains(fromJSON('["main","stable","beta"]'), needs.group_targets.outputs.branchname)
+    outputs:
+      uploadlocation: ${{ steps.upload-location.outputs.uploadlocation }}
     steps:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
@@ -135,11 +166,36 @@ jobs:
           path: artifacts/
           merge-multiple: true
 
-      - name: Branch Name
+      - name: Upload Location
+        id: upload-location
         run: |
-          echo "${{ needs.group_targets.outputs.branchname }}"
+          # Determine upload location based on branch or tag with the following considerations:
+          # Destination: AWS S3 bucket px4-travis in folder Firmware/
+          # - If branch is main -> upload to master/
+          #   - Older versions of QGC are hardocded to look for master/
+          # - If branch is stable or beta -> upload to stable/ or beta/
+          # - If a tag vX.Y.Z -> upload to vX.Y.Z/
+          #   - Also update stable/ to point to the same version
+          #.  - Older versions of QGC are hardocded to look for stable/
+          # - If a pull request -> do not upload
+          set -euo pipefail
 
-      - name: Uploading Artifacts to S3 [${{ needs.group_targets.outputs.branchname == 'main' && 'master' || needs.group_targets.outputs.branchname }}]
+          ref="${GITHUB_REF}"
+          branch=${{ needs.group_targets.outputs.branchname  }}
+          location="$branch"
+
+          if [[ "$branch" == "main" ]]; then
+            location="master"
+          fi
+
+          if [[ "$ref" == refs/tags/v[0-9]* ]]; then
+            tag="${ref#refs/tags/}"
+            location="$tag"
+          fi
+
+          echo "uploadlocation=$location" >> $GITHUB_OUTPUT
+
+      - name: Uploading Artifacts to S3 [${{ steps.upload-location.outputs.uploadlocation }}]
         uses: jakejarvis/s3-sync-action@master
         with:
           args: --acl public-read
@@ -149,25 +205,30 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: 'us-west-1'
           SOURCE_DIR: artifacts/
-          DEST_DIR: Firmware/${{ needs.group_targets.outputs.branchname == 'main' && 'master' || needs.group_targets.outputs.branchname }}/
+          DEST_DIR: Firmware/${{ steps.upload-location.outputs.uploadlocation }}/
 
-  release:
-    name: Create Release and Upload Artifacts
-    permissions:
-      contents: write
-    # runs-on: ubuntu-latest
-    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
-    needs: [setup, group_targets]
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
+      # if we are uploading artifacts to a versioned folder
+      # we should also update the stable folder in the s3 bucket
+      - name: Uploading Artifacts to S3 [stable]
+        uses: jakejarvis/s3-sync-action@master
+        if: startsWith(github.ref, 'refs/tags/v')
         with:
-          path: artifacts/
-          merge-multiple: true
+          args: --acl public-read
+        env:
+          AWS_S3_BUCKET: 'px4-travis'
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-west-1'
+          SOURCE_DIR: artifacts/
+          DEST_DIR: Firmware/stable/
 
+      # if build is a release triggered by a versioned tag then create a github release
+      # and upload the build artifacts. A draft release is created so that the release
+      # can be reviewed before publishing
       - name: Upload Binaries to Release
         uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
         with:
           draft: true
           files: artifacts/*.px4
+          name: ${{ steps.upload-location.outputs.uploadlocation }}
