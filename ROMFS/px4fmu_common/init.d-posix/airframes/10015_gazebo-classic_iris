@@ -7,7 +7,9 @@
 # @maintainer Julian Oes <julian@oes.ch>
 #
 
-. ${R}etc/init.d/rc.mc_defaults
+if [ -f "${R}etc/init.d/rc.mc_defaults" ]; then
+	. ${R}etc/init.d/rc.mc_defaults
+fi
 
 
 param set-default CA_AIRFRAME 0

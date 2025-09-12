@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# Wrapper for missing rc.mc_defaults
+if [ -f "${R}etc/init.d/rc.mc_defaults" ]; then
+	. ${R}etc/init.d/rc.mc_defaults
+fi
