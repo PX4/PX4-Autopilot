@@ -421,7 +421,6 @@ ssize_t SerialImpl::writeBlocking(const void *buffer, size_t buffer_size, uint32
 
 			} else if (written > 0) {
 				total_written += written;
-				::fsync(_serial_fd);
 			}
 		}
 	}
