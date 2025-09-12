@@ -89,10 +89,11 @@ jobs:
         run: git config --system --add safe.directory '*'
 
       - name: Setup ccache
+        id: cc_restore
         uses: actions/cache/restore@v4
         with:
           path: ~/.ccache
-          key: ccache-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('**/CMakeLists.txt','**/cmake/**','**/platforms/**','**/src/**','**/boards/**') }}
+          key: ${{ format('ccache-{0}-{1}-{2}', runner.os, matrix.arch, hashFiles('**/CMakeLists.txt','**/cmake/**','**/platforms/**','**/src/**','**/boards/**')) }}
           restore-keys: |
             ccache-${{ runner.os }}-${{ matrix.arch }}-
             ccache-${{ runner.os }}-
@@ -129,7 +130,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: ~/.ccache
-          key: ${{ env.CCACHE_KEY }}
+          key: ${{ steps.cc_restore.outputs.cache-primary-key }}
 
   artifacts:
     name: Upload Artifacts to S3
