@@ -33,6 +33,8 @@
 
 #include "GZMixingInterfaceServo.hpp"
 
+#include <gz/msgs/double.pb.h>
+
 
 float
 GZMixingInterfaceServo::get_servo_angle_max(const size_t index)
