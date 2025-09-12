@@ -43,7 +43,7 @@ While very rare on a well calibrated vehicle, sometimes there may be problems wi
 RC mode where roll, pitch, throttle (RPT) sticks control movement in corresponding axes/directions.
 Centered sticks level vehicle and hold it to fixed altitude and position against wind.
 
-- Centered roll, pitch, throttle sticks (within RC deadzone [MPC_HOLD_DZ](../advanced_config/parameter_reference.md#MPC_HOLD_DZ)) hold x, y, z position steady against any disturbance like wind.
+- Centered roll, pitch, throttle sticks (within RC deadzone [MAN_DEADZONE](../advanced_config/parameter_reference.md#MAN_DEADZONE)) hold x, y, z position steady against any disturbance like wind.
 - Outside center:
   - Roll/Pitch sticks control horizontal acceleration over ground in the vehicle's left-right and forward-back directions (respectively).
   - Throttle stick controls speed of ascent-descent.
@@ -51,10 +51,10 @@ Centered sticks level vehicle and hold it to fixed altitude and position against
 - Takeoff:
   - When landed, the vehicle will take off if the throttle stick is raised above 62.5% percent (of the full range from bottom).
 - Global position estimate is required.
-- Manual control input is required (such as RC control, joystick). 
-  - Roll, Pitch, Throttle: Assistance from autopilot to hold position against wind. 
-  - Yaw: Assistance from autopilot to stabilize the attitude rate. 
-    Position of RC stick maps to the rate of rotation of vehicle in that orientation. 
+- Manual control input is required (such as RC control, joystick).
+  - Roll, Pitch, Throttle: Assistance from autopilot to hold position against wind.
+  - Yaw: Assistance from autopilot to stabilize the attitude rate.
+    Position of RC stick maps to the rate of rotation of vehicle in that orientation.
 
 ### Parameters
 
@@ -62,7 +62,7 @@ All the parameters in the [Multicopter Position Control](../advanced_config/para
 
 | Parameter                                                                                                   | Description                                                                                                                                                                                                                                                                                                  |
 | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| <a id="MPC_HOLD_DZ"></a>[MPC_HOLD_DZ](../advanced_config/parameter_reference.md#MPC_HOLD_DZ)                | Deadzone of sticks where position hold is enabled. Default: 0.1 (10% of full stick range).                                                                                                                                                                                                                   |
+| <a id="MAN_DEADZONE"></a>[MAN_DEADZONE](../advanced_config/parameter_reference.md#MAN_DEADZONE)                | Deadzone of sticks where position hold is enabled. Default: 0.1 (10% of full stick range).                                                                                                                                                                                                                   |
 | <a id="MPC_Z_VEL_MAX_UP"></a>[MPC_Z_VEL_MAX_UP](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_UP) | Maximum vertical ascent velocity. Default: 3 m/s.                                                                                                                                                                                                                                                            |
 | <a id="MPC_Z_VEL_MAX_DN"></a>[MPC_Z_VEL_MAX_DN](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_DN) | Maximum vertical descent velocity. Default: 1 m/s.                                                                                                                                                                                                                                                           |
 | <a id="MPC_LAND_ALT1"></a>[MPC_LAND_ALT1](../advanced_config/parameter_reference.md#MPC_LAND_ALT1)          | Altitude for triggering first phase of slow landing. Below this altitude descending velocity gets limited to a value between [MPC_Z_VEL_MAX_DN](#MPC_Z_VEL_MAX_DN) (or `MPC_Z_V_AUTO_DN`) and [MPC_LAND_SPEED](#MPC_LAND_SPEED). Value needs to be higher than [MPC_LAND_ALT2](#MPC_LAND_ALT2). Default 10m. |
