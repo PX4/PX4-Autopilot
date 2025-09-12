@@ -31,10 +31,9 @@ jobs:
     runs-on:
       [
         runs-on,
-        runner=8cpu-linux-x64,
+        runner=4cpu-linux-x64,
         image=ubuntu24-full-x64,
         "run-id=${{ github.run_id }}",
-        spot=false,
         extras=s3-cache,
       ]
     steps:
@@ -71,7 +70,14 @@ jobs:
   deploy:
     if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged) || github.event_name == 'workflow_dispatch' }}
     needs: build
-    runs-on: ubuntu-latest
+    runs-on:
+      [
+        runs-on,
+        runner=4cpu-linux-x64,
+        image=ubuntu24-full-x64,
+        "run-id=${{ github.run_id }}",
+        extras=s3-cache,
+      ]
 
     steps:
       - name: Download Artifact
