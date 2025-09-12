@@ -237,7 +237,7 @@ void RTL::on_activation()
 		break;
 	}
 
-	_initial_time = hrt_absolute_time();
+	_rtl_initiated_time = hrt_absolute_time();
 }
 
 void RTL::on_active()
@@ -283,11 +283,11 @@ void RTL::on_active()
 	}
 
 	// set gimbal to neutral position (level with horizon) to reduce change of damage on landing
-	if (_initial_time != UINT64_MAX && now > _initial_time + 250_ms) {
+	if (_rtl_initiated_time != UINT64_MAX && now > _rtl_initiated_time + 250_ms) {
 		_navigator->acquire_gimbal_control();
 		_navigator->set_gimbal_neutral();
 		_navigator->release_gimbal_control();
-		_initial_time = UINT64_MAX;
+		_rtl_initiated_time = UINT64_MAX;
 	}
 }
 
