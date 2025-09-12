@@ -408,6 +408,7 @@
     - [Drive Modes](flight_modes_rover/index.md)
       - [Manual](flight_modes_rover/manual.md)
       - [Auto](flight_modes_rover/auto.md)
+      - [Apps & API](flight_modes_rover/api.md)
     - [Configuration/Tuning](config_rover/index.md)
       - [Basic Setup](config_rover/basic_setup.md)
       - [Rate Tuning](config_rover/rate_tuning.md)
