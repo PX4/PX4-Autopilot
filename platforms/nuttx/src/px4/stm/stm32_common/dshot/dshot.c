@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  * Copyright (C) 2025 PX4 Development Team. All rights reserved.
- * Author: Igor Misic <igy1000mb@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -504,7 +503,7 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	// Unallocate timer channel for currently selected capture_channel
 	uint8_t capture_channel = timer_configs[timer_index].capture_channel_index;
 
-	// Re-initialize all output channels on this timer as CaptureDMA
+	// Re-initialize all output channels on this timer as CaptureDMA to ensure all lines idle high
 	for (uint8_t channel = 0; channel < MAX_TIMER_IO_CHANNELS; channel++) {
 
 		bool is_this_timer = timer_index == timer_io_channels[channel].timer_index;
@@ -614,10 +613,6 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 {
 	(void)timer_index; // NOTE: in the current implementation only 1 timer is used
 	uint8_t output_channel = output_channel_from_timer_channel(timer_index, channel_index);
-
-	// Mark as processed
-	_bdshot_processed[output_channel] = true;
-
 	uint32_t value = convert_edge_intervals_to_bitstream(channel_index);
 
 	// Decode RLL
@@ -641,6 +636,8 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 			_consecutive_successes[output_channel] = 0;
 			_online[output_channel] = false;
 		}
+
+		_bdshot_processed[output_channel] = true;
 		return;
 	}
 
@@ -679,6 +676,8 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 		PX4_WARN("unknown EDT type %d", packet.type);
 		break;
 	}
+
+	_bdshot_processed[output_channel] = true;
 }
 
 // Converts captured edge timestamps into a raw bit stream.
@@ -746,7 +745,7 @@ void decode_dshot_telemetry(uint32_t payload, struct BDShotTelemetry *packet)
 		uint16_t period = (payload & 0x1FF); // 9 bit: period base
 		period = period << exponent; // Period in usec
 
-		packet->type = 0x00;
+		packet->type = DSHOT_EDT_ERPM;
 
 		if (period == 65408) {
 			// Special case for zero motion (e.g., stationary motor)

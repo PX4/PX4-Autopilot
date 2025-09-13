@@ -162,30 +162,14 @@ bool DShot::updateOutputs(uint16_t *outputs, unsigned num_outputs, unsigned num_
 // TODO: this needs a refactor
 void DShot::select_next_command()
 {
-	// Command order or priority:
-	// - EDT Request
-	// - Settings Request
-	// - DShot Programming
-
-	bool ser_tel_enabled = _param_dshot_tel_cfg.get();
-	bool bidir_enabled = _param_dshot_bidir_en.get();
-	bool edt_enabled = _param_dshot_bidir_edt.get();
-	bool esc_type_set = _param_dshot_esc_type.get();
-
-	// EDT Request mask
-	uint8_t needs_edt_request_mask = _bdshot_telem_online_mask & ~_bdshot_edt_requested_mask;
-
-	// Settings Request mask
-	uint8_t needs_settings_request_mask = _serial_telem_online_mask & ~_settings_requested_mask;
-
-	// TODO: If ESC has not been online for at least one second, skip it
-
 	// Settings Programming
 	// NOTE: only update when we're not actively programming an ESC
 	if (!_dshot_programming_active) {
+
+		// Get the next update from the queue?
 		if (_am32_eeprom_write_sub.updated()) {
 
-			// TODO: because uORB can't queue (what is the point of the ORB_QUEUE_LENGTH then??)
+			// TODO: because uORB can't queue?? (what is the point of the ORB_QUEUE_LENGTH then??)
 			auto last = _am32_eeprom_write_sub.get_last_generation();
 			_am32_eeprom_write_sub.copy(&_am32_eeprom_write);
 			auto current = _am32_eeprom_write_sub.get_last_generation();
@@ -199,9 +183,20 @@ void DShot::select_next_command()
 		}
 	}
 
+	// Command order or priority:
+	// - EDT Request
+	// - Settings Request
+	// - Settings Programming
+
+	// EDT Request mask
+	uint8_t needs_edt_request_mask = _bdshot_telem_online_mask & ~_bdshot_edt_requested_mask;
+
+	// Settings Request mask
+	uint8_t needs_settings_request_mask = _serial_telem_online_mask & ~_settings_requested_mask;
+
 	_current_command.clear();
 
-	if (bidir_enabled && edt_enabled && needs_edt_request_mask) {
+	if (_param_dshot_bidir_en.get() && _param_dshot_bidir_edt.get() && needs_edt_request_mask) {
 		// EDT Request first
 		int next_motor_index = 0;
 
@@ -219,7 +214,7 @@ void DShot::select_next_command()
 		_bdshot_edt_requested_mask |= (1 << next_motor_index);
 		PX4_INFO("ESC%d: requesting EDT at time %.2fs", next_motor_index + 1, (double)now / 1000000.);
 
-	} else if (ser_tel_enabled && esc_type_set && needs_settings_request_mask) {
+	} else if (_param_dshot_tel_cfg.get() && _param_dshot_esc_type.get() && needs_settings_request_mask) {
 		// Settings Request next
 		int next_motor_index = 0;
 
@@ -239,7 +234,7 @@ void DShot::select_next_command()
 		PX4_INFO("ESC%d: requesting Settings at time %.2fs", next_motor_index + 1, (double)now / 1000000.);
 
 	} else if (_dshot_programming_active) {
-		// Per-setting dshot programming state machine
+		// Settings programming state machine
 		if (_programming_state == ProgrammingState::Idle) {
 			// Get next setting address/value to program
 			int next_index = -1;
@@ -295,10 +290,10 @@ void DShot::select_next_command()
 				_settings_written_mask[1] = 0;
 
 				// Mark as offline and unread so that we read again
-				_serial_telem_online_mask &= ~(_am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index));
+				// _serial_telem_online_mask &= ~(_am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index));
 				_settings_requested_mask &= ~(_am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index));
 
-				_telem_delay_until = hrt_absolute_time() + 500_ms;
+				_telem_delay_until = hrt_absolute_time() + 100_ms;
 			}
 		}
 
@@ -394,10 +389,9 @@ void DShot::update_motor_commands(int num_outputs)
 	}
 
 	if (command_sent) {
-		// Decrement command repetition counter
 		--_current_command.num_repetitions;
 
-		// Queue a save command after the burst if save has been requested
+		// Queue a save command if it has been requested
 		if (_current_command.num_repetitions == 0 && _current_command.save) {
 			_current_command.save = false;
 			_current_command.num_repetitions = 10;
@@ -544,11 +538,6 @@ bool DShot::process_bdshot_telemetry()
 	if (!_param_dshot_bidir_en.get()) {
 		return false;
 	}
-
-	// TODO: We will have Extended BDShot available.
-	// - temp C
-	// - voltage
-	// - current
 
 	hrt_abstime now = hrt_absolute_time();
 
