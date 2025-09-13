@@ -590,21 +590,21 @@ bool DShot::process_bdshot_telemetry()
 					uint8_t value = 0;
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_TEMPERATURE, &value) == PX4_OK) {
 						esc.temperature = value; // BDShot temperature is in C
-						PX4_INFO("ESC%d: temperature: %f", motor_index, (double)esc.temperature);
+						// PX4_INFO("ESC%d: temperature: %f", motor_index, (double)esc.temperature);
 					} else {
 						esc.temperature = _esc_status.esc[motor_index].esc_temperature; // use previous
 					}
 
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_VOLTAGE, &value) == PX4_OK) {
 						esc.voltage = value * 0.25f; // BDShot voltage is in 0.25V
-						PX4_INFO("ESC%d: voltage: %f", motor_index, (double)esc.voltage);
+						// PX4_INFO("ESC%d: voltage: %f", motor_index, (double)esc.voltage);
 					} else {
 						esc.voltage = _esc_status.esc[motor_index].esc_voltage; // use previous
 					}
 
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_CURRENT, &value) == PX4_OK) {
 						esc.current = value * 0.5f; // BDShot current is in 0.5V
-						PX4_INFO("ESC%d: current: %f", motor_index, (double)esc.current);
+						// PX4_INFO("ESC%d: current: %f", motor_index, (double)esc.current);
 					} else {
 						esc.current = _esc_status.esc[motor_index].esc_current;  // use previous
 					}
