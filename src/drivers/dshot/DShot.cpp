@@ -616,6 +616,7 @@ bool DShot::process_bdshot_telemetry()
 
 			} else {
 				_bdshot_telem_online_mask &= ~(1 << motor_index);
+				_bdshot_edt_requested_mask &= ~(1 << motor_index); // re-triggers EDT request when it comes back online
 				perf_count(_bdshot_error_perf);
 			}
 

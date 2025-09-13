@@ -142,9 +142,10 @@ static uint8_t  _bidi_timer_index = 0; // TODO: BDSHOT_TIM param to select timer
 static uint32_t _dshot_frequency = 0;
 
 // Online flags, set if ESC is reponding with valid BDShot frames
+#define BDSHOT_OFFLINE_COUNT 200
 static bool _online[MAX_TIMER_IO_CHANNELS] = {};
-static uint8_t _consecutive_failures[MAX_TIMER_IO_CHANNELS] = {};
-static uint8_t _consecutive_successes[MAX_TIMER_IO_CHANNELS] = {};
+static int _consecutive_failures[MAX_TIMER_IO_CHANNELS] = {};
+static int _consecutive_successes[MAX_TIMER_IO_CHANNELS] = {};
 
 // eRPM data for channels on the singular timer
 static int32_t _erpms[MAX_TIMER_IO_CHANNELS] = {};
@@ -370,12 +371,22 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bi
 // Kicks off a DMA transmit for each configured timer and the associated channels
 void up_dshot_trigger()
 {
-	if (_bidirectional && !_bdshot_cycle_complete) {
-		PX4_WARN("Cylce not complete! Check system jitter");
-		return;
-	}
+	// Only capture bdshot after the system has been online for a bit
+	bool perform_capture_compare = false;
 
-	_bdshot_cycle_complete = false;
+	if (_bidirectional) {
+
+		if (hrt_absolute_time() > 3000000) {
+
+			if (!_bdshot_cycle_complete) {
+				PX4_WARN("Cylce not complete! Check system jitter");
+				return;
+			}
+
+			perform_capture_compare = true;
+			_bdshot_cycle_complete = false;
+		}
+	}
 
 	// Enable DShot inverted on all channels
 	io_timer_set_enable(true, _bidirectional ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot,
@@ -421,10 +432,7 @@ void up_dshot_trigger()
 			io_timer_update_dma_req(timer_index, false);
 
 			// Trigger DMA (DShot Outputs)
-			if (timer_configs[timer_index].bidirectional) {
-
-				// TODO: we should give the system a few seconds to boot before we start
-				// sampling bdshot so that we don't record a bunch of errors right at the start.
+			if (timer_configs[timer_index].bidirectional && perform_capture_compare) {
 
 				perf_begin(capture_cycle_perf);
 				stm32_dmastart(timer_configs[timer_index].dma_handle, dma_burst_finished_callback,
@@ -631,8 +639,8 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 
 	if ((checksum & 0xF) != 0xF) {
 		++read_fail_crc[output_channel];
-		if (_consecutive_failures[output_channel]++ > 50) {
-			_consecutive_failures[output_channel] = 50;
+		if (_consecutive_failures[output_channel]++ > BDSHOT_OFFLINE_COUNT) {
+			_consecutive_failures[output_channel] = BDSHOT_OFFLINE_COUNT;
 			_consecutive_successes[output_channel] = 0;
 			_online[output_channel] = false;
 		}
@@ -642,8 +650,8 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 	}
 
 	++read_ok[output_channel];
-	if (_consecutive_successes[output_channel]++ > 50) {
-		_consecutive_successes[output_channel] = 50;
+	if (_consecutive_successes[output_channel]++ > BDSHOT_OFFLINE_COUNT) {
+		_consecutive_successes[output_channel] = BDSHOT_OFFLINE_COUNT;
 		_consecutive_failures[output_channel] = 0;
 		_online[output_channel] = true;
 	}
