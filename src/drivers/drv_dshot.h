@@ -172,6 +172,8 @@ __EXPORT extern int up_bdshot_get_erpm(uint8_t channel, int *erpm);
  */
 __EXPORT extern int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value);
 
+__EXPORT extern int up_bdshot_get_extended_telemetry_rate(uint8_t channel, int type, int *value);
+
 /**
  * Get bidrectional dshot status for a channel
  * @param channel	Dshot channel

@@ -134,8 +134,7 @@ static const uint32_t gcr_decode[32] = {
 // and thus delay the processing of the data. This should never happen in a properly working system, as the
 // jitter would have to be longer than the control allocator update interval. A warning is issued if this
 // ever does occur.
-static bool _bdshot_cycle_complete = true;
-
+static bool 	_bdshot_cycle_complete = true;
 static bool     _bdshot_enabled = false;
 static bool     _extended_dshot_telem = false;
 static uint8_t  _bidi_timer_index = 0; // TODO: BDSHOT_TIM param to select timer index?
@@ -143,27 +142,34 @@ static uint32_t _dshot_frequency = 0;
 
 // Online flags, set if ESC is reponding with valid BDShot frames
 #define BDSHOT_OFFLINE_COUNT 200
-static bool _online[MAX_TIMER_IO_CHANNELS] = {};
+static bool _bdshot_online[MAX_TIMER_IO_CHANNELS] = {};
+static bool _bdshot_processed[MAX_TIMER_IO_CHANNELS] = {};
 static int _consecutive_failures[MAX_TIMER_IO_CHANNELS] = {};
 static int _consecutive_successes[MAX_TIMER_IO_CHANNELS] = {};
 
-// eRPM data for channels on the singular timer
-static int32_t _erpms[MAX_TIMER_IO_CHANNELS] = {};
-// Indicates that we've processed eRPM for each channel. Used for determining when all channels have been updated (regardless of success)
-static bool _bdshot_processed[MAX_TIMER_IO_CHANNELS] = {};
+// ePRM data
+typedef struct erpm_data_t {
+	int32_t erpm;
+	bool ready;
+	float rate_hz;
+	uint64_t last_timestamp;
+} erpm_data_t;
 
-// Temperature data
-static uint8_t _temperatures[MAX_TIMER_IO_CHANNELS] = {};
-static bool _temperatures_ready[MAX_TIMER_IO_CHANNELS] = {};
+erpm_data_t _erpms[MAX_TIMER_IO_CHANNELS] = {};
 
-// Voltage data
-static uint8_t _voltages[MAX_TIMER_IO_CHANNELS] = {};
-static bool _voltages_ready[MAX_TIMER_IO_CHANNELS] = {};
+// EDT data
+typedef struct edt_data_t {
+	uint8_t value;
+	bool ready;
+	float rate_hz;
+	uint64_t last_timestamp;
+} edt_data_t;
 
-// Current data
-static uint8_t _currents[MAX_TIMER_IO_CHANNELS] = {};
-static bool _currents_ready[MAX_TIMER_IO_CHANNELS] = {};
+edt_data_t _edt_temp[MAX_TIMER_IO_CHANNELS] = {};
+edt_data_t _edt_volt[MAX_TIMER_IO_CHANNELS] = {};
+edt_data_t _edt_curr[MAX_TIMER_IO_CHANNELS] = {};
 
+static float calculate_rate_hz(uint64_t last_timestamp, float last_rate_hz, uint64_t timestamp);
 
 // hrt callback handle for captcomp post dma processing
 static struct hrt_call _cc_call;
@@ -638,7 +644,7 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 		if (_consecutive_failures[output_channel]++ > BDSHOT_OFFLINE_COUNT) {
 			_consecutive_failures[output_channel] = BDSHOT_OFFLINE_COUNT;
 			_consecutive_successes[output_channel] = 0;
-			_online[output_channel] = false;
+			_bdshot_online[output_channel] = false;
 		}
 
 		_bdshot_processed[output_channel] = true;
@@ -649,7 +655,7 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 	if (_consecutive_successes[output_channel]++ > BDSHOT_OFFLINE_COUNT) {
 		_consecutive_successes[output_channel] = BDSHOT_OFFLINE_COUNT;
 		_consecutive_failures[output_channel] = 0;
-		_online[output_channel] = true;
+		_bdshot_online[output_channel] = true;
 	}
 
 	// Convert payload into telem type/value
@@ -657,22 +663,49 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 	payload = (payload >> 4) & 0xFFF;
 	decode_dshot_telemetry(payload, &packet);
 
+	hrt_abstime now = hrt_absolute_time();
+
 	switch (packet.type) {
-	case DSHOT_EDT_ERPM:
-		_erpms[output_channel] = packet.value;
+	case DSHOT_EDT_ERPM: {
+		_erpms[output_channel].erpm = packet.value;
+		_erpms[output_channel].ready = true;
+
+		uint64_t last_timestamp = _erpms[output_channel].last_timestamp;
+		float last_rate_hz = _erpms[output_channel].rate_hz;
+		_erpms[output_channel].rate_hz = calculate_rate_hz(last_timestamp, last_rate_hz, now);
+		_erpms[output_channel].last_timestamp = now;
 		break;
-	case DSHOT_EDT_TEMPERATURE:
-		_temperatures[output_channel] = packet.value;
-		_temperatures_ready[output_channel] = true;
+	}
+	case DSHOT_EDT_TEMPERATURE: {
+		_edt_temp[output_channel].value = packet.value;
+		_edt_temp[output_channel].ready = true;
+
+		uint64_t last_timestamp = _edt_temp[output_channel].last_timestamp;
+		float last_rate_hz = _edt_temp[output_channel].rate_hz;
+		_edt_temp[output_channel].rate_hz = calculate_rate_hz(last_timestamp, last_rate_hz, now);
+		_edt_temp[output_channel].last_timestamp = now;
 		break;
-	case DSHOT_EDT_VOLTAGE:
-		_voltages[output_channel] = packet.value;
-		_voltages_ready[output_channel] = true;
+	}
+	case DSHOT_EDT_VOLTAGE: {
+		_edt_volt[output_channel].value = packet.value;
+		_edt_volt[output_channel].ready = true;
+
+		uint64_t last_timestamp = _edt_volt[output_channel].last_timestamp;
+		float last_rate_hz = _edt_volt[output_channel].rate_hz;
+		_edt_volt[output_channel].rate_hz = calculate_rate_hz(last_timestamp, last_rate_hz, now);
+		_edt_volt[output_channel].last_timestamp = now;
 		break;
-	case DSHOT_EDT_CURRENT:
-		_currents[output_channel] = packet.value;
-		_currents_ready[output_channel] = true;
+	}
+	case DSHOT_EDT_CURRENT: {
+		_edt_curr[output_channel].value = packet.value;
+		_edt_curr[output_channel].ready = true;
+
+		uint64_t last_timestamp = _edt_curr[output_channel].last_timestamp;
+		float last_rate_hz = _edt_curr[output_channel].rate_hz;
+		_edt_curr[output_channel].rate_hz = calculate_rate_hz(last_timestamp, last_rate_hz, now);
+		_edt_curr[output_channel].last_timestamp = now;
 		break;
+	}
 	case DSHOT_EDT_STATE_EVENT:
 		// TODO: Handle these?
 		break;
@@ -682,6 +715,23 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 	}
 
 	_bdshot_processed[output_channel] = true;
+}
+
+float calculate_rate_hz(uint64_t last_timestamp, float last_rate_hz, uint64_t timestamp)
+{
+    if (last_timestamp == 0 || timestamp <= last_timestamp) {
+        return last_rate_hz;
+    }
+
+    uint64_t dt_us = timestamp - last_timestamp;
+
+    float instant_rate = 1000000.0f / dt_us;
+
+    // Simple exponential moving average with fixed alpha
+    // Alpha = 0.125 (1/8) works well across all rates
+    float rate_hz = instant_rate * 0.125f + last_rate_hz * 0.875f;
+
+    return rate_hz;
 }
 
 // Converts captured edge timestamps into a raw bit stream.
@@ -839,8 +889,8 @@ int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 
 	int status = PX4_ERROR;
 
-	if (channel_initialized) {
-		*erpm = _erpms[channel];
+	if (channel_initialized && _erpms[channel].ready) {
+		*erpm = _erpms[channel].erpm;
 		status = PX4_OK;
 	}
 
@@ -855,23 +905,52 @@ int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value)
 	int result = PX4_ERROR;
 	switch (type) {
 	case DSHOT_EDT_TEMPERATURE:
-		if (_temperatures_ready[channel]) {
-			*value = _temperatures[channel];
-			_temperatures_ready[channel] = false;
+		if (_edt_temp[channel].ready) {
+			*value = _edt_temp[channel].value;
+			_edt_temp[channel].ready = false;
 			result = PX4_OK;
 		}
 		break;
 	case DSHOT_EDT_VOLTAGE:
-		if (_voltages_ready[channel]) {
-			*value = _voltages[channel];
-			_voltages_ready[channel] = false;
+		if (_edt_volt[channel].ready) {
+			*value = _edt_volt[channel].value;
+			_edt_volt[channel].ready = false;
 			result = PX4_OK;
 		}
 		break;
 	case DSHOT_EDT_CURRENT:
-		if (_currents_ready[channel]) {
-			*value = _currents[channel];
-			_currents_ready[channel] = false;
+		if (_edt_curr[channel].ready) {
+			*value = _edt_curr[channel].value;
+			_edt_curr[channel].ready = false;
+			result = PX4_OK;
+		}
+		break;
+	default:
+		break;
+	}
+
+	return result;
+}
+
+int up_bdshot_get_extended_telemetry_rate(uint8_t channel, int type, int *value)
+{
+	int result = PX4_ERROR;
+	switch (type) {
+	case DSHOT_EDT_TEMPERATURE:
+		if (_bdshot_online[channel]) {
+			*value = 0;
+			result = PX4_OK;
+		}
+		break;
+	case DSHOT_EDT_VOLTAGE:
+		if (_bdshot_online[channel]) {
+			*value = 0;
+			result = PX4_OK;
+		}
+		break;
+	case DSHOT_EDT_CURRENT:
+		if (_bdshot_online[channel]) {
+			*value = 0;
 			result = PX4_OK;
 		}
 		break;
@@ -888,7 +967,7 @@ int up_bdshot_channel_online(uint8_t channel)
 		return 0;
 	}
 
-	return _online[channel];
+	return _bdshot_online[channel];
 }
 
 void up_bdshot_status(void)
@@ -896,7 +975,22 @@ void up_bdshot_status(void)
 	PX4_INFO("dshot driver stats:");
 
 	if (_bdshot_enabled) {
-		PX4_INFO("Bidirectional DShot enabled");
+		PX4_INFO("BDShot enabled");
+	}
+
+	if (_extended_dshot_telem) {
+		PX4_INFO("BDShot EDT rates");
+		for (int i = 0; i < MAX_TIMER_IO_CHANNELS; i++) {
+
+			if (_bdshot_online[i]) {
+				PX4_INFO("Ch%d:  eRPM: %.1fHz  Temp: %.1fHz  Volt: %.1fHz  Curr: %.1fHz",
+					i,
+					(double)_erpms[i].rate_hz,
+					(double)_edt_temp[i].rate_hz,
+					(double)_edt_volt[i].rate_hz,
+					(double)_edt_curr[i].rate_hz);
+			}
+		}
 	}
 
 	uint8_t timer_index = _bidi_timer_index;

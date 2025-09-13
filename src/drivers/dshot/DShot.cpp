@@ -580,6 +580,8 @@ bool DShot::process_bdshot_telemetry()
 
 				if (up_bdshot_get_erpm(output_channel, &erpm) == PX4_OK) {
 					esc.erpm = erpm * 100;
+				} else {
+					esc.erpm = _esc_status.esc[motor_index].esc_rpm * (_param_mot_pole_count.get() / 2); // use previous and convert back to rpm
 				}
 
 				// Extended DShot Telemetry
