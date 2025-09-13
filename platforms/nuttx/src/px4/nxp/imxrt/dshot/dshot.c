@@ -301,7 +301,7 @@ static int flexio_irq_handler(int irq, void *context, void *arg)
 }
 
 
-int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bidirectional_dshot, bool enable_extended_dshot_telemetry)
+int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool bdshot_enable, bool enable_extended_dshot_telemetry)
 {
 	(void)enable_extended_dshot_telemetry; // Not implemented
 
@@ -342,7 +342,7 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bi
 
 			imxrt_config_gpio(timer_io_channels[channel].dshot.pinmux | IOMUX_PULL_UP);
 
-			dshot_inst[channel].bdshot = enable_bidirectional_dshot;
+			dshot_inst[channel].bdshot = bdshot_enable;
 
 			flexio_dshot_output(channel, timer_io_channels[channel].dshot.flexio_pin, dshot_tcmp, dshot_inst[channel].bdshot);
 

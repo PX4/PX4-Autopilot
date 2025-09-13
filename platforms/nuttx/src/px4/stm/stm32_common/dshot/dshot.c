@@ -136,7 +136,7 @@ static const uint32_t gcr_decode[32] = {
 // ever does occur.
 static bool _bdshot_cycle_complete = true;
 
-static bool     _bidirectional = false;
+static bool     _bdshot_enabled = false;
 static bool     _extended_dshot_telem = false;
 static uint8_t  _bidi_timer_index = 0; // TODO: BDSHOT_TIM param to select timer index?
 static uint32_t _dshot_frequency = 0;
@@ -198,7 +198,7 @@ static void init_timer_config(uint32_t channel_mask)
 			}
 
 			// NOTE: only 1 timer can be used if Bidirectional DShot is enabled
-			if (_bidirectional && (timer_index != _bidi_timer_index)) {
+			if (_bdshot_enabled && (timer_index != _bidi_timer_index)) {
 				continue;
 			}
 
@@ -210,7 +210,7 @@ static void init_timer_config(uint32_t channel_mask)
 			timer_configs[timer_index].enabled_channels[timer_channel_index] = true;
 
 			// Mark timer as bidirectional
-			if (_bidirectional && timer_index == _bidi_timer_index) {
+			if (_bdshot_enabled && timer_index == _bidi_timer_index) {
 				timer_configs[timer_index].bidirectional = true;
 			}
 		}
@@ -233,7 +233,7 @@ static void init_timers_dma_up(void)
 		}
 
 		// NOTE: only 1 timer can be used if Bidirectional DShot is enabled
-		if (_bidirectional && (timer_index != _bidi_timer_index)) {
+		if (_bdshot_enabled && (timer_index != _bidi_timer_index)) {
 			continue;
 		}
 
@@ -251,7 +251,7 @@ static void init_timers_dma_up(void)
 
 	// Bidirectional DShot will free/allocate DMA stream on every update event. This is required
 	// in order to reconfigure the DMA stream between Timer Burst and CaptureCompare.
-	if (_bidirectional) {
+	if (_bdshot_enabled) {
 		// Free the allocated DMA channels
 		for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
 			if (timer_configs[timer_index].dma_handle != NULL) {
@@ -311,13 +311,13 @@ static int32_t init_timer_channels(uint8_t timer_index)
 	return channels_init_mask;
 }
 
-int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bidirectional_dshot, bool enable_extended_dshot_telemetry)
+int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool bdshot_enable, bool enable_extended_dshot_telemetry)
 {
 	_dshot_frequency = dshot_pwm_freq;
-	_bidirectional = enable_bidirectional_dshot;
+	_bdshot_enabled = bdshot_enable;
 	_extended_dshot_telem = enable_extended_dshot_telemetry;
 
-	if (_bidirectional) {
+	if (_bdshot_enabled) {
 		PX4_INFO("Bidirectional DShot enabled, only one timer will be used");
 		hrt_callback_perf = perf_alloc(PC_ELAPSED, "dshot: callback perf");
 		capture_cycle_perf = perf_alloc(PC_INTERVAL, "dshot: cycle perf");
@@ -371,25 +371,18 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bi
 // Kicks off a DMA transmit for each configured timer and the associated channels
 void up_dshot_trigger()
 {
-	// Only capture bdshot after the system has been online for a bit
-	bool perform_capture_compare = false;
+	if (_bdshot_enabled) {
 
-	if (_bidirectional) {
-
-		if (hrt_absolute_time() > 3000000) {
-
-			if (!_bdshot_cycle_complete) {
-				PX4_WARN("Cylce not complete! Check system jitter");
-				return;
-			}
-
-			perform_capture_compare = true;
-			_bdshot_cycle_complete = false;
+		if (!_bdshot_cycle_complete) {
+			PX4_WARN("Cylce not complete! Check system jitter");
+			return;
 		}
+
+		_bdshot_cycle_complete = false;
 	}
 
 	// Enable DShot inverted on all channels
-	io_timer_set_enable(true, _bidirectional ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot,
+	io_timer_set_enable(true, _bdshot_enabled ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot,
 			    IO_TIMER_ALL_MODES_CHANNELS);
 
 	// For each timer, begin DMA transmit
@@ -400,7 +393,7 @@ void up_dshot_trigger()
 
 			io_timer_set_dshot_burst_mode(timer_index, _dshot_frequency, channel_count);
 
-			if (_bidirectional) {
+			if (_bdshot_enabled) {
 				// Deallocate DMA from previous transaction
 				if (timer_configs[timer_index].dma_handle != NULL) {
 					stm32_dmastop(timer_configs[timer_index].dma_handle);
@@ -431,8 +424,8 @@ void up_dshot_trigger()
 			// Clean UDE flag before DMA is started
 			io_timer_update_dma_req(timer_index, false);
 
-			// Trigger DMA (DShot Outputs)
-			if (timer_configs[timer_index].bidirectional && perform_capture_compare) {
+			// Trigger DMA (DShot Outputs). Only capture compare afte the system has had time to boot.
+			if (timer_configs[timer_index].bidirectional && (hrt_absolute_time() > 3000000)) {
 
 				perf_begin(capture_cycle_perf);
 				stm32_dmastart(timer_configs[timer_index].dma_handle, dma_burst_finished_callback,
@@ -793,7 +786,7 @@ void dshot_motor_data_set(unsigned channel, uint16_t data, bool telemetry)
 		csum_data >>= NIBBLES_SIZE;
 	}
 
-	if (_bidirectional) {
+	if (_bdshot_enabled) {
 		packet |= ((~checksum) & 0x0F);
 
 	} else {
@@ -813,7 +806,7 @@ void dshot_motor_data_set(unsigned channel, uint16_t data, bool telemetry)
 
 int up_dshot_arm(bool armed)
 {
-	return io_timer_set_enable(armed, _bidirectional ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot,
+	return io_timer_set_enable(armed, _bdshot_enabled ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot,
 				   IO_TIMER_ALL_MODES_CHANNELS);
 }
 
@@ -899,7 +892,7 @@ void up_bdshot_status(void)
 {
 	PX4_INFO("dshot driver stats:");
 
-	if (_bidirectional) {
+	if (_bdshot_enabled) {
 		PX4_INFO("Bidirectional DShot enabled");
 	}
 
