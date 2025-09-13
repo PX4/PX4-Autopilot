@@ -434,6 +434,9 @@ void up_dshot_trigger()
 
 			} else {
 				stm32_dmastart(timer_configs[timer_index].dma_handle,  NULL, NULL, false);
+				if (_bdshot_enabled) {
+					_bdshot_cycle_complete = true;
+				}
 			}
 
 			// Enable DMA update request

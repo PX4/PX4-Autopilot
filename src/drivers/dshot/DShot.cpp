@@ -587,30 +587,24 @@ bool DShot::process_bdshot_telemetry()
 
 					uint8_t value = 0;
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_TEMPERATURE, &value) == PX4_OK) {
-						// BDShot temperature is in C
-						esc.temperature = value;
+						esc.temperature = value; // BDShot temperature is in C
 						PX4_INFO("ESC%d: temperature: %f", motor_index, (double)esc.temperature);
 					} else {
-						// If no update is available, use the previous value
-						esc.temperature = _esc_status.esc[motor_index].esc_temperature;
+						esc.temperature = _esc_status.esc[motor_index].esc_temperature; // use previous
 					}
 
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_VOLTAGE, &value) == PX4_OK) {
-						// BDShot voltage is in 0.25V
-						esc.voltage = value * 0.25f;
+						esc.voltage = value * 0.25f; // BDShot voltage is in 0.25V
 						PX4_INFO("ESC%d: voltage: %f", motor_index, (double)esc.voltage);
 					} else {
-						// If no update is available, use the previous value
-						esc.voltage = _esc_status.esc[motor_index].esc_voltage;
+						esc.voltage = _esc_status.esc[motor_index].esc_voltage; // use previous
 					}
 
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_CURRENT, &value) == PX4_OK) {
-						// BDShot current is in 0.5V
-						esc.current = value * 0.5f;
+						esc.current = value * 0.5f; // BDShot current is in 0.5V
 						PX4_INFO("ESC%d: current: %f", motor_index, (double)esc.current);
 					} else {
-						// If no update is available, use the previous value
-						esc.current = _esc_status.esc[motor_index].esc_current;
+						esc.current = _esc_status.esc[motor_index].esc_current;  // use previous
 					}
 				}
 
@@ -631,18 +625,17 @@ bool DShot::process_bdshot_telemetry()
 
 void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 {
-	bool bidirectional_enabled = _param_dshot_bidir_en.get();
+	bool bdshot_telemetry_enabled = _param_dshot_bidir_en.get();
 	bool serial_telemetry_enabled = _param_dshot_tel_cfg.get();
 
 	if (esc.motor_index >= esc_status_s::CONNECTED_ESC_MAX) {
 		return;
 	}
 
-
 	// Require both sources online when enabled
 	uint8_t online_mask = 0xFF;
 
-	if (bidirectional_enabled) {
+	if (bdshot_telemetry_enabled) {
 		online_mask &= _bdshot_telem_online_mask;
 	}
 
@@ -658,7 +651,7 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 
 	if (source == TelemetrySource::Serial) {
 		// Only use SerialTelemetry eRPM when BDShot is disabled
-		if (!bidirectional_enabled) {
+		if (!bdshot_telemetry_enabled) {
 			_esc_status.esc[esc.motor_index].timestamp = esc.timestamp;
 			_esc_status.esc[esc.motor_index].esc_rpm = esc.erpm / (_param_mot_pole_count.get() / 2);
 		}
