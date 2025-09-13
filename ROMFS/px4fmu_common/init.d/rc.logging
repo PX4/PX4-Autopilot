@@ -54,5 +54,5 @@ fi
 #
 if ! param compare SDLOG_BACKEND 0
 then
-	logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
+	logger start -b ${LOGGER_BUF} ${LOGGER_ARGS}
 fi

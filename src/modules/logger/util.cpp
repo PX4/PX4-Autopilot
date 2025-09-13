@@ -55,8 +55,6 @@
 #include <sys/statfs.h>
 #endif
 
-#define GPS_EPOCH_SECS ((time_t)1234567890ULL)
-
 typedef decltype(statfs::f_bavail) px4_statfs_buf_f_bavail_t;
 
 namespace px4
@@ -70,46 +68,6 @@ bool file_exist(const char *filename)
 {
 	struct stat buffer;
 	return stat(filename, &buffer) == 0;
-}
-
-bool get_log_time(struct tm *tt, int utc_offset_sec, bool boot_time)
-{
-	uORB::Subscription vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
-
-	time_t utc_time_sec;
-	bool use_clock_time = true;
-
-	/* Get the latest GPS publication */
-	sensor_gps_s gps_pos;
-
-	if (vehicle_gps_position_sub.copy(&gps_pos)) {
-		utc_time_sec = gps_pos.time_utc_usec / 1e6;
-
-		if (gps_pos.fix_type >= 2 && utc_time_sec >= GPS_EPOCH_SECS) {
-			use_clock_time = false;
-		}
-	}
-
-	if (use_clock_time) {
-		/* take clock time if there's no fix (yet) */
-		struct timespec ts = {};
-		px4_clock_gettime(CLOCK_REALTIME, &ts);
-		utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
-
-		if (utc_time_sec < GPS_EPOCH_SECS) {
-			return false;
-		}
-	}
-
-	/* strip the time elapsed since boot */
-	if (boot_time) {
-		utc_time_sec -= hrt_absolute_time() / 1e6;
-	}
-
-	/* apply utc offset */
-	utc_time_sec += utc_offset_sec;
-
-	return gmtime_r(&utc_time_sec, tt) != nullptr;
 }
 
 int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb_advert_t &mavlink_log_pub,
