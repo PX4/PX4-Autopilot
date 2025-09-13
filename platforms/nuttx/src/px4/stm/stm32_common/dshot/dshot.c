@@ -144,6 +144,8 @@ static uint32_t _dshot_frequency = 0;
 
 // Online flags, set if ESC is reponding with valid BDShot frames
 static bool _online[MAX_TIMER_IO_CHANNELS] = {};
+static uint8_t _consecutive_failures[MAX_TIMER_IO_CHANNELS] = {};
+static uint8_t _consecutive_successes[MAX_TIMER_IO_CHANNELS] = {};
 
 // eRPM data for channels on the singular timer
 static int32_t _erpms[MAX_TIMER_IO_CHANNELS] = {};
@@ -629,22 +631,28 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 	checksum = checksum ^ (checksum >> 8);
 	checksum = checksum ^ (checksum >> NIBBLES_SIZE);
 
+	// TODO: single CRC failures here can cause an offline status. We should instead monitor for consecutive failures
 	if ((checksum & 0xF) != 0xF) {
 		++read_fail_crc[channel_index];
-		_online[output_channel] = false;
+		if (_consecutive_failures[output_channel]++ > 50) {
+			_consecutive_failures[output_channel] = 50;
+			_consecutive_successes[output_channel] = 0;
+			_online[output_channel] = false;
+		}
 		return;
 	}
 
-	payload = (payload >> 4) & 0xFFF;
+	++read_ok[channel_index];
+	if (_consecutive_successes[output_channel]++ > 50) {
+		_consecutive_successes[output_channel] = 50;
+		_consecutive_failures[output_channel] = 0;
+		_online[output_channel] = true;
+	}
 
 	// Convert payload into telem type/value
 	struct BDShotTelemetry packet = {};
+	payload = (payload >> 4) & 0xFFF;
 	decode_dshot_telemetry(payload, &packet);
-	++read_ok[channel_index];
-
-	// TODO: improve online logic, follow pattern in imxrt (uses consecutive error count)
-	// Mark as online if checksum is valid
-	_online[output_channel] = true;
 
 	switch (packet.type) {
 	case DSHOT_EDT_ERPM:
@@ -814,6 +822,11 @@ int up_bdshot_num_channels_ready(void)
 	return num_ready;
 }
 
+int up_bdshot_num_errors(uint8_t channel)
+{
+	return read_fail_crc[channel] + read_fail_zero[channel];
+}
+
 int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 {
 	uint8_t timer_index = timer_io_channels[channel].timer_index;
@@ -865,7 +878,7 @@ int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value)
 	return result;
 }
 
-int up_bdshot_channel_status(uint8_t channel)
+int up_bdshot_channel_online(uint8_t channel)
 {
 	if (channel >= MAX_TIMER_IO_CHANNELS) {
 		return 0;

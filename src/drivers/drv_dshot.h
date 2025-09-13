@@ -138,7 +138,6 @@ __EXPORT extern int up_dshot_arm(bool armed);
  */
 __EXPORT extern void up_bdshot_status(void);
 
-
 /**
  * Get how many bidirectional erpm channels are ready
  *
@@ -149,6 +148,12 @@ __EXPORT extern void up_bdshot_status(void);
  */
 __EXPORT extern int up_bdshot_num_channels_ready(void);
 
+/**
+ * Get the total number of errors for a channel
+ * @param channel	Dshot channel
+ * @return The total number of recorded errors
+ */
+__EXPORT extern int up_bdshot_num_errors(uint8_t channel);
 
 /**
  * Get bidrectional dshot erpm for a channel
@@ -158,9 +163,14 @@ __EXPORT extern int up_bdshot_num_channels_ready(void);
  */
 __EXPORT extern int up_bdshot_get_erpm(uint8_t channel, int *erpm);
 
-
+/**
+ * Get bidrectional dshot extended telemetry for a channel
+ * @param channel	Dshot channel
+ * @param type		The type of telemetry value to get
+ * @param value		pointer to write the telemetry value
+ * @return <0 on error, OK on succes
+ */
 __EXPORT extern int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value);
-
 
 /**
  * Get bidrectional dshot status for a channel
@@ -168,7 +178,6 @@ __EXPORT extern int up_bdshot_get_extended_telemetry(uint8_t channel, int type, 
  * @param erpm		pointer to write the erpm value
  * @return <0 on error / not supported, 0 on offline, 1 on online
  */
-__EXPORT extern int up_bdshot_channel_status(uint8_t channel);
-
+__EXPORT extern int up_bdshot_channel_online(uint8_t channel);
 
 __END_DECLS
