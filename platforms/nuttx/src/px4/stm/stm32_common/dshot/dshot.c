@@ -171,7 +171,6 @@ static struct hrt_call _cc_call;
 // decoding status for each channel
 static uint32_t read_ok[MAX_NUM_CHANNELS_PER_TIMER] = {};
 static uint32_t read_fail_crc[MAX_NUM_CHANNELS_PER_TIMER] = {};
-static uint32_t read_fail_zero[MAX_NUM_CHANNELS_PER_TIMER] = {};
 
 static perf_counter_t hrt_callback_perf = NULL;
 static perf_counter_t capture_cycle_perf = NULL;
@@ -424,6 +423,10 @@ void up_dshot_trigger()
 
 			// Trigger DMA (DShot Outputs)
 			if (timer_configs[timer_index].bidirectional) {
+
+				// TODO: we should give the system a few seconds to boot before we start
+				// sampling bdshot so that we don't record a bunch of errors right at the start.
+
 				perf_begin(capture_cycle_perf);
 				stm32_dmastart(timer_configs[timer_index].dma_handle, dma_burst_finished_callback,
 					       &timer_configs[timer_index].timer_index,
@@ -631,9 +634,8 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 	checksum = checksum ^ (checksum >> 8);
 	checksum = checksum ^ (checksum >> NIBBLES_SIZE);
 
-	// TODO: single CRC failures here can cause an offline status. We should instead monitor for consecutive failures
 	if ((checksum & 0xF) != 0xF) {
-		++read_fail_crc[channel_index];
+		++read_fail_crc[output_channel];
 		if (_consecutive_failures[output_channel]++ > 50) {
 			_consecutive_failures[output_channel] = 50;
 			_consecutive_successes[output_channel] = 0;
@@ -642,7 +644,7 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 		return;
 	}
 
-	++read_ok[channel_index];
+	++read_ok[output_channel];
 	if (_consecutive_successes[output_channel]++ > 50) {
 		_consecutive_successes[output_channel] = 50;
 		_consecutive_failures[output_channel] = 0;
@@ -718,7 +720,6 @@ uint32_t convert_edge_intervals_to_bitstream(uint8_t channel_index)
 
 	if (shifted == 0) {
 		// no data yet, or this time
-		++read_fail_zero[channel_index];
 		return 0;
 	}
 
@@ -824,7 +825,7 @@ int up_bdshot_num_channels_ready(void)
 
 int up_bdshot_num_errors(uint8_t channel)
 {
-	return read_fail_crc[channel] + read_fail_zero[channel];
+	return read_fail_crc[channel];
 }
 
 int up_bdshot_get_erpm(uint8_t channel, int *erpm)
@@ -901,11 +902,10 @@ void up_bdshot_status(void)
 		bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
 
 		if (channel_initialized) {
-			PX4_INFO("Timer %u, Channel %u: read %lu, failed CRC %lu, invalid/zero %lu",
+			PX4_INFO("Timer %u, Channel %u: read %lu, failed CRC %lu",
 				 timer_index, timer_channel_index,
 				 read_ok[timer_channel_index],
-				 read_fail_crc[timer_channel_index],
-				 read_fail_zero[timer_channel_index]);
+				 read_fail_crc[timer_channel_index]);
 		}
 	}
 }
