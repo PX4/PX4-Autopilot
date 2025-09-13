@@ -152,6 +152,10 @@ private:
 	uint8_t _bdshot_edt_requested_mask = 0;
 	uint8_t _settings_requested_mask = 0;
 
+	// Array of timestamps indicating when the telemetry came online
+	hrt_abstime _serial_telem_online_timestamps[DSHOT_MAXIMUM_CHANNELS] = {};
+	hrt_abstime _bdshot_telem_online_timestamps[DSHOT_MAXIMUM_CHANNELS] = {};
+
 	// Serial Telemetry
 	DShotTelemetry _telemetry;
 	static char _telemetry_device[20];

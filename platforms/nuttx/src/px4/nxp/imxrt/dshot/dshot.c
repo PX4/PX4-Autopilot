@@ -435,6 +435,10 @@ int up_bdshot_num_channels_ready(void)
 	return num_ready;
 }
 
+int up_bdshot_num_errors(uint8_t channel)
+{
+	return dshot_inst[channel].crc_error_cnt + dshot_inst[channel].frame_error_cnt + dshot_inst[channel].no_response_cnt;
+}
 
 int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 {
@@ -446,7 +450,13 @@ int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 	return -1;
 }
 
-int up_bdshot_channel_status(uint8_t channel)
+int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value)
+{
+	// NOT IMPLEMENTED
+	return -1;
+}
+
+int up_bdshot_channel_online(uint8_t channel)
 {
 	if (channel < DSHOT_TIMERS) {
 		return ((dshot_inst[channel].no_response_cnt - dshot_inst[channel].last_no_response_cnt) < BDSHOT_OFFLINE_COUNT);
@@ -461,7 +471,7 @@ void up_bdshot_status(void)
 	for (uint8_t channel = 0; (channel < DSHOT_TIMERS); channel++) {
 
 		if (dshot_inst[channel].init) {
-			PX4_INFO("Channel %i %s Last erpm %i value", channel, up_bdshot_channel_status(channel) ? "online" : "offline",
+			PX4_INFO("Channel %i %s Last erpm %i value", channel, up_bdshot_channel_online(channel) ? "online" : "offline",
 				 dshot_inst[channel].erpm);
 			PX4_INFO("CRC errors Frame error No response");
 			PX4_INFO("%10lu %11lu %11lu", dshot_inst[channel].crc_error_cnt, dshot_inst[channel].frame_error_cnt,

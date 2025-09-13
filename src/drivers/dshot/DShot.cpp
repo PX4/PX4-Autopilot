@@ -461,10 +461,24 @@ bool DShot::process_serial_telemetry()
 			break;
 
 		case TelemetryStatus::Ready:
-			_serial_telem_online_mask |= (1 << _telemetry_motor_index);
-			consume_esc_data(esc, TelemetrySource::Serial);
-			all_telem_sampled = set_next_telemetry_index();
-			perf_count(_telem_success_perf);
+
+			if (_serial_telem_online_mask & (1 << _telemetry_motor_index)) {
+				consume_esc_data(esc, TelemetrySource::Serial);
+				all_telem_sampled = set_next_telemetry_index();
+				perf_count(_telem_success_perf);
+
+			} else {
+				hrt_abstime now = hrt_absolute_time();
+				if (_serial_telem_online_timestamps[_telemetry_motor_index] == 0) {
+					_serial_telem_online_timestamps[_telemetry_motor_index] = now;
+				}
+
+				// Mark as online only after 100_ms without errors
+				if (now - _serial_telem_online_timestamps[_telemetry_motor_index] > 100_ms) {
+					_serial_telem_online_mask |= (1 << _telemetry_motor_index);
+				}
+			}
+
 			break;
 
 		case TelemetryStatus::Timeout:
@@ -472,6 +486,7 @@ bool DShot::process_serial_telemetry()
 			// PX4_WARN("Telem timeout");
 			_serial_telem_errors[_telemetry_motor_index]++;
 			_serial_telem_online_mask &= ~(1 << _telemetry_motor_index);
+			_serial_telem_online_timestamps[_telemetry_motor_index] = 0;
 			// Consume an empty EscData to zero the data
 			consume_esc_data(esc, TelemetrySource::Serial);
 			all_telem_sampled = set_next_telemetry_index();
@@ -483,6 +498,7 @@ bool DShot::process_serial_telemetry()
 			PX4_WARN("Telem parse error");
 			_serial_telem_errors[_telemetry_motor_index]++;
 			_serial_telem_online_mask &= ~(1 << _telemetry_motor_index);
+			_serial_telem_online_timestamps[_telemetry_motor_index] = 0;
 			// Consume an empty EscData to zero the data
 			consume_esc_data(esc, TelemetrySource::Serial);
 			all_telem_sampled = set_next_telemetry_index();
@@ -565,7 +581,9 @@ bool DShot::process_bdshot_telemetry()
 			esc.motor_index = motor_index;
 			esc.timestamp = now;
 
-			if (up_bdshot_channel_status(i)) {
+			_bdshot_telem_errors[motor_index] = up_bdshot_num_errors(i);
+
+			if (up_bdshot_channel_online(i)) {
 				_bdshot_telem_online_mask |= (1 << motor_index);
 
 				// Only update RPM if online
@@ -573,10 +591,6 @@ bool DShot::process_bdshot_telemetry()
 
 				if (up_bdshot_get_erpm(i, &erpm) == PX4_OK) {
 					esc.erpm = erpm * 100;
-
-				} else {
-					_bdshot_telem_errors[_telemetry_motor_index]++;
-					perf_count(_bdshot_error_perf);
 				}
 
 				// Extended DShot Telemetry
@@ -613,7 +627,6 @@ bool DShot::process_bdshot_telemetry()
 
 			} else {
 				_bdshot_telem_online_mask &= ~(1 << motor_index);
-				_bdshot_telem_errors[_telemetry_motor_index]++;
 				perf_count(_bdshot_error_perf);
 			}
 
