@@ -551,8 +551,8 @@ bool DShot::process_bdshot_telemetry()
 		return false;
 	}
 
-	for (unsigned i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
-		if (!_mixing_output.isMotor(i)) {
+	for (unsigned output_channel = 0; output_channel < DSHOT_MAXIMUM_CHANNELS; output_channel++) {
+		if (!_mixing_output.isMotor(output_channel)) {
 			continue;
 		}
 
@@ -563,22 +563,22 @@ bool DShot::process_bdshot_telemetry()
 		EscData esc = {};
 
 		// NOTE: dshot erpm order is actuator channel order, so we map to motor index here
-		int motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
+		int motor_index = (int)_mixing_output.outputFunction(output_channel) - (int)OutputFunction::Motor1;
 
 		if ((motor_index >= 0) && (motor_index < esc_status_s::CONNECTED_ESC_MAX)) {
 
 			esc.motor_index = motor_index;
 			esc.timestamp = now;
 
-			_bdshot_telem_errors[motor_index] = up_bdshot_num_errors(i);
+			_bdshot_telem_errors[motor_index] = up_bdshot_num_errors(output_channel);
 
-			if (up_bdshot_channel_online(i)) {
+			if (up_bdshot_channel_online(output_channel)) {
 				_bdshot_telem_online_mask |= (1 << motor_index);
 
 				// Only update RPM if online
 				int erpm = 0;
 
-				if (up_bdshot_get_erpm(i, &erpm) == PX4_OK) {
+				if (up_bdshot_get_erpm(output_channel, &erpm) == PX4_OK) {
 					esc.erpm = erpm * 100;
 				}
 
@@ -586,7 +586,7 @@ bool DShot::process_bdshot_telemetry()
 				if (_param_dshot_bidir_edt.get()) {
 
 					uint8_t value = 0;
-					if (up_bdshot_get_extended_telemetry(i, DSHOT_EDT_TEMPERATURE, &value) == PX4_OK) {
+					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_TEMPERATURE, &value) == PX4_OK) {
 						// BDShot temperature is in C
 						esc.temperature = value;
 						PX4_INFO("ESC%d: temperature: %f", motor_index, (double)esc.temperature);
@@ -595,7 +595,7 @@ bool DShot::process_bdshot_telemetry()
 						esc.temperature = _esc_status.esc[motor_index].esc_temperature;
 					}
 
-					if (up_bdshot_get_extended_telemetry(i, DSHOT_EDT_VOLTAGE, &value) == PX4_OK) {
+					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_VOLTAGE, &value) == PX4_OK) {
 						// BDShot voltage is in 0.25V
 						esc.voltage = value * 0.25f;
 						PX4_INFO("ESC%d: voltage: %f", motor_index, (double)esc.voltage);
@@ -604,7 +604,7 @@ bool DShot::process_bdshot_telemetry()
 						esc.voltage = _esc_status.esc[motor_index].esc_voltage;
 					}
 
-					if (up_bdshot_get_extended_telemetry(i, DSHOT_EDT_CURRENT, &value) == PX4_OK) {
+					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_CURRENT, &value) == PX4_OK) {
 						// BDShot current is in 0.5V
 						esc.current = value * 0.5f;
 						PX4_INFO("ESC%d: current: %f", motor_index, (double)esc.current);
@@ -633,46 +633,48 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 	bool bidirectional_enabled = _param_dshot_bidir_en.get();
 	bool serial_telemetry_enabled = _param_dshot_tel_cfg.get();
 
-	if (esc.motor_index < esc_status_s::CONNECTED_ESC_MAX) {
+	if (esc.motor_index >= esc_status_s::CONNECTED_ESC_MAX) {
+		return;
+	}
 
-		uint8_t online_mask = 0xFF;
 
-		// Require both sources online when enabled
-		if (bidirectional_enabled) {
-			online_mask &= _bdshot_telem_online_mask;
+	// Require both sources online when enabled
+	uint8_t online_mask = 0xFF;
+
+	if (bidirectional_enabled) {
+		online_mask &= _bdshot_telem_online_mask;
+	}
+
+	if (serial_telemetry_enabled) {
+		online_mask &= _serial_telem_online_mask;
+	}
+
+	_esc_status.esc_online_flags = online_mask;
+
+	// Sum the errors from both interfaces
+	_esc_status.esc[esc.motor_index].esc_errorcount = _serial_telem_errors[esc.motor_index] +
+			_bdshot_telem_errors[esc.motor_index];
+
+	if (source == TelemetrySource::Serial) {
+		// Only use SerialTelemetry eRPM when BDShot is disabled
+		if (!bidirectional_enabled) {
+			_esc_status.esc[esc.motor_index].timestamp = esc.timestamp;
+			_esc_status.esc[esc.motor_index].esc_rpm = esc.erpm / (_param_mot_pole_count.get() / 2);
 		}
 
-		if (serial_telemetry_enabled) {
-			online_mask &= _serial_telem_online_mask;
-		}
+		_esc_status.esc[esc.motor_index].esc_voltage = esc.voltage;
+		_esc_status.esc[esc.motor_index].esc_current = esc.current;
+		_esc_status.esc[esc.motor_index].esc_temperature = esc.temperature;
 
-		_esc_status.esc_online_flags = online_mask;
+	} else if (source == TelemetrySource::BDShot) {
+		_esc_status.esc[esc.motor_index].timestamp = esc.timestamp;
+		_esc_status.esc[esc.motor_index].esc_rpm = esc.erpm / (_param_mot_pole_count.get() / 2);
 
-		_esc_status.esc[esc.motor_index].esc_errorcount = _serial_telem_errors[esc.motor_index] +
-				_bdshot_telem_errors[esc.motor_index];
-
-		if (source == TelemetrySource::Serial) {
-			// Only use SerialTelemetry eRPM when BDShot is disabled
-			if (!bidirectional_enabled) {
-				_esc_status.esc[esc.motor_index].timestamp = esc.timestamp;
-				_esc_status.esc[esc.motor_index].esc_rpm = esc.erpm / (_param_mot_pole_count.get() / 2);
-			}
-
+		// Only use BDShot Volt/Curr/Temp when Serial Telemetry is disabled
+		if (!serial_telemetry_enabled) {
 			_esc_status.esc[esc.motor_index].esc_voltage = esc.voltage;
 			_esc_status.esc[esc.motor_index].esc_current = esc.current;
 			_esc_status.esc[esc.motor_index].esc_temperature = esc.temperature;
-
-		} else if (source == TelemetrySource::BDShot) {
-			_esc_status.esc[esc.motor_index].timestamp = esc.timestamp;
-			// TODO: is this conversion correct?
-			_esc_status.esc[esc.motor_index].esc_rpm = esc.erpm / (_param_mot_pole_count.get() / 2);
-
-			// Only use BDShot Volt/Curr/Temp when Serial Telemetry is disabled
-			if (!serial_telemetry_enabled) {
-				_esc_status.esc[esc.motor_index].esc_voltage = esc.voltage;
-				_esc_status.esc[esc.motor_index].esc_current = esc.current;
-				_esc_status.esc[esc.motor_index].esc_temperature = esc.temperature;
-			}
 		}
 	}
 }
@@ -734,29 +736,13 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 
 	PX4_INFO("Received VEHICLE_CMD_CONFIGURE_ACTUATOR");
 
-	if (function < 1000) {
-		const int first_motor_function = 1; // from MAVLink ACTUATOR_OUTPUT_FUNCTION
-		const int first_servo_function = 33;
-
-		if (function >= first_motor_function && function < first_motor_function + actuator_test_s::MAX_NUM_MOTORS) {
-			function = function - first_motor_function + actuator_test_s::FUNCTION_MOTOR1;
-
-		} else if (function >= first_servo_function && function < first_servo_function + actuator_test_s::MAX_NUM_SERVOS) {
-			function = function - first_servo_function + actuator_test_s::FUNCTION_SERVO1;
-
-		} else {
-			function = INT32_MAX;
-		}
-
-	} else {
-		function -= 1000;
-	}
-
 	int motor_index = -1;
 
-	for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; ++i) {
-		if ((int)_mixing_output.outputFunction(i) == function && _mixing_output.isMotor(i)) {
-			motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
+	if (function >= (int)OutputFunction::Motor1 && function < ((int)OutputFunction::Motor1 + DSHOT_MAXIMUM_CHANNELS)) {
+		for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; ++i) {
+			if ((int)_mixing_output.outputFunction(i) == function && _mixing_output.isMotor(i)) {
+				motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
+			}
 		}
 	}
 
@@ -822,8 +808,7 @@ void DShot::handle_am32_request_eeprom(const vehicle_command_s &command)
 
 	int index = command.param1;
 
-	// Use _settings_requested_mask to trigger re-requesting settings from motors we want
-
+	// Mark as unread to re-trigger settings request
 	if (index == 255) {
 		_settings_requested_mask = 0;
 
@@ -863,7 +848,6 @@ void DShot::update_params()
 
 void DShot::mixerChanged()
 {
-	PX4_INFO("mixerChanged");
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
 
 	int motor_count = 0;
@@ -986,7 +970,8 @@ void DShot::init_telemetry(const char *device, bool swap_rxtx)
 	ESCType esc_type = static_cast<ESCType>(_param_dshot_esc_type.get());
 	_telemetry.initSettingsHandlers(esc_type, _output_mask);
 
-	// Advertise early to ensure we beat uavcan. We need to enforce ordering somehow.
+	// TODO: enforce uavcan init ordering in some way
+	// Advertise early to ensure we beat uavcan
 	_esc_status_pub.advertise();
 }
 
