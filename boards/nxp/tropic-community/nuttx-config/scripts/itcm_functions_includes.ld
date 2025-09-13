@@ -561,7 +561,7 @@
 *(.text.uart_xmitchars_done)
 *(.text._ZN4EKF225PublishYawEstimatorStatusERKy)
 *(.text.sin)
-*(.text._ZN6Safety19safetyButtonHandlerEv)
+*(.text._ZN6Safety19safetySwitchHandlerEv)
 *(.text._ZN3Ekf19controlAuxVelFusionERKN9estimator9imuSampleE)
 *(.text._ZNK6matrix6MatrixIfLj2ELj1EEplERKS1_)
 *(.text._ZThn24_N7Sensors3RunEv)
