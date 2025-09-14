@@ -87,7 +87,6 @@ bool KF_position::update()
 
 void KF_position::syncState(float dt, float acc_uav)
 {
-
 	matrix::Vector<float, vtest::State::size> synced_state;
 	sym::Syncstate(dt, _state, acc_uav, &synced_state);
 	_sync_state = synced_state;

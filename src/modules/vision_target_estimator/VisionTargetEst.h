@@ -44,10 +44,7 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/posix.h>
-#include <unistd.h>
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <drivers/drv_hrt.h>
 #include <systemlib/err.h>
@@ -101,13 +98,13 @@ public:
 private:
 	struct localPose {
 		bool pos_valid = false;
-		matrix::Vector3f xyz;
+		matrix::Vector3f xyz{};
 
 		bool vel_valid = false;
-		matrix::Vector3f vel_xyz;
+		matrix::Vector3f vel_xyz{};
 
 		bool dist_valid = false;
-		float dist_bottom = 0, f;
+		float dist_bottom = 0.f;
 
 		bool yaw_valid = false;
 		float yaw = 0.f;
@@ -167,7 +164,7 @@ private:
 		// Bit locations for VTE tasks
 		VTE_NO_TASK = 0,
 		VTE_FOR_PREC_LAND  = (1 << 0),    ///< set to true if target GPS position data is ready to be fused
-		VTE_DEBUG = (2 << 0) ///< set to true if target GPS position data is ready to be fused
+		VTE_DEBUG = (1 << 1) ///< set to true if target GPS position data is ready to be fused
 	};
 
 	int _vte_current_task{VisionTargetEstTask::VTE_NO_TASK};
@@ -187,17 +184,17 @@ private:
 	bool _vte_position_enabled{false};
 	hrt_abstime _last_update_pos{0};
 
-	matrix::Vector3f _gps_pos_offset;
-	bool _gps_pos_is_offset;
+	matrix::Vector3f _gps_pos_offset{};
+	bool _gps_pos_is_offset{false};
 
 	bool get_gps_velocity_offset(matrix::Vector3f &vel_offset);
 	bool get_local_pose(localPose &local_pose);
 
-	bool has_elapsed(hrt_abstime &last_time, const hrt_abstime interval);
+	bool check_and_update_elapsed(hrt_abstime &last_time, const hrt_abstime interval);
 
 	/* Down sample acceleration data */
-	matrix::Vector3f _vehicle_acc_ned_sum;
-	int _loops_count{0};
+	matrix::Vector3f _vehicle_acc_ned_sum{};
+	uint32_t _loops_count{0};
 	hrt_abstime _last_acc_reset{0};
 	void reset_acc_downsample();
 
@@ -208,4 +205,4 @@ private:
 	)
 };
 
-} // namespace land_detector
+} // namespace vision_target_estimator

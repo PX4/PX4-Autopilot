@@ -453,7 +453,7 @@ void VisionTargetEst::perform_estimations()
 	}
 
 	if (_vte_orientation_enabled && _orientation_estimator_running
-	    && has_elapsed(_last_update_yaw, (1_s / vte_yaw_UPDATE_RATE_HZ))) {
+	    && check_and_update_elapsed(_last_update_yaw, (1_s / vte_yaw_UPDATE_RATE_HZ))) {
 		perform_orientation_update(local_pose, local_pose_updated);
 	}
 
@@ -481,7 +481,7 @@ void VisionTargetEst::perform_position_update(const localPose &local_pose, const
 		_vehicle_acc_ned_sum += vehicle_acc_ned;
 		_loops_count ++;
 
-		if (has_elapsed(_last_update_pos, (1_s / vte_pos_UPDATE_RATE_HZ))) {
+		if (check_and_update_elapsed(_last_update_pos, (1_s / vte_pos_UPDATE_RATE_HZ))) {
 
 			perf_begin(_cycle_perf_pos);
 
@@ -628,7 +628,7 @@ bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned, matrix::Vecto
 	return true;
 }
 
-bool VisionTargetEst::has_elapsed(hrt_abstime &last_time, const hrt_abstime interval)
+bool VisionTargetEst::check_and_update_elapsed(hrt_abstime &last_time, const hrt_abstime interval)
 {
 
 	if (hrt_elapsed_time(&last_time) > interval) {
