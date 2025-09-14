@@ -59,7 +59,6 @@
 #include <uORB/topics/vision_target_est_position.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/estimator_aid_source3d.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/position_setpoint_triplet.h>
@@ -75,8 +74,6 @@
 #include <vtest_derivation/generated/state.h>
 
 using namespace time_literals;
-
-#define SEC2USEC 1000000.0f
 
 namespace vision_target_estimator
 {
@@ -133,10 +130,10 @@ protected:
 	static constexpr uint32_t target_valid_TIMEOUT_US = 2_s;
 
 	/* timeout after which the measurement is not valid*/
-	static constexpr uint32_t measurement_valid_TIMEOUT_US = 1_s;
+	static constexpr uint32_t meas_valid_TIMEOUT_US = 1_s;
 
 	/* timeout after which the measurement is not considered updated*/
-	static constexpr uint32_t measurement_updated_TIMEOUT_US = 100_ms;
+	static constexpr uint32_t meas_updated_TIMEOUT_US = 100_ms;
 
 	/* Valid AoA measurement range between -60.00° and +60.00° for UWB*/
 	static constexpr float max_uwb_aoa_angle_degree = 60.0f;
@@ -150,8 +147,6 @@ protected:
 	uORB::Publication<landing_target_pose_s> _targetPosePub{ORB_ID(landing_target_pose)};
 	uORB::Publication<vision_target_est_position_s> _targetEstimatorStatePub{ORB_ID(vision_target_est_position)};
 
-	uORB::Publication<vehicle_odometry_s>	_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
-
 	// publish innovations target_estimator_gps_pos
 	uORB::Publication<estimator_aid_source3d_s> _vte_aid_gps_pos_target_pub{ORB_ID(vte_aid_gps_pos_target)};
 	uORB::Publication<estimator_aid_source3d_s> _vte_aid_gps_pos_mission_pub{ORB_ID(vte_aid_gps_pos_mission)};
@@ -164,38 +159,49 @@ protected:
 
 private:
 
-	enum Direction {
-		x = 0,
-		y = 1,
-		z = 2,
-		nb_directions = 3,
+	enum Axis {
+		X,
+		Y,
+		Z,
+		Count,
 	};
 
-	static inline bool isMeasValid(hrt_abstime time_stamp) {return (hrt_absolute_time() - time_stamp) < measurement_valid_TIMEOUT_US;};
-	static inline bool isMeasUpdated(hrt_abstime time_stamp) {return (hrt_absolute_time() - time_stamp) < measurement_updated_TIMEOUT_US;};
+	static inline bool isMeasValid(hrt_abstime time_stamp)
+	{
+		const hrt_abstime now = hrt_absolute_time();
+		return (time_stamp <= now) &&
+		       ((now - time_stamp) < static_cast<hrt_abstime>(meas_valid_TIMEOUT_US));
+	}
+
+	static inline bool isMeasUpdated(hrt_abstime time_stamp)
+	{
+		const hrt_abstime now = hrt_absolute_time();
+		return (time_stamp <= now) &&
+		       ((now - time_stamp) < static_cast<hrt_abstime>(meas_updated_TIMEOUT_US));
+	}
 
 	bool _has_timed_out{false};
 
-	enum ObservationType {
-		target_gps_pos = 0,
-		mission_gps_pos = 1,
-		uav_gps_vel = 2,
-		target_gps_vel = 3,
-		fiducial_marker = 4,
-		uwb = 5,
-		nb_observation_types = 6
+	enum ObsType {
+		Target_gps_pos,
+		Mission_gps_pos,
+		Uav_gps_vel,
+		Target_gps_vel,
+		Fiducial_marker,
+		Uwb,
+		Type_count
 	};
 
-	struct targetObsPos {
+	struct targetObs {
 
-		ObservationType type;
-		hrt_abstime timestamp;
+		ObsType type;
+		hrt_abstime timestamp = 0;
 
 		bool updated; // Indicates if we observations were updated. Only one value for x,y,z directions to reduce stack size.
-		matrix::Vector3f meas_xyz;			// Measurements (meas_x, meas_y, meas_z)
-		matrix::Vector3f meas_unc_xyz;		// Measurements' uncertainties
-		matrix::Matrix<float, Direction::nb_directions, vtest::State::size>
-		meas_h_xyz; // Observation matrix where the rows correspond to the x,y,z observations and the columns to the AugmentedState
+		matrix::Vector3f meas_xyz{};			// Measurements (meas_x, meas_y, meas_z)
+		matrix::Vector3f meas_unc_xyz{};		// Measurements' uncertainties
+		matrix::Matrix<float, Axis::Count, vtest::State::size>
+		meas_h_xyz{}; // Observation matrix where the rows correspond to the x,y,z observations and the columns to the AugmentedState
 	};
 
 	enum SensorFusionMask : uint8_t {
@@ -209,7 +215,7 @@ private:
 		USE_UWB = (1 << 5) ///< set to true to use UWB.
 	};
 
-	enum ObservationValidMask : uint8_t {
+	enum ObsValidMask : uint8_t {
 		// Bit locations for valid observations
 		NO_VALID_DATA 	     = 0,
 		FUSE_TARGET_GPS_POS  = (1 << 0),    ///< set to true if target GPS position data is ready to be fused
@@ -223,86 +229,86 @@ private:
 	int adjustAidMask(const int input_mask);
 	void printAidMask();
 	bool createEstimators();
-	bool initEstimator(const matrix::Matrix <float, Direction::nb_directions, vtest::State::size>
+	bool initEstimator(const matrix::Matrix <float, Axis::Count, vtest::State::size>
 			   &state_init);
 	bool updateStep(const matrix::Vector3f &vehicle_acc_ned);
 	void predictionStep(const matrix::Vector3f &acc);
 
 	void updateTargetGpsVelocity(const target_gnss_s &target_GNSS_report);
 
-	inline bool hasNewNonGpsPositionSensorData(const ObservationValidMask &vte_fusion_aid_mask) const
+	inline bool hasNewNonGpsPositionSensorData(const ObsValidMask &vte_fusion_aid_mask) const
 	{
-		return (vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS)
-		       || (vte_fusion_aid_mask & ObservationValidMask::FUSE_UWB);
+		return (vte_fusion_aid_mask & ObsValidMask::FUSE_EXT_VIS_POS)
+		       || (vte_fusion_aid_mask & ObsValidMask::FUSE_UWB);
 	}
 
-	inline bool hasNewPositionSensorData(const ObservationValidMask &vte_fusion_aid_mask) const
+	inline bool hasNewPositionSensorData(const ObsValidMask &vte_fusion_aid_mask) const
 	{
-		return vte_fusion_aid_mask & (ObservationValidMask::FUSE_MISSION_POS |
-					      ObservationValidMask::FUSE_TARGET_GPS_POS |
-					      ObservationValidMask::FUSE_EXT_VIS_POS);
+		return vte_fusion_aid_mask & (ObsValidMask::FUSE_MISSION_POS |
+					      ObsValidMask::FUSE_TARGET_GPS_POS |
+					      ObsValidMask::FUSE_EXT_VIS_POS);
 	}
 
-	inline bool hasNewVelocitySensorData(const ObservationValidMask &vte_fusion_aid_mask) const
+	inline bool hasNewVelocitySensorData(const ObsValidMask &vte_fusion_aid_mask) const
 	{
-		return vte_fusion_aid_mask & (ObservationValidMask::FUSE_TARGET_GPS_VEL |
-					      ObservationValidMask::FUSE_UAV_GPS_VEL);
+		return vte_fusion_aid_mask & (ObsValidMask::FUSE_TARGET_GPS_VEL |
+					      ObsValidMask::FUSE_UAV_GPS_VEL);
 	}
 
 	// Only estimate the GNSS bias if we have a GNSS estimation and a secondary source of position
-	inline bool shouldSetBias(const ObservationValidMask &vte_fusion_aid_mask)
+	inline bool shouldSetBias(const ObsValidMask &vte_fusion_aid_mask)
 	{
 		return isMeasValid(_pos_rel_gnss.timestamp) && hasNewNonGpsPositionSensorData(vte_fusion_aid_mask);
 	};
 
 
-	bool initializeEstimator(const ObservationValidMask &vte_fusion_aid_mask,
-				 const targetObsPos observations[ObservationType::nb_observation_types]);
-	void updateBias(const ObservationValidMask &vte_fusion_aid_mask,
-			const targetObsPos observations[ObservationType::nb_observation_types]);
-	void getPosInit(const ObservationValidMask &vte_fusion_aid_mask,
-			const targetObsPos observations[ObservationType::nb_observation_types], matrix::Vector3f &pos_init);
-	bool fuseNewSensorData(const matrix::Vector3f &vehicle_acc_ned, ObservationValidMask &vte_fusion_aid_mask,
-			       const targetObsPos observations[ObservationType::nb_observation_types]);
-	void processObservations(ObservationValidMask &vte_fusion_aid_mask,
-				 targetObsPos observations[ObservationType::nb_observation_types]);
+	bool initializeEstimator(const ObsValidMask &vte_fusion_aid_mask,
+				 const targetObs observations[ObsType::Type_count]);
+	void updateBias(const ObsValidMask &vte_fusion_aid_mask,
+			const targetObs observations[ObsType::Type_count]);
+	void getPosInit(const ObsValidMask &vte_fusion_aid_mask,
+			const targetObs observations[ObsType::Type_count], matrix::Vector3f &pos_init);
+	bool fuseNewSensorData(const matrix::Vector3f &vehicle_acc_ned, ObsValidMask &vte_fusion_aid_mask,
+			       const targetObs observations[ObsType::Type_count]);
+	void processObservations(ObsValidMask &vte_fusion_aid_mask,
+				 targetObs observations[ObsType::Type_count]);
 
 	bool isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who = nullptr) const;
 
 	/* Vision data */
-	void handleVisionData(ObservationValidMask &vte_fusion_aid_mask, targetObsPos &obs_fiducial_marker);
+	void handleVisionData(ObsValidMask &vte_fusion_aid_mask, targetObs &obs_fiducial_marker);
 	bool isVisionDataValid(const fiducial_marker_pos_report_s &fiducial_marker_pose);
-	bool processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, targetObsPos &obs);
+	bool processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, targetObs &obs);
 
 	/* UWB data */
-	void handleUwbData(ObservationValidMask &vte_fusion_aid_mask, targetObsPos &obs_uwb);
+	void handleUwbData(ObsValidMask &vte_fusion_aid_mask, targetObs &obs_uwb);
 	bool isUwbDataValid(const sensor_uwb_s &uwb_report);
-	bool processObsUwb(const sensor_uwb_s &uwb_report, targetObsPos &obs);
+	bool processObsUwb(const sensor_uwb_s &uwb_report, targetObs &obs);
 
 	/* UAV GPS data */
-	void handleUavGpsData(ObservationValidMask &vte_fusion_aid_mask,
-			      targetObsPos &obs_gps_pos_mission,
-			      targetObsPos &obs_gps_vel_uav);
-	void updateUavGpsData(const sensor_gps_s &vehicle_gps_position);
+	void handleUavGpsData(ObsValidMask &vte_fusion_aid_mask,
+			      targetObs &obs_gps_pos_mission,
+			      targetObs &obs_gps_vel_uav);
+	bool updateUavGpsData();
 	bool isUavGpsPositionValid();
 	bool isUavGpsVelocityValid();
-	bool processObsGNSSPosMission(targetObsPos &obs);
-	bool processObsGNSSVelUav(targetObsPos &obs);
+	bool processObsGNSSPosMission(targetObs &obs);
+	bool processObsGNSSVelUav(targetObs &obs);
 
 	/* Target GPS data */
-	void handleTargetGpsData(const target_gnss_s &target_GNSS_report,
-				 ObservationValidMask &vte_fusion_aid_mask,
-				 targetObsPos &obs_gps_pos_target,
-				 targetObsPos &obs_gps_vel_target);
-	bool isTargetGpsDataValid(const target_gnss_s &target_GNSS_report);
-	bool processObsGNSSPosTarget(const target_gnss_s &target_GNSS_report, targetObsPos &obs);
+	void handleTargetGpsData(ObsValidMask &vte_fusion_aid_mask,
+				 targetObs &obs_gps_pos_target,
+				 targetObs &obs_gps_vel_target);
+	bool isTargetGpsPositionValid(const target_gnss_s &target_GNSS_report);
+	bool isTargetGpsVelocityValid(const target_gnss_s &target_GNSS_report);
+	bool processObsGNSSPosTarget(const target_gnss_s &target_GNSS_report, targetObs &obs);
 #if defined(CONFIG_VTEST_MOVING)
-	bool processObsGNSSVelTarget(const target_gnss_s &target_GNSS_report, targetObsPos &obs);
+	bool processObsGNSSVelTarget(const target_gnss_s &target_GNSS_report, targetObs &obs);
 #endif // CONFIG_VTEST_MOVING
 
-	bool fuseMeas(const matrix::Vector3f &vehicle_acc_ned, const targetObsPos &target_pos_obs);
+	bool fuseMeas(const matrix::Vector3f &vehicle_acc_ned, const targetObs &target_pos_obs);
 	void publishTarget();
-	void publishInnov(const estimator_aid_source3d_s &target_innov, const ObservationType type);
+	void publishInnov(const estimator_aid_source3d_s &target_innov, const ObsType type);
 
 
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
@@ -316,7 +322,7 @@ private:
 	struct rangeSensor {
 		hrt_abstime timestamp = 0;
 		bool valid = false;
-		float dist_bottom;
+		float dist_bottom = 0.f;
 	};
 
 	rangeSensor _range_sensor{};
@@ -331,14 +337,14 @@ private:
 		float epv = 0.f;
 	};
 
-	globalPos _mission_position{};
+	globalPos _mission_land_position{};
 	globalPos _uav_gps_position{};
 
 	struct velStamped {
 		hrt_abstime timestamp = 0;
 		bool valid = false;
-		matrix::Vector3f xyz;
-		float uncertainty;
+		matrix::Vector3f xyz{};
+		float uncertainty = 0.f;
 	};
 
 	velStamped _uav_gps_vel{};
@@ -346,7 +352,7 @@ private:
 	struct vecStamped {
 		hrt_abstime timestamp = 0;
 		bool valid = false;
-		matrix::Vector3f xyz;
+		matrix::Vector3f xyz{};
 	};
 
 	vecStamped _local_position{};
@@ -361,7 +367,7 @@ private:
 	uint64_t _last_vision_obs_fused_time{0};
 	bool _estimator_initialized{false};
 
-	KF_position *_target_estimator[Direction::nb_directions] {nullptr, nullptr, nullptr};
+	KF_position *_target_estimator[Axis::Count] {nullptr, nullptr, nullptr};
 
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
@@ -371,14 +377,14 @@ private:
 
 	uint32_t _vte_TIMEOUT_US = 4_s;
 	int _vte_aid_mask{0};
-	float _target_acc_unc;
-	float _bias_unc;
-	float _drone_acc_unc;
-	float _gps_vel_noise;
-	float _gps_pos_noise;
+	float _target_acc_unc{0.f};
+	float _bias_unc{0.f};
+	float _uav_acc_unc{0.f};
+	float _gps_vel_noise{0.f};
+	float _gps_pos_noise{0.f};
 	bool  _ev_noise_md{false};
-	float _ev_pos_noise;
-	float _nis_threshold;
+	float _ev_pos_noise{0.f};
+	float _nis_threshold{0.f};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::VTE_AID_MASK>) _param_vte_aid_mask,

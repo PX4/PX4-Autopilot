@@ -33,36 +33,36 @@
 
 /**
  * @file vision_target_estimator_params.c
- * Vision target Estimator algorithm parameters.
+ * Vision Target Estimator algorithm parameters.
  *
  * @author Jonas Perolini <jonsper@me.com>
  *
  */
 
 /**
- * Vision target Estimator module enable
+ * Vision Target Estimator module enable
  *
  * @boolean
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_INT32(VTE_EN, 1);
 
 /**
- * Vision target Estimator module enable orientation estimation
+ * Vision Target Estimator module enable orientation estimation
  *
  * @boolean
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_INT32(VTE_YAW_EN, 0);
 
 /**
- * Vision target Estimator module enable position estimation
+ * Vision Target Estimator module enable position estimation
  *
  * @boolean
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_INT32(VTE_POS_EN, 1);
 
@@ -71,7 +71,7 @@ PARAM_DEFINE_INT32(VTE_POS_EN, 1);
  *
  * @boolean
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_INT32(VTE_EKF_AID, 1);
 
@@ -81,11 +81,12 @@ PARAM_DEFINE_INT32(VTE_EKF_AID, 1);
  *
  * Set bits in the following positions to enable:
  * 0 : Set to true to use the target's GNSS position data if available. (+1)
- * 1 : Set to true to use the relative GNSS velocity data if available. (If the target is moving, a target velocity estimate is required) (+2)
- * 2 : Set to true to use the target relative position from vision-based data if available (+4)
- * 3 : Set to true to use the mission point. Ignored if target GNSS position enabled. (+8)
+ * 1 : Set to true to use the relative GNSS velocity data if available. (+2)
+ * 2 : Set to true to use the target relative position from vision-based data if available. (+4)
+ * 3 : Set to true to use the mission land point. Ignored if target GNSS position enabled. (+8)
+ * 4 : Set to true to use the (+16)
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  * @min 0
  * @max 63
  * @bit 0 target GNSS position
@@ -96,7 +97,7 @@ PARAM_DEFINE_INT32(VTE_EKF_AID, 1);
  * @bit 5 uwb
  *
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_INT32(VTE_AID_MASK, 14);
 
@@ -106,14 +107,14 @@ PARAM_DEFINE_INT32(VTE_AID_MASK, 14);
  * Set bits in the following positions to enable:
  * 0 : Set to true to use the vision target estimator for precision landing. (+1)
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  * @min 0
  * @max 3
  * @bit 0 VTE for precision landing
  * @bit 1 VTE for DEBUG, always active
  *
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_INT32(VTE_TASK_MASK, 1);
 
@@ -129,7 +130,7 @@ PARAM_DEFINE_INT32(VTE_TASK_MASK, 1);
  * @decimal 1
  * @increment 0.5
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_BTOUT, 3.0f);
 
@@ -143,7 +144,7 @@ PARAM_DEFINE_FLOAT(VTE_BTOUT, 3.0f);
  * @min 0.01
  * @decimal 2
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_ACC_D_UNC, 1.0f);
 
@@ -157,7 +158,7 @@ PARAM_DEFINE_FLOAT(VTE_ACC_D_UNC, 1.0f);
  * @min 0.01
  * @decimal 2
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_ACC_T_UNC, 1.0f);
 
@@ -171,7 +172,7 @@ PARAM_DEFINE_FLOAT(VTE_ACC_T_UNC, 1.0f);
  * @min 0.01
  * @decimal 2
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_BIAS_UNC, 0.05f);
 
@@ -184,7 +185,7 @@ PARAM_DEFINE_FLOAT(VTE_BIAS_UNC, 0.05f);
  * @min 0.01
  * @decimal 2
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_BIAS_LIM, 1.f);
 
@@ -198,7 +199,7 @@ PARAM_DEFINE_FLOAT(VTE_BIAS_LIM, 1.f);
  * @min 0.001
  * @decimal 3
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_POS_UNC_IN, 0.5f);
 
@@ -211,7 +212,7 @@ PARAM_DEFINE_FLOAT(VTE_POS_UNC_IN, 0.5f);
  * @min 0.001
  * @decimal 3
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_VEL_UNC_IN, 0.5f);
 
@@ -224,7 +225,7 @@ PARAM_DEFINE_FLOAT(VTE_VEL_UNC_IN, 0.5f);
  * @min 0.001
  * @decimal 3
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_BIA_UNC_IN, 1.0f);
 
@@ -237,7 +238,7 @@ PARAM_DEFINE_FLOAT(VTE_BIA_UNC_IN, 1.0f);
  * @min 0.001
  * @decimal 3
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_YAW_UNC_IN, 1.0f);
 
@@ -250,7 +251,7 @@ PARAM_DEFINE_FLOAT(VTE_YAW_UNC_IN, 1.0f);
  * @min 0.001
  * @decimal 3
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_ACC_UNC_IN, 0.1f);
 
@@ -264,7 +265,7 @@ PARAM_DEFINE_FLOAT(VTE_ACC_UNC_IN, 0.1f);
  * @unit m/s
  * @decimal 2
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_GPS_V_NOISE, 0.3f);
 
@@ -278,7 +279,7 @@ PARAM_DEFINE_FLOAT(VTE_GPS_V_NOISE, 0.3f);
  * @unit m
  * @decimal 2
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_GPS_P_NOISE, 0.5f);
 
@@ -289,7 +290,7 @@ PARAM_DEFINE_FLOAT(VTE_GPS_P_NOISE, 0.5f);
  *
  * @boolean
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_INT32(VTE_EV_NOISE_MD, 0);
 
@@ -300,7 +301,7 @@ PARAM_DEFINE_INT32(VTE_EV_NOISE_MD, 0);
  * @unit rad
  * @decimal 2
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_EVA_NOISE, 0.05f);
 
@@ -313,7 +314,7 @@ PARAM_DEFINE_FLOAT(VTE_EVA_NOISE, 0.05f);
  * @unit m
  * @decimal 2
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_EVP_NOISE, 0.1f);
 
@@ -329,7 +330,7 @@ PARAM_DEFINE_FLOAT(VTE_EVP_NOISE, 0.1f);
  * @unit s
  * @decimal 2
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_MOVING_T_MAX, 3.f);
 
@@ -346,7 +347,7 @@ PARAM_DEFINE_FLOAT(VTE_MOVING_T_MAX, 3.f);
  * @unit s
  * @decimal 2
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_MOVING_T_MIN, 2.f);
 
@@ -363,7 +364,7 @@ PARAM_DEFINE_FLOAT(VTE_MOVING_T_MIN, 2.f);
  * @unit
  * @decimal 2
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_POS_NIS_THRE, 3.84f);
 
@@ -379,6 +380,6 @@ PARAM_DEFINE_FLOAT(VTE_POS_NIS_THRE, 3.84f);
  * @unit
  * @decimal 2
  *
- * @group Vision target Estimator
+ * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_YAW_NIS_THRE, 3.84f);
