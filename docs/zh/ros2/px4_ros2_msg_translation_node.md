@@ -65,7 +65,7 @@ The translation node will print a warning if it encounters an unknown topic vers
 After making a modification in PX4 to the message definitions and/or translation node code, you will need to rerun the steps above from point 2 to update your ROS workspace accordingly.
 :::
 
-### In ROS Applications
+### 在ROS 应用中
 
 While developing a ROS 2 application that communicates with PX4, it is not necessary to know the specific version of a message being used.
 The message version can be added generically to a topic name like this:
@@ -183,7 +183,7 @@ class MinimalPubSub(Node):
 On the PX4 side, the DDS client automatically adds the version suffix if a message definition contains the field `uint32 MESSAGE_VERSION = x`.
 
 :::info
-Version 0 of a topic means that no `_v<version>` suffix should be added.
+主题版本0意味着不应添加`_v<version>`后缀。
 :::
 
 ## Development

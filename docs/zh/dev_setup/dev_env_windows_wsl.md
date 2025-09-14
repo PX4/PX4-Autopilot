@@ -33,7 +33,7 @@ _QGroundControl for Windows_ is additionally required if you need to:
   Note that you can also use it to monitor a simulation, but you must manually [connect to the simulation running in WSL](#qgroundcontrol-on-windows).
 
 :::info
-Connecting to an USB device from within WSL is not natively supported, however it can still be achieved by using the [USBIPD-WIN](https://learn.microsoft.com/en-us/windows/wsl/connect-usb) project. With this you can automatically upload firmware from the command line in WSL using the  [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) function.
+Connecting to an USB device from within WSL is not natively supported, however it can still be achieved by using the [USBIPD-WIN](https://learn.microsoft.com/en-us/windows/wsl/connect-usb) project. With this you can automatically upload firmware from the command line in WSL using the [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) function.
 :::
 
 :::info
@@ -349,3 +349,9 @@ sudo add-apt-repository ppa:kisak/kisak-mesa
 sudo apt update
 sudo apt upgrade
 ```
+
+### QGroundControl not connecting to PX4 SITL
+
+- The connection between PX4 SITL on WSL2 and QGroundControl on Windows requires [broadcasting](../simulation/index.md#enable-udp-broadcasting) or [streaming to a specific address](../simulation/index.md#enable-streaming-to-specific-address) to be enabled.
+  Streaming to a specific address should be enabled by default, but is something to check if a connection can't be established.
+- Network traffic might be blocked by firewall or antivirus on you system.

@@ -1,6 +1,6 @@
 # ROS 2 Offboard 控制示例
 
-The following C++ example shows how to do position control in [offboard mode](../flight_modes/offboard.md) from a ROS 2 node.
+以下的 C++ 示例展示了如何在 [离板模式] (../flight_modes/offboard.md) 中从 ROS 2 节点进行位置控制。
 
 示例将首先发送设置点、进入offboard模式、解锁、起飞至5米，并悬停等待。
 虽然简单，但它显示了如何使用offboard控制以及如何向无人机发送指令。
