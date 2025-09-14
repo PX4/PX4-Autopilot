@@ -102,10 +102,10 @@ protected:
 	static constexpr uint32_t target_valid_TIMEOUT_US = 2_s;
 
 	/* timeout after which the measurement is not valid*/
-	static constexpr uint32_t measurement_valid_TIMEOUT_US = 1_s;
+	static constexpr uint32_t meas_valid_TIMEOUT_US = 1_s;
 
 	/* timeout after which the measurement is not considered updated*/
-	static constexpr uint32_t measurement_updated_TIMEOUT_US = 100_ms;
+	static constexpr uint32_t meas_updated_TIMEOUT_US = 100_ms;
 
 	uORB::Publication<vision_target_est_orientation_s> _targetOrientationPub{ORB_ID(vision_target_est_orientation)};
 
@@ -115,6 +115,20 @@ protected:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 private:
+
+	static inline bool isMeasValid(hrt_abstime time_stamp)
+	{
+		const hrt_abstime now = hrt_absolute_time();
+		return (time_stamp <= now) &&
+		       ((now - time_stamp) < static_cast<hrt_abstime>(meas_valid_TIMEOUT_US));
+	}
+
+	static inline bool isMeasUpdated(hrt_abstime time_stamp)
+	{
+		const hrt_abstime now = hrt_absolute_time();
+		return (time_stamp <= now) &&
+		       ((now - time_stamp) < static_cast<hrt_abstime>(meas_updated_TIMEOUT_US));
+	}
 
 	bool _has_timed_out{false};
 	struct targetObsOrientation {

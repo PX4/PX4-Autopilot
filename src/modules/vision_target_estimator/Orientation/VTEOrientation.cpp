@@ -47,7 +47,7 @@
 
 #include "VTEOrientation.h"
 
-#define SEC2USEC 1000000.0f
+#define SEC2USEC_F 1e6f
 
 namespace vision_target_estimator
 {
@@ -88,7 +88,7 @@ void VTEOrientation::update()
 	if (_estimator_initialized) {
 
 		if (hrt_absolute_time() - _last_update > _vte_TIMEOUT_US) {
-			PX4_WARN("VTE orientation estimator timeout");
+			PX4_WARN("VTE orientation estimator has timed out");
 			_has_timed_out = true;
 
 		} else {
@@ -130,7 +130,7 @@ bool VTEOrientation::initEstimator(const float theta_init)
 void VTEOrientation::predictionStep()
 {
 	// Time from last prediciton
-	float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
+	float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC_F;
 
 	_target_estimator_orientation->predictState(dt);
 	_target_estimator_orientation->predictCov(dt);
@@ -150,7 +150,7 @@ bool VTEOrientation::updateStep()
 
 		if (processObsVisionOrientation(fiducial_marker_orientation, obs_fiducial_marker_orientation)) {
 
-			orientation_valid = ((hrt_absolute_time() - obs_fiducial_marker_orientation.timestamp) < measurement_valid_TIMEOUT_US);
+			orientation_valid = isMeasValid(obs_fiducial_marker_orientation.timestamp);
 		}
 	}
 
@@ -224,10 +224,10 @@ bool VTEOrientation::fuse_orientation(const targetObsOrientation &target_orienta
 	// Compute the measurement's time delay (difference between state and measurement time on validity)
 	const float dt_sync_us = (_last_predict - target_orientation_obs.timestamp);
 
-	if (dt_sync_us > measurement_valid_TIMEOUT_US) {
+	if (dt_sync_us > meas_valid_TIMEOUT_US) {
 
 		PX4_INFO("Orientation obs. rejected because too old. Time sync: %.2f [seconds] > timeout: %.2f [seconds]",
-			 (double)(dt_sync_us / SEC2USEC), (double)(measurement_valid_TIMEOUT_US / SEC2USEC));
+			 (double)(dt_sync_us / SEC2USEC_F), (double)(meas_valid_TIMEOUT_US / SEC2USEC_F));
 
 		// No measurement update, set to false
 		target_innov.fused = false;
@@ -235,7 +235,7 @@ bool VTEOrientation::fuse_orientation(const targetObsOrientation &target_orienta
 	} else if (target_orientation_obs.updated_theta) {
 
 		// Convert time sync to seconds
-		const float dt_sync_s = dt_sync_us / SEC2USEC;
+		const float dt_sync_s = dt_sync_us / SEC2USEC_F;
 
 		_target_estimator_orientation->syncState(dt_sync_s);
 		_target_estimator_orientation->setH(target_orientation_obs.meas_h_theta);
@@ -298,7 +298,7 @@ void VTEOrientation::checkParams(const bool force)
 	}
 
 	if (_range_sensor.valid) {
-		_range_sensor.valid = (hrt_absolute_time() - _range_sensor.last_update) < measurement_updated_TIMEOUT_US;
+		_range_sensor.valid = isMeasUpdated(_range_sensor.last_update);
 	}
 }
 
