@@ -512,6 +512,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 	// UAVCAN_PUB_ARM
 #if defined(CONFIG_UAVCAN_ARMING_CONTROLLER)
+
 	if (uavcan_pub_arm == 1) {
 		ret = _arming_status_controller.init();
 

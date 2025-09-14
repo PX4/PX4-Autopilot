@@ -301,7 +301,8 @@ static int flexio_irq_handler(int irq, void *context, void *arg)
 }
 
 
-int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool bdshot_enable, bool enable_extended_dshot_telemetry)
+int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool bdshot_enable,
+		  bool enable_extended_dshot_telemetry)
 {
 	(void)enable_extended_dshot_telemetry; // Not implemented
 
