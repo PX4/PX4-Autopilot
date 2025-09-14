@@ -37,8 +37,8 @@ You can enable this key in your own custom firmware if needed.
 
 2. [Оновіть прошивку](../config/firmware.md#custom) з образом, що містить новий/потрібний завантажувач.
 
-  ::: info
-  The updated bootloader might be included the default firmware for your board or supplied in custom firmware.
+   ::: info
+   The updated bootloader might be included the default firmware for your board or supplied in custom firmware.
 
 :::
 
@@ -47,7 +47,7 @@ You can enable this key in your own custom firmware if needed.
 4. [Знайдіть](../advanced_config/parameters.md) та увімкніть параметр [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE).
 
 5. Перезавантажте (відключіть / підключіть плату).
-  Оновлення завантажувача займе лише кілька секунд.
+   Оновлення завантажувача займе лише кілька секунд.
 
 Зазвичай на цьому етапі ви можливо захочете [оновити прошивку](../config/firmware.md) ще раз, використовуючи правильно/ново встановлений загрузчик.
 
@@ -89,80 +89,80 @@ PX4 boards up to FMUv5X (before STM32H7) used the [PX4 bootloader](https://githu
 1. Отримайте бінарний файл, який містить завантажувальник (або від команди розробників, або [зіберіть його самостійно](#building-the-px4-bootloader)).
 
 2. Get a [Debug Probe](../debug/swd_debug.md#debug-probes-for-px4-hardware).
-  Підключіть зонд до комп'ютера за допомогою USB та налаштуйте `gdbserver`.
+   Підключіть зонд до комп'ютера за допомогою USB та налаштуйте `gdbserver`.
 
 3. Перейдіть до каталогу, що містить бінарний файл, і запустіть команду для обраного вами завантажувача в терміналі:
 
-  - FMUv6X
+   - FMUv6X
 
-    ```sh
-    arm-none-eabi-gdb px4_fmu-v6x_bootloader.elf
-    ```
+     ```sh
+     arm-none-eabi-gdb px4_fmu-v6x_bootloader.elf
+     ```
 
-  - FMUv6X-RT
+   - FMUv6X-RT
 
-    ```sh
-    arm-none-eabi-gdb px4_fmu-v6xrt_bootloader.elf
-    ```
+     ```sh
+     arm-none-eabi-gdb px4_fmu-v6xrt_bootloader.elf
+     ```
 
-  - FMUv5
+   - FMUv5
 
-    ```sh
-    arm-none-eabi-gdb px4fmuv5_bl.elf
-    ```
+     ```sh
+     arm-none-eabi-gdb px4fmuv5_bl.elf
+     ```
 
-  H7 Завантажувачі з [PX4/PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) мають назву за шаблоном `*._bootloader.elf`.
-  Завантажувачі з [PX4/PX4-Bootloader](https://github.com/PX4/PX4-Bootloader) мають назву за шаблоном `*_bl.elf`.
+   H7 Завантажувачі з [PX4/PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) мають назву за шаблоном `*._bootloader.elf`.
+   Завантажувачі з [PX4/PX4-Bootloader](https://github.com/PX4/PX4-Bootloader) мають назву за шаблоном `*_bl.elf`.
 
 :::
 
 4. The _gdb terminal_ appears and it should display (something like) the following output:
 
-  ```sh
-  GNU gdb (GNU Tools for Arm Embedded Processors 7-2017-q4-major) 8.0.50.20171128-git
-  Copyright (C) 2017 Free Software Foundation, Inc.
-  License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
-  This is free software: you are free to change and redistribute it.
-  There is NO WARRANTY, to the extent permitted by law.
-  Type "show copying"    and "show warranty" for details.
-  This GDB was configured as "--host=x86_64-linux-gnu --target=arm-none-eabi".
-  Type "show configuration" for configuration details.
-  For bug reporting instructions, please see:
-  <https://www.sourceware.org/gdb/bugs/>.
-  Find the GDB manual and other documentation resources online at:
-  <https://www.sourceware.org/gdb/documentation/>.
-  For help, type "help".
-  Type "apropos word" to search for commands related to "word"...
-  Reading symbols from px4fmuv5_bl.elf...done.
-  ```
+   ```sh
+   GNU gdb (GNU Tools for Arm Embedded Processors 7-2017-q4-major) 8.0.50.20171128-git
+   Copyright (C) 2017 Free Software Foundation, Inc.
+   License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+   This is free software: you are free to change and redistribute it.
+   There is NO WARRANTY, to the extent permitted by law.
+   Type "show copying"    and "show warranty" for details.
+   This GDB was configured as "--host=x86_64-linux-gnu --target=arm-none-eabi".
+   Type "show configuration" for configuration details.
+   For bug reporting instructions, please see:
+   <https://www.sourceware.org/gdb/bugs/>.
+   Find the GDB manual and other documentation resources online at:
+   <https://www.sourceware.org/gdb/documentation/>.
+   For help, type "help".
+   Type "apropos word" to search for commands related to "word"...
+   Reading symbols from px4fmuv5_bl.elf...done.
+   ```
 
 5. Find your `<dronecode-probe-id>` by running an `ls` command in the **/dev/serial/by-id** directory.
 
 6. Тепер підключіться до debug probe з наступною командою:
 
-  ```sh
-  tar ext /dev/serial/by-id/<dronecode-probe-id>
-  ```
+   ```sh
+   tar ext /dev/serial/by-id/<dronecode-probe-id>
+   ```
 
 7. Увімкніть Pixhawk за допомогою іншого USB-кабелю та під’єднайте зонд до порту `FMU-DEBUG`.
 
-  ::: info
-  If using a Zubax BugFace BF1 you may need to remove the case in order to connect to the `FMU-DEBUG` port (e.g. on Pixhawk 4 you would do this using a T6 Torx screwdriver).
+   ::: info
+   If using a Zubax BugFace BF1 you may need to remove the case in order to connect to the `FMU-DEBUG` port (e.g. on Pixhawk 4 you would do this using a T6 Torx screwdriver).
 
 :::
 
 8. Використовуйте таку команду, щоб знайти SWD Pixhawk і підключитися до нього:
 
-  ```sh
-  (gdb) mon swdp_scan
-  (gdb) attach 1
-  ```
+   ```sh
+   (gdb) mon swdp_scan
+   (gdb) attach 1
+   ```
 
 9. Завантажте двійковий файл в Pixhawk:
 
-  ```sh
-  (gdb) load
-  ```
+   ```sh
+   (gdb) load
+   ```
 
 Після оновлення завантажувача ви можете [завантажити прошивку PX4](../config/firmware.md) за допомогою _QGroundControl_.
 
@@ -181,25 +181,25 @@ This example explains how you can use [QGC Bootloader Update](qgc-bootloader-upd
 1. Вставте SD-карту (це дозволяє реєструвати журнали завантаження для відлагодження будь-яких проблем).
 
 2. [Оновіть програмне забезпечення](../config/firmware.md) до версії PX4 _master_ (під час оновлення програмного забезпечення перевірте **Розширені налаштування** і виберіть **Розробницьку збірку (master)** із випадаючого списку).
-  _QGroundControl_ автоматично виявить, що апаратне забезпечення підтримує FMUv2 і встановить відповідне програмне забезпечення.
+   _QGroundControl_ автоматично виявить, що апаратне забезпечення підтримує FMUv2 і встановить відповідне програмне забезпечення.
 
-  ![FMUv2 update](../../assets/qgc/setup/firmware/bootloader_update.jpg)
+   ![FMUv2 update](../../assets/qgc/setup/firmware/bootloader_update.jpg)
 
-  Зачекайте, доки транспортний засіб перезавантажиться.
+   Зачекайте, доки транспортний засіб перезавантажиться.
 
 3. [Знайдіть](../advanced_config/parameters.md) та увімкніть параметр [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE).
 
 4. Перезавантажте (відключіть / підключіть плату).
-  Оновлення завантажувача займе лише кілька секунд.
+   Оновлення завантажувача займе лише кілька секунд.
 
 5. Тоді знову [Оновити програмне забезпечення](../config/firmware.md).
-  На цей раз _QGroundControl_ повинен автоматично визначити обладнання як FMUv3 і відповідним чином оновити програмне забезпечення.
+   На цей раз _QGroundControl_ повинен автоматично визначити обладнання як FMUv3 і відповідним чином оновити програмне забезпечення.
 
-  ![FMUv3 update](../../assets/qgc/setup/firmware/bootloader_fmu_v3_update.jpg)
+   ![FMUv3 update](../../assets/qgc/setup/firmware/bootloader_fmu_v3_update.jpg)
 
-  ::: info
-  Якщо апаратне забезпечення має [Помилки в кремнієвій мікросхемі](../flight_controller/silicon_errata.md#fmuv2-pixhawk-silicon-errata), воно все одно буде виявлене як FMUv2, і ви побачите, що FMUv2 було знову встановлено (у консолі).
-  У цьому випадку ви не зможете встановити апаратне забезпечення FMUv3.
+   ::: info
+   Якщо апаратне забезпечення має [Помилки в кремнієвій мікросхемі](../flight_controller/silicon_errata.md#fmuv2-pixhawk-silicon-errata), воно все одно буде виявлене як FMUv2, і ви побачите, що FMUv2 було знову встановлено (у консолі).
+   У цьому випадку ви не зможете встановити апаратне забезпечення FMUv3.
 
 :::
 

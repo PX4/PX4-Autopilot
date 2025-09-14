@@ -51,54 +51,54 @@ _Crazyflie 2.0_ було [припинено/замінено](../flight_control
 
 1. Завантажте вихідний код завантажувача PX4:
 
-  ```sh
-  git clone https://github.com/PX4/PX4-Bootloader.git
-  ```
+   ```sh
+   git clone https://github.com/PX4/PX4-Bootloader.git
+   ```
 
 2. Перейдіть до верхньої директорії вихідного коду та скомпілюйте його за допомогою:
 
-  ```sh
-  make crazyflie_bl
-  ```
+   ```sh
+   make crazyflie_bl
+   ```
 
 3. Поставте Crazyflie 2.0 у режим DFU, виконавши ці кроки:
-  - Спочатку переконайтеся, що він знеструмлений.
-  - Утримуйте кнопку скидання (див. малюнок нижче...).
-    ![Crazyflie2 Reset Button](../../assets/flight_controller/crazyflie/crazyflie_reset_button.jpg)
-  - Підключіть до USB-порту комп'ютера.
-  - Через секунду синій світлодіод повинен почати блимати, а через 5 секунд повинен почати блимати швидше.
-  - Відпустіть кнопку.
+   - Спочатку переконайтеся, що він знеструмлений.
+   - Утримуйте кнопку скидання (див. малюнок нижче...).
+     ![Crazyflie2 Reset Button](../../assets/flight_controller/crazyflie/crazyflie_reset_button.jpg)
+   - Підключіть до USB-порту комп'ютера.
+   - Через секунду синій світлодіод повинен почати блимати, а через 5 секунд повинен почати блимати швидше.
+   - Відпустіть кнопку.
 
 4. Встановіть _dfu-util_:
 
-  ```sh
-  sudo apt-get update
-  sudo apt-get install dfu-util
-  ```
+   ```sh
+   sudo apt-get update
+   sudo apt-get install dfu-util
+   ```
 
 5. Виконайте прошивку завантажувальника за допомогою _dfu-util_ та від'єднайте Crazyflie 2.0, коли це зроблено:
 
-  ```sh
-  sudo dfu-util -d 0483:df11 -a 0 -s 0x08000000 -D ./build/crazyflie_bl/crazyflie_bl.bin
-  ```
+   ```sh
+   sudo dfu-util -d 0483:df11 -a 0 -s 0x08000000 -D ./build/crazyflie_bl/crazyflie_bl.bin
+   ```
 
-  Коли увімкнено Crazyflie 2.0, жовтий світлодіод повинен мигати.
+   Коли увімкнено Crazyflie 2.0, жовтий світлодіод повинен мигати.
 
 6. Завантажте вихідний код завантажувача автопілоту PX4:
 
-  ```sh
-  git clone https://github.com/PX4/PX4-Autopilot.git
-  ```
+   ```sh
+   git clone https://github.com/PX4/PX4-Autopilot.git
+   ```
 
 7. Перейдіть до верхньої директорії вихідного коду та скомпілюйте його за допомогою:
 
-  ```sh
-  make bitcraze_crazyflie_default upload
-  ```
+   ```sh
+   make bitcraze_crazyflie_default upload
+   ```
 
 8. Коли вас попросять підключити пристрій, підключіть Crazyflie 2.0.
-  Жовтий світлодіод повинен почати блимати, що вказує на режим завантажувача.
-  Потім червоний світлодіод повинен увімкнутися, що вказує на те, що процес мигання розпочався.
+   Жовтий світлодіод повинен почати блимати, що вказує на режим завантажувача.
+   Потім червоний світлодіод повинен увімкнутися, що вказує на те, що процес мигання розпочався.
 
 9. Очікування завершення.
 
