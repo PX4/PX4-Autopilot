@@ -317,7 +317,8 @@ static int32_t init_timer_channels(uint8_t timer_index)
 	return channels_init_mask;
 }
 
-int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool bdshot_enable, bool enable_extended_dshot_telemetry)
+int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool bdshot_enable,
+		  bool enable_extended_dshot_telemetry)
 {
 	_dshot_frequency = dshot_pwm_freq;
 	_bdshot_enabled = bdshot_enable;
@@ -440,6 +441,7 @@ void up_dshot_trigger()
 
 			} else {
 				stm32_dmastart(timer_configs[timer_index].dma_handle,  NULL, NULL, false);
+
 				if (_bdshot_enabled) {
 					_bdshot_cycle_complete = true;
 				}
@@ -641,6 +643,7 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 
 	if ((checksum & 0xF) != 0xF) {
 		++read_fail_crc[output_channel];
+
 		if (_consecutive_failures[output_channel]++ > BDSHOT_OFFLINE_COUNT) {
 			_consecutive_failures[output_channel] = BDSHOT_OFFLINE_COUNT;
 			_consecutive_successes[output_channel] = 0;
@@ -652,6 +655,7 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 	}
 
 	++read_ok[output_channel];
+
 	if (_consecutive_successes[output_channel]++ > BDSHOT_OFFLINE_COUNT) {
 		_consecutive_successes[output_channel] = BDSHOT_OFFLINE_COUNT;
 		_consecutive_failures[output_channel] = 0;
@@ -667,48 +671,53 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 
 	switch (packet.type) {
 	case DSHOT_EDT_ERPM: {
-		_erpms[output_channel].erpm = packet.value;
-		_erpms[output_channel].ready = true;
+			_erpms[output_channel].erpm = packet.value;
+			_erpms[output_channel].ready = true;
 
-		uint64_t last_timestamp = _erpms[output_channel].last_timestamp;
-		float last_rate_hz = _erpms[output_channel].rate_hz;
-		_erpms[output_channel].rate_hz = calculate_rate_hz(last_timestamp, last_rate_hz, now);
-		_erpms[output_channel].last_timestamp = now;
-		break;
-	}
+			uint64_t last_timestamp = _erpms[output_channel].last_timestamp;
+			float last_rate_hz = _erpms[output_channel].rate_hz;
+			_erpms[output_channel].rate_hz = calculate_rate_hz(last_timestamp, last_rate_hz, now);
+			_erpms[output_channel].last_timestamp = now;
+			break;
+		}
+
 	case DSHOT_EDT_TEMPERATURE: {
-		_edt_temp[output_channel].value = packet.value;
-		_edt_temp[output_channel].ready = true;
+			_edt_temp[output_channel].value = packet.value;
+			_edt_temp[output_channel].ready = true;
 
-		uint64_t last_timestamp = _edt_temp[output_channel].last_timestamp;
-		float last_rate_hz = _edt_temp[output_channel].rate_hz;
-		_edt_temp[output_channel].rate_hz = calculate_rate_hz(last_timestamp, last_rate_hz, now);
-		_edt_temp[output_channel].last_timestamp = now;
-		break;
-	}
+			uint64_t last_timestamp = _edt_temp[output_channel].last_timestamp;
+			float last_rate_hz = _edt_temp[output_channel].rate_hz;
+			_edt_temp[output_channel].rate_hz = calculate_rate_hz(last_timestamp, last_rate_hz, now);
+			_edt_temp[output_channel].last_timestamp = now;
+			break;
+		}
+
 	case DSHOT_EDT_VOLTAGE: {
-		_edt_volt[output_channel].value = packet.value;
-		_edt_volt[output_channel].ready = true;
+			_edt_volt[output_channel].value = packet.value;
+			_edt_volt[output_channel].ready = true;
 
-		uint64_t last_timestamp = _edt_volt[output_channel].last_timestamp;
-		float last_rate_hz = _edt_volt[output_channel].rate_hz;
-		_edt_volt[output_channel].rate_hz = calculate_rate_hz(last_timestamp, last_rate_hz, now);
-		_edt_volt[output_channel].last_timestamp = now;
-		break;
-	}
+			uint64_t last_timestamp = _edt_volt[output_channel].last_timestamp;
+			float last_rate_hz = _edt_volt[output_channel].rate_hz;
+			_edt_volt[output_channel].rate_hz = calculate_rate_hz(last_timestamp, last_rate_hz, now);
+			_edt_volt[output_channel].last_timestamp = now;
+			break;
+		}
+
 	case DSHOT_EDT_CURRENT: {
-		_edt_curr[output_channel].value = packet.value;
-		_edt_curr[output_channel].ready = true;
+			_edt_curr[output_channel].value = packet.value;
+			_edt_curr[output_channel].ready = true;
 
-		uint64_t last_timestamp = _edt_curr[output_channel].last_timestamp;
-		float last_rate_hz = _edt_curr[output_channel].rate_hz;
-		_edt_curr[output_channel].rate_hz = calculate_rate_hz(last_timestamp, last_rate_hz, now);
-		_edt_curr[output_channel].last_timestamp = now;
-		break;
-	}
+			uint64_t last_timestamp = _edt_curr[output_channel].last_timestamp;
+			float last_rate_hz = _edt_curr[output_channel].rate_hz;
+			_edt_curr[output_channel].rate_hz = calculate_rate_hz(last_timestamp, last_rate_hz, now);
+			_edt_curr[output_channel].last_timestamp = now;
+			break;
+		}
+
 	case DSHOT_EDT_STATE_EVENT:
 		// TODO: Handle these?
 		break;
+
 	default:
 		PX4_WARN("unknown EDT type %d", packet.type);
 		break;
@@ -719,19 +728,19 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 
 float calculate_rate_hz(uint64_t last_timestamp, float last_rate_hz, uint64_t timestamp)
 {
-    if (last_timestamp == 0 || timestamp <= last_timestamp) {
-        return last_rate_hz;
-    }
+	if (last_timestamp == 0 || timestamp <= last_timestamp) {
+		return last_rate_hz;
+	}
 
-    uint64_t dt_us = timestamp - last_timestamp;
+	uint64_t dt_us = timestamp - last_timestamp;
 
-    float instant_rate = 1000000.0f / dt_us;
+	float instant_rate = 1000000.0f / dt_us;
 
-    // Simple exponential moving average with fixed alpha
-    // Alpha = 0.125 (1/8) works well across all rates
-    float rate_hz = instant_rate * 0.125f + last_rate_hz * 0.875f;
+	// Simple exponential moving average with fixed alpha
+	// Alpha = 0.125 (1/8) works well across all rates
+	float rate_hz = instant_rate * 0.125f + last_rate_hz * 0.875f;
 
-    return rate_hz;
+	return rate_hz;
 }
 
 // Converts captured edge timestamps into a raw bit stream.
@@ -787,7 +796,8 @@ void decode_dshot_telemetry(uint32_t payload, struct BDShotTelemetry *packet)
 	// Extended DShot Telemetry
 	bool edt_enabled = _extended_dshot_telem;
 	uint32_t mantissa = payload & 0x01FF;
-	bool is_telemetry = (mantissa & 0x0100) == 0; // if the msb of the mantissa is zero, then this is an extended telemetry packet
+	bool is_telemetry = (mantissa & 0x0100) ==
+			    0; // if the msb of the mantissa is zero, then this is an extended telemetry packet
 
 	if (edt_enabled && is_telemetry) {
 		packet->type = (payload & 0x0F00) >> 8;
@@ -804,6 +814,7 @@ void decode_dshot_telemetry(uint32_t payload, struct BDShotTelemetry *packet)
 		if (period == 65408) {
 			// Special case for zero motion (e.g., stationary motor)
 			packet->value = 0;
+
 		} else {
 			packet->value = (1000000 * 60 / 100 + period / 2) / period;
 		}
@@ -903,6 +914,7 @@ int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value)
 {
 	int result = PX4_ERROR;
+
 	switch (type) {
 	case DSHOT_EDT_TEMPERATURE:
 		if (_edt_temp[channel].ready) {
@@ -910,21 +922,27 @@ int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value)
 			_edt_temp[channel].ready = false;
 			result = PX4_OK;
 		}
+
 		break;
+
 	case DSHOT_EDT_VOLTAGE:
 		if (_edt_volt[channel].ready) {
 			*value = _edt_volt[channel].value;
 			_edt_volt[channel].ready = false;
 			result = PX4_OK;
 		}
+
 		break;
+
 	case DSHOT_EDT_CURRENT:
 		if (_edt_curr[channel].ready) {
 			*value = _edt_curr[channel].value;
 			_edt_curr[channel].ready = false;
 			result = PX4_OK;
 		}
+
 		break;
+
 	default:
 		break;
 	}
@@ -935,25 +953,32 @@ int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value)
 int up_bdshot_get_extended_telemetry_rate(uint8_t channel, int type, int *value)
 {
 	int result = PX4_ERROR;
+
 	switch (type) {
 	case DSHOT_EDT_TEMPERATURE:
 		if (_bdshot_online[channel]) {
 			*value = 0;
 			result = PX4_OK;
 		}
+
 		break;
+
 	case DSHOT_EDT_VOLTAGE:
 		if (_bdshot_online[channel]) {
 			*value = 0;
 			result = PX4_OK;
 		}
+
 		break;
+
 	case DSHOT_EDT_CURRENT:
 		if (_bdshot_online[channel]) {
 			*value = 0;
 			result = PX4_OK;
 		}
+
 		break;
+
 	default:
 		break;
 	}
@@ -980,15 +1005,16 @@ void up_bdshot_status(void)
 
 	if (_extended_dshot_telem) {
 		PX4_INFO("BDShot EDT rates");
+
 		for (int i = 0; i < MAX_TIMER_IO_CHANNELS; i++) {
 
 			if (_bdshot_online[i]) {
-				PX4_INFO("Ch%d:  eRPM: %.1fHz  Temp: %.1fHz  Volt: %.1fHz  Curr: %.1fHz",
-					i,
-					(double)_erpms[i].rate_hz,
-					(double)_edt_temp[i].rate_hz,
-					(double)_edt_volt[i].rate_hz,
-					(double)_edt_curr[i].rate_hz);
+				PX4_INFO("Ch%d:  eRPM: %dHz  Temp: %.2fHz  Volt: %.2fHz  Curr: %.2fHz",
+					 i,
+					 (int)_erpms[i].rate_hz,
+					 (double)_edt_temp[i].rate_hz,
+					 (double)_edt_volt[i].rate_hz,
+					 (double)_edt_curr[i].rate_hz);
 			}
 		}
 	}

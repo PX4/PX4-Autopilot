@@ -94,7 +94,7 @@ void DShot::Run()
 		_esc_status.timestamp = hrt_absolute_time();
 		_esc_status.esc_count = count_set_bits(_output_mask);
 		_esc_status.counter++;
-		_esc_status_pub.update(_esc_status);
+		_esc_status_pub.publish(_esc_status);
 	}
 
 	if (_parameter_update_sub.updated()) {
@@ -463,6 +463,7 @@ bool DShot::process_serial_telemetry()
 
 			} else {
 				hrt_abstime now = hrt_absolute_time();
+
 				if (_serial_telem_online_timestamps[_telemetry_motor_index] == 0) {
 					_serial_telem_online_timestamps[_telemetry_motor_index] = now;
 				}
@@ -580,17 +581,21 @@ bool DShot::process_bdshot_telemetry()
 
 				if (up_bdshot_get_erpm(output_channel, &erpm) == PX4_OK) {
 					esc.erpm = erpm * 100;
+
 				} else {
-					esc.erpm = _esc_status.esc[motor_index].esc_rpm * (_param_mot_pole_count.get() / 2); // use previous and convert back to rpm
+					esc.erpm = _esc_status.esc[motor_index].esc_rpm * (_param_mot_pole_count.get() /
+							2); // use previous and convert back to rpm
 				}
 
 				// Extended DShot Telemetry
 				if (_param_dshot_bidir_edt.get()) {
 
 					uint8_t value = 0;
+
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_TEMPERATURE, &value) == PX4_OK) {
 						esc.temperature = value; // BDShot temperature is in C
 						// PX4_INFO("ESC%d: temperature: %f", motor_index, (double)esc.temperature);
+
 					} else {
 						esc.temperature = _esc_status.esc[motor_index].esc_temperature; // use previous
 					}
@@ -598,6 +603,7 @@ bool DShot::process_bdshot_telemetry()
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_VOLTAGE, &value) == PX4_OK) {
 						esc.voltage = value * 0.25f; // BDShot voltage is in 0.25V
 						// PX4_INFO("ESC%d: voltage: %f", motor_index, (double)esc.voltage);
+
 					} else {
 						esc.voltage = _esc_status.esc[motor_index].esc_voltage; // use previous
 					}
@@ -605,6 +611,7 @@ bool DShot::process_bdshot_telemetry()
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_CURRENT, &value) == PX4_OK) {
 						esc.current = value * 0.5f; // BDShot current is in 0.5V
 						// PX4_INFO("ESC%d: current: %f", motor_index, (double)esc.current);
+
 					} else {
 						esc.current = _esc_status.esc[motor_index].esc_current;  // use previous
 					}
