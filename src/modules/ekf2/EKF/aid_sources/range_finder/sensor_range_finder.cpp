@@ -47,8 +47,10 @@ namespace estimator
 namespace sensor
 {
 
-void SensorRangeFinder::runChecks(const uint64_t current_time_us, const matrix::Dcmf &R_to_earth)
+void SensorRangeFinder::runChecks(const uint64_t current_time_us, const matrix::Dcmf &R_to_earth, bool in_air)
 {
+	_in_air = in_air;
+
 	updateSensorToEarthRotation(R_to_earth);
 	updateValidity(current_time_us);
 }
@@ -64,7 +66,7 @@ void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 {
 	updateDtDataLpf(current_time_us);
 
-	if (_is_faulty || isSampleOutOfDate(current_time_us) || !isDataContinuous()) {
+	if (isSampleOutOfDate(current_time_us) || !isDataContinuous()) {
 		_is_sample_valid = false;
 		_is_regularly_sending_data = false;
 		return;
@@ -76,7 +78,6 @@ void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 	if (_is_sample_ready) {
 		_is_sample_valid = false;
 
-		_time_bad_quality_us = _sample.quality == 0 ? current_time_us : _time_bad_quality_us;
 
 		if (!isQualityOk(current_time_us) || !isTiltOk() || !isDataInRange()) {
 			return;
@@ -92,8 +93,16 @@ void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 	}
 }
 
-bool SensorRangeFinder::isQualityOk(uint64_t current_time_us) const
+bool SensorRangeFinder::isQualityOk(uint64_t current_time_us)
 {
+	// Mark quality as OK while on the ground
+	if (!_in_air) {
+		_sample.rng = _rng_valid_min_val; // set to min val while on ground
+		return true;
+	}
+
+	_time_bad_quality_us = _sample.quality == 0 ? current_time_us : _time_bad_quality_us;
+
 	return current_time_us - _time_bad_quality_us > _quality_hyst_us;
 }
 

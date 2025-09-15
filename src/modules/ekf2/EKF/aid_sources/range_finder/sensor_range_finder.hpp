@@ -66,7 +66,7 @@ public:
 	SensorRangeFinder() = default;
 	~SensorRangeFinder() override = default;
 
-	void runChecks(uint64_t current_time_us, const matrix::Dcmf &R_to_earth);
+	void runChecks(uint64_t current_time_us, const matrix::Dcmf &R_to_earth, bool in_air);
 	bool isHealthy() const override { return _is_sample_valid; }
 	bool isDataHealthy() const override { return _is_sample_ready && _is_sample_valid; }
 	bool isDataReady() const { return _is_sample_ready; }
@@ -120,8 +120,6 @@ public:
 	float getValidMinVal() const { return _rng_valid_min_val; }
 	float getValidMaxVal() const { return _rng_valid_max_val; }
 
-	void setFaulty(bool faulty = true) { _is_faulty = faulty; }
-
 private:
 	void updateSensorToEarthRotation(const matrix::Dcmf &R_to_earth);
 
@@ -131,7 +129,7 @@ private:
 	bool isDataContinuous() const { return _dt_data_lpf < 2e6f; }
 	bool isTiltOk() const { return _cos_tilt_rng_to_earth > _range_cos_max_tilt; }
 	bool isDataInRange() const;
-	bool isQualityOk(uint64_t current_time_us) const;
+	bool isQualityOk(uint64_t current_time_us);
 	void updateStuckCheck();
 	void updateFogCheck(const float dist_bottom, const uint64_t time_us);
 
@@ -141,7 +139,6 @@ private:
 	bool _is_sample_valid{};	///< true if range finder sample retrieved from buffer is valid
 	bool _is_regularly_sending_data{false}; ///< true if the interval between two samples is less than the maximum expected interval
 	uint64_t _time_last_valid_us{};	///< time the last range finder measurement was ready (uSec)
-	bool _is_faulty{false};         ///< the sensor should not be used anymore
 
 	/*
 	 * Stuck check
@@ -177,6 +174,7 @@ private:
 	 */
 	uint64_t _time_bad_quality_us{};	///< timestamp at which range finder signal quality was 0 (used for hysteresis)
 	uint64_t _quality_hyst_us{};		///< minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (us)
+	bool _in_air{};
 
 	/*
 	 * Fog check
