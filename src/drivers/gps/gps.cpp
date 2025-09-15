@@ -469,10 +469,16 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 	const int max_timeout = 50;
 	int timeout_adjusted = math::min(max_timeout, timeout);
 
-	handleInjectDataTopic();
-
 	if (_interface == GPSHelper::Interface::UART) {
-		ret = _uart.readAtLeast(buf, buf_length, math::min(character_count, buf_length), timeout_adjusted);
+
+		const ssize_t read_at_least = math::min(character_count, buf_length);
+
+		// handle injection data before read if caught up
+		if (_uart.bytesAvailable() < read_at_least) {
+			handleInjectDataTopic();
+		}
+
+		ret = _uart.readAtLeast(buf, buf_length, read_at_least, timeout_adjusted);
 
 		if (ret > 0) {
 			_num_bytes_read += ret;
@@ -482,6 +488,8 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 #if defined(__PX4_LINUX)
 
 	} else if ((_interface == GPSHelper::Interface::SPI) && (_spi_fd >= 0)) {
+
+		handleInjectDataTopic();
 
 		//Poll only for the SPI data. In the same thread we also need to handle orb messages,
 		//so ideally we would poll on both, the SPI fd and orb subscription. Unfortunately the
