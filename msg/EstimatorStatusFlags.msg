@@ -49,6 +49,7 @@ bool cs_valid_fake_pos          # 41 - true if a valid constant position is bein
 bool cs_constant_pos            # 42 - true if the vehicle is at a constant position
 bool cs_baro_fault	        # 43 - true when the current baro has been declared faulty and is no longer being used
 bool cs_gnss_vel                # 44 - true if GNSS velocity measurement fusion is intended
+bool cs_gnss_fault              # 45 - true if GNSS measurements have been declared faulty and are no longer used
 
 # fault status
 uint32 fault_status_changes   # number of filter fault status (fs) changes
