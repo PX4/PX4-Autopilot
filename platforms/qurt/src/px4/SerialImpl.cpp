@@ -276,6 +276,23 @@ ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 	return ret_write;
 }
 
+ssize_t SerialImpl::writeBlocking(const void *buffer, size_t buffer_size, uint32_t timeout_ms)
+{
+	if (!_open) {
+		PX4_ERR("Cannot write to serial device until it has been opened");
+		return -1;
+	}
+
+	int ret_write = qurt_uart_write(_serial_fd, (const char *) buffer, buffer_size);
+
+	if (ret_write < 0) {
+		PX4_ERR("%s write error %d", _port, ret_write);
+
+	}
+
+	return ret_write;
+}
+
 void SerialImpl::flush()
 {
 	if (_open) {
