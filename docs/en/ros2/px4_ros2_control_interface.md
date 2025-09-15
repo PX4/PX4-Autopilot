@@ -262,9 +262,9 @@ This section steps through an example of how to create a mode executor class.
 class MyModeExecutor : public px4_ros2::ModeExecutorBase // [1]
 {
 public:
-  MyModeExecutor(rclcpp::Node & node, px4_ros2::ModeBase & owned_mode) // [2]
-  : ModeExecutorBase(node, px4_ros2::ModeExecutorBase::Settings{}, owned_mode),
-    _node(node)
+  MyModeExecutor(px4_ros2::ModeBase & owned_mode) // [2]
+  : ModeExecutorBase(px4_ros2::ModeExecutorBase::Settings{}, owned_mode),
+    _node(owned_mode.node())
   { }
 
   enum class State // [3]
@@ -356,7 +356,7 @@ You can add your own setpoint types by adding a class that inherits from `px4_ro
 This setpoint type is currently only supported for multicopters.
 :::
 
-Smoothly control position and (optionally) heading setpoints with the [`px4_ros2::GotoSetpointType`](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/goto.hpp) setpoint type.
+Smoothly control position and (optionally) heading setpoints with the [`px4_ros2::MulticopterGotoSetpointType`](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/multicopter/goto.hpp) setpoint type.
 The setpoint type is streamed to FMU based position and heading smoothers formulated with time-optimal, maximum-jerk trajectories, with velocity and acceleration constraints.
 
 The most trivial use is simply inputting a 3D position into the update method:
