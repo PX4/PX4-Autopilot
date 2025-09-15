@@ -77,13 +77,13 @@ int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb
 
 
 /**
- * Utility for fetching UTC time in fractional seconds from sensor_gps or CLOCK_REALTIME
- * @param utc_time_sec returned fractional seconds
+ * Utility for fetching UTC time in microseconds from sensor_gps or CLOCK_REALTIME
+ * @param utc_time_usec returned microseconds
  * @param utc_offset_sec UTC time offset [s]
  * @param boot_time use time when booted instead of current time
  * @return true on success, false otherwise (eg. if no gps)
  */
-bool get_log_time(uint64_t &utc_time_sec, int utc_offset_sec, bool boot_time);
+bool get_log_time(uint64_t &utc_time_usec, int utc_offset_sec, bool boot_time);
 
 /**
  * Get the time for log file name
