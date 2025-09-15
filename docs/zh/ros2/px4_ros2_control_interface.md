@@ -1,6 +1,6 @@
 # PX4 ROS 2 Control Interface
 
-<Badge type="tip" text="PX4 v1.15" /> <Badge type="warning" text="Experimental" />
+<0/> <1/>
 
 :::warning
 Experimental
@@ -104,26 +104,26 @@ The above concepts provide a number of advantages over traditional [offboard con
 
 The following steps are required to get started:
 
-1. Make sure you have a working [ROS 2 setup](../ros2/user_guide.md), with [`px4_msgs`](https://github.com/PX4/px4_msgs) in the ROS 2 workspace.
+1. 请确保您在 ROS 2 工作区中有 [ROS 2 设置](../ros2/user_guide.md) 与 [`px4_msgs`](https://github.com/PX4/px4_msgs]。
 
-2. Clone the repository into the workspace:
+2. 将代码仓库克隆到工作空间中
 
    ```sh
    cd $ros_workspace/src
    git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib
    ```
 
-   ::: info
-   To ensure compatibility, use the latest _main_ branches for PX4, _px4_msgs_ and the library.
-   See also [here](https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4).
+   提示信息
+   为确保兼容性，请使用 PX4、px4_msgs（PX4 消息包）及该库的最新 main 分支。
+   另请参阅 [here]（https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4）
 
 :::
 
-3. Build the workspace:
+3. 构建工作空间:
 
    ```sh
    cd ..
-   colcon build
+   colcon building
    source install/setup.bash
    ```
 

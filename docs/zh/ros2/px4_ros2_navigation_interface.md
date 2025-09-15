@@ -1,10 +1,10 @@
-# PX4 ROS 2 Navigation Interface
+# PX4 ROS2 导航接口
 
-<Badge type="tip" text="PX4 v1.15" /> <Badge type="warning" text="Experimental" />
+<0/> <1/>
 
 :::warning
 Experimental
-At the time of writing, parts of the PX4 ROS 2 Interface Library are experimental, and hence subject to change.
+在撰写本文时，PX4 ROS 2 接口库的部分内容仍处于试验阶段，因此可能会发生变动。
 :::
 
 The [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) navigation interface enables developers to send their position measurements to PX4 directly from ROS 2 applications, such as a VIO system or a map matching system.
@@ -18,22 +18,22 @@ The `update` method expects a position measurement `struct` ([`LocalPositionMeas
 
 The following steps are required to get started:
 
-1. Make sure you have a working [ROS 2 setup](../ros2/user_guide.md), with [`px4_msgs`](https://github.com/PX4/px4_msgs) in the ROS 2 workspace.
+1. 请确保您在 ROS 2 工作区中有 [ROS 2 设置](../ros2/user_guide.md) 与 [`px4_msgs`](https://github.com/PX4/px4_msgs]。
 
-2. Clone the repository into the workspace:
+2. 将代码仓库克隆到工作空间中
 
    ```sh
    cd $ros_workspace/src
    git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib
    ```
 
-   ::: info
-   To ensure compatibility, use the latest _main_ branches for PX4, _px4_msgs_ and the library.
-   See also [here](https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4).
+   提示信息
+   为确保兼容性，请使用 PX4、px4_msgs（PX4 消息包）及该库的最新 main 分支。
+   另请参阅 [here]（https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4）
 
 :::
 
-3. Build the workspace:
+3. 构建工作空间:
 
    ```sh
    cd ..
