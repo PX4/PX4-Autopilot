@@ -39,4 +39,5 @@ exec find boards msg src platforms test \
     -path boards/modalai/voxl2/libfc-sensor-api -prune -o \
     -path src/drivers/actuators/vertiq_io/iq-module-communication-cpp -prune -o \
     -path src/lib/tensorflow_lite_micro/tflite_micro -prune -o \
+    -path src/drivers/ins/sbgecom/sbgECom -prune -o \
     \( -type f \( -name "*.c" -o -name "*.h" -o -name "*.cpp" -o -name "*.hpp" \) -print \) | grep $PATTERN
