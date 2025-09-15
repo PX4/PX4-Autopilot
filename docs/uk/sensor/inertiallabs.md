@@ -57,11 +57,11 @@ To use the Inertial Labs driver:
    - For external INS, set [ILABS_MODE](../advanced_config/parameter_reference.md#ILABS_MODE) to `INS`.
    - For raw inertial sensors, set [ILABS_MODE](../advanced_config/parameter_reference.md#ILABS_MODE) to `Sensors Only`.
 
-      You can then prioritize inertial labs sensors using [CAL_GYROn_PRIO](../advanced_config/parameter_reference.md#CAL_GYRO0_PRIO), [CAL_ACCn_PRIO](../advanced_config/parameter_reference.md#CAL_ACC0_PRIO), [CAL_BAROn_PRIO](../advanced_config/parameter_reference.md#CAL_BARO0_PRIO), [CAL_MAGn_PRIO](../advanced_config/parameter_reference.md#CAL_MAG0_PRIO), where `n` is the instance number of the IMU component (0, 1, etc.).
+     You can then prioritize inertial labs sensors using [CAL_GYROn_PRIO](../advanced_config/parameter_reference.md#CAL_GYRO0_PRIO), [CAL_ACCn_PRIO](../advanced_config/parameter_reference.md#CAL_ACC0_PRIO), [CAL_BAROn_PRIO](../advanced_config/parameter_reference.md#CAL_BARO0_PRIO), [CAL_MAGn_PRIO](../advanced_config/parameter_reference.md#CAL_MAG0_PRIO), where `n` is the instance number of the IMU component (0, 1, etc.).
 
-      ::: tip
-      In most cases the external IMU is the highest-numbered.
-      Ви можете отримати список доступних компонентів IMU, використовуючи [`uorb top -1`](../middleware/uorb.md#uorb-top-command), ви можете відрізняти їх за допомогою команди [`listener`](../modules/modules_command.md#listener) та розглядаючи дані чи просто швидкості.
+     ::: tip
+     In most cases the external IMU is the highest-numbered.
+     Ви можете отримати список доступних компонентів IMU, використовуючи [`uorb top -1`](../middleware/uorb.md#uorb-top-command), ви можете відрізняти їх за допомогою команди [`listener`](../modules/modules_command.md#listener) та розглядаючи дані чи просто швидкості.
 
 :::
 

@@ -20,7 +20,7 @@ To tune the velocity controller configure the following [parameters](../advanced
 2. [RO_MAX_THR_SPEED](#RO_MAX_THR_SPEED) [m/s]: This parameter is used to calculate the feed-forward term of the closed loop speed control which linearly maps desired speeds to normalized motor commands.
    As mentioned in the [Manual mode](../flight_modes_rover/manual.md#manual-mode) configuration , a good starting point is the observed ground speed when the rover drives at maximum throttle in [Manual mode](../flight_modes_rover/manual.md#manual-mode).
 
-         <a id="RA_SPEED_TUNING"></a>
+   <a id="RA_SPEED_TUNING"></a>
 
    ::: tip
    To further tune this parameter:
