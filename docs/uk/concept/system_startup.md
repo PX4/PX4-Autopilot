@@ -13,9 +13,9 @@ They are exported at build-time into an `airframes.xml` file which is parsed by 
 
 Наступні секції розділені відповідно до операційної системи, на яких виконується PX4.
 
-## Posix (Linux/MacOS)
+## POSIX (Linux/MacOS)
 
-На Posix системна оболонка використовується як інтерпретатор скриптів (наприклад, /bin/sh що є символьним посиланням на dash в Ubuntu).
+On POSIX, the system shell is used as script interpreter (e.g. /bin/sh, being symlinked to dash on Ubuntu).
 Щоб це працювало потрібно кілька речей:
 
 - Модулі PX4 повинні виглядати для системи як окремі виконувані файли.
@@ -59,7 +59,7 @@ cd <PX4-Autopilot>/build/px4_sitl_default/bin
 ### Динамічні модулі
 
 Зазвичай всі модулі компілюються в єдиний виконуваний файл PX4.
-Однак, на Posix системах, є можливість компіляції модуля в окремий файл, який можна завантажити в PX4 використовуючи команду `dyn`.
+However, on POSIX, there's the option of compiling a module into a separate file, which can be loaded into PX4 using the `dyn` command.
 
 ```sh
 dyn ./test.px4mod
@@ -95,7 +95,7 @@ NuttX має інтегрований інтерпретатор оболонк�
 Найкращий спосіб змінити запуск системи - це ввести [нову конфігурацію планера](../dev_airframes/adding_a_new_frame.md).
 Файл конфігурації планеру може бути включений у прошивку або на SD карту.
 
-#### Dynamic customization
+#### Dynamic Customization
 
 Якщо вам потрібно "підлаштувати" конфігурацію що існує, наприклад запустити один або більше застосунків або встановити значення кількох параметрів, можна вказати це створивши два файли у директорії `/etc/` на SD картці:
 
@@ -153,27 +153,36 @@ param set-default PWM_MAIN_MIN3 1120
   mandatory_app start     # Will abort boot if mandatory_app is unknown or fails
   ```
 
-#### Additional customization
+#### Additional Init-File Customization
 
-In rare cases where the desired setup cannot be achieved through frame configuration or dynamic customization,
-you can add a script that will be contained in the binary.
+In rare cases where the desired setup cannot be achieved through frame configuration or dynamic customization, you can add a script that will be compiled into the binary for a particular `make` target build variant.
 
-**Note**: In almost all cases, you should use a frame configuration. This method should only be used for
-edge-cases such as customizing `cannode` based boards.
+:::warning
+In almost all cases, you should use a frame configuration.
+This method should only be used for edge-cases such as customizing `cannode` based boards.
+:::
 
-- Add a new init script in `boards/<vendor>/<board>/init` that will run during board startup. Наприклад:
+Кроки наступні:
+
+- Add a new init script in `boards/<vendor>/<board>/init` that will run during board startup.
+  Наприклад:
+
   ```sh
   # File: boards/<vendor>/<board>/init/rc.additional
   param set-default <param> <value>
   ```
 
-- Add a new board variant in `boards/<vendor>/<board>/<variant>.px4board` that includes the additional script. Наприклад:
+- Add a new board variant in `boards/<vendor>/<board>/<variant>.px4board` that includes the additional script.
+  Наприклад:
+
   ```sh
   # File: boards/<vendor>/<board>/var.px4board
   CONFIG_BOARD_ADDITIONAL_INIT="rc.additional"
   ```
 
-- Compile the firmware with your new variant by appending the variant name to the compile target. Наприклад:
+- Compile the firmware with your new variant by appending the variant name to the compile target.
+  Наприклад:
+
   ```sh
   make <target>_var
   ```
