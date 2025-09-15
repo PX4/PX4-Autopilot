@@ -13,9 +13,9 @@ The first executed file is the [init.d/rcS](https://github.com/PX4/PX4-Autopilot
 
 根据 PX4 运行的操作系统将本文后续内容分成了如下各小节。
 
-## Posix (Linux/MacOS)
+## POSIX (Linux/MacOS)
 
-在 Posix 操作系统上，系统的 shell 将会作为脚本文件的解释器（例如， 在 Ubuntu 中 /bin/sh 与 Dash 建立了符号链接）。
+On POSIX, the system shell is used as script interpreter (e.g. /bin/sh, being symlinked to dash on Ubuntu).
 为了使 PX4 可以在 Posix 中正常运行，需要做到以下几点：
 
 - PX4 的各个模块需要看起来像系统的单个可执行文件。
@@ -59,7 +59,7 @@ cd <PX4-Autopilot>/build/px4_sitl_default/bin
 ### Dynamic Modules
 
 通常，所有模块都被编入一个 PX4 可执行程序。
-However, on Posix, there's the option of compiling a module into a separate file, which can be loaded into PX4 using the `dyn` command.
+However, on POSIX, there's the option of compiling a module into a separate file, which can be loaded into PX4 using the `dyn` command.
 
 ```sh
 dyn ./test.px4mod
@@ -95,7 +95,7 @@ The whole boot can be replaced by creating a file `/etc/rc.txt` on the microSD c
 The best way to customize the system startup is to introduce a [new frame configuration](../dev_airframes/adding_a_new_frame.md).
 机架配置文件可以在固件中，也可以在SD卡上。
 
-#### Dynamic customization
+#### Dynamic Customization
 
 If you only need to "tweak" the existing configuration, such as starting one more application or setting the value of a few parameters, you can specify these by creating two files in the `/etc/` directory of the SD Card:
 
@@ -153,27 +153,36 @@ Calling an unknown command in system boot files may result in boot failure.
   mandatory_app start     # Will abort boot if mandatory_app is unknown or fails
   ```
 
-#### Additional customization
+#### Additional Init-File Customization
 
-In rare cases where the desired setup cannot be achieved through frame configuration or dynamic customization,
-you can add a script that will be contained in the binary.
+In rare cases where the desired setup cannot be achieved through frame configuration or dynamic customization, you can add a script that will be compiled into the binary for a particular `make` target build variant.
 
-**Note**: In almost all cases, you should use a frame configuration. This method should only be used for
-edge-cases such as customizing `cannode` based boards.
+:::warning
+In almost all cases, you should use a frame configuration.
+This method should only be used for edge-cases such as customizing `cannode` based boards.
+:::
 
-- Add a new init script in `boards/<vendor>/<board>/init` that will run during board startup. 例如：
+步骤如下：
+
+- Add a new init script in `boards/<vendor>/<board>/init` that will run during board startup.
+  例如：
+
   ```sh
   # File: boards/<vendor>/<board>/init/rc.additional
   param set-default <param> <value>
   ```
 
-- Add a new board variant in `boards/<vendor>/<board>/<variant>.px4board` that includes the additional script. 例如：
+- Add a new board variant in `boards/<vendor>/<board>/<variant>.px4board` that includes the additional script.
+  例如：
+
   ```sh
   # File: boards/<vendor>/<board>/var.px4board
   CONFIG_BOARD_ADDITIONAL_INIT="rc.additional"
   ```
 
-- Compile the firmware with your new variant by appending the variant name to the compile target. 例如：
+- Compile the firmware with your new variant by appending the variant name to the compile target.
+  例如：
+
   ```sh
   make <target>_var
   ```

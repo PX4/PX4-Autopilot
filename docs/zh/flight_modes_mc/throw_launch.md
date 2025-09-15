@@ -1,6 +1,6 @@
 # Throw Launch (Multicopter)
 
-<Badge type="tip" text="PX4 v1.15" /> <Badge type="warning" text="Experimental" />
+<0/> <1/>
 
 :::warning
 Experimental
