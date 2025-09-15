@@ -45,8 +45,6 @@
 namespace device
 {
 
-static const char *PORT_NOT_OPENED_STRING = "Cannot use port until it has been opened";
-
 SerialImpl::SerialImpl(const char *port, uint32_t baudrate, ByteSize bytesize, Parity parity, StopBits stopbits,
 		       FlowControl flowcontrol) :
 	_baudrate(baudrate),
@@ -268,7 +266,7 @@ bool SerialImpl::close()
 ssize_t SerialImpl::bytesAvailable()
 {
 	if (!_open) {
-		PX4_ERR("%s", PORT_NOT_OPENED_STRING);
+		PX4_ERR("Device not open!");
 		return -1;
 	}
 
@@ -280,7 +278,7 @@ ssize_t SerialImpl::bytesAvailable()
 ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
 {
 	if (!_open) {
-		PX4_ERR("%s", PORT_NOT_OPENED_STRING);
+		PX4_ERR("Cannot read from serial device until it has been opened");
 		return -1;
 	}
 
@@ -296,7 +294,7 @@ ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
 ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t character_count, uint32_t timeout_ms)
 {
 	if (!_open) {
-		PX4_ERR("%s", PORT_NOT_OPENED_STRING);
+		PX4_ERR("Cannot readAtLeast from serial device until it has been opened");
 		return -1;
 	}
 
@@ -352,7 +350,7 @@ ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t char
 ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 {
 	if (!_open) {
-		PX4_ERR("%s", PORT_NOT_OPENED_STRING);
+		PX4_ERR("Cannot write to serial device until it has been opened");
 		return -1;
 	}
 
@@ -370,7 +368,7 @@ ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 ssize_t SerialImpl::writeBlocking(const void *buffer, size_t buffer_size, uint32_t timeout_ms)
 {
 	if (!_open) {
-		PX4_ERR("%s", PORT_NOT_OPENED_STRING);
+		PX4_ERR("Cannot writeBlocking to serial device until it has been opened");
 		return -1;
 	}
 
