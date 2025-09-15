@@ -1990,9 +1990,9 @@ void Logger::write_info(LogType type, const char *name, uint32_t value)
 	write_info_template<uint32_t>(type, name, value, "uint32_t");
 }
 
-void Logger::write_info(LogType type, const char *name, double value)
+void Logger::write_info(LogType type, const char *name, uint64_t value)
 {
-	write_info_template<double>(type, name, value, "double");
+	write_info_template<uint64_t>(type, name, value, "uint64_t");
 }
 
 
@@ -2127,9 +2127,10 @@ void Logger::write_version(LogType type)
 
 	write_info(type, "time_ref_utc", _param_sdlog_utc_offset.get() * 60);
 
-	double boot_time_utc;
-	if (util::get_log_time(boot_time_utc, _param_sdlog_utc_offset.get() * 60, true)) {
-		write_info(type, "boot_time_utc", boot_time_utc);
+	uint64_t boot_time_utc_us;
+
+	if (util::get_log_time(boot_time_utc_us, _param_sdlog_utc_offset.get() * 60, true)) {
+		write_info(type, "boot_time_utc_us", boot_time_utc_us);
 	}
 
 	if (_replay_file_name) {

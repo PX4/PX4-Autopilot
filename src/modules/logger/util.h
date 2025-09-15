@@ -83,7 +83,7 @@ int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb
  * @param boot_time use time when booted instead of current time
  * @return true on success, false otherwise (eg. if no gps)
  */
-bool get_log_time(double &utc_time_sec, int utc_offset_sec, bool boot_time);
+bool get_log_time(uint64_t &utc_time_sec, int utc_offset_sec, bool boot_time);
 
 /**
  * Get the time for log file name
