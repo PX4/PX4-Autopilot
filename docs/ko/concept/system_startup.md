@@ -15,7 +15,7 @@ The first executed file is the [init.d/rcS](https://github.com/PX4/PX4-Autopilot
 
 ## POSIX (Linux/MacOS)
 
-Posix에서 시스템 셸은 스크립트 인터프리터로 사용됩니다(예: /bin/sh, Ubuntu에서 dash에 심볼릭 링크됨).
+On POSIX, the system shell is used as script interpreter (e.g. /bin/sh, being symlinked to dash on Ubuntu).
 동작하기 위한 몇가지 조건이 있습니다.
 
 - PX4 모듈은 시스템에서 개별적으로 실행할 수 있어야합니다.
@@ -59,7 +59,7 @@ cd <PX4-Autopilot>/build/px4_sitl_default/bin
 ### Dynamic Modules
 
 일반적으로 모든 모듈은 단일 PX4 실행 파일로 컴파일됩니다.
-However, on Posix, there's the option of compiling a module into a separate file, which can be loaded into PX4 using the `dyn` command.
+However, on POSIX, there's the option of compiling a module into a separate file, which can be loaded into PX4 using the `dyn` command.
 
 ```sh
 dyn ./test.px4mod
@@ -95,7 +95,7 @@ This is documented below.
 The best way to customize the system startup is to introduce a [new frame configuration](../dev_airframes/adding_a_new_frame.md).
 The frame configuration file can be included in the firmware or on an SD Card.
 
-#### Dynamic customization
+#### Dynamic Customization
 
 If you only need to "tweak" the existing configuration, such as starting one more application or setting the value of a few parameters, you can specify these by creating two files in the `/etc/` directory of the SD Card:
 
@@ -153,27 +153,36 @@ Calling an unknown command in system boot files may result in boot failure.
   mandatory_app start     # Will abort boot if mandatory_app is unknown or fails
   ```
 
-#### Additional customization
+#### Additional Init-File Customization
 
-In rare cases where the desired setup cannot be achieved through frame configuration or dynamic customization,
-you can add a script that will be contained in the binary.
+In rare cases where the desired setup cannot be achieved through frame configuration or dynamic customization, you can add a script that will be compiled into the binary for a particular `make` target build variant.
 
-**Note**: In almost all cases, you should use a frame configuration. This method should only be used for
-edge-cases such as customizing `cannode` based boards.
+:::warning
+In almost all cases, you should use a frame configuration.
+This method should only be used for edge-cases such as customizing `cannode` based boards.
+:::
 
-- Add a new init script in `boards/<vendor>/<board>/init` that will run during board startup. 예:
+단계는 다음과 같습니다:
+
+- Add a new init script in `boards/<vendor>/<board>/init` that will run during board startup.
+  예:
+
   ```sh
   # File: boards/<vendor>/<board>/init/rc.additional
   param set-default <param> <value>
   ```
 
-- Add a new board variant in `boards/<vendor>/<board>/<variant>.px4board` that includes the additional script. 예:
+- Add a new board variant in `boards/<vendor>/<board>/<variant>.px4board` that includes the additional script.
+  예:
+
   ```sh
   # File: boards/<vendor>/<board>/var.px4board
   CONFIG_BOARD_ADDITIONAL_INIT="rc.additional"
   ```
 
-- Compile the firmware with your new variant by appending the variant name to the compile target. 예:
+- Compile the firmware with your new variant by appending the variant name to the compile target.
+  예:
+
   ```sh
   make <target>_var
   ```
