@@ -371,7 +371,7 @@ void CrsfRc::Run()
 	}
 
 	// If no communication
-	if (time_now_us - _last_packet_seen > 100_ms) {
+	if (time_now_us - _last_packet_seen > 500_ms) {
 		// Invalidate link statistics
 		_input_rc.rssi = -1;
 		_input_rc.rssi_dbm = NAN;
@@ -381,7 +381,7 @@ void CrsfRc::Run()
 	}
 
 	// If we have not gotten RC updates specifically
-	if (time_now_us - _input_rc.timestamp_last_signal > 50_ms) {
+	if (time_now_us - _input_rc.timestamp_last_signal > 500_ms) {
 		_input_rc.rc_lost = 1;
 		_input_rc.rc_failsafe = 1;
 
