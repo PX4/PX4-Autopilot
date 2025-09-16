@@ -143,6 +143,11 @@ static uint32_t working_segment_size = HEADER_SIZE;
 #define RX_QUEUE_BUFFER_SIZE 200
 static QueueBuffer_t rx_queue;
 static uint8_t rx_queue_buffer[RX_QUEUE_BUFFER_SIZE];
+#ifdef CONFIG_DRIVERS_RC_CRSF_RC_INJECT
+static QueueBuffer_t inject_queue;
+static uint8_t inject_queue_buffer[RX_QUEUE_BUFFER_SIZE];
+static uint8_t temp_queue_buffer[RX_QUEUE_BUFFER_SIZE];
+#endif
 static uint8_t process_buffer[CRSF_MAX_PACKET_LEN];
 static CrsfPacketDescriptor_t *working_descriptor = NULL;
 
@@ -151,6 +156,9 @@ static CrsfPacketDescriptor_t *FindCrsfDescriptor(const enum CRSF_PACKET_TYPE pa
 void CrsfParser_Init(void)
 {
 	QueueBuffer_Init(&rx_queue, rx_queue_buffer, RX_QUEUE_BUFFER_SIZE);
+#ifdef CONFIG_DRIVERS_RC_CRSF_RC_INJECT
+	QueueBuffer_Init(&inject_queue, inject_queue_buffer, RX_QUEUE_BUFFER_SIZE);
+#endif
 }
 
 static float ConstrainF(const float x, const float min, const float max)
@@ -268,6 +276,13 @@ bool CrsfParser_LoadBuffer(const uint8_t *buffer, const uint32_t size)
 {
 	return QueueBuffer_AppendBuffer(&rx_queue, buffer, size);
 }
+
+#ifdef CONFIG_DRIVERS_RC_CRSF_RC_INJECT
+bool CrsfParser_InjectBuffer(const uint8_t *buffer, const uint32_t size)
+{
+	return QueueBuffer_AppendBuffer(&inject_queue, buffer, size);
+}
+#endif
 
 uint32_t CrsfParser_FreeQueueSize(void)
 {
@@ -391,7 +406,37 @@ bool CrsfParser_TryParseCrsfPacket(CrsfPacket_t *const new_packet, CrsfParserSta
 			parser_state = PARSER_STATE_HEADER;
 
 			if (valid_packet) {
+#ifdef CONFIG_DRIVERS_RC_CRSF_RC_INJECT
+
+				if (!QueueBuffer_IsEmpty(&inject_queue)) {
+					// copy the remaining bytes from the rx queue to the temp buffer
+					const uint32_t temp_size = QueueBuffer_Count(&rx_queue);
+
+					if (temp_size) {
+						QueueBuffer_PeekBuffer(&rx_queue, 0, temp_queue_buffer, temp_size);
+						// clear the rx queue
+						QueueBuffer_Dequeue(&rx_queue, QueueBuffer_Count(&rx_queue));
+					}
+
+					// append the inject queue to the rx queue
+					uint8_t inject_byte;
+
+					while (QueueBuffer_Get(&inject_queue, &inject_byte)) {
+						QueueBuffer_Append(&rx_queue, inject_byte);
+					}
+
+					if (temp_size) {
+						// append the temp buffer back to the rx queue
+						QueueBuffer_AppendBuffer(&rx_queue, temp_queue_buffer, temp_size);
+					}
+
+				} else {
+					return true;
+				}
+
+#else
 				return true;
+#endif
 			}
 
 			break;
