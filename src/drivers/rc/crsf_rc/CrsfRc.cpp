@@ -549,6 +549,43 @@ int CrsfRc::print_status()
 
 int CrsfRc::custom_command(int argc, char *argv[])
 {
+#ifdef CONFIG_DRIVERS_RC_CRSF_RC_INJECT
+
+	if (!strcmp(argv[0], "start")) {
+		if (is_running()) {
+			return print_usage("already running");
+		}
+
+		int ret = CrsfRc::task_spawn(argc, argv);
+
+		if (ret) {
+			return ret;
+		}
+	}
+
+	if (!is_running()) {
+		return print_usage("not running");
+	}
+
+	// crsf_rc inject 0x7C 0xC8 0xEA 0x30 0x02 0x59 0x31 0x00 0x6A
+	if (!strcmp(argv[0], "inject")) {
+		const uint8_t length = argc;
+		uint8_t buf[100];
+		buf[0] = 0xC8; // sync byte
+		buf[1] = length;
+		uint8_t i = 0;
+
+		for (; i < length - 1; i++) {
+			buf[i + 2] = (uint8_t) strtol(argv[i + 1], nullptr, 16);
+		}
+
+		buf[i + 2] = Crc8Calc(buf + 2, length - 1); // CRC
+		CrsfParser_InjectBuffer(buf, length + 2);
+		return PX4_OK;
+	}
+
+#endif
+
 	return print_usage("unknown command");
 }
 
@@ -570,6 +607,9 @@ This module parses the CRSF RC uplink protocol and generates CRSF downlink telem
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS3", "<file:dev>", "RC device", true);
 	PRINT_MODULE_USAGE_PARAM_INT('b', 420000, 4800, 3000000, "RC baudrate", true);
+#ifdef CONFIG_DRIVERS_RC_CRSF_RC_INJECT
+	PRINT_MODULE_USAGE_COMMAND_DESCR("inject", "Inject frame data bytes (for testing)");
+#endif
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
