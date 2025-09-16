@@ -63,6 +63,22 @@ struct CrsfLinkStatistics_t {
 	int8_t downlink_snr;
 };
 
+struct CrsfLinkStatisticsTx_t {
+	uint8_t uplink_rssi;
+	uint8_t uplink_rssi_pct;
+	uint8_t uplink_link_quality;
+	int8_t uplink_snr;
+	uint8_t downlink_power;
+	uint8_t uplink_fps;
+};
+
+struct CrsfElrsStatus_t {
+	uint8_t packets_bad;
+	uint16_t packets_good;
+	uint8_t flags;
+	char message[48];
+};
+
 struct CrsfParserStatistics_t {
 	uint32_t disposed_bytes;
 	uint32_t crcs_valid_known_packets;
@@ -75,6 +91,8 @@ struct CrsfParserStatistics_t {
 enum CRSF_MESSAGE_TYPE {
 	CRSF_MESSAGE_TYPE_RC_CHANNELS,
 	CRSF_MESSAGE_TYPE_LINK_STATISTICS,
+	CRSF_MESSAGE_TYPE_LINK_STATISTICS_TX,
+	CRSF_MESSAGE_TYPE_ELRS_STATUS,
 };
 
 typedef struct {
@@ -83,6 +101,8 @@ typedef struct {
 	union {
 		CrsfChannelData_t channel_data;
 		CrsfLinkStatistics_t link_statistics;
+		CrsfLinkStatisticsTx_t link_statistics_tx;
+		CrsfElrsStatus_t elrs_status;
 	};
 } CrsfPacket_t;
 
