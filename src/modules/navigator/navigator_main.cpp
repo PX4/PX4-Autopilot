@@ -1631,7 +1631,7 @@ void Navigator::set_gimbal_neutral()
 	publish_vehicle_command(vehicle_command);
 }
 
-void Navigator::set_gimbal_neutral_activation_time(const hrt_abstime timestamp)
+void Navigator::activate_set_gimbal_neutral_timer(const hrt_abstime timestamp)
 {
 	if (_gimbal_neutral_activation_time == UINT64_MAX) {
 		_gimbal_neutral_activation_time = timestamp;
@@ -1640,8 +1640,10 @@ void Navigator::set_gimbal_neutral_activation_time(const hrt_abstime timestamp)
 
 void Navigator::neutralize_gimbal_if_control_activated()
 {
-	hrt_abstime now{hrt_absolute_time()};
+	const hrt_abstime now{hrt_absolute_time()};
 
+	// The time delay must be sufficiently long to allow flight tasks to complete its
+	// destruction and release gimbal control before the navigator takes control of the gimbal.
 	if (_gimbal_neutral_activation_time != UINT64_MAX && now > _gimbal_neutral_activation_time + 250_ms) {
 		acquire_gimbal_control();
 		set_gimbal_neutral();

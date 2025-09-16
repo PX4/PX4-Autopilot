@@ -287,7 +287,7 @@ public:
 	void neutralize_gimbal_if_control_activated();
 	/* Accepts a new timestamp only if the current timestamp is UINT64_MAX, preventing the
 	timer from resetting during an ongoing neutral command. */
-	void set_gimbal_neutral_activation_time(const hrt_abstime timestamp);
+	void activate_set_gimbal_neutral_timer(const hrt_abstime timestamp);
 
 	void preproject_stop_point(double &lat, double &lon);
 
