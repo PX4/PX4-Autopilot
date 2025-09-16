@@ -36,6 +36,7 @@
 #include "Crc8.hpp"
 
 #include <fcntl.h>
+#include <inttypes.h>
 
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -44,11 +45,10 @@
 
 using namespace time_literals;
 
-#define CRSF_BAUDRATE 420000
-
-CrsfRc::CrsfRc(const char *device) :
+CrsfRc::CrsfRc(const char *device, uint32_t baudrate) :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device))
+	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device)),
+	_baudrate(baudrate)
 {
 	if (device) {
 		strncpy(_device, device, sizeof(_device) - 1);
@@ -70,11 +70,16 @@ int CrsfRc::task_spawn(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 	const char *device_name = nullptr;
+	uint32_t baudrate = 420'000;
 
-	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_name = myoptarg;
+			break;
+
+		case 'b':
+			baudrate = strtoul(myoptarg, nullptr, 10);
 			break;
 
 		case '?':
@@ -102,7 +107,7 @@ int CrsfRc::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	CrsfRc *instance = new CrsfRc(device_name);
+	CrsfRc *instance = new CrsfRc(device_name, baudrate);
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
@@ -144,10 +149,9 @@ void CrsfRc::Run()
 	}
 
 	if (! _uart->isOpen()) {
-		// Configure the desired baudrate if one was specified by the user.
-		// Otherwise the default baudrate will be used.
-		if (! _uart->setBaudrate(CRSF_BAUDRATE)) {
-			PX4_ERR("Error setting baudrate to %u on %s", CRSF_BAUDRATE, _device);
+		// Configure the UART.
+		if (_baudrate && ! _uart->setBaudrate(_baudrate)) {
+			PX4_ERR("Error setting baudrate to %" PRIu32 " on %s", _baudrate, _device);
 			px4_sleep(1);
 			return;
 		}
@@ -565,7 +569,7 @@ This module parses the CRSF RC uplink protocol and generates CRSF downlink telem
 	PRINT_MODULE_USAGE_SUBCATEGORY("radio_control");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS3", "<file:dev>", "RC device", true);
-
+	PRINT_MODULE_USAGE_PARAM_INT('b', 420000, 4800, 3000000, "RC baudrate", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
