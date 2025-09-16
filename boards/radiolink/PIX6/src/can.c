@@ -122,4 +122,3 @@ int can_devinit(void)
 }
 
 #endif
-
