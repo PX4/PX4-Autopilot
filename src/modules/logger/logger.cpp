@@ -1990,6 +1990,11 @@ void Logger::write_info(LogType type, const char *name, uint32_t value)
 	write_info_template<uint32_t>(type, name, value, "uint32_t");
 }
 
+void Logger::write_info(LogType type, const char *name, uint64_t value)
+{
+	write_info_template<uint64_t>(type, name, value, "uint64_t");
+}
+
 
 template<typename T>
 void Logger::write_info_template(LogType type, const char *name, T value, const char *type_str)
@@ -2121,6 +2126,12 @@ void Logger::write_version(LogType type)
 #endif /* BOARD_HAS_NO_UUID */
 
 	write_info(type, "time_ref_utc", _param_sdlog_utc_offset.get() * 60);
+
+	uint64_t boot_time_utc_us;
+
+	if (util::get_log_time(boot_time_utc_us, _param_sdlog_utc_offset.get() * 60, true)) {
+		write_info(type, "boot_time_utc_us", boot_time_utc_us);
+	}
 
 	if (_replay_file_name) {
 		write_info(type, "replay", _replay_file_name);
