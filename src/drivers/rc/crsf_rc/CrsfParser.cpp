@@ -57,8 +57,10 @@ enum CRSF_PAYLOAD_SIZE {
 	CRSF_PAYLOAD_SIZE_GPS = 15,
 	CRSF_PAYLOAD_SIZE_BATTERY = 8,
 	CRSF_PAYLOAD_SIZE_LINK_STATISTICS = 10,
+	CRSF_PAYLOAD_SIZE_LINK_STATISTICS_TX = -1,
 	CRSF_PAYLOAD_SIZE_RC_CHANNELS = 22,
 	CRSF_PAYLOAD_SIZE_ATTITUDE = 6,
+	CRSF_PAYLOAD_SIZE_ELRS_STATUS = -1, // unclear how large this message is
 };
 
 enum CRSF_PACKET_TYPE {
@@ -68,6 +70,8 @@ enum CRSF_PACKET_TYPE {
 	CRSF_PACKET_TYPE_OPENTX_SYNC = 0x10,
 	CRSF_PACKET_TYPE_RADIO_ID = 0x3A,
 	CRSF_PACKET_TYPE_RC_CHANNELS_PACKED = 0x16,
+	CRSF_PACKET_TYPE_LINK_STATISTICS_RX = 0x1C,
+	CRSF_PACKET_TYPE_LINK_STATISTICS_TX = 0x1D,
 	CRSF_PACKET_TYPE_ATTITUDE = 0x1E,
 	CRSF_PACKET_TYPE_FLIGHT_MODE = 0x21,
 	// Extended Header Frames, range: 0x28 to 0x96
@@ -76,6 +80,7 @@ enum CRSF_PACKET_TYPE {
 	CRSF_PACKET_TYPE_PARAMETER_SETTINGS_ENTRY = 0x2B,
 	CRSF_PACKET_TYPE_PARAMETER_READ = 0x2C,
 	CRSF_PACKET_TYPE_PARAMETER_WRITE = 0x2D,
+	CRSF_PACKET_TYPE_ELRS_STATUS = 0x2E,
 	CRSF_PACKET_TYPE_COMMAND = 0x32,
 	// MSP commands
 	CRSF_PACKET_TYPE_MSP_REQ = 0x7A,   // response request using msp sequence as command
@@ -114,18 +119,22 @@ enum PARSER_STATE {
 
 typedef struct {
 	uint8_t packet_type;
-	uint32_t packet_size;
+	int32_t packet_size;
 	bool (*processor)(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet);
 } CrsfPacketDescriptor_t;
 
 static bool ProcessChannelData(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet);
 static bool ProcessLinkStatistics(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet);
+static bool ProcessLinkStatisticsTx(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet);
+static bool ProcessElrsStatus(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet);
 
-#define CRSF_PACKET_DESCRIPTOR_COUNT  2
-static const CrsfPacketDescriptor_t crsf_packet_descriptors[CRSF_PACKET_DESCRIPTOR_COUNT] = {
+static const CrsfPacketDescriptor_t crsf_packet_descriptors[] = {
 	{CRSF_PACKET_TYPE_RC_CHANNELS_PACKED, CRSF_PAYLOAD_SIZE_RC_CHANNELS, ProcessChannelData},
 	{CRSF_PACKET_TYPE_LINK_STATISTICS, CRSF_PAYLOAD_SIZE_LINK_STATISTICS, ProcessLinkStatistics},
+	{CRSF_PACKET_TYPE_LINK_STATISTICS_TX, CRSF_PAYLOAD_SIZE_LINK_STATISTICS_TX, ProcessLinkStatisticsTx},
+	{CRSF_PACKET_TYPE_ELRS_STATUS, CRSF_PAYLOAD_SIZE_ELRS_STATUS, ProcessElrsStatus},
 };
+#define CRSF_PACKET_DESCRIPTOR_COUNT  (sizeof(crsf_packet_descriptors) / sizeof(CrsfPacketDescriptor_t))
 
 static enum PARSER_STATE parser_state = PARSER_STATE_HEADER;
 static uint32_t working_index = 0;
@@ -201,7 +210,7 @@ static bool ProcessLinkStatistics(const uint8_t *data, const uint32_t size, Crsf
 	new_packet->message_type = CRSF_MESSAGE_TYPE_LINK_STATISTICS;
 
 	new_packet->link_statistics.uplink_rssi_1 = data[0];
-	new_packet->link_statistics.uplink_rssi_2  = data[1];
+	new_packet->link_statistics.uplink_rssi_2 = data[1];
 	new_packet->link_statistics.uplink_link_quality = data[2];
 	new_packet->link_statistics.uplink_snr = data[3];
 	new_packet->link_statistics.active_antenna = data[4];
@@ -210,6 +219,34 @@ static bool ProcessLinkStatistics(const uint8_t *data, const uint32_t size, Crsf
 	new_packet->link_statistics.downlink_rssi = data[7];
 	new_packet->link_statistics.downlink_link_quality = data[8];
 	new_packet->link_statistics.downlink_snr = data[9];
+
+	return true;
+}
+
+static bool ProcessLinkStatisticsTx(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet)
+{
+	new_packet->message_type = CRSF_MESSAGE_TYPE_LINK_STATISTICS_TX;
+
+	new_packet->link_statistics_tx.uplink_rssi = data[0];
+	new_packet->link_statistics_tx.uplink_rssi_pct = data[1];
+	new_packet->link_statistics_tx.uplink_link_quality = data[2];
+	new_packet->link_statistics_tx.uplink_snr = data[3];
+	new_packet->link_statistics_tx.downlink_power = data[4];
+	new_packet->link_statistics_tx.uplink_fps = data[5];
+
+	return true;
+}
+
+static bool ProcessElrsStatus(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet)
+{
+	new_packet->message_type = CRSF_MESSAGE_TYPE_ELRS_STATUS;
+
+	// Try: crsf_rc inject 0x2E 0x13 0x50 0xFB 0x53 0x31 0x63 0x63 0x63 0x63
+
+	new_packet->elrs_status.packets_bad = data[2];
+	new_packet->elrs_status.packets_good = (data[3] << 8) | data[4];
+	new_packet->elrs_status.flags = data[5];
+	strlcpy(new_packet->elrs_status.message, (const char *)&data[6], sizeof(new_packet->elrs_status.message));
 
 	return true;
 }
@@ -280,16 +317,21 @@ bool CrsfParser_TryParseCrsfPacket(CrsfPacket_t *const new_packet, CrsfParserSta
 			// If we know what this packet is...
 			if (working_descriptor != NULL) {
 				// Validate length
-				if (packet_size != working_descriptor->packet_size + PACKET_SIZE_TYPE_SIZE) {
-					parser_statistics->invalid_known_packet_sizes++;
-					parser_state = PARSER_STATE_HEADER;
-					working_segment_size = HEADER_SIZE;
-					working_index = 0;
-					buffer_count = QueueBuffer_Count(&rx_queue);
-					continue;
-				}
+				if (working_descriptor->packet_size == -1) {
+					working_segment_size = packet_size - PACKET_SIZE_TYPE_SIZE;
 
-				working_segment_size = working_descriptor->packet_size;
+				} else {
+					if (packet_size != working_descriptor->packet_size + PACKET_SIZE_TYPE_SIZE) {
+						parser_statistics->invalid_known_packet_sizes++;
+						parser_state = PARSER_STATE_HEADER;
+						working_segment_size = HEADER_SIZE;
+						working_index = 0;
+						buffer_count = QueueBuffer_Count(&rx_queue);
+						continue;
+					}
+
+					working_segment_size = working_descriptor->packet_size;
+				}
 
 			} else {
 				// We don't know what this packet is, so we'll let the parser continue

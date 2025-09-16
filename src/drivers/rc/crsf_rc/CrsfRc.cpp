@@ -178,8 +178,11 @@ void CrsfRc::Run()
 
 		Crc8Init(0xd5);
 
+		_input_rc.rssi = -1;
 		_input_rc.rssi_dbm = NAN;
 		_input_rc.link_quality = -1;
+		_input_rc.rc_frame_rate = 0;
+		_input_rc.link_snr = -1;
 
 		CrsfParser_Init();
 	}
@@ -213,8 +216,30 @@ void CrsfRc::Run()
 
 			case CRSF_MESSAGE_TYPE_LINK_STATISTICS:
 				_last_packet_seen = time_now_us;
-				_input_rc.rssi_dbm = -(float)new_crsf_packet.link_statistics.uplink_rssi_1;
+				_input_rc.rssi_dbm = -(float)(new_crsf_packet.link_statistics.active_antenna ?
+							      new_crsf_packet.link_statistics.uplink_rssi_2 :
+							      new_crsf_packet.link_statistics.uplink_rssi_1);
+
+				if (time_now_us - _last_stats_tx_seen > 500_ms) {
+					// We haven't received link statistics tx in a while, use an approximation
+					_input_rc.rssi = (1.f - _input_rc.rssi_dbm / -130.f) * _input_rc.RSSI_MAX;
+				}
+
 				_input_rc.link_quality = new_crsf_packet.link_statistics.uplink_link_quality;
+				_input_rc.rc_frame_rate = new_crsf_packet.link_statistics.rf_mode;
+				_input_rc.link_snr = new_crsf_packet.link_statistics.uplink_snr;
+				break;
+
+			case CRSF_MESSAGE_TYPE_LINK_STATISTICS_TX:
+				_last_packet_seen = time_now_us;
+				_last_stats_tx_seen = time_now_us;
+				_input_rc.rssi = new_crsf_packet.link_statistics_tx.uplink_rssi_pct;
+				break;
+
+			case CRSF_MESSAGE_TYPE_ELRS_STATUS:
+				_last_packet_seen = time_now_us;
+				_input_rc.rc_lost_frame_count = new_crsf_packet.elrs_status.packets_bad;
+				_input_rc.rc_total_frame_count = new_crsf_packet.elrs_status.packets_good;
 				break;
 
 			default:
@@ -344,8 +369,11 @@ void CrsfRc::Run()
 	// If no communication
 	if (time_now_us - _last_packet_seen > 100_ms) {
 		// Invalidate link statistics
+		_input_rc.rssi = -1;
 		_input_rc.rssi_dbm = NAN;
 		_input_rc.link_quality = -1;
+		_input_rc.rc_frame_rate = 0;
+		_input_rc.link_snr = -1;
 	}
 
 	// If we have not gotten RC updates specifically
@@ -359,7 +387,6 @@ void CrsfRc::Run()
 	}
 
 	_input_rc.channel_count = CRSF_CHANNEL_COUNT;
-	_input_rc.rssi = -1;
 	_input_rc.rc_ppm_frame_length = 0;
 	_input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_CRSF;
 	_input_rc.timestamp = hrt_absolute_time();
