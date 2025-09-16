@@ -47,6 +47,11 @@ The **`MissionExecutor`** class contains the state machine to progress the missi
 
 - Internally, it builds on top of the [Modes and Mode Executors](px4_ros2_control_interface.md#overview) and registers itself through a custom mode and executor with PX4.
 - It handles switching in and out of missions: it gets activated when the user switches to the corresponding mode and the vehicle is armed.
+  The mode name can be customized (`My Mission` in the example below).
+  The mission can be paused, which makes the vehicle switch into Hold mode.
+  And to resume, the custom mode has to be selected again.
+- When an action switches into another mode (for example Takeoff), QGroundControl will display this mode until it is completed.
+  The mission executor will then automatically continue.
 - Custom actions can be registered.
 - The mission can be set.
   It then checks that all the actions which the mission defines are available and can be run.
