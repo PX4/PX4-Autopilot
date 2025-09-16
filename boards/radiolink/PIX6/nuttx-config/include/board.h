@@ -443,7 +443,8 @@
 		if ((mask)& PROBE_N(7)) { stm32_configgpio(PROBE_7); } \
 		if ((mask)& PROBE_N(8)) { stm32_configgpio(PROBE_8); } \
 		/*if ((mask)& PROBE_N(9)) { stm32_configgpio(PROBE_9); } \*/
-	} while(0)
+
+} while (0)
 
 # define PROBE(n,s)  do {stm32_gpiowrite(PROBE_##n,(s));}while(0)
 # define PROBE_MARK(n) PROBE(n,false);PROBE(n,true)
