@@ -49,24 +49,23 @@ namespace sensor
 
 void SensorRangeFinder::runChecks(const uint64_t current_time_us, const matrix::Dcmf &R_to_earth, bool in_air)
 {
-	_in_air = in_air;
+	_is_sample_valid = true;
 
-	updateSensorToEarthRotation(R_to_earth);
-	updateValidity(current_time_us);
-}
-
-void SensorRangeFinder::updateSensorToEarthRotation(const matrix::Dcmf &R_to_earth)
-{
 	// calculate 2,2 element of rotation matrix from sensor frame to earth frame
 	// this is required for use of range finder and flow data
 	_cos_tilt_rng_to_earth = R_to_earth(2, 0) * _sin_pitch_offset + R_to_earth(2, 2) * _cos_pitch_offset;
-}
 
-void SensorRangeFinder::updateValidity(uint64_t current_time_us)
-{
-	updateDtDataLpf(current_time_us);
+	// Calculate a first order IIR low-pass filtered time of arrival between samples using a 2 second time constant.
+	float alpha = 0.5f * _dt_update;
+	_dt_data_lpf = _dt_data_lpf * (1.0f - alpha) + alpha * (current_time_us - _sample.time_us);
 
-	if (isSampleOutOfDate(current_time_us) || !isDataContinuous()) {
+	// Apply spike protection to the filter state.
+	_dt_data_lpf = fminf(_dt_data_lpf, 4e6f);
+
+	bool is_continuous = _dt_data_lpf < 2e6f;
+	bool is_out_of_date = (current_time_us - _sample.time_us) > 2 * RNG_MAX_INTERVAL;
+
+	if (is_out_of_date || !is_continuous) {
 		_is_sample_valid = false;
 		_is_regularly_sending_data = false;
 		return;
@@ -78,8 +77,23 @@ void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 	if (_is_sample_ready) {
 		_is_sample_valid = false;
 
+		bool quality_ok = false;
 
-		if (!isQualityOk(current_time_us) || !isTiltOk() || !isDataInRange()) {
+		// Mark quality as OK while on the ground
+		if (!in_air) {
+			_sample.rng = _rng_valid_min_val; // set to min val while on ground
+			quality_ok = true;
+
+		} else {
+			_time_bad_quality_us = _sample.quality == 0 ? current_time_us : _time_bad_quality_us;
+			quality_ok = current_time_us - _time_bad_quality_us > _quality_hyst_us;
+		}
+
+		bool in_range = (_sample.rng >= _rng_valid_min_val) && (_sample.rng <= _rng_valid_max_val);
+
+		bool tilt_ok = _cos_tilt_rng_to_earth > _range_cos_max_tilt;
+
+		if (!quality_ok || !tilt_ok || !in_range) {
 			return;
 		}
 
@@ -91,39 +105,6 @@ void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 			_time_last_valid_us = _sample.time_us;
 		}
 	}
-}
-
-bool SensorRangeFinder::isQualityOk(uint64_t current_time_us)
-{
-	// Mark quality as OK while on the ground
-	if (!_in_air) {
-		_sample.rng = _rng_valid_min_val; // set to min val while on ground
-		return true;
-	}
-
-	_time_bad_quality_us = _sample.quality == 0 ? current_time_us : _time_bad_quality_us;
-
-	return current_time_us - _time_bad_quality_us > _quality_hyst_us;
-}
-
-void SensorRangeFinder::updateDtDataLpf(uint64_t current_time_us)
-{
-	// Calculate a first order IIR low-pass filtered time of arrival between samples using a 2 second time constant.
-	float alpha = 0.5f * _dt_update;
-	_dt_data_lpf = _dt_data_lpf * (1.0f - alpha) + alpha * (current_time_us - _sample.time_us);
-
-	// Apply spike protection to the filter state.
-	_dt_data_lpf = fminf(_dt_data_lpf, 4e6f);
-}
-
-inline bool SensorRangeFinder::isSampleOutOfDate(uint64_t current_time_us) const
-{
-	return (current_time_us - _sample.time_us) > 2 * RNG_MAX_INTERVAL;
-}
-
-inline bool SensorRangeFinder::isDataInRange() const
-{
-	return (_sample.rng >= _rng_valid_min_val) && (_sample.rng <= _rng_valid_max_val);
 }
 
 void SensorRangeFinder::updateStuckCheck()

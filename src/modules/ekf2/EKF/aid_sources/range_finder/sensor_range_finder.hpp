@@ -41,8 +41,6 @@
 #ifndef EKF_SENSOR_RANGE_FINDER_HPP
 #define EKF_SENSOR_RANGE_FINDER_HPP
 
-#include "Sensor.hpp"
-
 #include <matrix/math.hpp>
 #include <lib/mathlib/math/filter/MedianFilter.hpp>
 
@@ -60,17 +58,15 @@ struct rangeSample {
 static constexpr uint64_t RNG_MAX_INTERVAL =
 	200e3;  ///< Maximum allowable time interval between range finder measurements (uSec)
 
-class SensorRangeFinder : public Sensor
+class SensorRangeFinder
 {
 public:
 	SensorRangeFinder() = default;
-	~SensorRangeFinder() override = default;
+	~SensorRangeFinder() = default;
 
 	void runChecks(uint64_t current_time_us, const matrix::Dcmf &R_to_earth, bool in_air = true);
-	bool isHealthy() const override { return _is_sample_valid; }
-	bool isDataHealthy() const override { return _is_sample_ready && _is_sample_valid; }
-	bool isDataReady() const { return _is_sample_ready; }
-	bool isRegularlySendingData() const override { return _is_regularly_sending_data; }
+	bool isDataHealthy() const { return _is_sample_ready && _is_sample_valid; }
+	bool isRegularlySendingData() const { return _is_regularly_sending_data; }
 	bool isStuckDetectorEnabled() const { return _stuck_threshold > 0.f; }
 
 	void setSample(const rangeSample &sample)
@@ -115,21 +111,11 @@ public:
 	float getDistBottom() const { return _sample.rng * _cos_tilt_rng_to_earth; }
 
 	void setDataReadiness(bool is_ready) { _is_sample_ready = is_ready; }
-	void setValidity(bool is_valid) { _is_sample_valid = is_valid; }
 
 	float getValidMinVal() const { return _rng_valid_min_val; }
 	float getValidMaxVal() const { return _rng_valid_max_val; }
 
 private:
-	void updateSensorToEarthRotation(const matrix::Dcmf &R_to_earth);
-
-	void updateValidity(uint64_t current_time_us);
-	void updateDtDataLpf(uint64_t current_time_us);
-	bool isSampleOutOfDate(uint64_t current_time_us) const;
-	bool isDataContinuous() const { return _dt_data_lpf < 2e6f; }
-	bool isTiltOk() const { return _cos_tilt_rng_to_earth > _range_cos_max_tilt; }
-	bool isDataInRange() const;
-	bool isQualityOk(uint64_t current_time_us);
 	void updateStuckCheck();
 	void updateFogCheck(const float dist_bottom, const uint64_t time_us);
 
@@ -174,7 +160,6 @@ private:
 	 */
 	uint64_t _time_bad_quality_us{};	///< timestamp at which range finder signal quality was 0 (used for hysteresis)
 	uint64_t _quality_hyst_us{};		///< minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (us)
-	bool _in_air{};
 
 	/*
 	 * Fog check
