@@ -74,10 +74,18 @@ else
     qshell icm42688p start -s
 fi
 
-# Start Invensense ICP 101xx barometer built on to VOXL 2
-qshell icp101xx start -I -b 5
+dps310 start -X -b /dev/i2c-0
 
-qshell temperature_compensation start
+if (( $? != 0 )); then
+    /bin/echo "Did not detect DPS368 barometer, starting ICP10100 barometer"
+
+    # Start Invensense ICP 101xx barometer built on to VOXL 2
+    qshell icp101xx start -I -b 5
+
+    qshell temperature_compensation start
+else
+    /bin/echo "Detected DPS368 barometer"
+fi
 
 # Auto detect the magnetometer. If one or both of these devices
 # are not connected it will fail but not cause any harm.
