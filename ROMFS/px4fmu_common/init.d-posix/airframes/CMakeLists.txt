@@ -85,6 +85,7 @@ px4_add_romfs_files(
 	4011_gz_lawnmower
 	4012_gz_vertex
 	4016_gz_vertex_rtk
+	4030_gz_apex
 
 	6011_gazebo-classic_typhoon_h480
 	6011_gazebo-classic_typhoon_h480.post
