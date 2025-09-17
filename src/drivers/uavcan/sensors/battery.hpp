@@ -105,7 +105,7 @@ private:
 	hrt_abstime _last_timestamp;
 
 	// Separate battery info publication because UavcanSensorBridgeBase only supports publishing one topic
-	uORB::PublicationMulti<battery_info_s> _battery_info_pub[battery_status_s::MAX_INSTANCES] {ORB_ID(battery_info), ORB_ID(battery_info), ORB_ID(battery_info), ORB_ID(battery_info)};
+	uORB::PublicationMulti<battery_info_s> _battery_info_pub[battery_status_s::MAX_INSTANCES] {ORB_ID(battery_info), ORB_ID(battery_info), ORB_ID(battery_info)};
 
 	battery_info_s _battery_info[battery_status_s::MAX_INSTANCES] {};
 	battery_status_s _battery_status[battery_status_s::MAX_INSTANCES] {};
@@ -115,15 +115,13 @@ private:
 	static constexpr int BATTERY_INDEX_1 = 1;
 	static constexpr int BATTERY_INDEX_2 = 2;
 	static constexpr int BATTERY_INDEX_3 = 3;
-	static constexpr int BATTERY_INDEX_4 = 4;
 	static constexpr int SAMPLE_INTERVAL_US = 500_ms; // Typical message rate for a CAN battery monitor should be 2-5Hz.
 
-	static_assert(battery_status_s::MAX_INSTANCES <= BATTERY_INDEX_4, "Battery array too big");
+	static_assert(battery_status_s::MAX_INSTANCES <= BATTERY_INDEX_3, "Battery array too big");
 
 	Battery battery1 = {BATTERY_INDEX_1, this, SAMPLE_INTERVAL_US, battery_status_s::SOURCE_EXTERNAL};
 	Battery battery2 = {BATTERY_INDEX_2, this, SAMPLE_INTERVAL_US, battery_status_s::SOURCE_EXTERNAL};
 	Battery battery3 = {BATTERY_INDEX_3, this, SAMPLE_INTERVAL_US, battery_status_s::SOURCE_EXTERNAL};
-	Battery battery4 = {BATTERY_INDEX_4, this, SAMPLE_INTERVAL_US, battery_status_s::SOURCE_EXTERNAL};
 
-	Battery *_battery[battery_status_s::MAX_INSTANCES] = { &battery1, &battery2, &battery3, &battery4 };
+	Battery *_battery[battery_status_s::MAX_INSTANCES] = { &battery1, &battery2, &battery3};
 };

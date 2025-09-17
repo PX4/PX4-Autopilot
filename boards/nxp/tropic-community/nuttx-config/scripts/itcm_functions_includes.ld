@@ -394,7 +394,7 @@
 *(.text._ZN4EKF215PublishBaroBiasERKy)
 *(.text._ZN4EKF221UpdateGyroCalibrationERKy)
 *(.text._ZN6matrix9constrainIfLj3ELj1EEENS_6MatrixIT_XT0_EXT1_EEERKS3_S2_S2_)
-*(.text._ZN4uORB22SubscriptionMultiArrayI16battery_status_sLh4EE16advertised_countEv)
+*(.text._ZN4uORB22SubscriptionMultiArrayI16battery_status_sLh3EE16advertised_countEv)
 *(.text._ZN23MavlinkStreamScaledIMU34sendEv)
 *(.text.__aeabi_ldivmod)
 *(.text._ZN15PositionControl16setInputSetpointERK21trajectory_setpoint_s)
