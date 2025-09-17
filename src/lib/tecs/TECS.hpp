@@ -535,6 +535,7 @@ private:
 	// State
 	AlphaFilter<float> _ste_rate_estimate_filter;		///< Low pass filter for the specific total energy rate.
 	float _pitch_integ_state{0.0f};				///< Pitch integrator state [rad].
+	float _pitch_integ_reset_val{NAN};
 	float _throttle_integ_state{0.0f};			///< Throttle integrator state [-].
 
 	// Output
