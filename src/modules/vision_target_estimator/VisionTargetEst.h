@@ -160,6 +160,7 @@ private:
 
 	uORB::Publication<vehicle_acceleration_s> _vte_acc_input_pub{ORB_ID(vte_acc_input)};
 
+	// TODO: change to enum class
 	enum VisionTargetEstTask : uint16_t {
 		// Bit locations for VTE tasks
 		VTE_NO_TASK = 0,
@@ -176,6 +177,11 @@ private:
 	uint64_t _vte_position_stop_time{0};
 	uint64_t _vte_orientation_stop_time{0};
 
+	uint32_t _vte_TIMEOUT_US{3_s};
+	int _vte_aid_mask{0};
+	int adjustAidMask(const int input_mask);
+	void printAidMask();
+
 	bool _vte_orientation_enabled{false};
 	VTEOrientation *_vte_orientation {nullptr};
 	hrt_abstime _last_update_yaw{0};
@@ -184,7 +190,7 @@ private:
 	bool _vte_position_enabled{false};
 	hrt_abstime _last_update_pos{0};
 
-	matrix::Vector3f _gps_pos_offset{};
+	matrix::Vector3f _gps_pos_offset_xyz{};
 	bool _gps_pos_is_offset{false};
 
 	bool get_gps_velocity_offset(matrix::Vector3f &vel_offset);
@@ -201,7 +207,9 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::VTE_YAW_EN>) _param_vte_yaw_en,
 		(ParamInt<px4::params::VTE_POS_EN>) _param_vte_pos_en,
-		(ParamInt<px4::params::VTE_TASK_MASK>) _param_vte_task_mask
+		(ParamInt<px4::params::VTE_TASK_MASK>) _param_vte_task_mask,
+		(ParamFloat<px4::params::VTE_BTOUT>) _param_vte_btout,
+		(ParamInt<px4::params::VTE_AID_MASK>) _param_vte_aid_mask
 	)
 };
 

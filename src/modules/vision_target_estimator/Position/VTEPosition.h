@@ -33,7 +33,7 @@
 
 /**
  * @file VTEPosition.h
- * @brief Estimate the state of a target by processessing and fusing sensor data in a Kalman Filter.
+ * @brief Estimate the state of a target by processing and fusing sensor data in a Kalman Filter.
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
@@ -72,6 +72,7 @@
 #include <lib/geo/geo.h>
 #include "KF_position.h"
 #include <vtest_derivation/generated/state.h>
+#include "../common.h"
 
 using namespace time_literals;
 
@@ -106,6 +107,10 @@ public:
 
 	void set_velocity_offset(const matrix::Vector3f &xyz);
 
+	void set_vte_timeout(const float tout) {_vte_TIMEOUT_US = static_cast<uint32_t>(tout * 1_s);};
+
+	void set_vte_aid_mask(const int mask) {_vte_aid_mask = mask;};
+
 	bool has_timed_out() {return _has_timed_out;};
 
 	// TODO: decide if a relative position measurement is required.
@@ -124,19 +129,6 @@ protected:
 	 * Update parameters.
 	 */
 	void updateParams() override;
-
-
-	/* timeout after which the target is not valid if no measurements are seen*/
-	static constexpr uint32_t target_valid_TIMEOUT_US = 2_s;
-
-	/* timeout after which the measurement is not valid*/
-	static constexpr uint32_t meas_valid_TIMEOUT_US = 1_s;
-
-	/* timeout after which the measurement is not considered updated*/
-	static constexpr uint32_t meas_updated_TIMEOUT_US = 100_ms;
-
-	/* Valid AoA measurement range between -60.00° and +60.00° for UWB*/
-	static constexpr float max_uwb_aoa_angle_degree = 60.0f;
 
 	// Geographic limits
 	static constexpr double lat_abs_max_deg =  90.0;
@@ -166,20 +158,6 @@ private:
 		Count,
 	};
 
-	static inline bool isMeasValid(hrt_abstime time_stamp)
-	{
-		const hrt_abstime now = hrt_absolute_time();
-		return (time_stamp <= now) &&
-		       ((now - time_stamp) < static_cast<hrt_abstime>(meas_valid_TIMEOUT_US));
-	}
-
-	static inline bool isMeasUpdated(hrt_abstime time_stamp)
-	{
-		const hrt_abstime now = hrt_absolute_time();
-		return (time_stamp <= now) &&
-		       ((now - time_stamp) < static_cast<hrt_abstime>(meas_updated_TIMEOUT_US));
-	}
-
 	bool _has_timed_out{false};
 
 	enum ObsType {
@@ -201,33 +179,31 @@ private:
 		matrix::Vector3f meas_xyz{};			// Measurements (meas_x, meas_y, meas_z)
 		matrix::Vector3f meas_unc_xyz{};		// Measurements' uncertainties
 		matrix::Matrix<float, Axis::Count, vtest::State::size>
-		meas_h_xyz{}; // Observation matrix where the rows correspond to the x,y,z observations and the columns to the AugmentedState
+		meas_h_xyz{}; // Observation matrix where the rows correspond to the x,y,z observations and the columns to the state
 	};
 
-	enum SensorFusionMask : uint8_t {
-		// Bit locations for fusion_mode
-		NO_SENSOR_FUSION    = 0,
-		USE_TARGET_GPS_POS  = (1 << 0),    ///< set to true to use target GPS position data
-		USE_UAV_GPS_VEL     = (1 << 1),    ///< set to true to use drone GPS velocity data
-		USE_EXT_VIS_POS 	= (1 << 2),    ///< set to true to use target external vision-based relative position data
-		USE_MISSION_POS     = (1 << 3),    ///< set to true to use the PX4 mission position
-		USE_TARGET_GPS_VEL  = (1 << 4),		///< set to true to use target GPS velocity data. Only for moving targets.
-		USE_UWB = (1 << 5) ///< set to true to use UWB.
-	};
+	// enum SensorFusionMask : uint8_t {
+	// 	// Bit locations for fusion_mode
+	// 	NO_SENSOR_FUSION    = 0,
+	// 	USE_TARGET_GPS_POS  = (1 << 0),    ///< set to true to use target GPS position data
+	// 	USE_UAV_GPS_VEL     = (1 << 1),    ///< set to true to use drone GPS velocity data
+	// 	USE_EXT_VIS_POS 	= (1 << 2),    ///< set to true to use target external vision-based relative position data
+	// 	USE_MISSION_POS     = (1 << 3),    ///< set to true to use the PX4 mission position
+	// 	USE_TARGET_GPS_VEL  = (1 << 4),		///< set to true to use target GPS velocity data. Only for moving targets.
+	// 	USE_UWB = (1 << 5) ///< set to true to use UWB.
+	// };
 
 	enum ObsValidMask : uint8_t {
 		// Bit locations for valid observations
 		NO_VALID_DATA 	     = 0,
-		FUSE_TARGET_GPS_POS  = (1 << 0),    ///< set to true if target GPS position data is ready to be fused
-		FUSE_UAV_GPS_VEL     = (1 << 1),    ///< set to true if drone GPS velocity data (and target GPS velocity data if the target is moving)
-		FUSE_EXT_VIS_POS 	  = (1 << 2),    ///< set to true if target external vision-based relative position data is ready to be fused
-		FUSE_MISSION_POS     = (1 << 3),    ///< set to true if the PX4 mission position is ready to be fused
-		FUSE_TARGET_GPS_VEL     = (1 << 4),   ///< set to true if target GPS velocity data is ready to be fused
-		FUSE_UWB 				= (1 << 5) ///< set to true if UWB data is ready to be fused
+		FUSE_TARGET_GPS_POS  = (1 << 0), ///< set to true if target GPS position data is ready to be fused
+		FUSE_UAV_GPS_VEL     = (1 << 1), ///< set to true if drone GPS velocity data (and target GPS velocity data if the target is moving)
+		FUSE_VISION     = (1 << 2), ///< set to true if target external vision-based relative position data is ready to be fused
+		FUSE_MISSION_POS     = (1 << 3), ///< set to true if the PX4 mission position is ready to be fused
+		FUSE_TARGET_GPS_VEL  = (1 << 4), ///< set to true if target GPS velocity data is ready to be fused
+		FUSE_UWB 	     = (1 << 5)  ///< set to true if UWB data is ready to be fused
 	};
 
-	int adjustAidMask(const int input_mask);
-	void printAidMask();
 	bool createEstimators();
 	bool initEstimator(const matrix::Matrix <float, Axis::Count, vtest::State::size>
 			   &state_init);
@@ -238,7 +214,7 @@ private:
 
 	inline bool hasNewNonGpsPositionSensorData(const ObsValidMask &vte_fusion_aid_mask) const
 	{
-		return (vte_fusion_aid_mask & ObsValidMask::FUSE_EXT_VIS_POS)
+		return (vte_fusion_aid_mask & ObsValidMask::FUSE_VISION)
 		       || (vte_fusion_aid_mask & ObsValidMask::FUSE_UWB);
 	}
 
@@ -246,13 +222,7 @@ private:
 	{
 		return vte_fusion_aid_mask & (ObsValidMask::FUSE_MISSION_POS |
 					      ObsValidMask::FUSE_TARGET_GPS_POS |
-					      ObsValidMask::FUSE_EXT_VIS_POS);
-	}
-
-	inline bool hasNewVelocitySensorData(const ObsValidMask &vte_fusion_aid_mask) const
-	{
-		return vte_fusion_aid_mask & (ObsValidMask::FUSE_TARGET_GPS_VEL |
-					      ObsValidMask::FUSE_UAV_GPS_VEL);
+					      ObsValidMask::FUSE_VISION);
 	}
 
 	// Only estimate the GNSS bias if we have a GNSS estimation and a secondary source of position
@@ -260,7 +230,6 @@ private:
 	{
 		return isMeasValid(_pos_rel_gnss.timestamp) && hasNewNonGpsPositionSensorData(vte_fusion_aid_mask);
 	};
-
 
 	bool initializeEstimator(const ObsValidMask &vte_fusion_aid_mask,
 				 const targetObs observations[ObsType::Type_count]);
@@ -309,7 +278,6 @@ private:
 	bool fuseMeas(const matrix::Vector3f &vehicle_acc_ned, const targetObs &target_pos_obs);
 	void publishTarget();
 	void publishInnov(const estimator_aid_source3d_s &target_innov, const ObsType type);
-
 
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _fiducial_marker_report_sub{ORB_ID(fiducial_marker_pos_report)};
@@ -367,15 +335,15 @@ private:
 	uint64_t _last_vision_obs_fused_time{0};
 	bool _estimator_initialized{false};
 
-	KF_position *_target_estimator[Axis::Count] {nullptr, nullptr, nullptr};
+	KF_position *_target_est_pos[Axis::Count] {nullptr, nullptr, nullptr};
 
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
 
 	/* parameters from vision_target_estimator_params.c*/
-	void checkParams(const bool force);
+	void checkMeasurementInputs();
 
-	uint32_t _vte_TIMEOUT_US = 4_s;
+	uint32_t _vte_TIMEOUT_US = 3_s;
 	int _vte_aid_mask{0};
 	float _target_acc_unc{0.f};
 	float _bias_unc{0.f};
@@ -387,8 +355,6 @@ private:
 	float _nis_threshold{0.f};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::VTE_AID_MASK>) _param_vte_aid_mask,
-		(ParamFloat<px4::params::VTE_BTOUT>) _param_vte_btout,
 		(ParamFloat<px4::params::VTE_ACC_D_UNC>) _param_vte_acc_d_unc,
 		(ParamFloat<px4::params::VTE_ACC_T_UNC>) _param_vte_acc_t_unc,
 		(ParamFloat<px4::params::VTE_BIAS_LIM>) _param_vte_bias_lim,
