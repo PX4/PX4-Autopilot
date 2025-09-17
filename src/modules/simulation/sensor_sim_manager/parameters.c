@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,37 +31,108 @@
  *
  ****************************************************************************/
 /**
- * Enable simulated magnetometer sensor instance
+ * Enable simulated GPS sensor
  *
- * @reboot_required true
- * @min 0
- * @max 1
- * @group Sensors
+ * @group Simulation
  * @value 0 Disabled
  * @value 1 Enabled
-  */
-PARAM_DEFINE_INT32(SENS_EN_MAGSIM, 0);
+ */
+PARAM_DEFINE_INT32(SENS_EN_GPSSIM, 1);
+
+/**
+ * Enable simulated barometer sensor
+ *
+ * @group Simulation
+ * @value 0 Disabled
+ * @value 1 Enabled
+ */
+PARAM_DEFINE_INT32(SENS_EN_BAROSIM, 1);
+
+/**
+ * Enable simulated magnetometer sensor
+ *
+ * @group Simulation
+ * @value 0 Disabled
+ * @value 1 Enabled
+ */
+PARAM_DEFINE_INT32(SENS_EN_MAGSIM, 1);
+
+/**
+ * Enable simulated airspeed sensor
+ *
+ * @group Simulation
+ * @value 0 Disabled
+ * @value 1 Enabled
+ */
+PARAM_DEFINE_INT32(SENS_EN_ARSPDSIM, 1);
+
+/**
+ * Enable simulated AGP sensor
+ *
+ * @group Simulation
+ * @value 0 Disabled
+ * @value 1 Enabled
+ */
+PARAM_DEFINE_INT32(SENS_EN_AGPSIM, 1);
+
+/**
+ * Number of GPS satellites used in simulation
+ *
+ * @group Simulator
+ * @min 0
+ * @max 50
+ */
+PARAM_DEFINE_INT32(SIM_GPS_USED, 10);
+
+/**
+ * simulated barometer pressure offset
+ *
+ * @group Simulator
+ */
+PARAM_DEFINE_FLOAT(SIM_BARO_OFF_P, 0.0f);
+
+/**
+ * simulated barometer temperature offset
+ *
+ * @group Simulator
+ * @unit celcius
+ */
+PARAM_DEFINE_FLOAT(SIM_BARO_OFF_T, 0.0f);
 
 /**
  * simulated magnetometer X offset
  *
- * @unit gauss
  * @group Simulator
+ * @unit gauss
  */
 PARAM_DEFINE_FLOAT(SIM_MAG_OFFSET_X, 0.0f);
 
 /**
  * simulated magnetometer Y offset
  *
- * @unit gauss
  * @group Simulator
+ * @unit gauss
  */
 PARAM_DEFINE_FLOAT(SIM_MAG_OFFSET_Y, 0.0f);
 
 /**
  * simulated magnetometer Z offset
  *
- * @unit gauss
  * @group Simulator
+ * @unit gauss
  */
-PARAM_DEFINE_FLOAT(SIM_MAG_OFFSET_Z,  0.0f);
+PARAM_DEFINE_FLOAT(SIM_MAG_OFFSET_Z, 0.0f);
+
+/**
+ * AGP failure mode
+ *
+ * Stuck: freeze the measurement to the current location
+ * Drift: add a linearly growing bias to the sensor data
+ *
+ * @group Simulator
+ * @min 0
+ * @max 3
+ * @bit 0 Stuck
+ * @bit 1 Drift
+ */
+PARAM_DEFINE_INT32(SIM_AGP_FAIL, 0);

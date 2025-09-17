@@ -1,0 +1,5 @@
+menuconfig MODULES_SIMULATION_SENSOR_SIM_MANAGER
+	bool "sensor_sim_manager"
+	default n
+	---help---
+		Enable support for sensor_sim_manager - Unified sensor simulation manager for SIH
