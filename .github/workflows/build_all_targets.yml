@@ -30,7 +30,7 @@ jobs:
   group_targets:
     name: Scan for Board Targets
     # runs-on: ubuntu-latest
-    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
+    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=false]
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
@@ -72,7 +72,7 @@ jobs:
   setup:
     name: Build [${{ matrix.arch == 'nuttx' && 'x86' || 'arm64' }}]:[${{ matrix.group }}]
     # runs-on: ubuntu-latest
-    runs-on: [runs-on,"runner=4cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",extras=s3-cache]
+    runs-on: [runs-on,"runner=4cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",extras=s3-cache,spot=false]
     needs: group_targets
     strategy:
       matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
@@ -93,7 +93,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ~/.ccache
-          key: ${{ format('ccache-{0}-{1}-{2}', runner.os, matrix.arch, hashFiles('**/CMakeLists.txt','**/cmake/**','**/platforms/**','**/src/**','**/boards/**')) }}
+          key: ${{ format('ccache-{0}-{1}-{2}', runner.os, matrix.arch, matrix.group) }}
           restore-keys: |
             ccache-${{ runner.os }}-${{ matrix.arch }}-
             ccache-${{ runner.os }}-
@@ -135,7 +135,7 @@ jobs:
   artifacts:
     name: Upload Artifacts to S3
     # runs-on: ubuntu-latest
-    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}"]
+    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
     needs: [setup, group_targets]
     if: contains(fromJSON('["main", "stable", "beta"]'), needs.group_targets.outputs.branchname)
     steps:

@@ -35,6 +35,7 @@ jobs:
         image=ubuntu24-full-x64,
         "run-id=${{ github.run_id }}",
         extras=s3-cache,
+        spot=false,
       ]
     steps:
       - uses: runs-on/action@v1
@@ -77,6 +78,7 @@ jobs:
         image=ubuntu24-full-x64,
         "run-id=${{ github.run_id }}",
         extras=s3-cache,
+        spot=false,
       ]
 
     steps:
