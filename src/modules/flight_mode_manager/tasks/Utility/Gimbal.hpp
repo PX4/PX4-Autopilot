@@ -74,16 +74,7 @@ public:
 		| gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_PITCH_LOCK;
 
 private:
-
-	void updateAcquiringstateOnTelemetry();
-	enum class AcquiringState {
-		Unknown = 0,
-		Acquired,
-		Released,
-	};
-
-	AcquiringState _acquiring_state{AcquiringState::Unknown};
-
+	bool _tried_to_have_gimbal_control{false};
 	uORB::Subscription _gimbal_device_attitude_status_sub{ORB_ID(gimbal_device_attitude_status)};
 	uORB::Subscription _gimbal_manager_status_sub{ORB_ID(gimbal_manager_status)};
 	hrt_abstime _telemtry_timestamp{};
