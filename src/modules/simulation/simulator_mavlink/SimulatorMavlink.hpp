@@ -77,6 +77,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/rpm.h>
+#include <simulation/failure_injection/failureInjection.hpp>
 
 #include <random>
 
@@ -293,10 +294,6 @@ private:
 	bool _mag_blocked[MAG_COUNT_MAX] {};
 	bool _mag_stuck[MAG_COUNT_MAX] {};
 
-	bool _gps_blocked{false};
-	bool _gps_stuck{false};
-	bool _gps_wrong{false};
-	sensor_gps_s _gps_prev{};
 	bool _airspeed_disconnected{false};
 	hrt_abstime _airspeed_blocked_timestamp{0};
 	bool _vio_blocked{false};
@@ -307,6 +304,8 @@ private:
 
 	float _last_baro_pressure{0.0f};
 	float _last_baro_temperature{0.0f};
+
+	FailureInjection _failure_injection{};
 
 	int32_t _output_functions[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS] {};
 
