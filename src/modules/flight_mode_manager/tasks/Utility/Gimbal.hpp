@@ -74,10 +74,15 @@ public:
 		| gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_PITCH_LOCK;
 
 private:
-	bool gimbalHaveControl();
 
-	uint8_t _last_comp_id{UINT8_MAX};
-	uint8_t _last_sys_id{UINT8_MAX};
+	void updateAcquiringstateOnTelemetry();
+	enum class AcquiringState {
+		Unknown = 0,
+		Acquired,
+		Released,
+	};
+
+	AcquiringState _acquiring_state{AcquiringState::Unknown};
 
 	uORB::Subscription _gimbal_device_attitude_status_sub{ORB_ID(gimbal_device_attitude_status)};
 	uORB::Subscription _gimbal_manager_status_sub{ORB_ID(gimbal_manager_status)};

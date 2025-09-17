@@ -61,23 +61,25 @@ bool Gimbal::checkForTelemetry(const hrt_abstime now)
 	return now < _telemtry_timestamp + 2_s;
 }
 
-bool Gimbal::gimbalHaveControl()
+void Gimbal::updateAcquiringstateOnTelemetry()
 {
 	gimbal_manager_status_s gimbal_manager_status;
 
 	if (_gimbal_manager_status_sub.updated()) {
 		_gimbal_manager_status_sub.copy(&gimbal_manager_status);
-		_last_comp_id = gimbal_manager_status.primary_control_compid;
-		_last_sys_id = gimbal_manager_status.primary_control_sysid;
-	}
 
-	// Aquire until gimbal sends response with correct flags
-	return _last_comp_id == _param_mav_comp_id.get() &&  _last_sys_id == _param_mav_sys_id.get();
+		_acquiring_state = (gimbal_manager_status.primary_control_compid == _param_mav_comp_id.get() &&
+				    gimbal_manager_status.primary_control_sysid == _param_mav_sys_id.get()) ?
+				   AcquiringState::Acquired : AcquiringState::Unknown;
+
+	}
 }
 
 void Gimbal::acquireGimbalControlIfNeeded()
 {
-	if (!gimbalHaveControl()) {
+	updateAcquiringstateOnTelemetry();
+
+	if (_acquiring_state != AcquiringState::Acquired) {
 		vehicle_command_s vehicle_command{};
 		vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
 		vehicle_command.param1 = _param_mav_sys_id.get();
@@ -96,12 +98,12 @@ void Gimbal::acquireGimbalControlIfNeeded()
 
 void Gimbal::releaseGimbalControlIfNeeded()
 {
-	if (gimbalHaveControl()) {
+	if (_acquiring_state != AcquiringState::Released) {
 		// Restore default flags, setting rate setpoints to NAN lead to unexpected behavior
 		publishGimbalManagerSetAttitude(FLAGS_ROLL_PITCH_LOCKED,
 						Quatf(NAN, NAN, NAN, NAN),
 						Vector3f(NAN, 0.f, 0.f));
-
+		_acquiring_state = AcquiringState::Released;
 		// Release gimbal
 		vehicle_command_s vehicle_command{};
 		vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
