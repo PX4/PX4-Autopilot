@@ -82,7 +82,6 @@ VisionTargetEst::~VisionTargetEst()
 
 int VisionTargetEst::task_spawn(int argc, char *argv[])
 {
-
 	VisionTargetEst *instance = new VisionTargetEst();
 
 	if (instance) {
@@ -106,7 +105,6 @@ int VisionTargetEst::task_spawn(int argc, char *argv[])
 
 bool VisionTargetEst::init()
 {
-
 	if (!_param_vte_pos_en.get() && !_param_vte_yaw_en.get()) {
 		PX4_WARN("VTE not enabled, update VTE_POS_EN or VTE_YAW_EN");
 		return false;
@@ -116,8 +114,6 @@ bool VisionTargetEst::init()
 		PX4_ERR("VTE vehicle_attitude callback registration failed!");
 		return false;
 	}
-
-	updateParams();
 
 	delete _vte_position;
 	delete _vte_orientation;
@@ -130,20 +126,7 @@ bool VisionTargetEst::init()
 	_vte_position_enabled = false;
 	_vte_orientation_enabled = false;
 
-	// allows for different tasks using the VTE in the future.
-	_vte_task_mask = _param_vte_task_mask.get();
-
-	if (_vte_task_mask < 1) {
-		PX4_ERR("VTE invalid task mask, target estimator not enabled.");
-		return false;
-
-	} else {
-
-		if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND) { PX4_INFO("VTE for precision landing.");}
-
-		if (_vte_task_mask & VisionTargetEstTask::VTE_DEBUG) { PX4_WARN("VTE for DEBUG. Always active.");}
-	}
-
+	// Params with reboot required
 	if (_param_vte_pos_en.get()) {
 		PX4_INFO("VTE position estimator enabled.");
 		_vte_position = new VTEPosition;
@@ -156,14 +139,36 @@ bool VisionTargetEst::init()
 		_vte_orientation_enabled = (_vte_orientation != nullptr && _vte_orientation->init());
 	}
 
+	// Params that impact the estimators
+	updateParams();
+
 	return _vte_position_enabled || _vte_orientation_enabled;
 }
 
 void VisionTargetEst::updateParams()
 {
+	parameter_update_s pupdate;
+	_parameter_update_sub.copy(&pupdate);
+
 	ModuleParams::updateParams();
 
-	_vte_task_mask = _param_vte_task_mask.get();
+	const int new_vte_task_mask = _param_vte_task_mask.get();
+
+	if (new_vte_task_mask != _vte_task_mask) {
+
+		_vte_task_mask = new_vte_task_mask;
+
+		if (_vte_task_mask < 1) {
+			PX4_WARN("VTE no task, update VTE_TASK_MASK");
+
+		} else {
+			PX4_INFO("VTE VTE_TASK_MASK config: ");
+
+			if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND) { PX4_INFO("    Precision landing");}
+
+			if (_vte_task_mask & VisionTargetEstTask::VTE_DEBUG) { PX4_WARN("    DEBUG, always active");}
+		}
+	}
 
 	float gps_pos_x;
 	param_get(param_find("EKF2_GPS_POS_X"), &gps_pos_x);
@@ -175,7 +180,82 @@ void VisionTargetEst::updateParams()
 	param_get(param_find("EKF2_GPS_POS_Z"), &gps_pos_z);
 
 	_gps_pos_is_offset = ((gps_pos_x > 0.01f) || (gps_pos_y > 0.01f) || (gps_pos_z > 0.01f));
-	_gps_pos_offset = matrix::Vector3f(gps_pos_x, gps_pos_y, gps_pos_z);
+	_gps_pos_offset_xyz = matrix::Vector3f(gps_pos_x, gps_pos_y, gps_pos_z);
+
+	const int new_aid_mask = adjustAidMask(_param_vte_aid_mask.get());
+
+	if (new_aid_mask != _vte_aid_mask) {
+		_vte_aid_mask = new_aid_mask;
+
+		if (_vte_position_enabled) {
+			_vte_position->set_vte_aid_mask(new_aid_mask);
+		}
+
+		if (_vte_orientation_enabled) {
+			_vte_orientation->set_vte_aid_mask(new_aid_mask);
+		}
+
+		printAidMask();
+	}
+
+	const uint32_t new_vte_timeout_us = static_cast<uint32_t>(_param_vte_btout.get() * 1_s);
+
+	if (new_vte_timeout_us != _vte_TIMEOUT_US) {
+
+		PX4_INFO("VTE timeout: %.1f [s] (previous: %.1f [s])", static_cast<double>(new_vte_timeout_us) / 1e6,
+			 static_cast<double>(_vte_TIMEOUT_US) / 1e6);
+
+		_vte_TIMEOUT_US = new_vte_timeout_us;
+
+		if (_vte_position_enabled) {
+			_vte_position->set_vte_timeout(new_vte_timeout_us);
+		}
+
+		if (_vte_orientation_enabled) {
+			_vte_orientation->set_vte_timeout(new_vte_timeout_us);
+		}
+	}
+}
+
+int VisionTargetEst::adjustAidMask(const int input_vte_aid_mask)
+{
+	int new_aid_mask = input_vte_aid_mask;
+
+#if defined(CONFIG_VTEST_MOVING)
+
+	if (new_aid_mask & SensorFusionMask::USE_MISSION_POS) {
+		PX4_WARN("VTE for moving target. Disabling mission land position data fusion.");
+		new_aid_mask &= ~SensorFusionMask::USE_MISSION_POS;
+	}
+
+#endif // CONFIG_VTEST_MOVING
+
+	if ((new_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && (_vte_aid_mask & SensorFusionMask::USE_MISSION_POS)) {
+		PX4_WARN("VTE both target GPS position and mission land position data fusion cannot be enabled simultaneously.");
+		PX4_WARN("Disabling mission land position fusion.");
+		new_aid_mask &= ~SensorFusionMask::USE_MISSION_POS;
+	}
+
+	return new_aid_mask;
+}
+
+void VisionTargetEst::printAidMask()
+{
+	PX4_INFO("VTE VTE_AID_MASK config: ");
+
+	if (_vte_aid_mask & SensorFusionMask::USE_EXT_VIS_POS) {PX4_INFO("    vision relative position fusion enabled");}
+
+	if (_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) {PX4_INFO("    target GPS position fusion enabled");}
+
+	if (_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_VEL) {PX4_INFO("    target GPS velocity fusion enabled");}
+
+	if (_vte_aid_mask & SensorFusionMask::USE_MISSION_POS) {PX4_INFO("    mission land position fusion enabled");}
+
+	if (_vte_aid_mask & SensorFusionMask::USE_UAV_GPS_VEL) {PX4_INFO("    UAV GPS velocity fusion enabled");}
+
+	if (_vte_aid_mask & SensorFusionMask::USE_UWB) {PX4_INFO("    Uwb relative position fusion enabled");}
+
+	if (_vte_aid_mask == SensorFusionMask::NO_SENSOR_FUSION) {PX4_WARN("    no data fusion. Modify VTE_AID_MASK");}
 }
 
 void VisionTargetEst::reset_acc_downsample()
@@ -274,6 +354,12 @@ bool VisionTargetEst::is_current_task_done()
 
 	// Prec-land
 	if (_vte_current_task & VisionTargetEstTask::VTE_FOR_PREC_LAND) {
+
+		if (!(_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND)) {
+			PX4_INFO("VTE_TASK_MASK updated, precision landing task completed.");
+			return true;
+		}
+
 		vehicle_land_detected_s vehicle_land_detected;
 
 		// Stop computations once the drone has landed
@@ -286,6 +372,13 @@ bool VisionTargetEst::is_current_task_done()
 		// Stop computations once precision landing is over
 		if (!_is_in_prec_land) {
 			PX4_INFO("Precision landing task completed.");
+			return true;
+		}
+
+	} else if (_vte_current_task & VisionTargetEstTask::VTE_DEBUG) {
+
+		if (!(_vte_task_mask & VisionTargetEstTask::VTE_DEBUG)) {
+			PX4_INFO("VTE_TASK_MASK updated, DEBUG task completed.");
 			return true;
 		}
 	}
@@ -322,6 +415,10 @@ void VisionTargetEst::Run()
 	}
 
 	update_task_topics();
+
+	if (_parameter_update_sub.updated()) {
+		updateParams();
+	}
 
 	// If a new task is available, stop the estimators if they were already running
 	if (new_task_available()) {
@@ -548,7 +645,7 @@ bool VisionTargetEst::get_gps_velocity_offset(matrix::Vector3f &vel_offset_body)
 
 	// If the GPS antenna is not at the center of mass, when the drone rotates around the center of mass, the GPS will record a velocity.
 	const matrix::Vector3f ang_vel = matrix::Vector3f(vehicle_angular_velocity.xyz);
-	vel_offset_body = ang_vel % _gps_pos_offset; // Get extra velocity from drone's rotation
+	vel_offset_body = ang_vel % _gps_pos_offset_xyz; // Get extra velocity from drone's rotation
 
 	return true;
 }
@@ -614,7 +711,7 @@ bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned, matrix::Vecto
 
 	/* Rotate position and velocity offset into ned frame */
 	if (_gps_pos_is_offset) {
-		gps_pos_offset_ned = quat_att.rotateVector(_gps_pos_offset);
+		gps_pos_offset_ned = quat_att.rotateVector(_gps_pos_offset_xyz);
 
 		if (vel_offset_updated) {
 			vel_offset_rot_ned = quat_att.rotateVector(vel_offset_rot_ned);

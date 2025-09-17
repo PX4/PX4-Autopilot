@@ -33,7 +33,7 @@
 
 /**
  * @file VTEOrientation.h
- * @brief Estimate the orientation of a target by processessing and fusing sensor data in a Kalman Filter.
+ * @brief Estimate the orientation of a target by processing and fusing sensor data in a Kalman Filter.
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
@@ -53,6 +53,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/fiducial_marker_yaw_report.h>
 #include <uORB/topics/vision_target_est_orientation.h>
+#include <uORB/topics/sensor_uwb.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/estimator_aid_source1d.h>
@@ -64,6 +65,7 @@
 #include <lib/conversion/rotation.h>
 #include <lib/geo/geo.h>
 #include "KF_orientation.h"
+#include "../common.h"
 
 using namespace time_literals;
 
@@ -88,6 +90,10 @@ public:
 
 	void set_range_sensor(const float dist, const bool valid);
 
+	void set_vte_timeout(const float tout) {_vte_TIMEOUT_US = static_cast<uint32_t>(tout * 1_s);};
+
+	void set_vte_aid_mask(const int mask) {_vte_aid_mask = mask;};
+
 	bool has_timed_out() {return _has_timed_out;};
 
 protected:
@@ -96,16 +102,6 @@ protected:
 	 * Update parameters.
 	 */
 	void updateParams() override;
-
-
-	/* timeout after which the target is not valid if no measurements are seen*/
-	static constexpr uint32_t target_valid_TIMEOUT_US = 2_s;
-
-	/* timeout after which the measurement is not valid*/
-	static constexpr uint32_t meas_valid_TIMEOUT_US = 1_s;
-
-	/* timeout after which the measurement is not considered updated*/
-	static constexpr uint32_t meas_updated_TIMEOUT_US = 100_ms;
 
 	uORB::Publication<vision_target_est_orientation_s> _targetOrientationPub{ORB_ID(vision_target_est_orientation)};
 
@@ -116,41 +112,53 @@ protected:
 
 private:
 
-	static inline bool isMeasValid(hrt_abstime time_stamp)
-	{
-		const hrt_abstime now = hrt_absolute_time();
-		return (time_stamp <= now) &&
-		       ((now - time_stamp) < static_cast<hrt_abstime>(meas_valid_TIMEOUT_US));
-	}
-
-	static inline bool isMeasUpdated(hrt_abstime time_stamp)
-	{
-		const hrt_abstime now = hrt_absolute_time();
-		return (time_stamp <= now) &&
-		       ((now - time_stamp) < static_cast<hrt_abstime>(meas_updated_TIMEOUT_US));
-	}
-
 	bool _has_timed_out{false};
-	struct targetObsOrientation {
-		hrt_abstime timestamp;
-		// Theta
-		bool updated_theta = false;
-		float meas_theta = 0.f;
-		float meas_unc_theta = 0.f;
-		matrix::Vector<float, State::size> meas_h_theta;
+
+	enum ObsType {
+		Fiducial_marker,
+		Uwb,
+		Type_count
+	};
+
+	enum ObsValidMask : uint8_t {
+		// Bit locations for valid observations
+		NO_VALID_DATA = 0,
+		FUSE_VISION   = (1 << 0),///< set to true if target external vision-based data is ready to be fused
+		FUSE_UWB 	  = (1 << 1) ///< set to true if UWB data is ready to be fused
+	};
+
+	struct targetObs {
+		ObsType type;
+		hrt_abstime timestamp = 0;
+		bool updated = false;
+		float meas{};
+		float meas_unc{};
+		matrix::Vector<float, State::size> meas_h_theta{};
 	};
 
 	bool createEstimator();
-	bool initEstimator(const float theta_init);
+	bool initEstimator(const ObsValidMask &vte_fusion_aid_mask, const targetObs observations[ObsType::Type_count]);
 	bool updateStep();
 	void predictionStep();
 
-	bool processObsVisionOrientation(const fiducial_marker_yaw_report_s &fiducial_marker_pose, targetObsOrientation &obs);
+	void processObservations(ObsValidMask &vte_fusion_aid_mask, targetObs observations[ObsType::Type_count]);
+	bool fuseNewSensorData(ObsValidMask &vte_fusion_aid_mask, const targetObs observations[ObsType::Type_count]);
 
-	bool fuse_orientation(const targetObsOrientation &target_pos_obs);
+	/* Vision data */
+	void handleVisionData(ObsValidMask &vte_fusion_aid_mask, targetObs &obs_fiducial_marker);
+	bool isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw);
+	bool processObsVision(const fiducial_marker_yaw_report_s &fiducial_marker_yaw, targetObs &obs);
+
+	/* UWB data */
+	void handleUwbData(ObsValidMask &vte_fusion_aid_mask, targetObs &obs_uwb);
+	bool isUwbDataValid(const sensor_uwb_s &uwb_report);
+	bool processObsUwb(const sensor_uwb_s &uwb_report, targetObs &obs);
+
+	bool fuseMeas(const targetObs &target_pos_obs);
 	void publishTarget();
 
-	uORB::Subscription _fiducial_marker_orientation_sub{ORB_ID(fiducial_marker_yaw_report)};
+	uORB::Subscription _fiducial_marker_yaw_report_sub{ORB_ID(fiducial_marker_yaw_report)};
+	uORB::Subscription _sensor_uwb_sub{ORB_ID(sensor_uwb)};
 
 	struct localOrientation {
 		bool valid = false;
@@ -170,15 +178,16 @@ private:
 
 	bool _estimator_initialized{false};
 
-	KF_orientation *_target_estimator_orientation {nullptr};
+	KF_orientation *_target_est_yaw {nullptr};
 
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
 
-	void checkParams(const bool force);
+	void checkMeasurementInputs();
 
 	/* parameters from vision_target_estimator_params.c*/
-	uint32_t _vte_TIMEOUT_US = 3_s; // timeout after which filter is reset if target not seen
+	uint32_t _vte_TIMEOUT_US = 3_s;
+	int _vte_aid_mask{0};
 	float _yaw_unc;
 	float _ev_angle_noise;
 	bool  _ev_noise_md{false};
@@ -186,7 +195,6 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::VTE_YAW_UNC_IN>) _param_vte_yaw_unc_in,
-		(ParamFloat<px4::params::VTE_BTOUT>) _param_vte_btout,
 		(ParamInt<px4::params::VTE_YAW_EN>) _param_vte_yaw_en,
 		(ParamFloat<px4::params::VTE_EVA_NOISE>) _param_vte_ev_angle_noise,
 		(ParamInt<px4::params::VTE_EV_NOISE_MD>) _param_vte_ev_noise_md,

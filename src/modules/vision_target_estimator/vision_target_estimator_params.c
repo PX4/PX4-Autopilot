@@ -43,7 +43,7 @@
  * Vision Target Estimator module enable
  *
  * @boolean
- *
+ * @reboot_required true
  * @group Vision Target Estimator
  */
 PARAM_DEFINE_INT32(VTE_EN, 1);
@@ -52,7 +52,7 @@ PARAM_DEFINE_INT32(VTE_EN, 1);
  * Vision Target Estimator module enable orientation estimation
  *
  * @boolean
- *
+ * @reboot_required true
  * @group Vision Target Estimator
  */
 PARAM_DEFINE_INT32(VTE_YAW_EN, 0);
@@ -61,7 +61,7 @@ PARAM_DEFINE_INT32(VTE_YAW_EN, 0);
  * Vision Target Estimator module enable position estimation
  *
  * @boolean
- *
+ * @reboot_required true
  * @group Vision Target Estimator
  */
 PARAM_DEFINE_INT32(VTE_POS_EN, 1);
