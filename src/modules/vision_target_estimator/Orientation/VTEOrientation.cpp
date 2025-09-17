@@ -273,7 +273,8 @@ bool VTEOrientation::isUwbDataValid(const sensor_uwb_s &uwb_report)
 		return false;
 	}
 
-	if (fabsf(uwb_report.aoa_azimuth_dev) > max_uwb_aoa_angle_degree ||
+	if (!PX4_ISFINITE(uwb_report.distance) ||
+	    fabsf(uwb_report.aoa_azimuth_dev) > max_uwb_aoa_angle_degree ||
 	    fabsf(uwb_report.aoa_elevation_dev) > max_uwb_aoa_angle_degree) {
 		return false;
 	}
