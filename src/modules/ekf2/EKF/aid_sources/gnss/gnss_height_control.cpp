@@ -120,12 +120,17 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 				} else if (is_fusion_failing) {
 					// Some other height source is still working
 					ECL_WARN("stopping %s height fusion, fusion failing", HGT_SRC_NAME);
-					stopGpsHgtFusion(&aid_src);
+					stopGpsHgtFusion();
+
+					if (!isGnssHgtResetAllowed()) {
+						_control_status.flags.gnss_hgt_fault = true;
+						_time_last_gnss_hgt_rejected = _time_delayed_us;
+					}
 				}
 
 			} else {
 				ECL_WARN("stopping %s height fusion, continuing conditions failing", HGT_SRC_NAME);
-				stopGpsHgtFusion(&aid_src);
+				stopGpsHgtFusion();
 			}
 
 		} else {
@@ -146,16 +151,12 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 				bool is_gnss_hgt_consistent = true;
 
 				if (_control_status.flags.gnss_hgt_fault) {
-					if (aid_src.innovation_rejected) {
-						_gnss_hgt_hysteresis_time = 0;
 
-					} else if (_gnss_hgt_hysteresis_time == 0) {
-						_gnss_hgt_hysteresis_time = aid_src.timestamp_sample;
+					if (aid_src.innovation_rejected) {
+						_time_last_gnss_hgt_rejected = _time_delayed_us;
 					}
 
-					is_gnss_hgt_consistent = isTimedOut(_gnss_hgt_hysteresis_time, _params.hgt_fusion_timeout_max)
-								 && isRecent(_gnss_hgt_hysteresis_time, 2 * _params.hgt_fusion_timeout_max);
-
+					is_gnss_hgt_consistent = isTimedOut(_time_last_gnss_hgt_rejected, _params.hgt_fusion_timeout_max);
 				}
 
 				if (is_gnss_hgt_consistent) {
@@ -185,11 +186,11 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 		   && !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL)) {
 		// No data anymore. Stop until it comes back.
 		ECL_WARN("stopping %s height fusion, no data", HGT_SRC_NAME);
-		stopGpsHgtFusion(&aid_src);
+		stopGpsHgtFusion();
 	}
 }
 
-void Ekf::stopGpsHgtFusion(estimator_aid_source1d_s *aid_src)
+void Ekf::stopGpsHgtFusion()
 {
 	if (_control_status.flags.gps_hgt) {
 
@@ -200,12 +201,6 @@ void Ekf::stopGpsHgtFusion(estimator_aid_source1d_s *aid_src)
 		_gps_hgt_b_est.setFusionInactive();
 
 		_control_status.flags.gps_hgt = false;
-
-		if (aid_src != nullptr &&  aid_src->innovation_rejected && !isGnssHgtResetAllowed()) {
-			_control_status.flags.gnss_hgt_fault = true;
-			_gnss_hgt_hysteresis_time = 0;
-		}
-
 	}
 }
 
