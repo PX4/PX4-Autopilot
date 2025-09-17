@@ -57,6 +57,7 @@ static constexpr FailureUnit failure_units[] = {
 	{ "mag", vehicle_command_s::FAILURE_UNIT_SENSOR_MAG},
 	{ "baro", vehicle_command_s::FAILURE_UNIT_SENSOR_BARO},
 	{ "gps", vehicle_command_s::FAILURE_UNIT_SENSOR_GPS},
+	{ "gps_alt", vehicle_command_s::FAILURE_UNIT_SENSOR_GPS_ALT},
 	{ "optical_flow", vehicle_command_s::FAILURE_UNIT_SENSOR_OPTICAL_FLOW},
 	{ "vio", vehicle_command_s::FAILURE_UNIT_SENSOR_VIO},
 	{ "distance_sensor", vehicle_command_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR},
@@ -83,6 +84,7 @@ static constexpr FailureType failure_types[] = {
 	{ "slow", vehicle_command_s::FAILURE_TYPE_SLOW},
 	{ "delayed", vehicle_command_s::FAILURE_TYPE_DELAYED},
 	{ "intermittent", vehicle_command_s::FAILURE_TYPE_INTERMITTENT},
+	{ "drift", vehicle_command_s::FAILURE_TYPE_DRIFT},
 };
 
 static void print_usage()
