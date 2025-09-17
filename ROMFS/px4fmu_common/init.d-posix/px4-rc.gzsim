@@ -193,14 +193,16 @@ else
 	exit 1
 fi
 
-# NOTE: Only for rover_mecanum and spacecraft_2d. All other models have
-# the magnetometer sensor in the model.sdf.
-if param compare -s SENS_EN_MAGSIM 1
-then
-	sensor_mag_sim start
-fi
-# NOTE: new gz has airspeed sensor, remove once added
-if param compare -s SENS_EN_ARSPDSIM 1
-then
-	sensor_airspeed_sim start
-fi
+# TODO:
+
+# # NOTE: Only for rover_mecanum and spacecraft_2d. All other models have
+# # the magnetometer sensor in the model.sdf.
+# if param compare -s SENS_EN_MAGSIM 1
+# then
+# 	sensor_mag_sim start
+# fi
+# # NOTE: new gz has airspeed sensor, remove once added
+# if param compare -s SENS_EN_ARSPDSIM 1
+# then
+# 	sensor_airspeed_sim start
+# fi
