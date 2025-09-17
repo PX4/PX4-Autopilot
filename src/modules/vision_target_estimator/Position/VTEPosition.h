@@ -222,7 +222,8 @@ private:
 	{
 		return vte_fusion_aid_mask & (ObsValidMask::FUSE_MISSION_POS |
 					      ObsValidMask::FUSE_TARGET_GPS_POS |
-					      ObsValidMask::FUSE_VISION);
+					      ObsValidMask::FUSE_VISION |
+					      ObsValidMask::FUSE_UWB);
 	}
 
 	// Only estimate the GNSS bias if we have a GNSS estimation and a secondary source of position
