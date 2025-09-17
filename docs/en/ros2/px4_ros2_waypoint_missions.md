@@ -1,20 +1,25 @@
 # PX4 ROS 2 Waypoint Missions
 
-<Badge type="tip" text="PX4 v1.16" /> <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="PX4 v1.16" /> <Badge type="tip" text="Multicopter (only)" /> <Badge type="warning" text="Experimental" />
 
 The [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) provides a high-level interface for executing ROS-based waypoint missions in ROS 2.
+The main use-case is for creating missions where a custom behavior is required, such as a pickup action within a mission.
 
 ::: warning
 ROS 2 missions are not compatible with MAVLink mission definitions, plan files, or ground stations.
 They completely bypass the existing PX4 mission mode and waypoint logic, and cannot be planned or displayed within a ground station.
 :::
 
-The main use-case for ROS-based missions is for creating waypoint missions where a custom behavior is required, such as a pickup action within a mission.
-Mission definitions can be loaded from JSON files.
-These can reference and use existing PX4 modes such as takeoff or RTL.
-The implementation can be extended with actions to customize behaviour within a mission.
+ROS 2 waypoint missions are effectively special PX4 ROS 2 custom modes that are run based on the content of a [JSON mission definition](#mission-definition).
+Mission definitions can reference existing PX4 modes, such as Takeoff mode or RTL, and can also be extended with arbitrary custom actions written in ROS.
+The PX4 modes and custom actions are scheduled by the [mode executor](px4_ros2_control_interface.md#mode-executor) based on their order in the JSON.
 
-## Comparison to Existing PX4 Missions
+Mission definitions can be hard coded in the custom mission mode (either in code or statically loaded from a JSON file), which is useful when you want to write each mission as its own mode with a unique name.
+They can also be dynamically loaded based on modification of a particular JSON file — this allows for building a more generic mission framework with a fixed set of custom actions.
+
+The current implementation only supports multicopters but is designed to be extendable to any other vehicle type.
+
+## Comparison to PX4/MAVLink Missions
 
 There are some benefits and drawbacks to using ROS-based missions, which are provided in the following paragraphs.
 
@@ -24,13 +29,14 @@ There are some benefits and drawbacks to using ROS-based missions, which are pro
 - More control over how the mission is executed.
   A custom trajectory executor can be implemented, which can use any of the existing PX4 setpoint types to track the trajectory.
 - Reduced complexity on the flight controller side by running non-safety-critical and non-real-time code on a more high-level companion computer.
-- It can be extended to support other trajectory types, like bezier or dubin curves.
+- It can be extended to support other trajectory types, like Bezier or Dubin curves.
 
 ### Drawbacks
 
 - QGroundControl currently does not display the mission or progress during execution, and cannot upload or download a mission.
   Therefore you will need another mechanism to provide a mission, such as from a web server, a custom GCS, or by generating it directly inside the application.
-- The current implementation supports only multicopters, but is designed to be extendable to any other vehicle type.
+- The current implementation only supports multicopters (it uses the [GotoSetpointType](../ros2/px4_ros2_control_interface.md#go-to-setpoint-gotosetpointtype), which only works for multicopters, and VTOL in MC mode).
+  It is designed to be extendable to any other vehicle type.
 
 ## Overview
 
@@ -40,16 +46,16 @@ This diagram provides a conceptual overview of the main classes and their intera
 
 <!-- Source: https://drive.google.com/file/d/1BXx4fegVE71eq0kDMMuRnhcLnJeDawWe/view?usp=sharing -->
 
-Missions can be defined in JSON, either as a file, or directly inside the application.
+Missions can be defined in [JSON](#mission-definition), either as a file, or directly inside the application.
 There is a file change monitor (`MissionFileMonitor`), that can be used to automatically load a mission from a specific file whenever it is created by another application (e.g. upload via MAVFTP or a cloud service).
 
 The **`MissionExecutor`** class contains the state machine to progress the mission index, and is at the core of the implementation:
 
 - Internally, it builds on top of the [Modes and Mode Executors](px4_ros2_control_interface.md#overview) and registers itself through a custom mode and executor with PX4.
-- It handles switching in and out of missions: it gets activated when the user switches to the corresponding mode and the vehicle is armed.
+- It handles switching in and out of missions: it gets activated when the user switches to the custom mode that represents the mission and the vehicle is armed.
   The mode name can be customized (`My Mission` in the example below).
-  The mission can be paused, which makes the vehicle switch into Hold mode.
-  And to resume, the custom mode has to be selected again.
+  The mission can be paused, which makes the vehicle switch into _Hold mode_.
+  To resume the mission, the custom mode has to be selected again.
 - When an action switches into another mode (for example Takeoff), QGroundControl will display this mode until it is completed.
   The mission executor will then automatically continue.
 - Custom actions can be registered.
