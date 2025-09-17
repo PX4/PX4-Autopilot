@@ -56,7 +56,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/vehicle_acceleration.h>
+#include <uORB/topics/vision_target_est_input.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #if !defined(CONSTRAINED_FLASH)
 #include <uORB/topics/prec_land_status.h>
@@ -121,7 +121,7 @@ private:
 	void perform_estimations();
 	void perform_position_update(const localPose &local_pose, const bool local_pose_updated);
 	void perform_orientation_update(const localPose &local_pose, const bool local_pose_updated);
-	void publish_acceleration(const matrix::Vector3f &vehicle_acc_ned_sampled);
+	void publish_vte_input(const matrix::Vector3f &vehicle_acc_ned_sampled, const matrix::Quaternionf &q_att);
 
 	inline bool no_active_task() {return _vte_current_task == VisionTargetEstTask::VTE_NO_TASK;};
 	inline bool no_estimator_running()
@@ -137,7 +137,8 @@ private:
 	void stop_position_estimator();
 	bool start_orientation_estimator();
 	void stop_orientation_estimator();
-	bool get_input(matrix::Vector3f &acc_ned, matrix::Vector3f &gps_pos_offset, matrix::Vector3f &gps_vel_offset,
+	bool get_input(matrix::Vector3f &acc_ned, matrix::Quaternionf &q_att, matrix::Vector3f &gps_pos_offset,
+		       matrix::Vector3f &gps_vel_offset,
 		       bool gps_vel_offset_updated = false);
 
 	perf_counter_t _cycle_perf_pos{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE cycle pos")};
@@ -158,7 +159,7 @@ private:
 	uORB::Subscription _prec_land_status_sub {ORB_ID(prec_land_status)};
 #endif
 
-	uORB::Publication<vehicle_acceleration_s> _vte_acc_input_pub{ORB_ID(vte_acc_input)};
+	uORB::Publication<vision_target_est_input_s> _vision_target_est_input_pub{ORB_ID(vision_target_est_input)};
 
 	// TODO: change to enum class
 	enum VisionTargetEstTask : uint16_t {

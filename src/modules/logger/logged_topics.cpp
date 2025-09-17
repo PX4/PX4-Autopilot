@@ -196,6 +196,7 @@ void LoggedTopics::add_default_topics()
 
 	// Vision target estimator topics
 #if !defined(CONSTRAINED_FLASH)
+	add_topic("vision_target_est_input", 50);
 	add_topic("vision_target_est_position", 100);
 	add_topic("vision_target_est_orientation", 100);
 	add_optional_topic("vte_aid_gps_pos_target", 100);
@@ -205,8 +206,8 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("vte_aid_fiducial_marker", 100);
 	add_optional_topic("vte_aid_ev_yaw", 100);
 	add_optional_topic("vte_aid_uwb", 100);
-	add_optional_topic("vte_acc_input", 50);
 	add_optional_topic("fiducial_marker_pos_report", 100);
+	add_optional_topic("sensor_uwb", 100);
 	add_optional_topic("target_gnss", 100);
 #endif // !CONSTRAINED_FLASH
 

@@ -119,7 +119,7 @@ void VTEPosition::reset_filter()
 	_has_timed_out = false;
 }
 
-void VTEPosition::update(const Vector3f &acc_ned)
+void VTEPosition::update(const Vector3f &acc_ned, const matrix::Quaternionf &q_att)
 {
 	if (_parameter_update_sub.updated()) {
 		updateParams();
@@ -144,7 +144,7 @@ void VTEPosition::update(const Vector3f &acc_ned)
 	}
 
 	// Update and fuse the observations and publishes innovations
-	if (updateStep(acc_ned)) {
+	if (updateStep(acc_ned, q_att)) {
 		_last_update = _last_predict;
 	}
 
@@ -238,13 +238,13 @@ void VTEPosition::predictionStep(const Vector3f &vehicle_acc_ned)
 	}
 }
 
-bool VTEPosition::updateStep(const Vector3f &vehicle_acc_ned)
+bool VTEPosition::updateStep(const Vector3f &vehicle_acc_ned, const matrix::Quaternionf &q_att)
 {
 
 	// Update the observations and vte_fusion_aid_mask if any valid observation.
 	targetObs observations[ObsType::Type_count];
 	ObsValidMask vte_fusion_aid_mask = ObsValidMask::NO_VALID_DATA;
-	processObservations(vte_fusion_aid_mask, observations);
+	processObservations(q_att, vte_fusion_aid_mask, observations);
 
 	// No new observations --> no fusion.
 	if (vte_fusion_aid_mask == ObsValidMask::NO_VALID_DATA) {
@@ -274,11 +274,12 @@ bool VTEPosition::updateStep(const Vector3f &vehicle_acc_ned)
 	return fuseNewSensorData(vehicle_acc_ned, vte_fusion_aid_mask, observations);
 }
 
-void VTEPosition::processObservations(ObsValidMask &vte_fusion_aid_mask, targetObs obs[ObsType::Type_count])
+void VTEPosition::processObservations(const matrix::Quaternionf &q_att, ObsValidMask &vte_fusion_aid_mask,
+				      targetObs obs[ObsType::Type_count])
 {
 	handleVisionData(vte_fusion_aid_mask, obs[ObsType::Fiducial_marker]);
 
-	handleUwbData(vte_fusion_aid_mask, obs[ObsType::Uwb]);
+	handleUwbData(q_att, vte_fusion_aid_mask, obs[ObsType::Uwb]);
 
 	if (updateUavGpsData()) {
 		handleUavGpsData(vte_fusion_aid_mask, obs[ObsType::Mission_gps_pos], obs[ObsType::Uav_gps_vel]);
@@ -315,7 +316,7 @@ bool VTEPosition::isVisionDataValid(const fiducial_marker_pos_report_s &fiducial
 	return isMeasValid(fiducial_marker_pose.timestamp);
 }
 
-void VTEPosition::handleUwbData(ObsValidMask &vte_fusion_aid_mask, targetObs &obs_uwb)
+void VTEPosition::handleUwbData(const matrix::Quaternionf &q_att, ObsValidMask &vte_fusion_aid_mask, targetObs &obs_uwb)
 {
 	sensor_uwb_s uwb_report;
 
@@ -331,7 +332,7 @@ void VTEPosition::handleUwbData(ObsValidMask &vte_fusion_aid_mask, targetObs &ob
 		return;
 	}
 
-	if (processObsUwb(uwb_report, obs_uwb)) {
+	if (processObsUwb(q_att, uwb_report, obs_uwb)) {
 		vte_fusion_aid_mask = static_cast<ObsValidMask>(vte_fusion_aid_mask | ObsValidMask::FUSE_UWB);
 	}
 }
@@ -342,7 +343,8 @@ bool VTEPosition::isUwbDataValid(const sensor_uwb_s &uwb_report)
 		return false;
 	}
 
-	if (fabsf(uwb_report.aoa_azimuth_dev) > max_uwb_aoa_angle_degree ||
+	if (!PX4_ISFINITE(uwb_report.distance) ||
+	    fabsf(uwb_report.aoa_azimuth_dev) > max_uwb_aoa_angle_degree ||
 	    fabsf(uwb_report.aoa_elevation_dev) > max_uwb_aoa_angle_degree) {
 		return false;
 	}
@@ -351,9 +353,8 @@ bool VTEPosition::isUwbDataValid(const sensor_uwb_s &uwb_report)
 
 }
 
-bool VTEPosition::processObsUwb(const sensor_uwb_s &uwb_report, targetObs &obs)
+bool VTEPosition::processObsUwb(const matrix::Quaternionf &q_att, const sensor_uwb_s &uwb_report, targetObs &obs)
 {
-
 	// Convert degrees to radians
 	const float theta_rad = math::radians(uwb_report.aoa_azimuth_dev);
 	const float phi_rad = math::radians(uwb_report.aoa_elevation_dev);
@@ -366,7 +367,13 @@ bool VTEPosition::processObsUwb(const sensor_uwb_s &uwb_report, targetObs &obs)
 	const float delta_x = -distance * sinf(phi_rad);
 
 	// Total position in NED frame
-	const Vector3f pos_ned(uwb_report.offset_x + delta_x, uwb_report.offset_y + delta_y, uwb_report.offset_z + delta_z);
+	const Vector3f pos(uwb_report.offset_x + delta_x, uwb_report.offset_y + delta_y, uwb_report.offset_z + delta_z);
+
+	// Rotate UWB into NED frame
+	const matrix::Quaternion<float> q_to_ned_uwb(0.0f, 0.7071068f, 0.0f, 0.7071068f); // TODO: no magic numbers
+	matrix::Quaternion<float> q_rotation = q_att * q_to_ned_uwb * get_rot_quaternion(static_cast<enum Rotation>
+					       (uwb_report.orientation));
+	const Vector3f pos_ned = q_rotation.rotateVector(pos);
 
 	obs.meas_xyz = pos_ned;
 

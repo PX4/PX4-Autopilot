@@ -67,7 +67,7 @@ VisionTargetEst::VisionTargetEst() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::vte)
 {
-	_vte_acc_input_pub.advertise();
+	_vision_target_est_input_pub.advertise();
 }
 
 VisionTargetEst::~VisionTargetEst()
@@ -559,14 +559,16 @@ void VisionTargetEst::perform_estimations()
 
 void VisionTargetEst::perform_position_update(const localPose &local_pose, const bool local_pose_updated)
 {
-	matrix::Vector3f gps_pos_offset_ned;
-	matrix::Vector3f vel_offset;
+	matrix::Vector3f gps_pos_offset_ned{};
+	matrix::Vector3f vel_offset{};
 	const bool vel_offset_updated = get_gps_velocity_offset(vel_offset);
 
-	matrix::Vector3f vehicle_acc_ned;
+	matrix::Vector3f vehicle_acc_ned{};
+	matrix::Quaternionf q_att{}; // Required for Uwb (and Irlock)
 
+	// TODO: Downsample attitude quaternions
 	/* Downsample acceleration ned */
-	if (get_input(vehicle_acc_ned, gps_pos_offset_ned, vel_offset, vel_offset_updated)) {
+	if (get_input(vehicle_acc_ned, q_att, gps_pos_offset_ned, vel_offset, vel_offset_updated)) {
 
 		/* If the acceleration has been averaged for too long, early return */
 		if ((hrt_absolute_time() - _last_acc_reset) > acc_downsample_TIMEOUT_US) {
@@ -596,8 +598,8 @@ void VisionTargetEst::perform_position_update(const localPose &local_pose, const
 
 			const matrix::Vector3f vehicle_acc_ned_sampled = _vehicle_acc_ned_sum / _loops_count;
 
-			_vte_position->update(vehicle_acc_ned_sampled);
-			publish_acceleration(vehicle_acc_ned_sampled);
+			_vte_position->update(vehicle_acc_ned_sampled, q_att);
+			publish_vte_input(vehicle_acc_ned_sampled, q_att);
 
 			reset_acc_downsample();
 
@@ -618,16 +620,21 @@ void VisionTargetEst::perform_orientation_update(const localPose &local_pose, co
 	perf_end(_cycle_perf_yaw);
 }
 
-void VisionTargetEst::publish_acceleration(const matrix::Vector3f &vehicle_acc_ned_sampled)
+void VisionTargetEst::publish_vte_input(const matrix::Vector3f &vehicle_acc_ned_sampled,
+					const matrix::Quaternionf &q_att_sampled)
 {
-	vehicle_acceleration_s vte_acc_input_report;
-	vte_acc_input_report.timestamp = hrt_absolute_time();
+	vision_target_est_input_s vte_input_report;
+	vte_input_report.timestamp = hrt_absolute_time();
 
 	for (int i = 0; i < 3; i++) {
-		vte_acc_input_report.xyz[i] = vehicle_acc_ned_sampled(i);
+		vte_input_report.acc_xyz[i] = vehicle_acc_ned_sampled(i);
 	}
 
-	_vte_acc_input_pub.publish(vte_acc_input_report);
+	for (int i = 0; i < 4; i++) {
+		vte_input_report.q_att[i] = q_att_sampled(i);
+	}
+
+	_vision_target_est_input_pub.publish(vte_input_report);
 }
 
 bool VisionTargetEst::get_gps_velocity_offset(matrix::Vector3f &vel_offset_body)
@@ -685,11 +692,12 @@ bool VisionTargetEst::get_local_pose(localPose &local_pose)
 	return true;
 }
 
-bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned, matrix::Vector3f &gps_pos_offset_ned,
+bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned,
+				matrix::Quaternionf &quat_att,
+				matrix::Vector3f &gps_pos_offset_ned,
 				matrix::Vector3f &vel_offset_rot_ned,
 				const bool vel_offset_updated)
 {
-
 	vehicle_attitude_s	vehicle_attitude;
 	vehicle_acceleration_s	vehicle_acceleration;
 
@@ -702,7 +710,8 @@ bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned, matrix::Vecto
 	}
 
 	/* Transform FRD body acc to NED */
-	const matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
+	const matrix::Quaternionf q_att(&vehicle_attitude.q[0]); // (w,x,y,z)
+	quat_att = q_att;
 	const matrix::Vector3f vehicle_acc{vehicle_acceleration.xyz};
 
 	/* Compensate for gravity. */
