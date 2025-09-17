@@ -89,6 +89,11 @@ ssize_t Serial::write(const void *buffer, size_t buffer_size)
 	return _impl.write(buffer, buffer_size);
 }
 
+ssize_t Serial::writeBlocking(const void *buffer, size_t buffer_size, uint32_t timeout_ms)
+{
+	return _impl.writeBlocking(buffer, buffer_size, timeout_ms);
+}
+
 void Serial::flush()
 {
 	return _impl.flush();

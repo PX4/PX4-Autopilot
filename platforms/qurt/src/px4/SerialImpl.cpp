@@ -260,6 +260,12 @@ ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t char
 
 ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 {
+	// TODO: Implement a non-blocking write in Qurt
+	return writeBlocking(buffer, buffer_size, 0);
+}
+
+ssize_t SerialImpl::writeBlocking(const void *buffer, size_t buffer_size, uint32_t timeout_ms)
+{
 	if (!_open) {
 		PX4_ERR("Cannot write to serial device until it has been opened");
 		return -1;

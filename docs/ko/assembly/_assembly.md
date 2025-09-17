@@ -291,7 +291,7 @@ If you're using [DroneCAN ESC](../peripherals/esc_motors.md#dronecan) the contro
 ### Flight Controller Power
 
 Pixhawk FCs require a regulated power supply that can supply at around 5V/3A continuous (check your specific FC)!
-This is sufficient to power the controller itself and a few low-power peripherals, such as a GNSS module, RC transmitter, and low power telemetry radio, but not for motors, actuators, and other peripherals.
+This is sufficient to power the controller itself and a few low-power peripherals, such as a GNSS module, RC receiver, and low power telemetry radio, but not for motors, actuators, and other peripherals.
 
 [Power modules](../power_module/index.md) are commonly used to "split off" this regulated power supply for the FC and also to provide measurements of the battery voltage and total current to the whole system — which PX4 can use to estimate power levels.
 The power module is connected to the FC power port, which is normally labeled `POWER` (or `POWER 1` or `POWER 2` for FCs that have redundant power supply).

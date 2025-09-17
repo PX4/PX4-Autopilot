@@ -628,7 +628,16 @@ div.frame_variant td, div.frame_variant th {
 ### Free-Flyer
 
 <div class="frame_common">
-<img src="../../assets/airframes/types/AirframeUnknown.svg"/>
+<img src="../../assets/airframes/types/FreeFlyer.svg"/>
+<table>
+ <thead>
+   <tr><th>Common Outputs</th></tr>
+ </thead>
+ <tbody>
+<tr>
+ <td><ul><li><b>Motor1</b>: back left thruster, +x thrust</li><li><b>Motor2</b>: front left thruster, -x thrust</li><li><b>Motor3</b>: back right thruster, +x thrust</li><li><b>Motor4</b>: front right thruster, -x thrust</li><li><b>Motor5</b>: front left thruster, +y thrust</li><li><b>Motor6</b>: front right thruster, -y thrust</li><li><b>Motor7</b>: back left thruster, +y thrust</li><li><b>Motor8</b>: back right thruster, -y thrust</li></ul></td>
+</tr>
+</tbody></table>
 </div>
 
 <div class="frame_variant">
@@ -638,7 +647,7 @@ div.frame_variant td, div.frame_variant th {
  </thead>
 <tbody>
 <tr id="spacecraft_free-flyer_kth-atmos">
- <td>KTH-ATMOS</td>
+ <td><a href="https://atmos.discower.io">KTH-ATMOS</a></td>
  <td>Maintainer: DISCOWER<p><code>SYS_AUTOSTART</code> = 70000</p></td>
 </tr>
 </tbody>
