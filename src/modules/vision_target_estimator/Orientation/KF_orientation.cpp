@@ -109,7 +109,7 @@ float KF_orientation::computeInnovCov(float meas_unc)
 float KF_orientation::computeInnov(float meas)
 {
 	/* z - H*x */
-	_innov = meas - (_meas_matrix_row_vect.transpose() * _sync_state)(0, 0);
+	_innov = matrix::wrap_pi(meas - (_meas_matrix_row_vect.transpose() * _sync_state)(0, 0));
 	return _innov;
 }
 
