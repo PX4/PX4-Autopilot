@@ -283,6 +283,7 @@ list(SORT msg_files)
 if(NOT CONSTRAINED_FLASH)
 	list(APPEND msg_files
 		TargetGnss.msg
+		VisionTargetEstInput.msg
 		VisionTargetEstPosition.msg
 		VisionTargetEstOrientation.msg
 		FiducialMarkerPosReport.msg

@@ -89,7 +89,7 @@ public:
 	/*
 	 * Get new measurements and update the state estimate
 	 */
-	void update(const matrix::Vector3f &acc_ned);
+	void update(const matrix::Vector3f &acc_ned, const matrix::Quaternionf &q_att);
 
 	bool init();
 
@@ -207,7 +207,7 @@ private:
 	bool createEstimators();
 	bool initEstimator(const matrix::Matrix <float, Axis::Count, vtest::State::size>
 			   &state_init);
-	bool updateStep(const matrix::Vector3f &vehicle_acc_ned);
+	bool updateStep(const matrix::Vector3f &vehicle_acc_ned, const matrix::Quaternionf &q_att);
 	void predictionStep(const matrix::Vector3f &acc);
 
 	void updateTargetGpsVelocity(const target_gnss_s &target_GNSS_report);
@@ -240,7 +240,7 @@ private:
 			const targetObs observations[ObsType::Type_count], matrix::Vector3f &pos_init);
 	bool fuseNewSensorData(const matrix::Vector3f &vehicle_acc_ned, ObsValidMask &vte_fusion_aid_mask,
 			       const targetObs observations[ObsType::Type_count]);
-	void processObservations(ObsValidMask &vte_fusion_aid_mask,
+	void processObservations(const matrix::Quaternionf &q_att, ObsValidMask &vte_fusion_aid_mask,
 				 targetObs observations[ObsType::Type_count]);
 
 	bool isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who = nullptr) const;
@@ -251,9 +251,9 @@ private:
 	bool processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, targetObs &obs);
 
 	/* UWB data */
-	void handleUwbData(ObsValidMask &vte_fusion_aid_mask, targetObs &obs_uwb);
+	void handleUwbData(const matrix::Quaternionf &q_att, ObsValidMask &vte_fusion_aid_mask, targetObs &obs_uwb);
 	bool isUwbDataValid(const sensor_uwb_s &uwb_report);
-	bool processObsUwb(const sensor_uwb_s &uwb_report, targetObs &obs);
+	bool processObsUwb(const matrix::Quaternionf &q_att, const sensor_uwb_s &uwb_report, targetObs &obs);
 
 	/* UAV GPS data */
 	void handleUavGpsData(ObsValidMask &vte_fusion_aid_mask,
