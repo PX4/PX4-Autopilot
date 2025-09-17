@@ -146,10 +146,13 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 			vehicle_control_mode.flag_control_allocation_enabled = true;
 
 		} else if (offboard_control_mode.acceleration) {
+			// use this for automatic trajectory setpoint
 			vehicle_control_mode.flag_control_acceleration_enabled = true;
 			vehicle_control_mode.flag_control_attitude_enabled = true;
 			vehicle_control_mode.flag_control_rates_enabled = true;
 			vehicle_control_mode.flag_control_allocation_enabled = true;
+			vehicle_control_mode.flag_control_position_enabled = true;
+
 
 		} else if (offboard_control_mode.attitude) {
 			vehicle_control_mode.flag_control_manual_enabled = true;

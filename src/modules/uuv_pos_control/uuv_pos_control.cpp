@@ -116,7 +116,7 @@ void UUVPOSControl::pose_controller_6dof(const Vector3f &pos_des, vehicle_attitu
 	_attitude_setpoint.q_d[2] = _trajectory_setpoint.quaternion[2];
 	_attitude_setpoint.q_d[3] = _trajectory_setpoint.quaternion[3];
 	_attitude_setpoint.thrust_body[0] = rotated_input(0);
-	_attitude_setpoint.thrust_body[1] = rotated_input(1);
+	_attitude_setpoint.thrust_body[1] = rotated_input(1); // apply them as feedforward, should be zeros if no input;
 	_attitude_setpoint.thrust_body[2] = rotated_input(2);
 }
 
