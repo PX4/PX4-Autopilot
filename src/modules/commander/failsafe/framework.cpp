@@ -307,12 +307,12 @@ bool FailsafeBase::checkFailsafe(int caller_id, bool last_state_failure, bool cu
 		int found_idx = -1;
 
 		for (int i = 0; i < max_num_actions; ++i) {
-			if (!_actions[i].valid()) {
-				free_idx = i;
-
-			} else if (_actions[i].id == caller_id) {
+			if (_actions[i].id == caller_id) {
 				found_idx = i;
 				break;
+
+			} else if (!_actions[i].valid()) {
+				free_idx = i;
 			}
 		}
 
