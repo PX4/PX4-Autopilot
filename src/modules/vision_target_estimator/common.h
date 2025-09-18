@@ -75,17 +75,22 @@ static inline bool isMeasUpdated(hrt_abstime time_stamp)
 	       ((now - time_stamp) < static_cast<hrt_abstime>(meas_updated_TIMEOUT_US));
 }
 
-enum SensorFusionMask : uint8_t {
-	// Bit locations for fusion_mode
-	NO_SENSOR_FUSION    = 0,
-	USE_TARGET_GPS_POS  = (1 << 0),    ///< set to true to use target GPS position data
-	USE_UAV_GPS_VEL     = (1 << 1),    ///< set to true to use drone GPS velocity data
-	USE_EXT_VIS_POS     = (1 << 2),    ///< set to true to use target external vision-based relative position data
-	USE_MISSION_POS     = (1 << 3),    ///< set to true to use the PX4 mission position
-	USE_TARGET_GPS_VEL  = (1 << 4),	   ///< set to true to use target GPS velocity data. Only for moving targets.
-	USE_UWB             = (1 << 5), ///< set to true to use UWB.
-	USE_IRLOCK          = (1 << 6) ///< set to true to use IRLOCK.
+union sensor_fusion_mask_u {
+	struct {
+		uint16_t use_target_gps_pos   : 1;  ///< bit 0
+		uint16_t use_uav_gps_vel      : 1;  ///< bit 1
+		uint16_t use_precision_pad    : 1;  ///< bit 2
+		uint16_t use_vision_pos       : 1;  ///< bit 3
+		uint16_t use_mission_pos      : 1;  ///< bit 4
+		uint16_t use_target_gps_vel   : 1;  ///< bit 5
+		uint16_t use_uwb              : 1;  ///< bit 6
+		uint16_t use_irlock           : 1;  ///< bit 7
+		uint16_t reserved             : 8;  ///< bits 8..15 (future use)
+	} flags;
+
+	uint16_t value;
 };
+static_assert(sizeof(sensor_fusion_mask_u) == 2, "Unexpected packing");
 
 struct rangeSensor {
 	hrt_abstime timestamp = 0;

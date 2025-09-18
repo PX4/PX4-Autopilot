@@ -179,8 +179,8 @@ private:
 	uint64_t _vte_orientation_stop_time{0};
 
 	uint32_t _vte_TIMEOUT_US{3_s};
-	int _vte_aid_mask{0};
-	int adjustAidMask(const int input_mask);
+	sensor_fusion_mask_u _vte_aid_mask{};
+	uint16_t adjustAidMask(const int input_mask);
 	void printAidMask();
 
 	bool _vte_orientation_enabled{false};
