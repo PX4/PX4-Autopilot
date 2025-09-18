@@ -45,6 +45,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/gimbal_manager_set_attitude.h>
 #include <uORB/topics/gimbal_device_attitude_status.h>
+#include <uORB/topics/gimbal_manager_status.h>
 #include <uORB/topics/vehicle_command.h>
 
 #include "Sticks.hpp"
@@ -73,9 +74,9 @@ public:
 		| gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_PITCH_LOCK;
 
 private:
-	bool _have_gimbal_control{false};
-
+	bool _tried_to_have_gimbal_control{false};
 	uORB::Subscription _gimbal_device_attitude_status_sub{ORB_ID(gimbal_device_attitude_status)};
+	uORB::Subscription _gimbal_manager_status_sub{ORB_ID(gimbal_manager_status)};
 	hrt_abstime _telemtry_timestamp{};
 	uint16_t _telemetry_flags{};
 	float _telemetry_yaw{};
