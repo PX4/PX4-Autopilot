@@ -97,7 +97,7 @@ inline void clampToXYNorm(Vector3f &target, float max_xy_norm, float accuracy = 
  */
 inline void clampToZNorm(Vector3f &target, float max_z_norm, float accuracy = FLT_EPSILON)
 {
-	const float znorm = fabs(target(2));
+	const float znorm = fabsf(target(2));
 	const float scale_factor = (znorm > FLT_EPSILON)
 				   ? max_z_norm / znorm
 				   : 1.f;
