@@ -150,11 +150,15 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+#if defined(CONFIG_MODULES_GIMBAL)
+
 	// Gimbal mixing interface
 	if (!_gimbal.init(_world_name, _model_name)) {
 		PX4_ERR("failed to init gimbal");
 		return PX4_ERROR;
 	}
+
+#endif // CONFIG_MODULES_GIMBAL
 
 	ScheduleNow();
 	return OK;
