@@ -45,9 +45,7 @@ using namespace matrix;
 
 SensorSimManager::SensorSimManager() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_gen(_rd()),
-	_uniform_dist(0.0f, 1.0f)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 	_px4_accel.set_temperature(kT1C);
 	_px4_gyro.set_temperature(kT1C);
@@ -61,7 +59,7 @@ SensorSimManager::SensorSimManager() :
 	_gps_timing = {
 		.interval_us = 125000,
 		.next_update_time = now,
-		.offset_us = static_cast<hrt_abstime>(_uniform_dist(_gen) * 125000),
+		.offset_us = static_cast<hrt_abstime>((float(rand()) / RAND_MAX) * 125000),
 		.enabled = false,
 	};
 
@@ -69,7 +67,7 @@ SensorSimManager::SensorSimManager() :
 	_baro_timing = {
 		.interval_us = 50000,
 		.next_update_time = now,
-		.offset_us = static_cast<hrt_abstime>(_uniform_dist(_gen) * 50000),
+		.offset_us = static_cast<hrt_abstime>((float(rand()) / RAND_MAX) * 50000),
 		.enabled = false,
 	};
 
@@ -77,7 +75,7 @@ SensorSimManager::SensorSimManager() :
 	_mag_timing = {
 		.interval_us = 20000,
 		.next_update_time = now,
-		.offset_us = static_cast<hrt_abstime>(_uniform_dist(_gen) * 20000),
+		.offset_us = static_cast<hrt_abstime>((float(rand()) / RAND_MAX) * 20000),
 		.enabled = false,
 	};
 
@@ -85,7 +83,7 @@ SensorSimManager::SensorSimManager() :
 	_airspeed_timing = {
 		.interval_us = 125000,
 		.next_update_time = now,
-		.offset_us = static_cast<hrt_abstime>(_uniform_dist(_gen) * 125000),
+		.offset_us = static_cast<hrt_abstime>((float(rand()) / RAND_MAX) * 125000),
 		.enabled = false,
 	};
 
@@ -93,7 +91,7 @@ SensorSimManager::SensorSimManager() :
 	_agp_timing = {
 		.interval_us = 500000,
 		.next_update_time = now,
-		.offset_us = static_cast<hrt_abstime>(_uniform_dist(_gen) * 500000),
+		.offset_us = static_cast<hrt_abstime>((float(rand()) / RAND_MAX) * 500000),
 		.enabled = false,
 	};
 
@@ -101,7 +99,7 @@ SensorSimManager::SensorSimManager() :
 	_distance_sensor_timing = {
 		.interval_us = 20000,
 		.next_update_time = now,
-		.offset_us = static_cast<hrt_abstime>(_uniform_dist(_gen) * 20000),
+		.offset_us = static_cast<hrt_abstime>((float(rand()) / RAND_MAX) * 20000),
 		.enabled = false,
 	};
 
@@ -109,7 +107,7 @@ SensorSimManager::SensorSimManager() :
 	_imu_timing = {
 		.interval_us = 4000,
 		.next_update_time = now,
-		.offset_us = static_cast<hrt_abstime>(_uniform_dist(_gen) * 4000),
+		.offset_us = static_cast<hrt_abstime>((float(rand()) / RAND_MAX) * 4000),
 		.enabled = true,
 	};
 
