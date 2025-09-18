@@ -529,6 +529,22 @@ PARAM_DEFINE_FLOAT(COM_ARM_AUTH_TO, 1);
 PARAM_DEFINE_FLOAT(COM_POS_FS_EPH, 5.f);
 
 /**
+ * Loss of position autonomous failsafe action
+ *
+ * If no autonomous horizontal navigation is possible anymore should the vehicle attempt a dead-reckon
+ * return to home or shall it attempt to descend blindly and land.
+ *
+ * Action to take when autonomous horizontal navigation is lost:
+ * - "Dead-Reckon RTH" can be preferred to bring the vehicle back to Line of Sight (LOS) range, at which point the pilot can take over control.
+ * - "Land if possible" blind with potential drift and uncontrolled landing (risk of hitting obstacles)
+ *
+ * @group Commander
+ * @value 0 Land if possible
+ * @value 1 Dead-Reckoning RTL
+ */
+PARAM_DEFINE_INT32(COM_POS_FS_ACT, 0);
+
+/**
  * Horizontal velocity error threshold.
  *
  * This is the horizontal velocity error (EVH) threshold that will trigger a failsafe.
