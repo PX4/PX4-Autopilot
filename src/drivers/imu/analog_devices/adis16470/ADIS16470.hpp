@@ -121,9 +121,10 @@ private:
 	} _state{STATE::RESET};
 
 	uint8_t _checked_register{0};
+	static constexpr uint16_t msc_ctrl_val = 0xC1 & ~MSC_CTRL_BIT::DR_polarity;
 	static constexpr uint8_t size_register_cfg{1};
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register              | Set bits, Clear bits
-		{ Register::MSC_CTRL,    0, MSC_CTRL_BIT::DR_polarity },
+		{ Register::MSC_CTRL,    msc_ctrl_val, (uint16_t)~msc_ctrl_val},
 	};
 };
