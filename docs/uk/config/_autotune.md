@@ -43,13 +43,13 @@ The airframe must fly well enough to handle moderate disturbances, and should be
 2. Take off and <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">hover at 1m above ground in [Altitude mode](../flight_modes_mc/altitude.md) or [Stabilized mode](../flight_modes_mc/manual_stabilized.md)</div><div style="display: inline;" v-else-if="$frontmatter.frame === 'Plane'">fly at cruise speed in [Position mode](../flight_modes_fw/position.md) or [Altitude mode](../flight_modes_fw/altitude.md)</div>.
 
 3. Use the RC transmitter roll stick to perform the following maneuver, tilting the vehicle just a few degrees: _roll left > roll right > center_ (The whole maneuver should take about 3 seconds).
-  Транспортний засіб повинен стабілізуватися протягом 2 коливань.
+   Транспортний засіб повинен стабілізуватися протягом 2 коливань.
 
 4. Повторіть маневр, нахиляючись з більшими амплітудами при кожної спроби.
-  Якщо транспортний засіб може стабілізуватися протягом 2 коливань під кутом близько 20 градусів, перейдіть до наступного кроку.
+   Якщо транспортний засіб може стабілізуватися протягом 2 коливань під кутом близько 20 градусів, перейдіть до наступного кроку.
 
 5. Повторіть ті ж маніпуляції, але по осі поля.
-  Як вище, почніть з невеликих кутів і підтвердіть, що транспортний засіб може стабілізуватися самостійно протягом 2 коливань, перш ніж збільшувати нахил.
+   Як вище, почніть з невеликих кутів і підтвердіть, що транспортний засіб може стабілізуватися самостійно протягом 2 коливань, перш ніж збільшувати нахил.
 
 If the drone can stabilize itself within 2 oscillations it is ready for the [auto-tuning procedure](#auto-tuning-procedure).
 
@@ -72,41 +72,41 @@ The RC sticks cannot be used during autotuning (moving the sticks will stop the 
 1. Perform the [pre-tuning test](#pre-tuning-test).
 
 2. Takeoff using RC control <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">in [Altitude mode](../flight_modes_mc/altitude.md).
-  Hover the vehicle at a safe distance and at a few meters above ground (between 4 and 20m).</div><div v-else-if="$frontmatter.frame === 'Plane'">
-  Once flying at cruise speed, activate [Hold mode](../flight_modes_fw/hold.md).
-  This will guide the plane to fly in circle at constant altitude and speed.</div>
+   Hover the vehicle at a safe distance and at a few meters above ground (between 4 and 20m).</div><div v-else-if="$frontmatter.frame === 'Plane'">
+   Once flying at cruise speed, activate [Hold mode](../flight_modes_fw/hold.md).
+   This will guide the plane to fly in circle at constant altitude and speed.</div>
 
 3. Enable autotune.
 
-  <div v-if="$frontmatter.frame === 'Plane'">
-  <div class="tip custom-block"><p class="custom-block-title">TIP</p>
+   <div v-if="$frontmatter.frame === 'Plane'">
+   <div class="tip custom-block"><p class="custom-block-title">TIP</p>
 
-  If an [Enable/Disable Autotune Switch](#enable-disable-autotune-switch) is configured you can just toggle the switch to the "enabled" position.
+   If an [Enable/Disable Autotune Switch](#enable-disable-autotune-switch) is configured you can just toggle the switch to the "enabled" position.
 
-  </div></div>
+   </div></div>
 
-  1. In QGroundControl, open the menu **Vehicle setup > PID Tuning**:
+   1. In QGroundControl, open the menu **Vehicle setup > PID Tuning**:
 
-    ![Tuning Setup > Autotune Enabled](../../assets/qgc/setup/autotune/autotune.png)
+      ![Tuning Setup > Autotune Enabled](../../assets/qgc/setup/autotune/autotune.png)
 
-  2. Select either the _Rate Controller_ or _Attitude Controller_ tabs.
+   2. Select either the _Rate Controller_ or _Attitude Controller_ tabs.
 
-  3. Ensure that the **Autotune enabled** button is enabled (this will display the **Autotune** button and remove the manual tuning selectors).
+   3. Ensure that the **Autotune enabled** button is enabled (this will display the **Autotune** button and remove the manual tuning selectors).
 
-  4. Read the warning popup and click on **OK** to start tuning.
+   4. Read the warning popup and click on **OK** to start tuning.
 
 4. Дрон спочатку почне виконувати швидкі рухи кочення, а потім рухи тангажу та рухи курсу.
-  The progress is shown in the progress bar, next to the _Autotune_ button.
+   The progress is shown in the progress bar, next to the _Autotune_ button.
 
 <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">
 
 5. Manually land and disarm to apply the new tuning parameters.
-  Takeoff carefully and manually test that the vehicle is stable.
+   Takeoff carefully and manually test that the vehicle is stable.
 
 </div><div v-else-if="$frontmatter.frame === 'Plane'">
 
 5. The tuning will be immediately/automatically be applied and tested in flight (by default).
-  PX4 will then run a 4 second test and revert the new tuning if a problem is detected.
+   PX4 will then run a 4 second test and revert the new tuning if a problem is detected.
 
 </div>
 

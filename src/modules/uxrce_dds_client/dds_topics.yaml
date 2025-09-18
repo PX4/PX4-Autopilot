@@ -214,5 +214,8 @@ subscriptions:
   - topic: /fmu/in/rover_steering_setpoint
     type: px4_msgs::msg::RoverSteeringSetpoint
 
+  - topic: /fmu/in/landing_gear
+    type: px4_msgs::msg::LandingGear
+
 # Create uORB::PublicationMulti
 subscriptions_multi:

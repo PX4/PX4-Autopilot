@@ -109,92 +109,92 @@ Unless the mode is safety-critical, requires strict timing or very high update r
 
 2. Клонуйте репозиторій в робочий простір:
 
-  ```sh
-  cd $ros_workspace/src
-  git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib
-  ```
+   ```sh
+   cd $ros_workspace/src
+   git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib
+   ```
 
-  :::info
-  Для забезпечення сумісності, використовуйте останні _main_ гілки для PX4, _px4_msgs_ та бібліотеки.
-  Дивіться також [here](https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4).
+   :::info
+   Для забезпечення сумісності, використовуйте останні _main_ гілки для PX4, _px4_msgs_ та бібліотеки.
+   Дивіться також [here](https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4).
 
 :::
 
 3. Побудуйте робочий простір:
 
-  ```sh
-  cd ..
-  colcon build
-  source install/setup.bash
-  ```
+   ```sh
+   cd ..
+   colcon build
+   source install/setup.bash
+   ```
 
 4. У іншій оболонці запустіть PX4 SITL:
 
-  ```sh
-  cd $px4-autopilot
-  make px4_sitl gazebo-classic
-  ```
+   ```sh
+   cd $px4-autopilot
+   make px4_sitl gazebo-classic
+   ```
 
-  (тут ми використовуємо Gazebo-Classic, але ви можете використовувати будь-яку модель або симулятор)
+   (тут ми використовуємо Gazebo-Classic, але ви можете використовувати будь-яку модель або симулятор)
 
 5. Запустіть агента micro XRCE в новій оболонці (після цього ви можете залишити його запущеним):
 
-  ```sh
-  MicroXRCEAgent udp4 -p 8888
-  ```
+   ```sh
+   MicroXRCEAgent udp4 -p 8888
+   ```
 
 6. Запустіть QGroundControl.
 
-  :::info
-  Використовуйте QGroundControl Daily, яка підтримує динамічне оновлення списку режимів.
+   :::info
+   Використовуйте QGroundControl Daily, яка підтримує динамічне оновлення списку режимів.
 
 :::
 
 7. Повернутись до терміналу 2 ROS, запустити один із прикладів:
 
-  ```sh
-  ros2 run example_mode_manual_cpp example_mode_manual
-  ```
+   ```sh
+   ros2 run example_mode_manual_cpp example_mode_manual
+   ```
 
-  Ви повинні отримати на виході режим 'Мій ручний режим' зареєстрований:
+   Ви повинні отримати на виході режим 'Мій ручний режим' зареєстрований:
 
-  ```sh
-  [DEBUG] [example_mode_manual]: Checking message compatibility...
-  [DEBUG] [example_mode_manual]: Subscriber found, continuing
-  [DEBUG] [example_mode_manual]: Publisher found, continuing
-  [DEBUG] [example_mode_manual]: Registering 'My Manual Mode' (arming check: 1, mode: 1, mode executor: 0)
-  [DEBUG] [example_mode_manual]: Subscriber found, continuing
-  [DEBUG] [example_mode_manual]: Publisher found, continuing
-  [DEBUG] [example_mode_manual]: Got RegisterExtComponentReply
-  [DEBUG] [example_mode_manual]: Arming check request (id=1, only printed once)
-  ```
+   ```sh
+   [DEBUG] [example_mode_manual]: Checking message compatibility...
+   [DEBUG] [example_mode_manual]: Subscriber found, continuing
+   [DEBUG] [example_mode_manual]: Publisher found, continuing
+   [DEBUG] [example_mode_manual]: Registering 'My Manual Mode' (arming check: 1, mode: 1, mode executor: 0)
+   [DEBUG] [example_mode_manual]: Subscriber found, continuing
+   [DEBUG] [example_mode_manual]: Publisher found, continuing
+   [DEBUG] [example_mode_manual]: Got RegisterExtComponentReply
+   [DEBUG] [example_mode_manual]: Arming check request (id=1, only printed once)
+   ```
 
 8. На PX4 оболонці ви можете перевірити, що PX4 зареєстрував новий режим:
 
-  ```sh
-  commander status
-  ```
+   ```sh
+   commander status
+   ```
 
-  Вихід має містити:
+   Вихід має містити:
 
-  ```plain
-  INFO  [commander] Disarmed
-  INFO  [commander] navigation mode: Position
-  INFO  [commander] user intended navigation mode: Position
-  INFO  [commander] in failsafe: no
-  INFO  [commander] External Mode 1: nav_state: 23, name: My Manual Mode
-  ```
+   ```plain
+   INFO  [commander] Disarmed
+   INFO  [commander] navigation mode: Position
+   INFO  [commander] user intended navigation mode: Position
+   INFO  [commander] in failsafe: no
+   INFO  [commander] External Mode 1: nav_state: 23, name: My Manual Mode
+   ```
 
 9. У цій точці ви також повинні побачити режим в QGroundControl :
 
 
 
 10. Виберіть режим, переконайтеся, що у вас є ручне джерело управління (фізичний або віртуальний джойстик), та озброєння транспорту.
-  Тоді режим активується, і він має вивести наступний вивід:
+    Тоді режим активується, і він має вивести наступний вивід:
 
-  ```sh
-  [DEBUG] [example_mode_manual]: Mode 'My Manual Mode' activated
-  ```
+    ```sh
+    [DEBUG] [example_mode_manual]: Mode 'My Manual Mode' activated
+    ```
 
 11. Тепер ви готові створити свій власний режим.
 
@@ -420,7 +420,7 @@ This setpoint is streamed to the PX4 [_FwLateralLongitudinalControl_ module](../
 To control the vehicle, at least one lateral **and** one longitudinal setpoint must be provided:
 
 1. Of the longitudinal inputs: either `altitude` or `height_rate` must be finite to control vertical motion.
-  If both are set to `NAN`, the vehicle will maintain its current altitude.
+   If both are set to `NAN`, the vehicle will maintain its current altitude.
 2. Of the lateral inputs: at least one of `course`, `airspeed_direction`, or `lateral_acceleration` must be finite.
 
 For a detailed description of the controllable parameters, please refer to message definitions ([FixedWingLateralSetpoint](../msg_docs/FixedWingLateralSetpoint.md) and [FixedWingLongitudinalSetpoint](../msg_docs/FixedWingLongitudinalSetpoint.md)).
@@ -569,24 +569,24 @@ Commanding transitions externally makes the user partially responsible for ensur
 3. To command a transition, you can use the `toMulticopter()` or `toFixedwing()` methods on your VTOL object to set the desired state.
 4. During transition, send the following combination of setpoints:
 
-  ```cpp
-  // Assuming the instance of the px4_ros2::VTOL object is called vtol
+   ```cpp
+   // Assuming the instance of the px4_ros2::VTOL object is called vtol
 
-  // Send TrajectorySetpointType as follows:
-  Eigen::Vector3f acceleration_sp = vtol.computeAccelerationSetpointDuringTransition();
-  Eigen::Vector3f velocity_sp{NAN, NAN, 0.f};
+   // Send TrajectorySetpointType as follows:
+   Eigen::Vector3f acceleration_sp = vtol.computeAccelerationSetpointDuringTransition();
+   Eigen::Vector3f velocity_sp{NAN, NAN, 0.f};
 
-  _trajectory_setpoint->update(velocity_sp, acceleration_sp);
+   _trajectory_setpoint->update(velocity_sp, acceleration_sp);
 
-  // Send FwLateralLongitudinalSetpointType with lateral input to realign vehicle as desired
+   // Send FwLateralLongitudinalSetpointType with lateral input to realign vehicle as desired
 
-  float course_sp = 0.F; // North
+   float course_sp = 0.F; // North
 
-  _fw_lateral_longitudinal_setpoint->updateWithAltitude(NAN, course_sp)
-  ```
+   _fw_lateral_longitudinal_setpoint->updateWithAltitude(NAN, course_sp)
+   ```
 
-  This will ensure that the transition is handled properly within PX4.
-  You can optionally pass a deceleration setpoint to `computeAccelerationSetpointDuringTransition()` to be used during back-transitions.
+   This will ensure that the transition is handled properly within PX4.
+   You can optionally pass a deceleration setpoint to `computeAccelerationSetpointDuringTransition()` to be used during back-transitions.
 
 To check the current state of the vehicle, use the `getCurrentState()` method on your `px4_ros2::VTOL` object.
 
@@ -599,7 +599,7 @@ See [this external flight mode implementation](https://github.com/Auterion/px4-r
 1. [Configure the output](../payloads/generic_actuator_control.md#generic-actuator-control-with-mavlink).
 2. Створіть екземпляр px4_ros2::PeripheralActuatorControls у конструкторі вашого режиму.
 3. Викличте метод set(), щоб керувати клапаном(-ами).
-  Це може бути зроблено незалежно від будь-яких активних встановлень.
+   Це може бути зроблено незалежно від будь-яких активних встановлень.
 
 ### Телеметрія
 

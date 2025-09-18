@@ -25,6 +25,8 @@ param set-default SENS_IMU_TEMP 10.0
 #param set-default SENS_IMU_TEMP_I 0.025
 #param set-default SENS_IMU_TEMP_P 1.0
 
+param set-default UAVCAN_ESC_IFACE 2
+
 if ver hwtypecmp ARKV6X000
 then
 	param set-default SENS_TEMP_ID 2818058
