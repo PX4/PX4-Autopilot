@@ -130,6 +130,7 @@ adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-apps_sbus"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-vfc_logger"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-mavlink_odometry_bridge"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-dps310"
+adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-icp101xx"
 
 # Make sure any required directories exist
 adb shell "/bin/mkdir -p /data/px4/param"

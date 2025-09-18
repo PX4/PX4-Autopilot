@@ -74,17 +74,30 @@ else
     qshell icm42688p start -s
 fi
 
-dps310 start -X -b /dev/i2c-0
+# First look for any external barometers connected to the apps proc
+EXTERNAL_BAROMETER=0
 
-if (( $? != 0 )); then
-    /bin/echo "Did not detect DPS368 barometer, starting ICP10100 barometer"
+/bin/echo "Looking for external DPS368 barometer"
+if dps310 start -X -b /dev/i2c-0; then
+	/bin/echo "Detected external DPS368 barometer"
+	EXTERNAL_BAROMETER=1
+fi
+
+if (( EXTERNAL_BAROMETER == 0 )); then
+	/bin/echo "Looking for external ICP10100 barometer"
+	if icp101xx start -X -b /dev/i2c-0; then
+		/bin/echo "Detected external ICP10100 barometer"
+		EXTERNAL_BAROMETER=1
+	fi
+fi
+
+# If no external barometers found, use the builtin barometer
+if (( EXTERNAL_BAROMETER == 0 )); then
+    /bin/echo "Did not detect an external barometer, starting onboard ICP10100 barometer"
 
     # Start Invensense ICP 101xx barometer built on to VOXL 2
     qshell icp101xx start -I -b 5
-
     qshell temperature_compensation start
-else
-    /bin/echo "Detected DPS368 barometer"
 fi
 
 # Auto detect the magnetometer. If one or both of these devices
