@@ -468,11 +468,13 @@ class UORBMessage:
             if unassignedEnumValues > 0:
                 #print(f"Debug: WARNING unassignedEnumValues: {unassignedEnumValues}")
                 for enumValueName, enumValue in self.enumValues.items():
-                    #print(f"  Debug: {enumValueName}")
-                    error = Error("constant_not_in_assigned_enum", self.filename, enumValue.line_number, enumValueName)
-                    if not "constant_not_in_assigned_enum" in self.errors:
-                        self.errors["constant_not_in_assigned_enum"] = []
-                    self.errors["constant_not_in_assigned_enum"].append(error)
+                    if enumValueName == "MESSAGE_VERSION": # Ignore constants
+                        pass
+                    else:
+                        error = Error("constant_not_in_assigned_enum", self.filename, enumValue.line_number, enumValueName)
+                        if not "constant_not_in_assigned_enum" in self.errors:
+                            self.errors["constant_not_in_assigned_enum"] = []
+                        self.errors["constant_not_in_assigned_enum"].append(error)
                 # TODO Maybe present as list of possible enums.
 
 
