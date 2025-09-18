@@ -255,6 +255,8 @@ void VisionTargetEst::printAidMask()
 
 	if (_vte_aid_mask & SensorFusionMask::USE_UWB) {PX4_INFO("    Uwb relative position fusion enabled");}
 
+	if (_vte_aid_mask & SensorFusionMask::USE_IRLOCK) {PX4_INFO("    IRLOCK relative position fusion enabled");}
+
 	if (_vte_aid_mask == SensorFusionMask::NO_SENSOR_FUSION) {PX4_WARN("    no data fusion. Modify VTE_AID_MASK");}
 }
 
