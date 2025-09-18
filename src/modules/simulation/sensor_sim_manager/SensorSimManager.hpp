@@ -50,10 +50,15 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/airspeed.h>
+#include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <simulation/failure_injection/failureInjection.hpp>
 #include <drivers/drv_sensor.h>
 #include <lib/drivers/device/Device.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/world_magnetic_model/geo_mag_declination.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
@@ -88,6 +93,8 @@ private:
 	void updateMagnetometer();
 	void updateAirspeed();
 	void updateAGP();
+	void updateIMU();
+	void updateDistanceSensor();
 
 	// Utility methods
 	static float generate_wgn();
@@ -107,23 +114,33 @@ private:
 	SensorTiming _mag_timing;
 	SensorTiming _airspeed_timing;
 	SensorTiming _agp_timing;
+	SensorTiming _imu_timing;
+	SensorTiming _distance_sensor_timing;
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position_groundtruth)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude_groundtruth)};
+	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity_groundtruth)};
 
 	// Publications
 	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
+	uORB::PublicationMulti<airspeed_s> _airspeed_pub{ORB_ID(airspeed)};
+	uORB::PublicationMulti<distance_sensor_s> _distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<vehicle_global_position_s> _aux_global_position_pub{ORB_ID(aux_global_position)};
 
-	// Magnetometer uses PX4Magnetometer publisher
-	PX4Magnetometer _px4_mag{1, ROTATION_NONE};
+	PX4Accelerometer _px4_accel{1310988, ROTATION_NONE}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	PX4Gyroscope     _px4_gyro{1310988, ROTATION_NONE};  // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	PX4Magnetometer _px4_mag{197388, ROTATION_NONE}; // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 
 	FailureInjection _failure_injection{};
+
+	matrix::Vector3f _last_mag{};
+	float _last_baro_pressure{0.0f};
+	float _last_baro_temperature{0.0f};
 
 	// TODO: needed?
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
@@ -132,6 +149,8 @@ private:
 	perf_counter_t _mag_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": mag")};
 	perf_counter_t _airspeed_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": airspeed")};
 	perf_counter_t _agp_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": agp")};
+	perf_counter_t _imu_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": imu")};
+	perf_counter_t _distance_sensor_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": distance")};
 
 	// Random number generator for offsets and noise
 	std::random_device _rd;
@@ -154,26 +173,35 @@ private:
 		(ParamInt<px4::params::SIM_AGP_FAIL>) _sim_agp_fail
 	)
 
-	// Barometer simulation state
 	hrt_abstime _last_baro_update_time{0};
 	float _baro_drift_pa{0.0f};
 	float _baro_drift_pa_per_sec{0.1f}; // TODO, was 0
 	bool _baro_rnd_use_last{false};
 	double _baro_rnd_y2{0.0};
 
-	// Magnetometer simulation state
 	matrix::Vector3f _mag_earth_pred{};
 	bool _mag_earth_available{false};
 
-	// AGP simulation state
 	LatLonAlt _agp_measured_lla{};
 	matrix::Vector3f _agp_position_bias{};
 	uint64_t _agp_time_last_update{0};
+
+	matrix::Vector3f _last_accel{};
+	matrix::Vector3f _last_gyro{};
+	matrix::Vector3f _specific_force_E{};
+
+	float _distance_snsr_min{0.3f};
+	float _distance_snsr_max{50.0f};
+	float _distance_snsr_override{-1.0f};
 
 	// Air constants
 	static constexpr float TEMPERATURE_MSL = 288.0f; // [K]
 	static constexpr float PRESSURE_MSL = 101325.0f; // [Pa]
 	static constexpr float LAPSE_RATE = 0.0065f; // [K/m]
 	static constexpr float AIR_DENSITY_MSL = 1.225f; // [kg/m^3]
+	static constexpr float RHO = 1.225f; // Air density at sea level [kg/m^3]
+
+	// IMU constants
+	static constexpr float T1_C = 15.0f; // Temperature constant
 
 };

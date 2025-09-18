@@ -1,10 +1,6 @@
 
 
-// #include <drivers/drv_hrt.h>
-// #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
-// #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-// #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
-// #include <lib/geo/geo.h>
+#include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/bitmask.h>
@@ -40,8 +36,22 @@ public:
 	bool handle_gps_failure(sensor_gps_s &gps);
 	bool handle_gps_alt_failure(sensor_gps_s &gps);
 
-	bool is_accel_blocked(const int instance=0) { return _accel_blocked[instance]; }
-	bool is_accel_stuck(const int instance=0) { return _accel_stuck[instance]; }
+	bool is_accel_blocked(const int instance = 0) { return _accel_blocked[instance]; }
+	bool is_accel_stuck(const int instance = 0) { return _accel_stuck[instance]; }
+
+	bool is_gyro_blocked(const int instance = 0) { return _gyro_blocked[instance]; }
+	bool is_gyro_stuck(const int instance = 0) { return _gyro_stuck[instance]; }
+
+	bool is_mag_blocked(const int instance = 0) { return _mag_blocked[instance]; }
+	bool is_mag_stuck(const int instance = 0) { return _mag_stuck[instance]; }
+
+	bool is_baro_blocked() { return _baro_blocked; }
+	bool is_baro_stuck() { return _baro_stuck; }
+
+	bool is_airspeed_disconnected() { return _airspeed_disconnected; }
+	hrt_abstime get_airspeed_blocked_timestamp() { return _airspeed_blocked_timestamp; }
+
+	bool is_vio_blocked() { return _vio_blocked; }
 
 private:
 
@@ -68,9 +78,16 @@ private:
 	bool _gps_alt_wrong{false};
 	sensor_gps_s _gps_prev{};
 
-
-	// accel
 	bool _accel_blocked[ACCEL_COUNT_MAX] {};
 	bool _accel_stuck[ACCEL_COUNT_MAX] {};
+	bool _gyro_blocked[GYRO_COUNT_MAX] {};
+	bool _gyro_stuck[GYRO_COUNT_MAX] {};
+	bool _mag_blocked[MAG_COUNT_MAX] {};
+	bool _mag_stuck[MAG_COUNT_MAX] {};
+	bool _baro_blocked{false};
+	bool _baro_stuck{false};
+	bool _airspeed_disconnected{false};
+	hrt_abstime _airspeed_blocked_timestamp{0};
+	bool _vio_blocked{false};
 
 };

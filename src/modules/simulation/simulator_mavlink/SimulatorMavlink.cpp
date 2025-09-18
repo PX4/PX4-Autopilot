@@ -210,10 +210,10 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 			_px4_accel[sensors.id].set_scale(ACCEL_FIFO_SCALE);
 			_px4_accel[sensors.id].set_range(ACCEL_FIFO_RANGE);
 
-			if (_accel_stuck[sensors.id]) {
+			if (_failure_injection.is_accel_stuck(sensors.id)) {
 				_px4_accel[sensors.id].updateFIFO(_last_accel_fifo);
 
-			} else if (!_accel_blocked[sensors.id]) {
+			} else if (!_failure_injection.is_accel_blocked(sensors.id)) {
 				_px4_accel[sensors.id].set_temperature(_sensors_temperature);
 
 				_last_accel_fifo.samples = 1;
@@ -227,10 +227,11 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 			}
 
 		} else {
-			if (_accel_stuck[sensors.id]) {
+
+			if (_failure_injection.is_accel_stuck(sensors.id)) {
 				_px4_accel[sensors.id].update(time, _last_accel[sensors.id](0), _last_accel[sensors.id](1), _last_accel[sensors.id](2));
 
-			} else if (!_accel_blocked[sensors.id]) {
+			} else if (!_failure_injection.is_accel_blocked(sensors.id)) {
 				_px4_accel[sensors.id].set_temperature(_sensors_temperature);
 				_px4_accel[sensors.id].update(time, sensors.xacc, sensors.yacc, sensors.zacc);
 				_last_accel[sensors.id] = matrix::Vector3f{sensors.xacc, sensors.yacc, sensors.zacc};
@@ -253,10 +254,10 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 			_px4_gyro[sensors.id].set_scale(GYRO_FIFO_SCALE);
 			_px4_gyro[sensors.id].set_range(GYRO_FIFO_RANGE);
 
-			if (_gyro_stuck[sensors.id]) {
+			if (_failure_injection.is_gyro_stuck(sensors.id)) {
 				_px4_gyro[sensors.id].updateFIFO(_last_gyro_fifo);
 
-			} else if (!_gyro_blocked[sensors.id]) {
+			} else if (!_failure_injection.is_gyro_blocked(sensors.id)) {
 				_px4_gyro[sensors.id].set_temperature(_sensors_temperature);
 
 				_last_gyro_fifo.samples = 1;
@@ -270,10 +271,10 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 			}
 
 		} else {
-			if (_gyro_stuck[sensors.id]) {
+			if (_failure_injection.is_gyro_stuck(sensors.id)) {
 				_px4_gyro[sensors.id].update(time, _last_gyro[sensors.id](0), _last_gyro[sensors.id](1), _last_gyro[sensors.id](2));
 
-			} else if (!_gyro_blocked[sensors.id]) {
+			} else if (!_failure_injection.is_gyro_blocked(sensors.id)) {
 				_px4_gyro[sensors.id].set_temperature(_sensors_temperature);
 				_px4_gyro[sensors.id].update(time, sensors.xgyro, sensors.ygyro, sensors.zgyro);
 				_last_gyro[sensors.id] = matrix::Vector3f{sensors.xgyro, sensors.ygyro, sensors.zgyro};
@@ -288,22 +289,20 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 			return;
 		}
 
-		if (_mag_stuck[sensors.id]) {
-			_px4_mag[sensors.id].update(time, _last_magx[sensors.id], _last_magy[sensors.id], _last_magz[sensors.id]);
+		if (_failure_injection.is_mag_stuck(sensors.id)) {
+			_px4_mag[sensors.id].update(time, _last_mag[sensors.id](0), _last_mag[sensors.id](1), _last_mag[sensors.id](2));
 
-		} else if (!_mag_blocked[sensors.id]) {
+		} else if (!_failure_injection.is_mag_blocked(sensors.id)) {
 			_px4_mag[sensors.id].set_temperature(_sensors_temperature);
 			_px4_mag[sensors.id].update(time, sensors.xmag, sensors.ymag, sensors.zmag);
-			_last_magx[sensors.id] = sensors.xmag;
-			_last_magy[sensors.id] = sensors.ymag;
-			_last_magz[sensors.id] = sensors.zmag;
+			_last_mag[sensors.id] = matrix::Vector3f{sensors.xmag, sensors.ymag, sensors.zmag};
 		}
 	}
 
 	// baro
-	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO && !_baro_blocked) {
+	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO && !_failure_injection.is_baro_blocked()) {
 
-		if (!_baro_stuck) {
+		if (!_failure_injection.is_baro_stuck()) {
 			_last_baro_pressure = sensors.abs_pressure * 100.f; // hPa to Pa
 			_last_baro_temperature = sensors.temperature;
 		}
@@ -326,15 +325,16 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 	}
 
 	// differential pressure
-	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_airspeed_disconnected) {
+	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_failure_injection.is_airspeed_disconnected()) {
 
 		const float blockage_fraction = 0.7; // defines max blockage (fully ramped)
 		const float airspeed_blockage_rampup_time = 1_s; // time it takes to go max blockage, linear ramp
 
 		float airspeed_blockage_scale = 1.f;
 
-		if (_airspeed_blocked_timestamp > 0) {
-			airspeed_blockage_scale = math::constrain(1.f - (hrt_absolute_time() - _airspeed_blocked_timestamp) /
+		hrt_abstime blocked_timestamp = _failure_injection.get_airspeed_blocked_timestamp();
+		if (blocked_timestamp > 0) {
+			airspeed_blockage_scale = math::constrain(1.f - (hrt_absolute_time() - blocked_timestamp) /
 						  airspeed_blockage_rampup_time, 1.f - blockage_fraction, 1.f);
 		}
 
@@ -827,7 +827,7 @@ void SimulatorMavlink::handle_message_odometry(const mavlink_message_t *msg)
 	case MAV_ESTIMATOR_TYPE_NAIVE:
 	case MAV_ESTIMATOR_TYPE_VISION:
 	case MAV_ESTIMATOR_TYPE_VIO:
-		if (!_vio_blocked) {
+		if (!_failure_injection.is_vio_blocked()) {
 			odom.timestamp = hrt_absolute_time();
 			_visual_odometry_pub.publish(odom);
 		}

@@ -65,16 +65,11 @@ Sih::~Sih()
 
 void Sih::run()
 {
-	_px4_accel.set_temperature(T1_C);
-	_px4_gyro.set_temperature(T1_C);
-
 	init_variables();
 	parameters_updated();
 
 	const hrt_abstime task_start = hrt_absolute_time();
 	_last_run = task_start;
-	_airspeed_time = task_start;
-	_dist_snsr_time = task_start;
 	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
 					    static_cast<int32_t>(VehicleType::First),
 					    static_cast<int32_t>(VehicleType::Last)));
@@ -215,23 +210,6 @@ void Sih::sensor_step()
 
 	equations_of_motion(dt);
 
-	reconstruct_sensors_signals(now);
-
-	if ((_vehicle == VehicleType::FixedWing
-	     || _vehicle == VehicleType::TailsitterVTOL
-	     || _vehicle == VehicleType::StandardVTOL)
-	    && now - _airspeed_time >= 50_ms) {
-		_airspeed_time = now;
-		send_airspeed(now);
-	}
-
-	// distance sensor published at 50 Hz
-	if (now - _dist_snsr_time >= 20_ms
-	    && fabs(_distance_snsr_override) < 10000) {
-		_dist_snsr_time = now;
-		send_dist_snsr(now);
-	}
-
 	publish_ground_truth(now);
 
 	perf_end(_loop_perf);
@@ -276,10 +254,6 @@ void Sih::parameters_updated()
 
 	// guards against too small determinants
 	_Im1 = 100.0f * inv(static_cast<typeof _I>(100.0f * _I));
-
-	_distance_snsr_min = _sih_distance_snsr_min.get();
-	_distance_snsr_max = _sih_distance_snsr_max.get();
-	_distance_snsr_override = _sih_distance_snsr_override.get();
 
 	_T_TAU = _sih_thrust_tau.get();
 }
@@ -608,85 +582,8 @@ Dcmf Sih::computeRotEcefToNed(const LatLonAlt &lla)
 	return Dcmf(val);
 }
 
-void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
-{
-	// The sensor signals reconstruction and noise levels are from [1]
-	// [1] Bulka, Eitan, and Meyer Nahon. "Autonomous fixed-wing aerobatics: from theory to flight."
-	//     In 2018 IEEE International Conference on Robotics and Automation (ICRA), pp. 6573-6580. IEEE, 2018.
 
-	// IMU
-	const Dcmf R_E2B(_q_E.inversed());
-	Vector3f accel_noise;
-	Vector3f gyro_noise;
 
-	if (_T_B.longerThan(FLT_EPSILON)) {
-		accel_noise = noiseGauss3f(0.5f, 1.7f, 1.4f);
-		gyro_noise = noiseGauss3f(0.14f, 0.07f, 0.03f);
-
-	} else {
-		// Lower noise when not armed
-		accel_noise = noiseGauss3f(0.1f, 0.1f, 0.1f);
-		gyro_noise = noiseGauss3f(0.01f, 0.01f, 0.01f);
-	}
-
-	Vector3f specific_force_B = R_E2B * _specific_force_E;
-	Vector3f accel = specific_force_B + accel_noise;
-
-	const Vector3f earth_spin_rate_B = R_E2B * Vector3f(0.f, 0.f, CONSTANTS_EARTH_SPIN_RATE);
-	Vector3f gyro = _w_B + earth_spin_rate_B + gyro_noise;
-
-	// update IMU every iteration
-	_px4_accel.update(time_now_us, accel(0), accel(1), accel(2));
-	_px4_gyro.update(time_now_us, gyro(0), gyro(1), gyro(2));
-}
-
-void Sih::send_airspeed(const hrt_abstime &time_now_us)
-{
-	// TODO: send differential pressure instead?
-	airspeed_s airspeed{};
-	airspeed.timestamp_sample = time_now_us;
-
-	// regardless of vehicle type, body frame, etc this holds as long as wind=0
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_E.norm() + generate_wgn() * 0.2f);
-	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
-	airspeed.confidence = 0.7f;
-	airspeed.timestamp = hrt_absolute_time();
-	_airspeed_pub.publish(airspeed);
-}
-
-void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
-{
-	device::Device::DeviceId device_id;
-	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-	device_id.devid_s.bus = 0;
-	device_id.devid_s.address = 0;
-	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_SIM;
-
-	distance_sensor_s distance_sensor{};
-	// distance_sensor.timestamp_sample = time_now_us;
-	distance_sensor.device_id = device_id.devid;
-	distance_sensor.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
-	distance_sensor.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	distance_sensor.min_distance = _distance_snsr_min;
-	distance_sensor.max_distance = _distance_snsr_max;
-	distance_sensor.signal_quality = -1;
-
-	if (_distance_snsr_override >= 0.f) {
-		distance_sensor.current_distance = _distance_snsr_override;
-
-	} else {
-		distance_sensor.current_distance = -_lpos(2) / _q.dcm_z()(2);
-
-		if (distance_sensor.current_distance > _distance_snsr_max) {
-			// this is based on lightware lw20 behaviour
-			distance_sensor.current_distance = UINT16_MAX / 100.f;
-
-		}
-	}
-
-	distance_sensor.timestamp = hrt_absolute_time();
-	_distance_snsr_pub.publish(distance_sensor);
-}
 
 void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 {
@@ -763,39 +660,6 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 	}
 }
 
-float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
-{
-	// algorithm 1:
-	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
-	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
-	// algorithm 2: from BlockRandGauss.hpp
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
-
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
-
-		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
-
-	} else {
-		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
-	}
-
-	phase = !phase;
-	return X;
-}
-
-Vector3f Sih::noiseGauss3f(float stdx, float stdy, float stdz)
-{
-	return Vector3f(generate_wgn() * stdx, generate_wgn() * stdy, generate_wgn() * stdz);
-}
 
 int Sih::print_status()
 {

@@ -46,7 +46,7 @@ PARAM_DEFINE_INT32(SENS_EN_GPSSIM, 1);
  * @value 0 Disabled
  * @value 1 Enabled
  */
-PARAM_DEFINE_INT32(SENS_EN_BAROSIM, 1);
+PARAM_DEFINE_INT32(SENS_EN_BAROSIM, 0);
 
 /**
  * Enable simulated magnetometer sensor
@@ -55,7 +55,7 @@ PARAM_DEFINE_INT32(SENS_EN_BAROSIM, 1);
  * @value 0 Disabled
  * @value 1 Enabled
  */
-PARAM_DEFINE_INT32(SENS_EN_MAGSIM, 1);
+PARAM_DEFINE_INT32(SENS_EN_MAGSIM, 0);
 
 /**
  * Enable simulated airspeed sensor
@@ -64,7 +64,7 @@ PARAM_DEFINE_INT32(SENS_EN_MAGSIM, 1);
  * @value 0 Disabled
  * @value 1 Enabled
  */
-PARAM_DEFINE_INT32(SENS_EN_ARSPDSIM, 1);
+PARAM_DEFINE_INT32(SENS_EN_ARSPDSIM, 0);
 
 /**
  * Enable simulated AGP sensor
@@ -73,7 +73,7 @@ PARAM_DEFINE_INT32(SENS_EN_ARSPDSIM, 1);
  * @value 0 Disabled
  * @value 1 Enabled
  */
-PARAM_DEFINE_INT32(SENS_EN_AGPSIM, 1);
+PARAM_DEFINE_INT32(SENS_EN_AGPSIM, 0);
 
 /**
  * Number of GPS satellites used in simulation

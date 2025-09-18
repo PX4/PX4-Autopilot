@@ -158,7 +158,6 @@ private:
 	}
 
 
-	void check_failure_injections();
 
 	int publish_distance_topic(const mavlink_distance_sensor_t *dist);
 
@@ -278,29 +277,16 @@ private:
 	vehicle_status_s _vehicle_status{};
 	battery_status_s _battery_status{};
 
-	bool _accel_blocked[ACCEL_COUNT_MAX] {};
-	bool _accel_stuck[ACCEL_COUNT_MAX] {};
 	sensor_accel_fifo_s _last_accel_fifo{};
 	matrix::Vector3f _last_accel[GYRO_COUNT_MAX] {};
 
-	bool _gyro_blocked[GYRO_COUNT_MAX] {};
-	bool _gyro_stuck[GYRO_COUNT_MAX] {};
 	sensor_gyro_fifo_s _last_gyro_fifo{};
 	matrix::Vector3f _last_gyro[GYRO_COUNT_MAX] {};
 
-	bool _baro_blocked{false};
-	bool _baro_stuck{false};
 
-	bool _mag_blocked[MAG_COUNT_MAX] {};
-	bool _mag_stuck[MAG_COUNT_MAX] {};
 
-	bool _airspeed_disconnected{false};
-	hrt_abstime _airspeed_blocked_timestamp{0};
-	bool _vio_blocked{false};
 
-	float _last_magx[MAG_COUNT_MAX] {};
-	float _last_magy[MAG_COUNT_MAX] {};
-	float _last_magz[MAG_COUNT_MAX] {};
+	matrix::Vector3f _last_mag[MAG_COUNT_MAX] {};
 
 	float _last_baro_pressure{0.0f};
 	float _last_baro_temperature{0.0f};
