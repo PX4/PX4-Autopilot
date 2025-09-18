@@ -68,8 +68,8 @@ void Gimbal::acquireGimbalControlIfNeeded()
 	if (_gimbal_manager_status_sub.updated()) {
 		_gimbal_manager_status_sub.copy(&gimbal_manager_status);
 
-		if(gimbal_manager_status.primary_control_compid != _param_mav_comp_id.get() ||
-		   gimbal_manager_status.primary_control_sysid != _param_mav_sys_id.get()) {
+		if (gimbal_manager_status.primary_control_compid != _param_mav_comp_id.get() ||
+		    gimbal_manager_status.primary_control_sysid != _param_mav_sys_id.get()) {
 			_tried_to_have_gimbal_control = true;
 			vehicle_command_s vehicle_command{};
 			vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
