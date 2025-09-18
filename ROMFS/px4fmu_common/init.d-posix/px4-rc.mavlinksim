@@ -27,8 +27,6 @@ else
 	simulator_mavlink start -h "${PX4_SIM_HOSTNAME}" "${simulator_tcp_port}"
 fi
 
-echo "mvlinksim"
-
 # Start sensor simulation manager for additional sensors not handled by gz
 if param compare -s SENS_EN_AGPSIM 1 || param compare -s SENS_EN_MAGSIM 1 || param compare -s SENS_EN_ARSPDSIM 1
 then
