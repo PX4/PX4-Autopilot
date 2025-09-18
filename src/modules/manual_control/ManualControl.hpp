@@ -144,6 +144,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
+		(ParamInt<px4::params::COM_RC_IN_SOURCE>) _param_com_rc_in_source,
 		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t,
 		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_com_rc_stick_ov,
 		(ParamBool<px4::params::MAN_ARM_GESTURE>) _param_man_arm_gesture,

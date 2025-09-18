@@ -58,3 +58,21 @@ PARAM_DEFINE_INT32(MAN_ARM_GESTURE, 1);
  * @max 15
  */
 PARAM_DEFINE_FLOAT(MAN_KILL_GEST_T, -1.f);
+
+/**
+ * Set primary RC input source. This works only if COM_RC_IN_MODE = 2
+ *
+ * This determines which RC input has the priority
+ *
+ * @value -1 Source selection disabled (use last valid source)
+ * @value 1 RC
+ * @value 2 MAVLink 0
+ * @value 3 MAVLink 1
+ * @value 4 MAVLink 2
+ * @value 5 MAVLink 3
+ * @value 6 MAVLink 4
+ * @value 7 MAVLink 5
+ *
+ * @group Manual Control
+ */
+PARAM_DEFINE_INT32(COM_RC_IN_SOURCE, -1);
