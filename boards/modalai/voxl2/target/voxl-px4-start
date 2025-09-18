@@ -314,7 +314,8 @@ if [ "$ARTIFACT_MODE" == "ENABLE" ]; then
 	/usr/bin/shred -u -n 7 /data/px4/dataman
     /bin/echo "Artifact mode has been enabled"
 else
-	# Start logging and use timestamps for log files when possible.
+	# Start logging module
+	# Add the "-t" option to use timestamps for log files when possible
 	# Add the "-e" option to start logging immediately. Default is
 	# to log only when armed. Caution must be used with the "-e" option
 	# because if power is removed without stopping the logger gracefully then
@@ -322,5 +323,5 @@ else
 	# This is done as the last step because any topics marked as optional will only
 	# be logged if they have been advertised when this is started. By starting it last it
 	# makes sure to see those advertisements as the other modules are starting before it.
-	logger start -t
+	logger start
 fi
