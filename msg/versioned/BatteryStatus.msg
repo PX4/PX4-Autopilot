@@ -18,7 +18,7 @@ float32 remaining          # [@range 0,1] [@invalid -1] Remaining capacity
 float32 scale              # [-] [@range 1,] [@invalid -1] Scaling factor to compensate for lower actuation power caused by voltage sag
 float32 time_remaining_s   # [s] [@invalid NaN] Predicted time remaining until battery is empty under previous averaged load
 float32 temperature        # [°C] [@invalid NaN] Temperature of the battery
-uint8 cell_count           # [@invalid 0] Number of cells
+uint8 cell_count           # [-] [@invalid 0] Number of cells
 
 
 uint8 source                   # [@enum SOURCE] Battery source
@@ -26,11 +26,11 @@ uint8 SOURCE_POWER_MODULE = 0  # Power module
 uint8 SOURCE_EXTERNAL = 1      # External
 uint8 SOURCE_ESCS = 2          # ESCs
 
-uint8 priority                # Zero based priority is the connection on the Power Controller V1..Vn AKA BrickN-1
+uint8 priority                # [-] Zero based priority is the connection on the Power Controller V1..Vn AKA BrickN-1
 uint16 capacity               # [mAh] Capacity of the battery when fully charged
-uint16 cycle_count            # Number of discharge cycles the battery has experienced
+uint16 cycle_count            # [-] Number of discharge cycles the battery has experienced
 uint16 average_time_to_empty  # [minutes] Predicted remaining battery capacity based on the average rate of discharge
-uint16 manufacture_date       # Manufacture date, part of serial number of the battery pack. Formatted as: Day + Month×32 + (Year–1980)×512
+uint16 manufacture_date       # [-] Manufacture date, part of serial number of the battery pack. Formatted as: Day + Month×32 + (Year–1980)×512
 uint16 state_of_health        # [%] [@range 0, 100] State of health. FullChargeCapacity/DesignCapacity
 uint16 max_error              # [%] [@range 1, 100] Max error, expected margin of error in the state-of-charge calculation
 uint8 id                      # [-] ID number of a battery. Should be unique and consistent for the lifetime of a vehicle. 1-indexed
