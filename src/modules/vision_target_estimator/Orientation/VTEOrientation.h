@@ -92,7 +92,7 @@ public:
 
 	void set_vte_timeout(const float tout) {_vte_TIMEOUT_US = static_cast<uint32_t>(tout * 1_s);};
 
-	void set_vte_aid_mask(const int mask) {_vte_aid_mask = mask;};
+	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
 	bool has_timed_out() {return _has_timed_out;};
 
@@ -120,12 +120,17 @@ private:
 		Type_count
 	};
 
-	enum ObsValidMask : uint8_t {
-		// Bit locations for valid observations
-		NO_VALID_DATA = 0,
-		FUSE_VISION   = (1 << 0),///< set to true if target external vision-based data is ready to be fused
-		FUSE_UWB 	  = (1 << 1) ///< set to true if UWB data is ready to be fused
+	union ObsValidMask {
+		struct {
+			uint8_t fuse_vision : 1; ///< bit0: external vision data ready to be fused
+			uint8_t fuse_uwb    : 1; ///< bit1: UWB data ready to be fused
+			uint8_t reserved    : 6; ///< bit2..7: reserved for future use
+		} flags;
+
+		uint8_t value{0};
 	};
+
+	static_assert(sizeof(ObsValidMask) == 1, "Unexpected masking size");
 
 	struct targetObs {
 		ObsType type;
@@ -181,7 +186,7 @@ private:
 
 	/* parameters from vision_target_estimator_params.c*/
 	uint32_t _vte_TIMEOUT_US = 3_s;
-	int _vte_aid_mask{0};
+	sensor_fusion_mask_u _vte_aid_mask{};
 	float _yaw_unc;
 	float _ev_angle_noise;
 	bool  _ev_noise_md{false};
