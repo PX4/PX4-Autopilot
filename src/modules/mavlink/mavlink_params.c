@@ -50,15 +50,6 @@ PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
 PARAM_DEFINE_INT32(MAV_COMP_ID, 1);
 
 /**
- * MAVLink protocol version
- * @group MAVLink
- * @value 0 Default to 1, switch to 2 if GCS sends version 2
- * @value 1 Always use version 1
- * @value 2 Always use version 2
- */
-PARAM_DEFINE_INT32(MAV_PROTO_VER, 0);
-
-/**
  * MAVLink SiK Radio ID
  *
  * When non-zero the MAVLink app will attempt to configure the

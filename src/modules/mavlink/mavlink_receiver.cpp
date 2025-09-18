@@ -3228,12 +3228,6 @@ MavlinkReceiver::run()
 				for (ssize_t i = 0; i < nread; i++) {
 					if (mavlink_parse_char(_mavlink.get_channel(), buf[i], &msg, &_status)) {
 
-						/* check if we received version 2 and request a switch. */
-						if (!(_mavlink.get_status()->flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)) {
-							/* this will only switch to proto version 2 if allowed in settings */
-							_mavlink.set_proto_version(2);
-						}
-
 						switch (_mavlink.get_mode()) {
 						case Mavlink::MAVLINK_MODE::MAVLINK_MODE_GIMBAL:
 							handle_messages_in_gimbal_mode(msg);
