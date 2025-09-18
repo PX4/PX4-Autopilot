@@ -17,7 +17,7 @@ VALID_FIELDS = { #Note, also have to add the message types as those can be field
     'uint32'
 }
 
-ALLOWED_UNITS = set(["m", "m/s", "m/s^2", "rad", "rad/s", "rpm" ,"V", "A", "mA", "mAh", "W", "dBm", "s", "ms", "us", "Ohm", "MB", "Kb/s", "degC"])
+ALLOWED_UNITS = set(["m", "m/s", "m/s^2", "rad", "rad/s", "rpm" ,"V", "A", "mA", "mAh", "W", "dBm", "s", "ms", "us", "Ohm", "MB", "Kb/s", "degC","-"])
 invalid_units = set()
 ALLOWED_FRAMES = set(["NED","Body"])
 ALLOWED_INVALID_VALUES = set(["NaN"])
@@ -29,8 +29,6 @@ class Error:
         self.linenumber = linenumber
         self.issueString = issueString
         self.field = field
-
-        #self.display_info()
 
     def display_error(self):
         #print(f"Debug: Error: display_error")
@@ -111,13 +109,48 @@ class MessageField:
             self.description = match.group(2).strip()
         if bracketed_part:
           # get units
-            bracket_content_matches = matches = re.findall(r'\[(.*?)\]', bracketed_part)
+            bracket_content_matches = re.findall(r'\[(.*?)\]', bracketed_part)
             #print(f"bracket_content_matches: {bracket_content_matches}")
             for item in bracket_content_matches:
                 item = item.strip()
-                if not item.startswith('@'): # a unit
+                if item.startswith('@'): # Not a unit:
+                    if item.startswith('@enum'):
+                        item = item.split(" ")
+                        self.enums = item[1:]
+                        # Create parent enum objects
+                        for enumName in self.enums:
+                            if not enumName in parentMessage.enums:
+                                parentMessage.enums[enumName]=Enum(enumName,parentMessage)
+                    elif item.startswith('@range'):
+                        item = item[6:].strip().split(",")
+                        self.minValue = item[0].strip()
+                        self.maxValue = item[1].strip()
+                    elif item.startswith('@invalid'):
+                        self.invalidValue = item[8:].strip()
+                        #TODO: Maybe split the description out too?
+                        #TODO: Do we require a description? (not currently)
+                        if self.invalidValue.split(" ")[0] not in ALLOWED_INVALID_VALUES:
+                            error = Error("unknown_invalid_value", self.parent.filename, self.lineNumber, self.invalidValue, self.name)
+                            #error.display_error()
+                            if not "unknown_invalid_value" in self.parent.errors:
+                                self.parent.errors["unknown_invalid_value"] = []
+                            self.parent.errors["unknown_invalid_value"].append(error)
+                    elif item.startswith('@frame'):
+                        self.frameValue = item[6:].strip()
+                        if self.frameValue not in ALLOWED_FRAMES:
+                            error = Error("unknown_frame", self.parent.filename, self.lineNumber, self.frameValue, self.name)
+                            #error.display_error()
+                            if not "unknown_frame" in self.parent.errors:
+                                self.parent.errors["unknown_frame"] = []
+                            self.parent.errors["unknown_frame"].append(error)
+                    else:
+                        print(f"WARNING: Unhandled metadata in message comment: {item}")
+                        # TODO - report errors for different kinds of metadata
+                        exit()
+
+                else: # bracket is a unit
                     self.unit = item
-                    #TODO IFF we require a unit (except not for enums, test for the empty case []).
+
                     if self.unit not in ALLOWED_UNITS:
                         invalid_units.add(self.unit)
                         error = Error("unknown_unit", self.parent.filename, self.lineNumber, self.unit, self.name)
@@ -125,47 +158,14 @@ class MessageField:
                         if not "unknown_unit" in self.parent.errors:
                             self.parent.errors["unknown_unit"] = []
                         self.parent.errors["unknown_unit"].append(error)
-                elif item.startswith('@enum'):
-                    item = item.split(" ")
-                    self.enums = item[1:]
-                    # Create parent enum objects
-                    for enumName in self.enums:
-                        if not enumName in parentMessage.enums:
-                            parentMessage.enums[enumName]=Enum(enumName,parentMessage)
 
-                elif item.startswith('@range'):
-                    item = item[6:].strip().split(",")
-                    self.minValue = item[0].strip()
-                    self.maxValue = item[1].strip()
-                elif item.startswith('@invalid'):
-                    self.invalidValue = item[8:].strip()
-                    #TODO: Maybe split the description out too?
-                    #TODO: Do we require a description? (not currently)
-                    if self.invalidValue.split(" ")[0] not in ALLOWED_INVALID_VALUES:
-                        error = Error("unknown_invalid_value", self.parent.filename, self.lineNumber, self.invalidValue, self.name)
-                        #error.display_error()
-                        if not "unknown_invalid_value" in self.parent.errors:
-                            self.parent.errors["unknown_invalid_value"] = []
-                        self.parent.errors["unknown_invalid_value"].append(error)
+                    if item == "-":
+                        self.unit = ""
 
-                elif item.startswith('@frame'):
-                    self.frameValue = item[6:].strip()
-                    if self.frameValue not in ALLOWED_FRAMES:
-                        error = Error("unknown_frame", self.parent.filename, self.lineNumber, self.frameValue, self.name)
-                        #error.display_error()
-                        if not "unknown_frame" in self.parent.errors:
-                            self.parent.errors["unknown_frame"] = []
-                        self.parent.errors["unknown_frame"].append(error)
-
-                else:
-                    print(f"WARNING: Unhandled metadata in message comment: {item}")
-                    # TODO - report errors for different kinds of metadata
-                    exit()
 
     def display_info(self):
         print(f"Debug: MessageField: display_info")
         print(f" name: {self.name}, type: {self.type}, description: {self.description}, enums: {self.enums}, minValue: {self.minValue}, maxValue: {self.maxValue}, invalidValue: {self.invalidValue}, frameValue: {self.frameValue}")
-
 
 
 class UORBMessage:
@@ -185,8 +185,6 @@ class UORBMessage:
         self.errors = dict()
 
         self.parseFile()
-
-
 
         if args.errors:
             #print(f"DEBUG: args.errors: {args.errors}")
@@ -244,8 +242,6 @@ class UORBMessage:
 
             description = f"{field.description} " if field.description else ""
             invalid = f"(Invalid: {field.invalidValue}) " if field.invalidValue else ""
-
-
             markdown += f"{field.name} (`{field.type}`) | {unit} | {value} | {description}{invalid}\n"
 
         # Generate enum docs
@@ -286,14 +282,12 @@ class UORBMessage:
 {msg_contents}
 ```
 :::
-
 """
 
         with open(self.output_file, 'w') as content_file:
             content_file.write(markdown)
 
         #exit()
-
 
 
     def display_info(self):
@@ -480,7 +474,6 @@ class UORBMessage:
                         self.errors["constant_not_in_assigned_enum"] = []
                     self.errors["constant_not_in_assigned_enum"].append(error)
                 # TODO Maybe present as list of possible enums.
-
 
 
 
