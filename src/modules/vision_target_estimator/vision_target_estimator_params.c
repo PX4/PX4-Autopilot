@@ -84,17 +84,18 @@ PARAM_DEFINE_INT32(VTE_EKF_AID, 1);
  * 1 : Set to true to use the relative GNSS velocity data if available. (+2)
  * 2 : Set to true to use the target relative position from vision-based data if available. (+4)
  * 3 : Set to true to use the mission land point. Ignored if target GNSS position enabled. (+8)
- * 4 : Set to true to use the (+16)
+ * 4 : Set to true to use the target GNSS velocity if available. (+16)
  *
  * @group Vision Target Estimator
  * @min 0
- * @max 63
+ * @max 127
  * @bit 0 target GNSS position
  * @bit 1 relative GNSS velocity
  * @bit 2 vision relative position
  * @bit 3 mission position
  * @bit 4 target GNSS velocity
  * @bit 5 uwb
+ * @bit 6 irlock
  *
  *
  * @group Vision Target Estimator
@@ -383,3 +384,128 @@ PARAM_DEFINE_FLOAT(VTE_POS_NIS_THRE, 3.84f);
  * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_YAW_NIS_THRE, 3.84f);
+
+/**
+ * Measurement noise for uwb position.
+ *
+ * minimum allowed observation noise for uwb position fusion (m)
+ *
+ * @min 0.01
+ * @max 10.0
+ * @unit m
+ * @decimal 2
+ *
+ * @group Vision Target Estimator
+ */
+PARAM_DEFINE_FLOAT(VTE_UWB_NOISE, 0.1f);
+
+/**
+ * IRLOCK measurement scale X
+ *
+ * Scale factor applied to IRLOCK sensor x measurements before converting to a ray.
+ *
+ * @min 0.01
+ * @decimal 3
+ *
+ * @group Vision Target Estimator
+ */
+PARAM_DEFINE_FLOAT(VTE_IRL_SCALE_X, 1.0f);
+
+/**
+ * IRLOCK measurement scale Y
+ *
+ * Scale factor applied to IRLOCK sensor y measurements before converting to a ray.
+ *
+ * @min 0.01
+ * @decimal 3
+ *
+ * @group Vision Target Estimator
+ */
+PARAM_DEFINE_FLOAT(VTE_IRL_SCALE_Y, 1.0f);
+
+/**
+ * IRLOCK sensor rotation
+ *
+ * Rotation of the IRLOCK sensor relative to the vehicle body frame.
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45 deg
+ * @value 2 Yaw 90 deg
+ * @value 3 Yaw 135 deg
+ * @value 4 Yaw 180 deg
+ * @value 5 Yaw 225 deg
+ * @value 6 Yaw 270 deg
+ * @value 7 Yaw 315 deg
+ *
+ * @min -1
+ * @max 40
+ * @reboot_required true
+ *
+ * @group Vision Target Estimator
+ */
+PARAM_DEFINE_INT32(VTE_IRL_SENS_ROT, 2);
+
+/**
+ * IRLOCK sensor position X
+ *
+ * Sensor position in body frame X (forward) direction.
+ *
+ * @unit m
+ * @decimal 3
+ * @reboot_required true
+ *
+ * @group Vision Target Estimator
+ */
+PARAM_DEFINE_FLOAT(VTE_IRL_POS_X, 0.0f);
+
+/**
+ * IRLOCK sensor position Y
+ *
+ * Sensor position in body frame Y (right) direction.
+ *
+ * @unit m
+ * @decimal 3
+ * @reboot_required true
+ *
+ * @group Vision Target Estimator
+ */
+PARAM_DEFINE_FLOAT(VTE_IRL_POS_Y, 0.0f);
+
+/**
+ * IRLOCK sensor position Z
+ *
+ * Sensor position in body frame Z (down) direction.
+ *
+ * @unit m
+ * @decimal 3
+ * @reboot_required true
+ *
+ * @group Vision Target Estimator
+ */
+PARAM_DEFINE_FLOAT(VTE_IRL_POS_Z, 0.0f);
+
+/**
+ * IRLOCK measurement uncertainty scale
+ *
+ * Variance scale applied to IRLOCK measurements when projected onto the ground plane.
+ *
+ * @unit tan(rad)^2
+ * @decimal 4
+ *
+ * @group Vision Target Estimator
+ */
+PARAM_DEFINE_FLOAT(VTE_IRL_MEAS_UNC, 0.005f);
+
+/**
+ * Measurement noise for irlock position.
+ *
+ * minimum allowed observation noise for irlock position fusion (m)
+ *
+ * @min 0.01
+ * @max 10.0
+ * @unit m
+ * @decimal 2
+ *
+ * @group Vision Target Estimator
+ */
+PARAM_DEFINE_FLOAT(VTE_IRL_NOISE, 0.1f);
