@@ -419,9 +419,10 @@ void VTEOrientation::updateParams()
 	_nis_threshold = _param_vte_yaw_nis_thre.get();
 }
 
+// TODO: forward the timestamp as for VTEPosition
 void VTEOrientation::set_range_sensor(const float dist, const bool valid)
 {
-	_range_sensor.valid = valid;
+	_range_sensor.valid = valid && (PX4_ISFINITE(dist) && dist > 0.f);
 	_range_sensor.dist_bottom = dist;
 	_range_sensor.last_update = hrt_absolute_time();
 }

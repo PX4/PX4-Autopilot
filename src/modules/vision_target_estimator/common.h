@@ -83,7 +83,8 @@ enum SensorFusionMask : uint8_t {
 	USE_EXT_VIS_POS     = (1 << 2),    ///< set to true to use target external vision-based relative position data
 	USE_MISSION_POS     = (1 << 3),    ///< set to true to use the PX4 mission position
 	USE_TARGET_GPS_VEL  = (1 << 4),	   ///< set to true to use target GPS velocity data. Only for moving targets.
-	USE_UWB = (1 << 5) ///< set to true to use UWB.
+	USE_UWB             = (1 << 5), ///< set to true to use UWB.
+	USE_IRLOCK          = (1 << 6) ///< set to true to use IRLOCK.
 };
 
 } // namespace vision_target_estimator
