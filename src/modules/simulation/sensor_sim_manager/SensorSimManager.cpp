@@ -49,7 +49,9 @@ SensorSimManager::SensorSimManager() :
 	_gen(_rd()),
 	_uniform_dist(0.0f, 1.0f)
 {
-	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_MAGSIM);
+	_px4_accel.set_temperature(T1_C);
+	_px4_gyro.set_temperature(T1_C);
+
 	srand(1234);
 
 	// Initialize sensor timings with base intervals and random offsets
@@ -95,11 +97,29 @@ SensorSimManager::SensorSimManager() :
 		.enabled = false,
 	};
 
+	// IMU: 250 Hz
+	_imu_timing = {
+		.interval_us = 4000,
+		.next_update_time = now,
+		.offset_us = static_cast<hrt_abstime>(_uniform_dist(_gen) * 4000),
+		.enabled = true,  // Always enabled
+	};
+
+	// Distance sensor: 50 Hz
+	_distance_sensor_timing = {
+		.interval_us = 20000,
+		.next_update_time = now,
+		.offset_us = static_cast<hrt_abstime>(_uniform_dist(_gen) * 20000),
+		.enabled = true,  // Always enabled
+	};
+
 	_gps_timing.next_update_time += _gps_timing.offset_us;
 	_baro_timing.next_update_time += _baro_timing.offset_us;
 	_mag_timing.next_update_time += _mag_timing.offset_us;
 	_airspeed_timing.next_update_time += _airspeed_timing.offset_us;
 	_agp_timing.next_update_time += _agp_timing.offset_us;
+	_imu_timing.next_update_time += _imu_timing.offset_us;
+	_distance_sensor_timing.next_update_time += _distance_sensor_timing.offset_us;
 
 }
 
@@ -111,11 +131,13 @@ SensorSimManager::~SensorSimManager()
 	perf_free(_mag_perf);
 	perf_free(_airspeed_perf);
 	perf_free(_agp_perf);
+	perf_free(_imu_perf);
+	perf_free(_distance_sensor_perf);
 }
 
 bool SensorSimManager::init()
 {
-	ScheduleOnInterval(10_ms);
+	ScheduleOnInterval(2_ms);
 	return true;
 }
 
@@ -173,11 +195,11 @@ void SensorSimManager::Run()
 		_agp_timing.enabled = (_param_sens_en_agpsim.get() != 0);
 	}
 
-	_failure_injection.check_failure_injections();
-
 	const hrt_abstime now = hrt_absolute_time();
 
 	if (_gps_timing.enabled && now >= _gps_timing.next_update_time) {
+		_failure_injection.check_failure_injections(); // TODO, just here for now...
+
 		updateGPS();
 		_gps_timing.next_update_time = now + _gps_timing.interval_us;
 	}
@@ -202,14 +224,22 @@ void SensorSimManager::Run()
 		_agp_timing.next_update_time = now + _agp_timing.interval_us;
 	}
 
+	if (_imu_timing.enabled && now >= _imu_timing.next_update_time) {
+		updateIMU();
+		_imu_timing.next_update_time = now + _imu_timing.interval_us;
+	}
+
+	if (_distance_sensor_timing.enabled && now >= _distance_sensor_timing.next_update_time) {
+		updateDistanceSensor();
+		_distance_sensor_timing.next_update_time = now + _distance_sensor_timing.interval_us;
+	}
+
 	perf_end(_loop_perf);
 }
 
 void SensorSimManager::updateGPS()
 {
 	perf_begin(_gps_perf);
-
-	_failure_injection.check_failure_injections();
 
 	vehicle_local_position_s lpos{};
 	_vehicle_local_position_sub.copy(&lpos);
@@ -342,25 +372,25 @@ void SensorSimManager::updateBarometer()
 				}
 			}
 
-			// Apply noise and drift
-			const float abs_pressure_noise = 1.f * (float)y1;  // 1 Pa RMS noise
-			_baro_drift_pa += _baro_drift_pa_per_sec * dt;
-			const float absolute_pressure_noisy = absolute_pressure + abs_pressure_noise + _baro_drift_pa;
+			if (!_failure_injection.is_baro_stuck()) {
+				const float abs_pressure_noise = 1.f * (float)y1;  // 1 Pa RMS noise
+				_baro_drift_pa += _baro_drift_pa_per_sec * dt;
+				const float absolute_pressure_noisy = absolute_pressure + abs_pressure_noise + _baro_drift_pa;
 
-			// convert to hPa
-			float pressure = absolute_pressure_noisy + _sim_baro_off_p.get();
+				_last_baro_pressure = absolute_pressure_noisy + _sim_baro_off_p.get();
 
-			// calculate temperature in Celsius
-			float temperature = temperature_local - 273.0f + _sim_baro_off_t.get();
+				_last_baro_temperature = temperature_local - 273.0f + _sim_baro_off_t.get();
+			}
 
-			// publish
-			sensor_baro_s sensor_baro{};
-			sensor_baro.timestamp_sample = gpos.timestamp;
-			sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
-			sensor_baro.pressure = pressure;
-			sensor_baro.temperature = temperature;
-			sensor_baro.timestamp = hrt_absolute_time();
-			_sensor_baro_pub.publish(sensor_baro);
+			if (!_failure_injection.is_baro_blocked()) {
+				sensor_baro_s sensor_baro{};
+				sensor_baro.timestamp_sample = gpos.timestamp;
+				sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+				sensor_baro.pressure = _last_baro_pressure;
+				sensor_baro.temperature = _last_baro_temperature;
+				sensor_baro.timestamp = hrt_absolute_time();
+				_sensor_baro_pub.publish(sensor_baro);
+			}
 
 			_last_baro_update_time = gpos.timestamp;
 		}
@@ -395,14 +425,23 @@ void SensorSimManager::updateMagnetometer()
 		vehicle_attitude_s attitude;
 
 		if (_vehicle_attitude_sub.copy(&attitude)) {
-			Vector3f expected_field = Dcmf{Quatf{attitude.q}} .transpose() * _mag_earth_pred;
+			if (_failure_injection.is_mag_stuck(0)) {
+				_px4_mag.update(attitude.timestamp, _last_mag(0), _last_mag(1), _last_mag(2));
 
-			expected_field += noiseGauss3f(0.02f, 0.02f, 0.03f);
+			} else if (!_failure_injection.is_mag_blocked(0)) {
+				Vector3f expected_field = Dcmf{Quatf{attitude.q}} .transpose() * _mag_earth_pred;
 
-			_px4_mag.update(attitude.timestamp,
+				expected_field += noiseGauss3f(0.02f, 0.02f, 0.03f);
+
+				Vector3f mag_output{
 					expected_field(0) + _sim_mag_offset_x.get(),
 					expected_field(1) + _sim_mag_offset_y.get(),
-					expected_field(2) + _sim_mag_offset_z.get());
+					expected_field(2) + _sim_mag_offset_z.get()
+				};
+
+				_px4_mag.update(attitude.timestamp, mag_output(0), mag_output(1), mag_output(2));
+				_last_mag = mag_output;
+			}
 		}
 	}
 
@@ -412,6 +451,11 @@ void SensorSimManager::updateMagnetometer()
 void SensorSimManager::updateAirspeed()
 {
 	perf_begin(_airspeed_perf);
+
+	if (_failure_injection.is_airspeed_disconnected()) {
+		perf_end(_airspeed_perf);
+		return;
+	}
 
 	vehicle_local_position_s lpos{};
 	_vehicle_local_position_sub.copy(&lpos);
@@ -428,29 +472,56 @@ void SensorSimManager::updateAirspeed()
 	if (lpos.timestamp > 0 && gpos.timestamp > 0 && attitude.timestamp > 0 &&
 	    (now - lpos.timestamp) < 20000 && (now - gpos.timestamp) < 20000 && (now - attitude.timestamp) < 20000) {
 
-		Vector3f local_velocity = Vector3f{lpos.vx, lpos.vy, lpos.vz};
-		Vector3f body_velocity = Dcmf{Quatf{attitude.q}} .transpose() * local_velocity;
+		Vector3f velocity_E{lpos.vx, lpos.vy, lpos.vz}; // Velocity in NED frame (similar to Earth frame)
 
-		// device id
-		device::Device::DeviceId device_id;
-		device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-		device_id.devid_s.bus = 0;
-		device_id.devid_s.address = 0;
-		device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SIM;
+		airspeed_s airspeed{};
+		airspeed.timestamp_sample = now;
 
+		float true_airspeed = fmaxf(0.1f, velocity_E.norm() + generate_wgn() * 0.2f);
+
+		hrt_abstime blocked_timestamp = _failure_injection.get_airspeed_blocked_timestamp();
+
+		if (blocked_timestamp > 0) {
+			// Simulate blocked pitot tube - airspeed decreases exponentially
+			float time_since_blocked = (now - blocked_timestamp) * 1e-6f;
+			true_airspeed *= expf(-time_since_blocked / 10.0f); // Decay over ~10 seconds
+		}
+
+		airspeed.true_airspeed_m_s = true_airspeed;
+
+		// Calculate indicated airspeed using air density ratio
+		// For now, use standard air density ratio calculation
 		const float alt_amsl = gpos.alt;
 		const float temperature_local = TEMPERATURE_MSL - LAPSE_RATE * alt_amsl;
 		const float density_ratio = powf(TEMPERATURE_MSL / temperature_local, 4.256f);
 		const float air_density = AIR_DENSITY_MSL / density_ratio;
+
+		airspeed.indicated_airspeed_m_s = true_airspeed * sqrtf(air_density / RHO);
+		airspeed.confidence = 0.7f;
+		airspeed.timestamp = hrt_absolute_time();
+		_airspeed_pub.publish(airspeed);
+
+		// Also publish differential pressure for compatibility
+		Vector3f local_velocity = Vector3f{lpos.vx, lpos.vy, lpos.vz};
+		Vector3f body_velocity = Dcmf{Quatf{attitude.q}} .transpose() * local_velocity;
 
 		// calculate differential pressure + noise in hPa
 		const float diff_pressure_noise = (float)generate_wgn() * 0.01f;
 		float diff_pressure = sign(body_velocity(0)) * 0.005f * air_density  * body_velocity(0) * body_velocity(
 					      0) + diff_pressure_noise;
 
+		const float blockage_fraction = 0.7f; // defines max blockage (fully ramped)
+		const float airspeed_blockage_rampup_time = 1e6f; // 1 second in microseconds
+
+		float airspeed_blockage_scale = 1.f;
+		if (blocked_timestamp > 0) {
+			airspeed_blockage_scale = math::constrain(1.f - (now - blocked_timestamp) /
+						  airspeed_blockage_rampup_time, 1.f - blockage_fraction, 1.f);
+		}
+
 		differential_pressure_s differential_pressure{};
 		differential_pressure.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
-		differential_pressure.differential_pressure_pa = (double)diff_pressure * 100.0; // hPa to Pa;
+		differential_pressure.differential_pressure_pa = diff_pressure * 100.f * airspeed_blockage_scale; // hPa to Pa with blockage scaling
 		differential_pressure.temperature = temperature_local;
 		differential_pressure.timestamp = hrt_absolute_time();
 		_differential_pressure_pub.publish(differential_pressure);
@@ -516,6 +587,136 @@ void SensorSimManager::updateAGP()
 	}
 
 	perf_end(_agp_perf);
+}
+
+void SensorSimManager::updateIMU()
+{
+	perf_begin(_imu_perf);
+
+	vehicle_global_position_s gpos{};
+	_vehicle_global_position_sub.copy(&gpos);
+
+	vehicle_local_position_s lpos{};
+	_vehicle_local_position_sub.copy(&lpos);
+
+	vehicle_attitude_s attitude{};
+	_vehicle_attitude_sub.copy(&attitude);
+
+	vehicle_angular_velocity_s angular_velocity{};
+	_vehicle_angular_velocity_sub.copy(&angular_velocity);
+
+	// Check if data is recent (within 20ms)
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (gpos.timestamp > 0 && lpos.timestamp > 0 && attitude.timestamp > 0 && angular_velocity.timestamp > 0 &&
+	    (now - gpos.timestamp) < 20000 && (now - lpos.timestamp) < 20000 &&
+	    (now - attitude.timestamp) < 20000 && (now - angular_velocity.timestamp) < 20000) {
+
+		// The sensor signals reconstruction and noise levels are from [1]
+		// [1] Bulka, Eitan, and Meyer Nahon. "Autonomous fixed-wing aerobatics: from theory to flight."
+		//     In 2018 IEEE International Conference on Robotics and Automation (ICRA), pp. 6573-6580. IEEE, 2018.
+
+		Quatf q_E{attitude.q};
+		const Dcmf R_E2B(q_E.inversed());
+
+		Vector3f acceleration_N{lpos.ax, lpos.ay, lpos.az}; // acceleration in NED frame
+
+		const float gravity = 9.80665f; // Standard gravity
+		Vector3f gravity_N{0.0f, 0.0f, gravity}; // Gravity in NED (down positive)
+		Vector3f specific_force_N = acceleration_N - gravity_N; // Subtract gravity from acceleration to get specific force
+		Vector3f specific_force_B = Dcmf{Quatf{attitude.q}}.transpose() * specific_force_N;
+
+		Vector3f accel_noise;
+		Vector3f gyro_noise;
+
+		// Use velocity magnitude to determine noise level (higher noise when moving)
+		Vector3f velocity{lpos.vx, lpos.vy, lpos.vz};
+
+		if (velocity.norm() > 0.1f) {
+			accel_noise = noiseGauss3f(0.5f, 1.7f, 1.4f);
+			gyro_noise = noiseGauss3f(0.14f, 0.07f, 0.03f);
+
+		} else {
+			accel_noise = noiseGauss3f(0.1f, 0.1f, 0.1f);
+			gyro_noise = noiseGauss3f(0.01f, 0.01f, 0.01f);
+		}
+
+		Vector3f accel = specific_force_B + accel_noise;
+
+		// Angular velocity with Earth rotation and noise
+		Vector3f w_B{angular_velocity.xyz[0], angular_velocity.xyz[1], angular_velocity.xyz[2]};
+		const Vector3f earth_spin_rate_B = R_E2B * Vector3f(0.f, 0.f, CONSTANTS_EARTH_SPIN_RATE);
+		Vector3f gyro = w_B + earth_spin_rate_B + gyro_noise;
+
+		if (_failure_injection.is_accel_stuck()) {
+			_px4_accel.update(now, _last_accel(0), _last_accel(1), _last_accel(2));
+
+		} else if (!_failure_injection.is_accel_blocked()) {
+			_px4_accel.update(now, accel(0), accel(1), accel(2));
+		}
+
+		if (_failure_injection.is_gyro_stuck()) {
+			_px4_gyro.update(now, _last_gyro(0), _last_gyro(1), _last_gyro(2));
+
+		} else if (!_failure_injection.is_gyro_blocked()) {
+			_px4_gyro.update(now, gyro(0), gyro(1), gyro(2));
+		}
+
+		_last_accel = accel;
+		_last_gyro = gyro;
+	}
+
+	perf_end(_imu_perf);
+}
+
+void SensorSimManager::updateDistanceSensor()
+{
+	perf_begin(_distance_sensor_perf);
+
+	vehicle_local_position_s lpos{};
+	_vehicle_local_position_sub.copy(&lpos);
+
+	vehicle_attitude_s attitude{};
+	_vehicle_attitude_sub.copy(&attitude);
+
+	// Check if data is recent (within 20ms), TODO
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (lpos.timestamp > 0 && attitude.timestamp > 0 &&
+	    (now - lpos.timestamp) < 20000 && (now - attitude.timestamp) < 20000 &&
+	    fabsf(_distance_snsr_override) < 10000) {
+
+		device::Device::DeviceId device_id;
+		device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+		device_id.devid_s.bus = 0;
+		device_id.devid_s.address = 0;
+		device_id.devid_s.devtype = DRV_DIST_DEVTYPE_SIM;
+
+		distance_sensor_s distance_sensor{};
+		distance_sensor.device_id = device_id.devid;
+		distance_sensor.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+		distance_sensor.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+		distance_sensor.min_distance = _distance_snsr_min;
+		distance_sensor.max_distance = _distance_snsr_max;
+		distance_sensor.signal_quality = -1;
+
+		if (_distance_snsr_override >= 0.f) {
+			distance_sensor.current_distance = _distance_snsr_override;
+
+		} else {
+			Quatf q{attitude.q};
+			distance_sensor.current_distance = -lpos.z / q.dcm_z()(2);
+
+			if (distance_sensor.current_distance > _distance_snsr_max) {
+				distance_sensor.current_distance = UINT16_MAX / 100.f;
+			}
+		}
+
+		distance_sensor.timestamp = hrt_absolute_time();
+		_distance_sensor_pub.publish(distance_sensor);
+	}
+
+	perf_end(_distance_sensor_perf);
 }
 
 int SensorSimManager::task_spawn(int argc, char *argv[])
