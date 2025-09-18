@@ -85,6 +85,8 @@ PARAM_DEFINE_INT32(VTE_EKF_AID, 1);
  * 2 : Set to true to use the target relative position from vision-based data if available. (+4)
  * 3 : Set to true to use the mission land point. Ignored if target GNSS position enabled. (+8)
  * 4 : Set to true to use the target GNSS velocity if available. (+16)
+ * 5 : Set to true to use the target relative position from uwb data if available (+32)
+ * 6 : Set to true to use the target relative position from irlock data if available (+64)
  *
  * @group Vision Target Estimator
  * @min 0

@@ -115,10 +115,10 @@ bool VTEOrientation::initEstimator(const ObsValidMask &vte_fusion_aid_mask,
 	matrix::Vector<float, State::size> state_init{};
 
 	// Yaw init
-	if (vte_fusion_aid_mask & ObsValidMask::FUSE_VISION) {
+	if (vte_fusion_aid_mask.flags.fuse_vision) {
 		state_init(State::yaw) = observations[ObsType::Fiducial_marker].meas;
 
-	} else if (vte_fusion_aid_mask & ObsValidMask::FUSE_UWB) {
+	} else if (vte_fusion_aid_mask.flags.fuse_uwb) {
 		state_init(State::yaw) = observations[ObsType::Uwb].meas;
 	}
 
@@ -155,12 +155,12 @@ bool VTEOrientation::updateStep()
 {
 	targetObs obs_fiducial_marker_orientation;
 
-	ObsValidMask vte_fusion_aid_mask = ObsValidMask::NO_VALID_DATA;
+	ObsValidMask vte_fusion_aid_mask{};
 	targetObs observations[ObsType::Type_count];
 	processObservations(vte_fusion_aid_mask, observations);
 
 	// No new observations --> no fusion.
-	if (vte_fusion_aid_mask == ObsValidMask::NO_VALID_DATA) {
+	if (vte_fusion_aid_mask.value == 0) {
 		return false;
 	}
 
@@ -184,7 +184,7 @@ void VTEOrientation::processObservations(ObsValidMask &vte_fusion_aid_mask, targ
 void VTEOrientation::handleVisionData(ObsValidMask &vte_fusion_aid_mask, targetObs &obs_fiducial_marker)
 {
 
-	if (!(_vte_aid_mask & SensorFusionMask::USE_EXT_VIS_POS)) {
+	if (!_vte_aid_mask.flags.use_vision_pos) {
 		return;
 	}
 
@@ -199,7 +199,7 @@ void VTEOrientation::handleVisionData(ObsValidMask &vte_fusion_aid_mask, targetO
 	}
 
 	if (processObsVision(fiducial_marker_yaw, obs_fiducial_marker)) {
-		vte_fusion_aid_mask = static_cast<ObsValidMask>(vte_fusion_aid_mask | ObsValidMask::FUSE_VISION);
+		vte_fusion_aid_mask.flags.fuse_vision = true;
 	}
 }
 
@@ -248,7 +248,7 @@ void VTEOrientation::handleUwbData(ObsValidMask &vte_fusion_aid_mask, targetObs 
 {
 	sensor_uwb_s uwb_report;
 
-	if (!(_vte_aid_mask & SensorFusionMask::USE_UWB)) {
+	if (!_vte_aid_mask.flags.use_uwb) {
 		return;
 	}
 
@@ -261,7 +261,7 @@ void VTEOrientation::handleUwbData(ObsValidMask &vte_fusion_aid_mask, targetObs 
 	}
 
 	if (processObsUwb(uwb_report, obs_uwb)) {
-		vte_fusion_aid_mask = static_cast<ObsValidMask>(vte_fusion_aid_mask | ObsValidMask::FUSE_UWB);
+		vte_fusion_aid_mask.flags.fuse_uwb = true;
 	}
 }
 
@@ -305,12 +305,12 @@ bool VTEOrientation::fuseNewSensorData(ObsValidMask &vte_fusion_aid_mask,
 	bool meas_fused = false;
 
 	// Fuse vision position
-	if (vte_fusion_aid_mask & ObsValidMask::FUSE_VISION) {
+	if (vte_fusion_aid_mask.flags.fuse_vision) {
 		meas_fused |= fuseMeas(observations[ObsType::Fiducial_marker]);
 	}
 
 	// Fuse uwb
-	if (vte_fusion_aid_mask & ObsValidMask::FUSE_UWB) {
+	if (vte_fusion_aid_mask.flags.fuse_uwb) {
 		meas_fused |= fuseMeas(observations[ObsType::Uwb]);
 	}
 

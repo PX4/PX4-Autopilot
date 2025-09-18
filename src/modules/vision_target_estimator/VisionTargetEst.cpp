@@ -182,17 +182,18 @@ void VisionTargetEst::updateParams()
 	_gps_pos_is_offset = ((gps_pos_x > 0.01f) || (gps_pos_y > 0.01f) || (gps_pos_z > 0.01f));
 	_gps_pos_offset_xyz = matrix::Vector3f(gps_pos_x, gps_pos_y, gps_pos_z);
 
-	const int new_aid_mask = adjustAidMask(_param_vte_aid_mask.get());
+	sensor_fusion_mask_u new_aid_mask{};
+	new_aid_mask.value = adjustAidMask(_param_vte_aid_mask.get());
 
-	if (new_aid_mask != _vte_aid_mask) {
-		_vte_aid_mask = new_aid_mask;
+	if (new_aid_mask.value != _vte_aid_mask.value) {
+		_vte_aid_mask.value = new_aid_mask.value;
 
 		if (_vte_position_enabled) {
-			_vte_position->set_vte_aid_mask(new_aid_mask);
+			_vte_position->set_vte_aid_mask(new_aid_mask.value);
 		}
 
 		if (_vte_orientation_enabled) {
-			_vte_orientation->set_vte_aid_mask(new_aid_mask);
+			_vte_orientation->set_vte_aid_mask(new_aid_mask.value);
 		}
 
 		printAidMask();
@@ -217,47 +218,48 @@ void VisionTargetEst::updateParams()
 	}
 }
 
-int VisionTargetEst::adjustAidMask(const int input_vte_aid_mask)
+uint16_t VisionTargetEst::adjustAidMask(const int input_vte_aid_mask)
 {
-	int new_aid_mask = input_vte_aid_mask;
+	sensor_fusion_mask_u new_aid_mask{};
+	new_aid_mask.value = input_vte_aid_mask;
 
 #if defined(CONFIG_VTEST_MOVING)
 
-	if (new_aid_mask & SensorFusionMask::USE_MISSION_POS) {
+	if (new_aid_mask.flags.use_mission_pos) {
 		PX4_WARN("VTE for moving target. Disabling mission land position data fusion.");
-		new_aid_mask &= ~SensorFusionMask::USE_MISSION_POS;
+		new_aid_mask.flags.use_mission_pos = false;
 	}
 
 #endif // CONFIG_VTEST_MOVING
 
-	if ((new_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && (_vte_aid_mask & SensorFusionMask::USE_MISSION_POS)) {
+	if ((new_aid_mask.flags.use_target_gps_pos) && (_vte_aid_mask.flags.use_mission_pos)) {
 		PX4_WARN("VTE both target GPS position and mission land position data fusion cannot be enabled simultaneously.");
 		PX4_WARN("Disabling mission land position fusion.");
-		new_aid_mask &= ~SensorFusionMask::USE_MISSION_POS;
+		new_aid_mask.flags.use_mission_pos = false;
 	}
 
-	return new_aid_mask;
+	return new_aid_mask.value;
 }
 
 void VisionTargetEst::printAidMask()
 {
 	PX4_INFO("VTE VTE_AID_MASK config: ");
 
-	if (_vte_aid_mask & SensorFusionMask::USE_EXT_VIS_POS) {PX4_INFO("    vision relative position fusion enabled");}
+	if (_vte_aid_mask.flags.use_vision_pos) {PX4_INFO("    vision relative position fusion enabled");}
 
-	if (_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) {PX4_INFO("    target GPS position fusion enabled");}
+	if (_vte_aid_mask.flags.use_target_gps_pos) {PX4_INFO("    target GPS position fusion enabled");}
 
-	if (_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_VEL) {PX4_INFO("    target GPS velocity fusion enabled");}
+	if (_vte_aid_mask.flags.use_target_gps_vel) {PX4_INFO("    target GPS velocity fusion enabled");}
 
-	if (_vte_aid_mask & SensorFusionMask::USE_MISSION_POS) {PX4_INFO("    mission land position fusion enabled");}
+	if (_vte_aid_mask.flags.use_mission_pos) {PX4_INFO("    mission land position fusion enabled");}
 
-	if (_vte_aid_mask & SensorFusionMask::USE_UAV_GPS_VEL) {PX4_INFO("    UAV GPS velocity fusion enabled");}
+	if (_vte_aid_mask.flags.use_uav_gps_vel) {PX4_INFO("    UAV GPS velocity fusion enabled");}
 
-	if (_vte_aid_mask & SensorFusionMask::USE_UWB) {PX4_INFO("    Uwb relative position fusion enabled");}
+	if (_vte_aid_mask.flags.use_uwb) {PX4_INFO("    Uwb relative position fusion enabled");}
 
-	if (_vte_aid_mask & SensorFusionMask::USE_IRLOCK) {PX4_INFO("    IRLOCK relative position fusion enabled");}
+	if (_vte_aid_mask.flags.use_irlock) {PX4_INFO("    IRLOCK relative position fusion enabled");}
 
-	if (_vte_aid_mask == SensorFusionMask::NO_SENSOR_FUSION) {PX4_WARN("    no data fusion. Modify VTE_AID_MASK");}
+	if (_vte_aid_mask.value == 0) {PX4_WARN("    no data fusion. Modify VTE_AID_MASK");}
 }
 
 void VisionTargetEst::reset_acc_downsample()

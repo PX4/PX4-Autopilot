@@ -110,12 +110,12 @@ public:
 
 	void set_vte_timeout(const float tout) {_vte_TIMEOUT_US = static_cast<uint32_t>(tout * 1_s);};
 
-	void set_vte_aid_mask(const int mask) {_vte_aid_mask = mask;};
+	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
 	bool has_timed_out() {return _has_timed_out;};
 
 	// TODO: decide if a relative position measurement is required.
-	bool has_fusion_enabled() {return _vte_aid_mask != SensorFusionMask::NO_SENSOR_FUSION;};
+	bool has_fusion_enabled() {return _vte_aid_mask.value != 0;};
 
 private:
 	struct accInput {
@@ -153,13 +153,6 @@ protected:
 
 private:
 
-	enum Axis {
-		X,
-		Y,
-		Z,
-		Count,
-	};
-
 	bool _has_timed_out{false};
 
 	enum ObsType {
@@ -178,27 +171,32 @@ private:
 		ObsType type;
 		hrt_abstime timestamp = 0;
 
-		matrix::Vector<bool, Axis::Count> updated{}; // Indicates if observations were updated.
+		matrix::Vector<bool, vtest::Axis::size> updated{}; // Indicates if observations were updated.
 		matrix::Vector3f meas_xyz{};			// Measurements (meas_x, meas_y, meas_z)
 		matrix::Vector3f meas_unc_xyz{};		// Measurements' uncertainties
-		matrix::Matrix<float, Axis::Count, vtest::State::size>
+		matrix::Matrix<float, vtest::Axis::size, vtest::State::size>
 		meas_h_xyz{}; // Observation matrix where the rows correspond to the x,y,z observations and the columns to the state
 	};
 
-	enum ObsValidMask : uint8_t {
-		// Bit locations for valid observations
-		NO_VALID_DATA 	     = 0,
-		FUSE_TARGET_GPS_POS  = (1 << 0), ///< set to true if target GPS position data is ready to be fused
-		FUSE_UAV_GPS_VEL     = (1 << 1), ///< set to true if drone GPS velocity data (and target GPS velocity data if the target is moving)
-		FUSE_VISION     = (1 << 2), ///< set to true if target external vision-based relative position data is ready to be fused
-		FUSE_MISSION_POS     = (1 << 3), ///< set to true if the PX4 mission position is ready to be fused
-		FUSE_TARGET_GPS_VEL  = (1 << 4), ///< set to true if target GPS velocity data is ready to be fused
-		FUSE_UWB 	     = (1 << 5), ///< set to true if UWB data is ready to be fused
-		FUSE_IRLOCK 	     = (1 << 6)  ///< set to true if IRLOCK data is ready to be fused
+	union ObsValidMask {
+		struct {
+			uint8_t fuse_target_gps_pos : 1; ///< bit0: target GPS position ready to be fused
+			uint8_t fuse_uav_gps_vel    : 1; ///< bit1: UAV GPS velocity ready to be fused
+			uint8_t fuse_vision         : 1; ///< bit2: external vision-relative position ready to be fused
+			uint8_t fuse_mission_pos    : 1; ///< bit3: mission position ready to be fused
+			uint8_t fuse_target_gps_vel : 1; ///< bit4: target GPS velocity ready to be fused
+			uint8_t fuse_uwb            : 1; ///< bit5: UWB data ready to be fused
+			uint8_t fuse_irlock         : 1; ///< bit6: IRLOCK data ready to be fused
+			uint8_t reserved            : 1; ///< bit7: reserved for future use
+		} flags;
+
+		uint8_t value{0};
 	};
 
+	static_assert(sizeof(ObsValidMask) == 1, "Unexpected masking size");
+
 	bool createEstimators();
-	bool initEstimator(const matrix::Matrix <float, Axis::Count, vtest::State::size>
+	bool initEstimator(const matrix::Matrix <float, vtest::Axis::size, vtest::State::size>
 			   &state_init);
 	bool updateStep(const matrix::Vector3f &vehicle_acc_ned, const matrix::Quaternionf &q_att);
 	void predictionStep(const matrix::Vector3f &acc);
@@ -207,18 +205,18 @@ private:
 
 	inline bool hasNewNonGpsPositionSensorData(const ObsValidMask &vte_fusion_aid_mask) const
 	{
-		return (vte_fusion_aid_mask & ObsValidMask::FUSE_VISION)
-		       || (vte_fusion_aid_mask & ObsValidMask::FUSE_UWB)
-		       || (vte_fusion_aid_mask & ObsValidMask::FUSE_IRLOCK);
+		return vte_fusion_aid_mask.flags.fuse_vision
+		       || vte_fusion_aid_mask.flags.fuse_uwb
+		       || vte_fusion_aid_mask.flags.fuse_irlock;
 	}
 
 	inline bool hasNewPositionSensorData(const ObsValidMask &vte_fusion_aid_mask) const
 	{
-		return vte_fusion_aid_mask & (ObsValidMask::FUSE_MISSION_POS |
-					      ObsValidMask::FUSE_TARGET_GPS_POS |
-					      ObsValidMask::FUSE_VISION |
-					      ObsValidMask::FUSE_UWB |
-					      ObsValidMask::FUSE_IRLOCK);
+		return vte_fusion_aid_mask.flags.fuse_mission_pos
+		       || vte_fusion_aid_mask.flags.fuse_target_gps_pos
+		       || vte_fusion_aid_mask.flags.fuse_vision
+		       || vte_fusion_aid_mask.flags.fuse_uwb
+		       || vte_fusion_aid_mask.flags.fuse_irlock;
 	}
 
 	// Only estimate the GNSS bias if we have a GNSS estimation and a secondary source of position
@@ -345,7 +343,7 @@ private:
 	uint64_t _last_relative_meas_fused_time{0};
 	bool _estimator_initialized{false};
 
-	KF_position *_target_est_pos[Axis::Count] {nullptr, nullptr, nullptr};
+	KF_position *_target_est_pos[vtest::Axis::size] {nullptr, nullptr, nullptr};
 
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
@@ -354,7 +352,7 @@ private:
 	void checkMeasurementInputs();
 
 	uint32_t _vte_TIMEOUT_US = 3_s;
-	int _vte_aid_mask{0};
+	sensor_fusion_mask_u _vte_aid_mask{};
 	float _target_acc_unc{1.f};
 	float _bias_unc{0.05f};
 	float _uav_acc_unc{1.f};

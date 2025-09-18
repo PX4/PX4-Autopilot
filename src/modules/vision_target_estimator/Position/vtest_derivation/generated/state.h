@@ -30,6 +30,13 @@ struct StateSample {
 
 };
 static_assert(sizeof(matrix::Vector<float, 3>) == sizeof(StateSample), "state vector doesn't match StateSample size");
+namespace Axis
+{
+static constexpr uint8_t x{0};
+static constexpr uint8_t y{1};
+static constexpr uint8_t z{2};
+static constexpr uint8_t size{3};
+};
 
 namespace State
 {

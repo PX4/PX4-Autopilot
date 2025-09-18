@@ -140,6 +140,17 @@ def build_tangent_state_struct(state, tangent_state_index):
     out += "};\n"  # namespace State
     return out
 
+def build_axis_struct():
+    out = "namespace Axis {\n"
+
+    out += f"\tstatic constexpr uint8_t x{{{0}}};\n"
+    out += f"\tstatic constexpr uint8_t y{{{1}}};\n"
+    out += f"\tstatic constexpr uint8_t z{{{2}}};\n"
+
+    out += f"\tstatic constexpr uint8_t size{{{3}}};\n"
+    out += "};\n"  # namespace State
+    return out
+
 def generate_px4_state(state, tangent_state_index):
     print("Generate EKF tangent state definition")
     filename = "state.h"
@@ -154,6 +165,7 @@ def generate_px4_state(state, tangent_state_index):
     f.writelines(header)
 
     f.write(build_state_struct(state))
+    f.write(build_axis_struct())
     f.write("\n")
     f.write(build_tangent_state_struct(state, tangent_state_index))
 
